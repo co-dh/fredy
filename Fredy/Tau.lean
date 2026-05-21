@@ -39,6 +39,35 @@ universe v u
 
 variable {𝒞 : Type u} [Category.{v} 𝒞]
 
+/-! ## Minimal Cat typeclass (replaces Mathlib.CategoryTheory in step 2) -/
+
+/-- A category: objects, hom-sets, identity, composition, and the three axioms. -/
+class Cat.{w, z} (𝒞 : Type z) : Type (max z (w + 1)) where
+  Hom     : 𝒞 → 𝒞 → Type w
+  id      : (X : 𝒞) → Hom X X
+  comp    : {X Y Z : 𝒞} → Hom X Y → Hom Y Z → Hom X Z
+  id_comp : ∀ {X Y : 𝒞} (f : Hom X Y), comp (id X) f = f
+  comp_id : ∀ {X Y : 𝒞} (f : Hom X Y), comp f (id Y) = f
+  assoc   : ∀ {W X Y Z : 𝒞} (f : Hom W X) (g : Hom X Y) (h : Hom Y Z),
+              comp (comp f g) h = comp f (comp g h)
+
+namespace Cat
+
+/-- An isomorphism in a Cat-category. -/
+structure Iso [Cat.{w} 𝒞] (A B : 𝒞) : Type w where
+  hom        : Hom A B
+  inv        : Hom B A
+  hom_inv_id : comp hom inv = id A
+  inv_hom_id : comp inv hom = id B
+
+def Iso.refl [Cat.{w} 𝒞] (A : 𝒞) : Iso A A where
+  hom        := id A
+  inv        := id A
+  hom_inv_id := id_comp (id A)
+  inv_hom_id := id_comp (id A)
+
+end Cat
+
 namespace Freyd
 
 /-! ## Tables -/
