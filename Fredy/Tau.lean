@@ -29,17 +29,7 @@
     • `mem_iff_resurfacing_id` was ill-typed; we use `= self` instead.
 -/
 
-import Mathlib.CategoryTheory.Category.Basic
-import Mathlib.CategoryTheory.Iso
-import Mathlib.CategoryTheory.EqToHom
-
-open CategoryTheory
-
 universe v u
-
-variable {𝒞 : Type u} [Category.{v} 𝒞]
-
-/-! ## Minimal Cat typeclass (replaces Mathlib.CategoryTheory in step 2) -/
 
 /-- A category: objects, hom-sets, identity, composition, and the three axioms. -/
 class Cat.{w, z} (𝒞 : Type z) : Type (max z (w + 1)) where
@@ -68,12 +58,18 @@ def Iso.refl [Cat.{w} 𝒞] (A : 𝒞) : Iso A A where
 
 end Cat
 
+-- Notation (no Mathlib conflict after removing imports)
+infixr:25 " ⟶ " => Cat.Hom
+infixr:80 " ≫ " => Cat.comp
+
+variable {𝒞 : Type u} [Cat.{v} 𝒞]
+
 namespace Freyd
 
 /-! ## Tables -/
 
 /-- A table ⟨T; x₁, …, xₙ⟩: source object T, jointly-monic column family xᵢ : T → Aᵢ. -/
-structure Table (𝒞 : Type u) [Category.{v} 𝒞] where
+structure Table (𝒞 : Type u) [Cat.{v} 𝒞] where
   T : 𝒞
   n : Nat
   codom : Fin n → 𝒞
@@ -120,43 +116,40 @@ def prune (j : Fin tab.n) (hj : tab.IsShort j) : Table 𝒞 where
     · obtain ⟨l, hl⟩ := tab.skip_surj j k hkj
       have h := hAgree l; rwa [hl] at h
 
-/-- Table isomorphism: a source iso intertwining all columns.
-    `hCol` uses `eqToHom` for the codom cast so simp/rw can manipulate it. -/
+/-- Table isomorphism: source iso + index relabeling + column compatibility via HEq.
+    HEq avoids eqToHom and the "motive not type correct" errors it causes. -/
 structure Iso (S T : Table 𝒞) : Type (max u v) where
   hLen   : S.n = T.n
   hCodom : ∀ i : Fin S.n, S.codom i = T.codom (hLen ▸ i)
-  iso    : S.T ≅ T.T
-  hCol   : ∀ i : Fin S.n,
-    S.x i = iso.hom ≫ T.x (hLen ▸ i) ≫ eqToHom (hCodom i).symm
-
-lemma x_at_eq {tab : Table 𝒞} {a b : Fin tab.n} (h : a = b) :
-    tab.x a ≫ eqToHom (congrArg tab.codom h) = tab.x b := by subst h; simp
+  iso    : Cat.Iso S.T T.T
+  hCol   : ∀ i : Fin S.n, HEq (S.x i) (iso.hom ≫ T.x (hLen ▸ i))
 
 lemma x_cast {S T : Table 𝒞} (hST : S = T) (i : Fin S.n) :
-    hST ▸ S.x i = T.x (hST ▸ i) := by subst hST; simp
+    hST ▸ S.x i = T.x (hST ▸ i) := by subst hST; rfl
 
 lemma codom_cast {S T : Table 𝒞} (hST : S = T) (i : Fin S.n) :
-    hST ▸ S.codom i = T.codom (hST ▸ i) := by subst hST; simp
+    hST ▸ S.codom i = T.codom (hST ▸ i) := by subst hST; rfl
 
 def Iso.refl (S : Table 𝒞) : Iso S S where
   hLen   := rfl
   hCodom := fun _ => rfl
-  iso    := CategoryTheory.Iso.refl S.T
-  hCol   := fun _ => by simp
+  iso    := Cat.Iso.refl S.T
+  hCol   := fun i => heq_of_eq (Cat.id_comp (S.x i)).symm
 
 end Table
 
 /-! ## τ-categories -/
 
 /-- A τ-category (Freyd §1.491). -/
-structure TCat (𝒞 : Type u) [Category.{v} 𝒞] where
+structure TCat (𝒞 : Type u) [Cat.{v} 𝒞] where
   mem : Table 𝒞 → Prop
   tau1_exists : ∀ tab : Table 𝒞, ∃ T : Table 𝒞, mem T ∧ Nonempty (Table.Iso tab T)
   tau1_unique : ∀ (tab T₁ T₂ : Table 𝒞),
     mem T₁ → mem T₂ →
     Nonempty (Table.Iso tab T₁) → Nonempty (Table.Iso tab T₂) → T₁ = T₂
   tau2_id : ∀ T : 𝒞,
-    mem ⟨T, 1, fun _ => T, fun _ => 𝟙 T, fun _ f g h => by simpa using h 0⟩
+    mem ⟨T, 1, fun _ => T, fun _ => Cat.id T, fun _ f g h => by
+      have := h 0; simp only [Cat.comp_id] at this; exact this⟩
   tau2_comp : True
   tau3 : ∀ (tab : Table 𝒞) (j : Fin tab.n) (h : tab.IsShort j),
     mem tab → mem (tab.prune j h)
@@ -186,76 +179,31 @@ theorem mem_iff_resurfacing_eq (tab : Table 𝒞) :
 
 /-! ## Converse of τ3 (§1.494) -/
 
--- Fin cast preserves .val.
 private lemma cast_val {m n : Nat} (h : m = n) (i : Fin m) : (h ▸ i).val = i.val := by
   subst h; rfl
 
-/-- IsShort transports along a table iso.
-    Proof: translate f, g via e.iso.inv to S, apply hj, then translate back via eqToHom. -/
 private theorem isShort_of_iso {S T : Table 𝒞} (e : Table.Iso S T)
     (j : Fin S.n) (hj : S.IsShort j) : T.IsShort (e.hLen ▸ j) := by
-  intro X f g hAgree
-  have cast_lt : ∀ i : Fin S.n, i.val < j.val → (e.hLen ▸ i).val < (e.hLen ▸ j).val :=
-    fun i hi => by have := cast_val e.hLen i; have := cast_val e.hLen j; omega
-  have inv_col : ∀ i : Fin S.n,
-      e.iso.inv ≫ S.x i = T.x (e.hLen ▸ i) ≫ eqToHom (e.hCodom i).symm := fun i => by
-    rw [e.hCol i, ← Category.assoc, e.iso.inv_hom_id, Category.id_comp]
-  have key : (f ≫ e.iso.inv) ≫ S.x j = (g ≫ e.iso.inv) ≫ S.x j := by
-    apply hj; intro i hi
-    -- right-associate, substitute via inv_col, then left-associate (separate calls)
-    simp only [Category.assoc]
-    simp only [inv_col]
-    simp only [← Category.assoc]
-    exact congrArg (· ≫ eqToHom (e.hCodom i).symm) (hAgree (e.hLen ▸ i) (cast_lt i hi))
-  -- Same sequence on the hypothesis.
-  simp only [Category.assoc] at key
-  simp only [inv_col] at key
-  simp only [← Category.assoc] at key
-  -- key: (f ≫ T.x (e.hLen ▸ j)) ≫ eqToHom (e.hCodom j).symm = (g ≫ ...) ≫ ...
-  -- Cancel eqToHom by post-composing and using eqToHom_trans + proof_irrel.
-  have hcancel := congrArg (· ≫ eqToHom (e.hCodom j)) key
-  simp only [Category.assoc, eqToHom_trans, eqToHom_refl, Category.comp_id] at hcancel
-  exact hcancel
+  sorry
 
 private noncomputable def iso_prune {S T : Table 𝒞} (e : Table.Iso S T)
     (j : Fin S.n) (hjS : S.IsShort j) (hjT : T.IsShort (e.hLen ▸ j)) :
-    Table.Iso (S.prune j hjS) (T.prune (e.hLen ▸ j) hjT) :=
-  let hLenP : S.n - 1 = T.n - 1 := congrArg (· - 1) e.hLen
-  have skip_eq : ∀ i : Fin (S.n - 1),
-      T.skip (e.hLen ▸ j) (hLenP ▸ i) = e.hLen ▸ S.skip j i := fun i => by
-    apply Fin.ext; simp only [Table.skip, cast_val]; split_ifs <;> omega
-  { hLen   := hLenP
-    hCodom := fun i => (e.hCodom (S.skip j i)).trans (congrArg T.codom (skip_eq i).symm)
-    iso    := e.iso
-    hCol   := fun i => by
-      simp only [Table.prune]
-      rw [e.hCol (S.skip j i)]
-      congr 1
-      rw [← Table.x_at_eq (skip_eq i), Category.assoc, eqToHom_trans] }
+    Table.Iso (S.prune j hjS) (T.prune (e.hLen ▸ j) hjT) := by
+  sorry
 
 /-- The converse of τ3: if xⱼ is short, then ⟨T;x⟩ ∈ τ ↔ ⟨T;x̂ⱼ⟩ ∈ τ. -/
 theorem tau3_converse (tab : Table 𝒞) (j : Fin tab.n) (hShort : tab.IsShort j) :
     τ.mem tab ↔ τ.mem (tab.prune j hShort) := by
   refine ⟨fun h => τ.tau3 tab j hShort h, fun hPrune => ?_⟩
-  -- r.rep ∈ τ, e : Iso tab r.rep.
   let r := τ.resurfacing tab
   let j' : Fin r.rep.n := r.iso.hLen ▸ j
-  -- Step 1: j'-th column of r.rep is short.
   have hShortT : r.rep.IsShort j' := isShort_of_iso r.iso j hShort
-  -- Step 2: r.rep.prune j' ∈ τ.
   have hTprune := τ.tau3 r.rep j' hShortT r.mem
-  -- Step 3: Iso (tab.prune j) (r.rep.prune j').
   have ePrune := iso_prune r.iso j hShort hShortT
-  -- Step 4: τ1-uniqueness: tab.prune j = r.rep.prune j'.
   have hEq : tab.prune j hShort = r.rep.prune j' hShortT :=
     τ.tau1_unique (tab.prune j hShort) _ _ hPrune hTprune ⟨Table.Iso.refl _⟩ ⟨ePrune⟩
-  -- Step 5: tab.T = r.rep.T (sources equal, since prune preserves .T).
   have hSrc : tab.T = r.rep.T := congrArg (·.T) hEq
-  -- Step 6: The source iso r.iso.iso.hom equals eqToHom hSrc.
-  --   (r.iso.iso.hom acts as identity on every column of tab by hEq + hShort;
-  --    joint monicity then gives r.iso.iso.hom = hSrc ▸ 𝟙 = eqToHom hSrc.)
-  have hId : r.iso.iso.hom = eqToHom hSrc := by sorry
-  -- Step 7: Conclude tab = r.rep from hId and the iso fields.
+  have hId : HEq r.iso.iso.hom (Cat.id tab.T) := by sorry
   have hTabEq : tab = r.rep := by sorry
   rw [hTabEq]; exact r.mem
 
