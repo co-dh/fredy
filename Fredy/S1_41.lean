@@ -16,6 +16,10 @@ namespace Freyd
 def Mono {X Y : 𝒞} (m : X ⟶ Y) : Prop :=
   ∀ {W : 𝒞} (g h : W ⟶ X), g ≫ m = h ≫ m → g = h
 
+/-- A MONIC PAIR x: T→A, y: T→B: jointly left-cancellable (§1.41). -/
+def MonicPair {T A B : 𝒞} (x : T ⟶ A) (y : T ⟶ B) : Prop :=
+  ∀ {W : 𝒞} (f g : W ⟶ T), f ≫ x = g ≫ x → f ≫ y = g ≫ y → f = g
+
 def IsIso {X Y : 𝒞} (f : X ⟶ Y) : Prop :=
   ∃ g : Y ⟶ X, f ≫ g = Cat.id X ∧ g ≫ f = Cat.id Y
 

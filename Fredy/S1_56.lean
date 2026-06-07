@@ -37,7 +37,7 @@ structure BinRel (𝒞 : Type u) [Cat.{v} 𝒞] (A B : 𝒞) where
   src  : 𝒞
   colA : src ⟶ A
   colB : src ⟶ B
-  monic : ∀ ⦃X : 𝒞⦄ (f g : X ⟶ src), f ≫ colA = g ≫ colA → f ≫ colB = g ≫ colB → f = g
+  isMonicPair : MonicPair colA colB
 
 /-- Two relations are considered equal if they are isomorphic as tables.
     (We don't quotient; containment gives the preorder.) -/
@@ -53,7 +53,9 @@ def graph {A B : 𝒞} (x : A ⟶ B) : BinRel 𝒞 A B where
   src  := A
   colA := Cat.id A
   colB := x
-  monic := λ X f g hA _ => by simpa [Cat.id_comp, Cat.comp_id] using hA
+  isMonicPair := λ {W} f g hA _ => by
+    -- hA: f ≫ id = g ≫ id  →  f = g
+    simpa [Cat.id_comp, Cat.comp_id] using hA
 
 /-! ## §1.564 Entire, Simple, Map
 
@@ -112,7 +114,7 @@ def reciprocal {A B : 𝒞} (R : BinRel 𝒞 A B) : BinRel 𝒞 B A where
   src  := R.src
   colA := R.colB
   colB := R.colA
-  monic := λ X f g hA hB => R.monic f g hB hA
+  isMonicPair := λ {W} f g hA hB => R.isMonicPair f g hB hA
 
 theorem reciprocal_invol {A B : 𝒞} (R : BinRel 𝒞 A B) : reciprocal (reciprocal R) = R := by
   unfold reciprocal; rfl
