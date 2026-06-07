@@ -138,35 +138,39 @@ class HasPullbacks (𝒞 : Type u) [Cat.{v} 𝒞] where
 
 variable [hpull : HasPullbacks 𝒞]
 
-/-- The kernel pair of f : pullback of f along f.  §1.454 -/
+/-- The kernel pair of `f` : pullback of `f` along itself.  §1.454 -/
 def kernelPair {A B : 𝒞} (f : A ⟶ B) : 𝒞 := (hpull.has f f).cone.pt
 
-def kp₁ {A B : 𝒞} {f : A ⟶ B} : kernelPair f ⟶ A := (hpull.has f f).cone.π₁
-def kp₂ {A B : 𝒞} {f : A ⟶ B} : kernelPair f ⟶ A := (hpull.has f f).cone.π₂
+section
+-- The kernel-pair API all shares the morphism `f : A ⟶ B`; declare it (and a
+-- test object `X`) once as section variables instead of on every lemma.
+variable {A B X : 𝒞} {f : A ⟶ B}
 
-theorem kp_sq {A B : 𝒞} {f : A ⟶ B} : (kp₁ (f:=f)) ≫ f = (kp₂ (f:=f)) ≫ f := (hpull.has f f).cone.w
+def kp₁ : kernelPair f ⟶ A := (hpull.has f f).cone.π₁
+def kp₂ : kernelPair f ⟶ A := (hpull.has f f).cone.π₂
 
-def kp_diag {A B : 𝒞} {f : A ⟶ B} : A ⟶ kernelPair f :=
-  (hpull.has f f).lift ⟨A, Cat.id A, Cat.id A, rfl⟩
+theorem kp_sq : kp₁ (f:=f) ≫ f = kp₂ (f:=f) ≫ f := (hpull.has f f).cone.w
 
-theorem kp_diag_p₁ {A B : 𝒞} {f : A ⟶ B} : kp_diag (f:=f) ≫ kp₁ (f:=f) = Cat.id A :=
-  (hpull.has f f).lift_fst ⟨A, Cat.id A, Cat.id A, rfl⟩
-theorem kp_diag_p₂ {A B : 𝒞} {f : A ⟶ B} : kp_diag (f:=f) ≫ kp₂ (f:=f) = Cat.id A :=
-  (hpull.has f f).lift_snd ⟨A, Cat.id A, Cat.id A, rfl⟩
+/-- The diagonal cone `(A, 1_A, 1_A)` over the cospan `(f, f)`. -/
+def diagCone : Cone f f := ⟨A, Cat.id A, Cat.id A, rfl⟩
 
-theorem kp_lift_p₁ {A B X : 𝒞} {f : A ⟶ B} (x₁ x₂ : X ⟶ A) (h : x₁ ≫ f = x₂ ≫ f) :
+def kp_diag : A ⟶ kernelPair f := (hpull.has f f).lift diagCone
+
+theorem kp_diag_p₁ : kp_diag (f:=f) ≫ kp₁ (f:=f) = Cat.id A := (hpull.has f f).lift_fst diagCone
+theorem kp_diag_p₂ : kp_diag (f:=f) ≫ kp₂ (f:=f) = Cat.id A := (hpull.has f f).lift_snd diagCone
+
+theorem kp_lift_p₁ (x₁ x₂ : X ⟶ A) (h : x₁ ≫ f = x₂ ≫ f) :
     (hpull.has f f).lift ⟨_, x₁, x₂, h⟩ ≫ kp₁ (f:=f) = x₁ := (hpull.has f f).lift_fst _
 
-theorem kp_lift_p₂ {A B X : 𝒞} {f : A ⟶ B} (x₁ x₂ : X ⟶ A) (h : x₁ ≫ f = x₂ ≫ f) :
+theorem kp_lift_p₂ (x₁ x₂ : X ⟶ A) (h : x₁ ≫ f = x₂ ≫ f) :
     (hpull.has f f).lift ⟨_, x₁, x₂, h⟩ ≫ kp₂ (f:=f) = x₂ := (hpull.has f f).lift_snd _
 
-theorem kp_lift_uniq {A B X : 𝒞} {f : A ⟶ B} (x₁ x₂ : X ⟶ A) (h : x₁ ≫ f = x₂ ≫ f)
+theorem kp_lift_uniq (x₁ x₂ : X ⟶ A) (h : x₁ ≫ f = x₂ ≫ f)
     (g : X ⟶ kernelPair f) (h₁ : g ≫ kp₁ (f:=f) = x₁) (h₂ : g ≫ kp₂ (f:=f) = x₂) :
     g = (hpull.has f f).lift ⟨_, x₁, x₂, h⟩ := (hpull.has f f).lift_uniq ⟨_, x₁, x₂, h⟩ g h₁ h₂
 
 /-- Lemma from 1.453: f is monic iff the diagonal into its kernel pair is iso. -/
-theorem monic_iff_kp_diag_iso {A B : 𝒞} {f : A ⟶ B} :
-    Mono f ↔ IsIso (kp_diag (f:=f)) := by
+theorem monic_iff_kp_diag_iso : Mono f ↔ IsIso (kp_diag (f:=f)) := by
   constructor
   · intro hm
     have h_eq : kp₁ (f:=f) = kp₂ (f:=f) := hm _ _ kp_sq
@@ -199,32 +203,32 @@ theorem monic_iff_kp_diag_iso {A B : 𝒞} {f : A ⟶ B} :
       _ = hpair ≫ kp₂ (f:=f) := by rw [ht]
       _ = x₂ := by rw [kp_lift_p₂ x₁ x₂ h]
 
+end
+
 /-! ## Bridging kernelPair(term A) to A×A -/
 
-def _pb (A : 𝒞) : HasPullback (term A) (term A) := hpull.has (term A) (term A)
+section
+-- The bridge lemmas all concern the kernel pair of `term A`; share `A`.
+variable (A : 𝒞)
 
-def _kpCone (A : 𝒞) : Cone (term A) (term A) :=
-  ⟨_, kp₁ (f:=term A), kp₂ (f:=term A), kp_sq⟩
+def _pb : HasPullback (term A) (term A) := hpull.has (term A) (term A)
 
-def _prodCone (A : 𝒞) : Cone (term A) (term A) :=
-  ⟨_, fst, snd, term_uniq _ _⟩
+def _kpCone : Cone (term A) (term A) := ⟨_, kp₁ (f:=term A), kp₂ (f:=term A), kp_sq⟩
+def _prodCone : Cone (term A) (term A) := ⟨_, fst, snd, term_uniq _ _⟩
 
 /-- kpProdIso : kernelPair(term A) → A×A constructed via the product universal
     property, and kpProdInv in the reverse direction via the pullback lift. -/
-def kpProdIso (A : 𝒞) : kernelPair (term A) ⟶ prod A A :=
+def kpProdIso : kernelPair (term A) ⟶ prod A A :=
   pair (kp₁ (f:=term A)) (kp₂ (f:=term A))
 
-def kpProdInv (A : 𝒞) : prod A A ⟶ kernelPair (term A) :=
-  (_pb A).lift (_prodCone A)
+def kpProdInv : prod A A ⟶ kernelPair (term A) := (_pb A).lift (_prodCone A)
 
-@[simp] theorem kpProdIso_fst (A : 𝒞) : kpProdIso A ≫ fst = kp₁ (f:=term A) := fst_pair _ _
-@[simp] theorem kpProdIso_snd (A : 𝒞) : kpProdIso A ≫ snd = kp₂ (f:=term A) := snd_pair _ _
-@[simp] theorem kpProdInv_fst (A : 𝒞) : kpProdInv A ≫ kp₁ (f:=term A) = fst :=
-  (_pb A).lift_fst (_prodCone A)
-@[simp] theorem kpProdInv_snd (A : 𝒞) : kpProdInv A ≫ kp₂ (f:=term A) = snd :=
-  (_pb A).lift_snd (_prodCone A)
+@[simp] theorem kpProdIso_fst : kpProdIso A ≫ fst = kp₁ (f:=term A) := fst_pair _ _
+@[simp] theorem kpProdIso_snd : kpProdIso A ≫ snd = kp₂ (f:=term A) := snd_pair _ _
+@[simp] theorem kpProdInv_fst : kpProdInv A ≫ kp₁ (f:=term A) = fst := (_pb A).lift_fst (_prodCone A)
+@[simp] theorem kpProdInv_snd : kpProdInv A ≫ kp₂ (f:=term A) = snd := (_pb A).lift_snd (_prodCone A)
 
-theorem kpProdIso_inv (A : 𝒞) : kpProdIso A ≫ kpProdInv A = Cat.id (kernelPair (term A)) := by
+theorem kpProdIso_inv : kpProdIso A ≫ kpProdInv A = Cat.id (kernelPair (term A)) := by
   let u := kpProdIso A ≫ kpProdInv A
   have hu_fst : u ≫ kp₁ (f:=term A) = kp₁ (f:=term A) := by
     dsimp [u]; rw [Cat.assoc, kpProdInv_fst, kpProdIso_fst]
@@ -237,7 +241,7 @@ theorem kpProdIso_inv (A : 𝒞) : kpProdIso A ≫ kpProdInv A = Cat.id (kernelP
       (_pb A).lift_uniq (_kpCone A) u hu_fst hu_snd
     _ = Cat.id (kernelPair (term A)) := h_id_lift
 
-theorem kpProdInv_iso (A : 𝒞) : kpProdInv A ≫ kpProdIso A = Cat.id (prod A A) := by
+theorem kpProdInv_iso : kpProdInv A ≫ kpProdIso A = Cat.id (prod A A) := by
   have h := pair_uniq fst snd (kpProdInv A ≫ kpProdIso A)
     (by rw [Cat.assoc, kpProdIso_fst, kpProdInv_fst])
     (by rw [Cat.assoc, kpProdIso_snd, kpProdInv_snd])
@@ -245,13 +249,13 @@ theorem kpProdInv_iso (A : 𝒞) : kpProdInv A ≫ kpProdIso A = Cat.id (prod A 
     (pair_uniq fst snd (Cat.id (prod A A)) (by rw [Cat.id_comp]) (by rw [Cat.id_comp])).symm
   rw [h, hid]
 
-theorem kpProdIso_isIso (A : 𝒞) : IsIso (kpProdIso A) :=
+theorem kpProdIso_isIso : IsIso (kpProdIso A) :=
   ⟨kpProdInv A, kpProdIso_inv A, kpProdInv_iso A⟩
 
-theorem kpProdInv_isIso (A : 𝒞) : IsIso (kpProdInv A) :=
+theorem kpProdInv_isIso : IsIso (kpProdInv A) :=
   ⟨kpProdIso A, kpProdInv_iso A, kpProdIso_inv A⟩
 
-theorem kp_diag_prod (A : 𝒞) : kp_diag (f:=term A) ≫ kpProdIso A = diag A := by
+theorem kp_diag_prod : kp_diag (f:=term A) ≫ kpProdIso A = diag A := by
   let h := kp_diag (f:=term A) ≫ kpProdIso A
   have hfst : h ≫ fst = Cat.id A := by
     dsimp [h]; rw [Cat.assoc, kpProdIso_fst, kp_diag_p₁]
@@ -260,24 +264,28 @@ theorem kp_diag_prod (A : 𝒞) : kp_diag (f:=term A) ≫ kpProdIso A = diag A :
   have h_eq := pair_uniq (Cat.id A) (Cat.id A) h hfst hsnd
   simpa [h, diag] using h_eq
 
-def WellSupported (A : 𝒞) : Prop := Cover (term A)
+/-! ## Capital ⇒ the terminator is projective (§1.522–1.525) -/
+
+def WellSupported : Prop := Cover (term A)
 
 /-- A is well-pointed: the global elements 1 → A jointly cover A (§1.523).
     Elementary: for every proper monic m: B → A, there exists a global
     element 1 → A that does NOT factor through m. -/
-def WellPointed (A : 𝒞) : Prop :=
+def WellPointed : Prop :=
   ∀ {B : 𝒞} (m : B ⟶ A), Mono m → ¬ IsIso m → ∃ (x : one ⟶ A), ¬ ∃ (y : one ⟶ B), y ≫ m = x
 
-/-- Capital: every well-supported object is well-pointed.  §1.525 -/
-def Capital : Prop := ∀ (A : 𝒞), WellSupported A → WellPointed A
-
-theorem wellSupported_prod_self (A : 𝒞) (hws : WellSupported A) : WellSupported (prod A A) := by
+theorem wellSupported_prod_self (hws : WellSupported A) : WellSupported (prod A A) := by
   intro C m g hm hgm
   -- g ≫ m = term (A × A)
   have h_diag_term : diag A ≫ term (prod A A) = term A := term_uniq _ _
   have h_factor : (diag A ≫ g) ≫ m = term A := by
     rw [Cat.assoc, hgm, h_diag_term]
   exact hws m (diag A ≫ g) hm h_factor
+
+end
+
+/-- Capital: every well-supported object is well-pointed.  §1.525 -/
+def Capital : Prop := ∀ (A : 𝒞), WellSupported A → WellPointed A
 
 -- §1.525
 theorem capital_implies_one_projective
