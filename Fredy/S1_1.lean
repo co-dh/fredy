@@ -5,7 +5,6 @@
   and the three axioms (id_comp, comp_id, assoc).
 -/
 
-set_option linter.unusedSectionVars false
 
 class Cat.{w, z} (𝒞 : Type z) : Type (max z (w + 1)) where
   Hom     : 𝒞 → 𝒞 → Type w

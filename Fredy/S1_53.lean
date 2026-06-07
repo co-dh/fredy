@@ -17,7 +17,6 @@ import Fredy.S1_44
 import Fredy.S1_45
 import Fredy.S1_51
 
-set_option linter.unusedSectionVars false
 
 universe v u
 
