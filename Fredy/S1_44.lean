@@ -8,8 +8,6 @@
 
 import Fredy.S1_1
 
-open Freyd
-
 universe v u
 
 variable {𝒞 : Type u} [Cat.{v} 𝒞]
@@ -24,6 +22,7 @@ structure OverHom {B : 𝒞} (X Y : Over B) where
   f : X.dom ⟶ Y.dom
   w : f ≫ Y.hom = X.hom
 
+@[ext]
 theorem OverHom.ext {B : 𝒞} {X Y : Over B} {a b : OverHom X Y} (h : a.f = b.f) : a = b := by
   obtain ⟨af, aw⟩ := a; obtain ⟨bf, bw⟩ := b; subst h; rfl
 

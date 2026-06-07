@@ -14,8 +14,6 @@ import Fredy.S1_42
 
 set_option linter.unusedSectionVars false
 
-open Freyd
-
 universe v u
 
 variable {𝒞 : Type u} [Cat.{v} 𝒞]

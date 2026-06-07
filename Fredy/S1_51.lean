@@ -8,8 +8,6 @@
 import Fredy.S1_1
 import Fredy.S1_41
 
-open Freyd
-
 universe v u
 
 variable {𝒞 : Type u} [Cat.{v} 𝒞]

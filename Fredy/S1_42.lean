@@ -11,8 +11,6 @@ import Fredy.S1_41
 
 set_option linter.unusedSectionVars false
 
-open Freyd
-
 universe v u
 
 variable {𝒞 : Type u} [Cat.{v} 𝒞]
@@ -65,9 +63,5 @@ def diag (A : 𝒞) : A ⟶ prod A A := pair (Cat.id A) (Cat.id A)
 theorem diag_fst (A : 𝒞) : diag A ≫ fst = Cat.id A := fst_pair _ _
 theorem diag_snd (A : 𝒞) : diag A ≫ snd = Cat.id A := snd_pair _ _
 
-theorem diag_mono (A : 𝒞) : Mono (diag A) := by
-  intro W f g h
-  have hfst : f ≫ (diag A ≫ fst) = g ≫ (diag A ≫ fst) := by
-    rw [← Cat.assoc, ← Cat.assoc, h]
-  rw [diag_fst, Cat.comp_id, Cat.comp_id] at hfst
-  exact hfst
+theorem diag_mono (A : 𝒞) : Mono (diag A) :=
+  mono_of_retraction (diag A) fst (diag_fst A)

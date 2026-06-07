@@ -17,8 +17,6 @@ import Fredy.S1_51
 
 set_option linter.unusedSectionVars false
 
-open Freyd
-
 universe v u
 
 variable {𝒞 : Type u} [Cat.{v} 𝒞]
@@ -105,13 +103,12 @@ def Capital : Prop := ∀ (A : 𝒞), WellSupported A → WellPointed A
 /-- §1.525: in a capital category the terminator is projective.
     Every well-supported A has a point 1 → A. -/
 theorem capital_implies_one_projective
-    (hcap : ∀ (A : 𝒞), WellSupported A → WellPointed A)
-    (A : 𝒞) (hws : WellSupported A) :
-    ∃ (_ : one ⟶ A), True := by
+    (hcap : Capital (𝒞 := 𝒞)) (A : 𝒞) (hws : WellSupported A) :
+    Nonempty (one ⟶ A) := by
   -- 1. If A → 1 is iso, use the inverse.
   by_cases hiso : IsIso (term A)
   · obtain ⟨inv, _, _⟩ := hiso
-    exact ⟨inv, trivial⟩
+    exact Nonempty.intro inv
   · -- 2. A → 1 is a cover but not iso.  By monic-cover-iso (1.512), it is not monic.
     have h_not_monic : ¬ Mono (term A) := by
       intro hm
@@ -135,4 +132,4 @@ theorem capital_implies_one_projective
     -- 6. Apply well-pointed to the proper monic Δ : ∃ x:1→A×A.
     obtain ⟨x, _⟩ := hwpAA (diag A) hm_diag h_not_iso_diag
     -- 7. Compose x with π₁ : 1 → A.
-    exact ⟨x ≫ fst, trivial⟩
+    exact Nonempty.intro (x ≫ fst)

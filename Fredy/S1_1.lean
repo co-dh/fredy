@@ -7,8 +7,6 @@
 
 set_option linter.unusedSectionVars false
 
-universe v u
-
 class Cat.{w, z} (𝒞 : Type z) : Type (max z (w + 1)) where
   Hom     : 𝒞 → 𝒞 → Type w
   id      : (X : 𝒞) → Hom X X
@@ -21,6 +19,4 @@ class Cat.{w, z} (𝒞 : Type z) : Type (max z (w + 1)) where
 infixr:25 " ⟶ "  => Cat.Hom
 infixr:80 " ≫ "  => Cat.comp
 
-variable {𝒞 : Type u} [Cat.{v} 𝒞]
 
-namespace Freyd
