@@ -40,7 +40,7 @@ set_option linter.unusedSectionVars false
 
 open Freyd
 
-universe v u
+universe v u u₁ u₂
 
 variable {𝒞 : Type u} [Cat.{v} 𝒞] {𝒟 : Type u} [Cat.{v} 𝒟]
 
@@ -55,10 +55,10 @@ namespace Freyd
     In the book's single-sorted language, a functor is a function `F`
     on morphisms such that `□(Fx) = F(□x)`, `(Fx)□ = F(x□)`, and
     `F(xy) = (Fx)(Fy)`.  Our object-centric definition is equivalent. -/
-class Functor (F : 𝒞 → 𝒟) where
-  map  : {X Y : 𝒞} → (X ⟶ Y) → (F X ⟶ F Y)
-  map_id : ∀ (X : 𝒞), map (Cat.id X) = Cat.id (F X)
-  map_comp : ∀ {X Y Z : 𝒞} (f : X ⟶ Y) (g : Y ⟶ Z), map (f ≫ g) = map f ≫ map g
+class Functor {C : Type u₁} [Cat.{v} C] {D : Type u₂} [Cat.{v} D] (F : C → D) where
+  map  : {X Y : C} → (X ⟶ Y) → (F X ⟶ F Y)
+  map_id : ∀ (X : C), map (Cat.id X) = Cat.id (F X)
+  map_comp : ∀ {X Y Z : C} (f : X ⟶ Y) (g : Y ⟶ Z), map (f ≫ g) = map f ≫ map g
 
 /-- The identity functor `1_𝒞` : every object and morphism maps to itself. -/
 def idFunctor : Functor (λ X : 𝒞 => X) where
@@ -90,6 +90,27 @@ def Preserves {ℰ ℱ : Type u} [Cat.{v} ℰ] [Cat.{v} ℱ] (F : ℰ → ℱ) [
 /-- `F` REFLECTS `P` if a `P`-image forces a `P`-arrow (the shape of the §1.531 Slice Lemma). -/
 def Reflects {ℰ ℱ : Type u} [Cat.{v} ℰ] [Cat.{v} ℱ] (F : ℰ → ℱ) [hF : Functor F] (P : MorphProp.{v,u}) : Prop :=
   ∀ {X Y : ℰ} {f : X ⟶ Y}, P (hF.map f) → P f
+
+/-! ### Cross-universe preservation/reflection of `Mono`
+
+  The generic `Preserves`/`Reflects` above take the property as a `MorphProp`
+  *parameter*, which fixes one object universe — so they only apply to functors
+  whose source and target live in the same universe (e.g. endofunctors).  The
+  slice forgetful functor `Σ : A/B → A` is genuinely cross-universe
+  (`Over B : Type (max u v)` vs `A : Type u`), so we give `Mono`-specific
+  versions: because `Mono` is applied *directly* (not through a parameter) and is
+  itself universe-polymorphic, these work for `Functor`s between categories in
+  different universes. -/
+
+/-- `F` PRESERVES monos: it carries monos to monos. -/
+def PreservesMono {C : Type u₁} [Cat.{v} C] {D : Type u₂} [Cat.{v} D]
+    (F : C → D) [hF : Functor F] : Prop :=
+  ∀ {X Y : C} {f : X ⟶ Y}, Mono f → Mono (hF.map f)
+
+/-- `F` REFLECTS monos: a mono image forces a mono. -/
+def ReflectsMono {C : Type u₁} [Cat.{v} C] {D : Type u₂} [Cat.{v} D]
+    (F : C → D) [hF : Functor F] : Prop :=
+  ∀ {X Y : C} {f : X ⟶ Y}, Mono (hF.map f) → Mono f
 
 /-- A morphism has a right inverse: there exists `g` such that `f ≫ g = id`. -/
 def HasRightInv : MorphProp.{v,u} := λ {_} _ {X Y} f => ∃ (g : Y ⟶ X), f ≫ g = Cat.id X

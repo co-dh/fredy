@@ -2,8 +2,9 @@
   Freyd & Scedrov, *Categories and Allegories* §1.53  The SLICE LEMMA.
 
   §1.531  Σ : A/B → A preserves and reflects monos and covers.
-          (Stated directly since Σ isn't a `Functor` instance; equivalently
-          `Preserves (SliceForget B) @Mono` and `Reflects (SliceForget B) @Mono`.)
+          Mono preservation/reflection (and Σ as a `Functor`) are in `S1_44`,
+          packaged as `slice_preservesMono` / `slice_reflectsMono` via
+          `PreservesMono` / `ReflectsMono`.  Cover reflection is here (needs §1.51).
   §1.532  The pullback square for B×A₁ → B×A₂ over A₁→A₂.
 -/
 
@@ -26,41 +27,12 @@ namespace Freyd
 
 variable [ht : HasTerminal 𝒞] [hp : HasBinaryProducts 𝒞] [hpull : HasPullbacks 𝒞]
 
-/-! ## §1.531  Σ reflects monos and covers -/
+/-! ## §1.531  Σ reflects covers
 
-/-- **§1.531**: Σ preserves monos.  If `m` is mono in A/B then `m.f` (= Σ m) is mono in A.
-    This is the non-trivial direction of the Slice Lemma. -/
-theorem sigma_preserves_mono {B : 𝒞} {Z Y : Over B} (m : OverHom Z Y)
-    (hm : OverMono m) : Mono m.f := by
-  intro D p q hpq
-  have wq : q ≫ Z.hom = p ≫ Z.hom := by
-    rw [← m.w, ← Cat.assoc, ← Cat.assoc, hpq]
-  let W : Over B := ⟨D, p ≫ Z.hom⟩
-  let pp : OverHom W Z := ⟨p, rfl⟩
-  let qq : OverHom W Z := ⟨q, wq⟩
-  have h_eq : pp ⊚ m = qq ⊚ m := OverHom.ext hpq
-  exact congrArg OverHom.f (hm pp qq h_eq)
-
-/-- **§1.531**: Σ reflects monos.  If `m.f` is mono in A then `m` is mono in A/B.
-    This direction follows from the definition. -/
-theorem sigma_reflects_mono {B : 𝒞} {Z Y : Over B} (m : OverHom Z Y)
-    (hmMono : Mono m.f) : OverMono m := by
-  intro W g h h_eq
-  apply OverHom.ext
-  apply hmMono
-  exact congrArg OverHom.f h_eq
-
-/-- **§1.531** as a `Preserves` statement.
-    This is the expanded form of `Preserves (SliceForget B) @Mono`. -/
-theorem sigma_preserves_mono' (B : 𝒞) :
-    ∀ {Z Y : Over B} (m : OverHom Z Y), OverMono m → @Mono 𝒞 _ _ _ (m.f) :=
-  λ {_ _} => sigma_preserves_mono
-
-/-- **§1.531** as a `Reflects` statement.
-    This is the expanded form of `Reflects (SliceForget B) @Mono`. -/
-theorem sigma_reflects_mono' (B : 𝒞) :
-    ∀ {Z Y : Over B} (m : OverHom Z Y), @Mono 𝒞 _ _ _ (m.f) → OverMono m :=
-  λ {_ _} => sigma_reflects_mono
+  Σ-as-a-`Functor` and its mono preservation/reflection live in `S1_44`
+  (`sliceForgetFunctor`, `sigma_preserves_mono`, `sigma_reflects_mono`, and the
+  `slice_preservesMono` / `slice_reflectsMono` packaging via `PreservesMono` /
+  `ReflectsMono`).  Cover reflection is here since it additionally needs `Cover`. -/
 
 /-- **§1.531**: Σ reflects covers.  If u.f is a cover in A and factors
     through a monic m in A/B, then m.f is iso in A. -/

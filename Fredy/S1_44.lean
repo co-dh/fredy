@@ -136,4 +136,49 @@ theorem sigma_preserves_pullback_π₂ {B : 𝒞} {X Y Z : Over B} (m : OverHom 
 theorem sigma_faithful {B : 𝒞} {X Y : Over B} (f g : OverHom X Y)
     (h : f.f = g.f) : f = g := OverHom.ext h
 
+/-! ## §1.531  Σ as a `Functor`; preservation / reflection of monos
+
+  `Σ : A/B → A` is genuinely cross-universe (`Over B : Type (max u v)`,
+  `A : Type u`), so it uses the `Mono`-specific `PreservesMono`/`ReflectsMono`
+  (where `Mono` is applied directly, hence universe-clean) rather than the generic
+  single-universe `Preserves`/`Reflects`. -/
+
+/-- Σ : A/B → A is a functor; its action on arrows is the underlying arrow `.f`. -/
+instance sliceForgetFunctor (B : 𝒞) : Functor (SliceForget B) where
+  map f := f.f
+  map_id _ := rfl
+  map_comp _ _ := rfl
+
+/-- **§1.531**: Σ preserves monos.  If `m` is mono in A/B then `m.f` (= Σ m) is mono in A.
+    This is the non-trivial direction of the Slice Lemma. -/
+theorem sigma_preserves_mono {B : 𝒞} {Z Y : Over B} (m : OverHom Z Y)
+    (hm : OverMono m) : Mono m.f := by
+  intro D p q hpq
+  have wq : q ≫ Z.hom = p ≫ Z.hom := by
+    rw [← m.w, ← Cat.assoc, ← Cat.assoc, hpq]
+  let W : Over B := ⟨D, p ≫ Z.hom⟩
+  let pp : OverHom W Z := ⟨p, rfl⟩
+  let qq : OverHom W Z := ⟨q, wq⟩
+  have h_eq : pp ⊚ m = qq ⊚ m := OverHom.ext hpq
+  exact congrArg OverHom.f (hm pp qq h_eq)
+
+/-- **§1.531**: Σ reflects monos.  If `m.f` is mono in A then `m` is mono in A/B.
+    This direction follows from the definition. -/
+theorem sigma_reflects_mono {B : 𝒞} {Z Y : Over B} (m : OverHom Z Y)
+    (hmMono : Mono m.f) : OverMono m := by
+  intro W g h h_eq
+  apply OverHom.ext
+  apply hmMono
+  exact congrArg OverHom.f h_eq
+
+/-- **§1.531** in the preservation vocabulary: Σ preserves monos. -/
+theorem slice_preservesMono (B : 𝒞) : PreservesMono (SliceForget B) := by
+  intro Z Y m hm
+  exact sigma_preserves_mono m hm
+
+/-- **§1.531** in the reflection vocabulary: Σ reflects monos. -/
+theorem slice_reflectsMono (B : 𝒞) : ReflectsMono (SliceForget B) := by
+  intro Z Y m hm
+  exact sigma_reflects_mono m hm
+
 end Freyd
