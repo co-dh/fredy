@@ -84,12 +84,12 @@ def compFunctor {ℰ : Type _} [Cat.{v} ℰ] {F : 𝒞 → 𝒟} {G : 𝒟 → �
 abbrev MorphProp := ∀ {𝒜 : Type u} [Cat.{v} 𝒜] {X Y : 𝒜}, (X ⟶ Y) → Prop
 
 /-- `F` PRESERVES `P` if it carries `P`-arrows to `P`-arrows. -/
-def Preserves (F : 𝒞 → 𝒟) [hF : Functor F] (P : MorphProp.{v,u}) : Prop :=
-  ∀ {X Y : 𝒞} {f : X ⟶ Y}, P f → P (hF.map f)
+def Preserves {ℰ ℱ : Type u} [Cat.{v} ℰ] [Cat.{v} ℱ] (F : ℰ → ℱ) [hF : Functor F] (P : MorphProp.{v,u}) : Prop :=
+  ∀ {X Y : ℰ} {f : X ⟶ Y}, P f → P (hF.map f)
 
 /-- `F` REFLECTS `P` if a `P`-image forces a `P`-arrow (the shape of the §1.531 Slice Lemma). -/
-def Reflects (F : 𝒞 → 𝒟) [hF : Functor F] (P : MorphProp.{v,u}) : Prop :=
-  ∀ {X Y : 𝒞} {f : X ⟶ Y}, P (hF.map f) → P f
+def Reflects {ℰ ℱ : Type u} [Cat.{v} ℰ] [Cat.{v} ℱ] (F : ℰ → ℱ) [hF : Functor F] (P : MorphProp.{v,u}) : Prop :=
+  ∀ {X Y : ℰ} {f : X ⟶ Y}, P (hF.map f) → P f
 
 /-- A morphism has a right inverse: there exists `g` such that `f ≫ g = id`. -/
 def HasRightInv : MorphProp.{v,u} := λ {_} _ {X Y} f => ∃ (g : Y ⟶ X), f ≫ g = Cat.id X

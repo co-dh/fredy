@@ -1,11 +1,15 @@
 /-
   Freyd & Scedrov, *Categories and Allegories* §1.53  The SLICE LEMMA.
 
-  §1.531  Σ : A/B → A reflects monos and covers.
+  §1.531  Σ : A/B → A preserves and reflects monos and covers.
+          (Stated directly since Σ isn't a `Functor` instance; equivalently
+          `Preserves (SliceForget B) @Mono` and `Reflects (SliceForget B) @Mono`.)
   §1.532  The pullback square for B×A₁ → B×A₂ over A₁→A₂.
 -/
 
 import Fredy.S1_1
+import Fredy.S1_18
+import Fredy.S1_26
 import Fredy.S1_41
 import Fredy.S1_42
 import Fredy.S1_44
@@ -25,7 +29,7 @@ variable [ht : HasTerminal 𝒞] [hp : HasBinaryProducts 𝒞] [hpull : HasPullb
 /-! ## §1.531  Σ reflects monos and covers -/
 
 /-- **§1.531**: Σ preserves monos.  If `m` is mono in A/B then `m.f` (= Σ m) is mono in A.
-    This is the non-trivial direction of the Slice Lemma.  (Type expands `Preserves Σ @Mono`.) -/
+    This is the non-trivial direction of the Slice Lemma. -/
 theorem sigma_preserves_mono {B : 𝒞} {Z Y : Over B} (m : OverHom Z Y)
     (hm : OverMono m) : Mono m.f := by
   intro D p q hpq
@@ -38,13 +42,25 @@ theorem sigma_preserves_mono {B : 𝒞} {Z Y : Over B} (m : OverHom Z Y)
   exact congrArg OverHom.f (hm pp qq h_eq)
 
 /-- **§1.531**: Σ reflects monos.  If `m.f` is mono in A then `m` is mono in A/B.
-    This direction follows from the definition.  (Type expands `Reflects Σ @Mono`.) -/
+    This direction follows from the definition. -/
 theorem sigma_reflects_mono {B : 𝒞} {Z Y : Over B} (m : OverHom Z Y)
     (hmMono : Mono m.f) : OverMono m := by
   intro W g h h_eq
   apply OverHom.ext
   apply hmMono
   exact congrArg OverHom.f h_eq
+
+/-- **§1.531** as a `Preserves` statement.
+    This is the expanded form of `Preserves (SliceForget B) @Mono`. -/
+theorem sigma_preserves_mono' (B : 𝒞) :
+    ∀ {Z Y : Over B} (m : OverHom Z Y), OverMono m → @Mono 𝒞 _ _ _ (m.f) :=
+  λ {_ _} => sigma_preserves_mono
+
+/-- **§1.531** as a `Reflects` statement.
+    This is the expanded form of `Reflects (SliceForget B) @Mono`. -/
+theorem sigma_reflects_mono' (B : 𝒞) :
+    ∀ {Z Y : Over B} (m : OverHom Z Y), @Mono 𝒞 _ _ _ (m.f) → OverMono m :=
+  λ {_ _} => sigma_reflects_mono
 
 /-- **§1.531**: Σ reflects covers.  If u.f is a cover in A and factors
     through a monic m in A/B, then m.f is iso in A. -/
@@ -92,3 +108,5 @@ def prod_pullback (B A₁ A₂ : 𝒞) (x : A₁ ⟶ A₂) : HasPullback (snd (A
   · apply pair_uniq _ _ u
     · dsimp [p₁] at hu₁; rw [← hu₁, Cat.assoc, fst_pair]
     · dsimp [p₂] at hu₂; rw [← hu₂]
+
+end Freyd
