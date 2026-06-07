@@ -8,40 +8,6 @@
   covers.  The elementary consequence: every well-supported A has a global
   element 1 → A.
 
-  Self-contained (mathlib-free), defining minimal Cat, HasTerminal,
-  HasBinaryProducts classes.
-
-  ## Definitions
-  - Cat, Mono, IsIso, Cover — self-contained category theory
-  - HasTerminal, HasBinaryProducts — Cartesian structure
-  - diag A : A → A×A — the diagonal
-  - WellSupported A — A → 1 is a cover (§1.522)
-  - WellPointed A — every proper monic into A misses some global element
-    (§1.523)
-  - Capital — every well-supported object is well-pointed (§1.525)
-
-  ## Key lemmas
-  - monic_cover_iso — monic + cover ⇒ iso (1.512)
-  - diag_mono — the diagonal is always monic
-  - monic_iff_diag_kp_iso — f is monic iff the diagonal into its kernel
-    pair is an iso (§1.453), proved via the general KernelPair structure;
-    instantiated at f = term A to get step 3 of the main proof
-  - wellSupported_prod_self — WellSupported A ⇒ WellSupported (A×A)
-    (via the diagonal, no pullbacks needed)
-
-  ## Main theorem (capital_implies_one_projective)
-  In a capital category, every well-supported object has a point 1 → A.
-  This proves §1.525's claim that the terminator is projective.
-
-  Proof outline (following the book):
-    1. If A → 1 is iso, use the inverse.
-    2. Otherwise A → 1 is a cover but not iso.  By monic-cover-iso (1.512),
-       it is not monic.
-    3. Hence Δ : A → A×A is a proper monic (1.453: monic_iff_diag_kp_iso).
-    4. A×A is well-supported — proved using the diagonal, no pullbacks.
-    5. By capital, A×A is well-pointed.
-    6. Apply well-pointed to the proper monic Δ : ∃ x:1→A×A.
-    7. Compose x with π₁ : 1 → A.
 -/
 
 set_option linter.unusedSectionVars false
@@ -132,80 +98,133 @@ theorem diag_mono (A : 𝒞) : Mono (diag A) := by
   rw [diag_fst, Cat.comp_id, Cat.comp_id] at hfst
   exact hfst
 
-theorem fst_eq_snd_of_monic_term (A : 𝒞) (hm : Mono (term A)) : fst = snd (A:=A) (B:=A) := by
-  apply hm
-  exact term_uniq _ _
+/-! ## Pullbacks and kernel pairs (§1.453–1.454) -/
 
-/-! ## Kernel pairs and the monic-vs-diagonal lemma (§1.453–1.454) -/
+class HasPullbacks (𝒞 : Type u) [Cat.{v} 𝒞] where
+  pb_obj (A B C : 𝒞) (f : A ⟶ C) (g : B ⟶ C) : 𝒞
+  pb_fst {A B C : 𝒞} {f : A ⟶ C} {g : B ⟶ C} : pb_obj A B C f g ⟶ A
+  pb_snd {A B C : 𝒞} {f : A ⟶ C} {g : B ⟶ C} : pb_obj A B C f g ⟶ B
+  pb_sq  {A B C : 𝒞} {f : A ⟶ C} {g : B ⟶ C} : pb_fst (f:=f) (g:=g) ≫ f = pb_snd (f:=f) (g:=g) ≫ g
+  pb_lift {X A B C : 𝒞} {f : A ⟶ C} {g : B ⟶ C}
+    (h : X ⟶ A) (k : X ⟶ B) (e : h ≫ f = k ≫ g) : X ⟶ pb_obj A B C f g
+  pb_lift_fst {X A B C : 𝒞} {f : A ⟶ C} {g : B ⟶ C}
+    {h : X ⟶ A} {k : X ⟶ B} {e : h ≫ f = k ≫ g} : pb_lift h k e ≫ pb_fst (f:=f) (g:=g) = h
+  pb_lift_snd {X A B C : 𝒞} {f : A ⟶ C} {g : B ⟶ C}
+    {h : X ⟶ A} {k : X ⟶ B} {e : h ≫ f = k ≫ g} : pb_lift h k e ≫ pb_snd (f:=f) (g:=g) = k
+  pb_lift_uniq {X A B C : 𝒞} {f : A ⟶ C} {g : B ⟶ C}
+    {h : X ⟶ A} {k : X ⟶ B} {e : h ≫ f = k ≫ g}
+    (u : X ⟶ pb_obj A B C f g) (h₁ : u ≫ pb_fst (f:=f) (g:=g) = h) (h₂ : u ≫ pb_snd (f:=f) (g:=g) = k) :
+    u = pb_lift h k e
 
-/-- The kernel pair (level) of f : A → B: an object K with two projections
-    p₁, p₂ : K → A equalising f, plus the diagonal A → K and a universal
-    property.  §1.454 -/
-structure KernelPair {A B : 𝒞} (f : A ⟶ B) where
-  K : 𝒞
-  p₁ : K ⟶ A
-  p₂ : K ⟶ A
-  eq  : p₁ ≫ f = p₂ ≫ f
-  diag : A ⟶ K
-  diag_p₁ : diag ≫ p₁ = Cat.id A
-  diag_p₂ : diag ≫ p₂ = Cat.id A
-  lift {X : 𝒞} (x₁ x₂ : X ⟶ A) (h : x₁ ≫ f = x₂ ≫ f) : X ⟶ K
-  lift_p₁ {X : 𝒞} (x₁ x₂ : X ⟶ A) (h : x₁ ≫ f = x₂ ≫ f) : lift x₁ x₂ h ≫ p₁ = x₁
-  lift_p₂ {X : 𝒞} (x₁ x₂ : X ⟶ A) (h : x₁ ≫ f = x₂ ≫ f) : lift x₁ x₂ h ≫ p₂ = x₂
-  lift_uniq {X : 𝒞} (x₁ x₂ : X ⟶ A) (h : x₁ ≫ f = x₂ ≫ f) (g : X ⟶ K)
-    (h₁ : g ≫ p₁ = x₁) (h₂ : g ≫ p₂ = x₂) : g = lift x₁ x₂ h
+variable [hpull : HasPullbacks 𝒞]
 
-/-- The kernel pair of the unique map A → 1 is the product A × A (§1.454). -/
-def termKernelPair (A : 𝒞) : KernelPair (term A) where
-  K      := prod A A
-  p₁     := fst
-  p₂     := snd
-  eq     := term_uniq _ _
-  diag   := diag A
-  diag_p₁ := diag_fst A
-  diag_p₂ := diag_snd A
-  lift   := fun x₁ x₂ _ => pair x₁ x₂
-  lift_p₁ := fun x₁ x₂ _ => fst_pair x₁ x₂
-  lift_p₂ := fun x₁ x₂ _ => snd_pair x₁ x₂
-  lift_uniq := fun x₁ x₂ h g h₁ h₂ => pair_uniq x₁ x₂ g h₁ h₂
+/-- The kernel pair of f : pullback of f along f.  §1.454 -/
+def kernelPair {A B : 𝒞} (f : A ⟶ B) : 𝒞 := hpull.pb_obj A A B f f
 
-/-- Lemma from 1.453: f is monic iff the diagonal into its kernel pair
-    is an isomorphism.  This is the key fact that makes step 3 of 1.525
-    work: if term A is not monic then diag A is not iso, hence Δ is a
-    proper subobject. -/
-theorem monic_iff_diag_kp_iso {A B : 𝒞} {f : A ⟶ B} (kp : KernelPair f) :
-    Mono f ↔ IsIso kp.diag := by
+def kp₁ {A B : 𝒞} {f : A ⟶ B} : kernelPair f ⟶ A := hpull.pb_fst (f:=f) (g:=f)
+def kp₂ {A B : 𝒞} {f : A ⟶ B} : kernelPair f ⟶ A := hpull.pb_snd (f:=f) (g:=f)
+
+theorem kp_sq {A B : 𝒞} {f : A ⟶ B} : (kp₁ (f:=f)) ≫ f = (kp₂ (f:=f)) ≫ f := hpull.pb_sq (f:=f) (g:=f)
+
+def kp_diag {A B : 𝒞} {f : A ⟶ B} : A ⟶ kernelPair f :=
+  hpull.pb_lift (Cat.id A) (Cat.id A) (rfl)
+
+theorem kp_diag_p₁ {A B : 𝒞} {f : A ⟶ B} : kp_diag (f:=f) ≫ kp₁ (f:=f) = Cat.id A := hpull.pb_lift_fst
+theorem kp_diag_p₂ {A B : 𝒞} {f : A ⟶ B} : kp_diag (f:=f) ≫ kp₂ (f:=f) = Cat.id A := hpull.pb_lift_snd
+
+theorem kp_lift_p₁ {A B X : 𝒞} {f : A ⟶ B} (x₁ x₂ : X ⟶ A) (h : x₁ ≫ f = x₂ ≫ f) :
+    hpull.pb_lift x₁ x₂ h ≫ kp₁ (f:=f) = x₁ := hpull.pb_lift_fst
+
+theorem kp_lift_p₂ {A B X : 𝒞} {f : A ⟶ B} (x₁ x₂ : X ⟶ A) (h : x₁ ≫ f = x₂ ≫ f) :
+    hpull.pb_lift x₁ x₂ h ≫ kp₂ (f:=f) = x₂ := hpull.pb_lift_snd
+
+theorem kp_lift_uniq {A B X : 𝒞} {f : A ⟶ B} (x₁ x₂ : X ⟶ A) (h : x₁ ≫ f = x₂ ≫ f)
+    (g : X ⟶ kernelPair f) (h₁ : g ≫ kp₁ (f:=f) = x₁) (h₂ : g ≫ kp₂ (f:=f) = x₂) :
+    g = hpull.pb_lift x₁ x₂ h := hpull.pb_lift_uniq g h₁ h₂
+
+/-- Lemma from 1.453: f is monic iff the diagonal into its kernel pair is iso. -/
+theorem monic_iff_kp_diag_iso {A B : 𝒞} {f : A ⟶ B} :
+    Mono f ↔ IsIso (kp_diag (f:=f)) := by
   constructor
   · intro hm
-    -- f monic ⇒ p₁ = p₂ (from kp.eq), then p₁ is an inverse of diag
-    have h_eq : kp.p₁ = kp.p₂ := hm _ _ kp.eq
-    refine ⟨kp.p₁, kp.diag_p₁, ?_⟩
-    have h_id : kp.lift kp.p₁ kp.p₂ kp.eq = Cat.id kp.K :=
-      (kp.lift_uniq kp.p₁ kp.p₂ kp.eq (Cat.id kp.K) (Cat.id_comp _) (Cat.id_comp _)).symm
-    have h_comp : kp.p₁ ≫ kp.diag = kp.lift kp.p₁ kp.p₂ kp.eq :=
-      (kp.lift_uniq kp.p₁ kp.p₂ kp.eq (kp.p₁ ≫ kp.diag)
-        (by rw [Cat.assoc, kp.diag_p₁, Cat.comp_id])
-        (by rw [Cat.assoc, kp.diag_p₂, Cat.comp_id, h_eq]))
+    have h_eq : kp₁ (f:=f) = kp₂ (f:=f) := hm _ _ kp_sq
+    refine ⟨kp₁ (f:=f), kp_diag_p₁, ?_⟩
+    have h_id : hpull.pb_lift (kp₁ (f:=f)) (kp₂ (f:=f)) kp_sq = Cat.id (kernelPair f) :=
+      (kp_lift_uniq (kp₁ (f:=f)) (kp₂ (f:=f)) kp_sq (Cat.id (kernelPair f))
+        (Cat.id_comp _) (Cat.id_comp _)).symm
+    have h_comp : (kp₁ (f:=f)) ≫ kp_diag (f:=f) =
+        hpull.pb_lift (kp₁ (f:=f)) (kp₂ (f:=f)) kp_sq :=
+      (kp_lift_uniq (kp₁ (f:=f)) (kp₂ (f:=f)) kp_sq ((kp₁ (f:=f)) ≫ kp_diag (f:=f))
+        (by rw [Cat.assoc, kp_diag_p₁, Cat.comp_id])
+        (by rw [Cat.assoc, kp_diag_p₂, Cat.comp_id, h_eq]))
     rw [h_comp, h_id]
   · intro hiso
-    -- diag iso ⇒ f monic (1.453 proof)
     obtain ⟨inv, _diag_inv, inv_diag⟩ := hiso
     intro X x₁ x₂ h
-    let hpair := kp.lift x₁ x₂ h
+    let hpair := hpull.pb_lift x₁ x₂ h
     let t : X ⟶ A := hpair ≫ inv
-    have ht : hpair = t ≫ kp.diag := by
-      rw [Cat.assoc, inv_diag, Cat.comp_id]
+    have ht : hpair = t ≫ kp_diag (f:=f) := by
+      dsimp [t]; rw [Cat.assoc, inv_diag, kernelPair]; rw [Cat.comp_id]
     calc
-      x₁ = hpair ≫ kp.p₁ := by rw [kp.lift_p₁ x₁ x₂ h]
-      _ = (t ≫ kp.diag) ≫ kp.p₁ := by rw [ht]
-      _ = t ≫ (kp.diag ≫ kp.p₁) := by rw [Cat.assoc]
-      _ = t ≫ Cat.id A := by rw [kp.diag_p₁]
+      x₁ = hpair ≫ kp₁ (f:=f) := by rw [kp_lift_p₁ x₁ x₂ h]
+      _ = (t ≫ kp_diag (f:=f)) ≫ kp₁ (f:=f) := by rw [ht]
+      _ = t ≫ (kp_diag (f:=f) ≫ kp₁ (f:=f)) := by rw [Cat.assoc]
+      _ = t ≫ Cat.id A := by rw [kp_diag_p₁]
       _ = t := by rw [Cat.comp_id]
       _ = t ≫ Cat.id A := by rw [Cat.comp_id]
-      _ = t ≫ (kp.diag ≫ kp.p₂) := by rw [kp.diag_p₂]
-      _ = (t ≫ kp.diag) ≫ kp.p₂ := by rw [← Cat.assoc]
-      _ = hpair ≫ kp.p₂ := by rw [ht]
-      _ = x₂ := by rw [kp.lift_p₂ x₁ x₂ h]
+      _ = t ≫ (kp_diag (f:=f) ≫ kp₂ (f:=f)) := by rw [kp_diag_p₂]
+      _ = (t ≫ kp_diag (f:=f)) ≫ kp₂ (f:=f) := by rw [← Cat.assoc]
+      _ = hpair ≫ kp₂ (f:=f) := by rw [ht]
+      _ = x₂ := by rw [kp_lift_p₂ x₁ x₂ h]
+
+/-! ## Bridging kernelPair(term A) to A×A -/
+
+/-- kpProdIso : kernelPair(term A) → A×A constructed via the product universal
+    property, and kpProdInv in the reverse direction via the pullback lift. -/
+def kpProdIso (A : 𝒞) : kernelPair (term A) ⟶ prod A A :=
+  pair (kp₁ (f:=term A)) (kp₂ (f:=term A))
+
+def kpProdInv (A : 𝒞) : prod A A ⟶ kernelPair (term A) :=
+  hpull.pb_lift (f:=term A) (g:=term A) fst snd (term_uniq _ _)
+
+@[simp] theorem kpProdIso_fst (A : 𝒞) : kpProdIso A ≫ fst = kp₁ (f:=term A) := fst_pair _ _
+@[simp] theorem kpProdIso_snd (A : 𝒞) : kpProdIso A ≫ snd = kp₂ (f:=term A) := snd_pair _ _
+@[simp] theorem kpProdInv_fst (A : 𝒞) : kpProdInv A ≫ kp₁ (f:=term A) = fst := hpull.pb_lift_fst
+@[simp] theorem kpProdInv_snd (A : 𝒞) : kpProdInv A ≫ kp₂ (f:=term A) = snd := hpull.pb_lift_snd
+
+theorem kpProdIso_inv (A : 𝒞) : kpProdIso A ≫ kpProdInv A = Cat.id (kernelPair (term A)) := by
+  let u := kpProdIso A ≫ kpProdInv A
+  have hu_fst : u ≫ kp₁ (f:=term A) = kp₁ (f:=term A) := by
+    dsimp [u]; rw [Cat.assoc, kpProdInv_fst, kpProdIso_fst]
+  have hu_snd : u ≫ kp₂ (f:=term A) = kp₂ (f:=term A) := by
+    dsimp [u]; rw [Cat.assoc, kpProdInv_snd, kpProdIso_snd]
+  have h_id_lift : hpull.pb_lift (f:=term A) (g:=term A) (kp₁ (f:=term A)) (kp₂ (f:=term A)) kp_sq =
+      Cat.id (kernelPair (term A)) :=
+    (hpull.pb_lift_uniq (f:=term A) (g:=term A) (Cat.id _) (Cat.id_comp _) (Cat.id_comp _)).symm
+  calc
+    u = hpull.pb_lift (f:=term A) (g:=term A) (kp₁ (f:=term A)) (kp₂ (f:=term A)) kp_sq :=
+      hpull.pb_lift_uniq (f:=term A) (g:=term A) u hu_fst hu_snd
+    _ = Cat.id (kernelPair (term A)) := h_id_lift
+
+theorem kpProdInv_iso (A : 𝒞) : kpProdInv A ≫ kpProdIso A = Cat.id (prod A A) := by
+  have h := pair_uniq fst snd (kpProdInv A ≫ kpProdIso A)
+    (by rw [Cat.assoc, kpProdIso_fst, kpProdInv_fst])
+    (by rw [Cat.assoc, kpProdIso_snd, kpProdInv_snd])
+  have hid : pair fst snd = Cat.id (prod A A) :=
+    (pair_uniq fst snd (Cat.id (prod A A)) (by rw [Cat.id_comp]) (by rw [Cat.id_comp])).symm
+  rw [h, hid]
+
+theorem kpProdIso_isIso (A : 𝒞) : IsIso (kpProdIso A) :=
+  ⟨kpProdInv A, kpProdIso_inv A, kpProdInv_iso A⟩
+
+theorem kp_diag_prod (A : 𝒞) : kp_diag (f:=term A) ≫ kpProdIso A = diag A := by
+  let h := kp_diag (f:=term A) ≫ kpProdIso A
+  have hfst : h ≫ fst = Cat.id A := by
+    dsimp [h]; rw [Cat.assoc, kpProdIso_fst, kp_diag_p₁]
+  have hsnd : h ≫ snd = Cat.id A := by
+    dsimp [h]; rw [Cat.assoc, kpProdIso_snd, kp_diag_p₂]
+  have h_eq := pair_uniq (Cat.id A) (Cat.id A) h hfst hsnd
+  simpa [h, diag] using h_eq
 
 def WellSupported (A : 𝒞) : Prop := Cover (term A)
 
@@ -226,7 +245,7 @@ theorem wellSupported_prod_self (A : 𝒞) (hws : WellSupported A) : WellSupport
     rw [Cat.assoc, hgm, h_diag_term]
   exact hws m (diag A ≫ g) hm h_factor
 
-theorem capital_implies_one_projective
+theorem capital_implies_one_projective //1.525
     (hcap : ∀ (A : 𝒞), WellSupported A → WellPointed A)
     (A : 𝒞) (hws : WellSupported A) :
     ∃ (_ : one ⟶ A), True := by
@@ -239,9 +258,30 @@ theorem capital_implies_one_projective
       intro hm
       apply hiso
       exact monic_cover_iso (term A) hws hm
-    -- 3. Hence Δ : A → A×A is a proper monic (1.453: term A not monic ⇒ diag not iso).
-    have h_not_iso_diag : ¬ IsIso (diag A) :=
-      mt ((monic_iff_diag_kp_iso (termKernelPair A)).mpr) h_not_monic
+    -- 3. Hence kp_diag(term A) is not iso (1.453: monic_iff_kp_diag_iso).
+    --    Via kpProdIso, diag A is also not iso — a proper monic.
+    have h_not_iso_kp : ¬ IsIso (kp_diag (f:=term A)) :=
+      mt ((monic_iff_kp_diag_iso (f:=term A)).mpr) h_not_monic
+    have h_not_iso_diag : ¬ IsIso (diag A) := by
+      intro hiso_diag; apply h_not_iso_kp
+      have hkp : kp_diag (f:=term A) = diag A ≫ kpProdInv A := by
+        rw [← kp_diag_prod A, Cat.assoc, kpProdIso_inv A, Cat.comp_id]
+      rw [hkp]
+      obtain ⟨dinv, hd1, hd2⟩ := hiso_diag
+      obtain ⟨pinv, hp1, hp2⟩ := kpProdIso_isIso A
+      refine ⟨pinv ≫ dinv, ?_, ?_⟩
+      · calc
+          (diag A ≫ kpProdInv A) ≫ (pinv ≫ dinv) = diag A ≫ (kpProdInv A ≫ pinv) ≫ dinv := by
+            rw [Cat.assoc, Cat.assoc]
+          _ = diag A ≫ Cat.id (prod A A) ≫ dinv := by rw [hp1]
+          _ = diag A ≫ dinv := by rw [Cat.id_comp]
+          _ = Cat.id A := hd1
+      · calc
+          (pinv ≫ dinv) ≫ (diag A ≫ kpProdInv A) = pinv ≫ (dinv ≫ diag A) ≫ kpProdInv A := by
+            rw [Cat.assoc, ← Cat.assoc dinv, Cat.assoc]
+          _ = pinv ≫ Cat.id (prod A A) ≫ kpProdInv A := by rw [hd2]
+          _ = pinv ≫ kpProdInv A := by rw [Cat.id_comp]
+          _ = Cat.id (kernelPair (term A)) := hp2
     have hm_diag : Mono (diag A) := diag_mono A
     -- 4. A×A is well-supported — via the diagonal, no pullbacks needed.
     have hwsAA : WellSupported (prod A A) := wellSupported_prod_self A hws
