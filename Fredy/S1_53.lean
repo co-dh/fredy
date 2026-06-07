@@ -24,8 +24,9 @@ variable [ht : HasTerminal 𝒞] [hp : HasBinaryProducts 𝒞] [hpull : HasPullb
 
 /-! ## §1.531  Σ reflects monos and covers -/
 
-/-- **§1.531**: Σ reflects monos. -/
-theorem sigma_reflects_mono {B : 𝒞} {Z Y : Over B} (m : OverHom Z Y)
+/-- **§1.531**: Σ preserves monos.  If `m` is mono in A/B then `m.f` (= Σ m) is mono in A.
+    This is the non-trivial direction of the Slice Lemma.  (Type expands `Preserves Σ @Mono`.) -/
+theorem sigma_preserves_mono {B : 𝒞} {Z Y : Over B} (m : OverHom Z Y)
     (hm : OverMono m) : Mono m.f := by
   intro D p q hpq
   have wq : q ≫ Z.hom = p ≫ Z.hom := by
@@ -36,12 +37,21 @@ theorem sigma_reflects_mono {B : 𝒞} {Z Y : Over B} (m : OverHom Z Y)
   have h_eq : pp ⊚ m = qq ⊚ m := OverHom.ext hpq
   exact congrArg OverHom.f (hm pp qq h_eq)
 
+/-- **§1.531**: Σ reflects monos.  If `m.f` is mono in A then `m` is mono in A/B.
+    This direction follows from the definition.  (Type expands `Reflects Σ @Mono`.) -/
+theorem sigma_reflects_mono {B : 𝒞} {Z Y : Over B} (m : OverHom Z Y)
+    (hmMono : Mono m.f) : OverMono m := by
+  intro W g h h_eq
+  apply OverHom.ext
+  apply hmMono
+  exact congrArg OverHom.f h_eq
+
 /-- **§1.531**: Σ reflects covers.  If u.f is a cover in A and factors
     through a monic m in A/B, then m.f is iso in A. -/
 theorem sigma_reflects_cover {B : 𝒞} {X Y Z : Over B} (u : OverHom X Y) (m : OverHom Z Y)
     (g : OverHom X Z) (hu : Cover u.f) (hmMono : OverMono m) (hgm : g ⊚ m = u) : IsIso m.f := by
   have hgmA : g.f ≫ m.f = u.f := congrArg OverHom.f hgm
-  have hmA : Mono m.f := sigma_reflects_mono m hmMono
+  have hmA : Mono m.f := sigma_preserves_mono m hmMono
   exact hu m.f g.f hmA hgmA
 
 /-! ## §1.532  The pullback square for Δ -/

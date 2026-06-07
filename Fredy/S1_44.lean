@@ -7,6 +7,7 @@
 -/
 
 import Fredy.S1_1
+import Fredy.S1_41
 
 universe v u
 
@@ -32,6 +33,17 @@ def OverHom.comp {B : 𝒞} {X Y Z : Over B} (h : OverHom X Y) (k : OverHom Y Z)
 
 infixr:80 " ⊚ " => OverHom.comp
 
-/-- Mono in A/B (explicit, bypasses `Cat` instance for `Over B`). -/
-def OverMono {B : 𝒞} {Z Y : Over B} (m : OverHom Z Y) : Prop :=
-  ∀ {W : Over B} (g h : OverHom W Z), g ⊚ m = h ⊚ m → g = h
+/-- The slice category A/B as a `Cat` instance.  Composition is `⊚`, identity
+    is the pair `(id_dom, id_comp B)`. -/
+instance overCat (B : 𝒞) : Cat.{v} (Over B) where
+  Hom := OverHom
+  id X := ⟨Cat.id X.dom, Cat.id_comp X.hom⟩
+  comp f g := f ⊚ g
+  id_comp f := OverHom.ext (Cat.id_comp f.f)
+  comp_id f := OverHom.ext (Cat.comp_id f.f)
+  assoc f g h := OverHom.ext (Cat.assoc f.f g.f h.f)
+
+/-- Mono in A/B (via the Over category's `Cat` instance).  `OverMono m` iff
+    `m` is monic in the slice category.  This is an abbreviation for `@Mono`
+    in the Over category. -/
+abbrev OverMono {B : 𝒞} {Z Y : Over B} (m : OverHom Z Y) : Prop := @Mono (Over B) _ Z Y m
