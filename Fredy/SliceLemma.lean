@@ -45,23 +45,19 @@ theorem OverHom.ext {B : 𝒞} {X Y : Over B} {a b : OverHom X Y} (h : a.f = b.f
 def OverHom.comp {B : 𝒞} {X Y Z : Over B} (h : OverHom X Y) (k : OverHom Y Z) : OverHom X Z :=
   ⟨h.f ≫ k.f, by rw [Cat.assoc, k.w, h.w]⟩
 
-/-- Identity in A/B. -/
-def OverHom.id {B : 𝒞} (X : Over B) : OverHom X X := ⟨Cat.id X.dom, Cat.id_comp _⟩
-
 infixr:80 " ⊚ " => OverHom.comp
+
+/-- Mono in A/B (explicit, avoids `Cat` instance for `Over B`). -/
+def OverMono {B : 𝒞} {Z Y : Over B} (m : OverHom Z Y) : Prop :=
+  ∀ {W : Over B} (g h : OverHom W Z), g ⊚ m = h ⊚ m → g = h
 
 /-!
 ## §1.531  Σ : A/B → A preserves and reflects covers
-
-  Σ is the domain functor.  We prove it reflects monos and covers,
-  and preserves covers (the pullback part is in §1.532).
 -/
-
-def SigmaObj {B : 𝒞} (X : Over B) : 𝒞 := X.dom
 
 /-- **§1.531**: Σ reflects monos. -/
 theorem sigma_reflects_mono {B : 𝒞} {Z Y : Over B} (m : OverHom Z Y)
-    (hm : ∀ {W} (g h : OverHom W Z), g ⊚ m = h ⊚ m → g = h) : Mono m.f := by
+    (hm : OverMono m) : Mono m.f := by
   intro D p q hpq
   have wq : q ≫ Z.hom = p ≫ Z.hom := by
     rw [← m.w, ← Cat.assoc, ← Cat.assoc, hpq]
@@ -72,11 +68,9 @@ theorem sigma_reflects_mono {B : 𝒞} {Z Y : Over B} (m : OverHom Z Y)
   exact congrArg OverHom.f (hm pp qq h_eq)
 
 /-- **§1.531**: Σ reflects covers.  If u.f is a cover in A, and u factors
-    through a monic m in A/B (via g ⊚ m = u), then m.f is iso in A.
-    This is the key consequence: covers lift their image-triviality to the slice. -/
+    through a monic m in A/B (via g ⊚ m = u), then m.f is iso in A. -/
 theorem sigma_reflects_cover {B : 𝒞} {X Y Z : Over B} (u : OverHom X Y) (m : OverHom Z Y)
-    (g : OverHom X Z) (hu : Cover u.f) (hmMono : ∀ {W} (a b : OverHom W Z), a ⊚ m = b ⊚ m → a = b)
-    (hgm : g ⊚ m = u) : IsIso m.f := by
+    (g : OverHom X Z) (hu : Cover u.f) (hmMono : OverMono m) (hgm : g ⊚ m = u) : IsIso m.f := by
   have hgmA : g.f ≫ m.f = u.f := congrArg OverHom.f hgm
   have hmA : Mono m.f := sigma_reflects_mono m hmMono
   exact hu m.f g.f hmA hgmA
