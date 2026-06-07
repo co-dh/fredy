@@ -42,6 +42,15 @@ def Cover {X Y : 𝒞} (f : X ⟶ Y) : Prop :=
 theorem monic_cover_iso {X Y : 𝒞} (f : X ⟶ Y) (hc : Cover f) (hm : Mono f) : IsIso f :=
   hc f (Cat.id X) hm (Cat.id_comp f)
 
+/-- Isomorphisms are closed under composition; the inverse is `g⁻¹ ≫ f⁻¹`. -/
+theorem isIso_comp {X Y Z : 𝒞} {f : X ⟶ Y} {g : Y ⟶ Z} (hf : IsIso f) (hg : IsIso g) :
+    IsIso (f ≫ g) := by
+  obtain ⟨f', hf1, hf2⟩ := hf
+  obtain ⟨g', hg1, hg2⟩ := hg
+  exact ⟨g' ≫ f',
+    by rw [Cat.assoc, ← Cat.assoc g, hg1, Cat.id_comp, hf1],
+    by rw [Cat.assoc, ← Cat.assoc f', hf2, Cat.id_comp, hg2]⟩
+
 class HasTerminal (𝒞 : Type u) [Cat.{v} 𝒞] where
   one   : 𝒞
   trm   : (X : 𝒞) → X ⟶ one
@@ -100,47 +109,49 @@ theorem diag_mono (A : 𝒞) : Mono (diag A) := by
 
 /-! ## Pullbacks and kernel pairs (§1.453–1.454) -/
 
+/-- A pullback of the cospan `A —f→ C ←g— B`.  Making the cospan `f, g` (and its
+    objects `A B C`) parameters of the *class* states them once, instead of
+    re-binding `{A B C} {f} {g}` on every field. -/
+class HasPullback {A B C : 𝒞} (f : A ⟶ C) (g : B ⟶ C) where
+  obj  : 𝒞
+  fst  : obj ⟶ A
+  snd  : obj ⟶ B
+  sq   : fst ≫ f = snd ≫ g
+  lift {X : 𝒞} (h : X ⟶ A) (k : X ⟶ B) (e : h ≫ f = k ≫ g) : X ⟶ obj
+  lift_fst {X : 𝒞} {h : X ⟶ A} {k : X ⟶ B} {e : h ≫ f = k ≫ g} : lift h k e ≫ fst = h
+  lift_snd {X : 𝒞} {h : X ⟶ A} {k : X ⟶ B} {e : h ≫ f = k ≫ g} : lift h k e ≫ snd = k
+  lift_uniq {X : 𝒞} {h : X ⟶ A} {k : X ⟶ B} {e : h ≫ f = k ≫ g}
+    (u : X ⟶ obj) (h₁ : u ≫ fst = h) (h₂ : u ≫ snd = k) : u = lift h k e
+
+/-- The category has all pullbacks: a `HasPullback` for every cospan. -/
 class HasPullbacks (𝒞 : Type u) [Cat.{v} 𝒞] where
-  pb_obj (A B C : 𝒞) (f : A ⟶ C) (g : B ⟶ C) : 𝒞
-  pb_fst {A B C : 𝒞} {f : A ⟶ C} {g : B ⟶ C} : pb_obj A B C f g ⟶ A
-  pb_snd {A B C : 𝒞} {f : A ⟶ C} {g : B ⟶ C} : pb_obj A B C f g ⟶ B
-  pb_sq  {A B C : 𝒞} {f : A ⟶ C} {g : B ⟶ C} : pb_fst (f:=f) (g:=g) ≫ f = pb_snd (f:=f) (g:=g) ≫ g
-  pb_lift {X A B C : 𝒞} {f : A ⟶ C} {g : B ⟶ C}
-    (h : X ⟶ A) (k : X ⟶ B) (e : h ≫ f = k ≫ g) : X ⟶ pb_obj A B C f g
-  pb_lift_fst {X A B C : 𝒞} {f : A ⟶ C} {g : B ⟶ C}
-    {h : X ⟶ A} {k : X ⟶ B} {e : h ≫ f = k ≫ g} : pb_lift h k e ≫ pb_fst (f:=f) (g:=g) = h
-  pb_lift_snd {X A B C : 𝒞} {f : A ⟶ C} {g : B ⟶ C}
-    {h : X ⟶ A} {k : X ⟶ B} {e : h ≫ f = k ≫ g} : pb_lift h k e ≫ pb_snd (f:=f) (g:=g) = k
-  pb_lift_uniq {X A B C : 𝒞} {f : A ⟶ C} {g : B ⟶ C}
-    {h : X ⟶ A} {k : X ⟶ B} {e : h ≫ f = k ≫ g}
-    (u : X ⟶ pb_obj A B C f g) (h₁ : u ≫ pb_fst (f:=f) (g:=g) = h) (h₂ : u ≫ pb_snd (f:=f) (g:=g) = k) :
-    u = pb_lift h k e
+  has {A B C : 𝒞} (f : A ⟶ C) (g : B ⟶ C) : HasPullback f g
 
 variable [hpull : HasPullbacks 𝒞]
 
 /-- The kernel pair of f : pullback of f along f.  §1.454 -/
-def kernelPair {A B : 𝒞} (f : A ⟶ B) : 𝒞 := hpull.pb_obj A A B f f
+def kernelPair {A B : 𝒞} (f : A ⟶ B) : 𝒞 := (hpull.has f f).obj
 
-def kp₁ {A B : 𝒞} {f : A ⟶ B} : kernelPair f ⟶ A := hpull.pb_fst (f:=f) (g:=f)
-def kp₂ {A B : 𝒞} {f : A ⟶ B} : kernelPair f ⟶ A := hpull.pb_snd (f:=f) (g:=f)
+def kp₁ {A B : 𝒞} {f : A ⟶ B} : kernelPair f ⟶ A := (hpull.has f f).fst
+def kp₂ {A B : 𝒞} {f : A ⟶ B} : kernelPair f ⟶ A := (hpull.has f f).snd
 
-theorem kp_sq {A B : 𝒞} {f : A ⟶ B} : (kp₁ (f:=f)) ≫ f = (kp₂ (f:=f)) ≫ f := hpull.pb_sq (f:=f) (g:=f)
+theorem kp_sq {A B : 𝒞} {f : A ⟶ B} : (kp₁ (f:=f)) ≫ f = (kp₂ (f:=f)) ≫ f := (hpull.has f f).sq
 
 def kp_diag {A B : 𝒞} {f : A ⟶ B} : A ⟶ kernelPair f :=
-  hpull.pb_lift (Cat.id A) (Cat.id A) (rfl)
+  (hpull.has f f).lift (Cat.id A) (Cat.id A) (rfl)
 
-theorem kp_diag_p₁ {A B : 𝒞} {f : A ⟶ B} : kp_diag (f:=f) ≫ kp₁ (f:=f) = Cat.id A := hpull.pb_lift_fst
-theorem kp_diag_p₂ {A B : 𝒞} {f : A ⟶ B} : kp_diag (f:=f) ≫ kp₂ (f:=f) = Cat.id A := hpull.pb_lift_snd
+theorem kp_diag_p₁ {A B : 𝒞} {f : A ⟶ B} : kp_diag (f:=f) ≫ kp₁ (f:=f) = Cat.id A := (hpull.has f f).lift_fst
+theorem kp_diag_p₂ {A B : 𝒞} {f : A ⟶ B} : kp_diag (f:=f) ≫ kp₂ (f:=f) = Cat.id A := (hpull.has f f).lift_snd
 
 theorem kp_lift_p₁ {A B X : 𝒞} {f : A ⟶ B} (x₁ x₂ : X ⟶ A) (h : x₁ ≫ f = x₂ ≫ f) :
-    hpull.pb_lift x₁ x₂ h ≫ kp₁ (f:=f) = x₁ := hpull.pb_lift_fst
+    (hpull.has f f).lift x₁ x₂ h ≫ kp₁ (f:=f) = x₁ := (hpull.has f f).lift_fst
 
 theorem kp_lift_p₂ {A B X : 𝒞} {f : A ⟶ B} (x₁ x₂ : X ⟶ A) (h : x₁ ≫ f = x₂ ≫ f) :
-    hpull.pb_lift x₁ x₂ h ≫ kp₂ (f:=f) = x₂ := hpull.pb_lift_snd
+    (hpull.has f f).lift x₁ x₂ h ≫ kp₂ (f:=f) = x₂ := (hpull.has f f).lift_snd
 
 theorem kp_lift_uniq {A B X : 𝒞} {f : A ⟶ B} (x₁ x₂ : X ⟶ A) (h : x₁ ≫ f = x₂ ≫ f)
     (g : X ⟶ kernelPair f) (h₁ : g ≫ kp₁ (f:=f) = x₁) (h₂ : g ≫ kp₂ (f:=f) = x₂) :
-    g = hpull.pb_lift x₁ x₂ h := hpull.pb_lift_uniq g h₁ h₂
+    g = (hpull.has f f).lift x₁ x₂ h := (hpull.has f f).lift_uniq g h₁ h₂
 
 /-- Lemma from 1.453: f is monic iff the diagonal into its kernel pair is iso. -/
 theorem monic_iff_kp_diag_iso {A B : 𝒞} {f : A ⟶ B} :
@@ -149,11 +160,11 @@ theorem monic_iff_kp_diag_iso {A B : 𝒞} {f : A ⟶ B} :
   · intro hm
     have h_eq : kp₁ (f:=f) = kp₂ (f:=f) := hm _ _ kp_sq
     refine ⟨kp₁ (f:=f), kp_diag_p₁, ?_⟩
-    have h_id : hpull.pb_lift (kp₁ (f:=f)) (kp₂ (f:=f)) kp_sq = Cat.id (kernelPair f) :=
+    have h_id : (hpull.has f f).lift (kp₁ (f:=f)) (kp₂ (f:=f)) kp_sq = Cat.id (kernelPair f) :=
       (kp_lift_uniq (kp₁ (f:=f)) (kp₂ (f:=f)) kp_sq (Cat.id (kernelPair f))
         (Cat.id_comp _) (Cat.id_comp _)).symm
     have h_comp : (kp₁ (f:=f)) ≫ kp_diag (f:=f) =
-        hpull.pb_lift (kp₁ (f:=f)) (kp₂ (f:=f)) kp_sq :=
+        (hpull.has f f).lift (kp₁ (f:=f)) (kp₂ (f:=f)) kp_sq :=
       (kp_lift_uniq (kp₁ (f:=f)) (kp₂ (f:=f)) kp_sq ((kp₁ (f:=f)) ≫ kp_diag (f:=f))
         (by rw [Cat.assoc, kp_diag_p₁, Cat.comp_id])
         (by rw [Cat.assoc, kp_diag_p₂, Cat.comp_id, h_eq]))
@@ -161,10 +172,10 @@ theorem monic_iff_kp_diag_iso {A B : 𝒞} {f : A ⟶ B} :
   · intro hiso
     obtain ⟨inv, _diag_inv, inv_diag⟩ := hiso
     intro X x₁ x₂ h
-    let hpair := hpull.pb_lift x₁ x₂ h
+    let hpair : X ⟶ kernelPair f := (hpull.has f f).lift x₁ x₂ h
     let t : X ⟶ A := hpair ≫ inv
     have ht : hpair = t ≫ kp_diag (f:=f) := by
-      dsimp [t]; rw [Cat.assoc, inv_diag, kernelPair]; rw [Cat.comp_id]
+      dsimp [t]; rw [Cat.assoc, inv_diag]; rw [Cat.comp_id]
     calc
       x₁ = hpair ≫ kp₁ (f:=f) := by rw [kp_lift_p₁ x₁ x₂ h]
       _ = (t ≫ kp_diag (f:=f)) ≫ kp₁ (f:=f) := by rw [ht]
@@ -185,12 +196,12 @@ def kpProdIso (A : 𝒞) : kernelPair (term A) ⟶ prod A A :=
   pair (kp₁ (f:=term A)) (kp₂ (f:=term A))
 
 def kpProdInv (A : 𝒞) : prod A A ⟶ kernelPair (term A) :=
-  hpull.pb_lift (f:=term A) (g:=term A) fst snd (term_uniq _ _)
+  (hpull.has (term A) (term A)).lift fst snd (term_uniq _ _)
 
 @[simp] theorem kpProdIso_fst (A : 𝒞) : kpProdIso A ≫ fst = kp₁ (f:=term A) := fst_pair _ _
 @[simp] theorem kpProdIso_snd (A : 𝒞) : kpProdIso A ≫ snd = kp₂ (f:=term A) := snd_pair _ _
-@[simp] theorem kpProdInv_fst (A : 𝒞) : kpProdInv A ≫ kp₁ (f:=term A) = fst := hpull.pb_lift_fst
-@[simp] theorem kpProdInv_snd (A : 𝒞) : kpProdInv A ≫ kp₂ (f:=term A) = snd := hpull.pb_lift_snd
+@[simp] theorem kpProdInv_fst (A : 𝒞) : kpProdInv A ≫ kp₁ (f:=term A) = fst := (hpull.has (term A) (term A)).lift_fst
+@[simp] theorem kpProdInv_snd (A : 𝒞) : kpProdInv A ≫ kp₂ (f:=term A) = snd := (hpull.has (term A) (term A)).lift_snd
 
 theorem kpProdIso_inv (A : 𝒞) : kpProdIso A ≫ kpProdInv A = Cat.id (kernelPair (term A)) := by
   let u := kpProdIso A ≫ kpProdInv A
@@ -198,12 +209,12 @@ theorem kpProdIso_inv (A : 𝒞) : kpProdIso A ≫ kpProdInv A = Cat.id (kernelP
     dsimp [u]; rw [Cat.assoc, kpProdInv_fst, kpProdIso_fst]
   have hu_snd : u ≫ kp₂ (f:=term A) = kp₂ (f:=term A) := by
     dsimp [u]; rw [Cat.assoc, kpProdInv_snd, kpProdIso_snd]
-  have h_id_lift : hpull.pb_lift (f:=term A) (g:=term A) (kp₁ (f:=term A)) (kp₂ (f:=term A)) kp_sq =
+  have h_id_lift : (hpull.has (term A) (term A)).lift (kp₁ (f:=term A)) (kp₂ (f:=term A)) kp_sq =
       Cat.id (kernelPair (term A)) :=
-    (hpull.pb_lift_uniq (f:=term A) (g:=term A) (Cat.id _) (Cat.id_comp _) (Cat.id_comp _)).symm
+    ((hpull.has (term A) (term A)).lift_uniq (Cat.id _) (Cat.id_comp _) (Cat.id_comp _)).symm
   calc
-    u = hpull.pb_lift (f:=term A) (g:=term A) (kp₁ (f:=term A)) (kp₂ (f:=term A)) kp_sq :=
-      hpull.pb_lift_uniq (f:=term A) (g:=term A) u hu_fst hu_snd
+    u = (hpull.has (term A) (term A)).lift (kp₁ (f:=term A)) (kp₂ (f:=term A)) kp_sq :=
+      (hpull.has (term A) (term A)).lift_uniq u hu_fst hu_snd
     _ = Cat.id (kernelPair (term A)) := h_id_lift
 
 theorem kpProdInv_iso (A : 𝒞) : kpProdInv A ≫ kpProdIso A = Cat.id (prod A A) := by
@@ -216,6 +227,9 @@ theorem kpProdInv_iso (A : 𝒞) : kpProdInv A ≫ kpProdIso A = Cat.id (prod A 
 
 theorem kpProdIso_isIso (A : 𝒞) : IsIso (kpProdIso A) :=
   ⟨kpProdInv A, kpProdIso_inv A, kpProdInv_iso A⟩
+
+theorem kpProdInv_isIso (A : 𝒞) : IsIso (kpProdInv A) :=
+  ⟨kpProdIso A, kpProdInv_iso A, kpProdIso_inv A⟩
 
 theorem kp_diag_prod (A : 𝒞) : kp_diag (f:=term A) ≫ kpProdIso A = diag A := by
   let h := kp_diag (f:=term A) ≫ kpProdIso A
@@ -245,7 +259,8 @@ theorem wellSupported_prod_self (A : 𝒞) (hws : WellSupported A) : WellSupport
     rw [Cat.assoc, hgm, h_diag_term]
   exact hws m (diag A ≫ g) hm h_factor
 
-theorem capital_implies_one_projective //1.525
+-- §1.525
+theorem capital_implies_one_projective
     (hcap : ∀ (A : 𝒞), WellSupported A → WellPointed A)
     (A : 𝒞) (hws : WellSupported A) :
     ∃ (_ : one ⟶ A), True := by
@@ -267,21 +282,7 @@ theorem capital_implies_one_projective //1.525
       have hkp : kp_diag (f:=term A) = diag A ≫ kpProdInv A := by
         rw [← kp_diag_prod A, Cat.assoc, kpProdIso_inv A, Cat.comp_id]
       rw [hkp]
-      obtain ⟨dinv, hd1, hd2⟩ := hiso_diag
-      obtain ⟨pinv, hp1, hp2⟩ := kpProdIso_isIso A
-      refine ⟨pinv ≫ dinv, ?_, ?_⟩
-      · calc
-          (diag A ≫ kpProdInv A) ≫ (pinv ≫ dinv) = diag A ≫ (kpProdInv A ≫ pinv) ≫ dinv := by
-            rw [Cat.assoc, Cat.assoc]
-          _ = diag A ≫ Cat.id (prod A A) ≫ dinv := by rw [hp1]
-          _ = diag A ≫ dinv := by rw [Cat.id_comp]
-          _ = Cat.id A := hd1
-      · calc
-          (pinv ≫ dinv) ≫ (diag A ≫ kpProdInv A) = pinv ≫ (dinv ≫ diag A) ≫ kpProdInv A := by
-            rw [Cat.assoc, ← Cat.assoc dinv, Cat.assoc]
-          _ = pinv ≫ Cat.id (prod A A) ≫ kpProdInv A := by rw [hd2]
-          _ = pinv ≫ kpProdInv A := by rw [Cat.id_comp]
-          _ = Cat.id (kernelPair (term A)) := hp2
+      exact isIso_comp hiso_diag (kpProdInv_isIso A)
     have hm_diag : Mono (diag A) := diag_mono A
     -- 4. A×A is well-supported — via the diagonal, no pullbacks needed.
     have hwsAA : WellSupported (prod A A) := wellSupported_prod_self A hws
