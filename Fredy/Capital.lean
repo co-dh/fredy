@@ -201,20 +201,28 @@ theorem monic_iff_kp_diag_iso {A B : 𝒞} {f : A ⟶ B} :
 
 /-! ## Bridging kernelPair(term A) to A×A -/
 
+def _pb (A : 𝒞) : HasPullback (term A) (term A) := hpull.has (term A) (term A)
+
+def _kpCone (A : 𝒞) : Cone (term A) (term A) :=
+  ⟨_, kp₁ (f:=term A), kp₂ (f:=term A), kp_sq⟩
+
+def _prodCone (A : 𝒞) : Cone (term A) (term A) :=
+  ⟨_, fst, snd, term_uniq _ _⟩
+
 /-- kpProdIso : kernelPair(term A) → A×A constructed via the product universal
     property, and kpProdInv in the reverse direction via the pullback lift. -/
 def kpProdIso (A : 𝒞) : kernelPair (term A) ⟶ prod A A :=
   pair (kp₁ (f:=term A)) (kp₂ (f:=term A))
 
 def kpProdInv (A : 𝒞) : prod A A ⟶ kernelPair (term A) :=
-  (hpull.has (term A) (term A)).lift ⟨_, fst, snd, term_uniq _ _⟩
+  (_pb A).lift (_prodCone A)
 
 @[simp] theorem kpProdIso_fst (A : 𝒞) : kpProdIso A ≫ fst = kp₁ (f:=term A) := fst_pair _ _
 @[simp] theorem kpProdIso_snd (A : 𝒞) : kpProdIso A ≫ snd = kp₂ (f:=term A) := snd_pair _ _
 @[simp] theorem kpProdInv_fst (A : 𝒞) : kpProdInv A ≫ kp₁ (f:=term A) = fst :=
-  (hpull.has (term A) (term A)).lift_fst ⟨_, fst, snd, term_uniq _ _⟩
+  (_pb A).lift_fst (_prodCone A)
 @[simp] theorem kpProdInv_snd (A : 𝒞) : kpProdInv A ≫ kp₂ (f:=term A) = snd :=
-  (hpull.has (term A) (term A)).lift_snd ⟨_, fst, snd, term_uniq _ _⟩
+  (_pb A).lift_snd (_prodCone A)
 
 theorem kpProdIso_inv (A : 𝒞) : kpProdIso A ≫ kpProdInv A = Cat.id (kernelPair (term A)) := by
   let u := kpProdIso A ≫ kpProdInv A
@@ -222,13 +230,11 @@ theorem kpProdIso_inv (A : 𝒞) : kpProdIso A ≫ kpProdInv A = Cat.id (kernelP
     dsimp [u]; rw [Cat.assoc, kpProdInv_fst, kpProdIso_fst]
   have hu_snd : u ≫ kp₂ (f:=term A) = kp₂ (f:=term A) := by
     dsimp [u]; rw [Cat.assoc, kpProdInv_snd, kpProdIso_snd]
-  have h_id_lift : (hpull.has (term A) (term A)).lift ⟨_, kp₁ (f:=term A), kp₂ (f:=term A), kp_sq⟩ =
-      Cat.id (kernelPair (term A)) :=
-    ((hpull.has (term A) (term A)).lift_uniq ⟨_, kp₁ (f:=term A), kp₂ (f:=term A), kp_sq⟩
-      (Cat.id _) (Cat.id_comp _) (Cat.id_comp _)).symm
+  have h_id_lift : (_pb A).lift (_kpCone A) = Cat.id (kernelPair (term A)) :=
+    ((_pb A).lift_uniq (_kpCone A) (Cat.id _) (Cat.id_comp _) (Cat.id_comp _)).symm
   calc
-    u = (hpull.has (term A) (term A)).lift ⟨_, kp₁ (f:=term A), kp₂ (f:=term A), kp_sq⟩ :=
-      (hpull.has (term A) (term A)).lift_uniq ⟨_, kp₁ (f:=term A), kp₂ (f:=term A), kp_sq⟩ u hu_fst hu_snd
+    u = (_pb A).lift (_kpCone A) :=
+      (_pb A).lift_uniq (_kpCone A) u hu_fst hu_snd
     _ = Cat.id (kernelPair (term A)) := h_id_lift
 
 theorem kpProdInv_iso (A : 𝒞) : kpProdInv A ≫ kpProdIso A = Cat.id (prod A A) := by
