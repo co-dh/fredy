@@ -40,9 +40,9 @@ set_option linter.unusedSectionVars false
 
 open Freyd
 
-universe v u w
+universe v u
 
-variable {𝒞 : Type u} [Cat.{v} 𝒞] {𝒟 : Type w} [Cat.{v} 𝒟]
+variable {𝒞 : Type u} [Cat.{v} 𝒞] {𝒟 : Type u} [Cat.{v} 𝒟]
 
 namespace Freyd
 
@@ -78,43 +78,58 @@ def compFunctor {ℰ : Type _} [Cat.{v} ℰ] {F : 𝒞 → 𝒟} {G : 𝒟 → �
   map_comp f g := by
     rw [hf.map_comp, hg.map_comp]
 
+/-! ## §1.181 as a general concept: preservation / reflection of a morphism-property -/
+
+/-- A property of morphisms, uniform across all categories (e.g. `@Mono`, `@IsIso`, `@Cover`). -/
+abbrev MorphProp := ∀ {𝒜 : Type u} [Cat.{v} 𝒜] {X Y : 𝒜}, (X ⟶ Y) → Prop
+
+/-- `F` PRESERVES `P` if it carries `P`-arrows to `P`-arrows. -/
+def Preserves (F : 𝒞 → 𝒟) [hF : Functor F] (P : MorphProp.{v,u}) : Prop :=
+  ∀ {X Y : 𝒞} {f : X ⟶ Y}, P f → P (hF.map f)
+
+/-- `F` REFLECTS `P` if a `P`-image forces a `P`-arrow (the shape of the §1.531 Slice Lemma). -/
+def Reflects (F : 𝒞 → 𝒟) [hF : Functor F] (P : MorphProp.{v,u}) : Prop :=
+  ∀ {X Y : 𝒞} {f : X ⟶ Y}, P (hF.map f) → P f
+
+/-- A morphism has a right inverse: there exists `g` such that `f ≫ g = id`. -/
+def HasRightInv : MorphProp.{v,u} := λ {_} _ {X Y} f => ∃ (g : Y ⟶ X), f ≫ g = Cat.id X
+
+/-- A morphism has a left inverse: there exists `g` such that `g ≫ f = id`. -/
+def HasLeftInv : MorphProp.{v,u} := λ {_} _ {X Y} f => ∃ (g : Y ⟶ X), g ≫ f = Cat.id Y
+
+/-- **§1.181 restated**: every functor preserves isomorphisms.  This is the one
+    morphism-property preserved by *all* functors; preservation of `@Mono`, `@Cover`, … are
+    separate statements that need hypotheses on `F`. -/
+theorem preserves_iso (F : 𝒞 → 𝒟) [hF : Functor F] : Preserves F @IsIso := by
+  intro X Y f hf
+  obtain ⟨g, hfg, hgf⟩ := hf
+  exact ⟨hF.map g,
+    by rw [← hF.map_comp, hfg, hF.map_id],
+    by rw [← hF.map_comp, hgf, hF.map_id]⟩
+
+/-- **§1.181**: every functor preserves right-invertibility. -/
+theorem preserves_has_right_inv (F : 𝒞 → 𝒟) [hF : Functor F] : Preserves F HasRightInv := by
+  intro X Y f ⟨g, hfg⟩
+  exact ⟨hF.map g, by rw [← hF.map_comp, hfg, hF.map_id]⟩
+
+/-- **§1.181**: every functor preserves left-invertibility. -/
+theorem preserves_has_left_inv (F : 𝒞 → 𝒟) [hF : Functor F] : Preserves F HasLeftInv := by
+  intro X Y f ⟨g, hgf⟩
+  exact ⟨hF.map g, by rw [← hF.map_comp, hgf, hF.map_id]⟩
+
 section FunctorProperties
 -- The theorems below all share the same functor `F` and its instance `h`;
 -- declaring them once as section variables avoids repeating them.
 variable {F : 𝒞 → 𝒟} [h : Functor F]
 
-/-- **§1.181 (left-invertible)**.  If `f` has a left inverse `g` (meaning
-    `g ≫ f = id_Y` — the book calls this "left-invertible" because `g`
-    appears on the left in the composition `gf`), then `F.map f` also
-    has a left inverse, namely `F.map g`.
-
-    Proof: `F.map g ≫ F.map f = F.map (g ≫ f) = F.map id_Y = id_{F Y}`. -/
-theorem functor_preserves_left_inv {X Y : 𝒞} (f : X ⟶ Y) (g : Y ⟶ X)
-    (h_eq : g ≫ f = Cat.id Y) : h.map g ≫ h.map f = Cat.id (F Y) := by
-  rw [← h.map_comp, h_eq, h.map_id]
-
-/-- **§1.181 (right-invertible)**.  If `f` has a right inverse `g` (meaning
-    `f ≫ g = id_X` — the book calls this "right-invertible" because `g`
-    appears on the right in `fg`), then `F.map f` also has a right inverse.
-
-    Proof: `F.map f ≫ F.map g = F.map (f ≫ g) = F.map id_X = id_{F X}`. -/
-theorem functor_preserves_right_inv {X Y : 𝒞} (f : X ⟶ Y) (g : Y ⟶ X)
-    (h_eq : f ≫ g = Cat.id X) : h.map f ≫ h.map g = Cat.id (F X) := by
-  rw [← h.map_comp, h_eq, h.map_id]
-
 /-- **§1.181**: a functor preserves isomorphisms.
 
-    If `f : X → Y` has a two-sided inverse `g : Y → X` in `𝒞`, then
-    `F.map f` has a two-sided inverse `F.map g` in `𝒟`.  This follows
-    immediately from the left- and right-inverse lemmas:
-    `f ≫ g = id_X` gives the right-inverse equation,
-    `g ≫ f = id_Y` gives the left-inverse equation. -/
+    If `f : X → Y` has a two-sided inverse in `𝒞`, then `F.map f`
+    has a two-sided inverse in `𝒟`.  This is an instance of the
+    general `Preserves` notion — every functor `Preserves` `@IsIso`. -/
 theorem functor_preserves_iso {X Y : 𝒞} (f : X ⟶ Y) (hf : IsIso f) :
-    IsIso (h.map f) := by
-  obtain ⟨g, hfg, hgf⟩ := hf
-  exact ⟨h.map g,
-    functor_preserves_right_inv f g hfg,
-    functor_preserves_left_inv f g hgf⟩
+    IsIso (h.map f) :=
+  preserves_iso F hf
 
 /-- **§1.181**: the image of the inverse is an inverse of the image.
 
@@ -126,7 +141,7 @@ theorem functor_map_inv {X Y : 𝒞} (f : X ⟶ Y) (g : Y ⟶ X)
     h.map f ≫ h.map g = Cat.id (F X) ∧
     h.map g ≫ h.map f = Cat.id (F Y) := by
   constructor
-  · exact functor_preserves_right_inv f g hfg
-  · exact functor_preserves_left_inv f g hgf
+  · rw [← h.map_comp, hfg, h.map_id]
+  · rw [← h.map_comp, hgf, h.map_id]
 
 end FunctorProperties
