@@ -1,0 +1,26 @@
+/-
+  Freyd & Scedrov, *Categories and Allegories* §1.1  Basic definitions.
+
+  The `Cat` typeclass: objects, typed Hom-sets, identity, composition,
+  and the three axioms (id_comp, comp_id, assoc).
+-/
+
+set_option linter.unusedSectionVars false
+
+universe v u
+
+class Cat.{w, z} (𝒞 : Type z) : Type (max z (w + 1)) where
+  Hom     : 𝒞 → 𝒞 → Type w
+  id      : (X : 𝒞) → Hom X X
+  comp    : {X Y Z : 𝒞} → Hom X Y → Hom Y Z → Hom X Z
+  id_comp : ∀ {X Y : 𝒞} (f : Hom X Y), comp (id X) f = f
+  comp_id : ∀ {X Y : 𝒞} (f : Hom X Y), comp f (id Y) = f
+  assoc   : ∀ {W X Y Z : 𝒞} (f : Hom W X) (g : Hom X Y) (h : Hom Y Z),
+              comp (comp f g) h = comp f (comp g h)
+
+infixr:25 " ⟶ "  => Cat.Hom
+infixr:80 " ≫ "  => Cat.comp
+
+variable {𝒞 : Type u} [Cat.{v} 𝒞]
+
+namespace Freyd
