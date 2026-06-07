@@ -1,13 +1,12 @@
 /-
   Freyd & Scedrov, *Categories and Allegories* §1.52  Regular categories,
-  well-supported, well-pointed, capital.  §1.525.
+  well-supported, well-pointed, capital.  §1.52–§1.525.
 
-  WellSupported A (§1.522): A → 1 is a cover.
-  WellPointed A (§1.523): global elements 1 → A jointly cover A.
-  Capital (§1.525): every well-supported object is well-pointed.
-  capital_implies_one_projective: the terminator is projective in a
-  capital category — every well-supported A has a point 1 → A.
+  RegularCategory: Cartesian + images + pullbacks transfer covers.
+  PreRegular: Cartesian + pullbacks transfer covers (images optional).
+  WellSupported (§1.522), WellPointed (§1.523), Capital (§1.525).
 -/
+
 
 import Fredy.S1_1
 import Fredy.S1_41
@@ -23,7 +22,39 @@ variable {𝒞 : Type u} [Cat.{v} 𝒞]
 
 namespace Freyd
 
-variable [ht : HasTerminal 𝒞] [hp : HasBinaryProducts 𝒞] [hpull : HasPullbacks 𝒞]
+/-! ## §1.52 Regular and pre-regular categories
+
+  A REGULAR CATEGORY is Cartesian with images where pullbacks transfer
+  covers.  A PRE-REGULAR CATEGORY drops the images requirement. -/
+
+/-- A regular category: Cartesian, has images, pullbacks transfer covers (§1.52). -/
+class RegularCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
+    HasTerminal 𝒞, HasBinaryProducts 𝒞, HasPullbacks 𝒞, HasImages 𝒞 where
+  pullbacks_transfer_covers : ∀ {A B C D : 𝒞} (f : A ⟶ B) (g : C ⟶ B)
+    (p₁ : D ⟶ A) (p₂ : D ⟶ C), Cover f → p₁ ≫ f = p₂ ≫ g → Cover p₂
+
+/-- A pre-regular category: Cartesian, pullbacks transfer covers (§1.52). -/
+class PreRegularCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
+    HasTerminal 𝒞, HasBinaryProducts 𝒞, HasPullbacks 𝒞 where
+  pullbacks_transfer_covers : ∀ {A B C D : 𝒞} (f : A ⟶ B) (g : C ⟶ B)
+    (p₁ : D ⟶ A) (p₂ : D ⟶ C), Cover f → p₁ ≫ f = p₂ ≫ g → Cover p₂
+
+variable [HasTerminal 𝒞]
+
+/-- A is WELL-SUPPORTED if A → 1 is a cover (§1.522). -/
+def WellSupported (A : 𝒞) : Prop := Cover (term A)
+
+/-- A is WELL-POINTED (§1.523): the collection 1 → A jointly covers A.
+    Every proper monic into A misses some point 1 → A. -/
+def WellPointed (A : 𝒞) : Prop :=
+  ∀ {D : 𝒞} (m : D ⟶ A), Mono m → ¬ IsIso m → ∃ (x : one ⟶ A), ¬ ∃ (y : one ⟶ D), y ≫ m = x
+
+/-- Capital (§1.525): every well-supported object is well-pointed. -/
+def Capital : Prop := ∀ (A : 𝒞), WellSupported A → WellPointed A
+
+/-! ## Kernel-pair lemmas (requires products and pullbacks too) -/
+
+variable [hp : HasBinaryProducts 𝒞] [hpull : HasPullbacks 𝒞]
 
 section
 variable (S : 𝒞)
@@ -81,14 +112,7 @@ theorem kp_diag_prod : kp_diag (f:=term S) ≫ kpProdIso S = diag S := by
   have h_eq := pair_uniq (Cat.id S) (Cat.id S) h hfst hsnd
   simpa [h, diag] using h_eq
 
-def WellSupported : Prop := Cover (term S)
-
-/-- S is well-pointed (§1.523): every proper monic into S misses some
-    global element 1 → S. -/
-def WellPointed : Prop :=
-  ∀ {D : 𝒞} (m : D ⟶ S), Mono m → ¬ IsIso m → ∃ (x : one ⟶ S), ¬ ∃ (y : one ⟶ D), y ≫ m = x
-
-theorem wellSupported_prod_self (hws : WellSupported S) : WellSupported (prod S S) := by
+theorem wellSupported_prod_self (S : 𝒞) (hws : WellSupported S) : WellSupported (prod S S) := by
   intro C m g hm hgm
   have h_diag_term : diag S ≫ term (prod S S) = term S := term_uniq _ _
   have h_factor : (diag S ≫ g) ≫ m = term S := by
@@ -96,9 +120,6 @@ theorem wellSupported_prod_self (hws : WellSupported S) : WellSupported (prod S 
   exact hws m (diag S ≫ g) hm h_factor
 
 end
-
-/-- Capital (§1.525): every well-supported object is well-pointed. -/
-def Capital : Prop := ∀ (A : 𝒞), WellSupported A → WellPointed A
 
 /-- §1.525: in a capital category the terminator is projective.
     Every well-supported A has a point 1 → A. -/
