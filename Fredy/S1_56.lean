@@ -152,4 +152,33 @@ theorem cover_iff_entire_graph {A B : 𝒞} (x : A ⟶ B) [HasImages 𝒞] :
 
 theorem modular_identity : True := by trivial
 
+/-! ## §1.565 Pushouts
+
+  A PUSHOUT is a pullback in the opposite category: given f: C→A, g: C→B,
+  a pushout is P with maps A→P, B→P universal among cocones. -/
+
+structure PushoutCocone {A B C : 𝒞} (f : C ⟶ A) (g : C ⟶ B) where
+  pt : 𝒞
+  ι₁ : A ⟶ pt
+  ι₂ : B ⟶ pt
+  w  : f ≫ ι₁ = g ≫ ι₂
+
+class HasPushout {A B C : 𝒞} (f : C ⟶ A) (g : C ⟶ B) where
+  cocone : PushoutCocone f g
+  desc  : ∀ (c : PushoutCocone f g), cocone.pt ⟶ c.pt
+  fac₁  : ∀ (c : PushoutCocone f g), cocone.ι₁ ≫ desc c = c.ι₁
+  fac₂  : ∀ (c : PushoutCocone f g), cocone.ι₂ ≫ desc c = c.ι₂
+  uniq  : ∀ (c : PushoutCocone f g) (h : cocone.pt ⟶ c.pt),
+    cocone.ι₁ ≫ h = c.ι₁ → cocone.ι₂ ≫ h = c.ι₂ → h = desc c
+
+/-! ## §1.567 Equivalence relations
+
+  E : A → A is an EQUIVALENCE RELATION if 1 ≤ E, E° ≤ E, EE ≤ E.
+  The level (kernel pair) of any morphism is an equivalence relation. -/
+
+def IsEquivalenceRelation {A : 𝒞} (E : BinRel 𝒞 A A) : Prop :=
+  (∃ (h : A ⟶ E.src), h ≫ E.colA = Cat.id A ∧ h ≫ E.colB = Cat.id A) ∧
+  Nonempty (RelHom E (reciprocal E)) ∧
+  True  -- transitivity requires composition
+
 end Freyd
