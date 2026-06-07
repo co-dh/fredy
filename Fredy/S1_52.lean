@@ -26,17 +26,21 @@ namespace Freyd
   A REGULAR CATEGORY is Cartesian with images where pullbacks transfer
   covers.  A PRE-REGULAR CATEGORY drops the images requirement. -/
 
-/-- A regular category: Cartesian, has images, pullbacks transfer covers (§1.52). -/
-class RegularCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
-    HasTerminal 𝒞, HasBinaryProducts 𝒞, HasPullbacks 𝒞, HasImages 𝒞 where
+/-- Mixin (§1.52): pullbacks transfer covers — the closure condition shared by
+    regular and pre-regular categories. -/
+class PullbacksTransferCovers (𝒞 : Type u) [Cat.{v} 𝒞] where
   pullbacks_transfer_covers : ∀ {A B C D : 𝒞} (f : A ⟶ B) (g : C ⟶ B)
     (p₁ : D ⟶ A) (p₂ : D ⟶ C), Cover f → p₁ ≫ f = p₂ ≫ g → Cover p₂
 
+/-- A regular category: Cartesian, has images, pullbacks transfer covers (§1.52). -/
+class RegularCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
+    HasTerminal 𝒞, HasBinaryProducts 𝒞, HasPullbacks 𝒞, HasImages 𝒞,
+    PullbacksTransferCovers 𝒞
+
 /-- A pre-regular category: Cartesian, pullbacks transfer covers (§1.52). -/
 class PreRegularCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
-    HasTerminal 𝒞, HasBinaryProducts 𝒞, HasPullbacks 𝒞 where
-  pullbacks_transfer_covers : ∀ {A B C D : 𝒞} (f : A ⟶ B) (g : C ⟶ B)
-    (p₁ : D ⟶ A) (p₂ : D ⟶ C), Cover f → p₁ ≫ f = p₂ ≫ g → Cover p₂
+    HasTerminal 𝒞, HasBinaryProducts 𝒞, HasPullbacks 𝒞,
+    PullbacksTransferCovers 𝒞
 
 variable [HasTerminal 𝒞]
 
@@ -58,7 +62,7 @@ variable [hp : HasBinaryProducts 𝒞] [hpull : HasPullbacks 𝒞]
 section
 variable (S : 𝒞)
 
-def _pb : HasPullback (term S) (term S) := hpull.has (term S) (term S)
+private def _pb : HasPullback (term S) (term S) := hpull.has (term S) (term S)
 
 def _kpCone : Cone (term S) (term S) := ⟨_, kp₁ (f:=term S), kp₂ (f:=term S), kp_sq⟩
 def _prodCone : Cone (term S) (term S) := ⟨_, fst, snd, term_uniq _ _⟩

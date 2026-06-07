@@ -55,7 +55,7 @@ section overPullback
 variable {B : 𝒞} {X Y Z : Over B} (m : OverHom X Z) (n : OverHom Y Z)
 
 /-- The underlying pullback in A of `m.f` and `n.f`. -/
-def _pb : HasPullback m.f n.f := hpull.has m.f n.f
+private def _pb : HasPullback m.f n.f := hpull.has m.f n.f
 
 private theorem _pb_hom_eq :
     (_pb m n).cone.π₂ ≫ Y.hom = (_pb m n).cone.π₁ ≫ X.hom := by
