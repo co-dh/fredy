@@ -1,8 +1,6 @@
 /-
-  Freyd & Scedrov, *Categories and Allegories* §1.41  Monic (§1.41), §1.17  Isomorphism.
-
-  Mono (§1.41): a morphism is monic if it is left-cancellable.
-  IsIso (§1.17): invertible morphism.  Composition of isos is iso.
+  Freyd & Scedrov, *Categories and Allegories* §1.41 (§1.41–§1.412)
+  Monic, MonicPair, MonicFamily, IsIso.
 -/
 
 import Fredy.S1_1
@@ -19,6 +17,10 @@ def Mono {X Y : 𝒞} (m : X ⟶ Y) : Prop :=
 /-- A MONIC PAIR x: T→A, y: T→B: jointly left-cancellable (§1.41). -/
 def MonicPair {T A B : 𝒞} (x : T ⟶ A) (y : T ⟶ B) : Prop :=
   ∀ {W : 𝒞} (f g : W ⟶ T), f ≫ x = g ≫ x → f ≫ y = g ≫ y → f = g
+
+/-- MONIC FAMILY {xᵢ: T→Aᵢ}: jointly left-cancellable (§1.412). -/
+def MonicFamily {T : 𝒞} {I : Type} (feet : I → 𝒞) (cols : (i : I) → T ⟶ feet i) : Prop :=
+  ∀ {X : 𝒞} (f g : X ⟶ T), (∀ i, f ≫ cols i = g ≫ cols i) → f = g
 
 def IsIso {X Y : 𝒞} (f : X ⟶ Y) : Prop :=
   ∃ g : Y ⟶ X, f ≫ g = Cat.id X ∧ g ≫ f = Cat.id Y

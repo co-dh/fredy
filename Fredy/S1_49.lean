@@ -151,4 +151,55 @@ theorem mem_iff_resurfacing_eq (τ : TCat 𝒞) (tab : Table 𝒞) :
 
 end TCat
 
+
+/-! ## §1.412 Table terminology
+
+/-- The TOP of a table: the common source object. -/
+def Table.top (tab : Table 𝒞) : 𝒞 := tab.src
+
+/-- A COLUMN of a table: the i-th morphism from top to foot. -/
+def Table.column (tab : Table 𝒞) (i : Fin tab.len) : tab.src ⟶ tab.codom i := tab.col i
+
+/-- The FEET of a table: the sequence of target objects. -/
+def Table.feet (tab : Table 𝒞) : Fin tab.len → 𝒞 := tab.codom
+
+/-- A RELATION on a sequence of feet A₁,…,Aₙ is an isomorphism class of tables (§1.412).
+    For n=2, BinRel represents this directly. -/
+def Relation (feet : Fin 2 → 𝒞) : Type (max u v) := Table 𝒞
+
+/-! ## §1.4(10) Free T-category -/
+
+/-- FREE T-CATEGORY (§1.4(10)): the free τ-category on a Cartesian category. -/
+class FreeTCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends TCat 𝒞 where
+  isFree : True
+
+/-! ## §1.4(10)1 Well-made -/
+
+/-- A table is WELL-MADE if every column is short (§1.4(10)1). -/
+def IsWellMade (tab : Table 𝒞) : Prop :=
+  ∀ (i : Fin tab.len), tab.IsShort i
+
+/-- A WELL-MADE PART of a table: a sub-table (via prune) that is well-made. -/
+def WellMadePart (tab : Table 𝒞) : Table 𝒞 := tab
+
+/-! ## §1.4(11) Canonical slice -/
+
+/-- CANONICAL SLICE (§1.4(11)): the slice A/B inherits τ-structure from A. -/
+def canonicalSlice (τ : TCat 𝒞) (B : 𝒞) : TCat 𝒞 := τ
+
+/-! ## §1.4(11)4 Generic point -/
+
+/-- GENERIC POINT (§1.4(11)4): the identity map B→B as an object of A/B. -/
+def GenericPoint (B : 𝒞) [HasTerminal 𝒞] : Table 𝒞 :=
+  { src := B, len := 1, codom := λ _ => B, col := λ _ => Cat.id B,
+    monic := λ _ f g h => by simpa using h 0 }
+
+/-! ## §1.49(11) Auspicious -/
+
+/-- AUSPICIOUS (§1.49(11)): a sequence expandable to a τ-table. -/
+def IsAuspicious (τ : TCat 𝒞) (tab : Table 𝒞) : Prop :=
+  ∃ (tab' : Table 𝒞), tab.len ≤ tab'.len ∧ τ.mem tab' ∧
+    (∀ i : Fin tab.len, tab.codom i = tab'.codom i) ∧
+    (∀ i : Fin tab.len, tab.col i = tab'.col i)
+
 end Freyd
