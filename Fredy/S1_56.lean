@@ -66,49 +66,33 @@ def graph {A B : 𝒞} (x : A ⟶ B) : BinRel 𝒞 A B where
   SIMPLE if R°R ≤ 1_B.
   A MAP is an entire + simple relation (= graph of a morphism). -/
 
-/-- R : A → B is ENTIRE if 1_A ≤ R°R.
-    Simplified: the identity on A factors through the A-leg of R. -/
-def Entire {A B : 𝒞} (R : BinRel 𝒞 A B) : Prop :=
-  ∃ (h : A ⟶ R.src), h ≫ R.colA = Cat.id A
+/-- **§1.564**: R : A → B is ENTIRE if 1_A ≤ R°R — the identity relation
+    on A is contained in R°R. -/
+def Entire {A B : 𝒞} (R : BinRel 𝒞 A B) [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] : Prop :=
+  RelLe (graph (Cat.id A)) (compose (reciprocal R) R)
 
-/-- R is SIMPLE if R°R is contained in id_B (§1.564). -/
-def Simple {A B : 𝒞} (R : BinRel 𝒞 A B) : Prop :=
-  -- R°R ≤ id_B: for any T tabulating R°R (i.e. a cone), both legs factor through 1_B
-  -- Equivalent: if f,g factor through R on the B-side, they're equal.
-  ∀ {X : 𝒞} (f g : X ⟶ R.src), f ≫ R.colB = g ≫ R.colB → f ≫ R.colA = g ≫ R.colA
+/-- **§1.564**: R is SIMPLE if RR° ≤ 1_B — R composed with its reciprocal
+    is contained in the identity on B. -/
+def Simple {A B : 𝒞} (R : BinRel 𝒞 A B) [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] : Prop :=
+  RelLe (compose R (reciprocal R)) (graph (Cat.id B))
 
 /-- R is a MAP if it is entire and simple.  Maps are exactly graphs (§1.564). -/
 def Map {A B : 𝒞} (R : BinRel 𝒞 A B) : Prop :=
   Entire R ∧ Simple R
 
-/-- Every isomorphism yields a map-graph.  (The entire part requires RR° = id,
-    which needs the composition/image structure; we mark it sorry.) -/
-theorem graph_iso_is_map {A B : 𝒞} (x : A ⟶ B) (hIso : IsIso x) : Map (graph x) := by
-  rcases hIso with ⟨inv, h1, h2⟩
-  refine ⟨?_, ?_⟩
-  · -- entire: 1_A ≤ (graph x)(graph x)°  (requires composition/image)
-    sorry
-  · -- simple: f ≫ x = g ≫ x → f = g (since x has left inverse from iso)
-    intro X f g h
-    -- h: f ≫ (graph x).colB = g ≫ (graph x).colB  →  f ≫ x = g ≫ x
-    have hx : f ≫ x = g ≫ x := by simpa [graph] using h
-    have hpost : (f ≫ x) ≫ inv = (g ≫ x) ≫ inv := by rw [hx]
-    simpa [graph, Cat.assoc, h1, Cat.comp_id] using hpost
+/-- **§1.564**: Every isomorphism yields a map-graph.  In a regular category,
+    iso → cover + monic → entire + simple → map. -/
+theorem graph_iso_is_map {A B : 𝒞} (x : A ⟶ B) (hIso : IsIso x) [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] : Map (graph x) := by
+  -- §1.564: x iso → x cover ∧ x monic → graph(x) entire ∧ graph(x) simple → map.
+  sorry
 
-/-- x is monic iff graph(x) is simple. -/
-theorem monic_iff_simple_graph {A B : 𝒞} (x : A ⟶ B) : Mono x ↔ Simple (graph x) := by
-  constructor
-  · intro hm X f g h
-    -- h: f ≫ (graph x).colB = g ≫ (graph x).colB
-    -- = f ≫ x = g ≫ x
-    -- want: f ≫ (graph x).colA = g ≫ (graph x).colA
-    -- = f ≫ id = g ≫ id → f = g
-    have hx : f ≫ x = g ≫ x := by simpa [graph] using h
-    simpa [graph, Cat.comp_id, Cat.id_comp] using hm f g hx
-  · intro hs X f g h
-    have hg : f ≫ (graph x).colB = g ≫ (graph x).colB := by simpa [graph] using h
-    have hcol := hs f g hg
-    simpa [graph, Cat.comp_id, Cat.id_comp] using hcol
+/-- **§1.564**: x is monic iff graph(x) is simple.  (Requires images/pullbacks
+    for the `Simple` predicate via `compose`.) -/
+theorem monic_iff_simple_graph {A B : 𝒞} (x : A ⟶ B) [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] : Mono x ↔ Simple (graph x) := by
+  -- §1.564: In a regular category, x is monic ↔ graph(x) is simple.
+  -- Uses the fact that in a regular category, monic ↔ the level of x is
+  -- the identity relation, which is equivalent to graph(x)°graph(x) ≤ 1_B.
+  sorry
 
 /-! ## §1.561 Reciprocal -/
 
@@ -176,10 +160,10 @@ def compose {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C)
   For a graph R = graph(x): x is a cover iff R is entire.
   (Proof uses the image of x: x is cover ↔ image(x).arr is iso ↔ 1_A ≤ RR°.) -/
 
-theorem cover_iff_entire_graph {A B : 𝒞} (x : A ⟶ B) [HasImages 𝒞] :
+theorem cover_iff_entire_graph {A B : 𝒞} (x : A ⟶ B) [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] :
     Cover x ↔ Entire (graph x) := by
+  -- §1.564: In a regular category, x is a cover ↔ graph(x) is entire.
   -- Both sides are equivalent to: the image of x is the entire subobject.
-  -- We use cover_iff_image_entire from S1_51.
   sorry
 
 /-! ## §1.563 Modular identity
