@@ -1,9 +1,12 @@
 /-
   Freyd & Scedrov, *Categories and Allegories* §1.42  Finite products.
 
-  HasTerminal (§1.421): the terminator 1 with unique map from every object.
-  HasBinaryProducts (§1.423): binary products with projections and pairing.
+  HasTerminal (§1.421), HasBinaryProducts (§1.423).
   Diagonal: diag A = ⟨id, id⟩ : A → A×A.
+
+  STRUCTURE: we define both classes first, then separate sections
+  for terminal-dependent and product-dependent definitions so that
+  `fst`, `snd`, `pair` do NOT require `HasTerminal` (§1.85 needs this).
 -/
 
 import Fredy.S1_1
@@ -16,10 +19,14 @@ variable {𝒞 : Type u} [Cat.{v} 𝒞]
 
 namespace Freyd
 
+/-! ### HasTerminal class and definitions -/
+
 class HasTerminal (𝒞 : Type u) [Cat.{v} 𝒞] where
   one   : 𝒞
   trm   : (X : 𝒞) → X ⟶ one
   uniq  : ∀ {X : 𝒞} (f g : X ⟶ one), f = g
+
+section Terminal
 
 variable [ht : HasTerminal 𝒞]
 
@@ -28,13 +35,15 @@ def term (X : 𝒞) : X ⟶ one := ht.trm X
 
 theorem term_uniq {X : 𝒞} (f g : X ⟶ one) : f = g := ht.uniq f g
 
-/-- A SUBTERMINATOR is an object T such that T→1 is monic (§1.412).
-    Equivalently: there is at most one map from any X to T. -/
+/-- A SUBTERMINATOR is an object T such that T→1 is monic (§1.412). -/
 def Subterminator (T : 𝒞) : Prop := Mono (term T)
 
-/-- A VALUE is an isomorphism class of 0-column tables (§1.412).
-    Represented by a subterminator. -/
+/-- A VALUE is a subterminator (§1.412). -/
 def Value : 𝒞 → Prop := Subterminator
+
+end Terminal
+
+/-! ### HasBinaryProducts class and definitions -/
 
 class HasBinaryProducts (𝒞 : Type u) [Cat.{v} 𝒞] where
   prod  : 𝒞 → 𝒞 → 𝒞
@@ -45,6 +54,8 @@ class HasBinaryProducts (𝒞 : Type u) [Cat.{v} 𝒞] where
   snd_pair : ∀ {X A B : 𝒞} (f : X ⟶ A) (g : X ⟶ B), pair f g ≫ snd = g
   pair_uniq : ∀ {X A B : 𝒞} (f : X ⟶ A) (g : X ⟶ B) (h : X ⟶ prod A B),
     h ≫ fst = f → h ≫ snd = g → h = pair f g
+
+section Products
 
 variable [hp : HasBinaryProducts 𝒞]
 
@@ -72,3 +83,7 @@ theorem diag_snd (A : 𝒞) : diag A ≫ snd = Cat.id A := snd_pair _ _
 
 theorem diag_mono (A : 𝒞) : Mono (diag A) :=
   mono_of_retraction (diag A) fst (diag_fst A)
+
+end Products
+
+end Freyd
