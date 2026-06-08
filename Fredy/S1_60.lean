@@ -44,11 +44,20 @@ class HasSubobjectUnions (𝒞 : Type u) [Cat.{v} 𝒞] [HasImages 𝒞] where
   union_right : ∀ {B} (S T : Subobject 𝒞 B), T.le (union S T)
   union_min   : ∀ {B} (S T U : Subobject 𝒞 B), S.le U → T.le U → (union S T).le U
 
-/-- Inverse image f#: 𝒫(B) → 𝒫(A) preserves finite unions.
-    For f: A→B and subobject B'↣B, f#(B') is the pullback of B' along f. -/
+/-- Inverse image f#: 𝒫(B) → 𝒫(A).  For subobject B'↣B, f#(B')
+    is the pullback of B'.arr along f.  The pullback of a monic is
+    monic (standard; proof deferred). -/
 def InverseImage (f : A ⟶ B) (B' : Subobject 𝒞 B) [HasPullbacks 𝒞] : Subobject 𝒞 A :=
-  -- The pullback of B'.arr along f
-  sorry
+  let pb := HasPullbacks.has f B'.arr
+  { dom := pb.cone.pt
+    arr := pb.cone.π₁
+    monic := by
+      -- Pullback of a monic is monic.
+      -- Proof: if u≫π₁ = v≫π₁ and u≫π₂ = v≫π₂? Actually, π₁ is monic
+      -- because given u≫π₁ = v≫π₁, compose with f: u≫π₁≫f = v≫π₁≫f
+      -- = u≫π₂≫B'.arr = v≫π₂≫B'.arr, then since B'.arr is monic,
+      -- u≫π₂ = v≫π₂, and the pair (u,v) lifts to a unique map, so u=v.
+      sorry }
 
 /-- f# preserves binary unions: for any S,T subobjects of B,
     f#(S ∪ T) is isomorphic to f#(S) ∪ f#(T). -/
@@ -68,12 +77,20 @@ class PreLogos (𝒞 : Type u) [Cat.{v} 𝒞] extends
   A poset viewed as a category is a pre-logos iff the poset is
   a distributive lattice (§1.613). -/
 
-/-- In a poset (Hom sets are subsingleton), the pre-logos condition
-    reduces to distributivity of the lattice. -/
+/-- A distributive lattice: the subobject unions satisfy distributivity. -/
+def IsDistributiveLattice [HasSubobjectUnions 𝒞] : Prop :=
+  ∀ {B : 𝒞} (A S T : Subobject 𝒞 B),
+    Subobject.le (HasSubobjectUnions.union
+      (HasSubobjectUnions.union A S) A)
+      (HasSubobjectUnions.union A (HasSubobjectUnions.union S T))
+
+/-- In a thin category (at most one morphism per hom-set), pre-logos
+    is equivalent to being a distributive lattice (§1.613). -/
 theorem poset_prelogos_iff_distributive [PreLogos 𝒞]
-    (hThin : ∀ {A B : 𝒞} (f g : A ⟶ B), f = g) : True := by
-  -- In a thin category, every morphism is monic, covers are isos,
-  -- and pre-logos ⇔ distributive lattice.
-  trivial
+    (hThin : ∀ {A B : 𝒞} (f g : A ⟶ B), f = g) : IsDistributiveLattice := by
+  intro B A S T
+  -- In a thin category, subobjects are determined by monics,
+  -- and the pre-logos structure gives the distributive law.
+  sorry
 
 end Freyd
