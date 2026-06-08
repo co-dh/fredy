@@ -90,10 +90,6 @@ theorem image_via_coeq [BicartesianCategory 𝒞] [HasImages 𝒞] {A B : 𝒞} 
 def IsZeroObject (Z : 𝒞) [HasTerminal 𝒞] [HasCoterminator 𝒞] : Prop :=
   coterm = one
 
-/-- In a category with zero object, every pair A,B has a ZERO MORPHISM A→0→B. -/
-def zeroMorphism [HasTerminal 𝒞] [HasCoterminator 𝒞] (A B : 𝒞) : A ⟶ B :=
-  term A ≫ (show one = coterm from rfl) ▸ zeroMap B
-
 /-- A HALF-ADDITIVE CATEGORY: finite products = finite coproducts.
     Yields an abelian monoid structure on each Hom(A,B).  (§1.59) -/
 class HalfAdditiveCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends

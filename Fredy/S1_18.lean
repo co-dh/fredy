@@ -60,15 +60,13 @@ class Functor {C : Type u₁} [Cat.{v} C] {D : Type u₂} [Cat.{v} D] (F : C →
   map_comp : ∀ {X Y Z : C} (f : X ⟶ Y) (g : Y ⟶ Z), map (f ≫ g) = map f ≫ map g
 
 /-- The identity functor `1_𝒞` : every object and morphism maps to itself. -/
-def idFunctor : Functor (λ X : 𝒞 => X) where
+instance idFunctor : Functor (λ X : 𝒞 => X) where
   map f := f
   map_id _ := rfl
   map_comp _ _ := rfl
 
-/-- Composition `G ∘ F` of two functors (explicit, not a global typeclass
-    instance to avoid looping).  `hf` and `hg` are named so that we can
-    write `hf.map` / `hg.map` instead of the more verbose `Functor.map`. -/
-def compFunctor {ℰ : Type _} [Cat.{v} ℰ] {F : 𝒞 → 𝒟} {G : 𝒟 → ℰ}
+/-- Composition `G ∘ F` of two functors as a global instance. -/
+instance compFunctor {ℰ : Type _} [Cat.{v} ℰ] {F : 𝒞 → 𝒟} {G : 𝒟 → ℰ}
     [hf : Functor F] [hg : Functor G] : Functor (G ∘ F) where
   map f := hg.map (hf.map f)
   map_id X := by

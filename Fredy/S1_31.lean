@@ -40,28 +40,22 @@ def IsEquivalenceFunctor (F : 𝒞 → 𝒟) [hF : Functor F] : Prop :=
 
 section Composition
 variable {F : 𝒞 → 𝒟} [hF : Functor F] {ℰ : Type u} [Cat.{v} ℰ] {G : 𝒟 → ℰ} [hG : Functor G]
-variable [hGF : Functor (G ∘ F)]
 
 theorem embedding_comp (embF : IsEmbedding F) (embG : IsEmbedding G) : IsEmbedding (G ∘ F) := by
   intro A B f g h
-  -- h: hGF.map f = hGF.map g
-  -- If hGF = compFunctor hF hG, then hGF.map f = hG.map (hF.map f)
-  -- So hG.map (hF.map f) = hG.map (hF.map g) → hF.map f = hF.map g → f = g
-  apply embF
-  apply embG
-  -- We need: hG.map (hF.map f) = hG.map (hF.map g)
-  -- But h is about hGF.map.  This holds if hGF = compFunctor.
-  -- For the general case, the statement requires the composed functor to be compFunctor.
-  sorry
+  -- h : (compFunctor.map : (G ∘ F) A → (G ∘ F) B) f = (compFunctor.map ...) g
+  -- h reduces to hG.map (hF.map f) = hG.map (hF.map g)
+  apply embF f g
+  apply embG (hF.map f) (hF.map g)
+  simpa using h
 
 theorem full_comp (fullF : IsFull F) (fullG : IsFull G) : IsFull (G ∘ F) := by
   intro A B h
   rcases fullG h with ⟨g, hg⟩
   rcases fullF g with ⟨f, hf⟩
   refine ⟨f, ?_⟩
-  -- Need: hGF.map f = h, where hGF.map f should be hG.map (hF.map f) = hG.map g = h
-  -- Works when hGF = compFunctor
-  sorry
+  -- goal: Functor.map f = h; Functor.map from compFunctor → hG.map (hF.map f)
+  simpa [hf, hg] using rfl
 
 end Composition
 
@@ -72,9 +66,7 @@ structure NatIso (F G : 𝒞 → 𝒟) [hF : Functor F] [hG : Functor G] where
   isIso : ∀ X : 𝒞, IsIso (nat.app X)
 
 structure StrongEquivalence (F : 𝒞 → 𝒟) (G : 𝒟 → 𝒞)
-    [hF : Functor F] [hG : Functor G]
-    [hGF : Functor (G ∘ F)] [hFG : Functor (F ∘ G)]
-    [hIdC : Functor (λ X : 𝒞 => X)] [hIdD : Functor (λ X : 𝒟 => X)] where
+    [hF : Functor F] [hG : Functor G] where
   unit : Nonempty (NatIso (G ∘ F) (λ X : 𝒞 => X))
   counit : Nonempty (NatIso (F ∘ G) (λ X : 𝒟 => X))
 

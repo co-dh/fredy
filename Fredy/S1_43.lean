@@ -154,39 +154,29 @@ def products_pullbacks_implies_equalizers : HasEqualizers 𝒞 where
         _ = pb.cone.π₂ ≫ (v ≫ snd) := by rw [Cat.assoc]
         _ = pb.cone.π₂ ≫ g := by rw [snd_pair]
         _ = pb.cone.π₁ ≫ g := by rw [h_fst_eq]
+    have mk_hcone_w : ∀ (c : EqualizerCone f g), c.map ≫ u = c.map ≫ v := by
+      intro c
+      calc
+        c.map ≫ u = pair c.map (c.map ≫ f) :=
+          pair_uniq c.map (c.map ≫ f) (c.map ≫ u)
+            (by rw [Cat.assoc, fst_pair, Cat.comp_id])
+            (by rw [Cat.assoc, snd_pair])
+        _ = pair c.map (c.map ≫ g) := by rw [c.eq]
+        _ = c.map ≫ v :=
+          (pair_uniq c.map (c.map ≫ g) (c.map ≫ v)
+            (by rw [Cat.assoc, fst_pair, Cat.comp_id])
+            (by rw [Cat.assoc, snd_pair])).symm
     { cone := { dom := pb.cone.pt, map := pb.cone.π₁, eq := h_eq_cond }
       lift := λ c =>
-        have hcone_w : c.map ≫ u = c.map ≫ v := by
-          calc
-            c.map ≫ u = pair c.map (c.map ≫ f) :=
-              pair_uniq c.map (c.map ≫ f) (c.map ≫ u)
-                (by rw [Cat.assoc, fst_pair, Cat.comp_id])
-                (by rw [Cat.assoc, snd_pair])
-            _ = pair c.map (c.map ≫ g) := by rw [c.eq]
-            _ = c.map ≫ v :=
-              (pair_uniq c.map (c.map ≫ g) (c.map ≫ v)
-                (by rw [Cat.assoc, fst_pair, Cat.comp_id])
-                (by rw [Cat.assoc, snd_pair])).symm
-        pb.lift { pt := c.dom, π₁ := c.map, π₂ := c.map, w := hcone_w }
+        pb.lift { pt := c.dom, π₁ := c.map, π₂ := c.map, w := mk_hcone_w c }
       fac := λ c => pb.lift_fst _
       uniq := λ c m hm => by
-        have hcone_w_uniq : c.map ≫ u = c.map ≫ v := by
-          calc
-            c.map ≫ u = pair c.map (c.map ≫ f) :=
-              pair_uniq c.map (c.map ≫ f) (c.map ≫ u)
-                (by rw [Cat.assoc, fst_pair, Cat.comp_id])
-                (by rw [Cat.assoc, snd_pair])
-            _ = pair c.map (c.map ≫ g) := by rw [c.eq]
-            _ = c.map ≫ v :=
-              (pair_uniq c.map (c.map ≫ g) (c.map ≫ v)
-                (by rw [Cat.assoc, fst_pair, Cat.comp_id])
-                (by rw [Cat.assoc, snd_pair])).symm
         have hm₂ : m ≫ pb.cone.π₂ = c.map := by
           calc
             m ≫ pb.cone.π₂ = m ≫ pb.cone.π₁ := by
               dsimp [pb]; rw [h_fst_eq]
             _ = c.map := hm
-        exact pb.lift_uniq { pt := c.dom, π₁ := c.map, π₂ := c.map, w := hcone_w_uniq } m hm hm₂ }
+        exact pb.lift_uniq { pt := c.dom, π₁ := c.map, π₂ := c.map, w := mk_hcone_w c } m hm hm₂ }
 end Eq_from_ProdPB
 
 /-! ## §1.435 Pullbacks + terminator → Cartesian -/

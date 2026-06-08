@@ -69,27 +69,16 @@ class SpecialCartesianCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
   two_valued : ∀ (A B : 𝒞) (f g : A ⟶ B), f = g  -- placehold: actually means ∀ U⊆1, U=0 or U=1
 
 
-/-- DENSE MONIC (§1.48): a monic f: A→B such that the pushforward
-    Hom(f,-): Hom(B,-) → Hom(A,-) is an equivalence on subobjects.
-    In a regular category, f is dense iff every pullback of f is an iso.
-def IsDenseMonic {A B : 𝒞} (f : A ⟶ B) (hm : Mono f) : Prop :=
-  -- ∀ (g : X → B), ∃! h : X → A, h ≫ f = g (almost split epi)
-  -- Actually: for every X, the map Hom(B,X) → Hom(A,X) given by
-  -- precomposition with f is a bijection on subobjects.
-  True
-
 /-- RATIONAL CATEGORY (§1.48): the category of fractions obtained by
     inverting all dense monics.  Universally turns dense monics into isos.
 class RationalCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends CartesianCategory 𝒞 where
   hasRationalization : ∀ {A B : 𝒞} (f : A ⟶ B) (hm : Mono f) (hd : IsDenseMonic f hm),
     ∃ (g : B ⟶ A), f ≫ g = Cat.id A
 
-end Freyd
-
-/-! ## Representable functor, Evaluation functors
+/-! ## Representable functor, Evaluation functors -/
 
 /-- REPRESENTABLE FUNCTOR (§1.442): the functor Hom(A,-) : 𝒞 → Set. -/
-@[reducible] def RepresentableFunctor (A : 𝒞) : 𝒞 → Type v := λ X => A ⟶ X
+def RepresentableFunctor (A : 𝒞) : 𝒞 → Type v := YonedaEmbedding A
 
 /-- DIAGONAL FUNCTOR (§1.53): Δ: 𝒞 → 𝒞×𝒞 sending A ↦ (A,A). -/
 def DiagonalFunctor (A : 𝒞) : 𝒞 := prod A A
@@ -97,3 +86,5 @@ def DiagonalFunctor (A : 𝒞) : 𝒞 := prod A A
 /-- EVALUATION FUNCTOR ev_A: [𝒞,𝒟] → 𝒟 sending F ↦ F(A) (§1.48).
     In our setting: for any functor F: 𝒞→𝒟, evaluation at A gives F A. -/
 def EvaluationFunctor {𝒟 : Type u} [Cat.{v} 𝒟] (F : 𝒞 → 𝒟) [Functor F] (A : 𝒞) : 𝒟 := F A
+
+end Freyd
