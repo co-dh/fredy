@@ -63,11 +63,10 @@ def graph {A B : 𝒞} (x : A ⟶ B) : BinRel 𝒞 A B where
   SIMPLE if R°R ≤ 1_B.
   A MAP is an entire + simple relation (= graph of a morphism). -/
 
-/-- R is ENTIRE if 1_A ≤ RR° (requires composition/image to define properly). -/
-def IsEntireRel {A B : 𝒞} (R : BinRel 𝒞 A B) : Prop :=
-  -- True definition uses relation composition: Nonempty (RelLe (graph (Cat.id A)) (compose R (reciprocal R)))
-  -- Placeholder until composition is defined.
-  True
+/-- R : A → B is ENTIRE if 1_A ≤ R°R.
+    Simplified: the identity on A factors through the A-leg of R. -/
+def IsEntire {A B : 𝒞} (R : BinRel 𝒞 A B) : Prop :=
+  ∃ (h : A ⟶ R.src), h ≫ R.colA = Cat.id A
 
 /-- R is SIMPLE if R°R is contained in id_B (§1.564). -/
 def IsSimpleRel {A B : 𝒞} (R : BinRel 𝒞 A B) : Prop :=
@@ -77,7 +76,7 @@ def IsSimpleRel {A B : 𝒞} (R : BinRel 𝒞 A B) : Prop :=
 
 /-- R is a MAP if it is entire and simple.  Maps are exactly graphs (§1.564). -/
 def IsMap {A B : 𝒞} (R : BinRel 𝒞 A B) : Prop :=
-  IsEntireRel R ∧ IsSimpleRel R
+  IsEntire R ∧ IsSimpleRel R
 
 /-- Every isomorphism yields a map-graph.  (The entire part requires RR° = id,
     which needs the composition/image structure; we mark it sorry.) -/
@@ -172,7 +171,7 @@ def compose {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C)
   (Proof uses the image of x: x is cover ↔ image(x).arr is iso ↔ 1_A ≤ RR°.) -/
 
 theorem cover_iff_entire_graph {A B : 𝒞} (x : A ⟶ B) [HasImages 𝒞] :
-    Cover x ↔ IsEntireRel (graph x) := by
+    Cover x ↔ IsEntire (graph x) := by
   -- Both sides are equivalent to: the image of x is the entire subobject.
   -- We use cover_iff_image_entire from S1_51.
   sorry
@@ -183,6 +182,7 @@ theorem cover_iff_entire_graph {A B : 𝒞} (x : A ⟶ B) [HasImages 𝒞] :
   This is the defining equation of allegories; proved in §2. -/
 
 theorem modular_identity {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 A C) : RelLe (compose (compose R S) (reciprocal T)) (compose R (compose S (reciprocal T))) := by
+  sorry
 
 /-! ## §1.565 Pushouts
 

@@ -28,11 +28,6 @@ variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasImages 𝒞]
 
 /-! ## §1.57 Choice and projectivity -/
 
-/-- R : A → B is ENTIRE if 1_A ≤ R°R (the graph of id_A is contained in R°R). -/
-def IsEntire {A B : 𝒞} (R : BinRel 𝒞 A B) : Prop :=
-  -- R°R contains the diagonal of A (i.e. id_A factors through R°R)
-  ∃ (h : A ⟶ R.src), h ≫ R.colA = Cat.id A ∧ h ≫ R.colB = Cat.id A
-
 /-- C is CHOICE if every entire relation R : A → C contains a map f : A → C. -/
 def IsChoice (C : 𝒞) : Prop :=
   ∀ {A : 𝒞} (R : BinRel 𝒞 A C), IsEntire R →

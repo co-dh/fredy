@@ -107,16 +107,18 @@ def Table.comp (S T : Table 𝒞) (j : Fin S.len) (h_eq : T.src = S.codom j) : T
 
 /-! ## §1.491 τ-category -/
 
+/-- The 1-column identity table on A: source = A, single column = id_A. -/
+def idTable (A : 𝒞) : Table 𝒞 :=
+  Table.mk A 1 (λ _ => A) (λ _ => Cat.id A)
+    (λ _ f g h => by simpa [Cat.comp_id] using h 0)
+
 /-- A τ-category: Cartesian category with distinguished class τ of tables (§1.491). -/
 class TCat (𝒞 : Type u) [Cat.{v} 𝒞] where
   mem   : Table 𝒞 → Prop
   tau1  : ∀ tab : Table 𝒞, ∃ T : Table 𝒞, mem T ∧ Nonempty (TableIso tab T)
   tau1_unique : ∀ (tab T₁ T₂ : Table 𝒞), mem T₁ → mem T₂ →
     Nonempty (TableIso tab T₁) → Nonempty (TableIso tab T₂) → T₁ = T₂
-  tau2_id : ∀ (A : 𝒞),
-    mem (Table.mk A 1 (λ _ => A) (λ _ => Cat.id A)
-      (λ X f g h => by
-        have := h 0; simpa [Cat.comp_id] using this))
+  tau2_id : ∀ (A : 𝒞), mem (idTable A)
   tau2_comp : ∀ (S T : Table 𝒞) (j : Fin S.len) (h_eq : T.src = S.codom j),
     mem S → mem T → mem (S.comp T j h_eq)
   tau3 : ∀ (tab : Table 𝒞) (j : Fin tab.len) (h : tab.IsShort j),
@@ -190,9 +192,7 @@ def canonicalSlice (τ : TCat 𝒞) (B : 𝒞) : TCat 𝒞 := τ
 /-! ## §1.4(11)4 Generic point -/
 
 /-- GENERIC POINT (§1.4(11)4): the identity map B→B as an object of A/B. -/
-def GenericPoint (B : 𝒞) [HasTerminal 𝒞] : Table 𝒞 :=
-  { src := B, len := 1, codom := λ _ => B, col := λ _ => Cat.id B,
-    monic := λ _ f g h => by simpa using h 0 }
+def GenericPoint (B : 𝒞) : Table 𝒞 := idTable B
 
 /-! ## §1.49(11) Auspicious -/
 
