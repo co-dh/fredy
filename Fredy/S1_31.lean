@@ -54,8 +54,8 @@ theorem full_comp (fullF : IsFull F) (fullG : IsFull G) : IsFull (G ∘ F) := by
   rcases fullG h with ⟨g, hg⟩
   rcases fullF g with ⟨f, hf⟩
   refine ⟨f, ?_⟩
-  -- goal: Functor.map f = h; Functor.map from compFunctor → hG.map (hF.map f)
-  simpa [hf, hg] using rfl
+  dsimp
+  rw [hf, hg]
 
 end Composition
 

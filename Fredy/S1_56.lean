@@ -12,10 +12,13 @@
 
 
 import Fredy.S1_1
+import Fredy.S1_33
 import Fredy.S1_41
 import Fredy.S1_42
+import Fredy.S1_43
 import Fredy.S1_45
 import Fredy.S1_51
+import Fredy.S1_52
 
 
 open Freyd
@@ -182,9 +185,36 @@ theorem cover_iff_entire_graph {A B : 𝒞} (x : A ⟶ B) [HasImages 𝒞] :
 /-! ## §1.563 Modular identity
 
   In a regular category: RS ∩ T ⊆ (R ∩ TS°)S.
-  This is the defining equation of allegories; proved in §2. -/
+  This is one of the defining axioms of allegories (§2).
+
+  **Provability:** Not provable from the `BinRel` definition alone (jointly-monic
+  pair + pullback/image composition).  In **Set**, the modular identity holds by
+  element-wise reasoning — the standard proof constructs witnesses `y` from
+  membership in RS ∩ T.  Freyd's strategy (§1.55, the Henkin-Lubkin
+  representation theorem) faithfully embeds any small pre-regular category in a
+  power of Set, and faithful representations reflect the modular identity back
+  to the original category.  So it becomes a theorem after the representation is
+  established, but not before. -/
 
 theorem modular_identity {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 A C) : RelLe (compose (compose R S) (reciprocal T)) (compose R (compose S (reciprocal T))) := by
+  sorry
+
+/-- **§1.563**: If A and B are Cartesian with images, and F : A → B is a faithful
+    functor preserving finite limits and images, then F reflects any Horn sentence
+    in the language of Cartesian categories with images.  In particular, the
+    modular identity (being a Horn sentence) holds in A iff it holds in B. -/
+theorem horn_sentence_reflected_by_faithful {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
+    [CartesianCategory 𝒜] [HasImages 𝒜] [CartesianCategory ℬ] [HasImages ℬ]
+    (F : 𝒜 → ℬ) [Functor F] (hfaithful : IsFaithful F)
+    (_h_preserves_limits : True) (_h_preserves_images : True)
+    (H : HornSentence) (_hH : HoldsIn H ℬ) : HoldsIn H 𝒜 := by
+  sorry
+
+/-- **§1.563** (corollary, via Henkin-Lubkin §1.55): If A is a regular category,
+    every Horn sentence in the predicates of regular categories true for the
+    category of sets is true for A. -/
+theorem horn_sentence_reflected_from_Set (A : Type u) [Cat.{v} A] [RegularCategory A]
+    (H : HornSentence) (_hH : HoldsIn H (Type u)) : HoldsIn H A := by
   sorry
 
 /-! ## §1.565 Pushouts
