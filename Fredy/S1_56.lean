@@ -115,6 +115,9 @@ def reciprocal {A B : 𝒞} (R : BinRel 𝒞 A B) : BinRel 𝒞 B A where
   colB := R.colA
   isMonicPair := λ {W} f g hA hB => R.isMonicPair f g hB hA
 
+/-- The reciprocal R°: swap columns (§1.561).  Postfix notation `_°`. -/
+postfix:max "°" => reciprocal
+
 theorem reciprocal_invol {A B : 𝒞} (R : BinRel 𝒞 A B) : reciprocal (reciprocal R) = R := by
   unfold reciprocal; rfl
 

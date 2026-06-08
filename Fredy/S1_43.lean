@@ -192,4 +192,65 @@ def pullbacks_terminator_implies_cartesian : CartesianCategory 𝒞 :=
     toHasEqualizers := heq }
 end Cartesian_from_PB_Term
 
+/-! ## §1.439 Terminal + Pullbacks ↔ Cartesian
+
+  The diagram (Freyd & Scedrov, §1.439):
+
+  ```
+              §1.432
+  Cartesian -----------> HasPullbacks
+     ^                      |
+     |                      | §1.433 (pb → prod)
+     |                      v
+     └── §1.434 ── (HasTerm, HasProd, HasPullbacks)
+       (prod+pb → eq)
+  ```
+
+  Given a terminal object, binary products + equalizers together are
+  equivalent to pullbacks.  Hence `Cartesian` ⇔ `HasTerminal + HasPullbacks`. -/
+
+section S1_439
+variable [HasTerminal 𝒞]
+
+/-- **§1.439**: In a category with a terminal object,
+    `HasBinaryProducts 𝒞 ∧ HasEqualizers 𝒞 ↔ HasPullbacks 𝒞`.
+
+    → (§1.432): Given products and equalizers, construct the pullback of
+      `f` and `g` as the equalizer of `fst≫f` and `snd≫g` on `A×B`.
+
+    ← (§1.433 + §1.434): Given pullbacks, build products as the pullback
+      of `A→1` and `B→1`; then build the equalizer of `f,g` as the
+      pullback of `⟨id,f⟩` and `⟨id,g⟩` over `A×B`. -/
+theorem cartesian_iff_pullbacks :
+    (Nonempty (HasBinaryProducts 𝒞) ∧ Nonempty (HasEqualizers 𝒞)) ↔ Nonempty (HasPullbacks 𝒞) := by
+  constructor
+  · -- (§1.432): Prod + Eq → Pullbacks
+    rintro ⟨⟨hp⟩, ⟨heq⟩⟩
+    haveI := hp; haveI := heq
+    refine ⟨⟨λ {A B C} f g => products_equalizers_implies_pullbacks f g⟩⟩
+  · -- (§1.433 + §1.434): Pullbacks → Prod, then Prod + Pullbacks → Eq
+    intro ⟨hpull⟩
+    haveI := hpull
+    have hp : HasBinaryProducts 𝒞 := pullbacks_terminator_implies_products
+    have heq : HasEqualizers 𝒞 :=
+      haveI := hp
+      products_pullbacks_implies_equalizers
+    exact ⟨⟨hp⟩, ⟨heq⟩⟩
+
+/-- **§1.439** bundled: `Cartesian 𝒞 ↔ HasPullbacks 𝒞` given a terminator. -/
+theorem cartesianCategory_iff_pullbacks :
+    Nonempty (CartesianCategory 𝒞) ↔ Nonempty (HasPullbacks 𝒞) := by
+  constructor
+  · intro ⟨h⟩
+    haveI : HasBinaryProducts 𝒞 := h.toHasBinaryProducts
+    haveI : HasEqualizers 𝒞 := h.toHasEqualizers
+    have hpb : HasPullbacks 𝒞 :=
+      { has := λ f g => products_equalizers_implies_pullbacks f g }
+    exact ⟨hpb⟩
+  · intro ⟨h⟩
+    haveI := h
+    exact ⟨pullbacks_terminator_implies_cartesian⟩
+
+end S1_439
+
 end Freyd
