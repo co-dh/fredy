@@ -5,6 +5,9 @@ import Fredy.S1_18
 import Fredy.S1_81
 import Fredy.S1_85
 import Fredy.S1_91
+import Fredy.S1_92
+import Fredy.S1_94
+import Fredy.S1_97
 import Fredy.S1_26
 import Fredy.S1_27
 import Fredy.S1_41
