@@ -125,14 +125,46 @@ theorem reciprocal_invol {A B : 𝒞} (R : BinRel 𝒞 A B) : reciprocal (recipr
   images, their composition RS: A→C is obtained by pulling back along
   the B-legs, then taking the image in A×C.  (§1.56) -/
 
-/-- The composition RS (requires pullbacks + images for proper definition). -/
+/-- The composition RS: A→C (§1.56).
+    1. Pull back R.colB and S.colA over B → object P
+    2. Map P→A via P→R.src→A, P→C via P→S.src→C
+    3. Take the image of the span P→A×C → this is the composed relation. -/
 def compose {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C)
-    [HasPullbacks 𝒞] [HasImages 𝒞] : BinRel 𝒞 A C :=
-  -- Form the pullback of R.colB: R.src→B and S.colA: S.src→B.
-  -- The pullback object P has maps to R.src and S.src.
-  -- Then compose with R.colA and S.colB to get a span A←P→C.
-  -- The image of this span in A×C gives the composed relation.
-  sorry
+    [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] : BinRel 𝒞 A C :=
+  -- Step 1: pullback of R.colB and S.colA over B
+  let pb := HasPullbacks.has R.colB S.colA
+  -- Step 2: span P→A and P→C
+  let a' := pb.cone.π₁ ≫ R.colA
+  let c' := pb.cone.π₂ ≫ S.colB
+  -- Step 3: embed P→A×C via the pair (a', c')
+  let h : pb.cone.pt ⟶ prod A C := pair a' c'
+  -- Step 4: image of h in A×C
+  let I := image h
+  -- The image gives a monic I.arr: I.dom → A×C
+  -- The composed relation: source = I.dom, legs are I.arr ≫ fst, I.arr ≫ snd
+  { src := I.dom
+    colA := I.arr ≫ fst
+    colB := I.arr ≫ snd
+    isMonicPair := by
+      intro X f g hA hB
+      -- hA: f ≫ I.arr ≫ fst = g ≫ I.arr ≫ fst
+      -- hB: f ≫ I.arr ≫ snd = g ≫ I.arr ≫ snd
+      -- Rewrite with associativity
+      have h_fst : (f ≫ I.arr) ≫ fst = (g ≫ I.arr) ≫ fst := by
+        simpa [Cat.assoc] using hA
+      have h_snd : (f ≫ I.arr) ≫ snd = (g ≫ I.arr) ≫ snd := by
+        simpa [Cat.assoc] using hB
+      -- By the product universal property, f ≫ I.arr = g ≫ I.arr
+      have h_prod : f ≫ I.arr = g ≫ I.arr := by
+        let a := (f ≫ I.arr) ≫ fst
+        let b := (f ≫ I.arr) ≫ snd
+        have hf : f ≫ I.arr = pair a b :=
+          pair_uniq a b (f ≫ I.arr) rfl rfl
+        have hg : g ≫ I.arr = pair a b :=
+          pair_uniq a b (g ≫ I.arr) h_fst h_snd
+        rw [hf, hg]
+      -- Since I.arr is monic, this implies f = g
+      exact I.monic f g h_prod }
 
 /-! ## §1.564 Cover ↔ Entire
 
