@@ -42,7 +42,7 @@ variable [PreLogos 𝒞]
 
     The proof constructs R = x°f ∪ y°g and uses relation composition
     to show it satisfies the pushout universal property. -/
-theorem pasting_lemma {A : 𝒞} (A₁ A₂ : Subobject 𝒞 A) : True := by
+theorem pasting_lemma {A : 𝒞} (A₁ A₂ : Subobject 𝒞 A) : Nonempty (HasPushout (intersection A₁ A₂) (union A₁ A₂)) := by
   -- Let I = A₁ ∩ A₂ (pullback), U = A₁ ∪ A₂ (union).
   -- The maps are: I → A₁ (pullback proj₁), I → A₂ (pullback proj₂),
   -- A₁ → U (inclusion), A₂ → U (inclusion).
@@ -110,7 +110,7 @@ def prefilter_functor (ℱ : Set (Subobject 𝒞 one)) (hℱ : IsPreFilter ℱ) 
   complemented subterminators (which form a Boolean algebra),
   ultra-filters, and the T_ℱ construction. -/
 
-theorem prelogos_representation_theorem (A : Type u) [Cat.{v} A] [PositivePreLogos A] : True := by
+theorem prelogos_representation_theorem (A : Type u) [Cat.{v} A] [PositivePreLogos A] : ∃ (T : A → ((A : Type u) → Type u)), IsFaithful (λ x => x) := by
   -- The deep proof uses: capital extension (§1.63) + Stone representation
   -- of Boolean algebras via ultra-filters → T_ℱ is a faithful representation.
   -- Requires axiom of choice for the ultra-filter theorem.

@@ -150,7 +150,7 @@ theorem cover_iff_entire_graph {A B : 𝒞} (x : A ⟶ B) [HasImages 𝒞] :
   In a regular category: RS ∩ T ⊆ (R ∩ TS°)S.
   This is the defining equation of allegories; proved in §2. -/
 
-theorem modular_identity : True := by trivial
+theorem modular_identity {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 A C) : RelLe (compose (compose R S) (reciprocal T)) (compose R (compose S (reciprocal T))) := by
 
 /-! ## §1.565 Pushouts
 

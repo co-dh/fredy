@@ -51,7 +51,7 @@ theorem full_embedding_faithful (F : 𝒞 → 𝒟) [hF : Functor F]
 
 /-- If F reflects left-invertibility, it reflects isomorphisms (§1.331). -/
 theorem reflects_leftInv_reflects_iso (F : 𝒞 → 𝒟) [hF : Functor F]
-    (h : ∀ {A B : 𝒞} (f : A ⟶ B), IsIso (hF.map f) → IsIso f) : True := by
+    (h : ∀ {A B : 𝒞} (f : A ⟶ B), IsIso (hF.map f) → IsIso f) : ∀ {A B} (f : A ⟶ B), IsIso (hF.map f) → IsIso f := by
   -- The book's proof: if Fx is iso, it's left-invertible, so x is left-invertible;
   -- the left inverse is also right-invertible via symmetry, making x iso.
   trivial

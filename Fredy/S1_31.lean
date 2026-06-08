@@ -7,6 +7,7 @@
 
 import Fredy.S1_1
 import Fredy.S1_18
+import Fredy.S1_27
 import Fredy.S1_41
 
 
@@ -66,12 +67,8 @@ end Composition
 
 /-! ## Strong equivalence (§1.32) -/
 
-structure NatTrans (F G : 𝒞 → 𝒟) [hF : Functor F] [hG : Functor G] where
-  app : ∀ X : 𝒞, F X ⟶ G X
-  naturality : ∀ ⦃X Y : 𝒞⦄ (f : X ⟶ Y), hF.map f ≫ app Y = app X ≫ hG.map f
-
 structure NatIso (F G : 𝒞 → 𝒟) [hF : Functor F] [hG : Functor G] where
-  nat : NatTrans F G
+  nat : NaturalTransformation F G
   isIso : ∀ X : 𝒞, IsIso (nat.app X)
 
 structure StrongEquivalence (F : 𝒞 → 𝒟) (G : 𝒟 → 𝒞)

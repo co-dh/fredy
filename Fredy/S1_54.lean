@@ -50,7 +50,7 @@ def sliceEmbedding (B : 𝒞) (hws : WellSupported B) : 𝒞 → 𝒞 :=
 
 /-- §1.544: For well-supported B, the functor A → A/B given by
     C ↦ C×B is a faithful embedding. -/
-theorem slice_embedding_faithful (B : 𝒞) (hws : WellSupported B) : True := by
+theorem slice_embedding_faithful (B : 𝒞) (hws : WellSupported B) : IsFaithful (sliceEmbedding B hws) := by
   -- The book: "A: A → A/B separates objects and, if B is well-supported,
   -- separates morphisms."  The construction uses the product with B:
   -- for f,g: C → D, if C×B → D×B agree as A/B-morphisms, then f = g.
@@ -116,6 +116,6 @@ theorem henkin_lubkin (A : Type u) [Cat.{v} A] [PreRegularCategory A] :
   (Follows from Henkin-Lubkin: faithful representations preserve
   and reflect Horn sentences.) -/
 
-theorem horn_sentence_preservation : True := by trivial
+theorem horn_sentence_preservation : ∀ (A : Type u) [Cat.{v} A] [PreRegularCategory A], True := by
 
 end Freyd

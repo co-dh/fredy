@@ -77,7 +77,7 @@ class BicartesianCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
   the coequalizer A → C of l,r.  The unique C→B is monic (= image). -/
 
 /-- In bicartesian + images, the image of x is the coequalizer of its level. -/
-theorem image_via_coeq [BicartesianCategory 𝒞] [HasImages 𝒞] {A B : 𝒞} (x : A ⟶ B) : True := by
+theorem image_via_coeq [BicartesianCategory 𝒞] [HasImages 𝒞] {A B : 𝒞} (x : A ⟶ B) : Isomorphic (image x).dom (Cokernel (kernelMap x)).dom := by
   trivial
 
 /-! ## §1.59 Abelian categories
@@ -107,7 +107,7 @@ def homAdd [HalfAdditiveCategory 𝒞] (A B : 𝒞) : A ⟶ B → A ⟶ B → A 
 
 /-- Middle-two interchange law (§1.59):
     (u + v) + (x + y) = (u + x) + (v + y). -/
-theorem middle_two_interchange [HalfAdditiveCategory 𝒞] {A B : 𝒞} (u v x y : A ⟶ B) : True := by
+theorem middle_two_interchange [HalfAdditiveCategory 𝒞] {A B : 𝒞} (u v x y : A ⟶ B) : (u + v) + (x + y) = (u + x) + (v + y) := by
   trivial
 
 end Freyd
