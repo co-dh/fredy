@@ -69,3 +69,15 @@ class SpecialCartesianCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
   two_valued : ∀ (A B : 𝒞) (f g : A ⟶ B), f = g  -- placehold: actually means ∀ U⊆1, U=0 or U=1
 
 end Freyd
+
+/-! ## Representable functor, Evaluation functors
+
+/-- REPRESENTABLE FUNCTOR (§1.442): the functor Hom(A,-) : 𝒞 → Set. -/
+@[reducible] def RepresentableFunctor (A : 𝒞) : 𝒞 → Type v := λ X => A ⟶ X
+
+/-- DIAGONAL FUNCTOR (§1.53): Δ: 𝒞 → 𝒞×𝒞 sending A ↦ (A,A). -/
+def DiagonalFunctor (A : 𝒞) : 𝒞 := prod A A
+
+/-- EVALUATION FUNCTOR ev_A: [𝒞,𝒟] → 𝒟 sending F ↦ F(A) (§1.48).
+    In our setting: for any functor F: 𝒞→𝒟, evaluation at A gives F A. -/
+def EvaluationFunctor {𝒟 : Type u} [Cat.{v} 𝒟] (F : 𝒞 → 𝒟) [Functor F] (A : 𝒞) : 𝒟 := F A
