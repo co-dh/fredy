@@ -56,43 +56,9 @@ def graph {A B : 𝒞} (x : A ⟶ B) : BinRel 𝒞 A B where
   src  := A
   colA := Cat.id A
   colB := x
-  isMonicPair := λ {W} f g hA _ => by
+  isMonicPair := λ {_W} f g hA _ => by
     -- hA: f ≫ id = g ≫ id  →  f = g
     simpa [Cat.id_comp, Cat.comp_id] using hA
-
-/-! ## §1.564 Entire, Simple, Map
-
-  A relation R: A→B is ENTIRE if 1_A ≤ R°R.
-  SIMPLE if R°R ≤ 1_B.
-  A MAP is an entire + simple relation (= graph of a morphism). -/
-
-/-- **§1.564**: R : A → B is ENTIRE if 1_A ≤ R°R — the identity relation
-    on A is contained in R°R. -/
-def Entire {A B : 𝒞} (R : BinRel 𝒞 A B) [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] : Prop :=
-  RelLe (graph (Cat.id A)) (compose (reciprocal R) R)
-
-/-- **§1.564**: R is SIMPLE if RR° ≤ 1_B — R composed with its reciprocal
-    is contained in the identity on B. -/
-def Simple {A B : 𝒞} (R : BinRel 𝒞 A B) [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] : Prop :=
-  RelLe (compose R (reciprocal R)) (graph (Cat.id B))
-
-/-- R is a MAP if it is entire and simple.  Maps are exactly graphs (§1.564). -/
-def Map {A B : 𝒞} (R : BinRel 𝒞 A B) : Prop :=
-  Entire R ∧ Simple R
-
-/-- **§1.564**: Every isomorphism yields a map-graph.  In a regular category,
-    iso → cover + monic → entire + simple → map. -/
-theorem graph_iso_is_map {A B : 𝒞} (x : A ⟶ B) (hIso : IsIso x) [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] : Map (graph x) := by
-  -- §1.564: x iso → x cover ∧ x monic → graph(x) entire ∧ graph(x) simple → map.
-  sorry
-
-/-- **§1.564**: x is monic iff graph(x) is simple.  (Requires images/pullbacks
-    for the `Simple` predicate via `compose`.) -/
-theorem monic_iff_simple_graph {A B : 𝒞} (x : A ⟶ B) [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] : Mono x ↔ Simple (graph x) := by
-  -- §1.564: In a regular category, x is monic ↔ graph(x) is simple.
-  -- Uses the fact that in a regular category, monic ↔ the level of x is
-  -- the identity relation, which is equivalent to graph(x)°graph(x) ≤ 1_B.
-  sorry
 
 /-! ## §1.561 Reciprocal -/
 
@@ -100,7 +66,7 @@ def reciprocal {A B : 𝒞} (R : BinRel 𝒞 A B) : BinRel 𝒞 B A where
   src  := R.src
   colA := R.colB
   colB := R.colA
-  isMonicPair := λ {W} f g hA hB => R.isMonicPair f g hB hA
+  isMonicPair := λ {_W} f g hA hB => R.isMonicPair f g hB hA
 
 /-- The reciprocal R°: swap columns (§1.561).  Postfix notation `_°`. -/
 postfix:max "°" => reciprocal
@@ -150,20 +116,37 @@ def compose {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C)
         have hf : f ≫ I.arr = pair a b :=
           pair_uniq a b (f ≫ I.arr) rfl rfl
         have hg : g ≫ I.arr = pair a b :=
-          pair_uniq a b (g ≫ I.arr) h_fst h_snd
+          pair_uniq a b (g ≫ I.arr) h_fst.symm h_snd.symm
         rw [hf, hg]
       -- Since I.arr is monic, this implies f = g
       exact I.monic f g h_prod }
 
-/-! ## §1.564 Cover ↔ Entire
+/-! ## §1.564 Entire, Simple, Map
 
-  For a graph R = graph(x): x is a cover iff R is entire.
-  (Proof uses the image of x: x is cover ↔ image(x).arr is iso ↔ 1_A ≤ RR°.) -/
+  A relation R: A→B is ENTIRE if 1_A ≤ RR°.
+  SIMPLE if R°R ≤ 1_B.
+  A MAP is an entire + simple relation (= graph of a morphism). -/
 
-theorem cover_iff_entire_graph {A B : 𝒞} (x : A ⟶ B) [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] :
-    Cover x ↔ Entire (graph x) := by
-  -- §1.564: In a regular category, x is a cover ↔ graph(x) is entire.
-  -- Both sides are equivalent to: the image of x is the entire subobject.
+/-- **§1.564**: R : A → B is ENTIRE if 1_A ≤ RR° — the identity relation
+    on A is contained in RR° (compose R R° : A → A). -/
+def Entire {A B : 𝒞} (R : BinRel 𝒞 A B) [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] : Prop :=
+  RelLe (graph (Cat.id A)) (compose R (reciprocal R))
+
+/-- **§1.564**: R is SIMPLE if R°R ≤ 1_B — R° composed with R
+    (compose R° R : B → B) is contained in the identity on B. -/
+def Simple {A B : 𝒞} (R : BinRel 𝒞 A B) [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] : Prop :=
+  RelLe (compose (reciprocal R) R) (graph (Cat.id B))
+
+/-- R is a MAP if it is entire and simple.  Maps are exactly graphs (§1.564). -/
+def Map {A B : 𝒞} (R : BinRel 𝒞 A B) [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] : Prop :=
+  Entire R ∧ Simple R
+
+/-- **§1.564**: A relation ⟨T; a:T→A, b:T→B⟩ tabulated by a monic pair is a
+    MAP (entire + simple) iff `a` is an isomorphism.  Maps are exactly the
+    graphs of morphisms: if `R` is a map then `R = graph(b ≫ a⁻¹)`. -/
+theorem tabulated_is_map_iff_left_iso {A B T : 𝒞} (a : T ⟶ A) (b : T ⟶ B) (hp : MonicPair a b)
+    [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] :
+    Map (BinRel.mk T a b hp) ↔ IsIso a := by
   sorry
 
 /-! ## §1.563 Modular identity
@@ -180,8 +163,22 @@ theorem cover_iff_entire_graph {A B : 𝒞} (x : A ⟶ B) [HasBinaryProducts �
   to the original category.  So it becomes a theorem after the representation is
   established, but not before. -/
 
-theorem modular_identity {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 A C) : RelLe (compose (compose R S) (reciprocal T)) (compose R (compose S (reciprocal T))) := by
+theorem modular_identity {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 A C)
+    [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] :
+    RelLe (compose (compose R S) (reciprocal T)) (compose R (compose S (reciprocal T))) := by
   sorry
+
+/-! ## §1.563 Horn-sentence reflection
+
+  A HORN SENTENCE in the predicates of (pre-)regular categories is treated
+  abstractly here (its syntax is developed in §1.55); `HoldsIn H 𝒟` says the
+  sentence `H` is satisfied by the category `𝒟`. -/
+
+/-- A Horn sentence in the first-order language of (pre-)regular categories. -/
+opaque HornSentence : Type
+
+/-- `H` HOLDS IN the category `𝒟`. -/
+opaque HoldsIn (H : HornSentence) (𝒟 : Type u) [Cat.{v} 𝒟] : Prop
 
 /-- **§1.563**: If A and B are Cartesian with images, and F : A → B is a faithful
     functor preserving finite limits and images, then F reflects any Horn sentence
@@ -196,9 +193,10 @@ theorem horn_sentence_reflected_by_faithful {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [
 
 /-- **§1.563** (corollary, via Henkin-Lubkin §1.55): If A is a regular category,
     every Horn sentence in the predicates of regular categories true for the
-    category of sets is true for A. -/
+    category of sets is true for A.  (`Type u` carries the category-of-sets
+    structure as the instance argument.) -/
 theorem horn_sentence_reflected_from_Set (A : Type u) [Cat.{v} A] [RegularCategory A]
-    (H : HornSentence) (_hH : HoldsIn H (Type u)) : HoldsIn H A := by
+    [Cat.{v} (Type u)] (H : HornSentence) (_hH : HoldsIn H (Type u)) : HoldsIn H A := by
   sorry
 
 /-! ## §1.565 Pushouts
@@ -230,15 +228,13 @@ def EquivalenceRelation {A : 𝒞} (E : BinRel 𝒞 A A) : Prop :=
   Nonempty (RelHom E (reciprocal E)) ∧
   True  -- transitivity requires composition
 
-
-/-- CONSTANT MORPHISM (§1.56(10)): x: A→B is constant if ∀y,y' : C→A, y≫x = y'≫x.
+/-- CONSTANT MORPHISM (§1.56(10)): x: A→B is constant if ∀y,y' : C→A, y≫x = y'≫x. -/
 def Constant {A B : 𝒞} (x : A ⟶ B) : Prop :=
   ∀ {C : 𝒞} (y y' : C ⟶ A), y ≫ x = y' ≫ x
 
-
 /-- QUOTIENT-OBJECT of A (§1.568): the poset of isomorphism classes of covers with source A.
-    The preorder: f ≤ g if f factors through g (as covers).
+    The preorder: f ≤ g if f factors through g (as covers). -/
 def QuotientObject (A : 𝒞) : Type (max u v) :=
-  Σ (B : 𝒞) (f : A ⟶ B), Cover f
+  Σ (B : 𝒞) (f : A ⟶ B), PLift (Cover f)
 
 end Freyd
