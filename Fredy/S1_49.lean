@@ -178,7 +178,7 @@ class FreeTCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends TCat 𝒞 where
 /-! ## §1.4(10)1 Well-made -/
 
 /-- A table is WELL-MADE if every column is short (§1.4(10)1). -/
-def IsWellMade (tab : Table 𝒞) : Prop :=
+def WellMade (tab : Table 𝒞) : Prop :=
   ∀ (i : Fin tab.len), tab.IsShort i
 
 /-- A WELL-MADE PART of a table: a sub-table (via prune) that is well-made. -/
@@ -197,7 +197,7 @@ def GenericPoint (B : 𝒞) : Table 𝒞 := idTable B
 /-! ## §1.49(11) Auspicious -/
 
 /-- AUSPICIOUS (§1.49(11)): a sequence expandable to a τ-table. -/
-def IsAuspicious (τ : TCat 𝒞) (tab : Table 𝒞) : Prop :=
+def Auspicious (τ : TCat 𝒞) (tab : Table 𝒞) : Prop :=
   ∃ (tab' : Table 𝒞), tab.len ≤ tab'.len ∧ τ.mem tab' ∧
     (∀ i : Fin tab.len, tab.codom i = tab'.codom i) ∧
     (∀ i : Fin tab.len, tab.col i = tab'.col i)

@@ -21,17 +21,17 @@ namespace Freyd
 
 /-! ## §1.31 Embedding, Full, Representative Image, Equivalence Functor -/
 
-def IsEmbedding (F : 𝒞 → 𝒟) [hF : Functor F] : Prop :=
+def Embedding (F : 𝒞 → 𝒟) [hF : Functor F] : Prop :=
   ∀ {A B : 𝒞} (f g : A ⟶ B), hF.map f = hF.map g → f = g
 
-def IsFull (F : 𝒞 → 𝒟) [hF : Functor F] : Prop :=
+def Full (F : 𝒞 → 𝒟) [hF : Functor F] : Prop :=
   ∀ {A B : 𝒞} (h : F A ⟶ F B), ∃ f : A ⟶ B, hF.map f = h
 
 def HasRepresentativeImage (F : 𝒞 → 𝒟) [hF : Functor F] : Prop :=
   ∀ B : 𝒟, ∃ A : 𝒞, ∃ (h : F A ⟶ B), IsIso h
 
-def IsEquivalenceFunctor (F : 𝒞 → 𝒟) [hF : Functor F] : Prop :=
-  IsEmbedding F ∧ IsFull F ∧ HasRepresentativeImage F
+def EquivalenceFunctor (F : 𝒞 → 𝒟) [hF : Functor F] : Prop :=
+  Embedding F ∧ Full F ∧ HasRepresentativeImage F
 
 /-! ## §1.32 Composition and cancellation
 
@@ -41,7 +41,7 @@ def IsEquivalenceFunctor (F : 𝒞 → 𝒟) [hF : Functor F] : Prop :=
 section Composition
 variable {F : 𝒞 → 𝒟} [hF : Functor F] {ℰ : Type u} [Cat.{v} ℰ] {G : 𝒟 → ℰ} [hG : Functor G]
 
-theorem embedding_comp (embF : IsEmbedding F) (embG : IsEmbedding G) : IsEmbedding (G ∘ F) := by
+theorem embedding_comp (embF : Embedding F) (embG : Embedding G) : Embedding (G ∘ F) := by
   intro A B f g h
   -- h : (compFunctor.map : (G ∘ F) A → (G ∘ F) B) f = (compFunctor.map ...) g
   -- h reduces to hG.map (hF.map f) = hG.map (hF.map g)
@@ -49,13 +49,16 @@ theorem embedding_comp (embF : IsEmbedding F) (embG : IsEmbedding G) : IsEmbeddi
   apply embG (hF.map f) (hF.map g)
   simpa using h
 
-theorem full_comp (fullF : IsFull F) (fullG : IsFull G) : IsFull (G ∘ F) := by
+theorem full_comp (fullF : Full F) (fullG : Full G) : Full (G ∘ F) := by
   intro A B h
   rcases fullG h with ⟨g, hg⟩
   rcases fullF g with ⟨f, hf⟩
-  refine ⟨f, ?_⟩
-  dsimp
-  rw [hf, hg]
+  have hgoal : (compFunctor (hf := hF) (hg := hG)).map f = h := by
+    calc
+      (compFunctor (hf := hF) (hg := hG)).map f = hG.map (hF.map f) := rfl
+      _ = hG.map g := by rw [hf]
+      _ = h := by rw [hg]
+  exact ⟨f, hgoal⟩
 
 end Composition
 

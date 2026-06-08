@@ -55,7 +55,7 @@ def YonedaEmbedding (A : 𝒞) : 𝒞 → Type v :=
 /-- DENSE MONIC (§1.48): a monic f such that the functor
     Hom(f, -): Hom(B, -) → Hom(A, -) is a full embedding
     (preserves and reflects the subobject structure). -/
-def IsDenseMonic {A B : 𝒞} (f : A ⟶ B) (hm : Mono f) : Prop :=
+def DenseMonic {A B : 𝒞} (f : A ⟶ B) (hm : Mono f) : Prop :=
   -- f is dense if for every X, Hom(f, X): Hom(B, X) → Hom(A, X) is
   -- fully faithful on the subobject posets.
   -- In a category with pushouts, f is dense iff every pushout of f is monic.
@@ -72,7 +72,7 @@ class SpecialCartesianCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
 /-- RATIONAL CATEGORY (§1.48): the category of fractions obtained by
     inverting all dense monics.  Universally turns dense monics into isos.
 class RationalCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends CartesianCategory 𝒞 where
-  hasRationalization : ∀ {A B : 𝒞} (f : A ⟶ B) (hm : Mono f) (hd : IsDenseMonic f hm),
+  hasRationalization : ∀ {A B : 𝒞} (f : A ⟶ B) (hm : Mono f) (hd : DenseMonic f hm),
     ∃ (g : B ⟶ A), f ≫ g = Cat.id A
 
 /-! ## Representable functor, Evaluation functors -/

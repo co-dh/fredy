@@ -46,7 +46,7 @@ theorem functor_preserves_iso_obj (F : 𝒞 → 𝒟) [hF : Functor F] {A B : �
 
 /-- Full embeddings reflect isomorphism of objects. -/
 theorem full_embedding_reflects_iso_obj (F : 𝒞 → 𝒟) [hF : Functor F]
-    (hEmb : IsEmbedding F) (hFull : IsFull F) {A B : 𝒞} (h : Isomorphic (F A) (F B)) : Isomorphic A B := by
+    (hEmb : Embedding F) (hFull : Full F) {A B : 𝒞} (h : Isomorphic (F A) (F B)) : Isomorphic A B := by
   rcases h with ⟨h, ginv, h1, h2⟩
   rcases hFull h with ⟨f, hf⟩
   rcases hFull ginv with ⟨g, hg⟩

@@ -29,16 +29,16 @@ variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasImages 𝒞]
 /-! ## §1.57 Choice and projectivity -/
 
 /-- C is CHOICE if every entire relation R : A → C contains a map f : A → C. -/
-def IsChoice (C : 𝒞) : Prop :=
-  ∀ {A : 𝒞} (R : BinRel 𝒞 A C), IsEntire R →
+def Choice (C : 𝒞) : Prop :=
+  ∀ {A : 𝒞} (R : BinRel 𝒞 A C), Entire R →
     ∃ (f : A ⟶ C), ∃ (h : A ⟶ R.src), h ≫ R.colA = f ∧ h ≫ R.colB = Cat.id A
 
 /-- C is PROJECTIVE if every cover f : A ↠ C splits (∃ s: C→A with s≫f = id). -/
-def IsProjective (C : 𝒞) : Prop :=
+def Projective (C : 𝒞) : Prop :=
   ∀ {A : 𝒞} (f : A ⟶ C), Cover f → ∃ (s : C ⟶ A), s ≫ f = Cat.id C
 
 /-- Every object is choice iff every object is projective (§1.57). -/
-theorem choice_iff_projective : (∀ C : 𝒞, IsChoice C) ↔ (∀ C : 𝒞, IsProjective C) := by
+theorem choice_iff_projective : (∀ C : 𝒞, Choice C) ↔ (∀ C : 𝒞, Projective C) := by
   constructor
   · intro h C A f hcov
     -- f is cover ⇒ its graph is entire ⇒ by choice, contains a map ⇒ that map is a section
@@ -50,7 +50,7 @@ theorem choice_iff_projective : (∀ C : 𝒞, IsChoice C) ↔ (∀ C : 𝒞, Is
 /-- AC REGULAR CATEGORY: all objects are choice. -/
 class ACRegularCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
     HasTerminal 𝒞, HasBinaryProducts 𝒞, HasImages 𝒞 where
-  all_choice : ∀ C : 𝒞, IsChoice C
+  all_choice : ∀ C : 𝒞, Choice C
 
 /-- In an AC regular category, every f factors as p≫m where p is
     left-invertible (= split epi = cover with section) and m is monic. -/

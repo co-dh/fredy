@@ -68,22 +68,22 @@ def graph {A B : 𝒞} (x : A ⟶ B) : BinRel 𝒞 A B where
 
 /-- R : A → B is ENTIRE if 1_A ≤ R°R.
     Simplified: the identity on A factors through the A-leg of R. -/
-def IsEntire {A B : 𝒞} (R : BinRel 𝒞 A B) : Prop :=
+def Entire {A B : 𝒞} (R : BinRel 𝒞 A B) : Prop :=
   ∃ (h : A ⟶ R.src), h ≫ R.colA = Cat.id A
 
 /-- R is SIMPLE if R°R is contained in id_B (§1.564). -/
-def IsSimpleRel {A B : 𝒞} (R : BinRel 𝒞 A B) : Prop :=
+def Simple {A B : 𝒞} (R : BinRel 𝒞 A B) : Prop :=
   -- R°R ≤ id_B: for any T tabulating R°R (i.e. a cone), both legs factor through 1_B
   -- Equivalent: if f,g factor through R on the B-side, they're equal.
   ∀ {X : 𝒞} (f g : X ⟶ R.src), f ≫ R.colB = g ≫ R.colB → f ≫ R.colA = g ≫ R.colA
 
 /-- R is a MAP if it is entire and simple.  Maps are exactly graphs (§1.564). -/
-def IsMap {A B : 𝒞} (R : BinRel 𝒞 A B) : Prop :=
-  IsEntire R ∧ IsSimpleRel R
+def Map {A B : 𝒞} (R : BinRel 𝒞 A B) : Prop :=
+  Entire R ∧ Simple R
 
 /-- Every isomorphism yields a map-graph.  (The entire part requires RR° = id,
     which needs the composition/image structure; we mark it sorry.) -/
-theorem graph_iso_is_map {A B : 𝒞} (x : A ⟶ B) (hIso : IsIso x) : IsMap (graph x) := by
+theorem graph_iso_is_map {A B : 𝒞} (x : A ⟶ B) (hIso : IsIso x) : Map (graph x) := by
   rcases hIso with ⟨inv, h1, h2⟩
   refine ⟨?_, ?_⟩
   · -- entire: 1_A ≤ (graph x)(graph x)°  (requires composition/image)
@@ -96,7 +96,7 @@ theorem graph_iso_is_map {A B : 𝒞} (x : A ⟶ B) (hIso : IsIso x) : IsMap (gr
     simpa [graph, Cat.assoc, h1, Cat.comp_id] using hpost
 
 /-- x is monic iff graph(x) is simple. -/
-theorem monic_iff_simple_graph {A B : 𝒞} (x : A ⟶ B) : Mono x ↔ IsSimpleRel (graph x) := by
+theorem monic_iff_simple_graph {A B : 𝒞} (x : A ⟶ B) : Mono x ↔ Simple (graph x) := by
   constructor
   · intro hm X f g h
     -- h: f ≫ (graph x).colB = g ≫ (graph x).colB
@@ -177,7 +177,7 @@ def compose {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C)
   (Proof uses the image of x: x is cover ↔ image(x).arr is iso ↔ 1_A ≤ RR°.) -/
 
 theorem cover_iff_entire_graph {A B : 𝒞} (x : A ⟶ B) [HasImages 𝒞] :
-    Cover x ↔ IsEntire (graph x) := by
+    Cover x ↔ Entire (graph x) := by
   -- Both sides are equivalent to: the image of x is the entire subobject.
   -- We use cover_iff_image_entire from S1_51.
   sorry
@@ -205,7 +205,7 @@ theorem modular_identity {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B
     modular identity (being a Horn sentence) holds in A iff it holds in B. -/
 theorem horn_sentence_reflected_by_faithful {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
     [CartesianCategory 𝒜] [HasImages 𝒜] [CartesianCategory ℬ] [HasImages ℬ]
-    (F : 𝒜 → ℬ) [Functor F] (hfaithful : IsFaithful F)
+    (F : 𝒜 → ℬ) [Functor F] (hfaithful : Faithful F)
     (_h_preserves_limits : True) (_h_preserves_images : True)
     (H : HornSentence) (_hH : HoldsIn H ℬ) : HoldsIn H 𝒜 := by
   sorry
@@ -241,14 +241,14 @@ class HasPushout {A B C : 𝒞} (f : C ⟶ A) (g : C ⟶ B) where
   E : A → A is an EQUIVALENCE RELATION if 1 ≤ E, E° ≤ E, EE ≤ E.
   The level (kernel pair) of any morphism is an equivalence relation. -/
 
-def IsEquivalenceRelation {A : 𝒞} (E : BinRel 𝒞 A A) : Prop :=
+def EquivalenceRelation {A : 𝒞} (E : BinRel 𝒞 A A) : Prop :=
   (∃ (h : A ⟶ E.src), h ≫ E.colA = Cat.id A ∧ h ≫ E.colB = Cat.id A) ∧
   Nonempty (RelHom E (reciprocal E)) ∧
   True  -- transitivity requires composition
 
 
 /-- CONSTANT MORPHISM (§1.56(10)): x: A→B is constant if ∀y,y' : C→A, y≫x = y'≫x.
-def IsConstant {A B : 𝒞} (x : A ⟶ B) : Prop :=
+def Constant {A B : 𝒞} (x : A ⟶ B) : Prop :=
   ∀ {C : 𝒞} (y y' : C ⟶ A), y ≫ x = y' ≫ x
 
 

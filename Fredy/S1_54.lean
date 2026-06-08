@@ -17,6 +17,7 @@
 import Fredy.S1_1
 import Fredy.S1_18
 import Fredy.S1_31
+import Fredy.S1_33
 import Fredy.S1_41
 import Fredy.S1_42
 import Fredy.S1_44
@@ -50,7 +51,7 @@ def sliceEmbedding (B : 𝒞) (hws : WellSupported B) : 𝒞 → 𝒞 :=
 
 /-- §1.544: For well-supported B, the functor A → A/B given by
     C ↦ C×B is a faithful embedding. -/
-theorem slice_embedding_faithful (B : 𝒞) (hws : WellSupported B) : IsFaithful (sliceEmbedding B hws) := by
+theorem slice_embedding_faithful (B : 𝒞) (hws : WellSupported B) : Faithful (sliceEmbedding B hws) := by
   -- The book: "A: A → A/B separates objects and, if B is well-supported,
   -- separates morphisms."  The construction uses the product with B:
   -- for f,g: C → D, if C×B → D×B agree as A/B-morphisms, then f = g.
@@ -86,7 +87,7 @@ def IsRelativeCapitalization [HasTerminal 𝒞] [HasImages 𝒞] (A A_star : �
 
 theorem capitalization_lemma (A : Type u) [Cat.{v} A] [PreRegularCategory A] :
     ∃ (Ā : Type u) [Cat.{v} Ā] [PreRegularCategory Ā],
-      Capital (𝒞 := Ā) ∧ ∃ (F : A → Ā) [Functor F], IsFaithful F := by
+      Capital (𝒞 := Ā) ∧ ∃ (F : A → Ā) [Functor F], Faithful F := by
   -- The proof iterates the relative capitalization construction A ⊆ A*
   -- via A* = the category obtained by adding points to A for each
   -- well-supported object (essentially A ↦ union over B of A/B).

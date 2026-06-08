@@ -37,7 +37,7 @@ def RightAdjoint {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat.{v} 𝒟] (G : 𝒟 �
     there exist isomorphic inflations.  (Existence of an equivalence functor
     implies equivalence.) -/
 def EquivalentCategories (𝒜 ℬ : Type u) [Cat.{v} 𝒜] [Cat.{v} ℬ] : Prop :=
-  ∃ (F : 𝒜 → ℬ) [Functor F], IsEquivalenceFunctor F
+  ∃ (F : 𝒜 → ℬ) [Functor F], EquivalenceFunctor F
 
 /-- SKELETAL category (§1.364): isomorphic objects are equal. -/
 def IsSkeletal (𝒞 : Type u) [Cat.{v} 𝒞] : Prop :=

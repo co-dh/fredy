@@ -116,7 +116,7 @@ theorem cover_iff_image_entire {X Y : 𝒞} (f : X ⟶ Y) : Cover f ↔ Subobjec
   A finite family {xᵢ : Aᵢ → B} is EPIC (jointly epimorphic) if
   for any g,h : B → X, agreeing on all xᵢ ≫ g = xᵢ ≫ h implies g = h. -/
 
-def IsEpic {n : Nat} (x : Fin n → Σ A : 𝒞, A ⟶ B) : Prop :=
+def Epic {n : Nat} (x : Fin n → Σ A : 𝒞, A ⟶ B) : Prop :=
   ∀ (X : 𝒞) (g h : B ⟶ X), (∀ i : Fin n, (x i).2 ≫ g = (x i).2 ≫ h) → g = h
 
 end Freyd

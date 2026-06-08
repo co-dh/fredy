@@ -63,7 +63,7 @@ def repFilter {𝒟 : Type u} [Cat.{v} 𝒟] [Logos 𝒞] [Logos 𝒟]
 
 /-- A representation T is faithful iff ℱ(T) = {1} (§1.73). -/
 theorem faithful_iff_trivial_filter {𝒟 : Type u} [Cat.{v} 𝒟] [Logos 𝒞] [Logos 𝒟]
-    (T : 𝒞 → 𝒟) [Functor F] : IsFaithful T ↔ repFilter T = {Subobject.entire one} := by
+    (T : 𝒞 → 𝒟) [Functor F] : Faithful T ↔ repFilter T = {Subobject.entire one} := by
   sorry
 
 /-! ## §1.733 Coprime and Focal
@@ -72,14 +72,14 @@ theorem faithful_iff_trivial_filter {𝒟 : Type u} [Cat.{v} 𝒟] [Logos 𝒞] 
   A logos is FOCAL if its terminator is coprime and projective. -/
 
 /-- A is COPRIME: any cover of A by subobjects contains A itself. -/
-def IsCoprime [HasSubobjectUnions 𝒞] (A : 𝒞) : Prop :=
+def Coprime [HasSubobjectUnions 𝒞] (A : 𝒞) : Prop :=
   ∀ (U V : Subobject 𝒞 A),
     Subobject.le A.dom (HasSubobjectUnions.union U V) → IsIso (Subobject.entire A).arr
 
 /-- A FOCAL LOGOS: terminator is coprime and projective (§1.733). -/
 class FocalLogos (𝒞 : Type u) [Cat.{v} 𝒞] extends Logos 𝒞 where
-  one_coprime    : IsCoprime one
-  one_projective : IsProjective one
+  one_coprime    : Coprime one
+  one_projective : Projective one
 
 /-! ## §1.734 Focal representation
 

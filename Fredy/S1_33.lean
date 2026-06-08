@@ -21,12 +21,12 @@ namespace Freyd
 /-! ## §1.33 Faithful functors -/
 
 /-- F is FAITHFUL if it is an embedding and reflects isomorphisms. -/
-def IsFaithful (F : 𝒞 → 𝒟) [hF : Functor F] : Prop :=
-  IsEmbedding F ∧ (∀ {A B : 𝒞} (f : A ⟶ B), IsIso (hF.map f) → IsIso f)
+def Faithful (F : 𝒞 → 𝒟) [hF : Functor F] : Prop :=
+  Embedding F ∧ (∀ {A B : 𝒞} (f : A ⟶ B), IsIso (hF.map f) → IsIso f)
 
 /-- Full embeddings are faithful. -/
 theorem full_embedding_faithful (F : 𝒞 → 𝒟) [hF : Functor F]
-    (hEmb : IsEmbedding F) (hFull : IsFull F) : IsFaithful F := by
+    (hEmb : Embedding F) (hFull : Full F) : Faithful F := by
   refine ⟨hEmb, ?_⟩
   intro A B f hiso
   rcases hiso with ⟨ginv, h1, h2⟩
@@ -39,13 +39,13 @@ theorem full_embedding_faithful (F : 𝒞 → 𝒟) [hF : Functor F]
       hF.map (f ≫ g) = hF.map f ≫ hF.map g := hF.map_comp f g
       _ = hF.map f ≫ ginv := by rw [hg]
       _ = Cat.id (F A) := h1
-      _ = hF.map (Cat.id A) := by simp
+      _ = hF.map (Cat.id A) := by rw [hF.map_id]
   · apply hEmb
     calc
       hF.map (g ≫ f) = hF.map g ≫ hF.map f := hF.map_comp g f
       _ = ginv ≫ hF.map f := by rw [hg]
       _ = Cat.id (F B) := h2
-      _ = hF.map (Cat.id B) := by simp
+      _ = hF.map (Cat.id B) := by rw [hF.map_id]
 
 /-! ## §1.331 Reflects left-invertibility ⇒ reflects isomorphisms -/
 

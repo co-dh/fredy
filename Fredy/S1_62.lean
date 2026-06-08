@@ -110,7 +110,7 @@ def prefilter_functor (ℱ : Set (Subobject 𝒞 one)) (hℱ : IsPreFilter ℱ) 
   complemented subterminators (which form a Boolean algebra),
   ultra-filters, and the T_ℱ construction. -/
 
-theorem prelogos_representation_theorem (A : Type u) [Cat.{v} A] [PositivePreLogos A] : ∃ (T : A → ((A : Type u) → Type u)), IsFaithful (λ x => x) := by
+theorem prelogos_representation_theorem (A : Type u) [Cat.{v} A] [PositivePreLogos A] : ∃ (T : A → ((A : Type u) → Type u)), Faithful (λ x => x) := by
   -- The deep proof uses: capital extension (§1.63) + Stone representation
   -- of Boolean algebras via ultra-filters → T_ℱ is a faithful representation.
   -- Requires axiom of choice for the ultra-filter theorem.

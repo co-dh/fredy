@@ -92,7 +92,7 @@ theorem amalgamation_lemma [PreTopos 𝒞] {A B C : 𝒞}
   coincide with coequalizers (cocovers). -/
 
 theorem cover_eq_epic_preTopos [PreTopos 𝒞] {A B : 𝒞} (f : A ⟶ B) :
-    Cover f ↔ IsEpic (λ _ => ⟨A, f⟩) := by
+    Cover f ↔ Epic (λ _ => ⟨A, f⟩) := by
   sorry
 
 theorem monic_eq_cocover_preTopos [PreTopos 𝒞] {A B : 𝒞} (f : A ⟶ B) :
