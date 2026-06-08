@@ -95,4 +95,10 @@ class EffectiveRegular (𝒞 : Type u) [Cat.{v} 𝒞] extends RegularCategory �
 /-- In an effective regular additive category, every mono is normal. -/
 theorem effective_regular_additive_is_abelian : True := by trivial
 
+
+/-- EXACT CATEGORY (§1.597): category with zero, kernels, cokernels where every
+    morphism factors as cokernel ∘ kernel with the connecting map an iso.
+class ExactCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends HasZeroObject 𝒞, HasEqualizers 𝒞, HasCoequalizers 𝒞 where
+  exactFactorization : ∀ {A B : 𝒞} (x : A ⟶ B), ∃ (I : 𝒞) (p : A ⟶ I) (i : I ⟶ B), IsIso (cokernelMap (kernelMap x))
+
 end Freyd

@@ -116,4 +116,9 @@ theorem prelogos_representation_theorem (A : Type u) [Cat.{v} A] [PositivePreLog
   -- Requires axiom of choice for the ultra-filter theorem.
   sorry
 
+
+/-- FILTER in a subobject lattice: up-closed pre-filter (§1.634).
+def IsFilter (ℱ : Set (Subobject 𝒞 one)) : Prop :=
+  IsPreFilter ℱ ∧ ∀ (U V : Subobject 𝒞 one), U ∈ ℱ → Subobject.le U V → V ∈ ℱ
+
 end Freyd

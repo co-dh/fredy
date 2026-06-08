@@ -104,4 +104,9 @@ theorem monic_eq_cocover_preTopos [PreTopos 𝒞] {A B : 𝒞} (f : A ⟶ B) :
 theorem preTopos_opposite_regular [PreTopos 𝒞] [HasCoequalizers 𝒞] : True := by
   sorry
 
+
+/-- DECIDABLE OBJECT (§1.658): the diagonal A→A×A has a complement in the subobject lattice.
+class DecidableObject (A : 𝒞) [PreLogos 𝒞] where
+  diag_complemented : IsComplemented (Subobject.mk A fst (Subobject.mk A snd (Subobject.entire (prod A A))))
+
 end Freyd

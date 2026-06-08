@@ -213,4 +213,9 @@ def IsEquivalenceRelation {A : 𝒞} (E : BinRel 𝒞 A A) : Prop :=
   Nonempty (RelHom E (reciprocal E)) ∧
   True  -- transitivity requires composition
 
+
+/-- CONSTANT MORPHISM (§1.56(10)): x: A→B is constant if ∀y,y' : C→A, y≫x = y'≫x.
+def IsConstant {A B : 𝒞} (x : A ⟶ B) : Prop :=
+  ∀ {C : 𝒞} (y y' : C ⟶ A), y ≫ x = y' ≫ x
+
 end Freyd

@@ -47,6 +47,14 @@ variable [HasTerminal 𝒞]
 /-- A is WELL-SUPPORTED if A → 1 is a cover (§1.522). -/
 def WellSupported (A : 𝒞) : Prop := Cover (term A)
 
+/-- The SUPPORT of A is the image of A → 1 (§1.522, requires HasImages). -/
+def Support [HasImages 𝒞] (A : 𝒞) : Subobject 𝒞 one := image (term A)
+
+/-- With images, A is well-supported iff its support is entire. -/
+theorem wellSupported_iff_support_entire [HasImages 𝒞] (A : 𝒞) :
+    WellSupported A ↔ Subobject.IsEntire (Support A) :=
+  cover_iff_image_entire (term A)
+
 /-- A is WELL-POINTED (§1.523): the collection 1 → A jointly covers A.
     Every proper monic into A misses some point 1 → A. -/
 def WellPointed (A : 𝒞) : Prop :=

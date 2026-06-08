@@ -28,6 +28,14 @@ def term (X : 𝒞) : X ⟶ one := ht.trm X
 
 theorem term_uniq {X : 𝒞} (f g : X ⟶ one) : f = g := ht.uniq f g
 
+/-- A SUBTERMINATOR is an object T such that T→1 is monic (§1.412).
+    Equivalently: there is at most one map from any X to T. -/
+def Subterminator (T : 𝒞) : Prop := Mono (term T)
+
+/-- A VALUE is an isomorphism class of 0-column tables (§1.412).
+    Represented by a subterminator. -/
+def Value : 𝒞 → Prop := Subterminator
+
 class HasBinaryProducts (𝒞 : Type u) [Cat.{v} 𝒞] where
   prod  : 𝒞 → 𝒞 → 𝒞
   fst   : {A B : 𝒞} → prod A B ⟶ A

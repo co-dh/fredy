@@ -110,4 +110,9 @@ def homAdd [HalfAdditiveCategory 𝒞] (A B : 𝒞) : A ⟶ B → A ⟶ B → A 
 theorem middle_two_interchange [HalfAdditiveCategory 𝒞] {A B : 𝒞} (u v x y : A ⟶ B) : (u + v) + (x + y) = (u + x) + (v + y) := by
   trivial
 
+
+/-- ADDITIVE CATEGORY (§1.591): half-additive with additive inverses.
+class AdditiveCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends HalfAdditiveCategory 𝒞, HasZeroObject 𝒞 where
+  addInv : ∀ {A B : 𝒞} (f : A ⟶ B), True  -- ∃ g, f + g = 0 (needs + notation)
+
 end Freyd
