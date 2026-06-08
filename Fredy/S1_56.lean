@@ -218,4 +218,10 @@ def IsEquivalenceRelation {A : 𝒞} (E : BinRel 𝒞 A A) : Prop :=
 def IsConstant {A B : 𝒞} (x : A ⟶ B) : Prop :=
   ∀ {C : 𝒞} (y y' : C ⟶ A), y ≫ x = y' ≫ x
 
+
+/-- QUOTIENT-OBJECT of A (§1.568): the poset of isomorphism classes of covers with source A.
+    The preorder: f ≤ g if f factors through g (as covers).
+def QuotientObject (A : 𝒞) : Type (max u v) :=
+  Σ (B : 𝒞) (f : A ⟶ B), Cover f
+
 end Freyd
