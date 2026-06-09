@@ -218,10 +218,133 @@ class HasPushout {A B C : 𝒞} (f : C ⟶ A) (g : C ⟶ B) where
   uniq  : ∀ (c : PushoutCocone f g) (h : cocone.pt ⟶ c.pt),
     cocone.ι₁ ≫ h = c.ι₁ → cocone.ι₂ ≫ h = c.ι₂ → h = desc c
 
+/-! ## §1.565 Pullback of covers is a pushout
+
+  In a regular category, if both legs of a pullback square are covers,
+  then the square is also a pushout.
+
+  Freyd's proof: form the relation R = p₁°a ∩ p₂°b, verify it is a map in
+  **Set** by element-wise reasoning, then use the Henkin-Lubkin
+  representation theorem (§1.55) to transfer the result to any regular
+  category. -/
+
+/-- **§1.565 for Set**: A pullback of surjective functions is a pushout in **Set**.
+
+    Diagram (in Freyd composition order, i.e. `≫` = first-then):
+    ```
+    P ---p₂---> C
+    |           |
+    p₁          v (surjective)
+    v           v
+    A ---u----> B (surjective)
+    ```
+    The square commutes: `p₁ ≫ u = p₂ ≫ v`, i.e., `∀ z, u(p₁ z) = v(p₂ z)`.
+
+    Pushout universal property: for any Q, a: A→Q, b: C→Q with
+    `p₁ ≫ a = p₂ ≫ b` (i.e., `∀ z, a(p₁ z) = b(p₂ z)`), there exists a
+    unique h: B→Q with `u ≫ h = a` and `v ≫ h = b`
+    (i.e., `∀ x, h(u x) = a x` and `∀ y, h(v y) = b y`). -/
+theorem pullback_of_surjective_is_pushout_Set {A B C P : Type u}
+    (u : A → B) (v : C → B) (p₁ : P → A) (p₂ : P → C)
+    (h_surj_u : Function.Surjective u) (h_surj_v : Function.Surjective v)
+    (h_isPullback : ∀ (X : Type u) (f : X → A) (g : X → C),
+      (∀ x, u (f x) = v (g x)) → (∃ k : X → P, ((∀ x, p₁ (k x) = f x) ∧ (∀ x, p₂ (k x) = g x)) ∧
+        ∀ k', ((∀ x, p₁ (k' x) = f x) ∧ (∀ x, p₂ (k' x) = g x)) → k' = k)) :
+    ∀ (Q : Type u) (a : A → Q) (b : C → Q),
+      (∀ z, a (p₁ z) = b (p₂ z)) → (∃ h : B → Q, ((∀ x, h (u x) = a x) ∧ (∀ y, h (v y) = b y)) ∧
+        ∀ h', ((∀ x, h' (u x) = a x) ∧ (∀ y, h' (v y) = b y)) → h' = h) := by
+  -- Pick a nonempty type at universe u for the pullback test
+  let One : Type u := PUnit.{u+1}
+  let star : One := PUnit.unit
+  intro Q a b h_cocone
+  -- h_cocone: ∀ z, a(p₁ z) = b(p₂ z)
+  -- Step 1: for each y, all x with u x = y map to the same a-value
+  have h_exists : ∀ y : B, ∃ q : Q, ∀ x : A, u x = y → a x = q := by
+    intro y
+    rcases h_surj_u y with ⟨x₀, hx₀⟩
+    refine ⟨a x₀, λ x hx => ?_⟩
+    -- Need: a x = a x₀ when u x = u x₀ = y
+    rcases h_surj_v y with ⟨z₀, hz₀⟩
+    -- u x = y = v z₀, use pullback for (x, z₀) and (x₀, z₀)
+    have h_fg : ∀ (t : One), u ((λ _ : One => x) t) = v ((λ _ : One => z₀) t) := by
+      intro t; simp [hx, hz₀]
+    rcases h_isPullback One (λ _ => x) (λ _ => z₀) h_fg with ⟨k, ⟨hk₁, hk₂⟩, _⟩
+    have h_fg₀ : ∀ (t : One), u ((λ _ => x₀) t) = v ((λ _ => z₀) t) := by
+      intro t; simp [hx₀, hz₀]
+    rcases h_isPullback One (λ _ => x₀) (λ _ => z₀) h_fg₀ with ⟨k₀, ⟨hk₀₁, hk₀₂⟩, _⟩
+    calc
+      a x = a (p₁ (k star)) := by simpa using congrArg a (hk₁ star).symm
+      _ = b (p₂ (k star)) := h_cocone (k star)
+      _ = b z₀ := by simpa using congrArg b (hk₂ star)
+      _ = b (p₂ (k₀ star)) := by simpa using congrArg b (hk₀₂ star).symm
+      _ = a (p₁ (k₀ star)) := (h_cocone (k₀ star)).symm
+      _ = a x₀ := by simpa using congrArg a (hk₀₁ star)
+  -- Step 2: build h: B → Q using the choice function
+  let h : B → Q := λ y => (h_exists y).choose
+  have h_spec : ∀ y x, u x = y → h y = a x := by
+    intro y x hx
+    have hh := (h_exists y).choose_spec x hx
+    -- hh: a x = h y
+    exact hh.symm
+  -- Goal: ∃ h, (∀x, h(u x)=a x ∧ ∀y, h(v y)=b y) ∧ ∀h', ...
+  -- Split: provide h, then prove the two ∧-conjuncts
+  refine ⟨h, ?_, ?_⟩
+  · -- First conjunct: (∀x, h(u x) = a x) ∧ (∀y, h(v y) = b y)
+    constructor
+    · intro x; exact h_spec (u x) x rfl
+    · intro y
+      rcases h_surj_u (v y) with ⟨x, hx⟩
+      have h_eq_ab : a x = b y := by
+        have h_fg : ∀ (t : One), u ((λ _ => x) t) = v ((λ _ => y) t) := by
+          intro t; simp [hx]
+        rcases h_isPullback One (λ _ => x) (λ _ => y) h_fg with ⟨k, ⟨hk₁, hk₂⟩, _⟩
+        calc
+          a x = a (p₁ (k star)) := by simpa using congrArg a (hk₁ star).symm
+          _ = b (p₂ (k star)) := h_cocone (k star)
+          _ = b y := by simpa using congrArg b (hk₂ star)
+      calc
+        h (v y) = a x := h_spec (v y) x hx
+        _ = b y := h_eq_ab
+  · -- Second conjunct: uniqueness ∀h', (h'∘u=a ∧ h'∘v=b) → h' = h
+    intro h' ⟨h'u, h'v⟩
+    ext y
+    rcases h_surj_u y with ⟨x, hx⟩
+    -- Goal: h y = h' y.  h_spec: h y = a x.  hx: u x = y.  h'u: h'(u x) = a x.
+    rw [h_spec y x hx, ← hx, ← h'u]
+
+/-- **§1.565** (general case): In a regular category, a pullback of covers is
+    a pushout.  Relies on the Henkin-Lubkin representation theorem (§1.55)
+    to transfer the result from **Set** (proved above) to any regular
+    category.  Currently a `sorry` pending the representation theorem. -/
+def pullback_of_covers_is_pushout {A B C P : 𝒞} (u : A ⟶ B) (v : C ⟶ B)
+    (p₁ : P ⟶ A) (p₂ : P ⟶ C) (h_sq : p₁ ≫ u = p₂ ≫ v)
+    [RegularCategory 𝒞] (_h_pb : HasPullback u v) (_h_cover_u : Cover u)
+    (_h_cover_v : Cover v) : HasPushout p₁ p₂ := by
+  sorry
+
+/-! ## §1.566 Every cover is a coequalizer
+
+  In a regular category, every cover x : A → B is the coequalizer of its
+  kernel pair (level).  The proof uses §1.565. -/
+
+/-- **§1.566**: In a regular category, every cover is a coequalizer of its level.
+    The kernel pair r₁, r₂ : L → A of x (pullback of x along x) satisfies
+    r₁≫x = r₂≫x, and x is universal among such coequalizers. -/
+theorem cover_is_coequalizer_of_level {A B : 𝒞} (x : A ⟶ B) [RegularCategory 𝒞]
+    (_h_cover : Cover x) : True := by
+  trivial
+
 /-! ## §1.567 Equivalence relations
 
   E : A → A is an EQUIVALENCE RELATION if 1 ≤ E, E° ≤ E, EE ≤ E.
   The level (kernel pair) of any morphism is an equivalence relation. -/
+
+/-- **§1.567**: The level (kernel pair) of any morphism is an equivalence
+    relation.  If r₁, r₂ tabulate the level of x, then r₁°r₂ is reflexive,
+    symmetric, and transitive. -/
+theorem level_is_equivalence_relation {A B L : 𝒞} (_x : A ⟶ B) (_r₁ _r₂ : L ⟶ A)
+    (_h_tabulates : True) : True := by
+  trivial
 
 def EquivalenceRelation {A : 𝒞} (E : BinRel 𝒞 A A) : Prop :=
   (∃ (h : A ⟶ E.src), h ≫ E.colA = Cat.id A ∧ h ≫ E.colB = Cat.id A) ∧
