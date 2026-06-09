@@ -53,7 +53,19 @@ theorem covers_coincide_with_epis {A B : 𝒞} (f : A ⟶ B) : True := by
   to be an isomorphism of order at most 2. -/
 
 /-- **§1.919**: Every monic endomorphism of Ω is an involution;
-    that is, g : Ω → Ω monic implies g ≫ g = id. -/
+    that is, g : Ω → Ω monic implies g ≫ g = id.
+
+    Proof sketch (Freyd): Let g be monic.  g acts on subobjects via
+    post-composition: it sends χ : A → Ω to g∘χ : A → Ω.  Since g is
+    monic, if A is the subobject classified by χ, then A is also the
+    subobject classified by g∘χ (because g∘χ = g∘χ' ⇒ χ = χ').
+    But the subobject classified by g∘g∘χ is the same as that
+    classified by χ (by considering the pullback of t along g∘g).
+    Hence g∘g∘χ = χ for all χ, which forces g∘g = id.
+
+    **Prerequisite**: the universal property of the subobject classifier
+    (pullback of t along classify m restores m), not yet in the class
+    definition.  Currently a `sorry`. -/
 theorem omega_monic_endo_is_involution (g : HasSubobjectClassifier.omega (𝒞 := 𝒞) ⟶
     HasSubobjectClassifier.omega (𝒞 := 𝒞)) (hm : Mono g) : g ≫ g = Cat.id _ := by
   sorry

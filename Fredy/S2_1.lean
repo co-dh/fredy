@@ -204,21 +204,112 @@ theorem reflexive_transitive_idempotent {a : 𝒜} {R : a ⟶ a}
     R = (Cat.id a) ≫ R := by rw [Cat.id_comp]
     _ ⊑ R ≫ R := comp_mono_right hR R
 
+/-! ### Identity is self-reciprocal -/
+
+/-- 1° = 1: derived from `recip_comp` and `recip_recip` (§2.11). -/
+theorem recip_id {a : 𝒜} : (Cat.id a)° = Cat.id a := by
+  calc
+    (Cat.id a)° = ((Cat.id a)°)°° := by rw [Allegory.recip_recip]
+    _ = ((Cat.id a ≫ (Cat.id a)°)°)° := by rw [Cat.id_comp]
+    _ = (((Cat.id a)°)° ≫ (Cat.id a)°)° := by rw [Allegory.recip_comp]
+    _ = (Cat.id a ≫ (Cat.id a)°)° := by rw [Allegory.recip_recip]
+    _ = ((Cat.id a)°)° := by rw [Cat.id_comp]
+    _ = Cat.id a := by rw [Allegory.recip_recip]
+
 /-! ### Coreflexive properties -/
 
-/-- Coreflexive implies symmetric idempotent (§2.12). -/
+/-- Coreflexive implies symmetric idempotent (§2.12).
+    Proof chain: R ⊑ RR°R (modular law) ⊑ R° (since R ⊑ 1), so R ⊑ R°.
+    Taking ° gives R° ⊑ R, hence symmetric.  Idempotent: R = R° gives
+    R ⊑ R²R ⊑ R² (from modular law + R⊑1) and R² ⊑ 1R = R. -/
 theorem coreflexive_symmetric_idempotent {a : 𝒜} {R : a ⟶ a} (h : Coreflexive R) :
     Symmetric R ∧ R ≫ R = R := by
-  sorry
+  -- h: R ⊑ 1
+  have h_le_one : R ⊑ Cat.id a := h
+  -- Step 1: R ⊑ RR°R via modular law
+  have hR_le_RRrecipR : R ⊑ (R ≫ R°) ≫ R := by
+    have h_mod := modular_le (Cat.id a) R R
+    -- h_mod: (1≫R)∩R ⊑ (1 ∩ RR°)≫R, simplify using id_comp, inter_idem
+    have h1 : R ⊑ (Cat.id a ∩ R ≫ R°) ≫ R := by
+      simpa [Cat.id_comp, Allegory.inter_idem] using h_mod
+    -- (1∩RR°) ⊑ RR°, so (1∩RR°)R ⊑ RR°R by comp_mono_right
+    have h2 : (Cat.id a ∩ R ≫ R°) ≫ R ⊑ (R ≫ R°) ≫ R :=
+      comp_mono_right (inter_lb_right (Cat.id a) (R ≫ R°)) R
+    exact le_trans h1 h2
+  -- Step 2: RR°R ⊑ R° (using R ⊑ 1)
+  have hRRrecipR_le_Rrecip : (R ≫ R°) ≫ R ⊑ R° := by
+    -- R ⊑ 1 ⇒ RR° ⊑ 1R° (comp_mono_right R°)
+    have h_RRrecip_le_1Rrecip : R ≫ R° ⊑ (Cat.id a) ≫ R° := comp_mono_right h_le_one R°
+    -- RR°R ⊑ (1R°)R
+    have h1 : (R ≫ R°) ≫ R ⊑ ((Cat.id a) ≫ R°) ≫ R :=
+      comp_mono_right h_RRrecip_le_1Rrecip R
+    -- (1R°)R = 1(R°R) ⊑ 1(R°1) = 1R° = R° (since R ⊑ 1)
+    have h2 : ((Cat.id a) ≫ R°) ≫ R ⊑ R° := by
+      calc
+        ((Cat.id a) ≫ R°) ≫ R = (Cat.id a) ≫ (R° ≫ R) := by rw [Cat.assoc]
+        _ ⊑ (Cat.id a) ≫ (R° ≫ Cat.id a) :=
+          comp_mono_left (Cat.id a) (comp_mono_left R° h_le_one)
+        _ = (Cat.id a) ≫ R° := by rw [Cat.comp_id]
+        _ = R° := by rw [Cat.id_comp]
+    exact le_trans h1 h2
+  -- Step 3: R ⊑ R°, hence symmetric
+  have h_symm : Symmetric R := by
+    have hR_le_Rrecip : R ⊑ R° := le_trans hR_le_RRrecipR hRRrecipR_le_Rrecip
+    -- Apply recip_mono: R° ⊑ R°° = R
+    have hRrecip_le_R : R° ⊑ R := by
+      simpa [Allegory.recip_recip] using recip_mono hR_le_Rrecip
+    exact hRrecip_le_R
+  -- Step 4: Idempotent R² = R
+  have h_idem : R ≫ R = R := by
+    -- From symmetry: R° = R
+    have h_eq : R° = R := symmetric_eq h_symm
+    -- R ⊑ R²R (from step 1, substituting R°=R)
+    have hR_le_RR_R : R ⊑ (R ≫ R) ≫ R := by
+      simpa [h_eq] using hR_le_RRrecipR
+    -- R²R ⊑ R² (since R ⊑ 1)
+    have hRRR_le_RR : (R ≫ R) ≫ R ⊑ R ≫ R := by
+      calc
+        (R ≫ R) ≫ R = R ≫ (R ≫ R) := by rw [Cat.assoc]
+        _ ⊑ R ≫ (R ≫ Cat.id a) := comp_mono_left R (comp_mono_left R h_le_one)
+        _ = R ≫ R := by rw [Cat.comp_id]
+    -- So R ⊑ R²
+    have hR_le_RR : R ⊑ R ≫ R := le_trans hR_le_RR_R hRRR_le_RR
+    -- R² ⊑ R (since R ⊑ 1)
+    have hRR_le_R : R ≫ R ⊑ R := by
+      calc
+        R ≫ R ⊑ (Cat.id a) ≫ R := comp_mono_right h_le_one R
+        _ = R := by rw [Cat.id_comp]
+    exact le_antisymm hRR_le_R hR_le_RR
+  exact ⟨h_symm, h_idem⟩
 
 /-! ## §2.121  Coreflexive composition
 
-  For coreflexive morphisms, AB = A ∩ B (§2.121).
-  Proof: AB ⊑ A1 = A, AB ⊑ 1B = B ⇒ AB ⊑ A∩B; conversely
-  A∩B ⊑ (A∩B)² ⊑ AB (using coreflexive ⇒ idempotent). -/
+  For coreflexive morphisms, AB = A ∩ B (§2.121). -/
 theorem coreflexive_comp_eq_inter {a : 𝒜} {A B : a ⟶ a} (hA : Coreflexive A) (hB : Coreflexive B) :
     A ≫ B = A ∩ B := by
-  sorry
+  -- A∩B is also coreflexive (it's below A which is below 1)
+  have h_inter_coref : Coreflexive (A ∩ B) := by
+    dsimp [Coreflexive]
+    -- A∩B ⊑ A ⊑ 1, so A∩B ⊑ 1 by transitivity (but we need the equation: (A∩B)∩1 = A∩B)
+    -- Actually A∩B ⊑ 1 because inter_lb_left gives A∩B ⊑ A and hA: A ⊑ 1
+    apply le_trans (inter_lb_left A B) hA
+  -- A∩B is idempotent by the previous theorem
+  have h_inter_idem : (A ∩ B) ≫ (A ∩ B) = A ∩ B :=
+    (coreflexive_symmetric_idempotent h_inter_coref).2
+  apply le_antisymm
+  · -- AB ⊑ A∩B: AB ⊑ A (since B⊑1) and AB ⊑ B (since A⊑1)
+    -- AB ⊑ A: B ⊑ 1 ⇒ A≫B ⊑ A≫1 = A
+    have h_AB_le_A : A ≫ B ⊑ A :=
+      le_trans (comp_mono_left A hB) (by rw [Cat.comp_id]; exact le_refl A)
+    have h_AB_le_B : A ≫ B ⊑ B :=
+      le_trans (comp_mono_right hA B) (by rw [Cat.id_comp]; exact le_refl B)
+    exact le_inter h_AB_le_A h_AB_le_B
+  · -- A∩B ⊑ AB: A∩B = (A∩B)(A∩B) ⊑ AB
+    have h1 : A ∩ B ⊑ A ≫ (A ∩ B) := by
+      simpa [h_inter_idem] using comp_mono_right (inter_lb_left A B) (A ∩ B)
+    have h2 : A ≫ (A ∩ B) ⊑ A ≫ B := comp_mono_left A (inter_lb_right A B)
+    exact le_trans h1 h2
+    -- Note: inter_lb_left A B: A∩B ⊑ A.  inter_lb_right A B: A∩B ⊑ B.
 
 /-! ## §2.122  Domain -/
 
