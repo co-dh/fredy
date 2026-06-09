@@ -170,6 +170,39 @@ theorem modular_identity {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B
 
 /-! ## §1.563 Horn-sentence reflection
 
+  **First paragraph of §1.563** (stated without proof in the book): if A and B are
+  Cartesian categories with images and F : A → B preserves the Cartesian structure
+  and images, then the induced functions Rel(A,B) → Rel(FA,FB) preserve composition,
+  reciprocation and intersection; if F is faithful, it also reflects them.
+
+  *Why the book omits the proof.*  Both halves are routine — but only because the
+  difficulty was paid for earlier:
+
+  - *Preservation* is mechanical: each operation is constructed from exactly the
+    structure F preserves.  A relation is a jointly-monic table into A×B (products,
+    monics — preserved since pullbacks are); reciprocation composes with the twist
+    iso A×B ≅ B×A (products); intersection is a pullback of subobjects; composition
+    is pullback-of-B-legs followed by image.  F preserves every ingredient of each
+    recipe, hence the result — a canonical-iso chase with no ideas in it.
+
+  - *Reflection* hinges on the book's definition of FAITHFUL (§1.33): an embedding
+    that reflects isomorphisms — strictly stronger than hom-injectivity (`Faithful`
+    in `S1_33` follows the book).  Any equation between relation-expressions says a
+    canonical comparison monic is iso; F preserves the constructions, so if the
+    equation holds downstairs the comparison is iso there, and "reflects isos" pulls
+    it back.  §1.453 (faithful iff properness of subobjects is preserved) is the
+    load-bearing bridge.  Freyd announces the heuristic at §1.33: "almost any
+    property of interest is reflected by faithful functors that preserve it."
+
+  - With the *modern* (merely hom-injective) notion of faithful, reflection is
+    FALSE: for A = the poset 2 = {0 < 1}, B = the terminal category, the unique
+    functor F is hom-injective and trivially preserves products, pullbacks and
+    images, yet F(0) = F(1) as relations on 1 while 0 ∩ 1 = 0 ≠ 1 in A.  This is
+    why these theorems must use `Faithful` from `S1_33`, not hom-injectivity.
+
+  The first paragraph is the concrete, operation-by-operation instance of the
+  Horn-sentence metatheorem below, and the natural stepping stone to proving it.
+
   A HORN SENTENCE in the predicates of (pre-)regular categories is treated
   abstractly here (its syntax is developed in §1.55); `HoldsIn H 𝒟` says the
   sentence `H` is satisfied by the category `𝒟`. -/
@@ -258,27 +291,24 @@ theorem pullback_of_surjective_is_pushout_Set {A B C P : Type u}
   let star : One := PUnit.unit
   intro Q a b h_cocone
   -- h_cocone: ∀ z, a(p₁ z) = b(p₂ z)
+  -- Key lemma: u x = v z → a x = b z (via pullback of (x, z) through P)
+  have h_ab : ∀ (x : A) (z : C), u x = v z → a x = b z := by
+    intro x z hxz
+    rcases h_isPullback One (λ _ => x) (λ _ => z) (λ _ => hxz) with ⟨k, ⟨hk₁, hk₂⟩, _⟩
+    calc
+      a x = a (p₁ (k star)) := by simpa using congrArg a (hk₁ star).symm
+      _ = b (p₂ (k star)) := h_cocone (k star)
+      _ = b z := by simpa using congrArg b (hk₂ star)
   -- Step 1: for each y, all x with u x = y map to the same a-value
   have h_exists : ∀ y : B, ∃ q : Q, ∀ x : A, u x = y → a x = q := by
     intro y
     rcases h_surj_u y with ⟨x₀, hx₀⟩
     refine ⟨a x₀, λ x hx => ?_⟩
-    -- Need: a x = a x₀ when u x = u x₀ = y
     rcases h_surj_v y with ⟨z₀, hz₀⟩
-    -- u x = y = v z₀, use pullback for (x, z₀) and (x₀, z₀)
-    have h_fg : ∀ (t : One), u ((λ _ : One => x) t) = v ((λ _ : One => z₀) t) := by
-      intro t; simp [hx, hz₀]
-    rcases h_isPullback One (λ _ => x) (λ _ => z₀) h_fg with ⟨k, ⟨hk₁, hk₂⟩, _⟩
-    have h_fg₀ : ∀ (t : One), u ((λ _ => x₀) t) = v ((λ _ => z₀) t) := by
-      intro t; simp [hx₀, hz₀]
-    rcases h_isPullback One (λ _ => x₀) (λ _ => z₀) h_fg₀ with ⟨k₀, ⟨hk₀₁, hk₀₂⟩, _⟩
-    calc
-      a x = a (p₁ (k star)) := by simpa using congrArg a (hk₁ star).symm
-      _ = b (p₂ (k star)) := h_cocone (k star)
-      _ = b z₀ := by simpa using congrArg b (hk₂ star)
-      _ = b (p₂ (k₀ star)) := by simpa using congrArg b (hk₀₂ star).symm
-      _ = a (p₁ (k₀ star)) := (h_cocone (k₀ star)).symm
-      _ = a x₀ := by simpa using congrArg a (hk₀₁ star)
+    -- u x = u x₀ = v z₀ = y
+    have hx_z₀ := h_ab x z₀ (hx.trans hz₀.symm)
+    have hx₀_z₀ := h_ab x₀ z₀ (hx₀.trans hz₀.symm)
+    exact hx_z₀.trans hx₀_z₀.symm
   -- Step 2: build h: B → Q using the choice function
   let h : B → Q := λ y => (h_exists y).choose
   have h_spec : ∀ y x, u x = y → h y = a x := by
@@ -294,14 +324,7 @@ theorem pullback_of_surjective_is_pushout_Set {A B C P : Type u}
     · intro x; exact h_spec (u x) x rfl
     · intro y
       rcases h_surj_u (v y) with ⟨x, hx⟩
-      have h_eq_ab : a x = b y := by
-        have h_fg : ∀ (t : One), u ((λ _ => x) t) = v ((λ _ => y) t) := by
-          intro t; simp [hx]
-        rcases h_isPullback One (λ _ => x) (λ _ => y) h_fg with ⟨k, ⟨hk₁, hk₂⟩, _⟩
-        calc
-          a x = a (p₁ (k star)) := by simpa using congrArg a (hk₁ star).symm
-          _ = b (p₂ (k star)) := h_cocone (k star)
-          _ = b y := by simpa using congrArg b (hk₂ star)
+      have h_eq_ab : a x = b y := h_ab x y hx
       calc
         h (v y) = a x := h_spec (v y) x hx
         _ = b y := h_eq_ab
