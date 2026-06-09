@@ -18,7 +18,6 @@ import Fredy.S1_52
 import Fredy.S1_60
 import Fredy.S1_70
 
-set_option linter.unusedSectionVars false
 
 open Freyd
 
