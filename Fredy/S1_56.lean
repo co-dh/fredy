@@ -123,6 +123,10 @@ def compose {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) : BinRel 
       -- Since I.arr is monic, this implies f = g
       exact I.monic f g h_prod }
 
+/-- Infix notation for relation composition (diagrammatic order, §1.56).
+    `R ⊚ S` = "first R, then S".  Right-associative. -/
+infixr:80 " ⊚ " => compose
+
 /-! ## §1.564 Entire, Simple, Map
 
   A relation R: A→B is ENTIRE if 1_A ≤ RR°.
@@ -130,14 +134,14 @@ def compose {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) : BinRel 
   A MAP is an entire + simple relation (= graph of a morphism). -/
 
 /-- **§1.564**: R : A → B is ENTIRE if 1_A ≤ RR° — the identity relation
-    on A is contained in RR° (compose R R° : A → A). -/
+    on A is contained in R ⊚ R° : A → A. -/
 def Entire {A B : 𝒞} (R : BinRel 𝒞 A B) : Prop :=
-  RelLe (graph (Cat.id A)) (compose R (reciprocal R))
+  RelLe (graph (Cat.id A)) (R ⊚ R°)
 
-/-- **§1.564**: R is SIMPLE if R°R ≤ 1_B — R° composed with R
-    (compose R° R : B → B) is contained in the identity on B. -/
+/-- **§1.564**: R is SIMPLE if R°R ≤ 1_B — R° ⊚ R : B → B
+    is contained in the identity on B. -/
 def Simple {A B : 𝒞} (R : BinRel 𝒞 A B) : Prop :=
-  RelLe (compose (reciprocal R) R) (graph (Cat.id B))
+  RelLe (R° ⊚ R) (graph (Cat.id B))
 
 /-- R is a MAP if it is entire and simple.  Maps are exactly graphs (§1.564). -/
 def Map {A B : 𝒞} (R : BinRel 𝒞 A B) : Prop :=
@@ -165,7 +169,7 @@ theorem tabulated_is_map_iff_left_iso {A B T : 𝒞} (a : T ⟶ A) (b : T ⟶ B)
   established, but not before. -/
 
 theorem modular_identity {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 A C) :
-    RelLe (compose (compose R S) (reciprocal T)) (compose R (compose S (reciprocal T))) := by
+    RelLe ((R ⊚ S) ⊚ T°) (R ⊚ (S ⊚ T°)) := by
   sorry
 
 end
