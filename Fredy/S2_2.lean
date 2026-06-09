@@ -120,19 +120,10 @@ theorem le_union_right {a b : 𝒜} (R S : a ⟶ b) : S ⊑ R ∪ S := by
 theorem recip_union {a b : 𝒜} (R S : a ⟶ b) : (R ∪ S)° = S° ∪ R° := by
   apply le_antisymm
   · -- (R ∪ S)° ⊑ S° ∪ R°
-    have hR' : R ⊑ (S° ∪ R°)° := by
-      -- R° ⊑ S° ∪ R°, take °: R ⊑ (S° ∪ R°)°
-      have hR : R° ⊑ S° ∪ R° := le_union_right S° R°
-      have := recip_mono hR
-      -- this: (R°)° ⊑ (S° ∪ R°)°, and (R°)° = R
-      simpa [Allegory.recip_recip] using recip_mono hR
-    have hS' : S ⊑ (S° ∪ R°)° := by
-      have hS : S° ⊑ S° ∪ R° := le_union_left S° R°
-      simpa [Allegory.recip_recip] using recip_mono hS
+    have hR' : R ⊑ (S° ∪ R°)° := recip_le_iff.mp (le_union_right S° R°)
+    have hS' : S ⊑ (S° ∪ R°)° := recip_le_iff.mp (le_union_left S° R°)
     have h_union : R ∪ S ⊑ (S° ∪ R°)° := union_lub hR' hS'
-    have h_temp := recip_mono h_union
-    -- h_temp: (R ∪ S)° ⊑ (S° ∪ R°)°° = S° ∪ R°
-    simpa [Allegory.recip_recip] using recip_mono h_union
+    exact recip_le_iff.mpr h_union
   · -- S° ∪ R° ⊑ (R ∪ S)°
     have hR : R ⊑ R ∪ S := le_union_left R S
     have hS : S ⊑ R ∪ S := le_union_right R S

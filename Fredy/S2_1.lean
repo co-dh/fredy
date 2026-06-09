@@ -131,6 +131,11 @@ theorem recip_mono {a b : 𝒜} {R S : a ⟶ b} (h : R ⊑ S) : R° ⊑ S° := b
     R° ∩ S° = (R ∩ S)° := by rw [← Allegory.recip_inter]
     _ = R° := by rw [h]
 
+/-- Reciprocation is its own Galois adjoint: R° ⊑ S ↔ R ⊑ S° (§2.11). -/
+theorem recip_le_iff {a b : 𝒜} {R : a ⟶ b} {S : b ⟶ a} : R° ⊑ S ↔ R ⊑ S° :=
+  ⟨fun h => by simpa [Allegory.recip_recip] using recip_mono h,
+   fun h => by simpa [Allegory.recip_recip] using recip_mono h⟩
+
 /-- Composition preserves order in the second argument (Horn sentence, §2.11). -/
 theorem comp_mono_left {a b c : 𝒜} {S T : b ⟶ c} (R : a ⟶ b) (hST : S ⊑ T) : R ≫ S ⊑ R ≫ T := by
   dsimp [le] at hST ⊢
@@ -256,8 +261,7 @@ theorem coreflexive_symmetric_idempotent {a : 𝒜} {R : a ⟶ a} (h : Coreflexi
   have h_symm : Symmetric R := by
     have hR_le_Rrecip : R ⊑ R° := le_trans hR_le_RRrecipR hRRrecipR_le_Rrecip
     -- Apply recip_mono: R° ⊑ R°° = R
-    have hRrecip_le_R : R° ⊑ R := by
-      simpa [Allegory.recip_recip] using recip_mono hR_le_Rrecip
+    have hRrecip_le_R : R° ⊑ R := recip_le_iff.mpr hR_le_Rrecip
     exact hRrecip_le_R
   -- Step 4: Idempotent R² = R
   have h_idem : R ≫ R = R := by
