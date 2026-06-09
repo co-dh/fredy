@@ -31,13 +31,12 @@ namespace Freyd
   Concretely: a pair of contravariant functors F: 𝒞°→𝒟, G: 𝒟°→𝒞
   with GF ≅ Id_𝒞, FG ≅ Id_𝒟. -/
 
-/-- A DUALITY (contravariant strong equivalence) between 𝒞 and 𝒟 (§1.38). -/
-structure Duality (F : 𝒞 → 𝒟) (G : 𝒟 → 𝒞)
-    [hF : Functor F] [hG : Functor G] where
-  -- F and G are contravariant in the book, but we model as covariant
-  -- A proper duality would use 𝒞° and 𝒟°.
-  unit : Nonempty (NatIso (G ∘ F) (λ X : 𝒞 => X))
-  counit : Nonempty (NatIso (F ∘ G) (λ X : 𝒟 => X))
+/-- A DUALITY (contravariant strong equivalence) between 𝒞 and 𝒟 (§1.38).
+    F and G are contravariant in the book, but we model as covariant —
+    a proper duality would use 𝒞° and 𝒟°.  With that caveat it is exactly
+    a strong equivalence (§1.31). -/
+abbrev Duality (F : 𝒞 → 𝒟) (G : 𝒟 → 𝒞) [Functor F] [Functor G] :=
+  StrongEquivalence F G
 
 /-! ## §1.389 Stone duality
 
@@ -47,12 +46,10 @@ structure Duality (F : 𝒞 → 𝒟) (G : 𝒟 → 𝒞)
 
 /-- STONE SPACE (§1.389): compact, Hausdorff, totally disconnected.
     (Set-theoretic definition; we give a placeholder type.) -/
-opaque StoneSpace : Type (u + 1)
+opaque StoneSpace : Type u
 
-/-- STONE DUALITY: BoolAlg° ≅ Stone (§1.389, placeholder). -/
-def stoneDuality : Duality (λ _ : StoneSpace => StoneSpace) (λ _ => StoneSpace) where
-  unit := Nonempty.intro sorry
-  counit := Nonempty.intro sorry
+/- STONE DUALITY (§1.389): BoolAlg° ≅ Stone.  Placeholder — the `def` is
+   omitted until `Cat StoneSpace` and the equivalence are formalized. -/
 
 /-! ## §1.392 Finite presentation via Q-sequence
 
