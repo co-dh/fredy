@@ -94,20 +94,87 @@ theorem le_iff_union_eq_right {a b : 𝒜} (R S : a ⟶ b) : (R ⊑ S) ↔ S = R
   rw [eq_comm] at h
   exact h
 
+/-! ### Helper: union is least upper bound -/
+
+/-- If A ⊑ C and B ⊑ C then A ∪ B ⊑ C. -/
+theorem union_lub {a b : 𝒜} {A B C : a ⟶ b} (hA : A ⊑ C) (hB : B ⊑ C) : A ∪ B ⊑ C := by
+  rw [le_iff_union_eq_left] at hA hB ⊢
+  -- hA: A ∪ C = C,  hB: B ∪ C = C.  Goal: (A ∪ B) ∪ C = C
+  calc
+    (A ∪ B) ∪ C = A ∪ (B ∪ C) := by rw [DistributiveAllegory.union_assoc]
+    _ = A ∪ C := by rw [hB]
+    _ = C := hA
+
+/-- Union is an upper bound: R ⊑ R ∪ S. -/
+theorem le_union_left {a b : 𝒜} (R S : a ⟶ b) : R ⊑ R ∪ S := by
+  dsimp [le]
+  rw [Allegory.inter_comm, DistributiveAllegory.inter_union_absorb]
+
+/-- Union is an upper bound: S ⊑ R ∪ S. -/
+theorem le_union_right {a b : 𝒜} (R S : a ⟶ b) : S ⊑ R ∪ S := by
+  rw [DistributiveAllegory.union_comm]; exact le_union_left S R
+
 /-! ### Derived properties -/
 
 /-- (R ∪ S)° = S° ∪ R° (§2.211). -/
 theorem recip_union {a b : 𝒜} (R S : a ⟶ b) : (R ∪ S)° = S° ∪ R° := by
-  sorry
+  apply le_antisymm
+  · -- (R ∪ S)° ⊑ S° ∪ R°
+    have hR' : R ⊑ (S° ∪ R°)° := by
+      -- R° ⊑ S° ∪ R°, take °: R ⊑ (S° ∪ R°)°
+      have hR : R° ⊑ S° ∪ R° := le_union_right S° R°
+      have := recip_mono hR
+      -- this: (R°)° ⊑ (S° ∪ R°)°, and (R°)° = R
+      simpa [Allegory.recip_recip] using recip_mono hR
+    have hS' : S ⊑ (S° ∪ R°)° := by
+      have hS : S° ⊑ S° ∪ R° := le_union_left S° R°
+      simpa [Allegory.recip_recip] using recip_mono hS
+    have h_union : R ∪ S ⊑ (S° ∪ R°)° := union_lub hR' hS'
+    have h_temp := recip_mono h_union
+    -- h_temp: (R ∪ S)° ⊑ (S° ∪ R°)°° = S° ∪ R°
+    simpa [Allegory.recip_recip] using recip_mono h_union
+  · -- S° ∪ R° ⊑ (R ∪ S)°
+    have hR : R ⊑ R ∪ S := le_union_left R S
+    have hS : S ⊑ R ∪ S := le_union_right R S
+    have hRrecip : R° ⊑ (R ∪ S)° := recip_mono hR
+    have hSrecip : S° ⊑ (R ∪ S)° := recip_mono hS
+    -- Goal: S° ∪ R° ⊑ (R ∪ S)°.  We have R° ⊑ (R ∪ S)° and S° ⊑ (R ∪ S)°.
+    -- union_lub takes the first argument as ⊑ for the LEFT operand of ∪.
+    -- Since S° is on the left, we need hSrecip first.
+    exact union_lub hSrecip hRrecip
 
-/-- (S ∪ T) ≫ R = SR ∪ TR (§2.211). -/
+/-- (S ∪ T) ≫ R = SR ∪ TR (§2.211).
+    Proof via reciprocation: ((S∪T)R)° = R°(S∪T)° = R°(T°∪S°) = R°T° ∪ R°S° = (TR)° ∪ (SR)°.
+    Then take ° of both sides. -/
 theorem union_comp_distrib {a b c : 𝒜} (S T : a ⟶ b) (R : b ⟶ c) :
     (S ∪ T) ≫ R = (S ≫ R) ∪ (T ≫ R) := by
-  sorry
+  -- First show equality of the reciprocals, then take °
+  -- Chain: ((S∪T)R)° = R°(S∪T)° = R°(T°∪S°) = R°T° ∪ R°S° = (TR)° ∪ (SR)°
+  --                  = (SR)° ∪ (TR)° = (SR ∪ TR)°
+  have h_recip : ((S ∪ T) ≫ R)° = ((S ≫ R) ∪ (T ≫ R))° := by
+    rw [Allegory.recip_comp, recip_union S T, DistributiveAllegory.comp_union_distrib,
+      ← Allegory.recip_comp T R, ← Allegory.recip_comp S R]
+    -- Goal: (T ≫ R)° ∪ (S ≫ R)° = ((S ≫ R) ∪ (T ≫ R))°
+    -- recip_union expands RHS to (T ≫ R)° ∪ (S ≫ R)°, matching LHS
+    rw [recip_union (S ≫ R) (T ≫ R)]
+  -- Now apply ° to both sides of the equality
+  calc
+    (S ∪ T) ≫ R = (((S ∪ T) ≫ R)°)° := by rw [Allegory.recip_recip]
+    _ = (((S ≫ R) ∪ (T ≫ R))°)° := by rw [h_recip]
+    _ = (S ≫ R) ∪ (T ≫ R) := by rw [Allegory.recip_recip]
 
 /-- 0° = 0 (§2.211). -/
 theorem recip_zero {a b : 𝒜} : (𝟘 : a ⟶ b)° = (𝟘 : b ⟶ a) := by
-  sorry
+  -- 0 is characterized by: 0 ≫ R = 0 and R ≫ 0 = 0 for all R.
+  -- Since ° is an anti-involution, 0° must also be a zero morphism.
+  -- By uniqueness of zero morphisms (they form an ideal), 0° = 0.
+  apply le_antisymm
+  · -- 0° ⊑ 0: since 0 ⊑ 0∪0° = ... actually 0 is the minimum element.
+    -- In a distributive allegory, 0 ⊑ R for all R.
+    -- Show: (𝟘 : a→b)° ⊑ (𝟘 : b→a). This follows because 0 is minimum.
+    sorry
+  · -- 0 ⊑ 0°: symmetric
+    sorry
 
 /-! ## §2.214  Coproducts in distributive allegories
 

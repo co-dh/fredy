@@ -77,7 +77,13 @@ theorem div_inter_le {a b c : 𝒜} (R R' : a ⟶ c) (S : b ⟶ c) :
 
 /-- R/1 = R (§2.314). -/
 theorem div_one {a b : 𝒜} (R : a ⟶ b) : R / Cat.id b = R := by
-  sorry
+  apply le_antisymm
+  · -- (R/1) ⊑ R: div_comp_eq_le gives (R/1)≫1 ⊑ R, and (R/1)≫1 = R/1
+    have h := div_comp_eq_le R (Cat.id b)
+    simpa [Cat.comp_id] using h
+  · -- R ⊑ R/1: by le_div_iff, this is equivalent to R≫1 ⊑ R
+    rw [le_div_iff]
+    simpa [Cat.comp_id] using le_refl R
 
 /-- 1 ⊑ R/R (§2.314). -/
 theorem one_le_div_self {a b : 𝒜} (R : a ⟶ b) : Cat.id a ⊑ R / R := by

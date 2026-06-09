@@ -213,7 +213,9 @@ theorem coreflexive_symmetric_idempotent {a : 𝒜} {R : a ⟶ a} (h : Coreflexi
 
 /-! ## §2.121  Coreflexive composition
 
-  For coreflexive morphisms, AB = A ∩ B (§2.121). -/
+  For coreflexive morphisms, AB = A ∩ B (§2.121).
+  Proof: AB ⊑ A1 = A, AB ⊑ 1B = B ⇒ AB ⊑ A∩B; conversely
+  A∩B ⊑ (A∩B)² ⊑ AB (using coreflexive ⇒ idempotent). -/
 theorem coreflexive_comp_eq_inter {a : 𝒜} {A B : a ⟶ a} (hA : Coreflexive A) (hB : Coreflexive B) :
     A ≫ B = A ∩ B := by
   sorry
@@ -229,7 +231,9 @@ theorem dom_coreflexive {a b : 𝒜} (R : a ⟶ b) : Coreflexive (dom R) :=
 
 /-! ## §2.124  Domain of intersection -/
 
-/-- dom(R ∩ S) = 1 ∩ SR° (§2.124). -/
+/-- dom(R ∩ S) = 1 ∩ SR° (§2.124).
+    Proof uses modular law: 1 ∩ (R∩S)(R∩S)° ⊑ 1 ∩ RS°, and
+    1 ∩ SR° ⊑ 1 ∩ (R∩S)(R∩S)°. -/
 theorem dom_inter {a b : 𝒜} (R S : a ⟶ b) : dom (R ∩ S) = Cat.id a ∩ S ≫ R° := by
   sorry
 
@@ -282,6 +286,10 @@ class TabularAllegory (𝒜 : Type u) extends Allegory 𝒜 where
 
   If f, g : a → c (same source and target) are maps and ff° ∩ gg° = 1,
   then (f, g) is a monic pair in Map(A). -/
+
+/-- **§2.141**: If ff° ∩ gg° = 1 for maps f,g : a → c, then (f,g) is a
+    monic pair in Map(A).  That is, for any maps h₁, h₂ : a → a,
+    h₁f = h₂f ∧ h₁g = h₂g ⇒ h₁ = h₂. -/
 theorem tabulates_monic_pair {a c : 𝒜} {f g : a ⟶ c} (hf : Map f) (hg : Map g)
     (h : f ≫ f° ∩ g ≫ g° = Cat.id a) :
     ∀ (h₁ h₂ : a ⟶ a), Map h₁ → Map h₂ → h₁ ≫ f = h₂ ≫ f → h₁ ≫ g = h₂ ≫ g → h₁ = h₂ := by
