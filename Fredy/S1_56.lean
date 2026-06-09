@@ -74,6 +74,9 @@ postfix:max "°" => reciprocal
 theorem reciprocal_invol {A B : 𝒞} (R : BinRel 𝒞 A B) : reciprocal (reciprocal R) = R := by
   unfold reciprocal; rfl
 
+section
+variable [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
+
 /-! ## §1.56 Composition of relations
 
   Given R: A→B, S: B→C, in a Cartesian category with pullbacks and
@@ -84,8 +87,7 @@ theorem reciprocal_invol {A B : 𝒞} (R : BinRel 𝒞 A B) : reciprocal (recipr
     1. Pull back R.colB and S.colA over B → object P
     2. Map P→A via P→R.src→A, P→C via P→S.src→C
     3. Take the image of the span P→A×C → this is the composed relation. -/
-def compose {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C)
-    [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] : BinRel 𝒞 A C :=
+def compose {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) : BinRel 𝒞 A C :=
   -- Step 1: pullback of R.colB and S.colA over B
   let pb := HasPullbacks.has R.colB S.colA
   -- Step 2: span P→A and P→C
@@ -129,23 +131,22 @@ def compose {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C)
 
 /-- **§1.564**: R : A → B is ENTIRE if 1_A ≤ RR° — the identity relation
     on A is contained in RR° (compose R R° : A → A). -/
-def Entire {A B : 𝒞} (R : BinRel 𝒞 A B) [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] : Prop :=
+def Entire {A B : 𝒞} (R : BinRel 𝒞 A B) : Prop :=
   RelLe (graph (Cat.id A)) (compose R (reciprocal R))
 
 /-- **§1.564**: R is SIMPLE if R°R ≤ 1_B — R° composed with R
     (compose R° R : B → B) is contained in the identity on B. -/
-def Simple {A B : 𝒞} (R : BinRel 𝒞 A B) [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] : Prop :=
+def Simple {A B : 𝒞} (R : BinRel 𝒞 A B) : Prop :=
   RelLe (compose (reciprocal R) R) (graph (Cat.id B))
 
 /-- R is a MAP if it is entire and simple.  Maps are exactly graphs (§1.564). -/
-def Map {A B : 𝒞} (R : BinRel 𝒞 A B) [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] : Prop :=
+def Map {A B : 𝒞} (R : BinRel 𝒞 A B) : Prop :=
   Entire R ∧ Simple R
 
 /-- **§1.564**: A relation ⟨T; a:T→A, b:T→B⟩ tabulated by a monic pair is a
     MAP (entire + simple) iff `a` is an isomorphism.  Maps are exactly the
     graphs of morphisms: if `R` is a map then `R = graph(b ≫ a⁻¹)`. -/
-theorem tabulated_is_map_iff_left_iso {A B T : 𝒞} (a : T ⟶ A) (b : T ⟶ B) (hp : MonicPair a b)
-    [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] :
+theorem tabulated_is_map_iff_left_iso {A B T : 𝒞} (a : T ⟶ A) (b : T ⟶ B) (hp : MonicPair a b) :
     Map (BinRel.mk T a b hp) ↔ IsIso a := by
   sorry
 
@@ -163,10 +164,11 @@ theorem tabulated_is_map_iff_left_iso {A B T : 𝒞} (a : T ⟶ A) (b : T ⟶ B)
   to the original category.  So it becomes a theorem after the representation is
   established, but not before. -/
 
-theorem modular_identity {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 A C)
-    [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] :
+theorem modular_identity {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 A C) :
     RelLe (compose (compose R S) (reciprocal T)) (compose R (compose S (reciprocal T))) := by
   sorry
+
+end
 
 /-! ## §1.563 Horn-sentence reflection
 

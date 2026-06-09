@@ -24,22 +24,22 @@ variable {𝒞 : Type u} [Cat.{v} 𝒞]
 
 namespace Freyd
 
-variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasImages 𝒞]
+variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
 
 /-! ## §1.57 Choice and projectivity -/
 
 /-- **§1.57**: C is CHOICE if every entire relation R : A → C contains a map f : A → C.
     (The map condition: 1_A ≤ R°R and there is a section.) -/
-def Choice (C : 𝒞) [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] : Prop :=
+def Choice (C : 𝒞) : Prop :=
   ∀ {A : 𝒞} (R : BinRel 𝒞 A C), Entire R →
-    ∃ (f : A ⟶ C), ∃ (h : A ⟶ R.src), h ≫ R.colA = f ∧ h ≫ R.colB = Cat.id A
+    ∃ (f : A ⟶ C), ∃ (h : A ⟶ R.src), h ≫ R.colA = Cat.id A ∧ h ≫ R.colB = f
 
 /-- C is PROJECTIVE if every cover f : A ↠ C splits (∃ s: C→A with s≫f = id). -/
 def Projective (C : 𝒞) : Prop :=
   ∀ {A : 𝒞} (f : A ⟶ C), Cover f → ∃ (s : C ⟶ A), s ≫ f = Cat.id C
 
 /-- Every object is choice iff every object is projective (§1.57). -/
-theorem choice_iff_projective [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] : (∀ C : 𝒞, Choice C) ↔ (∀ C : 𝒞, Projective C) := by
+theorem choice_iff_projective : (∀ C : 𝒞, Choice C) ↔ (∀ C : 𝒞, Projective C) := by
   constructor
   · intro h C A f hcov
     -- f is cover ⇒ its graph is entire ⇒ by choice, contains a map ⇒ that map is a section
@@ -53,11 +53,11 @@ class ACRegularCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
     HasTerminal 𝒞, HasBinaryProducts 𝒞, HasPullbacks 𝒞, HasImages 𝒞 where
   all_choice : ∀ C : 𝒞, Choice C
 
-/-- In an AC regular category, every f factors as p≫m where p is
-    left-invertible (= split epi = cover with section) and m is monic. -/
+/-- In an AC regular category, every f factors as p≫m where p is a
+    split epi (cover with section) and m is monic. -/
 theorem ac_factorization [ACRegularCategory 𝒞] {A B : 𝒞} (f : A ⟶ B) :
     ∃ (C : 𝒞) (p : A ⟶ C) (m : C ⟶ B),
-      (∃ (s : C ⟶ A), s ≫ p = Cat.id A) ∧ Mono m ∧ p ≫ m = f := by
+      (∃ (s : C ⟶ A), s ≫ p = Cat.id C) ∧ Mono m ∧ p ≫ m = f := by
   -- The image of f gives the factorization: let I = image(f), then f = e ≫ m
   -- where e = image.lift f (cover), m = image.arr (monic).
   -- By the AC condition (all objects projective), the cover e splits.
