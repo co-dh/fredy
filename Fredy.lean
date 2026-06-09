@@ -17,3 +17,4 @@ import Fredy.S1_45
 import Fredy.S1_51
 import Fredy.S1_52
 import Fredy.S1_53
+import Fredy.S2_1
