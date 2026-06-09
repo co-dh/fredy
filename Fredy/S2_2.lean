@@ -89,11 +89,6 @@ theorem le_iff_union_eq_left {a b : 𝒜} (R S : a ⟶ b) : (R ⊑ S) ↔ R ∪ 
       _ = (R ∪ S) ∩ R := by rw [h]
       _ = R := by rw [DistributiveAllegory.inter_union_absorb R S]
 
-theorem le_iff_union_eq_right {a b : 𝒜} (R S : a ⟶ b) : (R ⊑ S) ↔ S = R ∪ S := by
-  have h := le_iff_union_eq_left R S
-  rw [eq_comm] at h
-  exact h
-
 /-! ### Helper: union is least upper bound -/
 
 /-- If A ⊑ C and B ⊑ C then A ∪ B ⊑ C. -/
