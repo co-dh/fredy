@@ -7,14 +7,17 @@
 
 // ── reusable diagram fragments ──────────────────────────────────────
 
-// Corner mark for a pullback node at grid position `pos`.
-// `offset` (in grid cells) points toward the square's interior;
-// `angle` rotates the ⌟ glyph so its arms parallel the two legs:
-// 0deg for legs going right+down, 45deg for legs going down-left+down-right.
-#let pb-corner(pos, offset: (0.3, 0.3), angle: 0deg, size: 17pt) = {
-  node((pos.at(0) + offset.at(0), pos.at(1) + offset.at(1)),
-       rotate(angle, origin: center, text(size: size, fill: rgb("333"), [$⌟$])),
-       inset: 0pt, fill: none, stroke: none)
+// Pullback corner at vertex `p` with projection legs toward `l` and `r`
+// (grid positions). Two segments start ON each leg, `s` of the way along,
+// and meet at the parallelogram point inside the square — so the mark
+// visibly connects the two projections.
+#let pb-corner(p, l, r, s: 0.3, stroke: 0.9pt + rgb("333")) = {
+  let v1 = (l.at(0) - p.at(0), l.at(1) - p.at(1))
+  let v2 = (r.at(0) - p.at(0), r.at(1) - p.at(1))
+  let p1 = (p.at(0) + s * v1.at(0), p.at(1) + s * v1.at(1))
+  let p2 = (p.at(0) + s * v2.at(0), p.at(1) + s * v2.at(1))
+  let m  = (p.at(0) + s * (v1.at(0) + v2.at(0)), p.at(1) + s * (v1.at(1) + v2.at(1)))
+  (edge(p1, m, "-", stroke: stroke), edge(p2, m, "-", stroke: stroke))
 }
 
 // A pullback square: f: L→C←R: g.
@@ -27,8 +30,7 @@
                   name: "") = {
   let p-name = if name != "" { [$name$] } else { [$P$] }
   (
-    // legs run down-left and down-right: corner sits on the bisector below P
-    pb-corner(p-pos, offset: (0, 0.4), angle: 45deg),
+    pb-corner(p-pos, l-pos, r-pos),
     node(p-pos, p-name, fill: p-fill),
     node(l-pos, [$T$], fill: f-fill),
     node(r-pos, [$T$], fill: f-fill),
@@ -115,7 +117,7 @@
     edge((2,1), (0,4), "->", bend: 18deg, label: [$i ≫ "fst"$]),
     edge((2,1), (4,4), "->", bend: -18deg, label: [$i ≫ "snd"$]),
 
-    pb-corner((2,2), offset: (0, 0.4), angle: 45deg),
+    pb-corner((2,2), (1,3), (3,3)),
   ),
   caption: [],
 )
@@ -144,7 +146,8 @@
 
     witness-edge((2,3), (4,1), label: [$k^(-1) ≫ j$]),
 
-    pb-corner((2,1), offset: (0.22, 0.22)),
+    // legs j and k are two cells long: halve s to keep the mark small
+    pb-corner((2,1), (4,1), (2,3), s: 0.15),
   ),
   caption: [hdl: (d≫c)≫i = x≫Δ,  t:=pbJ.lift⟨T,x,d≫c⟩,  ht: t≫k=x.  k monic, x=cover ⇒ k iso.] + [  h := k⁻¹≫j satisfies pf₁: h≫(i≫fst)=1, pf₂: h≫(i≫snd)=1.],
 )
