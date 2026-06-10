@@ -76,6 +76,7 @@
 #figure(
   fletcher.diagram(
     spacing: 7em,
+    label-sep: 1pt,
     node((1,-1), [$T$], fill: cT),
     pullback-sq(
       p-pos: (1,0), l-pos: (0,1), r-pos: (2,1), c-pos: (1,2),
@@ -100,6 +101,7 @@
 #figure(
   fletcher.diagram(
     spacing: 7em,
+    label-sep: 1pt,
     node((2,0), [$A×A$], fill: cAA),
     node((2,1), [$I$], fill: cI),
     node((2,2), [$P$], fill: cP),
@@ -136,6 +138,7 @@
 #figure(
   fletcher.diagram(
     spacing: 7.5em,
+    label-sep: 1pt,
     node((1,0), [$T$], fill: cT),
     node((2,1), [$J$], fill: cJ),
     node((4,1), [$I$], fill: cI),
@@ -166,6 +169,7 @@
 #figure(
   fletcher.diagram(
     spacing: 7em,
+    label-sep: 1pt,
 
     node((2.5, -0.8), [$A$],      fill: cA),
     node((2.5, 0),   [$A×A$],    fill: cAA),
@@ -227,6 +231,7 @@
 #figure(
   fletcher.diagram(
     spacing: 7em,
+    label-sep: 1pt,
 
     node((2.5, -0.8), [$A$],      fill: cA),
     node((2.5, 0),   [$A×A$],    fill: cAA),
