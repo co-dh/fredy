@@ -1,74 +1,75 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1340" height="820" viewBox="0 0 1340 820">
   <defs>
+    <!-- markers pick up the line's own color via context-stroke -->
     <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
-      <path d="M 0 1 L 9 5 L 0 9" fill="none" stroke="#222" stroke-width="1.6"/>
-    </marker>
-    <marker id="arrg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
-      <path d="M 0 1 L 9 5 L 0 9" fill="none" stroke="#666" stroke-width="1.6"/>
-    </marker>
-    <marker id="arrb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
-      <path d="M 0 1 L 9 5 L 0 9" fill="none" stroke="#1a6fd4" stroke-width="1.8"/>
+      <path d="M 0 1 L 9 5 L 0 9" fill="none" stroke="context-stroke" stroke-width="1.6"/>
     </marker>
     <!-- hollow triangle head = COVER -->
     <marker id="cov" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
-      <path d="M 1 1.5 L 10 6 L 1 10.5 Z" fill="#fff" stroke="#222" stroke-width="1.3"/>
+      <path d="M 1 1.5 L 10 6 L 1 10.5 Z" fill="#fff" stroke="context-stroke" stroke-width="1.3"/>
     </marker>
     <!-- tail bar = MONIC: |-> -->
     <marker id="tail" viewBox="0 0 10 10" refX="2" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
-      <line x1="2" y1="0.5" x2="2" y2="9.5" stroke="#222" stroke-width="1.8"/>
+      <line x1="2" y1="0.5" x2="2" y2="9.5" stroke="context-stroke" stroke-width="1.8"/>
     </marker>
   </defs>
 
   <style>
-    .node { font: italic 22px Georgia, serif; fill: #111; text-anchor: middle; }
-    .lbl  { font: italic 17px Georgia, serif; fill: #222; text-anchor: middle; }
-    .lbls { font: italic 13px Georgia, serif; fill: #222; text-anchor: middle; }
-    .lblg { font: italic 16px Georgia, serif; fill: #666; text-anchor: middle; }
-    .lblb { font: italic 17px Georgia, serif; fill: #1a6fd4; text-anchor: middle; }
+    .node { font: italic 22px Georgia, serif; text-anchor: middle; }
+    .lbl  { font: italic 17px Georgia, serif; text-anchor: middle; }
+    .lbls { font: italic 13px Georgia, serif; text-anchor: middle; }
     .cap  { font: 15px Georgia, serif; fill: #333; }
     .ttl  { font: bold 16px Georgia, serif; fill: #111; }
     .sub  { font: 13px Georgia, serif; fill: #666; }
+    /* one color per object */
+    .oA  { fill: #7b1fa2; }  /* A      purple  */
+    .oB  { fill: #1565c0; }  /* B      blue    */
+    .oT  { fill: #e65100; }  /* T      orange  */
+    .oP  { fill: #2e7d32; }  /* P      green   */
+    .oI  { fill: #c2185b; }  /* I.dom  magenta */
+    .oAA { fill: #00695c; }  /* A x A  teal    */
+    .oJ  { fill: #5d4037; }  /* J      brown   */
   </style>
 
-  <text class="ttl" x="60" y="30">§1.564  a is a cover ⇒ R entire — names match `tabulated_is_entire_iff_left_cover` in Fredy/S1_56.lean</text>
+  <text class="ttl" x="60" y="30">§1.564  x is a cover ⇒ R entire — names match `tabulated_is_entire_iff_left_cover` in Fredy/S1_56.lean</text>
 
   <text class="sub" x="60" y="54">1. RR° per §1.56</text>
-  <text class="sub" x="740" y="54">2. J := pullback of (diag A, I.arr)</text>
+  <text class="sub" x="740" y="54">2. J := pullback of (diag A, i)</text>
   <text class="sub" x="1020" y="54">3. graph(1) ⊑ RR°  (§1.413)</text>
   <line x1="720" y1="64" x2="720" y2="500" stroke="#ccc" stroke-width="1"/>
   <line x1="1000" y1="64" x2="1000" y2="500" stroke="#ccc" stroke-width="1"/>
 
   <!-- ============ Panel 1: the composition RR°, product at top ============ -->
-  <text class="node" x="380" y="86">A × A</text>
-  <text class="node" x="380" y="166">I.dom</text>
-  <text class="node" x="380" y="256">P</text>
-  <text class="node" x="235" y="376">T</text>
-  <text class="node" x="380" y="382">T</text>
-  <text class="node" x="525" y="376">T</text>
-  <text class="node" x="380" y="452">A</text>
-  <text class="node" x="95"  y="506">A</text>
-  <text class="node" x="380" y="506">B</text>
-  <text class="node" x="665" y="506">A</text>
+  <text class="node oAA" x="380" y="86">A × A</text>
+  <text class="node oI"  x="380" y="166">I.dom</text>
+  <text class="node oP"  x="380" y="256">P</text>
+  <text class="node oT"  x="235" y="376">T</text>
+  <text class="node oT"  x="380" y="382">T</text>
+  <text class="node oT"  x="525" y="376">T</text>
+  <text class="node oA"  x="380" y="452">A</text>
+  <text class="node oA"  x="95"  y="506">A</text>
+  <text class="node oB"  x="380" y="506">B</text>
+  <text class="node oA"  x="665" y="506">A</text>
 
-  <!-- I.arr : I.dom >-> A×A, monic -->
-  <line x1="380" y1="148" x2="380" y2="100" stroke="#222" stroke-width="1.6"
+  <!-- i = I.arr : I.dom >-> AxA, monic -->
+  <line x1="380" y1="148" x2="380" y2="100" stroke="#c2185b" stroke-width="1.6"
         marker-start="url(#tail)" marker-end="url(#arr)"/>
-  <text class="lbl" x="418" y="128">I.arr</text>
+  <text class="lbl oI" x="402" y="128">i</text>
 
-  <!-- l : P -|> I.dom, the cover part of the image factorization -->
-  <line x1="380" y1="238" x2="380" y2="184" stroke="#222" stroke-width="1.6" marker-end="url(#cov)"/>
-  <text class="lbl" x="394" y="216">l</text>
+  <!-- c : P -|> I.dom, the cover part of the image factorization -->
+  <line x1="380" y1="238" x2="380" y2="184" stroke="#00838f" stroke-width="1.6" marker-end="url(#cov)"/>
+  <text class="lbl" x="396" y="216" fill="#00838f">c</text>
 
-  <!-- sp : P -> A×A, equal to l then I.arr -->
+  <!-- sp : P -> AxA, equal to c then i -->
   <path d="M 393 244 C 510 210, 515 130, 424 94" fill="none" stroke="#666" stroke-width="1.4"
-        marker-end="url(#arrg)"/>
-  <text class="lblg" x="588" y="160">sp = ⟨q₁ ≫ a, q₂ ≫ a⟩</text>
+        marker-end="url(#arr)"/>
+  <text class="lbl" x="582" y="160" fill="#666" font-size="16">sp = ⟨l ≫ x, r ≫ x⟩</text>
 
-  <!-- pullback projections q1, q2 -->
-  <line x1="366" y1="264" x2="248" y2="362" stroke="#222" stroke-width="1.6" marker-end="url(#arr)"/>
-  <text class="lbl" x="325" y="322">q₁</text>
-  <line x1="394" y1="264" x2="512" y2="362" stroke="#222" stroke-width="1.6" marker-end="url(#arr)"/>
-  <text class="lbl" x="475" y="302">q₂</text>
+  <!-- pullback projections l, r -->
+  <line x1="366" y1="264" x2="248" y2="362" stroke="#2e7d32" stroke-width="1.6" marker-end="url(#arr)"/>
+  <text class="lbl" x="325" y="322" fill="#2e7d32">l</text>
+  <line x1="394" y1="264" x2="512" y2="362" stroke="#827717" stroke-width="1.6" marker-end="url(#arr)"/>
+  <text class="lbl" x="475" y="302" fill="#827717">r</text>
 
   <!-- pullback corner at P -->
   <line x1="360" y1="271" x2="380" y2="288" stroke="#222" stroke-width="1.2"/>
@@ -81,83 +82,83 @@
   <text class="lbl" x="438" y="364">1</text>
 
   <!-- d : T(middle) -> P, the induced lift, dashed (bows right around the corner mark) -->
-  <path d="M 388 364 C 414 330, 414 296, 389 267" fill="none" stroke="#666" stroke-width="1.6"
-        stroke-dasharray="6 4" marker-end="url(#arrg)"/>
-  <text class="lblg" x="428" y="320">d</text>
+  <path d="M 388 364 C 414 330, 414 296, 389 267" fill="none" stroke="#8e24aa" stroke-width="1.6"
+        stroke-dasharray="6 4" marker-end="url(#arr)"/>
+  <text class="lbl" x="428" y="320" fill="#8e24aa">d</text>
 
-  <!-- a : T(middle) -|> A, covering the identity relation graph(1) = A <-1- A -1-> A -->
-  <line x1="380" y1="392" x2="380" y2="434" stroke="#222" stroke-width="1.6" marker-end="url(#cov)"/>
-  <text class="lbl" x="392" y="416">a</text>
+  <!-- x : T(middle) -|> A, covering the identity relation graph(1) = A <-1- A -1-> A -->
+  <line x1="380" y1="392" x2="380" y2="434" stroke="#e65100" stroke-width="1.6" marker-end="url(#cov)"/>
+  <text class="lbl" x="394" y="416" fill="#e65100">x</text>
   <line x1="362" y1="458" x2="110" y2="498" stroke="#222" stroke-width="1.6" marker-end="url(#arr)"/>
   <text class="lbl" x="230" y="464">1</text>
   <line x1="398" y1="458" x2="650" y2="498" stroke="#222" stroke-width="1.6" marker-end="url(#arr)"/>
   <text class="lbl" x="530" y="464">1</text>
   <text class="lbls" x="380" y="472">graph(1)</text>
 
-  <!-- columns of R = (T; a, b), a is a cover -->
-  <line x1="220" y1="388" x2="104" y2="492" stroke="#222" stroke-width="1.6" marker-end="url(#cov)"/>
-  <text class="lbl" x="143" y="432">a</text>
-  <line x1="250" y1="388" x2="366" y2="492" stroke="#222" stroke-width="1.6" marker-end="url(#arr)"/>
-  <text class="lbl" x="289" y="450">b</text>
+  <!-- columns of R = (T; x, y), x is a cover -->
+  <line x1="220" y1="388" x2="104" y2="492" stroke="#e65100" stroke-width="1.6" marker-end="url(#cov)"/>
+  <text class="lbl" x="143" y="432" fill="#e65100">x</text>
+  <line x1="250" y1="388" x2="366" y2="492" stroke="#1565c0" stroke-width="1.6" marker-end="url(#arr)"/>
+  <text class="lbl" x="289" y="450" fill="#1565c0">y</text>
 
-  <!-- columns of R° = (T; b, a) -->
-  <line x1="510" y1="388" x2="394" y2="492" stroke="#222" stroke-width="1.6" marker-end="url(#arr)"/>
-  <text class="lbl" x="471" y="450">b</text>
-  <line x1="540" y1="388" x2="656" y2="492" stroke="#222" stroke-width="1.6" marker-end="url(#cov)"/>
-  <text class="lbl" x="617" y="432">a</text>
+  <!-- columns of R° = (T; y, x) -->
+  <line x1="510" y1="388" x2="394" y2="492" stroke="#1565c0" stroke-width="1.6" marker-end="url(#arr)"/>
+  <text class="lbl" x="471" y="450" fill="#1565c0">y</text>
+  <line x1="540" y1="388" x2="656" y2="492" stroke="#e65100" stroke-width="1.6" marker-end="url(#cov)"/>
+  <text class="lbl" x="617" y="432" fill="#e65100">x</text>
 
-  <!-- columns of the image table RR° = (I.dom; I.arr ≫ fst, I.arr ≫ snd) -->
-  <line x1="365" y1="176" x2="102" y2="490" stroke="#222" stroke-width="1.6" marker-end="url(#arr)"/>
-  <text class="lbls" x="180" y="305">I.arr ≫ fst</text>
-  <line x1="395" y1="176" x2="658" y2="490" stroke="#222" stroke-width="1.6" marker-end="url(#arr)"/>
-  <text class="lbls" x="582" y="305">I.arr ≫ snd</text>
+  <!-- columns of the image table RR° = (I.dom; i ≫ fst, i ≫ snd) -->
+  <line x1="365" y1="176" x2="102" y2="490" stroke="#c2185b" stroke-width="1.3" marker-end="url(#arr)"/>
+  <text class="lbls oI" x="186" y="305">i ≫ fst</text>
+  <line x1="395" y1="176" x2="658" y2="490" stroke="#c2185b" stroke-width="1.3" marker-end="url(#arr)"/>
+  <text class="lbls oI" x="576" y="305">i ≫ snd</text>
 
   <!-- ============ Panel 2: the pullback square J ============ -->
-  <text class="node" x="800" y="166">J</text>
-  <text class="node" x="950" y="166">I.dom</text>
-  <text class="node" x="800" y="396">A</text>
-  <text class="node" x="950" y="396">A×A</text>
+  <text class="node oJ"  x="800" y="166">J</text>
+  <text class="node oI"  x="950" y="166">I.dom</text>
+  <text class="node oA"  x="800" y="396">A</text>
+  <text class="node oAA" x="950" y="396">A×A</text>
 
   <!-- j : J -> I.dom -->
-  <line x1="818" y1="160" x2="916" y2="160" stroke="#222" stroke-width="1.6" marker-end="url(#arr)"/>
-  <text class="lbl" x="866" y="148">j</text>
+  <line x1="818" y1="160" x2="916" y2="160" stroke="#f9a825" stroke-width="1.8" marker-end="url(#arr)"/>
+  <text class="lbl" x="866" y="148" fill="#f9a825">j</text>
 
-  <!-- k : J >-> A, monic (pullback of the monic I.arr) -->
-  <line x1="800" y1="176" x2="800" y2="378" stroke="#222" stroke-width="1.6"
+  <!-- k : J >-> A, monic (pullback of the monic i) -->
+  <line x1="800" y1="176" x2="800" y2="378" stroke="#455a64" stroke-width="1.6"
         marker-start="url(#tail)" marker-end="url(#arr)"/>
-  <text class="lbl" x="815" y="282">k</text>
+  <text class="lbl" x="815" y="282" fill="#455a64">k</text>
 
   <!-- pullback corner at J -->
   <line x1="826" y1="160" x2="826" y2="186" stroke="#222" stroke-width="1.2"/>
   <line x1="800" y1="186" x2="826" y2="186" stroke="#222" stroke-width="1.2"/>
 
-  <!-- I.arr : I.dom >-> A×A -->
-  <line x1="950" y1="176" x2="950" y2="378" stroke="#222" stroke-width="1.6"
+  <!-- i : I.dom >-> AxA -->
+  <line x1="950" y1="176" x2="950" y2="378" stroke="#c2185b" stroke-width="1.6"
         marker-start="url(#tail)" marker-end="url(#arr)"/>
-  <text class="lbl" x="977" y="282">I.arr</text>
+  <text class="lbl oI" x="970" y="282">i</text>
 
-  <!-- diag A : A >-> A×A -->
-  <line x1="820" y1="400" x2="916" y2="400" stroke="#222" stroke-width="1.6"
+  <!-- diag A : A >-> AxA -->
+  <line x1="820" y1="400" x2="916" y2="400" stroke="#7b1fa2" stroke-width="1.6"
         marker-start="url(#tail)" marker-end="url(#arr)"/>
-  <text class="lbl" x="868" y="420">diag A</text>
+  <text class="lbl oA" x="868" y="420">diag A</text>
 
-  <!-- e = k⁻¹ : A -> J, dashed (exists because a is a cover and t ≫ k = a) -->
+  <!-- e = k inverse : A -> J, dashed (exists because x is a cover and t ≫ k = x) -->
   <path d="M 786 380 C 762 300, 762 255, 786 182" fill="none" stroke="#1a6fd4" stroke-width="1.8"
-        stroke-dasharray="7 5" marker-end="url(#arrb)"/>
-  <text class="lblb" x="752" y="285">e = k⁻¹</text>
+        stroke-dasharray="7 5" marker-end="url(#arr)"/>
+  <text class="lbl" x="748" y="285" fill="#1a6fd4">e</text>
 
-  <text class="lbls" x="868" y="460">t := pbJ.lift ⟨T, a, d ≫ l⟩ :  t ≫ k = a  (ht)</text>
+  <text class="lbls" x="868" y="460">t := pbJ.lift ⟨T, x, d ≫ c⟩ :  t ≫ k = x  (ht)</text>
 
   <!-- ============ Panel 3: table containment graph(1_A) ⊑ RR° ============ -->
-  <text class="node" x="1060" y="166">A</text>
-  <text class="node" x="1250" y="166">I.dom</text>
-  <text class="node" x="1060" y="416">A</text>
-  <text class="node" x="1250" y="416">A</text>
+  <text class="node oA" x="1060" y="166">A</text>
+  <text class="node oI" x="1250" y="166">I.dom</text>
+  <text class="node oA" x="1060" y="416">A</text>
+  <text class="node oA" x="1250" y="416">A</text>
 
   <!-- h := e ≫ j, the containment morphism -->
   <line x1="1078" y1="160" x2="1212" y2="160" stroke="#1a6fd4" stroke-width="1.9"
-        stroke-dasharray="7 5" marker-end="url(#arrb)"/>
-  <text class="lblb" x="1145" y="146">h := e ≫ j</text>
+        stroke-dasharray="7 5" marker-end="url(#arr)"/>
+  <text class="lbl" x="1145" y="146" fill="#1a6fd4">h := e ≫ j</text>
 
   <!-- graph(1) columns -->
   <line x1="1060" y1="178" x2="1060" y2="402" stroke="#222" stroke-width="1.6" marker-end="url(#arr)"/>
@@ -166,23 +167,23 @@
   <text class="lbl" x="1108" y="205">1</text>
 
   <!-- RR° columns -->
-  <line x1="1238" y1="178" x2="1072" y2="402" stroke="#222" stroke-width="1.6" marker-end="url(#arr)"/>
-  <text class="lbls" x="1198" y="205">I.arr ≫ fst</text>
-  <line x1="1250" y1="178" x2="1250" y2="402" stroke="#222" stroke-width="1.6" marker-end="url(#arr)"/>
-  <text class="lbls" x="1294" y="295">I.arr ≫ snd</text>
+  <line x1="1238" y1="178" x2="1072" y2="402" stroke="#c2185b" stroke-width="1.3" marker-end="url(#arr)"/>
+  <text class="lbls oI" x="1198" y="205">i ≫ fst</text>
+  <line x1="1250" y1="178" x2="1250" y2="402" stroke="#c2185b" stroke-width="1.3" marker-end="url(#arr)"/>
+  <text class="lbls oI" x="1290" y="295">i ≫ snd</text>
 
-  <text class="lbls" x="1160" y="465">pf₁ : h ≫ (I.arr ≫ fst) = 1,   pf₂ : h ≫ (I.arr ≫ snd) = 1</text>
+  <text class="lbls" x="1160" y="465">pf₁ : h ≫ (i ≫ fst) = 1,   pf₂ : h ≫ (i ≫ snd) = 1</text>
 
   <!-- ============ legend + caption: the proof steps, in the Lean proof's names ============ -->
-  <text class="sub" x="60" y="540">─▷ hollow head = cover,   ↣ tailed = monic,   corner = pullback,   dashed = induced</text>
+  <text class="sub" x="60" y="540">─▷ hollow head = cover,   ↣ tailed = monic,   corner = pullback,   dashed = induced,   blue dashed = the constructed witness.   One color per morphism/object.</text>
 
-  <text class="cap" x="60" y="575">1.  pb := pullback of (b, b), projections q₁ q₂ (corner at P);  sp := pair (q₁ ≫ a) (q₂ ≫ a) : P → A×A;  I := image sp,</text>
-  <text class="cap" x="60" y="600">     so  sp = l ≫ I.arr  with l a cover (hl') and I.arr monic.   RR° is the table (I.dom; I.arr ≫ fst, I.arr ≫ snd).</text>
-  <text class="cap" x="60" y="625">2.  d := pb.lift ⟨T, 1, 1⟩ — drawn as the MIDDLE copy of T, with identity legs into the two tables:  hd₁ : d ≫ q₁ = 1,</text>
-  <text class="cap" x="60" y="650">     hd₂ : d ≫ q₂ = 1.   Both routes T → A×A are ⟨a, a⟩:  hdl : (d ≫ l) ≫ I.arr = a ≫ diag A.   The middle T covers (via a)</text>
+  <text class="cap" x="60" y="575">1.  pb := pullback of (y, y), projections l r (corner at P);  sp := pair (l ≫ x) (r ≫ x) : P → A×A;  I := image sp,</text>
+  <text class="cap" x="60" y="600">     so  sp = c ≫ i  with c a cover (hc') and i := I.arr monic.   RR° is the table (I.dom; i ≫ fst, i ≫ snd).</text>
+  <text class="cap" x="60" y="625">2.  d := pb.lift ⟨T, 1, 1⟩ — drawn as the MIDDLE copy of T, with identity legs into the two tables:  hd₁ : d ≫ l = 1,</text>
+  <text class="cap" x="60" y="650">     hd₂ : d ≫ r = 1.   Both routes T → A×A are ⟨x, x⟩:  hdl : (d ≫ c) ≫ i = x ≫ diag A.   The middle T covers (via x)</text>
   <text class="cap" x="60" y="675">     the apex of  graph(1) = A ←1— A —1→ A  — the IDENTITY RELATION on A;  "1 ⊑ RR°" (ENTIRE) means containing this table.</text>
-  <text class="cap" x="60" y="700">3.  pbJ := pullback of (diag A, I.arr), projections k, j (middle panel):  hkj : k ≫ diag A = j ≫ I.arr;  k is monic, being a</text>
-  <text class="cap" x="60" y="725">     pullback of the monic I.arr (hk).   By hdl the cone ⟨T, a, d ≫ l⟩ lifts:  t with  ht : t ≫ k = a.</text>
-  <text class="cap" x="60" y="750">4.  a is a COVER and t ≫ k = a with k monic  ⇒  k is an iso:  e with  hek : e ≫ k = 1.</text>
-  <text class="cap" x="60" y="775">5.  h := e ≫ j  (right panel):  pf₁ : h ≫ (I.arr ≫ fst) = 1,  pf₂ : h ≫ (I.arr ≫ snd) = 1  —  graph(1) ⊑ RR°:  R is ENTIRE.  ∎</text>
+  <text class="cap" x="60" y="700">3.  pbJ := pullback of (diag A, i), projections k, j (middle panel):  hkj : k ≫ diag A = j ≫ i;  k is monic, being a</text>
+  <text class="cap" x="60" y="725">     pullback of the monic i (hk).   By hdl the cone ⟨T, x, d ≫ c⟩ lifts:  t with  ht : t ≫ k = x.</text>
+  <text class="cap" x="60" y="750">4.  x is a COVER and t ≫ k = x with k monic  ⇒  k is an iso:  e with  hek : e ≫ k = 1.</text>
+  <text class="cap" x="60" y="775">5.  h := e ≫ j  (right panel):  pf₁ : h ≫ (i ≫ fst) = 1,  pf₂ : h ≫ (i ≫ snd) = 1  —  graph(1) ⊑ RR°:  R is ENTIRE.  ∎</text>
 </svg>
