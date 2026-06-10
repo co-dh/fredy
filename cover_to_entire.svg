@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1050" viewBox="0 0 900 1050">
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1360" viewBox="0 0 900 1360">
   <defs>
     <!-- markers pick up the line's own color via context-stroke -->
     <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
@@ -92,64 +92,115 @@
   <line x1="398" y1="458" x2="650" y2="498" stroke="#222" stroke-width="1.6" marker-end="url(#arr)"/>
   <text class="lbl" x="530" y="464">1</text>
 
-  <!-- h : A -> I, the containment witness (constructed in diagram 2); bows left around P -->
+  <!-- h : A -> I, the containment witness (constructed below); bows left around P -->
   <path d="M 372 438 C 330 380, 325 245, 366 180" fill="none" stroke="#1a6fd4" stroke-width="1.9"
         stroke-dasharray="7 5" marker-end="url(#arr)"/>
   <text class="lbl" x="354" y="340" fill="#1a6fd4">h</text>
 
-  <!-- ============ diagram 2: the witness h, via J := pullback of (Δ, i) ============ -->
-  <text class="sub" x="60" y="560">The construction of h — J := the pullback of (Δ, i),  Δ := ⟨1, 1⟩ : A ↣ A×A.</text>
+  <!-- ============ diagram 2: by hdl the cone (T, x, d ≫ c) lifts to t ============ -->
+  <text class="sub" x="60" y="548">By hdl the cone ⟨T, x, d ≫ c⟩ over (Δ, i) lifts to t — the cover x = t ≫ k factors through the monic k:</text>
 
-  <text class="node oJ"  x="320" y="600">J</text>
-  <text class="node oI"  x="520" y="600">I</text>
-  <text class="node oA"  x="320" y="760">A</text>
-  <text class="node oAA" x="520" y="760">A×A</text>
+  <text class="node oT"  x="195" y="602">T</text>
+  <text class="node oJ"  x="320" y="660">J</text>
+  <text class="node oI"  x="520" y="660">I</text>
+  <text class="node oA"  x="320" y="820">A</text>
+  <text class="node oAA" x="520" y="820">A×A</text>
+
+  <!-- d ≫ c : T -> I, the route over the top -->
+  <path d="M 214 590 C 320 565, 440 585, 506 644" fill="none" stroke="#666" stroke-width="1.6"
+        marker-end="url(#arr)"/>
+  <text class="lbl" x="370" y="570" fill="#666">d ≫ c</text>
+
+  <!-- x : T -|> A, the cover, down the left -->
+  <path d="M 192 614 C 205 710, 245 780, 304 808" fill="none" stroke="#e65100" stroke-width="1.6"
+        marker-end="url(#cov)"/>
+  <text class="lbl" x="210" y="720" fill="#e65100">x</text>
+
+  <!-- t : T -> J, the induced lift, dashed -->
+  <line x1="212" y1="608" x2="302" y2="650" stroke="#666" stroke-width="1.6"
+        stroke-dasharray="6 4" marker-end="url(#arr)"/>
+  <text class="lbl" x="244" y="620" fill="#666">t</text>
 
   <!-- j : J -> I -->
-  <line x1="338" y1="594" x2="500" y2="594" stroke="#f9a825" stroke-width="1.6" marker-end="url(#arr)"/>
-  <text class="lbl" x="418" y="582" fill="#f9a825">j</text>
+  <line x1="338" y1="654" x2="500" y2="654" stroke="#f9a825" stroke-width="1.6" marker-end="url(#arr)"/>
+  <text class="lbl" x="418" y="642" fill="#f9a825">j</text>
 
   <!-- k : J >-> A, monic (pullback of the monic i) -->
-  <line x1="320" y1="610" x2="320" y2="742" stroke="#455a64" stroke-width="1.6"
+  <line x1="320" y1="670" x2="320" y2="802" stroke="#455a64" stroke-width="1.6"
         marker-start="url(#tail)" marker-end="url(#arr)"/>
-  <text class="lbl" x="336" y="680" fill="#455a64">k</text>
+  <text class="lbl" x="336" y="740" fill="#455a64">k</text>
 
   <!-- pullback corner at J -->
-  <line x1="346" y1="594" x2="346" y2="620" stroke="#222" stroke-width="1.2"/>
-  <line x1="320" y1="620" x2="346" y2="620" stroke="#222" stroke-width="1.2"/>
+  <line x1="346" y1="654" x2="346" y2="680" stroke="#222" stroke-width="1.2"/>
+  <line x1="320" y1="680" x2="346" y2="680" stroke="#222" stroke-width="1.2"/>
 
   <!-- i : I >-> AxA -->
-  <line x1="520" y1="610" x2="520" y2="742" stroke="#c2185b" stroke-width="1.6"
+  <line x1="520" y1="670" x2="520" y2="802" stroke="#c2185b" stroke-width="1.6"
         marker-start="url(#tail)" marker-end="url(#arr)"/>
-  <text class="lbl oI" x="538" y="680">i</text>
+  <text class="lbl oI" x="538" y="740">i</text>
 
   <!-- Δ : A >-> AxA -->
-  <line x1="341" y1="754" x2="489" y2="754" stroke="#7b1fa2" stroke-width="1.6"
+  <line x1="341" y1="814" x2="489" y2="814" stroke="#7b1fa2" stroke-width="1.6"
         marker-start="url(#tail)" marker-end="url(#arr)"/>
-  <text class="lbl oA" x="415" y="778">Δ</text>
+  <text class="lbl oA" x="415" y="838">Δ</text>
 
-  <!-- e := k⁻¹ : A -> J (the cover x = t ≫ k factors through the monic k: k is iso), blue dashed -->
-  <path d="M 306 740 C 282 700, 282 655, 306 612" fill="none" stroke="#1a6fd4" stroke-width="1.9"
+  <!-- lift notes, beside the square -->
+  <text class="cap" x="600" y="710">hdl : (d ≫ c) ≫ i = x ≫ Δ</text>
+  <text class="cap" x="600" y="738">t := pbJ.lift ⟨T, x, d ≫ c⟩</text>
+  <text class="cap" x="600" y="766">ht : t ≫ k = x</text>
+
+  <!-- ============ diagram 3: k is iso, e := k⁻¹, h := e ≫ j ============ -->
+  <text class="sub" x="60" y="862">A cover that factors through a monic makes it an iso:  e := k⁻¹, and h := e ≫ j is the witness:</text>
+
+  <text class="node oJ"  x="320" y="900">J</text>
+  <text class="node oI"  x="520" y="900">I</text>
+  <text class="node oA"  x="320" y="1060">A</text>
+  <text class="node oAA" x="520" y="1060">A×A</text>
+
+  <!-- j : J -> I -->
+  <line x1="338" y1="894" x2="500" y2="894" stroke="#f9a825" stroke-width="1.6" marker-end="url(#arr)"/>
+  <text class="lbl" x="418" y="882" fill="#f9a825">j</text>
+
+  <!-- k : J >-> A -->
+  <line x1="320" y1="910" x2="320" y2="1042" stroke="#455a64" stroke-width="1.6"
+        marker-start="url(#tail)" marker-end="url(#arr)"/>
+  <text class="lbl" x="336" y="980" fill="#455a64">k</text>
+
+  <!-- pullback corner at J -->
+  <line x1="346" y1="894" x2="346" y2="920" stroke="#222" stroke-width="1.2"/>
+  <line x1="320" y1="920" x2="346" y2="920" stroke="#222" stroke-width="1.2"/>
+
+  <!-- i : I >-> AxA -->
+  <line x1="520" y1="910" x2="520" y2="1042" stroke="#c2185b" stroke-width="1.6"
+        marker-start="url(#tail)" marker-end="url(#arr)"/>
+  <text class="lbl oI" x="538" y="980">i</text>
+
+  <!-- Δ : A >-> AxA -->
+  <line x1="341" y1="1054" x2="489" y2="1054" stroke="#7b1fa2" stroke-width="1.6"
+        marker-start="url(#tail)" marker-end="url(#arr)"/>
+  <text class="lbl oA" x="415" y="1078">Δ</text>
+
+  <!-- e := k⁻¹ : A -> J, blue dashed -->
+  <path d="M 306 1040 C 282 1000, 282 955, 306 912" fill="none" stroke="#1a6fd4" stroke-width="1.9"
         stroke-dasharray="7 5" marker-end="url(#arr)"/>
-  <text class="lbl" x="270" y="680" fill="#1a6fd4">e</text>
-  <text class="lbl" x="425" y="690" fill="#1a6fd4">h := e ≫ j</text>
+  <text class="lbl" x="270" y="980" fill="#1a6fd4">e</text>
+  <text class="lbl" x="425" y="990" fill="#1a6fd4">h := e ≫ j</text>
 
-  <!-- construction notes, beside the square -->
-  <text class="cap" x="600" y="630">t := pbJ.lift ⟨T, x, d ≫ c⟩</text>
-  <text class="cap" x="600" y="658">ht : t ≫ k = x</text>
-  <text class="cap" x="600" y="686">x is a COVER and k is monic</text>
-  <text class="cap" x="600" y="714">⇒ k is an iso,  e := k⁻¹  (hek)</text>
+  <!-- conclusion notes, beside the square -->
+  <text class="cap" x="600" y="950">hek : e ≫ k = 1</text>
+  <text class="cap" x="600" y="978">pf₁ : h ≫ (i ≫ fst) = 1</text>
+  <text class="cap" x="600" y="1006">pf₂ : h ≫ (i ≫ snd) = 1</text>
 
   <!-- ============ legend + caption: the proof steps, in the Lean proof's names ============ -->
-  <text class="sub" x="60" y="810">─▷ hollow head = cover,   ↣ tailed = monic,   corner = pullback,   dashed = induced,   blue dashed = the witness.</text>
+  <text class="sub" x="60" y="1110">─▷ hollow head = cover,   ↣ tailed = monic,   corner = pullback,   dashed = induced,   blue dashed = the witness.</text>
 
-  <text class="cap" x="60" y="840">1.  l, r := the pullback of (y, y) (corner at P);  sp := ⟨l ≫ x, r ≫ x⟩ : P → A×A;  I := image sp,</text>
-  <text class="cap" x="60" y="865">     so  sp = c ≫ i  with c a cover (hc') and i := I.arr monic.   RR° is the table (I; i ≫ fst, i ≫ snd).</text>
-  <text class="cap" x="60" y="890">2.  "1 ⊑ RR°" (R ENTIRE) means a morphism h : A → I from the apex of  graph(1) = A ←1— A —1→ A</text>
-  <text class="cap" x="60" y="915">     to the apex of RR°, with  pf₁ : h ≫ (i ≫ fst) = 1  and  pf₂ : h ≫ (i ≫ snd) = 1.</text>
-  <text class="cap" x="60" y="940">3.  d := pb.lift ⟨T, 1, 1⟩ (hd₁ : d ≫ l = 1, hd₂ : d ≫ r = 1);  both routes T → A×A equal ⟨x, x⟩:</text>
-  <text class="cap" x="60" y="965">     hdl : (d ≫ c) ≫ i = x ≫ Δ.</text>
-  <text class="cap" x="60" y="990">4.  J := the pullback of (Δ, i) (second diagram):  k is monic (pullback of the monic i);  by hdl the cone</text>
-  <text class="cap" x="60" y="1015">     ⟨T, x, d ≫ c⟩ lifts to t;  the COVER x = t ≫ k factors through the monic k, so k is an iso,</text>
-  <text class="cap" x="60" y="1040">     e := k⁻¹, and h := e ≫ j gives pf₁, pf₂:  R is ENTIRE.  ∎</text>
+  <text class="cap" x="60" y="1140">1.  l, r := the pullback of (y, y) (corner at P);  sp := ⟨l ≫ x, r ≫ x⟩ : P → A×A;  I := image sp,</text>
+  <text class="cap" x="60" y="1165">     so  sp = c ≫ i  with c a cover (hc') and i := I.arr monic.   RR° is the table (I; i ≫ fst, i ≫ snd).</text>
+  <text class="cap" x="60" y="1190">2.  "1 ⊑ RR°" (R ENTIRE) means a morphism h : A → I from the apex of  graph(1) = A ←1— A —1→ A</text>
+  <text class="cap" x="60" y="1215">     to the apex of RR°, with  pf₁ : h ≫ (i ≫ fst) = 1  and  pf₂ : h ≫ (i ≫ snd) = 1.</text>
+  <text class="cap" x="60" y="1240">3.  d := pb.lift ⟨T, 1, 1⟩ (hd₁ : d ≫ l = 1, hd₂ : d ≫ r = 1);  both routes T → A×A equal ⟨x, x⟩:</text>
+  <text class="cap" x="60" y="1265">     hdl : (d ≫ c) ≫ i = x ≫ Δ,  where  Δ := ⟨1, 1⟩ : A ↣ A×A.</text>
+  <text class="cap" x="60" y="1290">4.  J := the pullback of (Δ, i) (second diagram):  k is monic (pullback of the monic i);  the cone</text>
+  <text class="cap" x="60" y="1315">     ⟨T, x, d ≫ c⟩ lifts to t;  the COVER x = t ≫ k factors through the monic k, so k is an iso</text>
+  <text class="cap" x="60" y="1340">     (third diagram), e := k⁻¹, and h := e ≫ j gives pf₁, pf₂:  R is ENTIRE.  ∎</text>
 </svg>
