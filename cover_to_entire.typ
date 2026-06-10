@@ -198,10 +198,10 @@
     edge((2.5, 2), (4, 3), "->", label: [$r$], stroke: cl),
 
     // ── Tabulation ──
-    cover-edge((1, 3), (0, 4), label: [$x$], stroke: cx),
+    edge((1, 3), (0, 4), "->", label: [$x$], stroke: cx),
     edge((1, 3), (2.5, 4), "->", label: [$y$], stroke: cy),
     edge((4, 3), (2.5, 4), "->", label: [$y$], stroke: cy),
-    cover-edge((4, 3), (5, 4), label: [$x$], stroke: cx),
+    edge((4, 3), (5, 4), "->", label: [$x$], stroke: cx),
 
     // ── Factorization x = g m ──
     edge((1, 3), (1.25, 4), "->", label: [$g$]),
