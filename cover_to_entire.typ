@@ -5,12 +5,24 @@
 #set par(leading: 0.5em, justify: false)
 #set align(center)
 
+// ── color palette ───────────────────────────────────────────────────
+#let cT  = rgb("ffe0b2")  // orange  — T
+#let cP  = rgb("c8e6c9")  // green   — pullback vertex
+#let cI  = rgb("f8bbd0")  // magenta — image
+#let cA  = rgb("e1bee7")  // purple  — A
+#let cB  = rgb("bbdefb")  // blue    — B
+#let cAA = rgb("b2dfdb")  // teal    — A×A
+#let cJ  = rgb("d7ccc8")  // brown   — J
+#let cl  = rgb("43a047")  // l/r green
+#let cy  = rgb("1565c0")  // y blue
+#let cx  = rgb("e65100")  // x orange
+#let cj  = rgb("f9a825")  // j gold
+#let cwit = rgb("1a6fd4") // witness blue
+
 // ── reusable diagram fragments ──────────────────────────────────────
 
-// Pullback corner at vertex `p` with projection legs toward `l` and `r`
-// (grid positions). Two segments start ON each leg, `s` of the way along,
-// and meet at the parallelogram point inside the square — so the mark
-// visibly connects the two projections.
+// Pullback corner: two segments from points s-of-the-way along
+// the projection legs, meeting at the parallelogram point.
 #let pb-corner(p, l, r, s: 0.3, stroke: 0.9pt + rgb("333")) = {
   let v1 = (l.at(0) - p.at(0), l.at(1) - p.at(1))
   let v2 = (r.at(0) - p.at(0), r.at(1) - p.at(1))
@@ -20,25 +32,23 @@
   (edge(p1, m, "-", stroke: stroke), edge(p2, m, "-", stroke: stroke))
 }
 
-// A pullback square: f: L→C←R: g.
-#let pullback-sq(f-name: [$f$], g-name: [$g$],
-                  l-name: [$p_1$], r-name: [$p_2$],
-                  p-pos: (1,1), l-pos: (0,2), r-pos: (2,2), c-pos: (1,3),
-                  f-fill: none, g-fill: none, p-fill: none, c-fill: none,
+// Pullback square: p —l→ L —f→ C ←g— R ←r— p.
+#let pullback-sq(p-pos: (1,1), l-pos: (0,2), r-pos: (2,2), c-pos: (1,3),
+                  f: [$f$], g: [$g$], l: [$p_1$], r: [$p_2$],
+                  p-name: [$P$], l-name: [$L$], r-name: [$R$], c-name: [$C$],
+                  p-fill: none, l-fill: none, r-fill: none, c-fill: none,
                   l-stroke: black, r-stroke: black,
-                  f-stroke: black, g-stroke: black,
-                  name: "") = {
-  let p-name = if name != "" { [$name$] } else { [$P$] }
+                  f-stroke: black, g-stroke: black) = {
   (
     pb-corner(p-pos, l-pos, r-pos),
     node(p-pos, p-name, fill: p-fill),
-    node(l-pos, [$T$], fill: f-fill),
-    node(r-pos, [$T$], fill: f-fill),
-    node(c-pos, [$B$], fill: c-fill),
-    edge(p-pos, l-pos, "->", label: l-name, stroke: l-stroke),
-    edge(p-pos, r-pos, "->", label: r-name, stroke: r-stroke),
-    edge(l-pos, c-pos, "->", label: f-name, stroke: f-stroke),
-    edge(r-pos, c-pos, "->", label: g-name, stroke: g-stroke),
+    node(l-pos, l-name, fill: l-fill),
+    node(r-pos, r-name, fill: r-fill),
+    node(c-pos, c-name, fill: c-fill),
+    edge(p-pos, l-pos, "->", label: l, stroke: l-stroke),
+    edge(p-pos, r-pos, "->", label: r, stroke: r-stroke),
+    edge(l-pos, c-pos, "->", label: f, stroke: f-stroke),
+    edge(r-pos, c-pos, "->", label: g, stroke: g-stroke),
   )
 }
 
@@ -55,7 +65,7 @@
   edge(from, to, "->", dash: "dashed", label: label)
 }
 #let witness-edge(from, to, label: none) = {
-  edge(from, to, "->", dash: "dashed", label: label, stroke: rgb("1a6fd4") + 1.2pt)
+  edge(from, to, "->", dash: "dashed", label: label, stroke: cwit + 1.2pt)
 }
 
 // ── document ────────────────────────────────────────────────────────
@@ -70,14 +80,13 @@
 #figure(
   fletcher.diagram(
     spacing: 3em,
-    node((1,-1), [$T$], fill: rgb("#ffe0b2")),
+    node((1,-1), [$T$], fill: cT),
     pullback-sq(
-      f-name: [$y$], g-name: [$y$],
-      l-name: [$l$], r-name: [$r$],
       p-pos: (1,0), l-pos: (0,1), r-pos: (2,1), c-pos: (1,2),
-      p-fill: rgb("#c8e6c9"), f-fill: rgb("#ffe0b2"), c-fill: rgb("#bbdefb"),
-      l-stroke: rgb("#43a047"), r-stroke: rgb("#43a047"),
-      f-stroke: rgb("#1565c0"), g-stroke: rgb("#1565c0"),
+      f: [$y$], g: [$y$], l: [$l$], r: [$r$],
+      l-name: [$T$], r-name: [$T$], c-name: [$B$],
+      p-fill: cP, l-fill: cT, r-fill: cT, c-fill: cB,
+      l-stroke: cl, r-stroke: cl, f-stroke: cy, g-stroke: cy,
     ),
     lift-edge((1,-1), (1,0), label: [$d$]),
     edge((1,-1), (0,1), "->", label: [$1$], stroke: gray + 1pt),
@@ -94,26 +103,25 @@
 #figure(
   fletcher.diagram(
     spacing: 3em,
-    node((2,0), [$A×A$], fill: rgb("#b2dfdb")),
-    node((2,1), [$I$], fill: rgb("#f8bbd0")),
-    node((2,2), [$P$], fill: rgb("#c8e6c9")),
-    node((1,3), [$T$], fill: rgb("#ffe0b2")),
-    node((3,3), [$T$], fill: rgb("#ffe0b2")),
-    node((0,4), [$A$], fill: rgb("#e1bee7")),
-    node((2,4), [$B$], fill: rgb("#bbdefb")),
-    node((4,4), [$A$], fill: rgb("#e1bee7")),
+    node((2,0), [$A×A$], fill: cAA),
+    node((2,1), [$I$], fill: cI),
+    node((2,2), [$P$], fill: cP),
+    node((1,3), [$T$], fill: cT),
+    node((3,3), [$T$], fill: cT),
+    node((0,4), [$A$], fill: cA),
+    node((2,4), [$B$], fill: cB),
+    node((4,4), [$A$], fill: cA),
 
     monic-edge((2,1), (2,0), label: [$i$]),
     cover-edge((2,2), (2,1), label: [$c$]),
-    edge((2,2), (1,3), "->", label: [$l$], stroke: rgb("#43a047")),
-    edge((2,2), (3,3), "->", label: [$r$], stroke: rgb("#43a047")),
+    edge((2,2), (1,3), "->", label: [$l$], stroke: cl),
+    edge((2,2), (3,3), "->", label: [$r$], stroke: cl),
 
-    cover-edge((1,3), (0,4), label: [$x$], stroke: rgb("#e65100")),
-    edge((1,3), (2,4), "->", label: [$y$], stroke: rgb("#1565c0")),
-    edge((3,3), (2,4), "->", label: [$y$], stroke: rgb("#1565c0")),
-    cover-edge((3,3), (4,4), label: [$x$], stroke: rgb("#e65100")),
+    cover-edge((1,3), (0,4), label: [$x$], stroke: cx),
+    edge((1,3), (2,4), "->", label: [$y$], stroke: cy),
+    edge((3,3), (2,4), "->", label: [$y$], stroke: cy),
+    cover-edge((3,3), (4,4), label: [$x$], stroke: cx),
 
-    // diagonal legs — minimal bend to avoid crossing nodes
     edge((2,1), (0,4), "->", bend: 18deg, label: [$i ≫ "fst"$]),
     edge((2,1), (4,4), "->", bend: -18deg, label: [$i ≫ "snd"$]),
 
@@ -130,23 +138,22 @@
 #figure(
   fletcher.diagram(
     spacing: 3.2em,
-    node((1,0), [$T$], fill: rgb("#ffe0b2")),
-    node((2,1), [$J$], fill: rgb("#d7ccc8")),
-    node((4,1), [$I$], fill: rgb("#f8bbd0")),
-    node((2,3), [$A$], fill: rgb("#e1bee7")),
-    node((4,3), [$A×A$], fill: rgb("#b2dfdb")),
+    node((1,0), [$T$], fill: cT),
+    node((2,1), [$J$], fill: cJ),
+    node((4,1), [$I$], fill: cI),
+    node((2,3), [$A$], fill: cA),
+    node((4,3), [$A×A$], fill: cAA),
 
     edge((1,0), (4,1), "->", label: [$d ≫ c$]),
-    cover-edge((1,0), (2,3), label: [$x$], stroke: rgb("#e65100")),
+    cover-edge((1,0), (2,3), label: [$x$], stroke: cx),
     lift-edge((1,0), (2,1), label: [$t$]),
-    edge((2,1), (4,1), "->", label: [$j$], stroke: rgb("#f9a825")),
+    edge((2,1), (4,1), "->", label: [$j$], stroke: cj),
     iso-edge((2,1), (2,3), label: [$k$]),
     monic-edge((4,1), (4,3), label: [$i$]),
     monic-edge((2,3), (4,3), label: [$Δ$]),
 
     witness-edge((2,3), (4,1), label: [$k^(-1) ≫ j$]),
 
-    // legs j and k are two cells long: halve s to keep the mark small
     pb-corner((2,1), (4,1), (2,3), s: 0.15),
   ),
   caption: [hdl: (d≫c)≫i = x≫Δ,  t:=pbJ.lift⟨T,x,d≫c⟩,  ht: t≫k=x.  k monic, x=cover ⇒ k iso.] + [  h := k⁻¹≫j satisfies pf₁: h≫(i≫fst)=1, pf₂: h≫(i≫snd)=1.],
@@ -156,5 +163,5 @@
 
 #text(size: 8pt, fill: gray)[
   Legend:  ->> hollow head = cover,  >-> tailed = monic,  <-> double arrow = iso,
-  dashed = induced / witness,  blue = witness,  ⌟ = pullback corner.
+  dashed = induced / witness,  blue = witness,  ⌝ = pullback corner.
 ]

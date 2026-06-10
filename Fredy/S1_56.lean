@@ -147,6 +147,13 @@ def Simple {A B : 𝒞} (R : BinRel 𝒞 A B) : Prop :=
 def Map {A B : 𝒞} (R : BinRel 𝒞 A B) : Prop :=
   Entire R ∧ Simple R
 
+/-- `pair x x = x ≫ diag _` — a morphism followed by the diagonal equals
+    the pair of itself.  Used throughout the entire/simple proofs. -/
+theorem pair_diag_eq {X B : 𝒞} (x : X ⟶ B) : pair x x = x ≫ diag B :=
+  (pair_uniq x x (x ≫ diag B)
+    (by rw [Cat.assoc, diag_fst, Cat.comp_id])
+    (by rw [Cat.assoc, diag_snd, Cat.comp_id])).symm
+
 /-- **§1.564**: a relation tabulated by ⟨T; x, y⟩ is ENTIRE iff `x` is a cover.
 
     The cover ⇒ entire direction is drawn step by step in `cover_to_entire.svg`,
@@ -262,9 +269,7 @@ theorem tabulated_is_entire_iff_left_cover {A B T : 𝒞} (x : T ⟶ A) (y : T �
     have hc' : c ≫ i = sp := hc
     -- hdl: both routes T → A×A are the pair ⟨x, x⟩
     have hdl : (d ≫ c) ≫ i = x ≫ diag A := by
-      have hdx : x ≫ diag A = pair x x :=
-        pair_uniq x x _ (by rw [Cat.assoc, diag_fst, Cat.comp_id])
-          (by rw [Cat.assoc, diag_snd, Cat.comp_id])
+      have hdx : x ≫ diag A = pair x x := (pair_diag_eq x).symm
       have hds : d ≫ sp = pair x x :=
         pair_uniq x x _
           (by rw [Cat.assoc, hsp₁, ← Cat.assoc, hd₁, Cat.id_comp])
@@ -320,8 +325,7 @@ theorem iso_cover {X Y : 𝒞} (f : X ⟶ Y) (hf : IsIso f) : Cover f := by
   have h_m_inv : m ≫ (finv ≫ g) = Cat.id C := by
     apply hm (m ≫ (finv ≫ g)) (Cat.id C)
     calc (m ≫ (finv ≫ g)) ≫ m = m ≫ ((finv ≫ g) ≫ m) := Cat.assoc _ _ _
-      _ = m ≫ (finv ≫ (g ≫ m)) := by rw [Cat.assoc]
-      _ = m ≫ (finv ≫ f) := by rw [hfac]
+      _ = m ≫ (finv ≫ f) := by rw [Cat.assoc finv g m, hfac]
       _ = m ≫ Cat.id Y := by rw [hfinv_f]
       _ = m := Cat.comp_id _
       _ = Cat.id C ≫ m := (Cat.id_comp _).symm
@@ -336,6 +340,11 @@ theorem iso_cover {X Y : 𝒞} (f : X ⟶ Y) (hf : IsIso f) : Cover f := by
     is a MAP iff its left leg is an isomorphism. -/
 theorem tabulated_is_simple_iff_left_monic {A B T : 𝒞} (a : T ⟶ A) (b : T ⟶ B)
     (hp : MonicPair a b) : Simple (BinRel.mk T a b hp) ↔ Mono a := by
+  -- shared pullback data for both directions
+  let pbA := HasPullbacks.has a a
+  let l := pbA.cone.π₁
+  let r := pbA.cone.π₂
+  let sp := pair (l ≫ b) (r ≫ b)
   constructor
   · /- Simple → Mono a.
       Given f ≫ a = g ≫ a, pull them back to the pullback of (a, a), then
@@ -343,10 +352,6 @@ theorem tabulated_is_simple_iff_left_monic {A B T : 𝒞} (a : T ⟶ A) (b : T �
       f ≫ b = g ≫ b; MonicPair a b then gives f = g. -/
     intro h_simple
     rcases h_simple with ⟨⟨h, h1, h2⟩⟩
-    let pbA := HasPullbacks.has a a
-    let l := pbA.cone.π₁
-    let r := pbA.cone.π₂
-    let sp := pair (l ≫ b) (r ≫ b)
     -- h1 : h ≫ id B = (image sp).arr ≫ fst,  h2 : h ≫ id B = (image sp).arr ≫ snd
     have h_simple_eq : (image sp).arr ≫ fst = (image sp).arr ≫ snd := by
       calc (image sp).arr ≫ fst = h ≫ Cat.id B := by simpa using h1.symm
@@ -387,17 +392,9 @@ theorem tabulated_is_simple_iff_left_monic {A B T : 𝒞} (a : T ⟶ A) (b : T �
       ⟨l≫b, r≫b⟩ = ⟨l≫b, l≫b⟩ factors through diag B.  Hence the image
       embeds into the diagonal: its fst/snd legs are equal. -/
     intro hm
-    let pbA := HasPullbacks.has a a
-    let l := pbA.cone.π₁
-    let r := pbA.cone.π₂
     have hlr : l = r := hm _ _ pbA.cone.w
-    let sp := pair (l ≫ b) (r ≫ b)
     have hsp_eq : sp = pair (l ≫ b) (l ≫ b) := by dsimp [sp]; rw [← hlr]
-    have hsp_fac : sp = (l ≫ b) ≫ diag B := by
-      rw [hsp_eq]
-      exact (pair_uniq (l ≫ b) (l ≫ b) ((l ≫ b) ≫ diag B)
-        (by rw [Cat.assoc, diag_fst, Cat.comp_id])
-        (by rw [Cat.assoc, diag_snd, Cat.comp_id])).symm
+    have hsp_fac : sp = (l ≫ b) ≫ diag B := by rw [hsp_eq, pair_diag_eq (l ≫ b)]
     let diagSub : Subobject 𝒞 (prod B B) := ⟨B, diag B, diag_mono B⟩
     have hallows : Allows diagSub sp := ⟨l ≫ b, by dsimp [diagSub]; rw [hsp_fac]⟩
     obtain ⟨k, hk⟩ := image_min sp diagSub hallows
