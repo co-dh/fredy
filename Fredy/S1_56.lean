@@ -233,21 +233,27 @@ theorem tabulated_is_entire_iff_left_cover {A B T : 𝒞} (x : T ⟶ A) (y : T �
         _ = Cat.id A := h₁'
     -- a monic split epi is an iso
     exact ⟨(h ≫ e) ≫ fst, hm _ _ (by rw [Cat.assoc, hsm, Cat.comp_id, Cat.id_comp]), hsm⟩
-  · /- COVER ⇒ ENTIRE (the SVG, left to right).
+  · /- COVER ⇒ ENTIRE (three panels in `cover_to_entire.svg`).
 
-       Step 1-3:  d := diagonal of the pullback (hd₁, hd₂);  c covers I (hc');
-                  hdl : the square below commutes — T lands over the diagonal of A×A.
+       Panel 0 — d : T → P lifts from pullback of (y,y) (§1.42):
+           P is pullback of (y,y): l ≫ y = r ≫ y.  The pair ⟨id_T, id_T⟩
+           with  id_T ≫ y = id_T ≫ y  is a cone over (y,y) at T; by
+           definition of pullback there is a unique lift
+           d : T → P  with  hd₁ : d ≫ l = id_T  and  hd₂ : d ≫ r = id_T.
 
-           T ──── d ≫ c ───→ I                J := pullback of (Δ, i):
-           │                 │
-           x                 i                     J ───j──→ I
-           │                 │                   k │  ⌟      │ i
-           ↓                 ↓                     ↓         ↓
-           A ─── Δ = diag ──→ A×A                  A ───Δ───→ A×A
+       Panel 1 — composition RR°:
+           sp := ⟨l ≫ x, r ≫ x⟩ factors as c ≫ i with c a cover, i monic.
+           Both routes T → A×A equal ⟨x, x⟩:
+              hdl : (d ≫ c) ≫ i = x ≫ Δ        where Δ = ⟨id, id⟩.
 
-       Step 4:  k is monic (pullback of the monic i);  t := lift ⟨T, x, d≫c⟩ has
-                t ≫ k = x;  `x` is a COVER, so k is iso with inverse e (hek : e ≫ k = 1).
-       Step 5:  h := e ≫ j  witnesses  graph(1) ⊑ RR°  (pf₁, pf₂).                     -/
+       Panel 2 — pullback J of (Δ, i), lift t, k iso, witness:
+           hdl : x ≫ Δ = (d ≫ c) ≫ i makes ⟨x, d ≫ c⟩ a cone over (Δ,i);
+           by definition of pullback ∃! t with ht : t ≫ k = x.
+           k is monic (pullback of monic i).  x = t ≫ k is a COVER, so
+           k is iso with inverse k⁻¹ (hk_inv_k : k⁻¹ ≫ k = 1).
+           h := k⁻¹ ≫ j : A → I  satisfies
+           h ≫ (i ≫ fst) = 1  and  h ≫ (i ≫ snd) = 1,
+           so  graph(1) ⊑ RR°  and R is ENTIRE.                        -/
     intro hcov
     let d : T ⟶ pb.cone.pt := pb.lift ⟨T, Cat.id T, Cat.id T, rfl⟩
     have hd₁ : d ≫ l = Cat.id T := pb.lift_fst _
@@ -284,35 +290,148 @@ theorem tabulated_is_entire_iff_left_cover {A B T : 𝒞} (x : T ⟶ A) (y : T �
         rw [Cat.assoc, Cat.assoc, hkj]
       rw [pbJ.lift_uniq ⟨W, f ≫ k, f ≫ j, hwc⟩ f rfl rfl,
         pbJ.lift_uniq ⟨W, f ≫ k, f ≫ j, hwc⟩ g hfg.symm hj.symm]
-    -- t: x factors through k; x is a cover, so k is iso with inverse e
+    -- t: x factors through k; x is a cover, so k is iso with inverse k⁻¹
     let t : T ⟶ pbJ.cone.pt := pbJ.lift ⟨T, x, d ≫ c, hdl.symm⟩
     have ht : t ≫ k = x := pbJ.lift_fst _
-    obtain ⟨e, -, hek⟩ := hcov k t hk ht
-    -- h := e ≫ j is the containment 1 ≤ RR°
-    have pf₁ : (e ≫ j) ≫ (i ≫ fst) = Cat.id A := by
-      calc (e ≫ j) ≫ (i ≫ fst) = e ≫ (j ≫ (i ≫ fst)) := Cat.assoc _ _ _
-        _ = e ≫ ((j ≫ i) ≫ fst) := by rw [Cat.assoc]
-        _ = e ≫ ((k ≫ diag A) ≫ fst) := by rw [hkj]
-        _ = e ≫ (k ≫ (diag A ≫ fst)) := by rw [Cat.assoc]
-        _ = e ≫ (k ≫ Cat.id A) := by rw [diag_fst]
-        _ = e ≫ k := by rw [Cat.comp_id]
-        _ = Cat.id A := hek
-    have pf₂ : (e ≫ j) ≫ (i ≫ snd) = Cat.id A := by
-      calc (e ≫ j) ≫ (i ≫ snd) = e ≫ (j ≫ (i ≫ snd)) := Cat.assoc _ _ _
-        _ = e ≫ ((j ≫ i) ≫ snd) := by rw [Cat.assoc]
-        _ = e ≫ ((k ≫ diag A) ≫ snd) := by rw [hkj]
-        _ = e ≫ (k ≫ (diag A ≫ snd)) := by rw [Cat.assoc]
-        _ = e ≫ (k ≫ Cat.id A) := by rw [diag_snd]
-        _ = e ≫ k := by rw [Cat.comp_id]
-        _ = Cat.id A := hek
-    exact ⟨⟨e ≫ j, pf₁, pf₂⟩⟩
+    obtain ⟨k_inv, -, hk_inv_k⟩ := hcov k t hk ht
+    -- h := k⁻¹ ≫ j is the containment 1 ≤ RR°
+    have pf₁ : (k_inv ≫ j) ≫ (i ≫ fst) = Cat.id A := by
+      calc (k_inv ≫ j) ≫ (i ≫ fst) = k_inv ≫ (j ≫ (i ≫ fst)) := Cat.assoc _ _ _
+        _ = k_inv ≫ ((j ≫ i) ≫ fst) := by rw [Cat.assoc]
+        _ = k_inv ≫ ((k ≫ diag A) ≫ fst) := by rw [hkj]
+        _ = k_inv ≫ (k ≫ (diag A ≫ fst)) := by rw [Cat.assoc]
+        _ = k_inv ≫ (k ≫ Cat.id A) := by rw [diag_fst]
+        _ = k_inv ≫ k := by rw [Cat.comp_id]
+        _ = Cat.id A := hk_inv_k
+    have pf₂ : (k_inv ≫ j) ≫ (i ≫ snd) = Cat.id A := by
+      calc (k_inv ≫ j) ≫ (i ≫ snd) = k_inv ≫ (j ≫ (i ≫ snd)) := Cat.assoc _ _ _
+        _ = k_inv ≫ ((j ≫ i) ≫ snd) := by rw [Cat.assoc]
+        _ = k_inv ≫ ((k ≫ diag A) ≫ snd) := by rw [hkj]
+        _ = k_inv ≫ (k ≫ (diag A ≫ snd)) := by rw [Cat.assoc]
+        _ = k_inv ≫ (k ≫ Cat.id A) := by rw [diag_snd]
+        _ = k_inv ≫ k := by rw [Cat.comp_id]
+        _ = Cat.id A := hk_inv_k
+    exact ⟨⟨k_inv ≫ j, pf₁, pf₂⟩⟩
+
+/-- An isomorphism is a cover (§1.512). -/
+theorem iso_cover {X Y : 𝒞} (f : X ⟶ Y) (hf : IsIso f) : Cover f := by
+  rcases hf with ⟨finv, -, hfinv_f⟩
+  intro C m g hm hfac
+  have h_m_inv : m ≫ (finv ≫ g) = Cat.id C := by
+    apply hm (m ≫ (finv ≫ g)) (Cat.id C)
+    calc (m ≫ (finv ≫ g)) ≫ m = m ≫ ((finv ≫ g) ≫ m) := Cat.assoc _ _ _
+      _ = m ≫ (finv ≫ (g ≫ m)) := by rw [Cat.assoc]
+      _ = m ≫ (finv ≫ f) := by rw [hfac]
+      _ = m ≫ Cat.id Y := by rw [hfinv_f]
+      _ = m := Cat.comp_id _
+      _ = Cat.id C ≫ m := (Cat.id_comp _).symm
+  have h_inv_m : (finv ≫ g) ≫ m = Cat.id Y := by
+    calc (finv ≫ g) ≫ m = finv ≫ (g ≫ m) := Cat.assoc _ _ _
+      _ = finv ≫ f := by rw [hfac]
+      _ = Cat.id Y := hfinv_f
+  exact ⟨finv ≫ g, h_m_inv, h_inv_m⟩
+
+/-- **§1.564**: A relation ⟨T; a, b⟩ is SIMPLE iff its left leg `a` is monic.
+    With `tabulated_is_entire_iff_left_cover`, this yields: a tabulated relation
+    is a MAP iff its left leg is an isomorphism. -/
+theorem tabulated_is_simple_iff_left_monic {A B T : 𝒞} (a : T ⟶ A) (b : T ⟶ B)
+    (hp : MonicPair a b) : Simple (BinRel.mk T a b hp) ↔ Mono a := by
+  constructor
+  · /- Simple → Mono a.
+      Given f ≫ a = g ≫ a, pull them back to the pullback of (a, a), then
+      Simplicity (the composed relation has equal fst/snd legs) forces
+      f ≫ b = g ≫ b; MonicPair a b then gives f = g. -/
+    intro h_simple
+    rcases h_simple with ⟨⟨h, h1, h2⟩⟩
+    let pbA := HasPullbacks.has a a
+    let l := pbA.cone.π₁
+    let r := pbA.cone.π₂
+    let sp := pair (l ≫ b) (r ≫ b)
+    -- h1 : h ≫ id B = (image sp).arr ≫ fst,  h2 : h ≫ id B = (image sp).arr ≫ snd
+    have h_simple_eq : (image sp).arr ≫ fst = (image sp).arr ≫ snd := by
+      calc (image sp).arr ≫ fst = h ≫ Cat.id B := by simpa using h1.symm
+        _ = h := Cat.comp_id _
+        _ = h ≫ Cat.id B := (Cat.comp_id _).symm
+        _ = (image sp).arr ≫ snd := by simpa using h2
+    intro W f g hfa
+    let coneA : Cone a a := ⟨W, f, g, hfa⟩
+    let u := pbA.lift coneA
+    have hu1 : u ≫ l = f := pbA.lift_fst coneA
+    have hu2 : u ≫ r = g := pbA.lift_snd coneA
+    have h_fb : f ≫ b = g ≫ b := by
+      have h_img := image.lift_fac sp
+      -- h_img : image.lift sp ≫ (image sp).arr = sp
+      -- Use congrArg to avoid rw on sp inside (image sp)
+      have h1' : u ≫ (sp ≫ fst) = u ≫ ((image.lift sp ≫ (image sp).arr) ≫ fst) :=
+        congrArg (fun t => u ≫ (t ≫ fst)) h_img.symm
+      have h2' : u ≫ ((image.lift sp ≫ (image sp).arr) ≫ snd) = u ≫ (sp ≫ snd) :=
+        congrArg (fun t => u ≫ (t ≫ snd)) h_img
+      calc f ≫ b = (u ≫ l) ≫ b := by rw [hu1]
+        _ = u ≫ (l ≫ b) := Cat.assoc _ _ _
+        _ = (u ≫ pair (l ≫ b) (r ≫ b)) ≫ fst := by rw [Cat.assoc, fst_pair]
+        _ = (u ≫ sp) ≫ fst := rfl
+        _ = u ≫ (sp ≫ fst) := Cat.assoc u sp fst
+        _ = u ≫ ((image.lift sp ≫ (image sp).arr) ≫ fst) := by rw [h1']
+        _ = u ≫ image.lift sp ≫ ((image sp).arr ≫ fst) := by simp [Cat.assoc]
+        _ = u ≫ image.lift sp ≫ ((image sp).arr ≫ snd) := by rw [h_simple_eq]
+        _ = u ≫ ((image.lift sp ≫ (image sp).arr) ≫ snd) := by simp [Cat.assoc]
+        _ = u ≫ (sp ≫ snd) := by rw [h2']
+        _ = (u ≫ sp) ≫ snd := (Cat.assoc u sp snd).symm
+        _ = (u ≫ pair (l ≫ b) (r ≫ b)) ≫ snd := rfl
+        _ = u ≫ (r ≫ b) := by rw [Cat.assoc, snd_pair]
+        _ = (u ≫ r) ≫ b := (Cat.assoc _ _ _).symm
+        _ = g ≫ b := by rw [hu2]
+    exact hp f g hfa h_fb
+  · /- Mono a → Simple.
+      Since a is monic, l = r in the pullback of (a, a), so the span
+      ⟨l≫b, r≫b⟩ = ⟨l≫b, l≫b⟩ factors through diag B.  Hence the image
+      embeds into the diagonal: its fst/snd legs are equal. -/
+    intro hm
+    let pbA := HasPullbacks.has a a
+    let l := pbA.cone.π₁
+    let r := pbA.cone.π₂
+    have hlr : l = r := hm _ _ pbA.cone.w
+    let sp := pair (l ≫ b) (r ≫ b)
+    have hsp_eq : sp = pair (l ≫ b) (l ≫ b) := by dsimp [sp]; rw [← hlr]
+    have hsp_fac : sp = (l ≫ b) ≫ diag B := by
+      rw [hsp_eq]
+      exact (pair_uniq (l ≫ b) (l ≫ b) ((l ≫ b) ≫ diag B)
+        (by rw [Cat.assoc, diag_fst, Cat.comp_id])
+        (by rw [Cat.assoc, diag_snd, Cat.comp_id])).symm
+    let diagSub : Subobject 𝒞 (prod B B) := ⟨B, diag B, diag_mono B⟩
+    have hallows : Allows diagSub sp := ⟨l ≫ b, by dsimp [diagSub]; rw [hsp_fac]⟩
+    obtain ⟨k, hk⟩ := image_min sp diagSub hallows
+    dsimp [diagSub] at hk
+    -- hk : k ≫ diag B = (image sp).arr
+    have h_fst_eq_k : (image sp).arr ≫ fst = k := by
+      calc (image sp).arr ≫ fst = (k ≫ diag B) ≫ fst := by rw [hk]
+        _ = k ≫ (diag B ≫ fst) := Cat.assoc _ _ _
+        _ = k ≫ Cat.id B := by rw [diag_fst]
+        _ = k := Cat.comp_id _
+    have h_k_eq_snd : k = (image sp).arr ≫ snd := by
+      calc k = k ≫ Cat.id B := (Cat.comp_id _).symm
+        _ = k ≫ (diag B ≫ snd) := by rw [diag_snd]
+        _ = (k ≫ diag B) ≫ snd := (Cat.assoc _ _ _).symm
+        _ = (image sp).arr ≫ snd := by rw [hk]
+    have h_colA : k ≫ (graph (Cat.id B)).colA = (image sp).arr ≫ fst := by
+      dsimp [graph]; rw [Cat.comp_id, h_fst_eq_k]
+    have h_colB : k ≫ (graph (Cat.id B)).colB = (image sp).arr ≫ snd := by
+      dsimp [graph]; rw [Cat.comp_id, h_k_eq_snd]
+    -- The RelHom witnesses R° ⊚ R ≤ graph(id_B)
+    simpa [compose, reciprocal, BinRel.mk] using ⟨k, h_colA, h_colB⟩
 
 /-- **§1.564**: A relation ⟨T; a:T→A, b:T→B⟩ tabulated by a monic pair is a
     MAP (entire + simple) iff `a` is an isomorphism.  Maps are exactly the
     graphs of morphisms: if `R` is a map then `R = graph(b ≫ a⁻¹)`. -/
 theorem tabulated_is_map_iff_left_iso {A B T : 𝒞} (a : T ⟶ A) (b : T ⟶ B) (hp : MonicPair a b) :
     Map (BinRel.mk T a b hp) ↔ IsIso a := by
-  sorry
+  rw [Map, tabulated_is_entire_iff_left_cover a b hp,
+    tabulated_is_simple_iff_left_monic a b hp]
+  constructor
+  · rintro ⟨hc, hm⟩; exact monic_cover_iso a hc hm
+  · intro hiso
+    rcases hiso with ⟨ainv, ha_ainv, hainv_a⟩
+    exact ⟨iso_cover a ⟨ainv, ha_ainv, hainv_a⟩, mono_of_retraction a ainv ha_ainv⟩
 
 /-! ## §1.563 Modular identity
 
