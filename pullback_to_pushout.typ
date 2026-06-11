@@ -48,22 +48,22 @@
   fletcher.diagram(
     spacing: 7em,
     label-sep: 1pt,
-    node((0,0), [$P$], fill: cP),
-    node((1,0), [$C$], fill: cC),
+    node((1,0), [$P$], fill: cP),
     node((0,1), [$A$], fill: cA),
-    node((1,1), [$B$], fill: cB),
-    node((2,2), [$Q$], fill: cQ),
+    node((2,1), [$C$], fill: cC),
+    node((1,2), [$B$], fill: cB),
+    node((1,3), [$Q$], fill: cQ),
 
-    edge((0,0), (1,0), "->", label: [$p_2$]),
-    edge((0,0), (0,1), "->", label: [$p_1$]),
-    cover-edge((0,1), (1,1), label: [$u$], stroke: cu),
-    cover-edge((1,0), (1,1), label: [$v$], stroke: cv),
+    edge((1,0), (0,1), "->", label: [$p_1$]),
+    edge((1,0), (2,1), "->", label: [$p_2$]),
+    cover-edge((0,1), (1,2), label: [$u$], stroke: cu),
+    cover-edge((2,1), (1,2), label: [$v$], stroke: cv),
 
-    edge((0,1), (2,2), "->", bend: -25deg, label: [$a$]),
-    edge((1,0), (2,2), "->", bend: 25deg, label: [$b$]),
-    witness-edge((1,1), (2,2), label: [$h$]),
+    edge((0,1), (1,3), "->", bend: -25deg, label: [$a$]),
+    edge((2,1), (1,3), "->", bend: 25deg, label: [$b$]),
+    witness-edge((1,2), (1,3), label: [$h$]),
 
-    pb-corner((0,0), (0,1), (1,0)),
+    pb-corner((1,0), (0,1), (2,1)),
   ),
   caption: [Pullback of surjections $u$, $v$ (covers in *Set*) is a pushout: \
     given $a$, $b$ with $p_1 a = p_2 b$, a unique $h$ has $u h = a$, $v h = b$.],
@@ -82,6 +82,7 @@
     node((0,1), [$A$], fill: cA),
     node((2,1), [$C$], fill: cC),
     node((1,2), [$B$], fill: cB),
+    node((1,3), [$Q$], fill: cQ),
 
     edge((1,-1), (0,1), "->", label: [$x$], stroke: gray + 1pt),
     edge((1,-1), (2,1), "->", label: [$z$], stroke: gray + 1pt),
@@ -91,6 +92,9 @@
     edge((1,0), (2,1), "->", label: [$p_2$]),
     cover-edge((0,1), (1,2), label: [$u$], stroke: cu),
     cover-edge((2,1), (1,2), label: [$v$], stroke: cv),
+
+    edge((0,1), (1,3), "->", bend: -25deg, label: [$a$]),
+    edge((2,1), (1,3), "->", bend: 25deg, label: [$b$]),
 
     pb-corner((1,0), (0,1), (2,1)),
   ),
