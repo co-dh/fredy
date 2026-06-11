@@ -132,10 +132,10 @@
     edge((2,0), (1,0.4), "|->", label: [$y$], stroke: cy),
     edge((0,0), (1,1.7), "|->", bend: -15deg, label: [$u$]),
     edge((2,0), (1,1.7), "|->", bend: 15deg, label: [$v$]),
-    witness-edge((1,0.4), (1,1.7), label: [$R$]),
+    witness-edge((1,0.4), (1,1.7), label: [$h$]),
   ),
-  caption: [$R$ is a map: every $b$ has $a ∈ x^(-1)(b)$, $c ∈ y^(-1)(b)$ (covers), and the \
-    key lemma makes all candidate values agree, so $h(b) := u(a)$ is forced.],
+  caption: [$R$ is a map — call it $h$: every $b$ has $a ∈ x^(-1)(b)$, $c ∈ y^(-1)(b)$ (covers), \
+    and the key lemma makes all candidate values agree, so $h(b) := u(a)$ is forced.],
 )
 
 #text(size: 13pt)[
