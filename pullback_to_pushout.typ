@@ -126,24 +126,24 @@
     node((0,0), [$a$]),
     node((1,0.4), [$b$]),
     node((2,0), [$c$]),
-    node((1,1.7), [$u(a) = v(c) =: h(b)$]),
+    node((1,1.7), [$u(a) = v(c) =: R(b)$]),
 
     edge((0,0), (1,0.4), "|->", label: [$x$], stroke: cx),
     edge((2,0), (1,0.4), "|->", label: [$y$], stroke: cy),
     edge((0,0), (1,1.7), "|->", bend: -15deg, label: [$u$]),
     edge((2,0), (1,1.7), "|->", bend: 15deg, label: [$v$]),
-    witness-edge((1,0.4), (1,1.7), label: [$h$]),
+    witness-edge((1,0.4), (1,1.7), label: [$R$]),
   ),
-  caption: [$R$ is a map — call it $h$: every $b$ has $a ∈ x^(-1)(b)$, $c ∈ y^(-1)(b)$ (covers), \
-    and the key lemma makes all candidate values agree, so $h(b) := u(a)$ is forced.],
+  caption: [$R$ is a map: every $b$ has $a ∈ x^(-1)(b)$, $c ∈ y^(-1)(b)$ (covers), \
+    and the key lemma makes all candidate values agree, so $R(b) := u(a)$ is forced.],
 )
 
 #text(size: 13pt)[
   entire: $b thin R thin u(a)$ — witnesses $a$, $c$, with $v(c) = u(a)$ by the key lemma \
   simple: $b R q$, $b R q'$ $⇒$ $q = u(a) = v(c') = q'$ — the key lemma *crosses* the two halves of $R$ \
   #v(0.5em)
-  $x R = u$: $(x(a)) thin R thin (u(a))$ holds, so $h(x(a)) = u(a)$ by simplicity; likewise $y R = v$ \
-  uniqueness: $x$ cover $⇒$ epi: $h'(x(a)) = u(a)$ already determines $h'$
+  $x R = u$: $(x(a)) thin R thin (u(a))$ holds, so $R(x(a)) = u(a)$ by simplicity; likewise $y R = v$ \
+  uniqueness: $x$ cover $⇒$ epi: $R'(x(a)) = u(a)$ already determines any other map $R'$
 ]
 
 #v(0.8em)
