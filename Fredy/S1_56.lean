@@ -74,6 +74,183 @@ postfix:max "°" => reciprocal
 theorem reciprocal_invol {A B : 𝒞} (R : BinRel 𝒞 A B) : reciprocal (reciprocal R) = R := by
   unfold reciprocal; rfl
 
+/-! ## §1.562 Semi-lattice of relations
+
+  Intersection (meet) of binary relations is the pullback of their
+  subobject embeddings into A×B.  Each relation ⟨T; a:T→A, b:T→B⟩
+  corresponds to the monic `pair a b : T → A×B` (jointly-monic iff
+  the pair is monic).  Intersection is then the pullback of these
+  monics. -/
+
+section
+variable [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
+
+/-- A monic into the product gives a jointly-monic pair (via fst, snd). -/
+theorem monicPair_of_monic_pair {T A B : 𝒞} (a : T ⟶ A) (b : T ⟶ B)
+    (h : Mono (pair a b)) : MonicPair a b := by
+  intro W f g ha hb
+  apply h f g
+  have hf : f ≫ pair a b = pair (f ≫ a) (f ≫ b) :=
+    pair_uniq (f ≫ a) (f ≫ b) (f ≫ pair a b)
+      (by rw [Cat.assoc, fst_pair a b])
+      (by rw [Cat.assoc, snd_pair a b])
+  have hg : g ≫ pair a b = pair (f ≫ a) (f ≫ b) :=
+    pair_uniq (f ≫ a) (f ≫ b) (g ≫ pair a b)
+      (by rw [Cat.assoc, fst_pair a b, ha])
+      (by rw [Cat.assoc, snd_pair a b, hb])
+  rw [hf, hg]
+
+/-- A jointly-monic pair gives a monic into the product. -/
+theorem monic_pair_of_monicPair {T A B : 𝒞} (a : T ⟶ A) (b : T ⟶ B) (hp : MonicPair a b) :
+    Mono (pair a b) := by
+  intro W f g h
+  apply hp f g
+  · calc f ≫ a = (f ≫ pair a b) ≫ fst := by rw [Cat.assoc, fst_pair a b]
+    _ = (g ≫ pair a b) ≫ fst := by rw [h]
+    _ = g ≫ a := by rw [Cat.assoc, fst_pair a b]
+  · calc f ≫ b = (f ≫ pair a b) ≫ snd := by rw [Cat.assoc, snd_pair a b]
+    _ = (g ≫ pair a b) ≫ snd := by rw [h]
+    _ = g ≫ b := by rw [Cat.assoc, snd_pair a b]
+
+/-- Intersection (meet) of two relations R, S : A → B.
+    §1.562: Pullback of the subobject embeddings `pair colA colB` into A×B. -/
+def intersect {A B : 𝒞} (R S : BinRel 𝒞 A B) : BinRel 𝒞 A B :=
+  let pb := HasPullbacks.has (pair R.colA R.colB) (pair S.colA S.colB)
+  { src := pb.cone.pt
+    colA := pb.cone.π₁ ≫ R.colA
+    colB := pb.cone.π₁ ≫ R.colB
+    isMonicPair := by
+      intro W f g hA hB
+      have h_colA : (f ≫ pb.cone.π₁) ≫ R.colA = (g ≫ pb.cone.π₁) ≫ R.colA := by
+        simpa [Cat.assoc] using hA
+      have h_colB : (f ≫ pb.cone.π₁) ≫ R.colB = (g ≫ pb.cone.π₁) ≫ R.colB := by
+        simpa [Cat.assoc] using hB
+      have h_p1 : f ≫ pb.cone.π₁ = g ≫ pb.cone.π₁ :=
+        R.isMonicPair (f ≫ pb.cone.π₁) (g ≫ pb.cone.π₁) h_colA h_colB
+      let eR := pair R.colA R.colB
+      let eS := pair S.colA S.colB
+      have hmono_eS : Mono eS := monic_pair_of_monicPair S.colA S.colB S.isMonicPair
+      have h_p2 : f ≫ pb.cone.π₂ = g ≫ pb.cone.π₂ := by
+        apply hmono_eS (f ≫ pb.cone.π₂) (g ≫ pb.cone.π₂)
+        calc
+          (f ≫ pb.cone.π₂) ≫ eS = f ≫ (pb.cone.π₂ ≫ eS) := by rw [Cat.assoc]
+          _ = f ≫ (pb.cone.π₁ ≫ eR) := by rw [pb.cone.w.symm]
+          _ = (f ≫ pb.cone.π₁) ≫ eR := by rw [Cat.assoc]
+          _ = (g ≫ pb.cone.π₁) ≫ eR := by rw [h_p1]
+          _ = g ≫ (pb.cone.π₁ ≫ eR) := by rw [← Cat.assoc]
+          _ = g ≫ (pb.cone.π₂ ≫ eS) := by rw [pb.cone.w]
+          _ = (g ≫ pb.cone.π₂) ≫ eS := by rw [Cat.assoc]
+      let c : Cone eR eS :=
+        { pt := W
+          π₁ := f ≫ pb.cone.π₁
+          π₂ := f ≫ pb.cone.π₂
+          w := by
+            calc
+              (f ≫ pb.cone.π₁) ≫ eR = f ≫ (pb.cone.π₁ ≫ eR) := by rw [Cat.assoc]
+              _ = f ≫ (pb.cone.π₂ ≫ eS) := by rw [pb.cone.w]
+              _ = (f ≫ pb.cone.π₂) ≫ eS := by rw [← Cat.assoc] }
+      have hu_f : f = pb.lift c := pb.lift_uniq c f rfl rfl
+      have hu_g : g = pb.lift c := pb.lift_uniq c g h_p1.symm h_p2.symm
+      rw [hu_f, hu_g]
+  }
+
+/-- Infix notation for relation intersection (meet). -/
+infixl:70 " ⊓ " => intersect
+
+/-- Reflexivity of relational containment. -/
+theorem rel_le_refl {A B : 𝒞} (R : BinRel 𝒞 A B) : RelLe R R :=
+  ⟨⟨Cat.id R.src, Cat.id_comp _, Cat.id_comp _⟩⟩
+
+/-- Transitivity of relational containment. -/
+theorem rel_le_trans {A B : 𝒞} {R S T : BinRel 𝒞 A B} (hRS : RelLe R S) (hST : RelLe S T) :
+    RelLe R T := by
+  rcases hRS with ⟨⟨f, hfA, hfB⟩⟩
+  rcases hST with ⟨⟨g, hgA, hgB⟩⟩
+  refine ⟨⟨f ≫ g, ?_, ?_⟩⟩
+  · calc (f ≫ g) ≫ T.colA = f ≫ (g ≫ T.colA) := by rw [Cat.assoc]
+    _ = f ≫ S.colA := by rw [hgA]
+    _ = R.colA := hfA
+  · calc (f ≫ g) ≫ T.colB = f ≫ (g ≫ T.colB) := by rw [Cat.assoc]
+    _ = f ≫ S.colB := by rw [hgB]
+    _ = R.colB := hfB
+
+/-- R ⊓ S ≤ R (projection via π₁). -/
+theorem intersect_le_left {A B : 𝒞} (R S : BinRel 𝒞 A B) : RelLe (R ⊓ S) R := by
+  let pb := HasPullbacks.has (pair R.colA R.colB) (pair S.colA S.colB)
+  refine ⟨⟨pb.cone.π₁, rfl, rfl⟩⟩
+
+/-- R ⊓ S ≤ S (via π₂ and the pullback square). -/
+theorem intersect_le_right {A B : 𝒞} (R S : BinRel 𝒞 A B) : RelLe (R ⊓ S) S := by
+  let pb := HasPullbacks.has (pair R.colA R.colB) (pair S.colA S.colB)
+  have h_sq := pb.cone.w
+  have h_colA : pb.cone.π₂ ≫ S.colA = (R ⊓ S).colA := by
+    calc
+      pb.cone.π₂ ≫ S.colA = pb.cone.π₂ ≫ (pair S.colA S.colB ≫ fst) :=
+        congrArg (pb.cone.π₂ ≫ ·) (fst_pair S.colA S.colB).symm
+      _ = (pb.cone.π₂ ≫ pair S.colA S.colB) ≫ fst := (Cat.assoc _ _ _).symm
+      _ = (pb.cone.π₁ ≫ pair R.colA R.colB) ≫ fst := by rw [h_sq]
+      _ = pb.cone.π₁ ≫ (pair R.colA R.colB ≫ fst) := Cat.assoc _ _ _
+      _ = pb.cone.π₁ ≫ R.colA := congrArg (pb.cone.π₁ ≫ ·) (fst_pair R.colA R.colB)
+      _ = (R ⊓ S).colA := rfl
+  have h_colB : pb.cone.π₂ ≫ S.colB = (R ⊓ S).colB := by
+    calc
+      pb.cone.π₂ ≫ S.colB = pb.cone.π₂ ≫ (pair S.colA S.colB ≫ snd) :=
+        congrArg (pb.cone.π₂ ≫ ·) (snd_pair S.colA S.colB).symm
+      _ = (pb.cone.π₂ ≫ pair S.colA S.colB) ≫ snd := (Cat.assoc _ _ _).symm
+      _ = (pb.cone.π₁ ≫ pair R.colA R.colB) ≫ snd := by rw [h_sq]
+      _ = pb.cone.π₁ ≫ (pair R.colA R.colB ≫ snd) := Cat.assoc _ _ _
+      _ = pb.cone.π₁ ≫ R.colB := congrArg (pb.cone.π₁ ≫ ·) (snd_pair R.colA R.colB)
+      _ = (R ⊓ S).colB := rfl
+  exact ⟨⟨pb.cone.π₂, h_colA, h_colB⟩⟩
+
+/-- Universal property: T ≤ R ∧ T ≤ S → T ≤ R ⊓ S. -/
+theorem le_intersect {A B : 𝒞} {T R S : BinRel 𝒞 A B} (hTR : RelLe T R) (hTS : RelLe T S) :
+    RelLe T (R ⊓ S) := by
+  rcases hTR with ⟨⟨f, hfA, hfB⟩⟩
+  rcases hTS with ⟨⟨g, hgA, hgB⟩⟩
+  let eR := pair R.colA R.colB
+  let eS := pair S.colA S.colB
+  let pb := HasPullbacks.has eR eS
+  have h_cone_w : f ≫ eR = g ≫ eS := by
+    calc
+      f ≫ eR = pair (f ≫ R.colA) (f ≫ R.colB) :=
+        pair_uniq (f ≫ R.colA) (f ≫ R.colB) (f ≫ eR)
+          (by rw [Cat.assoc, fst_pair R.colA R.colB])
+          (by rw [Cat.assoc, snd_pair R.colA R.colB])
+      _ = pair T.colA T.colB := by rw [hfA, hfB]
+      _ = pair (g ≫ S.colA) (g ≫ S.colB) := by rw [hgA, hgB]
+      _ = g ≫ eS :=
+        (pair_uniq (g ≫ S.colA) (g ≫ S.colB) (g ≫ eS)
+          (by rw [Cat.assoc, fst_pair S.colA S.colB])
+          (by rw [Cat.assoc, snd_pair S.colA S.colB])).symm
+  let c : Cone eR eS := { pt := T.src, π₁ := f, π₂ := g, w := h_cone_w }
+  let h := pb.lift c
+  have h_hA : h ≫ (R ⊓ S).colA = T.colA := by
+    dsimp [h, intersect]
+    rw [← Cat.assoc, pb.lift_fst c]
+    exact hfA
+  have h_hB : h ≫ (R ⊓ S).colB = T.colB := by
+    dsimp [h, intersect]
+    rw [← Cat.assoc, pb.lift_fst c]
+    exact hfB
+  exact ⟨⟨h, h_hA, h_hB⟩⟩
+
+/-- §1.562: R ≤ S iff R ≤ R ⊓ S (since R ⊓ S ≤ R always, this characterizes the meet order). -/
+theorem le_iff_le_intersect {A B : 𝒞} (R S : BinRel 𝒞 A B) : RelLe R S ↔ RelLe R (R ⊓ S) := by
+  constructor
+  · intro hRS; exact le_intersect (rel_le_refl R) hRS
+  · intro h; exact rel_le_trans h (intersect_le_right R S)
+
+/-- R ≤ S iff R ⊓ S ≡ R (mutual containment).  Since R ⊓ S ≤ R always,
+    this collapses to R ≤ S ↔ R ≤ R ⊓ S. -/
+theorem le_iff_intersect_eq {A B : 𝒞} (R S : BinRel 𝒞 A B) :
+    RelLe R S ↔ (RelLe (R ⊓ S) R ∧ RelLe R (R ⊓ S)) := by
+  constructor
+  · intro hRS; exact ⟨intersect_le_left R S, (le_iff_le_intersect R S).mp hRS⟩
+  · intro ⟨_, h⟩; exact (le_iff_le_intersect R S).mpr h
+
+end
+
 section
 variable [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
 
@@ -538,10 +715,10 @@ class HasPushout {A B C : 𝒞} (f : C ⟶ A) (g : C ⟶ B) where
   In a regular category, if both legs of a pullback square are covers,
   then the square is also a pushout.
 
-  Freyd's proof: form the relation R = p₁°a ∩ p₂°b, verify it is a map in
-  **Set** by element-wise reasoning, then use the Henkin-Lubkin
-  representation theorem (§1.55) to transfer the result to any regular
-  category. -/
+  Freyd's proof: given a cocone u, v, form the relation R = x°u ∩ y°v,
+  verify it is a map in **Set** by element-wise reasoning, then use the
+  Henkin-Lubkin representation theorem (§1.55) to transfer the result to
+  any regular category. -/
 
 /-- **§1.565 for Set**: A pullback of surjective functions is a pushout in **Set**.
 
@@ -549,82 +726,82 @@ class HasPushout {A B C : 𝒞} (f : C ⟶ A) (g : C ⟶ B) where
     ```
     P ---p₂---> C
     |           |
-    p₁          v (surjective)
+    p₁          y (cover)
     v           v
-    A ---u----> B (surjective)
+    A ---x----> B (cover)
     ```
-    The square commutes: `p₁ ≫ u = p₂ ≫ v`, i.e., `∀ z, u(p₁ z) = v(p₂ z)`.
+    The square commutes: `p₁ ≫ x = p₂ ≫ y`, i.e., `∀ z, x(p₁ z) = y(p₂ z)`.
 
-    Pushout universal property: for any Q, a: A→Q, b: C→Q with
-    `p₁ ≫ a = p₂ ≫ b` (i.e., `∀ z, a(p₁ z) = b(p₂ z)`), there exists a
-    unique h: B→Q with `u ≫ h = a` and `v ≫ h = b`
-    (i.e., `∀ x, h(u x) = a x` and `∀ y, h(v y) = b y`). -/
+    Book proof: given a cocone u: A→Q, v: C→Q with `p₁ ≫ u = p₂ ≫ v`,
+    define the relation `R := x°u ∩ y°v : B ⇸ Q`, verify it is a map
+    (entire and simple) element-wise, then prove `xR = u` and `yR = v`.
+    Uniqueness: `x` is a cover, hence epi. -/
 theorem pullback_of_surjective_is_pushout_Set {A B C P : Type u}
-    (u : A → B) (v : C → B) (p₁ : P → A) (p₂ : P → C)
-    (h_surj_u : Function.Surjective u) (h_surj_v : Function.Surjective v)
+    (x : A → B) (y : C → B) (p₁ : P → A) (p₂ : P → C)
+    (h_surj_x : Function.Surjective x) (h_surj_y : Function.Surjective y)
     (h_isPullback : ∀ (X : Type u) (f : X → A) (g : X → C),
-      (∀ x, u (f x) = v (g x)) → (∃ k : X → P, ((∀ x, p₁ (k x) = f x) ∧ (∀ x, p₂ (k x) = g x)) ∧
-        ∀ k', ((∀ x, p₁ (k' x) = f x) ∧ (∀ x, p₂ (k' x) = g x)) → k' = k)) :
-    ∀ (Q : Type u) (a : A → Q) (b : C → Q),
-      (∀ z, a (p₁ z) = b (p₂ z)) → (∃ h : B → Q, ((∀ x, h (u x) = a x) ∧ (∀ y, h (v y) = b y)) ∧
-        ∀ h', ((∀ x, h' (u x) = a x) ∧ (∀ y, h' (v y) = b y)) → h' = h) := by
+      (∀ w, x (f w) = y (g w)) → (∃ k : X → P, ((∀ w, p₁ (k w) = f w) ∧ (∀ w, p₂ (k w) = g w)) ∧
+        ∀ k', ((∀ w, p₁ (k' w) = f w) ∧ (∀ w, p₂ (k' w) = g w)) → k' = k)) :
+    ∀ (Q : Type u) (u : A → Q) (v : C → Q),
+      (∀ z, u (p₁ z) = v (p₂ z)) → (∃ h : B → Q, ((∀ a, h (x a) = u a) ∧ (∀ c, h (y c) = v c)) ∧
+        ∀ h', ((∀ a, h' (x a) = u a) ∧ (∀ c, h' (y c) = v c)) → h' = h) := by
   -- Pick a nonempty type at universe u for the pullback test
   let One : Type u := PUnit.{u+1}
   let star : One := PUnit.unit
-  intro Q a b h_cocone
-  -- h_cocone: ∀ z, a(p₁ z) = b(p₂ z)
-  -- Key lemma: u x = v z → a x = b z (via pullback of (x, z) through P)
-  have h_ab : ∀ (x : A) (z : C), u x = v z → a x = b z := by
-    intro x z hxz
-    rcases h_isPullback One (λ _ => x) (λ _ => z) (λ _ => hxz) with ⟨k, ⟨hk₁, hk₂⟩, _⟩
+  intro Q u v h_cocone
+  -- Key lemma: x a = y c → u a = v c (lift the cone ⟨a, c⟩ through P)
+  have h_key : ∀ (a : A) (c : C), x a = y c → u a = v c := by
+    intro a c hac
+    rcases h_isPullback One (λ _ => a) (λ _ => c) (λ _ => hac) with ⟨k, ⟨hk₁, hk₂⟩, _⟩
     calc
-      a x = a (p₁ (k star)) := by simpa using congrArg a (hk₁ star).symm
-      _ = b (p₂ (k star)) := h_cocone (k star)
-      _ = b z := by simpa using congrArg b (hk₂ star)
-  -- Step 1: for each y, all x with u x = y map to the same a-value
-  have h_exists : ∀ y : B, ∃ q : Q, ∀ x : A, u x = y → a x = q := by
-    intro y
-    rcases h_surj_u y with ⟨x₀, hx₀⟩
-    refine ⟨a x₀, λ x hx => ?_⟩
-    rcases h_surj_v y with ⟨z₀, hz₀⟩
-    -- u x = u x₀ = v z₀ = y
-    have hx_z₀ := h_ab x z₀ (hx.trans hz₀.symm)
-    have hx₀_z₀ := h_ab x₀ z₀ (hx₀.trans hz₀.symm)
-    exact hx_z₀.trans hx₀_z₀.symm
-  -- Step 2: build h: B → Q using the choice function
-  let h : B → Q := λ y => (h_exists y).choose
-  have h_spec : ∀ y x, u x = y → h y = a x := by
-    intro y x hx
-    have hh := (h_exists y).choose_spec x hx
-    -- hh: a x = h y
-    exact hh.symm
-  -- Goal: ∃ h, (∀x, h(u x)=a x ∧ ∀y, h(v y)=b y) ∧ ∀h', ...
-  -- Split: provide h, then prove the two ∧-conjuncts
-  refine ⟨h, ?_, ?_⟩
-  · -- First conjunct: (∀x, h(u x) = a x) ∧ (∀y, h(v y) = b y)
-    constructor
-    · intro x; exact h_spec (u x) x rfl
-    · intro y
-      rcases h_surj_u (v y) with ⟨x, hx⟩
-      have h_eq_ab : a x = b y := h_ab x y hx
-      calc
-        h (v y) = a x := h_spec (v y) x hx
-        _ = b y := h_eq_ab
-  · -- Second conjunct: uniqueness ∀h', (h'∘u=a ∧ h'∘v=b) → h' = h
-    intro h' ⟨h'u, h'v⟩
-    ext y
-    rcases h_surj_u y with ⟨x, hx⟩
-    -- Goal: h y = h' y.  h_spec: h y = a x.  hx: u x = y.  h'u: h'(u x) = a x.
-    rw [h_spec y x hx, ← hx, ← h'u]
+      u a = u (p₁ (k star)) := by simpa using congrArg u (hk₁ star).symm
+      _ = v (p₂ (k star)) := h_cocone (k star)
+      _ = v c := by simpa using congrArg v (hk₂ star)
+  -- The book's relation R := x°u ∩ y°v : B ⇸ Q, element-wise
+  let R : B → Q → Prop := λ b q => (∃ a, x a = b ∧ u a = q) ∧ (∃ c, y c = b ∧ v c = q)
+  -- R is entire: the covers x, y supply witnesses; h_key makes their values agree
+  have h_entire : ∀ b, ∃ q, R b q := by
+    intro b
+    rcases h_surj_x b with ⟨a, ha⟩
+    rcases h_surj_y b with ⟨c, hc⟩
+    exact ⟨u a, ⟨a, ha, rfl⟩, ⟨c, hc, (h_key a c (ha.trans hc.symm)).symm⟩⟩
+  -- R is simple: h_key crosses the two halves of R
+  have h_simple : ∀ b q q', R b q → R b q' → q = q' := by
+    intro b q q' hq hq'
+    obtain ⟨⟨a, ha, hua⟩, -⟩ := hq
+    obtain ⟨-, ⟨c, hc, hvc⟩⟩ := hq'
+    rw [← hua, ← hvc]
+    exact h_key a c (ha.trans hc.symm)
+  -- R entire and simple: a map.  Extract h : B → Q
+  let h : B → Q := λ b => (h_entire b).choose
+  have hR : ∀ b, R b (h b) := λ b => (h_entire b).choose_spec
+  -- xR = u: (x a) R (u a), and R is simple
+  have hxu : ∀ a, h (x a) = u a := by
+    intro a
+    refine h_simple (x a) _ _ (hR (x a)) ⟨⟨a, rfl, rfl⟩, ?_⟩
+    rcases h_surj_y (x a) with ⟨c, hc⟩
+    exact ⟨c, hc, (h_key a c hc.symm).symm⟩
+  -- yR = v: (y c) R (v c), and R is simple
+  have hyv : ∀ c, h (y c) = v c := by
+    intro c
+    refine h_simple (y c) _ _ (hR (y c)) ⟨?_, ⟨c, rfl, rfl⟩⟩
+    rcases h_surj_x (y c) with ⟨a, ha⟩
+    exact ⟨a, ha, h_key a c ha⟩
+  refine ⟨h, ⟨hxu, hyv⟩, ?_⟩
+  -- Uniqueness: x is a cover, hence epi
+  intro h' ⟨h'x, _⟩
+  ext b
+  rcases h_surj_x b with ⟨a, ha⟩
+  rw [← ha, h'x, hxu]
 
 /-- **§1.565** (general case): In a regular category, a pullback of covers is
     a pushout.  Relies on the Henkin-Lubkin representation theorem (§1.55)
     to transfer the result from **Set** (proved above) to any regular
     category.  Currently a `sorry` pending the representation theorem. -/
-def pullback_of_covers_is_pushout {A B C P : 𝒞} (u : A ⟶ B) (v : C ⟶ B)
-    (p₁ : P ⟶ A) (p₂ : P ⟶ C) (h_sq : p₁ ≫ u = p₂ ≫ v)
-    [RegularCategory 𝒞] (_h_pb : HasPullback u v) (_h_cover_u : Cover u)
-    (_h_cover_v : Cover v) : HasPushout p₁ p₂ := by
+def pullback_of_covers_is_pushout {A B C P : 𝒞} (x : A ⟶ B) (y : C ⟶ B)
+    (p₁ : P ⟶ A) (p₂ : P ⟶ C) (h_sq : p₁ ≫ x = p₂ ≫ y)
+    [RegularCategory 𝒞] (_h_pb : HasPullback x y) (_h_cover_x : Cover x)
+    (_h_cover_y : Cover y) : HasPushout p₁ p₂ := by
   sorry
 
 /-! ## §1.566 Every cover is a coequalizer
