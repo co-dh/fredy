@@ -20,14 +20,16 @@ the colimit is capital and receives `A` faithfully.
 Built in `CatColimit.lean`: `CatSystem.Coherent` (HEq morphism-coherence), `UpperBound`/`upperDirected`
 (hom-colimit index), `castHom`, `castHom_of_heq`, `castHom_castHom`, `map_castHom`.
 
-NEXT: assemble `homSystem C hC x y : System (UpperBound D i j) (upperDirected D i j)`:
-- `X a := (C.F a.2.1 x) ⟶ (C.F a.2.2 y)` (in `C.A a.1`);
-- `tr hab g := castHom hSrc hTgt ((C.functF hab).map g)` with `hSrc := (C.F_trans a.2.1 hab x).symm`
-  (defeq-coerced to `… = C.F b.2.1 x` via proof-irrelevant le), `hTgt` likewise on `y`;
-- `tr_refl := castHom_of_heq _ _ (hC.refl_map g)`;
-- `tr_trans` via `hC.trans_map` + `map_castHom` + `castHom_castHom`.
-Then `HomColim C hC x y := Colimit (homSystem …)`. After that: rep-independence over object classes,
-composition, identity, category laws (the `Cat` instance on `CatSystem.Obj`).
+DONE (sorry-free, axioms ⊆ {propext, Quot.sound}): `homTr`, `homTr_refl`, `homTr_trans` (cast-heavy law
+via `map_castHom`+`castHom_castHom`+`castHom_heq_congr`+coherence), `homSystem`, `HomColim` — the
+hom-colimit for *fixed representatives* `x : C.A i`, `y : C.A j`.
+
+NEXT (M2b-rest — the remaining wall): turn `HomColim` into a `Cat` instance on `CatSystem.Obj`.
+- rep-independence: `Hom([⟨i,x⟩],[⟨j,y⟩])` must not depend on chosen reps. Per-rep `HomColim`s are
+  canonically *isomorphic* but not *equal*, so `Quotient.lift₂` to `Type` doesn't apply directly. Likely
+  define the colimit Hom as a single 2-sided germ quotient over all reps rather than "fix reps + show iso".
+- then identity (`incl` of `id`), composition (push two morphisms to a common bound, compose, include),
+  category laws, and finally the `Cat (CatSystem.Obj C)` instance.
 | **M3** | `Fredy/CatColimitRegular.lean` | colimit preserves terminal / products / pullbacks / covers ⇒ `PreRegularCategory` | ☐ hard |
 | **M4** | `Fredy/S1_546.lean` | relative-capitalization functor `A ↦ A*` (slices), `IsRelativeCapitalization` witness | ☐ |
 | **M5** | `Fredy/S1_543.lean` | ordinal-indexed iteration of M4; fixed-point/cardinality ⇒ capital (imports mathlib `Ordinal`) | ☐ hard |

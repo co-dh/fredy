@@ -121,4 +121,58 @@ theorem map_castHom {𝒜 𝒝 : Type w} [Cat.{w} 𝒜] [Cat.{w} 𝒝] (T : 𝒜
     hT.map (castHom hX hY m) = castHom (congrArg T hX) (congrArg T hY) (hT.map m) := by
   subst hX; subst hY; rfl
 
+/-- A transport is heterogeneously equal to the morphism it transports. -/
+theorem heq_castHom {𝒜 : Type w} [Cat.{w} 𝒜] {X Y X' Y' : 𝒜} (hX : X = X') (hY : Y = Y')
+    (m : X ⟶ Y) : HEq (castHom hX hY m) m := by
+  subst hX; subst hY; exact HEq.rfl
+
+/-- Two transports of heterogeneously-equal morphisms onto the *same* objects are
+    equal.  This is the cancellation the hom-colimit's `tr_trans` needs. -/
+theorem castHom_heq_congr {𝒜 : Type w} [Cat.{w} 𝒜] {X1 Y1 X2 Y2 X' Y' : 𝒜}
+    (h1X : X1 = X') (h1Y : Y1 = Y') (h2X : X2 = X') (h2Y : Y2 = Y')
+    {m1 : X1 ⟶ Y1} {m2 : X2 ⟶ Y2} (h : HEq m1 m2) :
+    castHom h1X h1Y m1 = castHom h2X h2Y m2 :=
+  castHom_of_heq h1X h1Y (h.trans (heq_castHom h2X h2Y m2).symm)
+
+/-! ## Milestone 2b — the hom-colimit for fixed representatives
+
+  For `x : C.A i`, `y : C.A j`, a morphism in the colimit is a class in the
+  directed colimit of `Hom_{A k}(F x, F y)` over common upper bounds `k`.  The
+  transition `homTr` applies the transition functor and re-types along `F_trans`;
+  its colimit laws hold by coherence (`refl_map`/`trans_map`) modulo the casts. -/
+
+/-- Transition of the hom-colimit: push a morphism `F x ⟶ F y` (at upper bound `a`)
+    to upper bound `b` by applying `F hab` and re-typing along `F_trans`. -/
+def homTr (C : CatSystem ι D) {i j : ι} (x : C.A i) (y : C.A j) (a b : UpperBound D i j)
+    (hab : D.le a.1 b.1) (g : C.F a.2.1 x ⟶ C.F a.2.2 y) : C.F b.2.1 x ⟶ C.F b.2.2 y :=
+  castHom (C.F_trans a.2.1 hab x).symm (C.F_trans a.2.2 hab y).symm ((C.functF hab).map g)
+
+theorem homTr_refl (C : CatSystem ι D) (hC : C.Coherent) {i j : ι} (x : C.A i) (y : C.A j)
+    (a : UpperBound D i j) (g : C.F a.2.1 x ⟶ C.F a.2.2 y) :
+    homTr C x y a a (D.refl a.1) g = g := by
+  unfold homTr
+  exact castHom_of_heq _ _ (hC.refl_map g)
+
+theorem homTr_trans (C : CatSystem ι D) (hC : C.Coherent) {i j : ι} (x : C.A i) (y : C.A j)
+    (a b c : UpperBound D i j) (hab : D.le a.1 b.1) (hbc : D.le b.1 c.1)
+    (g : C.F a.2.1 x ⟶ C.F a.2.2 y) :
+    homTr C x y a c (D.trans hab hbc) g = homTr C x y b c hbc (homTr C x y a b hab g) := by
+  unfold homTr
+  rw [map_castHom (C.F hbc) (hT := C.functF hbc), castHom_castHom]
+  exact castHom_heq_congr _ _ _ _ (hC.trans_map hab hbc g)
+
+/-- The hom-colimit system for fixed representatives `x : C.A i`, `y : C.A j`. -/
+def homSystem (C : CatSystem ι D) (hC : C.Coherent) {i j : ι} (x : C.A i) (y : C.A j) :
+    System (UpperBound D i j) (upperDirected D i j) where
+  X a := C.F a.2.1 x ⟶ C.F a.2.2 y
+  tr {a b} hab g := homTr C x y a b hab g
+  tr_refl {a} g := homTr_refl C hC x y a g
+  tr_trans {a b c} hab hbc g := homTr_trans C hC x y a b c hab hbc g
+
+/-- Morphisms `[⟨i,x⟩] → [⟨j,y⟩]` in the colimit category (for these
+    representatives): the directed colimit of `Hom_{A k}(F x, F y)` over the common
+    upper bounds `k`. -/
+def HomColim (C : CatSystem ι D) (hC : C.Coherent) {i j : ι} (x : C.A i) (y : C.A j) : Type _ :=
+  Colimit (homSystem C hC x y)
+
 end Freyd.Colim
