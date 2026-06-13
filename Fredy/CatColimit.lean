@@ -287,4 +287,17 @@ theorem compAt_mono (C : CatSystem ι D) (hC : C.Coherent) {ip iq ir : ι}
         (homTr C xp xq a ⟨e, hpe, hqe⟩ hae f) (homTr C xq xr b ⟨e, hqe, hre⟩ hbe g),
       homIncl_compat]
 
+/-- Composition is independent of the chosen common bound: any two bounds agree
+    (route both through a common upper bound via `compAt_mono`). -/
+theorem compAt_indep (C : CatSystem ι D) (hC : C.Coherent) {ip iq ir : ι}
+    (xp : C.A ip) (xq : C.A iq) (xr : C.A ir)
+    (a : UpperBound D ip iq) (f : C.F a.2.1 xp ⟶ C.F a.2.2 xq)
+    (b : UpperBound D iq ir) (g : C.F b.2.1 xq ⟶ C.F b.2.2 xr)
+    {e₁ e₂ : ι} (hae₁ : D.le a.1 e₁) (hbe₁ : D.le b.1 e₁)
+    (hae₂ : D.le a.1 e₂) (hbe₂ : D.le b.1 e₂) :
+    compAt C hC xp xq xr a f b g e₁ hae₁ hbe₁ = compAt C hC xp xq xr a f b g e₂ hae₂ hbe₂ := by
+  obtain ⟨d, h1d, h2d⟩ := D.bound e₁ e₂
+  rw [compAt_mono C hC xp xq xr a f b g hae₁ hbe₁ h1d,
+      compAt_mono C hC xp xq xr a f b g hae₂ hbe₂ h2d]
+
 end Freyd.Colim
