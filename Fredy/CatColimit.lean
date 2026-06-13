@@ -451,4 +451,90 @@ theorem colimComp_id_right (C : CatSystem ι D) (hC : C.Coherent) {p q : C.Obj}
   | _ rm => obtain ⟨a, f⟩ := rm
             exact homCompRaw_id_right C hC (colimOut C p).2 (colimOut C q).2 a f
 
+/-! ## Milestone 2b — associativity of composition in the colimit category -/
+
+theorem colimComp_assoc (C : CatSystem ι D) (hC : C.Coherent) {p q r s : C.Obj}
+    (m : colimHom C hC p q) (n : colimHom C hC q r) (k : colimHom C hC r s) :
+    colimComp C hC (colimComp C hC m n) k = colimComp C hC m (colimComp C hC n k) := by
+  refine Quotient.inductionOn m (fun rm => ?_)
+  refine Quotient.inductionOn n (fun rn => ?_)
+  refine Quotient.inductionOn k (fun rk => ?_)
+  obtain ⟨a, f⟩ := rm; obtain ⟨b, g⟩ := rn; obtain ⟨c, h⟩ := rk
+  let xp := (colimOut C p).2; let xq := (colimOut C q).2
+  let xr := (colimOut C r).2; let xs := (colimOut C s).2
+  -- Pick a common bound M of a.1, b.1, c.1
+  let ⟨e₁, hae₁, hbe₁⟩ := D.bound a.1 b.1
+  let ⟨M, he₁M, hcM⟩ := D.bound e₁ c.1
+  have haM : D.le a.1 M := D.trans hae₁ he₁M
+  have hbM : D.le b.1 M := D.trans hbe₁ he₁M
+  -- Morphisms transported to level M
+  let aMpq : UpperBound D (colimOut C p).1 (colimOut C q).1 :=
+    ⟨M, D.trans a.2.1 haM, D.trans a.2.2 haM⟩
+  let bMqr : UpperBound D (colimOut C q).1 (colimOut C r).1 :=
+    ⟨M, D.trans b.2.1 hbM, D.trans b.2.2 hbM⟩
+  let cMrs : UpperBound D (colimOut C r).1 (colimOut C s).1 :=
+    ⟨M, D.trans c.2.1 hcM, D.trans c.2.2 hcM⟩
+  let F_M : C.F aMpq.2.1 xp ⟶ C.F aMpq.2.2 xq := homTr C xp xq a aMpq haM f
+  let G_M : C.F bMqr.2.1 xq ⟶ C.F bMqr.2.2 xr := homTr C xq xr b bMqr hbM g
+  let H_M : C.F cMrs.2.1 xr ⟶ C.F cMrs.2.2 xs := homTr C xr xs c cMrs hcM h
+  -- Upper bounds for homCompRaw
+  let ub_pr_M : UpperBound D (colimOut C p).1 (colimOut C r).1 :=
+    ⟨M, D.trans a.2.1 haM, D.trans b.2.2 hbM⟩
+  let ub_ps_M : UpperBound D (colimOut C p).1 (colimOut C s).1 :=
+    ⟨M, D.trans a.2.1 haM, D.trans c.2.2 hcM⟩
+  let ub_qs_M : UpperBound D (colimOut C q).1 (colimOut C s).1 :=
+    ⟨M, D.trans b.2.1 hbM, D.trans c.2.2 hcM⟩
+  -- colimComp on mk terms reduces definitionally to homCompRaw
+  have h_innerLR : colimComp C hC (Quotient.mk _ ⟨a, f⟩) (Quotient.mk _ ⟨b, g⟩) =
+      homCompRaw C hC xp xq xr a f b g := rfl
+  have h_innerRR : colimComp C hC (Quotient.mk _ ⟨b, g⟩) (Quotient.mk _ ⟨c, h⟩) =
+      homCompRaw C hC xq xr xs b g c h := rfl
+  -- Push inner compositions to compAt at M
+  have h_innerL : colimComp C hC (Quotient.mk _ ⟨a, f⟩) (Quotient.mk _ ⟨b, g⟩) =
+      compAt C hC xp xq xr a f b g M haM hbM := by
+    rw [h_innerLR, homCompRaw_eq_compAt C hC xp xq xr a f b g M haM hbM]
+  have h_innerR : colimComp C hC (Quotient.mk _ ⟨b, g⟩) (Quotient.mk _ ⟨c, h⟩) =
+      compAt C hC xq xr xs b g c h M hbM hcM := by
+    rw [h_innerRR, homCompRaw_eq_compAt C hC xq xr xs b g c h M hbM hcM]
+  -- The compAt yields a homIncl (= Quotient.mk), so the outer colimComp reduces
+  have h_outerL : colimComp C hC (compAt C hC xp xq xr a f b g M haM hbM) (Quotient.mk _ ⟨c, h⟩) =
+      homCompRaw C hC xp xr xs ub_pr_M (F_M ≫ G_M) c h := rfl
+  have h_outerR : colimComp C hC (Quotient.mk _ ⟨a, f⟩) (compAt C hC xq xr xs b g c h M hbM hcM) =
+      homCompRaw C hC xp xq xs a f ub_qs_M (G_M ≫ H_M) := rfl
+  -- Push outer homCompRaw to compAt at M
+  have h_compAtL : homCompRaw C hC xp xr xs ub_pr_M (F_M ≫ G_M) c h =
+      compAt C hC xp xr xs ub_pr_M (F_M ≫ G_M) c h M (D.refl M) hcM :=
+    homCompRaw_eq_compAt C hC xp xr xs ub_pr_M (F_M ≫ G_M) c h M (D.refl M) hcM
+  have h_compAtR : homCompRaw C hC xp xq xs a f ub_qs_M (G_M ≫ H_M) =
+      compAt C hC xp xq xs a f ub_qs_M (G_M ≫ H_M) M haM (D.refl M) :=
+    homCompRaw_eq_compAt C hC xp xq xs a f ub_qs_M (G_M ≫ H_M) M haM (D.refl M)
+  -- Simplify compAt: homTr at D.refl M is identity by homTr_refl (proof irrelevance makes bounds defeq)
+  have h_simpL : compAt C hC xp xr xs ub_pr_M (F_M ≫ G_M) c h M (D.refl M) hcM =
+      homIncl C hC xp xs ub_ps_M ((F_M ≫ G_M) ≫ H_M) := by
+    unfold compAt
+    rw [homTr_refl C hC xp xr ub_pr_M (F_M ≫ G_M)]
+  have h_simpR : compAt C hC xp xq xs a f ub_qs_M (G_M ≫ H_M) M haM (D.refl M) =
+      homIncl C hC xp xs ub_ps_M (F_M ≫ (G_M ≫ H_M)) := by
+    unfold compAt
+    rw [homTr_refl C hC xq xs ub_qs_M (G_M ≫ H_M)]
+  calc
+    colimComp C hC (colimComp C hC (Quotient.mk _ ⟨a, f⟩) (Quotient.mk _ ⟨b, g⟩)) (Quotient.mk _ ⟨c, h⟩)
+        = colimComp C hC (compAt C hC xp xq xr a f b g M haM hbM) (Quotient.mk _ ⟨c, h⟩) := by rw [h_innerL]
+    _ = homCompRaw C hC xp xr xs ub_pr_M (F_M ≫ G_M) c h := h_outerL
+    _ = compAt C hC xp xr xs ub_pr_M (F_M ≫ G_M) c h M (D.refl M) hcM := h_compAtL
+    _ = homIncl C hC xp xs ub_ps_M ((F_M ≫ G_M) ≫ H_M) := h_simpL
+    _ = homIncl C hC xp xs ub_ps_M (F_M ≫ (G_M ≫ H_M)) := by rw [Cat.assoc F_M G_M H_M]
+    _ = compAt C hC xp xq xs a f ub_qs_M (G_M ≫ H_M) M haM (D.refl M) := by rw [h_simpR]
+    _ = homCompRaw C hC xp xq xs a f ub_qs_M (G_M ≫ H_M) := by rw [h_compAtR]
+    _ = colimComp C hC (Quotient.mk _ ⟨a, f⟩) (compAt C hC xq xr xs b g c h M hbM hcM) := by rw [h_outerR]
+    _ = colimComp C hC (Quotient.mk _ ⟨a, f⟩) (colimComp C hC (Quotient.mk _ ⟨b, g⟩) (Quotient.mk _ ⟨c, h⟩)) := by rw [h_innerR]
+
+noncomputable instance colimitCat (C : CatSystem ι D) (hC : C.Coherent) : Cat (C.Obj) where
+  Hom p q := colimHom C hC p q
+  id p := colimId C hC p
+  comp m n := colimComp C hC m n
+  id_comp m := colimComp_id_left C hC m
+  comp_id m := colimComp_id_right C hC m
+  assoc m n k := colimComp_assoc C hC m n k
+
 end Freyd.Colim
