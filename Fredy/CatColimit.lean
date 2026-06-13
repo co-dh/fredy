@@ -253,4 +253,38 @@ theorem homTr_comp (C : CatSystem ι D) {ip iq ir : ι}
   dsimp only
   rw [castHom_comp, ← (C.functF hcd).map_comp]
 
+/-- Compose germs `f` (level `a`) and `g` (level `b`) at an explicit common bound
+    `e`: push both to `e` and compose there.  `homCompRaw` is this at the chosen
+    bound. -/
+noncomputable def compAt (C : CatSystem ι D) (hC : C.Coherent) {ip iq ir : ι}
+    (xp : C.A ip) (xq : C.A iq) (xr : C.A ir)
+    (a : UpperBound D ip iq) (f : C.F a.2.1 xp ⟶ C.F a.2.2 xq)
+    (b : UpperBound D iq ir) (g : C.F b.2.1 xq ⟶ C.F b.2.2 xr)
+    (e : ι) (hae : D.le a.1 e) (hbe : D.le b.1 e) : HomColim C hC xp xr :=
+  homIncl C hC xp xr ⟨e, D.trans a.2.1 hae, D.trans b.2.2 hbe⟩
+    (homTr C xp xq a ⟨e, D.trans a.2.1 hae, D.trans a.2.2 hae⟩ hae f
+     ≫ homTr C xq xr b ⟨e, D.trans b.2.1 hbe, D.trans b.2.2 hbe⟩ hbe g)
+
+/-- Composing at level `e` equals composing at any higher level `d`: push the
+    whole composite up (`homTr_comp` + `homTr_trans`), then `homIncl_compat`. -/
+theorem compAt_mono (C : CatSystem ι D) (hC : C.Coherent) {ip iq ir : ι}
+    (xp : C.A ip) (xq : C.A iq) (xr : C.A ir)
+    (a : UpperBound D ip iq) (f : C.F a.2.1 xp ⟶ C.F a.2.2 xq)
+    (b : UpperBound D iq ir) (g : C.F b.2.1 xq ⟶ C.F b.2.2 xr)
+    {e d : ι} (hae : D.le a.1 e) (hbe : D.le b.1 e) (hed : D.le e d) :
+    compAt C hC xp xq xr a f b g e hae hbe
+      = compAt C hC xp xq xr a f b g d (D.trans hae hed) (D.trans hbe hed) := by
+  have hpe : D.le ip e := D.trans a.2.1 hae
+  have hqe : D.le iq e := D.trans a.2.2 hae
+  have hre : D.le ir e := D.trans b.2.2 hbe
+  symm
+  unfold compAt
+  rw [homTr_trans C hC xp xq a ⟨e, hpe, hqe⟩
+        ⟨d, D.trans a.2.1 (D.trans hae hed), D.trans a.2.2 (D.trans hae hed)⟩ hae hed f,
+      homTr_trans C hC xq xr b ⟨e, hqe, hre⟩
+        ⟨d, D.trans b.2.1 (D.trans hbe hed), D.trans b.2.2 (D.trans hbe hed)⟩ hbe hed g,
+      ← homTr_comp C xp xq xr hpe hqe hre hed
+        (homTr C xp xq a ⟨e, hpe, hqe⟩ hae f) (homTr C xq xr b ⟨e, hqe, hre⟩ hbe g),
+      homIncl_compat]
+
 end Freyd.Colim
