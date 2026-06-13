@@ -175,4 +175,39 @@ def homSystem (C : CatSystem ι D) (hC : C.Coherent) {i j : ι} (x : C.A i) (y :
 def HomColim (C : CatSystem ι D) (hC : C.Coherent) {i j : ι} (x : C.A i) (y : C.A j) : Type _ :=
   Colimit (homSystem C hC x y)
 
+/-- Include a stage-`a` morphism into the hom-colimit. -/
+def homIncl (C : CatSystem ι D) (hC : C.Coherent) {i j : ι} (x : C.A i) (y : C.A j)
+    (a : UpperBound D i j) (g : C.F a.2.1 x ⟶ C.F a.2.2 y) : HomColim C hC x y :=
+  incl (homSystem C hC x y) a g
+
+/-- The identity germ at `x : C.A i`: `id` included at the trivial upper bound. -/
+def homClassId (C : CatSystem ι D) (hC : C.Coherent) {i : ι} (x : C.A i) : HomColim C hC x x :=
+  homIncl C hC x x ⟨i, D.refl i, D.refl i⟩ (Cat.id (C.F (D.refl i) x))
+
+/-! ## Milestone 2b — the colimit category's Hom (via chosen representatives)
+
+  We pick a representative of each colimit object with `Quotient.out` and define a
+  morphism as the hom-colimit between the chosen representatives.  This uses choice
+  (acceptable: the §1.543 iteration is transfinite and uses choice anyway; a
+  choice-free two-sided-germ construction is possible but far longer). -/
+
+/-- A chosen representative `⟨i, x⟩` of a colimit object (via `Quotient.exists_rep`
+    + choice; core Lean has no `Quotient.out`). -/
+noncomputable def colimOut (C : CatSystem ι D) (p : C.Obj) : Σ i, C.A i :=
+  Classical.choose (Quotient.exists_rep p)
+
+/-- The chosen representative includes back to the object. -/
+theorem colimOut_spec (C : CatSystem ι D) (p : C.Obj) :
+    C.objIncl (colimOut C p).1 (colimOut C p).2 = p :=
+  Classical.choose_spec (Quotient.exists_rep p)
+
+/-- A morphism of the colimit category: the hom-colimit between the chosen
+    representatives of the two objects. -/
+noncomputable def colimHom (C : CatSystem ι D) (hC : C.Coherent) (p q : C.Obj) : Type _ :=
+  HomColim C hC (colimOut C p).2 (colimOut C q).2
+
+/-- The identity morphism of the colimit category. -/
+noncomputable def colimId (C : CatSystem ι D) (hC : C.Coherent) (p : C.Obj) : colimHom C hC p p :=
+  homClassId C hC (colimOut C p).2
+
 end Freyd.Colim
