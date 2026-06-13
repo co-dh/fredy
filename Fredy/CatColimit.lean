@@ -314,4 +314,65 @@ theorem homCompRaw_eq_compAt (C : CatSystem ι D) (hC : C.Coherent) {ip iq ir : 
           (Classical.choose_spec (D.bound a.1 b.1)).2 := rfl
   rw [h]; exact compAt_indep C hC xp xq xr a f b g _ _ hae hbe
 
+/-- Pushing the left germ's representative up doesn't change the composite. -/
+theorem homCompRaw_push_left (C : CatSystem ι D) (hC : C.Coherent) {ip iq ir : ι}
+    (xp : C.A ip) (xq : C.A iq) (xr : C.A ir)
+    (a a₂ : UpperBound D ip iq) (h : D.le a.1 a₂.1) (f : C.F a.2.1 xp ⟶ C.F a.2.2 xq)
+    (b : UpperBound D iq ir) (g : C.F b.2.1 xq ⟶ C.F b.2.2 xr) :
+    homCompRaw C hC xp xq xr a₂ (homTr C xp xq a a₂ h f) b g
+      = homCompRaw C hC xp xq xr a f b g := by
+  obtain ⟨M, ha₂M, hbM⟩ := D.bound a₂.1 b.1
+  rw [homCompRaw_eq_compAt C hC xp xq xr a₂ (homTr C xp xq a a₂ h f) b g M ha₂M hbM,
+      homCompRaw_eq_compAt C hC xp xq xr a f b g M (D.trans h ha₂M) hbM]
+  unfold compAt
+  rw [homTr_trans C hC xp xq a a₂
+        ⟨M, D.trans a.2.1 (D.trans h ha₂M), D.trans a.2.2 (D.trans h ha₂M)⟩ h ha₂M f]
+
+/-- Pushing the right germ's representative up doesn't change the composite. -/
+theorem homCompRaw_push_right (C : CatSystem ι D) (hC : C.Coherent) {ip iq ir : ι}
+    (xp : C.A ip) (xq : C.A iq) (xr : C.A ir)
+    (a : UpperBound D ip iq) (f : C.F a.2.1 xp ⟶ C.F a.2.2 xq)
+    (b b₂ : UpperBound D iq ir) (h : D.le b.1 b₂.1) (g : C.F b.2.1 xq ⟶ C.F b.2.2 xr) :
+    homCompRaw C hC xp xq xr a f b₂ (homTr C xq xr b b₂ h g)
+      = homCompRaw C hC xp xq xr a f b g := by
+  obtain ⟨M, haM, hb₂M⟩ := D.bound a.1 b₂.1
+  rw [homCompRaw_eq_compAt C hC xp xq xr a f b₂ (homTr C xq xr b b₂ h g) M haM hb₂M,
+      homCompRaw_eq_compAt C hC xp xq xr a f b g M haM (D.trans h hb₂M)]
+  unfold compAt
+  rw [homTr_trans C hC xq xr b b₂
+        ⟨M, D.trans b.2.1 (D.trans h hb₂M), D.trans b.2.2 (D.trans h hb₂M)⟩ h hb₂M g]
+
+/-- Raw composition respects the germ equivalence on both arguments: push each
+    representative up to its germ-witness level (`push_left`/`push_right`), where
+    the representatives agree. -/
+theorem homCompRaw_wd (C : CatSystem ι D) (hC : C.Coherent) {ip iq ir : ι}
+    (xp : C.A ip) (xq : C.A iq) (xr : C.A ir)
+    (a : UpperBound D ip iq) (f : C.F a.2.1 xp ⟶ C.F a.2.2 xq)
+    (a' : UpperBound D ip iq) (f' : C.F a'.2.1 xp ⟶ C.F a'.2.2 xq)
+    (hP : Rel (homSystem C hC xp xq) ⟨a, f⟩ ⟨a', f'⟩)
+    (b : UpperBound D iq ir) (g : C.F b.2.1 xq ⟶ C.F b.2.2 xr)
+    (b' : UpperBound D iq ir) (g' : C.F b'.2.1 xq ⟶ C.F b'.2.2 xr)
+    (hQ : Rel (homSystem C hC xq xr) ⟨b, g⟩ ⟨b', g'⟩) :
+    homCompRaw C hC xp xq xr a f b g = homCompRaw C hC xp xq xr a' f' b' g' := by
+  obtain ⟨k, hak, ha'k, hf⟩ := hP
+  obtain ⟨l, hbl, hb'l, hg⟩ := hQ
+  have hf' : homTr C xp xq a k hak f = homTr C xp xq a' k ha'k f' := hf
+  have hg' : homTr C xq xr b l hbl g = homTr C xq xr b' l hb'l g' := hg
+  rw [← homCompRaw_push_left C hC xp xq xr a k hak f b g, hf',
+      homCompRaw_push_left C hC xp xq xr a' k ha'k f' b g,
+      ← homCompRaw_push_right C hC xp xq xr a' f' b l hbl g, hg',
+      homCompRaw_push_right C hC xp xq xr a' f' b' l hb'l g']
+
+/-- Composition in the colimit category: lift `homCompRaw` over the two
+    hom-colimit quotients (well-defined by `homCompRaw_wd`). -/
+noncomputable def colimComp (C : CatSystem ι D) (hC : C.Coherent) {p q r : C.Obj}
+    (m : colimHom C hC p q) (n : colimHom C hC q r) : colimHom C hC p r :=
+  Quotient.lift₂
+    (fun rm rn => homCompRaw C hC (colimOut C p).2 (colimOut C q).2 (colimOut C r).2
+      rm.1 rm.2 rn.1 rn.2)
+    (fun _ _ _ _ hP hQ =>
+      homCompRaw_wd C hC (colimOut C p).2 (colimOut C q).2 (colimOut C r).2
+        _ _ _ _ hP _ _ _ _ hQ)
+    m n
+
 end Freyd.Colim
