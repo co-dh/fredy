@@ -44,21 +44,39 @@ variable [ht : HasTerminal 𝒞] [hp : HasBinaryProducts 𝒞] [hpull : HasPullb
   A ↦ A × B (the product with B).  When B is well-supported, this
   functor is a faithful embedding. -/
 
-/-- The "product with B" functor A → A/B: sends C ↦ C×B with the
-    projection as the structure map into B.  Faithful when B is
-    well-supported. -/
-def sliceEmbedding (B : 𝒞) (hws : WellSupported B) : 𝒞 → 𝒞 :=
-  λ C => prod C B
+/-- The "product with B" functor `(-)×B : 𝒞 → 𝒞`.  This is the object part of
+    the book's embedding `A → A/B`, `C ↦ (C×B → B)`; on morphisms it sends
+    `f` to `pair (fst ≫ f) snd`. -/
+def prodRight (B : 𝒞) : 𝒞 → 𝒞 := fun C => prod C B
 
-/-- §1.544: For well-supported B, the functor A → A/B given by
-    C ↦ C×B is a faithful embedding. -/
-theorem slice_embedding_faithful (B : 𝒞) (hws : WellSupported B) [Functor (sliceEmbedding B hws)] : Faithful (sliceEmbedding B hws) := by
-  -- The book: "A: A → A/B separates objects and, if B is well-supported,
-  -- separates morphisms."  The construction uses the product with B:
-  -- for f,g: C → D, if C×B → D×B agree as A/B-morphisms, then f = g.
-  -- This follows because B is well-supported, so the projection B → 1 is cover,
-  -- and the pullback properties force equality.
-  sorry
+instance prodRightFunctor (B : 𝒞) : Functor (prodRight B) where
+  map {C D} f := pair (fst ≫ f) snd
+  map_id C := by
+    show pair (fst ≫ Cat.id C) snd = Cat.id (prod C B)
+    rw [Cat.comp_id]
+    exact (pair_uniq fst snd (Cat.id (prod C B)) (Cat.id_comp fst) (Cat.id_comp snd)).symm
+  map_comp {C D E} f g := by
+    show pair (fst ≫ f ≫ g) snd = pair (fst ≫ f) snd ≫ pair (fst ≫ g) snd
+    symm
+    apply pair_uniq
+    · rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair, Cat.assoc]
+    · rw [Cat.assoc, snd_pair, snd_pair]
+
+/-- **§1.544**: when `B` is well-supported, `(-)×B` SEPARATES MORPHISMS — the
+    embedding `A → A/B` is faithful in Freyd's sense ("separates objects and, if
+    `B` is well-supported, separates morphisms").  If `f×B = g×B`, projecting
+    along `fst` gives `fst ≫ f = fst ≫ g`; and `fst : C×B → C` is a cover
+    (`prod_fst_cover`), hence epic (`cover_epi`), so `f = g`. -/
+theorem slice_embedding_separates [PullbacksTransferCovers 𝒞] (B : 𝒞) (hws : WellSupported B) :
+    Embedding (prodRight B) := by
+  intro C D f g h
+  have e1 : (prodRightFunctor B).map f ≫ (fst : prod D B ⟶ D) = (fst : prod C B ⟶ C) ≫ f :=
+    fst_pair ((fst : prod C B ⟶ C) ≫ f) snd
+  have e2 : (prodRightFunctor B).map g ≫ (fst : prod D B ⟶ D) = (fst : prod C B ⟶ C) ≫ g :=
+    fst_pair ((fst : prod C B ⟶ C) ≫ g) snd
+  have hfst : (fst : prod C B ⟶ C) ≫ f = (fst : prod C B ⟶ C) ≫ g := by
+    rw [← e1, ← e2, h]
+  exact cover_epi (prod_fst_cover hws) hfst
 
 /-! ## §1.545 Relative capitalization
 
@@ -78,13 +96,21 @@ def IsRelativeCapitalization [HasTerminal 𝒞] [HasImages 𝒞] (A A_star : �
   If A is a small (pre-)regular category, there exists a capital
   (pre-)regular category Ā and a faithful representation A → Ā.
 
-  The proof iterates the construction A ↦ A/B for each well-supported
-  B (building a relative capitalization), well-orders the process, and
-  takes the directed union.  This is the Capitalization Lemma.
+  Status of the proof in this formalization:
+  • §1.544 (one slice step separates morphisms) is PROVED, sorry-free:
+    `slice_embedding_separates` — the keystone facts `cover_epi` (covers are
+    right-cancellable) and `prod_fst_cover` (`fst : C×B → C` is a cover when B is
+    well-supported) are in `S1_52.lean`.
+  • §1.545 relative capitalization is DEFINED (`IsRelativeCapitalization`).
 
-  We state it as an existential; the full constructive proof (§1.544-6)
-  requires transfinite recursion and is beyond the scope of this
-  formalization. -/
+  What remains (the genuine wall): §1.546 builds A* as the directed union of the
+  slices A/B over all well-supported B, and §1.543 iterates this transfinitely to
+  a fixed point, then proves the colimit is pre-regular and capital.  Both steps
+  are *directed colimits in the category of categories*, indexed by ordinals.
+  This repo is deliberately mathlib-free, so there is no `Ordinal`, no
+  well-founded recursion producing types, and no colimit-of-categories machinery
+  to build on — constructing it from scratch is a separate foundational project.
+  Hence `capitalization_lemma` is left as `sorry`. -/
 
 theorem capitalization_lemma (A : Type u) [Cat.{v} A] [PreRegularCategory A] :
     ∃ (Ā : Type u) (hC : Cat.{v} Ā) (hP : PreRegularCategory Ā),

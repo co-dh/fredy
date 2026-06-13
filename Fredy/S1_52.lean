@@ -50,10 +50,93 @@ theorem cover_pullback [hpull : HasPullbacks 𝒞] [PullbacksTransferCovers 𝒞
     Cover (hpull.has f g).cone.π₂ :=
   PullbacksTransferCovers.pullbacks_transfer_covers _ (hpull.has f g).cone_isPullback hf
 
+/-! ## §1.512 Covers are right-cancellable (epic) -/
+
+/-- A cover `f` is **epic** (right-cancellable).  `f` factors through the
+    equalizer of `a, b` — realized as the pullback `P` of the graphs
+    `g₁ = ⟨id,a⟩`, `g₂ = ⟨id,b⟩ : Y → Y×Z` — whose projection `e : P → Y` is
+    monic; a cover through a monic forces it iso (`Cover`), so `e` is iso and
+    `a = b`.  Needs only finite products and pullbacks. -/
+theorem cover_epi [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
+    {X Y : 𝒞} {f : X ⟶ Y} (hf : Cover f) {Z : 𝒞} {a b : Y ⟶ Z}
+    (hab : f ≫ a = f ≫ b) : a = b := by
+  let g₁ : Y ⟶ prod Y Z := pair (Cat.id Y) a
+  let g₂ : Y ⟶ prod Y Z := pair (Cat.id Y) b
+  have hg₁fst : g₁ ≫ fst = Cat.id Y := fst_pair _ _
+  have hg₂fst : g₂ ≫ fst = Cat.id Y := fst_pair _ _
+  have hg₂mono : Mono g₂ := mono_of_retraction g₂ fst hg₂fst
+  have pb : HasPullback g₁ g₂ := HasPullbacks.has g₁ g₂
+  have hw : pb.cone.π₁ ≫ g₁ = pb.cone.π₂ ≫ g₂ := pb.cone.w
+  -- the two projections coincide (both legs are graphs, so `≫ fst = id`)
+  have hee₂ : pb.cone.π₁ = pb.cone.π₂ := by
+    calc pb.cone.π₁ = pb.cone.π₁ ≫ (g₁ ≫ fst) := by rw [hg₁fst, Cat.comp_id]
+      _ = (pb.cone.π₁ ≫ g₁) ≫ fst := (Cat.assoc _ _ _).symm
+      _ = (pb.cone.π₂ ≫ g₂) ≫ fst := by rw [hw]
+      _ = pb.cone.π₂ ≫ (g₂ ≫ fst) := Cat.assoc _ _ _
+      _ = pb.cone.π₂ := by rw [hg₂fst, Cat.comp_id]
+  -- `e := π₁` equalizes `a` and `b`
+  have heq : pb.cone.π₁ ≫ a = pb.cone.π₁ ≫ b := by
+    calc pb.cone.π₁ ≫ a = pb.cone.π₁ ≫ (g₁ ≫ snd) := by rw [show g₁ ≫ snd = a from snd_pair _ _]
+      _ = (pb.cone.π₁ ≫ g₁) ≫ snd := (Cat.assoc _ _ _).symm
+      _ = (pb.cone.π₂ ≫ g₂) ≫ snd := by rw [hw]
+      _ = pb.cone.π₂ ≫ (g₂ ≫ snd) := Cat.assoc _ _ _
+      _ = pb.cone.π₂ ≫ b := by rw [show g₂ ≫ snd = b from snd_pair _ _]
+      _ = pb.cone.π₁ ≫ b := by rw [hee₂]
+  -- `e := π₁` is monic (pullback of the monic `g₂`)
+  have he_mono : Mono pb.cone.π₁ := by
+    intro W p q hpq
+    have hpq2 : p ≫ pb.cone.π₂ = q ≫ pb.cone.π₂ := by
+      apply hg₂mono
+      calc (p ≫ pb.cone.π₂) ≫ g₂ = p ≫ (pb.cone.π₂ ≫ g₂) := Cat.assoc _ _ _
+        _ = p ≫ (pb.cone.π₁ ≫ g₁) := by rw [hw]
+        _ = (p ≫ pb.cone.π₁) ≫ g₁ := (Cat.assoc _ _ _).symm
+        _ = (q ≫ pb.cone.π₁) ≫ g₁ := by rw [hpq]
+        _ = q ≫ (pb.cone.π₁ ≫ g₁) := Cat.assoc _ _ _
+        _ = q ≫ (pb.cone.π₂ ≫ g₂) := by rw [hw]
+        _ = (q ≫ pb.cone.π₂) ≫ g₂ := (Cat.assoc _ _ _).symm
+    have hcone : (p ≫ pb.cone.π₁) ≫ g₁ = (p ≫ pb.cone.π₂) ≫ g₂ := by
+      rw [Cat.assoc, Cat.assoc, hw]
+    have hp : p = pb.lift ⟨W, p ≫ pb.cone.π₁, p ≫ pb.cone.π₂, hcone⟩ :=
+      pb.lift_uniq ⟨W, p ≫ pb.cone.π₁, p ≫ pb.cone.π₂, hcone⟩ p rfl rfl
+    have hq : q = pb.lift ⟨W, p ≫ pb.cone.π₁, p ≫ pb.cone.π₂, hcone⟩ :=
+      pb.lift_uniq ⟨W, p ≫ pb.cone.π₁, p ≫ pb.cone.π₂, hcone⟩ q hpq.symm hpq2.symm
+    rw [hp, hq]
+  -- `f` factors through `e`
+  have hfd : f ≫ g₁ = f ≫ g₂ := by
+    have e1 : (f ≫ g₁) ≫ fst = (f ≫ g₂) ≫ fst := by
+      rw [Cat.assoc, Cat.assoc, hg₁fst, hg₂fst]
+    have e2 : (f ≫ g₁) ≫ snd = (f ≫ g₂) ≫ snd := by
+      rw [Cat.assoc, Cat.assoc, show g₁ ≫ snd = a from snd_pair _ _,
+          show g₂ ≫ snd = b from snd_pair _ _, hab]
+    rw [pair_uniq ((f ≫ g₁) ≫ fst) ((f ≫ g₁) ≫ snd) (f ≫ g₁) rfl rfl,
+        pair_uniq ((f ≫ g₁) ≫ fst) ((f ≫ g₁) ≫ snd) (f ≫ g₂) e1.symm e2.symm]
+  have hue : pb.lift ⟨X, f, f, hfd⟩ ≫ pb.cone.π₁ = f := pb.lift_fst ⟨X, f, f, hfd⟩
+  -- a cover through the monic `e` makes `e` iso
+  obtain ⟨einv, _, hinv⟩ := hf pb.cone.π₁ (pb.lift ⟨X, f, f, hfd⟩) he_mono hue
+  calc a = (einv ≫ pb.cone.π₁) ≫ a := by rw [hinv, Cat.id_comp]
+    _ = einv ≫ (pb.cone.π₁ ≫ a) := Cat.assoc _ _ _
+    _ = einv ≫ (pb.cone.π₁ ≫ b) := by rw [heq]
+    _ = (einv ≫ pb.cone.π₁) ≫ b := (Cat.assoc _ _ _).symm
+    _ = b := by rw [hinv, Cat.id_comp]
+
 variable [HasTerminal 𝒞]
 
 /-- A is WELL-SUPPORTED if A → 1 is a cover (§1.522). -/
 def WellSupported (A : 𝒞) : Prop := Cover (term A)
+
+/-- When `B` is well-supported, the projection `fst : C×B → C` is a cover.
+    `C×B` with `(snd, fst)` is the pullback of `term B : B → 1` along
+    `term C : C → 1` (a product is a pullback over the terminal), and pullbacks
+    transfer the cover `term B` to the opposite leg `fst`. -/
+theorem prod_fst_cover [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [PullbacksTransferCovers 𝒞]
+    {C B : 𝒞} (hws : WellSupported B) : Cover (fst : prod C B ⟶ C) := by
+  have hpb : (⟨prod C B, snd, fst, term_uniq _ _⟩ : Cone (term B) (term C)).IsPullback := by
+    intro d
+    refine ⟨pair d.π₂ d.π₁, ⟨snd_pair _ _, fst_pair _ _⟩, ?_⟩
+    intro v hv₁ hv₂
+    exact pair_uniq d.π₂ d.π₁ v hv₂ hv₁
+  intro D m g hm hgm
+  exact PullbacksTransferCovers.pullbacks_transfer_covers _ hpb hws m g hm hgm
 
 /-- The SUPPORT of A is the image of A → 1 (§1.522, requires HasImages). -/
 def Support [HasImages 𝒞] (A : 𝒞) : Subobject 𝒞 one := image (term A)
