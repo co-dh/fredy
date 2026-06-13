@@ -184,6 +184,14 @@ def homIncl (C : CatSystem ι D) (hC : C.Coherent) {i j : ι} (x : C.A i) (y : C
 def homClassId (C : CatSystem ι D) (hC : C.Coherent) {i : ι} (x : C.A i) : HomColim C hC x x :=
   homIncl C hC x x ⟨i, D.refl i, D.refl i⟩ (Cat.id (C.F (D.refl i) x))
 
+/-- Including a germ pushed to a higher level equals including it at the lower
+    level: the hom-colimit absorbs the transition (`incl_compat` for `homSystem`).
+    A building block for composition's well-definedness. -/
+theorem homIncl_compat (C : CatSystem ι D) (hC : C.Coherent) {i j : ι} (x : C.A i) (y : C.A j)
+    {a b : UpperBound D i j} (hab : D.le a.1 b.1) (g : C.F a.2.1 x ⟶ C.F a.2.2 y) :
+    homIncl C hC x y b (homTr C x y a b hab g) = homIncl C hC x y a g :=
+  incl_compat (homSystem C hC x y) hab g
+
 /-! ## Milestone 2b — the colimit category's Hom (via chosen representatives)
 
   We pick a representative of each colimit object with `Quotient.out` and define a
