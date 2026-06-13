@@ -1066,13 +1066,64 @@ theorem comp_graph_id_left {A B : 𝒞} (R : BinRel 𝒞 A B) : RelLe R ((graph 
       ← Cat.assoc u pb.cone.π₂, hu₂, Cat.id_comp]
   exact ⟨⟨h, h_colA, h_colB⟩⟩
 
-/-- **§1.56**: `graph(id_B)` is a right identity for `⊚`. -/
+/-- **§1.56**: `graph(id_B)` is a right identity for `⊚`.  Dual to `graph_id_comp`:
+    pullback of R.colB and id_B is trivial; image minimality yields the RelHom. -/
 theorem comp_graph_id {A B : 𝒞} (R : BinRel 𝒞 A B) : RelLe (R ⊚ (graph (Cat.id B))) R := by
-  sorry
+  let T := R.src; let a := R.colA; let b := R.colB
+  have h_monic : Mono (pair a b) := monic_pair_of_monicPair a b R.isMonicPair
+  -- Pullback of R.colB and id_B over B
+  let pb := HasPullbacks.has b (Cat.id B)
+  -- pb.cone.w : pb.cone.π₁ ≫ b = pb.cone.π₂ ≫ id_B
+  have h_pb_w : pb.cone.π₁ ≫ b = pb.cone.π₂ := by
+    simpa [Cat.comp_id] using pb.cone.w
+  -- span = pair(π₁ ≫ a, π₂) after ≫ id cancels
+  let span := pair (pb.cone.π₁ ≫ a) (pb.cone.π₂ ≫ (Cat.id B))
+  -- span = pair(π₁ ≫ a, π₁ ≫ b) = π₁ ≫ pair(a,b)
+  have h_span_eq : pb.cone.π₁ ≫ pair a b = span := by
+    dsimp [span]
+    rw [Cat.comp_id, ← h_pb_w]
+    apply pair_uniq (pb.cone.π₁ ≫ a) (pb.cone.π₁ ≫ b) _
+      (by rw [Cat.assoc, fst_pair a b])
+      (by rw [Cat.assoc, snd_pair a b])
+  let S : Subobject 𝒞 (prod A B) := ⟨T, pair a b, h_monic⟩
+  have hallows : Allows S span := ⟨pb.cone.π₁, h_span_eq⟩
+  let I := image span
+  have h_image_le : I.le S := image_min span S hallows
+  rcases h_image_le with ⟨k, hk⟩
+  -- k ≫ pair(a,b) = I.arr
+  have hkA : k ≫ a = I.arr ≫ fst := by
+    calc k ≫ a = (k ≫ pair a b) ≫ fst := by rw [Cat.assoc, fst_pair a b]
+      _ = I.arr ≫ fst := by rw [hk]
+  have hkB : k ≫ b = I.arr ≫ snd := by
+    calc k ≫ b = (k ≫ pair a b) ≫ snd := by rw [Cat.assoc, snd_pair a b]
+      _ = I.arr ≫ snd := by rw [hk]
+  exact ⟨⟨k, hkA, hkB⟩⟩
 
-/-- **§1.56**: `graph(id_B)` is a right identity for `⊚` (reverse containment). -/
+/-- **§1.56**: `graph(id_B)` is a right identity for `⊚` (reverse containment).
+    Dual to `comp_graph_id_left`: lift via cone ⟨id_T, R.colB⟩. -/
 theorem comp_graph_id_right {A B : 𝒞} (R : BinRel 𝒞 A B) : RelLe R (R ⊚ (graph (Cat.id B))) := by
-  sorry
+  let T := R.src; let a := R.colA; let b := R.colB
+  -- Pullback of R.colB and id_B over B; lift from cone ⟨id_T, R.colB⟩
+  let pb := HasPullbacks.has b (Cat.id B)
+  have h_cone_w : (Cat.id T) ≫ b = b ≫ (Cat.id B) := by rw [Cat.id_comp, Cat.comp_id]
+  let c : Cone b (Cat.id B) := ⟨T, Cat.id T, b, h_cone_w⟩
+  let u := pb.lift c
+  have hu₁ : u ≫ pb.cone.π₁ = Cat.id T := pb.lift_fst c
+  have hu₂ : u ≫ pb.cone.π₂ = b := pb.lift_snd c
+  -- span = pair(π₁ ≫ a, π₂ ≫ id_B)
+  let span := pair (pb.cone.π₁ ≫ a) (pb.cone.π₂ ≫ (Cat.id B))
+  let I := image span
+  let h : T ⟶ I.dom := u ≫ image.lift span
+  have h_colA : h ≫ (I.arr ≫ fst) = a := by
+    dsimp [h, I]
+    rw [Cat.assoc, ← Cat.assoc (image.lift span), image.lift_fac span, fst_pair,
+      ← Cat.assoc u pb.cone.π₁, hu₁, Cat.id_comp]
+  have h_colB : h ≫ (I.arr ≫ snd) = b := by
+    dsimp [h, I]
+    rw [Cat.assoc, ← Cat.assoc (image.lift span), image.lift_fac span, snd_pair,
+      Cat.comp_id]
+    exact hu₂
+  exact ⟨⟨h, h_colA, h_colB⟩⟩
 
 /-- **§1.56**: `⊚` is associative. -/
 theorem compose_assoc {A B C D : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 C D) :
