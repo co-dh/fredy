@@ -596,7 +596,7 @@ theorem tabulated_is_simple_iff_left_monic {A B T : 𝒞} (a : T ⟶ A) (b : T �
 
 /-- **§1.564**: A relation ⟨T; a:T→A, b:T→B⟩ tabulated by a monic pair is a
     MAP (entire + simple) iff `a` is an isomorphism.  Maps are exactly the
-    graphs of morphisms: if `R` is a map then `R = graph(b ≫ a⁻¹)`. -/
+    graphs of morphisms: if `R` is a map then `R = graph(a⁻¹ ≫ b)`. -/
 theorem tabulated_is_map_iff_left_iso {A B T : 𝒞} (a : T ⟶ A) (b : T ⟶ B) (hp : MonicPair a b) :
     Map (BinRel.mk T a b hp) ↔ IsIso a := by
   rw [Map, tabulated_is_entire_iff_left_cover a b hp,
@@ -606,6 +606,26 @@ theorem tabulated_is_map_iff_left_iso {A B T : 𝒞} (a : T ⟶ A) (b : T ⟶ B)
   · intro hiso
     rcases hiso with ⟨ainv, ha_ainv, hainv_a⟩
     exact ⟨iso_cover a ⟨ainv, ha_ainv, hainv_a⟩, mono_of_retraction a ainv ha_ainv⟩
+
+/-- **§1.564**: When the left leg `a` is iso, the tabulated relation equals the graph
+    of `a⁻¹ ≫ b` (mutual `RelLe`).  Together with `tabulated_is_map_iff_left_iso`,
+    every map IS the graph of a morphism. -/
+theorem tabulated_left_iso_eq_graph {A B T : 𝒞} (a : T ⟶ A) (b : T ⟶ B) (hp : MonicPair a b)
+    (ainv : A ⟶ T) (ha_ainv : a ≫ ainv = Cat.id T) (hainv_a : ainv ≫ a = Cat.id A) :
+    RelLe (BinRel.mk T a b hp) (graph (ainv ≫ b)) ∧ RelLe (graph (ainv ≫ b)) (BinRel.mk T a b hp) := by
+  let R := BinRel.mk T a b hp
+  let G := graph (ainv ≫ b)
+  constructor
+  · -- R ≤ G: use a : T → A as the RelHom; check a ≫ id = a and a ≫ (ainv ≫ b) = b
+    refine ⟨⟨a, ?_, ?_⟩⟩
+    · dsimp [G, graph]; rw [Cat.comp_id]
+    · dsimp [G, graph]; calc a ≫ (ainv ≫ b) = (a ≫ ainv) ≫ b := (Cat.assoc a ainv b).symm
+      _ = Cat.id T ≫ b := by rw [ha_ainv]
+      _ = b := Cat.id_comp _
+  · -- G ≤ R: use ainv : A → T as the RelHom; check ainv ≫ a = id and ainv ≫ b = ainv ≫ b
+    refine ⟨⟨ainv, ?_, ?_⟩⟩
+    · dsimp [R, G, graph]; rw [hainv_a]
+    · rfl
 
 /-! ## §1.563 Modular identity
 
@@ -833,6 +853,13 @@ def EquivalenceRelation {A : 𝒞} (E : BinRel 𝒞 A A) : Prop :=
   Nonempty (RelHom E (reciprocal E)) ∧
   True  -- transitivity requires composition
 
+/-- **§1.568**: An equivalence relation E on A is EFFECTIVE if it is the level
+    (kernel pair) of a cover (quotient-object) x : A → Q.  Equivalently,
+    E ≅ x ⊚ x° = level(x) in the relation containment order. -/
+def IsEffective {A : 𝒞} (E : BinRel 𝒞 A A) [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] : Prop :=
+  EquivalenceRelation E ∧ ∃ (Q : 𝒞) (x : A ⟶ Q), Cover x ∧
+    RelLe E ((graph x) ⊚ (graph x)°) ∧ RelLe ((graph x) ⊚ (graph x)°) E
+
 /-- CONSTANT MORPHISM (§1.56(10)): x: A→B is constant if ∀y,y' : C→A, y≫x = y'≫x. -/
 def Constant {A B : 𝒞} (x : A ⟶ B) : Prop :=
   ∀ {C : 𝒞} (y y' : C ⟶ A), y ≫ x = y' ≫ x
@@ -841,5 +868,74 @@ def Constant {A B : 𝒞} (x : A ⟶ B) : Prop :=
     The preorder: f ≤ g if f factors through g (as covers). -/
 def QuotientObject (A : 𝒞) : Type (max u v) :=
   Σ (B : 𝒞) (f : A ⟶ B), PLift (Cover f)
+
+/-! ## Rel(A) — the category of relations (§1.564, §1.56(10))
+
+  Objects are the same as in A, morphisms A → B are binary relations,
+  composition is `⊚`, identity is `graph(id)`.  The graph map
+  `x ↦ graph(x)` is a faithful functor `A → Rel(A)`. -/
+
+section
+variable [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
+
+/-- **§1.56**: `graph(id_A)` is a left identity for `⊚`. -/
+theorem graph_id_comp {A B : 𝒞} (R : BinRel 𝒞 A B) : RelLe ((graph (Cat.id A)) ⊚ R) R := by
+  -- In Set: (a,b) ∈ id⊚R ↔ ∃a', id(a)=a' ∧ (a',b) ∈ R ↔ (a,b) ∈ R.
+  -- Formally, the pullback of (id, R.colA) has a section to R.src.
+  sorry
+
+/-- **§1.56**: `graph(id_A)` is a left identity for `⊚` (reverse containment). -/
+theorem comp_graph_id_left {A B : 𝒞} (R : BinRel 𝒞 A B) : RelLe R ((graph (Cat.id A)) ⊚ R) := by
+  sorry
+
+/-- **§1.56**: `graph(id_B)` is a right identity for `⊚`. -/
+theorem comp_graph_id {A B : 𝒞} (R : BinRel 𝒞 A B) : RelLe (R ⊚ (graph (Cat.id B))) R := by
+  sorry
+
+/-- **§1.56**: `graph(id_B)` is a right identity for `⊚` (reverse containment). -/
+theorem comp_graph_id_right {A B : 𝒞} (R : BinRel 𝒞 A B) : RelLe R (R ⊚ (graph (Cat.id B))) := by
+  sorry
+
+/-- **§1.56**: `⊚` is associative. -/
+theorem compose_assoc {A B C D : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 C D) :
+    RelLe ((R ⊚ S) ⊚ T) (R ⊚ (S ⊚ T)) := by
+  sorry
+
+/-- **§1.56**: `⊚` is associative (reverse containment). -/
+theorem compose_assoc' {A B C D : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 C D) :
+    RelLe (R ⊚ (S ⊚ T)) ((R ⊚ S) ⊚ T) := by
+  sorry
+
+/-- **§1.564**: `graph` preserves composition: `graph(f ≫ g) ≅ graph(f) ⊚ graph(g)`. -/
+theorem graph_comp {A B C : 𝒞} (f : A ⟶ B) (g : B ⟶ C) : RelLe (graph (f ≫ g)) (graph f ⊚ graph g) := by
+  -- graph(f≫g): src=A, colA=id, colB=f≫g
+  -- graph(f)⊚graph(g): pullback of (f, id_B), then span A→A×C
+  -- The pullback is (A, id_A, f), so the span is (id_A, f≫g) = graph(f≫g)
+  sorry
+
+/-- **§1.564**: `graph` preserves composition (reverse containment). -/
+theorem comp_graph {A B C : 𝒞} (f : A ⟶ B) (g : B ⟶ C) : RelLe (graph f ⊚ graph g) (graph (f ≫ g)) := by
+  sorry
+
+/-- **§1.564**: `graph` is faithful: `graph(f) ≤ graph(g)` implies `f = g`.
+    (The reverse containment also implies `f = g`, so graph is an embedding
+    of the hom-set into the preorder of relations.) -/
+theorem graph_faithful {A B : 𝒞} {f g : A ⟶ B}
+    (h : RelLe (graph f) (graph g)) : f = g := by
+  rcases h with ⟨⟨h, hA, hB⟩⟩
+  dsimp [graph] at hA hB
+  rw [Cat.comp_id] at hA
+  -- hA : h = id_A, hB : h ≫ g = f
+  rw [hA, Cat.id_comp] at hB
+  exact hB.symm
+
+/-- **§1.564**: `graph` is an embedding (injective on morphisms). -/
+theorem graph_injective {A B : 𝒞} {f g : A ⟶ B} (h : graph f = graph g) : f = g := by
+  dsimp [graph] at h
+  -- h : BinRel.mk A (id A) f _ = BinRel.mk A (id A) g _
+  cases h
+  rfl
+
+end
 
 end Freyd
