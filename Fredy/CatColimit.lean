@@ -120,6 +120,10 @@ theorem castHom_comp {𝒜 : Type w} [Cat.{w} 𝒜] {X Y Z X' Y' Z' : 𝒜}
     castHom hX hY m ≫ castHom hY hZ n = castHom hX hZ (m ≫ n) := by
   subst hX; subst hY; subst hZ; rfl
 
+/-- Transport preserves identity. -/
+theorem castHom_id {𝒜 : Type w} [Cat.{w} 𝒜] {X X' : 𝒜} (hX : X = X') :
+    castHom hX hX (Cat.id X) = Cat.id X' := by subst hX; rfl
+
 /-- A functor commutes with transport: mapping a transported morphism equals
     transporting the mapped morphism (along the image object-equalities). -/
 theorem map_castHom {𝒜 𝒝 : Type w} [Cat.{w} 𝒜] [Cat.{w} 𝒝] (T : 𝒜 → 𝒝) [hT : Functor T]
@@ -252,6 +256,15 @@ theorem homTr_comp (C : CatSystem ι D) {ip iq ir : ι}
   unfold homTr
   dsimp only
   rw [castHom_comp, ← (C.functF hcd).map_comp]
+
+/-- Pushing an identity germ up gives an identity (the transition is a functor:
+    `map_id`, then `castHom_id`). -/
+theorem homTr_id (C : CatSystem ι D) {i : ι} (x : C.A i)
+    (a b : UpperBound D i i) (hab : D.le a.1 b.1) :
+    homTr C x x a b hab (Cat.id (C.F a.2.1 x)) = Cat.id (C.F b.2.1 x) := by
+  unfold homTr
+  rw [(C.functF hab).map_id]
+  exact castHom_id _
 
 /-- Compose germs `f` (level `a`) and `g` (level `b`) at an explicit common bound
     `e`: push both to `e` and compose there.  `homCompRaw` is this at the chosen
