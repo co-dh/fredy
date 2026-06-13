@@ -630,6 +630,22 @@ theorem tabulated_left_iso_eq_graph {A B T : 𝒞} (a : T ⟶ A) (b : T ⟶ B) (
     · dsimp [R, G, graph]; rw [hainv_a]
     · rfl
 
+/-- **§1.564**: The graph of any morphism `g : A → B` is a map (entire + simple).
+    Follows from: graph(g) is tabulated by ⟨A; id_A, g⟩, and id_A is both cover
+    and monic.  This is the key fact that lets us reflect maps back to morphisms. -/
+theorem graph_is_map {A B : 𝒞} [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] (g : A ⟶ B) :
+    Map (graph g) := by
+  have hp : MonicPair (Cat.id A : A ⟶ A) g := by
+    intro W f g' h _hg
+    simpa [Cat.comp_id] using h
+  have h_entire : Entire (graph g) :=
+    (tabulated_is_entire_iff_left_cover (Cat.id A) g hp).mpr
+      (iso_cover (Cat.id A) ⟨Cat.id A, Cat.comp_id _, Cat.id_comp _⟩)
+  have h_simple : Simple (graph g) :=
+    (tabulated_is_simple_iff_left_monic (Cat.id A) g hp).mpr
+      (mono_of_retraction (Cat.id A) (Cat.id A) (Cat.comp_id _))
+  exact And.intro h_entire h_simple
+
 /-! ## §1.563 Modular identity
 
   In a regular category: RS ∩ T ⊆ (R ∩ TS°)S.
