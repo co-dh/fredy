@@ -40,6 +40,18 @@ class HasPullback {A B C : 𝒞} (f : A ⟶ C) (g : B ⟶ C) where
 class HasPullbacks (𝒞 : Type u) [Cat.{v} 𝒞] where
   has {A B C : 𝒞} (f : A ⟶ C) (g : B ⟶ C) : HasPullback f g
 
+/-- A cone is a PULLBACK if every cone over the same cospan factors uniquely
+    through it (§1.454).  Predicate form, for stating that a given square is a
+    pullback without fixing a choice of pullbacks. -/
+def Cone.IsPullback {A B C : 𝒞} {f : A ⟶ C} {g : B ⟶ C} (c : Cone f g) : Prop :=
+  ∀ d : Cone f g, ∃ u : d.pt ⟶ c.pt, (u ≫ c.π₁ = d.π₁ ∧ u ≫ c.π₂ = d.π₂) ∧
+    ∀ v : d.pt ⟶ c.pt, v ≫ c.π₁ = d.π₁ → v ≫ c.π₂ = d.π₂ → v = u
+
+/-- The chosen cone of a pullback is a pullback. -/
+theorem HasPullback.cone_isPullback {A B C : 𝒞} {f : A ⟶ C} {g : B ⟶ C}
+    (hp : HasPullback f g) : hp.cone.IsPullback := λ d =>
+  ⟨hp.lift d, ⟨⟨hp.lift_fst d, hp.lift_snd d⟩, λ v h₁ h₂ => hp.lift_uniq d v h₁ h₂⟩⟩
+
 variable [ht : HasTerminal 𝒞] [hp : HasBinaryProducts 𝒞] [hpull : HasPullbacks 𝒞]
 
 /-- The kernel pair of `f` : pullback of `f` along itself.  §1.454 -/

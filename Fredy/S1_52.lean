@@ -27,10 +27,12 @@ namespace Freyd
   covers.  A PRE-REGULAR CATEGORY drops the images requirement. -/
 
 /-- Mixin (§1.52): pullbacks transfer covers — the closure condition shared by
-    regular and pre-regular categories. -/
+    regular and pre-regular categories.  In a pullback square the map opposite
+    a cover is a cover; the square must be a pullback, not just commutative
+    (in **Set** an empty corner over a commutative square defeats transfer). -/
 class PullbacksTransferCovers (𝒞 : Type u) [Cat.{v} 𝒞] where
-  pullbacks_transfer_covers : ∀ {A B C D : 𝒞} (f : A ⟶ B) (g : C ⟶ B)
-    (p₁ : D ⟶ A) (p₂ : D ⟶ C), Cover f → p₁ ≫ f = p₂ ≫ g → Cover p₂
+  pullbacks_transfer_covers : ∀ {A B C : 𝒞} {f : A ⟶ B} {g : C ⟶ B}
+    (c : Cone f g), c.IsPullback → Cover f → Cover c.π₂
 
 /-- A regular category: Cartesian, has images, pullbacks transfer covers (§1.52). -/
 class RegularCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
@@ -41,6 +43,12 @@ class RegularCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
 class PreRegularCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
     HasTerminal 𝒞, HasBinaryProducts 𝒞, HasPullbacks 𝒞,
     PullbacksTransferCovers 𝒞
+
+/-- The chosen pullback of a cover along any map is a cover. -/
+theorem cover_pullback [hpull : HasPullbacks 𝒞] [PullbacksTransferCovers 𝒞]
+    {A B C : 𝒞} {f : A ⟶ B} (g : C ⟶ B) (hf : Cover f) :
+    Cover (hpull.has f g).cone.π₂ :=
+  PullbacksTransferCovers.pullbacks_transfer_covers _ (hpull.has f g).cone_isPullback hf
 
 variable [HasTerminal 𝒞]
 

@@ -13,7 +13,7 @@ import Fredy.S1_41
 
 open Freyd
 
-universe v u
+universe v u u₁ u₂
 
 variable {𝒞 : Type u} [Cat.{v} 𝒞] {𝒟 : Type u} [Cat.{v} 𝒟]
 
@@ -23,6 +23,14 @@ namespace Freyd
 
 def Embedding (F : 𝒞 → 𝒟) [hF : Functor F] : Prop :=
   ∀ {A B : 𝒞} (f g : A ⟶ B), hF.map f = hF.map g → f = g
+
+/-- The cross-universe form of `Embedding`: `T` SEPARATES MAPS if it is injective
+    on each hom-set.  Same notion as `Embedding`, but with source and target in
+    possibly different object universes — needed for representations `𝒞 → 𝒮^I`
+    whose target lives one universe up (§1.55 Henkin-Lubkin). -/
+def SeparatesMaps {C : Type u₁} [Cat.{v} C] {D : Type u₂} [Cat.{v} D]
+    (T : C → D) [hT : Functor T] : Prop :=
+  ∀ {A B : C} (f g : A ⟶ B), hT.map f = hT.map g → f = g
 
 def Full (F : 𝒞 → 𝒟) [hF : Functor F] : Prop :=
   ∀ {A B : 𝒞} (h : F A ⟶ F B), ∃ f : A ⟶ B, hF.map f = h
