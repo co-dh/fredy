@@ -114,6 +114,12 @@ theorem castHom_castHom {𝒜 : Type w} [Cat.{w} 𝒜] {X Y X' Y' X'' Y'' : 𝒜
     castHom h2X h2Y (castHom h1X h1Y m) = castHom (h1X.trans h2X) (h1Y.trans h2Y) m := by
   subst h1X; subst h1Y; subst h2X; subst h2Y; rfl
 
+/-- Transport distributes over composition. -/
+theorem castHom_comp {𝒜 : Type w} [Cat.{w} 𝒜] {X Y Z X' Y' Z' : 𝒜}
+    (hX : X = X') (hY : Y = Y') (hZ : Z = Z') (m : X ⟶ Y) (n : Y ⟶ Z) :
+    castHom hX hY m ≫ castHom hY hZ n = castHom hX hZ (m ≫ n) := by
+  subst hX; subst hY; subst hZ; rfl
+
 /-- A functor commutes with transport: mapping a transported morphism equals
     transporting the mapped morphism (along the image object-equalities). -/
 theorem map_castHom {𝒜 𝒝 : Type w} [Cat.{w} 𝒜] [Cat.{w} 𝒝] (T : 𝒜 → 𝒝) [hT : Functor T]
@@ -232,5 +238,19 @@ noncomputable def homCompRaw (C : CatSystem ι D) (hC : C.Coherent) {ip iq ir : 
   let bC : UpperBound D iq ir := ⟨c, D.trans b.2.1 hbc, D.trans b.2.2 hbc⟩
   homIncl C hC xp xr ⟨c, D.trans a.2.1 hac, D.trans b.2.2 hbc⟩
     (homTr C xp xq a aC hac f ≫ homTr C xq xr b bC hbc g)
+
+/-- Pushing a composite to a higher level = composing the pushed pieces.  The
+    transition `F hcd` is a functor (`map_comp`), and transport distributes over
+    composition (`castHom_comp`). -/
+theorem homTr_comp (C : CatSystem ι D) {ip iq ir : ι}
+    (xp : C.A ip) (xq : C.A iq) (xr : C.A ir) {c d : ι}
+    (hpc : D.le ip c) (hqc : D.le iq c) (hrc : D.le ir c) (hcd : D.le c d)
+    (f : C.F hpc xp ⟶ C.F hqc xq) (g : C.F hqc xq ⟶ C.F hrc xr) :
+    homTr C xp xr ⟨c, hpc, hrc⟩ ⟨d, D.trans hpc hcd, D.trans hrc hcd⟩ hcd (f ≫ g)
+      = homTr C xp xq ⟨c, hpc, hqc⟩ ⟨d, D.trans hpc hcd, D.trans hqc hcd⟩ hcd f
+        ≫ homTr C xq xr ⟨c, hqc, hrc⟩ ⟨d, D.trans hqc hcd, D.trans hrc hcd⟩ hcd g := by
+  unfold homTr
+  dsimp only
+  rw [castHom_comp, ← (C.functF hcd).map_comp]
 
 end Freyd.Colim
