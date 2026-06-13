@@ -210,4 +210,19 @@ noncomputable def colimHom (C : CatSystem ι D) (hC : C.Coherent) (p q : C.Obj) 
 noncomputable def colimId (C : CatSystem ι D) (hC : C.Coherent) (p : C.Obj) : colimHom C hC p p :=
   homClassId C hC (colimOut C p).2
 
+/-- Raw composition of germs: push representatives `f` (level `a`) and `g` (level
+    `b`) to a common level `c`, compose in `A c`, and include.  The middle objects
+    match (both `F·xq` over a proof `iq ≤ c`, identified by proof-irrelevance). -/
+noncomputable def homCompRaw (C : CatSystem ι D) (hC : C.Coherent) {ip iq ir : ι}
+    (xp : C.A ip) (xq : C.A iq) (xr : C.A ir)
+    (a : UpperBound D ip iq) (f : C.F a.2.1 xp ⟶ C.F a.2.2 xq)
+    (b : UpperBound D iq ir) (g : C.F b.2.1 xq ⟶ C.F b.2.2 xr) : HomColim C hC xp xr :=
+  let c := Classical.choose (D.bound a.1 b.1)
+  let hac : D.le a.1 c := (Classical.choose_spec (D.bound a.1 b.1)).1
+  let hbc : D.le b.1 c := (Classical.choose_spec (D.bound a.1 b.1)).2
+  let aC : UpperBound D ip iq := ⟨c, D.trans a.2.1 hac, D.trans a.2.2 hac⟩
+  let bC : UpperBound D iq ir := ⟨c, D.trans b.2.1 hbc, D.trans b.2.2 hbc⟩
+  homIncl C hC xp xr ⟨c, D.trans a.2.1 hac, D.trans b.2.2 hbc⟩
+    (homTr C xp xq a aC hac f ≫ homTr C xq xr b bC hbc g)
+
 end Freyd.Colim
