@@ -300,4 +300,18 @@ theorem compAt_indep (C : CatSystem ι D) (hC : C.Coherent) {ip iq ir : ι}
   rw [compAt_mono C hC xp xq xr a f b g hae₁ hbe₁ h1d,
       compAt_mono C hC xp xq xr a f b g hae₂ hbe₂ h2d]
 
+/-- `homCompRaw` is `compAt` at any common bound (it uses the chosen bound; all
+    bounds agree by `compAt_indep`). -/
+theorem homCompRaw_eq_compAt (C : CatSystem ι D) (hC : C.Coherent) {ip iq ir : ι}
+    (xp : C.A ip) (xq : C.A iq) (xr : C.A ir)
+    (a : UpperBound D ip iq) (f : C.F a.2.1 xp ⟶ C.F a.2.2 xq)
+    (b : UpperBound D iq ir) (g : C.F b.2.1 xq ⟶ C.F b.2.2 xr)
+    (e : ι) (hae : D.le a.1 e) (hbe : D.le b.1 e) :
+    homCompRaw C hC xp xq xr a f b g = compAt C hC xp xq xr a f b g e hae hbe := by
+  have h : homCompRaw C hC xp xq xr a f b g
+      = compAt C hC xp xq xr a f b g (Classical.choose (D.bound a.1 b.1))
+          (Classical.choose_spec (D.bound a.1 b.1)).1
+          (Classical.choose_spec (D.bound a.1 b.1)).2 := rfl
+  rw [h]; exact compAt_indep C hC xp xq xr a f b g _ _ hae hbe
+
 end Freyd.Colim
