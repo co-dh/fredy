@@ -12,24 +12,24 @@ the colimit is capital and receives `A` faithfully.
 | # | Module | What | Status |
 |---|--------|------|--------|
 | **M1** | `Fredy/DirectedColimit.lean` | Directed colimit of **types** (`Quotient`), inclusions, `desc` universal property | ✅ **done, sorry-free** |
-| **M2** | `Fredy/CatColimit.lean` | Directed colimit of **categories** on our `Cat` | ▶ in progress |
-| **M2a** | ↑ | `CatSystem` structure + object-colimit (reuses M1) | ▶ delegated |
-| **M2b** | ↑ | hom-colimit + `Cat` instance + category laws | ◐ in progress |
+| **M2** | `Fredy/CatColimit.lean` | Directed colimit of **categories** on our `Cat` | ✅ **DONE, sorry-free** |
+| **M2a** | ↑ | `CatSystem` structure + object-colimit (reuses M1) | ✅ done |
+| **M2b** | ↑ | hom-colimit + `Cat` instance + category laws | ✅ done |
 
-### M2b resume point (sorry-free so far)
-Built in `CatColimit.lean`: `CatSystem.Coherent` (HEq morphism-coherence), `UpperBound`/`upperDirected`
-(hom-colimit index), `castHom`, `castHom_of_heq`, `castHom_castHom`, `map_castHom`.
+### M2 — COMPLETE (sorry-free, axioms ⊆ {propext, Classical.choice, Quot.sound})
+`CatColimit.lean` now builds the directed colimit of categories as a genuine `Cat`:
+`CatSystem` + `Coherent`, object-colimit (`Obj`/`objIncl`), hom-colimit (`homTr` + laws, `HomColim`),
+chosen-rep morphisms (`colimOut`/`colimHom`/`colimId`), composition (`homCompRaw` → `colimComp`, well-defined
+via `homCompRaw_wd` from `push_left`/`push_right`), identity laws, associativity (`colimComp_assoc`), and the
+instance `colimitCat : Cat (C.Obj)`. (`Classical.choice` enters via `colimOut` picking representatives —
+acceptable since §1.543 needs choice anyway.)
 
-DONE (sorry-free, axioms ⊆ {propext, Quot.sound}): `homTr`, `homTr_refl`, `homTr_trans` (cast-heavy law
-via `map_castHom`+`castHom_castHom`+`castHom_heq_congr`+coherence), `homSystem`, `HomColim` — the
-hom-colimit for *fixed representatives* `x : C.A i`, `y : C.A j`.
-
-NEXT (M2b-rest — the remaining wall): turn `HomColim` into a `Cat` instance on `CatSystem.Obj`.
-- rep-independence: `Hom([⟨i,x⟩],[⟨j,y⟩])` must not depend on chosen reps. Per-rep `HomColim`s are
-  canonically *isomorphic* but not *equal*, so `Quotient.lift₂` to `Type` doesn't apply directly. Likely
-  define the colimit Hom as a single 2-sided germ quotient over all reps rather than "fix reps + show iso".
-- then identity (`incl` of `id`), composition (push two morphisms to a common bound, compose, include),
-  category laws, and finally the `Cat (CatSystem.Obj C)` instance.
+### M3 design note (next)
+For the colimit to inherit terminal/products/pullbacks/covers, the transition functors must *preserve* them
+(so they're computed at a finite stage and survive the colimit).  So `CatSystem` (or a `RegularCatSystem`
+extending it) must carry "each `functF` preserves the regular structure" hypotheses — true for the
+capitalization slice embeddings.  First tractable piece: the colimit has a **terminal object** (= colim of the
+stagewise terminals, transitions preserving it).
 | **M3** | `Fredy/CatColimitRegular.lean` | colimit preserves terminal / products / pullbacks / covers ⇒ `PreRegularCategory` | ☐ hard |
 | **M4** | `Fredy/S1_546.lean` | relative-capitalization functor `A ↦ A*` (slices), `IsRelativeCapitalization` witness | ☐ |
 | **M5** | `Fredy/S1_543.lean` | ordinal-indexed iteration of M4; fixed-point/cardinality ⇒ capital (imports mathlib `Ordinal`) | ☐ hard |
