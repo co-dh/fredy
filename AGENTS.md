@@ -8,4 +8,10 @@ book version requires more typeclasses (e.g., `Entire R := 1_A ≤ R°R` via
 If a proof used theorem from other section but not defined yet, prove them in $a_bc.lean.
 Make the prove constructive: do not use atom of choice unless unavoidable.
 feel free to copy ideas from Mathlib, but do not bring in them as dependency.
+  EXCEPTION (capitalization project, §1.543): mathlib's *ordinal / transfinite-recursion*
+  set theory (`Mathlib.SetTheory.Ordinal.*` and the order/well-founded lemmas it needs) MAY be
+  used, since Freyd treats transfinite recursion as ambient set theory he never re-derives.
+  All *category theory* stays hand-built on this repo's own `Cat` — never import
+  `Mathlib.CategoryTheory.*` (it would clash with `Cat`). Only the ordinal-indexed iteration
+  file should import mathlib; keep every other file mathlib-free so builds stay fast.
 DRY as much as possible.

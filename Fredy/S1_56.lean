@@ -47,8 +47,11 @@ structure BinRel (𝒞 : Type u) [Cat.{v} 𝒞] (A B : 𝒞) where
 def RelHom {A B : 𝒞} (R S : BinRel 𝒞 A B) : Prop :=
   ∃ (h : R.src ⟶ S.src), h ≫ S.colA = R.colA ∧ h ≫ S.colB = R.colB
 
-/-- R ≤ S as relations (containment order, §1.413). -/
+/-- R ≤ S as relations (containment order, §1.413).  Notation `R ⊂ S` follows the book. -/
 def RelLe (R S : BinRel 𝒞 A B) : Prop := Nonempty (RelHom R S)
+
+/-- Infix `⊂` for relation containment (the book's notation). -/
+infix:50 " ⊂ " => RelLe
 
 /-! ## §1.564 Graph of a morphism -/
 
@@ -608,7 +611,7 @@ theorem tabulated_is_map_iff_left_iso {A B T : 𝒞} (a : T ⟶ A) (b : T ⟶ B)
     exact ⟨iso_cover a ⟨ainv, ha_ainv, hainv_a⟩, mono_of_retraction a ainv ha_ainv⟩
 
 /-- **§1.564**: When the left leg `a` is iso, the tabulated relation equals the graph
-    of `a⁻¹ ≫ b` (mutual `RelLe`).  Together with `tabulated_is_map_iff_left_iso`,
+    of `a⁻¹ ≫ b` (mutual `⊂`).  Together with `tabulated_is_map_iff_left_iso`,
     every map IS the graph of a morphism. -/
 theorem tabulated_left_iso_eq_graph {A B T : 𝒞} (a : T ⟶ A) (b : T ⟶ B) (hp : MonicPair a b)
     (ainv : A ⟶ T) (ha_ainv : a ≫ ainv = Cat.id T) (hainv_a : ainv ≫ a = Cat.id A) :
@@ -859,6 +862,111 @@ def EquivalenceRelation {A : 𝒞} (E : BinRel 𝒞 A A) : Prop :=
 def IsEffective {A : 𝒞} (E : BinRel 𝒞 A A) [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] : Prop :=
   EquivalenceRelation E ∧ ∃ (Q : 𝒞) (x : A ⟶ Q), Cover x ∧
     RelLe E ((graph x) ⊚ (graph x)°) ∧ RelLe ((graph x) ⊚ (graph x)°) E
+
+/-! ## §1.569  Cover characterized relationally; associativity of ⊚ ↔ regular
+
+  Relational cover lemma: x : A → B is a cover iff 1_B ≤ x° ⊚ x
+  (where x is silently embedded as `graph x`).  From this we get:
+
+  **1.569:** Let A be a Cartesian category with images.
+  Composition of relations is associative iff A is regular. -/
+
+section
+variable [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
+
+/-- **§1.569**: The reciprocal-composition `(graph x)° ⊚ (graph x)` is always
+    contained in the identity on B — i.e., `x°x ≤ 1_B` for any morphism x.
+    The proof: the span `⟨x, x⟩ = x ≫ diag B` factors through the diagonal,
+    so its image has equal fst/snd legs. -/
+theorem reciprocal_comp_self_le_one {A B : 𝒞} (x : A ⟶ B) :
+    RelLe ((graph x)° ⊚ (graph x)) (graph (Cat.id B)) := by
+  -- The kernel pair span, unpacked from the compose definition
+  let pb := HasPullbacks.has ((graph x)°).colB (graph x).colA
+  have hπ_eq : pb.cone.π₁ = pb.cone.π₂ := by
+    -- pb.cone.w : π₁ ≫ ((graph x)°).colB = π₂ ≫ (graph x).colA
+    -- Both ((graph x)°).colB and (graph x).colA reduce to id_A
+    simpa [graph, reciprocal, Cat.comp_id] using pb.cone.w
+  let s : pb.cone.pt ⟶ prod B B := pair (pb.cone.π₁ ≫ x) (pb.cone.π₂ ≫ x)
+  have hsp_fac : s = (pb.cone.π₁ ≫ x) ≫ diag B := by
+    dsimp [s]; rw [← hπ_eq, pair_diag_eq (pb.cone.π₁ ≫ x)]
+  let diagSub : Subobject 𝒞 (prod B B) := ⟨B, diag B, diag_mono B⟩
+  have hallows : Allows diagSub s := ⟨pb.cone.π₁ ≫ x, by dsimp [diagSub]; rw [hsp_fac]⟩
+  obtain ⟨k, hk⟩ := image_min s diagSub hallows
+  dsimp [diagSub] at hk
+  -- hk : k ≫ diag B = (image s).arr
+  have h_fst : (image s).arr ≫ fst = k := by
+    calc (image s).arr ≫ fst = (k ≫ diag B) ≫ fst := by rw [hk]
+      _ = k ≫ (diag B ≫ fst) := Cat.assoc _ _ _
+      _ = k ≫ Cat.id B := by rw [diag_fst]
+      _ = k := Cat.comp_id _
+  have h_snd : (image s).arr ≫ snd = k := by
+    calc (image s).arr ≫ snd = (k ≫ diag B) ≫ snd := by rw [hk]
+      _ = k ≫ (diag B ≫ snd) := Cat.assoc _ _ _
+      _ = k ≫ Cat.id B := by rw [diag_snd]
+      _ = k := Cat.comp_id _
+  -- Build the RelHom: src = (image s).dom, colA = (image s).arr≫fst, colB = (image s).arr≫snd
+  -- graph(id B): src = B, colA = id B, colB = id B
+  unfold compose; dsimp
+  refine ⟨⟨k, ?_, ?_⟩⟩
+  · dsimp [graph]; rw [Cat.comp_id]; exact h_fst.symm
+  · dsimp [graph]; rw [Cat.comp_id]; exact h_snd.symm
+
+/-- **§1.569**: relational characterization of covers.
+    `x : A → B` is a cover iff `1_B ≤ (graph x)° ⊚ (graph x)` — the identity on B
+    is contained in the reciprocal-then-graph composition.  In the book's notation:
+    x is a cover iff `1_B ⊂ x°x`. -/
+theorem cover_iff_one_le_reciprocal_comp_self {A B : 𝒞} (x : A ⟶ B) :
+    Cover x ↔ RelLe (graph (Cat.id B)) ((graph x)° ⊚ (graph x)) := by
+  have hp : MonicPair (x : A ⟶ B) (Cat.id A : A ⟶ A) := by
+    intro W f g _ hid
+    simpa [Cat.comp_id] using hid
+  have h := tabulated_is_entire_iff_left_cover (x : A ⟶ B) (Cat.id A) hp
+  -- h : Entire (BinRel.mk A x id_A hp) ↔ Cover x
+  -- BinRel.mk A x id_A hp = (graph x)°
+  -- Entire ((graph x)°) = 1_B ≤ (graph x)° ⊚ (graph x)
+  have h_rel : BinRel.mk A (x : A ⟶ B) (Cat.id A : A ⟶ A) hp = (graph x)° := rfl
+  have h_entire : Entire ((graph x)°) ↔ RelLe (graph (Cat.id B)) ((graph x)° ⊚ (graph x)) := by
+    simp [Entire, graph, reciprocal]
+  simpa [h_rel, h_entire] using h.symm
+
+/-- **§1.569**: `x : A → B` is a cover iff `x°x = 1_B` — the reciprocal-then-graph
+    composition equals the identity relation on B.  Combine the always-true
+    `x°x ≤ 1_B` with the equivalence `1_B ≤ x°x ↔ Cover x`. -/
+theorem cover_iff_reciprocal_comp_self_eq_one {A B : 𝒞} (x : A ⟶ B) :
+    Cover x ↔ (RelLe ((graph x)° ⊚ (graph x)) (graph (Cat.id B)) ∧
+               RelLe (graph (Cat.id B)) ((graph x)° ⊚ (graph x))) := by
+  constructor
+  · intro hc
+    exact ⟨reciprocal_comp_self_le_one x, (cover_iff_one_le_reciprocal_comp_self x).mp hc⟩
+  · intro ⟨_, h⟩
+    apply (cover_iff_one_le_reciprocal_comp_self x).mpr
+    exact h
+
+/-- **§1.569 ⇐**: If composition of relations is associative (mutual `⊂`
+    both ways), then A is regular — i.e., pullbacks transfer covers.
+
+    Book proof sketch: covers are characterized relationally as `1 ⊂ x°x`
+    (`cover_iff_one_le_reciprocal_comp`).  Given cover x : A → B and a
+    pullback of x along y : C → B with pullback leg z : P → C, the relation
+    algebra (using associativity) shows `1 ⊂ z°z`, hence z is a cover.  If z
+    were not a cover, then `(y ⊚ x°) ⊚ x` would not be a map while
+    `y ⊚ (x° ⊚ x) = y ⊚ 1 = y` IS a map, contradicting associativity. -/
+theorem regular_of_compose_assoc
+    (h_assoc : ∀ {A B C D : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 C D),
+      RelLe ((R ⊚ S) ⊚ T) (R ⊚ (S ⊚ T)) ∧ RelLe (R ⊚ (S ⊚ T)) ((R ⊚ S) ⊚ T))
+    : PullbacksTransferCovers 𝒞 := by
+  sorry
+
+/-- **§1.569 ⇒**: If A is regular, composition of relations is associative.
+    This follows from the Henkin-Lubkin representation theorem (§1.55):
+    associativity is a Horn sentence true in **Set**, hence true in any
+    regular category.  (Not yet formalized.) -/
+theorem compose_assoc_of_regular [RegularCategory 𝒞] {A B C D : 𝒞}
+    (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 C D) :
+    RelLe ((R ⊚ S) ⊚ T) (R ⊚ (S ⊚ T)) ∧ RelLe (R ⊚ (S ⊚ T)) ((R ⊚ S) ⊚ T) := by
+  sorry
+
+end
 
 /-- CONSTANT MORPHISM (§1.56(10)): x: A→B is constant if ∀y,y' : C→A, y≫x = y'≫x. -/
 def Constant {A B : 𝒞} (x : A ⟶ B) : Prop :=
