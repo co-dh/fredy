@@ -388,4 +388,67 @@ noncomputable def colimComp (C : CatSystem ι D) (hC : C.Coherent) {p q r : C.Ob
         _ _ _ _ hP _ _ _ _ hQ)
     m n
 
+/-! ## Milestone 2b — identity laws for composition -/
+
+theorem homCompRaw_id_left (C : CatSystem ι D) (hC : C.Coherent) {ip iq : ι}
+    (xp : C.A ip) (xq : C.A iq) (a : UpperBound D ip iq) (f : C.F a.2.1 xp ⟶ C.F a.2.2 xq) :
+    homCompRaw C hC xp xp xq ⟨ip, D.refl ip, D.refl ip⟩ (Cat.id (C.F (D.refl ip) xp)) a f
+      = homIncl C hC xp xq a f := by
+  rw [homCompRaw_eq_compAt C hC xp xp xq ⟨ip, D.refl ip, D.refl ip⟩
+        (Cat.id (C.F (D.refl ip) xp)) a f a.1 a.2.1 (D.refl a.1)]
+  unfold compAt
+  have hid : homTr C xp xp ⟨ip, D.refl ip, D.refl ip⟩
+      ⟨a.1, D.trans (D.refl ip) a.2.1, D.trans (D.refl ip) a.2.1⟩ a.2.1
+      (Cat.id (C.F (D.refl ip) xp))
+    = Cat.id (C.F (D.trans (D.refl ip) a.2.1) xp) :=
+    homTr_id C xp ⟨ip, D.refl ip, D.refl ip⟩
+      ⟨a.1, D.trans (D.refl ip) a.2.1, D.trans (D.refl ip) a.2.1⟩ a.2.1
+  have hf : homTr C xp xq a ⟨a.1, D.trans a.2.1 (D.refl a.1), D.trans a.2.2 (D.refl a.1)⟩ (D.refl a.1) f = f := by
+    simpa using homTr_refl C hC xp xq ⟨a.1, D.trans a.2.1 (D.refl a.1), D.trans a.2.2 (D.refl a.1)⟩ f
+  rw [hid, hf, Cat.id_comp]
+  unfold homIncl
+  apply Quotient.sound
+  refine ⟨a, D.refl a.1, D.refl a.1, ?_⟩
+  dsimp [homSystem]
+  rw [homTr_refl C hC xp xq a f]
+  unfold homTr
+  exact castHom_of_heq _ _ (hC.refl_map f)
+
+theorem homCompRaw_id_right (C : CatSystem ι D) (hC : C.Coherent) {ip iq : ι}
+    (xp : C.A ip) (xq : C.A iq) (a : UpperBound D ip iq) (f : C.F a.2.1 xp ⟶ C.F a.2.2 xq) :
+    homCompRaw C hC xp xq xq a f ⟨iq, D.refl iq, D.refl iq⟩ (Cat.id (C.F (D.refl iq) xq))
+      = homIncl C hC xp xq a f := by
+  rw [homCompRaw_eq_compAt C hC xp xq xq a f ⟨iq, D.refl iq, D.refl iq⟩
+        (Cat.id (C.F (D.refl iq) xq)) a.1 (D.refl a.1) a.2.2]
+  unfold compAt
+  have hf : homTr C xp xq a ⟨a.1, D.trans a.2.1 (D.refl a.1), D.trans a.2.2 (D.refl a.1)⟩ (D.refl a.1) f = f := by
+    simpa using homTr_refl C hC xp xq ⟨a.1, D.trans a.2.1 (D.refl a.1), D.trans a.2.2 (D.refl a.1)⟩ f
+  have hid : homTr C xq xq ⟨iq, D.refl iq, D.refl iq⟩
+      ⟨a.1, D.trans (D.refl iq) a.2.2, D.trans (D.refl iq) a.2.2⟩ a.2.2
+      (Cat.id (C.F (D.refl iq) xq))
+    = Cat.id (C.F (D.trans (D.refl iq) a.2.2) xq) :=
+    homTr_id C xq ⟨iq, D.refl iq, D.refl iq⟩
+      ⟨a.1, D.trans (D.refl iq) a.2.2, D.trans (D.refl iq) a.2.2⟩ a.2.2
+  rw [hf, hid, Cat.comp_id]
+  unfold homIncl
+  apply Quotient.sound
+  refine ⟨a, D.refl a.1, D.refl a.1, ?_⟩
+  dsimp [homSystem]
+  rw [homTr_refl C hC xp xq a f]
+  unfold homTr
+  exact castHom_of_heq _ _ (hC.refl_map f)
+
+theorem colimComp_id_left (C : CatSystem ι D) (hC : C.Coherent) {p q : C.Obj}
+    (m : colimHom C hC p q) : colimComp C hC (colimId C hC p) m = m := by
+  induction m using Quotient.ind with
+  | _ rm =>
+    obtain ⟨a, f⟩ := rm
+    exact homCompRaw_id_left C hC (colimOut C p).2 (colimOut C q).2 a f
+
+theorem colimComp_id_right (C : CatSystem ι D) (hC : C.Coherent) {p q : C.Obj}
+    (m : colimHom C hC p q) : colimComp C hC m (colimId C hC q) = m := by
+  induction m using Quotient.ind with
+  | _ rm => obtain ⟨a, f⟩ := rm
+            exact homCompRaw_id_right C hC (colimOut C p).2 (colimOut C q).2 a f
+
 end Freyd.Colim
