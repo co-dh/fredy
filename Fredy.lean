@@ -20,6 +20,7 @@ import Fredy.S1_53
 import Fredy.S1_55
 import Fredy.DirectedColimit
 import Fredy.CatColimit
+import Fredy.CatColimitRegular
 import Fredy.S2_1
 import Fredy.S2_2
 import Fredy.S2_3
