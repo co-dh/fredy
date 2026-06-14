@@ -17,7 +17,7 @@ import Fredy.S1_1
 
 universe v u
 
-namespace Freyd
+namespace Freyd.Alg
 
 /-! ## §2.11  Allegory
 
@@ -76,9 +76,9 @@ def le {a b : 𝒜} [Allegory 𝒜] (R S : a ⟶ b) : Prop :=
 
 infix:50 " ⊑ " => le
 
-end Freyd
+end Freyd.Alg
 
-namespace Freyd
+namespace Freyd.Alg
 
 variable {𝒜 : Type u} [Allegory 𝒜]
 
@@ -427,4 +427,4 @@ def SemiSimple {a b : 𝒜} (R : a ⟶ b) : Prop :=
 class SemiSimpleAllegory (𝒜 : Type u) extends Allegory 𝒜 where
   semi_simple {a b : 𝒜} (R : a ⟶ b) : SemiSimple R
 
-end Freyd
+end Freyd.Alg

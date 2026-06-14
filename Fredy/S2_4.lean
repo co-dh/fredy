@@ -15,7 +15,7 @@ import Fredy.S2_3
 
 universe v u
 
-namespace Freyd
+namespace Freyd.Alg
 
 /-! ## §2.41  Power allegory
 
@@ -97,4 +97,4 @@ def effective_pre_power_is_power {𝒜 : Type u} [PrePowerAllegory 𝒜]
     [EffectiveAllegory 𝒜] : PowerAllegory 𝒜 := by
   sorry
 
-end Freyd
+end Freyd.Alg

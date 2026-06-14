@@ -13,7 +13,7 @@ import Fredy.S2_2
 
 universe v u
 
-namespace Freyd
+namespace Freyd.Alg
 
 /-! ## §2.31  Division allegory
 
@@ -41,9 +41,9 @@ class DivisionAllegory (𝒜 : Type u) extends DistributiveAllegory 𝒜 where
 /-- Right division notation R / S -/
 infixl:70 " / " => DivisionAllegory.div
 
-end Freyd
+end Freyd.Alg
 
-namespace Freyd
+namespace Freyd.Alg
 
 variable {𝒜 : Type u} [DivisionAllegory 𝒜]
 
@@ -158,4 +158,4 @@ theorem div_self_comp {a b : 𝒜} (R : a ⟶ b) : (R / R) ≫ R = R := by
       _ ⊑ (R / R) ≫ R := comp_mono_right (one_le_div_self R) R
   exact h
 
-end Freyd
+end Freyd.Alg

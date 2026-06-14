@@ -13,7 +13,7 @@ import Fredy.S2_1
 
 universe v u
 
-namespace Freyd
+namespace Freyd.Alg
 
 /-! ## §2.21  Distributive allegory
 
@@ -62,9 +62,9 @@ notation "𝟘" => DistributiveAllegory.zero
 /-- Union notation R ∪ S -/
 infixl:65 " ∪ " => DistributiveAllegory.union
 
-end Freyd
+end Freyd.Alg
 
-namespace Freyd
+namespace Freyd.Alg
 
 variable {𝒜 : Type u} [DistributiveAllegory 𝒜]
 
@@ -223,4 +223,4 @@ class GloballyCompleteAllegory (𝒜 : Type u) extends LocallyCompleteDistributi
     Sup (λ (R : disjointUnion a ⟶ disjointUnion a) =>
       ∃ (i : I), R = (inject i)° ≫ inject i) = Cat.id (disjointUnion a)
 
-end Freyd
+end Freyd.Alg

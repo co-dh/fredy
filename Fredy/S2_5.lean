@@ -18,7 +18,7 @@ import Fredy.S2_4
 
 universe v u
 
-namespace Freyd
+namespace Freyd.Alg
 
 /-! ## §2.5  Congruence and quotient allegory
 
@@ -151,4 +151,4 @@ end AmenableDivision
 theorem topos_boolean_representation : True := by
   trivial
 
-end Freyd
+end Freyd.Alg
