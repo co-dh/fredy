@@ -55,6 +55,13 @@ def logos_implies_preLogos [Logos 𝒞] : PreLogos 𝒞 where
   invImage_preserves_union := λ {A B} f S T => by
     -- f#(S ∪ T) = f#(S) ∪ f#(T) follows from the adjunction
     sorry
+  -- NOTE: a plain Logos has no canonical bottom subobject (empty join); the
+  -- §1.61 `bottom` fields need additional (local-completeness) structure, so
+  -- these are honest placeholders pending that.
+  bottom := sorry
+  bottom_min := sorry
+  bottom_dom_iso := sorry
+  invImage_preserves_bottom := sorry
 
 /-! ## §1.712 Locally complete categories
 
