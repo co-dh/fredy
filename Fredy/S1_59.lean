@@ -44,7 +44,9 @@ def zeroMorphism [HasZeroObject 𝒞] (A B : 𝒞) : A ⟶ B :=
 
 /-- Zero morphisms are a two-sided ideal: f≫0 = 0, 0≫f = 0. -/
 theorem zero_morphism_comp [HasZeroObject 𝒞] {A B C : 𝒞} (f : A ⟶ B) (g : B ⟶ C) : f ≫ zeroMorphism B C = zeroMorphism A C := by
-  sorry
+  dsimp [zeroMorphism]
+  rw [← Cat.assoc]
+  rw [term_uniq (f ≫ term B) (term A)]
 
 /-! ## §1.592 Kernels and cokernels
 
