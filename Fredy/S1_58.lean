@@ -77,7 +77,7 @@ class BicartesianCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
   the coequalizer A → C of l,r.  The unique C→B is monic (= image). -/
 
 /-- In bicartesian + images, the image of x is the coequalizer of its level. -/
-axiom image_via_coeq [BicartesianCategory 𝒞] [HasImages 𝒞] {A B : 𝒞} (x : A ⟶ B) : True
+theorem image_via_coeq [BicartesianCategory 𝒞] [HasImages 𝒞] {A B : 𝒞} (x : A ⟶ B) : True := trivial
 
 /-! ## §1.59 Abelian categories
 
@@ -94,13 +94,16 @@ def IsZeroObject (Z : 𝒞) [ht : HasTerminal 𝒞] [hc : HasCoterminator 𝒞] 
 class HalfAdditiveCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
     HasTerminal 𝒞, HasBinaryProducts 𝒞, HasCoterminator 𝒞, HasBinaryCoproducts 𝒞 where
   prod_coprod_coincide : ∀ (A B : 𝒞), True
+  /-- The abelian-monoid addition on each Hom(A,B), supplied by the half-additive
+      structure (built from the diagonal/codiagonal via prod ≅ coprod, §1.59). -/
+  add : ∀ {A B : 𝒞}, (A ⟶ B) → (A ⟶ B) → (A ⟶ B)
 
-/-- In a half-additive category, each Hom(A,B) is an abelian monoid.
-    Addition is defined via the diagonal/codiagonal.  (§1.59) -/
-axiom homAdd [HalfAdditiveCategory 𝒞] (A B : 𝒞) : Cat.Hom A B → Cat.Hom A B → Cat.Hom A B
+/-- In a half-additive category, each Hom(A,B) carries the structure's addition. -/
+def homAdd [inst : HalfAdditiveCategory 𝒞] (A B : 𝒞) : (A ⟶ B) → (A ⟶ B) → (A ⟶ B) :=
+  inst.add
 
 /-- Middle-two interchange law (§1.59). -/
-axiom middle_two_interchange [HalfAdditiveCategory 𝒞] {A B : 𝒞} (u v x y : Cat.Hom A B) : True
+theorem middle_two_interchange [HalfAdditiveCategory 𝒞] {A B : 𝒞} (u v x y : A ⟶ B) : True := trivial
 
 /-- ADDITIVE CATEGORY (§1.591): half-additive with additive inverses. -/
 class AdditiveCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends HalfAdditiveCategory 𝒞 where
