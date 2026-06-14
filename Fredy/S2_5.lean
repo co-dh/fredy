@@ -87,27 +87,47 @@ structure AmenableCongruence (𝒜 : Type u) [DistributiveAllegory 𝒜] where
 /-- §2.531: If R ⊑ S, then R⁺ ⊑ S⁺. -/
 theorem amenable_le_largest (amen : AmenableCongruence 𝒜) {a b : 𝒜} {R S : a ⟶ b} (h : R ⊑ S) :
     amen.largest R ⊑ amen.largest S := by
+  -- R ⊑ S implies R ∪ S = S
   have h_union : R ∪ S = S := (le_iff_union_eq_left R S).mp h
-  have h_congr_union : amen.cong.rel (R ∪ S) ((amen.largest R) ∪ S) :=
-    amen.union_congr (amen.largest_rel R) (amen.cong.refl S)
-  have h_congr_S : amen.cong.rel S ((amen.largest R) ∪ S) := by
-    rw [h_union] at h_congr_union
-    exact h_congr_union
-  have h_max : (amen.largest R) ∪ S ⊑ amen.largest S :=
-    amen.largest_max h_congr_S
-  have h_sub_union : amen.largest R ⊑ (amen.largest R) ∪ S := by
-    rw [le, Allegory.inter_comm, DistributiveAllegory.inter_union_absorb]
-  exact le_trans h_sub_union h_max
+  -- Congruence relates each morphism to its largest element
+  have hR : amen.cong.rel R (amen.largest R) := amen.largest_rel R
+  have hS : amen.cong.rel S (amen.largest S) := amen.largest_rel S
+  -- Union respects the congruence
+  have h_union_congr : amen.cong.rel (R ∪ S) (amen.largest R ∪ amen.largest S) :=
+    amen.union_congr hR hS
+  -- Using h_union, this gives: cong.rel S (largest R ∪ largest S)
+  rw [h_union] at h_union_congr
+  -- Now apply largest_max: if S ≡ X, then X ⊑ largest S
+  have hX : amen.largest R ∪ amen.largest S ⊑ amen.largest S :=
+    amen.largest_max h_union_congr
+  -- Since largest R ⊑ largest R ∪ largest S, transitivity gives the result
+  have h_le_union : amen.largest R ⊑ amen.largest R ∪ amen.largest S := le_union_left _ _
+  exact le_trans h_le_union hX
 
 /-- §2.532: (R ∩ S)⁺ = R⁺ ∩ S⁺. -/
 theorem amenable_inter_largest (amen : AmenableCongruence 𝒜) {a b : 𝒜} (R S : a ⟶ b) :
     amen.largest (R ∩ S) = (amen.largest R) ∩ (amen.largest S) := by
   apply le_antisymm
-  · apply le_inter
-    · exact amenable_le_largest amen (inter_lb_left R S)
-    · exact amenable_le_largest amen (inter_lb_right R S)
-  · apply amen.largest_max
-    apply amen.cong.inter_congr (amen.largest_rel R) (amen.largest_rel S)
+  · -- largest(R∩S) ⊑ largest R ∩ largest S
+    -- R∩S ⊑ R and R∩S ⊑ S, so by amen.le_largest, both largest(R∩S) ⊑ largest R and largest(R∩S) ⊑ largest S
+    have hR : R ∩ S ⊑ R := inter_lb_left R S
+    have hS : R ∩ S ⊑ S := inter_lb_right R S
+    have hR' : amen.largest (R ∩ S) ⊑ amen.largest R := amenable_le_largest amen hR
+    have hS' : amen.largest (R ∩ S) ⊑ amen.largest S := amenable_le_largest amen hS
+    exact le_inter hR' hS'
+  · -- largest R ∩ largest S ⊑ largest(R∩S)
+    -- R ≡ largest R, S ≡ largest S, so by inter_congr: R∩S ≡ largest R ∩ largest S
+    have hR : amen.cong.rel R (amen.largest R) := amen.largest_rel R
+    have hS : amen.cong.rel S (amen.largest S) := amen.largest_rel S
+    -- Use inter_congr from the underlying Congruence
+    have h_inter : amen.cong.rel (R ∩ S) (amen.largest R ∩ amen.largest S) :=
+      amen.cong.inter_congr hR hS
+    -- Apply largest_max to the symmetric relation
+    have h_symm : amen.cong.rel (amen.largest R ∩ amen.largest S) (R ∩ S) := amen.cong.symm h_inter
+    -- largest_max h_symm : R∩S ⊑ largest(largest R ∩ largest S)
+    -- No, largest_max goes the other way: cong.rel A B implies B ⊑ largest A
+    -- So: largest_max h_inter : (largest R ∩ largest S) ⊑ largest (R∩S)
+    exact amen.largest_max h_inter
 
 end Amenable
 
@@ -120,10 +140,8 @@ section AmenableDivision
 variable {𝒜 : Type u} [DivisionAllegory 𝒜]
 
 /-- An amenable quotient of a division allegory is a division allegory (§2.536). -/
-axiom amenableQuotientDivision_ax (amen : AmenableCongruence 𝒜) : DivisionAllegory 𝒜
-
-noncomputable def amenableQuotientDivision (amen : AmenableCongruence 𝒜) : DivisionAllegory 𝒜 :=
-  amenableQuotientDivision_ax amen
+def amenableQuotientDivision (amen : AmenableCongruence 𝒜) : DivisionAllegory 𝒜 := by
+  sorry
 
 end AmenableDivision
 

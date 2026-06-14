@@ -77,25 +77,31 @@ class PreTopos (𝒞 : Type u) [Cat.{v} 𝒞] extends
   In a pre-topos, given monics x: A↣B, y: A↣C, there exists a
   pushout B ↣ D, C ↣ D completing the square. -/
 
-axiom amalgamation_lemma [PreTopos 𝒞] {A B C : 𝒞}
+theorem amalgamation_lemma [PreTopos 𝒞] {A B C : 𝒞}
     (x : A ⟶ B) (hx : Mono x) (y : A ⟶ C) (hy : Mono y) :
-    ∃ (D : 𝒞) (u : B ⟶ D) (v : C ⟶ D), Mono u ∧ Mono v ∧ x ≫ u = y ≫ v
+    ∃ (D : 𝒞) (u : B ⟶ D) (v : C ⟶ D), Mono u ∧ Mono v ∧ x ≫ u = y ≫ v := by
+  -- Form coproduct B+C, define E = l°x°yr ∪ 1 ∪ r°y°xl on B+C.
+  -- E is an equivalence relation.  Let B+C → D be such that E is its level.
+  -- Then u, v are the compositions with the coproduct inclusions, and are monic.
+  sorry
 
 /-! ## §1.652 Covers = epics, Monics = cocovers
 
   In a pre-topos, covers coincide with epimorphisms, and monics
   coincide with coequalizers (cocovers). -/
 
-axiom cover_eq_epic_preTopos [PreTopos 𝒞] {A B : 𝒞} (f : A ⟶ B) :
-    Cover f ↔ Epic (λ _ => ⟨A, f⟩)
+theorem cover_eq_epic_preTopos [PreTopos 𝒞] {A B : 𝒞} (f : A ⟶ B) :
+    Cover f ↔ Epic (λ _ => ⟨A, f⟩) := by
+  sorry
 
-axiom monic_eq_cocover_preTopos [PreTopos 𝒞] {A B : 𝒞} (f : A ⟶ B) :
-    Mono f ↔ ∃ (C D : 𝒞) (p q : C ⟶ D), IsCoequalizer p q f
+theorem monic_eq_cocover_preTopos [PreTopos 𝒞] {A B : 𝒞} (f : A ⟶ B) :
+    Mono f ↔ ∃ (C D : 𝒞) (p q : C ⟶ D), IsCoequalizer p q f := by
+  sorry
 
 /-! ## §1.654 Pre-topos opposite is regular (if cocartesian) -/
 
-theorem preTopos_opposite_regular [PreTopos 𝒞] [HasCoequalizers 𝒞] : True :=
-  trivial
+theorem preTopos_opposite_regular [PreTopos 𝒞] [HasCoequalizers 𝒞] : True := by
+  sorry
 
 
 /-- DECIDABLE OBJECT (§1.658): the diagonal A→A×A has a complement in the subobject lattice.

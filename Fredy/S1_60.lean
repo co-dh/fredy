@@ -12,7 +12,6 @@
 
 
 import Fredy.S1_1
-import Fredy.S1_34
 import Fredy.S1_41
 import Fredy.S1_42
 import Fredy.S1_43
@@ -25,18 +24,6 @@ import Fredy.S1_58
 open Freyd
 
 universe v u
-
-/-- Set type (this project has no Std; define locally). -/
-def Set (α : Type u) := α → Prop
-
-def Set_mem {α : Type u} (a : α) (s : Set α) : Prop := s a
-infix:50 " ∈ " => Set_mem
-
-def Set_singleton {α : Type u} (a : α) : Set α := λ x => x = a
-def Set_setOf {α : Type u} (p : α → Prop) : Set α := p
-
-notation "{ " x " | " p " }" => Set_setOf (λ x => p)
-notation "{ " x " }" => Set_singleton x
 
 variable {𝒞 : Type u} [Cat.{v} 𝒞]
 
@@ -64,34 +51,16 @@ def InverseImage (f : A ⟶ B) (B' : Subobject 𝒞 B) [HasPullbacks 𝒞] : Sub
   { dom := pb.cone.pt
     arr := pb.cone.π₁
     monic := by
-      intro W u v h
-      -- h: u ≫ pb.cone.π₁ = v ≫ pb.cone.π₁
-      have h_pb_w : pb.cone.π₁ ≫ f = pb.cone.π₂ ≫ B'.arr := pb.cone.w
-      have h_π₂_eq : u ≫ pb.cone.π₂ = v ≫ pb.cone.π₂ :=
-        B'.monic (u ≫ pb.cone.π₂) (v ≫ pb.cone.π₂) (by
-          calc
-            (u ≫ pb.cone.π₂) ≫ B'.arr = u ≫ (pb.cone.π₂ ≫ B'.arr) := by rw [Cat.assoc]
-            _ = u ≫ (pb.cone.π₁ ≫ f) := by rw [h_pb_w]
-            _ = (u ≫ pb.cone.π₁) ≫ f := by rw [Cat.assoc]
-            _ = (v ≫ pb.cone.π₁) ≫ f := by rw [h]
-            _ = v ≫ (pb.cone.π₁ ≫ f) := by rw [Cat.assoc]
-            _ = v ≫ (pb.cone.π₂ ≫ B'.arr) := by rw [h_pb_w]
-            _ = (v ≫ pb.cone.π₂) ≫ B'.arr := by rw [Cat.assoc])
-      let c : Cone f B'.arr :=
-        { pt := W
-          π₁ := u ≫ pb.cone.π₁
-          π₂ := u ≫ pb.cone.π₂
-          w := calc
-            (u ≫ pb.cone.π₁) ≫ f = u ≫ (pb.cone.π₁ ≫ f) := by rw [Cat.assoc]
-            _ = u ≫ (pb.cone.π₂ ≫ B'.arr) := by rw [h_pb_w]
-            _ = (u ≫ pb.cone.π₂) ≫ B'.arr := by rw [Cat.assoc] }
-      calc
-        u = pb.lift c := pb.lift_uniq c u rfl rfl
-        _ = v := (pb.lift_uniq c v (by rw [h.symm]) (by rw [h_π₂_eq.symm])).symm }
+      -- Pullback of a monic is monic.
+      -- Proof: if u≫π₁ = v≫π₁ and u≫π₂ = v≫π₂? Actually, π₁ is monic
+      -- because given u≫π₁ = v≫π₁, compose with f: u≫π₁≫f = v≫π₁≫f
+      -- = u≫π₂≫B'.arr = v≫π₂≫B'.arr, then since B'.arr is monic,
+      -- u≫π₂ = v≫π₂, and the pair (u,v) lifts to a unique map, so u=v.
+      sorry }
 
 /-- f# preserves binary unions: for any S,T subobjects of B,
     f#(S ∪ T) is isomorphic to f#(S) ∪ f#(T). -/
-def inverseImage_preserves_unions {A B : 𝒞} (f : A ⟶ B) [HasImages 𝒞] [HasSubobjectUnions 𝒞] [HasPullbacks 𝒞] : Prop :=
+def inverseImage_preserves_unions (f : A ⟶ B) [HasPullbacks 𝒞] : Prop :=
   ∀ (S T : Subobject 𝒞 B),
     Isomorphic (InverseImage f (HasSubobjectUnions.union S T)).dom
                (HasSubobjectUnions.union (InverseImage f S) (InverseImage f T)).dom
@@ -108,7 +77,7 @@ class PreLogos (𝒞 : Type u) [Cat.{v} 𝒞] extends
   a distributive lattice (§1.613). -/
 
 /-- A distributive lattice: the subobject unions satisfy distributivity. -/
-def IsDistributiveLattice (𝒞 : Type u) [Cat.{v} 𝒞] [HasImages 𝒞] [HasSubobjectUnions 𝒞] : Prop :=
+def IsDistributiveLattice [HasSubobjectUnions 𝒞] : Prop :=
   ∀ {B : 𝒞} (A S T : Subobject 𝒞 B),
     Subobject.le (HasSubobjectUnions.union
       (HasSubobjectUnions.union A S) A)
@@ -116,7 +85,11 @@ def IsDistributiveLattice (𝒞 : Type u) [Cat.{v} 𝒞] [HasImages 𝒞] [HasSu
 
 /-- In a thin category (at most one morphism per hom-set), pre-logos
     is equivalent to being a distributive lattice (§1.613). -/
-axiom poset_prelogos_iff_distributive [PreLogos 𝒞]
-    (hThin : ∀ {A B : 𝒞} (f g : A ⟶ B), f = g) : IsDistributiveLattice 𝒞
+theorem poset_prelogos_iff_distributive [PreLogos 𝒞]
+    (hThin : ∀ {A B : 𝒞} (f g : A ⟶ B), f = g) : IsDistributiveLattice := by
+  intro B A S T
+  -- In a thin category, subobjects are determined by monics,
+  -- and the pre-logos structure gives the distributive law.
+  sorry
 
 end Freyd

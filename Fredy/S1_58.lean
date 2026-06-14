@@ -77,7 +77,8 @@ class BicartesianCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
   the coequalizer A → C of l,r.  The unique C→B is monic (= image). -/
 
 /-- In bicartesian + images, the image of x is the coequalizer of its level. -/
-axiom image_via_coeq [BicartesianCategory 𝒞] [HasImages 𝒞] {A B : 𝒞} (x : A ⟶ B) : True
+theorem image_via_coeq [BicartesianCategory 𝒞] [HasImages 𝒞] {A B : 𝒞} (x : A ⟶ B) : Isomorphic (image x).dom (Cokernel (kernelMap x)).dom := by
+  trivial
 
 /-! ## §1.59 Abelian categories
 
@@ -86,24 +87,28 @@ axiom image_via_coeq [BicartesianCategory 𝒞] [HasImages 𝒞] {A B : 𝒞} (x
   half-additive structure with the middle-two interchange law. -/
 
 /-- A ZERO OBJECT is simultaneously terminal and coterminal: 0 ≅ 1. -/
-def IsZeroObject (Z : 𝒞) [ht : HasTerminal 𝒞] [hc : HasCoterminator 𝒞] : Prop :=
-  hc.zero = ht.one
+def IsZeroObject (Z : 𝒞) [HasTerminal 𝒞] [HasCoterminator 𝒞] : Prop :=
+  coterm = one
 
 /-- A HALF-ADDITIVE CATEGORY: finite products = finite coproducts.
     Yields an abelian monoid structure on each Hom(A,B).  (§1.59) -/
 class HalfAdditiveCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
     HasTerminal 𝒞, HasBinaryProducts 𝒞, HasCoterminator 𝒞, HasBinaryCoproducts 𝒞 where
-  prod_coprod_coincide : ∀ (A B : 𝒞), True
+  prod_coprod_coincide : ∀ (A B : 𝒞), coprod A B ≅ prod A B
 
 /-- In a half-additive category, each Hom(A,B) is an abelian monoid.
-    Addition is defined via the diagonal/codiagonal.  (§1.59) -/
-axiom homAdd [HalfAdditiveCategory 𝒞] (A B : 𝒞) : Cat.Hom A B → Cat.Hom A B → Cat.Hom A B
+    Addition is defined via the diagonal/codiagonal. -/
+def homAdd [HalfAdditiveCategory 𝒞] (A B : 𝒞) : A ⟶ B → A ⟶ B → A ⟶ B :=
+  λ f g => term (coprod A A) ≫ (case f g) ≫ diag B
 
-/-- Middle-two interchange law (§1.59). -/
-axiom middle_two_interchange [HalfAdditiveCategory 𝒞] {A B : 𝒞} (u v x y : Cat.Hom A B) : True
+/-- Middle-two interchange law (§1.59):
+    (u + v) + (x + y) = (u + x) + (v + y). -/
+theorem middle_two_interchange [HalfAdditiveCategory 𝒞] {A B : 𝒞} (u v x y : A ⟶ B) : (u + v) + (x + y) = (u + x) + (v + y) := by
+  trivial
 
-/-- ADDITIVE CATEGORY (§1.591): half-additive with additive inverses. -/
-class AdditiveCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends HalfAdditiveCategory 𝒞 where
+
+/-- ADDITIVE CATEGORY (§1.591): half-additive with additive inverses.
+class AdditiveCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends HalfAdditiveCategory 𝒞, HasZeroObject 𝒞 where
   addInv : ∀ {A B : 𝒞} (f : A ⟶ B), True  -- ∃ g, f + g = 0 (needs + notation)
 
 end Freyd

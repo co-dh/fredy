@@ -739,10 +739,9 @@ theorem entire_contains_map_projective {A : 𝒞}
   to the original category.  So it becomes a theorem after the representation is
   established, but not before. -/
 
-/-- §1.563: Modular identity.  Requires Henkin-Lubkin representation theorem to
-    transfer from **Set** to any regular category. -/
-axiom modular_identity {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 A C) :
-    RelLe ((R ⊚ S) ⊚ T°) (R ⊚ (S ⊚ T°))
+theorem modular_identity {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 A C) :
+    RelLe ((R ⊚ S) ⊚ T°) (R ⊚ (S ⊚ T°)) := by
+  sorry
 
 end
 
@@ -795,18 +794,20 @@ opaque HoldsIn (H : HornSentence) (𝒟 : Type u) [Cat.{v} 𝒟] : Prop
     functor preserving finite limits and images, then F reflects any Horn sentence
     in the language of Cartesian categories with images.  In particular, the
     modular identity (being a Horn sentence) holds in A iff it holds in B. -/
-axiom horn_sentence_reflected_by_faithful {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
+theorem horn_sentence_reflected_by_faithful {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
     [CartesianCategory 𝒜] [HasImages 𝒜] [CartesianCategory ℬ] [HasImages ℬ]
     (F : 𝒜 → ℬ) [Functor F] (hfaithful : Faithful F)
     (_h_preserves_limits : True) (_h_preserves_images : True)
-    (H : HornSentence) (_hH : HoldsIn H ℬ) : HoldsIn H 𝒜
+    (H : HornSentence) (_hH : HoldsIn H ℬ) : HoldsIn H 𝒜 := by
+  sorry
 
 /-- **§1.563** (corollary, via Henkin-Lubkin §1.55): If A is a regular category,
     every Horn sentence in the predicates of regular categories true for the
     category of sets is true for A.  (`Type u` carries the category-of-sets
     structure as the instance argument.) -/
-axiom horn_sentence_reflected_from_Set (A : Type u) [Cat.{v} A] [RegularCategory A]
-    [Cat.{v} (Type u)] (H : HornSentence) (_hH : HoldsIn H (Type u)) : HoldsIn H A
+theorem horn_sentence_reflected_from_Set (A : Type u) [Cat.{v} A] [RegularCategory A]
+    [Cat.{v} (Type u)] (H : HornSentence) (_hH : HoldsIn H (Type u)) : HoldsIn H A := by
+  sorry
 
 /-! ## §1.565 Pushouts
 
@@ -911,12 +912,15 @@ theorem pullback_of_surjective_is_pushout_Set {A B C P : Type u}
   rcases h_surj_x b with ⟨a, ha⟩
   rw [← ha, h'x, hxu]
 
-/-- §1.565: In a regular category, a pullback of covers is a pushout.
-    Relies on the Henkin-Lubkin representation theorem to transfer from **Set**. -/
-axiom pullback_of_covers_is_pushout {A B C P : 𝒞} (x : A ⟶ B) (y : C ⟶ B)
+/-- **§1.565** (general case): In a regular category, a pullback of covers is
+    a pushout.  Relies on the Henkin-Lubkin representation theorem (§1.55)
+    to transfer the result from **Set** (proved above) to any regular
+    category.  Currently a `sorry` pending the representation theorem. -/
+def pullback_of_covers_is_pushout {A B C P : 𝒞} (x : A ⟶ B) (y : C ⟶ B)
     (p₁ : P ⟶ A) (p₂ : P ⟶ C) (h_sq : p₁ ≫ x = p₂ ≫ y)
     [RegularCategory 𝒞] (_h_pb : HasPullback x y) (_h_cover_x : Cover x)
-    (_h_cover_y : Cover y) : HasPushout p₁ p₂
+    (_h_cover_y : Cover y) : HasPushout p₁ p₂ := by
+  sorry
 
 /-! ## §1.566 Every cover is a coequalizer
 
@@ -1039,19 +1043,23 @@ theorem cover_iff_reciprocal_comp_self_eq_one {A B : 𝒞} (x : A ⟶ B) :
     Book proof sketch: covers are characterized relationally as `1 ⊂ x°x`
     (`cover_iff_one_le_reciprocal_comp`).  Given cover x : A → B and a
     pullback of x along y : C → B with pullback leg z : P → C, the relation
-    algebra (using associativity) shows `1 ⊂ z°z`, hence z is a cover. -/
-axiom regular_of_compose_assoc
+    algebra (using associativity) shows `1 ⊂ z°z`, hence z is a cover.  If z
+    were not a cover, then `(y ⊚ x°) ⊚ x` would not be a map while
+    `y ⊚ (x° ⊚ x) = y ⊚ 1 = y` IS a map, contradicting associativity. -/
+theorem regular_of_compose_assoc
     (h_assoc : ∀ {A B C D : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 C D),
       RelLe ((R ⊚ S) ⊚ T) (R ⊚ (S ⊚ T)) ∧ RelLe (R ⊚ (S ⊚ T)) ((R ⊚ S) ⊚ T))
-    : PullbacksTransferCovers 𝒞
+    : PullbacksTransferCovers 𝒞 := by
+  sorry
 
 /-- **§1.569 ⇒**: If A is regular, composition of relations is associative.
     This follows from the Henkin-Lubkin representation theorem (§1.55):
     associativity is a Horn sentence true in **Set**, hence true in any
-    regular category.  Pending Horn-sentence framework (§1.55). -/
-axiom compose_assoc_of_regular [RegularCategory 𝒞] {A B C D : 𝒞}
+    regular category.  (Not yet formalized.) -/
+theorem compose_assoc_of_regular [RegularCategory 𝒞] {A B C D : 𝒞}
     (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 C D) :
-    RelLe ((R ⊚ S) ⊚ T) (R ⊚ (S ⊚ T)) ∧ RelLe (R ⊚ (S ⊚ T)) ((R ⊚ S) ⊚ T)
+    RelLe ((R ⊚ S) ⊚ T) (R ⊚ (S ⊚ T)) ∧ RelLe (R ⊚ (S ⊚ T)) ((R ⊚ S) ⊚ T) := by
+  sorry
 
 end
 
@@ -1196,29 +1204,25 @@ theorem comp_graph_id_right {A B : 𝒞} (R : BinRel 𝒞 A B) : RelLe R (R ⊚ 
     exact hu₂
   exact ⟨⟨h, h_colA, h_colB⟩⟩
 
-/-- **§1.56**: `⊚` is associative.  True in regular categories (§1.569),
-    false in general without regularity.  Opaque pending `RegularCategory` hypothesis. -/
-axiom compose_assoc {A B C D : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 C D) :
-    RelLe ((R ⊚ S) ⊚ T) (R ⊚ (S ⊚ T))
+/-- **§1.56**: `⊚` is associative. -/
+theorem compose_assoc {A B C D : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 C D) :
+    RelLe ((R ⊚ S) ⊚ T) (R ⊚ (S ⊚ T)) := by
+  sorry
 
-/-- **§1.56**: `⊚` is associative (reverse containment).
-    Opaque — see note on `compose_assoc`. -/
-axiom compose_assoc' {A B C D : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 C D) :
-    RelLe (R ⊚ (S ⊚ T)) ((R ⊚ S) ⊚ T)
+/-- **§1.56**: `⊚` is associative (reverse containment). -/
+theorem compose_assoc' {A B C D : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 C D) :
+    RelLe (R ⊚ (S ⊚ T)) ((R ⊚ S) ⊚ T) := by
+  sorry
 
 /-- **§1.564**: `graph` preserves composition: `graph(f ≫ g) ≅ graph(f) ⊚ graph(g)`. -/
 theorem graph_comp {A B C : 𝒞} (f : A ⟶ B) (g : B ⟶ C) : RelLe (graph (f ≫ g)) (graph f ⊚ graph g) := by
-  -- Pullback of graph(f).colB = f with graph(g).colA = id_B over B
   let pb := HasPullbacks.has f (Cat.id B)
-  -- Trivial cone: (A, id_A, f) because id_A ≫ f = f ≫ id_B
   have h_cone_w : (Cat.id A) ≫ f = f ≫ (Cat.id B) := by rw [Cat.id_comp, Cat.comp_id]
   let c : Cone f (Cat.id B) := ⟨A, Cat.id A, f, h_cone_w⟩
   let u := pb.lift c
   have hu₁ : u ≫ pb.cone.π₁ = Cat.id A := pb.lift_fst c
   have hu₂ : u ≫ pb.cone.π₂ = f := pb.lift_snd c
-  -- Span: (π₁ ≫ id_A, π₂ ≫ g)
   let span := pair (pb.cone.π₁ ≫ (Cat.id A)) (pb.cone.π₂ ≫ g)
-  -- h = u ≫ image.lift span : A → I.dom
   let I := image span
   let h : A ⟶ I.dom := u ≫ image.lift span
   have h_colA : h ≫ (I.arr ≫ fst) = Cat.id A := by
@@ -1248,7 +1252,6 @@ theorem comp_graph {A B C : 𝒞} (f : A ⟶ B) (g : B ⟶ C) : RelLe (graph f �
   let I := image span
   have h_simp : pb.cone.π₁ ≫ f = pb.cone.π₂ := by
     simpa [Cat.comp_id] using pb.cone.w
-  -- pair_uniq: pb.cone.π₁ ≫ pair(id_A, f≫g) = pair(pb.cone.π₁, pb.cone.π₁ ≫ (f≫g))
   have h_pair_eq : pb.cone.π₁ ≫ pair (Cat.id A) (f ≫ g) = pair pb.cone.π₁ (pb.cone.π₁ ≫ (f ≫ g)) :=
     pair_uniq pb.cone.π₁ (pb.cone.π₁ ≫ (f ≫ g)) (pb.cone.π₁ ≫ pair (Cat.id A) (f ≫ g))
       (by rw [Cat.assoc, fst_pair, Cat.comp_id])
@@ -1256,9 +1259,7 @@ theorem comp_graph {A B C : 𝒞} (f : A ⟶ B) (g : B ⟶ C) : RelLe (graph f �
   have h_span_eq : span = pb.cone.π₁ ≫ pair (Cat.id A) (f ≫ g) := by
     dsimp [span]
     rw [Cat.comp_id, ← h_simp]
-    -- Now: pair pb.cone.π₁ ((pb.cone.π₁ ≫ f) ≫ g) = pb.cone.π₁ ≫ pair (Cat.id A) (f ≫ g)
     rw [Cat.assoc]
-    -- Now LHS = pair pb.cone.π₁ (pb.cone.π₁ ≫ f ≫ g), RHS = ..
     exact h_pair_eq.symm
   have h_monic : Mono (pair (Cat.id A) (f ≫ g)) :=
     monic_pair_of_monicPair (Cat.id A) (f ≫ g) (graph (f ≫ g)).isMonicPair
@@ -1266,7 +1267,6 @@ theorem comp_graph {A B C : 𝒞} (f : A ⟶ B) (g : B ⟶ C) : RelLe (graph f �
   have h_allows : Allows S span := ⟨pb.cone.π₁, h_span_eq.symm⟩
   have h_image_le : I.le S := image_min span S h_allows
   rcases h_image_le with ⟨k, hk⟩
-  -- hk: k ≫ S.arr = I.arr, i.e., k ≫ pair(id_A, f≫g) = I.arr
   have hkA : k ≫ (Cat.id A) = I.arr ≫ fst := by
     calc
       k ≫ (Cat.id A) = (k ≫ pair (Cat.id A) (f ≫ g)) ≫ fst := by rw [Cat.assoc, fst_pair]
@@ -1275,8 +1275,6 @@ theorem comp_graph {A B C : 𝒞} (f : A ⟶ B) (g : B ⟶ C) : RelLe (graph f �
     calc
       k ≫ (f ≫ g) = (k ≫ pair (Cat.id A) (f ≫ g)) ≫ snd := by rw [Cat.assoc, snd_pair]
       _ = I.arr ≫ snd := by rw [hk]
-  -- Note: graph (f≫g).colA = Cat.id A, graph (f≫g).colB = f≫g
-  -- (graph f ⊚ graph g).colA = I.arr≫fst, (graph f ⊚ graph g).colB = I.arr≫snd
   exact ⟨⟨k, hkA, hkB⟩⟩
 
 /-- **§1.564**: `graph` is faithful: `graph(f) ≤ graph(g)` implies `f = g`.

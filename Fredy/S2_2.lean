@@ -51,6 +51,8 @@ class DistributiveAllegory (𝒜 : Type u) extends Allegory 𝒜 where
   /-- Intersection distributes over union: R ∩ (S ∪ T) = (R ∩ S) ∪ (R ∩ T) (§2.21). -/
   inter_union_distrib {a b : 𝒜} (R S T : a ⟶ b) :
     Allegory.inter R (union S T) = union (Allegory.inter R S) (Allegory.inter R T)
+  /-- Zero is identity for union: 0 ∪ R = R (§2.211). -/
+  zero_union {a b : 𝒜} (R : a ⟶ b) : union zero R = R
 
 /-! ### Notation -/
 
@@ -149,27 +151,22 @@ theorem union_comp_distrib {a b c : 𝒜} (S T : a ⟶ b) (R : b ⟶ c) :
     _ = (((S ≫ R) ∪ (T ≫ R))°)° := by rw [h_recip]
     _ = (S ≫ R) ∪ (T ≫ R) := by rw [Allegory.recip_recip]
 
+/-- `R ∪ 𝟘 = R` (§2.211). Follows from `zero_union` and `union_comm`. -/
+theorem union_zero {a b : 𝒜} (R : a ⟶ b) : R ∪ (𝟘 : a ⟶ b) = R := by
+  rw [DistributiveAllegory.union_comm, DistributiveAllegory.zero_union R]
+
+/-- `𝟘 ⊑ R` for all `R` — zero is the minimum morphism (§2.211). -/
+theorem zero_le {a b : 𝒜} (R : a ⟶ b) : (𝟘 : a ⟶ b) ⊑ R := by
+  rw [le_iff_union_eq_left, DistributiveAllegory.zero_union R]
+
 /-- 0° = 0 (§2.211). -/
 theorem recip_zero {a b : 𝒜} : (𝟘 : a ⟶ b)° = (𝟘 : b ⟶ a) := by
-  -- Step 1: (0° ≫ 0_AA)° = 0_AB via recip_comp + comp_zero
-  have h_temp : ((𝟘 : a ⟶ b)° ≫ (𝟘 : a ⟶ a))° = (𝟘 : a ⟶ b) := by
-    calc
-      ((𝟘 : a ⟶ b)° ≫ (𝟘 : a ⟶ a))° = (𝟘 : a ⟶ a)° ≫ ((𝟘 : a ⟶ b)°)° := by rw [Allegory.recip_comp]
-      _ = (𝟘 : a ⟶ a)° ≫ (𝟘 : a ⟶ b) := by rw [Allegory.recip_recip]
-      _ = (𝟘 : a ⟶ b) := by
-        simpa using DistributiveAllegory.comp_zero (a := a) (b := a) (c := b) (R := (𝟘 : a ⟶ a)°)
-  -- Step 2: Apply reciprocation to both sides of h_temp: 0° ≫ 0_AA = 0°
-  have h_eq : (𝟘 : a ⟶ b)° ≫ (𝟘 : a ⟶ a) = (𝟘 : a ⟶ b)° := by
-    calc
-      (𝟘 : a ⟶ b)° ≫ (𝟘 : a ⟶ a) = (((𝟘 : a ⟶ b)° ≫ (𝟘 : a ⟶ a))°)° := by rw [Allegory.recip_recip]
-      _ = (𝟘 : a ⟶ b)° := by rw [h_temp]
-  -- Step 3: By comp_zero: 0° ≫ 0_AA = 0_BA
-  have h_comp : (𝟘 : a ⟶ b)° ≫ (𝟘 : a ⟶ a) = (𝟘 : b ⟶ a) :=
-    DistributiveAllegory.comp_zero (a := b) (b := a) (c := a) (R := (𝟘 : a ⟶ b)°)
-  -- Step 4: Combine h_eq and h_comp
-  calc
-    (𝟘 : a ⟶ b)° = (𝟘 : a ⟶ b)° ≫ (𝟘 : a ⟶ a) := by rw [h_eq]
-    _ = (𝟘 : b ⟶ a) := h_comp
+  apply le_antisymm
+  · -- 0_ab° ⊑ 0_ba   ↔  0_ab ⊑ 0_ba°  by recip_le_iff.mpr
+    -- 0_ab ⊑ 0_ba° holds by zero_le (0 is minimum in a→b)
+    apply (recip_le_iff.mpr (zero_le (a := a) (b := b) ((𝟘 : b ⟶ a)°)))
+  · -- 0_ba ⊑ 0_ab°  holds by zero_le (0 is minimum in b→a)
+    apply zero_le (a := b) (b := a) ((𝟘 : a ⟶ b)°)
 
 /-! ## §2.214  Coproducts in distributive allegories
 

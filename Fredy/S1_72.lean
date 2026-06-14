@@ -15,7 +15,6 @@ import Fredy.S1_41
 import Fredy.S1_42
 import Fredy.S1_51
 import Fredy.S1_52
-import Fredy.S1_57
 import Fredy.S1_60
 import Fredy.S1_70
 
@@ -35,6 +34,11 @@ namespace Freyd
 
 /-- A HEYTING ALGEBRA: distributive lattice with implication →. -/
 class HeytingAlgebra (𝒞 : Type u) [Cat.{v} 𝒞]
+    extends HasSubobjectUnions 𝒞 where
+  imp    : ∀ {A : 𝒞} (x y : Subobject 𝒞 A), Subobject 𝒞 A
+  adjunction : ∀ {A : 𝒞} (x y z : Subobject 𝒞 A),
+    Subobject.le (x ∧ y) z ↔ Subobject.le x (imp y z)
+  -- Note: meet (∧) is not defined yet; this is a conceptual definition
 
 /-! ## §1.727 Negation
 
@@ -42,7 +46,8 @@ class HeytingAlgebra (𝒞 : Type u) [Cat.{v} 𝒞]
   ¬¬¬x = ¬x, and double-negation preserves meets. -/
 
 /-- Negation in a Heyting algebra: ¬x = x → 0. -/
-axiom neg [HeytingAlgebra 𝒞] {A : 𝒞} (x : Subobject 𝒞 A) : Subobject 𝒞 A
+def neg [HeytingAlgebra 𝒞] {A : 𝒞} (x : Subobject 𝒞 A) : Subobject 𝒞 A :=
+  HeytingAlgebra.imp x minimalSubobject
 
 /-! ## §1.73 Filter ℱ(T) and quotient A/ℱ
 
@@ -52,12 +57,13 @@ axiom neg [HeytingAlgebra 𝒞] {A : 𝒞} (x : Subobject 𝒞 A) : Subobject �
 
 /-- The filter of a representation: subterminators sent to 1. -/
 def repFilter {𝒟 : Type u} [Cat.{v} 𝒟] [Logos 𝒞] [Logos 𝒟]
-    (T : 𝒞 → 𝒟) [Functor T] : Set (Subobject 𝒞 one) :=
+    (T : 𝒞 → 𝒟) [Functor F] : Set (Subobject 𝒞 one) :=
   { U | Isomorphic (T U.dom) one }
 
 /-- A representation T is faithful iff ℱ(T) = {1} (§1.73). -/
-axiom faithful_iff_trivial_filter {𝒟 : Type u} [Cat.{v} 𝒟] [Logos 𝒞] [Logos 𝒟]
-    (T : 𝒞 → 𝒟) [Functor T] : Faithful T ↔ repFilter T = {Subobject.entire one}
+theorem faithful_iff_trivial_filter {𝒟 : Type u} [Cat.{v} 𝒟] [Logos 𝒞] [Logos 𝒟]
+    (T : 𝒞 → 𝒟) [Functor F] : Faithful T ↔ repFilter T = {Subobject.entire one} := by
+  sorry
 
 /-! ## §1.733 Coprime and Focal
 
@@ -65,9 +71,9 @@ axiom faithful_iff_trivial_filter {𝒟 : Type u} [Cat.{v} 𝒟] [Logos 𝒞] [L
   A logos is FOCAL if its terminator is coprime and projective. -/
 
 /-- A is COPRIME: any cover of A by subobjects contains A itself. -/
-def Coprime [HasImages 𝒞] [HasSubobjectUnions 𝒞] (A : 𝒞) : Prop :=
+def Coprime [HasSubobjectUnions 𝒞] (A : 𝒞) : Prop :=
   ∀ (U V : Subobject 𝒞 A),
-    Subobject.le (Subobject.entire A) (HasSubobjectUnions.union U V) → IsIso (Subobject.entire A).arr
+    Subobject.le A.dom (HasSubobjectUnions.union U V) → IsIso (Subobject.entire A).arr
 
 /-- A FOCAL LOGOS: terminator is coprime and projective (§1.733). -/
 class FocalLogos (𝒞 : Type u) [Cat.{v} 𝒞] extends Logos 𝒞 where
@@ -81,15 +87,18 @@ class FocalLogos (𝒞 : Type u) [Cat.{v} 𝒞] extends Logos 𝒞 where
 
 /-- Every small logos has a collectively faithful family of focal
     representations (§1.734). -/
-theorem focal_representation_theorem (A : Type u) [Cat.{v} A] [Logos A] : True :=
-  trivial
+theorem focal_representation_theorem (A : Type u) [Cat.{v} A] [Logos A] : True := by
+  -- Proof: capitalize A, then use ultrafilter on Boolean algebra of
+  -- complemented subterminators to get focal A/ℱ.
+  sorry
 
 /-! ## §1.74 Geometric Representation Theorem
 
   Every countable (positive) logos may be faithfully represented in a
   countable power of the logos of sheaves on the real line. -/
 
-theorem geometric_representation_theorem : True :=
-  trivial
+theorem geometric_representation_theorem : True := by
+  -- Uses the focal representation theorem + properties of ℝ.
+  sorry
 
 end Freyd

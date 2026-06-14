@@ -36,20 +36,20 @@ namespace Freyd
 
 variable [PreLogos 𝒞]
 
-/-- Intersection of subobjects as pullback. -/
-def intersection (A B : Subobject 𝒞 X) : Subobject 𝒞 X :=
-  Subobject.mk (pullback A.arr B.arr).π₁
-
-/-- Union of subobjects (from PreLogos). -/
-def union (A B : Subobject 𝒞 X) : Subobject 𝒞 X :=
-  HasSubobjectUnions.union A B
-
 /-- Pasting Lemma (§1.62): for subobjects A₁,A₂ of A, the square
     A₁∩A₂ → A₁, A₁∩A₂ → A₂, A₁ → A₁∪A₂, A₂ → A₁∪A₂ is a pushout.
 
     The proof constructs R = x°f ∪ y°g and uses relation composition
     to show it satisfies the pushout universal property. -/
-axiom pasting_lemma {X : 𝒞} (A₁ A₂ : Subobject 𝒞 X) : Nonempty (HasPushout (intersection A₁ A₂) (union A₁ A₂))
+theorem pasting_lemma {A : 𝒞} (A₁ A₂ : Subobject 𝒞 A) : Nonempty (HasPushout (intersection A₁ A₂) (union A₁ A₂)) := by
+  -- Let I = A₁ ∩ A₂ (pullback), U = A₁ ∪ A₂ (union).
+  -- The maps are: I → A₁ (pullback proj₁), I → A₂ (pullback proj₂),
+  -- A₁ → U (inclusion), A₂ → U (inclusion).
+  -- To show: the resulting square is a pushout.
+  -- The book's proof uses R = x°f ∪ y°g, shows 1 ⊆ RR° and R°R ⊆ 1,
+  -- hence R is a map (entire + simple), and xR = f, yR = g uniquely.
+  -- This requires the full relation composition + simple/entire identities.
+  sorry
 
 /-! ## §1.623 Positive pre-logoi
 
@@ -60,8 +60,10 @@ class PositivePreLogos (𝒞 : Type u) [Cat.{v} 𝒞] extends PreLogos 𝒞, Has
 
 /-- §1.624: In a positive pre-logos, f: A → B₁+B₂ decomposes as
     f₁+f₂ from A₁ → B₁, A₂ → B₂ where A = A₁+A₂. -/
-axiom decompose_via_coproduct [PositivePreLogos 𝒞] {A B₁ B₂ : 𝒞} (f : A ⟶ HasBinaryCoproducts.coprod B₁ B₂) :
-    ∃ (A₁ A₂ : 𝒞) (f₁ : A₁ ⟶ B₁) (f₂ : A₂ ⟶ B₂), Isomorphic A (HasBinaryCoproducts.coprod A₁ A₂)
+theorem decompose_via_coproduct [PositivePreLogos 𝒞] {A B₁ B₂ : 𝒞} (f : A ⟶ coprod B₁ B₂) :
+    ∃ (A₁ A₂ : 𝒞) (f₁ : A₁ ⟶ B₁) (f₂ : A₂ ⟶ B₂), Isomorphic A (coprod A₁ A₂) := by
+  -- f#(inl) and f#(inr) pull back the coproduct inclusions
+  sorry
 
 /-! ## §1.632 Generating set / basis
 
@@ -107,15 +109,14 @@ def prefilter_functor (ℱ : Set (Subobject 𝒞 one)) (hℱ : IsPreFilter ℱ) 
   complemented subterminators (which form a Boolean algebra),
   ultra-filters, and the T_ℱ construction. -/
 
-noncomputable def identityFunctor (A : Type u) [Cat.{v} A] : Functor (id : A → A) :=
-  { map := λ {X Y} f => f
-    map_id := λ X => rfl
-    map_comp := λ {X Y Z} f g => rfl }
+theorem prelogos_representation_theorem (A : Type u) [Cat.{v} A] [PositivePreLogos A] : ∃ (T : A → ((A : Type u) → Type u)), Faithful (λ x => x) := by
+  -- The deep proof uses: capital extension (§1.63) + Stone representation
+  -- of Boolean algebras via ultra-filters → T_ℱ is a faithful representation.
+  -- Requires axiom of choice for the ultra-filter theorem.
+  sorry
 
-axiom prelogos_representation_theorem (A : Type u) [Cat.{v} A] [PositivePreLogos A] : ∃ (T : A → ((A : Type u) → Type u)), @Faithful.{v, u} A _ A _ (id : A → A) (identityFunctor A)
 
-
-/-- FILTER in a subobject lattice: up-closed pre-filter (§1.634). -/
+/-- FILTER in a subobject lattice: up-closed pre-filter (§1.634).
 def IsFilter (ℱ : Set (Subobject 𝒞 one)) : Prop :=
   IsPreFilter ℱ ∧ ∀ (U V : Subobject 𝒞 one), U ∈ ℱ → Subobject.le U V → V ∈ ℱ
 

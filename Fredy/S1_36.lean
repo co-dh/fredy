@@ -27,13 +27,13 @@ namespace Freyd
 
 /-- An inflation: artificially replicate objects of B.  Given T : 𝛂 → |B| onto,
     the category [T] has objects 𝛂, hom 𝛂(A,B) = B(TA,TB). -/
-structure Inflation (𝒞 : Type u) [Cat.{v} 𝒞] (B : 𝒞) where
+structure Inflation (B : 𝒞) where
   objSet  : Type u
   T       : objSet → 𝒞
   isOnto  : ∀ b : 𝒞, ∃ a : objSet, T a = b  -- T is surjective (onto)
 
 /-- The inflated category [T] with objects objSet and hom via T. -/
-instance (I : Inflation 𝒞 B) : Cat.{v} I.objSet where
+instance (I : Inflation B) : Cat.{v} I.objSet where
   Hom A B := I.T A ⟶ I.T B
   id A := Cat.id (I.T A)
   comp f g := f ≫ g
@@ -42,15 +42,15 @@ instance (I : Inflation 𝒞 B) : Cat.{v} I.objSet where
   assoc _ _ _ := Cat.assoc _ _ _
 
 /-- The inflation forgetful functor F : [T] → B, which is a full embedding. -/
-def Inflation.forget (I : Inflation 𝒞 B) : I.objSet → 𝒞 := I.T
+def Inflation.forget (I : Inflation B) : I.objSet → 𝒞 := I.T
 
-instance (I : Inflation 𝒞 B) : Functor (I.forget) where
+instance (I : Inflation B) : Functor (I.forget) where
   map f := f
   map_id _ := rfl
   map_comp _ _ := rfl
 
 /-- An inflation cross-section: S : |B| → 𝛂 with T∘S = id. -/
-structure InflationCrossSection (I : Inflation 𝒞 B) where
+structure InflationCrossSection (I : Inflation B) where
   S : 𝒞 → I.objSet
   sec : ∀ b : 𝒞, I.T (S b) = b
 
@@ -60,7 +60,7 @@ structure InflationCrossSection (I : Inflation 𝒞 B) where
   (We state the condition without assuming AC.) -/
 
 /-- If T has a left-inverse (a cross-section S), then [T] is strongly equivalent to B. -/
-theorem inflation_strong_equiv (I : Inflation 𝒞 B) (S : InflationCrossSection I) :
+theorem inflation_strong_equiv (I : Inflation B) (S : InflationCrossSection I) :
     True := by
   -- Construct the strong equivalence using the cross-section
   trivial
@@ -84,19 +84,16 @@ structure EquivalenceKernel (𝒞 : Type u) [Cat.{v} 𝒞] where
   isGroupoid : ∀ {X Y : 𝒞} (f : X ⟶ Y), mem f → (∃ g : Y ⟶ X, mem g ∧ f ≫ g = Cat.id X ∧ g ≫ f = Cat.id Y)
   isPreorder : ∀ {X Y : 𝒞} (f g : X ⟶ Y), mem f → mem g → f = g
 
-axiom equivalenceKernel_isGroupoid (F : 𝒞 → 𝒟) [hF : Functor F] {X Y : 𝒞} (f : X ⟶ Y)
-  (h : HEq (hF.map f) (Cat.id (F X))) : ∃ g : Y ⟶ X, HEq (hF.map g) (Cat.id (F Y)) ∧
-    f ≫ g = Cat.id X ∧ g ≫ f = Cat.id Y
-
-axiom equivalenceKernel_isPreorder (F : 𝒞 → 𝒟) [hF : Functor F] {X Y : 𝒞} (f g : X ⟶ Y)
-  (hf : HEq (hF.map f) (Cat.id (F X))) (hg : HEq (hF.map g) (Cat.id (F X))) : f = g
-
 /-- The kernel of an equivalence functor T: {f | T.map f = id}. -/
 def equivalenceKernel (F : 𝒞 → 𝒟) [hF : Functor F] : EquivalenceKernel 𝒞 where
-  mem {X Y} f := HEq (hF.map f) (Cat.id (F X))
+  mem {X Y} f := hF.map f = Cat.id (F X) ∧ F X = F Y
   mem_id X := by
-    rw [hF.map_id X]
-  isGroupoid f h := equivalenceKernel_isGroupoid F f h
-  isPreorder f g hf hg := equivalenceKernel_isPreorder F f g hf hg
+    simp [hF.map_id]
+  isGroupoid f h := by
+    sorry
+  isPreorder f g hf hg := by
+    rcases hf with ⟨hf1, hf2⟩
+    rcases hg with ⟨hg1, hg2⟩
+    sorry
 
 end Freyd

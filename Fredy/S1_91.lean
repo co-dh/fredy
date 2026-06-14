@@ -66,8 +66,9 @@ theorem covers_coincide_with_epis {A B : 𝒞} (f : A ⟶ B) : True := by
     **Prerequisite**: the universal property of the subobject classifier
     (pullback of t along classify m restores m), not yet in the class
     definition.  Currently a `sorry`. -/
-axiom omega_monic_endo_is_involution (g : HasSubobjectClassifier.omega (𝒞 := 𝒞) ⟶
-    HasSubobjectClassifier.omega (𝒞 := 𝒞)) (hm : Mono g) : g ≫ g = Cat.id _
+theorem omega_monic_endo_is_involution (g : HasSubobjectClassifier.omega (𝒞 := 𝒞) ⟶
+    HasSubobjectClassifier.omega (𝒞 := 𝒞)) (hm : Mono g) : g ≫ g = Cat.id _ := by
+  sorry
 
 /-! ## §1.91(10)  Minimal topos definition
 
