@@ -238,10 +238,53 @@ noncomputable def colimitHasBinaryProducts (C : CatSystem ι D) (hC : C.Coherent
       show homCompRaw C hC z op0 (xObj X) ub_pair r' ub_fst m_fst = homIncl C hC z (xObj X) af fa
       refine homCompRaw_eq_of_stage C hC z op0 (xObj X) ub_pair r' ub_fst m_fst af fa M
         (D.refl M) hkpM haM ?_
-      sorry
+      -- hstage: homTr(r', refl M) ≫ homTr(m_fst, hkpM) = homTr(fa, haM), all at level M
+      have h1 : homTr C z op0 ub_pair ⟨M, D.trans ub_pair.2.1 (D.refl M), D.trans ub_pair.2.2 (D.refl M)⟩ (D.refl M) r' = r' := by
+        simpa [ub_pair] using homTr_refl C hC z op0 ⟨M, D.trans ub_pair.2.1 (D.refl M), D.trans ub_pair.2.2 (D.refl M)⟩ r'
+      rw [h1]
+      have h_mfst_push : homTr C op0 (xObj X) ub_fst ⟨M, D.trans ub_fst.2.1 hkpM, D.trans ub_fst.2.2 hkpM⟩ hkpM m_fst
+          = castHom (h_prod_eq_M.symm) (h_fa_to_ak.symm.trans (hF_proof_irrel _ _ _))
+              ((C.functF h_k_M).map ((hp k0).fst (A:=ak X Y) (B:=bk X Y))) := by
+        dsimp [homTr, m_fst]
+        rw [map_castHom (C.F hkpM) (hT := C.functF hkpM), castHom_castHom]
+        exact castHom_heq_congr _ _ _ _
+          (hC.trans_map h_k_kp0 hkpM ((hp k0).fst (A:=ak X Y) (B:=bk X Y))).symm
+      rw [h_mfst_push]
+      dsimp [r']
+      rw [castHom_comp]
+      rw [hr_fst]
+      dsimp [p_pair, fa_M, fa_M_raw, ub_a_M]
+      unfold homTr
+      simp only [castHom_castHom]
     -- snd proof is symmetric
     have h_snd_ok : colimComp C hC h (snd (A:=X) (B:=Y)) = Quotient.mk (setoid (homSystem C hC z (xObj Y))) ⟨ag, ga⟩ := by
-      sorry
+      let ub_snd : UpperBound D ip0 (iObj Y) := ⟨kp0, h_ip_kp0, D.trans (hB_k X Y) h_k_kp0⟩
+      let m_snd : C.F h_ip_kp0 op0 ⟶ C.F (D.trans (hB_k X Y) h_k_kp0) (xObj Y) :=
+        castHom h_prod_eq0.symm
+          (calc
+            C.F h_k_kp0 (bk X Y) = C.F h_k_kp0 (C.F (hB_k X Y) (xObj Y)) := rfl
+            _ = C.F (D.trans (hB_k X Y) h_k_kp0) (xObj Y) := by rw [C.F_trans (hB_k X Y) h_k_kp0 (xObj Y)])
+          ((C.functF h_k_kp0).map ((hp k0).snd (A:=ak X Y) (B:=bk X Y)))
+      show homCompRaw C hC z op0 (xObj Y) ub_pair r' ub_snd m_snd = homIncl C hC z (xObj Y) ag ga
+      refine homCompRaw_eq_of_stage C hC z op0 (xObj Y) ub_pair r' ub_snd m_snd ag ga M
+        (D.refl M) hkpM hbM ?_
+      have h1 : homTr C z op0 ub_pair ⟨M, D.trans ub_pair.2.1 (D.refl M), D.trans ub_pair.2.2 (D.refl M)⟩ (D.refl M) r' = r' := by
+        simpa [ub_pair] using homTr_refl C hC z op0 ⟨M, D.trans ub_pair.2.1 (D.refl M), D.trans ub_pair.2.2 (D.refl M)⟩ r'
+      rw [h1]
+      have h_msnd_push : homTr C op0 (xObj Y) ub_snd ⟨M, D.trans ub_snd.2.1 hkpM, D.trans ub_snd.2.2 hkpM⟩ hkpM m_snd
+          = castHom (h_prod_eq_M.symm) (h_gb_to_bk.symm.trans (hF_proof_irrel _ _ _))
+              ((C.functF h_k_M).map ((hp k0).snd (A:=ak X Y) (B:=bk X Y))) := by
+        dsimp [homTr, m_snd]
+        rw [map_castHom (C.F hkpM) (hT := C.functF hkpM), castHom_castHom]
+        exact castHom_heq_congr _ _ _ _
+          (hC.trans_map h_k_kp0 hkpM ((hp k0).snd (A:=ak X Y) (B:=bk X Y))).symm
+      rw [h_msnd_push]
+      dsimp [r']
+      rw [castHom_comp]
+      rw [hr_snd]
+      dsimp [q_pair, gb_M, gb_M_raw, ub_b_M]
+      unfold homTr
+      simp only [castHom_castHom]
     exact ⟨h, h_fst_ok, h_snd_ok⟩
   -- Define pair via Classical.choice on h_exists_pair
   let pair {X A B : C.Obj} (f : colimHom C hC X A) (g : colimHom C hC X B) : colimHom C hC X (prodFun A B) :=
@@ -255,5 +298,16 @@ noncomputable def colimitHasBinaryProducts (C : CatSystem ι D) (hC : C.Coherent
   have h_pair_uniq : ∀ {Z X Y : C.Obj} (f : colimHom C hC Z X) (g : colimHom C hC Z Y)
       (h : colimHom C hC Z (prodFun X Y)),
       colimComp C hC h (fst (A:=X) (B:=Y)) = f → colimComp C hC h (snd (A:=X) (B:=Y)) = g → h = pair f g := by
+    intro Z X Y f g h h_hfst h_hsnd
+    have e1 : colimComp C hC h (fst (A:=X) (B:=Y)) = colimComp C hC (pair f g) (fst (A:=X) (B:=Y)) := by
+      rw [h_hfst, h_fst_pair]
+    have e2 : colimComp C hC h (snd (A:=X) (B:=Y)) = colimComp C hC (pair f g) (snd (A:=X) (B:=Y)) := by
+      rw [h_hsnd, h_snd_pair]
+    -- TODO: lift stage-level product uniqueness (`hpres`) to the colimit.
+    -- Plan: `Quotient.inductionOn₂ h (pair f g)`; `Quotient.exact e1`/`e2` give Rels at
+    -- witness levels K₁,K₂; pick L ≥ ah.1, ap.1, kp X Y, K₁, K₂; push both projection
+    -- equations to L (via `homTr_comp`/`homTr_trans` and the `m_fst`-push used in h_fst_ok);
+    -- apply `hpres` at L to get the pushed germs equal; conclude `Rel ⟨ah,ha⟩ ⟨ap,hp⟩` and
+    -- close with `Quotient.sound`.
     sorry
   exact @HasBinaryProducts.mk C.Obj (colimitCat C hC) prodFun fst snd pair h_fst_pair h_snd_pair h_pair_uniq
