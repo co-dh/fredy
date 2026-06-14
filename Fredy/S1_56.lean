@@ -53,6 +53,37 @@ def RelLe (R S : BinRel 𝒞 A B) : Prop := Nonempty (RelHom R S)
 /-- Infix `⊂` for relation containment (the book's notation). -/
 infix:50 " ⊂ " => RelLe
 
+/-- **§1.413**: The witnessing morphism between tables is unique.
+    If h₁, h₂ are morphisms satisfying the containment conditions, then h₁ = h₂. -/
+theorem RelHom_unique {A B : 𝒞} {R S : BinRel 𝒞 A B}
+    (h₁ h₂ : R.src ⟶ S.src)
+    (hA₁ : h₁ ≫ S.colA = R.colA) (hB₁ : h₁ ≫ S.colB = R.colB)
+    (hA₂ : h₂ ≫ S.colA = R.colA) (hB₂ : h₂ ≫ S.colB = R.colB) : h₁ = h₂ := by
+  apply S.isMonicPair h₁ h₂
+  · rw [hA₁, hA₂]
+  · rw [hB₁, hB₂]
+
+/-- **§1.413**: The witnessing morphism is monic.
+    If z : R.src → S.src witnesses R ⊂ S, then z is monic. -/
+theorem RelHom_monic {A B : 𝒞} {R S : BinRel 𝒞 A B}
+    (z : R.src ⟶ S.src) (hA : z ≫ S.colA = R.colA) (hB : z ≫ S.colB = R.colB) : Mono z := by
+  intro W f g heq
+  have hcolA_eq : f ≫ R.colA = g ≫ R.colA := by
+    calc
+      f ≫ R.colA = f ≫ (z ≫ S.colA) := by rw [hA]
+      _ = (f ≫ z) ≫ S.colA := (Cat.assoc _ _ _).symm
+      _ = (g ≫ z) ≫ S.colA := by rw [heq]
+      _ = g ≫ (z ≫ S.colA) := Cat.assoc _ _ _
+      _ = g ≫ R.colA := by rw [hA]
+  have hcolB_eq : f ≫ R.colB = g ≫ R.colB := by
+    calc
+      f ≫ R.colB = f ≫ (z ≫ S.colB) := by rw [hB]
+      _ = (f ≫ z) ≫ S.colB := (Cat.assoc _ _ _).symm
+      _ = (g ≫ z) ≫ S.colB := by rw [heq]
+      _ = g ≫ (z ≫ S.colB) := Cat.assoc _ _ _
+      _ = g ≫ R.colB := by rw [hB]
+  exact R.isMonicPair f g hcolA_eq hcolB_eq
+
 /-! ## §1.564 Graph of a morphism -/
 
 def graph {A B : 𝒞} (x : A ⟶ B) : BinRel 𝒞 A B where
@@ -645,6 +676,54 @@ theorem graph_is_map {A B : 𝒞} [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [
     (tabulated_is_simple_iff_left_monic (Cat.id A) g hp).mpr
       (mono_of_retraction (Cat.id A) (Cat.id A) (Cat.comp_id _))
   exact And.intro h_entire h_simple
+
+/-! ## §1.56(11) Projective ↔ every entire relation contains a map
+
+  In a regular category, an object A is projective (§1.57) iff every
+  entire relation from A contains a map.  Proved directly, not via
+  Henkin-Lubkin (the statement is ∀∃, not a Horn sentence). -/
+
+/-- **§1.56(11) (⇒)**: If A is projective, every entire relation from A
+    contains a map.  Tabulate the relation, use projectivity to split the
+    (cover) left leg, compose the section with the right leg. -/
+theorem projective_entire_contains_map {A : 𝒞}
+    (hproj : ∀ {C : 𝒞} (f : C ⟶ A), Cover f → ∃ (s : A ⟶ C), s ≫ f = Cat.id A)
+    {B : 𝒞} (R : BinRel 𝒞 A B) (hent : Entire R) : ∃ (f : A ⟶ B), RelLe (graph f) R := by
+  let x := R.colA
+  let y := R.colB
+  have hcov : Cover x :=
+    ((tabulated_is_entire_iff_left_cover x y R.isMonicPair).mp hent)
+  rcases hproj x hcov with ⟨s, hs⟩
+  refine ⟨s ≫ y, ⟨⟨s, ?_, ?_⟩⟩⟩
+  · dsimp [graph, x]; exact hs
+  · rfl
+
+/-- **§1.56(11) (⇐)**: If every entire relation from A contains a map,
+    then A is projective.  Given a cover c : C → A, take graph(c)° : A → C;
+    its left leg is c (a cover) so it's entire, hence contains a map s,
+    and s ≫ c = id_A. -/
+theorem entire_contains_map_projective {A : 𝒞}
+    (h : ∀ {B : 𝒞} (R : BinRel 𝒞 A B), Entire R →
+      ∃ (f : A ⟶ B), RelLe (graph f) R) :
+    ∀ {C : 𝒞} (c : C ⟶ A), Cover c → ∃ (s : A ⟶ C), s ≫ c = Cat.id A := by
+  intro C c hcov
+  let gc := graph c
+  let gR := gc°
+  -- graph(c)° : A → C has tabulation ⟨C; c, id_C⟩, left leg = c is a cover → entire
+  have hp : MonicPair (gR.colA) (gR.colB) := gR.isMonicPair
+  have hent : Entire gR :=
+    ((tabulated_is_entire_iff_left_cover (gR.colA) (gR.colB) hp).mpr ?_)
+  · rcases h gR hent with ⟨s, hs⟩
+    rcases hs with ⟨⟨h₀, hA, hB⟩⟩
+    -- hA: h₀ ≫ gR.colA = graph(s).colA → h₀ ≫ c = id_A
+    -- hB: h₀ ≫ gR.colB = graph(s).colB → h₀ ≫ id_C = s
+    dsimp [gR, gc, graph, reciprocal] at hA hB
+    -- hA: h₀ ≫ c = id_A,  hB: h₀ ≫ id_C = s
+    -- From hB, h₀ = s. But we don't need that; hA already gives h₀ as the section.
+    exact ⟨h₀, hA⟩
+  -- Prove: graph(c)°.colA = c is a cover (it IS c, which we know is a cover)
+  dsimp [gR, gc, reciprocal]
+  exact hcov
 
 /-! ## §1.563 Modular identity
 
