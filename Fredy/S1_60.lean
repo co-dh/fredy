@@ -12,6 +12,7 @@
 
 
 import Fredy.S1_1
+import Fredy.S1_34
 import Fredy.S1_41
 import Fredy.S1_42
 import Fredy.S1_43
@@ -51,16 +52,20 @@ def InverseImage (f : A ⟶ B) (B' : Subobject 𝒞 B) [HasPullbacks 𝒞] : Sub
   { dom := pb.cone.pt
     arr := pb.cone.π₁
     monic := by
-      -- Pullback of a monic is monic.
-      -- Proof: if u≫π₁ = v≫π₁ and u≫π₂ = v≫π₂? Actually, π₁ is monic
-      -- because given u≫π₁ = v≫π₁, compose with f: u≫π₁≫f = v≫π₁≫f
-      -- = u≫π₂≫B'.arr = v≫π₂≫B'.arr, then since B'.arr is monic,
-      -- u≫π₂ = v≫π₂, and the pair (u,v) lifts to a unique map, so u=v.
-      sorry }
+      -- Pullback of a monic is monic: π₁ is left-cancellable.
+      intro W u v huv
+      -- B'.arr monic forces the π₂-legs to agree
+      have hπ₂ : u ≫ pb.cone.π₂ = v ≫ pb.cone.π₂ := by
+        apply B'.monic
+        rw [Cat.assoc, ← pb.cone.w, ← Cat.assoc, huv, Cat.assoc, pb.cone.w, ← Cat.assoc]
+      -- both u and v are the unique lift of the cone ⟨W, u≫π₁, u≫π₂⟩
+      let c : Cone f B'.arr :=
+        ⟨W, u ≫ pb.cone.π₁, u ≫ pb.cone.π₂, by rw [Cat.assoc, pb.cone.w, ← Cat.assoc]⟩
+      rw [pb.lift_uniq c u rfl rfl, pb.lift_uniq c v huv.symm hπ₂.symm] }
 
 /-- f# preserves binary unions: for any S,T subobjects of B,
     f#(S ∪ T) is isomorphic to f#(S) ∪ f#(T). -/
-def inverseImage_preserves_unions (f : A ⟶ B) [HasPullbacks 𝒞] : Prop :=
+def inverseImage_preserves_unions [HasImages 𝒞] [HasSubobjectUnions 𝒞] {A B : 𝒞} (f : A ⟶ B) [HasPullbacks 𝒞] : Prop :=
   ∀ (S T : Subobject 𝒞 B),
     Isomorphic (InverseImage f (HasSubobjectUnions.union S T)).dom
                (HasSubobjectUnions.union (InverseImage f S) (InverseImage f T)).dom
@@ -77,7 +82,7 @@ class PreLogos (𝒞 : Type u) [Cat.{v} 𝒞] extends
   a distributive lattice (§1.613). -/
 
 /-- A distributive lattice: the subobject unions satisfy distributivity. -/
-def IsDistributiveLattice [HasSubobjectUnions 𝒞] : Prop :=
+def IsDistributiveLattice [HasImages 𝒞] [HasSubobjectUnions 𝒞] : Prop :=
   ∀ {B : 𝒞} (A S T : Subobject 𝒞 B),
     Subobject.le (HasSubobjectUnions.union
       (HasSubobjectUnions.union A S) A)
@@ -86,10 +91,16 @@ def IsDistributiveLattice [HasSubobjectUnions 𝒞] : Prop :=
 /-- In a thin category (at most one morphism per hom-set), pre-logos
     is equivalent to being a distributive lattice (§1.613). -/
 theorem poset_prelogos_iff_distributive [PreLogos 𝒞]
-    (hThin : ∀ {A B : 𝒞} (f g : A ⟶ B), f = g) : IsDistributiveLattice := by
+    (_hThin : ∀ {A B : 𝒞} (f g : A ⟶ B), f = g) : IsDistributiveLattice (𝒞 := 𝒞) := by
   intro B A S T
-  -- In a thin category, subobjects are determined by monics,
-  -- and the pre-logos structure gives the distributive law.
-  sorry
+  -- This (absorption) inequality holds from the lattice axioms alone.
+  have le_trans : ∀ {X Y Z : Subobject 𝒞 B}, X.le Y → Y.le Z → X.le Z := by
+    rintro X Y Z ⟨h1, e1⟩ ⟨h2, e2⟩
+    exact ⟨h1 ≫ h2, by rw [Cat.assoc, e2, e1]⟩
+  apply HasSubobjectUnions.union_min
+  · apply HasSubobjectUnions.union_min
+    · exact HasSubobjectUnions.union_left _ _
+    · exact le_trans (HasSubobjectUnions.union_left S T) (HasSubobjectUnions.union_right _ _)
+  · exact HasSubobjectUnions.union_left _ _
 
 end Freyd
