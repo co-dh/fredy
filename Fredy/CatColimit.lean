@@ -327,6 +327,31 @@ theorem homCompRaw_eq_compAt (C : CatSystem ι D) (hC : C.Coherent) {ip iq ir : 
           (Classical.choose_spec (D.bound a.1 b.1)).2 := rfl
   rw [h]; exact compAt_indep C hC xp xq xr a f b g _ _ hae hbe
 
+/-- **Composition reduces to a stage equation.**  To prove a colimit-level
+    composite `homCompRaw (germ f) (germ g)` equals an included germ `homIncl fOrig`,
+    it suffices to push all three germs to one common level `M` and check the
+    equation there (`hstage`).  This is the workhorse that turns every colimit
+    universal-property law (product/pullback factorizations, uniqueness) into a
+    single equation inside one stage category `C.A M`, where ordinary functor
+    calculus applies.  The `homTr` target bounds in `hstage` are exactly the ones
+    `compAt` produces, so the proof is `homCompRaw_eq_compAt` → `hstage` →
+    `homIncl_compat`. -/
+theorem homCompRaw_eq_of_stage (C : CatSystem ι D) (hC : C.Coherent) {ip iq ir : ι}
+    (xp : C.A ip) (xq : C.A iq) (xr : C.A ir)
+    (ub_h : UpperBound D ip iq) (rM : C.F ub_h.2.1 xp ⟶ C.F ub_h.2.2 xq)
+    (ub_g : UpperBound D iq ir) (gK : C.F ub_g.2.1 xq ⟶ C.F ub_g.2.2 xr)
+    (ub_orig : UpperBound D ip ir) (fOrig : C.F ub_orig.2.1 xp ⟶ C.F ub_orig.2.2 xr)
+    (M : ι) (hhM : D.le ub_h.1 M) (hgM : D.le ub_g.1 M) (hoM : D.le ub_orig.1 M)
+    (hstage :
+      homTr C xp xq ub_h ⟨M, D.trans ub_h.2.1 hhM, D.trans ub_h.2.2 hhM⟩ hhM rM
+        ≫ homTr C xq xr ub_g ⟨M, D.trans ub_g.2.1 hgM, D.trans ub_g.2.2 hgM⟩ hgM gK
+      = homTr C xp xr ub_orig ⟨M, D.trans ub_h.2.1 hhM, D.trans ub_g.2.2 hgM⟩ hoM fOrig) :
+    homCompRaw C hC xp xq xr ub_h rM ub_g gK = homIncl C hC xp xr ub_orig fOrig := by
+  rw [homCompRaw_eq_compAt C hC xp xq xr ub_h rM ub_g gK M hhM hgM]
+  unfold compAt
+  rw [hstage]
+  exact homIncl_compat C hC xp xr hoM fOrig
+
 /-- Pushing the left germ's representative up doesn't change the composite. -/
 theorem homCompRaw_push_left (C : CatSystem ι D) (hC : C.Coherent) {ip iq ir : ι}
     (xp : C.A ip) (xq : C.A iq) (xr : C.A ir)

@@ -115,205 +115,145 @@ noncomputable def colimitHasBinaryProducts (C : CatSystem ι D) (hC : C.Coherent
   -- Helper: C.F respects proof irrelevance
   have hF_proof_irrel : ∀ {i j : ι} (h h' : D.le i j) (a : C.A i), C.F h a = C.F h' a := by
     intro i j h h' a; rw [hDirSubsingleton h h']
-  -- Define product object function (available to all subsequent goals)
-  let prodFun (X Y : C.Obj) : C.Obj := by
-    let iX := (colimOut C X).1; let x := (colimOut C X).2
-    let iY := (colimOut C Y).1; let y := (colimOut C Y).2
-    let bd := D.bound iX iY
-    let k := Classical.choose bd
-    have hbd_spec : D.le iX k ∧ D.le iY k := Classical.choose_spec bd
-    let hXk : D.le iX k := hbd_spec.1
-    let hYk : D.le iY k := hbd_spec.2
-    let xk := C.F hXk x
-    let yk := C.F hYk y
-    exact C.objIncl k ((hp k).prod xk yk)
-  refine @HasBinaryProducts.mk C.Obj (colimitCat C hC) prodFun ?fst ?snd ?pair ?fst_pair ?snd_pair ?pair_uniq
-  · -- fst
-    intro A B
-    let X := A; let Y := B
-    let iX := (colimOut C X).1; let x := (colimOut C X).2
-    let iY := (colimOut C Y).1; let y := (colimOut C Y).2
-    let bd := D.bound iX iY
-    let k := Classical.choose bd
-    have hbd_spec : D.le iX k ∧ D.le iY k := Classical.choose_spec bd
-    let hXk : D.le iX k := hbd_spec.1
-    let hYk : D.le iY k := hbd_spec.2
-    let xk := C.F hXk x
-    let yk := C.F hYk y
-    let pXY := prodFun X Y
-    -- chosen rep of the product
-    let ip := (colimOut C pXY).1; let op := (colimOut C pXY).2
-    have hProdSpec : C.objIncl ip op = pXY := colimOut_spec C pXY
-    have hProdRel : Rel C.objSystem ⟨ip, op⟩ ⟨k, (hp k).prod xk yk⟩ := Quotient.exact hProdSpec
-    let kp := Classical.choose hProdRel
-    have h_spec1 : ∃ (hik : D.le ip kp) (hjk : D.le k kp), C.F hik op = C.F hjk ((hp k).prod xk yk) :=
-      Classical.choose_spec hProdRel
-    let h_ip_kp := Classical.choose h_spec1
-    have h_spec2 : ∃ (hjk : D.le k kp), C.F h_ip_kp op = C.F hjk ((hp k).prod xk yk) :=
-      Classical.choose_spec h_spec1
-    let h_k_kp := Classical.choose h_spec2
-    have h_prod_eq : C.F h_ip_kp op = C.F h_k_kp ((hp k).prod xk yk) :=
-      Classical.choose_spec h_spec2
-    -- target path: iX → k → kp
-    let h_iX_kp : D.le iX kp := D.trans hXk h_k_kp
-    -- target equality
-    have h_tgt : C.F h_k_kp xk = C.F h_iX_kp x := by
+  -- Shared data parameterized by (A, B): ensures fst, snd, pair all use the same product stage.
+  let iObj (A : C.Obj) : ι := (colimOut C A).1
+  let xObj (A : C.Obj) : C.A (iObj A) := (colimOut C A).2
+  let k (A B : C.Obj) : ι := Classical.choose (D.bound (iObj A) (iObj B))
+  have hbd (A B : C.Obj) : D.le (iObj A) (k A B) ∧ D.le (iObj B) (k A B) :=
+    Classical.choose_spec (D.bound (iObj A) (iObj B))
+  let hA_k (A B : C.Obj) : D.le (iObj A) (k A B) := (hbd A B).1
+  let hB_k (A B : C.Obj) : D.le (iObj B) (k A B) := (hbd A B).2
+  let ak (A B : C.Obj) : C.A (k A B) := C.F (hA_k A B) (xObj A)
+  let bk (A B : C.Obj) : C.A (k A B) := C.F (hB_k A B) (xObj B)
+  -- Product object (uses shared k)
+  let prodFun (X Y : C.Obj) : C.Obj :=
+    C.objIncl (k X Y) ((hp (k X Y)).prod (ak X Y) (bk X Y))
+  -- Representative of the product object
+  let ip (A B : C.Obj) : ι := (colimOut C (prodFun A B)).1
+  let op (A B : C.Obj) : C.A (ip A B) := (colimOut C (prodFun A B)).2
+  have hProdSpec (A B : C.Obj) : C.objIncl (ip A B) (op A B) = prodFun A B :=
+    colimOut_spec C (prodFun A B)
+  have hProdRel (A B : C.Obj) : Rel C.objSystem ⟨ip A B, op A B⟩
+      ⟨k A B, (hp (k A B)).prod (ak A B) (bk A B)⟩ :=
+    Quotient.exact (hProdSpec A B)
+  let kp (A B : C.Obj) : ι := Classical.choose (hProdRel A B)
+  have h_kp_spec1 (A B : C.Obj) : ∃ (hik : D.le (ip A B) (kp A B)) (hjk : D.le (k A B) (kp A B)),
+      C.F hik (op A B) = C.F hjk ((hp (k A B)).prod (ak A B) (bk A B)) :=
+    Classical.choose_spec (hProdRel A B)
+  let h_ip_kp (A B : C.Obj) : D.le (ip A B) (kp A B) := Classical.choose (h_kp_spec1 A B)
+  have h_kp_spec2 (A B : C.Obj) : ∃ (hjk : D.le (k A B) (kp A B)),
+      C.F (h_ip_kp A B) (op A B) = C.F hjk ((hp (k A B)).prod (ak A B) (bk A B)) :=
+    Classical.choose_spec (h_kp_spec1 A B)
+  let h_k_kp (A B : C.Obj) : D.le (k A B) (kp A B) := Classical.choose (h_kp_spec2 A B)
+  have h_prod_eq (A B : C.Obj) : C.F (h_ip_kp A B) (op A B) = C.F (h_k_kp A B) ((hp (k A B)).prod (ak A B) (bk A B)) :=
+    Classical.choose_spec (h_kp_spec2 A B)
+  -- fst and snd as let definitions (unfoldable in law proofs)
+  let fst {A B : C.Obj} : colimHom C hC (prodFun A B) A :=
+    homIncl C hC (op A B) (xObj A) ⟨kp A B, h_ip_kp A B, D.trans (hA_k A B) (h_k_kp A B)⟩
+      (castHom (h_prod_eq A B).symm
+        (calc
+          C.F (h_k_kp A B) (ak A B) = C.F (h_k_kp A B) (C.F (hA_k A B) (xObj A)) := rfl
+          _ = C.F (D.trans (hA_k A B) (h_k_kp A B)) (xObj A) := by rw [C.F_trans (hA_k A B) (h_k_kp A B) (xObj A)])
+        ((C.functF (h_k_kp A B)).map ((hp (k A B)).fst (A:=ak A B) (B:=bk A B))))
+  let snd {A B : C.Obj} : colimHom C hC (prodFun A B) B :=
+    homIncl C hC (op A B) (xObj B) ⟨kp A B, h_ip_kp A B, D.trans (hB_k A B) (h_k_kp A B)⟩
+      (castHom (h_prod_eq A B).symm
+        (calc
+          C.F (h_k_kp A B) (bk A B) = C.F (h_k_kp A B) (C.F (hB_k A B) (xObj B)) := rfl
+          _ = C.F (D.trans (hB_k A B) (h_k_kp A B)) (xObj B) := by rw [C.F_trans (hB_k A B) (h_k_kp A B) (xObj B)])
+        ((C.functF (h_k_kp A B)).map ((hp (k A B)).snd (A:=ak A B) (B:=bk A B))))
+  -- Existence of a mediating morphism for any f, g (used to define pair via choice)
+  have h_exists_pair (Z X Y : C.Obj) (f : colimHom C hC Z X) (g : colimHom C hC Z Y) :
+      ∃ h : colimHom C hC Z (prodFun X Y),
+        colimComp C hC h (fst (A:=X) (B:=Y)) = f ∧ colimComp C hC h (snd (A:=X) (B:=Y)) = g := by
+    -- Eliminate quotients on f and g
+    refine Quotient.inductionOn f (fun ⟨af, fa⟩ => ?_)
+    refine Quotient.inductionOn g (fun ⟨ag, ga⟩ => ?_)
+    -- Now f = mk ⟨af, fa⟩ and g = mk ⟨ag, ga⟩
+    -- Build h using the shared data
+    let iZ := iObj Z; let z := xObj Z
+    let iX := iObj X; let iY := iObj Y
+    let k0 := k X Y; let kp0 := kp X Y
+    let ip0 := ip X Y; let op0 := op X Y
+    let h_ip_kp0 := h_ip_kp X Y; let h_k_kp0 := h_k_kp X Y
+    let h_prod_eq0 := h_prod_eq X Y
+    -- Pick M ≥ af.1, ag.1, kp0
+    obtain ⟨m, ham, hbm⟩ := D.bound af.1 ag.1
+    obtain ⟨M, hmM, hkpM⟩ := D.bound m kp0
+    let haM : D.le af.1 M := D.trans ham hmM
+    let hbM : D.le ag.1 M := D.trans hbm hmM
+    let h_k_M : D.le k0 M := D.trans h_k_kp0 hkpM
+    let h_ip_M : D.le ip0 M := D.trans h_ip_kp0 hkpM
+    let h_iZ_M : D.le iZ M := D.trans af.2.1 haM
+    let h_iX_M : D.le iX M := D.trans (hA_k X Y) h_k_M
+    let h_iY_M : D.le iY M := D.trans (hB_k X Y) h_k_M
+    -- Transport fa and gb to level M
+    let ub_a_M : UpperBound D iZ iX := ⟨M, h_iZ_M, D.trans af.2.2 haM⟩
+    let ub_b_M : UpperBound D iZ iY := ⟨M, D.trans ag.2.1 hbM, D.trans ag.2.2 hbM⟩
+    let fa_M_raw : C.F h_iZ_M z ⟶ C.F (D.trans af.2.2 haM) (xObj X) := homTr C z (xObj X) af ub_a_M haM fa
+    let gb_M_raw : C.F (D.trans ag.2.1 hbM) z ⟶ C.F (D.trans ag.2.2 hbM) (xObj Y) :=
+      homTr C z (xObj Y) ag ub_b_M hbM ga
+    have h_fa_tgt : C.F (D.trans af.2.2 haM) (xObj X) = C.F h_iX_M (xObj X) :=
+      hF_proof_irrel (D.trans af.2.2 haM) h_iX_M (xObj X)
+    have h_gb_tgt : C.F (D.trans ag.2.2 hbM) (xObj Y) = C.F h_iY_M (xObj Y) :=
+      hF_proof_irrel (D.trans ag.2.2 hbM) h_iY_M (xObj Y)
+    have h_gb_src : C.F (D.trans ag.2.1 hbM) z = C.F h_iZ_M z :=
+      hF_proof_irrel (D.trans ag.2.1 hbM) h_iZ_M z
+    let fa_M : C.F h_iZ_M z ⟶ C.F h_iX_M (xObj X) := castHom rfl h_fa_tgt fa_M_raw
+    let gb_M : C.F h_iZ_M z ⟶ C.F h_iY_M (xObj Y) := castHom h_gb_src h_gb_tgt gb_M_raw
+    have h_fa_to_ak : C.F h_iX_M (xObj X) = C.F h_k_M (ak X Y) := by
       calc
-        C.F h_k_kp xk = C.F h_k_kp (C.F hXk x) := rfl
-        _ = C.F (D.trans hXk h_k_kp) x := by rw [C.F_trans hXk h_k_kp x]
-        _ = C.F h_iX_kp x := rfl
-    -- upper bound
-    let ub : UpperBound D ip iX := ⟨kp, h_ip_kp, h_iX_kp⟩
-    -- morphism: use (C.functF h_k_kp).map ((hp k).fst) and cast source/target
-    let m : C.F h_ip_kp op ⟶ C.F h_iX_kp x :=
-      castHom h_prod_eq.symm h_tgt ((C.functF h_k_kp).map ((hp k).fst (A:=xk) (B:=yk)))
-    exact homIncl C hC op x ub m
-  · -- snd
-    intro A B
-    let X := A; let Y := B
-    let iX := (colimOut C X).1; let x := (colimOut C X).2
-    let iY := (colimOut C Y).1; let y := (colimOut C Y).2
-    let bd := D.bound iX iY
-    let k := Classical.choose bd
-    have hbd_spec : D.le iX k ∧ D.le iY k := Classical.choose_spec bd
-    let hXk : D.le iX k := hbd_spec.1
-    let hYk : D.le iY k := hbd_spec.2
-    let xk := C.F hXk x
-    let yk := C.F hYk y
-    let pXY := prodFun X Y
-    let ip := (colimOut C pXY).1; let op := (colimOut C pXY).2
-    have hProdSpec : C.objIncl ip op = pXY := colimOut_spec C pXY
-    have hProdRel : Rel C.objSystem ⟨ip, op⟩ ⟨k, (hp k).prod xk yk⟩ := Quotient.exact hProdSpec
-    let kp := Classical.choose hProdRel
-    have h_spec1 : ∃ (hik : D.le ip kp) (hjk : D.le k kp), C.F hik op = C.F hjk ((hp k).prod xk yk) :=
-      Classical.choose_spec hProdRel
-    let h_ip_kp := Classical.choose h_spec1
-    have h_spec2 : ∃ (hjk : D.le k kp), C.F h_ip_kp op = C.F hjk ((hp k).prod xk yk) :=
-      Classical.choose_spec h_spec1
-    let h_k_kp := Classical.choose h_spec2
-    have h_prod_eq : C.F h_ip_kp op = C.F h_k_kp ((hp k).prod xk yk) :=
-      Classical.choose_spec h_spec2
-    let h_iY_kp : D.le iY kp := D.trans hYk h_k_kp
-    have h_tgt : C.F h_k_kp yk = C.F h_iY_kp y := by
+        C.F h_iX_M (xObj X) = C.F (D.trans (hA_k X Y) h_k_M) (xObj X) := rfl
+        _ = C.F h_k_M (C.F (hA_k X Y) (xObj X)) := by rw [C.F_trans (hA_k X Y) h_k_M (xObj X)]
+        _ = C.F h_k_M (ak X Y) := rfl
+    have h_gb_to_bk : C.F h_iY_M (xObj Y) = C.F h_k_M (bk X Y) := by
       calc
-        C.F h_k_kp yk = C.F h_k_kp (C.F hYk y) := rfl
-        _ = C.F (D.trans hYk h_k_kp) y := by rw [C.F_trans hYk h_k_kp y]
-        _ = C.F h_iY_kp y := rfl
-    let ub : UpperBound D ip iY := ⟨kp, h_ip_kp, h_iY_kp⟩
-    let m : C.F h_ip_kp op ⟶ C.F h_iY_kp y :=
-      castHom h_prod_eq.symm h_tgt ((C.functF h_k_kp).map ((hp k).snd (A:=xk) (B:=yk)))
-    exact homIncl C hC op y ub m
-  · -- pair
-    intro Z A B f g
-    let X := A; let Y := B
-    let iX := (colimOut C X).1; let x := (colimOut C X).2
-    let iY := (colimOut C Y).1; let y := (colimOut C Y).2
-    let iZ := (colimOut C Z).1; let z := (colimOut C Z).2
-    let bd := D.bound iX iY
-    let k := Classical.choose bd
-    have hbd_spec : D.le iX k ∧ D.le iY k := Classical.choose_spec bd
-    let hXk : D.le iX k := hbd_spec.1
-    let hYk : D.le iY k := hbd_spec.2
-    let xk := C.F hXk x
-    let yk := C.F hYk y
-    let pXY := prodFun X Y
-    let ip := (colimOut C pXY).1; let op := (colimOut C pXY).2
-    have hProdSpec : C.objIncl ip op = pXY := colimOut_spec C pXY
-    have hProdRel : Rel C.objSystem ⟨ip, op⟩ ⟨k, (hp k).prod xk yk⟩ := Quotient.exact hProdSpec
-    let kp := Classical.choose hProdRel
-    have h_spec1 : ∃ (hik : D.le ip kp) (hjk : D.le k kp), C.F hik op = C.F hjk ((hp k).prod xk yk) :=
-      Classical.choose_spec hProdRel
-    let h_ip_kp := Classical.choose h_spec1
-    have h_spec2 : ∃ (hjk : D.le k kp), C.F h_ip_kp op = C.F hjk ((hp k).prod xk yk) :=
-      Classical.choose_spec h_spec1
-    let h_k_kp := Classical.choose h_spec2
-    have h_prod_eq : C.F h_ip_kp op = C.F h_k_kp ((hp k).prod xk yk) :=
-      Classical.choose_spec h_spec2
-    -- choose representatives for f and g (mirroring colimOut for objects)
-    let rep_f := Classical.choose (Quotient.exists_rep f)
-    have hf_rep : (Quotient.mk (setoid (homSystem C hC z x)) rep_f) = f :=
-      Classical.choose_spec (Quotient.exists_rep f)
-    let a := rep_f.1
-    let fa := rep_f.2
-    let rep_g := Classical.choose (Quotient.exists_rep g)
-    have hg_rep : (Quotient.mk (setoid (homSystem C hC z y)) rep_g) = g :=
-      Classical.choose_spec (Quotient.exists_rep g)
-    let b := rep_g.1
-    let gb := rep_g.2
-    -- pick M ≥ a.1, b.1, kp (use Classical.choose since goal is Type, not Prop)
-    let bd1 := D.bound a.1 b.1
-    let m := Classical.choose bd1
-    have hbd1_spec : D.le a.1 m ∧ D.le b.1 m := Classical.choose_spec bd1
-    let ham : D.le a.1 m := hbd1_spec.1
-    let hbm : D.le b.1 m := hbd1_spec.2
-    let bd2 := D.bound m kp
-    let M := Classical.choose bd2
-    have hbd2_spec : D.le m M ∧ D.le kp M := Classical.choose_spec bd2
-    let hmM : D.le m M := hbd2_spec.1
-    let hkpM : D.le kp M := hbd2_spec.2
-    let haM : D.le a.1 M := D.trans ham hmM
-    let hbM : D.le b.1 M := D.trans hbm hmM
-    let h_k_M : D.le k M := D.trans h_k_kp hkpM
-    let h_ip_M : D.le ip M := D.trans h_ip_kp hkpM
-    -- source at M: use a's source path
-    let h_iZ_M : D.le iZ M := D.trans a.2.1 haM
-    -- target paths for X, Y via the product stage k
-    let h_iX_M : D.le iX M := D.trans hXk h_k_M
-    let h_iY_M : D.le iY M := D.trans hYk h_k_M
-    -- transport fa, gb to M
-    let ub_a_M : UpperBound D iZ iX := ⟨M, h_iZ_M, D.trans a.2.2 haM⟩
-    let ub_b_M : UpperBound D iZ iY := ⟨M, D.trans b.2.1 hbM, D.trans b.2.2 hbM⟩
-    let fa_M_raw : C.F h_iZ_M z ⟶ C.F (D.trans a.2.2 haM) x := homTr C z x a ub_a_M haM fa
-    let gb_M_raw : C.F (D.trans b.2.1 hbM) z ⟶ C.F (D.trans b.2.2 hbM) y :=
-      homTr C z y b ub_b_M hbM gb
-    -- align targets to h_iX_M, h_iY_M and source of gb to h_iZ_M (via proof irrelevance)
-    have h_fa_tgt : C.F (D.trans a.2.2 haM) x = C.F h_iX_M x :=
-      hF_proof_irrel (D.trans a.2.2 haM) h_iX_M x
-    have h_gb_tgt : C.F (D.trans b.2.2 hbM) y = C.F h_iY_M y :=
-      hF_proof_irrel (D.trans b.2.2 hbM) h_iY_M y
-    have h_gb_src : C.F (D.trans b.2.1 hbM) z = C.F h_iZ_M z :=
-      hF_proof_irrel (D.trans b.2.1 hbM) h_iZ_M z
-    let fa_M : C.F h_iZ_M z ⟶ C.F h_iX_M x :=
-      castHom rfl h_fa_tgt fa_M_raw
-    let gb_M : C.F h_iZ_M z ⟶ C.F h_iY_M y :=
-      castHom h_gb_src h_gb_tgt gb_M_raw
-    -- targets equal the transported stage objects
-    have h_fa_tgt_to_xk : C.F h_iX_M x = C.F h_k_M xk := by
+        C.F h_iY_M (xObj Y) = C.F (D.trans (hB_k X Y) h_k_M) (xObj Y) := rfl
+        _ = C.F h_k_M (C.F (hB_k X Y) (xObj Y)) := by rw [C.F_trans (hB_k X Y) h_k_M (xObj Y)]
+        _ = C.F h_k_M (bk X Y) := rfl
+    let p_pair : C.F h_iZ_M z ⟶ C.F h_k_M (ak X Y) := castHom rfl h_fa_to_ak fa_M
+    let q_pair : C.F h_iZ_M z ⟶ C.F h_k_M (bk X Y) := castHom rfl h_gb_to_bk gb_M
+    obtain ⟨r, hr_fst, hr_snd⟩ := hpres_pair h_k_M (ak X Y) (bk X Y) (C.F h_iZ_M z) p_pair q_pair
+    have h_prod_eq_M : C.F h_ip_M op0 = C.F h_k_M ((hp k0).prod (ak X Y) (bk X Y)) := by
       calc
-        C.F h_iX_M x = C.F (D.trans hXk h_k_M) x := rfl
-        _ = C.F h_k_M (C.F hXk x) := by rw [C.F_trans hXk h_k_M x]
-        _ = C.F h_k_M xk := rfl
-    have h_gb_tgt_to_yk : C.F h_iY_M y = C.F h_k_M yk := by
-      calc
-        C.F h_iY_M y = C.F (D.trans hYk h_k_M) y := rfl
-        _ = C.F h_k_M (C.F hYk y) := by rw [C.F_trans hYk h_k_M y]
-        _ = C.F h_k_M yk := rfl
-    let p_pair : C.F h_iZ_M z ⟶ C.F h_k_M xk := castHom rfl h_fa_tgt_to_xk fa_M
-    let q_pair : C.F h_iZ_M z ⟶ C.F h_k_M yk := castHom rfl h_gb_tgt_to_yk gb_M
-    -- apply preservation: the image of the product is a product
-    let hr := hpres_pair h_k_M xk yk (C.F h_iZ_M z) p_pair q_pair
-    let r := Classical.choose hr
-    have hr_spec : r ≫ (C.functF h_k_M).map (hp k).fst = p_pair ∧ r ≫ (C.functF h_k_M).map (hp k).snd = q_pair :=
-      Classical.choose_spec hr
-    have hr_fst : r ≫ (C.functF h_k_M).map (hp k).fst = p_pair := hr_spec.1
-    have hr_snd : r ≫ (C.functF h_k_M).map (hp k).snd = q_pair := hr_spec.2
-    -- transport the result to the product rep
-    have h_prod_eq_M : C.F h_ip_M op = C.F h_k_M ((hp k).prod xk yk) := by
-      calc
-        C.F h_ip_M op = C.F (D.trans h_ip_kp hkpM) op := rfl
-        _ = C.F hkpM (C.F h_ip_kp op) := by rw [C.F_trans h_ip_kp hkpM op]
-        _ = C.F hkpM (C.F h_k_kp ((hp k).prod xk yk)) := by rw [h_prod_eq]
-        _ = C.F (D.trans h_k_kp hkpM) ((hp k).prod xk yk) := by rw [C.F_trans h_k_kp hkpM ((hp k).prod xk yk)]
-        _ = C.F h_k_M ((hp k).prod xk yk) := rfl
-    let r' : C.F h_iZ_M z ⟶ C.F h_ip_M op := castHom rfl h_prod_eq_M.symm r
-    let ub_pair : UpperBound D iZ ip := ⟨M, h_iZ_M, h_ip_M⟩
-    exact homIncl C hC z op ub_pair r'
-  · -- fst_pair
-    intro Z X Y f g
+        C.F h_ip_M op0 = C.F (D.trans h_ip_kp0 hkpM) op0 := rfl
+        _ = C.F hkpM (C.F h_ip_kp0 op0) := by rw [C.F_trans h_ip_kp0 hkpM op0]
+        _ = C.F hkpM (C.F h_k_kp0 ((hp k0).prod (ak X Y) (bk X Y))) := by rw [h_prod_eq0]
+        _ = C.F (D.trans h_k_kp0 hkpM) ((hp k0).prod (ak X Y) (bk X Y)) := by
+          rw [C.F_trans h_k_kp0 hkpM ((hp k0).prod (ak X Y) (bk X Y))]
+        _ = C.F h_k_M ((hp k0).prod (ak X Y) (bk X Y)) := rfl
+    let r' : C.F h_iZ_M z ⟶ C.F h_ip_M op0 := castHom rfl h_prod_eq_M.symm r
+    let ub_pair : UpperBound D iZ ip0 := ⟨M, h_iZ_M, h_ip_M⟩
+    let h := homIncl C hC z op0 ub_pair r'
+    -- Define ub_fst and m_fst explicitly so we can work with them
+    let ub_fst : UpperBound D ip0 (iObj X) := ⟨kp0, h_ip_kp0, D.trans (hA_k X Y) h_k_kp0⟩
+    let m_fst : C.F h_ip_kp0 op0 ⟶ C.F (D.trans (hA_k X Y) h_k_kp0) (xObj X) :=
+      castHom h_prod_eq0.symm
+        (calc
+          C.F h_k_kp0 (ak X Y) = C.F h_k_kp0 (C.F (hA_k X Y) (xObj X)) := rfl
+          _ = C.F (D.trans (hA_k X Y) h_k_kp0) (xObj X) := by rw [C.F_trans (hA_k X Y) h_k_kp0 (xObj X)])
+        ((C.functF h_k_kp0).map ((hp k0).fst (A:=ak X Y) (B:=bk X Y)))
+    have h_fst_eq : fst (A:=X) (B:=Y) = homIncl C hC op0 (xObj X) ub_fst m_fst := rfl
+    have h_fst_ok : colimComp C hC h (fst (A:=X) (B:=Y)) = Quotient.mk (setoid (homSystem C hC z (xObj X))) ⟨af, fa⟩ := by
+      show homCompRaw C hC z op0 (xObj X) ub_pair r' ub_fst m_fst = homIncl C hC z (xObj X) af fa
+      refine homCompRaw_eq_of_stage C hC z op0 (xObj X) ub_pair r' ub_fst m_fst af fa M
+        (D.refl M) hkpM haM ?_
+      sorry
+    -- snd proof is symmetric
+    have h_snd_ok : colimComp C hC h (snd (A:=X) (B:=Y)) = Quotient.mk (setoid (homSystem C hC z (xObj Y))) ⟨ag, ga⟩ := by
+      sorry
+    exact ⟨h, h_fst_ok, h_snd_ok⟩
+  -- Define pair via Classical.choice on h_exists_pair
+  let pair {X A B : C.Obj} (f : colimHom C hC X A) (g : colimHom C hC X B) : colimHom C hC X (prodFun A B) :=
+    Classical.choose (h_exists_pair X A B f g)
+  have h_fst_pair : ∀ {Z X Y : C.Obj} (f : colimHom C hC Z X) (g : colimHom C hC Z Y),
+      colimComp C hC (pair f g) (fst (A:=X) (B:=Y)) = f := by
+    intro Z X Y f g; exact (Classical.choose_spec (h_exists_pair Z X Y f g)).1
+  have h_snd_pair : ∀ {Z X Y : C.Obj} (f : colimHom C hC Z X) (g : colimHom C hC Z Y),
+      colimComp C hC (pair f g) (snd (A:=X) (B:=Y)) = g := by
+    intro Z X Y f g; exact (Classical.choose_spec (h_exists_pair Z X Y f g)).2
+  have h_pair_uniq : ∀ {Z X Y : C.Obj} (f : colimHom C hC Z X) (g : colimHom C hC Z Y)
+      (h : colimHom C hC Z (prodFun X Y)),
+      colimComp C hC h (fst (A:=X) (B:=Y)) = f → colimComp C hC h (snd (A:=X) (B:=Y)) = g → h = pair f g := by
     sorry
-  · -- snd_pair
-    intro Z X Y f g
-    sorry
-  · -- pair_uniq
-    intro Z X Y f g h hfst hsnd
-    sorry
+  exact @HasBinaryProducts.mk C.Obj (colimitCat C hC) prodFun fst snd pair h_fst_pair h_snd_pair h_pair_uniq
