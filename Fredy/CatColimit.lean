@@ -228,6 +228,11 @@ noncomputable def colimHom (C : CatSystem ι D) (hC : C.Coherent) (p q : C.Obj) 
 noncomputable def colimId (C : CatSystem ι D) (hC : C.Coherent) (p : C.Obj) : colimHom C hC p p :=
   homClassId C hC (colimOut C p).2
 
+/-- C.F is proof-irrelevant in the ordering proof: two proofs of `D.le i j` give
+    the same object (since `D.le` is a `Prop`). -/
+theorem CatSystem.F_proof_irrel (C : CatSystem ι D) {i j : ι} (h h' : D.le i j) (a : C.A i) :
+    C.F h a = C.F h' a := by congr 1
+
 /-- Raw composition of germs: push representatives `f` (level `a`) and `g` (level
     `b`) to a common level `c`, compose in `A c`, and include.  The middle objects
     match (both `F·xq` over a proof `iq ≤ c`, identified by proof-irrelevance). -/
@@ -240,8 +245,14 @@ noncomputable def homCompRaw (C : CatSystem ι D) (hC : C.Coherent) {ip iq ir : 
   let hbc : D.le b.1 c := (Classical.choose_spec (D.bound a.1 b.1)).2
   let aC : UpperBound D ip iq := ⟨c, D.trans a.2.1 hac, D.trans a.2.2 hac⟩
   let bC : UpperBound D iq ir := ⟨c, D.trans b.2.1 hbc, D.trans b.2.2 hbc⟩
+  let f' : C.F aC.2.1 xp ⟶ C.F aC.2.2 xq := homTr C xp xq a aC hac f
+  let g' : C.F bC.2.1 xq ⟶ C.F bC.2.2 xr := homTr C xq xr b bC hbc g
+  -- The two homTr results have different intermediate C.F objects (aC.2.2 vs bC.2.1)
+  -- even though they are both D.le iq c.  Align via hF_proof_irrel:
+  let f'' : C.F aC.2.1 xp ⟶ C.F bC.2.1 xq :=
+    castHom rfl (by rw [Subsingleton.elim aC.2.2 bC.2.1]) f'
   homIncl C hC xp xr ⟨c, D.trans a.2.1 hac, D.trans b.2.2 hbc⟩
-    (homTr C xp xq a aC hac f ≫ homTr C xq xr b bC hbc g)
+    (f'' ≫ g')
 
 /-- Pushing a composite to a higher level = composing the pushed pieces.  The
     transition `F hcd` is a functor (`map_comp`), and transport distributes over

@@ -10,6 +10,7 @@ import Fredy.S1_18
 import Fredy.S1_31
 import Fredy.S1_34
 import Fredy.S1_41
+import Fredy.S1_43
 
 universe v u
 
@@ -57,6 +58,47 @@ def Idempotent {A : 𝒞} (e : A ⟶ A) : Prop := e ≫ e = e
 /-- SPLIT IDEMPOTENT (§1.281): there exist r: A→B, s: B→A with s≫r = id, r≫s = e. -/
 def SplitIdempotent {A : 𝒞} (e : A ⟶ A) : Prop :=
   Idempotent e ∧ ∃ (B : 𝒞) (r : A ⟶ B) (s : B ⟶ A), s ≫ r = Cat.id B ∧ r ≫ s = e
+
+/-- **§1.28**: Equalizer maps are monic.  Used in the idempotent-splitting proof. -/
+theorem eqMap_mono [HasEqualizers 𝒞] {A B : 𝒞} (f g : A ⟶ B) : Mono (eqMap f g) := by
+  intro X a b h
+  -- h: a ≫ eqMap f g = b ≫ eqMap f g
+  let k := a ≫ eqMap f g
+  have hk_eq : k ≫ f = k ≫ g := by
+    calc
+      k ≫ f = a ≫ (eqMap f g ≫ f) := Cat.assoc _ _ _
+      _ = a ≫ (eqMap f g ≫ g) := by rw [eqMap_eq f g]
+      _ = k ≫ g := (Cat.assoc _ _ _).symm
+  have ha : a = eqLift f g k hk_eq :=
+    (eqLift_uniq f g k hk_eq a rfl).symm
+  have hb : b = eqLift f g k hk_eq :=
+    (eqLift_uniq f g k hk_eq b (by dsimp [k]; rw [h])).symm
+  rw [ha, hb]
+
+/-- **§1.28 / §1.571**: In a category with equalizers, every idempotent splits
+    through the equalizer of (e, 1_A).  This is the construction used in §1.571:
+    the equalizer C → A of (1, e) gives the splitting of e, and the image of x
+    (with e·x = x) is constructed as a subobject of A. -/
+theorem idempotent_splits_via_equalizer [HasEqualizers 𝒞] {A : 𝒞} {e : A ⟶ A}
+    (h_idem : Idempotent e) : SplitIdempotent e := by
+  let one := Cat.id A
+  let B := eqObj e one
+  let m : B ⟶ A := eqMap e one       -- equalizer of (e, 1_A)
+  have hm_eq : e ≫ e = e ≫ one := by rw [Cat.comp_id, h_idem]
+  let r : A ⟶ B := eqLift e one e hm_eq    -- lift through the equalizer
+  have hr_fac : r ≫ m = e := eqLift_fac e one e hm_eq
+  have hm_mono : Mono m := eqMap_mono e one
+  have h_mr_eq_one : m ≫ r = Cat.id B := by
+    -- (m≫r)≫m = m≫(r≫m) = m≫e = m≫1 = 1_B≫m, cancel m
+    apply hm_mono (m ≫ r) (Cat.id B) ?_
+    calc
+      (m ≫ r) ≫ m = m ≫ (r ≫ m) := Cat.assoc _ _ _
+      _ = m ≫ e := by rw [hr_fac]
+      _ = m ≫ one := by
+        -- from the equalizer: eqMap ≫ e = eqMap ≫ 1
+        rw [eqMap_eq e one, Cat.comp_id]
+      _ = (Cat.id B) ≫ m := by rw [Cat.id_comp]
+  refine ⟨h_idem, B, r, m, h_mr_eq_one, hr_fac⟩
 
 /-- EXACT SEQUENCE (§1.599): sequence ... → A_{n-1} → A_n → A_{n+1} → ... where
     the image of each map is the kernel of the next. -/

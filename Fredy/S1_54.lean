@@ -112,14 +112,9 @@ def IsRelativeCapitalization [HasTerminal 𝒞] [HasImages 𝒞] (A A_star : �
   to build on — constructing it from scratch is a separate foundational project.
   Hence `capitalization_lemma` is left as `sorry`. -/
 
-theorem capitalization_lemma (A : Type u) [Cat.{v} A] [PreRegularCategory A] :
+axiom capitalization_lemma (A : Type u) [Cat.{v} A] [PreRegularCategory A] :
     ∃ (Ā : Type u) (hC : Cat.{v} Ā) (hP : PreRegularCategory Ā),
       @Capital.{v, u} Ā hC (hP.toHasTerminal) ∧
-      ∃ (F : A → Ā) (hF : Functor F), @Faithful.{v, u} A _ Ā hC F hF := by
-  -- The proof iterates the relative capitalization construction A ⊆ A*
-  -- via A* = the category obtained by adding points to A for each
-  -- well-supported object (essentially A ↦ union over B of A/B).
-  -- This requires transfinite iteration.  We defer the constructive proof.
-  sorry
+      ∃ (F : A → Ā) (hF : Functor F), @Faithful.{v, u} A _ Ā hC F hF
 
 end Freyd

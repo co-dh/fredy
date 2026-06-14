@@ -151,16 +151,25 @@ theorem union_comp_distrib {a b c : 𝒜} (S T : a ⟶ b) (R : b ⟶ c) :
 
 /-- 0° = 0 (§2.211). -/
 theorem recip_zero {a b : 𝒜} : (𝟘 : a ⟶ b)° = (𝟘 : b ⟶ a) := by
-  -- 0 is characterized by: 0 ≫ R = 0 and R ≫ 0 = 0 for all R.
-  -- Since ° is an anti-involution, 0° must also be a zero morphism.
-  -- By uniqueness of zero morphisms (they form an ideal), 0° = 0.
-  apply le_antisymm
-  · -- 0° ⊑ 0: since 0 ⊑ 0∪0° = ... actually 0 is the minimum element.
-    -- In a distributive allegory, 0 ⊑ R for all R.
-    -- Show: (𝟘 : a→b)° ⊑ (𝟘 : b→a). This follows because 0 is minimum.
-    sorry
-  · -- 0 ⊑ 0°: symmetric
-    sorry
+  -- Step 1: (0° ≫ 0_AA)° = 0_AB via recip_comp + comp_zero
+  have h_temp : ((𝟘 : a ⟶ b)° ≫ (𝟘 : a ⟶ a))° = (𝟘 : a ⟶ b) := by
+    calc
+      ((𝟘 : a ⟶ b)° ≫ (𝟘 : a ⟶ a))° = (𝟘 : a ⟶ a)° ≫ ((𝟘 : a ⟶ b)°)° := by rw [Allegory.recip_comp]
+      _ = (𝟘 : a ⟶ a)° ≫ (𝟘 : a ⟶ b) := by rw [Allegory.recip_recip]
+      _ = (𝟘 : a ⟶ b) := by
+        simpa using DistributiveAllegory.comp_zero (a := a) (b := a) (c := b) (R := (𝟘 : a ⟶ a)°)
+  -- Step 2: Apply reciprocation to both sides of h_temp: 0° ≫ 0_AA = 0°
+  have h_eq : (𝟘 : a ⟶ b)° ≫ (𝟘 : a ⟶ a) = (𝟘 : a ⟶ b)° := by
+    calc
+      (𝟘 : a ⟶ b)° ≫ (𝟘 : a ⟶ a) = (((𝟘 : a ⟶ b)° ≫ (𝟘 : a ⟶ a))°)° := by rw [Allegory.recip_recip]
+      _ = (𝟘 : a ⟶ b)° := by rw [h_temp]
+  -- Step 3: By comp_zero: 0° ≫ 0_AA = 0_BA
+  have h_comp : (𝟘 : a ⟶ b)° ≫ (𝟘 : a ⟶ a) = (𝟘 : b ⟶ a) :=
+    DistributiveAllegory.comp_zero (a := b) (b := a) (c := a) (R := (𝟘 : a ⟶ b)°)
+  -- Step 4: Combine h_eq and h_comp
+  calc
+    (𝟘 : a ⟶ b)° = (𝟘 : a ⟶ b)° ≫ (𝟘 : a ⟶ a) := by rw [h_eq]
+    _ = (𝟘 : b ⟶ a) := h_comp
 
 /-! ## §2.214  Coproducts in distributive allegories
 

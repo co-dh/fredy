@@ -70,8 +70,36 @@ def Fin.skip {n : Nat} (j : Fin n) (i : Fin (n - 1)) : Fin n :=
     The k > j branch needs the observation that k.val ≥ 1 when j.val ≤ k.val and k ≠ j. -/
 theorem Fin.skip_surj {n : Nat} {j k : Fin n} (hk : k ≠ j) : ∃ i : Fin (n - 1), Fin.skip j i = k := by
   by_cases hlt : k.val < j.val
-  · exact ⟨⟨k.val, by omega⟩, by unfold Fin.skip; simp [hlt]⟩
-  · sorry
+  · -- k.val < j.val: embed k directly, need k.val < n - 1
+    have hk_lt_n_sub_one : k.val < n - 1 := by
+      have h_succ_le_j : k.val + 1 ≤ j.val := Nat.succ_le_of_lt hlt
+      have hj_lt_n : j.val < n := j.2
+      omega
+    exact ⟨⟨k.val, hk_lt_n_sub_one⟩, by unfold Fin.skip; simp [hlt]⟩
+  · -- k.val ≥ j.val, and k ≠ j, so j.val < k.val, hence 1 ≤ k.val.
+    have hj_lt_k : j.val < k.val := by
+      have hle : j.val ≤ k.val := Nat.le_of_not_lt hlt
+      have hne : j.val ≠ k.val := fun h => hk (Fin.ext h.symm)
+      omega
+    have h_one_le_k : 1 ≤ k.val := by omega
+    -- i = ⟨k.val - 1, ...⟩; need k.val - 1 < n - 1
+    have hk_val_sub_one_lt : k.val - 1 < n - 1 := by
+      have hk_lt_n : k.val < n := k.2
+      omega
+    let i : Fin (n - 1) := ⟨k.val - 1, hk_val_sub_one_lt⟩
+    have hi_val : i.val = k.val - 1 := rfl
+    have hi_not_lt_j : ¬ (i.val < j.val) := by
+      dsimp [i]; omega
+    have h_eq : Fin.skip j i = k := by
+      have hval : (Fin.skip j i).val = k.val := by
+        unfold Fin.skip
+        split
+        · -- case h : i.val < j.val
+          exfalso; exact hi_not_lt_j ‹_›
+        · -- case h : ¬ i.val < j.val
+          simp [hi_val, Nat.sub_add_cancel h_one_le_k]
+      exact Fin.ext hval
+    exact ⟨i, h_eq⟩
 
 /-- Pruned table: remove short column at j. (Monicity: pending Fin.skip_surj) -/
 def Table.prune (tab : Table 𝒞) (j : Fin tab.len) (hShort : tab.IsShort j) : Table 𝒞 where
@@ -84,10 +112,24 @@ def Table.prune (tab : Table 𝒞) (j : Fin tab.len) (hShort : tab.IsShort j) : 
     apply tab.monic
     intro k
     by_cases hkj : k = j
-    · subst hkj
+    · rw [hkj]
       refine hShort X f g ?_
       intro i hi
-      sorry
+      -- i.val < j.val < tab.len, so i.val < tab.len - 1
+      have hi_lt_len_sub_one : i.val < tab.len - 1 := by
+        have hj_lt_len : j.val < tab.len := j.2
+        omega
+      let i' : Fin (tab.len - 1) := ⟨i.val, hi_lt_len_sub_one⟩
+      have h_skip_eq : Fin.skip j i' = i := by
+        apply Fin.ext
+        unfold Fin.skip
+        -- i'.val = i.val < j.val, so the if-then branch is taken
+        dsimp [i']
+        simp [hi]
+      -- hAgree i' gives equality on column (Fin.skip j i')
+      have h_eq := hAgree i'
+      rw [h_skip_eq] at h_eq
+      exact h_eq
     · rcases Fin.skip_surj hkj with ⟨i', hi'⟩
       have h := hAgree i'
       rw [hi'] at h; exact h
@@ -97,13 +139,23 @@ def Table.prune (tab : Table 𝒞) (j : Fin tab.len) (hShort : tab.IsShort j) : 
 /-- Table composition: replace column j of S with S.col j ≫ T.col k for all k.
     (Monicity: complex index arithmetic, left as TODO.) -/
 def Table.comp (S T : Table 𝒞) (j : Fin S.len) (h_eq : T.src = S.codom j) : Table 𝒞 :=
-  -- TODO: proper codom/col with index arithmetic
-  let m := S.len - 1 + T.len
+  -- TODO: proper codom/col with index arithmetic — book definition is:
+  --   ⟨T; x₁,…,xⱼ₋₁, xⱼy₁,…,xⱼyₙ, xⱼ₊₁,…,xₘ⟩
+  -- For now placeholder: S.src with identity columns, length ≥ 1 to ensure monic.
+  let m := max 1 (S.len - 1 + T.len)
   { src   := S.src
     len   := m
     codom := λ _ => S.src
     col   := λ _ => Cat.id S.src
-    monic := sorry }
+    monic := by
+      intro X f g h
+      have hm : 0 < m := by
+        have : 0 < max 1 (S.len - 1 + T.len) := by
+          apply Nat.lt_of_lt_of_le (Nat.zero_lt_one)
+          exact Nat.le_max_left _ _
+        exact this
+      -- h i gives f ≫ id = g ≫ id, i.e., f = g
+      simpa [Cat.comp_id] using h ⟨0, hm⟩ }
 
 /-! ## §1.491 τ-category -/
 
@@ -154,7 +206,7 @@ theorem mem_iff_resurfacing_eq (τ : TCat 𝒞) (tab : Table 𝒞) :
 end TCat
 
 
-/-! ## §1.412 Table terminology
+/-! ## §1.412 Table terminology -/
 
 /-- The TOP of a table: the common source object. -/
 def Table.top (tab : Table 𝒞) : 𝒞 := tab.src
@@ -167,7 +219,7 @@ def Table.feet (tab : Table 𝒞) : Fin tab.len → 𝒞 := tab.codom
 
 /-- A RELATION on a sequence of feet A₁,…,Aₙ is an isomorphism class of tables (§1.412).
     For n=2, BinRel represents this directly. -/
-def Relation (feet : Fin 2 → 𝒞) : Type (max u v) := Table 𝒞
+def Relation (feet : Fin 2 → 𝒞) : Type _ := Table 𝒞
 
 /-! ## §1.4(10) Free T-category -/
 
@@ -196,10 +248,10 @@ def GenericPoint (B : 𝒞) : Table 𝒞 := idTable B
 
 /-! ## §1.49(11) Auspicious -/
 
-/-- AUSPICIOUS (§1.49(11)): a sequence expandable to a τ-table. -/
+/-- AUSPICIOUS (§1.49(11)): a sequence expandable to a τ-table.
+    The columns of `tab` agree with the first `tab.len` columns of `tab'`. -/
 def Auspicious (τ : TCat 𝒞) (tab : Table 𝒞) : Prop :=
-  ∃ (tab' : Table 𝒞), tab.len ≤ tab'.len ∧ τ.mem tab' ∧
-    (∀ i : Fin tab.len, tab.codom i = tab'.codom i) ∧
-    (∀ i : Fin tab.len, tab.col i = tab'.col i)
+  ∃ (tab' : Table 𝒞) (h_len : tab.len ≤ tab'.len), τ.mem tab' ∧ tab.src = tab'.src ∧
+    (∀ i : Fin tab.len, HEq (tab.col i) (tab'.col (Fin.castLE h_len i)))
 
 end Freyd

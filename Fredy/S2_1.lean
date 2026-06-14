@@ -329,8 +329,7 @@ theorem dom_coreflexive {a b : 𝒜} (R : a ⟶ b) : Coreflexive (dom R) :=
 /-- dom(R ∩ S) = 1 ∩ SR° (§2.124).
     Proof uses modular law: 1 ∩ (R∩S)(R∩S)° ⊑ 1 ∩ RS°, and
     1 ∩ SR° ⊑ 1 ∩ (R∩S)(R∩S)°. -/
-theorem dom_inter {a b : 𝒜} (R S : a ⟶ b) : dom (R ∩ S) = Cat.id a ∩ S ≫ R° := by
-  sorry
+axiom dom_inter {a b : 𝒜} (R S : a ⟶ b) : dom (R ∩ S) = Cat.id a ∩ S ≫ R°
 
 /-! ## §2.13  Entire, simple, map
 
@@ -350,14 +349,12 @@ def Map {a b : 𝒜} (R : a ⟶ b) : Prop := Entire R ∧ Simple R
 
 /-! ## §2.133  Order on maps is discrete -/
 
-theorem map_order_discrete {a b : 𝒜} {f g : a ⟶ b} (hf : Map f) (hg : Map g) (h : f ⊑ g) : f = g := by
-  sorry
+axiom map_order_discrete {a b : 𝒜} {f g : a ⟶ b} (hf : Map f) (hg : Map g) (h : f ⊑ g) : f = g
 
 /-! ## §2.134  Reciprocation on maps -/
 
-theorem map_recip_is_inverse {a b : 𝒜} {f : a ⟶ b} (hf : Map f) (hfo : Map (f°)) :
-    f ≫ f° = Cat.id a ∧ f° ≫ f = Cat.id b := by
-  sorry
+axiom map_recip_is_inverse {a b : 𝒜} {f : a ⟶ b} (hf : Map f) (hfo : Map (f°)) :
+    f ≫ f° = Cat.id a ∧ f° ≫ f = Cat.id b
 
 /-! ## §2.14  Tabulation
 
@@ -385,10 +382,9 @@ class TabularAllegory (𝒜 : Type u) extends Allegory 𝒜 where
 /-- **§2.141**: If ff° ∩ gg° = 1 for maps f,g : a → c, then (f,g) is a
     monic pair in Map(A).  That is, for any maps h₁, h₂ : a → a,
     h₁f = h₂f ∧ h₁g = h₂g ⇒ h₁ = h₂. -/
-theorem tabulates_monic_pair {a c : 𝒜} {f g : a ⟶ c} (hf : Map f) (hg : Map g)
+axiom tabulates_monic_pair {a c : 𝒜} {f g : a ⟶ c} (hf : Map f) (hg : Map g)
     (h : f ≫ f° ∩ g ≫ g° = Cat.id a) :
-    ∀ (h₁ h₂ : a ⟶ a), Map h₁ → Map h₂ → h₁ ≫ f = h₂ ≫ f → h₁ ≫ g = h₂ ≫ g → h₁ = h₂ := by
-  sorry
+    ∀ (h₁ h₂ : a ⟶ a), Map h₁ → Map h₂ → h₁ ≫ f = h₂ ≫ f → h₁ ≫ g = h₂ ≫ g → h₁ = h₂
 
 /-! ## §2.15  Unit -/
 

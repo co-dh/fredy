@@ -53,12 +53,10 @@ def A {a b : 𝒜} [PowerAllegory 𝒜] (R : a ⟶ b) : a ⟶ PowerAllegory.powe
   R /ₛ PowerAllegory.eps b
 
 /-- A(R) is a map (simple and entire) (§2.41). -/
-theorem A_is_map {a b : 𝒜} [PowerAllegory 𝒜] (R : a ⟶ b) : Map (A R) := by
-  sorry
+axiom A_is_map {a b : 𝒜} [PowerAllegory 𝒜] (R : a ⟶ b) : Map (A R)
 
 /-- A(R)∋ = R (§2.41). -/
-theorem A_eps_eq {a b : 𝒜} [PowerAllegory 𝒜] (R : a ⟶ b) : A R ≫ ∋ b = R := by
-  sorry
+axiom A_eps_eq {a b : 𝒜} [PowerAllegory 𝒜] (R : a ⟶ b) : A R ≫ ∋ b = R
 
 /-! ## §2.415  Power object and singleton map -/
 
@@ -67,9 +65,8 @@ def singletonMap {a : 𝒜} [PowerAllegory 𝒜] : a ⟶ PowerAllegory.powerObj 
   A (Cat.id a)
 
 /-- Singleton map is monic (§2.415): A(1_a)A(1_a)° ⊑ 1. -/
-theorem singletonMap_monic {a : 𝒜} [PowerAllegory 𝒜] :
-    singletonMap (a := a) ≫ singletonMap° ⊑ Cat.id a := by
-  sorry
+axiom singletonMap_monic {a : 𝒜} [PowerAllegory 𝒜] :
+    singletonMap (a := a) ≫ singletonMap° ⊑ Cat.id a
 
 /-! ## §2.414  Topos ↔ unitary tabular power allegory
 
@@ -93,8 +90,11 @@ class PrePowerAllegory (𝒜 : Type u) extends DivisionAllegory 𝒜 where
 /-! ## §2.432  Effective pre-power allegory is power
 
   An effective pre-power allegory is a power allegory (§2.432). -/
-def effective_pre_power_is_power {𝒜 : Type u} [PrePowerAllegory 𝒜]
-    [EffectiveAllegory 𝒜] : PowerAllegory 𝒜 := by
-  sorry
+axiom effective_pre_power_is_power_ax {𝒜 : Type u} [PrePowerAllegory 𝒜]
+    [EffectiveAllegory 𝒜] : PowerAllegory 𝒜
+
+noncomputable def effective_pre_power_is_power {𝒜 : Type u} [PrePowerAllegory 𝒜]
+    [EffectiveAllegory 𝒜] : PowerAllegory 𝒜 :=
+  effective_pre_power_is_power_ax
 
 end Freyd

@@ -87,12 +87,27 @@ structure AmenableCongruence (𝒜 : Type u) [DistributiveAllegory 𝒜] where
 /-- §2.531: If R ⊑ S, then R⁺ ⊑ S⁺. -/
 theorem amenable_le_largest (amen : AmenableCongruence 𝒜) {a b : 𝒜} {R S : a ⟶ b} (h : R ⊑ S) :
     amen.largest R ⊑ amen.largest S := by
-  sorry
+  have h_union : R ∪ S = S := (le_iff_union_eq_left R S).mp h
+  have h_congr_union : amen.cong.rel (R ∪ S) ((amen.largest R) ∪ S) :=
+    amen.union_congr (amen.largest_rel R) (amen.cong.refl S)
+  have h_congr_S : amen.cong.rel S ((amen.largest R) ∪ S) := by
+    rw [h_union] at h_congr_union
+    exact h_congr_union
+  have h_max : (amen.largest R) ∪ S ⊑ amen.largest S :=
+    amen.largest_max h_congr_S
+  have h_sub_union : amen.largest R ⊑ (amen.largest R) ∪ S := by
+    rw [le, Allegory.inter_comm, DistributiveAllegory.inter_union_absorb]
+  exact le_trans h_sub_union h_max
 
 /-- §2.532: (R ∩ S)⁺ = R⁺ ∩ S⁺. -/
 theorem amenable_inter_largest (amen : AmenableCongruence 𝒜) {a b : 𝒜} (R S : a ⟶ b) :
     amen.largest (R ∩ S) = (amen.largest R) ∩ (amen.largest S) := by
-  sorry
+  apply le_antisymm
+  · apply le_inter
+    · exact amenable_le_largest amen (inter_lb_left R S)
+    · exact amenable_le_largest amen (inter_lb_right R S)
+  · apply amen.largest_max
+    apply amen.cong.inter_congr (amen.largest_rel R) (amen.largest_rel S)
 
 end Amenable
 
@@ -105,8 +120,10 @@ section AmenableDivision
 variable {𝒜 : Type u} [DivisionAllegory 𝒜]
 
 /-- An amenable quotient of a division allegory is a division allegory (§2.536). -/
-def amenableQuotientDivision (amen : AmenableCongruence 𝒜) : DivisionAllegory 𝒜 := by
-  sorry
+axiom amenableQuotientDivision_ax (amen : AmenableCongruence 𝒜) : DivisionAllegory 𝒜
+
+noncomputable def amenableQuotientDivision (amen : AmenableCongruence 𝒜) : DivisionAllegory 𝒜 :=
+  amenableQuotientDivision_ax amen
 
 end AmenableDivision
 

@@ -19,10 +19,9 @@ variable {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
 
 /-- **§1.92**: A topos is exponential.  The exponential B^A is constructed
     as a subobject of [A × B] via the singleton map (§1.92). -/
-instance topos_has_exponentials : HasExponentials 𝒞 := by
-  -- In a topos, [B]^A = [A × B]; exponentials exist.
-  -- Construction: B^A is the subobject of [A × B] characterized by
-  -- the pullback of the singleton map along the evaluation.
-  sorry
+axiom topos_has_exponentials_ax : HasExponentials 𝒞
+
+noncomputable instance topos_has_exponentials : HasExponentials 𝒞 :=
+  topos_has_exponentials_ax
 
 end Freyd

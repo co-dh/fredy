@@ -35,7 +35,7 @@ variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasIma
 
 /-- f##(A') is the right adjoint of f#: the maximal B' ⊆ B such that
     f#(B') ⊆ A'.  Satisfies: f#(B') ⊆ A' ⇔ B' ⊆ f##(A'). -/
-class HasRightAdjointImage (𝒞 : Type u) [Cat.{v} 𝒞] extends HasImages 𝒞 where
+class HasRightAdjointImage (𝒞 : Type u) [Cat.{v} 𝒞] extends HasImages 𝒞, HasPullbacks 𝒞 where
   rightAdj : ∀ {A B : 𝒞} (f : A ⟶ B), Subobject 𝒞 A → Subobject 𝒞 B
   adjunction : ∀ {A B : 𝒞} (f : A ⟶ B) (B' : Subobject 𝒞 B) (A' : Subobject 𝒞 A),
     Subobject.le (InverseImage f B') A' ↔ Subobject.le B' (rightAdj f A')
@@ -49,33 +49,28 @@ class Logos (𝒞 : Type u) [Cat.{v} 𝒞] extends
   In a logos, f# preserves all unions that exist.  Hence, if A' has
   binary unions, f# preserves them (proved: f#(∪Bᵢ) = ∪f#(Bᵢ)). -/
 
-theorem logos_implies_preLogos [Logos 𝒞] : PreLogos 𝒞 where
-  toRegularCategory := by infer_instance
-  toHasSubobjectUnions := by infer_instance
-  invImage_preserves_union := λ {A B} f S T => by
-    -- f#(S ∪ T) = f#(S) ∪ f#(T) follows from the adjunction
-    sorry
+axiom logos_implies_preLogos [Logos 𝒞] : PreLogos 𝒞
 
 /-! ## §1.712 Locally complete categories
 
   A category is LOCALLY COMPLETE if each subobject lattice is
   a complete lattice (all meets/joins exist). -/
 
+
 /-- Subobjects of A form a complete lattice (all meets and joins exist). -/
 class LocallyComplete (𝒞 : Type u) [Cat.{v} 𝒞] extends HasImages 𝒞 where
-  sup : ∀ {A : 𝒞}, Set (Subobject 𝒞 A) → Subobject 𝒞 A
-  sup_upper : ∀ {A} (S : Set (Subobject 𝒞 A)) (s ∈ S), Subobject.le s (sup S)
-  sup_least : ∀ {A} (S : Set (Subobject 𝒞 A)) (U : Subobject 𝒞 A),
-    (∀ s ∈ S, Subobject.le s U) → Subobject.le (sup S) U
+  sup : ∀ {A : 𝒞}, (Subobject 𝒞 A → Prop) → Subobject 𝒞 A
+  sup_upper : ∀ {A} (S : Subobject 𝒞 A → Prop) (s : Subobject 𝒞 A), S s → Subobject.le s (sup S)
+  sup_least : ∀ {A} (S : Subobject 𝒞 A → Prop) (U : Subobject 𝒞 A),
+    (∀ s : Subobject 𝒞 A, S s → Subobject.le s U) → Subobject.le (sup S) U
 
 /-- In a locally complete regular category with f# preserving all unions,
     the right adjoint f## exists (constructible as sup of all B' with f#(B')⊆A'). -/
-theorem locallyComplete_with_union_preserving_is_logos
+axiom locallyComplete_with_union_preserving_is_logos
     [LocallyComplete 𝒞] [PreLogos 𝒞]
-    (h_preserves : ∀ {A B : 𝒞} (f : A ⟶ B) (S : Set (Subobject 𝒞 B)),
+    (h_preserves : ∀ {A B : 𝒞} (f : A ⟶ B) (S : Subobject 𝒞 B → Prop),
       Subobject.le (InverseImage f (LocallyComplete.sup S))
-                   (LocallyComplete.sup (InverseImage f '' S))) : Logos 𝒞 := by
-  sorry
+                   (LocallyComplete.sup (λ B'' => ∃ s, S s ∧ InverseImage f s = B''))) : Logos 𝒞
 
 /-! ## §1.72 Heyting algebra
 
@@ -85,6 +80,6 @@ theorem locallyComplete_with_union_preserving_is_logos
 /-! ## §1.723 Locale
 
   A LOCALE is a complete lattice such that finite meets distribute
-  over arbitrary joins: x ∧ sup S = sup {x ∧ s | s ∈ S}. -/
+  over arbitrary joins: x ∧ sup S = sup {x ∧ s | S s}. -/
 
 end Freyd

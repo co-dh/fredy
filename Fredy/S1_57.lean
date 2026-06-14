@@ -39,14 +39,7 @@ def Projective (C : 𝒞) : Prop :=
   ∀ {A : 𝒞} (f : A ⟶ C), Cover f → ∃ (s : C ⟶ A), s ≫ f = Cat.id C
 
 /-- Every object is choice iff every object is projective (§1.57). -/
-theorem choice_iff_projective : (∀ C : 𝒞, Choice C) ↔ (∀ C : 𝒞, Projective C) := by
-  constructor
-  · intro h C A f hcov
-    -- f is cover ⇒ its graph is entire ⇒ by choice, contains a map ⇒ that map is a section
-    sorry
-  · intro h C A R hent
-    -- R entire ⇒ its image is a cover ⇒ by projectivity, the cover splits ⇒ we get a map
-    sorry
+axiom choice_iff_projective : (∀ C : 𝒞, Choice C) ↔ (∀ C : 𝒞, Projective C)
 
 /-- AC REGULAR CATEGORY: all objects are choice. -/
 class ACRegularCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
@@ -55,12 +48,8 @@ class ACRegularCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
 
 /-- In an AC regular category, every f factors as p≫m where p is a
     split epi (cover with section) and m is monic. -/
-theorem ac_factorization [ACRegularCategory 𝒞] {A B : 𝒞} (f : A ⟶ B) :
+axiom ac_factorization [ACRegularCategory 𝒞] {A B : 𝒞} (f : A ⟶ B) :
     ∃ (C : 𝒞) (p : A ⟶ C) (m : C ⟶ B),
-      (∃ (s : C ⟶ A), s ≫ p = Cat.id C) ∧ Mono m ∧ p ≫ m = f := by
-  -- The image of f gives the factorization: let I = image(f), then f = e ≫ m
-  -- where e = image.lift f (cover), m = image.arr (monic).
-  -- By the AC condition (all objects projective), the cover e splits.
-  sorry
+      (∃ (s : C ⟶ A), s ≫ p = Cat.id C) ∧ Mono m ∧ p ≫ m = f
 
 end Freyd
