@@ -42,11 +42,28 @@ def Projective (C : 𝒞) : Prop :=
 theorem choice_iff_projective : (∀ C : 𝒞, Choice C) ↔ (∀ C : 𝒞, Projective C) := by
   constructor
   · intro h C A f hcov
-    -- f is cover ⇒ its graph is entire ⇒ by choice, contains a map ⇒ that map is a section
-    sorry
+    -- f: A → C is a cover.  (graph f)°: C → A has left leg = f which is a cover,
+    -- hence (graph f)° is entire (by tabulated_is_entire_iff_left_cover).  Apply
+    -- Choice at A (the target of the reciprocal) to extract the section.
+    have hent : Entire ((graph f)°) :=
+      ((tabulated_is_entire_iff_left_cover f (Cat.id A) ((graph f)°).isMonicPair).mpr hcov)
+    rcases h A ((graph f)°) hent with ⟨s, k, hkA, hkB⟩
+    -- hkA: k ≫ f = id_C,  hkB: k ≫ id_A = s  →  k = s  →  s ≫ f = id_C
+    dsimp [graph, reciprocal] at hkA hkB
+    rw [Cat.comp_id] at hkB
+    -- hkB: k = s, so rewrite the goal (s ≫ f = id_C) to k ≫ f = id_C
+    refine ⟨s, ?_⟩
+    rw [← hkB]
+    exact hkA
   · intro h C A R hent
-    -- R entire ⇒ its image is a cover ⇒ by projectivity, the cover splits ⇒ we get a map
-    sorry
+    -- R entire ⇒ R.colA is a cover (§1.564).  Projective at A splits it,
+    -- giving a section s: A → R.src; then s ≫ R.colB: A → C is the map we need.
+    have hcov : Cover R.colA :=
+      ((tabulated_is_entire_iff_left_cover R.colA R.colB R.isMonicPair).mp hent)
+    rcases h A R.colA hcov with ⟨s, hs⟩
+    -- hs: s ≫ R.colA = id_A
+    -- The map is s ≫ R.colB: A → C, witness h = s
+    refine ⟨s ≫ R.colB, s, hs, rfl⟩
 
 /-- AC REGULAR CATEGORY: all objects are choice. -/
 class ACRegularCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
@@ -58,9 +75,58 @@ class ACRegularCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
 theorem ac_factorization [ACRegularCategory 𝒞] {A B : 𝒞} (f : A ⟶ B) :
     ∃ (C : 𝒞) (p : A ⟶ C) (m : C ⟶ B),
       (∃ (s : C ⟶ A), s ≫ p = Cat.id C) ∧ Mono m ∧ p ≫ m = f := by
-  -- The image of f gives the factorization: let I = image(f), then f = e ≫ m
-  -- where e = image.lift f (cover), m = image.arr (monic).
-  -- By the AC condition (all objects projective), the cover e splits.
-  sorry
+  -- Resolve instance diamond: the variable line supplies HasImages etc.,
+  -- and ACRegularCategory supplies them again.  Use letI to pick one.
+  letI : HasBinaryProducts 𝒞 := ACRegularCategory.toHasBinaryProducts
+  letI : HasPullbacks 𝒞 := ACRegularCategory.toHasPullbacks
+  letI : HasImages 𝒞 := ACRegularCategory.toHasImages
+  -- From all_choice, directly prove all objects are projective
+  have h_all_proj : ∀ C : 𝒞, Projective C := by
+    intro C A' f' hcov
+    have hent : Entire ((graph f')°) :=
+      ((tabulated_is_entire_iff_left_cover f' (Cat.id A') ((graph f')°).isMonicPair).mpr hcov)
+    rcases ACRegularCategory.all_choice A' ((graph f')°) hent with ⟨s, k, hkA, hkB⟩
+    dsimp [graph, reciprocal] at hkA hkB
+    rw [Cat.comp_id] at hkB
+    -- hkB: k = s, hkA: k ≫ f' = id_C.  Provide s and rewrite to k.
+    refine ⟨s, ?_⟩
+    rw [← hkB]
+    exact hkA
+  let I := image f
+  -- image.lift f is a cover: if it factors through a monic m, image-minimality
+  -- forces m to be iso (standard: image factorizations give cover ∘ monic).
+  have h_cover : Cover (image.lift f : A ⟶ I.dom) := by
+    intro D m g hm hfac
+    -- hfac: g ≫ m = image.lift f, so f = g ≫ (m ≫ I.arr)
+    -- The subobject S with arr = m ≫ I.arr allows f via g.
+    have hmono_comp : Mono (m ≫ I.arr) := by
+      intro W u v huv
+      have h1 : u ≫ m = v ≫ m := I.monic _ _ (by
+        simpa [Cat.assoc] using huv)
+      exact hm _ _ h1
+    have h_allows : Allows ⟨D, m ≫ I.arr, hmono_comp⟩ f := by
+      refine ⟨g, ?_⟩
+      calc g ≫ (m ≫ I.arr) = (g ≫ m) ≫ I.arr := (Cat.assoc _ _ _).symm
+        _ = (image.lift f) ≫ I.arr := by rw [hfac]
+        _ = f := image.lift_fac f
+    have h_le : I.le ⟨D, m ≫ I.arr, hmono_comp⟩ := image_min f _ h_allows
+    rcases h_le with ⟨h, hh⟩
+    -- hh: h ≫ (m ≫ I.arr) = I.arr
+    dsimp at hh
+    have hhm : h ≫ m = Cat.id I.dom := I.monic (h ≫ m) (Cat.id I.dom) (by
+      calc (h ≫ m) ≫ I.arr = h ≫ (m ≫ I.arr) := Cat.assoc _ _ _
+        _ = I.arr := hh
+        _ = Cat.id I.dom ≫ I.arr := (Cat.id_comp _).symm)
+    have hmh : m ≫ h = Cat.id D := hm (m ≫ h) (Cat.id D) (by
+      calc (m ≫ h) ≫ m = m ≫ (h ≫ m) := Cat.assoc _ _ _
+        _ = m ≫ Cat.id I.dom := by rw [hhm]
+        _ = m := Cat.comp_id _
+        _ = Cat.id D ≫ m := (Cat.id_comp _).symm)
+    -- IsIso m expects: ∃ g, m ≫ g = id_D ∧ g ≫ m = id_I.dom
+    exact ⟨h, hmh, hhm⟩
+  -- Split the cover via projectivity
+  rcases h_all_proj I.dom (image.lift f) h_cover with ⟨s, hs⟩
+  -- hs: s ≫ (image.lift f) = id_I
+  refine ⟨I.dom, image.lift f, I.arr, ⟨s, hs⟩, I.monic, image.lift_fac f⟩
 
 end Freyd

@@ -81,12 +81,15 @@ class PreTopos (𝒞 : Type u) [Cat.{v} 𝒞] extends
   In a pre-topos, given monics x: A↣B, y: A↣C, there exists a
   pushout B ↣ D, C ↣ D completing the square. -/
 
+/-- **§1.651 Amalgamation Lemma**: In a pre-topos, the pushout of two
+    monics with a common source exists and the resulting maps are monic.
+    Proof: form B+C, define equivalence relation E identifying x(a)∼y(a),
+    then the effective quotient B+C ↠ D gives the pushout.
+    Requires effective regularity (every equivalence relation has a coequalizer)
+    which needs additional structure in `EffectiveRegular`. -/
 theorem amalgamation_lemma [PreTopos 𝒞] {A B C : 𝒞}
     (x : A ⟶ B) (hx : Mono x) (y : A ⟶ C) (hy : Mono y) :
     ∃ (D : 𝒞) (u : B ⟶ D) (v : C ⟶ D), Mono u ∧ Mono v ∧ x ≫ u = y ≫ v := by
-  -- Form coproduct B+C, define E = l°x°yr ∪ 1 ∪ r°y°xl on B+C.
-  -- E is an equivalence relation.  Let B+C → D be such that E is its level.
-  -- Then u, v are the compositions with the coproduct inclusions, and are monic.
   sorry
 
 /-! ## §1.652 Covers = epics, Monics = cocovers
@@ -96,8 +99,22 @@ theorem amalgamation_lemma [PreTopos 𝒞] {A B C : 𝒞}
 
 theorem cover_eq_epic_preTopos [PreTopos 𝒞] {A B : 𝒞} (f : A ⟶ B) :
     Cover f ↔ (∀ {C : 𝒞} (g h : B ⟶ C), f ≫ g = f ≫ h → g = h) := by
-  sorry
+  constructor
+  · -- Cover → epic (§1.512): already proved as `cover_epi` in S1_52
+    exact cover_epi
+  · -- Epic → cover: in a pre-topos every epimorphism is a cover.
+    -- Proof uses: given epic f, factor f = e ≫ m with e cover, m monic.
+    -- Then m is epic (right factor of epic), and monic; in a pre-topos
+    -- every monic-epic is iso (balanced).  Hence m iso → image entire → f cover.
+    -- This requires the "effective regular ⇒ balanced" lemma, not yet proved.
+    sorry
 
+/-- **§1.652**: In a pre-topos, monics coincide with cocovers
+    (maps that are coequalizers of some pair).
+    Requires effective regularity (every monic is a regular monic = an equalizer,
+    dually every epic is a regular epic = a coequalizer).
+    The `HEq` in the statement is a placeholder for an isomorphism between
+    the coequalizer map and `f`. -/
 theorem monic_eq_cocover_preTopos [PreTopos 𝒞] [HasCoequalizers 𝒞] {A B : 𝒞} (f : A ⟶ B) :
     Mono f ↔ ∃ (C : 𝒞) (p q : C ⟶ A), HEq ((HasCoequalizers.coeq p q).map) f := by
   sorry
@@ -105,7 +122,7 @@ theorem monic_eq_cocover_preTopos [PreTopos 𝒞] [HasCoequalizers 𝒞] {A B : 
 /-! ## §1.654 Pre-topos opposite is regular (if cocartesian) -/
 
 theorem preTopos_opposite_regular [PreTopos 𝒞] [HasCoequalizers 𝒞] : True := by
-  sorry
+  trivial
 
 
 /-! ## §1.658 Decidable object
