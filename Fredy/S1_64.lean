@@ -22,6 +22,7 @@ import Fredy.S1_51
 import Fredy.S1_52
 import Fredy.S1_56
 import Fredy.S1_58
+import Fredy.S1_59
 import Fredy.S1_60
 import Fredy.S1_62
 
@@ -40,11 +41,14 @@ namespace Freyd
 
 variable [PreLogos 𝒞]
 
-/-- A₁ is COMPLEMENTED if there's A₂ with A₁∩A₂=0 and A₁∪A₂=A. -/
+/-- A₁ is COMPLEMENTED if there's A₂ with A₁∩A₂=0 and A₁∪A₂=A.
+    (Placeholder: intersection not yet defined.) -/
 def IsComplemented {A : 𝒞} (A₁ : Subobject 𝒞 A) : Prop :=
   ∃ (A₂ : Subobject 𝒞 A),
-    Subobject.le A₁ A₂ → False  -- placeholder for "A₁∩A₂ is minimal"
-    ∧ Subobject.le (HasSubobjectUnions.union A₁ A₂) (Subobject.entire A)
+    (∀ (S : Subobject 𝒞 A), Subobject.le S A₁ → Subobject.le S A₂ → False)
+    -- A₁∩A₂ is minimal (no non-trivial common subobject)
+    ∧ Subobject.le (Subobject.entire A) (HasSubobjectUnions.union A₁ A₂)
+    -- A₁∪A₂ = A (entire)
 
 /-! ## §1.64 Boolean pre-logos
 
@@ -52,7 +56,7 @@ def IsComplemented {A : 𝒞} (A₁ : Subobject 𝒞 A) : Prop :=
   is Boolean (every subobject has a complement). -/
 
 class BooleanPreLogos (𝒞 : Type u) [Cat.{v} 𝒞] extends PreLogos 𝒞 where
-  hasComplement : ∀ {A B : 𝒞} (m : A ⟶ B), Mono m → ∃ (m' : 𝒞 ⟶ B), Mono m'
+  hasComplement : ∀ {A : 𝒞} (S : Subobject 𝒞 A), IsComplemented S
 
 /-! ## §1.645 𝒦𝓮𝓇(T) — values killed by a representation
 
@@ -61,8 +65,8 @@ class BooleanPreLogos (𝒞 : Type u) [Cat.{v} 𝒞] extends PreLogos 𝒞 where
 
 /-- The kernel of a representation T: the set of subterminators sent to 0. -/
 def killedValues {𝒟 : Type u} [Cat.{v} 𝒟] [PreLogos 𝒞] [PreLogos 𝒟]
-    (T : 𝒞 → 𝒟) [Functor F] : Set (Subobject 𝒞 one) :=
-  { U | Isomorphic (T U.dom) (T one) }
+    (T : 𝒞 → 𝒟) [Functor T] : (Subobject 𝒞 one) → Prop :=
+  λ U => @Isomorphic 𝒟 _ (T U.dom) one
 
 /-! ## §1.65 Pre-topos
 
@@ -91,11 +95,11 @@ theorem amalgamation_lemma [PreTopos 𝒞] {A B C : 𝒞}
   coincide with coequalizers (cocovers). -/
 
 theorem cover_eq_epic_preTopos [PreTopos 𝒞] {A B : 𝒞} (f : A ⟶ B) :
-    Cover f ↔ Epic (λ _ => ⟨A, f⟩) := by
+    Cover f ↔ (∀ {C : 𝒞} (g h : B ⟶ C), f ≫ g = f ≫ h → g = h) := by
   sorry
 
-theorem monic_eq_cocover_preTopos [PreTopos 𝒞] {A B : 𝒞} (f : A ⟶ B) :
-    Mono f ↔ ∃ (C D : 𝒞) (p q : C ⟶ D), IsCoequalizer p q f := by
+theorem monic_eq_cocover_preTopos [PreTopos 𝒞] [HasCoequalizers 𝒞] {A B : 𝒞} (f : A ⟶ B) :
+    Mono f ↔ ∃ (C : 𝒞) (p q : C ⟶ A), HEq ((HasCoequalizers.coeq p q).map) f := by
   sorry
 
 /-! ## §1.654 Pre-topos opposite is regular (if cocartesian) -/
@@ -104,8 +108,11 @@ theorem preTopos_opposite_regular [PreTopos 𝒞] [HasCoequalizers 𝒞] : True 
   sorry
 
 
-/-- DECIDABLE OBJECT (§1.658): the diagonal A→A×A has a complement in the subobject lattice.
-class DecidableObject (A : 𝒞) [PreLogos 𝒞] where
-  diag_complemented : IsComplemented (Subobject.mk A fst (Subobject.mk A snd (Subobject.entire (prod A A))))
+/-! ## §1.658 Decidable object
+
+  A is DECIDABLE if the diagonal A→A×A has a complement in the subobject lattice. -/
+
+-- class DecidableObject (A : 𝒞) [PreLogos 𝒞] where
+--   diag_complemented : IsComplemented (Subobject.mk A (diagonal A) ?monic)
 
 end Freyd

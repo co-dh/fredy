@@ -18,6 +18,12 @@ import Fredy.S1_51
 import Fredy.S1_52
 import Fredy.S1_53
 import Fredy.S1_55
+import Fredy.S1_36
+import Fredy.S1_54
+import Fredy.S1_58
+import Fredy.S1_59
+import Fredy.S1_60
+import Fredy.S1_70
 import Fredy.DirectedColimit
 import Fredy.CatColimit
 import Fredy.CatColimitRegular

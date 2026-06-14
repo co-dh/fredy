@@ -35,7 +35,7 @@ variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasIma
 
 /-- f##(A') is the right adjoint of f#: the maximal B' ⊆ B such that
     f#(B') ⊆ A'.  Satisfies: f#(B') ⊆ A' ⇔ B' ⊆ f##(A'). -/
-class HasRightAdjointImage (𝒞 : Type u) [Cat.{v} 𝒞] extends HasImages 𝒞 where
+class HasRightAdjointImage (𝒞 : Type u) [Cat.{v} 𝒞] extends HasImages 𝒞, HasPullbacks 𝒞 where
   rightAdj : ∀ {A B : 𝒞} (f : A ⟶ B), Subobject 𝒞 A → Subobject 𝒞 B
   adjunction : ∀ {A B : 𝒞} (f : A ⟶ B) (B' : Subobject 𝒞 B) (A' : Subobject 𝒞 A),
     Subobject.le (InverseImage f B') A' ↔ Subobject.le B' (rightAdj f A')
@@ -49,7 +49,7 @@ class Logos (𝒞 : Type u) [Cat.{v} 𝒞] extends
   In a logos, f# preserves all unions that exist.  Hence, if A' has
   binary unions, f# preserves them (proved: f#(∪Bᵢ) = ∪f#(Bᵢ)). -/
 
-theorem logos_implies_preLogos [Logos 𝒞] : PreLogos 𝒞 where
+def logos_implies_preLogos [Logos 𝒞] : PreLogos 𝒞 where
   toRegularCategory := by infer_instance
   toHasSubobjectUnions := by infer_instance
   invImage_preserves_union := λ {A B} f S T => by
@@ -63,18 +63,18 @@ theorem logos_implies_preLogos [Logos 𝒞] : PreLogos 𝒞 where
 
 /-- Subobjects of A form a complete lattice (all meets and joins exist). -/
 class LocallyComplete (𝒞 : Type u) [Cat.{v} 𝒞] extends HasImages 𝒞 where
-  sup : ∀ {A : 𝒞}, Set (Subobject 𝒞 A) → Subobject 𝒞 A
-  sup_upper : ∀ {A} (S : Set (Subobject 𝒞 A)) (s ∈ S), Subobject.le s (sup S)
-  sup_least : ∀ {A} (S : Set (Subobject 𝒞 A)) (U : Subobject 𝒞 A),
-    (∀ s ∈ S, Subobject.le s U) → Subobject.le (sup S) U
+  sup : ∀ {A : 𝒞}, ((Subobject 𝒞 A) → Prop) → Subobject 𝒞 A
+  sup_upper : ∀ {A} (S : (Subobject 𝒞 A) → Prop) (s : Subobject 𝒞 A), S s → Subobject.le s (sup S)
+  sup_least : ∀ {A} (S : (Subobject 𝒞 A) → Prop) (U : Subobject 𝒞 A),
+    (∀ (s : Subobject 𝒞 A), S s → Subobject.le s U) → Subobject.le (sup S) U
 
 /-- In a locally complete regular category with f# preserving all unions,
     the right adjoint f## exists (constructible as sup of all B' with f#(B')⊆A'). -/
-theorem locallyComplete_with_union_preserving_is_logos
+def locallyComplete_with_union_preserving_is_logos
     [LocallyComplete 𝒞] [PreLogos 𝒞]
-    (h_preserves : ∀ {A B : 𝒞} (f : A ⟶ B) (S : Set (Subobject 𝒞 B)),
+    (h_preserves : ∀ {A B : 𝒞} (f : A ⟶ B) (S : (Subobject 𝒞 B) → Prop),
       Subobject.le (InverseImage f (LocallyComplete.sup S))
-                   (LocallyComplete.sup (InverseImage f '' S))) : Logos 𝒞 := by
+                   (LocallyComplete.sup (λ A' => ∃ B', S B' ∧ A' = InverseImage f B'))) : Logos 𝒞 := by
   sorry
 
 /-! ## §1.72 Heyting algebra

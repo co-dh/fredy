@@ -33,7 +33,7 @@ structure Inflation (B : 𝒞) where
   isOnto  : ∀ b : 𝒞, ∃ a : objSet, T a = b  -- T is surjective (onto)
 
 /-- The inflated category [T] with objects objSet and hom via T. -/
-instance (I : Inflation B) : Cat.{v} I.objSet where
+instance (B : 𝒞) (I : Inflation B) : Cat.{v} I.objSet where
   Hom A B := I.T A ⟶ I.T B
   id A := Cat.id (I.T A)
   comp f g := f ≫ g
@@ -42,15 +42,15 @@ instance (I : Inflation B) : Cat.{v} I.objSet where
   assoc _ _ _ := Cat.assoc _ _ _
 
 /-- The inflation forgetful functor F : [T] → B, which is a full embedding. -/
-def Inflation.forget (I : Inflation B) : I.objSet → 𝒞 := I.T
+def Inflation.forget (B : 𝒞) (I : Inflation B) : I.objSet → 𝒞 := I.T
 
-instance (I : Inflation B) : Functor (I.forget) where
+instance (B : 𝒞) (I : Inflation B) : Functor (I.forget B) where
   map f := f
   map_id _ := rfl
   map_comp _ _ := rfl
 
 /-- An inflation cross-section: S : |B| → 𝛂 with T∘S = id. -/
-structure InflationCrossSection (I : Inflation B) where
+structure InflationCrossSection (B : 𝒞) (I : Inflation B) where
   S : 𝒞 → I.objSet
   sec : ∀ b : 𝒞, I.T (S b) = b
 
@@ -60,7 +60,7 @@ structure InflationCrossSection (I : Inflation B) where
   (We state the condition without assuming AC.) -/
 
 /-- If T has a left-inverse (a cross-section S), then [T] is strongly equivalent to B. -/
-theorem inflation_strong_equiv (I : Inflation B) (S : InflationCrossSection I) :
+theorem inflation_strong_equiv (B : 𝒞) (I : Inflation B) (S : InflationCrossSection B I) :
     True := by
   -- Construct the strong equivalence using the cross-section
   trivial
@@ -86,14 +86,14 @@ structure EquivalenceKernel (𝒞 : Type u) [Cat.{v} 𝒞] where
 
 /-- The kernel of an equivalence functor T: {f | T.map f = id}. -/
 def equivalenceKernel (F : 𝒞 → 𝒟) [hF : Functor F] : EquivalenceKernel 𝒞 where
-  mem {X Y} f := hF.map f = Cat.id (F X) ∧ F X = F Y
+  mem {X Y} f := HEq (hF.map f) (Cat.id (F X))
   mem_id X := by
-    simp [hF.map_id]
+    -- hF.map (Cat.id X) = Cat.id (F X), both have type F X ⟶ F X
+    apply heq_of_eq
+    apply hF.map_id
   isGroupoid f h := by
     sorry
   isPreorder f g hf hg := by
-    rcases hf with ⟨hf1, hf2⟩
-    rcases hg with ⟨hg1, hg2⟩
     sorry
 
 end Freyd
