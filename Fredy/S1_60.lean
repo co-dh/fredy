@@ -71,10 +71,18 @@ def inverseImage_preserves_unions [HasImages 𝒞] [HasSubobjectUnions 𝒞] {A 
                (HasSubobjectUnions.union (InverseImage f S) (InverseImage f T)).dom
 
 /-- A PRE-LOGOS (§1.6): regular + subobject lattices + inverse image
-    preserves unions. -/
+    preserves finite unions (including empty joins). -/
 class PreLogos (𝒞 : Type u) [Cat.{v} 𝒞] extends
     RegularCategory 𝒞, HasSubobjectUnions 𝒞 where
+  -- empty join (bottom) of each subobject lattice
+  bottom : ∀ (A : 𝒞), Subobject 𝒞 A
+  bottom_min : ∀ {A : 𝒞} (S : Subobject 𝒞 A), (bottom A).le S
+  bottom_dom_iso : ∀ (A B : 𝒞), Isomorphic (bottom A).dom (bottom B).dom
+  -- f# preserves binary unions
   invImage_preserves_union : ∀ {A B : 𝒞} (f : A ⟶ B), inverseImage_preserves_unions f
+  -- f# preserves the empty join (bottom)
+  invImage_preserves_bottom : ∀ {A B : 𝒞} (f : A ⟶ B),
+    Isomorphic (InverseImage f (bottom B)).dom (bottom A).dom
 
 /-! ## §1.613 Posets as pre-logoi
 
