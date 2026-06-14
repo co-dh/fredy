@@ -103,7 +103,7 @@ def reciprocal {A B : 𝒞} (R : BinRel 𝒞 A B) : BinRel 𝒞 B A where
   isMonicPair := λ {_W} f g hA hB => R.isMonicPair f g hB hA
 
 /-- The reciprocal R°: swap columns (§1.561).  Postfix notation `_°`. -/
-postfix:max "°" => reciprocal
+postfix:max (name := relRecip) "°" => reciprocal
 
 theorem reciprocal_invol {A B : 𝒞} (R : BinRel 𝒞 A B) : reciprocal (reciprocal R) = R := by
   unfold reciprocal; rfl
@@ -336,7 +336,7 @@ def compose {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) : BinRel 
 
 /-- Infix notation for relation composition (diagrammatic order, §1.56).
     `R ⊚ S` = "first R, then S".  Right-associative. -/
-infixr:80 " ⊚ " => compose
+infixr:80 (name := relCompose) " ⊚ " => compose
 
 /-! ## §1.564 Entire, Simple, Map
 

@@ -33,7 +33,7 @@ theorem OverHom.ext {B : 𝒞} {X Y : Over B} {a b : OverHom X Y} (h : a.f = b.f
 def OverHom.comp {B : 𝒞} {X Y Z : Over B} (h : OverHom X Y) (k : OverHom Y Z) : OverHom X Z :=
   ⟨h.f ≫ k.f, by rw [Cat.assoc, k.w, h.w]⟩
 
-infixr:80 " ⊚ " => OverHom.comp
+infixr:80 (name := overHomComp) " ⊚ " => OverHom.comp
 
 /-- The slice category A/B as a `Cat` instance.  Composition is `⊚`, identity
     is the pair `(id_dom, id_comp B)`. -/

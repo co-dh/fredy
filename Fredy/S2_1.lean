@@ -64,7 +64,7 @@ class Allegory (𝒜 : Type u) extends Cat.{v} 𝒜 where
 /-! ### Notation for allegory operations -/
 
 /-- Reciprocation notation R° -/
-postfix:max "°" => Allegory.recip
+postfix:max (name := allegoryRecip) "°" => Allegory.recip
 
 /-- Intersection notation R ∩ S -/
 infixl:70 " ∩ " => Allegory.inter
