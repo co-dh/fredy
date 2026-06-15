@@ -855,6 +855,34 @@ theorem homInclObj_germ_push (C : CatSystem ι D) (hC : C.Coherent) {i : ι} {x 
   rw [map_castHom (C.F hwL) (hT := C.functF hwL), castHom_castHom]
   exact castHom_heq_congr _ _ _ _ (hC.trans_map w.hix hwL g).symm
 
+/-- **Representative-independence:** `homInclObj g` equals the germ `homIncl` at
+    *any* witness `w` (not just the chosen one), since both reduce — via the push
+    lemma + `homIncl_compat` — to the same canonical `functF`-map germ at a common
+    stage (the proofs differ only proof-irrelevantly). -/
+theorem homInclObj_eq (C : CatSystem ι D) (hC : C.Coherent) {i : ι} {x y : C.A i}
+    (g : x ⟶ y) (w : HioWitness C x y) :
+    homInclObj C hC g
+      = homIncl C hC (colimOut C (C.objIncl i x)).2 (colimOut C (C.objIncl i y)).2
+          ⟨w.K, w.hpx, w.hpy⟩ (w.germ g) := by
+  obtain ⟨L, hw0L, hwL⟩ := D.bound (hioWitness C hC x y).K w.K
+  have key : ∀ (v : HioWitness C x y) (hvL : D.le v.K L),
+      homIncl C hC (colimOut C (C.objIncl i x)).2 (colimOut C (C.objIncl i y)).2
+          ⟨v.K, v.hpx, v.hpy⟩ (v.germ g)
+        = homIncl C hC (colimOut C (C.objIncl i x)).2 (colimOut C (C.objIncl i y)).2
+          ⟨L, D.trans v.hpx hvL, D.trans v.hpy hvL⟩
+          (castHom (by rw [C.F_trans v.hix hvL x, ← v.hgx, ← C.F_trans v.hpx hvL])
+                   (by rw [C.F_trans v.hix hvL y, ← v.hgy, ← C.F_trans v.hpy hvL])
+                   ((C.functF (D.trans v.hix hvL)).map g)) := by
+    intro v hvL
+    rw [← homInclObj_germ_push C hC g v L hvL _ _]
+    exact (homIncl_compat C hC (colimOut C (C.objIncl i x)).2 (colimOut C (C.objIncl i y)).2
+      (a := ⟨v.K, v.hpx, v.hpy⟩) (b := ⟨L, D.trans v.hpx hvL, D.trans v.hpy hvL⟩) hvL (v.germ g)).symm
+  rw [show homInclObj C hC g
+        = homIncl C hC (colimOut C (C.objIncl i x)).2 (colimOut C (C.objIncl i y)).2
+            ⟨(hioWitness C hC x y).K, (hioWitness C hC x y).hpx, (hioWitness C hC x y).hpy⟩
+            ((hioWitness C hC x y).germ g) from rfl,
+      key (hioWitness C hC x y) hw0L, key w hwL]
+
 /-- `castHom` is injective (it's a transport along object equalities). -/
 theorem castHom_injective {𝒜 : Type w} [Cat.{w} 𝒜] {X Y X' Y' : 𝒜}
     (hX : X = X') (hY : Y = Y') {a b : X ⟶ Y}
