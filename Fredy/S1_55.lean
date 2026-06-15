@@ -85,6 +85,52 @@ theorem familyFunctor_separates {I : Type w} (F : I → (𝒞 → Type w))
 
 end
 
+/-! ## §1.55 The hom-functor representation and its exactness (limit side) -/
+
+section HomRep
+
+/-- The covariant hom-functor `Hom(i, -) : 𝒞 → 𝒮`, `f ↦ (h ↦ h ≫ f)` (§1.272). -/
+instance homFunctor {𝒞 : Type u} [Cat.{w} 𝒞] (i : 𝒞) : Functor (fun A : 𝒞 => (i ⟶ A)) where
+  map f := fun h => h ≫ f
+  map_id A := by funext h; exact Cat.comp_id h
+  map_comp f g := by funext h; exact (Cat.assoc h f g).symm
+
+/-- The **Henkin–Lubkin representation** `T : 𝒞 → 𝒮^|𝒞|`, `A ↦ (i ↦ Hom(i, A))` —
+    the witness used by `henkin_lubkin`, here named so its exactness can be stated. -/
+def homRep (𝒞 : Type u) [Cat.{u} 𝒞] : 𝒞 → (𝒞 → Type u) := familyFunctor (fun i A => (i ⟶ A))
+
+instance homRepFunctor (𝒞 : Type u) [Cat.{u} 𝒞] : Functor (homRep 𝒞) :=
+  familyFunctorFunctor (fun i A => (i ⟶ A))
+
+/-- The Henkin–Lubkin representation `homRep` SEPARATES MAPS (re-derives the
+    faithfulness of `henkin_lubkin` for the explicit witness). -/
+theorem homRep_separates (𝒞 : Type u) [Cat.{u} 𝒞] : SeparatesMaps (homRep 𝒞) := by
+  intro A B f g h
+  exact cayley_faithful f g (fun {X} hX => congrFun (congrFun h X) hX)
+
+/-- **Exactness, limit side (i):** `homRep` PRESERVES monos.  `Hom(i, f)` is
+    injective for every `i` precisely because `f` is left-cancellable, so the
+    induced family of functions is a mono in the power `𝒮^|𝒞|`. -/
+theorem homRep_preserves_mono (𝒞 : Type u) [Cat.{u} 𝒞] : PreservesMono (homRep 𝒞) := by
+  intro X Y f hf W p q h
+  funext i a
+  exact hf (p i a) (q i a) (congrFun (congrFun h i) a)
+
+/-- **Exactness, limit side (ii):** `homRep` REFLECTS monos.  Probe `Mono (T f)`
+    with the representable at `W`: `k ↦ k ≫ g` and `k ↦ k ≫ h` agree after `T f`
+    when `g ≫ f = h ≫ f`, so they are equal; evaluating at `id_W` gives `g = h`. -/
+theorem homRep_reflects_mono (𝒞 : Type u) [Cat.{u} 𝒞] : ReflectsMono (homRep 𝒞) := by
+  intro X Y f hf W g h hgh
+  let p : (fun i => (i ⟶ W)) ⟶ homRep 𝒞 X := fun i k => k ≫ g
+  let q : (fun i => (i ⟶ W)) ⟶ homRep 𝒞 X := fun i k => k ≫ h
+  have hpq : p ≫ (homRepFunctor 𝒞).map f = q ≫ (homRepFunctor 𝒞).map f := by
+    funext i k; show (k ≫ g) ≫ f = (k ≫ h) ≫ f
+    rw [Cat.assoc, hgh, ← Cat.assoc]
+  have hpq' : p = q := hf p q hpq
+  simpa [p, q, Cat.id_comp] using congrFun (congrFun hpq' W) (Cat.id W)
+
+end HomRep
+
 /-! ## §1.55 The points functor 𝒞 → 𝒮 -/
 
 section Points
