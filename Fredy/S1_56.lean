@@ -1047,6 +1047,30 @@ theorem cover_is_coequalizer_of_level {A B : 𝒞} (x : A ⟶ B) [RegularCategor
     rw [← Cat.assoc, hxpinv, ← Cat.assoc, image.lift_fac, snd_pair]
   exact ⟨pinv ≫ (I.arr ≫ snd), hxh, fun h' hh' => cover_epi hx (hh'.trans hxh.symm)⟩
 
+/-- **§1.566 (corollary)**: Two covers with the same kernel pair differ by an
+    isomorphism.  If covers `x, y : A → ·` each equalize the other's kernel pair,
+    then there is a (unique) iso `φ` with `x ≫ φ = y`.  Immediate from §1.566:
+    each is the coequalizer of its kernel pair, so they factor through each other,
+    and the comparison maps are mutually inverse because covers are epic. -/
+theorem covers_same_kernelPair_iso {A B B' : 𝒞} [RegularCategory 𝒞]
+    (x : A ⟶ B) (hx : Cover x) (y : A ⟶ B') (hy : Cover y)
+    (hxy : kp₁ (f := x) ≫ y = kp₂ (f := x) ≫ y)
+    (hyx : kp₁ (f := y) ≫ x = kp₂ (f := y) ≫ x) :
+    ∃ φ : B ⟶ B', IsIso φ ∧ x ≫ φ = y := by
+  obtain ⟨φ, hφ, _⟩ := cover_is_coequalizer_of_level x hx y hxy
+  obtain ⟨ψ, hψ, _⟩ := cover_is_coequalizer_of_level y hy x hyx
+  refine ⟨φ, ⟨ψ, ?_, ?_⟩, hφ⟩
+  · apply cover_epi hx
+    calc x ≫ (φ ≫ ψ) = (x ≫ φ) ≫ ψ := (Cat.assoc _ _ _).symm
+      _ = y ≫ ψ := by rw [hφ]
+      _ = x := hψ
+      _ = x ≫ Cat.id B := (Cat.comp_id _).symm
+  · apply cover_epi hy
+    calc y ≫ (ψ ≫ φ) = (y ≫ ψ) ≫ φ := (Cat.assoc _ _ _).symm
+      _ = x ≫ φ := by rw [hψ]
+      _ = y := hφ
+      _ = y ≫ Cat.id B' := (Cat.comp_id _).symm
+
 /-! ## §1.567 Equivalence relations
 
   E : A → A is an EQUIVALENCE RELATION if 1 ≤ E, E° ≤ E, EE ≤ E.
