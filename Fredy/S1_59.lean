@@ -16,6 +16,7 @@ import Fredy.S1_42
 import Fredy.S1_43
 import Fredy.S1_51
 import Fredy.S1_52
+import Fredy.S1_56
 import Fredy.S1_58
 
 
@@ -95,8 +96,11 @@ class AbelianCategory (𝒞 : Type u) [Cat.{v} 𝒞]
   A is abelian iff it is effective regular additive (§1.594). -/
 
 /-- A regular category is EFFECTIVE if every equivalence relation is effective
-    (i.e., is the level of some morphism). -/
-class EffectiveRegular (𝒞 : Type u) [Cat.{v} 𝒞] extends RegularCategory 𝒞
+    (i.e., is the level/kernel-pair of some cover/quotient).  This is the
+    effective-quotients axiom (§1.568): the content that distinguishes an
+    effective regular category from a plain regular one. -/
+class EffectiveRegular (𝒞 : Type u) [Cat.{v} 𝒞] extends RegularCategory 𝒞 where
+  effective : ∀ {A : 𝒞} (E : BinRel 𝒞 A A), EquivalenceRelation E → IsEffective E
 
 /-- In an effective regular additive category, every mono is normal. -/
 theorem effective_regular_additive_is_abelian : True := by trivial
