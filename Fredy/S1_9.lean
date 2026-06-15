@@ -27,6 +27,15 @@ class HasSubobjectClassifier (𝒞 : Type u) [Cat.{v} 𝒞] extends HasTerminal 
   true : one ⟶ omega
   true_monic : Mono true
   classify {A A' : 𝒞} (m : A' ⟶ A) : Mono m → (A ⟶ omega)
+  /-- The classifying square commutes: `m ≫ χ_m = (A'→1) ≫ t`. -/
+  classify_sq : ∀ {A A' : 𝒞} (m : A' ⟶ A) (hm : Mono m), m ≫ classify m hm = term A' ≫ true
+  /-- **Universal property**: `m` is the pullback of `t` along `χ_m`. -/
+  classify_pullback : ∀ {A A' : 𝒞} (m : A' ⟶ A) (hm : Mono m),
+    Cone.IsPullback (⟨A', m, term A', classify_sq m hm⟩ : Cone (classify m hm) true)
+  /-- `χ_m` is the UNIQUE map making `m` the pullback of `t`. -/
+  classify_unique : ∀ {A A' : 𝒞} (m : A' ⟶ A) (hm : Mono m) (χ : A ⟶ omega)
+    (hsq : m ≫ χ = term A' ≫ true),
+    Cone.IsPullback (⟨A', m, term A', hsq⟩ : Cone χ true) → χ = classify m hm
 
 /-- A TOPOS (§1.9): Cartesian + subobject classifier.
     This implies power objects and exponentials (§1.92). -/
