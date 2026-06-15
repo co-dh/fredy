@@ -473,6 +473,26 @@ noncomputable def colimitHasEqualizers (C : CatSystem ι D) (hC : C.Coherent)
     let gm : C.F ubm.2.1 opE ⟶ C.F ubm.2.2 xX :=
       castHom h_E_eq.symm (C.F_trans hiXM h_M_kpE xX).symm ((C.functF h_M_kpE).map (eqMap fM gM))
     let m : E ⟶ X := homIncl C hC opE xX ubm gm
+    -- `m` is monic: reduce `l ≫ m = l' ≫ m` to a stage equation, cancel `eqMap` via `hpres`.
+    have hm_mono : ∀ {W : C.Obj} (l l' : W ⟶ E), l ≫ m = l' ≫ m → l = l' := by
+      intro W
+      refine Quotient.ind₂ (fun lr lr' hll => ?_)
+      obtain ⟨aL, lL⟩ := lr
+      obtain ⟨aL', lL'⟩ := lr'
+      let xW : C.A (colimOut C W).1 := (colimOut C W).2
+      -- common stage P ≥ aL.1, aL'.1, kpE
+      obtain ⟨P0, hP0a, hP0b⟩ := D.bound aL.1 aL'.1
+      obtain ⟨P, hP0P, hkpEP⟩ := D.bound P0 kpE
+      have haLP : D.le aL.1 P := D.trans hP0a hP0P
+      have haLP' : D.le aL'.1 P := D.trans hP0b hP0P
+      -- reduce both composites to `compAt` at `P`
+      rw [show (Quotient.mk (setoid (homSystem C hC xW opE)) ⟨aL, lL⟩ : W ⟶ E) ≫ m
+            = homCompRaw C hC xW opE xX aL lL ubm gm from rfl,
+          show (Quotient.mk (setoid (homSystem C hC xW opE)) ⟨aL', lL'⟩ : W ⟶ E) ≫ m
+            = homCompRaw C hC xW opE xX aL' lL' ubm gm from rfl,
+          homCompRaw_eq_compAt C hC xW opE xX aL lL ubm gm P haLP hkpEP,
+          homCompRaw_eq_compAt C hC xW opE xX aL' lL' ubm gm P haLP' hkpEP] at hll
+      sorry
     refine ⟨E, m, ?_, ?_⟩
     · -- equalizing: m ≫ F = m ≫ G.
       -- Generic: composing `m` (germ `gm` at `kpE`) with a right germ `gg` that
