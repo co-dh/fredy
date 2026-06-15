@@ -939,10 +939,11 @@ theorem cover_is_coequalizer_of_level {A B : 𝒞} (x : A ⟶ B) [RegularCategor
   E : A → A is an EQUIVALENCE RELATION if 1 ≤ E, E° ≤ E, EE ≤ E.
   The level (kernel pair) of any morphism is an equivalence relation. -/
 
-def EquivalenceRelation {A : 𝒞} (E : BinRel 𝒞 A A) : Prop :=
+def EquivalenceRelation [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
+    {A : 𝒞} (E : BinRel 𝒞 A A) : Prop :=
   (∃ (h : A ⟶ E.src), h ≫ E.colA = Cat.id A ∧ h ≫ E.colB = Cat.id A) ∧
   Nonempty (RelHom E (reciprocal E)) ∧
-  True  -- transitivity requires composition
+  Nonempty (RelHom (E ⊚ E) E)
 
 /-- The LEVEL (kernel pair) of `x`, packaged as a binary relation on `A`:
     columns `(kp₁, kp₂)`, jointly monic as the legs of a pullback. -/
@@ -958,13 +959,46 @@ def kernelPairRel [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞
     exact (kp_lift_uniq (f ≫ kp₁) (f ≫ kp₂) hfw f rfl rfl).trans
           (kp_lift_uniq (f ≫ kp₁) (f ≫ kp₂) hfw g h1.symm h2.symm).symm
 
+/-- **§1.567** (transitivity): the level of `x` is transitive, `level ⊚ level ⊂ level`.
+    A composite point `(a,c)` comes from a pullback point matching `a~b`, `b~c`,
+    so `a≫x = b≫x = c≫x`; that lifts into the kernel pair, and image-minimality
+    (`image_min`) turns the lift into the required `RelHom`. -/
+theorem kernelPair_transitive [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
+    [HasImages 𝒞] {A B : 𝒞} (x : A ⟶ B) :
+    RelLe (kernelPairRel x ⊚ kernelPairRel x) (kernelPairRel x) := by
+  let pb := HasPullbacks.has (kp₂ (f := x)) (kp₁ (f := x))
+  let span := pair (pb.cone.π₁ ≫ kp₁ (f := x)) (pb.cone.π₂ ≫ kp₂ (f := x))
+  let S : Subobject 𝒞 (prod A A) :=
+    ⟨kernelPair x, pair (kp₁ (f := x)) (kp₂ (f := x)),
+      monic_pair_of_monicPair _ _ (kernelPairRel x).isMonicPair⟩
+  -- the matched middle gives `a≫x = c≫x`, so the pair lifts into the kernel pair.
+  have hwx : (pb.cone.π₁ ≫ kp₁ (f := x)) ≫ x = (pb.cone.π₂ ≫ kp₂ (f := x)) ≫ x := by
+    have hmid : pb.cone.π₁ ≫ kp₂ (f := x) = pb.cone.π₂ ≫ kp₁ (f := x) := pb.cone.w
+    calc (pb.cone.π₁ ≫ kp₁ (f := x)) ≫ x
+        = (pb.cone.π₁ ≫ kp₂ (f := x)) ≫ x := by rw [Cat.assoc, kp_sq, ← Cat.assoc]
+      _ = (pb.cone.π₂ ≫ kp₁ (f := x)) ≫ x := by rw [hmid]
+      _ = (pb.cone.π₂ ≫ kp₂ (f := x)) ≫ x := by rw [Cat.assoc, kp_sq, ← Cat.assoc]
+  let w := (HasPullbacks.has x x).lift
+    ⟨_, pb.cone.π₁ ≫ kp₁ (f := x), pb.cone.π₂ ≫ kp₂ (f := x), hwx⟩
+  have hspan : w ≫ pair (kp₁ (f := x)) (kp₂ (f := x)) = span :=
+    pair_uniq _ _ _
+      (by rw [Cat.assoc, fst_pair]; exact kp_lift_p₁ _ _ hwx)
+      (by rw [Cat.assoc, snd_pair]; exact kp_lift_p₂ _ _ hwx)
+  obtain ⟨k, hk⟩ := image_min span S ⟨w, hspan⟩
+  refine ⟨⟨k, ?_, ?_⟩⟩
+  · calc k ≫ kp₁ (f := x) = (k ≫ pair (kp₁ (f := x)) (kp₂ (f := x))) ≫ fst := by
+            rw [Cat.assoc, fst_pair]
+      _ = (image span).arr ≫ fst := by rw [hk]
+  · calc k ≫ kp₂ (f := x) = (k ≫ pair (kp₁ (f := x)) (kp₂ (f := x))) ≫ snd := by
+            rw [Cat.assoc, snd_pair]
+      _ = (image span).arr ≫ snd := by rw [hk]
+
 /-- **§1.567**: The level (kernel pair) of any morphism is an equivalence
     relation — reflexive (the diagonal `kp_diag`), symmetric (the pullback
-    swap of the two legs).  Transitivity is the `True` slot of
-    `EquivalenceRelation` (it needs relation composition). -/
+    swap of the two legs), transitive (`kernelPair_transitive`). -/
 theorem level_is_equivalence_relation [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
-    {A B : 𝒞} (x : A ⟶ B) : EquivalenceRelation (kernelPairRel x) := by
-  refine ⟨⟨kp_diag (f := x), kp_diag_p₁, kp_diag_p₂⟩, ⟨⟨?_, ?_, ?_⟩⟩, trivial⟩
+    [HasImages 𝒞] {A B : 𝒞} (x : A ⟶ B) : EquivalenceRelation (kernelPairRel x) := by
+  refine ⟨⟨kp_diag (f := x), kp_diag_p₁, kp_diag_p₂⟩, ⟨⟨?_, ?_, ?_⟩⟩, kernelPair_transitive x⟩
   · exact (HasPullbacks.has x x).lift ⟨_, kp₂ (f := x), kp₁ (f := x), kp_sq.symm⟩
   · exact kp_lift_p₂ (kp₂ (f := x)) (kp₁ (f := x)) kp_sq.symm
   · exact kp_lift_p₁ (kp₂ (f := x)) (kp₁ (f := x)) kp_sq.symm
