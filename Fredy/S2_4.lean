@@ -54,11 +54,59 @@ def A {a b : 𝒜} [PowerAllegory 𝒜] (R : a ⟶ b) : a ⟶ PowerAllegory.powe
 
 /-- A(R) is a map (simple and entire) (§2.41). -/
 theorem A_is_map {a b : 𝒜} [PowerAllegory 𝒜] (R : a ⟶ b) : Map (A R) := by
-  sorry
+  dsimp [Map, A, symmDiv]
+  have h_straight : ∋ b /ₛ ∋ b ⊑ Cat.id (PowerAllegory.powerObj b) :=
+    PowerAllegory.eps_straight b
+  -- From the definition of symmetric division, A R = (R / ∋) ∩ (∋ / R)°
+  -- First get the characterizing inequalities for A R via le_symmDiv_iff
+  have h_AR_comp_eps_le_R : ((R / ∋ b) ∩ ((∋ b / R)°)) ≫ ∋ b ⊑ R := by
+    -- A R ⊑ R / ∋ b, so A R ≫ ∋ b ⊑ (R / ∋ b) ≫ ∋ b ⊑ R
+    apply le_trans (comp_mono_right (inter_lb_left (R / ∋ b) ((∋ b / R)°)) (∋ b)) ?_
+    exact div_comp_eq_le R (∋ b)
+  have h_ARrecip_comp_R_le_eps : ((R / ∋ b) ∩ ((∋ b / R)°))° ≫ R ⊑ ∋ b := by
+    -- (A R)° ⊑ ∋ b / R, so (A R)° ≫ R ⊑ (∋ b / R) ≫ R ⊑ ∋ b
+    have h_ARrecip_le_div : ((R / ∋ b) ∩ ((∋ b / R)°))° ⊑ ∋ b / R := by
+      -- (R/∋ ∩ (∋/R)°)° = (R/∋)° ∩ (∋/R) ⊑ ∋/R
+      rw [Allegory.recip_inter, Allegory.recip_recip]
+      exact inter_lb_right ((R / ∋ b)°) (∋ b / R)
+    apply le_trans (comp_mono_right h_ARrecip_le_div R) ?_
+    exact div_comp_eq_le (∋ b) R
+  constructor
+  · -- Entire (A R): dom (A R) = id_a
+    dsimp [Entire, dom]
+    apply le_antisymm
+    · exact inter_lb_left (Cat.id a) _
+    · apply le_inter (le_refl (Cat.id a))
+      sorry
+  · -- Simple (A R): (A R)° ≫ (A R) ⊑ id_{powerObj b}
+    dsimp [Simple]
+    have hX_le_symm : ((R / ∋ b) ∩ ((∋ b / R)°))° ≫ ((R / ∋ b) ∩ ((∋ b / R)°)) ⊑ ∋ b /ₛ ∋ b := by
+      rw [le_symmDiv_iff]
+      constructor
+      · -- X ≫ ∋ ⊑ ∋
+        -- X ≫ ∋ = (A R)° ≫ A R ≫ ∋ = (A R)° ≫ (A R ≫ ∋) ⊑ (A R)° ≫ R ⊑ ∋
+        rw [Cat.assoc]
+        apply le_trans ?_ h_ARrecip_comp_R_le_eps
+        apply comp_mono_left _ h_AR_comp_eps_le_R
+      · -- X° ≫ ∋ ⊑ ∋; X° = X, so same as above
+        have hX_symm : (((R / ∋ b) ∩ ((∋ b / R)°))° ≫ ((R / ∋ b) ∩ ((∋ b / R)°)))° =
+            ((R / ∋ b) ∩ ((∋ b / R)°))° ≫ ((R / ∋ b) ∩ ((∋ b / R)°)) := by
+          rw [Allegory.recip_comp, Allegory.recip_recip]
+        rw [hX_symm]
+        rw [Cat.assoc]
+        apply le_trans ?_ h_ARrecip_comp_R_le_eps
+        apply comp_mono_left _ h_AR_comp_eps_le_R
+    exact le_trans hX_le_symm h_straight
 
 /-- A(R)∋ = R (§2.41). -/
 theorem A_eps_eq {a b : 𝒜} [PowerAllegory 𝒜] (R : a ⟶ b) : A R ≫ ∋ b = R := by
-  sorry
+  dsimp [A, symmDiv]
+  apply le_antisymm
+  · -- ((R/∋) ∩ (∋/R)°) ≫ ∋ ⊑ R.  Already proven in A_is_map.
+    apply le_trans (comp_mono_right (inter_lb_left (R / ∋ b) ((∋ b / R)°)) (∋ b)) ?_
+    exact div_comp_eq_le R (∋ b)
+  · -- R ⊑ ((R/∋) ∩ (∋/R)°) ≫ ∋.  Requires power-allegory structure.
+    sorry
 
 /-! ## §2.415  Power object and singleton map -/
 
@@ -69,7 +117,25 @@ def singletonMap {a : 𝒜} [PowerAllegory 𝒜] : a ⟶ PowerAllegory.powerObj 
 /-- Singleton map is monic (§2.415): A(1_a)A(1_a)° ⊑ 1. -/
 theorem singletonMap_monic {a : 𝒜} [PowerAllegory 𝒜] :
     singletonMap (a := a) ≫ singletonMap° ⊑ Cat.id a := by
-  sorry
+  dsimp [singletonMap, A, symmDiv]
+  -- Goal: ((id / ∋) ∩ ((∋ / id)°)) ≫ ((id / ∋) ∩ ((∋ / id)°))° ⊑ id
+  rw [Allegory.recip_inter, Allegory.recip_recip]
+  -- Goal: ((id / ∋) ∩ ((∋ / id)°)) ≫ ((id / ∋)° ∩ (∋ / id)) ⊑ id
+  -- Bound first factor via inter_lb_left, second factor via inter_lb_right
+  have h1 : ((Cat.id a / ∋ a) ∩ ((∋ a / Cat.id a)°)) ≫ ((Cat.id a / ∋ a)° ∩ (∋ a / Cat.id a))
+      ⊑ (Cat.id a / ∋ a) ≫ ((Cat.id a / ∋ a)° ∩ (∋ a / Cat.id a)) := by
+    apply comp_mono_right (inter_lb_left _ _) _
+  have h2 : (Cat.id a / ∋ a) ≫ ((Cat.id a / ∋ a)° ∩ (∋ a / Cat.id a))
+      ⊑ (Cat.id a / ∋ a) ≫ (∋ a / Cat.id a) := by
+    apply comp_mono_left _ (inter_lb_right _ _)
+  have h3 : (Cat.id a / ∋ a) ≫ (∋ a / Cat.id a) ⊑ Cat.id a / Cat.id a :=
+    div_comp (Cat.id a) (∋ a) (Cat.id a)
+  have h4 : Cat.id a / Cat.id a = Cat.id a := div_one _
+  apply le_trans h1
+  apply le_trans h2
+  apply le_trans h3
+  rw [h4]
+  exact le_refl _
 
 /-! ## §2.414  Topos ↔ unitary tabular power allegory
 
