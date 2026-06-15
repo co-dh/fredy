@@ -1389,6 +1389,59 @@ theorem comp_graph_id_right {A B : 𝒞} (R : BinRel 𝒞 A B) : RelLe R (R ⊚ 
     exact hu₂
   exact ⟨⟨h, h_colA, h_colB⟩⟩
 
+/-- Pullback of a mono is a mono: in `pb = pullback(f, m)` with `m` monic,
+    the leg `π₁` (the pullback of `m` along `f`) is monic. -/
+theorem pullback_fst_mono {B I D : 𝒞} (f : B ⟶ D) (m : I ⟶ D) (hm : Mono m) :
+    Mono (HasPullbacks.has f m).cone.π₁ := by
+  intro W p q hpq
+  let pb := HasPullbacks.has f m
+  change p ≫ pb.cone.π₁ = q ≫ pb.cone.π₁ at hpq
+  have hpq2 : p ≫ pb.cone.π₂ = q ≫ pb.cone.π₂ := by
+    apply hm
+    calc (p ≫ pb.cone.π₂) ≫ m = p ≫ (pb.cone.π₂ ≫ m) := Cat.assoc _ _ _
+      _ = p ≫ (pb.cone.π₁ ≫ f) := by rw [← pb.cone.w]
+      _ = (p ≫ pb.cone.π₁) ≫ f := (Cat.assoc _ _ _).symm
+      _ = (q ≫ pb.cone.π₁) ≫ f := by rw [hpq]
+      _ = q ≫ (pb.cone.π₁ ≫ f) := Cat.assoc _ _ _
+      _ = q ≫ (pb.cone.π₂ ≫ m) := by rw [pb.cone.w]
+      _ = (q ≫ pb.cone.π₂) ≫ m := (Cat.assoc _ _ _).symm
+  have hcone : (p ≫ pb.cone.π₁) ≫ f = (p ≫ pb.cone.π₂) ≫ m := by
+    rw [Cat.assoc, Cat.assoc, pb.cone.w]
+  let cn : Cone f m := ⟨W, p ≫ pb.cone.π₁, p ≫ pb.cone.π₂, hcone⟩
+  rw [pb.lift_uniq cn p rfl rfl, pb.lift_uniq cn q hpq.symm hpq2.symm]
+
+/-- **Cover ⊥ mono** (orthogonality): a cover `c` and a mono `m` lift uniquely
+    across any commuting square `c ≫ f = d ≫ m` — there is a diagonal `g` with
+    `c ≫ g = d` and `g ≫ m = f`.  Pull `m` back along `f`; the cover `c` then
+    factors through the monic pullback-leg `π₁`, forcing `π₁` to be iso
+    (`Cover`), and the diagonal is `π₁⁻¹ ≫ π₂`. -/
+theorem cover_mono_diagonal {A B I D : 𝒞} {c : A ⟶ B} {f : B ⟶ D} {m : I ⟶ D} {d : A ⟶ I}
+    (hc : Cover c) (hm : Mono m) (hsq : c ≫ f = d ≫ m) :
+    ∃ g : B ⟶ I, c ≫ g = d ∧ g ≫ m = f := by
+  let pb := HasPullbacks.has f m
+  have hπmono : Mono pb.cone.π₁ := pullback_fst_mono f m hm
+  let cn : Cone f m := ⟨A, c, d, hsq⟩
+  let u := pb.lift cn
+  have hu₁ : u ≫ pb.cone.π₁ = c := pb.lift_fst cn
+  have hu₂ : u ≫ pb.cone.π₂ = d := pb.lift_snd cn
+  obtain ⟨inv, hπinv, hinvπ⟩ : IsIso pb.cone.π₁ := hc pb.cone.π₁ u hπmono hu₁
+  refine ⟨inv ≫ pb.cone.π₂, ?_, ?_⟩
+  · rw [← hu₁, Cat.assoc, ← Cat.assoc pb.cone.π₁ inv pb.cone.π₂, hπinv, Cat.id_comp, hu₂]
+  · rw [Cat.assoc, ← pb.cone.w, ← Cat.assoc, hinvπ, Cat.id_comp]
+
+/-- Precomposing with a cover leaves the image unchanged: `image (c ≫ f)` and
+    `image f` contain one another.  `≤`-forward is automatic (`c ≫ f` factors
+    through `image f`); `≤`-backward uses cover⊥mono to factor `f` itself
+    through the monic `image (c ≫ f)`. -/
+theorem image_cover_comp {A B D : 𝒞} (c : A ⟶ B) (f : B ⟶ D) (hc : Cover c) :
+    (image (c ≫ f)).le (image f) ∧ (image f).le (image (c ≫ f)) := by
+  refine ⟨image_min _ _ ?_, image_min _ _ ?_⟩
+  · obtain ⟨g, hg⟩ := image_allows f
+    exact ⟨c ≫ g, by rw [Cat.assoc, hg]⟩
+  · obtain ⟨d, hd⟩ := image_allows (c ≫ f)
+    obtain ⟨g, _, hgm⟩ := cover_mono_diagonal hc (image (c ≫ f)).monic hd.symm
+    exact ⟨g, hgm⟩
+
 /-- **§1.56**: `⊚` is MONOTONE in both arguments — `R ⊂ R'` and `S ⊂ S'`
     imply `R ⊚ S ⊂ R' ⊚ S'`.  This needs no regularity: the two `RelHom`
     witnesses `hr, hs` assemble into a cone over `(R'.colB, S'.colA)`, whose
