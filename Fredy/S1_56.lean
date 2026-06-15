@@ -1511,10 +1511,126 @@ theorem relLe_of_cover_factor {A B : 𝒞} {X Y : BinRel 𝒞 A B} {P : 𝒞}
       _ = pair X.colA X.colB ≫ snd := by rw [hg]
       _ = X.colB := snd_pair _ _
 
-/-- **§1.56**: `⊚` is associative. -/
-theorem compose_assoc {A B C D : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 C D) :
+/-- **§1.56 / §1.569**: `⊚` is associative (`(R⊚S)⊚T ⊂ R⊚(S⊚T)`) in a regular
+    category.  Regularity is essential — `(R⊚S)⊚T` pulls `T` back along the
+    *image* leg `(R⊚S).colB`, so to relate it to the honest triple span one must
+    pull the image-cover `eRS : P_RS ↠ (R⊚S).src` back along that leg
+    (`cover_pullback`), obtaining a common cover `P1` carrying coherent
+    `R`-, `S`-, `T`-data.  On `P1` we assemble the map into `R⊚(S⊚T)`; the
+    descent `relLe_of_cover_factor` (cover⊥mono) turns it into the `RelHom`. -/
+theorem compose_assoc [PullbacksTransferCovers 𝒞] {A B C D : 𝒞}
+    (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 C D) :
     RelLe ((R ⊚ S) ⊚ T) (R ⊚ (S ⊚ T)) := by
-  sorry
+  -- the four image-factorisations underlying the two triple composites
+  let pbRS := HasPullbacks.has R.colB S.colA
+  let spanRS := pair (pbRS.cone.π₁ ≫ R.colA) (pbRS.cone.π₂ ≫ S.colB)
+  let eRS := image.lift spanRS
+  let pbRST := HasPullbacks.has (R ⊚ S).colB T.colA
+  let spanRST := pair (pbRST.cone.π₁ ≫ (R ⊚ S).colA) (pbRST.cone.π₂ ≫ T.colB)
+  let eRST := image.lift spanRST
+  let pbST := HasPullbacks.has S.colB T.colA
+  let spanST := pair (pbST.cone.π₁ ≫ S.colA) (pbST.cone.π₂ ≫ T.colB)
+  let eST := image.lift spanST
+  let pbRST' := HasPullbacks.has R.colB (S ⊚ T).colA
+  let spanR_ST := pair (pbRST'.cone.π₁ ≫ R.colA) (pbRST'.cone.π₂ ≫ (S ⊚ T).colB)
+  let eR_ST := image.lift spanR_ST
+  -- `e ≫ col` simplifications (image.lift_fac then fst/snd of the pair)
+  have hRSa : eRS ≫ (R ⊚ S).colA = pbRS.cone.π₁ ≫ R.colA := by
+    show eRS ≫ ((image spanRS).arr ≫ fst) = _
+    rw [← Cat.assoc, image.lift_fac, fst_pair]
+  have hRSb : eRS ≫ (R ⊚ S).colB = pbRS.cone.π₂ ≫ S.colB := by
+    show eRS ≫ ((image spanRS).arr ≫ snd) = _
+    rw [← Cat.assoc, image.lift_fac, snd_pair]
+  have hRSTa : eRST ≫ ((R ⊚ S) ⊚ T).colA = pbRST.cone.π₁ ≫ (R ⊚ S).colA := by
+    show eRST ≫ ((image spanRST).arr ≫ fst) = _
+    rw [← Cat.assoc, image.lift_fac, fst_pair]
+  have hRSTb : eRST ≫ ((R ⊚ S) ⊚ T).colB = pbRST.cone.π₂ ≫ T.colB := by
+    show eRST ≫ ((image spanRST).arr ≫ snd) = _
+    rw [← Cat.assoc, image.lift_fac, snd_pair]
+  have hSTa : eST ≫ (S ⊚ T).colA = pbST.cone.π₁ ≫ S.colA := by
+    show eST ≫ ((image spanST).arr ≫ fst) = _
+    rw [← Cat.assoc, image.lift_fac, fst_pair]
+  have hSTb : eST ≫ (S ⊚ T).colB = pbST.cone.π₂ ≫ T.colB := by
+    show eST ≫ ((image spanST).arr ≫ snd) = _
+    rw [← Cat.assoc, image.lift_fac, snd_pair]
+  have hR_STa : eR_ST ≫ (R ⊚ (S ⊚ T)).colA = pbRST'.cone.π₁ ≫ R.colA := by
+    show eR_ST ≫ ((image spanR_ST).arr ≫ fst) = _
+    rw [← Cat.assoc, image.lift_fac, fst_pair]
+  have hR_STb : eR_ST ≫ (R ⊚ (S ⊚ T)).colB = pbRST'.cone.π₂ ≫ (S ⊚ T).colB := by
+    show eR_ST ≫ ((image spanR_ST).arr ≫ snd) = _
+    rw [← Cat.assoc, image.lift_fac, snd_pair]
+  -- common cover `P1`: pull the image-cover `eRS` back along `pbRST.π₁`.
+  let pb1 := HasPullbacks.has eRS pbRST.cone.π₁
+  have hwcov : Cover pb1.cone.π₂ := cover_pullback pbRST.cone.π₁ (image_lift_cover spanRS)
+  have hw1 : pb1.cone.π₁ ≫ eRS = pb1.cone.π₂ ≫ pbRST.cone.π₁ := pb1.cone.w
+  -- the coherent R/S/T data on `P1`
+  let p := pb1.cone.π₁
+  let q := pb1.cone.π₂
+  let r := p ≫ pbRS.cone.π₁
+  let s := p ≫ pbRS.cone.π₂
+  let t := q ≫ pbRST.cone.π₂
+  -- S–T agreement at C
+  have hSTmid : s ≫ S.colB = t ≫ T.colA := by
+    calc s ≫ S.colB = p ≫ (eRS ≫ (R ⊚ S).colB) := by
+            rw [hRSb]; exact (Cat.assoc _ _ _)
+      _ = (p ≫ eRS) ≫ (R ⊚ S).colB := (Cat.assoc _ _ _).symm
+      _ = (q ≫ pbRST.cone.π₁) ≫ (R ⊚ S).colB := by rw [hw1]
+      _ = q ≫ (pbRST.cone.π₁ ≫ (R ⊚ S).colB) := Cat.assoc _ _ _
+      _ = q ≫ (pbRST.cone.π₂ ≫ T.colA) := by rw [pbRST.cone.w]
+      _ = t ≫ T.colA := (Cat.assoc _ _ _).symm
+  -- assemble P1 → P_ST → (S⊚T).src
+  let mST := pbST.lift ⟨pb1.cone.pt, s, t, hSTmid⟩
+  have hmST1 : mST ≫ pbST.cone.π₁ = s := pbST.lift_fst _
+  have hmST2 : mST ≫ pbST.cone.π₂ = t := pbST.lift_snd _
+  let ist := mST ≫ eST
+  have hista : ist ≫ (S ⊚ T).colA = s ≫ S.colA := by
+    calc ist ≫ (S ⊚ T).colA = mST ≫ (eST ≫ (S ⊚ T).colA) := Cat.assoc _ _ _
+      _ = mST ≫ (pbST.cone.π₁ ≫ S.colA) := by rw [hSTa]
+      _ = (mST ≫ pbST.cone.π₁) ≫ S.colA := (Cat.assoc _ _ _).symm
+      _ = s ≫ S.colA := by rw [hmST1]
+  have histb : ist ≫ (S ⊚ T).colB = t ≫ T.colB := by
+    calc ist ≫ (S ⊚ T).colB = mST ≫ (eST ≫ (S ⊚ T).colB) := Cat.assoc _ _ _
+      _ = mST ≫ (pbST.cone.π₂ ≫ T.colB) := by rw [hSTb]
+      _ = (mST ≫ pbST.cone.π₂) ≫ T.colB := (Cat.assoc _ _ _).symm
+      _ = t ≫ T.colB := by rw [hmST2]
+  -- R–(S⊚T) agreement at B
+  have hRmid : r ≫ R.colB = ist ≫ (S ⊚ T).colA := by
+    calc r ≫ R.colB = p ≫ (pbRS.cone.π₁ ≫ R.colB) := Cat.assoc _ _ _
+      _ = p ≫ (pbRS.cone.π₂ ≫ S.colA) := by rw [pbRS.cone.w]
+      _ = (p ≫ pbRS.cone.π₂) ≫ S.colA := (Cat.assoc _ _ _).symm
+      _ = s ≫ S.colA := rfl
+      _ = ist ≫ (S ⊚ T).colA := hista.symm
+  -- assemble P1 → P_R(ST)
+  let mR := pbRST'.lift ⟨pb1.cone.pt, r, ist, hRmid⟩
+  have hmR1 : mR ≫ pbRST'.cone.π₁ = r := pbRST'.lift_fst _
+  have hmR2 : mR ≫ pbRST'.cone.π₂ = ist := pbRST'.lift_snd _
+  -- the cover onto ((R⊚S)⊚T).src and the descent map φ
+  refine relLe_of_cover_factor (q ≫ eRST) (cover_comp hwcov (image_lift_cover spanRST))
+    (mR ≫ eR_ST) ?_ ?_
+  · -- φ ≫ (R⊚(S⊚T)).colA = c ≫ ((R⊚S)⊚T).colA
+    calc (mR ≫ eR_ST) ≫ (R ⊚ (S ⊚ T)).colA
+        = mR ≫ (eR_ST ≫ (R ⊚ (S ⊚ T)).colA) := Cat.assoc _ _ _
+      _ = mR ≫ (pbRST'.cone.π₁ ≫ R.colA) := by rw [hR_STa]
+      _ = (mR ≫ pbRST'.cone.π₁) ≫ R.colA := (Cat.assoc _ _ _).symm
+      _ = r ≫ R.colA := by rw [hmR1]
+      _ = p ≫ (pbRS.cone.π₁ ≫ R.colA) := Cat.assoc _ _ _
+      _ = p ≫ (eRS ≫ (R ⊚ S).colA) := by rw [hRSa]
+      _ = (p ≫ eRS) ≫ (R ⊚ S).colA := (Cat.assoc _ _ _).symm
+      _ = (q ≫ pbRST.cone.π₁) ≫ (R ⊚ S).colA := by rw [hw1]
+      _ = q ≫ (pbRST.cone.π₁ ≫ (R ⊚ S).colA) := Cat.assoc _ _ _
+      _ = q ≫ (eRST ≫ ((R ⊚ S) ⊚ T).colA) := by rw [hRSTa]
+      _ = (q ≫ eRST) ≫ ((R ⊚ S) ⊚ T).colA := (Cat.assoc _ _ _).symm
+  · -- φ ≫ (R⊚(S⊚T)).colB = c ≫ ((R⊚S)⊚T).colB
+    calc (mR ≫ eR_ST) ≫ (R ⊚ (S ⊚ T)).colB
+        = mR ≫ (eR_ST ≫ (R ⊚ (S ⊚ T)).colB) := Cat.assoc _ _ _
+      _ = mR ≫ (pbRST'.cone.π₂ ≫ (S ⊚ T).colB) := by rw [hR_STb]
+      _ = (mR ≫ pbRST'.cone.π₂) ≫ (S ⊚ T).colB := (Cat.assoc _ _ _).symm
+      _ = ist ≫ (S ⊚ T).colB := by rw [hmR2]
+      _ = t ≫ T.colB := histb
+      _ = (q ≫ pbRST.cone.π₂) ≫ T.colB := rfl
+      _ = q ≫ (pbRST.cone.π₂ ≫ T.colB) := Cat.assoc _ _ _
+      _ = q ≫ (eRST ≫ ((R ⊚ S) ⊚ T).colB) := by rw [hRSTb]
+      _ = (q ≫ eRST) ≫ ((R ⊚ S) ⊚ T).colB := (Cat.assoc _ _ _).symm
 
 /-- **§1.56**: `⊚` is associative (reverse containment). -/
 theorem compose_assoc' {A B C D : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 C D) :
