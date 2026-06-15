@@ -129,6 +129,38 @@ theorem homRep_reflects_mono (𝒞 : Type u) [Cat.{u} 𝒞] : ReflectsMono (homR
   have hpq' : p = q := hf p q hpq
   simpa [p, q, Cat.id_comp] using congrFun (congrFun hpq' W) (Cat.id W)
 
+/-- **Exactness, cover side (conditional):** in a regular category, if `i` is
+    PROJECTIVE then `Hom(i, -)` carries a cover `f` to a surjection — every
+    `h : i → Y` lifts through `f`.  Pull `f` back along `h`; the leg over `i` is a
+    cover (`cover_pullback`), and projectivity splits it, giving the lift.
+    (`hi` is `Projective i` of §1.57 written out; projectivity is precisely what
+    the §1.543 capitalization supplies, so this pinpoints capitalization as the
+    ONLY missing ingredient for an *exact* Henkin–Lubkin representation.) -/
+theorem hom_lifts_cover_of_projective {𝒞 : Type u} [Cat.{w} 𝒞] [HasPullbacks 𝒞]
+    [PullbacksTransferCovers 𝒞] {i X Y : 𝒞}
+    (hi : ∀ {P : 𝒞} (e : P ⟶ i), Cover e → ∃ s : i ⟶ P, s ≫ e = Cat.id i)
+    {f : X ⟶ Y} (hf : Cover f) (h : i ⟶ Y) : ∃ h' : i ⟶ X, h' ≫ f = h := by
+  let pb := HasPullbacks.has f h
+  obtain ⟨s, hs⟩ := hi pb.cone.π₂ (cover_pullback h hf)
+  refine ⟨s ≫ pb.cone.π₁, ?_⟩
+  calc (s ≫ pb.cone.π₁) ≫ f = s ≫ (pb.cone.π₁ ≫ f) := Cat.assoc _ _ _
+    _ = s ≫ (pb.cone.π₂ ≫ h) := by rw [pb.cone.w]
+    _ = (s ≫ pb.cone.π₂) ≫ h := (Cat.assoc _ _ _).symm
+    _ = h := by rw [hs, Cat.id_comp]
+
+/-- **Exact Henkin–Lubkin, modulo capitalization:** if every object of the
+    regular category `𝒞` is projective (a *capital* category — what §1.543
+    delivers), then `homRep` preserves covers componentwise: `Hom(i, f)` is
+    surjective at every index `i` for a cover `f`.  Combined with
+    `homRep_preserves_mono`/`_reflects_mono`, this is the full exactness of the
+    representation; only the projectivity hypothesis (capitalization) is open. -/
+theorem homRep_preserves_cover_pointwise {𝒞 : Type u} [Cat.{u} 𝒞] [HasPullbacks 𝒞]
+    [PullbacksTransferCovers 𝒞]
+    (hproj : ∀ C : 𝒞, ∀ {P : 𝒞} (e : P ⟶ C), Cover e → ∃ s : C ⟶ P, s ≫ e = Cat.id C)
+    {X Y : 𝒞} {f : X ⟶ Y} (hf : Cover f) (i : 𝒞) (h : homRep 𝒞 Y i) :
+    ∃ h' : homRep 𝒞 X i, (homRepFunctor 𝒞).map f i h' = h :=
+  hom_lifts_cover_of_projective (hproj i) hf h
+
 end HomRep
 
 /-! ## §1.55 The points functor 𝒞 → 𝒮 -/
