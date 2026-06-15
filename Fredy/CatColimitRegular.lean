@@ -469,12 +469,41 @@ noncomputable def colimitHasEqualizers (C : CatSystem ι D) (hC : C.Coherent)
     let h_M_kpE : D.le M kpE := Classical.choose hkpE2
     have h_E_eq : C.F h_ipE_kpE opE = C.F h_M_kpE Eobj := Classical.choose_spec hkpE2
     -- the equalizer map E ⟶ X, as a germ from `opE` (= colimOut rep of E) to `xX`
-    let m : E ⟶ X :=
-      homIncl C hC opE xX ⟨kpE, h_ipE_kpE, D.trans hiXM h_M_kpE⟩
-        (castHom h_E_eq.symm (C.F_trans hiXM h_M_kpE xX).symm
-          ((C.functF h_M_kpE).map (eqMap fM gM)))
+    let ubm : UpperBound D ipE iX := ⟨kpE, h_ipE_kpE, D.trans hiXM h_M_kpE⟩
+    let gm : C.F ubm.2.1 opE ⟶ C.F ubm.2.2 xX :=
+      castHom h_E_eq.symm (C.F_trans hiXM h_M_kpE xX).symm ((C.functF h_M_kpE).map (eqMap fM gM))
+    let m : E ⟶ X := homIncl C hC opE xX ubm gm
     refine ⟨E, m, ?_, ?_⟩
-    · sorry
+    · -- equalizing: m ≫ F = m ≫ G.
+      -- Generic: composing `m` (germ `gm` at `kpE`) with a right germ `gg` that
+      -- lifts to `gMrep : fM↔gM` at `M` equals the germ `eqMap fM gM ≫ gMrep`.
+      have hcomp : ∀ (a : UpperBound D iX iY) (gg : C.F a.2.1 xX ⟶ C.F a.2.2 xY)
+          (haM : D.le a.1 M) (gMrep : C.F hiXM xX ⟶ C.F hiYM xY)
+          (_hgg : homTr C xX xY a ⟨M, hiXM, hiYM⟩ haM gg = gMrep),
+          homCompRaw C hC opE xX xY ubm gm a gg
+            = homIncl C hC opE xY ⟨kpE, h_ipE_kpE, D.trans hiYM h_M_kpE⟩
+                (castHom h_E_eq.symm (C.F_trans hiYM h_M_kpE xY).symm
+                  ((C.functF h_M_kpE).map (eqMap fM gM ≫ gMrep))) := by
+        intro a gg haM gMrep hgg
+        refine homCompRaw_eq_of_stage C hC opE xX xY ubm gm a gg
+          ⟨kpE, h_ipE_kpE, D.trans hiYM h_M_kpE⟩ _ kpE (D.refl kpE) (D.trans haM h_M_kpE)
+          (D.refl kpE) ?_
+        -- stage equation at `kpE`
+        rw [homTr_refl C hC opE xX ubm gm]
+        rw [show homTr C xX xY a ⟨kpE, D.trans a.2.1 (D.trans haM h_M_kpE), D.trans a.2.2 (D.trans haM h_M_kpE)⟩
+              (D.trans haM h_M_kpE) gg
+            = homTr C xX xY ⟨M, hiXM, hiYM⟩ ⟨kpE, D.trans hiXM h_M_kpE, D.trans hiYM h_M_kpE⟩ h_M_kpE gMrep from by
+          rw [← hgg, ← homTr_trans C hC xX xY a ⟨M, hiXM, hiYM⟩ _ haM h_M_kpE gg]]
+        rw [homTr_refl C hC opE xY ⟨kpE, h_ipE_kpE, D.trans hiYM h_M_kpE⟩]
+        -- now: gm ≫ homTr gMrep = castHom .. (map (eqMap fM gM ≫ gMrep))
+        show castHom h_E_eq.symm (C.F_trans hiXM h_M_kpE xX).symm ((C.functF h_M_kpE).map (eqMap fM gM))
+            ≫ castHom (C.F_trans hiXM h_M_kpE xX).symm (C.F_trans hiYM h_M_kpE xY).symm
+                ((C.functF h_M_kpE).map gMrep)
+          = castHom h_E_eq.symm (C.F_trans hiYM h_M_kpE xY).symm
+              ((C.functF h_M_kpE).map (eqMap fM gM ≫ gMrep))
+        rw [castHom_comp, ← (C.functF h_M_kpE).map_comp]
+      show homCompRaw C hC opE xX xY ubm gm aF fF = homCompRaw C hC opE xX xY ubm gm aG gG
+      rw [hcomp aF fF haFM fM rfl, hcomp aG gG haGM gM rfl, eqMap_eq fM gM]
     · sorry
   refine ⟨fun X Y F G => ?_⟩
   -- extract the data by choice (the goal `HasEqualizer F G` is a Type, so `obtain` is illegal)
