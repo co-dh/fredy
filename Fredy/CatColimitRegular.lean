@@ -492,6 +492,15 @@ noncomputable def colimitHasEqualizers (C : CatSystem ι D) (hC : C.Coherent)
             = homCompRaw C hC xW opE xX aL' lL' ubm gm from rfl,
           homCompRaw_eq_compAt C hC xW opE xX aL lL ubm gm P haLP hkpEP,
           homCompRaw_eq_compAt C hC xW opE xX aL' lL' ubm gm P haLP' hkpEP] at hll
+      obtain ⟨R, hPR, hPR', hReq⟩ := Quotient.exact hll
+      dsimp only [homSystem] at hReq
+      obtain ⟨L, hRL, _⟩ := D.bound R.1 R.1
+      have key := congrArg
+        (homTr C xW xX R ⟨L, D.trans R.2.1 hRL, D.trans R.2.2 hRL⟩ hRL) hReq
+      rw [← homTr_trans C hC, ← homTr_trans C hC] at key
+      rw [homTr_comp C, homTr_comp C] at key
+      rw [← homTr_trans C hC, ← homTr_trans C hC, ← homTr_trans C hC] at key
+      -- key : homTr lL (aL→L) ≫ homTr gm (ubm→L) = homTr lL' (aL'→L) ≫ homTr gm (ubm→L)
       sorry
     refine ⟨E, m, ?_, ?_⟩
     · -- equalizing: m ≫ F = m ≫ G.
