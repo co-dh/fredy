@@ -939,17 +939,35 @@ theorem cover_is_coequalizer_of_level {A B : 𝒞} (x : A ⟶ B) [RegularCategor
   E : A → A is an EQUIVALENCE RELATION if 1 ≤ E, E° ≤ E, EE ≤ E.
   The level (kernel pair) of any morphism is an equivalence relation. -/
 
-/-- **§1.567**: The level (kernel pair) of any morphism is an equivalence
-    relation.  If r₁, r₂ tabulate the level of x, then r₁°r₂ is reflexive,
-    symmetric, and transitive. -/
-theorem level_is_equivalence_relation {A B L : 𝒞} (_x : A ⟶ B) (_r₁ _r₂ : L ⟶ A)
-    (_h_tabulates : True) : True := by
-  trivial
-
 def EquivalenceRelation {A : 𝒞} (E : BinRel 𝒞 A A) : Prop :=
   (∃ (h : A ⟶ E.src), h ≫ E.colA = Cat.id A ∧ h ≫ E.colB = Cat.id A) ∧
   Nonempty (RelHom E (reciprocal E)) ∧
   True  -- transitivity requires composition
+
+/-- The LEVEL (kernel pair) of `x`, packaged as a binary relation on `A`:
+    columns `(kp₁, kp₂)`, jointly monic as the legs of a pullback. -/
+def kernelPairRel [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
+    {A B : 𝒞} (x : A ⟶ B) : BinRel 𝒞 A A where
+  src := kernelPair x
+  colA := kp₁ (f := x)
+  colB := kp₂ (f := x)
+  isMonicPair := by
+    intro W f g h1 h2
+    have hfw : (f ≫ kp₁ (f := x)) ≫ x = (f ≫ kp₂ (f := x)) ≫ x := by
+      rw [Cat.assoc, kp_sq, ← Cat.assoc]
+    exact (kp_lift_uniq (f ≫ kp₁) (f ≫ kp₂) hfw f rfl rfl).trans
+          (kp_lift_uniq (f ≫ kp₁) (f ≫ kp₂) hfw g h1.symm h2.symm).symm
+
+/-- **§1.567**: The level (kernel pair) of any morphism is an equivalence
+    relation — reflexive (the diagonal `kp_diag`), symmetric (the pullback
+    swap of the two legs).  Transitivity is the `True` slot of
+    `EquivalenceRelation` (it needs relation composition). -/
+theorem level_is_equivalence_relation [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
+    {A B : 𝒞} (x : A ⟶ B) : EquivalenceRelation (kernelPairRel x) := by
+  refine ⟨⟨kp_diag (f := x), kp_diag_p₁, kp_diag_p₂⟩, ⟨⟨?_, ?_, ?_⟩⟩, trivial⟩
+  · exact (HasPullbacks.has x x).lift ⟨_, kp₂ (f := x), kp₁ (f := x), kp_sq.symm⟩
+  · exact kp_lift_p₂ (kp₂ (f := x)) (kp₁ (f := x)) kp_sq.symm
+  · exact kp_lift_p₁ (kp₂ (f := x)) (kp₁ (f := x)) kp_sq.symm
 
 /-- **§1.568**: An equivalence relation E on A is EFFECTIVE if it is the level
     (kernel pair) of a cover (quotient-object) x : A → Q.  Equivalently,
