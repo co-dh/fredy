@@ -14,6 +14,7 @@ import Fredy.S1_41
 import Fredy.S1_42
 import Fredy.S1_43
 import Fredy.S1_45
+import Fredy.S1_52
 
 
 universe v u
@@ -67,11 +68,40 @@ theorem monic_is_equalizer {A A' : 𝒞} (m : A' ⟶ A) (hm : Mono m) :
         (⟨E, e, term E, hw⟩ : Cone (HasSubobjectClassifier.classify m hm) HasSubobjectClassifier.true)
     exact ⟨u, hu, fun k' hk' => hm k' u (hk'.trans hu.symm)⟩
 
+/-- **§1.913 (balanced)**: A topos is BALANCED — a morphism that is both monic
+    and epic is an isomorphism.  Since `m` is the equalizer of `χ_m` and
+    `A → 1 → Ω` (`monic_is_equalizer`), epicness collapses `χ_m = term ≫ true`,
+    so `1_B` equalizes the pair and factors through `m`, splitting it; a split
+    epic mono is iso. -/
+theorem topos_mono_epi_iso {A B : 𝒞} (m : A ⟶ B) (hm : Mono m)
+    (hepi : ∀ {C : 𝒞} (g h : B ⟶ C), m ≫ g = m ≫ h → g = h) : IsIso m := by
+  obtain ⟨heq, huniv⟩ := monic_is_equalizer m hm
+  -- epic cancels `m` from `m ≫ χ = m ≫ (term ≫ true)`.
+  have hχ : HasSubobjectClassifier.classify m hm = term B ≫ HasSubobjectClassifier.true :=
+    hepi _ _ heq
+  -- `1_B` equalizes the (now equal) pair, so it factors as `k ≫ m = 1_B`.
+  obtain ⟨k, hk, _⟩ := huniv (Cat.id B) (by rw [hχ])
+  refine ⟨k, ?_, hk⟩
+  -- `m ≫ k = 1_A` by monic cancellation: `(m ≫ k) ≫ m = m = 1_A ≫ m`.
+  exact hm _ _ (by rw [Cat.assoc, hk, Cat.comp_id, Cat.id_comp])
+
 /-- **§1.913**: In a topos, covers coincide with epimorphisms.
-    Because every monic is an equalizer, every cover (= family containing a split)
-    is epic; and the converse holds from the subobject classifier property. -/
-theorem covers_coincide_with_epis {A B : 𝒞} (f : A ⟶ B) : True := by
-  trivial
+    Forward: every cover is epic (`cover_epi`, general).  Converse: an epic `f`
+    has an epic image-monic `(image f).arr`, which is then iso by balancedness
+    (`topos_mono_epi_iso`), so `image f` is entire and `f` is a cover. -/
+theorem covers_coincide_with_epis [HasImages 𝒞] {A B : 𝒞} (f : A ⟶ B) :
+    Cover f ↔ (∀ {C : 𝒞} (g h : B ⟶ C), f ≫ g = f ≫ h → g = h) := by
+  constructor
+  · intro hc _C g h hgh; exact cover_epi hc hgh
+  · intro hepi
+    rw [cover_iff_image_entire]
+    -- `(image f).arr` is monic and (since `f` is epic) epic, hence iso.
+    refine topos_mono_epi_iso (image f).arr (image f).monic (fun g h hgh => hepi g h ?_)
+    calc f ≫ g = (image.lift f ≫ (image f).arr) ≫ g := by rw [image.lift_fac]
+      _ = image.lift f ≫ ((image f).arr ≫ g) := Cat.assoc _ _ _
+      _ = image.lift f ≫ ((image f).arr ≫ h) := by rw [hgh]
+      _ = (image.lift f ≫ (image f).arr) ≫ h := (Cat.assoc _ _ _).symm
+      _ = f ≫ h := by rw [image.lift_fac]
 
 /-! ## §1.919  Monic endomorphisms of Ω are involutions
 
