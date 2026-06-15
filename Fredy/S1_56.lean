@@ -922,6 +922,38 @@ def pullback_of_covers_is_pushout {A B C P : 𝒞} (x : A ⟶ B) (y : C ⟶ B)
     (_h_cover_y : Cover y) : HasPushout p₁ p₂ := by
   sorry
 
+/-- In any category with images, `image.lift f` is a cover (the first factor in the
+    cover-monic factorization of `f`).  Proof: if it factors through a monic `m`, then
+    the subobject with arr = `m ≫ (image f).arr` allows `f`; image-minimality forces `m`
+    to be a split monic, hence iso.  (Identical to the proof in S1_57, reproduced here
+    to avoid a circular import: S1_57 imports S1_56.) -/
+theorem image_lift_cover {A B : 𝒞} (f : A ⟶ B) [HasImages 𝒞] : Cover (image.lift f) := by
+  intro D m g hm hfac
+  -- hfac: g ≫ m = image.lift f, so f = g ≫ (m ≫ (image f).arr)
+  have hmono_comp : Mono (m ≫ (image f).arr) := by
+    intro W u v huv
+    have h1 : u ≫ m = v ≫ m := (image f).monic _ _ (by
+      simpa [Cat.assoc] using huv)
+    exact hm _ _ h1
+  have h_allows : Allows ⟨D, m ≫ (image f).arr, hmono_comp⟩ f := by
+    refine ⟨g, ?_⟩
+    calc g ≫ (m ≫ (image f).arr) = (g ≫ m) ≫ (image f).arr := (Cat.assoc _ _ _).symm
+      _ = (image.lift f) ≫ (image f).arr := by rw [hfac]
+      _ = f := image.lift_fac f
+  have h_le : (image f).le ⟨D, m ≫ (image f).arr, hmono_comp⟩ := image_min f _ h_allows
+  rcases h_le with ⟨h, hh⟩
+  -- hh: h ≫ (m ≫ (image f).arr) = (image f).arr
+  have hhm : h ≫ m = Cat.id (image f).dom := (image f).monic (h ≫ m) (Cat.id _) (by
+    calc (h ≫ m) ≫ (image f).arr = h ≫ (m ≫ (image f).arr) := Cat.assoc _ _ _
+      _ = (image f).arr := hh
+      _ = Cat.id (image f).dom ≫ (image f).arr := (Cat.id_comp _).symm)
+  have hmh : m ≫ h = Cat.id D := hm (m ≫ h) (Cat.id D) (by
+    calc (m ≫ h) ≫ m = m ≫ (h ≫ m) := Cat.assoc _ _ _
+      _ = m ≫ Cat.id (image f).dom := by rw [hhm]
+      _ = m := Cat.comp_id _
+      _ = Cat.id D ≫ m := (Cat.id_comp _).symm)
+  exact ⟨h, hmh, hhm⟩
+
 /-! ## §1.566 Every cover is a coequalizer
 
   In a regular category, every cover x : A → B is the coequalizer of its
@@ -939,16 +971,74 @@ def pullback_of_covers_is_pushout {A B C P : 𝒞} (x : A ⟶ B) (y : C ⟶ B)
     exhibits the cover `x` factoring through the monic `p`, so `p` is iso, and
     `h := p⁻¹ ≫ (I.arr ≫ snd)` is the factorization — unique since `x` is epic. -/
 theorem cover_is_coequalizer_of_level {A B : 𝒞} (x : A ⟶ B) [RegularCategory 𝒞]
-    (hx : Cover x) {C : 𝒞} (g : A ⟶ C) (_hg : kp₁ (f := x) ≫ g = kp₂ (f := x) ≫ g) :
+    (hx : Cover x) {C : 𝒞} (g : A ⟶ C) (hg : kp₁ (f := x) ≫ g = kp₂ (f := x) ≫ g) :
     ∃ h : B ⟶ C, x ≫ h = g ∧ ∀ h' : B ⟶ C, x ≫ h' = g → h' = h := by
   let xg := pair x g
   let I := image xg
   have hx_fac : image.lift xg ≫ (I.arr ≫ fst) = x := by
     rw [← Cat.assoc, image.lift_fac, fst_pair]
-  -- ONE regular step: `g` equalizing the kernel pair forces the image relation
-  -- to be functional, i.e. its first leg `I.arr ≫ fst` is monic.
+  have hq : image.lift xg ≫ (I.arr ≫ snd) = g := by
+    rw [← Cat.assoc, image.lift_fac, snd_pair]
+  -- The image relation `{(x a, g a)}` is FUNCTIONAL: its first leg is monic.
+  -- Take `u, v` agreeing after the first leg; pull the cover `image.lift xg`
+  -- back along `u`, then along that pullback composed with `v`, giving a single
+  -- cover `c` and two preimages `au, av` with `au≫e = c≫u`, `av≫e = c≫v`.
+  -- They agree after `x` (hyp on first leg), so land in the kernel pair, whence
+  -- `au≫g = av≫g` (the equalizing hypothesis `hg`); cancelling the cover `c`
+  -- gives agreement after the second leg, and `I.arr` monic finishes.
   have hp_mono : Mono (I.arr ≫ fst) := by
-    sorry
+    intro W u v huv
+    have he_cover : Cover (image.lift xg) := image_lift_cover xg
+    let pb1 := HasPullbacks.has (image.lift xg) u
+    have hπ₂u_cover : Cover pb1.cone.π₂ := cover_pullback u he_cover
+    let pb2 := HasPullbacks.has (image.lift xg) (pb1.cone.π₂ ≫ v)
+    have hρ_cover : Cover pb2.cone.π₂ := cover_pullback (pb1.cone.π₂ ≫ v) he_cover
+    let c := pb2.cone.π₂ ≫ pb1.cone.π₂
+    let au := pb2.cone.π₂ ≫ pb1.cone.π₁
+    let av := pb2.cone.π₁
+    have hau_e : au ≫ image.lift xg = c ≫ u := by
+      dsimp only [au, c]; rw [Cat.assoc, pb1.cone.w, ← Cat.assoc]
+    have hav_e : av ≫ image.lift xg = c ≫ v := by
+      dsimp only [av, c]; rw [pb2.cone.w, ← Cat.assoc]
+    have hax : au ≫ x = av ≫ x := by
+      calc au ≫ x = (au ≫ image.lift xg) ≫ (I.arr ≫ fst) := by rw [← hx_fac]; exact (Cat.assoc _ _ _).symm
+        _ = (c ≫ u) ≫ (I.arr ≫ fst) := by rw [hau_e]
+        _ = c ≫ (u ≫ (I.arr ≫ fst)) := Cat.assoc _ _ _
+        _ = c ≫ (v ≫ (I.arr ≫ fst)) := by rw [huv]
+        _ = (c ≫ v) ≫ (I.arr ≫ fst) := (Cat.assoc _ _ _).symm
+        _ = (av ≫ image.lift xg) ≫ (I.arr ≫ fst) := by rw [hav_e]
+        _ = av ≫ x := by rw [← hx_fac]; exact Cat.assoc _ _ _
+    let l := (HasPullbacks.has x x).lift ⟨_, au, av, hax⟩
+    have hl₁ : l ≫ kp₁ (f := x) = au := kp_lift_p₁ au av hax
+    have hl₂ : l ≫ kp₂ (f := x) = av := kp_lift_p₂ au av hax
+    have hag : au ≫ g = av ≫ g := by
+      calc au ≫ g = (l ≫ kp₁ (f := x)) ≫ g := by rw [hl₁]
+        _ = l ≫ (kp₁ (f := x) ≫ g) := Cat.assoc _ _ _
+        _ = l ≫ (kp₂ (f := x) ≫ g) := by rw [hg]
+        _ = (l ≫ kp₂ (f := x)) ≫ g := (Cat.assoc _ _ _).symm
+        _ = av ≫ g := by rw [hl₂]
+    have hagc : c ≫ (u ≫ (I.arr ≫ snd)) = c ≫ (v ≫ (I.arr ≫ snd)) := by
+      calc c ≫ (u ≫ (I.arr ≫ snd)) = (c ≫ u) ≫ (I.arr ≫ snd) := (Cat.assoc _ _ _).symm
+        _ = (au ≫ image.lift xg) ≫ (I.arr ≫ snd) := by rw [hau_e]
+        _ = au ≫ (image.lift xg ≫ (I.arr ≫ snd)) := Cat.assoc _ _ _
+        _ = au ≫ g := by rw [hq]
+        _ = av ≫ g := hag
+        _ = av ≫ (image.lift xg ≫ (I.arr ≫ snd)) := by rw [hq]
+        _ = (av ≫ image.lift xg) ≫ (I.arr ≫ snd) := (Cat.assoc _ _ _).symm
+        _ = (c ≫ v) ≫ (I.arr ≫ snd) := by rw [hav_e]
+        _ = c ≫ (v ≫ (I.arr ≫ snd)) := Cat.assoc _ _ _
+    have huvq : u ≫ (I.arr ≫ snd) = v ≫ (I.arr ≫ snd) := by
+      apply cover_epi hπ₂u_cover
+      apply cover_epi hρ_cover
+      rw [← Cat.assoc pb2.cone.π₂ pb1.cone.π₂, ← Cat.assoc pb2.cone.π₂ pb1.cone.π₂]
+      exact hagc
+    -- `u ≫ I.arr` and `v ≫ I.arr` agree on both projections, so are equal.
+    have he1 : (u ≫ I.arr) ≫ fst = (v ≫ I.arr) ≫ fst := by rw [Cat.assoc, Cat.assoc]; exact huv
+    have he2 : (u ≫ I.arr) ≫ snd = (v ≫ I.arr) ≫ snd := by rw [Cat.assoc, Cat.assoc]; exact huvq
+    have hext : u ≫ I.arr = v ≫ I.arr := by
+      rw [pair_uniq ((v ≫ I.arr) ≫ fst) ((v ≫ I.arr) ≫ snd) (u ≫ I.arr) he1 he2]
+      exact (pair_uniq ((v ≫ I.arr) ≫ fst) ((v ≫ I.arr) ≫ snd) (v ≫ I.arr) rfl rfl).symm
+    exact I.monic u v hext
   have hp_iso : IsIso (I.arr ≫ fst) := hx (I.arr ≫ fst) (image.lift xg) hp_mono hx_fac
   obtain ⟨pinv, hpi1, hpi2⟩ := hp_iso
   have hxpinv : x ≫ pinv = image.lift xg := by
@@ -1126,38 +1216,6 @@ theorem regular_of_compose_assoc
       RelLe ((R ⊚ S) ⊚ T) (R ⊚ (S ⊚ T)) ∧ RelLe (R ⊚ (S ⊚ T)) ((R ⊚ S) ⊚ T))
     : PullbacksTransferCovers 𝒞 := by
   sorry
-
-/-- In any category with images, `image.lift f` is a cover (the first factor in the
-    cover-monic factorization of `f`).  Proof: if it factors through a monic `m`, then
-    the subobject with arr = `m ≫ (image f).arr` allows `f`; image-minimality forces `m`
-    to be a split monic, hence iso.  (Identical to the proof in S1_57, reproduced here
-    to avoid a circular import: S1_57 imports S1_56.) -/
-theorem image_lift_cover {A B : 𝒞} (f : A ⟶ B) [HasImages 𝒞] : Cover (image.lift f) := by
-  intro D m g hm hfac
-  -- hfac: g ≫ m = image.lift f, so f = g ≫ (m ≫ (image f).arr)
-  have hmono_comp : Mono (m ≫ (image f).arr) := by
-    intro W u v huv
-    have h1 : u ≫ m = v ≫ m := (image f).monic _ _ (by
-      simpa [Cat.assoc] using huv)
-    exact hm _ _ h1
-  have h_allows : Allows ⟨D, m ≫ (image f).arr, hmono_comp⟩ f := by
-    refine ⟨g, ?_⟩
-    calc g ≫ (m ≫ (image f).arr) = (g ≫ m) ≫ (image f).arr := (Cat.assoc _ _ _).symm
-      _ = (image.lift f) ≫ (image f).arr := by rw [hfac]
-      _ = f := image.lift_fac f
-  have h_le : (image f).le ⟨D, m ≫ (image f).arr, hmono_comp⟩ := image_min f _ h_allows
-  rcases h_le with ⟨h, hh⟩
-  -- hh: h ≫ (m ≫ (image f).arr) = (image f).arr
-  have hhm : h ≫ m = Cat.id (image f).dom := (image f).monic (h ≫ m) (Cat.id _) (by
-    calc (h ≫ m) ≫ (image f).arr = h ≫ (m ≫ (image f).arr) := Cat.assoc _ _ _
-      _ = (image f).arr := hh
-      _ = Cat.id (image f).dom ≫ (image f).arr := (Cat.id_comp _).symm)
-  have hmh : m ≫ h = Cat.id D := hm (m ≫ h) (Cat.id D) (by
-    calc (m ≫ h) ≫ m = m ≫ (h ≫ m) := Cat.assoc _ _ _
-      _ = m ≫ Cat.id (image f).dom := by rw [hhm]
-      _ = m := Cat.comp_id _
-      _ = Cat.id D ≫ m := (Cat.id_comp _).symm)
-  exact ⟨h, hmh, hhm⟩
 
 theorem compose_assoc_of_regular [RegularCategory 𝒞] {A B C D : 𝒞}
     (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 C D) :
