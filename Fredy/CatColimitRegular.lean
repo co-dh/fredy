@@ -501,7 +501,43 @@ noncomputable def colimitHasEqualizers (C : CatSystem ι D) (hC : C.Coherent)
       rw [homTr_comp C, homTr_comp C] at key
       rw [← homTr_trans C hC, ← homTr_trans C hC, ← homTr_trans C hC] at key
       -- key : homTr lL (aL→L) ≫ homTr gm (ubm→L) = homTr lL' (aL'→L) ≫ homTr gm (ubm→L)
-      sorry
+      have hkpEL : D.le kpE L := D.trans hkpEP (D.trans hPR hRL)
+      have hML : D.le M L := D.trans h_M_kpE hkpEL
+      have hipEL : D.le ipE L := D.trans h_ipE_kpE hkpEL
+      have hiXL : D.le iX L := D.trans hiXM hML
+      have hHd : C.F hML Eobj = C.F hipEL opE :=
+        calc C.F hML Eobj = C.F hkpEL (C.F h_M_kpE Eobj) := by rw [C.F_trans h_M_kpE hkpEL Eobj]
+          _ = C.F hkpEL (C.F h_ipE_kpE opE) := by rw [← h_E_eq]
+          _ = C.F hipEL opE := by rw [← C.F_trans h_ipE_kpE hkpEL opE]
+      have hHc : C.F hML (C.F hiXM xX) = C.F hiXL xX := (C.F_trans hiXM hML xX).symm
+      have hpush_gm : homTr C opE xX ubm ⟨L, hipEL, hiXL⟩ hkpEL gm
+          = castHom hHd hHc ((C.functF hML).map (eqMap fM gM)) := by
+        dsimp [homTr, gm]
+        rw [map_castHom (C.F hkpEL) (hT := C.functF hkpEL), castHom_castHom]
+        exact castHom_heq_congr _ _ _ _ (hC.trans_map h_M_kpE hkpEL (eqMap fM gM)).symm
+      rw [hpush_gm] at key
+      -- cancel the `eqMap`-map on the right via `hpres`
+      have cR : ∀ {U V V' Wq : C.A L} (he : V = V') (a : U ⟶ V) (b : V' ⟶ Wq),
+          castHom rfl he a ≫ b = a ≫ castHom he.symm rfl b := by
+        intro _ _ _ _ he a b; subst he; rfl
+      have cT : ∀ {U V Wq Wq' : C.A L} (he : Wq = Wq') (a : U ⟶ V) (b : V ⟶ Wq),
+          castHom rfl he (a ≫ b) = a ≫ castHom rfl he b := by
+        intro _ _ _ _ he a b; subst he; rfl
+      have hbig : D.le aL.1 L := D.trans haLP (D.trans hPR hRL)
+      have hbig' : D.le aL'.1 L := D.trans haLP' (D.trans hPR hRL)
+      refine Quotient.sound ⟨⟨L, D.trans aL.2.1 hbig, D.trans aL.2.2 hbig⟩, hbig, hbig', ?_⟩
+      dsimp only [homSystem]
+      have hu := hpres hML fM gM (C.F (D.trans aL.2.1 hbig) xW)
+        (castHom rfl hHd.symm (homTr C xW opE aL ⟨L, D.trans aL.2.1 hbig, D.trans aL.2.2 hbig⟩ hbig lL))
+        (castHom rfl hHd.symm (homTr C xW opE aL' ⟨L, D.trans aL'.2.1 hbig', D.trans aL'.2.2 hbig'⟩ hbig' lL'))
+        (by
+          rw [cR, cR]
+          have hh := congrArg (castHom rfl hHc.symm) key
+          rw [cT, cT, castHom_castHom] at hh
+          exact hh)
+      have hu2 := congrArg (castHom rfl hHd) hu
+      rw [castHom_castHom, castHom_castHom] at hu2
+      exact hu2
     refine ⟨E, m, ?_, ?_⟩
     · -- equalizing: m ≫ F = m ≫ G.
       -- Generic: composing `m` (germ `gm` at `kpE`) with a right germ `gg` that
