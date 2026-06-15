@@ -79,6 +79,86 @@ def Subobject.inter [HasPullbacks 𝒞] {B : 𝒞} (S T : Subobject 𝒞 B) : Su
             _ = c.π₂ := rfl
       rw [hv_eq_u] }
 
+/-! ## Union of relations (§1.62)
+
+  A binary relation `R : A ⟶ B` is a jointly-monic table, equivalently a
+  subobject of `A × B`.  Their MEET is `intersect` (`⊓`, §1.56); their JOIN
+  is the join of those subobjects, so `BinRel 𝒞 A B` is a lattice. -/
+
+/-- `h ≫ pair a b = pair (h≫a) (h≫b)`: composition distributes through `pair`. -/
+theorem comp_pair {X Y A B : 𝒞} (h : X ⟶ Y) (a : Y ⟶ A) (b : Y ⟶ B) :
+    h ≫ pair a b = pair (h ≫ a) (h ≫ b) :=
+  pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])
+
+/-- A jointly-monic table `(colA, colB)` packaged as a subobject of `A × B`. -/
+def BinRel.toSub {A B : 𝒞} (R : BinRel 𝒞 A B) : Subobject 𝒞 (prod A B) where
+  dom := R.src
+  arr := pair R.colA R.colB
+  monic := by
+    intro W f g h
+    refine R.isMonicPair f g ?_ ?_
+    · have := congrArg (· ≫ fst) h; simpa [Cat.assoc, fst_pair] using this
+    · have := congrArg (· ≫ snd) h; simpa [Cat.assoc, snd_pair] using this
+
+/-- A subobject of `A × B`, read back as a relation via its two projections. -/
+def BinRel.ofSub {A B : 𝒞} (S : Subobject 𝒞 (prod A B)) : BinRel 𝒞 A B where
+  src := S.dom
+  colA := S.arr ≫ fst
+  colB := S.arr ≫ snd
+  isMonicPair := by
+    intro W f g hA hB
+    refine S.monic f g (pair_uniq (f ≫ S.arr ≫ fst) (f ≫ S.arr ≫ snd) _ ?_ ?_ |>.trans
+      (pair_uniq (f ≫ S.arr ≫ fst) (f ≫ S.arr ≫ snd) (g ≫ S.arr) ?_ ?_).symm)
+    · rw [Cat.assoc]
+    · rw [Cat.assoc]
+    · rw [Cat.assoc, ← hA]
+    · rw [Cat.assoc, ← hB]
+
+/-- `RelLe` is the subobject order on the `A × B` tables. -/
+theorem relLe_iff_subLe {A B : 𝒞} (R S : BinRel 𝒞 A B) :
+    RelLe R S ↔ Subobject.le R.toSub S.toSub := by
+  constructor
+  · rintro ⟨⟨h, hA, hB⟩⟩
+    exact ⟨h, by dsimp [BinRel.toSub]; rw [comp_pair, hA, hB]⟩
+  · rintro ⟨h, hh⟩
+    refine ⟨⟨h, ?_, ?_⟩⟩
+    · have := congrArg (· ≫ fst) hh; simpa [BinRel.toSub, Cat.assoc, fst_pair] using this
+    · have := congrArg (· ≫ snd) hh; simpa [BinRel.toSub, Cat.assoc, snd_pair] using this
+
+/-- The UNION (join) of two relations `R, S : A ⟶ B`, as the subobject join of
+    their tables in `A × B`.  Dual to `intersect` (`⊓`). -/
+def RelUnion {A B : 𝒞} (R S : BinRel 𝒞 A B) : BinRel 𝒞 A B :=
+  BinRel.ofSub (HasSubobjectUnions.union R.toSub S.toSub)
+
+@[inherit_doc] infixl:65 " ⊔ " => RelUnion
+
+theorem rel_le_union_left {A B : 𝒞} (R S : BinRel 𝒞 A B) : RelLe R (R ⊔ S) := by
+  obtain ⟨h, hh⟩ := HasSubobjectUnions.union_left R.toSub S.toSub
+  refine ⟨⟨h, ?_, ?_⟩⟩
+  · show h ≫ (HasSubobjectUnions.union R.toSub S.toSub).arr ≫ fst = R.colA
+    rw [← Cat.assoc, hh]; simp [BinRel.toSub]
+  · show h ≫ (HasSubobjectUnions.union R.toSub S.toSub).arr ≫ snd = R.colB
+    rw [← Cat.assoc, hh]; simp [BinRel.toSub]
+
+theorem rel_le_union_right {A B : 𝒞} (R S : BinRel 𝒞 A B) : RelLe S (R ⊔ S) := by
+  obtain ⟨h, hh⟩ := HasSubobjectUnions.union_right R.toSub S.toSub
+  refine ⟨⟨h, ?_, ?_⟩⟩
+  · show h ≫ (HasSubobjectUnions.union R.toSub S.toSub).arr ≫ fst = S.colA
+    rw [← Cat.assoc, hh]; simp [BinRel.toSub]
+  · show h ≫ (HasSubobjectUnions.union R.toSub S.toSub).arr ≫ snd = S.colB
+    rw [← Cat.assoc, hh]; simp [BinRel.toSub]
+
+/-- The union is the least upper bound: if `R ⊂ Q` and `S ⊂ Q` then `R ⊔ S ⊂ Q`. -/
+theorem union_le {A B : 𝒞} {R S Q : BinRel 𝒞 A B}
+    (hR : RelLe R Q) (hS : RelLe S Q) : RelLe (R ⊔ S) Q := by
+  rw [relLe_iff_subLe] at hR hS
+  obtain ⟨h, hh⟩ := HasSubobjectUnions.union_min R.toSub S.toSub Q.toSub hR hS
+  refine ⟨⟨h, ?_, ?_⟩⟩
+  · show h ≫ Q.colA = (HasSubobjectUnions.union R.toSub S.toSub).arr ≫ fst
+    rw [← hh, Cat.assoc]; simp [BinRel.toSub]
+  · show h ≫ Q.colB = (HasSubobjectUnions.union R.toSub S.toSub).arr ≫ snd
+    rw [← hh, Cat.assoc]; simp [BinRel.toSub]
+
 /-- Pasting Lemma (§1.62): For subobjects A₁,A₂ of A, the pushout
     of the two projections from the intersection I = A₁∩A₂ (to A₁.dom and
     A₂.dom) is the union U = A₁∪A₂.  This is one of the defining properties
