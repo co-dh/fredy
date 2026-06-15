@@ -841,6 +841,20 @@ noncomputable def homInclObj (C : CatSystem ι D) (hC : C.Coherent) {i : ι} {x 
     ⟨(hioWitness C hC x y).K, (hioWitness C hC x y).hpx, (hioWitness C hC x y).hpy⟩
     ((hioWitness C hC x y).germ g)
 
+/-- Pushing a witness germ to a higher stage `L` equals the canonical
+    `functF`-map germ at `L` (transported by the rep equalities).  Mirrors the
+    `hpush_gm`/`hpush_f` pattern. -/
+theorem homInclObj_germ_push (C : CatSystem ι D) (hC : C.Coherent) {i : ι} {x y : C.A i}
+    (g : x ⟶ y) (w : HioWitness C x y) (L : ι) (hwL : D.le w.K L)
+    (Hcx : C.F (D.trans w.hix hwL) x = C.F (D.trans w.hpx hwL) (colimOut C (C.objIncl i x)).2)
+    (Hcy : C.F (D.trans w.hix hwL) y = C.F (D.trans w.hpy hwL) (colimOut C (C.objIncl i y)).2) :
+    homTr C (colimOut C (C.objIncl i x)).2 (colimOut C (C.objIncl i y)).2
+        ⟨w.K, w.hpx, w.hpy⟩ ⟨L, D.trans w.hpx hwL, D.trans w.hpy hwL⟩ hwL (w.germ g)
+      = castHom Hcx Hcy ((C.functF (D.trans w.hix hwL)).map g) := by
+  dsimp only [HioWitness.germ, homTr]
+  rw [map_castHom (C.F hwL) (hT := C.functF hwL), castHom_castHom]
+  exact castHom_heq_congr _ _ _ _ (hC.trans_map w.hix hwL g).symm
+
 /-- `castHom` is injective (it's a transport along object equalities). -/
 theorem castHom_injective {𝒜 : Type w} [Cat.{w} 𝒜] {X Y X' Y' : 𝒜}
     (hX : X = X') (hY : Y = Y') {a b : X ⟶ Y}
