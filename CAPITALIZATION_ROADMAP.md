@@ -35,11 +35,42 @@ stagewise terminals, transitions preserving it).
 | **M5** | `Fredy/S1_543.lean` | ordinal-indexed iteration of M4; fixed-point/cardinality ⇒ capital (imports mathlib `Ordinal`) | ☐ hard |
 | **M6** | `Fredy/S1_54.lean` | assemble: `Ā` = colimit; prove `Capital` + faithful `A → Ā`; discharge `capitalization_lemma` | ☐ |
 
+### M3 next step — `colimitHasEqualizers` (validated spec)
+
+M3a (`colimitHasTerminal`) and M3b (`colimitHasBinaryProducts`) are DONE sorry-free in
+`CatColimitRegular.lean`. **Pullbacks need NOT be built directly:** §1.432
+`products_equalizers_implies_pullbacks` (in `S1_43.lean`) assembles `HasPullbacks` from
+terminal + binary products + equalizers. So M3-limits reduces to **`colimitHasEqualizers`**,
+then `HasPullbacks (C.Obj) := { has := fun f g => products_equalizers_implies_pullbacks f g }`.
+
+Validated signature (mirror of `colimitHasBinaryProducts`; the two hypotheses say the
+transition functors preserve equalizers — true for the slice embeddings of M4):
+
+```lean
+noncomputable def colimitHasEqualizers (C : CatSystem ι D) (hC : C.Coherent)
+    (he : ∀ i, HasEqualizers (C.A i))
+    (hpres : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
+        (u v : z ⟶ C.F hij (eqObj f g)),
+        u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
+    (hpres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
+        (k : z ⟶ C.F hij A)
+        (hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
+        ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k) :
+    @HasEqualizers C.Obj (colimitCat C hC)
+```
+
+Construction: given parallel `F G : colimHom C hC X Y`, `Quotient.inductionOn` both to
+representatives, lift to a common stage `k` (via `D.bound`, `homTr`, `C.F`, `castHom` — exactly
+as products lifts `f,g` to the product legs), take the stage equalizer `eqObj fk gk`, include via
+`objIncl`/`homIncl`; `hpres` gives `uniq`, `hpres_lift` gives `lift`/`fac`. Reuse the
+`hDirSubsingleton`/`hF_proof_irrel`/`cR`/`cT` cast-slide patterns from products.
+
 ## Honest risk
 
 M2b, M3, M5 are the walls. M3 (a filtered colimit of pre-regular categories is pre-regular — finite limits and
 covers are computed at finite stages) is the deepest piece and is real mathematics, not glue. This is a
 multi-session effort; each milestone lands sorry-free and is verified by `lake build` before the next starts.
+`colimitHasEqualizers` is ~250 lines of `castHom`/`Quotient` work mirroring the proven products theorem.
 
 ## Process
 
