@@ -7,6 +7,7 @@
 
 import Fredy.CatColimit
 import Fredy.S1_42
+import Fredy.S1_43
 open Freyd
 namespace Freyd.Colim
 universe u w
@@ -409,3 +410,82 @@ noncomputable def colimitHasBinaryProducts (C : CatSystem ι D) (hC : C.Coherent
     rw [castHom_castHom, castHom_castHom] at hu2
     exact hu2
   exact @HasBinaryProducts.mk C.Obj (colimitCat C hC) prodFun fst snd pair h_fst_pair h_snd_pair h_pair_uniq
+
+/-!
+  M3 — equalizers of the colimit category.
+
+  Packaged as one existence `Prop` (`hEdata`) so `Quotient.inductionOn` may be
+  used on `F`, `G` and the cone leg `c` alike; the `HasEqualizer` structure is
+  then extracted by choice.  `hpres` (transitions keep `eqMap` left-cancellable)
+  gives uniqueness; `hpres_lift` (transitions create equalizer-lifts) gives the
+  factorisation.  Mirrors `colimitHasBinaryProducts`.
+-/
+
+noncomputable def colimitHasEqualizers (C : CatSystem ι D) (hC : C.Coherent)
+    (he : ∀ i, HasEqualizers (C.A i))
+    (hpres : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
+        (u v : z ⟶ C.F hij (eqObj f g)),
+        u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
+    (hpres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
+        (k : z ⟶ C.F hij A)
+        (hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
+        ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k) :
+    @HasEqualizers C.Obj (colimitCat C hC) := by
+  letI : Cat C.Obj := colimitCat C hC
+  have hDirSubsingleton : ∀ {i j : ι} (h h' : D.le i j), h = h' :=
+    fun {_ _} h h' => Subsingleton.elim h h'
+  have hF_proof_irrel : ∀ {i j : ι} (h h' : D.le i j) (a : C.A i), C.F h a = C.F h' a :=
+    fun {_ _} h h' a => by rw [hDirSubsingleton h h']
+  have hEdata : ∀ (X Y : C.Obj) (F G : X ⟶ Y),
+      ∃ (E : C.Obj) (m : E ⟶ X), m ≫ F = m ≫ G ∧
+        ∀ (W : C.Obj) (c : W ⟶ X), c ≫ F = c ≫ G →
+          ∃ l : W ⟶ E, l ≫ m = c ∧ ∀ l' : W ⟶ E, l' ≫ m = c → l' = l := by
+    intro X Y F G
+    refine Quotient.inductionOn F (fun Fr => ?_)
+    refine Quotient.inductionOn G (fun Gr => ?_)
+    obtain ⟨aF, fF⟩ := Fr
+    obtain ⟨aG, gG⟩ := Gr
+    -- representatives of X, Y
+    let iX := (colimOut C X).1; let xX := (colimOut C X).2
+    let iY := (colimOut C Y).1; let xY := (colimOut C Y).2
+    -- common stage M for the two parallel germs; proof-irrelevance aligns the targets
+    obtain ⟨M, haFM, haGM⟩ := D.bound aF.1 aG.1
+    let hiXM : D.le iX M := D.trans aF.2.1 haFM
+    let hiYM : D.le iY M := D.trans aF.2.2 haFM
+    let fM : C.F hiXM xX ⟶ C.F hiYM xY := homTr C xX xY aF ⟨M, hiXM, hiYM⟩ haFM fF
+    let gM : C.F hiXM xX ⟶ C.F hiYM xY := homTr C xX xY aG ⟨M, hiXM, hiYM⟩ haGM gG
+    -- equalizer object at stage M, included into the colimit
+    let Eobj : C.A M := eqObj fM gM
+    let E : C.Obj := C.objIncl M Eobj
+    -- transport `E`'s chosen representative back to `⟨M, Eobj⟩` (mirrors products)
+    let ipE : ι := (colimOut C E).1; let opE : C.A ipE := (colimOut C E).2
+    have hESpec : C.objIncl ipE opE = E := colimOut_spec C E
+    have hERel : Rel C.objSystem ⟨ipE, opE⟩ ⟨M, Eobj⟩ := Quotient.exact hESpec
+    let kpE : ι := Classical.choose hERel
+    have hkpE1 : ∃ (hik : D.le ipE kpE) (hjk : D.le M kpE), C.F hik opE = C.F hjk Eobj :=
+      Classical.choose_spec hERel
+    let h_ipE_kpE : D.le ipE kpE := Classical.choose hkpE1
+    have hkpE2 : ∃ (hjk : D.le M kpE), C.F h_ipE_kpE opE = C.F hjk Eobj := Classical.choose_spec hkpE1
+    let h_M_kpE : D.le M kpE := Classical.choose hkpE2
+    have h_E_eq : C.F h_ipE_kpE opE = C.F h_M_kpE Eobj := Classical.choose_spec hkpE2
+    -- the equalizer map E ⟶ X, as a germ from `opE` (= colimOut rep of E) to `xX`
+    let m : E ⟶ X :=
+      homIncl C hC opE xX ⟨kpE, h_ipE_kpE, D.trans hiXM h_M_kpE⟩
+        (castHom h_E_eq.symm (C.F_trans hiXM h_M_kpE xX).symm
+          ((C.functF h_M_kpE).map (eqMap fM gM)))
+    refine ⟨E, m, ?_, ?_⟩
+    · sorry
+    · sorry
+  refine ⟨fun X Y F G => ?_⟩
+  -- extract the data by choice (the goal `HasEqualizer F G` is a Type, so `obtain` is illegal)
+  let E : C.Obj := (hEdata X Y F G).choose
+  let m : E ⟶ X := (hEdata X Y F G).choose_spec.choose
+  have hmeq : m ≫ F = m ≫ G := (hEdata X Y F G).choose_spec.choose_spec.1
+  have huniv : ∀ (W : C.Obj) (c : W ⟶ X), c ≫ F = c ≫ G →
+      ∃ l : W ⟶ E, l ≫ m = c ∧ ∀ l' : W ⟶ E, l' ≫ m = c → l' = l :=
+    (hEdata X Y F G).choose_spec.choose_spec.2
+  exact {
+    cone := ⟨E, m, hmeq⟩
+    lift := fun c => (huniv c.dom c.map c.eq).choose
+    fac := fun c => (huniv c.dom c.map c.eq).choose_spec.1
+    uniq := fun c l hl => (huniv c.dom c.map c.eq).choose_spec.2 l hl }
