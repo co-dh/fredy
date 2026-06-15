@@ -30,7 +30,10 @@ For the colimit to inherit terminal/products/pullbacks/covers, the transition fu
 extending it) must carry "each `functF` preserves the regular structure" hypotheses — true for the
 capitalization slice embeddings.  First tractable piece: the colimit has a **terminal object** (= colim of the
 stagewise terminals, transitions preserving it).
-| **M3** | `Fredy/CatColimitRegular.lean` | colimit preserves terminal / products / pullbacks / covers ⇒ `PreRegularCategory` | ☐ hard |
+| **M3** | `Fredy/CatColimitRegular.lean` | colimit preserves terminal / products / pullbacks / covers ⇒ `PreRegularCategory` | ◧ in progress |
+| M3a/b | ↑ | terminal + binary products | ✅ done, sorry-free |
+| M3-eq | ↑ | **`colimitHasEqualizers` — DONE sorry-free**; ⇒ pullbacks via §1.432 | ✅ done |
+| M3-cov | ↑ | cover-transfer (`PullbacksTransferCovers`) ⇒ assemble `PreRegularCategory` | ☐ |
 | **M4** | `Fredy/S1_546.lean` | relative-capitalization functor `A ↦ A*` (slices), `IsRelativeCapitalization` witness | ☐ |
 | **M5** | `Fredy/S1_543.lean` | ordinal-indexed iteration of M4; fixed-point/cardinality ⇒ capital (imports mathlib `Ordinal`) | ☐ hard |
 | **M6** | `Fredy/S1_54.lean` | assemble: `Ā` = colimit; prove `Capital` + faithful `A → Ā`; discharge `capitalization_lemma` | ☐ |
