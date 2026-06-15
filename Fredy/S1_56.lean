@@ -1389,6 +1389,41 @@ theorem comp_graph_id_right {A B : 𝒞} (R : BinRel 𝒞 A B) : RelLe R (R ⊚ 
     exact hu₂
   exact ⟨⟨h, h_colA, h_colB⟩⟩
 
+/-- **§1.56**: `⊚` is MONOTONE in both arguments — `R ⊂ R'` and `S ⊂ S'`
+    imply `R ⊚ S ⊂ R' ⊚ S'`.  This needs no regularity: the two `RelHom`
+    witnesses `hr, hs` assemble into a cone over `(R'.colB, S'.colA)`, whose
+    pullback lift `w` carries the `R⊚S`-span onto the `R'⊚S'`-span; image
+    minimality (`image_min`) then descends to the required `RelHom`. -/
+theorem compose_le {A B C : 𝒞} {R R' : BinRel 𝒞 A B} {S S' : BinRel 𝒞 B C}
+    (hR : R ⊂ R') (hS : S ⊂ S') : (R ⊚ S) ⊂ (R' ⊚ S') := by
+  obtain ⟨hr, hrA, hrB⟩ := hR
+  obtain ⟨hs, hsA, hsB⟩ := hS
+  let pb := HasPullbacks.has R.colB S.colA
+  let pb' := HasPullbacks.has R'.colB S'.colA
+  let span : pb.cone.pt ⟶ prod A C := pair (pb.cone.π₁ ≫ R.colA) (pb.cone.π₂ ≫ S.colB)
+  let span' : pb'.cone.pt ⟶ prod A C := pair (pb'.cone.π₁ ≫ R'.colA) (pb'.cone.π₂ ≫ S'.colB)
+  -- the two `RelHom`s lift `pb`'s legs to a cone over `(R'.colB, S'.colA)`.
+  have hcw : (pb.cone.π₁ ≫ hr) ≫ R'.colB = (pb.cone.π₂ ≫ hs) ≫ S'.colA := by
+    rw [Cat.assoc, hrB, pb.cone.w, Cat.assoc, hsA]
+  let c' : Cone R'.colB S'.colA := ⟨pb.cone.pt, pb.cone.π₁ ≫ hr, pb.cone.π₂ ≫ hs, hcw⟩
+  let w := pb'.lift c'
+  have hw₁ : w ≫ pb'.cone.π₁ = pb.cone.π₁ ≫ hr := pb'.lift_fst c'
+  have hw₂ : w ≫ pb'.cone.π₂ = pb.cone.π₂ ≫ hs := pb'.lift_snd c'
+  -- `w` carries the `R⊚S`-span onto the `R'⊚S'`-span.
+  have hspan : w ≫ span' = span :=
+    pair_uniq (pb.cone.π₁ ≫ R.colA) (pb.cone.π₂ ≫ S.colB) (w ≫ span')
+      (by dsimp [span']; rw [Cat.assoc, fst_pair, ← Cat.assoc, hw₁, Cat.assoc, hrA])
+      (by dsimp [span']; rw [Cat.assoc, snd_pair, ← Cat.assoc, hw₂, Cat.assoc, hsB])
+  -- so `span` factors through `image span' = (R'⊚S').src`; minimality gives the `RelHom`.
+  have hallows : Allows (image span') span :=
+    ⟨w ≫ image.lift span', by rw [Cat.assoc, image.lift_fac, hspan]⟩
+  obtain ⟨k, hk⟩ := image_min span (image span') hallows
+  refine ⟨⟨k, ?_, ?_⟩⟩
+  · show k ≫ ((image span').arr ≫ fst) = (image span).arr ≫ fst
+    rw [← Cat.assoc, hk]
+  · show k ≫ ((image span').arr ≫ snd) = (image span).arr ≫ snd
+    rw [← Cat.assoc, hk]
+
 /-- **§1.56**: `⊚` is associative. -/
 theorem compose_assoc {A B C D : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 C D) :
     RelLe ((R ⊚ S) ⊚ T) (R ⊚ (S ⊚ T)) := by
