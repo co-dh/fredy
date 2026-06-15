@@ -41,10 +41,17 @@ Foundation lemmas DONE sorry-free in `CatColimitRegular.lean`:
 - `homIncl_injective` — `homIncl` injective on homs given **faithful transitions** (`hfaith`).
 - `colimHom_mono_of_rep` — stage-mono-under-transitions ⇒ `colimitCat` mono (mono preservation).
 
+DONE additionally: `homInclObj` (stage-inclusion on morphisms, keystone), `castHom_injective`,
+`homInclObj_injective` (the stage-inclusion is FAITHFUL given faithful transitions).
+
 Remaining (each ~40–80 lines, fights the `colimOut` rep transport):
-1. **Stage-inclusion functor** `homInclObj : (x⟶y in C.A i) → (objIncl i x ⟶ objIncl i y)` + composition law.
-   The keystone — needed to present stage morphisms as `colimitCat` morphisms. Transport via
-   `colimOut(objIncl i x)` reps (mirror the `E`/`opE` machinery from `colimitHasEqualizers`).
+0. **`homInclObj` functoriality** (`homInclObj (g≫g') = homInclObj g ≫ homInclObj g'`). CONFIRMED
+   BLOCKER (via goal inspection): `homInclObj` is tactic-defined, so its transport bound is
+   `⟨Classical.choose …, …⟩` — anonymous in the goal, can't be named to drive `homCompRaw_eq_of_stage`.
+   FIX FIRST: either (a) refactor `homInclObj` into a term-mode def exposing `homInclObjUB`/`homInclObjGerm`
+   as named aux defs, or (b) prove a representative-independence lemma `homInclObj g = homIncl xpx xpy b germ'`
+   for any sufficiently-large bound `b` (via `homIncl_compat`), letting functoriality compute both sides at a
+   common bound where the germs agree by `map_comp` + `hC.trans_map`. Then ~80-line coherence reconciliation.
 2. **Mono reflection** `colimitCat` mono ⇒ stage-mono-under-transitions (uses 1 + `homIncl_injective`).
 3. **Cover reflection / preservation** (cover = factor-through-mono ⇒ uses 2).
 4. **Assembly**: arbitrary pullback cone ≅ canonical (§1.432) so `Cover` is iso-invariant; reflect
