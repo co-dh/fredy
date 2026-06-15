@@ -100,13 +100,26 @@ theorem amalgamation_lemma [PreTopos 𝒞] {A B C : 𝒞}
 theorem cover_eq_epic_preTopos [PreTopos 𝒞] {A B : 𝒞} (f : A ⟶ B) :
     Cover f ↔ (∀ {C : 𝒞} (g h : B ⟶ C), f ≫ g = f ≫ h → g = h) := by
   constructor
-  · -- Cover → epic (§1.512): already proved as `cover_epi` in S1_52
+  · -- Cover → epic (§1.512): already proved
     exact cover_epi
-  · -- Epic → cover: in a pre-topos every epimorphism is a cover.
-    -- Proof uses: given epic f, factor f = e ≫ m with e cover, m monic.
-    -- Then m is epic (right factor of epic), and monic; in a pre-topos
-    -- every monic-epic is iso (balanced).  Hence m iso → image entire → f cover.
-    -- This requires the "effective regular ⇒ balanced" lemma, not yet proved.
+  · intro hepi
+    rw [cover_iff_image_entire]
+    -- Goal: Subobject.IsEntire (image f), i.e., IsIso (image f).arr
+    -- (image f).arr is monic; show it is also epic (right factor of epic f)
+    have h_arr_epi : ∀ {C : 𝒞} (g h : B ⟶ C), (image f).arr ≫ g = (image f).arr ≫ h → g = h := by
+      intro C g h heq
+      apply hepi
+      calc f ≫ g = (image.lift f ≫ (image f).arr) ≫ g := by rw [image.lift_fac f]
+        _ = image.lift f ≫ ((image f).arr ≫ g) := Cat.assoc _ _ _
+        _ = image.lift f ≫ ((image f).arr ≫ h) := by rw [heq]
+        _ = (image.lift f ≫ (image f).arr) ≫ h := by rw [← Cat.assoc]
+        _ = f ≫ h := by rw [image.lift_fac f]
+    -- `(image f).arr` is monic and epic; a monic cover is iso (`monic_cover_iso`),
+    -- so it suffices that the epic `(image f).arr` is a cover.  That epic ⟹ cover
+    -- step is the genuine §1.652 content (it needs the pre-topos *positivity*,
+    -- i.e. coproducts — §1.566 alone does not give it), isolated here.
+    refine monic_cover_iso _ ?_ (image f).monic
+    show Cover (image f).arr
     sorry
 
 /-- **§1.652**: In a pre-topos, monics coincide with cocovers
