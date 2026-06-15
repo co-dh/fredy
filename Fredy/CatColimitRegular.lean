@@ -782,14 +782,27 @@ theorem colimHom_mono_of_rep (C : CatSystem ι D) (hC : C.Coherent) {A B : C.Obj
   rw [castHom_castHom, castHom_castHom] at hu2
   exact hu2
 
-/-- **Stage-inclusion functor (object case), on morphisms.**  A stage morphism
-    `g : x ⟶ y` in `C.A i` includes to a `colimitCat` morphism
-    `objIncl i x ⟶ objIncl i y`, transporting through the chosen `colimOut`
-    representatives of `objIncl i x`, `objIncl i y`.  The keystone for reflecting
-    monos/covers from `colimitCat` to a stage. -/
-noncomputable def homInclObj (C : CatSystem ι D) (hC : C.Coherent) {i : ι} {x y : C.A i}
+/-- A witness that the `colimOut` representatives of `objIncl i x` and `objIncl i y`
+    both agree with `x`, `y` at a common stage `K` — the data needed to transport a
+    stage morphism `x ⟶ y` into a `colimitCat` morphism. -/
+structure HioWitness (C : CatSystem ι D) {i : ι} (x y : C.A i) where
+  K : ι
+  hpx : D.le (colimOut C (C.objIncl i x)).1 K
+  hpy : D.le (colimOut C (C.objIncl i y)).1 K
+  hix : D.le i K
+  hgx : C.F hpx (colimOut C (C.objIncl i x)).2 = C.F hix x
+  hgy : C.F hpy (colimOut C (C.objIncl i y)).2 = C.F hix y
+
+/-- The transport of a stage morphism `g : x ⟶ y` into a germ
+    `colimOut(objIncl i x) ⟶ colimOut(objIncl i y)` at the witness stage. -/
+def HioWitness.germ {C : CatSystem ι D} {i : ι} {x y : C.A i} (w : HioWitness C x y)
     (g : x ⟶ y) :
-    HomColim C hC (colimOut C (C.objIncl i x)).2 (colimOut C (C.objIncl i y)).2 := by
+    C.F w.hpx (colimOut C (C.objIncl i x)).2 ⟶ C.F w.hpy (colimOut C (C.objIncl i y)).2 :=
+  castHom w.hgx.symm w.hgy.symm ((C.functF w.hix).map g)
+
+/-- A chosen witness, materialized from the `colimOut` `Rel`s by `Classical.choose`. -/
+noncomputable def hioWitness (C : CatSystem ι D) (hC : C.Coherent) {i : ι} (x y : C.A i) :
+    HioWitness C x y := by
   classical
   let hxrel : Rel C.objSystem
       ⟨(colimOut C (C.objIncl i x)).1, (colimOut C (C.objIncl i x)).2⟩ ⟨i, x⟩ :=
@@ -809,19 +822,24 @@ noncomputable def homInclObj (C : CatSystem ι D) (hC : C.Coherent) {i : ι} {x 
   let K := Classical.choose (D.bound kx ky)
   let hkxK := (Classical.choose_spec (D.bound kx ky)).1
   let hkyK := (Classical.choose_spec (D.bound kx ky)).2
-  refine homIncl C hC (colimOut C (C.objIncl i x)).2 (colimOut C (C.objIncl i y)).2
-    ⟨K, D.trans hipx_kx hkxK, D.trans hipy_ky hkyK⟩ (castHom ?_ ?_ ((C.functF (D.trans hi_kx hkxK)).map g))
-  · calc C.F (D.trans hi_kx hkxK) x
-        = C.F hkxK (C.F hi_kx x) := by rw [C.F_trans hi_kx hkxK x]
-      _ = C.F hkxK (C.F hipx_kx (colimOut C (C.objIncl i x)).2) := by rw [hx_eq]
-      _ = C.F (D.trans hipx_kx hkxK) (colimOut C (C.objIncl i x)).2 :=
-            (C.F_trans hipx_kx hkxK (colimOut C (C.objIncl i x)).2).symm
-  · calc C.F (D.trans hi_kx hkxK) y
-        = C.F hkyK (C.F hi_ky y) := by rw [show D.trans hi_kx hkxK = D.trans hi_ky hkyK from
-              Subsingleton.elim _ _, C.F_trans hi_ky hkyK y]
-      _ = C.F hkyK (C.F hipy_ky (colimOut C (C.objIncl i y)).2) := by rw [hy_eq]
-      _ = C.F (D.trans hipy_ky hkyK) (colimOut C (C.objIncl i y)).2 :=
-            (C.F_trans hipy_ky hkyK (colimOut C (C.objIncl i y)).2).symm
+  refine ⟨K, D.trans hipx_kx hkxK, D.trans hipy_ky hkyK, D.trans hi_kx hkxK, ?_, ?_⟩
+  · calc C.F (D.trans hipx_kx hkxK) (colimOut C (C.objIncl i x)).2
+        = C.F hkxK (C.F hipx_kx (colimOut C (C.objIncl i x)).2) := by rw [C.F_trans hipx_kx hkxK]
+      _ = C.F hkxK (C.F hi_kx x) := by rw [hx_eq]
+      _ = C.F (D.trans hi_kx hkxK) x := (C.F_trans hi_kx hkxK x).symm
+  · calc C.F (D.trans hipy_ky hkyK) (colimOut C (C.objIncl i y)).2
+        = C.F hkyK (C.F hipy_ky (colimOut C (C.objIncl i y)).2) := by rw [C.F_trans hipy_ky hkyK]
+      _ = C.F hkyK (C.F hi_ky y) := by rw [hy_eq]
+      _ = C.F (D.trans hi_kx hkxK) y := by
+            rw [show D.trans hi_kx hkxK = D.trans hi_ky hkyK from Subsingleton.elim _ _,
+                C.F_trans hi_ky hkyK y]
+
+noncomputable def homInclObj (C : CatSystem ι D) (hC : C.Coherent) {i : ι} {x y : C.A i}
+    (g : x ⟶ y) :
+    HomColim C hC (colimOut C (C.objIncl i x)).2 (colimOut C (C.objIncl i y)).2 :=
+  homIncl C hC (colimOut C (C.objIncl i x)).2 (colimOut C (C.objIncl i y)).2
+    ⟨(hioWitness C hC x y).K, (hioWitness C hC x y).hpx, (hioWitness C hC x y).hpy⟩
+    ((hioWitness C hC x y).germ g)
 
 /-- `castHom` is injective (it's a transport along object equalities). -/
 theorem castHom_injective {𝒜 : Type w} [Cat.{w} 𝒜] {X Y X' Y' : 𝒜}
