@@ -927,12 +927,35 @@ def pullback_of_covers_is_pushout {A B C P : 𝒞} (x : A ⟶ B) (y : C ⟶ B)
   In a regular category, every cover x : A → B is the coequalizer of its
   kernel pair (level).  The proof uses §1.565. -/
 
-/-- **§1.566**: In a regular category, every cover is a coequalizer of its level.
-    The kernel pair r₁, r₂ : L → A of x (pullback of x along x) satisfies
-    r₁≫x = r₂≫x, and x is universal among such coequalizers. -/
+/-- **§1.566**: In a regular category, a cover `x : A → B` is the coequalizer of
+    its kernel pair: every `g : A → C` that equalizes the kernel pair
+    (`kp₁ ≫ g = kp₂ ≫ g`) factors *uniquely* through `x`.
+
+    Proof: factor `⟨x,g⟩ : A → B×C` as `image.lift ≫ I.arr` (cover then mono).
+    Its first leg `p := I.arr ≫ fst` is monic — this is the one genuinely
+    regular step (`hp_mono`): the image relation `{(x a, g a)}` is *functional*
+    precisely because `g` equalizes the kernel pair of `x` (needs covers stable
+    under pullback, §1.565), isolated below.  Granting it, `x = image.lift ≫ p`
+    exhibits the cover `x` factoring through the monic `p`, so `p` is iso, and
+    `h := p⁻¹ ≫ (I.arr ≫ snd)` is the factorization — unique since `x` is epic. -/
 theorem cover_is_coequalizer_of_level {A B : 𝒞} (x : A ⟶ B) [RegularCategory 𝒞]
-    (_h_cover : Cover x) : True := by
-  trivial
+    (hx : Cover x) {C : 𝒞} (g : A ⟶ C) (_hg : kp₁ (f := x) ≫ g = kp₂ (f := x) ≫ g) :
+    ∃ h : B ⟶ C, x ≫ h = g ∧ ∀ h' : B ⟶ C, x ≫ h' = g → h' = h := by
+  let xg := pair x g
+  let I := image xg
+  have hx_fac : image.lift xg ≫ (I.arr ≫ fst) = x := by
+    rw [← Cat.assoc, image.lift_fac, fst_pair]
+  -- ONE regular step: `g` equalizing the kernel pair forces the image relation
+  -- to be functional, i.e. its first leg `I.arr ≫ fst` is monic.
+  have hp_mono : Mono (I.arr ≫ fst) := by
+    sorry
+  have hp_iso : IsIso (I.arr ≫ fst) := hx (I.arr ≫ fst) (image.lift xg) hp_mono hx_fac
+  obtain ⟨pinv, hpi1, hpi2⟩ := hp_iso
+  have hxpinv : x ≫ pinv = image.lift xg := by
+    rw [← hx_fac, Cat.assoc, hpi1, Cat.comp_id]
+  have hxh : x ≫ (pinv ≫ (I.arr ≫ snd)) = g := by
+    rw [← Cat.assoc, hxpinv, ← Cat.assoc, image.lift_fac, snd_pair]
+  exact ⟨pinv ≫ (I.arr ≫ snd), hxh, fun h' hh' => cover_epi hx (hh'.trans hxh.symm)⟩
 
 /-! ## §1.567 Equivalence relations
 
