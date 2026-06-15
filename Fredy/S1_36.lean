@@ -84,16 +84,45 @@ structure EquivalenceKernel (𝒞 : Type u) [Cat.{v} 𝒞] where
   isGroupoid : ∀ {X Y : 𝒞} (f : X ⟶ Y), mem f → (∃ g : Y ⟶ X, mem g ∧ f ≫ g = Cat.id X ∧ g ≫ f = Cat.id Y)
   isPreorder : ∀ {X Y : 𝒞} (f g : X ⟶ Y), mem f → mem g → f = g
 
-/-- The kernel of an equivalence functor T: {f | T.map f = id}. -/
-def equivalenceKernel (F : 𝒞 → 𝒟) [hF : Functor F] : EquivalenceKernel 𝒞 where
-  mem {X Y} f := HEq (hF.map f) (Cat.id (F X))
-  mem_id X := by
-    -- hF.map (Cat.id X) = Cat.id (F X), both have type F X ⟶ F X
-    apply heq_of_eq
-    apply hF.map_id
-  isGroupoid f h := by
-    sorry
-  isPreorder f g hf hg := by
-    sorry
+/-- The kernel of an equivalence functor `T`: the maps `T` sends to identities.
+
+    A map sent to an identity necessarily has equal `T`-images of its endpoints,
+    so membership bundles that object equality `e : F X = F Y` alongside the
+    `HEq` witnessing `T f = 1`.  Proving the kernel is a *groupoid* genuinely
+    needs `T` to be a full embedding (the book's equivalence functor): fullness
+    lifts the inverse identity to a map `g : Y → X`, and the embedding (faithful)
+    transports `T(fg) = 1 = T(1)` back to `fg = 1`. -/
+def equivalenceKernel (F : 𝒞 → 𝒟) [hF : Functor F] (emb : Embedding F) (full : Full F) :
+    EquivalenceKernel 𝒞 where
+  mem {X Y} f := ∃ _ : F X = F Y, HEq (hF.map f) (Cat.id (F X))
+  mem_id X := ⟨rfl, heq_of_eq (hF.map_id X)⟩
+  isGroupoid {X Y} f h := by
+    obtain ⟨e, hf⟩ := h
+    -- `cases` on an object-equality only fires when one side is a free variable,
+    -- so we package the needed transports as little lemmas over a fresh endpoint.
+    have key : ∀ {P Q : 𝒟} (mf : P ⟶ Q) (mg : Q ⟶ P), P = Q →
+        HEq mf (Cat.id P) → HEq mg (Cat.id P) → mf ≫ mg = Cat.id P := by
+      intro P Q mf mg e' hmf hmg; cases e'
+      rw [eq_of_heq hmf, eq_of_heq hmg]; exact Cat.id_comp _
+    have idHEq : HEq (Cat.id (F X)) (Cat.id (F Y)) := by
+      have h' : ∀ {Q : 𝒟}, F X = Q → HEq (Cat.id (F X)) (Cat.id Q) := by
+        intro Q e'; cases e'; exact HEq.rfl
+      exact h' e
+    -- Lift the inverse identity `F Y → F X` to a kernel map `g : Y → X`.
+    obtain ⟨g, hg⟩ := full (cast (congrArg (· ⟶ F X) e) (Cat.id (F X)))
+    have hgid : HEq (hF.map g) (Cat.id (F X)) := by rw [hg]; exact cast_heq _ _
+    refine ⟨g, ⟨e.symm, hgid.trans idHEq⟩, ?_, ?_⟩
+    · -- f ≫ g = 1_X, via faithfulness from `T(f)T(g) = 1 = T(1_X)`.
+      apply emb (f ≫ g) (Cat.id X)
+      rw [hF.map_comp, hF.map_id]
+      exact key (hF.map f) (hF.map g) e hf hgid
+    · -- g ≫ f = 1_Y, symmetrically at the endpoint `F Y`.
+      apply emb (g ≫ f) (Cat.id Y)
+      rw [hF.map_comp, hF.map_id]
+      exact key (hF.map g) (hF.map f) e.symm (hgid.trans idHEq) (hf.trans idHEq)
+  isPreorder {X Y} f g hf hg := by
+    obtain ⟨_, hf'⟩ := hf
+    obtain ⟨_, hg'⟩ := hg
+    exact emb f g (eq_of_heq (hf'.trans hg'.symm))
 
 end Freyd
