@@ -717,3 +717,67 @@ theorem homIncl_injective (C : CatSystem ι D) (hC : C.Coherent)
   have hstrip := congrArg (castHom (C.F_trans a.2.1 hik x) (C.F_trans a.2.2 hik y)) heq
   rw [castHom_castHom, castHom_castHom] at hstrip
   exact hfaith hik g g' hstrip
+
+/-- **Mono preservation:** a colimit morphism with representative `f₀` is monic in
+    `colimitCat` provided `f₀` stays left-cancellable under all transitions
+    (`hcancel`).  Reflect `p ≫ f = q ≫ f` to a common stage `L`, where it becomes
+    `· ≫ (functF haL).map f₀ = · ≫ (functF haL).map f₀`; `hcancel` then cancels. -/
+theorem colimHom_mono_of_rep (C : CatSystem ι D) (hC : C.Coherent) {A B : C.Obj}
+    (a : UpperBound D (colimOut C A).1 (colimOut C B).1)
+    (f₀ : C.F a.2.1 (colimOut C A).2 ⟶ C.F a.2.2 (colimOut C B).2)
+    (hcancel : ∀ {j : ι} (hjk : D.le a.1 j) (z : C.A j)
+        (u v : z ⟶ C.F hjk (C.F a.2.1 (colimOut C A).2)),
+        u ≫ (C.functF hjk).map f₀ = v ≫ (C.functF hjk).map f₀ → u = v) :
+    @Mono C.Obj (colimitCat C hC) A B
+      (homIncl C hC (colimOut C A).2 (colimOut C B).2 a f₀) := by
+  letI : Cat C.Obj := colimitCat C hC
+  let xA := (colimOut C A).2; let xB := (colimOut C B).2
+  intro W
+  refine Quotient.ind₂ (fun pr qr hpq => ?_)
+  obtain ⟨ap, p₀⟩ := pr
+  obtain ⟨aq, q₀⟩ := qr
+  let xW : C.A (colimOut C W).1 := (colimOut C W).2
+  obtain ⟨P0, hP0p, hP0q⟩ := D.bound ap.1 aq.1
+  obtain ⟨P, hP0P, haP⟩ := D.bound P0 a.1
+  have hapP : D.le ap.1 P := D.trans hP0p hP0P
+  have haqP : D.le aq.1 P := D.trans hP0q hP0P
+  change homCompRaw C hC xW xA xB ap p₀ a f₀ = homCompRaw C hC xW xA xB aq q₀ a f₀ at hpq
+  rw [homCompRaw_eq_compAt C hC xW xA xB ap p₀ a f₀ P hapP haP,
+      homCompRaw_eq_compAt C hC xW xA xB aq q₀ a f₀ P haqP haP] at hpq
+  obtain ⟨R, hPR, hPR', hReq⟩ := Quotient.exact hpq
+  dsimp only [homSystem] at hReq
+  obtain ⟨L, hRL, _⟩ := D.bound R.1 R.1
+  have key := congrArg (homTr C xW xB R ⟨L, D.trans R.2.1 hRL, D.trans R.2.2 hRL⟩ hRL) hReq
+  rw [← homTr_trans C hC, ← homTr_trans C hC] at key
+  rw [homTr_comp C, homTr_comp C] at key
+  rw [← homTr_trans C hC, ← homTr_trans C hC, ← homTr_trans C hC] at key
+  -- key : homTr p₀ (ap→L) ≫ homTr f₀ (a→L) = homTr q₀ (aq→L) ≫ homTr f₀ (a→L)
+  have haL : D.le a.1 L := D.trans haP (D.trans hPR hRL)
+  have hiAL : D.le (colimOut C A).1 L := D.trans a.2.1 haL
+  have hiBL : D.le (colimOut C B).1 L := D.trans a.2.2 haL
+  have hHc : C.F haL (C.F a.2.1 xA) = C.F hiAL xA := (C.F_trans a.2.1 haL xA).symm
+  have hHc2 : C.F haL (C.F a.2.2 xB) = C.F hiBL xB := (C.F_trans a.2.2 haL xB).symm
+  have hpush_f : homTr C xA xB a ⟨L, hiAL, hiBL⟩ haL f₀
+      = castHom hHc hHc2 ((C.functF haL).map f₀) := rfl
+  rw [hpush_f] at key
+  have cR : ∀ {U V V' Wq : C.A L} (he : V = V') (b : U ⟶ V) (c : V' ⟶ Wq),
+      castHom rfl he b ≫ c = b ≫ castHom he.symm rfl c := by
+    intro _ _ _ _ he b c; subst he; rfl
+  have cT : ∀ {U V Wq Wq' : C.A L} (he : Wq = Wq') (b : U ⟶ V) (c : V ⟶ Wq),
+      castHom rfl he (b ≫ c) = b ≫ castHom rfl he c := by
+    intro _ _ _ _ he b c; subst he; rfl
+  have hbig : D.le ap.1 L := D.trans hapP (D.trans hPR hRL)
+  have hbig' : D.le aq.1 L := D.trans haqP (D.trans hPR hRL)
+  refine Quotient.sound ⟨⟨L, D.trans ap.2.1 hbig, D.trans ap.2.2 hbig⟩, hbig, hbig', ?_⟩
+  dsimp only [homSystem]
+  have hu := hcancel haL (C.F (D.trans ap.2.1 hbig) xW)
+    (castHom rfl hHc.symm (homTr C xW xA ap ⟨L, D.trans ap.2.1 hbig, D.trans ap.2.2 hbig⟩ hbig p₀))
+    (castHom rfl hHc.symm (homTr C xW xA aq ⟨L, D.trans aq.2.1 hbig', D.trans aq.2.2 hbig'⟩ hbig' q₀))
+    (by
+      rw [cR, cR]
+      have hh := congrArg (castHom rfl hHc2.symm) key
+      rw [cT, cT, castHom_castHom] at hh
+      exact hh)
+  have hu2 := congrArg (castHom rfl hHc) hu
+  rw [castHom_castHom, castHom_castHom] at hu2
+  exact hu2
