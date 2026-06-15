@@ -781,3 +781,44 @@ theorem colimHom_mono_of_rep (C : CatSystem ι D) (hC : C.Coherent) {A B : C.Obj
   have hu2 := congrArg (castHom rfl hHc) hu
   rw [castHom_castHom, castHom_castHom] at hu2
   exact hu2
+
+/-- **Stage-inclusion functor (object case), on morphisms.**  A stage morphism
+    `g : x ⟶ y` in `C.A i` includes to a `colimitCat` morphism
+    `objIncl i x ⟶ objIncl i y`, transporting through the chosen `colimOut`
+    representatives of `objIncl i x`, `objIncl i y`.  The keystone for reflecting
+    monos/covers from `colimitCat` to a stage. -/
+noncomputable def homInclObj (C : CatSystem ι D) (hC : C.Coherent) {i : ι} {x y : C.A i}
+    (g : x ⟶ y) :
+    HomColim C hC (colimOut C (C.objIncl i x)).2 (colimOut C (C.objIncl i y)).2 := by
+  classical
+  let hxrel : Rel C.objSystem
+      ⟨(colimOut C (C.objIncl i x)).1, (colimOut C (C.objIncl i x)).2⟩ ⟨i, x⟩ :=
+    Quotient.exact (colimOut_spec C (C.objIncl i x))
+  let hyrel : Rel C.objSystem
+      ⟨(colimOut C (C.objIncl i y)).1, (colimOut C (C.objIncl i y)).2⟩ ⟨i, y⟩ :=
+    Quotient.exact (colimOut_spec C (C.objIncl i y))
+  let kx := Classical.choose hxrel
+  let hipx_kx := Classical.choose (Classical.choose_spec hxrel)
+  let hi_kx := Classical.choose (Classical.choose_spec (Classical.choose_spec hxrel))
+  have hx_eq := Classical.choose_spec (Classical.choose_spec (Classical.choose_spec hxrel))
+  let ky := Classical.choose hyrel
+  let hipy_ky := Classical.choose (Classical.choose_spec hyrel)
+  let hi_ky := Classical.choose (Classical.choose_spec (Classical.choose_spec hyrel))
+  have hy_eq := Classical.choose_spec (Classical.choose_spec (Classical.choose_spec hyrel))
+  dsimp only [CatSystem.objSystem] at hx_eq hy_eq
+  let K := Classical.choose (D.bound kx ky)
+  let hkxK := (Classical.choose_spec (D.bound kx ky)).1
+  let hkyK := (Classical.choose_spec (D.bound kx ky)).2
+  refine homIncl C hC (colimOut C (C.objIncl i x)).2 (colimOut C (C.objIncl i y)).2
+    ⟨K, D.trans hipx_kx hkxK, D.trans hipy_ky hkyK⟩ (castHom ?_ ?_ ((C.functF (D.trans hi_kx hkxK)).map g))
+  · calc C.F (D.trans hi_kx hkxK) x
+        = C.F hkxK (C.F hi_kx x) := by rw [C.F_trans hi_kx hkxK x]
+      _ = C.F hkxK (C.F hipx_kx (colimOut C (C.objIncl i x)).2) := by rw [hx_eq]
+      _ = C.F (D.trans hipx_kx hkxK) (colimOut C (C.objIncl i x)).2 :=
+            (C.F_trans hipx_kx hkxK (colimOut C (C.objIncl i x)).2).symm
+  · calc C.F (D.trans hi_kx hkxK) y
+        = C.F hkyK (C.F hi_ky y) := by rw [show D.trans hi_kx hkxK = D.trans hi_ky hkyK from
+              Subsingleton.elim _ _, C.F_trans hi_ky hkyK y]
+      _ = C.F hkyK (C.F hipy_ky (colimOut C (C.objIncl i y)).2) := by rw [hy_eq]
+      _ = C.F (D.trans hipy_ky hkyK) (colimOut C (C.objIncl i y)).2 :=
+            (C.F_trans hipy_ky hkyK (colimOut C (C.objIncl i y)).2).symm
