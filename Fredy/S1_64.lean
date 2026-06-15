@@ -97,6 +97,21 @@ theorem amalgamation_lemma [PreTopos 𝒞] {A B C : 𝒞}
   In a pre-topos, covers coincide with epimorphisms, and monics
   coincide with coequalizers (cocovers). -/
 
+/-- **§1.652 (crux): a pre-topos is BALANCED** — a map that is both monic and
+    epic is an isomorphism.  This is the genuine positivity content of §1.652:
+    the cokernel pair of `m` is built from the *disjoint* coproduct `B + B`
+    (positivity) via the effective quotient, and a monic that is also epic
+    equalizes a pair of equal legs, hence splits.  It is **not** derivable from
+    the current axioms — `HasBinaryCoproducts` carries only the bare universal
+    property, with no disjointness/universality, so the cokernel-pair argument
+    has no axiom to stand on.  Isolated here as the single obligation that both
+    reverse-directions below (`cover_eq_epic_preTopos`, `monic_eq_cocover`) rest
+    on; closing it needs §1.62 positivity axiomatized as Freyd states it
+    (disjoint + universal coproducts). -/
+theorem pretopos_balanced [PreTopos 𝒞] {A B : 𝒞} (m : A ⟶ B) (hm : Mono m)
+    (hepi : ∀ {C : 𝒞} (g h : B ⟶ C), m ≫ g = m ≫ h → g = h) : IsIso m := by
+  sorry
+
 theorem cover_eq_epic_preTopos [PreTopos 𝒞] {A B : 𝒞} (f : A ⟶ B) :
     Cover f ↔ (∀ {C : 𝒞} (g h : B ⟶ C), f ≫ g = f ≫ h → g = h) := by
   constructor
@@ -104,8 +119,8 @@ theorem cover_eq_epic_preTopos [PreTopos 𝒞] {A B : 𝒞} (f : A ⟶ B) :
     exact cover_epi
   · intro hepi
     rw [cover_iff_image_entire]
-    -- Goal: Subobject.IsEntire (image f), i.e., IsIso (image f).arr
-    -- (image f).arr is monic; show it is also epic (right factor of epic f)
+    -- Goal: Subobject.IsEntire (image f), i.e., IsIso (image f).arr.
+    -- `(image f).arr` is monic; since `f = lift ≫ arr` is epic, `arr` is epic too.
     have h_arr_epi : ∀ {C : 𝒞} (g h : B ⟶ C), (image f).arr ≫ g = (image f).arr ≫ h → g = h := by
       intro C g h heq
       apply hepi
@@ -114,13 +129,8 @@ theorem cover_eq_epic_preTopos [PreTopos 𝒞] {A B : 𝒞} (f : A ⟶ B) :
         _ = image.lift f ≫ ((image f).arr ≫ h) := by rw [heq]
         _ = (image.lift f ≫ (image f).arr) ≫ h := by rw [← Cat.assoc]
         _ = f ≫ h := by rw [image.lift_fac f]
-    -- `(image f).arr` is monic and epic; a monic cover is iso (`monic_cover_iso`),
-    -- so it suffices that the epic `(image f).arr` is a cover.  That epic ⟹ cover
-    -- step is the genuine §1.652 content (it needs the pre-topos *positivity*,
-    -- i.e. coproducts — §1.566 alone does not give it), isolated here.
-    refine monic_cover_iso _ ?_ (image f).monic
-    show Cover (image f).arr
-    sorry
+    -- monic + epic ⟹ iso by balancedness (`pretopos_balanced`), so `image f` is entire.
+    exact pretopos_balanced (image f).arr (image f).monic h_arr_epi
 
 /-- **§1.652**: In a pre-topos, monics coincide with cocovers
     (maps that are coequalizers of some pair).
