@@ -698,3 +698,22 @@ theorem colimHom_isIso_of_rep (C : CatSystem ι D) (hC : C.Coherent) {A B : C.Ob
     show homIncl C hC xB xB ⟨av, ah2, ah2⟩ (Cat.id (C.F ah2 xB)) = colimId C hC B
     rw [← homTr_id C xB ⟨(colimOut C B).1, D.refl _, D.refl _⟩ ⟨av, ah2, ah2⟩ ah2]
     exact homIncl_compat C hC xB xB ah2 (Cat.id _)
+
+/-- **`homIncl` is injective on hom-sets when the transition functors are faithful.**
+    Two stage germs at the same bound including to the same colimit morphism are
+    equal — the linchpin for reflecting monos/covers/pullbacks from `colimitCat`
+    to a stage.  `Quotient.exact` gives a common bound where the `homTr`-pushes
+    agree; `homTr` is `castHom ∘ functF.map`, so cast-invertibility + faithfulness
+    of `functF` strip back to `g = g'`. -/
+theorem homIncl_injective (C : CatSystem ι D) (hC : C.Coherent)
+    (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (p q : x ⟶ y),
+        (C.functF hij).map p = (C.functF hij).map q → p = q)
+    {i j : ι} (x : C.A i) (y : C.A j) (a : UpperBound D i j)
+    (g g' : C.F a.2.1 x ⟶ C.F a.2.2 y)
+    (h : homIncl C hC x y a g = homIncl C hC x y a g') : g = g' := by
+  obtain ⟨k, hik, hjk, heq⟩ := Quotient.exact h
+  rw [Subsingleton.elim hjk hik] at heq
+  dsimp only [homSystem, homTr] at heq
+  have hstrip := congrArg (castHom (C.F_trans a.2.1 hik x) (C.F_trans a.2.2 hik y)) heq
+  rw [castHom_castHom, castHom_castHom] at hstrip
+  exact hfaith hik g g' hstrip
