@@ -1052,10 +1052,38 @@ theorem regular_of_compose_assoc
     : PullbacksTransferCovers 𝒞 := by
   sorry
 
-/-- **§1.569 ⇒**: If A is regular, composition of relations is associative.
-    This follows from the Henkin-Lubkin representation theorem (§1.55):
-    associativity is a Horn sentence true in **Set**, hence true in any
-    regular category.  (Not yet formalized.) -/
+/-- In any category with images, `image.lift f` is a cover (the first factor in the
+    cover-monic factorization of `f`).  Proof: if it factors through a monic `m`, then
+    the subobject with arr = `m ≫ (image f).arr` allows `f`; image-minimality forces `m`
+    to be a split monic, hence iso.  (Identical to the proof in S1_57, reproduced here
+    to avoid a circular import: S1_57 imports S1_56.) -/
+theorem image_lift_cover {A B : 𝒞} (f : A ⟶ B) [HasImages 𝒞] : Cover (image.lift f) := by
+  intro D m g hm hfac
+  -- hfac: g ≫ m = image.lift f, so f = g ≫ (m ≫ (image f).arr)
+  have hmono_comp : Mono (m ≫ (image f).arr) := by
+    intro W u v huv
+    have h1 : u ≫ m = v ≫ m := (image f).monic _ _ (by
+      simpa [Cat.assoc] using huv)
+    exact hm _ _ h1
+  have h_allows : Allows ⟨D, m ≫ (image f).arr, hmono_comp⟩ f := by
+    refine ⟨g, ?_⟩
+    calc g ≫ (m ≫ (image f).arr) = (g ≫ m) ≫ (image f).arr := (Cat.assoc _ _ _).symm
+      _ = (image.lift f) ≫ (image f).arr := by rw [hfac]
+      _ = f := image.lift_fac f
+  have h_le : (image f).le ⟨D, m ≫ (image f).arr, hmono_comp⟩ := image_min f _ h_allows
+  rcases h_le with ⟨h, hh⟩
+  -- hh: h ≫ (m ≫ (image f).arr) = (image f).arr
+  have hhm : h ≫ m = Cat.id (image f).dom := (image f).monic (h ≫ m) (Cat.id _) (by
+    calc (h ≫ m) ≫ (image f).arr = h ≫ (m ≫ (image f).arr) := Cat.assoc _ _ _
+      _ = (image f).arr := hh
+      _ = Cat.id (image f).dom ≫ (image f).arr := (Cat.id_comp _).symm)
+  have hmh : m ≫ h = Cat.id D := hm (m ≫ h) (Cat.id D) (by
+    calc (m ≫ h) ≫ m = m ≫ (h ≫ m) := Cat.assoc _ _ _
+      _ = m ≫ Cat.id (image f).dom := by rw [hhm]
+      _ = m := Cat.comp_id _
+      _ = Cat.id D ≫ m := (Cat.id_comp _).symm)
+  exact ⟨h, hmh, hhm⟩
+
 theorem compose_assoc_of_regular [RegularCategory 𝒞] {A B C D : 𝒞}
     (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 C D) :
     RelLe ((R ⊚ S) ⊚ T) (R ⊚ (S ⊚ T)) ∧ RelLe (R ⊚ (S ⊚ T)) ((R ⊚ S) ⊚ T) := by
