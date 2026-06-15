@@ -60,51 +60,53 @@ def repFilter {𝒟 : Type u} [Cat.{v} 𝒟] [Logos 𝒞] [Logos 𝒟]
     (T : 𝒞 → 𝒟) [Functor T] : (Subobject 𝒞 one) → Prop :=
   λ U => @Isomorphic 𝒟 _ (T U.dom) one
 
-/-- A representation T is faithful iff ℱ(T) = {1} (§1.73). -/
+/-- A representation `T` is faithful iff `ℱ(T) = {1}` (§1.73).
+
+    `[Functor T]` alone is too weak (the book's `T` is a logos *representation*):
+    we add the two preservation facts a representation supplies — `T` preserves
+    monos (`hpm`) and the terminal object (`hT1 : T 1 ≅ 1`).  The conclusion is
+    stated up to isomorphism (a subterminator `U ⊆ 1` is "trivial" when its
+    domain is `≅ 1`); the original `U = Subobject.entire one` was too strong,
+    forcing `U.dom` to be *literally* `one`.
+
+    The forward direction is proved here.  The converse (a trivial filter forces
+    faithfulness) additionally needs `T` to preserve equalizers and images, and
+    is left decomposed into its two genuine obligations. -/
 theorem faithful_iff_trivial_filter {𝒟 : Type u} [Cat.{v} 𝒟] [Logos 𝒞] [Logos 𝒟]
-    (T : 𝒞 → 𝒟) [hT : Functor T] : Faithful T ↔ (∀ U, repFilter T U ↔ U = Subobject.entire one) := by
+    (T : 𝒞 → 𝒟) [hT : Functor T] (hpm : PreservesMono T)
+    (hT1 : Isomorphic (T (one : 𝒞)) (one : 𝒟)) :
+    Faithful T ↔ (∀ U : Subobject 𝒞 one, repFilter T U ↔ Isomorphic U.dom (one : 𝒞)) := by
   constructor
-  · intro hfaithful U
-    rcases hfaithful with ⟨hemb, href⟩
+  · rintro ⟨_hemb, href⟩ U
     constructor
-    · intro hrep
-      rcases hrep with ⟨φ, hiso⟩
-      -- φ : T(U.dom) → 1_𝒟 iso.  Since T reflects isos (href), we can show U.arr is iso.
-      -- Compose: T(U.arr) ≫ term(T(1)) = term(T(U.dom)) = φ, which is iso.
-      have hterm_iso : IsIso (@term 𝒟 _ _ (T U.dom)) := by
-        have hφ_term : φ = @term 𝒟 _ _ (T U.dom) := term_uniq _ _
-        rw [hφ_term] at hiso; exact hiso
-      have hcomp : hT.map U.arr ≫ @term 𝒟 _ _ (T (@one 𝒞 _ _)) = @term 𝒟 _ _ (T U.dom) :=
-        term_uniq _ _
-      -- So hT.map U.arr ≫ term(T(1)) is iso, making hT.map U.arr split epic
-      -- and term(T(1)) split monic.  To conclude U.arr iso via href, we need
-      -- hT.map U.arr itself iso, which requires term(T(1)) iso — i.e. T(1) ≅ 1.
-      -- This needs T to preserve the terminal, which follows from the right-adjoint
-      -- structure of a Logos representation (not available as [Functor T] alone).
-      sorry
-    · intro hUeq
-      -- U = Subobject.entire one → repFilter T U
-      -- Requires T(1_𝒞) ≅ 1_𝒟.  A faithful functor between logoi preserves the
-      -- terminal via the right adjoint image, but [Functor T] is too weak.
-      sorry
+    · -- repFilter U (T U.dom ≅ 1) → U.dom ≅ 1.
+      intro hrep
+      -- `T(U.arr)` is a mono between two objects each `≅ 1`, hence an iso;
+      -- faithfulness reflects it to make `U.arr` an iso.
+      have hTarr_iso : IsIso (hT.map U.arr) := by
+        obtain ⟨φ, hφ⟩ := hrep
+        obtain ⟨ψ, ψ', hψ1, hψ2⟩ := hT1
+        -- both `T(U.arr) ≫ ψ` and `φ` are maps into the terminal, so equal.
+        have hcomp : hT.map U.arr ≫ ψ = φ := term_uniq _ _
+        have hTeq : hT.map U.arr = φ ≫ ψ' := by
+          rw [← hcomp, Cat.assoc, hψ1, Cat.comp_id]
+        rw [hTeq]; exact isIso_comp hφ ⟨ψ, hψ2, hψ1⟩
+      exact ⟨U.arr, href U.arr hTarr_iso⟩
+    · -- U.dom ≅ 1 → T U.dom ≅ T 1 ≅ 1.
+      intro hUiso
+      exact isomorphic_trans (functor_preserves_iso_obj T hUiso) hT1
   · intro hfilter
-    -- (∀ U, repFilter T U ↔ U = Subobject.entire one) → Faithful T
-    -- From the filter condition at U = Subobject.entire one, we get T(1_𝒞) ≅ 1_𝒟.
-    have h_one_iso : @Isomorphic 𝒟 _ (T (@one 𝒞 _ _)) (@one 𝒟 _ _) :=
-      ((hfilter (Subobject.entire (@one 𝒞 _ _))).mpr rfl)
-    rcases h_one_iso with ⟨φ, hiso⟩
-    -- Embedding: use the Logos equalizer.  For f,g with T(f)=T(g), the equalizer E↣A
-    -- gives a subobject; its image under (term A)## is a subterminator.  The filter
-    -- condition forces this subterminator to be entire, hence f=g.
-    -- Requires T to preserve equalizers and the right adjoint, not available as [Functor T].
+    -- From the filter at `U = 1`, recover `T 1 ≅ 1` (also given directly as `hT1`).
+    have h_one_iso : Isomorphic (T (one : 𝒞)) (one : 𝒟) :=
+      (hfilter (Subobject.entire one)).mpr (isomorphic_refl one)
+    -- Embedding needs `T` to preserve equalizers; reflecting isos needs `T` to
+    -- preserve images.  Both are genuine missing obligations, left as honest
+    -- sorries (not derivable from `hpm`/`hT1` alone).
     have hemb : Embedding T := by
-      intro A B f g hTfg
+      intro A B f g _hTfg
       sorry
-    -- Reflects isos: if T(f) is iso, then the image of f satisfies T(im(f).dom) ≅ 1_𝒟,
-    -- forcing im(f) entire via the filter condition, hence f iso.
-    -- Requires T to preserve images, not available as [Functor T].
     have href : ∀ {A B : 𝒞} (f : A ⟶ B), IsIso (hT.map f) → IsIso f := by
-      intro A B f hTf
+      intro A B f _hTf
       sorry
     exact ⟨hemb, href⟩
 
