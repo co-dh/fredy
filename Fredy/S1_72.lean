@@ -62,8 +62,51 @@ def repFilter {𝒟 : Type u} [Cat.{v} 𝒟] [Logos 𝒞] [Logos 𝒟]
 
 /-- A representation T is faithful iff ℱ(T) = {1} (§1.73). -/
 theorem faithful_iff_trivial_filter {𝒟 : Type u} [Cat.{v} 𝒟] [Logos 𝒞] [Logos 𝒟]
-    (T : 𝒞 → 𝒟) [Functor T] : Faithful T ↔ (∀ U, repFilter T U ↔ U = Subobject.entire one) := by
-  sorry
+    (T : 𝒞 → 𝒟) [hT : Functor T] : Faithful T ↔ (∀ U, repFilter T U ↔ U = Subobject.entire one) := by
+  constructor
+  · intro hfaithful U
+    rcases hfaithful with ⟨hemb, href⟩
+    constructor
+    · intro hrep
+      rcases hrep with ⟨φ, hiso⟩
+      -- φ : T(U.dom) → 1_𝒟 iso.  Since T reflects isos (href), we can show U.arr is iso.
+      -- Compose: T(U.arr) ≫ term(T(1)) = term(T(U.dom)) = φ, which is iso.
+      have hterm_iso : IsIso (@term 𝒟 _ _ (T U.dom)) := by
+        have hφ_term : φ = @term 𝒟 _ _ (T U.dom) := term_uniq _ _
+        rw [hφ_term] at hiso; exact hiso
+      have hcomp : hT.map U.arr ≫ @term 𝒟 _ _ (T (@one 𝒞 _ _)) = @term 𝒟 _ _ (T U.dom) :=
+        term_uniq _ _
+      -- So hT.map U.arr ≫ term(T(1)) is iso, making hT.map U.arr split epic
+      -- and term(T(1)) split monic.  To conclude U.arr iso via href, we need
+      -- hT.map U.arr itself iso, which requires term(T(1)) iso — i.e. T(1) ≅ 1.
+      -- This needs T to preserve the terminal, which follows from the right-adjoint
+      -- structure of a Logos representation (not available as [Functor T] alone).
+      sorry
+    · intro hUeq
+      -- U = Subobject.entire one → repFilter T U
+      -- Requires T(1_𝒞) ≅ 1_𝒟.  A faithful functor between logoi preserves the
+      -- terminal via the right adjoint image, but [Functor T] is too weak.
+      sorry
+  · intro hfilter
+    -- (∀ U, repFilter T U ↔ U = Subobject.entire one) → Faithful T
+    -- From the filter condition at U = Subobject.entire one, we get T(1_𝒞) ≅ 1_𝒟.
+    have h_one_iso : @Isomorphic 𝒟 _ (T (@one 𝒞 _ _)) (@one 𝒟 _ _) :=
+      ((hfilter (Subobject.entire (@one 𝒞 _ _))).mpr rfl)
+    rcases h_one_iso with ⟨φ, hiso⟩
+    -- Embedding: use the Logos equalizer.  For f,g with T(f)=T(g), the equalizer E↣A
+    -- gives a subobject; its image under (term A)## is a subterminator.  The filter
+    -- condition forces this subterminator to be entire, hence f=g.
+    -- Requires T to preserve equalizers and the right adjoint, not available as [Functor T].
+    have hemb : Embedding T := by
+      intro A B f g hTfg
+      sorry
+    -- Reflects isos: if T(f) is iso, then the image of f satisfies T(im(f).dom) ≅ 1_𝒟,
+    -- forcing im(f) entire via the filter condition, hence f iso.
+    -- Requires T to preserve images, not available as [Functor T].
+    have href : ∀ {A B : 𝒞} (f : A ⟶ B), IsIso (hT.map f) → IsIso f := by
+      intro A B f hTf
+      sorry
+    exact ⟨hemb, href⟩
 
 /-! ## §1.733 Coprime and Focal
 
