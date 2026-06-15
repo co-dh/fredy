@@ -630,10 +630,27 @@ noncomputable def colimitHasEqualizers (C : CatSystem ι D) (hC : C.Coherent)
       obtain ⟨r, hr⟩ := hpres_lift hML fM gM (C.F (D.trans aC.2.1 (D.trans hcP (D.trans hPR hRL))) xW)
         (castHom rfl hAX cL) hk
       -- the lift `l : W ⟶ E`
-      refine ⟨homIncl C hC xW opE
-        ⟨L, D.trans aC.2.1 (D.trans hcP (D.trans hPR hRL)), hipEL⟩ (castHom rfl hHdL r), ?_, ?_⟩
-      · sorry
-      · sorry
+      have haCL : D.le aC.1 L := D.trans hcP (D.trans hPR hRL)
+      let lmap : W ⟶ E := homIncl C hC xW opE ⟨L, D.trans aC.2.1 haCL, hipEL⟩ (castHom rfl hHdL r)
+      have hiXL2 : D.le iX L := D.trans hiXM hML
+      have hHcL : C.F hML (C.F hiXM xX) = C.F hiXL2 xX := (C.F_trans hiXM hML xX).symm
+      have hpush_gmL : homTr C opE xX ubm ⟨L, hipEL, hiXL2⟩ hkpEL gm
+          = castHom hHdL hHcL ((C.functF hML).map (eqMap fM gM)) := by
+        dsimp [homTr, gm]
+        rw [map_castHom (C.F hkpEL) (hT := C.functF hkpEL), castHom_castHom]
+        exact castHom_heq_congr _ _ _ _ (hC.trans_map h_M_kpE hkpEL (eqMap fM gM)).symm
+      have hfac : lmap ≫ m = Quotient.mk (setoid (homSystem C hC xW xX)) ⟨aC, cC⟩ := by
+        show homCompRaw C hC xW opE xX ⟨L, D.trans aC.2.1 haCL, hipEL⟩ (castHom rfl hHdL r) ubm gm
+          = Quotient.mk (setoid (homSystem C hC xW xX)) ⟨aC, cC⟩
+        rw [show (Quotient.mk (setoid (homSystem C hC xW xX)) ⟨aC, cC⟩)
+              = homIncl C hC xW xX aC cC from rfl]
+        refine homCompRaw_eq_of_stage C hC xW opE xX ⟨L, D.trans aC.2.1 haCL, hipEL⟩
+          (castHom rfl hHdL r) ubm gm aC cC L (D.refl L) hkpEL haCL ?_
+        rw [homTr_refl C hC, hpush_gmL, castHom_comp, hr]
+        -- castHom rfl hAX.symm-ish (castHom rfl hAX cL) collapses to cL = homTr cC (aC→L)
+        rw [castHom_castHom]
+        rfl
+      exact ⟨lmap, hfac, fun l' hl' => hm_mono l' lmap (hl'.trans hfac.symm)⟩
   refine ⟨fun X Y F G => ?_⟩
   -- extract the data by choice (the goal `HasEqualizer F G` is a Type, so `obtain` is illegal)
   let E : C.Obj := (hEdata X Y F G).choose
