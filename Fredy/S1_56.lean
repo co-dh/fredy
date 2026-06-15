@@ -1477,6 +1477,31 @@ theorem compose_le {A B C : 𝒞} {R R' : BinRel 𝒞 A B} {S S' : BinRel 𝒞 B
   · show k ≫ ((image span').arr ≫ snd) = (image span).arr ≫ snd
     rw [← Cat.assoc, hk]
 
+/-- **Covers descend relation-containments**: to prove `X ⊂ Y` it suffices to
+    find a cover `c : P ↠ X.src` and a map `φ : P → Y.src` agreeing with `c`
+    on both legs.  The shared square `c ≫ ⟨X.colA,X.colB⟩ = φ ≫ ⟨Y.colA,Y.colB⟩`
+    has a monic right edge, so cover⊥mono (`cover_mono_diagonal`) descends `φ`
+    through `c` to the required `RelHom X Y`.  This is the workhorse for the
+    regular-category relation calculus (associativity, the allegory laws). -/
+theorem relLe_of_cover_factor {A B : 𝒞} {X Y : BinRel 𝒞 A B} {P : 𝒞}
+    (c : P ⟶ X.src) (hc : Cover c) (φ : P ⟶ Y.src)
+    (hA : φ ≫ Y.colA = c ≫ X.colA) (hB : φ ≫ Y.colB = c ≫ X.colB) : X ⊂ Y := by
+  have hmY : Mono (pair Y.colA Y.colB) := monic_pair_of_monicPair Y.colA Y.colB Y.isMonicPair
+  have hsq : c ≫ pair X.colA X.colB = φ ≫ pair Y.colA Y.colB := by
+    have e1 : c ≫ pair X.colA X.colB = pair (c ≫ X.colA) (c ≫ X.colB) :=
+      pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])
+    have e2 : φ ≫ pair Y.colA Y.colB = pair (c ≫ X.colA) (c ≫ X.colB) :=
+      pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair, hA]) (by rw [Cat.assoc, snd_pair, hB])
+    rw [e1, e2]
+  obtain ⟨g, _, hg⟩ := cover_mono_diagonal hc hmY hsq
+  refine ⟨⟨g, ?_, ?_⟩⟩
+  · calc g ≫ Y.colA = (g ≫ pair Y.colA Y.colB) ≫ fst := by rw [Cat.assoc, fst_pair]
+      _ = pair X.colA X.colB ≫ fst := by rw [hg]
+      _ = X.colA := fst_pair _ _
+  · calc g ≫ Y.colB = (g ≫ pair Y.colA Y.colB) ≫ snd := by rw [Cat.assoc, snd_pair]
+      _ = pair X.colA X.colB ≫ snd := by rw [hg]
+      _ = X.colB := snd_pair _ _
+
 /-- **§1.56**: `⊚` is associative. -/
 theorem compose_assoc {A B C D : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 C D) :
     RelLe ((R ⊚ S) ⊚ T) (R ⊚ (S ⊚ T)) := by
