@@ -822,3 +822,21 @@ noncomputable def homInclObj (C : CatSystem ι D) (hC : C.Coherent) {i : ι} {x 
       _ = C.F hkyK (C.F hipy_ky (colimOut C (C.objIncl i y)).2) := by rw [hy_eq]
       _ = C.F (D.trans hipy_ky hkyK) (colimOut C (C.objIncl i y)).2 :=
             (C.F_trans hipy_ky hkyK (colimOut C (C.objIncl i y)).2).symm
+
+/-- `castHom` is injective (it's a transport along object equalities). -/
+theorem castHom_injective {𝒜 : Type w} [Cat.{w} 𝒜] {X Y X' Y' : 𝒜}
+    (hX : X = X') (hY : Y = Y') {a b : X ⟶ Y}
+    (h : castHom hX hY a = castHom hX hY b) : a = b := by
+  subst hX; subst hY; exact h
+
+/-- **The stage-inclusion `homInclObj` is injective** (faithful) when transitions
+    are faithful: it shares the same `colimOut`-transport bound for `g`, `g'`, so
+    `homIncl_injective` + cast-invertibility + `hfaith` strip back to `g = g'`. -/
+theorem homInclObj_injective (C : CatSystem ι D) (hC : C.Coherent)
+    (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (p q : x ⟶ y),
+        (C.functF hij).map p = (C.functF hij).map q → p = q)
+    {i : ι} {x y : C.A i} (g g' : x ⟶ y)
+    (h : homInclObj C hC g = homInclObj C hC g') : g = g' := by
+  unfold homInclObj at h
+  have hc := homIncl_injective C hC hfaith _ _ _ _ _ h
+  exact hfaith _ _ _ (castHom_injective _ _ hc)
