@@ -664,3 +664,37 @@ noncomputable def colimitHasEqualizers (C : CatSystem ι D) (hC : C.Coherent)
     lift := fun c => (huniv c.dom c.map c.eq).choose
     fac := fun c => (huniv c.dom c.map c.eq).choose_spec.1
     uniq := fun c l hl => (huniv c.dom c.map c.eq).choose_spec.2 l hl }
+
+/-! ## M3 — cover-transfer for the colimit (toward `PreRegularCategory C.Obj`)
+
+  Foundational reflection lemmas.  `Cover` is a `∀`-over-monos, so transferring it
+  to the colimit needs iso/mono/cover preservation+reflection through `colimitCat`,
+  each fighting the `colimOut` representative transport. -/
+
+/-- **Iso preservation:** a colimit morphism whose stage representative `f₀` is an
+    isomorphism (witnessed by `g₀`) is itself an isomorphism in `colimitCat`. -/
+theorem colimHom_isIso_of_rep (C : CatSystem ι D) (hC : C.Coherent) {A B : C.Obj}
+    (a : UpperBound D (colimOut C A).1 (colimOut C B).1)
+    (f₀ : C.F a.2.1 (colimOut C A).2 ⟶ C.F a.2.2 (colimOut C B).2)
+    (g₀ : C.F a.2.2 (colimOut C B).2 ⟶ C.F a.2.1 (colimOut C A).2)
+    (h1 : f₀ ≫ g₀ = Cat.id (C.F a.2.1 (colimOut C A).2))
+    (h2 : g₀ ≫ f₀ = Cat.id (C.F a.2.2 (colimOut C B).2)) :
+    @IsIso C.Obj (colimitCat C hC) A B (homIncl C hC (colimOut C A).2 (colimOut C B).2 a f₀) := by
+  letI : Cat C.Obj := colimitCat C hC
+  obtain ⟨av, ah1, ah2⟩ := a
+  let xA := (colimOut C A).2; let xB := (colimOut C B).2
+  refine ⟨homIncl C hC xB xA ⟨av, ah2, ah1⟩ g₀, ?_, ?_⟩
+  · show homCompRaw C hC xA xB xA ⟨av, ah1, ah2⟩ f₀ ⟨av, ah2, ah1⟩ g₀ = colimId C hC A
+    rw [homCompRaw_eq_compAt C hC xA xB xA ⟨av, ah1, ah2⟩ f₀ ⟨av, ah2, ah1⟩ g₀ av (D.refl av) (D.refl av)]
+    unfold compAt
+    simp only [homTr_refl C hC]; rw [h1]
+    show homIncl C hC xA xA ⟨av, ah1, ah1⟩ (Cat.id (C.F ah1 xA)) = colimId C hC A
+    rw [← homTr_id C xA ⟨(colimOut C A).1, D.refl _, D.refl _⟩ ⟨av, ah1, ah1⟩ ah1]
+    exact homIncl_compat C hC xA xA ah1 (Cat.id _)
+  · show homCompRaw C hC xB xA xB ⟨av, ah2, ah1⟩ g₀ ⟨av, ah1, ah2⟩ f₀ = colimId C hC B
+    rw [homCompRaw_eq_compAt C hC xB xA xB ⟨av, ah2, ah1⟩ g₀ ⟨av, ah1, ah2⟩ f₀ av (D.refl av) (D.refl av)]
+    unfold compAt
+    simp only [homTr_refl C hC]; rw [h2]
+    show homIncl C hC xB xB ⟨av, ah2, ah2⟩ (Cat.id (C.F ah2 xB)) = colimId C hC B
+    rw [← homTr_id C xB ⟨(colimOut C B).1, D.refl _, D.refl _⟩ ⟨av, ah2, ah2⟩ ah2]
+    exact homIncl_compat C hC xB xB ah2 (Cat.id _)
