@@ -1429,6 +1429,15 @@ theorem cover_mono_diagonal {A B I D : 𝒞} {c : A ⟶ B} {f : B ⟶ D} {m : I 
   · rw [← hu₁, Cat.assoc, ← Cat.assoc pb.cone.π₁ inv pb.cone.π₂, hπinv, Cat.id_comp, hu₂]
   · rw [Cat.assoc, ← pb.cone.w, ← Cat.assoc, hinvπ, Cat.id_comp]
 
+/-- Composition of covers is a cover.  `f ≫ g` factors through a mono `m`;
+    cover⊥mono descends the square to factor `g` through `m`, and `g` being a
+    cover forces `m` iso. -/
+theorem cover_comp {X Y Z : 𝒞} {f : X ⟶ Y} {g : Y ⟶ Z} (hf : Cover f) (hg : Cover g) :
+    Cover (f ≫ g) := by
+  intro C m h hm hfac
+  obtain ⟨g', _, hg'm⟩ := cover_mono_diagonal hf hm hfac.symm
+  exact hg m g' hm hg'm
+
 /-- Precomposing with a cover leaves the image unchanged: `image (c ≫ f)` and
     `image f` contain one another.  `≤`-forward is automatic (`c ≫ f` factors
     through `image f`); `≤`-backward uses cover⊥mono to factor `f` itself
