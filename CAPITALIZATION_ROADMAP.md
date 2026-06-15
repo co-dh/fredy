@@ -33,7 +33,25 @@ stagewise terminals, transitions preserving it).
 | **M3** | `Fredy/CatColimitRegular.lean` | colimit preserves terminal / products / pullbacks / covers ⇒ `PreRegularCategory` | ◧ in progress |
 | M3a/b | ↑ | terminal + binary products | ✅ done, sorry-free |
 | M3-eq | ↑ | **`colimitHasEqualizers` — DONE sorry-free**; ⇒ pullbacks via §1.432 | ✅ done |
-| M3-cov | ↑ | cover-transfer (`PullbacksTransferCovers`) ⇒ assemble `PreRegularCategory` | ☐ |
+| M3-cov | ↑ | cover-transfer (`PullbacksTransferCovers`) ⇒ assemble `PreRegularCategory` | ◧ foundations done |
+
+### M3-cov progress / plan
+Foundation lemmas DONE sorry-free in `CatColimitRegular.lean`:
+- `colimHom_isIso_of_rep` — stage iso ⇒ `colimitCat` iso (iso preservation).
+- `homIncl_injective` — `homIncl` injective on homs given **faithful transitions** (`hfaith`).
+- `colimHom_mono_of_rep` — stage-mono-under-transitions ⇒ `colimitCat` mono (mono preservation).
+
+Remaining (each ~40–80 lines, fights the `colimOut` rep transport):
+1. **Stage-inclusion functor** `homInclObj : (x⟶y in C.A i) → (objIncl i x ⟶ objIncl i y)` + composition law.
+   The keystone — needed to present stage morphisms as `colimitCat` morphisms. Transport via
+   `colimOut(objIncl i x)` reps (mirror the `E`/`opE` machinery from `colimitHasEqualizers`).
+2. **Mono reflection** `colimitCat` mono ⇒ stage-mono-under-transitions (uses 1 + `homIncl_injective`).
+3. **Cover reflection / preservation** (cover = factor-through-mono ⇒ uses 2).
+4. **Assembly**: arbitrary pullback cone ≅ canonical (§1.432) so `Cover` is iso-invariant; reflect
+   `f`/pullback to a stage, stage `PullbacksTransferCovers`, preserve back ⇒ `PullbacksTransferCovers C.Obj`;
+   bundle with terminal+products+pullbacks ⇒ `PreRegularCategory C.Obj`.
+`colimitPullbacksTransferCovers` will carry "transitions faithful + preserve covers/monos/pullbacks"
+hypotheses (satisfied by the slice embeddings: `slice_embedding_separates` gives faithfulness).
 | **M4** | `Fredy/S1_546.lean` | relative-capitalization functor `A ↦ A*` (slices), `IsRelativeCapitalization` witness | ☐ |
 | **M5** | `Fredy/S1_543.lean` | ordinal-indexed iteration of M4; fixed-point/cardinality ⇒ capital (imports mathlib `Ordinal`) | ☐ hard |
 | **M6** | `Fredy/S1_54.lean` | assemble: `Ā` = colimit; prove `Capital` + faithful `A → Ā`; discharge `capitalization_lemma` | ☐ |
