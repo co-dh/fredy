@@ -33,6 +33,7 @@ import Fredy.S1_64
 import Fredy.S1_65
 import Fredy.S1_72
 import Fredy.S1_14
+import Fredy.S1_75
 import Fredy.S1_77
 import Fredy.S1_82
 import Fredy.S1_84
