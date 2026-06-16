@@ -466,9 +466,67 @@ structure FreeAAction {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞] (A : 𝒞) ext
     The unit element is 0 : 1 → N, the action is s : 1 × N ≅ N → N.
     The iterate of the NNO provides the universal map. -/
 theorem nno_is_free_one_action {𝒞 : Type u} [Cat.{v} 𝒞]
-    [hN : HasNaturalNumbersObject 𝒞] [HasExponentials 𝒞] :
+    [hN : HasNaturalNumbersObject 𝒞] :
     Nonempty (FreeAAction (𝒞 := 𝒞) one) := by
-  sorry
+  -- The free 1-action: obj = N, unit = zero, act = snd ≫ succ.
+  -- recA α = iterate α.unit (f_rec α) where f_rec α = pair(term,id) ≫ α.act.
+  -- Key identity: prodMap one N B h = pair fst (snd ≫ h)
+  --   = (snd ≫ h) ≫ pair (term B) (Cat.id B)  [fst eq by term_uniq, snd eq trivial]
+  -- recA_act: prodMap one N B (iter) ≫ α.act = (snd ≫ iter) ≫ f_rec α
+  --   and act ≫ iter = snd ≫ succ ≫ iter = snd ≫ iter ≫ f_rec α [iterate_succ].
+  -- recA_uniq: deduce succ ≫ m = m ≫ f_rec α by snd-monicity, then iterate_unique.
+  -- f_rec α : α.obj → α.obj sends x ↦ α.act(*, x) via pair(term,id) ≫ α.act
+  -- Key: prodMap one N B h = (snd ≫ h) ≫ pair (term B) (Cat.id B)
+  -- recA_act: prodMap one N B iter ≫ α.act = (snd ≫ iter) ≫ f_rec = snd ≫ iter ≫ f_rec
+  --   = snd ≫ succ ≫ iter [iterate_succ] = (snd ≫ succ) ≫ iter.
+  -- recA_uniq: from hms: snd ≫ m ≫ f_rec = snd ≫ succ ≫ m; cancel snd via its section.
+  -- Helper: prodMap one N B h = (snd ≫ h) ≫ pair(term B)(id B) [equal fst and snd by pair_uniq]
+  have prodMap_factorN : ∀ {B : 𝒞} (h : hN.nno ⟶ B),
+      prodMap one hN.nno B h = (snd ≫ h) ≫ pair (term B) (Cat.id B) := fun h => by
+    symm; apply pair_uniq
+    · rw [Cat.assoc, fst_pair]; exact term_uniq _ _
+    · rw [Cat.assoc, snd_pair, Cat.comp_id]
+  exact ⟨{
+    obj  := hN.nno
+    unit := hN.zero
+    act  := snd ≫ hN.succ
+    recA := fun α => hN.iterate α.unit (pair (term α.obj) (Cat.id α.obj) ≫ α.act)
+    recA_unit := fun α => hN.iterate_zero α.unit _
+    recA_act := fun α => by
+      -- LHS: prodMap one N α.obj iter ≫ α.act = ((snd ≫ iter) ≫ pair(term,id)) ≫ α.act
+      --    = (snd ≫ iter) ≫ pair(term,id) ≫ α.act = snd ≫ iter ≫ (pair(term,id) ≫ α.act)
+      -- RHS: (snd ≫ succ) ≫ iter = snd ≫ succ ≫ iter = snd ≫ iter ≫ (pair(term,id) ≫ α.act)
+      --    [by iterate_succ]
+      rw [prodMap_factorN, Cat.assoc, Cat.assoc, Cat.assoc]
+      congr 1
+      exact (hN.iterate_succ α.unit (pair (term α.obj) (Cat.id α.obj) ≫ α.act)).symm
+    recA_uniq := fun α m hm0 hms => by
+      apply hN.iterate_unique α.unit (pair (term α.obj) (Cat.id α.obj) ≫ α.act) m hm0
+      -- hms: prodMap one N α.obj m ≫ α.act = (snd ≫ succ) ≫ m
+      -- prodMap_factorN: prodMap one N B m = (snd ≫ m) ≫ pair(term,id)
+      -- So: ((snd ≫ m) ≫ pair(term,id)) ≫ α.act = (snd ≫ succ) ≫ m
+      --     (snd ≫ m) ≫ (pair(term,id) ≫ α.act) = snd ≫ succ ≫ m
+      --     snd ≫ m ≫ (pair(term,id) ≫ α.act) = snd ≫ succ ≫ m
+      -- Cancel snd via section: prodOneLeftInv ≫ snd = id
+      -- Derive: snd ≫ succ ≫ m = snd ≫ m ≫ (pair(term,id) ≫ α.act)
+      -- From hms with prodMap_factorN: ((snd ≫ m) ≫ pair...) ≫ α.act = (snd ≫ succ) ≫ m.
+      -- Rearranging gives snd ≫ m ≫ f_rec = snd ≫ succ ≫ m.
+      -- Cancel snd from left via its section prodOneLeftInv ≫ snd = id.
+      have heq : (snd : prod one hN.nno ⟶ hN.nno) ≫ m ≫
+            (pair (term α.obj) (Cat.id α.obj) ≫ α.act) = snd ≫ hN.succ ≫ m := by
+        have h := hms
+        rw [prodMap_factorN] at h
+        -- h : ((snd ≫ m) ≫ pair...) ≫ α.act = (snd ≫ succ) ≫ m
+        calc (snd : prod one hN.nno ⟶ hN.nno) ≫ m ≫ (pair _ _ ≫ α.act)
+            = ((snd ≫ m) ≫ pair _ _) ≫ α.act := by rw [Cat.assoc, Cat.assoc]
+          _ = (snd ≫ hN.succ) ≫ m := h
+          _ = snd ≫ hN.succ ≫ m := Cat.assoc _ _ _
+      have key := congrArg (prodOneLeftInv hN.nno ≫ ·) heq
+      simp only [← Cat.assoc, prodOneLeftInv_snd, Cat.id_comp] at key
+      -- key: (m ≫ pair...) ≫ α.act = succ ≫ m; need m ≫ (pair... ≫ α.act) = succ ≫ m
+      rw [Cat.assoc] at key
+      exact key.symm
+  }⟩
 
 /-! ## §1.98(10)  Bicartesian characterization of NNO
 
