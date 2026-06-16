@@ -205,19 +205,80 @@ theorem inter_le_named {A : 𝒞} (F_name : one ⟶ powObj A)
     hpbA' ⟨pb.cone.pt, pb.cone.π₁, pb.cone.π₂, hsq⟩
   exact ⟨u, hu₁⟩
 
+/-- **§1.94 η-law** (name reconstruction): the curry of `fst ≫ membershipMap G`
+    is `G` itself.  This is the inverse to the β-law `membershipMap_nameOf`: a
+    global element `G : 1 → [A]` is recovered from its membership test.
+
+    Proof: `fst ≫ membershipMap G = pair fst (snd ≫ G) ≫ eval = prodMap A one [A] G ≫ eval`
+    (using `fst ≫ term A = snd` by terminal-uniqueness), so `curry_unique_eq` gives `= G`. -/
+theorem curry_fst_membershipMap {A : 𝒞} (G : one ⟶ powObj A) :
+    curry (fst (A := A) (B := one) ≫ membershipMap G) = G := by
+  symm
+  apply curry_unique_eq
+  -- prodMap A one [A] G ≫ eval = fst ≫ membershipMap G
+  show prodMap A one (omega (𝒞 := 𝒞) ^^ A) G ≫ eval_exp A (omega (𝒞 := 𝒞))
+      = fst ≫ (pair (Cat.id A) (term A ≫ G) ≫ eval_exp A (omega (𝒞 := 𝒞)))
+  -- fst ≫ pair id (term≫G) = pair fst (fst ≫ term ≫ G) = pair fst (snd ≫ G) = prodMap A one [A] G
+  have hpair : fst (A := A) (B := one) ≫ pair (Cat.id A) (term A ≫ G)
+      = prodMap A one (omega (𝒞 := 𝒞) ^^ A) G := by
+    dsimp only [prodMap]
+    apply pair_uniq _ _ _ ?_ ?_
+    · rw [Cat.assoc, fst_pair, Cat.comp_id]
+    · rw [Cat.assoc, snd_pair, ← Cat.assoc,
+        term_uniq (fst (A := A) (B := one) ≫ term A) (snd (A := A) (B := one))]
+  rw [← Cat.assoc, hpair]
+
+/-- **§1.94**: the membership map `membershipMap G` classifies `interIntersection G`.
+    Since `interIntersection G = InverseImage (membershipMap G) {true}` is the pullback
+    of `true` along `membershipMap G`, the classifier-uniqueness gives
+    `classify (∩G).arr = membershipMap G`. -/
+theorem classify_interIntersection {A : 𝒞} (G : one ⟶ powObj A) :
+    HasSubobjectClassifier.classify (interIntersection G).arr (interIntersection G).monic
+      = membershipMap G := by
+  symm
+  -- pb = pullback of (membershipMap G, true); (∩G).arr = pb.cone.π₁, (∩G).dom = pb.cone.pt.
+  let pb := HasPullbacks.has (membershipMap G) (HasSubobjectClassifier.true (𝒞 := 𝒞))
+  -- the cone square gives  (∩G).arr ≫ membershipMap G = π₂ ≫ true = term ≫ true.
+  have hsq : (interIntersection G).arr ≫ membershipMap G
+      = term (interIntersection G).dom ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
+    show pb.cone.π₁ ≫ membershipMap G = _
+    rw [pb.cone.w]; congr 1; exact term_uniq _ _
+  apply classify_eq_of_pullback (interIntersection G).arr (interIntersection G).monic
+    (membershipMap G) hsq
+  -- the inverse-image pullback cone IS a pullback (over (membershipMap G, true)).
+  intro d
+  obtain ⟨u, ⟨hu₁, hu₂⟩, huniq⟩ := pb.cone_isPullback d
+  refine ⟨u, ⟨hu₁, term_uniq _ _⟩, fun v hv₁ _ => huniq v hv₁ (term_uniq _ _)⟩
+
+/-- **§1.94**: the NAME of `interIntersection G` is `G` itself.
+    `nameOf (∩G).arr = curry(fst ≫ χ_{∩G}) = curry(fst ≫ membershipMap G) = G`
+    (by `classify_interIntersection` then `curry_fst_membershipMap`). -/
+theorem nameOf_interIntersection {A : 𝒞} (G : one ⟶ powObj A) :
+    nameOf (interIntersection G).arr (interIntersection G).monic = G := by
+  show curry (fst ≫ HasSubobjectClassifier.classify (interIntersection G).arr
+      (interIntersection G).monic) = G
+  rw [classify_interIntersection, curry_fst_membershipMap]
+
 /-- **§1.943** (part 2, well-pointed case): If the points of F (i.e. maps 1 → F.dom)
     are jointly epic, then ∩F is the greatest lower bound of subobjects named by F.
     A map B → A factors through ∩F iff it factors through every A' named by F.
 
-    Proof (§1.943): Well-pointedness makes {1_F} jointly epic; Ω(−) contravariant
-    with right adjoint carries epic families to monic families; then §1.942 closes. -/
+    Proof: for each point `x : 1 → F.dom`, the singleton intersection
+    `interIntersection (x ≫ F.arr)` is itself a subobject NAMED by F — its name is
+    `x ≫ F.arr` (by `nameOf_interIntersection`), witnessed by the point `x`.  Hence the
+    lower-bound hypothesis `_hL` applies directly to give `L ≤ ∩(x ≫ F.arr)`.
+    (Well-pointedness of F is the book's hypothesis guaranteeing the singleton points
+    `x : 1 → F.dom` jointly determine F, so it suffices to range over them.) -/
 theorem inter_is_glb {A : 𝒞} (F : Subobject 𝒞 (powObj A))
     (_hF : WellPointed F.dom)
     (L : Subobject 𝒞 A)
     (_hL : ∀ A' : Subobject 𝒞 A, NamedBy A' F → Subobject.le L A') :
     ∀ x : one ⟶ F.dom,
         Subobject.le L (interIntersection (x ≫ F.arr)) := by
-  sorry
+  intro x
+  -- ∩(x ≫ F.arr) is named by F: its name is x ≫ F.arr, witnessed by the point x.
+  apply _hL
+  exact ⟨x, by rw [nameOf_interIntersection]⟩
 
 /-! ## §1.944  A topos has a strict coterminator
 
