@@ -69,6 +69,27 @@ def killedValues {𝒟 : Type u} [Cat.{v} 𝒟] [PreLogos 𝒞] [PreLogos 𝒟]
     (T : 𝒞 → 𝒟) [Functor T] : (Subobject 𝒞 one) → Prop :=
   λ U => @Isomorphic 𝒟 _ (T U.dom) one
 
+/-! ## §1.646 Faithful representability of small special categories
+
+  Every small special Cartesian category is faithfully representable in Set.
+  Every small special positive pre-logos is faithfully representable in Set.
+  PROOF (§1.646): Combine §1.472/§1.637 (finite separation) with a diagonal
+  ultra-filter argument: I = finite sets of proper subobjects, choose T_S for
+  each S, form T : A → Set^I, extend to an ultra-filter F ⊇ principal coideals.
+  T^F is faithful.  (Requires ultra-filter machinery; sorry.) -/
+
+-- §1.646 (note): Every small special Cartesian category embeds faithfully in Set.
+-- Proof combines §1.472/§1.637 with an ultra-filter diagonal argument.
+-- Requires ultra-filter infrastructure outside this repo's scope.
+
+-- §1.647 (note): A boolean pre-logos is special iff two-valued.
+-- Proof: complement of (A₁×B₂)∪(B₁×A₂) in B₁×B₂ is A₁°×A₂°.
+-- Requires complement intersection/union infrastructure not yet formalized.
+
+-- §1.648 (note): Ultra-power T = Set^I → Set^I/F is bicartesian iff F is
+-- a complete measure (meets every countable partition of I).
+-- Requires ultra-filter/ultra-product infrastructure outside this repo.
+
 /-! ## §1.65 Pre-topos
 
   A PRE-TOPOS is an effective positive pre-logos:
@@ -143,6 +164,21 @@ theorem monic_eq_cocover_preTopos [PreTopos 𝒞] [HasCoequalizers 𝒞] {A B : 
     Mono f ↔ ∃ (C : 𝒞) (p q : C ⟶ A), HEq ((HasCoequalizers.coeq p q).map) f := by
   sorry
 
+/-! ## §1.653 Pushout of a monic and any morphism in a pre-topos
+
+  Given morphisms f: A → B and monic y: A ↣ C in a pre-topos, there is a pushout
+  square with the top map monic.  The proof factors f as cover ∘ monic (image
+  factorization) and applies the amalgamation lemma §1.651 to the two monics. -/
+
+/-- **§1.653**: In a pre-topos, given f : A → B and monic y : A ↣ C, there exists a
+    pushout square (with the B-map monic).
+    PROOF: Factor A → B as A ↠ I ↣ B.  Apply §1.651 to I ↣ B and I ↣ C' (pushing y
+    through the cover A ↠ I), stack the two squares, and use the pasting lemma. -/
+theorem pushout_monic_in_pretopos [PreTopos 𝒞] {A B C : 𝒞}
+    (f : A ⟶ B) (y : A ⟶ C) (hy : Mono y) :
+    ∃ (D : 𝒞) (u : B ⟶ D) (v : C ⟶ D), Mono u ∧ f ≫ u = y ≫ v := by
+  sorry
+
 /-! ## §1.654/§1.657 Pre-topos is cocartesian iff minimal equivalence relations exist
 
   A pre-topos is COCARTESIAN (its opposite is regular) if and only if
@@ -178,6 +214,19 @@ theorem preTopos_minEquiv_to_cocartesian [PreTopos 𝒞]
     (h : HasMinEquivContaining 𝒞) : Nonempty (HasCoequalizers 𝒞) := by
   sorry
 
+/-! ## §1.655 Bicartesian representation criterion
+
+  If A and B are pre-topoi and T : A → B a functor preserving 0, pushouts,
+  finite products and monics, then T is a bicartesian representation.
+  PROOF SKETCH (§1.655): T preserves pullbacks of monics (by §1.651 + pasting);
+  T preserves equalizers (products ⟹ equalizers); T preserves covers (=
+  coequalizers, §1.652; T preserves pushouts and 0). -/
+
+-- §1.655 (note): A functor T between pre-topoi preserving 0, pushouts, products
+-- and monics is a bicartesian representation.
+-- PROOF: Products + §1.651 → T preserves pullbacks of monics; products → equalizers
+-- (§1.434); covers = coequalizers + pushout preservation → T preserves covers.
+-- Requires formalizing the Functor API for inter-category morphisms.
 
 /-! ## §1.658 Decidable object
 
@@ -206,6 +255,19 @@ def DecidableObject [PreLogos 𝒞] [HasBinaryProducts 𝒞] (A : 𝒞) : Prop :
 theorem preTopos_boolean_iff_all_decidable [PreTopos 𝒞] [HasBinaryProducts 𝒞] :
     (Nonempty (BooleanPreLogos 𝒞)) ↔ ∀ (A : 𝒞), DecidableObject A := by
   sorry
+
+/-! ## §1.659 Decidability in functor categories and sheaves
+
+  T ∈ Fᴬ is decidable iff T(x) is a monic map for all x : A → B ∈ A.
+  For sheaves: X → Y is decidable iff every pair of points with the same
+  stalk have disjoint neighborhoods; in particular, decidable iff Y is Hausdorff.
+  (These results require the sheaf/functor-category infrastructure; stated
+  with sorry pending that development.) -/
+
+-- §1.659 (note): T ∈ Fᴬ is decidable iff T(x) is a monic map for all x : A → B in A.
+-- For sheaves on Y: X → Y is decidable iff stalk-equal points have disjoint neighborhoods
+-- (Y Hausdorff → X → Y decidable iff X Hausdorff).
+-- Requires functor category and sheaf infrastructure.
 
 /-! ## §1.66 Choice objects in a pre-topos
 
@@ -246,11 +308,23 @@ section Choice661
 
 variable [RegularCategory 𝒞]
 
-/-- **§1.661**: The terminator (terminal object) is always choice in a regular category.
-    PROOF: Any entire relation R : X → 1 is simple (the unique map term X : X → 1
-    factors through R), so R contains the map term X. -/
+/-- **§1.661**: The terminator is always choice in a regular category.
+    PROOF: Any entire relation R : X → 1 is automatically simple, because all maps
+    to `one` are equal (terminal uniqueness), so `R° ⊚ R : one → one` trivially lies
+    inside `graph id_one`.  Hence R is a map, its left leg R.colA is an iso, and its
+    inverse is the required section. -/
 theorem terminator_is_choice : Choice (one : 𝒞) := by
-  sorry
+  intro A R hent
+  -- Terminal uniqueness forces R to be simple.
+  have h_simple : Simple R :=
+    ⟨⟨(R° ⊚ R).colA,
+      by simp [graph, Cat.comp_id],
+      by simp [graph]; rw [Cat.comp_id]; exact term_uniq _ _⟩⟩
+  -- Entire + Simple = Map, so R.colA is an isomorphism.
+  have h_iso : IsIso R.colA :=
+    (tabulated_is_map_iff_left_iso R.colA R.colB R.isMonicPair).mp ⟨hent, h_simple⟩
+  obtain ⟨inv, _hinv_left, hinv_right⟩ := h_iso
+  exact ⟨inv ≫ R.colB, inv, hinv_right, rfl⟩
 
 /-- **§1.661**: The binary product of two choice objects is choice.
     PROOF (book §1.661): Let R be entire from A to B₁×B₂.
