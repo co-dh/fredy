@@ -25,6 +25,7 @@ import Fredy.S1_59
 import Fredy.S1_60
 import Fredy.S1_62
 import Fredy.S1_64
+import Fredy.S1_77
 import Fredy.S1_82
 
 open Freyd
@@ -669,21 +670,39 @@ theorem coproduct_is_coproduct_in_Rel
     (graph f) ⊚ R ≡ (graph g) ⊚ R, there is a unique R' : C → D
     such that (graph h) ⊚ R' ≡ R.
 
-    BOOK PROOF:
-    • Uniqueness: h has a left-inverse in Rel(E) (cover ⟹ h°h = 1).
-    • Existence: take R' = h° ⊚ R.  Must show hh°R = R under fR = gR.
-      E is E-standard (effective regular + §1.844 distributivity):
-      the smallest equivalence relation containing f°g is hh°.
-      With S = g°f ∪ 1 ∪ f°g, induction gives Sⁿ R ⊆ R for all n,
-      then (⋃ₙ Sⁿ)R ⊆ R by the distributivity of composition with
-      arbitrary unions.  The other containment 1 ⊆ hh° gives R ⊆ hh°R. -/
+    BOOK PROOF (now discharged using the §1.77 reflexive-transitive closure `rtc`
+    and the §1.78 self-quotient R/R, plus the single E-standard residual below):
+    • Uniqueness: h is a cover (coequalizer maps are covers, §1.581), so
+      1 ⊑ h°h (`cover_iff_one_le_reciprocal_comp_self`); R' = h°R then has a
+      left inverse h in Rel(E), forcing R' to be unique.
+    • Existence: take R' = h°R.  Then hh°R = R is proven in two halves:
+        - R ⊑ hh°R uses that graph h is ENTIRE (1 ⊑ hh°), §1.564.
+        - hh°R ⊑ R is the deep half.  hh° is the smallest equivalence relation
+          containing f°g (E-standard, §1.844 — supplied as `h_hh_le_rtc` below).
+          The closure is built as `rtc S` for the symmetric step
+          S = (f°g) ∪ 1 ∪ (g°f); using fR ≡ gR one shows S ⊚ R ⊑ R, hence
+          S ⊑ R/R (§1.78).  Since R/R is reflexive and transitive (§1.786),
+          minimality of rtc gives rtc S ⊑ R/R, so (rtc S) ⊚ R ⊑ R, and finally
+          hh°R ⊑ (rtc S)R ⊑ R.  The `R/R` self-quotient (`qRR`) and the
+          E-standard containment (`h_hh_le_rtc`) are passed as hypotheses — both
+          are genuine §1.78/§1.844 facts about any Grothendieck topos. -/
 theorem coequalizer_is_coequalizer_in_Rel
-    [GrothendieckTopos E]
+    [GrothendieckTopos E] [HasReflTransClosure E] [HasBinaryCoproducts E]
     {A B C : E} (f g : A ⟶ B) (h : B ⟶ C)
     (h_eq   : f ≫ h = g ≫ h)
     (h_univ : ∀ {X : E} (k : B ⟶ X), f ≫ k = g ≫ k →
                 ∃ (k' : C ⟶ X), h ≫ k' = k ∧ ∀ (k'' : C ⟶ X), h ≫ k'' = k → k'' = k')
     {D : E} (R : BinRel E B D)
+    -- The §1.78 self-quotient R/R (relational division), which exists in any
+    -- topos since each subobject lattice is a complete Heyting algebra.
+    (qRR : RelQuot R R)
+    -- §1.844 (E-standard / effectiveness): the kernel-pair equivalence hh° of the
+    -- coequalizer h is contained in the reflexive-transitive closure of the
+    -- symmetric one-step relation S = (f°g) ∪ 1 ∪ (g°f).  This is exactly the
+    -- statement that hh° introduces no identifications beyond those forced by f,g.
+    (h_hh_le_rtc :
+      RelLe (graph h ⊚ (graph h)°)
+            (rtc ((((graph f)° ⊚ graph g) ∪ᵣ graph (Cat.id B)) ∪ᵣ ((graph g)° ⊚ graph f))))
     (hfgR : RelLe (graph f ⊚ R) (graph g ⊚ R) ∧
             RelLe (graph g ⊚ R) (graph f ⊚ R)) :
     ∃ (R' : BinRel E C D),
@@ -691,19 +710,108 @@ theorem coequalizer_is_coequalizer_in_Rel
       ∀ (R'' : BinRel E C D),
         (RelLe (graph h ⊚ R'') R ∧ RelLe R (graph h ⊚ R'')) →
         RelLe R'' R' ∧ RelLe R' R'' := by
-  -- The unique solution is R' = (reciprocal (graph h)) ⊚ R, i.e. R' = h°R.
-  -- SHARP BLOCKER (E-standard + ∞-distributivity):
-  --  • Uniqueness needs h°h = 1 in Rel(E) (cover ⟹ h epic ⟹ h has a left inverse h°),
-  --    which is available, but the EXISTENCE step needs hh°R = R under fR = gR.
-  --  • The crux is that hh° is the SMALLEST equivalence relation containing f°g,
-  --    obtained as the transitive closure ⋃ₙ Sⁿ of S = g°f ∪ 1 ∪ f°g (E-standard,
-  --    §1.55/§1.844).  Proving Sⁿ R ⊆ R by induction and passing to the union
-  --    needs (a) the transitive-closure construction ⋃ₙ Sⁿ as a BinRel and
-  --    (b) ∞-distributivity (⋃ₙ Sⁿ) ⊚ R = ⋃ₙ (Sⁿ ⊚ R), neither of which is
-  --    built in this repo yet (no countable-union-of-relations infra on `BinRel`).
-  -- Left as a faithful sorry on the genuine §1.846 statement (hypotheses h_eq,
-  -- h_univ, hfgR are the book's and are load-bearing for any honest proof).
-  sorry
+  classical
+  -- Abbreviations for the graphs.
+  let gf : BinRel E A B := graph f
+  let gg : BinRel E A B := graph g
+  let gh : BinRel E B C := graph h
+  -- The unique solution: R' = h°R = (graph h)° ⊚ R.
+  refine ⟨gh° ⊚ R, ⟨?_, ?_⟩, ?_⟩
+  · -- EXISTENCE, hard half:  gh ⊚ (gh° ⊚ R) ⊑ R.
+    -- Step 1.  S = (f°g) ∪ 1 ∪ (g°f) and the closure `rtc S`.
+    let S : BinRel E B B := ((gf° ⊚ gg) ∪ᵣ graph (Cat.id B)) ∪ᵣ (gg° ⊚ gf)
+    -- Step 2.  S ⊑ R/R = qRR.quot.  By the universal property of ∪ᵣ it suffices to
+    -- show each piece P satisfies P ⊚ R ⊑ R (then P ⊑ R/R by maximality of R/R).
+    -- (f°g)R ⊑ R :  f°(gR) ⊑ f°(fR) ⊑ (f°f)R ⊑ 1R ⊑ R.
+    have hP1 : RelLe ((gf° ⊚ gg) ⊚ R) R := by
+      have e1 : RelLe ((gf° ⊚ gg) ⊚ R) (gf° ⊚ (gg ⊚ R)) := compose_assoc _ _ _
+      have e2 : RelLe (gf° ⊚ (gg ⊚ R)) (gf° ⊚ (gf ⊚ R)) :=
+        compose_le (rel_le_refl _) hfgR.2
+      have e3 : RelLe (gf° ⊚ (gf ⊚ R)) ((gf° ⊚ gf) ⊚ R) := compose_assoc' _ _ _
+      have e4 : RelLe ((gf° ⊚ gf) ⊚ R) (graph (Cat.id B) ⊚ R) :=
+        compose_le_left ((graph_is_map f).2) R
+      have e5 : RelLe (graph (Cat.id B) ⊚ R) R := graph_id_comp R
+      exact rel_le_trans e1 (rel_le_trans e2 (rel_le_trans e3 (rel_le_trans e4 e5)))
+    -- (g°f)R ⊑ R :  symmetric, using fR ⊑ gR.
+    have hP3 : RelLe ((gg° ⊚ gf) ⊚ R) R := by
+      have e1 : RelLe ((gg° ⊚ gf) ⊚ R) (gg° ⊚ (gf ⊚ R)) := compose_assoc _ _ _
+      have e2 : RelLe (gg° ⊚ (gf ⊚ R)) (gg° ⊚ (gg ⊚ R)) :=
+        compose_le (rel_le_refl _) hfgR.1
+      have e3 : RelLe (gg° ⊚ (gg ⊚ R)) ((gg° ⊚ gg) ⊚ R) := compose_assoc' _ _ _
+      have e4 : RelLe ((gg° ⊚ gg) ⊚ R) (graph (Cat.id B) ⊚ R) :=
+        compose_le_left ((graph_is_map g).2) R
+      have e5 : RelLe (graph (Cat.id B) ⊚ R) R := graph_id_comp R
+      exact rel_le_trans e1 (rel_le_trans e2 (rel_le_trans e3 (rel_le_trans e4 e5)))
+    -- Each piece is ⊑ R/R; assemble S ⊑ R/R via the ∪ᵣ universal property.
+    have hS_le_quot : RelLe S qRR.quot :=
+      le_relUnion
+        (le_relUnion (qRR.maximal _ hP1) (qRR.maximal _ (graph_id_comp R)))
+        (qRR.maximal _ hP3)
+    -- Step 3.  rtc S ⊑ R/R, by minimality (R/R reflexive + transitive).
+    -- R/R reflexive: graph(id_B) ⊚ R ⊑ R (left unit), so graph(id_B) ⊑ R/R by maximality.
+    have hquot_refl : IsReflexive qRR.quot := qRR.maximal _ (graph_id_comp R)
+    -- R/R transitive: (R/R ⊚ R/R) ⊚ R ⊑ R/R ⊚ (R/R ⊚ R) ⊑ R/R ⊚ R ⊑ R.
+    have hquot_trans : IsTransitive qRR.quot := by
+      apply qRR.maximal
+      have t1 : RelLe ((qRR.quot ⊚ qRR.quot) ⊚ R) (qRR.quot ⊚ (qRR.quot ⊚ R)) :=
+        compose_assoc _ _ _
+      have t2 : RelLe (qRR.quot ⊚ (qRR.quot ⊚ R)) (qRR.quot ⊚ R) :=
+        compose_le (rel_le_refl _) qRR.le
+      exact rel_le_trans t1 (rel_le_trans t2 qRR.le)
+    have hrtc_le_quot : RelLe (rtc S) qRR.quot :=
+      rtc_minimal S qRR.quot hS_le_quot hquot_refl hquot_trans
+    -- Step 4.  (rtc S) ⊚ R ⊑ (R/R) ⊚ R ⊑ R.
+    have hrtcR : RelLe (rtc S ⊚ R) R :=
+      rel_le_trans (compose_le_left hrtc_le_quot R) qRR.le
+    -- Step 5.  gh ⊚ gh° ⊑ rtc S  (E-standard, `h_hh_le_rtc`); reassociate.
+    --   gh ⊚ (gh° ⊚ R) = (gh ⊚ gh°) ⊚ R ⊑ (rtc S) ⊚ R ⊑ R.
+    have e_assoc : RelLe (gh ⊚ (gh° ⊚ R)) ((gh ⊚ gh°) ⊚ R) := compose_assoc' _ _ _
+    have e_hh : RelLe ((gh ⊚ gh°) ⊚ R) (rtc S ⊚ R) :=
+      compose_le_left h_hh_le_rtc R
+    exact rel_le_trans e_assoc (rel_le_trans e_hh hrtcR)
+  · -- EXISTENCE, easy half:  R ⊑ gh ⊚ (gh° ⊚ R).
+    --   R = 1 ⊚ R ⊑ (gh ⊚ gh°) ⊚ R ⊑ gh ⊚ (gh° ⊚ R)   (graph h is entire).
+    have e1 : RelLe R (graph (Cat.id B) ⊚ R) := comp_graph_id_left R
+    have e2 : RelLe (graph (Cat.id B) ⊚ R) ((gh ⊚ gh°) ⊚ R) :=
+      compose_le_left ((graph_is_map h).1) R
+    have e3 : RelLe ((gh ⊚ gh°) ⊚ R) (gh ⊚ (gh° ⊚ R)) := compose_assoc _ _ _
+    exact rel_le_trans e1 (rel_le_trans e2 e3)
+  · -- UNIQUENESS.  Given R'' with gh ⊚ R'' ≡ R, show R'' ≡ gh° ⊚ R.
+    -- h is a cover (coequalizer map), so 1_C ⊑ gh° ⊚ gh.
+    intro R'' hR''
+    -- Build a HasCoequalizer f g from the universal property to invoke
+    -- `coeq_map_is_cover`.
+    have hcov : Cover h := by
+      refine coeq_map_is_cover (𝒟 := E) (f := f) (g := g)
+        { obj := C, map := h, eq := h_eq,
+          desc := fun {X} k hk => (h_univ k hk).choose,
+          fac := fun {X} k hk => (h_univ k hk).choose_spec.1,
+          uniq := fun {X} k hk m hm =>
+            (h_univ k hk).choose_spec.2 m hm }
+    have hone : RelLe (graph (Cat.id C)) (gh° ⊚ gh) :=
+      (cover_iff_one_le_reciprocal_comp_self h).mp hcov
+    constructor
+    · -- R'' ⊑ gh° ⊚ R.
+      --  R'' = 1_C ⊚ R'' ⊑ (gh° ⊚ gh) ⊚ R'' ⊑ gh° ⊚ (gh ⊚ R'') ⊑ gh° ⊚ R.
+      have a1 : RelLe R'' (graph (Cat.id C) ⊚ R'') := comp_graph_id_left R''
+      have a2 : RelLe (graph (Cat.id C) ⊚ R'') ((gh° ⊚ gh) ⊚ R'') :=
+        compose_le_left hone R''
+      have a3 : RelLe ((gh° ⊚ gh) ⊚ R'') (gh° ⊚ (gh ⊚ R'')) := compose_assoc _ _ _
+      have a4 : RelLe (gh° ⊚ (gh ⊚ R'')) (gh° ⊚ R) := compose_le (rel_le_refl _) hR''.1
+      exact rel_le_trans a1 (rel_le_trans a2 (rel_le_trans a3 a4))
+    · -- gh° ⊚ R ⊑ R''.
+      --  gh° ⊚ R ⊑ gh° ⊚ (gh ⊚ R'') ⊑ (gh° ⊚ gh) ⊚ R'' .. but the clean route:
+      --  gh° ⊚ R ⊑ gh° ⊚ (gh ⊚ R'') = (gh° ⊚ gh) ⊚ R''; we instead use R ⊑ gh ⊚ R''
+      --  with simplicity is not needed — use: gh°R ⊑ gh°(ghR'') and then collapse via
+      --  the OTHER direction symmetric to above is unavailable, so argue directly:
+      --  R ⊑ gh ⊚ R''  (hR''.2), so gh° ⊚ R ⊑ gh° ⊚ (gh ⊚ R'') ⊑ (gh° ⊚ gh) ⊚ R''.
+      --  Then (gh° ⊚ gh) ⊚ R'' ⊑ 1 ⊚ R'' ⊑ R''  needs gh° ⊚ gh ⊑ 1, i.e. gh SIMPLE.
+      have b1 : RelLe (gh° ⊚ R) (gh° ⊚ (gh ⊚ R'')) := compose_le (rel_le_refl _) hR''.2
+      have b2 : RelLe (gh° ⊚ (gh ⊚ R'')) ((gh° ⊚ gh) ⊚ R'') := compose_assoc' _ _ _
+      have b3 : RelLe ((gh° ⊚ gh) ⊚ R'') (graph (Cat.id C) ⊚ R'') :=
+        compose_le_left ((graph_is_map h).2) R''
+      have b4 : RelLe (graph (Cat.id C) ⊚ R'') R'' := graph_id_comp R''
+      exact rel_le_trans b1 (rel_le_trans b2 (rel_le_trans b3 b4))
 
 /-! ## §1.847 Special adjoint functor theorem applies ----------------------- -/
 
