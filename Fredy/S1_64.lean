@@ -113,126 +113,15 @@ def killedValues {𝒟 : Type u} [Cat.{v} 𝒟] [PreLogos 𝒞] [PreLogos 𝒟]
 class PreTopos (𝒞 : Type u) [Cat.{v} 𝒞] extends
     EffectiveRegular 𝒞, PositivePreLogos 𝒞
 
-/-! ## §1.621/§1.623 Disjointness of positive coproducts
+/-! ## §1.621/§1.623 Disjointness of positive coproducts — RELOCATED to S1_62
 
-  Freyd's positivity is NOT the bare case-universal-property of `HasBinaryCoproducts`.
-  §1.626 is explicit: "Coproducts can exist without positivity.  Any distributive
-  lattice, viewed as a category, is a pre-logos with coproducts.  It is positive iff
-  it is degenerate."  In a lattice the join `A ∨ B` is a coproduct but the injections
-  `A ↣ A∨B`, `B ↣ A∨B` are not jointly monic and `A ∧ B ≠ 0`.
-
-  In a POSITIVE pre-logos the coproduct `A + B` is, by §1.623, *constructed* as the
-  ambient object `C` for which `A, B ⊆ C` are subobjects with `A ∩ B = 0` and
-  `A ∪ B = C` — and §1.621 says exactly such a disjoint complemented union IS a
-  coproduct.  So disjointness is part of the DATA of a positive coproduct, faithfully
-  recorded below as Freyd's §1.621 conditions on the injections of `HasBinaryCoproducts`:
-
-  * `inl`, `inr` are monic (they are subobject inclusions);
-  * `inl ∩ inr ≤ 0`  (the §1.621 disjointness `A₁ ∩ A₂ = 0`);
-  * `inl ∪ inr = the whole coproduct`  (the §1.621 union `A₁ ∪ A₂ = A`).
-
-  This matches the binary form of the `DisjointCoproduct` structure that S1_84 uses
-  for arbitrary-indexed coproducts (uᵢ monic, uᵢ°uⱼ = 0, ⋃uᵢ°uᵢ = 1).
-  INTENDED MIGRATION: once S1_62 is free to edit, fold `DisjointBinaryCoproduct`'s
-  three fields into `PositivePreLogos` itself (the natural home of §1.623). -/
-
-/-- The left injection `inl : A ⟶ A+B` packaged as a subobject of `A+B`, given that
-    it is monic.  Used to phrase §1.621 disjointness `inl ∩ inr ≤ 0` via the existing
-    `Subobject.inter`. -/
-def inlSub [HasBinaryCoproducts 𝒞] {A B : 𝒞} (h : Mono (HasBinaryCoproducts.inl (A := A) (B := B))) :
-    Subobject 𝒞 (HasBinaryCoproducts.coprod A B) :=
-  ⟨A, HasBinaryCoproducts.inl, h⟩
-
-/-- The right injection `inr : B ⟶ A+B` packaged as a subobject of `A+B`. -/
-def inrSub [HasBinaryCoproducts 𝒞] {A B : 𝒞} (h : Mono (HasBinaryCoproducts.inr (A := A) (B := B))) :
-    Subobject 𝒞 (HasBinaryCoproducts.coprod A B) :=
-  ⟨B, HasBinaryCoproducts.inr, h⟩
-
-/-- **§1.621/§1.623 DISJOINT BINARY COPRODUCT.**  A positive pre-logos in which the
-    coproduct injections satisfy Freyd's §1.621 disjoint-complemented-union conditions.
-    This is the missing positivity content that the amalgamation lemma (§1.651),
-    balancedness (§1.652), and Diaconescu's theorem (§1.662) all rest on. -/
-class DisjointBinaryCoproduct (𝒞 : Type u) [Cat.{v} 𝒞] extends PositivePreLogos 𝒞 where
-  /-- The left injection is monic (it is a subobject inclusion). -/
-  inl_monic : ∀ {A B : 𝒞}, Mono (HasBinaryCoproducts.inl (A := A) (B := B))
-  /-- The right injection is monic. -/
-  inr_monic : ∀ {A B : 𝒞}, Mono (HasBinaryCoproducts.inr (A := A) (B := B))
-  /-- §1.621 disjointness: `inl ∩ inr = 0` (their intersection is the bottom subobject).
-      The intersection is the pullback of `inl` and `inr`, here `≤ PreLogos.bottom`. -/
-  inl_inter_inr : ∀ {A B : 𝒞},
-    Subobject.le (Subobject.inter (inlSub (𝒞 := 𝒞) (A := A) (B := B) inl_monic)
-                                  (inrSub (𝒞 := 𝒞) (A := A) (B := B) inr_monic))
-                 (PreLogos.bottom (HasBinaryCoproducts.coprod A B))
-  /-- §1.621 union: `inl ∪ inr = A+B` (the injections jointly cover the coproduct). -/
-  inl_union_inr : ∀ {A B : 𝒞},
-    Subobject.le (Subobject.entire (HasBinaryCoproducts.coprod A B))
-                 (HasSubobjectUnions.union (inlSub (𝒞 := 𝒞) (A := A) (B := B) inl_monic)
-                                           (inrSub (𝒞 := 𝒞) (A := A) (B := B) inr_monic))
-
-/-! ### Reusable disjointness lemmas
-
-  Downstream files (`amalgamation_lemma` §1.651, `pretopos_balanced` §1.652,
-  the Diaconescu equivalences §1.662) need these three facts about positive
-  coproducts.  Each is a direct projection of the §1.621 fields above. -/
-
-/-- **§1.621**: in a positive (disjoint) coproduct the left injection is monic. -/
-theorem inl_mono [DisjointBinaryCoproduct 𝒞] {A B : 𝒞} :
-    Mono (HasBinaryCoproducts.inl (A := A) (B := B)) :=
-  DisjointBinaryCoproduct.inl_monic
-
-/-- **§1.621**: in a positive (disjoint) coproduct the right injection is monic. -/
-theorem inr_mono [DisjointBinaryCoproduct 𝒞] {A B : 𝒞} :
-    Mono (HasBinaryCoproducts.inr (A := A) (B := B)) :=
-  DisjointBinaryCoproduct.inr_monic
-
-/-- **§1.621 disjointness, pullback form**: the intersection (pullback) of `inl` and
-    `inr` in `A+B` is the zero subobject — `inl ∩ inr ≤ 0`.  This is the categorical
-    statement "`pullback(inl, inr) ≅ 0`": its domain receives a map to `(bottom).dom`,
-    and `bottom_min` gives a map back, so the two are isomorphic when bottom is the
-    initial object.  Phrased as a subobject inequality to stay constructive. -/
-theorem inl_inter_inr_le_bottom [DisjointBinaryCoproduct 𝒞] {A B : 𝒞} :
-    Subobject.le (Subobject.inter (inlSub (𝒞 := 𝒞) (A := A) (B := B) inl_mono)
-                                  (inrSub (𝒞 := 𝒞) (A := A) (B := B) inr_mono))
-                 (PreLogos.bottom (HasBinaryCoproducts.coprod A B)) :=
-  DisjointBinaryCoproduct.inl_inter_inr
-
-/-- **§1.621/§1.623 union**: `inl ∪ inr = A+B`; the injections jointly cover. -/
-theorem inl_union_inr_entire [DisjointBinaryCoproduct 𝒞] {A B : 𝒞} :
-    Subobject.le (Subobject.entire (HasBinaryCoproducts.coprod A B))
-                 (HasSubobjectUnions.union (inlSub (𝒞 := 𝒞) (A := A) (B := B) inl_mono)
-                                           (inrSub (𝒞 := 𝒞) (A := A) (B := B) inr_mono)) :=
-  DisjointBinaryCoproduct.inl_union_inr
-
-/-- **§1.621 disjointness, elementwise form** (the shape `amalgamation_lemma` and the
-    cokernel-pair argument of §1.652 actually consume): if a generalized element of `A`
-    and one of `B` are identified in `A+B` (`f ≫ inl = g ≫ inr`), then they factor
-    through the bottom (zero) subobject of `A+B` — there is a map `e : X ⟶ (bottom).dom`
-    with `e ≫ (bottom).arr = f ≫ inl`.  This is the categorical content of
-    "`pullback(inl, inr) ≅ 0`": the equalizing pair lifts into the intersection
-    `inl ∩ inr`, which is `≤ 0` by §1.621.  Derived from `inl_inter_inr_le_bottom`. -/
-theorem coprod_inl_inr_disjoint_elt [DisjointBinaryCoproduct 𝒞] {A B : 𝒞}
-    {X : 𝒞} (f : X ⟶ A) (g : X ⟶ B)
-    (hfg : f ≫ HasBinaryCoproducts.inl = g ≫ HasBinaryCoproducts.inr) :
-    ∃ e : X ⟶ (PreLogos.bottom (HasBinaryCoproducts.coprod A B)).dom,
-      e ≫ (PreLogos.bottom (HasBinaryCoproducts.coprod A B)).arr = f ≫ HasBinaryCoproducts.inl := by
-  -- f, g form a cone over (inlSub.arr, inrSub.arr); lift into their pullback = inl ∩ inr.
-  let pb := HasPullbacks.has (inlSub (𝒞 := 𝒞) (A := A) (B := B) inl_mono).arr
-                             (inrSub (𝒞 := 𝒞) (A := A) (B := B) inr_mono).arr
-  have hcone : f ≫ (inlSub (𝒞 := 𝒞) (A := A) (B := B) inl_mono).arr
-             = g ≫ (inrSub (𝒞 := 𝒞) (A := A) (B := B) inr_mono).arr := hfg
-  let w := pb.lift ⟨X, f, g, hcone⟩
-  -- inl ∩ inr ≤ bottom gives e with (w ≫ e) ≫ bottom.arr = w ≫ (inl ∩ inr).arr = f ≫ inl.
-  obtain ⟨e, he⟩ := inl_inter_inr_le_bottom (𝒞 := 𝒞) (A := A) (B := B)
-  have hwπ₁ : w ≫ pb.cone.π₁ = f := pb.lift_fst ⟨X, f, g, hcone⟩
-  refine ⟨w ≫ e, ?_⟩
-  -- (inl ∩ inr).arr = π₁ ≫ inlSub.arr = π₁ ≫ inl, and w ≫ π₁ = f.
-  calc (w ≫ e) ≫ (PreLogos.bottom (HasBinaryCoproducts.coprod A B)).arr
-      = w ≫ (e ≫ (PreLogos.bottom (HasBinaryCoproducts.coprod A B)).arr) := Cat.assoc _ _ _
-    _ = w ≫ (Subobject.inter (inlSub (𝒞 := 𝒞) (A := A) (B := B) inl_mono)
-                             (inrSub (𝒞 := 𝒞) (A := A) (B := B) inr_mono)).arr := by rw [he]
-    _ = w ≫ (pb.cone.π₁ ≫ (inlSub (𝒞 := 𝒞) (A := A) (B := B) inl_mono).arr) := rfl
-    _ = (w ≫ pb.cone.π₁) ≫ (inlSub (𝒞 := 𝒞) (A := A) (B := B) inl_mono).arr := (Cat.assoc _ _ _).symm
-    _ = f ≫ HasBinaryCoproducts.inl := by rw [hwπ₁]; rfl
+  `inlSub`, `inrSub`, `DisjointBinaryCoproduct`, and the disjointness lemmas
+  (`inl_mono`, `inr_mono`, `inl_inter_inr_le_bottom`, `inl_union_inr_entire`,
+  `coprod_inl_inr_disjoint_elt`) now live in `Fredy.S1_62`, next to their natural
+  home `PositivePreLogos` (§1.623), so the §1.624/§1.631 corollaries there can
+  consume them without a cyclic import back into this file.  They remain in scope
+  here via `import Fredy.S1_62`.  Only `PreToposDisjoint` stays below, because it
+  extends `PreTopos` (§1.65), which is defined in this file. -/
 
 variable (𝒞)
 

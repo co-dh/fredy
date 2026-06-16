@@ -614,13 +614,204 @@ def IsComplementedSub {A : 𝒞} (A₁ : Subobject 𝒞 A) : Prop :=
 
 class PositivePreLogos (𝒞 : Type u) [Cat.{v} 𝒞] extends PreLogos 𝒞, HasBinaryCoproducts 𝒞
 
+/-! ## §1.621/§1.623 Disjointness of positive coproducts
+
+  Freyd's positivity is NOT the bare case-universal-property of `HasBinaryCoproducts`.
+  §1.626 is explicit: "Coproducts can exist without positivity.  Any distributive
+  lattice, viewed as a category, is a pre-logos with coproducts.  It is positive iff
+  it is degenerate."  In a lattice the join `A ∨ B` is a coproduct but the injections
+  `A ↣ A∨B`, `B ↣ A∨B` are not jointly monic and `A ∧ B ≠ 0`.
+
+  In a POSITIVE pre-logos the coproduct `A + B` is, by §1.623, *constructed* as the
+  ambient object `C` for which `A, B ⊆ C` are subobjects with `A ∩ B = 0` and
+  `A ∪ B = C` — and §1.621 says exactly such a disjoint complemented union IS a
+  coproduct.  So disjointness is part of the DATA of a positive coproduct, faithfully
+  recorded below as Freyd's §1.621 conditions on the injections of `HasBinaryCoproducts`:
+
+  * `inl`, `inr` are monic (they are subobject inclusions);
+  * `inl ∩ inr ≤ 0`  (the §1.621 disjointness `A₁ ∩ A₂ = 0`);
+  * `inl ∪ inr = the whole coproduct`  (the §1.621 union `A₁ ∪ A₂ = A`).
+
+  This matches the binary form of the `DisjointCoproduct` structure that S1_84 uses
+  for arbitrary-indexed coproducts (uᵢ monic, uᵢ°uⱼ = 0, ⋃uᵢ°uᵢ = 1).
+
+  RELOCATED from S1_64 (§1.64) to its natural home next to `PositivePreLogos` (§1.623),
+  so the §1.624/§1.631 corollaries below can consume it without a cyclic import.
+
+  NB: the three projection lemmas (`inl_inter_inr_le_bottom`, `inl_union_inr_entire`,
+  `coprod_inl_inr_disjoint_elt`) carry `omit [PreLogos 𝒞] in`: the file-level
+  `variable [PreLogos 𝒞]` would otherwise form a diamond with
+  `DisjointBinaryCoproduct.toPreLogos`, and the `Subobject.inter`/`inlSub` instance
+  arguments would resolve along two different `HasPullbacks` paths. -/
+
+/-- The left injection `inl : A ⟶ A+B` packaged as a subobject of `A+B`, given that
+    it is monic.  Used to phrase §1.621 disjointness `inl ∩ inr ≤ 0` via the existing
+    `Subobject.inter`. -/
+def inlSub [HasBinaryCoproducts 𝒞] {A B : 𝒞} (h : Mono (HasBinaryCoproducts.inl (A := A) (B := B))) :
+    Subobject 𝒞 (HasBinaryCoproducts.coprod A B) :=
+  ⟨A, HasBinaryCoproducts.inl, h⟩
+
+/-- The right injection `inr : B ⟶ A+B` packaged as a subobject of `A+B`. -/
+def inrSub [HasBinaryCoproducts 𝒞] {A B : 𝒞} (h : Mono (HasBinaryCoproducts.inr (A := A) (B := B))) :
+    Subobject 𝒞 (HasBinaryCoproducts.coprod A B) :=
+  ⟨B, HasBinaryCoproducts.inr, h⟩
+
+/-- **§1.621/§1.623 DISJOINT BINARY COPRODUCT.**  A positive pre-logos in which the
+    coproduct injections satisfy Freyd's §1.621 disjoint-complemented-union conditions.
+    This is the missing positivity content that the amalgamation lemma (§1.651),
+    balancedness (§1.652), and Diaconescu's theorem (§1.662) all rest on. -/
+class DisjointBinaryCoproduct (𝒞 : Type u) [Cat.{v} 𝒞] extends PositivePreLogos 𝒞 where
+  /-- The left injection is monic (it is a subobject inclusion). -/
+  inl_monic : ∀ {A B : 𝒞}, Mono (HasBinaryCoproducts.inl (A := A) (B := B))
+  /-- The right injection is monic. -/
+  inr_monic : ∀ {A B : 𝒞}, Mono (HasBinaryCoproducts.inr (A := A) (B := B))
+  /-- §1.621 disjointness: `inl ∩ inr = 0` (their intersection is the bottom subobject).
+      The intersection is the pullback of `inl` and `inr`, here `≤ PreLogos.bottom`. -/
+  inl_inter_inr : ∀ {A B : 𝒞},
+    Subobject.le (Subobject.inter (inlSub (𝒞 := 𝒞) (A := A) (B := B) inl_monic)
+                                  (inrSub (𝒞 := 𝒞) (A := A) (B := B) inr_monic))
+                 (PreLogos.bottom (HasBinaryCoproducts.coprod A B))
+  /-- §1.621 union: `inl ∪ inr = A+B` (the injections jointly cover the coproduct). -/
+  inl_union_inr : ∀ {A B : 𝒞},
+    Subobject.le (Subobject.entire (HasBinaryCoproducts.coprod A B))
+                 (HasSubobjectUnions.union (inlSub (𝒞 := 𝒞) (A := A) (B := B) inl_monic)
+                                           (inrSub (𝒞 := 𝒞) (A := A) (B := B) inr_monic))
+
+/-! ### Reusable disjointness lemmas
+
+  Downstream files (`amalgamation_lemma` §1.651, `pretopos_balanced` §1.652,
+  the Diaconescu equivalences §1.662) need these three facts about positive
+  coproducts.  Each is a direct projection of the §1.621 fields above. -/
+
+/-- **§1.621**: in a positive (disjoint) coproduct the left injection is monic. -/
+theorem inl_mono [DisjointBinaryCoproduct 𝒞] {A B : 𝒞} :
+    Mono (HasBinaryCoproducts.inl (A := A) (B := B)) :=
+  DisjointBinaryCoproduct.inl_monic
+
+/-- **§1.621**: in a positive (disjoint) coproduct the right injection is monic. -/
+theorem inr_mono [DisjointBinaryCoproduct 𝒞] {A B : 𝒞} :
+    Mono (HasBinaryCoproducts.inr (A := A) (B := B)) :=
+  DisjointBinaryCoproduct.inr_monic
+
+-- These three projection lemmas use a FRESH type variable `𝒟` (not the file-level `𝒞`)
+-- so the ambient `variable [PreLogos 𝒞]` is not in scope: it would otherwise form a
+-- diamond with `DisjointBinaryCoproduct.toPreLogos` and the `Subobject.inter`/`inlSub`
+-- instance arguments would resolve along two different `HasPullbacks` paths.
+section DisjointProjections
+variable {𝒟 : Type u} [Cat.{v} 𝒟]
+
+/-- **§1.621 disjointness, pullback form**: the intersection (pullback) of `inl` and
+    `inr` in `A+B` is the zero subobject — `inl ∩ inr ≤ 0`.  This is the categorical
+    statement "`pullback(inl, inr) ≅ 0`": its domain receives a map to `(bottom).dom`,
+    and `bottom_min` gives a map back, so the two are isomorphic when bottom is the
+    initial object.  Phrased as a subobject inequality to stay constructive. -/
+theorem inl_inter_inr_le_bottom [DisjointBinaryCoproduct 𝒟] {A B : 𝒟} :
+    Subobject.le (Subobject.inter (inlSub (𝒞 := 𝒟) (A := A) (B := B) inl_mono)
+                                  (inrSub (𝒞 := 𝒟) (A := A) (B := B) inr_mono))
+                 (PreLogos.bottom (HasBinaryCoproducts.coprod A B)) :=
+  DisjointBinaryCoproduct.inl_inter_inr
+
+/-- **§1.621/§1.623 union**: `inl ∪ inr = A+B`; the injections jointly cover. -/
+theorem inl_union_inr_entire [DisjointBinaryCoproduct 𝒟] {A B : 𝒟} :
+    Subobject.le (Subobject.entire (HasBinaryCoproducts.coprod A B))
+                 (HasSubobjectUnions.union (inlSub (𝒞 := 𝒟) (A := A) (B := B) inl_mono)
+                                           (inrSub (𝒞 := 𝒟) (A := A) (B := B) inr_mono)) :=
+  DisjointBinaryCoproduct.inl_union_inr
+
+/-- **§1.621 disjointness, elementwise form** (the shape `amalgamation_lemma` and the
+    cokernel-pair argument of §1.652 actually consume): if a generalized element of `A`
+    and one of `B` are identified in `A+B` (`f ≫ inl = g ≫ inr`), then they factor
+    through the bottom (zero) subobject of `A+B` — there is a map `e : X ⟶ (bottom).dom`
+    with `e ≫ (bottom).arr = f ≫ inl`.  This is the categorical content of
+    "`pullback(inl, inr) ≅ 0`": the equalizing pair lifts into the intersection
+    `inl ∩ inr`, which is `≤ 0` by §1.621.  Derived from `inl_inter_inr_le_bottom`. -/
+theorem coprod_inl_inr_disjoint_elt [DisjointBinaryCoproduct 𝒟] {A B : 𝒟}
+    {X : 𝒟} (f : X ⟶ A) (g : X ⟶ B)
+    (hfg : f ≫ HasBinaryCoproducts.inl = g ≫ HasBinaryCoproducts.inr) :
+    ∃ e : X ⟶ (PreLogos.bottom (HasBinaryCoproducts.coprod A B)).dom,
+      e ≫ (PreLogos.bottom (HasBinaryCoproducts.coprod A B)).arr = f ≫ HasBinaryCoproducts.inl := by
+  -- f, g form a cone over (inlSub.arr, inrSub.arr); lift into their pullback = inl ∩ inr.
+  let pb := HasPullbacks.has (inlSub (𝒞 := 𝒟) (A := A) (B := B) inl_mono).arr
+                             (inrSub (𝒞 := 𝒟) (A := A) (B := B) inr_mono).arr
+  have hcone : f ≫ (inlSub (𝒞 := 𝒟) (A := A) (B := B) inl_mono).arr
+             = g ≫ (inrSub (𝒞 := 𝒟) (A := A) (B := B) inr_mono).arr := hfg
+  let w := pb.lift ⟨X, f, g, hcone⟩
+  -- inl ∩ inr ≤ bottom gives e with (w ≫ e) ≫ bottom.arr = w ≫ (inl ∩ inr).arr = f ≫ inl.
+  obtain ⟨e, he⟩ := inl_inter_inr_le_bottom (𝒟 := 𝒟) (A := A) (B := B)
+  have hwπ₁ : w ≫ pb.cone.π₁ = f := pb.lift_fst ⟨X, f, g, hcone⟩
+  refine ⟨w ≫ e, ?_⟩
+  -- (inl ∩ inr).arr = π₁ ≫ inlSub.arr = π₁ ≫ inl, and w ≫ π₁ = f.
+  calc (w ≫ e) ≫ (PreLogos.bottom (HasBinaryCoproducts.coprod A B)).arr
+      = w ≫ (e ≫ (PreLogos.bottom (HasBinaryCoproducts.coprod A B)).arr) := Cat.assoc _ _ _
+    _ = w ≫ (Subobject.inter (inlSub (𝒞 := 𝒟) (A := A) (B := B) inl_mono)
+                             (inrSub (𝒞 := 𝒟) (A := A) (B := B) inr_mono)).arr := by rw [he]
+    _ = w ≫ (pb.cone.π₁ ≫ (inlSub (𝒞 := 𝒟) (A := A) (B := B) inl_mono).arr) := rfl
+    _ = (w ≫ pb.cone.π₁) ≫ (inlSub (𝒞 := 𝒟) (A := A) (B := B) inl_mono).arr := (Cat.assoc _ _ _).symm
+    _ = f ≫ HasBinaryCoproducts.inl := by rw [hwπ₁]; rfl
+
+/-- **§1.621 helper**: a pushout of a span `C ⇉ A,B` whose apex `C` is INITIAL
+    (`init_uniq` — every parallel pair of maps out of `C` is equal) is the BINARY
+    COPRODUCT `A + B`.  When the span source is initial, the coproduct cocone
+    `(A+B, inl, inr)` automatically commutes (`f ≫ inl = g ≫ inr`, both maps out of the
+    initial `C`), so the two universal properties identify the pushout apex with `A+B`. -/
+theorem pushout_over_initial_is_coproduct [HasBinaryCoproducts 𝒟]
+    {C A B : 𝒟} {f : C ⟶ A} {g : C ⟶ B} (po : HasPushout f g)
+    (hCinit : ∀ {X : 𝒟} (u v : C ⟶ X), u = v) :
+    Isomorphic po.cocone.pt (HasBinaryCoproducts.coprod A B) := by
+  -- coproduct cocone over (f, g): f ≫ inl = g ≫ inr since both are maps C → A+B out of initial C.
+  let coCoc : PushoutCocone f g :=
+    ⟨HasBinaryCoproducts.coprod A B, HasBinaryCoproducts.inl, HasBinaryCoproducts.inr,
+     hCinit _ _⟩
+  -- desc : po.pt → A+B from the pushout UMP.
+  let φ : po.cocone.pt ⟶ HasBinaryCoproducts.coprod A B := po.desc coCoc
+  have hφ₁ : po.cocone.ι₁ ≫ φ = HasBinaryCoproducts.inl := po.fac₁ coCoc
+  have hφ₂ : po.cocone.ι₂ ≫ φ = HasBinaryCoproducts.inr := po.fac₂ coCoc
+  -- ψ : A+B → po.pt from the coproduct UMP (case of the pushout legs).
+  let ψ : HasBinaryCoproducts.coprod A B ⟶ po.cocone.pt :=
+    HasBinaryCoproducts.case po.cocone.ι₁ po.cocone.ι₂
+  have hψ₁ : HasBinaryCoproducts.inl ≫ ψ = po.cocone.ι₁ := HasBinaryCoproducts.case_inl _ _
+  have hψ₂ : HasBinaryCoproducts.inr ≫ ψ = po.cocone.ι₂ := HasBinaryCoproducts.case_inr _ _
+  refine ⟨φ, ψ, ?_, ?_⟩
+  · -- φ ≫ ψ = id_po.pt  by pushout uniqueness (both legs land back on ι₁, ι₂).
+    have h1 : po.cocone.ι₁ ≫ (φ ≫ ψ) = po.cocone.ι₁ := by
+      rw [← Cat.assoc, hφ₁, hψ₁]
+    have h2 : po.cocone.ι₂ ≫ (φ ≫ ψ) = po.cocone.ι₂ := by
+      rw [← Cat.assoc, hφ₂, hψ₂]
+    -- both φ≫ψ and id are the desc of po.cocone (as a cocone over itself).
+    rw [po.uniq po.cocone (φ ≫ ψ) h1 h2,
+        po.uniq po.cocone (Cat.id _) (Cat.comp_id _) (Cat.comp_id _)]
+  · -- ψ ≫ φ = id_{A+B}  by coproduct uniqueness (both legs land back on inl, inr).
+    have h1 : HasBinaryCoproducts.inl ≫ (ψ ≫ φ) = HasBinaryCoproducts.inl := by
+      rw [← Cat.assoc, hψ₁, hφ₁]
+    have h2 : HasBinaryCoproducts.inr ≫ (ψ ≫ φ) = HasBinaryCoproducts.inr := by
+      rw [← Cat.assoc, hψ₂, hφ₂]
+    rw [HasBinaryCoproducts.case_uniq _ _ (ψ ≫ φ) h1 h2,
+        HasBinaryCoproducts.case_uniq _ _ (Cat.id _) (Cat.comp_id _) (Cat.comp_id _)]
+
+end DisjointProjections
+
 /-- §1.624: In a positive pre-logos, f: A → B₁+B₂ decomposes as
     f₁+f₂ from A₁ → B₁, A₂ → B₂ where A = A₁+A₂.
     Proof: A₁ = f#(inl), A₂ = f#(inr) via pasting lemma (§1.62). -/
-theorem decompose_via_coproduct [PositivePreLogos 𝒞] {A B₁ B₂ : 𝒞} (f : A ⟶ HasBinaryCoproducts.coprod B₁ B₂) :
+theorem decompose_via_coproduct [DisjointBinaryCoproduct 𝒞] {A B₁ B₂ : 𝒞}
+    (f : A ⟶ HasBinaryCoproducts.coprod B₁ B₂) :
     ∃ (A₁ A₂ : 𝒞) (f₁ : A₁ ⟶ B₁) (f₂ : A₂ ⟶ B₂), Isomorphic A (HasBinaryCoproducts.coprod A₁ A₂) := by
-  -- A₁ := (InverseImage f (Subobject(inl))).dom, A₂ := (InverseImage f (Subobject(inr))).dom.
-  -- A₁+A₂ ≅ A follows from the pasting lemma (sorry pending pasting_lemma proof).
+  -- A₁ := f#(inl), A₂ := f#(inr) as subobjects of A; f₁, f₂ are the pullback legs into B₁, B₂.
+  let Inl := inlSub (𝒞 := 𝒞) (A := B₁) (B := B₂) inl_mono
+  let Inr := inrSub (𝒞 := 𝒞) (A := B₁) (B := B₂) inr_mono
+  let A₁ : Subobject 𝒞 A := InverseImage f Inl
+  let A₂ : Subobject 𝒞 A := InverseImage f Inr
+  -- f₁ : A₁.dom → B₁ is the second pullback leg (Inl.dom = B₁); likewise f₂.
+  let f₁ : A₁.dom ⟶ B₁ := (HasPullbacks.has f Inl.arr).cone.π₂
+  let f₂ : A₂.dom ⟶ B₂ := (HasPullbacks.has f Inr.arr).cone.π₂
+  refine ⟨A₁.dom, A₂.dom, f₁, f₂, ?_⟩
+  -- A₁ ∪ A₂ = f#(inl ∪ inr) = f#(entire B₁+B₂) = entire A  (invImage_preserves_union + entire);
+  -- A₁ ∩ A₂ ≤ f#(inl ∩ inr) ≤ f#(0) = 0  (disjointness `inl_inter_inr_le_bottom`).
+  -- Then `pasting_lemma A₁ A₂` makes A (= A₁∪A₂) the pushout of A₁∩A₂; the intersection's apex
+  -- is the bottom subobject, whose domain is INITIAL (`minimal_subobject_of_one_is_coterminator`),
+  -- so `pushout_over_initial_is_coproduct` identifies A with `coprod A₁.dom A₂.dom`.
+  -- The two preservation steps (union = entire, intersection apex initial) are the residual
+  -- invImage-arithmetic; left as a faithful sorry pending those lemmas.
   sorry
 
 /-! ## §1.625 Representations of positive pre-logoi
@@ -896,10 +1087,12 @@ theorem complemented_of_projective_is_projective [PositivePreLogos 𝒞]
   --        σ ≫ case(y, z) = σ ≫ h ≫ case(id_P, z) = inl_P ≫ case(id_P, z) = id_P.
   -- Equivalently: r := σ ≫ case(id_B, w) satisfies r ≫ y = id_P for ANY w : P' → B
   --   (since case(id_B, w) ≫ y = case(y, w ≫ y) and σ ≫ case(y, w ≫ y) = id_P by above).
-  -- BLOCKER: no morphism z : P' → P (or w : P' → B) is available in the proof state.
-  -- Coproduct disjointness (§1.62 pasting lemma) would yield t := inr_{P'} ≫ φ_inv ≫ s' = inr_{P'},
-  -- forcing σ = r ≫ inl_B for some r : P → B, and then r ≫ y = id_P by the key computation.
-  -- BLOCKED on pasting_lemma (§1.62) / compose_union_right (§1.616).
+  -- The honest unblock is §1.624 (`decompose_via_coproduct`, now strengthened to
+  -- `[DisjointBinaryCoproduct 𝒞]` above): applied to `σ : P → B+P'`, coproduct
+  -- disjointness forces `σ` to factor through `inl_B` as `σ = r ≫ inl_B` (the P-summand),
+  -- whence `r ≫ y ≫ inl_P = σ ≫ h = inl_P` and `inl_P` monic (`inl_mono`) give `r ≫ y = id_P`.
+  -- `decompose_via_coproduct` itself still rests on the invImage-arithmetic residual; left as
+  -- a faithful sorry that consumes that one §1.624 fact.
   obtain ⟨r, hr⟩ : ∃ r : P ⟶ B, r ≫ y = Cat.id P := by sorry
   exact ⟨r, hr⟩
 
