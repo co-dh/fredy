@@ -334,7 +334,24 @@ theorem disjoint_cover_is_coproduct [PreLogos 𝒞]
   -- union A₁∪A₂ is the image of `case A₁.arr A₂.arr : A₁.dom + A₂.dom → A`, so disjointness
   -- turns that cover into an iso and A becomes the coproduct — but this route needs binary
   -- COPRODUCTS, which a general pre-logos lacks (they exist only in a POSITIVE pre-logos,
-  -- §1.623).  Hence §1.621 cannot be discharged at this layer; left as a faithful sorry.
+  -- §1.623).
+  --
+  -- Re-checked against `S1_64`'s new `DisjointBinaryCoproduct` class (which DOES bundle the
+  -- §1.621 disjointness/cover data — `inl_inter_inr_le_bottom`, `inl_union_inr_entire`): it
+  -- still does not unlock THIS statement, for three independent reasons.
+  --   (1) `DisjointBinaryCoproduct` *assumes* `HasBinaryCoproducts`; here `A₁,A₂` are
+  --       ARBITRARY subobjects of `A`, and we must CONSTRUCT the coproduct, not consume one.
+  --   (2) Even granting coproducts, `Mono (case A₁.arr A₂.arr)` does not follow from
+  --       `hDisjoint`+`hCover`: `case_inl/inr/uniq` constrain maps OUT of `A₁+A₂`, giving no
+  --       decomposition of an incoming pair `u,v : W ⟶ A₁+A₂`.  Splitting them needs
+  --       EXTENSIVITY (universal+disjoint coproducts) — exactly the extra axioms `S1_64`'s
+  --       `DisjointBinaryCoproduct` adds, and which a bare (positive) pre-logos lacks.  Freyd
+  --       (quoted at S1_64 §1.626) makes the same point: a distributive lattice is a pre-logos
+  --       with coproducts whose injections are NOT jointly monic.
+  --   (3) `PositivePreLogos`/`DisjointBinaryCoproduct` live in `S1_62`/`S1_64`, which import
+  --       `S1_61` — so they cannot even be NAMED here without a cyclic import.
+  -- The faithful home for the §1.621 coproduct construction is therefore S1_64 (on a
+  -- `DisjointBinaryCoproduct`), not this bare-`PreLogos` layer; left as a faithful sorry.
   sorry
 
 end Freyd
