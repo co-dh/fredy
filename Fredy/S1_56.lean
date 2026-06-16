@@ -797,7 +797,9 @@ opaque HoldsIn (H : HornSentence) (𝒟 : Type u) [Cat.{v} 𝒟] : Prop
 theorem horn_sentence_reflected_by_faithful {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
     [CartesianCategory 𝒜] [HasImages 𝒜] [CartesianCategory ℬ] [HasImages ℬ]
     (F : 𝒜 → ℬ) [Functor F] (hfaithful : Faithful F)
-    (_h_preserves_limits : True) (_h_preserves_images : True)
+    (_h_pres_term : PreservesTerminal F) (_h_pres_prod : PreservesBinaryProducts F)
+    (_h_pres_eq : PreservesEqualizers F)
+    (_h_pres_mono : PreservesMono F) (_h_pres_images : PreservesImages F _h_pres_mono)
     (H : HornSentence) (_hH : HoldsIn H ℬ) : HoldsIn H 𝒜 := by
   sorry
 
@@ -1824,23 +1826,114 @@ theorem graph_injective {A B : 𝒞} {f g : A ⟶ B} (h : graph f = graph g) : f
 end
 
 
+/-- **§1.561**: reciprocation is monotone: R ≤ S → R° ≤ S°.
+    The same witness works; it just swaps the two leg-conditions. -/
+theorem reciprocal_mono {A B : 𝒞} {R S : BinRel 𝒞 A B} (h : RelLe R S) :
+    RelLe (R°) (S°) := by
+  rcases h with ⟨⟨h, hA, hB⟩⟩; exact ⟨⟨h, hB, hA⟩⟩
+
 /-! ## §1.561  (RS)° = S°R°  —  reciprocation reverses composition -/
 
 section
 variable [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
 
-/-- **§1.561**: (R ⊚ S)° ≤ S° ⊚ R°.
-    Requires regularity (cover-epi factoring) to lift the RelHom witness from the
-    pullback level to the image level; sorried pending that infrastructure. -/
+-- The product-swap iso `⟨snd,fst⟩ : A×C → C×A`, its projection equations
+-- (`prodSwap_fst`/`prodSwap_snd`), and its self-inverse law (`prodSwap_prodSwap`)
+-- all live canonically in `Fredy.S1_42`; we reuse them here (DRY).
+
+/-- **§1.561**: (R ⊚ S)° ≤ S° ⊚ R°  (reciprocation reverses composition).
+
+    `R ⊚ S` is the image of the span `⟨π₁≫R.colA, π₂≫S.colB⟩` over the pullback
+    `pb` of `(R.colB, S.colA)`.  `S° ⊚ R°` is the image of the span
+    `⟨π₁'≫S.colB, π₂'≫R.colA⟩` over the pullback `pb'` of `(S.colA, R.colB)` — the
+    SAME pullback square with legs swapped.  The comparison `φ : pb.pt → pb'.pt`
+    (swapping legs) satisfies `φ ≫ sp' = sp ≫ prodSwap`, so `image sp` post-composed
+    with `prodSwap⁻¹` is a subobject of `A×C` allowing `sp`; image-minimality yields
+    the witness. -/
 theorem reciprocal_comp_le {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) :
     RelLe ((R ⊚ S)°) (S° ⊚ R°) := by
-  sorry
+  -- pullback + span for R ⊚ S
+  let pb  := HasPullbacks.has R.colB S.colA
+  let sp  : pb.cone.pt ⟶ prod A C := pair (pb.cone.π₁ ≫ R.colA) (pb.cone.π₂ ≫ S.colB)
+  -- pullback + span for S° ⊚ R°
+  let pb' := HasPullbacks.has (S°).colB (R°).colA      -- = pullback of (S.colA, R.colB)
+  let sp' : pb'.cone.pt ⟶ prod C A := pair (pb'.cone.π₁ ≫ (S°).colA) (pb'.cone.π₂ ≫ (R°).colB)
+  let I  := image sp
+  let I' := image sp'
+  -- comparison φ : pb.pt → pb'.pt swapping the two legs.  pb's square is
+  --   π₁≫R.colB = π₂≫S.colA ; pb''s feet are (S.colA, R.colB), so a cone over pb'
+  --   needs leg-to-S.src and leg-to-R.src with π₁'≫S.colA = π₂'≫R.colB.
+  have hcone' : pb.cone.π₂ ≫ (S°).colB = pb.cone.π₁ ≫ (R°).colA := by
+    show pb.cone.π₂ ≫ S.colA = pb.cone.π₁ ≫ R.colB
+    exact pb.cone.w.symm
+  let cφ : Cone (S°).colB (R°).colA := ⟨pb.cone.pt, pb.cone.π₂, pb.cone.π₁, hcone'⟩
+  let φ : pb.cone.pt ⟶ pb'.cone.pt := pb'.lift cφ
+  have hφ₁ : φ ≫ pb'.cone.π₁ = pb.cone.π₂ := pb'.lift_fst cφ
+  have hφ₂ : φ ≫ pb'.cone.π₂ = pb.cone.π₁ := pb'.lift_snd cφ
+  -- φ ≫ sp' = sp ≫ prodSwap
+  have hφ_sp : φ ≫ sp' = sp ≫ prodSwap A C := by
+    have hcfst : (φ ≫ sp') ≫ fst = (sp ≫ prodSwap A C) ≫ fst := by
+      rw [Cat.assoc, fst_pair, ← Cat.assoc, hφ₁]
+      show pb.cone.π₂ ≫ S.colB = (sp ≫ prodSwap A C) ≫ fst
+      rw [Cat.assoc, prodSwap_fst, snd_pair]
+    have hcsnd : (φ ≫ sp') ≫ snd = (sp ≫ prodSwap A C) ≫ snd := by
+      rw [Cat.assoc, snd_pair, ← Cat.assoc, hφ₂]
+      show pb.cone.π₁ ≫ R.colA = (sp ≫ prodSwap A C) ≫ snd
+      rw [Cat.assoc, prodSwap_snd, fst_pair]
+    rw [pair_eta (φ ≫ sp'), pair_eta (sp ≫ prodSwap A C), hcfst, hcsnd]
+  -- the subobject I'.arr ≫ prodSwap C A : I'.dom → A×C (mono since prodSwap iso)
+  have hswapInv_mono : Mono (prodSwap C A) := by
+    intro W u v huv
+    have := congrArg (· ≫ prodSwap A C) huv
+    simpa [Cat.assoc, prodSwap_prodSwap, Cat.comp_id] using this
+  let Sub' : Subobject 𝒞 (prod A C) :=
+    ⟨I'.dom, I'.arr ≫ prodSwap C A, by
+      intro W u v huv
+      exact I'.monic u v (hswapInv_mono _ _ (by simpa [Cat.assoc] using huv))⟩
+  -- Sub' allows sp via g := φ ≫ image.lift sp'
+  have hallow : Allows Sub' sp := by
+    refine ⟨φ ≫ image.lift sp', ?_⟩
+    show (φ ≫ image.lift sp') ≫ (I'.arr ≫ prodSwap C A) = sp
+    calc (φ ≫ image.lift sp') ≫ (I'.arr ≫ prodSwap C A)
+        = φ ≫ ((image.lift sp' ≫ I'.arr) ≫ prodSwap C A) := by
+          rw [Cat.assoc, Cat.assoc]
+      _ = φ ≫ (sp' ≫ prodSwap C A) := by rw [image.lift_fac]
+      _ = (φ ≫ sp') ≫ prodSwap C A := (Cat.assoc _ _ _).symm
+      _ = (sp ≫ prodSwap A C) ≫ prodSwap C A := by rw [hφ_sp]
+      _ = sp ≫ (prodSwap A C ≫ prodSwap C A) := Cat.assoc _ _ _
+      _ = sp := by rw [prodSwap_prodSwap, Cat.comp_id]
+  -- image-minimality: I ≤ Sub', giving k : I.dom → I'.dom with k ≫ I'.arr ≫ prodSwap = I.arr
+  obtain ⟨k, hk⟩ := image_min sp Sub' hallow
+  have hk' : k ≫ (I'.arr ≫ prodSwap C A) = I.arr := hk
+  -- the witness k : (R⊚S)°.src = I.dom → (S°⊚R°).src = I'.dom
+  refine ⟨⟨k, ?_, ?_⟩⟩
+  · -- k ≫ (S°⊚R°).colA = (R⊚S)°.colA, i.e. k ≫ I'.arr ≫ fst = I.arr ≫ snd
+    show k ≫ (I'.arr ≫ fst) = I.arr ≫ snd
+    calc k ≫ (I'.arr ≫ fst) = k ≫ ((I'.arr ≫ prodSwap C A) ≫ prodSwap A C ≫ fst) := by
+          rw [Cat.assoc, ← Cat.assoc (prodSwap C A), prodSwap_prodSwap, Cat.id_comp]
+      _ = (k ≫ (I'.arr ≫ prodSwap C A)) ≫ (prodSwap A C ≫ fst) :=
+          (Cat.assoc _ _ _).symm
+      _ = I.arr ≫ (prodSwap A C ≫ fst) := by rw [hk']
+      _ = I.arr ≫ snd := by rw [prodSwap_fst]
+  · show k ≫ (I'.arr ≫ snd) = I.arr ≫ fst
+    calc k ≫ (I'.arr ≫ snd) = k ≫ ((I'.arr ≫ prodSwap C A) ≫ prodSwap A C ≫ snd) := by
+          rw [Cat.assoc, ← Cat.assoc (prodSwap C A), prodSwap_prodSwap, Cat.id_comp]
+      _ = (k ≫ (I'.arr ≫ prodSwap C A)) ≫ (prodSwap A C ≫ snd) :=
+          (Cat.assoc _ _ _).symm
+      _ = I.arr ≫ (prodSwap A C ≫ snd) := by rw [hk']
+      _ = I.arr ≫ fst := by rw [prodSwap_snd]
 
 /-- **§1.561**: S° ⊚ R° ≤ (R ⊚ S)°.
-    Requires regularity; sorried pending that infrastructure. -/
+    Derived from `reciprocal_comp_le` applied to `S°, R°`, plus involutivity
+    and monotonicity of reciprocation. -/
 theorem comp_reciprocal_le {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) :
     RelLe (S° ⊚ R°) ((R ⊚ S)°) := by
-  sorry
+  -- (S° ⊚ R°)° ≤ (R°)° ⊚ (S°)° = R ⊚ S
+  have h := reciprocal_comp_le (S°) (R°)
+  rw [reciprocal_invol, reciprocal_invol] at h
+  -- h : (S° ⊚ R°)° ≤ R ⊚ S ; take reciprocals
+  have h2 := reciprocal_mono h
+  rwa [reciprocal_invol] at h2
 
 /-- **§1.561**: (R ⊚ S)° and S° ⊚ R° are mutually contained. -/
 theorem reciprocal_comp {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) :

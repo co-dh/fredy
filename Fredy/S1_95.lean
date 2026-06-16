@@ -83,6 +83,66 @@ def IsInjective [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] (E
   ∀ {A B : 𝒞} (f : A ⟶ B), Mono f →
     ∀ (g : A ⟶ E), ∃ (h : B ⟶ E), f ≫ h = g
 
+/-- The composite of two monics is monic (§1.41). -/
+private theorem mono_comp {X Y Z : 𝒞} {m : X ⟶ Y} {n : Y ⟶ Z}
+    (hm : Mono m) (hn : Mono n) : Mono (m ≫ n) := by
+  intro W u v huv
+  exact hm _ _ (hn _ _ (by simpa [Cat.assoc] using huv))
+
+/-- **§1.961**: Ω is INJECTIVE in a topos.  Given a monic `f : A ↣ B` and any
+    `g : A → Ω`, classify the subobject `m : S ↣ A` that `g` names, then classify
+    its composite `m ≫ f : S ↣ B` to obtain `h : B → Ω`.  Because `f` is monic the
+    pullback of the subobject `m ≫ f` along `f` is `m` itself, so `f ≫ h` classifies
+    `m`; by uniqueness of characteristic maps `f ≫ h = g`.  (This is the elementary
+    form of "Ω is injective": maps into Ω extend along monics via `classify`.) -/
+theorem omega_is_injective [Topos 𝒞] :
+    IsInjective (𝒞 := 𝒞) (HasSubobjectClassifier.omega (𝒞 := 𝒞)) := by
+  intro A B f hf g
+  -- m : S ↣ A is the subobject named by g (pullback of `true` along g).
+  let cone := (HasPullbacks.has g (HasSubobjectClassifier.true (𝒞 := 𝒞))).cone
+  let m : cone.pt ⟶ A := cone.π₁
+  have hm : Mono m := by
+    -- m is monic: it is the pullback of the monic `true` along g.  The other leg
+    -- `cone.π₂` lands in the terminal `one`, so cones over (g, true) are determined
+    -- by their first leg; joint pullback uniqueness then forces u = v.
+    intro W u v huv
+    have hpb := (HasPullbacks.has g (HasSubobjectClassifier.true (𝒞 := 𝒞))).cone_isPullback
+    have hwu : (u ≫ m) ≫ g = (u ≫ cone.π₂) ≫ HasSubobjectClassifier.true := by
+      rw [Cat.assoc, Cat.assoc, cone.w]
+    obtain ⟨_, _, huniq⟩ := hpb ⟨W, u ≫ m, u ≫ cone.π₂, hwu⟩
+    rw [huniq u rfl rfl, huniq v huv.symm (term_uniq _ _)]
+  -- g classifies m.
+  have hsq_m : m ≫ g = term cone.pt ≫ HasSubobjectClassifier.true :=
+    cone.w.trans (congrArg (· ≫ HasSubobjectClassifier.true) (term_uniq cone.π₂ (term cone.pt)))
+  have hg : g = HasSubobjectClassifier.classify m hm :=
+    classify_eq_of_pullback m hm g hsq_m (by
+      -- the chosen cone is a pullback; replace its π₂ by `term` (terminal uniqueness)
+      have hpb := (HasPullbacks.has g (HasSubobjectClassifier.true (𝒞 := 𝒞))).cone_isPullback
+      intro d
+      obtain ⟨u, ⟨hu₁, _⟩, huniq⟩ := hpb d
+      exact ⟨u, ⟨hu₁, term_uniq _ _⟩, fun w hw₁ _ => huniq w hw₁ (term_uniq _ _)⟩)
+  -- h = classify(m ≫ f).
+  refine ⟨HasSubobjectClassifier.classify (m ≫ f) (mono_comp hm hf), ?_⟩
+  -- f ≫ h classifies m, hence f ≫ h = classify m = g.
+  refine Eq.trans ?_ hg.symm
+  -- m ≫ (f ≫ classify(m≫f)) = term ≫ true
+  have hsq_fh : m ≫ (f ≫ HasSubobjectClassifier.classify (m ≫ f) (mono_comp hm hf))
+      = term cone.pt ≫ HasSubobjectClassifier.true := by
+    rw [← Cat.assoc, HasSubobjectClassifier.classify_sq (m ≫ f) (mono_comp hm hf)]
+  refine classify_eq_of_pullback m hm _ hsq_fh ?_
+  -- (S, m, term) is a pullback of (f ≫ classify(m≫f), true)
+  · intro d
+    -- d.π₁ : d.pt → A with d.π₁ ≫ (f ≫ classify(m≫f)) = d.π₂ ≫ true
+    have hsq : (d.π₁ ≫ f) ≫ HasSubobjectClassifier.classify (m ≫ f) (mono_comp hm hf)
+        = d.π₂ ≫ HasSubobjectClassifier.true := by rw [Cat.assoc]; exact d.w
+    have hpb := HasSubobjectClassifier.classify_pullback (m ≫ f) (mono_comp hm hf)
+    obtain ⟨u, ⟨hu₁, hu₂⟩, huniq⟩ := hpb ⟨d.pt, d.π₁ ≫ f, d.π₂, hsq⟩
+    -- u ≫ (m≫f) = d.π₁ ≫ f.  f monic ⟹ u ≫ m = d.π₁.
+    have hum : u ≫ m = d.π₁ := hf _ _ (by rw [Cat.assoc]; exact hu₁)
+    refine ⟨u, ⟨hum, term_uniq _ _⟩, ?_⟩
+    intro v hv₁ _
+    exact huniq v (by rw [← Cat.assoc, hv₁]) (term_uniq _ _)
+
 /-- The map f × 1_Z : A × Z → B × Z for f : A → B (mapping the left factor). -/
 def prodMapLeft [HasBinaryProducts 𝒞] {A B : 𝒞} (Z : 𝒞) (f : A ⟶ B) : prod A Z ⟶ prod B Z :=
   pair (fst ≫ f) snd
@@ -111,18 +171,62 @@ theorem omega_is_internally_injective [Topos 𝒞] :
 
 /-! ## §1.962  Ω^A is injective; every object embeds in an injective -/
 
+/-- The right-factor product map `A × f : A × X → A × Y` is monic when `f` is.
+    (Joint cancellation on `fst`/`snd`; `f` monic kills the `snd` component.) -/
+private theorem prodMap_mono [HasBinaryProducts 𝒞] (A : 𝒞) {X Y : 𝒞} {f : X ⟶ Y}
+    (hf : Mono f) : Mono (prodMap A X Y f) := by
+  intro W u v huv
+  -- u ≫ fst = v ≫ fst (from prodMap_fst) and u ≫ snd = v ≫ snd (f monic via prodMap_snd).
+  have hfst : u ≫ fst = v ≫ fst := by
+    have := congrArg (· ≫ fst (A := A) (B := Y)) huv
+    simpa [Cat.assoc, prodMap_fst] using this
+  have hsnd : u ≫ snd = v ≫ snd := by
+    apply hf
+    have := congrArg (· ≫ snd (A := A) (B := Y)) huv
+    simpa [Cat.assoc, prodMap_snd] using this
+  -- Both agree on fst and snd ⟹ equal (product extensionality).
+  calc u = pair (u ≫ fst) (u ≫ snd) := pair_uniq _ _ u rfl rfl
+    _ = pair (v ≫ fst) (v ≫ snd) := by rw [hfst, hsnd]
+    _ = v := (pair_uniq _ _ v rfl rfl).symm
+
+/-- Transpose naturality (in the parameter): `f ≫ curry k = curry (A×f ≫ k)`.
+    Holds in any exponential category (no topos needed); it is the adjoint-transpose
+    naturality of `A × −`.  Proved here from `prodMap_comp` + `curry_eval_eq`. -/
+private theorem curry_precomp_exp [HasExponentials 𝒞] {A E X Y : 𝒞}
+    (f : X ⟶ Y) (k : prod A Y ⟶ E) :
+    f ≫ curry k = curry (prodMap A X Y f ≫ k) := by
+  apply curry_unique_eq
+  rw [prodMap_comp, Cat.assoc, curry_eval_eq]
+
 /-- **§1.962**: If E is injective in an exponential category, then E^A is injective
-    for any A.  Proof: (−, E^A) ≅ (− × A, E) and − × A preserves monics in any category. -/
+    for any A.  Proof: (−, E^A) ≅ (− × A, E) and − × A preserves monics in any category.
+    Concretely: given a monic `f : X ↣ Y` and `g : X → E^A`, uncurry `g` to
+    `ĝ : A×X → E`; the map `A×f : A×X ↣ A×Y` is monic, so by injectivity of E it
+    extends to `k : A×Y → E` with `(A×f) ≫ k = ĝ`; then `h = curry k` satisfies
+    `f ≫ h = g` by transpose naturality. -/
 theorem exp_of_injective_is_injective [HasExponentials 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
     {E : 𝒞} (hE : IsInjective E) (A : 𝒞) : IsInjective (E ^^ A) := by
-  sorry
+  intro X Y f hf g
+  -- ĝ : A × X → E is the uncurried g; by construction g = curry ĝ.
+  let ghat : prod A X ⟶ E := prodMap A X (E ^^ A) g ≫ eval_exp A E
+  have hg : g = curry ghat := curry_unique_eq rfl
+  -- Extend ĝ along the monic A × f using injectivity of E.
+  obtain ⟨k, hk⟩ := hE (prodMap A X Y f) (prodMap_mono A hf) ghat
+  -- h = curry k.  Then f ≫ h = curry (A×f ≫ k) = curry ĝ = g.
+  refine ⟨curry k, ?_⟩
+  rw [curry_precomp_exp, hk, ← hg]
 
 /-- **§1.962**: Consequently, in a topos, Ω^A is injective for all A.
     Since the singleton map embeds A into Ω^A, every object appears as a subobject
     of an injective. -/
 theorem topos_every_object_embeds_in_injective [Topos 𝒞] (A : 𝒞) :
-    ∃ (I : 𝒞) (m : A ⟶ I), Mono m ∧ IsInjective (𝒞 := 𝒞) I := by
-  sorry
+    ∃ (I : 𝒞) (m : A ⟶ I), Mono m ∧ IsInjective (𝒞 := 𝒞) I :=
+  -- I = Ω^A = [A]; the singleton map Δ₁ : A ↣ [A] is monic (§1.92); [A] is injective
+  -- because Ω is injective (`omega_is_injective`) and exponentials of injectives are
+  -- injective (`exp_of_injective_is_injective`).
+  ⟨HasSubobjectClassifier.omega (𝒞 := 𝒞) ^^ A, singletonMapCat A,
+    singletonMapCat_monic A,
+    exp_of_injective_is_injective omega_is_injective A⟩
 
 /-! ## §1.964  Value-based categories -/
 
