@@ -83,24 +83,48 @@ type correct" remains.  All of the following are sorry-free and **constructive**
 returns `CapData A` with `base = id` (stage 0 is `A`), `hfaith`/`hcons` discharged by
 `towerHfaith`/`towerHcons`.  Everything categorical is now closed.
 
-## The single remaining `sorry` (reduced to two bundled walls)
+## The remaining `sorry`s — the ONE bundled `hwall` is now SPLIT into two named walls
 
 `Freyd.capData_exists : (A : Type u) [Cat.{u} A] [PreRegularCategory A] → Nonempty (CapData A)`
 
-The proof now invokes `capData_of_tower`, so the only `sorry` is a **single bundled existential
-`hwall`** producing exactly the two genuine §1.543 inputs `capData_of_tower` consumes:
+The proof invokes `capData_of_tower`.  The previously single, opaque bundled existential `hwall`
+has been **decomposed into two separately-stated sub-obligations, with the dependency between
+them made explicit** (the capital closure is now stated *over* the colimit's concrete
+pre-regular structure, which the successor's package supplies).  This is the real reduction:
+two independently-attackable targets instead of one bundle.
 
-1. **The uniform pre-regular-preserving successor** `nextStep : ∀ S, CapStep S` (§1.544/§1.545
-   slice successor `A ↦ A/B`, now buildable from `overPreRegular = PreRegularCategory (Over B)`
-   in `SliceRegular.lean` + the §1.544 separation), **together with the per-`i ≤ j` preservation
-   package** for its tower (`ht`/`htpres`/`hp`/`hppres`/…/`hcanon`) — i.e. lifting the single-rung
-   preservation to arbitrary `i ≤ j` by composing rungs.
-2. **The capital closure** of the tower's colimit (§1.543 fixpoint: every well-supported object
-   appears at a finite stage `n`, gets a point at `n+1`, and the point survives by cover
-   reflection `colimHom_cover_reflects`/`homInclObj_cover_reflects`, already proved in
-   `CatColimitRegular`).
+### WALL 1 — `hwall_step` (line ~907): the uniform pre-regular-preserving SUCCESSOR
 
-Both are bundled into the one `hwall` existential; everything downstream of it is sorry-free.
-`PreRegularCategory (Over B)` (previously the blocker for the successor) is now available as
-`Freyd.overPreRegular`, so wall (1) is unblocked at the interface level — what remains is the
-explicit slice-successor construction and the rung-composition preservation lift.
+An existential producing `nextStep : ∀ S, CapStep S.carrier` **together with the full ω-tower
+preservation package** (`ht`/`htpres`/`hp`/`hppres`/`hppres_pair`/`he`/`hepres`/`hepres_lift`/
+`hcanon`).  This is Freyd's relative capitalization `A ↦ A*`: glue the slices `A/B` over
+well-supported `B`, *adding a point* (generic element `1 → B`) per well-supported object.
+
+- **Inputs available (do NOT re-prove):** `Freyd.overPreRegular` (`A/B` is pre-regular,
+  `SliceRegular.lean`); §1.544 `slice_embedding_separates` (one slice step `(-)×B` separates
+  morphisms — note: this is the *endofunctor* `prodRight B`, an `Embedding`, it does not by
+  itself add a point); the `CatColimit`/`CatColimitRegular` machinery for the `A*`
+  colimit-of-slices.
+- **Residual (the genuine wall):** the explicit `A*` object construction (the gluing/colimit of
+  the slices, which is what actually adds the points), plus lifting the single-step finite-limit
+  preservation to the arbitrary `i ≤ j` tower package by rung composition.  A trivial inhabitant
+  (`T := S`, `step := id`) is honest as a `CapStep` but makes WALL 2 *false* (constant tower never
+  becomes capital) — confirming the wall is real and cannot be shortcut.
+
+### WALL 2 — `hwall_cap` (line ~924): the CAPITAL CLOSURE (§1.543 fixpoint)
+
+`hcap : Capital (𝒞 := (towerSystem b nextStep).Obj)`, stated *after* `obtain`ing WALL 1 and
+introducing the colimit's `Cat` + `PreRegularCategory` instances (exactly the ones
+`capData_of_tower`/`colimitPreRegular` use).  Every well-supported object of `Ā` is
+well-pointed: it appears at a finite stage `n`, the successor (WALL 1) puts a point on it at
+stage `n+1`, and the point survives the colimit because the stage inclusion REFLECTS covers.
+
+- **Inputs available (do NOT re-prove):** `colimHom_cover_reflects` / `homInclObj_cover_reflects`
+  (`CatColimitRegular`, both proved).
+- **Residual:** the fixpoint argument that the finite-stage point witnesses well-pointedness in
+  `Ā`.  This obligation *consumes* WALL 1's `nextStep`/package — it is genuinely nested under it
+  (which is why the two were originally bundled into one `sorry`).
+
+Everything else in `capData_exists` — the re-packaging into `capData_of_tower`, all the instance
+plumbing — is sorry-free.  `hwall` is thus **reduced (not closed)**: from one opaque existential
+to two sharp, documented, separately-attackable sorries with their dependency exposed.

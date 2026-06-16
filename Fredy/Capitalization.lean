@@ -45,11 +45,15 @@
       `colimitPreRegular` preservation package and the capital closure: `base = id`
       (stage 0 is `A`), `hfaith`/`hcons` from `transNFaithful` via `towerHfaith`/`towerHcons`.
 
-  `capData_exists` is thereby reduced to a SINGLE bundled existential `hwall` — exactly the
-  two genuine §1.543 walls: (1) the uniform pre-regular-preserving successor `nextStep`
-  (§1.544/§1.545 slice successor `A ↦ A/B`, buildable from `overPreRegular`) together with the
-  per-`i≤j` preservation package; and (2) the capital closure of the colimit (§1.543 fixpoint via
-  `colimHom_cover_reflects`).  No other gap remains.
+  `capData_exists` is thereby reduced to the two genuine §1.543 walls, now SPLIT into two
+  separately-stated, separately-attackable `sorry`s with their dependency exposed:
+    (1) `hwall_step` — the uniform pre-regular-preserving successor `nextStep` (§1.544/§1.545
+        slice successor `A ↦ A*`, buildable from `overPreRegular`) together with the per-`i≤j`
+        tower preservation package; and
+    (2) `hwall_cap` — the capital closure of the colimit (§1.543 fixpoint via
+        `colimHom_cover_reflects`), stated *over* the colimit pre-regular structure that (1)
+        supplies, so it genuinely consumes (1).
+  No other gap remains.
 -/
 
 import Fredy.S1_1
@@ -836,12 +840,33 @@ noncomputable def capData_of_tower (A : Type u) [Cat.{u} A] [PreRegularCategory 
          well-supported object appears at a finite stage `n`, gets a point at `n+1`, and the point
          survives by cover reflection `colimHom_cover_reflects`/`homInclObj_cover_reflects`).
 
-    These two — bundled here as the single existential `hwall` — are the *only* residue. -/
+    These two are the *only* residue, and are now SPLIT into two separately-stated `sorry`s with
+    their dependency exposed: `hwall_step` (the successor + full preservation package) and, after
+    `obtain`ing it and introducing the colimit's pre-regular instance, `hcap` (the capital closure
+    stated *over* that instance — it genuinely consumes `hwall_step`, hence the nesting). -/
 theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
     Nonempty (CapData.{u} A) := by
-  -- the two §1.543 walls, bundled: a successor `nextStep` together with the full preservation
-  -- package and capital closure of its tower — exactly the arguments `capData_of_tower` consumes.
-  have hwall :
+  -- The two genuine §1.543 walls, now SEPARATED into two named sub-obligations with the
+  -- dependency between them made explicit (the capital closure is stated *over* the colimit
+  -- pre-regular structure that the successor's preservation package supplies):
+  --
+  --   WALL 1  `hwall_step` — the uniform pre-regular-preserving SUCCESSOR.  Produces a
+  --     `nextStep : ∀ S, CapStep S.carrier` (Freyd's relative capitalization `A ↦ A*`, the
+  --     gluing/colimit of slices `A/B` over well-supported `B`, which ADDS a point per
+  --     well-supported object) *together with* the full `colimitPreRegular` preservation
+  --     package for the ω-tower it generates (terminal / products / equalizers / pullback-covers
+  --     preserved, lifted from the single-step preservation by rung composition).
+  --
+  --   WALL 2  `hwall_cap` — the CAPITAL CLOSURE (§1.543 fixpoint).  *Given* the successor and
+  --     its package (so the colimit `Ā` is a concrete pre-regular category), every well-supported
+  --     object of `Ā` is well-pointed.  Proved by: each well-supported object appears at a finite
+  --     stage `n`, the successor `nextStep` puts a point on it at stage `n+1`, and the point
+  --     survives the colimit by cover reflection (`colimHom_cover_reflects` /
+  --     `homInclObj_cover_reflects`).  This OBLIGATION CONSUMES the package from WALL 1 — it is
+  --     not independent of it, which is why both walls were originally bundled into one `sorry`.
+  --
+  -- `hwall` re-bundles the two for `capData_of_tower`; the split below is the real reduction.
+  have hwall_step :
       ∃ (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier)
         (b : PreRegBundle.{u}) (hb : b = ⟨A, inferInstance, inferInstance⟩)
         (ht : ∀ i, HasTerminal ((towerSystem b nextStep).A i))
@@ -872,23 +897,38 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
           (_hk : k ≫ ((towerSystem b nextStep).functF hij).map f =
             k ≫ ((towerSystem b nextStep).functF hij).map g),
           ∃ r : z ⟶ (towerSystem b nextStep).F hij (eqObj f g),
-            r ≫ ((towerSystem b nextStep).functF hij).map (eqMap f g) = k)
-        (hcanon : letI : Cat (towerSystem b nextStep).Obj := colimitCat _ (towerCoherent b nextStep)
-            letI : HasPullbacks (towerSystem b nextStep).Obj :=
-              colimitHasPullbacks _ (towerCoherent b nextStep) ht htpres hp hppres hppres_pair he
-                hepres hepres_lift
-          ∀ {X Y Z : (towerSystem b nextStep).Obj} (f : X ⟶ Z) (g : Y ⟶ Z),
-              Cover f → Cover (HasPullbacks.has f g).cone.π₂),
+            r ≫ ((towerSystem b nextStep).functF hij).map (eqMap f g) = k),
         letI : Cat (towerSystem b nextStep).Obj := colimitCat _ (towerCoherent b nextStep)
-        letI : PreRegularCategory (towerSystem b nextStep).Obj :=
-          colimitPreRegular _ (towerCoherent b nextStep) ht htpres hp hppres hppres_pair he
-            hepres hepres_lift hcanon
-        Capital (𝒞 := (towerSystem b nextStep).Obj) := by
-    -- TWO SHARP RESIDUAL WALLS, bundled (the §1.544/§1.545 successor + its preservation package,
-    -- and the §1.543 capital fixpoint).  Everything categorical downstream is discharged.
+        letI : HasPullbacks (towerSystem b nextStep).Obj :=
+          colimitHasPullbacks _ (towerCoherent b nextStep) ht htpres hp hppres hppres_pair he
+            hepres hepres_lift
+        ∀ {X Y Z : (towerSystem b nextStep).Obj} (f : X ⟶ Z) (g : Y ⟶ Z),
+            Cover f → Cover (HasPullbacks.has f g).cone.π₂ := by
+    -- WALL 1.  Build the uniform pre-regular-preserving successor `nextStep : ∀ S, CapStep S.carrier`
+    -- (Freyd's `A ↦ A*`: glue the slices `A/B` over well-supported `B`, adding a point per
+    -- well-supported object) and supply the ω-tower's preservation package by rung-composing the
+    -- single-step preservation.  Buildable from `Freyd.overPreRegular` (SliceRegular: `A/B` is
+    -- pre-regular) and §1.544 `slice_embedding_separates` (one slice step separates morphisms);
+    -- the `A*` object is the colimit-of-slices, and `homInclObj_*`/`colimHom_*` thread its
+    -- pre-regularity.  RESIDUAL: the `A*` object construction and its single→iterated preservation.
     sorry
+  -- Unpack the successor and its full preservation package (the §1.543 "directed-tower" data).
   obtain ⟨nextStep, b, hb, ht, htpres, hp, hppres, hppres_pair, he, hepres, hepres_lift,
-    hcanon, hcap⟩ := hwall
+    hcanon⟩ := hwall_step
+  -- Now the colimit `Ā = (towerSystem b nextStep).Obj` is a concrete pre-regular category
+  -- (instances below are exactly the ones `colimitPreRegular` / `capData_of_tower` use).
+  letI : Cat (towerSystem b nextStep).Obj := colimitCat _ (towerCoherent b nextStep)
+  letI : PreRegularCategory (towerSystem b nextStep).Obj :=
+    colimitPreRegular _ (towerCoherent b nextStep) ht htpres hp hppres hppres_pair he
+      hepres hepres_lift hcanon
+  -- WALL 2.  CAPITAL CLOSURE of the colimit, consuming the package above.  Every well-supported
+  -- object of `Ā` is well-pointed: it appears at a finite stage `n`, the successor `nextStep`
+  -- (WALL 1) puts a point on it at stage `n+1`, and the point survives to the colimit because
+  -- the stage inclusion REFLECTS covers (`colimHom_cover_reflects` / `homInclObj_cover_reflects`,
+  -- both available).  RESIDUAL: the fixpoint argument that the finite-stage point witnesses
+  -- well-pointedness in `Ā`.  This depends essentially on WALL 1's successor, hence the nesting.
+  have hcap : Capital (𝒞 := (towerSystem b nextStep).Obj) := by
+    sorry
   exact ⟨capData_of_tower A nextStep b hb ht htpres hp hppres hppres_pair he hepres hepres_lift
     hcanon hcap⟩
 
