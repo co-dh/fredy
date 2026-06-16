@@ -36,14 +36,17 @@
             of cocone-endos ⟹ colimit; no functor category needed)
             complete_cocomplete_iff_precocomplete — FULLY PROVED (axioms = propext, Classical.choice)
   §1.838    WellPowered / SubobjectIso
+            Cospan / gPullbackFactor — `G` continuous ⟹ `G` preserves pullbacks of monos (PROVED)
   §1.83(10) IsCoGeneratingSet
-            special_adjoint_functor_theorem — reduced to saft_representability (sorry — needs the
-            minimal-subobject / cogenerating-set solution set, after which the GAFT engine finishes)
+            cogenerating_embeds_in_product — every object embeds in a product of cogenerators (PROVED)
+            saft_preadjoint — well-powered + cogenerating set ⟹ pre-adjoint solution set (PROVED)
+            saft_representability — FULLY PROVED (saft_preadjoint fed to the GAFT engine)
+            special_adjoint_functor_theorem — FULLY PROVED (axioms = propext, Classical.choice,
+            Quot.sound)
 
-  Remaining sorries (2): `saft_representability` and `mgaft_representability`.  GAFT (§1.83) and
-  §1.837 are now fully proved; the two open ones each need infra the proven GAFT engine cannot
-  supply — SAFT needs a "well-powered + cogenerating set ⟹ solution set" step (minimal subobjects),
-  MGAFT needs a "pre-complete + split idempotents" weak-initial-object cutoff.  See S1_82.md.
+  Remaining sorries (1): `mgaft_representability` (§1.831).  GAFT (§1.83), SAFT (§1.83(10)) and
+  §1.837 are now fully proved; MGAFT still needs a "pre-complete + split idempotents"
+  weak-initial-object cutoff that the full-`Complete` GAFT engine cannot supply.  See S1_82.md.
 -/
 
 import Fredy.S1_1
@@ -1005,34 +1008,302 @@ def IsCoGeneratingSet {ℬ : Type u₁} [Cat.{v} ℬ] {I : Type v} (C : I → �
   ∀ {A B : ℬ} (f g : A ⟶ B), f ≠ g →
     ∃ (i : I) (h : B ⟶ C i), f ≫ h ≠ g ≫ h
 
+/-- §1.83(10) — the EMBEDDING characterization (one direction, the one SAFT needs): in a category
+    with all products, a cogenerating set `{Cᵢ}` makes every object `B` embeddable in a product of
+    cogenerators.  Concretely the *evaluation* map into the product indexed by ALL maps `B → Cᵢ`,
+
+      `eB := ⟨h⟩_{(i,h)} : B ⟶ ∏_{(i,h) : Σ i, (B ⟶ Cᵢ)} Cᵢ`,
+
+    is monic: if `u ≫ eB = v ≫ eB` then `u ≫ h = v ≫ h` for every `h : B → Cᵢ` (read off the
+    `(i,h)`-projection), so by collective faithfulness `u = v`.  No choice, no completeness. -/
+theorem cogenerating_embeds_in_product {ℬ : Type u₁} [Cat.{v} ℬ] (hp : HasProducts ℬ)
+    {I : Type v} {C : I → ℬ} (hcogen : IsCoGeneratingSet C) (B : ℬ) :
+    Mono (hp.tupling (F := fun j : Σ i : I, (B ⟶ C i) => C j.1)
+                     (fun j => j.2)) := by
+  classical
+  let eB := hp.tupling (F := fun j : Σ i : I, (B ⟶ C i) => C j.1) (fun j => j.2)
+  intro X u v huv
+  -- `(w ≫ eB) ≫ proj (i,h) = w ≫ h`, so equality after `eB` forces `u ≫ h = v ≫ h` for all `(i,h)`
+  have key : ∀ (w : X ⟶ B) (j : Σ i : I, (B ⟶ C i)), (w ≫ eB) ≫ hp.proj j = w ≫ j.2 := by
+    intro w j; dsimp only [eB]; rw [Cat.assoc, hp.tupling_fac]
+  refine Classical.byContradiction (fun hne => ?_)
+  obtain ⟨i, h, hh⟩ := hcogen u v hne
+  apply hh
+  have hu := key u ⟨i, h⟩
+  have hv := key v ⟨i, h⟩
+  have hproj : (u ≫ eB) ≫ hp.proj (⟨i, h⟩ : Σ i : I, (B ⟶ C i))
+             = (v ≫ eB) ≫ hp.proj (⟨i, h⟩ : Σ i : I, (B ⟶ C i)) :=
+    congrArg (· ≫ hp.proj (⟨i, h⟩ : Σ i : I, (B ⟶ C i))) huv
+  rw [hu, hv] at hproj
+  exact hproj
+
+-- ---------------------------------------------------------------------------
+-- Cospan (pullback) diagram and `G`-preserves-pullback factoring (SAFT infra)
+-- ---------------------------------------------------------------------------
+
+/-- Walking cospan: three objects `lft, rgt, mid` with arrows `lft → mid ← rgt`. -/
+private inductive Cospan : Type where | lft | rgt | mid
+
+/-- Morphisms of the walking cospan (only identities and the two legs into `mid`). -/
+private inductive CospanHom : Cospan → Cospan → Type where
+  | idL : CospanHom .lft .lft
+  | idR : CospanHom .rgt .rgt
+  | idM : CospanHom .mid .mid
+  | inl : CospanHom .lft .mid
+  | inr : CospanHom .rgt .mid
+
+private def cospanComp : {X Y Z : Cospan} → CospanHom X Y → CospanHom Y Z → CospanHom X Z
+  | _, _, _, .idL, g => g
+  | _, _, _, .idR, g => g
+  | _, _, _, .idM, g => g
+  | _, _, _, f, .idM => f
+
+private instance cospanCat : Cat.{0} Cospan where
+  Hom := CospanHom
+  id  := fun | .lft => .idL | .rgt => .idR | .mid => .idM
+  comp := cospanComp
+  id_comp := by intro X Y f; cases f <;> rfl
+  comp_id := by intro X Y f; cases f <;> rfl
+  assoc := by intro W X Y Z f g h; cases f <;> cases g <;> cases h <;> rfl
+
+/-- Cospan shape lifted to universe `v` (a legal `Complete` diagram shape). -/
+private abbrev Cospanv : Type v := ULift.{v} Cospan
+
+private instance cospanCatV : Cat.{v} Cospanv where
+  Hom X Y    := ULift.{v} (CospanHom X.down Y.down)
+  id X       := ⟨cospanCat.id X.down⟩
+  comp f g   := ⟨cospanComp f.down g.down⟩
+  id_comp := by rintro ⟨X⟩ ⟨Y⟩ ⟨f⟩; cases f <;> rfl
+  comp_id := by rintro ⟨X⟩ ⟨Y⟩ ⟨f⟩; cases f <;> rfl
+  assoc := by
+    rintro ⟨W⟩ ⟨X⟩ ⟨Y⟩ ⟨Z⟩ ⟨f⟩ ⟨g⟩ ⟨h⟩
+    cases f <;> cases g <;> cases h <;> rfl
+
+/-- The cospan diagram for `w : L ⟶ M ← B : eB`: `lft ↦ L`, `rgt ↦ B`, `mid ↦ M`. -/
+private def cospanDiagObj {ℬ : Type u₁} [Cat.{v} ℬ] {L B M : ℬ} (_w : L ⟶ M) (_eB : B ⟶ M) :
+    Cospanv → ℬ
+  | ⟨.lft⟩ => L
+  | ⟨.rgt⟩ => B
+  | ⟨.mid⟩ => M
+
+private def cospanDiagMap {ℬ : Type u₁} [Cat.{v} ℬ] {L B M : ℬ} (w : L ⟶ M) (eB : B ⟶ M) :
+    {X Y : Cospanv} → (X ⟶ Y) → (cospanDiagObj w eB X ⟶ cospanDiagObj w eB Y)
+  | ⟨.lft⟩, ⟨.lft⟩, _ => Cat.id L
+  | ⟨.rgt⟩, ⟨.rgt⟩, _ => Cat.id B
+  | ⟨.mid⟩, ⟨.mid⟩, _ => Cat.id M
+  | ⟨.lft⟩, ⟨.mid⟩, ⟨.inl⟩ => w
+  | ⟨.rgt⟩, ⟨.mid⟩, ⟨.inr⟩ => eB
+
+private instance cospanDiagFunctor {ℬ : Type u₁} [Cat.{v} ℬ] {L B M : ℬ}
+    (w : L ⟶ M) (eB : B ⟶ M) : Functor (cospanDiagObj w eB) where
+  map := cospanDiagMap w eB
+  map_id := by rintro ⟨X⟩; cases X <;> rfl
+  map_comp := by
+    rintro ⟨X⟩ ⟨Y⟩ ⟨Z⟩ ⟨p⟩ ⟨q⟩
+    cases p <;> cases q <;>
+      first
+        | rfl
+        | exact (Cat.id_comp _).symm
+        | exact (Cat.comp_id _).symm
+
+/-- §1.838 helper — `G` continuous ⟹ `G` preserves the pullback of `eB` (mono) along `w`.
+    From a complete `ℬ` build the pullback `S` of the cospan `L —w→ M ←eB— B` as a limit; its
+    `lft`-leg `πL : S ⟶ L` is monic (pullback of the mono `eB`).  Given a pair `(η : A ⟶ G L,
+    f : A ⟶ G B)` with `η ≫ G w = f ≫ G eB`, continuity makes it factor uniquely: there is
+    `θ : A ⟶ G S` with `θ ≫ G πL = η` and `θ ≫ G πB = f`. -/
+private noncomputable def gPullbackFactor {𝒜 : Type u} [Cat.{v} 𝒜] {ℬ : Type u₁} [Cat.{v} ℬ]
+    {G : ℬ → 𝒜} [hG : Functor G] [hc : Complete ℬ] (hcont : IsContinuous G)
+    {A : 𝒜} {L B M : ℬ} (w : L ⟶ M) (eB : B ⟶ M) (heB : Mono eB)
+    (η : A ⟶ G L) (f : A ⟶ G B) (hsq : η ≫ hG.map w = f ≫ hG.map eB) :
+    Σ' (S : ℬ) (πL : S ⟶ L) (πB : S ⟶ B),
+      (∀ {W : ℬ} (s t : W ⟶ S), s ≫ πL = t ≫ πL → s = t) ×'
+      Σ' θ : A ⟶ G S, (θ ≫ hG.map πL = η) ×' (θ ≫ hG.map πB = f) := by
+  classical
+  let lim := hc.hasLimit (cospanDiagObj w eB)
+  let S : ℬ := lim.cone.apex
+  let πL : S ⟶ L := lim.cone.π ⟨.lft⟩
+  let πB : S ⟶ B := lim.cone.π ⟨.rgt⟩
+  -- the square commutes: πL ≫ w = mid-leg = πB ≫ eB
+  have hLmid : πL ≫ w = lim.cone.π ⟨.mid⟩ :=
+    lim.cone.nat (⟨.inl⟩ : (⟨.lft⟩ : Cospanv) ⟶ ⟨.mid⟩)
+  have hRmid : πB ≫ eB = lim.cone.π ⟨.mid⟩ :=
+    lim.cone.nat (⟨.inr⟩ : (⟨.rgt⟩ : Cospanv) ⟶ ⟨.mid⟩)
+  have hcomm : πL ≫ w = πB ≫ eB := hLmid.trans hRmid.symm
+  -- πL monic: two maps agreeing after πL also agree after πB (eB monic), hence lift the same cone.
+  have πLMonic : ∀ {W : ℬ} (s t : W ⟶ S), s ≫ πL = t ≫ πL → s = t := by
+    intro W s t hst
+    -- s ≫ πB = t ≫ πB from (s≫πL)≫w = (t≫πL)≫w and eB monic
+    have hsB : s ≫ πB = t ≫ πB := by
+      apply heB
+      calc (s ≫ πB) ≫ eB = s ≫ (πB ≫ eB) := Cat.assoc _ _ _
+        _ = s ≫ (πL ≫ w) := by rw [hcomm]
+        _ = (s ≫ πL) ≫ w := (Cat.assoc _ _ _).symm
+        _ = (t ≫ πL) ≫ w := by rw [hst]
+        _ = t ≫ (πL ≫ w) := Cat.assoc _ _ _
+        _ = t ≫ (πB ≫ eB) := by rw [hcomm]
+        _ = (t ≫ πB) ≫ eB := (Cat.assoc _ _ _).symm
+    let cc : DiagCone (cospanDiagObj w eB) :=
+      { apex := W
+        π := fun X => match X with
+          | ⟨.lft⟩ => s ≫ πL | ⟨.rgt⟩ => s ≫ πB | ⟨.mid⟩ => (s ≫ πL) ≫ w
+        nat := by
+          rintro ⟨X⟩ ⟨Yy⟩ ⟨x⟩
+          cases x with
+          | idL => exact Cat.comp_id _
+          | idR => exact Cat.comp_id _
+          | idM => exact Cat.comp_id _
+          | inl => rfl
+          | inr =>
+              show (s ≫ πB) ≫ eB = (s ≫ πL) ≫ w
+              rw [Cat.assoc, Cat.assoc, hcomm] }
+    have hs : s = lim.lift cc := lim.uniq cc s (by
+      rintro ⟨X⟩; cases X
+      · rfl
+      · rfl
+      · show s ≫ lim.cone.π ⟨.mid⟩ = (s ≫ πL) ≫ w
+        rw [← hLmid, Cat.assoc])
+    have ht : t = lim.lift cc := lim.uniq cc t (by
+      rintro ⟨X⟩; cases X
+      · exact hst.symm
+      · exact hsB.symm
+      · show t ≫ lim.cone.π ⟨.mid⟩ = (s ≫ πL) ≫ w
+        rw [← hLmid, ← Cat.assoc, ← hst, Cat.assoc])
+    rw [hs, ht]
+  -- continuity: the cone {η at lft, f at rgt, η≫Gw at mid} over G∘D factors uniquely
+  let glegs : (Z : Cospanv) → A ⟶ G (cospanDiagObj w eB Z) :=
+    fun Z => match Z with
+      | ⟨.lft⟩ => η | ⟨.rgt⟩ => f | ⟨.mid⟩ => η ≫ hG.map w
+  have gnat : ∀ {X Yy : Cospanv} (x : X ⟶ Yy),
+      glegs X ≫ hG.map ((cospanDiagFunctor w eB).map x) = glegs Yy := by
+    rintro ⟨X⟩ ⟨Yy⟩ ⟨x⟩
+    cases x with
+    | idL => show η ≫ hG.map (Cat.id L) = η; rw [hG.map_id, Cat.comp_id]
+    | idR => show f ≫ hG.map (Cat.id B) = f; rw [hG.map_id, Cat.comp_id]
+    | idM => show (η ≫ hG.map w) ≫ hG.map (Cat.id M) = η ≫ hG.map w
+             rw [hG.map_id, Cat.comp_id]
+    | inl => show η ≫ hG.map w = η ≫ hG.map w; rfl
+    | inr => show f ≫ hG.map eB = η ≫ hG.map w; rw [hsq]
+  let θex := hcont lim A glegs gnat
+  let θ : A ⟶ G S := θex.choose
+  have hθL : θ ≫ hG.map πL = η := θex.choose_spec.1 ⟨.lft⟩
+  have hθB : θ ≫ hG.map πB = f := θex.choose_spec.1 ⟨.rgt⟩
+  exact ⟨S, πL, πB, πLMonic, θ, hθL, hθB⟩
+
+/-- §1.838 — the SOLUTION SET (pre-adjoint family) for SAFT.  For each `A`, index the family by
+    `Σ (k : WPidx PA), (A ⟶ G (repr k).dom)` where `PA := ∏_{j : Σ i,(A⟶G(Cᵢ))} Cⱼ.₁` is the
+    product of cogenerators indexed by ALL maps `A → G(Cᵢ)`, and `repr` enumerates (well-powered)
+    the subobjects of `PA`.  Cofinality of `f : A ⟶ G B`: embed `B ↪ Q B` into a product of
+    cogenerators (`cogenerating_embeds_in_product`), build the comparison `w : PA ⟶ Q B`, check the
+    square `η ≫ G w = f ≫ G eB` componentwise (the `G`-images of the `Q B`-projections are jointly
+    monic by continuity), pull back the mono `eB` along `w` (`gPullbackFactor`) to a subobject
+    `S ↪ PA` with a factoring element `θ : A ⟶ G S`, then transport along the well-powered
+    representative iso `S ≅ (repr k).dom`. -/
+private noncomputable def saft_preadjoint
+    {𝒜 : Type u} [Cat.{v} 𝒜] {ℬ : Type u₁} [Cat.{v} ℬ]
+    {G : ℬ → 𝒜} [hG : Functor G] [hc : Complete ℬ] [WellPowered ℬ]
+    {I : Type v} (C : I → ℬ) (hcogen : IsCoGeneratingSet C) (hcont : IsContinuous G) :
+    PreAdjointFunctor G where
+  preAdj A := by
+    classical
+    let hp : HasProducts ℬ := complete_hasProducts hc
+    -- ── PA := product of cogenerators indexed by all maps A → G(Cᵢ), built AS A LIMIT ──
+    let J : Type v := Σ i : I, (A ⟶ G (C i))
+    letI : Cat.{v} J := discCat82
+    let Jobj : J → ℬ := fun j => C j.1
+    letI Jfun : Functor Jobj := discreteFunctor Jobj
+    let dlim := hc.hasLimit Jobj
+    let PA : ℬ := dlim.cone.apex
+    let projPA : (j : J) → PA ⟶ C j.1 := dlim.cone.π
+    -- canonical element η : A ⟶ G PA with η ≫ G(projPA j) = j.2
+    have hmapsnat : ∀ {i j : J} (x : i ⟶ j),
+        (i.2 : A ⟶ G (Jobj i)) ≫ hG.map (Jfun.map x) = (j.2 : A ⟶ G (Jobj j)) := by
+      intro i j x; obtain ⟨⟨hij⟩⟩ := x; subst hij
+      show (i.2 : A ⟶ G (Jobj i)) ≫ hG.map (Jfun.map (Cat.id i)) = i.2
+      rw [Jfun.map_id, hG.map_id, Cat.comp_id]
+    let ηex := hcont dlim A (fun j : J => (j.2 : A ⟶ G (C j.1))) hmapsnat
+    let η : A ⟶ G PA := ηex.choose
+    have hηfac : ∀ j : J, η ≫ hG.map (projPA j) = j.2 := ηex.choose_spec.1
+    -- ── well-powered enumeration of subobjects of PA (data extracted via choice) ──
+    let wp := WellPowered.small (ℬ := ℬ) PA
+    let WPidx : Type v := wp.choose
+    let reprPA : WPidx → Subobject ℬ PA := wp.choose_spec.choose
+    have reprCov : ∀ s : Subobject ℬ PA, ∃ i : WPidx, SubobjectIso s (reprPA i) :=
+      wp.choose_spec.choose_spec
+    -- ── joint monicity of `{G(hp.proj j')}` on any product `Q := ∏ⱼ' F j'` (continuity) ──
+    have qGMonic : ∀ {Idx : Type v} (F : Idx → ℬ) {X : 𝒜}
+        (u v : X ⟶ G (hp.prodObj F)),
+        (∀ j', u ≫ hG.map (hp.proj j') = v ≫ hG.map (hp.proj j')) → u = v := by
+      intro Idx F X u v huv
+      letI : Cat.{v} Idx := discCat82
+      letI : Functor F := discreteFunctor F
+      let qlim := hc.hasLimit F
+      -- hp.proj j' on `complete_hasProducts` IS `qlim.cone.π j'` definitionally
+      have hnatU : ∀ {i j : Idx} (x : i ⟶ j),
+          (u ≫ hG.map (qlim.cone.π i)) ≫ hG.map ((discreteFunctor F).map x)
+            = u ≫ hG.map (qlim.cone.π j) := by
+        intro i j x; obtain ⟨⟨hij⟩⟩ := x; subst hij
+        show (u ≫ hG.map (qlim.cone.π i)) ≫ hG.map ((discreteFunctor F).map (Cat.id i))
+            = u ≫ hG.map (qlim.cone.π i)
+        rw [(discreteFunctor F).map_id, hG.map_id, Cat.comp_id]
+      obtain ⟨_, _, huniq⟩ := hcont qlim X (fun j => u ≫ hG.map (qlim.cone.π j)) hnatU
+      have e1 := huniq u (fun _ => rfl)
+      have e2 := huniq v (fun j => (huv j).symm)
+      rw [e1, e2]
+    -- ── assemble the pre-adjoint family ──
+    refine
+      { I       := Σ k : WPidx, (A ⟶ G (reprPA k).dom)
+        obj     := fun p => (reprPA p.1).dom
+        maps    := fun p => p.2
+        cofinal := ?_ }
+    intro B f
+    -- embed B into the product Q B of cogenerators over all maps B → Cᵢ
+    let eB : B ⟶ hp.prodObj (fun j' : Σ i : I, (B ⟶ C i) => C j'.1) :=
+      hp.tupling (fun j' => j'.2)
+    have heB : Mono eB := cogenerating_embeds_in_product hp hcogen B
+    -- comparison map w : PA ⟶ Q B, w ≫ projQ (i,h) = projPA ⟨i, f ≫ G h⟩
+    let w : PA ⟶ hp.prodObj (fun j' : Σ i : I, (B ⟶ C i) => C j'.1) :=
+      hp.tupling (fun j' => projPA ⟨j'.1, f ≫ hG.map j'.2⟩)
+    have hwproj : ∀ j' : Σ i : I, (B ⟶ C i),
+        w ≫ hp.proj j' = projPA ⟨j'.1, f ≫ hG.map j'.2⟩ := fun j' => hp.tupling_fac _ _
+    have heBproj : ∀ j' : Σ i : I, (B ⟶ C i), eB ≫ hp.proj j' = j'.2 := fun j' => hp.tupling_fac _ _
+    -- square: η ≫ G w = f ≫ G eB (check componentwise on `{G projQ}`)
+    have hsq : η ≫ hG.map w = f ≫ hG.map eB := by
+      apply qGMonic (fun j' : Σ i : I, (B ⟶ C i) => C j'.1)
+      intro j'
+      calc (η ≫ hG.map w) ≫ hG.map (hp.proj j')
+          = η ≫ hG.map (w ≫ hp.proj j') := by rw [Cat.assoc, ← hG.map_comp]
+        _ = η ≫ hG.map (projPA ⟨j'.1, f ≫ hG.map j'.2⟩) := by rw [hwproj]
+        _ = (f ≫ hG.map j'.2 : A ⟶ G (C j'.1)) := hηfac ⟨j'.1, f ≫ hG.map j'.2⟩
+        _ = f ≫ hG.map (eB ≫ hp.proj j') := by rw [heBproj]
+        _ = (f ≫ hG.map eB) ≫ hG.map (hp.proj j') := by rw [hG.map_comp, Cat.assoc]
+    -- pull back eB (mono) along w; get S ↪ PA and the factoring element θ
+    obtain ⟨S, πP, πB, πPMono, θ, hθP, hθB⟩ := gPullbackFactor hcont w eB heB η f hsq
+    -- S as a subobject of PA, located in the well-powered enumeration
+    let sub : Subobject ℬ PA := ⟨S, πP, fun {W} s t h => πPMono s t h⟩
+    obtain ⟨k, i₀, hi₀iso, hi₀arr⟩ := reprCov sub
+    obtain ⟨g, hg1, hg2⟩ := hi₀iso
+    -- index ⟨k, θ ≫ G i₀⟩, with member map `x := g ≫ πB : (reprPA k).dom ⟶ B`
+    refine ⟨⟨k, θ ≫ hG.map i₀⟩, g ≫ πB, ?_⟩
+    -- (θ ≫ G i₀) ≫ G(g ≫ πB) = θ ≫ G((i₀ ≫ g) ≫ πB) = θ ≫ G πB = f
+    calc (θ ≫ hG.map i₀) ≫ hG.map (g ≫ πB)
+        = θ ≫ hG.map (i₀ ≫ g ≫ πB) := by rw [Cat.assoc, ← hG.map_comp, hG.map_comp]
+      _ = θ ≫ hG.map ((i₀ ≫ g) ≫ πB) := by rw [Cat.assoc]
+      _ = θ ≫ hG.map (Cat.id S ≫ πB) := by rw [hg1]
+      _ = θ ≫ hG.map πB := by rw [Cat.id_comp]
+      _ = f := hθB
+
 /-- §1.83(10) (the heart of the SAFT): for a *continuous* `G` out of a *complete*,
-    *well-powered* `ℬ` with a *cogenerating set* `C`, the functor `(A, G(-))` is representable
-    for every `A`.
-
-    Freyd's argument (§1.838–§1.83(10)): in a complete well-powered category every object has a
-    unique minimal subobject; a cogenerating set bounds the cardinality function `K(B) :=
-    Σᵢ card(B, Cᵢ)`, turning the proper-class limit of the comma category into a *small* one,
-    so the coterminator of `El(A,G(-))` exists (the minimal subobject of `∏ᵢ Cᵢ`-type product).
-
-    STATUS: the downstream machinery is now in place — `InitialElement.represents` (initial
-    element ⟹ representability) and the `gaft_representability` engine (solution set + product +
-    wide equalizer ⟹ initial element) are both PROVED and axiom-clean.  SAFT reduces to producing
-    a SOLUTION SET (`PreAdjointObj G A`) from the cogenerating set, after which
-    `gaft_representability` finishes it.
-
-    BLOCKER (faithful, sharp): the missing step is exactly "complete + well-powered + cogenerating
-    set ⟹ pre-adjoint".  Freyd builds the solution-set member for `(B, g)` as the MINIMAL SUBOBJECT
-    of a product `∏ᵢ Cᵢ` of cogenerators through which `B` embeds, indexed (smallly) by
-    `Hom(A, ∏ᵢ Cᵢ)`.  The repo has `WellPowered`, `Subobject` and images, but NO embedding-into-
-    product-of-cogenerators and NO minimal-subobject selector, so the solution set cannot yet be
-    assembled.  Everything after the solution set is already discharged. -/
-private def saft_representability
+    *well-powered* `ℬ` with a *cogenerating set* `C`, the functor `(A, G(-))` is representable for
+    every `A`.  Proved by building the SOLUTION SET (`saft_preadjoint`) — the minimal-subobject /
+    cogenerating-set pre-adjoint family — and feeding it to the proven `gaft_representability`
+    engine (solution set + product + wide equalizer ⟹ initial element ⟹ representing object). -/
+private noncomputable def saft_representability
     {𝒜 : Type u} [Cat.{v} 𝒜] {ℬ : Type u₁} [Cat.{v} ℬ]
     {G : ℬ → 𝒜} [hG : Functor G] [Complete ℬ] [WellPowered ℬ]
-    {I : Type v} (C : I → ℬ) (_hcogen : IsCoGeneratingSet C)
-    (_hcont : IsContinuous G) :
-    ∀ A : 𝒜, Σ R : ℬ, RepresentedBy G A R := by
-  sorry
+    {I : Type v} (C : I → ℬ) (hcogen : IsCoGeneratingSet C)
+    (hcont : IsContinuous G) :
+    ∀ A : 𝒜, Σ R : ℬ, RepresentedBy G A R :=
+  gaft_representability hcont (saft_preadjoint C hcogen hcont)
 
 /-- §1.83(10) SPECIAL ADJOINT FUNCTOR THEOREM:
     If ℬ is complete, well-powered and has a cogenerating set,
