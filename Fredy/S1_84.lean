@@ -369,16 +369,112 @@ instance grothendieck_topos_locally_complete [GrothendieckTopos E] :
 
 /-! ## §1.845 Coproducts in E remain coproducts in Rel(E) ------------------- -/
 
+/-- graph(u) ⊚ graph(u)° ≤ graph(id_A) when u is monic.
+    Proof: the compose-internal span `pair(π₁ ≫ id_A, π₂ ≫ id_A)` = `π₁ ≫ diag A`
+    (since π₁ = π₂ by monicity), so its image factors through diag A, yielding
+    the required RelHom k with k ≫ diag A = image(span).arr. -/
+private theorem graph_comp_recip_le_one_monic {𝒞 : Type u} [Cat.{v} 𝒞]
+    [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
+    {A S : 𝒞} (u : A ⟶ S) (hu : Mono u) :
+    RelLe (graph u ⊚ (graph u)°) (graph (Cat.id A)) := by
+  -- compose (graph u) (graph u)° picks pb = HasPullbacks.has u u
+  -- (graph u).colB = u,  (graph u)°.colA = u
+  -- span = pair(pb.π₁ ≫ id_A, pb.π₂ ≫ id_A)
+  let pb := HasPullbacks.has u u
+  have hw : pb.cone.π₁ ≫ u = pb.cone.π₂ ≫ u := pb.cone.w
+  have hπ : pb.cone.π₁ = pb.cone.π₂ := hu pb.cone.π₁ pb.cone.π₂ hw
+  let s : pb.cone.pt ⟶ prod A A :=
+    pair (pb.cone.π₁ ≫ Cat.id A) (pb.cone.π₂ ≫ Cat.id A)
+  have hsp_fac : s = pb.cone.π₁ ≫ diag A := by
+    simp only [s, Cat.comp_id, hπ]; exact pair_diag_eq _
+  let diagSub : Subobject 𝒞 (prod A A) := ⟨A, diag A, diag_mono A⟩
+  have hallows : Allows diagSub s := ⟨pb.cone.π₁, by simp [diagSub, hsp_fac]⟩
+  obtain ⟨k, hk⟩ := image_min s diagSub hallows
+  dsimp [diagSub] at hk
+  -- hk : k ≫ diag A = (image s).arr
+  have h_fst : (image s).arr ≫ fst = k := by
+    calc (image s).arr ≫ fst = (k ≫ diag A) ≫ fst := by rw [hk]
+      _ = k ≫ (diag A ≫ fst) := Cat.assoc _ _ _
+      _ = k ≫ Cat.id A := by rw [diag_fst]
+      _ = k := Cat.comp_id _
+  have h_snd : (image s).arr ≫ snd = k := by
+    calc (image s).arr ≫ snd = (k ≫ diag A) ≫ snd := by rw [hk]
+      _ = k ≫ (diag A ≫ snd) := Cat.assoc _ _ _
+      _ = k ≫ Cat.id A := by rw [diag_snd]
+      _ = k := Cat.comp_id _
+  -- Provide the RelHom.  compose's internal pb and s are definitionally our pb/s.
+  -- (graph u ⊚ (graph u)°).colA = (image s).arr ≫ fst, .colB = (image s).arr ≫ snd.
+  -- (graph (Cat.id A)).colA = Cat.id A = (graph (Cat.id A)).colB.
+  -- k ≫ Cat.id A = k = (image s).arr ≫ fst/snd.
+  have hkA : k ≫ (graph (Cat.id A)).colA = (graph u ⊚ (graph u)°).colA :=
+    show k ≫ Cat.id A = (graph u ⊚ (graph u)°).colA from
+      (Cat.comp_id k).trans h_fst.symm
+  have hkB : k ≫ (graph (Cat.id A)).colB = (graph u ⊚ (graph u)°).colB :=
+    show k ≫ Cat.id A = (graph u ⊚ (graph u)°).colB from
+      (Cat.comp_id k).trans h_snd.symm
+  exact ⟨⟨k, hkA, hkB⟩⟩
+
+/-- graph(id_A) ≤ graph(u) ⊚ graph(u)° when u is monic.
+    Proof: lift the cone (id_A, id_A) over (u, u) to get d : A → pb.pt,
+    then d ≫ image.lift s : A → (image s).dom is the required RelHom. -/
+private theorem one_le_graph_comp_recip_monic {𝒞 : Type u} [Cat.{v} 𝒞]
+    [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
+    {A S : 𝒞} (u : A ⟶ S) (hu : Mono u) :
+    RelLe (graph (Cat.id A)) (graph u ⊚ (graph u)°) := by
+  -- Same internal pullback as graph_comp_recip_le_one_monic
+  let pb := HasPullbacks.has u u
+  let s : pb.cone.pt ⟶ prod A A :=
+    pair (pb.cone.π₁ ≫ Cat.id A) (pb.cone.π₂ ≫ Cat.id A)
+  -- Cone (id_A, id_A) over (u, u): since id_A ≫ u = id_A ≫ u trivially
+  let cone_A : Cone u u := ⟨A, Cat.id A, Cat.id A, rfl⟩
+  let d := pb.lift cone_A
+  have hd₁ : d ≫ pb.cone.π₁ = Cat.id A := pb.lift_fst cone_A
+  have hd₂ : d ≫ pb.cone.π₂ = Cat.id A := pb.lift_snd cone_A
+  let h := d ≫ image.lift s
+  -- h ≫ (image s).arr = d ≫ s  (by image.lift_fac)
+  have h_img : h ≫ (image s).arr = d ≫ s := by
+    rw [Cat.assoc, image.lift_fac]
+  have h_fst : h ≫ (image s).arr ≫ fst = Cat.id A :=
+    calc h ≫ (image s).arr ≫ fst
+        = d ≫ s ≫ fst := by rw [← Cat.assoc, h_img, Cat.assoc]
+      _ = d ≫ pb.cone.π₁ ≫ Cat.id A := by rw [fst_pair]
+      _ = d ≫ pb.cone.π₁ := by rw [Cat.comp_id]
+      _ = Cat.id A := hd₁
+  have h_snd : h ≫ (image s).arr ≫ snd = Cat.id A :=
+    calc h ≫ (image s).arr ≫ snd
+        = d ≫ s ≫ snd := by rw [← Cat.assoc, h_img, Cat.assoc]
+      _ = d ≫ pb.cone.π₂ ≫ Cat.id A := by rw [snd_pair]
+      _ = d ≫ pb.cone.π₂ := by rw [Cat.comp_id]
+      _ = Cat.id A := hd₂
+  -- h : A → (image s).dom = (graph u ⊚ (graph u)°).src (definitionally).
+  -- (graph u ⊚ (graph u)°).colA = (image s).arr ≫ fst  (definitionally)
+  -- (graph (Cat.id A)).colA = Cat.id A                  (definitionally)
+  have hhA : h ≫ (graph u ⊚ (graph u)°).colA = (graph (Cat.id A)).colA :=
+    show h ≫ (image s).arr ≫ fst = Cat.id A from h_fst
+  have hhB : h ≫ (graph u ⊚ (graph u)°).colB = (graph (Cat.id A)).colB :=
+    show h ≫ (image s).arr ≫ snd = Cat.id A from h_snd
+  exact ⟨⟨h, hhA, hhB⟩⟩
+
 /-- §1.845: If {uᵢ : Aᵢ → S} is a coproduct in E, it remains a coproduct
     in Rel(E): for any family of relations {Rᵢ : Aᵢ → B}, there is a unique
     R : S → B in Rel(E) such that (graph uᵢ) ⊚ R = Rᵢ for all i.
 
     BOOK PROOF:
-    • uᵢ° (uᵢ) = 1_{Aᵢ}  (uᵢ monic ⟹ graph uᵢ is simple)
-    • uᵢ° uⱼ = 0 for i ≠ j (disjoint coproducts, §1.845)
-    • ⋃ uᵢ° uᵢ = 1_S (the uᵢ are collectively a cover)
+    • uᵢuᵢ° = 1_{Aᵢ}  (uᵢ monic ⟹ graph(uᵢ) ⊚ graph(uᵢ)° = graph(id_Aᵢ))
+    • uᵢ°uⱼ = 0 for i ≠ j (disjoint coproducts, §1.845)
+    • ⋃ uᵢ°uᵢ = 1_S (the uᵢ are collectively a cover)
     The candidate relation is R = ⋃ᵢ (reciprocal (graph uᵢ)) ⊚ Rᵢ.
-    Verification uses local completeness (§1.844) for the union. -/
+
+    FORMALIZATION: construct U as the image of the "big span"
+    m = pair(cpR.desc(fun i => Rᵢ.colA ≫ uᵢ), cpR.desc(fun i => Rᵢ.colB)) : cpR.obj → cp.obj×B
+    (cpR = coproduct of Rᵢ.src's).
+
+    The ≥ direction (Rᵢ ≤ graph(uᵢ) ⊚ U) is proved by explicit RelHom:
+    injection cpR.inj i ≫ image.lift m, lifted via the pullback pb_i.
+
+    The ≤ direction (graph(uᵢ) ⊚ U ≤ Rᵢ) requires that every point of U
+    paired with uᵢ comes from the Rᵢ component — needs disjointness of
+    coproducts AND pullback-preserves-unions (§1.84 axiom `pullback_union`). -/
 theorem coproduct_is_coproduct_in_Rel
     [GrothendieckTopos E]
     {I : Type v} {A : I → E} {B : E}
@@ -387,9 +483,64 @@ theorem coproduct_is_coproduct_in_Rel
     ∃ (U : BinRel E cp.obj B),
       ∀ i, RelLe (graph (cp.inj i) ⊚ U) (R i) ∧
            RelLe (R i) (graph (cp.inj i) ⊚ U) := by
-  -- The unique relation is U = ⋃ᵢ (graph uᵢ)° ⊚ Rᵢ.
-  -- Proof requires arbitrary-union composition in Rel(E) (§1.844).
-  sorry
+  -- Form cpR = coproduct of the relation source objects
+  let cpR := (GrothendieckTopos.toHasAllCoproducts (E := E)).coprod (fun i => (R i).src)
+  -- Big span m : cpR.obj → prod cp.obj B
+  let colA_big : cpR.obj ⟶ cp.obj := cpR.desc (fun i => (R i).colA ≫ cp.inj i)
+  let colB_big : cpR.obj ⟶ B      := cpR.desc (fun i => (R i).colB)
+  let m : cpR.obj ⟶ prod cp.obj B := pair colA_big colB_big
+  -- U = image of m, as a BinRel
+  let U_sub := image m
+  have hU_mp : MonicPair (U_sub.arr ≫ fst) (U_sub.arr ≫ snd) :=
+    monicPair_of_monic_pair _ _ (pair_eta U_sub.arr ▸ U_sub.monic)
+  let U : BinRel E cp.obj B := ⟨U_sub.dom, U_sub.arr ≫ fst, U_sub.arr ≫ snd, hU_mp⟩
+  refine ⟨U, fun i => ⟨?_, ?_⟩⟩
+  · -- ≤ direction: graph(uᵢ) ⊚ U ≤ R i
+    -- Needs: disjointness of coproducts to decompose U via uᵢ, plus
+    -- pullback-preserves-unions to distribute pullback over the image of cpR → cp.obj.
+    sorry
+  · -- ≥ direction: R i ≤ graph(uᵢ) ⊚ U
+    let uᵢ := cp.inj i
+    let pb_i := HasPullbacks.has uᵢ U.colA
+    let span_i := pair (pb_i.cone.π₁ ≫ (graph uᵢ).colA) (pb_i.cone.π₂ ≫ U.colB)
+    -- v : (R i).src → U.src, defined as cpR.inj i ≫ image.lift m
+    let v : (R i).src ⟶ U_sub.dom := cpR.inj i ≫ image.lift m
+    -- v ≫ U.colA = (R i).colA ≫ uᵢ
+    have hv_colA : v ≫ U.colA = (R i).colA ≫ uᵢ :=
+      calc v ≫ U.colA
+            = (cpR.inj i ≫ image.lift m) ≫ U_sub.arr ≫ fst := rfl
+          _ = cpR.inj i ≫ (image.lift m ≫ U_sub.arr) ≫ fst := by
+                simp [Cat.assoc]
+          _ = cpR.inj i ≫ m ≫ fst := by rw [image.lift_fac]
+          _ = cpR.inj i ≫ colA_big := by simp [m, Cat.assoc, fst_pair]
+          _ = (R i).colA ≫ uᵢ := cpR.fac _ i
+    -- v ≫ U.colB = (R i).colB
+    have hv_colB : v ≫ U.colB = (R i).colB :=
+      calc v ≫ U.colB
+            = (cpR.inj i ≫ image.lift m) ≫ U_sub.arr ≫ snd := rfl
+          _ = cpR.inj i ≫ (image.lift m ≫ U_sub.arr) ≫ snd := by
+                simp [Cat.assoc]
+          _ = cpR.inj i ≫ m ≫ snd := by rw [image.lift_fac]
+          _ = cpR.inj i ≫ colB_big := by simp [m, Cat.assoc, snd_pair]
+          _ = (R i).colB := cpR.fac _ i
+    -- Cone at pb_i with (R i).colA and v; lift gives w_i : (R i).src → pb_i.cone.pt
+    let cone_i : Cone uᵢ U.colA := ⟨(R i).src, (R i).colA, v, hv_colA.symm⟩
+    let w_i := pb_i.lift cone_i
+    have hw₁ : w_i ≫ pb_i.cone.π₁ = (R i).colA := pb_i.lift_fst cone_i
+    have hw₂ : w_i ≫ pb_i.cone.π₂ = v           := pb_i.lift_snd cone_i
+    -- RelHom h : (R i).src → (graph uᵢ ⊚ U).src
+    let h := w_i ≫ image.lift span_i
+    have hh : h ≫ (image span_i).arr = w_i ≫ span_i := by
+      rw [Cat.assoc, image.lift_fac]
+    have h_colA : h ≫ (graph uᵢ ⊚ U).colA = (R i).colA := by
+      show h ≫ (image span_i).arr ≫ fst = (R i).colA
+      rw [← Cat.assoc, hh]; dsimp [span_i, graph]
+      rw [Cat.assoc, fst_pair, Cat.comp_id, hw₁]
+    have h_colB : h ≫ (graph uᵢ ⊚ U).colB = (R i).colB := by
+      show h ≫ (image span_i).arr ≫ snd = (R i).colB
+      rw [← Cat.assoc, hh]; dsimp [span_i, U]
+      rw [Cat.assoc, snd_pair, ← Cat.assoc, hw₂, hv_colB]
+    exact ⟨⟨h, h_colA, h_colB⟩⟩
 
 /-! ## §1.846 A coequalizer in E remains a coequalizer in Rel(E) ------------ -/
 
