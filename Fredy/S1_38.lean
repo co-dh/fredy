@@ -426,10 +426,122 @@ theorem qseq_closed_under_product
   The Lean statement says directly that if `F₁` satisfies a Q-sequence (via interp
   and arrowMap) and `α : NatIso F₁ F₂`, then `F₂` satisfies the same Q-sequence. -/
 
-/-- §1.399: Conjugate functors (connected by a natural isomorphism) satisfy the same
-    Q-sequences.  This is the forward direction: `F₁` satisfies → `F₂` satisfies.
-    The book's proof builds a mapping cylinder; here we reduce it to the already-proven
-    `iso_preserves_sat` composed with conjugation. -/
+/-- A chosen inverse of the `X`-component of a natural isomorphism `α : NatIso F₁ F₂`.
+    `α.nat.app X : F₁ X ⟶ F₂ X` is an iso (`α.isIso X`); `natIsoInv` is its inverse,
+    going `F₂ X ⟶ F₁ X`.  (The inverse is only known to *exist*, so extracting it is
+    the one unavoidable use of choice in §1.399.) -/
+private noncomputable def natIsoInv {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
+    {F₁ F₂ : 𝒞 → 𝒟} [Functor F₁] [Functor F₂] (α : NatIso F₁ F₂) (X : 𝒞) :
+    F₂ X ⟶ F₁ X := (α.isIso X).choose
+
+private theorem natIsoInv_left {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
+    {F₁ F₂ : 𝒞 → 𝒟} [Functor F₁] [Functor F₂] (α : NatIso F₁ F₂) (X : 𝒞) :
+    α.nat.app X ≫ natIsoInv α X = Cat.id (F₁ X) := (α.isIso X).choose_spec.1
+
+private theorem natIsoInv_right {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
+    {F₁ F₂ : 𝒞 → 𝒟} [Functor F₁] [Functor F₂] (α : NatIso F₁ F₂) (X : 𝒞) :
+    natIsoInv α X ≫ α.nat.app X = Cat.id (F₂ X) := (α.isIso X).choose_spec.2
+
+/-- Transport along an object equality `h : x = y` distributes over the conjugation pattern
+    `αinv(interp y) ≫ M`: moving the source object `y` to `x` simply re-indexes the leading
+    `αinv` and applies the same transport to the trailing morphism `M`.  Proved by `subst h`. -/
+private theorem transp_natIsoInv_comp
+    {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
+    {F₁ F₂ : 𝒞 → 𝒟} [Functor F₁] [Functor F₂] (α : NatIso F₁ F₂)
+    {P : Type} (interp : P → 𝒞) {x y : P} (h : x = y) {Z : 𝒟}
+    (M : F₁ (interp y) ⟶ Z) :
+    (h ▸ (natIsoInv α (interp y) ≫ M) : F₂ (interp x) ⟶ Z) =
+      natIsoInv α (interp x) ≫ (h ▸ M : F₁ (interp x) ⟶ Z) := by
+  subst h; rfl
+
+/-- Transport along an object equality `h : x = y` (acting on the *source* of a morphism)
+    passes through a right composition with a fixed `k` whose endpoints don't move. -/
+private theorem transp_comp_right
+    {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
+    {F₁ : 𝒞 → 𝒟} [Functor F₁]
+    {P : Type} (interp : P → 𝒞) {x y : P} (h : x = y) {W Z : 𝒟}
+    (T : F₁ (interp y) ⟶ W) (k : W ⟶ Z) :
+    (h ▸ (T ≫ k) : F₁ (interp x) ⟶ Z) = (h ▸ T : F₁ (interp x) ⟶ W) ≫ k := by
+  subst h; rfl
+
+/-- Naturality for the inverse of a natural isomorphism: `F₂(f) ≫ αinv = αinv ≫ F₁(f)`.
+    Derived from naturality of `α` itself by cancelling the iso components. -/
+private theorem natIsoInv_naturality
+    {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
+    {F₁ F₂ : 𝒞 → 𝒟} [hF₁ : Functor F₁] [hF₂ : Functor F₂] (α : NatIso F₁ F₂)
+    {X Y : 𝒞} (f : X ⟶ Y) :
+    hF₂.map f ≫ natIsoInv α Y = natIsoInv α X ≫ hF₁.map f := by
+  have nat := α.nat.naturality f  -- F₁(f) ≫ α Y = α X ≫ F₂(f)
+  calc hF₂.map f ≫ natIsoInv α Y
+        = (Cat.id (F₂ X) ≫ hF₂.map f) ≫ natIsoInv α Y := by rw [Cat.id_comp]
+      _ = ((natIsoInv α X ≫ α.nat.app X) ≫ hF₂.map f) ≫ natIsoInv α Y := by
+            rw [natIsoInv_right]
+      _ = natIsoInv α X ≫ (α.nat.app X ≫ hF₂.map f) ≫ natIsoInv α Y := by
+            simp only [Cat.assoc]
+      _ = natIsoInv α X ≫ (hF₁.map f ≫ α.nat.app Y) ≫ natIsoInv α Y := by rw [nat]
+      _ = natIsoInv α X ≫ hF₁.map f ≫ (α.nat.app Y ≫ natIsoInv α Y) := by
+            rw [Cat.assoc]
+      _ = natIsoInv α X ≫ hF₁.map f := by rw [natIsoInv_left, Cat.comp_id]
+
+/-- Telescoping conjugation: the `F₂`-image of a composable path equals the `F₁`-image,
+    pre/post-composed with the boundary components of `α` (its inverse at the source, and
+    `α` itself at the target).  Proved by induction using naturality of `α`. -/
+private theorem composeComposablePath_natIso
+    {Q : QSequence} {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
+    {F₁ F₂ : 𝒞 → 𝒟} [hF₁ : Functor F₁] [hF₂ : Functor F₂] (α : NatIso F₁ F₂)
+    (interp   : Q.objects → 𝒞)
+    (arrowMap : (a : Q.arrows) → interp (Q.src a) ⟶ interp (Q.tgt a))
+    : ∀ (path : List Q.arrows) (h : path ≠ []) (hc : ComposablePath Q path),
+      composeComposablePath (F₂ ∘ interp) (fun a => hF₂.map (arrowMap a)) path h hc =
+        natIsoInv α (interp (Q.src (path.head h)))
+          ≫ composeComposablePath (F₁ ∘ interp) (fun a => hF₁.map (arrowMap a)) path h hc
+          ≫ α.nat.app (interp (Q.tgt (path.getLast h)))
+  | [a], _, _ => by
+      -- F₂(arrowMap a) = αinv ≫ F₁(arrowMap a) ≫ α  by naturality.
+      show hF₂.map (arrowMap a) =
+        natIsoInv α (interp (Q.src a)) ≫ hF₁.map (arrowMap a)
+          ≫ α.nat.app (interp (Q.tgt a))
+      have nat := α.nat.naturality (arrowMap a)
+      -- nat : hF₁.map (arrowMap a) ≫ α.app (interp (tgt a)) = α.app (interp (src a)) ≫ hF₂.map (arrowMap a)
+      rw [nat, ← Cat.assoc, natIsoInv_right, Cat.id_comp]
+  | a :: b :: rest, _, ⟨hab, hc⟩ => by
+      simp only [composeComposablePath]
+      have ih := composeComposablePath_natIso α interp arrowMap (b :: rest)
+                   (List.cons_ne_nil b rest) hc
+      rw [ih]
+      -- Reduce `(b::rest).head`/`(a::b::rest).head` to `b`/`a` so the boundary objects
+      -- appear literally.
+      simp only [List.head_cons]
+      -- Push the composability transport `hab : Q.tgt a = Q.src b` through the conjugation
+      -- pattern: `αinv` re-indexes to `interp (Q.tgt a)` and the tail transports.
+      rw [transp_natIsoInv_comp α interp hab, transp_comp_right interp hab]
+      -- Goal: F₂(a) ≫ (αinv(tgt a) ≫ (hab ▸ T₁) ≫ α) = αinv(src a) ≫ (F₁(a) ≫ (hab ▸ T₁)) ≫ α.
+      -- Reassociate so the common `(hab ▸ T₁) ≫ α` suffix lines up, then use inverse-naturality.
+      -- The `getLast` of `a::b::rest` and `b::rest` are definitionally equal, so `rfl` finishes.
+      rw [← Cat.assoc, ← Cat.assoc, ← Cat.assoc, natIsoInv_naturality α (arrowMap a)]
+      simp only [Cat.assoc]
+      rfl
+
+/-- Double transport commutes with the conjugation pattern `αinv(interp s) ≫ P ≫ α(interp t)`:
+    transporting both boundary objects simply re-indexes the boundary isos and applies the
+    same double transport to the middle morphism.  Proved by `subst`-ing both equalities. -/
+private theorem conj_dbl_transport
+    {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
+    {F₁ F₂ : 𝒞 → 𝒟} [Functor F₁] [Functor F₂] (α : NatIso F₁ F₂)
+    {P : Type} (interp : P → 𝒞) {s s' t t' : P} (hS : s = s') (hT : t = t')
+    (M : F₁ (interp s) ⟶ F₁ (interp t)) :
+    (hS ▸ hT ▸ (natIsoInv α (interp s) ≫ M ≫ α.nat.app (interp t)) :
+        F₂ (interp s') ⟶ F₂ (interp t')) =
+      natIsoInv α (interp s') ≫ (hS ▸ hT ▸ M : F₁ (interp s') ⟶ F₁ (interp t'))
+        ≫ α.nat.app (interp t') := by
+  subst hS; subst hT; rfl
+
+/-- §1.399: Conjugate functors (connected by a natural isomorphism `α : NatIso F₁ F₂`) satisfy
+    the same Q-sequences.  Forward direction: `F₁` satisfies → `F₂` satisfies.  The book builds
+    a mapping cylinder; here we route through the telescoping conjugation `composeComposablePath_natIso`
+    applied componentwise: each `F₂`-path equals the `F₁`-path conjugated by `α`'s boundary
+    components, and the shared endpoints make the two sides of every equation conjugate by the
+    *same* isos, so `sat₁` transfers. -/
 theorem conjugate_satisfies_sat (Q : QSequence) {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
     (F₁ F₂ : 𝒞 → 𝒟) [hF₁ : Functor F₁] [hF₂ : Functor F₂]
     (α : NatIso F₁ F₂)
@@ -437,20 +549,35 @@ theorem conjugate_satisfies_sat (Q : QSequence) {𝒞 𝒟 : Type u} [Cat.{v} �
     (arrowMap : (a : Q.arrows) → interp (Q.src a) ⟶ interp (Q.tgt a))
     (sat₁ : SatisfiesQSequence Q 𝒟 (F₁ ∘ interp) (fun a => hF₁.map (arrowMap a))) :
     SatisfiesQSequence Q 𝒟 (F₂ ∘ interp) (fun a => hF₂.map (arrowMap a)) := by
-  -- The key: F₂ (arrowMap a) = α_src⁻¹ ≫ F₁(arrowMap a) ≫ α_tgt via naturality.
-  -- We build a functor (coercion of F₁ post-conjugated) and use iso_preserves/reflects.
-  -- Full mapping-cylinder argument deferred; the statement is faithful.
-  sorry
+  intro e hlL hlR hcL hcR hSrc hTgt
+  have h₁ := sat₁ e hlL hlR hcL hcR hSrc hTgt
+  -- Express both F₂-paths as F₁-paths conjugated by α's boundary components.
+  rw [composeComposablePath_natIso α interp arrowMap (Q.eq_lhs e) hlL hcL,
+      composeComposablePath_natIso α interp arrowMap (Q.eq_rhs e) hlR hcR]
+  -- Move the double transport across the lhs conjugation so the boundary isos match the rhs.
+  rw [conj_dbl_transport α interp hSrc hTgt]
+  -- Now both sides are `αinv(src_r) ≫ _ ≫ α(tgt_r)`; the middles are `h₁`-equal.
+  rw [h₁]
 
-/-- §1.399 (converse): if `F₂` satisfies then `F₁` satisfies (by symmetry of conjugation). -/
+/-- The inverse natural isomorphism `α⁻¹ : NatIso F₂ F₁` of `α : NatIso F₁ F₂`: components are
+    the chosen inverses `natIsoInv α`, natural by `natIsoInv_naturality`, each an iso (inverse
+    `α.nat.app`). -/
+private noncomputable def natIsoSymm {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
+    {F₁ F₂ : 𝒞 → 𝒟} [Functor F₁] [Functor F₂] (α : NatIso F₁ F₂) : NatIso F₂ F₁ where
+  nat := { app := fun X => natIsoInv α X
+           naturality := fun f => natIsoInv_naturality α f }
+  isIso := fun X => ⟨α.nat.app X, natIsoInv_right α X, natIsoInv_left α X⟩
+
+/-- §1.399 (converse): if `F₂` satisfies then `F₁` satisfies.  By symmetry of conjugation —
+    apply the forward direction to the inverse natural isomorphism `natIsoSymm α : NatIso F₂ F₁`. -/
 theorem conjugate_satisfies_sat_symm (Q : QSequence) {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
     (F₁ F₂ : 𝒞 → 𝒟) [hF₁ : Functor F₁] [hF₂ : Functor F₂]
     (α : NatIso F₁ F₂)
     (interp   : Q.objects → 𝒞)
     (arrowMap : (a : Q.arrows) → interp (Q.src a) ⟶ interp (Q.tgt a))
     (sat₂ : SatisfiesQSequence Q 𝒟 (F₂ ∘ interp) (fun a => hF₂.map (arrowMap a))) :
-    SatisfiesQSequence Q 𝒟 (F₁ ∘ interp) (fun a => hF₁.map (arrowMap a)) := by
-  sorry
+    SatisfiesQSequence Q 𝒟 (F₁ ∘ interp) (fun a => hF₁.map (arrowMap a)) :=
+  conjugate_satisfies_sat Q F₂ F₁ (natIsoSymm α) interp arrowMap sat₂
 
 /-! ## §1.39 Linear order / finite presentation
 
