@@ -75,15 +75,23 @@ Remaining (each ~40–80 lines, fights the `colimOut` rep transport):
    (hypothesis `hcov : ∀ L, Cover (functF.map f₀)`) forces `m₀` iso at `N` (Cover def); iso
    PRESERVATION (`colimHom_isIso_of_rep`) + `homIncl_compat` lift to `IsIso m`. (Imported `S1_51`
    for `Cover`.)
-3b. **Cover reflection** colimitCat cover ⇒ stage cover. ☐ STILL OPEN. Two newly-confirmed
-   prerequisites (discovered while proving 3): (i) a **conservativity** hypothesis on the system,
-   `hcons : ∀ hij φ, IsIso (functF hij).map φ → IsIso φ` — iso reflection (2b) only yields a stage iso
-   at a *higher* stage `L'`, so without conservativity the test mono is iso at `L'` but not provably at
-   the original stage; slice projections `Σ:A/B→A` ARE conservative (an over-map iso in the base is iso
-   in the slice), so this is satisfiable. (ii) a **generalized inclusion** (include an *arbitrary* stage
-   morphism `m':z⟶w` as a `colimitCat` map `objIncl·z ⟶ objIncl·w`, not just the same-`i` `homInclObj`
-   case) — needed to feed the stage test-mono/factor into the colimitCat `Cover` hypothesis. This is the
-   same generalized-inclusion infrastructure flagged for (but ultimately avoided in) mono reflection.
+3b. **Cover reflection** colimitCat cover ⇒ stage cover. ✅ **DONE, sorry-free** (branch
+   `colimit-cover-reflect`, commit 559ee62, axioms {propext, Classical.choice, Quot.sound}). KEY MOVE:
+   state it purely in the `homInclObj` world — `homInclObj_cover_reflects : Cover (homInclObj g) ⇒
+   Cover g` — which ELIMINATES the bridging/generalized-inclusion need entirely (everything lives at
+   `objIncl i · ⟶ objIncl i ·`, no `A/B/xA/xB`). Supporting lemmas:
+   - `homInclObj_mono_of_stage`: stage map mono-under-transitions ⇒ `homInclObj` of it is a colimit mono.
+   - `homInclObj_isIso_reflects`: `IsIso (homInclObj g) ⇒ IsIso g`, via `colimHom_isIso_reflects` +
+     `isIso_of_castHom` + conservativity `hcons`.
+   Proof of `homInclObj_cover_reflects`: a stage mono `m'` factoring `g` includes (preservation, via
+   `hmono`) to a colimit mono factoring `homInclObj g` (functoriality `homInclObj_comp`); the colimit
+   cover forces it iso; iso reflection brings it back. Hypotheses `hcons` (conservative) + `hmono`
+   (transitions preserve monos), both satisfied by slice projections. GOTCHA: `refine/exact
+   colimHom_mono_of_rep … ?_` leaks an uninstantiated `W` metavar (reducible `Mono` unfolds to a Π);
+   fix by `intro Z p q hpq` then apply the lemma's result to `p q hpq` ({A,B} must be explicit too).
+   NET: the full iso/mono/cover preserve+reflect suite is now COMPLETE (both `homIncl`/colimOut-rep and
+   `homInclObj` forms). Remaining is #4 assembly (needs pullback reflection, which needs fullness-up-to-
+   transition — the genuinely hard "filtered colimit of categories" ingredient) and M4–M6.
 4. **Assembly**: arbitrary pullback cone ≅ canonical (§1.432) so `Cover` is iso-invariant; reflect
    `f`/pullback to a stage, stage `PullbacksTransferCovers`, preserve back ⇒ `PullbacksTransferCovers C.Obj`;
    bundle with terminal+products+pullbacks ⇒ `PreRegularCategory C.Obj`.
