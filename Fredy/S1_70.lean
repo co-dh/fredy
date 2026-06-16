@@ -87,9 +87,18 @@ class HasRightAdjointImage (𝒞 : Type u) [Cat.{v} 𝒞] extends HasImages 𝒞
   adjunction : ∀ {A B : 𝒞} (f : A ⟶ B) (B' : Subobject 𝒞 B) (A' : Subobject 𝒞 A),
     Subobject.le (InverseImage f B') A' ↔ Subobject.le B' (rightAdj f A')
 
-/-- A LOGOS (§1.7): regular + subobject lattices + right adjoint to f#. -/
+/-- A LOGOS (§1.7): regular + subobject lattices + right adjoint to f#.
+
+    The book says "Sub(A) is a *lattice* (not just a semi-lattice)" (§1.6, §1.7),
+    so a logos carries the *bottom* (empty join, minimal subobject 0) of each
+    Sub(A) in addition to the binary joins of `HasSubobjectUnions`.  These bottom
+    fields mirror the pre-logos lattice bottom; §1.711 (`logos_implies_preLogos`)
+    *derives* that f# preserves it, because f# is a left adjoint. -/
 class Logos (𝒞 : Type u) [Cat.{v} 𝒞] extends
-    RegularCategory 𝒞, HasSubobjectUnions 𝒞, HasRightAdjointImage 𝒞
+    RegularCategory 𝒞, HasSubobjectUnions 𝒞, HasRightAdjointImage 𝒞 where
+  bottom : ∀ (A : 𝒞), Subobject 𝒞 A
+  bottom_min : ∀ {A : 𝒞} (S : Subobject 𝒞 A), (bottom A).le S
+  bottom_dom_iso : ∀ (A B : 𝒞), Isomorphic (bottom A).dom (bottom B).dom
 
 end LogosClasses
 
@@ -168,6 +177,23 @@ private theorem logos_invImage_pres_union {A B : 𝒞} (f : A ⟶ B)
   -- (the mediating maps commute with the monics into A).
   exact ⟨hle2, hle⟩
 
+/-- §1.711: f# preserves the bottom (empty join).  Since f# is a *left* adjoint
+    (f# ⊣ f##), it preserves the bottom: for every A', `f#(⊥_B) ≤ A'` because
+    `⊥_B ≤ rightAdj f A'` always (bottom_min), so via the adjunction
+    `f#(⊥_B) ≤ A'`.  Taking A' = ⊥_A gives `f#(⊥_B) ≤ ⊥_A`; the reverse is
+    `bottom_min` again, and antisymmetry yields the domain iso. -/
+private theorem logos_invImage_pres_bottom {A B : 𝒞} (f : A ⟶ B) :
+    Isomorphic (InverseImage f (Logos.bottom B)).dom (Logos.bottom A).dom := by
+  have adj : ∀ (B' : Subobject 𝒞 B) (A' : Subobject 𝒞 A),
+      (InverseImage f B').le A' ↔ B'.le (HasRightAdjointImage.rightAdj f A') :=
+    fun B' A' => L.adjunction f B' A'
+  -- f#(⊥_B) ≤ ⊥_A : adjunction turns the goal into ⊥_B ≤ rightAdj f ⊥_A, true by bottom_min.
+  have hle : (InverseImage f (Logos.bottom B)).le (Logos.bottom A) :=
+    (adj (Logos.bottom B) (Logos.bottom A)).mpr (Logos.bottom_min _)
+  -- ⊥_A ≤ f#(⊥_B) : bottom is minimal in Sub(A).
+  have hge : (Logos.bottom A).le (InverseImage f (Logos.bottom B)) := Logos.bottom_min _
+  exact subobject_le_antisymm_iso hle hge
+
 end LogosPreLogosHelper
 
 section LogosFacts
@@ -178,12 +204,12 @@ def logos_implies_preLogos [L : Logos 𝒞] : PreLogos 𝒞 where
   toRegularCategory    := L.toRegularCategory
   toHasSubobjectUnions := L.toHasSubobjectUnions
   invImage_preserves_union {A B} f S T := logos_invImage_pres_union f S T
-  -- §1.61: bottom subobject needs empty-join / initial object infrastructure
-  -- that Logos does not directly provide beyond binary unions; faithful sorry.
-  bottom                    := fun _ => by sorry
-  bottom_min                := by sorry
-  bottom_dom_iso            := by sorry
-  invImage_preserves_bottom := by sorry
+  -- §1.61/§1.711: the logos's lattice supplies the bottom (empty join); f# being a
+  -- left adjoint preserves it (logos_invImage_pres_bottom).
+  bottom                       := L.bottom
+  bottom_min                   := L.bottom_min
+  bottom_dom_iso               := L.bottom_dom_iso
+  invImage_preserves_bottom f  := logos_invImage_pres_bottom f
 
 /-! ## §1.712 Locally complete categories
 
@@ -225,6 +251,10 @@ def locallyComplete_with_union_preserving_is_logos
                    (LC.sup (λ A' => ∃ B', S B' ∧ A' = InverseImage f B'))) : Logos 𝒞 where
   toRegularCategory    := PL.toRegularCategory
   toHasSubobjectUnions := PL.toHasSubobjectUnions
+  -- the lattice bottom is inherited from the underlying pre-logos.
+  bottom         := PL.bottom
+  bottom_min     := PL.bottom_min
+  bottom_dom_iso := PL.bottom_dom_iso
   -- f##(A') := sup { B' : Sub(B) | f#(B') ≤ A' }
   rightAdj f A' := LC.sup (fun B' => (InverseImage f B').le A')
   adjunction f B' A' := by

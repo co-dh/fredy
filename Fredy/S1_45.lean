@@ -440,6 +440,19 @@ def PreservesProperness {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
     (T : 𝒜 → ℬ) [hT : Functor T] : Prop :=
   ∀ {A' A : 𝒜} (m : A' ⟶ A), Mono m → ¬IsIso m → ¬IsIso (hT.map m)
 
+/-- T PRESERVES PRODUCT-MONICITY: the image projections `T fst, T snd` remain a
+    monic pair (jointly left-cancellable), so a map into `T(A×B)` is determined by
+    its two legs.  This is the product-half of Freyd's "representation of a
+    Cartesian category" (§1.472), stated in the only form available when the
+    codomain `ℬ` need not have its own products (unlike the §1.437
+    `PreservesBinaryProducts`, which asks the comparison `T(A×B) → TA×TB` to be
+    iso and hence requires `HasBinaryProducts ℬ`).  `PreservesPullbacks` alone does
+    NOT supply this — `(T fst, T snd)` need not stay jointly monic — which is the
+    genuine gap in the `Faithful` direction; adding it makes §1.453 true as stated. -/
+def PreservesProductMonic {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
+    [HasBinaryProducts 𝒜] (T : 𝒜 → ℬ) [hT : Functor T] : Prop :=
+  ∀ {A B : 𝒜}, MonicPair (hT.map (fst (A := A) (B := B))) (hT.map snd)
+
 /-- The canonical level of `f`, built from the chosen kernel pair. -/
 noncomputable def canonicalLevel {A B : 𝒞} (f : A ⟶ B) : Level f where
   c := (hpull.has f f).cone
@@ -501,12 +514,18 @@ theorem reflectsMono {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
       the diagonal for `T(f)`'s kernel pair; T preserves properness so `T(diag)` is
       not iso; hence `T(f)` is not monic.  Contrapositive: T reflects monics.
       For faithfulness, Freyd equates "reflects monics" (when pullbacks are preserved)
-      with hom-injectivity. -/
+      with hom-injectivity.
+
+    The `Faithful` direction additionally needs `T` to preserve binary products
+    (Freyd's §1.472 "representation of a Cartesian category"): `PreservesPullbacks`
+    alone leaves `(T fst, T snd)` possibly non–jointly-monic, so it cannot force
+    `T⟨1,f⟩ = T⟨1,g⟩` from `T f = T g`.  We therefore take `PreservesProductMonic T`
+    as a hypothesis, making the statement true as written. -/
 theorem pullback_faithful_iff_preserves_properness
     {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
     [HasTerminal 𝒜] [HasBinaryProducts 𝒜] [HasPullbacks 𝒜]
     (T : 𝒜 → ℬ) [hT : Functor T]
-    (hpb : PreservesPullbacks T) :
+    (hpb : PreservesPullbacks T) (hpbp : PreservesProductMonic T) :
     Faithful T ↔ PreservesProperness T := by
   constructor
   · -- (⇒) Faithful T → PreservesProperness T
@@ -514,37 +533,128 @@ theorem pullback_faithful_iff_preserves_properness
     intro ⟨_, hRefl⟩ A' A m _ hniso hTiso
     exact hniso (hRefl m hTiso)
   · -- (⇐) PreservesProperness T → Faithful T (§1.453).
-    -- The substantive book content — "Hence T reflects monics" — is now DISCHARGED as
-    -- `reflectsMono` above (the kernel-pair / level diagonal argument, classically via
-    -- `by_cases`).  `Faithful = Embedding ∧ (reflects isos)`; we record both reductions.
+    -- The substantive book content — "Hence T reflects monics" — is DISCHARGED as
+    -- `reflectsMono` above.  `Faithful = Embedding ∧ (reflects isos)`; we prove both.
     intro hprop
-    refine ⟨?emb, ?refl⟩
-    · -- Embedding: T f = T g → f = g.
-      intro A B f g hTfg
-      -- Reduction (PROVED part):  with `reflectsMono` in hand, faithfulness of a
-      -- pullback-preserving functor classically reduces to *reflecting monics* once we can
-      -- form the equalizer `e : E ↣ A` of `f, g` (it exists: `𝒜` has products + pullbacks,
-      -- §1.434) and know `T` carries `e` to an ISO whenever `T f = T g`.
-      --   • `f ≠ g  ⇒  e` is a non-iso mono (proper subobject), so `T e` is non-iso (hprop);
-      --   • `T f = T g  ⇒  T e` is split epi, hence (mono+split-epi) iso  — CONTRADICTION.
-      -- BLOCKER (genuine, not an axiom gap): the second bullet needs `T` to carry the
-      -- equalizer-pullback to a pullback whose apex is split by `1_{T A}`, i.e. needs
-      -- `T u = T v` for `u = ⟨1,f⟩, v = ⟨1,g⟩`.  That follows only if `T` preserves the
-      -- BINARY PRODUCT `A × B` (equivalently: preserves equalizers).  `PreservesPullbacks`
-      -- alone does NOT give it — `(T fst, T snd)` need not be jointly monic.  Freyd closes
-      -- this in §1.472 by strengthening "preserves pullbacks" to "representation of
-      -- Cartesian categories" (preserves the whole Cartesian structure).  See S1_45.md.
-      sorry
-    · -- Reflecting isos: IsIso (T f) → IsIso f.
-      -- `IsIso (T f) ⇒ Mono (T f) ⇒ Mono f` is DISCHARGED by `reflectsMono`; but `Mono f`
-      -- is not yet `IsIso f`.  The missing half (reflecting split-epi-ness / the inverse)
-      -- needs the same product-preservation as the Embedding step.  Left faithful.
+    -- Reflecting isos first: it is reused inside the embedding step.
+    have hRefl : ∀ {A B : 𝒜} (f : A ⟶ B), IsIso (hT.map f) → IsIso f := by
       intro A B f hiso
-      have _hmono : Mono f :=
+      -- IsIso (T f) ⇒ Mono (T f) ⇒ Mono f (reflectsMono).
+      have hmono : Mono f :=
         reflectsMono T hpb hprop f
-          (by obtain ⟨i, h1, h2⟩ := hiso; intro W p q hpq;
+          (by obtain ⟨i, h1, _⟩ := hiso; intro W p q hpq;
               have := congrArg (· ≫ i) hpq; simp only [Cat.assoc, h1, Cat.comp_id] at this;
               exact this)
-      sorry
+      -- f mono; if f were not iso it would be a proper mono, so T f non-iso — contradiction.
+      by_cases hf : IsIso f
+      · exact hf
+      · exact absurd hiso (hprop f hmono hf)
+    refine ⟨?emb, hRefl⟩
+    -- Embedding: T f = T g → f = g.
+    intro A B f g hTfg
+    -- The equalizer of `f, g` is the pullback of `⟨1,f⟩, ⟨1,g⟩ : A → A×B`:
+    -- a cone `(x,y)` with `x≫⟨1,f⟩ = y≫⟨1,g⟩` forces `x = y` (post `fst`) and
+    -- `x≫f = x≫g` (post `snd`); so the apex equalizes `f, g`.
+    -- (`set` is a Mathlib tactic, unavailable here; use plain `let`s — `u`, `v` unfold
+    --  definitionally so `fst_pair`/`snd_pair` fire directly.)
+    let u : A ⟶ prod A B := pair (Cat.id A) f
+    let v : A ⟶ prod A B := pair (Cat.id A) g
+    let P : HasPullback u v := HasPullbacks.has u v
+    let e : P.cone.pt ⟶ A := P.cone.π₁
+    -- The two pullback projections agree (both equal after postcomposing fst).
+    have hπeq : P.cone.π₁ = P.cone.π₂ := by
+      have hw : P.cone.π₁ ≫ u = P.cone.π₂ ≫ v := P.cone.w
+      have h := congrArg (· ≫ fst) hw
+      simpa [u, v, Cat.assoc, fst_pair, Cat.comp_id] using h
+    -- e equalizes f, g.
+    have heq : e ≫ f = e ≫ g := by
+      have hw : P.cone.π₁ ≫ u = P.cone.π₂ ≫ v := P.cone.w
+      have h := congrArg (· ≫ snd) hw
+      simp only [u, v, Cat.assoc, snd_pair] at h
+      -- h : P.cone.π₁ ≫ f = P.cone.π₂ ≫ g  ; rewrite π₂ = π₁
+      show P.cone.π₁ ≫ f = P.cone.π₁ ≫ g
+      rw [← hπeq] at h; exact h
+    -- u is split mono (`u ≫ fst = 1`).
+    have hu_split : u ≫ fst = Cat.id A := fst_pair _ _
+    -- e is monic: both pullback projections coincide, and a cone is determined by its lift.
+    have he_mono : Mono e := by
+      intro W p q hpq
+      -- hpq : p ≫ e = q ≫ e, i.e. p ≫ π₁ = q ≫ π₁; since π₂ = π₁ also p ≫ π₂ = q ≫ π₂.
+      have hpq1 : p ≫ P.cone.π₁ = q ≫ P.cone.π₁ := hpq
+      have hpq2 : p ≫ P.cone.π₂ = q ≫ P.cone.π₂ := by rw [← hπeq]; exact hpq1
+      -- (p ≫ π₁, p ≫ π₂) is a cone over (u,v); p and q both lift it; uniqueness ⇒ p = q.
+      have hcone : (p ≫ P.cone.π₁) ≫ u = (p ≫ P.cone.π₂) ≫ v := by
+        rw [Cat.assoc, Cat.assoc, P.cone.w]
+      have hp_uniq := P.lift_uniq ⟨W, p ≫ P.cone.π₁, p ≫ P.cone.π₂, hcone⟩ p rfl rfl
+      have hq_uniq := P.lift_uniq ⟨W, p ≫ P.cone.π₁, p ≫ P.cone.π₂, hcone⟩ q hpq1.symm hpq2.symm
+      rw [hp_uniq, hq_uniq]
+    -- Now show `T e` is iso.  T f = T g ⇒ T u = T v (joint-monicity of T fst, T snd).
+    have hTuv : hT.map u = hT.map v := by
+      apply hpbp
+      · -- post T fst : both = T(1_A)
+        rw [← hT.map_comp, ← hT.map_comp, show u ≫ fst = Cat.id A from fst_pair _ _,
+            show v ≫ fst = Cat.id A from fst_pair _ _]
+      · -- post T snd : T f = T g
+        rw [← hT.map_comp, ← hT.map_comp, show u ≫ snd = f from snd_pair _ _,
+            show v ≫ snd = g from snd_pair _ _, hTfg]
+    -- T carries the pullback to a pullback in ℬ; with T u = T v it is the KERNEL PAIR of T u.
+    -- `T u` is split mono (T of split mono), hence monic; so the diagonal is iso, so T e iso.
+    -- The image cone over the cospan (T u, T v).  Rewriting `T v = T u` (hTuv) turns it into a
+    -- cone over (T u, T u) — a *level* of `T u` — and `PreservesPullbacks` makes it a pullback.
+    -- Build that level by transporting along `hTuv`.
+    have hTu_split : hT.map u ≫ hT.map (fst (A := A) (B := B)) = Cat.id (T A) := by
+      rw [← hT.map_comp, hu_split, hT.map_id]
+    have hTu_mono : Mono (hT.map u) := mono_of_retraction _ _ hTu_split
+    -- The level of `T u`: cone (T pt, T π₁, T π₂) over (T u, T u), pullback, diagonal 1_{TA}.
+    -- The image of P's cone is a pullback over the cospan (T u, T v).
+    have himg : (Cone.mk (T P.cone.pt) (hT.map P.cone.π₁) (hT.map P.cone.π₂)
+        (show hT.map P.cone.π₁ ≫ hT.map u = hT.map P.cone.π₂ ≫ hT.map v by
+          rw [← hT.map_comp, ← hT.map_comp, P.cone.w])).IsPullback :=
+      hpb u v P.cone P.cone_isPullback
+    -- A cone over (T u, T u) is a cone over (T u, T v) (the `w` data differs only by hTuv),
+    -- so `himg`'s universal property transfers verbatim; this makes cTu a level of `T u`.
+    let cTu : Cone (hT.map u) (hT.map u) :=
+      Cone.mk (T P.cone.pt) (hT.map P.cone.π₁) (hT.map P.cone.π₂)
+        (calc hT.map P.cone.π₁ ≫ hT.map u
+              = hT.map (P.cone.π₁ ≫ u) := (hT.map_comp _ _).symm
+            _ = hT.map (P.cone.π₂ ≫ v) := by rw [P.cone.w]
+            _ = hT.map P.cone.π₂ ≫ hT.map v := hT.map_comp _ _
+            _ = hT.map P.cone.π₂ ≫ hT.map u := (congrArg (hT.map P.cone.π₂ ≫ ·) hTuv).symm)
+    have hcTu_pb : cTu.IsPullback := by
+      intro d
+      -- reinterpret d as a cone over (T u, T v) (legs identical; w via hTuv)
+      have hdw : d.π₁ ≫ hT.map u = d.π₂ ≫ hT.map v :=
+        d.w.trans (congrArg (d.π₂ ≫ ·) hTuv)
+      obtain ⟨l, ⟨hl₁, hl₂⟩, hluniq⟩ := himg ⟨d.pt, d.π₁, d.π₂, hdw⟩
+      exact ⟨l, ⟨hl₁, hl₂⟩, hluniq⟩
+    obtain ⟨δ, ⟨hδ₁, hδ₂⟩, _⟩ := hcTu_pb
+      ⟨T A, Cat.id (T A), Cat.id (T A), (Cat.id_comp _).trans (Cat.id_comp _).symm⟩
+    -- Assemble the level and invoke `mono_iff_level_diag_iso` in ℬ.
+    have hδ_iso : IsIso δ :=
+      (mono_iff_level_diag_iso (⟨cTu, hcTu_pb, δ, hδ₁, hδ₂⟩ : Level (hT.map u))).1 hTu_mono
+    -- δ ≫ (T π₁) = 1 with δ iso ⇒ T π₁ iso ⇒ T e iso.
+    have hTe_iso : IsIso (hT.map e) := by
+      obtain ⟨δi, hδi1, hδi2⟩ := hδ_iso  -- hδi1 : δ ≫ δi = id ; hδi2 : δi ≫ δ = id
+      -- hδ₁ : δ ≫ T e = 1.  Cancel δ on the left (δ split epi via δi): T e = δi.
+      have hTe_eq : hT.map e = δi := by
+        calc hT.map e = (δi ≫ δ) ≫ hT.map e := by rw [hδi2, Cat.id_comp]
+          _ = δi ≫ (δ ≫ hT.map e) := Cat.assoc _ _ _
+          _ = δi ≫ Cat.id _ := by rw [hδ₁]
+          _ = δi := Cat.comp_id _
+      -- e = P.cone.π₁ definitionally; T e = δi, δ ≫ δi = id, δi ≫ δ = id.
+      exact ⟨δ, by show hT.map P.cone.π₁ ≫ δ = _; rw [show hT.map P.cone.π₁ = δi from hTe_eq, hδi2],
+                by show δ ≫ hT.map P.cone.π₁ = _; exact hδ₁⟩
+    -- Finally: e monic and T e iso ⇒ (properness contrapositive) e iso; then cancel e on heq.
+    have he_iso : IsIso e := by
+      by_cases h : IsIso e
+      · exact h
+      · exact absurd hTe_iso (hprop e he_mono h)
+    -- e iso ⇒ e is epi ⇒ cancel from e≫f = e≫g.
+    obtain ⟨ei, hei1, hei2⟩ := he_iso
+    calc f = (ei ≫ e) ≫ f := by rw [hei2, Cat.id_comp]
+      _ = ei ≫ (e ≫ f) := Cat.assoc _ _ _
+      _ = ei ≫ (e ≫ g) := by rw [heq]
+      _ = (ei ≫ e) ≫ g := (Cat.assoc _ _ _).symm
+      _ = g := by rw [hei2, Cat.id_comp]
 
 end Freyd
