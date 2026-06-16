@@ -96,6 +96,20 @@ variable {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
 variable [PreTopos 𝒜] [PreTopos ℬ] [HasCoterminator 𝒜] [HasCoterminator ℬ]
 variable {F : 𝒜 → ℬ} [hF : Functor F]
 
+/-- The binary coproduct A+B is the pushout of the two initial maps 0→A and 0→B.
+    Any PushoutCocone (init A) (init B) automatically commutes (both composites go
+    from 0 to c.pt, and the initial object has a unique map to every object). -/
+private def coprod_is_pushout_of_init [HasBinaryCoproducts 𝒜]
+    (A B : 𝒜) : HasPushout (HasCoterminator.init (𝒞 := 𝒜) A) (HasCoterminator.init (𝒞 := 𝒜) B) where
+  cocone := { pt := HasBinaryCoproducts.coprod A B
+              ι₁ := HasBinaryCoproducts.inl
+              ι₂ := HasBinaryCoproducts.inr
+              w  := HasCoterminator.init_uniq _ _ }
+  desc  := fun c => HasBinaryCoproducts.case c.ι₁ c.ι₂
+  fac₁  := fun c => HasBinaryCoproducts.case_inl c.ι₁ c.ι₂
+  fac₂  := fun c => HasBinaryCoproducts.case_inr c.ι₁ c.ι₂
+  uniq  := fun c h h1 h2 => HasBinaryCoproducts.case_uniq c.ι₁ c.ι₂ h h1 h2
+
 /-- **§1.655 step (i)**: a pre-topos functor preserves pullbacks of monics.
     Proof sketch: given monics x : A ↣ B, y : A ↣ C, §1.651 gives a pushout
     B ↣ D, C ↣ D in 𝒜.  T preserves pushouts and monics, so T-images form a
@@ -168,7 +182,67 @@ theorem preTopos_functor_is_bicartesian_repr (hptf : PreToposFunctor F)
                 HasBinaryCoproducts.coprod (F A) (F B) ⟶ F (HasBinaryCoproducts.coprod A B))) :=
   ⟨fun f hf => preTopos_functor_preserves_covers hptf f hf,
    fun f g heq c => preTopos_functor_preserves_equalizers hptf f g heq c,
-   fun _A _B => by sorry⟩
+   fun A B => by
+     -- F(coprod A B) is the pushout of F(init A) and F(init B) in ℬ.
+     -- F(0) is initial in ℬ; uniqueness of maps from F(0) gives cocone commutativity.
+     -- The inverse of case(F inl, F inr) comes from the pushout UMP.
+     -- Let hpb : HasPushout (init A) (init B) be the coproduct, built explicitly.
+     let hpb := coprod_is_pushout_of_init (𝒜 := 𝒜) A B
+     -- Target cocone in ℬ: coprod(FA,FB) with inl_ℬ, inr_ℬ.
+     -- Commutativity: F(init A) ≫ inl_ℬ and F(init B) ≫ inr_ℬ are both maps from F(0),
+     -- equal by PreservesInitial.
+     let tgt : PushoutCocone (hF.map (HasCoterminator.init (𝒞 := 𝒜) A))
+                             (hF.map (HasCoterminator.init (𝒞 := 𝒜) B)) :=
+       { pt := HasBinaryCoproducts.coprod (F A) (F B)
+         ι₁ := HasBinaryCoproducts.inl
+         ι₂ := HasBinaryCoproducts.inr
+         w  := hptf.pres_initial
+                 (hF.map (HasCoterminator.init (𝒞 := 𝒜) A) ≫ HasBinaryCoproducts.inl)
+                 (hF.map (HasCoterminator.init (𝒞 := 𝒜) B) ≫ HasBinaryCoproducts.inr) }
+     -- Apply PreservesPushouts with explicit instance hpb to obtain the inverse map.
+     -- Type of inv: F hpb.cocone.pt ⟶ tgt.pt = F (coprod A B) ⟶ coprod(FA,FB) (by def of hpb).
+     -- We use show/change to expose this definitional equality to Lean.
+     suffices h : IsIso (HasBinaryCoproducts.case
+         (hF.map (HasBinaryCoproducts.inl (A := A) (B := B)))
+         (hF.map (HasBinaryCoproducts.inr (A := A) (B := B))) :
+       HasBinaryCoproducts.coprod (F A) (F B) ⟶ F hpb.cocone.pt) from h
+     obtain ⟨inv, hinv1, hinv2, hinv_uniq⟩ := hptf.pres_pushouts
+       (HasCoterminator.init (𝒞 := 𝒜) A) (HasCoterminator.init (𝒞 := 𝒜) B) (h := hpb) tgt
+     -- inv : F hpb.cocone.pt ⟶ tgt.pt = F (coprod A B) ⟶ coprod(FA,FB)
+     -- hinv1 : hF.map hpb.cocone.ι₁ ≫ inv = tgt.ι₁
+     --       i.e. hF.map inl ≫ inv = inl_ℬ  (since hpb.cocone.ι₁ = inl by definition)
+     -- hinv2 : hF.map hpb.cocone.ι₂ ≫ inv = tgt.ι₂  i.e. hF.map inr ≫ inv = inr_ℬ
+     refine ⟨inv, ?_, ?_⟩
+     · -- case(F inl, F inr) ≫ inv = id_{coprod(FA,FB)}.
+       -- By case_uniq, any h with inl ≫ h = inl, inr ≫ h = inr equals case(inl, inr).
+       -- inl ≫ case(F inl, F inr) ≫ inv = F(inl) ≫ inv = inl_ℬ (hinv1 + case_inl).
+       -- inl ≫ id = inl (comp_id).  So both equal case(inl, inr).
+       -- case(inl, inr) = id by case_uniq.
+       have hcase_id : HasBinaryCoproducts.case
+           (HasBinaryCoproducts.inl (A := F A) (B := F B))
+           (HasBinaryCoproducts.inr (A := F A) (B := F B)) = Cat.id _ :=
+         (HasBinaryCoproducts.case_uniq _ _ (Cat.id _) (Cat.comp_id _) (Cat.comp_id _)).symm
+       rw [← hcase_id]
+       apply HasBinaryCoproducts.case_uniq
+       · rw [← Cat.assoc, HasBinaryCoproducts.case_inl]; exact hinv1
+       · rw [← Cat.assoc, HasBinaryCoproducts.case_inr]; exact hinv2
+     · -- inv ≫ case(F inl, F inr) = id_{F(coprod A B)}.
+       -- Use uniqueness: both id and inv ≫ fwd are mediating maps to the self-cocone.
+       let self_c : PushoutCocone (hF.map (HasCoterminator.init (𝒞 := 𝒜) A))
+                                  (hF.map (HasCoterminator.init (𝒞 := 𝒜) B)) :=
+         { pt := F hpb.cocone.pt
+           ι₁ := hF.map (HasBinaryCoproducts.inl (A := A) (B := B))
+           ι₂ := hF.map (HasBinaryCoproducts.inr (A := A) (B := B))
+           w  := hptf.pres_initial _ _ }
+       obtain ⟨mid, _hmid1, _hmid2, hmid_uniq⟩ := hptf.pres_pushouts
+         (HasCoterminator.init (𝒞 := 𝒜) A) (HasCoterminator.init (𝒞 := 𝒜) B) (h := hpb) self_c
+       have heq_id : mid = Cat.id _ := (hmid_uniq (Cat.id _) (Cat.comp_id _) (Cat.comp_id _)).symm
+       have heq_cmp : mid = inv ≫ HasBinaryCoproducts.case
+           (hF.map (HasBinaryCoproducts.inl (A := A) (B := B)))
+           (hF.map (HasBinaryCoproducts.inr (A := A) (B := B))) :=
+         (hmid_uniq _ (by rw [← Cat.assoc, hinv1, HasBinaryCoproducts.case_inl])
+                      (by rw [← Cat.assoc, hinv2, HasBinaryCoproducts.case_inr])).symm
+       exact heq_cmp.symm.trans heq_id⟩
 
 end BiCartRepr
 
