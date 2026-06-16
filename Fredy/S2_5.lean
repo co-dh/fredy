@@ -129,6 +129,27 @@ theorem amenable_inter_largest (amen : AmenableCongruence 𝒜) {a b : 𝒜} (R 
     -- So: largest_max h_inter : (largest R ∩ largest S) ⊑ largest (R∩S)
     exact amen.largest_max h_inter
 
+/-- §2.531 (union form, used in the book's proof): R⁺ ∪ S⁺ ⊑ (R ∪ S)⁺.
+    Proof: R ≡ R⁺ and S ≡ S⁺, so by union_congr R∪S ≡ R⁺∪S⁺; apply largest_max. -/
+theorem amenable_union_largest_le (amen : AmenableCongruence 𝒜) {a b : 𝒜} (R S : a ⟶ b) :
+    amen.largest R ∪ amen.largest S ⊑ amen.largest (R ∪ S) := by
+  have hcong : amen.cong.rel (R ∪ S) (amen.largest R ∪ amen.largest S) :=
+    amen.union_congr (amen.largest_rel R) (amen.largest_rel S)
+  exact amen.largest_max hcong
+
+/-- The largest-in-class operator ⁺ depends only on the congruence class:
+    if R ≡ S then R⁺ = S⁺.  (Used implicitly throughout §2.533–2.535.) -/
+theorem amenable_largest_class_invariant (amen : AmenableCongruence 𝒜) {a b : 𝒜}
+    {R S : a ⟶ b} (h : amen.cong.rel R S) : amen.largest R = amen.largest S := by
+  apply le_antisymm
+  · -- Goal: R⁺ ⊑ S⁺.  S ≡ R and R ≡ R⁺, so S ≡ R⁺; largest_max gives R⁺ ⊑ S⁺.
+    have hSR' : amen.cong.rel S (amen.largest R) :=
+      amen.cong.trans (amen.cong.symm h) (amen.largest_rel R)
+    exact amen.largest_max hSR'
+  · -- Goal: S⁺ ⊑ R⁺.  R ≡ S and S ≡ S⁺, so R ≡ S⁺; largest_max gives S⁺ ⊑ R⁺.
+    have hRS' : amen.cong.rel R (amen.largest S) := amen.cong.trans h (amen.largest_rel S)
+    exact amen.largest_max hRS'
+
 end Amenable
 
 /-! ## §2.5  Quotient allegory construction
@@ -206,10 +227,21 @@ def booleanQuotientRel_is_congruence : Congruence 𝒜 where
     rw [key R T, key S T]
     exact hRS T°
   inter_congr := by
-    -- (R∩R') ≡_bool (S∩S') when R≡R' and S≡S': sorry (distributivity argument)
+    -- (R∩S) ≡_bool (R'∩S') when R≡R' and S≡S'.
+    -- Chain disjointness: (R∩S)∩T=0 ↔ R∩(S∩T)=0 ↔ R'∩(S∩T)=0 [hR (S∩T)]
+    --   = S∩(R'∩T)=0 ↔ S'∩(R'∩T)=0 [hS (R'∩T)] = (R'∩S')∩T=0,
+    -- using only associativity/commutativity of ∩.
     intro a b R S R' S' hR hS
     simp only [booleanQuotientRel] at hR hS ⊢
-    intro T; sorry
+    intro T
+    -- LHS: (R∩S)∩T = R∩(S∩T); apply hR at S∩T.
+    rw [← Allegory.inter_assoc R S T, hR (S ∩ T)]
+    -- Now R'∩(S∩T)=0; rewrite to S∩(R'∩T) and apply hS.
+    have e1 : R' ∩ (S ∩ T) = S ∩ (R' ∩ T) := by
+      rw [Allegory.inter_assoc R' S T, Allegory.inter_comm R' S, ← Allegory.inter_assoc S R' T]
+    rw [e1, hS (R' ∩ T)]
+    -- Now S'∩(R'∩T)=0; rewrite to (R'∩S')∩T = (R'∩S')∩T.
+    rw [Allegory.inter_assoc S' R' T, Allegory.inter_comm S' R']
   comp_congr := by
     intro a b c R R' S S' hR hS
     simp only [booleanQuotientRel] at hR hS ⊢
@@ -236,15 +268,18 @@ def closedQuotientRel_is_congruence {𝒜 : Type u} [DistributiveAllegory 𝒜]
 
   R / S is constructed as R⁺ / S⁺ (§2.536). -/
 
-section AmenableDivision
-
-variable {𝒜 : Type u} [DivisionAllegory 𝒜]
-
-/-- An amenable quotient of a division allegory is a division allegory (§2.536). -/
-def amenableQuotientDivision (amen : AmenableCongruence 𝒜) : DivisionAllegory 𝒜 := by
-  sorry
-
-end AmenableDivision
+-- §2.536  MISSING (recorded in Fredy/S2_5.md): "An amenable quotient of a division
+-- allegory is a division allegory."  Cannot be STATED faithfully: the QUOTIENT ALLEGORY
+-- (equivalence classes of morphisms as a *new* allegory type, with its own Hom / comp /
+-- recip / inter / division) is not constructed in this repo.  A signature of the form
+-- `AmenableCongruence 𝒜 → DivisionAllegory 𝒜` would be a VACUOUS restatement (𝒜 already
+-- carries a DivisionAllegory instance and `amen` would be ignored), so per the integrity
+-- rule it is omitted, not stubbed.  Blocker: build the quotient-allegory type first.
+--
+-- The purely ALGEBRAIC heart of §2.536 — that ⁺ commutes with the division-allegory
+-- operations well enough to define R/S := R⁺/S⁺ on classes — is already captured by the
+-- ⁺-laws proved above (amenable_le_largest §2.531, largest_comp_le §2.534, and the
+-- class-invariance amenable_largest_class_invariant).
 
 /-! ## §2.533–535  Order, composition, reciprocal, and RST in the quotient
 
@@ -261,13 +296,12 @@ theorem quotient_order_iff_largest (amen : AmenableCongruence 𝒜) {a b : 𝒜}
     amen.largest R ⊑ amen.largest S := by
   constructor
   · rintro ⟨R', S', hR, hS, hle⟩
-    -- hR : cong.rel R R', so largest_max hR : R' ⊑ largest R.
-    -- hS : cong.rel S S', so largest_max hS : S' ⊑ largest S.
-    -- We need largest R ⊑ largest S.
-    -- The cleanest proof uses that largest_max (cong.symm hR) : R ⊑ largest R'
-    -- and amenable_le_largest ... but that requires computing largest R' separately.
-    -- Deferred to sorry: the inequality holds by book §2.531 applied to R ≡ R' ⊑ S' ≡ S.
-    sorry
+    -- ⁺ is class-invariant: largest R = largest R' and largest S = largest S'.
+    have hR' : amen.largest R = amen.largest R' := amenable_largest_class_invariant amen hR
+    have hS' : amen.largest S = amen.largest S' := amenable_largest_class_invariant amen hS
+    rw [hR', hS']
+    -- §2.531 applied to R' ⊑ S'.
+    exact amenable_le_largest amen hle
   · intro h
     exact ⟨_, _, amen.largest_rel R, amen.largest_rel S, h⟩
 
@@ -351,9 +385,13 @@ def Dense (amen : AmenableCongruence 𝒜) {A B : 𝒜} (R : A ⟶ B) : Prop :=
 end SeparatedDense
 
 /-! ## §2.542  Every topos admits a faithful bicartesian
-    representation to a boolean topos (§2.542). -/
+    representation to a boolean topos (§2.542).
 
-theorem topos_boolean_representation : True := by
-  trivial
+    MISSING (recorded in Fredy/S2_5.md): this theorem cannot be STATED faithfully
+    in this repo yet.  It quantifies over toposes / boolean toposes and asserts the
+    existence of a faithful bicartesian *representation* — none of `Topos`,
+    `BooleanTopos`, nor the representation-of-allegories morphism is constructed
+    here.  Per the integrity rule we do NOT emit a `: True` stub; the prior such
+    stub has been removed. -/
 
 end Freyd.Alg
