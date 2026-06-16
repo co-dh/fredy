@@ -34,6 +34,31 @@ declarations here, and the final `capitalization_lemma`, are at this diagonal `u
 the faithful representation `A → Ā = objIncl i₀ ∘ base` via `faithful_comp` of the bundled
 faithful base embedding with `stageInclFaithful`.
 
+## ω-tower scaffolding for `capData_exists` (all sorry-free)
+
+These were added to materially advance the residual transfinite construction.  The successor
+level of Freyd's recursion is an ω-tower (`A₀ = A`, `A_{n+1} = (A_n)*`); the pieces below build
+its index, stages, and iterated transitions, leaving only the cast-coherence / preservation-
+lifting / capital-closure as the residual (see `capData_exists` docstring).
+
+| name                | statement                                                                                     | status |
+|---------------------|-----------------------------------------------------------------------------------------------|--------|
+| `Colim.natDirected` | `ℕ` (`Nat`) as a `Directed` preorder (max as common upper bound)                              | DONE |
+| `uliftNatDirected`  | `ULift.{u} Nat` as a `Directed` preorder — the `Type u` index the colimit machinery needs     | DONE |
+| `CapStep S`         | the single successor-step interface: a faithful, pre-regular-target functor `S → T = S*`      | DONE (defn) |
+| `PreRegBundle`      | a bundled small pre-regular category (carrier + `Cat` + `PreRegularCategory`) for `Nat.rec`   | DONE (defn) |
+| `stageBundle`       | the `n`-th stage of the tower, by `Nat.rec` on a uniform successor `nextStep` (`stage 0 = A`)  | DONE |
+| `stageStep`         | the single-step functor `stage n → stage (n+1)` (= bundled `CapStep.step`)                     | DONE |
+| `transN`            | the iterated transition `stage n → stage (n+d)`, by recursion on the difference `d`            | DONE |
+| `transNFun`         | `transN n d` is a `Functor` (composite of the `d` rung functors)                              | DONE |
+| `transNFaithful`    | **`transN n d` is `Faithful`** (composite of faithful rungs via `faithful_comp`)              | DONE |
+| `towerObj`          | object family of the tower `CatSystem`: `i ↦ (stageBundle b i.down).carrier`                   | DONE |
+| `towerF`            | the `≤`-indexed transition `towerObj i → towerObj j`, casting `transN i (j-i)` along `i+(j-i)=j` | DONE |
+
+`transNFaithful` is the key sorry-free advance: once the `CatSystem` is assembled, it
+discharges the `hfaith`/`hcons` fields of `CapData` directly (every iterated transition is
+faithful, hence conservative).
+
 ## The single remaining `sorry`
 
 `Freyd.capData_exists : (A : Type u) [Cat.{u} A] [PreRegularCategory A] → Nonempty (CapData A)`
@@ -58,3 +83,15 @@ requires three substantial sub-steps, none a one-lemma gap:
 The hard "colimit of pre-regular categories is pre-regular" (`colimitPreRegular`) and the
 faithful stage-injection (`stageInclFaithful`) are already in hand, so this `CapData`
 existence is precisely the residual obligation.
+
+### Current state of the residual (after the ω-tower scaffolding)
+
+The scaffolding table above reduces sub-step (1) to a single concrete obstruction:
+**assembling `towerObj`/`towerF` into a `CatSystem (ULift Nat) uliftNatDirected`**.  `towerF` is
+defined sorry-free, but its `CatSystem` laws (`F_refl`, `F_trans`) and `Coherent`
+(`refl_map`/`trans_map`) require eliminating the `Nat`-difference cast `i + (j - i) = j` inside a
+dependent motive — the classic "motive is not type correct" heterogeneous-cast bookkeeping.
+This is the sharp blocker isolated for sub-step (1); it is mechanical but cast-heavy, and was
+not completed here.  Sub-step (2) (preservation lifting to arbitrary `i ≤ j`) and sub-step (3)
+(capital closure + the `nextStep` slice-successor needing `PreRegularCategory (Over B)`) remain
+as stated.  `transNFaithful` already discharges `hfaith`/`hcons` once the system exists.

@@ -92,6 +92,13 @@ def castCod {𝒞 : Type u} [Cat.{v} 𝒞] {A B B' : 𝒞} (h : B = B') (f : A �
 theorem castCod_heq {𝒞 : Type u} [Cat.{v} 𝒞] {A B B' : 𝒞} (h : B = B') (f : A ⟶ B) :
     HEq (castCod h f) f := by subst h; rfl
 
+/-- Transport the domain of a morphism along an object equality. -/
+def castDom {𝒞 : Type u} [Cat.{v} 𝒞] {A A' B : 𝒞} (h : A = A') (f : A ⟶ B) : A' ⟶ B := h ▸ f
+
+/-- `castDom` is heterogeneously equal to the original morphism. -/
+theorem castDom_heq {𝒞 : Type u} [Cat.{v} 𝒞] {A A' B : 𝒞} (h : A = A') (f : A ⟶ B) :
+    HEq (castDom h f) f := by subst h; rfl
+
 /-- Apply a heterogeneous equality of dependent functions (same index type) at a point. -/
 theorem hcongr_fun {α : Sort u} {P Q : α → Sort v} (f : (a : α) → P a) (g : (a : α) → Q a)
     (hPQ : P = Q) (hfg : HEq f g) (a : α) : HEq (f a) (g a) := by
@@ -471,6 +478,10 @@ private theorem Table_eq_of_fields {𝒞 : Type u} [Cat.{v} 𝒞] (S T : Table �
   cases hCodom; cases hCol
   rfl
 
+/-- Two `Fin`s over (propositionally) equal lengths with equal values are heterogeneously equal. -/
+private theorem fin_heq {m n : Nat} (h : m = n) (a : Fin m) (b : Fin n) (hv : a.val = b.val) :
+    HEq a b := by cases h; cases a; cases b; cases hv; rfl
+
 /-- Columns of equal tables agree (heterogeneously, at heterogeneously-equal indices). -/
 private theorem Table.col_heq_of_eq {𝒞 : Type u} [Cat.{v} 𝒞] {A B : Table 𝒞} (hAB : A = B)
     {i : Fin A.len} {i' : Fin B.len} (hii : HEq i i') : HEq (A.col i) (B.col i') := by
@@ -806,30 +817,61 @@ theorem subterminator_one_col_mem (τ : TCat 𝒞) {T T' : 𝒞} (hSub : Subterm
         intro X g h _hAg; apply hSub; apply term_uniq }
   have hmem_id : τ.mem (idTable T) := τ.tau2_id T
   -- tab2 ∈ τ via mem_expansion: idTable T + extra col f
-  have hmem2 : τ.mem tab2 :=
-    mem_expansion τ (idTable T) hmem_id T' f tab2 rfl rfl
-      (by intro i; fin_cases i; simp [codom2, idTable])
-      (by simp [tab2, codom2])
-      (by intro i; fin_cases i; simp [tab2, col2, idTable, codom2])
-      (by simp [tab2, col2, codom2])
+  -- Prove membership of tab2 via mem_expansion.
+  -- idTable T has len=1; all ∀ i : Fin 1 goals are trivial.
+  have hilen_id : (idTable T).len = 1 := rfl
+  have hmem2 : τ.mem tab2 := by
+    apply mem_expansion τ (idTable T) hmem_id T' f tab2 rfl rfl
+    · -- hCodEq: ∀ i : Fin 1, tab2.codom (castSucc i) = (idTable T).codom i  (i.val=0)
+      intro i
+      -- i.val = 0 since i : Fin (idTable T).len = Fin 1
+      have hiv : i.val = 0 := by have h : i.val < 1 := i.isLt; omega
+      -- (idTable T).len = 1, so Fin.castAdd 1 i has val = 0; tab2.codom ⟨0,_⟩ = T
+      change tab2.codom _ = T
+      have hcs : (Fin.castSucc i : Fin 2) = ⟨0, by omega⟩ := by ext; simp [Fin.castSucc]
+      simp [codom2, hcs, tab2]
+    · -- hCodLast: tab2.codom (Fin.last 1) = T'  (Fin.last 1 has val=1 ≠ 0)
+      change tab2.codom _ = T'
+      simp [codom2, Fin.last, tab2, hilen_id]
+    · -- hCols: ∀ i : Fin 1, HEq (tab2.col (castSucc i)) ((idTable T).col i)
+      intro i
+      have hiv : i.val = 0 := by have h : i.val < 1 := i.isLt; omega
+      -- both sides = Cat.id T
+      change HEq (tab2.col _) ((idTable T).col i)
+      have hcs : (Fin.castSucc i : Fin 2) = ⟨0, by omega⟩ := by ext; simp [Fin.castSucc]
+      rw [hcs]
+      have hdec : instDecidableEqNat 0 0 = isTrue rfl := Subsingleton.elim _ _
+      simp [col2, codom2, hdec, tab2, idTable]
+    · -- hLast: HEq (tab2.col (Fin.last 1)) f
+      change HEq (tab2.col _) f
+      have hdec : instDecidableEqNat 1 0 = isFalse (by decide) := Subsingleton.elim _ _
+      simp [col2, codom2, Fin.last, hdec, tab2, idTable]
   -- Column 0 of tab2 (= id_T) is short: subterminator T forces any f=g
-  have hShort0 : tab2.IsShort ⟨0, by norm_num⟩ := by
+  have hShort0 : tab2.IsShort ⟨0, Nat.succ_pos 1⟩ := by
     intro X g h _hAgree
     apply hSub; apply term_uniq
   -- mem_prune: tab2 ∈ τ → tab2.prune ⟨0,_⟩ ∈ τ
   have hPrune := mem_prune hShort0 hmem2
-  -- tab2.prune ⟨0,_⟩ hShort0 = {len=1, col=f}: Fin.skip ⟨0,_⟩ ⟨0,_⟩ = ⟨1,_⟩
-  convert hPrune using 1
+  -- tab2.prune ⟨0,_⟩ hShort0 equals {len=1, codom=T', col=f}
+  suffices heq : tab2.prune ⟨0, Nat.succ_pos 1⟩ hShort0 =
+      { src := T, len := 1, codom := fun _ => T', col := fun _ => f,
+        monic := by intro X g h _hAg; apply hSub; apply term_uniq } by
+    rw [← heq]; exact hPrune
+  have hplen_def : (tab2.prune ⟨0, Nat.succ_pos 1⟩ hShort0).len = 1 := by simp [Table.prune, tab2]
   apply Table_eq_of_fields _ _ rfl rfl
-  · -- HEq codom: prune.codom ⟨0,_⟩ = tab2.codom ⟨1,_⟩ = T'
-    apply heq_funext_fin rfl; intro i; fin_cases i
-    simp [Table.prune, Fin.skip, tab2, codom2]
+  · -- HEq codom: prune.codom i = T' for the single i (val=0, skip gives val=1)
+    apply heq_funext_fin rfl
+    intro i
+    have hiv : i.val = 0 := by have h : i.val < 1 := i.isLt; omega
+    simp [Table.prune, Fin.skip, hiv, codom2]
   · -- HEq col
     apply Table.col_heq_funext rfl rfl
-    · intro i; fin_cases i; simp [Table.prune, Fin.skip, tab2, codom2]
-    · intro i; fin_cases i
-      simp only [Table.prune, Fin.skip, show (0 : Fin 1).val < (0 : Fin 2).val = False from by norm_num]
-      simp [tab2, col2, codom2]
+    · intro i
+      have hiv : i.val = 0 := by have h : i.val < 1 := i.isLt; omega
+      simp [Table.prune, Fin.skip, hiv, codom2]
+    · intro i
+      have hiv : i.val = 0 := by have h : i.val < 1 := i.isLt; omega
+      simp [Table.prune, Fin.skip, hiv, col2, codom2]
 
 /-- §1.496: If T is a subterminator and f : T → T' is an isomorphism, then f = id_T
     (hence T' = T and f is the identity). -/
@@ -875,7 +917,300 @@ namespace TCat
 theorem cancellationLemma (τ : TCat 𝒞) (S T : Table 𝒞) (j : Fin S.len)
     (h_eq : T.src = S.codom j)
     (hST : τ.mem (S.comp T j h_eq)) (hT : τ.mem T) : τ.mem S := by
-  sorry
+  let r := τ.resurfacing S
+  let j' : Fin r.rep.len := r.iso.hLen ▸ j
+  have hj'val : j'.val = j.val := fin_cast_val r.iso.hLen j
+  -- h'_eq: T.src = r.rep.codom j'
+  have h'_eq : T.src = r.rep.codom j' := h_eq.trans (r.iso.codom_match j).symm
+  -- Step 4: r.rep.comp T j' h'_eq ∈ τ
+  have hRepComp : τ.mem (r.rep.comp T j' h'_eq) := τ.tau2_comp r.rep T j' h'_eq r.mem hT
+  -- Step 5: Build TableIso (S.comp T j h_eq) (r.rep.comp T j' h'_eq)
+  -- Use hSlen : S.len = r.rep.len so comp lengths equal
+  have hSlen : S.len = r.rep.len := r.iso.hLen
+  have hCompIso : Nonempty (TableIso (S.comp T j h_eq) (r.rep.comp T j' h'_eq)) := by
+    -- S.comp and r.rep.comp have the same .len (both S.len - 1 + T.len = r.rep.len - 1 + T.len)
+    have hLen_field : (S.comp T j h_eq).len = (r.rep.comp T j' h'_eq).len := by
+      simp only [Table.comp]; omega
+    -- Helper: cast a Fin (S.len-1+T.len) to Fin (r.rep.len-1+T.len) and back preserves value
+    have hCompLen : S.len - 1 + T.len = r.rep.len - 1 + T.len := by omega
+    -- Work with k₀ : Fin (S.len - 1 + T.len) exposed definitionally
+    refine ⟨{
+      hLen        := hLen_field
+      f           := r.iso.f
+      g           := r.iso.g
+      f_g         := r.iso.f_g
+      g_f         := r.iso.g_f
+      codom_match := fun (k : Fin (S.comp T j h_eq).len) => ?_
+      col_match   := fun (k : Fin (S.comp T j h_eq).len) => ?_
+    }⟩
+    · -- Goal: (r.rep.comp T j' h'_eq).codom (hLen_field ▸ k) = (S.comp T j h_eq).codom k
+      simp only [Table.comp, Table.compCodom]
+      -- hkv: the cast preserves value (hLen_field : .len = .len)
+      have hkv : (hLen_field ▸ k : Fin (r.rep.comp T j' h'_eq).len).val = k.val :=
+        fin_cast_val hLen_field k
+      by_cases h1 : k.val < j.val
+      · have h1' : (hLen_field ▸ k).val < j'.val := by rw [hkv, hj'val]; exact h1
+        simp only [h1, dite_true, h1', dite_true]
+        refine Eq.trans ?_ (r.iso.codom_match ⟨k.val, by omega⟩)
+        congr 1; exact Fin.ext (by simp only [fin_cast_val])
+      · by_cases h2 : k.val < j.val + T.len
+        · have h1' : ¬ (hLen_field ▸ k).val < j'.val := by rw [hkv, hj'val]; exact h1
+          have h2' : (hLen_field ▸ k).val < j'.val + T.len := by rw [hkv, hj'val]; exact h2
+          simp only [h1, dite_false, h2, dite_true, h1', dite_false, h2', dite_true]
+          congr 1; apply Fin.ext; simp [hkv, hj'val]
+        · have h1' : ¬ (hLen_field ▸ k).val < j'.val := by rw [hkv, hj'val]; exact h1
+          have h2' : ¬ (hLen_field ▸ k).val < j'.val + T.len := by rw [hkv, hj'val]; exact h2
+          simp only [h1, dite_false, h2, dite_false, h1', dite_false, h2', dite_false]
+          have hkLt : k.val < S.len - 1 + T.len := by have := k.isLt; simpa [Table.comp] using this
+          refine Eq.trans ?_ (r.iso.codom_match ⟨k.val - T.len + 1, by omega⟩)
+          congr 1; exact Fin.ext (by simp only [fin_cast_val, hkv])
+    · -- Goal: HEq (r.iso.f ≫ (r.rep.comp T j' h'_eq).col (hLen_field ▸ k)) ((S.comp T j h_eq).col k)
+      simp only [Table.comp]
+      have hkv : (hLen_field ▸ k : Fin (r.rep.comp T j' h'_eq).len).val = k.val :=
+        fin_cast_val hLen_field k
+      have hkLt : k.val < S.len - 1 + T.len := by have := k.isLt; simpa [Table.comp] using this
+      have hkLtR : (hLen_field ▸ k : Fin (r.rep.comp T j' h'_eq).len).val < r.rep.len - 1 + T.len := by
+        rw [hkv]; rw [← hSlen]; exact hkLt
+      -- After simp [Table.comp], goals are about compColMor directly
+      show HEq (r.iso.f ≫ Table.compColMor r.rep T j' h'_eq
+                 (hLen_field ▸ k : Fin (r.rep.comp T j' h'_eq).len))
+               (Table.compColMor S T j h_eq k)
+      unfold Table.compColMor
+      by_cases h1 : k.val < j.val
+      · -- S-left branch: after simp, both sides are eC ▸ S/r.rep.col ⟨k,_⟩
+        have h1' : (hLen_field ▸ k).val < j'.val := by rw [hkv, hj'val]; exact h1
+        simp only [h1, dite_true, h1', dite_true]
+        have hcm := r.iso.col_match (⟨k.val, by omega⟩ : Fin S.len)
+        -- hcm : HEq (r.iso.f ≫ r.rep.col (hSlen ▸ ⟨k.val,_⟩)) (S.col ⟨k.val,_⟩)
+        -- Strip the eR cast on the LHS r.rep column (via comp_heq_left + eqRec_heq),
+        -- bridge the index to (hSlen ▸ ⟨k,_⟩) and use hcm; strip the eS cast on the RHS.
+        refine (comp_heq_left r.iso.f _ _ ?_ (eqRec_heq _ _)).trans (HEq.trans ?_
+          (hcm.trans (eqRec_heq _ _).symm))
+        · -- codom equality eR.symm : r.rep.compCodom T j' (hLen▸k) = r.rep.codom ⟨↑(hLen▸k),_⟩
+          simp only [Table.compCodom, h1', dite_true]
+        · -- index bridge: r.iso.f ≫ r.rep.col ⟨↑(hLen▸k),_⟩ ≍ r.iso.f ≫ r.rep.col (hSlen ▸ ⟨k,_⟩)
+          exact comp_heq_left r.iso.f _ _
+            (congrArg r.rep.codom (Fin.ext (by simp only [fin_cast_val])))
+            (Table.col_heq_of_eq rfl (fin_heq rfl _ _ (by simp only [fin_cast_val])))
+      · by_cases h2 : k.val < j.val + T.len
+        · -- T-middle branch
+          have h1' : ¬ (hLen_field ▸ k).val < j'.val := by rw [hkv, hj'val]; exact h1
+          have h2' : (hLen_field ▸ k).val < j'.val + T.len := by rw [hkv, hj'val]; exact h2
+          simp only [h1, dite_false, h2, dite_true, h1', dite_false, h2', dite_true]
+          have hcm_j := r.iso.col_match j
+          have hidx_eq : (hLen_field ▸ k).val - j'.val = k.val - j.val := by omega
+          have hidx_r : (⟨(hLen_field ▸ k).val - j'.val, by
+              have := (hLen_field ▸ k).isLt; omega⟩ : Fin T.len)
+              = ⟨k.val - j.val, by omega⟩ := Fin.ext hidx_eq
+          have eC_S : T.codom ⟨k.val - j.val, by omega⟩ = S.compCodom T j k := by
+            simp [Table.compCodom, h1, h2]
+          have eC_R : T.codom ⟨(hLen_field ▸ k).val - j'.val, by have := (hLen_field ▸ k).isLt; omega⟩
+              = r.rep.compCodom T j' (hLen_field ▸ k : Fin (r.rep.comp T j' h'_eq).len) := by
+            simp [Table.compCodom, h1', h2']
+          -- Strip the outer compCodom casts eC_R / eC_S, then cases on h_eq/h'_eq.
+          refine (comp_heq_left r.iso.f _ _ eC_R.symm (eqRec_heq _ _)).trans
+            (HEq.trans ?_ (eqRec_heq eC_S
+              (S.col j ≫ (h_eq ▸ T.col ⟨k.val - j.val, by omega⟩ : S.codom j ⟶ _))).symm)
+          -- Core: r.iso.f ≫ (r.rep.col j' ≫ (h'_eq ▸ T.col iR)) ≍ S.col j ≫ (h_eq ▸ T.col iS)
+          refine HEq.trans (heq_of_eq (Cat.assoc r.iso.f (r.rep.col j') _).symm) ?_
+          -- (r.iso.f ≫ r.rep.col j') ≫ (h'_eq ▸ T.col iR) ≍ S.col j ≫ (h_eq ▸ T.col iS)
+          -- hg: h'_eq ▸ T.col iR ≍ h_eq ▸ T.col iS, via stripping ▸ and the index equality.
+          have hg : HEq (castDom h'_eq (T.col ⟨(hLen_field ▸ k).val - j'.val, by
+                have := (hLen_field ▸ k).isLt; omega⟩) : r.rep.codom j' ⟶ _)
+              (castDom h_eq (T.col ⟨k.val - j.val, by omega⟩) : S.codom j ⟶ _) :=
+            (castDom_heq h'_eq _).trans
+              ((Table.col_heq_of_eq (rfl : T = T)
+                  (fin_heq rfl
+                    (⟨(hLen_field ▸ k).val - j'.val, by have := (hLen_field ▸ k).isLt; omega⟩ : Fin T.len)
+                    ⟨k.val - j.val, by omega⟩ hidx_eq)).trans
+                (castDom_heq h_eq _).symm)
+          exact comp_heq (r.iso.f ≫ r.rep.col j') (S.col j) _ _
+            rfl (r.iso.codom_match j) (congrArg T.codom (Fin.ext hidx_eq)) hcm_j hg
+        · -- S-right branch
+          have h1' : ¬ (hLen_field ▸ k).val < j'.val := by rw [hkv, hj'val]; exact h1
+          have h2' : ¬ (hLen_field ▸ k).val < j'.val + T.len := by rw [hkv, hj'val]; exact h2
+          simp only [h1, dite_false, h2, dite_false, h1', dite_false, h2', dite_false]
+          have hcm := r.iso.col_match (⟨k.val - T.len + 1, by omega⟩ : Fin S.len)
+          refine (comp_heq_left r.iso.f _ _ ?_ (eqRec_heq _ _)).trans (HEq.trans ?_
+            (hcm.trans (eqRec_heq _ _).symm))
+          · -- codom equality eR.symm
+            simp only [Table.compCodom, h1', h2', dite_false]
+          · -- index bridge: r.rep.col ⟨↑(hLen▸k)-T+1,_⟩ ≍ r.rep.col (hSlen ▸ ⟨k-T+1,_⟩)
+            exact comp_heq_left r.iso.f _ _
+              (congrArg r.rep.codom (Fin.ext (by simp only [fin_cast_val, hkv])))
+              (Table.col_heq_of_eq rfl (fin_heq rfl _ _ (by simp only [fin_cast_val, hkv])))
+  -- Step 6: tau1_unique gives hCompEq
+  have hCompEq : r.rep.comp T j' h'_eq = S.comp T j h_eq :=
+    τ.tau1_unique (S.comp T j h_eq) _ _ hRepComp hST hCompIso ⟨TableIso.refl _⟩
+  -- Step 7: r.rep.src = S.src
+  have hSrc : r.rep.src = S.src := congrArg (·.src) hCompEq
+  -- Step 8: HEq r.iso.f (Cat.id S.src)
+  -- Extract direct column equalities from hCompEq, then use S.monic.
+  have hFf : HEq r.iso.f (Cat.id S.src) := by
+    have hHEq : HEq (castCod hSrc r.iso.f) r.iso.f := castCod_heq hSrc r.iso.f
+    -- hRepCol k: HEq (r.rep.col (hLen ▸ k)) (S.col k), derived from hCompEq column equalities.
+    -- For k ≠ j: use S-branch of compColMor at the appropriate index.
+    -- For k = j: use T.monic on T-branch columns.
+    have hRepCol : ∀ k : Fin S.len, HEq (r.rep.col (r.iso.hLen ▸ k)) (S.col k) := fun k => by
+      by_cases hkj : k.val < j.val
+      · -- k < j: comp index ⟨k.val, _⟩, S-left branch
+        have hci_lt : k.val < S.len - 1 + T.len := by omega
+        have hci_ltR : k.val < r.rep.len - 1 + T.len := by rw [← hSlen]; exact hci_lt
+        have hcol := Table.col_heq_of_eq hCompEq
+          (i := ⟨k.val, by simp only [Table.comp]; exact hci_ltR⟩)
+          (i' := ⟨k.val, by simp only [Table.comp]; exact hci_lt⟩)
+          (fin_heq (by simp only [Table.comp]; rw [hSlen]) _ _ rfl)
+        -- hcol : HEq ((r.rep.comp T j' h'_eq).col ⟨k,_⟩) ((S.comp T j h_eq).col ⟨k,_⟩)
+        simp only [Table.comp, Table.compColMor, hkj, dite_true,
+          show k.val < j'.val from by rw [hj'val]; exact hkj] at hcol
+        -- hcol now: HEq (eR ▸ r.rep.col ⟨k,_⟩) (eS ▸ S.col ⟨k,_⟩)
+        -- Align the column indices ⟨k.val,_⟩ with (hLen ▸ k) and k.
+        have hIdxR : (r.iso.hLen ▸ k : Fin r.rep.len)
+            = ⟨k.val, by have := k.isLt; omega⟩ := Fin.ext (by rw [fin_cast_val])
+        have hIdxS : k = (⟨k.val, by have := k.isLt; omega⟩ : Fin S.len) := Fin.ext rfl
+        rw [hIdxR, hIdxS]
+        -- Strip both casts
+        exact (eqRec_heq _ _).symm.trans (hcol.trans (eqRec_heq _ _))
+      · by_cases hkj2 : j.val < k.val
+        · -- k > j: comp index ⟨k.val + T.len - 1, _⟩, S-right branch
+          have hone : 1 ≤ k.val := by omega
+          have hci_lt : k.val + T.len - 1 < S.len - 1 + T.len := by omega
+          have h1' : ¬ (k.val + T.len - 1 < j.val) := by omega
+          have h2' : ¬ (k.val + T.len - 1 < j.val + T.len) := by omega
+          have h1r : ¬ (k.val + T.len - 1 < j'.val) := by rw [hj'val]; exact h1'
+          have h2r : ¬ (k.val + T.len - 1 < j'.val + T.len) := by rw [hj'val]; exact h2'
+          have hci_ltR : k.val + T.len - 1 < r.rep.len - 1 + T.len := by rw [← hSlen]; exact hci_lt
+          have hcol := Table.col_heq_of_eq hCompEq
+            (i := ⟨k.val + T.len - 1, by simp only [Table.comp]; exact hci_ltR⟩)
+            (i' := ⟨k.val + T.len - 1, by simp only [Table.comp]; exact hci_lt⟩)
+            (fin_heq (by simp only [Table.comp]; rw [hSlen]) _ _ rfl)
+          simp only [Table.comp, Table.compColMor, h1', dite_false, h2', dite_false,
+            h1r, h2r] at hcol
+          -- hcol: HEq (eR ▸ r.rep.col ⟨k+T-1-T+1,_⟩) (eS ▸ S.col ⟨k+T-1-T+1,_⟩)
+          -- note: k+T-1-T+1 = k since 1 ≤ k
+          have hIdx : k.val + T.len - 1 - T.len + 1 = k.val := by omega
+          -- Strip the outer casts, giving bare columns at index ⟨k+T-1-T+1,_⟩.
+          have hcol2 : HEq (r.rep.col ⟨k.val + T.len - 1 - T.len + 1, by have := k.isLt; omega⟩)
+              (S.col ⟨k.val + T.len - 1 - T.len + 1, by have := k.isLt; omega⟩) :=
+            (eqRec_heq _ _).symm.trans (hcol.trans (eqRec_heq _ _))
+          -- Bridge the indices to (hLen ▸ k) and k via fin_heq + col_heq_of_eq.
+          have hbR : HEq (r.iso.hLen ▸ k : Fin r.rep.len)
+              (⟨k.val + T.len - 1 - T.len + 1, by have := k.isLt; omega⟩ : Fin r.rep.len) :=
+            fin_heq rfl _ _ (by rw [fin_cast_val]; exact hIdx.symm)
+          have hbS : HEq (⟨k.val + T.len - 1 - T.len + 1, by have := k.isLt; omega⟩ : Fin S.len) k :=
+            fin_heq rfl _ _ hIdx
+          exact (Table.col_heq_of_eq (rfl : r.rep = r.rep) hbR).trans
+            (hcol2.trans (Table.col_heq_of_eq (rfl : S = S) hbS))
+        · -- k = j: use T.monic on the T-branch columns of hCompEq.
+          have hkj_eq : k = j := Fin.ext (Nat.le_antisymm (Nat.le_of_not_lt hkj2) (Nat.le_of_not_lt hkj))
+          subst hkj_eq
+          -- Now the outer parameter is `k` (j eliminated); j' = r.iso.hLen ▸ k.
+          -- Goal: HEq (r.rep.col j') (S.col k).
+          -- Build homogeneous maps into T.src and use T.monic.
+          let fL : r.rep.src ⟶ T.src := castCod h'_eq.symm (r.rep.col j')
+          let fR : r.rep.src ⟶ T.src := castDom hSrc.symm (castCod h_eq.symm (S.col k))
+          have hfL : fL = castCod h'_eq.symm (r.rep.col j') := rfl
+          have hfR : fR = castDom hSrc.symm (castCod h_eq.symm (S.col k)) := rfl
+          have hmonic : fL = fR := by
+            apply T.monic
+            intro t
+            -- Extract the T-middle branch of hCompEq at index j+t.
+            have h1_mid : ¬ (k.val + t.val < k.val) := by omega
+            have h2_mid : k.val + t.val < k.val + T.len := by have := t.isLt; omega
+            have h1r_mid : ¬ (k.val + t.val < j'.val) := by rw [hj'val]; exact h1_mid
+            have h2r_mid : k.val + t.val < j'.val + T.len := by rw [hj'val]; exact h2_mid
+            have hci_lt : k.val + t.val < S.len - 1 + T.len := by
+              have := t.isLt; have := k.isLt; omega
+            have hci_ltR : k.val + t.val < r.rep.len - 1 + T.len := by
+              have := t.isLt; have := k.isLt; rw [← hSlen]; omega
+            have hLenEq : (r.rep.comp T j' h'_eq).len = (S.comp T k h_eq).len := by
+              simp only [Table.comp]; rw [hSlen]
+            have hiiHEq : HEq (⟨k.val + t.val, by simp [Table.comp, hci_ltR]⟩ :
+                Fin (r.rep.comp T j' h'_eq).len)
+                (⟨k.val + t.val, by simp [Table.comp, hci_lt]⟩ :
+                Fin (S.comp T k h_eq).len) :=
+              fin_heq hLenEq _ _ rfl
+            have hcol := Table.col_heq_of_eq hCompEq
+              (i := ⟨k.val + t.val, by simp [Table.comp, hci_ltR]⟩)
+              (i' := ⟨k.val + t.val, by simp [Table.comp, hci_lt]⟩) hiiHEq
+            simp only [Table.comp, Table.compColMor, h1_mid, dite_false, h2_mid, dite_true,
+              h1r_mid, dite_false, h2r_mid, dite_true] at hcol
+            -- hcol : HEq (eR ▸ (r.rep.col j' ≫ h'_eq ▸ T.col ⟨k+t-j',_⟩))
+            --             (eS ▸ (S.col k   ≫ h_eq  ▸ T.col ⟨k+t-k,_⟩))
+            -- Strip the outer compCodom casts.  Keep the native shifted indices.
+            have hcol2 : HEq (r.rep.col j' ≫ (h'_eq ▸ T.col ⟨k.val + t.val - j'.val, by
+                  have := t.isLt; have := hj'val; omega⟩ :
+                  r.rep.codom j' ⟶ _))
+                (S.col k ≫ (h_eq ▸ T.col ⟨k.val + t.val - k.val, by have := t.isLt; omega⟩ :
+                  S.codom k ⟶ _)) :=
+              (eqRec_heq _ _).symm.trans (hcol.trans (eqRec_heq _ _))
+            -- The two shifted column indices both equal t.
+            let iR : Fin T.len := ⟨k.val + t.val - j'.val, by have := t.isLt; have := hj'val; omega⟩
+            let iS : Fin T.len := ⟨k.val + t.val - k.val, by have := t.isLt; omega⟩
+            have hidxR : iR = t :=
+              Fin.ext (show k.val + t.val - j'.val = t.val by rw [hj'val]; have := t.isLt; omega)
+            have hidxS : iS = t :=
+              Fin.ext (show k.val + t.val - k.val = t.val by have := t.isLt; omega)
+            -- g-side HEqs: T.col t ≍ h_eq ▸ T.col (shifted index), by stripping ▸ and congrArg.
+            have hgL : HEq (T.col t) (castDom h'_eq (T.col iR) : r.rep.codom j' ⟶ _) :=
+              (Table.col_heq_of_eq (rfl : T = T)
+                (fin_heq rfl t iR (by rw [hidxR]))).trans (castDom_heq h'_eq (T.col iR)).symm
+            have hL : HEq (fL ≫ T.col t)
+                (r.rep.col j' ≫ (h'_eq ▸ T.col iR : r.rep.codom j' ⟶ _)) :=
+              comp_heq fL (r.rep.col j') (T.col t) _ rfl h'_eq
+                (congrArg T.codom hidxR.symm)
+                (hfL ▸ castCod_heq h'_eq.symm (r.rep.col j')) hgL
+            have hgR : HEq (T.col t) (castDom h_eq (T.col iS) : S.codom k ⟶ _) :=
+              (Table.col_heq_of_eq (rfl : T = T)
+                (fin_heq rfl t iS (by rw [hidxS]))).trans (castDom_heq h_eq (T.col iS)).symm
+            have hR : HEq (fR ≫ T.col t)
+                (S.col k ≫ (h_eq ▸ T.col iS : S.codom k ⟶ _)) :=
+              comp_heq fR (S.col k) (T.col t) _ hSrc h_eq
+                (congrArg T.codom hidxS.symm)
+                (hfR ▸ (castDom_heq hSrc.symm (castCod h_eq.symm (S.col k))).trans
+                  (castCod_heq h_eq.symm (S.col k))) hgR
+            -- hcol2 with native indices iR, iS.
+            have hcol2' : HEq (r.rep.col j' ≫ (h'_eq ▸ T.col iR : r.rep.codom j' ⟶ _))
+                (S.col k ≫ (h_eq ▸ T.col iS : S.codom k ⟶ _)) := hcol2
+            exact eq_of_heq (hL.trans (hcol2'.trans hR.symm))
+          -- From fL = fR strip casts back to the heterogeneous column equality.
+          have hLR : HEq (r.rep.col j') (S.col k) := by
+            have e1 : HEq fL (r.rep.col j') := hfL ▸ castCod_heq h'_eq.symm (r.rep.col j')
+            have e2 : HEq fR (S.col k) :=
+              hfR ▸ (castDom_heq hSrc.symm (castCod h_eq.symm (S.col k))).trans
+                (castCod_heq h_eq.symm (S.col k))
+            exact e1.symm.trans ((heq_of_eq hmonic).trans e2)
+          exact hLR
+    -- Now prove hAgreeCol from hRepCol
+    have hAgreeCol : ∀ k : Fin S.len,
+        castCod hSrc r.iso.f ≫ S.col k = S.col k := fun k => by
+      apply eq_of_heq
+      have hcm := r.iso.col_match k
+      have hcodi : S.codom k = r.rep.codom (r.iso.hLen ▸ k) := (r.iso.codom_match k).symm
+      refine HEq.trans ?_ hcm
+      exact comp_heq (castCod hSrc r.iso.f) r.iso.f (S.col k)
+        (r.rep.col (r.iso.hLen ▸ k)) rfl hSrc.symm hcodi hHEq (hRepCol k).symm
+    exact (castCod_heq hSrc r.iso.f).symm.trans
+      (heq_of_eq (S.monic _ _ (fun k => by rw [Cat.id_comp]; exact hAgreeCol k)))
+  -- Step 9: r.rep = S
+  have hidx_rt : ∀ k : Fin r.rep.len,
+      (r.iso.hLen ▸ (r.iso.hLen.symm ▸ k : Fin S.len) : Fin r.rep.len) = k := fun k => by
+    apply Fin.ext; rw [fin_cast_val, fin_cast_val]
+  have hCodPt : ∀ k : Fin r.rep.len, r.rep.codom k = S.codom (r.iso.hLen.symm ▸ k) := by
+    intro k; have hc := r.iso.codom_match (r.iso.hLen.symm ▸ k); rw [hidx_rt k] at hc; exact hc
+  have hrep_eq : r.rep = S := by
+    apply Table_eq_of_fields r.rep S hSrc r.iso.hLen.symm
+    · exact heq_funext_fin r.iso.hLen.symm r.rep.codom S.codom hCodPt
+    · refine Table.col_heq_funext hSrc r.iso.hLen.symm hCodPt (fun k => ?_)
+      have hcm := r.iso.col_match (r.iso.hLen.symm ▸ k)
+      rw [hidx_rt k] at hcm
+      refine HEq.trans ?_ hcm
+      have hidHEq : HEq (Cat.id r.rep.src) r.iso.f :=
+        HEq.trans (by rw [hSrc]) hFf.symm
+      exact (heq_of_eq (Cat.id_comp (r.rep.col k))).symm.trans
+        (comp_heq (Cat.id r.rep.src) r.iso.f (r.rep.col k) (r.rep.col k)
+          hSrc rfl rfl hidHEq HEq.rfl)
+  exact hrep_eq ▸ r.mem
 
 end TCat
 
