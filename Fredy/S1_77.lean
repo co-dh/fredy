@@ -424,4 +424,118 @@ theorem quotClos_eq_transRefClos [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [H
     RelLe qBar.clos hr.clos ∧ RelLe hr.clos qBar.clos :=
   ⟨quotClos_le_transRefClos R hr qBar, transRefClos_le_quotClos R hr qBar qSS⟩
 
+/-! ## §1.787 / §1.947 Constructing R* from R̄ (the keystone bridge)
+
+  KEYSTONE.  Downstream §1.84 (coequalizer in Rel), §1.947 (`topos_has_rtc`) and §1.64
+  (`HasMinEquivContaining` via the equivalence closure) all need an *honest* `TransRefClos R`
+  — the reflexive-transitive closure R* as a usable relation with its four properties (R ⊑ R*,
+  reflexive, transitive, minimal).  Freyd never posits R* in a bare regular category; he
+  *constructs* it.  §1.947's topos construction produces exactly the glb `⋂F` of all reflexive
+  S with R⊚S ⊑ S — which is precisely `QuotClos R` (R̄).  This block closes the gap §1.787 leaves
+  open: it manufactures a full `TransRefClos R` out of an R̄ together with the self-quotient R̄/R̄
+  (a logos always has R̄/R̄ by §1.784).  No new axiom: every input is a structure Freyd's text
+  supplies. -/
+
+/-- §1.787: R̄ is transitive, proved *directly* from its own minimality (no prior R* needed).
+    With S := R̄ and its self-quotient S/S (§1.784):
+    · S/S is reflexive and transitive (§1.786);
+    · R ⊑ S/S, because R⊚S ⊑ S (`qBar.stable`) is the universal property of S/S;
+    · hence R⊚(S/S) ⊑ (S/S)⊚(S/S) ⊑ S/S, so S/S is reflexive with R⊚(S/S) ⊑ S/S;
+    · by R̄'s minimality among such relations, S ⊑ S/S;
+    · therefore S⊚S ⊑ (S/S)⊚S ⊑ S  (the last step is `qSS.le`). -/
+theorem quotClos_self_transitive [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
+    [PullbacksTransferCovers 𝒞]
+    {A : 𝒞} (R : BinRel 𝒞 A A)
+    (qBar : QuotClos R) (qSS : RelQuot qBar.clos qBar.clos) :
+    IsTransitive qBar.clos := by
+  -- S/S reflexive and transitive (§1.786).
+  have hrefl_SS  : IsReflexive  qSS.quot := relQuot_self_refl  qBar.clos qSS
+  have htrans_SS : IsTransitive qSS.quot := relQuot_self_trans qBar.clos qSS
+  -- R ⊑ S/S, by the universal property of S/S and qBar.stable (R⊚S ⊑ S).
+  have hR_le_SS : RelLe R qSS.quot := qSS.maximal R qBar.stable
+  -- R⊚(S/S) ⊑ (S/S)⊚(S/S) ⊑ S/S.
+  have hstable_SS : RelLe (R ⊚ qSS.quot) qSS.quot :=
+    rel_le_trans (compose_le_left hR_le_SS qSS.quot) htrans_SS
+  -- S ⊑ S/S by R̄'s minimality (S/S reflexive, R⊚(S/S) ⊑ S/S).
+  have hS_le_SS : RelLe qBar.clos qSS.quot := qBar.minimal qSS.quot hrefl_SS hstable_SS
+  -- S⊚S ⊑ (S/S)⊚S ⊑ S.
+  exact rel_le_trans (compose_le_left hS_le_SS qBar.clos) qSS.le
+
+/-- §1.787 / §1.947 KEYSTONE: an R̄ (`QuotClos R`) together with its self-quotient R̄/R̄
+    assembles into a genuine `TransRefClos R`.
+    · `le`     : R ⊑ R̄                         (`le_quotClos`);
+    · `refl`   : 1 ⊑ R̄                         (`qBar.refl`);
+    · `trans`  : R̄⊚R̄ ⊑ R̄                       (`quotClos_self_transitive`);
+    · `minimal`: any reflexive-transitive T ⊇ R has R⊚T ⊑ T⊚T ⊑ T (T transitive), so T is a
+      reflexive S with R⊚S ⊑ S, and R̄'s minimality gives R̄ ⊑ T. -/
+def transRefClos_of_quotClos [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
+    [PullbacksTransferCovers 𝒞]
+    {A : 𝒞} (R : BinRel 𝒞 A A)
+    (qBar : QuotClos R) (qSS : RelQuot qBar.clos qBar.clos) :
+    TransRefClos R where
+  clos    := qBar.clos
+  le      := le_quotClos R qBar
+  refl    := qBar.refl
+  trans   := quotClos_self_transitive R qBar qSS
+  minimal := by
+    intro T hRT hReflT hTransT
+    -- T reflexive, and R⊚T ⊑ T⊚T ⊑ T (R ⊑ T, T transitive); R̄'s minimality gives R̄ ⊑ T.
+    have hStableT : RelLe (R ⊚ T) T := rel_le_trans (compose_le_left hRT T) hTransT
+    exact qBar.minimal T hReflT hStableT
+
+/-- §1.947 packaging: the topos construction yields `M = ⋂F`, the *greatest lower bound* of
+    `{S | 1 ⊑ S ∧ R⊚S ⊑ S}`, together with the facts that M is itself reflexive and R⊚M ⊑ M.
+    That is exactly a `QuotClos R`.  Feeding it (and a self-quotient M/M) to
+    `transRefClos_of_quotClos` produces R*.  This is the reusable entry point for
+    `topos_has_rtc` (§1.94/§1.95): build `M`, show it reflexive + preclosed + the glb, hand it
+    here. -/
+def transRefClos_of_glb_preclosed [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
+    [PullbacksTransferCovers 𝒞]
+    {A : 𝒞} (R : BinRel 𝒞 A A)
+    (M : BinRel 𝒞 A A)
+    (hMrefl   : IsReflexive M)
+    (hMstable : RelLe (R ⊚ M) M)
+    (hMglb    : ∀ (S : BinRel 𝒞 A A), IsReflexive S → RelLe (R ⊚ S) S → RelLe M S)
+    (qMM : RelQuot M M) :
+    TransRefClos R :=
+  transRefClos_of_quotClos R ⟨M, hMrefl, hMstable, hMglb⟩ qMM
+
+/-! ## §1.77 / §1.947 HasReflTransClosure — the "has-R*" structure
+
+  Freyd's transitive (pre-)logos posits the *transitive* closure R^t (`TransitivePreLogos`
+  above).  In a pre-logos R^t and R* are interderivable (§1.77: R* = 1 ∪ R^t, R^t = R⊚R*), so
+  a category that has all transitive closures has all reflexive-transitive closures.  This class
+  records the latter directly, as the natural hypothesis for `topos_has_rtc` (§1.947) and the
+  Rel-coequalizer descent (§1.84): every endo-relation has a reflexive-transitive closure. -/
+class HasReflTransClosure (𝒞 : Type u) [Cat.{v} 𝒞]
+    [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] where
+  transRefClos : ∀ {A : 𝒞} (R : BinRel 𝒞 A A), TransRefClos R
+
+/-- `rtc R` — the reflexive-transitive closure relation, in a category that `HasReflTransClosure`. -/
+def rtc [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] [HasReflTransClosure 𝒞]
+    {A : 𝒞} (R : BinRel 𝒞 A A) : BinRel 𝒞 A A :=
+  (HasReflTransClosure.transRefClos R).clos
+
+/-- `R ⊑ rtc R`. -/
+theorem le_rtc [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] [HasReflTransClosure 𝒞]
+    {A : 𝒞} (R : BinRel 𝒞 A A) : RelLe R (rtc R) :=
+  (HasReflTransClosure.transRefClos R).le
+
+/-- `rtc R` is reflexive:  1 ⊑ rtc R. -/
+theorem rtc_reflexive [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] [HasReflTransClosure 𝒞]
+    {A : 𝒞} (R : BinRel 𝒞 A A) : IsReflexive (rtc R) :=
+  (HasReflTransClosure.transRefClos R).refl
+
+/-- `rtc R` is transitive:  rtc R ⊚ rtc R ⊑ rtc R. -/
+theorem rtc_transitive [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] [HasReflTransClosure 𝒞]
+    {A : 𝒞} (R : BinRel 𝒞 A A) : IsTransitive (rtc R) :=
+  (HasReflTransClosure.transRefClos R).trans
+
+/-- Minimality:  rtc R is below every reflexive-transitive relation containing R. -/
+theorem rtc_minimal [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] [HasReflTransClosure 𝒞]
+    {A : 𝒞} (R : BinRel 𝒞 A A) (T : BinRel 𝒞 A A)
+    (hRT : RelLe R T) (hReflT : IsReflexive T) (hTransT : IsTransitive T) :
+    RelLe (rtc R) T :=
+  (HasReflTransClosure.transRefClos R).minimal T hRT hReflT hTransT
+
 end Freyd
