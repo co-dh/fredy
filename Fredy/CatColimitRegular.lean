@@ -782,6 +782,78 @@ theorem colimHom_mono_of_rep (C : CatSystem ι D) (hC : C.Coherent) {A B : C.Obj
   rw [castHom_castHom, castHom_castHom] at hu2
   exact hu2
 
+/-- `castHom` is injective (it's a transport along object equalities). -/
+theorem castHom_injective {𝒜 : Type w} [Cat.{w} 𝒜] {X Y X' Y' : 𝒜}
+    (hX : X = X') (hY : Y = Y') {a b : X ⟶ Y}
+    (h : castHom hX hY a = castHom hX hY b) : a = b := by
+  subst hX; subst hY; exact h
+
+/-- **Mono reflection** (converse of `colimHom_mono_of_rep`): if `homIncl a f₀` is
+    monic in `colimitCat` (and transitions are faithful), then its stage germ `f₀`
+    is left-cancellable under all transitions.  Given stage maps `u, v` with
+    `u ≫ functF.map f₀ = v ≫ functF.map f₀` at a stage `j ≥ a.1`, include them as
+    `colimitCat` maps `objIncl j z ⟶ A` at the rep-agreement stage `s` of
+    `objIncl j z`; composing with `homIncl a f₀` reduces — via `homCompRaw_eq_compAt`
+    + `castHom_comp` + `map_comp` — to `functF.map (u ≫ functF.map f₀)`, so the
+    colimit mono forces the two inclusions equal, and `homIncl_injective` +
+    `castHom_injective` + faithfulness strip back to `u = v`. -/
+theorem colimHom_mono_reflects (C : CatSystem ι D) (hC : C.Coherent)
+    (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (p q : x ⟶ y),
+        (C.functF hij).map p = (C.functF hij).map q → p = q)
+    {A B : C.Obj}
+    (a : UpperBound D (colimOut C A).1 (colimOut C B).1)
+    (f₀ : C.F a.2.1 (colimOut C A).2 ⟶ C.F a.2.2 (colimOut C B).2)
+    (hmono : @Mono C.Obj (colimitCat C hC) A B
+      (homIncl C hC (colimOut C A).2 (colimOut C B).2 a f₀))
+    {j : ι} (hjk : D.le a.1 j) (z : C.A j)
+    (u v : z ⟶ C.F hjk (C.F a.2.1 (colimOut C A).2))
+    (huv : u ≫ (C.functF hjk).map f₀ = v ≫ (C.functF hjk).map f₀) : u = v := by
+  letI : Cat C.Obj := colimitCat C hC
+  let xA := (colimOut C A).2; let xB := (colimOut C B).2
+  let W := C.objIncl j z
+  let xW := (colimOut C W).2
+  -- rep agreement of `objIncl j z` at a stage `s ≥ j`
+  obtain ⟨s, hps, hjs, heq0⟩ := Quotient.exact (colimOut_spec C W)
+  dsimp only [CatSystem.objSystem] at heq0
+  -- heq0 : C.F hps xW = C.F hjs z
+  have h_as : D.le a.1 s := D.trans hjk hjs
+  -- codomain casts at stage `s` (independent of `u`/`v`)
+  have hcodA : C.F hjs (C.F hjk (C.F a.2.1 xA)) = C.F (D.trans a.2.1 h_as) xA := by
+    rw [← C.F_trans a.2.1 hjk xA, ← C.F_trans (D.trans a.2.1 hjk) hjs xA]
+  have hcodB : C.F hjs (C.F hjk (C.F a.2.2 xB)) = C.F (D.trans a.2.2 h_as) xB := by
+    rw [← C.F_trans a.2.2 hjk xB, ← C.F_trans (D.trans a.2.2 hjk) hjs xB]
+  -- include a stage map `m : z ⟶ …` as a germ `xW ⟶ xA` at stage `s`
+  let germ : (z ⟶ C.F hjk (C.F a.2.1 xA)) → (C.F hps xW ⟶ C.F (D.trans a.2.1 h_as) xA) :=
+    fun m => castHom heq0.symm hcodA ((C.functF hjs).map m)
+  let U : C.objIncl j z ⟶ A := homIncl C hC xW xA ⟨s, hps, D.trans a.2.1 h_as⟩ (germ u)
+  let V : C.objIncl j z ⟶ A := homIncl C hC xW xA ⟨s, hps, D.trans a.2.1 h_as⟩ (germ v)
+  -- `f₀` pushed from bound `a` to stage `s` factors as the iterated transition map
+  have hpf : homTr C xA xB a ⟨s, D.trans a.2.1 h_as, D.trans a.2.2 h_as⟩ h_as f₀
+      = castHom hcodA hcodB ((C.functF hjs).map ((C.functF hjk).map f₀)) := by
+    unfold homTr
+    exact castHom_heq_congr _ _ hcodA hcodB (hC.trans_map hjk hjs f₀)
+  -- composing the germ with the pushed `f₀` only sees `m ≫ functF.map f₀`
+  have key : ∀ (m : z ⟶ C.F hjk (C.F a.2.1 xA)),
+      germ m ≫ homTr C xA xB a ⟨s, D.trans a.2.1 h_as, D.trans a.2.2 h_as⟩ h_as f₀
+        = castHom heq0.symm hcodB ((C.functF hjs).map (m ≫ (C.functF hjk).map f₀)) := by
+    intro m
+    show castHom heq0.symm hcodA ((C.functF hjs).map m) ≫ _ = _
+    rw [hpf, castHom_comp, ← (C.functF hjs).map_comp]
+  -- the two inclusions agree after composing with `homIncl a f₀`
+  have hUV : colimComp C hC U (homIncl C hC xA xB a f₀)
+      = colimComp C hC V (homIncl C hC xA xB a f₀) := by
+    show homCompRaw C hC xW xA xB ⟨s, hps, D.trans a.2.1 h_as⟩ (germ u) a f₀
+       = homCompRaw C hC xW xA xB ⟨s, hps, D.trans a.2.1 h_as⟩ (germ v) a f₀
+    rw [homCompRaw_eq_compAt C hC xW xA xB ⟨s, hps, D.trans a.2.1 h_as⟩ (germ u) a f₀ s (D.refl s) h_as,
+        homCompRaw_eq_compAt C hC xW xA xB ⟨s, hps, D.trans a.2.1 h_as⟩ (germ v) a f₀ s (D.refl s) h_as]
+    unfold compAt
+    rw [homTr_refl C hC, homTr_refl C hC, key u, key v, huv]
+  -- colimit mono ⇒ U = V ⇒ germ u = germ v ⇒ map u = map v ⇒ u = v
+  have hUVeq : U = V := hmono U V hUV
+  have hgerm : germ u = germ v :=
+    homIncl_injective C hC hfaith xW xA ⟨s, hps, D.trans a.2.1 h_as⟩ (germ u) (germ v) hUVeq
+  exact hfaith hjs u v (castHom_injective heq0.symm hcodA hgerm)
+
 /-- A witness that the `colimOut` representatives of `objIncl i x` and `objIncl i y`
     both agree with `x`, `y` at a common stage `K` — the data needed to transport a
     stage morphism `x ⟶ y` into a `colimitCat` morphism. -/
@@ -925,11 +997,6 @@ theorem homInclObj_comp (C : CatSystem ι D) (hC : C.Coherent) {i : ι} {x y z :
   -- of `g ≫ g'`.  The two `UpperBound`s agree by proof irrelevance, so `rfl` closes it.
   dsimp only [HioWitness.germ]
   rw [castHom_comp, ← (C.functF hiL).map_comp]
-theorem castHom_injective {𝒜 : Type w} [Cat.{w} 𝒜] {X Y X' Y' : 𝒜}
-    (hX : X = X') (hY : Y = Y') {a b : X ⟶ Y}
-    (h : castHom hX hY a = castHom hX hY b) : a = b := by
-  subst hX; subst hY; exact h
-
 /-- **The stage-inclusion `homInclObj` is injective** (faithful) when transitions
     are faithful: it shares the same `colimOut`-transport bound for `g`, `g'`, so
     `homIncl_injective` + cast-invertibility + `hfaith` strip back to `g = g'`. -/

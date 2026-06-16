@@ -54,7 +54,13 @@ Remaining (each ~40–80 lines, fights the `colimOut` rep transport):
    — re-elaboration fails to unify the middle object (proof-irrelevance on let-bound witness `.K`
    fields); instead `dsimp only [HioWitness.germ]` then `rw [castHom_comp, ← map_comp]` directly on
    the goal, leaving two `UpperBound`s that agree definitionally by proof irrelevance.
-2. **Mono reflection** `colimitCat` mono ⇒ stage-mono-under-transitions (uses 0 + `homIncl_injective`).
+2. **Mono reflection** `colimitCat` mono ⇒ stage-mono-under-transitions. ✅ **DONE, sorry-free**
+   (`colimHom_mono_reflects`, axioms {propext, Classical.choice, Quot.sound}). Exact converse of
+   `colimHom_mono_of_rep`: include the stage maps `u,v` as `colimitCat` maps `objIncl j z ⟶ A` at
+   the rep-agreement stage `s` of `objIncl j z` (from `Quotient.exact (colimOut_spec …)`); composing
+   with `homIncl a f₀` reduces (`homCompRaw_eq_compAt` + `homTr_refl` + `castHom_comp` + `map_comp`,
+   the `f₀`-push split via `hC.trans_map`) to `functF.map (u ≫ functF.map f₀)`, so the colimit mono
+   gives `U=V`; then `homIncl_injective` + `castHom_injective` + faithfulness strip back to `u=v`.
 3. **Cover reflection / preservation** (cover = factor-through-mono ⇒ uses 2).
 4. **Assembly**: arbitrary pullback cone ≅ canonical (§1.432) so `Cover` is iso-invariant; reflect
    `f`/pullback to a stage, stage `PullbacksTransferCovers`, preserve back ⇒ `PullbacksTransferCovers C.Obj`;
