@@ -956,9 +956,18 @@ theorem pullback_of_surjective_is_pushout_Set {A B C P : Type u}
   rw [← ha, h'x, hxu]
 
 /-- **§1.565** (general case): In a regular category, a pullback of covers is
-    a pushout.  Relies on the Henkin-Lubkin representation theorem (§1.55)
-    to transfer the result from **Set** (proved above) to any regular
-    category.  Currently a `sorry` pending the representation theorem. -/
+    a pushout.  The book proof transfers the **Set** statement
+    (`pullback_of_surjective_is_pushout_Set`, proved above) along an *exact*
+    Henkin–Lubkin representation.
+
+    SHARP FAITHFUL SORRY — BLOCKED ON EXACT REPRESENTATION.  §1.55 supplies only the
+    *faithful* covariant-hom representation (`henkin_lubkin`), which preserves limits
+    but NOT covers/images (see the `S1_55.lean` header).  An *exact* faithful
+    representation — the one that would carry the Set pushout back to `𝒞` — needs the
+    §1.543 Capitalization Lemma (transfinite, still `sorry` in `S1_54.lean`).  Until
+    that lands, no constructive route discharges this from the regular/effective infra
+    in this file (covers, coequalizers, kernel pairs do not by themselves build the
+    pushout cocone).  Left as the single deliberate gap of §1.56. -/
 def pullback_of_covers_is_pushout {A B C P : 𝒞} (x : A ⟶ B) (y : C ⟶ B)
     (p₁ : P ⟶ A) (p₂ : P ⟶ C) (h_sq : p₁ ≫ x = p₂ ≫ y)
     [RegularCategory 𝒞] (_h_pb : HasPullback x y) (_h_cover_x : Cover x)
@@ -1269,20 +1278,20 @@ theorem cover_iff_reciprocal_comp_self_eq_one {A B : 𝒞} (x : A ⟶ B) :
     apply (cover_iff_one_le_reciprocal_comp_self x).mpr
     exact h
 
-/-- **§1.569 ⇐**: If composition of relations is associative (mutual `⊂`
-    both ways), then A is regular — i.e., pullbacks transfer covers.
-
-    Book proof sketch: covers are characterized relationally as `1 ⊂ x°x`
-    (`cover_iff_one_le_reciprocal_comp`).  Given cover x : A → B and a
-    pullback of x along y : C → B with pullback leg z : P → C, the relation
-    algebra (using associativity) shows `1 ⊂ z°z`, hence z is a cover.  If z
-    were not a cover, then `(y ⊚ x°) ⊚ x` would not be a map while
-    `y ⊚ (x° ⊚ x) = y ⊚ 1 = y` IS a map, contradicting associativity. -/
-theorem regular_of_compose_assoc
-    (h_assoc : ∀ {A B C D : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 C D),
-      RelLe ((R ⊚ S) ⊚ T) (R ⊚ (S ⊚ T)) ∧ RelLe (R ⊚ (S ⊚ T)) ((R ⊚ S) ⊚ T))
-    : PullbacksTransferCovers 𝒞 := by
-  sorry
+/-- The cover-leg `image.lift f` is an ISO whenever `f` is monic.  `image.lift f`
+    is always a cover (`image_lift_cover`); a monic `f = image.lift f ≫ (image f).arr`
+    forces its left factor `image.lift f` to be monic; a monic cover is iso. -/
+theorem image_lift_iso_of_mono {A B : 𝒞} (f : A ⟶ B) (hf : Mono f) :
+    IsIso (image.lift f) := by
+  have hmono : Mono (image.lift f) := by
+    intro W u v huv
+    apply hf
+    calc u ≫ f = u ≫ (image.lift f ≫ (image f).arr) := by rw [image.lift_fac]
+      _ = (u ≫ image.lift f) ≫ (image f).arr := (Cat.assoc _ _ _).symm
+      _ = (v ≫ image.lift f) ≫ (image f).arr := by rw [huv]
+      _ = v ≫ (image.lift f ≫ (image f).arr) := Cat.assoc _ _ _
+      _ = v ≫ f := by rw [image.lift_fac]
+  exact monic_cover_iso _ (image_lift_cover f) hmono
 
 end
 
@@ -1776,19 +1785,152 @@ theorem compose_assoc' [PullbacksTransferCovers 𝒞] {A B C D : 𝒞}
       _ = p ≫ (eR_ST ≫ (R ⊚ (S ⊚ T)).colB) := by rw [hR_STb]
       _ = (p ≫ eR_ST) ≫ (R ⊚ (S ⊚ T)).colB := (Cat.assoc _ _ _).symm
 
+/-- A SPLIT EPI is a cover: if `s ≫ k = 1`, then any monic `m` with `k = g ≫ m`
+    is a split epi (`(s ≫ g) ≫ m = 1`), hence — being monic — an iso. -/
+theorem split_epi_cover {X Y : 𝒞} {k : X ⟶ Y} {s : Y ⟶ X} (hsk : s ≫ k = Cat.id Y) :
+    Cover k := by
+  intro C m g hm hgm
+  -- `s ≫ g` is a right inverse of `m`: (s≫g)≫m = s≫(g≫m) = s≫k = id_Y
+  have hright : (s ≫ g) ≫ m = Cat.id Y := by
+    rw [Cat.assoc, hgm, hsk]
+  -- mono `m` with a right inverse ⟹ it's a (two-sided) iso, inverse `s ≫ g`
+  have hleft : m ≫ (s ≫ g) = Cat.id C := by
+    apply hm
+    calc (m ≫ (s ≫ g)) ≫ m = m ≫ ((s ≫ g) ≫ m) := Cat.assoc _ _ _
+      _ = m ≫ Cat.id Y := by rw [hright]
+      _ = m := Cat.comp_id _
+      _ = Cat.id C ≫ m := (Cat.id_comp _).symm
+  exact ⟨s ≫ g, hleft, hright⟩
+
+/-- **§1.569 ⇐ core**: under associativity of `⊚`, if `f : A → C` is a cover then
+    for every `g : B → C` the B-leg `π₁` of the canonical pullback of `g` along `f`
+    is a cover.  This is the book's `y(x°x) = y ⟹ (yx°)x = y` argument: associativity
+    moves the cover witness `1_C ⊂ f°f` across the composite `g ⊚ (f° ⊚ f)`, exhibiting
+    the pullback leg as a (split-epi)∘cover, hence a cover. -/
+theorem pullback_leg_cover_of_assoc
+    (h_assoc : ∀ {A B C D : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 C D),
+      RelLe ((R ⊚ S) ⊚ T) (R ⊚ (S ⊚ T)) ∧ RelLe (R ⊚ (S ⊚ T)) ((R ⊚ S) ⊚ T))
+    {A B C : 𝒞} (f : A ⟶ C) (g : B ⟶ C) (hf : Cover f) :
+    Cover (HasPullbacks.has g f).cone.π₁ := by
+  -- (★): graph g ⊂ (graph g ⊚ (graph f)°) ⊚ graph f
+  let M : BinRel 𝒞 B A := graph g ⊚ (graph f)°
+  have hstar : RelLe (graph g) (M ⊚ graph f) := by
+    have h1 : RelLe (graph g) (graph g ⊚ ((graph f)° ⊚ graph f)) := by
+      refine rel_le_trans (comp_graph_id_right (graph g)) ?_
+      exact compose_le (rel_le_refl _) ((cover_iff_one_le_reciprocal_comp_self f).mp hf)
+    exact rel_le_trans h1 ((h_assoc (graph g) ((graph f)°) (graph f)).2)
+  -- inner pullback of M = canonical pullback of g along f
+  let pbM := HasPullbacks.has g f
+  -- e_M : pbM.pt → M.src, the image-cover of the M-span = pair π₁ π₂, which is monic
+  let spanM : pbM.cone.pt ⟶ prod B A := pair (pbM.cone.π₁ ≫ (graph g).colA) (pbM.cone.π₂ ≫ ((graph f)°).colB)
+  have hspanM_eq : spanM = pair pbM.cone.π₁ pbM.cone.π₂ := by
+    dsimp [spanM, graph, reciprocal]; rw [Cat.comp_id, Cat.comp_id]
+  have hspanM_mono : Mono spanM := by
+    rw [hspanM_eq]
+    have hmp : MonicPair pbM.cone.π₁ pbM.cone.π₂ := by
+      intro W u v hu hv
+      have hcone : (u ≫ pbM.cone.π₁) ≫ g = (u ≫ pbM.cone.π₂) ≫ f := by
+        rw [Cat.assoc, Cat.assoc, pbM.cone.w]
+      let cn : Cone g f := ⟨W, u ≫ pbM.cone.π₁, u ≫ pbM.cone.π₂, hcone⟩
+      rw [pbM.lift_uniq cn u rfl rfl, pbM.lift_uniq cn v hu.symm hv.symm]
+    apply monic_pair_of_monicPair; exact hmp
+  let eM := image.lift spanM
+  have heM_iso : IsIso eM := image_lift_iso_of_mono spanM hspanM_mono
+  have heM_colA : eM ≫ M.colA = pbM.cone.π₁ := by
+    show eM ≫ ((image spanM).arr ≫ fst) = _
+    rw [← Cat.assoc, image.lift_fac]
+    show pair _ _ ≫ fst = _
+    rw [fst_pair]; dsimp [graph]; rw [Cat.comp_id]
+  -- it now suffices: Cover M.colA (then pbM.π₁ = eM ≫ M.colA, eM iso ⟹ cover)
+  suffices hMcolA : Cover M.colA by
+    rw [← heM_colA]; intro D m k hm hkm
+    exact cover_comp (iso_cover eM heM_iso) hMcolA m k hm hkm
+  -- outer pullback of M.colB and id_A
+  let pbO := HasPullbacks.has M.colB (graph f).colA
+  have hO_w : pbO.cone.π₁ ≫ M.colB = pbO.cone.π₂ := by
+    simpa [graph, Cat.comp_id] using pbO.cone.w
+  have hO_iso : IsIso pbO.cone.π₁ := by
+    -- π₁ is the pullback of id_A along M.colB; its retraction is the lift of ⟨id, M.colB⟩
+    let cn : Cone M.colB (graph f).colA := ⟨M.src, Cat.id M.src, M.colB, by
+      dsimp [graph]; rw [Cat.id_comp, Cat.comp_id]⟩
+    refine ⟨pbO.lift cn, ?_, ?_⟩
+    · -- π₁ ≫ lift cn = id : both legs agree, use lift_uniq
+      have h1 : (pbO.cone.π₁ ≫ pbO.lift cn) ≫ pbO.cone.π₁ = pbO.cone.π₁ := by
+        rw [Cat.assoc, pbO.lift_fst cn]; dsimp [cn]; rw [Cat.comp_id]
+      have h2 : (pbO.cone.π₁ ≫ pbO.lift cn) ≫ pbO.cone.π₂ = pbO.cone.π₂ := by
+        rw [Cat.assoc, pbO.lift_snd cn]; dsimp [cn]; exact hO_w
+      rw [pbO.lift_uniq pbO.cone (pbO.cone.π₁ ≫ pbO.lift cn) h1 h2,
+          ← pbO.lift_uniq pbO.cone (Cat.id _) (Cat.id_comp _) (Cat.id_comp _)]
+    · exact pbO.lift_fst cn
+  -- spanO and its image-cover eO
+  let spanO : pbO.cone.pt ⟶ prod B C := pair (pbO.cone.π₁ ≫ M.colA) (pbO.cone.π₂ ≫ (graph f).colB)
+  let eO := image.lift spanO
+  have heO_cover : Cover eO := image_lift_cover spanO
+  have heO_colA : eO ≫ (M ⊚ graph f).colA = pbO.cone.π₁ ≫ M.colA := by
+    show eO ≫ ((image spanO).arr ≫ fst) = _
+    rw [← Cat.assoc, image.lift_fac]
+    show pair _ _ ≫ fst = _
+    rw [fst_pair]
+  -- from (★): (M ⊚ graph f).colA is split epi
+  obtain ⟨hh, hhA, _⟩ := hstar
+  have hsplit : hh ≫ (M ⊚ graph f).colA = Cat.id B := by
+    have := hhA; dsimp [graph] at this; exact this
+  have hcolA_cover : Cover (M ⊚ graph f).colA := split_epi_cover hsplit
+  -- eO ≫ colA = π₁ ≫ M.colA is a cover; π₁ iso ⟹ M.colA cover
+  have hcomp_cover : Cover (pbO.cone.π₁ ≫ M.colA) := by
+    rw [← heO_colA]; exact cover_comp heO_cover hcolA_cover
+  obtain ⟨inv, hinv1, hinv2⟩ := hO_iso
+  have hMcolA_eq : M.colA = inv ≫ (pbO.cone.π₁ ≫ M.colA) := by
+    rw [← Cat.assoc, hinv2, Cat.id_comp]
+  rw [hMcolA_eq]; intro D m k hm hkm
+  exact cover_precomp_iso ⟨pbO.cone.π₁, hinv2, hinv1⟩ hcomp_cover m k hm hkm
+
+/-- **§1.569 ⇐**: If composition of relations is associative (mutual `⊂` both ways),
+    then `𝒞` is regular — pullbacks transfer covers.
+
+    Book proof (§1.569): `x : A → C` is a cover iff `x°x = 1_C`.  Given any `g : B → C`
+    we have `g(x°x) = g`, so by associativity `(g x°)x = g`; the leg of the pullback of
+    `g` along `x` sitting inside `g x°` is then forced to be a cover.  Here `x = f`; the
+    core extraction is `pullback_leg_cover_of_assoc`, and we transfer the canonical-leg
+    cover to an arbitrary pullback cone `c` via the comparison iso of pullbacks. -/
+theorem regular_of_compose_assoc
+    (h_assoc : ∀ {A B C D : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 C D),
+      RelLe ((R ⊚ S) ⊚ T) (R ⊚ (S ⊚ T)) ∧ RelLe (R ⊚ (S ⊚ T)) ((R ⊚ S) ⊚ T))
+    : PullbacksTransferCovers 𝒞 := by
+  refine ⟨fun {A B C} {f g} c hpb hf => ?_⟩
+  -- `c` is a pullback cone of `f : A → B ← g : C → B`; want `Cover c.π₂`.
+  -- The core gives `Cover` of the B-leg `π₁` of the canonical pullback of `f` along `g`.
+  -- Careful with orientation: cover is `f`, transferred leg is the `C`-side `c.π₂`.
+  let pbCan := HasPullbacks.has g f
+  have hcanCov : Cover pbCan.cone.π₁ := pullback_leg_cover_of_assoc h_assoc f g hf
+  -- comparison iso `i : c.pt → pbCan.pt` with `i ≫ pbCan.π₁ = c.π₂`, `i ≫ pbCan.π₂ = c.π₁`.
+  -- (pbCan is a pullback of `g, f`; `c` is a pullback of `f, g`; legs are swapped.)
+  have hc_w' : c.π₂ ≫ g = c.π₁ ≫ f := c.w.symm
+  let i : c.pt ⟶ pbCan.cone.pt := pbCan.lift ⟨c.pt, c.π₂, c.π₁, hc_w'⟩
+  have hi₁ : i ≫ pbCan.cone.π₁ = c.π₂ := pbCan.lift_fst _
+  have hi₂ : i ≫ pbCan.cone.π₂ = c.π₁ := pbCan.lift_snd _
+  -- `i` is an iso: build its inverse from `c.IsPullback` applied to pbCan's cone.
+  obtain ⟨j, ⟨hj₁, hj₂⟩, _⟩ := hpb ⟨pbCan.cone.pt, pbCan.cone.π₂, pbCan.cone.π₁, pbCan.cone.w.symm⟩
+  -- hj₁ : j ≫ c.π₁ = pbCan.π₂ ;  hj₂ : j ≫ c.π₂ = pbCan.π₁
+  -- i ≫ j = id (both are lifts of cone `c` through `c`, by IsPullback-uniqueness)
+  obtain ⟨_, _, huniqC⟩ := hpb c
+  have hij : i ≫ j = Cat.id c.pt := by
+    rw [huniqC (i ≫ j)
+        (by rw [Cat.assoc, hj₁, hi₂]) (by rw [Cat.assoc, hj₂, hi₁]),
+      ← huniqC (Cat.id c.pt) (Cat.id_comp _) (Cat.id_comp _)]
+  -- j ≫ i = id (both are lifts of pbCan.cone through pbCan, by lift_uniq)
+  have hji : j ≫ i = Cat.id pbCan.cone.pt := by
+    rw [pbCan.lift_uniq pbCan.cone (j ≫ i)
+        (by rw [Cat.assoc, hi₁, hj₂]) (by rw [Cat.assoc, hi₂, hj₁]),
+      ← pbCan.lift_uniq pbCan.cone (Cat.id _) (Cat.id_comp _) (Cat.id_comp _)]
+  -- c.π₂ = i ≫ pbCan.π₁, i iso, pbCan.π₁ cover ⟹ c.π₂ cover
+  rw [← hi₁]; intro D m k hm hkm
+  exact cover_precomp_iso ⟨j, hij, hji⟩ hcanCov m k hm hkm
+
 /-- **§1.563 / §2.112 — the modular identity** `RS ∩ T ⊆ (R ∩ TS°)S`.
-
-    Here `R : A→B`, `S : B→C`, `T : A→C`, so `RS = R ⊚ S : A→C`, the meet with
-    `T : A→C` is well-typed, `S° : C→B`, `TS° = T ⊚ S° : A→B`, `R ∩ TS° : A→B`
-    and finally `(R ∩ TS°)S = (R ⊓ (T ⊚ S°)) ⊚ S : A→C` — matching `RS ∩ T`.
-
-    Proof (standard tabular-allegory descent, no Henkin–Lubkin needed): pull the
-    image-cover of `R⊚S` back along the witness `(R⊚S)⊓T → (R⊚S).src`, obtaining
-    honest R-, S- and T-points over a common cover `P`; reassemble them into a
-    point of `(R ⊓ (T⊚S°)) ⊚ S`, and descend through the cover with
-    `relLe_of_cover_factor` (cover ⊥ mono).  `[PullbacksTransferCovers 𝒞]` (covers
-    stable under pullback) is the only extra hypothesis — Freyd states the modular
-    law for regular categories. -/
+    Here `R : A→B`, `S : B→C`, `T : A→C`.  Proof: standard tabular-allegory
+    descent (pull the image-cover of `R⊚S` back along the meet witness, reassemble,
+    descend with `relLe_of_cover_factor`).  Freyd states it for regular categories. -/
 theorem modular_identity [PullbacksTransferCovers 𝒞] {A B C : 𝒞}
     (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 A C) :
     RelLe ((R ⊚ S) ⊓ T) ((R ⊓ (T ⊚ S°)) ⊚ S) := by
