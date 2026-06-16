@@ -26,6 +26,7 @@ import Fredy.S1_45
 import Fredy.S1_51
 import Fredy.S1_52
 import Fredy.S1_53
+import Fredy.Capitalization
 
 
 open Freyd
@@ -103,23 +104,33 @@ def IsRelativeCapitalization [HasTerminal 𝒞] [HasImages 𝒞] (A A_star : �
     well-supported) are in `S1_52.lean`.
   • §1.545 relative capitalization is DEFINED (`IsRelativeCapitalization`).
 
-  What remains (the genuine wall): §1.546 builds A* as the directed union of the
-  slices A/B over all well-supported B, and §1.543 iterates this transfinitely to
-  a fixed point, then proves the colimit is pre-regular and capital.  Both steps
-  are *directed colimits in the category of categories*, indexed by ordinals.
-  This repo is deliberately mathlib-free, so there is no `Ordinal`, no
-  well-founded recursion producing types, and no colimit-of-categories machinery
-  to build on — constructing it from scratch is a separate foundational project.
-  Hence `capitalization_lemma` is left as `sorry`. -/
+  The construction has been ASSEMBLED in `Fredy/Capitalization.lean` from the
+  directed-colimit-of-categories machinery (`CatColimit`/`CatColimitRegular`):
 
-theorem capitalization_lemma (A : Type u) [Cat.{v} A] [PreRegularCategory A] :
-    ∃ (Ā : Type u) (hC : Cat.{v} Ā) (hP : PreRegularCategory Ā),
-      @Capital.{v, u} Ā hC (hP.toHasTerminal) ∧
-      ∃ (F : A → Ā) (hF : Functor F), @Faithful.{v, u} A _ Ā hC F hF := by
-  -- The proof iterates the relative capitalization construction A ⊆ A*
-  -- via A* = the category obtained by adding points to A for each
-  -- well-supported object (essentially A ↦ union over B of A/B).
-  -- This requires transfinite iteration.  We defer the constructive proof.
-  sorry
+  • The capitalization data is packaged as `CapData A` — a coherent directed system
+    of pre-regular categories, faithful in its transitions, whose colimit is capital.
+  • `Freyd.capitalization_of_capData` derives the capital pre-regular target `Ā`
+    and the faithful representation `A → Ā = objIncl i₀ ∘ base` from a `CapData A`,
+    SORRY-FREE, using `colimitPreRegular` (colimit is pre-regular) and the new
+    `Freyd.Colim.stageInclFaithful` (the colimit stage-injection is a faithful
+    functor — proved via `homInclObj_id` + `homInclObj_comp` + `homInclObj_injective`
+    + `homInclObj_isIso_reflects`).
+  • The single residual obligation is `Freyd.capData_exists` (still `sorry`): the
+    transfinite recursion building the tower `A₀=A`, `A_{α+1}=(A_α)*`,
+    `A_λ=colim_{β<λ}`, plus the §1.543 capital-closure proof.  See its docstring
+    for the precise three sub-steps (type-level transfinite recursion; the slice
+    successor functor as a pre-regular `CatSystem` transition, which needs
+    `PreRegularCategory (Over B)`; the fixpoint/closure argument).
+
+  Below, `capitalization_lemma` is the small case (object universe = morphism
+  universe `u`, as is forced by the `CatSystem` colimit machinery and matches
+  Freyd's "small" hypothesis); it is `capitalization_lemma_small`, hence reduced
+  to `capData_exists`. -/
+
+theorem capitalization_lemma (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
+    ∃ (Ā : Type u) (hC : Cat.{u} Ā) (hP : PreRegularCategory Ā),
+      @Capital.{u, u} Ā hC (hP.toHasTerminal) ∧
+      ∃ (F : A → Ā) (hF : Functor F), @Faithful.{u, u} A _ Ā hC F hF :=
+  capitalization_lemma_small A
 
 end Freyd
