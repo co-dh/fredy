@@ -1,4 +1,5 @@
 import Fredy.S1_1
+import Fredy.S1_24
 import Fredy.S1_8
 import Fredy.S1_9
 import Fredy.S1_18

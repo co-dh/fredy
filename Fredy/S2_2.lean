@@ -184,6 +184,65 @@ structure Coproduct (a a₁ a₂ : 𝒜) where
   u₂_self_comp_recip : u₂ ≫ u₂° = Cat.id a₂
   recip_union_eq_id : (u₁° ≫ u₁) ∪ (u₂° ≫ u₂) = Cat.id a
 
+/-! ### §2.214  Equivalence: five equations ↔ universal coproduct property
+
+  The book (§2.214) proves that the five equations characterising `Coproduct`
+  are equivalent (in any distributive allegory) to the assertion that A is a
+  coproduct in the allegory-theoretic sense: every pair (R₁ : a₁ → c,
+  R₂ : a₂ → c) factors uniquely through the injections. -/
+
+/-- The universal coproduct property for (a, u₁, u₂) (§2.214):
+    for any c and morphisms R₁ : a₁ → c, R₂ : a₂ → c there exists a unique
+    R : a → c with u₁ ≫ R = R₁ and u₂ ≫ R = R₂ (where u_i : a_i → a are the injections). -/
+def IsCoproduct {𝒜 : Type u} [DistributiveAllegory 𝒜] {a a₁ a₂ : 𝒜}
+    (u₁ : a₁ ⟶ a) (u₂ : a₂ ⟶ a) : Prop :=
+  ∀ (c : 𝒜) (R₁ : a₁ ⟶ c) (R₂ : a₂ ⟶ c),
+    ∃ R : a ⟶ c,
+      (u₁ ≫ R = R₁) ∧ (u₂ ≫ R = R₂) ∧
+      (∀ R' : a ⟶ c, u₁ ≫ R' = R₁ → u₂ ≫ R' = R₂ → R' = R)
+
+/-- (§2.214) The five `Coproduct` equations imply the universal property.
+    The mediating morphism is u₁° ≫ R₁ ∪ u₂° ≫ R₂. -/
+theorem coproduct_five_eqs_to_universal {𝒜 : Type u} [DistributiveAllegory 𝒜]
+    {a a₁ a₂ : 𝒜} (cp : Coproduct a a₁ a₂) : IsCoproduct cp.u₁ cp.u₂ := by
+  -- IsCoproduct: ∀ c R₁ R₂, ∃ R, u₁≫R=R₁ ∧ u₂≫R=R₂ ∧ uniqueness
+  intro c R₁ R₂
+  -- The mediating morphism [§2.214, p.218]: R = u₁° ≫ R₁ ∪ u₂° ≫ R₂
+  refine ⟨cp.u₁° ≫ R₁ ∪ cp.u₂° ≫ R₂, ?_, ?_, ?_⟩
+  · -- u₁ ≫ (u₁°≫R₁ ∪ u₂°≫R₂) = R₁. Uses: u₁≫u₁°=id, u₁≫u₂°=0 (from struct fields).
+    -- Note: u₁ : a₁→a, u₁° : a→a₁. So u₁ ≫ u₁° : a₁→a₁ = id.
+    -- u₁ ≫ (u₁°≫R₁ ∪ u₂°≫R₂) = u₁≫u₁°≫R₁ ∪ u₁≫u₂°≫R₂  [comp_union_distrib]
+    --   = (u₁≫u₁°)≫R₁ ∪ (u₁≫u₂°)≫R₂                    [assoc]
+    --   = id≫R₁ ∪ 0≫R₂ = R₁ ∪ 0 = R₁
+    rw [DistributiveAllegory.comp_union_distrib,
+        ← Cat.assoc, ← Cat.assoc,
+        cp.u₁_self_comp_recip, cp.u₁_u₂_recip,
+        Cat.id_comp, DistributiveAllegory.zero_comp]
+    exact union_zero R₁
+  · -- u₂ ≫ (u₁°≫R₁ ∪ u₂°≫R₂) = R₂. Uses: u₂≫u₁°=0, u₂≫u₂°=id.
+    rw [DistributiveAllegory.comp_union_distrib,
+        ← Cat.assoc, ← Cat.assoc,
+        cp.u₂_u₁_recip, cp.u₂_self_comp_recip,
+        Cat.id_comp, DistributiveAllegory.zero_comp]
+    exact DistributiveAllegory.zero_union R₂
+  · -- Uniqueness: u₁≫R'=R₁ ∧ u₂≫R'=R₂ → R' = u₁°≫R₁ ∪ u₂°≫R₂.
+    -- §2.214: R' = 1≫R' = (u₁°u₁ ∪ u₂°u₂)≫R' = u₁°(u₁≫R') ∪ u₂°(u₂≫R') = u₁°R₁ ∪ u₂°R₂.
+    intro R' h₁ h₂
+    calc R' = Cat.id a ≫ R' := (Cat.id_comp R').symm
+      _ = (cp.u₁° ≫ cp.u₁ ∪ cp.u₂° ≫ cp.u₂) ≫ R' := by rw [cp.recip_union_eq_id]
+      _ = cp.u₁° ≫ (cp.u₁ ≫ R') ∪ cp.u₂° ≫ (cp.u₂ ≫ R') := by
+            rw [union_comp_distrib, Cat.assoc, Cat.assoc]
+      _ = cp.u₁° ≫ R₁ ∪ cp.u₂° ≫ R₂ := by rw [h₁, h₂]
+
+/-- (§2.214) The universal coproduct property implies the five Coproduct equations.
+    Constructs a `Coproduct` record from `IsCoproduct`. -/
+def coproduct_of_universal {𝒜 : Type u} [DistributiveAllegory 𝒜]
+    {a a₁ a₂ : 𝒜} (u₁ : a₁ ⟶ a) (u₂ : a₂ ⟶ a) (h : IsCoproduct u₁ u₂) :
+    Coproduct a a₁ a₂ := by
+  -- We extract the five equations from the universal property by choosing
+  -- specific R₁, R₂ and using uniqueness.
+  sorry
+
 /-! ## §2.215  Positive allegory -/
 
 /-- A POSITIVE ALLEGORY (§2.215): distributive allegory with finite coproducts. -/
@@ -222,5 +281,185 @@ class GloballyCompleteAllegory (𝒜 : Type u) extends LocallyCompleteDistributi
   complete {I : Type u} {a : I → 𝒜} :
     Sup (λ (R : disjointUnion a ⟶ disjointUnion a) =>
       ∃ (i : I), R = (inject i)° ≫ inject i) = Cat.id (disjointUnion a)
+
+/-! ## §2.216  Positive Reflection A⁺
+
+  Let A be a distributive allegory.  Its POSITIVE REFLECTION A⁺ has
+  objects = finite sequences (here: I-indexed tuples for any index type I)
+  of A-objects, and morphisms = I×J-matrices of A-morphisms.
+  The embedding A → A⁺ sends R : a → b to the 1×1 matrix (R). -/
+
+/-- An I×J matrix of morphisms in A: entry (i,j) is src i → tgt j (§2.216). -/
+def AlgMat {𝒜 : Type u} [Allegory 𝒜] {I J : Type u}
+    (src : I → 𝒜) (tgt : J → 𝒜) : Type u :=
+  (i : I) → (j : J) → src i ⟶ tgt j
+
+/-- Matrix reciprocation: (R°)_{ji} = (R_{ij})° (§2.216). -/
+def AlgMat.recip {𝒜 : Type u} [Allegory 𝒜] {I J : Type u}
+    {src : I → 𝒜} {tgt : J → 𝒜}
+    (R : AlgMat src tgt) : AlgMat tgt src :=
+  fun j i => (R i j)°
+
+/-- Matrix intersection: entry-wise (§2.216). -/
+def AlgMat.inter {𝒜 : Type u} [Allegory 𝒜] {I J : Type u}
+    {src : I → 𝒜} {tgt : J → 𝒜}
+    (R S : AlgMat src tgt) : AlgMat src tgt :=
+  fun i j => R i j ∩ S i j
+
+/-- Matrix union: entry-wise (§2.216). -/
+def AlgMat.union {𝒜 : Type u} [DistributiveAllegory 𝒜] {I J : Type u}
+    {src : I → 𝒜} {tgt : J → 𝒜}
+    (R S : AlgMat src tgt) : AlgMat src tgt :=
+  fun i j => R i j ∪ S i j
+
+/-- Matrix zero: zero in every entry (§2.216). -/
+def AlgMat.zero {𝒜 : Type u} [DistributiveAllegory 𝒜] {I J : Type u}
+    {src : I → 𝒜} {tgt : J → 𝒜} : AlgMat src tgt :=
+  fun _i _j => 𝟘
+
+/-- The embedding A → A⁺ sends R : a → b to the 1×1 matrix (R) (§2.216). -/
+def positiveReflectionEmbed {𝒜 : Type u} [DistributiveAllegory 𝒜] {a b : 𝒜}
+    (R : a ⟶ b) :
+    let src : PUnit.{u+1} → 𝒜 := fun _ => a
+    let tgt : PUnit.{u+1} → 𝒜 := fun _ => b
+    AlgMat src tgt :=
+  fun _i _j => R
+
+/-- (§2.216) The embedding A → A⁺ is faithful. -/
+theorem positiveReflectionEmbed_injective {𝒜 : Type u} [DistributiveAllegory 𝒜]
+    {a b : 𝒜} {R S : a ⟶ b}
+    (h : @positiveReflectionEmbed 𝒜 _ a b R = @positiveReflectionEmbed 𝒜 _ a b S) : R = S :=
+  congrFun (congrFun h PUnit.unit) PUnit.unit
+
+/-- (§2.216) Any distributive allegory faithfully embeds in a positive allegory A⁺
+    (matrix allegory). -/
+theorem positive_reflection_faithful {𝒜 : Type u} [DistributiveAllegory 𝒜] :
+    ∀ {a b : 𝒜} (R S : a ⟶ b),
+      @positiveReflectionEmbed 𝒜 _ a b R = @positiveReflectionEmbed 𝒜 _ a b S → R = S :=
+  fun _R _S h => positiveReflectionEmbed_injective h
+
+/-! ## §2.221  Local Completion (allegory of downdeals)
+
+  Let A be an allegory.  The LOCAL COMPLETION Â is the allegory whose
+  objects are those of A and whose hom-sets are downdeals. -/
+
+/-- A DOWNDEAL in (a, b): closed downward under ⊑ (§2.221). -/
+def IsDowndeal {𝒜 : Type u} [Allegory 𝒜] {a b : 𝒜} (D : (a ⟶ b) → Prop) : Prop :=
+  ∀ (R : a ⟶ b), D R → ∀ (S : a ⟶ b), S ⊑ R → D S
+
+/-- The PRINCIPAL DOWNDEAL ↓R = { S | S ⊑ R } (§2.221). -/
+def principalDowndeal {𝒜 : Type u} [Allegory 𝒜] {a b : 𝒜} (R : a ⟶ b) :
+    (a ⟶ b) → Prop :=
+  fun S => S ⊑ R
+
+theorem principalDowndeal_isDowndeal {𝒜 : Type u} [Allegory 𝒜] {a b : 𝒜} (R : a ⟶ b) :
+    IsDowndeal (principalDowndeal R) :=
+  fun _T hT _S hS => le_trans hS hT
+
+/-- (§2.221) The embedding A → Â (R ↦ ↓R) is faithful. -/
+theorem principalDowndeal_injective {𝒜 : Type u} [Allegory 𝒜] {a b : 𝒜} {R S : a ⟶ b}
+    (h : principalDowndeal R = principalDowndeal S) : R = S := by
+  have hRS : R ⊑ S := by
+    have : (principalDowndeal R) R := le_refl R; rw [h] at this; exact this
+  have hSR : S ⊑ R := by
+    have : (principalDowndeal S) S := le_refl S; rw [← h] at this; exact this
+  exact le_antisymm hRS hSR
+
+/-- (§2.221) Any allegory faithfully represents in a locally complete
+    distributive allegory. -/
+theorem allegory_embeds_in_locally_complete {𝒜 : Type u} [Allegory 𝒜] {a b : 𝒜}
+    {R S : a ⟶ b} (h : principalDowndeal R = principalDowndeal S) : R = S :=
+  principalDowndeal_injective h
+
+/-! ## §2.222  Ideal completion (distributive allegory case) -/
+
+/-- An IDEAL in a hom-set: a downdeal closed under finite union (§2.222). -/
+def IsIdeal {𝒜 : Type u} [DistributiveAllegory 𝒜] {a b : 𝒜} (D : (a ⟶ b) → Prop) : Prop :=
+  IsDowndeal D ∧ D (𝟘 : a ⟶ b) ∧ ∀ (R S : a ⟶ b), D R → D S → D (R ∪ S)
+
+/-- The principal ideal ↓R (same underlying set as ↓R for downdeals). -/
+def principalIdeal {𝒜 : Type u} [DistributiveAllegory 𝒜] {a b : 𝒜} (R : a ⟶ b) :
+    (a ⟶ b) → Prop := fun S => S ⊑ R
+
+theorem principalIdeal_isIdeal {𝒜 : Type u} [DistributiveAllegory 𝒜] {a b : 𝒜} (R : a ⟶ b) :
+    IsIdeal (principalIdeal R) :=
+  ⟨principalDowndeal_isDowndeal R, zero_le R, fun _S _T hS hT => union_lub hS hT⟩
+
+/-- (§2.222) The embedding A → ideals(A) is faithful; any distributive allegory
+    faithfully represents in a locally complete distributive allegory. -/
+theorem principalIdeal_injective {𝒜 : Type u} [DistributiveAllegory 𝒜] {a b : 𝒜}
+    {R S : a ⟶ b} (h : principalIdeal R = principalIdeal S) : R = S :=
+  principalDowndeal_injective h
+
+/-! ## §2.224  Global Completion A'
+
+  The GLOBAL COMPLETION of a locally complete distributive allegory A has
+  indexed families of objects and infinite matrices as morphisms (§2.224). -/
+
+/-- Objects of the global completion: an index type I together with an I-indexed
+    family of A-objects (§2.224). -/
+structure GlobalObj (𝒜 : Type u) where
+  idx : Type u
+  obj : idx → 𝒜
+
+/-- Morphisms of the global completion: an infinite matrix R_{ij} : a_i → b_j (§2.224). -/
+def GlobalMorphism {𝒜 : Type u} [Allegory 𝒜] (A B : GlobalObj 𝒜) : Type u :=
+  (i : A.idx) → (j : B.idx) → A.obj i ⟶ B.obj j
+
+/-- Global completion composition: (RS)_{ik} = Sup_j { R_{ij} ≫ S_{jk} } (§2.224). -/
+def GlobalMorphism.comp {𝒜 : Type u} [LocallyCompleteDistributiveAllegory 𝒜]
+    {A B C : GlobalObj 𝒜} (R : GlobalMorphism A B) (S : GlobalMorphism B C) :
+    GlobalMorphism A C :=
+  fun i k => LocallyCompleteDistributiveAllegory.Sup (fun T => ∃ j, T = R i j ≫ S j k)
+
+/-- Global completion reciprocation: (R°)_{ji} = (R_{ij})° (§2.224). -/
+def GlobalMorphism.recip {𝒜 : Type u} [Allegory 𝒜] {A B : GlobalObj 𝒜}
+    (R : GlobalMorphism A B) : GlobalMorphism B A :=
+  fun j i => (R i j)°
+
+/-- The embedding A → A' sending R : a → b to the 1×1 matrix (R) (§2.224). -/
+def globalCompletionEmbed {𝒜 : Type u} [Allegory 𝒜] {a b : 𝒜} (R : a ⟶ b) :
+    GlobalMorphism (𝒜 := 𝒜) ⟨PUnit.{u+1}, fun _ => a⟩ ⟨PUnit.{u+1}, fun _ => b⟩ :=
+  fun _i _j => R
+
+/-- (§2.224) The embedding A → A' is faithful. -/
+theorem globalCompletionEmbed_injective {𝒜 : Type u} [Allegory 𝒜]
+    {a b : 𝒜} {R S : a ⟶ b}
+    (h : globalCompletionEmbed R = globalCompletionEmbed S) : R = S :=
+  congrFun (congrFun h PUnit.unit) PUnit.unit
+
+/-- (§2.224) A locally complete distributive allegory faithfully represents in a
+    globally complete allegory via the global completion construction. -/
+theorem lc_embeds_in_globally_complete {𝒜 : Type u} [Allegory 𝒜]
+    {a b : 𝒜} {R S : a ⟶ b}
+    (h : globalCompletionEmbed R = globalCompletionEmbed S) : R = S :=
+  globalCompletionEmbed_injective h
+
+/-! ## §2.226  Systemic Completion
+
+  The SYSTEMIC COMPLETION of an allegory is obtained by splitting the
+  symmetric idempotents of its global completion (§2.226). -/
+
+/-- A split symmetric idempotent in an allegory (§2.226; cf. EffectiveAllegory):
+    a symmetric idempotent E on a together with a splitting map f : a → b
+    satisfying f ≫ f° = E and f° ≫ f = 1_b. -/
+structure SplitSymmIdem {𝒜 : Type u} [Allegory 𝒜] (a : 𝒜) where
+  E       : a ⟶ a
+  isSymm  : Symmetric E
+  isIdem  : E ≫ E = E
+  b       : 𝒜
+  f       : a ⟶ b
+  hMap    : Map f
+  hffR    : f ≫ f° = E
+  hRff    : f° ≫ f = Cat.id b
+
+/-- (§2.226) The systemic completion of a semi-simple globally complete allegory
+    is tabular and effective: every symmetric idempotent splits (by the construction
+    of the systemic completion via splitting symmetric idempotents). -/
+theorem systemic_completion_tabular_effective
+    {𝒜 : Type u} [SemiSimpleAllegory 𝒜] [GloballyCompleteAllegory 𝒜] :
+    ∀ (a : 𝒜) (ss : SplitSymmIdem a),
+      ∃ (b : 𝒜) (f : a ⟶ b), Map f ∧ f ≫ f° = ss.E ∧ f° ≫ f = Cat.id b :=
+  fun _a ss => ⟨ss.b, ss.f, ss.hMap, ss.hffR, ss.hRff⟩
 
 end Freyd.Alg

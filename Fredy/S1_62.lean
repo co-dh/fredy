@@ -19,6 +19,7 @@ import Fredy.S1_51
 import Fredy.S1_52
 import Fredy.S1_55
 import Fredy.S1_56
+import Fredy.S1_57
 import Fredy.S1_58
 import Fredy.S1_60
 
@@ -79,86 +80,6 @@ def Subobject.inter [HasPullbacks 𝒞] {B : 𝒞} (S T : Subobject 𝒞 B) : Su
             _ = c.π₂ := rfl
       rw [hv_eq_u] }
 
-/-! ## Union of relations (§1.62)
-
-  A binary relation `R : A ⟶ B` is a jointly-monic table, equivalently a
-  subobject of `A × B`.  Their MEET is `intersect` (`⊓`, §1.56); their JOIN
-  is the join of those subobjects, so `BinRel 𝒞 A B` is a lattice. -/
-
-/-- `h ≫ pair a b = pair (h≫a) (h≫b)`: composition distributes through `pair`. -/
-theorem comp_pair {X Y A B : 𝒞} (h : X ⟶ Y) (a : Y ⟶ A) (b : Y ⟶ B) :
-    h ≫ pair a b = pair (h ≫ a) (h ≫ b) :=
-  pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])
-
-/-- A jointly-monic table `(colA, colB)` packaged as a subobject of `A × B`. -/
-def BinRel.toSub {A B : 𝒞} (R : BinRel 𝒞 A B) : Subobject 𝒞 (prod A B) where
-  dom := R.src
-  arr := pair R.colA R.colB
-  monic := by
-    intro W f g h
-    refine R.isMonicPair f g ?_ ?_
-    · have := congrArg (· ≫ fst) h; simpa [Cat.assoc, fst_pair] using this
-    · have := congrArg (· ≫ snd) h; simpa [Cat.assoc, snd_pair] using this
-
-/-- A subobject of `A × B`, read back as a relation via its two projections. -/
-def BinRel.ofSub {A B : 𝒞} (S : Subobject 𝒞 (prod A B)) : BinRel 𝒞 A B where
-  src := S.dom
-  colA := S.arr ≫ fst
-  colB := S.arr ≫ snd
-  isMonicPair := by
-    intro W f g hA hB
-    refine S.monic f g (pair_uniq (f ≫ S.arr ≫ fst) (f ≫ S.arr ≫ snd) _ ?_ ?_ |>.trans
-      (pair_uniq (f ≫ S.arr ≫ fst) (f ≫ S.arr ≫ snd) (g ≫ S.arr) ?_ ?_).symm)
-    · rw [Cat.assoc]
-    · rw [Cat.assoc]
-    · rw [Cat.assoc, ← hA]
-    · rw [Cat.assoc, ← hB]
-
-/-- `RelLe` is the subobject order on the `A × B` tables. -/
-theorem relLe_iff_subLe {A B : 𝒞} (R S : BinRel 𝒞 A B) :
-    RelLe R S ↔ Subobject.le R.toSub S.toSub := by
-  constructor
-  · rintro ⟨⟨h, hA, hB⟩⟩
-    exact ⟨h, by dsimp [BinRel.toSub]; rw [comp_pair, hA, hB]⟩
-  · rintro ⟨h, hh⟩
-    refine ⟨⟨h, ?_, ?_⟩⟩
-    · have := congrArg (· ≫ fst) hh; simpa [BinRel.toSub, Cat.assoc, fst_pair] using this
-    · have := congrArg (· ≫ snd) hh; simpa [BinRel.toSub, Cat.assoc, snd_pair] using this
-
-/-- The UNION (join) of two relations `R, S : A ⟶ B`, as the subobject join of
-    their tables in `A × B`.  Dual to `intersect` (`⊓`). -/
-def RelUnion {A B : 𝒞} (R S : BinRel 𝒞 A B) : BinRel 𝒞 A B :=
-  BinRel.ofSub (HasSubobjectUnions.union R.toSub S.toSub)
-
-@[inherit_doc] infixl:65 " ⊔ " => RelUnion
-
-theorem rel_le_union_left {A B : 𝒞} (R S : BinRel 𝒞 A B) : RelLe R (R ⊔ S) := by
-  obtain ⟨h, hh⟩ := HasSubobjectUnions.union_left R.toSub S.toSub
-  refine ⟨⟨h, ?_, ?_⟩⟩
-  · show h ≫ (HasSubobjectUnions.union R.toSub S.toSub).arr ≫ fst = R.colA
-    rw [← Cat.assoc, hh]; simp [BinRel.toSub]
-  · show h ≫ (HasSubobjectUnions.union R.toSub S.toSub).arr ≫ snd = R.colB
-    rw [← Cat.assoc, hh]; simp [BinRel.toSub]
-
-theorem rel_le_union_right {A B : 𝒞} (R S : BinRel 𝒞 A B) : RelLe S (R ⊔ S) := by
-  obtain ⟨h, hh⟩ := HasSubobjectUnions.union_right R.toSub S.toSub
-  refine ⟨⟨h, ?_, ?_⟩⟩
-  · show h ≫ (HasSubobjectUnions.union R.toSub S.toSub).arr ≫ fst = S.colA
-    rw [← Cat.assoc, hh]; simp [BinRel.toSub]
-  · show h ≫ (HasSubobjectUnions.union R.toSub S.toSub).arr ≫ snd = S.colB
-    rw [← Cat.assoc, hh]; simp [BinRel.toSub]
-
-/-- The union is the least upper bound: if `R ⊂ Q` and `S ⊂ Q` then `R ⊔ S ⊂ Q`. -/
-theorem union_le {A B : 𝒞} {R S Q : BinRel 𝒞 A B}
-    (hR : RelLe R Q) (hS : RelLe S Q) : RelLe (R ⊔ S) Q := by
-  rw [relLe_iff_subLe] at hR hS
-  obtain ⟨h, hh⟩ := HasSubobjectUnions.union_min R.toSub S.toSub Q.toSub hR hS
-  refine ⟨⟨h, ?_, ?_⟩⟩
-  · show h ≫ Q.colA = (HasSubobjectUnions.union R.toSub S.toSub).arr ≫ fst
-    rw [← hh, Cat.assoc]; simp [BinRel.toSub]
-  · show h ≫ Q.colB = (HasSubobjectUnions.union R.toSub S.toSub).arr ≫ snd
-    rw [← hh, Cat.assoc]; simp [BinRel.toSub]
-
 /-- Pasting Lemma (§1.62): For subobjects A₁,A₂ of A, the pushout
     of the two projections from the intersection I = A₁∩A₂ (to A₁.dom and
     A₂.dom) is the union U = A₁∪A₂.  This is one of the defining properties
@@ -169,6 +90,20 @@ def pasting_lemma {A : 𝒞} (A₁ A₂ : Subobject 𝒞 A) :
   -- hence R is a map (entire + simple), and xR = f, yR = g uniquely.
   -- This requires the full relation composition + simple/entire identities.
   sorry
+
+/-! ## §1.631 Complemented subobject (book definition)
+
+  A₁ ⊆ A is COMPLEMENTED if ∃ A₂ ⊆ A with A₁∩A₂ = 0 and A₁∪A₂ = A.
+  Here 0 = PreLogos.bottom A (the minimal subobject) and A = Subobject.entire A.
+  The intersection is the pullback along A₁.arr and A₂.arr. -/
+
+/-- (§1.631) A₁ is COMPLEMENTED in A if there exists A₂ with
+    A₁ ∩ A₂ ≤ 0  (intersection is minimal)
+    and A ≤ A₁ ∪ A₂  (union is maximal). -/
+def IsComplementedSub {A : 𝒞} (A₁ : Subobject 𝒞 A) : Prop :=
+  ∃ (A₂ : Subobject 𝒞 A),
+    Subobject.le (Subobject.inter A₁ A₂) (PreLogos.bottom A)
+    ∧ Subobject.le (Subobject.entire A) (HasSubobjectUnions.union A₁ A₂)
 
 /-! ## §1.623 Positive pre-logoi
 
@@ -243,5 +178,40 @@ theorem prelogos_representation_theorem (A : Type u) [Cat.{u} A] [PositivePreLog
 /-- FILTER in a subobject lattice: up-closed pre-filter (§1.634). -/
 def IsFilter (ℱ : (Subobject 𝒞 one) → Prop) : Prop :=
   IsPreFilter ℱ ∧ ∀ (U V : Subobject 𝒞 one), ℱ U → Subobject.le U V → ℱ V
+
+/-! ## §1.631 Complemented subobject of a projective is projective
+
+  In a positive pre-logos, if P is a complemented subobject of a projective
+  object Q (so Q ≅ P + P' for some P'), then P is projective.
+  Proof: given a cover x : A ↠ P, extend to A + P' → P + P' using the
+  coproduct inclusion; this is a cover of the projective Q, so it splits;
+  composing with inl gives a section P → A. -/
+
+/-- §1.631: In a positive pre-logos, a complemented subobject of a projective
+    object is projective. -/
+theorem complemented_of_projective_is_projective [PositivePreLogos 𝒞]
+    {Q : 𝒞} (hQ : Projective Q) {P : 𝒞} (P' : 𝒞)
+    (hiso : Isomorphic Q (HasBinaryCoproducts.coprod P P'))
+    {A : 𝒞} (x : A ⟶ P) (hx : Cover x) :
+    Projective P := by
+  -- Given cover y : B ↠ P, use projectivity of Q = P + P' to split B + P' → P + P'.
+  intro B y hy
+  -- The map y + id_{P'} : B + P' → P + P' is a cover of Q ≅ P + P'.
+  -- By hQ (projective), it splits. The section composed with inl gives P → B.
+  sorry
+
+/-! ## §1.633 Characterization of capital positive pre-logoi
+
+  A positive pre-logos is capital iff its complemented subterminators
+  (complemented subobjects of 1) are projective and form a basis. -/
+
+/-- §1.633: A positive pre-logos is capital iff
+    (1) every complemented subterminator is projective, and
+    (2) the complemented subterminators form a basis. -/
+theorem capital_iff_complemented_subterminators [PositivePreLogos 𝒞] :
+    Capital (𝒞 := 𝒞) ↔
+    (∀ U : Subobject 𝒞 one, IsComplementedSub U → Projective U.dom)
+    ∧ IsBasis (fun G => ∃ U : Subobject 𝒞 one, IsComplementedSub U ∧ Isomorphic G U.dom) := by
+  sorry
 
 end Freyd

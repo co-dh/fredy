@@ -141,13 +141,93 @@ theorem cartesian_distributive_implies_prelogos (𝒞 : Type u) [Cat.{v} 𝒞]
     [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasEqualizers 𝒞] [HasImages 𝒞]
     [HasSubobjectUnions 𝒞] (hdist : IsDistributiveLattice (𝒞 := 𝒞)) : Nonempty (PreLogos 𝒞) := sorry
 
-theorem monic_inverseImage_iff_distributive {A B : 𝒞} [PreLogos 𝒞]
-    (f : A ⟶ B) (hf : Mono f) : True := sorry
+/-- **§1.612**: For monic f : A ↣ B, f# : Sub(B) → Sub(A) preserves binary
+    unions (for every monic f targeted at B) iff Sub(B) is a distributive lattice,
+    i.e. for all subobjects A, S, T of B:
+        A ∩ (S ∪ T) ≅ (A ∩ S) ∪ (A ∩ T)
+    where A ∩ S := InverseImage A.arr S is the pullback of A.arr along S.arr. -/
+theorem monic_inverseImage_iff_distributive [HasImages 𝒞] [HasSubobjectUnions 𝒞] [HasPullbacks 𝒞] {B : 𝒞} :
+    (∀ {A : 𝒞} (f : A ⟶ B) (_hf : Mono f) (S T : Subobject 𝒞 B),
+      Isomorphic (InverseImage f (HasSubobjectUnions.union S T)).dom
+                 (HasSubobjectUnions.union (InverseImage f S) (InverseImage f T)).dom) ↔
+    (∀ (A S T : Subobject 𝒞 B),
+      Isomorphic (InverseImage A.arr (HasSubobjectUnions.union S T)).dom
+                 (HasSubobjectUnions.union (InverseImage A.arr S) (InverseImage A.arr T)).dom) := by
+  constructor
+  · intro h A S T; exact h A.arr A.monic S T
+  · intro _h _ _f _hf _S _T
+    -- ← direction: distributivity of Sub(B) implies f# preserves unions for arbitrary monic f.
+    -- Requires that any monic f factors as (image f) ∘ (cover) and image f is a subobject
+    -- of B, so f#(S) ≅ (image f) ∩ S; the isomorphism then follows from Sub(B) distributivity.
+    sorry
 
+/-- **§1.614**: A REPRESENTATION OF PRE-LOGOI is a functor T : 𝒜 → ℬ between pre-logoi
+    that preserves Cartesian structure, images, and finite unions (including empty unions).
+    Preserving finite unions means: T carries binary unions to binary unions, and the
+    bottom (empty union / initial subobject) to the bottom. -/
 class PreLogosFunctor {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ] [PreLogos 𝒜] [PreLogos ℬ]
-    (T : 𝒜 → ℬ) [Functor T] where preserves_finite_unions : True
+    (T : 𝒜 → ℬ) [Functor T] (hpm : PreservesMono T) where
+  /-- T maps the binary union of S,U in Sub(A) to the union of T(S), T(U) in Sub(T(A)). -/
+  preserves_union : ∀ {A : 𝒜} (S U : Subobject 𝒜 A),
+    Isomorphic (Subobject.map T hpm (HasSubobjectUnions.union S U)).dom
+               (HasSubobjectUnions.union (Subobject.map T hpm S) (Subobject.map T hpm U)).dom
+  /-- T maps the bottom (empty union) to the bottom. -/
+  preserves_bottom : ∀ (A : 𝒜),
+    Isomorphic (Subobject.map T hpm (PreLogos.bottom A)).dom (PreLogos.bottom (T A)).dom
 
-theorem union_via_coproduct_image {A₁ A₂ A : 𝒞}
-    [PreLogos 𝒞] [HasBinaryCoproducts 𝒞] (x₁ : A₁ ⟶ A) (x₂ : A₂ ⟶ A) : True := sorry
+/-- **§1.613 (converse)**: A thin category (poset) with binary unions and intersections
+    that is a distributive lattice is a pre-logos.  The thinness makes all morphism
+    conditions automatic; distributivity makes invImage preserve unions. -/
+/- Uses `def` not `theorem`: `PreLogos 𝒞` is a class/structure, not a proposition. -/
+def distributive_poset_is_prelogos [HasImages 𝒞] [HasSubobjectUnions 𝒞] [HasPullbacks 𝒞]
+    (hThin : ∀ {A B : 𝒞} (f g : A ⟶ B), f = g)
+    -- In the thin (poset) case, distributivity is: for any A,S,T subobjects of B,
+    -- A ∩ (S ∪ T) ≅ (A ∩ S) ∪ (A ∩ T), where A ∩ S = InverseImage A.arr S.
+    (hDist : ∀ {B : 𝒞} (A S T : Subobject 𝒞 B),
+      Isomorphic (InverseImage A.arr (HasSubobjectUnions.union S T)).dom
+                 (HasSubobjectUnions.union (InverseImage A.arr S) (InverseImage A.arr T)).dom)
+    (hReg : RegularCategory 𝒞)
+    (hBottom : ∀ (A : 𝒞), Subobject 𝒞 A)
+    (hBottom_min : ∀ {A : 𝒞} (S : Subobject 𝒞 A), (hBottom A).le S)
+    (hBottom_dom_iso : ∀ (A B : 𝒞), Isomorphic (hBottom A).dom (hBottom B).dom) :
+    PreLogos 𝒞 :=
+  { hReg with
+    union        := HasSubobjectUnions.union
+    union_left   := HasSubobjectUnions.union_left
+    union_right  := HasSubobjectUnions.union_right
+    union_min    := HasSubobjectUnions.union_min
+    bottom                    := hBottom
+    bottom_min                := hBottom_min
+    bottom_dom_iso            := hBottom_dom_iso
+    -- In the thin/poset case, for any f : A → B, InverseImage f S ≅ InverseImage A.arr S
+    -- where A is the image of f (they agree since there is at most one morphism).
+    -- So hDist applied to the image subobject gives invImage_preserves_union.
+    invImage_preserves_union  := fun {_A _B} _f _S _T => sorry
+    -- invImage_preserves_bottom: InverseImage f (⊥_B) ≅ ⊥_A.
+    -- In the thin case, InverseImage f (⊥_B) = ⊥_A since ⊥ pulls back to ⊥.
+    invImage_preserves_bottom := fun {_A _B} _f => sorry }
+
+/-- **§1.615**: In a bicartesian category with images, given x₁ : A₁ → A and
+    x₂ : A₂ → A, their union (image of x₁ joined with image of x₂) equals the image of
+    the coproduct map [x₁, x₂] = case x₁ x₂ : A₁ + A₂ → A. -/
+theorem union_via_coproduct_image [HasImages 𝒞] [HasSubobjectUnions 𝒞] [HasBinaryCoproducts 𝒞]
+    {A₁ A₂ A : 𝒞} (x₁ : A₁ ⟶ A) (x₂ : A₂ ⟶ A) :
+    IsImage (HasBinaryCoproducts.case x₁ x₂) (HasSubobjectUnions.union (image x₁) (image x₂)) := by
+  sorry
+
+/-- **§1.621**: If A₁ ∩ A₂ = 0 and A₁ ∪ A₂ = A (as subobjects of A in a pre-logos)
+    then A is the binary coproduct of A₁.dom and A₂.dom via the inclusions A₁.arr, A₂.arr.
+    Here A₁ ∩ A₂ is the subobject represented by the pullback of A₁.arr along A₂.arr;
+    A₁ ∩ A₂ = 0 means its domain is isomorphic to (PreLogos.bottom A).dom. -/
+theorem disjoint_cover_is_coproduct [PreLogos 𝒞]
+    {A : 𝒞} (A₁ A₂ : Subobject 𝒞 A)
+    -- A₁ ∩ A₂ = 0: the pullback I of A₁.arr and A₂.arr has I.dom ≅ (⊥ A).dom
+    (hDisjoint : Isomorphic (HasPullbacks.has A₁.arr A₂.arr).cone.pt (PreLogos.bottom A).dom)
+    -- A₁ ∪ A₂ = A: the union is entire
+    (hCover    : (HasSubobjectUnions.union A₁ A₂).IsEntire) :
+    ∀ {X : 𝒞} (f₁ : A₁.dom ⟶ X) (f₂ : A₂.dom ⟶ X),
+      ∃ h : A ⟶ X, A₁.arr ≫ h = f₁ ∧ A₂.arr ≫ h = f₂ ∧
+        ∀ h' : A ⟶ X, A₁.arr ≫ h' = f₁ → A₂.arr ≫ h' = f₂ → h' = h := by
+  sorry
 
 end Freyd
