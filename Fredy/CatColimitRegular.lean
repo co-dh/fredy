@@ -883,7 +883,48 @@ theorem homInclObj_eq (C : CatSystem ι D) (hC : C.Coherent) {i : ι} {x y : C.A
             ((hioWitness C hC x y).germ g) from rfl,
       key (hioWitness C hC x y) hw0L, key w hwL]
 
-/-- `castHom` is injective (it's a transport along object equalities). -/
+/-- **`homInclObj` preserves composition** (functoriality of the stage inclusion).
+    Build a common stage `L` where all three `colimOut` reps agree with `x,y,z`,
+    apply `homInclObj_eq` to compute the three inclusions at shared witnesses there,
+    reduce `colimComp` to `homCompRaw` at `L`, and match germs via `castHom_comp`+`map_comp`. -/
+theorem homInclObj_comp (C : CatSystem ι D) (hC : C.Coherent) {i : ι} {x y z : C.A i}
+    (g : x ⟶ y) (g' : y ⟶ z) :
+    homInclObj C hC (g ≫ g') = colimComp C hC (homInclObj C hC g) (homInclObj C hC g') := by
+  obtain ⟨sx, hpxsx, hisx, hxeq⟩ := Quotient.exact (colimOut_spec C (C.objIncl i x))
+  obtain ⟨sy, hpysy, hisy, hyeq⟩ := Quotient.exact (colimOut_spec C (C.objIncl i y))
+  obtain ⟨sz, hpzsz, hisz, hzeq⟩ := Quotient.exact (colimOut_spec C (C.objIncl i z))
+  dsimp only [CatSystem.objSystem] at hxeq hyeq hzeq
+  obtain ⟨sxy, hsx_sxy, hsy_sxy⟩ := D.bound sx sy
+  obtain ⟨L, hsxy_L, hszL⟩ := D.bound sxy sz
+  have hsxL : D.le sx L := D.trans hsx_sxy hsxy_L
+  have hsyL : D.le sy L := D.trans hsy_sxy hsxy_L
+  have hiL : D.le i L := D.trans hisx hsxL
+  have hgxL : C.F (D.trans hpxsx hsxL) (colimOut C (C.objIncl i x)).2 = C.F hiL x := by
+    rw [C.F_trans hpxsx hsxL, hxeq, ← C.F_trans hisx hsxL]
+  have hgyL : C.F (D.trans hpysy hsyL) (colimOut C (C.objIncl i y)).2 = C.F hiL y := by
+    rw [C.F_trans hpysy hsyL, hyeq,
+        show hiL = D.trans hisy hsyL from Subsingleton.elim _ _, ← C.F_trans hisy hsyL]
+  have hgzL : C.F (D.trans hpzsz hszL) (colimOut C (C.objIncl i z)).2 = C.F hiL z := by
+    rw [C.F_trans hpzsz hszL, hzeq,
+        show hiL = D.trans hisz hszL from Subsingleton.elim _ _, ← C.F_trans hisz hszL]
+  let w_xy : HioWitness C x y := ⟨L, D.trans hpxsx hsxL, D.trans hpysy hsyL, hiL, hgxL, hgyL⟩
+  let w_yz : HioWitness C y z := ⟨L, D.trans hpysy hsyL, D.trans hpzsz hszL, hiL, hgyL, hgzL⟩
+  let w_xz : HioWitness C x z := ⟨L, D.trans hpxsx hsxL, D.trans hpzsz hszL, hiL, hgxL, hgzL⟩
+  rw [homInclObj_eq C hC g w_xy, homInclObj_eq C hC g' w_yz, homInclObj_eq C hC (g ≫ g') w_xz]
+  show homIncl C hC (colimOut C (C.objIncl i x)).2 (colimOut C (C.objIncl i z)).2
+      ⟨L, w_xz.hpx, w_xz.hpy⟩ (w_xz.germ (g ≫ g'))
+    = homCompRaw C hC (colimOut C (C.objIncl i x)).2 (colimOut C (C.objIncl i y)).2
+        (colimOut C (C.objIncl i z)).2 ⟨L, w_xy.hpx, w_xy.hpy⟩ (w_xy.germ g)
+        ⟨L, w_yz.hpx, w_yz.hpy⟩ (w_yz.germ g')
+  rw [homCompRaw_eq_compAt C hC _ _ _ ⟨L, w_xy.hpx, w_xy.hpy⟩ (w_xy.germ g)
+        ⟨L, w_yz.hpx, w_yz.hpy⟩ (w_yz.germ g') L (D.refl L) (D.refl L)]
+  unfold compAt
+  rw [homTr_refl C hC, homTr_refl C hC]
+  -- Both sides are now `homIncl` of a germ at stage `L`; reduce the RHS composition
+  -- of germs to a single germ via `castHom_comp` + `map_comp`, matching the LHS germ
+  -- of `g ≫ g'`.  The two `UpperBound`s agree by proof irrelevance, so `rfl` closes it.
+  dsimp only [HioWitness.germ]
+  rw [castHom_comp, ← (C.functF hiL).map_comp]
 theorem castHom_injective {𝒜 : Type w} [Cat.{w} 𝒜] {X Y X' Y' : 𝒜}
     (hX : X = X') (hY : Y = Y') {a b : X ⟶ Y}
     (h : castHom hX hY a = castHom hX hY b) : a = b := by

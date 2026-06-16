@@ -45,14 +45,16 @@ DONE additionally: `homInclObj` (stage-inclusion on morphisms, keystone), `castH
 `homInclObj_injective` (the stage-inclusion is FAITHFUL given faithful transitions).
 
 Remaining (each ~40–80 lines, fights the `colimOut` rep transport):
-0. **`homInclObj` functoriality** (`homInclObj (g≫g') = homInclObj g ≫ homInclObj g'`). CONFIRMED
-   BLOCKER (via goal inspection): `homInclObj` is tactic-defined, so its transport bound is
-   `⟨Classical.choose …, …⟩` — anonymous in the goal, can't be named to drive `homCompRaw_eq_of_stage`.
-   FIX FIRST: either (a) refactor `homInclObj` into a term-mode def exposing `homInclObjUB`/`homInclObjGerm`
-   as named aux defs, or (b) prove a representative-independence lemma `homInclObj g = homIncl xpx xpy b germ'`
-   for any sufficiently-large bound `b` (via `homIncl_compat`), letting functoriality compute both sides at a
-   common bound where the germs agree by `map_comp` + `hC.trans_map`. Then ~80-line coherence reconciliation.
-2. **Mono reflection** `colimitCat` mono ⇒ stage-mono-under-transitions (uses 1 + `homIncl_injective`).
+0. **`homInclObj` functoriality** (`homInclObj (g≫g') = homInclObj g ≫ homInclObj g'`). ✅ **DONE,
+   sorry-free** (`homInclObj_comp`). Resolved via fix (b): the representative-independence lemma
+   `homInclObj_eq` (build a common stage `L` where all three reps agree, compute each inclusion at a
+   shared witness there) plus `homInclObj_germ_push`. Functoriality then reduces `colimComp` to
+   `homCompRaw` at `L` (`homCompRaw_eq_compAt` + `homTr_refl`) and matches germs via `castHom_comp` +
+   `map_comp`. KEY GOTCHA: do NOT `show`/re-state the germ composition `w_xy.germ g ≫ w_yz.germ g'`
+   — re-elaboration fails to unify the middle object (proof-irrelevance on let-bound witness `.K`
+   fields); instead `dsimp only [HioWitness.germ]` then `rw [castHom_comp, ← map_comp]` directly on
+   the goal, leaving two `UpperBound`s that agree definitionally by proof irrelevance.
+2. **Mono reflection** `colimitCat` mono ⇒ stage-mono-under-transitions (uses 0 + `homIncl_injective`).
 3. **Cover reflection / preservation** (cover = factor-through-mono ⇒ uses 2).
 4. **Assembly**: arbitrary pullback cone ≅ canonical (§1.432) so `Cover` is iso-invariant; reflect
    `f`/pullback to a stage, stage `PullbacksTransferCovers`, preserve back ⇒ `PullbacksTransferCovers C.Obj`;
