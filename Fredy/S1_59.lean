@@ -406,7 +406,17 @@ theorem abelian_iff_normal_kernels_cokernels
   PROOF: This is a Horn sentence in bicartesian predicates, so it holds in any
   abelian category iff it holds in Ab.  In Ab: the center vertical has zero kernel
   (easy diagram chase); the definition of exact category is self-dual, so zero
-  cokernel as well; hence it is an isomorphism. -/
+  cokernel as well; hence it is an isomorphism.
+
+  BLOCKER (sharpened): the Horn-sentence reduction "holds in 𝒞 ⟺ holds in Ab" is the
+  metatheorem of §1.543 (capitalization / the faithful embedding into a functor category
+  that reflects bicartesian Horn sentences).  That chain is owned by a concurrent agent
+  and is not yet importable.  The *element-level* alternative (a direct categorical diagram
+  chase) needs the Ab-valued representation of §1.55 (subobject lattices + element chasing),
+  which is also absent.  No shortcut exists from the present `AbelianCategory` / `ExactCategory`
+  fields alone: the goal is bare `IsIso v₃` with only the six exactness isos and four square
+  commutativities, and `IsIso` is not recoverable without constructing ker(v₃)=0 ∧ coker(v₃)=0.
+  Faithful sorry retained (statement is Freyd §1.599, verified true and non-vacuous). -/
 theorem five_lemma [AbelianCategory 𝒞]
     {A₁ A₂ A₃ A₄ A₅ B₁ B₂ B₃ B₄ B₅ : 𝒞}
     {a₁ : A₁ ⟶ A₂} {a₂ : A₂ ⟶ A₃} {a₃ : A₃ ⟶ A₄} {a₄ : A₄ ⟶ A₅}
@@ -446,7 +456,18 @@ theorem five_lemma [AbelianCategory 𝒞]
     κ_g : ker(β) → ker(γ)   (kernel-functoriality of g)
     π_f : coker(α) → coker(β)  (cokernel-functoriality of f')
     π_g : coker(β) → coker(γ)  (cokernel-functoriality of g')
-  These are defined by universal properties; we state their existence. -/
+  These are defined by universal properties; we state their existence.
+
+  BLOCKER (sharpened): the connecting morphism δ is, in Freyd's own words (§1.599), built
+  "as a relation" — the composite ker(γ)→C ⤳ B ⤳ B' ⤳ coker(α) of a reciprocal, a vertical,
+  and another reciprocal — and shown single-valued/total only via the calculus of relations
+  in the Ab-representation (§1.55 + §1.56 reciprocation).  That δ-as-relation machinery, and
+  the proof that the resulting 6-term sequence is exact, both reduce to Ab by the §1.543
+  capitalization metatheorem (concurrent agent, not yet importable).  The kernel/cokernel
+  functoriality maps κ_*, π_* DO follow from the present universal properties, but the
+  conjunction's hard core (existence of δ + four exactness isos) cannot be discharged without
+  the relational calculus; a partial proof would leave δ a `sorry` inside the existential and
+  is no more honest than the whole-statement sorry.  Faithful sorry retained. -/
 theorem snake_lemma [AbelianCategory 𝒞]
     {A B C A' B' C' : 𝒞}
     {f : A ⟶ B} {g : B ⟶ C} {α : A ⟶ A'} {β : B ⟶ B'} {γ : C ⟶ C'}
