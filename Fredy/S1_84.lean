@@ -25,6 +25,7 @@ import Fredy.S1_59
 import Fredy.S1_60
 import Fredy.S1_62
 import Fredy.S1_64
+import Fredy.S1_82
 
 open Freyd
 
@@ -119,27 +120,61 @@ class GrothendieckTopos (E : Type u) [Cat.{v} E] extends
       Note: PullbacksPreserveArbitraryUnions does not depend on LocallyComplete'. -/
   pullback_union  : PullbacksPreserveArbitraryUnions E
 
+/-! ## §1.841–§1.842 Examples and the graphing-functor adjoint ---------------- -/
+
+/-
+  §1.841: The prime examples (presheaf topos YA and the topos of sheaves B☞(Y))
+  satisfy the Giraud definition.
+  MISSING: Cannot be stated without formalizing the presheaf construction.
+
+  §1.842: If E is a Grothendieck topos, the graphing functor E → Rel(E) has a
+  right adjoint.
+  MISSING: Rel(E) as a category (with objects = objects of E and morphisms =
+  equivalence classes of relations) is not yet formalized in this repo.
+  The statement requires a `Cat` instance on Rel(E) and a `Functor` instance
+  for the graphing map E → Rel(E).  See S1_84.md.
+-/
+
 /-! ## §1.843 A Grothendieck topos is well-powered (and well-copowered) ----- -/
 
 /-- §1.843: A Grothendieck topos is WELL-POWERED: the collection Sub(A) of
-    subobjects of each object A is a set.
+    subobjects of each object A is a set (up to isomorphism, bounded by a
+    type in universe v).
 
-    BECAUSE: The generating set ℱ is also a basis in any pre-topos
+    BOOK PROOF: The generating set ℱ is also a basis in any pre-topos
     (every subobject appears as an equalizer, hence is detected by ℱ).
     Sub(A) embeds into Π_{G∈ℱ} 𝒫(Hom(G,A)), which is small. -/
-theorem grothendieck_topos_well_powered [GrothendieckTopos E] (A : E) :
-    ∀ (S T : Subobject E A), (∀ G : E, GrothendieckTopos.gen_set G →
-      ∀ (h : G ⟶ S.dom) (k : G ⟶ T.dom), h ≫ S.arr = k ≫ T.arr → True) → True := by
-  intros; trivial
+instance grothendieck_topos_well_powered [GrothendieckTopos E] : WellPowered E where
+  small := by
+    -- Sub(A) is indexed by the set of pairs (G∈ℱ, G→A), via the basis property:
+    -- two subobjects agree iff they agree on all generators.
+    -- Full formal proof requires the pre-topos equalizer argument (§1.843).
+    sorry
 
-/-- §1.843: A Grothendieck topos is WELL-COPOWERED: the collection of
-    isomorphism-classes of covers A ↠ Q is a set.
+/-- Two covers A ↠ P and A ↠ Q are ISOMORPHIC if there is a commuting iso P ≅ Q. -/
+def CoverIso {𝒞 : Type u} [Cat.{v} 𝒞] {A : 𝒞} {P Q : 𝒞}
+    (p : A ⟶ P) (q : A ⟶ Q) : Prop :=
+  ∃ (i : P ⟶ Q), IsIso i ∧ p ≫ i = q
 
-    BECAUSE: In any pre-topos, covers coincide with comonics, and
-    isomorphism-types of covers A ↠ Q correspond bijectively to
-    equivalence relations on A.  These are bounded by Sub(A × A). -/
-theorem grothendieck_topos_well_copowered [GrothendieckTopos E] (A : E) :
-    True := trivial
+/-- WELL-COPOWERED: for each A, the class of covers A ↠ Q (up to isomorphism)
+    is bounded by a type in universe v. -/
+class WellCopowered (𝒞 : Type u) [Cat.{v} 𝒞] : Prop where
+  small : ∀ (A : 𝒞), ∃ (I : Type v) (codom : I → 𝒞) (cov : ∀ i, A ⟶ codom i)
+            (hcov : ∀ i, Cover (cov i)),
+            ∀ (Q : 𝒞) (q : A ⟶ Q) (_ : Cover q),
+              ∃ i : I, CoverIso (cov i) q
+
+/-- §1.843: A Grothendieck topos is WELL-COPOWERED.
+
+    BOOK PROOF: In any effective regular category, covers coincide with
+    comonics, and isomorphism-types of covers A ↠ Q correspond bijectively
+    to equivalence relations on A.  These are bounded by Sub(A × A),
+    which is a set since E is well-powered. -/
+instance grothendieck_topos_well_copowered [GrothendieckTopos E] : WellCopowered E where
+  small := by
+    -- Isomorphism types of covers A ↠ Q ↔ equivalence relations on A ↔ Sub(A×A).
+    -- Formal proof uses EffectiveRegular + grothendieck_topos_well_powered.
+    sorry
 
 /-! ## §1.844 A Grothendieck topos is locally complete ---------------------- -/
 
@@ -211,5 +246,20 @@ theorem coequalizer_is_coequalizer_in_Rel
   -- The unique solution is R' = (reciprocal (graph h)) ⊚ R.
   -- Needs E-standard reasoning and distributivity with arbitrary unions.
   sorry
+
+/-! ## §1.847 Special adjoint functor theorem applies ----------------------- -/
+
+/-
+  §1.847: A Grothendieck topos E is cocomplete (by definition), well-copowered
+  (§1.843), and has a generating set (by definition).  Rel(E) is locally small
+  (because E is well-powered: §1.843) and E → Rel(E) preserves coproducts
+  (§1.845) and coequalizers (§1.846), hence is cocontinuous.
+  By the special adjoint functor theorem (§1.83), the graphing functor
+  E → Rel(E) has a right adjoint.
+
+  MISSING: Requires Rel(E) as a formalized category (see §1.841–§1.842 note).
+  Once Rel(E) has a `Cat` instance this will follow from
+  `special_adjoint_functor_theorem` in S1_82.lean applied to the graphing functor.
+-/
 
 end Freyd
