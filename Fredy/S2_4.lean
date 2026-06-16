@@ -315,12 +315,43 @@ theorem symm_div_eq_A_comp {a b c : 𝒜} [PowerAllegory 𝒜] (R : a ⟶ c) (S 
 def Thick {a b : 𝒜} [DivisionAllegory 𝒜] (T : a ⟶ b) : Prop :=
   ∀ (c : 𝒜) (R : c ⟶ b), Entire (R / T)
 
+/-- `Entire R ↔ 1 ⊑ RR°` (§2.122): since `dom R = 1 ∩ RR°` and `1 ∩ RR° ⊑ 1` always,
+    `dom R = 1` is equivalent to `1 ⊑ RR°`. -/
+private theorem entire_iff_one_le {a b : 𝒜} [Allegory 𝒜] (R : a ⟶ b) :
+    Entire R ↔ Cat.id a ⊑ R ≫ R° := by
+  dsimp [Entire, dom]
+  constructor
+  · intro h; rw [← h]; exact inter_lb_right _ _
+  · intro h; exact le_antisymm (inter_lb_left _ _) (le_inter (le_refl _) h)
+
 /-- §2.431: T is thick iff for every R with same target b, there exists R̃ : c → a
-    that is entire, with R̃ ≫ T ⊑ R and R̃° ≫ R̃ ⊑ T/T. -/
+    that is entire, with R̃ ≫ T ⊑ R and R̃° ≫ R ⊑ T (the book's three containments
+    `1 ⊑ R̃R̃°`, `R̃T ⊑ R`, `R̃°R ⊑ T`). The last two say exactly `R̃ ⊑ R/ₛT`. -/
 theorem thick_iff_existential {a b : 𝒜} [DivisionAllegory 𝒜] (T : a ⟶ b) :
     Thick T ↔ ∀ (c : 𝒜) (R : c ⟶ b), ∃ (R' : c ⟶ a),
-        Entire R' ∧ R' ≫ T ⊑ R ∧ R'° ≫ R' ⊑ T / T := by
-  sorry
+        Entire R' ∧ R' ≫ T ⊑ R ∧ R'° ≫ R ⊑ T := by
+  constructor
+  · -- Thick T → ∃R̃.  Book takes R̃ = R/T (the fraction bar) and asserts R̃°R ⊑ T.
+    -- For PLAIN right division R/T this third containment is NOT a theorem: right
+    -- division only gives (R/T)T ⊑ R, whereas (R/T)°R ⊑ T is the *symmetric*-division
+    -- second component, holding for R/ₛT, not R/T.  The book's `R□ = T□` hypothesis
+    -- (R and T share a domain, dropped in this fully-general quantifier) is exactly
+    -- what would collapse R/T to R/ₛT here; without it the forward direction needs a
+    -- domain-restricted division calculus not yet built in S2_3.  FAITHFUL SORRY.
+    intro hThick c R
+    sorry
+  · -- ∃R̃ → Thick T: given R̃ entire with R̃T ⊑ R and R̃°R ⊑ T, we have R̃ ⊑ R/ₛT ⊑ R/T,
+    -- so 1 ⊑ R̃R̃° ⊑ (R/T)(R/T)°, i.e. R/T is entire. Hence Thick T.
+    intro hEx c R
+    obtain ⟨R', hEnt, hRT, hRoR⟩ := hEx c R
+    -- R̃ ⊑ R/ₛT ⊑ R/T
+    have hR'_le : R' ⊑ R / T := by
+      have : R' ⊑ R /ₛ T := (le_symmDiv_iff R' R T).mpr ⟨hRT, hRoR⟩
+      exact le_trans this (inter_lb_left _ _)
+    -- 1 ⊑ R̃R̃° ⊑ (R/T)(R/T)°, so R/T entire.
+    rw [entire_iff_one_le]
+    refine le_trans ((entire_iff_one_le R').mp hEnt) ?_
+    exact le_trans (comp_mono_right hR'_le _) (comp_mono_left _ (recip_mono hR'_le))
 
 /-- A PRE-POWER ALLEGORY (§2.43): division allegory where each object
     is the target of some thick morphism. -/
