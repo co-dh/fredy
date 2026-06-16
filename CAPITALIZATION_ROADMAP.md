@@ -68,11 +68,22 @@ Remaining (each ~40–80 lines, fights the `colimOut` rep transport):
    (push to a *constructed* stage so `homTr_comp`/`homTr_trans` match — the hom-colimit is indexed by
    `UpperBound`s, not bare stages); bound the two stages to `L`, transport both, so `homTr f₀`/`homTr g₀`
    are mutually inverse at `L`; `isIso_of_castHom` strips the cast to `IsIso (functF.map f₀)`.
-3. **Cover reflection / preservation** (cover = factor-through-mono ⇒ uses 2 + 2b). Cover PRESERVATION:
-   stage cover ⇒ colimitCat cover, via reflecting the test mono (2) + stage cover ⇒ stage iso +
-   iso PRESERVATION (`colimHom_isIso_of_rep`). Cover REFLECTION: colimitCat cover ⇒ stage cover, via
-   mono PRESERVATION (`colimHom_mono_of_rep`) of the test mono + colimitCat cover ⇒ colimitCat iso +
-   iso REFLECTION (2b) ⇒ stage iso. Both now have all their iso/mono lemmas.
+3. **Cover preservation** stage-cover-at-every-stage ⇒ colimitCat cover. ✅ **DONE, sorry-free**
+   (`colimHom_cover_of_rep` + `mono_castHom`/`cover_castHom`, axioms {propext, Classical.choice,
+   Quot.sound}). Reflect the test mono `m`/factor `g` to stage reps; `homCompRaw_eq_stage` brings
+   `g₀ ≫ m₀ = f₀` to a stage `N`; mono reflection (2) makes `m₀` monic at `N`; the stage cover `f₀`
+   (hypothesis `hcov : ∀ L, Cover (functF.map f₀)`) forces `m₀` iso at `N` (Cover def); iso
+   PRESERVATION (`colimHom_isIso_of_rep`) + `homIncl_compat` lift to `IsIso m`. (Imported `S1_51`
+   for `Cover`.)
+3b. **Cover reflection** colimitCat cover ⇒ stage cover. ☐ STILL OPEN. Two newly-confirmed
+   prerequisites (discovered while proving 3): (i) a **conservativity** hypothesis on the system,
+   `hcons : ∀ hij φ, IsIso (functF hij).map φ → IsIso φ` — iso reflection (2b) only yields a stage iso
+   at a *higher* stage `L'`, so without conservativity the test mono is iso at `L'` but not provably at
+   the original stage; slice projections `Σ:A/B→A` ARE conservative (an over-map iso in the base is iso
+   in the slice), so this is satisfiable. (ii) a **generalized inclusion** (include an *arbitrary* stage
+   morphism `m':z⟶w` as a `colimitCat` map `objIncl·z ⟶ objIncl·w`, not just the same-`i` `homInclObj`
+   case) — needed to feed the stage test-mono/factor into the colimitCat `Cover` hypothesis. This is the
+   same generalized-inclusion infrastructure flagged for (but ultimately avoided in) mono reflection.
 4. **Assembly**: arbitrary pullback cone ≅ canonical (§1.432) so `Cover` is iso-invariant; reflect
    `f`/pullback to a stage, stage `PullbacksTransferCovers`, preserve back ⇒ `PullbacksTransferCovers C.Obj`;
    bundle with terminal+products+pullbacks ⇒ `PreRegularCategory C.Obj`.

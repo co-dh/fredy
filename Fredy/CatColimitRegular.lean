@@ -8,6 +8,7 @@
 import Fredy.CatColimit
 import Fredy.S1_42
 import Fredy.S1_43
+import Fredy.S1_51
 open Freyd
 namespace Freyd.Colim
 universe u w
@@ -854,12 +855,36 @@ theorem colimHom_mono_reflects (C : CatSystem ι D) (hC : C.Coherent)
     homIncl_injective C hC hfaith xW xA ⟨s, hps, D.trans a.2.1 h_as⟩ (germ u) (germ v) hUVeq
   exact hfaith hjs u v (castHom_injective heq0.symm hcodA hgerm)
 
-/-- **Extract a stage equation from a colimit composite equal to the identity.**
-    If `homCompRaw a f b g = colimId` (as `homIncl … id`), then at some stage `N`
-    the pushed germs `f`, `g` compose to the stage identity.  `homCompRaw_eq_compAt`
-    presents the composite as one `homIncl`; `Quotient.exact` against the identity
-    `homIncl` gives a common stage `N`, where `homTr_comp` + `homTr_trans` + `homTr_id`
-    turn the equation into a plain stage identity. -/
+/-- **Extract a stage equation from a colimit composite equality.**  If
+    `homCompRaw uf f ug g = homIncl uh hh`, then at some stage `N` the pushed germs
+    `f`, `g` compose to the pushed `hh`.  `homCompRaw_eq_compAt` presents the composite
+    as one `homIncl`; `Quotient.exact` gives a common upper bound, which we push to a
+    *constructed* stage `L` (the hom-colimit is indexed by `UpperBound`s, not bare
+    stages, so its bounds aren't explicit constructors that `homTr_comp`/`homTr_trans`
+    can match) where the equation becomes a plain stage equation. -/
+theorem homCompRaw_eq_stage (C : CatSystem ι D) (hC : C.Coherent) {ip iq ir : ι}
+    (xp : C.A ip) (xq : C.A iq) (xr : C.A ir)
+    (uf : UpperBound D ip iq) (f : C.F uf.2.1 xp ⟶ C.F uf.2.2 xq)
+    (ug : UpperBound D iq ir) (g : C.F ug.2.1 xq ⟶ C.F ug.2.2 xr)
+    (uh : UpperBound D ip ir) (hh : C.F uh.2.1 xp ⟶ C.F uh.2.2 xr)
+    (h : homCompRaw C hC xp xq xr uf f ug g = homIncl C hC xp xr uh hh) :
+    ∃ (N : ι) (hfN : D.le uf.1 N) (hgN : D.le ug.1 N) (hhN : D.le uh.1 N),
+      homTr C xp xq uf ⟨N, D.trans uf.2.1 hfN, D.trans uf.2.2 hfN⟩ hfN f
+        ≫ homTr C xq xr ug ⟨N, D.trans ug.2.1 hgN, D.trans ug.2.2 hgN⟩ hgN g
+      = homTr C xp xr uh ⟨N, D.trans uh.2.1 hhN, D.trans uh.2.2 hhN⟩ hhN hh := by
+  obtain ⟨M, hfM, hgM⟩ := D.bound uf.1 ug.1
+  rw [homCompRaw_eq_compAt C hC xp xq xr uf f ug g M hfM hgM] at h
+  unfold compAt at h
+  obtain ⟨N, h1, h2, heq⟩ := Quotient.exact h
+  dsimp only [homSystem] at heq
+  obtain ⟨L, hNL, _⟩ := D.bound N.1 N.1
+  have key := congrArg (homTr C xp xr N ⟨L, D.trans N.2.1 hNL, D.trans N.2.2 hNL⟩ hNL) heq
+  rw [← homTr_trans C hC, ← homTr_trans C hC, homTr_comp C,
+      ← homTr_trans C hC, ← homTr_trans C hC] at key
+  exact ⟨L, D.trans hfM (D.trans h1 hNL), D.trans hgM (D.trans h1 hNL), D.trans h2 hNL, key⟩
+
+/-- **Stage equation from a colimit composite equal to the identity** — the `homIncl …
+    id` special case of `homCompRaw_eq_stage`, finished by `homTr_id`. -/
 theorem homCompRaw_eq_id_stage (C : CatSystem ι D) (hC : C.Coherent) {ip iq : ι}
     (xp : C.A ip) (xq : C.A iq)
     (a : UpperBound D ip iq) (f : C.F a.2.1 xp ⟶ C.F a.2.2 xq)
@@ -870,19 +895,10 @@ theorem homCompRaw_eq_id_stage (C : CatSystem ι D) (hC : C.Coherent) {ip iq : �
       homTr C xp xq a ⟨N, D.trans a.2.1 haN, D.trans a.2.2 haN⟩ haN f
         ≫ homTr C xq xp b ⟨N, D.trans b.2.1 hbN, D.trans b.2.2 hbN⟩ hbN g
       = Cat.id (C.F (D.trans a.2.1 haN) xp) := by
-  obtain ⟨M, haM, hbM⟩ := D.bound a.1 b.1
-  rw [homCompRaw_eq_compAt C hC xp xq xp a f b g M haM hbM] at h
-  unfold compAt at h
-  -- the hom-colimit is indexed by `UpperBound`s, so `N` here is an upper bound, not a
-  -- bare stage; push the equation to a *constructed* stage `L` where the bounds are
-  -- explicit constructors that `homTr_comp`/`homTr_trans` can match against.
-  obtain ⟨N, h1, h2, heq⟩ := Quotient.exact h
-  dsimp only [homSystem] at heq
-  obtain ⟨L, hNL, _⟩ := D.bound N.1 N.1
-  have key := congrArg (homTr C xp xp N ⟨L, D.trans N.2.1 hNL, D.trans N.2.2 hNL⟩ hNL) heq
-  rw [← homTr_trans C hC, ← homTr_trans C hC, homTr_comp C,
-      ← homTr_trans C hC, ← homTr_trans C hC, homTr_id C] at key
-  exact ⟨L, D.trans haM (D.trans h1 hNL), D.trans hbM (D.trans h1 hNL), key⟩
+  obtain ⟨N, haN, hbN, _, key⟩ := homCompRaw_eq_stage C hC xp xq xp a f b g
+    ⟨ip, D.refl ip, D.refl ip⟩ (Cat.id (C.F (D.refl ip) xp)) h
+  rw [homTr_id C] at key
+  exact ⟨N, haN, hbN, key⟩
 
 /-- `castHom` reflects isomorphisms (it's a transport along object equalities). -/
 theorem isIso_of_castHom {𝒜 : Type w} [Cat.{w} 𝒜] {X Y X' Y' : 𝒜}
@@ -941,6 +957,59 @@ theorem colimHom_isIso_reflects (C : CatSystem ι D) (hC : C.Coherent) {A B : C.
     ⟨homTr C xB xA b ⟨L, D.trans b.2.1 hbL, D.trans b.2.2 hbL⟩ hbL g₀, eq1L, eq2L⟩
   exact ⟨L, haL, isIso_of_castHom (C.F_trans a.2.1 haL xA).symm (C.F_trans a.2.2 haL xB).symm
     ((C.functF haL).map f₀) hisoL⟩
+
+/-- `castHom` carries monos to monos (transport along object equalities). -/
+theorem mono_castHom {𝒜 : Type w} [Cat.{w} 𝒜] {X Y X' Y' : 𝒜}
+    (hX : X = X') (hY : Y = Y') (m : X ⟶ Y) (h : Mono m) : Mono (castHom hX hY m) := by
+  subst hX; subst hY; exact h
+
+/-- `castHom` carries covers to covers (transport along object equalities). -/
+theorem cover_castHom {𝒜 : Type w} [Cat.{w} 𝒜] {X Y X' Y' : 𝒜}
+    (hX : X = X') (hY : Y = Y') (m : X ⟶ Y) (h : Cover m) : Cover (castHom hX hY m) := by
+  subst hX; subst hY; exact h
+
+/-- **Cover preservation:** if the stage germ `f₀` is a cover at *every* stage it is
+    transported to (`hcov`), then `homIncl a f₀` is a cover in `colimitCat`.  Given a
+    `colimitCat` mono `m` factoring `homIncl a f₀` through `g`, reflect `m, g` to stage
+    reps; `homCompRaw_eq_stage` brings the factorization `g₀ ≫ m₀ = f₀` to a common
+    stage `N`; mono reflection makes `m₀` monic at `N`, and the stage cover `f₀` (via
+    `hcov`) forces `m₀` to be a stage iso (`monic_cover_iso`); iso preservation
+    (`colimHom_isIso_of_rep`) + `homIncl_compat` lift that back to `IsIso m`. -/
+theorem colimHom_cover_of_rep (C : CatSystem ι D) (hC : C.Coherent)
+    (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (p q : x ⟶ y),
+        (C.functF hij).map p = (C.functF hij).map q → p = q)
+    {A B : C.Obj}
+    (a : UpperBound D (colimOut C A).1 (colimOut C B).1)
+    (f₀ : C.F a.2.1 (colimOut C A).2 ⟶ C.F a.2.2 (colimOut C B).2)
+    (hcov : ∀ (L : ι) (haL : D.le a.1 L), Cover ((C.functF haL).map f₀)) :
+    @Cover C.Obj (colimitCat C hC) A B (homIncl C hC (colimOut C A).2 (colimOut C B).2 a f₀) := by
+  letI : Cat C.Obj := colimitCat C hC
+  let xA := (colimOut C A).2; let xB := (colimOut C B).2
+  intro Cobj m g hm hgm
+  let xC := (colimOut C Cobj).2
+  revert hm hgm
+  refine Quotient.inductionOn₂ m g (fun mrep grep => ?_)
+  obtain ⟨bm, m₀⟩ := mrep
+  obtain ⟨bg, g₀⟩ := grep
+  intro hm hgm
+  -- bring the factorization `g₀ ≫ m₀ = f₀` to a common stage `N`
+  have hgm' : homCompRaw C hC xA xC xB bg g₀ bm m₀ = homIncl C hC xA xB a f₀ := hgm
+  obtain ⟨N, hgN, hmN, hfN, eqN⟩ := homCompRaw_eq_stage C hC xA xC xB bg g₀ bm m₀ a f₀ hgm'
+  -- `m₀` is monic at `N` (mono reflection); `f₀` is a cover at `N` (`hcov`)
+  have hm_map : Mono ((C.functF hmN).map m₀) :=
+    fun {W} u v huv => colimHom_mono_reflects C hC hfaith bm m₀ hm hmN W u v huv
+  have hm_N : Mono (homTr C xC xB bm ⟨N, D.trans bm.2.1 hmN, D.trans bm.2.2 hmN⟩ hmN m₀) :=
+    mono_castHom _ _ _ hm_map
+  have hcov_N : Cover (homTr C xA xB a ⟨N, D.trans a.2.1 hfN, D.trans a.2.2 hfN⟩ hfN f₀) :=
+    cover_castHom _ _ _ (hcov N hfN)
+  -- the stage mono `m₀ @ N` factors the stage cover `f₀ @ N`, so it is a stage iso
+  have hiso_mN : IsIso (homTr C xC xB bm ⟨N, D.trans bm.2.1 hmN, D.trans bm.2.2 hmN⟩ hmN m₀) :=
+    hcov_N _ _ hm_N eqN
+  obtain ⟨n_N, hn1, hn2⟩ := hiso_mN
+  -- lift the stage iso to `colimitCat` and absorb the push
+  have hlift := colimHom_isIso_of_rep C hC ⟨N, D.trans bm.2.1 hmN, D.trans bm.2.2 hmN⟩
+    (homTr C xC xB bm ⟨N, D.trans bm.2.1 hmN, D.trans bm.2.2 hmN⟩ hmN m₀) n_N hn1 hn2
+  rwa [homIncl_compat C hC xC xB hmN m₀] at hlift
 
 /-- A witness that the `colimOut` representatives of `objIncl i x` and `objIncl i y`
     both agree with `x`, `y` at a common stage `K` — the data needed to transport a
