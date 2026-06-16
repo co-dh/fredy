@@ -55,43 +55,52 @@ lifting / capital-closure as the residual (see `capData_exists` docstring).
 | `towerObj`          | object family of the tower `CatSystem`: `i ↦ (stageBundle b i.down).carrier`                   | DONE |
 | `towerF`            | the `≤`-indexed transition `towerObj i → towerObj j`, casting `transN i (j-i)` along `i+(j-i)=j` | DONE |
 
-`transNFaithful` is the key sorry-free advance: once the `CatSystem` is assembled, it
-discharges the `hfaith`/`hcons` fields of `CapData` directly (every iterated transition is
-faithful, hence conservative).
+## CatSystem assembly — sub-step (1) now COMPLETE (sorry-free, `propext`/`Quot.sound`-only)
 
-## The single remaining `sorry`
+The `Nat`-difference cast `i + (j - i) = j` is handled by a layer of carrier-cast helpers, so
+`towerF` becomes an honest `≤`-indexed `CatSystem.F` with full coherence — no "motive is not
+type correct" remains.  All of the following are sorry-free and **constructive** (axiom-clean:
+`towerSystem`/`towerCoherent` use only `propext`/`Quot.sound`, no `Classical.choice`).
+
+| name                       | statement                                                                                        | status |
+|----------------------------|--------------------------------------------------------------------------------------------------|--------|
+| `stageCast`/`stageCastHom` | transport an object / morphism across the stage-carrier equality `stage m = stage n` for `m = n` | DONE |
+| `stageCast_heq`/`stageCastHom_heq` | the transports are `HEq` to the original (the coherence engine)                          | DONE |
+| `stageCastHom_id`/`_comp`/`_injective`/`_isIso_reflects` | the morphism transport is functorial and an iso              | DONE |
+| `stageStep_stageCast`      | the successor rung commutes with the stage-cast                                                   | DONE |
+| `transN_add`               | object additivity `transN n (d+e) = transN (n+d) e ∘ transN n d` (mod carrier id)                | DONE |
+| `transN_add_heq`/`transN_congr_heq` | additivity / base-congruence in `HEq` form                                              | DONE |
+| `transNFun_map_add`        | **morphism** additivity of the difference functor (HEq), by induction on `e`                      | DONE |
+| `transNFun_map_congr_heq`/`stageStepFun_map_congr_heq` | `.map` respects `HEq` of args at carrier-equal stages          | DONE |
+| `towerFmap`/`towerFunctF`  | the `≤`-transition's morphism map and its `Functor` structure (cast of `transNFun`)               | DONE |
+| **`towerSystem`**          | **the ω-tower as a `CatSystem.{u,u} (ULift Nat) uliftNatDirected`** (`F_refl`/`F_trans` via the casts) | DONE |
+| **`towerCoherent`**        | **its `Coherent` proof** (`refl_map`/`trans_map`) — both from the `HEq`-transparency principle    | DONE |
+| `towerHfaith`/`towerHcons` | the tower transitions are faithful/conservative (cast-drop + `transNFaithful`)                    | DONE |
+| **`capData_of_tower`**     | **assembles a full `CapData A`** from `towerSystem` + the preservation package + capital closure   | DONE |
+
+`capData_of_tower` is the new packaging endpoint: it takes a uniform successor `nextStep`, the
+`colimitPreRegular` preservation hypotheses for the tower, and the capital-closure proof, and
+returns `CapData A` with `base = id` (stage 0 is `A`), `hfaith`/`hcons` discharged by
+`towerHfaith`/`towerHcons`.  Everything categorical is now closed.
+
+## The single remaining `sorry` (reduced to two bundled walls)
 
 `Freyd.capData_exists : (A : Type u) [Cat.{u} A] [PreRegularCategory A] → Nonempty (CapData A)`
 
-This is the genuine wall — the transfinite construction itself.  Freyd: `A₀ = A`,
-`A_{α+1} = (A_α)*` (relative capitalization §1.545: the directed union over well-supported `B`
-of the slices `A_α/B`, faithful pre-regular by §1.544 `slice_embedding_separates`),
-`A_λ = colim_{β<λ} A_β`; closes at a regular cardinal `κ > |A|`.  Packaging it as a `CapData`
-requires three substantial sub-steps, none a one-lemma gap:
+The proof now invokes `capData_of_tower`, so the only `sorry` is a **single bundled existential
+`hwall`** producing exactly the two genuine §1.543 inputs `capData_of_tower` consumes:
 
-1. **Type-level transfinite recursion** whose limit-stage *type* is the colimit of its
-   predecessors (`colimitCat`) — producing the `ι` / `D` / `CatSystem` of the tower.
-2. **The slice successor functor** `A_α → (A_α)*` as a coherent, faithful, pre-regular-
-   preserving `CatSystem` transition.  Blocker: `PreRegularCategory (Over B)` is not yet
-   established — `S1_44` gives `Over B` its `HasTerminal` and `HasPullbacks`, but
-   `HasBinaryProducts (Over B)` and `PullbacksTransferCovers (Over B)` are still missing.
-3. **The capital-closure proof** (`CapData.capital`): every well-supported object of the
-   colimit appears at some stage `α<κ`, gets a point at `α+1`, and the point survives to the
-   colimit by cover reflection.  The reflection lemmas it needs (`colimHom_cover_reflects`,
-   `homInclObj_cover_reflects`) are already proved in `CatColimitRegular`.
+1. **The uniform pre-regular-preserving successor** `nextStep : ∀ S, CapStep S` (§1.544/§1.545
+   slice successor `A ↦ A/B`, now buildable from `overPreRegular = PreRegularCategory (Over B)`
+   in `SliceRegular.lean` + the §1.544 separation), **together with the per-`i ≤ j` preservation
+   package** for its tower (`ht`/`htpres`/`hp`/`hppres`/…/`hcanon`) — i.e. lifting the single-rung
+   preservation to arbitrary `i ≤ j` by composing rungs.
+2. **The capital closure** of the tower's colimit (§1.543 fixpoint: every well-supported object
+   appears at a finite stage `n`, gets a point at `n+1`, and the point survives by cover
+   reflection `colimHom_cover_reflects`/`homInclObj_cover_reflects`, already proved in
+   `CatColimitRegular`).
 
-The hard "colimit of pre-regular categories is pre-regular" (`colimitPreRegular`) and the
-faithful stage-injection (`stageInclFaithful`) are already in hand, so this `CapData`
-existence is precisely the residual obligation.
-
-### Current state of the residual (after the ω-tower scaffolding)
-
-The scaffolding table above reduces sub-step (1) to a single concrete obstruction:
-**assembling `towerObj`/`towerF` into a `CatSystem (ULift Nat) uliftNatDirected`**.  `towerF` is
-defined sorry-free, but its `CatSystem` laws (`F_refl`, `F_trans`) and `Coherent`
-(`refl_map`/`trans_map`) require eliminating the `Nat`-difference cast `i + (j - i) = j` inside a
-dependent motive — the classic "motive is not type correct" heterogeneous-cast bookkeeping.
-This is the sharp blocker isolated for sub-step (1); it is mechanical but cast-heavy, and was
-not completed here.  Sub-step (2) (preservation lifting to arbitrary `i ≤ j`) and sub-step (3)
-(capital closure + the `nextStep` slice-successor needing `PreRegularCategory (Over B)`) remain
-as stated.  `transNFaithful` already discharges `hfaith`/`hcons` once the system exists.
+Both are bundled into the one `hwall` existential; everything downstream of it is sorry-free.
+`PreRegularCategory (Over B)` (previously the blocker for the successor) is now available as
+`Freyd.overPreRegular`, so wall (1) is unblocked at the interface level — what remains is the
+explicit slice-successor construction and the rung-composition preservation lift.
