@@ -244,21 +244,16 @@ theorem le_relUnion {A B : 𝒞} {R S U : BinRel 𝒞 A B}
     Distributivity: R ∩ (S ∪ T) ≡ (R ∩ S) ∪ (R ∩ T). -/
 theorem rel_inter_union_le {A B : 𝒞} (R S T : BinRel 𝒞 A B) :
     RelLe (R ⊓ (S ∪ᵣ T)) ((R ⊓ S) ∪ᵣ (R ⊓ T)) := by
-  -- R ⊓ (S∪T) ≤ R and ≤ S∪T
-  have hR  := intersect_le_left R (S ∪ᵣ T)
-  have hST := intersect_le_right R (S ∪ᵣ T)
-  -- S∪T = (S∪T), so hST : R⊓(S∪T) ≤ S∪T
-  -- We need R⊓(S∪T) ≤ (R⊓S)∪(R⊓T).
-  -- Since R⊓(S∪T) ≤ R, it suffices to split via S vs T.
-  -- Strategy: use universal property of (R⊓S)∪(R⊓T) with the two legs:
-  --   R⊓S ≤ (R⊓S)∪(R⊓T) and R⊓T ≤ (R⊓S)∪(R⊓T).
-  -- The difficult part: showing R⊓(S∪T) factors through (R⊓S)∪(R⊓T).
-  -- In a pre-logos this follows from inverse-image preserving unions.
-  -- For the relational calculus: we show the intersection witnesses factor.
-  -- R⊓(S∪T) ≤ (R⊓S)∪(R⊓T) means: for any f witnessing R⊓(S∪T), it
-  -- factors through (R⊓S)∪(R⊓T). This requires the image to split,
-  -- which needs the pre-logos axiom (inverse image preserves unions).
-  -- Faithful statement; proof needs PreLogos.invImage_preserves_union.
+  -- BLOCKER (§1.616, book needs [PreLogos] + BinRel↔Sub(A×B) bridge):
+  -- `R ⊓ U` is definitionally `InverseImage (pair R.colA R.colB) U_sub` (same pullback)
+  -- and `relUnion S T` is the image of the copairing, which equals
+  -- `HasSubobjectUnions.union S_sub T_sub` (by union_via_coproduct_image + S1_61).
+  -- With [PreLogos], `invImage_preserves_union` gives the forward `Subobject.le` in Sub(R.src),
+  -- but that lives in a DIFFERENT universe than the BinRel `RelLe` (which requires equations
+  -- over colA/colB mapping to A×B, not over the abstract `.arr : InvImg.dom → R.src`).
+  -- Bridging requires `relSub : BinRel 𝒞 A B → Subobject 𝒞 (prod A B)` plus
+  -- `relUnion R S ≈ HasSubobjectUnions.union (relSub R) (relSub S)` — absent in this repo.
+  -- The statement is faithful (Freyd §1.616); false without pre-logos.
   sorry
 
 /-- §1.616: (R ∩ S) ∪ (R ∩ T) ≤ R ∩ (S ∪ T) — the reverse always holds. -/
@@ -272,9 +267,16 @@ theorem rel_union_inter_le {A B : 𝒞} (R S T : BinRel 𝒞 A B) :
     Proof relies on direct images preserving unions (book §1.616). -/
 theorem compose_union_right {A B C : 𝒞} (R : BinRel 𝒞 A B) (S T : BinRel 𝒞 B C) :
     RelLe (R ⊚ (S ∪ᵣ T)) ((R ⊚ S) ∪ᵣ (R ⊚ T)) := by
-  -- R⊚S ≤ R⊚(S∪T) and R⊚T ≤ R⊚(S∪T) would give (R⊚S)∪(R⊚T) ≤ R⊚(S∪T).
-  -- The forward direction R⊚(S∪T) ≤ (R⊚S)∪(R⊚T) needs direct image to preserve unions.
-  -- This is the key fact of §1.616 (direct images always preserve unions in a logos/pre-logos).
+  -- KNOWN-HARD BLOCKER (§1.616, "direct images preserve unions"):
+  -- R⊚U = image(spanU) where spanU : pbU.pt → A×C, pbU = pullback(R.colB, U.colA).
+  -- Every proof route for R⊚(S∪T) ≤ (R⊚S)∪(R⊚T) reduces to splitting pbST.pt
+  -- (pullback of R.colB along (S∪T).colA) into pbS.pt ⊕ pbT.pt — which requires
+  -- COPRODUCT EXTENSIVITY (cover(case s₁ t₁) where s₁,t₁ are pullbacks of the
+  -- coproduct injections along pbST.π₂) — strictly beyond [RegularCategory].
+  -- The book's route (Freyd §1.616) uses a FIXED projection π_BC : A×B×C → B×C and
+  -- reformulates R⊚S as a direct image, but that needs a ternary product A×B×C which
+  -- does not exist in this repo (grep prodMap/ternary → empty).
+  -- False without [PreLogos] (need "direct images preserve unions" = the §1.616 content).
   sorry
 
 /-- §1.616: (R⊚S) ∪ (R⊚T) ≤ R ⊚ (S ∪ T) — always holds. -/
