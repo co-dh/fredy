@@ -575,6 +575,41 @@ theorem eqMap_iso_of_eq {𝒟 : Type u} [Cat.{v} 𝒟] [HasEqualizers 𝒟]
     rw [h1, ← h2]
   exact ⟨eL, hem_eL, heL_fac⟩
 
+/-- An isomorphism is an equalizer of any parallel pair it equalizes: if
+    `m : E ⟶ A` is iso and `m ≫ f = m ≫ g`, then `(E, m)` is the equalizer
+    of `f, g`.  (Choice-free: the lift of a cone `d` is `d.map ≫ m⁻¹`.) -/
+theorem isEqualizer_of_isIso {𝒟 : Type u} [Cat.{v} 𝒟]
+    {A B E : 𝒟} {f g : A ⟶ B} (m : E ⟶ A) (hm : m ≫ f = m ≫ g)
+    (hmi : IsIso m) : (EqualizerCone.mk E m hm).IsEqualizer := by
+  obtain ⟨n, hmn, hnm⟩ := hmi
+  intro d
+  refine ⟨d.map ≫ n, ?_, ?_⟩
+  · show (d.map ≫ n) ≫ m = d.map
+    rw [Cat.assoc, hnm, Cat.comp_id]
+  · intro v hv
+    -- v = v ≫ (m ≫ n) = (v ≫ m) ≫ n = d.map ≫ n
+    calc v = v ≫ Cat.id E := (Cat.comp_id _).symm
+      _ = v ≫ (m ≫ n)    := by rw [hmn]
+      _ = (v ≫ m) ≫ n    := (Cat.assoc _ _ _).symm
+      _ = d.map ≫ n      := by rw [hv]
+
+/-- Conversely, if `(E, m)` is an equalizer of a pair of EQUAL maps `f = g`
+    (so the constraint is vacuous and the codomain `A` itself, with `1_A`, is a
+    cone), then `m` is an isomorphism.  This is the reflection-of-isos kernel:
+    `f` iso ⟺ `(dom f, f)` is an equalizer of `1_B, 1_B`. -/
+theorem isIso_of_isEqualizer_id {𝒟 : Type u} [Cat.{v} 𝒟]
+    {A B E : 𝒟} {f g : A ⟶ B} {m : E ⟶ A} (hfg : f = g)
+    {hm : m ≫ f = m ≫ g} (heq : (EqualizerCone.mk E m hm).IsEqualizer) :
+    IsIso m := by
+  -- `(A, 1_A)` is a cone over `(f, g)` since `1_A ≫ f = 1_A ≫ g` (as `f = g`).
+  have hid : Cat.id A ≫ f = Cat.id A ≫ g := by rw [Cat.id_comp, Cat.id_comp, hfg]
+  obtain ⟨n, hn, _⟩ := heq (EqualizerCone.mk A (Cat.id A) hid)
+  -- n : A ⟶ E with n ≫ m = 1_A.  Show m ≫ n = 1_E via uniqueness on cone (E, m).
+  refine ⟨n, ?_, hn⟩
+  obtain ⟨_, _, huniq⟩ := heq (EqualizerCone.mk E m hm)
+  have e1 : (m ≫ n) ≫ m = m := by rw [Cat.assoc, hn, Cat.comp_id]
+  rw [huniq (m ≫ n) e1, huniq (Cat.id E) (Cat.id_comp _)]
+
 /-- Two pullback cones over the same cospan have a canonical comparison map
     that is an isomorphism (pullbacks are unique up to iso). -/
 theorem isIso_of_two_pullbacks {𝒟 : Type u} [Cat.{v} 𝒟]
@@ -862,15 +897,24 @@ section S1_438
 variable {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
 variable (F : 𝒞 → 𝒟) [hF : Functor F]
 
-/-- A functor REFLECTS EQUALIZERS if: whenever `F` carries a cone to an
-    equalizer cone in `𝒟`, the original cone is an equalizer cone in `𝒞`. -/
+/-- The `F`-image of an equalizer cone `c` over `(f, g)`: the cone
+    `(F c.dom, F c.map)` over `(Ff, Fg)`.  Its commutation law transports
+    `c.eq` through `map_comp`. -/
+def FImageEqCone [HasEqualizers 𝒞] [HasEqualizers 𝒟] {A B : 𝒞} {f g : A ⟶ B}
+    (c : EqualizerCone f g) : EqualizerCone (hF.map f) (hF.map g) :=
+  { dom := F c.dom, map := hF.map c.map
+    eq := by rw [← hF.map_comp, ← hF.map_comp, c.eq] }
+
+/-- A functor REFLECTS EQUALIZERS (general-cone form) if: whenever `F` carries
+    an equalizer cone `c` over `(f, g)` to an *equalizer* cone in `𝒟`
+    (i.e. `FImageEqCone c` is an equalizer), then `c` was already an equalizer
+    cone in `𝒞`.  This is the genuine cone-reflection property — strictly
+    stronger than merely making the chosen comparison map iso, and it is what
+    §1.438 needs (a single `f : A ⟶ B`, viewed as a cone over `1_B, 1_B`,
+    must be reflected, not just the chosen equalizer's comparison). -/
 def ReflectsEqualizers [HasEqualizers 𝒞] [HasEqualizers 𝒟] : Prop :=
-  ∀ {A B : 𝒞} (f g : A ⟶ B),
-    IsIso ((HasEqualizers.eq (F A) (F B) (hF.map f) (hF.map g)).lift
-            { dom := F (eqObj f g)
-              map := hF.map (eqMap f g)
-              eq  := by rw [← hF.map_comp, ← hF.map_comp, eqMap_eq] }) →
-    IsIso (eqLift f g (eqMap f g) (eqMap_eq f g) ≫ eqMap f g)  -- i.e. eqMap is split-monic
+  ∀ {A B : 𝒞} {f g : A ⟶ B} (c : EqualizerCone f g),
+    (FImageEqCone F c).IsEqualizer → c.IsEqualizer
 
 /-- **§1.438**: A functor that reflects equalizers reflects isomorphisms.
 
@@ -881,7 +925,19 @@ def ReflectsEqualizers [HasEqualizers 𝒞] [HasEqualizers 𝒟] : Prop :=
 theorem reflects_equalizers_reflects_isos [HasEqualizers 𝒞] [HasEqualizers 𝒟]
     (hre : ReflectsEqualizers F) :
     ∀ {A B : 𝒞} (f : A ⟶ B), IsIso (hF.map f) → IsIso f := by
-  sorry
+  intro A B f hFf
+  -- View `f` as a cone over the parallel pair `(1_B, 1_B)`: trivially
+  -- `f ≫ 1_B = f ≫ 1_B`.
+  have hceq : f ≫ Cat.id B = f ≫ Cat.id B := rfl
+  let c : EqualizerCone (Cat.id B) (Cat.id B) := EqualizerCone.mk A f hceq
+  -- The F-image cone `(F A, F f)` is an equalizer in `𝒟`: `F f` is iso and
+  -- equalizes the (equal) pair `(F 1_B, F 1_B)`.
+  have hFimg : (FImageEqCone F c).IsEqualizer :=
+    isEqualizer_of_isIso (FImageEqCone F c).map (FImageEqCone F c).eq hFf
+  -- Reflect: `c = (A, f)` is an equalizer of `(1_B, 1_B)` in `𝒞`.
+  have hc : c.IsEqualizer := hre c hFimg
+  -- An equalizer of the equal pair `(1_B, 1_B)` is an iso.
+  exact isIso_of_isEqualizer_id (f := Cat.id B) (g := Cat.id B) rfl hc
 
 /-- **§1.438**: A source-category-with-equalizers functor that preserves
     equalizers and reflects isomorphisms is faithful (an embedding).
