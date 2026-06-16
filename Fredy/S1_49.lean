@@ -679,20 +679,97 @@ theorem expansionLemma {τ : TCat 𝒞} {tab : Table 𝒞} {j : Fin tab.len}
 /-- §1.494 corollary: any expansion of a τ-table is a τ-table.
     If `(T; x₁,…,xₙ) ∈ τ` and `xₙ₊₁ : T → B`, then `(T; x₁,…,xₙ,xₙ₊₁) ∈ τ`.
     The extra column is short since the original columns already separate all points.
-    We state this over an explicit expanded Table. -/
+    We state this over an explicit expanded Table; codomain equalities carried explicitly
+    so that `tab'.prune last = tab` can be established via `Table_eq_of_fields`. -/
 theorem mem_expansion (τ : TCat 𝒞) (tab : Table 𝒞) (hmem : τ.mem tab)
     (B : 𝒞) (extra : tab.src ⟶ B)
-    -- tab' is the expansion: same src, one more column appended
     (tab' : Table 𝒞)
     (hSrc : tab'.src = tab.src)
     (hLen : tab'.len = tab.len + 1)
-    -- first tab.len columns of tab' agree with tab
+    -- codomain equalities (needed for Table_eq_of_fields; not derivable from HEq alone)
+    (hCodEq : ∀ i : Fin tab.len, tab'.codom (hLen ▸ Fin.castSucc i) = tab.codom i)
+    (hCodLast : tab'.codom (hLen ▸ Fin.last tab.len) = B)
+    -- column equalities (HEq since source objects differ by hSrc)
     (hCols : ∀ i : Fin tab.len,
       HEq (tab'.col (hLen ▸ Fin.castSucc i)) (hSrc ▸ tab.col i))
-    -- last column of tab' is extra
     (hLast : HEq (tab'.col (hLen ▸ Fin.last tab.len)) (hSrc ▸ extra)) :
     τ.mem tab' := by
-  sorry
+  let j : Fin tab'.len := hLen ▸ Fin.last tab.len
+  have hj_val : j.val = tab.len := by simp [j, fin_cast_val]
+  -- Last column j is short: f,g agreeing on earlier cols agree by tab.monic.
+  have hShort : tab'.IsShort j := by
+    intro X f g hAgree
+    -- hSrc ▸ tab.col i is domain cast: tab.src → tab'.src (= hSrc.symm ▸ tab.col i).
+    -- We denote it by notation in hCols but use eqRec_heq hSrc.symm for HEq proofs.
+    have key : ∀ i : Fin tab.len,
+        (hSrc ▸ f : X ⟶ tab.src) ≫ tab.col i = (hSrc ▸ g) ≫ tab.col i := by
+      intro i
+      have hi_lt : (hLen ▸ Fin.castSucc i : Fin tab'.len).val < j.val := by
+        simp [fin_cast_val, hj_val]
+      have hAg := hAgree (hLen ▸ Fin.castSucc i) hi_lt
+      -- (hSrc▸f) ≫ col i ≍ f ≫ (hSrc.symm▸col i) [comp_heq; castCod_heq; eqRec_heq]
+      -- f ≫ (hSrc.symm▸col i) ≍ f ≫ tab'.col (castSucc i) [comp_heq_left; (hCols i).symm]
+      -- f ≫ tab'.col ... = g ≫ tab'.col ...  [hAg]
+      -- g ≫ tab'.col ... ≍ g ≫ (hSrc.symm▸col i) ≍ (hSrc▸g) ≫ col i
+      apply eq_of_heq
+      -- Step 1: (hSrc▸f) ≫ col i ≍ f ≫ (hSrc.symm▸col i)
+      have heq_col_cast : HEq (tab.col i) (hSrc.symm ▸ tab.col i) :=
+        (@eqRec_heq 𝒞 (fun x => x ⟶ tab.codom i) tab.src tab'.src hSrc.symm (tab.col i)).symm
+      have step1f : HEq ((hSrc ▸ f) ≫ tab.col i) (f ≫ (hSrc.symm ▸ tab.col i)) :=
+        comp_heq (hSrc ▸ f) f (tab.col i) (hSrc.symm ▸ tab.col i)
+          rfl hSrc.symm rfl (castCod_heq hSrc f) heq_col_cast
+      -- Step 2: f ≫ (hSrc.symm▸col i) ≍ f ≫ tab'.col (castSucc i)  [via (hCols i).symm]
+      have step2f : HEq (f ≫ (hSrc.symm ▸ tab.col i)) (f ≫ tab'.col (hLen ▸ Fin.castSucc i)) :=
+        comp_heq_left f (hSrc.symm ▸ tab.col i) (tab'.col (hLen ▸ Fin.castSucc i))
+          (hCodEq i).symm (hCols i).symm
+      -- Step 3: g ≫ tab'.col ... ≍ g ≫ (hSrc.symm▸col i) ≍ (hSrc▸g) ≫ col i
+      have step3g : HEq (g ≫ tab'.col (hLen ▸ Fin.castSucc i)) (g ≫ (hSrc.symm ▸ tab.col i)) :=
+        comp_heq_left g (tab'.col (hLen ▸ Fin.castSucc i)) (hSrc.symm ▸ tab.col i)
+          (hCodEq i) (hCols i)
+      have step4g : HEq (g ≫ (hSrc.symm ▸ tab.col i)) ((hSrc ▸ g) ≫ tab.col i) :=
+        (comp_heq (hSrc ▸ g) g (tab.col i) (hSrc.symm ▸ tab.col i)
+          rfl hSrc.symm rfl (castCod_heq hSrc g) heq_col_cast).symm
+      exact step1f.trans (step2f.trans (heq_of_eq hAg |>.trans (step3g.trans step4g)))
+    have hfg : (hSrc ▸ f : X ⟶ tab.src) = hSrc ▸ g := tab.monic _ _ key
+    -- recover f = g: castCod_heq hSrc f : HEq (hSrc▸f) f, so f ≍ hSrc▸f = hSrc▸g ≍ g
+    have hfg' : f = g :=
+      eq_of_heq ((castCod_heq hSrc f).symm.trans (heq_of_eq hfg |>.trans (castCod_heq hSrc g)))
+    rw [hfg']
+  apply mem_of_prune_mem tab' j hShort
+  have hLenPrune : tab'.len - 1 = tab.len := by omega
+  have hskip_val : ∀ i : Fin (tab'.len - 1), (Fin.skip j i).val = i.val := by
+    intro i; have hi_lt : i.val < j.val := by have := i.isLt; simp [hj_val]; omega
+    simp [Fin.skip, hi_lt]
+  have hskip_eq : ∀ i : Fin (tab'.len - 1),
+      Fin.skip j i = hLen ▸ Fin.castSucc (hLenPrune ▸ i) := by
+    intro i; apply Fin.ext; simp [hskip_val i, fin_cast_val, Fin.val_castSucc]
+  have hCodPt : ∀ i : Fin (tab'.len - 1),
+      (tab'.prune j hShort).codom i = tab.codom (hLenPrune ▸ i) := by
+    intro i; simp only [Table.prune, hskip_eq i]; exact hCodEq (hLenPrune ▸ i)
+  have hPruneEq : tab'.prune j hShort = tab := by
+    apply Table_eq_of_fields (tab'.prune j hShort) tab hSrc hLenPrune
+    · apply heq_funext_fin hLenPrune
+      intro i; simp only [Table.prune]; exact hCodPt i
+    · apply @Table.col_heq_funext 𝒞 _ (tab'.prune j hShort) tab hSrc hLenPrune hCodPt
+      intro i
+      -- i : Fin (tab'.prune j hShort).len = Fin (tab'.len - 1)
+      -- Coerce i to the right Fin type for hskip_eq
+      have hilen : i.val < tab.len := by
+        have h1 := i.isLt; simp only [Table.prune] at h1; omega
+      let k : Fin tab.len := ⟨i.val, hilen⟩
+      have hi_prune_lt : i.val < tab'.len - 1 := by
+        have h1 := i.isLt; simp only [Table.prune] at h1; omega
+      let i' : Fin (tab'.len - 1) := ⟨i.val, hi_prune_lt⟩
+      have hi'_eq_i : i = i'.castLE (by simp [Table.prune]) := by simp [i', Fin.ext_iff]
+      simp only [Table.prune] at *
+      rw [show (i : Fin (tab'.len - 1)) = i' from rfl, hskip_eq i']
+      -- goal: HEq (tab'.col (hLen ▸ (hLenPrune ▸ i').castSucc)) (tab.col (hLenPrune ▸ i'))
+      -- note: hLenPrune ▸ i' = k (same val)
+      have hki' : hLenPrune ▸ i' = k := Fin.ext (by simp [i', k, fin_cast_val])
+      rw [hki']
+      exact (hCols k).trans
+        (@eqRec_heq 𝒞 (fun x => x ⟶ tab.codom k) tab.src tab'.src hSrc.symm (tab.col k))
+  rw [hPruneEq]; exact hmem
 
 end TCat
 
@@ -712,19 +789,47 @@ theorem subterminator_one_col_mem (τ : TCat 𝒞) {T T' : 𝒞} (hSub : Subterm
         codom := fun _ => T'
         col   := fun _ => f
         monic := by
-          intro X g h hAg
-          -- T is a subterminator: T → one is monic; g, h : X → T;
-          -- we need g = h. Use hSub: g ≫ term T = h ≫ term T → g = h.
-          apply hSub
-          apply term_uniq } := by
-  -- (T; f) has f short: any g,h with g≫f = h≫f satisfy g = h by subterminator.
-  -- So the last column (the only column) is short, and after pruning we get the 0-column
-  -- table on T. The 0-column table is... actually we want to show (T;f) ∈ τ via tau2_comp.
-  -- Alternatively: idTable T ∈ τ (tau2_id), and (T; id_T, f) ≅ (T; id_T) ; (T; f) via comp.
-  -- A cleaner path: f is short (subterminator monic), so (T; id_T, f).prune last ≅ idTable T ∈ τ.
-  -- By expansionLemma (sorry inside), (T; id_T, f) ∈ τ, and pruning first column gives (T; f).
-  -- All these steps rely on the expansion lemma whose converse is sorry; mark sorry here too.
-  sorry
+          intro X g h _hAg; apply hSub; apply term_uniq } := by
+  -- Build tab2 = (T; id_T, f): expansion of idTable T by column f.
+  -- codom: Fin 2 → 𝒞 with [T, T']; col: Fin 2 → hom with [id_T, f]
+  let codom2 : Fin 2 → 𝒞 := fun i => if i.val = 0 then T else T'
+  let col2 : (i : Fin 2) → T ⟶ codom2 i := fun i => by
+    simp only [codom2]; split
+    · exact Cat.id T
+    · exact f
+  let tab2 : Table 𝒞 :=
+    { src   := T
+      len   := 2
+      codom := codom2
+      col   := col2
+      monic := by
+        intro X g h _hAg; apply hSub; apply term_uniq }
+  have hmem_id : τ.mem (idTable T) := τ.tau2_id T
+  -- tab2 ∈ τ via mem_expansion: idTable T + extra col f
+  have hmem2 : τ.mem tab2 :=
+    mem_expansion τ (idTable T) hmem_id T' f tab2 rfl rfl
+      (by intro i; fin_cases i; simp [codom2, idTable])
+      (by simp [tab2, codom2])
+      (by intro i; fin_cases i; simp [tab2, col2, idTable, codom2])
+      (by simp [tab2, col2, codom2])
+  -- Column 0 of tab2 (= id_T) is short: subterminator T forces any f=g
+  have hShort0 : tab2.IsShort ⟨0, by norm_num⟩ := by
+    intro X g h _hAgree
+    apply hSub; apply term_uniq
+  -- mem_prune: tab2 ∈ τ → tab2.prune ⟨0,_⟩ ∈ τ
+  have hPrune := mem_prune hShort0 hmem2
+  -- tab2.prune ⟨0,_⟩ hShort0 = {len=1, col=f}: Fin.skip ⟨0,_⟩ ⟨0,_⟩ = ⟨1,_⟩
+  convert hPrune using 1
+  apply Table_eq_of_fields _ _ rfl rfl
+  · -- HEq codom: prune.codom ⟨0,_⟩ = tab2.codom ⟨1,_⟩ = T'
+    apply heq_funext_fin rfl; intro i; fin_cases i
+    simp [Table.prune, Fin.skip, tab2, codom2]
+  · -- HEq col
+    apply Table.col_heq_funext rfl rfl
+    · intro i; fin_cases i; simp [Table.prune, Fin.skip, tab2, codom2]
+    · intro i; fin_cases i
+      simp only [Table.prune, Fin.skip, show (0 : Fin 1).val < (0 : Fin 2).val = False from by norm_num]
+      simp [tab2, col2, codom2]
 
 /-- §1.496: If T is a subterminator and f : T → T' is an isomorphism, then f = id_T
     (hence T' = T and f is the identity). -/
