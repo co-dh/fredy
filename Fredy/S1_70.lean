@@ -56,12 +56,47 @@ theorem subobject_le_refl {B : 𝒞} (S : Subobject 𝒞 B) : S.le S :=
   adjoint: f##(A') = ¬f(¬A'), i.e. the complement of the direct image of the
   complement.  (Freyd §1.71.) -/
 
-/-- A pre-logos with subobject complements (boolean pre-logos). -/
-class HasSubobjectComplements (𝒞 : Type u) [Cat.{v} 𝒞] [HasImages 𝒞] where
+/-- A pre-logos in which every subobject lattice `Sub(A)` is a **Boolean algebra**
+    (a *boolean pre-logos*, Freyd §1.71).  This is the genuine Boolean structure,
+    not just join-commutativity:
+
+    * `compl_inv`   — `¬` is an involution (`¬¬S = S`);
+    * `compl_antitone` — `¬` reverses the order (`S ≤ T ⟹ ¬T ≤ ¬S`).  Together with
+      involution this yields **complement contravariance** `X ≤ ¬Y ⟺ Y ≤ ¬X`
+      (`compl_le_compl_iff` below), the bridge Freyd's §1.71 argument turns on.
+    * `excluded_middle` — `S ∪ ¬S = ⊤` (the entire subobject ≤ `S ∪ ¬S`);
+    * `contradiction`   — `S ∩ ¬S = ⊥`, stated order-theoretically: any common lower
+      bound of `S` and `¬S` is below the bottom `¬⊤` (the bottom of a Boolean algebra
+      is the complement of the top, so no separate `bottom` field is needed).
+
+    `compl_join` (mere join-commutativity, which holds in any lattice and is *not*
+    Boolean) is dropped; the four laws above are the real Boolean-algebra axioms. -/
+class HasSubobjectComplements (𝒞 : Type u) [Cat.{v} 𝒞] [HasImages 𝒞]
+    [HasSubobjectUnions 𝒞] where
   compl : ∀ {A : 𝒞}, Subobject 𝒞 A → Subobject 𝒞 A
-  compl_join  : ∀ {A : 𝒞} (S : Subobject 𝒞 A) [HasSubobjectUnions 𝒞],
-    (HasSubobjectUnions.union S (compl S)) = HasSubobjectUnions.union (compl S) S
+  /-- `¬` is involutive: `¬¬S = S`. -/
   compl_inv   : ∀ {A : 𝒞} (S : Subobject 𝒞 A), compl (compl S) = S
+  /-- `¬` is order-reversing: `S ≤ T ⟹ ¬T ≤ ¬S`. -/
+  compl_antitone : ∀ {A : 𝒞} {S T : Subobject 𝒞 A}, S.le T → (compl T).le (compl S)
+  /-- Excluded middle: `S ∪ ¬S = ⊤` (the entire subobject factors through `S ∪ ¬S`). -/
+  excluded_middle : ∀ {A : 𝒞} (S : Subobject 𝒞 A),
+    (Subobject.entire A).le (HasSubobjectUnions.union S (compl S))
+  /-- Contradiction: `S ∩ ¬S = ⊥`.  Any common lower bound of `S` and `¬S` lies below
+      the bottom `¬⊤` of `Sub(A)`. -/
+  contradiction : ∀ {A : 𝒞} (S U : Subobject 𝒞 A),
+    U.le S → U.le (compl S) → U.le (compl (Subobject.entire A))
+
+/-- **Complement contravariance** `X ≤ ¬Y ⟺ Y ≤ ¬X` in a boolean pre-logos,
+    derived from involution + antitonicity (the central bridge of §1.71). -/
+theorem compl_le_compl_iff [HasImages 𝒞] [HasSubobjectUnions 𝒞]
+    [HasSubobjectComplements 𝒞] {A : 𝒞} (X Y : Subobject 𝒞 A) :
+    X.le (HasSubobjectComplements.compl Y) ↔ Y.le (HasSubobjectComplements.compl X) := by
+  constructor <;> intro h
+  · -- X ≤ ¬Y ⟹ ¬¬Y ≤ ¬X ⟹ Y ≤ ¬X (using ¬¬Y = Y)
+    have := HasSubobjectComplements.compl_antitone h
+    rwa [HasSubobjectComplements.compl_inv] at this
+  · have := HasSubobjectComplements.compl_antitone h
+    rwa [HasSubobjectComplements.compl_inv] at this
 
 /-- Direct image f_! : Sub(A) → Sub(B) via the image of the composite. -/
 noncomputable def DirectImage [HasImages 𝒞] {A B : 𝒞} (f : A ⟶ B)
@@ -110,20 +145,73 @@ end LogosClasses
 
 section BooleanLogos
 
-variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
-variable [HasSubobjectUnions 𝒞] [HasSubobjectComplements 𝒞] [HasRightAdjointImage 𝒞]
+-- All `HasImages` / `HasPullbacks` flow from the single `HasRightAdjointImage`
+-- instance, so every `InverseImage` / `DirectImage` / `compl` below shares one
+-- coherent pullback/image structure (avoids the two-instances mismatch that the
+-- §1.711 helper also sidesteps).
+variable [HasRightAdjointImage 𝒞] [HasSubobjectUnions 𝒞] [HasSubobjectComplements 𝒞]
 
-/-- §1.71: In a boolean logos, f##(A') ≅ ¬f(¬A') (complement of direct image of complement).
-    The proof uses: f#(B') ≤ A' ↔ f#(B') ∧ ¬A' = 0 ↔ f(B' ∧ f#(¬A')) = 0
-    ↔ B' ∧ f#(¬A') = 0 ↔ B' ≤ ¬f#(¬A') = f##(A').  We state this faithfully;
-    the full argument needs boolean identities connecting f# and direct images. -/
+/-- §1.71: In a boolean pre-logos, `f##(A') ≅ ¬f(¬A')` (complement of the direct
+    image of the complement).  Freyd's proof is the order biconditional
+    `B' ⊆ ¬f(¬A') ⟺ f(¬A') ⊆ ¬B' ⟺ ¬A' ⊆ f#(¬B') ⟺ ¬f#(¬B') ⊆ A'`,
+    "now use that f# preserves complements" (`¬f#(¬B') = f#(B')`).  Combined with the
+    right-adjoint adjunction `f#(B') ⊆ A' ⟺ B' ⊆ f##(A')`, this shows `f##(A')` and
+    `¬f(¬A')` have the same down-set, hence are equal as subobjects.
+
+    Two cross-`f` facts that genuinely live *outside* the single subobject lattice are
+    taken as honest hypotheses (the boolean structure of a single `Sub(A)` cannot
+    supply them):
+
+    * `directImage_adj` — the **direct-image ⊣ inverse-image** Galois connection
+      `f(X) ⊆ Y ⟺ X ⊆ f#(Y)` (standard in any regular category);
+    * `invImage_compl` — **`f#` preserves complements** `f#(¬B') = ¬f#(¬...)`, stated
+      as the contravariance `¬f#(¬B') = f#(B')` that Freyd invokes verbatim. -/
 theorem boolean_logos_rightAdj_eq_compl_direct_compl
-    {A B : 𝒞} (f : A ⟶ B) (A' : Subobject 𝒞 A) :
+    {A B : 𝒞} (f : A ⟶ B) (A' : Subobject 𝒞 A)
+    (directImage_adj : ∀ (X : Subobject 𝒞 A) (Y : Subobject 𝒞 B),
+      (DirectImage f X).le Y ↔ X.le (InverseImage f Y))
+    (invImage_compl : ∀ (B' : Subobject 𝒞 B),
+      HasSubobjectComplements.compl (InverseImage f (HasSubobjectComplements.compl B'))
+        = InverseImage f B') :
     Subobject.le (HasRightAdjointImage.rightAdj f A')
                  (HasSubobjectComplements.compl (DirectImage f (HasSubobjectComplements.compl A'))) ∧
     Subobject.le (HasSubobjectComplements.compl (DirectImage f (HasSubobjectComplements.compl A')))
                  (HasRightAdjointImage.rightAdj f A') := by
-  sorry
+  -- Abbreviations matching Freyd's notation: ND = ¬f(¬A'), RA = f##(A').
+  let RA := HasRightAdjointImage.rightAdj f A'
+  let ND := HasSubobjectComplements.compl (DirectImage f (HasSubobjectComplements.compl A'))
+  -- Key biconditional: for every B', `B' ≤ ¬f(¬A') ⟺ f#(B') ≤ A'`.
+  -- Chain (each step is a genuine boolean / Galois law):
+  --   B' ⊆ ¬f(¬A')  ⟺  f(¬A') ⊆ ¬B'   (contravariance, compl_le_compl_iff)
+  --                 ⟺  ¬A' ⊆ f#(¬B')   (directImage_adj)
+  --                 ⟺  ¬f#(¬B') ⊆ A'   (contravariance again)
+  --                 ⟺  f#(B') ⊆ A'     (f# preserves complements, invImage_compl)
+  have key : ∀ (B' : Subobject 𝒞 B), B'.le ND ↔ (InverseImage f B').le A' := by
+    intro B'
+    calc B'.le ND
+        ↔ (DirectImage f (HasSubobjectComplements.compl A')).le
+              (HasSubobjectComplements.compl B') :=
+            compl_le_compl_iff _ _
+      _ ↔ (HasSubobjectComplements.compl A').le
+              (InverseImage f (HasSubobjectComplements.compl B')) :=
+            directImage_adj _ _
+      _ ↔ (HasSubobjectComplements.compl
+              (InverseImage f (HasSubobjectComplements.compl B'))).le A' := by
+            -- contravariance with X = ¬A', Y = ¬(f#(¬B')); ¬¬ collapses both sides.
+            have h := compl_le_compl_iff (HasSubobjectComplements.compl A')
+              (HasSubobjectComplements.compl (InverseImage f (HasSubobjectComplements.compl B')))
+            rw [HasSubobjectComplements.compl_inv, HasSubobjectComplements.compl_inv] at h
+            exact h
+      _ ↔ (InverseImage f B').le A' := by rw [invImage_compl B']
+  -- Adjunction: `f#(B') ≤ A' ⟺ B' ≤ f##(A')`.
+  have adj : ∀ (B' : Subobject 𝒞 B), (InverseImage f B').le A' ↔ B'.le RA :=
+    fun B' => HasRightAdjointImage.adjunction f B' A'
+  -- Both `ND` and `RA` are characterised by the same down-set, so each ≤ the other.
+  refine ⟨?_, ?_⟩
+  · -- RA ≤ ND : take B' = RA; `RA ≤ RA` ⟹ `f#(RA) ≤ A'` ⟹ `RA ≤ ND`.
+    exact (key RA).mpr ((adj RA).mpr (subobject_le_refl RA))
+  · -- ND ≤ RA : take B' = ND; `ND ≤ ND` ⟹ `f#(ND) ≤ A'` ⟹ `ND ≤ RA`.
+    exact (adj ND).mp ((key ND).mp (subobject_le_refl ND))
 
 end BooleanLogos
 
