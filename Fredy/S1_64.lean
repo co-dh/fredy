@@ -255,18 +255,34 @@ variable {𝒞}
     Proof: form B+C, define equivalence relation E identifying x(a)∼y(a),
     then the effective quotient B+C ↠ D gives the pushout.
 
-    SHARPENED BLOCKER (infra audit): `EffectiveRegular.effective` (S1_59:143) DOES give the
-    quotient B+C ↠ D as the level of the equivalence relation E.  The unmet obligation is that
-    the two composites B ↣ B+C ↠ D and C ↣ B+C ↠ D are MONIC.  That requires the coproduct
-    `HasBinaryCoproducts` (S1_58:48) to be DISJOINT (inl, inr jointly monic / pullback of inl
-    along inr is initial) — Freyd's §1.62 positivity.  This repo's `HasBinaryCoproducts` and
-    `PositivePreLogos` (S1_62:146) carry ONLY the bare case-universal-property, with no
-    disjointness axiom and no `inl`/`inr` monicity lemma (grep finds none).  Reduces to:
-    axiomatize §1.62 positivity (disjoint + universal coproducts), then build E on B+C. -/
-theorem amalgamation_lemma [PreTopos 𝒞] {A B C : 𝒞}
+    CONSTRUCTIVE PROGRESS (this file): with `[DisjointBinaryCoproduct 𝒞]` now supplying §1.62
+    positivity and `[HasCoequalizers 𝒞]` (Freyd's §1.654/657: a pretopos used cocartesianly has
+    coequalizers), the pushout object is built EXPLICITLY as `D := coeq(x≫inl, y≫inr)` with
+    `u := inl≫q`, `v := inr≫q`.  The commutativity leg `x≫u = y≫v` is discharged sorry-free
+    (it is literally the coequalizer equation `q.eq`).
+
+    SHARPENED RESIDUAL (the two `sorry`s below): `Mono u` and `Mono v`.  This is the genuine
+    descent obligation: the kernel pair of the regular epi `q` is the equivalence relation
+    GENERATED on `B+C` by `{x(a)≫inl ∼ y(a)≫inr}`, and one must show its restriction to the
+    image of `inl` (resp. `inr`) is the diagonal.  Disjointness (`inl_inter_inr_le_bottom`,
+    `coprod_inl_inr_disjoint_elt`) and `inl/inr_mono` are the NECESSARY ingredients (without
+    them `u,v` are not monic), but the proof additionally needs the transitive-closure /
+    zigzag analysis of the generated relation — i.e. the construction of a minimal equivalence
+    relation containing a given relation, which in this repo only exists *given*
+    `HasMinEquivContaining` (built from coequalizers in `preTopos_cocartesian_to_minEquiv`),
+    not as a standalone descent lemma for the legs.  Faithful sorry on exactly the two leg
+    monicities; the object, the maps, and the square are now real. -/
+theorem amalgamation_lemma [DisjointBinaryCoproduct 𝒞] [PreTopos 𝒞] [HasCoequalizers 𝒞]
+    {A B C : 𝒞}
     (x : A ⟶ B) (hx : Mono x) (y : A ⟶ C) (hy : Mono y) :
     ∃ (D : 𝒞) (u : B ⟶ D) (v : C ⟶ D), Mono u ∧ Mono v ∧ x ≫ u = y ≫ v := by
-  sorry
+  -- D := coequalizer of (x ≫ inl, y ≫ inr) : A ⇉ B+C.  u := inl ≫ q, v := inr ≫ q.
+  let q := HasCoequalizers.coeq (x ≫ HasBinaryCoproducts.inl) (y ≫ HasBinaryCoproducts.inr)
+  refine ⟨q.obj, HasBinaryCoproducts.inl ≫ q.map, HasBinaryCoproducts.inr ≫ q.map, ?_, ?_, ?_⟩
+  · sorry
+  · sorry
+  · -- commutativity: x ≫ (inl ≫ q) = y ≫ (inr ≫ q) is exactly the coequalizer equation.
+    rw [← Cat.assoc, ← Cat.assoc]; exact q.eq
 
 /-! ## §1.652 Covers = epics, Monics = cocovers
 
@@ -283,12 +299,21 @@ theorem amalgamation_lemma [PreTopos 𝒞] {A B C : 𝒞}
     has no axiom to stand on.  Isolated here as the single obligation that both
     reverse-directions below (`cover_eq_epic_preTopos`, `monic_eq_cocover`) rest
     on; closing it needs §1.62 positivity axiomatized as Freyd states it
-    (disjoint + universal coproducts). -/
-theorem pretopos_balanced [PreTopos 𝒞] {A B : 𝒞} (m : A ⟶ B) (hm : Mono m)
+    (disjoint + universal coproducts).
+
+    STATE (with `[DisjointBinaryCoproduct 𝒞]` now available): the §1.62 positivity axiom IS
+    present, so the cokernel-pair `B ⇉ D := coeq(m≫inl, m≫inr)` is now a real object (cf.
+    `amalgamation_lemma` with `x = y = m`).  `m` epic forces the two cokernel-pair legs equal,
+    which (cokernel pair = pushout of `m,m`) splits `m`.  The remaining gap is identical to the
+    one residual in `amalgamation_lemma`: that the cokernel-pair legs are MONIC (the generated
+    equivalence relation restricts to the diagonal on `inl(B)`), which needs the transitive
+    closure / descent analysis not yet a standalone lemma.  Faithful sorry on exactly that. -/
+theorem pretopos_balanced [DisjointBinaryCoproduct 𝒞] [PreTopos 𝒞] {A B : 𝒞}
+    (m : A ⟶ B) (hm : Mono m)
     (hepi : ∀ {C : 𝒞} (g h : B ⟶ C), m ≫ g = m ≫ h → g = h) : IsIso m := by
   sorry
 
-theorem cover_eq_epic_preTopos [PreTopos 𝒞] {A B : 𝒞} (f : A ⟶ B) :
+theorem cover_eq_epic_preTopos [DisjointBinaryCoproduct 𝒞] [PreTopos 𝒞] {A B : 𝒞} (f : A ⟶ B) :
     Cover f ↔ (∀ {C : 𝒞} (g h : B ⟶ C), f ≫ g = f ≫ h → g = h) := by
   constructor
   · -- Cover → epic (§1.512): already proved
@@ -327,8 +352,16 @@ theorem monic_eq_cocover_preTopos [PreTopos 𝒞] [HasCoequalizers 𝒞] {A B : 
 /-- **§1.653**: In a pre-topos, given f : A → B and monic y : A ↣ C, there exists a
     pushout square (with the B-map monic).
     PROOF: Factor A → B as A ↠ I ↣ B.  Apply §1.651 to I ↣ B and I ↣ C' (pushing y
-    through the cover A ↠ I), stack the two squares, and use the pasting lemma. -/
-theorem pushout_monic_in_pretopos [PreTopos 𝒞] {A B C : 𝒞}
+    through the cover A ↠ I), stack the two squares, and use the pasting lemma.
+
+    STATE: `amalgamation_lemma` (§1.651) is now a real construction here; this §1.653 result
+    is the standard reduction to it (image-factor `f`, push `y` through the cover, paste).
+    The two unmet pieces are (a) the cover/image transport of `y` into the slice over `I` and
+    (b) the pasting lemma for the stacked square — neither of which the disjointness lemmas
+    touch; they are pullback/pasting infrastructure orthogonal to §1.62 positivity, and the
+    leg-monicity it inherits is the same descent residual as §1.651.  Faithful sorry. -/
+theorem pushout_monic_in_pretopos [DisjointBinaryCoproduct 𝒞] [PreTopos 𝒞] [HasCoequalizers 𝒞]
+    {A B C : 𝒞}
     (f : A ⟶ B) (y : A ⟶ C) (hy : Mono y) :
     ∃ (D : 𝒞) (u : B ⟶ D) (v : C ⟶ D), Mono u ∧ f ≫ u = y ≫ v := by
   sorry
@@ -875,11 +908,14 @@ theorem coprod_choice_to_one_one_choice
     pullback of a complemented subobject.
 
     BLOCKER: the chain needs (a) the slice pre-topos 𝒮(1)=𝒞 inheriting condition
-    (2a), (b) the pushout P = 1 +_U 1 (amalgamation §1.651, itself `sorry` here),
-    (c) "pullback of a complemented subobject is complemented" (§1.658 complement
-    intersection/union infra, not yet formalized — IsComplemented uses a placeholder
-    intersection).  Faithful statement; reduces to amalgamation_lemma + complement
-    pullback-stability. -/
+    (2a), (b) the pushout P = 1 +_U 1 — now a real construction via `amalgamation_lemma`
+    (§1.651), whose residual is only the leg-monicity descent, (c) "pullback of a
+    complemented subobject is complemented" (§1.658 complement intersection/union infra,
+    not yet formalized — IsComplemented uses a placeholder intersection).  The §1.62
+    disjointness lemmas (`coprod_inl_inr_disjoint_elt`, `inl_union_inr_entire`) supply the
+    "maps B→1+1 are disjoint-complemented partitions" content for (2a), but the slice
+    transport (a) and complement pullback-stability (c) remain genuinely absent.  Faithful
+    statement; reduces to amalgamation_lemma + complement pullback-stability. -/
 theorem one_one_choice_to_boolean [HasBinaryProducts 𝒞]
     (h : Choice (HasBinaryCoproducts.coprod (one : 𝒞) one)) :
     Nonempty (BooleanPreLogos 𝒞) := by
