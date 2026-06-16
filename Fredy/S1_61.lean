@@ -245,8 +245,12 @@ def distributive_poset_is_prelogos [hReg : RegularCategory 𝒞] [HasSubobjectUn
     -- In the thin/poset case every morphism _f : _A → _B is automatically monic (hThin makes
     -- left-cancellation trivial), so ⟨_A, _f, _⟩ is a subobject of _B whose `.arr` is *definitionally*
     -- _f.  Then `hDist` on that subobject IS this goal: `InverseImage ⟨_A,_f,_⟩.arr = InverseImage _f`.
-    invImage_preserves_union  := fun {_A _B} _f _S _T =>
-      hDist ⟨_A, _f, fun {_} g h _ => hThin g h⟩ _S _T
+    invImage_preserves_union  := fun {_A _B} _f _S _T => by
+      -- hDist gives an Isomorphic of the two domains; in a thin category any map between
+      -- subobjects of a fixed object commutes with their monics (hThin), so the iso's two
+      -- legs supply BOTH `Subobject.le` directions the strengthened axiom now demands.
+      obtain ⟨u, v, _, _⟩ := hDist ⟨_A, _f, fun {_} g h _ => hThin g h⟩ _S _T
+      exact ⟨⟨u, hThin _ _⟩, ⟨v, hThin _ _⟩⟩
     -- invImage_preserves_bottom: InverseImage f (⊥_B) ≅ ⊥_A.  In the thin case it suffices
     -- to exhibit maps both ways: ⊥_A ≤ InverseImage f ⊥_B (by minimality of ⊥_A), and
     -- InverseImage f ⊥_B → ⊥_B → ⊥_A via the pullback's π₂ and bottom_dom_iso.

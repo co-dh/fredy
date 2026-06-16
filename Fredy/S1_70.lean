@@ -133,8 +133,10 @@ variable [L : Logos 𝒞]
 
 private theorem logos_invImage_pres_union {A B : 𝒞} (f : A ⟶ B)
     (S T : Subobject 𝒞 B) :
-    Isomorphic (InverseImage f (HasSubobjectUnions.union S T)).dom
-               (HasSubobjectUnions.union (InverseImage f S) (InverseImage f T)).dom := by
+    (InverseImage f (HasSubobjectUnions.union S T)).le
+        (HasSubobjectUnions.union (InverseImage f S) (InverseImage f T))
+    ∧ (HasSubobjectUnions.union (InverseImage f S) (InverseImage f T)).le
+        (InverseImage f (HasSubobjectUnions.union S T)) := by
   -- §1.711: via the adjunction f# ⊣ f##.
   -- adj: (InverseImage f B').le A' ↔ B'.le (f## A')
   have adj : ∀ (B' : Subobject 𝒞 B) (A' : Subobject 𝒞 A),
@@ -162,7 +164,9 @@ private theorem logos_invImage_pres_union {A B : 𝒞} (f : A ⟶ B)
     (adj T join).mp (HasSubobjectUnions.union_right fS fT)
   have hle2 : fST.le join := (adj ST join).mpr
     (HasSubobjectUnions.union_min S T _ hS_le_ra hT_le_ra)
-  exact subobject_le_antisymm_iso hle2 hle
+  -- fST = InverseImage f (S∪T), join = f#S ∪ f#T; expose both le-directions
+  -- (the mediating maps commute with the monics into A).
+  exact ⟨hle2, hle⟩
 
 end LogosPreLogosHelper
 

@@ -65,11 +65,17 @@ def InverseImage (f : A ⟶ B) (B' : Subobject 𝒞 B) [HasPullbacks 𝒞] : Sub
       rw [pb.lift_uniq c u rfl rfl, pb.lift_uniq c v huv.symm hπ₂.symm] }
 
 /-- f# preserves binary unions: for any S,T subobjects of B,
-    f#(S ∪ T) is isomorphic to f#(S) ∪ f#(T). -/
+    f#(S ∪ T) EQUALS f#(S) ∪ f#(T) as subobjects of A — i.e. each is
+    `Subobject.le` the other.  This is stronger than a bare object
+    `Isomorphic` of the domains: the mediating maps commute with the
+    monics into A, so they can serve as the factorizing maps that
+    `Subobject.le` (and hence the §1.62 relational lattice) requires. -/
 def inverseImage_preserves_unions [HasImages 𝒞] [HasSubobjectUnions 𝒞] {A B : 𝒞} (f : A ⟶ B) [HasPullbacks 𝒞] : Prop :=
   ∀ (S T : Subobject 𝒞 B),
-    Isomorphic (InverseImage f (HasSubobjectUnions.union S T)).dom
-               (HasSubobjectUnions.union (InverseImage f S) (InverseImage f T)).dom
+    (InverseImage f (HasSubobjectUnions.union S T)).le
+        (HasSubobjectUnions.union (InverseImage f S) (InverseImage f T))
+    ∧ (HasSubobjectUnions.union (InverseImage f S) (InverseImage f T)).le
+        (InverseImage f (HasSubobjectUnions.union S T))
 
 /-- A PRE-LOGOS (§1.6): regular + subobject lattices + inverse image
     preserves finite unions (including empty joins). -/
