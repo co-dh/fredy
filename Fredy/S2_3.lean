@@ -103,6 +103,80 @@ theorem div_comp {a b c d : 𝒜} (R : a ⟶ d) (S : b ⟶ d) (T : c ⟶ d) :
   rw [Cat.assoc]
   exact comp_mono_left (R / S) (div_comp_eq_le S T)
 
+/-- R/(S₁∪S₂) = (R/S₁) ∩ (R/S₂) (§2.314). -/
+theorem div_union {a b c : 𝒜} (R : a ⟶ c) (S₁ S₂ : b ⟶ c) :
+    R / (S₁ ∪ S₂) = (R / S₁) ∩ (R / S₂) := by
+  apply le_antisymm
+  · -- R/(S₁∪S₂) ⊑ R/S₁: by le_div_iff, (R/(S₁∪S₂))(S₁) ⊑ (R/(S₁∪S₂))(S₁∪S₂) ⊑ R
+    apply le_inter
+    · apply (le_div_iff _ _ _).mpr
+      exact le_trans (comp_mono_left _ (le_union_left S₁ S₂)) (div_comp_eq_le R _)
+    · apply (le_div_iff _ _ _).mpr
+      exact le_trans (comp_mono_left _ (le_union_right S₁ S₂)) (div_comp_eq_le R _)
+  · -- R/S₁ ∩ R/S₂ ⊑ R/(S₁∪S₂): need T(S₁∪S₂) ⊑ R whenever TS₁ ⊑ R and TS₂ ⊑ R
+    apply (le_div_iff _ _ _).mpr
+    rw [DistributiveAllegory.comp_union_distrib]
+    exact union_lub
+      (le_trans (comp_mono_right (inter_lb_left _ _) S₁) (div_comp_eq_le R S₁))
+      (le_trans (comp_mono_right (inter_lb_right _ _) S₂) (div_comp_eq_le R S₂))
+
+/-- R/(S₁≫S₂) = (R/S₂)/S₁ (§2.314). -/
+theorem div_comp_assoc {a b c d : 𝒜} (R : a ⟶ d) (S₁ : b ⟶ c) (S₂ : c ⟶ d) :
+    R / (S₁ ≫ S₂) = (R / S₂) / S₁ := by
+  apply le_antisymm
+  · -- R/(S₁S₂) ⊑ (R/S₂)/S₁: need ((R/(S₁S₂)) ≫ S₁) ≫ S₂ ⊑ R
+    apply (le_div_iff _ _ _).mpr
+    apply (le_div_iff _ _ _).mpr
+    -- goal: ((R / (S₁ ≫ S₂)) ≫ S₁) ≫ S₂ ⊑ R
+    -- ((R/(S₁S₂))S₁)S₂ = (R/(S₁S₂))(S₁S₂) ⊑ R
+    have : ((R / (S₁ ≫ S₂)) ≫ S₁) ≫ S₂ = (R / (S₁ ≫ S₂)) ≫ (S₁ ≫ S₂) := by
+      rw [Cat.assoc]
+    rw [this]; exact div_comp_eq_le R (S₁ ≫ S₂)
+  · -- (R/S₂)/S₁ ⊑ R/(S₁S₂): need ((R/S₂)/S₁)(S₁S₂) ⊑ R
+    apply (le_div_iff _ _ _).mpr
+    -- ((R/S₂)/S₁)(S₁S₂) = ((R/S₂)/S₁)S₁ · S₂ ⊑ (R/S₂) · S₂ ⊑ R
+    have step1 : ((R / S₂) / S₁) ≫ (S₁ ≫ S₂) = (((R / S₂) / S₁) ≫ S₁) ≫ S₂ := by
+      rw [Cat.assoc]
+    rw [step1]
+    exact le_trans (comp_mono_right (div_comp_eq_le (R / S₂) S₁) S₂) (div_comp_eq_le R S₂)
+
+/-! ## §2.316  Heyting algebra structure on (a,a)
+
+  For an object a in a division allegory, the hom-set (a,a) is a Heyting
+  algebra.  Given A, B ∈ (a,a) the Heyting implication is defined as
+  A ⊃ B := 1 ∩ B/A  (§2.316). -/
+
+/-- Heyting implication in (a,a): A ⊃ B := 1 ∩ B/A (§2.316). -/
+def heytingImpl {a : 𝒜} (A B : a ⟶ a) : a ⟶ a :=
+  Cat.id a ∩ (B / A)
+
+-- Note: the book's §2.316 Heyting algebra is on coreflexive morphisms (subidentities).
+-- The general adjointness A ∩ C ⊑ B ↔ C ⊑ 1 ∩ B/A does NOT hold for arbitrary morphisms;
+-- it requires A, C coreflexive (so A∩C = A≫C in the poset sense).
+-- See heyting_adj_coref below for the correct statement.
+
+/-- Heyting adjointness for coreflexive morphisms (§2.316):
+    if A, B, C : a → a are coreflexive, then A ≫ C ⊑ B ↔ C ⊑ 1 ∩ B/A. -/
+theorem heyting_adj_coref {a : 𝒜} {A B C : a ⟶ a}
+    (hA : Coreflexive A) (hC : Coreflexive C) :
+    A ≫ C ⊑ B ↔ C ⊑ heytingImpl A B := by
+  -- Coreflexive morphisms commute: A≫C = A∩C = C∩A = C≫A
+  have hac_comm : A ≫ C = C ≫ A :=
+    (coreflexive_comp_eq_inter hA hC).trans
+      ((Allegory.inter_comm A C).trans (coreflexive_comp_eq_inter hC hA).symm)
+  dsimp [heytingImpl]
+  constructor
+  · intro h
+    apply le_inter
+    · exact hC
+    · -- C ⊑ B/A: use le_div_iff, need C ≫ A ⊑ B
+      apply (le_div_iff _ _ _).mpr
+      rwa [← hac_comm]
+  · intro h
+    -- A ≫ C = C ≫ A ⊑ (B/A) ≫ A ⊑ B
+    rw [hac_comm]
+    exact le_trans (comp_mono_right (le_trans h (inter_lb_right _ _)) A) (div_comp_eq_le B A)
+
 /-! ## §2.331  Symmetric division
 
   R/ₛS = (R/S) ∩ (S/R)° (§2.35).  Characterized by:
@@ -139,6 +213,47 @@ theorem le_symmDiv_iff {a b c : 𝒜} (T : a ⟶ b) (R : a ⟶ c) (S : b ⟶ c) 
       calc
         T = (T°)° := by rw [Allegory.recip_recip]
         _ ⊑ (S / R)° := recip_mono hTR_div
+
+/-! ### Properties of symmetric division (§2.35) -/
+
+/-- Symmetric division satisfies (R/ₛS)° = S/ₛR (§2.35). -/
+theorem symmDiv_recip {a b c : 𝒜} (R : a ⟶ c) (S : b ⟶ c) :
+    (R /ₛ S)° = S /ₛ R := by
+  apply le_antisymm
+  · -- (R/ₛS)° ⊑ S/ₛR.  R:a→c, S:b→c, R/ₛS:a→b, (R/ₛS)°:b→a, S/ₛR:b→a.
+    -- le_symmDiv_iff: (R/ₛS)° ⊑ S/ₛR ↔ (R/ₛS)°≫R ⊑ S ∧ ((R/ₛS)°)°≫S ⊑ R.
+    rw [le_symmDiv_iff]
+    have h := (le_symmDiv_iff (R /ₛ S) R S).mp (le_refl _)
+    exact ⟨h.2, by rw [Allegory.recip_recip]; exact h.1⟩
+  · -- S/ₛR ⊑ (R/ₛS)°.  Equivalently (S/ₛR)° ⊑ R/ₛS (by recip_le_iff).
+    rw [← recip_le_iff]
+    apply (le_symmDiv_iff _ R S).mpr
+    have h := (le_symmDiv_iff (S /ₛ R) S R).mp (le_refl _)
+    -- goal: (S/ₛR)°≫S ⊑ R ∧ (S/ₛR)°°≫R ⊑ S
+    -- h.2 : (S/ₛR)°≫S ⊑ R; h.1 : (S/ₛR)≫R ⊑ S, and (S/ₛR)°° = S/ₛR
+    exact ⟨h.2, by rw [Allegory.recip_recip]; exact h.1⟩
+
+/-- Symmetric division is transitive: (R/ₛS)(S/ₛT) ⊑ R/ₛT (§2.35). -/
+theorem symmDiv_comp {a b c d : 𝒜} (R : a ⟶ d) (S : b ⟶ d) (T : c ⟶ d) :
+    (R /ₛ S) ≫ (S /ₛ T) ⊑ R /ₛ T := by
+  rw [le_symmDiv_iff]
+  have hRS := (le_symmDiv_iff (R /ₛ S) R S).mp (le_refl _)
+  have hST := (le_symmDiv_iff (S /ₛ T) S T).mp (le_refl _)
+  constructor
+  · -- ((R/ₛS)(S/ₛT)) ≫ T ⊑ R
+    rw [Cat.assoc]
+    exact le_trans (comp_mono_left _ hST.1) hRS.1
+  · -- ((R/ₛS)(S/ₛT))° ≫ R ⊑ T
+    -- = (S/ₛT)°(R/ₛS)° ≫ R ⊑ T
+    rw [Allegory.recip_comp, Cat.assoc]
+    -- (R/ₛS)° = S/ₛR, and (S/ₛT)° = T/ₛS
+    have h_rs_rec : (R /ₛ S)° ≫ R ⊑ S := hRS.2
+    exact le_trans (comp_mono_left _ h_rs_rec) hST.2
+
+-- Note: "R/ₛS ⊑ R" is listed in the book as a containment (§2.35) but only for the
+-- case where the objects match (S = 1), i.e. simplePart R ⊑ R. See simplePart_le.
+-- For general S the containment R/ₛS ⊑ R does not hold (R and R/ₛS have different types
+-- in general: R : a→c, R/ₛS : a→b; the book notation is in the endomorphism case only).
 
 /-! ## §2.35  Straight morphism, simple part
 
