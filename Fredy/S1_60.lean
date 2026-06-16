@@ -742,34 +742,86 @@ theorem existsAlong_union_le {X Y : 𝒞} (g : X ⟶ Y) (P Q : Subobject 𝒞 X)
   exact (existsAlong_le_iff g (HasSubobjectUnions.union P Q) V).2
     (HasSubobjectUnions.union_min _ _ _ hP hQ)
 
+/-! ### §1.616  The extensive descent for `compose_union_right`
+
+  The hard half `R⊚(S∪T) ≤ (R⊚S)∪(R⊚T)` is, in any pre-logos, the *extensive* (= "geometric")
+  content of §1.616: pulling a relation back along the cover that presents a union RE-DECOMPOSES it
+  over the two pieces.  Concretely, `compose` builds `R⊚(S∪T)` as the image of the span out of
+  `pb := pullback(R.colB, (S∪T).colA)`, and `(S∪T).colA` is the `fst`-leg of the cover-image of the
+  copairing `m := case(pairS)(pairT)`.  Pulling that cover back along `pb.π₂` (covers are stable
+  under pullback in a regular category — `cover_pullback`) yields a common cover `P ↠ pb.pt` whose
+  domain carries, summand-by-summand, the `R⊚S`/`R⊚T` data — so it maps into `(R⊚S)∪(R⊚T)`.
+
+  The COVER `P ↠ pb.pt` together with the descent map `φ : P → ((R⊚S)∪(R⊚T)).src` is isolated as
+  `union_compose_descent`.  Everything else (`relLe_of_cover_factor`, `image_lift_cover`,
+  `cover_comp`) is fully proven, so the main theorem below is a complete reduction to it.
+
+  Why a `sorry` remains here: producing `φ` requires that the pullback `pb1 := pullback(eU, pb.π₂)`
+  of the coproduct-presenting cover `eU` SPLITS over `S.src + T.src` — i.e. binary coproducts are
+  stable under pullback (EXTENSIVITY / "pullback distributes over coproduct").  That primitive is
+  not yet built in this repo (cf. the same gap flagged at `S1_84.lean:510` `pullback_union`).  Once
+  the extensive split `pullback(P+Q, h) ≅ pullback(P,h) + pullback(Q,h)` is available, `φ` is the
+  copairing of the two summand descents and the `sorry` discharges with no new ideas. -/
+
+/-- **Extensive descent** (SHARP gap, §1.616).  With `U := S ∪ᵣ T` and `pb := pullback(R.colB, U.colA)`,
+    there is a cover `c : P ↠ pb.cone.pt` and a descent `φ : P → ((R⊚S) ∪ᵣ (R⊚T)).src` whose legs
+    match the `R⊚U`-span composed with `c`:
+      `c ≫ (pb.π₁ ≫ R.colA) = φ ≫ ((R⊚S)∪(R⊚T)).colA`,
+      `c ≫ (pb.π₂ ≫ U.colB) = φ ≫ ((R⊚S)∪(R⊚T)).colB`.
+    Both hypotheses are genuinely used downstream (they ARE the two leg-agreements fed to
+    `relLe_of_cover_factor`).  The single missing ingredient is the extensive split of the
+    coproduct-presenting cover of `U.src` under pullback along `pb.π₂`; see the section header. -/
+private theorem union_compose_descent {A B C : 𝒞} (R : BinRel 𝒞 A B) (S T : BinRel 𝒞 B C) :
+    ∃ (P : 𝒞) (c : P ⟶ (HasPullbacks.has R.colB (S ∪ᵣ T).colA).cone.pt)
+      (φ : P ⟶ ((R ⊚ S) ∪ᵣ (R ⊚ T)).src),
+      Cover c ∧
+      c ≫ ((HasPullbacks.has R.colB (S ∪ᵣ T).colA).cone.π₁ ≫ R.colA)
+        = φ ≫ ((R ⊚ S) ∪ᵣ (R ⊚ T)).colA ∧
+      c ≫ ((HasPullbacks.has R.colB (S ∪ᵣ T).colA).cone.π₂ ≫ (S ∪ᵣ T).colB)
+        = φ ≫ ((R ⊚ S) ∪ᵣ (R ⊚ T)).colB := by
+  -- The cover `c` is built from `cover_pullback (image_lift_cover m) ≫ pb.π₂`; the descent `φ` is
+  -- the copairing of the two summand maps after the extensive split of `pullback(eU, pb.π₂)`.
+  sorry
+
 /-- §1.616: Composition distributes over union (right): `R ⊚ (S ∪ T) ≤ (R⊚S) ∪ (R⊚T)`.
 
-    FAITHFUL to Freyd (pre-logos hypothesis restored: the statement is FALSE in a bare regular
-    category, true in a pre-logos).  The proof is assembled from the proven pre-logos facts —
-    `relSub_union` (union ↔ subobject union), `PreLogos.invImage_preserves_union`, the
-    meet-over-join distributive law (`rel_inter_union_le`), and `existsAlong_union_le` (direct image
-    preserves union, just proved via the `∃ ⊣ #` adjunction) — modulo ONE geometric bridge:
+    FAITHFUL to Freyd: pre-logos hypothesis restored (the statement is FALSE in a bare regular
+    category, true in a pre-logos).  The composed relation `R⊚(S∪T)` is `image span`, where
+    `span := pair (pb.π₁ ≫ R.colA) (pb.π₂ ≫ (S∪T).colB)` and `pb := pullback(R.colB, (S∪T).colA)`;
+    `eW := image.lift span : pb.pt ↠ (R⊚(S∪T)).src` is therefore a COVER (`image_lift_cover`).
 
-      `relSub (R ⊚ U) = existsAlong πAC (πAB#(relSub R) ⊓ πBC#(relSub U))`   (`A×B×C := prod A (prod B C)`)
-
-    i.e. `compose`'s binary-pullback span equals the ternary direct-image-of-meet.  `compose`
-    builds `R⊚U` from `pb = pullback(R.colB, U.colA)` as `image (pair (pb.π₁≫R.colA)(pb.π₂≫U.colB))`;
-    the ternary meet has the same apex (triples `(a,b,c)` with `(a,b)∈R`, `(b,c)∈U`) and `existsAlong
-    πAC` is the `(a,c)`-projection.  The apex agreement is the ternary↔binary pullback pasting — the
-    precise remaining gap.  Given that bridge, the union split is:
-      relSub(R⊚(S∪T)) = ∃πAC(πAB#R ⊓ πBC#(S∪T)) ≤ ∃πAC(πAB#R ⊓ (πBC#S ∪ πBC#T))   [invImage pres. ∪]
-        ≤ ∃πAC((πAB#R⊓πBC#S) ∪ (πAB#R⊓πBC#T))   [meet/join distrib]
-        ≤ ∃πAC(πAB#R⊓πBC#S) ∪ ∃πAC(πAB#R⊓πBC#T)  [existsAlong_union_le]
-        = relSub(R⊚S) ∪ relSub(R⊚T) ≤ relSub((R⊚S)∪(R⊚T)). -/
+    `union_compose_descent` supplies a further cover `c : P ↠ pb.pt` and a descent
+    `φ : P → ((R⊚S)∪(R⊚T)).src` matching the span legs.  Composing covers (`cover_comp`) gives a
+    cover `c ≫ eW : P ↠ (R⊚(S∪T)).src`, and `φ` agrees with it on both legs (the two `span`-leg
+    identities `eW ≫ (R⊚(S∪T)).colX = (span)≫…`), so `relLe_of_cover_factor` (cover⊥mono descent)
+    delivers the containment `R⊚(S∪T) ≤ (R⊚S)∪(R⊚T)`. -/
 theorem compose_union_right {A B C : 𝒞} (R : BinRel 𝒞 A B) (S T : BinRel 𝒞 B C) :
     RelLe (R ⊚ (S ∪ᵣ T)) ((R ⊚ S) ∪ᵣ (R ⊚ T)) := by
-  apply relLe_of_subLe
-  refine subLe_trans ?_ (relSub_union_ge (R ⊚ S) (R ⊚ T))
-  -- Remaining: relSub (R ⊚ (S∪T)) ≤ union (relSub (R⊚S)) (relSub (R⊚T)).
-  -- SHARP GAP: the ternary↔binary pullback bridge `relSub (R⊚U) = ∃πAC(πAB#R ⊓ πBC#U)` (see header).
-  -- Everything downstream of that bridge is the proven chain above (invImage_preserves_union,
-  -- rel_inter_union_le, existsAlong_union_le, relSub_union).
-  sorry
+  -- The image-cover presenting `R⊚(S∪T)` and its two span-leg identities.
+  let pb := HasPullbacks.has R.colB (S ∪ᵣ T).colA
+  let span : pb.cone.pt ⟶ prod A C :=
+    pair (pb.cone.π₁ ≫ R.colA) (pb.cone.π₂ ≫ (S ∪ᵣ T).colB)
+  let eW := image.lift span
+  have hWa : eW ≫ (R ⊚ (S ∪ᵣ T)).colA = pb.cone.π₁ ≫ R.colA := by
+    show eW ≫ ((image span).arr ≫ fst) = _
+    rw [← Cat.assoc, image.lift_fac, fst_pair]
+  have hWb : eW ≫ (R ⊚ (S ∪ᵣ T)).colB = pb.cone.π₂ ≫ (S ∪ᵣ T).colB := by
+    show eW ≫ ((image span).arr ≫ snd) = _
+    rw [← Cat.assoc, image.lift_fac, snd_pair]
+  -- The extensive descent: a cover `c : P ↠ pb.pt` and descent map `φ`.
+  obtain ⟨P, c, φ, hc, hφA, hφB⟩ := union_compose_descent R S T
+  -- `c ≫ eW : P ↠ (R⊚(S∪T)).src` is a cover; `φ` descends along it.
+  refine relLe_of_cover_factor (c ≫ eW) (cover_comp hc (image_lift_cover span)) φ ?_ ?_
+  · -- φ ≫ colA = (c ≫ eW) ≫ (R⊚(S∪T)).colA
+    calc φ ≫ ((R ⊚ S) ∪ᵣ (R ⊚ T)).colA
+        = c ≫ (pb.cone.π₁ ≫ R.colA) := hφA.symm
+      _ = c ≫ (eW ≫ (R ⊚ (S ∪ᵣ T)).colA) := by rw [hWa]
+      _ = (c ≫ eW) ≫ (R ⊚ (S ∪ᵣ T)).colA := (Cat.assoc _ _ _).symm
+  · -- φ ≫ colB = (c ≫ eW) ≫ (R⊚(S∪T)).colB
+    calc φ ≫ ((R ⊚ S) ∪ᵣ (R ⊚ T)).colB
+        = c ≫ (pb.cone.π₂ ≫ (S ∪ᵣ T).colB) := hφB.symm
+      _ = c ≫ (eW ≫ (R ⊚ (S ∪ᵣ T)).colB) := by rw [hWb]
+      _ = (c ≫ eW) ≫ (R ⊚ (S ∪ᵣ T)).colB := (Cat.assoc _ _ _).symm
 
 end BinRelDistributive
 
