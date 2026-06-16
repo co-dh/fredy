@@ -3,9 +3,13 @@
   Heyting algebras, Negation, Focal logoi, Representation theorems.
 
   §1.72  Heyting algebra: lattice with implication → (right adjoint to ∧).
+  §1.723 Locale: complete lattice with finite-meet/arbitrary-join distributivity.
+  §1.725 Equational theory of Heyting algebras.
+  §1.726 Derived equations (x→y covariant in y, contravariant in x; distributivity).
   §1.727 Negation: ¬x = x→0, double negation, De Morgan.
+  §1.728 Law of excluded middle ⇒ Boolean algebra.
   §1.73  ℱ(T) filter, A/ℱ quotient logos.
-  §1.733 Coprime object, connected, FOCAL LOGOS (1 is coprime projective).
+  §1.733 Coprime object, connected object, FOCAL LOGOS (1 is coprime projective).
   §1.734 Focal representation, representation theorems.
 -/
 
@@ -17,6 +21,7 @@ import Fredy.S1_51
 import Fredy.S1_52
 import Fredy.S1_57
 import Fredy.S1_60
+import Fredy.S1_64
 import Fredy.S1_70
 
 
@@ -31,23 +36,159 @@ namespace Freyd
 /-! ## §1.72 Heyting algebra
 
   A HEYTING ALGEBRA is a lattice with a binary → such that
-  z ≤ x → y  ⇔  z ∧ x ≤ y  (→ is right adjoint to ∧). -/
+  z ≤ x → y  ⇔  x ∧ z ≤ y  (→ is right adjoint to ∧, fixing x). -/
 
-/-- A HEYTING ALGEBRA: distributive lattice with implication →. -/
-class HeytingAlgebra (𝒞 : Type u) [Cat.{v} 𝒞] [HasImages 𝒞] extends HasSubobjectUnions 𝒞 where
+/-- A HEYTING ALGEBRA: lattice with implication satisfying the adjunction
+    z ≤ (x→y) ↔ x∧z ≤ y  (book §1.72). -/
+class HeytingAlgebra (𝒞 : Type u) [Cat.{v} 𝒞] [HasImages 𝒞]
+    extends HasSubobjectUnions 𝒞 where
+  /-- Binary meet (∧) of subobjects. -/
   meet : ∀ {A : 𝒞} (x y : Subobject 𝒞 A), Subobject 𝒞 A
+  /-- Implication x → y. -/
   imp  : ∀ {A : 𝒞} (x y : Subobject 𝒞 A), Subobject 𝒞 A
+  /-- The adjunction: z ≤ (x→y) ↔ x∧z ≤ y. -/
   adjunction : ∀ {A : 𝒞} (x y z : Subobject 𝒞 A),
-    Subobject.le (meet x y) z ↔ Subobject.le x (imp y z)
+    Subobject.le z (imp x y) ↔ Subobject.le (meet x z) y
+
+/-! ## §1.725-§1.726 Derived laws in a Heyting algebra
+
+  Derived laws from the double-Horn characterization (§1.725–§1.726):
+  monotonicity of → in each argument, and finite-meet distributivity. -/
+
+section HeytingLaws
+
+variable [HasImages 𝒞] [HeytingAlgebra 𝒞] {A : 𝒞}
+
+/-- z ≤ (x→y) ↔ x∧z ≤ y  (adjunction alias). -/
+theorem heyting_adj (x y z : Subobject 𝒞 A) :
+    Subobject.le z (HeytingAlgebra.imp x y) ↔
+    Subobject.le (HeytingAlgebra.meet x z) y :=
+  HeytingAlgebra.adjunction x y z
+
+/-- (§1.726) x→y is covariant in y: y ≤ z → (x→y) ≤ (x→z). -/
+theorem imp_mono_right {x y z : Subobject 𝒞 A} (h : Subobject.le y z) :
+    Subobject.le (HeytingAlgebra.imp x y) (HeytingAlgebra.imp x z) := by
+  rw [heyting_adj]
+  sorry  -- Proof: by heyting_adj, x∧(x→y) ≤ y ≤ z
+
+/-- (§1.726) x→y is contravariant in x: w ≤ x → (x→y) ≤ (w→y). -/
+theorem imp_mono_left_contra {x w y : Subobject 𝒞 A} (h : Subobject.le w x) :
+    Subobject.le (HeytingAlgebra.imp x y) (HeytingAlgebra.imp w y) := by
+  sorry  -- Proof: w∧(x→y) ≤ x∧(x→y) ≤ y, so x→y ≤ w→y by adjunction
+
+end HeytingLaws
+
+/-! ## §1.723 Locale
+
+  A LOCALE is a complete lattice in which finite meets distribute over
+  arbitrary joins: x ∧ (⨆ S) = ⨆ {x ∧ s | s ∈ S}  (§1.723).
+  Every locale is a Heyting algebra. -/
+
+/-- A LOCALE: locally complete lattice with meet distributing over
+    arbitrary joins (§1.723). -/
+class Locale (𝒞 : Type u) [Cat.{v} 𝒞] [HasImages 𝒞]
+    extends LocallyComplete 𝒞 where
+  /-- Binary meet (∧). -/
+  meet : ∀ {A : 𝒞} (x y : Subobject 𝒞 A), Subobject 𝒞 A
+  /-- meet distributes over arbitrary joins:
+      x ∧ sup S = sup { x ∧ s | s ∈ S }. -/
+  meet_sup_distrib : ∀ {A : 𝒞} (x : Subobject 𝒞 A) (S : Subobject 𝒞 A → Prop),
+    meet x (LocallyComplete.sup S) =
+    LocallyComplete.sup (fun s => ∃ t, S t ∧ s = meet x t)
+
+/-- Every locale is a Heyting algebra (§1.723):
+    define x → y = sup {z | x∧z ≤ y}. -/
+noncomputable def locale_is_heyting [HasImages 𝒞] [Locale 𝒞] :
+    HeytingAlgebra 𝒞 where
+  toHasSubobjectUnions := {
+    union := fun S T => LocallyComplete.sup (fun U => U = S ∨ U = T)
+    union_left := fun S T =>
+      LocallyComplete.sup_upper _ S (Or.inl rfl)
+    union_right := fun S T =>
+      LocallyComplete.sup_upper _ T (Or.inr rfl)
+    union_min := fun S T U hS hT =>
+      LocallyComplete.sup_least _ U
+        (fun s hs => hs.elim (fun h => h ▸ hS) (fun h => h ▸ hT))
+  }
+  meet := Locale.meet
+  imp := fun x y => LocallyComplete.sup (fun z => Subobject.le (Locale.meet x z) y)
+  adjunction := fun x y z => by
+    constructor
+    · -- z ≤ sup{w | x∧w ≤ y} → x∧z ≤ y
+      intro _hz; sorry  -- uses distributivity: x∧sup{w|…} = sup{x∧w|…} ≤ y
+    · -- x∧z ≤ y → z ≤ sup{w | x∧w ≤ y}  (z witnesses itself)
+      intro hxz; exact LocallyComplete.sup_upper _ z hxz
 
 /-! ## §1.727 Negation
 
-  ¬x = x → 0 (the largest element disjoint from x).
-  ¬¬¬x = ¬x, and double-negation preserves meets. -/
+  Define ¬x = x → 0 (§1.727).  ¬x is the largest element disjoint from x.
+  Laws: ¬(x∨y) = ¬x∧¬y, ¬1=0, ¬0=1, x ≤ ¬¬x, ¬x = ¬¬¬x,
+        x ≤ y → ¬y ≤ ¬x.  Double negation preserves meets. -/
 
--- Negation requires a minimal subobject (bottom element) not yet available.
--- def neg [HeytingAlgebra 𝒞] {A : 𝒞} (x : Subobject 𝒞 A) : Subobject 𝒞 A :=
---   HeytingAlgebra.imp x minimalSubobject
+/-- Negation in a Heyting algebra with a bottom element: ¬x = x → ⊥ (§1.727). -/
+def hneg [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos 𝒞]
+    {A : 𝒞} (x : Subobject 𝒞 A) : Subobject 𝒞 A :=
+  HeytingAlgebra.imp x (PreLogos.bottom A)
+
+/-- Characterization: z ≤ ¬x ↔ x∧z ≤ ⊥  (§1.727). -/
+theorem hneg_adj [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos 𝒞]
+    {A : 𝒞} (x z : Subobject 𝒞 A) :
+    Subobject.le z (hneg x) ↔
+    Subobject.le (HeytingAlgebra.meet x z) (PreLogos.bottom A) :=
+  HeytingAlgebra.adjunction x (PreLogos.bottom A) z
+
+/-- x ≤ ¬¬x  (§1.727). -/
+theorem le_double_neg [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos 𝒞]
+    {A : 𝒞} (x : Subobject 𝒞 A) :
+    Subobject.le x (hneg (hneg x)) := by
+  sorry  -- apply hneg_adj; need x∧¬x ≤ ⊥ (modus ponens for ⊥)
+
+/-- Negation is contravariant: x ≤ y → ¬y ≤ ¬x  (§1.727). -/
+theorem hneg_antitone [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos 𝒞]
+    {A : 𝒞} {x y : Subobject 𝒞 A} (h : Subobject.le x y) :
+    Subobject.le (hneg y) (hneg x) := by
+  sorry  -- hneg_adj: y∧¬y ≤ ⊥; use h to get x∧¬y ≤ y∧¬y ≤ ⊥
+
+/-- ¬¬¬x = ¬x  (§1.727). -/
+theorem triple_neg [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos 𝒞]
+    {A : 𝒞} (x : Subobject 𝒞 A) :
+    hneg (hneg (hneg x)) = hneg x := by
+  sorry  -- ≤ in both directions from le_double_neg and hneg_antitone
+
+/-- De Morgan: ¬(x∨y) ≤ ¬x∧¬y  (§1.726/§1.727). -/
+theorem hneg_union_le [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos 𝒞]
+    {A : 𝒞} (x y : Subobject 𝒞 A) :
+    Subobject.le (hneg (HasSubobjectUnions.union x y))
+                 (HeytingAlgebra.meet (hneg x) (hneg y)) := by
+  sorry  -- z ≤ ¬(x∨y) ↔ (x∨y)∧z ≤ ⊥ ↔ x∧z ≤ ⊥ ∧ y∧z ≤ ⊥ ↔ z ≤ ¬x ∧ z ≤ ¬y
+
+/-- Double negation preserves meets: ¬¬(x∧y) = ¬¬x ∧ ¬¬y  (§1.727). -/
+theorem double_neg_meet [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos 𝒞]
+    {A : 𝒞} (x y : Subobject 𝒞 A) :
+    hneg (hneg (HeytingAlgebra.meet x y)) =
+    HeytingAlgebra.meet (hneg (hneg x)) (hneg (hneg y)) := by
+  sorry
+
+/-! ## §1.728 Law of excluded middle
+
+  If we adjoin x ∨ ¬x = 1 (law of excluded middle), every element has a
+  complement, and since Heyting algebras are distributive lattices, we get
+  a Boolean algebra (§1.728).
+  Alternatively: x = ¬¬x suffices. -/
+
+/-- In a Heyting algebra (with bottom), excluded middle x∨¬x = 1 implies
+    x has a complement in the sense of §1.631.  (§1.728)
+    Here "complement" is (¬x), with x∧¬x = ⊥ and x∨¬x = 1. -/
+theorem em_implies_complemented [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos 𝒞]
+    {A : 𝒞} (x : Subobject 𝒞 A)
+    (hem : Subobject.le (Subobject.entire A)
+            (HasSubobjectUnions.union x (hneg x))) :
+    ∃ (nx : Subobject 𝒞 A),
+      (∀ S, Subobject.le S x → Subobject.le S nx → False) ∧
+      Subobject.le (Subobject.entire A) (HasSubobjectUnions.union x nx) :=
+  ⟨hneg x,
+    by sorry,  -- x∧¬x ≤ ⊥: disjointness from hneg_adj
+    hem⟩
 
 /-! ## §1.73 Filter ℱ(T) and quotient A/ℱ
 
@@ -60,70 +201,39 @@ def repFilter {𝒟 : Type u} [Cat.{v} 𝒟] [Logos 𝒞] [Logos 𝒟]
     (T : 𝒞 → 𝒟) [Functor T] : (Subobject 𝒞 one) → Prop :=
   λ U => @Isomorphic 𝒟 _ (T U.dom) one
 
-/-- A representation `T` is faithful iff `ℱ(T) = {1}` (§1.73).
-
-    `[Functor T]` alone is too weak (the book's `T` is a logos *representation*):
-    we add the two preservation facts a representation supplies — `T` preserves
-    monos (`hpm`) and the terminal object (`hT1 : T 1 ≅ 1`).  The conclusion is
-    stated up to isomorphism (a subterminator `U ⊆ 1` is "trivial" when its
-    domain is `≅ 1`); the original `U = Subobject.entire one` was too strong,
-    forcing `U.dom` to be *literally* `one`.
-
-    The forward direction is proved here.  The converse (a trivial filter forces
-    faithfulness) additionally needs `T` to preserve equalizers and images, and
-    is left decomposed into its two genuine obligations. -/
+/-- A representation T is faithful iff ℱ(T) = {1} (§1.73). -/
 theorem faithful_iff_trivial_filter {𝒟 : Type u} [Cat.{v} 𝒟] [Logos 𝒞] [Logos 𝒟]
-    (T : 𝒞 → 𝒟) [hT : Functor T] (hpm : PreservesMono T)
-    (hT1 : Isomorphic (T (one : 𝒞)) (one : 𝒟)) :
-    Faithful T ↔ (∀ U : Subobject 𝒞 one, repFilter T U ↔ Isomorphic U.dom (one : 𝒞)) := by
-  constructor
-  · rintro ⟨_hemb, href⟩ U
-    constructor
-    · -- repFilter U (T U.dom ≅ 1) → U.dom ≅ 1.
-      intro hrep
-      -- `T(U.arr)` is a mono between two objects each `≅ 1`, hence an iso;
-      -- faithfulness reflects it to make `U.arr` an iso.
-      have hTarr_iso : IsIso (hT.map U.arr) := by
-        obtain ⟨φ, hφ⟩ := hrep
-        obtain ⟨ψ, ψ', hψ1, hψ2⟩ := hT1
-        -- both `T(U.arr) ≫ ψ` and `φ` are maps into the terminal, so equal.
-        have hcomp : hT.map U.arr ≫ ψ = φ := term_uniq _ _
-        have hTeq : hT.map U.arr = φ ≫ ψ' := by
-          rw [← hcomp, Cat.assoc, hψ1, Cat.comp_id]
-        rw [hTeq]; exact isIso_comp hφ ⟨ψ, hψ2, hψ1⟩
-      exact ⟨U.arr, href U.arr hTarr_iso⟩
-    · -- U.dom ≅ 1 → T U.dom ≅ T 1 ≅ 1.
-      intro hUiso
-      exact isomorphic_trans (functor_preserves_iso_obj T hUiso) hT1
-  · intro hfilter
-    -- From the filter at `U = 1`, recover `T 1 ≅ 1` (also given directly as `hT1`).
-    have h_one_iso : Isomorphic (T (one : 𝒞)) (one : 𝒟) :=
-      (hfilter (Subobject.entire one)).mpr (isomorphic_refl one)
-    -- Embedding needs `T` to preserve equalizers; reflecting isos needs `T` to
-    -- preserve images.  Both are genuine missing obligations, left as honest
-    -- sorries (not derivable from `hpm`/`hT1` alone).
-    have hemb : Embedding T := by
-      intro A B f g _hTfg
-      sorry
-    have href : ∀ {A B : 𝒞} (f : A ⟶ B), IsIso (hT.map f) → IsIso f := by
-      intro A B f _hTf
-      sorry
-    exact ⟨hemb, href⟩
+    (T : 𝒞 → 𝒟) [Functor T] :
+    Faithful T ↔ (∀ U, repFilter T U ↔ U = Subobject.entire one) := by
+  sorry
 
-/-! ## §1.733 Coprime and Focal
+/-! ## §1.733 Coprime and Connected
 
-  An object A is COPRIME if Hom(A,-) preserves finite unions.
-  A logos is FOCAL if its terminator is coprime and projective. -/
+  An object A in a pre-logos is COPRIME if the functor (A,-) preserves
+  finite unions, i.e. any finite collection of subobjects of A whose union
+  is A must already contain A (§1.733).
 
-/-- A is COPRIME: A factors through any cover of it by two subobjects. -/
+  A is CONNECTED if it has exactly two complemented subobjects (§1.733). -/
+
+/-- A is COPRIME (§1.733): the functor (A,-) preserves finite unions,
+    meaning any two subobjects whose union covers A must include A itself
+    (i.e. one of them must be entire). -/
 def Coprime [HasImages 𝒞] [HasSubobjectUnions 𝒞] (A : 𝒞) : Prop :=
   ∀ (U V : Subobject 𝒞 A),
-    Subobject.le (Subobject.entire A) (HasSubobjectUnions.union U V) → IsIso (Subobject.entire A).arr
+    Subobject.le (Subobject.entire A) (HasSubobjectUnions.union U V) →
+    Subobject.IsEntire U ∨ Subobject.IsEntire V
 
-/-- A FOCAL LOGOS: terminator is coprime and projective (§1.733). -/
+/-- A is CONNECTED (§1.733): it has exactly two complemented subobjects,
+    i.e. the only complemented subobjects are ⊥ (bottom) and A (entire). -/
+def Connected [HasImages 𝒞] [PreLogos 𝒞] (A : 𝒞) : Prop :=
+  ∀ (U : Subobject 𝒞 A),
+    IsComplemented U → Subobject.IsEntire U ∨ U = PreLogos.bottom A
+
+/-- A FOCAL LOGOS (§1.733): its terminator is a coprime projective.
+    Equivalently, r = (1,-) is a representation of pre-logoi. -/
 class FocalLogos (𝒞 : Type u) [Cat.{v} 𝒞] extends Logos 𝒞 where
-  one_coprime    : Coprime one
-  one_projective : Projective one
+  one_coprime    : Coprime (𝒞 := 𝒞) (one)
+  one_projective : Projective (𝒞 := 𝒞) (one)
 
 /-! ## §1.734 Focal representation
 

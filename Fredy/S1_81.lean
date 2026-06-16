@@ -11,6 +11,7 @@
 import Fredy.S1_1
 import Fredy.S1_18
 import Fredy.S1_8
+import Fredy.S1_14  -- canonical `ContraFunctor` (§1.182) lives here
 
 
 universe v u₁ u₂
@@ -28,11 +29,7 @@ variable {𝒞 : Type u₁} [Cat.{v} 𝒞] {𝒟 : Type u₂} [Cat.{v} 𝒟]
   The book notes that this reduces to covariant adjoints by composing with
   opposite categories.  We give the direct definitions. -/
 
-/-- A CONTRAVARIANT FUNCTOR F : 𝒞 → 𝒟: reverses composition (§1.818). -/
-class ContraFunctor (F : 𝒞 → 𝒟) where
-  map : {X Y : 𝒞} → (X ⟶ Y) → (F Y ⟶ F X)
-  map_id : ∀ (X : 𝒞), map (Cat.id X) = Cat.id (F X)
-  map_comp : ∀ {X Y Z : 𝒞} (f : X ⟶ Y) (g : Y ⟶ Z), map (f ≫ g) = map g ≫ map f
+-- (CONTRAVARIANT FUNCTOR `ContraFunctor` is defined canonically in S1_14 §1.182; reused here.)
 
 /-- F, G are ADJOINT ON THE RIGHT: (B, FA) ≅ (A, GB) naturally (§1.818).
     The naturality conditions encode contravariance of both F and G. -/
