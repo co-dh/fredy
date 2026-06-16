@@ -168,7 +168,46 @@ instance topos_is_effective [Topos 𝒞] : EffectiveRegular 𝒞 := by
 /-- **§1.952**: A topos is positive: it has binary coproducts A + B.
     Proof sketch (Freyd): For any A, ΔR factors through ΔA1 iff R is a map,
     and through Δ0 iff R = 0.  So A + 1 exists.  Then A + B is constructed
-    as a subobject of [A] × [B] = [A + B]. -/
+    as a subobject of [A] × [B] = [A + B].
+
+    BLOCKER (faithful sorry) — a POWER-OBJECT/PARTIAL-MAP gap, NOT the §1.543
+    capitalization gap that blocks the regular arms (`topos_is_effective`,
+    `topos_is_regular`, `topos_has_coequalizers`, S1_94 `topos_is_regular`/
+    `topos_is_logos`).  This arm never touches the §1.543 transfinite
+    image/family-glb (`capitalization_lemma`); the residual is a different,
+    lower-down power-object obstruction.  Concretely, Freyd's singleton-map
+    construction `A + B ↪ [A] × [B]` needs:
+
+      (S) the power objects `[A] = Ω^A`, `[B] = Ω^B` and the singleton maps
+          `A → [A]`, `B → [B]`.  These are `powObj` / `singletonMap` (S1_94, via
+          `singletonMapCat`, S1_92), but `powObj A := Ω ^^ A = exp A Ω` rests on
+          `topos_has_exponentials` (S1_92:96), which is itself a `sorry`: its
+          residual is `∀ B, Baseable B` — "every power object `[B]` is baseable"
+          (the §1.859 representability of `(A × −, [B])`).  This is the
+          POWER-OBJECT gap: the subobject-classifier presentation of `Topos`
+          (Cartesian + `HasSubobjectClassifier`, S1_9:161) only supplies
+          `Ω = [1]`, NOT `HasPowerObject C` / exponentials for general `C`.
+          (Construction of the carrier `A + B ↪ [A] × [B]` itself, as the union of
+          the two classifier-cut subobjects `{(s,∅) | s singleton}` and
+          `{(∅,t) | t singleton}`, needs ONLY `HasSubobjectClassifier` — the
+          internal `∨` on `Ω` — so it is NOT a §1.543 family-glb.)
+
+      (P) the COPRODUCT UNIVERSAL PROPERTY (`case`/`inl`/`inr` + uniqueness):
+          building `[f,g] : A + B → X` from `f : A → X`, `g : B → X` is exactly
+          factoring a partial map out of the singleton-or-empty subobject, i.e.
+          the universal property of the PARTIAL-MAP CLASSIFIER `Ω₊ = Ã`
+          (`HasPartialMapClassifier`, S1_92:339).  That structure exists in the
+          repo only as a field-stub (its `pmc_classify` carries no laws) and is
+          NOT derived from `Topos`; `LawvereTopos` (S1_92:350) *bundles*
+          `has_coproducts`, so it cannot be used to derive this instance without
+          circularity.
+
+    So the precise residual is the pair {(S) `∀ B, Baseable B` = the
+    power-object/exponential representability behind `topos_has_exponentials`;
+    (P) the lawful partial-map-classifier universal property `Ω₊` derived from
+    `Topos`}.  Both are power-object–level facts, distinct from and strictly
+    below the §1.543 transfinite-colimit (`capitalization_lemma`) blocker of the
+    regular/effective arms. -/
 instance topos_is_positive [Topos 𝒞] : HasBinaryCoproducts 𝒞 := by
   sorry
 
