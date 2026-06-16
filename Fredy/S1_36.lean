@@ -142,6 +142,8 @@ structure EquivalenceKernel (𝒞 : Type u) [Cat.{v} 𝒞] where
   mem_id : ∀ X : 𝒞, mem (Cat.id X)
   isGroupoid : ∀ {X Y : 𝒞} (f : X ⟶ Y), mem f → (∃ g : Y ⟶ X, mem g ∧ f ≫ g = Cat.id X ∧ g ≫ f = Cat.id Y)
   isPreorder : ∀ {X Y : 𝒞} (f g : X ⟶ Y), mem f → mem g → f = g
+  -- A kernel is a subcategory, hence closed under composition: `Q(fg)=Q f·Q g=1·1=1`.
+  mem_comp : ∀ {X Y Z : 𝒞} (f : X ⟶ Y) (g : Y ⟶ Z), mem f → mem g → mem (f ≫ g)
 
 /-- The kernel of an equivalence functor `T`: the maps `T` sends to identities.
 
@@ -183,6 +185,18 @@ def equivalenceKernel (F : 𝒞 → 𝒟) [hF : Functor F] (emb : Embedding F) (
     obtain ⟨_, hf'⟩ := hf
     obtain ⟨_, hg'⟩ := hg
     exact emb f g (eq_of_heq (hf'.trans hg'.symm))
+  mem_comp {X Y Z} f g hf hg := by
+    obtain ⟨e, hf'⟩ := hf
+    obtain ⟨e', hg'⟩ := hg
+    refine ⟨e.trans e', ?_⟩
+    -- `T(fg) = T f · T g`; both factors heq `1`, and `1·1 = 1` at the glued endpoint.
+    rw [hF.map_comp]
+    -- Reduce to a statement over a fresh endpoint so `cases` on object equalities fires.
+    have key : ∀ {P Q S : 𝒟} (mf : P ⟶ Q) (mg : Q ⟶ S), P = Q → Q = S →
+        HEq mf (Cat.id P) → HEq mg (Cat.id Q) → HEq (mf ≫ mg) (Cat.id P) := by
+      intro P Q S mf mg e₁ e₂ hmf hmg; cases e₁; cases e₂
+      rw [eq_of_heq hmf, eq_of_heq hmg, Cat.id_comp]
+    exact key (hF.map f) (hF.map g) e e' hf' hg'
 
 /-! ## §1.363 Equivalent categories
 
@@ -213,22 +227,224 @@ def AreEquivalent (𝒞 : Type u) [Cat.{v} 𝒞] (𝒟 : Type u) [Cat.{v} 𝒟] 
 
   Every equivalence functor factors as a cross-section of an inflation, followed
   by an isomorphism of categories, followed by an inflation forgetful functor.
-  We state the existence of such a factorization. -/
 
-/-- §1.361: any equivalence functor `F : 𝒞 → 𝒟` factors through an inflation.
-    There is an inflation `I` of `𝒟`, an isomorphism-of-categories `Φ : 𝒞 → [T]`,
-    such that `F = Φ` followed by the forgetful functor `[T] → 𝒟`. -/
+  Following the book: given `F : 𝒞 → 𝒟`, form the category `[T']` whose objects are
+  triples `(A, θ, B)` with `θ : FA ≅ B`, and let `T' : [T'] → 𝒟` send `(A,θ,B) ↦ B`.
+  `T'` is onto since `F` has a representative image, so `[T']` is an inflation of `𝒟`.
+  The functor `Φ : 𝒞 → [T']`, `X ↦ (X, 1, FX)` — the book's cross-section `S` followed
+  by the iso `[T] ≅ [T']` — is a **full embedding** with `T' (Φ X) = F X`.
+
+  (Note: `Φ` is a *full embedding*, not a bijection on objects.  A full cat-iso would
+  force `F` onto on objects, which an equivalence functor need not be; the book's
+  `[T] ≅ [T']` is an iso, but the cross-section `S : 𝒞 → [T]` is not.  The composite
+  recorded here is the cross-section-then-iso, i.e. a full embedding.) -/
+
+/-- An object of the inflation `[T']` of `𝒟` built from `F`: a source object `A`,
+    a target object `B`, together with the *fact* that some iso `θ : FA ≅ B` exists.
+
+    The book's `G` carries the iso `θ` as data; but the inflated category `[T']` has
+    `Hom (A,θ,B) (A',θ',B') = B ⟶ B'`, depending only on the targets, and `θ` is needed
+    solely to make `T'` onto.  Recording its *existence* (`Nonempty`) therefore keeps
+    `[T']`'s object type in `Type u` while staying faithful — `T'` is still onto exactly
+    where `F` has a representative image.  `src` is likewise inessential and dropped. -/
+def FactObj (F : 𝒞 → 𝒟) [Functor F] : Type u :=
+  { B : 𝒟 // ∃ (A : 𝒞) (θ : F A ⟶ B), IsIso θ }
+
+/-- The inflation `[T']` of `𝒟` induced by an equivalence functor `F` (its `T'` is
+    `Subtype.val`).  `T'` is onto exactly because `F` has a representative image. -/
+def factInflation (F : 𝒞 → 𝒟) [Functor F] (repF : HasRepresentativeImage F) (B : 𝒟) :
+    Inflation B where
+  objSet := FactObj F
+  T := Subtype.val
+  isOnto b := by obtain ⟨A, h, hiso⟩ := repF b; exact ⟨⟨b, ⟨A, h, hiso⟩⟩, rfl⟩
+
+/-- The factorizing functor `Φ : 𝒞 → [T']`, `X ↦ (F X, ⟨X, 1, iso⟩)`.  Its action on a
+    map is `F`'s, since `Hom (Φ X) (Φ Y) = F X ⟶ F Y` in `[T']`. -/
+def factPhi (F : 𝒞 → 𝒟) [Functor F] (repF : HasRepresentativeImage F) (B : 𝒟) :
+    𝒞 → (factInflation F repF B).objSet :=
+  fun X => ⟨F X, ⟨X, Cat.id (F X), ⟨Cat.id (F X), Cat.id_comp _, Cat.id_comp _⟩⟩⟩
+
+instance factPhiFunctor (F : 𝒞 → 𝒟) [hF : Functor F] (repF : HasRepresentativeImage F)
+    (B : 𝒟) : Functor (factPhi F repF B) where
+  map g := hF.map g
+  map_id X := hF.map_id X
+  map_comp f g := hF.map_comp f g
+
+/-- §1.361: any equivalence functor `F : 𝒞 → 𝒟` factors through an inflation of `𝒟`.
+    There is an inflation `I` of `𝒟` with forgetful `T' : [T'] → 𝒟`, and a *full
+    embedding* `Φ : 𝒞 → [T']` (the book's cross-section followed by the iso `[T] ≅ [T']`),
+    such that `T' (Φ X) = F X` — i.e. `F = Φ ; T'`. -/
 theorem equivalenceFunctor_factorization
-    (F : 𝒞 → 𝒟) [hF : Functor F] (hEq : EquivalenceFunctor F) :
-    ∃ (B : 𝒟) (I : Inflation B) (Φ : 𝒞 → I.objSet) (_ : Functor Φ),
-      IsCatIso Φ ∧ ∀ X : 𝒞, I.T (Φ X) = F X := by
-  sorry
+    (F : 𝒞 → 𝒟) [hF : Functor F] (hEq : EquivalenceFunctor F) (B : 𝒟) :
+    ∃ (I : Inflation B) (Φ : 𝒞 → I.objSet) (_ : Functor Φ),
+      Embedding Φ ∧ Full Φ ∧ ∀ X : 𝒞, I.T (Φ X) = F X := by
+  obtain ⟨embF, fullF, repF⟩ := hEq
+  refine ⟨factInflation F repF B, factPhi F repF B, factPhiFunctor F repF B, ?_, ?_, ?_⟩
+  · -- Embedding: `Φ g = Φ g'` is `hF.map g = hF.map g'`, so `g = g'` by `F` embedding.
+    intro X Y g g' h; exact embF g g' h
+  · -- Full: any `h : F X ⟶ F Y` lifts through `F` (full), and `Φ` of the lift is `h`.
+    intro X Y h; obtain ⟨g, hg⟩ := fullF h; exact ⟨g, hg⟩
+  · -- `T' (Φ X) = F X` by construction (`Subtype.val` of `(F X, …)` is `F X`).
+    intro X; rfl
 
 /-! ## §1.366 Quotient by an equivalence kernel
 
   For any equivalence kernel `K ⊆ A`, there is an onto equivalence functor
-  `A → A/K` whose kernel is exactly `K`.  `A/K` has the objects of `A` glued
-  along `K` and the double cosets `KxK` as morphisms. -/
+  `A → A/K` whose kernel is exactly `K`.  `A/K` glues the `K`-connected objects
+  of `A`.  We realise `A/K` as a *skeleton built by representatives*: objects are
+  the `K`-classes, and a hom between two classes is just a hom of `𝒞` between the
+  chosen representatives.  This makes `Q` full and faithful on the nose and onto
+  by construction; the unique `K`-isos to representatives play the role the book's
+  double cosets `KxK` play, and Classical choice supplies the representatives. -/
+
+namespace QuotientByKernel
+
+variable (K : EquivalenceKernel 𝒞)
+
+/-- `X` and `Y` are glued iff there is a `K`-map between them.  This is an
+    equivalence relation: reflexive by `mem_id`, symmetric by `isGroupoid`,
+    transitive by `mem_comp`. -/
+def Rel (X Y : 𝒞) : Prop := ∃ f : X ⟶ Y, K.mem f
+
+theorem rel_refl (X : 𝒞) : Rel K X X := ⟨Cat.id X, K.mem_id X⟩
+
+theorem rel_symm {X Y : 𝒞} : Rel K X Y → Rel K Y X := by
+  rintro ⟨f, hf⟩; obtain ⟨g, hg, _, _⟩ := K.isGroupoid f hf; exact ⟨g, hg⟩
+
+theorem rel_trans {X Y Z : 𝒞} : Rel K X Y → Rel K Y Z → Rel K X Z := by
+  rintro ⟨f, hf⟩ ⟨g, hg⟩; exact ⟨f ≫ g, K.mem_comp f g hf hg⟩
+
+/-- The setoid gluing `K`-connected objects. -/
+def setoid : Setoid 𝒞 := ⟨Rel K, ⟨rel_refl K, rel_symm K, rel_trans K⟩⟩
+
+/-- Objects of the quotient `𝒞/K`: the `K`-classes. -/
+def Obj : Type u := Quotient (setoid K)
+
+/-- The chosen representative object of a class (Classical choice). -/
+noncomputable def rep (d : Obj K) : 𝒞 := Classical.choose (Quotient.exists_rep d)
+
+theorem rep_spec (d : Obj K) : Quotient.mk (setoid K) (rep K d) = d :=
+  Classical.choose_spec (Quotient.exists_rep d)
+
+/-- Every object is `K`-related to its class representative. -/
+theorem rel_rep (X : 𝒞) : Rel K X (rep K (Quotient.mk (setoid K) X)) := by
+  have : Quotient.mk (setoid K) X = Quotient.mk (setoid K) (rep K (Quotient.mk (setoid K) X)) :=
+    (rep_spec K _).symm
+  exact Quotient.exact this
+
+/-- A chosen `K`-iso `κ X : X ⟶ rep ⟦X⟧` (Classical choice of the `K`-map). -/
+noncomputable def kappa (X : 𝒞) : X ⟶ rep K (Quotient.mk (setoid K) X) :=
+  Classical.choose (rel_rep K X)
+
+theorem kappa_mem (X : 𝒞) : K.mem (kappa K X) := Classical.choose_spec (rel_rep K X)
+
+/-- The inverse of `κ X`, itself a `K`-map (groupoid), with both round-trips identity. -/
+noncomputable def kappaInv (X : 𝒞) : rep K (Quotient.mk (setoid K) X) ⟶ X :=
+  Classical.choose (K.isGroupoid _ (kappa_mem K X))
+
+theorem kappaInv_spec (X : 𝒞) :
+    K.mem (kappaInv K X) ∧ kappa K X ≫ kappaInv K X = Cat.id X ∧
+      kappaInv K X ≫ kappa K X = Cat.id (rep K (Quotient.mk (setoid K) X)) :=
+  Classical.choose_spec (K.isGroupoid _ (kappa_mem K X))
+
+/-- The quotient category `𝒞/K`: a hom between two classes is a `𝒞`-hom between
+    their representatives.  Identity, composition, and the axioms are inherited
+    from `𝒞` verbatim. -/
+noncomputable instance catObj : Cat.{v} (Obj K) where
+  Hom d e := rep K d ⟶ rep K e
+  id d := Cat.id (rep K d)
+  comp f g := f ≫ g
+  id_comp f := Cat.id_comp f
+  comp_id f := Cat.comp_id f
+  assoc f g h := Cat.assoc f g h
+
+/-- The quotient functor `Q : 𝒞 → 𝒞/K`, identity on objects-up-to-class.  On a
+    map `f : X ⟶ Y` it conjugates by the representative isos:
+    `Q f = (κ X)⁻¹ ≫ f ≫ κ Y : rep⟦X⟧ ⟶ rep⟦Y⟧`. -/
+abbrev Q : 𝒞 → Obj K := fun X => Quotient.mk (setoid K) X
+
+/-- `Q`'s action on maps, conjugating by representative `K`-isos.  Lives in `𝒞` as
+    a map `rep⟦X⟧ ⟶ rep⟦Y⟧`, which is exactly `Q K X ⟶ Q K Y` in `catObj`. -/
+noncomputable def Qmap {X Y : 𝒞} (f : X ⟶ Y) :
+    rep K (Quotient.mk (setoid K) X) ⟶ rep K (Quotient.mk (setoid K) Y) :=
+  kappaInv K X ≫ f ≫ kappa K Y
+
+theorem Qmap_id (X : 𝒞) : Qmap K (Cat.id X) = Cat.id (Q K X) := by
+  -- both sides live in 𝒞 as maps `rep⟦X⟧ ⟶ rep⟦X⟧`; `Cat.id (Q K X) = Cat.id (rep⟦X⟧)`.
+  show kappaInv K X ≫ Cat.id X ≫ kappa K X = Cat.id (rep K (Quotient.mk (setoid K) X))
+  rw [Cat.id_comp, (kappaInv_spec K X).2.2]
+
+theorem Qmap_comp {X Y Z : 𝒞} (f : X ⟶ Y) (g : Y ⟶ Z) :
+    Qmap K (f ≫ g) = Qmap K f ≫ Qmap K g := by
+  -- `catObj`'s composition is `𝒞`'s, so this is a `𝒞`-identity after cancelling `κY⁻¹κY`.
+  show kappaInv K X ≫ (f ≫ g) ≫ kappa K Z
+    = (kappaInv K X ≫ f ≫ kappa K Y) ≫ (kappaInv K Y ≫ g ≫ kappa K Z)
+  simp only [Cat.assoc]
+  rw [← Cat.assoc (kappa K Y) (kappaInv K Y), (kappaInv_spec K Y).2.1, Cat.id_comp]
+
+noncomputable instance functorQ : Functor (Q K) where
+  map := Qmap K
+  map_id := Qmap_id K
+  map_comp := Qmap_comp K
+
+theorem Q_surjective : Function.Surjective (Q K) := by
+  intro d; exact ⟨rep K d, rep_spec K d⟩
+
+/-- `Q` is faithful: `Qmap f = Qmap g` forces `f = g`, because conjugation by
+    the iso `κ` is injective. -/
+theorem Q_embedding : Embedding (Q K) := by
+  intro X Y f g h
+  -- h : Qmap f = Qmap g, i.e. (κX)⁻¹ ≫ f ≫ κY = (κX)⁻¹ ≫ g ≫ κY.
+  have h' : kappaInv K X ≫ f ≫ kappa K Y = kappaInv K X ≫ g ≫ kappa K Y := h
+  -- precompose by κX, cancel; postcompose by (κY)⁻¹, cancel.
+  have e1 : kappa K X ≫ (kappaInv K X ≫ f ≫ kappa K Y) ≫ kappaInv K Y
+          = kappa K X ≫ (kappaInv K X ≫ g ≫ kappa K Y) ≫ kappaInv K Y := by rw [h']
+  -- LHS simplifies to f, RHS to g.
+  have simp1 : ∀ h : X ⟶ Y,
+      kappa K X ≫ (kappaInv K X ≫ h ≫ kappa K Y) ≫ kappaInv K Y = h := by
+    intro h
+    simp only [Cat.assoc]
+    rw [← Cat.assoc (kappa K X) (kappaInv K X), (kappaInv_spec K X).2.1, Cat.id_comp,
+      (kappaInv_spec K Y).2.1, Cat.comp_id]
+  rw [simp1 f, simp1 g] at e1; exact e1
+
+/-- `Q` is full: every hom `rep⟦X⟧ ⟶ rep⟦Y⟧` is `Qmap` of some `f : X ⟶ Y`. -/
+theorem Q_full : Full (Q K) := by
+  intro X Y (h : rep K (Quotient.mk (setoid K) X) ⟶ rep K (Quotient.mk (setoid K) Y))
+  -- take f := κX ≫ h ≫ (κY)⁻¹; then Qmap f = (κX)⁻¹ ≫ (κX ≫ h ≫ (κY)⁻¹) ≫ κY = h.
+  refine ⟨kappa K X ≫ h ≫ kappaInv K Y, ?_⟩
+  show kappaInv K X ≫ (kappa K X ≫ h ≫ kappaInv K Y) ≫ kappa K Y = h
+  simp only [Cat.assoc]
+  rw [← Cat.assoc (kappaInv K X) (kappa K X), (kappaInv_spec K X).2.2, Cat.id_comp,
+    (kappaInv_spec K Y).2.2, Cat.comp_id]
+
+theorem Q_repImage : HasRepresentativeImage (Q K) := by
+  intro d
+  -- d = ⟦rep d⟧ = Q (rep d); the identity is an iso witness.
+  refine ⟨rep K d, ?_⟩
+  -- Q (rep d) = ⟦rep d⟧ = d, so we need an iso Q(rep d) ⟶ d. Use eqToHom over that equality.
+  have e : Q K (rep K d) = d := rep_spec K d
+  exact ⟨eqToHom e, eqToHom e.symm, eqToHom_comp_eqToHom_symm e, eqToHom_symm_comp_eqToHom e⟩
+
+/-- `Q f` is a `K`-map whenever `f` is: it is `(κX)⁻¹ ≫ f ≫ κY`, a composite of `K`-maps. -/
+theorem Qmap_mem_of_mem {X Y : 𝒞} (f : X ⟶ Y) (hf : K.mem f) : K.mem (Qmap K f) :=
+  K.mem_comp _ _ (kappaInv_spec K X).1 (K.mem_comp _ _ hf (kappa_mem K Y))
+
+/-- Conversely, `f = κX ≫ (Q f) ≫ (κY)⁻¹`, so `f` is a `K`-map whenever `Q f` is. -/
+theorem mem_of_Qmap_mem {X Y : 𝒞} (f : X ⟶ Y) (hQf : K.mem (Qmap K f)) : K.mem f := by
+  have hfac : kappa K X ≫ Qmap K f ≫ kappaInv K Y = f := by
+    show kappa K X ≫ (kappaInv K X ≫ f ≫ kappa K Y) ≫ kappaInv K Y = f
+    simp only [Cat.assoc]
+    rw [← Cat.assoc (kappa K X) (kappaInv K X), (kappaInv_spec K X).2.1, Cat.id_comp,
+      (kappaInv_spec K Y).2.1, Cat.comp_id]
+  rw [← hfac]
+  exact K.mem_comp _ _ (kappa_mem K X) (K.mem_comp _ _ hQf (kappaInv_spec K Y).1)
+
+/-- If two objects are glued (`Q X = Q Y`) their representatives are equal. -/
+theorem rep_eq_of_Q_eq {X Y : 𝒞} (h : Q K X = Q K Y) :
+    rep K (Q K X) = rep K (Q K Y) := congrArg (rep K) h
+
+end QuotientByKernel
 
 /-- §1.366: every equivalence kernel `K` of `𝒞` arises as the kernel of an onto
     equivalence functor `Q : 𝒞 → 𝒟`.  "Kernel = K" means a map `f` lies in `K`
@@ -238,7 +454,51 @@ theorem quotientByKernel_exists (K : EquivalenceKernel 𝒞) :
       EquivalenceFunctor Q ∧ Function.Surjective Q ∧
       (∀ {X Y : 𝒞} (f : X ⟶ Y),
         K.mem f ↔ ∃ _ : Q X = Q Y, HEq (hQ.map f) (Cat.id (Q X))) := by
-  sorry
+  refine ⟨QuotientByKernel.Obj K, QuotientByKernel.catObj K, QuotientByKernel.Q K,
+    QuotientByKernel.functorQ K,
+    ⟨QuotientByKernel.Q_embedding K, QuotientByKernel.Q_full K, QuotientByKernel.Q_repImage K⟩,
+    QuotientByKernel.Q_surjective K, ?_⟩
+  intro X Y f
+  constructor
+  · -- f ∈ K  ⟹  Q X = Q Y  and  Q f heq 1.
+    intro hf
+    have hXY : QuotientByKernel.Q K X = QuotientByKernel.Q K Y := Quotient.sound ⟨f, hf⟩
+    refine ⟨hXY, ?_⟩
+    -- `Q f = (κX)⁻¹ ≫ f ≫ κY` is a `K`-map; over the equal endpoints `rep⟦X⟧ = rep⟦Y⟧`
+    -- the preorder forces it equal to the identity (also a `K`-map there).
+    have hQf : K.mem (QuotientByKernel.Qmap K f) := QuotientByKernel.Qmap_mem_of_mem K f hf
+    -- Generalise over the endpoint equality so `cases` can fire.
+    have e : QuotientByKernel.rep K (QuotientByKernel.Q K X)
+           = QuotientByKernel.rep K (QuotientByKernel.Q K Y) :=
+      QuotientByKernel.rep_eq_of_Q_eq K hXY
+    -- `hQf.map f` lives in `rep⟦X⟧ ⟶ rep⟦Y⟧`; transport to `rep⟦X⟧ ⟶ rep⟦X⟧` and use preorder.
+    -- `Cat.id (Q X)` in `catObj` is `Cat.id (rep⟦X⟧)` in `𝒞`.
+    show HEq (QuotientByKernel.Qmap K f)
+      (Cat.id (QuotientByKernel.rep K (QuotientByKernel.Q K X)))
+    revert hQf
+    generalize QuotientByKernel.Qmap K f = m
+    -- Now `m : rep⟦X⟧ ⟶ rep⟦Y⟧`.  With `e : rep⟦X⟧ = rep⟦Y⟧`, cases on `e`.
+    revert m
+    rw [← e]
+    intro m hm
+    -- `m, Cat.id` are both `K`-maps `rep⟦X⟧ ⟶ rep⟦X⟧`; the preorder identifies them.
+    exact heq_of_eq (K.isPreorder m (Cat.id _) hm (K.mem_id _))
+  · -- Q X = Q Y  and  Q f heq 1  ⟹  f ∈ K.
+    rintro ⟨hXY, hf⟩
+    -- `Q f` heq the identity, hence (over the equal endpoints) is a `K`-map; then `f` is too.
+    apply QuotientByKernel.mem_of_Qmap_mem K f
+    have e : QuotientByKernel.rep K (QuotientByKernel.Q K X)
+           = QuotientByKernel.rep K (QuotientByKernel.Q K Y) :=
+      QuotientByKernel.rep_eq_of_Q_eq K hXY
+    -- `hf : HEq (Q f) (Cat.id rep⟦X⟧)`.  Transport `Q f` to `rep⟦X⟧ ⟶ rep⟦X⟧` and read off `= id`.
+    have hf' : HEq (QuotientByKernel.Qmap K f)
+        (Cat.id (QuotientByKernel.rep K (QuotientByKernel.Q K X))) := hf
+    revert hf'
+    generalize QuotientByKernel.Qmap K f = m
+    revert m
+    rw [← e]
+    intro m hm
+    rw [eq_of_heq hm]; exact K.mem_id _
 
 /-! ## §1.367 Equivalence kernels classify equivalence functors
 
