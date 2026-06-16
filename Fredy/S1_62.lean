@@ -22,6 +22,7 @@ import Fredy.S1_56
 import Fredy.S1_57
 import Fredy.S1_58
 import Fredy.S1_60
+import Fredy.S1_61
 
 
 open Freyd
@@ -253,8 +254,155 @@ theorem complemented_of_projective_is_projective [PositivePreLogos 𝒞]
     HasBinaryCoproducts.case (y ≫ HasBinaryCoproducts.inl) HasBinaryCoproducts.inr
   have h_inl : HasBinaryCoproducts.inl ≫ h = y ≫ HasBinaryCoproducts.inl :=
     HasBinaryCoproducts.case_inl _ _
-  -- h is a cover: needs disjointness of coproduct inclusions in a pre-logos.
-  have hh : Cover h := by sorry
+  -- h is a cover: show (image h).IsEntire via union_via_coproduct_image.
+  have hh : Cover h := by
+    rw [cover_iff_image_entire]
+    -- Step 1: IsImage h U_h where U_h = union(image(y ≫ inl_P), image(inr_{P'}))
+    have hImgH : IsImage h (HasSubobjectUnions.union
+        (image (y ≫ HasBinaryCoproducts.inl))
+        (image (HasBinaryCoproducts.inr (A := P) (B := P')))) :=
+      union_via_coproduct_image (y ≫ HasBinaryCoproducts.inl)
+        (HasBinaryCoproducts.inr (A := P) (B := P'))
+    -- Step 2: case(inl_P, inr_{P'}) = id_{P+P'}
+    have hcase_id :
+        HasBinaryCoproducts.case
+          (HasBinaryCoproducts.inl (A := P) (B := P'))
+          (HasBinaryCoproducts.inr (A := P) (B := P')) = Cat.id _ :=
+      (HasBinaryCoproducts.case_uniq
+        (HasBinaryCoproducts.inl (A := P) (B := P'))
+        (HasBinaryCoproducts.inr (A := P) (B := P'))
+        (Cat.id _)
+        (Cat.comp_id _) (Cat.comp_id _)).symm
+    -- Step 3: IsImage (id_{P+P'}) U_0 where U_0 = union(image inl_P, image inr_{P'})
+    have hImgId0 : IsImage (Cat.id (HasBinaryCoproducts.coprod P P'))
+        (HasSubobjectUnions.union
+          (image (HasBinaryCoproducts.inl (A := P) (B := P')))
+          (image (HasBinaryCoproducts.inr (A := P) (B := P'))))  := by
+      rw [← hcase_id]
+      exact union_via_coproduct_image
+        (HasBinaryCoproducts.inl (A := P) (B := P'))
+        (HasBinaryCoproducts.inr (A := P) (B := P'))
+    -- Step 4: image(id) is entire (id is iso hence cover)
+    have hid_entire : (image (Cat.id (HasBinaryCoproducts.coprod P P'))).IsEntire := by
+      rw [← cover_iff_image_entire]
+      exact iso_cover _ ⟨Cat.id _, Cat.comp_id _, Cat.id_comp _⟩
+    -- Step 5: U_0 is entire. k : (image id).dom → U_0.dom with k ≫ U_0.arr = (image id).arr.
+    -- U_0.arr = k_inv ≫ (image id).arr (iso ≫ iso = iso).
+    have hU0_entire :
+        (HasSubobjectUnions.union
+          (image (HasBinaryCoproducts.inl (A := P) (B := P')))
+          (image (HasBinaryCoproducts.inr (A := P) (B := P')))).IsEntire := by
+      obtain ⟨k, hk⟩ := (HasImages.isImage (Cat.id _)).2 _ hImgId0.1
+      obtain ⟨k_inv, hkk_inv, hk_inv_k⟩ :=
+        image_comparison_iso (HasImages.isImage (Cat.id _)) hImgId0 k hk
+      -- Goal is (HasSubobjectUnions.union ...).IsEntire = IsIso (union ...).arr
+      -- We show union.arr = k_inv ≫ (image id).arr  and then use isIso_comp.
+      -- union.arr: id ≫ union.arr = (k_inv ≫ k) ≫ union.arr = k_inv ≫ (k ≫ union.arr) = k_inv ≫ image.arr
+      have hU0_arr_eq : (HasSubobjectUnions.union
+            (image (HasBinaryCoproducts.inl (A := P) (B := P')))
+            (image (HasBinaryCoproducts.inr (A := P) (B := P')))).arr =
+          k_inv ≫ (HasImages.image (Cat.id (HasBinaryCoproducts.coprod P P'))).arr :=
+        calc (HasSubobjectUnions.union
+              (image (HasBinaryCoproducts.inl (A := P) (B := P')))
+              (image (HasBinaryCoproducts.inr (A := P) (B := P')))).arr
+            = Cat.id _ ≫ (HasSubobjectUnions.union
+                (image (HasBinaryCoproducts.inl (A := P) (B := P')))
+                (image (HasBinaryCoproducts.inr (A := P) (B := P')))).arr := (Cat.id_comp _).symm
+          _ = (k_inv ≫ k) ≫ (HasSubobjectUnions.union
+                (image (HasBinaryCoproducts.inl (A := P) (B := P')))
+                (image (HasBinaryCoproducts.inr (A := P) (B := P')))).arr := by rw [hk_inv_k]
+          _ = k_inv ≫ (k ≫ (HasSubobjectUnions.union
+                (image (HasBinaryCoproducts.inl (A := P) (B := P')))
+                (image (HasBinaryCoproducts.inr (A := P) (B := P')))).arr) := Cat.assoc _ _ _
+          _ = k_inv ≫ (HasImages.image (Cat.id (HasBinaryCoproducts.coprod P P'))).arr := by rw [hk]
+      show (HasSubobjectUnions.union
+          (image (HasBinaryCoproducts.inl (A := P) (B := P')))
+          (image (HasBinaryCoproducts.inr (A := P) (B := P')))).IsEntire
+      rw [Subobject.IsEntire, hU0_arr_eq]
+      exact isIso_comp ⟨k, hk_inv_k, hkk_inv⟩ hid_entire
+    -- Step 6: image_cover_comp gives le equivalence image(y ≫ inl) ≅ image(inl)
+    obtain ⟨hle_yinl_inl, hle_inl_yinl⟩ := image_cover_comp y HasBinaryCoproducts.inl hy
+    -- Step 7: U_h ≤ U_0 and U_0 ≤ U_h
+    have hle_Uh_U0 :
+        (HasSubobjectUnions.union
+          (image (y ≫ HasBinaryCoproducts.inl))
+          (image (HasBinaryCoproducts.inr (A := P) (B := P')))).le
+        (HasSubobjectUnions.union
+          (image (HasBinaryCoproducts.inl (A := P) (B := P')))
+          (image (HasBinaryCoproducts.inr (A := P) (B := P'))))  := by
+      apply HasSubobjectUnions.union_min
+      · obtain ⟨p, hp⟩ := hle_yinl_inl
+        obtain ⟨q, hq⟩ := HasSubobjectUnions.union_left
+            (image (HasBinaryCoproducts.inl (A := P) (B := P')))
+            (image (HasBinaryCoproducts.inr (A := P) (B := P')))
+        exact ⟨p ≫ q, by rw [Cat.assoc, hq, hp]⟩
+      · exact HasSubobjectUnions.union_right _ _
+    have hle_U0_Uh :
+        (HasSubobjectUnions.union
+          (image (HasBinaryCoproducts.inl (A := P) (B := P')))
+          (image (HasBinaryCoproducts.inr (A := P) (B := P')))).le
+        (HasSubobjectUnions.union
+          (image (y ≫ HasBinaryCoproducts.inl))
+          (image (HasBinaryCoproducts.inr (A := P) (B := P'))))  := by
+      apply HasSubobjectUnions.union_min
+      · obtain ⟨p, hp⟩ := hle_inl_yinl
+        obtain ⟨q, hq⟩ := HasSubobjectUnions.union_left
+            (image (y ≫ HasBinaryCoproducts.inl))
+            (image (HasBinaryCoproducts.inr (A := P) (B := P')))
+        exact ⟨p ≫ q, by rw [Cat.assoc, hq, hp]⟩
+      · exact HasSubobjectUnions.union_right _ _
+    -- Step 8: U_h is entire. Mutual le + monicity → j iso → U_h.arr = j ≫ U_0.arr iso.
+    have hUh_entire :
+        (HasSubobjectUnions.union
+          (image (y ≫ HasBinaryCoproducts.inl))
+          (image (HasBinaryCoproducts.inr (A := P) (B := P')))).IsEntire := by
+      obtain ⟨j, hj⟩ := hle_Uh_U0   -- j ≫ U_0.arr = U_h.arr
+      obtain ⟨k, hk⟩ := hle_U0_Uh   -- k ≫ U_h.arr = U_0.arr
+      have hjk : j ≫ k = Cat.id _ :=
+        (HasSubobjectUnions.union
+          (image (y ≫ HasBinaryCoproducts.inl))
+          (image (HasBinaryCoproducts.inr (A := P) (B := P')))).monic
+        (j ≫ k) (Cat.id _) (by rw [Cat.assoc, hk, hj, Cat.id_comp])
+      have hkj : k ≫ j = Cat.id _ :=
+        (HasSubobjectUnions.union
+          (image (HasBinaryCoproducts.inl (A := P) (B := P')))
+          (image (HasBinaryCoproducts.inr (A := P) (B := P')))).monic
+        (k ≫ j) (Cat.id _) (by rw [Cat.assoc, hj, hk, Cat.id_comp])
+      rw [Subobject.IsEntire, show
+          (HasSubobjectUnions.union
+            (image (y ≫ HasBinaryCoproducts.inl))
+            (image (HasBinaryCoproducts.inr (A := P) (B := P')))).arr =
+          j ≫ (HasSubobjectUnions.union
+            (image (HasBinaryCoproducts.inl (A := P) (B := P')))
+            (image (HasBinaryCoproducts.inr (A := P) (B := P')))).arr
+          from hj.symm]
+      exact isIso_comp ⟨k, hjk, hkj⟩ hU0_entire
+    -- Step 9: transfer IsEntire from U_h to image h via image_comparison_iso
+    obtain ⟨c, hc⟩ := (HasImages.isImage h).2
+        (HasSubobjectUnions.union
+          (image (y ≫ HasBinaryCoproducts.inl))
+          (image (HasBinaryCoproducts.inr (A := P) (B := P'))))
+        hImgH.1
+    have hc_iso : IsIso c := image_comparison_iso (HasImages.isImage h) hImgH c hc
+    -- (image h).arr = c ≫ U_h.arr, c iso and U_h.arr iso ⟹ (image h).arr iso
+    -- hc : c ≫ U_h.arr = (image h).arr, so U_h.arr = c_inv ≫ (image h).arr
+    -- equivalently: (image h).arr = c ≫ U_h.arr... we use hc.symm to rewrite
+    obtain ⟨c_inv, hcc_inv, hc_inv_c⟩ := hc_iso
+    -- U_h.arr is iso: show by hUh_entire
+    -- (image h).arr: we need IsIso ((image h).arr). From hc: c ≫ U_h.arr = (image h).arr.
+    -- (image h).arr = c ≫ U_h.arr = c ≫ ... (since hc.symm gives (image h).arr = c ≫ U_h.arr)
+    -- Actually use hc directly: (image h).arr = c ≫ U_h.arr by hc.symm as a calc step.
+    rw [Subobject.IsEntire]
+    show IsIso (image h).arr
+    -- (image h).arr = c ≫ U_h.arr  since c_inv ≫ (image h).arr = c_inv ≫ c ≫ U_h.arr = U_h.arr
+    -- and U_h monic gives (image h).arr = c ≫ U_h.arr
+    have himgH_arr : (image h).arr = c ≫
+        (HasSubobjectUnions.union
+          (image (y ≫ HasBinaryCoproducts.inl))
+          (image (HasBinaryCoproducts.inr (A := P) (B := P')))).arr :=
+      hc.symm
+    rw [himgH_arr]
+    exact isIso_comp ⟨c_inv, hcc_inv, hc_inv_c⟩ hUh_entire
   -- e := h ≫ φ_inv : B+P' → Q  is a cover (cover ≫ iso).
   have he : Cover (h ≫ φ_inv) := cover_comp_iso h φ_inv hh ⟨φ, hφ_inv_φ, hφφ_inv⟩
   -- Projectivity of Q splits e: s' : Q → B+P', s' ≫ (h ≫ φ_inv) = id_Q.
