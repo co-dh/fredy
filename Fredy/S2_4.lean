@@ -380,20 +380,187 @@ class PrePowerAllegory (𝒜 : Type u) extends DivisionAllegory 𝒜 where
   /-- For each object a, there exists a thick morphism with target a. -/
   thick_target (a : 𝒜) : ∃ (x : 𝒜) (S : x ⟶ a), Thick S
 
+/-! ## §2.354  Straight factorization (in an effective division allegory)
+
+  In an effective division allegory every morphism `T : x → a` factors as `T = h ≫ S`
+  with `h` a (monic, cover) map and `S = h° ≫ T` straight.  The construction splits the
+  equivalence relation `E = T/ₛT` (reflexive, symmetric, idempotent) as `E = h ≫ h°`,
+  `h° ≫ h = 1`, then sets `S = h° ≫ T`.  This is the linchpin of §2.432. -/
+
+/-- An EFFECTIVE DIVISION ALLEGORY: simultaneously a `DivisionAllegory` (so `/`, `/ₛ`
+    are available) and an `EffectiveAllegory` (so symmetric idempotents split).  The two
+    parents share their `Allegory`, so the `≫`/`°`/`∩`/`/ₛ` of the division side and the
+    splitting of the effective side refer to the *same* operations (no instance diamond). -/
+class EffectiveDivisionAllegory (𝒜 : Type u)
+    extends DivisionAllegory 𝒜, EffectiveAllegory 𝒜
+
+/-- §2.354 (effective division allegory): every `T : x → a` factors as `T = h ≫ S`
+    with `h` a map and `S = h° ≫ T` straight.  Splits `E = T/ₛT` via effectiveness.
+
+    `T = h ≫ S`: `h ≫ h° ≫ T = E ≫ T = T` since `E` is reflexive and `(T/ₛT)T ⊑ T`.
+    `Straight S`: for the symmetric `U = S/ₛS` with `US ⊑ S`, the symmetric `hUh°`
+    satisfies `(hUh°)T ⊑ T`, hence `hUh° ⊑ T/ₛT = E = hh°`; conjugating by `h°h = 1`
+    gives `U = h°(hUh°)h ⊑ h°(hh°)h = (h°h)(h°h) = 1`. -/
+theorem straight_factorization {𝒜 : Type u} [EffectiveDivisionAllegory 𝒜]
+    {x a : 𝒜} (T : x ⟶ a) :
+    ∃ (c : 𝒜) (h : x ⟶ c), Map h ∧ h° ≫ h = Cat.id c ∧
+      Straight (h° ≫ T) ∧ T = h ≫ (h° ≫ T) := by
+  -- E = T/ₛT is a reflexive symmetric idempotent; split it.
+  have hEsym : Symmetric (T /ₛ T) := symmDiv_self_symmetric T
+  have hErefl : Reflexive (T /ₛ T) := symmDiv_self_reflexive T
+  have hEidem : (T /ₛ T) ≫ (T /ₛ T) = T /ₛ T :=
+    reflexive_transitive_idempotent hErefl (symmDiv_self_transitive T)
+  obtain ⟨c, h, hMap, hhh, hch⟩ :=
+    EffectiveAllegory.split_symmetric_idempotent (T /ₛ T) hEsym hEidem
+  refine ⟨c, h, hMap, hch, ?_, ?_⟩
+  · -- Straightness of S = h° ≫ T.
+    -- ET = T (E reflexive, (T/ₛT)T ⊑ T).
+    have hET_le : (T /ₛ T) ≫ T ⊑ T := ((le_symmDiv_iff (T /ₛ T) T T).mp (le_refl _)).1
+    have hET_ge : T ⊑ (T /ₛ T) ≫ T := by
+      have := comp_mono_right hErefl T; rwa [Cat.id_comp] at this
+    have hET : (T /ₛ T) ≫ T = T := le_antisymm hET_le hET_ge
+    -- hS = h ≫ h° ≫ T = E ≫ T = T.
+    have hhS : h ≫ (h° ≫ T) = T := by rw [← Cat.assoc, hhh, hET]
+    -- U := S/ₛS, symmetric, U≫S ⊑ S.  Generalize S := h° ≫ T (the goal's term).
+    generalize hSdef : h° ≫ T = S at hhS ⊢
+    have hUsym : (S /ₛ S)° ⊑ S /ₛ S := symmDiv_self_symmetric S
+    have hUS : (S /ₛ S) ≫ S ⊑ S := ((le_symmDiv_iff (S /ₛ S) S S).mp (le_refl _)).1
+    have hUoS : (S /ₛ S)° ≫ S ⊑ S := le_trans (comp_mono_right hUsym S) hUS
+    -- Claim A: h ≫ (S/ₛS) ≫ h° ⊑ T/ₛT, since (h U h°)T ⊑ T and it is symmetric.
+    -- (h U h°)≫T = h≫U≫(h°≫T) = h≫U≫S ⊑ h≫S = T.
+    have hUS_T : (h ≫ (S /ₛ S) ≫ h°) ≫ T ⊑ T := by
+      have e1 : (h ≫ (S /ₛ S) ≫ h°) ≫ T = h ≫ (S /ₛ S) ≫ S := by
+        rw [← hSdef]; simp [Cat.assoc]
+      rw [e1]
+      calc h ≫ (S /ₛ S) ≫ S ⊑ h ≫ S := comp_mono_left h hUS
+        _ = T := hhS
+    -- (h U h°)° ≫ T ⊑ T as well, since (h U h°)° = h ≫ U° ≫ h° ⊑ h ≫ U ≫ h°.
+    have hUS_oT : (h ≫ (S /ₛ S) ≫ h°)° ≫ T ⊑ T := by
+      have e2 : (h ≫ (S /ₛ S) ≫ h°)° = h ≫ (S /ₛ S)° ≫ h° := by
+        rw [Allegory.recip_comp, Allegory.recip_comp, Allegory.recip_recip, Cat.assoc]
+      rw [e2]
+      have hle : h ≫ (S /ₛ S)° ≫ h° ⊑ h ≫ (S /ₛ S) ≫ h° :=
+        comp_mono_left h (comp_mono_right hUsym h°)
+      exact le_trans (comp_mono_right hle T) hUS_T
+    have hClaimA : h ≫ (S /ₛ S) ≫ h° ⊑ T /ₛ T :=
+      (le_symmDiv_iff _ T T).mpr ⟨hUS_T, hUS_oT⟩
+    -- Claim B: U = h°(hUh°)h ⊑ h°(hh°)h = (h°h)(h°h) = 1.
+    -- h° ≫ E ≫ h = h° ≫ (h≫h°) ≫ h = (h°h)(h°h) = 1.
+    have hConj : (S /ₛ S) = h° ≫ (h ≫ (S /ₛ S) ≫ h°) ≫ h := by
+      have : h° ≫ (h ≫ (S /ₛ S) ≫ h°) ≫ h = (h° ≫ h) ≫ (S /ₛ S) ≫ (h° ≫ h) := by
+        simp [Cat.assoc]
+      rw [this, hch, Cat.id_comp, Cat.comp_id]
+    have hEh : h° ≫ (T /ₛ T) ≫ h = Cat.id c := by
+      rw [← hhh]
+      have : h° ≫ (h ≫ h°) ≫ h = (h° ≫ h) ≫ (h° ≫ h) := by simp [Cat.assoc]
+      rw [this, hch, Cat.id_comp]
+    show (S /ₛ S) ⊑ Cat.id c
+    rw [hConj]
+    calc h° ≫ (h ≫ (S /ₛ S) ≫ h°) ≫ h
+        ⊑ h° ≫ (T /ₛ T) ≫ h := comp_mono_left h° (comp_mono_right hClaimA h)
+      _ = Cat.id c := hEh
+  · -- T = h ≫ (h° ≫ T): h ≫ h° ≫ T = E ≫ T = T.
+    have hET_le : (T /ₛ T) ≫ T ⊑ T := ((le_symmDiv_iff (T /ₛ T) T T).mp (le_refl _)).1
+    have hET_ge : T ⊑ (T /ₛ T) ≫ T := by
+      have := comp_mono_right hErefl T; rwa [Cat.id_comp] at this
+    have hET : (T /ₛ T) ≫ T = T := le_antisymm hET_le hET_ge
+    rw [← Cat.assoc, hhh, hET]
+
+/-- If `T = h ≫ S` with `h° ≫ h = 1`, then `S` and `T` have the same codomain box
+    `codBox = dom(·°) = 1 ∩ (·)°(·)`.  Indeed `T°T = (hS)°(hS) = S°(h°h)S = S°S`. -/
+theorem codBox_eq_of_split {𝒜 : Type u} [Allegory 𝒜] {x c a : 𝒜}
+    {h : x ⟶ c} {S : c ⟶ a} {T : x ⟶ a}
+    (hch : h° ≫ h = Cat.id c) (hT : T = h ≫ S) : codBox S = codBox T := by
+  -- codBox R = dom (R°) = 1 ∩ R° ≫ R°° = 1 ∩ R° ≫ R.  So we equate S° ≫ S with T° ≫ T.
+  have hTT : T° ≫ T = S° ≫ S := by
+    rw [hT, Allegory.recip_comp, Cat.assoc, ← Cat.assoc h° h S, hch, Cat.id_comp]
+  dsimp [codBox, dom]
+  rw [Allegory.recip_recip, Allegory.recip_recip, hTT]
+
+/-- §2.432 thickness descent: if `T` is thick, `T = h ≫ S` with `h` a map and `h° ≫ h = 1`,
+    then `S = h° ≫ T`-style factor `S` is again thick.  (We pass `S` directly with the
+    splitting data.)  Book §2.432: for `R□ = S□ = T□`, the witness `R̃ = (R/ₛT) ≫ h` is
+    entire (thickness of `T` plus `h` entire), with `R̃S ⊑ R` and `R̃°R ⊑ S`. -/
+theorem straight_descent_thick {𝒜 : Type u} [DivisionAllegory 𝒜] {x c a : 𝒜}
+    {h : x ⟶ c} {S : c ⟶ a} {T : x ⟶ a}
+    (hMap : Map h) (hch : h° ≫ h = Cat.id c) (hT : T = h ≫ S) (hThickT : Thick T) :
+    Thick S := by
+  -- Same codomain box for S and T.
+  have hbox : codBox S = codBox T := codBox_eq_of_split hch hT
+  -- h ≫ S = T (from hT).
+  have hhS : h ≫ S = T := hT.symm
+  rw [thick_iff_existential]
+  intro d R hRS
+  -- R□ = S□ = T□, so Thick T supplies the witness for R against T.
+  have hRT : codBox R = codBox T := hRS.trans hbox
+  obtain ⟨R', hEnt', hRT'le, hR'oR⟩ :=
+    (thick_iff_existential T).mp hThickT d R hRT
+  -- R̃ = R' ≫ h.
+  refine ⟨R' ≫ h, ?_, ?_, ?_⟩
+  · -- Entire (R' ≫ h): 1 ⊑ R'R'° ⊑ R'(hh°)R'° = (R'h)(R'h)° since 1 ⊑ hh° (h entire).
+    rw [entire_iff_one_le]
+    have h1 : Cat.id d ⊑ R' ≫ R'° := (entire_iff_one_le R').mp hEnt'
+    have hhe : Cat.id x ⊑ h ≫ h° := (entire_iff_one_le h).mp hMap.1
+    have hstep : R' ≫ R'° ⊑ (R' ≫ h) ≫ (R' ≫ h)° := by
+      have e : (R' ≫ h) ≫ (R' ≫ h)° = R' ≫ (h ≫ h°) ≫ R'° := by
+        rw [Allegory.recip_comp]; simp [Cat.assoc]
+      rw [e]
+      calc R' ≫ R'° = R' ≫ Cat.id x ≫ R'° := by rw [Cat.id_comp]
+        _ ⊑ R' ≫ (h ≫ h°) ≫ R'° := comp_mono_left R' (comp_mono_right hhe R'°)
+    exact le_trans h1 hstep
+  · -- (R' ≫ h) ≫ S = R' ≫ (h ≫ S) = R' ≫ T ⊑ R.
+    rw [Cat.assoc, hhS]; exact hRT'le
+  · -- (R' ≫ h)° ≫ R = h° ≫ (R'° ≫ R) ⊑ h° ≫ T = S.
+    rw [Allegory.recip_comp, Cat.assoc]
+    refine le_trans (comp_mono_left h° hR'oR) ?_
+    -- h° ≫ T = h° ≫ h ≫ S = (h°h)S = S.
+    rw [hT, ← Cat.assoc, hch, Cat.id_comp]; exact le_refl _
+
 /-! ## §2.432  Effective pre-power allegory is power
 
   An effective pre-power allegory is a power allegory (§2.432). -/
+
+/-- An EFFECTIVE PRE-POWER ALLEGORY: an `EffectiveDivisionAllegory` (division + effective
+    splitting over ONE shared `Allegory`) in which each object is the target of a thick
+    morphism (the §2.43 pre-power condition, carried as a field to avoid an instance diamond
+    with a separately-assumed `PrePowerAllegory`). -/
+class EffectivePrePowerAllegory (𝒜 : Type u) extends EffectiveDivisionAllegory 𝒜 where
+  /-- For each object a, there exists a thick morphism with target a (§2.43). -/
+  thick_target (a : 𝒜) : ∃ (x : 𝒜) (S : x ⟶ a), Thick S
+
+/-- Each object `b` of an effective pre-power allegory is the target of a STRAIGHT THICK
+    morphism (§2.432).  `thick_target b` gives a thick `T : x → b`; `straight_factorization T`
+    factors it `T = h ≫ S` with `h` a map, `h°h = 1`, `S = h° ≫ T` straight;
+    `straight_descent_thick` shows `S` stays thick.  This is a `Prop`, so it may be `choose`n
+    into the (data) `powerObj`/`eps` fields below via `Classical`. -/
+theorem exists_straight_thick_target {𝒜 : Type u} [EffectivePrePowerAllegory 𝒜] (b : 𝒜) :
+    ∃ (p : 𝒜) (S : p ⟶ b), Straight S ∧ Thick S := by
+  obtain ⟨x, T, hThickT⟩ := EffectivePrePowerAllegory.thick_target (𝒜 := 𝒜) b
+  obtain ⟨c, h, hMap, hch, hStr, hTeq⟩ := straight_factorization T
+  exact ⟨c, h° ≫ T, hStr, straight_descent_thick hMap hch hTeq hThickT⟩
+
 /-- §2.432: an effective pre-power allegory is a power allegory.
-    FAITHFUL SORRY (infrastructure gap, not a false statement).  Freyd's proof
-    factors a given thick T as `T = hS` with `S = h°T` straight (§2.354), shows S
-    stays thick, and takes [a]/∋ from that straight-thick S.  The blocker is the
-    §2.354 factorization "in an effective division allegory every morphism is `hS`
-    with S straight" plus the §2.432 lemma "S = h°T remains thick", neither of
-    which is yet available in S2_3.  Building the `PowerAllegory` instance also
-    requires assembling `powerObj`/`eps` and proving `eps_thick` from that S. -/
-def effective_pre_power_is_power {𝒜 : Type u} [PrePowerAllegory 𝒜]
-    [EffectiveAllegory 𝒜] : PowerAllegory 𝒜 := by
-  sorry
+    FAITHFUL SORRY confined to the single field `eps_thick`.  Everything else is built
+    honestly: `powerObj b` / `eps b` are the straight-thick factor `(c, S)` of the chosen
+    thick target of `b` (§2.354 `straight_factorization` + §2.432 `straight_descent_thick`),
+    and `eps_straight` is exactly the straightness of that `S`.
+
+    The remaining gap is the §2.413 *unconditional* thickness `∀R, ∃f map, fS = R`.  Our
+    `Thick S` (§2.43) supplies the witness only when `codBox R = codBox S`; the unconditional
+    form needs Freyd's §2.416 *maximality* argument (`S` maximal straight ⟹ every morphism
+    targeted at `b` factors as a map followed by `S`), which rests on the progenitor /
+    straightening machinery not yet formalized.  We therefore leave `eps_thick` as a sharp
+    sorry and discharge every other obligation. -/
+noncomputable def effective_pre_power_is_power {𝒜 : Type u} [EffectivePrePowerAllegory 𝒜] :
+    PowerAllegory 𝒜 :=
+  { powerObj := fun b => (exists_straight_thick_target b).choose
+    eps := fun b => (exists_straight_thick_target b).choose_spec.choose
+    eps_straight := fun b => (exists_straight_thick_target b).choose_spec.choose_spec.1
+    eps_thick := by
+      -- ∀R targeted at b, ∃ map f with f ≫ S = R.  The straight-thick target from
+      -- `exists_straight_thick_target b` gives `Thick S`, which supplies the witness only
+      -- under `codBox R = codBox S`; the unconditional §2.413 form needs §2.416 maximality.
+      sorry }
 
 /-! ## §2.441  Pre-positive allegory and well-joined category
 
@@ -477,12 +644,21 @@ def MetonymyLaw (𝒜 : Type u) [PowerAllegory 𝒜] : Prop :=
   ∀ (a : 𝒜), @bigInter 𝒜 a _ ⊑ @bigUnion 𝒜 a _
 
 /-- A pre-positive power allegory is semi-simple iff it obeys the law of metonymy (§2.442).
-    FAITHFUL SORRY (infrastructure gap, not a false statement).  Freyd's §2.442 argument
-    relates semi-simplicity to `⊓ ⊑ ⊔` through the pre-positive splitting `ff° ∪ gg° = 1`
-    and the membership calculus for `bigInter = A(∋∋)` / `bigUnion = A(ε'\∋)`.  The blocker
-    is the missing big-intersection/big-union equational lemmas (how `∋` interacts with the
-    `A(·)` adjunction across `[[a]]`) plus the §2.441 disjointness arithmetic; these are not
-    yet derived in S2_3/S2_4. -/
+    FAITHFUL SORRY (infrastructure gap, not a false statement).  Both directions of Freyd's
+    §2.442 rest on machinery not yet formalized:
+
+    Forward (metonymy ⟹ semi-simple): one first shows `∋` is semi-simple via the equation
+    `∋ = ∋ ≫ A°(1)` (using `∋ ≫ A(1) ⊑ ∋/∋`, the partial order `2 = ∋/∋`), then invokes the
+    §2.441 chain "(1) pre-positive ⟹ (4) every morphism is `S ≫ F` with `S` straight, `F`
+    simple"; with `∋` (hence every straight `S = A(S) ≫ ∋`) semi-simple, every morphism is
+    semi-simple.  The §2.441 `(1)⟹(4)` factorization is itself unbuilt.
+
+    Converse (semi-simple ⟹ metonymy): needs the big-union/big-intersection `A`-calculus
+    `A(f∪g) ≫ ⊔ ≫ ∋' = (f∪g)∋'` and `⊓(f∪g) ∩ ∋ = f∋ ∩ g∋`, expressing how `∋` interacts
+    with the `A(·)` adjunction across `[[a]]`, none of which is yet derived in S2_3/S2_4.
+
+    The statement itself is the book's genuine biconditional (not vacuous): LHS quantifies
+    semi-simplicity of every morphism, RHS is `⊓ ⊑ ⊔` for every object. -/
 theorem pre_positive_semi_simple_iff_metonymic {𝒜 : Type u}
     [PowerAllegory 𝒜] [PrePositiveAllegory 𝒜] :
     (∀ (a b : 𝒜) (R : a ⟶ b), SemiSimple R) ↔ MetonymyLaw 𝒜 := by
