@@ -637,10 +637,13 @@ class EffectiveAllegory (𝒜 : Type u) extends TabularAllegory 𝒜 where
   split_symmetric_idempotent {a : 𝒜} (E : a ⟶ a) :
     Symmetric E → E ≫ E = E → ∃ (c : 𝒜) (f : a ⟶ c), Map f ∧ f ≫ f° = E ∧ f° ≫ f = Cat.id c
 
-/-- A SEMI-SIMPLE morphism factors as F ≫ G° with F, G simple (§2.16(10)).
-    F : a → c, G : b → c have a common target c. -/
+/-- A SEMI-SIMPLE morphism factors as F° ≫ G with F, G simple (§2.16(10)).
+    F : c → a, G : c → b have a common source (apex) c, so F° ≫ G : a → b — exactly
+    the form `R = F°G` of a tabulation (§2.143).  (Note: this is NOT the reciprocal
+    `F ≫ G°`; simplicity is not preserved under reciprocation, so the apex must be the
+    common *source*.) -/
 def SemiSimple {a b : 𝒜} (R : a ⟶ b) : Prop :=
-  ∃ (c : 𝒜) (F : a ⟶ c) (G : b ⟶ c), Simple F ∧ Simple G ∧ R = F ≫ G°
+  ∃ (c : 𝒜) (F : c ⟶ a) (G : c ⟶ b), Simple F ∧ Simple G ∧ R = F° ≫ G
 
 /-- A SEMI-SIMPLE ALLEGORY: every morphism is semi-simple (§2.16(10)). -/
 class SemiSimpleAllegory (𝒜 : Type u) extends Allegory 𝒜 where
