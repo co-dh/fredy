@@ -41,8 +41,11 @@ class PowerAllegory (𝒜 : Type u) extends DivisionAllegory 𝒜 where
   /-- ∋ is straight: ∋ /ₛ ∋ ⊑ 1 (§2.41). -/
   eps_straight (b : 𝒜) : Straight (eps b)
 
-  /-- ∋ is thick: 1 ⊑ ∋ / ∋ (§2.41).  Equivalent to A(R) is entire. -/
-  eps_thick (b : 𝒜) : Cat.id (powerObj b) ⊑ eps b / eps b
+  /-- ∋ is THICK (§2.41, third containment 1 ⊑ A(R)A°(R), spelled out via §2.413):
+      for every R targeted at b there exists a map f with f ≫ ∋ = R.
+      The naïve form `1 ⊑ ∋/∋` is vacuous (`one_le_div_self`); Freyd's §2.413 shows
+      this existential form IS the thickness condition (it forces A(R) = R/ₛ∋ entire). -/
+  eps_thick {b : 𝒜} {c : 𝒜} (R : c ⟶ b) : ∃ (f : c ⟶ powerObj b), Map f ∧ f ≫ eps b = R
 
 /-! ### Notation -/
 
@@ -55,26 +58,47 @@ notation "∋" => PowerAllegory.eps
 def A {a b : 𝒜} [PowerAllegory 𝒜] (R : a ⟶ b) : a ⟶ PowerAllegory.powerObj b :=
   R /ₛ PowerAllegory.eps b
 
+/-- The thickness witness f for R is contained in A(R) (§2.412/§2.413).
+    Used both for entireness of A(R) and the lower bound of A(R)∋ = R.
+    f ⊑ A R = R/ₛ∋ via le_symmDiv_iff: f∋ = R (so f∋ ⊑ R) and f°R = (f°f)∋ ⊑ ∋ (Simple f). -/
+private theorem thick_witness_le_A {a b : 𝒜} [PowerAllegory 𝒜] (R : a ⟶ b)
+    {f : a ⟶ PowerAllegory.powerObj b} (hf : Map f) (hfeq : f ≫ ∋ b = R) :
+    f ⊑ A R := by
+  rw [A, le_symmDiv_iff]
+  refine ⟨by rw [hfeq]; exact le_refl _, ?_⟩
+  rw [← hfeq, ← Cat.assoc]
+  exact le_trans (comp_mono_right hf.2 (∋ b)) (by rw [Cat.id_comp]; exact le_refl _)
+
 /-- A(R) is a map (simple and entire) (§2.41).
     Simple branch: A(R) ⊑ R/∋, and since ∋ is straight R/∋ is simple [§2.356].
-    Entire branch: dom(A(R)) = 1 ∩ (R/∋)(∋/R) ⊒ 1 via thickness [§2.3571]. -/
+    Entire branch: the thickness witness f (a map, f∋ = R) has f ⊑ A R, so
+    1 ⊑ ff° ⊑ (A R)(A R)°, whence dom(A R) = 1 [§2.412/§2.413]. -/
 theorem A_is_map {a b : 𝒜} [PowerAllegory 𝒜] (R : a ⟶ b) : Map (A R) := by
   constructor
-  · -- Entire: blocked — eps_thick as stated (1 ⊑ ∋/∋) is vacuous (one_le_div_self);
-    -- the real axiom needed is existential ("∀ R, ∃ map f, f ≫ ∋ = R").
-    sorry
+  · -- Entire (§2.412/§2.413) via the thickness witness f ⊑ A R.
+    obtain ⟨f, hf, hfeq⟩ := PowerAllegory.eps_thick (b := b) R
+    have hf_le : f ⊑ A R := thick_witness_le_A R hf hfeq
+    have h1 : Cat.id a ⊑ f ≫ f° := by
+      have := hf.1; dsimp [Entire, dom] at this; rw [← this]; exact inter_lb_right _ _
+    have h2 : f ≫ f° ⊑ A R ≫ (A R)° :=
+      le_trans (comp_mono_right hf_le _) (comp_mono_left _ (recip_mono hf_le))
+    -- dom(A R) = 1 ∩ (A R)(A R)° = 1, since 1 ⊑ (A R)(A R)°.
+    dsimp [Entire, dom]
+    exact le_antisymm (inter_lb_left _ _) (le_inter (le_refl _) (le_trans h1 h2))
   · -- Simple: A(R) = R/ₛ∋, and ∋ is straight, so R/ₛ∋ is simple [§2.356].
     exact straight_symmDiv_simple (PowerAllegory.eps_straight b) R
 
 /-- A(R)∋ = R (§2.41).
     ⊑: A(R) ⊑ R/∋ (left component of symmDiv), so A(R)∋ ⊑ (R/∋)∋ ⊑ R.
-    ⊒: uses thickness 1 ⊑ ∋/∋ and domain formula for symmDiv [§2.3571]. -/
+    ⊒: thickness gives a map f ⊑ A(R) with f∋ = R, so R = f∋ ⊑ (A R)∋ [§2.413]. -/
 theorem A_eps_eq {a b : 𝒜} [PowerAllegory 𝒜] (R : a ⟶ b) : A R ≫ ∋ b = R := by
   apply le_antisymm
   · -- A(R) ≫ ∋ ⊑ R: first component of le_symmDiv_iff
     exact ((le_symmDiv_iff _ R _).mp (le_refl _)).1
-  · -- R ⊑ A(R) ≫ ∋: needs A(R) entire (blocked by eps_thick axiom gap)
-    sorry
+  · -- R = f∋ ⊑ (A R)∋ via the thickness witness f ⊑ A R.
+    obtain ⟨f, hf, hfeq⟩ := PowerAllegory.eps_thick (b := b) R
+    calc R = f ≫ ∋ b := hfeq.symm
+      _ ⊑ A R ≫ ∋ b := comp_mono_right (thick_witness_le_A R hf hfeq) (∋ b)
 
 /-! ## §2.415  Power object and singleton map -/
 
@@ -100,12 +124,32 @@ theorem singletonMap_monic {a : 𝒜} [PowerAllegory 𝒜] :
   exact le_trans (comp_mono_right h1 _)
     (le_trans (comp_mono_left _ h2) (div_comp_eq_le _ _))
 
-/-- For any map f : a → b, A(f) = f ≫ A(1_b) (§2.415).
-    Book: "For any map p →ᶠ a, A(f) = f A(1) since f A(1) is a map and f A(1) ∋ = f."
-    Relies on A_eps_eq and uniqueness of A(R). -/
-theorem A_of_map {a b : 𝒜} [PowerAllegory 𝒜] (f : a ⟶ b) (hf : Map f) :
-    A f = f ≫ singletonMap (a := b) := by
-  sorry
+/-- Composition of maps is a map (§2.13).
+    Simple: (fg)°(fg) = g°(f°f)g ⊑ g°g ⊑ 1.
+    Entire: 1 ⊑ ff° = f1f° ⊑ f(gg°)f° = (fg)(fg)°, so dom(fg) = 1. -/
+theorem map_comp {𝒜 : Type u} [Allegory 𝒜] {a b c : 𝒜} {f : a ⟶ b} {g : b ⟶ c}
+    (hf : Map f) (hg : Map g) : Map (f ≫ g) := by
+  refine ⟨?_, ?_⟩
+  · -- Entire: 1 ⊑ ff° ⊑ f(gg°)f° = (fg)(fg)°.
+    have hfe : Cat.id a ⊑ f ≫ f° := by
+      have := hf.1; dsimp [Entire, dom] at this; rw [← this]; exact inter_lb_right _ _
+    have hge : Cat.id b ⊑ g ≫ g° := by
+      have := hg.1; dsimp [Entire, dom] at this; rw [← this]; exact inter_lb_right _ _
+    -- ff° = f1f° ⊑ f(gg°)f°
+    have hstep : f ≫ f° ⊑ f ≫ (g ≫ g°) ≫ f° := by
+      calc f ≫ f° = f ≫ Cat.id b ≫ f° := by rw [Cat.id_comp]
+        _ ⊑ f ≫ (g ≫ g°) ≫ f° := comp_mono_left f (comp_mono_right hge f°)
+    have heq : f ≫ (g ≫ g°) ≫ f° = (f ≫ g) ≫ (f ≫ g)° := by
+      rw [Allegory.recip_comp]; simp [Cat.assoc]
+    have hfin : Cat.id a ⊑ (f ≫ g) ≫ (f ≫ g)° := heq ▸ le_trans hfe hstep
+    dsimp [Entire, dom]; exact le_antisymm (inter_lb_left _ _) (le_inter (le_refl _) hfin)
+  · -- Simple: (fg)°(fg) = g°(f°f)g ⊑ g°1g = g°g ⊑ 1.
+    have hrw : (f ≫ g)° ≫ (f ≫ g) = g° ≫ (f° ≫ f) ≫ g := by
+      rw [Allegory.recip_comp]; simp [Cat.assoc]
+    have h1 : g° ≫ (f° ≫ f) ≫ g ⊑ g° ≫ g := by
+      calc g° ≫ (f° ≫ f) ≫ g ⊑ g° ≫ Cat.id b ≫ g := comp_mono_left g° (comp_mono_right hf.2 g)
+        _ = g° ≫ g := by rw [Cat.id_comp]
+    dsimp [Simple]; rw [hrw]; exact le_trans h1 hg.2
 
 /-! ## §2.412  Uniqueness of A(R) -/
 
@@ -157,6 +201,16 @@ theorem A_unique {a b : 𝒜} [PowerAllegory 𝒜] (R : a ⟶ b) (F : a ⟶ Powe
     exact le_trans h1 h3
   exact le_antisymm hF_le hAR_le_F
 
+/-- For any map f : a → b, A(f) = f ≫ A(1_b) (§2.415).
+    Book: "For any map p →ᶠ a, A(f) = f A(1) since f A(1) is a map and f A(1) ∋ = f."
+    Relies on A_eps_eq and uniqueness of A(R) [A_unique]. -/
+theorem A_of_map {a b : 𝒜} [PowerAllegory 𝒜] (f : a ⟶ b) (hf : Map f) :
+    A f = f ≫ singletonMap (a := b) := by
+  -- F := f ≫ singletonMap is a map (composition of maps) with F∋ = f, so F = A f by uniqueness.
+  refine (A_unique f (f ≫ singletonMap) (map_comp hf (A_is_map _)) ?_).symm
+  -- (f ≫ A(1_b))∋ = f ≫ (A(1_b)∋) = f ≫ 1_b = f, since A(1_b)∋ = 1_b by A_eps_eq.
+  rw [singletonMap, Cat.assoc, A_eps_eq, Cat.comp_id]
+
 /-- If F is simple then F ⊑ A(F∋) (§2.412).
     Book: "Indeed, if F is simple then F ⊂ A(F∋)."
     Proof: need F ⊑ (F∋)/ₛ∋, i.e. F∋ ⊑ F∋ (trivial) and F°(F∋) ⊑ ∋,
@@ -184,9 +238,36 @@ theorem simple_le_A_eps {a b : 𝒜} [PowerAllegory 𝒜] (F : a ⟶ PowerAllego
 theorem symm_div_eq_A_comp {a b c : 𝒜} [PowerAllegory 𝒜] (R : a ⟶ c) (S : b ⟶ c) :
     R /ₛ S = A R ≫ (A S)° := by
   apply le_antisymm
-  · -- R/ₛS ⊑ A(R) ≫ (A S)°
-    -- blocked: lower bound needs A(R) entire (i.e. A_eps_eq + A_is_map)
-    sorry
+  · -- R/ₛS ⊑ A(R) ≫ (A S)° (§2.421), using A(R) entire and A_eps_eq.
+    -- Step A: (R/ₛS)° ≫ A R ⊑ A S, hence (A R)° ≫ (R/ₛS) ⊑ (A S)°.
+    -- Step B: R/ₛS ⊑ (A R · A R°) (R/ₛS) = A R ((A R)° (R/ₛS)) ⊑ A R (A S)°.
+    have hARS_le : (R /ₛ S) ≫ S ⊑ R := ((le_symmDiv_iff _ _ _).mp (le_refl _)).1
+    have hARS_rec : (R /ₛ S)° ≫ R ⊑ S := ((le_symmDiv_iff _ _ _).mp (le_refl _)).2
+    have hAR_eps : A R ≫ ∋ c ⊑ R := ((le_symmDiv_iff _ R _).mp (le_refl _)).1
+    have hARo_R : (A R)° ≫ R ⊑ ∋ c := ((le_symmDiv_iff _ R _).mp (le_refl _)).2
+    -- Step A: (R/ₛS)° ≫ A R ⊑ A S = S /ₛ ∋.
+    have hstepA : (R /ₛ S)° ≫ A R ⊑ A S := by
+      show (R /ₛ S)° ≫ A R ⊑ S /ₛ ∋ c
+      rw [le_symmDiv_iff]
+      refine ⟨?_, ?_⟩
+      · -- ((R/ₛS)° ≫ A R) ≫ ∋ = (R/ₛS)° ≫ (A R ≫ ∋) ⊑ (R/ₛS)° ≫ R ⊑ S
+        rw [Cat.assoc]
+        exact le_trans (comp_mono_left _ hAR_eps) hARS_rec
+      · -- ((R/ₛS)° ≫ A R)° ≫ S = (A R)° ≫ ((R/ₛS) ≫ S) ⊑ (A R)° ≫ R ⊑ ∋
+        rw [Allegory.recip_comp, Allegory.recip_recip, Cat.assoc]
+        exact le_trans (comp_mono_left _ hARS_le) hARo_R
+    -- (A R)° ≫ (R/ₛS) ⊑ (A S)° by reciprocating hstepA.
+    have hstepA' : (A R)° ≫ (R /ₛ S) ⊑ (A S)° := by
+      have := recip_mono hstepA
+      rwa [Allegory.recip_comp, Allegory.recip_recip] at this
+    -- Step B: 1 ⊑ A R ≫ (A R)° (A R is entire), so R/ₛS ⊑ (A R · A R°)(R/ₛS).
+    have hAR_ent : Cat.id a ⊑ A R ≫ (A R)° := by
+      have := (A_is_map R).1; dsimp [Entire, dom] at this; rw [← this]; exact inter_lb_right _ _
+    have hb1 : R /ₛ S ⊑ (A R ≫ (A R)°) ≫ (R /ₛ S) := by
+      have := comp_mono_right hAR_ent (R /ₛ S); rwa [Cat.id_comp] at this
+    have hb2 : (A R ≫ (A R)°) ≫ (R /ₛ S) ⊑ A R ≫ (A S)° := by
+      rw [Cat.assoc]; exact comp_mono_left _ hstepA'
+    exact le_trans hb1 hb2
   · -- A(R) ≫ (A S)° ⊑ R/ₛS: by le_symmDiv_iff, need:
     -- (1) (A R ≫ (A S)°) ≫ S ⊑ R
     -- (2) (A R ≫ (A S)°)° ≫ R ⊑ S

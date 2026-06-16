@@ -362,6 +362,65 @@ theorem invImg_preserves_inter {A B : 𝒞} (f : A ⟶ B) (S T : Subobject 𝒞 
     show w ≫ hfST.cone.π₁ = hfSfT.cone.π₁ ≫ hfS.cone.π₁
     exact hfST.lift_fst _
 
+/-! ## §1.453 (abstract) monic ↔ diagonal-of-level iso, for an arbitrary pullback cone
+
+  `monic_iff_kp_diag_iso` is stated for the *chosen* kernel pair, which needs
+  `HasPullbacks`.  The §1.453 lemma below applies it in the target category `ℬ`,
+  where we have only a single concrete pullback cone (the `T`-image of the level
+  of `f`) and *no* `HasPullbacks ℬ`.  This abstract version takes the pullback
+  cone and a diagonal as data, mirroring `monic_iff_kp_diag_iso` verbatim. -/
+
+-- The abstract facts below must NOT drag in the Cartesian instances of `𝒞`: they are
+-- reused in the target category `ℬ` (the `T`-image of a level), where we have no
+-- `HasTerminal/HasBinaryProducts/HasPullbacks`.  (`Level` is fine: its fields fix no
+-- such dependency; the `omit … in` guards the theorems.)
+/-- A "level" of `f`: a pullback cone over the cospan `(f, f)` together with a
+    diagonal `δ` (the comparison `A → c.pt` induced by `(1_A, 1_A)`). -/
+structure Level {A B : 𝒞} (f : A ⟶ B) where
+  c : Cone f f
+  hpb : c.IsPullback
+  δ : A ⟶ c.pt
+  δ₁ : δ ≫ c.π₁ = Cat.id A
+  δ₂ : δ ≫ c.π₂ = Cat.id A
+
+omit ht hp hpull in
+/-- §1.453 / §1.454: `f` is monic iff its diagonal `δ : A → L` into a level `L`
+    is an isomorphism.  Abstracted away from `HasPullbacks` so it can be reused
+    in any target category for the image of a level. -/
+theorem mono_iff_level_diag_iso {A B : 𝒞} {f : A ⟶ B} (L : Level f) :
+    Mono f ↔ IsIso L.δ := by
+  obtain ⟨c, hpb, δ, δ₁, δ₂⟩ := L
+  constructor
+  · intro hm
+    -- f monic ⇒ π₁ = π₂, so π₁ is a two-sided inverse of δ.
+    have h_eq : c.π₁ = c.π₂ := hm _ _ c.w
+    refine ⟨c.π₁, δ₁, ?_⟩
+    -- π₁ ≫ δ = id : both are the unique lift of the cone (π₁, π₂) into the pullback.
+    obtain ⟨lift_pp, ⟨hpp₁, hpp₂⟩, huniq⟩ := hpb c
+    have h_id : Cat.id c.pt = lift_pp := huniq _ (Cat.id_comp _) (Cat.id_comp _)
+    have h_comp : c.π₁ ≫ δ = lift_pp := huniq _
+      (by rw [Cat.assoc, δ₁, Cat.comp_id])
+      (by rw [Cat.assoc, δ₂, Cat.comp_id, h_eq])
+    rw [h_comp, ← h_id]
+  · intro hiso
+    obtain ⟨inv, _diag_inv, inv_diag⟩ := hiso
+    intro X x₁ x₂ h
+    -- (x₁, x₂) is a cone over (f,f); let p be its lift into the pullback.
+    obtain ⟨p, ⟨hp₁, hp₂⟩, _⟩ := hpb ⟨X, x₁, x₂, h⟩
+    let t : X ⟶ A := p ≫ inv
+    have ht : p = t ≫ δ := by dsimp only [t]; rw [Cat.assoc, inv_diag, Cat.comp_id]
+    calc
+      x₁ = p ≫ c.π₁ := hp₁.symm
+      _ = (t ≫ δ) ≫ c.π₁ := by rw [ht]
+      _ = t ≫ δ ≫ c.π₁ := Cat.assoc _ _ _
+      _ = t ≫ Cat.id A := by rw [δ₁]
+      _ = t := Cat.comp_id _
+      _ = t ≫ Cat.id A := (Cat.comp_id _).symm
+      _ = t ≫ δ ≫ c.π₂ := by rw [δ₂]
+      _ = (t ≫ δ) ≫ c.π₂ := (Cat.assoc _ _ _).symm
+      _ = p ≫ c.π₂ := by rw [ht]
+      _ = x₂ := hp₂
+
 /-! ## §1.453 LEMMA: pullback-preserving functor faithful ↔ preserves properness
 
   A functor `T : A → B` that preserves pullbacks is faithful if and only if it
@@ -380,6 +439,57 @@ def PreservesPullbacks {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
 def PreservesProperness {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
     (T : 𝒜 → ℬ) [hT : Functor T] : Prop :=
   ∀ {A' A : 𝒜} (m : A' ⟶ A), Mono m → ¬IsIso m → ¬IsIso (hT.map m)
+
+/-- The canonical level of `f`, built from the chosen kernel pair. -/
+noncomputable def canonicalLevel {A B : 𝒞} (f : A ⟶ B) : Level f where
+  c := (hpull.has f f).cone
+  hpb := (hpull.has f f).cone_isPullback
+  δ := kp_diag (f := f)
+  δ₁ := kp_diag_p₁
+  δ₂ := kp_diag_p₂
+
+omit ht hp hpull in
+/-- The diagonal of a level is a split mono (`δ ≫ π₁ = id`), hence monic. -/
+theorem Level.diag_mono {A B : 𝒞} {f : A ⟶ B} (L : Level f) : Mono L.δ := by
+  intro W g h heq
+  have heq2 : g ≫ Cat.id A = h ≫ Cat.id A := by
+    rw [← L.δ₁, ← Cat.assoc, ← Cat.assoc, heq]
+  rw [Cat.comp_id, Cat.comp_id] at heq2
+  exact heq2
+
+/-- The `T`-image of a level of `f` is a level of `T f` (T preserves the level
+    pullback; the diagonal equations are functorial). -/
+noncomputable def Level.map {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
+    (T : 𝒜 → ℬ) [hT : Functor T] (hpb : PreservesPullbacks T)
+    {A B : 𝒜} {f : A ⟶ B} (L : Level f) : Level (hT.map f) where
+  c := Cone.mk (T L.c.pt) (hT.map L.c.π₁) (hT.map L.c.π₂)
+        (by rw [← hT.map_comp, ← hT.map_comp, L.c.w])
+  hpb := hpb f f L.c L.hpb
+  δ := hT.map L.δ
+  δ₁ := by rw [show hT.map L.δ ≫ hT.map L.c.π₁ = hT.map (L.δ ≫ L.c.π₁) from
+              (hT.map_comp _ _).symm, L.δ₁, hT.map_id]
+  δ₂ := by rw [show hT.map L.δ ≫ hT.map L.c.π₂ = hT.map (L.δ ≫ L.c.π₂) from
+              (hT.map_comp _ _).symm, L.δ₂, hT.map_id]
+
+/-- §1.453: a pullback-preserving, properness-preserving functor REFLECTS MONICS.
+    This is the explicit content of Freyd's argument: `f` monic ⟺ its diagonal is
+    iso; properness (contrapositive, classically) propagates non-iso of the
+    diagonal through `T`; so `T f` monic forces `f` monic. -/
+theorem reflectsMono {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
+    [HasTerminal 𝒜] [HasBinaryProducts 𝒜] [HasPullbacks 𝒜]
+    (T : 𝒜 → ℬ) [hT : Functor T] (hpb : PreservesPullbacks T)
+    (hprop : PreservesProperness T) {A B : 𝒜} (f : A ⟶ B) (hm : Mono (hT.map f)) :
+    Mono f := by
+  -- Classical contrapositive: if f not monic, the level diagonal δ is a non-iso mono,
+  -- so T δ is non-iso (properness), so T f is not monic — contradiction.
+  by_cases hnm : Mono f
+  · exact hnm
+  · exfalso
+    let L := canonicalLevel f
+    have hδ_niso : ¬IsIso L.δ := fun h => hnm ((mono_iff_level_diag_iso L).2 h)
+    have hTδ_niso : ¬IsIso (hT.map L.δ) := hprop L.δ L.diag_mono hδ_niso
+    -- T δ is the diagonal of the image level of T f; T f monic ⇒ that diagonal iso.
+    exact hTδ_niso ((mono_iff_level_diag_iso (L.map T hpb)).1 hm)
 
 /-- §1.453 LEMMA: if `𝒜` is Cartesian and `T : 𝒜 → ℬ` preserves pullbacks, then
     `T` is faithful iff it preserves properness of subobjects.
@@ -403,14 +513,38 @@ theorem pullback_faithful_iff_preserves_properness
     -- T faithful → T reflects isomorphisms → non-iso mono stays non-iso.
     intro ⟨_, hRefl⟩ A' A m _ hniso hTiso
     exact hniso (hRefl m hTiso)
-  · -- (⇐) PreservesProperness T → Faithful T (§1.453)
-    -- Freyd's proof requires classical logic (excluded middle for the contrapositive of
-    -- PreservesProperness) and graph-factorization infrastructure for the Embedding step.
-    -- Both steps are left as faithful sorrys:
-    --   (a) ReflectsMono: if T f not monic then kp_diag f is monic + not-iso, so by
-    --       PreservesProperness T(kp_diag f) not iso, so T f not monic. (Needs EM.)
-    --   (b) Embedding: T.map f = T.map g → f = g via the kernel-pair of g and step (a).
-    intro _hprop
-    sorry
+  · -- (⇐) PreservesProperness T → Faithful T (§1.453).
+    -- The substantive book content — "Hence T reflects monics" — is now DISCHARGED as
+    -- `reflectsMono` above (the kernel-pair / level diagonal argument, classically via
+    -- `by_cases`).  `Faithful = Embedding ∧ (reflects isos)`; we record both reductions.
+    intro hprop
+    refine ⟨?emb, ?refl⟩
+    · -- Embedding: T f = T g → f = g.
+      intro A B f g hTfg
+      -- Reduction (PROVED part):  with `reflectsMono` in hand, faithfulness of a
+      -- pullback-preserving functor classically reduces to *reflecting monics* once we can
+      -- form the equalizer `e : E ↣ A` of `f, g` (it exists: `𝒜` has products + pullbacks,
+      -- §1.434) and know `T` carries `e` to an ISO whenever `T f = T g`.
+      --   • `f ≠ g  ⇒  e` is a non-iso mono (proper subobject), so `T e` is non-iso (hprop);
+      --   • `T f = T g  ⇒  T e` is split epi, hence (mono+split-epi) iso  — CONTRADICTION.
+      -- BLOCKER (genuine, not an axiom gap): the second bullet needs `T` to carry the
+      -- equalizer-pullback to a pullback whose apex is split by `1_{T A}`, i.e. needs
+      -- `T u = T v` for `u = ⟨1,f⟩, v = ⟨1,g⟩`.  That follows only if `T` preserves the
+      -- BINARY PRODUCT `A × B` (equivalently: preserves equalizers).  `PreservesPullbacks`
+      -- alone does NOT give it — `(T fst, T snd)` need not be jointly monic.  Freyd closes
+      -- this in §1.472 by strengthening "preserves pullbacks" to "representation of
+      -- Cartesian categories" (preserves the whole Cartesian structure).  See S1_45.md.
+      sorry
+    · -- Reflecting isos: IsIso (T f) → IsIso f.
+      -- `IsIso (T f) ⇒ Mono (T f) ⇒ Mono f` is DISCHARGED by `reflectsMono`; but `Mono f`
+      -- is not yet `IsIso f`.  The missing half (reflecting split-epi-ness / the inverse)
+      -- needs the same product-preservation as the Embedding step.  Left faithful.
+      intro A B f hiso
+      have _hmono : Mono f :=
+        reflectsMono T hpb hprop f
+          (by obtain ⟨i, h1, h2⟩ := hiso; intro W p q hpq;
+              have := congrArg (· ≫ i) hpq; simp only [Cat.assoc, h1, Cat.comp_id] at this;
+              exact this)
+      sorry
 
 end Freyd
