@@ -1,6 +1,8 @@
 /-
   Freyd & Scedrov, *Categories and Allegories* §1.91  Topos structure.
 
+  §1.911 Contravariant functor Rel(−,B); power-object [B] ↔ Rel(−,B) ≅ Hom(−,[B]).
+  §1.912 Subobject classifier Ω = [1] (in Fredy.S1_9).
   §1.913 All subobjects are equalizers, covers = epics.
   §1.914 Algebraic structure of Ω: internal meet ∧ and Heyting double-arrow ⇒.
   §1.919 Monic endomorphisms of Ω are involutions.
@@ -21,7 +23,37 @@ universe v u
 
 namespace Freyd
 
-variable {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
+variable {𝒞 : Type u} [Cat.{v} 𝒞]
+
+/-! ## §1.911  The contravariant relation functor Rel(−,B)
+
+  For any category with pullbacks and any object B, `BinRel 𝒞 − B` is a
+  contravariant set-valued functor: given f : A → A' and R : BinRel 𝒞 A' B,
+  define f*(R) := relPullback f R.  The functoriality equation is
+  g*(f*(R)) = (f ≫ g)*(R), i.e. relPullback is contravariantly functorial.
+
+  The existence of a power-object [B] (§1.9, `HasPowerObject B`) is equivalent
+  to this functor being representable: Rel(−,B) ≅ Hom(−,[B]).
+  (The formalization of `BinRel`, `relPullback`, `HasPowerObject` and
+  `IsUniversalRel` is in `Fredy.S1_9`.) -/
+
+/-- **§1.911**: The relation pullback is contravariantly functorial:
+    `relPullback g (relPullback f R) ≅ relPullback (f ≫ g) R`
+    (as `RelHom` in both directions), where f : A'' → A', g : A' → A.
+
+    Proof requires pullback pasting: the composite of two pullback squares is a
+    pullback.  This is the same sorry as `invImg_comp` in S1_45.lean. -/
+theorem relPullback_comp [HasPullbacks 𝒞] {A A' A'' B : 𝒞}
+    (f : A'' ⟶ A') (g : A' ⟶ A) (R : BinRel 𝒞 A B) :
+    RelHom (relPullback f (relPullback g R)) (relPullback (f ≫ g) R) ∧
+    RelHom (relPullback (f ≫ g) R) (relPullback f (relPullback g R)) := by
+  -- Both directions follow from pullback pasting: the composite of the two
+  -- pullback squares (one for g vs R.colA, one for f vs (pb_g).π₁) is a
+  -- pullback square for (f ≫ g) vs R.colA.  Without a pasting lemma in this
+  -- repo the proof is deferred.
+  sorry
+
+variable [Topos 𝒞]
 
 /-! ## §1.913  Subobjects as equalizers
 
@@ -149,16 +181,18 @@ noncomputable def heytingDoubleArrow : prod (HasSubobjectClassifier.omega (𝒞 
 /-- **§1.919**: Every monic endomorphism of Ω is an involution;
     that is, g : Ω → Ω monic implies g ≫ g = id.
 
-    Proof sketch (Freyd §1.919): A subobject A' ⊆ A is g-large iff g(A') = A
-    (i.e., the characteristic map of A' factors through g⁻¹(t)).
-    For monic g with g(V) = g(1_Ω), monicness forces V = 1_Ω.  Then g²(A)
-    equals (A ↔ A×U) ∧ A×U = A, so g² and id have the same large subobjects
-    and hence are equal.
+    Proof sketch (Freyd §1.919): Define U as the unique g-large subobject of 1
+    (where A' is g-large in A if χ_{A'} ≫ g = term_A ≫ true, meaning gA' = A).
+    Since g is monic, g(V) = g(1_Ω) implies V = 1_Ω.  For any A, A is g²-large
+    in itself, and the identity has the same property, so g² = id by extensionality.
 
-    **Prerequisite**: the classify-uniqueness axiom (two maps A→Ω are equal
-    iff they classify the same subobject) is not yet axiomatised in
-    `HasSubobjectClassifier`.  This sorry will be removable once that
-    uniqueness field is added. -/
+    **Proof gap**: The argument requires Ω-extensionality: two maps f, h : A → Ω
+    are equal iff they classify the same subobjects.  This follows from
+    `classify_unique` applied to `true : 1 → Ω` (i.e. `true ≫ f = true ≫ h`
+    would suffice), but requires explicitly constructing the pullback squares for
+    g² and id to coincide — which needs the g-large/U/V argument from the book.
+    The infrastructure (g-large predicate, U = g(1_Ω) as a subobject) is not yet
+    formalized here. -/
 theorem omega_monic_endo_is_involution (g : HasSubobjectClassifier.omega (𝒞 := 𝒞) ⟶
     HasSubobjectClassifier.omega (𝒞 := 𝒞)) (hm : Mono g) : g ≫ g = Cat.id _ := by
   sorry
