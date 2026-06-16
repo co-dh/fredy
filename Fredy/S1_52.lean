@@ -11,6 +11,7 @@
 import Fredy.S1_1
 import Fredy.S1_41
 import Fredy.S1_42
+import Fredy.S1_43
 import Fredy.S1_45
 import Fredy.S1_51
 
@@ -256,3 +257,95 @@ theorem capital_implies_one_projective
     obtain ⟨x, _⟩ := hwpAA (diag A) hm_diag h_not_iso_diag
     -- 7. Compose x with π₁ : 1 → A.
     exact Nonempty.intro (x ≫ fst)
+
+/-! ## §1.524 Projective objects
+
+  An object P is PROJECTIVE if the representable functor (P, -) preserves covers:
+  every cover f : A ↠ P has a splitting s : P → A with s ≫ f = id_P.
+  NOTE: `Projective` is formally defined in §1.57 (Fredy/S1_57.lean) together with
+  the Choice–Projective equivalence.  We record the key consequence here. -/
+
+/-- §1.524 + §1.525: in a capital pre-regular category the terminator 1 is projective
+    — every cover `e : A ↠ 1` has a section.  Proof: `capital_implies_one_projective`
+    gives `1 → A`; the equation holds by `term_uniq` since everything maps to 1 uniquely. -/
+theorem capital_one_projective
+    [hp : HasBinaryProducts 𝒞] [hpull : HasPullbacks 𝒞]
+    (hcap : Capital (𝒞 := 𝒞))
+    {A : 𝒞} {e : A ⟶ one} (he : Cover e) :
+    ∃ (s : one ⟶ A), s ≫ e = Cat.id one := by
+  have hterm : e = term A := term_uniq e _
+  subst hterm
+  obtain ⟨s⟩ := capital_implies_one_projective hcap A he
+  exact ⟨s, term_uniq _ _⟩
+
+/-! ## §1.52 Representation of pre-regular categories
+
+  A REPRESENTATION OF PRE-REGULAR CATEGORIES is a functor that preserves
+  finite products (terminal + binary products), equalizers, and covers (§1.52). -/
+
+/-- A functor `F : 𝒞 → 𝒟` PRESERVES COVERS if it carries every cover to a cover. -/
+def PreservesCovers {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
+    (F : 𝒞 → 𝒟) [hF : Functor F] : Prop :=
+  ∀ {A B : 𝒞} (f : A ⟶ B), Cover f → Cover (hF.map f)
+
+/-- **§1.52 REPRESENTATION OF PRE-REGULAR CATEGORIES**: a functor between
+    pre-regular categories preserving finite products, equalizers, and covers.
+    (This is the standard notion; a functor preserving these necessarily
+    preserves whatever images may exist.) -/
+structure RepOfPreReg {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
+    [CartesianCategory 𝒞] [CartesianCategory 𝒟]
+    (F : 𝒞 → 𝒟) [hF : Functor F] : Prop where
+  cartesian  : CartesianFunctor F
+  pres_covers : PreservesCovers F
+
+/-! ## §1.526 The points functor is a representation in a capital category
+
+  In a capital pre-regular category the functor `Γ := (1 ⟶ -)` is a representation
+  of pre-regular categories (§1.526).  We record its key preservation properties
+  here as type-theoretic statements (Γ lands in Type, not back in 𝒞). -/
+
+/-- §1.526 (terminal): `Γ(1) = (1 ⟶ 1)` is a singleton — has exactly one element. -/
+theorem pts_terminal_unique [ht : HasTerminal 𝒞]
+    (f g : one ⟶ (one : 𝒞)) : f = g :=
+  term_uniq f g
+
+/-- §1.526 (products): `Γ(A × B) → Γ(A) × Γ(B)` given by `x ↦ (x ≫ fst, x ≫ snd)` and
+    `Γ(A) × Γ(B) → Γ(A × B)` given by `(a, b) ↦ pair a b` are mutually inverse. -/
+theorem pts_prod_iso_left [hp : HasBinaryProducts 𝒞] {A B : 𝒞}
+    (a : one ⟶ A) (b : one ⟶ B) :
+    pair a b ≫ fst = a ∧ pair a b ≫ snd = b :=
+  ⟨fst_pair a b, snd_pair a b⟩
+
+theorem pts_prod_iso_right [hp : HasBinaryProducts 𝒞] {A B : 𝒞}
+    (x : one ⟶ prod A B) :
+    pair (x ≫ fst) (x ≫ snd) = x :=
+  (pair_uniq (x ≫ fst) (x ≫ snd) x rfl rfl).symm
+
+/-- §1.526 (covers): in a capital pre-regular category, `Γ = (1 ⟶ -)` preserves
+    covers — if `f : X ↠ Y` is a cover then every point `y : 1 → Y` lifts to a
+    point `x : 1 → X` with `x ≫ f = y`.  This is precisely that 1 is projective,
+    which follows from capital (§1.525). -/
+theorem pts_covers_of_capital
+    [PullbacksTransferCovers 𝒞]
+    (hcap : Capital (𝒞 := 𝒞))
+    {X Y : 𝒞} {f : X ⟶ Y} (hf : Cover f) (y : one ⟶ Y) :
+    ∃ (x : one ⟶ X), x ≫ f = y := by
+  -- Pull f back along y.  The pullback leg π₂ : P → 1 is a cover (pullbacks transfer
+  -- covers), and 1 is projective in a capital category, so π₂ splits.
+  -- Then s ≫ π₁ : 1 → X is the desired lift.
+  have hcov_π₂ : Cover (hpull.has f y).cone.π₂ := cover_pullback y hf
+  obtain ⟨s, hs⟩ := capital_one_projective hcap hcov_π₂
+  exact ⟨s ≫ (hpull.has f y).cone.π₁,
+         by rw [Cat.assoc, (hpull.has f y).cone.w, ← Cat.assoc, hs, Cat.id_comp]⟩
+
+/-! ## §1.521 The functor category 𝒮^A is regular
+
+  For a small category A, the functor category 𝒮^A (presheaves on A, where 𝒮 = Set)
+  is regular and the evaluation functors (ev_a : 𝒮^A → 𝒮 for a ∈ A) form a
+  collectively faithful family of representations of regular categories.
+
+  NOTE: This requires natural-transformation infrastructure (𝒮^A as a Cat instance,
+  limits/colimits pointwise).  The codebase has no NatTrans type yet; this is
+  recorded as MISSING in S1_52.md until that infrastructure exists. -/
+
+end Freyd
