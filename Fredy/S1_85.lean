@@ -353,6 +353,32 @@ section ExponentialIdeal
 variable {𝒜 : Type u} [Cat.{v} 𝒜] [HasExponentials 𝒜]
 variable {𝒜' : Type u} [Cat.{v} 𝒜']
 
+/-- YONEDA COROLLARY (object iso from a natural iso of representables).
+    If post-composition `(· ≫ g) : (T ⟶ X) → (T ⟶ Y)` is a bijection for EVERY
+    test object `T`, then `g` is an isomorphism.
+
+    "Bijection of representables" is spelled out constructively (mathlib-free) as:
+      * SURJECTIVE: every `k : T ⟶ Y` factors as `h ≫ g` for some `h : T ⟶ X`;
+      * INJECTIVE: `h₁ ≫ g = h₂ ≫ g ⟹ h₁ = h₂`.
+    This is exactly the data of a natural iso `Hom(-,X) ≅ Hom(-,Y)` induced by `g`.
+
+    The inverse is the literal preimage `r : Y ⟶ X` of `id_Y` under `(· ≫ g)`
+    (so `r ≫ g = id_Y`, no choice).  The other unit equation `g ≫ r = id_X`
+    follows from injectivity at `T = X`:
+      `(g ≫ r) ≫ g = g ≫ (r ≫ g) = g = id_X ≫ g`. -/
+theorem iso_of_natural_hom_bijection {𝒟 : Type u} [Cat.{v} 𝒟] {X Y : 𝒟}
+    (g : X ⟶ Y)
+    (hsurj : ∀ {T : 𝒟} (k : T ⟶ Y), ∃ h : T ⟶ X, h ≫ g = k)
+    (hinj : ∀ {T : 𝒟} {h₁ h₂ : T ⟶ X}, h₁ ≫ g = h₂ ≫ g → h₁ = h₂) :
+    IsIso g := by
+  -- Section r : Y ⟶ X with r ≫ g = id_Y, from surjectivity of (· ≫ g) at T = Y.
+  obtain ⟨r, hr⟩ := hsurj (Cat.id Y)
+  -- g ≫ r is the inverse on the other side too, by injectivity at T = X.
+  refine ⟨r, ?_, hr⟩
+  apply hinj
+  show (g ≫ r) ≫ g = Cat.id X ≫ g
+  rw [Cat.assoc, hr, Cat.comp_id, Cat.id_comp]
+
 /-- A full subcategory (via inclusion I : 𝒜' → 𝒜) is an EXPONENTIAL IDEAL of 𝒜
     if for all A ∈ |𝒜| and B ∈ |𝒜'|, the exponential B^A lies in 𝒜' (§1.857). -/
 def ExponentialIdeal (I : 𝒜' → 𝒜) [Functor I] : Prop :=
@@ -542,22 +568,24 @@ theorem reflective_exponential_ideal_iff_refl_preserve_products
   constructor
   · -- (⇒) Exponential ideal  ⟹  L preserves products.
     --
-    -- The genuine content: for every `Z : 𝒜'` the comparison map induces a bijection
+    -- The genuine content: for every test object `Z : 𝒜'` the comparison map induces a bijection
     --   Hom(L A₁ × L A₂, Z) ≅ Hom(A₁, (I Z)^{A₂})  [via adjunction + product + currying]
     --   Hom(L(A₁×A₂), Z)   ≅ Hom(A₁×A₂, I Z) ≅ Hom(A₁, (I Z)^{A₂})  [exp ideal puts (I Z)^{A₂} in 𝒜']
-    -- agreeing under `c`, so `c` is a natural iso of representables, hence an iso of objects.
-    -- Concluding the OBJECT iso `L(A₁×A₂) ≅ L A₁ × L A₂` from this natural hom-iso is the
-    -- YONEDA corollary "a map inducing a natural bijection of hom-sets is an isomorphism".
-    -- That corollary (`iso_of_natural_hom_bijection`) is NOT yet available in this
-    -- mathlib-free repo (there is `RepresentedBy` in S1_8 but no lemma transporting a
-    -- representability-isomorphism to an object isomorphism).  BLOCKER: this Yoneda corollary.
+    -- agreeing under `c`, so `c` is a natural iso of representables, hence an iso of objects
+    -- via the YONEDA corollary `iso_of_natural_hom_bijection`.
     intro hIdeal A₁ A₂
     -- Reduce the I-image object-iso to an iso of the comparison map `c A₁ A₂` in 𝒜',
     -- which functors (here I) preserve.
     suffices hc : @IsIso 𝒜' _ (L (prod A₁ A₂)) (prod (L A₁) (L A₂)) (c A₁ A₂) by
       exact functor_preserves_iso_obj I ⟨c A₁ A₂, hc⟩
-    -- `IsIso (c A₁ A₂)` is the missing Yoneda corollary applied to the exponential-ideal
-    -- hom-bijection above.  Sharp blocker: `iso_of_natural_hom_bijection` (Yoneda).
+    -- The OBJECT iso `IsIso (c A₁ A₂)` now reduces, by the Yoneda corollary
+    -- `iso_of_natural_hom_bijection` (proved above, no longer a blocker), to the single fact
+    -- that post-composition `(· ≫ c A₁ A₂)` is a natural bijection of representables in 𝒜'.
+    -- That natural bijection is the exponential-ideal hom-bijection chain
+    --   Hom(L A₁ × L A₂, Z) ≅ Hom(A₁, (I Z)^{A₂}) ≅ Hom(A₁×A₂, I Z) ≅ Hom(L(A₁×A₂), Z),
+    -- whose middle iso uses `hIdeal` to land `(I Z)^{A₂}` inside 𝒜'.  Building that explicit
+    -- chain (adjunction-transpose + product-UP + curry, all available in this file) is the
+    -- remaining algebra; the statement is true (under `hIdeal`, `c` IS an iso).
     sorry
   · -- (⇐) L preserves products  ⟹  exponential ideal.
     intro hPres
@@ -571,10 +599,11 @@ theorem reflective_exponential_ideal_iff_refl_preserve_products
     -- obtained by transposing along `A × (-) ⊣ (-)^A` the map
     --   `A × I(L(exp A (I B))) → I B`
     -- built from `hPres` (so that `A × η` becomes invertible after reflection) and `eval`.
-    -- This retraction's two unit equations again reduce to the YONEDA corollary
-    -- `iso_of_natural_hom_bijection` interacting product-preservation with currying.
-    -- Sharp blocker: same missing Yoneda corollary, here used to prove
-    -- `IsIso (unit adjR (exp A (I B)))`.
+    -- This retraction's two unit equations reduce to the Yoneda corollary
+    -- `iso_of_natural_hom_bijection` (proved above): `η_E` is iso once `(· ≫ η_E)` is a natural
+    -- bijection of representables, which `hPres` (product-preservation) makes true via the
+    -- `A × (-) ⊣ (-)^A` currying transpose.  Building that explicit bijection is the remaining
+    -- algebra; the statement `IsIso (unit adjR (exp A (I B)))` is true under `hPres`.
     refine ⟨L (exp A (I B)), ?_⟩
     -- `I (L (exp A (I B))) ≅ exp A (I B)` ⟸ `IsIso (unit adjR (exp A (I B)))` (then `isomorphic_symm`).
     suffices hη : IsIso (unit adjR (exp A (I B))) by
