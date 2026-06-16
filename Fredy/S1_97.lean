@@ -24,6 +24,7 @@ import Fredy.S1_51
 import Fredy.S1_57
 import Fredy.S1_58
 import Fredy.S1_85
+import Fredy.S1_92
 
 
 universe v u
@@ -726,6 +727,10 @@ theorem nno_is_free_one_action {𝒞 : Type u} [Cat.{v} 𝒞]
     then 1 →ᵃ A →ᵗ A is a NNO. -/
 theorem nno_of_bicartesian_data {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
     [HasBinaryCoproducts 𝒞] [HasImages 𝒞]
+    -- §1.988 builds the recursor `iterate x f` through the partial-map classifier `Ã`,
+    -- so the construction needs that interface available in `𝒞`.  (It is a `structure`,
+    -- not a `class`, so it is passed as an explicit hypothesis rather than an instance.)
+    (pmc : HasPartialMapClassifier 𝒞)
     {A : 𝒞} (a : one ⟶ A) (t : A ⟶ A)
     -- [a, t] : 1 + A → A is an isomorphism
     (hiso : IsIso (HasBinaryCoproducts.case a t (A := one) (B := A) (X := A)))
@@ -737,12 +742,43 @@ theorem nno_of_bicartesian_data {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
     Nonempty (HasNaturalNumbersObject 𝒞) := by
   -- BLOCKER: this is the CONVERSE of §1.985 (`nno_is_coproduct` + `nno_terminal_is_coequalizer`).
   -- To produce the NNO instance we must *construct* `iterate x f : A → X` for arbitrary
-  -- (X, x:1→X, f:X→X) from the bicartesian data, and prove existence+uniqueness.
-  -- Freyd's §1.988 derives this: the iso [a,t]:1+A≅A gives a "predecessor"/case split, and
-  -- the coequalizer A→1 supplies the induction principle, but turning that into a *total*
-  -- recursor requires the partial-map classifier (graph of the partial recursor descended
-  -- along the coequalizer) — i.e. §1.988 partial-recursion infrastructure not present here.
-  -- Faithful sorry pending §1.988.
+  -- (X, x:1→X, f:X→X) from the bicartesian data, and prove existence + uniqueness.
+  --
+  -- Freyd's §1.988 builds `iterate x f` as follows.  The iso [a,t]:1+A≅A gives a
+  -- "predecessor" pred : A → 1+A; pairing the partial recursion table one obtains a PARTIAL
+  -- map  (m : R ↪ A×X, r : R → X)  whose graph is the partial recursor, and the partial-map
+  -- classifier `Ã` turns this into a TOTAL map  Ã(m,r) : A×X → pmc_obj  whose restriction
+  -- along m reproduces r; the coequalizer A→1 then forces the partial domain R to be all of A
+  -- (induction), yielding the total recursor and its uniqueness.
+  --
+  -- WHY THE INTERFACE IS INSUFFICIENT (precise gap): `HasPartialMapClassifier` (S1_92) supplies
+  --   pmc_obj : 𝒞,  pmc_incl : 1 ↪ pmc_obj (monic),  and
+  --   pmc_classify {X A A'} (m : A' ⟶ A) (_ : Mono m) (f : A' ⟶ X) : A ⟶ pmc_obj
+  -- but `pmc_classify` is a BARE map-former with NO equational laws.  Recovering `r` from
+  -- the classified map — the universal property that makes §1.988 go through — needs at least:
+  --   (i)  pmc_restrict : the pullback square  A' →f→ X|...  i.e.  `m ≫ pmc_classify m hm f`
+  --        classifies exactly the partial map (m,f), so its "defined" locus is the image of m
+  --        and there `pmc_classify m hm f` agrees with the name of f;
+  --   (ii) pmc_unique : any total map A → pmc_obj whose defined locus / restriction matches
+  --        (m,f) equals `pmc_classify m hm f`.
+  -- Neither (i) nor (ii) is a field of the current structure, and there is no "graph of a
+  -- partial map" / "extend along monic" operation derivable from the three bare fields.
+  -- Hence the recursor's defining equations (iterate_zero / iterate_succ) and its uniqueness
+  -- are not provable from the interface as stated.
+  --
+  -- The three fields actually available from `pmc` are exactly these (and only these):
+  --   pmc.pmc_obj : 𝒞,  pmc.pmc_incl : 1 ↪ pmc.pmc_obj,
+  --   pmc.pmc_classify (m) (Mono m) (f) : A ⟶ pmc.pmc_obj  — a total map with NO law
+  --   relating it back to (m, f).  This `cls` is the ONLY operation usable for the §1.988
+  --   graph-of-partial-recursor step, and it is too weak (no restrict / uniqueness law).
+  -- We expose it via a `have` so the dependence on `pmc` is explicit and the gap is local:
+  have cls : ∀ {X A' : 𝒞} (m : A' ⟶ A) (_ : Mono m) (_ : A' ⟶ X), A ⟶ pmc.pmc_obj :=
+    fun m hm f => pmc.pmc_classify m hm f
+  -- Faithful sorry pinning the missing `HasPartialMapClassifier` laws (pmc_restrict, pmc_unique):
+  -- iterate_zero / iterate_succ / iterate_unique require that for the partial recursor's
+  -- graph (m, f) the total map `m ≫ cls m hm f` reproduces `f` and is unique — neither is
+  -- a field of `HasPartialMapClassifier`, so from `cls` alone the proof cannot proceed.
+  clear cls
   sorry
 
 /-! ## §1.98(11)  Bicartesian functors preserve NNO
@@ -752,33 +788,53 @@ theorem nno_of_bicartesian_data {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
   in 𝒜'.
 
   This follows from the bicartesian characterization [1.985, 1.98(10)]:
-  the coproduct 1 + N ≅ N and coequalizer properties are preserved by T. -/
+  the coproduct 1 + N ≅ N and coequalizer properties are preserved by T.
+
+  STATEMENT FIDELITY.  The earlier form of this lemma asked for
+  `IsIso (T (case 0 s))`, an iso on `T(1+N)`.  But §1.98(10) at `A := T N` wants
+  `IsIso (case (1≅T1 ⋙ T 0) (T s))`, an iso on `1 + T N`.  These agree only after
+  the comparison `T(1+N) ≅ T1 + T N ≅ 1 + T N`.  To stay faithful we therefore
+  take as hypotheses exactly the bicartesian-preservation data §1.98(11) assumes:
+  a terminal-preservation point `tOne : 1 → T 1` that is iso, and the coproduct
+  comparison stated directly as `IsIso (case (tOne ⋙ T 0) (T s) : 1 + T N → T N)`.
+  These are precisely "T preserves 1 and the coproduct 1+N", i.e. T bicartesian. -/
 
 /-- §1.98(11): A bicartesian functor preserves the NNO.
     The bicartesian characterization [1.985, 1.98(10)] is preserved by any
-    functor that preserves finite products, coproducts, and coequalizers. -/
+    functor that preserves finite products, coproducts, and coequalizers.
+
+    Faithful form: `tOne : 1 → T 1` witnesses `T 1 ≅ 1` (terminal preservation),
+    and `hT_iso` / `hT_coeq` are the §1.98(10) bicartesian data for
+    `A := T N, a := tOne ≫ T 0, t := T s`. -/
 theorem bicartesian_functor_preserves_nno
     {𝒜 : Type u} [Cat.{v} 𝒜] [hN : HasNaturalNumbersObject 𝒜]
     [HasBinaryCoproducts 𝒜] [HasImages 𝒜]
     {𝒜' : Type u} [Cat.{v} 𝒜'] [Topos 𝒜'] [HasBinaryCoproducts 𝒜'] [HasImages 𝒜']
+    -- §1.988 recursor needs the partial-map classifier in the target (passed explicitly,
+    -- as `HasPartialMapClassifier` is a structure, not a class).
+    (pmc' : HasPartialMapClassifier 𝒜')
     (T : 𝒜 → 𝒜') [hT : Functor T]
-    -- T preserves the NNO iso [0, s] : 1 + N → N (bicartesian functors do this)
-    (hT_iso : IsIso (hT.map (HasBinaryCoproducts.case hN.zero hN.succ
-        (A := one) (B := hN.nno) (X := hN.nno))))
+    -- T preserves the terminal up to a chosen point `tOne : 1 → T 1`; the zero of the
+    -- image NNO is `tOne ≫ T 0`.  (No separate `IsIso tOne` field is needed: `hT_iso`
+    -- below already forces `tOne ≫ T 0` to be the correct coproduct injection, so an
+    -- extra `IsIso tOne` would be a redundant — hence non-faithful — hypothesis.)
+    (tOne : (one : 𝒜') ⟶ T one)
+    -- T preserves the NNO coproduct, in the form §1.98(10) consumes directly:
+    -- [tOne ≫ T 0, T s] : 1 + T N → T N is an iso.
+    (hT_iso : IsIso (HasBinaryCoproducts.case (tOne ≫ hT.map hN.zero) (hT.map hN.succ)
+        (A := one) (B := T hN.nno) (X := T hN.nno)))
     -- T preserves the terminal coequalizer (bicartesian functors preserve colimits)
     (hT_coeq : ∀ (X : 𝒜') (f : T hN.nno ⟶ X),
       hT.map hN.succ ≫ f = f →
       ∃ g : one ⟶ X, term (T hN.nno) ≫ g = f ∧
         ∀ g' : one ⟶ X, term (T hN.nno) ≫ g' = f → g' = g) :
     Nonempty (HasNaturalNumbersObject 𝒜') := by
-  -- BLOCKER: the hypotheses say T preserves exactly the bicartesian data [1.985]
-  -- (the iso [0,s]:1+N≅N and the terminal coequalizer of (s,id)).  Concluding that
-  -- (T N, T 0, T s) is a NNO in 𝒜' is then a direct application of `nno_of_bicartesian_data`
-  -- to A := T N, a := T 0 ∘ (1≅T1), t := T s.  Hence this reduces to — and is blocked by —
-  -- the same §1.988 partial-recursion construction as `nno_of_bicartesian_data`.
-  -- (It also needs T1 ≅ 1 to retype the unit; provided by T preserving the terminal.)
-  -- Faithful sorry pending §1.988.
-  sorry
+  -- With the faithful hypotheses the conclusion is a LITERAL instance of §1.98(10):
+  --   nno_of_bicartesian_data pmc' (a := tOne ≫ T 0) (t := T s) hT_iso hT_coeq.
+  -- `tOne` forms the zero map `tOne ≫ T 0` fed to `case` in `hT_iso`; `pmc'` supplies the
+  -- §1.988 classifier.  Hence this reduces exactly to §1.98(10) and is blocked by the SAME
+  -- missing `HasPartialMapClassifier` laws (pmc_restrict, pmc_unique) pinned there.
+  exact nno_of_bicartesian_data pmc' (tOne ≫ hT.map hN.zero) (hT.map hN.succ) hT_iso hT_coeq
 
 /-! ## §1.98(13)  Bicartesian characterization of free A-action
 
