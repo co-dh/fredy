@@ -62,8 +62,25 @@ noncomputable def relPullback [HasPullbacks 𝒞] {P C A : 𝒞}
       -- Hence U.isMonicPair applied to (g ≫ π₂) and (h ≫ π₂) gives g ≫ π₂ = h ≫ π₂.
       -- Full argument: from hA get π₁ agreement; from hB + pullback-square + U.isMonicPair
       -- get π₂ agreement; then pullback uniqueness gives g = h.
-      -- Skipped for now — the joint-monicity of the legs of a pullback-of-monic-pair.
-      sorry }
+      -- Step 1: reassociate hB to get (g ≫ π₂) ≫ U.colB = (h ≫ π₂) ≫ U.colB
+      have hB' : (g ≫ pb.cone.π₂) ≫ U.colB = (h ≫ pb.cone.π₂) ≫ U.colB := by
+        rw [Cat.assoc, Cat.assoc]; exact hB
+      -- Step 2: from hA + pullback square, get (g ≫ π₂) ≫ U.colA = (h ≫ π₂) ≫ U.colA
+      -- cone.w : π₁ ≫ f = π₂ ≫ U.colA; reassociate to match rewrite pattern
+      have hA' : (g ≫ pb.cone.π₂) ≫ U.colA = (h ≫ pb.cone.π₂) ≫ U.colA := by
+        have sq := pb.cone.w  -- π₁ ≫ f = π₂ ≫ U.colA
+        have hg : (g ≫ pb.cone.π₁) ≫ f = (g ≫ pb.cone.π₂) ≫ U.colA := by
+          rw [Cat.assoc, Cat.assoc, sq]
+        have hh : (h ≫ pb.cone.π₁) ≫ f = (h ≫ pb.cone.π₂) ≫ U.colA := by
+          rw [Cat.assoc, Cat.assoc, sq]
+        rw [← hg, ← hh, hA]
+      -- Step 3: U.isMonicPair gives g ≫ π₂ = h ≫ π₂
+      have hπ₂ : g ≫ pb.cone.π₂ = h ≫ pb.cone.π₂ := U.isMonicPair _ _ hA' hB'
+      -- Step 4: pullback lift_uniq gives g = h
+      have hw : (g ≫ pb.cone.π₁) ≫ f = (g ≫ pb.cone.π₂) ≫ U.colA := by
+        rw [Cat.assoc, Cat.assoc, pb.cone.w]
+      exact (pb.lift_uniq ⟨W, g ≫ pb.cone.π₁, g ≫ pb.cone.π₂, hw⟩ g rfl rfl).trans
+        (pb.lift_uniq ⟨W, g ≫ pb.cone.π₁, g ≫ pb.cone.π₂, hw⟩ h hA.symm hπ₂.symm).symm }
 
 /-- §1.9: A relation U : BinRel 𝒞 P C is UNIVERSAL targeted at C if every
     relation R : BinRel 𝒞 A C is uniquely isomorphic to `relPullback f U` for
