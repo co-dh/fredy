@@ -130,6 +130,86 @@ theorem contraCayley_faithful {𝒞 : Type u} [Cat.{v} 𝒞] {A B : 𝒞} (f g :
   simp [contraCayleyMap, Cat.comp_id] at hfg
   exact eq_of_heq (Sigma.ext_iff.mp hfg).2
 
+/-- C° reflects right-invertibility (§1.332).
+    If C°(x) : C°(B) → C°(A) is right-invertible (has a right inverse), then x : A → B
+    is right-invertible.
+    Proof: apply the right inverse r to ⟨A, id_A⟩ ∈ C°(A).  Then
+    C°(x)(r⟨A,id_A⟩) = ⟨A,id_A⟩, which unpacks to x ≫ y = id_A for some y. -/
+theorem contraCayley_reflects_rightInv {𝒞 : Type u} [Cat.{v} 𝒞] {A B : 𝒞} (x : A ⟶ B)
+    (h : ∃ (r : contraCayleyObj 𝒞 A → contraCayleyObj 𝒞 B),
+          contraCayleyMap x ∘ r = id) :
+    ∃ y : B ⟶ A, x ≫ y = Cat.id A := by
+  obtain ⟨r, hr⟩ := h
+  have h0 : contraCayleyMap x (r ⟨A, Cat.id A⟩) = ⟨A, Cat.id A⟩ := congrFun hr ⟨A, Cat.id A⟩
+  -- Generalize r ⟨A, id_A⟩ to a fresh variable p so that `obtain` on p
+  -- replaces it uniformly in h0, allowing simp to reduce the match.
+  revert h0
+  generalize r ⟨A, Cat.id A⟩ = p
+  intro h0
+  obtain ⟨C, z⟩ := p
+  simp only [contraCayleyMap] at h0
+  -- h0 : ⟨C, x ≫ z⟩ = ⟨A, id_A⟩ in (Z : 𝒞) × (A ⟶ Z)
+  have hC : C = A := (Sigma.ext_iff.mp h0).1
+  subst hC
+  exact ⟨z, eq_of_heq (Sigma.ext_iff.mp h0).2⟩
+
+/-! ## §1.332 Power-set functor -/
+
+/-- The contravariant POWER-SET functor P : Type → Type (§1.332).
+    P(S) = the type of predicates on S (= subsets of S).
+    P(f : S₁ → S₂) : P(S₂) → P(S₁) is inverse image: y ∈ P(f)(T) iff f(y) ∈ T. -/
+def powerSetObj (S : Type u) : Type u := S → Prop
+
+/-- P(f) = inverse image along f. -/
+def powerSetMap {S T : Type u} (f : S → T) : powerSetObj T → powerSetObj S :=
+  fun T' x => T' (f x)
+
+theorem powerSetMap_id (S : Type u) : powerSetMap (id : S → S) = id := rfl
+
+theorem powerSetMap_comp {S T U : Type u} (f : S → T) (g : T → U) :
+    powerSetMap (g ∘ f) = powerSetMap f ∘ powerSetMap g := rfl
+
+/-! ## §1.332 Combined covariant functor F = C × P(C°) -/
+
+/-- The covariant Cayley object C(A) = morphisms with TARGET A (§1.332).
+    This is the "dual" of C°: C(A) = {y | ◻y = A}. -/
+private def CovHom (𝒞 : Type u) [Cat.{v} 𝒞] (A : 𝒞) : Type (max u v) :=
+  (B : 𝒞) × (B ⟶ A)
+
+/-- The action of C on morphisms: post-compose with f.
+    For f : A → B, C(f) : C(A) → C(B) sends (Z, y : Z→A) to (Z, y ≫ f : Z→B). -/
+private def covCayleyMap {𝒞 : Type u} [Cat.{v} 𝒞] {A B : 𝒞} (f : A ⟶ B) :
+    CovHom 𝒞 A → CovHom 𝒞 B :=
+  fun ⟨Z, y⟩ => ⟨Z, y ≫ f⟩
+
+/-- The combined object F(A) = C(A) × P(C°(A)) (§1.332).
+    C is covariant Cayley (morphisms into A); P(C°(A)) = predicates on morphisms out of A. -/
+def combinedCayleyObj (𝒞 : Type u) [Cat.{v} 𝒞] (A : 𝒞) : Type (max u v) :=
+  CovHom 𝒞 A × (contraCayleyObj 𝒞 A → Prop)
+
+/-- The action of F on morphisms: for f : A → B,
+    first component C(A)→C(B) via post-composition;
+    second component P(C°(A))→P(C°(B)) via P(C°(f)) = inverse image along C°(f). -/
+def combinedCayleyMap {𝒞 : Type u} [Cat.{v} 𝒞] {A B : 𝒞} (f : A ⟶ B) :
+    combinedCayleyObj 𝒞 A → combinedCayleyObj 𝒞 B :=
+  fun p => ⟨covCayleyMap f p.1, fun z => p.2 (contraCayleyMap f z)⟩
+
+/-- F reflects left-invertibility (§1.332): if combinedCayleyMap x has a left inverse, x has
+    a left inverse.
+    Proof sketch: F(x) left-invertible means l ∘ F(x) = id for some l.
+    Via the covariant C component: l₁ ∘ covCayleyMap x = id.
+    At element ⟨A, id_A⟩ ∈ C(A): l₁(⟨A, x⟩) = ⟨A, id_A⟩.  This gives the fst=A component.
+    The left-inverse witness must come from traversing a second application of l₁.
+    The actual Freyd argument uses the P(C°) component to witness that x has a preimage:
+    set T = {s ∈ C°(B) | contraCayleyMap x s = ⟨A, id_A⟩}; then l recovers the
+    predicate-preimage, which identifies a specific right-inverse of x.
+    Full formalisation deferred (sorry). -/
+theorem combined_reflects_leftInv {𝒞 : Type u} [Cat.{v} 𝒞] {A B : 𝒞} (x : A ⟶ B)
+    (h : ∃ (l : combinedCayleyObj 𝒞 B → combinedCayleyObj 𝒞 A),
+          l ∘ combinedCayleyMap x = id) :
+    ∃ y : B ⟶ A, y ≫ x = Cat.id B := by
+  sorry
+
 /-! ## §1.333 Functors between posets -/
 
 /-- A PREORDER structure (reflexive, transitive relation). -/
@@ -167,6 +247,31 @@ theorem proset_functor_monotone {α β : Type u}
     (F : α → β) [hF : @Functor α (prosetToCat P) β (prosetToCat Q) F]
     {a b : α} (hab : P.le a b) : Q.le (F a) (F b) :=
   (hF.map (⟨hab⟩ : @Cat.Hom α (prosetToCat P) a b)).down
+
+/-- §1.333: a functor between preorders is full iff the ordering on the domain is induced
+    by the ordering on the range: P.le a b ↔ Q.le (F a) (F b).
+
+    Forward (full → induced): If F is full and Q.le (Fa)(Fb), fullness gives f : a → b in P,
+    so P.le a b.  The other direction follows from monotonicity.
+
+    Backward (induced → full): Given any Q-morphism h : Fa → Fb (i.e. Q.le (Fa)(Fb)),
+    the induced-ordering hypothesis gives P.le a b, hence a P-morphism f : a → b with F(f) = h
+    (by proof irrelevance in Q). -/
+theorem proset_functor_full_iff_induced {α β : Type u}
+    (P : ProsetCat α) (Q : ProsetCat β)
+    (F : α → β) [hF : @Functor α (prosetToCat P) β (prosetToCat Q) F] :
+    @Full α (prosetToCat P) β (prosetToCat Q) F hF ↔
+    (∀ a b : α, P.le a b ↔ Q.le (F a) (F b)) := by
+  constructor
+  · intro hFull a b
+    constructor
+    · intro hab
+      exact (hF.map (⟨hab⟩ : @Cat.Hom α (prosetToCat P) a b)).down
+    · intro hFab
+      obtain ⟨f, _⟩ := hFull (⟨hFab⟩ : @Cat.Hom β (prosetToCat Q) (F a) (F b))
+      exact f.down
+  · intro hInd A B h
+    exact ⟨⟨(hInd A B).mpr h.down⟩, proset_hom_subsingleton Q _ _⟩
 
 /-- §1.333: faithful iff injective on objects (for functors between posets).
 
@@ -210,6 +315,37 @@ theorem proset_faithful_iff_injective {α β : Type u}
     subst hAB
     -- Now f : @Cat.Hom α (prosetToCat P) A A = PLift (P.le A A); IsIso f is trivial.
     exact ⟨f, proset_hom_subsingleton P _ _, proset_hom_subsingleton P _ _⟩
+
+/-- §1.333: an injective-on-objects functor between posets is faithful (§1.333 backward).
+    Proof: embedding is free (thin cat); reflects-iso uses antisymQ + injectivity to show
+    A = B and then any f : A → A is its own inverse. -/
+theorem proset_inj_faithful {α β : Type u}
+    (P : ProsetCat α) (Q : ProsetCat β)
+    (antisymQ : ∀ {a b : β}, Q.le a b → Q.le b a → a = b)
+    (F : α → β) [hF : @Functor α (prosetToCat P) β (prosetToCat Q) F]
+    (hInj : ∀ a b : α, F a = F b → a = b) :
+    @Faithful α (prosetToCat P) β (prosetToCat Q) F hF :=
+  ⟨proset_functor_embedding P Q F, fun {A B} f hiso => by
+    obtain ⟨g, _, _⟩ := hiso
+    have hFAFB : F A = F B := antisymQ (hF.map f).down g.down
+    have hAB : A = B := hInj A B hFAFB
+    subst hAB
+    exact ⟨f, proset_hom_subsingleton P _ _, proset_hom_subsingleton P _ _⟩⟩
+
+/-- §1.333: if F is full and faithful between posets, then F is injective on objects.
+    Uses fullness to lift Q-morphisms in both directions to P-morphisms, then antisymP. -/
+theorem proset_full_faithful_inj {α β : Type u}
+    (P : ProsetCat α) (Q : ProsetCat β)
+    (antisymP : ∀ {a b : α}, P.le a b → P.le b a → a = b)
+    (F : α → β) [hF : @Functor α (prosetToCat P) β (prosetToCat Q) F]
+    (hFull : @Full α (prosetToCat P) β (prosetToCat Q) F hF)
+    (_ : @Faithful α (prosetToCat P) β (prosetToCat Q) F hF) :
+    ∀ a b : α, F a = F b → a = b := fun a b hFab => by
+  have h_ab : Q.le (F a) (F b) := hFab ▸ Q.refl (F a)
+  have h_ba : Q.le (F b) (F a) := hFab ▸ Q.refl (F b)
+  obtain ⟨f, _⟩ := hFull (⟨h_ab⟩ : @Cat.Hom β (prosetToCat Q) (F a) (F b))
+  obtain ⟨g, _⟩ := hFull (⟨h_ba⟩ : @Cat.Hom β (prosetToCat Q) (F b) (F a))
+  exact antisymP f.down g.down
 
 /-- §1.333: equivalence functor between posets iff order-isomorphism.
 
