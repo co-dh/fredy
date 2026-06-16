@@ -15,15 +15,26 @@
   §1.82(10) HasPreLimit / PreComplete
             complete_imp_preComplete (PROVED)
   §1.83     PreAdjointObj / PreAdjointFunctor
-            general_adjoint_functor_theorem (sorry)
+            adjunction_of_representability — §1.817 ← bridge (PROVED, axiom-free)
+            general_adjoint_functor_theorem — (⇒) PROVED, (⇐) reduced to gaft_representability (sorry)
   §1.831    IsUniformlyContinuous
             uniformly_continuous_preserves_prelimits (PROVED)
-            more_general_adjoint_functor_theorem (sorry)
-  §1.837    PreCocomplete
-            complete_cocomplete_iff_precocomplete (sorry)
+            IdempotentsSplit (§1.281)
+            more_general_adjoint_functor_theorem — STATEMENT FIXED (needs IdempotentsSplit, else
+            FALSE per §1.836); (⇒) PROVED, (⇐) reduced to mgaft_representability (sorry)
+  §1.837    HasPreColimit (faithful colimit-dual) / PreCocomplete (re-modeled)
+            cocomplete_imp_preCocomplete (PROVED, axiom-free)
+            complete_cocomplete_iff_precocomplete — (⇒) PROVED,
+            (⇐) reduced to cocomplete_of_complete_precocomplete (sorry)
   §1.838    WellPowered / SubobjectIso
   §1.83(10) IsCoGeneratingSet
-            special_adjoint_functor_theorem (sorry)
+            special_adjoint_functor_theorem — reduced to saft_representability (sorry)
+
+  Remaining sorries (4): all isolated in `private *_representability` /
+  `cocomplete_of_complete_precocomplete` helpers — each is the §1.834–§1.835 / §1.838
+  construction of the representing object (= coterminator of the category of elements),
+  for which the repo has no `El`-category / minimal-subobject / functor-category infra.
+  See S1_82.md for the sharp per-blocker analysis.
 -/
 
 import Fredy.S1_1
@@ -485,21 +496,150 @@ theorem isContinuous_of_adjunction
     calc u' = adj.φ (adj.ψ u') := (adj.φψ u').symm
       _ = adj.φ w := by rw [hwu]
 
+/-- §1.817 bridge (←): if `(A, G(-))` is representable for *every* `A`, then `G` has
+    a left adjoint.  This is the representability-to-adjunction half of §1.817, proved
+    here inline (the copy in `S1_8.lean` is still deferred).  No completeness is used —
+    it is pure universal-property bookkeeping, the common engine that turns each hard
+    adjoint-functor-theorem into "build a representing object for every `A`".
+
+    Construction: `F A :=` the representing object; the *unit* `η_A : A → G(F A)` is
+    `ψ (id (F A))`; `F` acts on `f : A ⟶ A'` by the unique map `φ (f ≫ η_{A'})`. -/
+def adjunction_of_representability
+    {𝒜 : Type u} [Cat.{v} 𝒜] {ℬ : Type u₁} [Cat.{v} ℬ]
+    (G : ℬ → 𝒜) [hG : Functor G]
+    (repr : ∀ A : 𝒜, Σ R : ℬ, RepresentedBy G A R) :
+    Σ (F : 𝒜 → ℬ), Σ (_ : Functor F), F ⊣ G := by
+  -- representing object and chosen representation for each `A`
+  let F : 𝒜 → ℬ := fun A => (repr A).1
+  let r : (A : 𝒜) → RepresentedBy G A (F A) := fun A => (repr A).2
+  -- unit  η_A : A → G(F A) := ψ (id (F A))
+  let η : (A : 𝒜) → A ⟶ G (F A) := fun A => (r A).ψ (Cat.id (F A))
+  -- key bridge: for any `g : A ⟶ G B`, `η_A ≫ G ((r A).φ g) = g`
+  have ηbridge : ∀ {A : 𝒜} {B : ℬ} (g : A ⟶ G B),
+      η A ≫ hG.map ((r A).φ g) = g := by
+    intro A B g
+    -- η A ≫ G(φ g) = ψ (id ≫ φ g)  via reverse naturality of ψ = φ⁻¹ … do it via φ_nat
+    -- Use: φ (η A ≫ G(φ g)) = φ (η A) ≫ φ g = id ≫ φ g = φ g, then apply ψ.
+    have h1 : (r A).φ (η A ≫ hG.map ((r A).φ g)) = (r A).φ g := by
+      rw [(r A).φ_nat (η A) ((r A).φ g)]
+      -- φ (η A) = φ (ψ (id)) = id
+      have : (r A).φ (η A) = Cat.id (F A) := (r A).φψ (Cat.id (F A))
+      rw [this, Cat.id_comp]
+    -- φ injective: φ (ψ φ) = …; use ψφ on both sides
+    calc η A ≫ hG.map ((r A).φ g)
+        = (r A).ψ ((r A).φ (η A ≫ hG.map ((r A).φ g))) := ((r A).ψφ _).symm
+      _ = (r A).ψ ((r A).φ g) := by rw [h1]
+      _ = g := (r A).ψφ g
+  -- F on morphisms
+  let Fmap : {A A' : 𝒜} → (A ⟶ A') → (F A ⟶ F A') :=
+    fun {A A'} f => (r A).φ (f ≫ η A')
+  -- functoriality
+  have Fmap_id : ∀ A : 𝒜, Fmap (Cat.id A) = Cat.id (F A) := by
+    intro A
+    show (r A).φ (Cat.id A ≫ η A) = Cat.id (F A)
+    rw [Cat.id_comp]; exact (r A).φψ (Cat.id (F A))
+  have Fmap_comp : ∀ {A A' A'' : 𝒜} (f : A ⟶ A') (g : A' ⟶ A''),
+      Fmap (f ≫ g) = Fmap f ≫ Fmap g := by
+    intro A A' A'' f g
+    show (r A).φ ((f ≫ g) ≫ η A'') = (r A).φ (f ≫ η A') ≫ (r A').φ (g ≫ η A'')
+    -- RHS: φ (f ≫ η A') ≫ Fmap g = φ ((f ≫ η A') ≫ G (Fmap g))  by φ_nat
+    rw [← (r A).φ_nat (f ≫ η A') ((r A').φ (g ≫ η A''))]
+    -- now both sides are φ of something; compare arguments
+    congr 1
+    -- (f ≫ g) ≫ η A''  =  (f ≫ η A') ≫ G (φ (g ≫ η A''))
+    rw [Cat.assoc, Cat.assoc, ηbridge (g ≫ η A'')]
+  let hF : Functor F :=
+    { map := Fmap, map_id := Fmap_id, map_comp := Fmap_comp }
+  refine ⟨F, hF, ?_⟩
+  -- φ on the representation is injective (it has a two-sided inverse ψ)
+  have φinj : ∀ {A : 𝒜} {B : ℬ} {g₁ g₂ : A ⟶ G B},
+      (r A).φ g₁ = (r A).φ g₂ → g₁ = g₂ := by
+    intro A B g₁ g₂ h
+    calc g₁ = (r A).ψ ((r A).φ g₁) := ((r A).ψφ g₁).symm
+      _ = (r A).ψ ((r A).φ g₂) := by rw [h]
+      _ = g₂ := (r A).ψφ g₂
+  -- the adjunction; φ := ψ_A, ψ := φ_A
+  refine
+    { φ := fun {A B} h => (r A).ψ h
+      ψ := fun {A B} g => (r A).φ g
+      φψ := fun {A B} g => (r A).ψφ g
+      ψφ := fun {A B} h => (r A).φψ h
+      φ_nat_left := ?_
+      φ_nat_right := ?_ }
+  · -- φ (Fmap a ≫ h) = a ≫ φ h, i.e. ψ_{A'} (Fmap a ≫ h) = a ≫ ψ_A h.
+    -- Apply the bijection (r A').φ to both sides and compare in hom(F A', B).
+    intro A' A B a h
+    show (r A').ψ (Fmap a ≫ h) = a ≫ (r A).ψ h
+    apply φinj
+    -- LHS: φ (ψ (Fmap a ≫ h)) = Fmap a ≫ h
+    rw [(r A').φψ (Fmap a ≫ h)]
+    -- RHS: φ (a ≫ ψ_A h).  Rewrite Fmap a = φ(a ≫ η A) and h = φ(ψ_A h).
+    show Fmap a ≫ h = (r A').φ (a ≫ (r A).ψ h)
+    have hh : h = (r A).φ ((r A).ψ h) := ((r A).φψ h).symm
+    -- (r A').φ (a ≫ ψ_A h):  ψ_A h = η A ≫ G h  (from ηbridge with g := ψ_A h)
+    have hψ : η A ≫ hG.map h = (r A).ψ h := by
+      have := ηbridge ((r A).ψ h)
+      rwa [(r A).φψ h] at this
+    calc Fmap a ≫ h
+        = (r A').φ (a ≫ η A) ≫ (r A).φ ((r A).ψ h) := by rw [← hh]
+      _ = (r A').φ ((a ≫ η A) ≫ hG.map ((r A).φ ((r A).ψ h))) := by
+            rw [(r A').φ_nat (a ≫ η A) ((r A).φ ((r A).ψ h))]
+      _ = (r A').φ ((a ≫ η A) ≫ hG.map h) := by rw [(r A).φψ h]
+      _ = (r A').φ (a ≫ (r A).ψ h) := by rw [Cat.assoc, hψ]
+  · -- φ (h ≫ b) = φ h ≫ G b, i.e. ψ_A (h ≫ b) = ψ_A h ≫ G b.
+    intro A B B' h b
+    show (r A).ψ (h ≫ b) = (r A).ψ h ≫ hG.map b
+    apply φinj
+    rw [(r A).φψ (h ≫ b)]
+    -- φ (ψ h ≫ G b) = φ (ψ h) ≫ b = h ≫ b  via φ_nat then φψ
+    rw [(r A).φ_nat ((r A).ψ h) b, (r A).φψ h]
+
+/-- §1.834–§1.835 (the heart of the GAFT): for a *continuous* and *pre-adjoint* `G` out
+    of a *complete* `ℬ`, the functor `(A, G(-))` is representable for every `A` — i.e. its
+    category of elements has a terminal object.
+
+    This is the ONE genuinely-missing mathematical step.  Freyd's argument (§1.834–§1.835):
+    form the category of elements `El(A,G(-))` (objects `(B, g : A → G B)`); continuity of `G`
+    makes every small diagram in `El` have a lower bound; pre-adjointness gives a small
+    pre-coterminator `{(Bᵢ, φᵢ)}`; completeness of `ℬ` gives equalizers, hence idempotents
+    split (§1.428 / §3273), so §1.835 yields a coterminator of `El` = the representing object.
+
+    BLOCKER (faithful, sharp): the repo has NO `El`/category-of-elements-with-inherited-limits
+    construction and NO §1.835 "lower-bounds + pre-coterminator ⟹ coterminator" lemma.  Building
+    them is the remaining work; everything downstream (assembling the actual left adjoint) is
+    already discharged by `adjunction_of_representability`. -/
+private def gaft_representability
+    {𝒜 : Type u} [Cat.{v} 𝒜] {ℬ : Type u₁} [Cat.{v} ℬ]
+    {G : ℬ → 𝒜} [hG : Functor G] [Complete ℬ]
+    (_hcont : IsContinuous G) (_pre : PreAdjointFunctor G) :
+    ∀ A : 𝒜, Σ R : ℬ, RepresentedBy G A R := by
+  sorry
+
 /-- §1.83 GENERAL ADJOINT FUNCTOR THEOREM. -/
 theorem general_adjoint_functor_theorem
     {𝒜 : Type u} [Cat.{v} 𝒜] {ℬ : Type u₁} [Cat.{v} ℬ]
     (G : ℬ → 𝒜) [hG : Functor G]
     [Complete ℬ] :
-    (∃ (F : 𝒜 → ℬ) (hF : Functor F), Nonempty (F ⊣ G)) ↔
+    (∃ (F : 𝒜 → ℬ) (_hF : Functor F), Nonempty (F ⊣ G)) ↔
     (IsContinuous G ∧ Nonempty (PreAdjointFunctor G)) := by
   constructor
   · -- (⇒) EASY: a left adjoint is continuous and pre-adjoint (proved above).
     rintro ⟨F, hF, ⟨adj⟩⟩
     exact ⟨isContinuous_of_adjunction adj, ⟨preAdjointFunctor_of_adjunction adj⟩⟩
-  · -- (⇐) HARD: continuous + pre-adjoint ⟹ left adjoint, via the solution-set /
-    -- representability construction (§1.834). Not yet formalized — see S1_82.md.
-    rintro ⟨_hcont, ⟨_pre⟩⟩
-    sorry
+  · -- (⇐) HARD: continuous + pre-adjoint ⟹ left adjoint.  Via `adjunction_of_representability`
+    -- the goal reduces to: for every `A`, the functor `(A, G(-))` is REPRESENTABLE (§1.817).
+    -- That representing object is the terminal object of the category of elements
+    -- `El(A, G(-))`, built by §1.834–§1.835: continuity ⟹ `El` has lower-bounds for every
+    -- small diagram, pre-adjointness ⟹ `El` has a pre-coterminator, and completeness ⟹
+    -- equalizers ⟹ idempotents split, so §1.835 produces the coterminator = representing
+    -- object.  Only this representing-object construction remains (sharp blocker below).
+    rintro ⟨hcont, ⟨pre⟩⟩
+    refine ⟨?_, ?_, ?_⟩
+    -- once a representing object is produced for every A, the left adjoint is assembled by
+    -- the (now proven, axiom-free) bridge `adjunction_of_representability`:
+    · exact fun A => (adjunction_of_representability G (gaft_representability hcont pre)).1 A
+    · exact (adjunction_of_representability G (gaft_representability hcont pre)).2.1
+    · exact ⟨(adjunction_of_representability G (gaft_representability hcont pre)).2.2⟩
 
 -- ---------------------------------------------------------------------------
 -- §1.838  Well-powered
@@ -534,6 +674,27 @@ def IsCoGeneratingSet {ℬ : Type u₁} [Cat.{v} ℬ] {I : Type v} (C : I → �
   ∀ {A B : ℬ} (f g : A ⟶ B), f ≠ g →
     ∃ (i : I) (h : B ⟶ C i), f ≫ h ≠ g ≫ h
 
+/-- §1.83(10) (the heart of the SAFT): for a *continuous* `G` out of a *complete*,
+    *well-powered* `ℬ` with a *cogenerating set* `C`, the functor `(A, G(-))` is representable
+    for every `A`.
+
+    Freyd's argument (§1.838–§1.83(10)): in a complete well-powered category every object has a
+    unique minimal subobject; a cogenerating set bounds the cardinality function `K(B) :=
+    Σᵢ card(B, Cᵢ)`, turning the proper-class limit of the comma category into a *small* one,
+    so the coterminator of `El(A,G(-))` exists (the minimal subobject of `∏ᵢ Cᵢ`-type product).
+
+    BLOCKER (faithful, sharp): the repo has the `WellPowered` class and `Subobject`, but NO
+    minimal-subobject construction, NO cardinality/`K`-cutoff, and NO `El` category.  Building
+    the representing object is the remaining work; the bridge to the actual left adjoint is
+    already discharged by `adjunction_of_representability`. -/
+private def saft_representability
+    {𝒜 : Type u} [Cat.{v} 𝒜] {ℬ : Type u₁} [Cat.{v} ℬ]
+    {G : ℬ → 𝒜} [hG : Functor G] [Complete ℬ] [WellPowered ℬ]
+    {I : Type v} (C : I → ℬ) (_hcogen : IsCoGeneratingSet C)
+    (_hcont : IsContinuous G) :
+    ∀ A : 𝒜, Σ R : ℬ, RepresentedBy G A R := by
+  sorry
+
 /-- §1.83(10) SPECIAL ADJOINT FUNCTOR THEOREM:
     If ℬ is complete, well-powered and has a cogenerating set,
     then every continuous G : ℬ → 𝒜 (𝒜 locally small) has a left adjoint. -/
@@ -541,10 +702,14 @@ theorem special_adjoint_functor_theorem
     {𝒜 : Type u} [Cat.{v} 𝒜] {ℬ : Type u₁} [Cat.{v} ℬ]
     (G : ℬ → 𝒜) [Functor G]
     [Complete ℬ] [WellPowered ℬ]
-    {I : Type v} (C : I → ℬ) (_hcogen : IsCoGeneratingSet C)
+    {I : Type v} (C : I → ℬ) (hcogen : IsCoGeneratingSet C)
     (hcont : IsContinuous G) :
-    ∃ (F : 𝒜 → ℬ) (hF : Functor F), Nonempty (F ⊣ G) := by
-  sorry
+    ∃ (F : 𝒜 → ℬ) (_hF : Functor F), Nonempty (F ⊣ G) := by
+  -- once `(A, G(-))` is representable for every `A`, assemble the adjoint via the proven bridge.
+  refine ⟨?_, ?_, ?_⟩
+  · exact fun A => (adjunction_of_representability G (saft_representability C hcogen hcont)).1 A
+  · exact (adjunction_of_representability G (saft_representability C hcogen hcont)).2.1
+  · exact ⟨(adjunction_of_representability G (saft_representability C hcogen hcont)).2.2⟩
 
 -- ---------------------------------------------------------------------------
 -- Limit uniqueness up to isomorphism
@@ -811,22 +976,58 @@ theorem isUniformlyContinuous_of_adjunction
     intro i
     rw [← φ_eq adj (adj.ψ (legs i)), adj.φψ]
 
+/-- An idempotent `e : B ⟶ B` (i.e. `e ≫ e = e`) SPLITS if it factors as `r ≫ s`
+    through some `C` with `s ≫ r = id` (§1.281; same content as `S1_39.SplitIdempotent`,
+    restated locally to avoid importing the heavy `S1_39` chain). -/
+def IdempotentSplits {ℬ : Type u₁} [Cat.{v} ℬ] {B : ℬ} (e : B ⟶ B) : Prop :=
+  e ≫ e = e → ∃ (C : ℬ) (r : B ⟶ C) (s : C ⟶ B), r ≫ s = e ∧ s ≫ r = Cat.id C
+
+/-- ℬ has the property that ALL idempotents split (§1.281). Required by §1.831/§1.835:
+    `more_general_adjoint_functor_theorem` is FALSE without it (Freyd §1.836 gives an explicit
+    counterexample — the formal idempotent-splitting embedding is uniformly continuous and
+    pre-adjoint yet has no left adjoint). -/
+def IdempotentsSplit (ℬ : Type u₁) [Cat.{v} ℬ] : Prop :=
+  ∀ {B : ℬ} (e : B ⟶ B), IdempotentSplits e
+
+/-- §1.835 (the heart of the MGAFT): for a *uniformly continuous* and *pre-adjoint* `G` out of
+    a *pre-complete* `ℬ` in which *idempotents split*, the functor `(A, G(-))` is representable
+    for every `A`.
+
+    Freyd's argument (§1.835): the category of elements `El(A,G(-))` has, by uniform continuity,
+    a lower bound for every small diagram and, by pre-adjointness, a pre-coterminator; since
+    idempotents split in `ℬ` they split in `El`, so §1.835 (lower-bounds + pre-coterminator +
+    split idempotents ⟹ coterminator) produces the representing object.
+
+    BLOCKER (faithful, sharp): no `El` category and no §1.835 lemma in the repo.  Downstream
+    assembly is already discharged by `adjunction_of_representability`. -/
+private def mgaft_representability
+    {𝒜 : Type u} [Cat.{v} 𝒜] {ℬ : Type u₁} [Cat.{v} ℬ]
+    {G : ℬ → 𝒜} [hG : Functor G] [PreComplete ℬ]
+    (_hsplit : IdempotentsSplit ℬ)
+    (_huc : IsUniformlyContinuous G) (_pre : PreAdjointFunctor G) :
+    ∀ A : 𝒜, Σ R : ℬ, RepresentedBy G A R := by
+  sorry
+
 /-- §1.831 MORE GENERAL ADJOINT FUNCTOR THEOREM.
-    If ℬ is locally small and idempotents split, then G : ℬ → 𝒜 has a left adjoint
-    iff it is uniformly continuous and pre-adjoint. -/
+    If ℬ is locally small and *idempotents split* in ℬ, then G : ℬ → 𝒜 has a left adjoint
+    iff it is uniformly continuous and pre-adjoint.  (The `IdempotentsSplit` hypothesis is
+    essential — without it the theorem is false, Freyd §1.836.) -/
 theorem more_general_adjoint_functor_theorem
     {𝒜 : Type u} [Cat.{v} 𝒜] {ℬ : Type u₁} [Cat.{v} ℬ]
-    (G : ℬ → 𝒜) [hG : Functor G] [PreComplete ℬ] :
-    (∃ (F : 𝒜 → ℬ) (hF : Functor F), Nonempty (F ⊣ G)) ↔
+    (G : ℬ → 𝒜) [hG : Functor G] [PreComplete ℬ] (hsplit : IdempotentsSplit ℬ) :
+    (∃ (F : 𝒜 → ℬ) (_hF : Functor F), Nonempty (F ⊣ G)) ↔
     (IsUniformlyContinuous G ∧ Nonempty (PreAdjointFunctor G)) := by
   constructor
   · -- (⇒) EASY: a left adjoint is uniformly continuous and pre-adjoint (proved above).
     rintro ⟨F, hF, ⟨adj⟩⟩
     exact ⟨isUniformlyContinuous_of_adjunction adj, ⟨preAdjointFunctor_of_adjunction adj⟩⟩
-  · -- (⇐) HARD: uniformly continuous + pre-adjoint ⟹ left adjoint, via the pre-limit
-    -- construction + splitting idempotents (§1.834–§1.835). Not yet formalized — see S1_82.md.
-    rintro ⟨_huc, ⟨_pre⟩⟩
-    sorry
+  · -- (⇐) HARD: uniformly continuous + pre-adjoint ⟹ left adjoint.  Reduced (via the proven
+    -- bridge `adjunction_of_representability`) to representability of `(A, G(-))` for every `A`.
+    rintro ⟨huc, ⟨pre⟩⟩
+    refine ⟨?_, ?_, ?_⟩
+    · exact fun A => (adjunction_of_representability G (mgaft_representability hsplit huc pre)).1 A
+    · exact (adjunction_of_representability G (mgaft_representability hsplit huc pre)).2.1
+    · exact ⟨(adjunction_of_representability G (mgaft_representability hsplit huc pre)).2.2⟩
 
 -- ---------------------------------------------------------------------------
 -- §1.837  Complete + pre-cocomplete → cocomplete
@@ -837,14 +1038,54 @@ theorem more_general_adjoint_functor_theorem
   The book: if ℬ is complete then for any D, Δ : ℬ → ℬ^D is continuous.
   Hence a complete category is cocomplete iff it is pre-cocomplete (§1.837). -/
 
+/-- A PRE-COLIMIT for `D` is a `J`-indexed family of COCONES cofinal in all cocones:
+    for every cocone `{D i → B}` some member cocone admits a (non-unique) factorization
+    (the colimit dual of `HasPreLimit`).  The previous modeling reused `HasPreLimit`
+    (cofinal *cones* = lower bounds), which is wrong-variance for colimits; this is the
+    faithful dual. -/
+structure HasPreColimit {𝒟 : Type u} [Cat.{v} 𝒟] {ℬ : Type u₁} [Cat.{v} ℬ]
+    (D : 𝒟 → ℬ) [Functor D] where
+  J       : Type v
+  cocones : J → DiagCocone D
+  cofinal : (c : DiagCocone D) →
+              ∃ (j : J) (u : (cocones j).nadir ⟶ c.nadir), ∀ i, (cocones j).ι i ≫ u = c.ι i
+
 /-- A category is PRE-COCOMPLETE if every small diagram has a pre-colimit (§1.837). -/
 class PreCocomplete (ℬ : Type u₁) [Cat.{v} ℬ] where
-  hasPreColimit : {𝒟 : Type v} → [Cat.{v} 𝒟] → (D : 𝒟 → ℬ) → [Functor D] → HasPreLimit D
+  hasPreColimit : {𝒟 : Type v} → [Cat.{v} 𝒟] → (D : 𝒟 → ℬ) → [Functor D] → HasPreColimit D
+
+/-- Every cocomplete category is pre-cocomplete (singleton pre-colimit from the colimit) — the
+    EASY half of §1.837, dual to `complete_imp_preComplete`. -/
+def cocomplete_imp_preCocomplete {ℬ : Type u₁} [Cat.{v} ℬ] (hc : Cocomplete ℬ) :
+    PreCocomplete ℬ where
+  hasPreColimit := fun {_} _ D _ =>
+    let hl := hc.hasColimit D
+    { J := PUnit.{v+1}
+      cocones := fun _ => hl.cocone
+      cofinal := fun c => ⟨PUnit.unit, hl.lift c, hl.fac c⟩ }
+
+/-- §1.837 (hard half, the heart): a *complete* pre-cocomplete category is cocomplete.
+
+    Freyd's argument: for any shape `D`, the diagonal `Δ : ℬ → ℬ^D` is continuous (because `ℬ`
+    is complete, limits in `ℬ^D` are computed pointwise), and pre-cocompleteness says exactly
+    that `Δ` is pre-adjoint; the More General Adjoint Functor Theorem then gives `Δ` a left
+    adjoint = the colimit functor.
+
+    BLOCKER (faithful, sharp): this needs the functor category `ℬ^D`, the diagonal functor `Δ`,
+    the pointwise-limit computation showing `Δ` continuous, and `more_general_adjoint_functor_
+    theorem` (whose `(⇐)` is itself reduced to `mgaft_representability`).  None of `ℬ^D` / `Δ`
+    is in the repo. -/
+private def cocomplete_of_complete_precocomplete
+    {ℬ : Type u₁} [Cat.{v} ℬ] [Complete ℬ] (_hpc : PreCocomplete ℬ) :
+    Cocomplete ℬ := by
+  sorry
 
 /-- §1.837: A complete locally small category is cocomplete iff it is pre-cocomplete. -/
 theorem complete_cocomplete_iff_precocomplete
     (ℬ : Type u₁) [Cat.{v} ℬ] [Complete ℬ] :
     Nonempty (Cocomplete ℬ) ↔ Nonempty (PreCocomplete ℬ) := by
-  sorry
+  constructor
+  · rintro ⟨hc⟩; exact ⟨cocomplete_imp_preCocomplete hc⟩
+  · rintro ⟨hpc⟩; exact ⟨cocomplete_of_complete_precocomplete hpc⟩
 
 end Freyd
