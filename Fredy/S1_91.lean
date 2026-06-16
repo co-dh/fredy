@@ -38,20 +38,68 @@ variable {𝒞 : Type u} [Cat.{v} 𝒞]
   `IsUniversalRel` is in `Fredy.S1_9`.) -/
 
 /-- **§1.911**: The relation pullback is contravariantly functorial:
-    `relPullback g (relPullback f R) ≅ relPullback (f ≫ g) R`
+    `relPullback f (relPullback g R) ≅ relPullback (f ≫ g) R`
     (as `RelHom` in both directions), where f : A'' → A', g : A' → A.
 
-    Proof requires pullback pasting: the composite of two pullback squares is a
-    pullback.  This is the same sorry as `invImg_comp` in S1_45.lean. -/
+    Proved by hand from the pullback universal properties (pasting): the
+    composite of the two pullback squares — one for `(g, R.colA)` and one for
+    `(f, (relPullback g R).colA)` — is a pullback square for `(f ≫ g, R.colA)`.
+    Each direction is a `HasPullback.lift` of the cone induced by the other
+    side, with the colB legs matching by associativity. -/
 theorem relPullback_comp [HasPullbacks 𝒞] {A A' A'' B : 𝒞}
     (f : A'' ⟶ A') (g : A' ⟶ A) (R : BinRel 𝒞 A B) :
     RelHom (relPullback f (relPullback g R)) (relPullback (f ≫ g) R) ∧
     RelHom (relPullback (f ≫ g) R) (relPullback f (relPullback g R)) := by
-  -- Both directions follow from pullback pasting: the composite of the two
-  -- pullback squares (one for g vs R.colA, one for f vs (pb_g).π₁) is a
-  -- pullback square for (f ≫ g) vs R.colA.  Without a pasting lemma in this
-  -- repo the proof is deferred.
-  sorry
+  -- Pullback pasting, done by hand from the universal properties.
+  -- Pg : pullback of (g, R.colA);  (relPullback g R).colA = Pg.cone.π₁,
+  --                                (relPullback g R).colB = Pg.cone.π₂ ≫ R.colB.
+  -- Pf : pullback of (f, Pg.cone.π₁) = source of relPullback f (relPullback g R).
+  -- Q  : pullback of (f ≫ g, R.colA) = source of relPullback (f ≫ g) R.
+  let Pg := HasPullbacks.has g R.colA
+  let Pf := HasPullbacks.has f Pg.cone.π₁
+  let Q  := HasPullbacks.has (f ≫ g) R.colA
+  -- the two cone squares we'll keep reusing
+  have wPg : Pg.cone.π₁ ≫ g = Pg.cone.π₂ ≫ R.colA := Pg.cone.w
+  have wPf : Pf.cone.π₁ ≫ f = Pf.cone.π₂ ≫ Pg.cone.π₁ := Pf.cone.w
+  have wQ  : Q.cone.π₁ ≫ (f ≫ g) = Q.cone.π₂ ≫ R.colA := Q.cone.w
+  show RelHom (relPullback f (relPullback g R)) (relPullback (f ≫ g) R) ∧
+    RelHom (relPullback (f ≫ g) R) (relPullback f (relPullback g R))
+  constructor
+  · -- forward: h := Q.lift of the Pf-induced cone over (f≫g, R.colA)
+    refine ⟨Q.lift ⟨Pf.cone.pt, Pf.cone.π₁, Pf.cone.π₂ ≫ Pg.cone.π₂, ?_⟩, ?_, ?_⟩
+    · -- square: Pf.π₁ ≫ (f≫g) = (Pf.π₂ ≫ Pg.π₂) ≫ R.colA
+      calc Pf.cone.π₁ ≫ (f ≫ g)
+            = (Pf.cone.π₁ ≫ f) ≫ g := by rw [Cat.assoc]
+        _ = (Pf.cone.π₂ ≫ Pg.cone.π₁) ≫ g := by rw [wPf]
+        _ = Pf.cone.π₂ ≫ (Pg.cone.π₁ ≫ g) := by rw [Cat.assoc]
+        _ = Pf.cone.π₂ ≫ (Pg.cone.π₂ ≫ R.colA) := by rw [wPg]
+        _ = (Pf.cone.π₂ ≫ Pg.cone.π₂) ≫ R.colA := by rw [Cat.assoc]
+    · -- colA: h ≫ Q.π₁ = Pf.π₁
+      exact Q.lift_fst _
+    · -- colB: h ≫ (Q.π₂ ≫ R.colB) = (Pf.π₂ ≫ Pg.π₂) ≫ R.colB
+      change _ ≫ (Q.cone.π₂ ≫ R.colB)
+            = Pf.cone.π₂ ≫ (Pg.cone.π₂ ≫ R.colB)
+      rw [← Cat.assoc, Q.lift_snd, Cat.assoc]
+  · -- backward: k := Pf.lift of the Q-induced cone over (f, Pg.π₁)
+    -- m : Q.cone.pt → Pg.cone.pt, the lift over (g, R.colA)
+    let m := Pg.lift ⟨Q.cone.pt, Q.cone.π₁ ≫ f, Q.cone.π₂, by
+      calc (Q.cone.π₁ ≫ f) ≫ g = Q.cone.π₁ ≫ (f ≫ g) := by rw [Cat.assoc]
+        _ = Q.cone.π₂ ≫ R.colA := wQ⟩
+    have hm1 : m ≫ Pg.cone.π₁ = Q.cone.π₁ ≫ f := Pg.lift_fst _
+    have hm2 : m ≫ Pg.cone.π₂ = Q.cone.π₂ := Pg.lift_snd _
+    let k := Pf.lift ⟨Q.cone.pt, Q.cone.π₁, m, by rw [hm1]⟩
+    have hk1 : k ≫ Pf.cone.π₁ = Q.cone.π₁ := Pf.lift_fst _
+    have hk2 : k ≫ Pf.cone.π₂ = m := Pf.lift_snd _
+    refine ⟨k, ?_, ?_⟩
+    · -- colA: k ≫ Pf.π₁ = Q.π₁
+      exact hk1
+    · -- colB: k ≫ (Pf.π₂ ≫ Pg.π₂ ≫ R.colB) = Q.π₂ ≫ R.colB
+      change k ≫ Pf.cone.π₂ ≫ Pg.cone.π₂ ≫ R.colB = Q.cone.π₂ ≫ R.colB
+      calc k ≫ Pf.cone.π₂ ≫ Pg.cone.π₂ ≫ R.colB
+            = (k ≫ Pf.cone.π₂) ≫ (Pg.cone.π₂ ≫ R.colB) := (Cat.assoc _ _ _).symm
+        _ = m ≫ (Pg.cone.π₂ ≫ R.colB) := by rw [hk2]
+        _ = (m ≫ Pg.cone.π₂) ≫ R.colB := (Cat.assoc _ _ _).symm
+        _ = Q.cone.π₂ ≫ R.colB := by rw [hm2]
 
 variable [Topos 𝒞]
 
@@ -186,13 +234,17 @@ noncomputable def heytingDoubleArrow : prod (HasSubobjectClassifier.omega (𝒞 
     Since g is monic, g(V) = g(1_Ω) implies V = 1_Ω.  For any A, A is g²-large
     in itself, and the identity has the same property, so g² = id by extensionality.
 
-    **Proof gap**: The argument requires Ω-extensionality: two maps f, h : A → Ω
-    are equal iff they classify the same subobjects.  This follows from
-    `classify_unique` applied to `true : 1 → Ω` (i.e. `true ≫ f = true ≫ h`
-    would suffice), but requires explicitly constructing the pullback squares for
-    g² and id to coincide — which needs the g-large/U/V argument from the book.
-    The infrastructure (g-large predicate, U = g(1_Ω) as a subobject) is not yet
-    formalized here. -/
+    **Proof gap** (confirmed by deep proof-search): via the only available API
+    (`classify_unique`, S1_9) the goal reduces to showing `t : 1 → Ω` is the
+    pullback of `t` along `g ≫ g` (i.e. `g²` classifies the maximal subobject of
+    Ω — "A is g²-large in itself").  This needs three not-yet-formalized pieces:
+    (1) `classify`-iso-invariance (easy from `classify_unique`); (2) the
+    CHARACTERIZING lemmas for `omegaMeet`/`heytingDoubleArrow` (defined below but
+    with no universal property) — e.g. the pullback of `t` along
+    `⟨χ₁,χ₂⟩ ≫ omegaMeet` ≅ `Sub.inter A₁ A₂` (S1_45) — the substantive missing
+    bridge; (3) operation-extensionality, which is STRICTLY stronger than
+    `classify_unique` and needs the full `Sub(−) ≅ Hom(−,Ω)` bijection wired to
+    `classify`.  Faithful sorry; see S1_91.md for the sharpened blocker. -/
 theorem omega_monic_endo_is_involution (g : HasSubobjectClassifier.omega (𝒞 := 𝒞) ⟶
     HasSubobjectClassifier.omega (𝒞 := 𝒞)) (hm : Mono g) : g ≫ g = Cat.id _ := by
   sorry

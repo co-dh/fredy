@@ -389,6 +389,47 @@ theorem terminator_is_choice : Choice (one : 𝒞) := by
   obtain ⟨inv, _hinv_left, hinv_right⟩ := h_iso
   exact ⟨inv ≫ R.colB, inv, hinv_right, rfl⟩
 
+/-- Helper for §1.661: project an entire relation `R : A → C` through a *map*
+    `g : C → D` and extract, from `Choice D`, an actual morphism `f : A → D` that is
+    realized inside `R` after `g` — there is a witness `w : A → R.src` with
+    `w ≫ R.colA = id_A` and `w ≫ R.colB ≫ g = f`.  This is the constructive,
+    sorry-free half of §1.661: the image relation
+    `R_g := {(R.colA a, (R.colB ≫ g) a)}` is jointly monic and its left leg is a
+    cover (it post-factors the cover `R.colA`), hence entire; choice of `D` hands
+    back the factor map together with its section.  (No modular law needed here.) -/
+private theorem choice_factor_through_map {A C D : 𝒞}
+    (R : BinRel 𝒞 A C) (hent : Entire R) (g : C ⟶ D) (hD : Choice D) :
+    ∃ (f : A ⟶ D) (E : BinRel 𝒞 A D) (w : A ⟶ E.src),
+      Cover E.colA ∧ w ≫ E.colA = Cat.id A ∧ w ≫ E.colB = f := by
+  -- R_g = image of ⟨R.colA, R.colB ≫ g⟩ : R.src → A × D, viewed as a relation A → D.
+  let sp : R.src ⟶ prod A D := pair R.colA (R.colB ≫ g)
+  let I := image sp
+  have hp : MonicPair (I.arr ≫ fst) (I.arr ≫ snd) := by
+    intro W u v hA hB
+    have hfst : (u ≫ I.arr) ≫ fst = (v ≫ I.arr) ≫ fst := by
+      rw [Cat.assoc, Cat.assoc]; exact hA
+    have hsnd : (u ≫ I.arr) ≫ snd = (v ≫ I.arr) ≫ snd := by
+      rw [Cat.assoc, Cat.assoc]; exact hB
+    have : u ≫ I.arr = v ≫ I.arr := by
+      rw [pair_eta (u ≫ I.arr), pair_eta (v ≫ I.arr), hfst, hsnd]
+    exact I.monic u v this
+  let R_g : BinRel 𝒞 A D := BinRel.mk I.dom (I.arr ≫ fst) (I.arr ≫ snd) hp
+  -- left leg of R_g is a cover: `image.lift sp ≫ R_g.colA = R.colA` (a cover, R entire).
+  have hcovA : Cover R.colA :=
+    (tabulated_is_entire_iff_left_cover R.colA R.colB R.isMonicPair).mp hent
+  have hfac : image.lift sp ≫ R_g.colA = R.colA := by
+    show image.lift sp ≫ (I.arr ≫ fst) = R.colA
+    rw [← Cat.assoc, image.lift_fac]; exact fst_pair _ _
+  -- right factor of a cover is a cover.
+  have hcov_Rg : Cover R_g.colA := by
+    intro K m k hm hk
+    refine hcovA m (image.lift sp ≫ k) hm ?_
+    rw [Cat.assoc, hk]; exact hfac
+  have hent_g : Entire R_g :=
+    (tabulated_is_entire_iff_left_cover R_g.colA R_g.colB hp).mpr hcov_Rg
+  obtain ⟨f, w, hwA, hwB⟩ := hD R_g hent_g
+  exact ⟨f, R_g, w, hcov_Rg, hwA, hwB⟩
+
 /-- **§1.661**: The binary product of two choice objects is choice.
     PROOF (book §1.661): Let R be entire from A to B₁×B₂.
     R∘fst° is entire targeted at B₁, so it contains a map f₁.
@@ -396,16 +437,32 @@ theorem terminator_is_choice : Choice (one : 𝒞) := by
     Its projection R ∩ f₁∘fst°∘snd° is entire targeted at B₂, so it contains f₂.
     Then (f₁, f₂): A → B₁×B₂ is contained in R.
 
-    BLOCKER: the gluing step "R ∩ (f₁∘fst°) is entire" is exactly the modular-law
-    content of §1.563.  Projecting R to B₁ (via the image of ⟨colA, colB≫fst⟩) and
-    to B₂ gives maps f₁, f₂ each with their OWN witness source above A; without the
-    modular identity there is no common refinement S' ↠ A realizing ⟨f₁,f₂⟩ inside R.
-    `modular_identity` (Fredy/S1_56.lean) is itself an open `sorry` in this repo (it
-    holds in Set and transfers via the §1.55 Henkin–Lubkin representation, not yet
+    CONSTRUCTIVE PROGRESS (this file): the factor maps f₁ : A → B₁ and f₂ : A → B₂
+    are produced sorry-free by `choice_factor_through_map` (post-compose R with the
+    projection maps `fst`, `snd`, take the image relation — its left leg is a cover,
+    so it is entire, and `Choice Bᵢ` yields the map).  That half needs no modular law.
+
+    BLOCKER (genuine): the gluing step "⟨f₁,f₂⟩ ⊂ R" is the modular-law content of
+    §1.563, RS ∩ T ⊂ (R ∩ T S°) S.  The two factor maps f₁, f₂ are extracted from
+    *different* image relations R∘fst° and (R ∩ f₁∘fst°)∘snd°, each with its OWN
+    witness source above A; the book glues them by showing "R ∩ f₁∘fst° is entire",
+    which is precisely an instance of the intersection modular identity.  This repo
+    has only the *associativity* form of the modular law (`modular_identity`,
+    Fredy/S1_56.lean, an open `sorry`: (R⊚S)⊚T° ⊂ R⊚(S⊚T°)); the *intersection* form
+    RS ∩ T ⊂ (R ∩ T S°) S — and the lemma "intersection of an entire relation with a
+    functional graph stays entire" derived from it — is not even stated here, and the
+    book proves it only via the §1.55 Henkin–Lubkin representation (also not yet
     formalized).  This theorem is faithful to the book and reduces to that single
-    obligation. -/
+    modular obligation. -/
 theorem prod_choice_is_choice {B₁ B₂ : 𝒞} (h₁ : Choice B₁) (h₂ : Choice B₂) :
     Choice (prod B₁ B₂) := by
+  intro A R hent
+  -- Constructive half: extract the two factor maps f₁ : A → B₁ and f₂ : A → B₂.
+  obtain ⟨f₁, _E₁, _w₁, _hcov₁, _hwA₁, _hwB₁⟩ := choice_factor_through_map R hent fst h₁
+  obtain ⟨f₂, _E₂, _w₂, _hcov₂, _hwA₂, _hwB₂⟩ := choice_factor_through_map R hent snd h₂
+  -- The candidate map is ⟨f₁, f₂⟩ : A → B₁ × B₂.  Showing it is contained in R
+  -- (i.e. providing the single witness `w : A → R.src` with `w ≫ R.colA = id` and
+  -- `w ≫ R.colB = pair f₁ f₂`) is the modular-law gluing step; see BLOCKER above.
   sorry
 
 end Choice661
