@@ -33,11 +33,29 @@ variable {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
     as a subobject of [A × B] via the singleton map (§1.92).
     Proof: [B]^A = [A×B] via the power-object adjunction (Freyd §1.92). -/
 instance topos_has_exponentials : HasExponentials 𝒞 := by
-  -- BLOCKER: the book's proof (§1.92) runs "every power object is baseable, then
-  -- B is the equalizer of χ and [B]→1→Ω, so B is baseable [§1.859]".  The crux is
-  -- the §1.859 fact `baseable_inclusion_preserves_equalizers`, which is itself an
-  -- unfilled `sorry` in S1_85.  Without it (and the power-object⇒baseable adjunction
-  -- packaging) the `eval`/`curry` data for general B^A cannot be assembled.
+  -- SHARPENED BLOCKER (re-checked against current S1_85).  Freyd's §1.92 proof has
+  -- three load-bearing steps, none of which is yet available from this repo's `Topos`
+  -- (which is the *subobject-classifier* presentation, NOT bundling power objects):
+  --
+  --  (1) "Every power object is baseable": the natural iso
+  --        (A × −, [B]) ≅ Set(A × − × B) ≅ (−, [A×B]),   i.e.  [B]^A ≅ [A×B].
+  --      This needs `HasPowerObject C` for EVERY C and the Λ/∈ classify-bijection at
+  --      product level.  There is no instance `Topos 𝒞 → ∀ C, HasPowerObject C` in the
+  --      repo (the §1.912 equivalence is itself a `sorry` in S1_91); `Topos` exposes
+  --      only Ω = [1], so the representability [B]^A ≅ [A×B] cannot be built.
+  --
+  --  (2) "B is the equalizer of χ : [B]→Ω and [B]→1→Ω": needs equalizers in the topos
+  --      (no `Topos 𝒞 → HasEqualizers 𝒞` instance) and the singleton χ (available as
+  --      `singletonMapCat_monic` here).
+  --
+  --  (3) "[B], Ω baseable ⟹ B baseable [§1.859]": THE NOW-CURRENT GAP.  S1_85's
+  --      `baseable_inclusion_preserves_equalizers` was filled, but only in a WEAK
+  --      tautological form — it assumes `[HasEqualizers 𝒜]` and a fully-given
+  --      𝔹-equalizer cone+lift, then returns `HasEqualizers.eq`.  It does NOT prove
+  --      the substantive closure "the equalizer of two baseable objects is baseable"
+  --      ((B^A)·closed under equalizers), which is exactly what §1.92 invokes.
+  --      That closure lemma is still absent, so the eval/curry data for a GENERAL B^A
+  --      still cannot be assembled.
   sorry
 
 -- All subsequent decls require [HasExponentials 𝒞] via topos_has_exponentials.
@@ -319,11 +337,14 @@ class LawvereTopos (𝒞 : Type u) [Cat.{v} 𝒞] extends HasExponentials 𝒞 w
 theorem expSubobj (A B : 𝒞) :
     ∃ (ι : exp A B ⟶ exp (prod A B) (HasSubobjectClassifier.omega (𝒞 := 𝒞))),
       Mono ι := by
-  -- BLOCKER: `exp A B` here is the object supplied by `topos_has_exponentials`,
-  -- which is itself an unfilled `sorry`; so `exp A B` is opaque and no concrete ι
-  -- can be exhibited.  Once exponentials are constructed (B^A = pullback of
-  -- Ω^{fst} : [A×B] → [A] along the name 1 → [A]), ι is the pullback projection
-  -- into [A×B] and is monic as a pullback of the monic name-of-A.
+  -- BLOCKER (downstream of `topos_has_exponentials`): `exp A B` here is the object
+  -- supplied by `topos_has_exponentials`, which is still an unfilled `sorry` (see its
+  -- sharpened note: blocked on power-object representability [B]^A ≅ [A×B], topos
+  -- equalizers, and the missing baseable-equalizer CLOSURE — `baseable_inclusion_
+  -- preserves_equalizers` in S1_85 is only the weak tautological form).  So `exp A B`
+  -- is opaque and no concrete ι can be exhibited.  Once exponentials are constructed
+  -- (B^A = pullback of Ω^{fst} : [A×B] → [A] along the name 1 → [A]), ι is the pullback
+  -- projection into [A×B] and is monic as a pullback of the monic name-of-A.
   exact ⟨sorry, sorry⟩
 
 /-! ## §1.924  FG computed via Yoneda (§1.924)
@@ -399,7 +420,10 @@ def stLe (Z V : SubTerminal 𝒞) : Prop := stMeet Z V = Z
     the exponential `Ω^U` together with the pullback property of `omegaMeet`.  In
     this repo `heytingImpl` is assembled from `omegaPowContra` and `eval_exp`,
     whose computation rests on `topos_has_exponentials` — itself an unfilled
-    `sorry` (blocked on the §1.859 power-object⇒baseable fact, see `expSubobj`).
+    `sorry`.  Its sharpened blocker (see that instance) is the triad: power-object
+    representability `[B]^A ≅ [A×B]`, topos equalizers, and the still-missing
+    baseable-equalizer CLOSURE (§1.859's `baseable_inclusion_preserves_equalizers`
+    in S1_85 is only the weak tautological form, not the closure §1.92 needs).
     Until exponentials are concretely constructed, the adjunction cannot be
     evaluated, so the honest record is the TRUE adjunction with a `sorry`. -/
 theorem subTerminal_heyting :
