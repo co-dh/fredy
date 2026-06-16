@@ -90,11 +90,24 @@ Remaining (each ~40–80 lines, fights the `colimOut` rep transport):
    colimHom_mono_of_rep … ?_` leaks an uninstantiated `W` metavar (reducible `Mono` unfolds to a Π);
    fix by `intro Z p q hpq` then apply the lemma's result to `p q hpq` ({A,B} must be explicit too).
    NET: the full iso/mono/cover preserve+reflect suite is now COMPLETE (both `homIncl`/colimOut-rep and
-   `homInclObj` forms). Remaining is #4 assembly (needs pullback reflection, which needs fullness-up-to-
-   transition — the genuinely hard "filtered colimit of categories" ingredient) and M4–M6.
+   `homInclObj` forms).
+3c. **Cover reflection, colimOut-rep form** `Cover (homIncl a f₀) ⇒ Cover f₀`. ✅ **DONE, sorry-free**
+   (`colimHom_cover_reflects`, commit aaf8d13, axioms {propext, Classical.choice, Quot.sound}). THIS is
+   the form the assembly needs (cover of an arbitrary colimit morphism, not a `homInclObj`). Proved at
+   the representative/germ level (NO bridging) mirroring `colimHom_mono_reflects`: stage mono `m'` +
+   factor `g'` of `f₀` are included as colimit maps `objIncl·t ⟶ B`, `A ⟶ objIncl·t` at the
+   rep-agreement stage of `objIncl·t`; `homCompRaw_eq_compAt`+`homTr_refl`+`castHom_comp`+`map_comp`
+   reduce their composite to `homIncl a f₀`; the colimit cover ⇒ `M` iso; `colimHom_isIso_reflects` +
+   `hcons` strip back to `m'`. GOTCHA: the `(functF hj).map germ_M = castHom … (functF (trans h_ts hj)).map m'`
+   cast goes ed.symm/ec.symm (NOT ed/ec) and uses `(hC.trans_map …).symm`.
 4. **Assembly**: arbitrary pullback cone ≅ canonical (§1.432) so `Cover` is iso-invariant; reflect
    `f`/pullback to a stage, stage `PullbacksTransferCovers`, preserve back ⇒ `PullbacksTransferCovers C.Obj`;
-   bundle with terminal+products+pullbacks ⇒ `PreRegularCategory C.Obj`.
+   bundle with terminal+products+pullbacks ⇒ `PreRegularCategory C.Obj`. **STILL OPEN — the one
+   remaining ingredient is PULLBACK REFLECTION** (a colimit pullback square reflects to a stage pullback),
+   which needs FULLNESS-up-to-transition (a colimit map between `objIncl` objects comes from a stage map
+   at some higher stage) — the genuinely hard "filtered colimit of categories" piece, ~200 lines, not
+   yet built. Cover preserve (`colimHom_cover_of_rep`) + cover reflect (`colimHom_cover_reflects`) are
+   both ready, so once pullback reflection lands the assembly is short.
 `colimitPullbacksTransferCovers` will carry "transitions faithful + preserve covers/monos/pullbacks"
 hypotheses (satisfied by the slice embeddings: `slice_embedding_separates` gives faithfulness).
 | **M4** | `Fredy/S1_546.lean` | relative-capitalization functor `A ↦ A*` (slices), `IsRelativeCapitalization` witness | ☐ |
