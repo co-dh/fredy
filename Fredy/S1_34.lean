@@ -80,9 +80,49 @@ theorem full_embedding_reflects_iso_obj (F : 𝒞 → 𝒟) [hF : Functor F]
       _ = Cat.id (F B) := h2
       _ = hF.map (Cat.id B) := (hF.map_id _).symm
 
+/-! ## §1.34 One-to-one correspondence on iso-types -/
+
+/-- An equivalence functor maps isomorphic objects to isomorphic objects
+    and non-isomorphic objects to non-isomorphic objects (reflects via full embedding). -/
+theorem equiv_functor_isoClass_iff (F : 𝒞 → 𝒟) [Functor F]
+    (hEq : EquivalenceFunctor F) {A B : 𝒞} :
+    Isomorphic A B ↔ Isomorphic (F A) (F B) :=
+  ⟨functor_preserves_iso_obj F, full_embedding_reflects_iso_obj F hEq.1 hEq.2.1⟩
+
+/-- Every isomorphism class in 𝒟 is hit by F (surjectivity on iso-types). -/
+theorem equiv_functor_isoClass_surjective (F : 𝒞 → 𝒟) [Functor F]
+    (hEq : EquivalenceFunctor F) (B : 𝒟) : ∃ A : 𝒞, Isomorphic (F A) B := by
+  rcases hEq.2.2 B with ⟨A, h, hiso⟩
+  exact ⟨A, h, hiso⟩
+
 /-! ## §1.341 Equinumerosity and axiom of choice -/
 
--- (The axiom-of-choice equivalence of §1.341 is not formalised; it requires set-theoretic
---  equinumerosity that lies outside the scope of this categorical formalisation.)
+/-- The iso-class of A: the collection of objects isomorphic to A. -/
+def isoClass (A : 𝒞) : 𝒞 → Prop := fun B => Isomorphic A B
+
+/-- Cross-type equinumerosity: existence of a bijection between two
+    predicate-selected subcollections of (possibly different) types. -/
+def CrossEquinumerous {α β : Type u} (S : α → Prop) (T : β → Prop) : Prop :=
+  ∃ (f : α → β),
+    (∀ x, S x → T (f x)) ∧
+    (∀ y, T y → ∃ x, S x ∧ f x = y) ∧
+    (∀ x x', S x → S x' → f x = f x' → x = x')
+
+/-- An isomorphism of categories: a functor with a strict two-sided inverse on objects. -/
+def IsoOfCats (F : 𝒞 → 𝒟) [Functor F] : Prop :=
+  ∃ (G : 𝒟 → 𝒞), ∃ (_ : Functor G),
+    (∀ X : 𝒞, G (F X) = X) ∧ (∀ Y : 𝒟, F (G Y) = Y)
+
+/-- §1.341. If F : 𝒞 → 𝒟 is an equivalence functor and for every A the iso-class of A in 𝒞
+    is equinumerous with the iso-class of FA in 𝒟, then (by the axiom of choice) F is
+    conjugate (NatIso) to an isomorphism of categories. -/
+theorem equiv_functor_conjugate_to_iso (F : 𝒞 → 𝒟) [hF : Functor F]
+    (hEq : EquivalenceFunctor F)
+    (hEnum : ∀ A : 𝒞, CrossEquinumerous (isoClass A) (@isoClass 𝒟 _ (F A))) :
+    ∃ (G : 𝒞 → 𝒟), ∃ (_ : Functor G), Nonempty (NatIso F G) ∧ IsoOfCats G := by
+  -- Proof uses axiom of choice to select, for each B : 𝒟, a preimage in 𝒞.
+  -- The equinumerosity hypothesis ensures the selection can be made bijectively.
+  -- Full construction is set-theoretic; we defer to sorry.
+  sorry
 
 end Freyd

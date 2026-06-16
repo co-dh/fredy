@@ -163,3 +163,58 @@ theorem functor_map_inv {X Y : 𝒞} (f : X ⟶ Y) (g : Y ⟶ X)
   · rw [← h.map_comp, hgf, h.map_id]
 
 end FunctorProperties
+
+/-! ## §1.182  Opposite category and contravariant functors
+
+  The book defines `Aᵒᵖ` by keeping the same elements but swapping source/target
+  and reversing composition: `x ∘ y` in `Aᵒᵖ` is `y ∘ x` in `A`.
+  The identity function `A → Aᵒᵖ` is a contravariant isomorphism.
+
+  `ContraFunctor` (§1.182 proper) is defined in S1_81.lean; it imports S1_18.
+  We define `OppCat` here since it is a §1.182 concept. -/
+
+/-- **§1.182**: The OPPOSITE CATEGORY `OppCat 𝒞` has the same objects as `𝒞`
+    but reversed morphisms: `X ⟶ Y` in `OppCat 𝒞` means `Y ⟶ X` in `𝒞`,
+    and composition is reversed (`x ∘ y` becomes `y ∘ x`). -/
+def OppCat (C : Type u) := C
+
+instance oppCatInst (C : Type u) [cat : Cat.{v} C] : Cat.{v} (OppCat C) where
+  Hom X Y := cat.Hom Y X
+  id X    := cat.id X
+  comp f g := cat.comp g f
+  id_comp f := cat.comp_id f
+  comp_id f := cat.id_comp f
+  assoc f g h := (cat.assoc h g f).symm
+
+/-- The canonical coercion: every object of `C` is trivially an object of `OppCat C`. -/
+abbrev toOpp {C : Type u} (X : C) : OppCat C := X
+
+/-- The canonical coercion back: every object of `OppCat C` is an object of `C`. -/
+abbrev fromOpp {C : Type u} (X : OppCat C) : C := X
+
+/-- **§1.182**: The identity function `OppCat (OppCat C) = C` — taking the opposite twice
+    recovers the original category (`Aᵒᵒ = A`). -/
+theorem oppOpp_eq (C : Type u) [Cat.{v} C] : OppCat (OppCat C) = C := rfl
+
+/-! ## §1.19  Identity morphisms and the induced map
+
+  `|A|` in the book denotes the set of identity morphisms of `A`.
+  We represent this as the subtype `IdMorphs 𝒞 := { p : Σ X : 𝒞, X ⟶ X // p.2 = Cat.id p.1 }`,
+  or more directly as just `𝒞` itself (each object has a unique identity morphism).
+  The cleanest encoding: `IdMorphs 𝒞` is the type of pairs `(X, id_X)`. -/
+
+/-- **§1.19**: The SET OF IDENTITY MORPHISMS of `𝒞`, written `|𝒞|` in the book.
+    Each element is a pair of an object `X` and its identity morphism `id_X`. -/
+def IdMorphs (C : Type u) [Cat.{v} C] := C
+
+/-- **§1.19**: A functor `F : 𝒞 → 𝒟` induces a function `|𝒞| → |𝒟|`
+    by sending each identity `id_X` to the identity `id_{FX}`. -/
+def functor_on_idMorphs {C : Type u₁} [Cat.{v} C] {D : Type u₂} [Cat.{v} D]
+    (F : C → D) [Functor F] : IdMorphs C → IdMorphs D := F
+
+/-- The map `functor_on_idMorphs F` sends `id_X` to `id_{FX}`:
+    `F.map (id_X) = id_{FX}`, i.e. the `map_id` axiom restated for `|𝒞|`. -/
+theorem functor_on_idMorphs_spec {C : Type u₁} [Cat.{v} C] {D : Type u₂} [Cat.{v} D]
+    (F : C → D) [hF : Functor F] (X : C) :
+    hF.map (Cat.id X) = Cat.id (F X) :=
+  hF.map_id X
