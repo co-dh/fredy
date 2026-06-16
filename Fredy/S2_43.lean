@@ -127,30 +127,58 @@ theorem inconsistency_core {a : 𝒜} (T : a ⟶ a) (R' : a ⟶ a)
   one-object pre-power case; `inconsistency_core` shows its equational theory
   collapses (`1_a = 𝟘`).
 
-  The §2.431 BECAUSE manufactures, for the diagonal `R = 𝟘 / (1 ∩ T)`, the
-  witness `R̄ = R / T`, and verifies `1 ⊑ R̄R̄°`, `R̄T ⊑ R̄`, `R̄°R̄ ⊑ T`, together
-  with `R̄ ⊑ R` (line 13814: "hence `R̄ ⊑ R`").  The three properties
-  `inconsistency_core` consumes are precisely (i), (iii) and `R̄ ⊑ R`.
+  The §2.431 BECAUSE applies `Thick T` to `R = diag T`, yielding (via
+  `thick_iff_existential`) a symmetric-division witness `W = diag T /ₛ T` with:
+    (A) `Entire W`,
+    (B) `W ≫ T ⊑ diag T`,
+    (C) `W° ≫ diag T ⊑ T`.
+  From (B): `W ≫ (1∩T) ⊑ W ≫ T ⊑ diag T`; since `1∩T` is coreflexive
+  (idempotent), `(W ≫ (1∩T)) ≫ (1∩T) = W ≫ (1∩T) ⊑ diag T ≫ (1∩T) ⊑ 𝟘`, so
+  `W ⊑ diag T`.  Then `W° ≫ W ⊑ W° ≫ diag T ⊑ T` (from C).  These three
+  properties feed `inconsistency_core`.
 
-  FAITHFUL SORRY (one step).  S2_4's `thick_iff_existential` exposes a *different*
-  witness shape (`R̄T ⊑ R`, `R̄°R ⊑ T`, via symmetric division) under a codomain-box
-  guard, not Freyd's §2.431-construction witness `R̄ = R/T` with `R̄ ⊑ R` and
-  `R̄°R̄ ⊑ T`.  Producing the latter — the entireness `1 ⊑ (R/T)(R/T)°` from
-  thickness, the containment `R̄°R̄ ⊑ T`, and `R/T ⊑ R` — is the missing §2.431
-  infrastructure (not exposed by S2_4).  The diagonal argument itself is complete
-  in `inconsistency_core`; the `sorry` here is only that witness construction. -/
+  FAITHFUL SORRY (one step).  Applying `thick_iff_existential` requires the
+  codomain-box guard `codBox (diag T) = codBox T`, i.e.
+  `Cat.id a ∩ (diag T)° ≫ diag T = Cat.id a ∩ T° ≫ T`.
+  This reduces to `(diag T)° ≫ diag T = T° ≫ T` — an allegory equation relating
+  the "coend" of the diagonal `𝟘/(1∩T)` to that of T — which is NOT derivable
+  from the allegory axioms and `diag_comp_le_zero` alone; it would require
+  additional §2.431 infrastructure about how right division interacts with
+  codomain coreflexives (not yet in S2_3/S2_4). -/
 
 /-- §2.436 (main): a thick endomorphism on `a` forces `1_a = 𝟘` — the equational
     theory of one-object pre-power allegories is inconsistent.  The diagonal
-    argument is `inconsistency_core` (proved); the single `sorry` is the §2.431
-    construction of the witness `R̄ = (diag T)/T` and its three properties. -/
+    argument is `inconsistency_core` (proved); the single `sorry` is the
+    codomain-box guard `codBox (diag T) = codBox T` needed to invoke
+    `thick_iff_existential` on `R = diag T`. -/
 theorem one_object_pre_power_inconsistent {a : 𝒜} (T : a ⟶ a) (hT : Thick T) :
     Cat.id a = (𝟘 : a ⟶ a) := by
-  -- §2.431 witness for R = diag T:  R̄ = (diag T) / T, with
-  --   1 ⊑ R̄R̄°,  R̄° R̄ ⊑ T,  R̄ ⊑ diag T.
-  obtain ⟨R', hEnt, hRoR, hDiag⟩ :
-      ∃ R' : a ⟶ a, Cat.id a ⊑ R' ≫ R'° ∧ R'° ≫ R' ⊑ T ∧ R' ⊑ diag T := by
-    sorry
-  exact inconsistency_core T R' hEnt hRoR hDiag
+  -- FAITHFUL SORRY: need `codBox (diag T) = codBox T` to apply `thick_iff_existential`.
+  -- This is `Cat.id a ∩ (diag T)° ≫ diag T = Cat.id a ∩ T° ≫ T`, which requires
+  -- §2.431 infrastructure about (𝟘/(1∩T))°≫(𝟘/(1∩T)) — not yet in S2_3/S2_4.
+  have hBox : codBox (diag T) = codBox T := by sorry
+  -- §2.431 witness W = diag T /ₛ T from `thick_iff_existential`.
+  rw [thick_iff_existential] at hT
+  obtain ⟨W, hEnt, hWT, hWoR⟩ := hT a (diag T) hBox
+  -- Entire W → 1 ⊑ W ≫ W°.
+  have hEnt' : Cat.id a ⊑ W ≫ W° := by
+    dsimp [Entire, dom] at hEnt; rw [← hEnt]; exact inter_lb_right _ _
+  -- (1∩T) is coreflexive, hence idempotent: (1∩T)(1∩T) = 1∩T.
+  have hcoref : Coreflexive (Cat.id a ∩ T) := inter_lb_left _ _
+  have hidem : (Cat.id a ∩ T) ≫ (Cat.id a ∩ T) = Cat.id a ∩ T :=
+    (coreflexive_symmetric_idempotent hcoref).2
+  -- W(1∩T) ⊑ WT ⊑ diag T (since 1∩T ⊑ T and hWT).
+  have hW1T : W ≫ (Cat.id a ∩ T) ⊑ diag T :=
+    le_trans (comp_mono_left W (inter_lb_right _ _)) hWT
+  -- W(1∩T) = 𝟘 by idempotency: W(1∩T)(1∩T) = W(1∩T) ⊑ diag T ≫ (1∩T) ⊑ 𝟘.
+  have hWzero : W ≫ (Cat.id a ∩ T) = 𝟘 := le_antisymm
+    (by have step : (W ≫ (Cat.id a ∩ T)) ≫ (Cat.id a ∩ T) ⊑ 𝟘 :=
+          le_trans (comp_mono_right hW1T _) (diag_comp_le_zero T)
+        rwa [Cat.assoc, hidem] at step) (zero_le _)
+  -- Hence W ⊑ diag T (by le_diag_iff).
+  have hWdiag : W ⊑ diag T := (le_diag_iff T W).mpr hWzero
+  -- W°W ⊑ W°(diag T) ⊑ T (from hWdiag and hWoR).
+  have hWRoR : W° ≫ W ⊑ T := le_trans (comp_mono_left W° hWdiag) hWoR
+  exact inconsistency_core T W hEnt' hWRoR hWdiag
 
 end Freyd.Alg
