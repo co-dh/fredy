@@ -17,6 +17,7 @@ import Fredy.S1_85
 import Fredy.S1_81
 import Fredy.S1_51
 import Fredy.S1_58
+import Fredy.S1_42
 
 
 universe v u
@@ -359,13 +360,17 @@ def SubTerminal (𝒞 : Type u) [Cat.{v} 𝒞] [Topos 𝒞] : Type v :=
     More precisely: 1 →(V) Ω^Ω →(Ω^U) Ω^1 ≅ Ω.
     (Here Ω^U uses ContraFunctor.map U and the canonical iso Ω^1 ≅ Ω.) -/
 noncomputable def heytingImpl (U V : SubTerminal 𝒞) : SubTerminal 𝒞 :=
-  -- W = (Ω^U)(V), the book's exponential implication on Sub(1).
-  -- BLOCKER: requires (a) the NAME of V : 1 → Ω as a global element 1 → Ω^Ω
-  -- (i.e. the universal-relation classifier of §1.9 packaging V), then applying
-  -- `omegaPowContra.map U : Ω^Ω → Ω^1`, and (b) the canonical iso Ω^1 ≅ Ω coming
-  -- from the left-unitor `prod one X ≅ X` (not yet available in S1_42/S1_43).
-  -- Both ingredients are missing, so no concrete W : 1 → Ω can be produced.
-  sorry
+  -- W = (Ω^U)(V_hat) ∘ (Ω^1 ≅ Ω), the book's exponential implication on Sub(1).
+  -- Step 1: "name" V as a constant element of Ω^Ω via curry(snd ≫ V).
+  --   snd : prod Ω one → one,  so  snd ≫ V : prod Ω one → Ω,
+  --   curry(snd ≫ V) : one → Ω^^Ω = exp Ω Ω.
+  -- Step 2: apply the contravariant power Ω^U : Ω^Ω → Ω^1 (= Ω^^one).
+  -- Step 3: compose with the left-unit iso Ω^1 ≅ Ω:
+  --   prodOneLeftInv (Ω^^one) : Ω^^one → prod one (Ω^^one),
+  --   eval_exp one Ω         : prod one (Ω^^one) → Ω.
+  let Ω := HasSubobjectClassifier.omega (𝒞 := 𝒞)
+  curry (snd ≫ V) ≫ (omegaPowContra (𝒞 := 𝒞)).map U ≫
+    prodOneLeftInv (Ω ^^ one) ≫ eval_exp one Ω
 
 /-- **§1.926**: In a topos, exponential structure restricts to a HEYTING ALGEBRA
     structure on Sub(1) = Hom(1, Ω).
