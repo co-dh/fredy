@@ -1,0 +1,135 @@
+/-
+  Freyd & Scedrov, *Categories, Allegories* §1.74  The GEOMETRIC REPRESENTATION THEOREM.
+
+  §1.74     Geometric Representation Theorem: every countable (positive) logos is
+            faithfully representable in a countable power of the logos of SHEAVES
+            ON THE REAL LINE; with a coprime terminator, in 𝓜(ℝ) itself.
+  §1.741    𝓜(ℝ) ≃ 𝓜(open subset of ℝ).
+  §1.742    Every small (positive) logos has a faithful representation A → 𝒴^D.
+  §1.743    𝒴^D is focal iff D has a coterminator.
+  §1.744    DOMINATION of one category by another (left-full + onto-on-objects functor),
+            and the induced faithful representation 𝒴^D → 𝒴^D′.
+  §1.745    Every category (with a coterminator) is dominated by a (rooted) tree.
+  §1.746    Every countable category with a coterminator is dominated by the binary tree.
+  §1.747–§1.74(10)  Lazard sheaves on 2*, the Wilson/sobrification space, the FREYD CURVE,
+            the open continuous surjection [-1/2,1/2] → 2* ∪ 2^ℕ.
+
+  ----------------------------------------------------------------------------
+  WHAT IS FORMALIZED HERE
+
+  §1.74 is, overwhelmingly, point-set TOPOLOGY: Lazard sheaves on the binary tree
+  topologised by up-deals, the Cantor topology on 2^ℕ, the sobrification (Wilson
+  space), and the explicit FREYD CURVE realising an open continuous surjection from
+  the real line.  None of that is faithfully stateable on the repo's current
+  hand-built `Cat` infrastructure (there is no topology / sheaf layer), so it stays
+  MISSING — see S1_74.md for the precise census.
+
+  The one piece of §1.74 that is PURE category theory — independent of every
+  topological notion — is the abstract DOMINATION relation of §1.744–§1.746: a
+  functor that is *onto on objects* and *left-full*.  Domination is the device by
+  which §1.744 transports a faithful representation along a functor `D′ → D`
+  (`𝒴^D` faithfully representable in `𝒴^D′`).  We give that vocabulary faithfully and
+  prove the two structural facts the book uses implicitly: domination is REFLEXIVE
+  (the identity functor) and TRANSITIVE (functor composition).  These are exactly the
+  closure properties §1.745–§1.746 chain together ("dominated by D⁺, therefore by ℕ*,
+  therefore by 2*").
+
+  The sheaf-theoretic *consequence* of domination — that `𝒴^D` is faithfully
+  representable *as a logos* in `𝒴^D′` — needs the logos structure on functor
+  categories (double-sharps in `𝒴^C`, §1.713) which is not built; it is recorded
+  MISSING, not stubbed.
+-/
+
+import Fredy.S1_18
+
+universe v u₁ u₂ u₃
+
+namespace Freyd
+
+/-! ## §1.744  Domination of categories
+
+  Throughout, `F : D' → D` is a functor between (possibly large) categories living in
+  arbitrary universes — domination is used in §1.745–6 between a category and its tree
+  of paths, which is genuinely a different type. -/
+
+section Domination
+
+variable {D' : Type u₁} [Cat.{v} D'] {D : Type u₂} [Cat.{v} D]
+
+/-- **§1.744 ONTO ON OBJECTS.**  The functor `F` hits every object of `D`. -/
+def OntoObjects (F : D' → D) [Functor F] : Prop :=
+  ∀ B : D, ∃ A : D', F A = B
+
+/-- **§1.744 LEFT-FULL.**  For each `A : D'` and each `g : F A ⟶ B` in `D`, there is a
+    morphism `f : A ⟶ A'` in `D'` lying over `g` — i.e. with `F A' = B` and, modulo that
+    identification, `F f = g`.  (The book: "for each `D ∈ |D'|` and each `g : F(D) → B`
+    there exists `f : D → A` so that `F(f) = g`.")
+
+    The codomain identification `hA' : F A' = B` is needed to even type the equation
+    `F f = g`; we transport `g` back along it with `hA' ▸ g`. -/
+def LeftFull (F : D' → D) [hF : Functor F] : Prop :=
+  ∀ (A : D') {B : D} (g : F A ⟶ B), ∃ (A' : D') (hA' : F A' = B) (f : A ⟶ A'),
+    hF.map f = hA' ▸ g
+
+/-- **§1.744 `D'` DOMINATES `D`.**  There is a functor `F : D' → D` that is onto on
+    objects and left-full.  (The book notes such `F` need not be full.) -/
+def Dominates (D' : Type u₁) [Cat.{v} D'] (D : Type u₂) [Cat.{v} D] : Prop :=
+  ∃ (F : D' → D) (_ : Functor F), OntoObjects F ∧ LeftFull F
+
+end Domination
+
+/-! ### Structural closure of domination (§1.745–§1.746 chaining)
+
+  §1.745–6 build a chain "`D` is dominated by `P(D)`, hence by `D⁺`, hence by ℕ*,
+  hence by 2*", silently using that domination is a reflexive, transitive relation on
+  categories.  We supply both facts. -/
+
+/-- **Domination is reflexive.**  Every category dominates itself, via the identity
+    functor: it is onto on objects (take `A := B`) and left-full (take `f := g`). -/
+theorem dominates_refl (D : Type u₂) [Cat.{v} D] : Dominates D D := by
+  refine ⟨(fun X => X), inferInstance, ?_, ?_⟩
+  · intro B; exact ⟨B, rfl⟩
+  · intro A B g; exact ⟨B, rfl, g, rfl⟩
+
+/-- **Domination is transitive.**  If `E` dominates `D'` and `D'` dominates `D`, then `E`
+    dominates `D`, via the composite functor.  Onto-on-objects composes by chasing
+    preimages; left-fullness composes because a lift over `D'` of a lift over `D` is a
+    lift over `D` for the composite. -/
+theorem dominates_trans {E : Type u₃} [Cat.{v} E] {D' : Type u₁} [Cat.{v} D']
+    {D : Type u₂} [Cat.{v} D] (h₁ : Dominates E D') (h₂ : Dominates D' D) :
+    Dominates E D := by
+  obtain ⟨F, hF, hFonto, hFfull⟩ := h₁
+  obtain ⟨G, hG, hGonto, hGfull⟩ := h₂
+  -- the repo's `compFunctor` instance is single-universe; build the cross-universe
+  -- composite `Functor` by hand.
+  let hGF : Functor (G ∘ F) :=
+    { map := fun {_ _} f => hG.map (hF.map f)
+      map_id := fun X => by
+        show hG.map (hF.map (Cat.id X)) = Cat.id (G (F X))
+        rw [hF.map_id, hG.map_id]
+      map_comp := fun f g => by
+        show hG.map (hF.map (f ≫ g)) = _
+        rw [hF.map_comp, hG.map_comp] }
+  refine ⟨G ∘ F, hGF, ?_, ?_⟩
+  · -- onto on objects: pull `B` back through `G`, then through `F`
+    intro B
+    obtain ⟨A', hA'⟩ := hGonto B
+    obtain ⟨A, hA⟩ := hFonto A'
+    exact ⟨A, by simp only [Function.comp_apply, hA, hA']⟩
+  · -- left-full: lift `g : (G∘F) A ⟶ B` first along `G`, then the resulting `D'`-map along `F`
+    intro A B g
+    -- `g : G (F A) ⟶ B`; lift along `G` to a map out of `F A` in `D'`.
+    obtain ⟨A'₀, hA'₀, f₀, hf₀⟩ := hGfull (F A) g
+    -- lift `f₀ : F A ⟶ A'₀` along `F` to a map out of `A` in `E`.
+    obtain ⟨A₁, hA₁, f₁, hf₁⟩ := hFfull A f₀
+    refine ⟨A₁, ?_, f₁, ?_⟩
+    · -- `(G∘F) A₁ = B`
+      simp only [Function.comp_apply, hA₁, hA'₀]
+    · -- `(G∘F).map f₁ = (proof) ▸ g`
+      show hG.map (hF.map f₁) = _
+      rw [hf₁]
+      -- now `hG.map (hA₁ ▸ f₀)`; push the cast out and use `hf₀`
+      subst hA₁
+      simp only [hf₀]
+
+end Freyd
