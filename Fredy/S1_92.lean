@@ -31,15 +31,23 @@ variable {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
     as a subobject of [A × B] via the singleton map (§1.92).
     Proof: [B]^A = [A×B] via the power-object adjunction (Freyd §1.92). -/
 instance topos_has_exponentials : HasExponentials 𝒞 := by
-  -- In a topos, [B]^A = [A × B]; exponentials exist.
-  -- The construction: exp_obj A B = exp (prod A B) omega.
-  -- eval : prod A (exp (prod A B) omega) → B is the composite
-  --        (prod A × singletonMap B) then evaluation.
-  -- Full construction requires showing the adjunction; deferred.
+  -- BLOCKER: the book's proof (§1.92) runs "every power object is baseable, then
+  -- B is the equalizer of χ and [B]→1→Ω, so B is baseable [§1.859]".  The crux is
+  -- the §1.859 fact `baseable_inclusion_preserves_equalizers`, which is itself an
+  -- unfilled `sorry` in S1_85.  Without it (and the power-object⇒baseable adjunction
+  -- packaging) the `eval`/`curry` data for general B^A cannot be assembled.
   sorry
 
 -- All subsequent decls require [HasExponentials 𝒞] via topos_has_exponentials.
 -- exp B Ω = Ω^B = [B] the power object of B.
+
+/-- Naturality of `curry` in its variable argument: precomposing the curried
+    map with `h : X' ⟶ X` equals currying after precomposing the uncurried
+    map with `prodMap A X' X h`.  (Adjoint-transpose naturality of `A × -`.) -/
+theorem curry_precomp {A B X X' : 𝒞} (h : X' ⟶ X) (f : prod A X ⟶ B) :
+    h ≫ curry f = curry (prodMap A X' X h ≫ f) := by
+  apply curry_unique_eq
+  rw [prodMap_comp, Cat.assoc, curry_eval_eq]
 
 /-! ## §1.922  Ω^(−) as a contravariant functor
 
@@ -65,11 +73,42 @@ instance omegaPowContra :
     simp only [prodMap, Cat.comp_id, pair_fst_snd, Cat.id_comp]
   map_comp {B₁ B₂ B₃} f g := by
     -- Ω^(f≫g) = Ω^g ≫ Ω^f  (contravariance reverses order).
-    -- Proof: both sides have the same uncurried form
-    --   pair(fst≫f≫g) snd ≫ eval_B₃  via curry adjunction.
-    -- Use prodMap_comp to factor: prodMap(Ω^g ≫ Ω^f) = prodMap(Ω^g) ≫ prodMap(Ω^f)
-    -- then curry_eval_eq twice to reduce to the direct form.
-    sorry
+    -- Both sides curry the reindexed evaluation; we verify the uncurried forms agree.
+    -- Abbreviate the classifier object.
+    let Ω := HasSubobjectClassifier.omega (𝒞 := 𝒞)
+    -- Reduce RHS `map g ≫ map f` through the curry universal property (symm: g = curry f).
+    refine (curry_unique_eq ?_).symm
+    -- Factor prodMap of a composite, then evaluate the inner curry (map f).
+    rw [prodMap_comp, Cat.assoc, curry_eval_eq]
+    -- Now: prodMap(map g) ≫ (pair (fst≫f) snd ≫ eval_B₂) = pair (fst≫f≫g) snd ≫ eval_B₃.
+    -- Push prodMap(map g) past `pair (fst≫f) snd` coordinatewise.
+    have hpair : prodMap B₁ (exp B₃ Ω) (exp B₂ Ω)
+          (curry (pair (fst ≫ g) snd ≫ eval_exp B₃ Ω)) ≫
+        pair (fst ≫ f) (snd : prod B₁ (exp B₂ Ω) ⟶ exp B₂ Ω)
+        = pair (fst ≫ f) (snd ≫ curry (pair (fst ≫ g) snd ≫ eval_exp B₃ Ω)) := by
+      apply pair_uniq
+      · rw [Cat.assoc, fst_pair, ← Cat.assoc, prodMap_fst]
+      · rw [Cat.assoc, snd_pair, prodMap_snd]
+    rw [← Cat.assoc, hpair]
+    -- Remaining: pair (fst≫f) (snd ≫ map g) ≫ eval_B₂ = pair (fst≫f≫g) snd ≫ eval_B₃.
+    -- Expand eval of map g via prodMap on the second coordinate.
+    have hfac : pair (fst ≫ f)
+          (snd ≫ curry (pair (fst ≫ g) snd ≫ eval_exp B₃ Ω))
+        = pair (fst ≫ f) (snd : prod B₁ (exp B₃ Ω) ⟶ exp B₃ Ω) ≫
+            prodMap B₂ (exp B₃ Ω) (exp B₂ Ω)
+              (curry (pair (fst ≫ g) snd ≫ eval_exp B₃ Ω)) := by
+      refine (pair_uniq _ _ _ ?_ ?_).symm
+      · rw [Cat.assoc, prodMap_fst, fst_pair]
+      · rw [Cat.assoc, prodMap_snd, ← Cat.assoc, snd_pair]
+    rw [hfac, Cat.assoc, curry_eval_eq, ← Cat.assoc]
+    -- pair (fst≫f) snd ≫ (pair (fst≫g) snd) = pair (fst≫f≫g) snd
+    have hcomp : pair (fst ≫ f) (snd : prod B₁ (exp B₃ Ω) ⟶ exp B₃ Ω) ≫
+          pair (fst ≫ g) snd
+        = pair (fst ≫ f ≫ g) snd := by
+      apply pair_uniq
+      · rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair, Cat.assoc]
+      · rw [Cat.assoc, snd_pair, snd_pair]
+    rw [hcomp]
 
 /-! ## §1.92  Singleton map Δ₁ : B → [B] -/
 
@@ -81,18 +120,125 @@ noncomputable def singletonMapCat (B : 𝒞) :
     B ⟶ exp B (HasSubobjectClassifier.omega (𝒞 := 𝒞)) :=
   curry (HasSubobjectClassifier.classify (diag B) (diag_mono B))
 
+/-- The GRAPH monic `γ_h = ⟨h, 1⟩ : X' ↪ B × X'` of a map `h : X' → B`
+    (the subobject `{(b,x) | b = h x}`).  Monic because `γ_h ≫ snd = 1`. -/
+private def graphMono {B X' : 𝒞} (h : X' ⟶ B) : X' ⟶ prod B X' :=
+  pair h (Cat.id X')
+
+private theorem graphMono_snd {B X' : 𝒞} (h : X' ⟶ B) :
+    graphMono h ≫ snd = Cat.id X' := snd_pair _ _
+
+private theorem graphMono_fst {B X' : 𝒞} (h : X' ⟶ B) :
+    graphMono h ≫ fst = h := fst_pair _ _
+
+private theorem graphMono_mono {B X' : 𝒞} (h : X' ⟶ B) : Mono (graphMono h) :=
+  mono_of_retraction _ snd (graphMono_snd h)
+
+/-- The composite `γ_h ≫ (B × h) = h ≫ Δ` lands the graph on the diagonal:
+    `⟨h,1⟩ ≫ ⟨fst, snd≫h⟩ = ⟨h,h⟩ = h ≫ ⟨1,1⟩`. -/
+private theorem graphMono_prodMap {B X' : 𝒞} (h : X' ⟶ B) :
+    graphMono h ≫ prodMap B X' B h = h ≫ diag B := by
+  have hlhs : graphMono h ≫ prodMap B X' B h = pair h h := by
+    apply pair_uniq
+    · rw [Cat.assoc, prodMap_fst, graphMono_fst]
+    · rw [Cat.assoc, prodMap_snd, ← Cat.assoc, graphMono_snd, Cat.id_comp]
+  have hrhs : h ≫ diag B = pair h h := by
+    apply pair_uniq
+    · rw [Cat.assoc, diag_fst, Cat.comp_id]
+    · rw [Cat.assoc, diag_snd, Cat.comp_id]
+  rw [hlhs, hrhs]
+
+/-- **§1.92, key step**: `prodMap B X' B h ≫ χ_Δ` is the characteristic map of the
+    graph monic `γ_h`.  The graph square is the pullback of `true` along it,
+    obtained by pasting the (diagonal) classifier square with the pullback of the
+    diagonal along `B × h`. -/
+private theorem graph_classifies {B X' : 𝒞} (h : X' ⟶ B) :
+    (Cone.mk (f := prodMap B X' B h ≫
+        HasSubobjectClassifier.classify (diag B) (diag_mono B))
+        (g := HasSubobjectClassifier.true)
+        (pt := X') (π₁ := graphMono h) (π₂ := term X')
+        (w := by
+          rw [← Cat.assoc, graphMono_prodMap, Cat.assoc,
+              HasSubobjectClassifier.classify_sq, ← Cat.assoc, term_uniq (h ≫ term B) (term X')]
+        )).IsPullback := by
+  intro d
+  -- d : Cone (prodMap h ≫ χ_Δ) true. Reindex its first leg through B × h and use
+  -- the diagonal classifier pullback to obtain a lift ℓ : d.pt → B with
+  -- ℓ ≫ diag B = d.π₁ ≫ prodMap h.
+  have hsq : (d.π₁ ≫ prodMap B X' B h) ≫
+      HasSubobjectClassifier.classify (diag B) (diag_mono B) = d.π₂ ≫ HasSubobjectClassifier.true := by
+    rw [Cat.assoc]; exact d.w
+  obtain ⟨ℓ, ⟨hℓ₁, _hℓ₂⟩, _⟩ :=
+    HasSubobjectClassifier.classify_pullback (diag B) (diag_mono B)
+      ⟨d.pt, d.π₁ ≫ prodMap B X' B h, d.π₂, hsq⟩
+  simp only at hℓ₁
+  -- hℓ₁ : ℓ ≫ diag B = d.π₁ ≫ prodMap B X' B h
+  -- From hℓ₁, project to fst/snd to recover ℓ and a key identity.
+  have hfst : d.π₁ ≫ fst = ℓ := by
+    have := congrArg (· ≫ fst) hℓ₁
+    simp only [Cat.assoc, diag_fst, Cat.comp_id, prodMap_fst] at this
+    exact this.symm
+  have hsnd : d.π₁ ≫ snd ≫ h = ℓ := by
+    have := congrArg (· ≫ snd) hℓ₁
+    simp only [Cat.assoc, diag_snd, Cat.comp_id, prodMap_snd] at this
+    exact this.symm
+  have hkey : d.π₁ ≫ snd ≫ h = d.π₁ ≫ fst := by rw [hsnd, hfst]
+  -- The lift into X' is u = d.π₁ ≫ snd.
+  refine ⟨d.π₁ ≫ snd, ⟨?_, term_uniq _ _⟩, ?_⟩
+  · -- u ≫ γ_h = d.π₁, checked componentwise on B × X'.
+    have hA : ((d.π₁ ≫ snd) ≫ graphMono h) ≫ fst = d.π₁ ≫ fst := by
+      rw [Cat.assoc, graphMono_fst, Cat.assoc, hkey]
+    have hB : ((d.π₁ ≫ snd) ≫ graphMono h) ≫ snd = d.π₁ ≫ snd := by
+      rw [Cat.assoc, graphMono_snd, Cat.comp_id]
+    refine (pair_uniq (d.π₁ ≫ fst) (d.π₁ ≫ snd) _ hA hB).trans
+      (pair_uniq (d.π₁ ≫ fst) (d.π₁ ≫ snd) d.π₁ rfl rfl).symm
+  · -- Uniqueness: if v ≫ γ_h = d.π₁ then v = (v ≫ γ_h) ≫ snd = d.π₁ ≫ snd.
+    intro v hv₁ _
+    simp only at hv₁
+    have hvs : v ≫ graphMono h ≫ snd = v := by
+      rw [graphMono_snd]; exact Cat.comp_id v
+    have hproj : (v ≫ graphMono h) ≫ snd = d.π₁ ≫ snd := congrArg (· ≫ snd) hv₁
+    exact hvs.symm.trans ((Cat.assoc v (graphMono h) snd).symm.trans hproj)
+
 /-- **§1.92**: The singleton map Δ₁ : B → [B] is MONIC.
-    Proof: Δ₁ = curry(χ_Δ); curry is injective (curry_inj), and the
-    pullback classification ensures injectivity propagates. -/
+    Proof: if `h ≫ Δ₁ = k ≫ Δ₁` then by `curry_precomp`/`curry_inj` the
+    characteristic maps `B×h ≫ χ_Δ` and `B×k ≫ χ_Δ` agree, so the graph monics
+    `γ_h`, `γ_k` are both pullbacks of `true` along the *same* map; the pullback
+    lift `u` satisfies `u ≫ γ_h = γ_k`, hence (projecting to X') `u = 1` and
+    `γ_h = γ_k`, whence `h = k`. -/
 theorem singletonMapCat_monic (B : 𝒞) :
     Mono (singletonMapCat (𝒞 := 𝒞) B) := by
-  -- singletonMapCat B = curry(classify(diag B)).
-  -- Suppose h ≫ singletonMapCat = k ≫ singletonMapCat.
-  -- Then curry_inj gives: h ≫ classify(diag B) = k ≫ classify(diag B).
-  -- The characteristic map classify(diag B) is monic (it classifies a
-  -- subobject, and classification is injective up to isomorphism).
-  -- Full proof requires the pullback universality of classify; deferred.
-  sorry
+  intro X' h k hΔ
+  -- From h ≫ curry(χ_Δ) = k ≫ curry(χ_Δ): the precomposed char maps agree.
+  have hχ : prodMap B X' B h ≫
+        HasSubobjectClassifier.classify (diag B) (diag_mono B)
+      = prodMap B X' B k ≫
+        HasSubobjectClassifier.classify (diag B) (diag_mono B) := by
+    have := hΔ
+    rw [singletonMapCat, curry_precomp, curry_precomp] at this
+    exact curry_inj this
+  -- γ_k's square commutes against h's char map (rewrite via hχ), giving a cone over h's cospan.
+  have hk_w : graphMono k ≫ (prodMap B X' B h ≫
+        HasSubobjectClassifier.classify (diag B) (diag_mono B))
+      = term X' ≫ HasSubobjectClassifier.true := by
+    rw [hχ, ← Cat.assoc, graphMono_prodMap, Cat.assoc,
+        HasSubobjectClassifier.classify_sq, ← Cat.assoc, term_uniq (k ≫ term B) (term X')]
+  -- Lift γ_k through γ_h's pullback square.
+  obtain ⟨u, ⟨hu₁, _⟩, _⟩ := graph_classifies h ⟨X', graphMono k, term X', hk_w⟩
+  -- u ≫ γ_h = γ_k.  Project to X' (snd): u = u ≫ γ_h ≫ snd = γ_k ≫ snd = 1.
+  simp only at hu₁
+  -- hu₁ : u ≫ graphMono h = graphMono k
+  have hu_id : u = Cat.id X' := by
+    have hus : u ≫ graphMono h ≫ snd = u := by
+      rw [graphMono_snd]; exact Cat.comp_id u
+    have hproj : (u ≫ graphMono h) ≫ snd = graphMono k ≫ snd := congrArg (· ≫ snd) hu₁
+    exact hus.symm.trans
+      ((Cat.assoc u (graphMono h) snd).symm.trans (hproj.trans (graphMono_snd k)))
+  -- Hence γ_h = γ_k; project to B (fst): h = k.
+  have heq : graphMono h = graphMono k := by rw [← hu₁, hu_id, Cat.id_comp]
+  calc h = graphMono h ≫ fst := (graphMono_fst h).symm
+    _ = graphMono k ≫ fst := by rw [heq]
+    _ = k := graphMono_fst k
 
 /-- The COVARIANT power-map action [f] : [A] → [B] for f : A → B (§1.922).
     [f] : exp A Ω → exp B Ω is the direct-image (existential) action:
@@ -101,9 +247,11 @@ theorem singletonMapCat_monic (B : 𝒞) :
 noncomputable def powerMapCov {A B : 𝒞} (f : A ⟶ B) :
     exp A (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ⟶
     exp B (HasSubobjectClassifier.omega (𝒞 := 𝒞)) :=
-  -- [f] is dual to Ω^f in the sense that singletonMapCat ≫ [f] = f ≫ singletonMapCat.
-  -- Defined via: take the image of the composite (eval_A_Ω followed by the
-  -- characteristic map of the graph of f in A×B).
+  -- [f](S) = ∃-image of S along f.  BLOCKER: the existential / direct-image
+  -- requires the regular IMAGE FACTORIZATION of §1.56 (cover–mono factor of a map)
+  -- assembled into a topos morphism on power objects (∃_f ⊣ f# adjunction).
+  -- §1.56's `image` exists but its packaging as a map `exp A Ω → exp B Ω` (naming the
+  -- direct image of the universal relation ∈_A pushed along f) is not yet available.
   sorry
 
 /-- **§1.92**: NATURALITY of the singleton map: f ≫ Δ₁(B) = Δ₁(A) ≫ [f].
@@ -112,9 +260,10 @@ noncomputable def powerMapCov {A B : 𝒞} (f : A ⟶ B) :
 theorem singletonMapCat_natural {A B : 𝒞} (f : A ⟶ B) :
     f ≫ singletonMapCat B =
       singletonMapCat A ≫ powerMapCov f := by
-  -- Both sides compose to the same curried map via the universal property.
-  -- The equation f ≫ curry(χ_Δ_B) = curry(χ_Δ_A) ≫ [f] holds because
-  -- the image of (id × f) acting on the diagonal of A equals the diagonal of B.
+  -- BLOCKER: this is the book's f(Δ₁) = Δf, but it is stated against `powerMapCov f`
+  -- which is itself an unfilled `sorry` (the direct-image action [f]).  Until [f] is
+  -- defined via image factorization (see `powerMapCov`), the equation has no provable
+  -- content — its truth is precisely the defining property of [f].
   sorry
 
 /-! ## §1.921  Lawvere's original definition of elementary topos
@@ -168,10 +317,11 @@ class LawvereTopos (𝒞 : Type u) [Cat.{v} 𝒞] extends HasExponentials 𝒞 w
 theorem expSubobj (A B : 𝒞) :
     ∃ (ι : exp A B ⟶ exp (prod A B) (HasSubobjectClassifier.omega (𝒞 := 𝒞))),
       Mono ι := by
-  -- ι is the pullback map from the pullback of Ω^{fst} : [A×B] → [A] along
-  -- the "name of A" map 1 → [A] (§1.923).
-  -- Monoicity follows since ι is a pullback projection along a monic.
-  -- Full construction requires the pullback characterization of exp A B; deferred.
+  -- BLOCKER: `exp A B` here is the object supplied by `topos_has_exponentials`,
+  -- which is itself an unfilled `sorry`; so `exp A B` is opaque and no concrete ι
+  -- can be exhibited.  Once exponentials are constructed (B^A = pullback of
+  -- Ω^{fst} : [A×B] → [A] along the name 1 → [A]), ι is the pullback projection
+  -- into [A×B] and is monic as a pullback of the monic name-of-A.
   exact ⟨sorry, sorry⟩
 
 /-! ## §1.924  FG computed via Yoneda (§1.924)
@@ -209,10 +359,12 @@ def SubTerminal (𝒞 : Type u) [Cat.{v} 𝒞] [Topos 𝒞] : Type v :=
     More precisely: 1 →(V) Ω^Ω →(Ω^U) Ω^1 ≅ Ω.
     (Here Ω^U uses ContraFunctor.map U and the canonical iso Ω^1 ≅ Ω.) -/
 noncomputable def heytingImpl (U V : SubTerminal 𝒞) : SubTerminal 𝒞 :=
-  -- W = V ≫ (Ω^U : Ω^Ω → Ω^1) composed with the iso Ω^1 ≅ Ω.
-  -- The map V : 1 → Ω plays the role of picking the subobject V.
-  -- The contravariant map Ω^U acts on the exponential object.
-  -- Full construction requires the canonical iso Ω^1 ≅ Ω; deferred.
+  -- W = (Ω^U)(V), the book's exponential implication on Sub(1).
+  -- BLOCKER: requires (a) the NAME of V : 1 → Ω as a global element 1 → Ω^Ω
+  -- (i.e. the universal-relation classifier of §1.9 packaging V), then applying
+  -- `omegaPowContra.map U : Ω^Ω → Ω^1`, and (b) the canonical iso Ω^1 ≅ Ω coming
+  -- from the left-unitor `prod one X ≅ X` (not yet available in S1_42/S1_43).
+  -- Both ingredients are missing, so no concrete W : 1 → Ω can be produced.
   sorry
 
 /-- **§1.926**: In a topos, exponential structure restricts to a HEYTING ALGEBRA
