@@ -201,18 +201,200 @@ def HasMinEquivContaining (𝒞 : Type u) [Cat.{v} 𝒞] [HasBinaryProducts 𝒞
       ∧ RelLe R E
       ∧ ∀ (F : BinRel 𝒞 A A), EquivalenceRelation F → RelLe R F → RelLe E F
 
-/-- **§1.657**: A pre-topos with coequalizers satisfies HasMinEquivContaining.
-    Effectiveness supplies the minimal equivalence relation as the level of
-    the coequalizer, and conversely the minimal equivalence relation yields
-    the coequalizer by effectiveness.
-    (Both directions require the full machinery of §1.567–§1.568; sorry.) -/
-theorem preTopos_cocartesian_to_minEquiv [PreTopos 𝒞] [HasCoequalizers 𝒞] :
-    HasMinEquivContaining 𝒞 := by
-  sorry
+/-- The reciprocal-composition relation `(graph g) ⊚ (graph g)°` is contained in the
+    level (kernel pair) of `g`: a composed point `(a, c)` satisfies `a ≫ g = c ≫ g`
+    (the pullback square forces it), so its span lifts into `kernelPair g`, and
+    image-minimality (`image_min`) turns that into the required `RelHom`. -/
+private theorem graphComp_le_kernelPairRel [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
+    [HasPullbacks 𝒞] [HasImages 𝒞] {A Q : 𝒞} (g : A ⟶ Q) :
+    RelLe ((graph g) ⊚ (graph g)°) (kernelPairRel g) := by
+  let pb := HasPullbacks.has (graph g).colB ((graph g)°).colA
+  let a' := pb.cone.π₁ ≫ (graph g).colA
+  let c' := pb.cone.π₂ ≫ ((graph g)°).colB
+  let sp : pb.cone.pt ⟶ prod A A := pair a' c'
+  have hw : a' ≫ g = c' ≫ g := by
+    have := pb.cone.w
+    simp only [graph, reciprocal] at this ⊢
+    dsimp [a', c']; simpa [graph, reciprocal, Cat.comp_id] using this
+  let S : Subobject 𝒞 (prod A A) :=
+    ⟨kernelPair g, pair (kp₁ (f := g)) (kp₂ (f := g)),
+      monic_pair_of_monicPair _ _ (kernelPairRel g).isMonicPair⟩
+  let w := (HasPullbacks.has g g).lift ⟨_, a', c', hw⟩
+  have hspan : w ≫ pair (kp₁ (f := g)) (kp₂ (f := g)) = sp := by
+    apply pair_uniq
+    · rw [Cat.assoc, fst_pair]; exact kp_lift_p₁ _ _ hw
+    · rw [Cat.assoc, snd_pair]; exact kp_lift_p₂ _ _ hw
+  obtain ⟨k, hk⟩ := image_min sp S ⟨w, hspan⟩
+  refine ⟨⟨k, ?_, ?_⟩⟩
+  · show k ≫ kp₁ (f := g) = (image sp).arr ≫ fst
+    calc k ≫ kp₁ (f := g) = (k ≫ pair (kp₁ (f := g)) (kp₂ (f := g))) ≫ fst := by
+            rw [Cat.assoc, fst_pair]
+      _ = (image sp).arr ≫ fst := by rw [hk]
+  · show k ≫ kp₂ (f := g) = (image sp).arr ≫ snd
+    calc k ≫ kp₂ (f := g) = (k ≫ pair (kp₁ (f := g)) (kp₂ (f := g))) ≫ snd := by
+            rw [Cat.assoc, snd_pair]
+      _ = (image sp).arr ≫ snd := by rw [hk]
 
-theorem preTopos_minEquiv_to_cocartesian [PreTopos 𝒞]
+/-- The level (kernel pair) of `g` is contained in `(graph g) ⊚ (graph g)°`: the
+    kernel-pair legs `(kp₁, kp₂)` form a cone over `g, g`, hence lift into the
+    composition's pullback, then through `image.lift`. -/
+private theorem kernelPairRel_le_graphComp [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
+    [HasPullbacks 𝒞] [HasImages 𝒞] {A Q : 𝒞} (g : A ⟶ Q) :
+    RelLe (kernelPairRel g) ((graph g) ⊚ (graph g)°) := by
+  let pb := HasPullbacks.has (graph g).colB ((graph g)°).colA
+  let a' := pb.cone.π₁ ≫ (graph g).colA
+  let c' := pb.cone.π₂ ≫ ((graph g)°).colB
+  let sp : pb.cone.pt ⟶ prod A A := pair a' c'
+  have hcone : kp₁ (f := g) ≫ (graph g).colB = kp₂ (f := g) ≫ ((graph g)°).colA := by
+    simp only [graph, reciprocal]; exact kp_sq
+  let v := pb.lift ⟨_, kp₁ (f := g), kp₂ (f := g), hcone⟩
+  have hv1 : v ≫ pb.cone.π₁ = kp₁ (f := g) := pb.lift_fst _
+  have hv2 : v ≫ pb.cone.π₂ = kp₂ (f := g) := pb.lift_snd _
+  refine ⟨⟨v ≫ image.lift sp, ?_, ?_⟩⟩
+  · show (v ≫ image.lift sp) ≫ ((image sp).arr ≫ fst) = kp₁ (f := g)
+    calc (v ≫ image.lift sp) ≫ ((image sp).arr ≫ fst)
+        = v ≫ ((image.lift sp ≫ (image sp).arr) ≫ fst) := by simp [Cat.assoc]
+      _ = v ≫ (sp ≫ fst) := by rw [image.lift_fac]
+      _ = v ≫ a' := by rw [fst_pair]
+      _ = (v ≫ pb.cone.π₁) ≫ (graph g).colA := by dsimp [a']; rw [Cat.assoc]
+      _ = kp₁ (f := g) := by rw [hv1]; simp [graph, Cat.comp_id]
+  · show (v ≫ image.lift sp) ≫ ((image sp).arr ≫ snd) = kp₂ (f := g)
+    calc (v ≫ image.lift sp) ≫ ((image sp).arr ≫ snd)
+        = v ≫ ((image.lift sp ≫ (image sp).arr) ≫ snd) := by simp [Cat.assoc]
+      _ = v ≫ (sp ≫ snd) := by rw [image.lift_fac]
+      _ = v ≫ c' := by rw [snd_pair]
+      _ = (v ≫ pb.cone.π₂) ≫ ((graph g)°).colB := by dsimp [c']; rw [Cat.assoc]
+      _ = kp₂ (f := g) := by rw [hv2]; simp [graph, reciprocal, Cat.comp_id]
+
+/-- **§1.657**: A pre-topos with coequalizers satisfies HasMinEquivContaining.
+    Given `R` on `A`, take the coequalizer `q : A → Q` of `R.colA, R.colB`; its
+    level `Ê := kernelPairRel q` is an equivalence relation (§1.567) containing `R`
+    (lift via `q`'s coequalizing equation).  Minimality: any equivalence `F ⊇ R` is,
+    by effectiveness, the level of a cover `g`; from `R ⊂ F ⊂ level g` we get
+    `R.colA ≫ g = R.colB ≫ g`, the coequalizer UMP factors `g = q ≫ d`, hence
+    `level q ⊂ level g ⊂ F`. -/
+theorem preTopos_cocartesian_to_minEquiv {𝒞 : Type u} [Cat.{v} 𝒞] [PreTopos 𝒞]
+    [HasCoequalizers 𝒞] : HasMinEquivContaining 𝒞 := by
+  intro A R
+  let hcoeq := HasCoequalizers.coeq R.colA R.colB
+  refine ⟨kernelPairRel hcoeq.map, level_is_equivalence_relation hcoeq.map, ?_, ?_⟩
+  · -- R ⊂ kernelPairRel hcoeq.map : lift R into the kernel pair via hcoeq.eq.
+    let l := (HasPullbacks.has hcoeq.map hcoeq.map).lift ⟨_, R.colA, R.colB, hcoeq.eq⟩
+    refine ⟨⟨l, ?_, ?_⟩⟩
+    · exact kp_lift_p₁ R.colA R.colB hcoeq.eq
+    · exact kp_lift_p₂ R.colA R.colB hcoeq.eq
+  · -- Minimality.
+    intro F hF hRF
+    obtain ⟨_, Q, g, _hgcov, hFle, hleF⟩ := EffectiveRegular.effective F hF
+    -- R ⊂ F ⊂ (graph g ⊚ graph g°) ⊂ kernelPairRel g.
+    have hRkp : RelLe R (kernelPairRel g) :=
+      rel_le_trans (rel_le_trans hRF hFle) (graphComp_le_kernelPairRel g)
+    obtain ⟨⟨w, hwA, hwB⟩⟩ := hRkp
+    -- The coequalized pair becomes equal after g.
+    have hRg : R.colA ≫ g = R.colB ≫ g := by
+      have e1 : w ≫ kp₁ (f := g) = R.colA := hwA
+      have e2 : w ≫ kp₂ (f := g) = R.colB := hwB
+      rw [← e1, ← e2, Cat.assoc, Cat.assoc, kp_sq]
+    -- Coequalizer UMP: g factors as hcoeq.map ≫ d.
+    have hd : hcoeq.map ≫ hcoeq.desc g hRg = g := hcoeq.fac g hRg
+    -- kernelPairRel hcoeq.map ⊂ kernelPairRel g (legs of one kernel pair land in the other).
+    have hkpkp : RelLe (kernelPairRel hcoeq.map) (kernelPairRel g) := by
+      have hsq : kp₁ (f := hcoeq.map) ≫ g = kp₂ (f := hcoeq.map) ≫ g := by
+        rw [← hd, ← Cat.assoc, ← Cat.assoc, kp_sq]
+      let l := (HasPullbacks.has g g).lift ⟨_, kp₁ (f := hcoeq.map), kp₂ (f := hcoeq.map), hsq⟩
+      exact ⟨⟨l, kp_lift_p₁ _ _ hsq, kp_lift_p₂ _ _ hsq⟩⟩
+    -- kernelPairRel g ⊂ (graph g ⊚ graph g°) ⊂ F.
+    have hkpF : RelLe (kernelPairRel g) F :=
+      rel_le_trans (kernelPairRel_le_graphComp g) hleF
+    exact rel_le_trans hkpkp hkpF
+
+theorem preTopos_minEquiv_to_cocartesian {𝒞 : Type u} [Cat.{v} 𝒞] [PreTopos 𝒞]
     (h : HasMinEquivContaining 𝒞) : Nonempty (HasCoequalizers 𝒞) := by
-  sorry
+  -- Build coequalizers from the minimal-equivalence hypothesis (§1.657 backward direction).
+  -- Key: all Prop reasoning is packaged into hcoeProp via obtain; Classical.choose
+  -- then lifts the existential data into the Type world for HasCoequalizer.
+  suffices ∀ {C A : 𝒞} (f g : C ⟶ A), HasCoequalizer f g by exact ⟨⟨fun f g => this f g⟩⟩
+  intro C A f g
+  -- Step 1: Build R = image relation of (f,g) : C → A×A.
+  let sp : C ⟶ prod A A := pair f g
+  let I := image sp
+  have hImp : MonicPair (I.arr ≫ fst) (I.arr ≫ snd) :=
+    monicPair_of_monic_pair _ _ (by rw [← pair_eta I.arr]; exact I.monic)
+  let R : BinRel 𝒞 A A := ⟨I.dom, I.arr ≫ fst, I.arr ≫ snd, hImp⟩
+  have hRA : image.lift sp ≫ R.colA = f := by
+    show image.lift sp ≫ I.arr ≫ fst = f; rw [← Cat.assoc, image.lift_fac, fst_pair]
+  have hRB : image.lift sp ≫ R.colB = g := by
+    show image.lift sp ≫ I.arr ≫ snd = g; rw [← Cat.assoc, image.lift_fac, snd_pair]
+  -- Step 2–4: packaged as a Prop lemma so obtain works throughout.
+  have hcoeProp : ∃ (Q : 𝒞) (z : A ⟶ Q), Cover z ∧ f ≫ z = g ≫ z ∧
+      ∀ {X : 𝒞} (k : A ⟶ X), f ≫ k = g ≫ k →
+        ∃ d : Q ⟶ X, z ≫ d = k ∧ ∀ d' : Q ⟶ X, z ≫ d' = k → d' = d := by
+    -- Step 2: get minimal equivalence E ⊇ R.
+    obtain ⟨E, hEeq, hRE, hEmin⟩ := h A R
+    -- Step 3: effectiveness gives cover z : A → Q.
+    obtain ⟨_, Q, z, hzcov, hEle, hleE⟩ := EffectiveRegular.effective E hEeq
+    -- R ⊂ kernelPairRel z.
+    have hRkpz : RelLe R (kernelPairRel z) :=
+      rel_le_trans (rel_le_trans hRE hEle) (graphComp_le_kernelPairRel z)
+    -- Step 4a: f ≫ z = g ≫ z.
+    have hfz : f ≫ z = g ≫ z := by
+      obtain ⟨⟨w, hwA, hwB⟩⟩ := hRkpz
+      -- hwA : w ≫ (kernelPairRel z).colA = R.colA, i.e. w ≫ kp₁(z) = R.colA
+      -- hwB : w ≫ (kernelPairRel z).colB = R.colB, i.e. w ≫ kp₂(z) = R.colB
+      have hcolAz : R.colA ≫ z = R.colB ≫ z := by
+        have e1 : w ≫ kp₁ (f := z) = R.colA := by simpa [kernelPairRel] using hwA
+        have e2 : w ≫ kp₂ (f := z) = R.colB := by simpa [kernelPairRel] using hwB
+        calc R.colA ≫ z = (w ≫ kp₁ (f := z)) ≫ z := by rw [e1]
+          _ = w ≫ kp₂ (f := z) ≫ z := by rw [Cat.assoc, kp_sq]
+          _ = R.colB ≫ z := by rw [← Cat.assoc, e2]
+      calc f ≫ z = image.lift sp ≫ R.colA ≫ z := by rw [← hRA, Cat.assoc]
+        _ = image.lift sp ≫ R.colB ≫ z := by rw [hcolAz]
+        _ = g ≫ z := by rw [← Cat.assoc, hRB]
+    -- Step 4b: UMP.
+    refine ⟨Q, z, hzcov, hfz, fun {X} k hfk => ?_⟩
+    -- R.colA ≫ k = R.colB ≫ k via cover_epi on image.lift sp.
+    have hRk : R.colA ≫ k = R.colB ≫ k := by
+      apply cover_epi (image_lift_cover sp)
+      calc image.lift sp ≫ R.colA ≫ k = f ≫ k := by rw [← Cat.assoc, hRA]
+        _ = g ≫ k := hfk
+        _ = image.lift sp ≫ R.colB ≫ k := by rw [← Cat.assoc, hRB]
+    -- R ⊂ kernelPairRel k.
+    have hRkpk : RelLe R (kernelPairRel k) := by
+      let l := (HasPullbacks.has k k).lift ⟨_, R.colA, R.colB, hRk⟩
+      exact ⟨⟨l, kp_lift_p₁ R.colA R.colB hRk, kp_lift_p₂ R.colA R.colB hRk⟩⟩
+    -- E ⊂ kernelPairRel k by minimality.
+    have hEkpk := hEmin (kernelPairRel k) (level_is_equivalence_relation k) hRkpk
+    -- kernelPairRel z ⊂ kernelPairRel k.
+    have hkpzkpk : RelLe (kernelPairRel z) (kernelPairRel k) :=
+      rel_le_trans (rel_le_trans (kernelPairRel_le_graphComp z) hleE) hEkpk
+    -- kp₁(z) ≫ k = kp₂(z) ≫ k.
+    have hkpeq : kp₁ (f := z) ≫ k = kp₂ (f := z) ≫ k := by
+      obtain ⟨⟨φ, hφA, hφB⟩⟩ := hkpzkpk
+      -- hφA : φ ≫ (kernelPairRel k).colA = (kernelPairRel z).colA, i.e. φ ≫ kp₁(k) = kp₁(z)
+      -- hφB : φ ≫ (kernelPairRel k).colB = (kernelPairRel z).colB, i.e. φ ≫ kp₂(k) = kp₂(z)
+      have e1 : φ ≫ kp₁ (f := k) = kp₁ (f := z) := by simpa [kernelPairRel] using hφA
+      have e2 : φ ≫ kp₂ (f := k) = kp₂ (f := z) := by simpa [kernelPairRel] using hφB
+      calc kp₁ (f := z) ≫ k = (φ ≫ kp₁ (f := k)) ≫ k := by rw [e1]
+        _ = φ ≫ kp₂ (f := k) ≫ k := by rw [Cat.assoc, kp_sq]
+        _ = kp₂ (f := z) ≫ k := by rw [← Cat.assoc, e2]
+    exact cover_is_coequalizer_of_level z hzcov k hkpeq
+  -- Lift the Prop data into the HasCoequalizer structure using Classical.choose.
+  let Q  := Classical.choose hcoeProp
+  let hz := Classical.choose_spec hcoeProp  -- ∃ z, ...
+  let z  := Classical.choose hz
+  let hzdata := Classical.choose_spec hz    -- Cover z ∧ f≫z=g≫z ∧ UMP
+  have hzcov : Cover z := hzdata.1
+  have hfz   : f ≫ z = g ≫ z := hzdata.2.1
+  have hUMP  : ∀ {X : 𝒞} (k : A ⟶ X), f ≫ k = g ≫ k →
+      ∃ d : Q ⟶ X, z ≫ d = k ∧ ∀ d' : Q ⟶ X, z ≫ d' = k → d' = d := hzdata.2.2
+  exact {
+    obj  := Q
+    map  := z
+    eq   := hfz
+    desc := fun k hfk => Classical.choose (hUMP k hfk)
+    fac  := fun k hfk => (Classical.choose_spec (hUMP k hfk)).1
+    uniq := fun k hfk m hm => (Classical.choose_spec (hUMP k hfk)).2 m hm
+  }
 
 /-! ## §1.655 Bicartesian representation criterion
 
@@ -254,7 +436,33 @@ def DecidableObject [PreLogos 𝒞] [HasBinaryProducts 𝒞] (A : 𝒞) : Prop :
     pulled back to any slice, where it coincides with the diagonal. -/
 theorem preTopos_boolean_iff_all_decidable [PreTopos 𝒞] [HasBinaryProducts 𝒞] :
     (Nonempty (BooleanPreLogos 𝒞)) ↔ ∀ (A : 𝒞), DecidableObject A := by
-  sorry
+  refine ⟨fun ⟨hbool⟩ A => ?_, fun h => ?_⟩
+  · -- (⇒) BooleanPreLogos → every diagonal subobject is complemented = DecidableObject A.
+    -- The instance mismatch between hbool.toPreLogos and the ambient [PreLogos 𝒞] variable
+    -- is resolved by using hbool's union_min to bridge to the ambient union.
+    unfold DecidableObject IsComplemented
+    let diagSub : Subobject 𝒞 (prod A A) := { dom := A, arr := diag A, monic := diag_mono A }
+    obtain ⟨A₂, hdisj, hunion⟩ := hbool.hasComplement diagSub
+    refine ⟨A₂, hdisj, ?_⟩
+    -- hunion : entire ≤ hbool.union diagSub A₂; goal: entire ≤ ambient.union diagSub A₂
+    have hleft  : diagSub.le (HasSubobjectUnions.union diagSub A₂) :=
+      HasSubobjectUnions.union_left diagSub A₂
+    have hright : A₂.le (HasSubobjectUnions.union diagSub A₂) :=
+      HasSubobjectUnions.union_right diagSub A₂
+    -- hbool.union_min: since diagSub ≤ ambient_union and A₂ ≤ ambient_union,
+    -- hbool_union ≤ ambient_union
+    have hle : (hbool.toPreLogos.toHasSubobjectUnions.union diagSub A₂).le
+                (HasSubobjectUnions.union diagSub A₂) :=
+      hbool.toPreLogos.toHasSubobjectUnions.union_min diagSub A₂ _ hleft hright
+    obtain ⟨e1, he1⟩ := hunion
+    obtain ⟨e2, he2⟩ := hle
+    exact ⟨e1 ≫ e2, by rw [Cat.assoc, he2, he1]⟩
+  · -- (⇐) All decidable → BooleanPreLogos.
+    -- Requires pullback stability of complements (§1.658): if K is complemented and f : B → C,
+    -- then InverseImage f K is complemented. Every subobject S of B can then be shown
+    -- complemented by pulling back the diagonal (which is decidable) along an appropriate map.
+    -- This infrastructure is not yet formalized; left as sorry.
+    sorry
 
 /-! ## §1.659 Decidability in functor categories and sheaves
 
