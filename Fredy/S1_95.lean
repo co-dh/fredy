@@ -258,12 +258,57 @@ def InternallyCogenerates [HasExponentials 𝒞] (C : 𝒞) : Prop :=
 /-- **§1.965**: A cogenerator internally cogenerates.
     If C cogenerates (i.e., (−, C) is an embedding) then C^(−) is also an embedding:
     for f ≠ g, T(C^f) ≠ T(C^g), hence C^f ≠ C^g. -/
-theorem cogenerator_internally_cogenerates [HasExponentials 𝒞]
+theorem cogenerator_internally_cogenerates [HasExponentials 𝒞] [HasTerminal 𝒞]
     (C : 𝒞)
     (hcog : ∀ {A B : 𝒞} (f g : A ⟶ B), f ≠ g →
       ∃ (h : B ⟶ C), f ≫ h ≠ g ≫ h) :
     InternallyCogenerates C := by
-  sorry
+  intro A B f g heq
+  apply Classical.byContradiction; intro hne
+  obtain ⟨h, hh⟩ := hcog f g hne
+  -- expMap C f = expMap C g; curry_inj gives the uncurried identity.
+  have hunc : prodMapLeft (C ^^ B) f ≫ eval_exp B C =
+              prodMapLeft (C ^^ B) g ≫ eval_exp B C := curry_inj heq
+  -- Let s := pair fstA (sndA ≫ curry(fstB ≫ h)) : prod A one → prod A (C^^B).
+  -- Key: s ≫ prodMapLeft(k) ≫ eval_exp B C = fstA ≫ k ≫ h for any k : A → B.
+  have heval_A : ∀ (k : A ⟶ B),
+      pair (fst (A := A) (B := one)) (snd (A := A) (B := one) ≫ curry (fst (A := B) (B := one) ≫ h)) ≫
+        prodMapLeft (C ^^ B) k ≫ eval_exp B C =
+      fst (A := A) (B := one) ≫ k ≫ h := by
+    intro k
+    -- s ≫ prodMapLeft(k) = pair(fstA≫k)(sndA≫curry(fstB≫h))
+    have step1 : pair (fst (A := A) (B := one)) (snd (A := A) (B := one) ≫ curry (fst (A := B) (B := one) ≫ h)) ≫
+        prodMapLeft (C ^^ B) k =
+      pair (fst (A := A) (B := one) ≫ k) (snd (A := A) (B := one) ≫ curry (fst (A := B) (B := one) ≫ h)) :=
+      pair_uniq _ _ _
+        (by rw [Cat.assoc, prodMapLeft, fst_pair, ← Cat.assoc, fst_pair])
+        (by rw [Cat.assoc, prodMapLeft, snd_pair, snd_pair])
+    -- pair(fstA≫k)(sndA≫t) = pair(fstA≫k) sndAone ≫ pair fstBone (sndBone≫t), via prod B one
+    have hfactor : pair (fst (A := A) (B := one) ≫ k) (snd (A := A) (B := one) ≫ curry (fst (A := B) (B := one) ≫ h)) =
+        (pair (fst (A := A) (B := one) ≫ k) (snd (A := A) (B := one)) : prod A one ⟶ prod B one) ≫
+        pair (fst (A := B) (B := one)) (snd (A := B) (B := one) ≫ curry (fst (A := B) (B := one) ≫ h)) :=
+      (pair_uniq _ _ _
+        (by rw [Cat.assoc, fst_pair, fst_pair])
+        (by rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair])).symm
+    calc pair (fst (A := A) (B := one)) (snd (A := A) (B := one) ≫ curry (fst (A := B) (B := one) ≫ h)) ≫
+            prodMapLeft (C ^^ B) k ≫ eval_exp B C
+        = pair (fst (A := A) (B := one) ≫ k) (snd (A := A) (B := one) ≫ curry (fst (A := B) (B := one) ≫ h)) ≫
+            eval_exp B C := by rw [← Cat.assoc, step1]
+      _ = (pair (fst (A := A) (B := one) ≫ k) (snd (A := A) (B := one)) : prod A one ⟶ prod B one) ≫
+            pair (fst (A := B) (B := one)) (snd (A := B) (B := one) ≫ curry (fst (A := B) (B := one) ≫ h)) ≫
+            eval_exp B C := by rw [hfactor, Cat.assoc]
+      _ = (pair (fst (A := A) (B := one) ≫ k) (snd (A := A) (B := one)) : prod A one ⟶ prod B one) ≫
+            (fst (A := B) (B := one) ≫ h) := by congr 1; exact curry_eval_eq _
+      _ = fst (A := A) (B := one) ≫ k ≫ h := by rw [← Cat.assoc, fst_pair, Cat.assoc]
+  -- Precompose hunc with s to get fstA ≫ f ≫ h = fstA ≫ g ≫ h.
+  have heqh : fst (A := A) (B := one) ≫ f ≫ h = fst (A := A) (B := one) ≫ g ≫ h := by
+    rw [← heval_A f, ← heval_A g]
+    exact congrArg (pair (fst (A := A) (B := one)) (snd (A := A) (B := one) ≫ curry (fst (A := B) (B := one) ≫ h)) ≫ ·) hunc
+  -- Cancel fstA via its right-inverse prodOneRightInv A, concluding f ≫ h = g ≫ h.
+  exact hh (by
+    have := congrArg (prodOneRightInv A ≫ ·) heqh
+    simp only [← Cat.assoc, prodOneRightInv_fst, Cat.id_comp] at this
+    exact this)
 
 /-- **§1.965**: In a topos, Ω internally cogenerates.
     Proof: suppose Ω^f = Ω^g.  Embed the small subtopos containing f,g faithfully
