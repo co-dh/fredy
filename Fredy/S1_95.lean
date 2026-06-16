@@ -177,87 +177,12 @@ instance topos_is_positive [Topos 𝒞] : HasBinaryCoproducts 𝒞 := by
 section Coequalizers
 variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
 
-/-- **Bridge (§1.77 ↔ §1.56)**: the relation-algebra notion of equivalence
-    (`IsEquivRel`: `1 ⊑ E`, `E° ⊑ E`, `E⊚E ⊑ E`) yields the §1.56 notion
-    `EquivalenceRelation` (reflexivity *witness*, `RelHom E E°`, `RelHom (E⊚E) E`).
-
-    * reflexivity: a `RelHom (graph 1_A) E` is exactly a map `h : A → E.src` with
-      `h ≫ E.colA = 1_A` and `h ≫ E.colB = 1_A`;
-    * symmetry: `RelLe E° E` reciprocates (involution) to `RelLe E E°`, i.e.
-      `RelHom E E°`;
-    * transitivity: `RelLe (E⊚E) E` is literally `Nonempty (RelHom (E⊚E) E)`. -/
-theorem equivalenceRelation_of_isEquivRel {A : 𝒞} {E : BinRel 𝒞 A A}
-    (hE : IsEquivRel E) : EquivalenceRelation E := by
-  obtain ⟨⟨h, hA, hB⟩, hsym, htrans⟩ := hE
-  refine ⟨⟨h, ?_, ?_⟩, ?_, htrans⟩
-  · -- `h : (graph 1_A).src ⟶ E.src` with the graph(1) columns = 1_A.
-    simpa [graph] using hA
-  · simpa [graph] using hB
-  · -- symmetry: reciprocate `E° ⊑ E` and use involution `E°° = E`.
-    have := reciprocal_monotone hsym
-    rwa [reciprocal_invol] at this
+/-! The §1.77↔§1.56 equivalence-relation bridge `equivalenceRelation_of_isEquivRel`
+    and the §1.954 core reduction `minEquiv_of_rtc` (every endo-relation has a minimal
+    equivalence relation containing it, via the closure `(R ∪ R° ∪ 1)*`) live canonically
+    in `Fredy.S1_64` (lower in the import hierarchy); reused here via import (DRY). -/
 
 end Coequalizers
-
-/-- **§1.954, core reduction**: in a category with reflexive-transitive closures
-    every endo-relation has a *minimal equivalence relation* containing it
-    (`HasMinEquivContaining`).  The minimal equivalence containing `R` is the
-    equivalence closure `(R ∪ R° ∪ 1)*`: form the symmetrisation
-    `Rsym := (R ∪ᵣ R°) ∪ᵣ graph 1_A`, take its reflexive-transitive closure with
-    `rtc`, and feed both to `equivClos_from_symm_transRefClos`.
-
-    `Rsym` is the *join* of `R`, `R°`, `1` (hence the `hJoin` universal property is
-    `le_relUnion`), and is symmetric: `Rsym° = R° ∪ R ∪ 1 = Rsym` (proved one
-    direction via the join property + reciprocal involution, the other by
-    reciprocating).  The resulting `EquivClos`'s `minimal` field is exactly the
-    minimality required by `HasMinEquivContaining` (after the `IsEquivRel ↔
-    EquivalenceRelation` bridge). -/
-theorem minEquiv_of_rtc [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
-    [HasBinaryCoproducts 𝒞] [HasReflTransClosure 𝒞] :
-    HasMinEquivContaining 𝒞 := by
-  intro A R
-  -- Symmetrisation Rsym = (R ∪ R°) ∪ 1, the join of R, R°, graph(1_A).
-  let G : BinRel 𝒞 A A := graph (Cat.id A)
-  let Rsym : BinRel 𝒞 A A := (R ∪ᵣ R°) ∪ᵣ G
-  -- Each generator sits below Rsym.
-  have hR_sym : RelLe R Rsym :=
-    rel_le_trans (relUnion_le_left R (R°)) (relUnion_le_left (R ∪ᵣ R°) G)
-  have hRrec_sym : RelLe (R°) Rsym :=
-    rel_le_trans (relUnion_le_right R (R°)) (relUnion_le_left (R ∪ᵣ R°) G)
-  have hG_sym : RelLe G Rsym := relUnion_le_right (R ∪ᵣ R°) G
-  -- Join universal property: any U above R, R°, 1 is above Rsym.
-  have hJoin : ∀ (U : BinRel 𝒞 A A),
-      RelLe R U → RelLe (R°) U → RelLe G U → RelLe Rsym U := by
-    intro U hRU hRrecU hGU
-    exact le_relUnion (le_relUnion hRU hRrecU) hGU
-  -- Symmetry of Rsym: Rsym ⊑ Rsym°, then reciprocate.
-  have hsym : IsSymmetric Rsym := by
-    have hle : RelLe Rsym (Rsym°) := by
-      apply hJoin
-      · -- R = R°° ⊑ Rsym°: from R° ⊑ Rsym reciprocate, involution.
-        have := reciprocal_monotone hRrec_sym
-        rwa [reciprocal_invol] at this
-      · -- R° ⊑ Rsym°: from R ⊑ Rsym reciprocate.
-        exact reciprocal_monotone hR_sym
-      · -- 1 ⊑ Rsym°: 1 ⊑ 1° ⊑ Rsym°.
-        exact rel_le_trans graph_id_le_reciprocal (reciprocal_monotone hG_sym)
-    have h3 : RelLe (Rsym°) (Rsym°°) := reciprocal_monotone hle
-    rwa [reciprocal_invol] at h3
-  -- Reflexive-transitive closure of Rsym, then equivalence closure of R.
-  let hr := HasReflTransClosure.transRefClos Rsym
-  let ec := equivClos_from_symm_transRefClos R Rsym hR_sym hsym hJoin hr
-  refine ⟨ec.clos, equivalenceRelation_of_isEquivRel ec.isEquiv, ec.le, ?_⟩
-  -- Minimality, transported through the `IsEquivRel`/`EquivalenceRelation` bridge.
-  intro F hFeq hRF
-  refine ec.minimal F hRF ?_
-  -- EquivalenceRelation F ⟹ IsEquivRel F.
-  obtain ⟨⟨h, hA, hB⟩, ⟨symF⟩, ⟨transF⟩⟩ := hFeq
-  refine ⟨⟨⟨h, ?_, ?_⟩⟩, ?_, ⟨transF⟩⟩
-  · simpa [graph] using hA
-  · simpa [graph] using hB
-  · -- F° ⊑ F: reciprocate the symmetry RelHom F F° (uses involution).
-    have : RelLe (F°) (F°°) := reciprocal_monotone ⟨symF⟩
-    rwa [reciprocal_invol] at this
 
 /-- **§1.954, substantive reduction (no `sorry`)**: a PRE-TOPOS that has
     reflexive-transitive closures has coequalizers.
@@ -279,7 +204,7 @@ noncomputable def preTopos_rtc_has_coequalizers [inst : PreTopos 𝒞]
   -- available — defeq, but not syntactically equal, which derails instance-implicit
   -- unification.)
   Classical.choice (preTopos_minEquiv_to_cocartesian
-    (@minEquiv_of_rtc 𝒞 _ PreTopos.toPositivePreLogos.toPreLogos.toRegularCategory.toHasTerminal
+    (@minEquiv_of_rtc 𝒞 _
       PreTopos.toPositivePreLogos.toHasBinaryProducts
       PreTopos.toPositivePreLogos.toHasPullbacks PreTopos.toPositivePreLogos.toHasImages
       PreTopos.toPositivePreLogos.toHasBinaryCoproducts hRtc))

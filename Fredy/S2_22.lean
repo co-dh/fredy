@@ -175,10 +175,13 @@ def InterUnionDistrib (𝒜 : Type u) [UnionAllegory 𝒜] : Prop :=
 /-! ### Tabulation transport lemmas (for §2.228(a))
 
   Fix a tabulation `(f,g)` of `U` (so `f° f = g° g = 1`).  The map
-  `φ Q := f° ≫ Q ≫ g` carries `{Q | Q ⊑ U}` to coreflexives on the apex,
-  with one-sided inverse `ψ A := f ≫ A ≫ g°`.  These lemmas package the
-  algebra; the only genuinely hard step (`ψ (φ Q) = Q` for `Q ⊑ U`) is the
-  modular tabulation identity left as a faithful sorry below. -/
+  `φ Q := f° ≫ Q ≫ g` carries `{Q | Q ⊑ U}` to coreflexives on the apex
+  (`tab_phi_coreflexive`), with intended inverse `ψ A := f ≫ A ≫ g°`.
+  Freyd states this is an order-iso; in fact `ψ` is NOT a section of `φ`
+  in a general tabular allegory (the round-trip `ψ(φ Q) = Q` FAILS — see the
+  Rel counterexample in `tab_transport_gap`'s docstring).  The genuinely
+  constructive content (`tab_phi_coreflexive`, `tab_deflate_source/target`)
+  is recorded below; the distributivity itself is the faithful sorry. -/
 
 /-- For a tabulation, `φ Q = f° Q g` is coreflexive whenever `Q ⊑ f g°`. -/
 theorem tab_phi_coreflexive [UnionAllegory 𝒜] {a p c : 𝒜}
@@ -193,6 +196,41 @@ theorem tab_phi_coreflexive [UnionAllegory 𝒜] {a p c : 𝒜}
       _ = Cat.id c ≫ Cat.id c := by rw [hff1, hgg1]
       _ = Cat.id c := by rw [Cat.id_comp]
   rw [h2] at h1; exact h1
+
+/-! ### Tabulation deflation calculus (constructive half-identities)
+
+  For a tabulation `(f,g)` (so `f° f = 1`, `g° g = 1`) and `Q ⊑ f g°`, the
+  two one-sided "deflations" below ARE provable constructively from the meet
+  equations alone (no modular law even needed): `f° Q ⊑ g°` and `Q g ⊑ f`.
+  They feed `tab_phi_coreflexive` and would feed the transport round-trip.
+
+  WHAT IS NOT PROVABLE here (see `tab_transport_gap`): the full fixed-point
+  identity `f (f° Q g) g° = Q` is FALSE in a general tabular allegory — it
+  fails already in `Rel`.  Concrete witness (apex `c = {∗}`, `a = b = {1,2}`,
+  `f,g` the unique maps to `{∗}`; both are maps with `f° f = g° g = 1_c`, so
+  `(f,g)` tabulates the full relation `U = f g°`): for `Q = {(1,1)} ⊑ U` one
+  computes `f° Q g = 1_c`, whence `f (f° Q g) g° = f g° = U ≠ Q`.  Hence the
+  transport map `ψ A = f A g°` is NOT a section of `φ Q = f° Q g` on
+  `{Q ⊑ U}`, and §2.228(a) genuinely needs the coreflexive/idempotent-
+  splitting of §2.213/§2.226, absent from this repo. -/
+
+/-- Tabulation deflation (source side): `f° Q ⊑ g°` for `Q ⊑ f g°` when
+    `f° f = 1`.  Constructive, modular law not needed. -/
+theorem tab_deflate_source [UnionAllegory 𝒜] {a c p : 𝒜}
+    {f : a ⟶ c} {g : p ⟶ c} (hff1 : f° ≫ f = Cat.id c)
+    {Q : a ⟶ p} (hQ : Q ⊑ f ≫ g°) : f° ≫ Q ⊑ g° := by
+  calc f° ≫ Q ⊑ f° ≫ (f ≫ g°) := comp_mono_left f° hQ
+    _ = (f° ≫ f) ≫ g° := by simp [Cat.assoc]
+    _ = g° := by rw [hff1, Cat.id_comp]
+
+/-- Tabulation deflation (target side): `Q g ⊑ f` for `Q ⊑ f g°` when
+    `g° g = 1`.  Constructive, modular law not needed. -/
+theorem tab_deflate_target [UnionAllegory 𝒜] {a c p : 𝒜}
+    {f : a ⟶ c} {g : p ⟶ c} (hgg1 : g° ≫ g = Cat.id c)
+    {Q : a ⟶ p} (hQ : Q ⊑ f ≫ g°) : Q ≫ g ⊑ f := by
+  calc Q ≫ g ⊑ (f ≫ g°) ≫ g := comp_mono_right hQ g
+    _ = f ≫ (g° ≫ g) := by simp [Cat.assoc]
+    _ = f := by rw [hgg1, Cat.comp_id]
 
 /-! ### The "easy" half of intersection-over-union
 
@@ -231,16 +269,23 @@ theorem interUnionDistrib_iff_le [UnionAllegory 𝒜] :
 
 /-- **Tabulation transport gap** (the one genuine §2.228(a) infrastructure
     hole).  In the context of a tabulation `(f,g)` of `U = f g°`, with the
-    three morphisms `R,S,T ⊑ U` and their `φ`-images coreflexive, the
-    intersection-over-union containment for `R,S,T` follows by transporting
-    the *distributive* coreflexive lattice on the apex back along the
-    order-iso `φ Q = f° Q g`, `ψ A = f A g°`.
+    three morphisms `R,S,T ⊑ U` and their `φ`-images coreflexive, Freyd
+    transports the *distributive* coreflexive lattice on the apex back along
+    `φ Q = f° Q g`, `ψ A = f A g°` to conclude the ∩-over-∪ containment.
 
-    FAITHFUL SORRY: this transport needs the modular-law tabulation identity
-    `ψ (φ Q) = f f° Q g g° = Q` for `Q ⊑ U`, which in turn rests on the map
-    calculus (difunctionality of maps) not yet developed on this repo's
-    allegory.  The hypotheses are exactly those produced inside
-    `interUnionDistrib_of_tabular`; none is vacuous. -/
+    The STATEMENT is true (it holds in `Rel`, which is distributive), and the
+    hypotheses here are exactly those produced inside
+    `interUnionDistrib_of_tabular`; none is vacuous.
+
+    FAITHFUL SORRY: the transport is NOT elementarily reconstructible.  It
+    would require `ψ (φ Q) = f (f° Q g) g° = Q` for `Q ⊑ U`, but this
+    fixed-point identity is FALSE in a general tabular allegory.  Witness in
+    `Rel`: apex `c = {∗}`, `a = b = {1,2}`, `f,g` the unique maps to `{∗}`
+    (both maps, `f° f = g° g = 1_c`, so `(f,g)` tabulates the full relation
+    `U`); for `Q = {(1,1)} ⊑ U`, `f° Q g = 1_c`, so `f (f° Q g) g° = U ≠ Q`.
+    Freyd's order-iso therefore needs the coreflexive/symmetric-idempotent
+    splitting of §2.213/§2.226 (systemic completion), infrastructure not yet
+    on this repo. -/
 theorem tab_transport_gap [UnionAllegory 𝒜] {a p c : 𝒜}
     {f : a ⟶ c} {g : p ⟶ c} {R S T : a ⟶ p}
     (_hcR : Coreflexive (f° ≫ R ≫ g)) (_hcS : Coreflexive (f° ≫ S ≫ g))
@@ -304,8 +349,10 @@ theorem interUnionDistrib_of_tabular [UnionAllegory 𝒜]
     §2.228(a) applies, and pulling the result back.
 
     FAITHFUL SORRY: the split-idempotent / systemic completion is not yet on
-    this repo.  The hypotheses are the genuine semi-simple witnesses of
-    `R, S, T`; none is vacuous. -/
+    this repo, and even after splitting the result is fed to §2.228(a) whose
+    own transport (`tab_transport_gap`) is itself blocked by the same missing
+    splitting (see its docstring).  The hypotheses are the genuine semi-simple
+    witnesses of `R, S, T`; none is vacuous. -/
 theorem semiSimple_transport_gap [UnionAllegory 𝒜] {a b : 𝒜} {R S T : a ⟶ b}
     (_hR : SemiSimple R) (_hS : SemiSimple S) (_hT : SemiSimple T) :
     R ∩ (S ∪ᵤ T) ⊑ (R ∩ S) ∪ᵤ (R ∩ T) := by

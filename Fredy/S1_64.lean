@@ -26,6 +26,7 @@ import Fredy.S1_59
 import Fredy.S1_60
 import Fredy.S1_57
 import Fredy.S1_62
+import Fredy.S1_77
 
 
 open Freyd
@@ -245,127 +246,6 @@ class PreToposDisjoint (𝒞 : Type u) [Cat.{v} 𝒞] extends
 
 variable {𝒞}
 
-/-! ## §1.651 Amalgamation Lemma
-
-  In a pre-topos, given monics x: A↣B, y: A↣C, there exists a
-  pushout B ↣ D, C ↣ D completing the square. -/
-
-/-- **§1.651 Amalgamation Lemma**: In a pre-topos, the pushout of two
-    monics with a common source exists and the resulting maps are monic.
-    Proof: form B+C, define equivalence relation E identifying x(a)∼y(a),
-    then the effective quotient B+C ↠ D gives the pushout.
-
-    CONSTRUCTIVE PROGRESS (this file): with `[DisjointBinaryCoproduct 𝒞]` now supplying §1.62
-    positivity and `[HasCoequalizers 𝒞]` (Freyd's §1.654/657: a pretopos used cocartesianly has
-    coequalizers), the pushout object is built EXPLICITLY as `D := coeq(x≫inl, y≫inr)` with
-    `u := inl≫q`, `v := inr≫q`.  The commutativity leg `x≫u = y≫v` is discharged sorry-free
-    (it is literally the coequalizer equation `q.eq`).
-
-    SHARPENED RESIDUAL (the two `sorry`s below): `Mono u` and `Mono v`.  This is the genuine
-    descent obligation: the kernel pair of the regular epi `q` is the equivalence relation
-    GENERATED on `B+C` by `{x(a)≫inl ∼ y(a)≫inr}`, and one must show its restriction to the
-    image of `inl` (resp. `inr`) is the diagonal.  Disjointness (`inl_inter_inr_le_bottom`,
-    `coprod_inl_inr_disjoint_elt`) and `inl/inr_mono` are the NECESSARY ingredients (without
-    them `u,v` are not monic), but the proof additionally needs the transitive-closure /
-    zigzag analysis of the generated relation — i.e. the construction of a minimal equivalence
-    relation containing a given relation, which in this repo only exists *given*
-    `HasMinEquivContaining` (built from coequalizers in `preTopos_cocartesian_to_minEquiv`),
-    not as a standalone descent lemma for the legs.  Faithful sorry on exactly the two leg
-    monicities; the object, the maps, and the square are now real. -/
-theorem amalgamation_lemma [DisjointBinaryCoproduct 𝒞] [PreTopos 𝒞] [HasCoequalizers 𝒞]
-    {A B C : 𝒞}
-    (x : A ⟶ B) (hx : Mono x) (y : A ⟶ C) (hy : Mono y) :
-    ∃ (D : 𝒞) (u : B ⟶ D) (v : C ⟶ D), Mono u ∧ Mono v ∧ x ≫ u = y ≫ v := by
-  -- D := coequalizer of (x ≫ inl, y ≫ inr) : A ⇉ B+C.  u := inl ≫ q, v := inr ≫ q.
-  let q := HasCoequalizers.coeq (x ≫ HasBinaryCoproducts.inl) (y ≫ HasBinaryCoproducts.inr)
-  refine ⟨q.obj, HasBinaryCoproducts.inl ≫ q.map, HasBinaryCoproducts.inr ≫ q.map, ?_, ?_, ?_⟩
-  · sorry
-  · sorry
-  · -- commutativity: x ≫ (inl ≫ q) = y ≫ (inr ≫ q) is exactly the coequalizer equation.
-    rw [← Cat.assoc, ← Cat.assoc]; exact q.eq
-
-/-! ## §1.652 Covers = epics, Monics = cocovers
-
-  In a pre-topos, covers coincide with epimorphisms, and monics
-  coincide with coequalizers (cocovers). -/
-
-/-- **§1.652 (crux): a pre-topos is BALANCED** — a map that is both monic and
-    epic is an isomorphism.  This is the genuine positivity content of §1.652:
-    the cokernel pair of `m` is built from the *disjoint* coproduct `B + B`
-    (positivity) via the effective quotient, and a monic that is also epic
-    equalizes a pair of equal legs, hence splits.  It is **not** derivable from
-    the current axioms — `HasBinaryCoproducts` carries only the bare universal
-    property, with no disjointness/universality, so the cokernel-pair argument
-    has no axiom to stand on.  Isolated here as the single obligation that both
-    reverse-directions below (`cover_eq_epic_preTopos`, `monic_eq_cocover`) rest
-    on; closing it needs §1.62 positivity axiomatized as Freyd states it
-    (disjoint + universal coproducts).
-
-    STATE (with `[DisjointBinaryCoproduct 𝒞]` now available): the §1.62 positivity axiom IS
-    present, so the cokernel-pair `B ⇉ D := coeq(m≫inl, m≫inr)` is now a real object (cf.
-    `amalgamation_lemma` with `x = y = m`).  `m` epic forces the two cokernel-pair legs equal,
-    which (cokernel pair = pushout of `m,m`) splits `m`.  The remaining gap is identical to the
-    one residual in `amalgamation_lemma`: that the cokernel-pair legs are MONIC (the generated
-    equivalence relation restricts to the diagonal on `inl(B)`), which needs the transitive
-    closure / descent analysis not yet a standalone lemma.  Faithful sorry on exactly that. -/
-theorem pretopos_balanced [DisjointBinaryCoproduct 𝒞] [PreTopos 𝒞] {A B : 𝒞}
-    (m : A ⟶ B) (hm : Mono m)
-    (hepi : ∀ {C : 𝒞} (g h : B ⟶ C), m ≫ g = m ≫ h → g = h) : IsIso m := by
-  sorry
-
-theorem cover_eq_epic_preTopos [DisjointBinaryCoproduct 𝒞] [PreTopos 𝒞] {A B : 𝒞} (f : A ⟶ B) :
-    Cover f ↔ (∀ {C : 𝒞} (g h : B ⟶ C), f ≫ g = f ≫ h → g = h) := by
-  constructor
-  · -- Cover → epic (§1.512): already proved
-    exact cover_epi
-  · intro hepi
-    rw [cover_iff_image_entire]
-    -- Goal: Subobject.IsEntire (image f), i.e., IsIso (image f).arr.
-    -- `(image f).arr` is monic; since `f = lift ≫ arr` is epic, `arr` is epic too.
-    have h_arr_epi : ∀ {C : 𝒞} (g h : B ⟶ C), (image f).arr ≫ g = (image f).arr ≫ h → g = h := by
-      intro C g h heq
-      apply hepi
-      calc f ≫ g = (image.lift f ≫ (image f).arr) ≫ g := by rw [image.lift_fac f]
-        _ = image.lift f ≫ ((image f).arr ≫ g) := Cat.assoc _ _ _
-        _ = image.lift f ≫ ((image f).arr ≫ h) := by rw [heq]
-        _ = (image.lift f ≫ (image f).arr) ≫ h := by rw [← Cat.assoc]
-        _ = f ≫ h := by rw [image.lift_fac f]
-    -- monic + epic ⟹ iso by balancedness (`pretopos_balanced`), so `image f` is entire.
-    exact pretopos_balanced (image f).arr (image f).monic h_arr_epi
-
-/-- **§1.652**: In a pre-topos, monics coincide with cocovers
-    (maps that are coequalizers of some pair).
-    Requires effective regularity (every monic is a regular monic = an equalizer,
-    dually every epic is a regular epic = a coequalizer).
-    The `HEq` in the statement is a placeholder for an isomorphism between
-    the coequalizer map and `f`. -/
-theorem monic_eq_cocover_preTopos [PreTopos 𝒞] [HasCoequalizers 𝒞] {A B : 𝒞} (f : A ⟶ B) :
-    Mono f ↔ ∃ (C : 𝒞) (p q : C ⟶ A), HEq ((HasCoequalizers.coeq p q).map) f := by
-  sorry
-
-/-! ## §1.653 Pushout of a monic and any morphism in a pre-topos
-
-  Given morphisms f: A → B and monic y: A ↣ C in a pre-topos, there is a pushout
-  square with the top map monic.  The proof factors f as cover ∘ monic (image
-  factorization) and applies the amalgamation lemma §1.651 to the two monics. -/
-
-/-- **§1.653**: In a pre-topos, given f : A → B and monic y : A ↣ C, there exists a
-    pushout square (with the B-map monic).
-    PROOF: Factor A → B as A ↠ I ↣ B.  Apply §1.651 to I ↣ B and I ↣ C' (pushing y
-    through the cover A ↠ I), stack the two squares, and use the pasting lemma.
-
-    STATE: `amalgamation_lemma` (§1.651) is now a real construction here; this §1.653 result
-    is the standard reduction to it (image-factor `f`, push `y` through the cover, paste).
-    The two unmet pieces are (a) the cover/image transport of `y` into the slice over `I` and
-    (b) the pasting lemma for the stacked square — neither of which the disjointness lemmas
-    touch; they are pullback/pasting infrastructure orthogonal to §1.62 positivity, and the
-    leg-monicity it inherits is the same descent residual as §1.651.  Faithful sorry. -/
-theorem pushout_monic_in_pretopos [DisjointBinaryCoproduct 𝒞] [PreTopos 𝒞] [HasCoequalizers 𝒞]
-    {A B C : 𝒞}
-    (f : A ⟶ B) (y : A ⟶ C) (hy : Mono y) :
-    ∃ (D : 𝒞) (u : B ⟶ D) (v : C ⟶ D), Mono u ∧ f ≫ u = y ≫ v := by
-  sorry
-
 /-! ## §1.654/§1.657 Pre-topos is cocartesian iff minimal equivalence relations exist
 
   A pre-topos is COCARTESIAN (its opposite is regular) if and only if
@@ -494,6 +374,264 @@ theorem preTopos_cocartesian_to_minEquiv {𝒞 : Type u} [Cat.{v} 𝒞] [PreTopo
     have hkpF : RelLe (kernelPairRel g) F :=
       rel_le_trans (kernelPairRel_le_graphComp g) hleF
     exact rel_le_trans hkpkp hkpF
+
+/-! ### Bridge: §1.775 `IsEquivRel` (RelLe-form) ↔ §1.567 `EquivalenceRelation` (RelHom-form).
+
+  `HasMinEquivContaining` is phrased with the §1.567 `EquivalenceRelation` (a *section*
+  `h≫colA = h≫colB = id` for reflexivity, `Nonempty (RelHom E E°)` for symmetry, `Nonempty
+  (RelHom (E⊚E) E)` for transitivity).  The §1.775 equivalence closure produces the `IsEquivRel`
+  form (`graph(id) ⊑ E`, `E° ⊑ E`, `E⊚E ⊑ E`).  The two are interderivable. -/
+theorem equivalenceRelation_of_isEquivRel {𝒞 : Type u} [Cat.{v} 𝒞]
+    [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
+    {A : 𝒞} {E : BinRel 𝒞 A A} (h : IsEquivRel E) : EquivalenceRelation E := by
+  obtain ⟨hRefl, hSym, hTrans⟩ := h
+  refine ⟨?_, ?_, hTrans⟩
+  · -- reflexivity: graph(id) ⊑ E (RelHom witness w with w≫colA = w≫colB = id) is the section.
+    obtain ⟨⟨w, hwA, hwB⟩⟩ := hRefl
+    exact ⟨w, by simpa [graph] using hwA, by simpa [graph] using hwB⟩
+  · -- symmetry: E° ⊑ E  ⟹  E ⊑ E°  (reciprocate, use involution).
+    have h2 : RelLe (E°°) (E°) := reciprocal_monotone hSym
+    rwa [reciprocal_invol] at h2
+
+/-- Reverse bridge: §1.567 `EquivalenceRelation` ⟹ §1.775 `IsEquivRel`. -/
+theorem isEquivRel_of_equivalenceRelation {𝒞 : Type u} [Cat.{v} 𝒞]
+    [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
+    {A : 𝒞} {E : BinRel 𝒞 A A} (h : EquivalenceRelation E) : IsEquivRel E := by
+  obtain ⟨⟨hsec, hsA, hsB⟩, ⟨hsym⟩, htrans⟩ := h
+  refine ⟨?_, ?_, htrans⟩
+  · exact ⟨⟨hsec, by simpa [graph] using hsA, by simpa [graph] using hsB⟩⟩
+  · -- field gives E ⊑ E°; reciprocate to E° ⊑ E.
+    have h2 : RelLe (E°) (E°°) := reciprocal_monotone ⟨hsym⟩
+    rwa [reciprocal_invol] at h2
+
+/-- **§1.775/§1.657 (the `HasReflTransClosure` payoff)**: a category with all reflexive-transitive
+    closures has all minimal equivalence relations.
+
+    Given `R` on `A`, form the symmetrisation `Rsym := (R ∪ᵣ R°) ∪ᵣ graph(id A)` (the join of `R`,
+    its reciprocal, and the diagonal), then take `E := rtc Rsym`.  By §1.775
+    (`equivClos_from_symm_transRefClos`), `E` is the *equivalence closure* of `R`: the minimum
+    equivalence relation containing `R`.  Converting the §1.775 `IsEquivRel` form to the §1.567
+    `EquivalenceRelation` form yields exactly `HasMinEquivContaining`.
+
+    This is the constructive replacement for `preTopos_cocartesian_to_minEquiv` (which built the
+    minimal equivalence from coequalizers + effectiveness): here it is built from R* directly. -/
+theorem minEquiv_of_rtc {𝒞 : Type u} [Cat.{v} 𝒞]
+    [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
+    [HasBinaryCoproducts 𝒞] [HasReflTransClosure 𝒞] :
+    HasMinEquivContaining 𝒞 := by
+  intro A R
+  let Rsym : BinRel 𝒞 A A := (R ∪ᵣ R°) ∪ᵣ graph (Cat.id A)
+  have hR_le_Rsym   : RelLe R Rsym :=
+    rel_le_trans (relUnion_le_left R (R°)) (relUnion_le_left (R ∪ᵣ R°) (graph (Cat.id A)))
+  have hRop_le_Rsym : RelLe (R°) Rsym :=
+    rel_le_trans (relUnion_le_right R (R°)) (relUnion_le_left (R ∪ᵣ R°) (graph (Cat.id A)))
+  have hId_le_Rsym  : RelLe (graph (Cat.id A)) Rsym :=
+    relUnion_le_right (R ∪ᵣ R°) (graph (Cat.id A))
+  have hR_op : RelLe ((R°)°) Rsym := by rwa [reciprocal_invol]
+  -- (graph id)° ⊑ Rsym:  (graph id)° ⊑ graph id ⊑ Rsym.
+  have hIdop_le_Rsym : RelLe ((graph (Cat.id A))°) Rsym := by
+    have h0 : RelLe ((graph (Cat.id A))°) ((graph (Cat.id A))°°) :=
+      reciprocal_monotone graph_id_le_reciprocal
+    rw [reciprocal_invol] at h0
+    exact rel_le_trans h0 hId_le_Rsym
+  -- Rsym is symmetric: Rsym° ⊑ Rsym (distribute ° over ∪ᵣ, each piece lands in Rsym).
+  have hSym : IsSymmetric Rsym := by
+    refine rel_le_trans (relUnion_le_reciprocal (R ∪ᵣ R°) (graph (Cat.id A))) ?_
+    apply le_relUnion
+    · exact hIdop_le_Rsym
+    · refine rel_le_trans (relUnion_le_reciprocal R (R°)) ?_
+      exact le_relUnion hR_op hRop_le_Rsym
+  -- Rsym is the join of R, R°, 1.
+  have hJoin : ∀ (U : BinRel 𝒞 A A),
+      RelLe R U → RelLe (R°) U → RelLe (graph (Cat.id A)) U → RelLe Rsym U := by
+    intro U hRU hRopU hIdU; exact le_relUnion (le_relUnion hRU hRopU) hIdU
+  -- E := rtc Rsym, packaged as the §1.775 equivalence closure of R.
+  let ec := equivClos_from_symm_transRefClos R Rsym hR_le_Rsym hSym hJoin
+              (HasReflTransClosure.transRefClos Rsym)
+  refine ⟨ec.clos, equivalenceRelation_of_isEquivRel ec.isEquiv, ec.le, ?_⟩
+  intro F hF hRF
+  exact ec.minimal F hRF (isEquivRel_of_equivalenceRelation hF)
+
+
+/-! ## §1.651 Amalgamation Lemma
+
+  In a pre-topos, given monics x: A↣B, y: A↣C, there exists a
+  pushout B ↣ D, C ↣ D completing the square. -/
+
+/-- **§1.651 Amalgamation Lemma**: In a pre-topos, the pushout of two
+    monics with a common source exists and the resulting maps are monic.
+    Proof: form B+C, define equivalence relation E identifying x(a)∼y(a),
+    then the effective quotient B+C ↠ D gives the pushout.
+
+    CONSTRUCTIVE PROGRESS (this file): with `[DisjointBinaryCoproduct 𝒞]` supplying §1.62
+    positivity and `[HasReflTransClosure 𝒞]` supplying the reflexive-transitive closure R*
+    (§1.77/§1.947), the pushout is now built EXACTLY as Freyd describes (§1.651): on `B+C` take the
+    relation `R₀` generated by `{x(a)≫inl ∼ y(a)≫inr}` (the image relation of
+    `pair(x≫inl, y≫inr)`), close it to the *minimal equivalence relation* `E ⊇ R₀` — now a
+    genuine constructive object via `minEquiv_of_rtc` (the §1.775 equivalence closure
+    `(R₀ ∪ R₀°)*`) — and let `q : B+C ↠ D` be the effective quotient by `E` (effectiveness,
+    §1.568/§1.65).  Then `u := inl≫q`, `v := inr≫q`.  The commutativity leg `x≫u = y≫v` is
+    discharged sorry-free: `R₀ ⊑ E ⊑ level q`, and `R₀`'s two columns are exactly `x≫inl`,
+    `y≫inr`, so they agree after `q`.
+
+    SHARPENED RESIDUAL (the `sorry`s below): leg-monicity `Mono u`, `Mono v` — that the level of
+    `q` (= `E`, the generated equivalence relation) restricts to the *diagonal* on `inl(B)` (resp.
+    `inr(C)`).  Disjointness (`inl_inter_inr_le_bottom`, `coprod_inl_inr_disjoint_elt`) and
+    `inl/inr_mono` are necessary, but the proof additionally needs a zigzag/path-length induction
+    over the transitive-closure structure of `E`, which the `rtc` abstraction does NOT expose (it
+    gives the four closure properties, not an induction principle on `relPow` path length).  That
+    path-length descent is exactly the §1.543 effective-quotient analysis.  Faithful sorry on
+    precisely the two leg monicities; the object `D`, the maps `u, v`, and the commuting square are
+    now real and routed through Freyd's generated-equivalence-relation construction. -/
+theorem amalgamation_lemma [PreTopos 𝒞] [HasReflTransClosure 𝒞]
+    {A B C : 𝒞}
+    (x : A ⟶ B) (hx : Mono x) (y : A ⟶ C) (hy : Mono y) :
+    ∃ (D : 𝒞) (u : B ⟶ D) (v : C ⟶ D), Mono u ∧ Mono v ∧ x ≫ u = y ≫ v := by
+  -- `PreTopos` supplies the coproduct (via `PositivePreLogos`) and the full regular structure on a
+  -- single coherent path; we take *only* `[PreTopos 𝒞]` (plus `[HasReflTransClosure 𝒞]`) so that
+  -- the `EquivalenceRelation E` proof from `minEquiv_of_rtc`, the `HasReflTransClosure` binder, and
+  -- `EffectiveRegular.effective` all share one `RegularCategory` instance (no diamond).  §1.62
+  -- disjointness (`inl_inter_inr_le_bottom`, `inl/inr_mono`) is what the *leg-monicity* residual
+  -- below needs; it is documented there, supplied by `[DisjointBinaryCoproduct 𝒞]` when that proof
+  -- is completed.
+  -- Generated relation R₀ on B+C: image of pair(x≫inl, y≫inr) : A → (B+C)×(B+C).
+  let xi : A ⟶ HasBinaryCoproducts.coprod B C := x ≫ HasBinaryCoproducts.inl
+  let yi : A ⟶ HasBinaryCoproducts.coprod B C := y ≫ HasBinaryCoproducts.inr
+  let sp : A ⟶ prod (HasBinaryCoproducts.coprod B C) (HasBinaryCoproducts.coprod B C) := pair xi yi
+  let I := image sp
+  have hImp : MonicPair (I.arr ≫ fst) (I.arr ≫ snd) :=
+    monicPair_of_monic_pair _ _ (by rw [← pair_eta I.arr]; exact I.monic)
+  let R₀ : BinRel 𝒞 (HasBinaryCoproducts.coprod B C) (HasBinaryCoproducts.coprod B C) :=
+    ⟨I.dom, I.arr ≫ fst, I.arr ≫ snd, hImp⟩
+  have hR₀A : image.lift sp ≫ R₀.colA = xi := by
+    show image.lift sp ≫ I.arr ≫ fst = xi; rw [← Cat.assoc, image.lift_fac, fst_pair]
+  have hR₀B : image.lift sp ≫ R₀.colB = yi := by
+    show image.lift sp ≫ I.arr ≫ snd = yi; rw [← Cat.assoc, image.lift_fac, snd_pair]
+  -- Generated minimal equivalence relation E ⊇ R₀ (the §1.775 equivalence closure, via rtc).
+  obtain ⟨E, hEeq, hR₀E, _hEmin⟩ := minEquiv_of_rtc (HasBinaryCoproducts.coprod B C) R₀
+  -- Effective quotient: a cover q : B+C ↠ D with level(q) ⊇ E.
+  obtain ⟨_, D, q, _hqcov, hEle, _hleE⟩ := EffectiveRegular.effective E hEeq
+  refine ⟨D, HasBinaryCoproducts.inl ≫ q, HasBinaryCoproducts.inr ≫ q, ?_, ?_, ?_⟩
+  · -- Mono u: effective-descent leg-monicity (zigzag/path-length over E). Faithful §1.543 sorry.
+    sorry
+  · -- Mono v: symmetric to Mono u.
+    sorry
+  · -- commutativity: x≫(inl≫q) = y≫(inr≫q), since R₀ ⊑ E ⊑ level q and R₀'s columns are x≫inl, y≫inr.
+    have hR₀kp : RelLe R₀ (kernelPairRel q) :=
+      rel_le_trans (rel_le_trans hR₀E hEle) (graphComp_le_kernelPairRel q)
+    obtain ⟨⟨w, hwA, hwB⟩⟩ := hR₀kp
+    have e1 : w ≫ kp₁ (f := q) = R₀.colA := by simpa [kernelPairRel] using hwA
+    have e2 : w ≫ kp₂ (f := q) = R₀.colB := by simpa [kernelPairRel] using hwB
+    have hcolq : R₀.colA ≫ q = R₀.colB ≫ q := by
+      calc R₀.colA ≫ q = (w ≫ kp₁ (f := q)) ≫ q := by rw [e1]
+        _ = w ≫ kp₂ (f := q) ≫ q := by rw [Cat.assoc, kp_sq]
+        _ = R₀.colB ≫ q := by rw [← Cat.assoc, e2]
+    calc x ≫ HasBinaryCoproducts.inl ≫ q
+        = xi ≫ q := by rw [← Cat.assoc]
+      _ = (image.lift sp ≫ R₀.colA) ≫ q := by rw [hR₀A]
+      _ = image.lift sp ≫ R₀.colA ≫ q := Cat.assoc _ _ _
+      _ = image.lift sp ≫ R₀.colB ≫ q := by rw [hcolq]
+      _ = (image.lift sp ≫ R₀.colB) ≫ q := (Cat.assoc _ _ _).symm
+      _ = yi ≫ q := by rw [hR₀B]
+      _ = y ≫ HasBinaryCoproducts.inr ≫ q := Cat.assoc _ _ _
+
+/-! ## §1.652 Covers = epics, Monics = cocovers
+
+  In a pre-topos, covers coincide with epimorphisms, and monics
+  coincide with coequalizers (cocovers). -/
+
+/-- **§1.652 (crux): a pre-topos is BALANCED** — a map that is both monic and
+    epic is an isomorphism.  This is the genuine positivity content of §1.652:
+    the cokernel pair of `m` is built from the *disjoint* coproduct `B + B`
+    (positivity) via the effective quotient, and a monic that is also epic
+    equalizes a pair of equal legs, hence splits.  It is **not** derivable from
+    the current axioms — `HasBinaryCoproducts` carries only the bare universal
+    property, with no disjointness/universality, so the cokernel-pair argument
+    has no axiom to stand on.  Isolated here as the single obligation that both
+    reverse-directions below (`cover_eq_epic_preTopos`, `monic_eq_cocover`) rest
+    on; closing it needs §1.62 positivity axiomatized as Freyd states it
+    (disjoint + universal coproducts).
+
+    STATE (with `[HasReflTransClosure 𝒞]` now available): the cokernel pair of `m` is the pushout
+    of `(m, m)`, which `amalgamation_lemma` now builds as a *real* object `D` with legs `u, v : B → D`
+    and `m≫u = m≫v` (the commuting square is sorry-free).  `m` epic immediately forces `u = v`
+    (`hepi`).  The remaining gap is the DUAL of effective regularity: that the monic `m` is the
+    *equalizer of its cokernel pair* `(u, v)` — and with `u = v` every map equalizes `(u,v)`, so that
+    equalizer is `id_B`, whence `m` is iso.  "Every monic is the equalizer of its cokernel pair" is
+    effective *co*regularity (the opposite category's effectiveness), which this repo does not yet
+    axiomatize (it is the §1.543 cocartesian/transfinite-colimit content).  Faithful sorry on exactly
+    that dual-effectiveness step; the cokernel pair and `u = v` are now real. -/
+theorem pretopos_balanced [PreTopos 𝒞] [HasReflTransClosure 𝒞] {A B : 𝒞}
+    (m : A ⟶ B) (hm : Mono m)
+    (hepi : ∀ {C : 𝒞} (g h : B ⟶ C), m ≫ g = m ≫ h → g = h) : IsIso m := by
+  -- Cokernel pair of m = pushout of (m, m): amalgamation_lemma gives D, u, v with m≫u = m≫v.
+  obtain ⟨D, u, v, _hu, _hv, hsq⟩ := amalgamation_lemma m hm m hm
+  -- m epic forces the two legs equal.
+  have huv : u = v := hepi u v hsq
+  -- RESIDUAL: m = equalizer of its cokernel pair (u, v); with u = v this equalizer is id_B,
+  -- so m is iso.  Needs effective coregularity (dual of EffectiveRegular) = §1.543.
+  sorry
+
+theorem cover_eq_epic_preTopos [PreTopos 𝒞] [HasReflTransClosure 𝒞] {A B : 𝒞} (f : A ⟶ B) :
+    Cover f ↔ (∀ {C : 𝒞} (g h : B ⟶ C), f ≫ g = f ≫ h → g = h) := by
+  constructor
+  · -- Cover → epic (§1.512): already proved
+    exact cover_epi
+  · intro hepi
+    rw [cover_iff_image_entire]
+    -- Goal: Subobject.IsEntire (image f), i.e., IsIso (image f).arr.
+    -- `(image f).arr` is monic; since `f = lift ≫ arr` is epic, `arr` is epic too.
+    have h_arr_epi : ∀ {C : 𝒞} (g h : B ⟶ C), (image f).arr ≫ g = (image f).arr ≫ h → g = h := by
+      intro C g h heq
+      apply hepi
+      calc f ≫ g = (image.lift f ≫ (image f).arr) ≫ g := by rw [image.lift_fac f]
+        _ = image.lift f ≫ ((image f).arr ≫ g) := Cat.assoc _ _ _
+        _ = image.lift f ≫ ((image f).arr ≫ h) := by rw [heq]
+        _ = (image.lift f ≫ (image f).arr) ≫ h := by rw [← Cat.assoc]
+        _ = f ≫ h := by rw [image.lift_fac f]
+    -- monic + epic ⟹ iso by balancedness (`pretopos_balanced`), so `image f` is entire.
+    exact pretopos_balanced (image f).arr (image f).monic h_arr_epi
+
+/-- **§1.652**: In a pre-topos, monics coincide with cocovers
+    (maps that are coequalizers of some pair).
+    Requires effective regularity (every monic is a regular monic = an equalizer,
+    dually every epic is a regular epic = a coequalizer).
+    The `HEq` in the statement is a placeholder for an isomorphism between
+    the coequalizer map and `f`.
+
+    STATE: with `[HasReflTransClosure 𝒞]` the category now has all coequalizers (via
+    `minEquiv_of_rtc` fed to `preTopos_minEquiv_to_cocartesian`), so `HasCoequalizers` is no longer
+    an *unproven* hypothesis — it is derivable.  It is kept in the signature only because the
+    *statement* mentions `HasCoequalizers.coeq`.  The residual is the §1.543 dual-effectiveness
+    "every monic is the coequalizer of some pair" (effective coregularity).  Faithful sorry. -/
+theorem monic_eq_cocover_preTopos [PreTopos 𝒞] [HasCoequalizers 𝒞] {A B : 𝒞} (f : A ⟶ B) :
+    Mono f ↔ ∃ (C : 𝒞) (p q : C ⟶ A), HEq ((HasCoequalizers.coeq p q).map) f := by
+  sorry
+
+/-! ## §1.653 Pushout of a monic and any morphism in a pre-topos
+
+  Given morphisms f: A → B and monic y: A ↣ C in a pre-topos, there is a pushout
+  square with the top map monic.  The proof factors f as cover ∘ monic (image
+  factorization) and applies the amalgamation lemma §1.651 to the two monics. -/
+
+/-- **§1.653**: In a pre-topos, given f : A → B and monic y : A ↣ C, there exists a
+    pushout square (with the B-map monic).
+    PROOF: Factor A → B as A ↠ I ↣ B.  Apply §1.651 to I ↣ B and I ↣ C' (pushing y
+    through the cover A ↠ I), stack the two squares, and use the pasting lemma.
+
+    STATE: `amalgamation_lemma` (§1.651) is now a real construction routed through the generated
+    equivalence relation (`minEquiv_of_rtc`) and the effective quotient; this §1.653 result is the
+    standard reduction to it (image-factor `f`, push `y` through the cover, paste).  The two unmet
+    pieces are (a) the cover/image transport of `y` into the slice over the image of `f` and (b) the
+    pasting lemma for the stacked square — pullback/pasting infrastructure orthogonal to §1.62
+    positivity; the leg-monicity it inherits is the same §1.543 descent residual as §1.651.
+    Hypotheses now match `amalgamation_lemma` (`[PreTopos 𝒞] [HasReflTransClosure 𝒞]`).  Faithful
+    sorry. -/
+theorem pushout_monic_in_pretopos [PreTopos 𝒞] [HasReflTransClosure 𝒞]
+    {A B C : 𝒞}
+    (f : A ⟶ B) (y : A ⟶ C) (hy : Mono y) :
+    ∃ (D : 𝒞) (u : B ⟶ D) (v : C ⟶ D), Mono u ∧ f ≫ u = y ≫ v := by
+  sorry
 
 theorem preTopos_minEquiv_to_cocartesian {𝒞 : Type u} [Cat.{v} 𝒞] [PreTopos 𝒞]
     (h : HasMinEquivContaining 𝒞) : Nonempty (HasCoequalizers 𝒞) := by
