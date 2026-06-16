@@ -328,9 +328,15 @@ def Relation (feet : Fin 2 → 𝒞) : Type _ := Table 𝒞
 
 /-! ## §1.4(10) Free T-category -/
 
-/-- FREE T-CATEGORY (§1.4(10)): the free τ-category on a Cartesian category. -/
-class FreeTCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends TCat 𝒞 where
-  isFree : True
+/-- FREE T-CATEGORY (§1.4(10)): the free τ-category on a Cartesian category.
+
+    MISSING: the freeness universal property is not yet formalized — the book's
+    construction (via well-made tables, §1.4(10)1) and its universal mapping
+    property still need to be stated and proved.  We therefore do NOT carry a
+    vacuous `isFree : True` field (that would be a fake stub); `FreeTCategory`
+    is, for now, just a τ-category designated as free, with the characterizing
+    universal property recorded as MISSING in S1_49.md. -/
+class FreeTCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends TCat 𝒞
 
 /-! ## §1.4(10)1 Well-made -/
 
