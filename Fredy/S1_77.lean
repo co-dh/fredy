@@ -133,29 +133,60 @@ structure EquivClos [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞
   isEquiv : IsEquivRel clos
   minimal : ∀ (E : BinRel 𝒞 A A), RelLe R E → IsEquivRel E → RelLe clos E
 
+/-- Reciprocal is monotone: R ⊑ S → R° ⊑ S°.
+    The RelHom witness for R ⊑ S also witnesses R° ⊑ S° with its column equations swapped. -/
+theorem reciprocal_monotone {A B : 𝒞} {R S : BinRel 𝒞 A B} (h : RelLe R S) :
+    RelLe (R°) (S°) := by
+  rcases h with ⟨⟨w, hA, hB⟩⟩; exact ⟨⟨w, hB, hA⟩⟩
+
+/-- The reciprocal of the diagonal is the diagonal: graph(id) ⊑ (graph(id))°.
+    Both have colA = colB = id, so the identity RelHom witnesses the containment. -/
+theorem graph_id_le_reciprocal {A : 𝒞} :
+    RelLe (graph (Cat.id A)) ((graph (Cat.id A))°) :=
+  ⟨⟨Cat.id _, by simp [graph, reciprocal, Cat.id_comp], by simp [graph, reciprocal, Cat.id_comp]⟩⟩
+
 /-- §1.775: In a transitive pre-logos, R^E is constructible as (R ∪ R°)*.
     Stated: given a relation Rsym with R ⊑ Rsym, R° ⊑ Rsym, 1 ⊑ Rsym,
-    and Rsym is symmetric, any TransRefClos of Rsym gives an EquivClos of R. -/
+    and Rsym is symmetric, any TransRefClos of Rsym gives an EquivClos of R.
+    `hJoin` records that Rsym is the JOIN of R, R° and 1 (its universal property as the
+    symmetrisation), which is what makes the equivalence-closure minimality go through. -/
 def equivClos_from_symm_transRefClos [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
     {A : 𝒞} (R : BinRel 𝒞 A A)
     (Rsym : BinRel 𝒞 A A)
     (hR   : RelLe R Rsym)
     (hSym : IsSymmetric Rsym)
+    (hJoin : ∀ (U : BinRel 𝒞 A A),
+      RelLe R U → RelLe (R°) U → RelLe (graph (Cat.id A)) U → RelLe Rsym U)
     (hr   : TransRefClos Rsym) :
     EquivClos R where
   clos    := hr.clos
   le      := rel_le_trans hR hr.le
   isEquiv := ⟨hr.refl, by
-    -- Rsym* is symmetric: (Rsym*)° ⊑ Rsym*
-    -- because Rsym is symmetric (Rsym° ⊑ Rsym) and Rsym* = min refl-trans ⊇ Rsym
-    -- Full proof needs (Rsym*)° is also refl-trans ⊇ Rsym.
-    sorry, hr.trans⟩
+    -- Rsym* is symmetric: (Rsym*)° ⊑ Rsym*.
+    -- The candidate (Rsym*)° is itself reflexive, transitive and contains Rsym, so by
+    -- minimality Rsym* ⊑ (Rsym*)°; reciprocate (and use involution) to flip the direction.
+    have hle : RelLe hr.clos (hr.clos°) := by
+      apply hr.minimal
+      · -- Rsym ⊑ (Rsym*)°:  Rsym° ⊑ Rsym ⊑ Rsym*, reciprocate and use involution.
+        have h1 : RelLe (Rsym°) hr.clos := rel_le_trans hSym hr.le
+        have h2 : RelLe (Rsym°°) (hr.clos°) := reciprocal_monotone h1
+        rwa [reciprocal_invol] at h2
+      · -- (Rsym*)° reflexive:  graph(id) ⊑ (graph(id))° ⊑ (Rsym*)°.
+        exact rel_le_trans graph_id_le_reciprocal (reciprocal_monotone hr.refl)
+      · -- (Rsym*)° transitive:  (Rsym*)°(Rsym*)° ⊑ (Rsym* Rsym*)° ⊑ (Rsym*)°.
+        exact rel_le_trans (comp_reciprocal_le hr.clos hr.clos) (reciprocal_monotone hr.trans)
+    have h3 : RelLe (hr.clos°) (hr.clos°°) := reciprocal_monotone hle
+    rwa [reciprocal_invol] at h3,
+   hr.trans⟩
   minimal := by
     intro E hRE hEquiv
     apply hr.minimal
-    · -- Rsym ⊑ E: R ⊑ E (given hRE) and R° ⊑ E (E symmetric) and 1 ⊑ E (E refl)
-      -- Need Rsym ⊑ E; since Rsym is the join of R, R°, 1 — stated abstractly.
-      sorry
+    · -- Rsym ⊑ E: R ⊑ E (hRE), R° ⊑ E (R ⊑ E reciprocated, E symmetric), 1 ⊑ E (E reflexive).
+      apply hJoin
+      · exact hRE
+      · -- R° ⊑ E:  R° ⊑ E° ⊑ E  (E symmetric).
+        exact rel_le_trans (reciprocal_monotone hRE) hEquiv.2.1
+      · exact hEquiv.1
     · exact hEquiv.1
     · exact hEquiv.2.2
 
@@ -341,51 +372,56 @@ theorem le_quotClos [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞
   rel_le_trans (comp_graph_id_right R)
     (rel_le_trans (compose_le (rel_le_refl R) qBar.refl) qBar.stable)
 
+/-- §1.787: R* ⊑ R̄ — the reflexive-transitive closure is contained in the quotient closure.
+    Book proof (§1.787, first half): with S = R̄ (reflexive, R·S ⊑ S), the self-quotient S/S
+    is reflexive and transitive, and R ⊑ S/S (since R·S ⊑ S), so by minimality of R*,
+    R* ⊑ S/S.  Hence R*·S ⊑ (S/S)·S ⊑ S, and R* = R*·1 ⊑ R*·S ⊑ S.
+    Needs a RelQuot R̄ R̄ (self-quotient S/S; exists in a logos by §1.784) and assoc. -/
+theorem transRefClos_le_quotClos [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
+    [PullbacksTransferCovers 𝒞]
+    {A : 𝒞} (R : BinRel 𝒞 A A)
+    (hr : TransRefClos R) (qBar : QuotClos R) (qSS : RelQuot qBar.clos qBar.clos) :
+    RelLe hr.clos qBar.clos := by
+  -- S := qBar.clos = R̄.  S/S := qSS.quot.
+  -- R ⊑ S/S: by univ prop of S/S, need R ⊚ S ⊑ S — that is qBar.stable.
+  have hR_le_SS : RelLe R qSS.quot := qSS.maximal R qBar.stable
+  -- S/S is reflexive and transitive (§1.786).
+  have hrefl_SS  : IsReflexive  qSS.quot := relQuot_self_refl  qBar.clos qSS
+  have htrans_SS : IsTransitive qSS.quot := relQuot_self_trans qBar.clos qSS
+  -- R* ⊑ S/S by minimality of R*.
+  have hstar_le_SS : RelLe hr.clos qSS.quot :=
+    hr.minimal qSS.quot hR_le_SS hrefl_SS htrans_SS
+  -- R*·S ⊑ (S/S)·S ⊑ S.
+  have hstarS_le_S : RelLe (hr.clos ⊚ qBar.clos) qBar.clos :=
+    rel_le_trans (compose_le_left hstar_le_SS qBar.clos) qSS.le
+  -- R* = R*·1 ⊑ R*·S ⊑ S  (S reflexive).
+  exact rel_le_trans (comp_graph_id_right hr.clos)
+    (rel_le_trans (compose_le (rel_le_refl hr.clos) qBar.refl) hstarS_le_S)
+
 /-- §1.787: R̄ is transitive: R̄ ⊚ R̄ ⊑ R̄.
-    Book proof (§1.787): R/R is reflexive, R(R/R)R ⊑ R so R·(R/R) ⊑ R/R, hence R̄ ⊑ R/R;
-    R/R is transitive, so R̄·R̄ ⊑ (R/R)·(R/R) ⊑ R/R; since R̄ ⊑ R/R and R/R ⊑ R̄ (logos), R̄ = R/R.
-    Requires a RelQuot R R (exists in a logos by §1.784) and PullbacksTransferCovers for assoc.
-    BLOCKER: the intermediate step R·(R/R) ⊑ R/R needs R·(R/R)·R ⊑ R which requires R·R ⊑ R
-    (i.e., R transitive) — not given in general. In a full logos the right adjoint closes the gap.
-    The proof below uses qRR : RelQuot R R and `sorry` for the key step pending logos structure. -/
+    Book proof (§1.787): once R* exists, R̄ = R* (mutual containment), and R* is transitive.
+    `quotClos_le_transRefClos` gives R̄ ⊑ R*; `transRefClos_le_quotClos` gives R* ⊑ R̄, so
+    R̄ ⊚ R̄ ⊑ R* ⊚ R* ⊑ R* ⊑ R̄ using transitivity of R*.
+    Needs the self-quotient R̄/R̄ (`qSS`), available in a logos by §1.784. -/
 theorem quotClos_is_transitive [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
     [PullbacksTransferCovers 𝒞]
     {A : 𝒞} (R : BinRel 𝒞 A A)
-    (qBar : QuotClos R) (qRR : RelQuot R R) :
+    (hr : TransRefClos R) (qBar : QuotClos R) (qSS : RelQuot qBar.clos qBar.clos) :
     IsTransitive qBar.clos := by
-  -- Step 1: R̄ ⊑ R/R — use minimality of R̄ applied to R/R.
-  -- R/R is reflexive (relQuot_self_refl).
-  -- R ⊚ (R/R) ⊑ R/R: by univ prop of R/R, need (R ⊚ (R/R)) ⊚ R ⊑ R.
-  -- (R ⊚ (R/R)) ⊚ R ⊑ R ⊚ ((R/R) ⊚ R) ⊑ R ⊚ R — needs R ⊚ R ⊑ R (not given).
-  -- This gap is the logos-specific step; sorry for now.
-  have h_stable_RR : RelLe (R ⊚ qRR.quot) qRR.quot := by
-    apply qRR.maximal
-    -- Need (R ⊚ (R/R)) ⊚ R ⊑ R. By assoc + qRR.le + need R ⊚ R ⊑ R.
-    sorry
-  -- Step 2: R̄ ⊑ R/R by minimality.
-  have h_bar_le_RR : RelLe qBar.clos qRR.quot :=
-    qBar.minimal qRR.quot (relQuot_self_refl R qRR) h_stable_RR
-  -- Step 3: R̄ ⊚ R̄ ⊑ (R/R) ⊚ (R/R) ⊑ R/R by transitivity of R/R.
-  have h_trans_RR : IsTransitive qRR.quot := relQuot_self_trans R qRR
-  have h_bar2_le_RR : RelLe (qBar.clos ⊚ qBar.clos) qRR.quot :=
-    rel_le_trans (compose_le h_bar_le_RR h_bar_le_RR) h_trans_RR
-  -- Step 4: R̄ ⊚ R̄ ⊑ R̄ — need R/R ⊑ R̄.
-  -- R/R ⊑ R̄ via minimality of R/R: need R̄ reflexive (qBar.refl) and (R̄) ⊚ R ⊑ R...
-  -- This is the other logos-specific step; sorry for now.
-  have h_RR_le_bar : RelLe qRR.quot qBar.clos := by sorry
-  exact rel_le_trans h_bar2_le_RR h_RR_le_bar
+  -- R̄ ⊑ R* and R* ⊑ R̄ (mutual containment).
+  have h_bar_le_star : RelLe qBar.clos hr.clos := quotClos_le_transRefClos R hr qBar
+  have h_star_le_bar : RelLe hr.clos qBar.clos := transRefClos_le_quotClos R hr qBar qSS
+  -- R̄·R̄ ⊑ R*·R* ⊑ R* ⊑ R̄.
+  exact rel_le_trans (compose_le h_bar_le_star h_bar_le_star)
+    (rel_le_trans hr.trans h_star_le_bar)
 
 /-- §1.787 main: R̄ = R* — the quotient closure and transitive-reflexive closure coincide.
-    Requires RelQuot R R (exists in a logos by §1.784). -/
+    Needs the self-quotient R̄/R̄ (`qSS`), available in a logos by §1.784. -/
 theorem quotClos_eq_transRefClos [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
     [PullbacksTransferCovers 𝒞]
     {A : 𝒞} (R : BinRel 𝒞 A A)
-    (hr : TransRefClos R) (qBar : QuotClos R) (qRR : RelQuot R R) :
+    (hr : TransRefClos R) (qBar : QuotClos R) (qSS : RelQuot qBar.clos qBar.clos) :
     RelLe qBar.clos hr.clos ∧ RelLe hr.clos qBar.clos :=
-  ⟨quotClos_le_transRefClos R hr qBar, by
-    apply hr.minimal
-    · exact le_quotClos R qBar
-    · exact qBar.refl
-    · exact quotClos_is_transitive R qBar qRR⟩
+  ⟨quotClos_le_transRefClos R hr qBar, transRefClos_le_quotClos R hr qBar qSS⟩
 
 end Freyd
