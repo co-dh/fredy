@@ -129,4 +129,107 @@ theorem ac_factorization [ACRegularCategory 𝒞] {A B : 𝒞} (f : A ⟶ B) :
   -- hs: s ≫ (image.lift f) = id_I
   refine ⟨I.dom, image.lift f, I.arr, ⟨s, hs⟩, I.monic, image.lift_fac f⟩
 
+/-! ## §1.571 AC regular via idempotent splitting
+
+  Suppose `A` is Cartesian and for every `x : A → B` there exists an idempotent
+  `e : A → A` (`e² = e`) with `ex = x` and `e` and `x` have the same level
+  (kernel pair).  Then the equalizer of `id_A` and `e` splits `e`, yielding a
+  factorization `x = p ≫ n` where `p` is left-invertible and `n` is monic.
+  Hence the category is AC regular (alternative definition from §1.57). -/
+
+section S1_571
+
+variable [CartesianCategory 𝒞]
+
+/-- Equalizer maps are monic. -/
+theorem eqMap_mono {A B : 𝒞} (f g : A ⟶ B) : Mono (eqMap f g) := by
+  intro W u v h
+  let k := u ≫ eqMap f g
+  have hk : k ≫ f = k ≫ g := by
+    dsimp [k]; rw [Cat.assoc, Cat.assoc, eqMap_eq]
+  have hu : u = eqLift f g k hk := eqLift_uniq f g k hk u rfl
+  have hv : v = eqLift f g k hk := eqLift_uniq f g k hk v (by dsimp [k]; rw [← h])
+  rw [hu, hv]
+
+/-- **§1.571**: In a Cartesian category, if every morphism admits an idempotent
+    with the same level (kernel pair) that stabilizes it, then every morphism
+    factors as left-invertible followed by monic — so the category is AC regular. -/
+theorem ac_factorization_via_idempotent
+    (h_exists : ∀ {A B : 𝒞} (x : A ⟶ B), ∃ (e : A ⟶ A),
+      e ≫ e = e ∧ e ≫ x = x ∧
+      (kernelPairRel e) ⊂ (kernelPairRel x) ∧ (kernelPairRel x) ⊂ (kernelPairRel e))
+    {A B : 𝒞} (x : A ⟶ B) : ∃ (C : 𝒞) (p : A ⟶ C) (n : C ⟶ B),
+      (∃ (s : C ⟶ A), s ≫ p = Cat.id C) ∧ Mono n ∧ p ≫ n = x := by
+  -- The outer variable [HasPullbacks 𝒞] (from line 27) provides the pullback
+  -- instance; we use it directly for kernelPair, kp₁, etc.
+  rcases h_exists x with ⟨e, hee, hex, _hle1, hle2⟩
+  -- Equalizer C ↣ A of id_A and e
+  let m := eqMap (Cat.id A) e
+  -- e ≫ id = e = e ≫ e, so e lifts through the equalizer
+  have he_eq : e ≫ Cat.id A = e ≫ e := by rw [Cat.comp_id, hee]
+  let p := eqLift (Cat.id A) e e he_eq
+  have hp_fac : p ≫ m = e := eqLift_fac (Cat.id A) e e he_eq
+  have hm_eq : m ≫ Cat.id A = m ≫ e := eqMap_eq (Cat.id A) e
+  have hm_e : m ≫ e = m := by
+    simpa [Cat.comp_id] using hm_eq.symm
+  -- m is monic (equalizer maps are monic)
+  have hm_mono : Mono m := eqMap_mono (Cat.id A) e
+  -- p has left inverse m (since m ≫ e = m, split the idempotent e)
+  have hm_p : m ≫ p = Cat.id (eqObj (Cat.id A) e) := by
+    apply hm_mono
+    calc
+      (m ≫ p) ≫ m = m ≫ (p ≫ m) := Cat.assoc _ _ _
+      _ = m ≫ e := by rw [hp_fac]
+      _ = m := hm_e
+      _ = Cat.id _ ≫ m := (Cat.id_comp _).symm
+  -- Build the factorization: x = e ≫ x = p ≫ m ≫ x
+  let C := eqObj (Cat.id A) e
+  let n : C ⟶ B := m ≫ x
+  have hx_fac : p ≫ n = x := by
+    dsimp [n]
+    calc
+      p ≫ (m ≫ x) = (p ≫ m) ≫ x := (Cat.assoc _ _ _).symm
+      _ = e ≫ x := by rw [hp_fac]
+      _ = x := hex
+  -- n is monic: proof uses level(x) ⊂ level(e) (hle2)
+  have hn_mono : Mono n := by
+    intro W u v h
+    have h_mx_eq : (u ≫ m) ≫ x = (v ≫ m) ≫ x := by
+      dsimp [n] at h; simpa [Cat.assoc] using h
+    -- w : W → kernelPair x witnesses (u≫m, v≫m) in ker(x)
+    let w := (HasPullbacks.has x x).lift ⟨W, u ≫ m, v ≫ m, h_mx_eq⟩
+    have hw1 : w ≫ kp₁ (f := x) = u ≫ m := kp_lift_p₁ (u ≫ m) (v ≫ m) h_mx_eq
+    have hw2 : w ≫ kp₂ (f := x) = v ≫ m := kp_lift_p₂ (u ≫ m) (v ≫ m) h_mx_eq
+    -- From hle2: kernelPairRel x ⊂ kernelPairRel e, extract the RelHom
+    obtain ⟨hrel⟩ := hle2
+    obtain ⟨h_map, hA, hB⟩ := hrel
+    -- Work with kernelPairRel accessors directly (avoid kp₁/kp₂ conversion issues)
+    have hleft : (w ≫ h_map) ≫ (kernelPairRel e).colA = u ≫ m := by
+      calc
+        (w ≫ h_map) ≫ (kernelPairRel e).colA = w ≫ (h_map ≫ (kernelPairRel e).colA) := Cat.assoc _ _ _
+        _ = w ≫ (kernelPairRel x).colA := by rw [hA]
+        _ = w ≫ kp₁ (f := x) := by simp [kernelPairRel]
+        _ = u ≫ m := hw1
+    have hright : (w ≫ h_map) ≫ (kernelPairRel e).colB = v ≫ m := by
+      calc
+        (w ≫ h_map) ≫ (kernelPairRel e).colB = w ≫ (h_map ≫ (kernelPairRel e).colB) := Cat.assoc _ _ _
+        _ = w ≫ (kernelPairRel x).colB := by rw [hB]
+        _ = w ≫ kp₂ (f := x) := by simp [kernelPairRel]
+        _ = v ≫ m := hw2
+    -- Now use kp_sq to relate both sides via kernel-pair properties
+    have hae_be : (u ≫ m) ≫ e = (v ≫ m) ≫ e := by
+      calc
+        (u ≫ m) ≫ e = ((w ≫ h_map) ≫ (kernelPairRel e).colA) ≫ e :=
+          (congrArg (· ≫ e) hleft).symm
+        _ = ((w ≫ h_map) ≫ (kernelPairRel e).colB) ≫ e := by
+          simp [kernelPairRel, Cat.assoc, kp_sq (f := e)]
+        _ = (v ≫ m) ≫ e := congrArg (· ≫ e) hright
+    -- Simplify via m ≫ e = m: (u ≫ m) ≫ e = u ≫ (m ≫ e) = u ≫ m
+    have huv : u ≫ m = v ≫ m := by
+      simpa [Cat.assoc, hm_e] using hae_be
+    exact hm_mono _ _ huv
+  exact ⟨C, p, n, ⟨m, hm_p⟩, hn_mono, hx_fac⟩
+
+end S1_571
+
 end Freyd
