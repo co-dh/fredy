@@ -495,9 +495,23 @@ theorem coproduct_is_coproduct_in_Rel
     monicPair_of_monic_pair _ _ (pair_eta U_sub.arr ▸ U_sub.monic)
   let U : BinRel E cp.obj B := ⟨U_sub.dom, U_sub.arr ≫ fst, U_sub.arr ≫ snd, hU_mp⟩
   refine ⟨U, fun i => ⟨?_, ?_⟩⟩
-  · -- ≤ direction: graph(uᵢ) ⊚ U ≤ R i
-    -- Needs: disjointness of coproducts to decompose U via uᵢ, plus
-    -- pullback-preserves-unions to distribute pullback over the image of cpR → cp.obj.
+  · -- ≤ direction: graph(uᵢ) ⊚ U ≤ R i.
+    -- Reduce via `relLe_of_cover_factor`: the cover `image.lift span_i` presents
+    -- `(graph uᵢ ⊚ U).src` from the pullback point `pb_i = pullback(uᵢ, U.colA)`.
+    -- Pulling the image-cover `image.lift m : cpR.obj ↠ U.src` back along `pb_i.π₂`
+    -- gives a cover `Q ↠ pb_i.pt` carrying a map `q : Q → cpR.obj = Σⱼ (R j).src`,
+    -- and the pullback square forces `q ≫ colA_big = (π₂'≫π₁) ≫ uᵢ` to factor through uᵢ.
+    -- The book now descends `q` onto the i-th component `(R i).src` using disjointness
+    -- (uᵢ°uⱼ = 0 for j ≠ i) together with §1.84 pullback-preserves-unions.
+    -- SHARP BLOCKER: that descent is EXTENSIVITY — "a map into a disjoint coproduct,
+    -- pulled back along one injection, is supported on that summand."  This is NOT
+    -- derivable from `DisjointCoproduct.inj_disjoint` alone (which only collapses the
+    -- *off-diagonal* pullbacks Aᵢ ×_S Aⱼ to 0); it needs the arbitrary-indexed
+    -- coproduct decomposition Q = ⋃ⱼ q#(cpR.inj j) supplied by `pullback_union`,
+    -- a piece of infrastructure (extensive-category partition lemma) not yet built
+    -- in this repo.  The binary `DisjointBinaryCoproduct` lemmas of S1_64
+    -- (inl_mono, coprod_inl_inr_disjoint_elt, …) give the SUMMAND-PAIR case but do
+    -- not assemble into the arbitrary-`I` extensive decomposition this descent needs.
     sorry
   · -- ≥ direction: R i ≤ graph(uᵢ) ⊚ U
     let uᵢ := cp.inj i
@@ -571,8 +585,18 @@ theorem coequalizer_is_coequalizer_in_Rel
       ∀ (R'' : BinRel E C D),
         (RelLe (graph h ⊚ R'') R ∧ RelLe R (graph h ⊚ R'')) →
         RelLe R'' R' ∧ RelLe R' R'' := by
-  -- The unique solution is R' = (reciprocal (graph h)) ⊚ R.
-  -- Needs E-standard reasoning and distributivity with arbitrary unions.
+  -- The unique solution is R' = (reciprocal (graph h)) ⊚ R, i.e. R' = h°R.
+  -- SHARP BLOCKER (E-standard + ∞-distributivity):
+  --  • Uniqueness needs h°h = 1 in Rel(E) (cover ⟹ h epic ⟹ h has a left inverse h°),
+  --    which is available, but the EXISTENCE step needs hh°R = R under fR = gR.
+  --  • The crux is that hh° is the SMALLEST equivalence relation containing f°g,
+  --    obtained as the transitive closure ⋃ₙ Sⁿ of S = g°f ∪ 1 ∪ f°g (E-standard,
+  --    §1.55/§1.844).  Proving Sⁿ R ⊆ R by induction and passing to the union
+  --    needs (a) the transitive-closure construction ⋃ₙ Sⁿ as a BinRel and
+  --    (b) ∞-distributivity (⋃ₙ Sⁿ) ⊚ R = ⋃ₙ (Sⁿ ⊚ R), neither of which is
+  --    built in this repo yet (no countable-union-of-relations infra on `BinRel`).
+  -- Left as a faithful sorry on the genuine §1.846 statement (hypotheses h_eq,
+  -- h_univ, hfgR are the book's and are load-bearing for any honest proof).
   sorry
 
 /-! ## §1.847 Special adjoint functor theorem applies ----------------------- -/
