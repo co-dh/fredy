@@ -136,26 +136,131 @@ def Table.prune (tab : Table 𝒞) (j : Fin tab.len) (hShort : tab.IsShort j) : 
 
 /-! ## §1.49 intro Table composition -/
 
-/-- Table composition: replace column j of S with S.col j ≫ T.col k for all k.
-    (Monicity: complex index arithmetic, left as TODO.) -/
-def Table.comp (S T : Table 𝒞) (j : Fin S.len) (h_eq : T.src = S.codom j) : Table 𝒞 :=
-  -- TODO: proper codom/col with index arithmetic — book definition is:
-  --   ⟨T; x₁,…,xⱼ₋₁, xⱼy₁,…,xⱼyₙ, xⱼ₊₁,…,xₘ⟩
-  -- For now placeholder: S.src with identity columns, length ≥ 1 to ensure monic.
-  let m := max 1 (S.len - 1 + T.len)
-  { src   := S.src
-    len   := m
-    codom := λ _ => S.src
-    col   := λ _ => Cat.id S.src
-    monic := by
-      intro X f g h
-      have hm : 0 < m := by
-        have : 0 < max 1 (S.len - 1 + T.len) := by
-          apply Nat.lt_of_lt_of_le (Nat.zero_lt_one)
-          exact Nat.le_max_left _ _
-        exact this
-      -- h i gives f ≫ id = g ≫ id, i.e., f = g
-      simpa [Cat.comp_id] using h ⟨0, hm⟩ }
+/-- Map a compound index into `S.comp T j` back to a column of S or T.
+    Result len = S.len - 1 + T.len.
+    Indices 0..j-1  → S column i
+    Indices j..j+T.len-1 → T column (i-j), composed with S.col j
+    Indices j+T.len..end → S column (i - T.len + 1) -/
+private def compIdx (slen tlen : Nat) (j : Fin slen) (i : Fin (slen - 1 + tlen)) :
+    Sum (Fin slen) (Fin tlen) :=
+  if h1 : i.val < j.val then Sum.inl ⟨i.val, by omega⟩
+  else if h2 : i.val < j.val + tlen then Sum.inr ⟨i.val - j.val, by omega⟩
+  else Sum.inl ⟨i.val - tlen + 1, by omega⟩
+
+/-- Table composition at column j: (S; x₁,…,xₘ) ; (T; y₁,…,yₙ) at j =
+    (S; x₁,…,xⱼ₋₁, xⱼy₁,…,xⱼyₙ, xⱼ₊₁,…,xₘ).
+    Result has length S.len - 1 + T.len. -/
+-- Auxiliary: composition of table S with T replacing column j.
+-- codom and col use dependent dite to pick the right type.
+@[reducible] private def Table.compCodom (S T : Table 𝒞) (j : Fin S.len)
+    (i : Fin (S.len - 1 + T.len)) : 𝒞 :=
+  if h1 : i.val < j.val then S.codom ⟨i.val, by omega⟩
+  else if h2 : i.val < j.val + T.len then T.codom ⟨i.val - j.val, by omega⟩
+  else S.codom ⟨i.val - T.len + 1, by omega⟩
+
+private def Table.compColMor (S T : Table 𝒞) (j : Fin S.len) (h_eq : T.src = S.codom j)
+    (i : Fin (S.len - 1 + T.len)) : S.src ⟶ S.compCodom T j i :=
+  if h1 : i.val < j.val then
+    -- compCodom = S.codom ⟨i.val, _⟩ here; cast S.col ⟨i.val, _⟩ by symm
+    (show S.codom ⟨i.val, by omega⟩ = S.compCodom T j i by
+      simp [Table.compCodom, h1]) ▸ S.col ⟨i.val, by omega⟩
+  else if h2 : i.val < j.val + T.len then
+    -- compCodom = T.codom ⟨i.val - j.val, _⟩ here; cast via symm
+    (show T.codom ⟨i.val - j.val, by omega⟩ = S.compCodom T j i by
+      simp [Table.compCodom, h1, h2]) ▸
+      (S.col j ≫ (h_eq ▸ T.col ⟨i.val - j.val, by omega⟩ :
+        S.codom j ⟶ T.codom ⟨i.val - j.val, by omega⟩))
+  else
+    -- compCodom = S.codom ⟨i.val - T.len + 1, _⟩ here; cast via symm
+    (show S.codom ⟨i.val - T.len + 1, by omega⟩ = S.compCodom T j i by
+      simp [Table.compCodom, h1, h2]) ▸ S.col ⟨i.val - T.len + 1, by omega⟩
+
+/-- Generic cast/associativity helper for the T-branch of `compColMor`.
+    Abstracts the codomain cast `eC`, the bridge cast `eB : A = B`, the column
+    index cast `eD`, so the whole thing reduces by `cases` on the three equalities. -/
+private theorem heq_assoc_cast {X A B Tsrc C C' D : 𝒞} (f : X ⟶ A) (s : A ⟶ B)
+    (t : Tsrc ⟶ C) (eB : Tsrc = B) (eC : C = C') (eD : C = D) :
+    HEq (f ≫ ((eC ▸ (s ≫ (eB ▸ t : B ⟶ C)) : A ⟶ C') : A ⟶ C'))
+        ((eB.symm ▸ (f ≫ s) : X ⟶ Tsrc) ≫ (eD ▸ t : Tsrc ⟶ D)) := by
+  cases eB; cases eC; cases eD; dsimp only
+  exact heq_of_eq (Cat.assoc f s t).symm
+
+def Table.comp (S T : Table 𝒞) (j : Fin S.len) (h_eq : T.src = S.codom j) : Table 𝒞 where
+  src   := S.src
+  len   := S.len - 1 + T.len
+  codom := S.compCodom T j
+  col   := S.compColMor T j h_eq
+  monic := by
+    -- S.comp T j has columns = S columns (minus j) interleaved with xⱼyᵢ terms.
+    -- We recover each S column via HEq using congr 1 for cast morphisms.
+    intro X f g hAgree
+    apply S.monic; intro k
+    by_cases hkj : k.val < j.val
+    · -- Index k < j: column k of comp = S.col k (cast)
+      have hi_lt : k.val < S.len - 1 + T.len := by omega
+      have h := hAgree ⟨k.val, hi_lt⟩
+      have lhs : HEq (f ≫ S.compColMor T j h_eq ⟨k.val, hi_lt⟩) (f ≫ S.col k) := by
+        unfold Table.compColMor; simp only [hkj, dite_true]
+        congr 1; simp [Table.compCodom, hkj]; exact eqRec_heq _ _
+      have rhs : HEq (g ≫ S.compColMor T j h_eq ⟨k.val, hi_lt⟩) (g ≫ S.col k) := by
+        unfold Table.compColMor; simp only [hkj, dite_true]
+        congr 1; simp [Table.compCodom, hkj]; exact eqRec_heq _ _
+      exact eq_of_heq (lhs.symm.trans (heq_of_eq h) |>.trans rhs)
+    · by_cases hkj2 : k.val = j.val
+      · -- Index k = j: after subst hkj_eq, outer j → k; use T.monic on h_eq.symm ▸ casts.
+        have hkj_eq : k = j := Fin.ext hkj2; subst hkj_eq
+        -- goal: f ≫ S.col k = g ≫ S.col k (h_eq : T.src = S.codom k, j gone)
+        have key : (h_eq.symm ▸ f ≫ S.col k) = (h_eq.symm ▸ g ≫ S.col k) :=
+          T.monic _ _ (fun r => by
+            have hr_lt : k.val + r.val < S.len - 1 + T.len := by omega
+            have h1 : ¬ (k.val + r.val < k.val) := by omega
+            have h2 : k.val + r.val < k.val + T.len := by omega
+            have harg := hAgree ⟨k.val + r.val, hr_lt⟩
+            -- Reduce compColMor at T-branch to get homogeneous equality
+            -- After unfolding: compColMor = castP ▸ (S.col k ≫ h_eq ▸ T.col r')
+            -- where r' = ⟨k+r-k, _⟩ and castP : T.codom r' = compCodom ...
+            -- So f ≫ compColMor ≍ (h_eq.symm ▸ f ≫ S.col k) ≫ T.col r
+            apply eq_of_heq
+            have hrb : k.val + r.val - k.val < T.len := by have := r.isLt; omega
+            -- the T-branch column index k+r-k is exactly r
+            have hidx : (⟨k.val + r.val - k.val, hrb⟩ : Fin T.len) = r := by
+              apply Fin.ext; simp
+            -- compCodom cast (proof-irrelevant; any witness works)
+            have eC : T.codom ⟨k.val + r.val - k.val, hrb⟩
+                = S.compCodom T k ⟨k.val + r.val, hr_lt⟩ := by
+              simp [Table.compCodom, h1, h2]
+            have lhs2 : HEq (f ≫ S.compColMor T k h_eq ⟨k.val + r.val, hr_lt⟩)
+                             ((h_eq.symm ▸ f ≫ S.col k) ≫ T.col r) := by
+              unfold Table.compColMor; simp only [h1, dite_false, h2, dite_true]
+              refine (heq_assoc_cast f (S.col k) (T.col _) h_eq eC rfl).trans ?_
+              rw [hidx]
+            have rhs2 : HEq (g ≫ S.compColMor T k h_eq ⟨k.val + r.val, hr_lt⟩)
+                             ((h_eq.symm ▸ g ≫ S.col k) ≫ T.col r) := by
+              unfold Table.compColMor; simp only [h1, dite_false, h2, dite_true]
+              refine (heq_assoc_cast g (S.col k) (T.col _) h_eq eC rfl).trans ?_
+              rw [hidx]
+            exact lhs2.symm.trans ((heq_of_eq harg).trans rhs2))
+        exact eq_of_heq ((eqRec_heq _ _).symm.trans (heq_of_eq key) |>.trans (eqRec_heq _ _))
+      · -- Index k > j: column k of comp = S.col k (cast via index shift k+T.len-1)
+        have hi_val : k.val + T.len - 1 < S.len - 1 + T.len := by omega
+        have h1 : ¬ (k.val + T.len - 1 < j.val) := by omega
+        have h2 : ¬ (k.val + T.len - 1 < j.val + T.len) := by omega
+        have h := hAgree ⟨k.val + T.len - 1, hi_val⟩
+        -- k > j ≥ 0, so k ≥ 1; the trailing-S branch index k+T.len-1-T.len+1 is exactly k
+        have hk1 : 1 ≤ k.val := by omega
+        have hsk : (⟨k.val + T.len - 1 - T.len + 1, by have := k.isLt; omega⟩ : Fin S.len) = k := by
+          apply Fin.ext; show k.val + T.len - 1 - T.len + 1 = k.val; omega
+        have lhs : HEq (f ≫ S.compColMor T j h_eq ⟨k.val + T.len - 1, hi_val⟩) (f ≫ S.col k) := by
+          unfold Table.compColMor; simp only [h1, dite_false, h2]
+          congr 1
+          case e_5.h => simp only [Table.compCodom, h1, dite_false, h2]; exact congrArg S.codom hsk
+          case e_7 => refine (eqRec_heq _ _).trans ?_; rw [hsk]
+        have rhs : HEq (g ≫ S.compColMor T j h_eq ⟨k.val + T.len - 1, hi_val⟩) (g ≫ S.col k) := by
+          unfold Table.compColMor; simp only [h1, dite_false, h2]
+          congr 1
+          case e_5.h => simp only [Table.compCodom, h1, dite_false, h2]; exact congrArg S.codom hsk
+          case e_7 => refine (eqRec_heq _ _).trans ?_; rw [hsk]
+        exact eq_of_heq (lhs.symm.trans (heq_of_eq h) |>.trans rhs)
 
 /-! ## §1.491 τ-category -/
 
