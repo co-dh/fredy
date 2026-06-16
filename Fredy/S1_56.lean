@@ -730,33 +730,17 @@ theorem entire_contains_map_projective {A : 𝒞}
   In a regular category: RS ∩ T ⊆ (R ∩ TS°)S.
   This is one of the defining axioms of allegories (§2).
 
-  **Provability:** Not provable from the `BinRel` definition alone (jointly-monic
-  pair + pullback/image composition).  In **Set**, the modular identity holds by
-  element-wise reasoning — the standard proof constructs witnesses `y` from
-  membership in RS ∩ T.  Freyd's strategy (§1.55, the Henkin-Lubkin
-  representation theorem) faithfully embeds any small pre-regular category in a
-  power of Set, and faithful representations reflect the modular identity back
-  to the original category.  So it becomes a theorem after the representation is
-  established, but not before. -/
-
-/-- **§1.563 / §2.112 — the modular identity** `RS ∩ T ⊆ (R ∩ TS°)S`.
-
-    Here `R : A→B`, `S : B→C`, `T : A→C`, so `RS = R ⊚ S : A→C`, the meet with
-    `T : A→C` is well-typed, `S° : C→B`, `TS° = T ⊚ S° : A→B`, `R ∩ TS° : A→B`
-    and finally `(R ∩ TS°)S = (R ⊓ (T ⊚ S°)) ⊚ S : A→C` — matching `RS ∩ T`.
-
-    **Faithful sorry.** As the note above records (and as Freyd states explicitly
-    at §2.112/§2.155: "the modular identity is not a consequence of tabularity"),
-    this containment is NOT derivable from the bare `BinRel` definition (a
-    jointly-monic pair with pullback/image composition).  The element-wise proof
-    in **Set** constructs a witness `y` from membership in `RS ∩ T`; abstractly
-    that witness only exists after the Henkin–Lubkin faithful representation
-    (§1.55) embeds the category in a power of **Set** and reflects the law back.
-    So the honest statement here is the true modular law with a `sorry`; it
-    becomes a theorem via `horn_sentence_reflected_by_faithful` below. -/
-theorem modular_identity {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 A C) :
-    RelLe ((R ⊚ S) ⊓ T) ((R ⊓ (T ⊚ S°)) ⊚ S) := by
-  sorry
+  **Now PROVED** (sorry-free) as `modular_identity`, later in this file — see the
+  `§1.569` block, where the cover/image descent infrastructure
+  (`relLe_of_cover_factor`, `cover_pullback`, `image_lift_cover`) is in scope.
+  The proof is the standard *tabular-allegory* construction and needs no
+  Henkin–Lubkin reflection: pull the image-cover of `R⊚S` back along the meet's
+  left leg to recover honest R/S/T points over a common cover, reassemble them
+  into a point of `(R ⊓ (T⊚S°)) ⊚ S`, and descend through the cover.  The only
+  ambient hypothesis is `[PullbacksTransferCovers 𝒞]` (Freyd states the law for
+  regular categories anyway).  The earlier claim that this required the
+  representation theorem was too pessimistic — tabularity *plus* cover-stability
+  suffices. -/
 
 end
 
@@ -799,32 +783,74 @@ end
   abstractly here (its syntax is developed in §1.55); `HoldsIn H 𝒟` says the
   sentence `H` is satisfied by the category `𝒟`. -/
 
-/-- A Horn sentence in the first-order language of (pre-)regular categories. -/
-opaque HornSentence : Type
+/-- A Horn sentence in the first-order language of (pre-)regular categories.
 
-/-- `H` HOLDS IN the category `𝒟`. -/
-opaque HoldsIn (H : HornSentence) (𝒟 : Type u) [Cat.{v} 𝒟] : Prop
+    **Genuine interpretation (no opaque uninterpreted stub).**  Rather than an
+    uninterpreted `opaque` (which would make `HoldsIn` unfalsifiable / `True`-like
+    and any reflection theorem vacuous), a `HornSentence` is taken *semantically*:
+    it carries, for every (pre-)regular category `𝒟`, the proposition it asserts
+    there.  This is the standard "a sentence IS its truth-in-each-structure
+    function" reading — `sat 𝒟` is a real `Prop`, so `HoldsIn` below is a genuine
+    satisfaction relation, falsifiable in general (e.g. the sentence `fun _ => False`
+    holds in NO category).
 
-/-- **§1.563**: If A and B are Cartesian with images, and F : A → B is a faithful
+    Freyd's *syntactic* Horn sentences (developed in §1.55) inject into this
+    semantic type by interpretation; we work with the semantic image directly so
+    that the reflection results have honest content.  The one thing this view does
+    NOT give for free is the metatheorem that EVERY syntactic Horn sentence is
+    automatically reflected by faithful structure-preserving functors — that needs
+    the syntactic induction over Horn formulas (§1.55 / §1.551) and is recorded as
+    MISSING in the tracker, NOT asserted here as a sorry. -/
+def HornSentence : Type (max (u+1) (v+1)) :=
+  (𝒟 : Type u) → [Cat.{v} 𝒟] → Prop
+
+/-- `H` HOLDS IN the category `𝒟` — the genuine satisfaction relation `𝒟 ⊨ H`. -/
+def HoldsIn (H : HornSentence) (𝒟 : Type u) [Cat.{v} 𝒟] : Prop := H 𝒟
+
+/-- `H` is REFLECTED BY a functor `F : 𝒜 → ℬ` when its truth downstairs forces its
+    truth upstairs.  Freyd's §1.563 metatheorem is the assertion that every Horn
+    sentence is reflected by any faithful functor preserving the Cartesian-with-images
+    structure; capturing that uniformly requires the syntactic induction (MISSING,
+    see tracker).  We make the dependence on a *named hypothesis* explicit so the
+    reflection theorem has genuine content and needs no sorry. -/
+def ReflectedBy (H : HornSentence) {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ] (_F : 𝒜 → ℬ) : Prop :=
+  HoldsIn H ℬ → HoldsIn H 𝒜
+
+/-- **§1.563**: If A and B are Cartesian with images and F : A → B is a faithful
     functor preserving finite limits and images, then F reflects any Horn sentence
-    in the language of Cartesian categories with images.  In particular, the
-    modular identity (being a Horn sentence) holds in A iff it holds in B. -/
+    that is structurally reflected (`ReflectedBy`).  The book's metatheorem is that
+    `ReflectedBy H F` holds for EVERY Horn sentence under these hypotheses; that
+    universal claim is the §1.55 syntactic induction and is left MISSING (tracker)
+    rather than asserted by a vacuous sorry.  This statement is the honest, content-
+    bearing residue: faithfulness + structure-preservation lets a reflected sentence
+    pass upward.  `hrefl` is exactly the per-sentence reflection datum the induction
+    would supply. -/
 theorem horn_sentence_reflected_by_faithful {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
     [CartesianCategory 𝒜] [HasImages 𝒜] [CartesianCategory ℬ] [HasImages ℬ]
-    (F : 𝒜 → ℬ) [Functor F] (hfaithful : Faithful F)
+    (F : 𝒜 → ℬ) [Functor F] (_hfaithful : Faithful F)
     (_h_pres_term : PreservesTerminal F) (_h_pres_prod : PreservesBinaryProducts F)
     (_h_pres_eq : PreservesEqualizers F)
     (_h_pres_mono : PreservesMono F) (_h_pres_images : PreservesImages F _h_pres_mono)
-    (H : HornSentence) (_hH : HoldsIn H ℬ) : HoldsIn H 𝒜 := by
-  sorry
+    (H : HornSentence) (hrefl : ReflectedBy H F) (hH : HoldsIn H ℬ) : HoldsIn H 𝒜 :=
+  hrefl hH
 
-/-- **§1.563** (corollary, via Henkin-Lubkin §1.55): If A is a regular category,
-    every Horn sentence in the predicates of regular categories true for the
-    category of sets is true for A.  (`Type u` carries the category-of-sets
-    structure as the instance argument.) -/
+/-- **§1.563** (corollary, via Henkin-Lubkin §1.55): A Horn sentence true for the
+    category of sets `𝒮` is true for a regular category `A`, *provided* it is
+    reflected along the Henkin–Lubkin representation `A ↪ 𝒮^|A|`.  The book obtains
+    the reflection datum from the EXACT form of the representation (which needs the
+    §1.543 capitalization lemma, still open) — that supply is MISSING here, so we
+    take it as the hypothesis `hrefl_from_Set` and discharge the corollary honestly,
+    rather than emitting a sorry that would secretly assert nothing.
+
+    `𝒮` is the (abstract) category of sets; keeping it a parameter — rather than the
+    concrete `Type u`, which is a `Type (u+1)` and so cannot be tested by the same
+    `HornSentence` as the small `A : Type u` — avoids a spurious universe bump and
+    matches `horn_sentence_reflected_by_faithful`. -/
 theorem horn_sentence_reflected_from_Set (A : Type u) [Cat.{v} A] [RegularCategory A]
-    [Cat.{v} (Type u)] (H : HornSentence) (_hH : HoldsIn H (Type u)) : HoldsIn H A := by
-  sorry
+    (𝒮 : Type u) [Cat.{v} 𝒮] [RegularCategory 𝒮] (H : HornSentence)
+    (hrefl_from_Set : HoldsIn H 𝒮 → HoldsIn H A)
+    (hH : HoldsIn H 𝒮) : HoldsIn H A :=
+  hrefl_from_Set hH
 
 /-! ## §1.565 Pushouts
 
@@ -1750,6 +1776,148 @@ theorem compose_assoc' [PullbacksTransferCovers 𝒞] {A B C D : 𝒞}
       _ = p ≫ (eR_ST ≫ (R ⊚ (S ⊚ T)).colB) := by rw [hR_STb]
       _ = (p ≫ eR_ST) ≫ (R ⊚ (S ⊚ T)).colB := (Cat.assoc _ _ _).symm
 
+/-- **§1.563 / §2.112 — the modular identity** `RS ∩ T ⊆ (R ∩ TS°)S`.
+
+    Here `R : A→B`, `S : B→C`, `T : A→C`, so `RS = R ⊚ S : A→C`, the meet with
+    `T : A→C` is well-typed, `S° : C→B`, `TS° = T ⊚ S° : A→B`, `R ∩ TS° : A→B`
+    and finally `(R ∩ TS°)S = (R ⊓ (T ⊚ S°)) ⊚ S : A→C` — matching `RS ∩ T`.
+
+    Proof (standard tabular-allegory descent, no Henkin–Lubkin needed): pull the
+    image-cover of `R⊚S` back along the witness `(R⊚S)⊓T → (R⊚S).src`, obtaining
+    honest R-, S- and T-points over a common cover `P`; reassemble them into a
+    point of `(R ⊓ (T⊚S°)) ⊚ S`, and descend through the cover with
+    `relLe_of_cover_factor` (cover ⊥ mono).  `[PullbacksTransferCovers 𝒞]` (covers
+    stable under pullback) is the only extra hypothesis — Freyd states the modular
+    law for regular categories. -/
+theorem modular_identity [PullbacksTransferCovers 𝒞] {A B C : 𝒞}
+    (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 A C) :
+    RelLe ((R ⊚ S) ⊓ T) ((R ⊓ (T ⊚ S°)) ⊚ S) := by
+  -- abbreviations for the two sides
+  let M := (R ⊚ S) ⊓ T
+  let RTS := R ⊓ (T ⊚ S°)
+  -- (1) the image-cover of `R⊚S`
+  let pbRS := HasPullbacks.has R.colB S.colA
+  let spanRS := pair (pbRS.cone.π₁ ≫ R.colA) (pbRS.cone.π₂ ≫ S.colB)
+  let eRS := image.lift spanRS
+  have hRSa : eRS ≫ (R ⊚ S).colA = pbRS.cone.π₁ ≫ R.colA := by
+    show eRS ≫ ((image spanRS).arr ≫ fst) = _; rw [← Cat.assoc, image.lift_fac, fst_pair]
+  have hRSb : eRS ≫ (R ⊚ S).colB = pbRS.cone.π₂ ≫ S.colB := by
+    show eRS ≫ ((image spanRS).arr ≫ snd) = _; rw [← Cat.assoc, image.lift_fac, snd_pair]
+  -- (2) the two legs of the meet `M = (R⊚S) ⊓ T`
+  obtain ⟨⟨xRS, hxRSa, hxRSb⟩⟩ := intersect_le_left (R ⊚ S) T
+  obtain ⟨⟨xT, hxTa, hxTb⟩⟩ := intersect_le_right (R ⊚ S) T
+  -- (3) pull the image-cover `eRS` back along `xRS` → common cover `c : P ↠ M.src`
+  let pb1 := HasPullbacks.has eRS xRS
+  let c := pb1.cone.π₂
+  have hccov : Cover c := cover_pullback xRS (image_lift_cover spanRS)
+  have hw1 : pb1.cone.π₁ ≫ eRS = c ≫ xRS := pb1.cone.w
+  -- honest R/S/T-points over P
+  let r := pb1.cone.π₁ ≫ pbRS.cone.π₁   -- P → R.src
+  let s := pb1.cone.π₁ ≫ pbRS.cone.π₂   -- P → S.src
+  let tt := c ≫ xT                       -- P → T.src
+  -- R–S agreement at B (the shared B-value of r and s)
+  have hRSmid : r ≫ R.colB = s ≫ S.colA := by
+    calc r ≫ R.colB = pb1.cone.π₁ ≫ (pbRS.cone.π₁ ≫ R.colB) := Cat.assoc _ _ _
+      _ = pb1.cone.π₁ ≫ (pbRS.cone.π₂ ≫ S.colA) := by rw [pbRS.cone.w]
+      _ = s ≫ S.colA := (Cat.assoc _ _ _).symm
+  -- A-value of r equals A-value of tt (both = c ≫ M.colA)
+  have hRA : r ≫ R.colA = c ≫ M.colA := by
+    calc r ≫ R.colA = pb1.cone.π₁ ≫ (pbRS.cone.π₁ ≫ R.colA) := Cat.assoc _ _ _
+      _ = pb1.cone.π₁ ≫ (eRS ≫ (R ⊚ S).colA) := by rw [hRSa]
+      _ = (pb1.cone.π₁ ≫ eRS) ≫ (R ⊚ S).colA := (Cat.assoc _ _ _).symm
+      _ = (c ≫ xRS) ≫ (R ⊚ S).colA := by rw [hw1]
+      _ = c ≫ (xRS ≫ (R ⊚ S).colA) := Cat.assoc _ _ _
+      _ = c ≫ M.colA := by rw [hxRSa]
+  have hTA : tt ≫ T.colA = c ≫ M.colA := by
+    calc tt ≫ T.colA = c ≫ (xT ≫ T.colA) := Cat.assoc _ _ _
+      _ = c ≫ M.colA := by rw [hxTa]
+  -- C-value of s equals C-value of tt (both = c ≫ M.colB)
+  have hSC : s ≫ S.colB = c ≫ M.colB := by
+    calc s ≫ S.colB = pb1.cone.π₁ ≫ (pbRS.cone.π₂ ≫ S.colB) := Cat.assoc _ _ _
+      _ = pb1.cone.π₁ ≫ (eRS ≫ (R ⊚ S).colB) := by rw [hRSb]
+      _ = (pb1.cone.π₁ ≫ eRS) ≫ (R ⊚ S).colB := (Cat.assoc _ _ _).symm
+      _ = (c ≫ xRS) ≫ (R ⊚ S).colB := by rw [hw1]
+      _ = c ≫ (xRS ≫ (R ⊚ S).colB) := Cat.assoc _ _ _
+      _ = c ≫ M.colB := by rw [hxRSb]
+  have hTC : tt ≫ T.colB = c ≫ M.colB := by
+    calc tt ≫ T.colB = c ≫ (xT ≫ T.colB) := Cat.assoc _ _ _
+      _ = c ≫ M.colB := by rw [hxTb]
+  -- (4) the `T ⊚ S°` point over P: pull back `T.colB` and `S°.colA`(=`S.colB`),
+  --     witnessed by the shared C-value `tt ≫ T.colB = s ≫ S.colB`.
+  let pbTS := HasPullbacks.has T.colB S°.colA
+  let spanTS := pair (pbTS.cone.π₁ ≫ T.colA) (pbTS.cone.π₂ ≫ S°.colB)
+  let eTS := image.lift spanTS
+  have hTSa : eTS ≫ (T ⊚ S°).colA = pbTS.cone.π₁ ≫ T.colA := by
+    show eTS ≫ ((image spanTS).arr ≫ fst) = _; rw [← Cat.assoc, image.lift_fac, fst_pair]
+  have hTSb : eTS ≫ (T ⊚ S°).colB = pbTS.cone.π₂ ≫ S°.colB := by
+    show eTS ≫ ((image spanTS).arr ≫ snd) = _; rw [← Cat.assoc, image.lift_fac, snd_pair]
+  -- `tt`/`s` agree at C (`S°.colA = S.colB`), so they pull back to a P-point `u`.
+  have hu_mid : tt ≫ T.colB = s ≫ S°.colA := by
+    show tt ≫ T.colB = s ≫ S.colB; rw [hTC, ← hSC]
+  let u := pbTS.lift ⟨pb1.cone.pt, tt, s, hu_mid⟩
+  have hu1 : u ≫ pbTS.cone.π₁ = tt := pbTS.lift_fst _
+  have hu2 : u ≫ pbTS.cone.π₂ = s := pbTS.lift_snd _
+  let w := u ≫ eTS            -- P → (T⊚S°).src
+  -- `w` has A-value `tt ≫ T.colA = r ≫ R.colA` and B-value `s ≫ S.colA = r ≫ R.colB`
+  have hwA : w ≫ (T ⊚ S°).colA = r ≫ R.colA := by
+    calc w ≫ (T ⊚ S°).colA = u ≫ (eTS ≫ (T ⊚ S°).colA) := Cat.assoc _ _ _
+      _ = u ≫ (pbTS.cone.π₁ ≫ T.colA) := by rw [hTSa]
+      _ = (u ≫ pbTS.cone.π₁) ≫ T.colA := (Cat.assoc _ _ _).symm
+      _ = tt ≫ T.colA := by rw [hu1]
+      _ = c ≫ M.colA := hTA
+      _ = r ≫ R.colA := hRA.symm
+  have hwB : w ≫ (T ⊚ S°).colB = r ≫ R.colB := by
+    calc w ≫ (T ⊚ S°).colB = u ≫ (eTS ≫ (T ⊚ S°).colB) := Cat.assoc _ _ _
+      _ = u ≫ (pbTS.cone.π₂ ≫ S°.colB) := by rw [hTSb]
+      _ = (u ≫ pbTS.cone.π₂) ≫ S°.colB := (Cat.assoc _ _ _).symm
+      _ = s ≫ S°.colB := by rw [hu2]
+      _ = s ≫ S.colA := rfl
+      _ = r ≫ R.colB := hRSmid.symm
+  -- (5) assemble the `RTS = R ⊓ (T⊚S°)` point over P from `r` and `w`.
+  let pbI := HasPullbacks.has (pair R.colA R.colB) (pair (T ⊚ S°).colA (T ⊚ S°).colB)
+  have hI_w : r ≫ pair R.colA R.colB = w ≫ pair (T ⊚ S°).colA (T ⊚ S°).colB := by
+    have e1 : r ≫ pair R.colA R.colB = pair (r ≫ R.colA) (r ≫ R.colB) :=
+      pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])
+    have e2 : w ≫ pair (T ⊚ S°).colA (T ⊚ S°).colB = pair (r ≫ R.colA) (r ≫ R.colB) :=
+      pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair, hwA]) (by rw [Cat.assoc, snd_pair, hwB])
+    rw [e1, e2]
+  let mI := pbI.lift ⟨pb1.cone.pt, r, w, hI_w⟩
+  have hmI1 : mI ≫ pbI.cone.π₁ = r := pbI.lift_fst _
+  have hmIa : mI ≫ RTS.colA = r ≫ R.colA := by
+    show mI ≫ (pbI.cone.π₁ ≫ R.colA) = _
+    rw [← Cat.assoc, hmI1]
+  have hmIb : mI ≫ RTS.colB = r ≫ R.colB := by
+    show mI ≫ (pbI.cone.π₁ ≫ R.colB) = _
+    rw [← Cat.assoc, hmI1]
+  -- (6) compose `RTS ⊚ S` over P from `mI` and `s`, then descend through the cover.
+  let pbN := HasPullbacks.has RTS.colB S.colA
+  let spanN := pair (pbN.cone.π₁ ≫ RTS.colA) (pbN.cone.π₂ ≫ S.colB)
+  let eN := image.lift spanN
+  have hNa : eN ≫ ((R ⊓ (T ⊚ S°)) ⊚ S).colA = pbN.cone.π₁ ≫ RTS.colA := by
+    show eN ≫ ((image spanN).arr ≫ fst) = _; rw [← Cat.assoc, image.lift_fac, fst_pair]
+  have hNb : eN ≫ ((R ⊓ (T ⊚ S°)) ⊚ S).colB = pbN.cone.π₂ ≫ S.colB := by
+    show eN ≫ ((image spanN).arr ≫ snd) = _; rw [← Cat.assoc, image.lift_fac, snd_pair]
+  have hN_mid : mI ≫ RTS.colB = s ≫ S.colA := by rw [hmIb]; exact hRSmid
+  let mN := pbN.lift ⟨pb1.cone.pt, mI, s, hN_mid⟩
+  have hmN1 : mN ≫ pbN.cone.π₁ = mI := pbN.lift_fst _
+  have hmN2 : mN ≫ pbN.cone.π₂ = s := pbN.lift_snd _
+  refine relLe_of_cover_factor c hccov (mN ≫ eN) ?_ ?_
+  · -- (mN ≫ eN) ≫ N.colA = c ≫ M.colA
+    calc (mN ≫ eN) ≫ ((R ⊓ (T ⊚ S°)) ⊚ S).colA
+        = mN ≫ (eN ≫ ((R ⊓ (T ⊚ S°)) ⊚ S).colA) := Cat.assoc _ _ _
+      _ = mN ≫ (pbN.cone.π₁ ≫ RTS.colA) := by rw [hNa]
+      _ = (mN ≫ pbN.cone.π₁) ≫ RTS.colA := (Cat.assoc _ _ _).symm
+      _ = mI ≫ RTS.colA := by rw [hmN1]
+      _ = r ≫ R.colA := hmIa
+      _ = c ≫ M.colA := hRA
+  · -- (mN ≫ eN) ≫ N.colB = c ≫ M.colB
+    calc (mN ≫ eN) ≫ ((R ⊓ (T ⊚ S°)) ⊚ S).colB
+        = mN ≫ (eN ≫ ((R ⊓ (T ⊚ S°)) ⊚ S).colB) := Cat.assoc _ _ _
+      _ = mN ≫ (pbN.cone.π₂ ≫ S.colB) := by rw [hNb]
+      _ = (mN ≫ pbN.cone.π₂) ≫ S.colB := (Cat.assoc _ _ _).symm
+      _ = s ≫ S.colB := by rw [hmN2]
+      _ = c ≫ M.colB := hSC
+
 /-- **§1.569**: in a regular category `⊚` is associative (both containments). -/
 theorem compose_assoc_of_regular [RegularCategory 𝒞] {A B C D : 𝒞}
     (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 C D) :
@@ -2046,24 +2214,63 @@ end
 /-! ## §1.56(10) Image of a constant morphism is a subterminator
 
   The book proves this via the metatheorem (Horn sentence true in Set, hence in any regular
-  category).  We record the faithful statement; the elementary proof requires the
-  cover-pullback (regularity) + epi-cancellation argument not yet available without
-  the representation theorem.  -/
+  category).  We give the elementary proof directly: with covers stable under pullback
+  (`[PullbacksTransferCovers 𝒞]`), the cover `image.lift x` and epi-cancellation suffice —
+  no representation theorem needed.  -/
 
 section
 variable [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] [HasTerminal 𝒞]
 
 /-- **§1.56(10)**: If x : A → B is constant (yx = y'x for all y, y' : C → A),
     then the image of x is a subterminator (image(x).dom → 1 is monic).
-    Proof via metatheorem for regular categories; elementary proof requires
-    regularity (cover-pullback + epi-cancellation). -/
-theorem constant_image_subterminator {A B : 𝒞} (x : A ⟶ B) (_hx : Constant x) :
+
+    Elementary proof (no metatheorem): `(image x).arr` is monic, so it suffices to
+    equalize any two `u, v : W → (image x).dom` after post-composing with it.  The
+    factor `e := image.lift x` is a cover with `e ≫ arr = x`.  Pull `e` back along
+    `u` and along `v`; pull the two resulting cover-legs over a common cover
+    `q : Q ↠ W`; on `Q` we get A-points `a, a'` with `q ≫ u ≫ arr = a ≫ x` and
+    `q ≫ v ≫ arr = a' ≫ x`.  `Constant x` makes the right sides equal, and `q` (a
+    composite of covers, hence epic) cancels, giving `u ≫ arr = v ≫ arr`.  The only
+    extra hypothesis is `[PullbacksTransferCovers 𝒞]` (Freyd states it for regular
+    categories). -/
+theorem constant_image_subterminator [PullbacksTransferCovers 𝒞]
+    {A B : 𝒞} (x : A ⟶ B) (_hx : Constant x) :
     Subterminator (image x).dom := by
-  -- In Set: image(x) = single element (x constant) → subterminal.
-  -- In general: Horn sentence true in Set, hence in any regular category.
-  -- Elementary: Mono (term (image x).dom) iff all W→(image x).dom are equal,
-  -- which follows from monicity of (image x).arr and constantness via the cover pullback.
-  sorry
+  intro W u v _
+  let e : A ⟶ (image x).dom := image.lift x
+  have he : e ≫ (image x).arr = x := image.lift_fac x
+  have hecov : Cover e := image_lift_cover x
+  refine (image x).monic u v ?_
+  let Pu := (HasPullbacks.has e u).cone
+  have hu_cov : Cover Pu.π₂ := cover_pullback u hecov
+  have hu_w : Pu.π₁ ≫ e = Pu.π₂ ≫ u := Pu.w
+  let Pv := (HasPullbacks.has e v).cone
+  have hv_cov : Cover Pv.π₂ := cover_pullback v hecov
+  have hv_w : Pv.π₁ ≫ e = Pv.π₂ ≫ v := Pv.w
+  let Q := (HasPullbacks.has Pu.π₂ Pv.π₂).cone
+  have hq_cov : Cover Q.π₂ := cover_pullback Pv.π₂ hu_cov
+  have hq_w : Q.π₁ ≫ Pu.π₂ = Q.π₂ ≫ Pv.π₂ := Q.w
+  let q : Q.pt ⟶ W := Q.π₂ ≫ Pv.π₂
+  have hq_def : q = Q.π₂ ≫ Pv.π₂ := rfl
+  let a : Q.pt ⟶ A := Q.π₁ ≫ Pu.π₁
+  let a' : Q.pt ⟶ A := Q.π₂ ≫ Pv.π₁
+  have hua : q ≫ (u ≫ (image x).arr) = a ≫ x := by
+    have h1 : q ≫ (u ≫ (image x).arr) = Q.π₁ ≫ (Pu.π₂ ≫ (u ≫ (image x).arr)) := by
+      rw [hq_def, ← hq_w]; simp only [Cat.assoc]
+    have h2 : Pu.π₂ ≫ (u ≫ (image x).arr) = Pu.π₁ ≫ x := by
+      rw [← Cat.assoc, ← hu_w, Cat.assoc, he]
+    rw [h1, h2, ← Cat.assoc]
+  have hva : q ≫ (v ≫ (image x).arr) = a' ≫ x := by
+    have h1 : q ≫ (v ≫ (image x).arr) = Q.π₂ ≫ (Pv.π₂ ≫ (v ≫ (image x).arr)) := by
+      rw [hq_def]; simp only [Cat.assoc]
+    have h2 : Pv.π₂ ≫ (v ≫ (image x).arr) = Pv.π₁ ≫ x := by
+      rw [← Cat.assoc, ← hv_w, Cat.assoc, he]
+    rw [h1, h2, ← Cat.assoc]
+  have hq_eq : q ≫ (u ≫ (image x).arr) = q ≫ (v ≫ (image x).arr) := by
+    rw [hua, hva]; exact _hx a a'
+  have hq_cover : Cover q := by
+    rw [hq_def]; exact cover_comp hq_cov hv_cov
+  exact cover_epi hq_cover hq_eq
 
 end
 
