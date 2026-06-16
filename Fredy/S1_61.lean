@@ -156,10 +156,10 @@ theorem monic_inverseImage_iff_distributive [HasImages 𝒞] [HasSubobjectUnions
   constructor
   · intro h A S T; exact h A.arr A.monic S T
   · intro _h _ _f _hf _S _T
-    -- ← direction: distributivity of Sub(B) implies f# preserves unions for arbitrary monic f.
-    -- Requires that any monic f factors as (image f) ∘ (cover) and image f is a subobject
-    -- of B, so f#(S) ≅ (image f) ∩ S; the isomorphism then follows from Sub(B) distributivity.
-    sorry
+    -- ← direction: a monic f : A ↣ B *is* a subobject ⟨A, f, hf⟩ of B, and
+    -- InverseImage f S is by definition InverseImage ⟨A, f, hf⟩.arr S.  So the
+    -- distributivity of Sub(B) applied to that very subobject is exactly the claim.
+    exact _h ⟨_, _f, _hf⟩ _S _T
 
 /-- **§1.614**: A REPRESENTATION OF PRE-LOGOI is a functor T : 𝒜 → ℬ between pre-logoi
     that preserves Cartesian structure, images, and finite unions (including empty unions).
@@ -174,6 +174,12 @@ class PreLogosFunctor {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ] [PreLogos
   /-- T maps the bottom (empty union) to the bottom. -/
   preserves_bottom : ∀ (A : 𝒜),
     Isomorphic (Subobject.map T hpm (PreLogos.bottom A)).dom (PreLogos.bottom (T A)).dom
+
+/-- In a thin category (at most one morphism per hom-set), any pair of objects with
+    morphisms going both ways are isomorphic: the round-trips are forced to be identities. -/
+theorem thin_iso_of_maps (hThin : ∀ {A B : 𝒞} (f g : A ⟶ B), f = g)
+    {X Y : 𝒞} (u : X ⟶ Y) (v : Y ⟶ X) : Isomorphic X Y :=
+  ⟨u, v, hThin (u ≫ v) (Cat.id X), hThin (v ≫ u) (Cat.id Y)⟩
 
 /-- **§1.613 (converse)**: A thin category (poset) with binary unions and intersections
     that is a distributive lattice is a pre-logos.  The thinness makes all morphism
@@ -199,13 +205,21 @@ def distributive_poset_is_prelogos [HasImages 𝒞] [HasSubobjectUnions 𝒞] [H
     bottom                    := hBottom
     bottom_min                := hBottom_min
     bottom_dom_iso            := hBottom_dom_iso
-    -- In the thin/poset case, for any f : A → B, InverseImage f S ≅ InverseImage A.arr S
-    -- where A is the image of f (they agree since there is at most one morphism).
-    -- So hDist applied to the image subobject gives invImage_preserves_union.
+    -- In the thin/poset case every morphism _f : _A → _B is automatically monic (hThin makes
+    -- left-cancellation trivial), so ⟨_A, _f, _⟩ is a subobject of _B and `hDist` on that
+    -- subobject is morally the goal.  The only gap is an instance-coherence one: `hDist` builds
+    -- its pullbacks from the section's `[HasPullbacks 𝒞]`, whereas this field's `InverseImage`
+    -- is built from `hReg.toHasPullbacks`.  Bridging these two (isomorphic but distinct)
+    -- pullback objects needs a uniqueness-of-pullbacks lemma not yet available here.
     invImage_preserves_union  := fun {_A _B} _f _S _T => sorry
-    -- invImage_preserves_bottom: InverseImage f (⊥_B) ≅ ⊥_A.
-    -- In the thin case, InverseImage f (⊥_B) = ⊥_A since ⊥ pulls back to ⊥.
-    invImage_preserves_bottom := fun {_A _B} _f => sorry }
+    -- invImage_preserves_bottom: InverseImage f (⊥_B) ≅ ⊥_A.  In the thin case it suffices
+    -- to exhibit maps both ways: ⊥_A ≤ InverseImage f ⊥_B (by minimality of ⊥_A), and
+    -- InverseImage f ⊥_B → ⊥_B → ⊥_A via the pullback's π₂ and bottom_dom_iso.
+    invImage_preserves_bottom := fun {_A _B} _f => by
+      letI : HasPullbacks 𝒞 := hReg.toHasPullbacks
+      refine thin_iso_of_maps hThin ?fwd (hBottom_min (InverseImage _f (hBottom _B))).choose
+      case fwd =>
+        exact (HasPullbacks.has _f (hBottom _B).arr).cone.π₂ ≫ (hBottom_dom_iso _B _A).choose }
 
 /-- **§1.615**: In a bicartesian category with images, given x₁ : A₁ → A and
     x₂ : A₂ → A, their union (image of x₁ joined with image of x₂) equals the image of
@@ -213,7 +227,34 @@ def distributive_poset_is_prelogos [HasImages 𝒞] [HasSubobjectUnions 𝒞] [H
 theorem union_via_coproduct_image [HasImages 𝒞] [HasSubobjectUnions 𝒞] [HasBinaryCoproducts 𝒞]
     {A₁ A₂ A : 𝒞} (x₁ : A₁ ⟶ A) (x₂ : A₂ ⟶ A) :
     IsImage (HasBinaryCoproducts.case x₁ x₂) (HasSubobjectUnions.union (image x₁) (image x₂)) := by
-  sorry
+  -- inclusions of the two image-pieces into the union
+  obtain ⟨l₁, hl₁⟩ := HasSubobjectUnions.union_left (image x₁) (image x₂)
+  obtain ⟨l₂, hl₂⟩ := HasSubobjectUnions.union_right (image x₁) (image x₂)
+  refine ⟨⟨HasBinaryCoproducts.case (image.lift x₁ ≫ l₁) (image.lift x₂ ≫ l₂), ?_⟩, ?_⟩
+  · -- Allows: the assembled map composed with U.arr equals `case x₁ x₂` (check on inl, inr).
+    refine HasBinaryCoproducts.case_uniq x₁ x₂ _ ?_ ?_
+    · rw [← Cat.assoc, HasBinaryCoproducts.case_inl, Cat.assoc, hl₁, image.lift_fac]
+    · rw [← Cat.assoc, HasBinaryCoproducts.case_inr, Cat.assoc, hl₂, image.lift_fac]
+  · -- Minimality: any subobject allowing `case x₁ x₂` allows both x₁ and x₂, hence ≥ both images.
+    rintro S ⟨k, hk⟩
+    refine HasSubobjectUnions.union_min _ _ _
+      (image_min x₁ S ⟨HasBinaryCoproducts.inl ≫ k, ?_⟩)
+      (image_min x₂ S ⟨HasBinaryCoproducts.inr ≫ k, ?_⟩)
+    · rw [Cat.assoc, hk, HasBinaryCoproducts.case_inl]
+    · rw [Cat.assoc, hk, HasBinaryCoproducts.case_inr]
+
+/-! ## §1.616  Relations in a pre-logos form a distributive lattice
+
+  Freyd §1.616 records that in a pre-logos the relations `B&(A,B)` (subobjects of the
+  product `A × B`) inherit the distributive-lattice structure of the subobject lattices:
+  for relations `R, S, T`,
+      `R ∩ (S ∪ T) = (R ∩ S) ∪ (R ∩ T)`  and  `R(S ∪ T) = RS ∪ RT`,
+  the second being distributivity of relational composition over union.  The underlying
+  fact is exactly `monic_inverseImage_iff_distributive` above together with the union
+  preservation of inverse images packaged into `PreLogos`.  The *relational* (composition)
+  half belongs to the allegory development (Chapter 2, `S2_*`), where relations and their
+  composition `R ; S` are defined; it is formalized there rather than duplicated here so the
+  single source of truth for relations stays in the allegory files. -/
 
 /-- **§1.621**: If A₁ ∩ A₂ = 0 and A₁ ∪ A₂ = A (as subobjects of A in a pre-logos)
     then A is the binary coproduct of A₁.dom and A₂.dom via the inclusions A₁.arr, A₂.arr.
