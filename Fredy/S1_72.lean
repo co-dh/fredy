@@ -447,21 +447,89 @@ def repFilter {𝒟 : Type u} [Cat.{v} 𝒟] [Logos 𝒞] [Logos 𝒟]
     (T : 𝒞 → 𝒟) [Functor T] : (Subobject 𝒞 one) → Prop :=
   λ U => @Isomorphic 𝒟 _ (T U.dom) one
 
--- §1.73 (MISSING): `faithful_iff_trivial_filter`
--- The book (§1.73) states: T is a faithful representation of logoi iff ℱ(T) = {1}.
--- The statement needs at minimum `PreservesTerminal T` (so T one_𝒞 ≅ one_𝒟) plus
--- the pA## adjunction (`rightAdj (term A)`) connecting Sub(A) to Sub(1).
--- Specifically:
---   (→) Faithful + PreservesTerminal → ∀ U, repFilter T U ↔ IsEntire U
---       Needs: T one_𝒞 ≅ one_𝒟 (from PreservesTerminal + a map one_𝒟 → T one_𝒞,
---       which requires either T is CartesianFunctor or the category is skeletal).
---   (←) ∀ U, repFilter T U ↔ IsEntire U → Faithful T
---       Needs: A' = A iff pA##(A') = 1 (book §1.73 key fact), requiring the
---       adjunction rightAdj (term A) which maps Sub(A) → Sub(1) and is not
---       connected to T's action on morphisms in the repo.
--- Per integrity rule: no sorry on an under-specified statement.
--- Formalizable once LogosMap T (CartesianFunctor + image-preservation) is added
--- and the pA## adjunction bridge is proved.
+/-! ### §1.73 the double-sharp filter bridge `A' = A  ↔  pA##(A') = 1`
+
+  The book's §1.73 argument hinges on a *pure* property of the right-adjoint
+  pA## = `rightAdj (term A)`, with no functor `T` involved:
+
+    *"Given A' ⊆ A, consider pA##(A') ⊆ 1.  Note that A' = A iff pA##(A') = 1."*
+
+  We formalize this fact in full.  It is the half of §1.73 that the repo's
+  infrastructure (`HasRightAdjointImage.rightAdj`, `InverseImage`, `IsEntire`)
+  supports faithfully; the bridge to a functor `T`'s action on subobjects
+  (`T(A') ⊊ T(A) ↔ pA##(A') ∉ ℱ(T)`, hence the full `faithful_iff_trivial_filter`)
+  still needs a `LogosMap` carrying `T`'s action on `Sub`, recorded MISSING below.
+
+  First a reusable lemma: a subobject is entire iff the top subobject factors
+  through it (a split-epi-and-mono is iso). -/
+
+/-- A subobject `S ↣ A` is entire iff the entire subobject is `≤` it, i.e. iff
+    its mono `S.arr` is split epic (and, being monic, then iso). -/
+theorem isEntire_iff_entire_le {A : 𝒞} (S : Subobject 𝒞 A) :
+    Subobject.IsEntire S ↔ Subobject.le (Subobject.entire A) S := by
+  constructor
+  · -- iso ⇒ its inverse witnesses entire ≤ S
+    rintro ⟨g, _h1, h2⟩
+    exact ⟨g, by simpa [Subobject.entire] using h2⟩
+  · -- entire ≤ S gives a section h of S.arr; mono cancels to make h a 2-sided inverse
+    rintro ⟨h, hsec⟩
+    have hsec' : h ≫ S.arr = Cat.id A := by simpa [Subobject.entire] using hsec
+    refine ⟨h, ?_, hsec'⟩
+    -- (S.arr ≫ h) ≫ S.arr = id ≫ S.arr, cancel the mono S.arr on the right
+    apply S.monic
+    rw [Cat.assoc, hsec', Cat.comp_id, Cat.id_comp]
+
+/-- The inverse image of the top subobject is the top subobject:
+    `f#(1_B) = 1_A` (each side `≤` the other).  The `entire B ≤` direction is
+    trivial; the other uses that `f` itself lifts through the pullback cone of
+    `f` against `id_B`. -/
+theorem entire_le_inverseImage_entire [HasPullbacks 𝒞] {A B : 𝒞} (f : A ⟶ B) :
+    Subobject.le (Subobject.entire A) (InverseImage f (Subobject.entire B)) := by
+  -- the pullback of (f, id_B); lift the cone ⟨A, id_A, f⟩ through it
+  let pb := HasPullbacks.has f (Subobject.entire B).arr
+  let c : Cone f (Subobject.entire B).arr :=
+    ⟨A, Cat.id A, f, by simp [Subobject.entire, Cat.id_comp, Cat.comp_id]⟩
+  -- the π₁-leg (the InverseImage's arrow) of this lift is id_A
+  exact ⟨pb.lift c, by simpa [InverseImage, Subobject.entire] using pb.lift_fst c⟩
+
+/-- **§1.73 double-sharp bridge.** For any object `A` in a logos and any
+    subobject `A' ⊆ A`, writing `pA = term A : A → 1` for the unique map to the
+    terminator and `pA## = rightAdj (term A)`:
+
+        `A' = A   ↔   pA##(A') = 1`.
+
+    (Book §1.73: *"A' = A iff pA##(A') = 1."*)  Proof: `pA##(A')` is entire iff
+    `1 ≤ pA##(A')`, iff (adjunction) `pA#(1) ≤ A'`, and `pA#(1) = 1_A` is the top
+    of `Sub A`, so this says `1_A ≤ A'`, iff `A'` is entire. -/
+theorem isEntire_rightAdj_term_iff [Logos 𝒞] {A : 𝒞} (A' : Subobject 𝒞 A) :
+    Subobject.IsEntire (HasRightAdjointImage.rightAdj (term A) A') ↔
+    Subobject.IsEntire A' := by
+  rw [isEntire_iff_entire_le, isEntire_iff_entire_le]
+  -- entire 1 ≤ pA##(A')  ↔  pA#(entire 1) ≤ A'  ↔  entire A ≤ A'
+  rw [← HasRightAdjointImage.adjunction (term A) (Subobject.entire one) A']
+  constructor
+  · -- entire A ≤ pA#(entire 1) ≤ A'
+    intro h
+    exact subobject_le_trans (entire_le_inverseImage_entire (term A)) h
+  · -- pA#(entire 1) ≤ entire A ≤ A'
+    intro h
+    exact subobject_le_trans (le_entire _) h
+
+-- §1.73 (MISSING, narrowed): `faithful_iff_trivial_filter`.
+-- With the double-sharp bridge above proven, the only remaining gap is the
+-- functor side.  The book reads: *"T(A') ⊆ T(A) iff pA##(A') ∈ ℱ(T)"*, hence
+--   T faithful  ⟺  T preserves properness of subobjects  (§1.453)
+--               ⟺  ℱ(T) = {1}  (via the bridge `isEntire_rightAdj_term_iff`).
+-- The repo's `Functor`/`Faithful` (S1_33) carries only T's action on objects and
+-- morphisms; it has NO action `T : Sub A → Sub (T A)` on subobjects, so the
+-- premise *"T preserves/reflects properness of subobjects"* and the value
+-- `T(A') : Sub (T A)` cannot even be written.  `repFilter` above only inspects
+-- `T U.dom` (an object), not a subobject of `T one`.  Stating
+-- `faithful_iff_trivial_filter` faithfully therefore requires a `LogosMap T`
+-- structure (a CartesianFunctor preserving images, giving `T : Sub A → Sub (T A)`
+-- compatibly with `pA##`).  That infra is not in the repo, so the full theorem
+-- stays MISSING — but its mathematical core (the pA## ↔ entire bridge) is now
+-- proven above.  Per the integrity rule we emit no sorry on the unstatable form.
 
 /-! ## §1.733 Coprime and Connected
 

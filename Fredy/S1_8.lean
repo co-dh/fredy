@@ -249,18 +249,91 @@ def repr_of_adj {𝒞 : Type u₁} [Cat.{v} 𝒞] {𝒟 : Type u₂} [Cat.{v} �
   -- naturality: ψ (g ≫ G(b)) = ψ g ≫ b  (ψ_nat_right)
   φ_nat g b := ψ_nat_right adj g b
 
+/-! ### Derived laws for `RepresentedBy` -/
+
+section RepresentedByLaws
+variable {𝒞 : Type u₁} [Cat.{v} 𝒞] {𝒟 : Type u₂} [Cat.{v} 𝒟]
+variable {G : 𝒟 → 𝒞} [Functor G] {A : 𝒞} {R : 𝒟} (r : RepresentedBy G A R)
+
+/-- φ is injective on `(A ⟶ G B)` (it is a bijection). -/
+theorem RepresentedBy.φ_inj {B : 𝒟} {g₁ g₂ : A ⟶ G B} (h : r.φ g₁ = r.φ g₂) : g₁ = g₂ := by
+  rw [← r.ψφ g₁, ← r.ψφ g₂, h]
+
+/-- ψ is natural in B (the inverse of `φ_nat`): ψ(f ≫ b) = ψ f ≫ G(b). -/
+theorem RepresentedBy.ψ_nat {B B' : 𝒟} (f : R ⟶ B) (b : B ⟶ B') :
+    r.ψ (f ≫ b) = r.ψ f ≫ Functor.map (F := G) b :=
+  r.φ_inj <| by rw [r.φ_nat, r.φψ, r.φψ]
+
+end RepresentedByLaws
+
 /-- §1.817 (←): if (A, G(-)) is representable for every A, we can construct
-    a left adjoint for G.  For each A choose F A and the equivalence; define F x
-    as the unique map making the naturality square commute.  Full proof deferred:
-    functoriality of the construction requires more bookkeeping. -/
+    a left adjoint for G.
+
+    On objects `F A := (repr A).1`.  The unit `η_A : A ⟶ G(F A)` is `ψ(id_{F A})`,
+    and the key identity `ψ h = η_A ≫ G h` (proved from `ψ_nat`) makes the bijection
+    `φ_adj := ψ`, `ψ_adj := φ` an adjunction.  On a map `x : A' ⟶ A` set
+    `F x := φ_{A'}(x ≫ η_A) : F A' ⟶ F A`; functoriality and the two naturality
+    squares all reduce to unit-naturality `η_{A'} ≫ G(F x) = x ≫ η_A`. -/
 def adj_of_repr {𝒞 : Type u₁} [Cat.{v} 𝒞] {𝒟 : Type u₂} [Cat.{v} 𝒟]
     (G : 𝒟 → 𝒞) [Functor G]
     (repr : ∀ A : 𝒞, Σ R : 𝒟, RepresentedBy G A R) :
     Σ (F : 𝒞 → 𝒟), Σ (_ : Functor F), F ⊣ G := by
-  -- The representing object for each A.
-  -- F x is defined via the representability of the source: the unique map in 𝒟
-  -- such that the naturality square commutes.
-  -- Functoriality and adjunction structure are non-trivial; deferred.
-  sorry
+  -- Object map and the chosen representation for each A.
+  let Fobj : 𝒞 → 𝒟 := fun A => (repr A).1
+  let r : (A : 𝒞) → RepresentedBy G A (Fobj A) := fun A => (repr A).2
+  -- Unit η_A : A ⟶ G(F A) := ψ(id_{F A}).
+  let η : (A : 𝒞) → A ⟶ G (Fobj A) := fun A => (r A).ψ (Cat.id (Fobj A))
+  -- Map on morphisms: F x := φ_{A'}(x ≫ η_A).
+  let Fmap : {A' A : 𝒞} → (A' ⟶ A) → (Fobj A' ⟶ Fobj A) :=
+    fun {A' A} x => (r A').φ (x ≫ η A)
+  -- Key identity: ψ h = η_A ≫ G h, for h : F A ⟶ B.
+  have ψ_eq : ∀ {A : 𝒞} {B : 𝒟} (h : Fobj A ⟶ B), (r A).ψ h = η A ≫ Functor.map (F := G) h := by
+    intro A B h
+    have := (r A).ψ_nat (Cat.id (Fobj A)) h
+    rwa [Cat.id_comp] at this
+  -- Unit naturality: η_{A'} ≫ G(F x) = x ≫ η_A.
+  have η_nat : ∀ {A' A : 𝒞} (x : A' ⟶ A), η A' ≫ Functor.map (F := G) (Fmap x) = x ≫ η A := by
+    intro A' A x
+    rw [← ψ_eq (Fmap x)]
+    show (r A').ψ ((r A').φ (x ≫ η A)) = x ≫ η A
+    rw [(r A').ψφ]
+  -- F is a functor.
+  let hF : Functor Fobj := {
+    map := Fmap
+    map_id := by
+      intro A
+      show (r A).φ (Cat.id A ≫ η A) = Cat.id (Fobj A)
+      rw [Cat.id_comp]
+      -- η A = ψ(id), so φ(η A) = φ(ψ id) = id.
+      show (r A).φ ((r A).ψ (Cat.id (Fobj A))) = Cat.id (Fobj A)
+      rw [(r A).φψ]
+    map_comp := by
+      intro A'' A' A x y
+      show (r A'').φ ((x ≫ y) ≫ η A) = Fmap x ≫ Fmap y
+      -- Fmap x ≫ Fmap y = φ(x ≫ η A') ≫ Fmap y = φ((x ≫ η A') ≫ G(Fmap y))  [φ_nat]
+      show (r A'').φ ((x ≫ y) ≫ η A) = (r A'').φ (x ≫ η A') ≫ Fmap y
+      rw [← (r A'').φ_nat (x ≫ η A') (Fmap y)]
+      congr 1
+      -- (x ≫ y) ≫ η A = (x ≫ η A') ≫ G(Fmap y), via assoc + η_nat y.
+      rw [Cat.assoc, Cat.assoc, η_nat y] }
+  refine ⟨Fobj, hF, ?_⟩
+  -- The adjunction: φ := ψ_repr, ψ := φ_repr.
+  exact {
+    φ := fun {A B} h => (r A).ψ h
+    ψ := fun {A B} g => (r A).φ g
+    φψ := fun {A B} g => (r A).ψφ g
+    ψφ := fun {A B} h => (r A).φψ h
+    -- φ_nat_left: ψ(F a ≫ h) = a ≫ ψ h.
+    φ_nat_left := by
+      intro A' A B a h
+      -- show (r A').ψ (Fmap a ≫ h) = a ≫ (r A).ψ h
+      rw [ψ_eq (Functor.map a ≫ h), ψ_eq h, Functor.map_comp, ← Cat.assoc]
+      -- η A' ≫ G(F a) = a ≫ η A  (η_nat); F a = Functor.map a here.
+      rw [show Functor.map (F := G) (Functor.map (F := Fobj) a) = Functor.map (F := G) (Fmap a) from rfl,
+        η_nat a, Cat.assoc]
+    -- φ_nat_right: ψ(h ≫ b) = ψ h ≫ G b  (exactly ψ_nat).
+    φ_nat_right := by
+      intro A B B' h b
+      exact (r A).ψ_nat h b }
 
 end Freyd

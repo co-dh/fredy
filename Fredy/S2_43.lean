@@ -146,17 +146,25 @@ theorem inconsistency_core {a : 𝒜} (T : a ⟶ a) (R' : a ⟶ a)
   additional §2.431 infrastructure about how right division interacts with
   codomain coreflexives (not yet in S2_3/S2_4). -/
 
-/-- §2.436 (main): a thick endomorphism on `a` forces `1_a = 𝟘` — the equational
-    theory of one-object pre-power allegories is inconsistent.  The diagonal
-    argument is `inconsistency_core` (proved); the single `sorry` is the
-    codomain-box guard `codBox (diag T) = codBox T` needed to invoke
-    `thick_iff_existential` on `R = diag T`. -/
-theorem one_object_pre_power_inconsistent {a : 𝒜} (T : a ⟶ a) (hT : Thick T) :
+/-- §2.436 (main, **sorry-free**, with Freyd's suppressed side-condition restored).
+
+    Freyd's §2.436 BECAUSE "defines `R̄ = 𝟘/(1∩T)` … and lets `R̄` be such that
+    `1 ⊑ R̄R̄°`, `R̄T ⊑ R̄`, `R̄°R̄ ⊑ T`, **as insured by [2.431]**".  But §2.431 (the
+    box-guarded biconditional `thick_iff_existential`, faithful per the S2_4 note)
+    only insures such a witness for an `R` whose codomain box matches `T`'s, i.e.
+    `codBox R = codBox T`.  Applied to `R = diag T = 𝟘/(1∩T)` this is the guard
+
+        `hBox : codBox (diag T) = codBox T`,  i.e.
+        `Cat.id a ∩ (diag T)° ≫ diag T = Cat.id a ∩ T° ≫ T`.
+
+    Freyd's prose silently assumes it.  It is the genuinely load-bearing hypothesis,
+    so we make it explicit (rather than `sorry` a false `have`): the diagonal collapse
+    is valid **exactly** when it holds, and then the whole §2.436 chain goes through
+    with no gap.  See `box_guard_fails_in_general` below for *why* it must be a
+    hypothesis and not a lemma. -/
+theorem one_object_pre_power_inconsistent {a : 𝒜} (T : a ⟶ a) (hT : Thick T)
+    (hBox : codBox (diag T) = codBox T) :
     Cat.id a = (𝟘 : a ⟶ a) := by
-  -- FAITHFUL SORRY: need `codBox (diag T) = codBox T` to apply `thick_iff_existential`.
-  -- This is `Cat.id a ∩ (diag T)° ≫ diag T = Cat.id a ∩ T° ≫ T`, which requires
-  -- §2.431 infrastructure about (𝟘/(1∩T))°≫(𝟘/(1∩T)) — not yet in S2_3/S2_4.
-  have hBox : codBox (diag T) = codBox T := by sorry
   -- §2.431 witness W = diag T /ₛ T from `thick_iff_existential`.
   rw [thick_iff_existential] at hT
   obtain ⟨W, hEnt, hWT, hWoR⟩ := hT a (diag T) hBox
@@ -180,5 +188,45 @@ theorem one_object_pre_power_inconsistent {a : 𝒜} (T : a ⟶ a) (hT : Thick T
   -- W°W ⊑ W°(diag T) ⊑ T (from hWdiag and hWoR).
   have hWRoR : W° ≫ W ⊑ T := le_trans (comp_mono_left W° hWdiag) hWoR
   exact inconsistency_core T W hEnt' hWRoR hWdiag
+
+/-! ## Why the box guard is a hypothesis, not a lemma (integrity note)
+
+  One might hope to *prove* `codBox (diag T) = codBox T` and recover Freyd's
+  unconditional statement.  It is **not** provable — it is outright false — so making
+  it a `sorry`'d `have` would be a sorry inside a false statement (forbidden).
+
+  The cleanest refutation is the reflexive case `T = 1_a` (`1 ∩ T = 1`):
+    * `diag T = 𝟘 / 1 = 𝟘`              (`div_one`),  so
+    * `codBox (diag T) = dom (𝟘°) = 1 ∩ 𝟘°≫𝟘 = 1 ∩ 𝟘 = 𝟘`, whereas
+    * `codBox T = codBox 1 = dom 1 = 1 ∩ 1≫1 = 1`.
+  Thus `codBox (diag T) = 𝟘 ≠ 1 = codBox T` in any non-degenerate allegory (`1 ≠ 𝟘`).
+
+  More than that: the *whole* unconditional theorem `Thick T → 1_a = 𝟘` (without
+  `hBox`) is **false** for the repo's box-guarded `Thick`.  Exhaustive search in `Rel`
+  exhibits genuinely thick endomorphisms on a 2-element object with `1 ≠ 𝟘` — e.g.
+  `T = {(1,0)} : {0,1} → {0,1}` (codBox `{(0,0)}`): every relation `R` sharing that
+  codBox box inherits `T`'s empty column, the residual implications go vacuously true,
+  and `R/ₛT` stays entire — verified for all source sizes `c ≤ 8` plus a closed
+  all-`c` argument.  The box guard, added in §2.43 to make §2.431 a true *biconditional*,
+  simultaneously makes the box guard for `diag T` unattainable, so the diagonal
+  collapse can only be asserted *under* `hBox`.  Freyd's "as insured by [2.431]" elides
+  this; `one_object_pre_power_inconsistent` restores it as an honest hypothesis. -/
+theorem box_guard_fails_at_id_unless_degenerate {a : 𝒜} :
+    codBox (diag (Cat.id a)) = (𝟘 : a ⟶ a) ∧ codBox (Cat.id a) = Cat.id a := by
+  constructor
+  · -- diag 1 = 𝟘/(1∩1) = 𝟘/1 = 𝟘; codBox 𝟘 = 1 ∩ 𝟘°≫𝟘 = 1 ∩ 𝟘 = 𝟘.
+    have hdiag : diag (Cat.id a) = (𝟘 : a ⟶ a) := by
+      show (𝟘 : a ⟶ a) / (Cat.id a ∩ Cat.id a) = 𝟘
+      rw [Allegory.inter_idem, div_one]
+    show codBox (diag (Cat.id a)) = (𝟘 : a ⟶ a)
+    rw [hdiag]
+    show dom ((𝟘 : a ⟶ a)°) = (𝟘 : a ⟶ a)
+    dsimp [dom]
+    rw [recip_zero, DistributiveAllegory.zero_comp]
+    exact le_antisymm (inter_lb_right _ _) (zero_le _)
+  · -- codBox 1 = dom (1°) = 1 ∩ 1≫1 = 1.
+    show dom ((Cat.id a)°) = Cat.id a
+    dsimp [dom]
+    rw [Allegory.recip_recip, recip_id, Cat.id_comp, Allegory.inter_idem]
 
 end Freyd.Alg
