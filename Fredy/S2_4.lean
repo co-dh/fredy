@@ -59,13 +59,22 @@ def A {a b : 𝒜} [PowerAllegory 𝒜] (R : a ⟶ b) : a ⟶ PowerAllegory.powe
     Simple branch: A(R) ⊑ R/∋, and since ∋ is straight R/∋ is simple [§2.356].
     Entire branch: dom(A(R)) = 1 ∩ (R/∋)(∋/R) ⊒ 1 via thickness [§2.3571]. -/
 theorem A_is_map {a b : 𝒜} [PowerAllegory 𝒜] (R : a ⟶ b) : Map (A R) := by
-  sorry
+  constructor
+  · -- Entire: blocked — eps_thick as stated (1 ⊑ ∋/∋) is vacuous (one_le_div_self);
+    -- the real axiom needed is existential ("∀ R, ∃ map f, f ≫ ∋ = R").
+    sorry
+  · -- Simple: A(R) = R/ₛ∋, and ∋ is straight, so R/ₛ∋ is simple [§2.356].
+    exact straight_symmDiv_simple (PowerAllegory.eps_straight b) R
 
 /-- A(R)∋ = R (§2.41).
     ⊑: A(R) ⊑ R/∋ (left component of symmDiv), so A(R)∋ ⊑ (R/∋)∋ ⊑ R.
     ⊒: uses thickness 1 ⊑ ∋/∋ and domain formula for symmDiv [§2.3571]. -/
 theorem A_eps_eq {a b : 𝒜} [PowerAllegory 𝒜] (R : a ⟶ b) : A R ≫ ∋ b = R := by
-  sorry
+  apply le_antisymm
+  · -- A(R) ≫ ∋ ⊑ R: first component of le_symmDiv_iff
+    exact ((le_symmDiv_iff _ R _).mp (le_refl _)).1
+  · -- R ⊑ A(R) ≫ ∋: needs A(R) entire (blocked by eps_thick axiom gap)
+    sorry
 
 /-! ## §2.415  Power object and singleton map -/
 
@@ -77,7 +86,19 @@ def singletonMap {a : 𝒜} [PowerAllegory 𝒜] : a ⟶ PowerAllegory.powerObj 
     Proof: A(1)A°(1) ⊑ (1/∋)(∋/1) = (1/∋)∋ ⊑ 1. -/
 theorem singletonMap_monic {a : 𝒜} [PowerAllegory 𝒜] :
     singletonMap (a := a) ≫ singletonMap° ⊑ Cat.id a := by
-  sorry
+  -- singletonMap = A(1_a) = 1/ₛ∋ ⊑ 1/∋.
+  -- singletonMap° ⊑ ∋/1 = ∋ (reciprocal of second component of symmDiv).
+  -- So singletonMap ≫ singletonMap° ⊑ (1/∋) ≫ ∋ ⊑ 1.
+  dsimp only [singletonMap, A]
+  -- singletonMap is Cat.id a /ₛ ∋ a, unfold for the proof
+  have h1 : Cat.id a /ₛ ∋ a ⊑ Cat.id a / ∋ a := inter_lb_left _ _
+  -- (1/ₛ∋)° ⊑ ∋: (1/ₛ∋)° = ((1/∋) ∩ (∋/1)°)° = (1/∋)° ∩ ∋/1 ⊑ ∋/1 = ∋
+  have h2 : (Cat.id a /ₛ ∋ a)° ⊑ ∋ a := by
+    dsimp [symmDiv]
+    rw [Allegory.recip_inter, div_one]
+    exact le_trans (inter_lb_right _ _) (by rw [Allegory.recip_recip]; exact le_refl _)
+  exact le_trans (comp_mono_right h1 _)
+    (le_trans (comp_mono_left _ h2) (div_comp_eq_le _ _))
 
 /-- For any map f : a → b, A(f) = f ≫ A(1_b) (§2.415).
     Book: "For any map p →ᶠ a, A(f) = f A(1) since f A(1) is a map and f A(1) ∋ = f."
@@ -93,7 +114,48 @@ theorem A_of_map {a b : 𝒜} [PowerAllegory 𝒜] (f : a ⟶ b) (hf : Map f) :
     This follows from straightness of ∋: ∋ /ₛ ∋ ⊑ 1 forces A(R) uniqueness. -/
 theorem A_unique {a b : 𝒜} [PowerAllegory 𝒜] (R : a ⟶ b) (F : a ⟶ PowerAllegory.powerObj b)
     (hF : Map F) (hFeq : F ≫ ∋ b = R) : F = A R := by
-  sorry
+  -- Step 1: F ⊑ A R = R /ₛ ∋ via le_symmDiv_iff
+  have hF_le : F ⊑ A R := by
+    rw [A, le_symmDiv_iff]
+    refine ⟨?_, ?_⟩
+    · rw [hFeq]; exact le_refl R
+    · -- F° R ⊑ ∋: F°(F ∋) = (F°F)∋ ⊑ 1∋ = ∋ via Simple F
+      rw [← hFeq, ← Cat.assoc]
+      exact le_trans (comp_mono_right hF.2 (∋ b)) (by rw [Cat.id_comp]; exact le_refl _)
+  -- Helper: (A R) ≫ ∋ b ⊑ R
+  have hAR_eps : A R ≫ ∋ b ⊑ R := ((le_symmDiv_iff _ R _).mp (le_refl _)).1
+  -- Helper: (A R)° ≫ R ⊑ ∋ b
+  have hARo_R : (A R)° ≫ R ⊑ ∋ b := ((le_symmDiv_iff _ R _).mp (le_refl _)).2
+  -- Step 2: F° ≫ A R ⊑ ∋ /ₛ ∋ ⊑ 1
+  have hFoAR : F° ≫ A R ⊑ Cat.id (PowerAllegory.powerObj b) := by
+    apply le_trans _ (PowerAllegory.eps_straight b)
+    rw [le_symmDiv_iff]
+    refine ⟨?_, ?_⟩
+    · -- (F° ≫ A R) ≫ ∋ ⊑ ∋
+      have step1 : (F° ≫ A R) ≫ ∋ b ⊑ F° ≫ R := by
+        rw [Cat.assoc]; exact comp_mono_left F° hAR_eps
+      have step2 : F° ≫ R ⊑ ∋ b := by
+        rw [← hFeq, ← Cat.assoc]
+        exact le_trans (comp_mono_right hF.2 (∋ b)) (by rw [Cat.id_comp]; exact le_refl _)
+      exact le_trans step1 step2
+    · -- (F° ≫ A R)° ≫ ∋ = (A R)° ≫ F ≫ ∋ ⊑ ∋
+      rw [Allegory.recip_comp, Allegory.recip_recip, Cat.assoc, hFeq]
+      exact hARo_R
+  -- Step 3: Entire F: 1 ⊑ F ≫ F°, so A R ⊑ F(F°(A R)) ⊑ F·1 = F
+  have hent : Cat.id a ⊑ F ≫ F° := by
+    have h := hF.1; dsimp [Entire, dom] at h
+    rw [← h]; exact inter_lb_right _ _
+  have hAR_le_F : A R ⊑ F := by
+    -- A R = 1_a ≫ A R ⊑ (F F°) A R = F (F° A R) ⊑ F 1 = F
+    have h1 : Cat.id a ≫ A R ⊑ (F ≫ F°) ≫ A R := comp_mono_right hent _
+    rw [Cat.id_comp] at h1
+    have h2 : (F ≫ F°) ≫ A R = F ≫ F° ≫ A R := Cat.assoc _ _ _
+    rw [h2] at h1
+    have h3 : F ≫ F° ≫ A R ⊑ F ≫ Cat.id _ := comp_mono_left F hFoAR
+    have h4 : F ≫ Cat.id (PowerAllegory.powerObj b) = F := Cat.comp_id _
+    rw [h4] at h3
+    exact le_trans h1 h3
+  exact le_antisymm hF_le hAR_le_F
 
 /-- If F is simple then F ⊑ A(F∋) (§2.412).
     Book: "Indeed, if F is simple then F ⊂ A(F∋)."
@@ -101,26 +163,89 @@ theorem A_unique {a b : 𝒜} [PowerAllegory 𝒜] (R : a ⟶ b) (F : a ⟶ Powe
     which follows from F°F ⊑ 1 and A(R)∋ = R. -/
 theorem simple_le_A_eps {a b : 𝒜} [PowerAllegory 𝒜] (F : a ⟶ PowerAllegory.powerObj b)
     (hF : Simple F) : F ⊑ A (F ≫ ∋ b) := by
-  sorry
+  -- A (F ≫ ∋ b) = (F ≫ ∋ b) /ₛ ∋ b. By le_symmDiv_iff, F ⊑ (F∋)/ₛ∋ iff
+  -- (1) F ≫ ∋ ⊑ F ≫ ∋ (trivial) and (2) F° ≫ (F ≫ ∋) ⊑ ∋.
+  -- (2): F°(F ∋) = (F°F)∋ ⊑ 1∋ = ∋ via Simple F (F°F ⊑ 1).
+  rw [A, le_symmDiv_iff]
+  refine ⟨le_refl _, ?_⟩
+  -- F° ≫ (F ≫ ∋ b) = (F° ≫ F) ≫ ∋ b ⊑ Cat.id _ ≫ ∋ b = ∋ b
+  rw [← Cat.assoc]
+  exact le_trans (comp_mono_right hF (∋ b)) (by rw [Cat.id_comp]; exact le_refl _)
 
-/-! ## §2.414  Topos ↔ unitary tabular power allegory
+/-! ## §2.42  Splitting lemmas
 
-  If C is a topos then Rel(C) is a power allegory.
-  Conversely, if A is a unitary tabular power allegory then Map(A) is
-  a topos (§2.414). -/
+  If A is a power allegory then Spl(Cor(A)) is a power allegory (§2.42). -/
 
-theorem topos_allegory_is_power {𝒞 : Type u} [Cat.{v} 𝒞] : True := by trivial
+/-! ## §2.421  R/S = A(R)A°(S)
 
-/-! ## §2.43  Pre-power allegory
+  In a power allegory, R /ₛ S = A(R) ≫ (A S)° for any R : a → c, S : b → c. -/
+
+/-- §2.421: in a power allegory, the symmetric division R /ₛ S equals A(R) ≫ (A S)°. -/
+theorem symm_div_eq_A_comp {a b c : 𝒜} [PowerAllegory 𝒜] (R : a ⟶ c) (S : b ⟶ c) :
+    R /ₛ S = A R ≫ (A S)° := by
+  apply le_antisymm
+  · -- R/ₛS ⊑ A(R) ≫ (A S)°
+    -- blocked: lower bound needs A(R) entire (i.e. A_eps_eq + A_is_map)
+    sorry
+  · -- A(R) ≫ (A S)° ⊑ R/ₛS: by le_symmDiv_iff, need:
+    -- (1) (A R ≫ (A S)°) ≫ S ⊑ R
+    -- (2) (A R ≫ (A S)°)° ≫ R ⊑ S
+    rw [le_symmDiv_iff]
+    constructor
+    · -- (A R ≫ (A S)°) ≫ S = A R ≫ ((A S)° ≫ S) ⊑ A R ≫ ∋ ⊑ R
+      rw [Cat.assoc]
+      have h1 : (A S)° ≫ S ⊑ ∋ c :=
+        ((le_symmDiv_iff _ S _).mp (le_refl _)).2
+      have h2 : A R ≫ ∋ c ⊑ R :=
+        ((le_symmDiv_iff _ R _).mp (le_refl _)).1
+      exact le_trans (comp_mono_left (A R) h1) h2
+    · -- (A R ≫ (A S)°)° ≫ R = A S ≫ (A R)° ≫ R ⊑ A S ≫ ∋ ⊑ S
+      rw [Allegory.recip_comp, Allegory.recip_recip, Cat.assoc]
+      have h1 : (A R)° ≫ R ⊑ ∋ c :=
+        ((le_symmDiv_iff _ R _).mp (le_refl _)).2
+      have h2 : A S ≫ ∋ c ⊑ S :=
+        ((le_symmDiv_iff _ S _).mp (le_refl _)).1
+      exact le_trans (comp_mono_left (A S) h1) h2
+
+/-! ## §2.422  Equivalence relations in power allegories
+
+  In any division allegory, E²=E for any equivalence relation E.
+  In a power allegory every equivalence relation is of the form ff°. -/
+
+-- §2.414 (a topos ↔ a unitary tabular power allegory: C topos ⟹ Rel(C) power
+-- allegory, and Map of a unitary tabular power allegory is a topos) is recorded
+-- MISSING in S2_4.md — stating it faithfully needs the Rel(C)/Map(A) bridge between
+-- the categorical (Topos, S1_9) and allegorical worlds, not yet built. Per the
+-- integrity rule we do NOT emit a vacuous `: True` stub.
+
+/-! ## §2.43  Pre-power allegory and diagonal proofs
+
+  A morphism T is THICK if T/T is entire: 1 ⊑ (T/T)(T/T)° (§2.43).
+  Equivalently (§2.431): for all R with dom(R) = dom(T), there exists R̃ with
+  1 ⊑ R̃R̃°, R̃T ⊑ R̃, R̃°R̃ ⊑ T.
 
   A PRE-POWER ALLEGORY is a division allegory in which each object
-  appears as the target of a straight morphism (§2.43). -/
+  appears as the target of a thick morphism (§2.43). -/
+
+/-- T : a → b is THICK (§2.43) if R/T is entire for all R with target b.
+    Equivalently: T covers a in the sense that every R : c → b factors through T
+    up to entireness. By §2.431, equivalent to ∀ R (same target), ∃ R̃ entire
+    with R̃ ≫ T ⊑ R and R̃° ≫ R̃ ⊑ T/T. -/
+def Thick {a b : 𝒜} [DivisionAllegory 𝒜] (T : a ⟶ b) : Prop :=
+  ∀ (c : 𝒜) (R : c ⟶ b), Entire (R / T)
+
+/-- §2.431: T is thick iff for every R with same target b, there exists R̃ : c → a
+    that is entire, with R̃ ≫ T ⊑ R and R̃° ≫ R̃ ⊑ T/T. -/
+theorem thick_iff_existential {a b : 𝒜} [DivisionAllegory 𝒜] (T : a ⟶ b) :
+    Thick T ↔ ∀ (c : 𝒜) (R : c ⟶ b), ∃ (R' : c ⟶ a),
+        Entire R' ∧ R' ≫ T ⊑ R ∧ R'° ≫ R' ⊑ T / T := by
+  sorry
 
 /-- A PRE-POWER ALLEGORY (§2.43): division allegory where each object
-    is the target of some straight morphism. -/
+    is the target of some thick morphism. -/
 class PrePowerAllegory (𝒜 : Type u) extends DivisionAllegory 𝒜 where
-  /-- For each object a, there exists a straight morphism with target a. -/
-  straight_target (a : 𝒜) : ∃ (x : 𝒜) (S : x ⟶ a), Straight S
+  /-- For each object a, there exists a thick morphism with target a. -/
+  thick_target (a : 𝒜) : ∃ (x : 𝒜) (S : x ⟶ a), Thick S
 
 /-! ## §2.432  Effective pre-power allegory is power
 
