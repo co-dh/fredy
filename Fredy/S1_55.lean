@@ -207,14 +207,19 @@ theorem henkin_lubkin (𝒞 : Type u) [Cat.{u} 𝒞] [PreRegularCategory 𝒞] :
   letI : ∀ i, Functor (F i) := hF
   exact ⟨familyFunctor F, inferInstance, familyFunctor_separates F hsep⟩
 
-/-! ## §1.551 Corollary: Horn sentence preservation
+/-! ## §1.551 Corollary: Horn sentence preservation  — DEFERRED (not stated here)
 
-  Every Horn sentence in the predicates of regular categories true for the
-  category of sets is true for every regular category.  (Follows from the
-  *exact* form of Henkin-Lubkin: an exact faithful representation preserves and
-  reflects Horn sentences — see the scope note in the file header.) -/
+  §1.551: every Horn sentence in the predicates of regular categories true for the
+  category of sets is true for every regular category.  This follows from the
+  *exact* form of Henkin-Lubkin, which in turn needs the capitalization lemma
+  (`Fredy/S1_54.lean : capitalization_lemma`, §1.543, still `sorry`).
 
-theorem horn_sentence_preservation : ∀ (A : Type u) [Cat.{u} A] [PreRegularCategory A], True := by
-  intro A _ _; trivial
+  It is NOT stated as a theorem here: a faithful statement requires the Horn-sentence
+  machinery (`HornSentence`/`HoldsIn`), which lives in `Fredy/S1_56.lean` — and S1_56
+  imports this file, so referencing it here would be circular.  The faithful Horn
+  reflection statement therefore lives downstream in S1_56
+  (`horn_sentence_reflected_by_faithful`, §1.563), left as a faithful `sorry` pending
+  the same capitalization lemma.  Per the integrity rule we do NOT emit a vacuous
+  `: True` stub for §1.551 here. -/
 
 end Freyd
