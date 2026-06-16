@@ -188,7 +188,30 @@ theorem poset_exponential_iff_meets_heytingArrow
     (P : Type u) [Cat.{v} P] [ThinCategory P] :
     Nonempty (HasExponentials P) ↔
     ∃ (hm : HasBinaryProducts P), Nonempty (@HasHeytingArrow P _ hm) := by
-  sorry
+  constructor
+  · -- (→) An exponential thin category has products and a Heyting arrow.
+    rintro ⟨he⟩
+    refine ⟨he.toHasBinaryProducts, ⟨?_⟩⟩
+    refine
+      { imp := fun a b => he.exp_obj a b
+        imp_adj := fun a b x => ?_ }
+    constructor
+    · -- x ⟶ b^a  ↦  prodMap a x b^a g ≫ eval : a×x ⟶ b
+      rintro ⟨g⟩
+      exact ⟨@prodMap P _ he.toHasBinaryProducts a x (he.exp_obj a b) g ≫ he.eval_map⟩
+    · -- a×x ⟶ b  ↦  curry : x ⟶ b^a
+      rintro ⟨f⟩
+      exact ⟨he.curry_map f⟩
+  · -- (←) Products + Heyting arrow give exponentials (curry equations are free in a thin cat).
+    rintro ⟨hm, ⟨ha⟩⟩
+    refine ⟨?_⟩
+    refine
+      { toHasBinaryProducts := hm
+        exp_obj := fun a b => ha.imp a b
+        eval_map := fun {A B} => Classical.choice ((ha.imp_adj A B (ha.imp A B)).mp ⟨Cat.id _⟩)
+        curry_map := fun {A B X} f => Classical.choice ((ha.imp_adj A B X).mpr ⟨f⟩)
+        curry_eval := fun {A B X} f => ThinCategory.thin _ _
+        curry_unique := fun {A B X f g} _ => ThinCategory.thin _ _ }
 
 /-! ## §1.854  Σ ⊣ Δ adjunction; Π dependent products
 

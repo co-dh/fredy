@@ -434,6 +434,57 @@ structure PreAdjointFunctor {𝒜 : Type u} [Cat.{v} 𝒜] {ℬ : Type u₁} [Ca
   If ℬ is locally small (automatic in our type-theoretic formulation) and complete,
   then G : ℬ → 𝒜 has a left adjoint iff it is continuous and pre-adjoint. -/
 
+/-- §1.83 EASY HALF (pre-adjoint side): a left adjoint is a pre-adjoint functor.
+    The unit `η_A : A → G(F A)` is itself a *singleton* pre-adjoint family for `A`:
+    every `f : A → G B` factors as `η_A ≫ G x` with `x := ψ f` (§1.83, §1.817). -/
+def preAdjointFunctor_of_adjunction
+    {𝒜 : Type u} [Cat.{v} 𝒜] {ℬ : Type u₁} [Cat.{v} ℬ]
+    {G : ℬ → 𝒜} [hG : Functor G] {F : 𝒜 → ℬ} [Functor F] (adj : F ⊣ G) :
+    PreAdjointFunctor G where
+  preAdj A :=
+    { I       := PUnit.{v+1}
+      obj     := fun _ => F A
+      maps    := fun _ => unit adj A
+      cofinal := fun {B} f =>
+        ⟨PUnit.unit, adj.ψ f, by
+          -- η_A ≫ G(ψ f) = φ(ψ f) = f
+          rw [← φ_eq adj (adj.ψ f), adj.φψ]⟩ }
+
+/-- §1.83 EASY HALF (continuity side): a left adjoint's right adjoint is continuous —
+    a right adjoint preserves all limits (§1.829/§1.834). The mediating map over a cone
+    `{W → G(D i)}` is obtained by transposing to a cone `{F W → D i}`, lifting through the
+    limit, and transposing back via the unit. -/
+theorem isContinuous_of_adjunction
+    {𝒜 : Type u} [Cat.{v} 𝒜] {ℬ : Type u₁} [Cat.{v} ℬ]
+    {G : ℬ → 𝒜} [hG : Functor G] {F : 𝒜 → ℬ} [hF : Functor F] (adj : F ⊣ G) :
+    IsContinuous G := by
+  intro 𝒟 _ D hD lim W legs hnat
+  -- Transpose the W-legs to F W-legs : F W → D i.  tlegs i := ψ (legs i).
+  -- These form a cone over D: ψ(legs i) ≫ D x = ψ(legs i ≫ G(D x)) = ψ(legs j).
+  have tnat : ∀ {i j : 𝒟} (x : i ⟶ j),
+      adj.ψ (legs i) ≫ hD.map x = adj.ψ (legs j) := by
+    intro i j x
+    rw [← ψ_nat_right adj (legs i) (hD.map x), hnat x]
+  -- Lift the F W-cone through the limit, getting w : F W → lim.apex.
+  let c : DiagCone D := { apex := F W, π := fun i => adj.ψ (legs i), nat := tnat }
+  let w := lim.lift c
+  have hwfac : ∀ i, w ≫ lim.cone.π i = adj.ψ (legs i) := lim.fac c
+  -- Transpose w back: u := φ w = η_W ≫ G w : W → G(lim.apex).
+  refine ⟨adj.φ w, ?_, ?_⟩
+  · intro i
+    -- u ≫ G(π i) = φ(w) ≫ G(π i) = φ(w ≫ π i) = φ(ψ(legs i)) = legs i.
+    rw [← adj.φ_nat_right w (lim.cone.π i), hwfac i, adj.φψ]
+  · intro u' hu'
+    -- u' is determined: ψ u' is a mediating map for the cone c, so ψ u' = w by lim.uniq,
+    -- hence u' = φ(ψ u') = φ w.
+    have hψfac : ∀ i, adj.ψ u' ≫ lim.cone.π i = adj.ψ (legs i) := by
+      intro i
+      -- ψ u' ≫ π i = ψ(u' ≫ G(π i)) = ψ(legs i).
+      rw [← ψ_nat_right adj u' (lim.cone.π i), hu' i]
+    have hwu : adj.ψ u' = w := lim.uniq c (adj.ψ u') hψfac
+    calc u' = adj.φ (adj.ψ u') := (adj.φψ u').symm
+      _ = adj.φ w := by rw [hwu]
+
 /-- §1.83 GENERAL ADJOINT FUNCTOR THEOREM. -/
 theorem general_adjoint_functor_theorem
     {𝒜 : Type u} [Cat.{v} 𝒜] {ℬ : Type u₁} [Cat.{v} ℬ]
@@ -441,7 +492,14 @@ theorem general_adjoint_functor_theorem
     [Complete ℬ] :
     (∃ (F : 𝒜 → ℬ) (hF : Functor F), Nonempty (F ⊣ G)) ↔
     (IsContinuous G ∧ Nonempty (PreAdjointFunctor G)) := by
-  sorry
+  constructor
+  · -- (⇒) EASY: a left adjoint is continuous and pre-adjoint (proved above).
+    rintro ⟨F, hF, ⟨adj⟩⟩
+    exact ⟨isContinuous_of_adjunction adj, ⟨preAdjointFunctor_of_adjunction adj⟩⟩
+  · -- (⇐) HARD: continuous + pre-adjoint ⟹ left adjoint, via the solution-set /
+    -- representability construction (§1.834). Not yet formalized — see S1_82.md.
+    rintro ⟨_hcont, ⟨_pre⟩⟩
+    sorry
 
 -- ---------------------------------------------------------------------------
 -- §1.838  Well-powered
@@ -736,6 +794,23 @@ theorem uniformly_continuous_preserves_prelimits
   intro i
   rw [Cat.assoc, ← hG.map_comp, hu i, hφ i]
 
+/-- §1.831 EASY HALF (uniform-continuity side): a left adjoint is uniformly continuous.
+    Given a cone `{A → G(D i)}`, take `B := F A`, `cone_legs i := ψ(legs i)` and the unit
+    `η_A : A → G(F A)` as factoring map; `η_A ≫ G(ψ(legs i)) = φ(ψ(legs i)) = legs i`.
+    No completeness is needed — this is strictly weaker than `isContinuous_of_adjunction`. -/
+theorem isUniformlyContinuous_of_adjunction
+    {𝒜 : Type u} [Cat.{v} 𝒜] {ℬ : Type u₁} [Cat.{v} ℬ]
+    {G : ℬ → 𝒜} [hG : Functor G] {F : 𝒜 → ℬ} [hF : Functor F] (adj : F ⊣ G) :
+    IsUniformlyContinuous G := by
+  intro 𝒟 _ D hD A legs hnat
+  refine ⟨F A, fun i => adj.ψ (legs i), ?_, unit adj A, ?_⟩
+  · -- cone_legs form a cone over D, by the same transpose-naturality argument.
+    intro i j x
+    rw [← ψ_nat_right adj (legs i) (hD.map x), hnat x]
+  · -- η_A ≫ G(ψ(legs i)) = φ(ψ(legs i)) = legs i.
+    intro i
+    rw [← φ_eq adj (adj.ψ (legs i)), adj.φψ]
+
 /-- §1.831 MORE GENERAL ADJOINT FUNCTOR THEOREM.
     If ℬ is locally small and idempotents split, then G : ℬ → 𝒜 has a left adjoint
     iff it is uniformly continuous and pre-adjoint. -/
@@ -744,7 +819,14 @@ theorem more_general_adjoint_functor_theorem
     (G : ℬ → 𝒜) [hG : Functor G] [PreComplete ℬ] :
     (∃ (F : 𝒜 → ℬ) (hF : Functor F), Nonempty (F ⊣ G)) ↔
     (IsUniformlyContinuous G ∧ Nonempty (PreAdjointFunctor G)) := by
-  sorry
+  constructor
+  · -- (⇒) EASY: a left adjoint is uniformly continuous and pre-adjoint (proved above).
+    rintro ⟨F, hF, ⟨adj⟩⟩
+    exact ⟨isUniformlyContinuous_of_adjunction adj, ⟨preAdjointFunctor_of_adjunction adj⟩⟩
+  · -- (⇐) HARD: uniformly continuous + pre-adjoint ⟹ left adjoint, via the pre-limit
+    -- construction + splitting idempotents (§1.834–§1.835). Not yet formalized — see S1_82.md.
+    rintro ⟨_huc, ⟨_pre⟩⟩
+    sorry
 
 -- ---------------------------------------------------------------------------
 -- §1.837  Complete + pre-cocomplete → cocomplete
