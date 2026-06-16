@@ -45,10 +45,7 @@ theorem prodMap_fst (A X Y : 𝒞) (f : X ⟶ Y) : prodMap A X Y f ≫ fst (A :=
 theorem prodMap_snd (A X Y : 𝒞) (f : X ⟶ Y) : prodMap A X Y f ≫ snd = snd ≫ f := by
   dsimp [prodMap]; rw [snd_pair]
 
-theorem pair_fst_snd (A X : 𝒞) :
-    pair (X := prod A X) (A := A) (B := X) fst snd = Cat.id (prod A X) :=
-  (pair_uniq (X := prod A X) (A := A) (B := X) fst snd (Cat.id _)
-    (Cat.id_comp _) (Cat.id_comp _)).symm
+-- (pair_fst_snd is defined canonically in S1_42 §1.423; reused here via import.)
 
 theorem prodMap_id (A X : 𝒞) : prodMap A X X (Cat.id X) = Cat.id (prod A X) := by
   dsimp [prodMap]; rw [Cat.comp_id, pair_fst_snd]
