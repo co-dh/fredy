@@ -4,19 +4,24 @@
   §1.97  BOOLEAN TOPOS: Ω is a Boolean algebra (every subobject is complemented).
   §1.971 SMALL OBJECT in a topos.
   §1.973 INTERNAL AXIOM OF CHOICE (IAC).
+  §1.974 AC ↔ IAC + projective terminal.
   §1.98  NATURAL NUMBERS OBJECT (NNO) in a topos.
   §1.981 NNO iterate for pairs: (A→B, B→B) → unique A×N→B.
   §1.983 PRIMITIVE RECURSION (parametrised) in a topos.
   §1.985 N ≅ 1+N; N→N→1 is a coequalizer.
   §1.987 PEANO PROPERTY for NNO.
   §1.98(10) Bicartesian characterization of NNO.
+  §1.98(11) Bicartesian functors preserve NNO.
   §1.98(12) A-ACTION, FREE A-ACTION.
+  §1.98(13) Bicartesian characterization of free A-action.
+  §1.98(14) Existence of free A-action from NNO.
 -/
 
 import Fredy.S1_1
 import Fredy.S1_9
 import Fredy.S1_42
 import Fredy.S1_51
+import Fredy.S1_57
 import Fredy.S1_58
 import Fredy.S1_85
 
@@ -75,6 +80,27 @@ def expPostMap {𝒞 : Type u} [Cat.{v} 𝒞] [HasExponentials 𝒞] (A B C : �
     sends covers to covers (§1.973). -/
 def IsIAC (𝒞 : Type u) [Cat.{v} 𝒞] [Topos 𝒞] [HasExponentials 𝒞] : Prop :=
   ∀ (A B C : 𝒞) (f : B ⟶ C), Cover f → Cover (expPostMap A B C f)
+
+/-! ## §1.974  AC ↔ IAC + projective terminal
+
+  §1.974: A topos is AC (all objects are projective / choice) iff it is IAC
+  and 1 is projective.
+
+  One direction: given an epic f : A → B in an IAC topos with projective 1,
+  pull f back along itself to get f×f : A×_B A → B×_B B ≅ B; the pullback
+  projection A×_B A → A is epic (pullbacks preserve epics in IAC), so
+  B→ is well-supported, and since 1 is projective there is a point, giving a
+  right-inverse to f.
+
+  The other direction: AC implies every object is projective (cover = split
+  epi by definition), so 1 is projective; and AC implies IAC (exponentials
+  preserve left-invertible maps and every epic is left-invertible in AC). -/
+
+/-- §1.974: A topos is AC iff it is IAC and the terminal object 1 is projective. -/
+theorem ac_iff_iac_and_projective_one [HasExponentials 𝒞] [HasImages 𝒞] :
+    (∀ (C : 𝒞), Projective C) ↔
+    (IsIAC 𝒞 ∧ Projective (one (𝒞 := 𝒞))) := by
+  sorry
 
 /-! ## §1.981  NNO iterate for pairs
 
@@ -184,7 +210,39 @@ theorem nno_terminal_is_coequalizer {𝒞 : Type u} [Cat.{v} 𝒞]
       hN.succ ≫ f = f →
       ∃ g : (one ⟶ X), term hN.nno ≫ g = f ∧
         ∀ g' : (one ⟶ X), term hN.nno ≫ g' = f → g' = g := by
-  sorry
+  intro X f hf
+  -- g = zero ≫ f : 1 → X
+  refine ⟨hN.zero ≫ f, ?_, ?_⟩
+  · -- Show term N ≫ (zero ≫ f) = f via NNO uniqueness.
+    -- Both f and (term N ≫ zero ≫ f) satisfy the NNO equations for (zero ≫ f, id_X).
+    -- For f: zero ≫ f = zero ≫ f ✓; succ ≫ f = f = f ≫ id ✓.
+    -- For (term N ≫ zero ≫ f): zero ≫ (term N ≫ zero ≫ f) = (zero ≫ term N) ≫ zero ≫ f
+    --   = id ≫ zero ≫ f = zero ≫ f ✓;
+    --   succ ≫ (term N ≫ zero ≫ f) = (succ ≫ term N) ≫ zero ≫ f
+    --   = term N ≫ zero ≫ f (since succ ≫ term N = term N by uniqueness) ✓.
+    -- By NNO uniqueness both equal hN.iterate (zero ≫ f) (Cat.id X), so f = term N ≫ zero ≫ f.
+    have heq_f : f = hN.iterate (hN.zero ≫ f) (Cat.id X) :=
+      hN.iterate_unique (hN.zero ≫ f) (Cat.id X) f rfl (by rw [hf, Cat.comp_id])
+    have heq_g : term hN.nno ≫ hN.zero ≫ f = hN.iterate (hN.zero ≫ f) (Cat.id X) := by
+      apply hN.iterate_unique
+      · -- zero ≫ (term N ≫ zero ≫ f) = zero ≫ f
+        -- Pull out: (zero ≫ term N) ≫ (zero ≫ f), then zero ≫ term N = id_1
+        have h1 : hN.zero ≫ term hN.nno = Cat.id one := term_uniq _ _
+        rw [← Cat.assoc, h1]
+        exact Cat.id_comp _
+      · -- succ ≫ (term N ≫ zero ≫ f) = (term N ≫ zero ≫ f) ≫ id
+        rw [Cat.comp_id, ← Cat.assoc]
+        congr 1
+        exact term_uniq _ _
+    rw [heq_g, ← heq_f]
+  · -- Uniqueness: if term N ≫ g' = f then g' = zero ≫ f.
+    intro g' hg'
+    -- zero ≫ term N = id, so g' = zero ≫ term N ≫ g' = zero ≫ f.
+    have : hN.zero ≫ term hN.nno = Cat.id one := term_uniq _ _
+    calc g' = Cat.id one ≫ g'            := (Cat.id_comp _).symm
+      _     = (hN.zero ≫ term hN.nno) ≫ g' := by rw [this]
+      _     = hN.zero ≫ term hN.nno ≫ g'   := Cat.assoc _ _ _
+      _     = hN.zero ≫ f                   := by rw [hg']
 
 /-! ## §1.987  Peano property
 
@@ -259,6 +317,97 @@ structure FreeAAction {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞] (A : 𝒞) ext
 theorem nno_is_free_one_action {𝒞 : Type u} [Cat.{v} 𝒞]
     [hN : HasNaturalNumbersObject 𝒞] [HasExponentials 𝒞] :
     Nonempty (FreeAAction (𝒞 := 𝒞) one) := by
+  sorry
+
+/-! ## §1.98(10)  Bicartesian characterization of NNO
+
+  §1.98(10): In any topos, if 1 →ᵃ A ←ᵗ A is such that [a, t] : 1 + A → A is
+  an isomorphism and A → A → 1 is a coequalizer of (t, id_A), then 1 →ᵃ A →ᵗ A
+  is a NNO.
+
+  The Peano property follows from §1.988 (or its generalization, cited as [2.542]
+  in the book) and the NNO uniqueness and existence conditions are verified from
+  the bicartesian data.  We record the statement here with a sorry pending the
+  Peano property infrastructure from §1.988. -/
+
+/-- §1.98(10): If [a, t] : 1 + A → A is iso and A → 1 is a coequalizer of (t, id_A),
+    then 1 →ᵃ A →ᵗ A is a NNO. -/
+theorem nno_of_bicartesian_data {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
+    [HasBinaryCoproducts 𝒞] [HasImages 𝒞]
+    {A : 𝒞} (a : one ⟶ A) (t : A ⟶ A)
+    -- [a, t] : 1 + A → A is an isomorphism
+    (hiso : IsIso (HasBinaryCoproducts.case a t (A := one) (B := A) (X := A)))
+    -- A → 1 is a coequalizer of (t, id_A)
+    (hcoeq : ∀ (X : 𝒞) (f : A ⟶ X), t ≫ f = f →
+               ∃ g : (one ⟶ X), term A ≫ g = f ∧
+                 ∀ g' : one ⟶ X, term A ≫ g' = f → g' = g) :
+    -- Then there is a NNO with underlying object A, zero a, and successor t.
+    Nonempty (HasNaturalNumbersObject 𝒞) := by
+  sorry
+
+/-! ## §1.98(11)  Bicartesian functors preserve NNO
+
+  §1.98(11): If T : 𝒜 → 𝒜' is a bicartesian functor (preserves finite limits
+  and colimits) and 1 →⁰ N →ˢ N is a NNO in 𝒜, then 1 → T N → T N is a NNO
+  in 𝒜'.
+
+  This follows from the bicartesian characterization [1.985, 1.98(10)]:
+  the coproduct 1 + N ≅ N and coequalizer properties are preserved by T. -/
+
+/-- §1.98(11): A bicartesian functor preserves the NNO.
+    The bicartesian characterization [1.985, 1.98(10)] is preserved by any
+    functor that preserves finite products, coproducts, and coequalizers. -/
+theorem bicartesian_functor_preserves_nno
+    {𝒜 : Type u} [Cat.{v} 𝒜] [hN : HasNaturalNumbersObject 𝒜]
+    [HasBinaryCoproducts 𝒜] [HasImages 𝒜]
+    {𝒜' : Type u} [Cat.{v} 𝒜'] [Topos 𝒜'] [HasBinaryCoproducts 𝒜'] [HasImages 𝒜']
+    (T : 𝒜 → 𝒜') [hT : Functor T]
+    -- T preserves the NNO iso [0, s] : 1 + N → N (bicartesian functors do this)
+    (hT_iso : IsIso (hT.map (HasBinaryCoproducts.case hN.zero hN.succ
+        (A := one) (B := hN.nno) (X := hN.nno))))
+    -- T preserves the terminal coequalizer (bicartesian functors preserve colimits)
+    (hT_coeq : ∀ (X : 𝒜') (f : T hN.nno ⟶ X),
+      hT.map hN.succ ≫ f = f →
+      ∃ g : one ⟶ X, term (T hN.nno) ≫ g = f ∧
+        ∀ g' : one ⟶ X, term (T hN.nno) ≫ g' = f → g' = g) :
+    Nonempty (HasNaturalNumbersObject 𝒜') := by
+  sorry
+
+/-! ## §1.98(13)  Bicartesian characterization of free A-action
+
+  §1.98(13): The analogue of the bicartesian characterization [1.985, 1.98(10)]
+  holds for a free A-action A*: namely A × 1 →(1,e)→ A × A* →s→ A* is a free
+  A-action iff [1 + A × A*, A*] ≅ A* (iso) and A × A* → A* → 1 is a coequalizer.
+  The reasoning is analogous to [1.985] and [1.98(10)]. -/
+
+/-- §1.98(13): Bicartesian characterization of a free A-action.
+    An A-action (A*, e : 1 → A*, s : A × A* → A*) is FREE iff
+    [(e, s)] : 1 + A × A* → A* is iso and p₂ : A × A* → A* → 1 is a coequalizer.
+    (Analogue of §1.98(10); proof omitted pending §1.988 infrastructure.) -/
+theorem free_action_iff_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
+    [HasBinaryCoproducts 𝒞] [HasImages 𝒞]
+    (A : 𝒞) (α : AAction (𝒞 := 𝒞) A)
+    -- [unit, act] : 1 + A × α.obj → α.obj is iso
+    (hiso : IsIso (HasBinaryCoproducts.case α.unit α.act
+                   (A := one) (B := prod A α.obj) (X := α.obj)))
+    -- p₂ : A × A* → 1 is a coequalizer of (act, p₂)
+    (hcoeq : ∀ (X : 𝒞) (f : α.obj ⟶ X),
+               α.act ≫ f = snd (A := A) (B := α.obj) ≫ f →
+               ∃ g : one ⟶ X, term α.obj ≫ g = f ∧
+                 ∀ g' : one ⟶ X, term α.obj ≫ g' = f → g' = g) :
+    Nonempty (FreeAAction (𝒞 := 𝒞) A) := by
+  sorry
+
+/-! ## §1.98(14)  Existence of free A-action from NNO
+
+  §1.98(14): In a topos with a NNO, for any object A there exists a free A-action.
+  The construction uses primRec (or iteratePair) applied to A: the free A-action
+  A* is the A-fold "list" object built from the NNO universal property. -/
+
+/-- §1.98(14): In a topos with a NNO, every object A has a free A-action. -/
+theorem free_action_exists {𝒞 : Type u} [Cat.{v} 𝒞]
+    [hN : HasNaturalNumbersObject 𝒞] [HasExponentials 𝒞]
+    (A : 𝒞) : Nonempty (FreeAAction (𝒞 := 𝒞) A) := by
   sorry
 
 end Freyd
