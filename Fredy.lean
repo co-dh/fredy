@@ -45,4 +45,5 @@ import Fredy.S2_1
 import Fredy.S2_2
 import Fredy.S2_3
 import Fredy.S2_4
+import Fredy.S2_43
 import Fredy.S2_5
