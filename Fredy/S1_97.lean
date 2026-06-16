@@ -81,33 +81,6 @@ def expPostMap {𝒞 : Type u} [Cat.{v} 𝒞] [HasExponentials 𝒞] (A B C : �
 def IsIAC (𝒞 : Type u) [Cat.{v} 𝒞] [Topos 𝒞] [HasExponentials 𝒞] : Prop :=
   ∀ (A B C : 𝒞) (f : B ⟶ C), Cover f → Cover (expPostMap A B C f)
 
-/-! ## §1.974  AC ↔ IAC + projective terminal
-
-  §1.974: A topos is AC (all objects are projective / choice) iff it is IAC
-  and 1 is projective.
-
-  One direction: given an epic f : A → B in an IAC topos with projective 1,
-  pull f back along itself to get f×f : A×_B A → B×_B B ≅ B; the pullback
-  projection A×_B A → A is epic (pullbacks preserve epics in IAC), so
-  B→ is well-supported, and since 1 is projective there is a point, giving a
-  right-inverse to f.
-
-  The other direction: AC implies every object is projective (cover = split
-  epi by definition), so 1 is projective; and AC implies IAC (exponentials
-  preserve left-invertible maps and every epic is left-invertible in AC). -/
-
-/-- §1.974: A topos is AC iff it is IAC and the terminal object 1 is projective. -/
-theorem ac_iff_iac_and_projective_one [HasExponentials 𝒞] [HasImages 𝒞] :
-    (∀ (C : 𝒞), Projective C) ↔
-    (IsIAC 𝒞 ∧ Projective (one (𝒞 := 𝒞))) := by
-  sorry
-
-/-! ## §1.981  NNO iterate for pairs
-
-  §1.981: If 1 →⁰ N →ˢ N is a NNO, then for every A →ᵃ B ←ᵇ B there
-  exists a unique A × N → B such that the two triangles commute.
-  This is obtained by transposing through the exponential adjunction. -/
-
 /-- Absorbing a `pair` into the product functor: `⟨f,g⟩ ≫ (A × h) = ⟨f, g≫h⟩`. -/
 theorem pair_prodMap {𝒞 : Type u} [Cat.{v} 𝒞] [HasBinaryProducts 𝒞]
     {A X Y W : 𝒞} (f : W ⟶ A) (g : W ⟶ X) (h : X ⟶ Y) :
@@ -115,6 +88,142 @@ theorem pair_prodMap {𝒞 : Type u} [Cat.{v} 𝒞] [HasBinaryProducts 𝒞]
   apply pair_uniq
   · rw [Cat.assoc, prodMap_fst, fst_pair]
   · rw [Cat.assoc, prodMap_snd, ← Cat.assoc, snd_pair]
+
+/-! ## §1.974  AC ↔ IAC + projective terminal
+
+  §1.974: A topos is AC (all objects are projective / choice) iff it is IAC
+  and 1 is projective.
+
+  Backward (IAC ∧ 1 projective ⇒ every object projective): given a cover
+  f : A → C, the post-composition cover q := f^C : A^C → C^C is a cover (IAC).
+  Pull q back along the name `⌜id_C⌝ : 1 → C^C` of the identity; the projection
+  P → 1 is a cover (pullbacks transfer covers, the topos-exactness fact Freyd
+  treats as ambient — `PullbacksTransferCovers`), and 1 projective splits it.
+  The splitting names a point p : 1 → A^C lifting ⌜id_C⌝; uncurrying p gives the
+  section s : C → A with s ≫ f = id_C.
+
+  Forward (every object projective ⇒ IAC ∧ 1 projective): 1 projective is the
+  C := 1 instance.  IAC: a cover f is split (cover = split epi when its codomain
+  is projective), s ≫ f = id; exponential functoriality `f^C` then has the
+  section `s^C` (since `(s≫f)^C = s^C ≫ f^C = id`), so `f^C` is a split epi,
+  hence a cover.
+
+  The book's argument explicitly invokes "pullbacks preserve epics", i.e.
+  `PullbacksTransferCovers` — a topos-exactness fact that this repo does NOT
+  derive from `Topos` (see the faithful sorries in §1.94 `topos_is_regular`).
+  We therefore carry it as an explicit hypothesis, matching the book's ambient
+  use of topos regularity. -/
+
+/-- A split epi (map with a right inverse `s ≫ f = id`) is a cover. -/
+theorem cover_of_split_epi {X Y : 𝒞} [HasImages 𝒞] {f : X ⟶ Y} {s : Y ⟶ X}
+    (hsf : s ≫ f = Cat.id Y) : Cover f := by
+  intro D m g hm hgm
+  -- (s ≫ g) ≫ m = s ≫ f = id_Y, so m has a section; m mono ⇒ m iso.
+  have hsec : (s ≫ g) ≫ m = Cat.id Y := by rw [Cat.assoc, hgm, hsf]
+  have hms : m ≫ (s ≫ g) = Cat.id D :=
+    hm _ _ (by rw [Cat.assoc, hsec, Cat.comp_id, Cat.id_comp])
+  exact ⟨s ≫ g, hms, hsec⟩
+
+/-- The NAME of a map `g : C → A` as a point `1 → A^C`: `⌜g⌝ = curry (fst ≫ g)`
+    where `fst : C × 1 → C`.  Its uncurry `apply ⌜g⌝ = g`. -/
+def expName {𝒞 : Type u} [Cat.{v} 𝒞] [HasTerminal 𝒞] [HasExponentials 𝒞] {A C : 𝒞}
+    (g : C ⟶ A) : one ⟶ A ^^ C :=
+  curry (fst ≫ g)
+
+/-- Uncurry a point `p : 1 → A^C` back to a map `C → A`: `⟨id_C, term≫p⟩ ≫ eval`. -/
+def expApply {𝒞 : Type u} [Cat.{v} 𝒞] [HasTerminal 𝒞] [HasExponentials 𝒞] {A C : 𝒞}
+    (p : one ⟶ A ^^ C) : C ⟶ A :=
+  pair (Cat.id C) (term C ≫ p) ≫ eval_exp C A
+
+/-- `apply ⌜g⌝ = g`. -/
+theorem expApply_expName {𝒞 : Type u} [Cat.{v} 𝒞] [HasTerminal 𝒞] [HasExponentials 𝒞]
+    {A C : 𝒞} (g : C ⟶ A) : expApply (expName g) = g := by
+  show pair (Cat.id C) (term C ≫ curry (fst ≫ g)) ≫ eval_exp C A = g
+  have key : pair (Cat.id C) (term C ≫ curry (fst ≫ g)) ≫ eval_exp C A
+      = pair (Cat.id C) (term C) ≫ prodMap C one (A ^^ C) (curry (fst ≫ g)) ≫ eval_exp C A := by
+    rw [← Cat.assoc, pair_prodMap]
+  rw [key, curry_eval_eq, ← Cat.assoc, fst_pair, Cat.id_comp]
+
+/-- Uncurry commutes with post-composition: `apply (p ≫ f^C) = apply p ≫ f`. -/
+theorem expApply_postMap {𝒞 : Type u} [Cat.{v} 𝒞] [HasTerminal 𝒞] [HasExponentials 𝒞]
+    {A B C : 𝒞} (p : one ⟶ A ^^ C) (f : A ⟶ B) :
+    expApply (p ≫ expPostMap C A B f) = expApply p ≫ f := by
+  show pair (Cat.id C) (term C ≫ p ≫ expPostMap C A B f) ≫ eval_exp C B
+      = (pair (Cat.id C) (term C ≫ p) ≫ eval_exp C A) ≫ f
+  calc pair (Cat.id C) (term C ≫ p ≫ expPostMap C A B f) ≫ eval_exp C B
+      = pair (Cat.id C) ((term C ≫ p) ≫ expPostMap C A B f) ≫ eval_exp C B := by
+        rw [Cat.assoc]
+    _ = (pair (Cat.id C) (term C ≫ p) ≫ prodMap C (A ^^ C) (B ^^ C) (curry (eval_exp C A ≫ f)))
+          ≫ eval_exp C B := by rw [expPostMap, ← pair_prodMap]
+    _ = pair (Cat.id C) (term C ≫ p) ≫ eval_exp C A ≫ f := by rw [Cat.assoc, curry_eval_eq]
+    _ = (pair (Cat.id C) (term C ≫ p) ≫ eval_exp C A) ≫ f := (Cat.assoc _ _ _).symm
+
+/-- Naming commutes with post-composition: `⌜g⌝ ≫ f^C = ⌜g ≫ f⌝`. -/
+theorem expName_postMap {𝒞 : Type u} [Cat.{v} 𝒞] [HasTerminal 𝒞] [HasExponentials 𝒞]
+    {A B C : 𝒞} (g : C ⟶ A) (f : A ⟶ B) :
+    expName g ≫ expPostMap C A B f = expName (g ≫ f) := by
+  -- both name `g ≫ f`; check by uncurrying (prodMap_eval_inj on points via curry_unique).
+  show expName g ≫ curry (eval_exp C A ≫ f) = curry (fst ≫ g ≫ f)
+  apply curry_unique_eq
+  -- (C × (⌜g⌝ ≫ curry(eval≫f))) ≫ eval = fst ≫ g ≫ f
+  rw [prodMap_comp, Cat.assoc, curry_eval_eq, ← Cat.assoc]
+  -- ((C × ⌜g⌝) ≫ eval) ≫ f = fst ≫ g ≫ f
+  show (prodMap C one (A ^^ C) (expName g) ≫ eval_exp C A) ≫ f = fst ≫ g ≫ f
+  -- (C × ⌜g⌝) ≫ eval = fst ≫ g, with ⌜g⌝ = curry (fst ≫ g)
+  show (prodMap C one (A ^^ C) (curry (fst ≫ g)) ≫ eval_exp C A) ≫ f = fst ≫ g ≫ f
+  rw [curry_eval_eq, Cat.assoc]
+
+/-- §1.974: A topos is AC iff it is IAC and the terminal object 1 is projective.
+    (`PullbacksTransferCovers` = the ambient topos-exactness the book uses.) -/
+theorem ac_iff_iac_and_projective_one [HasExponentials 𝒞] [HasImages 𝒞]
+    [HasPullbacks 𝒞] [PullbacksTransferCovers 𝒞] :
+    (∀ (C : 𝒞), Projective C) ↔
+    (IsIAC 𝒞 ∧ Projective (one (𝒞 := 𝒞))) := by
+  constructor
+  · -- Forward: all projective ⇒ IAC ∧ 1 projective.
+    intro hall
+    refine ⟨?_, hall one⟩
+    -- IAC: cover f ⇒ f^A := expPostMap A B C f is a cover.
+    intro A B C f hf
+    -- f is a cover with codomain C, and C is projective, so f splits.
+    obtain ⟨s, hs⟩ := hall C f hf
+    -- s ≫ f = id_C.  expPostMap is functorial: s^A ≫ f^A = (s≫f)^A = id^A = id.
+    have hfun : expPostMap A C B s ≫ expPostMap A B C f = Cat.id (C ^^ A) := by
+      show expCovMap A s ≫ expCovMap A f = Cat.id (C ^^ A)
+      rw [← expCovMap_comp, hs, expCovMap_id]
+    intro D m g hm hgm
+    exact (cover_of_split_epi (f := expPostMap A B C f) (s := expPostMap A C B s) hfun)
+      m g hm hgm
+  · -- Backward: IAC ∧ 1 projective ⇒ every object projective.
+    rintro ⟨hiac, h1⟩ C A f hf
+    -- q := f^C : A^C → C^C is a cover (IAC).
+    let q : (A ^^ C) ⟶ (C ^^ C) := expPostMap C A C f
+    have hq : Cover q := hiac C A C f hf
+    -- name of id_C : 1 → C^C
+    let nm : one ⟶ (C ^^ C) := expName (Cat.id C)
+    -- pull q back along nm; projection π₂ : P → 1 is a cover.
+    let pb := HasPullbacks.has q nm
+    have hπ₂ : Cover pb.cone.π₂ := cover_pullback nm hq
+    -- 1 projective splits π₂.
+    obtain ⟨r, hr⟩ := h1 pb.cone.π₂ hπ₂
+    -- p := r ≫ π₁ : 1 → A^C lifts nm:  p ≫ q = nm.
+    let p : one ⟶ (A ^^ C) := r ≫ pb.cone.π₁
+    have hp : p ≫ q = nm := by
+      show (r ≫ pb.cone.π₁) ≫ q = nm
+      rw [Cat.assoc, pb.cone.w, ← Cat.assoc, hr, Cat.id_comp]
+    -- s := uncurry p : C → A.  Then s ≫ f = apply (p ≫ q) = apply nm = id_C.
+    refine ⟨expApply p, ?_⟩
+    -- s ≫ f = apply p ≫ f = apply (p ≫ f^C) = apply (p ≫ q) = apply nm = id_C.
+    rw [← expApply_postMap p f]
+    show expApply (p ≫ expPostMap C A C f) = Cat.id C
+    rw [show expPostMap C A C f = q from rfl, hp]
+    exact expApply_expName (Cat.id C)
+
+/-! ## §1.981  NNO iterate for pairs
+
+  §1.981: If 1 →⁰ N →ˢ N is a NNO, then for every A →ᵃ B ←ᵇ B there
+  exists a unique A × N → B such that the two triangles commute.
+  This is obtained by transposing through the exponential adjunction. -/
 
 /-- `g ↦ (A × g) ≫ eval` is injective: it is split by `curry`. -/
 theorem prodMap_eval_inj {𝒞 : Type u} [Cat.{v} 𝒞] [HasExponentials 𝒞]

@@ -301,7 +301,15 @@ theorem inter_le_singleton_named {A : 𝒞} (F : Subobject 𝒞 (powObj A))
     name `1 → [A]` (a singleton family); the `⋂F`-over-a-subobject-family glb that
     §1.943 actually asserts is not constructed here — it needs §1.54's
     `capitalization_lemma` (itself still `sorry`) to terminate the transfinite
-    A ⊆ A* iteration that builds the glb.  No current arm yields the empty glb. -/
+    A ⊆ A* iteration that builds the glb.  No current arm yields the empty glb.
+
+    RE-EXAMINED against the new infra (modular_identity §1.56, DisjointBinaryCoproduct
+    §1.64, compose_union_right §1.60, effective_of_quotient_cover §1.95): none helps.
+    The only `false : 1 → Ω` route to `0` (`0 = pullback of false`) is itself circular —
+    `false` is the classifier of the *empty* subobject of `1`, i.e. exactly the `⋂∅`
+    we are trying to build.  `DisjointBinaryCoproduct` would *supply* a strict initial
+    via its coproduct bottom, but it extends `PreLogos ⊇ RegularCategory ⊇ HasImages`,
+    so it is downstream of the same §1.543 glb, not upstream. -/
 theorem topos_has_strict_coterminator : Nonempty (HasCoterminator 𝒞) := by
   sorry
 
@@ -317,7 +325,16 @@ theorem topos_has_strict_coterminator : Nonempty (HasCoterminator 𝒞) := by
     `inter_le_singleton_named`: only the singleton bound is available).  That glb,
     and hence `HasImages`, rests on §1.54's `capitalization_lemma` (still `sorry`).
     `PullbacksTransferCovers` is likewise the topos exactness fact (cf. the still-
-    `sorry` `topos_is_effective` in S1_95).  No fully-supported arm here. -/
+    `sorry` `topos_is_effective` in S1_95).
+
+    RE-EXAMINED against the new infra: the exactness *recovery* half is now stronger
+    but the regularity gap is unchanged.  `effective_of_quotient_cover` (§1.95) is
+    PROVEN sorry-free, so once a quotient cover `q : A ↠ A/E` exists every equivalence
+    relation is effective; and `modular_identity` (§1.56) is PROVEN sorry-free.  But
+    BOTH consume `[HasImages 𝒞]`/`[PullbacksTransferCovers 𝒞]` in their context — they
+    are theorems *inside* a regular category, not constructions *of* one.  So the
+    residual gap is precisely the two `RegularCategory` fields `HasImages` (= the
+    §1.943 family-glb image) and `PullbacksTransferCovers`, both still behind §1.543. -/
 theorem topos_is_regular : Nonempty (RegularCategory 𝒞) := by
   sorry
 
@@ -331,7 +348,13 @@ theorem topos_is_regular : Nonempty (RegularCategory 𝒞) := by
     Binary union `A₁ ∪ A₂ = ⋂{B' | A₁ ⊆ B' ∧ A₂ ⊆ B'}` and `f##` are both `⋂F`
     glb's over subobject families — again the §1.54 `capitalization_lemma`-backed
     glb that this file lacks (`inter_le_singleton_named` gives only the singleton
-    bound). -/
+    bound).
+
+    RE-EXAMINED against the new infra: `compose_union_right` (§1.60) and
+    `DisjointBinaryCoproduct` (§1.64) both presuppose `PreLogos ⊇ RegularCategory`
+    (and `HasBinaryCoproducts`, itself the still-`sorry` `topos_is_positive` §1.952),
+    so they are downstream of this very instance, not a way to build it.  The
+    `RegularCategory` sub-goal alone keeps `topos_is_logos` behind §1.543. -/
 theorem topos_is_logos : Nonempty (Logos' 𝒞) := by
   sorry
 
@@ -363,7 +386,14 @@ theorem topos_is_logos : Nonempty (Logos' 𝒞) := by
     BLOCKER (faithful sorry): R* is `⋂(F₁ ∩ F₂)`, the glb over the subobject family
     of reflexive pre-closed relations on B×B — the §1.943 `⋂F` glb that this file
     does not construct (`inter_le_singleton_named` is only the singleton bound).
-    It rests on §1.54's `capitalization_lemma` (still `sorry`). -/
+    It rests on §1.54's `capitalization_lemma` (still `sorry`).
+
+    RE-EXAMINED against the new infra: `compose_union_right` (§1.60, the relational
+    distributivity `R⊚(S∪T) = R⊚S ∪ R⊚T`) and `modular_identity` (§1.56) are the
+    relation-algebra steps Freyd uses to verify `∩F` *is* closed once it exists; but
+    they do not *construct* the family glb `∩F`.  Both also require
+    `PreLogos`/`PullbacksTransferCovers`, i.e. the §1.543-blocked regular structure.
+    The closure-existence gap is unchanged. -/
 theorem topos_has_rtc {B : 𝒞} (R : Subobject 𝒞 (prod B B))
     (_hRefl : Subobject.le (Subobject.entire (prod B B)) R) :
     ∃ Rstar : Subobject 𝒞 (prod B B),
@@ -445,7 +475,14 @@ theorem singletonMap_monic (A : 𝒞) : Mono (singletonMap A) :=
     BLOCKER (faithful sorry): the `A* = 0` branch needs the strict coterminator
     (`topos_has_strict_coterminator`, blocked) and the well-pointed-part lub is the
     §1.943 `⋃`/`⋂F` glb over a family — all backed by §1.54's `capitalization_lemma`
-    (still `sorry`).  `_hcap : Capital` alone does not supply these. -/
+    (still `sorry`).  `_hcap : Capital` alone does not supply these.
+
+    RE-EXAMINED against the new infra: none of `modular_identity`/`compose_union_right`/
+    `DisjointBinaryCoproduct`/`effective_of_quotient_cover` constructs the singleton-lub
+    `A* = ⋃{point subobjects}`; the first three need the §1.543-blocked regular/positive
+    structure and the fourth (effectiveness) is orthogonal to the well-pointed part.
+    The `IsWellPointedPart` lub and the `A*=0` strict-initial branch both remain
+    behind §1.543. -/
 theorem capital_is_solvable [HasImages 𝒞] (_hcap : Capital (𝒞 := 𝒞)) :
     ∀ (A : 𝒞), ∃ Astar : Subobject 𝒞 A, IsWellPointedPart Astar := by
   sorry
