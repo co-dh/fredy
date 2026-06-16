@@ -8,6 +8,7 @@
 import Fredy.S1_1
 import Fredy.S1_18
 import Fredy.S1_27
+import Fredy.S1_31
 import Fredy.S1_41
 import Fredy.S1_42
 import Fredy.S1_43
@@ -133,6 +134,137 @@ class SpecialCartesianCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends CartesianC
           (HasBinaryProducts.fst (A := A') (B := B) ≫ m)
           (HasBinaryProducts.snd (A := A') (B := B)) :
           HasBinaryProducts.prod A' B ⟶ HasBinaryProducts.prod A B)
+
+/-! ## §1.471  Special ⇒ at most two values
+
+  In Set, any two proper subobjects V₁, V₂ ↪ 1 are isomorphic to V₁ ∩ V₂.
+  Hence in any special Cartesian category, the terminal object has at most two values
+  (i.e. at most one proper subobject up to isomorphism). -/
+
+/-- **§1.471**: In a special Cartesian category any two proper subobjects of `one` are
+    isomorphic to each other.
+
+    Proof sketch (Freyd §1.471): In Set, for any two proper subobjects V₁, V₂ ↪ 1,
+    either V₁ ↪ V₂ or V₂ ↪ 1 is an isomorphism; hence both are isomorphic to V₁ ∩ V₂.
+    Transferring this universally-quantified statement to A via specialness gives the result. -/
+theorem special_atMostTwoValues [SpecialCartesianCategory 𝒞]
+    {V₁ V₂ : 𝒞} (hV₁ : ProperMono (term V₁)) (hV₂ : ProperMono (term V₂)) :
+    ∃ (W : 𝒞) (i₁ : W ⟶ V₁) (i₂ : W ⟶ V₂), IsIso i₁ ∧ IsIso i₂ := by
+  sorry
+
+/-! ## §1.472  Characterisation via proper subobjects and via B×- faithful
+
+  The following are equivalent for a Cartesian category A:
+  (a) A is special.
+  (b) For every pair of proper subobjects m : A' ↪ A and n : B' ↪ B, the induced map
+      pair (fst ≫ m) snd : A'×B → A×B is a proper mono.
+  (c) For every B that has a proper subobject, the functor B×- : A → A is faithful. -/
+
+/-- The product functor `B × -` sending `f : X → Y` to `id_B × f : B×X → B×Y`. -/
+def prodEndo [HasBinaryProducts 𝒞] (B : 𝒞) : 𝒞 → 𝒞 := fun X => prod B X
+
+instance prodEndoIsFunctor [HasBinaryProducts 𝒞] (B : 𝒞) : Functor (prodEndo B) where
+  map {X Y} f := pair (fst ≫ Cat.id B) (snd ≫ f)
+  map_id X := by
+    -- pair (fst ≫ Cat.id B) (snd ≫ Cat.id X) = Cat.id (prod B X)
+    -- id = pair fst snd; and pair(fst≫id_B)(snd≫id_X) = pair fst snd = id
+    symm; apply pair_uniq <;> simp [Cat.id_comp, Cat.comp_id]
+  map_comp {X Y Z} f g := by
+    -- pair (fst ≫ Cat.id B) (snd ≫ f ≫ g)
+    -- = pair (fst ≫ Cat.id B) (snd ≫ f) ≫ pair (fst ≫ Cat.id B) (snd ≫ g)
+    -- After pair_uniq, the goals become: (result) ≫ fst/snd reduced by Lean via fst_pair/snd_pair.
+    symm; apply pair_uniq
+    · -- (pair A B ≫ pair C D) ≫ fst = fst ≫ id_B
+      rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair, Cat.assoc, Cat.comp_id]
+    · -- (pair A B ≫ pair C D) ≫ snd = (snd ≫ f) ≫ g
+      rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair, Cat.assoc]
+
+/-- **§1.472 (product-proper ↔ faithful)**: B×- is faithful iff for every proper subobject
+    m : A'↪A the map pair(fst≫m, snd) : A'×B → A×B is monic.
+
+    Stated faithfully to the book; the equivalence holds; proof uses `sorry`. -/
+theorem prodEndo_faithful_iff_product_proper [HasBinaryProducts 𝒞] (B : 𝒞) :
+    Embedding (prodEndo B) ↔
+    (∀ {A' A : 𝒞} (m : A' ⟶ A), ProperMono m →
+      Mono (pair (fst (A := A') (B := B) ≫ m) (snd (A := A') (B := B)))) := by
+  sorry
+
+/-- **§1.472**: A Cartesian category is special iff for every B with a proper subobject,
+    B×- is faithful. -/
+theorem special_iff_prodEndo_faithful [CartesianCategory 𝒞] :
+    Nonempty (SpecialCartesianCategory 𝒞) ↔
+    (∀ (B : 𝒞), (∃ (B' : 𝒞) (n : B' ⟶ B), ProperMono n) →
+      Embedding (prodEndo B)) := by
+  sorry
+
+/-! ## §1.473  One-valued special ↔ B×- faithful for all B
+
+  A Cartesian category is ONE-VALUED (§1.473) if the terminal object has exactly one
+  global element: |Hom(1, 1)| = 1, or equivalently 1 is the only value.
+  Example: the category of groups is one-valued.
+
+  §1.473: A one-valued Cartesian category is special iff B×- is faithful for all B. -/
+
+/-- A Cartesian category is ONE-VALUED if the unique map `1 → 1` generates all values:
+    i.e. the terminal object has no proper subobject (every subterminator is iso to 1). -/
+def OneValued [CartesianCategory 𝒞] : Prop :=
+  ∀ (V : 𝒞), Subterminator V → IsIso (term V)
+
+/-- **§1.473 (⇐)**: If B×- is faithful for all B then A is special.
+    This follows directly from §1.472. -/
+theorem prodEndo_faithful_all_implies_special [CartesianCategory 𝒞]
+    (hF : ∀ (B : 𝒞), Embedding (prodEndo B)) :
+    Nonempty (SpecialCartesianCategory 𝒞) := by
+  sorry
+
+/-- **§1.473 (⇒)**: In a one-valued special Cartesian category, B×- is faithful for all B.
+
+    Proof sketch (Freyd §1.473): 1×- is trivially faithful.  If B ≇ 1 then the diagonal
+    (id_B, id_B) : B → B×B is proper (else B → 1 would be monic, contradicting one-valuedness
+    and B ≇ 1), so (B×B)×- is faithful; being composed with B×- twice, it forces B×- faithful. -/
+theorem oneValued_special_prodEndo_faithful [SpecialCartesianCategory 𝒞]
+    (h1v : OneValued (𝒞 := 𝒞)) (B : 𝒞) : Embedding (prodEndo B) := by
+  sorry
+
+/-- **§1.473**: A one-valued Cartesian category is special iff B×- is faithful for all B. -/
+theorem oneValued_special_iff [CartesianCategory 𝒞] (h1v : OneValued (𝒞 := 𝒞)) :
+    Nonempty (SpecialCartesianCategory 𝒞) ↔ ∀ (B : 𝒞), Embedding (prodEndo B) := by
+  constructor
+  · intro _ B; sorry   -- by oneValued_special_prodEndo_faithful
+  · exact prodEndo_faithful_all_implies_special
+
+/-! ## §1.474  Two-valued special ↔ B×- faithful for all B not iso to 0
+
+  A Cartesian category is TWO-VALUED (§1.474) if there are exactly two values:
+  1 and a unique proper subobject 0 ↪ 1.
+
+  §1.474: A two-valued Cartesian category is special iff B×- is faithful for every B
+  not isomorphic to 0. -/
+
+/-- In a two-valued category, `zeroObj` is the unique proper subobject of `one`. -/
+structure TwoValued [CartesianCategory 𝒞] where
+  zeroObj    : 𝒞
+  zero_proper : ProperMono (term zeroObj)
+  zero_uniq  : ∀ (V : 𝒞), ProperMono (term V) → ∃ (e : V ⟶ zeroObj), IsIso e
+
+/-- **§1.474 (⇒)**: In a two-valued special Cartesian category, every B not iso to 0 has
+    a proper subobject; hence B×- is faithful for all such B.
+
+    Proof sketch (Freyd §1.474): B×0 → 0 is an iso for all B (since B×0 maps to 0 with
+    inverse from universality); B×0 ↪ B×1 ≅ B is monic.  This represents a proper subobject
+    of B iff B ≇ 0. -/
+theorem twoValued_special_prodEndo_faithful [SpecialCartesianCategory 𝒞]
+    (h2v : TwoValued (𝒞 := 𝒞)) (B : 𝒞)
+    (hB : ¬ ∃ (e : B ⟶ h2v.zeroObj), IsIso e) :
+    Embedding (prodEndo B) := by
+  sorry
+
+/-- **§1.474**: A two-valued Cartesian category is special iff B×- is faithful for all B
+    not isomorphic to the zero object. -/
+theorem twoValued_special_iff [CartesianCategory 𝒞] (h2v : TwoValued (𝒞 := 𝒞)) :
+    Nonempty (SpecialCartesianCategory 𝒞) ↔
+    (∀ (B : 𝒞), (¬ ∃ (e : B ⟶ h2v.zeroObj), IsIso e) → Embedding (prodEndo B)) := by
+  sorry
 
 /-! ## §1.48  Dense classes of monics and the Rational category
 

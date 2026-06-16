@@ -204,4 +204,183 @@ theorem hasRepresentativeImage_of_natIso (α : NatIso F G) (hri : HasRepresentat
 
 end Conjugation
 
+/-! ## §1.32 EquivalenceFunctor under conjugation and composition -/
+
+/-- An equivalence functor is preserved under conjugation (§1.32). -/
+theorem equivalenceFunctor_of_natIso {F G : 𝒞 → 𝒟} [hF : Functor F] [hG : Functor G]
+    (α : NatIso F G) (eq : EquivalenceFunctor F) : EquivalenceFunctor G :=
+  ⟨embedding_of_natIso α eq.1, full_of_natIso α eq.2.1, hasRepresentativeImage_of_natIso α eq.2.2⟩
+
+section EquivComp
+variable {𝒜 : Type u} [Cat.{v} 𝒜]
+variable {F : 𝒞 → 𝒟} [hF : Functor F] {G : 𝒟 → 𝒜} [hG : Functor G]
+
+/-- Composition of two equivalence functors is an equivalence functor (§1.32). -/
+theorem equivalenceFunctor_comp (eF : EquivalenceFunctor F) (eG : EquivalenceFunctor G) :
+    EquivalenceFunctor (G ∘ F) :=
+  ⟨embedding_comp eF.1 eG.1, full_comp eF.2.1 eG.2.1, hasRepresentativeImage_comp eF.2.2 eG.2.2⟩
+
+end EquivComp
+
+/-! ## §1.32 Strong equivalence implies both functors are equivalence functors -/
+
+section StrongEquivIsEquiv
+variable {F : 𝒞 → 𝒟} {G : 𝒟 → 𝒞} [hF : Functor F] [hG : Functor G]
+
+private theorem id_embedding : Embedding (λ X : 𝒞 => X) := fun _ _ h => h
+private theorem id_full : Full (λ X : 𝒞 => X) := fun h => ⟨h, rfl⟩
+private theorem id_hasRepresentativeImage : HasRepresentativeImage (λ X : 𝒞 => X) :=
+  fun B => ⟨B, Cat.id B, Cat.id B, Cat.comp_id _, Cat.comp_id _⟩
+
+-- GF has rep image: for each B : 𝒞, (G∘F)(B) ≅ B via η_B.
+private theorem compGF_hasRepresentativeImage (η : NatIso (G ∘ F) (λ X : 𝒞 => X)) :
+    HasRepresentativeImage (G ∘ F) :=
+  fun B => ⟨B, η.nat.app B, η.isIso B⟩
+
+private theorem compFG_hasRepresentativeImage (δ : NatIso (F ∘ G) (λ X : 𝒟 => X)) :
+    HasRepresentativeImage (F ∘ G) :=
+  fun D => ⟨D, δ.nat.app D, δ.isIso D⟩
+
+-- GF is an embedding: if (G∘F)(f) = (G∘F)(g), naturality gives η_A ≫ f = η_A ≫ g
+-- (both sides of nat use the same (G∘F).map, but RHS is id.map = identity), so f = g.
+private theorem compGF_embedding (η : NatIso (G ∘ F) (λ X : 𝒞 => X)) : Embedding (G ∘ F) := by
+  intro A B f g heq
+  obtain ⟨ηA_inv, hηA1, hηA2⟩ := η.isIso A
+  have natF := η.nat.naturality f  -- (G∘F)(f) ≫ η_B = η_A ≫ id.map f = η_A ≫ f
+  have natG := η.nat.naturality g
+  -- natF.symm.trans : η_A ≫ f = (G∘F)(f) ≫ η_B; rw heq; then natG gives η_A ≫ g
+  have hfg : η.nat.app A ≫ f = η.nat.app A ≫ g :=
+    natF.symm.trans (by rw [heq]) |>.trans natG
+  calc f = Cat.id _ ≫ f := (Cat.id_comp _).symm
+    _ = (ηA_inv ≫ η.nat.app A) ≫ f := by rw [hηA2]
+    _ = ηA_inv ≫ (η.nat.app A ≫ f) := Cat.assoc _ _ _
+    _ = ηA_inv ≫ (η.nat.app A ≫ g) := by rw [hfg]
+    _ = (ηA_inv ≫ η.nat.app A) ≫ g := (Cat.assoc _ _ _).symm
+    _ = Cat.id _ ≫ g := by rw [hηA2]
+    _ = g := Cat.id_comp _
+
+private theorem compFG_embedding (δ : NatIso (F ∘ G) (λ X : 𝒟 => X)) : Embedding (F ∘ G) := by
+  intro A B f g heq
+  obtain ⟨δA_inv, hδA1, hδA2⟩ := δ.isIso A
+  have natF := δ.nat.naturality f
+  have natG := δ.nat.naturality g
+  have hfg : δ.nat.app A ≫ f = δ.nat.app A ≫ g :=
+    natF.symm.trans (by rw [heq]) |>.trans natG
+  calc f = Cat.id _ ≫ f := (Cat.id_comp _).symm
+    _ = (δA_inv ≫ δ.nat.app A) ≫ f := by rw [hδA2]
+    _ = δA_inv ≫ (δ.nat.app A ≫ f) := Cat.assoc _ _ _
+    _ = δA_inv ≫ (δ.nat.app A ≫ g) := by rw [hfg]
+    _ = (δA_inv ≫ δ.nat.app A) ≫ g := (Cat.assoc _ _ _).symm
+    _ = Cat.id _ ≫ g := by rw [hδA2]
+    _ = g := Cat.id_comp _
+
+-- GF is full: for h : (G∘F)(A) ⟶ (G∘F)(B), the lift is ηA_inv ≫ h ≫ η_B : A ⟶ B.
+-- Naturality: (G∘F)(f) ≫ η_B = η_A ≫ id.map(f) = η_A ≫ f.
+-- So (G∘F)(ηA_inv ≫ h ≫ η_B) ≫ η_B = η_A ≫ (ηA_inv ≫ h ≫ η_B) = h ≫ η_B; cancel η_B.
+private theorem compGF_full (η : NatIso (G ∘ F) (λ X : 𝒞 => X)) : Full (G ∘ F) := by
+  intro A B h
+  obtain ⟨ηA_inv, hηA1, hηA2⟩ := η.isIso A
+  obtain ⟨ηB_inv, hηB1, hηB2⟩ := η.isIso B
+  refine ⟨ηA_inv ≫ h ≫ η.nat.app B, ?_⟩
+  have nat := η.nat.naturality (ηA_inv ≫ h ≫ η.nat.app B)
+  -- key: (G∘F)(f) ≫ η_B = h ≫ η_B  (from nat + collapsing η_A ≫ ηA_inv = id)
+  have key : (compFunctor (hf := hF) (hg := hG)).map (ηA_inv ≫ h ≫ η.nat.app B) ≫
+      η.nat.app B = h ≫ η.nat.app B := by
+    rw [nat]; show η.nat.app A ≫ (ηA_inv ≫ h ≫ η.nat.app B) = h ≫ η.nat.app B
+    rw [← Cat.assoc, ← Cat.assoc, hηA1, Cat.id_comp]
+  -- cancel η_B on right
+  have := congrArg (· ≫ ηB_inv) key
+  simp only [Cat.assoc, hηB1, Cat.comp_id] at this
+  exact this
+
+private theorem compFG_full (δ : NatIso (F ∘ G) (λ X : 𝒟 => X)) : Full (F ∘ G) := by
+  intro A B h
+  obtain ⟨δA_inv, hδA1, hδA2⟩ := δ.isIso A
+  obtain ⟨δB_inv, hδB1, hδB2⟩ := δ.isIso B
+  refine ⟨δA_inv ≫ h ≫ δ.nat.app B, ?_⟩
+  have nat := δ.nat.naturality (δA_inv ≫ h ≫ δ.nat.app B)
+  have key : (compFunctor (hf := hG) (hg := hF)).map (δA_inv ≫ h ≫ δ.nat.app B) ≫
+      δ.nat.app B = h ≫ δ.nat.app B := by
+    rw [nat]; show δ.nat.app A ≫ (δA_inv ≫ h ≫ δ.nat.app B) = h ≫ δ.nat.app B
+    rw [← Cat.assoc, ← Cat.assoc, hδA1, Cat.id_comp]
+  have := congrArg (· ≫ δB_inv) key
+  simp only [Cat.assoc, hδB1, Cat.comp_id] at this
+  exact this
+
+private theorem compGF_equivalenceFunctor (η : NatIso (G ∘ F) (λ X : 𝒞 => X)) :
+    EquivalenceFunctor (G ∘ F) :=
+  ⟨compGF_embedding η, compGF_full η, compGF_hasRepresentativeImage η⟩
+
+private theorem compFG_equivalenceFunctor (δ : NatIso (F ∘ G) (λ X : 𝒟 => X)) :
+    EquivalenceFunctor (F ∘ G) :=
+  ⟨compFG_embedding δ, compFG_full δ, compFG_hasRepresentativeImage δ⟩
+
+/-- In a strong equivalence (F, G), F is an embedding (§1.32). -/
+theorem strongEquivalence_embedding_fwd (se : StrongEquivalence F G) : Embedding F := by
+  obtain ⟨⟨η⟩, _⟩ := se
+  exact embedding_of_comp_embedding (compGF_equivalenceFunctor η).1
+
+/-- In a strong equivalence (F, G), G is an embedding (§1.32). -/
+theorem strongEquivalence_embedding_bwd (se : StrongEquivalence F G) : Embedding G := by
+  obtain ⟨_, ⟨δ⟩⟩ := se
+  exact embedding_of_comp_embedding (compFG_equivalenceFunctor δ).1
+
+/-- In a strong equivalence (F, G), F has a representative image (§1.32).
+    The counit δ gives F(G D) ≅ D for any D. -/
+theorem strongEquivalence_hasRepresentativeImage_fwd (se : StrongEquivalence F G) :
+    HasRepresentativeImage F := by
+  obtain ⟨_, ⟨δ⟩⟩ := se
+  exact fun D => ⟨G D, δ.nat.app D, δ.isIso D⟩
+
+/-- In a strong equivalence (F, G), G has a representative image (§1.32).
+    The unit η gives G(F A) ≅ A for any A. -/
+theorem strongEquivalence_hasRepresentativeImage_bwd (se : StrongEquivalence F G) :
+    HasRepresentativeImage G := by
+  obtain ⟨⟨η⟩, _⟩ := se
+  exact fun A => ⟨F A, η.nat.app A, η.isIso A⟩
+
+/-- In a strong equivalence (F, G), F is full (§1.32).
+    Proof: G∘F ≅ id implies G∘F is full.  For h : FA → FB, G(h) : G(FA) → G(FB) = (G∘F)(A) → (G∘F)(B).
+    By fullness of G∘F there exists f : A → B with (G∘F)(f) = G(h), i.e. G(F(f)) = G(h).
+    Since G is an embedding (FG ≅ id gives embedding), F(f) = h. -/
+theorem strongEquivalence_full_fwd (se : StrongEquivalence F G) : Full F := by
+  obtain ⟨⟨η⟩, ⟨δ⟩⟩ := se
+  have embG : Embedding G := embedding_of_comp_embedding (compFG_equivalenceFunctor δ).1
+  have fullGF : Full (G ∘ F) := compGF_full η
+  intro A B h
+  -- G(h) : G(FA) ⟶ G(FB) = (G∘F)(A) ⟶ (G∘F)(B)
+  obtain ⟨f, hf⟩ := fullGF (hG.map h)
+  -- hf : (G∘F).map f = G(h), i.e. G(F(f)) = G(h)
+  refine ⟨f, embG (hF.map f) h ?_⟩
+  -- need G(F(f)) = G(h); hf says (G∘F).map f = G(h) = hG.map(hF.map f) = hG.map h
+  simpa using hf
+
+/-- In a strong equivalence (F, G), G is full (§1.32).
+    Symmetric: F∘G ≅ id gives F∘G full; for h : GA → GB, F(h) lifts to some g with F(G(g)) = F(h);
+    F is an embedding (GF ≅ id), so G(g) = h. -/
+theorem strongEquivalence_full_bwd (se : StrongEquivalence F G) : Full G := by
+  obtain ⟨⟨η⟩, ⟨δ⟩⟩ := se
+  have embF : Embedding F := embedding_of_comp_embedding (compGF_equivalenceFunctor η).1
+  have fullFG : Full (F ∘ G) := compFG_full δ
+  intro A B h
+  obtain ⟨g, hg⟩ := fullFG (hF.map h)
+  refine ⟨g, embF (hG.map g) h ?_⟩
+  simpa using hg
+
+/-- In a strong equivalence (F, G), F is an equivalence functor (§1.32). -/
+theorem strongEquivalence_equivalenceFunctor_fwd (se : StrongEquivalence F G) :
+    EquivalenceFunctor F :=
+  ⟨strongEquivalence_embedding_fwd se,
+   strongEquivalence_full_fwd se,
+   strongEquivalence_hasRepresentativeImage_fwd se⟩
+
+/-- In a strong equivalence (F, G), G is an equivalence functor (§1.32). -/
+theorem strongEquivalence_equivalenceFunctor_bwd (se : StrongEquivalence F G) :
+    EquivalenceFunctor G :=
+  ⟨strongEquivalence_embedding_bwd se,
+   strongEquivalence_full_bwd se,
+   strongEquivalence_hasRepresentativeImage_bwd se⟩
+
+end StrongEquivIsEquiv
+
 end Freyd

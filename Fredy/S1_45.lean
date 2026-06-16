@@ -182,14 +182,47 @@ theorem invImg_le {A B : 𝒞} (f : A ⟶ B) (S T : Subobject 𝒞 B)
   exact ⟨hT.lift ⟨hS.cone.pt, hS.cone.π₁, hS.cone.π₂ ≫ k, hw⟩, hT.lift_fst _⟩
 
 /-- §1.451: `Sub(−)` is a contravariant functor: `f# ∘ g# = (f ≫ g)#` up to ≅.
-    (Stated with sorry; the proof uses the pullback-pasting / interchange law.) -/
+    Pullback pasting: the composite pullback of S along g then along f equals
+    the pullback of S along (f ≫ g). -/
 theorem invImg_comp {A B C : 𝒞} (f : A ⟶ B) (g : B ⟶ C) (S : Subobject 𝒞 C)
     (hfg : HasPullback (f ≫ g) S.arr)
     (hg  : HasPullback g S.arr)
     (hf  : HasPullback f (invImg g S hg).arr) :
     (invImg (f ≫ g) S hfg).le (invImg f (invImg g S hg) hf) ∧
     (invImg f (invImg g S hg) hf).le (invImg (f ≫ g) S hfg) := by
-  sorry
+  -- invImg g S hg : dom = hg.cone.pt, arr = hg.cone.π₁
+  -- invImg f (invImg g S hg) hf : dom = hf.cone.pt, arr = hf.cone.π₁
+  -- hf is pullback of f along hg.cone.π₁
+  -- hfg is pullback of (f≫g) along S.arr
+  -- Forward: from hfg.cone.pt we build a map to hf.cone.pt
+  --   Step 1: hfg.cone.π₁ ≫ f lands in hg via: (hfg.π₁ ≫ f) ≫ g = hfg.π₂ ≫ S.arr
+  --   Step 2: lift to hf.cone.pt via f and above map into hg.cone.pt
+  constructor
+  · -- (f≫g)#S ≤ f#(g#S)
+    -- u : hfg.cone.pt → hg.cone.pt with u ≫ hg.cone.π₁ = hfg.cone.π₁ ≫ f
+    have hw_g : (hfg.cone.π₁ ≫ f) ≫ g = hfg.cone.π₂ ≫ S.arr := by
+      rw [Cat.assoc]; exact hfg.cone.w
+    let u := hg.lift ⟨hfg.cone.pt, hfg.cone.π₁ ≫ f, hfg.cone.π₂, hw_g⟩
+    have hu_π₁ : u ≫ hg.cone.π₁ = hfg.cone.π₁ ≫ f := hg.lift_fst _
+    -- v : hfg.cone.pt → hf.cone.pt with v ≫ hf.cone.π₁ = hfg.cone.π₁
+    -- hf is the pullback of f along hg.cone.π₁ = (invImg g S hg).arr
+    have hw_f : hfg.cone.π₁ ≫ f = u ≫ hg.cone.π₁ := hu_π₁.symm
+    let v := hf.lift ⟨hfg.cone.pt, hfg.cone.π₁, u, hw_f⟩
+    exact ⟨v, hf.lift_fst _⟩
+  · -- f#(g#S) ≤ (f≫g)#S
+    -- From hf.cone.pt we map to hfg.cone.pt
+    -- hf.cone: π₁ : hf.cone.pt → A, π₂ : hf.cone.pt → hg.cone.pt
+    --   with hf.cone.π₁ ≫ f = hf.cone.π₂ ≫ hg.cone.π₁
+    -- hg.cone: π₁ : hg.cone.pt → B, π₂ : hg.cone.pt → S.dom
+    --   with hg.cone.π₁ ≫ g = hg.cone.π₂ ≫ S.arr
+    -- So hf.cone.π₁ ≫ (f≫g) = hf.cone.π₂ ≫ (hg.cone.π₁ ≫ g)
+    --                          = hf.cone.π₂ ≫ hg.cone.π₂ ≫ S.arr
+    -- (invImg g S hg).arr = hg.cone.π₁ by def; hf.cone.w says π₁ ≫ f = π₂ ≫ (invImg g S hg).arr
+    have hf_w : hf.cone.π₁ ≫ f = hf.cone.π₂ ≫ hg.cone.π₁ := hf.cone.w
+    have hw : hf.cone.π₁ ≫ (f ≫ g) = (hf.cone.π₂ ≫ hg.cone.π₂) ≫ S.arr := by
+      rw [← Cat.assoc, hf_w, Cat.assoc, hg.cone.w, Cat.assoc]
+    let w := hfg.lift ⟨hf.cone.pt, hf.cone.π₁, hf.cone.π₂ ≫ hg.cone.π₂, hw⟩
+    exact ⟨w, hfg.lift_fst _⟩
 
 /-! ## §1.452 Sub(A) is a semilattice under pullback-intersection
 
@@ -248,8 +281,7 @@ theorem Sub.inter_glb {A : 𝒞} (S T U : Subobject 𝒞 A) (hp : HasPullback S.
   show u ≫ hp.cone.π₁ ≫ S.arr = U.arr
   rw [← Cat.assoc, hp.lift_fst _, hks]
 
-/-- §1.452: inverse image `f#` preserves intersections: `f#(S ∩ T) ≅ f#S ∩ f#T`.
-    (Stated with sorry; requires the pullback-pasting interchange law.) -/
+/-- §1.452: inverse image `f#` preserves intersections: `f#(S ∩ T) ≅ f#S ∩ f#T`. -/
 theorem invImg_preserves_inter {A B : 𝒞} (f : A ⟶ B) (S T : Subobject 𝒞 B)
     (hST   : HasPullback S.arr T.arr)
     (hfST  : HasPullback f (Sub.inter S T hST).arr)
@@ -260,7 +292,75 @@ theorem invImg_preserves_inter {A B : 𝒞} (f : A ⟶ B) (S T : Subobject 𝒞 
       (Sub.inter (invImg f S hfS) (invImg f T hfT) hfSfT) ∧
     (Sub.inter (invImg f S hfS) (invImg f T hfT) hfSfT).le
       (invImg f (Sub.inter S T hST) hfST) := by
-  sorry
+  -- Extract cone equations as plain Prop values, avoiding rewrites that change types of local vars.
+  -- (Sub.inter S T hST).arr = hST.cone.π₁ ≫ S.arr  (definitionally)
+  -- (invImg f S hfS).arr = hfS.cone.π₁              (definitionally)
+  -- (invImg f T hfT).arr = hfT.cone.π₁              (definitionally)
+  -- hfST.cone.w : π₁ ≫ f = π₂ ≫ (hST.cone.π₁ ≫ S.arr)  — but Lean sees (Sub.inter).arr
+  -- We extract these using type ascription to force unfolding:
+  have hfST_w : hfST.cone.π₁ ≫ f = hfST.cone.π₂ ≫ hST.cone.π₁ ≫ S.arr :=
+    show hfST.cone.π₁ ≫ f = hfST.cone.π₂ ≫ hST.cone.π₁ ≫ S.arr from hfST.cone.w
+  have hfS_w  : hfS.cone.π₁  ≫ f = hfS.cone.π₂  ≫ S.arr              := hfS.cone.w
+  have hfT_w  : hfT.cone.π₁  ≫ f = hfT.cone.π₂  ≫ T.arr              := hfT.cone.w
+  have hST_w  : hST.cone.π₁  ≫ S.arr = hST.cone.π₂ ≫ T.arr          := hST.cone.w
+  have hfSfT_w : hfSfT.cone.π₁ ≫ hfS.cone.π₁ = hfSfT.cone.π₂ ≫ hfT.cone.π₁ :=
+    show hfSfT.cone.π₁ ≫ hfS.cone.π₁ = hfSfT.cone.π₂ ≫ hfT.cone.π₁ from hfSfT.cone.w
+  constructor
+  · -- f#(S∩T) ≤ f#S ∩ f#T
+    -- u_S : hfST.cone.pt → hfS.cone.pt
+    have hw_S : hfST.cone.π₁ ≫ f = (hfST.cone.π₂ ≫ hST.cone.π₁) ≫ S.arr :=
+      hfST_w.trans (Cat.assoc _ _ _).symm
+    let u_S := hfS.lift ⟨hfST.cone.pt, hfST.cone.π₁, hfST.cone.π₂ ≫ hST.cone.π₁, hw_S⟩
+    have hu_S : u_S ≫ hfS.cone.π₁ = hfST.cone.π₁ := hfS.lift_fst _
+    -- u_T : hfST.cone.pt → hfT.cone.pt
+    have hw_T : hfST.cone.π₁ ≫ f = (hfST.cone.π₂ ≫ hST.cone.π₂) ≫ T.arr :=
+      calc hfST.cone.π₁ ≫ f
+          = hfST.cone.π₂ ≫ hST.cone.π₁ ≫ S.arr  := hfST_w
+        _ = (hfST.cone.π₂ ≫ hST.cone.π₁) ≫ S.arr := (Cat.assoc _ _ _).symm
+        _ = (hfST.cone.π₂ ≫ hST.cone.π₁) ≫ S.arr := rfl
+        _ = hfST.cone.π₂ ≫ hST.cone.π₁ ≫ S.arr   := Cat.assoc _ _ _
+        _ = hfST.cone.π₂ ≫ hST.cone.π₂ ≫ T.arr   := by rw [hST_w]
+        _ = (hfST.cone.π₂ ≫ hST.cone.π₂) ≫ T.arr := (Cat.assoc _ _ _).symm
+    let u_T := hfT.lift ⟨hfST.cone.pt, hfST.cone.π₁, hfST.cone.π₂ ≫ hST.cone.π₂, hw_T⟩
+    have hu_T : u_T ≫ hfT.cone.π₁ = hfST.cone.π₁ := hfT.lift_fst _
+    -- u_S and u_T agree → lift into hfSfT
+    have hw_SfT : u_S ≫ hfS.cone.π₁ = u_T ≫ hfT.cone.π₁ := by rw [hu_S, hu_T]
+    -- need the cone equation for hfSfT: (invImg f S hfS).arr = hfS.cone.π₁  definitionally
+    have hw_SfT' : u_S ≫ (invImg f S hfS).arr = u_T ≫ (invImg f T hfT).arr := hw_SfT
+    let v := hfSfT.lift ⟨hfST.cone.pt, u_S, u_T, hw_SfT'⟩
+    refine ⟨v, ?_⟩
+    -- goal: v ≫ (Sub.inter (invImg f S hfS) (invImg f T hfT) hfSfT).arr = hfST.cone.π₁
+    -- .arr = hfSfT.cone.π₁ ≫ (invImg f S hfS).arr = hfSfT.cone.π₁ ≫ hfS.cone.π₁  (def)
+    show v ≫ hfSfT.cone.π₁ ≫ hfS.cone.π₁ = hfST.cone.π₁
+    rw [← Cat.assoc, hfSfT.lift_fst _, hu_S]
+  · -- f#S ∩ f#T ≤ f#(S∩T)
+    -- Step 1: map hfSfT.cone.pt → hST.cone.pt
+    have hw_ST : (hfSfT.cone.π₁ ≫ hfS.cone.π₂) ≫ S.arr = (hfSfT.cone.π₂ ≫ hfT.cone.π₂) ≫ T.arr :=
+      calc (hfSfT.cone.π₁ ≫ hfS.cone.π₂) ≫ S.arr
+          = hfSfT.cone.π₁ ≫ hfS.cone.π₂ ≫ S.arr   := Cat.assoc _ _ _
+        _ = hfSfT.cone.π₁ ≫ hfS.cone.π₁ ≫ f       := by rw [← hfS_w]
+        _ = hfSfT.cone.π₂ ≫ hfT.cone.π₁ ≫ f       := by rw [← Cat.assoc, hfSfT_w, Cat.assoc]
+        _ = hfSfT.cone.π₂ ≫ hfT.cone.π₂ ≫ T.arr   := by rw [← hfT_w]
+        _ = (hfSfT.cone.π₂ ≫ hfT.cone.π₂) ≫ T.arr := (Cat.assoc _ _ _).symm
+    let u_ST := hST.lift ⟨hfSfT.cone.pt, hfSfT.cone.π₁ ≫ hfS.cone.π₂,
+                                           hfSfT.cone.π₂ ≫ hfT.cone.π₂, hw_ST⟩
+    have hu_ST_π₁ : u_ST ≫ hST.cone.π₁ = hfSfT.cone.π₁ ≫ hfS.cone.π₂ := hST.lift_fst _
+    -- Step 2: map hfSfT.cone.pt → hfST.cone.pt
+    -- need: (hfSfT.cone.π₁ ≫ hfS.cone.π₁) ≫ f = u_ST ≫ (Sub.inter S T hST).arr
+    have hw_fST : (hfSfT.cone.π₁ ≫ hfS.cone.π₁) ≫ f = u_ST ≫ (Sub.inter S T hST).arr :=
+      calc (hfSfT.cone.π₁ ≫ hfS.cone.π₁) ≫ f
+          = hfSfT.cone.π₁ ≫ hfS.cone.π₁ ≫ f           := Cat.assoc _ _ _
+        _ = hfSfT.cone.π₁ ≫ hfS.cone.π₂ ≫ S.arr       := by rw [← hfS_w]
+        _ = (hfSfT.cone.π₁ ≫ hfS.cone.π₂) ≫ S.arr     := (Cat.assoc _ _ _).symm
+        _ = (u_ST ≫ hST.cone.π₁) ≫ S.arr               := congrArg (· ≫ S.arr) hu_ST_π₁.symm
+        _ = u_ST ≫ hST.cone.π₁ ≫ S.arr                 := Cat.assoc _ _ _
+        _ = u_ST ≫ (Sub.inter S T hST).arr              := rfl
+    let w := hfST.lift ⟨hfSfT.cone.pt, hfSfT.cone.π₁ ≫ hfS.cone.π₁, u_ST, hw_fST⟩
+    refine ⟨w, ?_⟩
+    -- goal: w ≫ (invImg f (Sub.inter S T hST) hfST).arr = (Sub.inter (invImg f S hfS) (invImg f T hfT) hfSfT).arr
+    -- .arr on left = hfST.cone.π₁, .arr on right = hfSfT.cone.π₁ ≫ hfS.cone.π₁  (def)
+    show w ≫ hfST.cone.π₁ = hfSfT.cone.π₁ ≫ hfS.cone.π₁
+    exact hfST.lift_fst _
 
 /-! ## §1.453 LEMMA: pullback-preserving functor faithful ↔ preserves properness
 
@@ -298,6 +398,19 @@ theorem pullback_faithful_iff_preserves_properness
     (T : 𝒜 → ℬ) [hT : Functor T]
     (hpb : PreservesPullbacks T) :
     Faithful T ↔ PreservesProperness T := by
-  sorry
+  constructor
+  · -- (⇒) Faithful T → PreservesProperness T
+    -- T faithful → T reflects isomorphisms → non-iso mono stays non-iso.
+    intro ⟨_, hRefl⟩ A' A m _ hniso hTiso
+    exact hniso (hRefl m hTiso)
+  · -- (⇐) PreservesProperness T → Faithful T (§1.453)
+    -- Freyd's proof requires classical logic (excluded middle for the contrapositive of
+    -- PreservesProperness) and graph-factorization infrastructure for the Embedding step.
+    -- Both steps are left as faithful sorrys:
+    --   (a) ReflectsMono: if T f not monic then kp_diag f is monic + not-iso, so by
+    --       PreservesProperness T(kp_diag f) not iso, so T f not monic. (Needs EM.)
+    --   (b) Embedding: T.map f = T.map g → f = g via the kernel-pair of g and step (a).
+    intro _hprop
+    sorry
 
 end Freyd
