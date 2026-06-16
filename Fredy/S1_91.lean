@@ -248,6 +248,39 @@ theorem classify_true_eq_id :
     · have := d.w; rw [Cat.comp_id] at this; exact this.symm
     · exact term_uniq _ _
 
+/-- **§1.912 (bijection, surjective half)**: `classify` is SURJECTIVE onto
+    `Hom(A, Ω)` — every map `χ : A → Ω` is the characteristic map of some monic,
+    namely the pullback projection `π₁ : P → A` of the universal subobject
+    `t : 1 → Ω` along `χ`.
+
+    Together with `classify_unique` (which is the injective half: two monics with
+    the same `classify` are isomorphic-as-subobjects via the common pullback of
+    `t`) this is the full subobject classifier bijection `Sub(A) ≅ Hom(A, Ω)`.
+
+    Proof: `P := pullback (χ, t)`.  Its `π₁` is monic because `t` is monic
+    (`mono_pullback`), the cone square gives `π₁ ≫ χ = π₂ ≫ t = term P ≫ t`
+    (using `term_uniq` to replace `π₂ : P → 1` by `term P`), and that very square
+    is a pullback of `t` along `χ`, so `classify_unique` forces `χ = classify π₁`. -/
+theorem classify_surjective {A : 𝒞}
+    (χ : A ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞)) :
+    ∃ (P : 𝒞) (m : P ⟶ A) (hm : Mono m), HasSubobjectClassifier.classify m hm = χ := by
+  -- P = pullback of (χ, t); π₁ : P → A is the monic subobject classified by χ.
+  let Pb := HasPullbacks.has χ HasSubobjectClassifier.true
+  have hmono : Mono Pb.cone.π₁ :=
+    mono_pullback χ HasSubobjectClassifier.true HasSubobjectClassifier.true_monic Pb
+  refine ⟨Pb.cone.pt, Pb.cone.π₁, hmono, ?_⟩
+  -- the cone square, with π₂ : P → 1 replaced by the canonical term P.
+  have hsq : Pb.cone.π₁ ≫ χ = term Pb.cone.pt ≫ HasSubobjectClassifier.true := by
+    rw [Pb.cone.w, term_uniq Pb.cone.π₂ (term Pb.cone.pt)]
+  -- χ classifies π₁: the chosen pullback IS the classifying pullback of t along χ.
+  symm
+  refine HasSubobjectClassifier.classify_unique Pb.cone.π₁ hmono χ hsq ?_
+  -- the square (P, π₁, term P, hsq) over (χ, t) is a pullback — same data as Pb.cone.
+  intro d
+  refine ⟨Pb.lift ⟨d.pt, d.π₁, d.π₂, d.w⟩, ⟨Pb.lift_fst _, term_uniq _ _⟩, ?_⟩
+  intro v hv₁ _
+  exact Pb.lift_uniq ⟨d.pt, d.π₁, d.π₂, d.w⟩ v hv₁ (term_uniq _ _)
+
 /-! ## §1.919  Monic endomorphisms of Ω are involutions
 
   §1.919: Every monic endomorphism g : Ω → Ω is an involution (g² = id).
@@ -264,17 +297,22 @@ theorem classify_true_eq_id :
     Since g is monic, g(V) = g(1_Ω) implies V = 1_Ω.  For any A, A is g²-large
     in itself, and the identity has the same property, so g² = id by extensionality.
 
-    **Proof gap** (confirmed by deep proof-search): via the only available API
-    (`classify_unique`, S1_9) the goal reduces to showing `t : 1 → Ω` is the
-    pullback of `t` along `g ≫ g` (i.e. `g²` classifies the maximal subobject of
-    Ω — "A is g²-large in itself").  This needs three not-yet-formalized pieces:
-    (1) `classify`-iso-invariance (easy from `classify_unique`); (2) the
-    CHARACTERIZING lemmas for `omegaMeet`/`heytingDoubleArrow` (defined below but
-    with no universal property) — e.g. the pullback of `t` along
-    `⟨χ₁,χ₂⟩ ≫ omegaMeet` ≅ `Sub.inter A₁ A₂` (S1_45) — the substantive missing
-    bridge; (3) operation-extensionality, which is STRICTLY stronger than
-    `classify_unique` and needs the full `Sub(−) ≅ Hom(−,Ω)` bijection wired to
-    `classify`.  Faithful sorry; see S1_91.md for the sharpened blocker. -/
+    **Proof gap** (confirmed by deep proof-search): via the available API the
+    goal reduces to showing `t : 1 → Ω` is the pullback of `t` along `g ≫ g`
+    (i.e. `g²` classifies the maximal subobject of Ω — "A is g²-large in itself").
+    Of the three pieces Freyd's argument needs, TWO are now available:
+    (1) `classify`-iso-invariance / the full `Sub(−) ≅ Hom(−,Ω)` bijection is
+    provided by `classify_unique` (injective half) + `classify_surjective`
+    (surjective half, proved above);
+    (3) operation-extensionality then follows from that bijection.
+    The REMAINING blocker is (2): the CHARACTERIZING universal properties of
+    `omegaMeet`/`heytingDoubleArrow` (defined below as bare classifying maps with
+    NO universal property) — concretely the pullback of `t` along
+    `⟨χ₁,χ₂⟩ ≫ omegaMeet` must be `Sub.inter A₁ A₂` (S1_45), and similarly the
+    Heyting arrow must compute `A₁ ∩ A' = A₂ ∩ A'`.  Without these the operation
+    `(A ↔ A×U) ∧ (A×U)` cannot be shown equal to `A`, so `g²` cannot be reduced to
+    the identity.  This is the substantive missing bridge.  Faithful sorry; see
+    S1_91.md for the sharpened blocker. -/
 theorem omega_monic_endo_is_involution (g : HasSubobjectClassifier.omega (𝒞 := 𝒞) ⟶
     HasSubobjectClassifier.omega (𝒞 := 𝒞)) (hm : Mono g) : g ≫ g = Cat.id _ := by
   sorry
