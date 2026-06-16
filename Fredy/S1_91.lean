@@ -2,10 +2,10 @@
   Freyd & Scedrov, *Categories and Allegories* §1.91  Topos structure.
 
   §1.913 All subobjects are equalizers, covers = epics.
-  §1.914 Algebraic structure of Ω: internal meet, Heyting implication.
+  §1.914 Algebraic structure of Ω: internal meet ∧ and Heyting double-arrow ⇒.
   §1.919 Monic endomorphisms of Ω are involutions.
-  §1.91(10) Minimal topos definition (binary products + equalizers + power objects,
-            no terminator needed if non-empty).
+  §1.91(10) Minimal topos definition (binary products + equalizers + subobject
+            classifier, no terminator needed if non-empty).
 -/
 
 import Fredy.S1_1
@@ -103,41 +103,96 @@ theorem covers_coincide_with_epis [HasImages 𝒞] {A B : 𝒞} (f : A ⟶ B) :
       _ = (image.lift f ≫ (image f).arr) ≫ h := (Cat.assoc _ _ _).symm
       _ = f ≫ h := by rw [image.lift_fac]
 
+/-! ## §1.914  Algebraic structure of Ω
+
+  Every n-ary operation g : Ωⁿ → Ω induces an n-ary operation on subobjects of
+  any object A: given A₁,…,Aₙ ⊆ A, define g(A₁,…,Aₙ) as the subobject whose
+  characteristic map is g ∘ ⟨χ_{A₁},…,χ_{Aₙ}⟩.
+
+  **Internal meet (conjunction)**: the binary operation ∧ : Ω×Ω → Ω is defined
+  as the characteristic map of the monic (t,t) : 1 → Ω×Ω.  It satisfies
+  A' ⊆ g(A₁,A₂) iff A' ⊆ A₁ and A' ⊆ A₂, i.e. g(A₁,A₂) = A₁ ∩ A₂.
+
+  **Heyting double-arrow (implication)**: the binary operation ⇒ : Ω×Ω → Ω is
+  the characteristic map of the monic (1,1) : Ω → Ω×Ω (the diagonal on Ω).
+  It satisfies A' ⊆ g(A₁,A₂) iff A₁ ∩ A' = A₂ ∩ A', so g is the Heyting
+  double-arrow (A₁ ⇒ A₂ = A₁ ↔ A₂) and ⊆(A) has a Heyting semi-lattice
+  structure.  The Heyting single-arrow is x → y := x ⇒ (x ∧ y). -/
+
+/-- The internal meet (conjunction) on Ω: the classifying map of the monic
+    (t,t) : 1 → Ω×Ω (§1.914).  The induced operation on subobjects is
+    g(A₁,A₂) = A₁ ∩ A₂. -/
+noncomputable def omegaMeet : prod (HasSubobjectClassifier.omega (𝒞 := 𝒞))
+    (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞) :=
+  HasSubobjectClassifier.classify
+    (pair HasSubobjectClassifier.true HasSubobjectClassifier.true)
+    -- pair(t,t) : 1 → Ω×Ω is monic because 1 is a terminal: any two maps W→1 are equal
+    (fun f g _ => HasTerminal.uniq f g)
+
+/-- The Heyting double-arrow on Ω: the classifying map of the diagonal
+    (1,1) : Ω → Ω×Ω (§1.914).  The induced operation on subobjects A₁,A₂ ⊆ A
+    is the Heyting double-arrow: A' ⊆ g(A₁,A₂) iff A₁∩A' = A₂∩A'. -/
+noncomputable def heytingDoubleArrow : prod (HasSubobjectClassifier.omega (𝒞 := 𝒞))
+    (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞) :=
+  HasSubobjectClassifier.classify
+    (diag (HasSubobjectClassifier.omega (𝒞 := 𝒞)))
+    (diag_mono _)
+
 /-! ## §1.919  Monic endomorphisms of Ω are involutions
 
   §1.919: Every monic endomorphism g : Ω → Ω is an involution (g² = id).
-  BECAUSE: g acts on subobjects as a "g-large" filter; monic-ness forces it
-  to be an isomorphism of order at most 2. -/
+  BECAUSE: For monic g, define U = g(1_Ω) (the unique g-large subobject of 1)
+  and V = 1 (since g is monic and g(V) = g(1) implies V = 1).  Then g²(A') =
+  (A ↔ A×U) ∧ A×U = A itself for any A', so g² has the same large subobjects
+  as the identity, hence g² = id. -/
 
 /-- **§1.919**: Every monic endomorphism of Ω is an involution;
     that is, g : Ω → Ω monic implies g ≫ g = id.
 
-    Proof sketch (Freyd): Let g be monic.  g acts on subobjects via
-    post-composition: it sends χ : A → Ω to g∘χ : A → Ω.  Since g is
-    monic, if A is the subobject classified by χ, then A is also the
-    subobject classified by g∘χ (because g∘χ = g∘χ' ⇒ χ = χ').
-    But the subobject classified by g∘g∘χ is the same as that
-    classified by χ (by considering the pullback of t along g∘g).
-    Hence g∘g∘χ = χ for all χ, which forces g∘g = id.
+    Proof sketch (Freyd §1.919): A subobject A' ⊆ A is g-large iff g(A') = A
+    (i.e., the characteristic map of A' factors through g⁻¹(t)).
+    For monic g with g(V) = g(1_Ω), monicness forces V = 1_Ω.  Then g²(A)
+    equals (A ↔ A×U) ∧ A×U = A, so g² and id have the same large subobjects
+    and hence are equal.
 
-    **Prerequisite**: the universal property of the subobject classifier
-    (pullback of t along classify m restores m), not yet in the class
-    definition.  Currently a `sorry`. -/
+    **Prerequisite**: the classify-uniqueness axiom (two maps A→Ω are equal
+    iff they classify the same subobject) is not yet axiomatised in
+    `HasSubobjectClassifier`.  This sorry will be removable once that
+    uniqueness field is added. -/
 theorem omega_monic_endo_is_involution (g : HasSubobjectClassifier.omega (𝒞 := 𝒞) ⟶
     HasSubobjectClassifier.omega (𝒞 := 𝒞)) (hm : Mono g) : g ≫ g = Cat.id _ := by
   sorry
 
 /-! ## §1.91(10)  Minimal topos definition
 
-  A category with binary products and equalizers (equivalently: binary
-  products and pullbacks) and power objects, which is non-empty, has a
-  terminator and hence is a topos (§1.91(10)). -/
+  A category with binary products and equalizers (equivalently: binary products
+  and pullbacks, or all finite non-empty limits) and a subobject classifier Ω,
+  which is non-empty, already has a terminator and hence is a topos (§1.91(10)).
 
-/-- **§1.91(10)**: If a non-empty category has binary products, equalizers,
-    and power objects, then it has a terminator (and is thus a topos). -/
-theorem minimal_topos_has_terminator [HasBinaryProducts 𝒞] : True := by
-  -- Construction: for any B, the equalizer of 1_{[B]} and Λ(M_{B,B})
-  -- is a terminator, where M_{B,B} is the relation tabulated by B×B.
-  trivial
+  CONSTRUCTION (Freyd): For objects A,B let M_{A,B} denote the relation tabulated
+  by a product projection A×B → A (the "full" relation).  For any f,g : A' → A
+  the equation f(M_{A,B}) = M_{A',B} shows that A M_{A,B} is a constant map.
+  Hence Λ(M_{B,B}) : [B] → [B] is a constant idempotent endomorphism.
+  For any A there is a map A → [B] (namely A M_{A,B}), so the equalizer of
+  id_{[B]} and Λ(M_{B,B}) is a terminator.
+
+  Note: `HasSubobjectClassifier` implies power-objects for the classifier
+  object Ω = [1].  The full "has all power-objects" class is not yet
+  formalized in this repo; we use `HasSubobjectClassifier` as the available
+  proxy for the power-object hypothesis. -/
+
+/-- **§1.91(10)**: A non-empty category with binary products, equalizers, and a
+    subobject classifier has a terminator.
+
+    `hne`: witness that 𝒞 is non-empty (an object exists).
+
+    Currently `sorry`: the construction requires the full power-object
+    machinery (Λ/ε adjunction for [B]), which goes beyond `HasSubobjectClassifier`. -/
+theorem minimal_topos_has_terminator
+    [HasBinaryProducts 𝒞] [HasEqualizers 𝒞] [HasSubobjectClassifier 𝒞]
+    (hne : 𝒞) : Nonempty (HasTerminal 𝒞) := by
+  -- For any B, Λ(M_{B,B}) : [B] → [B] is a constant idempotent.
+  -- The equalizer of id_{[B]} and Λ(M_{B,B}) is a terminator.
+  sorry
 
 end Freyd

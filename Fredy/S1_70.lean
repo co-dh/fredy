@@ -6,6 +6,8 @@
   §1.711 Logos ⇒ pre-logos (f# preserves all unions).
   §1.712 Locally complete: subobject lattices are complete.
   §1.72  Heyting algebra: lattice with implication →.
+  §1.721 Sub-object lattice of any object in a logos is a Heyting algebra.
+  §1.722 Poset is logos iff Heyting algebra.
   §1.723 Locale: complete lattice with distributivity.
 -/
 
@@ -26,10 +28,34 @@ variable {𝒞 : Type u} [Cat.{v} 𝒞]
 
 namespace Freyd
 
+/-! ## Subobject order helpers -/
+
+/-- Mutual ≤ between subobjects gives isomorphic domains. -/
+theorem subobject_le_antisymm_iso {B : 𝒞} {S T : Subobject 𝒞 B}
+    (hST : S.le T) (hTS : T.le S) : Isomorphic S.dom T.dom := by
+  obtain ⟨h₁, h₁fac⟩ := hST
+  obtain ⟨h₂, h₂fac⟩ := hTS
+  refine ⟨h₁, h₂, ?_, ?_⟩
+  · exact S.monic (h₁ ≫ h₂) (Cat.id S.dom) (by rw [Cat.assoc, h₂fac, h₁fac, Cat.id_comp])
+  · exact T.monic (h₂ ≫ h₁) (Cat.id T.dom) (by rw [Cat.assoc, h₁fac, h₂fac, Cat.id_comp])
+
+/-- Transitivity of Subobject.le. -/
+theorem subobject_le_trans {B : 𝒞} {X Y Z : Subobject 𝒞 B}
+    (hXY : X.le Y) (hYZ : Y.le Z) : X.le Z :=
+  let ⟨h₁, e₁⟩ := hXY; let ⟨h₂, e₂⟩ := hYZ
+  ⟨h₁ ≫ h₂, by rw [Cat.assoc, e₂, e₁]⟩
+
+/-- Reflexivity of Subobject.le. -/
+theorem subobject_le_refl {B : 𝒞} (S : Subobject 𝒞 B) : S.le S :=
+  ⟨Cat.id S.dom, Cat.id_comp S.arr⟩
+
 /-! ## §1.7 Logos
 
   A LOGOS is a regular category where subobject lattices have a right
   adjoint f## to the inverse image f# for every f: A → B (§1.7). -/
+
+-- Class definitions need HasPullbacks etc. in scope.
+section LogosClasses
 
 variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
 
@@ -44,24 +70,70 @@ class HasRightAdjointImage (𝒞 : Type u) [Cat.{v} 𝒞] extends HasImages 𝒞
 class Logos (𝒞 : Type u) [Cat.{v} 𝒞] extends
     RegularCategory 𝒞, HasSubobjectUnions 𝒞, HasRightAdjointImage 𝒞
 
+end LogosClasses
+
 /-! ## §1.711 Logos ⇒ pre-logos
 
-  In a logos, f# preserves all unions that exist.  Hence, if A' has
-  binary unions, f# preserves them (proved: f#(∪Bᵢ) = ∪f#(Bᵢ)). -/
+  In a logos, f# preserves all unions that exist.  Hence a logos is a
+  pre-logos. -/
 
-def logos_implies_preLogos [Logos 𝒞] : PreLogos 𝒞 where
-  toRegularCategory := by infer_instance
-  toHasSubobjectUnions := by infer_instance
-  invImage_preserves_union := λ {A B} f S T => by
-    -- f#(S ∪ T) = f#(S) ∪ f#(T) follows from the adjunction
-    sorry
-  -- NOTE: a plain Logos has no canonical bottom subobject (empty join); the
-  -- §1.61 `bottom` fields need additional (local-completeness) structure, so
-  -- these are honest placeholders pending that.
-  bottom := sorry
-  bottom_min := sorry
-  bottom_dom_iso := sorry
-  invImage_preserves_bottom := sorry
+-- §1.711 helper: proved in its own section so the outer variable block
+-- [HasPullbacks] / [HasImages] is NOT in scope and the Logos instances win.
+section LogosPreLogosHelper
+
+variable [L : Logos 𝒞]
+
+-- InverseImage and HasSubobjectUnions now use L's internal instances.
+
+private theorem logos_invImage_pres_union {A B : 𝒞} (f : A ⟶ B)
+    (S T : Subobject 𝒞 B) :
+    Isomorphic (InverseImage f (HasSubobjectUnions.union S T)).dom
+               (HasSubobjectUnions.union (InverseImage f S) (InverseImage f T)).dom := by
+  -- §1.711: via the adjunction f# ⊣ f##.
+  -- adj: (InverseImage f B').le A' ↔ B'.le (f## A')
+  have adj : ∀ (B' : Subobject 𝒞 B) (A' : Subobject 𝒞 A),
+      (InverseImage f B').le A' ↔ B'.le (HasRightAdjointImage.rightAdj f A') :=
+    fun B' A' => L.adjunction f B' A'
+  let ST   := HasSubobjectUnions.union S T
+  let fST  := InverseImage f ST
+  let fS   := InverseImage f S
+  let fT   := InverseImage f T
+  let join := HasSubobjectUnions.union fS fT
+  -- Step 1: join ≤ fST  (f#S ∪ f#T ≤ f#(S∪T))
+  -- S∪T ≤ f##(fST) from f#(S∪T) ≤ f#(S∪T) [refl] and adj.
+  have h_ST_le_ra : ST.le (HasRightAdjointImage.rightAdj f fST) :=
+    (adj ST fST).mp (subobject_le_refl fST)
+  have hS_le : fS.le fST := (adj S fST).mpr
+    (subobject_le_trans (HasSubobjectUnions.union_left S T) h_ST_le_ra)
+  have hT_le : fT.le fST := (adj T fST).mpr
+    (subobject_le_trans (HasSubobjectUnions.union_right S T) h_ST_le_ra)
+  have hle : join.le fST := HasSubobjectUnions.union_min _ _ _ hS_le hT_le
+  -- Step 2: fST ≤ join  (f#(S∪T) ≤ f#S ∪ f#T)
+  -- S ≤ f##(join) from f#S ≤ join [union_left] and adj; idem T.
+  have hS_le_ra : S.le (HasRightAdjointImage.rightAdj f join) :=
+    (adj S join).mp (HasSubobjectUnions.union_left fS fT)
+  have hT_le_ra : T.le (HasRightAdjointImage.rightAdj f join) :=
+    (adj T join).mp (HasSubobjectUnions.union_right fS fT)
+  have hle2 : fST.le join := (adj ST join).mpr
+    (HasSubobjectUnions.union_min S T _ hS_le_ra hT_le_ra)
+  exact subobject_le_antisymm_iso hle2 hle
+
+end LogosPreLogosHelper
+
+section LogosFacts
+
+variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
+
+def logos_implies_preLogos [L : Logos 𝒞] : PreLogos 𝒞 where
+  toRegularCategory    := L.toRegularCategory
+  toHasSubobjectUnions := L.toHasSubobjectUnions
+  invImage_preserves_union {A B} f S T := logos_invImage_pres_union f S T
+  -- §1.61: bottom subobject needs empty-join / initial object infrastructure
+  -- that Logos does not directly provide beyond binary unions; faithful sorry.
+  bottom                    := fun _ => by sorry
+  bottom_min                := by sorry
+  bottom_dom_iso            := by sorry
+  invImage_preserves_bottom := by sorry
 
 /-! ## §1.712 Locally complete categories
 
@@ -76,7 +148,8 @@ class LocallyComplete (𝒞 : Type u) [Cat.{v} 𝒞] extends HasImages 𝒞 wher
     (∀ (s : Subobject 𝒞 A), S s → Subobject.le s U) → Subobject.le (sup S) U
 
 /-- In a locally complete regular category with f# preserving all unions,
-    the right adjoint f## exists (constructible as sup of all B' with f#(B')⊆A'). -/
+    the right adjoint f## exists (constructible as sup of all B' with f#(B')⊆A').
+    §1.712: faithful sorry pending full construction. -/
 def locallyComplete_with_union_preserving_is_logos
     [LocallyComplete 𝒞] [PreLogos 𝒞]
     (h_preserves : ∀ {A B : 𝒞} (f : A ⟶ B) (S : (Subobject 𝒞 B) → Prop),
@@ -84,14 +157,28 @@ def locallyComplete_with_union_preserving_is_logos
                    (LocallyComplete.sup (λ A' => ∃ B', S B' ∧ A' = InverseImage f B'))) : Logos 𝒞 := by
   sorry
 
-/-! ## §1.72 Heyting algebra
+/-! ## §1.721 Subobject lattice of any object in a logos is a Heyting algebra.
 
-  A HEYTING ALGEBRA is a lattice with a binary operation → satisfying
-  x ∧ z ≤ y ⇔ z ≤ x → y  (x → y is the largest z with x ∧ z ≤ y). -/
+  Given A₁, A₂ ⊆ A in a logos, let i : A₁ ↪ A be the inclusion map.
+  Then (A₁ → A₂) := i##(A₁ ∩ A₂) = rightAdj i (intersection A₁ A₂).
+  The adjunction gives: A₃ ∧ A₁ ≤ A₂ ↔ A₃ ≤ (A₁ → A₂). -/
 
-/-! ## §1.723 Locale
+-- §1.721 (subobject lattice of a logos object is a Heyting algebra) is stated
+-- and developed in S1_72 alongside the `HeytingAlgebra` class; not restated here
+-- as a vacuous stub.
 
-  A LOCALE is a complete lattice such that finite meets distribute
-  over arbitrary joins: x ∧ sup S = sup {x ∧ s | s ∈ S}. -/
+/-! ## §1.722 A poset viewed as a category is a logos iff it is a Heyting algebra.
+
+  Proof sketch: In a poset, InverseImage f B' = x∧y (meet), and f## gives
+  implication.  §1.722 combines §1.721 and §1.613. -/
+
+-- §1.722 (a poset is a logos iff it is a Heyting algebra) belongs with the
+-- `HeytingAlgebra` development in S1_72 (which imports this file); not restated
+-- here as a vacuous stub.
+
+-- §1.723 LOCALE is defined canonically in S1_72 (with the meet/Heyting structure);
+-- not duplicated here.
+
+end LogosFacts
 
 end Freyd

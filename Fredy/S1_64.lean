@@ -24,6 +24,7 @@ import Fredy.S1_56
 import Fredy.S1_58
 import Fredy.S1_59
 import Fredy.S1_60
+import Fredy.S1_57
 import Fredy.S1_62
 
 
@@ -142,17 +143,169 @@ theorem monic_eq_cocover_preTopos [PreTopos 𝒞] [HasCoequalizers 𝒞] {A B : 
     Mono f ↔ ∃ (C : 𝒞) (p q : C ⟶ A), HEq ((HasCoequalizers.coeq p q).map) f := by
   sorry
 
-/-! ## §1.654 Pre-topos opposite is regular (if cocartesian) -/
+/-! ## §1.654/§1.657 Pre-topos is cocartesian iff minimal equivalence relations exist
 
-theorem preTopos_opposite_regular [PreTopos 𝒞] [HasCoequalizers 𝒞] : True := by
-  trivial
+  A pre-topos is COCARTESIAN (its opposite is regular) if and only if
+  for every endo-relation R on an object A there exists a minimal
+  equivalence relation Ê ⊇ R on A.
+  (§1.657: effectiveness means Ê is the level of some coequalizer A → B.)
+
+  Proof sketch (§1.657):
+  · (⇒) If A has coequalizers, given f: A→B with level E ⊇ R, then E is
+    the minimal equivalence relation containing R (effectiveness).
+  · (⇐) Conversely, given R = x°y (level of x,y : C⇒A), form the
+    minimal equivalence Ê containing x°y; by effectiveness, Ê = level of
+    some cover z: A→B; then z is a coequalizer of x and y. -/
+
+/-- Every endo-relation on every object has a minimal equivalence relation containing it. -/
+def HasMinEquivContaining (𝒞 : Type u) [Cat.{v} 𝒞] [HasBinaryProducts 𝒞]
+    [HasPullbacks 𝒞] [HasImages 𝒞] : Prop :=
+  ∀ (A : 𝒞) (R : BinRel 𝒞 A A),
+    ∃ (E : BinRel 𝒞 A A), EquivalenceRelation E
+      ∧ RelLe R E
+      ∧ ∀ (F : BinRel 𝒞 A A), EquivalenceRelation F → RelLe R F → RelLe E F
+
+/-- **§1.657**: A pre-topos with coequalizers satisfies HasMinEquivContaining.
+    Effectiveness supplies the minimal equivalence relation as the level of
+    the coequalizer, and conversely the minimal equivalence relation yields
+    the coequalizer by effectiveness.
+    (Both directions require the full machinery of §1.567–§1.568; sorry.) -/
+theorem preTopos_cocartesian_to_minEquiv [PreTopos 𝒞] [HasCoequalizers 𝒞] :
+    HasMinEquivContaining 𝒞 := by
+  sorry
+
+theorem preTopos_minEquiv_to_cocartesian [PreTopos 𝒞]
+    (h : HasMinEquivContaining 𝒞) : Nonempty (HasCoequalizers 𝒞) := by
+  sorry
 
 
 /-! ## §1.658 Decidable object
 
-  A is DECIDABLE if the diagonal A→A×A has a complement in the subobject lattice. -/
+  An object A in a pre-logos is DECIDABLE if the diagonal (1,1): A → A×A
+  has a complement in the subobject lattice of A×A.
 
--- class DecidableObject (A : 𝒞) [PreLogos 𝒞] where
---   diag_complemented : IsComplemented (Subobject.mk A (diagonal A) ?monic)
+  Every object in a pre-topos is decidable iff the pre-topos is boolean.
+
+  PROOF SKETCH:
+  (⇐) Boolean ⇒ every subobject is complemented, in particular the diagonal.
+  (⇒) Given A decidable, let A' → A×B be any subobject; form the equalizer of
+      (A' → A×B → B → B×B) and (A' → A×B → A×B → B×B via diag∘second).
+      Because pullbacks of complemented subobjects are complemented (§1.658),
+      the Boolean algebra structure transfers to all subobjects via slices. -/
+
+/-- **§1.658**: A in a pre-logos is DECIDABLE if the diagonal `diag A : A → A×A`
+    has a complement in `Subobject 𝒞 (prod A A)`.
+    Lean note: `diag A` is monic (§1.42: `diag_mono`); the subobject is `{ dom := A, arr := diag A, monic := diag_mono A }`. -/
+def DecidableObject [PreLogos 𝒞] [HasBinaryProducts 𝒞] (A : 𝒞) : Prop :=
+  IsComplemented ({ dom := A, arr := diag A, monic := diag_mono A } : Subobject 𝒞 (prod A A))
+
+/-- **§1.658**: Every object in a pre-topos is decidable iff the pre-topos is boolean.
+    The harder direction (all decidable → boolean) follows because pullbacks of
+    complemented subobjects are complemented, and every subobject U ⊆ 1 can be
+    pulled back to any slice, where it coincides with the diagonal. -/
+theorem preTopos_boolean_iff_all_decidable [PreTopos 𝒞] [HasBinaryProducts 𝒞] :
+    (Nonempty (BooleanPreLogos 𝒞)) ↔ ∀ (A : 𝒞), DecidableObject A := by
+  sorry
+
+/-! ## §1.66 Choice objects in a pre-topos
+
+  We study choice objects [§1.57] in a regular category. -/
+
+section Choice66
+
+variable [RegularCategory 𝒞]
+
+/-- **§1.66**: A subobject of a choice object is choice.
+    If C is choice and m: A↣C is monic, then A is choice.
+    PROOF: Let R be an entire relation from X to A.
+    Then m ≫ R is an entire relation from X to C (composition with a map).
+    Because C is choice, m ≫ R contains a map f: X → C.
+    Since m is monic, f factors uniquely through A: the factorization gives
+    the required map in R. (Requires: entire relations compose with maps.) -/
+theorem subobject_of_choice_is_choice {A C : 𝒞} (m : A ⟶ C) (hm : Mono m)
+    (hC : Choice C) : Choice A := by
+  sorry
+
+/-- **§1.66**: A quotient (cover target) of a choice object is choice.
+    If C is choice and x: C↠B is a cover, then B is choice.
+    PROOF (book §1.66): x: C → B is also a subobject of C via x° ⊂ 1_C
+    (the inclusion via a map contained in x°). Apply subobject_of_choice. -/
+theorem quotient_of_choice_is_choice {B C : 𝒞} (x : C ⟶ B) (hx : Cover x)
+    (hC : Choice C) : Choice B := by
+  sorry
+
+end Choice66
+
+/-! ## §1.661 Finite products of choice objects are choice
+
+  In a regular category, finite products of choice objects are choice.
+  (Proof uses: any entire relation targeted at a terminator is already a map;
+  for binary products, decompose R : X → B₁×B₂ via its projections.) -/
+
+section Choice661
+
+variable [RegularCategory 𝒞]
+
+/-- **§1.661**: The terminator (terminal object) is always choice in a regular category.
+    PROOF: Any entire relation R : X → 1 is simple (the unique map term X : X → 1
+    factors through R), so R contains the map term X. -/
+theorem terminator_is_choice : Choice (one : 𝒞) := by
+  sorry
+
+/-- **§1.661**: The binary product of two choice objects is choice.
+    PROOF (book §1.661): Let R be entire from A to B₁×B₂.
+    R∘fst° is entire targeted at B₁, so it contains a map f₁.
+    In Sets, R ∩ f₁∘fst° is entire (§1.551, §1.563 transfer to any regular category).
+    Its projection R ∩ f₁∘fst°∘snd° is entire targeted at B₂, so it contains f₂.
+    Then (f₁, f₂): A → B₁×B₂ is contained in R. -/
+theorem prod_choice_is_choice {B₁ B₂ : 𝒞} (h₁ : Choice B₁) (h₂ : Choice B₂) :
+    Choice (prod B₁ B₂) := by
+  sorry
+
+end Choice661
+
+/-! ## §1.662 Diaconescu's theorem in a pre-topos
+
+  In a pre-topos, the following are equivalent:
+  (1) Binary coproducts of choice objects are choice.
+  (2) 1+1 is choice.
+  (3) The pre-topos is boolean. -/
+
+section Diaconescu
+
+variable [PreTopos 𝒞] [HasBinaryCoproducts 𝒞]
+
+/-- **§1.662**: (1) → (2): trivially, 1+1 is a coproduct of 1 and 1, and 1 is choice. -/
+theorem coprod_choice_to_one_one_choice
+    (h : ∀ (B₁ B₂ : 𝒞), Choice B₁ → Choice B₂ →
+         Choice (HasBinaryCoproducts.coprod B₁ B₂)) :
+    Choice (HasBinaryCoproducts.coprod (one : 𝒞) one) :=
+  h one one terminator_is_choice terminator_is_choice
+
+/-- **§1.662**: (2) → (3): 1+1 choice implies boolean.
+    PROOF: The intermediate condition (2a) — every cover X∪Y=B can be
+    refined to a partition X'⊆X, Y'⊆Y with X'∪Y'=B and X'∩Y'=∅ —
+    is a restatement of (2) because maps B → 1+1 are partitions of B.
+    (2a) is inherited by slices, so it suffices to show 𝒮(1) is boolean.
+    Any U ⊆ 1 gives a pushout P = 1 +_U 1; 1+1 choice ⟹ P is a subobject
+    of 1+1; 1+1 is decidable (§1.658) and so is P; U is complemented as a
+    pullback of a complemented subobject. -/
+theorem one_one_choice_to_boolean [HasBinaryProducts 𝒞]
+    (h : Choice (HasBinaryCoproducts.coprod (one : 𝒞) one)) :
+    Nonempty (BooleanPreLogos 𝒞) := by
+  sorry
+
+/-- **§1.662**: (3) → (1): boolean implies binary coproducts of choice objects are choice.
+    PROOF: Given S: A → B₁+B₂ entire, the subobject Dom(S∘inl°) ⊆ A is complemented
+    (boolean pre-topos). The restriction of S to Dom(S∘inl°) is entire into B₁, so
+    contains f₁ (B₁ choice). The restriction to the complement is entire into B₂,
+    so contains f₂ (B₂ choice). Then f₁+f₂ (copairing) is a map in S. -/
+theorem boolean_to_coprod_choice_is_choice [HasBinaryProducts 𝒞]
+    (hbool : Nonempty (BooleanPreLogos 𝒞)) :
+    ∀ (B₁ B₂ : 𝒞), Choice B₁ → Choice B₂ →
+      Choice (HasBinaryCoproducts.coprod B₁ B₂) := by
+  sorry
+
+end Diaconescu
 
 end Freyd
