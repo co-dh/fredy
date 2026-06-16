@@ -26,9 +26,12 @@
   §1.831    IsUniformlyContinuous
             uniformly_continuous_preserves_prelimits (PROVED)
             IdempotentsSplit (§1.281)
-            more_general_adjoint_functor_theorem — STATEMENT FIXED (needs IdempotentsSplit, else
-            FALSE per §1.836); (⇒) PROVED, (⇐) reduced to mgaft_representability (sorry — needs the
-            pre-limit/idempotent-splitting variant; the full-`Complete` GAFT engine does NOT apply)
+            wforkDiag — wide-fork shape (weakly equalizes a small endo-family against id)
+            mgaft_representability — §1.835 pre-limit/idempotent-splitting engine (PROVED): UC on
+            a discrete pre-limit ⟹ weakly-initial (P,η); UC on a wide-fork pre-limit over the
+            η-fixing endos ⟹ an idempotent e₀; IdempotentsSplit cuts (P,η) to an initial element
+            more_general_adjoint_functor_theorem — FULLY PROVED (both directions; needs
+            IdempotentsSplit, else FALSE per §1.836; axioms = propext, Classical.choice)
   §1.837    HasPreColimit (faithful colimit-dual) / PreCocomplete (re-modeled)
             cocomplete_imp_preCocomplete (PROVED, axiom-free)
             cocomplete_of_complete_precocomplete — FULLY PROVED (colimit-dual of the GAFT engine,
@@ -44,9 +47,10 @@
             special_adjoint_functor_theorem — FULLY PROVED (axioms = propext, Classical.choice,
             Quot.sound)
 
-  Remaining sorries (1): `mgaft_representability` (§1.831).  GAFT (§1.83), SAFT (§1.83(10)) and
-  §1.837 are now fully proved; MGAFT still needs a "pre-complete + split idempotents"
-  weak-initial-object cutoff that the full-`Complete` GAFT engine cannot supply.  See S1_82.md.
+  Remaining sorries (0).  GAFT (§1.83), MGAFT (§1.831), SAFT (§1.83(10)) and §1.837 are all
+  fully proved.  MGAFT's "pre-complete + split idempotents" weak-initial-object cutoff (which the
+  full-`Complete` GAFT engine cannot supply) is built directly via wide-fork pre-limits and the
+  `IdempotentsSplit` hypothesis.  See S1_82.md.
 -/
 
 import Fredy.S1_1
@@ -1599,32 +1603,275 @@ def IdempotentSplits {ℬ : Type u₁} [Cat.{v} ℬ] {B : ℬ} (e : B ⟶ B) : P
 def IdempotentsSplit (ℬ : Type u₁) [Cat.{v} ℬ] : Prop :=
   ∀ {B : ℬ} (e : B ⟶ B), IdempotentSplits e
 
+-- ---------------------------------------------------------------------------
+-- Wide-fork shape (for the §1.835 weak wide-equalizer via pre-limit + UC)
+-- ---------------------------------------------------------------------------
+
+/-! The MGAFT must "weakly equalize" a small family `e : K → (P ⟶ P)` against the
+    identity — i.e. find a map `q : Q ⟶ P` with `q ≫ e k = q` for every `k`, factoring a
+    given element.  Under `PreComplete` no genuine wide equalizer exists, so we model it as a
+    *cone* over a wide-parallel-pair diagram and apply `IsUniformlyContinuous` to a pre-limit.
+
+    The shape `WFork` has two objects `src, tgt` and arrows `src → tgt` indexed by `Option K`:
+    `none` carries the identity `id_P` (forcing the two legs equal), `some k` carries `e k`. -/
+
+private inductive WForkObj : Type where | src | tgt
+
+private inductive WForkHom (K : Type v) : WForkObj → WForkObj → Type v where
+  | idS : WForkHom K .src .src
+  | idT : WForkHom K .tgt .tgt
+  | arr : Option K → WForkHom K .src .tgt
+
+private def wforkComp {K : Type v} :
+    {X Y Z : WForkObj} → WForkHom K X Y → WForkHom K Y Z → WForkHom K X Z
+  | _, _, _, .idS, g => g
+  | _, _, _, f, .idT => f
+
+private abbrev WForkv (_K : Type v) : Type v := ULift.{v} WForkObj
+
+private instance wforkCat (K : Type v) : Cat.{v} (WForkv K) where
+  Hom X Y  := WForkHom K X.down Y.down
+  id X     := match X.down with | .src => .idS | .tgt => .idT
+  comp f g := wforkComp f g
+  id_comp  := by rintro ⟨X⟩ ⟨Y⟩ f; cases f <;> rfl
+  comp_id  := by rintro ⟨X⟩ ⟨Y⟩ f; cases f <;> rfl
+  assoc    := by rintro ⟨W⟩ ⟨X⟩ ⟨Y⟩ ⟨Z⟩ f g h; cases f <;> cases g <;> cases h <;> rfl
+
+/-- Wide-fork diagram for `e : K → (P ⟶ P)`: `src ↦ P`, `tgt ↦ P`, `arr none ↦ id_P`,
+    `arr (some k) ↦ e k`. -/
+private def wforkDiagObj {ℬ : Type u₁} [Cat.{v} ℬ] {P : ℬ} {K : Type v}
+    (_e : K → (P ⟶ P)) : WForkv K → ℬ
+  | ⟨.src⟩ => P
+  | ⟨.tgt⟩ => P
+
+private def wforkDiagMap {ℬ : Type u₁} [Cat.{v} ℬ] {P : ℬ} {K : Type v}
+    (e : K → (P ⟶ P)) :
+    {X Y : WForkv K} → (X ⟶ Y) → (wforkDiagObj e X ⟶ wforkDiagObj e Y)
+  | ⟨.src⟩, ⟨.src⟩, _ => Cat.id P
+  | ⟨.tgt⟩, ⟨.tgt⟩, _ => Cat.id P
+  | ⟨.src⟩, ⟨.tgt⟩, .arr none => Cat.id P
+  | ⟨.src⟩, ⟨.tgt⟩, .arr (some k) => e k
+
+private instance wforkDiagFunctor {ℬ : Type u₁} [Cat.{v} ℬ] {P : ℬ} {K : Type v}
+    (e : K → (P ⟶ P)) : Functor (wforkDiagObj e) where
+  map := wforkDiagMap e
+  map_id := by rintro ⟨X⟩; cases X <;> rfl
+  map_comp := by
+    rintro ⟨X⟩ ⟨Y⟩ ⟨Z⟩ p q
+    cases p <;> cases q <;>
+      first
+        | rfl
+        | exact (Cat.id_comp _).symm
+        | exact (Cat.comp_id _).symm
+
 /-- §1.835 (the heart of the MGAFT): for a *uniformly continuous* and *pre-adjoint* `G` out of
     a *pre-complete* `ℬ` in which *idempotents split*, the functor `(A, G(-))` is representable
     for every `A`.
 
-    Freyd's argument (§1.835): the category of elements `El(A,G(-))` has, by uniform continuity,
-    a lower bound for every small diagram and, by pre-adjointness, a pre-coterminator; since
-    idempotents split in `ℬ` they split in `El`, so §1.835 (lower-bounds + pre-coterminator +
-    split idempotents ⟹ coterminator) produces the representing object.
+    Freyd's argument (§1.835), made constructive:
 
-    BLOCKER (faithful, sharp): this CANNOT reuse the proven `gaft_representability` engine, because
-    that engine builds the representing object as a WIDE EQUALIZER and a PRODUCT — genuine limits
-    requiring full `Complete ℬ`.  Here only `PreComplete ℬ` (pre-limits = cofinal families of
-    cones, no actual limit object) is available, so neither the product `∏ᵢ obj i` nor the wide
-    equalizer of endomorphisms exists.  The MGAFT replaces them by: a PRE-LIMIT cone (uniform
-    continuity makes its `G`-image cofinal), a weakly-initial member of the pre-coterminator, and
-    an IDEMPOTENT-SPLITTING that cuts the weakly-initial object down to an initial one — exactly
-    where `IdempotentsSplit` enters (and without which the theorem is false, §1.836).  The repo
-    lacks the pre-limit-based weak-initial-object construction and the §1.835 splitting lemma; the
-    `InitialElement.represents` bridge would finish it once an initial element is produced. -/
-private def mgaft_representability
+    * (weak initiality)  Pre-adjointness gives a solution set `{(obj i, maps i)}` for `A`.  Form
+      its discrete pre-limit (`PreComplete`); uniform continuity makes the `G`-image cofinal,
+      producing `(P, η)` with `η ≫ G(proj i) = maps i`.  Pre-adjoint cofinality then makes
+      `(P, η)` *weakly initial* in `El(A,G(-))`: every `g : A ⟶ G B` is `η ≫ G w` for some `w`.
+
+    * (idempotent)  Let `M := {e : P ⟶ P // η ≫ G e = η}` be the endos fixing `η`.  Weakly
+      equalize the whole family `M` against `id_P` via a *wide-fork* pre-limit + uniform
+      continuity: a `q : Q ⟶ P` with `q ≫ e = q` for every `e ∈ M`, and an element `η_Q` with
+      `η_Q ≫ G q = η`.  Weak initiality factors `η_Q` as `η ≫ G s = η_Q`; then `e₀ := s ≫ q`
+      satisfies `η ≫ G e₀ = η` (so `e₀ ∈ M`) and `e₀ ≫ e = e₀` for every `e ∈ M` (since
+      `q ≫ e = q`).  In particular `e₀ ≫ e₀ = e₀`: `e₀` is *idempotent*.
+
+    * (split ⟹ initial)  `IdempotentsSplit` splits `e₀ = ρ ≫ σ`, `σ ≫ ρ = id_R`.  Then
+      `(R, θ_R)` with `θ_R := η ≫ G ρ` is an INITIAL element: `θ_R ≫ G σ = η`; existence factors
+      through weak initiality; uniqueness uses `σ ≫ e = σ` for every `e ∈ M` (from `σ ≫ ρ = id`
+      and `e₀ ≫ e = e₀`) together with a *fresh* wide-fork weak-equalizer of each candidate pair.
+
+    This is exactly where `IdempotentsSplit` is load-bearing (without it the theorem is false,
+    §1.836): it is what cuts the weakly-initial `(P, η)` down to a genuine initial element. -/
+private noncomputable def mgaft_representability
     {𝒜 : Type u} [Cat.{v} 𝒜] {ℬ : Type u₁} [Cat.{v} ℬ]
-    {G : ℬ → 𝒜} [hG : Functor G] [PreComplete ℬ]
-    (_hsplit : IdempotentsSplit ℬ)
-    (_huc : IsUniformlyContinuous G) (_pre : PreAdjointFunctor G) :
+    {G : ℬ → 𝒜} [hG : Functor G] [hpc : PreComplete ℬ]
+    (hsplit : IdempotentsSplit ℬ)
+    (huc : IsUniformlyContinuous G) (pre : PreAdjointFunctor G) :
     ∀ A : 𝒜, Σ R : ℬ, RepresentedBy G A R := by
-  sorry
+  classical
+  intro A
+  -- ── solution set (pre-adjoint family) for A ──
+  let pa := pre.preAdj A
+  let I  : Type v := pa.I
+  let obj : I → ℬ := pa.obj
+  let maps : (i : I) → A ⟶ G (obj i) := pa.maps
+  -- ── pre-limit of the discrete diagram `obj`; UC makes its G-image cofinal ──
+  letI : Cat.{v} I := discCat82
+  letI : Functor obj := discreteFunctor obj
+  let pl := hpc.hasPreLimit obj
+  have hmapsnat : ∀ {i j : I} (x : i ⟶ j),
+      maps i ≫ hG.map (Functor.map x) = maps j := by
+    intro i j x; obtain ⟨⟨hij⟩⟩ := x; subst hij
+    show maps i ≫ hG.map (Functor.map (Cat.id i)) = maps i
+    rw [Functor.map_id, hG.map_id, Cat.comp_id]
+  let upl := uniformly_continuous_preserves_prelimits G huc pl A maps hmapsnat
+  let j₀ : pl.J := upl.choose
+  let η : A ⟶ G (pl.cones j₀).apex := upl.choose_spec.choose
+  have hηfac : ∀ i, η ≫ hG.map ((pl.cones j₀).π i) = maps i := upl.choose_spec.choose_spec
+  let P : ℬ := (pl.cones j₀).apex
+  let proj : (i : I) → P ⟶ obj i := (pl.cones j₀).π
+  -- weak initiality of (P, η): every g : A ⟶ G B factors as η ≫ G w
+  have weakInit : ∀ {B : ℬ} (g : A ⟶ G B), ∃ w : P ⟶ B, η ≫ hG.map w = g := by
+    intro B g
+    obtain ⟨i, y, hy⟩ := pa.cofinal g
+    refine ⟨proj i ≫ y, ?_⟩
+    rw [hG.map_comp, ← Cat.assoc, hηfac i, hy]
+  -- ── weak wide-equalizer of a family `e : K → (P ⟶ P)` (all fixing η) against id ──
+  -- via the wide-fork pre-limit + uniform continuity.  Returns `q : Q ⟶ P` with `q ≫ e k = q`
+  -- and a factoring element `η_Q` of `η`.
+  let weakFork : ∀ (K : Type v) (e : K → (P ⟶ P)),
+      (∀ k, η ≫ hG.map (e k) = η) →
+      Σ' (Q : ℬ) (q : Q ⟶ P) (_ : ∀ k, q ≫ e k = q) (ηQ : A ⟶ G Q), ηQ ≫ hG.map q = η := by
+    intro K e he
+    letI := wforkCat K
+    letI := wforkDiagFunctor e
+    let pl' := hpc.hasPreLimit (wforkDiagObj e)
+    -- the cone `{η at src, η at tgt}` over `G ∘ wforkDiag` (legs use `η`, naturally compatible
+    -- because every diagram arrow maps to either `id_P` or some `e k` and `η ≫ G(e k) = η`).
+    let glegs : (Z : WForkv K) → A ⟶ G (wforkDiagObj e Z) :=
+      fun Z => match Z with | ⟨.src⟩ => η | ⟨.tgt⟩ => η
+    have gnat : ∀ {X Y : WForkv K} (x : X ⟶ Y),
+        glegs X ≫ hG.map ((wforkDiagFunctor e).map x) = glegs Y := by
+      rintro ⟨X⟩ ⟨Y⟩ x
+      cases x with
+      | idS => show η ≫ hG.map (Cat.id P) = η; rw [hG.map_id, Cat.comp_id]
+      | idT => show η ≫ hG.map (Cat.id P) = η; rw [hG.map_id, Cat.comp_id]
+      | arr o => cases o with
+        | none => show η ≫ hG.map (Cat.id P) = η; rw [hG.map_id, Cat.comp_id]
+        | some k => exact he k
+    let upl' := uniformly_continuous_preserves_prelimits G huc pl' A glegs gnat
+    let j : pl'.J := upl'.choose
+    let ηQ : A ⟶ G (pl'.cones j).apex := upl'.choose_spec.choose
+    have hη : ∀ z, ηQ ≫ hG.map ((pl'.cones j).π z) = glegs z := upl'.choose_spec.choose_spec
+    let Q : ℬ := (pl'.cones j).apex
+    let qsrc : Q ⟶ P := (pl'.cones j).π ⟨.src⟩
+    -- `qsrc ≫ e k = qsrc`: cone naturality on `arr (some k)` then on `arr none`.
+    have hqe : ∀ k, qsrc ≫ e k = qsrc := by
+      intro k
+      have h1 : qsrc ≫ e k = (pl'.cones j).π ⟨.tgt⟩ :=
+        (pl'.cones j).nat (WForkHom.arr (some k) : (⟨.src⟩ : WForkv K) ⟶ ⟨.tgt⟩)
+      have h0 : qsrc ≫ Cat.id P = (pl'.cones j).π ⟨.tgt⟩ :=
+        (pl'.cones j).nat (WForkHom.arr none : (⟨.src⟩ : WForkv K) ⟶ ⟨.tgt⟩)
+      rw [Cat.comp_id] at h0
+      rw [h1, ← h0]
+    have hηQ : ηQ ≫ hG.map qsrc = η := hη ⟨.src⟩
+    exact ⟨Q, qsrc, hqe, ηQ, hηQ⟩
+  -- ── build the canonical idempotent `e₀` from the wide fork over ALL of `M` ──
+  let M : Type v := { e : P ⟶ P // η ≫ hG.map e = η }
+  obtain ⟨Q, q, hqM, ηQ, hηQ⟩ := weakFork M (fun m => m.1) (fun m => m.2)
+  -- factor `ηQ` weakly-initially: η ≫ G s = ηQ
+  let wiQ := weakInit ηQ
+  let s : P ⟶ Q := wiQ.choose
+  have hs : η ≫ hG.map s = ηQ := wiQ.choose_spec
+  let e₀ : P ⟶ P := s ≫ q
+  have he₀M : η ≫ hG.map e₀ = η := by
+    show η ≫ hG.map (s ≫ q) = η
+    rw [hG.map_comp, ← Cat.assoc, hs, hηQ]
+  -- `e₀ ≫ m = e₀` for every `m ∈ M` (because `q ≫ m = q`)
+  have he₀absorb : ∀ m : M, e₀ ≫ m.1 = e₀ := by
+    intro m
+    show (s ≫ q) ≫ m.1 = s ≫ q
+    rw [Cat.assoc, hqM m]
+  -- in particular `e₀` is idempotent (apply absorption to `e₀ ∈ M`)
+  have hidem : e₀ ≫ e₀ = e₀ := he₀absorb ⟨e₀, he₀M⟩
+  -- ── split the idempotent: e₀ = ρ ≫ σ, σ ≫ ρ = id_R ──
+  let spl := hsplit e₀ hidem
+  let R : ℬ := spl.choose
+  let ρ : P ⟶ R := spl.choose_spec.choose
+  let σ : R ⟶ P := spl.choose_spec.choose_spec.choose
+  have hρσ : ρ ≫ σ = e₀ := spl.choose_spec.choose_spec.choose_spec.1
+  have hσρ : σ ≫ ρ = Cat.id R := spl.choose_spec.choose_spec.choose_spec.2
+  -- representing element θR := η ≫ G ρ ; then θR ≫ G σ = η
+  let θR : A ⟶ G R := η ≫ hG.map ρ
+  have hθRσ : θR ≫ hG.map σ = η := by
+    show (η ≫ hG.map ρ) ≫ hG.map σ = η
+    rw [Cat.assoc, ← hG.map_comp, hρσ, he₀M]
+  -- key: `σ ≫ m = σ` for every `m ∈ M`  (σ ≫ ρ = id, e₀ ≫ m = e₀)
+  have hσabsorb : ∀ m : M, σ ≫ m.1 = σ := by
+    intro m
+    calc σ ≫ m.1 = (σ ≫ ρ ≫ σ) ≫ m.1 := by rw [← Cat.assoc σ ρ σ, hσρ, Cat.id_comp]
+      _ = σ ≫ (ρ ≫ σ) ≫ m.1 := by rw [Cat.assoc, Cat.assoc]
+      _ = σ ≫ e₀ ≫ m.1 := by rw [hρσ]
+      _ = σ ≫ e₀ := by rw [he₀absorb m]
+      _ = σ ≫ ρ ≫ σ := by rw [hρσ]
+      _ = σ := by rw [← Cat.assoc, hσρ, Cat.id_comp]
+  -- ── assemble the InitialElement (R, θR) ──
+  refine ⟨R, (InitialElement.represents (G := G) ⟨θR, ?_, ?_⟩)⟩
+  · -- existence: every g : A ⟶ G B is θR ≫ G x, with x := σ ≫ w from weak initiality
+    intro B g
+    obtain ⟨w, hw⟩ := weakInit g
+    refine ⟨σ ≫ w, ?_⟩
+    rw [hG.map_comp, ← Cat.assoc, hθRσ, hw]
+  · -- uniqueness: θR ≫ G x₁ = θR ≫ G x₂ → x₁ = x₂
+    intro B x₁ x₂ hx
+    -- reduce to legs out of P: yₖ := ρ ≫ xₖ, with η ≫ G y₁ = η ≫ G y₂ and xₖ = σ ≫ yₖ
+    let y₁ : P ⟶ B := ρ ≫ x₁
+    let y₂ : P ⟶ B := ρ ≫ x₂
+    have hηy : η ≫ hG.map y₁ = η ≫ hG.map y₂ := by
+      show η ≫ hG.map (ρ ≫ x₁) = η ≫ hG.map (ρ ≫ x₂)
+      rw [hG.map_comp, hG.map_comp, ← Cat.assoc, ← Cat.assoc]
+      show θR ≫ hG.map x₁ = θR ≫ hG.map x₂
+      exact hx
+    have hx₁ : x₁ = σ ≫ y₁ := by
+      show x₁ = σ ≫ ρ ≫ x₁; rw [← Cat.assoc, hσρ, Cat.id_comp]
+    have hx₂ : x₂ = σ ≫ y₂ := by
+      show x₂ = σ ≫ ρ ≫ x₂; rw [← Cat.assoc, hσρ, Cat.id_comp]
+    -- weakly equalize the pair `y₁, y₂` via a fresh wide fork over the single endo built from it
+    -- First weak-equalize `y₁, y₂` directly: cone over the parallel-pair `{η, η ≫ G y₁}`.
+    -- Build `m : E ⟶ P` with `m ≫ y₁ = m ≫ y₂` and `θE ≫ G m = η`, via UC on a wide fork.
+    -- (We package the parallel pair as a wide fork with K = PUnit and a derived endo; instead,
+    --  use the direct wide-fork over `M` already weak-equalizes — but `y₁,y₂` need a fresh one.)
+    -- Construct via weakFork on the singleton family won't see y₁,y₂; instead build the
+    -- endo `e₁ ∈ M` that absorbs the pair, exactly as for e₀ but tracking the WPP.
+    -- Pre-limit of the parallel pair `y₁,y₂ : P ⟶ B`:
+    letI := wppDiagFunctor y₁ y₂
+    let plp := hpc.hasPreLimit (wppDiagObj y₁ y₂)
+    let glegs : (Z : WPPv) → A ⟶ G (wppDiagObj y₁ y₂ Z) :=
+      fun Z => match Z with | ⟨.src⟩ => η | ⟨.tgt⟩ => η ≫ hG.map y₁
+    have gnat : ∀ {X Y : WPPv} (x : X ⟶ Y),
+        glegs X ≫ hG.map ((wppDiagFunctor y₁ y₂).map x) = glegs Y := by
+      rintro ⟨X⟩ ⟨Y⟩ ⟨x⟩
+      cases x with
+      | idS => show η ≫ hG.map (Cat.id P) = η; rw [hG.map_id, Cat.comp_id]
+      | idT => show (η ≫ hG.map y₁) ≫ hG.map (Cat.id B) = η ≫ hG.map y₁
+               rw [hG.map_id, Cat.comp_id]
+      | arr0 => show η ≫ hG.map y₁ = η ≫ hG.map y₁; rfl
+      | arr1 => show η ≫ hG.map y₂ = η ≫ hG.map y₁; rw [hηy]
+    obtain ⟨jp, θE, hθE⟩ :=
+      uniformly_continuous_preserves_prelimits G huc plp A glegs gnat
+    let E : ℬ := (plp.cones jp).apex
+    let m : E ⟶ P := (plp.cones jp).π ⟨.src⟩
+    have hmsrc : θE ≫ hG.map m = η := hθE ⟨.src⟩
+    have hmy : m ≫ y₁ = m ≫ y₂ := by
+      have h1 : m ≫ y₁ = (plp.cones jp).π ⟨.tgt⟩ :=
+        (plp.cones jp).nat (⟨.arr0⟩ : (⟨.src⟩ : WPPv) ⟶ ⟨.tgt⟩)
+      have h2 : m ≫ y₂ = (plp.cones jp).π ⟨.tgt⟩ :=
+        (plp.cones jp).nat (⟨.arr1⟩ : (⟨.src⟩ : WPPv) ⟶ ⟨.tgt⟩)
+      rw [h1, h2]
+    -- factor θE weakly-initially: η ≫ G s' = θE, then e₁ := s' ≫ m ∈ M with e₁ ≫ y₁ = e₁ ≫ y₂
+    obtain ⟨s', hs'⟩ := weakInit θE
+    let e₁ : P ⟶ P := s' ≫ m
+    have he₁M : η ≫ hG.map e₁ = η := by
+      show η ≫ hG.map (s' ≫ m) = η
+      rw [hG.map_comp, ← Cat.assoc, hs', hmsrc]
+    have he₁y : e₁ ≫ y₁ = e₁ ≫ y₂ := by
+      show (s' ≫ m) ≫ y₁ = (s' ≫ m) ≫ y₂
+      rw [Cat.assoc, Cat.assoc, hmy]
+    -- σ ≫ e₁ = σ, so σ ≫ y₁ = σ ≫ y₂, hence x₁ = x₂
+    have key : σ ≫ y₁ = σ ≫ y₂ := by
+      calc σ ≫ y₁ = (σ ≫ e₁) ≫ y₁ := by rw [hσabsorb ⟨e₁, he₁M⟩]
+        _ = σ ≫ (e₁ ≫ y₁) := Cat.assoc _ _ _
+        _ = σ ≫ (e₁ ≫ y₂) := by rw [he₁y]
+        _ = (σ ≫ e₁) ≫ y₂ := (Cat.assoc _ _ _).symm
+        _ = σ ≫ y₂ := by rw [hσabsorb ⟨e₁, he₁M⟩]
+    rw [hx₁, hx₂, key]
 
 /-- §1.831 MORE GENERAL ADJOINT FUNCTOR THEOREM.
     If ℬ is locally small and *idempotents split* in ℬ, then G : ℬ → 𝒜 has a left adjoint
