@@ -129,33 +129,29 @@ instance functorCat (𝒜 𝒟 : Type u) [Cat.{v} 𝒜] [Cat.{v} 𝒟] :
   comp_id α  := NaturalTransformation.ext' fun X => Cat.comp_id (α.app X)
   assoc α β γ := NaturalTransformation.ext' fun X => Cat.assoc (α.app X) (β.app X) (γ.app X)
 
-/-! ## §1.272  Cayley completeness metatheorem -/
+/-! ## §1.272  Cayley completeness metatheorem  — MISSING (faithful content elsewhere)
 
-/-- **§1.272 (Cayley completeness)**.
-    Every universally-quantified elementary sentence in the predicates of category
-    theory that holds in the category of sets holds in every category.
+  §1.272 (Cayley completeness): every universally-quantified elementary sentence in
+  the predicates of category theory that holds in the category of sets holds in every
+  category.  The Cayley representation `C : 𝒞 → Set` (`A ↦ {f | cod f = A}`, post-
+  composition) is faithful, embedding 𝒞 as a concrete subcategory of Set, and any such
+  sentence true in Set descends to 𝒞.
 
-    Proof sketch (Freyd §1.272): The Cayley representation `C : 𝒞 → Set` (sending
-    `A` to the set of morphisms with target `A`, and `f : A → B` to post-composition
-    with `f`) is faithful (`cayley_faithful`), establishing any category 𝒞 as
-    isomorphic to a concrete subcategory of Set.  Any universally-quantified
-    elementary sentence true in Set descends to every subcategory, hence to 𝒞.
+  This metatheorem is NOT recorded as a single Lean theorem here.  The previous
+  attempt (`cayley_completeness`, a property `P` reflected along faithful functors)
+  was LOGICALLY FALSE as stated — `P := fun _ => False` satisfies the reflection
+  hypothesis vacuously yet makes the conclusion `∀ f, False` unprovable: it lacked the
+  essential anchor that `P` actually holds in Set.  A sorry inside a false statement is
+  a lie, so it has been removed.
 
-    We state the key corollary: any property `P` of morphism-pairs (in any category)
-    that is (i) preserved under faithful functors and (ii) holds in every Set-like
-    category where all homs are subsets of some ambient set — holds in 𝒞.
-
-    The metatheorem cannot be internalized as a single Lean Prop (it quantifies over
-    all first-order sentences); we record the statement with `sorry`.
-    The operative ingredient — the Cayley embedding is faithful — is `cayley_faithful`. -/
-theorem cayley_completeness
-    -- `P` is a property of morphisms that is preserved under faithful embeddings
-    (P : ∀ {𝒜 : Type u} [Cat.{v} 𝒜] {X Y : 𝒜}, (X ⟶ Y) → Prop)
-    -- `P` holds in every category that admits a faithful functor from 𝒞
-    (hP : ∀ {𝒜 : Type u} [Cat.{v} 𝒜] (F : 𝒞 → 𝒜) [hF : Functor F]
-            (hFaith : ∀ {X Y : 𝒞} (f g : X ⟶ Y), hF.map f = hF.map g → f = g)
-            {X Y : 𝒞} (f : X ⟶ Y), P (hF.map f) → P f) :
-    ∀ {X Y : 𝒞} (f : X ⟶ Y), P f := by
-  sorry
+  The faithful, genuinely-proved content is split across the repo:
+  • the Cayley embedding is faithful — `cayley_faithful` (this file, §1.272);
+  • the faithful Henkin-Lubkin representation `𝒞 ↪ 𝒮^|𝒞|` — `henkin_lubkin` (S1_55);
+  • Horn-sentence reflection along a faithful, finite-limit/image-preserving functor —
+    `horn_sentence_reflected_by_faithful` (S1_56, §1.563), faithful `sorry` pending the
+    capitalization lemma §1.543.
+  A self-contained §1.272 metatheorem (quantifying over first-order sentences) would
+  need a sentence-encoding + a `Cat` instance on `Type` with the Cayley functor; that
+  is recorded as MISSING in S1_27.md. -/
 
 end Freyd
