@@ -49,6 +49,7 @@ import Fredy.S1_18
 import Fredy.S1_31
 import Fredy.S1_33
 import Fredy.S1_52
+import Fredy.SliceRegular
 import Fredy.CatColimit
 import Fredy.CatColimitRegular
 
@@ -312,10 +313,13 @@ theorem capitalization_of_capData {A : Type u} [Cat.{u} A] [PreRegularCategory A
       1. a TYPE-LEVEL transfinite recursion whose limit-stage *type* is the colimit of its
          predecessors (`colimitCat`), producing the `ι`/`D`/`C` of the system;
       2. the relative-capitalization successor functor `A_α → (A_α)*` as a coherent,
-         faithful, pre-regular-preserving `CatSystem` transition (needs the slice category
-         proven pre-regular — currently `Over B` has `HasTerminal`/`HasPullbacks` (`S1_44`)
-         but NOT `HasBinaryProducts`/`PullbacksTransferCovers`, so `PreRegularCategory (Over B)`
-         is itself an open sub-step);
+         faithful, pre-regular-preserving `CatSystem` transition.  The slice category is now
+         proven pre-regular: `Fredy.overPreRegular : PreRegularCategory (Over B)` (in
+         `Fredy/SliceRegular.lean`) supplies `HasBinaryProducts (Over B)` (= base pullback over
+         `B`, §1.441) and `PullbacksTransferCovers (Over B)` (§1.531 Slice Lemma: a slice cover
+         is a base cover on the underlying arrow, and `Σ` preserves pullbacks), on top of the
+         `HasTerminal`/`HasPullbacks` from `S1_44`.  What remains for (2) is packaging the
+         directed-union-of-slices successor as a `CatSystem` transition;
       3. the §1.543 fixpoint/closure proof of `capital` — every well-supported object of the
          colimit appears at some stage `α<κ`, acquires a point at `α+1`, and the point
          survives to the colimit by cover reflection (`colimHom_cover_reflects`,
