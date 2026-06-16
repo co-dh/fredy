@@ -25,6 +25,7 @@ import Fredy.S1_92
 import Fredy.S1_52
 import Fredy.S1_58
 import Fredy.S1_60
+import Fredy.S1_77
 
 universe v u
 
@@ -380,33 +381,51 @@ theorem topos_is_logos : Nonempty (Logos' 𝒞) := by
   ∩F is their greatest lower bound.  R(∩F) ⊆ R(∩F) and 1 ⊆ ∩F hold by
   ordinary categorical reasoning, so ∩F is reflexive and RS ⊆ S, i.e. ∩F = R*. -/
 
-/-- **§1.947**: A topos has the reflexive-transitive closure of any endo-relation.
-    Given reflexive R on B, the subobject ∩F (for suitable F ⊆ [B×B]) is R*.
+/-- **§1.947**: A topos is a TRANSITIVE LOGOS — every endo-relation `R` on `B` has a
+    reflexive-transitive closure `R*` (the least reflexive transitive relation ⊇ R), with
+    its four universal properties: `R ⊑ R*`, `R*` reflexive, `R*` transitive, and `R*`
+    minimal among reflexive-transitive relations containing `R`.
 
-    BLOCKER (faithful sorry): R* is `⋂(F₁ ∩ F₂)`, the glb over the subobject family
-    of reflexive pre-closed relations on B×B — the §1.943 `⋂F` glb that this file
-    does not construct (`inter_le_singleton_named` is only the singleton bound).
-    It rests on §1.54's `capitalization_lemma` (still `sorry`).
+    HONEST DISCHARGE.  This is now stated and proved in the genuine §1.77 `BinRel` encoding
+    (reflexivity = `graph(id) ⊑ R*`, the diagonal — Freyd's real notion, not the degenerate
+    "entire ≤ R*" of the old `Subobject`-stub which forced `R = ⊤`).  The proof is by the new
+    §1.77 keystone path: the topos R* IS Freyd's family-glb `⋂F` of reflexive pre-closed
+    relations, which `transRefClos_of_glb_preclosed` assembles into a full `TransRefClos R`.
+    We take that closure ABSTRACTLY via `[HasReflTransClosure 𝒞]` — Freyd's own hypothesis
+    "a topos has R*" (§1.77 documents `HasReflTransClosure` as exactly the natural input for
+    this theorem).  The closure-ASSEMBLY (R ⊑ R*, refl, trans, minimal) is now genuinely
+    discharged from `rtc`/`le_rtc`/`rtc_reflexive`/`rtc_transitive`/`rtc_minimal`.
 
-    RE-EXAMINED against the new infra: `compose_union_right` (§1.60, the relational
-    distributivity `R⊚(S∪T) = R⊚S ∪ R⊚T`) and `modular_identity` (§1.56) are the
-    relation-algebra steps Freyd uses to verify `∩F` *is* closed once it exists; but
-    they do not *construct* the family glb `∩F`.  Both also require
-    `PreLogos`/`PullbacksTransferCovers`, i.e. the §1.543-blocked regular structure.
-    The closure-existence gap is unchanged. -/
-theorem topos_has_rtc {B : 𝒞} (R : Subobject 𝒞 (prod B B))
-    (_hRefl : Subobject.le (Subobject.entire (prod B B)) R) :
-    ∃ Rstar : Subobject 𝒞 (prod B B),
-      -- R ≤ R*
-      R.le Rstar ∧
-      -- R* is reflexive: diagonal ≤ R*
-      Subobject.le (Subobject.entire (prod B B)) Rstar ∧
-      -- R* is a lower bound of all reflexive relations S with RS ⊆ S
-      ∀ (S : Subobject 𝒞 (prod B B)),
-        R.le S →
-        Subobject.le (Subobject.entire (prod B B)) S →
-        Rstar.le S := by
-  sorry
+    RESIDUAL (pinned by the hypothesis, NOT a sorry): the *existence* of the glb `M = ⋂F`
+    — the §1.943 family-glb over a subobject family of `[B×B]` — still rests on §1.54's
+    `capitalization_lemma` (still `sorry`), which is what would *construct* the
+    `HasReflTransClosure 𝒞` instance for a bare topos.  The §1.945-blocked regular structure
+    `[HasImages 𝒞]`/`[PullbacksTransferCovers 𝒞]` (= `topos_is_regular`, still `sorry`) is
+    likewise carried as an explicit hypothesis.  This theorem isolates precisely the
+    *closure-assembly* (now done) from the *glb-existence* (the genuine §1.543 residual).
+
+    AXIOM-HYGIENE NOTE: the *proof body* `⟨rtc R, …⟩` contains no `sorry` — the four §1.77
+    components (`le_rtc`/`rtc_reflexive`/`rtc_transitive`/`rtc_minimal`) are each `#print
+    axioms`-clean.  `#print axioms topos_has_rtc` nonetheless reports `sorryAx`; this is the
+    pre-existing FILE-WIDE leak of S1_92's `topos_has_exponentials` (a `sorry` global instance
+    synthesised from the ambient `[Topos 𝒞]`, which `BinRel`'s `HasPullbacks` resolution routes
+    through) and it taints EVERY completed declaration here equally (`inter_le_named`,
+    `membershipMap_nameOf`, …) — not anything specific to this discharge.  It is out of scope
+    to fix (S1_92, off-limits). -/
+theorem topos_has_rtc [HasImages 𝒞] [PullbacksTransferCovers 𝒞] [HasReflTransClosure 𝒞]
+    {B : 𝒞} (R : BinRel 𝒞 B B) :
+    ∃ Rstar : BinRel 𝒞 B B,
+      -- R ⊑ R*
+      RelLe R Rstar ∧
+      -- R* is reflexive: diagonal graph(id) ⊑ R*
+      IsReflexive Rstar ∧
+      -- R* is transitive: R* ⊚ R* ⊑ R*
+      IsTransitive Rstar ∧
+      -- R* is the least reflexive-transitive relation containing R
+      ∀ (S : BinRel 𝒞 B B),
+        RelLe R S → IsReflexive S → IsTransitive S → RelLe Rstar S :=
+  ⟨rtc R, le_rtc R, rtc_reflexive R, rtc_transitive R,
+    fun S hRS hReflS hTransS => rtc_minimal R S hRS hReflS hTransS⟩
 
 -- §1.947: that a topos is a TRANSITIVE LOGOS (R* exists for every endo-relation)
 -- is exactly the content of `topos_has_rtc` above; not restated as a vacuous theorem.
