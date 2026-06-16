@@ -6,6 +6,7 @@
          the functor A × - has a right adjoint (-)^A.
   §1.852 Poset exponential ↔ binary meets + Heyting arrow
   §1.853 B^A as a bifunctor (covariant in B, contravariant in A)
+  §1.854 Σ ⊣ Δ adjunction and Π dependent products
   §1.857 EXPONENTIAL IDEAL, REPLETE SUBCATEGORY; theorems
   §1.858 KURATOWSKI INTERIOR, LAWVERE-TIERNEY CLOSURE; theorem
   §1.859 BASEABLE objects, inclusion preserves equalizers
@@ -19,6 +20,7 @@ import Fredy.S1_31
 import Fredy.S1_34
 import Fredy.S1_43
 import Fredy.S1_8
+import Fredy.S1_44
 
 
 universe v u
@@ -113,6 +115,49 @@ theorem curry_inj {A B X : 𝒞} {f₁ f₂ : prod A X ⟶ B}
     (h : curry f₁ = curry f₂) : f₁ = f₂ := by
   rw [← curry_eval_eq f₁, ← curry_eval_eq f₂, h]
 
+/-! ## §1.853  Covariant exponential map f^A : B^A → C^A
+
+  In an exponential category, B^A is a bifunctor: covariant in B and
+  contravariant in A.  The covariant action sends f : B → C to
+  f^A : B^A → C^A, defined as the unique map such that
+  (A × f^A) ≫ eval_C = eval_B ≫ f.
+
+  The *contravariant* action g ↦ B^g for g : A₁ → A₂ is in §1.95 as
+  `expMap` (S1_95.lean); we name the covariant action `expCovMap`
+  to avoid a clash. -/
+
+section ExpBifunctor
+
+/-- Covariant exponential map: given f : B → C, the map f^A : B^A → C^A is
+    the unique map with (A × f^A) ≫ eval_C = eval_B ≫ f  (§1.853).
+    Concretely: curry(eval_B ≫ f). -/
+def expCovMap (A : 𝒞) {B C : 𝒞} (f : B ⟶ C) : B ^^ A ⟶ C ^^ A :=
+  curry (eval_exp A B ≫ f)
+
+/-- Defining equation: (A × expCovMap f) ≫ eval = eval ≫ f. -/
+theorem expCovMap_eval (A : 𝒞) {B C : 𝒞} (f : B ⟶ C) :
+    prodMap A (B ^^ A) (C ^^ A) (expCovMap A f) ≫ eval_exp A C = eval_exp A B ≫ f :=
+  curry_eval_eq (eval_exp A B ≫ f)
+
+/-- expCovMap preserves identity: id^A = id. -/
+theorem expCovMap_id (A B : 𝒞) : expCovMap A (Cat.id B) = Cat.id (B ^^ A) := by
+  symm; apply curry_unique_eq
+  rw [Cat.comp_id, prodMap_id, Cat.id_comp]
+
+/-- expCovMap preserves composition: (f ≫ g)^A = f^A ≫ g^A. -/
+theorem expCovMap_comp (A : 𝒞) {B C D : 𝒞} (f : B ⟶ C) (g : C ⟶ D) :
+    expCovMap A (f ≫ g) = expCovMap A f ≫ expCovMap A g := by
+  symm; apply curry_unique_eq
+  rw [prodMap_comp, Cat.assoc, expCovMap_eval, ← Cat.assoc, expCovMap_eval, Cat.assoc]
+
+/-- The covariant exponential (-)^A as a Functor instance (covariant in B). -/
+instance expCovFunctor (A : 𝒞) : Functor (fun B => B ^^ A) where
+  map f := expCovMap A f
+  map_id B := expCovMap_id A B
+  map_comp f g := expCovMap_comp A f g
+
+end ExpBifunctor
+
 /-! ## §1.852  Poset exponential characterization
 
   A poset, viewed as a category, is exponential iff it has binary meets
@@ -144,6 +189,122 @@ theorem poset_exponential_iff_meets_heytingArrow
     Nonempty (HasExponentials P) ↔
     ∃ (hm : HasBinaryProducts P), Nonempty (@HasHeytingArrow P _ hm) := by
   sorry
+
+/-! ## §1.854  Σ ⊣ Δ adjunction; Π dependent products
+
+  For any object B in a category A with binary products, the forgetful
+  functor Σ : A/B → A has a right adjoint Δ : A → A/B defined by
+      Δ(Y) = ⟨Y × B, snd⟩  (the slice object over B with projection snd).
+  The adjunction bijection is natural: Hom_{A/B}(X, Δ Y) ≅ Hom_A(Σ X, Y).
+
+  When A also has exponentials, Δ : A → A/B has a further right adjoint
+  Π : A/B → A with Π(⟨A, h : A→B⟩) = A^B  (§1.854). -/
+
+section SigmaDeltaAdj
+
+/-- The DIAGONAL functor Δ : 𝒞 → Over B.  Sends Y ↦ ⟨Y × B, snd⟩ (§1.854). -/
+def deltaObj (B Y : 𝒞) : Over B := ⟨prod Y B, snd⟩
+
+/-- Δ on morphisms: given f : Y → Z, Δ(f) = pair (fst ≫ f) snd : Y×B → Z×B. -/
+def deltaMap (B : 𝒞) {Y Z : 𝒞} (f : Y ⟶ Z) : OverHom (deltaObj B Y) (deltaObj B Z) :=
+  ⟨pair (fst ≫ f) snd, snd_pair _ _⟩
+
+/-- The DIAGONAL FUNCTOR Δ B : 𝒞 → Over B. -/
+instance deltaFunctor (B : 𝒞) : Functor (fun Y => deltaObj B Y) where
+  map f := deltaMap B f
+  map_id _Y := by
+    apply OverHom.ext
+    simp only [deltaMap]
+    rw [Cat.comp_id]
+    exact pair_fst_snd
+  map_comp {_X _Y _Z} f g := by
+    apply OverHom.ext
+    simp only [deltaMap]
+    -- goal: pair (fst ≫ f ≫ g) snd = (deltaMap B f ≫ deltaMap B g).f
+    -- (deltaMap B f ≫ deltaMap B g).f = pair (fst ≫ f) snd ≫ pair (fst ≫ g) snd  (definitionally)
+    change pair (fst ≫ f ≫ g) snd = pair (fst ≫ f) snd ≫ pair (fst ≫ g) snd
+    exact (pair_uniq _ _ _
+      (by rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair, Cat.assoc])
+      (by rw [Cat.assoc, snd_pair, snd_pair])).symm
+
+/-- Forward direction of the Σ ⊣ Δ bijection:
+    f : Σ X → Y  ↦  ⟨pair f X.hom, ...⟩ : X → Δ Y in Over B. -/
+def sigmaToOver {B : 𝒞} (X : Over B) {Y : 𝒞} (f : X.dom ⟶ Y) : OverHom X (deltaObj B Y) :=
+  ⟨pair f X.hom, snd_pair _ _⟩
+
+/-- Backward direction of the Σ ⊣ Δ bijection:
+    h : X → Δ Y in Over B  ↦  h.f ≫ fst : Σ X → Y. -/
+def overToSigma {B : 𝒞} (X : Over B) {Y : 𝒞} (h : OverHom X (deltaObj B Y)) : X.dom ⟶ Y :=
+  h.f ≫ fst
+
+/-- The bijection is a left inverse. -/
+theorem sigmaToOver_overToSigma {B : 𝒞} (X : Over B) {Y : 𝒞}
+    (h : OverHom X (deltaObj B Y)) :
+    sigmaToOver X (overToSigma X h) = h := by
+  apply OverHom.ext
+  simp only [sigmaToOver, overToSigma]
+  rw [← h.w]
+  exact (pair_eta h.f).symm
+
+/-- The bijection is a right inverse. -/
+theorem overToSigma_sigmaToOver {B : 𝒞} (X : Over B) {Y : 𝒞} (f : X.dom ⟶ Y) :
+    overToSigma X (sigmaToOver X f) = f := by
+  simp [overToSigma, sigmaToOver, fst_pair]
+
+/-- §1.854: The forgetful functor Σ : A/B → A (= SliceForget B) is left adjoint
+    to the diagonal functor Δ : A → A/B (sending Y ↦ ⟨Y×B, snd⟩).
+    Adjunction: Hom_A(Σ X, Y) ≅ Hom_{A/B}(X, Δ Y), i.e., φ : (X.dom→Y) → OverHom X (ΔY). -/
+def sigma_adj_delta (B : 𝒞) :
+    @Adjunction (Over B) _ 𝒞 _ (SliceForget B) (fun Y => deltaObj B Y)
+      (sliceForgetFunctor B) (deltaFunctor B) :=
+  { φ  := fun {X _Y} f => sigmaToOver X f      -- φ : X.dom → Y  ↦  OverHom X (Δ Y)
+    ψ  := fun {X _Y} h => overToSigma X h      -- ψ : OverHom X (Δ Y)  ↦  X.dom → Y
+    φψ := fun {X _Y} h => sigmaToOver_overToSigma X h
+    ψφ := fun {X _Y} f => overToSigma_sigmaToOver X f
+    φ_nat_left  := fun {_X' X _Y} a f => by
+      apply OverHom.ext
+      -- Functor.map a = a.f (sliceForgetFunctor); (a ≫ k).f = a.f ≫ k.f (OverHom.comp)
+      change pair (a.f ≫ f) _X'.hom = a.f ≫ pair f X.hom
+      exact (pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair]; exact a.w)).symm
+    φ_nat_right := fun {X _Y _Y'} f b => by
+      apply OverHom.ext
+      -- (k ≫ deltaMap B b).f = k.f ≫ pair (fst ≫ b) snd
+      change pair (f ≫ b) X.hom = pair f X.hom ≫ pair (fst ≫ b) snd
+      exact (pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair])
+               (by rw [Cat.assoc, snd_pair, snd_pair])).symm }
+
+/-! ### Π : A/B → A as right adjoint of Δ
+
+  When 𝒞 has exponentials, Δ : A → A/B has a right adjoint Π given by
+  Π(f : A → B) = A^B.  The adjunction bijection:
+      Hom_{A/B}(Δ C, f)  ≅  Hom_A(C, A^B)
+  sends k : C×B → A (with k ≫ f.hom = snd) to curry k : C → A^B. -/
+
+/-- The DEPENDENT PRODUCT functor on objects: Π(f : A → B) = A^B (§1.854). -/
+def piObj {B : 𝒞} (f : Over B) : 𝒞 := f.dom ^^ B
+
+/-- Π on morphisms: given h : f → g in Over B, h^B : f.dom^B → g.dom^B. -/
+def piMap {B : 𝒞} {f g : Over B} (h : OverHom f g) : piObj f ⟶ piObj g :=
+  expCovMap B h.f
+
+/-- Π is a functor Over B → 𝒞. -/
+instance piFunctor (B : 𝒞) : Functor (fun f : Over B => piObj f) where
+  map h := piMap h
+  map_id f := expCovMap_id B f.dom
+  map_comp h k := expCovMap_comp B h.f k.f
+
+/-- §1.854: When 𝒞 has exponentials, Δ : 𝒞 → Over B has a right adjoint
+    Π : Over B → 𝒞 sending f : A → B to A^B (§1.854).
+    The bijection Hom_{Over B}(Δ C, f) ≅ Hom_𝒞(C, f.dom^B) holds because
+    a map k : C×B → f.dom over B corresponds (via curry) to C → f.dom^B.
+    NOTE: deltaObj B C = ⟨C×B, snd⟩ has C first and B second, while
+    eval_exp B f.dom has B first; the full adjunction proof requires a
+    product-swap isomorphism (C×B ≅ B×C) which is deferred. -/
+theorem delta_adj_pi_statement (B : 𝒞) (C : 𝒞) (f : Over B) :
+    Nonempty (C ⟶ piObj f) → Nonempty (OverHom (deltaObj B C) f) := by
+  sorry
+
+end SigmaDeltaAdj
 
 /-! ## §1.857  Exponential ideal and replete subcategory
 
@@ -279,7 +440,33 @@ theorem lt_closure_closed_elements_exponential_ideal
     (a b : L.carrier)
     (hb : j.isClosed b) :
     j.isClosed (L.imp a b) := by
-  sorry
+  -- isClosed: j.op x = x; need j.op (imp a b) = imp a b.
+  -- j is monotone via meet_pres: x ≤ y iff meet x y = x.
+  have j_mono : ∀ x y, L.le x y → L.le (j.op x) (j.op y) := fun x y hxy => by
+    -- x ≤ y ⟹ meet x y = x ⟹ j(meet x y) = j(x) = meet(j x)(j y) ≥ j(y)... wait:
+    -- j(x) = j(meet x y) = meet (j x) (j y) ≤ j(y) via meet_le_right
+    have hxy' : L.meet x y = x :=
+      L.le_antisymm (L.meet_le_left x y) (L.le_meet (L.le_refl x) hxy)
+    -- L.le (j.op x) (j.op y)
+    -- j.op x = j.op (L.meet x y) [by ← hxy']
+    --        = L.meet (j.op x) (j.op y) [by meet_pres]
+    -- so j.op x ≤ j.op y via meet_le_right
+    have heq : j.op (L.meet x y) = L.meet (j.op x) (j.op y) := j.meet_pres x y
+    have hj_x : j.op x = L.meet (j.op x) (j.op y) := by
+      have := heq; rw [hxy'] at this; exact this
+    exact hj_x ▸ L.meet_le_right (j.op x) (j.op y)
+  -- Show j(imp a b) ≤ imp a b, i.e., a ∧ j(imp a b) ≤ b.
+  -- a ∧ j(imp a b) ≤ j(a) ∧ j(imp a b) = j(a ∧ (imp a b)) ≤ j(b) = b.
+  apply L.le_antisymm _ (j.inflat _)
+  rw [← L.imp_adj]
+  have step1 : L.le (L.meet a (j.op (L.imp a b))) (j.op (L.meet a (L.imp a b))) := by
+    rw [j.meet_pres]
+    exact L.le_meet (L.le_trans (L.meet_le_left _ _) (j.inflat a)) (L.meet_le_right _ _)
+  have step2 : L.le (j.op (L.meet a (L.imp a b))) (j.op b) :=
+    j_mono _ _ (L.imp_adj.mpr (L.le_refl _))
+  -- j.op b = b, so j.op b ≤ b is j.op_b ▸ le_refl
+  have step3 : L.le (j.op b) b := by rw [hb]; exact L.le_refl b
+  exact L.le_trans step1 (L.le_trans step2 step3)
 
 /-- A PROTOclosure is an inflationary, idempotent operation (not yet assumed meet-preserving). -/
 structure ProtoClosure (L : MeetLattice) where
