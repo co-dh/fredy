@@ -20,23 +20,9 @@ namespace Freyd
 
 variable {𝒞 : Type u} [Cat.{v} 𝒞]
 
-/-- ADJOINT PAIR (§1.81, §1.373): F ⊣ G with natural bijection Hom(FX,Y) ≅ Hom(X,GY).
-    Here defined as a structure on two functors. -/
-structure AdjointPair {𝒞 : Type u} {𝒟 : Type u} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
-    (F : 𝒞 → 𝒟) (G : 𝒟 → 𝒞) [Functor F] [Functor G] where
-  unit   : Nonempty (NatIso (λ X => X) (G ∘ F))
-  counit : Nonempty (NatIso (F ∘ G) (λ X => X))
-  -- The proper definition would include triangle identities.
-  -- This captures "GF ≅ Id, FG ≅ Id" which characterizes adjoints in the
-  -- context of strong equivalences.
-
-/-- LEFT ADJOINT (§1.373): the functor F in an adjoint pair. -/
-def LeftAdjoint {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat.{v} 𝒟] (F : 𝒞 → 𝒟) [Functor F] : Prop :=
-  ∃ (G : 𝒟 → 𝒞) (_ : Functor G), Nonempty (AdjointPair F G)
-
-/-- RIGHT ADJOINT (§1.373): the functor G in an adjoint pair. -/
-def RightAdjoint {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat.{v} 𝒟] (G : 𝒟 → 𝒞) [Functor G] : Prop :=
-  ∃ (F : 𝒞 → 𝒟) (_ : Functor F), Nonempty (AdjointPair F G)
+-- ADJOINT PAIR / LEFT ADJOINT / RIGHT ADJOINT (§1.81, §1.373) are defined canonically
+-- in S1_8 (`Adjunction`, `LeftAdjoint`, `RightAdjoint`, with the triangle identities).
+-- The earlier ad-hoc versions here were superseded and removed to keep one definition.
 
 /-- EQUIVALENT CATEGORIES (§1.363): two categories are EQUIVALENT if
     there exist isomorphic inflations.  (Existence of an equivalence functor
