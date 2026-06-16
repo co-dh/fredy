@@ -305,11 +305,33 @@ theorem singletonMapCat_monic (B : 𝒞) :
 noncomputable def powerMapCov {A B : 𝒞} (f : A ⟶ B) :
     exp A (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ⟶
     exp B (HasSubobjectClassifier.omega (𝒞 := 𝒞)) :=
-  -- [f](S) = ∃-image of S along f.  BLOCKER: the existential / direct-image
-  -- requires the regular IMAGE FACTORIZATION of §1.56 (cover–mono factor of a map)
-  -- assembled into a topos morphism on power objects (∃_f ⊣ f# adjunction).
-  -- §1.56's `image` exists but its packaging as a map `exp A Ω → exp B Ω` (naming the
-  -- direct image of the universal relation ∈_A pushed along f) is not yet available.
+  -- [f](S) = ∃-image of S along f, i.e. `Λ(∃-classifier of image f(S))`.
+  --
+  -- ASSESSED BLOCKER (after S1_91 added the full Ω-classifier bijection
+  -- `classify_surjective`/`classify_unique`):  `powerMapCov` is STILL NOT definable,
+  -- and the reason is sharper than "image not packaged".  Two distinct universal
+  -- properties are needed and BOTH are absent for `exp A Ω`:
+  --
+  --  (1) The classifier bijection now in S1_91 is `Sub(A) ≅ Hom(A, Ω)` — it classifies
+  --      subobjects of an object `A` by maps `A → Ω = [1]`.  Defining `[f]` needs the
+  --      ONE-TRANSPOSE-HIGHER bijection `Sub(A × X) ≅ Hom(X, Ω^A)`, i.e. the universal
+  --      MEMBERSHIP relation `∈_A ⊆ Ω^A × A` and its `Λ : BinRel(X,A) → (X ⟶ Ω^A)`.
+  --      That is exactly `HasPowerObject A` (S1_9: `mem`, `classifyRel`), NOT the bare
+  --      `Ω`-classifier.  S1_91's bijection does not lift to it.
+  --
+  --  (2) Even granting `HasPowerObject A`, its carrier `HasPowerObject.powerObj A` is a
+  --      DIFFERENT object from `exp A Ω` (no `powerObj A ≅ exp A Ω` is available), and
+  --      `Topos 𝒞` does NOT bundle `∀ C, HasPowerObject C` — every power-object result
+  --      in the repo (e.g. S1_91 `minimal_topos_has_terminator`) takes it as an explicit
+  --      `[∀ C, HasPowerObject C]` hypothesis.  The required output type is `exp A Ω`
+  --      (forced by `expMap Ω`/`omega_is_internally_injective`), which only carries the
+  --      curry/eval adjoint transpose from `HasExponentials` — and that itself is opaque
+  --      because `topos_has_exponentials` is a `sorry` (blocked on §1.543).
+  --
+  -- §1.56's image factorization (cover–mono factor, `HasImages`) IS available and would
+  -- supply the ∃-image of the subobject once a membership relation existed to push along
+  -- `f`; the gap is precisely the missing power-object structure on `exp A Ω`, not the
+  -- image.  FAITHFUL SORRY pinning (1)+(2).
   sorry
 
 /-- **§1.92**: NATURALITY of the singleton map: f ≫ Δ₁(B) = Δ₁(A) ≫ [f].
