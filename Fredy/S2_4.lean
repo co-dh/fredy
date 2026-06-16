@@ -151,6 +151,75 @@ theorem map_comp {𝒜 : Type u} [Allegory 𝒜] {a b c : 𝒜} {f : a ⟶ b} {g
         _ = g° ≫ g := by rw [Cat.id_comp]
     dsimp [Simple]; rw [hrw]; exact le_trans h1 hg.2
 
+/-- Composition of simple morphisms is simple (§2.16): `(fg)°(fg) = g°(f°f)g ⊑ g°g ⊑ 1`.
+    (Simplicity, unlike a full map, needs no entireness — only the simple branch of `map_comp`.) -/
+theorem simple_comp {𝒜 : Type u} [Allegory 𝒜] {a b c : 𝒜} {f : a ⟶ b} {g : b ⟶ c}
+    (hf : Simple f) (hg : Simple g) : Simple (f ≫ g) := by
+  have hrw : (f ≫ g)° ≫ (f ≫ g) = g° ≫ (f° ≫ f) ≫ g := by
+    rw [Allegory.recip_comp]; simp [Cat.assoc]
+  have h1 : g° ≫ (f° ≫ f) ≫ g ⊑ g° ≫ g :=
+    calc g° ≫ (f° ≫ f) ≫ g ⊑ g° ≫ Cat.id b ≫ g := comp_mono_left g° (comp_mono_right hf g)
+      _ = g° ≫ g := by rw [Cat.id_comp]
+  dsimp [Simple]; rw [hrw]; exact le_trans h1 hg
+
+/-- §2.16(10): a morphism contained in a semi-simple one is itself semi-simple.
+    If `R ⊑ F°G` with `F, G` simple, then `R = F°G'` for `G' = (1 ∩ F R G°) ≫ G`
+    (a `coreflexive ≫ simple`, hence simple by `simple_coref_comp`). -/
+theorem semiSimple_of_le {𝒜 : Type u} [DivisionAllegory 𝒜] {a b : 𝒜} {R : a ⟶ b}
+    (hR : ∃ (c : 𝒜) (F : c ⟶ a) (G : c ⟶ b), Simple F ∧ Simple G ∧ R ⊑ F° ≫ G) :
+    SemiSimple R := by
+  obtain ⟨c, F, G, hF, hG, hRle⟩ := hR
+  refine ⟨c, F, (Cat.id c ∩ (F ≫ R ≫ G°)) ≫ G, hF,
+    simple_coref_comp (inter_lb_left _ _) hG, ?_⟩
+  apply le_antisymm
+  · -- R ⊑ F° ≫ (1 ∩ FRG°) ≫ G.
+    -- (1) R ⊑ (F° ∩ RG°) ≫ G by modularity (R = (F°G) ∩ R since R ⊑ F°G).
+    have hReq : R = (F° ≫ G) ∩ R := by
+      rw [Allegory.inter_comm, inter_eq_left hRle]
+    have hmod1 : R ⊑ (F° ∩ (R ≫ G°)) ≫ G := by
+      have := modular_le F° G R; rwa [← hReq] at this
+    -- (2) F° ∩ RG° ⊑ F° ≫ (1 ∩ FRG°).  Reciprocate the modular fact
+    --     F ∩ GR° ⊑ (1 ∩ GR°F°) ≫ F.
+    have hmod2 : F° ∩ (R ≫ G°) ⊑ F° ≫ (Cat.id c ∩ (F ≫ R ≫ G°)) := by
+      -- modular fact on the reciprocal side.
+      have hm : F ∩ (G ≫ R°) ⊑ (Cat.id c ∩ (G ≫ R° ≫ F°)) ≫ F := by
+        have h0 := modular_le (Cat.id c) F (G ≫ R°)
+        rw [Cat.id_comp, Cat.assoc] at h0; exact h0
+      -- reciprocate hm and rewrite both sides.
+      have hmr := recip_mono hm
+      have e1 : (F ∩ (G ≫ R°))° = F° ∩ (R ≫ G°) := by
+        simp [Allegory.recip_inter, Allegory.recip_comp, Allegory.recip_recip]
+      have e2 : ((Cat.id c ∩ (G ≫ R° ≫ F°)) ≫ F)°
+          = F° ≫ (Cat.id c ∩ (F ≫ R ≫ G°)) := by
+        simp [Allegory.recip_comp, Allegory.recip_inter, recip_id, Allegory.recip_recip,
+              Cat.assoc]
+      rwa [e1, e2] at hmr
+    -- Combine: R ⊑ (F° ∩ RG°)G ⊑ (F°(1∩FRG°))G = F°((1∩FRG°)G).
+    refine le_trans hmod1 ?_
+    refine le_trans (comp_mono_right hmod2 G) ?_
+    rw [Cat.assoc]; exact le_refl _
+  · -- F° ≫ (1 ∩ FRG°) ≫ G ⊑ R, via F°F ⊑ 1, G°G ⊑ 1.
+    have hstep : F° ≫ (Cat.id c ∩ (F ≫ R ≫ G°)) ≫ G ⊑ F° ≫ (F ≫ R ≫ G°) ≫ G :=
+      comp_mono_left F° (comp_mono_right (inter_lb_right _ _) G)
+    refine le_trans hstep ?_
+    -- F°(FRG°)G = (F°F)R(G°G) ⊑ 1·R·1 = R.
+    have e : F° ≫ (F ≫ R ≫ G°) ≫ G = (F° ≫ F) ≫ R ≫ (G° ≫ G) := by simp [Cat.assoc]
+    rw [e]
+    -- (F°F) R (G°G) ⊑ 1·R·(G°G) = R(G°G) ⊑ R.
+    have s1 : (F° ≫ F) ≫ R ≫ (G° ≫ G) ⊑ R ≫ (G° ≫ G) := by
+      have h := comp_mono_right hF (R ≫ (G° ≫ G)); rwa [Cat.id_comp] at h
+    have hRGG : R ≫ (G° ≫ G) ⊑ R := by
+      have := comp_mono_left R hG; rwa [Cat.comp_id] at this
+    exact le_trans s1 hRGG
+
+/-- §2.442 / §2.16(10): a semi-simple morphism followed by a simple one is semi-simple.
+    If `R = F°G` (F, G simple) and `H` is simple, then `RH = F°(GH)` with `GH` simple
+    (`simple_comp`), so `RH` is again of the book's `(simple)°(simple)` form. -/
+theorem semiSimple_comp_simple {𝒜 : Type u} [Allegory 𝒜] {a b d : 𝒜}
+    {R : a ⟶ b} {H : b ⟶ d} (hR : SemiSimple R) (hH : Simple H) : SemiSimple (R ≫ H) := by
+  obtain ⟨c, F, G, hF, hG, hReq⟩ := hR
+  exact ⟨c, F, G ≫ H, hF, simple_comp hG hH, by rw [hReq, Cat.assoc]⟩
+
 /-! ## §2.412  Uniqueness of A(R) -/
 
 /-- A(R) is the UNIQUE map F with F∋ = R (§2.412).
@@ -625,6 +694,14 @@ def powerOrder {a : 𝒜} [PowerAllegory 𝒜] :
 
 -- (LEFT DIVISION `leftDiv` is defined canonically in S2_3 §2.312; reused here.)
 
+/-- §2.442 step: `∋ ≫ A(1) ⊑ 2 = ∋/∋`.  Book: "since `∋ A(1) ⊑ ∋/∋`".
+    By `le_div_iff`: `(∋ ≫ A(1)) ≫ ∋ ⊑ ∋` iff `∋ ≫ (A(1) ≫ ∋) ⊑ ∋`, and
+    `A(1) ≫ ∋ = 1` by `A_eps_eq`, so the LHS is `∋ ≫ 1 = ∋ ⊑ ∋`. -/
+theorem eps_singleton_le_powerOrder {a : 𝒜} [PowerAllegory 𝒜] :
+    ∋ a ≫ singletonMap ⊑ powerOrder (a := a) := by
+  rw [powerOrder, le_div_iff, Cat.assoc, singletonMap, A_eps_eq, Cat.comp_id]
+  exact le_refl _
+
 /-- The big-intersection map ⊓ : [[a]] → [a] (§2.442).
     ⊓ = A(∋' ≫ ∋) where ∋' = ∋_{[a]} : [[a]] → [a] and ∋ = ∋_a : [a] → a. -/
 def bigInter {a : 𝒜} [PowerAllegory 𝒜] :
@@ -644,14 +721,19 @@ def MetonymyLaw (𝒜 : Type u) [PowerAllegory 𝒜] : Prop :=
   ∀ (a : 𝒜), @bigInter 𝒜 a _ ⊑ @bigUnion 𝒜 a _
 
 /-- A pre-positive power allegory is semi-simple iff it obeys the law of metonymy (§2.442).
-    FAITHFUL SORRY (infrastructure gap, not a false statement).  Both directions of Freyd's
-    §2.442 rest on machinery not yet formalized:
+    FAITHFUL SORRY (infrastructure gap, not a false statement).  Several §2.442 building
+    blocks ARE now in place — `eps_singleton_le_powerOrder` (`∋ ≫ A(1) ⊑ 2 = ∋/∋`),
+    `simple_comp` / `semiSimple_comp_simple` (semisimple ≫ simple stays semisimple),
+    `semiSimple_of_le` (§2.16(10): contained-in-semisimple is semisimple) — but two
+    deeper pieces remain unformalized:
 
-    Forward (metonymy ⟹ semi-simple): one first shows `∋` is semi-simple via the equation
-    `∋ = ∋ ≫ A°(1)` (using `∋ ≫ A(1) ⊑ ∋/∋`, the partial order `2 = ∋/∋`), then invokes the
-    §2.441 chain "(1) pre-positive ⟹ (4) every morphism is `S ≫ F` with `S` straight, `F`
-    simple"; with `∋` (hence every straight `S = A(S) ≫ ∋`) semi-simple, every morphism is
-    semi-simple.  The §2.441 `(1)⟹(4)` factorization is itself unbuilt.
+    Forward (metonymy ⟹ semi-simple): from `∋ ≫ A(1) ⊑ ∋/∋` Freyd derives `∋ = ∋ ≫ A°(1)`
+    and so (with metonymy making `2` semi-simple) that `∋` is semi-simple; then `S = A(S) ≫ ∋`
+    (`A_eps_eq`) for straight `S`, and finally the §2.441 chain "(1) pre-positive ⟹ (4) every
+    morphism is `S ≫ F`, `S` straight, `F` simple".  The metonymy⟹`2`-semisimple link and the
+    §2.441 `(1)⟹(4)` factorization are the two unbuilt steps.  (Note: `S = A(S) ≫ ∋` is a
+    `simple ≫ semisimple`, whose semi-simplicity needs the full §2.16(10) map/semisimple
+    closure — strictly more than the `semiSimple_comp_simple` direction proved here.)
 
     Converse (semi-simple ⟹ metonymy): needs the big-union/big-intersection `A`-calculus
     `A(f∪g) ≫ ⊔ ≫ ∋' = (f∪g)∋'` and `⊓(f∪g) ∩ ∋ = f∋ ∩ g∋`, expressing how `∋` interacts

@@ -22,8 +22,10 @@ import Fredy.S1_52
 import Fredy.S1_56
 import Fredy.S1_58
 import Fredy.S1_59
+import Fredy.S1_60
 import Fredy.S1_62
 import Fredy.S1_64
+import Fredy.S1_77
 import Fredy.S1_82
 import Fredy.S1_84
 import Fredy.S1_85
@@ -172,10 +174,144 @@ instance topos_is_positive [Topos 𝒞] : HasBinaryCoproducts 𝒞 := by
 
 /-! ## §1.954  A topos has coequalizers -/
 
+section Coequalizers
+variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
+
+/-- **Bridge (§1.77 ↔ §1.56)**: the relation-algebra notion of equivalence
+    (`IsEquivRel`: `1 ⊑ E`, `E° ⊑ E`, `E⊚E ⊑ E`) yields the §1.56 notion
+    `EquivalenceRelation` (reflexivity *witness*, `RelHom E E°`, `RelHom (E⊚E) E`).
+
+    * reflexivity: a `RelHom (graph 1_A) E` is exactly a map `h : A → E.src` with
+      `h ≫ E.colA = 1_A` and `h ≫ E.colB = 1_A`;
+    * symmetry: `RelLe E° E` reciprocates (involution) to `RelLe E E°`, i.e.
+      `RelHom E E°`;
+    * transitivity: `RelLe (E⊚E) E` is literally `Nonempty (RelHom (E⊚E) E)`. -/
+theorem equivalenceRelation_of_isEquivRel {A : 𝒞} {E : BinRel 𝒞 A A}
+    (hE : IsEquivRel E) : EquivalenceRelation E := by
+  obtain ⟨⟨h, hA, hB⟩, hsym, htrans⟩ := hE
+  refine ⟨⟨h, ?_, ?_⟩, ?_, htrans⟩
+  · -- `h : (graph 1_A).src ⟶ E.src` with the graph(1) columns = 1_A.
+    simpa [graph] using hA
+  · simpa [graph] using hB
+  · -- symmetry: reciprocate `E° ⊑ E` and use involution `E°° = E`.
+    have := reciprocal_monotone hsym
+    rwa [reciprocal_invol] at this
+
+end Coequalizers
+
+/-- **§1.954, core reduction**: in a category with reflexive-transitive closures
+    every endo-relation has a *minimal equivalence relation* containing it
+    (`HasMinEquivContaining`).  The minimal equivalence containing `R` is the
+    equivalence closure `(R ∪ R° ∪ 1)*`: form the symmetrisation
+    `Rsym := (R ∪ᵣ R°) ∪ᵣ graph 1_A`, take its reflexive-transitive closure with
+    `rtc`, and feed both to `equivClos_from_symm_transRefClos`.
+
+    `Rsym` is the *join* of `R`, `R°`, `1` (hence the `hJoin` universal property is
+    `le_relUnion`), and is symmetric: `Rsym° = R° ∪ R ∪ 1 = Rsym` (proved one
+    direction via the join property + reciprocal involution, the other by
+    reciprocating).  The resulting `EquivClos`'s `minimal` field is exactly the
+    minimality required by `HasMinEquivContaining` (after the `IsEquivRel ↔
+    EquivalenceRelation` bridge). -/
+theorem minEquiv_of_rtc [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
+    [HasBinaryCoproducts 𝒞] [HasReflTransClosure 𝒞] :
+    HasMinEquivContaining 𝒞 := by
+  intro A R
+  -- Symmetrisation Rsym = (R ∪ R°) ∪ 1, the join of R, R°, graph(1_A).
+  let G : BinRel 𝒞 A A := graph (Cat.id A)
+  let Rsym : BinRel 𝒞 A A := (R ∪ᵣ R°) ∪ᵣ G
+  -- Each generator sits below Rsym.
+  have hR_sym : RelLe R Rsym :=
+    rel_le_trans (relUnion_le_left R (R°)) (relUnion_le_left (R ∪ᵣ R°) G)
+  have hRrec_sym : RelLe (R°) Rsym :=
+    rel_le_trans (relUnion_le_right R (R°)) (relUnion_le_left (R ∪ᵣ R°) G)
+  have hG_sym : RelLe G Rsym := relUnion_le_right (R ∪ᵣ R°) G
+  -- Join universal property: any U above R, R°, 1 is above Rsym.
+  have hJoin : ∀ (U : BinRel 𝒞 A A),
+      RelLe R U → RelLe (R°) U → RelLe G U → RelLe Rsym U := by
+    intro U hRU hRrecU hGU
+    exact le_relUnion (le_relUnion hRU hRrecU) hGU
+  -- Symmetry of Rsym: Rsym ⊑ Rsym°, then reciprocate.
+  have hsym : IsSymmetric Rsym := by
+    have hle : RelLe Rsym (Rsym°) := by
+      apply hJoin
+      · -- R = R°° ⊑ Rsym°: from R° ⊑ Rsym reciprocate, involution.
+        have := reciprocal_monotone hRrec_sym
+        rwa [reciprocal_invol] at this
+      · -- R° ⊑ Rsym°: from R ⊑ Rsym reciprocate.
+        exact reciprocal_monotone hR_sym
+      · -- 1 ⊑ Rsym°: 1 ⊑ 1° ⊑ Rsym°.
+        exact rel_le_trans graph_id_le_reciprocal (reciprocal_monotone hG_sym)
+    have h3 : RelLe (Rsym°) (Rsym°°) := reciprocal_monotone hle
+    rwa [reciprocal_invol] at h3
+  -- Reflexive-transitive closure of Rsym, then equivalence closure of R.
+  let hr := HasReflTransClosure.transRefClos Rsym
+  let ec := equivClos_from_symm_transRefClos R Rsym hR_sym hsym hJoin hr
+  refine ⟨ec.clos, equivalenceRelation_of_isEquivRel ec.isEquiv, ec.le, ?_⟩
+  -- Minimality, transported through the `IsEquivRel`/`EquivalenceRelation` bridge.
+  intro F hFeq hRF
+  refine ec.minimal F hRF ?_
+  -- EquivalenceRelation F ⟹ IsEquivRel F.
+  obtain ⟨⟨h, hA, hB⟩, ⟨symF⟩, ⟨transF⟩⟩ := hFeq
+  refine ⟨⟨⟨h, ?_, ?_⟩⟩, ?_, ⟨transF⟩⟩
+  · simpa [graph] using hA
+  · simpa [graph] using hB
+  · -- F° ⊑ F: reciprocate the symmetry RelHom F F° (uses involution).
+    have : RelLe (F°) (F°°) := reciprocal_monotone ⟨symF⟩
+    rwa [reciprocal_invol] at this
+
+/-- **§1.954, substantive reduction (no `sorry`)**: a PRE-TOPOS that has
+    reflexive-transitive closures has coequalizers.
+
+    Construction: from `[HasReflTransClosure 𝒞]`, `minEquiv_of_rtc` gives
+    `HasMinEquivContaining` (the equivalence closure `(R ∪ R° ∪ 1)*` is the minimal
+    equivalence containing `R`); then `preTopos_minEquiv_to_cocartesian` (§1.657)
+    builds coequalizers via the *effective-regular* route — the minimal equivalence
+    `S` containing `R = «f,g»` is the level of a cover `q : B ↠ C` (effectiveness,
+    §1.951), and `q` is the coequalizer of `f, g`.  No `sorry`. -/
+noncomputable def preTopos_rtc_has_coequalizers [inst : PreTopos 𝒞]
+    [hRtc : @HasReflTransClosure 𝒞 _ PreTopos.toPositivePreLogos.toHasBinaryProducts
+      PreTopos.toPositivePreLogos.toHasPullbacks PreTopos.toPositivePreLogos.toHasImages] :
+    HasCoequalizers 𝒞 :=
+  -- The `HasReflTransClosure` hypothesis is stated over the *canonical*
+  -- `PreTopos → PositivePreLogos` products, the same instance
+  -- `preTopos_minEquiv_to_cocartesian` resolves with.  (Pinned to avoid the
+  -- `topos_has_exponentials` products instance that `[PreTopos]` also makes
+  -- available — defeq, but not syntactically equal, which derails instance-implicit
+  -- unification.)
+  Classical.choice (preTopos_minEquiv_to_cocartesian
+    (@minEquiv_of_rtc 𝒞 _ PreTopos.toPositivePreLogos.toPreLogos.toRegularCategory.toHasTerminal
+      PreTopos.toPositivePreLogos.toHasBinaryProducts
+      PreTopos.toPositivePreLogos.toHasPullbacks PreTopos.toPositivePreLogos.toHasImages
+      PreTopos.toPositivePreLogos.toHasBinaryCoproducts hRtc))
+
 /-- **§1.954**: A topos has coequalizers.
     Given f, g : A → B, let R = f"g, S = (R ∪ R")* (the equivalence closure).
     A topos is effective [1.951], so S is the level of some B → C.
-    This B → C is the coequalizer of f and g. -/
+    This B → C is the coequalizer of f and g.
+
+    The *substantive content* is fully discharged in `preTopos_rtc_has_coequalizers`
+    (no `sorry`): once `[PreTopos 𝒞]` (= effective-regular + positive pre-logos) and
+    `[HasReflTransClosure 𝒞]` are available, the equivalence-closure construction
+    `(R ∪ R° ∪ 1)*` (now constructive via `rtc`) plus §1.657/§1.951 yield
+    coequalizers.
+
+    **Sharpened blocker (faithful sorry).**  Synthesising the instance from bare
+    `[Topos 𝒞]` needs two things this repo cannot yet provide from `Topos`:
+
+      (1) `PreTopos 𝒞` — in particular `EffectiveRegular 𝒞` (and the underlying
+          `RegularCategory`/`HasImages`/`PullbacksTransferCovers`).  This is
+          `topos_is_effective` (line 161), still a `sorry` blocked on the §1.54
+          capitalization lemma (the topos image construction
+          `⋂{B' ↣ B | f ↦ B'}` rests on `capitalization_lemma`, S1_94:321).
+
+      (2) `HasReflTransClosure 𝒞` — there is NO `topos_has_rtc` instance: a topos's
+          reflexive-transitive closures are themselves obtained by the §1.543
+          transfinite (capitalization) colimit, the same blocker as (1).
+
+    `rtc` being now available means the *equivalence-closure* sub-problem is no
+    longer the gap: the residual blocker is exactly the existence of `rtc`
+    *instances* on a topos (2) on top of the §1.54-blocked effectiveness (1).  With
+    both, this instance is literally `preTopos_rtc_has_coequalizers`. -/
 instance topos_has_coequalizers [Topos 𝒞] : HasCoequalizers 𝒞 := by
   sorry
 

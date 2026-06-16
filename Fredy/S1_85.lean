@@ -666,9 +666,64 @@ instance : Functor (baseableIncl (𝒜 := 𝒜)) where
     about baseability). The substantive content is exactly this baseable-CLOSURE statement,
     which is what §1.92 `topos_has_exponentials` requires. -/
 theorem baseable_equalizer_is_baseable [HasEqualizers 𝒜]
-    {B₂ B₃ : 𝒜} (_hB₂ : Baseable B₂) (_hB₃ : Baseable B₃) (f g : B₂ ⟶ B₃) :
+    {B₂ B₃ : 𝒜} (hB₂ : Baseable B₂) (hB₃ : Baseable B₃) (f g : B₂ ⟶ B₃) :
     Baseable (eqObj f g) := by
-  sorry
+  -- E := eqObj f g, with q₀ := eqMap f g : E → B₂ monic, q₀≫f = q₀≫g.
+  -- `eqMap f g` is monic (one-liner from eqLift uniqueness; no HasImages needed).
+  have hq₀mono : Mono (eqMap f g) := by
+    intro W u v huv
+    rw [eqLift_uniq f g (u ≫ eqMap f g) (by rw [Cat.assoc, Cat.assoc, eqMap_eq]) u rfl,
+        eqLift_uniq f g (u ≫ eqMap f g) (by rw [Cat.assoc, Cat.assoc, eqMap_eq]) v huv.symm]
+  intro A
+  -- Representing data for B₂ and B₃ at stage A.
+  obtain ⟨E₂, ev₂, hu₂⟩ := hB₂ A
+  obtain ⟨E₃, ev₃, hu₃⟩ := hB₃ A
+  -- Exponential transposes fA, gA : E₂ → E₃ of post-composition with f, g.
+  obtain ⟨fA, hfA, hfA_uniq⟩ := hu₃ E₂ (ev₂ ≫ f)
+  obtain ⟨gA, hgA, _⟩ := hu₃ E₂ (ev₂ ≫ g)
+  -- E_A := equalizer of fA, gA, with q := eqMap fA gA : E_A → E₂, q≫fA = q≫gA.
+  refine ⟨eqObj fA gA, ?_, ?_⟩
+  · -- ev : prod A E_A → E = eqObj f g.
+    -- prodMap A E_A E₂ q ≫ ev₂ equalizes f, g, so factors through E.
+    refine eqLift f g (prodMap A (eqObj fA gA) E₂ (eqMap fA gA) ≫ ev₂) ?_
+    -- (prodMap q ≫ ev₂)≫f = prodMap A E_A E₃ (q≫fA) ≫ ev₃ ; symmetric for g; q≫fA=q≫gA.
+    rw [Cat.assoc, Cat.assoc, ← hfA, ← hgA, ← Cat.assoc, ← Cat.assoc,
+        ← prodMap_comp, ← prodMap_comp, eqMap_eq]
+  · -- Universal property of (E_A, ev).
+    intro X φ
+    -- φ ≫ q₀ : prod A X → B₂; transpose via B₂-representability to ψ : X → E₂.
+    obtain ⟨ψ, hψ, hψ_uniq⟩ := hu₂ X (φ ≫ eqMap f g)
+    -- ψ equalizes fA, gA, so lifts to h : X → E_A.
+    have hψ_eq : ψ ≫ fA = ψ ≫ gA := by
+      -- Both transpose to the same prod A X → B₃ map; cancel by hu₃-injectivity at X.
+      obtain ⟨_, _, hinj⟩ := hu₃ X (prodMap A X E₃ (ψ ≫ fA) ≫ ev₃)
+      rw [hinj (ψ ≫ fA) rfl, hinj (ψ ≫ gA) ?_]
+      -- prodMap A X E₃ (ψ≫gA) ≫ ev₃ = prodMap A X E₃ (ψ≫fA) ≫ ev₃
+      rw [prodMap_comp, prodMap_comp, Cat.assoc, Cat.assoc, hfA, hgA,
+          ← Cat.assoc, ← Cat.assoc, hψ, Cat.assoc, Cat.assoc, eqMap_eq]
+    -- h : X → E_A with h ≫ q = ψ.
+    refine ⟨eqLift fA gA ψ hψ_eq, ?_, ?_⟩
+    · -- prodMap A X E_A h ≫ ev = φ.  Cancel the monic q₀ = eqMap f g.
+      apply hq₀mono
+      -- ev ≫ q₀ = prodMap A E_A E₂ q ≫ ev₂  (eqLift_fac); prodMap_comp; eqLift_fac for h; hψ.
+      rw [Cat.assoc, eqLift_fac, ← Cat.assoc, ← prodMap_comp, eqLift_fac, hψ]
+    · -- Uniqueness of h.
+      intro h' hh'
+      -- Composing hh' with q₀ and ev₂ pins down h' ≫ q via hu₂; then q monic ⟹ h'.
+      have hq'mono : Mono (eqMap fA gA) := by
+        intro W u v huv
+        rw [eqLift_uniq fA gA (u ≫ eqMap fA gA) (by rw [Cat.assoc, Cat.assoc, eqMap_eq]) u rfl,
+            eqLift_uniq fA gA (u ≫ eqMap fA gA) (by rw [Cat.assoc, Cat.assoc, eqMap_eq]) v huv.symm]
+      apply hq'mono
+      rw [eqLift_fac]
+      -- h' ≫ q = ψ via hu₂ uniqueness: prodMap A X E₂ (h'≫q) ≫ ev₂ = φ ≫ q₀.
+      rw [hψ_uniq (h' ≫ eqMap fA gA) (by
+        -- LHS = prodMap h' ≫ (prodMap q ≫ ev₂) = prodMap h' ≫ (ev ≫ q₀) = φ ≫ q₀.
+        rw [prodMap_comp, Cat.assoc,
+            ← eqLift_fac f g (prodMap A (eqObj fA gA) E₂ (eqMap fA gA) ≫ ev₂)
+              (by rw [Cat.assoc, Cat.assoc, ← hfA, ← hgA, ← Cat.assoc, ← Cat.assoc,
+                      ← prodMap_comp, ← prodMap_comp, eqMap_eq]),
+            ← Cat.assoc, hh'])]
 
 end Baseable
 
