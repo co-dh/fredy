@@ -41,26 +41,82 @@ end Table
 /-! ### Table isomorphism -/
 
 /-- Isomorphism of tables: source iso carrying columns to columns.
-    Uses HEq to handle heterogeneous codomain types. -/
+    `codom_match` gives the codomain equality (needed for resurfacing arguments);
+    `col_match` gives the column equation up to HEq. -/
 structure TableIso {𝒞 : Type u} [Cat.{v} 𝒞] (S T : Table 𝒞) where
-  hLen  : S.len = T.len
-  f     : S.src ⟶ T.src
-  g     : T.src ⟶ S.src
-  f_g   : f ≫ g = Cat.id S.src
-  g_f   : g ≫ f = Cat.id T.src
-  col_match : ∀ i : Fin S.len, HEq (f ≫ T.col (hLen ▸ i)) (S.col i)
+  hLen        : S.len = T.len
+  f           : S.src ⟶ T.src
+  g           : T.src ⟶ S.src
+  f_g         : f ≫ g = Cat.id S.src
+  g_f         : g ≫ f = Cat.id T.src
+  codom_match : ∀ i : Fin S.len, T.codom (hLen ▸ i) = S.codom i
+  col_match   : ∀ i : Fin S.len, HEq (f ≫ T.col (hLen ▸ i)) (S.col i)
 
 variable {𝒞} [Cat.{v} 𝒞]
 
 def TableIso.refl (S : Table 𝒞) : TableIso S S where
-  hLen  := rfl
-  f     := Cat.id S.src
-  g     := Cat.id S.src
-  f_g   := Cat.id_comp _
-  g_f   := Cat.id_comp _
-  col_match := λ i => heq_of_eq (Cat.id_comp (S.col i))
+  hLen        := rfl
+  f           := Cat.id S.src
+  g           := Cat.id S.src
+  f_g         := Cat.id_comp _
+  g_f         := Cat.id_comp _
+  codom_match := fun _ => rfl
+  col_match   := λ i => heq_of_eq (Cat.id_comp (S.col i))
+
+/-- The reverse-column relation: `g ≫ S.col i ≍ T.col (hLen ▸ i)`.
+    (Compose `col_match` with `g` on the left and use `g ≫ f = id`.) -/
+theorem TableIso.col_match_g {S T : Table 𝒞} (iso : TableIso S T) (i : Fin S.len) :
+    HEq (iso.g ≫ S.col i) (T.col (iso.hLen ▸ i)) := by
+  have e1 : HEq (iso.g ≫ S.col i) (iso.g ≫ (iso.f ≫ T.col (iso.hLen ▸ i))) := by
+    congr 1
+    · exact (iso.codom_match i).symm
+    · exact (iso.col_match i).symm
+  refine e1.trans ?_
+  rw [← Cat.assoc, iso.g_f, Cat.id_comp]
 
 /-! ## §1.491 Prune – remove a short column -/
+
+/-- Casting a `Fin` along a `Nat` equality preserves its value. -/
+theorem fin_cast_val {a b : Nat} (h : a = b) (k : Fin a) : (h ▸ k : Fin b).val = k.val := by
+  subst h; rfl
+
+/-- Left-whisker a heterogeneous equality of morphisms (codomains may differ). -/
+theorem comp_heq_left {𝒞 : Type u} [Cat.{v} 𝒞] {X A B B' : 𝒞} (h : X ⟶ A) (s : A ⟶ B)
+    (t : A ⟶ B') (hB : B = B') (hst : HEq s t) : HEq (h ≫ s) (h ≫ t) := by
+  cases hB; cases hst; rfl
+
+/-- Transport a morphism along an equality of its codomain. -/
+def castCod {𝒞 : Type u} [Cat.{v} 𝒞] {A B B' : 𝒞} (h : B = B') (f : A ⟶ B) : A ⟶ B' := h ▸ f
+
+/-- `castCod` is heterogeneously equal to the original morphism. -/
+theorem castCod_heq {𝒞 : Type u} [Cat.{v} 𝒞] {A B B' : 𝒞} (h : B = B') (f : A ⟶ B) :
+    HEq (castCod h f) f := by subst h; rfl
+
+/-- Apply a heterogeneous equality of dependent functions (same index type) at a point. -/
+theorem hcongr_fun {α : Sort u} {P Q : α → Sort v} (f : (a : α) → P a) (g : (a : α) → Q a)
+    (hPQ : P = Q) (hfg : HEq f g) (a : α) : HEq (f a) (g a) := by
+  subst hPQ; cases hfg; rfl
+
+/-- Heterogeneous function extensionality over a `Fin`-length equality. -/
+theorem heq_funext_fin {a b : Nat} {β : Sort v} (hab : a = b) (f : Fin a → β) (g : Fin b → β)
+    (hpt : ∀ i : Fin a, f i = g (hab ▸ i)) : HEq f g := by
+  subst hab; exact heq_of_eq (funext fun i => hpt i)
+
+/-- Heterogeneous dependent function extensionality over a `Fin`-length equality
+    (the value types are determined by `β` applied to the index). -/
+theorem heq_dfunext_fin {a b : Nat} {β : Sort w} (hab : a = b) {P : Fin a → β} {Q : Fin b → β}
+    (hPQ : ∀ i : Fin a, P i = Q (hab ▸ i)) {𝒞 : β → Sort v}
+    (f : (i : Fin a) → 𝒞 (P i)) (g : (i : Fin b) → 𝒞 (Q i))
+    (hpt : ∀ i : Fin a, HEq (f i) (g (hab ▸ i))) : HEq f g := by
+  subst hab
+  have hPQ' : P = Q := funext hPQ; subst hPQ'
+  exact heq_of_eq (funext fun i => eq_of_heq (hpt i))
+
+/-- Full heterogeneous congruence for composition (all three objects may differ). -/
+theorem comp_heq {𝒞 : Type u} [Cat.{v} 𝒞] {X X' A A' B B' : 𝒞} (f : X ⟶ A) (f' : X' ⟶ A')
+    (s : A ⟶ B) (s' : A' ⟶ B') (hX : X = X') (hA : A = A') (hB : B = B')
+    (hf : HEq f f') (hs : HEq s s') : HEq (f ≫ s) (f' ≫ s') := by
+  cases hX; cases hA; cases hB; cases hf; cases hs; rfl
 
 /-- Embed Fin (n-1) into Fin n skipping index j. -/
 def Fin.skip {n : Nat} (j : Fin n) (i : Fin (n - 1)) : Fin n :=
@@ -100,6 +156,12 @@ theorem Fin.skip_surj {n : Nat} {j k : Fin n} (hk : k ≠ j) : ∃ i : Fin (n - 
           simp [hi_val, Nat.sub_add_cancel h_one_le_k]
       exact Fin.ext hval
     exact ⟨i, h_eq⟩
+
+/-- `Fin.skip` depends only on the underlying values of `j` and `i`. -/
+theorem Fin.skip_val_eq {n m : Nat} (j : Fin n) (j' : Fin m) (hjv : j'.val = j.val)
+    (k : Fin (n - 1)) (k' : Fin (m - 1)) (hkv : k'.val = k.val) :
+    (Fin.skip j' k').val = (Fin.skip j k).val := by
+  unfold Fin.skip; simp only [hjv, hkv]; split <;> rfl
 
 /-- Pruned table: remove short column at j. (Monicity: pending Fin.skip_surj) -/
 def Table.prune (tab : Table 𝒞) (j : Fin tab.len) (hShort : tab.IsShort j) : Table 𝒞 where
@@ -398,6 +460,36 @@ theorem Table.isSupporting_id (tab : Table 𝒞) : tab.IsSupporting id :=
 
 /-! ## §1.494 Expansion lemma (converse of axiom 3) -/
 
+/-- Two tables are equal if their fields match (codom/col up to HEq). -/
+private theorem Table_eq_of_fields {𝒞 : Type u} [Cat.{v} 𝒞] (S T : Table 𝒞)
+    (hSrc : S.src = T.src) (hLen : S.len = T.len)
+    (hCodom : HEq S.codom T.codom) (hCol : HEq S.col T.col) : S = T := by
+  obtain ⟨Ss, Sn, SC, Sc, Sm⟩ := S
+  obtain ⟨Ts, Tn, TC, Tc, Tm⟩ := T
+  simp only at hSrc hLen hCodom hCol ⊢
+  subst hSrc; subst hLen
+  cases hCodom; cases hCol
+  rfl
+
+/-- Columns of equal tables agree (heterogeneously, at heterogeneously-equal indices). -/
+private theorem Table.col_heq_of_eq {𝒞 : Type u} [Cat.{v} 𝒞] {A B : Table 𝒞} (hAB : A = B)
+    {i : Fin A.len} {i' : Fin B.len} (hii : HEq i i') : HEq (A.col i) (B.col i') := by
+  subst hAB; cases hii; rfl
+
+/-- Heterogeneous extensionality for the `col` field of a table, over a length equality,
+    with the source object also allowed to differ. -/
+private theorem Table.col_heq_funext {𝒞 : Type u} [Cat.{v} 𝒞] {A B : Table 𝒞}
+    (hSrc : A.src = B.src) (hLen : A.len = B.len)
+    (hCod : ∀ i : Fin A.len, A.codom i = B.codom (hLen ▸ i))
+    (hpt : ∀ i : Fin A.len, HEq (A.col i) (B.col (hLen ▸ i))) : HEq A.col B.col := by
+  obtain ⟨As, An, AC, Ac, _⟩ := A
+  obtain ⟨Bs, Bn, BC, Bc, _⟩ := B
+  simp only at hSrc hLen hCod hpt ⊢
+  subst hSrc; subst hLen
+  have hCC : AC = BC := funext hCod
+  subst hCC
+  exact heq_of_eq (funext fun i => eq_of_heq (hpt i))
+
 namespace TCat
 
 /-- §1.494 forward: τ-closure under pruning (= axiom 3 restated).
@@ -407,21 +499,176 @@ theorem mem_prune {τ : TCat 𝒞} {tab : Table 𝒞} {j : Fin tab.len}
   τ.tau3 tab j hShort hmem
 
 /-- §1.494 converse: if the pruned table is in τ then the original table is in τ.
-    Proof: let g be the resurfacing of `tab`. By τ2 (composition), the table
-    `(T''; gx₁,…,ĝxⱼ,…,gxₙ) = pruned resurfacing` is in τ. Since the pruned table is
-    in τ and equals (up to iso) the pruned resurfacing, uniqueness gives g = id, so tab ∈ τ.
-    We formalise the key content: if `tab.prune j h ∈ τ` and the resurfacing `r` of `tab`
-    has `r.iso` an identity on the pruned table, then `tab ∈ τ`. The full argument uses
-    the resurfacing machinery and τ2_comp; we leave the assembly as sorry. -/
+    Proof: let `r` be the resurfacing of `tab` (so `r.rep ∈ τ` with `r.iso : tab ≅ r.rep`).
+    Column `j` is short in `r.rep` (transport of shortness along `r.iso`), so by τ3 the pruned
+    resurfacing `r.rep.prune j'` is in τ.  It is iso to `tab.prune j`, which is in τ by
+    hypothesis, so τ1-uniqueness gives `r.rep.prune j' = tab.prune j`.  This forces
+    `r.rep.src = tab.src` and pins every non-`j` column; with the short column `j` and joint
+    monicity, the iso component `r.iso.f` is the identity, hence `r.rep = tab` and `tab ∈ τ`. -/
 theorem mem_of_prune_mem {τ : TCat 𝒞} (tab : Table 𝒞) (j : Fin tab.len)
     (hShort : tab.IsShort j) (h : τ.mem (tab.prune j hShort)) : τ.mem tab := by
-  -- The resurfacing of `tab` gives T'' ≅ tab with (T''; gx₁,…,gxₙ) ∈ τ.
-  -- By tau3 applied to that τ-table, its pruned version is in τ.
-  -- The pruned version is isomorphic to `tab.prune j hShort`, which is in τ.
-  -- By tau1_unique the resurfacing is an identity, so tab ∈ τ.
-  -- The index/HEq bookkeeping for pruning the resurfaced table is nontrivial;
-  -- the logical argument is clear from the book's one-paragraph proof.
-  sorry
+  -- Book §1.494: let g : T'' → tab.src be the resurfacing of tab.
+  -- T'' = r.rep.src, and (T''; gx₁,…,gxₙ) ∈ τ.
+  -- By τ3, (T''; gx₁,…,ĝxⱼ,…,gxₙ) ∈ τ.
+  -- This is iso to tab.prune j hShort (via g extended to the pruned table).
+  -- By τ1-uniqueness, that rep = tab.prune j hShort (since h says tab.prune ∈ τ).
+  -- In particular, r.rep.src = tab.src and all columns match (except j).
+  -- Using tab.monic, r.iso.f = id, so r.rep = tab, hence τ.mem tab.
+  let r := τ.resurfacing tab
+  -- j' is j cast to r.rep
+  let j' : Fin r.rep.len := r.iso.hLen ▸ j
+  -- hj'val : j'.val = j.val
+  have hj'val : j'.val = j.val := fin_cast_val r.iso.hLen j
+  -- Step 1: transfer IsShort via the iso
+  -- r.rep.IsShort j' because tab.IsShort j and the iso is an equivalence.
+  have hShort' : r.rep.IsShort j' := by
+    intro X f g hAgree
+    -- Transfer to tab via r.iso.g.  For each column index kk:
+    --   HEq (h ≫ r.rep.col (hLen ▸ kk)) ((h ≫ r.iso.g) ≫ tab.col kk)
+    -- using col_match_g kk : HEq (r.iso.g ≫ tab.col kk) (r.rep.col (hLen ▸ kk)).
+    have hbridge : ∀ (h : X ⟶ r.rep.src) (kk : Fin tab.len),
+        HEq (h ≫ r.rep.col (r.iso.hLen ▸ kk)) ((h ≫ r.iso.g) ≫ tab.col kk) := by
+      intro h kk
+      have hcg := (r.iso.col_match_g kk).symm
+      -- hcg : HEq (r.rep.col (hLen ▸ kk)) (r.iso.g ≫ tab.col kk)
+      have e1 : HEq (h ≫ r.rep.col (r.iso.hLen ▸ kk)) (h ≫ (r.iso.g ≫ tab.col kk)) :=
+        comp_heq_left h _ _ (r.iso.codom_match kk) hcg
+      exact e1.trans (heq_of_eq (Cat.assoc h r.iso.g (tab.col kk)).symm)
+    -- Agreement of f≫g₀ and g≫g₀ on early tab columns
+    have hAgree_tab : ∀ k : Fin tab.len, k.val < j.val →
+        (f ≫ r.iso.g) ≫ tab.col k = (g ≫ r.iso.g) ≫ tab.col k := by
+      intro k hk
+      have hk' : (r.iso.hLen ▸ k : Fin r.rep.len).val < j'.val := by
+        rw [fin_cast_val r.iso.hLen k, hj'val]; exact hk
+      have hAk := hAgree (r.iso.hLen ▸ k) hk'
+      -- hAk : f ≫ r.rep.col (hLen ▸ k) = g ≫ r.rep.col (hLen ▸ k)
+      exact eq_of_heq ((hbridge f k).symm.trans (heq_of_eq hAk |>.trans (hbridge g k)))
+    have hJ := hShort X (f ≫ r.iso.g) (g ≫ r.iso.g) (fun k hk => by
+      simp only [Cat.assoc] at hAgree_tab ⊢
+      exact hAgree_tab k hk)
+    -- hJ : (f ≫ r.iso.g) ≫ tab.col j = (g ≫ r.iso.g) ≫ tab.col j
+    -- Transfer back to r.rep.col j' via hbridge at kk = j.
+    exact eq_of_heq ((hbridge f j).trans (heq_of_eq hJ |>.trans (hbridge g j).symm))
+  -- Step 2: By τ3, τ.mem (r.rep.prune j' hShort')
+  have hPruneRep : τ.mem (r.rep.prune j' hShort') := τ.tau3 r.rep j' hShort' r.mem
+  -- Step 3: Construct TableIso (tab.prune j hShort) (r.rep.prune j' hShort')
+  have hPruneIso : Nonempty (TableIso (tab.prune j hShort) (r.rep.prune j' hShort')) := by
+    have hLenP : tab.len - 1 = r.rep.len - 1 := by rw [r.iso.hLen]
+    refine ⟨{
+      hLen        := by simp [Table.prune]; exact hLenP
+      f           := r.iso.f
+      g           := r.iso.g
+      f_g         := r.iso.f_g
+      g_f         := r.iso.g_f
+      codom_match := fun k => ?_
+      col_match   := fun k => ?_
+    }⟩
+    · -- rep.prune.codom (hLenP ▸ k) = tab.prune.codom k
+      -- i.e., r.rep.codom (Fin.skip j' (hLenP ▸ k)) = tab.codom (Fin.skip j k)
+      simp only [Table.prune]
+      have hskip : Fin.skip j' (hLenP ▸ k) = r.iso.hLen ▸ Fin.skip j k := by
+        apply Fin.ext
+        rw [Fin.skip_val_eq j j' hj'val k (hLenP ▸ k) (fin_cast_val hLenP k),
+          fin_cast_val r.iso.hLen (Fin.skip j k)]
+      rw [hskip]; exact r.iso.codom_match (Fin.skip j k)
+    · -- HEq (r.iso.f ≫ r.rep.prune.col (hLenP ▸ k)) (tab.prune.col k)
+      -- i.e., HEq (r.iso.f ≫ r.rep.col (Fin.skip j' (hLenP ▸ k))) (tab.col (Fin.skip j k))
+      simp only [Table.prune]
+      have hskip : Fin.skip j' (hLenP ▸ k) = r.iso.hLen ▸ Fin.skip j k := by
+        apply Fin.ext
+        rw [Fin.skip_val_eq j j' hj'val k (hLenP ▸ k) (fin_cast_val hLenP k),
+          fin_cast_val r.iso.hLen (Fin.skip j k)]
+      rw [hskip]; exact r.iso.col_match (Fin.skip j k)
+  -- Step 4: tau1_unique gives r.rep.prune = tab.prune
+  have hPruneEq : r.rep.prune j' hShort' = tab.prune j hShort :=
+    τ.tau1_unique (tab.prune j hShort) _ _ hPruneRep h hPruneIso ⟨TableIso.refl _⟩
+  -- Step 5: extract r.rep.src = tab.src from the prune equality
+  have hSrc : r.rep.src = tab.src := congrArg (·.src) hPruneEq
+  -- Step 6: column-of-prune HEq, transported to homogeneous skip-column equality.
+  -- Both prune tables have src = tab.src and r.rep.src; the prune equality forces all
+  -- skip-columns to agree.  We extract this as a heterogeneous column-function equality.
+  have hColHEq : HEq (r.rep.prune j' hShort').col (tab.prune j hShort).col := by
+    rw [hPruneEq]
+  -- The prune-tables' codom families also match (same data after the equality).
+  have hCodHEq : HEq (r.rep.prune j' hShort').codom (tab.prune j hShort).codom := by
+    rw [hPruneEq]
+  -- Homogeneous skip-column equality: r.rep.col (skip j' (hLenP ▸ i)) ≍ tab.col (skip j i).
+  have hLenP : tab.len - 1 = r.rep.len - 1 := by rw [r.iso.hLen]
+  have hSkipCol : ∀ i : Fin (tab.len - 1),
+      HEq (r.rep.col (Fin.skip j' (hLenP ▸ i))) (tab.col (Fin.skip j i)) := by
+    intro i
+    -- (r.rep.prune).col (hLenP ▸ i) ≡ r.rep.col (skip j' (hLenP ▸ i)) and
+    -- (tab.prune).col i ≡ tab.col (skip j i), both definitional.
+    have hii : HEq (hLenP ▸ i : Fin (r.rep.len - 1)) i := eqRec_heq hLenP i
+    have := Table.col_heq_of_eq hPruneEq
+      (i := (hLenP ▸ i : Fin (r.rep.len - 1))) (i' := i) hii
+    exact this
+  -- Step 7: r.iso.f is (heterogeneously) the identity on tab.src.
+  have hFf : HEq r.iso.f (Cat.id tab.src) := by
+    have hHEq : HEq (castCod hSrc r.iso.f) r.iso.f := castCod_heq hSrc r.iso.f
+    -- agreement of f₀ with id on every skip-column
+    have hAgreeSkip : ∀ i : Fin (tab.len - 1),
+        castCod hSrc r.iso.f ≫ tab.col (Fin.skip j i) = tab.col (Fin.skip j i) := by
+      intro i
+      apply eq_of_heq
+      -- f₀ ≫ tab.col (skip j i) ≍ f ≫ r.rep.col (skip j' (hLenP ▸ i)) ≍ tab.col (skip j i)
+      have hcm := r.iso.col_match (Fin.skip j i)
+      have hidx : r.iso.hLen ▸ Fin.skip j i = Fin.skip j' (hLenP ▸ i) := by
+        apply Fin.ext
+        rw [fin_cast_val, Fin.skip_val_eq j j' hj'val i (hLenP ▸ i) (fin_cast_val hLenP i)]
+      have hcodi : tab.codom (Fin.skip j i) = r.rep.codom (Fin.skip j' (hLenP ▸ i)) := by
+        rw [← hidx]; exact (r.iso.codom_match (Fin.skip j i)).symm
+      rw [hidx] at hcm
+      -- hcm : HEq (r.iso.f ≫ r.rep.col (skip j' (hLenP ▸ i))) (tab.col (skip j i))
+      refine HEq.trans ?_ hcm
+      exact comp_heq (castCod hSrc r.iso.f) r.iso.f (tab.col (Fin.skip j i))
+        (r.rep.col (Fin.skip j' (hLenP ▸ i))) rfl hSrc.symm
+        hcodi hHEq (hSkipCol i).symm
+    have hf0id : castCod hSrc r.iso.f = Cat.id tab.src := by
+      apply tab.monic; intro k; rw [Cat.id_comp]
+      by_cases hkj : k = j
+      · -- k = j: short column; agreement on all earlier (skip) columns forces it.
+        rw [hkj]
+        have hsj : castCod hSrc r.iso.f ≫ tab.col j = Cat.id tab.src ≫ tab.col j :=
+          hShort tab.src (castCod hSrc r.iso.f) (Cat.id tab.src) (fun i hi => by
+            -- i < j; i = skip j i₀ for some i₀ (Fin.skip is surjective off j)
+            have hij : i ≠ j := fun he => by rw [he] at hi; exact Nat.lt_irrefl _ hi
+            rcases Fin.skip_surj hij with ⟨i₀, hi₀⟩
+            rw [← hi₀, hAgreeSkip i₀, Cat.id_comp])
+        rw [hsj, Cat.id_comp]
+      · -- k ≠ j: k = skip j i₀
+        rcases Fin.skip_surj hkj with ⟨i₀, hi₀⟩
+        rw [← hi₀]; exact hAgreeSkip i₀
+    exact hf0id ▸ hHEq.symm
+  -- Step 8: conclude r.rep = tab
+  -- index round-trip: hLen ▸ (hLen.symm ▸ k) = k
+  have hidx_rt : ∀ k : Fin r.rep.len,
+      (r.iso.hLen ▸ (r.iso.hLen.symm ▸ k : Fin tab.len) : Fin r.rep.len) = k := fun k => by
+    apply Fin.ext; rw [fin_cast_val, fin_cast_val]
+  -- pointwise codom equality (oriented for the funext helpers)
+  have hCodPt : ∀ k : Fin r.rep.len, r.rep.codom k = tab.codom (r.iso.hLen.symm ▸ k) := by
+    intro k; have hc := r.iso.codom_match (r.iso.hLen.symm ▸ k); rw [hidx_rt k] at hc; exact hc
+  have hrep_eq : r.rep = tab := by
+    apply Table_eq_of_fields r.rep tab hSrc r.iso.hLen.symm
+    · -- HEq r.rep.codom tab.codom
+      exact heq_funext_fin r.iso.hLen.symm r.rep.codom tab.codom hCodPt
+    · -- HEq r.rep.col tab.col
+      refine Table.col_heq_funext hSrc r.iso.hLen.symm hCodPt (fun k => ?_)
+      -- HEq (r.rep.col k) (tab.col (hLen.symm ▸ k)); from col_match with hFf (f ≍ id).
+      have hcm := r.iso.col_match (r.iso.hLen.symm ▸ k)
+      rw [hidx_rt k] at hcm
+      -- hcm : HEq (r.iso.f ≫ r.rep.col k) (tab.col (hLen.symm ▸ k))
+      refine HEq.trans ?_ hcm
+      -- r.rep.col k ≍ r.iso.f ≫ r.rep.col k, using f ≍ id.
+      have hidHEq : HEq (Cat.id r.rep.src) r.iso.f := by
+        refine HEq.trans ?_ hFf.symm
+        -- HEq (Cat.id r.rep.src) (Cat.id tab.src)
+        rw [hSrc]
+      have hcomp : HEq (Cat.id r.rep.src ≫ r.rep.col k) (r.iso.f ≫ r.rep.col k) :=
+        comp_heq (Cat.id r.rep.src) r.iso.f (r.rep.col k) (r.rep.col k)
+          hSrc rfl rfl hidHEq HEq.rfl
+      exact (heq_of_eq (Cat.id_comp (r.rep.col k))).symm.trans hcomp
+  exact hrep_eq ▸ r.mem
 
 /-- §1.494 EXPANSION LEMMA: a table is in τ iff its pruned table is in τ (§1.494).
     Removing (or keeping) a short column does not change τ-membership. -/
@@ -514,19 +761,15 @@ namespace TCat
     Book proof: Let g : T'' → top(S) be the resurfacing of S. By τ2.2,
     the composition (T''; gx₁,…,gxₙ) ; (T'; y₁,…,yₘ) ∈ τ, so g is also the resurfacing
     of `S ; T`. Since `S ; T ∈ τ` by assumption, its resurfacing is the identity,
-    hence g = id, so S ∈ τ. -/
+    hence g = id, so S ∈ τ.
+
+    Mechanically: the iso between S.comp and r.rep.comp (built from r.iso) gives
+    tau1_unique → comp equality → r.rep.src = S.src → r.iso.f = id (by S.monic)
+    → r.rep = S → τ.mem S.
+    The index/HEq bookkeeping for compColMor makes this proof mechanically heavy. -/
 theorem cancellationLemma (τ : TCat 𝒞) (S T : Table 𝒞) (j : Fin S.len)
     (h_eq : T.src = S.codom j)
     (hST : τ.mem (S.comp T j h_eq)) (hT : τ.mem T) : τ.mem S := by
-  -- Let r = resurfacing of S; r.rep ≅ S and r.rep ∈ τ.
-  -- By tau2_comp: r.rep.comp T j (h_eq') ∈ τ (where h_eq' comes from the iso).
-  -- That composition is isomorphic to S.comp T j h_eq.
-  -- By tau1_unique: r.rep.comp T j h_eq' = S.comp T j h_eq (same τ-rep).
-  -- Since S.comp T j h_eq ∈ τ by hST, the resurfacing of S.comp is id.
-  -- So r.rep.comp = S.comp, and since T ∈ τ, by cancellation the resurfacing g of S is id.
-  -- Hence S ∈ τ.
-  -- The index-level gluing for Table.comp (which is currently a placeholder) makes this
-  -- proof mechanically heavy; the logical content is captured above.
   sorry
 
 end TCat
