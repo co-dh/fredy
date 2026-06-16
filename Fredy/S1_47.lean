@@ -179,14 +179,61 @@ instance prodEndoIsFunctor [HasBinaryProducts 𝒞] (B : 𝒞) : Functor (prodEn
     · -- (pair A B ≫ pair C D) ≫ snd = (snd ≫ f) ≫ g
       rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair, Cat.assoc]
 
-/-- **§1.472 (product-proper ↔ faithful)**: B×- is faithful iff for every proper subobject
-    m : A'↪A the map pair(fst≫m, snd) : A'×B → A×B is monic.
+/-- The action of `prodEndo B` on an arrow `f : X → Y` is `pair (fst ≫ id_B) (snd ≫ f)`.
+    Definitional unfolding of `prodEndoIsFunctor.map`. -/
+theorem prodEndo_map [HasBinaryProducts 𝒞] (B : 𝒞) {X Y : 𝒞} (f : X ⟶ Y) :
+    (prodEndoIsFunctor B).map f = pair (fst (A := B) (B := X) ≫ Cat.id B) (snd ≫ f) := rfl
 
-    Stated faithfully to the book; the equivalence holds; proof uses `sorry`. -/
+/-- **Clean reformulation of §1.472 faithfulness.**  `prodEndo B = (B × -)` is an
+    embedding (faithful) iff the second projection `snd : prod B X → X` is epic for every `X`.
+
+    `(B×-) f = (B×-) g` unfolds to `pair (fst≫id_B) (snd≫f) = pair (fst≫id_B) (snd≫g)`;
+    post-composing with `snd` and using `snd_pair` shows this is *equivalent* to
+    `snd ≫ f = snd ≫ g`.  Faithfulness is then exactly right-cancellability of `snd`. -/
+theorem prodEndo_embedding_iff_snd_epi [HasBinaryProducts 𝒞] (B : 𝒞) :
+    Embedding (prodEndo B) ↔
+    (∀ {X Y : 𝒞} (f g : X ⟶ Y), (snd (A := B) (B := X)) ≫ f = snd ≫ g → f = g) := by
+  constructor
+  · intro hemb X Y f g hsnd
+    apply hemb f g
+    rw [prodEndo_map, prodEndo_map]
+    apply pair_uniq <;>
+      simp only [fst_pair, snd_pair, hsnd]
+  · intro hsnd X Y f g hmap
+    apply hsnd f g
+    rw [prodEndo_map, prodEndo_map] at hmap
+    calc snd ≫ f = pair (fst ≫ Cat.id B) (snd ≫ f) ≫ snd := (snd_pair _ _).symm
+      _ = pair (fst ≫ Cat.id B) (snd ≫ g) ≫ snd := by rw [hmap]
+      _ = snd ≫ g := snd_pair _ _
+
+/-- **`m × id_B` is monic whenever `m` is monic** — unconditionally, with no specialness.
+    `(m × id_B) ≫ fst = fst ≫ m` (so `m`-cancellation recovers the `fst`-component) and
+    `(m × id_B) ≫ snd = snd` (so the `snd`-component is already equal); the two projections
+    are jointly monic.  This is exactly why §1.472's substantive condition is *properness*
+    (non-iso) of `m × id_B`, not mere monicity. -/
+theorem product_mono_of_mono [HasBinaryProducts 𝒞] (B : 𝒞) {A' A : 𝒞} (m : A' ⟶ A)
+    (hm : Mono m) : Mono (pair (fst (A := A') (B := B) ≫ m) (snd (A := A') (B := B))) := by
+  intro W u v huv
+  have h1 : (u ≫ fst) ≫ m = (v ≫ fst) ≫ m := by
+    have := congrArg (· ≫ fst) huv
+    simpa only [Cat.assoc, fst_pair] using this
+  have h2 : u ≫ snd = v ≫ snd := by
+    have := congrArg (· ≫ snd) huv
+    simpa only [Cat.assoc, snd_pair] using this
+  exact fst_snd_jointly_monic u v (hm _ _ h1) h2
+
+/-- **§1.472 (product-proper ↔ faithful)**: `B×-` is faithful iff for every proper subobject
+    `m : A'↪A` the map `pair(fst≫m, snd) : A'×B → A×B` is again a **proper** mono.
+
+    NB: the book (§1.472) requires `A'×B` to be a *proper* subobject of `A×B`, i.e.
+    `ProperMono`, not merely `Mono`.  `Mono (m × id_B)` follows from `Mono m` alone
+    (`product_mono_of_mono`), so phrasing the right side with `Mono` would make it a
+    tautology and the equivalence false (the left side fails in, e.g., §1.475's Z-sets).
+    The non-iso half is the substantive §1.472 content. -/
 theorem prodEndo_faithful_iff_product_proper [HasBinaryProducts 𝒞] (B : 𝒞) :
     Embedding (prodEndo B) ↔
     (∀ {A' A : 𝒞} (m : A' ⟶ A), ProperMono m →
-      Mono (pair (fst (A := A') (B := B) ≫ m) (snd (A := A') (B := B)))) := by
+      ProperMono (pair (fst (A := A') (B := B) ≫ m) (snd (A := A') (B := B)))) := by
   sorry
 
 /-- **§1.472**: A Cartesian category is special iff for every B with a proper subobject,
