@@ -364,6 +364,116 @@ theorem compose_union_right_le {A B C : 𝒞} (R : BinRel 𝒞 A B) (S T : BinRe
     · show wit ≫ IST.arr ≫ snd = IT.arr ≫ snd
       rw [← Cat.assoc, hwit]
 
+/-- Helper: computes the "swap-copairing" equality
+    `case(pairR, pairS) ≫ pair snd fst = case(pair R.colB R.colA, pair S.colB S.colA)`. -/
+private theorem relUnion_swap_eq {A B : 𝒞} (R S : BinRel 𝒞 A B) :
+    HasBinaryCoproducts.case (pair R.colA R.colB) (pair S.colA S.colB) ≫ (pair snd fst : prod A B ⟶ prod B A) =
+    HasBinaryCoproducts.case (HasBinaryCoproducts.inr (A := S.src) (B := R.src))
+                             (HasBinaryCoproducts.inl (A := S.src) (B := R.src)) ≫
+    HasBinaryCoproducts.case (pair S.colB S.colA) (pair R.colB R.colA) := by
+  have hL :
+      HasBinaryCoproducts.case (pair R.colA R.colB) (pair S.colA S.colB) ≫
+        (pair snd fst : prod A B ⟶ prod B A) =
+      HasBinaryCoproducts.case (pair R.colB R.colA) (pair S.colB S.colA) :=
+    HasBinaryCoproducts.case_uniq _ _ _
+      (by rw [← Cat.assoc, HasBinaryCoproducts.case_inl]
+          apply pair_uniq
+          · rw [Cat.assoc, fst_pair, snd_pair]
+          · rw [Cat.assoc, snd_pair, fst_pair])
+      (by rw [← Cat.assoc, HasBinaryCoproducts.case_inr]
+          apply pair_uniq
+          · rw [Cat.assoc, fst_pair, snd_pair]
+          · rw [Cat.assoc, snd_pair, fst_pair])
+  have hR :
+      HasBinaryCoproducts.case (HasBinaryCoproducts.inr (A := S.src) (B := R.src))
+                               (HasBinaryCoproducts.inl (A := S.src) (B := R.src)) ≫
+      HasBinaryCoproducts.case (pair S.colB S.colA) (pair R.colB R.colA) =
+      HasBinaryCoproducts.case (pair R.colB R.colA) (pair S.colB S.colA) :=
+    HasBinaryCoproducts.case_uniq _ _ _
+      (by rw [← Cat.assoc, HasBinaryCoproducts.case_inl, HasBinaryCoproducts.case_inr])
+      (by rw [← Cat.assoc, HasBinaryCoproducts.case_inr, HasBinaryCoproducts.case_inl])
+  exact hL.trans hR.symm
+
+/-- §1.616: Reciprocation distributes over union: (R ∪ᵣ S)° ≤ S° ∪ᵣ R°.
+    Proof: the copairing for (R∪S)° lands in B×A via swap_pair = pair snd fst; the
+    copairing for S°∪R° is case(pairS°, pairR°).  cover⊥mono (cover_mono_diagonal)
+    applied to image.lift(m) (a cover) and image(m').arr (monic) yields the factorization. -/
+theorem relUnion_le_reciprocal {A B : 𝒞} (R S : BinRel 𝒞 A B) :
+    RelLe (R ∪ᵣ S)° (S° ∪ᵣ R°) := by
+  let m  : HasBinaryCoproducts.coprod R.src S.src ⟶ prod A B :=
+    HasBinaryCoproducts.case (pair R.colA R.colB) (pair S.colA S.colB)
+  let m' : HasBinaryCoproducts.coprod S.src R.src ⟶ prod B A :=
+    HasBinaryCoproducts.case (pair S.colB S.colA) (pair R.colB R.colA)
+  let swap_pair : prod A B ⟶ prod B A := pair snd fst
+  let swap_cop  : HasBinaryCoproducts.coprod R.src S.src ⟶ HasBinaryCoproducts.coprod S.src R.src :=
+    HasBinaryCoproducts.case HasBinaryCoproducts.inr HasBinaryCoproducts.inl
+  have h_swap : m ≫ swap_pair = swap_cop ≫ m' := relUnion_swap_eq R S
+  -- cover_mono_diagonal needs: c ≫ f = d ≫ m_arg
+  -- c = image.lift m, f = (image m).arr ≫ swap_pair, d = swap_cop ≫ image.lift m', m_arg = (image m').arr
+  have h_sq : image.lift m ≫ ((image m).arr ≫ swap_pair) =
+              (swap_cop ≫ image.lift m') ≫ (image m').arr := by
+    calc image.lift m ≫ ((image m).arr ≫ swap_pair)
+        = (image.lift m ≫ (image m).arr) ≫ swap_pair := by rw [← Cat.assoc]
+      _ = m ≫ swap_pair                               := by rw [image.lift_fac]
+      _ = swap_cop ≫ m'                               := h_swap
+      _ = swap_cop ≫ (image.lift m' ≫ (image m').arr) := by congr 1; exact (image.lift_fac m').symm
+      _ = (swap_cop ≫ image.lift m') ≫ (image m').arr := (Cat.assoc _ _ _).symm
+  obtain ⟨k, _, hk⟩ := cover_mono_diagonal (image_lift_cover m) (image m').monic h_sq
+  -- hk : k ≫ (image m').arr = (image m).arr ≫ swap_pair
+  refine ⟨⟨k, ?_, ?_⟩⟩
+  · show k ≫ (image m').arr ≫ fst = (image m).arr ≫ snd
+    calc k ≫ (image m').arr ≫ fst = (k ≫ (image m').arr) ≫ fst := by rw [Cat.assoc]
+      _ = ((image m).arr ≫ swap_pair) ≫ fst := by rw [hk]
+      _ = (image m).arr ≫ swap_pair ≫ fst   := Cat.assoc _ _ _
+      _ = (image m).arr ≫ snd               := by rw [fst_pair]
+  · show k ≫ (image m').arr ≫ snd = (image m).arr ≫ fst
+    calc k ≫ (image m').arr ≫ snd = (k ≫ (image m').arr) ≫ snd := by rw [Cat.assoc]
+      _ = ((image m).arr ≫ swap_pair) ≫ snd := by rw [hk]
+      _ = (image m).arr ≫ swap_pair ≫ snd   := Cat.assoc _ _ _
+      _ = (image m).arr ≫ fst               := by rw [snd_pair]
+
+/-- §1.616: S° ∪ᵣ R° ≤ (R ∪ᵣ S)° (reverse direction). -/
+theorem relUnion_reciprocal_le {A B : 𝒞} (R S : BinRel 𝒞 A B) :
+    RelLe (S° ∪ᵣ R°) (R ∪ᵣ S)° := by
+  -- Mirror image of relUnion_le_reciprocal with R↔S swapped.
+  -- S°∪R° is the union of S° and R° as B→A relations.
+  -- (R∪S)° has colA = (R∪S).colB, colB = (R∪S).colA.
+  -- The copairing for S°∪R° maps case(pairS°, pairR°) = case(pair S.colB S.colA, pair R.colB R.colA).
+  -- The copairing for (R∪S) is m = case(pair R.colA R.colB, pair S.colA S.colB).
+  -- Use relUnion_swap_eq symmetrically.
+  let m  : HasBinaryCoproducts.coprod R.src S.src ⟶ prod A B :=
+    HasBinaryCoproducts.case (pair R.colA R.colB) (pair S.colA S.colB)
+  let m' : HasBinaryCoproducts.coprod S.src R.src ⟶ prod B A :=
+    HasBinaryCoproducts.case (pair S.colB S.colA) (pair R.colB R.colA)
+  let swap_pair' : prod B A ⟶ prod A B := pair snd fst
+  let swap_cop'  : HasBinaryCoproducts.coprod S.src R.src ⟶ HasBinaryCoproducts.coprod R.src S.src :=
+    HasBinaryCoproducts.case HasBinaryCoproducts.inr HasBinaryCoproducts.inl
+  -- h_swap' is exactly relUnion_swap_eq applied to S° and R° (as BinRel 𝒞 B A)
+  have h_swap' : m' ≫ swap_pair' = swap_cop' ≫ m := relUnion_swap_eq S° R°
+  have h_sq' : image.lift m' ≫ ((image m').arr ≫ swap_pair') =
+               (swap_cop' ≫ image.lift m) ≫ (image m).arr := by
+    calc image.lift m' ≫ ((image m').arr ≫ swap_pair')
+        = (image.lift m' ≫ (image m').arr) ≫ swap_pair' := by rw [← Cat.assoc]
+      _ = m' ≫ swap_pair'                                := by rw [image.lift_fac]
+      _ = swap_cop' ≫ m                                  := h_swap'
+      _ = swap_cop' ≫ (image.lift m ≫ (image m).arr)    := by congr 1; exact (image.lift_fac m).symm
+      _ = (swap_cop' ≫ image.lift m) ≫ (image m).arr    := (Cat.assoc _ _ _).symm
+  obtain ⟨k, _, hk⟩ := cover_mono_diagonal (image_lift_cover m') (image m).monic h_sq'
+  -- hk : k ≫ (image m).arr = (image m').arr ≫ swap_pair'
+  -- (R∪S)°.src = (image m).dom, (S°∪R°).src = (image m').dom
+  -- (R∪S)°.colA = (image m).arr ≫ snd, (R∪S)°.colB = (image m).arr ≫ fst
+  refine ⟨⟨k, ?_, ?_⟩⟩
+  · show k ≫ (image m).arr ≫ snd = (image m').arr ≫ fst
+    calc k ≫ (image m).arr ≫ snd = (k ≫ (image m).arr) ≫ snd := by rw [Cat.assoc]
+      _ = ((image m').arr ≫ swap_pair') ≫ snd := by rw [hk]
+      _ = (image m').arr ≫ swap_pair' ≫ snd   := Cat.assoc _ _ _
+      _ = (image m').arr ≫ fst               := by rw [snd_pair]
+  · show k ≫ (image m).arr ≫ fst = (image m').arr ≫ snd
+    calc k ≫ (image m).arr ≫ fst = (k ≫ (image m).arr) ≫ fst := by rw [Cat.assoc]
+      _ = ((image m').arr ≫ swap_pair') ≫ fst := by rw [hk]
+      _ = (image m').arr ≫ swap_pair' ≫ fst   := Cat.assoc _ _ _
+      _ = (image m').arr ≫ snd               := by rw [fst_pair]
+
 end BinRelLattice
 
 end Freyd
