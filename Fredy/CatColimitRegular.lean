@@ -1208,3 +1208,56 @@ theorem homInclObj_mono_of_stage (C : CatSystem ι D) (hC : C.Coherent)
   intro Z p q hpq
   exact colimHom_mono_of_rep (A := C.objIncl i x) (B := C.objIncl i y) C hC
     ⟨w.K, w.hpx, w.hpy⟩ (w.germ g) hcancel' p q hpq
+
+/-- **Iso reflection for the stage inclusion.**  If `homInclObj g` is an isomorphism in
+    `colimitCat` and transitions are conservative (`hcons`), then `g` is an isomorphism.
+    `colimHom_isIso_reflects` gives a stage `L` where `functF.map` of the witness germ is
+    iso; the germ is `castHom ∘ functF.map g`, so `isIso_of_castHom` leaves
+    `IsIso (functF.map g)`, which `hcons` reflects to `IsIso g`. -/
+theorem homInclObj_isIso_reflects (C : CatSystem ι D) (hC : C.Coherent)
+    (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
+        IsIso ((C.functF hij).map φ) → IsIso φ)
+    {i : ι} {x y : C.A i} (g : x ⟶ y)
+    (hiso : @IsIso C.Obj (colimitCat C hC) (C.objIncl i x) (C.objIncl i y) (homInclObj C hC g)) :
+    IsIso g := by
+  let w := hioWitness C hC x y
+  rw [homInclObj_eq C hC g w] at hiso
+  obtain ⟨L, hL, hisoL⟩ := colimHom_isIso_reflects (A := C.objIncl i x) (B := C.objIncl i y) C hC
+    ⟨w.K, w.hpx, w.hpy⟩ (w.germ g) hiso
+  have e_x : C.F hL (C.F w.hpx (colimOut C (C.objIncl i x)).2) = C.F (D.trans w.hix hL) x :=
+    (congrArg (C.F hL) w.hgx).trans (C.F_trans w.hix hL x).symm
+  have e_y : C.F hL (C.F w.hpy (colimOut C (C.objIncl i y)).2) = C.F (D.trans w.hix hL) y :=
+    (congrArg (C.F hL) w.hgy).trans (C.F_trans w.hix hL y).symm
+  have hgerm_map : (C.functF hL).map (w.germ g)
+      = castHom e_x.symm e_y.symm ((C.functF (D.trans w.hix hL)).map g) := by
+    dsimp only [HioWitness.germ]
+    rw [map_castHom (C.F hL) (hT := C.functF hL)]
+    exact castHom_heq_congr _ _ e_x.symm e_y.symm (hC.trans_map w.hix hL g).symm
+  rw [hgerm_map] at hisoL
+  exact hcons (D.trans w.hix hL) g (isIso_of_castHom _ _ _ hisoL)
+
+/-- **Cover reflection for the stage inclusion.**  If `homInclObj g` is a cover in
+    `colimitCat` (with transitions preserving monos `hmono` and conservative `hcons`),
+    then `g` is a cover in its stage.  A stage mono `m'` factoring `g` includes to a
+    `colimitCat` mono `homInclObj m'` (preservation, via `hmono`) factoring `homInclObj g`
+    (functoriality `homInclObj_comp`); the colimit cover forces it iso, and iso reflection
+    (`homInclObj_isIso_reflects`, via `hcons`) brings the iso back to the stage. -/
+theorem homInclObj_cover_reflects (C : CatSystem ι D) (hC : C.Coherent)
+    (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
+        IsIso ((C.functF hij).map φ) → IsIso φ)
+    (hmono : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
+        Mono φ → Mono ((C.functF hij).map φ))
+    {i : ι} {x y : C.A i} (g : x ⟶ y)
+    (hcov : @Cover C.Obj (colimitCat C hC) (C.objIncl i x) (C.objIncl i y) (homInclObj C hC g)) :
+    Cover g := by
+  intro C'' m' g' hm' hgm'
+  -- include the stage mono/factor; preservation makes the inclusion a colimit mono
+  have hM_mono : @Mono C.Obj (colimitCat C hC) (C.objIncl i C'') (C.objIncl i y)
+      (homInclObj C hC m') :=
+    homInclObj_mono_of_stage C hC m' (fun {j} hij z u v huv => hmono hij m' hm' u v huv)
+  have hfac : colimComp C hC (homInclObj C hC g') (homInclObj C hC m') = homInclObj C hC g := by
+    rw [← homInclObj_comp C hC g' m', hgm']
+  have hMiso : @IsIso C.Obj (colimitCat C hC) (C.objIncl i C'') (C.objIncl i y)
+      (homInclObj C hC m') :=
+    hcov (homInclObj C hC m') (homInclObj C hC g') hM_mono hfac
+  exact homInclObj_isIso_reflects C hC hcons m' hMiso
