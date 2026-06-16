@@ -301,19 +301,35 @@ theorem symm_div_eq_A_comp {a b c : 𝒜} [PowerAllegory 𝒜] (R : a ⟶ c) (S 
 
 /-! ## §2.43  Pre-power allegory and diagonal proofs
 
-  A morphism T is THICK if T/T is entire: 1 ⊑ (T/T)(T/T)° (§2.43).
-  Equivalently (§2.431): for all R with dom(R) = dom(T), there exists R̃ with
-  1 ⊑ R̃R̃°, R̃T ⊑ R̃, R̃°R̃ ⊑ T.
+  Freyd's thickness (§2.412, §2.43): for the membership relation ∋, T is thick
+  iff `Δ(R) = R/ₛ∋` is entire for every R.  Generalising to an arbitrary T, a
+  morphism T : a → b is THICK iff the *symmetric* division `R/ₛT` is entire for
+  every R : c → b that is COMPATIBLE with T, i.e. shares T's codomain box
+  `R□ = T□` (where `R□ = 1_b ∩ R°R`).  The box side-condition is exactly the
+  domain on which Freyd's partial division `R/T` is defined (§2.33), and it is
+  indispensable: without it the predicate becomes strictly stronger than the
+  §2.431 right-hand side (verified exhaustively in Rel up to 3×3).
+
+  ⚠ The earlier formulation `∀R, Entire (R/T)` using the PLAIN (asymmetric) right
+  division and DROPPING the `R□ = T□` guard is NOT Freyd's thickness: it made the
+  §2.431 forward direction FALSE.  Counterexample (Rel): T = {(0,0)} : {0,1}→{0},
+  R = {(0,0),(1,0)} have `R□ = T□` and T is thick, yet the *plain* witness `R/T`
+  fails `(R/T)°R ⊑ T`.  The honest witness is the SYMMETRIC division `R/ₛT`, which
+  IS entire here — captured by the corrected definition below.
 
   A PRE-POWER ALLEGORY is a division allegory in which each object
   appears as the target of a thick morphism (§2.43). -/
 
-/-- T : a → b is THICK (§2.43) if R/T is entire for all R with target b.
-    Equivalently: T covers a in the sense that every R : c → b factors through T
-    up to entireness. By §2.431, equivalent to ∀ R (same target), ∃ R̃ entire
-    with R̃ ≫ T ⊑ R and R̃° ≫ R̃ ⊑ T/T. -/
+/-- The codomain box `R□ = 1_b ∩ R°R` (§2.122): the coreflexive on the target. -/
+abbrev codBox {a b : 𝒜} [Allegory 𝒜] (R : a ⟶ b) : b ⟶ b := dom (R°)
+
+/-- T : a → b is THICK (§2.412, §2.43) iff the symmetric division `R/ₛT` is entire
+    for every R : c → b with the same codomain box `R□ = T□` (Freyd's `Δ(R)`
+    entireness condition, stated for a general T rather than just ∋).
+    The `codBox R = codBox T` guard is the domain on which Freyd's `R/T` is defined
+    and is necessary for §2.431 to be a biconditional (see the note above). -/
 def Thick {a b : 𝒜} [DivisionAllegory 𝒜] (T : a ⟶ b) : Prop :=
-  ∀ (c : 𝒜) (R : c ⟶ b), Entire (R / T)
+  ∀ (c : 𝒜) (R : c ⟶ b), codBox R = codBox T → Entire (R /ₛ T)
 
 /-- `Entire R ↔ 1 ⊑ RR°` (§2.122): since `dom R = 1 ∩ RR°` and `1 ∩ RR° ⊑ 1` always,
     `dom R = 1` is equivalent to `1 ⊑ RR°`. -/
@@ -324,31 +340,36 @@ private theorem entire_iff_one_le {a b : 𝒜} [Allegory 𝒜] (R : a ⟶ b) :
   · intro h; rw [← h]; exact inter_lb_right _ _
   · intro h; exact le_antisymm (inter_lb_left _ _) (le_inter (le_refl _) h)
 
-/-- §2.431: T is thick iff for every R with same target b, there exists R̃ : c → a
-    that is entire, with R̃ ≫ T ⊑ R and R̃° ≫ R ⊑ T (the book's three containments
-    `1 ⊑ R̃R̃°`, `R̃T ⊑ R`, `R̃°R ⊑ T`). The last two say exactly `R̃ ⊑ R/ₛT`. -/
+/-- §2.431 (faithful, biconditional): T is thick iff for every R : c → b with the
+    same codomain box `R□ = T□` there exists R̃ : c → a satisfying Freyd's three
+    containments `1 ⊑ R̃R̃°` (entire), `R̃T ⊑ R`, `R̃°R ⊑ T`.
+
+    The `R□ = T□` hypothesis is Freyd's own side-condition (the domain on which his
+    partial division `R/T` is defined); restoring it — together with the SYMMETRIC
+    division in the definition of `Thick` — makes the biconditional TRUE.  It is
+    not falsified by the Rel counterexample (T = {(0,0)}, R = {(0,0),(1,0)}): there
+    `R□ = T□` holds, T is thick, and the honest witness `R̃ = R/ₛT = {(0,0),(1,0)}`
+    IS entire and satisfies all three containments.
+
+    Forward: take `R̃ = R/ₛT`, entire by `Thick T` (consuming the box hypothesis);
+    the last two containments are the defining property of `/ₛ`.
+    Reverse: `R̃ ⊑ R/ₛT` and `R̃` entire force `R/ₛT` entire. -/
 theorem thick_iff_existential {a b : 𝒜} [DivisionAllegory 𝒜] (T : a ⟶ b) :
-    Thick T ↔ ∀ (c : 𝒜) (R : c ⟶ b), ∃ (R' : c ⟶ a),
+    Thick T ↔ ∀ (c : 𝒜) (R : c ⟶ b), codBox R = codBox T → ∃ (R' : c ⟶ a),
         Entire R' ∧ R' ≫ T ⊑ R ∧ R'° ≫ R ⊑ T := by
   constructor
-  · -- Thick T → ∃R̃.  Book takes R̃ = R/T (the fraction bar) and asserts R̃°R ⊑ T.
-    -- For PLAIN right division R/T this third containment is NOT a theorem: right
-    -- division only gives (R/T)T ⊑ R, whereas (R/T)°R ⊑ T is the *symmetric*-division
-    -- second component, holding for R/ₛT, not R/T.  The book's `R□ = T□` hypothesis
-    -- (R and T share a domain, dropped in this fully-general quantifier) is exactly
-    -- what would collapse R/T to R/ₛT here; without it the forward direction needs a
-    -- domain-restricted division calculus not yet built in S2_3.  FAITHFUL SORRY.
-    intro hThick c R
-    sorry
-  · -- ∃R̃ → Thick T: given R̃ entire with R̃T ⊑ R and R̃°R ⊑ T, we have R̃ ⊑ R/ₛT ⊑ R/T,
-    -- so 1 ⊑ R̃R̃° ⊑ (R/T)(R/T)°, i.e. R/T is entire. Hence Thick T.
-    intro hEx c R
-    obtain ⟨R', hEnt, hRT, hRoR⟩ := hEx c R
-    -- R̃ ⊑ R/ₛT ⊑ R/T
-    have hR'_le : R' ⊑ R / T := by
-      have : R' ⊑ R /ₛ T := (le_symmDiv_iff R' R T).mpr ⟨hRT, hRoR⟩
-      exact le_trans this (inter_lb_left _ _)
-    -- 1 ⊑ R̃R̃° ⊑ (R/T)(R/T)°, so R/T entire.
+  · -- Thick T → ∃R̃.  Witness R̃ = R/ₛT: entire by Thick (using R□ = T□), and the
+    -- two containments R̃T ⊑ R, R̃°R ⊑ T are the symmetric-division law applied to
+    -- R/ₛT ⊑ R/ₛT.
+    intro hThick c R hBox
+    refine ⟨R /ₛ T, hThick c R hBox, ?_, ?_⟩
+    · exact ((le_symmDiv_iff (R /ₛ T) R T).mp (le_refl _)).1
+    · exact ((le_symmDiv_iff (R /ₛ T) R T).mp (le_refl _)).2
+  · -- ∃R̃ → Thick T: given R̃ entire with R̃T ⊑ R and R̃°R ⊑ T, we have R̃ ⊑ R/ₛT,
+    -- so 1 ⊑ R̃R̃° ⊑ (R/ₛT)(R/ₛT)°, i.e. R/ₛT is entire.  Hence Thick T.
+    intro hEx c R hBox
+    obtain ⟨R', hEnt, hRT, hRoR⟩ := hEx c R hBox
+    have hR'_le : R' ⊑ R /ₛ T := (le_symmDiv_iff R' R T).mpr ⟨hRT, hRoR⟩
     rw [entire_iff_one_le]
     refine le_trans ((entire_iff_one_le R').mp hEnt) ?_
     exact le_trans (comp_mono_right hR'_le _) (comp_mono_left _ (recip_mono hR'_le))
@@ -362,6 +383,14 @@ class PrePowerAllegory (𝒜 : Type u) extends DivisionAllegory 𝒜 where
 /-! ## §2.432  Effective pre-power allegory is power
 
   An effective pre-power allegory is a power allegory (§2.432). -/
+/-- §2.432: an effective pre-power allegory is a power allegory.
+    FAITHFUL SORRY (infrastructure gap, not a false statement).  Freyd's proof
+    factors a given thick T as `T = hS` with `S = h°T` straight (§2.354), shows S
+    stays thick, and takes [a]/∋ from that straight-thick S.  The blocker is the
+    §2.354 factorization "in an effective division allegory every morphism is `hS`
+    with S straight" plus the §2.432 lemma "S = h°T remains thick", neither of
+    which is yet available in S2_3.  Building the `PowerAllegory` instance also
+    requires assembling `powerObj`/`eps` and proving `eps_thick` from that S. -/
 def effective_pre_power_is_power {𝒜 : Type u} [PrePowerAllegory 𝒜]
     [EffectiveAllegory 𝒜] : PowerAllegory 𝒜 := by
   sorry
@@ -447,7 +476,13 @@ def bigUnion {a : 𝒜} [PowerAllegory 𝒜] :
 def MetonymyLaw (𝒜 : Type u) [PowerAllegory 𝒜] : Prop :=
   ∀ (a : 𝒜), @bigInter 𝒜 a _ ⊑ @bigUnion 𝒜 a _
 
-/-- A pre-positive power allegory is semi-simple iff it obeys the law of metonymy (§2.442). -/
+/-- A pre-positive power allegory is semi-simple iff it obeys the law of metonymy (§2.442).
+    FAITHFUL SORRY (infrastructure gap, not a false statement).  Freyd's §2.442 argument
+    relates semi-simplicity to `⊓ ⊑ ⊔` through the pre-positive splitting `ff° ∪ gg° = 1`
+    and the membership calculus for `bigInter = A(∋∋)` / `bigUnion = A(ε'\∋)`.  The blocker
+    is the missing big-intersection/big-union equational lemmas (how `∋` interacts with the
+    `A(·)` adjunction across `[[a]]`) plus the §2.441 disjointness arithmetic; these are not
+    yet derived in S2_3/S2_4. -/
 theorem pre_positive_semi_simple_iff_metonymic {𝒜 : Type u}
     [PowerAllegory 𝒜] [PrePositiveAllegory 𝒜] :
     (∀ (a b : 𝒜) (R : a ⟶ b), SemiSimple R) ↔ MetonymyLaw 𝒜 := by
