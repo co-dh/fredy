@@ -156,17 +156,14 @@ theorem decompose_via_coproduct [PositivePreLogos 𝒞] {A B₁ B₂ : 𝒞} (f 
 /-! ## §1.625 Representations of positive pre-logoi
 
   A functor T: 𝒜 → ℬ between positive pre-logoi is a representation of pre-logoi
-  iff it preserves disjoint unions.  (The book uses that union = image of coproduct.) -/
+  iff it preserves disjoint unions.  (The book uses that union = image of coproduct.)
 
-/-- §1.625: T: 𝒜 → ℬ between positive pre-logoi is a representation of pre-logoi
-    iff T preserves disjoint unions.
-    BECAUSE: union of A₁, A₂ ⊆ A is the image of A₁+A₂ → A (§1.62 pasting lemma);
-    if T preserves images and disjoint coproducts it preserves this image = union. -/
-theorem representation_iff_preserves_disjoint_unions
-    {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
-    [PositivePreLogos 𝒜] [PositivePreLogos ℬ]
-    (T : 𝒜 → ℬ) [Functor T] :
-    True := trivial  -- stub: full statement needs PreLogosFunctor
+  MISSING: this statement cannot yet be stated faithfully in this repo — it quantifies over
+  "T is a representation of regular categories" and "T preserves disjoint unions", neither of
+  which has a predicate here.  A faithful formalization needs a `PreLogosFunctor` / "representation
+  of regular categories" structure (preserving finite products, equalizers, images) plus a
+  `PreservesDisjointUnions T` predicate.  Per the integrity rule the previous vacuous
+  `: True := trivial` stub has been removed rather than left in place. -/
 
 /-! ## §1.632 Generating set / basis
 
