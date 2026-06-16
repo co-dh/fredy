@@ -348,6 +348,23 @@ theorem double_neg_meet_ge [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos 𝒞
       (HeytingAlgebra.meet_le_left _ _)
       (subobject_le_trans (HeytingAlgebra.meet_le_right _ _) (HeytingAlgebra.meet_le_right _ _))
 
+/-- Meet distributes over union: z∧(a∨b) ≤ (z∧a)∨(z∧b)  (§1.726).
+    A Heyting algebra is distributive because meet has a right adjoint (imp):
+    by the adjunction this reduces to a∨b ≤ z→((z∧a)∨(z∧b)), and each
+    disjunct a, b lands there since z∧a, z∧b ≤ (z∧a)∨(z∧b).  The reverse
+    inequality is automatic in any lattice, so this is genuine distributivity. -/
+theorem meet_union_le_distrib [HasImages 𝒞] [HeytingAlgebra 𝒞]
+    {A : 𝒞} (z a b : Subobject 𝒞 A) :
+    Subobject.le (HeytingAlgebra.meet z (HasSubobjectUnions.union a b))
+                 (HasSubobjectUnions.union (HeytingAlgebra.meet z a)
+                                           (HeytingAlgebra.meet z b)) := by
+  -- z∧(a∨b) ≤ W  ↔  a∨b ≤ z→W, with W = (z∧a)∨(z∧b)
+  rw [← HeytingAlgebra.adjunction]
+  apply HasSubobjectUnions.union_min
+  · -- a ≤ z→W  ↔  z∧a ≤ W; and z∧a ≤ (z∧a)∨(z∧b)
+    rw [HeytingAlgebra.adjunction]; exact HasSubobjectUnions.union_left _ _
+  · rw [HeytingAlgebra.adjunction]; exact HasSubobjectUnions.union_right _ _
+
 /-! ## §1.728 Law of excluded middle
 
   If we adjoin x ∨ ¬x = 1 (law of excluded middle), every element has a
@@ -361,6 +378,46 @@ theorem em_disjoint [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos 𝒞]
     {A : 𝒞} (x : Subobject 𝒞 A) :
     Subobject.le (HeytingAlgebra.meet x (hneg x)) (PreLogos.bottom A) :=
   meet_neg_le_bot x
+
+/-- Every subobject is ≤ the entire (top) subobject. -/
+theorem le_entire {A : 𝒞} (S : Subobject 𝒞 A) : Subobject.le S (Subobject.entire A) :=
+  ⟨S.arr, by simp [Subobject.entire, Cat.comp_id]⟩
+
+/-- Under excluded middle, double negation is the identity: ¬¬x ≤ x
+    (the converse `x ≤ ¬¬x` is `le_double_neg`, so ¬¬x = x).  (§1.728)
+    Proof (Boolean): ¬¬x = ¬¬x ∧ 1 = ¬¬x ∧ (x∨¬x) ≤ (¬¬x∧x) ∨ (¬¬x∧¬x) ≤ x∨⊥ = x,
+    using meet-over-union distributivity and ¬¬x∧¬x ≤ ⊥. -/
+theorem double_neg_le_of_em [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos 𝒞]
+    {A : 𝒞} (x : Subobject 𝒞 A)
+    (hem : Subobject.le (Subobject.entire A)
+            (HasSubobjectUnions.union x (hneg x))) :
+    Subobject.le (hneg (hneg x)) x := by
+  -- ¬¬x ≤ ¬¬x ∧ (x∨¬x)
+  have step1 : Subobject.le (hneg (hneg x))
+      (HeytingAlgebra.meet (hneg (hneg x)) (HasSubobjectUnions.union x (hneg x))) :=
+    HeytingAlgebra.le_meet _ _ _ (subobject_le_refl _)
+      (subobject_le_trans (le_entire _) hem)
+  -- ¬¬x ∧ (x∨¬x) ≤ (¬¬x∧x) ∨ (¬¬x∧¬x)
+  have step2 := meet_union_le_distrib (hneg (hneg x)) x (hneg x)
+  -- (¬¬x∧x) ∨ (¬¬x∧¬x) ≤ x
+  have step3 : Subobject.le
+      (HasSubobjectUnions.union (HeytingAlgebra.meet (hneg (hneg x)) x)
+                                (HeytingAlgebra.meet (hneg (hneg x)) (hneg x))) x :=
+    HasSubobjectUnions.union_min _ _ _
+      (HeytingAlgebra.meet_le_right _ _)
+      -- ¬¬x∧¬x ≤ ¬x∧¬¬x ≤ ⊥ ≤ x
+      (subobject_le_trans (meet_comm_le _ _)
+        (subobject_le_trans (meet_neg_le_bot (hneg x)) (PreLogos.bottom_min x)))
+  exact subobject_le_trans step1 (subobject_le_trans step2 step3)
+
+/-- Excluded middle ⇒ double negation is the identity (§1.728).
+    Records both halves: `x ≤ ¬¬x` (always) and `¬¬x ≤ x` (under EM). -/
+theorem double_neg_eq_self [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos 𝒞]
+    {A : 𝒞} (x : Subobject 𝒞 A)
+    (hem : Subobject.le (Subobject.entire A)
+            (HasSubobjectUnions.union x (hneg x))) :
+    Subobject.le (hneg (hneg x)) x ∧ Subobject.le x (hneg (hneg x)) :=
+  ⟨double_neg_le_of_em x hem, le_double_neg x⟩
 
 /-- In a Heyting algebra (with bottom), excluded middle x∨¬x = 1 implies
     x has a complement in the sense of §1.631.  (§1.728)
