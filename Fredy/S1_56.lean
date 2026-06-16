@@ -1823,4 +1823,140 @@ theorem graph_injective {A B : 𝒞} {f g : A ⟶ B} (h : graph f = graph g) : f
 
 end
 
+
+/-! ## §1.561  (RS)° = S°R°  —  reciprocation reverses composition -/
+
+section
+variable [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
+
+/-- **§1.561**: (R ⊚ S)° ≤ S° ⊚ R°.
+    Requires regularity (cover-epi factoring) to lift the RelHom witness from the
+    pullback level to the image level; sorried pending that infrastructure. -/
+theorem reciprocal_comp_le {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) :
+    RelLe ((R ⊚ S)°) (S° ⊚ R°) := by
+  sorry
+
+/-- **§1.561**: S° ⊚ R° ≤ (R ⊚ S)°.
+    Requires regularity; sorried pending that infrastructure. -/
+theorem comp_reciprocal_le {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) :
+    RelLe (S° ⊚ R°) ((R ⊚ S)°) := by
+  sorry
+
+/-- **§1.561**: (R ⊚ S)° and S° ⊚ R° are mutually contained. -/
+theorem reciprocal_comp {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) :
+    RelLe ((R ⊚ S)°) (S° ⊚ R°) ∧ RelLe (S° ⊚ R°) ((R ⊚ S)°) :=
+  ⟨reciprocal_comp_le R S, comp_reciprocal_le R S⟩
+
+end
+
+/-! ## §1.562  (R∩S)° = S°∩R°  and  (R∩S)T ⊆ RT∩ST -/
+
+section
+variable [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
+
+/-- **§1.562**: (R ⊓ S)° ≤ S° ⊓ R°.
+    The witness for R⊓S ≤ R (resp. S) also witnesses (R⊓S)° ≤ R° (resp. S°). -/
+theorem reciprocal_intersect_le {A B : 𝒞} (R S : BinRel 𝒞 A B) :
+    RelLe ((R ⊓ S)°) (S° ⊓ R°) := by
+  apply le_intersect
+  · rcases intersect_le_right R S with ⟨⟨h, hA, hB⟩⟩; exact ⟨⟨h, hB, hA⟩⟩
+  · rcases intersect_le_left  R S with ⟨⟨h, hA, hB⟩⟩; exact ⟨⟨h, hB, hA⟩⟩
+
+/-- **§1.562**: S° ⊓ R° ≤ (R ⊓ S)°.
+    The (S°⊓R°)-pullback gives a cone for the (R⊓S)-pullback via swapped legs. -/
+theorem intersect_reciprocal_le {A B : 𝒞} (R S : BinRel 𝒞 A B) :
+    RelLe (S° ⊓ R°) ((R ⊓ S)°) := by
+  let pb_RS := HasPullbacks.has (pair R.colA R.colB) (pair S.colA S.colB)
+  let pb_SR := HasPullbacks.has (pair S.colB S.colA) (pair R.colB R.colA)
+  -- From pb_SR.cone.w: π₁≫S.colA=π₂≫R.colA and π₁≫S.colB=π₂≫R.colB
+  have hw := pb_SR.cone.w
+  have hA : pb_SR.cone.π₂ ≫ R.colA = pb_SR.cone.π₁ ≫ S.colA := by
+    have := congrArg (· ≫ snd) hw; simp only [Cat.assoc, snd_pair] at this; exact this.symm
+  have hB : pb_SR.cone.π₂ ≫ R.colB = pb_SR.cone.π₁ ≫ S.colB := by
+    have := congrArg (· ≫ fst) hw; simp only [Cat.assoc, fst_pair] at this; exact this.symm
+  have h_cone_w : pb_SR.cone.π₂ ≫ pair R.colA R.colB = pb_SR.cone.π₁ ≫ pair S.colA S.colB := by
+    have lhs : pb_SR.cone.π₂ ≫ pair R.colA R.colB =
+        pair (pb_SR.cone.π₂ ≫ R.colA) (pb_SR.cone.π₂ ≫ R.colB) :=
+      pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])
+    have rhs : pb_SR.cone.π₁ ≫ pair S.colA S.colB =
+        pair (pb_SR.cone.π₁ ≫ S.colA) (pb_SR.cone.π₁ ≫ S.colB) :=
+      pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])
+    rw [lhs, rhs, hA, hB]
+  let c    := (⟨pb_SR.cone.pt, pb_SR.cone.π₂, pb_SR.cone.π₁, h_cone_w⟩ :
+               Cone (pair R.colA R.colB) (pair S.colA S.colB))
+  let lift := pb_RS.lift c
+  have hl₁ : lift ≫ pb_RS.cone.π₁ = pb_SR.cone.π₂ := pb_RS.lift_fst c
+  exact ⟨⟨lift,
+    show lift ≫ pb_RS.cone.π₁ ≫ R.colB = pb_SR.cone.π₁ ≫ S.colB by rw [← Cat.assoc, hl₁]; exact hB,
+    show lift ≫ pb_RS.cone.π₁ ≫ R.colA = pb_SR.cone.π₁ ≫ S.colA by rw [← Cat.assoc, hl₁]; exact hA⟩⟩
+
+/-- **§1.562**: (R ⊓ S)° = S° ⊓ R° (mutual containment). -/
+theorem reciprocal_intersect {A B : 𝒞} (R S : BinRel 𝒞 A B) :
+    RelLe ((R ⊓ S)°) (S° ⊓ R°) ∧ RelLe (S° ⊓ R°) ((R ⊓ S)°) :=
+  ⟨reciprocal_intersect_le R S, intersect_reciprocal_le R S⟩
+
+/-- Monotonicity of ⊚ in the first argument: R ≤ R' → R ⊚ T ≤ R' ⊚ T. -/
+theorem compose_le_left {A B C : 𝒞} {R R' : BinRel 𝒞 A B} (hRR' : RelLe R R') (T : BinRel 𝒞 B C) :
+    RelLe (R ⊚ T) (R' ⊚ T) := by
+  rcases hRR' with ⟨⟨h, hA, hB⟩⟩
+  let pb  := HasPullbacks.has R.colB T.colA
+  let pb' := HasPullbacks.has R'.colB T.colA
+  have hcone_w : (pb.cone.π₁ ≫ h) ≫ R'.colB = pb.cone.π₂ ≫ T.colA := by
+    rw [Cat.assoc, hB]; exact pb.cone.w
+  let c   := (⟨pb.cone.pt, pb.cone.π₁ ≫ h, pb.cone.π₂, hcone_w⟩ : Cone R'.colB T.colA)
+  let u   := pb'.lift c
+  have hu₁ : u ≫ pb'.cone.π₁ = pb.cone.π₁ ≫ h := pb'.lift_fst c
+  have hu₂ : u ≫ pb'.cone.π₂ = pb.cone.π₂   := pb'.lift_snd c
+  let span  : pb.cone.pt  ⟶ prod A C := pair (pb.cone.π₁  ≫ R.colA)  (pb.cone.π₂  ≫ T.colB)
+  let span' : pb'.cone.pt ⟶ prod A C := pair (pb'.cone.π₁ ≫ R'.colA) (pb'.cone.π₂ ≫ T.colB)
+  let I  := image span
+  let I' := image span'
+  have h_fac : u ≫ span' = span :=
+    pair_uniq _ _ _
+      (by rw [Cat.assoc, fst_pair, ← Cat.assoc, hu₁, Cat.assoc, hA])
+      (by rw [Cat.assoc, snd_pair, ← Cat.assoc, hu₂])
+  have h_le : (image span).le I' := image_min span I'
+    ⟨u ≫ image.lift span', by rw [Cat.assoc, image.lift_fac span', h_fac]⟩
+  rcases h_le with ⟨k, hk⟩
+  have hkA : k ≫ (R' ⊚ T).colA = (R ⊚ T).colA := by
+    show k ≫ I'.arr ≫ fst = (image span).arr ≫ fst
+    rw [← Cat.assoc, hk]
+  have hkB : k ≫ (R' ⊚ T).colB = (R ⊚ T).colB := by
+    show k ≫ I'.arr ≫ snd = (image span).arr ≫ snd
+    rw [← Cat.assoc, hk]
+  exact ⟨⟨k, hkA, hkB⟩⟩
+
+/-- **§1.562**: Right-distributivity: (R ⊓ S) ⊚ T ≤ (R ⊚ T) ⊓ (S ⊚ T). -/
+theorem intersect_comp_le {A B C : 𝒞} (R S : BinRel 𝒞 A B) (T : BinRel 𝒞 B C) :
+    RelLe ((R ⊓ S) ⊚ T) ((R ⊚ T) ⊓ (S ⊚ T)) :=
+  le_intersect
+    (compose_le_left (intersect_le_left  R S) T)
+    (compose_le_left (intersect_le_right R S) T)
+
+end
+
+/-! ## §1.56(10) Image of a constant morphism is a subterminator
+
+  The book proves this via the metatheorem (Horn sentence true in Set, hence in any regular
+  category).  We record the faithful statement; the elementary proof requires the
+  cover-pullback (regularity) + epi-cancellation argument not yet available without
+  the representation theorem.  -/
+
+section
+variable [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] [HasTerminal 𝒞]
+
+/-- **§1.56(10)**: If x : A → B is constant (yx = y'x for all y, y' : C → A),
+    then the image of x is a subterminator (image(x).dom → 1 is monic).
+    Proof via metatheorem for regular categories; elementary proof requires
+    regularity (cover-pullback + epi-cancellation). -/
+theorem constant_image_subterminator {A B : 𝒞} (x : A ⟶ B) (_hx : Constant x) :
+    Subterminator (image x).dom := by
+  -- In Set: image(x) = single element (x constant) → subterminal.
+  -- In general: Horn sentence true in Set, hence in any regular category.
+  -- Elementary: Mono (term (image x).dom) iff all W→(image x).dom are equal,
+  -- which follows from monicity of (image x).arr and constantness via the cover pullback.
+  sorry
+
+end
+
 end Freyd
