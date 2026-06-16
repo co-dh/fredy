@@ -254,6 +254,19 @@ theorem equivalenceKernel_iff_kernel_of_functor
       EquivalenceFunctor Q ∧ Function.Surjective Q ∧
       ∀ {X Y : 𝒞} (f : X ⟶ Y),
         mem f ↔ ∃ _ : Q X = Q Y, HEq (hQ.map f) (Cat.id (Q X))) := by
-  sorry
+  constructor
+  · -- forward: every equivalence kernel is the kernel of its quotient functor (§1.366).
+    rintro ⟨K, hK⟩
+    obtain ⟨𝒟, instD, Q, hQ, heq, honto, hker⟩ := quotientByKernel_exists K
+    refine ⟨𝒟, instD, Q, hQ, heq, honto, ?_⟩
+    intro X Y f
+    exact (hK f).symm.trans (hker f)
+  · -- backward: the kernel of an onto equivalence functor is an equivalence kernel
+    --   (its members are exactly the maps `Q` collapses), via `equivalenceKernel`.
+    rintro ⟨𝒟, instD, Q, hQ, ⟨emb, full, _⟩, _honto, hker⟩
+    refine ⟨equivalenceKernel Q emb full, ?_⟩
+    intro X Y f
+    -- `equivalenceKernel`'s membership IS the `Q`-collapse condition, definitionally.
+    exact (Iff.rfl).trans (hker f).symm
 
 end Freyd
