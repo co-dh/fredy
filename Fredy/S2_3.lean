@@ -485,25 +485,218 @@ theorem straight_cancel {a b c : 𝒜} {S : a ⟶ b} (hS : Straight S)
 
 /-! ## §2.353  Converse characterization of straightness -/
 
-/-- Converse of straight_cancel (§2.353): if (FS = GS → (dom F)G = (dom G)F)
-    for all simple F, G with the same source, then S is straight.
+/-! ### Domain algebra used by §2.353
 
-    FAITHFUL SORRY. The book's §2.353 proves this only for division allegories
-    "in which every morphism is the union of the semisimple morphisms it contains"
-    (§2.225). That hypothesis is what licenses the *reduction step*: to prove
-    `S/ₛS ⊑ 1` it suffices to prove `F°G ⊑ 1` for every simple F, G with
-    `F°G ⊑ S/ₛS`, because `S/ₛS` is then the union of such pieces. The reduction
-    is not available from the bare `DivisionAllegory` interface here (it needs
-    unions / local completeness — §2.225 itself is unformalized). The inner
-    argument (set F' = (dom G)F, G' = (dom F)G; then F'S = G'S, so by `h`
-    F' = G', whence F°G = F'°G' ⊑ 1) IS pure division-allegory algebra and is
-    discharged in spirit by `straight_cancel_simple`; only the §2.225 reduction
-    blocks a complete proof. See S2_3.md for the sharpened blocker. -/
+  The §2.353 construction sets F' = (dom G)F, G' = (dom F)G for simple F, G with
+  the same source and target.  The four lemmas below are the pure
+  division-allegory facts the book uses silently:
+  `dom F' = dom G'`, `F'°G' = F°G`, `Simple F'`, and `dom R ≫ R = R`. -/
+
+/-- `dom R ≫ R = R` (the domain restricts nothing): one half is `dom R ⊑ 1`,
+    the other is `le_dom_comp`. -/
+theorem dom_comp_self {a b : 𝒜} (R : a ⟶ b) : dom R ≫ R = R :=
+  le_antisymm (le_trans (comp_mono_right (dom_coreflexive R) R)
+    (by rw [Cat.id_comp]; exact le_refl R)) (le_dom_comp R)
+
+/-- `Simple (E ≫ F)` when `E` is coreflexive and `F` simple
+    (E°E ⊑ 1 so (EF)°(EF) = F°(E°E)F ⊑ F°F ⊑ 1). -/
+theorem simple_coref_comp {a c : 𝒜} {E : c ⟶ c} {F : c ⟶ a}
+    (hE : Coreflexive E) (hF : Simple F) : Simple (E ≫ F) := by
+  dsimp [Simple]
+  have hErec : E° ⊑ Cat.id c := by have := recip_mono hE; rwa [recip_id] at this
+  have hEE : E° ≫ E ⊑ Cat.id c := by
+    have h1 := comp_mono_right hErec E
+    rw [Cat.id_comp] at h1
+    exact le_trans h1 hE
+  have hstep : (E ≫ F)° ≫ (E ≫ F) ⊑ F° ≫ F := by
+    have e1 : (E ≫ F)° ≫ (E ≫ F) = F° ≫ ((E° ≫ E) ≫ F) := by
+      rw [Allegory.recip_comp, Cat.assoc, ← Cat.assoc E° E F]
+    rw [e1]
+    calc F° ≫ ((E° ≫ E) ≫ F)
+        ⊑ F° ≫ (Cat.id c ≫ F) := comp_mono_left F° (comp_mono_right hEE F)
+      _ = F° ≫ F := by rw [Cat.id_comp]
+  exact le_trans hstep hF
+
+/-- dom is symmetric: (dom R)° = dom R. -/
+theorem dom_recip {a b : 𝒜} (R : a ⟶ b) : (dom R)° = dom R :=
+  symmetric_eq (coreflexive_symmetric_idempotent (dom_coreflexive R)).1
+
+/-- `R° ≫ dom R = R°` (recip of `dom_comp_self`). -/
+theorem recip_comp_dom {a b : 𝒜} (R : a ⟶ b) : R° ≫ dom R = R° := by
+  have := congrArg (·°) (dom_comp_self R)
+  simpa [Allegory.recip_comp, dom_recip] using this
+
+/-- Domains commute: dom F ≫ dom G = dom G ≫ dom F. -/
+theorem dom_comm {a b₁ b₂ : 𝒜} (F : a ⟶ b₁) (G : a ⟶ b₂) :
+    dom F ≫ dom G = dom G ≫ dom F :=
+  (coreflexive_comp_eq_inter (dom_coreflexive F) (dom_coreflexive G)).trans
+    ((Allegory.inter_comm _ _).trans
+      (coreflexive_comp_eq_inter (dom_coreflexive G) (dom_coreflexive F)).symm)
+
+/-- Coreflexive sandwich: for coreflexive `E`, `1 ∩ (E ≫ X ≫ E°) = E ∩ X`. -/
+theorem coref_sandwich {c : 𝒜} (E : c ⟶ c) (X : c ⟶ c) (hE : Coreflexive E) :
+    Cat.id c ∩ (E ≫ X ≫ E°) = E ∩ X := by
+  have hEsym : E° = E := symmetric_eq (coreflexive_symmetric_idempotent hE).1
+  have hEidem : E ≫ E = E := (coreflexive_symmetric_idempotent hE).2
+  apply le_antisymm
+  · apply le_inter
+    · -- ⊑ E : modular on (E≫X) ≫ E°  ⟹  ((E≫X) ∩ E) ≫ E° ⊑ E≫E° = E
+      have hm := modular_le (E ≫ X) E° (Cat.id c)
+      have heq : Cat.id c ∩ (E ≫ X ≫ E°) = (E ≫ X) ≫ E° ∩ Cat.id c := by
+        rw [Allegory.inter_comm, ← Cat.assoc]
+      rw [heq]
+      refine le_trans hm ?_
+      have hEE' : E ≫ E° = E := by rw [hEsym, hEidem]
+      have hfac : (E ≫ X ∩ Cat.id c ≫ E°°) ⊑ E := by
+        refine le_trans (inter_lb_right _ _) ?_
+        rw [Cat.id_comp, Allegory.recip_recip]; exact le_refl E
+      exact le_trans (comp_mono_right hfac E°) (by rw [hEE']; exact le_refl E)
+    · -- ⊑ X : E X E° ⊑ 1·X·1 = X
+      refine le_trans (inter_lb_right _ _) ?_
+      calc E ≫ X ≫ E°
+          ⊑ Cat.id c ≫ X ≫ Cat.id c := by
+            refine le_trans (comp_mono_right hE _) ?_
+            exact comp_mono_left _ (comp_mono_left X (by rw [hEsym]; exact hE))
+        _ = X := by rw [Cat.id_comp, Cat.comp_id]
+  · apply le_inter
+    · exact le_trans (inter_lb_left _ _) hE
+    · -- E ∩ X ⊑ E X E°: C := E∩X coreflexive, C = C C C ⊑ E X E°
+      have hC : Coreflexive (E ∩ X) := le_trans (inter_lb_left _ _) hE
+      have hCidem : (E ∩ X) ≫ (E ∩ X) = E ∩ X := (coreflexive_symmetric_idempotent hC).2
+      calc E ∩ X
+          = (E ∩ X) ≫ (E ∩ X) ≫ (E ∩ X) := by rw [hCidem, hCidem]
+        _ ⊑ E ≫ X ≫ E° := by
+            refine le_trans (comp_mono_right (inter_lb_left _ _) _) ?_
+            refine comp_mono_left E ?_
+            refine le_trans (comp_mono_right (inter_lb_right _ _) _) ?_
+            refine comp_mono_left X ?_
+            rw [hEsym]; exact inter_lb_left _ _
+
+/-- `dom (E ≫ F) = E ∩ dom F` for coreflexive `E` (instance of `coref_sandwich`). -/
+theorem dom_coref_comp {a c : 𝒜} (E : c ⟶ c) (F : c ⟶ a) (hE : Coreflexive E) :
+    dom (E ≫ F) = E ∩ dom F := by
+  have hEsym : E° = E := symmetric_eq (coreflexive_symmetric_idempotent hE).1
+  -- RHS: E ∩ dom F = E ∩ (F ≫ F°), since E ⊑ 1
+  have hrhs : E ∩ dom F = E ∩ (F ≫ F°) := by
+    have hE1 : E ∩ Cat.id c = E := le_antisymm (inter_lb_left _ _) (le_inter (le_refl _) hE)
+    dsimp [dom]; rw [Allegory.inter_assoc, hE1]
+  rw [hrhs]
+  -- LHS: dom(E≫F) = 1 ∩ E≫(F≫F°)≫E°
+  dsimp [dom]
+  have lhs_eq : (E ≫ F) ≫ (E ≫ F)° = E ≫ (F ≫ F°) ≫ E° := by
+    rw [Allegory.recip_comp, Cat.assoc, ← Cat.assoc F F° E°]
+  rw [lhs_eq]
+  exact coref_sandwich E (F ≫ F°) hE
+
+/-- §2.225 property (faithful to Freyd §2.16(10): "R is SEMI-SIMPLE if there
+    exist simple F, G such that R = F°G").  A morphism `R` is the UNION of the
+    semisimple morphisms it contains, encoded by its universal property: any `X`
+    (parallel to `R`) dominating every book-semisimple piece `F° ≫ G` (F, G
+    simple) contained in `R` also dominates `R`.  (`R` is the least upper bound
+    of its semisimple parts.)
+
+    Freyd states §2.353 only "for division allegories in which every morphism is
+    the union of the semisimple morphisms it contains [2.225]"; this is the
+    exact hypothesis, taken as a parameter because arbitrary unions / local
+    completeness are not part of the bare `DivisionAllegory` interface.
+
+    NOTE: the §2.16(10) book definition of semisimple is `F°G` (F, G simple),
+    which is what the §2.353 reduction quantifies over; we use that form here
+    directly. -/
+def UnionOfSemiSimple {a : 𝒜} (R : a ⟶ a) : Prop :=
+  ∀ X : a ⟶ a,
+    (∀ {c : 𝒜} (F G : c ⟶ a), Simple F → Simple G → F° ≫ G ⊑ R → F° ≫ G ⊑ X) →
+    R ⊑ X
+
+/-- Converse of `straight_cancel` (§2.353).  Given the §2.225 hypothesis that
+    `S /ₛ S` is the union of the (book-)semisimple morphisms it contains, and
+    that `FS = GS → (dom F)G = (dom G)F` for all simple F, G of the same source
+    and target, then `S` is straight.
+
+    Proof (Freyd §2.353).  By §2.225 it suffices to show `F°G ⊑ 1` for all
+    simple F, G with `F°G ⊑ S/ₛS`.  Set `F' = (dom G)F`, `G' = (dom F)G`.  Then
+    `dom F' = dom G'` (`dom_coref_comp` + `dom_comm`), `F'°G' = F°G`, and
+    `F'S = G'S` (using `F°G ⊑ S/ₛS`).  The hypothesis `h` gives
+    `(dom F')G' = (dom G')F'`; with `dom F' = dom G'` this forces `F' = G'`,
+    whence `F°G = F'°G' = F'°F' ⊑ 1` by simplicity of `F'`. -/
 theorem straight_of_cancel {a b : 𝒜} {S : a ⟶ b}
+    (hUnion : UnionOfSemiSimple (S /ₛ S))
     (h : ∀ {c : 𝒜} (F G : c ⟶ a),
         Simple F → Simple G → F ≫ S = G ≫ S → dom F ≫ G = dom G ≫ F) :
     Straight S := by
-  sorry
+  -- §2.225 reduction: suffices F°G ⊑ 1 for all simple F, G with F°G ⊑ S/ₛS.
+  refine hUnion (Cat.id a) ?_
+  intro c F G hF hG hFGle
+  -- F' = (dom G) F, G' = (dom F) G.  Both simple.
+  -- (no `set`/`let`: this file is mathlib-free; use explicit abbreviations.)
+  obtain ⟨F', hF'⟩ : ∃ F', F' = dom G ≫ F := ⟨_, rfl⟩
+  obtain ⟨G', hG'⟩ : ∃ G', G' = dom F ≫ G := ⟨_, rfl⟩
+  have hF'simple : Simple F' := hF' ▸ simple_coref_comp (dom_coreflexive G) hF
+  have hG'simple : Simple G' := hG' ▸ simple_coref_comp (dom_coreflexive F) hG
+  -- dom F' = dom G' = dom F ∩ dom G.
+  have hdomF' : dom F' = dom G ∩ dom F := by rw [hF', dom_coref_comp _ _ (dom_coreflexive G)]
+  have hdomG' : dom G' = dom F ∩ dom G := by rw [hG', dom_coref_comp _ _ (dom_coreflexive F)]
+  have hdomEq : dom F' = dom G' := by rw [hdomF', hdomG', Allegory.inter_comm]
+  -- F'°G' = F°G.
+  have hF'G' : F'° ≫ G' = F° ≫ G := by
+    rw [hF', hG', Allegory.recip_comp, dom_recip]
+    calc (F° ≫ dom G) ≫ (dom F ≫ G)
+        = F° ≫ (dom G ≫ dom F) ≫ G := by
+          rw [Cat.assoc, Cat.assoc, ← Cat.assoc (dom G) (dom F) G]
+      _ = F° ≫ (dom F ≫ dom G) ≫ G := by rw [dom_comm]
+      _ = (F° ≫ dom F) ≫ (dom G ≫ G) := by
+          rw [Cat.assoc, Cat.assoc, ← Cat.assoc (dom F) (dom G) G]
+      _ = F° ≫ G := by rw [recip_comp_dom, dom_comp_self]
+  -- F'S = G'S, using F°G ⊑ S/ₛS.
+  -- (S/ₛS)S ⊑ S.
+  have hssS : (S /ₛ S) ≫ S ⊑ S := ((le_symmDiv_iff (S /ₛ S) S S).mp (le_refl _)).1
+  -- F'°G' ⊑ S/ₛS and G'°F' ⊑ S/ₛS (the latter by symmetry of S/ₛS).
+  have hF'G'le : F'° ≫ G' ⊑ S /ₛ S := by rw [hF'G']; exact hFGle
+  have hG'F'le : G'° ≫ F' ⊑ S /ₛ S := by
+    have hsym : (S /ₛ S)° ⊑ S /ₛ S := symmDiv_self_symmetric (S)
+    have : (F'° ≫ G')° ⊑ (S /ₛ S)° := recip_mono hF'G'le
+    rw [Allegory.recip_comp, Allegory.recip_recip] at this
+    exact le_trans this hsym
+  -- domain restriction: G' = dom F' ≫ G' ⊑ (F' ≫ F'°) ≫ G'.
+  have hdomle : dom F' ⊑ F' ≫ F'° := inter_lb_right _ _
+  have hG'restrict : G' ⊑ (F' ≫ F'°) ≫ G' :=
+    calc G' = dom F' ≫ G' := by rw [hdomEq, dom_comp_self]
+      _ ⊑ (F' ≫ F'°) ≫ G' := comp_mono_right hdomle G'
+  have hF'restrict : F' ⊑ (G' ≫ G'°) ≫ F' :=
+    calc F' = dom G' ≫ F' := by rw [← hdomEq, dom_comp_self]
+      _ ⊑ (G' ≫ G'°) ≫ F' := comp_mono_right (inter_lb_right _ _) F'
+  have hF'S : F' ≫ S = G' ≫ S := by
+    apply le_antisymm
+    · -- F'S ⊑ G'S : F'S ⊑ (G'G'°)F'S = G'(G'°F')S ⊑ G'(S/ₛS)S ⊑ G'S
+      have c1 : F' ≫ S ⊑ ((G' ≫ G'°) ≫ F') ≫ S := comp_mono_right hF'restrict S
+      have c2 : ((G' ≫ G'°) ≫ F') ≫ S = G' ≫ ((G'° ≫ F') ≫ S) := by
+        rw [Cat.assoc, Cat.assoc, ← Cat.assoc G'° F' S]
+      have c3 : G' ≫ ((G'° ≫ F') ≫ S) ⊑ G' ≫ ((S /ₛ S) ≫ S) :=
+        comp_mono_left G' (comp_mono_right hG'F'le S)
+      have c4 : G' ≫ ((S /ₛ S) ≫ S) ⊑ G' ≫ S := comp_mono_left G' hssS
+      exact le_trans c1 (by rw [c2]; exact le_trans c3 c4)
+    · -- G'S ⊑ F'S : symmetric
+      have c1 : G' ≫ S ⊑ ((F' ≫ F'°) ≫ G') ≫ S := comp_mono_right hG'restrict S
+      have c2 : ((F' ≫ F'°) ≫ G') ≫ S = F' ≫ ((F'° ≫ G') ≫ S) := by
+        rw [Cat.assoc, Cat.assoc, ← Cat.assoc F'° G' S]
+      have c3 : F' ≫ ((F'° ≫ G') ≫ S) ⊑ F' ≫ ((S /ₛ S) ≫ S) :=
+        comp_mono_left F' (comp_mono_right hF'G'le S)
+      have c4 : F' ≫ ((S /ₛ S) ≫ S) ⊑ F' ≫ S := comp_mono_left F' hssS
+      exact le_trans c1 (by rw [c2]; exact le_trans c3 c4)
+  -- By h: dom F' ≫ G' = dom G' ≫ F'.  With dom F' = dom G', get F' = G'.
+  have hcancel := h F' G' hF'simple hG'simple hF'S
+  have hFG'eq : F' = G' := by
+    have e1 : F' = dom F' ≫ F' := (dom_comp_self F').symm
+    have e2 : G' = dom G' ≫ G' := (dom_comp_self G').symm
+    calc F' = dom F' ≫ F' := e1
+      _ = dom G' ≫ F' := by rw [hdomEq]
+      _ = dom F' ≫ G' := by rw [← hcancel, hdomEq]
+      _ = dom G' ≫ G' := by rw [hdomEq]
+      _ = G' := e2.symm
+  -- F°G = F'°G' = F'°F' ⊑ 1 (F' simple).
+  calc F° ≫ G = F'° ≫ G' := hF'G'.symm
+    _ = F'° ≫ F' := by rw [hFG'eq]
+    _ ⊑ Cat.id a := hF'simple
 
 /-! ## §2.355  If SR is straight then S is straight -/
 
@@ -597,5 +790,6 @@ theorem simplePart_largest {a b : 𝒜} (R : a ⟶ b) (A : a ⟶ a)
     rw [Cat.comp_id]
     exact le_trans (comp_mono_right hA R) (by rw [Cat.id_comp]; exact le_refl R)
   · exact hAR
+
 
 end Freyd.Alg

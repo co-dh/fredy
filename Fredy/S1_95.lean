@@ -391,13 +391,60 @@ def IsValueBased [HasTerminal 𝒞] : Prop :=
 
 /-- **§1.964**: In a value-based topos, Ω is a cogenerator: for any f ≠ g : A → B,
     there exists h : B → Ω such that f ≫ h ≠ g ≫ h.
-    Proof sketch (Freyd): (−, Ω) = χ?(−), so it suffices to find a subobject
-    B' ⊆ B with f#(B') ≠ g#(B').  Use a subterminator x : U → A with xf ≠ xg
-    and let B' = Im(xf); then x factors through f#(B') but not g#(B'). -/
+
+    Freyd's route is `(−, Ω) = χ?(−)` plus `B' = Im(xf)` for a subterminator value
+    `x : U → A` with `xf ≠ xg`.  Under this repo's *bare* `[Topos 𝒞]` that route is
+    not directly available (it needs `HasImages` / image-of-`xf`, both blocked on the
+    §1.54 capitalization lemma; cf. `topos_is_effective`).  We give an equivalent
+    proof needing only the classifier:
+
+    A value `x : U → A` out of a subterminator `U` (`Mono (term U)`) makes ANY map out
+    of `U` monic — any two maps INTO `U` agree (`term`-uniqueness + `term U` monic).  So
+    `x ≫ f : U ↣ B` is itself monic; take `h := χ(x ≫ f)`.  Then `(x≫f)≫h = term≫true`,
+    and the no-separation hypothesis forces `(x≫g)≫h = term≫true` too.  `monic_is_equalizer`
+    (§1.913) factors `x≫g = k ≫ (x≫f)` with `k : U → U`; subterminal collapse gives `k = id`,
+    so `x≫g = x≫f`.  This holds for every subterminator value, so `IsValueBased` forces
+    `f = g`, contradicting `f ≠ g`.  (Sorry-free; axioms: propext, choice, Quot.sound.) -/
 theorem omega_cogenerates_in_value_based_topos [Topos 𝒞] (hVB : IsValueBased (𝒞 := 𝒞)) :
     ∀ {A B : 𝒞} (f g : A ⟶ B), f ≠ g →
       ∃ (h : B ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞)), f ≫ h ≠ g ≫ h := by
-  sorry
+  intro A B f g hfg
+  -- Contrapositive: if NO `h` separates, then `f = g`, contradicting `f ≠ g`.
+  apply Classical.byContradiction; intro hcon'
+  -- `hcon' : ¬ ∃ h, f ≫ h ≠ g ≫ h`, i.e. every `h` fails to separate.
+  have hcon : ∀ h : B ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞), f ≫ h = g ≫ h := fun h =>
+    Classical.byContradiction (fun hne => hcon' ⟨h, hne⟩)
+  apply hfg
+  -- `hVB` reduces `f = g` to: every value `x : U → A` from a subterminator `U`
+  -- has `x ≫ f = x ≫ g`.
+  refine hVB f g (fun U hU x => ?_)
+  obtain ⟨mU, hmU⟩ := hU
+  -- A map OUT of a subterminator is monic: any two maps into `U` already agree
+  -- (their composites with `term U` agree by terminal uniqueness, and `term U` is
+  -- monic), so `x ≫ f` is monic with subterminal domain.
+  have hsub : ∀ {Z : 𝒞} (a b : Z ⟶ U), a = b := fun a b => hmU a b (term_uniq _ _)
+  have hm : Mono (x ≫ f) := fun a b _ => hsub a b
+  -- Take `h := χ(x ≫ f)` (the classifier of the monic `x ≫ f : U ↣ B`).
+  let h : B ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞) := HasSubobjectClassifier.classify (x ≫ f) hm
+  -- `x ≫ f` factors through itself, so `(x ≫ f) ≫ h = term U ≫ true`.
+  have hf_sq : (x ≫ f) ≫ h = term U ≫ HasSubobjectClassifier.true :=
+    HasSubobjectClassifier.classify_sq (x ≫ f) hm
+  -- From the contradiction hypothesis `f ≫ h = g ≫ h`, also `(x ≫ g) ≫ h = term U ≫ true`.
+  have hg_sq : (x ≫ g) ≫ h = term U ≫ HasSubobjectClassifier.true := by
+    calc (x ≫ g) ≫ h = x ≫ (g ≫ h) := Cat.assoc _ _ _
+      _ = x ≫ (f ≫ h) := by rw [hcon h]
+      _ = (x ≫ f) ≫ h := (Cat.assoc _ _ _).symm
+      _ = term U ≫ HasSubobjectClassifier.true := hf_sq
+  -- `monic_is_equalizer` turns `(x ≫ g) ≫ χ = (x ≫ g) ≫ (term ≫ true)` into a
+  -- factorization `k ≫ (x ≫ f) = x ≫ g`.
+  obtain ⟨_, huniv⟩ := monic_is_equalizer (x ≫ f) hm
+  obtain ⟨k, hk, _⟩ := huniv (x ≫ g) (by
+    rw [hg_sq, ← Cat.assoc]
+    exact congrArg (· ≫ HasSubobjectClassifier.true) (term_uniq (term U) ((x ≫ g) ≫ term B)))
+  -- `k : U → U` equals `id U` (subterminal), hence `x ≫ g = x ≫ f`.
+  calc x ≫ f = Cat.id U ≫ (x ≫ f) := (Cat.id_comp _).symm
+    _ = k ≫ (x ≫ f) := by rw [hsub (Cat.id U) k]
+    _ = x ≫ g := hk
 
 /-! ## §1.965  Internally cogenerates -/
 

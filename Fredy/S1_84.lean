@@ -369,6 +369,40 @@ instance grothendieck_topos_locally_complete [GrothendieckTopos E] :
 
 /-! ## §1.845 Coproducts in E remain coproducts in Rel(E) ------------------- -/
 
+/-- **EXTENSIVITY of a coproduct** (§1.84, the Giraud "disjoint + universal" coproduct
+    condition, here in the arbitrary-`I` form Freyd works with in an extensive / pretopos
+    context).
+
+    Freyd's actual condition: a coproduct `cp = {uⱼ : Aⱼ → ΣAⱼ}` is *extensive* when it is
+    **stable under pullback** — pulling any map back along the injections re-decomposes its
+    domain over the summands, and the off-diagonal pullbacks `Aᵢ ×_{ΣA} Aⱼ` (`i ≠ j`) vanish.
+
+    The exact slice of that property the §1.845 descent consumes is the *summand-support*
+    form: given ANY family of objects `S : J → 𝒞` coproduced as `cpS`, structure maps
+    `fⱼ : Sⱼ → Aⱼ`, the induced `Σf : ΣSⱼ → ΣAⱼ = cpS.desc (fun j => fⱼ ≫ uⱼ)`, an index `i`,
+    and a generalized element `g : T → ΣSⱼ` whose image `g ≫ Σf` lands in the `i`-th summand
+    `uᵢ` (witnessed by `t : T → Aᵢ`, `t ≫ uᵢ = g ≫ Σf`), the element `g` is — after passing to
+    a cover `c : T' ↠ T` — *supported on the `i`-th summand* `Sᵢ`: there is `φ : T' → Sᵢ` with
+    `c ≫ g = φ ≫ cpS.inj i`.
+
+    This is exactly "pullback of the injection `uᵢ` along `Σf` recovers `Sᵢ`, off-diagonal
+    pieces are `0`": the cover `c` presents the pullback `T ×_{ΣA} Aᵢ`, and disjointness kills
+    every summand `j ≠ i`, leaving the support map `φ` into `Sᵢ` and the factorization
+    `c ≫ g = φ ≫ inj i`.  (In a presheaf or sheaf topos this is the pointwise/stalkwise
+    partition of a section of `ΣSⱼ` by which summand its `ΣAⱼ`-image lies in.) -/
+structure ExtensiveCoproduct {𝒞 : Type u} [Cat.{v} 𝒞] [HasImages 𝒞]
+    {I : Type v} {A : I → 𝒞} (cp : Coproduct A) : Prop where
+  /-- Each injection `uⱼ` is monic — the diagonal half of "disjoint coproduct". -/
+  inj_monic : ∀ j, Mono (cp.inj j)
+  /-- Summand support (the off-diagonal-vanishing / pullback-stability half): a generalized
+      element `g : T → ΣSⱼ` whose `Σf`-image lands in the `j₀`-th injection is, after a cover
+      `c : T' ↠ T`, supported on the `j₀`-th summand `Sⱼ₀`. -/
+  support : ∀ {S : I → 𝒞} (cpS : Coproduct S) (f : ∀ j, S j ⟶ A j) (j₀ : I)
+    {T : 𝒞} (g : T ⟶ cpS.obj) (t : T ⟶ A j₀),
+    g ≫ cpS.desc (fun j => f j ≫ cp.inj j) = t ≫ cp.inj j₀ →
+    ∃ (T' : 𝒞) (c : T' ⟶ T), Cover c ∧
+      ∃ φ : T' ⟶ S j₀, c ≫ g = φ ≫ cpS.inj j₀
+
 /-- graph(u) ⊚ graph(u)° ≤ graph(id_A) when u is monic.
     Proof: the compose-internal span `pair(π₁ ≫ id_A, π₂ ≫ id_A)` = `π₁ ≫ diag A`
     (since π₁ = π₂ by monicity), so its image factors through diag A, yielding
@@ -479,6 +513,7 @@ theorem coproduct_is_coproduct_in_Rel
     [GrothendieckTopos E]
     {I : Type v} {A : I → E} {B : E}
     (cp : Coproduct A)
+    (hext : ExtensiveCoproduct cp)
     (R : ∀ i, BinRel E (A i) B) :
     ∃ (U : BinRel E cp.obj B),
       ∀ i, RelLe (graph (cp.inj i) ⊚ U) (R i) ∧
@@ -495,24 +530,95 @@ theorem coproduct_is_coproduct_in_Rel
     monicPair_of_monic_pair _ _ (pair_eta U_sub.arr ▸ U_sub.monic)
   let U : BinRel E cp.obj B := ⟨U_sub.dom, U_sub.arr ≫ fst, U_sub.arr ≫ snd, hU_mp⟩
   refine ⟨U, fun i => ⟨?_, ?_⟩⟩
-  · -- ≤ direction: graph(uᵢ) ⊚ U ≤ R i.
-    -- Reduce via `relLe_of_cover_factor`: the cover `image.lift span_i` presents
-    -- `(graph uᵢ ⊚ U).src` from the pullback point `pb_i = pullback(uᵢ, U.colA)`.
-    -- Pulling the image-cover `image.lift m : cpR.obj ↠ U.src` back along `pb_i.π₂`
-    -- gives a cover `Q ↠ pb_i.pt` carrying a map `q : Q → cpR.obj = Σⱼ (R j).src`,
-    -- and the pullback square forces `q ≫ colA_big = (π₂'≫π₁) ≫ uᵢ` to factor through uᵢ.
-    -- The book now descends `q` onto the i-th component `(R i).src` using disjointness
-    -- (uᵢ°uⱼ = 0 for j ≠ i) together with §1.84 pullback-preserves-unions.
-    -- SHARP BLOCKER: that descent is EXTENSIVITY — "a map into a disjoint coproduct,
-    -- pulled back along one injection, is supported on that summand."  This is NOT
-    -- derivable from `DisjointCoproduct.inj_disjoint` alone (which only collapses the
-    -- *off-diagonal* pullbacks Aᵢ ×_S Aⱼ to 0); it needs the arbitrary-indexed
-    -- coproduct decomposition Q = ⋃ⱼ q#(cpR.inj j) supplied by `pullback_union`,
-    -- a piece of infrastructure (extensive-category partition lemma) not yet built
-    -- in this repo.  The binary `DisjointBinaryCoproduct` lemmas of S1_64
-    -- (inl_mono, coprod_inl_inr_disjoint_elt, …) give the SUMMAND-PAIR case but do
-    -- not assemble into the arbitrary-`I` extensive decomposition this descent needs.
-    sorry
+  · -- ≤ direction: graph(uᵢ) ⊚ U ≤ R i, discharged with EXTENSIVITY (`hext`).
+    -- `(graph uᵢ ⊚ U).src` is presented, from the inner pullback `pb_c = pullback(uᵢ, U.colA)`,
+    -- by the image-cover `eW = image.lift span_c`.  We pull the coproduct-presenting cover
+    -- `image.lift m : cpR.obj ↠ U.src` back along `pb_c.π₂`, obtaining a cover of `pb_c.pt`
+    -- carrying `q : · → cpR.obj` with `q ≫ colA_big` factoring through `uᵢ`; extensivity then
+    -- supports `q` on the i-th summand `(R i).src`, producing the descent `φ`.
+    let uᵢ := cp.inj i
+    let pb_c := HasPullbacks.has uᵢ U.colA
+    let span_c : pb_c.cone.pt ⟶ prod (A i) B :=
+      pair (pb_c.cone.π₁ ≫ (graph uᵢ).colA) (pb_c.cone.π₂ ≫ U.colB)
+    let eW := image.lift span_c
+    -- `eW : pb_c.pt ↠ (graph uᵢ ⊚ U).src` is a cover, with the two span-leg identities.
+    have hWa : eW ≫ (graph uᵢ ⊚ U).colA = pb_c.cone.π₁ := by
+      show eW ≫ ((image span_c).arr ≫ fst) = _
+      rw [← Cat.assoc, image.lift_fac, fst_pair]
+      show pb_c.cone.π₁ ≫ Cat.id (A i) = pb_c.cone.π₁   -- (graph uᵢ).colA = id
+      rw [Cat.comp_id]
+    have hWb : eW ≫ (graph uᵢ ⊚ U).colB = pb_c.cone.π₂ ≫ U.colB := by
+      show eW ≫ ((image span_c).arr ≫ snd) = _
+      rw [← Cat.assoc, image.lift_fac, snd_pair]
+    -- Pull the image-cover of `m` back along `pb_c.π₂ : pb_c.pt → U.src = U_sub.dom`.
+    let em := image.lift m                      -- cover cpR.obj ↠ U_sub.dom
+    let pb1 := HasPullbacks.has em pb_c.cone.π₂
+    have hpb1_cover : Cover pb1.cone.π₂ := cover_pullback pb_c.cone.π₂ (image_lift_cover m)
+    -- On `pb1.pt`: `q ≫ colA_big` factors through `uᵢ`, witnessed by `t = pb1.π₂ ≫ pb_c.π₁`.
+    let q : pb1.cone.pt ⟶ cpR.obj := pb1.cone.π₁
+    have hq_m : q ≫ m = pb1.cone.π₂ ≫ pb_c.cone.π₂ ≫ U_sub.arr := by
+      calc q ≫ m = q ≫ (em ≫ U_sub.arr) := by rw [image.lift_fac]
+        _ = (q ≫ em) ≫ U_sub.arr := (Cat.assoc _ _ _).symm
+        _ = (pb1.cone.π₂ ≫ pb_c.cone.π₂) ≫ U_sub.arr := by rw [pb1.cone.w]
+        _ = pb1.cone.π₂ ≫ pb_c.cone.π₂ ≫ U_sub.arr := Cat.assoc _ _ _
+    have hfac : q ≫ colA_big = (pb1.cone.π₂ ≫ pb_c.cone.π₁) ≫ uᵢ := by
+      calc q ≫ colA_big
+          = (q ≫ m) ≫ fst := by rw [Cat.assoc]; rw [show m ≫ fst = colA_big from fst_pair _ _]
+        _ = (pb1.cone.π₂ ≫ pb_c.cone.π₂ ≫ U_sub.arr) ≫ fst := by rw [hq_m]
+        _ = pb1.cone.π₂ ≫ pb_c.cone.π₂ ≫ (U_sub.arr ≫ fst) := by
+              rw [Cat.assoc, Cat.assoc]
+        _ = pb1.cone.π₂ ≫ pb_c.cone.π₂ ≫ U.colA := rfl
+        _ = pb1.cone.π₂ ≫ pb_c.cone.π₁ ≫ uᵢ := by rw [← pb_c.cone.w]
+        _ = (pb1.cone.π₂ ≫ pb_c.cone.π₁) ≫ uᵢ := (Cat.assoc _ _ _).symm
+    -- `colA_big = cpR.desc (fun j => (R j).colA ≫ cp.inj j)`, so `hfac` is exactly the
+    -- extensivity hypothesis applied to `cpR`, structure maps `(R j).colA`, summand `i`.
+    obtain ⟨T', c, hc, φ, hcφ⟩ :=
+      hext.support cpR (fun j => (R j).colA) i q (pb1.cone.π₂ ≫ pb_c.cone.π₁) hfac
+    -- The full cover into `(graph uᵢ ⊚ U).src`: `c ≫ pb1.π₂ ≫ eW`.
+    let cov : T' ⟶ (graph uᵢ ⊚ U).src := c ≫ pb1.cone.π₂ ≫ eW
+    have hcov : Cover cov :=
+      cover_comp hc (cover_comp hpb1_cover (image_lift_cover span_c))
+    -- The descent `φ : T' → (R i).src`.  Match the two legs.
+    -- `φ ≫ cpR.inj i = c ≫ q`, hence `φ ≫ (R i).colA ≫ uᵢ = c ≫ q ≫ colA_big`,
+    -- and `uᵢ` monic gives `φ ≫ (R i).colA = cov ≫ (graph uᵢ ⊚ U).colA`.
+    have huᵢ_mono : Mono uᵢ := hext.inj_monic i
+    -- The two leg-values of the composite cover `cov` (factor `eW`'s leg identities through `c ≫ pb1.π₂`).
+    have hcov_colA : cov ≫ (graph uᵢ ⊚ U).colA = (c ≫ pb1.cone.π₂) ≫ pb_c.cone.π₁ := by
+      show (c ≫ pb1.cone.π₂ ≫ eW) ≫ (graph uᵢ ⊚ U).colA = _
+      simp only [Cat.assoc, hWa]
+    have hcov_colB : cov ≫ (graph uᵢ ⊚ U).colB = (c ≫ pb1.cone.π₂) ≫ pb_c.cone.π₂ ≫ U.colB := by
+      show (c ≫ pb1.cone.π₂ ≫ eW) ≫ (graph uᵢ ⊚ U).colB = _
+      simp only [Cat.assoc, hWb]
+    refine relLe_of_cover_factor cov hcov φ ?_ ?_
+    · -- φ ≫ (R i).colA = cov ≫ (graph uᵢ ⊚ U).colA, via uᵢ monic.
+      apply huᵢ_mono
+      calc (φ ≫ (R i).colA) ≫ uᵢ
+          = φ ≫ ((R i).colA ≫ uᵢ) := Cat.assoc _ _ _
+        _ = φ ≫ (cpR.inj i ≫ colA_big) := by
+              rw [show cpR.inj i ≫ colA_big = (R i).colA ≫ uᵢ from cpR.fac _ i]
+        _ = (φ ≫ cpR.inj i) ≫ colA_big := (Cat.assoc _ _ _).symm
+        _ = (c ≫ q) ≫ colA_big := by rw [← hcφ]
+        _ = c ≫ (q ≫ colA_big) := Cat.assoc _ _ _
+        _ = c ≫ ((pb1.cone.π₂ ≫ pb_c.cone.π₁) ≫ uᵢ) := by rw [hfac]
+        _ = ((c ≫ pb1.cone.π₂) ≫ pb_c.cone.π₁) ≫ uᵢ := by
+              rw [← Cat.assoc, ← Cat.assoc]
+        _ = (cov ≫ (graph uᵢ ⊚ U).colA) ≫ uᵢ := by rw [hcov_colA]
+    · -- φ ≫ (R i).colB = cov ≫ (graph uᵢ ⊚ U).colB
+      calc φ ≫ (R i).colB
+          = φ ≫ (cpR.inj i ≫ colB_big) := by
+              rw [show cpR.inj i ≫ colB_big = (R i).colB from cpR.fac _ i]
+        _ = (φ ≫ cpR.inj i) ≫ colB_big := (Cat.assoc _ _ _).symm
+        _ = (c ≫ q) ≫ colB_big := by rw [← hcφ]
+        _ = c ≫ (q ≫ colB_big) := Cat.assoc _ _ _
+        _ = c ≫ (q ≫ m ≫ snd) := by
+              rw [show m ≫ snd = colB_big from snd_pair _ _]
+        _ = c ≫ ((q ≫ m) ≫ snd) := by rw [Cat.assoc]
+        _ = c ≫ ((pb1.cone.π₂ ≫ pb_c.cone.π₂ ≫ U_sub.arr) ≫ snd) := by rw [hq_m]
+        _ = c ≫ (pb1.cone.π₂ ≫ pb_c.cone.π₂ ≫ (U_sub.arr ≫ snd)) := by
+              rw [Cat.assoc, Cat.assoc]
+        _ = c ≫ (pb1.cone.π₂ ≫ pb_c.cone.π₂ ≫ U.colB) := rfl
+        _ = (c ≫ pb1.cone.π₂) ≫ pb_c.cone.π₂ ≫ U.colB := (Cat.assoc _ _ _).symm
+        _ = cov ≫ (graph uᵢ ⊚ U).colB := hcov_colB.symm
   · -- ≥ direction: R i ≤ graph(uᵢ) ⊚ U
     let uᵢ := cp.inj i
     let pb_i := HasPullbacks.has uᵢ U.colA
