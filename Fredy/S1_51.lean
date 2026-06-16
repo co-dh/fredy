@@ -70,6 +70,21 @@ def Cover {X Y : 𝒞} (f : X ⟶ Y) : Prop :=
 theorem monic_cover_iso {X Y : 𝒞} (f : X ⟶ Y) (hc : Cover f) (hm : Mono f) : IsIso f :=
   hc f (Cat.id X) hm (Cat.id_comp f)
 
+/-- Pre-composing a cover with an isomorphism is still a cover: any monic `m`
+    that `i ≫ h` factors through, `h` also factors through (via `i⁻¹ ≫ g`), so
+    `h` being a cover forces `m` iso.  Lets us reduce a pullback-square cover to a
+    canonical-pullback cover (the two projections differ by the comparison iso). -/
+theorem cover_precomp_iso {X X' Y : 𝒞} {i : X ⟶ X'} (hi : IsIso i) {h : X' ⟶ Y}
+    (hc : Cover h) : Cover (i ≫ h) := by
+  obtain ⟨i', _, hi2⟩ := hi
+  intro C m g hm hgm
+  refine hc m (i' ≫ g) hm ?_
+  calc (i' ≫ g) ≫ m = i' ≫ (g ≫ m) := Cat.assoc _ _ _
+    _ = i' ≫ (i ≫ h) := by rw [hgm]
+    _ = (i' ≫ i) ≫ h := (Cat.assoc _ _ _).symm
+    _ = Cat.id _ ≫ h := by rw [hi2]
+    _ = h := Cat.id_comp _
+
 /-- Two images of the same morphism are isomorphic via *any* comparison map that
     is compatible with their inclusions.  Concretely: if `P` and `Q` are both
     images of `g`, and `c : P.dom → Q.dom` satisfies `c ≫ Q.arr = P.arr`, then `c`
