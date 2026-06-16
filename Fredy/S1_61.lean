@@ -166,7 +166,18 @@ theorem inverseImage_mono [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullba
     plus a pullback-of-image = image-of-pullback interchange (the §1.45 pullback-pasting law,
     itself still `sorry` in `S1_45`).  Without coproducts or that interchange the preservation
     facts are not derivable here; they hold in the book because its pre-logoi are positive
-    (§1.623) or are reached via the capitalization that supplies coproducts (§1.63). -/
+    (§1.623) or are reached via the capitalization that supplies coproducts (§1.63).
+
+    Re-checked against S1_60's now-proven `compose_union_right` (the relational distributivity
+    `R⊚(S∪T) ≤ (R⊚S)∪(R⊚T)`, established modulo the isolated extensivity primitive
+    `union_compose_descent`): it does NOT unlock this forward inclusion.  `compose_union_right`
+    (and `rel_inter_union_le`) live in `section BinRelDistributive` under
+    `variable [HasBinaryCoproducts 𝒞] [PreLogos 𝒞]` and *consume* `PreLogos.invImage_preserves_union`
+    to TRANSPORT a relation fact across the `relSub` bridge.  Here we are *constructing* the
+    `PreLogos`, with only `RegularCategory + HasSubobjectUnions` in scope (no coproducts, no
+    PreLogos instance) — so invoking that machinery would be using the very field
+    `invImage_preserves_union` we are obliged to supply.  The `relSub` bridge runs the wrong way:
+    it derives subobject-lattice facts FROM the pre-logos axiom, not the axiom from below. -/
 theorem cartesian_with_images_covers_implies_prelogos (𝒞 : Type u) [Cat.{v} 𝒞]
     [hReg : RegularCategory 𝒞] [HasSubobjectUnions 𝒞]
     (hBottom : ∀ (A : 𝒞), Subobject 𝒞 A)
@@ -189,7 +200,14 @@ theorem cartesian_with_images_covers_implies_prelogos (𝒞 : Type u) [Cat.{v} �
          HasSubobjectUnions.union_min _ _ _
            (inverseImage_mono _f (HasSubobjectUnions.union_left S T))
            (inverseImage_mono _f (HasSubobjectUnions.union_right S T))⟩
-      -- covers-transfer ⟹ f# preserves the bottom (same machinery)
+      -- covers-transfer ⟹ f# preserves the bottom.  The forward map ⊥_A → f#(⊥_B) is
+      -- `hBottom_min`, and the pullback's π₂ then `hBottom_dom_iso` give a map back
+      -- f#(⊥_B).dom → ⊥_A.dom — but `Isomorphic` (S1_34: `∃ g, IsIso g`) demands an actual
+      -- iso, not maps-both-ways (that shortcut, `thin_iso_of_maps`, is valid ONLY in a thin
+      -- category, cf. the `distributive_poset_is_prelogos` instance above).  Proving the
+      -- round-trips are identities requires ⊥.dom to be INITIAL (the §1.61 coterminator), which
+      -- the `minimal_subobject_of_one_is_coterminator`/`any_map_to_zero_is_iso` argument derives
+      -- ONLY from a complete `PreLogos` — circular at the construction site.  Faithful sorry.
       invImage_preserves_bottom := fun {_A _B} _f => sorry }⟩
 
 /-- **§1.612**: For monic f : A ↣ B, f# : Sub(B) → Sub(A) preserves binary
