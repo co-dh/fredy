@@ -286,7 +286,23 @@ variable [RegularCategory 𝒞]
     the required map in R. (Requires: entire relations compose with maps.) -/
 theorem subobject_of_choice_is_choice {A C : 𝒞} (m : A ⟶ C) (hm : Mono m)
     (hC : Choice C) : Choice A := by
-  sorry
+  intro X R hent
+  -- Post-compose R : X → A with the monic m to get R' : X → C, same left leg.
+  have hp' : MonicPair R.colA (R.colB ≫ m) := by
+    intro W f g hA hB
+    have hB' : f ≫ R.colB = g ≫ R.colB :=
+      hm _ _ (by simpa [Cat.assoc] using hB)
+    exact R.isMonicPair f g hA hB'
+  let R' : BinRel 𝒞 X C := BinRel.mk R.src R.colA (R.colB ≫ m) hp'
+  -- R is entire ⇒ R.colA is a cover ⇒ R' is entire (same left leg).
+  have hcov : Cover R.colA :=
+    (tabulated_is_entire_iff_left_cover R.colA R.colB R.isMonicPair).mp hent
+  have hent' : Entire R' :=
+    (tabulated_is_entire_iff_left_cover R.colA (R.colB ≫ m) hp').mpr hcov
+  -- C is choice: R' contains a map; its witness `h : X → R.src` also witnesses
+  -- the map `h ≫ R.colB : X → A` inside R.
+  obtain ⟨_f, h, hA, _hB⟩ := hC R' hent'
+  exact ⟨h ≫ R.colB, h, hA, rfl⟩
 
 /-- **§1.66**: A quotient (cover target) of a choice object is choice.
     If C is choice and x: C↠B is a cover, then B is choice.
@@ -294,7 +310,54 @@ theorem subobject_of_choice_is_choice {A C : 𝒞} (m : A ⟶ C) (hm : Mono m)
     (the inclusion via a map contained in x°). Apply subobject_of_choice. -/
 theorem quotient_of_choice_is_choice {B C : 𝒞} (x : C ⟶ B) (hx : Cover x)
     (hC : Choice C) : Choice B := by
-  sorry
+  intro X R hent
+  -- R : X → B entire ⇒ R.colA : R.src → X is a cover.
+  have hcovA : Cover R.colA :=
+    (tabulated_is_entire_iff_left_cover R.colA R.colB R.isMonicPair).mp hent
+  -- Pull the cover x : C → B back along R.colB : R.src → B.
+  -- `has x R.colB` cone: π₁ : pt → C, π₂ : pt → R.src, π₁ ≫ x = π₂ ≫ R.colB.
+  let pb := HasPullbacks.has x R.colB
+  have hcov_π₂ : Cover pb.cone.π₂ := cover_pullback (f := x) R.colB hx
+  have hw : pb.cone.π₁ ≫ x = pb.cone.π₂ ≫ R.colB := pb.cone.w
+  -- Build R'' : X → C with src = pb.pt, left leg = π₂ ≫ R.colA (a cover),
+  -- right leg = π₁ : pt → C.  Monic pair: left leg cancels the R-data and the
+  -- pullback's π₁ is determined by π₂ via the universal property... we instead
+  -- check joint-monicity directly.
+  have hp'' : MonicPair (pb.cone.π₂ ≫ R.colA) pb.cone.π₁ := by
+    intro W f g hA hB
+    -- hA : f ≫ (π₂ ≫ R.colA) = g ≫ (π₂ ≫ R.colA),  hB : f ≫ π₁ = g ≫ π₁.
+    -- From hB and hw: f ≫ π₂ ≫ R.colB = g ≫ π₂ ≫ R.colB.
+    have hB2 : (f ≫ pb.cone.π₂) ≫ R.colB = (g ≫ pb.cone.π₂) ≫ R.colB := by
+      have : f ≫ (pb.cone.π₁ ≫ x) = g ≫ (pb.cone.π₁ ≫ x) := by
+        rw [← Cat.assoc, ← Cat.assoc, hB]
+      rw [hw] at this
+      simpa [Cat.assoc] using this
+    have hA2 : (f ≫ pb.cone.π₂) ≫ R.colA = (g ≫ pb.cone.π₂) ≫ R.colA := by
+      simpa [Cat.assoc] using hA
+    -- (π₂'s composites with R.colA, R.colB) agree ⇒ f ≫ π₂ = g ≫ π₂ (R monic pair).
+    have hπ₂ : f ≫ pb.cone.π₂ = g ≫ pb.cone.π₂ :=
+      R.isMonicPair (f ≫ pb.cone.π₂) (g ≫ pb.cone.π₂) hA2 hB2
+    -- Together with hB (agreement on π₁), the pullback's joint monicity (lift_uniq) gives f = g.
+    have hw' : (f ≫ pb.cone.π₁) ≫ x = (f ≫ pb.cone.π₂) ≫ R.colB := by
+      rw [Cat.assoc, Cat.assoc, hw]
+    let c : Cone x R.colB := ⟨W, f ≫ pb.cone.π₁, f ≫ pb.cone.π₂, hw'⟩
+    have hf : f = pb.lift c := pb.lift_uniq c f rfl rfl
+    have hg : g = pb.lift c := pb.lift_uniq c g hB.symm hπ₂.symm
+    rw [hf, hg]
+  let R'' : BinRel 𝒞 X C := BinRel.mk pb.cone.pt (pb.cone.π₂ ≫ R.colA) pb.cone.π₁ hp''
+  have hent'' : Entire R'' :=
+    (tabulated_is_entire_iff_left_cover (pb.cone.π₂ ≫ R.colA) pb.cone.π₁ hp'').mpr
+      (cover_comp hcov_π₂ hcovA)
+  -- C choice: R'' contains a map with witness h : X → pb.pt.
+  obtain ⟨_f, h, hA, _hB⟩ := hC R'' hent''
+  -- hA : h ≫ (π₂ ≫ R.colA) = id_X.  The map into B is h ≫ π₁ ≫ x = h ≫ π₂ ≫ R.colB.
+  refine ⟨h ≫ pb.cone.π₁ ≫ x, h ≫ pb.cone.π₂, ?_, ?_⟩
+  · -- (h ≫ π₂) ≫ R.colA = id_X
+    rw [Cat.assoc]; exact hA
+  · -- (h ≫ π₂) ≫ R.colB = h ≫ π₁ ≫ x
+    calc (h ≫ pb.cone.π₂) ≫ R.colB = h ≫ (pb.cone.π₂ ≫ R.colB) := Cat.assoc _ _ _
+      _ = h ≫ (pb.cone.π₁ ≫ x) := by rw [← hw]
+      _ = h ≫ pb.cone.π₁ ≫ x := rfl
 
 end Choice66
 
@@ -331,7 +394,16 @@ theorem terminator_is_choice : Choice (one : 𝒞) := by
     R∘fst° is entire targeted at B₁, so it contains a map f₁.
     In Sets, R ∩ f₁∘fst° is entire (§1.551, §1.563 transfer to any regular category).
     Its projection R ∩ f₁∘fst°∘snd° is entire targeted at B₂, so it contains f₂.
-    Then (f₁, f₂): A → B₁×B₂ is contained in R. -/
+    Then (f₁, f₂): A → B₁×B₂ is contained in R.
+
+    BLOCKER: the gluing step "R ∩ (f₁∘fst°) is entire" is exactly the modular-law
+    content of §1.563.  Projecting R to B₁ (via the image of ⟨colA, colB≫fst⟩) and
+    to B₂ gives maps f₁, f₂ each with their OWN witness source above A; without the
+    modular identity there is no common refinement S' ↠ A realizing ⟨f₁,f₂⟩ inside R.
+    `modular_identity` (Fredy/S1_56.lean) is itself an open `sorry` in this repo (it
+    holds in Set and transfers via the §1.55 Henkin–Lubkin representation, not yet
+    formalized).  This theorem is faithful to the book and reduces to that single
+    obligation. -/
 theorem prod_choice_is_choice {B₁ B₂ : 𝒞} (h₁ : Choice B₁) (h₂ : Choice B₂) :
     Choice (prod B₁ B₂) := by
   sorry
@@ -363,7 +435,14 @@ theorem coprod_choice_to_one_one_choice
     (2a) is inherited by slices, so it suffices to show 𝒮(1) is boolean.
     Any U ⊆ 1 gives a pushout P = 1 +_U 1; 1+1 choice ⟹ P is a subobject
     of 1+1; 1+1 is decidable (§1.658) and so is P; U is complemented as a
-    pullback of a complemented subobject. -/
+    pullback of a complemented subobject.
+
+    BLOCKER: the chain needs (a) the slice pre-topos 𝒮(1)=𝒞 inheriting condition
+    (2a), (b) the pushout P = 1 +_U 1 (amalgamation §1.651, itself `sorry` here),
+    (c) "pullback of a complemented subobject is complemented" (§1.658 complement
+    intersection/union infra, not yet formalized — IsComplemented uses a placeholder
+    intersection).  Faithful statement; reduces to amalgamation_lemma + complement
+    pullback-stability. -/
 theorem one_one_choice_to_boolean [HasBinaryProducts 𝒞]
     (h : Choice (HasBinaryCoproducts.coprod (one : 𝒞) one)) :
     Nonempty (BooleanPreLogos 𝒞) := by
@@ -373,7 +452,12 @@ theorem one_one_choice_to_boolean [HasBinaryProducts 𝒞]
     PROOF: Given S: A → B₁+B₂ entire, the subobject Dom(S∘inl°) ⊆ A is complemented
     (boolean pre-topos). The restriction of S to Dom(S∘inl°) is entire into B₁, so
     contains f₁ (B₁ choice). The restriction to the complement is entire into B₂,
-    so contains f₂ (B₂ choice). Then f₁+f₂ (copairing) is a map in S. -/
+    so contains f₂ (B₂ choice). Then f₁+f₂ (copairing) is a map in S.
+
+    BLOCKER: "Dom(S∘inl°) ⊆ A is complemented" and "the restriction of S to that
+    (complemented) subobject is entire into B₁" both require relation domain/restriction
+    operators glued by the modular law (§1.563, `modular_identity` = `sorry`) plus the
+    §1.658 complement infrastructure.  Faithful statement; reduces to those. -/
 theorem boolean_to_coprod_choice_is_choice [HasBinaryProducts 𝒞]
     (hbool : Nonempty (BooleanPreLogos 𝒞)) :
     ∀ (B₁ B₂ : 𝒞), Choice B₁ → Choice B₂ →
