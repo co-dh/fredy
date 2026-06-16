@@ -93,7 +93,13 @@ noncomputable def exponentials_of_all_baseable
     `exponentials_of_all_baseable` would force them `noncomputable` (those files are
     out of scope for this edit).  The genuine assembly content lives, fully proved, in
     `exponentials_of_all_baseable`. -/
-instance topos_has_exponentials : HasExponentials 𝒞 := by
+-- LOW PRIORITY: `HasExponentials extends HasBinaryProducts`, and this instance is a
+-- `sorry` (its `toHasBinaryProducts` is therefore `sorry`-derived).  If instance search
+-- routes a `HasBinaryProducts 𝒞` goal through it, downstream relation/product terms pick up
+-- `sorryAx`.  We deprioritise it here AND, in the direct-image section below, locally make
+-- the genuine `Topos.toHasBinaryProducts` win outright (see the `attribute [local instance]`
+-- there) so the §1.92 power maps stay axiom-honest.
+instance (priority := 50) topos_has_exponentials : HasExponentials 𝒞 := by
   sorry
 
 -- All subsequent decls require [HasExponentials 𝒞] via topos_has_exponentials.
@@ -345,6 +351,185 @@ theorem singletonMapCat_natural {A B : 𝒞} (f : A ⟶ B) :
   -- defined via image factorization (see `powerMapCov`), the equation has no provable
   -- content — its truth is precisely the defining property of [f].
   sorry
+
+/-! ## §1.92  Direct-image power map on GENUINE power objects (faithful version)
+
+  The `powerMapCov` above targets the opaque exponential `exp A Ω`, which the
+  minimal `Topos` does not equip with the membership relation `∈_A` needed to
+  define the direct image.  Freyd's topos genuinely HAS all power objects
+  (`P(A) = Ω^A`), and S1_9 packages exactly that data as `HasPowerObject A`
+  (carrier `powerObj A`, universal relation `mem : BinRel (powerObj A) A`,
+  classifier `powerClassify`).  We give the HONEST construction on `powerObj`,
+  taking `[HasPowerObject A] [HasPowerObject B] [HasImages 𝒞]` as explicit,
+  load-bearing hypotheses (faithful: every power-object result in the repo takes
+  them, and a topos with images has them).
+
+  The DIRECT IMAGE of a subset `S ⊆ A` along `f : A → B` is
+  `f"(S) = { b | ∃ a ∈ S, f a = b }`.  At the universal level this is the
+  composite relation `∈_A ⊚ graph f : BinRel (powerObj A) B` (push `∈_A ⊆ powerObj A × A`
+  along `f`, §1.56 image factorization), classified back into `powerObj B` by the
+  universality of `mem`. -/
+
+section PowerObjectDirectImage
+variable [HasImages 𝒞]
+
+-- Make the genuine `Topos` product instance WIN instance search for `HasBinaryProducts 𝒞`
+-- throughout this section.  Otherwise `pair`/`fst`/`prod`/`compose` can resolve products
+-- via the `sorry` instance `topos_has_exponentials` (`HasExponentials extends
+-- HasBinaryProducts`), silently contaminating every direct-image term with `sorryAx`.
+attribute [local instance 10000] Topos.toHasBinaryProducts
+
+/-- The DIRECT-IMAGE RELATION of `∈_A` along `f : A → B`: the §1.56 composite
+    `∈_A ⊚ graph f : BinRel (powerObj A) B`.  Its source is the image of the span
+    `⟨mem.colA, mem.colB ≫ f⟩ : mem.src → powerObj A × B` — exactly Freyd's
+    existential image `{(P, b) | ∃ a, (P, a) ∈ ∈_A ∧ f a = b}`. -/
+noncomputable def directImageRel {A B : 𝒞} [HasPowerObject A] (f : A ⟶ B) :
+    BinRel 𝒞 (HasPowerObject.powerObj (C := A)) B :=
+  HasPowerObject.mem (C := A) ⊚ graph f
+
+/-- **§1.92 (faithful)**: the COVARIANT direct-image power map `[f] = f" : [A] → [B]`
+    on genuine power objects.  `[f] = Λ(∈_A ⊚ graph f)` — the classifying map of the
+    direct-image relation, supplied by the universality of `∈_A` (`powerClassify`). -/
+noncomputable def powerMapCovP {A B : 𝒞} [HasPowerObject A] [HasPowerObject B]
+    (f : A ⟶ B) :
+    HasPowerObject.powerObj (C := A) ⟶ HasPowerObject.powerObj (C := B) :=
+  powerClassify (directImageRel f)
+
+/-- Composing any relation `R : A → B` with the identity graph leaves it unchanged
+    up to relation-isomorphism: `R ⊚ graph(1_B) ≅ R`.  (Image of the span
+    `⟨π₁≫R.colA, π₂≫1⟩` over the pullback of `R.colB` and `1_B`, which is `R.src`
+    itself since one leg is an identity.)  Both `RelHom` directions. -/
+theorem compose_graph_id {A B : 𝒞} (R : BinRel 𝒞 A B) :
+    RelHom (R ⊚ graph (Cat.id B)) R ∧ RelHom R (R ⊚ graph (Cat.id B)) := by
+  -- Unfold `compose`: pb = pullback of R.colB and (graph 1).colA = 1_B.
+  let pb := HasPullbacks.has R.colB (graph (Cat.id B)).colA
+  let sp : pb.cone.pt ⟶ prod A B :=
+    pair (pb.cone.π₁ ≫ R.colA) (pb.cone.π₂ ≫ (graph (Cat.id B)).colB)
+  -- The composite source is `(image sp).dom` with legs `(image sp).arr ≫ fst/snd`.
+  -- (graph 1).colA = (graph 1).colB = 1_B, so the pullback square reads
+  --   π₁ ≫ R.colB = π₂ ≫ 1 = π₂.
+  -- (graph 1).colA and (graph 1).colB are DEFINITIONALLY `Cat.id B`; we exploit that
+  -- defeq rather than rewriting the dependent `graph`-term (which breaks the motive).
+  have hsq : pb.cone.π₁ ≫ R.colB = pb.cone.π₂ := by
+    have hw := pb.cone.w
+    dsimp only [graph] at hw
+    rwa [Cat.comp_id] at hw
+  -- `R.src` is itself a pullback of `(R.colB, 1_B)` via `(1, R.colB)`, so there is an
+  -- iso `e : R.src → pb.pt` with `e ≫ π₁ = 1` and `e ≫ π₂ = R.colB`.
+  let eCone : Cone R.colB (graph (Cat.id B)).colA :=
+    ⟨R.src, Cat.id R.src, R.colB, by
+      show Cat.id R.src ≫ R.colB = R.colB ≫ Cat.id B
+      rw [Cat.id_comp, Cat.comp_id]⟩
+  let e : R.src ⟶ pb.cone.pt := pb.lift eCone
+  have he₁ : e ≫ pb.cone.π₁ = Cat.id R.src := pb.lift_fst eCone
+  have he₂ : e ≫ pb.cone.π₂ = R.colB := pb.lift_snd eCone
+  -- The span equals `R`'s pair after precomposing with `e`:
+  --   e ≫ sp = pair (e≫π₁≫R.colA) (e≫π₂≫1) = pair R.colA R.colB.
+  have hesp : e ≫ sp = pair R.colA R.colB := by
+    apply pair_uniq
+    · rw [Cat.assoc]; show e ≫ pair (pb.cone.π₁ ≫ R.colA) _ ≫ fst = R.colA
+      rw [fst_pair, ← Cat.assoc, he₁, Cat.id_comp]
+    · rw [Cat.assoc, snd_pair, ← Cat.assoc, he₂]
+      simp only [graph, Cat.comp_id]
+  -- `pair R.colA R.colB` is monic (jointly-monic pair), so it equals its own image up
+  -- to iso.  We build the two `RelHom`s through `image.lift sp` and `image_min`.
+  have hRmono : Mono (pair R.colA R.colB) := monic_pair_of_monicPair _ _ R.isMonicPair
+  -- `sp` factors through the monic `pair R.colA R.colB` via `π₁`:
+  --   π₁ ≫ pair R.colA R.colB = pair (π₁≫R.colA) (π₁≫R.colB) = pair (π₁≫R.colA) π₂ = sp.
+  have hπsp : pb.cone.π₁ ≫ pair R.colA R.colB = sp := by
+    show pb.cone.π₁ ≫ pair R.colA R.colB
+        = pair (pb.cone.π₁ ≫ R.colA) (pb.cone.π₂ ≫ Cat.id B)
+    apply pair_uniq
+    · rw [Cat.assoc, fst_pair]
+    · rw [Cat.assoc, snd_pair]
+      simp only [graph, Cat.comp_id]
+      exact hsq
+  -- Forward `RelHom (R ⊚ graph 1) R`: `pair R.colA R.colB` allows `sp` (via `π₁`), so the
+  -- image of `sp` is ≤ the subobject `(R.src, pair R.colA R.colB)`; that comparison is the witness.
+  have hAllows : Allows (Subobject.mk R.src (pair R.colA R.colB) hRmono) sp :=
+    ⟨pb.cone.π₁, hπsp⟩
+  obtain ⟨w, hw⟩ := image_min sp _ hAllows
+  -- hw : w ≫ pair R.colA R.colB = (image sp).arr   (w : (image sp).dom → R.src)
+  refine ⟨⟨w, ?_, ?_⟩, ?_⟩
+  · -- w ≫ R.colA = (R ⊚ graph 1).colA = (image sp).arr ≫ fst
+    show w ≫ R.colA = (image sp).arr ≫ fst
+    rw [← hw, Cat.assoc, fst_pair]
+  · show w ≫ R.colB = (image sp).arr ≫ snd
+    rw [← hw, Cat.assoc, snd_pair]
+  · -- Backward `RelHom R (R ⊚ graph 1)`: witness `e ≫ image.lift sp : R.src → (image sp).dom`.
+    refine ⟨e ≫ image.lift sp, ?_, ?_⟩
+    · show (e ≫ image.lift sp) ≫ ((image sp).arr ≫ fst) = R.colA
+      rw [← Cat.assoc, Cat.assoc e, image.lift_fac, hesp, fst_pair]
+    · show (e ≫ image.lift sp) ≫ ((image sp).arr ≫ snd) = R.colB
+      rw [← Cat.assoc, Cat.assoc e, image.lift_fac, hesp, snd_pair]
+
+/-- `RelHom` is transitive: `R ≤ S ≤ T ⟹ R ≤ T` (compose the witness maps). -/
+theorem RelHom_trans {A B : 𝒞} {R S T : BinRel 𝒞 A B}
+    (hRS : RelHom R S) (hST : RelHom S T) : RelHom R T := by
+  obtain ⟨h, hA, hB⟩ := hRS
+  obtain ⟨k, kA, kB⟩ := hST
+  exact ⟨h ≫ k, by rw [Cat.assoc, kA, hA], by rw [Cat.assoc, kB, hB]⟩
+
+/-- Pulling a relation `U : BinRel P C` back along the IDENTITY `1_P` leaves it
+    unchanged up to relation-isomorphism: `relPullback (1_P) U ≅ U`.  (The pullback
+    of `1_P` and `U.colA` is `U.src`, since one leg is an identity.)  Both directions. -/
+theorem relPullback_id {P C : 𝒞} (U : BinRel 𝒞 P C) :
+    RelHom (relPullback (Cat.id P) U) U ∧ RelHom U (relPullback (Cat.id P) U) := by
+  -- `relPullback (1_P) U` has src = pullback of `1_P` and `U.colA`, legs
+  --   colA = pb.π₁ : pb.pt → P,   colB = pb.π₂ ≫ U.colB.
+  let pb := HasPullbacks.has (Cat.id P) U.colA
+  have wpb : pb.cone.π₁ ≫ Cat.id P = pb.cone.π₂ ≫ U.colA := pb.cone.w
+  -- `U.src` is a pullback of `(1_P, U.colA)` via `(U.colA, 1_{U.src})`:
+  let uCone : Cone (Cat.id P) U.colA :=
+    ⟨U.src, U.colA, Cat.id U.src, by rw [Cat.comp_id, Cat.id_comp]⟩
+  let d : U.src ⟶ pb.cone.pt := pb.lift uCone
+  have hd₁ : d ≫ pb.cone.π₁ = U.colA := pb.lift_fst uCone
+  have hd₂ : d ≫ pb.cone.π₂ = Cat.id U.src := pb.lift_snd uCone
+  constructor
+  · -- `relPullback (1_P) U ≤ U`: witness `pb.π₂ : pb.pt → U.src`.
+    --   π₂ ≫ U.colA = π₁ ≫ 1 = π₁ = (relPullback).colA;  π₂ ≫ U.colB = (relPullback).colB.
+    refine ⟨pb.cone.π₂, ?_, ?_⟩
+    · show pb.cone.π₂ ≫ U.colA = pb.cone.π₁
+      rw [← wpb, Cat.comp_id]
+    · rfl
+  · -- `U ≤ relPullback (1_P) U`: witness `d : U.src → pb.pt`.
+    refine ⟨d, ?_, ?_⟩
+    · show d ≫ pb.cone.π₁ = U.colA
+      exact hd₁
+    · show d ≫ (pb.cone.π₂ ≫ U.colB) = U.colB
+      rw [← Cat.assoc, hd₂, Cat.id_comp]
+
+/-- **§1.92 (faithful) — the unit identity `f"f = 1` on power objects, at `f = 1`.**
+    The direct image along the identity is the identity power map:
+
+        `[1_A] = powerMapCovP (1_A) = 1_{[A]}`.
+
+    This is Freyd's §1.96 identity `f"f = 1` instantiated at `f = 1` (the only
+    instance the membership-classifier universality settles without further image
+    descent): the direct image `f"` then inverse-classifies back to the identity.
+    The proof is the UNIVERSALITY of `∈_A` (`classify_unique`): both `1_{[A]}` and
+    `powerMapCovP 1_A = Λ(∈_A ⊚ graph 1_A)` classify the same relation, because
+    `∈_A ⊚ graph 1_A ≅ ∈_A ≅ relPullback 1_{[A]} ∈_A`. -/
+theorem powerMapCovP_id (A : 𝒞) [HasPowerObject A] :
+    powerMapCovP (Cat.id A) = Cat.id (HasPowerObject.powerObj (C := A)) := by
+  -- Both `powerClassify (∈_A ⊚ graph 1)` and `1_{[A]}` classify `∈_A ⊚ graph 1`.
+  -- `classify_unique` then forces them equal.
+  let memA : BinRel 𝒞 (HasPowerObject.powerObj (C := A)) A := HasPowerObject.mem (C := A)
+  -- `id` classifies the direct-image relation: chain the two relation-isos.
+  have hcg := compose_graph_id memA            -- (memA ⊚ graph 1 ≅ memA)
+  have hrp := relPullback_id memA              -- (relPullback 1 memA ≅ memA)
+  have hid_classifies :
+      RelHom (directImageRel (Cat.id A)) (relPullback (Cat.id _) memA) ∧
+      RelHom (relPullback (Cat.id _) memA) (directImageRel (Cat.id A)) :=
+    ⟨RelHom_trans hcg.1 hrp.2, RelHom_trans hrp.1 hcg.2⟩
+  -- `powerClassify` of the same relation, by universality uniqueness, equals `id`.
+  have huniv := HasPowerObject.is_universal (C := A)
+  have hspec :=
+    (huniv.classify_exists (HasPowerObject.powerObj (C := A)) (directImageRel (Cat.id A))).choose_spec
+  exact huniv.classify_unique _ (directImageRel (Cat.id A))
+    (powerClassify (directImageRel (Cat.id A))) (Cat.id _) hspec hid_classifies
+
+end PowerObjectDirectImage
 
 /-! ## §1.921  Lawvere's original definition of elementary topos
 
