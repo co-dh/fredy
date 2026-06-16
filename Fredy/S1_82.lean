@@ -183,12 +183,78 @@ private instance wppCat : Cat.{0} WPP where
   comp_id := by intro X Y f; cases f <;> rfl
   assoc := by intro W X Y Z f g h; cases f <;> cases g <;> cases h <;> rfl
 
-/-- Easy (⇒): a complete category has equalizers.
-    (Technically: the limit of the parallel-pair diagram gives an equalizer;
-    we use a faithful sorry since this direction is a trivial specialization.) -/
+/-- Walking-parallel-pair shape lifted to universe `v` (so it is a legal `Complete`
+    diagram shape).  Objects = `ULift WPP`, morphisms = `ULift` of the WPP homs. -/
+private abbrev WPPv : Type v := ULift.{v} WPP
+
+private instance wppCatV : Cat.{v} WPPv where
+  Hom X Y    := ULift.{v} (WPPHom X.down Y.down)
+  id X       := ⟨wppCat.id X.down⟩
+  comp f g   := ⟨wppComp f.down g.down⟩
+  id_comp := by rintro ⟨X⟩ ⟨Y⟩ ⟨f⟩; cases f <;> rfl
+  comp_id := by rintro ⟨X⟩ ⟨Y⟩ ⟨f⟩; cases f <;> rfl
+  assoc := by
+    rintro ⟨W⟩ ⟨X⟩ ⟨Y⟩ ⟨Z⟩ ⟨f⟩ ⟨g⟩ ⟨h⟩
+    cases f <;> cases g <;> cases h <;> rfl
+
+/-- The parallel-pair diagram `D : WPPv → ℬ` for a pair `f, g : A ⟶ B`:
+    `src ↦ A`, `tgt ↦ B`, `arr0 ↦ f`, `arr1 ↦ g`. -/
+private def wppDiagObj {ℬ : Type u₁} [Cat.{v} ℬ] {A B : ℬ} (_f _g : A ⟶ B) :
+    WPPv → ℬ
+  | ⟨.src⟩ => A
+  | ⟨.tgt⟩ => B
+
+private def wppDiagMap {ℬ : Type u₁} [Cat.{v} ℬ] {A B : ℬ} (f g : A ⟶ B) :
+    {X Y : WPPv} → (X ⟶ Y) → (wppDiagObj f g X ⟶ wppDiagObj f g Y)
+  | ⟨.src⟩, ⟨.src⟩, _ => Cat.id A
+  | ⟨.tgt⟩, ⟨.tgt⟩, _ => Cat.id B
+  | ⟨.src⟩, ⟨.tgt⟩, ⟨.arr0⟩ => f
+  | ⟨.src⟩, ⟨.tgt⟩, ⟨.arr1⟩ => g
+
+private instance wppDiagFunctor {ℬ : Type u₁} [Cat.{v} ℬ] {A B : ℬ} (f g : A ⟶ B) :
+    Functor (wppDiagObj f g) where
+  map := wppDiagMap f g
+  map_id := by rintro ⟨X⟩; cases X <;> rfl
+  map_comp := by
+    rintro ⟨X⟩ ⟨Y⟩ ⟨Z⟩ ⟨p⟩ ⟨q⟩
+    cases p <;> cases q <;>
+      first
+        | rfl
+        | exact (Cat.id_comp _).symm
+        | exact (Cat.comp_id _).symm
+
+/-- Easy (⇒): a complete category has equalizers, obtained as the limit of the
+    walking-parallel-pair diagram (§1.825).  Given `f, g : A ⟶ B`, the limit cone
+    apex is the equalizer object, its leg at `src` is the equalizing map, and the
+    lift / fac / uniqueness all come from the universal property of the limit. -/
 private def complete_hasEqualizers {ℬ : Type u₁} [Cat.{v} ℬ] (hc : Complete ℬ) :
-    HasEqualizers ℬ := by
-  exact sorry
+    HasEqualizers ℬ where
+  eq A B f g :=
+    let lim := @hc.hasLimit _ wppCatV (wppDiagObj f g) (wppDiagFunctor f g)
+    -- the `src`-leg of the limit cone is the equalizing map
+    let e : lim.cone.apex ⟶ A := lim.cone.π ⟨.src⟩
+    -- `e ≫ f = e ≫ g`: both equal the `tgt`-leg by cone naturality on arr0 / arr1
+    have hf : e ≫ f = lim.cone.π ⟨.tgt⟩ := lim.cone.nat (⟨.arr0⟩ : (⟨.src⟩ : WPPv) ⟶ ⟨.tgt⟩)
+    have hg : e ≫ g = lim.cone.π ⟨.tgt⟩ := lim.cone.nat (⟨.arr1⟩ : (⟨.src⟩ : WPPv) ⟶ ⟨.tgt⟩)
+    have he : e ≫ f = e ≫ g := hf.trans hg.symm
+    -- a cone over the parallel pair from an equalizer cone `c`:
+    -- src-leg `c.map`, tgt-leg `c.map ≫ f`
+    let coneOf : EqualizerCone f g → DiagCone (wppDiagObj f g) := fun c =>
+      { apex := c.dom
+        π := fun X => match X with | ⟨.src⟩ => c.map | ⟨.tgt⟩ => c.map ≫ f
+        nat := by
+          rintro ⟨X⟩ ⟨Y⟩ ⟨x⟩
+          cases x <;> (try exact Cat.comp_id _) <;> (try rfl) <;> exact c.eq.symm }
+    { cone := { dom := lim.cone.apex, map := e, eq := he }
+      lift := fun c => lim.lift (coneOf c)
+      fac := fun c => lim.fac (coneOf c) ⟨.src⟩
+      uniq := fun c m hm => by
+        apply lim.uniq (coneOf c)
+        rintro ⟨X⟩
+        cases X
+        · exact hm
+        · show m ≫ lim.cone.π ⟨.tgt⟩ = c.map ≫ f
+          rw [← hf, ← Cat.assoc, hm] }
 
 /-- Hard (⇐): equalizers + products → complete.
 
@@ -465,7 +531,80 @@ theorem limit_cone_unique {𝒟 : Type u} [Cat.{v} 𝒟] {ℬ : Type u₁} [Cat.
   The book's proof: if {L → D i} is a limit and T preserves the weak-limit condition,
   then the image is a weak-limit with monic family (from limit ⟹ monic), hence a limit. -/
 
-/-- §1.829: A functor that preserves weak-limits preserves limits. -/
+/-! **Monic-family shape** (book's J-poset, §1.829).
+
+  Given a diagram shape `𝒟`, `MFShape 𝒟` adjoins to the *discrete* poset on `𝒟`
+  two new bottom points `botL`, `botR`, each below every `pt i`.  With a diagram
+  sending `pt i ↦ Dᵢ` and `botL, botR ↦ L` (and both `botL→i`, `botR→i ↦ πᵢ`),
+  the canonical lower bound is a weak-limit **iff** `{πᵢ}` is a monic family.
+  Preservation of weak-limits therefore preserves monic families — exactly the
+  ingredient that upgrades a preserved weak-limit to a genuine limit. -/
+private inductive MFShape (𝒟 : Type v) : Type v
+  | pt   : 𝒟 → MFShape 𝒟
+  | botL : MFShape 𝒟
+  | botR : MFShape 𝒟
+
+/-- Morphisms of `MFShape`: identities, plus `botL → pt i` and `botR → pt i`. -/
+private inductive MFHom {𝒟 : Type v} : MFShape 𝒟 → MFShape 𝒟 → Type v
+  | idPt  : (i : 𝒟) → MFHom (.pt i) (.pt i)
+  | idL   : MFHom .botL .botL
+  | idR   : MFHom .botR .botR
+  | arrL  : (i : 𝒟) → MFHom .botL (.pt i)
+  | arrR  : (i : 𝒟) → MFHom .botR (.pt i)
+
+/-- Composition in `MFShape`: every non-identity arrow has an identity on one side,
+    so composition is determined by absorbing the identity. -/
+private def mfComp {𝒟 : Type v} : {X Y Z : MFShape 𝒟} →
+    MFHom X Y → MFHom Y Z → MFHom X Z
+  | _, _, _, .idPt _, g => g
+  | _, _, _, .idL,    g => g
+  | _, _, _, .idR,    g => g
+  | _, _, _, .arrL i, .idPt _ => .arrL i
+  | _, _, _, .arrR i, .idPt _ => .arrR i
+
+private instance mfShapeCat {𝒟 : Type v} : Cat.{v} (MFShape 𝒟) where
+  Hom := MFHom
+  id  := fun | .pt i => .idPt i | .botL => .idL | .botR => .idR
+  comp := mfComp
+  id_comp := by rintro X Y f; cases f <;> rfl
+  comp_id := by rintro X Y f; cases f <;> rfl
+  assoc := by rintro W X Y Z f g h; cases f <;> cases g <;> cases h <;> rfl
+
+/-- The monic-family diagram for a family `{π i : L ⟶ D i}`:
+    `pt i ↦ D i`, `botL, botR ↦ L`. -/
+private def mfDiagObj {ℬ : Type u₁} [Cat.{v} ℬ] {𝒟 : Type v} (D : 𝒟 → ℬ) (L : ℬ) :
+    MFShape 𝒟 → ℬ
+  | .pt i => D i
+  | .botL => L
+  | .botR => L
+
+private def mfDiagMap {ℬ : Type u₁} [Cat.{v} ℬ] {𝒟 : Type v} (D : 𝒟 → ℬ) {L : ℬ}
+    (π : (i : 𝒟) → L ⟶ D i) :
+    {X Y : MFShape 𝒟} → (X ⟶ Y) → (mfDiagObj D L X ⟶ mfDiagObj D L Y)
+  | _, _, .idPt i => Cat.id (D i)
+  | _, _, .idL    => Cat.id L
+  | _, _, .idR    => Cat.id L
+  | _, _, .arrL i => π i
+  | _, _, .arrR i => π i
+
+private instance mfDiagFunctor {ℬ : Type u₁} [Cat.{v} ℬ] {𝒟 : Type v} (D : 𝒟 → ℬ)
+    {L : ℬ} (π : (i : 𝒟) → L ⟶ D i) : Functor (mfDiagObj D L) where
+  map := mfDiagMap D π
+  map_id := by rintro (i | _ | _) <;> rfl
+  map_comp := by
+    rintro X Y Z f g
+    cases f <;> cases g <;>
+      first
+        | rfl
+        | exact (Cat.id_comp _).symm
+        | exact (Cat.comp_id _).symm
+
+/-- §1.829: A functor that preserves weak-limits preserves limits.
+
+    Proof (book's argument): the image `{T(πᵢ)}` of a limit cone is automatically a
+    weak-limit; it is a genuine limit iff it is *collectively monic*.  Preservation of
+    weak-limits forces collective monicity via the `MFShape` diagram above, which gives
+    the missing uniqueness. -/
 theorem preserves_weaklim_iff_preserves_lim
     {ℬ : Type u₁} [Cat.{v} ℬ] {𝒞 : Type u₂} [Cat.{v} 𝒞]
     (T : ℬ → 𝒞) [hT : Functor T] :
@@ -483,16 +622,77 @@ theorem preserves_weaklim_iff_preserves_lim
   -- T maps this weak-limit to a weak-limit-like structure by hypothesis
   obtain ⟨u, hu⟩ := hpwl wl W legs hnat
   refine ⟨u, hu, ?_⟩
-  -- Uniqueness: any u' satisfying the equations must equal u
   intro u' hu'
-  -- The key: the limit projections {T(π i)} are collectively monic
-  -- (because the original π's are: any two maps equalizing all π's must be equal)
-  -- We need: u = u'. Use lim.uniq via a cone in ℬ ... but we're in 𝒞.
-  -- The cleanest route: show via the limit's own uniq (via functoriality) — but that would
-  -- need T to be full, which we don't have. This direction actually requires more than just
-  -- weak-limit preservation; we need T to also preserve the monic family property.
-  -- The book's full argument is in §1.829; we give a faithful sorry here.
-  sorry
+  -- Collective monicity of `{T(lim.cone.π i)}` upgrades existence to uniqueness:
+  -- `u, u'` agree against every `T(π i)`, so they coincide.
+  -- ── Build the `MFShape` diagram for the family `{lim.cone.π i}`. ──
+  let L  := lim.cone.apex
+  let πf : (i : 𝒟) → L ⟶ D i := lim.cone.π
+  -- the limit projections are collectively monic
+  have limMonic : ∀ {X : ℬ} (a b : X ⟶ L), (∀ i, a ≫ πf i = b ≫ πf i) → a = b := by
+    intro X a b hab
+    let cc : DiagCone D :=
+      { apex := X, π := fun i => a ≫ πf i
+        nat := fun {i j} x => by rw [Cat.assoc, lim.cone.nat x] }
+    have ha : a = lim.lift cc := lim.uniq cc a (fun i => rfl)
+    have hb : b = lim.lift cc := lim.uniq cc b (fun i => (hab i).symm)
+    rw [ha, hb]
+  let D' := mfDiagObj D L
+  letI hD' : Functor D' := mfDiagFunctor D πf
+  -- canonical lower bound with apex L: `botL, botR ↦ id`, `pt i ↦ π i`
+  let c₀ : DiagCone D' :=
+    { apex := L
+      π := fun X => match X with | .pt i => πf i | .botL => Cat.id L | .botR => Cat.id L
+      nat := by
+        rintro X Y x
+        cases x <;>
+          first
+            | rfl
+            | exact Cat.comp_id _
+            | exact Cat.id_comp _ }
+  -- it is a weak-limit: a cone `c` factors through it iff `c.π botL = c.π botR`,
+  -- which holds because `{π i}` is collectively monic (from `lim.uniq`).
+  let wl' : HasWeakLimit D' :=
+    { cone := c₀
+      exist := fun c => by
+        -- the `botL`-leg is a valid factorization
+        refine ⟨c.π .botL, ?_⟩
+        rintro (i | _ | _)
+        · -- c.π botL ≫ π i = c.π (pt i): naturality of c on `arrL i`
+          exact c.nat (MFHom.arrL i : (MFShape.botL : MFShape 𝒟) ⟶ .pt i)
+        · exact Cat.comp_id _
+        · -- need c.π botL ≫ id = c.π botR; both legs agree after composing with every π i
+          have heq : c.π .botL = c.π .botR := by
+            apply limMonic (c.π .botL) (c.π .botR)
+            intro i
+            have hL := c.nat (MFHom.arrL i : (MFShape.botL : MFShape 𝒟) ⟶ .pt i)
+            have hR := c.nat (MFHom.arrR i : (MFShape.botR : MFShape 𝒟) ⟶ .pt i)
+            -- both equal c.π (pt i)
+            exact hL.trans hR.symm
+          exact (Cat.comp_id (c.π .botL)).trans heq }
+  -- T preserves this weak-limit: build the test cone over `T∘D'` with apex W,
+  -- legs `u` at botL, `u'` at botR, `legs i` at pt i.
+  let testLegs : (Z : MFShape 𝒟) → W ⟶ T (D' Z) :=
+    fun Z => match Z with | .pt i => legs i | .botL => u | .botR => u'
+  have hTnat : ∀ {X Y : MFShape 𝒟} (x : X ⟶ Y),
+      testLegs X ≫ hT.map (hD'.map x) = testLegs Y := by
+    rintro X Y x
+    cases x with
+    | idPt i => show legs i ≫ hT.map (Cat.id (D i)) = legs i
+                rw [hT.map_id, Cat.comp_id]
+    | idL    => show u ≫ hT.map (Cat.id L) = u
+                rw [hT.map_id, Cat.comp_id]
+    | idR    => show u' ≫ hT.map (Cat.id L) = u'
+                rw [hT.map_id, Cat.comp_id]
+    | arrL i => exact hu i
+    | arrR i => exact hu' i
+  obtain ⟨w, hw⟩ := hpwl wl' W testLegs hTnat
+  -- `w ≫ T(c₀.π botL) = u` and `w ≫ T(c₀.π botR) = u'`, but both `c₀`-legs are `id L`.
+  -- both `c₀`-legs at botL/botR are `Cat.id L`, so `T(id) = id` and `w` equals both `u`, `u'`
+  have eL : w ≫ hT.map (Cat.id L) = u := hw .botL
+  have eR : w ≫ hT.map (Cat.id L) = u' := hw .botR
+  rw [hT.map_id, Cat.comp_id] at eL eR
+  rw [← eL, ← eR]
 
 -- ---------------------------------------------------------------------------
 -- §1.831  Uniformly continuous functor (More General AFT)

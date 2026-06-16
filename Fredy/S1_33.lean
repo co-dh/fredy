@@ -194,21 +194,41 @@ def combinedCayleyMap {𝒞 : Type u} [Cat.{v} 𝒞] {A B : 𝒞} (f : A ⟶ B) 
     combinedCayleyObj 𝒞 A → combinedCayleyObj 𝒞 B :=
   fun p => ⟨covCayleyMap f p.1, fun z => p.2 (contraCayleyMap f z)⟩
 
-/-- F reflects left-invertibility (§1.332): if combinedCayleyMap x has a left inverse, x has
-    a left inverse.
-    Proof sketch: F(x) left-invertible means l ∘ F(x) = id for some l.
-    Via the covariant C component: l₁ ∘ covCayleyMap x = id.
-    At element ⟨A, id_A⟩ ∈ C(A): l₁(⟨A, x⟩) = ⟨A, id_A⟩.  This gives the fst=A component.
-    The left-inverse witness must come from traversing a second application of l₁.
-    The actual Freyd argument uses the P(C°) component to witness that x has a preimage:
-    set T = {s ∈ C°(B) | contraCayleyMap x s = ⟨A, id_A⟩}; then l recovers the
-    predicate-preimage, which identifies a specific right-inverse of x.
-    Full formalisation deferred (sorry). -/
+/-- F reflects left-invertibility (§1.332): if `combinedCayleyMap x` has a *function* right
+    inverse `r` (`combinedCayleyMap x ∘ r = id`), then `x` has a left inverse `y`,
+    `y ≫ x = id_B` (repo `HasLeftInv x`).
+
+    Convention note.  In the repo's Cat-of-Types, a morphism's left inverse `g` satisfies
+    `g ≫ f = id`, i.e. (diagram order) `f ∘ g = id` in Lean's `∘` — a *function right
+    inverse*.  Functors preserve, faithful representations reflect, this property; here the
+    witness comes entirely from the *covariant Cayley* component `C` of `F = C × P(C°)`.
+
+    Proof.  A function right inverse `r` of `F(x)` makes `F(x)` surjective, hence so is its
+    first (C) component `covCayleyMap x : C(A) → C(B)`, `⟨Z,w⟩ ↦ ⟨Z, w ≫ x⟩`.  Surjectivity
+    onto `⟨B, id_B⟩ ∈ C(B)` produces `⟨W, y⟩ ∈ C(A)` with `⟨W, y ≫ x⟩ = ⟨B, id_B⟩`; the
+    first projection forces `W = B`, and the second gives `y ≫ x = id_B`.  (The companion
+    `P(C°)` component, dual to `contraCayley_reflects_rightInv`, is what reflects right-
+    invertibility; combining the two gives Freyd's "F reflects both".) -/
 theorem combined_reflects_leftInv {𝒞 : Type u} [Cat.{v} 𝒞] {A B : 𝒞} (x : A ⟶ B)
-    (h : ∃ (l : combinedCayleyObj 𝒞 B → combinedCayleyObj 𝒞 A),
-          l ∘ combinedCayleyMap x = id) :
+    (h : ∃ (r : combinedCayleyObj 𝒞 B → combinedCayleyObj 𝒞 A),
+          combinedCayleyMap x ∘ r = id) :
     ∃ y : B ⟶ A, y ≫ x = Cat.id B := by
-  sorry
+  obtain ⟨r, hr⟩ := h
+  -- Apply the right inverse at the C(B) element ⟨B, id_B⟩; its image under F(x) is itself.
+  have h0 : combinedCayleyMap x (r ⟨⟨B, Cat.id B⟩, fun _ => False⟩)
+      = ⟨⟨B, Cat.id B⟩, fun _ => False⟩ := congrFun hr _
+  -- Generalise the whole preimage element so `obtain` splits it uniformly in h0.
+  revert h0
+  generalize r ⟨⟨B, Cat.id B⟩, fun _ => False⟩ = p
+  intro h0
+  obtain ⟨⟨W, y⟩, pred⟩ := p
+  -- Read off the first (covariant Cayley) component: ⟨W, y ≫ x⟩ = ⟨B, id_B⟩.
+  have h1 := congrArg Prod.fst h0
+  simp only [combinedCayleyMap, covCayleyMap] at h1
+  -- h1 : ⟨W, y ≫ x⟩ = ⟨B, id_B⟩  in  (Z : 𝒞) × (Z ⟶ B)
+  have hW : W = B := (Sigma.ext_iff.mp h1).1
+  subst hW
+  exact ⟨y, eq_of_heq (Sigma.ext_iff.mp h1).2⟩
 
 /-! ## §1.333 Functors between posets -/
 
@@ -273,35 +293,50 @@ theorem proset_functor_full_iff_induced {α β : Type u}
   · intro hInd A B h
     exact ⟨⟨(hInd A B).mpr h.down⟩, proset_hom_subsingleton Q _ _⟩
 
-/-- §1.333: faithful iff injective on objects (for functors between posets).
+/-- §1.333: if F is full and faithful between posets, then F is injective on objects.
+    Uses fullness to lift Q-morphisms in both directions to P-morphisms, then antisymP. -/
+theorem proset_full_faithful_inj {α β : Type u}
+    (P : ProsetCat α) (Q : ProsetCat β)
+    (antisymP : ∀ {a b : α}, P.le a b → P.le b a → a = b)
+    (F : α → β) [hF : @Functor α (prosetToCat P) β (prosetToCat Q) F]
+    (hFull : @Full α (prosetToCat P) β (prosetToCat Q) F hF)
+    (_ : @Faithful α (prosetToCat P) β (prosetToCat Q) F hF) :
+    ∀ a b : α, F a = F b → a = b := fun a b hFab => by
+  have h_ab : Q.le (F a) (F b) := hFab ▸ Q.refl (F a)
+  have h_ba : Q.le (F b) (F a) := hFab ▸ Q.refl (F b)
+  obtain ⟨f, _⟩ := hFull (⟨h_ab⟩ : @Cat.Hom β (prosetToCat Q) (F a) (F b))
+  obtain ⟨g, _⟩ := hFull (⟨h_ba⟩ : @Cat.Hom β (prosetToCat Q) (F b) (F a))
+  exact antisymP f.down g.down
 
-    Forward: if F is faithful (embedding + reflects isos) and F a = F b, then a = b.
-      With Q-antisymmetry: Fa = Fb means Q.le(Fa)(Fb) and Q.le(Fb)(Fa), so IsIso id_{Fa}
-      viewed as a morphism Fa → Fb.  hRefl gives IsIso of the P-preimage, and P-antisymmetry
-      gives a = b.
+/-- §1.333: for a FULL functor between posets, faithful iff injective on objects.
 
-    Backward: injective on objects ⟹ faithful.  Embedding is free (thin cat).
+    The book (§1.333) states "faithful iff one-to-one on objects".  With our
+    diagrammatic `Faithful = Embedding + reflects-iso`, the forward direction
+    (Faithful ⟹ injective on objects) is FALSE without fullness: the unique functor
+    from the 2-element discrete poset {a,b} to the 1-element poset {x} is an Embedding
+    (no non-trivial parallel morphisms) and reflects isos (vacuously, every domain
+    morphism is already iso), yet is not injective on objects.  Freyd's posets carry
+    the *induced* ordering, i.e. the representations he uses are full; we therefore
+    state the iff under the fullness hypothesis, which makes it genuinely true.
+
+    Forward (uses fullness): `proset_full_faithful_inj` — from F a = F b lift
+      id_{Fa} : Fa ⟶ Fb and id_{Fb} : Fb ⟶ Fa back to P-morphisms a ⟶ b and b ⟶ a,
+      then P-antisymmetry gives a = b.
+
+    Backward: injective on objects ⟹ faithful (`proset_inj_faithful`); fullness unused.
       For reflects-iso: from IsIso (hF.map f), Q-antisymmetry gives Fa = Fb,
       injectivity gives a = b, and then IsIso f is trivial. -/
 theorem proset_faithful_iff_injective {α β : Type u}
     (P : ProsetCat α) (Q : ProsetCat β)
     (antisymP : ∀ {a b : α}, P.le a b → P.le b a → a = b)
     (antisymQ : ∀ {a b : β}, Q.le a b → Q.le b a → a = b)
-    (F : α → β) [hF : @Functor α (prosetToCat P) β (prosetToCat Q) F] :
+    (F : α → β) [hF : @Functor α (prosetToCat P) β (prosetToCat Q) F]
+    (hFull : @Full α (prosetToCat P) β (prosetToCat Q) F hF) :
     @Faithful α (prosetToCat P) β (prosetToCat Q) F hF ↔
     (∀ a b : α, F a = F b → a = b) := by
   constructor
-  · intro ⟨_, hRefl⟩ a b hFab
-    -- Gap: the forward direction (Faithful ⟹ injective on objects) is NOT provable
-    -- from Embedding + reflects-iso alone without fullness.
-    -- Counterexample: the unique functor from the 2-element discrete poset {a, b}
-    -- (no non-identity morphisms) to the 1-element poset {x} is an Embedding (trivially,
-    -- no non-trivial parallel morphisms exist) and reflects isos (vacuously, since
-    -- every morphism in the domain is already iso).  Yet it is not injective on objects.
-    -- The book's §1.333 statement likely intends fullness as a tacit assumption,
-    -- or uses a single-sorted notion of "faithful" (injectivity on ALL morphisms, not
-    -- just within fixed hom-sets) which implies object-injectivity.
-    sorry
+  · intro hFaith
+    exact proset_full_faithful_inj P Q antisymP F hFull hFaith
   · intro hInj
     refine ⟨proset_functor_embedding P Q F, ?_⟩
     intro A B f hiso
@@ -331,21 +366,6 @@ theorem proset_inj_faithful {α β : Type u}
     have hAB : A = B := hInj A B hFAFB
     subst hAB
     exact ⟨f, proset_hom_subsingleton P _ _, proset_hom_subsingleton P _ _⟩⟩
-
-/-- §1.333: if F is full and faithful between posets, then F is injective on objects.
-    Uses fullness to lift Q-morphisms in both directions to P-morphisms, then antisymP. -/
-theorem proset_full_faithful_inj {α β : Type u}
-    (P : ProsetCat α) (Q : ProsetCat β)
-    (antisymP : ∀ {a b : α}, P.le a b → P.le b a → a = b)
-    (F : α → β) [hF : @Functor α (prosetToCat P) β (prosetToCat Q) F]
-    (hFull : @Full α (prosetToCat P) β (prosetToCat Q) F hF)
-    (_ : @Faithful α (prosetToCat P) β (prosetToCat Q) F hF) :
-    ∀ a b : α, F a = F b → a = b := fun a b hFab => by
-  have h_ab : Q.le (F a) (F b) := hFab ▸ Q.refl (F a)
-  have h_ba : Q.le (F b) (F a) := hFab ▸ Q.refl (F b)
-  obtain ⟨f, _⟩ := hFull (⟨h_ab⟩ : @Cat.Hom β (prosetToCat Q) (F a) (F b))
-  obtain ⟨g, _⟩ := hFull (⟨h_ba⟩ : @Cat.Hom β (prosetToCat Q) (F b) (F a))
-  exact antisymP f.down g.down
 
 /-- §1.333: equivalence functor between posets iff order-isomorphism.
 

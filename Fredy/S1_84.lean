@@ -110,15 +110,32 @@ def PullbacksPreserveArbitraryUnions (𝒞 : Type u) [Cat.{v} 𝒞]
     that preserve arbitrary unions. -/
 class GrothendieckTopos (E : Type u) [Cat.{v} E] extends
     EffectiveRegular E, HasAllCoproducts E, HasCoequalizers E, LocallyComplete' E where
-  /-- A small generating set (§1.84, §1.632). -/
-  gen_set         : E → Prop
-  has_gen_set     : IsGeneratingSet gen_set
+  /-- A SMALL generating set (§1.84, §1.632), presented as a `Type v`-indexed
+      family `gen_obj : gen_idx → E`.  Smallness (an index in universe `v`) is
+      part of the Giraud definition ("a small generating set") and is exactly
+      what the well-powered argument (§1.843) needs to bound `Sub(A)`. -/
+  gen_idx         : Type v
+  gen_obj         : gen_idx → E
+  /-- In a pre-topos the small generating set is a BASIS (§1.632): it is
+      collectively faithful on subobjects, i.e. every proper mono is witnessed
+      by a generalized element from a generator that does not factor through it. -/
+  gen_basis       : IsBasis (𝒞 := E) (fun X => ∃ i, gen_obj i = X)
   /-- All coproducts are disjoint (§1.845). -/
   coprod_disjoint : ∀ {I : Type v} (A : I → E),
     DisjointCoproduct (HasAllCoproducts.coprod A)
   /-- Pullbacks preserve arbitrary unions (§1.84).
       Note: PullbacksPreserveArbitraryUnions does not depend on LocallyComplete'. -/
   pullback_union  : PullbacksPreserveArbitraryUnions E
+
+/-- The underlying predicate of the generating set: `X` is a generator iff it is
+    `gen_obj i` for some index `i`.  (§1.84) -/
+def GrothendieckTopos.gen_set (E : Type u) [Cat.{v} E] [GrothendieckTopos E] :
+    E → Prop := fun X => ∃ i, GrothendieckTopos.gen_obj (E := E) i = X
+
+/-- The generating set is generating (it is the first component of the basis). -/
+theorem GrothendieckTopos.has_gen_set (E : Type u) [Cat.{v} E] [GrothendieckTopos E] :
+    IsGeneratingSet (GrothendieckTopos.gen_set E) :=
+  (GrothendieckTopos.gen_basis (E := E)).1
 
 /-! ## §1.841–§1.842 Examples and the graphing-functor adjoint ---------------- -/
 
@@ -137,19 +154,103 @@ class GrothendieckTopos (E : Type u) [Cat.{v} E] extends
 
 /-! ## §1.843 A Grothendieck topos is well-powered (and well-copowered) ----- -/
 
+/-- Antisymmetry of the subobject order: `S ≤ T` and `T ≤ S` give an iso of
+    subobjects.  The factoring map of `S ≤ T` is the iso (its two-sided inverse
+    is the factoring map of `T ≤ S`, by monicity of the representing arrows). -/
+theorem subobjectIso_of_le_le {B : E} {S T : Subobject E B}
+    (hST : Subobject.le S T) (hTS : Subobject.le T S) : SubobjectIso S T := by
+  obtain ⟨h, hh⟩ := hST            -- h : S.dom ⟶ T.dom, h ≫ T.arr = S.arr
+  obtain ⟨k, hk⟩ := hTS            -- k : T.dom ⟶ S.dom, k ≫ S.arr = T.arr
+  refine ⟨h, ⟨k, ?_, ?_⟩, hh⟩
+  · -- h ≫ k = id_{S.dom}, via S monic: (h ≫ k) ≫ S.arr = S.arr
+    apply S.monic
+    calc (h ≫ k) ≫ S.arr = h ≫ (k ≫ S.arr) := Cat.assoc _ _ _
+      _ = h ≫ T.arr := by rw [hk]
+      _ = S.arr := hh
+      _ = Cat.id S.dom ≫ S.arr := by rw [Cat.id_comp]
+  · -- k ≫ h = id_{T.dom}, via T monic
+    apply T.monic
+    calc (k ≫ h) ≫ T.arr = k ≫ (h ≫ T.arr) := Cat.assoc _ _ _
+      _ = k ≫ S.arr := by rw [hh]
+      _ = T.arr := hk
+      _ = Cat.id T.dom ≫ T.arr := by rw [Cat.id_comp]
+
+/-- The TRACE of a subobject `S ↣ B`: the family, indexed by generators `gen i`
+    and generalized elements `x : gen i ⟶ B`, recording whether `x` factors
+    through `S` (i.e. `Allows S x`).  This is the embedding `Sub(B) ↪ Π_{G∈ℱ} 𝒫(Hom(G,B))`
+    of the §1.843 argument; it lives in `Type v` because the generating set is small. -/
+def subTrace [GrothendieckTopos E] {B : E} (S : Subobject E B) :
+    (i : GrothendieckTopos.gen_idx (E := E)) → (GrothendieckTopos.gen_obj i ⟶ B) → Prop :=
+  fun i x => Allows S x
+
+/-- BASIS DETECTS SUBOBJECTS (§1.843): if every generalized element from a
+    generator that factors through `S` also factors through `T`, then `S ≤ T`.
+    Proof: the pullback `P = S ∩ T → S.dom` is monic; were it a proper subobject
+    of `S.dom` the basis would supply a generator element of `S.dom` not factoring
+    through `P`, i.e. an `x ≫ S.arr` that allows `S` but not `T` — contradiction.
+    Hence `P ≅ S.dom` and `S` factors through `T`. -/
+theorem le_of_subTrace_le [GrothendieckTopos E] {B : E} {S T : Subobject E B}
+    (h : ∀ i x, subTrace S i x → subTrace T i x) : Subobject.le S T := by
+  -- Pullback of S.arr and T.arr; π₁ : P → S.dom is monic (pullback of monic T.arr).
+  let pb := HasPullbacks.has S.arr T.arr
+  have hπ₁mono : Mono pb.cone.π₁ := mono_pullback S.arr T.arr T.monic pb
+  -- Claim: π₁ is iso.  Suppose not; the basis gives a witness contradicting `h`.
+  have hiso : IsIso pb.cone.π₁ := Classical.byContradiction fun hni => by
+    obtain ⟨G, ⟨i, hGi⟩, x, hx⟩ :=
+      (GrothendieckTopos.gen_basis (E := E)).2 pb.cone.π₁ hπ₁mono hni
+    -- x : G ⟶ S.dom does not factor through π₁.  Transport to the generator gen i.
+    subst hGi
+    -- x ≫ S.arr : gen i ⟶ B factors through S (witness x), hence through T by h.
+    have hAllowsS : subTrace S i (x ≫ S.arr) := ⟨x, rfl⟩
+    obtain ⟨z, hz⟩ := h i (x ≫ S.arr) hAllowsS   -- z : gen i ⟶ T.dom, z ≫ T.arr = x ≫ S.arr
+    -- (x, z) is a cone over (S.arr, T.arr); its lift factors x through π₁ — contradiction.
+    have hw : x ≫ S.arr = z ≫ T.arr := hz.symm
+    refine hx ⟨pb.lift ⟨GrothendieckTopos.gen_obj i, x, z, hw⟩, ?_⟩
+    exact pb.lift_fst ⟨GrothendieckTopos.gen_obj i, x, z, hw⟩
+  -- π₁ iso ⟹ S ≤ T:  S.arr = π₁ ≫ S.arr = π₂ ≫ T.arr, and π₁⁻¹ ≫ π₂ factors S through T.
+  obtain ⟨π₁inv, _hl, hr⟩ := hiso   -- hr : π₁inv ≫ pb.cone.π₁ = Cat.id S.dom
+  refine ⟨π₁inv ≫ pb.cone.π₂, ?_⟩
+  calc (π₁inv ≫ pb.cone.π₂) ≫ T.arr
+        = π₁inv ≫ (pb.cone.π₂ ≫ T.arr) := Cat.assoc _ _ _
+    _ = π₁inv ≫ (pb.cone.π₁ ≫ S.arr) := by rw [pb.cone.w]
+    _ = (π₁inv ≫ pb.cone.π₁) ≫ S.arr := (Cat.assoc _ _ _).symm
+    _ = Cat.id S.dom ≫ S.arr := by rw [hr]
+    _ = S.arr := Cat.id_comp _
+
 /-- §1.843: A Grothendieck topos is WELL-POWERED: the collection Sub(A) of
     subobjects of each object A is a set (up to isomorphism, bounded by a
     type in universe v).
 
     BOOK PROOF: The generating set ℱ is also a basis in any pre-topos
     (every subobject appears as an equalizer, hence is detected by ℱ).
-    Sub(A) embeds into Π_{G∈ℱ} 𝒫(Hom(G,A)), which is small. -/
-instance grothendieck_topos_well_powered [GrothendieckTopos E] : WellPowered E where
+    Sub(A) embeds into Π_{G∈ℱ} 𝒫(Hom(G,A)), which is small.
+
+    FORMALIZATION: index `Sub(B)` by its `Type v` of traces
+    `Π_{i} (gen i ⟶ B) → Prop`; pick a representative subobject for each trace
+    (where one exists).  `le_of_subTrace_le` (both directions) shows equal traces
+    force a subobject iso, so every subobject is iso to its representative. -/
+noncomputable instance grothendieck_topos_well_powered [GrothendieckTopos E] :
+    WellPowered E where
   small := by
-    -- Sub(A) is indexed by the set of pairs (G∈ℱ, G→A), via the basis property:
-    -- two subobjects agree iff they agree on all generators.
-    -- Full formal proof requires the pre-topos equalizer argument (§1.843).
-    sorry
+    classical
+    intro B
+    -- Index type: the (small) type of traces.
+    refine ⟨((i : GrothendieckTopos.gen_idx (E := E)) → (GrothendieckTopos.gen_obj i ⟶ B) → Prop),
+            fun t => if ht : ∃ S : Subobject E B, subTrace S = t then ht.choose
+                     else Subobject.entire B, ?_⟩
+    intro S
+    refine ⟨subTrace S, ?_⟩
+    -- The representative at index `subTrace S` is some S' with `subTrace S' = subTrace S`.
+    have hex : ∃ S' : Subobject E B, subTrace S' = subTrace S := ⟨S, rfl⟩
+    dsimp only
+    rw [dif_pos hex]
+    have hchoose : subTrace hex.choose = subTrace S := hex.choose_spec
+    -- Equal traces ⟹ mutual ≤ ⟹ SubobjectIso.
+    have hST : Subobject.le S hex.choose :=
+      le_of_subTrace_le (fun i x hxS => by rw [hchoose]; exact hxS)
+    have hTS : Subobject.le hex.choose S :=
+      le_of_subTrace_le (fun i x hxS => by rw [hchoose] at hxS; exact hxS)
+    exact subobjectIso_of_le_le hST hTS
 
 /-- Two covers A ↠ P and A ↠ Q are ISOMORPHIC if there is a commuting iso P ≅ Q. -/
 def CoverIso {𝒞 : Type u} [Cat.{v} 𝒞] {A : 𝒞} {P Q : 𝒞}
@@ -164,17 +265,93 @@ class WellCopowered (𝒞 : Type u) [Cat.{v} 𝒞] : Prop where
             ∀ (Q : 𝒞) (q : A ⟶ Q) (_ : Cover q),
               ∃ i : I, CoverIso (cov i) q
 
+/-- The KERNEL-PAIR SUBOBJECT of a map `q : A ⟶ Q`: the level `(kp₁,kp₂)` of `q`
+    packaged as a subobject of `A × A`.  Two covers determine the same kernel-pair
+    subobject (up to iso) exactly when they are isomorphic as quotients (§1.566). -/
+def kpSub [GrothendieckTopos E] {A Q : E} (q : A ⟶ Q) : Subobject E (prod A A) :=
+  ⟨kernelPair q, pair (kp₁ (f := q)) (kp₂ (f := q)),
+   monic_pair_of_monicPair _ _ (kernelPairRel q).isMonicPair⟩
+
+/-- BRIDGE (§1.566): isomorphic kernel-pair subobjects give isomorphic covers.
+    From `i ≫ pair(kp₁',kp₂') = pair(kp₁,kp₂)` we read off `i ≫ kp₁' = kp₁`,
+    `i ≫ kp₂' = kp₂` (post-compose with `fst`,`snd`); the kernel-pair square
+    `kp_sq` then makes each cover equalize the other's kernel pair, so
+    `covers_same_kernelPair_iso` yields the `CoverIso`. -/
+theorem coverIso_of_kpSub_iso [GrothendieckTopos E] {A Q Q' : E}
+    {q : A ⟶ Q} {q' : A ⟶ Q'} (hq : Cover q) (hq' : Cover q')
+    (hiso : SubobjectIso (kpSub q) (kpSub q')) : CoverIso q q' := by
+  obtain ⟨i, ⟨iinv, hi1, hi2⟩, hi⟩ := hiso   -- i ≫ pair(kp₁',kp₂') = pair(kp₁,kp₂)
+  -- Read off the two column equalities.
+  have hi_fst : i ≫ kp₁ (f := q') = kp₁ (f := q) := by
+    have := congrArg (· ≫ fst) hi
+    simpa [kpSub, Cat.assoc, fst_pair] using this
+  have hi_snd : i ≫ kp₂ (f := q') = kp₂ (f := q) := by
+    have := congrArg (· ≫ snd) hi
+    simpa [kpSub, Cat.assoc, snd_pair] using this
+  -- The inverse iso gives the reverse column equalities.
+  have hinv_fst : iinv ≫ kp₁ (f := q) = kp₁ (f := q') := by
+    rw [← hi_fst, ← Cat.assoc, hi2, Cat.id_comp]
+  have hinv_snd : iinv ≫ kp₂ (f := q) = kp₂ (f := q') := by
+    rw [← hi_snd, ← Cat.assoc, hi2, Cat.id_comp]
+  -- q equalizes q''s kernel pair, and vice versa, via kp_sq.
+  have hxy : kp₁ (f := q) ≫ q' = kp₂ (f := q) ≫ q' := by
+    rw [← hi_fst, ← hi_snd, Cat.assoc, Cat.assoc, kp_sq]
+  have hyx : kp₁ (f := q') ≫ q = kp₂ (f := q') ≫ q := by
+    rw [← hinv_fst, ← hinv_snd, Cat.assoc, Cat.assoc, kp_sq]
+  exact covers_same_kernelPair_iso q hq q' hq' hxy hyx
+
 /-- §1.843: A Grothendieck topos is WELL-COPOWERED.
 
-    BOOK PROOF: In any effective regular category, covers coincide with
-    comonics, and isomorphism-types of covers A ↠ Q correspond bijectively
-    to equivalence relations on A.  These are bounded by Sub(A × A),
-    which is a set since E is well-powered. -/
-instance grothendieck_topos_well_copowered [GrothendieckTopos E] : WellCopowered E where
+    BOOK PROOF: In any effective regular category, isomorphism-types of covers
+    A ↠ Q correspond to equivalence relations on A (their kernel pairs, §1.566),
+    bounded by Sub(A × A), which is a set since E is well-powered (§1.843).
+
+    FORMALIZATION: index covers by `Sub(A × A)` (small by `WellPowered`); pick a
+    representative cover for each subobject that arises as a kernel pair.  The
+    bridge `coverIso_of_kpSub_iso` shows any cover is `CoverIso` to the
+    representative chosen at its own kernel-pair subobject. -/
+noncomputable instance grothendieck_topos_well_copowered [GrothendieckTopos E] :
+    WellCopowered E where
   small := by
-    -- Isomorphism types of covers A ↠ Q ↔ equivalence relations on A ↔ Sub(A×A).
-    -- Formal proof uses EffectiveRegular + grothendieck_topos_well_powered.
-    sorry
+    classical
+    intro A
+    -- Index covers by the (Type-v) TRACE of their kernel-pair subobject in A×A.
+    -- A trace `t` is "represented" if some cover's kernel-pair subobject has trace `t`.
+    let Tr := (i : GrothendieckTopos.gen_idx (E := E)) →
+              (GrothendieckTopos.gen_obj i ⟶ prod A A) → Prop
+    -- A "representing cover" of a trace `t`: a pair (Q, q : A↠Q) with Cover q and
+    -- `subTrace (kpSub q) = t`; package the codomain and cover in one Σ to avoid a
+    -- dependent dite on the codomain.  Default is `(A, id_A)` when `t` is no kernel pair.
+    let Reps : Tr → Prop :=
+      fun t => ∃ p : Σ Q : E, A ⟶ Q, Cover p.2 ∧ subTrace (kpSub p.2) = t
+    let rep : Tr → Σ Q : E, A ⟶ Q :=
+      fun t => if h : Reps t then h.choose else ⟨A, Cat.id A⟩
+    refine ⟨Tr, fun t => (rep t).1, fun t => (rep t).2, ?_, ?_⟩
+    · -- each chosen map is a cover
+      intro t
+      show Cover (rep t).2
+      by_cases h : Reps t
+      · have : rep t = h.choose := dif_pos h
+        rw [this]; exact h.choose_spec.1
+      · have : rep t = ⟨A, Cat.id A⟩ := dif_neg h
+        rw [this]; exact iso_cover _ ⟨Cat.id A, Cat.id_comp _, Cat.id_comp _⟩
+    · -- every cover is CoverIso to the representative at its own kernel-pair trace.
+      intro Q q hq
+      refine ⟨subTrace (kpSub q), ?_⟩
+      have hrep : Reps (subTrace (kpSub q)) := ⟨⟨Q, q⟩, hq, rfl⟩
+      -- The chosen representative cover `q'` and its defining data.
+      have hcov_eq : rep (subTrace (kpSub q)) = hrep.choose := by simp only [rep, dif_pos hrep]
+      have hq'cov : Cover hrep.choose.2 := hrep.choose_spec.1
+      have htr : subTrace (kpSub hrep.choose.2) = subTrace (kpSub q) := hrep.choose_spec.2
+      -- Equal traces ⟹ iso kernel-pair subobjects ⟹ CoverIso (bridge).
+      have hsubiso : SubobjectIso (kpSub hrep.choose.2) (kpSub q) :=
+        subobjectIso_of_le_le
+          (le_of_subTrace_le (fun i x hx => by rw [htr] at hx; exact hx))
+          (le_of_subTrace_le (fun i x hx => by rw [htr]; exact hx))
+      have hgoal : CoverIso hrep.choose.2 q := coverIso_of_kpSub_iso hq'cov hq hsubiso
+      -- The goal's `cov` at this index is `(rep _).2 = hrep.choose.2`.
+      show CoverIso (rep (subTrace (kpSub q))).2 q
+      rw [hcov_eq]; exact hgoal
 
 /-! ## §1.844 A Grothendieck topos is locally complete ---------------------- -/
 
