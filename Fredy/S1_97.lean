@@ -350,7 +350,52 @@ theorem nno_is_coproduct {𝒞 : Type u} [Cat.{v} 𝒞]
     [hN : HasNaturalNumbersObject 𝒞] [HasBinaryCoproducts 𝒞] :
     IsIso (HasBinaryCoproducts.case hN.zero hN.succ
           (A := one) (B := hN.nno) (X := hN.nno)) := by
-  sorry
+  -- c = [0,s] : 1+N → N.  Build the inverse d : N → 1+N by NNO-iterate:
+  --   d := iterate inl f,  where  f := [0≫inr, s≫inr] : 1+N → 1+N.
+  -- Key: f ≫ c = c ≫ s (case-uniqueness), inl ≫ c = 0, inr ≫ c = s.
+  open HasBinaryCoproducts in
+  let c : coprod one hN.nno ⟶ hN.nno := case hN.zero hN.succ
+  let f : coprod one hN.nno ⟶ coprod one hN.nno :=
+    case (hN.zero ≫ inr) (hN.succ ≫ inr)
+  let d : hN.nno ⟶ coprod one hN.nno := hN.iterate inl f
+  have hil : inl ≫ c = hN.zero := case_inl _ _
+  have hir : inr ≫ c = hN.succ := case_inr _ _
+  -- f ≫ c = c ≫ s :  both equal case (0≫s) (s≫s)
+  have hfc : f ≫ c = c ≫ hN.succ := by
+    rw [case_uniq (hN.zero ≫ hN.succ) (hN.succ ≫ hN.succ) (f ≫ c)
+          (by rw [← Cat.assoc]; show (inl ≫ f) ≫ c = _;
+              rw [case_inl, Cat.assoc, hir])
+          (by rw [← Cat.assoc]; show (inr ≫ f) ≫ c = _;
+              rw [case_inr, Cat.assoc, hir]),
+        case_uniq (hN.zero ≫ hN.succ) (hN.succ ≫ hN.succ) (c ≫ hN.succ)
+          (by rw [← Cat.assoc, hil]) (by rw [← Cat.assoc, hir])]
+  refine ⟨d, ?_, ?_⟩
+  · -- c ≫ d = id_{1+N}, via case_uniq: inl-leg = inl, inr-leg = inr.
+    rw [show Cat.id (coprod one hN.nno) = case inl inr from
+        case_uniq inl inr _ (by rw [Cat.comp_id]) (by rw [Cat.comp_id])]
+    apply case_uniq
+    · -- inl ≫ c ≫ d = inl :  inl≫c = 0, 0≫d = inl
+      rw [← Cat.assoc, hil, hN.iterate_zero]
+    · -- inr ≫ c ≫ d = inr :  inr≫c = s, s≫d = d≫f, and d≫f = inr by NNO-uniqueness
+      rw [← Cat.assoc, hir, hN.iterate_succ]
+      -- d ≫ f = inr = iterate (0≫inr) f
+      have hinr : inr (A := one) (B := hN.nno) = hN.iterate (hN.zero ≫ inr) f :=
+        hN.iterate_unique _ _ _ rfl (case_inr _ _).symm
+      have hdf : d ≫ f = hN.iterate (hN.zero ≫ inr) f := by
+        apply hN.iterate_unique
+        · show hN.zero ≫ d ≫ f = hN.zero ≫ inr
+          rw [← Cat.assoc, hN.iterate_zero]; show inl ≫ f = _; rw [case_inl]
+        · show hN.succ ≫ d ≫ f = (d ≫ f) ≫ f
+          rw [← Cat.assoc, hN.iterate_succ, Cat.assoc]
+      rw [hdf, ← hinr]
+  · -- d ≫ c = id_N = iterate 0 s, via NNO-uniqueness
+    rw [show Cat.id hN.nno = hN.iterate hN.zero hN.succ from
+        hN.iterate_unique _ _ _ (by rw [Cat.comp_id]) (by rw [Cat.comp_id, Cat.id_comp])]
+    apply hN.iterate_unique
+    · -- 0 ≫ d ≫ c = 0 :  0≫d = inl, inl≫c = 0
+      rw [← Cat.assoc, hN.iterate_zero, hil]
+    · -- s ≫ d ≫ c = (d≫c) ≫ s :  s≫d = d≫f, f≫c = c≫s
+      rw [← Cat.assoc, hN.iterate_succ, Cat.assoc, hfc, ← Cat.assoc]
 
 /-- §1.985(2): The terminal map N → 1 is a coequalizer of (s, id_N) : N ⇉ N.
     That is, for any f : N → X with s ≫ f = f, f factors uniquely through
@@ -418,7 +463,30 @@ def PeanoProperty {𝒞 : Type u} [Cat.{v} 𝒞] [HasTerminal 𝒞] [HasImages �
 theorem nno_peano_property {𝒞 : Type u} [Cat.{v} 𝒞]
     [hN : HasNaturalNumbersObject 𝒞] [HasImages 𝒞] :
     @PeanoProperty 𝒞 _ hN.toHasTerminal _ hN.nno hN.zero hN.succ := by
-  sorry
+  -- B ↣ N allows 0 (point e:1→B.dom, e≫arr=0) and is t=succ-stable (tB:B.dom→B.dom,
+  -- tB≫arr = arr≫s).  Then (B.dom, e, tB) is an N-algebra; iterate e tB : N → B.dom
+  -- is a SECTION of arr (iterate e tB ≫ arr = iterate 0 s = id_N by NNO-uniqueness).
+  -- A mono with a section is an iso, so B is entire.
+  intro B ⟨e, he⟩ ⟨tB, htB⟩
+  -- sec : N → B.dom, the iterate of the algebra (B.dom, e, tB)
+  let sec : hN.nno ⟶ B.dom := hN.iterate e tB
+  -- sec ≫ arr = id_N  (both iterate the NNO data (0, s))
+  have hsec_arr : sec ≫ B.arr = Cat.id hN.nno := by
+    rw [show Cat.id hN.nno = hN.iterate hN.zero hN.succ from
+        hN.iterate_unique _ _ _ (by rw [Cat.comp_id]) (by rw [Cat.comp_id, Cat.id_comp])]
+    apply hN.iterate_unique
+    · -- 0 ≫ sec ≫ arr = 0 :  0≫sec = e (iterate_zero), e≫arr = 0
+      rw [← Cat.assoc]; show (hN.zero ≫ sec) ≫ B.arr = _
+      rw [show hN.zero ≫ sec = e from hN.iterate_zero _ _, he]
+    · -- s ≫ sec ≫ arr = (sec≫arr) ≫ s :  s≫sec = sec≫tB, tB≫arr = arr≫s
+      rw [← Cat.assoc]; show (hN.succ ≫ sec) ≫ B.arr = _
+      rw [show hN.succ ≫ sec = sec ≫ tB from hN.iterate_succ _ _,
+          Cat.assoc, htB, ← Cat.assoc]
+  -- arr ≫ sec = id_{B.dom}, by mono-cancelling arr
+  have harr_sec : B.arr ≫ sec = Cat.id B.dom := by
+    apply B.monic
+    rw [Cat.assoc, hsec_arr, Cat.comp_id, Cat.id_comp]
+  exact ⟨sec, harr_sec, hsec_arr⟩
 
 /-- §1.987: Existence of least subobject with Peano property.
     Given a : 1 → A and t : A → A, there is a least subobject A' ↣ A
@@ -432,6 +500,12 @@ theorem least_peano_subobject {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞] [HasIm
       (∃ (t' : A'.dom ⟶ A'.dom), t' ≫ A'.arr = A'.arr ≫ t) ∧
       (∀ (B : Subobject 𝒞 A), Allows B a →
         (∃ (tB : B.dom ⟶ B.dom), tB ≫ B.arr = B.arr ≫ t) → A'.le B) := by
+  -- BLOCKER: A' is the *intersection* of all (a,t)-stable subobjects of A.  Constructing
+  -- it (and proving its leastness / its own stability) needs the internal-intersection /
+  -- power-object machinery of a topos (∀-quantifier over Sub(A), i.e. the object Ω^A and
+  -- the "least subobject closed under a,t" as an equalizer in P(A)).  The repo currently
+  -- exposes only `HasImages` (image factorisation), not arbitrary intersections / P(A),
+  -- so this least-subobject existence is not yet derivable here.  Faithful sorry.
   sorry
 
 /-! ## §1.98(12)  A-action and free A-action
@@ -552,6 +626,14 @@ theorem nno_of_bicartesian_data {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
                  ∀ g' : one ⟶ X, term A ≫ g' = f → g' = g) :
     -- Then there is a NNO with underlying object A, zero a, and successor t.
     Nonempty (HasNaturalNumbersObject 𝒞) := by
+  -- BLOCKER: this is the CONVERSE of §1.985 (`nno_is_coproduct` + `nno_terminal_is_coequalizer`).
+  -- To produce the NNO instance we must *construct* `iterate x f : A → X` for arbitrary
+  -- (X, x:1→X, f:X→X) from the bicartesian data, and prove existence+uniqueness.
+  -- Freyd's §1.988 derives this: the iso [a,t]:1+A≅A gives a "predecessor"/case split, and
+  -- the coequalizer A→1 supplies the induction principle, but turning that into a *total*
+  -- recursor requires the partial-map classifier (graph of the partial recursor descended
+  -- along the coequalizer) — i.e. §1.988 partial-recursion infrastructure not present here.
+  -- Faithful sorry pending §1.988.
   sorry
 
 /-! ## §1.98(11)  Bicartesian functors preserve NNO
@@ -580,6 +662,13 @@ theorem bicartesian_functor_preserves_nno
       ∃ g : one ⟶ X, term (T hN.nno) ≫ g = f ∧
         ∀ g' : one ⟶ X, term (T hN.nno) ≫ g' = f → g' = g) :
     Nonempty (HasNaturalNumbersObject 𝒜') := by
+  -- BLOCKER: the hypotheses say T preserves exactly the bicartesian data [1.985]
+  -- (the iso [0,s]:1+N≅N and the terminal coequalizer of (s,id)).  Concluding that
+  -- (T N, T 0, T s) is a NNO in 𝒜' is then a direct application of `nno_of_bicartesian_data`
+  -- to A := T N, a := T 0 ∘ (1≅T1), t := T s.  Hence this reduces to — and is blocked by —
+  -- the same §1.988 partial-recursion construction as `nno_of_bicartesian_data`.
+  -- (It also needs T1 ≅ 1 to retype the unit; provided by T preserving the terminal.)
+  -- Faithful sorry pending §1.988.
   sorry
 
 /-! ## §1.98(13)  Bicartesian characterization of free A-action
@@ -605,6 +694,11 @@ theorem free_action_iff_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
                ∃ g : one ⟶ X, term α.obj ≫ g = f ∧
                  ∀ g' : one ⟶ X, term α.obj ≫ g' = f → g' = g) :
     Nonempty (FreeAAction (𝒞 := 𝒞) A) := by
+  -- BLOCKER: the A-action analogue of `nno_of_bicartesian_data`.  From the iso
+  -- [e,s]:1+A×A* ≅ A* and the coequalizer A×A*→A*→1 one must build the free recursor
+  -- recA α : A* → α.obj for every A-action α, with existence+uniqueness — the same
+  -- partial-map-classifier / §1.988 descent construction as §1.98(10), now parametrised by A.
+  -- Faithful sorry pending §1.988.
   sorry
 
 /-! ## §1.98(14)  Existence of free A-action from NNO
@@ -617,6 +711,14 @@ theorem free_action_iff_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
 theorem free_action_exists {𝒞 : Type u} [Cat.{v} 𝒞]
     [hN : HasNaturalNumbersObject 𝒞] [HasExponentials 𝒞]
     (A : 𝒞) : Nonempty (FreeAAction (𝒞 := 𝒞) A) := by
+  -- BLOCKER: the free A-action object is the LIST OBJECT A* = Σₙ Aⁿ ("finite words in A"),
+  -- NOT the NNO N itself (taking A* := N with act := snd ≫ succ gives only the free
+  -- 1-action — its recA cannot recover an A-action's dependence on the A-coordinate, so
+  -- recA_act/recA_uniq fail for nontrivial A).  Building Σₙ Aⁿ from a NNO needs a
+  -- coproduct/list-object construction (the topos's W-type / partial-map classifier for
+  -- the polynomial X ↦ 1 + A×X), which is beyond the iteratePair (§1.981) and primRec
+  -- (§1.983) lemmas available here — those iterate a *fixed* fibre, not a growing power Aⁿ.
+  -- Faithful sorry pending the list-object (§1.98(14)) construction.
   sorry
 
 end Freyd
