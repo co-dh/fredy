@@ -108,6 +108,22 @@ theorem ac_iff_iac_and_projective_one [HasExponentials 𝒞] [HasImages 𝒞] :
   exists a unique A × N → B such that the two triangles commute.
   This is obtained by transposing through the exponential adjunction. -/
 
+/-- Absorbing a `pair` into the product functor: `⟨f,g⟩ ≫ (A × h) = ⟨f, g≫h⟩`. -/
+theorem pair_prodMap {𝒞 : Type u} [Cat.{v} 𝒞] [HasBinaryProducts 𝒞]
+    {A X Y W : 𝒞} (f : W ⟶ A) (g : W ⟶ X) (h : X ⟶ Y) :
+    pair f g ≫ prodMap A X Y h = pair f (g ≫ h) := by
+  apply pair_uniq
+  · rw [Cat.assoc, prodMap_fst, fst_pair]
+  · rw [Cat.assoc, prodMap_snd, ← Cat.assoc, snd_pair]
+
+/-- `g ↦ (A × g) ≫ eval` is injective: it is split by `curry`. -/
+theorem prodMap_eval_inj {𝒞 : Type u} [Cat.{v} 𝒞] [HasExponentials 𝒞]
+    {A B X : 𝒞} {g₁ g₂ : X ⟶ B ^^ A}
+    (h : prodMap A X (B ^^ A) g₁ ≫ eval_exp A B = prodMap A X (B ^^ A) g₂ ≫ eval_exp A B) :
+    g₁ = g₂ := by
+  rw [curry_unique_eq (f := prodMap A X (B ^^ A) g₁ ≫ eval_exp A B) rfl,
+      curry_unique_eq (f := prodMap A X (B ^^ A) g₂ ≫ eval_exp A B) rfl, h]
+
 /-- §1.981: Given an NNO and exponentials, from a : A → B and b : B → B
     build the unique morphism A × N → B satisfying the recursion equations.
     Construction: transpose a to a_hat : 1 → B^A as curry(fst ≫ a) : 1 → B^A
@@ -125,14 +141,33 @@ theorem iteratePair_zero {𝒞 : Type u} [Cat.{v} 𝒞]
     [hN : HasNaturalNumbersObject 𝒞] [HasExponentials 𝒞]
     {A B : 𝒞} (a : A ⟶ B) (b : B ⟶ B) :
     pair (Cat.id A) (term A ≫ hN.zero) ≫ iteratePair a b = a := by
-  sorry
+  -- iteratePair a b = (A × iter) ≫ eval, with iter = iterate a_hat b_hat.
+  -- Absorb the pair, use zero ≫ iter = a_hat, then curry_eval to drop a_hat.
+  show pair (Cat.id A) (term A ≫ hN.zero) ≫
+      prodMap A hN.nno (exp A B) (hN.iterate (curry (fst ≫ a)) (expPostMap A B B b)) ≫ eval_exp A B = a
+  rw [← Cat.assoc, pair_prodMap, Cat.assoc, hN.iterate_zero]
+  -- goal: ⟨id, term ≫ a_hat⟩ ≫ eval = a, with a_hat = curry (fst ≫ a)
+  have key : pair (Cat.id A) (term A ≫ curry (fst ≫ a)) ≫ eval_exp A B
+      = pair (Cat.id A) (term A) ≫ prodMap A one (exp A B) (curry (fst ≫ a)) ≫ eval_exp A B := by
+    rw [← Cat.assoc, pair_prodMap]
+  rw [key, curry_eval_eq, ← Cat.assoc, fst_pair, Cat.id_comp]
 
 /-- §1.981 successor equation: (1_A, s) ≫ iteratePair a b = iteratePair a b ≫ b. -/
 theorem iteratePair_succ {𝒞 : Type u} [Cat.{v} 𝒞]
     [hN : HasNaturalNumbersObject 𝒞] [HasExponentials 𝒞]
     {A B : 𝒞} (a : A ⟶ B) (b : B ⟶ B) :
     prodMap A hN.nno hN.nno (hN.succ) ≫ iteratePair a b = iteratePair a b ≫ b := by
-  sorry
+  show prodMap A hN.nno hN.nno hN.succ ≫
+      prodMap A hN.nno (exp A B) (hN.iterate (curry (fst ≫ a)) (expPostMap A B B b)) ≫ eval_exp A B
+    = (prodMap A hN.nno (exp A B) (hN.iterate (curry (fst ≫ a)) (expPostMap A B B b)) ≫ eval_exp A B) ≫ b
+  -- collapse the two prodMaps on N, then use succ ≫ iter = iter ≫ b_hat
+  rw [← Cat.assoc, ← prodMap_comp, hN.iterate_succ, prodMap_comp]
+  -- goal: (A × iter) ≫ (A × b_hat) ≫ eval = ((A × iter) ≫ eval) ≫ b
+  rw [Cat.assoc, Cat.assoc]
+  congr 1
+  -- (A × b_hat) ≫ eval = eval ≫ b, since b_hat = expPostMap = curry (eval ≫ b)
+  show prodMap A (exp A B) (exp A B) (curry (eval_exp A B ≫ b)) ≫ eval_exp A B = eval_exp A B ≫ b
+  rw [curry_eval_eq]
 
 /-- §1.981 uniqueness: iteratePair is the unique such morphism. -/
 theorem iteratePair_unique {𝒞 : Type u} [Cat.{v} 𝒞]
@@ -142,7 +177,33 @@ theorem iteratePair_unique {𝒞 : Type u} [Cat.{v} 𝒞]
     (h0 : pair (Cat.id A) (term A ≫ hN.zero) ≫ h = a)
     (hs : prodMap A hN.nno hN.nno hN.succ ≫ h = h ≫ b) :
     h = iteratePair a b := by
-  sorry
+  -- Transpose h to curry h : N → B^A. Show curry h = iterate a_hat b_hat by NNO uniqueness,
+  -- then uncurry both sides.
+  have hbhat : prodMap A (exp A B) (exp A B) (expPostMap A B B b) ≫ eval_exp A B
+      = eval_exp A B ≫ b := by
+    show prodMap A (exp A B) (exp A B) (curry (eval_exp A B ≫ b)) ≫ eval_exp A B = eval_exp A B ≫ b
+    rw [curry_eval_eq]
+  -- curry h iterates the NNO data:
+  have hcurry : curry h = hN.iterate (curry (fst ≫ a)) (expPostMap A B B b) := by
+    apply hN.iterate_unique
+    · -- zero ≫ curry h = curry (fst ≫ a)
+      apply prodMap_eval_inj
+      rw [prodMap_comp, Cat.assoc, curry_eval_eq, curry_eval_eq]
+      -- goal: (A × zero) ≫ h = fst ≫ a
+      have hpm : prodMap A one hN.nno hN.zero = fst ≫ pair (Cat.id A) (term A ≫ hN.zero) := by
+        symm
+        apply pair_uniq
+        · rw [Cat.assoc, fst_pair, Cat.comp_id]
+        · rw [Cat.assoc, snd_pair, ← Cat.assoc]; congr 1; exact term_uniq _ _
+      rw [show prodMap A HasTerminal.one hN.nno hN.zero
+            = fst ≫ pair (Cat.id A) (term A ≫ hN.zero) from hpm, Cat.assoc, h0]
+    · -- succ ≫ curry h = curry h ≫ b_hat
+      apply prodMap_eval_inj
+      rw [prodMap_comp, Cat.assoc, curry_eval_eq, prodMap_comp, Cat.assoc, hbhat,
+          ← Cat.assoc, curry_eval_eq, hs]
+  -- now uncurry: h = (A × curry h) ≫ eval = (A × iter) ≫ eval = iteratePair a b
+  show h = prodMap A hN.nno (exp A B) (hN.iterate (curry (fst ≫ a)) (expPostMap A B B b)) ≫ eval_exp A B
+  rw [← hcurry, curry_eval_eq]
 
 /-! ## §1.983  Primitive recursion in a topos
 
@@ -152,22 +213,75 @@ theorem iteratePair_unique {𝒞 : Type u} [Cat.{v} 𝒞]
     (1_A × s) ≫ f = (1_A, p₂, f) ≫ h
   where (1_A, p₂, f) : A × N → A × N × B. -/
 
+/-- §1.983 base value a' : A → (A×N)×B for the §1.981 iterate: `⟨⟨1_A, 0⟩, g⟩`. -/
+def primRecBase {𝒞 : Type u} [Cat.{v} 𝒞]
+    [hN : HasNaturalNumbersObject 𝒞] [HasExponentials 𝒞]
+    {A B : 𝒞} (g : A ⟶ B) : A ⟶ prod (prod A hN.nno) B :=
+  pair (pair (Cat.id A) (term A ≫ hN.zero)) g
+
+/-- §1.983 step b' : (A×N)×B → (A×N)×B for the §1.981 iterate:
+    `⟨⟨p₁, p₂·s⟩, h⟩` — advance the counter and apply h. -/
+def primRecStep {𝒞 : Type u} [Cat.{v} 𝒞]
+    [hN : HasNaturalNumbersObject 𝒞] [HasExponentials 𝒞]
+    {A B : 𝒞} (h : prod (prod A hN.nno) B ⟶ B) :
+    prod (prod A hN.nno) B ⟶ prod (prod A hN.nno) B :=
+  pair (pair (fst ≫ fst) (fst ≫ snd ≫ hN.succ)) h
+
 /-- §1.983: PRIMITIVE RECURSION. Given NNO 1→N→N, g : A→B, h : A×N×B→B,
-    the unique f : A×N→B satisfying the primitive recursion equations. -/
+    the unique f : A×N→B satisfying the primitive recursion equations.
+    Construction (book): k := iteratePair ⟨⟨1,0⟩,g⟩ ⟨⟨p₁,p₂s⟩,h⟩ : A×N → (A×N)×B,
+    then f = k ≫ p₃ (projection to B). -/
 def primRec {𝒞 : Type u} [Cat.{v} 𝒞]
     [hN : HasNaturalNumbersObject 𝒞] [HasExponentials 𝒞]
     {A B : 𝒞} (g : A ⟶ B) (h : prod (prod A hN.nno) B ⟶ B) :
     prod A hN.nno ⟶ B :=
-  -- The book constructs k : A × N → A × N × B via the iterate of §1.981,
-  -- then f = k ≫ p₃ (projection to B).  We sorry the full construction.
-  sorry
+  iteratePair (primRecBase g) (primRecStep h) ≫ snd
+
+/-- §1.983 carrier identity: the A×N-component of k is the identity, i.e. k ≫ p₁ = 1.
+    This is what makes k = ⟨p₁, p₂, f⟩.  Proved by §1.981-uniqueness: both k≫p₁ and 1
+    iterate ⟨1_A,0⟩ along (A × s). -/
+theorem primRec_fst {𝒞 : Type u} [Cat.{v} 𝒞]
+    [hN : HasNaturalNumbersObject 𝒞] [HasExponentials 𝒞]
+    {A B : 𝒞} (g : A ⟶ B) (h : prod (prod A hN.nno) B ⟶ B) :
+    iteratePair (primRecBase g) (primRecStep h) ≫ fst = Cat.id (prod A hN.nno) := by
+  -- k ≫ fst and id both equal iteratePair ⟨1,0⟩ (A × s); conclude by uniqueness.
+  have e0 : pair (Cat.id A) (term A ≫ hN.zero)
+        ≫ (iteratePair (primRecBase g) (primRecStep h) ≫ fst)
+      = pair (Cat.id A) (term A ≫ hN.zero) := by
+    rw [← Cat.assoc, iteratePair_zero]
+    show primRecBase g ≫ fst = _
+    rw [primRecBase, fst_pair]
+  have es : prodMap A hN.nno hN.nno hN.succ
+        ≫ (iteratePair (primRecBase g) (primRecStep h) ≫ fst)
+      = (iteratePair (primRecBase g) (primRecStep h) ≫ fst)
+        ≫ prodMap A hN.nno hN.nno hN.succ := by
+    rw [← Cat.assoc, iteratePair_succ, Cat.assoc, Cat.assoc]
+    congr 1
+    -- primRecStep h ≫ fst = ⟨p₁p₁, p₁p₂s⟩ = fst ≫ (A × s)
+    rw [primRecStep, fst_pair]
+    symm
+    apply pair_uniq
+    · rw [Cat.assoc, prodMap_fst]
+    · rw [Cat.assoc, prodMap_snd, ← Cat.assoc]
+  -- both k≫fst and id satisfy the same iterate equations for (⟨1,0⟩, A×s)
+  have huniq1 : iteratePair (primRecBase g) (primRecStep h) ≫ fst
+      = iteratePair (pair (Cat.id A) (term A ≫ hN.zero)) (prodMap A hN.nno hN.nno hN.succ) :=
+    iteratePair_unique _ _ _ e0 es
+  have huniq2 : Cat.id (prod A hN.nno)
+      = iteratePair (pair (Cat.id A) (term A ≫ hN.zero)) (prodMap A hN.nno hN.nno hN.succ) := by
+    apply iteratePair_unique
+    · rw [Cat.comp_id]
+    · rw [Cat.comp_id, Cat.id_comp]
+  rw [huniq1, ← huniq2]
 
 /-- §1.983 base equation: (1_A, 0) ≫ primRec g h = g. -/
 theorem primRec_zero {𝒞 : Type u} [Cat.{v} 𝒞]
     [hN : HasNaturalNumbersObject 𝒞] [HasExponentials 𝒞]
     {A B : 𝒞} (g : A ⟶ B) (h : prod (prod A hN.nno) B ⟶ B) :
     pair (Cat.id A) (term A ≫ hN.zero) ≫ primRec g h = g := by
-  sorry
+  show pair (Cat.id A) (term A ≫ hN.zero)
+      ≫ iteratePair (primRecBase g) (primRecStep h) ≫ snd = g
+  rw [← Cat.assoc, iteratePair_zero, primRecBase, snd_pair]
 
 /-- §1.983 step equation: (1_A × s) ≫ primRec g h = ⟨id, id, primRec g h⟩ ≫ h. -/
 theorem primRec_succ {𝒞 : Type u} [Cat.{v} 𝒞]
@@ -175,7 +289,16 @@ theorem primRec_succ {𝒞 : Type u} [Cat.{v} 𝒞]
     {A B : 𝒞} (g : A ⟶ B) (h : prod (prod A hN.nno) B ⟶ B) :
     prodMap A hN.nno hN.nno hN.succ ≫ primRec g h =
       pair (pair fst snd) (primRec g h) ≫ h := by
-  sorry
+  -- k = ⟨p₁, f⟩ since k≫p₁ = 1; LHS = k≫h, and ⟨⟨p₁,p₂⟩,f⟩ = k.
+  have hkeq : iteratePair (primRecBase g) (primRecStep h)
+      = pair (pair fst snd) (iteratePair (primRecBase g) (primRecStep h) ≫ snd) := by
+    apply pair_uniq
+    · rw [primRec_fst, pair_fst_snd]
+    · rfl
+  have hstep_snd : primRecStep h ≫ snd = h := by rw [primRecStep, snd_pair]
+  show prodMap A hN.nno hN.nno hN.succ ≫ iteratePair (primRecBase g) (primRecStep h) ≫ snd
+      = pair (pair fst snd) (iteratePair (primRecBase g) (primRecStep h) ≫ snd) ≫ h
+  rw [← Cat.assoc, iteratePair_succ, Cat.assoc, hstep_snd, ← hkeq]
 
 /-- §1.983 uniqueness. -/
 theorem primRec_unique {𝒞 : Type u} [Cat.{v} 𝒞]
@@ -185,7 +308,35 @@ theorem primRec_unique {𝒞 : Type u} [Cat.{v} 𝒞]
     (hf0 : pair (Cat.id A) (term A ≫ hN.zero) ≫ f = g)
     (hfs : prodMap A hN.nno hN.nno hN.succ ≫ f = pair (pair fst snd) f ≫ h) :
     f = primRec g h := by
-  sorry
+  -- kf := ⟨p₁, p₂, f⟩ satisfies the §1.981 iterate equations for (a', b'); by §1.981
+  -- uniqueness kf = k = iteratePair a' b', so f = kf ≫ snd = k ≫ snd = primRec g h.
+  have kf_fst : pair (pair fst snd) f ≫ fst = pair fst snd := fst_pair _ _
+  have hkf : pair (pair fst snd) f = iteratePair (primRecBase g) (primRecStep h) := by
+    apply iteratePair_unique
+    · -- ⟨1,0⟩ ≫ kf = a' = ⟨⟨1,0⟩, g⟩
+      rw [primRecBase]
+      apply pair_uniq
+      · apply pair_uniq <;>
+          simp only [Cat.assoc, fst_pair, snd_pair, Cat.comp_id]
+      · simp only [Cat.assoc, fst_pair, snd_pair]; exact hf0
+    · -- (A×s) ≫ kf = kf ≫ b'; both equal ⟨⟨p₁, p₂s⟩, kf≫h⟩.
+      have lhs : prodMap A hN.nno hN.nno hN.succ ≫ pair (pair fst snd) f
+          = pair (pair fst (snd ≫ hN.succ)) (pair (pair fst snd) f ≫ h) := by
+        apply pair_uniq
+        · apply pair_uniq <;>
+            simp only [Cat.assoc, fst_pair, snd_pair, prodMap_fst, prodMap_snd]
+        · simp only [Cat.assoc, fst_pair, snd_pair]; exact hfs
+      have rhs : pair (pair fst snd) f ≫ pair (pair (fst ≫ fst) (fst ≫ snd ≫ hN.succ)) h
+          = pair (pair fst (snd ≫ hN.succ)) (pair (pair fst snd) f ≫ h) := by
+        apply pair_uniq
+        · rw [Cat.assoc, fst_pair]
+          apply pair_uniq
+          · rw [Cat.assoc, fst_pair, ← Cat.assoc, kf_fst, fst_pair]
+          · rw [Cat.assoc, snd_pair, ← Cat.assoc, kf_fst, ← Cat.assoc, snd_pair]
+        · rw [Cat.assoc, snd_pair]
+      rw [primRecStep, lhs, rhs]
+  show f = iteratePair (primRecBase g) (primRecStep h) ≫ snd
+  rw [← hkf, snd_pair]
 
 /-! ## §1.985  N ≅ 1 + N; the coequalizer N → N → 1
 
