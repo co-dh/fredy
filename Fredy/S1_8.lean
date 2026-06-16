@@ -149,7 +149,12 @@ class CoreflectiveSubcategory {𝒜' : Type u₁} [Cat.{v} 𝒜'] (I : 𝒜' →
 /-! ## §1.815  Closure operation
 
   On a poset, a CLOSURE OPERATION is order-preserving, idempotent,
-  inflationary (§1.815). For a general category this is an idempotent monad. -/
+  inflationary (§1.815). For a general category this is an idempotent monad.
+
+  The book states three explicit axioms for the poset case:
+    (i)  order-preserving:  x ≤ y → x̄ ≤ ȳ
+    (ii) idempotent:        x̄ = x̄̄  (i.e. applying closure twice = once)
+    (iii) inflationary:     x ≤ x̄ -/
 
 /-- A CLOSURE OPERATION on a category (§1.815). T is the closure,
     η is the unit (inflationary), idem says Tη is an isomorphism. -/
@@ -159,5 +164,103 @@ structure ClosureOperation (𝒞 : Type u) [Cat.{v} 𝒞] where
   η : (A : 𝒞) → A ⟶ T A
   η_natural : ∀ {A B} (f : A ⟶ B), f ≫ η B = η A ≫ (Functor.map (F := T) f)
   idem : ∀ (A : 𝒞), IsIso (Functor.map (F := T) (η A))
+
+/-! ### §1.815 Poset case: three explicit axioms
+
+  When the ambient category is a poset (hom-sets are propositions),
+  the three axioms reduce to the statements the book gives explicitly. -/
+
+/-- Minimal partial-order typeclass used for the poset case of §1.815.
+    (The repo avoids mathlib; this bundles LE with the three order axioms.) -/
+class PosetOrder (P : Type u) extends LE P where
+  le_refl  : ∀ (x : P), x ≤ x
+  le_trans : ∀ {x y z : P}, x ≤ y → y ≤ z → x ≤ z
+  le_antisymm : ∀ {x y : P}, x ≤ y → y ≤ x → x = y
+
+/-- A CLOSURE OPERATION on a poset (§1.815, poset case).
+    c is order-preserving, inflationary, and idempotent:
+
+      (i)  x ≤ y  →  c x ≤ c y
+      (ii) x ≤ c x
+      (iii) c (c x) ≤ c x  (equivalently c (c x) = c x) -/
+structure ClosureOpPoset (P : Type u) [PosetOrder P] where
+  /-- The closure operation -/
+  c : P → P
+  /-- (i) order-preserving: x ≤ y → c x ≤ c y -/
+  order_preserving : ∀ {x y : P}, x ≤ y → c x ≤ c y
+  /-- (ii) inflationary: x ≤ c x -/
+  inflationary : ∀ (x : P), x ≤ c x
+  /-- (iii) idempotent (≤ half): c (c x) ≤ c x -/
+  idempotent : ∀ (x : P), c (c x) ≤ c x
+
+/-- The closure is idempotent as an equality: c(c x) = c x (§1.815). -/
+theorem ClosureOpPoset.idem_eq {P : Type u} [po : PosetOrder P]
+    (cl : ClosureOpPoset P) (x : P) : cl.c (cl.c x) = cl.c x :=
+  po.le_antisymm (cl.idempotent x) (cl.inflationary (cl.c x))
+
+/-- A point x is CLOSED if c x = x (§1.815). -/
+def ClosureOpPoset.IsClosed {P : Type u} [PosetOrder P]
+    (cl : ClosureOpPoset P) (x : P) : Prop := cl.c x = x
+
+/-- Every value of c is closed (§1.815). -/
+theorem ClosureOpPoset.value_is_closed {P : Type u} [PosetOrder P]
+    (cl : ClosureOpPoset P) (x : P) : cl.IsClosed (cl.c x) := cl.idem_eq x
+
+/-- Universal property of the reflection: x ≤ y ↔ c x ≤ y for closed y (§1.815).
+    This shows closed elements form a reflective sub-poset. -/
+theorem ClosureOpPoset.reflection_universal {P : Type u} [po : PosetOrder P]
+    (cl : ClosureOpPoset P) {x y : P} (hy : cl.IsClosed y) :
+    x ≤ y ↔ cl.c x ≤ y := by
+  constructor
+  · intro h
+    -- c x ≤ c y = y
+    exact hy ▸ cl.order_preserving h
+  · intro h
+    exact po.le_trans (cl.inflationary x) h
+
+/-! ## §1.817  Representability ⟺ left-adjoint criterion
+
+  §1.817: G : 𝒟 → 𝒞 has a left-adjoint F iff (A, G(-)) is representable for all A.
+  The forward direction: F A represents (A, G(-)) via the adjunction bijection.
+  The converse: choose representing objects FA and the equivalence (A,G(-)) ≅ (FA,-);
+  define Fx as the unique map making the naturality square commute. -/
+
+/-- (A, G(-)) is REPRESENTABLE BY an object R ∈ 𝒟: a bijection
+    (A ⟶ G B) ≃ (R ⟶ B), natural in B (§1.817). -/
+structure RepresentedBy {𝒞 : Type u₁} [Cat.{v} 𝒞] {𝒟 : Type u₂} [Cat.{v} 𝒟]
+    (G : 𝒟 → 𝒞) [Functor G] (A : 𝒞) (R : 𝒟) where
+  φ {B : 𝒟} : (A ⟶ G B) → (R ⟶ B)
+  ψ {B : 𝒟} : (R ⟶ B) → (A ⟶ G B)
+  φψ {B : 𝒟} (f : R ⟶ B) : φ (ψ f) = f
+  ψφ {B : 𝒟} (g : A ⟶ G B) : ψ (φ g) = g
+  /-- φ is natural in B: precomposing with G(b) on the right corresponds to
+      postcomposing with b on the R side. -/
+  φ_nat {B B' : 𝒟} (g : A ⟶ G B) (b : B ⟶ B') :
+    φ (g ≫ Functor.map b) = φ g ≫ b
+
+/-- §1.817 (→): if F ⊣ G then (A, G(-)) is represented by F A. -/
+def repr_of_adj {𝒞 : Type u₁} [Cat.{v} 𝒞] {𝒟 : Type u₂} [Cat.{v} 𝒟]
+    {F : 𝒞 → 𝒟} {G : 𝒟 → 𝒞} [Functor F] [Functor G]
+    (adj : F ⊣ G) (A : 𝒞) : RepresentedBy G A (F A) where
+  φ g  := adj.ψ g
+  ψ h  := adj.φ h
+  φψ f := adj.ψφ f
+  ψφ g := adj.φψ g
+  -- naturality: ψ (g ≫ G(b)) = ψ g ≫ b  (ψ_nat_right)
+  φ_nat g b := ψ_nat_right adj g b
+
+/-- §1.817 (←): if (A, G(-)) is representable for every A, we can construct
+    a left adjoint for G.  For each A choose F A and the equivalence; define F x
+    as the unique map making the naturality square commute.  Full proof deferred:
+    functoriality of the construction requires more bookkeeping. -/
+def adj_of_repr {𝒞 : Type u₁} [Cat.{v} 𝒞] {𝒟 : Type u₂} [Cat.{v} 𝒟]
+    (G : 𝒟 → 𝒞) [Functor G]
+    (repr : ∀ A : 𝒞, Σ R : 𝒟, RepresentedBy G A R) :
+    Σ (F : 𝒞 → 𝒟), Σ (_ : Functor F), F ⊣ G := by
+  -- The representing object for each A.
+  -- F x is defined via the representability of the source: the unique map in 𝒟
+  -- such that the naturality square commutes.
+  -- Functoriality and adjunction structure are non-trivial; deferred.
+  sorry
 
 end Freyd
