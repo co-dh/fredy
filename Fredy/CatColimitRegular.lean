@@ -1261,3 +1261,100 @@ theorem homInclObj_cover_reflects (C : CatSystem ι D) (hC : C.Coherent)
       (homInclObj C hC m') :=
     hcov (homInclObj C hC m') (homInclObj C hC g') hM_mono hfac
   exact homInclObj_isIso_reflects C hC hcons m' hMiso
+
+/-- **Cover reflection** (colimOut-rep form, the form the assembly needs): if `homIncl a f₀` is a
+    cover in `colimitCat` (transitions conservative `hcons`, mono-preserving `hmono`), then its stage
+    germ `f₀` is a cover.  Mirrors `colimHom_mono_reflects`: a stage mono `m'` and factor `g'` of `f₀`
+    are included as `colimitCat` maps `objIncl·t ⟶ B`, `A ⟶ objIncl·t` at the rep-agreement stage `s`
+    of `objIncl·t`; their composite reduces (`homCompRaw_eq_compAt` + `homTr_refl` + `castHom_comp` +
+    `map_comp`) to `homIncl a f₀`, so the colimit cover forces `M` iso; `colimHom_isIso_reflects` +
+    `hcons` bring the iso back to `m'`. -/
+theorem colimHom_cover_reflects (C : CatSystem ι D) (hC : C.Coherent)
+    (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
+        IsIso ((C.functF hij).map φ) → IsIso φ)
+    (hmono : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
+        Mono φ → Mono ((C.functF hij).map φ))
+    {A B : C.Obj}
+    (a : UpperBound D (colimOut C A).1 (colimOut C B).1)
+    (f₀ : C.F a.2.1 (colimOut C A).2 ⟶ C.F a.2.2 (colimOut C B).2)
+    (hcov : @Cover C.Obj (colimitCat C hC) A B
+      (homIncl C hC (colimOut C A).2 (colimOut C B).2 a f₀)) :
+    Cover f₀ := by
+  letI : Cat C.Obj := colimitCat C hC
+  intro t m' g' hm' hgm'
+  let xA := (colimOut C A).2; let xB := (colimOut C B).2
+  let T := C.objIncl a.1 t
+  let rep_t := (colimOut C T).2
+  obtain ⟨s, h_pt, h_ts, heqt⟩ := Quotient.exact (colimOut_spec C T)
+  dsimp only [CatSystem.objSystem] at heqt
+  -- heqt : C.F h_pt rep_t = C.F h_ts t
+  have domcast : C.F h_ts (C.F a.2.1 xA) = C.F (D.trans a.2.1 h_ts) xA := (C.F_trans a.2.1 h_ts xA).symm
+  have codcast : C.F h_ts (C.F a.2.2 xB) = C.F (D.trans a.2.2 h_ts) xB := (C.F_trans a.2.2 h_ts xB).symm
+  let germ_G : C.F (D.trans a.2.1 h_ts) xA ⟶ C.F h_pt rep_t :=
+    castHom domcast heqt.symm ((C.functF h_ts).map g')
+  let germ_M : C.F h_pt rep_t ⟶ C.F (D.trans a.2.2 h_ts) xB :=
+    castHom heqt.symm codcast ((C.functF h_ts).map m')
+  let G : A ⟶ T := homIncl C hC xA rep_t ⟨s, D.trans a.2.1 h_ts, h_pt⟩ germ_G
+  let M : T ⟶ B := homIncl C hC rep_t xB ⟨s, h_pt, D.trans a.2.2 h_ts⟩ germ_M
+  -- M is a colimit mono (mono preservation of the germ, from `m'` mono via `hmono`)
+  have hM_mono : @Mono C.Obj (colimitCat C hC) T B M := by
+    have hcancel : ∀ {j : ι} (hj : D.le s j) (z : C.A j) (u v : z ⟶ C.F hj (C.F h_pt rep_t)),
+        u ≫ (C.functF hj).map germ_M = v ≫ (C.functF hj).map germ_M → u = v := by
+      intro j hj z u v huv
+      have ed : C.F hj (C.F h_pt rep_t) = C.F (D.trans h_ts hj) t :=
+        (congrArg (C.F hj) heqt).trans (C.F_trans h_ts hj t).symm
+      have ec : C.F hj (C.F (D.trans a.2.2 h_ts) xB) = C.F (D.trans h_ts hj) (C.F a.2.2 xB) := by
+        rw [← C.F_trans (D.trans a.2.2 h_ts) hj xB, ← C.F_trans a.2.2 (D.trans h_ts hj) xB]
+      have hgm : (C.functF hj).map germ_M
+          = castHom ed.symm ec.symm ((C.functF (D.trans h_ts hj)).map m') := by
+        show (C.functF hj).map (castHom heqt.symm codcast ((C.functF h_ts).map m')) = _
+        rw [map_castHom (C.F hj) (hT := C.functF hj)]
+        exact castHom_heq_congr _ _ ed.symm ec.symm (hC.trans_map h_ts hj m').symm
+      rw [hgm] at huv
+      have cR : ∀ {P Q Q' R : C.A j} (he : Q = Q') (bb : P ⟶ Q) (cc : Q' ⟶ R),
+          castHom rfl he bb ≫ cc = bb ≫ castHom he.symm rfl cc := by
+        intro _ _ _ _ he bb cc; subst he; rfl
+      have cT : ∀ {P Q R R' : C.A j} (he : R = R') (bb : P ⟶ Q) (cc : Q ⟶ R),
+          castHom rfl he (bb ≫ cc) = bb ≫ castHom rfl he cc := by
+        intro _ _ _ _ he bb cc; subst he; rfl
+      have hcc : (castHom rfl ed u) ≫ (C.functF (D.trans h_ts hj)).map m'
+          = (castHom rfl ed v) ≫ (C.functF (D.trans h_ts hj)).map m' := by
+        apply castHom_injective rfl ec.symm
+        rw [cT, cT, cR, cR]
+        exact huv
+      exact castHom_injective rfl ed
+        (hmono (D.trans h_ts hj) m' hm' (castHom rfl ed u) (castHom rfl ed v) hcc)
+    intro Z p q hpq
+    exact colimHom_mono_of_rep (A := T) (B := B) C hC ⟨s, h_pt, D.trans a.2.2 h_ts⟩ germ_M hcancel p q hpq
+  -- the composite `G ≫ M` reduces to `homIncl a f₀`
+  have hfac : colimComp C hC G M = homIncl C hC xA xB a f₀ := by
+    show homCompRaw C hC xA rep_t xB ⟨s, D.trans a.2.1 h_ts, h_pt⟩ germ_G ⟨s, h_pt, D.trans a.2.2 h_ts⟩ germ_M
+       = homIncl C hC xA xB a f₀
+    rw [homCompRaw_eq_compAt C hC xA rep_t xB ⟨s, D.trans a.2.1 h_ts, h_pt⟩ germ_G
+          ⟨s, h_pt, D.trans a.2.2 h_ts⟩ germ_M s (D.refl s) (D.refl s)]
+    unfold compAt
+    rw [homTr_refl C hC, homTr_refl C hC]
+    have hcomp : germ_G ≫ germ_M
+        = homTr C xA xB a ⟨s, D.trans a.2.1 h_ts, D.trans a.2.2 h_ts⟩ h_ts f₀ := by
+      show castHom domcast heqt.symm ((C.functF h_ts).map g')
+          ≫ castHom heqt.symm codcast ((C.functF h_ts).map m') = _
+      rw [castHom_comp, ← (C.functF h_ts).map_comp, hgm']
+      rfl
+    rw [hcomp]
+    exact homIncl_compat C hC xA xB h_ts f₀
+  -- colimit cover ⇒ M iso ⇒ (iso reflection + hcons) ⇒ m' iso
+  have hMiso : @IsIso C.Obj (colimitCat C hC) T B M := hcov M G hM_mono hfac
+  obtain ⟨L, hL, hisoL⟩ := colimHom_isIso_reflects (A := T) (B := B) C hC
+    ⟨s, h_pt, D.trans a.2.2 h_ts⟩ germ_M hMiso
+  -- hisoL : IsIso ((functF hL).map germ_M); strip to IsIso (functF.map m'), then hcons
+  have ed : C.F hL (C.F h_pt rep_t) = C.F (D.trans h_ts hL) t :=
+    (congrArg (C.F hL) heqt).trans (C.F_trans h_ts hL t).symm
+  have ec : C.F hL (C.F (D.trans a.2.2 h_ts) xB) = C.F (D.trans h_ts hL) (C.F a.2.2 xB) := by
+    rw [← C.F_trans (D.trans a.2.2 h_ts) hL xB, ← C.F_trans a.2.2 (D.trans h_ts hL) xB]
+  have hgm : (C.functF hL).map germ_M
+      = castHom ed.symm ec.symm ((C.functF (D.trans h_ts hL)).map m') := by
+    show (C.functF hL).map (castHom heqt.symm codcast ((C.functF h_ts).map m')) = _
+    rw [map_castHom (C.F hL) (hT := C.functF hL)]
+    exact castHom_heq_congr _ _ ed.symm ec.symm (hC.trans_map h_ts hL m').symm
+  rw [hgm] at hisoL
+  exact hcons (D.trans h_ts hL) m' (isIso_of_castHom _ _ _ hisoL)
