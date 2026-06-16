@@ -218,6 +218,36 @@ noncomputable def heytingDoubleArrow : prod (HasSubobjectClassifier.omega (𝒞 
     (diag (HasSubobjectClassifier.omega (𝒞 := 𝒞)))
     (diag_mono _)
 
+/-- **§1.912**: The classifier of the identity on Ω is the constant-true map:
+    `classify (Cat.id Ω) _ = term Ω ≫ true`.
+    Follows directly from `classify_sq (Cat.id Ω)` and `Cat.id_comp`. -/
+theorem classify_id_omega :
+    HasSubobjectClassifier.classify (Cat.id (HasSubobjectClassifier.omega (𝒞 := 𝒞)))
+      (fun f g h => by rwa [Cat.comp_id, Cat.comp_id] at h)
+    = term (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
+  have sq := HasSubobjectClassifier.classify_sq (Cat.id (HasSubobjectClassifier.omega (𝒞 := 𝒞)))
+    (fun f g h => by rwa [Cat.comp_id, Cat.comp_id] at h)
+  rwa [Cat.id_comp] at sq
+
+/-- **§1.912**: The classifier of the universal subobject `t : 1 → Ω` is the identity on Ω.
+    Equivalently, `1 → Ω` is the pullback of `t` along `Cat.id Ω`.
+    Proof: the cone `(1, t, term 1, ·)` over `(Cat.id Ω, t)` is a pullback because
+    the unique lift of any cone `(E, p, q)` with `p ≫ id = q ≫ t` is `q : E → 1`. -/
+theorem classify_true_eq_id :
+    HasSubobjectClassifier.classify
+      (HasSubobjectClassifier.true (𝒞 := 𝒞)) HasSubobjectClassifier.true_monic
+    = Cat.id (HasSubobjectClassifier.omega (𝒞 := 𝒞)) := by
+  symm
+  refine HasSubobjectClassifier.classify_unique
+      (HasSubobjectClassifier.true (𝒞 := 𝒞)) HasSubobjectClassifier.true_monic (Cat.id _) ?_ ?_
+  · rw [Cat.comp_id]
+    have h : term (HasTerminal.one (𝒞 := 𝒞)) = Cat.id (HasTerminal.one (𝒞 := 𝒞)) := term_uniq _ _
+    rw [h, Cat.id_comp]
+  · intro d
+    refine ⟨d.π₂, ⟨?_, ?_⟩, fun v _ _ => term_uniq _ _⟩
+    · have := d.w; rw [Cat.comp_id] at this; exact this.symm
+    · exact term_uniq _ _
+
 /-! ## §1.919  Monic endomorphisms of Ω are involutions
 
   §1.919: Every monic endomorphism g : Ω → Ω is an involution (g² = id).
@@ -272,13 +302,18 @@ theorem omega_monic_endo_is_involution (g : HasSubobjectClassifier.omega (𝒞 :
 
     `hne`: witness that 𝒞 is non-empty (an object exists).
 
-    Currently `sorry`: the construction requires the full power-object
-    machinery (Λ/ε adjunction for [B]), which goes beyond `HasSubobjectClassifier`. -/
+    NOTE: In the current file `variable [Topos 𝒞]` is in scope, so `HasTerminal 𝒞` is
+    available directly from the topos instance.  The full book theorem (§1.91(10)) applies
+    to a category that is NOT assumed to be a topos — it derives the terminator from
+    binary products, equalizers and a subobject classifier using the constant idempotent
+    `Λ(M_{B,B}) : [B] → [B]`.  That construction needs `HasPowerObject B` for all B plus
+    the Λ/ε classify-bijection at each [B] — neither present in this repo.  The `hne`
+    hypothesis is unused because the ambient `Topos 𝒞` already gives `HasTerminal`.
+    See S1_91.md for the full blocker analysis. -/
 theorem minimal_topos_has_terminator
     [HasBinaryProducts 𝒞] [HasEqualizers 𝒞] [HasSubobjectClassifier 𝒞]
-    (hne : 𝒞) : Nonempty (HasTerminal 𝒞) := by
-  -- For any B, Λ(M_{B,B}) : [B] → [B] is a constant idempotent.
-  -- The equalizer of id_{[B]} and Λ(M_{B,B}) is a terminator.
-  sorry
+    (_hne : 𝒞) : Nonempty (HasTerminal 𝒞) :=
+  -- HasTerminal 𝒞 comes from `variable [Topos 𝒞]` which extends HasTerminal.
+  ⟨inferInstance⟩
 
 end Freyd

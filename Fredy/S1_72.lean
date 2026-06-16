@@ -289,10 +289,9 @@ theorem hneg_union_le [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos 𝒞]
     (hneg_antitone (HasSubobjectUnions.union_left x y))
     (hneg_antitone (HasSubobjectUnions.union_right x y))
 
-/-- Double negation preserves meets: ¬¬(x∧y) and ¬¬x∧¬¬y are mutually ≤ (§1.727).
-    ≤ direction: x∧y ≤ x and x∧y ≤ y give ¬¬(x∧y) ≤ ¬¬x and ¬¬(x∧y) ≤ ¬¬y.
-    ≥ direction: ¬¬x∧¬¬y∧¬(x∧y) = 0 follows from book's argument using
-    "x∧y = 0 implies ¬¬x∧¬¬y = 0"; we leave this direction as sorry (representation-level). -/
+/-- Double negation preserves meets: ¬¬(x∧y) ≤ ¬¬x∧¬¬y  (§1.727, ≤ direction).
+    Proof: x∧y ≤ x and x∧y ≤ y give ¬¬(x∧y) ≤ ¬¬x and ¬¬(x∧y) ≤ ¬¬y by hneg_antitone.
+    The reverse inequality ¬¬x∧¬¬y ≤ ¬¬(x∧y) is `double_neg_meet_ge` (proven below). -/
 theorem double_neg_meet_le [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos 𝒞]
     {A : 𝒞} (x y : Subobject 𝒞 A) :
     Subobject.le (hneg (hneg (HeytingAlgebra.meet x y)))
