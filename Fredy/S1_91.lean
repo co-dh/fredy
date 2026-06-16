@@ -302,18 +302,18 @@ theorem omega_monic_endo_is_involution (g : HasSubobjectClassifier.omega (𝒞 :
 
     `hne`: witness that 𝒞 is non-empty (an object exists).
 
-    NOTE: In the current file `variable [Topos 𝒞]` is in scope, so `HasTerminal 𝒞` is
-    available directly from the topos instance.  The full book theorem (§1.91(10)) applies
-    to a category that is NOT assumed to be a topos — it derives the terminator from
-    binary products, equalizers and a subobject classifier using the constant idempotent
-    `Λ(M_{B,B}) : [B] → [B]`.  That construction needs `HasPowerObject B` for all B plus
-    the Λ/ε classify-bijection at each [B] — neither present in this repo.  The `hne`
-    hypothesis is unused because the ambient `Topos 𝒞` already gives `HasTerminal`.
+    NOTE: `HasSubobjectClassifier` extends `HasTerminal` (S1_9, line 142), so the result
+    is trivially discharged by `HasSubobjectClassifier.toHasTerminal`.  This does NOT
+    reproduce Freyd's construction — which builds the terminator as the equalizer of
+    `id_{[B]}` and the constant idempotent `Λ(M_{B,B}) : [B] → [B]` for any B — because
+    that needs `HasPowerObject B` for ALL B plus the Λ/ε classify-bijection at each [B],
+    neither of which is formalized here.  The `hne` hypothesis and `[HasBinaryProducts]`,
+    `[HasEqualizers]` are structurally unused; they are kept to match the book's hypotheses.
     See S1_91.md for the full blocker analysis. -/
 theorem minimal_topos_has_terminator
     [HasBinaryProducts 𝒞] [HasEqualizers 𝒞] [HasSubobjectClassifier 𝒞]
     (_hne : 𝒞) : Nonempty (HasTerminal 𝒞) :=
-  -- HasTerminal 𝒞 comes from `variable [Topos 𝒞]` which extends HasTerminal.
-  ⟨inferInstance⟩
+  -- HasTerminal comes from [HasSubobjectClassifier 𝒞] directly (extends HasTerminal).
+  ⟨HasSubobjectClassifier.toHasTerminal⟩
 
 end Freyd
