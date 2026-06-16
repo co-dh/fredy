@@ -431,11 +431,25 @@ theorem prodEndo_faithful_of_embedding
       have := congrArg (· ≫ snd (A := B) (B := Z)) hpu
       simp only [snd_pair] at this; exact this
     exact hsnd_epi u v hsu
-  -- `f` is monic AND epic.  Concluding `IsIso f` is the genuine §1.472 content that
-  -- consumes the PROPER subobject `n : B' ↪ B` (a general Cartesian category is not
-  -- balanced — §1.652/§1.913 — so monic+epic alone does NOT give iso; Freyd's argument
-  -- uses the representation built from a proper subobject of B).  This last step is the
-  -- one remaining gap of the §1.472 keystone.
+  -- `f` is monic AND epic.  Concluding `IsIso f` is the genuine §1.472 content.
+  --
+  -- HONEST GAP (not closable from these hypotheses).  Writing `k = pair fst h` with
+  -- `h := k ≫ snd : B×Y → X`, the iso `map f` yields two equations
+  --   (I)  `h ≫ f = snd : B×Y → Y`        (from `k ≫ map f = id`, post `snd`)
+  --   (II) `map f ≫ h = snd : B×X → X`     (from `map f ≫ k = id`, post `snd`)
+  -- and a routine calc (verified in Lean during this work) shows: GIVEN ANY map `b : Y → B`,
+  -- the map `g := pair b (id_Y) ≫ h : Y → X` is a two-sided inverse of `f`
+  -- (`g ≫ f = id_Y` via (I); `f ≫ g = id_X` via (II)).  So the whole reduction collapses to
+  -- producing a single map `Y → B` — equivalently a section of `snd : B×Y → Y`.
+  --
+  -- `Embedding (prodEndo B)` (= `snd` epic for every X) gives, at X = 1, that `term B` is
+  -- EPIC (B is well-supported), but an epic `B → 1` does NOT split constructively, and the
+  -- bare proper subobject `n : B' ↪ B` furnishes no point/section of `B` either.  In a general
+  -- (non-special, non-balanced) Cartesian category there is no such `Y → B`: Freyd's actual
+  -- §1.472 derives faithfulness from SPECIALNESS (`m × id_B` proper ⇒ §1.453 preserves-properness),
+  -- never from "Embedding alone ⇒ Faithful".  This lemma, as stated (only `Embedding` + a proper
+  -- subobject, no `IsSpecial`), isolates a step strictly stronger than the book and is not
+  -- provable from its hypotheses.  Left as an honest `sorry`; see final report.
   sorry
 
 /-- **§1.472 (product-proper ↔ faithful)**: `B×-` is faithful iff for every proper subobject
@@ -664,7 +678,19 @@ theorem twoValued_special_prodEndo_faithful [CartesianCategory 𝒞] (hSp : IsSp
   -- it consumes `hB` (B ≇ 0) and the special dichotomy `B×0 ≅ 0`.
   have hproper : ProperMono (fst (A := B) (B := h2v.zeroObj)) := by
     refine ⟨hmono, ?_⟩
-    sorry
+    -- Suppose `fst : B×0 → B` is iso.  Combined with strictness of `0`
+    -- (`IsIso (snd : B×0 → 0)`, i.e. `B×0 ≅ 0`) it gives `fst⁻¹ ≫ snd : B → 0` iso,
+    -- contradicting `hB` (B ≇ 0).
+    intro hfst_iso
+    -- STRICTNESS OF 0: every map into `0` is iso; here `snd : B×0 → 0`.  This is the
+    -- §1.474 dichotomy ("either `g : X → 0` or `0 → 1` is iso"), transferred from Set by the
+    -- §1.471/§1.646 representation — NOT derivable from `IsSpecial`+`TwoValued` alone
+    -- (`IsSpecial` quantifies only over proper monos; `zero_uniq` needs `B×0` to be a
+    -- subterminator, which it is not).  Isolated here; see final report.
+    have hstrict : IsIso (snd (A := B) (B := h2v.zeroObj)) := sorry
+    obtain ⟨fi, hfi1, hfi2⟩ := hfst_iso
+    -- `fi ≫ snd : B → 0` is iso (composite of the iso `fi` and the iso `snd`).
+    exact hB ⟨fi ≫ snd, isIso_comp ⟨fst, hfi2, hfi1⟩ hstrict⟩
   intro X Y p q hpq
   exact isSpecial_implies_prodEndo_faithful hSp B ⟨_, _, hproper⟩ p q hpq
 
