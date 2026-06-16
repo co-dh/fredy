@@ -8,6 +8,7 @@
 
 import Fredy.S1_1
 import Fredy.S1_18
+import Fredy.S1_31
 import Fredy.S1_41
 import Fredy.S1_42
 import Fredy.S1_45
@@ -473,8 +474,8 @@ theorem cartesianFunctor_preserves_pullbacks {𝒞 𝒟 : Type u} [Cat.{v} 𝒞]
     [CartesianCategory 𝒞] [CartesianCategory 𝒟]
     {F : 𝒞 → 𝒟} [hF : Functor F] (hcf : CartesianFunctor F) :
     ∀ {A B C : 𝒞} (f : A ⟶ C) (g : B ⟶ C),
-      (products_equalizers_implies_pullbacks f g).cone.IsPullback := by
-  sorry
+      (products_equalizers_implies_pullbacks f g).cone.IsPullback :=
+  fun f g => (products_equalizers_implies_pullbacks f g).cone_isPullback
 
 /-- **§1.437**: A functor preserving pullbacks and the terminator is a
     representation of Cartesian categories.
@@ -538,7 +539,44 @@ theorem iso_reflecting_eq_preserving_faithful [HasEqualizers 𝒞] [HasEqualizer
     (hre : ∀ {A B : 𝒞} (f : A ⟶ B), IsIso (hF.map f) → IsIso f)
     (hpe : PreservesEqualizers F) :
     Embedding F := by
-  sorry
+  intro A B f g hfg
+  -- Step 1: eqMap(Ff,Fg) is iso in 𝒟 (since Ff=Fg, the equalizer of equal maps has domain≅codomain)
+  have hFfg_eq : hF.map f = hF.map g := hfg
+  have hcond : Cat.id (F A) ≫ hF.map f = Cat.id (F A) ≫ hF.map g := by
+    rw [Cat.id_comp, Cat.id_comp, hFfg_eq]
+  let em := eqMap (hF.map f) (hF.map g)
+  let eL := eqLift (hF.map f) (hF.map g) (Cat.id (F A)) hcond
+  have heL_fac : eL ≫ em = Cat.id (F A) := eqLift_fac (hF.map f) (hF.map g) _ hcond
+  have hem_eL : em ≫ eL = Cat.id _ := by
+    have h1 := eqLift_uniq (hF.map f) (hF.map g) em (eqMap_eq _ _) (em ≫ eL)
+                  (by rw [Cat.assoc, heL_fac, Cat.comp_id])
+    have h2 := eqLift_uniq (hF.map f) (hF.map g) em (eqMap_eq _ _) (Cat.id _)
+                  (Cat.id_comp _)
+    rw [h1, ← h2]
+  have hem_iso : IsIso em := ⟨eL, hem_eL, heL_fac⟩
+  -- Step 2: the canonical comparison map k : F(eqObj f g) → eqObj(Ff,Fg) is iso by hpe
+  let eqD := HasEqualizers.eq (F A) (F B) (hF.map f) (hF.map g)
+  let hcone : EqualizerCone (hF.map f) (hF.map g) :=
+    { dom := F (eqObj f g), map := hF.map (eqMap f g),
+      eq := by rw [← hF.map_comp, ← hF.map_comp, eqMap_eq] }
+  let k := eqD.lift hcone
+  have hk_fac : k ≫ em = hF.map (eqMap f g) := eqD.fac hcone
+  have hk_iso : IsIso k := hpe f g
+  -- Step 3: F.map(eqMap f g) is iso as k ≫ em with both isos
+  have hFem_iso : IsIso (hF.map (eqMap f g)) := by
+    rw [← hk_fac]; exact isIso_comp hk_iso hem_iso
+  -- Step 4: eqMap f g is iso in 𝒞 by hre
+  have hem_C_iso : IsIso (eqMap f g) := hre (eqMap f g) hFem_iso
+  -- Step 5: eqMap f g is epi (iso ⟹ epi); cancel from eqMap_eq f g to get f = g
+  obtain ⟨r, _hr1, hr2⟩ := hem_C_iso
+  have heq : eqMap f g ≫ f = eqMap f g ≫ g := eqMap_eq f g
+  calc f = Cat.id _ ≫ f       := (Cat.id_comp _).symm
+    _ = (r ≫ eqMap f g) ≫ f  := by rw [hr2]
+    _ = r ≫ eqMap f g ≫ f    := Cat.assoc _ _ _
+    _ = r ≫ eqMap f g ≫ g    := by rw [heq]
+    _ = (r ≫ eqMap f g) ≫ g  := (Cat.assoc _ _ _).symm
+    _ = Cat.id _ ≫ g          := by rw [hr2]
+    _ = g                      := Cat.id_comp _
 
 end S1_438
 
