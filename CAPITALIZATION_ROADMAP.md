@@ -61,7 +61,18 @@ Remaining (each ~40–80 lines, fights the `colimOut` rep transport):
    with `homIncl a f₀` reduces (`homCompRaw_eq_compAt` + `homTr_refl` + `castHom_comp` + `map_comp`,
    the `f₀`-push split via `hC.trans_map`) to `functF.map (u ≫ functF.map f₀)`, so the colimit mono
    gives `U=V`; then `homIncl_injective` + `castHom_injective` + faithfulness strip back to `u=v`.
-3. **Cover reflection / preservation** (cover = factor-through-mono ⇒ uses 2).
+2b. **Iso reflection** `colimitCat` iso ⇒ stage iso (after a transition). ✅ **DONE, sorry-free**
+   (`colimHom_isIso_reflects` + helper `homCompRaw_eq_id_stage` + `isIso_of_castHom`, axioms
+   {propext, Classical.choice, Quot.sound}). `Quotient.inductionOn` the colimit inverse to a stage
+   germ `g₀`; `homCompRaw_eq_id_stage` turns each of the two iso equations into a stage identity
+   (push to a *constructed* stage so `homTr_comp`/`homTr_trans` match — the hom-colimit is indexed by
+   `UpperBound`s, not bare stages); bound the two stages to `L`, transport both, so `homTr f₀`/`homTr g₀`
+   are mutually inverse at `L`; `isIso_of_castHom` strips the cast to `IsIso (functF.map f₀)`.
+3. **Cover reflection / preservation** (cover = factor-through-mono ⇒ uses 2 + 2b). Cover PRESERVATION:
+   stage cover ⇒ colimitCat cover, via reflecting the test mono (2) + stage cover ⇒ stage iso +
+   iso PRESERVATION (`colimHom_isIso_of_rep`). Cover REFLECTION: colimitCat cover ⇒ stage cover, via
+   mono PRESERVATION (`colimHom_mono_of_rep`) of the test mono + colimitCat cover ⇒ colimitCat iso +
+   iso REFLECTION (2b) ⇒ stage iso. Both now have all their iso/mono lemmas.
 4. **Assembly**: arbitrary pullback cone ≅ canonical (§1.432) so `Cover` is iso-invariant; reflect
    `f`/pullback to a stage, stage `PullbacksTransferCovers`, preserve back ⇒ `PullbacksTransferCovers C.Obj`;
    bundle with terminal+products+pullbacks ⇒ `PreRegularCategory C.Obj`.

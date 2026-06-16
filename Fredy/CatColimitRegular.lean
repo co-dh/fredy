@@ -854,6 +854,94 @@ theorem colimHom_mono_reflects (C : CatSystem ι D) (hC : C.Coherent)
     homIncl_injective C hC hfaith xW xA ⟨s, hps, D.trans a.2.1 h_as⟩ (germ u) (germ v) hUVeq
   exact hfaith hjs u v (castHom_injective heq0.symm hcodA hgerm)
 
+/-- **Extract a stage equation from a colimit composite equal to the identity.**
+    If `homCompRaw a f b g = colimId` (as `homIncl … id`), then at some stage `N`
+    the pushed germs `f`, `g` compose to the stage identity.  `homCompRaw_eq_compAt`
+    presents the composite as one `homIncl`; `Quotient.exact` against the identity
+    `homIncl` gives a common stage `N`, where `homTr_comp` + `homTr_trans` + `homTr_id`
+    turn the equation into a plain stage identity. -/
+theorem homCompRaw_eq_id_stage (C : CatSystem ι D) (hC : C.Coherent) {ip iq : ι}
+    (xp : C.A ip) (xq : C.A iq)
+    (a : UpperBound D ip iq) (f : C.F a.2.1 xp ⟶ C.F a.2.2 xq)
+    (b : UpperBound D iq ip) (g : C.F b.2.1 xq ⟶ C.F b.2.2 xp)
+    (h : homCompRaw C hC xp xq xp a f b g
+        = homIncl C hC xp xp ⟨ip, D.refl ip, D.refl ip⟩ (Cat.id (C.F (D.refl ip) xp))) :
+    ∃ (N : ι) (haN : D.le a.1 N) (hbN : D.le b.1 N),
+      homTr C xp xq a ⟨N, D.trans a.2.1 haN, D.trans a.2.2 haN⟩ haN f
+        ≫ homTr C xq xp b ⟨N, D.trans b.2.1 hbN, D.trans b.2.2 hbN⟩ hbN g
+      = Cat.id (C.F (D.trans a.2.1 haN) xp) := by
+  obtain ⟨M, haM, hbM⟩ := D.bound a.1 b.1
+  rw [homCompRaw_eq_compAt C hC xp xq xp a f b g M haM hbM] at h
+  unfold compAt at h
+  -- the hom-colimit is indexed by `UpperBound`s, so `N` here is an upper bound, not a
+  -- bare stage; push the equation to a *constructed* stage `L` where the bounds are
+  -- explicit constructors that `homTr_comp`/`homTr_trans` can match against.
+  obtain ⟨N, h1, h2, heq⟩ := Quotient.exact h
+  dsimp only [homSystem] at heq
+  obtain ⟨L, hNL, _⟩ := D.bound N.1 N.1
+  have key := congrArg (homTr C xp xp N ⟨L, D.trans N.2.1 hNL, D.trans N.2.2 hNL⟩ hNL) heq
+  rw [← homTr_trans C hC, ← homTr_trans C hC, homTr_comp C,
+      ← homTr_trans C hC, ← homTr_trans C hC, homTr_id C] at key
+  exact ⟨L, D.trans haM (D.trans h1 hNL), D.trans hbM (D.trans h1 hNL), key⟩
+
+/-- `castHom` reflects isomorphisms (it's a transport along object equalities). -/
+theorem isIso_of_castHom {𝒜 : Type w} [Cat.{w} 𝒜] {X Y X' Y' : 𝒜}
+    (hX : X = X') (hY : Y = Y') (m : X ⟶ Y) (h : IsIso (castHom hX hY m)) : IsIso m := by
+  subst hX; subst hY; exact h
+
+/-- **Iso reflection** (converse of `colimHom_isIso_of_rep`): if `homIncl a f₀` is an
+    isomorphism in `colimitCat`, then its stage germ `f₀` becomes an isomorphism after
+    transition to some stage `L`.  `Quotient.inductionOn` the colimit inverse to a stage
+    germ `g₀`; the two iso equations reduce (via `homCompRaw_eq_id_stage`) to stage
+    identities at stages `N1, N2`; bound them to a common `L` and transport both, so
+    `homTr f₀` and `homTr g₀` are mutually inverse at `L`; `isIso_of_castHom` strips the
+    `homTr` cast to leave `IsIso (functF.map f₀)`. -/
+theorem colimHom_isIso_reflects (C : CatSystem ι D) (hC : C.Coherent) {A B : C.Obj}
+    (a : UpperBound D (colimOut C A).1 (colimOut C B).1)
+    (f₀ : C.F a.2.1 (colimOut C A).2 ⟶ C.F a.2.2 (colimOut C B).2)
+    (hiso : @IsIso C.Obj (colimitCat C hC) A B
+      (homIncl C hC (colimOut C A).2 (colimOut C B).2 a f₀)) :
+    ∃ (L : ι) (hL : D.le a.1 L), IsIso ((C.functF hL).map f₀) := by
+  letI : Cat C.Obj := colimitCat C hC
+  let xA := (colimOut C A).2; let xB := (colimOut C B).2
+  obtain ⟨ginv, hl, hr⟩ := hiso
+  revert hl hr
+  refine Quotient.inductionOn ginv (fun rep => ?_)
+  obtain ⟨b, g₀⟩ := rep
+  intro hl hr
+  have hl' : homCompRaw C hC xA xB xA a f₀ b g₀
+      = homIncl C hC xA xA ⟨(colimOut C A).1, D.refl _, D.refl _⟩
+          (Cat.id (C.F (D.refl (colimOut C A).1) xA)) := hl
+  have hr' : homCompRaw C hC xB xA xB b g₀ a f₀
+      = homIncl C hC xB xB ⟨(colimOut C B).1, D.refl _, D.refl _⟩
+          (Cat.id (C.F (D.refl (colimOut C B).1) xB)) := hr
+  obtain ⟨N1, haN1, hbN1, eq1⟩ := homCompRaw_eq_id_stage C hC xA xB a f₀ b g₀ hl'
+  obtain ⟨N2, hbN2, haN2, eq2⟩ := homCompRaw_eq_id_stage C hC xB xA b g₀ a f₀ hr'
+  obtain ⟨L, hN1L, hN2L⟩ := D.bound N1 N2
+  have haL : D.le a.1 L := D.trans haN1 hN1L
+  have hbL : D.le b.1 L := D.trans hbN1 hN1L
+  -- transport both stage identities to the common stage `L`
+  have eq1L : homTr C xA xB a ⟨L, D.trans a.2.1 haL, D.trans a.2.2 haL⟩ haL f₀
+      ≫ homTr C xB xA b ⟨L, D.trans b.2.1 hbL, D.trans b.2.2 hbL⟩ hbL g₀
+      = Cat.id (C.F (D.trans a.2.1 haL) xA) := by
+    have t := congrArg
+      (homTr C xA xA ⟨N1, D.trans a.2.1 haN1, D.trans a.2.1 haN1⟩
+        ⟨L, D.trans (D.trans a.2.1 haN1) hN1L, D.trans (D.trans a.2.1 haN1) hN1L⟩ hN1L) eq1
+    rw [homTr_comp C, ← homTr_trans C hC, ← homTr_trans C hC, homTr_id C] at t
+    exact t
+  have eq2L : homTr C xB xA b ⟨L, D.trans b.2.1 hbL, D.trans b.2.2 hbL⟩ hbL g₀
+      ≫ homTr C xA xB a ⟨L, D.trans a.2.1 haL, D.trans a.2.2 haL⟩ haL f₀
+      = Cat.id (C.F (D.trans b.2.1 hbL) xB) := by
+    have t := congrArg
+      (homTr C xB xB ⟨N2, D.trans b.2.1 hbN2, D.trans b.2.1 hbN2⟩
+        ⟨L, D.trans (D.trans b.2.1 hbN2) hN2L, D.trans (D.trans b.2.1 hbN2) hN2L⟩ hN2L) eq2
+    rw [homTr_comp C, ← homTr_trans C hC, ← homTr_trans C hC, homTr_id C] at t
+    exact t
+  have hisoL : IsIso (homTr C xA xB a ⟨L, D.trans a.2.1 haL, D.trans a.2.2 haL⟩ haL f₀) :=
+    ⟨homTr C xB xA b ⟨L, D.trans b.2.1 hbL, D.trans b.2.2 hbL⟩ hbL g₀, eq1L, eq2L⟩
+  exact ⟨L, haL, isIso_of_castHom (C.F_trans a.2.1 haL xA).symm (C.F_trans a.2.2 haL xB).symm
+    ((C.functF haL).map f₀) hisoL⟩
+
 /-- A witness that the `colimOut` representatives of `objIncl i x` and `objIncl i y`
     both agree with `x`, `y` at a common stage `K` — the data needed to transport a
     stage morphism `x ⟶ y` into a `colimitCat` morphism. -/
