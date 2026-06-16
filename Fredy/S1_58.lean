@@ -239,7 +239,75 @@ theorem image_via_coeq [BicartesianCategory 𝒞] [RegularCategory 𝒞]
     {A B : 𝒞} (x : A ⟶ B) :
     let hcoeq := (HasCoequalizers.coeq (kp₁ (f := x)) (kp₂ (f := x)))
     Mono (hcoeq.desc x kp_sq) := by
-  sorry
+  intro hcoeq
+  -- q : A → C is the coeq map, m : C → B the unique factorization.
+  have hq : Cover hcoeq.map := coeq_map_is_cover hcoeq
+  -- Image factorization of x: e cover, I.arr monic.
+  have hi_mono : Mono (image x).arr := (image x).monic
+  have he_cover : Cover (image.lift x) := image_lift_cover x
+  -- kp₁(x) ≫ e = kp₂(x) ≫ e: kp_sq gives kp₁ ≫ x = kp₂ ≫ x; I.arr monic cancels.
+  have hkp_e : kp₁ (f := x) ≫ image.lift x = kp₂ (f := x) ≫ image.lift x :=
+    hi_mono _ _
+      (calc (kp₁ (f:=x) ≫ image.lift x) ≫ (image x).arr
+          = kp₁ (f:=x) ≫ x := by rw [Cat.assoc]; exact congrArg (kp₁ (f:=x) ≫ ·) (image.lift_fac x)
+        _ = kp₂ (f:=x) ≫ x := kp_sq
+        _ = (kp₂ (f:=x) ≫ image.lift x) ≫ (image x).arr := by rw [Cat.assoc]; exact (congrArg (kp₂ (f:=x) ≫ ·) (image.lift_fac x)).symm)
+  -- φ : C → I.dom from coeq UMP applied to (image.lift x).
+  have hqφ : hcoeq.map ≫ hcoeq.desc (image.lift x) hkp_e = image.lift x :=
+    hcoeq.fac (image.lift x) hkp_e
+  -- m = φ ≫ I.arr: q ≫ m = x = e ≫ I.arr = q ≫ φ ≫ I.arr, so cover_epi q.
+  have hm_eq : hcoeq.desc x kp_sq =
+      hcoeq.desc (image.lift x) hkp_e ≫ (image x).arr :=
+    cover_epi hq (by
+      rw [hcoeq.fac x kp_sq, ← Cat.assoc, hqφ, image.lift_fac])
+  -- kp₁(e) ≫ q = kp₂(e) ≫ q: lift kp_sq(e) into kernelPair(x), then use hcoeq.eq.
+  have hkp_eq_q : kp₁ (f := image.lift x) ≫ hcoeq.map = kp₂ (f := image.lift x) ≫ hcoeq.map := by
+    -- kp₁(e) ≫ x = kp₂(e) ≫ x via kp_sq(e) and image factorization.
+    have hke_x : kp₁ (f := image.lift x) ≫ x = kp₂ (f := image.lift x) ≫ x :=
+      calc kp₁ (f:=image.lift x) ≫ x
+          = kp₁ (f:=image.lift x) ≫ image.lift x ≫ (image x).arr := by rw [image.lift_fac]
+        _ = (kp₁ (f:=image.lift x) ≫ image.lift x) ≫ (image x).arr := (Cat.assoc _ _ _).symm
+        _ = (kp₂ (f:=image.lift x) ≫ image.lift x) ≫ (image x).arr := by
+              exact congrArg (· ≫ _) kp_sq
+        _ = kp₂ (f:=image.lift x) ≫ image.lift x ≫ (image x).arr := Cat.assoc _ _ _
+        _ = kp₂ (f:=image.lift x) ≫ x := by rw [image.lift_fac]
+    -- Lift l : kernelPair(e) → kernelPair(x) via the pullback.
+    have hl₁ := kp_lift_p₁ (kp₁ (f:=image.lift x)) (kp₂ (f:=image.lift x)) hke_x
+    have hl₂ := kp_lift_p₂ (kp₁ (f:=image.lift x)) (kp₂ (f:=image.lift x)) hke_x
+    -- kp₁(e) ≫ q = l ≫ kp₁(x) ≫ q = l ≫ kp₂(x) ≫ q = kp₂(e) ≫ q.
+    -- Naming l avoids repeated long expression; no rw to sidestep motive issues.
+    let l := (HasPullbacks.has x x).lift
+      ⟨_, kp₁ (f:=image.lift x), kp₂ (f:=image.lift x), hke_x⟩
+    -- step1: kp₁(e) ≫ q = (l ≫ kp₁(x)) ≫ q  [from hl₁]
+    -- step2: (l ≫ kp₁(x)) ≫ q = l ≫ (kp₁(x) ≫ q)  [assoc]
+    -- step3: l ≫ (kp₁(x) ≫ q) = l ≫ (kp₂(x) ≫ q)  [hcoeq.eq]
+    -- step4: l ≫ (kp₂(x) ≫ q) = (l ≫ kp₂(x)) ≫ q  [assoc.symm]
+    -- step5: (l ≫ kp₂(x)) ≫ q = kp₂(e) ≫ q  [from hl₂]
+    exact (congrArg (· ≫ hcoeq.map) hl₁.symm).trans
+      ((Cat.assoc l _ _).trans
+        ((congrArg (l ≫ ·) hcoeq.eq).trans
+          ((Cat.assoc l _ _).symm.trans (congrArg (· ≫ hcoeq.map) hl₂))))
+  -- ψ : I.dom → C from cover_is_coequalizer_of_level applied to (image.lift x).
+  obtain ⟨ψ, heψ, _⟩ :=
+    cover_is_coequalizer_of_level (image.lift x) he_cover hcoeq.map hkp_eq_q
+  -- φ ≫ ψ = id_C (cover_epi hq) and ψ ≫ φ = id (cover_epi he_cover).
+  have hφψ : hcoeq.desc (image.lift x) hkp_e ≫ ψ = Cat.id hcoeq.obj :=
+    cover_epi hq (by rw [← Cat.assoc, hqφ, heψ, Cat.comp_id])
+  -- Mono m: given u ≫ m = v ≫ m, rewrite via hm_eq to use φ,I.arr.
+  intro W u v huv
+  -- First get u ≫ φ ≫ I.arr = v ≫ φ ≫ I.arr from huv via hm_eq.
+  have huv' : u ≫ hcoeq.desc (image.lift x) hkp_e ≫ (image x).arr =
+               v ≫ hcoeq.desc (image.lift x) hkp_e ≫ (image x).arr := by
+    rw [← hm_eq]; exact huv
+  -- Cancel I.arr (monic) to get u ≫ φ = v ≫ φ.
+  have hφ_eq : u ≫ hcoeq.desc (image.lift x) hkp_e = v ≫ hcoeq.desc (image.lift x) hkp_e :=
+    hi_mono _ _ (by rw [Cat.assoc, Cat.assoc]; exact huv')
+  -- Cancel φ using its right-inverse ψ.
+  calc u = u ≫ (hcoeq.desc (image.lift x) hkp_e ≫ ψ) := by rw [hφψ, Cat.comp_id]
+    _ = (u ≫ hcoeq.desc (image.lift x) hkp_e) ≫ ψ := (Cat.assoc _ _ _).symm
+    _ = (v ≫ hcoeq.desc (image.lift x) hkp_e) ≫ ψ := by rw [hφ_eq]
+    _ = v ≫ (hcoeq.desc (image.lift x) hkp_e ≫ ψ) := Cat.assoc _ _ _
+    _ = v := by rw [hφψ, Cat.comp_id]
 
 /-! ## §1.583 Effectiveness is a Horn sentence
 
@@ -263,7 +331,84 @@ theorem effectiveness_iff_coeq_pullback [BicartesianCategory 𝒞] [RegularCateg
     (∃ (Q : 𝒞) (x : A ⟶ Q) (hlx : l ≫ x = r ≫ x), Cover x ∧
         IsIso ((HasPullbacks.has x x).lift ⟨E, l, r, hlx⟩)) ↔
     (⟨E, l, r, hcoeq.eq⟩ : Cone q q).IsPullback := by
-  sorry
+  intro hcoeq q
+  constructor
+  · -- Forward: effective ⇒ coeq square is a pullback.
+    rintro ⟨Q, x, hlx, hx_cover, ⟨k_inv, hk_left, hk_right⟩⟩
+    -- k : E → kernelPair(x), the chosen iso into the kernel pair of x.
+    let k : E ⟶ kernelPair x := (HasPullbacks.has x x).lift ⟨E, l, r, hlx⟩
+    have hk_p₁ : k ≫ kp₁ (f := x) = l := kp_lift_p₁ l r hlx
+    have hk_p₂ : k ≫ kp₂ (f := x) = r := kp_lift_p₂ l r hlx
+    -- m : C → Q with q ≫ m = x (coeq factorization of x through q).
+    let m : hcoeq.obj ⟶ Q := hcoeq.desc x hlx
+    have hqm : q ≫ m = x := hcoeq.fac x hlx
+    -- k_inv ≫ l = kp₁(x), k_inv ≫ r = kp₂(x).
+    have hkinv_l : k_inv ≫ l = kp₁ (f := x) :=
+      calc k_inv ≫ l = k_inv ≫ (k ≫ kp₁ (f := x)) := by rw [hk_p₁]
+        _ = (k_inv ≫ k) ≫ kp₁ (f := x) := (Cat.assoc _ _ _).symm
+        _ = kp₁ (f := x) := by rw [hk_right, Cat.id_comp]
+    have hkinv_r : k_inv ≫ r = kp₂ (f := x) :=
+      calc k_inv ≫ r = k_inv ≫ (k ≫ kp₂ (f := x)) := by rw [hk_p₂]
+        _ = (k_inv ≫ k) ≫ kp₂ (f := x) := (Cat.assoc _ _ _).symm
+        _ = kp₂ (f := x) := by rw [hk_right, Cat.id_comp]
+    intro d
+    -- d.π₁ ≫ x = d.π₂ ≫ x (from d.w : d.π₁ ≫ q = d.π₂ ≫ q).
+    have hdx : d.π₁ ≫ x = d.π₂ ≫ x := by
+      rw [← hqm, ← Cat.assoc, ← Cat.assoc, d.w]
+    -- kd : d.pt → kernelPair(x) lifting (d.π₁, d.π₂).
+    let kd : d.pt ⟶ kernelPair x := (HasPullbacks.has x x).lift ⟨_, d.π₁, d.π₂, hdx⟩
+    have hkd₁ : kd ≫ kp₁ (f := x) = d.π₁ := kp_lift_p₁ d.π₁ d.π₂ hdx
+    have hkd₂ : kd ≫ kp₂ (f := x) = d.π₂ := kp_lift_p₂ d.π₁ d.π₂ hdx
+    refine ⟨kd ≫ k_inv, ⟨?_, ?_⟩, ?_⟩
+    · -- (kd ≫ k_inv) ≫ l = kd ≫ kp₁(x) = d.π₁.
+      rw [Cat.assoc, hkinv_l, hkd₁]
+    · rw [Cat.assoc, hkinv_r, hkd₂]
+    · -- Uniqueness.
+      intro v hv₁ hv₂
+      -- v ≫ k = kd by pullback uniqueness on kernelPair(x).
+      have hvk : v ≫ k = kd := by
+        have e₁ : (v ≫ k) ≫ kp₁ (f := x) = d.π₁ := by
+          rw [Cat.assoc, hk_p₁, hv₁]
+        have e₂ : (v ≫ k) ≫ kp₂ (f := x) = d.π₂ := by
+          rw [Cat.assoc, hk_p₂, hv₂]
+        exact (kp_lift_uniq d.π₁ d.π₂ hdx (v ≫ k) e₁ e₂)
+      calc v = v ≫ (k ≫ k_inv) := by rw [hk_left, Cat.comp_id]
+        _ = (v ≫ k) ≫ k_inv := (Cat.assoc _ _ _).symm
+        _ = kd ≫ k_inv := by rw [hvk]
+  · -- Backward: coeq square is a pullback ⇒ effective (via x = q).
+    intro h_pb
+    -- k_q : E → kernelPair(q), the chosen lift of (l, r) into kernelPair(q).
+    let k_q : E ⟶ kernelPair q := (HasPullbacks.has q q).lift ⟨E, l, r, hcoeq.eq⟩
+    have hkq₁ : k_q ≫ kp₁ (f := q) = l := kp_lift_p₁ l r hcoeq.eq
+    have hkq₂ : k_q ≫ kp₂ (f := q) = r := kp_lift_p₂ l r hcoeq.eq
+    -- The kernel-pair projections give a cone over (q, q); apply the pullback h_pb.
+    obtain ⟨u, ⟨hu₁, hu₂⟩, _⟩ :=
+      h_pb ⟨kernelPair q, kp₁ (f := q), kp₂ (f := q), kp_sq⟩
+    -- u : kernelPair(q) → E with u ≫ l = kp₁(q), u ≫ r = kp₂(q).
+    -- Show k_q is iso with inverse u.
+    refine ⟨hcoeq.obj, q, hcoeq.eq, coeq_map_is_cover hcoeq, ⟨u, ?_, ?_⟩⟩
+    · -- k_q ≫ u = id_E.  Use that ⟨E,l,r⟩ is a pullback (h_pb): unique map E→E.
+      -- Both id_E and k_q ≫ u send (l,r) to (l,r), so equal by uniqueness in h_pb.
+      obtain ⟨w, _, huniq⟩ := h_pb ⟨E, l, r, hcoeq.eq⟩
+      have hid : Cat.id E = w := huniq (Cat.id E) (Cat.id_comp _) (Cat.id_comp _)
+      have hcomp : k_q ≫ u = w := by
+        refine huniq (k_q ≫ u) ?_ ?_
+        · rw [Cat.assoc, hu₁, hkq₁]
+        · rw [Cat.assoc, hu₂, hkq₂]
+      rw [hcomp, ← hid]
+    · -- u ≫ k_q = id_{kernelPair(q)}.  By pullback uniqueness on kernelPair(q).
+      have e₁ : (u ≫ k_q) ≫ kp₁ (f := q) = kp₁ (f := q) := by
+        rw [Cat.assoc, hkq₁, hu₁]
+      have e₂ : (u ≫ k_q) ≫ kp₂ (f := q) = kp₂ (f := q) := by
+        rw [Cat.assoc, hkq₂, hu₂]
+      have hide : (u ≫ k_q) = (HasPullbacks.has q q).lift ⟨_, kp₁ (f := q), kp₂ (f := q), kp_sq⟩ :=
+        kp_lift_uniq (kp₁ (f := q)) (kp₂ (f := q)) kp_sq (u ≫ k_q) e₁ e₂
+      have hidk : Cat.id (kernelPair q) =
+          (HasPullbacks.has q q).lift ⟨_, kp₁ (f := q), kp₂ (f := q), kp_sq⟩ :=
+        kp_lift_uniq (kp₁ (f := q)) (kp₂ (f := q)) kp_sq (Cat.id (kernelPair q))
+          (Cat.id_comp _) (Cat.id_comp _)
+      rw [hide, ← hidk]
+      rfl
 
 /-! ## §1.584 Slice category inherits cocartesian structure
 
