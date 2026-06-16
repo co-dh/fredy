@@ -843,40 +843,236 @@ private theorem choice_factor_through_map {A C D : 𝒞}
   obtain ⟨f, w, hwA, hwB⟩ := hD R_g hent_g
   exact ⟨f, R_g, w, hcov_Rg, hwA, hwB⟩
 
+/-- A morphism with a section is a cover (split epi ⟹ cover):
+    given `s ≫ e = id`, any monic `m` that `e` factors through is split epi
+    (via `s ≫ g`), and a monic split epi is an iso. -/
+private theorem cover_of_section {X Y : 𝒞} (e : X ⟶ Y) (s : Y ⟶ X)
+    (hs : s ≫ e = Cat.id Y) : Cover e := by
+  intro C m g hm hgm
+  -- m is split epi: (s ≫ g) ≫ m = s ≫ e = id_Y.
+  have hsplit : (s ≫ g) ≫ m = Cat.id Y := by rw [Cat.assoc, hgm, hs]
+  -- m monic + (s≫g) a section ⟹ m iso.
+  refine ⟨s ≫ g, ?_, hsplit⟩
+  -- m ≫ (s ≫ g) = id_C : m is monic, and m ≫ (s≫g) ≫ m = m ≫ id by hsplit.
+  apply hm
+  rw [Cat.assoc, hsplit, Cat.comp_id, Cat.id_comp]
+
+/-- If a composite `c ≫ g` is a cover then its right factor `g` is a cover:
+    any monic `m` that `g` factors through, `c ≫ g` also factors through, so
+    `c ≫ g` being a cover forces `m` iso. -/
+private theorem cover_right_factor {X Y Z : 𝒞} (c : X ⟶ Y) (g : Y ⟶ Z)
+    (h : Cover (c ≫ g)) : Cover g := by
+  intro D m k hm hkm
+  refine h m (c ≫ k) hm ?_
+  rw [Cat.assoc, hkm]
+
+/-- A relation composed with the graph of a map stays entire (the totality of
+    `R` is preserved by post-composition with a total map `p`).  Used in §1.661 to
+    project the entire `R : A → B₁×B₂` through `fst`/`snd` into the choice factors. -/
+private theorem entire_comp_graph {A B C : 𝒞} [PullbacksTransferCovers 𝒞]
+    (R : BinRel 𝒞 A B) (hent : Entire R) (p : B ⟶ C) : Entire (R ⊚ graph p) := by
+  have hRcov : Cover R.colA :=
+    (tabulated_is_entire_iff_left_cover R.colA R.colB R.isMonicPair).mp hent
+  let pb := HasPullbacks.has R.colB (Cat.id B)
+  let span : pb.cone.pt ⟶ prod A C := pair (pb.cone.π₁ ≫ R.colA) (pb.cone.π₂ ≫ p)
+  have hfac : image.lift span ≫ (R ⊚ graph p).colA = pb.cone.π₁ ≫ R.colA := by
+    show image.lift span ≫ ((image span).arr ≫ fst) = _
+    rw [← Cat.assoc, image.lift_fac]; exact fst_pair _ _
+  -- pb.π₁ is iso (pullback against id_B), so pb.π₁ ≫ R.colA is a cover.
+  have hsq : Cat.id R.src ≫ R.colB = R.colB ≫ Cat.id B := by rw [Cat.id_comp, Cat.comp_id]
+  let s : R.src ⟶ pb.cone.pt := pb.lift ⟨R.src, Cat.id R.src, R.colB, hsq⟩
+  have hs₁ : s ≫ pb.cone.π₁ = Cat.id R.src := pb.lift_fst _
+  have hs₂ : s ≫ pb.cone.π₂ = R.colB := pb.lift_snd _
+  have hπ₁s : pb.cone.π₁ ≫ s = Cat.id pb.cone.pt := by
+    have e1 : (pb.cone.π₁ ≫ s) ≫ pb.cone.π₁ = pb.cone.π₁ := by rw [Cat.assoc, hs₁, Cat.comp_id]
+    have e2 : (pb.cone.π₁ ≫ s) ≫ pb.cone.π₂ = pb.cone.π₂ := by
+      rw [Cat.assoc, hs₂]; have hw := pb.cone.w; rw [Cat.comp_id] at hw; exact hw
+    have hid₁ : Cat.id pb.cone.pt ≫ pb.cone.π₁ = pb.cone.π₁ := Cat.id_comp _
+    have hid₂ : Cat.id pb.cone.pt ≫ pb.cone.π₂ = pb.cone.π₂ := Cat.id_comp _
+    let cn : Cone R.colB (Cat.id B) := ⟨pb.cone.pt, pb.cone.π₁, pb.cone.π₂, pb.cone.w⟩
+    exact (pb.lift_uniq cn _ e1 e2).trans (pb.lift_uniq cn _ hid₁ hid₂).symm
+  have hcov_pre : Cover (pb.cone.π₁ ≫ R.colA) :=
+    cover_precomp_iso ⟨s, hπ₁s, hs₁⟩ hRcov
+  -- image.lift span ≫ (R⊚graph p).colA is a cover ⟹ (R⊚graph p).colA is a cover.
+  have hcomp : Cover (image.lift span ≫ (R ⊚ graph p).colA) := by rw [hfac]; exact hcov_pre
+  have : Cover (R ⊚ graph p).colA := cover_right_factor _ _ hcomp
+  exact (tabulated_is_entire_iff_left_cover _ _ (R ⊚ graph p).isMonicPair).mpr this
+
+/-- **Pinning lemma**: the relation `graph f ⊚ (graph p)°` (for maps `f : A → C`,
+    `p : B → C`) is contained in the "agree at C" relation: its two legs satisfy
+    `colA ≫ f = colB ≫ p`.  (Its image-cover `image.lift span` carries the pullback
+    square `π₁ ≫ f = π₂ ≫ p`; covers are epic, so the equation descends.) -/
+private theorem comp_recip_pin {A B C : 𝒞} (f : A ⟶ C) (p : B ⟶ C) :
+    (graph f ⊚ (graph p)°).colA ≫ f = (graph f ⊚ (graph p)°).colB ≫ p := by
+  let pb := HasPullbacks.has (graph f).colB ((graph p)°).colA
+  let span : pb.cone.pt ⟶ prod A B :=
+    pair (pb.cone.π₁ ≫ (graph f).colA) (pb.cone.π₂ ≫ ((graph p)°).colB)
+  -- image.lift span ≫ colA = π₁ (since (graph f).colA = id_A), likewise colB = π₂.
+  have hA : image.lift span ≫ (graph f ⊚ (graph p)°).colA = pb.cone.π₁ := by
+    show image.lift span ≫ ((image span).arr ≫ fst) = _
+    rw [← Cat.assoc, image.lift_fac]
+    show pair (pb.cone.π₁ ≫ Cat.id A) (pb.cone.π₂ ≫ Cat.id B) ≫ fst = _
+    rw [fst_pair]; exact Cat.comp_id _
+  have hB : image.lift span ≫ (graph f ⊚ (graph p)°).colB = pb.cone.π₂ := by
+    show image.lift span ≫ ((image span).arr ≫ snd) = _
+    rw [← Cat.assoc, image.lift_fac]
+    show pair (pb.cone.π₁ ≫ Cat.id A) (pb.cone.π₂ ≫ Cat.id B) ≫ snd = _
+    rw [snd_pair]; exact Cat.comp_id _
+  -- pullback square: π₁ ≫ (graph f).colB = π₂ ≫ (graph p)°.colA, i.e. π₁ ≫ f = π₂ ≫ p.
+  have hw : pb.cone.π₁ ≫ f = pb.cone.π₂ ≫ p := pb.cone.w
+  -- descend along the cover `image.lift span` (covers are epic).
+  apply cover_epi (image_lift_cover span)
+  calc image.lift span ≫ ((graph f ⊚ (graph p)°).colA ≫ f)
+      = (image.lift span ≫ (graph f ⊚ (graph p)°).colA) ≫ f := (Cat.assoc _ _ _).symm
+    _ = pb.cone.π₁ ≫ f := by rw [hA]
+    _ = pb.cone.π₂ ≫ p := hw
+    _ = (image.lift span ≫ (graph f ⊚ (graph p)°).colB) ≫ p := by rw [hB]
+    _ = image.lift span ≫ ((graph f ⊚ (graph p)°).colB ≫ p) := Cat.assoc _ _ _
+
+/-- **§1.563 entire-refinement** (the §1.661 gluing engine): if `f : A → C` is a map with
+    `graph f ⊂ R ⊚ graph p` (for `R : A → B` and a morphism `p : B → C`), then the *refined*
+    relation `R' := R ⊓ (graph f ⊚ (graph p)°)` is entire.  (Totality is carried by the map
+    `f`; `R` itself need not be entire — in §1.661 it is, which is what supplies `hf`.)
+
+    Constructive proof via the intersection-form modular law (`modular_identity`):
+    setting `R, S := graph p, T := graph f` and using `graph f ⊂ R⊚graph p`
+    (so `(R⊚graph p) ⊓ graph f = graph f`), modularity gives `graph f ⊂ R' ⊚ graph p`.
+    The witnessing `RelHom` provides `h : A → (R'⊚graph p).src` with `h ≫ (R'⊚graph p).colA
+    = id_A`, i.e. `(R'⊚graph p).colA` is split epi hence a cover; its left leg factors the
+    cover `image.lift` of `R'.colA`, so `R'.colA` is a composite of covers, hence a cover —
+    which is exactly `Entire R'`. -/
+private theorem entire_refine {A B C : 𝒞} [PullbacksTransferCovers 𝒞]
+    (R : BinRel 𝒞 A B) (p : B ⟶ C) (f : A ⟶ C)
+    (hf : graph f ⊂ R ⊚ graph p) :
+    Entire (R ⊓ (graph f ⊚ (graph p)°)) := by
+  -- abbreviation: R' := R ⊓ (graph f ⊚ (graph p)°)
+  let R' := R ⊓ (graph f ⊚ (graph p)°)
+  -- modular_identity with (R, graph p, graph f):
+  --   (R ⊚ graph p) ⊓ graph f ⊂ (R ⊓ (graph f ⊚ (graph p)°)) ⊚ graph p = R' ⊚ graph p
+  have hmod : ((R ⊚ graph p) ⊓ graph f) ⊂ R' ⊚ graph p :=
+    modular_identity R (graph p) (graph f)
+  -- graph f ⊂ R ⊚ graph p  ⟹  graph f ⊂ (R ⊚ graph p) ⊓ graph f, so graph f ⊂ R'⊚graph p.
+  have hgf : graph f ⊂ R' ⊚ graph p :=
+    rel_le_trans (le_intersect hf (rel_le_refl (graph f))) hmod
+  -- It suffices to show R'.colA is a cover (Entire ⟺ left leg cover).
+  suffices hcov : Cover R'.colA by
+    exact (tabulated_is_entire_iff_left_cover R'.colA R'.colB R'.isMonicPair).mpr hcov
+  -- The composite R' ⊚ graph p factors R'.colA through a pullback-against-identity:
+  --   image.lift span ≫ (R'⊚graph p).colA = pb.π₁ ≫ R'.colA,  pb := pullback(R'.colB, id_B).
+  let pb := HasPullbacks.has R'.colB (Cat.id B)
+  let span : pb.cone.pt ⟶ prod A C :=
+    pair (pb.cone.π₁ ≫ R'.colA) (pb.cone.π₂ ≫ p)
+  -- (R'⊚graph p).colA = (image span).arr ≫ fst, definitionally.
+  have hcolA_def : (R' ⊚ graph p).colA = (image span).arr ≫ fst := rfl
+  -- factorization: image.lift span ≫ (R'⊚graph p).colA = pb.π₁ ≫ R'.colA.
+  have hfac : image.lift span ≫ (R' ⊚ graph p).colA = pb.cone.π₁ ≫ R'.colA := by
+    rw [hcolA_def, ← Cat.assoc, image.lift_fac]; exact fst_pair _ _
+  -- (R'⊚graph p).colA is a cover: graph f ⊂ R'⊚graph p gives a section (graph f has colA = id_A).
+  obtain ⟨h, hA, _hB⟩ := hgf
+  have hsec : h ≫ (R' ⊚ graph p).colA = Cat.id A := by simpa [graph] using hA
+  have hcov_comp : Cover (R' ⊚ graph p).colA := cover_of_section _ h hsec
+  -- pb.cone.π₁ is iso (pullback against id_B): section s := pb.lift ⟨_, id, R'.colB, _⟩.
+  have hsq : Cat.id R'.src ≫ R'.colB = R'.colB ≫ Cat.id B := by rw [Cat.id_comp, Cat.comp_id]
+  let s : R'.src ⟶ pb.cone.pt := pb.lift ⟨R'.src, Cat.id R'.src, R'.colB, hsq⟩
+  have hs₁ : s ≫ pb.cone.π₁ = Cat.id R'.src := pb.lift_fst _
+  have hs₂ : s ≫ pb.cone.π₂ = R'.colB := pb.lift_snd _
+  -- π₁ ≫ s = id_pt: both `π₁ ≫ s` and `id` lift the canonical cone over (R'.colB, id_B).
+  have hπ₁s : pb.cone.π₁ ≫ s = Cat.id pb.cone.pt := by
+    have e1 : (pb.cone.π₁ ≫ s) ≫ pb.cone.π₁ = pb.cone.π₁ := by rw [Cat.assoc, hs₁, Cat.comp_id]
+    have e2 : (pb.cone.π₁ ≫ s) ≫ pb.cone.π₂ = pb.cone.π₂ := by
+      rw [Cat.assoc, hs₂]; have hw := pb.cone.w; rw [Cat.comp_id] at hw; exact hw
+    have hid₁ : Cat.id pb.cone.pt ≫ pb.cone.π₁ = pb.cone.π₁ := Cat.id_comp _
+    have hid₂ : Cat.id pb.cone.pt ≫ pb.cone.π₂ = pb.cone.π₂ := Cat.id_comp _
+    let cn : Cone R'.colB (Cat.id B) := ⟨pb.cone.pt, pb.cone.π₁, pb.cone.π₂, pb.cone.w⟩
+    exact (pb.lift_uniq cn _ e1 e2).trans (pb.lift_uniq cn _ hid₁ hid₂).symm
+  have hπ₁_iso : IsIso pb.cone.π₁ := ⟨s, hπ₁s, hs₁⟩
+  -- pb.π₁ ≫ R'.colA is a cover (image.lift cover ≫ (R'⊚graph p).colA cover, via hfac).
+  have hcov_pre : Cover (pb.cone.π₁ ≫ R'.colA) := by
+    rw [← hfac]; exact cover_comp (image_lift_cover span) hcov_comp
+  -- R'.colA = s ≫ (π₁ ≫ R'.colA), a cover precomposed by the iso s ⟹ cover.
+  have hR'colA : s ≫ (pb.cone.π₁ ≫ R'.colA) = R'.colA := by
+    rw [← Cat.assoc, hs₁, Cat.id_comp]
+  have hfin : Cover (s ≫ (pb.cone.π₁ ≫ R'.colA)) :=
+    cover_precomp_iso ⟨pb.cone.π₁, hs₁, hπ₁s⟩ hcov_pre
+  rwa [hR'colA] at hfin
+
 /-- **§1.661**: The binary product of two choice objects is choice.
     PROOF (book §1.661): Let R be entire from A to B₁×B₂.
-    R∘fst° is entire targeted at B₁, so it contains a map f₁.
-    In Sets, R ∩ f₁∘fst° is entire (§1.551, §1.563 transfer to any regular category).
-    Its projection R ∩ f₁∘fst°∘snd° is entire targeted at B₂, so it contains f₂.
-    Then (f₁, f₂): A → B₁×B₂ is contained in R.
-
-    CONSTRUCTIVE PROGRESS (this file): the factor maps f₁ : A → B₁ and f₂ : A → B₂
-    are produced sorry-free by `choice_factor_through_map` (post-compose R with the
-    projection maps `fst`, `snd`, take the image relation — its left leg is a cover,
-    so it is entire, and `Choice Bᵢ` yields the map).  That half needs no modular law.
-
-    BLOCKER (genuine): the gluing step "⟨f₁,f₂⟩ ⊂ R" is the modular-law content of
-    §1.563, RS ∩ T ⊂ (R ∩ T S°) S.  The two factor maps f₁, f₂ are extracted from
-    *different* image relations R∘fst° and (R ∩ f₁∘fst°)∘snd°, each with its OWN
-    witness source above A; the book glues them by showing "R ∩ f₁∘fst° is entire",
-    which is precisely an instance of the intersection modular identity.  This repo
-    has only the *associativity* form of the modular law (`modular_identity`,
-    Fredy/S1_56.lean, an open `sorry`: (R⊚S)⊚T° ⊂ R⊚(S⊚T°)); the *intersection* form
-    RS ∩ T ⊂ (R ∩ T S°) S — and the lemma "intersection of an entire relation with a
-    functional graph stays entire" derived from it — is not even stated here, and the
-    book proves it only via the §1.55 Henkin–Lubkin representation (also not yet
-    formalized).  This theorem is faithful to the book and reduces to that single
-    modular obligation. -/
-theorem prod_choice_is_choice {B₁ B₂ : 𝒞} (h₁ : Choice B₁) (h₂ : Choice B₂) :
-    Choice (prod B₁ B₂) := by
+    R∘fst° is entire targeted at B₁, so it contains a map f₁ (`entire_comp_graph` +
+    `Choice B₁`).  The *refined* relation R' := R ∩ (f₁∘fst°) is again entire — this is
+    the §1.563 intersection-modular content, discharged here sorry-free by `entire_refine`
+    (built on `modular_identity`).  R' pins the B₁-coordinate to f₁ (`comp_recip_pin`),
+    so ⟨R'.colA, R'.colB ≫ snd⟩ is jointly monic; its left leg is the cover R'.colA, hence
+    the B₂-valued relation R'₂ is entire and `Choice B₂` extracts f₂ *together with a single
+    witness `w : A → R'.src`*.  By the pinning, w ≫ R'.colB = pair f₁ f₂, and R' ⊂ R carries
+    w into R.src — giving the map ⟨f₁,f₂⟩ ⊂ R.  Fully constructive on `modular_identity`. -/
+theorem prod_choice_is_choice [PullbacksTransferCovers 𝒞] {B₁ B₂ : 𝒞}
+    (h₁ : Choice B₁) (h₂ : Choice B₂) : Choice (prod B₁ B₂) := by
   intro A R hent
-  -- Constructive half: extract the two factor maps f₁ : A → B₁ and f₂ : A → B₂.
-  obtain ⟨f₁, _E₁, _w₁, _hcov₁, _hwA₁, _hwB₁⟩ := choice_factor_through_map R hent fst h₁
-  obtain ⟨f₂, _E₂, _w₂, _hcov₂, _hwA₂, _hwB₂⟩ := choice_factor_through_map R hent snd h₂
-  -- The candidate map is ⟨f₁, f₂⟩ : A → B₁ × B₂.  Showing it is contained in R
-  -- (i.e. providing the single witness `w : A → R.src` with `w ≫ R.colA = id` and
-  -- `w ≫ R.colB = pair f₁ f₂`) is the modular-law gluing step; see BLOCKER above.
-  sorry
+  -- (1) f₁ : A → B₁ contained in R ⊚ graph fst  (R⊚fst° entire, B₁ choice).
+  have hent_fst : Entire (R ⊚ graph (fst : prod B₁ B₂ ⟶ B₁)) := entire_comp_graph R hent fst
+  obtain ⟨f₁, h₁w, h₁A, h₁B⟩ := h₁ (R ⊚ graph fst) hent_fst
+  have hgf₁ : graph f₁ ⊂ R ⊚ graph fst := ⟨⟨h₁w, by simpa [graph] using h₁A, h₁B⟩⟩
+  -- (2) the refined relation R' := R ⊓ (graph f₁ ⊚ (graph fst)°), entire by `entire_refine`.
+  let R' : BinRel 𝒞 A (prod B₁ B₂) := R ⊓ (graph f₁ ⊚ (graph fst)°)
+  have hentR' : Entire R' := entire_refine R fst f₁ hgf₁
+  -- (3) pinning: every R'-point has fst-coordinate = f₁ of its A-coordinate.
+  obtain ⟨z, hzA, hzB⟩ := intersect_le_right R (graph f₁ ⊚ (graph fst)°)
+  have hpin : R'.colB ≫ fst = R'.colA ≫ f₁ := by
+    have hbase := comp_recip_pin f₁ (fst : prod B₁ B₂ ⟶ B₁)
+    -- transport along z : R'.src → (graph f₁ ⊚ (graph fst)°).src.
+    calc R'.colB ≫ fst = (z ≫ (graph f₁ ⊚ (graph fst)°).colB) ≫ fst := by rw [hzB]
+      _ = z ≫ ((graph f₁ ⊚ (graph fst)°).colB ≫ fst) := Cat.assoc _ _ _
+      _ = z ≫ ((graph f₁ ⊚ (graph fst)°).colA ≫ f₁) := by rw [hbase]
+      _ = (z ≫ (graph f₁ ⊚ (graph fst)°).colA) ≫ f₁ := (Cat.assoc _ _ _).symm
+      _ = R'.colA ≫ f₁ := by rw [hzA]
+  -- (4) R'₂ : A → B₂ with source R'.src, legs (R'.colA, R'.colB ≫ snd) — jointly monic
+  --     thanks to the pinning, left leg R'.colA a cover (R' entire) ⟹ R'₂ entire.
+  have hR'cov : Cover R'.colA :=
+    (tabulated_is_entire_iff_left_cover R'.colA R'.colB R'.isMonicPair).mp hentR'
+  have hp₂ : MonicPair R'.colA (R'.colB ≫ snd) := by
+    intro W u v hua hub
+    -- hua : u ≫ R'.colA = v ≫ R'.colA,  hub : u ≫ (R'.colB ≫ snd) = v ≫ (R'.colB ≫ snd).
+    -- fst-coordinates agree by pinning; together with snd, R'.colB-coords agree ⟹ R'.isMonicPair.
+    have hfst : (u ≫ R'.colB) ≫ fst = (v ≫ R'.colB) ≫ fst := by
+      calc (u ≫ R'.colB) ≫ fst = u ≫ (R'.colB ≫ fst) := Cat.assoc _ _ _
+        _ = u ≫ (R'.colA ≫ f₁) := by rw [hpin]
+        _ = (u ≫ R'.colA) ≫ f₁ := (Cat.assoc _ _ _).symm
+        _ = (v ≫ R'.colA) ≫ f₁ := by rw [hua]
+        _ = v ≫ (R'.colA ≫ f₁) := Cat.assoc _ _ _
+        _ = v ≫ (R'.colB ≫ fst) := by rw [hpin]
+        _ = (v ≫ R'.colB) ≫ fst := (Cat.assoc _ _ _).symm
+    have hsnd : (u ≫ R'.colB) ≫ snd = (v ≫ R'.colB) ≫ snd := by
+      rw [Cat.assoc, Cat.assoc]; exact hub
+    have hcolB : u ≫ R'.colB = v ≫ R'.colB := by
+      rw [pair_eta (u ≫ R'.colB), pair_eta (v ≫ R'.colB), hfst, hsnd]
+    exact R'.isMonicPair u v hua hcolB
+  let R'₂ : BinRel 𝒞 A B₂ := BinRel.mk R'.src R'.colA (R'.colB ≫ snd) hp₂
+  have hentR'₂ : Entire R'₂ :=
+    (tabulated_is_entire_iff_left_cover R'.colA (R'.colB ≫ snd) hp₂).mpr hR'cov
+  -- (5) Choice B₂ extracts f₂ with a single witness w : A → R'.src.
+  obtain ⟨f₂, w, hwA, hwB⟩ := h₂ R'₂ hentR'₂
+  -- hwA : w ≫ R'.colA = id_A,  hwB : w ≫ (R'.colB ≫ snd) = f₂.
+  -- (6) w ≫ R'.colB = pair f₁ f₂  (snd by hwB, fst by pinning + hwA).
+  have hwBfull : w ≫ R'.colB = pair f₁ f₂ := by
+    rw [pair_eta (w ≫ R'.colB)]
+    congr 1
+    · -- w ≫ R'.colB ≫ fst = w ≫ R'.colA ≫ f₁ = f₁.
+      calc (w ≫ R'.colB) ≫ fst = w ≫ (R'.colB ≫ fst) := Cat.assoc _ _ _
+        _ = w ≫ (R'.colA ≫ f₁) := by rw [hpin]
+        _ = (w ≫ R'.colA) ≫ f₁ := (Cat.assoc _ _ _).symm
+        _ = f₁ := by rw [hwA, Cat.id_comp]
+    · calc (w ≫ R'.colB) ≫ snd = w ≫ (R'.colB ≫ snd) := Cat.assoc _ _ _
+        _ = f₂ := hwB
+  -- (7) transport the witness into R.src via R' ⊂ R, giving ⟨f₁,f₂⟩ ⊂ R.
+  obtain ⟨k, hkA, hkB⟩ := intersect_le_left R (graph f₁ ⊚ (graph fst)°)
+  refine ⟨pair f₁ f₂, w ≫ k, ?_, ?_⟩
+  · calc (w ≫ k) ≫ R.colA = w ≫ (k ≫ R.colA) := Cat.assoc _ _ _
+      _ = w ≫ R'.colA := by rw [hkA]
+      _ = Cat.id A := hwA
+  · calc (w ≫ k) ≫ R.colB = w ≫ (k ≫ R.colB) := Cat.assoc _ _ _
+      _ = w ≫ R'.colB := by rw [hkB]
+      _ = pair f₁ f₂ := hwBfull
 
 end Choice661
 
@@ -927,10 +1123,13 @@ theorem one_one_choice_to_boolean [HasBinaryProducts 𝒞]
     contains f₁ (B₁ choice). The restriction to the complement is entire into B₂,
     so contains f₂ (B₂ choice). Then f₁+f₂ (copairing) is a map in S.
 
-    BLOCKER: "Dom(S∘inl°) ⊆ A is complemented" and "the restriction of S to that
-    (complemented) subobject is entire into B₁" both require relation domain/restriction
-    operators glued by the modular law (§1.563, `modular_identity` = `sorry`) plus the
-    §1.658 complement infrastructure.  Faithful statement; reduces to those. -/
+    BLOCKER (genuine residual): "Dom(S∘inl°) ⊆ A is complemented" and "the restriction of S
+    to that (complemented) subobject is entire into B₁" require a relation domain/restriction
+    operator (`Dom`, not yet defined in this repo) and the §1.658 complement infrastructure
+    (`IsComplemented` currently a placeholder; complement pullback-stability absent).  The
+    §1.563 modular gluing is now AVAILABLE (`modular_identity` proven; cf. the sorry-free
+    `entire_refine`/`prod_choice_is_choice` above), so the only remaining gap is the §1.658
+    complement layer + the relation-domain operator.  Faithful statement; reduces to those. -/
 theorem boolean_to_coprod_choice_is_choice [HasBinaryProducts 𝒞]
     (hbool : Nonempty (BooleanPreLogos 𝒞)) :
     ∀ (B₁ B₂ : 𝒞), Choice B₁ → Choice B₂ →
