@@ -250,9 +250,8 @@ def emptyProduct_is_terminator (ep : HasIndexedProduct (𝒞 := 𝒞) (fun i : E
 
 /-- §1.425: Finite products reduce to terminal + binary products.
     Any Fin n -indexed product can be built from HasTerminal + HasBinaryProducts.
-    Proof: base case n=0 uses terminator; succ uses prod(sub.prod, A_last) with
-    projections fst≫π_i (i<n) and snd (i=last). Faithful sorry for inductive step
-    (dependent type rewriting with `▸` is non-trivial; statement is clearly correct). -/
+    Base case n=0: the terminator is the empty product.
+    Inductive step: prod(sub.prod, A_last) with proj i = snd (i=last) or fst≫sub.proj i (i<n). -/
 def finiteProduct_from_term_binary [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
     {n : Nat} (family : Fin n → 𝒞) : HasIndexedProduct family := by
   induction n with
@@ -265,8 +264,32 @@ def finiteProduct_from_term_binary [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
       lift_uniq := fun _ m _ => term_uniq m _
     }
   | succ n ih =>
-    -- Product of Fin(n+1)-family = (Product of first n) × A_last
-    -- The proj/lift/uniq bookkeeping requires dependent rewrites; stated faithfully.
-    sorry
+    -- Product of Fin(n+1)-family = (Product of first n) × A_last.
+    -- proj i = if i = last then snd else fst ≫ sub.proj i.
+    let sub := ih (family ∘ Fin.castSucc)
+    exact {
+      prod := prod sub.prod (family (Fin.last n))
+      proj := Fin.lastCases snd (fun i => fst ≫ sub.proj i)
+      lift := fun fs => pair (sub.lift (fun i => fs i.castSucc)) (fs (Fin.last n))
+      lift_π := by
+        intro X fs i
+        refine Fin.lastCases ?_ ?_ i
+        · simp [Fin.lastCases_last, snd_pair]
+        · intro j
+          simp only [Fin.lastCases_castSucc]
+          rw [← Cat.assoc, fst_pair, sub.lift_π]
+      lift_uniq := by
+        intro X fs h heq
+        apply pair_uniq
+        · apply sub.lift_uniq
+          intro i
+          have hi := heq i.castSucc
+          simp only [Fin.lastCases_castSucc] at hi
+          rw [← Cat.assoc] at hi
+          exact hi
+        · have hl := heq (Fin.last n)
+          simp only [Fin.lastCases_last] at hl
+          exact hl
+    }
 
 end Freyd
