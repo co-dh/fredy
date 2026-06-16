@@ -40,11 +40,124 @@ variable {𝒞 : Type u} [Cat.{v} 𝒞]
 
 /-! ## §1.951  A topos is effective -/
 
-/-- **§1.951**: A topos is effective: every equivalence relation on any object
-    is the level of some morphism (i.e., is effective in the sense of §1.56).
-    Proof sketch (Freyd): factor A →(h) B →(H) [A] via the image.  The key
-    lemma in a regular category is: an equivalence relation E is distinguished
-    by the pairs (f,g) with fE = gE.  Applying this to hh" shows hh" = E. -/
+section Effective
+variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
+
+/-- `(graph g) ⊚ (graph g)° ⊂ level g`.  A composed point `(a,c)` satisfies
+    `a ≫ g = c ≫ g` (the pullback square forces it), so its span lifts into
+    `kernelPair g`, and image-minimality turns that into the `RelHom`.
+    (Re-proved locally: the S1_64 version is `private`.) -/
+private theorem graphComp_le_level {A Q : 𝒞} (g : A ⟶ Q) :
+    RelLe ((graph g) ⊚ (graph g)°) (kernelPairRel g) := by
+  let pb := HasPullbacks.has (graph g).colB ((graph g)°).colA
+  let a' := pb.cone.π₁ ≫ (graph g).colA
+  let c' := pb.cone.π₂ ≫ ((graph g)°).colB
+  let sp : pb.cone.pt ⟶ prod A A := pair a' c'
+  have hw : a' ≫ g = c' ≫ g := by
+    have := pb.cone.w
+    dsimp [a', c']; simpa [graph, reciprocal, Cat.comp_id] using this
+  let S : Subobject 𝒞 (prod A A) :=
+    ⟨kernelPair g, pair (kp₁ (f := g)) (kp₂ (f := g)),
+      monic_pair_of_monicPair _ _ (kernelPairRel g).isMonicPair⟩
+  let w := (HasPullbacks.has g g).lift ⟨_, a', c', hw⟩
+  have hspan : w ≫ pair (kp₁ (f := g)) (kp₂ (f := g)) = sp := by
+    apply pair_uniq
+    · rw [Cat.assoc, fst_pair]; exact kp_lift_p₁ _ _ hw
+    · rw [Cat.assoc, snd_pair]; exact kp_lift_p₂ _ _ hw
+  obtain ⟨k, hk⟩ := image_min sp S ⟨w, hspan⟩
+  refine ⟨⟨k, ?_, ?_⟩⟩
+  · show k ≫ kp₁ (f := g) = (image sp).arr ≫ fst
+    calc k ≫ kp₁ (f := g) = (k ≫ pair (kp₁ (f := g)) (kp₂ (f := g))) ≫ fst := by
+            rw [Cat.assoc, fst_pair]
+      _ = (image sp).arr ≫ fst := by rw [hk]
+  · show k ≫ kp₂ (f := g) = (image sp).arr ≫ snd
+    calc k ≫ kp₂ (f := g) = (k ≫ pair (kp₁ (f := g)) (kp₂ (f := g))) ≫ snd := by
+            rw [Cat.assoc, snd_pair]
+      _ = (image sp).arr ≫ snd := by rw [hk]
+
+/-- `level g ⊂ (graph g) ⊚ (graph g)°`: the kernel-pair legs `(kp₁, kp₂)` form a
+    cone over `g,g`, hence lift into the composition's pullback, then through
+    `image.lift`.  (Re-proved locally: the S1_64 version is `private`.) -/
+private theorem level_le_graphComp {A Q : 𝒞} (g : A ⟶ Q) :
+    RelLe (kernelPairRel g) ((graph g) ⊚ (graph g)°) := by
+  let pb := HasPullbacks.has (graph g).colB ((graph g)°).colA
+  let a' := pb.cone.π₁ ≫ (graph g).colA
+  let c' := pb.cone.π₂ ≫ ((graph g)°).colB
+  let sp : pb.cone.pt ⟶ prod A A := pair a' c'
+  have hcone : kp₁ (f := g) ≫ (graph g).colB = kp₂ (f := g) ≫ ((graph g)°).colA := by
+    simp only [graph, reciprocal]; exact kp_sq
+  let v := pb.lift ⟨_, kp₁ (f := g), kp₂ (f := g), hcone⟩
+  have hv1 : v ≫ pb.cone.π₁ = kp₁ (f := g) := pb.lift_fst _
+  have hv2 : v ≫ pb.cone.π₂ = kp₂ (f := g) := pb.lift_snd _
+  refine ⟨⟨v ≫ image.lift sp, ?_, ?_⟩⟩
+  · show (v ≫ image.lift sp) ≫ ((image sp).arr ≫ fst) = kp₁ (f := g)
+    calc (v ≫ image.lift sp) ≫ ((image sp).arr ≫ fst)
+        = v ≫ ((image.lift sp ≫ (image sp).arr) ≫ fst) := by simp [Cat.assoc]
+      _ = v ≫ (sp ≫ fst) := by rw [image.lift_fac]
+      _ = v ≫ a' := by rw [fst_pair]
+      _ = (v ≫ pb.cone.π₁) ≫ (graph g).colA := by dsimp [a']; rw [Cat.assoc]
+      _ = kp₁ (f := g) := by rw [hv1]; simp [graph, Cat.comp_id]
+  · show (v ≫ image.lift sp) ≫ ((image sp).arr ≫ snd) = kp₂ (f := g)
+    calc (v ≫ image.lift sp) ≫ ((image sp).arr ≫ snd)
+        = v ≫ ((image.lift sp ≫ (image sp).arr) ≫ snd) := by simp [Cat.assoc]
+      _ = v ≫ (sp ≫ snd) := by rw [image.lift_fac]
+      _ = v ≫ c' := by rw [snd_pair]
+      _ = (v ≫ pb.cone.π₂) ≫ ((graph g)°).colB := by dsimp [c']; rw [Cat.assoc]
+      _ = kp₂ (f := g) := by rw [hv2]; simp [graph, reciprocal, Cat.comp_id]
+
+/-- **§1.951, recovery half (fully proved)**: in a Cartesian category with images,
+    if an equivalence relation `E` is the level (kernel pair) of a cover
+    `x : A → Q` — i.e. `E ⊂ level x` and `level x ⊂ E` — then `E` is EFFECTIVE.
+
+    This is the *substantive content* of §1.568/§1.951 once the quotient cover is
+    available: it packages `E ≅ level x ≅ (graph x) ⊚ (graph x)°` using the two
+    bridges above, producing the `IsEffective` data (`Q`, `x`, `Cover x`, and the
+    mutual relational containments with `(graph x) ⊚ (graph x)°`).  No `sorry`. -/
+theorem effective_of_quotient_cover {A Q : 𝒞} (E : BinRel 𝒞 A A)
+    (hE : EquivalenceRelation E) (x : A ⟶ Q) (hx : Cover x)
+    (hElx : RelLe E (kernelPairRel x)) (hlxE : RelLe (kernelPairRel x) E) :
+    IsEffective E :=
+  ⟨hE, Q, x, hx,
+    rel_le_trans hElx (level_le_graphComp x),
+    rel_le_trans (graphComp_le_level x) hlxE⟩
+
+end Effective
+
+/-- **§1.951**: A topos is effective: every equivalence relation on any object is
+    the level of some cover (i.e., is effective in the sense of §1.568).
+
+    Freyd's route (the power-object construction): an equivalence relation
+    `E ⊆ A×A` is tabulated; the quotient `A/E` is obtained as the image of the
+    classifying / characteristic map `A → Ω^A` (singleton `Δ₁` composed with the
+    quotient that names `E`-classes), and `q : A ↠ A/E` is a cover whose level
+    (kernel pair) is exactly `E`.  Granting that quotient cover,
+    `effective_of_quotient_cover` discharges effectiveness completely.
+
+    **Sharpened blocker (faithful sorry).**  Building the `EffectiveRegular`
+    instance from bare `[Topos 𝒞]` needs THREE ingredients, of which only the
+    last is genuinely absent here:
+
+      (1) `HasImages 𝒞` — NOT derivable from `Topos` in this repo.  The only topos
+          construction of `image f` is `⋂{B' ↣ B | f factors through B'}`
+          (§1.943), the glb over a subobject *family*, which rests on §1.54's
+          `capitalization_lemma` (still `sorry`; see `topos_is_regular`,
+          S1_94:321).
+
+      (2) `PullbacksTransferCovers 𝒞` — topos exactness; likewise reducible to the
+          §1.54 / image machinery (cf. `regular_of_compose_assoc`, S1_56:1255).
+
+      (3) THE QUOTIENT COVER — for each equivalence relation `E`, a cover
+          `q : A ↠ A/E` with `level q ≅ E`.  This is Freyd's power-object
+          construction `A → Ω^A` and needs the power object `Ω^A = exp A Ω`,
+          which is opaque here because `topos_has_exponentials` (S1_92) is itself
+          an unfilled `sorry` (blocked on §1.543 capitalization).
+
+    Once (1)–(3) are available, this instance is
+    `⟨…, fun E hE => effective_of_quotient_cover E hE q hq hElq hlqE⟩`
+    with `(q, hq, hElq, hlqE)` the quotient cover from (3).  The recovery half (the
+    relation-algebra identity `E ≅ level q ≅ (graph q)⊚(graph q)°`) is now PROVED
+    above (`effective_of_quotient_cover`), so the residual gap is exactly the
+    quotient-cover existence (3) on top of the §1.54-blocked (1)–(2). -/
 instance topos_is_effective [Topos 𝒞] : EffectiveRegular 𝒞 := by
   sorry
 
@@ -161,10 +274,49 @@ def expMap [HasExponentials 𝒞] {A B : 𝒞} (E : 𝒞) (f : A ⟶ B) : E ^^ B
 def IsInternallyInjective [HasExponentials 𝒞] (E : 𝒞) : Prop :=
   ∀ {A B : 𝒞} (f : A ⟶ B), Mono f → Cover (expMap E f)
 
+/-- A SPLIT EPI (a map with a section) is a COVER.  If `s ≫ e = 1_Y`, then any
+    monic `m` that `e` factors through (`g ≫ m = e`) is split epi (`(g ≫ s) ≫ m`…)
+    and monic, hence iso.  Generic; used to turn the `Ω^f`-has-section argument of
+    §1.961 into a cover once the section `powerMapCov f` is available. -/
+theorem cover_of_section {X Y : 𝒞} (e : X ⟶ Y) (s : Y ⟶ X) (hs : s ≫ e = Cat.id Y) :
+    Cover e := by
+  intro C m g hm hgm
+  -- m is split epi: `(s ≫ g) ≫ m = s ≫ e = 1_Y`; with m monic this gives iso.
+  refine ⟨s ≫ g, ?_, ?_⟩
+  · -- m ≫ (s ≫ g) = 1_C, by monic cancellation against m.
+    refine hm _ _ ?_
+    rw [Cat.assoc, Cat.assoc, hgm, hs, Cat.comp_id, Cat.id_comp]
+  · -- (s ≫ g) ≫ m = s ≫ e = 1_Y.
+    rw [Cat.assoc, hgm, hs]
+
+/-- **DRY bridge (§1.92 ↔ §1.961)**: the §1.961 contravariant exponential action
+    `expMap Ω f` on the classifier coincides with the §1.922 power-functor map
+    `omegaPowContra.map f = Ω^f`.  Both are `curry (pair (fst ≫ f) snd ≫ eval)`,
+    so the equality is definitional (`rfl`).  Lets §1.961 reuse the proved
+    contravariant-functoriality (`map_id`, `map_comp`) of `omegaPowContra`. -/
+theorem expMap_omega_eq_omegaPow [Topos 𝒞] {A B : 𝒞} (f : A ⟶ B) :
+    expMap (𝒞 := 𝒞) (HasSubobjectClassifier.omega (𝒞 := 𝒞)) f
+      = (omegaPowContra (𝒞 := 𝒞)).map f := rfl
+
 /-- **§1.961**: In a topos, Ω is internally injective.
-    Proof: if f : A ↣ B is monic then Ω^f = [f"] (post-composition by f°),
-    and [f"] has a left-inverse [f] (since f is monic iff f"f = 1).
-    Hence Ω^f is epic (a cover). -/
+
+    Freyd's proof: for monic `f : A ↣ B`, the contravariant action `Ω^f` is the
+    inverse-image `[f"]` (post-composition by the reciprocal `f°`), and it has a
+    LEFT INVERSE — the covariant direct image `[f] = powerMapCov f` — because `f`
+    monic is equivalent to `f"f = 1` (`powerMapCov`'s defining identity).  A split
+    epi is a cover, so `Ω^f` is a cover.
+
+    **Sharpened blocker (faithful sorry).**  The section needed is exactly
+    `powerMapCov f : Ω^A → Ω^B` (the direct-image action), which is an unfilled
+    `sorry` in §1.92: it requires the §1.56 image factorization packaged as a
+    power-object morphism together with the membership/Λ universal property of the
+    power object `Ω^A = exp A Ω`.  That universal property is unavailable here
+    because `exp A Ω` is opaque while `topos_has_exponentials` (S1_92) is itself a
+    `sorry` (blocked on §1.543).  The DRY bridge `expMap_omega_eq_omegaPow` above
+    identifies `expMap Ω f` with the proved `omegaPowContra.map f`, so once
+    `powerMapCov f` and its identity `f"f = 1` are available, this is
+    `Cover (expMap Ω f)` via "split epi ⟹ cover".  The residual gap is precisely
+    `powerMapCov` (§1.92 keystone (2)). -/
 theorem omega_is_internally_injective [Topos 𝒞] :
     IsInternallyInjective (𝒞 := 𝒞) (HasSubobjectClassifier.omega (𝒞 := 𝒞)) := by
   sorry
