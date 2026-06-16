@@ -382,12 +382,67 @@ theorem symmDiv_self_equiv {a b : 𝒜} (R : a ⟶ b) :
 
 /-! ## §2.352  Left cancellation for straight morphisms -/
 
+/-- Reflexive-domain factorization: R ⊑ (dom R) ≫ R (§2.122).
+    From the modular law with R=1, S=R, T=R: R = (1≫R)∩R ⊑ (1 ∩ RR°)R = (dom R)R. -/
+private theorem le_dom_comp {a b : 𝒜} (R : a ⟶ b) : R ⊑ dom R ≫ R := by
+  have hm := modular_le (Cat.id a) R R
+  rwa [Cat.id_comp, Allegory.inter_idem] at hm
+
 /-- If S is straight, F and G are simple with same source, and FS = GS, then (dom F)G = (dom G)F (§2.352). -/
 theorem straight_cancel_simple {a b c : 𝒜} {S : a ⟶ b} (hS : Straight S)
     {F G : c ⟶ a} (hF : Simple F) (hG : Simple G)
     (h : F ≫ S = G ≫ S) :
     dom F ≫ G = dom G ≫ F := by
-  sorry
+  -- G°FS ⊑ G°GS ⊑ S and (G°F)°S = F°GS ⊑ F°FS ⊑ S, so G°F ⊑ S/ₛS ⊑ 1.
+  have hGF1 : G° ≫ F ⊑ Cat.id a := by
+    refine le_trans ?_ hS
+    rw [le_symmDiv_iff (G° ≫ F) S S]
+    refine ⟨?_, ?_⟩
+    · have eq1 : (G° ≫ F) ≫ S = (G° ≫ G) ≫ S := by rw [Cat.assoc, h, ← Cat.assoc]
+      rw [eq1]; exact le_trans (comp_mono_right hG S) (by rw [Cat.id_comp]; exact le_refl S)
+    · have heq : (G° ≫ F)° = F° ≫ G := by rw [Allegory.recip_comp, Allegory.recip_recip]
+      rw [heq]
+      have eq2 : (F° ≫ G) ≫ S = (F° ≫ F) ≫ S := by rw [Cat.assoc, ← h, ← Cat.assoc]
+      rw [eq2]; exact le_trans (comp_mono_right hF S) (by rw [Cat.id_comp]; exact le_refl S)
+  have hFG1 : F° ≫ G ⊑ Cat.id a := by
+    have key : (G° ≫ F)° = F° ≫ G := by rw [Allegory.recip_comp, Allegory.recip_recip]
+    calc F° ≫ G = (G° ≫ F)° := key.symm
+      _ ⊑ (Cat.id a)° := recip_mono hGF1
+      _ = Cat.id a := recip_id
+  -- dom F ⊑ F F° and dom G ⊑ G G° (coreflexive part of domain).
+  have hdomF : dom F ⊑ F ≫ F° := inter_lb_right _ _
+  have hdomG : dom G ⊑ G ≫ G° := inter_lb_right _ _
+  -- dom F and dom G are coreflexive, hence commute under composition.
+  have hcF := dom_coreflexive F
+  have hcG := dom_coreflexive G
+  have hcomm : dom F ≫ dom G = dom G ≫ dom F :=
+    (coreflexive_comp_eq_inter hcF hcG).trans
+      ((Allegory.inter_comm _ _).trans (coreflexive_comp_eq_inter hcG hcF).symm)
+  -- Forward chain: (dom F)G ⊑ (dom F)(dom G)G ⊑ (dom G)(dom F)G ⊑ (dom G)F F°G ⊑ (dom G)F.
+  apply le_antisymm
+  · -- (dom F)G ⊑ (dom F)(dom G)G = (dom G)(dom F)G ⊑ (dom G)F F°G ⊑ (dom G)F.
+    have s1 : dom F ≫ G ⊑ dom G ≫ (dom F ≫ G) := by
+      have h1 : dom F ≫ G ⊑ dom F ≫ (dom G ≫ G) := comp_mono_left _ (le_dom_comp G)
+      have h2 : dom F ≫ (dom G ≫ G) = dom G ≫ (dom F ≫ G) := by
+        rw [← Cat.assoc, hcomm, Cat.assoc]
+      rwa [h2] at h1
+    have s2 : dom G ≫ (dom F ≫ G) ⊑ dom G ≫ F := by
+      have h3 : dom F ≫ G ⊑ (F ≫ F°) ≫ G := comp_mono_right hdomF G
+      have h4 : (F ≫ F°) ≫ G ⊑ F := by
+        rw [Cat.assoc]; have := comp_mono_left F hFG1; rwa [Cat.comp_id] at this
+      exact comp_mono_left _ (le_trans h3 h4)
+    exact le_trans s1 s2
+  · have s1 : dom G ≫ F ⊑ dom F ≫ (dom G ≫ F) := by
+      have h1 : dom G ≫ F ⊑ dom G ≫ (dom F ≫ F) := comp_mono_left _ (le_dom_comp F)
+      have h2 : dom G ≫ (dom F ≫ F) = dom F ≫ (dom G ≫ F) := by
+        rw [← Cat.assoc, ← hcomm, Cat.assoc]
+      rwa [h2] at h1
+    have s2 : dom F ≫ (dom G ≫ F) ⊑ dom F ≫ G := by
+      have h3 : dom G ≫ F ⊑ (G ≫ G°) ≫ F := comp_mono_right hdomG F
+      have h4 : (G ≫ G°) ≫ F ⊑ G := by
+        rw [Cat.assoc]; have := comp_mono_left G hGF1; rwa [Cat.comp_id] at this
+      exact comp_mono_left _ (le_trans h3 h4)
+    exact le_trans s1 s2
 
 /-- Helper: from map f, 1 ⊑ f ≫ f° (entireness unfold). -/
 private theorem map_entire_le {a b : 𝒜} {f : a ⟶ b} (hf : Map f) : Cat.id a ⊑ f ≫ f° := by
@@ -432,7 +487,18 @@ theorem straight_cancel {a b c : 𝒜} {S : a ⟶ b} (hS : Straight S)
 
 /-- Converse of straight_cancel (§2.353): if (FS = GS → (dom F)G = (dom G)F)
     for all simple F, G with the same source, then S is straight.
-    (Proof omitted; requires semisimple hypothesis.) -/
+
+    FAITHFUL SORRY. The book's §2.353 proves this only for division allegories
+    "in which every morphism is the union of the semisimple morphisms it contains"
+    (§2.225). That hypothesis is what licenses the *reduction step*: to prove
+    `S/ₛS ⊑ 1` it suffices to prove `F°G ⊑ 1` for every simple F, G with
+    `F°G ⊑ S/ₛS`, because `S/ₛS` is then the union of such pieces. The reduction
+    is not available from the bare `DivisionAllegory` interface here (it needs
+    unions / local completeness — §2.225 itself is unformalized). The inner
+    argument (set F' = (dom G)F, G' = (dom F)G; then F'S = G'S, so by `h`
+    F' = G', whence F°G = F'°G' ⊑ 1) IS pure division-allegory algebra and is
+    discharged in spirit by `straight_cancel_simple`; only the §2.225 reduction
+    blocks a complete proof. See S2_3.md for the sharpened blocker. -/
 theorem straight_of_cancel {a b : 𝒜} {S : a ⟶ b}
     (h : ∀ {c : 𝒜} (F G : c ⟶ a),
         Simple F → Simple G → F ≫ S = G ≫ S → dom F ≫ G = dom G ≫ F) :
