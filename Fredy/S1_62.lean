@@ -422,10 +422,15 @@ theorem complemented_of_projective_is_projective [PositivePreLogos 𝒞]
     HasBinaryCoproducts.inl ≫ φ_inv ≫ s'
   have hσh : σ ≫ h = HasBinaryCoproducts.inl := by
     simp only [σ, Cat.assoc, h_section, Cat.comp_id]
-  -- σ ≫ h = inl_P and inl_B ≫ h = y ≫ inl_P, so σ factors through inl_B,
-  -- giving r : P → B with r ≫ y = id_P (via inl_P monic in the coproduct).
-  -- This factorization needs: σ lands in the B-summand of B+P'.
-  -- In a positive pre-logos this follows from the complemented structure; sorry here.
+  -- KEY COMPUTATION: σ ≫ case(y, z) = id_P for ANY z : P' → P.
+  -- Proof: h ≫ case(id_P, z) = case(y, z)  (unfold h = case(y ≫ inl, inr), use case_inl/case_inr).
+  --        σ ≫ case(y, z) = σ ≫ h ≫ case(id_P, z) = inl_P ≫ case(id_P, z) = id_P.
+  -- Equivalently: r := σ ≫ case(id_B, w) satisfies r ≫ y = id_P for ANY w : P' → B
+  --   (since case(id_B, w) ≫ y = case(y, w ≫ y) and σ ≫ case(y, w ≫ y) = id_P by above).
+  -- BLOCKER: no morphism z : P' → P (or w : P' → B) is available in the proof state.
+  -- Coproduct disjointness (§1.62 pasting lemma) would yield t := inr_{P'} ≫ φ_inv ≫ s' = inr_{P'},
+  -- forcing σ = r ≫ inl_B for some r : P → B, and then r ≫ y = id_P by the key computation.
+  -- BLOCKED on pasting_lemma (§1.62) / compose_union_right (§1.616).
   obtain ⟨r, hr⟩ : ∃ r : P ⟶ B, r ≫ y = Cat.id P := by sorry
   exact ⟨r, hr⟩
 
