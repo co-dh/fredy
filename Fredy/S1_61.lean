@@ -137,9 +137,45 @@ theorem degenerate_iff_zero_iso_one (h : PreLogos 𝒞) :
     rcases hf with ⟨g, hfg, hgf⟩; exact ⟨g, ⟨f, hgf, hfg⟩⟩
   · rintro ⟨f, hf⟩; rcases hf with ⟨g, hfg, hgf⟩; exact ⟨g⟩
 
-theorem cartesian_distributive_implies_prelogos (𝒞 : Type u) [Cat.{v} 𝒞]
-    [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasEqualizers 𝒞] [HasImages 𝒞]
-    [HasSubobjectUnions 𝒞] (hdist : IsDistributiveLattice (𝒞 := 𝒞)) : Nonempty (PreLogos 𝒞) := sorry
+/-- **§1.611**: the book's *reduced* definition of a pre-logos — "a Cartesian category with
+    images in which pullbacks transfer finite covers".  In this development that ambient
+    structure is exactly `RegularCategory` (Cartesian + images + `PullbacksTransferCovers`).
+    Adjoining the lattice data — binary subobject unions and a least subobject `bottom`
+    for each object, with `bottom` minimal and stable up to iso — yields a `PreLogos`.
+
+    The genuine *content* of §1.611 (and of the §1.6 "equivalent definition") is that, once
+    pullbacks transfer finite covers, the inverse-image operation `f#` automatically preserves
+    binary unions and the bottom; everything else (regular structure, the lattice axioms) is
+    the supplied data.  That covers-transfer ⟹ union-preservation derivation is the one
+    remaining obligation below.
+
+    BLOCKER for the two `sorry`s: deriving `inverseImage_preserves_unions f` from
+    `PullbacksTransferCovers` requires the §1.615 picture `S ∪ T = Im[case x_S x_T]` combined
+    with the fact that a *cover* over the union pulls back, along `f`, to a cover over
+    `f#(S) ∪ f#(T)` — i.e. the cover-transfer square of the union inclusion.  That argument
+    needs binary coproducts (to form `case`) which a bare `RegularCategory` need not have,
+    plus a pullback-of-image = image-of-pullback interchange (the §1.45 pullback-pasting law,
+    itself still `sorry` in `S1_45`).  Without coproducts or that interchange the preservation
+    facts are not derivable here; they hold in the book because its pre-logoi are positive
+    (§1.623) or are reached via the capitalization that supplies coproducts (§1.63). -/
+theorem cartesian_with_images_covers_implies_prelogos (𝒞 : Type u) [Cat.{v} 𝒞]
+    [hReg : RegularCategory 𝒞] [HasSubobjectUnions 𝒞]
+    (hBottom : ∀ (A : 𝒞), Subobject 𝒞 A)
+    (hBottom_min : ∀ {A : 𝒞} (S : Subobject 𝒞 A), (hBottom A).le S)
+    (hBottom_dom_iso : ∀ (A B : 𝒞), Isomorphic (hBottom A).dom (hBottom B).dom) :
+    Nonempty (PreLogos 𝒞) :=
+  ⟨{ hReg with
+      union := HasSubobjectUnions.union
+      union_left := HasSubobjectUnions.union_left
+      union_right := HasSubobjectUnions.union_right
+      union_min := HasSubobjectUnions.union_min
+      bottom := hBottom
+      bottom_min := hBottom_min
+      bottom_dom_iso := hBottom_dom_iso
+      -- covers-transfer ⟹ f# preserves binary unions (see BLOCKER above)
+      invImage_preserves_union := fun {_A _B} _f => sorry
+      -- covers-transfer ⟹ f# preserves the bottom (same machinery)
+      invImage_preserves_bottom := fun {_A _B} _f => sorry }⟩
 
 /-- **§1.612**: For monic f : A ↣ B, f# : Sub(B) → Sub(A) preserves binary
     unions (for every monic f targeted at B) iff Sub(B) is a distributive lattice,
@@ -185,14 +221,15 @@ theorem thin_iso_of_maps (hThin : ∀ {A B : 𝒞} (f g : A ⟶ B), f = g)
     that is a distributive lattice is a pre-logos.  The thinness makes all morphism
     conditions automatic; distributivity makes invImage preserve unions. -/
 /- Uses `def` not `theorem`: `PreLogos 𝒞` is a class/structure, not a proposition. -/
-def distributive_poset_is_prelogos [HasImages 𝒞] [HasSubobjectUnions 𝒞] [HasPullbacks 𝒞]
+def distributive_poset_is_prelogos [hReg : RegularCategory 𝒞] [HasSubobjectUnions 𝒞]
     (hThin : ∀ {A B : 𝒞} (f g : A ⟶ B), f = g)
     -- In the thin (poset) case, distributivity is: for any A,S,T subobjects of B,
     -- A ∩ (S ∪ T) ≅ (A ∩ S) ∪ (A ∩ T), where A ∩ S = InverseImage A.arr S.
+    -- `hReg` is an instance so its `HasPullbacks` is the canonical one `InverseImage`
+    -- resolves against, in both `hDist` and the PreLogos fields below (no instance-coherence gap).
     (hDist : ∀ {B : 𝒞} (A S T : Subobject 𝒞 B),
       Isomorphic (InverseImage A.arr (HasSubobjectUnions.union S T)).dom
                  (HasSubobjectUnions.union (InverseImage A.arr S) (InverseImage A.arr T)).dom)
-    (hReg : RegularCategory 𝒞)
     (hBottom : ∀ (A : 𝒞), Subobject 𝒞 A)
     (hBottom_min : ∀ {A : 𝒞} (S : Subobject 𝒞 A), (hBottom A).le S)
     (hBottom_dom_iso : ∀ (A B : 𝒞), Isomorphic (hBottom A).dom (hBottom B).dom) :
@@ -206,12 +243,10 @@ def distributive_poset_is_prelogos [HasImages 𝒞] [HasSubobjectUnions 𝒞] [H
     bottom_min                := hBottom_min
     bottom_dom_iso            := hBottom_dom_iso
     -- In the thin/poset case every morphism _f : _A → _B is automatically monic (hThin makes
-    -- left-cancellation trivial), so ⟨_A, _f, _⟩ is a subobject of _B and `hDist` on that
-    -- subobject is morally the goal.  The only gap is an instance-coherence one: `hDist` builds
-    -- its pullbacks from the section's `[HasPullbacks 𝒞]`, whereas this field's `InverseImage`
-    -- is built from `hReg.toHasPullbacks`.  Bridging these two (isomorphic but distinct)
-    -- pullback objects needs a uniqueness-of-pullbacks lemma not yet available here.
-    invImage_preserves_union  := fun {_A _B} _f _S _T => sorry
+    -- left-cancellation trivial), so ⟨_A, _f, _⟩ is a subobject of _B whose `.arr` is *definitionally*
+    -- _f.  Then `hDist` on that subobject IS this goal: `InverseImage ⟨_A,_f,_⟩.arr = InverseImage _f`.
+    invImage_preserves_union  := fun {_A _B} _f _S _T =>
+      hDist ⟨_A, _f, fun {_} g h _ => hThin g h⟩ _S _T
     -- invImage_preserves_bottom: InverseImage f (⊥_B) ≅ ⊥_A.  In the thin case it suffices
     -- to exhibit maps both ways: ⊥_A ≤ InverseImage f ⊥_B (by minimality of ⊥_A), and
     -- InverseImage f ⊥_B → ⊥_B → ⊥_A via the pullback's π₂ and bottom_dom_iso.
@@ -269,6 +304,16 @@ theorem disjoint_cover_is_coproduct [PreLogos 𝒞]
     ∀ {X : 𝒞} (f₁ : A₁.dom ⟶ X) (f₂ : A₂.dom ⟶ X),
       ∃ h : A ⟶ X, A₁.arr ≫ h = f₁ ∧ A₂.arr ≫ h = f₂ ∧
         ∀ h' : A ⟶ X, A₁.arr ≫ h' = f₁ → A₂.arr ≫ h' = f₂ → h' = h := by
+  -- BLOCKER: §1.621 is the disjoint specialization of the §1.62 PASTING LEMMA
+  -- (`Fredy.pasting_lemma` in `S1_62`, itself still `sorry`).  Both the existence of `h`
+  -- and its uniqueness rest on Freyd's relational identities: with R = x°f ∪ y°g one shows
+  -- 1 ⊆ RR° and R°R ⊆ 1 (so R is a map), xR = f, yR = g, and "x,y cover ⟹ R unique".
+  -- Those `x°x ∪ y°y = 1` / composition-distributes-over-union facts are Chapter-2 allegory
+  -- material (`S2_*`), not yet available to a bare `PreLogos`.  Equivalently, via §1.615 the
+  -- union A₁∪A₂ is the image of `case A₁.arr A₂.arr : A₁.dom + A₂.dom → A`, so disjointness
+  -- turns that cover into an iso and A becomes the coproduct — but this route needs binary
+  -- COPRODUCTS, which a general pre-logos lacks (they exist only in a POSITIVE pre-logos,
+  -- §1.623).  Hence §1.621 cannot be discharged at this layer; left as a faithful sorry.
   sorry
 
 end Freyd
