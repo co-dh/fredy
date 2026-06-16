@@ -371,38 +371,86 @@ theorem coreflective_closed_products_is_exponential
     (I : 𝒜' → 𝒜) [Functor I]
     [HasBinaryProducts 𝒜']
     (hFull : Full I)
+    (hEmb : Embedding I)
     (hCorfl : CoreflectiveSubcategory I)
-    (hProd : ∀ (B₁ B₂ : 𝒜'), Isomorphic (I (prod B₁ B₂)) (prod (I B₁) (I B₂))) :
+    -- `hProd` is Freyd's actual hypothesis "I preserves binary products": the CANONICAL
+    -- comparison map `⟨I fst, I snd⟩ : I(B₁×B₂) → I B₁ × I B₂` is an isomorphism.
+    -- Stating it canonically (compatible with the projections) is what makes the comparison
+    -- iso NATURAL in each variable — the strong product-preservation the curry equations need.
+    (hProd : ∀ (B₁ B₂ : 𝒜'),
+      IsIso (pair (Functor.map (F := I) (fst : prod B₁ B₂ ⟶ B₁)) (Functor.map (F := I) (snd : prod B₁ B₂ ⟶ B₂)))) :
     Nonempty (HasExponentials 𝒜') := by
   -- adj0 : I ⊣ G where G = hCorfl.coreflection.
   -- Use letI so the Functor instance matches exactly what adj0 expects.
   letI : Functor hCorfl.coreflection := hCorfl.corefl_functor
   let adj0 := hCorfl.adj.adj
-  -- For each pair, pick the 𝒜-iso I(prod B₁ B₂) → prod (I B₁) (I B₂) and its inverse.
-  let ip  := fun (B₁ B₂ : 𝒜') => Classical.choose (hProd B₁ B₂)
-  let ip' := fun (B₁ B₂ : 𝒜') => (Classical.choose_spec (hProd B₁ B₂)).choose
-  have ip_inv := fun (B₁ B₂ : 𝒜') =>
-    (Classical.choose_spec (hProd B₁ B₂)).choose_spec
-  -- Abbreviation
   let G := hCorfl.coreflection
+  -- The CANONICAL comparison map ip B₁ B₂ : I(B₁×B₂) → I B₁ × I B₂, and its inverse ip'.
+  let ip  := fun (B₁ B₂ : 𝒜') =>
+    pair (Functor.map (F := I) (fst : prod B₁ B₂ ⟶ B₁)) (Functor.map (F := I) (snd : prod B₁ B₂ ⟶ B₂))
+  let ip' := fun (B₁ B₂ : 𝒜') => Classical.choose (hProd B₁ B₂)
+  have ip_inv := fun (B₁ B₂ : 𝒜') => Classical.choose_spec (hProd B₁ B₂)
+  -- ip ≫ ip' = id (inverse on the left) and ip' ≫ ip = id (inverse on the right).
+  have ip_ip' : ∀ B₁ B₂, ip B₁ B₂ ≫ ip' B₁ B₂ = Cat.id _ := fun B₁ B₂ => (ip_inv B₁ B₂).1
+  have ip'_ip : ∀ B₁ B₂, ip' B₁ B₂ ≫ ip B₁ B₂ = Cat.id _ := fun B₁ B₂ => (ip_inv B₁ B₂).2
+  -- Projection identities for ip (definitional, from fst_pair / snd_pair).
+  have ip_fst : ∀ B₁ B₂, ip B₁ B₂ ≫ fst = Functor.map (F := I) (fst : prod B₁ B₂ ⟶ B₁) :=
+    fun B₁ B₂ => fst_pair _ _
+  have ip_snd : ∀ B₁ B₂, ip B₁ B₂ ≫ snd = Functor.map (F := I) (snd : prod B₁ B₂ ⟶ B₂) :=
+    fun B₁ B₂ => snd_pair _ _
   -- The counit ε_X : I(G X) → X (in 𝒜).
-  let ε := fun (X : 𝒜) => adj0.ψ (Cat.id (G X))
-  -- Exponential object in 𝒜': B^A := G(exp (I A) (I B)).
+  let ε := fun (X : 𝒜) => counit adj0 X
   -- curry_map: given f : prod A X → B in 𝒜', produce X → G(exp(I A)(I B)) via:
-  --   I(prod A X) --[ip']→ prod(I A)(I X) ... wait, ip : I(prod) → prod(I,I), so we need ip'
-  --   curry(ip'(A,X) ≫ Functor.map f) : I X → exp(I A)(I B)
-  --   adj0.φ(...) : X → G(exp(I A)(I B))
+  --   curry(ip'(A,X) ≫ Functor.map (F := I) f) : I X → exp(I A)(I B), then adj0.φ to land in 𝒜'.
   let curry' := fun {A B X : 𝒜'} (f : prod A X ⟶ B) =>
     adj0.φ (curry (ip' A X ≫ Functor.map f))
-  -- eval_map: prod A (G(exp(I A)(I B))) → B in 𝒜'.
-  -- Build 𝒜-map then apply Full I:
-  --   I(prod A (G...)) --[ip A (G...)]→ prod(I A)(I(G...))
-  --               --[prodMap(ε)]→ prod(I A)(exp...) --[eval]→ I B
+  -- eval_map: prod A (G(exp(I A)(I B))) → B in 𝒜'.  Built in 𝒜 then pulled back by Full I:
+  --   I(prod A (GE)) --[ip A (GE)]→ I A × I(GE) --[prodMap ε]→ I A × E --[eval]→ I B.
   let eval_A := fun (A B : 𝒜') =>
     ip A (G (exp (I A) (I B))) ≫
     prodMap (I A) (I (G (exp (I A) (I B)))) (exp (I A) (I B)) (ε (exp (I A) (I B))) ≫
     eval_exp (I A) (I B)
   let eval' := fun (A B : 𝒜') => Classical.choose (hFull (eval_A A B))
+  have eval'_spec : ∀ A B, Functor.map (F := I) (eval' A B) = eval_A A B :=
+    fun A B => Classical.choose_spec (hFull (eval_A A B))
+  -- NATURALITY of ip in the second variable: for u : X ⟶ Y in 𝒜',
+  --   I.map(prodMap A X Y u) ≫ ip A Y = ip A X ≫ prodMap (I A) (I X) (I Y) (Functor.map (F := I) u).
+  -- (Both legs land in I A × I Y; check after ≫ fst and ≫ snd via the projection laws.)
+  have ip_nat : ∀ (A : 𝒜') {X Y : 𝒜'} (u : X ⟶ Y),
+      Functor.map (F := I) (prodMap A X Y u) ≫ ip A Y =
+        ip A X ≫ prodMap (I A) (I X) (I Y) (Functor.map (F := I) u) := by
+    intro A X Y u
+    -- Both maps land in `I A × I Y`; equate by their `≫ fst` and `≫ snd` legs.
+    have hfst : (Functor.map (F := I) (prodMap A X Y u) ≫ ip A Y) ≫ fst =
+                (ip A X ≫ prodMap (I A) (I X) (I Y) (Functor.map (F := I) u)) ≫ fst := by
+      rw [Cat.assoc, ip_fst, ← Functor.map_comp (F := I), prodMap_fst,
+          Cat.assoc, prodMap_fst, ip_fst]
+    have hsnd : (Functor.map (F := I) (prodMap A X Y u) ≫ ip A Y) ≫ snd =
+                (ip A X ≫ prodMap (I A) (I X) (I Y) (Functor.map (F := I) u)) ≫ snd := by
+      rw [Cat.assoc, ip_snd, ← Functor.map_comp (F := I), prodMap_snd, Functor.map_comp (F := I),
+          Cat.assoc, prodMap_snd, ← Cat.assoc, ip_snd]
+    rw [pair_eta (Functor.map (F := I) (prodMap A X Y u) ≫ ip A Y),
+        pair_eta (ip A X ≫ prodMap (I A) (I X) (I Y) (Functor.map (F := I) u)), hfst, hsnd]
+  -- KEY: ε absorbs the φ-transpose.  I.map(curry' f) ≫ ε E = curry (ip' A X ≫ Functor.map (F := I) f).
+  --   I.map(adj0.φ h) ≫ ε E = adj0.ψ (adj0.φ h) = h   (ψ_eq + ψφ).
+  have curry'_eps : ∀ {A B X : 𝒜'} (f : prod A X ⟶ B),
+      Functor.map (F := I) (curry' f) ≫ ε (exp (I A) (I B)) = curry (ip' A X ≫ Functor.map f) := by
+    intro A B X f
+    show Functor.map (F := I) (adj0.φ _) ≫ counit adj0 _ = _
+    rw [← ψ_eq adj0 (adj0.φ (curry (ip' A X ≫ Functor.map f))), adj0.ψφ]
+  -- CORE COMPUTATION (shared by curry_eval and curry_unique).  For ANY g : X ⟶ GE,
+  --   Functor.map (F := I) (prodMap A X GE g) ≫ eval_A A B
+  --     = ip A X ≫ prodMap (I A) (I X) E (Functor.map (F := I) g ≫ ε E) ≫ eval_exp (I A) (I B).
+  have core : ∀ {A B X : 𝒜'} (g : X ⟶ G (exp (I A) (I B))),
+      Functor.map (F := I) (prodMap A X (G (exp (I A) (I B))) g) ≫ eval_A A B =
+        ip A X ≫ prodMap (I A) (I X) (exp (I A) (I B)) (Functor.map (F := I) g ≫ ε (exp (I A) (I B))) ≫
+          eval_exp (I A) (I B) := by
+    intro A B X g
+    -- eval_A = ip A (GE) ≫ prodMap ε ≫ eval.  Pull I.map(prodMap g) through ip A (GE) by ip_nat,
+    -- then fuse the two prodMaps with prodMap_comp.
+    show Functor.map (F := I) (prodMap A X _ g) ≫ ip A _ ≫ _ ≫ eval_exp (I A) (I B) = _
+    rw [← Cat.assoc, ip_nat A g, Cat.assoc, ← Cat.assoc (prodMap _ _ _ (Functor.map g)),
+        ← prodMap_comp]
   refine ⟨?_⟩
   refine
     { toHasBinaryProducts := inferInstance
@@ -410,16 +458,61 @@ theorem coreflective_closed_products_is_exponential
       eval_map := fun {A B} => eval' A B
       curry_map := fun {A B X} f => curry' f
       curry_eval := fun {A B X} f => by
-        -- The equation prodMap A X (G(exp...)) (curry' f) ≫ eval' = f holds in 𝒜'.
-        -- Proof strategy: apply I on both sides (using Embedding I = faithfulness),
-        -- then compute using the adjunction equations and ip/ip' identities.
-        -- Faithfulness of I follows from the triangle identity I(η) ≫ ε = id (I full coreflective).
-        -- Deferred: requires Embedding I as an additional lemma.
-        sorry
+        -- Cancel I (Embedding), rewrite I.map(eval') = eval_A, run the core computation,
+        -- absorb ε via curry'_eps, fire curry_eval_eq, then collapse ip ≫ ip' = id.
+        apply hEmb
+        rw [Functor.map_comp (F := I), eval'_spec, core (curry' f), curry'_eps f,
+            curry_eval_eq, ← Cat.assoc, ip_ip', Cat.id_comp]
       curry_unique := fun {A B X f g} h => by
-        -- Uniqueness: if prodMap A X _ g ≫ eval' = f, then g = curry' f.
-        -- Again requires Embedding I (faithfulness) to cancel I on both sides.
-        sorry }
+        -- Suffices adj0.ψ g = curry (ip' A X ≫ Functor.map (F := I) f); then apply adj0.φ (φ bijective).
+        -- adj0.ψ g = Functor.map (F := I) g ≫ ε E (ψ_eq).  Establish it via curry_unique_eq from the core eqn.
+        show g = adj0.φ (curry (ip' A X ≫ Functor.map f))
+        have hgψ : g = adj0.φ (adj0.ψ g) := (adj0.φψ g).symm
+        rw [hgψ]; congr 1
+        rw [ψ_eq adj0 g]
+        apply curry_unique_eq
+        -- From h: I.map(prodMap A X _ g) ≫ eval_A = Functor.map (F := I) f.  Run core, cancel ip via ip'.
+        have hI : Functor.map (F := I) (prodMap A X (G (exp (I A) (I B))) g) ≫ eval_A A B = Functor.map (F := I) f := by
+          rw [← eval'_spec, ← Functor.map_comp (F := I), h]
+        rw [core g] at hI
+        -- ip A X ≫ (prodMap … ≫ eval) = Functor.map (F := I) f  ⟹  prodMap … ≫ eval = ip' A X ≫ Functor.map (F := I) f.
+        rw [← hI, ← Cat.assoc, ip'_ip, Cat.id_comp] }
+
+/-- For a full-and-faithful reflective inclusion `I` (`refl ⊣ I`), the counit
+    `ε_C : refl (I C) → C` is an isomorphism for every `C : 𝒜'`.  This is the
+    constructive heart of "the reflection is idempotent on the subcategory":
+    Freyd's standing assumption that the subcategory is FULL (here `Full I` +
+    `Embedding I`) forces the counit to be invertible.
+
+    Proof.  `triangle_two` gives `η_{I C} ≫ I(ε_C) = id_{I C}`.  By `Full I`
+    pick `e' : C ⟶ refl (I C)` with `I(e') = η_{I C}`.  Then `e'` is a
+    two-sided inverse of `ε_C`:  `e' ≫ ε_C = id_C` follows by faithfulness from
+    `triangle_two`; `ε_C ≫ e' = id` follows from `φ`-injectivity, computing
+    `φ(ε_C ≫ e') = η_{I C} ≫ I(ε_C) ≫ η_{I C} = η_{I C} = φ(id)` via `φ_eq`. -/
+theorem reflective_counit_iso
+    (I : 𝒜' → 𝒜) [Functor I]
+    (hFull : Full I) (hEmb : Embedding I)
+    (hRefl : ReflectiveSubcategory I) (C : 𝒜') :
+    letI : Functor hRefl.reflection := hRefl.refl_functor
+    IsIso (counit hRefl.adj.adj C) := by
+  letI : Functor hRefl.reflection := hRefl.refl_functor
+  let adjR := hRefl.adj.adj
+  -- e' : C ⟶ refl (I C) with I(e') = η_{I C}.
+  obtain ⟨e', he'⟩ := hFull (unit adjR (I C))
+  refine ⟨e', ?_, ?_⟩
+  · -- ε_C ≫ e' = id_{refl (I C)}.  Apply the (injective) bijection `φ`:
+    --   φ(ε_C ≫ e') = η_{I C} ≫ I(ε_C ≫ e') = η_{I C} ≫ I(ε_C) ≫ I(e')
+    --              = η_{I C} ≫ I(ε_C) ≫ η_{I C} = id ≫ η_{I C} = η_{I C} = φ(id).
+    apply φ_inj adjR
+    rw [φ_eq adjR (counit adjR C ≫ e'), Functor.map_comp (F := I), he',
+        ← Cat.assoc, triangle_two adjR C, Cat.id_comp]
+    -- RHS: φ(id) = η_{I C} = unit.
+    show unit adjR (I C) = adjR.φ (Cat.id (hRefl.reflection (I C)))
+    rfl
+  · -- e' ≫ ε_C = id_C, by faithfulness from triangle_two.
+    apply hEmb
+    rw [Functor.map_comp (F := I), he', Functor.map_id (F := I)]
+    exact triangle_two adjR C
 
 /-- §1.857, Part 2: A full replete reflective subcategory of an exponential
     category is an exponential ideal iff its reflections preserve products.
@@ -429,7 +522,7 @@ theorem coreflective_closed_products_is_exponential
 theorem reflective_exponential_ideal_iff_refl_preserve_products
     [HasBinaryProducts 𝒜']
     (I : 𝒜' → 𝒜) [Functor I]
-    (hFull : Full I)
+    (hFull : Full I) (hEmb : Embedding I)
     (hRepl : RepleteSubcategory I)
     (hRefl : ReflectiveSubcategory I) :
     ExponentialIdeal I ↔
@@ -437,7 +530,56 @@ theorem reflective_exponential_ideal_iff_refl_preserve_products
       Isomorphic
         (I (hRefl.reflection (prod A₁ A₂)))
         (I (prod (hRefl.reflection A₁) (hRefl.reflection A₂))) := by
-  sorry
+  letI : Functor hRefl.reflection := hRefl.refl_functor
+  let L := hRefl.reflection
+  let adjR := hRefl.adj.adj
+  -- The canonical comparison map `c A₁ A₂ : L(A₁×A₂) ⟶ L A₁ × L A₂` (in 𝒜'),
+  -- ALWAYS available from the universal property of the product in 𝒜' applied to
+  -- `L fst`, `L snd`.  "L preserves products" is precisely "`c` is an isomorphism".
+  let c := fun (A₁ A₂ : 𝒜) =>
+    pair (Functor.map (F := L) (fst : prod A₁ A₂ ⟶ A₁))
+         (Functor.map (F := L) (snd : prod A₁ A₂ ⟶ A₂))
+  constructor
+  · -- (⇒) Exponential ideal  ⟹  L preserves products.
+    --
+    -- The genuine content: for every `Z : 𝒜'` the comparison map induces a bijection
+    --   Hom(L A₁ × L A₂, Z) ≅ Hom(A₁, (I Z)^{A₂})  [via adjunction + product + currying]
+    --   Hom(L(A₁×A₂), Z)   ≅ Hom(A₁×A₂, I Z) ≅ Hom(A₁, (I Z)^{A₂})  [exp ideal puts (I Z)^{A₂} in 𝒜']
+    -- agreeing under `c`, so `c` is a natural iso of representables, hence an iso of objects.
+    -- Concluding the OBJECT iso `L(A₁×A₂) ≅ L A₁ × L A₂` from this natural hom-iso is the
+    -- YONEDA corollary "a map inducing a natural bijection of hom-sets is an isomorphism".
+    -- That corollary (`iso_of_natural_hom_bijection`) is NOT yet available in this
+    -- mathlib-free repo (there is `RepresentedBy` in S1_8 but no lemma transporting a
+    -- representability-isomorphism to an object isomorphism).  BLOCKER: this Yoneda corollary.
+    intro hIdeal A₁ A₂
+    -- Reduce the I-image object-iso to an iso of the comparison map `c A₁ A₂` in 𝒜',
+    -- which functors (here I) preserve.
+    suffices hc : @IsIso 𝒜' _ (L (prod A₁ A₂)) (prod (L A₁) (L A₂)) (c A₁ A₂) by
+      exact functor_preserves_iso_obj I ⟨c A₁ A₂, hc⟩
+    -- `IsIso (c A₁ A₂)` is the missing Yoneda corollary applied to the exponential-ideal
+    -- hom-bijection above.  Sharp blocker: `iso_of_natural_hom_bijection` (Yoneda).
+    sorry
+  · -- (⇐) L preserves products  ⟹  exponential ideal.
+    intro hPres
+    refine ⟨hFull, ?_⟩
+    intro A B
+    -- Want `E : 𝒜'` with `I E ≅ exp A (I B)`.  Standard proof: `exp A (I B)` already lies in
+    -- the subcategory because the unit `η_{exp A (I B)} : exp A (I B) → I(L(exp A (I B)))` is an
+    -- isomorphism; take `E := L(exp A (I B))` and invert `η` (then repleteness/`hRepl`).
+    -- Showing `η_{exp A (I B)}` is iso needs the retraction
+    --   `r : I(L(exp A (I B))) → exp A (I B)`
+    -- obtained by transposing along `A × (-) ⊣ (-)^A` the map
+    --   `A × I(L(exp A (I B))) → I B`
+    -- built from `hPres` (so that `A × η` becomes invertible after reflection) and `eval`.
+    -- This retraction's two unit equations again reduce to the YONEDA corollary
+    -- `iso_of_natural_hom_bijection` interacting product-preservation with currying.
+    -- Sharp blocker: same missing Yoneda corollary, here used to prove
+    -- `IsIso (unit adjR (exp A (I B)))`.
+    refine ⟨L (exp A (I B)), ?_⟩
+    -- `I (L (exp A (I B))) ≅ exp A (I B)` ⟸ `IsIso (unit adjR (exp A (I B)))` (then `isomorphic_symm`).
+    suffices hη : IsIso (unit adjR (exp A (I B))) by
+      exact isomorphic_symm ⟨unit adjR (exp A (I B)), hη⟩
+    sorry
 
 end ExponentialIdeal
 

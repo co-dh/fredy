@@ -608,27 +608,93 @@ theorem exists_straight_thick_target {𝒜 : Type u} [EffectivePrePowerAllegory 
   obtain ⟨c, h, hMap, hch, hStr, hTeq⟩ := straight_factorization T
   exact ⟨c, h° ≫ T, hStr, straight_descent_thick hMap hch hTeq hThickT⟩
 
+/-- §2.416 (monic half of maximality): a STRAIGHT MAP is monic, `h ≫ h° ⊑ 1`.
+    Book: `hh°` is symmetric, and `(hh°)h = h(h°h) ⊑ h` since `h` is simple; so
+    `hh° ⊑ h/ₛh ⊑ 1` because `h` is straight.  (This is exactly the half of §2.416's
+    maximality step that needs NO progenitor; the converse `1 ⊑ h°h` is the half that
+    does — see `effective_pre_power_is_power`.) -/
+theorem straight_map_monic {𝒜 : Type u} [DivisionAllegory 𝒜] {a b : 𝒜} {h : a ⟶ b}
+    (hMap : Map h) (hStr : Straight h) : h ≫ h° ⊑ Cat.id a := by
+  have hsimp : h° ≫ h ⊑ Cat.id b := hMap.2
+  -- (hh°)h ⊑ h and (hh°)°h = (hh°)h ⊑ h, so hh° ⊑ h/ₛh ⊑ 1.
+  have hTh : (h ≫ h°) ≫ h ⊑ h := by
+    rw [Cat.assoc]
+    exact le_trans (comp_mono_left h hsimp) (by rw [Cat.comp_id]; exact le_refl h)
+  have hsym : (h ≫ h°)° = h ≫ h° := by rw [Allegory.recip_comp, Allegory.recip_recip]
+  have hle : h ≫ h° ⊑ h /ₛ h :=
+    (le_symmDiv_iff (h ≫ h°) h h).mpr ⟨hTh, by rw [hsym]; exact hTh⟩
+  exact le_trans hle hStr
+
+/-- §2.416 (the maximality step, monic half packaged for a split factorization):
+    if `S = h ≫ S'` with `S` straight and `h` a map, then `h` is monic (`h ≫ h° ⊑ 1`).
+    `S = h ≫ S'` straight ⟹ `h` straight (§2.355 `straight_of_comp_straight`), then
+    `straight_map_monic`.  The remaining `1 ⊑ h° ≫ h` (epic) is the progenitor-dependent
+    half left open in `effective_pre_power_is_power`. -/
+theorem straight_factor_map_monic {𝒜 : Type u} [DivisionAllegory 𝒜] {x c a : 𝒜}
+    {h : x ⟶ c} {S' : c ⟶ a} {S : x ⟶ a}
+    (hMap : Map h) (hStr : Straight S) (hS : S = h ≫ S') : h ≫ h° ⊑ Cat.id x :=
+  straight_map_monic hMap (straight_of_comp_straight (S := h) (R := S') (hS ▸ hStr))
+
 /-- §2.432: an effective pre-power allegory is a power allegory.
     FAITHFUL SORRY confined to the single field `eps_thick`.  Everything else is built
     honestly: `powerObj b` / `eps b` are the straight-thick factor `(c, S)` of the chosen
     thick target of `b` (§2.354 `straight_factorization` + §2.432 `straight_descent_thick`),
     and `eps_straight` is exactly the straightness of that `S`.
 
-    The remaining gap is the §2.413 *unconditional* thickness `∀R, ∃f map, fS = R`.  Our
-    `Thick S` (§2.43) supplies the witness only when `codBox R = codBox S`; the unconditional
-    form needs Freyd's §2.416 *maximality* argument (`S` maximal straight ⟹ every morphism
-    targeted at `b` factors as a map followed by `S`), which rests on the progenitor /
-    straightening machinery not yet formalized.  We therefore leave `eps_thick` as a sharp
-    sorry and discharge every other obligation. -/
+    The remaining gap is the §2.413 *unconditional* thickness `∀R ∃f map, fS = R`.  Our
+    `Thick S` (§2.43) supplies the witness only when the codomain boxes agree
+    (`codBox R = codBox S`); the unconditional §2.413 form drops that guard.
+
+    Freyd closes the gap in §2.416 by a copower straightening, and the assessment below
+    pins exactly which operation that needs and why this repo cannot supply it here.
+
+    §2.416 inference, specialised to one arbitrary `R : p → b`:
+      1.  form the binary cotuple `(R ; S) : (c ⊕ p) → b` of `S : c → b` (our `eps b`,
+          with `c = powerObj b`) and `R`, living on the COPRODUCT object `c ⊕ p`;
+      2.  straighten it (§2.354): `(R ; S) = (h' ; h) ≫ S'` with `h, h'` maps, `S'` straight;
+          restricting to the `c`-summand gives `S = h ≫ S'`;
+      3.  `S` is MAXIMAL straight (`S = h ≫ S'`, `S'` straight ⟹ `h` iso), so `h` is iso;
+      4.  hence `R = h' ≫ S' = (h' ≫ h⁻¹) ≫ S` with `h' ≫ h⁻¹` a map — the witness.
+
+    Two distinct irreducible obstacles, BOTH the progenitor (§1.966), absent here:
+
+    • Step 1 needs the coproduct OBJECT `c ⊕ p` with its cotupling map, i.e.
+      `Freyd.Alg.PositiveAllegory.coprod (powerObj b) p` and
+      `PositiveAllegory.has_coproduct (powerObj b) p` — the binary instance of Freyd's
+      copower `C_I y`.  An `EffectivePrePowerAllegory` is
+      `EffectiveDivisionAllegory = DivisionAllegory + EffectiveAllegory`, and
+      `DivisionAllegory extends DistributiveAllegory`, which gives `∪`/`𝟘` on hom-sets but
+      NOT coproduct objects.  Effectiveness only splits idempotents over a SINGLE object
+      (`split_symmetric_idempotent`); it cannot join two morphisms with distinct sources
+      (`c` and `p`) into one cotuple.
+
+    • Step 3's maximality is only HALF free.  `h` map ⟹ `h° ≫ h ⊑ 1` (simple), and
+      `(h h°) h ⊑ h` with `h h°` symmetric ⟹ `h h° ⊑ 1` (`§2.355` + `straight_cancel`,
+      both already in this repo), giving `h h° ⊑ 1`.  But the iso also needs `1 ⊑ h° ≫ h`
+      (`h` epic), and Freyd proves that ONLY by testing `F h° h = F` for every simple `F`
+      *out of the progenitor* `y` and invoking the progenitor's separating property — there
+      is no `Progenitor`/generator class in this repo, and box-guarded `Thick S` alone does
+      not force `h` epic.
+
+    The book derives BOTH from one object: a PROGENITOR `y` (§1.966) — a separator whose
+    `I`-fold copower `C_I y` exists.  This repo has neither a `Progenitor` class nor
+    coproduct objects in the pre-power setting, and §2.43 pre-power allegories are not
+    assumed positive, so supplying them as instance fields would weaken the theorem below
+    the book's hypotheses.  Precise missing primitive: a progenitor `y : 𝒜` (§1.966) with
+    its copower `coprod (powerObj b) p` (`PositiveAllegory.has_coproduct`).  We leave
+    `eps_thick` as this single sharp sorry. -/
 noncomputable def effective_pre_power_is_power {𝒜 : Type u} [EffectivePrePowerAllegory 𝒜] :
     PowerAllegory 𝒜 :=
   { powerObj := fun b => (exists_straight_thick_target b).choose
     eps := fun b => (exists_straight_thick_target b).choose_spec.choose
     eps_straight := fun b => (exists_straight_thick_target b).choose_spec.choose_spec.1
     eps_thick := by
-      -- ∀R targeted at b, ∃ map f with f ≫ S = R.  The straight-thick target from
-      -- `exists_straight_thick_target b` gives `Thick S`, which supplies the witness only
-      -- under `codBox R = codBox S`; the unconditional §2.413 form needs §2.416 maximality.
+      -- Missing primitive: a progenitor `y` (§1.966) with copower `coprod (powerObj b) p`
+      -- (`PositiveAllegory.has_coproduct`).  Without the coproduct object the §2.416 cotuple
+      -- `(R ; eps b) : (powerObj b ⊕ p) → b` cannot be formed (step 1); and without `y`'s
+      -- separating property the maximality `1 ⊑ h° ≫ h` (step 3) fails — box-guarded `Thick`
+      -- does not force `h` epic.  Hence the unconditional §2.413 witness `∃ f map, f ≫ ∋ = R`
+      -- is not derivable from the present `EffectivePrePowerAllegory` hypotheses.
       sorry }
 
 /-! ## §2.441  Pre-positive allegory and well-joined category
