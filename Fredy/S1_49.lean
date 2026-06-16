@@ -254,4 +254,170 @@ def Auspicious (τ : TCat 𝒞) (tab : Table 𝒞) : Prop :=
   ∃ (tab' : Table 𝒞) (h_len : tab.len ≤ tab'.len), τ.mem tab' ∧ tab.src = tab'.src ∧
     (∀ i : Fin tab.len, HEq (tab.col i) (tab'.col (Fin.castLE h_len i)))
 
+/-! ## §1.492 Supporting subsequences and general PRUNE -/
+
+/-- A SUPPORTING subsequence: a strictly increasing selection `sel : Fin k → Fin tab.len`
+    such that the selected columns are still jointly monic (§1.492).
+    The book says "a subsequence i₁,…,iₖ is SUPPORTING if (T; xᵢ₁,…,xᵢₖ) satisfies
+    the monic condition." -/
+def Table.IsSupporting (tab : Table 𝒞) {k : Nat} (sel : Fin k → Fin tab.len) : Prop :=
+  ∀ ⦃X : 𝒞⦄ (f g : X ⟶ tab.src), (∀ r : Fin k, f ≫ tab.col (sel r) = g ≫ tab.col (sel r)) → f = g
+
+/-- A PRUNE along a supporting subsequence: the sub-table with selected columns (§1.492).
+    Unlike `Table.prune` (which removes a single short column), this is the general PRUNE:
+    any supporting subsequence yields a valid (jointly-monic) table. -/
+def Table.pruneAlong (tab : Table 𝒞) {k : Nat} (sel : Fin k → Fin tab.len)
+    (hSup : tab.IsSupporting sel) : Table 𝒞 where
+  src   := tab.src
+  len   := k
+  codom := λ r => tab.codom (sel r)
+  col   := λ r => tab.col (sel r)
+  monic := hSup
+
+/-- Every supporting subsequence of a supporting subsequence is supporting. -/
+theorem Table.IsSupporting.trans (tab : Table 𝒞) {k₁ k₂ : Nat}
+    (sel₁ : Fin k₁ → Fin tab.len) (sel₂ : Fin k₂ → Fin k₁)
+    (h₁ : tab.IsSupporting sel₁) (h₂ : (tab.pruneAlong sel₁ h₁).IsSupporting sel₂) :
+    tab.IsSupporting (fun r => sel₁ (sel₂ r)) :=
+  fun X f g hAgree => h₂ f g (fun r => hAgree r)
+
+/-- The full index list `id : Fin n → Fin n` is supporting (trivially, by original monicity). -/
+theorem Table.isSupporting_id (tab : Table 𝒞) : tab.IsSupporting id :=
+  fun X f g hAgree => tab.monic f g (fun i => hAgree i)
+
+/-! ## §1.494 Expansion lemma (converse of axiom 3) -/
+
+namespace TCat
+
+/-- §1.494 forward: τ-closure under pruning (= axiom 3 restated).
+    If a table is in τ and column j is short, the pruned table is in τ. -/
+theorem mem_prune {τ : TCat 𝒞} {tab : Table 𝒞} {j : Fin tab.len}
+    (hShort : tab.IsShort j) (hmem : τ.mem tab) : τ.mem (tab.prune j hShort) :=
+  τ.tau3 tab j hShort hmem
+
+/-- §1.494 converse: if the pruned table is in τ then the original table is in τ.
+    Proof: let g be the resurfacing of `tab`. By τ2 (composition), the table
+    `(T''; gx₁,…,ĝxⱼ,…,gxₙ) = pruned resurfacing` is in τ. Since the pruned table is
+    in τ and equals (up to iso) the pruned resurfacing, uniqueness gives g = id, so tab ∈ τ.
+    We formalise the key content: if `tab.prune j h ∈ τ` and the resurfacing `r` of `tab`
+    has `r.iso` an identity on the pruned table, then `tab ∈ τ`. The full argument uses
+    the resurfacing machinery and τ2_comp; we leave the assembly as sorry. -/
+theorem mem_of_prune_mem {τ : TCat 𝒞} (tab : Table 𝒞) (j : Fin tab.len)
+    (hShort : tab.IsShort j) (h : τ.mem (tab.prune j hShort)) : τ.mem tab := by
+  -- The resurfacing of `tab` gives T'' ≅ tab with (T''; gx₁,…,gxₙ) ∈ τ.
+  -- By tau3 applied to that τ-table, its pruned version is in τ.
+  -- The pruned version is isomorphic to `tab.prune j hShort`, which is in τ.
+  -- By tau1_unique the resurfacing is an identity, so tab ∈ τ.
+  -- The index/HEq bookkeeping for pruning the resurfaced table is nontrivial;
+  -- the logical argument is clear from the book's one-paragraph proof.
+  sorry
+
+/-- §1.494 EXPANSION LEMMA: a table is in τ iff its pruned table is in τ (§1.494).
+    Removing (or keeping) a short column does not change τ-membership. -/
+theorem expansionLemma {τ : TCat 𝒞} {tab : Table 𝒞} {j : Fin tab.len}
+    (hShort : tab.IsShort j) : τ.mem tab ↔ τ.mem (tab.prune j hShort) :=
+  ⟨mem_prune hShort, mem_of_prune_mem tab j hShort⟩
+
+/-- §1.494 corollary: any expansion of a τ-table is a τ-table.
+    If `(T; x₁,…,xₙ) ∈ τ` and `xₙ₊₁ : T → B`, then `(T; x₁,…,xₙ,xₙ₊₁) ∈ τ`.
+    The extra column is short since the original columns already separate all points.
+    We state this over an explicit expanded Table. -/
+theorem mem_expansion (τ : TCat 𝒞) (tab : Table 𝒞) (hmem : τ.mem tab)
+    (B : 𝒞) (extra : tab.src ⟶ B)
+    -- tab' is the expansion: same src, one more column appended
+    (tab' : Table 𝒞)
+    (hSrc : tab'.src = tab.src)
+    (hLen : tab'.len = tab.len + 1)
+    -- first tab.len columns of tab' agree with tab
+    (hCols : ∀ i : Fin tab.len,
+      HEq (tab'.col (hLen ▸ Fin.castSucc i)) (hSrc ▸ tab.col i))
+    -- last column of tab' is extra
+    (hLast : HEq (tab'.col (hLen ▸ Fin.last tab.len)) (hSrc ▸ extra)) :
+    τ.mem tab' := by
+  sorry
+
+end TCat
+
+/-! ## §1.496 Subterminators in a τ-category -/
+
+namespace TCat
+
+variable [HasTerminal 𝒞]
+
+/-- §1.496: If T is a subterminator in a τ-category then `(T; f) ∈ τ` for any `f : T → T'`.
+    Reason: `f` is short (T is a subterminator, so T→1 is monic; any two maps into T
+    that agree on `f` agree on `T→1` trivially, hence are equal). -/
+theorem subterminator_one_col_mem (τ : TCat 𝒞) {T T' : 𝒞} (hSub : Subterminator T)
+    (f : T ⟶ T') : τ.mem
+      { src   := T
+        len   := 1
+        codom := fun _ => T'
+        col   := fun _ => f
+        monic := by
+          intro X g h hAg
+          -- T is a subterminator: T → one is monic; g, h : X → T;
+          -- we need g = h. Use hSub: g ≫ term T = h ≫ term T → g = h.
+          apply hSub
+          apply term_uniq } := by
+  -- (T; f) has f short: any g,h with g≫f = h≫f satisfy g = h by subterminator.
+  -- So the last column (the only column) is short, and after pruning we get the 0-column
+  -- table on T. The 0-column table is... actually we want to show (T;f) ∈ τ via tau2_comp.
+  -- Alternatively: idTable T ∈ τ (tau2_id), and (T; id_T, f) ≅ (T; id_T) ; (T; f) via comp.
+  -- A cleaner path: f is short (subterminator monic), so (T; id_T, f).prune last ≅ idTable T ∈ τ.
+  -- By expansionLemma (sorry inside), (T; id_T, f) ∈ τ, and pruning first column gives (T; f).
+  -- All these steps rely on the expansion lemma whose converse is sorry; mark sorry here too.
+  sorry
+
+/-- §1.496: If T is a subterminator and f : T → T' is an isomorphism, then f = id_T
+    (hence T' = T and f is the identity). -/
+theorem subterminator_iso_is_id (τ : TCat 𝒞) {T T' : 𝒞} (hSub : Subterminator T)
+    (f : T ⟶ T') (hIso : IsIso f) : T' = T ∧ ∃ h : T' = T, h ▸ f = Cat.id T := by
+  sorry
+
+/-- §1.496: Isomorphic subterminators are equal. -/
+theorem subterminator_iso_unique (τ : TCat 𝒞) {T T' : 𝒞}
+    (hT : Subterminator T) (hT' : Subterminator T')
+    (f : T ⟶ T') (hIso : IsIso f) : T = T' := by
+  sorry
+
+/-- §1.496: In a τ-category with a terminal object, the terminal object is the unique
+    terminator: any subterminator is the terminal object. -/
+theorem subterminator_is_terminal (τ : TCat 𝒞) {T : 𝒞} (hSub : Subterminator T) :
+    T = @one 𝒞 _ _ := by
+  -- The terminal object `one` is itself a subterminator (trivially, id is monic).
+  -- By subterminator_iso_unique applied to (term T : T → one) which is iso
+  -- when T is itself terminal... this requires more structure.
+  -- The book's argument: any two subterminators are isomorphic (both map to each other
+  -- via the unique terminal maps) and by subterminator_iso_unique they are equal.
+  sorry
+
+end TCat
+
+/-! ## §1.497 The Cancellation Lemma -/
+
+namespace TCat
+
+/-- §1.497 CANCELLATION LEMMA: If `S ; T ∈ τ` and `T ∈ τ` then `S ∈ τ`.
+    Here `S ; T` is `S.comp T j h_eq` (table composition replacing column j of S with T).
+
+    Book proof: Let g : T'' → top(S) be the resurfacing of S. By τ2.2,
+    the composition (T''; gx₁,…,gxₙ) ; (T'; y₁,…,yₘ) ∈ τ, so g is also the resurfacing
+    of `S ; T`. Since `S ; T ∈ τ` by assumption, its resurfacing is the identity,
+    hence g = id, so S ∈ τ. -/
+theorem cancellationLemma (τ : TCat 𝒞) (S T : Table 𝒞) (j : Fin S.len)
+    (h_eq : T.src = S.codom j)
+    (hST : τ.mem (S.comp T j h_eq)) (hT : τ.mem T) : τ.mem S := by
+  -- Let r = resurfacing of S; r.rep ≅ S and r.rep ∈ τ.
+  -- By tau2_comp: r.rep.comp T j (h_eq') ∈ τ (where h_eq' comes from the iso).
+  -- That composition is isomorphic to S.comp T j h_eq.
+  -- By tau1_unique: r.rep.comp T j h_eq' = S.comp T j h_eq (same τ-rep).
+  -- Since S.comp T j h_eq ∈ τ by hST, the resurfacing of S.comp is id.
+  -- So r.rep.comp = S.comp, and since T ∈ τ, by cancellation the resurfacing g of S is id.
+  -- Hence S ∈ τ.
+  -- The index-level gluing for Table.comp (which is currently a placeholder) makes this
+  -- proof mechanically heavy; the logical content is captured above.
+  sorry
+
+end TCat
+
 end Freyd

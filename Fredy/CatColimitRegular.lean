@@ -9,6 +9,7 @@ import Fredy.CatColimit
 import Fredy.S1_42
 import Fredy.S1_43
 import Fredy.S1_51
+import Fredy.S1_52
 open Freyd
 namespace Freyd.Colim
 universe u w
@@ -1358,3 +1359,140 @@ theorem colimHom_cover_reflects (C : CatSystem ι D) (hC : C.Coherent)
     exact castHom_heq_congr _ _ ed.symm ec.symm (hC.trans_map h_ts hL m').symm
   rw [hgm] at hisoL
   exact hcons (D.trans h_ts hL) m' (isIso_of_castHom _ _ _ hisoL)
+
+/-! ## M3b — pullbacks for the colimit category
+
+  The colimit category has pullbacks, obtained from the terminal object,
+  binary products, and equalizers already constructed (`colimitHasTerminal`,
+  `colimitHasBinaryProducts`, `colimitHasEqualizers`) via the §1.432 route
+  `products_equalizers_implies_pullbacks`.  DRY: we do not rebuild the
+  representative-transport machinery; we reuse the three finite-limit
+  constructors and the stage-level §1.432 derivation. -/
+noncomputable def colimitHasPullbacks (C : CatSystem ι D) (hC : C.Coherent) [hne : Nonempty ι]
+    -- terminal data
+    (ht : ∀ i, HasTerminal (C.A i))
+    (htpres : ∀ {i j} (hij : D.le i j), C.F hij (ht i).one = (ht j).one)
+    -- binary-product data
+    (hp : ∀ i, HasBinaryProducts (C.A i))
+    (hppres : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
+        (u : z ⟶ C.F hij ((hp i).prod a b)) (v : z ⟶ C.F hij ((hp i).prod a b)),
+        u ≫ (C.functF hij).map (hp i).fst = v ≫ (C.functF hij).map (hp i).fst →
+        u ≫ (C.functF hij).map (hp i).snd = v ≫ (C.functF hij).map (hp i).snd → u = v)
+    (hppres_pair : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
+        (p : z ⟶ C.F hij a) (q : z ⟶ C.F hij b),
+        ∃ r : z ⟶ C.F hij ((hp i).prod a b),
+          r ≫ (C.functF hij).map (hp i).fst = p ∧ r ≫ (C.functF hij).map (hp i).snd = q)
+    -- equalizer data
+    (he : ∀ i, HasEqualizers (C.A i))
+    (hepres : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
+        (u v : z ⟶ C.F hij (eqObj f g)),
+        u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
+    (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
+        (k : z ⟶ C.F hij A)
+        (hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
+        ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k) :
+    @HasPullbacks C.Obj (colimitCat C hC) := by
+  letI : Cat C.Obj := colimitCat C hC
+  letI : HasTerminal C.Obj := colimitHasTerminal C hC ht htpres
+  letI : HasBinaryProducts C.Obj := colimitHasBinaryProducts C hC hp hppres hppres_pair
+  letI : HasEqualizers C.Obj := colimitHasEqualizers C hC he hepres hepres_lift
+  exact ⟨fun f g => products_equalizers_implies_pullbacks f g⟩
+
+/-- **Comparison map of two pullbacks of the same cospan is an iso.**  If `c` and
+    `c'` both satisfy `Cone.IsPullback` over the cospan `f, g`, the unique map
+    `φ : c.pt ⟶ c'.pt` compatible with the projections is an isomorphism: its
+    inverse is the reverse comparison `ψ : c'.pt ⟶ c.pt`, and `φψ`, `ψφ` both
+    satisfy the projection equations that the identity uniquely satisfies. -/
+theorem pullback_comparison_iso {𝒞 : Type u} [Cat.{v} 𝒞] {A B Z : 𝒞}
+    {f : A ⟶ Z} {g : B ⟶ Z} {c c' : Cone f g}
+    (hc : c.IsPullback) (hc' : c'.IsPullback) :
+    ∃ φ : c.pt ⟶ c'.pt, IsIso φ ∧ φ ≫ c'.π₁ = c.π₁ ∧ φ ≫ c'.π₂ = c.π₂ := by
+  obtain ⟨φ, ⟨hφ1, hφ2⟩, _⟩ := hc' c
+  obtain ⟨ψ, ⟨hψ1, hψ2⟩, _⟩ := hc c'
+  -- ψφ : c.pt ⟶ c.pt is compatible with c's projections, hence = id (uniqueness in c)
+  obtain ⟨_, _, huniq⟩ := hc c
+  have hψφ : ψ ≫ φ = Cat.id c'.pt := by
+    obtain ⟨_, _, huniq'⟩ := hc' c'
+    rw [huniq' (ψ ≫ φ) (by rw [Cat.assoc, hφ1, hψ1]) (by rw [Cat.assoc, hφ2, hψ2]),
+        ← huniq' (Cat.id c'.pt) (by rw [Cat.id_comp]) (by rw [Cat.id_comp])]
+  have hφψ : φ ≫ ψ = Cat.id c.pt := by
+    rw [huniq (φ ≫ ψ) (by rw [Cat.assoc, hψ1, hφ1]) (by rw [Cat.assoc, hψ2, hφ2]),
+        ← huniq (Cat.id c.pt) (by rw [Cat.id_comp]) (by rw [Cat.id_comp])]
+  exact ⟨φ, ⟨ψ, hφψ, hψφ⟩, hφ1, hφ2⟩
+
+/-- **M3b — pullbacks transfer covers in the colimit category.**
+
+  Given the finite-limit data of `colimitHasPullbacks` (so `C.Obj` has pullbacks)
+  plus a *stage-level* transfer hypothesis, the colimit category satisfies
+  `PullbacksTransferCovers`.  Strategy: an arbitrary pullback cone `c` of a cospan
+  `f, g` with `f` a cover is compared (`pullback_comparison_iso`) to the canonical
+  pullback `pb`; the comparison `φ` is iso with `φ ≫ pb.π₂ = c.π₂`, so by
+  `cover_precomp_iso` it suffices that `pb.cone.π₂` is a cover.  That last fact is
+  exactly `hcanon` — the canonical-pullback transfer, the only part requiring the
+  representative-level argument. -/
+noncomputable def colimitPullbacksTransferCovers (C : CatSystem ι D) (hC : C.Coherent)
+    (hpull : @HasPullbacks C.Obj (colimitCat C hC))
+    (hcanon : letI : Cat C.Obj := colimitCat C hC
+      ∀ {A B Z : C.Obj} (f : A ⟶ Z) (g : B ⟶ Z),
+        Cover f → Cover (hpull.has f g).cone.π₂) :
+    @PullbacksTransferCovers C.Obj (colimitCat C hC) := by
+  letI : Cat C.Obj := colimitCat C hC
+  letI : HasPullbacks C.Obj := hpull
+  refine ⟨fun {A B Z f g} c hc hf => ?_⟩
+  -- canonical pullback and its cover-transfer
+  let pb := hpull.has f g
+  have hpbcov : Cover pb.cone.π₂ := hcanon f g hf
+  -- comparison iso between the arbitrary pullback `c` and the canonical `pb.cone`
+  obtain ⟨φ, hφiso, _, hφ2⟩ := pullback_comparison_iso hc pb.cone_isPullback
+  -- c.π₂ = φ ≫ pb.cone.π₂ is a cover by pre-composition with the iso φ
+  rw [← hφ2]
+  show Cover (φ ≫ pb.cone.π₂)
+  exact cover_precomp_iso hφiso hpbcov
+
+/-- **M3 assembly: the colimit is a pre-regular category.**
+
+  Bundle `colimitHasTerminal`, `colimitHasBinaryProducts`, `colimitHasPullbacks`,
+  and `colimitPullbacksTransferCovers` into `PreRegularCategory C.Obj`.
+
+  All finite-limit data is deferred to the caller (terminal, products, equalizers);
+  the PTC data additionally requires the `hcanon` witness that the canonical colimit
+  pullback's π₂ is a cover when the cospan leg is a cover — satisfied by the
+  slice-embedding system in M4. -/
+noncomputable def colimitPreRegular (C : CatSystem ι D) (hC : C.Coherent) [hne : Nonempty ι]
+    -- terminal
+    (ht : ∀ i, HasTerminal (C.A i))
+    (htpres : ∀ {i j} (hij : D.le i j), C.F hij (ht i).one = (ht j).one)
+    -- binary products
+    (hp : ∀ i, HasBinaryProducts (C.A i))
+    (hppres : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
+        (u : z ⟶ C.F hij ((hp i).prod a b)) (v : z ⟶ C.F hij ((hp i).prod a b)),
+        u ≫ (C.functF hij).map (hp i).fst = v ≫ (C.functF hij).map (hp i).fst →
+        u ≫ (C.functF hij).map (hp i).snd = v ≫ (C.functF hij).map (hp i).snd → u = v)
+    (hppres_pair : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
+        (p : z ⟶ C.F hij a) (q : z ⟶ C.F hij b),
+        ∃ r : z ⟶ C.F hij ((hp i).prod a b),
+          r ≫ (C.functF hij).map (hp i).fst = p ∧ r ≫ (C.functF hij).map (hp i).snd = q)
+    -- equalizers
+    (he : ∀ i, HasEqualizers (C.A i))
+    (hepres : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
+        (u v : z ⟶ C.F hij (eqObj f g)),
+        u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
+    (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
+        (k : z ⟶ C.F hij A)
+        (hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
+        ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k)
+    -- pullbacks-transfer-covers: the canonical pullback's π₂ is a cover
+    (hcanon : letI : Cat C.Obj := colimitCat C hC
+        letI : HasPullbacks C.Obj :=
+          colimitHasPullbacks C hC ht htpres hp hppres hppres_pair he hepres hepres_lift
+      ∀ {A B Z : C.Obj} (f : A ⟶ Z) (g : B ⟶ Z),
+          Cover f → Cover (HasPullbacks.has f g).cone.π₂) :
+    @PreRegularCategory C.Obj (colimitCat C hC) := by
+  letI : Cat C.Obj := colimitCat C hC
+  letI hterm : HasTerminal C.Obj := colimitHasTerminal C hC ht htpres
+  letI hprod : HasBinaryProducts C.Obj := colimitHasBinaryProducts C hC hp hppres hppres_pair
+  letI hpull : HasPullbacks C.Obj :=
+    colimitHasPullbacks C hC ht htpres hp hppres hppres_pair he hepres hepres_lift
+  letI hptc : PullbacksTransferCovers C.Obj :=
+    colimitPullbacksTransferCovers C hC hpull hcanon
+  exact {}

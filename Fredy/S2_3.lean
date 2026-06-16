@@ -3,7 +3,7 @@
 
   §2.31 DIVISION ALLEGORY — right division R/S
   §2.331 SYMMETRIC DIVISION R/ₛS
-  §2.35 STRAIGHT morphism, simple part, domain of simplicity
+  §2.35  STRAIGHT morphism, simple part, domain of simplicity
 -/
 
 import Fredy.S1_1

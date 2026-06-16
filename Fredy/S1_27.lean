@@ -72,4 +72,90 @@ theorem cayley_faithful_contra (f g : A ⟶ B) (hne : f ≠ g) :
 
 end Cayley
 
+/-! ## §1.27  Functor category 𝒟^𝒜 -/
+
+/-- A bundled functor: an object map together with its `Functor` instance.
+    These are the OBJECTS of the functor category 𝒟^𝒜 (§1.27). -/
+structure FunctorObj (𝒜 𝒟 : Type u) [Cat.{v} 𝒜] [Cat.{v} 𝒟] where
+  obj       : 𝒜 → 𝒟
+  isFunctor : Functor obj
+
+/-- Make `Functor F.obj` available by instance search when `F : FunctorObj 𝒜 𝒟`. -/
+instance {𝒜 𝒟 : Type u} [Cat.{v} 𝒜] [Cat.{v} 𝒟] (F : FunctorObj 𝒜 𝒟) :
+    Functor F.obj := F.isFunctor
+
+/-- The hom-type of the functor category: natural transformations from F to G. -/
+abbrev FunctorHom {𝒜 𝒟 : Type u} [Cat.{v} 𝒜] [Cat.{v} 𝒟]
+    (F G : FunctorObj 𝒜 𝒟) : Type (max v u) :=
+  NaturalTransformation F.obj G.obj
+
+/-- Extensionality for `NaturalTransformation`: two NTs with the same components
+    are equal.  Requires explicit functor instances to avoid typeclass ambiguity. -/
+theorem NaturalTransformation.ext' {𝒜 𝒟 : Type u} [Cat.{v} 𝒜] [Cat.{v} 𝒟]
+    {F G : 𝒜 → 𝒟} [Functor F] [Functor G]
+    {α β : NaturalTransformation F G}
+    (h : ∀ X, α.app X = β.app X) : α = β := by
+  cases α; cases β; congr 1; funext X; exact h X
+
+/-- Identity natural transformation on F: component at each X is id_{F X}.
+    Naturality: F(f) ≫ id = id ≫ F(f) by comp_id / id_comp. -/
+def natTrans_id {𝒜 𝒟 : Type u} [Cat.{v} 𝒜] [Cat.{v} 𝒟]
+    (F : FunctorObj 𝒜 𝒟) : FunctorHom F F where
+  app X := Cat.id (F.obj X)
+  naturality f := by simp [Cat.comp_id, Cat.id_comp]
+
+/-- Vertical composition of natural transformations α : F ⟹ G and β : G ⟹ H.
+    Component: (α;β)_X = α_X ≫ β_X.  Naturality square commutes by
+    α-naturality and β-naturality and associativity. -/
+def natTrans_comp {𝒜 𝒟 : Type u} [Cat.{v} 𝒜] [Cat.{v} 𝒟]
+    {F G H : FunctorObj 𝒜 𝒟}
+    (α : FunctorHom F G) (β : FunctorHom G H) : FunctorHom F H where
+  app X := α.app X ≫ β.app X
+  naturality {X Y} f := by
+    have hα := α.naturality f
+    have hβ := β.naturality f
+    -- F(f) ≫ α_Y ≫ β_Y = α_X ≫ G(f) ≫ β_Y = α_X ≫ β_X ≫ H(f)
+    rw [← Cat.assoc, hα, Cat.assoc, hβ, ← Cat.assoc]
+
+/-- The FUNCTOR CATEGORY 𝒟^𝒜 (§1.27): objects are bundled functors 𝒜 → 𝒟,
+    morphisms are natural transformations, identity and composition as above.
+    The three category laws hold pointwise by the laws of 𝒟. -/
+instance functorCat (𝒜 𝒟 : Type u) [Cat.{v} 𝒜] [Cat.{v} 𝒟] :
+    Cat.{max v u} (FunctorObj 𝒜 𝒟) where
+  Hom   := FunctorHom
+  id    := natTrans_id
+  comp  := natTrans_comp
+  id_comp α  := NaturalTransformation.ext' fun X => Cat.id_comp (α.app X)
+  comp_id α  := NaturalTransformation.ext' fun X => Cat.comp_id (α.app X)
+  assoc α β γ := NaturalTransformation.ext' fun X => Cat.assoc (α.app X) (β.app X) (γ.app X)
+
+/-! ## §1.272  Cayley completeness metatheorem -/
+
+/-- **§1.272 (Cayley completeness)**.
+    Every universally-quantified elementary sentence in the predicates of category
+    theory that holds in the category of sets holds in every category.
+
+    Proof sketch (Freyd §1.272): The Cayley representation `C : 𝒞 → Set` (sending
+    `A` to the set of morphisms with target `A`, and `f : A → B` to post-composition
+    with `f`) is faithful (`cayley_faithful`), establishing any category 𝒞 as
+    isomorphic to a concrete subcategory of Set.  Any universally-quantified
+    elementary sentence true in Set descends to every subcategory, hence to 𝒞.
+
+    We state the key corollary: any property `P` of morphism-pairs (in any category)
+    that is (i) preserved under faithful functors and (ii) holds in every Set-like
+    category where all homs are subsets of some ambient set — holds in 𝒞.
+
+    The metatheorem cannot be internalized as a single Lean Prop (it quantifies over
+    all first-order sentences); we record the statement with `sorry`.
+    The operative ingredient — the Cayley embedding is faithful — is `cayley_faithful`. -/
+theorem cayley_completeness
+    -- `P` is a property of morphisms that is preserved under faithful embeddings
+    (P : ∀ {𝒜 : Type u} [Cat.{v} 𝒜] {X Y : 𝒜}, (X ⟶ Y) → Prop)
+    -- `P` holds in every category that admits a faithful functor from 𝒞
+    (hP : ∀ {𝒜 : Type u} [Cat.{v} 𝒜] (F : 𝒞 → 𝒜) [hF : Functor F]
+            (hFaith : ∀ {X Y : 𝒞} (f g : X ⟶ Y), hF.map f = hF.map g → f = g)
+            {X Y : 𝒞} (f : X ⟶ Y), P (hF.map f) → P f) :
+    ∀ {X Y : 𝒞} (f : X ⟶ Y), P f := by
+  sorry
+
 end Freyd

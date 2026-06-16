@@ -43,3 +43,91 @@ theorem mono_of_retraction {X Y : 𝒞} (m : X ⟶ Y) (r : Y ⟶ X)
     _    = (h ≫ m) ≫ r := by rw [hgh]
     _    = h ≫ m ≫ r   := Cat.assoc _ _ _
     _    = h           := by rw [hr, Cat.comp_id]
+
+/-! ## §1.413  Containment of tables
+
+  Given tables (T; x₁,…,xₙ) and (T'; x'₁,…,x'ₙ) over the same feet,
+  the first is CONTAINED in the second if there exists z : T → T' with
+  z ≫ x'ᵢ = xᵢ for all i.  The witness z is unique and monic.
+  Containment is a pre-order on tables and a partial order on relations
+  (mutual containment ↔ isomorphism of tops).
+-/
+
+/-- (T; cols) is CONTAINED in (T'; cols') if ∃ z : T → T' with z ≫ cols' i = cols i. -/
+def TableContained {I : Type} {feet : I → 𝒞}
+    {T : 𝒞} (cols  : (i : I) → T  ⟶ feet i) (_hm  : MonicFamily feet cols)
+    {T' : 𝒞} (cols' : (i : I) → T' ⟶ feet i) (_hm' : MonicFamily feet cols') : Prop :=
+  ∃ z : T ⟶ T', ∀ i, z ≫ cols' i = cols i
+
+/-- The containment morphism is unique (cols' is a monic family). -/
+theorem tableContained_unique {I : Type} {feet : I → 𝒞}
+    {T : 𝒞}  (cols  : (i : I) → T  ⟶ feet i) (_hm  : MonicFamily feet cols)
+    {T' : 𝒞} (cols' : (i : I) → T' ⟶ feet i) (hm' : MonicFamily feet cols')
+    (z w : T ⟶ T') (hz : ∀ i, z ≫ cols' i = cols i) (hw : ∀ i, w ≫ cols' i = cols i) :
+    z = w :=
+  hm' z w (fun i => by rw [hz i, hw i])
+
+/-- The containment morphism is monic (the source monic family transfers injectivity). -/
+theorem tableContained_mono {I : Type} {feet : I → 𝒞}
+    {T : 𝒞}  (cols  : (i : I) → T  ⟶ feet i) (hm  : MonicFamily feet cols)
+    {T' : 𝒞} (cols' : (i : I) → T' ⟶ feet i) (_hm' : MonicFamily feet cols')
+    (z : T ⟶ T') (hz : ∀ i, z ≫ cols' i = cols i) : Mono z :=
+  fun {W} f g hfg => hm f g (fun i => by
+    calc f ≫ cols i = f ≫ z ≫ cols' i := by rw [hz i]
+      _              = g ≫ z ≫ cols' i := by rw [← Cat.assoc, hfg, Cat.assoc]
+      _              = g ≫ cols i      := by rw [hz i])
+
+/-- Containment is reflexive (witness = identity). -/
+theorem tableContained_refl {I : Type} {feet : I → 𝒞}
+    {T : 𝒞} (cols : (i : I) → T ⟶ feet i) (hm : MonicFamily feet cols) :
+    TableContained cols hm cols hm :=
+  ⟨Cat.id T, fun i => Cat.id_comp (cols i)⟩
+
+/-- Containment is transitive. -/
+theorem tableContained_trans {I : Type} {feet : I → 𝒞}
+    {T : 𝒞}   (cols   : (i : I) → T   ⟶ feet i) (hm   : MonicFamily feet cols)
+    {T' : 𝒞}  (cols'  : (i : I) → T'  ⟶ feet i) (hm'  : MonicFamily feet cols')
+    {T'' : 𝒞} (cols'' : (i : I) → T'' ⟶ feet i) (hm'' : MonicFamily feet cols'')
+    (h1 : TableContained cols hm cols' hm') (h2 : TableContained cols' hm' cols'' hm'') :
+    TableContained cols hm cols'' hm'' := by
+  obtain ⟨z, hz⟩ := h1; obtain ⟨w, hw⟩ := h2
+  exact ⟨z ≫ w, fun i => by rw [Cat.assoc, hw i, hz i]⟩
+
+/-- Mutual containment gives an isomorphism of tops (partial order up to iso). -/
+theorem tableContained_antisymm {I : Type} {feet : I → 𝒞}
+    {T : 𝒞}  (cols  : (i : I) → T  ⟶ feet i) (hm  : MonicFamily feet cols)
+    {T' : 𝒞} (cols' : (i : I) → T' ⟶ feet i) (hm' : MonicFamily feet cols')
+    (h1 : TableContained cols hm cols' hm') (h2 : TableContained cols' hm' cols hm) :
+    ∃ (z : T ⟶ T') (w : T' ⟶ T), (∀ i, z ≫ cols' i = cols i) ∧
+        (∀ i, w ≫ cols i = cols' i) ∧ z ≫ w = Cat.id T ∧ w ≫ z = Cat.id T' := by
+  obtain ⟨z, hz⟩ := h1; obtain ⟨w, hw⟩ := h2
+  refine ⟨z, w, hz, hw, ?_, ?_⟩
+  · -- z ≫ w = id T: both make cols agree, use hm
+    exact hm (z ≫ w) (Cat.id T) (fun i => by rw [Cat.assoc, hw i, hz i, Cat.id_comp])
+  · -- w ≫ z = id T': both make cols' agree, use hm'
+    exact hm' (w ≫ z) (Cat.id T') (fun i => by rw [Cat.assoc, hz i, hw i, Cat.id_comp])
+
+/-! ## §1.414  Monic iff subterminator in the slice
+
+  In the slice category A/B, the terminal object is ⟨B, id_B⟩.
+  A morphism f : A → B, viewed as an object ⟨A, f⟩ of A/B, is a
+  SUBTERMINATOR in A/B iff the terminal map ⟨A, f⟩ → ⟨B, id_B⟩
+  (whose underlying map is f itself) is monic in A/B.
+  We prove this is equivalent to f being monic in A.
+
+  (We inline the slice-category structure here; S1_26.lean cannot be
+  imported in S1_41.lean because it depends on S1_41.)
+-/
+
+/-- Monic in the slice A/B: the Over-hom `f` is left-cancellable among
+    maps that commute with the projection to B. -/
+def MonoInSlice {A B : 𝒞} (f : A ⟶ B) : Prop :=
+  ∀ {W : 𝒞} (h : W ⟶ B) (u v : W ⟶ A), u ≫ f = h → v ≫ f = h → u = v
+
+/-- §1.414: f : A → B is monic iff it is a subterminator in the slice A/B. -/
+theorem mono_iff_monoInSlice {A B : 𝒞} (f : A ⟶ B) : Mono f ↔ MonoInSlice f := by
+  constructor
+  · intro hm W h u v hu hv
+    exact hm u v (by rw [hu, hv])
+  · intro hs W u v huv
+    exact hs (u ≫ f) u v rfl (by rw [huv])
