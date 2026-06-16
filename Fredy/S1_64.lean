@@ -64,10 +64,21 @@ class BooleanPreLogos (𝒞 : Type u) [Cat.{v} 𝒞] extends PreLogos 𝒞 where
   For T: A → B a representation of boolean pre-logoi, Kℯℛ(T) is
   the set of subterminators U ⊆ 1 such that T(U) = 0. -/
 
-/-- The kernel of a representation T: the set of subterminators sent to 0. -/
+/-- **§1.645** `Kℯℛ(T) = { U ⊆ 1 | T(U) = 0 }` — the set of subterminators whose
+    value under the representation `T` is the NULL (zero) object.
+
+    Book text (§1.645): "we define `𝒦ℯℛ(T)` as the set of values killed by `T`:
+    `𝒦ℯℛ(T) = { U ⊆ 1 | T(U) = 0 }`".  Here `0` is the bottom of the target's
+    subobject lattice (`PreLogos.bottom`, the empty join / null object) — the
+    OPPOSITE extreme from the terminator `1`.
+
+    INTEGRITY FIX: the previous definition tested `Isomorphic (T U.dom) one`
+    (the terminator, i.e. `T(U) = 1`), which is exactly backwards — it would make
+    `Kℯℛ(T)` the values sent to the TOP rather than killed.  Corrected to test
+    against the zero object `(PreLogos.bottom _).dom`. -/
 def killedValues {𝒟 : Type u} [Cat.{v} 𝒟] [PreLogos 𝒞] [PreLogos 𝒟]
     (T : 𝒞 → 𝒟) [Functor T] : (Subobject 𝒞 one) → Prop :=
-  λ U => @Isomorphic 𝒟 _ (T U.dom) one
+  λ U => @Isomorphic 𝒟 _ (T U.dom) (PreLogos.bottom (T U.dom)).dom
 
 /-! ## §1.646 Faithful representability of small special categories
 

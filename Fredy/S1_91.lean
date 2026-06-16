@@ -297,23 +297,36 @@ theorem omega_monic_endo_is_involution (g : HasSubobjectClassifier.omega (𝒞 :
   formalized in this repo; we use `HasSubobjectClassifier` as the available
   proxy for the power-object hypothesis. -/
 
-/-- **§1.91(10)**: A non-empty category with binary products, equalizers, and a
-    subobject classifier has a terminator.
+/-- **§1.91(10)**: A non-empty category with binary products, equalizers, pullbacks,
+    and power objects FOR EVERY OBJECT (but NOT assumed to have a terminator) already
+    has a terminator.  `B` witnesses non-emptiness.
 
-    `hne`: witness that 𝒞 is non-empty (an object exists).
+    This is the faithful statement of Freyd's §1.91(10): the hypotheses are exactly
+    the data of his construction and DO NOT bundle a terminator (unlike
+    `HasSubobjectClassifier`, which `extends HasTerminal` and would make the
+    conclusion free).  Power objects are taken via `HasPowerObject`, which does not
+    presuppose a terminal object.
 
-    NOTE: `HasSubobjectClassifier` extends `HasTerminal` (S1_9, line 142), so the result
-    is trivially discharged by `HasSubobjectClassifier.toHasTerminal`.  This does NOT
-    reproduce Freyd's construction — which builds the terminator as the equalizer of
-    `id_{[B]}` and the constant idempotent `Λ(M_{B,B}) : [B] → [B]` for any B — because
-    that needs `HasPowerObject B` for ALL B plus the Λ/ε classify-bijection at each [B],
-    neither of which is formalized here.  The `hne` hypothesis and `[HasBinaryProducts]`,
-    `[HasEqualizers]` are structurally unused; they are kept to match the book's hypotheses.
-    See S1_91.md for the full blocker analysis. -/
+    CONSTRUCTION (Freyd, faithful `sorry`).  Let `M_{A,C} : A → C` be the "full"
+    relation tabulated by the projection `A×C → A`.  For every `f : A' → A`,
+    `f(M_{A,C}) = M_{A',C}`, so `Λ(M_{−,B}) : (−) → [B]` is a CONSTANT map: any two
+    maps into `[B]` of the form `Λ(M_{A,B})` agree after precomposition.  In
+    particular `e := Λ(M_{B,B}) : [B] → [B]` is a constant idempotent.  Take
+        `T := equalizer (id_{[B]}, e)`.
+    For any object `A`, `Λ(M_{A,B}) : A → [B]` equalizes `id` and `e` (constancy),
+    so it factors uniquely through `T`; that factorization is the unique map `A → T`,
+    making `T` terminal.
+
+    The remaining `sorry` is exactly the constancy lemma `f(M_{A,B}) = M_{A',B}`
+    together with the equalizer factorization; both rest on the Λ/∈ classify-bijection
+    of `HasPowerObject`, not yet packaged as the needed naturality.  See S1_91.md. -/
 theorem minimal_topos_has_terminator
-    [HasBinaryProducts 𝒞] [HasEqualizers 𝒞] [HasSubobjectClassifier 𝒞]
-    (_hne : 𝒞) : Nonempty (HasTerminal 𝒞) :=
-  -- HasTerminal comes from [HasSubobjectClassifier 𝒞] directly (extends HasTerminal).
-  ⟨HasSubobjectClassifier.toHasTerminal⟩
+    [HasPullbacks 𝒞] [HasBinaryProducts 𝒞] [HasEqualizers 𝒞]
+    [∀ C : 𝒞, HasPowerObject C]
+    (B : 𝒞) : Nonempty (HasTerminal 𝒞) := by
+  -- T = equalizer of id_{[B]} and the constant idempotent Λ(M_{B,B}) : [B] → [B];
+  -- shown terminal via the constancy of Λ(M_{−,B}).  Constancy + equalizer
+  -- factorization not yet derivable from the bare Λ/∈ bijection.
+  sorry
 
 end Freyd

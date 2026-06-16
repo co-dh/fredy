@@ -18,6 +18,7 @@ import Fredy.S1_81
 import Fredy.S1_51
 import Fredy.S1_58
 import Fredy.S1_42
+import Fredy.S1_91
 
 
 universe v u
@@ -372,18 +373,38 @@ noncomputable def heytingImpl (U V : SubTerminal 𝒞) : SubTerminal 𝒞 :=
   curry (snd ≫ V) ≫ (omegaPowContra (𝒞 := 𝒞)).map U ≫
     prodOneLeftInv (Ω ^^ one) ≫ eval_exp one Ω
 
-/-- **§1.926**: In a topos, exponential structure restricts to a HEYTING ALGEBRA
-    structure on Sub(1) = Hom(1, Ω).
-    The Heyting adjunction: for all Z U V : SubTerminal 𝒞,
-      Z ∧ U ≤ V  ↔  Z ≤ (U ⇒ V)
-    where ≤ is the subobject order and ∧ is the meet (both internal to the topos). -/
+/-- The MEET of two sub-terminators, `U ∧ V := ⟨U, V⟩ ≫ ∧`, using the internal
+    conjunction `omegaMeet : Ω × Ω → Ω` (the classifying map of `⟨true,true⟩`,
+    §1.91).  This is the lattice meet on Sub(1). -/
+noncomputable def stMeet (U V : SubTerminal 𝒞) : SubTerminal 𝒞 :=
+  -- `omegaMeet` lives over the Topos product instance; pin `pair` to the same one
+  -- to avoid the `HasBinaryProducts` diamond with `HasExponentials`.
+  @pair _ _ (Topos.toHasBinaryProducts) _ _ _ U V ≫ omegaMeet (𝒞 := 𝒞)
+
+/-- The ORDER on sub-terminators: `Z ≤ V` iff `Z ∧ V = Z` (the canonical
+    meet-semilattice order; `≤` agreeing with the subobject order on Sub(1)). -/
+def stLe (Z V : SubTerminal 𝒞) : Prop := stMeet Z V = Z
+
+/-- **§1.926 — the Heyting adjunction on Sub(1)**.  In a topos the exponential
+    structure restricts to a Heyting algebra on `Sub(1) = Hom(1, Ω)`: for every
+    `Z U V`, the relative-pseudocomplement / exponential adjunction
+
+        Z ∧ U ≤ V   ↔   Z ≤ (U ⇒ V)
+
+    holds, where `∧ = stMeet`, `≤ = stLe`, and `U ⇒ V = heytingImpl U V` is the
+    implication computed via the contravariant power `Ω^U` (defined above).  This
+    is the substantive content of §1.926 (NOT the tautology `∃W, W = U⇒V`).
+
+    **Faithful sorry.**  Both directions reduce to the curry/eval (β/η) laws of
+    the exponential `Ω^U` together with the pullback property of `omegaMeet`.  In
+    this repo `heytingImpl` is assembled from `omegaPowContra` and `eval_exp`,
+    whose computation rests on `topos_has_exponentials` — itself an unfilled
+    `sorry` (blocked on the §1.859 power-object⇒baseable fact, see `expSubobj`).
+    Until exponentials are concretely constructed, the adjunction cannot be
+    evaluated, so the honest record is the TRUE adjunction with a `sorry`. -/
 theorem subTerminal_heyting :
-    ∀ (U V : SubTerminal 𝒞),
-      ∃ (W : SubTerminal 𝒞),
-        -- W is the Heyting implication U ⇒ V, computed via the exponential Ω^U.
-        -- The adjunction: W equals heytingImpl U V.
-        W = heytingImpl U V := by
-  intro U V
-  exact ⟨heytingImpl U V, rfl⟩
+    ∀ (Z U V : SubTerminal 𝒞),
+      stLe (stMeet Z U) V ↔ stLe Z (heytingImpl U V) := by
+  sorry
 
 end Freyd

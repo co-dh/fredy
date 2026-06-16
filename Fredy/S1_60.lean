@@ -96,27 +96,36 @@ class PreLogos (𝒞 : Type u) [Cat.{v} 𝒞] extends
   A poset viewed as a category is a pre-logos iff the poset is
   a distributive lattice (§1.613). -/
 
-/-- A distributive lattice: the subobject unions satisfy distributivity. -/
-def IsDistributiveLattice [HasImages 𝒞] [HasSubobjectUnions 𝒞] : Prop :=
-  ∀ {B : 𝒞} (A S T : Subobject 𝒞 B),
-    Subobject.le (HasSubobjectUnions.union
-      (HasSubobjectUnions.union A S) A)
-      (HasSubobjectUnions.union A (HasSubobjectUnions.union S T))
+/-- A DISTRIBUTIVE LATTICE (§1.613): the subobject lattices satisfy the
+    *meet-over-join* distributive law.  The meet `A ∩ S` is `InverseImage A.arr S`
+    (the pullback of `A.arr` along `S.arr`), exactly as in §1.612
+    (`monic_inverseImage_iff_distributive`).  We state the substantive direction
 
-/-- In a thin category (at most one morphism per hom-set), pre-logos
-    is equivalent to being a distributive lattice (§1.613). -/
+        A ∩ (S ∪ T)  ≤  (A ∩ S) ∪ (A ∩ T)
+
+    (the reverse always holds in any lattice; this forward inequality is what
+    fails in the non-distributive N₅, M₃).  Unlike the previous meet-free
+    formulation `(A∪S)∪A ≤ A∪(S∪T)` — a join-absorption that is true in EVERY
+    lattice and so captures nothing — this genuinely characterizes distributivity. -/
+def IsDistributiveLattice [HasImages 𝒞] [HasSubobjectUnions 𝒞] [HasPullbacks 𝒞] : Prop :=
+  ∀ {B : 𝒞} (A S T : Subobject 𝒞 B),
+    Subobject.le
+      (InverseImage A.arr (HasSubobjectUnions.union S T))
+      (HasSubobjectUnions.union (InverseImage A.arr S) (InverseImage A.arr T))
+
+/-- **§1.613**: In a thin category (poset), a pre-logos IS a distributive lattice.
+    The distributive inequality `A ∩ (S∪T) ≤ (A∩S) ∪ (A∩T)` is exactly the forward
+    half of `PreLogos.invImage_preserves_union` specialized to the monic `A.arr`:
+    `A.arr#` preserves the union `S ∪ T`, and `A ∩ X = InverseImage A.arr X`.
+
+    Faithful, fully proved: we read off the inequality from the pre-logos axiom
+    that inverse images preserve binary unions. -/
 theorem poset_prelogos_iff_distributive [PreLogos 𝒞]
     (_hThin : ∀ {A B : 𝒞} (f g : A ⟶ B), f = g) : IsDistributiveLattice (𝒞 := 𝒞) := by
   intro B A S T
-  -- This (absorption) inequality holds from the lattice axioms alone.
-  have le_trans : ∀ {X Y Z : Subobject 𝒞 B}, X.le Y → Y.le Z → X.le Z := by
-    rintro X Y Z ⟨h1, e1⟩ ⟨h2, e2⟩
-    exact ⟨h1 ≫ h2, by rw [Cat.assoc, e2, e1]⟩
-  apply HasSubobjectUnions.union_min
-  · apply HasSubobjectUnions.union_min
-    · exact HasSubobjectUnions.union_left _ _
-    · exact le_trans (HasSubobjectUnions.union_left S T) (HasSubobjectUnions.union_right _ _)
-  · exact HasSubobjectUnions.union_left _ _
+  -- `inverseImage_preserves_unions A.arr` gives both inclusions; we need the
+  -- forward one: A.arr#(S∪T) ≤ A.arr#(S) ∪ A.arr#(T), i.e. A∩(S∪T) ≤ (A∩S)∪(A∩T).
+  exact (PreLogos.invImage_preserves_union A.arr S T).1
 
 /-! ## §1.616  BinRel(A,B) is a distributive lattice
 

@@ -739,8 +739,23 @@ theorem entire_contains_map_projective {A : 𝒞}
   to the original category.  So it becomes a theorem after the representation is
   established, but not before. -/
 
+/-- **§1.563 / §2.112 — the modular identity** `RS ∩ T ⊆ (R ∩ TS°)S`.
+
+    Here `R : A→B`, `S : B→C`, `T : A→C`, so `RS = R ⊚ S : A→C`, the meet with
+    `T : A→C` is well-typed, `S° : C→B`, `TS° = T ⊚ S° : A→B`, `R ∩ TS° : A→B`
+    and finally `(R ∩ TS°)S = (R ⊓ (T ⊚ S°)) ⊚ S : A→C` — matching `RS ∩ T`.
+
+    **Faithful sorry.** As the note above records (and as Freyd states explicitly
+    at §2.112/§2.155: "the modular identity is not a consequence of tabularity"),
+    this containment is NOT derivable from the bare `BinRel` definition (a
+    jointly-monic pair with pullback/image composition).  The element-wise proof
+    in **Set** constructs a witness `y` from membership in `RS ∩ T`; abstractly
+    that witness only exists after the Henkin–Lubkin faithful representation
+    (§1.55) embeds the category in a power of **Set** and reflects the law back.
+    So the honest statement here is the true modular law with a `sorry`; it
+    becomes a theorem via `horn_sentence_reflected_by_faithful` below. -/
 theorem modular_identity {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) (T : BinRel 𝒞 A C) :
-    RelLe ((R ⊚ S) ⊚ T°) (R ⊚ (S ⊚ T°)) := by
+    RelLe ((R ⊚ S) ⊓ T) ((R ⊓ (T ⊚ S°)) ⊚ S) := by
   sorry
 
 end
