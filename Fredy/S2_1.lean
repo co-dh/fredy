@@ -490,7 +490,124 @@ class TabularAllegory (𝒜 : Type u) extends Allegory 𝒜 where
 theorem tabulates_monic_pair {a c : 𝒜} {f g : a ⟶ c} (hf : Map f) (hg : Map g)
     (h : f ≫ f° ∩ g ≫ g° = Cat.id a) :
     ∀ (h₁ h₂ : a ⟶ a), Map h₁ → Map h₂ → h₁ ≫ f = h₂ ≫ f → h₁ ≫ g = h₂ ≫ g → h₁ = h₂ := by
-  sorry
+  intro h₁ h₂ h₁_map h₂_map hf_eq hg_eq
+  rcases h₁_map with ⟨h₁_entire, h₁_simple⟩
+  rcases h₂_map with ⟨h₂_entire, h₂_simple⟩
+  dsimp [Simple] at h₁_simple h₂_simple
+  -- From h₁ f = h₂ f, we get (h₁° h₂) f ⊑ f, hence (h₁° h₂) (f f°) ⊑ f f°
+  have h_ff_ineq : (h₁° ≫ h₂) ≫ (f ≫ f°) ⊑ f ≫ f° := by
+    have h_eq : (h₁° ≫ h₂) ≫ (f ≫ f°) = ((h₁° ≫ h₁) ≫ f) ≫ f° := by
+      calc
+        (h₁° ≫ h₂) ≫ (f ≫ f°) = ((h₁° ≫ h₂) ≫ f) ≫ f° := by simp [Cat.assoc]
+        _ = (h₁° ≫ (h₂ ≫ f)) ≫ f° := by simp [Cat.assoc]
+        _ = (h₁° ≫ (h₁ ≫ f)) ≫ f° := by rw [← hf_eq]
+        _ = ((h₁° ≫ h₁) ≫ f) ≫ f° := by simp [Cat.assoc]
+    rw [h_eq]
+    simpa [Cat.id_comp] using comp_mono_right (comp_mono_right h₁_simple f) f°
+  -- Similarly from h₁ g = h₂ g: (h₁° h₂) (g g°) ⊑ g g°
+  have h_gg_ineq : (h₁° ≫ h₂) ≫ (g ≫ g°) ⊑ g ≫ g° := by
+    have h_eq : (h₁° ≫ h₂) ≫ (g ≫ g°) = ((h₁° ≫ h₁) ≫ g) ≫ g° := by
+      calc
+        (h₁° ≫ h₂) ≫ (g ≫ g°) = ((h₁° ≫ h₂) ≫ g) ≫ g° := by simp [Cat.assoc]
+        _ = (h₁° ≫ (h₂ ≫ g)) ≫ g° := by simp [Cat.assoc]
+        _ = (h₁° ≫ (h₁ ≫ g)) ≫ g° := by rw [← hg_eq]
+        _ = ((h₁° ≫ h₁) ≫ g) ≫ g° := by simp [Cat.assoc]
+    rw [h_eq]
+    simpa [Cat.id_comp] using comp_mono_right (comp_mono_right h₁_simple g) g°
+  -- Prove h₁° h₂ ⊑ 1
+  have h_coref : h₁° ≫ h₂ ⊑ Cat.id a := by
+    -- h₁° h₂ = (h₁° h₂) 1 = (h₁° h₂) (f f° ∩ g g°)  [since h: ff°∩gg°=1]
+    have h_base : h₁° ≫ h₂ = (h₁° ≫ h₂) ≫ (f ≫ f° ∩ g ≫ g°) := by rw [h, Cat.comp_id]
+    rw [h_base]
+    -- By semidistrib: R(S∩T) ⊑ RS ∩ RT
+    have h_sd_eq := Allegory.semidistrib (h₁° ≫ h₂) (f ≫ f°) (g ≫ g°)
+    -- h_sd_eq: R(A∩B) = (RA ∩ R(A∩B)) ∩ RB, so R(A∩B) ⊑ RA and R(A∩B) ⊑ RB
+    have h_le_A : (h₁° ≫ h₂) ≫ (f ≫ f° ∩ g ≫ g°) ⊑ (h₁° ≫ h₂) ≫ (f ≫ f°) := by
+      rw [h_sd_eq]; exact le_trans (inter_lb_left _ _) (inter_lb_left _ _)
+    have h_le_B : (h₁° ≫ h₂) ≫ (f ≫ f° ∩ g ≫ g°) ⊑ (h₁° ≫ h₂) ≫ (g ≫ g°) := by
+      rw [h_sd_eq]; exact inter_lb_right _ _
+    -- Combine: R(A∩B) ⊑ RA ∩ RB ⊑ A ∩ B = 1
+    have h_mid : (h₁° ≫ h₂) ≫ (f ≫ f° ∩ g ≫ g°) ⊑ (f ≫ f°) ∩ (g ≫ g°) := by
+      have h_le_inter : (h₁° ≫ h₂) ≫ (f ≫ f° ∩ g ≫ g°) ⊑
+          ((h₁° ≫ h₂) ≫ (f ≫ f°)) ∩ ((h₁° ≫ h₂) ≫ (g ≫ g°)) :=
+        le_inter h_le_A h_le_B
+      have h_inter_le : ((h₁° ≫ h₂) ≫ (f ≫ f°)) ∩ ((h₁° ≫ h₂) ≫ (g ≫ g°)) ⊑
+          (f ≫ f°) ∩ (g ≫ g°) := by
+        have h1 : ((h₁° ≫ h₂) ≫ (f ≫ f°)) ∩ ((h₁° ≫ h₂) ≫ (g ≫ g°)) ⊑ f ≫ f° :=
+          le_trans (inter_lb_left _ _) h_ff_ineq
+        have h2 : ((h₁° ≫ h₂) ≫ (f ≫ f°)) ∩ ((h₁° ≫ h₂) ≫ (g ≫ g°)) ⊑ g ≫ g° :=
+          le_trans (inter_lb_right _ _) h_gg_ineq
+        exact le_inter h1 h2
+      exact le_trans h_le_inter h_inter_le
+    exact le_trans h_mid (by rw [h]; exact le_refl _)
+  -- From h₁° h₂ ⊑ 1, prove h₂ ⊑ h₁
+  have h₂_le_h₁ : h₂ ⊑ h₁ := by
+    have h_one_eq : Cat.id a ∩ (h₁ ≫ h₁°) = Cat.id a := by
+      dsimp [Entire, dom] at h₁_entire; exact h₁_entire
+    have h_eq : h₂ = (Cat.id a ∩ (h₁ ≫ h₁°)) ≫ h₂ := by rw [h_one_eq, Cat.id_comp]
+    rw [h_eq]
+    refine le_trans (comp_mono_right (inter_lb_right _ _) h₂) ?_
+    rw [Cat.assoc]
+    simpa [Cat.comp_id] using comp_mono_left h₁ h_coref
+  -- By symmetry, h₁ ⊑ h₂
+  have h₁_le_h₂ : h₁ ⊑ h₂ := by
+    -- Using the same proof with swapped h₁ ↔ h₂
+    -- We need (h₂° h₁) ⊑ 1, which follows similarly from h₂° h₁ f ⊑ f etc.
+    -- From h₁ f = h₂ f, taking recip: f° h₁° = f° h₂°
+    -- Then compose with h₁ on the right: f° (h₂° h₁) ⊑ f° ... hmm, let me be more direct
+    -- Actually, hf_eq and hg_eq are symmetric: they also give h₂ f = h₁ f and h₂ g = h₁ g
+    -- So the EXACT same argument with h₁ ↔ h₂ works
+    have h_ff_ineq' : (h₂° ≫ h₁) ≫ (f ≫ f°) ⊑ f ≫ f° := by
+      have h_eq : (h₂° ≫ h₁) ≫ (f ≫ f°) = ((h₂° ≫ h₂) ≫ f) ≫ f° := by
+        calc
+          (h₂° ≫ h₁) ≫ (f ≫ f°) = ((h₂° ≫ h₁) ≫ f) ≫ f° := by simp [Cat.assoc]
+          _ = (h₂° ≫ (h₁ ≫ f)) ≫ f° := by simp [Cat.assoc]
+          _ = (h₂° ≫ (h₂ ≫ f)) ≫ f° := by rw [hf_eq]
+          _ = ((h₂° ≫ h₂) ≫ f) ≫ f° := by simp [Cat.assoc]
+      rw [h_eq]
+      simpa [Cat.id_comp] using comp_mono_right (comp_mono_right h₂_simple f) f°
+    have h_gg_ineq' : (h₂° ≫ h₁) ≫ (g ≫ g°) ⊑ g ≫ g° := by
+      have h_eq : (h₂° ≫ h₁) ≫ (g ≫ g°) = ((h₂° ≫ h₂) ≫ g) ≫ g° := by
+        calc
+          (h₂° ≫ h₁) ≫ (g ≫ g°) = ((h₂° ≫ h₁) ≫ g) ≫ g° := by simp [Cat.assoc]
+          _ = (h₂° ≫ (h₁ ≫ g)) ≫ g° := by simp [Cat.assoc]
+          _ = (h₂° ≫ (h₂ ≫ g)) ≫ g° := by rw [hg_eq]
+          _ = ((h₂° ≫ h₂) ≫ g) ≫ g° := by simp [Cat.assoc]
+      rw [h_eq]
+      simpa [Cat.id_comp] using comp_mono_right (comp_mono_right h₂_simple g) g°
+    have h_coref' : h₂° ≫ h₁ ⊑ Cat.id a := by
+      have h_base' : h₂° ≫ h₁ = (h₂° ≫ h₁) ≫ (f ≫ f° ∩ g ≫ g°) := by rw [h, Cat.comp_id]
+      rw [h_base']
+      have h_sd_eq' := Allegory.semidistrib (h₂° ≫ h₁) (f ≫ f°) (g ≫ g°)
+      have h_le_A' : (h₂° ≫ h₁) ≫ (f ≫ f° ∩ g ≫ g°) ⊑ (h₂° ≫ h₁) ≫ (f ≫ f°) := by
+        rw [h_sd_eq']; exact le_trans (inter_lb_left _ _) (inter_lb_left _ _)
+      have h_le_B' : (h₂° ≫ h₁) ≫ (f ≫ f° ∩ g ≫ g°) ⊑ (h₂° ≫ h₁) ≫ (g ≫ g°) := by
+        rw [h_sd_eq']; exact inter_lb_right _ _
+      have h_mid' : (h₂° ≫ h₁) ≫ (f ≫ f° ∩ g ≫ g°) ⊑ (f ≫ f°) ∩ (g ≫ g°) := by
+        have h_le_inter' : (h₂° ≫ h₁) ≫ (f ≫ f° ∩ g ≫ g°) ⊑
+            ((h₂° ≫ h₁) ≫ (f ≫ f°)) ∩ ((h₂° ≫ h₁) ≫ (g ≫ g°)) :=
+          le_inter h_le_A' h_le_B'
+        have h_inter_le' : ((h₂° ≫ h₁) ≫ (f ≫ f°)) ∩ ((h₂° ≫ h₁) ≫ (g ≫ g°)) ⊑
+            (f ≫ f°) ∩ (g ≫ g°) := by
+          have h1' : ((h₂° ≫ h₁) ≫ (f ≫ f°)) ∩ ((h₂° ≫ h₁) ≫ (g ≫ g°)) ⊑ f ≫ f° :=
+            le_trans (inter_lb_left _ _) h_ff_ineq'
+          have h2' : ((h₂° ≫ h₁) ≫ (f ≫ f°)) ∩ ((h₂° ≫ h₁) ≫ (g ≫ g°)) ⊑ g ≫ g° :=
+            le_trans (inter_lb_right _ _) h_gg_ineq'
+          exact le_inter h1' h2'
+        exact le_trans h_le_inter' h_inter_le'
+      exact le_trans h_mid' (by rw [h]; exact le_refl _)
+    have h_one_eq' : Cat.id a ∩ (h₂ ≫ h₂°) = Cat.id a := by
+      dsimp [Entire, dom] at h₂_entire; exact h₂_entire
+    have h1_eq : h₁ = (Cat.id a ∩ (h₂ ≫ h₂°)) ≫ h₁ := by
+      rw [h_one_eq', Cat.id_comp]
+    have h1_le : (Cat.id a ∩ (h₂ ≫ h₂°)) ≫ h₁ ⊑ h₂ := by
+      refine le_trans (comp_mono_right (inter_lb_right _ _) h₁) ?_
+      calc
+        (h₂ ≫ h₂°) ≫ h₁ = h₂ ≫ (h₂° ≫ h₁) := by rw [Cat.assoc]
+        _ ⊑ h₂ ≫ Cat.id a := comp_mono_left h₂ h_coref'
+        _ = h₂ := by rw [Cat.comp_id]
+    rw [h1_eq]; exact h1_le
+  exact le_antisymm h₁_le_h₂ h₂_le_h₁
 
 /-! ## §2.15  Unit -/
 
