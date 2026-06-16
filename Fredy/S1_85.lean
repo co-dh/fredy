@@ -652,26 +652,23 @@ instance : Functor (baseableIncl (𝒜 := 𝒜)) where
   map_id _ := rfl
   map_comp _ _ := rfl
 
-/-- §1.859: The inclusion 𝔹 → 𝒜 preserves equalizers.
-    BECAUSE: if e : E → B₂ is the equalizer of f, g : B₂ ⇉ B₃ in 𝔹, then
-    E is constructible as the equalizer of f^A and g^A (for each A),
-    so E is baseable and the underlying diagram in 𝒜 is an equalizer.
-    We state this as: the cone underlying a 𝔹-equalizer is an equalizer in 𝒜. -/
-theorem baseable_inclusion_preserves_equalizers
-    [HasEqualizers 𝒜]
-    {B₂ B₃ : BaseableSubcat 𝒜}
-    (f g : B₂ ⟶ B₃)
-    (cone : EqualizerCone (𝒞 := BaseableSubcat 𝒜) f g)
-    -- hypothesis: cone is a 𝔹-equalizer (unique lift)
-    (h_lift : ∀ (c : EqualizerCone (𝒞 := BaseableSubcat 𝒜) f g),
-        ∃ (u : c.dom ⟶ cone.dom),
-          u ≫ cone.map = c.map ∧
-          ∀ (u' : c.dom ⟶ cone.dom), u' ≫ cone.map = c.map → u' = u) :
-    Nonempty (HasEqualizer (𝒞 := 𝒜) (f : B₂.1 ⟶ B₃.1) g) := by
-  -- HasEqualizers 𝒜 gives the equalizer of any pair of 𝒜-maps directly.
-  -- The cone and h_lift confirm cone is the 𝔹-equalizer; since inclusion is
-  -- identity on maps, this is also an 𝒜-equalizer (witnessed by HasEqualizers 𝒜).
-  exact ⟨HasEqualizers.eq B₂.1 B₃.1 f g⟩
+/-- §1.859: The full subcategory of BASEABLE objects is closed under equalizers — the
+    equalizer (taken in 𝒜) of two maps `f, g : B₂ ⇉ B₃` between baseable objects is again
+    baseable.  Equivalently, the inclusion `𝔹 → 𝒜` preserves equalizers (the 𝔹-equalizer
+    of `f, g` IS their 𝒜-equalizer `eqObj f g`, which therefore lies in 𝔹).
+
+    Freyd's construction (§1.859): for each `A`, `E := eqObj f g` is the equalizer of the
+    exponential transposes `f^A, g^A : B₂^A ⇉ B₃^A`, exhibiting `E^A` and hence `E` as
+    baseable.  FAITHFUL SORRY — the per-`A` representability construction is not yet built.
+
+    NOTE: this replaces an earlier vacuous version that assumed `[HasEqualizers 𝒜]`, ignored
+    its cone/lift hypotheses, and merely returned the ambient equalizer (asserting nothing
+    about baseability). The substantive content is exactly this baseable-CLOSURE statement,
+    which is what §1.92 `topos_has_exponentials` requires. -/
+theorem baseable_equalizer_is_baseable [HasEqualizers 𝒜]
+    {B₂ B₃ : 𝒜} (_hB₂ : Baseable B₂) (_hB₃ : Baseable B₃) (f g : B₂ ⟶ B₃) :
+    Baseable (eqObj f g) := by
+  sorry
 
 end Baseable
 
