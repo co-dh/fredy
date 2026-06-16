@@ -477,6 +477,191 @@ theorem cartesianFunctor_preserves_pullbacks {𝒞 𝒟 : Type u} [Cat.{v} 𝒞]
       (products_equalizers_implies_pullbacks f g).cone.IsPullback :=
   fun f g => (products_equalizers_implies_pullbacks f g).cone_isPullback
 
+/-- An `EqualizerCone` is an EQUALIZER if every cone over the same parallel
+    pair factors uniquely through it (universal-property form, choice-free). -/
+def EqualizerCone.IsEqualizer {A B : 𝒞} {f g : A ⟶ B} (c : EqualizerCone f g) : Prop :=
+  ∀ d : EqualizerCone f g, ∃ u : d.dom ⟶ c.dom,
+    u ≫ c.map = d.map ∧ ∀ v : d.dom ⟶ c.dom, v ≫ c.map = d.map → v = u
+
+/-- The chosen equalizer of a parallel pair satisfies the universal property. -/
+theorem chosenEqualizer_isEqualizer {𝒟 : Type u} [Cat.{v} 𝒟] [HasEqualizers 𝒟]
+    {A B : 𝒟} (f g : A ⟶ B) :
+    (EqualizerCone.mk (eqObj f g) (eqMap f g) (eqMap_eq f g)).IsEqualizer := by
+  intro d
+  exact ⟨eqLift f g d.map d.eq, eqLift_fac f g d.map d.eq,
+    fun v hv => eqLift_uniq f g d.map d.eq v hv⟩
+
+/-- Two equalizer cones over the same parallel pair: the comparison map (any
+    `m` with `m ≫ c.map = d.map`) between their domains is an isomorphism. -/
+theorem isIso_of_two_equalizers {𝒟 : Type u} [Cat.{v} 𝒟]
+    {A B : 𝒟} {f g : A ⟶ B} {c d : EqualizerCone f g}
+    (hc : c.IsEqualizer) (hd : d.IsEqualizer)
+    (m : c.dom ⟶ d.dom) (hm : m ≫ d.map = c.map) :
+    IsIso m := by
+  obtain ⟨n, hn, _⟩ := hc d   -- n : d.dom → c.dom, n ≫ c.map = d.map
+  refine ⟨n, ?_, ?_⟩
+  · obtain ⟨_, _, huniq⟩ := hc c
+    have e1 : (m ≫ n) ≫ c.map = c.map := by rw [Cat.assoc, hn, hm]
+    rw [huniq (m ≫ n) e1, huniq (Cat.id c.dom) (Cat.id_comp _)]
+  · obtain ⟨_, _, huniq⟩ := hd d
+    have e1 : (n ≫ m) ≫ d.map = d.map := by rw [Cat.assoc, hm, hn]
+    rw [huniq (n ≫ m) e1, huniq (Cat.id d.dom) (Cat.id_comp _)]
+
+/-- **§1.434 bridge.**  In a category with binary products, a cone
+    `(E, m)` equalizing `f, g : A → B` is the equalizer of `f, g` iff the
+    square `(E, m, m)` is a pullback of `u := ⟨id, f⟩` and `v := ⟨id, g⟩`
+    over `A × B`.  Here we record the two implications as a single equivalence
+    at the level of the universal properties. -/
+theorem isEqualizer_iff_isPullback {𝒟 : Type u} [Cat.{v} 𝒟] [HasBinaryProducts 𝒟]
+    {A B E : 𝒟} {f g : A ⟶ B} (m : E ⟶ A) (hm : m ≫ f = m ≫ g) :
+    (EqualizerCone.mk E m hm).IsEqualizer ↔
+      (Cone.mk (f := pair (Cat.id A) f) (g := pair (Cat.id A) g) E m m
+        (by rw [pair_uniq (m ≫ Cat.id A) (m ≫ f) (m ≫ pair (Cat.id A) f)
+                  (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair]),
+                pair_uniq (m ≫ Cat.id A) (m ≫ g) (m ≫ pair (Cat.id A) g)
+                  (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair]), hm])).IsPullback := by
+  constructor
+  · -- equalizer ⟹ pullback
+    intro heq d
+    -- d is a cone over (u,v): d.π₁ ≫ u = d.π₂ ≫ v.  Comparing first coords gives
+    -- d.π₁ = d.π₂; comparing seconds gives d.π₁ ≫ f = d.π₁ ≫ g.
+    have hd12 : d.π₁ = d.π₂ := by
+      have := d.w
+      calc d.π₁ = d.π₁ ≫ Cat.id A := (Cat.comp_id _).symm
+        _ = d.π₁ ≫ (pair (Cat.id A) f ≫ fst) := by rw [fst_pair]
+        _ = (d.π₁ ≫ pair (Cat.id A) f) ≫ fst := (Cat.assoc _ _ _).symm
+        _ = (d.π₂ ≫ pair (Cat.id A) g) ≫ fst := by rw [this]
+        _ = d.π₂ ≫ (pair (Cat.id A) g ≫ fst) := Cat.assoc _ _ _
+        _ = d.π₂ ≫ Cat.id A := by rw [fst_pair]
+        _ = d.π₂ := Cat.comp_id _
+    have hdeq : d.π₁ ≫ f = d.π₁ ≫ g := by
+      have := d.w
+      calc d.π₁ ≫ f = d.π₁ ≫ (pair (Cat.id A) f ≫ snd) := by rw [snd_pair]
+        _ = (d.π₁ ≫ pair (Cat.id A) f) ≫ snd := (Cat.assoc _ _ _).symm
+        _ = (d.π₂ ≫ pair (Cat.id A) g) ≫ snd := by rw [this]
+        _ = d.π₂ ≫ (pair (Cat.id A) g ≫ snd) := Cat.assoc _ _ _
+        _ = d.π₂ ≫ g := by rw [snd_pair]
+        _ = d.π₁ ≫ g := by rw [hd12]
+    obtain ⟨z, hz, huniq⟩ := heq (EqualizerCone.mk d.pt d.π₁ hdeq)
+    refine ⟨z, ⟨hz, ?_⟩, ?_⟩
+    · show z ≫ m = d.π₂
+      exact hz.trans hd12
+    · intro w hw₁ _
+      exact huniq w hw₁
+  · -- pullback ⟹ equalizer
+    intro hpb d
+    -- d : EqualizerCone f g, i.e. d.map ≫ f = d.map ≫ g.  Build a pullback cone.
+    have hwd : d.map ≫ pair (Cat.id A) f = d.map ≫ pair (Cat.id A) g := by
+      rw [pair_uniq (d.map ≫ Cat.id A) (d.map ≫ f) (d.map ≫ pair (Cat.id A) f)
+            (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair]),
+          pair_uniq (d.map ≫ Cat.id A) (d.map ≫ g) (d.map ≫ pair (Cat.id A) g)
+            (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair]), d.eq]
+    obtain ⟨z, ⟨hz₁, _⟩, huniq⟩ := hpb (Cone.mk d.dom d.map d.map hwd)
+    refine ⟨z, hz₁, ?_⟩
+    intro v hv
+    exact huniq v hv (by rw [hv])
+
+/-- The equalizer of two EQUAL maps is trivial: `eqMap f g` is an isomorphism
+    (its inverse is the lift of the identity). -/
+theorem eqMap_iso_of_eq {𝒟 : Type u} [Cat.{v} 𝒟] [HasEqualizers 𝒟]
+    {A B : 𝒟} {f g : A ⟶ B} (h : f = g) : IsIso (eqMap f g) := by
+  have hcond : Cat.id A ≫ f = Cat.id A ≫ g := by rw [Cat.id_comp, Cat.id_comp, h]
+  let eL := eqLift f g (Cat.id A) hcond
+  have heL_fac : eL ≫ eqMap f g = Cat.id A := eqLift_fac f g _ hcond
+  have hem_eL : eqMap f g ≫ eL = Cat.id _ := by
+    have h1 := eqLift_uniq f g (eqMap f g) (eqMap_eq _ _) (eqMap f g ≫ eL)
+                  (by rw [Cat.assoc, heL_fac, Cat.comp_id])
+    have h2 := eqLift_uniq f g (eqMap f g) (eqMap_eq _ _) (Cat.id _) (Cat.id_comp _)
+    rw [h1, ← h2]
+  exact ⟨eL, hem_eL, heL_fac⟩
+
+/-- Two pullback cones over the same cospan have a canonical comparison map
+    that is an isomorphism (pullbacks are unique up to iso). -/
+theorem isIso_of_two_pullbacks {𝒟 : Type u} [Cat.{v} 𝒟]
+    {A B C : 𝒟} {f : A ⟶ C} {g : B ⟶ C} {c d : Cone f g}
+    (hc : c.IsPullback) (hd : d.IsPullback)
+    (u : c.pt ⟶ d.pt) (hu₁ : u ≫ d.π₁ = c.π₁) (hu₂ : u ≫ d.π₂ = c.π₂) :
+    IsIso u := by
+  obtain ⟨v, ⟨hv₁, hv₂⟩, _⟩ := hc d
+  refine ⟨v, ?_, ?_⟩
+  · -- u ≫ v = id_c : both equal the self-comparison of c, which is unique = id
+    obtain ⟨_, _, huniq⟩ := hc c
+    have e1 : (u ≫ v) ≫ c.π₁ = c.π₁ := by rw [Cat.assoc, hv₁, hu₁]
+    have e2 : (u ≫ v) ≫ c.π₂ = c.π₂ := by rw [Cat.assoc, hv₂, hu₂]
+    rw [huniq (u ≫ v) e1 e2, huniq (Cat.id c.pt) (Cat.id_comp _) (Cat.id_comp _)]
+  · -- v ≫ u = id_d
+    obtain ⟨_, _, huniq⟩ := hd d
+    have e1 : (v ≫ u) ≫ d.π₁ = d.π₁ := by rw [Cat.assoc, hu₁, hv₁]
+    have e2 : (v ≫ u) ≫ d.π₂ = d.π₂ := by rw [Cat.assoc, hu₂, hv₂]
+    rw [huniq (v ≫ u) e1 e2, huniq (Cat.id d.pt) (Cat.id_comp _) (Cat.id_comp _)]
+
+/-- A `Cone.IsPullback` can be transported along an isomorphism of its apex:
+    if `c` is a pullback and `i : p ≅ c.pt` (with inverse `j`), then the cone
+    with apex `p` and projections `i ≫ c.π₁`, `i ≫ c.π₂` is a pullback. -/
+theorem isPullback_of_iso_apex {𝒟 : Type u} [Cat.{v} 𝒟]
+    {A B C : 𝒟} {f : A ⟶ C} {g : B ⟶ C} {c : Cone f g} (hc : c.IsPullback)
+    {p : 𝒟} (i : p ⟶ c.pt) (j : c.pt ⟶ p)
+    (hij : i ≫ j = Cat.id p) (hji : j ≫ i = Cat.id c.pt)
+    (w : (i ≫ c.π₁) ≫ f = (i ≫ c.π₂) ≫ g) :
+    (Cone.mk p (i ≫ c.π₁) (i ≫ c.π₂) w).IsPullback := by
+  intro d
+  obtain ⟨u, ⟨hu₁, hu₂⟩, huniq⟩ := hc d
+  refine ⟨u ≫ j, ⟨?_, ?_⟩, ?_⟩
+  · show (u ≫ j) ≫ i ≫ c.π₁ = d.π₁
+    rw [← Cat.assoc, Cat.assoc u, hji, Cat.comp_id, hu₁]
+  · show (u ≫ j) ≫ i ≫ c.π₂ = d.π₂
+    rw [← Cat.assoc, Cat.assoc u, hji, Cat.comp_id, hu₂]
+  · intro v hv₁ hv₂
+    -- v ≫ i is the unique comparison into c, equal to u; then v = u ≫ j
+    have hvi₁ : (v ≫ i) ≫ c.π₁ = d.π₁ := by
+      rw [Cat.assoc]; exact hv₁
+    have hvi₂ : (v ≫ i) ≫ c.π₂ = d.π₂ := by
+      rw [Cat.assoc]; exact hv₂
+    have : v ≫ i = u := huniq (v ≫ i) hvi₁ hvi₂
+    calc v = v ≫ Cat.id p := (Cat.comp_id _).symm
+      _ = v ≫ i ≫ j := by rw [hij]
+      _ = (v ≫ i) ≫ j := (Cat.assoc _ _ _).symm
+      _ = u ≫ j := by rw [this]
+
+/-- In a category with binary products, the product cone `(A × B, fst, snd)`
+    is a pullback of any cospan `(t₁ : A → T, t₂ : B → T)` whose target `T`
+    is weakly terminal (`hT : ∀ X (p q : X → T), p = q`).  This subsumes the
+    product-as-pullback-over-the-terminal-object fact, and also works for a
+    cospan into `F one` when `F` preserves the terminal. -/
+theorem prodCone_isPullback {𝒟 : Type u} [Cat.{v} 𝒟] [HasBinaryProducts 𝒟]
+    {A B T : 𝒟} (t₁ : A ⟶ T) (t₂ : B ⟶ T) (hT : ∀ (X : 𝒟) (p q : X ⟶ T), p = q) :
+    (Cone.mk (prod A B) fst snd (hT _ (fst ≫ t₁) (snd ≫ t₂))).IsPullback := by
+  intro d
+  refine ⟨pair d.π₁ d.π₂, ⟨fst_pair _ _, snd_pair _ _⟩, ?_⟩
+  intro v hv₁ hv₂
+  exact pair_uniq d.π₁ d.π₂ v hv₁ hv₂
+
+/-- A `Cone.IsPullback` can be transported along an isomorphism of the cospan
+    APEX `C`: if `c` is a pullback of `(f', g' : · → C')` and `φ : C' → C''`
+    is iso, then the same apex and projections form a pullback of
+    `(f' ≫ φ, g' ≫ φ)` — the cospan maps are post-composed by the iso.
+    (Post-composing a cospan by a mono — here an iso — does not change the
+    pullback.) -/
+theorem isPullback_of_iso_cospan {𝒟 : Type u} [Cat.{v} 𝒟]
+    {A B C' C'' : 𝒟} {f' : A ⟶ C'} {g' : B ⟶ C'} {c : Cone f' g'}
+    (hc : c.IsPullback) (φ : C' ⟶ C'') (ψ : C'' ⟶ C') (hφψ : φ ≫ ψ = Cat.id C')
+    (w : c.π₁ ≫ (f' ≫ φ) = c.π₂ ≫ (g' ≫ φ)) :
+    (Cone.mk (f := f' ≫ φ) (g := g' ≫ φ) c.pt c.π₁ c.π₂ w).IsPullback := by
+  intro d
+  -- d : cone over (f'≫φ, g'≫φ): d.π₁ ≫ (f' ≫ φ) = d.π₂ ≫ (g' ≫ φ).
+  -- Post-compose by ψ to cancel φ (it is split-monic) ⇒ cone over (f',g').
+  have hdw : d.π₁ ≫ f' = d.π₂ ≫ g' := by
+    have hd := d.w
+    calc d.π₁ ≫ f' = (d.π₁ ≫ f') ≫ Cat.id C' := (Cat.comp_id _).symm
+      _ = (d.π₁ ≫ f') ≫ (φ ≫ ψ) := by rw [hφψ]
+      _ = (d.π₁ ≫ (f' ≫ φ)) ≫ ψ := by simp only [Cat.assoc]
+      _ = (d.π₂ ≫ (g' ≫ φ)) ≫ ψ := by rw [hd]
+      _ = (d.π₂ ≫ g') ≫ (φ ≫ ψ) := by simp only [Cat.assoc]
+      _ = (d.π₂ ≫ g') ≫ Cat.id C' := by rw [hφψ]
+      _ = d.π₂ ≫ g' := Cat.comp_id _
+  obtain ⟨u, ⟨hu₁, hu₂⟩, huniq⟩ := hc (Cone.mk d.pt d.π₁ d.π₂ hdw)
+  exact ⟨u, ⟨hu₁, hu₂⟩, fun v hv₁ hv₂ => huniq v hv₁ hv₂⟩
+
 /-- **§1.437**: A functor preserving pullbacks and the terminator is a
     representation of Cartesian categories.
 
@@ -493,7 +678,177 @@ theorem pullbacks_terminal_implies_cartesianFunctor {𝒞 𝒟 : Type u} [Cat.{v
           w  := by rw [← hF.map_comp, ← hF.map_comp,
                        (products_equalizers_implies_pullbacks f g).cone.w] })
     (hterm : PreservesTerminal F) : CartesianFunctor F := by
-  sorry
+  -- `F one` is weakly terminal in 𝒟 (PreservesTerminal: any two maps into it agree).
+  have hweakT : ∀ (X : 𝒟) (p q : X ⟶ F one), p = q := hterm
+  have hprodPres : PreservesBinaryProducts F := by
+    intro A B
+    -- The §1.432 pullback of (term A, term B): its apex is the equalizer
+    -- of `fst ≫ term A` and `snd ≫ term B`, which are EQUAL (both into `one`),
+    -- so the comparison `pbMap := eqMap … : P.pt → A × B` is an iso.
+    let P := products_equalizers_implies_pullbacks (term A) (term B)
+    have hcospan_eq : (fst (A := A) (B := B)) ≫ term A = snd ≫ term B :=
+      term_uniq _ _
+    -- pbMap : P.pt → prod A B  (the equalizer map), an iso in 𝒞.
+    have hpb_iso : IsIso (eqMap (fst (A := A) (B := B) ≫ term A) (snd ≫ term B)) :=
+      eqMap_iso_of_eq hcospan_eq
+    obtain ⟨pbInv, hpb1, hpb2⟩ := hpb_iso
+    -- The §1.432 cone projections reduce definitionally to `pbMap ≫ fst`, `pbMap ≫ snd`.
+    -- `Fc` (apex `F P.pt`, projs `F.map (pbMap≫fst)`, `F.map (pbMap≫snd)`) is a pullback.
+    have hFc : (Cone.mk (F P.cone.pt) (hF.map P.cone.π₁) (hF.map P.cone.π₂)
+        (by rw [← hF.map_comp, ← hF.map_comp, P.cone.w])).IsPullback := hpull (term A) (term B)
+    -- Transport to apex `F (prod A B)` via the F-image of the iso `pbMap`.
+    -- i : F(prod A B) → F P.pt  is  F.map pbInv ;  j : F P.pt → F(prod A B) is F.map pbMap.
+    -- The transported projections equal `F.map fst`, `F.map snd`.
+    have hπ₁ : hF.map pbInv ≫ hF.map P.cone.π₁ = hF.map (fst (A := A) (B := B)) := by
+      rw [← hF.map_comp]; congr 1
+      show pbInv ≫ (eqMap _ _ ≫ fst) = fst
+      rw [← Cat.assoc, hpb2, Cat.id_comp]
+    have hπ₂ : hF.map pbInv ≫ hF.map P.cone.π₂ = hF.map (snd (A := A) (B := B)) := by
+      rw [← hF.map_comp]; congr 1
+      show pbInv ≫ (eqMap _ _ ≫ snd) = snd
+      rw [← Cat.assoc, hpb2, Cat.id_comp]
+    have hij : hF.map pbInv ≫ hF.map (eqMap (fst (A := A) (B := B) ≫ term A) (snd ≫ term B))
+        = Cat.id (F (prod A B)) := by rw [← hF.map_comp, hpb2, hF.map_id]
+    have hji : hF.map (eqMap (fst (A := A) (B := B) ≫ term A) (snd ≫ term B)) ≫ hF.map pbInv
+        = Cat.id (F P.cone.pt) := by
+      rw [← hF.map_comp, hpb1]; exact hF.map_id _
+    have hFpc : (Cone.mk (f := hF.map (term A)) (g := hF.map (term B)) (F (prod A B))
+        (hF.map (fst (A := A) (B := B))) (hF.map snd)
+        (hweakT _ (hF.map (fst (A := A) (B := B)) ≫ hF.map (term A))
+                  (hF.map snd ≫ hF.map (term B)))).IsPullback := by
+      have key := isPullback_of_iso_apex hFc (hF.map pbInv)
+        (hF.map (eqMap (fst (A := A) (B := B) ≫ term A) (snd ≫ term B))) hij hji (hweakT _ _ _)
+      -- rewrite the cone of `key` to the desired projections via hπ₁/hπ₂
+      intro d
+      obtain ⟨u, ⟨hu₁, hu₂⟩, huniq⟩ := key d
+      refine ⟨u, ⟨?_, ?_⟩, ?_⟩
+      · show u ≫ hF.map (fst (A := A) (B := B)) = d.π₁
+        rw [← hπ₁]; exact hu₁
+      · show u ≫ hF.map (snd (A := A) (B := B)) = d.π₂
+        rw [← hπ₂]; exact hu₂
+      · intro v hv₁ hv₂
+        refine huniq v ?_ ?_
+        · show v ≫ (hF.map pbInv ≫ hF.map P.cone.π₁) = d.π₁
+          rw [hπ₁]; exact hv₁
+        · show v ≫ (hF.map pbInv ≫ hF.map P.cone.π₂) = d.π₂
+          rw [hπ₂]; exact hv₂
+    -- Now `prod (F A) (F B)` with (fst,snd) is a pullback over the same cospan.
+    have hprodC : (Cone.mk (prod (F A) (F B)) fst snd
+        (hweakT _ (fst ≫ hF.map (term A)) (snd ≫ hF.map (term B)))).IsPullback :=
+      prodCone_isPullback (hF.map (term A)) (hF.map (term B)) hweakT
+    -- The comparison `pair (F.map fst) (F.map snd)` between the two pullbacks is iso.
+    exact isIso_of_two_pullbacks hFpc hprodC
+      (pair (hF.map (fst (A := A) (B := B))) (hF.map snd))
+      (fst_pair _ _) (snd_pair _ _)
+  refine { pres_terminal := hterm, pres_products := hprodPres, pres_equalizers := ?_ }
+  -- PreservesEqualizers
+  intro A B f g
+  -- Abbreviations for the parallel pair and its §1.434 representation as a pullback.
+  -- u = ⟨id,f⟩, v = ⟨id,g⟩ : A → A×B.  The equalizer (eqObj f g, eqMap f g) is the
+  -- pullback of (u,v); the §1.432 pullback P of (u,v) is iso to it.
+  let u : A ⟶ prod A B := pair (Cat.id A) f
+  let v : A ⟶ prod A B := pair (Cat.id A) g
+  -- The cone (eqObj f g, eqMap, eqMap) over (u,v).
+  have hwEq : eqMap f g ≫ u = eqMap f g ≫ v := by
+    show eqMap f g ≫ pair (Cat.id A) f = eqMap f g ≫ pair (Cat.id A) g
+    rw [pair_uniq (eqMap f g ≫ Cat.id A) (eqMap f g ≫ f) (eqMap f g ≫ pair (Cat.id A) f)
+          (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair]),
+        pair_uniq (eqMap f g ≫ Cat.id A) (eqMap f g ≫ g) (eqMap f g ≫ pair (Cat.id A) g)
+          (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair]), eqMap_eq f g]
+  let eqCone : Cone u v := Cone.mk (eqObj f g) (eqMap f g) (eqMap f g) hwEq
+  -- (eqObj f g, eqMap, eqMap) is a pullback of (u,v) in 𝒞.
+  have hEqPB : eqCone.IsPullback :=
+    (isEqualizer_iff_isPullback (eqMap f g) (eqMap_eq f g)).mp (chosenEqualizer_isEqualizer f g)
+  -- The §1.432 pullback of (u,v); its apex P.pt is iso to eqObj f g.
+  let P := products_equalizers_implies_pullbacks u v
+  have hPpb : P.cone.IsPullback := P.cone_isPullback
+  -- Canonical comparison θ : eqObj f g → P.pt; θ ≫ P.πᵢ = eqMap f g; θ is iso.
+  obtain ⟨θ, ⟨hθ₁, hθ₂⟩, _⟩ := hPpb eqCone
+  have hθ_iso : IsIso θ := isIso_of_two_pullbacks hEqPB hPpb θ hθ₁ hθ₂
+  obtain ⟨θ', hθθ', hθ'θ⟩ := hθ_iso
+  -- F preserves P's pullback (over (Fu, Fv)).
+  have hFc : (Cone.mk (f := hF.map u) (g := hF.map v) (F P.cone.pt)
+      (hF.map P.cone.π₁) (hF.map P.cone.π₂)
+      (by rw [← hF.map_comp, ← hF.map_comp, P.cone.w])).IsPullback := hpull u v
+  -- Transport to apex F(eqObj f g) via F-image of θ : eqObj f g → P.pt.
+  have hθP₁ : hF.map θ ≫ hF.map P.cone.π₁ = hF.map (eqMap f g) := by
+    rw [← hF.map_comp, hθ₁]
+  have hθP₂ : hF.map θ ≫ hF.map P.cone.π₂ = hF.map (eqMap f g) := by
+    rw [← hF.map_comp, hθ₂]
+  have hFij : hF.map θ ≫ hF.map θ' = Cat.id (F (eqObj f g)) := by
+    rw [← hF.map_comp, hθθ']; exact hF.map_id _
+  have hFji : hF.map θ' ≫ hF.map θ = Cat.id (F P.cone.pt) := by
+    rw [← hF.map_comp, hθ'θ]; exact hF.map_id _
+  have hFeqPB_uv : (Cone.mk (f := hF.map u) (g := hF.map v) (F (eqObj f g))
+      (hF.map (eqMap f g)) (hF.map (eqMap f g))
+      (by rw [← hF.map_comp, ← hF.map_comp, hwEq])).IsPullback := by
+    have key := isPullback_of_iso_apex hFc (hF.map θ) (hF.map θ') hFij hFji
+      (by rw [hθP₁, hθP₂, ← hF.map_comp, ← hF.map_comp, hwEq])
+    intro d
+    obtain ⟨w, ⟨hw₁, hw₂⟩, huniq⟩ := key d
+    refine ⟨w, ⟨?_, ?_⟩, ?_⟩
+    · show w ≫ hF.map (eqMap f g) = d.π₁
+      exact (congrArg (w ≫ ·) hθP₁).symm.trans hw₁
+    · show w ≫ hF.map (eqMap f g) = d.π₂
+      exact (congrArg (w ≫ ·) hθP₂).symm.trans hw₂
+    · intro z hz₁ hz₂
+      refine huniq z ?_ ?_
+      · show z ≫ (hF.map θ ≫ hF.map P.cone.π₁) = d.π₁
+        exact (congrArg (z ≫ ·) hθP₁).trans hz₁
+      · show z ≫ (hF.map θ ≫ hF.map P.cone.π₂) = d.π₂
+        exact (congrArg (z ≫ ·) hθP₂).trans hz₂
+  -- Product-preservation: φ = ⟨F fst, F snd⟩ : F(A×B) → FA×FB is iso, and
+  -- F.map u ≫ φ = ⟨id, Ff⟩,  F.map v ≫ φ = ⟨id, Fg⟩.
+  obtain ⟨φ', hφφ', _⟩ := hprodPres (A := A) (B := B)
+  have hFu_φ : hF.map u ≫ pair (hF.map (fst (A := A) (B := B))) (hF.map snd)
+      = pair (Cat.id (F A)) (hF.map f) := by
+    refine pair_uniq _ _ _ ?_ ?_
+    · rw [Cat.assoc, fst_pair, ← hF.map_comp]
+      show hF.map (pair (Cat.id A) f ≫ fst) = Cat.id (F A)
+      rw [fst_pair, hF.map_id]
+    · rw [Cat.assoc, snd_pair, ← hF.map_comp]
+      show hF.map (pair (Cat.id A) f ≫ snd) = hF.map f
+      rw [snd_pair]
+  have hFv_φ : hF.map v ≫ pair (hF.map (fst (A := A) (B := B))) (hF.map snd)
+      = pair (Cat.id (F A)) (hF.map g) := by
+    refine pair_uniq _ _ _ ?_ ?_
+    · rw [Cat.assoc, fst_pair, ← hF.map_comp]
+      show hF.map (pair (Cat.id A) g ≫ fst) = Cat.id (F A)
+      rw [fst_pair, hF.map_id]
+    · rw [Cat.assoc, snd_pair, ← hF.map_comp]
+      show hF.map (pair (Cat.id A) g ≫ snd) = hF.map g
+      rw [snd_pair]
+  -- Transport the cospan from (Fu, Fv) to (⟨id,Ff⟩, ⟨id,Fg⟩) via the iso φ.
+  have hFeqPB : (Cone.mk (f := pair (Cat.id (F A)) (hF.map f))
+      (g := pair (Cat.id (F A)) (hF.map g)) (F (eqObj f g))
+      (hF.map (eqMap f g)) (hF.map (eqMap f g))
+      (by rw [← hFu_φ, ← hFv_φ]; simp only [← Cat.assoc, ← hF.map_comp]; rw [hwEq])).IsPullback := by
+    have key := isPullback_of_iso_cospan hFeqPB_uv
+      (pair (hF.map (fst (A := A) (B := B))) (hF.map snd)) φ' hφφ'
+      (by simp only [← Cat.assoc, ← hF.map_comp]; rw [hwEq])
+    -- `key` is a pullback of (Fu≫φ, Fv≫φ) = (⟨id,Ff⟩, ⟨id,Fg⟩).  Re-interpret a
+    -- cone `d` over (⟨id,Ff⟩,⟨id,Fg⟩) as one over (Fu≫φ,Fv≫φ) and apply `key`.
+    intro d
+    have hdw' : d.π₁ ≫ (hF.map u ≫ pair (hF.map (fst (A := A) (B := B))) (hF.map snd))
+        = d.π₂ ≫ (hF.map v ≫ pair (hF.map (fst (A := A) (B := B))) (hF.map snd)) := by
+      rw [hFu_φ, hFv_φ]; exact d.w
+    obtain ⟨z, ⟨hz₁, hz₂⟩, huniq⟩ := key (Cone.mk d.pt d.π₁ d.π₂ hdw')
+    exact ⟨z, ⟨hz₁, hz₂⟩, fun y hy₁ hy₂ => huniq y hy₁ hy₂⟩
+  -- Hence (F(eqObj f g), F.map(eqMap f g)) is the equalizer of (Ff, Fg).
+  have hFeqMap_eq : hF.map (eqMap f g) ≫ hF.map f = hF.map (eqMap f g) ≫ hF.map g :=
+    (hF.map_comp (eqMap f g) f).symm.trans
+      ((congrArg hF.map (eqMap_eq f g)).trans (hF.map_comp (eqMap f g) g))
+  have hFeq_isEq : (EqualizerCone.mk (F (eqObj f g)) (hF.map (eqMap f g)) hFeqMap_eq).IsEqualizer :=
+    (isEqualizer_iff_isPullback (hF.map (eqMap f g)) hFeqMap_eq).mpr hFeqPB
+  -- The comparison k to the chosen equalizer is iso.
+  let eqD := HasEqualizers.eq (F A) (F B) (hF.map f) (hF.map g)
+  let hcone : EqualizerCone (hF.map f) (hF.map g) :=
+    { dom := F (eqObj f g), map := hF.map (eqMap f g),
+      eq := by rw [← hF.map_comp, ← hF.map_comp, eqMap_eq f g] }
+  have hk_fac : eqD.lift hcone ≫ eqMap (hF.map f) (hF.map g) = hF.map (eqMap f g) :=
+    eqD.fac hcone
+  exact isIso_of_two_equalizers hFeq_isEq (chosenEqualizer_isEqualizer (hF.map f) (hF.map g))
+    (eqD.lift hcone) hk_fac
 
 end S1_437
 
@@ -542,23 +897,13 @@ theorem iso_reflecting_eq_preserving_faithful [HasEqualizers 𝒞] [HasEqualizer
   intro A B f g hfg
   -- Step 1: eqMap(Ff,Fg) is iso in 𝒟 (since Ff=Fg, the equalizer of equal maps has domain≅codomain)
   have hFfg_eq : hF.map f = hF.map g := hfg
-  have hcond : Cat.id (F A) ≫ hF.map f = Cat.id (F A) ≫ hF.map g := by
-    rw [Cat.id_comp, Cat.id_comp, hFfg_eq]
   let em := eqMap (hF.map f) (hF.map g)
-  let eL := eqLift (hF.map f) (hF.map g) (Cat.id (F A)) hcond
-  have heL_fac : eL ≫ em = Cat.id (F A) := eqLift_fac (hF.map f) (hF.map g) _ hcond
-  have hem_eL : em ≫ eL = Cat.id _ := by
-    have h1 := eqLift_uniq (hF.map f) (hF.map g) em (eqMap_eq _ _) (em ≫ eL)
-                  (by rw [Cat.assoc, heL_fac, Cat.comp_id])
-    have h2 := eqLift_uniq (hF.map f) (hF.map g) em (eqMap_eq _ _) (Cat.id _)
-                  (Cat.id_comp _)
-    rw [h1, ← h2]
-  have hem_iso : IsIso em := ⟨eL, hem_eL, heL_fac⟩
+  have hem_iso : IsIso em := eqMap_iso_of_eq hFfg_eq
   -- Step 2: the canonical comparison map k : F(eqObj f g) → eqObj(Ff,Fg) is iso by hpe
   let eqD := HasEqualizers.eq (F A) (F B) (hF.map f) (hF.map g)
   let hcone : EqualizerCone (hF.map f) (hF.map g) :=
     { dom := F (eqObj f g), map := hF.map (eqMap f g),
-      eq := by rw [← hF.map_comp, ← hF.map_comp, eqMap_eq] }
+      eq := by rw [← hF.map_comp, ← hF.map_comp, eqMap_eq f g] }
   let k := eqD.lift hcone
   have hk_fac : k ≫ em = hF.map (eqMap f g) := eqD.fac hcone
   have hk_iso : IsIso k := hpe f g
