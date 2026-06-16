@@ -118,8 +118,15 @@ class PreTopos (𝒞 : Type u) [Cat.{v} 𝒞] extends
     monics with a common source exists and the resulting maps are monic.
     Proof: form B+C, define equivalence relation E identifying x(a)∼y(a),
     then the effective quotient B+C ↠ D gives the pushout.
-    Requires effective regularity (every equivalence relation has a coequalizer)
-    which needs additional structure in `EffectiveRegular`. -/
+
+    SHARPENED BLOCKER (infra audit): `EffectiveRegular.effective` (S1_59:143) DOES give the
+    quotient B+C ↠ D as the level of the equivalence relation E.  The unmet obligation is that
+    the two composites B ↣ B+C ↠ D and C ↣ B+C ↠ D are MONIC.  That requires the coproduct
+    `HasBinaryCoproducts` (S1_58:48) to be DISJOINT (inl, inr jointly monic / pullback of inl
+    along inr is initial) — Freyd's §1.62 positivity.  This repo's `HasBinaryCoproducts` and
+    `PositivePreLogos` (S1_62:146) carry ONLY the bare case-universal-property, with no
+    disjointness axiom and no `inl`/`inr` monicity lemma (grep finds none).  Reduces to:
+    axiomatize §1.62 positivity (disjoint + universal coproducts), then build E on B+C. -/
 theorem amalgamation_lemma [PreTopos 𝒞] {A B C : 𝒞}
     (x : A ⟶ B) (hx : Mono x) (y : A ⟶ C) (hy : Mono y) :
     ∃ (D : 𝒞) (u : B ⟶ D) (v : C ⟶ D), Mono u ∧ Mono v ∧ x ≫ u = y ≫ v := by
@@ -472,7 +479,21 @@ theorem preTopos_boolean_iff_all_decidable [PreTopos 𝒞] [HasBinaryProducts �
     -- Requires pullback stability of complements (§1.658): if K is complemented and f : B → C,
     -- then InverseImage f K is complemented. Every subobject S of B can then be shown
     -- complemented by pulling back the diagonal (which is decidable) along an appropriate map.
-    -- This infrastructure is not yet formalized; left as sorry.
+    --
+    -- SHARPENED BLOCKER (infra audit):
+    --   • InverseImage (S1_60:51) and its union-preservation (PreLogos.invImage_preserves_union,
+    --     invImage_preserves_bottom, S1_60:89/91) ARE available — so "f# of a complement is a
+    --     complement" is *almost* in reach for the `IsComplementedSub` formulation
+    --     (Subobject.inter, S1_62:75), but NOT for the `IsComplemented` placeholder used here,
+    --     whose intersection clause is the ad-hoc "no nontrivial common lower bound" predicate
+    --     rather than `Subobject.inter _ _ ≤ bottom`.  The two are not interchangeable without a
+    --     bridge lemma `IsComplemented ↔ IsComplementedSub` (also unformalized).
+    --   • The genuine missing step is the *construction* exhibiting an arbitrary S ⊆ B as a
+    --     pullback of the (decidable, hence complemented) diagonal diag A ⊆ A×A along some
+    --     classifying map B → A×A.  Freyd builds this in the slice 𝒮(1) and transports along the
+    --     slice projection; the slice pre-topos and its complement transport are not in this repo.
+    -- Reduces to: (a) IsComplemented↔IsComplementedSub bridge, (b) the diagonal-classifies-S
+    -- slice construction. Faithful sorry.
     sorry
 
 /-! ## §1.659 Decidability in functor categories and sheaves
