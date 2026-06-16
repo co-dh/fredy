@@ -84,6 +84,12 @@ Remaining (each ~40–80 lines, fights the `colimOut` rep transport):
    morphism `m':z⟶w` as a `colimitCat` map `objIncl·z ⟶ objIncl·w`, not just the same-`i` `homInclObj`
    case) — needed to feed the stage test-mono/factor into the colimitCat `Cover` hypothesis. This is the
    same generalized-inclusion infrastructure flagged for (but ultimately avoided in) mono reflection.
+   Building block DONE (branch `colimit-cover-reflect`): `homInclObj_mono_of_stage` — a stage map
+   left-cancellable under transitions ⇒ `homInclObj` of it is a `colimitCat` mono (the `homInclObj`
+   analog of `colimHom_mono_of_rep`, sorry-free). GOTCHA: `refine/exact colimHom_mono_of_rep … ?_`
+   leaks an uninstantiated `W` metavar (reducible `Mono` unfolds to a Π); fix by `intro Z p q hpq`
+   to expose Mono's binders, then apply the lemma's result to `p q hpq`. Still TODO for 3b: the
+   bridging `homInclObj f₀ ≈ homIncl xA xB a f₀` (object-equality casts) + conservativity, then assemble.
 4. **Assembly**: arbitrary pullback cone ≅ canonical (§1.432) so `Cover` is iso-invariant; reflect
    `f`/pullback to a stage, stage `PullbacksTransferCovers`, preserve back ⇒ `PullbacksTransferCovers C.Obj`;
    bundle with terminal+products+pullbacks ⇒ `PreRegularCategory C.Obj`.
