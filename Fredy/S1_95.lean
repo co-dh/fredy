@@ -178,8 +178,9 @@ def IsProgenitor (G : 𝒞) : Prop :=
 /-- **§1.966**: A topos is value-based iff its terminator 1 is a progenitor.
     Any Grothendieck topos has a progenitor (disjoint union of a generating set). -/
 theorem topos_value_based_iff_terminal_progenitor [Topos 𝒞] :
-    IsValueBased (𝒞 := 𝒞) ↔ IsProgenitor (𝒞 := 𝒞) one := by
-  sorry
+    IsValueBased (𝒞 := 𝒞) ↔ IsProgenitor (𝒞 := 𝒞) one :=
+  -- both sides unfold to `IsGeneratingSet (fun X => ∃ m : X ⟶ one, Mono m)`
+  Iff.rfl
 
 /-- **§1.966**: If G is a progenitor for a topos, then Ω^G is a cogenerator:
     given f ≠ g : A → B there exists h : B → Ω^G with f ≫ h ≠ g ≫ h.
