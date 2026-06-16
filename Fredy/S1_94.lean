@@ -79,14 +79,13 @@ def ToposMap {𝒟 : Type u} [Cat.{v} 𝒟] [Topos 𝒟]
   (Isomorphic (T (one (𝒞 := 𝒞))) (one (𝒞 := 𝒟))) ∧
   (∀ (A B : 𝒞), Isomorphic (T (prod A B)) (prod (T A) (T B)))
 
-/-- **§1.941**: ∩F is a PERMANENT LOWER BOUND: for any topos representation T,
-    T(∩F) is below every subobject named by T(F).
-    (Faithful sorry — proof uses naturality of eval and classify under T.) -/
-theorem inter_permanent_lower_bound
-    {𝒟 : Type u} [Cat.{v} 𝒟] [Topos 𝒟]
-    {A : 𝒞} (_F_name : one ⟶ powObj A)
-    (T : 𝒞 → 𝒟) [Functor T] (_hmap : ToposMap T) :
-    True := trivial  -- placeholder: the formal content is in §1.941 prose
+-- §1.941 (PERMANENT LOWER BOUND under representations): "T(∩F) is below every
+-- subobject named by T(F), for every representation of topoi T : 𝒞 → 𝒟" cannot
+-- be stated faithfully yet — it needs functorial transport of subobjects and of
+-- the `NamedBy` relation along T (a `T(F)`-as-a-subobject construction), which is
+-- not available from the bare `ToposMap` predicate.  Recorded MISSING in S1_94.md.
+-- The non-representational fragment ("∩F ≤ every subobject named by F") IS proved
+-- below as `inter_le_named` (§1.943 part 1).
 
 /-! ## §1.942  Name of a subobject
 
@@ -155,6 +154,30 @@ noncomputable def interUnion [HasImages 𝒞] {A : 𝒞} (F : Subobject 𝒞 (po
 
 /-! ## §1.943  ∩F is a lower bound; glb when F is well-pointed -/
 
+/-- **§1.942/§1.94 β-law**: evaluating the NAME 'A'' at a point reconstructs the
+    characteristic map.  Concretely the membership test of `nameOf m hm` equals
+    the classifier `χ_m`: `membershipMap (nameOf m hm) = classify m hm`.
+
+    Proof: `nameOf m hm = curry(fst ≫ χ_m)`; the membership map factors as
+    `pair id (term) ≫ prodMap (curry …) ≫ eval`, and `curry_eval` collapses the
+    `prodMap … ≫ eval` to `fst ≫ χ_m`, then `fst (pair id term) = id`. -/
+theorem membershipMap_nameOf {A A' : 𝒞} (m : A' ⟶ A) (hm : Mono m) :
+    membershipMap (nameOf m hm) = HasSubobjectClassifier.classify m hm := by
+  show pair (Cat.id A) (term A ≫ nameOf m hm) ≫ eval_exp A (omega (𝒞 := 𝒞))
+      = HasSubobjectClassifier.classify m hm
+  -- pair id (term ≫ N) = pair id term ≫ prodMap A one (Ω^A) N
+  have hfactor : pair (Cat.id A) (term A ≫ nameOf m hm)
+      = pair (Cat.id A) (term A) ≫ prodMap A one (omega (𝒞 := 𝒞) ^^ A) (nameOf m hm) :=
+    (pair_uniq _ _ _
+      (by rw [Cat.assoc, prodMap_fst, fst_pair])
+      (by rw [Cat.assoc, prodMap_snd, ← Cat.assoc, snd_pair])).symm
+  rw [hfactor, Cat.assoc]
+  -- prodMap A one _ (curry (fst ≫ χ_m)) ≫ eval = fst ≫ χ_m
+  show pair (Cat.id A) (term A) ≫
+      (prodMap A one (omega (𝒞 := 𝒞) ^^ A) (curry (fst ≫ HasSubobjectClassifier.classify m hm))
+        ≫ eval_exp A (omega (𝒞 := 𝒞))) = _
+  rw [curry_eval_eq, ← Cat.assoc, fst_pair, Cat.id_comp]
+
 /-- **§1.943** (part 1): ∩F is below every subobject A' named by F.
     For A' ↣ A with 'A'' ∈ F_name (i.e. nameOf A'.arr A'.monic = F_name),
     we have ∩F ≤ A'.
@@ -163,9 +186,24 @@ noncomputable def interUnion [HasImages 𝒞] {A : 𝒞} (F : Subobject 𝒞 (po
     true : 1 → Ω, so ∩F = pullback(true along membershipMap) ≤ A'. -/
 theorem inter_le_named {A : 𝒞} (F_name : one ⟶ powObj A)
     (A' : Subobject 𝒞 A)
-    (_hA' : nameOf A'.arr A'.monic = F_name) :
+    (hA' : nameOf A'.arr A'.monic = F_name) :
     Subobject.le (interIntersection F_name) A' := by
-  sorry
+  -- membershipMap F_name = χ_{A'} = classify A'.arr A'.monic
+  have hχ : membershipMap F_name = HasSubobjectClassifier.classify A'.arr A'.monic := by
+    rw [← hA', membershipMap_nameOf]
+  -- ∩F = inverse image of {true} along membershipMap F_name; its arr is π₁ of the
+  -- canonical pullback `pb` over the cospan (membershipMap F_name, true).
+  let pb := HasPullbacks.has (membershipMap F_name) (HasSubobjectClassifier.true (𝒞 := 𝒞))
+  -- A' is the pullback of `true` along χ_{A'} (classify_pullback); use its universal
+  -- property to lift pb.cone, getting u : pb.cone.pt → A' with u ≫ A'.arr = pb.cone.π₁.
+  have hpbA' := HasSubobjectClassifier.classify_pullback A'.arr A'.monic
+  -- pb.cone is a cone over (χ_{A'}, true) after rewriting membershipMap F_name = χ_{A'}.
+  have hsq : pb.cone.π₁ ≫ HasSubobjectClassifier.classify A'.arr A'.monic
+      = pb.cone.π₂ ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
+    rw [← hχ]; exact pb.cone.w
+  obtain ⟨u, ⟨hu₁, _⟩, _⟩ :=
+    hpbA' ⟨pb.cone.pt, pb.cone.π₁, pb.cone.π₂, hsq⟩
+  exact ⟨u, hu₁⟩
 
 /-- **§1.943** (part 2, well-pointed case): If the points of F (i.e. maps 1 → F.dom)
     are jointly epic, then ∩F is the greatest lower bound of subobjects named by F.
@@ -265,14 +303,10 @@ theorem topos_has_rtc {B : 𝒞} (R : Subobject 𝒞 (prod B B))
   Capital topoi are solvable: A* = A if A is well-supported, else A* = 0. -/
 
 /-- **§1.94(10)**: The SINGLETON MAP A1 : A → [A] = Ω^A sends a : A to its name
-    'a'' = {a}.  Formally A1 = curry(classify diag hdiag) where diag : A → A×A,
-    i.e. A1 = curry(χ_{Δ_A}) restricted to the A-factor.
-    We define it via curry applied to the diagonal's classifier. -/
+    'a'' = {a}.  It is `curry(χ_{Δ_A})`, the curried classifier of the diagonal —
+    exactly the §1.92 `singletonMapCat`, reused here (DRY). -/
 noncomputable def singletonMap (A : 𝒞) : A ⟶ powObj A :=
-  -- A1(a) = 'a'' = curry(χ_{A×1_{a}}) — the name of the singleton {a}.
-  -- Concretely: A → [A] = Ω^A  via  curry(pair fst (Cat.id A) ≫ classify diag hdiag)
-  -- Since we lack classify's pullback axiom fully, use sorry.
-  sorry
+  singletonMapCat (𝒞 := 𝒞) A
 
 /-- **§1.94(10)**: A subobject A' ↣ A is a POINT SUBOBJECT (named by A1) iff
     A' is the image of some point p : 1 → A. -/
@@ -297,15 +331,17 @@ class SolvableTopos (𝒞 : Type u) [Cat.{v} 𝒞] [Topos 𝒞] [HasImages 𝒞]
   wpPart : ∀ (A : 𝒞), Subobject 𝒞 A
   wpPart_is_wp_part : ∀ (A : 𝒞), IsWellPointedPart (wpPart A)
 
-/-- **§1.94(10)**: The singleton map A1 : A → [A] is always entire (well-supported):
-    U(A1) is entire for the forgetful functor to Set.
-    Formally: the image of A1 is the entire subobject of [A].
-
-    Proof sketch: every element f ∈ [A] is named by A1 in the sense that
-    {f} is a singleton, so f = A1(a) for a ∈ dom({f}).  Hence A1 is a cover.
-    (Faithful sorry — needs classify's pullback property.) -/
-theorem singletonMap_entire (A : 𝒞) : Cover (singletonMap A) := by
-  sorry
+-- §1.94(10): the book's claim is "U(A1) is always entire" — entireness of the
+-- singleton map's IMAGE under the forgetful representation U to Set.  It is NOT
+-- true that A1 itself is a cover in 𝒞 (A1 is monic and is iso only when A is
+-- subterminal), so `Cover (singletonMap A)` is not Freyd's statement.  The
+-- representational claim needs the forgetful functor U : 𝒞 → Set, which this
+-- repo does not have; recorded MISSING in S1_94.md.
+--
+-- The genuine categorical fact about A1 available here is MONICITY (§1.92), which
+-- we expose by reuse of `singletonMapCat_monic` (DRY — singletonMap = singletonMapCat).
+theorem singletonMap_monic (A : 𝒞) : Mono (singletonMap A) :=
+  singletonMapCat_monic (𝒞 := 𝒞) A
 
 /-- **§1.94(10)**: A capital topos is solvable.
     In a capital topos, A* = A if A is well-supported (Cover (term A)),
