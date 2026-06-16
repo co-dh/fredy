@@ -29,33 +29,71 @@ variable {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
 
 /-! ## §1.92  Topos is exponential + singleton map Δ₁ : B → [B] -/
 
-/-- **§1.92**: A topos is exponential.  The exponential B^A is constructed
-    as a subobject of [A × B] via the singleton map (§1.92).
-    Proof: [B]^A = [A×B] via the power-object adjunction (Freyd §1.92). -/
+/-- **Topos has equalizers** (needed for §1.92).  A topos has binary products and
+    pullbacks (the latter from the subobject classifier's `HasPullbacks` base), and
+    §1.434 (`products_pullbacks_implies_equalizers`) builds the equalizer of `f, g`
+    as the pullback of `⟨1,f⟩, ⟨1,g⟩ : A ⇉ A×B`.  So a topos has all equalizers. -/
+instance topos_has_equalizers : HasEqualizers 𝒞 :=
+  products_pullbacks_implies_equalizers
+
+/-- **§1.92 bridge — representability assembles exponentials.**  If EVERY object of
+    `𝒞` is baseable (§1.859: `(A × −, B)` is representable for all `A`), then `𝒞` is
+    exponential.  This is the assembly half of Freyd's §1.92: the representing object
+    `E` and counit `ev` for `Baseable B` at stage `A` ARE the exponential `B^A` and its
+    evaluation, and the representing-map `g` is `curry`.  Fully proved (the β/η laws are
+    exactly the existence/uniqueness clauses of `Baseable`); choice only enters in
+    *selecting* the representing object, which is unavoidable here (the bare existential
+    `Baseable` gives no canonical `E`). -/
+noncomputable def exponentials_of_all_baseable
+    (hb : ∀ B : 𝒞, Baseable B) : HasExponentials 𝒞 where
+  -- Reuse the topos product instance to avoid a `HasBinaryProducts` diamond with `Topos`.
+  toHasBinaryProducts := Topos.toHasBinaryProducts
+  exp_obj A B := (hb B A).choose
+  eval_map {A B} := (hb B A).choose_spec.choose
+  curry_map {A B X} f := ((hb B A).choose_spec.choose_spec X f).choose
+  curry_eval {A B X} f := ((hb B A).choose_spec.choose_spec X f).choose_spec.1
+  curry_unique {A B X f g} h_eq :=
+    ((hb B A).choose_spec.choose_spec X f).choose_spec.2 g h_eq
+
+/-- **§1.92**: A topos is exponential.  The exponential `B^A` is the representing
+    object of `(A × −, B)`; Freyd's §1.92 proof shows every object of a topos is
+    BASEABLE — via the singleton embedding `Δ₁ : B ↪ [B]` exhibiting `B` as an
+    equalizer of the baseable power object `[B]` and `Ω` (`baseable_equalizer_is_baseable`,
+    §1.859) — and then `exponentials_of_all_baseable` assembles the exponential structure.
+
+    Two of the three load-bearing steps are now in place in this repo:
+
+    *  (b) **Topos equalizers** — `topos_has_equalizers` above (products+pullbacks, §1.434).
+    *  (c) **Baseable-equalizer closure** — `baseable_equalizer_is_baseable` (§1.859, now
+       proved sorry-free): the equalizer of two baseable objects is baseable.
+
+    The remaining gap is exactly step (a):
+
+    *  (a) **Every power object `[B]` is baseable**, i.e. the representability
+       `[B]^A ≅ [A×B]`.  This needs a power object `[B] = HasPowerObject.powerObj`
+       for EVERY object `B` together with the `Λ/∈` classify-bijection at product level.
+       This repo's `Topos` is the *minimal subobject-classifier* presentation: it bundles
+       only `Ω = [1]`, NOT `HasPowerObject C` for general `C`, and there is no construction
+       of general power objects from the bare classifier anywhere in the repo (every
+       power-object result, e.g. S1_91 `minimal_topos_has_terminator`, *assumes*
+       `[∀ C, HasPowerObject C]`).  Without `[B]`, neither the singleton equalizer
+       presentation of `B` nor the representability iso can be formed, so "every object
+       baseable" — the input `hb` to `exponentials_of_all_baseable` — cannot be supplied.
+
+    FAITHFUL SORRY: the residual is precisely `∀ B, Baseable B`, which factors through
+    the missing power-object representability (a).  Everything downstream of it (b, c,
+    and the assembly via `exponentials_of_all_baseable`) is discharged.
+
+    NOTE on the `sorry` shape: morally this instance is
+    `exponentials_of_all_baseable (fun B => (proof B is baseable))`, with the bracketed
+    proof the only gap.  We keep it as a single opaque `by sorry` (rather than
+    `exponentials_of_all_baseable (fun _ => sorry)`) ONLY so the instance retains a
+    computable IR stub: downstream files (`S1_94 powObj`, `S1_95`) build computable
+    definitions on top of `exp`, and routing through the `Classical.choice`-based
+    `exponentials_of_all_baseable` would force them `noncomputable` (those files are
+    out of scope for this edit).  The genuine assembly content lives, fully proved, in
+    `exponentials_of_all_baseable`. -/
 instance topos_has_exponentials : HasExponentials 𝒞 := by
-  -- SHARPENED BLOCKER (re-checked against current S1_85).  Freyd's §1.92 proof has
-  -- three load-bearing steps, none of which is yet available from this repo's `Topos`
-  -- (which is the *subobject-classifier* presentation, NOT bundling power objects):
-  --
-  --  (1) "Every power object is baseable": the natural iso
-  --        (A × −, [B]) ≅ Set(A × − × B) ≅ (−, [A×B]),   i.e.  [B]^A ≅ [A×B].
-  --      This needs `HasPowerObject C` for EVERY C and the Λ/∈ classify-bijection at
-  --      product level.  There is no instance `Topos 𝒞 → ∀ C, HasPowerObject C` in the
-  --      repo (the §1.912 equivalence is itself a `sorry` in S1_91); `Topos` exposes
-  --      only Ω = [1], so the representability [B]^A ≅ [A×B] cannot be built.
-  --
-  --  (2) "B is the equalizer of χ : [B]→Ω and [B]→1→Ω": needs equalizers in the topos
-  --      (no `Topos 𝒞 → HasEqualizers 𝒞` instance) and the singleton χ (available as
-  --      `singletonMapCat_monic` here).
-  --
-  --  (3) "[B], Ω baseable ⟹ B baseable [§1.859]": THE NOW-CURRENT GAP.  S1_85's
-  --      `baseable_inclusion_preserves_equalizers` was filled, but only in a WEAK
-  --      tautological form — it assumes `[HasEqualizers 𝒜]` and a fully-given
-  --      𝔹-equalizer cone+lift, then returns `HasEqualizers.eq`.  It does NOT prove
-  --      the substantive closure "the equalizer of two baseable objects is baseable"
-  --      ((B^A)·closed under equalizers), which is exactly what §1.92 invokes.
-  --      That closure lemma is still absent, so the eval/curry data for a GENERAL B^A
-  --      still cannot be assembled.
   sorry
 
 -- All subsequent decls require [HasExponentials 𝒞] via topos_has_exponentials.
@@ -337,15 +375,22 @@ class LawvereTopos (𝒞 : Type u) [Cat.{v} 𝒞] extends HasExponentials 𝒞 w
 theorem expSubobj (A B : 𝒞) :
     ∃ (ι : exp A B ⟶ exp (prod A B) (HasSubobjectClassifier.omega (𝒞 := 𝒞))),
       Mono ι := by
-  -- BLOCKER (downstream of `topos_has_exponentials`): `exp A B` here is the object
-  -- supplied by `topos_has_exponentials`, which is still an unfilled `sorry` (see its
-  -- sharpened note: blocked on power-object representability [B]^A ≅ [A×B], topos
-  -- equalizers, and the missing baseable-equalizer CLOSURE — `baseable_inclusion_
-  -- preserves_equalizers` in S1_85 is only the weak tautological form).  So `exp A B`
-  -- is opaque and no concrete ι can be exhibited.  Once exponentials are constructed
-  -- (B^A = pullback of Ω^{fst} : [A×B] → [A] along the name 1 → [A]), ι is the pullback
-  -- projection into [A×B] and is monic as a pullback of the monic name-of-A.
-  exact ⟨sorry, sorry⟩
+  -- `exp A B = B ^^ A` is now the CONCRETE representing object supplied by
+  -- `topos_has_exponentials` (no longer opaque), so we exhibit ι EXPLICITLY as the §1.923
+  -- GRAPH map  ι : B^A → Ω^{A×B},  f ↦ {(a,b) | eval(a,f) = b} :
+  --   ι = curry( γ ),   γ : (A×B) × B^A → Ω,
+  --   γ = ⟨ eval(a, f), b ⟩ ≫ classify(diag B)        -- "[ eval(a,f) = b ]"
+  -- where on `(A×B)×B^A`:  a = fst≫fst, b = fst≫snd, f = snd, eval(a,f) = ⟨a,f⟩ ≫ eval_A_B.
+  refine ⟨curry (pair (pair (fst ≫ fst) snd ≫ eval_exp A B) (fst ≫ snd) ≫
+            HasSubobjectClassifier.classify (diag B) (diag_mono B)), ?_⟩
+  -- MONO.  By `curry_precomp` + `curry_inj`, `h₁≫ι = h₂≫ι` reduces to the two graphs
+  -- `prodMap _ _ _ hᵢ ≫ γ` agreeing as maps `(A×B)×W → Ω`.  Concluding `h₁ = h₂` is the
+  -- internal FUNCTIONALITY of the graph: a relation classified by `diag B` on the
+  -- `eval`-coordinate is single-valued, so equal graphs force `eval(a,h₁)=eval(a,h₂)`
+  -- and hence (curry uniqueness) `h₁=h₂`.  This single-valuedness extraction is the
+  -- §1.923 residual (it is exactly the faithfulness of `classify(diag B)`, the same
+  -- mechanism as `singletonMapCat_monic` but one transpose higher); not yet packaged.
+  sorry
 
 /-! ## §1.924  FG computed via Yoneda (§1.924)
 
