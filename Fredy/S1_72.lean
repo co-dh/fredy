@@ -447,11 +447,21 @@ def repFilter {𝒟 : Type u} [Cat.{v} 𝒟] [Logos 𝒞] [Logos 𝒟]
     (T : 𝒞 → 𝒟) [Functor T] : (Subobject 𝒞 one) → Prop :=
   λ U => @Isomorphic 𝒟 _ (T U.dom) one
 
-/-- A representation T is faithful iff ℱ(T) = {1} (§1.73). -/
-theorem faithful_iff_trivial_filter {𝒟 : Type u} [Cat.{v} 𝒟] [Logos 𝒞] [Logos 𝒟]
-    (T : 𝒞 → 𝒟) [Functor T] :
-    Faithful T ↔ (∀ U, repFilter T U ↔ U = Subobject.entire one) := by
-  sorry
+-- §1.73 (MISSING): `faithful_iff_trivial_filter`
+-- The book (§1.73) states: T is a faithful representation of logoi iff ℱ(T) = {1}.
+-- The statement needs at minimum `PreservesTerminal T` (so T one_𝒞 ≅ one_𝒟) plus
+-- the pA## adjunction (`rightAdj (term A)`) connecting Sub(A) to Sub(1).
+-- Specifically:
+--   (→) Faithful + PreservesTerminal → ∀ U, repFilter T U ↔ IsEntire U
+--       Needs: T one_𝒞 ≅ one_𝒟 (from PreservesTerminal + a map one_𝒟 → T one_𝒞,
+--       which requires either T is CartesianFunctor or the category is skeletal).
+--   (←) ∀ U, repFilter T U ↔ IsEntire U → Faithful T
+--       Needs: A' = A iff pA##(A') = 1 (book §1.73 key fact), requiring the
+--       adjunction rightAdj (term A) which maps Sub(A) → Sub(1) and is not
+--       connected to T's action on morphisms in the repo.
+-- Per integrity rule: no sorry on an under-specified statement.
+-- Formalizable once LogosMap T (CartesianFunctor + image-preservation) is added
+-- and the pA## adjunction bridge is proved.
 
 /-! ## §1.733 Coprime and Connected
 
