@@ -371,87 +371,6 @@ theorem prodEndo_preservesProductMonic [HasBinaryProducts 𝒞] (B : 𝒞) :
       simpa only [Cat.assoc] using h
   exact fst_snd_jointly_monic u v hB_eq hPQ_eq
 
-/-- **iso-reflection for `prodEndo B`, using a proper subobject of `B`.**
-    `Embedding (prodEndo B)` (hom-injectivity = `snd` epic) upgrades to full `Faithful`
-    (additionally reflecting isos) once `B` HAS a proper subobject `n : B' ↪ B`.
-
-    This `hB` hypothesis is essential and not cosmetic: without it the upgrade is FALSE.
-    In §1.475's category of Z-sets the regular representation `Z` has no proper subobject,
-    yet `Z×-` is faithful (an embedding); there `id_Z × m` can be iso for a proper `m`, so
-    `prodEndo Z` does NOT reflect isos.  The proper subobject of `B` is exactly Freyd's
-    §1.472 hypothesis ("every B WITH a proper subobject") that rules this out. -/
-theorem prodEndo_faithful_of_embedding
-    [HasBinaryProducts 𝒞] (B : 𝒞) (hB : ∃ (B' : 𝒞) (n : B' ⟶ B), ProperMono n)
-    (hemb : Embedding (prodEndo B)) : Faithful (prodEndo B) := by
-  obtain ⟨B', n, hn⟩ := hB
-  refine ⟨hemb, ?_⟩
-  intro X Y f hiso
-  -- `Embedding (prodEndo B)` is `snd` epic.
-  have hsnd_epi : ∀ {X Y : 𝒞} (f g : X ⟶ Y), snd (A := B) (B := X) ≫ f = snd ≫ g → f = g :=
-    (prodEndo_embedding_iff_snd_epi B).mp hemb
-  -- `map f` is iso (hypothesis), hence both monic and epic.
-  obtain ⟨k, hk1, hk2⟩ := hiso       -- map f ≫ k = id,  k ≫ map f = id
-  have hmapf_mono : Mono ((prodEndoIsFunctor B).map f) := mono_of_retraction _ k hk1
-  have hmapf_epi : ∀ {Z : 𝒞} (a b : prod B Y ⟶ Z),
-      (prodEndoIsFunctor B).map f ≫ a = (prodEndoIsFunctor B).map f ≫ b → a = b := by
-    intro Z a b hab
-    have := congrArg (k ≫ ·) hab
-    simp only [← Cat.assoc, hk2, Cat.id_comp] at this; exact this
-  -- `pair a b ≫ map f = pair a (b ≫ f)` and `map f ≫ pair a b = pair a (b ≫ f)` post `snd`.
-  have hpost : ∀ {W : 𝒞} (a : W ⟶ B) (b : W ⟶ X),
-      pair a b ≫ (prodEndoIsFunctor B).map f = pair a (b ≫ f) := by
-    intro W a b
-    rw [prodEndo_map]
-    apply fst_snd_jointly_monic
-    · rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair, Cat.comp_id, fst_pair]
-    · rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair, snd_pair]
-  -- (1) `f` is monic: factor any test pair through `B × -`, cancel `map f` (monic), then `snd`.
-  have hf_mono : Mono f := by
-    intro W u v huv
-    have key : pair (fst (A := B) (B := W)) (snd ≫ u) ≫ (prodEndoIsFunctor B).map f
-             = pair (fst (A := B) (B := W)) (snd ≫ v) ≫ (prodEndoIsFunctor B).map f := by
-      rw [hpost, hpost, Cat.assoc, Cat.assoc, huv]
-    have hpu := hmapf_mono _ _ key
-    have hsu : snd (A := B) (B := W) ≫ u = snd ≫ v := by
-      have := congrArg (· ≫ snd (A := B) (B := X)) hpu
-      simp only [snd_pair] at this; exact this
-    exact hsnd_epi u v hsu
-  -- (2) `f` is epic: dually, precompose with `map f` (epic), then `snd`.
-  have hf_epi : ∀ {Z : 𝒞} (u v : Y ⟶ Z), f ≫ u = f ≫ v → u = v := by
-    intro Z u v huv
-    have key : (prodEndoIsFunctor B).map f ≫ pair (fst (A := B) (B := Y)) (snd ≫ u)
-             = (prodEndoIsFunctor B).map f ≫ pair (fst (A := B) (B := Y)) (snd ≫ v) := by
-      rw [prodEndo_map]
-      apply fst_snd_jointly_monic
-      · simp only [Cat.assoc, fst_pair, Cat.comp_id]
-      · simp only [Cat.assoc, snd_pair]
-        rw [← Cat.assoc, snd_pair, ← Cat.assoc, snd_pair, Cat.assoc, Cat.assoc, huv]
-    have hpu := hmapf_epi _ _ key
-    have hsu : snd (A := B) (B := Y) ≫ u = snd ≫ v := by
-      have := congrArg (· ≫ snd (A := B) (B := Z)) hpu
-      simp only [snd_pair] at this; exact this
-    exact hsnd_epi u v hsu
-  -- `f` is monic AND epic.  Concluding `IsIso f` is the genuine §1.472 content.
-  --
-  -- HONEST GAP (not closable from these hypotheses).  Writing `k = pair fst h` with
-  -- `h := k ≫ snd : B×Y → X`, the iso `map f` yields two equations
-  --   (I)  `h ≫ f = snd : B×Y → Y`        (from `k ≫ map f = id`, post `snd`)
-  --   (II) `map f ≫ h = snd : B×X → X`     (from `map f ≫ k = id`, post `snd`)
-  -- and a routine calc (verified in Lean during this work) shows: GIVEN ANY map `b : Y → B`,
-  -- the map `g := pair b (id_Y) ≫ h : Y → X` is a two-sided inverse of `f`
-  -- (`g ≫ f = id_Y` via (I); `f ≫ g = id_X` via (II)).  So the whole reduction collapses to
-  -- producing a single map `Y → B` — equivalently a section of `snd : B×Y → Y`.
-  --
-  -- `Embedding (prodEndo B)` (= `snd` epic for every X) gives, at X = 1, that `term B` is
-  -- EPIC (B is well-supported), but an epic `B → 1` does NOT split constructively, and the
-  -- bare proper subobject `n : B' ↪ B` furnishes no point/section of `B` either.  In a general
-  -- (non-special, non-balanced) Cartesian category there is no such `Y → B`: Freyd's actual
-  -- §1.472 derives faithfulness from SPECIALNESS (`m × id_B` proper ⇒ §1.453 preserves-properness),
-  -- never from "Embedding alone ⇒ Faithful".  This lemma, as stated (only `Embedding` + a proper
-  -- subobject, no `IsSpecial`), isolates a step strictly stronger than the book and is not
-  -- provable from its hypotheses.  Left as an honest `sorry`; see final report.
-  sorry
-
 /-- **§1.472 (product-proper ↔ faithful)**: `B×-` is faithful iff for every proper subobject
     `m : A'↪A` the map `pair(fst≫m, snd) : A'×B → A×B` is again a **proper** mono.
 
@@ -461,49 +380,70 @@ theorem prodEndo_faithful_of_embedding
     tautology and the equivalence false (the left side fails in, e.g., §1.475's Z-sets).
     The non-iso half is the substantive §1.472 content.
 
-    PROOF (§1.453 specialised to `T = prodEndo B`).  `Embedding (prodEndo B)` is the
-    embedding half of `Faithful (prodEndo B)`; the iso-reflection half is recovered from
-    properness-preservation.  `pullback_faithful_iff_preserves_properness` (§1.453), fed the
-    `PreservesPullbacks`/`PreservesProductMonic` witnesses above, equates
+    PROOF (§1.453 specialised to `T = prodEndo B`).  `pullback_faithful_iff_preserves_properness`
+    (§1.453), fed the `PreservesPullbacks`/`PreservesProductMonic` witnesses above, equates
     `Faithful (prodEndo B)` with `PreservesProperness (prodEndo B)` — i.e. "monic non-iso
     `m` ↦ non-iso `id_B × m`".  The swap conjugacy `isIso_prod_mono_iff` rewrites that into
     the book's "monic non-iso `m` ↦ non-iso `m × id_B`", and `product_mono_of_mono` supplies
-    the monic half. -/
+    the monic half.
+
+    NB the LHS is the FULL `Faithful (prodEndo B)` (embedding + iso-reflection), NOT merely
+    `Embedding`.  Embedding alone does not give the book RHS: in §1.475's Z-sets, `Z×-` is an
+    embedding yet `A'×Z` can equal `A×Z` (a proper `m` with `m×id_Z` iso), so the equivalence
+    would be FALSE with `Embedding` on the left.  This is precisely the iso-reflection half that
+    §1.453 supplies; the upgrade `Embedding ⟹ Faithful` for `prodEndo B` is the separate
+    specialness-using lemma `prodEndo_faithful_of_embedding`. -/
 theorem prodEndo_faithful_iff_product_proper
-    [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] (B : 𝒞)
-    (hB : ∃ (B' : 𝒞) (n : B' ⟶ B), ProperMono n) :
-    Embedding (prodEndo B) ↔
+    [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] (B : 𝒞) :
+    Faithful (prodEndo B) ↔
     (∀ {A' A : 𝒞} (m : A' ⟶ A), ProperMono m →
       ProperMono (pair (fst (A := A') (B := B) ≫ m) (snd (A := A') (B := B)))) := by
   have h453 := pullback_faithful_iff_preserves_properness (prodEndo B)
     (prodEndo_preservesPullbacks B) (prodEndo_preservesProductMonic B)
   constructor
-  · -- Embedding ⇒ book RHS.  Needs `hB`: for B WITHOUT a proper subobject this fails
-    -- (§1.475 Z-sets: Z×- is faithful yet A'×Z can equal A×Z), which is exactly why the
-    -- book restricts to "every B WITH a proper subobject".
-    intro hemb A' A m hm
+  · -- Faithful ⇒ book RHS (§1.453 ⇒ + swap conjugacy + `product_mono_of_mono`).
+    intro hfaithful A' A m hm
     refine ⟨product_mono_of_mono B m hm.1, ?_⟩
     rw [isIso_prod_mono_iff B m]
-    -- The full Faithful (prodEndo B) — including iso-reflection, which `hB` supplies — feeds
-    -- §1.453 forward to give properness-preservation = the non-iso half.
-    have hfaithful : Faithful (prodEndo B) := prodEndo_faithful_of_embedding B hB hemb
     exact (h453.mp hfaithful) m hm.1 hm.2
-  · -- book RHS ⇒ Embedding (§1.453 ⇐; `hB` not needed here).
+  · -- book RHS ⇒ Faithful (§1.453 ⇐).
     intro hRHS
     have hprop : PreservesProperness (prodEndo B) := by
       intro A' A m hmono hniso
       rw [← isIso_prod_mono_iff B m]
       exact (hRHS m ⟨hmono, hniso⟩).2
-    intro X Y p q hpq
-    exact (h453.mpr hprop).1 p q hpq
+    exact h453.mpr hprop
+
+/-- **`prodEndo B` is FAITHFUL, from SPECIALNESS (Freyd §1.472 via §1.453).**
+    `IsSpecial 𝒞` together with a proper subobject `n : B' ↪ B` of `B` gives the FULL
+    `Faithful (prodEndo B)` — both the embedding half (hom-injectivity) AND iso-reflection.
+
+    Why specialness, not `Embedding` alone: in §1.475's Z-sets, `Z×-` is an embedding yet
+    `id_Z × m` can be iso for a proper `m`, so embedding does NOT give iso-reflection.  The
+    book derives faithfulness from SPECIALNESS, and §1.453
+    (`pullback_faithful_iff_preserves_properness`) makes this precise: `prodEndo B` preserves
+    pullbacks and product-monicity (proven above), so `prodEndo_faithful_iff_product_proper`
+    equates `Faithful (prodEndo B)` with the book RHS "monic non-iso `m` ↦ non-iso `m × id_B`".
+    `IsSpecial`, fed the proper subobject `n` of `B`, supplies exactly that book RHS.  This is
+    the genuine §1.472 content, with `IsSpecial` the load-bearing hypothesis. -/
+theorem prodEndo_faithful_of_embedding
+    [CartesianCategory 𝒞] (hSp : IsSpecial 𝒞) (B : 𝒞)
+    (hB : ∃ (B' : 𝒞) (n : B' ⟶ B), ProperMono n) : Faithful (prodEndo B) := by
+  haveI : HasPullbacks 𝒞 := ⟨fun f g => products_equalizers_implies_pullbacks f g⟩
+  obtain ⟨B', n, hn⟩ := hB
+  -- §1.472 = §1.453 specialised: `Faithful (prodEndo B) ↔ book RHS`.  `IsSpecial`, fed the
+  -- proper subobject `n` of `B`, supplies exactly that book RHS.
+  rw [prodEndo_faithful_iff_product_proper B]
+  intro A' A m hm
+  exact hSp m n hm hn
 
 /-- **§1.472 (⟹)**: A special Cartesian category has B×- faithful for every B with a
     proper subobject.  Stated with `[SpecialCartesianCategory 𝒞]` to avoid instance conflicts. -/
 theorem special_implies_prodEndo_faithful [SpecialCartesianCategory 𝒞] (B : 𝒞)
-    (hB : ∃ (B' : 𝒞) (n : B' ⟶ B), ProperMono n) : Embedding (prodEndo B) := by
+    (hB : ∃ (B' : 𝒞) (n : B' ⟶ B), ProperMono n) : Faithful (prodEndo B) := by
   haveI : HasPullbacks 𝒞 := ⟨fun f g => products_equalizers_implies_pullbacks f g⟩
   obtain ⟨B', n, hn⟩ := hB
-  rw [prodEndo_faithful_iff_product_proper B ⟨B', n, hn⟩]
+  rw [prodEndo_faithful_iff_product_proper B]
   intro A' A m hm
   exact SpecialCartesianCategory.special m n hm hn
 
@@ -512,12 +452,8 @@ theorem special_implies_prodEndo_faithful [SpecialCartesianCategory 𝒞] (B : �
     rather than `[SpecialCartesianCategory 𝒞]` so that the single ambient product structure stays
     in scope — this is what lets the §1.472/§1.473/§1.474 equivalences below go through. -/
 theorem isSpecial_implies_prodEndo_faithful [CartesianCategory 𝒞] (h : IsSpecial 𝒞) (B : 𝒞)
-    (hB : ∃ (B' : 𝒞) (n : B' ⟶ B), ProperMono n) : Embedding (prodEndo B) := by
-  haveI : HasPullbacks 𝒞 := ⟨fun f g => products_equalizers_implies_pullbacks f g⟩
-  obtain ⟨B', n, hn⟩ := hB
-  rw [prodEndo_faithful_iff_product_proper B ⟨B', n, hn⟩]
-  intro A' A m hm
-  exact h m n hm hn
+    (hB : ∃ (B' : 𝒞) (n : B' ⟶ B), ProperMono n) : Faithful (prodEndo B) :=
+  prodEndo_faithful_of_embedding h B hB
 
 /-- **§1.472**: A Cartesian category is special iff for every B with a proper subobject,
     B×- is faithful.  Uses the `IsSpecial` predicate (over the ambient products) on the left;
@@ -526,14 +462,14 @@ theorem isSpecial_implies_prodEndo_faithful [CartesianCategory 𝒞] (h : IsSpec
 theorem special_iff_prodEndo_faithful [CartesianCategory 𝒞] :
     IsSpecial 𝒞 ↔
     (∀ (B : 𝒞), (∃ (B' : 𝒞) (n : B' ⟶ B), ProperMono n) →
-      Embedding (prodEndo B)) := by
+      Faithful (prodEndo B)) := by
   constructor
   · intro h B hB
     exact isSpecial_implies_prodEndo_faithful h B hB
   · intro hF
     intro A' A B' B m n hm hn
     haveI : HasPullbacks 𝒞 := ⟨fun f g => products_equalizers_implies_pullbacks f g⟩
-    exact (prodEndo_faithful_iff_product_proper B ⟨B', n, hn⟩).mp (hF B ⟨B', n, hn⟩) m hm
+    exact (prodEndo_faithful_iff_product_proper B).mp (hF B ⟨B', n, hn⟩) m hm
 
 /-! ## §1.473  One-valued special ↔ B×- faithful for all B
 
@@ -551,14 +487,119 @@ def OneValued [CartesianCategory 𝒞] : Prop :=
 /-- **§1.473 (⇐)**: If B×- is faithful for all B then A is special.
     This follows directly from §1.472. -/
 theorem prodEndo_faithful_all_implies_special [CartesianCategory 𝒞]
-    (hF : ∀ (B : 𝒞), Embedding (prodEndo B)) :
+    (hF : ∀ (B : 𝒞), Faithful (prodEndo B)) :
     Nonempty (SpecialCartesianCategory 𝒞) := by
   haveI : HasPullbacks 𝒞 := ⟨fun f g => products_equalizers_implies_pullbacks f g⟩
   -- Build a SpecialCartesianCategory instance using prodEndo_faithful_iff_product_proper.
-  -- The special field's own proper subobject `_n : B' ⟶ B` is the `hB` witness for B, so the
-  -- forward direction of §1.472 applies on exactly the objects B where it is true.
+  -- `Faithful (prodEndo B)` feeds the iff's forward (sound, §1.453) direction directly.
   refine ⟨{ special := fun {A' A B' B} m _n hm _hn =>
-    (prodEndo_faithful_iff_product_proper B ⟨B', _n, _hn⟩).mp (hF B) m hm }⟩
+    (prodEndo_faithful_iff_product_proper B).mp (hF B) m hm }⟩
+
+/-- The product **associator** `(B×B)×X → B×(B×X)`, `⟨fst≫fst, ⟨fst≫snd, snd⟩⟩`.  This is the
+    component (at `X`) of the natural iso `prodEndo (B×B) ≅ prodEndo B ∘ prodEndo B`, which is
+    what lets faithfulness of `(B×B)×-` descend to faithfulness of `B×-` (Freyd §1.473). -/
+def prodAssocBB [HasBinaryProducts 𝒞] (B X : 𝒞) : prod (prod B B) X ⟶ prod B (prod B X) :=
+  pair (fst ≫ fst) (pair (fst ≫ snd) snd)
+
+@[simp] theorem prodAssocBB_fst [HasBinaryProducts 𝒞] (B X : 𝒞) :
+    prodAssocBB B X ≫ fst = fst (A := prod B B) (B := X) ≫ fst := fst_pair _ _
+@[simp] theorem prodAssocBB_snd [HasBinaryProducts 𝒞] (B X : 𝒞) :
+    prodAssocBB B X ≫ snd = pair (fst (A := prod B B) (B := X) ≫ snd) snd := snd_pair _ _
+
+/-- Inverse associator `B×(B×X) → (B×B)×X`, `⟨⟨fst, snd≫fst⟩, snd≫snd⟩`. -/
+def prodAssocBBInv [HasBinaryProducts 𝒞] (B X : 𝒞) : prod B (prod B X) ⟶ prod (prod B B) X :=
+  pair (pair fst (snd ≫ fst)) (snd ≫ snd)
+
+@[simp] theorem prodAssocBBInv_fst [HasBinaryProducts 𝒞] (B X : 𝒞) :
+    prodAssocBBInv B X ≫ fst = pair (fst (A := B) (B := prod B X)) (snd ≫ fst) := fst_pair _ _
+@[simp] theorem prodAssocBBInv_snd [HasBinaryProducts 𝒞] (B X : 𝒞) :
+    prodAssocBBInv B X ≫ snd = snd (A := B) (B := prod B X) ≫ snd := snd_pair _ _
+
+theorem prodAssocBB_iso [HasBinaryProducts 𝒞] (B X : 𝒞) : IsIso (prodAssocBB B X) := by
+  refine ⟨prodAssocBBInv B X, ?_, ?_⟩
+  · -- `(B×B)×X` round-trip: legs `fst≫fst, fst≫snd, snd`
+    refine fst_snd_jointly_monic _ _ (fst_snd_jointly_monic _ _ ?_ ?_) ?_ <;>
+      simp only [prodAssocBB, prodAssocBBInv, Cat.id_comp, Cat.assoc, fst_pair, snd_pair] <;>
+      rw [← Cat.assoc] <;> simp only [fst_pair, snd_pair]
+  · -- `B×(B×X)` round-trip: legs `fst, snd≫fst, snd≫snd`
+    refine fst_snd_jointly_monic _ _ ?_ (fst_snd_jointly_monic _ _ ?_ ?_) <;>
+      simp only [prodAssocBB, prodAssocBBInv, Cat.id_comp, Cat.assoc, fst_pair, snd_pair] <;>
+      rw [← Cat.assoc] <;> simp only [fst_pair, snd_pair]
+
+/-- **Naturality of the associator**: `prodEndo (B×B)` is conjugate to `prodEndo B ∘ prodEndo B`.
+    `assoc ≫ (B×-)(B×-)f = ((B×B)×-)f ≫ assoc`. -/
+theorem prodAssocBB_natural [HasBinaryProducts 𝒞] (B : 𝒞) {X Y : 𝒞} (f : X ⟶ Y) :
+    prodAssocBB B X ≫ (prodEndoIsFunctor B).map ((prodEndoIsFunctor B).map f)
+      = (prodEndoIsFunctor (prod B B)).map f ≫ prodAssocBB B Y := by
+  rw [prodEndo_map, prodEndo_map, prodEndo_map]
+  -- Check on the three jointly-monic legs `fst`, `snd≫fst`, `snd≫snd` (into B, B, Y).
+  refine fst_snd_jointly_monic _ _ ?_ (fst_snd_jointly_monic _ _ ?_ ?_) <;>
+    simp only [prodAssocBB, Cat.assoc, fst_pair, snd_pair, Cat.comp_id] <;>
+    rw [← Cat.assoc] <;>
+    simp only [fst_pair, snd_pair] <;>
+    rw [← Cat.assoc] <;>
+    simp only [fst_pair, snd_pair]
+
+/-- **Faithfulness descends along `(B×B)×- ≅ B×(B×-)`** (Freyd §1.473 "composed twice").
+    If `(B×B)×-` is faithful then so is `B×-`.  Both the embedding half and iso-reflection
+    transfer through the natural associator iso `prodAssocBB`. -/
+theorem prodEndo_faithful_of_prodEndoBB_faithful [HasBinaryProducts 𝒞] (B : 𝒞)
+    (hBB : Faithful (prodEndo (prod B B))) : Faithful (prodEndo B) := by
+  obtain ⟨hBB_emb, hBB_refl⟩ := hBB
+  constructor
+  · -- Embedding: from `map_B f = map_B g`, apply `map_B` again and conjugate to `map_{B×B}`.
+    intro X Y f g hfg
+    apply hBB_emb f g
+    -- `assoc_X ≫ map_B(map_B f) = assoc_X ≫ map_B(map_B g)` since `map_B f = map_B g`.
+    obtain ⟨βY, hβY1, hβY2⟩ := prodAssocBB_iso B Y
+    have e : prodAssocBB B X ≫ (prodEndoIsFunctor B).map ((prodEndoIsFunctor B).map f)
+           = prodAssocBB B X ≫ (prodEndoIsFunctor B).map ((prodEndoIsFunctor B).map g) := by
+      rw [hfg]
+    rw [prodAssocBB_natural, prodAssocBB_natural] at e
+    -- e : map_{B×B} f ≫ assoc_Y = map_{B×B} g ≫ assoc_Y;  cancel the iso `assoc_Y` on the right.
+    calc (prodEndoIsFunctor (prod B B)).map f
+        = ((prodEndoIsFunctor (prod B B)).map f ≫ prodAssocBB B Y) ≫ βY := by
+          rw [Cat.assoc, hβY1]; exact (Cat.comp_id _).symm
+      _ = ((prodEndoIsFunctor (prod B B)).map g ≫ prodAssocBB B Y) ≫ βY := by rw [e]
+      _ = (prodEndoIsFunctor (prod B B)).map g := by
+          rw [Cat.assoc, hβY1]; exact Cat.comp_id _
+  · -- iso-reflection: `IsIso (map_B f) → IsIso f` via `map_{B×B} f` iso and `hBB_refl`.
+    intro X Y f hf
+    apply hBB_refl f
+    -- We have `map_B f` iso; apply functor `prodEndo B` once more to get `map_B (map_B f)` iso.
+    have hff : IsIso ((prodEndoIsFunctor B).map ((prodEndoIsFunctor B).map f)) :=
+      functor_preserves_iso (F := prodEndo B) ((prodEndoIsFunctor B).map f) hf
+    -- `map_{B×B} f = assoc_X ≫ map_B(map_B f) ≫ assoc_Y⁻¹` (from naturality; assoc_Y iso).
+    obtain ⟨βY, hβY1, hβY2⟩ := prodAssocBB_iso B Y
+    have hconj : (prodEndoIsFunctor (prod B B)).map f
+        = prodAssocBB B X ≫ (prodEndoIsFunctor B).map ((prodEndoIsFunctor B).map f) ≫ βY := by
+      -- naturality: `assoc_X ≫ map_B(map_B f) = map_{B×B} f ≫ assoc_Y`; postcompose βY, cancel.
+      calc (prodEndoIsFunctor (prod B B)).map f
+          = ((prodEndoIsFunctor (prod B B)).map f ≫ prodAssocBB B Y) ≫ βY := by
+            rw [Cat.assoc, hβY1]; exact (Cat.comp_id _).symm
+        _ = (prodAssocBB B X ≫ (prodEndoIsFunctor B).map ((prodEndoIsFunctor B).map f)) ≫ βY := by
+            rw [prodAssocBB_natural]
+        _ = prodAssocBB B X ≫ (prodEndoIsFunctor B).map ((prodEndoIsFunctor B).map f) ≫ βY :=
+            Cat.assoc _ _ _
+    rw [hconj]
+    exact isIso_comp (prodAssocBB_iso B X) (isIso_comp hff ⟨prodAssocBB B Y, hβY2, hβY1⟩)
+
+/-- When `term B` is iso (`B ≅ 1`), `fst : A×B → A` is iso for every `A` (generalised right
+    unit law: `A×B ≅ A×1 ≅ A`).  The inverse is `⟨id_A, term A ≫ (term B)⁻¹⟩`. -/
+theorem fst_iso_of_term_iso [HasTerminal 𝒞] [HasBinaryProducts 𝒞] {B : 𝒞}
+    (hB : IsIso (term B)) (A : 𝒞) : IsIso (fst (A := A) (B := B)) := by
+  obtain ⟨tb, htb1, _htb2⟩ := hB   -- htb1 : term B ≫ tb = id_B
+  -- inverse `g = ⟨id_A, term A ≫ tb⟩`; `fst ≫ g = id_{A×B}` and `g ≫ fst = id_A`.
+  refine ⟨pair (Cat.id A) (term A ≫ tb), ?_, fst_pair _ _⟩
+  -- `fst ≫ ⟨id, term≫tb⟩ = id_{A×B}` by the two projections (`snd` lands in `B`, use `term B` mono).
+  refine fst_snd_jointly_monic _ _ ?_ ?_
+  · rw [Cat.assoc, fst_pair, Cat.comp_id, Cat.id_comp]
+  · rw [Cat.assoc, snd_pair, Cat.id_comp]
+    -- both sides are maps `A×B → B`; postcompose `term B` (iso, hence mono) and use `term_uniq`.
+    have heq : (fst (A := A) (B := B) ≫ term A ≫ tb) ≫ term B = snd ≫ term B :=
+      term_uniq _ _
+    have hmonoB : Mono (term B) := mono_of_retraction _ tb htb1
+    exact hmonoB _ _ heq
 
 /-- **§1.473 (⇒)**: In a one-valued special Cartesian category, B×- is faithful for all B.
 
@@ -566,25 +607,35 @@ theorem prodEndo_faithful_all_implies_special [CartesianCategory 𝒞]
     (id_B, id_B) : B → B×B is proper (else B → 1 would be monic, contradicting one-valuedness
     and B ≇ 1), so (B×B)×- is faithful; being composed with B×- twice, it forces B×- faithful. -/
 theorem oneValued_special_prodEndo_faithful [CartesianCategory 𝒞] (hSp : IsSpecial 𝒞)
-    (h1v : OneValued (𝒞 := 𝒞)) (B : 𝒞) : Embedding (prodEndo B) := by
-  rw [prodEndo_embedding_iff_snd_epi]
-  intro X Y f g hsnd
-  rcases Classical.em (IsIso (term B)) with ⟨g_inv, _hg1, _hg2⟩ | h_not_iso
-  · -- Case B ≅ 1: pair(term X ≫ g_inv)(id X) ≫ snd = id X, so snd is epic.
-    have hsec : pair (term X ≫ g_inv) (Cat.id X) ≫ (snd (A := B) (B := X)) = Cat.id X :=
-      snd_pair _ _
-    -- Derive f = g by composing hsnd with the section from the left.
-    have h1 : (pair (term X ≫ g_inv) (Cat.id X) ≫ snd (A := B) (B := X)) ≫ f =
-              (pair (term X ≫ g_inv) (Cat.id X) ≫ snd (A := B) (B := X)) ≫ g := by
-      rw [Cat.assoc, Cat.assoc]; exact congrArg (pair (term X ≫ g_inv) (Cat.id X) ≫ ·) hsnd
-    rw [hsec, Cat.id_comp, Cat.id_comp] at h1; exact h1
-  · -- Case B ≇ 1: diag B = pair(id)(id) : B → B×B is ProperMono.
+    (h1v : OneValued (𝒞 := 𝒞)) (B : 𝒞) : Faithful (prodEndo B) := by
+  haveI : HasPullbacks 𝒞 := ⟨fun f g => products_equalizers_implies_pullbacks f g⟩
+  rcases Classical.em (IsIso (term B)) with hB1 | h_not_iso
+  · -- Case B ≅ 1: `fst : A×B → A` is iso for every A, and the square
+    -- `(m×id_B) ≫ fst = fst ≫ m` then forces `m × id_B` iso ⟺ `m` iso.  Faithful by §1.472.
+    rw [prodEndo_faithful_iff_product_proper B]
+    intro A' A m hm
+    refine ⟨product_mono_of_mono B m hm.1, ?_⟩
+    intro hiso
+    -- `fst` is iso at both `A'×B` and `A×B` since `B ≅ 1`.
+    have hfstA' : IsIso (fst (A := A') (B := B)) := fst_iso_of_term_iso hB1 A'
+    have hfstA : IsIso (fst (A := A) (B := B)) := fst_iso_of_term_iso hB1 A
+    -- square:  `(m×id_B) ≫ fst_A = fst_{A'} ≫ m`.
+    have hsq : pair (fst (A := A') (B := B) ≫ m) (snd (A := A') (B := B)) ≫ fst (A := A) (B := B)
+             = fst (A := A') (B := B) ≫ m := fst_pair _ _
+    -- so `m = fst_{A'}⁻¹ ≫ (m×id_B) ≫ fst_A`, a composite of isos.
+    obtain ⟨iA', hiA'1, hiA'2⟩ := hfstA'
+    refine hm.2 ?_
+    have key : m = iA' ≫ pair (fst (A := A') (B := B) ≫ m) (snd (A := A') (B := B))
+                      ≫ fst (A := A) (B := B) := by
+      rw [hsq, ← Cat.assoc, hiA'2, Cat.id_comp]
+    rw [key]
+    exact isIso_comp ⟨fst, hiA'2, hiA'1⟩ (isIso_comp hiso hfstA)
+  · -- Case B ≇ 1: diag B = pair(id)(id) : B → B×B is ProperMono, so (B×B)×- is faithful;
+    -- being `B×(B×-)` up to the associator, this forces `B×-` faithful (Freyd "composed twice").
     have h_diag_proper : ProperMono (diag B) := by
       refine ⟨diag_mono B, ?_⟩
       intro h_iso
       obtain ⟨k, hk_l, hk_r⟩ := h_iso
-      -- hk_l : diag B ≫ k = id B; hk_r : k ≫ diag B = id(B×B)
-      -- Post-compose hk_r with fst/snd to get k = fst and k = snd.
       have hk_fst : k = fst (A := B) (B := B) := by
         have h := congrArg (· ≫ fst (A := B) (B := B)) hk_r
         simp only [Cat.id_comp, Cat.assoc, diag_fst, Cat.comp_id] at h; exact h
@@ -592,46 +643,30 @@ theorem oneValued_special_prodEndo_faithful [CartesianCategory 𝒞] (hSp : IsSp
         have h := congrArg (· ≫ snd (A := B) (B := B)) hk_r
         simp only [Cat.id_comp, Cat.assoc, diag_snd, Cat.comp_id] at h; exact h
       have hfst_eq_snd : (fst : prod B B ⟶ B) = snd := hk_fst.symm.trans hk_snd
-      -- fst = snd means B is a subterminator: Mono (term B)
       have h_sub : Subterminator B := by
         intro W u v _huv
         have : pair u v ≫ fst (A := B) (B := B) = pair u v ≫ snd := by rw [hfst_eq_snd]
         simp only [fst_pair, snd_pair] at this; exact this
       exact h_not_iso (h1v B h_sub)
-    -- B×B has proper subobj diag B → special gives prodEndo (B×B) faithful.
-    have hBB_faithful : Embedding (prodEndo (prod B B)) :=
+    -- B×B has proper subobj diag B → special gives `Faithful (prodEndo (B×B))`.
+    have hBB_faithful : Faithful (prodEndo (prod B B)) :=
       isSpecial_implies_prodEndo_faithful hSp (prod B B) ⟨B, diag B, h_diag_proper⟩
-    -- snd(A:=B×B)(B:=X) is epic.
-    have hBB_snd_epi : ∀ {W Z : 𝒞} (p q : W ⟶ Z),
-        snd (A := prod B B) (B := W) ≫ p = snd (A := prod B B) (B := W) ≫ q → p = q :=
-      (prodEndo_embedding_iff_snd_epi (prod B B)).mp hBB_faithful
-    -- Define t : (B×B)×X → B×X with t ≫ snd(A:=B) = snd(A:=B×B).
-    let t : prod (prod B B) X ⟶ prod B X :=
-      pair (fst (A := prod B B) (B := X) ≫ fst (A := B) (B := B)) (snd (A := prod B B) (B := X))
-    have ht : t ≫ snd (A := B) (B := X) = snd (A := prod B B) (B := X) := snd_pair _ _
-    apply hBB_snd_epi f g
-    calc snd (A := prod B B) (B := X) ≫ f
-        = (t ≫ snd (A := B) (B := X)) ≫ f := by rw [ht]
-      _ = t ≫ snd (A := B) (B := X) ≫ f := Cat.assoc _ _ _
-      _ = t ≫ snd (A := B) (B := X) ≫ g := by rw [hsnd]
-      _ = (t ≫ snd (A := B) (B := X)) ≫ g := (Cat.assoc _ _ _).symm
-      _ = snd (A := prod B B) (B := X) ≫ g := by rw [ht]
+    exact prodEndo_faithful_of_prodEndoBB_faithful B hBB_faithful
 
 /-- **§1.473**: A one-valued Cartesian category is special iff B×- is faithful for all B.
     Uses the `IsSpecial` predicate so the ambient products stay in scope (the bundled-class
     form hits the instance-coherence wall — see `IsSpecial`). -/
 theorem oneValued_special_iff [CartesianCategory 𝒞] (h1v : OneValued (𝒞 := 𝒞)) :
-    IsSpecial 𝒞 ↔ ∀ (B : 𝒞), Embedding (prodEndo B) := by
+    IsSpecial 𝒞 ↔ ∀ (B : 𝒞), Faithful (prodEndo B) := by
   constructor
   · -- ⟹: `oneValued_special_prodEndo_faithful` now takes `IsSpecial 𝒞` directly, all on the
     -- ambient products — no coherence mismatch.
     intro h B
     exact oneValued_special_prodEndo_faithful h h1v B
   · -- ⟸: B×- faithful for all B ⇒ special, via §1.472 specialized to ambient products.
-    -- The special witness `_n : B' ⟶ B` is the `hB` for B.
     intro hF A' A B' B m _n hm _hn
     haveI : HasPullbacks 𝒞 := ⟨fun f g => products_equalizers_implies_pullbacks f g⟩
-    exact (prodEndo_faithful_iff_product_proper B ⟨B', _n, _hn⟩).mp (hF B) m hm
+    exact (prodEndo_faithful_iff_product_proper B).mp (hF B) m hm
 
 /-! ## §1.474  Two-valued special ↔ B×- faithful for all B not iso to 0
 
@@ -666,11 +701,11 @@ theorem fst_prodZero_mono [CartesianCategory 𝒞] {Z : 𝒞} (hZ : Mono (term Z
     properness is the genuine §1.474 content — Freyd derives it from `B×0 ≅ 0` (using the
     special dichotomy "either `B → V` or `V → 1` is iso" applied to `0 ↪ 1`), which forces
     `B ≅ 0` whenever `fst : B×0 → B` is iso, contradicting `hB`.  Given that proper subobject,
-    §1.472 (`isSpecial_implies_prodEndo_faithful`) yields `Embedding (prodEndo B)`. -/
+    §1.472 (`isSpecial_implies_prodEndo_faithful`) yields `Faithful (prodEndo B)`. -/
 theorem twoValued_special_prodEndo_faithful [CartesianCategory 𝒞] (hSp : IsSpecial 𝒞)
     (h2v : TwoValued (𝒞 := 𝒞)) (B : 𝒞)
     (hB : ¬ ∃ (e : B ⟶ h2v.zeroObj), IsIso e) :
-    Embedding (prodEndo B) := by
+    Faithful (prodEndo B) := by
   -- `fst : B×0 → B` is a monic; it is the candidate proper subobject of `B`.
   have hmono : Mono (fst (A := B) (B := h2v.zeroObj)) :=
     fst_prodZero_mono h2v.zero_proper.1 B
@@ -691,14 +726,13 @@ theorem twoValued_special_prodEndo_faithful [CartesianCategory 𝒞] (hSp : IsSp
     obtain ⟨fi, hfi1, hfi2⟩ := hfst_iso
     -- `fi ≫ snd : B → 0` is iso (composite of the iso `fi` and the iso `snd`).
     exact hB ⟨fi ≫ snd, isIso_comp ⟨fst, hfi2, hfi1⟩ hstrict⟩
-  intro X Y p q hpq
-  exact isSpecial_implies_prodEndo_faithful hSp B ⟨_, _, hproper⟩ p q hpq
+  exact isSpecial_implies_prodEndo_faithful hSp B ⟨_, _, hproper⟩
 
 /-- **§1.474**: A two-valued Cartesian category is special iff B×- is faithful for all B
     not isomorphic to the zero object. -/
 theorem twoValued_special_iff [CartesianCategory 𝒞] (h2v : TwoValued (𝒞 := 𝒞)) :
     IsSpecial 𝒞 ↔
-    (∀ (B : 𝒞), (¬ ∃ (e : B ⟶ h2v.zeroObj), IsIso e) → Embedding (prodEndo B)) := by
+    (∀ (B : 𝒞), (¬ ∃ (e : B ⟶ h2v.zeroObj), IsIso e) → Faithful (prodEndo B)) := by
   constructor
   · -- ⟹: every B≇0 has a proper subobject (B×0 ↪ B), so §1.472 gives B×- faithful.
     intro h B hB; exact twoValued_special_prodEndo_faithful h h2v B hB
@@ -752,7 +786,7 @@ theorem twoValued_special_iff [CartesianCategory 𝒞] (h2v : TwoValued (𝒞 :=
           have hcomp : IsIso ((n ≫ _e) ≫ e_inv) := isIso_comp hm_iso he_inv_iso
           simpa only [Cat.assoc, he1, Cat.comp_id] using hcomp
         exact hn.2 hn_iso
-    · exact (hF B hB : Embedding (prodEndo B))
+    · exact (hF B hB : Faithful (prodEndo B))
 
 /-! ## §1.48  Dense classes of monics and the Rational category
 
