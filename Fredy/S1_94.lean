@@ -259,25 +259,31 @@ theorem nameOf_interIntersection {A : 𝒞} (G : one ⟶ powObj A) :
       (interIntersection G).monic) = G
   rw [classify_interIntersection, curry_fst_membershipMap]
 
-/-- **§1.943** (part 2, well-pointed case): If the points of F (i.e. maps 1 → F.dom)
-    are jointly epic, then ∩F is the greatest lower bound of subobjects named by F.
-    A map B → A factors through ∩F iff it factors through every A' named by F.
+/-- **§1.943** (part 2, singleton lower-bound — NOT the full glb): for every point
+    `x : 1 → F.dom`, the singleton intersection `∩{x ≫ F.arr}` is itself a subobject
+    NAMED by F (its name is `x ≫ F.arr`, witnessed by `x`).  Hence any `L` that sits
+    below every F-named subobject (`hL`) sits below `∩{x ≫ F.arr}` in particular.
 
-    Proof: for each point `x : 1 → F.dom`, the singleton intersection
-    `interIntersection (x ≫ F.arr)` is itself a subobject NAMED by F — its name is
-    `x ≫ F.arr` (by `nameOf_interIntersection`), witnessed by the point `x`.  Hence the
-    lower-bound hypothesis `_hL` applies directly to give `L ≤ ∩(x ≫ F.arr)`.
-    (Well-pointedness of F is the book's hypothesis guaranteeing the singleton points
-    `x : 1 → F.dom` jointly determine F, so it suffices to range over them.) -/
-theorem inter_is_glb {A : 𝒞} (F : Subobject 𝒞 (powObj A))
-    (_hF : WellPointed F.dom)
+    INTEGRITY NOTE: this is deliberately *not* called `inter_is_glb`.  The genuine glb
+    claim "`L ≤ ⋂F`" of §1.943 ranges over the whole family `F ↣ [A]`, whereas
+    `interIntersection` takes a *single* global name `1 → [A]` (a singleton family).
+    There is no `⋂F`-over-a-subobject-family construction in this file, so the real glb
+    cannot even be *stated* here; it needs the §1.543 capitalization lemma plus the
+    contravariant power functor `Ω^(−)` carrying the jointly-epic point family of F to a
+    jointly-monic family.  What is proved here is exactly the per-singleton bound, and
+    the name now says so.  `hL` IS used; the old unused `WellPointed F.dom` hypothesis is
+    dropped since the per-singleton statement does not need it.
+
+    Proof: for each point `x : 1 → F.dom`, `interIntersection (x ≫ F.arr)` is named by F
+    via `nameOf_interIntersection`, witnessed by the point `x`; apply `hL`. -/
+theorem inter_le_singleton_named {A : 𝒞} (F : Subobject 𝒞 (powObj A))
     (L : Subobject 𝒞 A)
-    (_hL : ∀ A' : Subobject 𝒞 A, NamedBy A' F → Subobject.le L A') :
+    (hL : ∀ A' : Subobject 𝒞 A, NamedBy A' F → Subobject.le L A') :
     ∀ x : one ⟶ F.dom,
         Subobject.le L (interIntersection (x ≫ F.arr)) := by
   intro x
   -- ∩(x ≫ F.arr) is named by F: its name is x ≫ F.arr, witnessed by the point x.
-  apply _hL
+  apply hL
   exact ⟨x, by rw [nameOf_interIntersection]⟩
 
 /-! ## §1.944  A topos has a strict coterminator
@@ -288,20 +294,44 @@ theorem inter_is_glb {A : 𝒞} (F : Subobject 𝒞 (powObj A))
 
 /-- **§1.944**: A topos has a strict coterminator.
     The minimal subobject of 1 (= ∩∅) is initial and strict: any B with
-    a map B → ∩∅ has no proper subobjects, hence B ≅ ∩∅. -/
+    a map B → ∩∅ has no proper subobjects, hence B ≅ ∩∅.
+
+    BLOCKER (faithful sorry): the initial object is `⋂∅`, the glb of the *empty*
+    family over `1`.  This file only has `interIntersection` for a single global
+    name `1 → [A]` (a singleton family); the `⋂F`-over-a-subobject-family glb that
+    §1.943 actually asserts is not constructed here — it needs §1.54's
+    `capitalization_lemma` (itself still `sorry`) to terminate the transfinite
+    A ⊆ A* iteration that builds the glb.  No current arm yields the empty glb. -/
 theorem topos_has_strict_coterminator : Nonempty (HasCoterminator 𝒞) := by
   sorry
 
 /-- **§1.945**: A topos is regular — images exist and pullbacks transfer covers.
     For f : A → B let F = {B' ↣ B | f factors through B'}; then ∩F is the image
-    of f (§1.943 + capitalization lemma §1.54). -/
+    of f (§1.943 + capitalization lemma §1.54).
+
+    BLOCKER (faithful sorry): `RegularCategory` bundles `HasImages` (the topos has
+    `HasTerminal`/`HasBinaryProducts`/`HasPullbacks` already, the latter via
+    `HasSubobjectClassifier`, but `HasImages` is NOT derived from `Topos`).  The
+    only topos construction of `image f` is exactly `⋂{B' | f factors through B'}` —
+    the §1.943 glb over a subobject *family*, which this file does not build (see
+    `inter_le_singleton_named`: only the singleton bound is available).  That glb,
+    and hence `HasImages`, rests on §1.54's `capitalization_lemma` (still `sorry`).
+    `PullbacksTransferCovers` is likewise the topos exactness fact (cf. the still-
+    `sorry` `topos_is_effective` in S1_95).  No fully-supported arm here. -/
 theorem topos_is_regular : Nonempty (RegularCategory 𝒞) := by
   sorry
 
 /-- **§1.946**: A topos is a logos — a regular category in which every inverse-image
     functor f# : 𝒫(B) → 𝒫(A) has a right adjoint f## (§1.946).
     Binary unions: A₁ ∪ A₂ = ∩{B' | A₁ ⊆ B' ∧ A₂ ⊆ B'} via §1.943.
-    (Uses local Logos'; canonical Logos is in S1_70 which has a build error.) -/
+    (Uses local Logos'; canonical Logos is in S1_70 which has a build error.)
+
+    BLOCKER (faithful sorry): `Logos'` extends `RegularCategory` (blocked, see
+    `topos_is_regular`) plus `HasSubobjectUnions` and the right adjoint `f##`.
+    Binary union `A₁ ∪ A₂ = ⋂{B' | A₁ ⊆ B' ∧ A₂ ⊆ B'}` and `f##` are both `⋂F`
+    glb's over subobject families — again the §1.54 `capitalization_lemma`-backed
+    glb that this file lacks (`inter_le_singleton_named` gives only the singleton
+    bound). -/
 theorem topos_is_logos : Nonempty (Logos' 𝒞) := by
   sorry
 
@@ -329,7 +359,11 @@ theorem topos_is_logos : Nonempty (Logos' 𝒞) := by
 
 /-- **§1.947**: A topos has the reflexive-transitive closure of any endo-relation.
     Given reflexive R on B, the subobject ∩F (for suitable F ⊆ [B×B]) is R*.
-    (Faithful sorry — proof requires the full §1.943 glb theorem + capitalization.) -/
+
+    BLOCKER (faithful sorry): R* is `⋂(F₁ ∩ F₂)`, the glb over the subobject family
+    of reflexive pre-closed relations on B×B — the §1.943 `⋂F` glb that this file
+    does not construct (`inter_le_singleton_named` is only the singleton bound).
+    It rests on §1.54's `capitalization_lemma` (still `sorry`). -/
 theorem topos_has_rtc {B : 𝒞} (R : Subobject 𝒞 (prod B B))
     (_hRefl : Subobject.le (Subobject.entire (prod B B)) R) :
     ∃ Rstar : Subobject 𝒞 (prod B B),
@@ -407,7 +441,11 @@ theorem singletonMap_monic (A : 𝒞) : Mono (singletonMap A) :=
 /-- **§1.94(10)**: A capital topos is solvable.
     In a capital topos, A* = A if A is well-supported (Cover (term A)),
     else A* = 0 (the minimal subobject from §1.944).
-    Faithful sorry — proof uses the capitalization lemma §1.54. -/
+
+    BLOCKER (faithful sorry): the `A* = 0` branch needs the strict coterminator
+    (`topos_has_strict_coterminator`, blocked) and the well-pointed-part lub is the
+    §1.943 `⋃`/`⋂F` glb over a family — all backed by §1.54's `capitalization_lemma`
+    (still `sorry`).  `_hcap : Capital` alone does not supply these. -/
 theorem capital_is_solvable [HasImages 𝒞] (_hcap : Capital (𝒞 := 𝒞)) :
     ∀ (A : 𝒞), ∃ Astar : Subobject 𝒞 A, IsWellPointedPart Astar := by
   sorry
