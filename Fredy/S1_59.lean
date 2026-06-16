@@ -56,6 +56,20 @@ theorem zero_morphism_comp [HasZeroObject 𝒞] {A B C : 𝒞} (f : A ⟶ B) (g 
   rw [← Cat.assoc]
   rw [term_uniq (f ≫ term B) (term A)]
 
+/-- Left-ideal half of §1.591: `0 ≫ g = 0`.  Maps out of the zero object are unique
+  (coterminality), so the `one → C` tail of the zero morphism is absorbed by `g`. -/
+theorem zeroMorphism_comp_left [HasZeroObject 𝒞] {A B C : 𝒞} (g : B ⟶ C) :
+    zeroMorphism A B ≫ g = zeroMorphism A C := by
+  dsimp [zeroMorphism]
+  rw [Cat.assoc]
+  congr 1
+  -- both sides are `one → C`; since `one = coterm`, maps out of `one` are unique
+  -- (coterminal uniqueness transported), so the two tails coincide.
+  have huniq : ∀ (p q : (HasTerminal.one : 𝒞) ⟶ C), p = q := by
+    rw [HasZeroObject.zero_eq_one (𝒞 := 𝒞)]
+    exact fun p q => HasCoterminator.init_uniq p q
+  exact huniq _ _
+
 /-! ## §1.592 Kernels and cokernels
 
   KERNEL of x: equalizer of (x, 0).  COKERNEL: coequalizer of (x, 0). -/
@@ -248,9 +262,14 @@ def HomAb {𝒞 : Type u} [Cat.{v} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts �
   of the kernel.  θ is this factorization morphism. -/
 class ExactCategory (𝒞 : Type u) [Cat.{v} 𝒞]
     extends HasZeroObject 𝒞, HasEqualizers 𝒞, HasCoequalizers 𝒞 where
-  /-- The canonical coimage-to-image map θ : coker(ker x) → ker(coker x) is an iso. -/
+  /-- The canonical coimage-to-image map θ : coker(ker x) → ker(coker x) is an iso,
+    AND it is the canonical factorization: it makes
+      coimage-projection ≫ θ ≫ image-inclusion = x.
+    (Freyd §1.597 defines exactness by *this specific* map being an iso, so the
+    factorization equation is part of the data, not an afterthought.) -/
   exact : ∀ {A B : 𝒞} (x : A ⟶ B),
-    ∃ (θ : Cokernel (kernelMap x) ⟶ Kernel (cokernelMap x)), IsIso θ
+    ∃ (θ : Cokernel (kernelMap x) ⟶ Kernel (cokernelMap x)),
+      IsIso θ ∧ cokernelMap (kernelMap x) ≫ θ ≫ kernelMap (cokernelMap x) = x
 
 /-! §1.597 key lemma: if A ↣ B is monic and q : B → Q is its cokernel, then A is
   the kernel of q.  (Follows from the exact factorization.) -/
@@ -259,7 +278,39 @@ theorem monic_kernel_of_cokernel {𝒞 : Type u} [Cat.{v} 𝒞] [ExactCategory �
     let Q := Cokernel x
     let q := cokernelMap x
     ∃ (h : A ⟶ Kernel q), IsIso h ∧ h ≫ kernelMap q = x := by
-  sorry
+  intro Q q
+  -- (1) x monic ⟹ kernelMap x is the zero morphism Kernel x → A.
+  --     Both `kernelMap x ≫ x` and `(zeroMorphism …) ≫ x` equal the zero morphism
+  --     Kernel x → B, so monicity of x identifies the two maps into A.
+  have hk0 : kernelMap x = zeroMorphism (Kernel x) A :=
+    hx (kernelMap x) (zeroMorphism (Kernel x) A) <| by
+      calc kernelMap x ≫ x
+          = kernelMap x ≫ zeroMorphism A B := kernelMap_eq x
+        _ = zeroMorphism (Kernel x) B := zero_morphism_comp (kernelMap x) x
+        _ = zeroMorphism (Kernel x) A ≫ x := (zeroMorphism_comp_left x).symm
+  -- (2) cokernelMap (kernelMap x) : A → Cokernel(kernelMap x) is an iso, because the
+  --     coequalized pair (kernelMap x, 0) is a pair of EQUAL maps, whose coequalizer
+  --     map is split by `desc id`.
+  have hcofac : kernelMap x ≫ Cat.id A = zeroMorphism (Kernel x) A ≫ Cat.id A := by
+    rw [hk0]
+  let co := HasCoequalizers.coeq (kernelMap x) (zeroMorphism (Kernel x) A)
+  -- the splitting r : Cokernel(kernelMap x) → A
+  let r : Cokernel (kernelMap x) ⟶ A := co.desc (Cat.id A) hcofac
+  have hmr : cokernelMap (kernelMap x) ≫ r = Cat.id A := co.fac (Cat.id A) hcofac
+  have hrm : r ≫ cokernelMap (kernelMap x) = Cat.id (Cokernel (kernelMap x)) := by
+    -- both `r ≫ map` and `id` are `desc map`, by the coequalizer's uniqueness.
+    have key : ∀ m : Cokernel (kernelMap x) ⟶ Cokernel (kernelMap x),
+        cokernelMap (kernelMap x) ≫ m = cokernelMap (kernelMap x) →
+        m = co.desc (cokernelMap (kernelMap x)) co.eq :=
+      fun m hm => co.uniq (cokernelMap (kernelMap x)) co.eq m hm
+    rw [key (r ≫ cokernelMap (kernelMap x))
+          (by rw [← Cat.assoc, hmr, Cat.id_comp]),
+        key (Cat.id _) (by rw [Cat.comp_id])]
+  have hc_iso : IsIso (cokernelMap (kernelMap x)) := ⟨r, hmr, hrm⟩
+  -- (3) The exact-factorization data: θ iso, cokernelMap(kernelMap x) ≫ θ ≫ kernelMap q = x.
+  obtain ⟨θ, hθ, hfac⟩ := ExactCategory.exact x
+  refine ⟨cokernelMap (kernelMap x) ≫ θ, isIso_comp hc_iso hθ, ?_⟩
+  rw [Cat.assoc]; exact hfac
 
 /-! §1.597: A is abelian iff it is an exact additive category (with binary products
   or coproducts).

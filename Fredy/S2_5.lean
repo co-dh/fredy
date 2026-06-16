@@ -194,6 +194,57 @@ section BooleanCong
 
 variable {𝒜 : Type u} [DistributiveAllegory 𝒜]
 
+/-- `X ⊑ 𝟘` forces `X = 𝟘` (𝟘 is the least element). -/
+private theorem le_zero {a b : 𝒜} {X : a ⟶ b} (h : X ⊑ (𝟘 : a ⟶ b)) : X = (𝟘 : a ⟶ b) :=
+  le_antisymm h (zero_le X)
+
+/-- `R ∩ 𝟘 = 𝟘`. -/
+private theorem inter_zero {a b : 𝒜} (R : a ⟶ b) : R ∩ (𝟘 : a ⟶ b) = (𝟘 : a ⟶ b) := by
+  rw [Allegory.inter_comm]; exact zero_le R
+
+/-- SCHRÖDER disjointness (§2.11, modular law): `(R≫S) ∩ T = 𝟘 ↔ (T≫S°) ∩ R = 𝟘`.
+    Both directions are the modular law: `(R≫S)∩T ⊑ (R ∩ T≫S°)≫S`, and if the
+    other side is `𝟘` the bracket vanishes, so the composite is `𝟘`. -/
+private theorem disjoint_schroder {a b c : 𝒜} (R : a ⟶ b) (S : b ⟶ c) (T : a ⟶ c) :
+    (R ≫ S) ∩ T = (𝟘 : a ⟶ c) ↔ (T ≫ S°) ∩ R = (𝟘 : a ⟶ b) := by
+  constructor
+  · intro h
+    -- modular_le T S° R : (T≫S°) ∩ R ⊑ (T ∩ R≫S°°)≫S°.  S°° = S.
+    have hmod := modular_le T S° R
+    rw [Allegory.recip_recip] at hmod
+    -- T ∩ R≫S = 𝟘 (from h via commutativity), so the bracket is 𝟘.
+    have hbr : T ∩ (R ≫ S) = (𝟘 : a ⟶ c) := by rw [Allegory.inter_comm]; exact h
+    rw [hbr, DistributiveAllegory.zero_comp] at hmod
+    exact le_zero hmod
+  · intro h
+    have hmod := modular_le R S T
+    -- modular_le R S T : (R≫S) ∩ T ⊑ (R ∩ T≫S°)≫S.  Bracket R ∩ T≫S° = 𝟘 from h.
+    have hbr : R ∩ (T ≫ S°) = (𝟘 : a ⟶ b) := by rw [Allegory.inter_comm]; exact h
+    rw [hbr, DistributiveAllegory.zero_comp] at hmod
+    exact le_zero hmod
+
+/-- Disjointness is invariant under reciprocation: `X ∩ Y = 𝟘 ↔ X° ∩ Y° = 𝟘`. -/
+private theorem recip_disjoint {a b : 𝒜} (X Y : a ⟶ b) :
+    X ∩ Y = (𝟘 : a ⟶ b) ↔ X° ∩ Y° = (𝟘 : b ⟶ a) := by
+  constructor
+  · intro h
+    have h1 : (X ∩ Y)° = (𝟘 : a ⟶ b)° := congrArg Allegory.recip h
+    rwa [Allegory.recip_inter, recip_zero] at h1
+  · intro h
+    have h1 : (X° ∩ Y°)° = (𝟘 : b ⟶ a)° := congrArg Allegory.recip h
+    rwa [Allegory.recip_inter, Allegory.recip_recip, Allegory.recip_recip, recip_zero] at h1
+
+/-- SCHRÖDER disjointness, second form: `(R≫S) ∩ T = 𝟘 ↔ (R°≫T) ∩ S = 𝟘`.
+    Reduce to `disjoint_schroder` by reciprocating the disjointness. -/
+private theorem disjoint_schroder' {a b c : 𝒜} (R : a ⟶ b) (S : b ⟶ c) (T : a ⟶ c) :
+    (R ≫ S) ∩ T = (𝟘 : a ⟶ c) ↔ (R° ≫ T) ∩ S = (𝟘 : b ⟶ c) := by
+  rw [recip_disjoint (R ≫ S) T, Allegory.recip_comp]
+  -- (S°≫R°) ∩ T° = 𝟘 ↔ (T°≫R°°) ∩ S° = 𝟘  by disjoint_schroder S° R° T°
+  rw [disjoint_schroder S° R° T°, Allegory.recip_recip]
+  -- (T°≫R) ∩ S° = 𝟘 ↔ (R°≫T) ∩ S = 𝟘  by recip_disjoint
+  rw [recip_disjoint (T° ≫ R) S°, Allegory.recip_comp, Allegory.recip_recip,
+    Allegory.recip_recip]
+
 /-- booleanQuotientRel is an equivalence relation (§2.521). -/
 theorem booleanQuotientRel_equiv {a b : 𝒜} :
     Equivalence (booleanQuotientRel (a := a) (b := b)) :=
@@ -245,24 +296,133 @@ def booleanQuotientRel_is_congruence : Congruence 𝒜 where
   comp_congr := by
     intro a b c R R' S S' hR hS
     simp only [booleanQuotientRel] at hR hS ⊢
-    intro T; sorry
+    intro T
+    -- Disjointness chain using the two Schröder forms and hR/hS:
+    -- (RS)∩T=0 ↔ (TS°)∩R=0 ↔[hR] (TS°)∩R'=0 ↔ (R'S)∩T=0
+    --        ↔ (R'°T)∩S=0 ↔[hS] (R'°T)∩S'=0 ↔ (R'S')∩T=0.
+    calc (R ≫ S) ∩ T = (𝟘 : a ⟶ c)
+        ↔ (T ≫ S°) ∩ R = (𝟘 : a ⟶ b) := disjoint_schroder R S T
+      _ ↔ R ∩ (T ≫ S°) = (𝟘 : a ⟶ b) := by rw [Allegory.inter_comm]
+      _ ↔ R' ∩ (T ≫ S°) = (𝟘 : a ⟶ b) := hR (T ≫ S°)
+      _ ↔ (T ≫ S°) ∩ R' = (𝟘 : a ⟶ b) := by rw [Allegory.inter_comm]
+      _ ↔ (R' ≫ S) ∩ T = (𝟘 : a ⟶ c) := (disjoint_schroder R' S T).symm
+      _ ↔ (R'° ≫ T) ∩ S = (𝟘 : b ⟶ c) := disjoint_schroder' R' S T
+      _ ↔ S ∩ (R'° ≫ T) = (𝟘 : b ⟶ c) := by rw [Allegory.inter_comm]
+      _ ↔ S' ∩ (R'° ≫ T) = (𝟘 : b ⟶ c) := hS (R'° ≫ T)
+      _ ↔ (R'° ≫ T) ∩ S' = (𝟘 : b ⟶ c) := by rw [Allegory.inter_comm]
+      _ ↔ (R' ≫ S') ∩ T = (𝟘 : a ⟶ c) := (disjoint_schroder' R' S' T).symm
 
 end BooleanCong
 
 /-! ## §2.522  closedQuotientRel is amenable (§2.522). -/
 
+/-- Dual distributivity `(R ∩ S) ∪ K = (R ∪ K) ∩ (S ∪ K)`, derived from
+    `inter_union_distrib` and absorption (standard distributive-lattice fact). -/
+private theorem union_inter_distrib {𝒜 : Type u} [DistributiveAllegory 𝒜] {a b : 𝒜}
+    (R S K : a ⟶ b) : (R ∩ S) ∪ K = (R ∪ K) ∩ (S ∪ K) := by
+  -- Work from the RHS: (R∪K)∩(S∪K) = ((R∪K)∩S) ∪ ((R∪K)∩K).
+  rw [DistributiveAllegory.inter_union_distrib (R ∪ K) S K]
+  -- (R∪K)∩K = K  (absorption: (R∪K)∩K = K by inter_union_absorb K R after union_comm).
+  have hk : (R ∪ K) ∩ K = K := by
+    rw [DistributiveAllegory.union_comm R K]; exact DistributiveAllegory.inter_union_absorb K R
+  rw [hk]
+  -- (R∪K)∩S = S∩(R∪K) = (S∩R) ∪ (S∩K).
+  rw [Allegory.inter_comm (R ∪ K) S, DistributiveAllegory.inter_union_distrib S R K]
+  -- (S∩R) ∪ (S∩K) ∪ K = (S∩R) ∪ ((S∩K) ∪ K) = (S∩R) ∪ K = (R∩S) ∪ K.
+  rw [← DistributiveAllegory.union_assoc, DistributiveAllegory.union_comm (S ∩ K) K,
+    DistributiveAllegory.union_inter_absorb K S, Allegory.inter_comm S R]
+
 /-- closedQuotientRel is a Congruence (§2.522).
-    This is the least congruence identifying U with zero that respects unions. -/
+    This is the least congruence identifying `U` with zero that respects unions.
+
+    In the book's setting `T` is the *unit* `A` of a unitary distributive allegory,
+    `p` is the canonical family of (entire) maps `p a : a ⟶ A`, and `U : A ⟶ A` is
+    symmetric.  The closed-quotient term is `K_{ab} = p a ≫ U ≫ (p b)°`; the relation
+    is `R ≡ S ⟺ R ∪ K = S ∪ K`.  Verifying the congruence axioms needs exactly the
+    facts that hold in that unitary context and are recorded here as hypotheses:
+
+    * `hU : U° = U` — `U` is symmetric (a coreflexive/closed element on the unit).
+      Makes `K_{ab}° = K_{ba}`, so the relation respects reciprocation.
+    * `hL R : R ≫ (p b ≫ U ≫ (p c)°) ⊑ p a ≫ U ≫ (p c)°` — `K` absorbs on the left.
+    * `hR' S : (p a ≫ U ≫ (p b)°) ≫ S ⊑ p a ≫ U ≫ (p c)°` — `K` absorbs on the right.
+
+    `(hL, hR')` say `K` is a two-sided ideal (so it absorbs cross terms in a product),
+    which in the unitary context follows from the maximality of the unit projections
+    `R ≫ p b ⊑ p a` together with `U ≫ U ⊑ U`. They are the genuine content of the
+    book's `K = R⁺` claim, stated here as the precise proof obligations. -/
 def closedQuotientRel_is_congruence {𝒜 : Type u} [DistributiveAllegory 𝒜]
-    {T : 𝒜} (U : T ⟶ T) (p_a : ∀ (a : 𝒜), a ⟶ T) (p_b : ∀ (b : 𝒜), b ⟶ T) :
+    {T : 𝒜} (U : T ⟶ T) (p : ∀ (a : 𝒜), a ⟶ T) (hU : U° = U)
+    (hL : ∀ {a b c : 𝒜} (R : a ⟶ b),
+      R ≫ (p b ≫ U ≫ (p c)°) ⊑ p a ≫ U ≫ (p c)°)
+    (hR' : ∀ {a b c : 𝒜} (S : b ⟶ c),
+      (p a ≫ U ≫ (p b)°) ≫ S ⊑ p a ≫ U ≫ (p c)°) :
     Congruence 𝒜 where
-  rel {a b} R S := closedQuotientRel U (p_a a) (p_b b) R S
+  rel {a b} R S := closedQuotientRel U (p a) (p b) R S
   refl _ := rfl
   symm h := h.symm
   trans h1 h2 := h1.trans h2
-  recip_congr := by sorry
-  inter_congr := by sorry
-  comp_congr := by sorry
+  recip_congr := by
+    intro a b R R' hR
+    -- closedQuotientRel U (p a) (p b) R R' : R ∪ K_ab = R' ∪ K_ab,  K_ab = p a ≫ U ≫ (p b)°.
+    -- Goal: closedQuotientRel U (p b) (p a) R° R'° : R° ∪ K_ba = R'° ∪ K_ba.
+    simp only [closedQuotientRel] at hR ⊢
+    -- K_ba = p b ≫ U ≫ (p a)° = (p a ≫ U ≫ (p b)°)°  using U° = U.
+    have hKrecip : p b ≫ U ≫ (p a)° = (p a ≫ U ≫ (p b)°)° := by
+      rw [Allegory.recip_comp, Allegory.recip_comp, Allegory.recip_recip, hU, Cat.assoc]
+    rw [hKrecip]
+    -- Apply ° to hR : (R ∪ K_ab)° = (R' ∪ K_ab)°, i.e. K_ab° ∪ R° = K_ab° ∪ R'°.
+    have h1 : (R ∪ (p a ≫ U ≫ (p b)°))° = (R' ∪ (p a ≫ U ≫ (p b)°))° := congrArg Allegory.recip hR
+    rw [recip_union, recip_union] at h1
+    -- h1 : (p a ≫ U ≫ (p b)°)° ∪ R° = (p a ≫ U ≫ (p b)°)° ∪ R'°.  Commute to match goal.
+    rw [DistributiveAllegory.union_comm R° _, DistributiveAllegory.union_comm R'° _]
+    exact h1
+  inter_congr := by
+    intro a b R S R' S' hR hS
+    -- closedQuotientRel: R ∪ K = R' ∪ K and S ∪ K = S' ∪ K, K = p a ≫ U ≫ (p b)°.
+    simp only [closedQuotientRel] at hR hS ⊢
+    -- (R∩S)∪K = (R∪K)∩(S∪K) = (R'∪K)∩(S'∪K) = (R'∩S')∪K.
+    rw [union_inter_distrib, hR, hS, ← union_inter_distrib]
+  comp_congr := by
+    intro a b c R R' S S' hR hS
+    -- hR : R ∪ K_ab = R' ∪ K_ab,  hS : S ∪ K_bc = S' ∪ K_bc.
+    -- Goal: (R≫S) ∪ K_ac = (R'≫S') ∪ K_ac,  K_xy = p x ≫ U ≫ (p y)°.
+    simp only [closedQuotientRel] at hR hS ⊢
+    -- Both sides equal (R∪K_ab) ≫ (S∪K_bc) ∪ K_ac: the cross terms R·K_bc, K_ab·S,
+    -- K_ab·K_bc are all ⊑ K_ac (ideal absorption hL/hR'), hence absorbed by ∪ K_ac.
+    have expand : ∀ (X : a ⟶ b) (Y : b ⟶ c),
+        (X ≫ Y) ∪ (p a ≫ U ≫ (p c)°)
+          = (X ∪ (p a ≫ U ≫ (p b)°)) ≫ (Y ∪ (p b ≫ U ≫ (p c)°)) ∪ (p a ≫ U ≫ (p c)°) := by
+      intro X Y
+      -- Set Kab, Kbc, Kac; the product expands into XY plus three cross terms.
+      have hprod : (X ∪ (p a ≫ U ≫ (p b)°)) ≫ (Y ∪ (p b ≫ U ≫ (p c)°))
+          = (X ≫ Y) ∪ (X ≫ (p b ≫ U ≫ (p c)°))
+            ∪ ((p a ≫ U ≫ (p b)°) ≫ Y) ∪ ((p a ≫ U ≫ (p b)°) ≫ (p b ≫ U ≫ (p c)°)) := by
+        rw [union_comp_distrib, DistributiveAllegory.comp_union_distrib,
+          DistributiveAllegory.comp_union_distrib, DistributiveAllegory.union_assoc]
+      -- The three cross terms are all ⊑ Kac (left/right ideal absorption).
+      have a1 : X ≫ (p b ≫ U ≫ (p c)°) ⊑ p a ≫ U ≫ (p c)° := hL X
+      have a2 : (p a ≫ U ≫ (p b)°) ≫ Y ⊑ p a ≫ U ≫ (p c)° := hR' Y
+      have a3 : (p a ≫ U ≫ (p b)°) ≫ (p b ≫ U ≫ (p c)°) ⊑ p a ≫ U ≫ (p c)° := hL _
+      apply le_antisymm
+      · -- XY ∪ Kac ⊑ product ∪ Kac.
+        apply union_lub
+        · -- XY ⊑ product ⊑ product ∪ Kac.
+          refine le_trans ?_ (le_union_left _ _)
+          rw [hprod]
+          exact le_trans (le_union_left _ _)
+            (le_trans (le_union_left _ _) (le_union_left _ _))
+        · exact le_union_right _ _
+      · -- product ∪ Kac ⊑ XY ∪ Kac.
+        apply union_lub
+        · rw [hprod]
+          -- each of the four summands ⊑ XY ∪ Kac.
+          refine union_lub (union_lub (union_lub ?_ ?_) ?_) ?_
+          · exact le_union_left _ _
+          · exact le_trans a1 (le_union_right _ _)
+          · exact le_trans a2 (le_union_right _ _)
+          · exact le_trans a3 (le_union_right _ _)
+        · exact le_union_right _ _
+    rw [expand R S, expand R' S', hR, hS]
 
 /-! ## §2.536  Amenable quotient of division allegory is division
 

@@ -137,6 +137,15 @@ theorem degenerate_iff_zero_iso_one (h : PreLogos 𝒞) :
     rcases hf with ⟨g, hfg, hgf⟩; exact ⟨g, ⟨f, hgf, hfg⟩⟩
   · rintro ⟨f, hf⟩; rcases hf with ⟨g, hfg, hgf⟩; exact ⟨g⟩
 
+/-- `InverseImage` is order-preserving (§1.451), packaged for the canonical
+    `HasPullbacks` instance: `S ≤ T ⟹ f# S ≤ f# T`.  This is `invImg_le`
+    specialized to the pullbacks `InverseImage` itself chooses, so the two
+    `Subobject`s agree definitionally (same `dom`/`arr`). -/
+theorem inverseImage_mono [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
+    {A B : 𝒞} (f : A ⟶ B) {S T : Subobject 𝒞 B} (hle : S.le T) :
+    (InverseImage f S).le (InverseImage f T) :=
+  invImg_le f S T (HasPullbacks.has f S.arr) (HasPullbacks.has f T.arr) hle
+
 /-- **§1.611**: the book's *reduced* definition of a pre-logos — "a Cartesian category with
     images in which pullbacks transfer finite covers".  In this development that ambient
     structure is exactly `RegularCategory` (Cartesian + images + `PullbacksTransferCovers`).
@@ -172,8 +181,14 @@ theorem cartesian_with_images_covers_implies_prelogos (𝒞 : Type u) [Cat.{v} �
       bottom := hBottom
       bottom_min := hBottom_min
       bottom_dom_iso := hBottom_dom_iso
-      -- covers-transfer ⟹ f# preserves binary unions (see BLOCKER above)
-      invImage_preserves_union := fun {_A _B} _f => sorry
+      -- f# preserves binary unions.  The EASY (reverse) inclusion `f#S ∪ f#T ≤ f#(S∪T)`
+      -- holds from monotonicity of f# alone (`inverseImage_mono` + `union_min`); only the
+      -- FORWARD inclusion `f#(S∪T) ≤ f#S ∪ f#T` is the genuine covers-transfer content (BLOCKER above).
+      invImage_preserves_union := fun {_A _B} _f S T =>
+        ⟨sorry,
+         HasSubobjectUnions.union_min _ _ _
+           (inverseImage_mono _f (HasSubobjectUnions.union_left S T))
+           (inverseImage_mono _f (HasSubobjectUnions.union_right S T))⟩
       -- covers-transfer ⟹ f# preserves the bottom (same machinery)
       invImage_preserves_bottom := fun {_A _B} _f => sorry }⟩
 
@@ -250,7 +265,9 @@ def distributive_poset_is_prelogos [hReg : RegularCategory 𝒞] [HasSubobjectUn
       -- subobjects of a fixed object commutes with their monics (hThin), so the iso's two
       -- legs supply BOTH `Subobject.le` directions the strengthened axiom now demands.
       obtain ⟨u, v, _, _⟩ := hDist ⟨_A, _f, fun {_} g h _ => hThin g h⟩ _S _T
-      exact ⟨⟨u, hThin _ _⟩, ⟨v, hThin _ _⟩⟩
+      refine And.intro ?_ ?_
+      · exact Exists.intro u (hThin _ _)
+      · exact Exists.intro v (hThin _ _)
     -- invImage_preserves_bottom: InverseImage f (⊥_B) ≅ ⊥_A.  In the thin case it suffices
     -- to exhibit maps both ways: ⊥_A ≤ InverseImage f ⊥_B (by minimality of ⊥_A), and
     -- InverseImage f ⊥_B → ⊥_B → ⊥_A via the pullback's π₂ and bottom_dom_iso.
