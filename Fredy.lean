@@ -52,6 +52,7 @@ import Fredy.CapitalizationTransfinite
 import Fredy.RelativeCapitalization
 import Fredy.Inflation
 import Fredy.S2_1
+import Fredy.S2_21
 import Fredy.S2_2
 import Fredy.S2_22
 import Fredy.S2_3
