@@ -15,7 +15,13 @@ class Cat.{w, z} (𝒞 : Type z) : Type (max z (w + 1)) where
   assoc   : ∀ {W X Y Z : 𝒞} (f : Hom W X) (g : Hom X Y) (h : Hom Y Z),
               comp (comp f g) h = comp f (comp g h)
 
-infixr:25 " ⟶ "  => Cat.Hom
-infixr:80 " ≫ "  => Cat.comp
+-- `scoped` in `Freyd` (active only under `open Freyd`, which every Fredy file does) so a bridge
+-- file MAY import `Mathlib.CategoryTheory` without the `«term_⟶_»` global-notation clash against
+-- mathlib's `Quiver` `⟶`. Keeps the §1.543 mathlib route's bridge file possible. (`Cat` is at
+-- `_root_`; the notation just lives in the `Freyd` scope.)
+namespace Freyd
+scoped infixr:25 " ⟶ "  => Cat.Hom
+scoped infixr:80 " ≫ "  => Cat.comp
+end Freyd
 
 
