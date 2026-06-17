@@ -1210,6 +1210,65 @@ theorem homInclObj_mono_of_stage (C : CatSystem ι D) (hC : C.Coherent)
   exact colimHom_mono_of_rep (A := C.objIncl i x) (B := C.objIncl i y) C hC
     ⟨w.K, w.hpx, w.hpy⟩ (w.germ g) hcancel' p q hpq
 
+/-- **Iso preservation for the stage inclusion.**  A stage iso `g : x ⟶ y` (inverse
+    `g'`) is carried to an iso `homInclObj g` in `colimitCat`.  The chosen-witness germ
+    `w.germ g = castHom ∘ functF.map g`; the witness germ of `g'` at the *swapped* bound
+    is its inverse (functoriality of `functF` + `castHom_comp` collapse both composites
+    to `castHom ∘ functF.map (g ≫ g') = castHom ∘ functF.map id = id`), so
+    `colimHom_isIso_of_rep` yields the colimit iso.  Dual to `homInclObj_isIso_reflects`. -/
+theorem homInclObj_isIso_of_stage (C : CatSystem ι D) (hC : C.Coherent)
+    {i : ι} {x y : C.A i} (g : x ⟶ y) (g' : y ⟶ x)
+    (h1 : g ≫ g' = Cat.id x) (h2 : g' ≫ g = Cat.id y) :
+    @IsIso C.Obj (colimitCat C hC) (C.objIncl i x) (C.objIncl i y) (homInclObj C hC g) := by
+  let w := hioWitness C hC x y
+  rw [homInclObj_eq C hC g w]
+  -- inverse germ: `g'` transported at the swapped bound, with the witness rep-equalities
+  refine colimHom_isIso_of_rep (A := C.objIncl i x) (B := C.objIncl i y) C hC
+    ⟨w.K, w.hpx, w.hpy⟩ (w.germ g) (castHom w.hgy.symm w.hgx.symm ((C.functF w.hix).map g')) ?_ ?_
+  · -- (w.germ g) ≫ (inverse germ) = id
+    show castHom w.hgx.symm w.hgy.symm ((C.functF w.hix).map g)
+        ≫ castHom w.hgy.symm w.hgx.symm ((C.functF w.hix).map g') = Cat.id _
+    rw [castHom_comp, ← (C.functF w.hix).map_comp, h1, (C.functF w.hix).map_id, castHom_id]
+  · show castHom w.hgy.symm w.hgx.symm ((C.functF w.hix).map g')
+        ≫ castHom w.hgx.symm w.hgy.symm ((C.functF w.hix).map g) = Cat.id _
+    rw [castHom_comp, ← (C.functF w.hix).map_comp, h2, (C.functF w.hix).map_id, castHom_id]
+
+/-- **Cover preservation for the stage inclusion.**  If `g : x ⟶ y` is a cover that
+    stays a cover under *every* transition from `i` (`hcov`), then `homInclObj g` is a
+    cover in `colimitCat`.  Apply `colimHom_cover_of_rep` to the chosen-witness germ:
+    pushing it to a stage `L` gives `castHom ∘ functF.map g` (over `D.trans w.hix L`),
+    so `cover_castHom` reduces the per-stage cover obligation to `hcov`.  Dual to
+    `homInclObj_cover_reflects`; with per-stage cover-stability this lifts a stage cover
+    to the colimit (item (2) in the `hcanon` residual). -/
+theorem homInclObj_cover_of_stage (C : CatSystem ι D) (hC : C.Coherent)
+    (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (p q : x ⟶ y),
+        (C.functF hij).map p = (C.functF hij).map q → p = q)
+    {i : ι} {x y : C.A i} (g : x ⟶ y)
+    (hcov : ∀ {j : ι} (hij : D.le i j), Cover ((C.functF hij).map g)) :
+    @Cover C.Obj (colimitCat C hC) (C.objIncl i x) (C.objIncl i y) (homInclObj C hC g) := by
+  let w := hioWitness C hC x y
+  rw [homInclObj_eq C hC g w]
+  have hcov' : ∀ (L : ι) (hwL : D.le w.K L), Cover ((C.functF hwL).map (w.germ g)) := by
+    intro L hwL
+    -- the germ pushed to `L` is `castHom .. (functF (w.hix ≫ L)).map g`; cover_castHom + hcov
+    have e_x : C.F hwL (C.F w.hpx (colimOut C (C.objIncl i x)).2) = C.F (D.trans w.hix hwL) x :=
+      (congrArg (C.F hwL) w.hgx).trans (C.F_trans w.hix hwL x).symm
+    have e_y : C.F hwL (C.F w.hpy (colimOut C (C.objIncl i y)).2) = C.F (D.trans w.hix hwL) y :=
+      (congrArg (C.F hwL) w.hgy).trans (C.F_trans w.hix hwL y).symm
+    have hgerm_map : (C.functF hwL).map (w.germ g)
+        = castHom e_x.symm e_y.symm ((C.functF (D.trans w.hix hwL)).map g) := by
+      dsimp only [HioWitness.germ]
+      rw [map_castHom (C.F hwL) (hT := C.functF hwL)]
+      exact castHom_heq_congr _ _ e_x.symm e_y.symm (hC.trans_map w.hix hwL g).symm
+    rw [hgerm_map]
+    -- `apply` (not `exact …  _`) so Lean resolves `cover_castHom`'s `m` metavar before
+    -- the `Cover`-fold unification (a bare `_` leaves the result type η-expanded).
+    apply cover_castHom e_x.symm e_y.symm
+    exact hcov (D.trans w.hix hwL)
+  apply colimHom_cover_of_rep (A := C.objIncl i x) (B := C.objIncl i y) C hC hfaith
+    ⟨w.K, w.hpx, w.hpy⟩ (w.germ g)
+  exact hcov'
+
 /-- **Iso reflection for the stage inclusion.**  If `homInclObj g` is an isomorphism in
     `colimitCat` and transitions are conservative (`hcons`), then `g` is an isomorphism.
     `colimHom_isIso_reflects` gives a stage `L` where `functF.map` of the witness germ is
@@ -1485,12 +1544,21 @@ noncomputable def colimitPullbacksTransferCovers (C : CatSystem ι D) (hC : C.Co
   from the present finite-limit-preservation package, hence kept as a hypothesis:
   (1) PER-STAGE `PullbacksTransferCovers` (so the stage pullback's `π₂` is a stage
       cover — the stages here ARE pre-regular, so the caller can supply it), and
-  (2) COVER-PRESERVATION by the transition functors `functF` (so `colimHom_cover_of_rep`
-      lifts the stage cover to the colimit — covers are stable under the slice/inflation
-      embeddings, again caller-suppliable).
+  (2) COVER-PRESERVATION by the transition functors `functF` (so the stage cover lifts to
+      the colimit).
   Plus the germ cone's `IsPullback` proof (product/equalizer reflection at the colimit).
-  All three are a separate bounded build comparable to `colimitHasBinaryProducts`;
-  until then both assemblies pass `hcanon` through. -/
+
+  STATUS.  Ingredient (2) is now DISCHARGED generically by `homInclObj_cover_of_stage`
+  (the forward dual of `homInclObj_cover_reflects`): a stage cover stable under every
+  transition `functF` becomes a `colimitCat` cover of `homInclObj`.  Its sibling
+  `homInclObj_isIso_of_stage` (forward dual of `homInclObj_isIso_reflects`) supplies the
+  iso half.  Together with the existing mono preservation (`homInclObj_mono_of_stage`) and
+  functoriality (`homInclObj_comp`), the only piece still missing for a generic `hcanon`
+  is the germ cone's `IsPullback` at the colimit — i.e. that `homInclObj` carries a stage
+  pullback to a colimit pullback.  That comparison-iso is a separate bounded build
+  comparable in size to `colimitHasBinaryProducts` (it rebuilds the product+equalizer
+  universal property for `objIncl`-images); until it lands both assemblies pass `hcanon`
+  through. -/
 noncomputable def colimitPreRegular (C : CatSystem ι D) (hC : C.Coherent) [hne : Nonempty ι]
     -- terminal
     (ht : ∀ i, HasTerminal (C.A i))
