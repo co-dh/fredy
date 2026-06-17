@@ -400,26 +400,52 @@ theorem expMap_omega_eq_omegaPow [Topos 𝒞] {A B : 𝒞} (f : A ⟶ B) :
 
 /-- **§1.961**: In a topos, Ω is internally injective.
 
-    Freyd's proof: for monic `f : A ↣ B`, the contravariant action `Ω^f` is the
-    inverse-image `[f"]` (post-composition by the reciprocal `f°`), and it has a
-    LEFT INVERSE — the covariant direct image `[f] = powerMapCov f` — because `f`
-    monic is equivalent to `f"f = 1` (`powerMapCov`'s defining identity).  A split
-    epi is a cover, so `Ω^f` is a cover.
+    Freyd's proof: for monic `f : A ↣ B`, the contravariant action `Ω^f = expMap Ω f`
+    is the inverse-image `[f*]`, and it has a LEFT INVERSE — the covariant direct
+    image `[f] = f"` — because `f` monic gives the unit identity `f"f = 1` (`f"` is a
+    section of `f*`).  A split epi is a cover (`cover_of_section`), so `Ω^f` is a cover.
 
-    **Sharpened blocker (faithful sorry).**  The section needed is exactly
-    `powerMapCov f : Ω^A → Ω^B` (the direct-image action), which is an unfilled
-    `sorry` in §1.92: it requires the §1.56 image factorization packaged as a
-    power-object morphism together with the membership/Λ universal property of the
-    power object `Ω^A = exp A Ω`.  That universal property is unavailable here
-    because `exp A Ω` is opaque while `topos_has_exponentials` (S1_92) is itself a
-    `sorry` (blocked on §1.543).  The DRY bridge `expMap_omega_eq_omegaPow` above
-    identifies `expMap Ω f` with the proved `omegaPowContra.map f`, so once
-    `powerMapCov f` and its identity `f"f = 1` are available, this is
-    `Cover (expMap Ω f)` via "split epi ⟹ cover".  The residual gap is precisely
-    `powerMapCov` (§1.92 keystone (2)). -/
+    **Proof structure (load-bearing).**  The proof is reduced to its genuine residual:
+    `cover_of_section (expMap Ω f) s hs` turns the goal into the EXISTENCE of a section
+    `s : Ω^^A → Ω^^B` of `expMap Ω f` with `s ≫ (Ω^f) = 1` — i.e. exactly Freyd's
+    direct-image unit `f"f = 1` for monic `f`.  This is the ONLY thing now sorried; the
+    `cover_of_section`/`expMap` plumbing and the `Mono f` hypothesis (the section exists
+    *because* `f` is monic) are load-bearing.
+
+    **Sharp residual (the faithful sorry).**  The section `s` is the direct image `f"`.
+    On genuine power objects S1_92 now PROVES this map (`powerMapCovP f : [A] → [B]`,
+    `directImageRel`) sorry-free, together with its unit at `f = 1` (`powerMapCovP_id :
+    [1_A] = 1_{[A]}`).  Two gaps remain before `powerMapCovP f` can be USED as `s` here,
+    and they are exactly what the sorry pins:
+
+    1. **`exp A Ω ≅ [A]` identification.**  `expMap Ω f` is typed against the OPAQUE
+       exponential `exp A Ω = Ω^^A`, whereas `powerMapCovP f` is typed against the power
+       object `[A] = HasPowerObject.powerObj A`.  No iso `exp A Ω ≅ [A]` is available
+       (the repo's `Topos` does not bundle `∀ C, HasPowerObject C`, and `exp` is opaque),
+       so `powerMapCovP f` cannot even be *named* at the type `Ω^^A → Ω^^B` required for `s`.
+
+    2. **The GENERAL unit `f"f = 1` for monic `f`.**  `powerMapCovP_id` settles the unit
+       only at `f = 1`.  The cover step needs the section identity at every monic `f`,
+       which requires the §1.56 image-descent half (`f"·f* = 1`, the monic→`∈_A ⊚ graph f`
+       pullback-classify roundtrip) that S1_92's membership universality does not yet
+       discharge past `f = id`.
+
+    Either residual alone blocks the discharge, so the section existence is sorried as a
+    single faithful claim, with both gaps named above. -/
 theorem omega_is_internally_injective [Topos 𝒞] :
     IsInternallyInjective (𝒞 := 𝒞) (HasSubobjectClassifier.omega (𝒞 := 𝒞)) := by
-  sorry
+  intro A B f hf
+  -- Reduce to the genuine residual: a section of the inverse-image map `Ω^f = expMap Ω f`.
+  -- The section is Freyd's direct image `f"`; `s ≫ (Ω^f) = 1` is the unit `f"f = 1`,
+  -- which holds because `f` is monic (see the two pinned gaps in the docstring).
+  obtain ⟨s, hs⟩ :
+      ∃ s : (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ^^ A
+              ⟶ (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ^^ B,
+        s ≫ expMap _ f = Cat.id _ := by
+    -- = direct image `f" = powerMapCovP f` transported across `exp A Ω ≅ [A]`, with
+    --   `s ≫ Ω^f = f"f = 1` (general unit, monic `f`).  Blocked on gaps (1),(2) above.
+    sorry
+  exact cover_of_section _ s hs
 
 /-! ## §1.962  Ω^A is injective; every object embeds in an injective -/
 
