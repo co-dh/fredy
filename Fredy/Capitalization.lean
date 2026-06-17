@@ -998,15 +998,23 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
     --        `innerSliceTr_trans`, via `chainSliceFunctor_map_f_heq` (underlying `.f = catMap suffix`)
     --        + `catMap_nil_heq`/`catMap_append_heq` threaded through `overHom_heq`.  So `colimitCat`
     --        for the inner chain is now applicable.  STILL OPEN in (B-package): the 9 preservation
-    --        hypotheses + `hcanon`, which presuppose (i) `PreRegularCategory (Infl 𝒞)` — NOT yet built
-    --        (`Infl 𝒞 ≃ 𝒞`, but the equalizer/pullback/transfer-cover transfer across that equivalence
-    --        is unbuilt), so per-stage `overPreRegular` does not yet fire — and (ii) a base-change
-    --        preservation analysis of `innerSliceTr` (the strict suffix-append must be shown to
-    --        preserve terminals/products/equalizers and reflect/transfer covers).  Those two are
-    --        genuine new categorical work (the magnitude of the outer per-rung preservation), NOT a
-    --        mechanical transcription of the outer assembly.
-    --   These (NOT the import, NOT the now-done `Coherent`) are the honest residual; `hwall_step`
-    --   stays a documented `sorry`.
+    --        hypotheses + `hcanon`, which presuppose (i) `PreRegularCategory (Infl 𝒞)` and (ii) a
+    --        base-change preservation analysis of `innerSliceTr`.
+    --        PROGRESS (this session): (i) IS NOW BUILT sorry-free — `Freyd.inflPreRegular [PreRegularCategory
+    --        𝒞] : PreRegularCategory (Infl 𝒞)` (`Fredy.Inflation`, axioms = `[]`, fully constructive).
+    --        It conjugates `A`'s pre-regular structure across `Infl 𝒞 ≃ 𝒞`: terminal `[]`, product `++`
+    --        (`catForget`/`catTail`/`catArrange`), equalizer = singleton `[E]` of the `A`-equalizer
+    --        (rode through the unitor `∏[E] = E×1 ≅ E`), pullbacks (`products_equalizers_implies_pullbacks`),
+    --        and `PullbacksTransferCovers` by `inflCover_to_cover` / `inflIsPullback_to_isPullback` /
+    --        `coverC_to_inflCover` (the cover ↔ `A`-cover and `A′`-pullback-square ↔ `A`-pullback-square
+    --        correspondences, each via the `X ≅ X×1` unitor).  So per-stage `overPreRegular` NOW FIRES:
+    --        every inner stage `Over (chain n)` of `Infl 𝒞` is pre-regular.
+    --        STILL OPEN: only (ii) — the base-change preservation analysis of `innerSliceTr` (the strict
+    --        suffix-append `sliceCatFunctor` must be shown to preserve terminals/products/equalizers and
+    --        reflect/transfer covers, supplying the 9 hyps + `hcanon`).  This is genuine new categorical
+    --        work (the magnitude of the outer per-rung preservation), NOT a mechanical transcription.
+    --   These (NOT the import, NOT the now-done `Coherent`, NOT the now-done `PreRegularCategory (Infl 𝒞)`)
+    --   are the honest residual; `hwall_step` stays a documented `sorry`.
     --
     -- The (B-import) resolution is load-bearing, not just documentary: the inner directed strict
     -- `CatSystem` constructor is now IN SCOPE right here.  `innerSystemAt Sb P` is exactly the

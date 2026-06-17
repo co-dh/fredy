@@ -137,6 +137,14 @@ instance inflFunctor : Functor (infl : 𝒞 → Infl 𝒞) where
     · rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair, Cat.assoc]
     · rw [Cat.assoc, snd_pair, snd_pair]
 
+/-- Terminal object of `A′`: the empty sequence (`∏[] = 1`).  (Products/equalizers come after the
+    `catForget`/`catTail`/`catArrange` machinery they are built from — see `inflHasBinaryProducts`,
+    `inflHasEqualizers` below.) -/
+instance inflHasTerminal : HasTerminal (Infl 𝒞) where
+  one := ([] : List 𝒞)
+  trm s := (term (listProd (𝒞 := 𝒞) s) : listProd s ⟶ listProd ([] : List 𝒞))
+  uniq {s} f g := term_uniq (𝒞 := 𝒞) f g
+
 /-! ## §1.544  The STRICT slice-append functor `A′ → A′/B`
 
   The crux of §1.544.  In the inflation, the binary product IS concatenation, so the
@@ -502,6 +510,258 @@ theorem catMap_comp {s t r : List 𝒞} (d : List 𝒞)
     rw [← Cat.assoc (f := catMap d f), catMap_forget, Cat.assoc]
   · simp only [Cat.assoc, catMap_tail]
 
+/-! ### §1.544  `A′` is Cartesian: binary products and equalizers
+
+  With `catForget`/`catTail`/`catArrange` in hand the inflation's binary product is concatenation
+  and its equalizer is the singleton of the underlying `A`-equalizer (rode through the `E ≅ E×1`
+  unitor).  Together with `inflHasTerminal` this makes `A′` Cartesian, hence (via
+  `products_equalizers_implies_pullbacks`) it has pullbacks. -/
+
+/-- Binary products of `A′`: concatenation `s ++ t`, with projections `catForget`/`catTail`,
+    pairing `catArrange`.  The three product laws are `catArrange_forget`/`catArrange_tail`
+    (projections) and `cat_jointly_monic` (uniqueness). -/
+instance inflHasBinaryProducts : HasBinaryProducts (Infl 𝒞) where
+  prod s t := (s ++ t : List 𝒞)
+  fst {s t} := (catForget s t : listProd (s ++ t) ⟶ listProd s)
+  snd {s t} := (catTail s t : listProd (s ++ t) ⟶ listProd t)
+  pair {x s t} g h := (catArrange s t g h : listProd x ⟶ listProd (s ++ t))
+  fst_pair {x s t} g h := catArrange_forget s t g h
+  snd_pair {x s t} g h := catArrange_tail s t g h
+  pair_uniq {x s t} g h k h₁ h₂ :=
+    cat_jointly_monic s t k (catArrange s t g h)
+      (by rw [catArrange_forget]; exact h₁) (by rw [catArrange_tail]; exact h₂)
+
+/-- The equalizer of `f g : s ⟶ t` in `A′` (i.e. of `f g : ∏s ⟶ ∏t` in `A`): the SINGLETON `[E]`
+    of the `A`-equalizer object `E := eqObj f g` (`∏[E] = E × 1`), equalizing map `fst ≫ eqMap`.
+    Lift wraps the `A`-lift through the unitor `prodOneRightInv E : E ⟶ E×1`; the factorisation and
+    uniqueness ride `prodOneRightInv_fst`/`fst_prodOneRightInv` (`E ≅ E×1`) plus `eqLift_uniq`. -/
+instance inflHasEqualizers [HasEqualizers 𝒞] : HasEqualizers (Infl 𝒞) where
+  eq s t f g :=
+    -- `f g : s ⟶ t` in `A′` ARE `A`-arrows `∏s ⟶ ∏t`; force the `A`-reading so `eqObj`/`eqMap`/`eqLift`
+    -- resolve in `A` (not recursively in `A′`).
+    let f' : listProd (𝒞 := 𝒞) s ⟶ listProd t := f
+    let g' : listProd (𝒞 := 𝒞) s ⟶ listProd t := g
+    let E : 𝒞 := eqObj (𝒞 := 𝒞) f' g'
+    { cone :=
+        { dom := ([E] : List 𝒞),
+          map := ((fst : prod E one ⟶ E) ≫ eqMap f' g' :
+            listProd (𝒞 := 𝒞) [E] ⟶ listProd s),
+          eq := by
+            show ((fst : prod E one ⟶ E) ≫ eqMap f' g') ≫ f'
+                = ((fst : prod E one ⟶ E) ≫ eqMap f' g') ≫ g'
+            rw [Cat.assoc, Cat.assoc, eqMap_eq] }
+      lift c :=
+        (eqLift f' g' c.map c.eq ≫ prodOneRightInv E :
+          listProd (𝒞 := 𝒞) c.dom ⟶ listProd [E])
+      fac c := by
+        show (eqLift f' g' c.map c.eq ≫ prodOneRightInv E)
+            ≫ ((fst : prod E one ⟶ E) ≫ eqMap f' g') = c.map
+        rw [← Cat.assoc, Cat.assoc (eqLift f' g' c.map c.eq), prodOneRightInv_fst, Cat.comp_id,
+          eqLift_fac]
+      uniq c m hm := by
+        -- `m : ∏c.dom ⟶ E×1`; `m ≫ (fst ≫ eqMap) = c.map`.  `m ≫ fst` is the unique `A`-lift.
+        let cmap : listProd (𝒞 := 𝒞) c.dom ⟶ listProd s := c.map
+        have hmfst : @Eq (listProd (𝒞 := 𝒞) c.dom ⟶ listProd s)
+            ((m ≫ (fst : prod E one ⟶ E)) ≫ eqMap f' g') cmap := by
+          rw [Cat.assoc]; exact hm
+        have hceq : cmap ≫ f' = cmap ≫ g' := c.eq
+        have hlift : @Eq (listProd (𝒞 := 𝒞) c.dom ⟶ E)
+            (m ≫ (fst : prod E one ⟶ E)) (eqLift f' g' cmap hceq) :=
+          eqLift_uniq f' g' cmap hceq _ hmfst
+        -- `m = (m ≫ fst) ≫ unitor⁻¹`, and `m ≫ fst = eqLift` (the unique `A`-lift).
+        have key : @Eq (listProd (𝒞 := 𝒞) c.dom ⟶ prod E one)
+            ((m ≫ (fst : prod E one ⟶ E)) ≫ prodOneRightInv E) m := by
+          rw [Cat.assoc, fst_prodOneRightInv]; exact Cat.comp_id m
+        rw [← key, hlift] }
+
+/-- `A′` has pullbacks (Cartesian ⟹ pullbacks, `products_equalizers_implies_pullbacks`). -/
+instance inflHasPullbacks [HasEqualizers 𝒞] : HasPullbacks (Infl 𝒞) where
+  has f g := products_equalizers_implies_pullbacks f g
+
+/-! ### §1.544  `A′` is pre-regular: cover transfer across `A′ ≃ A`
+
+  `A′ ≃ A` via the forgetful `inflForget : s ↦ ∏s` (full + faithful), with essential surjectivity
+  witnessed by the unitor `∏[X] = X×1 ≅ X` (`prod_one_iso_right`).  We transfer
+  `PullbacksTransferCovers` across this equivalence.  Three ingredients, each riding the `X ≅ X×1`
+  unitor `prodOneRightInv`:
+    * `inflMono_to_mono`: an `A′`-mono is an `A`-mono (ess.-surj. supplies the missing test objects).
+    * `inflCover_to_cover` / `coverC_to_inflCover`: `Cover` transfers both ways on the SAME underlying
+      `A`-arrow.
+    * `inflIsPullback_to_isPullback`: an `A′`-pullback square is an `A`-pullback square.
+  Then `PullbacksTransferCovers (Infl 𝒞)` is `A`'s instance conjugated by the equivalence. -/
+
+/-- An `A′`-mono `m : ∏C ⟶ ∏t` is an `A`-mono.  `A′`'s test objects are the products `∏W`; every
+    `A`-object `W` is `∏[W] = W×1` up to the unitor `fst`, so left-cancellability against all `∏W`
+    upgrades to all `W` (precompose with the iso `prodOneRightInv W`, cancel the iso `fst`). -/
+theorem inflMono_to_mono {C t : Infl 𝒞} {m : listProd (𝒞 := 𝒞) C ⟶ listProd t}
+    (hm : Mono (𝒞 := Infl 𝒞) m) : Mono (𝒞 := 𝒞) m := by
+  -- `A′`-mono restated on `A`-arrows: cancellable against every product `∏V` (Infl test objects).
+  have hm' : ∀ {V : Infl 𝒞} (g h : listProd (𝒞 := 𝒞) V ⟶ listProd C),
+      g ≫ m = h ≫ m → g = h := fun {V} g h => hm (W := V) g h
+  intro W p q hpq
+  -- lift `p q : W ⟶ ∏C` to `A`-arrows out of `∏[W] = W×1` via the unitor `fst`.
+  have hlift : ((fst : prod W one ⟶ W) ≫ p) ≫ m = ((fst : prod W one ⟶ W) ≫ q) ≫ m := by
+    rw [Cat.assoc, Cat.assoc, hpq]
+  have hC : (fst : prod W one ⟶ W) ≫ p = (fst : prod W one ⟶ W) ≫ q :=
+    hm' (V := ([W] : List 𝒞)) ((fst : prod W one ⟶ W) ≫ p) ((fst : prod W one ⟶ W) ≫ q) hlift
+  -- cancel the iso `fst : W×1 ⟶ W` on the left (precompose `prodOneRightInv W`).
+  have := congrArg (fun u => prodOneRightInv W ≫ u) hC
+  simpa only [← Cat.assoc, prodOneRightInv_fst, Cat.id_comp] using this
+
+/-- An `A`-mono `m : ∏C ⟶ ∏t` is an `A′`-mono (`A′`'s test objects are a subset of `A`'s — every
+    `A′`-test `∏V` is an `A`-object).  The easy direction of the mono correspondence. -/
+theorem mono_to_inflMono {C t : Infl 𝒞} {m : listProd (𝒞 := 𝒞) C ⟶ listProd t}
+    (hm : Mono (𝒞 := 𝒞) m) : Mono (𝒞 := Infl 𝒞) m :=
+  fun {V} p q hpq => hm (W := listProd (𝒞 := 𝒞) V) p q hpq
+
+/-- `Cover` carries from `A′` to `A` (same underlying arrow `∏s ⟶ ∏t`).  An `A`-mono `m : C ⟶ ∏t`
+    that the underlying `f` factors through is wrapped to the `A′`-mono `fst ≫ m : [C] ⟶ t` (`fst`
+    iso ⟹ `inflMono_to_mono` gives it mono in `A′`); `Cover(A′) f` forces it iso, and `fst` iso then
+    forces `m` iso. -/
+theorem inflCover_to_cover {s t : Infl 𝒞} {f : listProd (𝒞 := 𝒞) s ⟶ listProd t}
+    (hf : Cover (𝒞 := Infl 𝒞) f) : Cover (𝒞 := 𝒞) f := by
+  intro C m g hm hgm
+  -- the `A′`-mono `fst ≫ m : [C] ⟶ t` (underlying `C×1 ⟶ ∏t`).  Mono in `A` (cancel the iso `fst`).
+  have hm𝒞 : Mono (𝒞 := 𝒞) ((fst : prod C one ⟶ C) ≫ m) := by
+    intro W p q hpq
+    have h1 : (p ≫ (fst : prod C one ⟶ C)) ≫ m = (q ≫ (fst : prod C one ⟶ C)) ≫ m := by
+      rw [Cat.assoc, Cat.assoc]; exact hpq
+    have h2 : p ≫ (fst : prod C one ⟶ C) = q ≫ (fst : prod C one ⟶ C) := hm _ _ h1
+    have := congrArg (fun u => u ≫ prodOneRightInv C) h2
+    simpa only [Cat.assoc, fst_prodOneRightInv, Cat.comp_id] using this
+  -- `[C] : Infl`, `∏[C] = C×1`; bind the underlying `A`-arrow `M := fst ≫ m : C×1 ⟶ ∏t`, which IS
+  -- the `A′`-arrow `[C] ⟶ t` (defeq).  Stating the `A′`-mono over `M` avoids the `A′`-vs-`A` `≫` clash.
+  let M : listProd (𝒞 := 𝒞) ([C] : List 𝒞) ⟶ listProd t := (fst : prod C one ⟶ C) ≫ m
+  have hmInfl : Mono (𝒞 := Infl 𝒞) (X := ([C] : List 𝒞)) (Y := t) M :=
+    mono_to_inflMono (C := ([C] : List 𝒞)) (t := t) (m := M) hm𝒞
+  -- `g' := g ≫ prodOneRightInv C : s ⟶ [C]` factors `f` through it.
+  let g' : listProd (𝒞 := 𝒞) s ⟶ listProd ([C] : List 𝒞) := g ≫ prodOneRightInv C
+  have hfac : g' ≫ M = f := by
+    show (g ≫ prodOneRightInv C) ≫ ((fst : prod C one ⟶ C) ≫ m) = f
+    rw [← Cat.assoc, Cat.assoc g, prodOneRightInv_fst, Cat.comp_id, hgm]
+  have hiso : IsIso (𝒞 := Infl 𝒞) (X := ([C] : List 𝒞)) (Y := t) M :=
+    hf (C := ([C] : List 𝒞)) M g' hmInfl hfac
+  -- `IsIso(A′) (fst ≫ m) = IsIso(A) (fst ≫ m)`; `m = prodOneRightInv C ≫ (fst ≫ m)`, iso∘iso.
+  have hiso𝒞 : IsIso (𝒞 := 𝒞) ((fst : prod C one ⟶ C) ≫ m) := hiso
+  have hmeq : m = prodOneRightInv C ≫ ((fst : prod C one ⟶ C) ≫ m) := by
+    rw [← Cat.assoc, prodOneRightInv_fst, Cat.id_comp]
+  have hinvIso : IsIso (𝒞 := 𝒞) (prodOneRightInv C) :=
+    ⟨(fst : prod C one ⟶ C), prodOneRightInv_fst, fst_prodOneRightInv⟩
+  rw [hmeq]; exact isIso_comp (𝒞 := 𝒞) hinvIso hiso𝒞
+
+/-- `Cover` carries from `A` back to `A′` (same underlying arrow).  An `A′`-mono is an `A`-mono
+    (`inflMono_to_mono`), so `Cover(A) f` discharges the `A′` cover obligation directly. -/
+theorem coverC_to_inflCover {s t : Infl 𝒞} {f : listProd (𝒞 := 𝒞) s ⟶ listProd t}
+    (hf : Cover (𝒞 := 𝒞) f) : Cover (𝒞 := Infl 𝒞) f := by
+  intro C m g hm hgm
+  -- `m : C ⟶ t` in `A′` IS `M : ∏C ⟶ ∏t` in `A`, mono by `inflMono_to_mono`.
+  have hm𝒞 : Mono (𝒞 := 𝒞) (m : listProd (𝒞 := 𝒞) C ⟶ listProd t) := inflMono_to_mono hm
+  have hiso𝒞 : IsIso (𝒞 := 𝒞) (m : listProd (𝒞 := 𝒞) C ⟶ listProd t) :=
+    hf (C := listProd (𝒞 := 𝒞) C) m g hm𝒞 hgm
+  exact hiso𝒞
+
+/-! ### §1.544  `A′`-pullback squares are `A`-pullback squares
+
+  An `A′`-pullback cone (universal among `A′` cones) is universal among `A` cones too: any `A`-cone
+  with apex `W` factors through `[W]` (`∏[W] = W×1`) into an `A′`-cone, whose `A′`-lift, precomposed
+  with the unitor `prodOneRightInv W`, is the required `A`-lift; uniqueness rides the same unitor. -/
+
+/-- The underlying `A`-cone of an `A′`-cone `c` over `f g`: apex `∏c.pt`, same legs. -/
+def inflConeForget {a b cc : Infl 𝒞}
+    {f : listProd (𝒞 := 𝒞) a ⟶ listProd b} {g : listProd (𝒞 := 𝒞) cc ⟶ listProd b}
+    (c : Cone (𝒞 := Infl 𝒞) f g) :
+    Cone (𝒞 := 𝒞) (f : listProd a ⟶ listProd b) (g : listProd cc ⟶ listProd b) :=
+  { pt := listProd (𝒞 := 𝒞) c.pt, π₁ := c.π₁, π₂ := c.π₂, w := c.w }
+
+/-- An `A′`-pullback cone `c` over `f g` is an `A`-pullback cone over the same underlying cospan. -/
+theorem inflIsPullback_to_isPullback {a b cc : Infl 𝒞}
+    {f : listProd (𝒞 := 𝒞) a ⟶ listProd b} {g : listProd (𝒞 := 𝒞) cc ⟶ listProd b}
+    (c : Cone (𝒞 := Infl 𝒞) f g) (hc : c.IsPullback (𝒞 := Infl 𝒞)) :
+    Cone.IsPullback (𝒞 := 𝒞) (inflConeForget c) := by
+  intro d
+  -- `d : A`-cone, apex `∏d.pt`... here `d.pt` is an `A`-object `W`.  Wrap to an `A′`-cone over `[W]`.
+  let W : 𝒞 := d.pt
+  let dInfl : Cone (𝒞 := Infl 𝒞) f g :=
+    { pt := ([W] : List 𝒞),
+      π₁ := ((fst : prod W one ⟶ W) ≫ d.π₁ : listProd (𝒞 := 𝒞) [W] ⟶ listProd a),
+      π₂ := ((fst : prod W one ⟶ W) ≫ d.π₂ : listProd (𝒞 := 𝒞) [W] ⟶ listProd cc),
+      w := by
+        show ((fst : prod W one ⟶ W) ≫ d.π₁) ≫ f = ((fst : prod W one ⟶ W) ≫ d.π₂) ≫ g
+        rw [Cat.assoc, Cat.assoc, d.w] }
+  obtain ⟨u, ⟨hu1, hu2⟩, huniq⟩ := hc dInfl
+  -- `u : ∏[W] ⟶ c.pt`, i.e. `W×1 ⟶ ∏c.pt`.  The `A`-lift is `prodOneRightInv W ≫ u : W ⟶ ∏c.pt`.
+  -- Bind the legs/lift as `A`-arrows so `hu1`/`hu2`'s compositions are read in `A` (avoiding the
+  -- `A′`-vs-`A` `≫`-instance clash with the goal).
+  let cπ₁ : listProd (𝒞 := 𝒞) c.pt ⟶ listProd a := c.π₁
+  let cπ₂ : listProd (𝒞 := 𝒞) c.pt ⟶ listProd cc := c.π₂
+  let u𝒞 : listProd (𝒞 := 𝒞) ([W] : List 𝒞) ⟶ listProd c.pt := u
+  have huc1 : u𝒞 ≫ cπ₁ = (fst : prod W one ⟶ W) ≫ d.π₁ := hu1
+  have huc2 : u𝒞 ≫ cπ₂ = (fst : prod W one ⟶ W) ≫ d.π₂ := hu2
+  refine ⟨(prodOneRightInv W ≫ u𝒞 : W ⟶ listProd c.pt), ⟨?_, ?_⟩, ?_⟩
+  · -- `(prodOneRightInv W ≫ u) ≫ c.π₁ = d.π₁`
+    show (prodOneRightInv W ≫ u𝒞) ≫ cπ₁ = d.π₁
+    calc (prodOneRightInv W ≫ u𝒞) ≫ cπ₁
+          = prodOneRightInv W ≫ (u𝒞 ≫ cπ₁) := Cat.assoc _ _ _
+      _ = prodOneRightInv W ≫ ((fst : prod W one ⟶ W) ≫ d.π₁) := by rw [huc1]
+      _ = (prodOneRightInv W ≫ (fst : prod W one ⟶ W)) ≫ d.π₁ := (Cat.assoc _ _ _).symm
+      _ = d.π₁ := by rw [prodOneRightInv_fst, Cat.id_comp]
+  · show (prodOneRightInv W ≫ u𝒞) ≫ cπ₂ = d.π₂
+    calc (prodOneRightInv W ≫ u𝒞) ≫ cπ₂
+          = prodOneRightInv W ≫ (u𝒞 ≫ cπ₂) := Cat.assoc _ _ _
+      _ = prodOneRightInv W ≫ ((fst : prod W one ⟶ W) ≫ d.π₂) := by rw [huc2]
+      _ = (prodOneRightInv W ≫ (fst : prod W one ⟶ W)) ≫ d.π₂ := (Cat.assoc _ _ _).symm
+      _ = d.π₂ := by rw [prodOneRightInv_fst, Cat.id_comp]
+  · -- uniqueness: any `A`-lift `v : W ⟶ ∏c.pt` agreeing on both legs equals `prodOneRightInv W ≫ u`.
+    intro v hv1 hv2
+    have hvc1 : (v : W ⟶ listProd c.pt) ≫ cπ₁ = d.π₁ := hv1
+    have hvc2 : (v : W ⟶ listProd c.pt) ≫ cπ₂ = d.π₂ := hv2
+    -- wrap `v` to the `A′`-lift `vInfl : [W] ⟶ c.pt` (underlying `fst ≫ v`); `huniq` forces `= u`.
+    let vInfl : listProd (𝒞 := 𝒞) ([W] : List 𝒞) ⟶ listProd c.pt := (fst : prod W one ⟶ W) ≫ v
+    have hvInfl : vInfl = u𝒞 := by
+      refine huniq vInfl ?_ ?_
+      · show ((fst : prod W one ⟶ W) ≫ v) ≫ cπ₁ = (fst : prod W one ⟶ W) ≫ d.π₁
+        calc ((fst : prod W one ⟶ W) ≫ v) ≫ cπ₁
+              = (fst : prod W one ⟶ W) ≫ (v ≫ cπ₁) := Cat.assoc _ _ _
+          _ = (fst : prod W one ⟶ W) ≫ d.π₁ := by rw [hvc1]
+      · show ((fst : prod W one ⟶ W) ≫ v) ≫ cπ₂ = (fst : prod W one ⟶ W) ≫ d.π₂
+        calc ((fst : prod W one ⟶ W) ≫ v) ≫ cπ₂
+              = (fst : prod W one ⟶ W) ≫ (v ≫ cπ₂) := Cat.assoc _ _ _
+          _ = (fst : prod W one ⟶ W) ≫ d.π₂ := by rw [hvc2]
+    -- cancel the unitor: `v = prodOneRightInv W ≫ (fst ≫ v) = prodOneRightInv W ≫ u`.
+    calc v = prodOneRightInv W ≫ ((fst : prod W one ⟶ W) ≫ v) := by
+            rw [← Cat.assoc, prodOneRightInv_fst, Cat.id_comp]
+      _ = prodOneRightInv W ≫ vInfl := rfl
+      _ = prodOneRightInv W ≫ u𝒞 := by rw [hvInfl]
+
+/-- **§1.544 — `A′` is pre-regular** (pullbacks transfer covers), conjugating `A`'s instance across
+    `A′ ≃ A`: forget the cover to `A` (`inflCover_to_cover`), forget the `A′`-pullback square to an
+    `A`-pullback square (`inflIsPullback_to_isPullback`), transfer in `A`, reflect back to `A′`
+    (`coverC_to_inflCover`). -/
+instance inflPullbacksTransferCovers [HasEqualizers 𝒞] [PullbacksTransferCovers 𝒞] :
+    PullbacksTransferCovers (Infl 𝒞) where
+  pullbacks_transfer_covers {a b cc} {f} {g} c hpb hf := by
+    -- `f g : ∏a ⟶ ∏b`, `∏cc ⟶ ∏b`; the underlying `A`-cone and its pullback-square / cover.
+    have hf𝒞 : Cover (𝒞 := 𝒞) (f : listProd (𝒞 := 𝒞) a ⟶ listProd b) := inflCover_to_cover hf
+    have hpb𝒞 : Cone.IsPullback (𝒞 := 𝒞) (inflConeForget c) :=
+      inflIsPullback_to_isPullback c hpb
+    have hcov𝒞 : Cover (𝒞 := 𝒞) (c.π₂ : listProd (𝒞 := 𝒞) c.pt ⟶ listProd cc) :=
+      PullbacksTransferCovers.pullbacks_transfer_covers (inflConeForget c) hpb𝒞 hf𝒞
+    -- `(inflConeForget c).π₂ = c.π₂`; reflect the `A`-cover back to `A′`.
+    intro C m h hm hhm
+    exact coverC_to_inflCover (s := c.pt) (t := cc)
+      (f := (c.π₂ : listProd (𝒞 := 𝒞) c.pt ⟶ listProd cc)) hcov𝒞 m h hm hhm
+
+/-- **§1.544 — `A′` is pre-regular** (Cartesian + pullbacks transfer covers).  `PreRegularCategory 𝒞`
+    supplies products + pullbacks, hence equalizers (`products_pullbacks_implies_equalizers`), which
+    `A′`'s pullback / transfer instances consume.  This is the instance `RelativeCapitalization` /
+    `Capitalization` consume to run `overPreRegular` per inflation stage. -/
+instance inflPreRegular [PreRegularCategory 𝒞] : PreRegularCategory (Infl 𝒞) :=
+  letI : HasEqualizers 𝒞 := products_pullbacks_implies_equalizers
+  { toHasTerminal := inflHasTerminal
+    toHasBinaryProducts := inflHasBinaryProducts
+    toHasPullbacks := inflHasPullbacks
+    toPullbacksTransferCovers := inflPullbacksTransferCovers }
+
 /-! ### The single-factor slice base-change `A′/V → A′/(V ++ [B])`
 
   The §1.547 inner transition for appending ONE factor `B`.  On the inflation it is STRICT: an
@@ -574,6 +834,16 @@ instance sliceCatFunctor (d : List 𝒞) (V : Infl 𝒞) :
   map_comp {X Y Z} g h := OverHom.ext (by
     show catMap d (g.f ≫ h.f) = catMap d g.f ≫ catMap d h.f
     exact catMap_comp d g.f h.f)
+
+/-- **The strict slice transition PRESERVES the terminal object** (a down-payment on the (B-package)
+    preservation hyps).  The slice terminal of `A′/V` is `⟨V, id V⟩` (`overTerm`); the append functor
+    sends it to `⟨V++d, catMap d (id V)⟩ = ⟨V++d, id (V++d)⟩` (`catMap_id`), the slice terminal of
+    `A′/(V++d)`.  So `sliceCatFunctor d V` carries `1_{A′/V}` to `1_{A′/(V++d)}` on the nose. -/
+theorem sliceCatObj_terminal (d : List 𝒞) (V : Infl 𝒞) :
+    sliceCatObj d (overTerm V) = overTerm (V ++ d : List 𝒞) := by
+  show (⟨(V ++ d : List 𝒞), catMap d (Cat.id (listProd V))⟩ : Over (B := (V ++ d : List 𝒞)))
+      = ⟨(V ++ d : List 𝒞), Cat.id (listProd (V ++ d))⟩
+  rw [catMap_id]
 
 /-! ## §1.547  The STRICT inner directed system of inflation slices
 
