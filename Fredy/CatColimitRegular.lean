@@ -1419,6 +1419,302 @@ theorem colimHom_cover_reflects (C : CatSystem ι D) (hC : C.Coherent)
   rw [hgm] at hisoL
   exact hcons (D.trans h_ts hL) m' (isIso_of_castHom _ _ _ hisoL)
 
+/-- **Generic comparison-iso from a product universal property.**  In a category
+    with binary products, if a cone `(P, p₁, p₂)` over `A, B` is universal (`hup`:
+    unique mediator for every competitor), then the canonical comparison
+    `pair p₁ p₂ : P ⟶ A × B` is an isomorphism.  Purely formal: the inverse is the
+    mediator of `(fst, snd)`; the two round-trips collapse by `pair_uniq` (on the
+    `A × B` side) and the UP uniqueness (on the `P` side). -/
+theorem isIso_of_product_up {𝒞 : Type w} [Cat.{w} 𝒞] [HasBinaryProducts 𝒞]
+    {A B P : 𝒞} (p₁ : P ⟶ A) (p₂ : P ⟶ B)
+    (hup : ∀ {Z : 𝒞} (f : Z ⟶ A) (g : Z ⟶ B),
+      ∃ u : Z ⟶ P, (u ≫ p₁ = f ∧ u ≫ p₂ = g) ∧
+        ∀ v : Z ⟶ P, v ≫ p₁ = f → v ≫ p₂ = g → v = u) :
+    IsIso (pair p₁ p₂ : P ⟶ prod A B) := by
+  obtain ⟨u, ⟨hu₁, hu₂⟩, _⟩ := hup (fst (A := A) (B := B)) (snd (A := A) (B := B))
+  refine ⟨u, ?_, ?_⟩
+  · obtain ⟨_, _, huniq⟩ := hup p₁ p₂
+    have e1 : (pair p₁ p₂ ≫ u) ≫ p₁ = p₁ := by rw [Cat.assoc, hu₁, fst_pair]
+    have e2 : (pair p₁ p₂ ≫ u) ≫ p₂ = p₂ := by rw [Cat.assoc, hu₂, snd_pair]
+    rw [huniq (pair p₁ p₂ ≫ u) e1 e2, huniq (Cat.id P) (Cat.id_comp _) (Cat.id_comp _)]
+  · have h1 : (u ≫ pair p₁ p₂) ≫ fst = fst (A := A) (B := B) := by rw [Cat.assoc, fst_pair, hu₁]
+    have h2 : (u ≫ pair p₁ p₂) ≫ snd = snd (A := A) (B := B) := by rw [Cat.assoc, snd_pair, hu₂]
+    rw [pair_uniq _ _ (u ≫ pair p₁ p₂) h1 h2, pair_fst_snd]
+
+/-- **Two same-domain germs are a `MonicPair` in `colimitCat` when jointly
+    cancellable under transitions** (joint dual of `colimHom_mono_of_rep`).  Both
+    germs `f₀, f₁` share the domain rep `xP` at carrier `L`; if every pair of
+    stage maps agreeing after `f₀` and after `f₁` is already equal (`hcancel`),
+    then `(homIncl f₀, homIncl f₁)` is jointly left-cancellable.  Push the two
+    competitors `s, t` to a common stage, where both leg-equations become stage
+    equations, and apply `hcancel`. -/
+theorem colimHom_monicPair_of_rep (C : CatSystem ι D) (hC : C.Coherent)
+    {P A B : C.Obj} {L : ι}
+    (hpd : D.le (colimOut C P).1 L) (hca : D.le (colimOut C A).1 L) (hcb : D.le (colimOut C B).1 L)
+    (f₀ : C.F hpd (colimOut C P).2 ⟶ C.F hca (colimOut C A).2)
+    (f₁ : C.F hpd (colimOut C P).2 ⟶ C.F hcb (colimOut C B).2)
+    (hcancel : ∀ {j : ι} (hjk : D.le L j) (z : C.A j)
+        (u v : z ⟶ C.F hjk (C.F hpd (colimOut C P).2)),
+        u ≫ (C.functF hjk).map f₀ = v ≫ (C.functF hjk).map f₀ →
+        u ≫ (C.functF hjk).map f₁ = v ≫ (C.functF hjk).map f₁ → u = v) :
+    @MonicPair C.Obj (colimitCat C hC) P A B
+      (homIncl C hC (colimOut C P).2 (colimOut C A).2 ⟨L, hpd, hca⟩ f₀)
+      (homIncl C hC (colimOut C P).2 (colimOut C B).2 ⟨L, hpd, hcb⟩ f₁) := by
+  letI : Cat C.Obj := colimitCat C hC
+  let xP := (colimOut C P).2; let xA := (colimOut C A).2; let xB := (colimOut C B).2
+  intro W
+  refine Quotient.ind₂ (fun pr qr hf hs => ?_)
+  obtain ⟨ap, p₀⟩ := pr
+  obtain ⟨aq, q₀⟩ := qr
+  let xW : C.A (colimOut C W).1 := (colimOut C W).2
+  -- reduce both leg-equations to common-stage germ equations
+  change homCompRaw C hC xW xP xA ap p₀ ⟨L, hpd, hca⟩ f₀
+       = homCompRaw C hC xW xP xA aq q₀ ⟨L, hpd, hca⟩ f₀ at hf
+  change homCompRaw C hC xW xP xB ap p₀ ⟨L, hpd, hcb⟩ f₁
+       = homCompRaw C hC xW xP xB aq q₀ ⟨L, hpd, hcb⟩ f₁ at hs
+  obtain ⟨P1, hapP1, haqP1⟩ := D.bound ap.1 aq.1
+  obtain ⟨Q, hP1Q, hLQ⟩ := D.bound P1 L
+  have hapQ : D.le ap.1 Q := D.trans hapP1 hP1Q
+  have haqQ : D.le aq.1 Q := D.trans haqP1 hP1Q
+  rw [homCompRaw_eq_compAt C hC xW xP xA ap p₀ ⟨L, hpd, hca⟩ f₀ Q hapQ hLQ,
+      homCompRaw_eq_compAt C hC xW xP xA aq q₀ ⟨L, hpd, hca⟩ f₀ Q haqQ hLQ] at hf
+  rw [homCompRaw_eq_compAt C hC xW xP xB ap p₀ ⟨L, hpd, hcb⟩ f₁ Q hapQ hLQ,
+      homCompRaw_eq_compAt C hC xW xP xB aq q₀ ⟨L, hpd, hcb⟩ f₁ Q haqQ hLQ] at hs
+  obtain ⟨Rf, hRfp, hRfq, hRfeq⟩ := Quotient.exact hf
+  obtain ⟨Rs, hRsp, hRsq, hRseq⟩ := Quotient.exact hs
+  dsimp only [homSystem] at hRfeq hRseq
+  obtain ⟨Lf, hRfL, hRsL⟩ := D.bound Rf.1 Rs.1
+  have keyf := congrArg (homTr C xW xA Rf ⟨Lf, D.trans Rf.2.1 hRfL, D.trans Rf.2.2 hRfL⟩ hRfL) hRfeq
+  have keys := congrArg (homTr C xW xB Rs ⟨Lf, D.trans Rs.2.1 hRsL, D.trans Rs.2.2 hRsL⟩ hRsL) hRseq
+  rw [← homTr_trans C hC, ← homTr_trans C hC] at keyf
+  rw [← homTr_trans C hC, ← homTr_trans C hC] at keys
+  rw [homTr_comp C, homTr_comp C] at keyf
+  rw [homTr_comp C, homTr_comp C] at keys
+  rw [← homTr_trans C hC, ← homTr_trans C hC, ← homTr_trans C hC] at keyf
+  rw [← homTr_trans C hC, ← homTr_trans C hC, ← homTr_trans C hC] at keys
+  -- push f₀ (via Rf) and f₁ (via Rs) to the common stage Lf
+  have hLLf : D.le L Lf := D.trans hLQ (D.trans hRfp hRfL)
+  have hiAL : D.le (colimOut C A).1 Lf := D.trans hca hLLf
+  have hiBL : D.le (colimOut C B).1 Lf := D.trans hcb hLLf
+  have hiPL : D.le (colimOut C P).1 Lf := D.trans hpd hLLf
+  have hHcA : C.F hLLf (C.F hpd xP) = C.F hiPL xP := (C.F_trans hpd hLLf xP).symm
+  have hHcA2 : C.F hLLf (C.F hca xA) = C.F hiAL xA := (C.F_trans hca hLLf xA).symm
+  have hHcB2 : C.F hLLf (C.F hcb xB) = C.F hiBL xB := (C.F_trans hcb hLLf xB).symm
+  have hpush_f0 : homTr C xP xA ⟨L, hpd, hca⟩ ⟨Lf, hiPL, hiAL⟩ hLLf f₀
+      = castHom hHcA hHcA2 ((C.functF hLLf).map f₀) := rfl
+  have hpush_f1 : homTr C xP xB ⟨L, hpd, hcb⟩ ⟨Lf, hiPL, hiBL⟩ hLLf f₁
+      = castHom hHcA hHcB2 ((C.functF hLLf).map f₁) := rfl
+  rw [hpush_f0] at keyf
+  rw [hpush_f1] at keys
+  have cR : ∀ {U V V' Wq : C.A Lf} (he : V = V') (b : U ⟶ V) (c : V' ⟶ Wq),
+      castHom rfl he b ≫ c = b ≫ castHom he.symm rfl c := by
+    intro _ _ _ _ he b c; subst he; rfl
+  have cT : ∀ {U V Wq Wq' : C.A Lf} (he : Wq = Wq') (b : U ⟶ V) (c : V ⟶ Wq),
+      castHom rfl he (b ≫ c) = b ≫ castHom rfl he c := by
+    intro _ _ _ _ he b c; subst he; rfl
+  have hbig : D.le ap.1 Lf := D.trans hapQ (D.trans hRfp hRfL)
+  have hbig' : D.le aq.1 Lf := D.trans haqQ (D.trans hRfp hRfL)
+  refine Quotient.sound ⟨⟨Lf, D.trans ap.2.1 hbig, D.trans ap.2.2 hbig⟩, hbig, hbig', ?_⟩
+  dsimp only [homSystem]
+  have hu := hcancel hLLf (C.F (D.trans ap.2.1 hbig) xW)
+    (castHom rfl hHcA.symm (homTr C xW xP ap ⟨Lf, D.trans ap.2.1 hbig, D.trans ap.2.2 hbig⟩ hbig p₀))
+    (castHom rfl hHcA.symm (homTr C xW xP aq ⟨Lf, D.trans aq.2.1 hbig', D.trans aq.2.2 hbig'⟩ hbig' q₀))
+    (by
+      rw [cR, cR]
+      have hh := congrArg (castHom rfl hHcA2.symm) keyf
+      rw [cT, cT, castHom_castHom] at hh
+      exact hh)
+    (by
+      rw [cR, cR]
+      have hh := congrArg (castHom rfl hHcB2.symm) keys
+      rw [cT, cT, castHom_castHom] at hh
+      exact hh)
+  have hu2 := congrArg (castHom rfl hHcA) hu
+  rw [castHom_castHom, castHom_castHom] at hu2
+  exact hu2
+
+/-- **`objIncl i` preserves binary products** (M3-cov hcanon ingredient (3) for
+    products).  Given per-stage products (`hp`) and the transition-preservation
+    hypotheses (`hpres`, `hpres_pair`) that build `colimitHasBinaryProducts`, the
+    canonical comparison `objIncl i (a × b) ⟶ objIncl i a × objIncl i b` — i.e.
+    `pair (homInclObj fst) (homInclObj snd)` — is an iso in `colimitCat`.
+
+    PROOF (via `isIso_of_product_up`).  The cone `(objIncl(a×b), homInclObj fst,
+    homInclObj snd)` is a universal product cone.  Push the competitor `f, g` and
+    the chosen reps of `objIncl a`, `objIncl b`, `objIncl(a×b)` to one common stage
+    `L ≥ i`; `hpres_pair` (transitions preserve the stage product) supplies the
+    mediator germ `r`, and `homInclObj_eq` + `homCompRaw_eq_of_stage` reduce each
+    projection-composite to `r ≫ functF.map fst = pL` (resp. snd).  Uniqueness is
+    `colimHom_monicPair_of_rep` with `hpres` as the joint stage-cancellation. -/
+theorem objIncl_preserves_products (C : CatSystem ι D) (hC : C.Coherent)
+    (hp : ∀ i, HasBinaryProducts (C.A i))
+    (hpres : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
+        (u : z ⟶ C.F hij ((hp i).prod a b)) (v : z ⟶ C.F hij ((hp i).prod a b)),
+        u ≫ (C.functF hij).map (hp i).fst = v ≫ (C.functF hij).map (hp i).fst →
+        u ≫ (C.functF hij).map (hp i).snd = v ≫ (C.functF hij).map (hp i).snd → u = v)
+    (hpres_pair : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
+        (p : z ⟶ C.F hij a) (q : z ⟶ C.F hij b),
+        ∃ r : z ⟶ C.F hij ((hp i).prod a b),
+          r ≫ (C.functF hij).map (hp i).fst = p ∧ r ≫ (C.functF hij).map (hp i).snd = q)
+    (i : ι) (a b : C.A i) :
+    @IsIso C.Obj (colimitCat C hC) _ _
+      (@pair C.Obj (colimitCat C hC) (colimitHasBinaryProducts C hC hp hpres hpres_pair)
+        (C.objIncl i ((hp i).prod a b)) (C.objIncl i a) (C.objIncl i b)
+        (homInclObj C hC ((hp i).fst (A := a) (B := b)))
+        (homInclObj C hC ((hp i).snd (A := a) (B := b)))) := by
+  letI : Cat C.Obj := colimitCat C hC
+  letI : HasBinaryProducts C.Obj := colimitHasBinaryProducts C hC hp hpres hpres_pair
+  -- abbreviations (`set` is a Mathlib tactic unavailable here; `let`s unfold by defeq).
+  let P0 : C.A i := (hp i).prod a b
+  let fstS : P0 ⟶ a := (hp i).fst
+  let sndS : P0 ⟶ b := (hp i).snd
+  let xa : C.A (colimOut C (C.objIncl i a)).1 := (colimOut C (C.objIncl i a)).2
+  let xb : C.A (colimOut C (C.objIncl i b)).1 := (colimOut C (C.objIncl i b)).2
+  let xprod : C.A (colimOut C (C.objIncl i P0)).1 := (colimOut C (C.objIncl i P0)).2
+  -- fold the goal to use the abbreviations (so `rw [homInclObj_eq … fstS …]` matches)
+  show @IsIso C.Obj (colimitCat C hC) _ _
+    (@pair C.Obj (colimitCat C hC) (colimitHasBinaryProducts C hC hp hpres hpres_pair)
+      (C.objIncl i P0) (C.objIncl i a) (C.objIncl i b)
+      (homInclObj C hC fstS) (homInclObj C hC sndS))
+  obtain ⟨ka, hpa, hia, heqa⟩ := Quotient.exact (colimOut_spec C (C.objIncl i a))
+  obtain ⟨kb, hpb, hib, heqb⟩ := Quotient.exact (colimOut_spec C (C.objIncl i b))
+  obtain ⟨kP, hpP, hiP, heqP⟩ := Quotient.exact (colimOut_spec C (C.objIncl i P0))
+  dsimp only [CatSystem.objSystem] at heqa heqb heqP
+  -- a common stage L ≥ i, ka, kb, kP
+  obtain ⟨m1, hkam, hkbm⟩ := D.bound ka kb
+  obtain ⟨L, hm1L, hkPL⟩ := D.bound m1 kP
+  have hkaL : D.le ka L := D.trans hkam hm1L
+  have hkbL : D.le kb L := D.trans hkbm hm1L
+  have hiL : D.le i L := D.trans hia hkaL
+  have hgaL : C.F (D.trans hpa hkaL) xa = C.F hiL a := by
+    rw [C.F_trans hpa hkaL, heqa, ← C.F_trans hia hkaL]
+  have hgbL : C.F (D.trans hpb hkbL) xb = C.F hiL b := by
+    rw [C.F_trans hpb hkbL, heqb, show hiL = D.trans hib hkbL from Subsingleton.elim _ _,
+        ← C.F_trans hib hkbL]
+  have hgPL : C.F (D.trans hpP hkPL) xprod = C.F hiL P0 := by
+    rw [C.F_trans hpP hkPL, heqP, show hiL = D.trans hiP hkPL from Subsingleton.elim _ _,
+        ← C.F_trans hiP hkPL]
+  let wF : HioWitness C P0 a := ⟨L, D.trans hpP hkPL, D.trans hpa hkaL, hiL, hgPL, hgaL⟩
+  let wS : HioWitness C P0 b := ⟨L, D.trans hpP hkPL, D.trans hpb hkbL, hiL, hgPL, hgbL⟩
+  refine isIso_of_product_up _ _ (fun {Z} f g => ?_)
+  -- joint monicity of the two projections (uniqueness half)
+  have hMP : @MonicPair C.Obj (colimitCat C hC) (C.objIncl i P0) (C.objIncl i a) (C.objIncl i b)
+      (homInclObj C hC fstS) (homInclObj C hC sndS) := by
+    rw [homInclObj_eq C hC fstS wF, homInclObj_eq C hC sndS wS]
+    refine colimHom_monicPair_of_rep C hC (D.trans hpP hkPL) (D.trans hpa hkaL) (D.trans hpb hkbL)
+      (wF.germ fstS) (wS.germ sndS) (fun {j} hjk z u v hu hv => ?_)
+    -- reduce both germ maps to `castHom ∘ functF.map`, apply `hpres`
+    have e_P : C.F hjk (C.F (D.trans hpP hkPL) xprod) = C.F (D.trans hiL hjk) P0 :=
+      (congrArg (C.F hjk) hgPL).trans (C.F_trans hiL hjk P0).symm
+    have e_a : C.F hjk (C.F (D.trans hpa hkaL) xa) = C.F (D.trans hiL hjk) a :=
+      (congrArg (C.F hjk) hgaL).trans (C.F_trans hiL hjk a).symm
+    have e_b : C.F hjk (C.F (D.trans hpb hkbL) xb) = C.F (D.trans hiL hjk) b :=
+      (congrArg (C.F hjk) hgbL).trans (C.F_trans hiL hjk b).symm
+    have hmapF : (C.functF hjk).map (wF.germ fstS)
+        = castHom e_P.symm e_a.symm ((C.functF (D.trans hiL hjk)).map fstS) := by
+      dsimp only [HioWitness.germ]
+      rw [map_castHom (C.F hjk) (hT := C.functF hjk)]
+      exact castHom_heq_congr _ _ e_P.symm e_a.symm (hC.trans_map hiL hjk fstS).symm
+    have hmapS : (C.functF hjk).map (wS.germ sndS)
+        = castHom e_P.symm e_b.symm ((C.functF (D.trans hiL hjk)).map sndS) := by
+      dsimp only [HioWitness.germ]
+      rw [map_castHom (C.F hjk) (hT := C.functF hjk)]
+      exact castHom_heq_congr _ _ e_P.symm e_b.symm (hC.trans_map hiL hjk sndS).symm
+    have cR : ∀ {P Q Q' R : C.A j} (he : Q = Q') (bb : P ⟶ Q) (cc : Q' ⟶ R),
+        castHom rfl he bb ≫ cc = bb ≫ castHom he.symm rfl cc := by
+      intro _ _ _ _ he bb cc; subst he; rfl
+    have cT : ∀ {P Q R R' : C.A j} (he : R = R') (bb : P ⟶ Q) (cc : Q ⟶ R),
+        castHom rfl he (bb ≫ cc) = bb ≫ castHom rfl he cc := by
+      intro _ _ _ _ he bb cc; subst he; rfl
+    rw [hmapF] at hu
+    rw [hmapS] at hv
+    have huu : (castHom rfl e_P u) ≫ (C.functF (D.trans hiL hjk)).map fstS
+        = (castHom rfl e_P v) ≫ (C.functF (D.trans hiL hjk)).map fstS := by
+      apply castHom_injective rfl e_a.symm; rw [cT, cT, cR, cR]; exact hu
+    have hvv : (castHom rfl e_P u) ≫ (C.functF (D.trans hiL hjk)).map sndS
+        = (castHom rfl e_P v) ≫ (C.functF (D.trans hiL hjk)).map sndS := by
+      apply castHom_injective rfl e_b.symm; rw [cT, cT, cR, cR]; exact hv
+    exact castHom_injective rfl e_P
+      (hpres (D.trans hiL hjk) a b z (castHom rfl e_P u) (castHom rfl e_P v) huu hvv)
+  -- existence half: build the mediator at stage L
+  refine Quotient.inductionOn f (fun ⟨af, fa⟩ => ?_)
+  refine Quotient.inductionOn g (fun ⟨bg, ga⟩ => ?_)
+  let z : C.A (colimOut C Z).1 := (colimOut C Z).2
+  obtain ⟨m2, hafm, hbgm⟩ := D.bound af.1 bg.1
+  obtain ⟨N, hm2N, hLN⟩ := D.bound m2 L
+  have hafN : D.le af.1 N := D.trans hafm hm2N
+  have hbgN : D.le bg.1 N := D.trans hbgm hm2N
+  have hiN : D.le i N := D.trans hiL hLN
+  -- rep-agreements at N
+  have hgaN : C.F (D.trans (D.trans hpa hkaL) hLN) xa = C.F hiN a := by
+    rw [C.F_trans (D.trans hpa hkaL) hLN, hgaL, ← C.F_trans hiL hLN]
+  have hgbN : C.F (D.trans (D.trans hpb hkbL) hLN) xb = C.F hiN b := by
+    rw [C.F_trans (D.trans hpb hkbL) hLN, hgbL, ← C.F_trans hiL hLN]
+  have hgPN : C.F (D.trans (D.trans hpP hkPL) hLN) xprod = C.F hiN P0 := by
+    rw [C.F_trans (D.trans hpP hkPL) hLN, hgPL, ← C.F_trans hiL hLN]
+  -- witnesses at N
+  let wFN : HioWitness C P0 a :=
+    ⟨N, D.trans (D.trans hpP hkPL) hLN, D.trans (D.trans hpa hkaL) hLN, hiN, hgPN, hgaN⟩
+  let wSN : HioWitness C P0 b :=
+    ⟨N, D.trans (D.trans hpP hkPL) hLN, D.trans (D.trans hpb hkbL) hLN, hiN, hgPN, hgbN⟩
+  -- competitor germs at N
+  let fL_raw : C.F (D.trans af.2.1 hafN) z ⟶ C.F (D.trans af.2.2 hafN) xa :=
+    homTr C z xa af ⟨N, D.trans af.2.1 hafN, D.trans af.2.2 hafN⟩ hafN fa
+  let gL_raw : C.F (D.trans bg.2.1 hbgN) z ⟶ C.F (D.trans bg.2.2 hbgN) xb :=
+    homTr C z xb bg ⟨N, D.trans bg.2.1 hbgN, D.trans bg.2.2 hbgN⟩ hbgN ga
+  have hzeq : C.F (D.trans bg.2.1 hbgN) z = C.F (D.trans af.2.1 hafN) z :=
+    C.F_proof_irrel _ _ z
+  have hfa_tgt : C.F (D.trans af.2.2 hafN) xa = C.F hiN a := by
+    rw [show D.trans af.2.2 hafN = D.trans (D.trans hpa hkaL) hLN from Subsingleton.elim _ _]
+    exact hgaN
+  have hgb_tgt : C.F (D.trans bg.2.2 hbgN) xb = C.F hiN b := by
+    rw [show D.trans bg.2.2 hbgN = D.trans (D.trans hpb hkbL) hLN from Subsingleton.elim _ _]
+    exact hgbN
+  let pL : C.F (D.trans af.2.1 hafN) z ⟶ C.F hiN a := castHom rfl hfa_tgt fL_raw
+  let qL : C.F (D.trans af.2.1 hafN) z ⟶ C.F hiN b := castHom hzeq hgb_tgt gL_raw
+  obtain ⟨r, hr_fst, hr_snd⟩ := hpres_pair hiN a b (C.F (D.trans af.2.1 hafN) z) pL qL
+  let rgerm : C.F (D.trans af.2.1 hafN) z ⟶ C.F (D.trans (D.trans hpP hkPL) hLN) xprod :=
+    castHom rfl hgPN.symm r
+  let u : Z ⟶ C.objIncl i P0 :=
+    homIncl C hC z xprod ⟨N, D.trans af.2.1 hafN, D.trans (D.trans hpP hkPL) hLN⟩ rgerm
+  have hux : u ≫ homInclObj C hC fstS = Quotient.mk _ ⟨af, fa⟩ := by
+    show colimComp C hC u (homInclObj C hC fstS) = _
+    rw [homInclObj_eq C hC fstS wFN]
+    show homCompRaw C hC z xprod xa ⟨N, D.trans af.2.1 hafN, D.trans (D.trans hpP hkPL) hLN⟩ rgerm
+        ⟨wFN.K, wFN.hpx, wFN.hpy⟩ (wFN.germ fstS)
+      = homIncl C hC z xa af fa
+    refine homCompRaw_eq_of_stage C hC z xprod xa
+      ⟨N, D.trans af.2.1 hafN, D.trans (D.trans hpP hkPL) hLN⟩ rgerm
+      ⟨wFN.K, wFN.hpx, wFN.hpy⟩ (wFN.germ fstS) af fa N (D.refl N) (D.refl N) hafN ?_
+    rw [homTr_refl C hC, homTr_refl C hC]
+    show rgerm ≫ castHom hgPN.symm hgaN.symm ((C.functF hiN).map fstS)
+      = homTr C z xa af ⟨N, D.trans af.2.1 hafN, D.trans af.2.2 hafN⟩ hafN fa
+    show castHom rfl hgPN.symm r ≫ castHom hgPN.symm hgaN.symm ((C.functF hiN).map fstS) = fL_raw
+    rw [castHom_comp]
+    rw [show r ≫ (C.functF hiN).map fstS = pL from hr_fst]
+    show castHom rfl hgaN.symm (castHom rfl hfa_tgt fL_raw) = fL_raw
+    rw [castHom_castHom]
+    exact castHom_of_heq rfl _ HEq.rfl
+  have huy : u ≫ homInclObj C hC sndS = Quotient.mk _ ⟨bg, ga⟩ := by
+    show colimComp C hC u (homInclObj C hC sndS) = _
+    rw [homInclObj_eq C hC sndS wSN]
+    show homCompRaw C hC z xprod xb ⟨N, D.trans af.2.1 hafN, D.trans (D.trans hpP hkPL) hLN⟩ rgerm
+        ⟨wSN.K, wSN.hpx, wSN.hpy⟩ (wSN.germ sndS)
+      = homIncl C hC z xb bg ga
+    refine homCompRaw_eq_of_stage C hC z xprod xb
+      ⟨N, D.trans af.2.1 hafN, D.trans (D.trans hpP hkPL) hLN⟩ rgerm
+      ⟨wSN.K, wSN.hpx, wSN.hpy⟩ (wSN.germ sndS) bg ga N (D.refl N) (D.refl N) hbgN ?_
+    rw [homTr_refl C hC, homTr_refl C hC]
+    show castHom rfl hgPN.symm r ≫ castHom hgPN.symm hgbN.symm ((C.functF hiN).map sndS)
+      = homTr C z xb bg ⟨N, D.trans bg.2.1 hbgN, D.trans bg.2.2 hbgN⟩ hbgN ga
+    rw [castHom_comp]
+    rw [show r ≫ (C.functF hiN).map sndS = qL from hr_snd]
+    show castHom rfl hgbN.symm (castHom hzeq hgb_tgt gL_raw) = gL_raw
+    rw [castHom_castHom]
+    exact castHom_of_heq hzeq _ HEq.rfl
+  -- assemble: mediator `u`, its two factorisations, uniqueness via `hMP`
+  exact ⟨u, ⟨hux, huy⟩, fun v hv₁ hv₂ => hMP v u (hv₁.trans hux.symm) (hv₂.trans huy.symm)⟩
+
 /-! ## M3b — pullbacks for the colimit category
 
   The colimit category has pullbacks, obtained from the terminal object,
