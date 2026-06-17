@@ -84,18 +84,22 @@ theorem cayley_reflects_equalizer
   predicates (terminator, product, equalizer).
 
   **Metatheorem (§1.444)**: Any Horn sentence in the Cartesian predicates true for
-  Set (`Type v`) is true for every Cartesian category — MISSING. As with §1.272/§1.551,
-  a faithful statement needs an object-language encoding of Horn sentences (a
-  `HornSentence`/`HoldsIn` apparatus) plus a `Cat` instance on `Type` with the Cayley
-  functor; that is not formalized here, so the metatheorem is recorded MISSING in
-  S1_47.md rather than faked. The genuinely-provable ingredient (§1.442 collective
-  faithfulness of representables) is recorded below; the Horn-reflection statement for
-  REGULAR predicates lives faithfully in S1_56 (`horn_sentence_reflected_by_faithful`). -/
+  Set (`Type v`) is true for every Cartesian category — PROVEN in `Fredy/Horn.lean`
+  (`Freyd.Horn.horn_metatheorem`).  That file builds the faithful object-language
+  apparatus the statement needs: a syntactic `HornSentence` over the primitive predicates
+  (terminator / product / equalizer) with typed object- and morphism-variables, a
+  semantics `HoldsIn 𝒞` interpreting it in any Cartesian category, the `Cat`/Cartesian
+  structure of `Type v`, and the metatheorem proven exactly along Freyd's lines —
+  per-predicate PRESERVATION by each representable `Hom(i,-)` plus COLLECTIVE FAITHFULNESS
+  (`cayley_faithful`) reflecting the conclusion across all `i`.  The §1.442 collective
+  faithfulness ingredient is recorded just below; the Horn-reflection statement for
+  REGULAR predicates lives in S1_56 (`horn_sentence_reflected_by_faithful`). -/
 
 /-- **§1.442**: the representable functors `(C, -)` collectively reflect equality of
     morphisms — i.e. `f = g` whenever `k ≫ f = k ≫ g` for all `k`. (This is the Yoneda /
-    Cayley collective-faithfulness instance, `cayley_faithful` §1.272; it is NOT the
-    §1.444 Horn metatheorem, which is MISSING — see above.) -/
+    Cayley collective-faithfulness instance, `cayley_faithful` §1.272; it is the
+    REFLECTION half of the §1.444 Horn metatheorem, which is proven in full in
+    `Fredy/Horn.lean` — see above.) -/
 theorem representables_collectively_faithful [CartesianCategory 𝒞]
     {A B : 𝒞} (f g : A ⟶ B)
     (h : ∀ (C : 𝒞) (k : C ⟶ A), k ≫ f = k ≫ g) : f = g :=

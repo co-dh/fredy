@@ -16,6 +16,8 @@ import Fredy.S1_41
 import Fredy.S1_42
 import Fredy.S1_44
 import Fredy.S1_45
+import Fredy.S1_47
+import Fredy.Horn
 import Fredy.S1_51
 import Fredy.S1_52
 import Fredy.S1_53
