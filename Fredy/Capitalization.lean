@@ -954,11 +954,20 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
     --        factor-match cannot be large-eliminated into a morphism without `DecidableEq S`
     --        (same wall that forced `listProdProj` to be `Fin`-indexed).  Abstracted as data;
     --        one constructive instance closes (A).
-    --   (B-strict)  BASE-CHANGE IS ONLY PSEUDO-FUNCTORIAL — the two `sorry`s inside
-    --        `Freyd.innerCatSystem` (`F_refl`/`F_trans`).  `baseChangeObj (Cat.id) X = X` and
-    --        the composite law hold only up to canonical pullback iso, never on the nose (probed),
-    --        so the strict `CatSystem.F_refl`/`F_trans` need base-change strictification (or a
-    --        strictly-functorial replacement transition), exactly as the OUTER tower used `transN`.
+    --   (B-strict)  BASE-CHANGE IS ONLY PSEUDO-FUNCTORIAL — `Freyd.StrictBaseChange` (the strict
+    --        `F_refl`/`F_trans` for `innerCatSystem`).  `baseChangeObj (Cat.id) X = X` and the
+    --        composite law hold only up to canonical pullback iso, never on the nose (probed), so the
+    --        strict `CatSystem` laws need base-change strictification.
+    --        ROUTE-1 (strict reindexing) — SETTLED NEGATIVELY (see `Freyd.strictReindexSystem` /
+    --        `Freyd.reindexFunctor`): the strict Σ / post-composition transition `A/C → A/D` along a
+    --        fixed `m : C → D` IS strictly functorial and discharges `F_refl`/`F_trans` ON THE NOSE
+    --        (`reindexObj_id`/`reindexObj_comp`, axiom-free), giving a genuine hypothesis-free
+    --        `CatSystem`.  But it has the WRONG variance for §1.547 (needs `∏V → ∏U` for `V ⊆ U`, not
+    --        choice-free — it would manufacture the new factors' points) AND keeps the slice domain
+    --        FIXED (`B×∏V`), so it cannot connect the stage embeddings whose domain must GROW to
+    --        `B×∏U`.  Only base-change grows the domain, hence is irreducibly pseudo-functorial.  So
+    --        route 1 does NOT close this; the residual stays base-change strictification (or a literal
+    --        directed-union-of-full-subcategories rational-category model with strict inclusions).
     --   (B-package)  THE INNER `colimitPreRegular` PACKAGE — `Coherent` plus the 9 preservation
     --        hypotheses and `hcanon` for `innerCatSystem`, mirroring `towerCoherent`/
     --        `capData_of_tower`; a full second copy of the outer assembly over `listDirected`.

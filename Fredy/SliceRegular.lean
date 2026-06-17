@@ -323,4 +323,61 @@ instance baseChangeFunctor : Functor (baseChangeObj g) where
 
 end baseChange
 
+/-! ## Strict reindexing (the dependent-sum / Σ direction) — STRICTLY functorial
+
+  Contrast with base-change (above), which is only pseudo-functorial.  Post-composition
+  with a *fixed* base map `m : C ⟶ D` is the dependent-sum functor `Σ_m : A/C → A/D`,
+  `⟨X, x⟩ ↦ ⟨X, x ≫ m⟩`, `⟨f, w⟩ ↦ ⟨f, …⟩` (the SAME underlying arrow `f`).  Because `≫`
+  is strictly associative and unital, ALL of the following hold **on the nose** (no canonical
+  iso, unlike base-change):
+
+    * `reindexFunctor` is a `Functor` with `map_id`/`map_comp` proved by `OverHom.ext rfl`;
+    * `reindexObj (Cat.id C) X = X`                     (object `F_refl`, by `Cat.comp_id`);
+    * `reindexObj (m ≫ m') X = reindexObj m' (reindexObj m X)`  (object `F_trans`, by `Cat.assoc`).
+
+  These three are exactly the `CatSystem.F_refl`/`F_trans` strict laws that base-change CANNOT
+  satisfy.  So the strict direction EXISTS — but it post-composes the structure map and keeps the
+  DOMAIN `X` fixed (`(reindexObj m X).dom = X.dom`, by `rfl`), and its variance is `A/C → A/D`
+  along `m : C → D`.  In §1.547 the directed transition runs `A/(∏V) → A/(∏U)` for `V ⊆ U`, whose
+  canonical base map is the PROJECTION `∏U → ∏V` (the wrong way for Σ), and the embedding needs the
+  product to GROW `B×∏V ↝ B×∏U` (which only the pullback/base-change direction does — Σ keeps the
+  domain fixed).  See `Freyd.innerCatSystem` (`RelativeCapitalization.lean`) for why this rules out
+  route-1 strict reindexing as the inner-system transition. -/
+
+section reindex
+
+variable {C D E : 𝒞}
+
+/-- Object part of strict reindexing along `m : C ⟶ D`: `⟨X, x⟩ ↦ ⟨X, x ≫ m⟩`. -/
+def reindexObj (m : C ⟶ D) (X : Over C) : Over D := ⟨X.dom, X.hom ≫ m⟩
+
+/-- The domain is UNCHANGED by reindexing (the structural reason Σ cannot grow `∏V ↝ ∏U`). -/
+@[simp] theorem reindexObj_dom (m : C ⟶ D) (X : Over C) : (reindexObj m X).dom = X.dom := rfl
+
+/-- Morphism part of strict reindexing: the SAME underlying arrow, re-typed over `D`. -/
+def reindexMap (m : C ⟶ D) {X Y : Over C} (h : OverHom X Y) :
+    OverHom (reindexObj m X) (reindexObj m Y) :=
+  ⟨h.f, by show h.f ≫ (Y.hom ≫ m) = X.hom ≫ m; rw [← Cat.assoc, h.w]⟩
+
+/-- **Strict reindexing is a `Functor A/C → A/D`** — and STRICTLY so: `map_id`/`map_comp` are
+    `OverHom.ext rfl` because the underlying arrow is untouched. -/
+instance reindexFunctor (m : C ⟶ D) : Functor (reindexObj m) where
+  map h := reindexMap m h
+  map_id _ := OverHom.ext rfl
+  map_comp _ _ := OverHom.ext rfl
+
+/-- **Strict `F_refl` (object level): `reindexObj (id) X = X` ON THE NOSE.**  The pseudo-functorial
+    `baseChangeObj (id) X = X ×_C C` is only iso to `X`; Σ is equal. -/
+@[simp] theorem reindexObj_id (X : Over C) : reindexObj (Cat.id C) X = X := by
+  show (⟨X.dom, X.hom ≫ Cat.id C⟩ : Over C) = X; rw [Cat.comp_id]
+
+/-- **Strict `F_trans` (object level): `reindexObj (m ≫ m') = reindexObj m' ∘ reindexObj m` ON THE
+    NOSE** (by strict associativity of `≫`).  Base-change re-associates an iterated pullback, equal
+    only up to canonical iso. -/
+theorem reindexObj_comp (m : C ⟶ D) (m' : D ⟶ E) (X : Over C) :
+    reindexObj (m ≫ m') X = reindexObj m' (reindexObj m X) := by
+  show (⟨X.dom, X.hom ≫ (m ≫ m')⟩ : Over E) = ⟨X.dom, (X.hom ≫ m) ≫ m'⟩; rw [Cat.assoc]
+
+end reindex
+
 end Freyd

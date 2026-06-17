@@ -73,6 +73,19 @@
             is only PSEUDO-functorial (`baseChangeObj (Cat.id) X = X×_D D`, iso to `X` but NOT equal),
             so these are FALSE for raw base-change and are declared as a hypothesis (a real theorem to
             prove = base-change strictification), never asserted by `sorry`.
+
+  ROUTE-1 (strict reindexing) INVESTIGATION — settled NEGATIVELY for §1.547, see the
+  `strictReindexSystem` block + `Freyd.reindexFunctor` (SliceRegular.lean):
+    * the STRICT transition EXISTS — `reindexFunctor m` (Σ / post-composition along `m : C → D`) is
+      strictly functorial AND `reindexObj_id`/`reindexObj_comp` give `CatSystem.F_refl`/`F_trans` ON
+      THE NOSE (sorry-free, axiom-free).  `strictReindexSystem R` is a genuine `CatSystem` with those
+      laws as THEOREMS, no `StrictBaseChange` needed.
+    * but it is the WRONG transition for §1.547: variance `A/(∏V) → A/(∏U)` needs base map `∏V → ∏U`
+      (Σ-direction), not choice-free for `V ⊆ U` (would manufacture the missing factors' points); and
+      Σ keeps the slice DOMAIN fixed (`B×∏V`), so it cannot connect the stage embeddings whose domain
+      must GROW to `B×∏U`.  Only base-change (pullback) grows the domain — hence pseudo-functorial.
+      Strictness and the growing-product embedding are mutually exclusive; route 1 does not close
+      `hwall_step`.
   STILL OPEN to finish `S*`:
     (B-package) `Coherent (innerCatSystem P hS)` + the 9 `colimitPreRegular` preservation hypotheses
         + `hcanon`, mirroring the OUTER `towerSystem`/`towerCoherent`/`capData_of_tower`; then take
@@ -448,7 +461,13 @@ structure StrictBaseChange (P : ListProjFamily (𝒞 := 𝒞)) : Prop where
     real construction or a fed-in hypothesis — no false equation is asserted.  Discharging the two
     inputs `P`/`hS` (one constructive `ListProjFamily`, one base-change strictification) plus the 9
     `colimitPreRegular` preservation hypotheses and `Coherent` (residual (B-package), mirroring the
-    OUTER `towerSystem`/`towerCoherent`/`capData_of_tower`) closes the inner construction. -/
+    OUTER `towerSystem`/`towerCoherent`/`capData_of_tower`) closes the inner construction.
+
+    ROUTE-1 NOTE (see the `strictReindexSystem` block below).  `hS : StrictBaseChange P` is a GENUINE
+    obligation — base-change is irreducibly pseudo-functorial.  The natural strict alternative (Σ /
+    post-composition, `strictReindexSystem`) discharges the strict `F_refl`/`F_trans` on the nose but
+    runs the WRONG variance and keeps the slice domain fixed, so it cannot carry §1.547's growing
+    embedding.  Hence `StrictBaseChange` cannot be replaced by route-1 reindexing; it stays. -/
 noncomputable def innerCatSystem (P : ListProjFamily (𝒞 := 𝒞)) (hS : StrictBaseChange P) :
     Colim.CatSystem (List 𝒞) listDirected where
   A := innerObj (𝒞 := 𝒞)
@@ -457,5 +476,101 @@ noncomputable def innerCatSystem (P : ListProjFamily (𝒞 := 𝒞)) (hS : Stric
   functF := fun {V U} h => innerFunctF P h
   F_refl := fun {U} X => hS.F_refl X
   F_trans := fun {V U W} hVU hUW X => hS.F_trans hVU hUW X
+
+/-! ## ROUTE 1 — strict reindexing: the strict laws hold, but the variance is wrong
+
+  Investigation of the §1.543 task "replace the pseudo-functorial base-change transition with a
+  STRICTLY functorial one so `CatSystem.F_refl`/`F_trans` hold on the nose."
+
+  RESULT (machine-checked, sorry-free below).  The honest strict transition is the dependent-sum /
+  post-composition functor `reindexFunctor` (SliceRegular.lean): along a FIXED base map `m : C ⟶ D`,
+  `Σ_m : A/C → A/D`, `⟨X, x⟩ ↦ ⟨X, x ≫ m⟩`.  It is STRICTLY functorial and — unlike base-change —
+  satisfies the `CatSystem` object laws DEFINITIONALLY:
+
+    * `reindexObj_id   : reindexObj (Cat.id C) X = X`                           (strict `F_refl`)
+    * `reindexObj_comp : reindexObj (m ≫ m') X = reindexObj m' (reindexObj m X)` (strict `F_trans`)
+
+  both proven by `rfl`-level rewriting (`Cat.comp_id` / `Cat.assoc`).  So a `CatSystem` built on
+  `reindexFunctor` needs NO `StrictBaseChange` hypothesis: `strictReindexSystem` below has its
+  `F_refl`/`F_trans` as PROVEN theorems, not fed-in inputs.  This is the route-1 strict win, in hand.
+
+  WHY ROUTE 1 NEVERTHELESS CANNOT CARRY §1.547 (the two-fold obstruction, both `rfl`-confirmed):
+
+   (i) WRONG VARIANCE.  `reindexFunctor` runs `A/C → A/D` ALONG a base map `m : C → D`.  The §1.547
+       directed transition is `A/(∏V) → A/(∏U)` for `V ⊆ U`, whose canonical, choice-free base map is
+       the PROJECTION `listProdProj`-style `∏U → ∏V` (bigger product onto smaller) — pointing the
+       WRONG way for Σ.  A Σ-usable `∏V → ∏U` would have to MANUFACTURE the extra factors of `U∖V`,
+       i.e. supply points `1 → B` for the new well-supported `B`; choice-free, no such map exists
+       (that is precisely the point the construction is trying to ADD, not assume).  Hence the strict
+       family `ReindexFamily` (the Σ analogue of `ListProjFamily`) carries data `∏V ⟶ ∏U` that is NOT
+       constructible — strictly worse than `ListProjFamily`'s `∏U ⟶ ∏V`, which at least IS a genuine
+       projection (blocked only by `Prop`-no-large-elim / `DecidableEq 𝒞`).
+
+  (ii) BREAKS THE EMBEDDING.  Even granting such a family, Σ keeps the DOMAIN fixed:
+       `(reindexObj m (sliceEmbedObj (∏V) B)).dom = (∏V).dom`-shape `= prod B (listProd V)`, NEVER
+       `prod B (listProd U)` (confirmed by `rfl`).  But the slice embedding at stage `U` is
+       `sliceEmbedObj (∏U) B = ⟨B × ∏U, snd⟩`, whose domain GREW to `B × ∏U`.  The colimit must
+       identify `objIncl V (embed B) = objIncl U (embed B)`, i.e. the transition must connect
+       `⟨B×∏V, snd⟩` to `⟨B×∏U, snd⟩` — a domain CHANGE `B×∏V ↝ B×∏U`.  Only the pullback/base-change
+       direction does this (`X ↦ X ×_{∏V} ∏U`); Σ cannot, since it never touches the domain.  This is
+       the structural reason §1.547's directed union is the pullback (rational-category) construction,
+       NOT a strict reindexing — and is exactly why Freyd phrases the `A*|U`-to-`A*|V` transitions as
+       *equivalences of full subcategories of the rational category*, i.e. up-to-iso, never on the nose.
+
+  CONCLUSION.  Route 1 produces a genuine, hypothesis-free strict `CatSystem` (`strictReindexSystem`)
+  but on the WRONG variance and WITHOUT the embedding/point-acquisition §1.547 needs.  The base-change
+  inner system (`innerCatSystem`) keeps the correct variance and embedding but is irreducibly
+  pseudo-functorial (its `StrictBaseChange` is a real, non-trivial strictification obligation).  The
+  two cannot be merged: strictness and the growing-product embedding pull in opposite directions.  So
+  `hwall_step` keeps its honest `sorry`; the residual is base-change strictification (residual
+  (B-strict)) OR a literal directed-union-of-full-subcategories model of the rational category whose
+  inclusions are strict by construction — NOT route-1 reindexing. -/
+
+/-- **The strict reindexing transition base-map family (the Σ analogue of `ListProjFamily`).**  Data
+    of a base map `∏V ⟶ ∏U` per inclusion `V ⊆ U`, strictly coherent.  NOTE the direction `∏V → ∏U`:
+    this is what `Σ` (post-composition) requires, and is NOT choice-free constructible — a map
+    `∏V → ∏U` for `V ⊆ U` must supply the missing factors `U∖V` (points `1 → B`), the very data the
+    capitalization is meant to ADD.  Carried as a structure to make the obstruction explicit. -/
+structure ReindexFamily where
+  /-- the (non-constructible, choice-laden) base map `∏V → ∏U` for each `V ⊆ U`. -/
+  base : ∀ {V U : List 𝒞}, listSubset V U → (listProd V ⟶ listProd U)
+  /-- strict unit. -/
+  base_refl : ∀ (U : List 𝒞), base (listDirected.refl U) = Cat.id (listProd U)
+  /-- strict composition. -/
+  base_trans : ∀ {V U W : List 𝒞} (hVU : listSubset V U) (hUW : listSubset U W),
+    base (listDirected.trans hVU hUW) = base hVU ≫ base hUW
+
+/-- **The strict reindexing inner object map.**  Stage `U` is the slice `A/(∏U) = Over (listProd U)`,
+    same objects as `innerObj`; the transition will be Σ (post-composition), not base-change. -/
+def reindexObjStage (R : ReindexFamily (𝒞 := 𝒞)) {V U : List 𝒞} (h : listSubset V U) :
+    innerObj (𝒞 := 𝒞) V → innerObj (𝒞 := 𝒞) U :=
+  reindexObj (R.base h)
+
+/-- The strict reindexing transition is a functor — STRICTLY (it is `reindexFunctor`). -/
+instance reindexFunctStage (R : ReindexFamily (𝒞 := 𝒞)) {V U : List 𝒞} (h : listSubset V U) :
+    @Functor (innerObj (𝒞 := 𝒞) V) (innerCat V) (innerObj (𝒞 := 𝒞) U) (innerCat U)
+      (reindexObjStage R h) :=
+  reindexFunctor (R.base h)
+
+/-- **The strict reindexing inner `CatSystem` — route 1, sorry-free, NO strictness hypothesis.**
+    Given a (route-1) base-map family `R`, the Σ-transition system over `listDirected` is a genuine
+    `CatSystem` whose `F_refl`/`F_trans` are PROVEN — `reindexObj_id` and `reindexObj_comp` (modulo
+    `R.base_refl`/`R.base_trans`), NOT supplied as `StrictBaseChange`-style hypotheses.  This is the
+    concrete route-1 deliverable: strict laws ARE dischargeable on the nose for the reindexing
+    transition.  Its limitation (wrong variance + fixed domain, so it does NOT carry the §1.547
+    embedding/point-acquisition) is documented above and is why it does not close `hwall_step`. -/
+def strictReindexSystem (R : ReindexFamily (𝒞 := 𝒞)) :
+    Colim.CatSystem (List 𝒞) listDirected where
+  A := innerObj (𝒞 := 𝒞)
+  catA := innerCat
+  F := fun {V U} h => reindexObjStage R h
+  functF := fun {V U} h => reindexFunctStage R h
+  F_refl := fun {U} X => by
+    show reindexObj (R.base (listDirected.refl U)) X = X
+    rw [R.base_refl, reindexObj_id]
+  F_trans := fun {V U W} hVU hUW X => by
+    show reindexObj (R.base (listDirected.trans hVU hUW)) X
+      = reindexObj (R.base hUW) (reindexObj (R.base hVU) X)
+    rw [R.base_trans, reindexObj_comp]
 
 end Freyd
