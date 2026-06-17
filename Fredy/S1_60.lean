@@ -742,86 +742,161 @@ theorem existsAlong_union_le {X Y : 𝒞} (g : X ⟶ Y) (P Q : Subobject 𝒞 X)
   exact (existsAlong_le_iff g (HasSubobjectUnions.union P Q) V).2
     (HasSubobjectUnions.union_min _ _ _ hP hQ)
 
-/-! ### §1.616  The extensive descent for `compose_union_right`
+/-! ### §1.616  Composition distributes over union (right) — coproduct-free via `∃ ⊣ #`
 
-  The hard half `R⊚(S∪T) ≤ (R⊚S)∪(R⊚T)` is, in any pre-logos, the *extensive* (= "geometric")
-  content of §1.616: pulling a relation back along the cover that presents a union RE-DECOMPOSES it
-  over the two pieces.  Concretely, `compose` builds `R⊚(S∪T)` as the image of the span out of
-  `pb := pullback(R.colB, (S∪T).colA)`, and `(S∪T).colA` is the `fst`-leg of the cover-image of the
-  copairing `m := case(pairS)(pairT)`.  Pulling that cover back along `pb.π₂` (covers are stable
-  under pullback in a regular category — `cover_pullback`) yields a common cover `P ↠ pb.pt` whose
-  domain carries, summand-by-summand, the `R⊚S`/`R⊚T` data — so it maps into `(R⊚S)∪(R⊚T)`.
+  Earlier drafts reduced `R⊚(S∪T) ≤ (R⊚S)∪(R⊚T)` to an *extensive split* of the coproduct that
+  presents the union (`pullback(S.src+T.src,−) ≅ ⋯`), which is not available in a bare pre-logos.
+  That route is UNNECESSARY: the union here is the Sub-lattice JOIN, and `compose` itself is a
+  composite `∃_ω ∘ θ#` of two union-preserving operations.  Concretely, fix `R` and set
 
-  The COVER `P ↠ pb.pt` together with the descent map `φ : P → ((R⊚S)∪(R⊚T)).src` is isolated as
-  `union_compose_descent`.  Everything else (`relLe_of_cover_factor`, `image_lift_cover`,
-  `cover_comp`) is fully proven, so the main theorem below is a complete reduction to it.
+      θ := pair (fst ≫ R.colB) snd : R.src × C ⟶ B × C      (re-uses `R.colB` on the first factor),
+      ω := pair (fst ≫ R.colA) snd : R.src × C ⟶ A × C.
 
-  Why a `sorry` remains here: producing `φ` requires that the pullback `pb1 := pullback(eU, pb.π₂)`
-  of the coproduct-presenting cover `eU` SPLITS over `S.src + T.src` — i.e. binary coproducts are
-  stable under pullback (EXTENSIVITY / "pullback distributes over coproduct").  That primitive is
-  not yet built in this repo (cf. the same gap flagged at `S1_84.lean:510` `pullback_union`).  Once
-  the extensive split `pullback(P+Q, h) ≅ pullback(P,h) + pullback(Q,h)` is available, `φ` is the
-  copairing of the two summand descents and the `sorry` discharges with no new ideas. -/
+  Then for *every* `X : B → C`,  `relSub (R ⊚ X)  =  ∃_ω ( θ# (relSub X) )`  as subobjects of
+  `A×C` (`relSub_compose_eq`, proved below by the two factorizations between `pullback(R.colB,X.colA)`
+  and `pullback(θ, relSub X)`).  Composition therefore inherits union-preservation from the two
+  pre-logos primitives already in this file:
+    • `θ#` preserves unions      (`PreLogos.invImage_preserves_union`),
+    • `∃_ω` preserves unions     (`existsAlong_union_le`),
+  and `relSub_union_le`/`_ge` bridge `relSub(S∪T)` with the subobject union.  No coproduct
+  extensivity, no new hypothesis. -/
 
-/-- **Extensive descent** (SHARP gap, §1.616).  With `U := S ∪ᵣ T` and `pb := pullback(R.colB, U.colA)`,
-    there is a cover `c : P ↠ pb.cone.pt` and a descent `φ : P → ((R⊚S) ∪ᵣ (R⊚T)).src` whose legs
-    match the `R⊚U`-span composed with `c`:
-      `c ≫ (pb.π₁ ≫ R.colA) = φ ≫ ((R⊚S)∪(R⊚T)).colA`,
-      `c ≫ (pb.π₂ ≫ U.colB) = φ ≫ ((R⊚S)∪(R⊚T)).colB`.
-    Both hypotheses are genuinely used downstream (they ARE the two leg-agreements fed to
-    `relLe_of_cover_factor`).  The single missing ingredient is the extensive split of the
-    coproduct-presenting cover of `U.src` under pullback along `pb.π₂`; see the section header. -/
-private theorem union_compose_descent {A B C : 𝒞} (R : BinRel 𝒞 A B) (S T : BinRel 𝒞 B C) :
-    ∃ (P : 𝒞) (c : P ⟶ (HasPullbacks.has R.colB (S ∪ᵣ T).colA).cone.pt)
-      (φ : P ⟶ ((R ⊚ S) ∪ᵣ (R ⊚ T)).src),
-      Cover c ∧
-      c ≫ ((HasPullbacks.has R.colB (S ∪ᵣ T).colA).cone.π₁ ≫ R.colA)
-        = φ ≫ ((R ⊚ S) ∪ᵣ (R ⊚ T)).colA ∧
-      c ≫ ((HasPullbacks.has R.colB (S ∪ᵣ T).colA).cone.π₂ ≫ (S ∪ᵣ T).colB)
-        = φ ≫ ((R ⊚ S) ∪ᵣ (R ⊚ T)).colB := by
-  -- The cover `c` is built from `cover_pullback (image_lift_cover m) ≫ pb.π₂`; the descent `φ` is
-  -- the copairing of the two summand maps after the extensive split of `pullback(eU, pb.π₂)`.
-  sorry
+/-- The "B-side reindexing" `θ_R := pair (fst ≫ R.colB) snd : R.src × C ⟶ B × C`. -/
+private def thetaR {A B : 𝒞} (R : BinRel 𝒞 A B) (C : 𝒞) : prod R.src C ⟶ prod B C :=
+  pair (fst ≫ R.colB) snd
+
+/-- The "A-side reindexing" `ω_R := pair (fst ≫ R.colA) snd : R.src × C ⟶ A × C`. -/
+private def omegaR {A B : 𝒞} (R : BinRel 𝒞 A B) (C : 𝒞) : prod R.src C ⟶ prod A C :=
+  pair (fst ≫ R.colA) snd
+
+/-- **Geometric identity (coproduct-free)** §1.616: `relSub (R ⊚ X) = ∃_{ω_R}(θ_R# (relSub X))`.
+    `compose` images the span `s := pair (pbX.π₁ ≫ R.colA)(pbX.π₂ ≫ X.colB)` out of
+    `pbX := pullback(R.colB, X.colA)`; `θ_R#(relSub X)` images `pbI.π₁` out of
+    `pbI := pullback(θ_R, relSub X)`, and `∃_{ω_R}` of it images `pbI.π₁ ≫ ω_R`.  The two index
+    objects map to each other (`α : pbX → pbI`, `β : pbI → pbX`) compatibly with the spans
+    (`s = α ≫ (pbI.π₁ ≫ ω_R)` and `pbI.π₁ ≫ ω_R = β ≫ s`), so the two images coincide.  We return
+    both `Subobject.le` directions. -/
+private theorem relSub_compose_eq {A B C : 𝒞} (R : BinRel 𝒞 A B) (X : BinRel 𝒞 B C) :
+    (relSub (R ⊚ X)).le (existsAlong (omegaR R C) (InverseImage (thetaR R C) (relSub X)))
+    ∧ (existsAlong (omegaR R C) (InverseImage (thetaR R C) (relSub X))).le (relSub (R ⊚ X)) := by
+  let pbX := HasPullbacks.has R.colB X.colA
+  let s : pbX.cone.pt ⟶ prod A C := pair (pbX.cone.π₁ ≫ R.colA) (pbX.cone.π₂ ≫ X.colB)
+  let pbI := HasPullbacks.has (thetaR R C) (relSub X).arr
+  -- relSub(R⊚X).arr = (image s).arr  (reconstruct the pair from its projections).
+  have hRX_arr : (relSub (R ⊚ X)).arr = (image s).arr := by
+    show pair (R ⊚ X).colA (R ⊚ X).colB = (image s).arr
+    exact (pair_uniq (R ⊚ X).colA (R ⊚ X).colB (image s).arr rfl rfl).symm
+  -- existsAlong(ω)(θ#(relSub X)).arr = (image (pbI.π₁ ≫ ω)).arr  by definition.
+  have hF_arr : (existsAlong (omegaR R C) (InverseImage (thetaR R C) (relSub X))).arr
+      = (image (pbI.cone.π₁ ≫ omegaR R C)).arr := rfl
+  -- α : pbX.pt → pbI.pt with α ≫ pbI.π₁ = pair pbX.π₁ (pbX.π₂ ≫ X.colB).
+  let μ : pbX.cone.pt ⟶ prod R.src C := pair pbX.cone.π₁ (pbX.cone.π₂ ≫ X.colB)
+  have hμθ : μ ≫ thetaR R C = pbX.cone.π₂ ≫ (relSub X).arr := by
+    have hl : μ ≫ thetaR R C
+        = pair (pbX.cone.π₁ ≫ R.colB) (pbX.cone.π₂ ≫ X.colB) :=
+      pair_uniq _ _ _
+        (by show (μ ≫ pair (fst ≫ R.colB) snd) ≫ fst = _
+            rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair])
+        (by show (μ ≫ pair (fst ≫ R.colB) snd) ≫ snd = _
+            rw [Cat.assoc, snd_pair, snd_pair])
+    have hr : pbX.cone.π₂ ≫ (relSub X).arr
+        = pair (pbX.cone.π₁ ≫ R.colB) (pbX.cone.π₂ ≫ X.colB) :=
+      pair_uniq _ _ _
+        (by show (pbX.cone.π₂ ≫ pair X.colA X.colB) ≫ fst = _
+            rw [Cat.assoc, fst_pair]; exact pbX.cone.w.symm)
+        (by show (pbX.cone.π₂ ≫ pair X.colA X.colB) ≫ snd = _
+            rw [Cat.assoc, snd_pair])
+    rw [hl, hr]
+  let cα : Cone (thetaR R C) (relSub X).arr := ⟨pbX.cone.pt, μ, pbX.cone.π₂, hμθ⟩
+  let α : pbX.cone.pt ⟶ pbI.cone.pt := pbI.lift cα
+  have hα₁ : α ≫ pbI.cone.π₁ = μ := pbI.lift_fst cα
+  have hs_fac : s = α ≫ (pbI.cone.π₁ ≫ omegaR R C) := by
+    rw [← Cat.assoc, hα₁]
+    -- goal: s = μ ≫ ω,  with s the literal pair.
+    refine (pair_uniq (pbX.cone.π₁ ≫ R.colA) (pbX.cone.π₂ ≫ X.colB) (μ ≫ omegaR R C) ?_ ?_).symm
+    · show (μ ≫ pair (fst ≫ R.colA) snd) ≫ fst = _
+      rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair]
+    · show (μ ≫ pair (fst ≫ R.colA) snd) ≫ snd = _
+      rw [Cat.assoc, snd_pair, snd_pair]
+  -- β : pbI.pt → pbX.pt with β ≫ pbX.π₁ = pbI.π₁ ≫ fst, β ≫ pbX.π₂ = pbI.π₂.
+  have hIw : pbI.cone.π₁ ≫ thetaR R C = pbI.cone.π₂ ≫ (relSub X).arr := pbI.cone.w
+  have hθfst : thetaR R C ≫ fst = fst ≫ R.colB := fst_pair _ _
+  have hXarrfst : (relSub X).arr ≫ fst = X.colA := fst_pair _ _
+  have hXarrsnd : (relSub X).arr ≫ snd = X.colB := snd_pair _ _
+  have hβsq : (pbI.cone.π₁ ≫ fst) ≫ R.colB = pbI.cone.π₂ ≫ X.colA := by
+    have h := congrArg (· ≫ fst) hIw
+    simp only at h
+    rw [Cat.assoc, Cat.assoc, hθfst, hXarrfst] at h
+    -- h : pbI.π₁ ≫ (fst ≫ R.colB) = pbI.π₂ ≫ X.colA
+    rw [Cat.assoc]; exact h
+  let cβ : Cone R.colB X.colA := ⟨pbI.cone.pt, pbI.cone.π₁ ≫ fst, pbI.cone.π₂, hβsq⟩
+  let β : pbI.cone.pt ⟶ pbX.cone.pt := pbX.lift cβ
+  have hβ₁ : β ≫ pbX.cone.π₁ = pbI.cone.π₁ ≫ fst := pbX.lift_fst cβ
+  have hβ₂ : β ≫ pbX.cone.π₂ = pbI.cone.π₂ := pbX.lift_snd cβ
+  have hIsnd : pbI.cone.π₂ ≫ X.colB = pbI.cone.π₁ ≫ snd := by
+    have h := congrArg (· ≫ snd) hIw
+    simp only at h
+    rw [Cat.assoc, Cat.assoc, show thetaR R C ≫ snd = snd from snd_pair _ _, hXarrsnd] at h
+    -- h : pbI.π₁ ≫ snd = pbI.π₂ ≫ X.colB
+    exact h.symm
+  have hF_fac : pbI.cone.π₁ ≫ omegaR R C = β ≫ s := by
+    -- both sides equal `pair (pbI.π₁ ≫ fst ≫ R.colA) (pbI.π₁ ≫ snd)`.
+    have hLHS : pbI.cone.π₁ ≫ omegaR R C
+        = pair ((pbI.cone.π₁ ≫ fst) ≫ R.colA) (pbI.cone.π₁ ≫ snd) :=
+      pair_uniq _ _ _
+        (by show (pbI.cone.π₁ ≫ pair (fst ≫ R.colA) snd) ≫ fst = _
+            rw [Cat.assoc, fst_pair, ← Cat.assoc])
+        (by show (pbI.cone.π₁ ≫ pair (fst ≫ R.colA) snd) ≫ snd = _
+            rw [Cat.assoc, snd_pair])
+    have hRHS : β ≫ s
+        = pair ((pbI.cone.π₁ ≫ fst) ≫ R.colA) (pbI.cone.π₁ ≫ snd) :=
+      pair_uniq _ _ _
+        (by show (β ≫ pair (pbX.cone.π₁ ≫ R.colA) (pbX.cone.π₂ ≫ X.colB)) ≫ fst = _
+            rw [Cat.assoc, fst_pair, ← Cat.assoc, hβ₁])
+        (by show (β ≫ pair (pbX.cone.π₁ ≫ R.colA) (pbX.cone.π₂ ≫ X.colB)) ≫ snd = _
+            rw [Cat.assoc, snd_pair, ← Cat.assoc, hβ₂, hIsnd])
+    rw [hLHS, hRHS]
+  refine ⟨?_, ?_⟩
+  · -- relSub(R⊚X) = image s ≤ image(pbI.π₁ ≫ ω) = F :  s allows F's image via α.
+    obtain ⟨k, hk⟩ := image_min s (image (pbI.cone.π₁ ≫ omegaR R C)) ⟨α ≫ image.lift (pbI.cone.π₁ ≫ omegaR R C), by
+      rw [Cat.assoc, image.lift_fac]; exact hs_fac.symm⟩
+    exact ⟨k, by rw [hF_arr, hk, hRX_arr]⟩
+  · obtain ⟨k, hk⟩ := image_min (pbI.cone.π₁ ≫ omegaR R C) (image s) ⟨β ≫ image.lift s, by
+      rw [Cat.assoc, image.lift_fac]; exact hF_fac.symm⟩
+    exact ⟨k, by rw [hRX_arr, hk, hF_arr]⟩
 
 /-- §1.616: Composition distributes over union (right): `R ⊚ (S ∪ T) ≤ (R⊚S) ∪ (R⊚T)`.
 
-    FAITHFUL to Freyd: pre-logos hypothesis restored (the statement is FALSE in a bare regular
-    category, true in a pre-logos).  The composed relation `R⊚(S∪T)` is `image span`, where
-    `span := pair (pb.π₁ ≫ R.colA) (pb.π₂ ≫ (S∪T).colB)` and `pb := pullback(R.colB, (S∪T).colA)`;
-    `eW := image.lift span : pb.pt ↠ (R⊚(S∪T)).src` is therefore a COVER (`image_lift_cover`).
-
-    `union_compose_descent` supplies a further cover `c : P ↠ pb.pt` and a descent
-    `φ : P → ((R⊚S)∪(R⊚T)).src` matching the span legs.  Composing covers (`cover_comp`) gives a
-    cover `c ≫ eW : P ↠ (R⊚(S∪T)).src`, and `φ` agrees with it on both legs (the two `span`-leg
-    identities `eW ≫ (R⊚(S∪T)).colX = (span)≫…`), so `relLe_of_cover_factor` (cover⊥mono descent)
-    delivers the containment `R⊚(S∪T) ≤ (R⊚S)∪(R⊚T)`. -/
+    FAITHFUL to Freyd: pre-logos hypothesis (the statement is FALSE in a bare regular category,
+    true in a pre-logos).  COPRODUCT-FREE proof via the `∃ ⊣ #` reformulation
+    `relSub(R⊚X) = ∃_{ω_R}(θ_R# (relSub X))` (`relSub_compose_eq`): both `θ_R#`
+    (`PreLogos.invImage_preserves_union`) and `∃_{ω_R}` (`existsAlong_union_le`) preserve unions,
+    so the join descends with no extensivity. -/
 theorem compose_union_right {A B C : 𝒞} (R : BinRel 𝒞 A B) (S T : BinRel 𝒞 B C) :
     RelLe (R ⊚ (S ∪ᵣ T)) ((R ⊚ S) ∪ᵣ (R ⊚ T)) := by
-  -- The image-cover presenting `R⊚(S∪T)` and its two span-leg identities.
-  let pb := HasPullbacks.has R.colB (S ∪ᵣ T).colA
-  let span : pb.cone.pt ⟶ prod A C :=
-    pair (pb.cone.π₁ ≫ R.colA) (pb.cone.π₂ ≫ (S ∪ᵣ T).colB)
-  let eW := image.lift span
-  have hWa : eW ≫ (R ⊚ (S ∪ᵣ T)).colA = pb.cone.π₁ ≫ R.colA := by
-    show eW ≫ ((image span).arr ≫ fst) = _
-    rw [← Cat.assoc, image.lift_fac, fst_pair]
-  have hWb : eW ≫ (R ⊚ (S ∪ᵣ T)).colB = pb.cone.π₂ ≫ (S ∪ᵣ T).colB := by
-    show eW ≫ ((image span).arr ≫ snd) = _
-    rw [← Cat.assoc, image.lift_fac, snd_pair]
-  -- The extensive descent: a cover `c : P ↠ pb.pt` and descent map `φ`.
-  obtain ⟨P, c, φ, hc, hφA, hφB⟩ := union_compose_descent R S T
-  -- `c ≫ eW : P ↠ (R⊚(S∪T)).src` is a cover; `φ` descends along it.
-  refine relLe_of_cover_factor (c ≫ eW) (cover_comp hc (image_lift_cover span)) φ ?_ ?_
-  · -- φ ≫ colA = (c ≫ eW) ≫ (R⊚(S∪T)).colA
-    calc φ ≫ ((R ⊚ S) ∪ᵣ (R ⊚ T)).colA
-        = c ≫ (pb.cone.π₁ ≫ R.colA) := hφA.symm
-      _ = c ≫ (eW ≫ (R ⊚ (S ∪ᵣ T)).colA) := by rw [hWa]
-      _ = (c ≫ eW) ≫ (R ⊚ (S ∪ᵣ T)).colA := (Cat.assoc _ _ _).symm
-  · -- φ ≫ colB = (c ≫ eW) ≫ (R⊚(S∪T)).colB
-    calc φ ≫ ((R ⊚ S) ∪ᵣ (R ⊚ T)).colB
-        = c ≫ (pb.cone.π₂ ≫ (S ∪ᵣ T).colB) := hφB.symm
-      _ = c ≫ (eW ≫ (R ⊚ (S ∪ᵣ T)).colB) := by rw [hWb]
-      _ = (c ≫ eW) ≫ (R ⊚ (S ∪ᵣ T)).colB := (Cat.assoc _ _ _).symm
+  apply relLe_of_subLe
+  -- LHS  =  ∃_ω (θ# relSub(S∪T)).
+  have hL := (relSub_compose_eq R (S ∪ᵣ T)).1
+  -- θ# relSub(S∪T) ≤ θ# (union (relSub S)(relSub T))   (monotone of θ#).
+  have h1 := invImage_mono_local (thetaR R C) (relSub_union_le S T)
+  -- θ# (union ..) ≤ union (θ# relSub S)(θ# relSub T)   (PreLogos: # preserves unions).
+  have h2 := (PreLogos.invImage_preserves_union (thetaR R C) (relSub S) (relSub T)).1
+  -- ∃_ω preserves the resulting union  ≤ union (∃_ω θ# relSub S)(∃_ω θ# relSub T).
+  have h3 := existsAlong_union_le (omegaR R C)
+              (InverseImage (thetaR R C) (relSub S)) (InverseImage (thetaR R C) (relSub T))
+  -- each ∃_ω(θ# relSub X) = relSub(R⊚X)  ≤ relSub(R⊚X), then union ≤ relSub of the union.
+  have hS := (relSub_compose_eq R S).2
+  have hT := (relSub_compose_eq R T).2
+  have hpieces : (HasSubobjectUnions.union
+        (existsAlong (omegaR R C) (InverseImage (thetaR R C) (relSub S)))
+        (existsAlong (omegaR R C) (InverseImage (thetaR R C) (relSub T)))).le
+      (HasSubobjectUnions.union (relSub (R ⊚ S)) (relSub (R ⊚ T))) :=
+    HasSubobjectUnions.union_min _ _ _
+      (subLe_trans hS (HasSubobjectUnions.union_left _ _))
+      (subLe_trans hT (HasSubobjectUnions.union_right _ _))
+  have hfinal := relSub_union_ge (R ⊚ S) (R ⊚ T)
+  exact subLe_trans hL (subLe_trans (existsAlong_mono (omegaR R C) (subLe_trans h1 h2))
+    (subLe_trans h3 (subLe_trans hpieces hfinal)))
 
 end BinRelDistributive
 
