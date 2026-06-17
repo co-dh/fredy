@@ -241,4 +241,86 @@ instance overPullbacksTransferCovers (B : 𝒞)
 instance overPreRegular (B : 𝒞) [PreRegularCategory 𝒞] :
     PreRegularCategory (Over B) where
 
+/-! ## §1.547 The slice base-change (pullback) functor `g* : A/D → A/C`
+
+  Given a base arrow `g : C ⟶ D`, base-change sends an object `X = ⟨X, h : X → D⟩`
+  of `A/D` to the pullback `X ×_D C` of `h` along `g`, with structure map the second
+  projection `π₂ : X ×_D C → C`.  This is the slice→slice transition `A/(∏V) → A/(∏U)`
+  used by the §1.547 capitalization inner CatSystem.
+
+  On a morphism `m : ⟨X,h⟩ ⟶ ⟨Y,k⟩` of `A/D` (so `m.f ≫ k = h`), base-change is the
+  induced map on pullbacks: the `X`-cone `(π₁ˣ ≫ m.f, π₂ˣ)` lands on the cospan
+  `(k, g)` because
+    `(π₁ˣ ≫ m.f) ≫ k = π₁ˣ ≫ h = π₂ˣ ≫ g`,
+  and its `Y`-pullback lift preserves `π₂`, hence is an over-`C` arrow.  Functoriality
+  (`map_id`, `map_comp`) is `lift_uniq` of the `Y`-pullback. -/
+
+section baseChange
+
+variable {C D : 𝒞} (g : C ⟶ D)
+
+/-- The base pullback `HasPullback (X.hom) g` of an `A/D`-object along `g`. -/
+private def _bcPB (X : Over D) : HasPullback X.hom g := hpull.has X.hom g
+
+/-- Object part of base-change: `⟨X, h⟩ ↦ ⟨X ×_D C, π₂⟩`, the pullback of `h` along
+    `g` with structure map the second projection to `C`. -/
+def baseChangeObj (X : Over D) : Over C :=
+  ⟨(_bcPB g X).cone.pt, (_bcPB g X).cone.π₂⟩
+
+/-- The pullback square of `baseChangeObj g X`: `π₁ ≫ X.hom = π₂ ≫ g`. -/
+private theorem _bc_w (X : Over D) :
+    (_bcPB g X).cone.π₁ ≫ X.hom = (_bcPB g X).cone.π₂ ≫ g := (_bcPB g X).cone.w
+
+/-- The `X`-pullback cone of `m : ⟨X,h⟩ ⟶ ⟨Y,k⟩`, viewed over the cospan `(k, g)`:
+    legs `(π₁ˣ ≫ m.f, π₂ˣ)`, commuting since `(π₁ˣ ≫ m.f) ≫ k = π₁ˣ ≫ h = π₂ˣ ≫ g`. -/
+def baseChangeCone {X Y : Over D} (m : OverHom X Y) : Cone Y.hom g :=
+  ⟨(_bcPB g X).cone.pt, (_bcPB g X).cone.π₁ ≫ m.f, (_bcPB g X).cone.π₂, by
+    rw [Cat.assoc, m.w]; exact _bc_w g X⟩
+
+/-- Morphism part of base-change: the induced map on pullbacks.  For
+    `m : ⟨X,h⟩ ⟶ ⟨Y,k⟩`, lift the `X`-cone `(π₁ˣ ≫ m.f, π₂ˣ)` through the
+    `Y`-pullback; `π₂` is preserved, so the lift is an over-`C` arrow. -/
+def baseChangeMap {X Y : Over D} (m : OverHom X Y) :
+    OverHom (baseChangeObj g X) (baseChangeObj g Y) :=
+  ⟨(_bcPB g Y).lift (baseChangeCone g m), (_bcPB g Y).lift_snd (baseChangeCone g m)⟩
+
+/-- Base-change is a `Functor A/D → A/C`. -/
+instance baseChangeFunctor : Functor (baseChangeObj g) where
+  map m := baseChangeMap g m
+  map_id X := by
+    -- `lift_uniq` for the identity `X`-cone: `Cat.id` is the lift.
+    apply OverHom.ext
+    show (_bcPB g X).lift (baseChangeCone g (Cat.id X)) = (Cat.id (baseChangeObj g X)).f
+    refine ((_bcPB g X).lift_uniq (baseChangeCone g (Cat.id X))
+      (Cat.id (baseChangeObj g X)).f ?_ ?_).symm
+    · show Cat.id _ ≫ (_bcPB g X).cone.π₁ = (_bcPB g X).cone.π₁ ≫ (Cat.id X).f
+      rw [Cat.id_comp]; show _ = (_bcPB g X).cone.π₁ ≫ Cat.id _; rw [Cat.comp_id]
+    · show Cat.id _ ≫ (_bcPB g X).cone.π₂ = (_bcPB g X).cone.π₂
+      rw [Cat.id_comp]
+  map_comp {X Y Z} m n := by
+    -- `lift_uniq` for the composite: `baseChangeMap m ≫ baseChangeMap n` is the lift.
+    apply OverHom.ext
+    show (_bcPB g Z).lift (baseChangeCone g (m ⊚ n))
+      = ((baseChangeMap g m) ⊚ (baseChangeMap g n)).f
+    refine ((_bcPB g Z).lift_uniq (baseChangeCone g (m ⊚ n))
+      ((baseChangeMap g m) ⊚ (baseChangeMap g n)).f ?_ ?_).symm
+    · -- π₁: ((bm).f ≫ (bn).f) ≫ π₁ᶻ = π₁ˣ ≫ (m ⊚ n).f
+      show ((_bcPB g Y).lift (baseChangeCone g m) ≫ (_bcPB g Z).lift (baseChangeCone g n))
+          ≫ (_bcPB g Z).cone.π₁
+        = (_bcPB g X).cone.π₁ ≫ (m.f ≫ n.f)
+      rw [Cat.assoc, (_bcPB g Z).lift_fst (baseChangeCone g n)]
+      show (_bcPB g Y).lift (baseChangeCone g m) ≫ ((_bcPB g Y).cone.π₁ ≫ n.f) = _
+      rw [← Cat.assoc, (_bcPB g Y).lift_fst (baseChangeCone g m)]
+      show ((_bcPB g X).cone.π₁ ≫ m.f) ≫ n.f = (_bcPB g X).cone.π₁ ≫ (m.f ≫ n.f)
+      rw [Cat.assoc]
+    · -- π₂: ((bm).f ≫ (bn).f) ≫ π₂ᶻ = π₂ˣ
+      show ((_bcPB g Y).lift (baseChangeCone g m) ≫ (_bcPB g Z).lift (baseChangeCone g n))
+          ≫ (_bcPB g Z).cone.π₂
+        = (_bcPB g X).cone.π₂
+      rw [Cat.assoc, (_bcPB g Z).lift_snd (baseChangeCone g n)]
+      show (_bcPB g Y).lift (baseChangeCone g m) ≫ (_bcPB g Y).cone.π₂ = (_bcPB g X).cone.π₂
+      exact (_bcPB g Y).lift_snd (baseChangeCone g m)
+
+end baseChange
+
 end Freyd
