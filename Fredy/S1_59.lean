@@ -314,7 +314,34 @@ class AbelianCategory (𝒞 : Type u) [Cat.{v} 𝒞]
   In a regular additive category with all-normal subobjects, a cover that is monic must
   be an iso; hence cokernels exist.  This plus the T:A→Ab faithful representation
   (from §1.552, using one-valuedness + regular) shows cokernels are preserved, giving
-  the full abelian bicartesian structure.  The other direction is §1.594 + §1.592. -/
+  the full abelian bicartesian structure.  The other direction is §1.594 + §1.592.
+
+  BLOCKER (sharpened — two independent obstructions, both VERIFIED via the LSP):
+
+  (1) FORWARD (`all_normal → Nonempty AbelianCategory`): assembling the `AbelianCategory`
+  structure from the ambient `[RegularCategory] [AdditiveCategory] [HasZeroObject]
+  [HasEqualizers] [HasCoequalizers]` instances plus `all_normal` is the substantive
+  content but is NOT mere field-copying.  `AbelianCategory` has a multi-parent diamond:
+  `RegularCategory` and `HalfAdditiveCategory` both extend `HasTerminal`/
+  `HasBinaryProducts`, and `HasZeroObject` re-extends `HasTerminal`/`HasCoterminator`.
+  The anonymous constructor `{ … with all_normal := h }` therefore rejects the
+  overlapping parents ("field `toHasZeroObject` … has already been specified").  A clean
+  assembly needs the parents reconciled, real structural work — and even then the
+  *mathematical* core (cokernels behaving correctly / the bicartesian structure) needs
+  the §1.55 Ab-representation, which is not yet importable.
+
+  (2) REVERSE (`Nonempty AbelianCategory → all_normal`): this direction is a STATEMENT-LEVEL
+  defect, NOT an Ab-calculus gap.  `IsNormalSubobject m hm` mentions `Kernel f`, which
+  depends on the ambient `[HasZeroObject 𝒞]` and `[HasEqualizers 𝒞]` — classes that carry
+  *data* (a chosen zero object / chosen equalizers), not just Props.  An arbitrary
+  `Nonempty (AbelianCategory 𝒞)` witness carries its OWN, possibly different,
+  `toHasZeroObject`/`toHasEqualizers`, so `inst.all_normal m hm` proves `IsNormalSubobject`
+  w.r.t. the *witness's* kernels.  Verified concretely: `inst.all_normal m hm` elaborates
+  to type `@IsNormalSubobject 𝒞 _ inst.toHasZeroObject inst.toHasEqualizers …` whereas the
+  goal demands `@IsNormalSubobject 𝒞 _ inst✝² inst✝¹ …` — a genuine type mismatch with no
+  transport available.  As written the iff is unprovable; a faithful fix would have the
+  statement demand the `AbelianCategory` instance *extend* the ambient ones.  Statement is
+  verbatim per task; sorry retained. -/
 theorem abelian_iff_regular_additive_all_normal
     (𝒞 : Type u) [Cat.{v} 𝒞]
     [RegularCategory 𝒞] [AdditiveCategory 𝒞] [HasZeroObject 𝒞]
