@@ -310,7 +310,14 @@ theorem inter_le_singleton_named {A : 𝒞} (F : Subobject 𝒞 (powObj A))
     `false` is the classifier of the *empty* subobject of `1`, i.e. exactly the `⋂∅`
     we are trying to build.  `DisjointBinaryCoproduct` would *supply* a strict initial
     via its coproduct bottom, but it extends `PreLogos ⊇ RegularCategory ⊇ HasImages`,
-    so it is downstream of the same §1.543 glb, not upstream. -/
+    so it is downstream of the same §1.543 glb, not upstream.
+
+    STRICTNESS-SCAFFOLD GAP (re-confirmed this pass): `HasCoterminator.ofStrict` (S1_58)
+    reduces this to producing a `StrictCoterminator 0` witness (every map into `0` is iso),
+    classically proved via `A × 0 ≅ 0`.  But the repo has NO `false`-map, NO `A×0≅0`, and NO
+    strict-zero construction for a topos (`StrictCoterminator` is referenced only inside S1_58),
+    so even this non-glb escape is unscaffolded — and `0 = pb(false)` makes it circular on §1.543
+    as above.  No topos→`HasCoterminator` instance exists anywhere in the repo. -/
 theorem topos_has_strict_coterminator : Nonempty (HasCoterminator 𝒞) := by
   sorry
 
