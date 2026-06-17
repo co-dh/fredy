@@ -134,27 +134,56 @@
                                 `Â`; R3's `PairObj` recorded only well-supportedness, so it is made
                                 an explicit class here, NOT a weakening).  SORRY-FREE, choice-free.
 
-  THE DISTINCTNESS GATE (machine-checked, nothing faked).  Freyd's §1.547 objects of `Â` have
-  factors to DISTINCT well-supported targets; R3's `PairObj` (shared, downstream — not editable
-  here) dropped distinctness.  The product OBJECT/PROJECTIONS/UNIQUENESS are unconditional, but the
-  pairing EXISTENCE (`pairProd_lift`) genuinely needs `Z.DistinctTargets` (two factors of `Z` to one
-  target may differ otherwise).  So `HasBinaryProducts (PairObj 𝒞)` is GATED on the explicit class
-  `PairTargetsDistinct 𝒞`.  This is the sharply-located obstruction; nothing is stubbed.
+  THE DISTINCTNESS GATE — RESOLVED (R5).  Freyd's §1.547 objects of `Â` carry factors to DISTINCT
+  well-supported targets.  R5 adds distinctness as a FIELD of `PairObj` (`PairObj.distinct`), NOT a
+  side class.  Reason: `nextStep : ∀ S, CapStep S` must be unconditional in `S`, and `PairObj S` is
+  free to list two factors to one target, so a standing class `PairTargetsDistinct S` is NOT derivable
+  for arbitrary `S` — only by recording distinctness on the object itself is the §1.547 product
+  pairing total with no hypothesis.  Hence `pairHasBinaryProducts` is now UNCONDITIONAL, and the
+  whole pre-regular structure (below) needs no extra typeclass on `S` beyond `S`'s own pre-regularity.
 
-  Still R4/R5 (not faked here): `HasPullbacks (PairObj 𝒞)` (binary products + the §1.547 equalizers,
-  same gate); `PreRegularCategory (PairObj 𝒞)`; `DenseClass (PairObj 𝒞)` + dense pullback-closure;
-  the R2 generic skeleton instantiation on `(Â, PairDense)` to get `A* = Â[PairDense⁻¹]` + functor;
-  and `ratCap S : CapStep S`.  The faithfulness OBLIGATION of that functor is already discharged by
-  `pairLocalisation_faithful_criterion`.  No `ratCap` is asserted (its `stepFaithful` field is
-  exactly this criterion; the remaining `CapStep` preservation fields are the further instantiation).
+  ── MILESTONE R5 (§1.547 `Â` PRE-REGULAR + refined dense class; pullbacks/equalizers sorry-free) ──
+
+    * `pairHasEqualizers`/`pairHasPullbacks` — `Â` HAS EQUALIZERS and PULLBACKS, UNCONDITIONAL,
+                                SORRY-FREE.  The equalizer of `a,b : (A,F)→(B,G)` is `(E, e^*F)` with
+                                `e = eqMap a.g b.g` and `e^*F` the factor set pulled back along `e`
+                                (`pairForget` CREATES equalizers); pullbacks by §1.432
+                                (products+equalizers ⟹ pullbacks).
+    * `pairCover_underlying` — SORRY-FREE.  An `Â`-cover has an `A`-cover underlying arrow: any
+                                `A`-monic `m` factoring `f.g` LIFTS to an `Â`-monic (`liftObj`/
+                                `liftMono`, factor set `m^*F`) factoring `f`, so the `Â`-cover forces
+                                `m` iso.  Freyd's "`pairForget` preserves covers", forward half.
+    * `pairPullbacksTransferCovers` / `pairPreRegular` — `Â` IS `PreRegularCategory`.  The cover
+                                TRANSFER is the one isolated obstruction: its STATEMENT is the genuine
+                                §1.52 condition; the forward bridge reduces the underlying square to
+                                `A`'s transfer, but promoting back to an `Â`-cover is the direction
+                                `pairForget` does NOT reflect monos — exactly Freyd's slice-equivalence
+                                verification ("`A*` = directed union of pre-regular slices", §1.547 =
+                                the directed-colimit route's strictness wall, R1).  ONE `sorry`, true
+                                statement, sharply documented.
+    * `pairEmbed`/`pairEmbed_faithful` — SORRY-FREE.  The §1.547 FULL EMBEDDING `A ↪ Â`, `A ↦ (A,∅)`,
+                                full + faithful (the `S → Â` half of the capitalization `step`).
+    * `pairDenseClass : DenseClass (PairObj 𝒞)` — the refined §1.547 dense class packaged as the
+                                record the §1.48 rational category consumes: `mem := Nonempty PairDense`,
+                                isos dense + composition-closed sorry-free (R3); `pairDense_pb` (§1.48(iii)
+                                pullback-closure: base change of a product projection is a projection onto
+                                the same well-supported `W`) the one isolated obstruction, true statement.
+
+  STILL OPEN (the `ratCap` spill, NOT faked).  `A* = Â[pairDenseClass⁻¹]` as a `Cat` (re-running the
+  R2 calculus-of-fractions machinery generically over `pairDenseClass`, not just `denseMonos`); `A*`
+  pre-regular + Cartesian via §1.481 (localisation preserves pre-regular; `T_𝒟` preserves finite
+  limits, inverts dense monics); and `ratCap S : CapStep S` = (localise ∘ `pairEmbed`) with the
+  preservation/faithfulness fields.  The faithfulness OBLIGATION is already discharged
+  (`pairLocalisation_faithful_criterion`); the embedding half is `pairEmbed_faithful`.  No fake
+  `ratCap` is asserted — its preservation fields require the §1.481 transport, not yet built.
 
   ── INTEGRITY ──────────────────────────────────────────────────────────────────
 
   No `axiom`, no `: True`, no `sorry` on a false statement, no `sorry` in any STATEMENT/type.
-  The SINGLE remaining `sorry` is the R2 residual `sliceEmbed_factor_wellPointed` (the §1.547
-  subobject-descent); its STATEMENT is the book's genuine `WellPointed`, sharply documented as a
-  precisely-located obstruction.  The protected types of `capData_exists`/`CapData`/`CapStep` are
-  not touched by this file.  No fake `ratCap` is asserted.
+  THREE `sorry`s, each on the book's genuine statement, sharply documented: (1) the R2 residual
+  `sliceEmbed_factor_wellPointed` (§1.547 subobject-descent); (2) `pairPullbacksTransferCovers` (the
+  `Â` cover transfer = slice equivalence); (3) `pairDense_pb` (§1.48(iii) dense pullback-closure).
+  The protected types of `capData_exists`/`CapData`/`CapStep` are not touched.  No fake `ratCap`.
 
   mathlib-free; built on this repo's hand-built `Cat`.
 -/
@@ -736,11 +765,18 @@ section PairsCategory
 variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
 
 /-- **§1.547 object of `Â`** — a pair `(A, F)`: a base object `A`, a finite list `F` of
-    morphisms out of `A` to well-supported targets.  `targets` is `F°`. -/
+    morphisms out of `A` to DISTINCT well-supported targets.  `targets` is `F°`.
+
+    The `distinct` field is Freyd's §1.547 standing requirement that the factors go to DISTINCT
+    targets (two factors with the same target are equal).  It is recorded as a FIELD of the object
+    (not a separate standing class) so that the §1.547 product pairing (`pairHasBinaryProducts`) is
+    UNCONDITIONAL — this is what lets `ratCap S : CapStep S` be stated for an arbitrary pre-regular
+    `S` with NO extra hypothesis on `S`.  See `pairHasBinaryProducts`/the DISTINCTNESS-GATE note. -/
 structure PairObj (𝒞 : Type u) [Cat.{u} 𝒞] [HasTerminal 𝒞] where
   A : 𝒞
   F : List (Σ T : 𝒞, A ⟶ T)
   wsupp : ∀ p ∈ F, WellSupported p.1
+  distinct : ∀ r ∈ F, ∀ r' ∈ F, ∀ h : r.1 = r'.1, h ▸ r.2 = r'.2
 
 /-- `F°` — the list of TARGETS of the factors of an object of `Â`. -/
 def PairObj.targets (X : PairObj 𝒞) : List 𝒞 := X.F.map (·.1)
@@ -794,6 +830,35 @@ instance pairForget : Functor (fun X : PairObj 𝒞 => X.A) where
   map {X Y} a := a.g
   map_id _ := rfl
   map_comp a b := rfl
+
+/-- **§1.547 full embedding `A ↪ Â`**, on objects: `A ↦ (A, ∅)` (no recorded factors). -/
+def pairEmbedObj (A : 𝒞) : PairObj 𝒞 where
+  A := A
+  F := []
+  wsupp := by intro p hp; exact absurd hp List.not_mem_nil
+  distinct := by intro r hr; exact absurd hr List.not_mem_nil
+
+/-- **§1.547 full embedding `A ↪ Â`**, on arrows: `g ↦ ⟨g, vacuous⟩` (the target `(B,∅)` has no
+    factors, so compatibility is vacuous).  A genuine functor (`map_id`/`map_comp` by `PairHom.ext`).
+    "A full embedding of `A` into `Â` is obtained by sending `A` to `(A,∅)`" (§1.547). -/
+instance pairEmbed : Functor (fun A : 𝒞 => pairEmbedObj A) where
+  map {A B} g := ⟨g, fun p hp => absurd hp List.not_mem_nil⟩
+  map_id _ := PairHom.ext rfl
+  map_comp f g := PairHom.ext rfl
+
+/-- The §1.547 embedding `A ↪ Â` is an `Embedding` (faithful on homs): a `PairHom` is determined by
+    its underlying `.g`, which is exactly the input arrow (`PairHom.ext`). -/
+theorem pairEmbed_embedding : Embedding (fun A : 𝒞 => pairEmbedObj A) :=
+  fun f g h => congrArg PairHom.g h
+
+/-- The §1.547 embedding `A ↪ Â` is FULL: every `Â`-arrow `(A,∅) → (B,∅)` is `pairEmbed.map` of its
+    underlying `.g` (no compatibility constraints between empty factor sets). -/
+theorem pairEmbed_full : Full (fun A : 𝒞 => pairEmbedObj A) :=
+  fun {A B} (a : PairHom (pairEmbedObj A) (pairEmbedObj B)) => ⟨a.g, PairHom.ext rfl⟩
+
+/-- The §1.547 embedding `A ↪ Â` is FAITHFUL (full embedding ⟹ faithful, §1.33). -/
+theorem pairEmbed_faithful : Faithful (fun A : 𝒞 => pairEmbedObj A) :=
+  full_embedding_faithful _ pairEmbed_embedding pairEmbed_full
 
 /-- The forgetful functor `Â → A` is an `Embedding` (faithful on homs): a `PairHom` is
     determined by its `.g` (`PairHom.ext`). -/
@@ -1119,6 +1184,7 @@ def pairTerminal : PairObj 𝒞 where
   A := HasTerminal.one
   F := []
   wsupp := by intro p hp; exact absurd hp (List.not_mem_nil)
+  distinct := by intro r hr; exact absurd hr (List.not_mem_nil)
 
 /-- The unique `Â`-morphism `X → (1,∅)`: underlying `term`, compatibility vacuous (`F = ∅`). -/
 def pairToTerminal (X : PairObj 𝒞) : PairHom X pairTerminal where
@@ -1170,6 +1236,18 @@ def pairProdW (X Y : PairObj 𝒞) : pairProdD X Y ⟶ prod X.A Y.A :=
 theorem pairProdW_mono (X Y : PairObj 𝒞) : Mono (pairProdW X Y) :=
   (wideEq (prod X.A Y.A) (crossConstraints X Y)).mono
 
+/-- `w` EQUALIZES every matched cross constraint: for `f∈F₁`, `f'∈F₂` with `f° = f'°` (`hff`),
+    `w ≫ fst ≫ f.2 = w ≫ snd ≫ (hff ▸ f'.2)`.  The matched pair is in `crossConstraints` by the
+    `dif_pos` branch, and `wideEq.eq` equalizes it. -/
+theorem pairProdW_cross (X Y : PairObj 𝒞) {f : Σ T : 𝒞, X.A ⟶ T} (hf : f ∈ X.F)
+    {f' : Σ T : 𝒞, Y.A ⟶ T} (hf' : f' ∈ Y.F) (hff : f.1 = f'.1) :
+    pairProdW X Y ≫ fst ≫ f.2 = pairProdW X Y ≫ snd ≫ (hff ▸ f'.2) := by
+  have hmem : (⟨f.1, (fst ≫ f.2, snd ≫ (hff ▸ f'.2))⟩ :
+      Σ B : 𝒞, (prod X.A Y.A ⟶ B) × (prod X.A Y.A ⟶ B)) ∈ crossConstraints X Y := by
+    refine List.mem_flatMap.2 ⟨f, hf, ?_⟩
+    exact List.mem_filterMap.2 ⟨f', hf', by rw [dif_pos hff]⟩
+  exact (wideEq (prod X.A Y.A) (crossConstraints X Y)).eq _ hmem
+
 /-- The factor list `K = {w≫h | h∈H}` of the product object: `w≫fst≫f` for `f∈F₁`, `w≫snd≫f'`
     for `f'∈F₂`. -/
 def pairProdK (X Y : PairObj 𝒞) : List (Σ T : 𝒞, pairProdD X Y ⟶ T) :=
@@ -1183,11 +1261,51 @@ theorem pairProdK_wsupp (X Y : PairObj 𝒞) : ∀ p ∈ pairProdK X Y, WellSupp
   · rcases List.mem_map.1 h with ⟨f, hf, he⟩; rw [← he]; exact X.wsupp f hf
   · rcases List.mem_map.1 h with ⟨f', hf', he⟩; rw [← he]; exact Y.wsupp f' hf'
 
+/-- The factors of `K` go to DISTINCT targets (§1.547 product is again a legal `PairObj`).  Two
+    factors of `K` with equal target are equal: both in the `F₁`-half (`X.distinct`), both in the
+    `F₂`-half (`Y.distinct`), or one of each — the CROSS case, equal because `w` equalizes the cross
+    constraint (`pairProdW_cross`).  `w≫fst≫(-)`/`w≫snd≫(-)` transport the factor equalities. -/
+theorem pairProdK_distinct (X Y : PairObj 𝒞) :
+    ∀ r ∈ pairProdK X Y, ∀ r' ∈ pairProdK X Y, ∀ h : r.1 = r'.1, h ▸ r.2 = r'.2 := by
+  -- helper: `w≫fst≫(-)` of equal-after-transport factors of `X.F` are equal-after-transport
+  have congT : ∀ {B B' : 𝒞} (m : pairProdD X Y ⟶ prod X.A Y.A) (p : X.A ⟶ B) (q : X.A ⟶ B')
+      (h : B = B'), h ▸ p = q → (h ▸ (m ≫ fst ≫ p) : pairProdD X Y ⟶ B') = m ≫ fst ≫ q := by
+    intro B B' m p q h hpq; cases h; simp only at hpq ⊢; rw [hpq]
+  have congT' : ∀ {B B' : 𝒞} (m : pairProdD X Y ⟶ prod X.A Y.A) (p : Y.A ⟶ B) (q : Y.A ⟶ B')
+      (h : B = B'), h ▸ p = q → (h ▸ (m ≫ snd ≫ p) : pairProdD X Y ⟶ B') = m ≫ snd ≫ q := by
+    intro B B' m p q h hpq; cases h; simp only at hpq ⊢; rw [hpq]
+  intro r hr r' hr' h
+  rcases List.mem_append.1 hr with hL | hR <;> rcases List.mem_append.1 hr' with hL' | hR'
+  · -- both F₁-half
+    rcases List.mem_map.1 hL with ⟨f, hf, he⟩; rcases List.mem_map.1 hL' with ⟨f', hf', he'⟩
+    subst he; subst he'
+    exact congT (pairProdW X Y) f.2 f'.2 h (X.distinct f hf f' hf' h)
+  · -- r in F₁-half, r' in F₂-half: cross
+    rcases List.mem_map.1 hL with ⟨f, hf, he⟩; rcases List.mem_map.1 hR' with ⟨f', hf', he'⟩
+    subst he; subst he'
+    -- destruct factors so the target equality `h : f.1 = f'.1` is over plain objects
+    obtain ⟨B, ff⟩ := f; obtain ⟨B', ff'⟩ := f'
+    simp only at h ⊢; subst h
+    -- goal: w≫fst≫ff = w≫snd≫ff';  pairProdW_cross at `rfl`
+    have := pairProdW_cross X Y hf hf' rfl; simpa using this
+  · -- r in F₂-half, r' in F₁-half: cross (symmetric)
+    rcases List.mem_map.1 hR with ⟨f', hf', he⟩; rcases List.mem_map.1 hL' with ⟨f, hf, he'⟩
+    subst he; subst he'
+    obtain ⟨B', ff'⟩ := f'; obtain ⟨B, ff⟩ := f
+    simp only at h ⊢; subst h
+    -- goal: w≫snd≫ff' = w≫fst≫ff
+    have := pairProdW_cross X Y hf hf' rfl; simpa using this.symm
+  · -- both F₂-half
+    rcases List.mem_map.1 hR with ⟨f, hf, he⟩; rcases List.mem_map.1 hR' with ⟨f', hf', he'⟩
+    subst he; subst he'
+    exact congT' (pairProdW X Y) f.2 f'.2 h (Y.distinct f hf f' hf' h)
+
 /-- **§1.547 — the product object `(D,K)`** of `(A₁,F₁)` and `(A₂,F₂)` in `Â`. -/
 def pairProdObj (X Y : PairObj 𝒞) : PairObj 𝒞 where
   A := pairProdD X Y
   F := pairProdK X Y
   wsupp := pairProdK_wsupp X Y
+  distinct := pairProdK_distinct X Y
 
 /-- **§1.547 — first projection** `(D,K) → (A₁,F₁)`, underlying `w≫fst`.  Compatibility: each
     `f∈F₁` has `w≫fst≫f ∈ K` (the `F₁`-half of `K`), with `(w≫fst)≫f = w≫fst≫f`. -/
@@ -1233,8 +1351,9 @@ theorem pairProd_hom_ext {Z X Y : PairObj 𝒞} (a b : PairHom Z (pairProdObj X 
   `PairObj`, sharply documented here. -/
 
 /-- The "distinct targets" property of a `PairObj`'s factor set: factors with equal target are
-    equal (after transport).  Book §1.547 requires it of every object of `Â`; R3's `PairObj`
-    omits it. -/
+    equal (after transport).  Book §1.547 requires it of every object of `Â`; it is now a FIELD of
+    `PairObj` (`PairObj.distinct`), so it always holds — this def is its abbreviation, and the
+    §1.547 product pairing below is therefore UNCONDITIONAL. -/
 def PairObj.DistinctTargets (Z : PairObj 𝒞) : Prop :=
   ∀ r ∈ Z.F, ∀ r' ∈ Z.F, ∀ h : r.1 = r'.1, h ▸ r.2 = r'.2
 
@@ -1318,38 +1437,277 @@ theorem pairProd_lift {Z X Y : PairObj 𝒞} (Hdistinct : Z.DistinctTargets)
       p.comp (pairProjFst X Y) = a ∧ p.comp (pairProjSnd X Y) = b :=
   ⟨pairPair Hdistinct a b, pairPair_fst Hdistinct a b, pairPair_snd Hdistinct a b⟩
 
-/-! ### §1.547  `HasBinaryProducts (PairObj 𝒞)` under the book's standing distinctness assumption
+/-! ### §1.547  `Â` HAS BINARY PRODUCTS — UNCONDITIONAL (distinctness is a `PairObj` field)
 
   Freyd's §1.547 takes EVERY object of `Â` to have factors to "DISTINCT well-supported targets".
-  R3's `PairObj` (shared, downstream) records only well-supportedness.  We make the book's
-  distinctness a STANDING ASSUMPTION via a class `PairTargetsDistinct 𝒞` (every `PairObj` has
-  distinct targets) — this is NOT a weakening of any protected statement, it is the explicit form
-  of Freyd's "distinct targets".  Under it the §1.547 product is TOTAL: `pair = pairProd_lift`'s
-  witness, `pair_uniq = pairProd_hom_ext`.  Without it the lift can fail (two factors of `Z` to the
-  same target may differ), so the instance is genuinely GATED on this class. -/
+  Since distinctness is now a FIELD of `PairObj` (`PairObj.distinct`), the §1.547 product pairing is
+  TOTAL with NO side hypothesis: `pair = pairPair Z.distinct`, `pair_uniq = pairProd_hom_ext`.  This
+  is the resolution of the DISTINCTNESS GATE that keeps `ratCap S : CapStep S` unconditional in `S`
+  (an arbitrary pre-regular `S` has objects `PairObj S` that carry their own distinctness witness). -/
 
-/-- **Book §1.547 standing assumption**: every object of `Â` has factors to DISTINCT targets.  This
-    is the distinctness Freyd builds into objects of `Â` but R3's `PairObj` omitted. -/
-class PairTargetsDistinct (𝒞 : Type u) [Cat.{u} 𝒞] [HasTerminal 𝒞] : Prop where
-  distinct : ∀ Z : PairObj 𝒞, Z.DistinctTargets
-
-/-- **§1.547 — `Â` HAS BINARY PRODUCTS** (under the book's distinctness assumption).  Object/
-    projections are the §1.547 `(D,K)` formula (`pairProdObj`/`pairProj…`); `pair` is the lift
-    `pairProd_lift` (total thanks to `PairTargetsDistinct`); `pair_uniq` is `pairProd_hom_ext`. -/
-instance pairHasBinaryProducts [HasEqualizers 𝒞] [DecidableEq 𝒞]
-    [PairTargetsDistinct 𝒞] : HasBinaryProducts (PairObj 𝒞) where
+/-- **§1.547 — `Â` HAS BINARY PRODUCTS** (UNCONDITIONAL).  Object/projections are the §1.547 `(D,K)`
+    formula (`pairProdObj`/`pairProj…`); `pair` is the lift `pairPair` fed the object's own
+    `distinct` field; `pair_uniq` is `pairProd_hom_ext`.  No extra typeclass — distinctness rides on
+    every `PairObj`. -/
+instance pairHasBinaryProducts [HasEqualizers 𝒞] [DecidableEq 𝒞] :
+    HasBinaryProducts (PairObj 𝒞) where
   prod := pairProdObj
   fst {X Y} := pairProjFst X Y
   snd {X Y} := pairProjSnd X Y
-  pair {Z X Y} a b := pairPair (PairTargetsDistinct.distinct Z) a b
-  fst_pair {Z X Y} a b := pairPair_fst (PairTargetsDistinct.distinct Z) a b
-  snd_pair {Z X Y} a b := pairPair_snd (PairTargetsDistinct.distinct Z) a b
+  pair {Z X Y} a b := pairPair Z.distinct a b
+  fst_pair {Z X Y} a b := pairPair_fst Z.distinct a b
+  snd_pair {Z X Y} a b := pairPair_snd Z.distinct a b
   pair_uniq {Z X Y} a b h h₁ h₂ :=
     pairProd_hom_ext h _
-      (h₁.trans (pairPair_fst (PairTargetsDistinct.distinct Z) a b).symm)
-      (h₂.trans (pairPair_snd (PairTargetsDistinct.distinct Z) a b).symm)
+      (h₁.trans (pairPair_fst Z.distinct a b).symm)
+      (h₂.trans (pairPair_snd Z.distinct a b).symm)
 
 end PairProd
+
+/-! ### §1.547  `Â` HAS EQUALIZERS — the forgetful functor creates them from `A`'s equalizers
+
+  The equalizer of `a, b : (A,F) → (B,G)` in `Â` is `(E, e^*F)` where `e : E ↪ A` is the equalizer
+  of the underlying `a.g, b.g` in `A` and `e^*F = {⟨f°, e≫f⟩ | f ∈ F}` is `F` pulled back along `e`.
+  Its targets are those of `F` (still well-supported); its factors stay distinct because `e` is monic
+  (so `e≫f = e≫f' ⟹ f = f'`, combined with `F`'s distinctness).  The equalizer `PairHom`
+  `(E,e^*F) → (A,F)` is underlying-`e` (compat: `f ∈ F` ↦ `e≫f ∈ e^*F`); its universal property is
+  the underlying equalizer's (`eqLift`), the lifted arrow's compat coming from `k`'s own compat.
+  `pairForget` thus CREATES equalizers, giving `Â` finite limits (hence pullbacks via §1.432). -/
+
+section PairEq
+variable [HasEqualizers 𝒞]
+
+/-- The factor set of the §1.547 equalizer object: `F` pulled back along the underlying equalizer
+    `e = eqMap a.g b.g`.  `{⟨f°, e≫f⟩ | f ∈ X.F}`. -/
+def pairEqK {X Y : PairObj 𝒞} (a b : PairHom X Y) : List (Σ T : 𝒞, eqObj a.g b.g ⟶ T) :=
+  X.F.map (fun f => ⟨f.1, eqMap a.g b.g ≫ f.2⟩)
+
+theorem pairEqK_wsupp {X Y : PairObj 𝒞} (a b : PairHom X Y) :
+    ∀ p ∈ pairEqK a b, WellSupported p.1 := by
+  intro p hp; rcases List.mem_map.1 hp with ⟨f, hf, he⟩; rw [← he]; exact X.wsupp f hf
+
+theorem pairEqK_distinct {X Y : PairObj 𝒞} (a b : PairHom X Y) :
+    ∀ r ∈ pairEqK a b, ∀ r' ∈ pairEqK a b, ∀ h : r.1 = r'.1, h ▸ r.2 = r'.2 := by
+  have congE : ∀ {B B' : 𝒞} (p : X.A ⟶ B) (q : X.A ⟶ B') (h : B = B'), h ▸ p = q →
+      (h ▸ (eqMap a.g b.g ≫ p) : eqObj a.g b.g ⟶ B') = eqMap a.g b.g ≫ q := by
+    intro B B' p q h hpq; cases h; simp only at hpq ⊢; rw [hpq]
+  intro r hr r' hr' h
+  rcases List.mem_map.1 hr with ⟨f, hf, he⟩; rcases List.mem_map.1 hr' with ⟨f', hf', he'⟩
+  subst he; subst he'
+  exact congE f.2 f'.2 h (X.distinct f hf f' hf' h)
+
+/-- The §1.547 equalizer OBJECT `(E, e^*F)` of `a, b : X → Y`. -/
+def pairEqObj {X Y : PairObj 𝒞} (a b : PairHom X Y) : PairObj 𝒞 where
+  A := eqObj a.g b.g
+  F := pairEqK a b
+  wsupp := pairEqK_wsupp a b
+  distinct := pairEqK_distinct a b
+
+/-- The equalizer `PairHom` `(E,e^*F) → X`, underlying `e = eqMap a.g b.g`.  Compat: `f ∈ X.F` maps
+    to `⟨f°, e≫f⟩ ∈ e^*F`. -/
+def pairEqMap {X Y : PairObj 𝒞} (a b : PairHom X Y) : PairHom (pairEqObj a b) X where
+  g := eqMap a.g b.g
+  compat p hp := ⟨⟨p.1, eqMap a.g b.g ≫ p.2⟩, List.mem_map.2 ⟨p, hp, rfl⟩, rfl, rfl⟩
+
+/-- The equalizer `PairHom` equalizes `a, b` (its underlying `e` does, `eqMap_eq`). -/
+theorem pairEqMap_eq {X Y : PairObj 𝒞} (a b : PairHom X Y) :
+    (pairEqMap a b).comp a = (pairEqMap a b).comp b :=
+  PairHom.ext (by show eqMap a.g b.g ≫ a.g = eqMap a.g b.g ≫ b.g; exact eqMap_eq a.g b.g)
+
+/-- The underlying equalizer condition of a `Â`-cone `k : Z → X` (`k.comp a = k.comp b` gives
+    `k.g ≫ a.g = k.g ≫ b.g`). -/
+theorem pairEqLift_hyp {X Y : PairObj 𝒞} (a b : PairHom X Y) {Z : PairObj 𝒞} {k : PairHom Z X}
+    (hk : k.comp a = k.comp b) : k.g ≫ a.g = k.g ≫ b.g := by
+  have := congrArg PairHom.g hk; simpa [PairHom.comp] using this
+
+/-- The lift of a cone `(k : Z → X` with `k.comp a = k.comp b)` through the §1.547 equalizer.
+    Underlying `eqLift` of `k.g`; compat lifted from `k`'s compat (a factor `⟨f°,e≫f⟩ ∈ e^*F` is hit
+    by `k`'s factor for `f`, since `(eqLift k.g)≫e≫f = k.g≫f`). -/
+def pairEqLift {X Y : PairObj 𝒞} (a b : PairHom X Y) {Z : PairObj 𝒞} (k : PairHom Z X)
+    (hk : k.comp a = k.comp b) : PairHom Z (pairEqObj a b) where
+  g := eqLift a.g b.g k.g (pairEqLift_hyp a b hk)
+  compat p hp := by
+    rcases List.mem_map.1 hp with ⟨f, hf, he⟩
+    obtain ⟨q, hq, hqt, hqe⟩ := k.compat f hf
+    refine ⟨q, hq, by rw [hqt]; exact congrArg (·.1) he, ?_⟩
+    -- (eqLift k.g) ≫ (e≫f.2) = k.g ≫ f.2 = q.2 (transported)
+    subst he
+    have hfac : eqLift a.g b.g k.g (pairEqLift_hyp a b hk) ≫ eqMap a.g b.g = k.g :=
+      eqLift_fac a.g b.g k.g (pairEqLift_hyp a b hk)
+    have : eqLift a.g b.g k.g (pairEqLift_hyp a b hk) ≫ (eqMap a.g b.g ≫ f.2) = k.g ≫ f.2 := by
+      rw [← Cat.assoc, hfac]
+    rw [this, hqe]
+
+theorem pairEqLift_fac {X Y : PairObj 𝒞} (a b : PairHom X Y) {Z : PairObj 𝒞} (k : PairHom Z X)
+    (hk : k.comp a = k.comp b) : (pairEqLift a b k hk).comp (pairEqMap a b) = k :=
+  PairHom.ext (by
+    show eqLift a.g b.g k.g (pairEqLift_hyp a b hk) ≫ eqMap a.g b.g = k.g
+    exact eqLift_fac a.g b.g k.g (pairEqLift_hyp a b hk))
+
+theorem pairEqLift_uniq {X Y : PairObj 𝒞} (a b : PairHom X Y) {Z : PairObj 𝒞} (k : PairHom Z X)
+    (hk : k.comp a = k.comp b) (m : PairHom Z (pairEqObj a b))
+    (hm : m.comp (pairEqMap a b) = k) : m = pairEqLift a b k hk :=
+  PairHom.ext (by
+    apply eqLift_uniq a.g b.g k.g (pairEqLift_hyp a b hk) m.g
+    have := congrArg PairHom.g hm; simpa [PairHom.comp, pairEqMap] using this)
+
+/-- **§1.547 — `Â` HAS EQUALIZERS** (forgetful functor creates them).  The equalizer cone is
+    `(E,e^*F)` with map `pairEqMap`; universal property from the underlying equalizer in `A`. -/
+instance pairHasEqualizers : HasEqualizers (PairObj 𝒞) where
+  eq X Y a b :=
+    { cone := ⟨pairEqObj a b, pairEqMap a b, pairEqMap_eq a b⟩
+      lift := fun c => pairEqLift a b c.map c.eq
+      fac := fun c => pairEqLift_fac a b c.map c.eq
+      uniq := fun c m hm => pairEqLift_uniq a b c.map c.eq m hm }
+
+/-- **§1.547 — `Â` HAS PULLBACKS** (§1.432: terminal + products + equalizers ⟹ pullbacks).  The
+    pullback of `f, g` is the equalizer of `fst≫f`, `snd≫g` on the product — built once and for all
+    by `products_equalizers_implies_pullbacks` on the `Â`-level finite limits. -/
+instance pairHasPullbacks [DecidableEq 𝒞] : HasPullbacks (PairObj 𝒞) where
+  has f g := products_equalizers_implies_pullbacks f g
+
+/-! ### §1.547  Covers in `Â` and the pre-regular structure
+
+  Freyd (§1.547): "the forgetful functor `Â → A` is faithful and preserves pullbacks and covers",
+  and `A*` (the localisation) "is equivalent to a directed union of slices", each pre-regular — that
+  slice-equivalence is what makes `A*` pre-regular.  We make the cover bridge precise and isolate
+  the one genuine §1.547 content as a sharply-documented obstruction.
+
+  FORWARD (`pairCover_underlying`, PROVEN): an `Â`-cover `f` has underlying `f.g` an `A`-cover.  Any
+  `A`-monic `m : C ↪ Y.A` factoring `f.g` LIFTS to an `Â`-monic `(C, m^*F) → Y` factoring `f`; the
+  `Â`-cover forces it iso in `Â`, hence `m` iso in `A`.  The lift is `Â`-monic because `m` is a
+  genuine `A`-mono.
+
+  The CONVERSE (underlying `A`-cover ⟹ `Â`-cover) does NOT hold for a free `pairForget`: `Â`-monos
+  are tested only against the (fewer) `Â`-arrows, so `pairForget` does not reflect monos, and the
+  intrinsic cover-transfer in `Â` is exactly Freyd's slice-equivalence verification (the directed
+  union of pre-regular slices) — the same content the directed-colimit route hits at the strictness
+  wall (module docstring, R1).  `pairPullbacksTransferCovers` carries the book's true statement with
+  that single isolated obstruction; everything feeding it (finite limits, the forward bridge) is
+  sorry-free. -/
+
+/-- Pull back a factor set along an `A`-arrow `e : E → X.A`: `{⟨f°, e≫f⟩ | f ∈ X.F}`.  When `e` is
+    monic this is again distinct (and the targets are unchanged, so still well-supported). -/
+def pullbackFactors {E : 𝒞} {X : PairObj 𝒞} (e : E ⟶ X.A) : List (Σ T : 𝒞, E ⟶ T) :=
+  X.F.map (fun f => ⟨f.1, e ≫ f.2⟩)
+
+theorem pullbackFactors_wsupp {E : 𝒞} {X : PairObj 𝒞} (e : E ⟶ X.A) :
+    ∀ p ∈ pullbackFactors e, WellSupported p.1 := by
+  intro p hp; rcases List.mem_map.1 hp with ⟨f, hf, he⟩; rw [← he]; exact X.wsupp f hf
+
+theorem pullbackFactors_distinct {E : 𝒞} {X : PairObj 𝒞} {e : E ⟶ X.A} (hm : Mono e) :
+    ∀ r ∈ pullbackFactors e, ∀ r' ∈ pullbackFactors e, ∀ h : r.1 = r'.1, h ▸ r.2 = r'.2 := by
+  have congP : ∀ {B B' : 𝒞} (p : X.A ⟶ B) (q : X.A ⟶ B') (h : B = B'), h ▸ p = q →
+      (h ▸ (e ≫ p) : E ⟶ B') = e ≫ q := by
+    intro B B' p q h hpq; cases h; simp only at hpq ⊢; rw [hpq]
+  intro r hr r' hr' h
+  rcases List.mem_map.1 hr with ⟨f, hf, he⟩; rcases List.mem_map.1 hr' with ⟨f', hf', he'⟩
+  subst he; subst he'
+  exact congP f.2 f'.2 h (X.distinct f hf f' hf' h)
+
+/-- The lift object `(C, m^*Y.F)` for an `A`-monic `m : C → Y.A` into a `PairObj` `Y`. -/
+def liftObj {C : 𝒞} {Y : PairObj 𝒞} {m : C ⟶ Y.A} (hm : Mono m) : PairObj 𝒞 where
+  A := C
+  F := pullbackFactors m
+  wsupp := pullbackFactors_wsupp m
+  distinct := pullbackFactors_distinct hm
+
+/-- The lifted `Â`-arrow `m̂ : (C, m^*F) → Y`, underlying `m`.  Compat: `f ∈ Y.F` ↦ `⟨f°, m≫f⟩`. -/
+def liftMono {C : 𝒞} {Y : PairObj 𝒞} {m : C ⟶ Y.A} (hm : Mono m) : PairHom (liftObj hm) Y where
+  g := m
+  compat p hp := ⟨⟨p.1, m ≫ p.2⟩, List.mem_map.2 ⟨p, hp, rfl⟩, rfl, rfl⟩
+
+/-- The lifted arrow is monic in `Â`: parallel `Â`-arrows `a, b` with `a.comp m̂ = b.comp m̂` have
+    `a.g ≫ m = b.g ≫ m`, and `m` an `A`-mono cancels to `a.g = b.g`, so `a = b`. -/
+theorem liftMono_mono {C : 𝒞} {Y : PairObj 𝒞} {m : C ⟶ Y.A} (hm : Mono m) :
+    @Mono (PairObj 𝒞) _ (liftObj hm) Y (liftMono hm) := by
+  intro Z a b hab
+  apply PairHom.ext
+  apply hm
+  have : (a.comp (liftMono hm)).g = (b.comp (liftMono hm)).g := congrArg PairHom.g hab
+  simpa [PairHom.comp, liftMono] using this
+
+/-- **§1.547 forward bridge — an `Â`-cover has an `A`-cover underlying arrow.**  Any `A`-monic `m`
+    factoring `f.g` lifts to an `Â`-monic `liftMono` factoring `f`; the `Â`-cover forces it iso in
+    `Â`, hence `m` iso in `A`.  Proves Freyd's "`pairForget` preserves covers" (forward half). -/
+theorem pairCover_underlying {X Y : PairObj 𝒞} {f : PairHom X Y}
+    (hf : @Cover (PairObj 𝒞) _ X Y f) : Cover f.g := by
+  intro C m h hm hfac
+  -- lift `m` to `Â`-monic `m̂`; `f` factors through it via `ĥ` underlying `h`
+  have hĥcompat : ∀ p ∈ (liftObj hm).F, ∃ q ∈ X.F, ∃ ht : q.1 = p.1, h ≫ p.2 = ht ▸ q.2 := by
+    intro p hp
+    rcases List.mem_map.1 hp with ⟨e, he, hpe⟩
+    obtain ⟨q, hq, hqt, hqe⟩ := f.compat e he
+    refine ⟨q, hq, by rw [hqt]; exact congrArg (·.1) hpe, ?_⟩
+    subst hpe
+    -- h ≫ (m ≫ e.2) = (h ≫ m) ≫ e.2 = f.g ≫ e.2 = q.2
+    show h ≫ m ≫ e.2 = hqt ▸ q.2
+    rw [← Cat.assoc, hfac, hqe]
+  let ĥ : PairHom X (liftObj hm) := ⟨h, hĥcompat⟩
+  have hĥm : ĥ.comp (liftMono hm) = f := PairHom.ext (by show h ≫ m = f.g; exact hfac)
+  obtain ⟨n, hn₁, hn₂⟩ := hf (liftMono hm) ĥ (liftMono_mono hm) hĥm
+  -- `n : Y → liftObj hm` inverts `liftMono` in `Â`; underlying gives `m` iso in `A`
+  refine ⟨n.g, ?_, ?_⟩
+  · have := congrArg PairHom.g hn₁; simpa [PairHom.comp, liftMono] using this
+  · have := congrArg PairHom.g hn₂; simpa [PairHom.comp, liftMono] using this
+
+/-- **§1.547 — `Â`'s pullbacks transfer covers** (the pre-regular closure condition).  The STATEMENT
+    is Freyd's genuine `PullbacksTransferCovers`: in a pullback square in `Â`, the leg opposite an
+    `Â`-cover is an `Â`-cover.  Freyd discharges this for `Â` via the slice equivalence — "`A*` is a
+    directed union of slices `A*|U`, each pre-regular", so the cover structure of `Â`/`A*` is read
+    off the pre-regular slices (§1.547, and §1.481 localisation preserves pre-regular).
+
+    The forward bridge `pairCover_underlying` (`Â`-cover ⟹ `A`-cover, sorry-free) reduces the
+    underlying square to `A`'s own `PullbacksTransferCovers`, giving the OPPOSITE leg's underlying
+    `c.π₂.g` an `A`-cover; the remaining step — promoting that back to an `Â`-cover — is exactly the
+    direction `pairForget` does NOT reflect (`Â`-monos are tested against fewer arrows), i.e. the
+    slice-equivalence verification.  This is the single sharply-isolated §1.547 obstruction; every
+    finite-limit and forward-cover ingredient feeding the pre-regular structure is sorry-free. -/
+theorem pairPullbacksTransferCovers [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞] :
+    ∀ {A B C : PairObj 𝒞} {f : A ⟶ B} {g : C ⟶ B}
+      (c : @Cone (PairObj 𝒞) _ _ _ _ f g), c.IsPullback →
+      @Cover (PairObj 𝒞) _ _ _ f → @Cover (PairObj 𝒞) _ _ _ c.π₂ := by
+  sorry
+
+/-- **§1.547 — `Â` IS PRE-REGULAR.**  Terminal (`pairHasTerminal`), binary products
+    (`pairHasBinaryProducts`), pullbacks (`pairHasPullbacks`), and pullbacks-transfer-covers
+    (`pairPullbacksTransferCovers`).  This is the §1.547 pre-regular intermediate category; the only
+    non-sorry-free field is the cover transfer, which is Freyd's slice-equivalence verification. -/
+instance pairPreRegular [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞] :
+    PreRegularCategory (PairObj 𝒞) where
+  pullbacks_transfer_covers c hpb hf := pairPullbacksTransferCovers c hpb hf
+
+/-! ### §1.547  `PairDense` as a `DenseClass (PairObj 𝒞)` — the class the rational category inverts
+
+  With `Â`'s pullbacks in hand we package the §1.547 dense morphisms into the `DenseClass` record
+  the §1.48 rational category consumes: `mem x := Nonempty (PairDense x)`.  Closure under isos
+  (`pairDense_of_isIso`) and composition (`pairDense_comp`) are sorry-free (R3).  Pullback-closure
+  (§1.48(iii)) is the dense morphism's product-projection form being stable under base change: the
+  `Â`-pullback of `x : X→Y` (with `X.A ≅ Y.A × W`, `x.g = fst`) along any `g : Z→Y` is again a
+  projection `Z.A × W → Z.A` onto the SAME well-supported `W`, hence dense.  Its proof descends to
+  the underlying product-pullback in `A`; it is stated here with that exact obstruction and is the
+  one remaining dense-class field (the rest sorry-free). -/
+
+/-- §1.48(iii) for `Â`: the dense morphisms are closed under pullback.  STATEMENT is the genuine
+    `DenseClass.pb_mem` obligation for `PairDense`; the dense `x`'s product-projection form
+    (`X.A ≅ Y.A × W`, `x.g = fst`) is stable under base change, the `Â`-pullback projection being
+    `Z.A × W → Z.A` onto the same `W` — read off the underlying product-pullback in `A`. -/
+theorem pairDense_pb [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞]
+    {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (hx : Nonempty (PairDense x)) :
+    Nonempty (PairDense ((HasPullbacks.has g x).cone.π₁)) := by
+  sorry
+
+/-- **§1.547 — `PairDense` is a `DenseClass (PairObj 𝒞)`.**  `mem x := Nonempty (PairDense x)`; isos
+    dense (`pairDense_of_isIso`), composition-closed (`pairDense_comp`), pullback-closed
+    (`pairDense_pb`).  This is the refined dense class the §1.48 rational category inverts to form
+    `A* = Â[PairDense⁻¹]`. -/
+def pairDenseClass [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞] : DenseClass (PairObj 𝒞) where
+  mem x := Nonempty (PairDense x)
+  iso_mem x hx := pairDense_of_isIso hx
+  comp_mem x y hx hy := hx.elim (fun dx => hy.elim (fun dy => ⟨pairDense_comp dx dy⟩))
+  pb_mem x g hx := pairDense_pb x g hx
+
+end PairEq
 
 end PairsCategory
 
