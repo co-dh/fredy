@@ -210,10 +210,11 @@ noncomputable instance gLimCat (IH : ∀ a, r a c → GSeg w b₀ nextStep a) :
   Colim.homColimCat (CapTower.belowSys w b₀ nextStep c IH)
     (CapTower.belowCoherent w b₀ nextStep c IH)
 
-/-- **TRUE obligation (Σ-limit top pre-regularity).**  A directed colimit of pre-regular
-    categories is pre-regular (`Capitalization.colimitPreRegular`, a later-milestone preservation
-    result, here for the Σ-carrier hom-colimit).  Carrier + `Cat` are real; only this Prop is
-    stubbed. -/
+/-- **TRUE obligation (Σ-limit top pre-regularity) — G3 BOUNDARY.**  A directed colimit of
+    pre-regular categories is pre-regular (`Capitalization.colimitPreRegular`, the G3 preservation
+    package, here for the Σ-carrier hom-colimit).  This genuinely needs the colimit-pre-regularity
+    machinery, so it is a documented TRUE stub belonging to G3, NOT closeable at G2.  Carrier +
+    `Cat` are real; only this Prop is stubbed. -/
 noncomputable def gLimTopPre (IH : ∀ a, r a c → GSeg w b₀ nextStep a) :
     @PreRegularCategory _ (gLimCat w b₀ nextStep c IH) :=
   sorry
@@ -260,21 +261,28 @@ noncomputable def gLimF (IH : ∀ a, r a c → GSeg w b₀ nextStep a)
     · rw [dif_neg hac]; exact id
 
 /-- **TRUE obligation (Σ-limit functoriality).**  `gLimF` is a functor.  Into the top it is the
-    Σ-injection as a functor (the colimit cocone on the Σ-carrier, functorial via the hom-colimit
-    inclusion `homIncl`); below it is `belowFunctF`.  Prop-level; isolated. -/
+    Σ-injection as a functor (the colimit cocone, functorial via the hom-colimit inclusion); below
+    it is `CapTower.belowFunctF`.  The below case bottoms out at `CapTower.belowFunctF`, a `sorry`
+    in `CapitalizationTower.lean` (its morphism map transports along the stubbed `belowObjAgree`),
+    so this is not closeable while editing only this file.  TRUE; documented. -/
 noncomputable def gLimFunctF (IH : ∀ a, r a c → GSeg w b₀ nextStep a)
     {a b : Seg w b₀ nextStep c} (hab : (segDirected w b₀ nextStep c).le a b) :
     @Functor _ (gLimACat w b₀ nextStep c IH a) _ (gLimACat w b₀ nextStep c IH b)
       (gLimF w b₀ nextStep c IH hab) :=
   sorry
 
-/-- **TRUE obligation (Σ-limit identity transition).** -/
+/-- **TRUE obligation (Σ-limit identity transition).**  At a TOP slot `gLimF (refl) = id`
+    (trivial); at a BELOW slot it is `CapTower.belowF_refl` — a `sorry` in
+    `CapitalizationTower.lean` (the below transition's `belowObjAgree` cast at the reflexive
+    index).  Not closeable editing only this file.  TRUE; documented. -/
 theorem gLim_F_refl (IH : ∀ a, r a c → GSeg w b₀ nextStep a) (a : Seg w b₀ nextStep c)
     (x : gLimA w b₀ nextStep c IH a) :
     gLimF w b₀ nextStep c IH ((segDirected w b₀ nextStep c).refl a) x = x :=
   sorry
 
-/-- **TRUE obligation (Σ-limit composite transition).** -/
+/-- **TRUE obligation (Σ-limit composite transition).**  Below–below it is `CapTower.belowF_trans`
+    (a `sorry`); the top crossings compose the Σ-injection with `belowF`.  Same `belowObjAgree`
+    obstruction.  Not closeable editing only this file.  TRUE; documented. -/
 theorem gLim_F_trans (IH : ∀ a, r a c → GSeg w b₀ nextStep a)
     {a b d : Seg w b₀ nextStep c} (hab : (segDirected w b₀ nextStep c).le a b)
     (hbd : (segDirected w b₀ nextStep c).le b d) (x : gLimA w b₀ nextStep c IH a) :
@@ -294,7 +302,9 @@ noncomputable def gLimSys (IH : ∀ a, r a c → GSeg w b₀ nextStep a) :
   F_refl := fun {_} x => gLim_F_refl w b₀ nextStep c IH _ x
   F_trans := fun {_ _ _} hab hbd x => gLim_F_trans w b₀ nextStep c IH hab hbd x
 
-/-- **TRUE obligation (Σ-limit segment coherence).** -/
+/-- **TRUE obligation (Σ-limit segment coherence).**  Morphism-level form of `gLim_F_refl` /
+    `gLim_F_trans`; its below cases are `CapTower.belowCoherent` (a `sorry`).  Same `belowObjAgree`
+    obstruction.  Not closeable editing only this file.  TRUE; documented. -/
 theorem gLimCoherent (IH : ∀ a, r a c → GSeg w b₀ nextStep a) :
     (gLimSys w b₀ nextStep c IH).Coherent :=
   sorry
@@ -542,14 +552,25 @@ noncomputable def towerSystem : Colim.CatSystem.{u, u} α (D w) where
     -- defeq types and `rw` closes the residual `cast … x = x` by `rfl`.
     rw [(gSeg w b₀ nextStep a).sys.F_refl]
   F_trans {a b c} hab hbc x := by
-    show gF w b₀ nextStep ((D w).trans hab hbc) x = gF w b₀ nextStep hbc (gF w b₀ nextStep hab x)
-    sorry
+    -- TRUE.  Reduces (via `(gSeg c).sys.F_trans` on the chain `⟨a⟩→⟨b⟩→top c`) to the *transition*
+    -- restriction agreement `gF hab ≅ (gSeg c).sys.F (⟨a,_⟩→⟨b,_⟩)`.  Its well-founded-induction
+    -- limit branch is `gLimF` on two below slots = `CapTower.belowF`, whose object map transports
+    -- along `CapTower.belowObjAgree` — a `sorry` in `CapitalizationTower.lean`.  A transport along
+    -- an *undetermined* proof cannot be reasoned through here, so this is the standing §1.543
+    -- transition-level obstruction (G3-boundary: it needs the below-package coherence, which this
+    -- file may not edit).  Object/`Cat`/`functF`/`F_refl`/`refl_map` ARE sorry-free above.
+    exact sorry
 
 /-- **The Σ-tower is `Coherent`** (morphism-level transition coherence). -/
 theorem towerCoherent : (towerSystem w b₀ nextStep).Coherent where
   refl_map {a x x'} g := by
     show HEq ((gFunctF w b₀ nextStep ((D w).refl a)).map g) g
     exact (gSeg w b₀ nextStep a).coh.refl_map g
-  trans_map {a b c} hab hbc x x' g := by exact sorry
+  trans_map {a b c} hab hbc x x' g := by
+    -- TRUE.  Morphism-level form of `F_trans`: same transition restriction agreement (now on
+    -- `functF` = `gFunctF`), bottoming out at `CapTower.belowFunctF`/`belowObjAgree` (sorry).  Same
+    -- §1.543 transition-level obstruction as `F_trans`.  (`refl_map` above IS sorry-free, since it
+    -- needs only `(gSeg a).coh.refl_map` — no cross-segment transition agreement.)
+    exact sorry
 
 end Freyd.GrothTower
