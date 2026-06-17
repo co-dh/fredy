@@ -1420,6 +1420,24 @@ theorem pullback_comparison_iso {𝒞 : Type u} [Cat.{v} 𝒞] {A B Z : 𝒞}
         ← huniq (Cat.id c.pt) (by rw [Cat.id_comp]) (by rw [Cat.id_comp])]
   exact ⟨φ, ⟨ψ, hφψ, hψφ⟩, hφ1, hφ2⟩
 
+/-- **Cover of the canonical pullback's `π₂` from *any* witnessing pullback cone.**
+    In any category with pullbacks, the chosen pullback `(HasPullbacks.has f g).cone`
+    is comparison-iso to *every* other pullback cone `c` of the same cospan
+    (`pullback_comparison_iso`); the comparison `φ : (canonical).pt ⟶ c.pt` is iso with
+    `φ ≫ c.π₂ = (canonical).π₂`, so `cover_precomp_iso` lifts `Cover c.π₂` to
+    `Cover (canonical).π₂`.  This is the category-level dual of the reduction inside
+    `colimitPullbacksTransferCovers`: it turns the opaque "canonical `π₂` is a cover"
+    obligation into the concrete "*some* pullback cone of `(f, g)` has `π₂` a cover".
+    Reusable in any `[Cat] [HasPullbacks]`, so DRY for both colimit assemblies. -/
+theorem canonicalPullback_cover_of_witness {𝒞 : Type u} [Cat.{v} 𝒞] [HasPullbacks 𝒞]
+    {A B Z : 𝒞} (f : A ⟶ Z) (g : B ⟶ Z)
+    (c : Cone f g) (hc : c.IsPullback) (hcov : Cover c.π₂) :
+    Cover (HasPullbacks.has f g).cone.π₂ := by
+  -- compare the canonical cone to the witness `c`; `φ : canonical.pt ⟶ c.pt`, `φ ≫ c.π₂ = canonical.π₂`
+  obtain ⟨φ, hφiso, _, hφ2⟩ := pullback_comparison_iso (HasPullbacks.has f g).cone_isPullback hc
+  rw [← hφ2]
+  exact cover_precomp_iso hφiso hcov
+
 /-- **M3b — pullbacks transfer covers in the colimit category.**
 
   Given the finite-limit data of `colimitHasPullbacks` (so `C.Obj` has pullbacks)
@@ -1457,7 +1475,22 @@ noncomputable def colimitPullbacksTransferCovers (C : CatSystem ι D) (hC : C.Co
   All finite-limit data is deferred to the caller (terminal, products, equalizers);
   the PTC data additionally requires the `hcanon` witness that the canonical colimit
   pullback's π₂ is a cover when the cospan leg is a cover — satisfied by the
-  slice-embedding system in M4. -/
+  slice-embedding system in M4.
+
+  RESIDUAL on `hcanon`.  `canonicalPullback_cover_of_witness` reduces `hcanon` to:
+  *exhibit one pullback cone of `(f, g)` whose `π₂` is a cover*.  The natural witness
+  is the GERM of a stage pullback at the common stage `N` of the germs `fN, gN`:
+  `pt = objIncl N (stage-pullback-obj)`, projections = `homInclObj` of the stage
+  projections.  Discharging `hcanon` generically still needs TWO ingredients absent
+  from the present finite-limit-preservation package, hence kept as a hypothesis:
+  (1) PER-STAGE `PullbacksTransferCovers` (so the stage pullback's `π₂` is a stage
+      cover — the stages here ARE pre-regular, so the caller can supply it), and
+  (2) COVER-PRESERVATION by the transition functors `functF` (so `colimHom_cover_of_rep`
+      lifts the stage cover to the colimit — covers are stable under the slice/inflation
+      embeddings, again caller-suppliable).
+  Plus the germ cone's `IsPullback` proof (product/equalizer reflection at the colimit).
+  All three are a separate bounded build comparable to `colimitHasBinaryProducts`;
+  until then both assemblies pass `hcanon` through. -/
 noncomputable def colimitPreRegular (C : CatSystem ι D) (hC : C.Coherent) [hne : Nonempty ι]
     -- terminal
     (ht : ∀ i, HasTerminal (C.A i))
