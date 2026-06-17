@@ -10,5 +10,13 @@ linter.unusedSectionVars = false
 weak.linter.mathlibStandardSet = true
 maxSynthPendingDepth = 3
 
+# mathlib — for §1.543 ONLY (transfinite-composition / pseudo-colimit machinery the hand-rolled
+# tower cannot provide). Checkout + oleans already under .lake/packages at this rev (v4.28.0). The
+# clash is contained: ⟶/≫ are now scoped (S1_1), so only the §1.543 bridge file imports mathlib.
+[[require]]
+name = "mathlib"
+git = "https://github.com/leanprover-community/mathlib4.git"
+rev = "8f9d9cff6b"
+
 [[lean_lib]]
 name = "Fredy"
