@@ -49,7 +49,8 @@ on non-comment lines (block-comment-stripped Python scan). Total files: 60.
 | `S1_34.lean`  | §1.34, §1.341           |       1 | `Isomorphic` (reflexive, symmetric, transitive); equinumerosity; 1 sorry in iso-class well-definedness.|
 | `S1_35.lean`  | §1.35, §1.243           |       0 | `ForgetfulFunctor`; always an embedding. Sorry-free.                                                   |
 | `S1_36.lean`  | §1.36, §1.367           |       0 | `Inflation`; strong equivalence; equivalence kernel; factorization. Sorry-free.                        |
-| `S1_38.lean`  | §1.38, §1.389, §1.392, §1.395 | 0 | Duality; Stone duality (statement); finite presentation via Q-sequence. Sorry-free.               |
+| `S1_38.lean`  | §1.38, §1.389, §1.392    |       0 | Duality; Stone duality (statement); finite-presentation Q-sequence (graph + path equations) + op-dual + functor preserve/reflect. NOT §1.395 (no quantifiers). Sorry-free. |
+| `S1_38b.lean` | §1.395, §1.396, §1.397   |       1 | Genuine quantified Q-sequence (`QSeq`/`Satisfies`/`complement` with ∀/∃ steps). Thm1 iso-invariance (axiom-free); Thm2 complement=¬satisfies (constructive half axiom-free, full ↔ via Classical); §1.396 `DiagonalFill` preserve (axiom-free)/reflect; §1.397 iso case axiom-free. 1 documented sorry: §1.397 inflation-class general case (needs §1.361/§1.396 cross-category routing). |
 | `S1_39.lean`  | §1.34–§1.39             |       0 | `EquivalentCategories`; skeleton/coskeleton; split idempotent; exact sequence; measures. Sorry-free.   |
 
 ### §1.41–§1.49  Limits, pullbacks, τ-categories
@@ -62,7 +63,7 @@ on non-comment lines (block-comment-stripped Python scan). Total files: 60.
 | `S1_44.lean`  | §1.44, §1.441                     |       0 | `SliceForget` Σ: A/B→A; A/B has terminal; Σ preserves pullbacks/equalizers; Σ faithful. Sorry-free.        |
 | `S1_45.lean`  | §1.45, §1.451–§1.454              |       3 | `Cone`, `HasPullback`, `HasPullbacks`; kernel pair; mono iff kp-diag iso; pullback of mono is mono; `invImg`, `Sub.inter`. 3 sorries: pullback interchange law instances.   |
 | `S1_47.lean`  | §1.442, §1.444, §1.47, §1.48      |       0 | Cayley preserves/reflects pullbacks+equalizers; Horn sentences (§1.444); dense monics; rational cats. Sorry-free (1 sorry previously resolved). |
-| `S1_49.lean`  | §1.491–§1.494                     |       7 | `Table`, `TCat`, τ-category axioms (τ1–τ3); resurfacing; pruning; supporting; expansion lemma. 7 sorries: expansion lemma converse + various τ_comp assembly (index/HEq bookkeeping). |
+| `S1_49.lean`  | §1.491–§1.49(11)                  |       0 | `Table`, `TCat`, τ-category axioms (τ1–τ3); resurfacing; pruning; supporting; auspicious; expansion lemma (+ converse). Sorry-free. STANDALONE — not imported by any downstream file (strictification scaffolding, mirrors the book: §1.49 feeds the §1.4(10) free-τ-cat and §1.74 representation, then is set aside). |
 
 ### §1.51–§1.55  Regular categories, capitalization, Henkin
 

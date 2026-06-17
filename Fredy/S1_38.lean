@@ -5,8 +5,14 @@
   §1.38 DUALITY: a contravariant strong equivalence between categories.
   §1.389 STONE DUALITY: Boolean algebras ↔ Stone spaces.
   §1.392 FINITE PRESENTATION via Q-SEQUENCE: a category presented
-         by a finite graph with composition/identity equations.
-  §1.395 COMPLEMENTARY Q-SEQUENCE.
+         by a finite graph with composition/identity equations,
+         plus the op-dual presentation and functor preserve/reflect.
+
+  NOTE: the genuine §1.395 (quantified Q-sequence + satisfaction relation
+  with ∀/∃ steps and complement = transpose-quantifiers) lives in S1_38b.lean.
+  The "complementaryQSequence" / preserve-reflect lemmas below are the §1.392
+  finite-presentation duality (reverse arrows, functor-image), NOT the §1.395
+  quantifier transpose.
 -/
 
 
@@ -124,9 +130,10 @@ def SatisfiesQSequence (Q : QSequence) (𝒜 : Type u) [Cat.{v} 𝒜]
       composeComposablePath interp arrowMap (Q.eq_lhs e) hlL hcL =
     composeComposablePath interp arrowMap (Q.eq_rhs e) hlR hcR
 
-/-- COMPLEMENTARY Q-SEQUENCE (§1.395): dual by reversing arrows.
-    The book's complementary Q-sequence transposes V's and 3's; for
-    finitely-presented Q-sequences this reverses lhs↔rhs paths and src↔tgt. -/
+/-- OP-DUAL PRESENTATION (§1.392): dual by reversing arrows.
+    NOTE: this is the presentation-level op-dual (reverse lhs↔rhs paths and
+    src↔tgt), NOT the §1.395 complementary Q-sequence, which transposes the ∀/∃
+    quantifiers (see `QSeq.complement` in S1_38b.lean). -/
 def complementaryQSequence (Q : QSequence) : QSequence where
   objects   := Q.objects
   arrows    := Q.arrows
@@ -136,10 +143,10 @@ def complementaryQSequence (Q : QSequence) : QSequence where
   eq_lhs  e := (Q.eq_rhs e).reverse
   eq_rhs  e := (Q.eq_lhs e).reverse
 
-/-! ### §1.395 Isomorphisms preserve and reflect satisfaction
+/-! ### §1.392 Functors preserve and reflect satisfaction (finite presentation)
 
-  The book (§1.395) states: "A₀ → B satisfies a Q-sequence iff A₀ → B → B' does"
-  whenever B → B' is an isomorphism.  In our object-centric formalization,
+  For a finitely-presented Q-sequence (§1.392), a functor preserves satisfaction,
+  and an embedding reflects it.  In our object-centric formalization,
   the analogous statement is that a functor `F : 𝒜 → ℬ` that reflects equality
   (i.e., is an embedding) reflects satisfaction of Q-sequences under post-composition.
 
@@ -182,9 +189,8 @@ private theorem functor_dbl_transport
     hx ▸ hy ▸ hF.map f = hF.map (hx ▸ hy ▸ f) := by
   subst hx; subst hy; rfl
 
-/-- Isomorphisms (embedding functors) preserve and reflect satisfaction of a Q-sequence
-    (§1.395).  The book's statement: `A₀ → B` satisfies iff `A₀ → B → B'` does when
-    `B → B'` is an isomorphism.  We state this as: if `F : 𝒜 → ℬ` is an embedding,
+/-- Embedding functors reflect satisfaction of a finitely-presented Q-sequence
+    (§1.392).  We state this as: if `F : 𝒜 → ℬ` is an embedding,
     then satisfaction of a Q-sequence via `(F ∘ interp, F ∘ arrowMap)` implies (and
     is implied by) satisfaction via `(interp, arrowMap)`.
 
@@ -207,7 +213,7 @@ theorem iso_reflects_sat (Q : QSequence) {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat
   rw [← functor_dbl_transport F interp hSrc hTgt]
   exact heq
 
-/-- Any functor preserves satisfaction of a Q-sequence (§1.395): if `interp, arrowMap`
+/-- Any functor preserves satisfaction of a finitely-presented Q-sequence (§1.392): if `interp, arrowMap`
     satisfies the Q-sequence in `𝒜`, then `F ∘ interp, F ∘ arrowMap` satisfies it in `ℬ`.
     This is immediate from functoriality (F distributes over path composition). -/
 theorem iso_preserves_sat (Q : QSequence) {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
