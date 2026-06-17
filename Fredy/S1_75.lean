@@ -95,6 +95,14 @@ def Atomless [PreLogos 𝒞] : Prop :=
     arbitrary join.  Even classically, forming the join requires either:
       (a) a `HasIndexedSubobjectJoins` axiom (arbitrary small joins of subobjects), or
       (b) finiteness of the atom basis (not assumed by `AtomicallyBased`/`IsBasis`).
+    NO BINARY-JOIN / INDUCTION ROUTE.  One might hope to build `¬S` from
+    `HasSubobjectUnions.union` (binary join) by induction over the atom basis.
+    This fails because `IsBasis` (§1.632) is `IsGeneratingSet ∧ (∀ proper mono,
+    ∃ one witnessing atom)`: it provides a single atom per proper subobject and
+    NEVER bounds the basis to finitely many atoms nor yields a finite cover of `A`.
+    The index set `{ (G, x) | G atom, x : G → A, x ∤ S }` is therefore genuinely
+    unbounded, so no finite/binary fold and no structural induction reaches it; an
+    honest-to-goodness arbitrary (small) join is required.
     In addition, deciding constructively whether `x : G → A` factors through `S`
     (i.e. `∃ y : G → S.dom, y ≫ S.arr = x`) requires classical reasoning or a
     decidability instance on `Subobject.le`.
