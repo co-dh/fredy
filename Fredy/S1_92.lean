@@ -105,13 +105,9 @@ instance (priority := 50) topos_has_exponentials : HasExponentials 𝒞 := by
 -- All subsequent decls require [HasExponentials 𝒞] via topos_has_exponentials.
 -- exp B Ω = Ω^B = [B] the power object of B.
 
-/-- Naturality of `curry` in its variable argument: precomposing the curried
-    map with `h : X' ⟶ X` equals currying after precomposing the uncurried
-    map with `prodMap A X' X h`.  (Adjoint-transpose naturality of `A × -`.) -/
-theorem curry_precomp {A B X X' : 𝒞} (h : X' ⟶ X) (f : prod A X ⟶ B) :
-    h ≫ curry f = curry (prodMap A X' X h ≫ f) := by
-  apply curry_unique_eq
-  rw [prodMap_comp, Cat.assoc, curry_eval_eq]
+-- NOTE: `curry_precomp` (naturality of `curry` in its variable argument,
+-- `h ≫ curry f = curry (prodMap A X' X h ≫ f)`) now lives in `S1_85` (imported);
+-- the former duplicate here was removed for DRY after master added the S1_85 copy.
 
 /-! ## §1.922  Ω^(−) as a contravariant functor
 
@@ -736,7 +732,22 @@ end EvalUniversal
 /-- A PARTIAL MAP CLASSIFIER (§1.921, §1.934): an object Ω₊ together with a
     monic η : 1 ↪ Ω₊ such that every partial map (monic + map) into X factors
     uniquely through a total map into Ω₊^X.
-    The subobject classifier Ω is the special case where the domain is the terminal. -/
+    The subobject classifier Ω is the special case where the domain is the terminal.
+
+    INTERFACE STATUS / FIDELITY (do not mistake this for the full §1.934 classifier).
+    Freyd's §1.934 classifier is PER-CODOMAIN: a functor `B ↦ B̃` with `Ẽ(-,B̃)=ℒ(-,B)` in the
+    partial-map category, so a partial map `A ⇀ B` corresponds to a TOTAL `A → B̃` via a pullback
+    of the generic `η_B : B ↪ B̃`.  The fields below model only a SINGLE object `pmc_obj` — that is
+    structurally just the `B = 1` instance `1̃ = Ω₊` (the lifted subobject classifier) — and
+    `pmc_classify` is a BARE map-former with NO universal-property law (no restrict/uniqueness).
+    A faithful completion would (a) make the carrier per-codomain `pmcObj : 𝒞 → 𝒞` with a generic
+    `η_B` and (b) add the defining pullback universal property as fields.  We deliberately do NOT do
+    so: this structure has NO instances in the repo (it is only ever passed as an explicit hypothesis,
+    e.g. to §1.98(10) in S1_97), and the only way to BUILD `B̃` in a topos is §1.935/§1.963
+    (`B̃ = Π_t(B/0)`, "value-based in any capital topos"), which is §1.543-capitalization-gated.
+    So completing the fields would buy no proof here and could not be instantiated without §1.543.
+    See `Fredy/S1_97.lean :: nno_of_bicartesian_data` for the full root-cause analysis (§1.988/§1.989
+    /§2.542 capitalization), and `Fredy/Capitalization.lean :: capData_exists` for the §1.543 wall. -/
 structure HasPartialMapClassifier (𝒞 : Type u) [Cat.{v} 𝒞] extends HasTerminal 𝒞, HasPullbacks 𝒞 where
   pmc_obj   : 𝒞
   pmc_incl  : one ⟶ pmc_obj

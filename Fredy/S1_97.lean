@@ -794,34 +794,37 @@ theorem nno_of_bicartesian_data {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
   -- along m reproduces r; the coequalizer A→1 then forces the partial domain R to be all of A
   -- (induction), yielding the total recursor and its uniqueness.
   --
-  -- WHY THE INTERFACE IS INSUFFICIENT (precise gap): `HasPartialMapClassifier` (S1_92) supplies
-  --   pmc_obj : 𝒞,  pmc_incl : 1 ↪ pmc_obj (monic),  and
-  --   pmc_classify {X A A'} (m : A' ⟶ A) (_ : Mono m) (f : A' ⟶ X) : A ⟶ pmc_obj
-  -- but `pmc_classify` is a BARE map-former with NO equational laws.  Recovering `r` from
-  -- the classified map — the universal property that makes §1.988 go through — needs at least:
-  --   (i)  pmc_restrict : the pullback square  A' →f→ X|...  i.e.  `m ≫ pmc_classify m hm f`
-  --        classifies exactly the partial map (m,f), so its "defined" locus is the image of m
-  --        and there `pmc_classify m hm f` agrees with the name of f;
-  --   (ii) pmc_unique : any total map A → pmc_obj whose defined locus / restriction matches
-  --        (m,f) equals `pmc_classify m hm f`.
-  -- Neither (i) nor (ii) is a field of the current structure, and there is no "graph of a
-  -- partial map" / "extend along monic" operation derivable from the three bare fields.
-  -- Hence the recursor's defining equations (iterate_zero / iterate_succ) and its uniqueness
-  -- are not provable from the interface as stated.
+  -- WHY THE PMC INTERFACE IS INSUFFICIENT, AND WHY COMPLETING IT WOULD NOT HELP:
+  -- `HasPartialMapClassifier` (S1_92) supplies a SINGLE `pmc_obj : 𝒞` with `pmc_incl : 1 ↪ pmc_obj`
+  -- and a bare `pmc_classify {X A A'} (m) (Mono m) (f) : A ⟶ pmc_obj` carrying no equational law.
+  -- Two distinct defects:
+  --   • SHAPE.  Freyd's classifier (§1.934) is PER-CODOMAIN — `B ↦ B̃` with `Ẽ(-,B̃)=ℒ(-,B)` in the
+  --     partial-map category — so a partial map `A ⇀ X` becomes a TOTAL `A → X̃` (pullback of η_X).
+  --     The single `pmc_obj` here is structurally only the `X=1` case `1̃ = Ω₊`; it cannot name a
+  --     partial recursor valued in a general `X`.
+  --   • LAW.  Even the lawful per-object version (add the pullback universal property as fields)
+  --     would NOT close this sorry, because the §1.98(10) PROOF is capitalization-gated INDEPENDENTLY
+  --     of the PMC laws (see below).  So the reported "missing pmc_restrict/pmc_unique" is only the
+  --     proximate symptom, not the real wall.
   --
-  -- The three fields actually available from `pmc` are exactly these (and only these):
-  --   pmc.pmc_obj : 𝒞,  pmc.pmc_incl : 1 ↪ pmc.pmc_obj,
-  --   pmc.pmc_classify (m) (Mono m) (f) : A ⟶ pmc.pmc_obj  — a total map with NO law
-  --   relating it back to (m, f).  This `cls` is the ONLY operation usable for the §1.988
-  --   graph-of-partial-recursor step, and it is too weak (no restrict / uniqueness law).
-  -- We expose it via a `have` so the dependence on `pmc` is explicit and the gap is local:
-  have cls : ∀ {X A' : 𝒞} (m : A' ⟶ A) (_ : Mono m) (_ : A' ⟶ X), A ⟶ pmc.pmc_obj :=
+  -- REAL BOOK-LEVEL ROOT CAUSE (§2.542 / §1.989 / §1.935 capitalization — the §1.543 gate):
+  -- Freyd proves §1.98(10) via "A has the Peano property [1.988, 2.542]" and "C↣A is monic [1.989,
+  -- 2.542]".  Both feeder lemmas are proved only AFTER reducing to a CAPITAL/boolean topos:
+  --   • §1.988 (Peano property) is stated "In a boolean topos …"; the word 'boolean' is removed only
+  --     via §2.542 = a FAITHFUL BICARTESIAN functor A → (boolean topos), i.e. capitalization.
+  --   • §1.989 (the monicity of C↣A used in the existence step) opens "We may assume that the topos
+  --     is capital [1.935]."
+  --   • The partial-map classifier `B̃` itself (§1.934/§1.935/§1.963) is CONSTRUCTED via capitalization
+  --     (`B̃ = Π_t(B/0)`, "value-based in any capital topos").
+  -- This is exactly the §1.543 capitalization wall this repo has NOT discharged: `Fredy/Capitalization.lean`
+  -- (`capData_exists`) and `least_peano_subobject` (§1.987, below) bottom out on the SAME §1.543 gate.
+  -- Hence faithfully completing `HasPartialMapClassifier` with its universal property buys nothing here,
+  -- and (no topos instance can build `B̃` without §1.935) would itself be §1.543-gated.  We therefore
+  -- leave the honest sorry and do not bloat the structure with fields no instance can supply.
+  --
+  -- The bare classifier `pmc.pmc_classify` is the only PMC operation available, and is too weak:
+  have _cls : ∀ {X A' : 𝒞} (m : A' ⟶ A) (_ : Mono m) (_ : A' ⟶ X), A ⟶ pmc.pmc_obj :=
     fun m hm f => pmc.pmc_classify m hm f
-  -- Faithful sorry pinning the missing `HasPartialMapClassifier` laws (pmc_restrict, pmc_unique):
-  -- iterate_zero / iterate_succ / iterate_unique require that for the partial recursor's
-  -- graph (m, f) the total map `m ≫ cls m hm f` reproduces `f` and is unique — neither is
-  -- a field of `HasPartialMapClassifier`, so from `cls` alone the proof cannot proceed.
-  clear cls
   sorry
 
 /-! ## §1.98(11)  Bicartesian functors preserve NNO
@@ -902,11 +905,13 @@ theorem free_action_iff_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
                ∃ g : one ⟶ X, term α.obj ≫ g = f ∧
                  ∀ g' : one ⟶ X, term α.obj ≫ g' = f → g' = g) :
     Nonempty (FreeAAction (𝒞 := 𝒞) A) := by
-  -- BLOCKER: the A-action analogue of `nno_of_bicartesian_data`.  From the iso
-  -- [e,s]:1+A×A* ≅ A* and the coequalizer A×A*→A*→1 one must build the free recursor
-  -- recA α : A* → α.obj for every A-action α, with existence+uniqueness — the same
-  -- partial-map-classifier / §1.988 descent construction as §1.98(10), now parametrised by A.
-  -- Faithful sorry pending §1.988.
+  -- BLOCKER: the A-action analogue of `nno_of_bicartesian_data` (§1.98(13) is proved "analogously
+  -- to [1.985] and [1.98(10)]").  From the iso [e,s]:1+A×A* ≅ A* and the coequalizer A×A*→A*→1 one
+  -- builds the free recursor recA α : A* → α.obj for every A-action α, with existence+uniqueness.
+  -- It therefore inherits §1.98(10)'s REAL root cause: the Peano-property / monicity feeders
+  -- (§1.988, §1.989) are capitalization-gated (§2.542 boolean embedding / §1.935 "assume capital"),
+  -- i.e. the §1.543 wall this repo has not discharged (`Capitalization.lean` capData_exists).
+  -- Faithful sorry — blocked on §1.543 capitalization, not merely on PMC laws.
   sorry
 
 /-! ## §1.98(14)  Existence of free A-action from NNO
