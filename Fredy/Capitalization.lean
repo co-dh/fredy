@@ -1185,6 +1185,317 @@ noncomputable def capData_of_tower (A : Type u) [Cat.{u} A] [PreRegularCategory 
       ht := ht, htpres := htpres, hp := hp, hppres := hppres, hppres_pair := hppres_pair
       he := he, hepres := hepres, hepres_lift := hepres_lift, hcanon := hcanon, capital := hcap }
 
+/-! ## §1.546/§1.547  The uniform successor `nextStep` (RELOCATED from `RelativeCapitalization`)
+
+  `nextStep : ∀ (S : PreRegBundle), CapStep S.carrier` and its supporting construction live HERE —
+  in `Capitalization`, after `CapStep`/`PreRegBundle`, before `capData_exists` — so that
+  `capData_exists`/`hwall_step` can NAME the §1.546/§1.547 successor in place (`RelativeCapitalization`
+  imports `Capitalization` for `CapStep`, so it sits downstream and was unreachable from here).
+
+  Everything below depends only on `CapStep` (above), the chain machinery (`PrefixChain`/
+  `chainSliceSystem`/`chainHfaith`/`chainHcons` in `Inflation`, `chainSlicePreRegularWS` above) and
+  the slice/inflation upstream — all already imported.  Pure relocation; no semantics changed. -/
+
+section NextStep
+variable {𝒞 : Type u} [Cat.{u} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
+variable [PullbacksTransferCovers 𝒞]
+
+/-- `∏[] = 1` is well-supported: `term 1 = id 1`, and the identity is a cover (a monic it
+    factors through is split epi + mono = iso).  Inlined (`iso_cover` lives in the `HasImages`
+    section of `S1_56`, unavailable here). -/
+theorem wellSupported_one : WellSupported (𝒞 := 𝒞) (listProd ([] : List 𝒞)) := by
+  show Cover (term (HasTerminal.one : 𝒞))
+  rw [show term (HasTerminal.one : 𝒞) = Cat.id HasTerminal.one from term_uniq _ _]
+  intro C m g hm hgm
+  -- `g ≫ m = id`, so `m` is split epi; `m` mono ⟹ `m` iso (`m ≫ g = id` by cancelling `m`).
+  refine ⟨g, hm (m ≫ g) (Cat.id C) ?_, hgm⟩
+  rw [Cat.assoc, hgm, Cat.id_comp]; exact Cat.comp_id m
+
+/-- **Composition of covers is a cover** (images-free; `cover_comp`/`cover_mono_diagonal` in
+    `S1_56` inherit a `HasImages` section variable, so we inline the pullback-diagonal fill that
+    needs only `HasPullbacks`).  `f ≫ g` factors through a mono `m` via `h ≫ m = f ≫ g`; the
+    pullback of `g` along `m` gives a mono `π₁` that `f` is a cover onto, hence `π₁` iso, hence a
+    fill `f ≫ k = h`, and `g` a cover forces `m` iso. -/
+theorem cover_comp' {X Y Z : 𝒞} {f : X ⟶ Y} {g : Y ⟶ Z} (hf : Cover f) (hg : Cover g) :
+    Cover (f ≫ g) := by
+  intro C m h hm hfac
+  -- diagonal fill: `f ≫ g = h ≫ m`, pullback of `g, m`, `π₁` mono (pullback of mono `m`).
+  let pb := HasPullbacks.has g m
+  -- `π₁` is mono (pullback of the mono `m`), inlined (`pullback_fst_mono` needs `HasImages`):
+  have hπmono : Mono pb.cone.π₁ := by
+    intro W p q hpq
+    have hpq2 : p ≫ pb.cone.π₂ = q ≫ pb.cone.π₂ := by
+      apply hm
+      calc (p ≫ pb.cone.π₂) ≫ m = p ≫ (pb.cone.π₁ ≫ g) := by rw [Cat.assoc, ← pb.cone.w]
+        _ = (q ≫ pb.cone.π₁) ≫ g := by rw [← Cat.assoc, hpq]
+        _ = (q ≫ pb.cone.π₂) ≫ m := by rw [Cat.assoc, pb.cone.w, ← Cat.assoc]
+    let cn : Cone g m := ⟨W, p ≫ pb.cone.π₁, p ≫ pb.cone.π₂, by rw [Cat.assoc, Cat.assoc, pb.cone.w]⟩
+    rw [pb.lift_uniq cn p rfl rfl, pb.lift_uniq cn q hpq.symm hpq2.symm]
+  let u := pb.lift ⟨X, f, h, by rw [hfac]⟩
+  have hu₁ : u ≫ pb.cone.π₁ = f := pb.lift_fst _
+  obtain ⟨inv, _, hinvπ⟩ : IsIso pb.cone.π₁ := hf pb.cone.π₁ u hπmono hu₁
+  -- `inv ≫ π₂` fills `(inv≫π₂) ≫ m = g`; then `g` a cover through `m` forces `m` iso.
+  refine hg m (inv ≫ pb.cone.π₂) hm ?_
+  rw [Cat.assoc, ← pb.cone.w, ← Cat.assoc, hinvπ, Cat.id_comp]
+
+/-- **The product of two well-supported objects is well-supported.**  `term (B×D)` factors as
+    `fst ≫ term B`; `fst : B×D → B` is a cover (`prod_fst_cover`, needs `D` well-supported) and
+    `term B` is a cover (`B` well-supported), so the composite is a cover. -/
+theorem wellSupported_prod {B D : 𝒞} (hB : WellSupported B) (hD : WellSupported D) :
+    WellSupported (prod B D) := by
+  show Cover (term (prod B D))
+  rw [show term (prod B D) = (fst : prod B D ⟶ B) ≫ term B from term_uniq _ _]
+  exact cover_comp' (prod_fst_cover hD) hB
+
+/-- **`∏U` is well-supported when every member of `U` is.** -/
+theorem wellSupported_listProd : ∀ {U : List 𝒞}, (∀ B ∈ U, WellSupported B) →
+    WellSupported (listProd U)
+  | [],     _ => wellSupported_one
+  | B :: U, h => by
+      rw [listProd_cons]
+      exact wellSupported_prod (h B (List.mem_cons.2 (Or.inl rfl)))
+        (wellSupported_listProd (fun C hC => h C (List.mem_cons.2 (Or.inr hC))))
+
+/-! ### The faithful base embedding `S → innerSliceObj ([] : Infl S)`
+
+  Stage 0 of the chain (`chain 0 = []`) is `innerSliceObj [] = Over ([] : Infl S)`, the slice
+  over the terminal of the inflation.  `S` embeds faithfully there by the inflation cross-section
+  `infl : X ↦ [X]` (`inflFunctor`) followed by the (forgetting-nothing) slice over the terminal:
+  `X ↦ ⟨[X], term⟩`, `f ↦ ⟨inflFunctor.map f, …⟩`.  Faithful because `infl` separates morphisms
+  (`fst : X×1 → X` is a cover, `1` well-supported) and reflects isos. -/
+
+/-- The object part of the base embedding: `X ↦ ⟨[X], term [X]⟩ : innerSliceObj ([] : Infl 𝒞)`. -/
+def baseSliceObj (X : 𝒞) : innerSliceObj (𝒞 := 𝒞) ([] : List 𝒞) :=
+  ⟨(infl X : Infl 𝒞), term (infl X : Infl 𝒞)⟩
+
+/-- The morphism part of the base embedding: `f : X → Y` becomes the over-hom whose underlying
+    `Infl`-arrow is `inflFunctor.map f : [X] ⟶ [Y]` (commutes with `term` by `term_uniq`). -/
+def baseSliceMap {X Y : 𝒞} (f : X ⟶ Y) :
+    OverHom (baseSliceObj (𝒞 := 𝒞) X) (baseSliceObj Y) :=
+  ⟨(inflFunctor.map f : (infl X : Infl 𝒞) ⟶ infl Y), term_uniq _ _⟩
+
+/-- The base embedding `S → innerSliceObj []` is a functor: its underlying `Infl`-arrows are
+    `inflFunctor`'s, so the laws transport along `OverHom.ext` (a slice equation is its underlying
+    equation). -/
+instance baseSliceFunctor : @Functor 𝒞 _ (innerSliceObj (𝒞 := 𝒞) ([] : List 𝒞)) _ baseSliceObj where
+  map {X Y} f := baseSliceMap f
+  map_id X := OverHom.ext (by
+    show (inflFunctor.map (Cat.id X) : (infl X : Infl 𝒞) ⟶ infl X) = Cat.id (infl X : Infl 𝒞)
+    exact inflFunctor.map_id X)
+  map_comp {X Y Z} f g := OverHom.ext (by
+    show (inflFunctor.map (f ≫ g) : (infl X : Infl 𝒞) ⟶ infl Z)
+        = (baseSliceMap f ⊚ baseSliceMap g).f
+    exact inflFunctor.map_comp f g)
+
+/-- `infl : 𝒞 → Infl 𝒞` (the cross-section `X ↦ [X]`, underlying `(·)×1`) SEPARATES MORPHISMS:
+    `inflFunctor.map f = inflFunctor.map g ⟹ f = g`.  `inflFunctor.map h = pair (fst ≫ h) snd`
+    (`prodRight 1`); projecting along `fst` gives `fst ≫ f = fst ≫ g`, and `fst : X×1 → X` is a
+    cover (`prod_fst_cover`, `1` well-supported), hence epic (`cover_epi`).  Inlined here (the
+    `S1_54` `slice_embedding_separates` it mirrors sits DOWNSTREAM — `S1_54` imports `Capitalization`). -/
+theorem infl_separates {X Y : 𝒞} (f g : X ⟶ Y)
+    (h : (inflFunctor.map f : (infl X : Infl 𝒞) ⟶ infl Y) = inflFunctor.map g) : f = g := by
+  -- `inflFunctor.map h = pair (fst ≫ h) snd : prod X 1 ⟶ prod Y 1` (defeq by `inflHom_eq`).
+  have hpair : pair ((fst : prod X HasTerminal.one ⟶ X) ≫ f) snd
+      = pair ((fst : prod X HasTerminal.one ⟶ X) ≫ g) snd := h
+  have hfst : (fst : prod X HasTerminal.one ⟶ X) ≫ f = (fst : prod X HasTerminal.one ⟶ X) ≫ g := by
+    rw [← fst_pair ((fst : prod X HasTerminal.one ⟶ X) ≫ f) snd, hpair, fst_pair]
+  exact cover_epi (prod_fst_cover wellSupported_one) hfst
+
+/-- **`(·)×1` reflects isomorphisms**: `IsIso (pair (fst ≫ f) snd) ⟹ IsIso f`.  From `f×1` iso get
+    `f×1` mono ⟹ `f` mono (`infl_separates`); and `fst_C ≫ f = (f×1) ≫ fst_D` makes `f` a cover
+    (iso∘cover, right-factor); `monic_cover_iso` gives `f` iso.  (The `B = 1` case of `S1_54`'s
+    `prodRight_reflects_iso`, inlined since `S1_54` is downstream of `Capitalization`.) -/
+theorem inflMap_reflects_iso {C D : 𝒞} (f : C ⟶ D)
+    (hiso : IsIso (pair ((fst : prod C HasTerminal.one ⟶ C) ≫ f) snd)) : IsIso f := by
+  obtain ⟨inv, hinv1, _hinv2⟩ := hiso
+  have hfBmono : Mono (pair ((fst : prod C HasTerminal.one ⟶ C) ≫ f) snd) :=
+    mono_of_retraction _ inv hinv1
+  have hfmono : Mono f := by
+    intro Z u v huv
+    refine infl_separates u v (hfBmono _ _ ?_)
+    have e : (inflFunctor.map (u ≫ f) : (infl Z : Infl 𝒞) ⟶ infl D)
+        = inflFunctor.map (v ≫ f) := by rw [huv]
+    rw [inflFunctor.map_comp, inflFunctor.map_comp] at e
+    exact e
+  have hfcover : Cover f := by
+    have hstep : (fst : prod C HasTerminal.one ⟶ C) ≫ f
+        = pair ((fst : prod C HasTerminal.one ⟶ C) ≫ f) snd ≫ (fst : prod D HasTerminal.one ⟶ D) :=
+      (fst_pair ((fst : prod C HasTerminal.one ⟶ C) ≫ f) snd).symm
+    have hcov : Cover ((fst : prod C HasTerminal.one ⟶ C) ≫ f) := by
+      rw [hstep]; exact cover_precomp_iso ⟨inv, hinv1, _hinv2⟩ (prod_fst_cover wellSupported_one)
+    intro K m h hm hfac
+    exact hcov m ((fst : prod C HasTerminal.one ⟶ C) ≫ h) hm (by rw [Cat.assoc, hfac])
+  exact monic_cover_iso f hfcover hfmono
+
+/-- **The base embedding `S → innerSliceObj []` is FAITHFUL.**  Embedding: equality of slice-images
+    gives equality of underlying `Infl`-arrows `inflFunctor.map f = inflFunctor.map g`, separated by
+    `infl_separates`.  Reflects-iso: a slice iso has iso underlying `inflFunctor.map f = pair (fst≫f) snd`,
+    and `inflMap_reflects_iso` (with `1` well-supported) descends to `f`. -/
+theorem baseSliceFaithful :
+    @Faithful 𝒞 _ (innerSliceObj (𝒞 := 𝒞) ([] : List 𝒞)) _ baseSliceObj baseSliceFunctor := by
+  refine ⟨?_, ?_⟩
+  · -- embedding
+    intro X Y f g h
+    exact infl_separates f g (congrArg OverHom.f h)
+  · -- reflects iso
+    intro X Y f hiso
+    have hfiso : IsIso (baseSliceMap f).f := overIso_underlying hiso
+    exact inflMap_reflects_iso f hfiso
+
+/-! ### The enumeration `PrefixChain` and the well-supported-suffix condition `hwsuf`
+
+  An enumeration `enum : ℕ → S` of (well-supported) objects yields the `take`-prefix chain
+  `chain n := (List.range n).map enum = [enum 0, …, enum (n-1)]`.  It is a `PrefixChain`
+  (`chain n <+: chain (n+1)` is `chain n ++ [enum n]`), starts at `chain 0 = []`, and — when every
+  `enum k` is well-supported — every appended suffix `prefixSuffix (chain i) (chain j)` is a list of
+  well-supported objects, so `∏(suffix)` is well-supported (`wellSupported_listProd`): exactly the
+  `hwsuf` precondition `chainSlicePreRegularWS` consumes.  This is the §1.547 cofinal enumeration:
+  for an enumeration that hits every well-supported `B`, the inner colimit acquires a point of every
+  such `B` (`enumChain_acquires`), Freyd's relative-capitalization payoff. -/
+
+/-- The `take`-prefix chain of an enumeration `enum : ℕ → S`: `chain n = [enum 0, …, enum (n-1)]`. -/
+def enumPrefix (enum : Nat → 𝒞) (n : Nat) : List 𝒞 := (List.range n).map enum
+
+@[simp] theorem enumPrefix_zero (enum : Nat → 𝒞) : enumPrefix enum 0 = [] := rfl
+
+/-- `chain (n+1) = chain n ++ [enum n]` (append the next factor). -/
+theorem enumPrefix_succ (enum : Nat → 𝒞) (n : Nat) :
+    enumPrefix enum (n + 1) = enumPrefix enum n ++ [enum n] := by
+  show (List.range (n + 1)).map enum = (List.range n).map enum ++ [enum n]
+  rw [List.range_succ, List.map_append]; rfl
+
+/-- The enumeration `PrefixChain` over `S` (objects are `Infl S = List S`).  Instances are bound
+    EXPLICITLY (`@`-style) so the generalized signature carries `[Cat]/[HasTerminal]/[HasBinaryProducts]`
+    at the SAME universe — relying on the `variable` auto-inclusion dropped them, which left the
+    return `PrefixChain 𝒞` re-synthesizing those at a `max`-universe metavar at every use site. -/
+def enumChain {𝒞 : Type u} [Cat.{u} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
+    [PullbacksTransferCovers 𝒞] (enum : Nat → 𝒞) : PrefixChain 𝒞 where
+  chain := enumPrefix enum
+  step n := by rw [enumPrefix_succ]; exact List.prefix_append _ _
+
+/-- Every entry of an appended suffix is some `enum k` (a member of a longer `take`-prefix). -/
+theorem enumPrefix_suffix_mem (enum : Nat → 𝒞) {i j : Nat} (B : 𝒞)
+    (hB : B ∈ prefixSuffix (enumPrefix enum i) (enumPrefix enum j)) : ∃ k, enum k = B := by
+  -- the suffix is a `drop` of a `map enum`, so its members are members of `map enum`.
+  have : B ∈ enumPrefix enum j := List.mem_of_mem_drop hB
+  obtain ⟨k, _, hk⟩ := List.mem_map.1 this
+  exact ⟨k, hk⟩
+
+/-- `(enumPrefix enum (n+1)).length = n+1` (a `take`-prefix of length `n+1`). -/
+theorem enumPrefix_length (enum : Nat → 𝒞) (n : Nat) : (enumPrefix enum n).length = n := by
+  show ((List.range n).map enum).length = n
+  rw [List.length_map, List.length_range]
+
+/-- **The well-supported-suffix condition `hwsuf` for an enumeration of well-supported objects.**
+    If every `enum k` is well-supported, every appended suffix `∏(prefixSuffix (chain i) (chain j))`
+    is well-supported (`wellSupported_listProd`), which is exactly the precondition
+    `chainSlicePreRegularWS` consumes to give the inner colimit `S*` a `PreRegularCategory`. -/
+theorem enumChain_hwsuf (enum : Nat → 𝒞) (hws : ∀ k, WellSupported (enum k))
+    {i j : ULift.{u} Nat} (_hij : uliftNatDirected.le i j) :
+    WellSupported
+      (listProd (𝒞 := 𝒞)
+        (prefixSuffix ((enumChain enum).toOrdChain.chain i) ((enumChain enum).toOrdChain.chain j))) := by
+  apply wellSupported_listProd
+  intro B hB
+  obtain ⟨k, hk⟩ := enumPrefix_suffix_mem enum B hB
+  rw [← hk]; exact hws k
+
+end NextStep
+
+/-! ### Assembling the uniform successor `nextStep`
+
+  The inner colimit `S* = (chainSliceSystem (enumChain enum)).Obj` of the enumeration chain is a
+  concrete `PreRegularCategory` (`chainSlicePreRegularWS`, fed `enumChain_hwsuf`), and `S` embeds
+  faithfully via the base embedding into stage 0 composed with the (faithful) colimit stage-0
+  inclusion (`baseSliceFaithful` ∘ `stageInclFaithful`).  That data is exactly a `CapStep S`.
+
+  The two successor defs take `S`/`[PreRegularCategory S]` as EXPLICIT binders so `CapStep S`
+  synthesizes its `[PreRegularCategory S]` and the chain-machinery instances resolve through
+  `PreRegularCategory.extends`, with the universe pinned by the binders (a section-`variable` form
+  left a `PrefixChain.{max …}` metavar — two live `HasTerminal` instances at a `max`-of-two-universes
+  metavar).  Re-opening clean (NO `{𝒞}`/`[HasTerminal 𝒞] …` `variable`) pins the universe. -/
+
+/-- **The relative-capitalization successor from an enumeration of well-supported objects.**
+    `S* = (chainSliceSystem (enumChain enum)).Obj`, pre-regular by `chainSlicePreRegularWS` (fed
+    `enumChain_hwsuf`).  The faithful embedding `S → S*` is the base embedding `S → innerSliceObj []`
+    (stage 0; the enumeration chain has `chain 0 = []` DEFINITIONALLY, so `(chainSliceSystem _).A ⟨0⟩
+    = innerSliceObj []` by `rfl` — no cast) followed by the faithful colimit stage-0 inclusion
+    (`baseSliceFaithful` ∘ `stageInclFaithful`).  Sorry-free.  For an enumeration that hits every
+    well-supported `B`, this is Freyd's §1.547 relative capitalization (the inner colimit acquires a
+    point of every enumerated `B`).  `Classical`/ordinals are NOT used here — the enumeration is an
+    explicit input. -/
+noncomputable def nextStepOfEnum {S : Type u} [Cat.{u} S] [hpre : PreRegularCategory S]
+    (enum : Nat → S) (hws : ∀ k, WellSupported (enum k)) : CapStep S := by
+  -- pin the four mixins at universe `u` (from the bundled `hpre`) so the chain machinery's
+  -- instance args resolve monomorphically — otherwise `PrefixChain S` lands at a `max`-universe.
+  letI : HasTerminal.{u,u} S := hpre.toHasTerminal
+  letI : HasBinaryProducts.{u,u} S := hpre.toHasBinaryProducts
+  letI : HasPullbacks.{u,u} S := hpre.toHasPullbacks
+  letI : PullbacksTransferCovers.{u,u} S := hpre.toPullbacksTransferCovers
+  letI : HasEqualizers S := products_pullbacks_implies_equalizers
+  let P : PrefixChain S := enumChain (𝒞 := S) enum
+  letI : Cat (chainSliceSystem P).Obj := colimitCat _ (chainSliceCoherent P)
+  -- the well-supported-suffix precondition (discharges `hcanon` via `chainSlicePreRegularWS`).
+  have hwsuf : ∀ {i j : ULift.{u} Nat} (_hij : uliftNatDirected.le i j),
+      WellSupported (listProd (𝒞 := S)
+        (prefixSuffix (P.toOrdChain.chain i) (P.toOrdChain.chain j))) :=
+    fun {i j} hij => enumChain_hwsuf enum hws hij
+  -- stage 0: `chain 0 = []`, so `(chainSliceSystem P).A ⟨0⟩ = innerSliceObj []` definitionally.
+  let i0 : ULift.{u} Nat := ⟨0⟩
+  -- explicit `.{u,u}` universes: `stageIncl*`'s two universe params (`ι`, the colimit's `w`) are
+  -- not pinned by unification here, leaving a `PrefixChain.{max …}` constraint; both are `u`.
+  letI hF0 : @Functor ((chainSliceSystem P).A i0) _ (chainSliceSystem P).Obj _
+      ((chainSliceSystem P).objIncl i0) :=
+    @stageInclFunctor.{u, u} (ULift.{u} Nat) uliftNatDirected
+      (chainSliceSystem P) (chainSliceCoherent P) i0
+  have hfaith0 : @Faithful ((chainSliceSystem P).A i0) _ (chainSliceSystem P).Obj _
+      ((chainSliceSystem P).objIncl i0) hF0 :=
+    @stageInclFaithful.{u, u} (ULift.{u} Nat) uliftNatDirected (chainSliceSystem P) (chainSliceCoherent P)
+      (fun {_ _} hij {_ _} p q h => chainHfaith P hij (hwsuf hij) p q h)
+      (fun {_ _} hij {_ _} φ hiso => chainHcons P hij (hwsuf hij) φ hiso) i0
+  exact
+    { T := (chainSliceSystem P).Obj
+      catT := colimitCat _ (chainSliceCoherent P)
+      preT := chainSlicePreRegularWS (𝒞 := S) P hwsuf
+      step := (chainSliceSystem P).objIncl i0 ∘ baseSliceObj (𝒞 := S)
+      stepFun := compFunctor (F := baseSliceObj (𝒞 := S)) (G := (chainSliceSystem P).objIncl i0)
+      stepFaithful := faithful_comp (F := baseSliceObj (𝒞 := S)) (G := (chainSliceSystem P).objIncl i0)
+        (baseSliceFaithful (𝒞 := S)) hfaith0 }
+
+/-! ### The uniform polymorphic successor `nextStep`
+
+  `nextStep : ∀ (S : PreRegBundle), CapStep S.carrier` is the uniform §1.546/§1.547 relative-
+  capitalization successor the outer ω-tower (`stageBundle`/`towerSystem`) iterates.  It is
+  `nextStepOfEnum` fed a Classical-chosen enumeration of well-supported objects.  ANY enumeration
+  into well-supported objects works (the constant `1`-enumeration is always available, so the choice
+  set is nonempty); `Classical.choice` picks one.
+
+  COFINALITY CAVEAT (the WALL 2 residual, NOT a defect of `nextStep` itself): a *single* `ℕ`-indexed
+  `enum` can be cofinal among the well-supported objects only when they are ℕ-enumerable.  For an
+  uncountable carrier, pointing EVERY well-supported `B` (what `hwall_cap` consumes) needs the
+  ordinal-indexed `OrdChain` (§1.543 transfinite), not this `ℕ`-chain — exactly the documented
+  (B-coverage) residual.  `nextStep` is nonetheless a genuine faithful pre-regular successor for
+  every `S`, sorry-free; the cofinal enumeration enters only at the `hwall_cap` fixpoint. -/
+
+/-- A well-supported-valued enumeration of `S` always exists: the constant terminator `fun _ => 1`
+    (`1` is well-supported, `wellSupported_one`).  This makes the `nextStep` choice set nonempty. -/
+theorem exists_wellSupported_enum (S : Type u) [Cat.{u} S] [PreRegularCategory S] :
+    ∃ enum : Nat → S, ∀ k, WellSupported (enum k) :=
+  ⟨fun _ => HasTerminal.one, fun _ => wellSupported_one⟩
+
+/-- **The uniform relative-capitalization successor `nextStep S : CapStep S.carrier`** — Freyd's
+    `S ↦ S*` as the single polymorphic rung the outer ω-tower iterates.  `nextStepOfEnum` applied to
+    a `Classical.choice`-picked well-supported enumeration (always available, `exists_wellSupported_enum`).
+    Faithful pre-regular embedding `S → S*`, sorry-free.  This is the §1.546/§1.547 keystone. -/
+noncomputable def nextStep (S : PreRegBundle.{u}) : CapStep S.carrier :=
+  nextStepOfEnum (Classical.choose (exists_wellSupported_enum S.carrier))
+    (Classical.choose_spec (exists_wellSupported_enum S.carrier))
+
+-- `capData_exists` (below) can now NAME the §1.546/§1.547 successor in place — verified:
+--   #check (Freyd.nextStep : ∀ (S : PreRegBundle), CapStep S.carrier)
+-- (the local `obtain ⟨nextStep, …⟩ := hwall_step` in `capData_exists` shadows it; wiring `nextStep`
+-- into `hwall_step` is a SEPARATE task — this relocation only makes the name referenceable here).
+
 /-- **§1.543 — THE REMAINING WALL** (reduced to two sharp sub-obligations).  Every small
     pre-regular category `A` admits capitalization data `CapData A`.
 
