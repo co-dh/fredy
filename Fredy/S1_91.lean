@@ -320,20 +320,130 @@ theorem omega_monic_endo_is_involution (g : HasSubobjectClassifier.omega (𝒞 :
 /-! ## §1.91(10)  Minimal topos definition
 
   A category with binary products and equalizers (equivalently: binary products
-  and pullbacks, or all finite non-empty limits) and a subobject classifier Ω,
-  which is non-empty, already has a terminator and hence is a topos (§1.91(10)).
+  and pullbacks, or all finite non-empty limits) and power-objects for every
+  object, which is non-empty, already has a terminator and hence is a topos
+  (§1.91(10)).  Crucially the hypotheses here do NOT presuppose a terminator —
+  power-objects are taken via `HasPowerObject`, which (unlike
+  `HasSubobjectClassifier`, that `extends HasTerminal`) needs only pullbacks.
 
-  CONSTRUCTION (Freyd): For objects A,B let M_{A,B} denote the relation tabulated
-  by a product projection A×B → A (the "full" relation).  For any f,g : A' → A
-  the equation f(M_{A,B}) = M_{A',B} shows that A M_{A,B} is a constant map.
-  Hence Λ(M_{B,B}) : [B] → [B] is a constant idempotent endomorphism.
-  For any A there is a map A → [B] (namely A M_{A,B}), so the equalizer of
-  id_{[B]} and Λ(M_{B,B}) is a terminator.
+  CONSTRUCTION (Freyd): For objects A,B let M_{A,B} denote the "full" relation
+  tabulated by the product projection A×B → A (its table is A×B with the two
+  projections).  For any f : A' → A the equation f(M_{A,B}) = M_{A',B} holds, so
+  AM_{A,B} := Λ(M_{A,B}) is a CONSTANT map: f(AM_{A,B}) = g(AM_{A,B}) for all
+  f,g : A' → A.  Hence Λ(M_{B,B}) : [B] → [B] is a constant idempotent
+  endomorphism.  For any A there is a map A → [B] (namely AM_{A,B}), so the
+  equalizer T of id_{[B]} and Λ(M_{B,B}) is a terminator. -/
 
-  Note: `HasSubobjectClassifier` implies power-objects for the classifier
-  object Ω = [1].  The full "has all power-objects" class is not yet
-  formalized in this repo; we use `HasSubobjectClassifier` as the available
-  proxy for the power-object hypothesis. -/
+section MinimalTopos
+variable [HasPullbacks 𝒞] [HasBinaryProducts 𝒞]
+
+/-- §1.91(10): The "full" relation `M_{A,C} : A → C`, tabulated by the product
+    projection — its table is `A×C` with the two product projections as columns.
+    Jointly monic because `pair fst snd = id`. -/
+noncomputable def fullRel (A C : 𝒞) : BinRel 𝒞 A C where
+  src  := prod A C
+  colA := fst
+  colB := snd
+  isMonicPair := fst_snd_jointly_monic
+
+/-- §1.91(10): `f(M_{A,C}) = M_{A',C}` — pulling the full relation back along
+    `f : A' → A` gives the full relation again.  The pullback of `fst : A×C → A`
+    along `f` is `A'×C` (via `pair`), realizing the iso of tables in both
+    directions. -/
+theorem fullRel_pullback {A A' C : 𝒞} (f : A' ⟶ A) :
+    RelHom (relPullback f (fullRel A C)) (fullRel A' C) ∧
+    RelHom (fullRel A' C) (relPullback f (fullRel A C)) := by
+  let pb := HasPullbacks.has f (fullRel A C).colA
+  -- relPullback f (fullRel A C) has table pb.pt, colA = π₁, colB = π₂ ≫ snd.
+  -- Abbreviate the two projections at the two arities to pin down their types.
+  let sA  : prod A C  ⟶ C := snd
+  let sA' : prod A' C ⟶ C := snd
+  -- backward cone over (f, fst) with apex A'×C: (fst, pair (fst≫f) snd).
+  have hbw : (fst : prod A' C ⟶ A') ≫ f = pair (fst ≫ f) sA' ≫ (fullRel A C).colA := by
+    show (fst : prod A' C ⟶ A') ≫ f = pair (fst ≫ f) sA' ≫ fst
+    rw [fst_pair]
+  let cbw : Cone f (fullRel A C).colA := ⟨prod A' C, fst, pair (fst ≫ f) sA', hbw⟩
+  refine ⟨⟨pair pb.cone.π₁ (pb.cone.π₂ ≫ sA), fst_pair _ _, ?_⟩,
+          ⟨pb.lift cbw, pb.lift_fst cbw, ?_⟩⟩
+  · -- forward colB: pair π₁ (π₂≫snd) ≫ snd = π₂ ≫ snd.
+    show pair pb.cone.π₁ (pb.cone.π₂ ≫ sA) ≫ sA' = pb.cone.π₂ ≫ sA
+    exact snd_pair _ _
+  · -- backward colB: (pb.lift cbw) ≫ (π₂ ≫ snd) = snd.
+    show pb.lift cbw ≫ (pb.cone.π₂ ≫ sA) = sA'
+    calc pb.lift cbw ≫ (pb.cone.π₂ ≫ sA)
+        = (pb.lift cbw ≫ pb.cone.π₂) ≫ sA := (Cat.assoc _ _ _).symm
+      _ = pair (fst ≫ f) sA' ≫ sA := congrArg (· ≫ sA) (pb.lift_snd cbw)
+      _ = sA' := snd_pair _ _
+
+variable [∀ C : 𝒞, HasPowerObject C]
+
+/-- The classifying map `Λ(M_{A,B}) = AM_{A,B} : A → [B]` of the full relation. -/
+noncomputable def fullClassify (A B : 𝒞) : A ⟶ HasPowerObject.powerObj (C := B) :=
+  powerClassify (fullRel A B)
+
+/-- `R ≅ relPullback (Λ R) ∈_C`: the defining property of `powerClassify`. -/
+theorem powerClassify_spec {C A : 𝒞} (R : BinRel 𝒞 A C) :
+    RelHom R (relPullback (powerClassify R) HasPowerObject.mem) ∧
+    RelHom (relPullback (powerClassify R) HasPowerObject.mem) R :=
+  (HasPowerObject.is_universal.classify_exists A R).choose_spec
+
+/-- Transitivity of `RelHom` (local copy; the S1_92 version depends on S1_91). -/
+theorem relHom_trans {A C : 𝒞} {R S T : BinRel 𝒞 A C}
+    (h₁ : RelHom R S) (h₂ : RelHom S T) : RelHom R T := by
+  obtain ⟨h, hA, hB⟩ := h₁; obtain ⟨k, kA, kB⟩ := h₂
+  exact ⟨h ≫ k, by rw [Cat.assoc, kA, hA], by rw [Cat.assoc, kB, hB]⟩
+
+/-- `RelHom` is preserved by pulling back along a fixed `g`, obtained by lifting
+    one table into the pullback of the other. -/
+theorem relHom_pullback {A C X : 𝒞} (g : X ⟶ A) {R S : BinRel 𝒞 A C}
+    (h : RelHom R S) : RelHom (relPullback g R) (relPullback g S) := by
+  obtain ⟨w, hwA, hwB⟩ := h
+  let P  := HasPullbacks.has g R.colA
+  let P' := HasPullbacks.has g S.colA
+  -- cone over (g, S.colA) with apex P.pt: (π₁, π₂ ≫ w).
+  have hsq : P.cone.π₁ ≫ g = (P.cone.π₂ ≫ w) ≫ S.colA :=
+    calc P.cone.π₁ ≫ g = P.cone.π₂ ≫ R.colA := P.cone.w
+      _ = P.cone.π₂ ≫ (w ≫ S.colA) := congrArg (P.cone.π₂ ≫ ·) hwA.symm
+      _ = (P.cone.π₂ ≫ w) ≫ S.colA := (Cat.assoc P.cone.π₂ w S.colA).symm
+  let c : Cone g S.colA := ⟨P.cone.pt, P.cone.π₁, P.cone.π₂ ≫ w, hsq⟩
+  refine ⟨P'.lift c, P'.lift_fst c, ?_⟩
+  -- colB: (P'.lift c) ≫ (π₂' ≫ S.colB) = π₂ ≫ R.colB.
+  show P'.lift c ≫ (P'.cone.π₂ ≫ S.colB) = P.cone.π₂ ≫ R.colB
+  calc P'.lift c ≫ (P'.cone.π₂ ≫ S.colB)
+      = (P'.lift c ≫ P'.cone.π₂) ≫ S.colB := (Cat.assoc _ _ _).symm
+    _ = (P.cone.π₂ ≫ w) ≫ S.colB := congrArg (· ≫ S.colB) (P'.lift_snd c)
+    _ = P.cone.π₂ ≫ (w ≫ S.colB) := Cat.assoc _ _ _
+    _ = P.cone.π₂ ≫ R.colB := congrArg (P.cone.π₂ ≫ ·) hwB
+
+/-- **§1.91(10), naturality of `Λ`**: `Λ(relPullback g R) = g ≫ Λ(R)`.
+    Both classify `relPullback g R` (via `relPullback_comp`), so universality's
+    `classify_unique` forces them equal.  (Local; S1_92's `univClassify_natural`
+    depends on S1_91.) -/
+theorem powerClassify_natural {C A X : 𝒞} (R : BinRel 𝒞 A C) (g : X ⟶ A) :
+    powerClassify (relPullback g R) = g ≫ powerClassify R := by
+  have hR := powerClassify_spec R
+  obtain ⟨hc1, hc2⟩ := relPullback_comp g (powerClassify R) HasPowerObject.mem
+  have hf : RelHom (relPullback g R)
+              (relPullback (g ≫ powerClassify R) HasPowerObject.mem) ∧
+            RelHom (relPullback (g ≫ powerClassify R) HasPowerObject.mem)
+              (relPullback g R) :=
+    ⟨relHom_trans (relHom_pullback g hR.1) hc1,
+     relHom_trans hc2 (relHom_pullback g hR.2)⟩
+  exact HasPowerObject.is_universal.classify_unique X (relPullback g R) _ _
+    (powerClassify_spec (relPullback g R)) hf
+
+/-- **§1.91(10), constancy**: `g ≫ Λ(M_{A,B})` does not depend on `g : X → A` —
+    it equals `Λ(M_{X,B})`.  By naturality `g ≫ Λ(M_{A,B}) = Λ(g(M_{A,B}))` and
+    `g(M_{A,B}) ≅ M_{X,B}` (`fullRel_pullback`). -/
+theorem fullClassify_const {A B X : 𝒞} (g : X ⟶ A) :
+    g ≫ fullClassify A B = fullClassify X B := by
+  rw [fullClassify, ← powerClassify_natural (fullRel A B) g]
+  exact HasPowerObject.is_universal.classify_unique X _ _ _
+    (powerClassify_spec _)
+    ⟨relHom_trans (fullRel_pullback g).1 (powerClassify_spec (fullRel X B)).1,
+     relHom_trans (powerClassify_spec (fullRel X B)).2 (fullRel_pullback g).2⟩
+
+variable [HasEqualizers 𝒞]
 
 /-- **§1.91(10)**: A non-empty category with binary products, equalizers, pullbacks,
     and power objects FOR EVERY OBJECT (but NOT assumed to have a terminator) already
@@ -342,29 +452,44 @@ theorem omega_monic_endo_is_involution (g : HasSubobjectClassifier.omega (𝒞 :
     This is the faithful statement of Freyd's §1.91(10): the hypotheses are exactly
     the data of his construction and DO NOT bundle a terminator (unlike
     `HasSubobjectClassifier`, which `extends HasTerminal` and would make the
-    conclusion free).  Power objects are taken via `HasPowerObject`, which does not
-    presuppose a terminal object.
+    conclusion free).
 
-    CONSTRUCTION (Freyd, faithful `sorry`).  Let `M_{A,C} : A → C` be the "full"
-    relation tabulated by the projection `A×C → A`.  For every `f : A' → A`,
-    `f(M_{A,C}) = M_{A',C}`, so `Λ(M_{−,B}) : (−) → [B]` is a CONSTANT map: any two
-    maps into `[B]` of the form `Λ(M_{A,B})` agree after precomposition.  In
-    particular `e := Λ(M_{B,B}) : [B] → [B]` is a constant idempotent.  Take
-        `T := equalizer (id_{[B]}, e)`.
-    For any object `A`, `Λ(M_{A,B}) : A → [B]` equalizes `id` and `e` (constancy),
-    so it factors uniquely through `T`; that factorization is the unique map `A → T`,
-    making `T` terminal.
+    CONSTRUCTION.  `e := Λ(M_{[B],B}) : [B] → [B]` is a constant map
+    (`fullClassify_const`).  Take `T := equalizer (id_{[B]}, e)`.
+    - Existence of `A → T`: `Λ(M_{A,B})` equalizes `id` and `e`
+      (`Λ(M_{A,B}) ≫ e = Λ(M_{A,B})` by constancy), so it factors through `T`.
+    - Uniqueness: any `u, v : A → T` have `u ≫ eqMap`, `v ≫ eqMap : A → [B]`;
+      constancy gives `(u ≫ eqMap) ≫ e = (v ≫ eqMap) ≫ e`, and `eqMap ≫ e = eqMap`
+      (the equalizer relation), so `u ≫ eqMap = v ≫ eqMap`; `eqMap` is monic
+      (equalizer map), hence `u = v`. -/
+theorem minimal_topos_has_terminator (B : 𝒞) : Nonempty (HasTerminal 𝒞) := by
+  let Pb := HasPowerObject.powerObj (C := B)
+  let e : Pb ⟶ Pb := fullClassify Pb B
+  -- e is constant: any two maps into Pb agree after `≫ e`.
+  have hconst : ∀ {X : 𝒞} (p q : X ⟶ Pb), p ≫ e = q ≫ e := fun p q => by
+    rw [fullClassify_const p, fullClassify_const q]
+  -- the equalizer relation `eqMap ≫ id = eqMap ≫ e`, i.e. `eqMap ≫ e = eqMap`.
+  have hEqMap : eqMap (Cat.id Pb) e ≫ e = eqMap (Cat.id Pb) e := by
+    have := eqMap_eq (Cat.id Pb) e; rw [Cat.comp_id] at this; exact this.symm
+  refine ⟨{ one := eqObj (Cat.id Pb) e, trm := fun A => ?_, uniq := fun {A} u v => ?_ }⟩
+  · -- A → T: Λ(M_{A,B}) equalizes id and e (constancy: Λ(M_{A,B}) ≫ e = Λ(M_{A,B})).
+    refine eqLift (Cat.id Pb) e (fullClassify A B) ?_
+    rw [Cat.comp_id]
+    exact (fullClassify_const (fullClassify A B)).symm
+  · -- uniqueness: cancel the monic `eqMap` after showing `u ≫ eqMap = v ≫ eqMap`.
+    have hmono : Mono (eqMap (Cat.id Pb) e) := by
+      intro W f g hfg
+      exact (eqLift_uniq (Cat.id Pb) e (f ≫ eqMap (Cat.id Pb) e)
+              (by rw [Cat.assoc, eqMap_eq, Cat.assoc]) f rfl).trans
+            (eqLift_uniq (Cat.id Pb) e (f ≫ eqMap (Cat.id Pb) e)
+              (by rw [Cat.assoc, eqMap_eq, Cat.assoc]) g hfg.symm).symm
+    apply hmono
+    -- u ≫ eqMap = v ≫ eqMap: postcompose hconst with `≫ e` collapses via hEqMap.
+    calc u ≫ eqMap (Cat.id Pb) e
+        = (u ≫ eqMap (Cat.id Pb) e) ≫ e := by rw [Cat.assoc, hEqMap]
+      _ = (v ≫ eqMap (Cat.id Pb) e) ≫ e := hconst _ _
+      _ = v ≫ eqMap (Cat.id Pb) e := by rw [Cat.assoc, hEqMap]
 
-    The remaining `sorry` is exactly the constancy lemma `f(M_{A,B}) = M_{A',B}`
-    together with the equalizer factorization; both rest on the Λ/∈ classify-bijection
-    of `HasPowerObject`, not yet packaged as the needed naturality.  See S1_91.md. -/
-theorem minimal_topos_has_terminator
-    [HasPullbacks 𝒞] [HasBinaryProducts 𝒞] [HasEqualizers 𝒞]
-    [∀ C : 𝒞, HasPowerObject C]
-    (B : 𝒞) : Nonempty (HasTerminal 𝒞) := by
-  -- T = equalizer of id_{[B]} and the constant idempotent Λ(M_{B,B}) : [B] → [B];
-  -- shown terminal via the constancy of Λ(M_{−,B}).  Constancy + equalizer
-  -- factorization not yet derivable from the bare Λ/∈ bijection.
-  sorry
+end MinimalTopos
 
 end Freyd
