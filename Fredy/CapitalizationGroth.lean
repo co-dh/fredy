@@ -360,13 +360,132 @@ noncomputable instance gcat (c : α) : Cat.{u} (gobj w b₀ nextStep c) :=
     identical bookkeeping to `CapTower.segSys_restrict_agree`).  Prop-level; isolated for G1. -/
 theorem gSeg_restrict_agree (c a' : α) (h : (D w).le a' c) (a : Seg w b₀ nextStep a') :
     (gSeg w b₀ nextStep c).sys.A (segIncl w b₀ nextStep h a)
-      = (gSeg w b₀ nextStep a').sys.A a :=
-  sorry
+      = (gSeg w b₀ nextStep a').sys.A a := by
+  induction c using (wf_of_isWellOrder w).induction generalizing a' a with
+  | _ c IH =>
+  rcases h with hlt | (rfl : a' = c)
+  · -- `a' < c`: case on the classification of `c`.
+    rw [gSeg_eq w b₀ nextStep c]
+    classical
+    unfold gSegAux
+    by_cases hz : IsZero r c
+    · exact absurd hlt (hz a')
+    · rw [dif_neg hz]
+      by_cases hs : IsSucc r c
+      · -- SUCCESSOR `c = p⁺`.  Body delegates to `CapTower.segSucc`, whose objects reduce
+        -- through `succBundle` (the `≤ p` branch reuses `IH a.1`'s top).
+        rw [dif_pos hs]
+        have himm : IsImmPred r c (Classical.choose hs) := Classical.choose_spec hs
+        let p := Classical.choose hs
+        have ha'p : (D w).le a' p := by
+          rcases w.tri a' p with hh | rfl | hh
+          · exact Or.inl hh
+          · exact (D w).refl p
+          · exact absurd hh (himm.2 a' hlt)
+        have hap : (D w).le a.1 p := (D w).trans a.2 ha'p
+        have key := IH p himm.1 a' ha'p a
+        -- `CapTower.segSucc … = succSys` with `Sp := IH p _ = gSeg p`; its `.sys.A` is `succBundle`.
+        show (CapTower.succBundle w b₀ nextStep c (gSeg w b₀ nextStep p)
+            (segIncl w b₀ nextStep (Or.inl hlt) a)).carrier
+          = (gSeg w b₀ nextStep a').sys.A a
+        rw [← key]
+        unfold CapTower.succBundle
+        rw [dif_pos (show (D w).le (segIncl w b₀ nextStep (Or.inl hlt) a).1 p from hap)]
+        rfl
+      · -- Σ-LIMIT `c`.  Body delegates to `gSegLimit`, whose objects reduce through `gLimBundle`;
+        -- the `r a.1 c` branch reuses `IH a.1`'s top (identical to `limBundle`).
+        rw [dif_neg hs]
+        have hac : r a.1 c := by
+          rcases a.2 with hle | (heq : a.1 = a')
+          · exact w.trans hle hlt
+          · rw [heq]; exact hlt
+        have ha1a' : (D w).le a.1 a' := a.2
+        have key := IH a' hlt a.1 ha1a' (segTop w b₀ nextStep a.1)
+        show (gLimBundle w b₀ nextStep c (fun a _ => gSeg w b₀ nextStep a)
+            (segIncl w b₀ nextStep (Or.inl hlt) a)).carrier
+          = (gSeg w b₀ nextStep a').sys.A a
+        unfold gLimBundle
+        rw [dif_pos (show r (segIncl w b₀ nextStep (Or.inl hlt) a).1 c from hac)]
+        simp only [segIncl_fst]
+        rw [← key]
+        congr 1
+  · -- `a' = c`: `segIncl` keeps `.1`, so the slot is literally `a`; both sides coincide.
+    congr 1
+
+/-- **`Cat`-level restriction agreement.**  The HEq-strengthening of `gSeg_restrict_agree`: the
+    `Cat` instances also agree on overlaps.  Same well-founded induction; the limit branch's
+    below-slots (`a < c`) reuse `IH a`'s `Cat` — NO dependency on `belowCoherent` (only the limit
+    TOP slot's `Cat` consumes it, and the top slot is never an included `a < c`). -/
+theorem gCat_restrict_agree (c a' : α) (h : (D w).le a' c) (a : Seg w b₀ nextStep a') :
+    HEq ((gSeg w b₀ nextStep c).sys.catA (segIncl w b₀ nextStep h a))
+      ((gSeg w b₀ nextStep a').sys.catA a) := by
+  induction c using (wf_of_isWellOrder w).induction generalizing a' a with
+  | _ c IH =>
+  rcases h with hlt | (rfl : a' = c)
+  · rw [gSeg_eq w b₀ nextStep c]
+    classical
+    unfold gSegAux
+    by_cases hz : IsZero r c
+    · exact absurd hlt (hz a')
+    · rw [dif_neg hz]
+      by_cases hs : IsSucc r c
+      · rw [dif_pos hs]
+        have himm : IsImmPred r c (Classical.choose hs) := Classical.choose_spec hs
+        let p := Classical.choose hs
+        have ha'p : (D w).le a' p := by
+          rcases w.tri a' p with hh | rfl | hh
+          · exact Or.inl hh
+          · exact (D w).refl p
+          · exact absurd hh (himm.2 a' hlt)
+        have hap : (D w).le a.1 p := (D w).trans a.2 ha'p
+        have key := IH p himm.1 a' ha'p a
+        -- `succBundle`'s `≤ p` branch `Cat` is `(gSeg p).sys.catA ⟨a.1, _⟩`; IH bridges to `a'`.
+        refine HEq.trans ?_ key
+        show HEq ((CapTower.succBundle w b₀ nextStep c (gSeg w b₀ nextStep p)
+            (segIncl w b₀ nextStep (Or.inl hlt) a)).cat)
+          ((gSeg w b₀ nextStep p).sys.catA (segIncl w b₀ nextStep ha'p a))
+        unfold CapTower.succBundle
+        rw [dif_pos (show (D w).le (segIncl w b₀ nextStep (Or.inl hlt) a).1 p from hap)]
+        -- both `Cat`s are `(gSeg p).sys.catA` at slots with equal `.1` (Prop-irrelevant witness).
+        have hslot : (⟨(segIncl w b₀ nextStep (Or.inl hlt) a).1, hap⟩ : Seg w b₀ nextStep p)
+            = segIncl w b₀ nextStep ha'p a := Seg.ext w b₀ nextStep rfl
+        show HEq ((gSeg w b₀ nextStep p).sys.catA ⟨(segIncl w b₀ nextStep (Or.inl hlt) a).1, hap⟩)
+          ((gSeg w b₀ nextStep p).sys.catA (segIncl w b₀ nextStep ha'p a))
+        rw [hslot]
+      · rw [dif_neg hs]
+        have hac : r a.1 c := by
+          rcases a.2 with hle | (heq : a.1 = a')
+          · exact w.trans hle hlt
+          · rw [heq]; exact hlt
+        have ha1a' : (D w).le a.1 a' := a.2
+        -- `key : catA_{a'}(segIncl ha1a' (segTop a.1)) ≍ catA_{a.1}(segTop a.1)`.
+        have key := IH a' hlt a.1 ha1a' (segTop w b₀ nextStep a.1)
+        -- reduce the limit LHS to `catA_{a.1}(segTop a.1)`, then chain `key.symm` and the
+        -- same-system slot equality `segIncl ha1a' (segTop a.1) = a` (equal `.1`).
+        have hLHS : HEq ((gLimSys w b₀ nextStep c (fun a _ => gSeg w b₀ nextStep a)).catA
+            (segIncl w b₀ nextStep (Or.inl hlt) a))
+          ((gSeg w b₀ nextStep a.1).sys.catA (segTop w b₀ nextStep a.1)) := by
+          show HEq ((gLimBundle w b₀ nextStep c (fun a _ => gSeg w b₀ nextStep a)
+              (segIncl w b₀ nextStep (Or.inl hlt) a)).cat)
+            ((gSeg w b₀ nextStep a.1).sys.catA (segTop w b₀ nextStep a.1))
+          unfold gLimBundle
+          rw [dif_pos (show r (segIncl w b₀ nextStep (Or.inl hlt) a).1 c from hac)]
+          rfl
+        have hslot : (segIncl w b₀ nextStep ha1a' (segTop w b₀ nextStep a.1) : Seg w b₀ nextStep a')
+            = a := Seg.ext w b₀ nextStep rfl
+        refine HEq.trans hLHS (HEq.trans key.symm ?_)
+        rw [hslot]
+  · congr 1
 
 /-- The global transition object-equality (instance of `gSeg_restrict_agree` at the top slot). -/
 theorem gObjAgree {a b : α} (hab : (D w).le a b) :
     (gSeg w b₀ nextStep b).sys.A ⟨a, hab⟩ = gobj w b₀ nextStep a :=
   gSeg_restrict_agree w b₀ nextStep b a hab (segTop w b₀ nextStep a)
+
+/-- The global transition `Cat`-equality (instance of `gCat_restrict_agree` at the top slot). -/
+theorem gCatAgree {a b : α} (hab : (D w).le a b) :
+    HEq ((gSeg w b₀ nextStep b).sys.catA ⟨a, hab⟩) (gcat w b₀ nextStep a) :=
+  gCat_restrict_agree w b₀ nextStep b a hab (segTop w b₀ nextStep a)
 
 /-- The global transition object-map `a → b`: the segment-`b` transition from the `a`-slot into
     `b`'s top, retyped along `gObjAgree`. -/
@@ -376,10 +495,35 @@ noncomputable def gF {a b : α} (hab : (D w).le a b) :
     (show (segDirected w b₀ nextStep b).le ⟨a, hab⟩ (segTop w b₀ nextStep b) from hab)
     (gObjAgree w b₀ nextStep hab ▸ x)
 
-/-- **TRUE obligation (global functoriality).**  `gF hab` is a functor. -/
+/-- Transport a `Functor` along a domain-carrier equality `e`, the matching `Cat`-HEq, and a
+    pointwise law `f₁ x = f₂ (e ▸ x)` identifying the two functions through the cast.  Pure
+    `Eq.rec` bookkeeping (no `sorry`): after `cases e` the cast is `id` and the two functions
+    coincide. -/
+noncomputable def functorTransportDom {A₁ A₂ : Type u} {cA₁ : Cat.{u} A₁} {cA₂ : Cat.{u} A₂}
+    {B : Type u} {cB : Cat.{u} B} {f₁ : A₁ → B} {f₂ : A₂ → B}
+    (e : A₁ = A₂) (ec : HEq cA₁ cA₂) (hfun : ∀ x : A₁, f₁ x = f₂ (e ▸ x))
+    (G : @Functor A₂ cA₂ B cB f₂) : @Functor A₁ cA₁ B cB f₁ := by
+  cases e
+  cases ec
+  have : f₁ = f₂ := funext hfun
+  cases this
+  exact G
+
+/-- **Global functoriality.**  `gF hab` is the segment-`b` transition functor
+    `(gSeg b).sys.functF (⟨a,hab⟩ → top b)` with its DOMAIN transported along the object/`Cat`
+    agreement `gObjAgree`/`gCatAgree` (which restrict the `gSeg b` slot `⟨a,hab⟩` to `gobj a`).
+    No `sorry`: the transport is `functorTransportDom`. -/
 noncomputable def gFunctF {a b : α} (hab : (D w).le a b) :
     @Functor _ (gcat w b₀ nextStep a) _ (gcat w b₀ nextStep b) (gF w b₀ nextStep hab) :=
-  sorry
+  functorTransportDom
+    (A₁ := gobj w b₀ nextStep a) (A₂ := (gSeg w b₀ nextStep b).sys.A ⟨a, hab⟩)
+    (cA₂ := (gSeg w b₀ nextStep b).sys.catA ⟨a, hab⟩)
+    (f₁ := gF w b₀ nextStep hab)
+    (f₂ := (gSeg w b₀ nextStep b).sys.F
+      (show (segDirected w b₀ nextStep b).le ⟨a, hab⟩ (segTop w b₀ nextStep b) from hab))
+    (gObjAgree w b₀ nextStep hab).symm (gCatAgree w b₀ nextStep hab).symm
+    (fun _ => rfl)
+    ((gSeg w b₀ nextStep b).sys.functF _)
 
 /-- **The Σ-carrier transfinite capitalization tower as a `Colim.CatSystem`.**  Objects = segment
     tops (`gobj`); `Cat` = `gcat`.  Successor tops are `nextStep` targets, **limit tops are the
@@ -391,12 +535,21 @@ noncomputable def towerSystem : Colim.CatSystem.{u, u} α (D w) where
   catA := gcat w b₀ nextStep
   F hij := gF w b₀ nextStep hij
   functF hij := gFunctF w b₀ nextStep hij
-  F_refl {a} x := by exact sorry
-  F_trans {a b c} hab hbc x := by exact sorry
+  F_refl {a} x := by
+    show gF w b₀ nextStep ((D w).refl a) x = x
+    unfold gF
+    -- `(gSeg a).sys.F_refl` collapses the transition; the `gObjAgree (refl) ▸ x` cast is along
+    -- defeq types and `rw` closes the residual `cast … x = x` by `rfl`.
+    rw [(gSeg w b₀ nextStep a).sys.F_refl]
+  F_trans {a b c} hab hbc x := by
+    show gF w b₀ nextStep ((D w).trans hab hbc) x = gF w b₀ nextStep hbc (gF w b₀ nextStep hab x)
+    sorry
 
 /-- **The Σ-tower is `Coherent`** (morphism-level transition coherence). -/
 theorem towerCoherent : (towerSystem w b₀ nextStep).Coherent where
-  refl_map {a x x'} g := by exact sorry
+  refl_map {a x x'} g := by
+    show HEq ((gFunctF w b₀ nextStep ((D w).refl a)).map g) g
+    exact (gSeg w b₀ nextStep a).coh.refl_map g
   trans_map {a b c} hab hbc x x' g := by exact sorry
 
 end Freyd.GrothTower
