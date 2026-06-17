@@ -258,6 +258,99 @@ theorem interUnionDistrib_iff_le [UnionAllegory 𝒜] :
   · intro h a b R S T
     exact le_antisymm (h R S T) (interUnionU_distrib_ge R S T)
 
+/-! ## §2.213 / §2.226  Idempotent-splitting transport calculus
+
+  This is the constructive heart of §2.228(a),(b): the *systemic / Cauchy
+  completion* machinery (§2.213, §2.226) that lets a tabulation `(f,g)` of
+  `U = f g°` transport the order/lattice structure of `{Q | Q ⊑ U}` onto the
+  coreflexives of the apex `c`, where ∩ and composition coincide
+  (`coreflexive_comp_eq_inter`, §2.121) so that the lattice is distributive.
+
+  Everything in this block is sorry-free.  The *bridge* hypotheses
+  (`hsplit*`, `hψcap`, `hψcup`) of `interUnionU_distrib_of_transport` package
+  exactly the §2.213/§2.226 splitting: a coreflexive-valued retraction `ψ` of
+  `φ Q := f° Q g` on `{Q ⊑ U}` that preserves ∩ and ∪.  In an EFFECTIVE
+  allegory those hypotheses are *theorems* (split the coreflexive `□f`); for a
+  bare tabular allegory they are NOT derivable (see `tab_transport_gap`). -/
+
+/-- Reciprocation distributes over union (`(R ∪ S)° = R° ∪ S°`) in a union
+    allegory — proved from the lub characterisation of ∪ and `recip` mono. -/
+theorem recip_unionU [UnionAllegory 𝒜] {a b : 𝒜} (R S : a ⟶ b) :
+    (R ∪ᵤ S)° = R° ∪ᵤ S° := by
+  apply le_antisymm
+  · rw [recip_le_iff]
+    exact unionU_lub (recip_le_iff.mp (le_unionU_left R° S°))
+      (recip_le_iff.mp (le_unionU_right R° S°))
+  · exact unionU_lub (recip_mono (le_unionU_left R S)) (recip_mono (le_unionU_right R S))
+
+/-- Composition distributes over union on the *right*: `(S ∪ T) g = Sg ∪ Tg`.
+    The left law `comp_union_distrib` is an axiom; this is its reciprocal. -/
+theorem unionU_comp_distrib [UnionAllegory 𝒜] {a b c : 𝒜} (S T : a ⟶ b) (g : b ⟶ c) :
+    (S ∪ᵤ T) ≫ g = (S ≫ g) ∪ᵤ (T ≫ g) := by
+  have h : ((S ∪ᵤ T) ≫ g)° = ((S ≫ g) ∪ᵤ (T ≫ g))° := by
+    rw [recip_unionU, Allegory.recip_comp, Allegory.recip_comp, Allegory.recip_comp,
+        recip_unionU, UnionAllegory.comp_union_distrib]
+  calc (S ∪ᵤ T) ≫ g = (((S ∪ᵤ T) ≫ g)°)° := (Allegory.recip_recip _).symm
+    _ = (((S ≫ g) ∪ᵤ (T ≫ g))°)° := by rw [h]
+    _ = (S ≫ g) ∪ᵤ (T ≫ g) := Allegory.recip_recip _
+
+/-- The transport map `φ Q := f° Q g` preserves union:
+    `f° (S ∪ T) g = f° S g ∪ f° T g`. -/
+theorem phi_unionU [UnionAllegory 𝒜] {a p c : 𝒜} (f : a ⟶ c) (g : p ⟶ c) (S T : a ⟶ p) :
+    f° ≫ (S ∪ᵤ T) ≫ g = (f° ≫ S ≫ g) ∪ᵤ (f° ≫ T ≫ g) := by
+  rw [unionU_comp_distrib, UnionAllegory.comp_union_distrib]
+
+/-- `φ` is a retraction of `ψ A := f A g°` on the apex coreflexives:
+    `φ (ψ A) = f° (f A g°) g = A`, using `f° f = g° g = 1_c`.  (This is the
+    direction of the §2.226 splitting that holds unconditionally; the *other*
+    round-trip `ψ (φ Q) = Q` is the genuine gap — see `tab_transport_gap`.) -/
+theorem phi_psi_apex [UnionAllegory 𝒜] {a p c : 𝒜} {f : a ⟶ c} {g : p ⟶ c}
+    (hff1 : f° ≫ f = Cat.id c) (hgg1 : g° ≫ g = Cat.id c) (A : c ⟶ c) :
+    f° ≫ (f ≫ A ≫ g°) ≫ g = A := by
+  calc f° ≫ (f ≫ A ≫ g°) ≫ g
+      = (f° ≫ f) ≫ A ≫ (g° ≫ g) := by simp [Cat.assoc]
+    _ = Cat.id c ≫ A ≫ Cat.id c := by rw [hff1, hgg1]
+    _ = A := by rw [Cat.id_comp, Cat.comp_id]
+
+/-- **The coreflexive distributive law** (§2.121 → §2.213).  On the
+    coreflexives of any object, intersection *equals* composition
+    (`coreflexive_comp_eq_inter`), and composition distributes over union
+    (`comp_union_distrib`); hence ∩ distributes over ∪ *as an equality*.
+    This is the distributivity that §2.228(a) transports back to `{Q ⊑ U}`. -/
+theorem coreflexive_inter_unionU_distrib [UnionAllegory 𝒜] {c : 𝒜} {A B C : c ⟶ c}
+    (hA : Coreflexive A) (hB : Coreflexive B) (hC : Coreflexive C) :
+    A ∩ (B ∪ᵤ C) = (A ∩ B) ∪ᵤ (A ∩ C) := by
+  have hBC : Coreflexive (B ∪ᵤ C) := unionU_lub hB hC
+  rw [← coreflexive_comp_eq_inter hA hBC, UnionAllegory.comp_union_distrib,
+      coreflexive_comp_eq_inter hA hB, coreflexive_comp_eq_inter hA hC]
+
+/-- **§2.213/§2.226 transport theorem** (sorry-free, conditional).  Given a
+    coreflexive-valued retraction `ψ` of `φ Q := f° Q g` on `{Q ⊑ U}` that
+    preserves ∩ (on coreflexives) and ∪, the coreflexive distributive law
+    transports back to give the full ∩-over-∪ *equality* `R ∩ (S∪T) =
+    (R∩S)∪(R∩T)`, hence the §2.228(a) containment, for `R,S,T` whose
+    `φ`-images are coreflexive and which `ψ∘φ` fixes.
+
+    The hypotheses `hsplit*` (ψ∘φ = id), `hψcap`, `hψcup` are *precisely* what
+    splitting the symmetric idempotent `□f` (§2.213/§2.226) supplies in an
+    effective allegory.  Supplying them is the only remaining content of
+    §2.228(a),(b); see `tab_transport_gap`. -/
+theorem interUnionU_distrib_of_transport [UnionAllegory 𝒜] {a p c : 𝒜}
+    {f : a ⟶ c} {g : p ⟶ c} {R S T : a ⟶ p}
+    (ψ : (c ⟶ c) → (a ⟶ p))
+    (hsplitR : ψ (f° ≫ R ≫ g) = R) (hsplitS : ψ (f° ≫ S ≫ g) = S)
+    (hsplitT : ψ (f° ≫ T ≫ g) = T)
+    (hcR : Coreflexive (f° ≫ R ≫ g)) (hcS : Coreflexive (f° ≫ S ≫ g))
+    (hcT : Coreflexive (f° ≫ T ≫ g))
+    (hψcap : ∀ A B : c ⟶ c, Coreflexive A → Coreflexive B → ψ (A ∩ B) = ψ A ∩ ψ B)
+    (hψcup : ∀ A B : c ⟶ c, ψ (A ∪ᵤ B) = ψ A ∪ᵤ ψ B) :
+    R ∩ (S ∪ᵤ T) ⊑ (R ∩ S) ∪ᵤ (R ∩ T) := by
+  have key := coreflexive_inter_unionU_distrib hcR hcS hcT
+  have happ := congrArg ψ key
+  rw [hψcap _ _ hcR (unionU_lub hcS hcT), hψcup, hψcup,
+      hψcap _ _ hcR hcS, hψcap _ _ hcR hcT, hsplitR, hsplitS, hsplitT] at happ
+  rw [happ]; exact le_refl _
+
 /-! ## §2.228(a)  A tabular union allegory is distributive
 
   *A tabular allegory with this property is distributive.*
@@ -282,18 +375,29 @@ theorem interUnionDistrib_iff_le [UnionAllegory 𝒜] :
     distributive `R,S,T` forces `f g° = top`, whence `f° f = top ≠ 1_c`,
     contradicting that `(f,g)` is a tabulation.  So no instance refutes it.
 
-    FAITHFUL SORRY: the transport is NOT elementarily reconstructible.  The
-    naive inverse `ψ A = f A g°` gives `ψ (φ Q) = (f f°) Q (g g°)`, which
-    equals `Q` only when `f f° = 1_a` and `g g° = 1_p` (i.e. `f,g` isos) —
-    a tabulation gives only `f° f = g° g = 1_c`, and even with `Map f, Map g`
-    just `f f° ≥ 1`, `g g° ≥ 1`, never equality.  Witness the failure in `Rel`:
-    apex `c = {∗}`, `a = b = {1,2}`, `f,g` the unique maps to `{∗}`; for
-    `Q = {(1,1)} ⊑ U`, `f° Q g = 1_c`, so `f (f° Q g) g° = U ≠ Q`.  The
-    PRECISE missing lemma is the ORDER-REFLECTION of `φ` on `{Q | Q ⊑ U}`:
-    `φ Q₁ ⊑ φ Q₂ → Q₁ ⊑ Q₂`.  That is exactly the coreflexive/symmetric-
-    idempotent splitting of §2.213/§2.226 (systemic completion), which makes
-    each coreflexive on `c` correspond bijectively to a subobject of `U` —
-    infrastructure not yet on this repo. -/
+    PRECISE REDUCTION (now isolated): `interUnionU_distrib_of_transport`
+    proves this containment — in fact the full ∩-over-∪ *equality* — from a
+    coreflexive-valued retraction `ψ` of `φ Q := f° Q g` on `{Q ⊑ U}` with
+    `ψ∘φ = id` (`hsplit*`) and `ψ` preserving ∩, ∪ (`hψcap`, `hψcup`).  Those
+    bridge facts are exactly the §2.213/§2.226 splitting of the symmetric
+    idempotent `□f` (effective-allegory data).  THE GAP IS PRECISELY: produce
+    that splitting from a bare tabulation.
+
+    WHY IT IS NOT ELEMENTARY (Lean-verified counterexample).  Earlier notes
+    claimed the gap was the order-reflection `φ Q₁ ⊑ φ Q₂ → Q₁ ⊑ Q₂`; that is
+    in fact FALSE for the bare repo datum `Tabulates` (so it cannot be the
+    residual lemma).  Witness, computed in `Rel`: apex `c = {∗}`,
+    `a = p = {1,2}`, `f,g` the unique total maps to `{∗}`.  Then
+    `f° f = g° g = 1_c` (a valid `Tabulates` apex condition) and `U = f g° =
+    ⊤`.  But `φ` collapses EVERY nonempty `Q ⊑ U` to `1_c`: e.g.
+    `φ{(1,1)} = φ{(1,2)} = 1_c` while `{(1,1)} ⋢ {(1,2)}`.  Equivalently
+    `ψ (φ Q) = f f° Q g g° = ⊤ ≠ Q`.  The defect is that `(f,g)` is *not a
+    monic pair* (`f f° ∩ g g° = ⊤ ≠ 1`), and `f f° ∩ g g°` is not even
+    well-typed when `a ≠ p`.  So the apex of a bare tabulation can be a proper
+    quotient of the true subobject lattice; only SPLITTING `□f` (§2.213/§2.226,
+    available in an *effective* allegory, not a merely tabular one) repairs the
+    apex so that `ψ` becomes a genuine section.  That effective/systemic-
+    completion infrastructure is not yet on this repo. -/
 theorem tab_transport_gap [UnionAllegory 𝒜] {a p c : 𝒜}
     {f : a ⟶ c} {g : p ⟶ c} {R S T : a ⟶ p}
     (_hcR : Coreflexive (f° ≫ R ≫ g)) (_hcS : Coreflexive (f° ≫ S ≫ g))
@@ -356,14 +460,18 @@ theorem interUnionDistrib_of_tabular [UnionAllegory 𝒜]
     union allegory with the same composition-over-union structure, where
     §2.228(a) applies, and pulling the result back.
 
-    FAITHFUL SORRY: the SAME gap as `tab_transport_gap` blocks this — the
-    order-reflection of `φ` on `{Q | Q ⊑ U}` needs the §2.213/§2.226
-    coreflexive/idempotent splitting.  Moreover, a semi-simple factor
-    `R = Fᵣ° Gᵣ` yields a TABULATION (so §2.228(a) even applies) only when
-    `Fᵣ Fᵣ° ∩ Gᵣ Gᵣ° = 1`, an extra condition beyond simplicity of the
-    factors.  Both reduce to the systemic-completion infrastructure absent
-    from this repo.  The hypotheses are genuine semi-simple witnesses of
-    `R, S, T`; none is vacuous. -/
+    FAITHFUL SORRY: the SAME gap as `tab_transport_gap` blocks this, and it is
+    the §2.213/§2.226 *splitting* (not the false order-reflection — see the
+    Lean-verified `Rel` singleton counterexample in `tab_transport_gap`).
+    Freyd's route is: split the symmetric idempotents `Fᵣ° Fᵣ`, … to pass to
+    an *effective* tabular allegory with the same composition-over-union
+    structure, where §2.228(a) closes (via `interUnionU_distrib_of_transport`,
+    whose `hsplit*`/`hψcap`/`hψcup` are now theorems), then pull back.  A
+    semi-simple factor `R = Fᵣ° Gᵣ` yields a genuine TABULATION only after this
+    splitting (simplicity of `Fᵣ, Gᵣ` alone is not enough — one also needs the
+    monic-pair condition the splitting supplies).  This effective/systemic-
+    completion infrastructure is absent from this repo.  The hypotheses are
+    genuine semi-simple witnesses of `R, S, T`; none is vacuous. -/
 theorem semiSimple_transport_gap [UnionAllegory 𝒜] {a b : 𝒜} {R S T : a ⟶ b}
     (_hR : SemiSimple R) (_hS : SemiSimple S) (_hT : SemiSimple T) :
     R ∩ (S ∪ᵤ T) ⊑ (R ∩ S) ∪ᵤ (R ∩ T) := by
