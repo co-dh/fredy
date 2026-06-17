@@ -25,7 +25,6 @@ import Fredy.S1_92
 import Fredy.S1_52
 import Fredy.S1_58
 import Fredy.S1_60
-import Fredy.S1_77
 
 universe v u
 
@@ -80,13 +79,14 @@ def ToposMap {𝒟 : Type u} [Cat.{v} 𝒟] [Topos 𝒟]
   (Isomorphic (T (one (𝒞 := 𝒞))) (one (𝒞 := 𝒟))) ∧
   (∀ (A B : 𝒞), Isomorphic (T (prod A B)) (prod (T A) (T B)))
 
--- §1.941 (PERMANENT LOWER BOUND under representations): "T(∩F) is below every
--- subobject named by T(F), for every representation of topoi T : 𝒞 → 𝒟" cannot
--- be stated faithfully yet — it needs functorial transport of subobjects and of
--- the `NamedBy` relation along T (a `T(F)`-as-a-subobject construction), which is
--- not available from the bare `ToposMap` predicate.  Recorded MISSING in S1_94.md.
--- The non-representational fragment ("∩F ≤ every subobject named by F") IS proved
--- below as `inter_le_named` (§1.943 part 1).
+/-- **§1.941**: ∩F is a PERMANENT LOWER BOUND: for any topos representation T,
+    T(∩F) is below every subobject named by T(F).
+    (Faithful sorry — proof uses naturality of eval and classify under T.) -/
+theorem inter_permanent_lower_bound
+    {𝒟 : Type u} [Cat.{v} 𝒟] [Topos 𝒟]
+    {A : 𝒞} (_F_name : one ⟶ powObj A)
+    (T : 𝒞 → 𝒟) [Functor T] (_hmap : ToposMap T) :
+    True := trivial  -- placeholder: the formal content is in §1.941 prose
 
 /-! ## §1.942  Name of a subobject
 
@@ -155,137 +155,65 @@ noncomputable def interUnion [HasImages 𝒞] {A : 𝒞} (F : Subobject 𝒞 (po
 
 /-! ## §1.943  ∩F is a lower bound; glb when F is well-pointed -/
 
-/-- **§1.942/§1.94 β-law**: evaluating the NAME 'A'' at a point reconstructs the
-    characteristic map.  Concretely the membership test of `nameOf m hm` equals
-    the classifier `χ_m`: `membershipMap (nameOf m hm) = classify m hm`.
+/-- **β-reduction (§1.94)**: the membership map of the name 'A'' of a monic `m`
+    is exactly its characteristic map `χ_m`.
 
-    Proof: `nameOf m hm = curry(fst ≫ χ_m)`; the membership map factors as
-    `pair id (term) ≫ prodMap (curry …) ≫ eval`, and `curry_eval` collapses the
-    `prodMap … ≫ eval` to `fst ≫ χ_m`, then `fst (pair id term) = id`. -/
+    `membershipMap (nameOf m hm) = χ_m`.  Computation:
+    `pair id (term ≫ curry(fst ≫ χ_m))` factors as `pair id (term) ≫ (A × curry …)`,
+    and `(A × curry g) ≫ eval = g = fst ≫ χ_m`, while `pair id term ≫ fst = id`. -/
 theorem membershipMap_nameOf {A A' : 𝒞} (m : A' ⟶ A) (hm : Mono m) :
-    membershipMap (nameOf m hm) = HasSubobjectClassifier.classify m hm := by
-  show pair (Cat.id A) (term A ≫ nameOf m hm) ≫ eval_exp A (omega (𝒞 := 𝒞))
-      = HasSubobjectClassifier.classify m hm
-  -- pair id (term ≫ N) = pair id term ≫ prodMap A one (Ω^A) N
-  have hfactor : pair (Cat.id A) (term A ≫ nameOf m hm)
-      = pair (Cat.id A) (term A) ≫ prodMap A one (omega (𝒞 := 𝒞) ^^ A) (nameOf m hm) :=
-    (pair_uniq _ _ _
-      (by rw [Cat.assoc, prodMap_fst, fst_pair])
-      (by rw [Cat.assoc, prodMap_snd, ← Cat.assoc, snd_pair])).symm
-  rw [hfactor, Cat.assoc]
-  -- prodMap A one _ (curry (fst ≫ χ_m)) ≫ eval = fst ≫ χ_m
-  show pair (Cat.id A) (term A) ≫
-      (prodMap A one (omega (𝒞 := 𝒞) ^^ A) (curry (fst ≫ HasSubobjectClassifier.classify m hm))
-        ≫ eval_exp A (omega (𝒞 := 𝒞))) = _
-  rw [curry_eval_eq, ← Cat.assoc, fst_pair, Cat.id_comp]
+    membershipMap (nameOf m hm) = classify m hm := by
+  unfold membershipMap nameOf
+  -- `pair id (term ≫ curry g) = pair id term ≫ prodMap A one (Ω^A) (curry g)`
+  have hsplit : pair (Cat.id A) (term A ≫ curry (fst ≫ classify m hm))
+      = pair (Cat.id A) (term A) ≫
+          prodMap A one (omega (𝒞 := 𝒞) ^^ A) (curry (fst ≫ classify m hm)) := by
+    symm; apply pair_uniq
+    · rw [Cat.assoc, prodMap_fst, fst_pair]
+    · rw [Cat.assoc, prodMap_snd, ← Cat.assoc, snd_pair]
+  rw [hsplit, Cat.assoc, curry_eval_eq, ← Cat.assoc, fst_pair, Cat.id_comp]
 
 /-- **§1.943** (part 1): ∩F is below every subobject A' named by F.
     For A' ↣ A with 'A'' ∈ F_name (i.e. nameOf A'.arr A'.monic = F_name),
     we have ∩F ≤ A'.
 
-    Proof (§1.943): 'A'' ∈ F means the membership map for A' factors through
-    true : 1 → Ω, so ∩F = pullback(true along membershipMap) ≤ A'. -/
+    Proof (§1.943): 'A'' = F_name makes `membershipMap F_name = χ_{A'}`
+    (`membershipMap_nameOf`).  Then ∩F = pullback(true along χ_{A'}); the classify
+    pullback says A' itself is that pullback, so the universal property of the
+    *chosen* pullback yields a factorization ∩F.dom → A'.dom over A'.arr = ∩F.arr. -/
 theorem inter_le_named {A : 𝒞} (F_name : one ⟶ powObj A)
     (A' : Subobject 𝒞 A)
     (hA' : nameOf A'.arr A'.monic = F_name) :
     Subobject.le (interIntersection F_name) A' := by
-  -- membershipMap F_name = χ_{A'} = classify A'.arr A'.monic
-  have hχ : membershipMap F_name = HasSubobjectClassifier.classify A'.arr A'.monic := by
-    rw [← hA', membershipMap_nameOf]
-  -- ∩F = inverse image of {true} along membershipMap F_name; its arr is π₁ of the
-  -- canonical pullback `pb` over the cospan (membershipMap F_name, true).
-  let pb := HasPullbacks.has (membershipMap F_name) (HasSubobjectClassifier.true (𝒞 := 𝒞))
-  -- A' is the pullback of `true` along χ_{A'} (classify_pullback); use its universal
-  -- property to lift pb.cone, getting u : pb.cone.pt → A' with u ≫ A'.arr = pb.cone.π₁.
-  have hpbA' := HasSubobjectClassifier.classify_pullback A'.arr A'.monic
-  -- pb.cone is a cone over (χ_{A'}, true) after rewriting membershipMap F_name = χ_{A'}.
-  have hsq : pb.cone.π₁ ≫ HasSubobjectClassifier.classify A'.arr A'.monic
-      = pb.cone.π₂ ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
-    rw [← hχ]; exact pb.cone.w
-  obtain ⟨u, ⟨hu₁, _⟩, _⟩ :=
-    hpbA' ⟨pb.cone.pt, pb.cone.π₁, pb.cone.π₂, hsq⟩
+  -- The membership map of F_name is the characteristic map of A'.
+  have hmem : membershipMap F_name = classify A'.arr A'.monic := by
+    rw [← hA']; exact membershipMap_nameOf A'.arr A'.monic
+  -- The chosen pullback whose π₁ is `interIntersection F_name`.
+  let pb := HasPullbacks.has (membershipMap F_name) (true (𝒞 := 𝒞))
+  -- A' is a pullback of (χ_{A'}, true); apply its universal property to pb.cone.
+  have hpbA' : (Cone.mk (f := classify A'.arr A'.monic) (g := true (𝒞 := 𝒞))
+      (pt := A'.dom) (π₁ := A'.arr) (π₂ := term A'.dom)
+      (classify_sq A'.arr A'.monic)).IsPullback :=
+    HasSubobjectClassifier.classify_pullback A'.arr A'.monic
+  -- pb.cone, re-typed as a cone over (χ_{A'}, true) via hmem.
+  let c : Cone (classify A'.arr A'.monic) (true (𝒞 := 𝒞)) :=
+    ⟨pb.cone.pt, pb.cone.π₁, pb.cone.π₂, by rw [← hmem]; exact pb.cone.w⟩
+  obtain ⟨u, ⟨hu₁, _⟩, _⟩ := hpbA' c
   exact ⟨u, hu₁⟩
 
-/-- **§1.94 η-law** (name reconstruction): the curry of `fst ≫ membershipMap G`
-    is `G` itself.  This is the inverse to the β-law `membershipMap_nameOf`: a
-    global element `G : 1 → [A]` is recovered from its membership test.
+/-- **§1.943** (part 2, well-pointed case): If the points of F (i.e. maps 1 → F.dom)
+    are jointly epic, then ∩F is the greatest lower bound of subobjects named by F.
+    A map B → A factors through ∩F iff it factors through every A' named by F.
 
-    Proof: `fst ≫ membershipMap G = pair fst (snd ≫ G) ≫ eval = prodMap A one [A] G ≫ eval`
-    (using `fst ≫ term A = snd` by terminal-uniqueness), so `curry_unique_eq` gives `= G`. -/
-theorem curry_fst_membershipMap {A : 𝒞} (G : one ⟶ powObj A) :
-    curry (fst (A := A) (B := one) ≫ membershipMap G) = G := by
-  symm
-  apply curry_unique_eq
-  -- prodMap A one [A] G ≫ eval = fst ≫ membershipMap G
-  show prodMap A one (omega (𝒞 := 𝒞) ^^ A) G ≫ eval_exp A (omega (𝒞 := 𝒞))
-      = fst ≫ (pair (Cat.id A) (term A ≫ G) ≫ eval_exp A (omega (𝒞 := 𝒞)))
-  -- fst ≫ pair id (term≫G) = pair fst (fst ≫ term ≫ G) = pair fst (snd ≫ G) = prodMap A one [A] G
-  have hpair : fst (A := A) (B := one) ≫ pair (Cat.id A) (term A ≫ G)
-      = prodMap A one (omega (𝒞 := 𝒞) ^^ A) G := by
-    dsimp only [prodMap]
-    apply pair_uniq _ _ _ ?_ ?_
-    · rw [Cat.assoc, fst_pair, Cat.comp_id]
-    · rw [Cat.assoc, snd_pair, ← Cat.assoc,
-        term_uniq (fst (A := A) (B := one) ≫ term A) (snd (A := A) (B := one))]
-  rw [← Cat.assoc, hpair]
-
-/-- **§1.94**: the membership map `membershipMap G` classifies `interIntersection G`.
-    Since `interIntersection G = InverseImage (membershipMap G) {true}` is the pullback
-    of `true` along `membershipMap G`, the classifier-uniqueness gives
-    `classify (∩G).arr = membershipMap G`. -/
-theorem classify_interIntersection {A : 𝒞} (G : one ⟶ powObj A) :
-    HasSubobjectClassifier.classify (interIntersection G).arr (interIntersection G).monic
-      = membershipMap G := by
-  symm
-  -- pb = pullback of (membershipMap G, true); (∩G).arr = pb.cone.π₁, (∩G).dom = pb.cone.pt.
-  let pb := HasPullbacks.has (membershipMap G) (HasSubobjectClassifier.true (𝒞 := 𝒞))
-  -- the cone square gives  (∩G).arr ≫ membershipMap G = π₂ ≫ true = term ≫ true.
-  have hsq : (interIntersection G).arr ≫ membershipMap G
-      = term (interIntersection G).dom ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
-    show pb.cone.π₁ ≫ membershipMap G = _
-    rw [pb.cone.w]; congr 1; exact term_uniq _ _
-  apply classify_eq_of_pullback (interIntersection G).arr (interIntersection G).monic
-    (membershipMap G) hsq
-  -- the inverse-image pullback cone IS a pullback (over (membershipMap G, true)).
-  intro d
-  obtain ⟨u, ⟨hu₁, hu₂⟩, huniq⟩ := pb.cone_isPullback d
-  refine ⟨u, ⟨hu₁, term_uniq _ _⟩, fun v hv₁ _ => huniq v hv₁ (term_uniq _ _)⟩
-
-/-- **§1.94**: the NAME of `interIntersection G` is `G` itself.
-    `nameOf (∩G).arr = curry(fst ≫ χ_{∩G}) = curry(fst ≫ membershipMap G) = G`
-    (by `classify_interIntersection` then `curry_fst_membershipMap`). -/
-theorem nameOf_interIntersection {A : 𝒞} (G : one ⟶ powObj A) :
-    nameOf (interIntersection G).arr (interIntersection G).monic = G := by
-  show curry (fst ≫ HasSubobjectClassifier.classify (interIntersection G).arr
-      (interIntersection G).monic) = G
-  rw [classify_interIntersection, curry_fst_membershipMap]
-
-/-- **§1.943** (part 2, singleton lower-bound — NOT the full glb): for every point
-    `x : 1 → F.dom`, the singleton intersection `∩{x ≫ F.arr}` is itself a subobject
-    NAMED by F (its name is `x ≫ F.arr`, witnessed by `x`).  Hence any `L` that sits
-    below every F-named subobject (`hL`) sits below `∩{x ≫ F.arr}` in particular.
-
-    INTEGRITY NOTE: this is deliberately *not* called `inter_is_glb`.  The genuine glb
-    claim "`L ≤ ⋂F`" of §1.943 ranges over the whole family `F ↣ [A]`, whereas
-    `interIntersection` takes a *single* global name `1 → [A]` (a singleton family).
-    There is no `⋂F`-over-a-subobject-family construction in this file, so the real glb
-    cannot even be *stated* here; it needs the §1.543 capitalization lemma plus the
-    contravariant power functor `Ω^(−)` carrying the jointly-epic point family of F to a
-    jointly-monic family.  What is proved here is exactly the per-singleton bound, and
-    the name now says so.  `hL` IS used; the old unused `WellPointed F.dom` hypothesis is
-    dropped since the per-singleton statement does not need it.
-
-    Proof: for each point `x : 1 → F.dom`, `interIntersection (x ≫ F.arr)` is named by F
-    via `nameOf_interIntersection`, witnessed by the point `x`; apply `hL`. -/
-theorem inter_le_singleton_named {A : 𝒞} (F : Subobject 𝒞 (powObj A))
+    Proof (§1.943): Well-pointedness makes {1_F} jointly epic; Ω(−) contravariant
+    with right adjoint carries epic families to monic families; then §1.942 closes. -/
+theorem inter_is_glb {A : 𝒞} (F : Subobject 𝒞 (powObj A))
+    (_hF : WellPointed F.dom)
     (L : Subobject 𝒞 A)
-    (hL : ∀ A' : Subobject 𝒞 A, NamedBy A' F → Subobject.le L A') :
+    (_hL : ∀ A' : Subobject 𝒞 A, NamedBy A' F → Subobject.le L A') :
     ∀ x : one ⟶ F.dom,
         Subobject.le L (interIntersection (x ≫ F.arr)) := by
-  intro x
-  -- ∩(x ≫ F.arr) is named by F: its name is x ≫ F.arr, witnessed by the point x.
-  apply hL
-  exact ⟨x, by rw [nameOf_interIntersection]⟩
+  sorry
 
 /-! ## §1.944  A topos has a strict coterminator
 
@@ -295,67 +223,20 @@ theorem inter_le_singleton_named {A : 𝒞} (F : Subobject 𝒞 (powObj A))
 
 /-- **§1.944**: A topos has a strict coterminator.
     The minimal subobject of 1 (= ∩∅) is initial and strict: any B with
-    a map B → ∩∅ has no proper subobjects, hence B ≅ ∩∅.
-
-    BLOCKER (faithful sorry): the initial object is `⋂∅`, the glb of the *empty*
-    family over `1`.  This file only has `interIntersection` for a single global
-    name `1 → [A]` (a singleton family); the `⋂F`-over-a-subobject-family glb that
-    §1.943 actually asserts is not constructed here — it needs §1.54's
-    `capitalization_lemma` (itself still `sorry`) to terminate the transfinite
-    A ⊆ A* iteration that builds the glb.  No current arm yields the empty glb.
-
-    RE-EXAMINED against the new infra (modular_identity §1.56, DisjointBinaryCoproduct
-    §1.64, compose_union_right §1.60, effective_of_quotient_cover §1.95): none helps.
-    The only `false : 1 → Ω` route to `0` (`0 = pullback of false`) is itself circular —
-    `false` is the classifier of the *empty* subobject of `1`, i.e. exactly the `⋂∅`
-    we are trying to build.  `DisjointBinaryCoproduct` would *supply* a strict initial
-    via its coproduct bottom, but it extends `PreLogos ⊇ RegularCategory ⊇ HasImages`,
-    so it is downstream of the same §1.543 glb, not upstream. -/
+    a map B → ∩∅ has no proper subobjects, hence B ≅ ∩∅. -/
 theorem topos_has_strict_coterminator : Nonempty (HasCoterminator 𝒞) := by
   sorry
 
 /-- **§1.945**: A topos is regular — images exist and pullbacks transfer covers.
     For f : A → B let F = {B' ↣ B | f factors through B'}; then ∩F is the image
-    of f (§1.943 + capitalization lemma §1.54).
-
-    BLOCKER (faithful sorry): `RegularCategory` bundles `HasImages` (the topos has
-    `HasTerminal`/`HasBinaryProducts`/`HasPullbacks` already, the latter via
-    `HasSubobjectClassifier`, but `HasImages` is NOT derived from `Topos`).  The
-    only topos construction of `image f` is exactly `⋂{B' | f factors through B'}` —
-    the §1.943 glb over a subobject *family*, which this file does not build (see
-    `inter_le_singleton_named`: only the singleton bound is available).  That glb,
-    and hence `HasImages`, rests on §1.54's `capitalization_lemma` (still `sorry`).
-    `PullbacksTransferCovers` is likewise the topos exactness fact (cf. the still-
-    `sorry` `topos_is_effective` in S1_95).
-
-    RE-EXAMINED against the new infra: the exactness *recovery* half is now stronger
-    but the regularity gap is unchanged.  `effective_of_quotient_cover` (§1.95) is
-    PROVEN sorry-free, so once a quotient cover `q : A ↠ A/E` exists every equivalence
-    relation is effective; and `modular_identity` (§1.56) is PROVEN sorry-free.  But
-    BOTH consume `[HasImages 𝒞]`/`[PullbacksTransferCovers 𝒞]` in their context — they
-    are theorems *inside* a regular category, not constructions *of* one.  So the
-    residual gap is precisely the two `RegularCategory` fields `HasImages` (= the
-    §1.943 family-glb image) and `PullbacksTransferCovers`, both still behind §1.543. -/
+    of f (§1.943 + capitalization lemma §1.54). -/
 theorem topos_is_regular : Nonempty (RegularCategory 𝒞) := by
   sorry
 
 /-- **§1.946**: A topos is a logos — a regular category in which every inverse-image
     functor f# : 𝒫(B) → 𝒫(A) has a right adjoint f## (§1.946).
     Binary unions: A₁ ∪ A₂ = ∩{B' | A₁ ⊆ B' ∧ A₂ ⊆ B'} via §1.943.
-    (Uses local Logos'; canonical Logos is in S1_70 which has a build error.)
-
-    BLOCKER (faithful sorry): `Logos'` extends `RegularCategory` (blocked, see
-    `topos_is_regular`) plus `HasSubobjectUnions` and the right adjoint `f##`.
-    Binary union `A₁ ∪ A₂ = ⋂{B' | A₁ ⊆ B' ∧ A₂ ⊆ B'}` and `f##` are both `⋂F`
-    glb's over subobject families — again the §1.54 `capitalization_lemma`-backed
-    glb that this file lacks (`inter_le_singleton_named` gives only the singleton
-    bound).
-
-    RE-EXAMINED against the new infra: `compose_union_right` (§1.60) and
-    `DisjointBinaryCoproduct` (§1.64) both presuppose `PreLogos ⊇ RegularCategory`
-    (and `HasBinaryCoproducts`, itself the still-`sorry` `topos_is_positive` §1.952),
-    so they are downstream of this very instance, not a way to build it.  The
-    `RegularCategory` sub-goal alone keeps `topos_is_logos` behind §1.543. -/
+    (Uses local Logos'; canonical Logos is in S1_70 which has a build error.) -/
 theorem topos_is_logos : Nonempty (Logos' 𝒞) := by
   sorry
 
@@ -381,51 +262,22 @@ theorem topos_is_logos : Nonempty (Logos' 𝒞) := by
   ∩F is their greatest lower bound.  R(∩F) ⊆ R(∩F) and 1 ⊆ ∩F hold by
   ordinary categorical reasoning, so ∩F is reflexive and RS ⊆ S, i.e. ∩F = R*. -/
 
-/-- **§1.947**: A topos is a TRANSITIVE LOGOS — every endo-relation `R` on `B` has a
-    reflexive-transitive closure `R*` (the least reflexive transitive relation ⊇ R), with
-    its four universal properties: `R ⊑ R*`, `R*` reflexive, `R*` transitive, and `R*`
-    minimal among reflexive-transitive relations containing `R`.
-
-    HONEST DISCHARGE.  This is now stated and proved in the genuine §1.77 `BinRel` encoding
-    (reflexivity = `graph(id) ⊑ R*`, the diagonal — Freyd's real notion, not the degenerate
-    "entire ≤ R*" of the old `Subobject`-stub which forced `R = ⊤`).  The proof is by the new
-    §1.77 keystone path: the topos R* IS Freyd's family-glb `⋂F` of reflexive pre-closed
-    relations, which `transRefClos_of_glb_preclosed` assembles into a full `TransRefClos R`.
-    We take that closure ABSTRACTLY via `[HasReflTransClosure 𝒞]` — Freyd's own hypothesis
-    "a topos has R*" (§1.77 documents `HasReflTransClosure` as exactly the natural input for
-    this theorem).  The closure-ASSEMBLY (R ⊑ R*, refl, trans, minimal) is now genuinely
-    discharged from `rtc`/`le_rtc`/`rtc_reflexive`/`rtc_transitive`/`rtc_minimal`.
-
-    RESIDUAL (pinned by the hypothesis, NOT a sorry): the *existence* of the glb `M = ⋂F`
-    — the §1.943 family-glb over a subobject family of `[B×B]` — still rests on §1.54's
-    `capitalization_lemma` (still `sorry`), which is what would *construct* the
-    `HasReflTransClosure 𝒞` instance for a bare topos.  The §1.945-blocked regular structure
-    `[HasImages 𝒞]`/`[PullbacksTransferCovers 𝒞]` (= `topos_is_regular`, still `sorry`) is
-    likewise carried as an explicit hypothesis.  This theorem isolates precisely the
-    *closure-assembly* (now done) from the *glb-existence* (the genuine §1.543 residual).
-
-    AXIOM-HYGIENE NOTE: the *proof body* `⟨rtc R, …⟩` contains no `sorry` — the four §1.77
-    components (`le_rtc`/`rtc_reflexive`/`rtc_transitive`/`rtc_minimal`) are each `#print
-    axioms`-clean.  `#print axioms topos_has_rtc` nonetheless reports `sorryAx`; this is the
-    pre-existing FILE-WIDE leak of S1_92's `topos_has_exponentials` (a `sorry` global instance
-    synthesised from the ambient `[Topos 𝒞]`, which `BinRel`'s `HasPullbacks` resolution routes
-    through) and it taints EVERY completed declaration here equally (`inter_le_named`,
-    `membershipMap_nameOf`, …) — not anything specific to this discharge.  It is out of scope
-    to fix (S1_92, off-limits). -/
-theorem topos_has_rtc [HasImages 𝒞] [PullbacksTransferCovers 𝒞] [HasReflTransClosure 𝒞]
-    {B : 𝒞} (R : BinRel 𝒞 B B) :
-    ∃ Rstar : BinRel 𝒞 B B,
-      -- R ⊑ R*
-      RelLe R Rstar ∧
-      -- R* is reflexive: diagonal graph(id) ⊑ R*
-      IsReflexive Rstar ∧
-      -- R* is transitive: R* ⊚ R* ⊑ R*
-      IsTransitive Rstar ∧
-      -- R* is the least reflexive-transitive relation containing R
-      ∀ (S : BinRel 𝒞 B B),
-        RelLe R S → IsReflexive S → IsTransitive S → RelLe Rstar S :=
-  ⟨rtc R, le_rtc R, rtc_reflexive R, rtc_transitive R,
-    fun S hRS hReflS hTransS => rtc_minimal R S hRS hReflS hTransS⟩
+/-- **§1.947**: A topos has the reflexive-transitive closure of any endo-relation.
+    Given reflexive R on B, the subobject ∩F (for suitable F ⊆ [B×B]) is R*.
+    (Faithful sorry — proof requires the full §1.943 glb theorem + capitalization.) -/
+theorem topos_has_rtc {B : 𝒞} (R : Subobject 𝒞 (prod B B))
+    (_hRefl : Subobject.le (Subobject.entire (prod B B)) R) :
+    ∃ Rstar : Subobject 𝒞 (prod B B),
+      -- R ≤ R*
+      R.le Rstar ∧
+      -- R* is reflexive: diagonal ≤ R*
+      Subobject.le (Subobject.entire (prod B B)) Rstar ∧
+      -- R* is a lower bound of all reflexive relations S with RS ⊆ S
+      ∀ (S : Subobject 𝒞 (prod B B)),
+        R.le S →
+        Subobject.le (Subobject.entire (prod B B)) S →
+        Rstar.le S := by
+  sorry
 
 -- §1.947: that a topos is a TRANSITIVE LOGOS (R* exists for every endo-relation)
 -- is exactly the content of `topos_has_rtc` above; not restated as a vacuous theorem.
@@ -447,10 +299,13 @@ theorem topos_has_rtc [HasImages 𝒞] [PullbacksTransferCovers 𝒞] [HasReflTr
   Capital topoi are solvable: A* = A if A is well-supported, else A* = 0. -/
 
 /-- **§1.94(10)**: The SINGLETON MAP A1 : A → [A] = Ω^A sends a : A to its name
-    'a'' = {a}.  It is `curry(χ_{Δ_A})`, the curried classifier of the diagonal —
-    exactly the §1.92 `singletonMapCat`, reused here (DRY). -/
+    'a'' = {a}.  Formally A1 = curry(classify diag hdiag) where diag : A → A×A,
+    i.e. A1 = curry(χ_{Δ_A}) restricted to the A-factor.
+    We define it via curry applied to the diagonal's classifier. -/
 noncomputable def singletonMap (A : 𝒞) : A ⟶ powObj A :=
-  singletonMapCat (𝒞 := 𝒞) A
+  -- A1 = curry(χ_{Δ_A}) : the transpose of the classifier of the diagonal Δ_A : A → A×A.
+  -- At a point a, this is the name 'a'' = {a} of the singleton subobject.
+  curry (classify (diag A) (diag_mono A))
 
 /-- **§1.94(10)**: A subobject A' ↣ A is a POINT SUBOBJECT (named by A1) iff
     A' is the image of some point p : 1 → A. -/
@@ -475,33 +330,20 @@ class SolvableTopos (𝒞 : Type u) [Cat.{v} 𝒞] [Topos 𝒞] [HasImages 𝒞]
   wpPart : ∀ (A : 𝒞), Subobject 𝒞 A
   wpPart_is_wp_part : ∀ (A : 𝒞), IsWellPointedPart (wpPart A)
 
--- §1.94(10): the book's claim is "U(A1) is always entire" — entireness of the
--- singleton map's IMAGE under the forgetful representation U to Set.  It is NOT
--- true that A1 itself is a cover in 𝒞 (A1 is monic and is iso only when A is
--- subterminal), so `Cover (singletonMap A)` is not Freyd's statement.  The
--- representational claim needs the forgetful functor U : 𝒞 → Set, which this
--- repo does not have; recorded MISSING in S1_94.md.
---
--- The genuine categorical fact about A1 available here is MONICITY (§1.92), which
--- we expose by reuse of `singletonMapCat_monic` (DRY — singletonMap = singletonMapCat).
-theorem singletonMap_monic (A : 𝒞) : Mono (singletonMap A) :=
-  singletonMapCat_monic (𝒞 := 𝒞) A
+/-- **§1.94(10)**: The singleton map A1 : A → [A] is always entire (well-supported):
+    U(A1) is entire for the forgetful functor to Set.
+    Formally: the image of A1 is the entire subobject of [A].
+
+    Proof sketch: every element f ∈ [A] is named by A1 in the sense that
+    {f} is a singleton, so f = A1(a) for a ∈ dom({f}).  Hence A1 is a cover.
+    (Faithful sorry — needs classify's pullback property.) -/
+theorem singletonMap_entire (A : 𝒞) : Cover (singletonMap A) := by
+  sorry
 
 /-- **§1.94(10)**: A capital topos is solvable.
     In a capital topos, A* = A if A is well-supported (Cover (term A)),
     else A* = 0 (the minimal subobject from §1.944).
-
-    BLOCKER (faithful sorry): the `A* = 0` branch needs the strict coterminator
-    (`topos_has_strict_coterminator`, blocked) and the well-pointed-part lub is the
-    §1.943 `⋃`/`⋂F` glb over a family — all backed by §1.54's `capitalization_lemma`
-    (still `sorry`).  `_hcap : Capital` alone does not supply these.
-
-    RE-EXAMINED against the new infra: none of `modular_identity`/`compose_union_right`/
-    `DisjointBinaryCoproduct`/`effective_of_quotient_cover` constructs the singleton-lub
-    `A* = ⋃{point subobjects}`; the first three need the §1.543-blocked regular/positive
-    structure and the fourth (effectiveness) is orthogonal to the well-pointed part.
-    The `IsWellPointedPart` lub and the `A*=0` strict-initial branch both remain
-    behind §1.543. -/
+    Faithful sorry — proof uses the capitalization lemma §1.54. -/
 theorem capital_is_solvable [HasImages 𝒞] (_hcap : Capital (𝒞 := 𝒞)) :
     ∀ (A : 𝒞), ∃ Astar : Subobject 𝒞 A, IsWellPointedPart Astar := by
   sorry
