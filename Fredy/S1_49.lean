@@ -873,28 +873,174 @@ theorem subterminator_one_col_mem (τ : TCat 𝒞) {T T' : 𝒞} (hSub : Subterm
       have hiv : i.val = 0 := by have h : i.val < 1 := i.isLt; omega
       simp [Table.prune, Fin.skip, hiv, col2, codom2]
 
+/-- For a subterminator `T`, any two maps into `T` are equal (the defining property:
+    `term T` is monic, and any two maps into `one` agree by `term_uniq`). -/
+theorem subterminator_maps_eq {T : 𝒞} (hSub : Subterminator T) {X : 𝒞} (g h : X ⟶ T) :
+    g = h := hSub g h (term_uniq _ _)
+
+/-- The canonical 2-column table `(T; a, b)` over feet `[A, B]`. -/
+def pairTable {T A B : 𝒞} (hSub : Subterminator T) (a : T ⟶ A) (b : T ⟶ B) : Table 𝒞 :=
+  { src   := T
+    len   := 2
+    codom := fun i => if i.val = 0 then A else B
+    col   := fun i => if h : i.val = 0 then ((if_pos h).symm ▸ a)
+                      else ((if_neg h).symm ▸ b)
+    monic := by intro X g h _hAg; exact subterminator_maps_eq hSub g h }
+
+@[simp] theorem pairTable_codom_zero {T A B : 𝒞} (hSub : Subterminator T)
+    (a : T ⟶ A) (b : T ⟶ B) (i : Fin 2) (hi : i.val = 0) :
+    (pairTable hSub a b).codom i = A := by simp [pairTable, hi]
+
+@[simp] theorem pairTable_codom_one {T A B : 𝒞} (hSub : Subterminator T)
+    (a : T ⟶ A) (b : T ⟶ B) (i : Fin 2) (hi : i.val = 1) :
+    (pairTable hSub a b).codom i = B := by simp [pairTable, hi]
+
+theorem pairTable_col_zero {T A B : 𝒞} (hSub : Subterminator T)
+    (a : T ⟶ A) (b : T ⟶ B) (i : Fin 2) (hi : i.val = 0) :
+    HEq ((pairTable hSub a b).col i) a := by
+  simp only [pairTable]; rw [dif_pos hi]; exact eqRec_heq _ a
+
+theorem pairTable_col_one {T A B : 𝒞} (hSub : Subterminator T)
+    (a : T ⟶ A) (b : T ⟶ B) (i : Fin 2) (hi : i.val = 1) :
+    HEq ((pairTable hSub a b).col i) b := by
+  simp only [pairTable]; rw [dif_neg (by rw [hi]; decide)]; exact eqRec_heq _ b
+
+/-- §1.496: For a subterminator `T`, ANY two-column table `(T; a, b)` over feet `[A, B]`
+    is in τ.  Reason: `(T; a) ∈ τ` (subterminator_one_col_mem); expand by `b`. -/
+theorem subterminator_pair_mem (τ : TCat 𝒞) {T A B : 𝒞} (hSub : Subterminator T)
+    (a : T ⟶ A) (b : T ⟶ B) : τ.mem (pairTable hSub a b) := by
+  -- single-column table (T; a) ∈ τ
+  have hOne := subterminator_one_col_mem τ hSub a
+  let one1 : Table 𝒞 :=
+    { src := T, len := 1, codom := fun _ => A, col := fun _ => a,
+      monic := by intro X g h _hAg; exact subterminator_maps_eq hSub g h }
+  -- expand by column b
+  refine mem_expansion τ one1 hOne B b (pairTable hSub a b) rfl rfl ?_ ?_ ?_ ?_
+  · -- hCodEq: pairTable.codom (cast ▸ castSucc i) = A  (the index has val 0)
+    intro i
+    have hiv : i.val = 0 := by have h : i.val < 1 := i.isLt; omega
+    change (pairTable hSub a b).codom _ = A
+    simp only [pairTable, fin_cast_val, Fin.val_castSucc, hiv, if_pos]
+  · -- hCodLast: pairTable.codom (cast ▸ last 1) = B  (val 1)
+    change (pairTable hSub a b).codom _ = B
+    have hval : (Fin.last one1.len).val = 1 := rfl
+    simp only [pairTable, fin_cast_val, hval, if_neg (by omega : ¬ (1:Nat) = 0)]
+  · -- hCols: HEq (pairTable.col (cast ▸ castSucc i)) (cast ▸ one1.col i)
+    intro i
+    have hiv : i.val = 0 := by have h : i.val < 1 := i.isLt; omega
+    -- the index has value 0 ⇒ dif_pos branch ⇒ a; one1.col i = a; RHS cast over src=src.
+    simp only [pairTable]
+    have hval : ((rfl : (2:Nat) = 2) ▸ Fin.castSucc i : Fin 2).val = 0 := by
+      simp [Fin.val_castSucc, hiv]
+    rw [dif_pos hval]
+    exact (eqRec_heq _ a).trans (heq_of_eq rfl).symm
+  · -- hLast: HEq (pairTable.col (cast ▸ last 1)) b
+    simp only [pairTable]
+    have hval : ¬ ((rfl : (2:Nat) = 2) ▸ Fin.last one1.len : Fin 2).val = 0 := by
+      show ¬ (1:Nat) = 0; omega
+    rw [dif_neg hval]
+
+/-- A subterminator transported along an iso is a subterminator. -/
+theorem subterminator_of_iso {T T' : 𝒞} (hSub : Subterminator T)
+    {f : T ⟶ T'} (hIso : IsIso f) : Subterminator T' := by
+  obtain ⟨finv, _hfg, hgf⟩ := hIso
+  intro X g h _hAg
+  -- g ≫ finv and h ≫ finv are maps into T, hence equal; compose with f back.
+  have h0 : g ≫ finv = h ≫ finv := subterminator_maps_eq hSub _ _
+  calc g = g ≫ (finv ≫ f) := by rw [hgf, Cat.comp_id]
+    _ = (g ≫ finv) ≫ f := (Cat.assoc _ _ _).symm
+    _ = (h ≫ finv) ≫ f := by rw [h0]
+    _ = h ≫ (finv ≫ f) := Cat.assoc _ _ _
+    _ = h := by rw [hgf, Cat.comp_id]
+
 /-- §1.496: If T is a subterminator and f : T → T' is an isomorphism, then f = id_T
-    (hence T' = T and f is the identity). -/
+    (hence T' = T and f is the identity).
+
+    Proof: let `g = f⁻¹`.  Build the 2-column τ-tables  P = (T; id_T, f)  and
+    Q = (T'; g, id_T'),  both over feet `[T, T']` and both in τ (subterminator_pair_mem;
+    T' is a subterminator by `subterminator_of_iso`).  The iso `f : T → T'` is a `TableIso
+    P ≅ Q` (its column equations are exactly `f ≫ g = id_T` and `f ≫ id_T' = f`).
+    τ1-uniqueness forces `P = Q`, hence `T = P.src = Q.src = T'`.  Finally with `T' = T`,
+    both `h ▸ f` and `id_T` are maps `T → T`, equal because `T` is a subterminator. -/
 theorem subterminator_iso_is_id (τ : TCat 𝒞) {T T' : 𝒞} (hSub : Subterminator T)
     (f : T ⟶ T') (hIso : IsIso f) : T' = T ∧ ∃ h : T' = T, h ▸ f = Cat.id T := by
-  sorry
+  obtain ⟨g, hfg, hgf⟩ := hIso
+  -- T' is also a subterminator.
+  have hSub' : Subterminator T' := subterminator_of_iso hSub ⟨g, hfg, hgf⟩
+  -- The two τ-tables over feet [T, T'].
+  let P := pairTable hSub (Cat.id T) f
+  let Q := pairTable hSub' g (Cat.id T')
+  have hmemP : τ.mem P := subterminator_pair_mem τ hSub (Cat.id T) f
+  have hmemQ : τ.mem Q := subterminator_pair_mem τ hSub' g (Cat.id T')
+  -- f is a TableIso P ≅ Q.
+  have hIsoPQ : Nonempty (TableIso P Q) := by
+    refine ⟨{
+      hLen        := rfl
+      f           := f
+      g           := g
+      f_g         := hfg
+      g_f         := hgf
+      codom_match := fun i => ?_
+      col_match   := fun i => ?_
+    }⟩
+    · -- Q.codom (rfl ▸ i) = P.codom i  (both [T, T'])
+      show Q.codom i = P.codom i
+      by_cases hi : i.val = 0
+      · rw [pairTable_codom_zero hSub' g (Cat.id T') i hi,
+          pairTable_codom_zero hSub (Cat.id T) f i hi]
+      · have hi1 : i.val = 1 := by have h2 : i.val < 2 := i.isLt; omega
+        rw [pairTable_codom_one hSub' g (Cat.id T') i hi1,
+          pairTable_codom_one hSub (Cat.id T) f i hi1]
+    · -- HEq (f ≫ Q.col (rfl ▸ i)) (P.col i)
+      show HEq (f ≫ Q.col i) (P.col i)
+      by_cases hi : i.val = 0
+      · -- col 0:  f ≫ g = id_T = P.col 0
+        have hQcol : HEq (Q.col i) g := pairTable_col_zero hSub' g (Cat.id T') i hi
+        have hPcol : HEq (P.col i) (Cat.id T) := pairTable_col_zero hSub (Cat.id T) f i hi
+        refine HEq.trans (comp_heq_left f _ g
+          (pairTable_codom_zero hSub' g (Cat.id T') i hi) hQcol) ?_
+        rw [hfg]; exact hPcol.symm
+      · -- col 1:  f ≫ id_T' = f = P.col 1
+        have hi1 : i.val = 1 := by
+          have h2 : i.val < 2 := by have := i.isLt; simpa [P, pairTable] using this
+          omega
+        have hQcol : HEq (Q.col i) (Cat.id T') := pairTable_col_one hSub' g (Cat.id T') i hi1
+        have hPcol : HEq (P.col i) f := pairTable_col_one hSub (Cat.id T) f i hi1
+        refine HEq.trans (comp_heq_left f _ (Cat.id T')
+          (pairTable_codom_one hSub' g (Cat.id T') i hi1) hQcol) ?_
+        rw [Cat.comp_id]; exact hPcol.symm
+  -- τ1-uniqueness: P = Q.
+  have hPQ : P = Q := τ.tau1_unique P P Q hmemP hmemQ ⟨TableIso.refl P⟩ hIsoPQ
+  -- T = T' from the sources.
+  have hTT' : T = T' := by
+    have := congrArg Table.src hPQ
+    simpa [P, Q, pairTable] using this
+  refine ⟨hTT'.symm, hTT'.symm, ?_⟩
+  -- hTT'.symm ▸ f : T → T;  equal to id_T since T is a subterminator.
+  subst hTT'
+  exact subterminator_maps_eq hSub _ _
 
 /-- §1.496: Isomorphic subterminators are equal. -/
 theorem subterminator_iso_unique (τ : TCat 𝒞) {T T' : 𝒞}
-    (hT : Subterminator T) (hT' : Subterminator T')
-    (f : T ⟶ T') (hIso : IsIso f) : T = T' := by
-  sorry
+    (hT : Subterminator T) (_hT' : Subterminator T')
+    (f : T ⟶ T') (hIso : IsIso f) : T = T' :=
+  ((subterminator_iso_is_id τ hT f hIso).1).symm
 
-/-- §1.496: In a τ-category with a terminal object, the terminal object is the unique
-    terminator: any subterminator is the terminal object. -/
-theorem subterminator_is_terminal (τ : TCat 𝒞) {T : 𝒞} (hSub : Subterminator T) :
-    T = @one 𝒞 _ _ := by
-  -- The terminal object `one` is itself a subterminator (trivially, id is monic).
-  -- By subterminator_iso_unique applied to (term T : T → one) which is iso
-  -- when T is itself terminal... this requires more structure.
-  -- The book's argument: any two subterminators are isomorphic (both map to each other
-  -- via the unique terminal maps) and by subterminator_iso_unique they are equal.
-  sorry
+/-- `one` is a subterminator: `term one` is an identity (by `term_uniq`), hence monic. -/
+theorem subterminator_one : Subterminator (@one 𝒞 _ _) := by
+  intro X g h _hAg; exact term_uniq g h
+
+/-- §1.496 ("there is a unique terminator"): a TERMINATOR — a subterminator `T` whose map
+    `term T : T → one` is an isomorphism (equivalently, an object that is itself terminal) —
+    is `one`.
+
+    NOTE.  This is the book's actual claim.  It is NOT true that *every* subterminator is
+    terminal (e.g. the empty set is a subterminator in `Set`, a τ-category, but is not the
+    terminator): so the hypothesis `IsIso (term T)` — i.e. `T` is genuinely a terminator —
+    is essential.  The proof is `subterminator_iso_unique` applied to the iso `term T`. -/
+theorem terminator_eq_one (τ : TCat 𝒞) {T : 𝒞} (hSub : Subterminator T)
+    (hIso : IsIso (term T)) : T = @one 𝒞 _ _ :=
+  subterminator_iso_unique τ hSub subterminator_one (term T) hIso
 
 end TCat
 

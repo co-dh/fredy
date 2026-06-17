@@ -790,9 +790,43 @@ theorem pushout_over_initial_is_coproduct [HasBinaryCoproducts 𝒟]
 
 end DisjointProjections
 
+/-- A subobject containing the entire subobject is itself entire: `entire A ≤ S` gives a
+    section of `S.arr`, and a monic with a section is iso. -/
+theorem entire_of_entire_le {A : 𝒞} {S : Subobject 𝒞 A}
+    (h : (Subobject.entire A).le S) : S.IsEntire := by
+  obtain ⟨s, hs⟩ := h          -- s : A → S.dom, s ≫ S.arr = (entire A).arr = id_A
+  have hsec : s ≫ S.arr = Cat.id A := hs
+  refine ⟨s, ?_, hsec⟩
+  -- S.arr ≫ s = id_{S.dom} : push through the monic S.arr.
+  apply S.monic
+  calc (S.arr ≫ s) ≫ S.arr = S.arr ≫ (s ≫ S.arr) := Cat.assoc _ _ _
+    _ = S.arr ≫ Cat.id A := by rw [hsec]
+    _ = S.arr := Cat.comp_id _
+    _ = Cat.id _ ≫ S.arr := (Cat.id_comp _).symm
+
+/-- `entire A ≤ f#(entire B)`: the inverse image of the whole of `B` along `f : A → B`
+    is the whole of `A`.  Witness: the pullback lift of the cone `⟨A, id_A, f⟩` over
+    `(f, id_B)`, which composes with `(InverseImage f (entire B)).arr = π₁` to `id_A`. -/
+theorem entire_le_invImage_entire {A B : 𝒞} (f : A ⟶ B) :
+    (Subobject.entire A).le (InverseImage f (Subobject.entire B)) := by
+  let pb := HasPullbacks.has f (Subobject.entire B).arr
+  let c : Cone f (Subobject.entire B).arr :=
+    ⟨A, Cat.id A, f, by
+      show Cat.id A ≫ f = f ≫ (Subobject.entire B).arr
+      rw [Cat.id_comp, show (Subobject.entire B).arr = Cat.id B from rfl, Cat.comp_id]⟩
+  refine ⟨pb.lift c, ?_⟩
+  show pb.lift c ≫ pb.cone.π₁ = Cat.id A
+  exact pb.lift_fst c
+
+omit [PreLogos 𝒞] in
 /-- §1.624: In a positive pre-logos, f: A → B₁+B₂ decomposes as
     f₁+f₂ from A₁ → B₁, A₂ → B₂ where A = A₁+A₂.
-    Proof: A₁ = f#(inl), A₂ = f#(inr) via pasting lemma (§1.62). -/
+    Proof: A₁ = f#(inl), A₂ = f#(inr) via pasting lemma (§1.62).
+
+    `omit [PreLogos 𝒞]`: the file-level `variable [PreLogos 𝒞]` would form a diamond with
+    `DisjointBinaryCoproduct.toPreLogos`, so `union`/`InverseImage`/`bottom`/pullbacks would
+    resolve along two different instance paths (the §1.621 projection lemmas only carry the
+    DBC path).  Dropping the ambient `PreLogos` leaves a single coherent instance. -/
 theorem decompose_via_coproduct [DisjointBinaryCoproduct 𝒞] {A B₁ B₂ : 𝒞}
     (f : A ⟶ HasBinaryCoproducts.coprod B₁ B₂) :
     ∃ (A₁ A₂ : 𝒞) (f₁ : A₁ ⟶ B₁) (f₂ : A₂ ⟶ B₂), Isomorphic A (HasBinaryCoproducts.coprod A₁ A₂) := by
@@ -805,14 +839,84 @@ theorem decompose_via_coproduct [DisjointBinaryCoproduct 𝒞] {A B₁ B₂ : �
   let f₁ : A₁.dom ⟶ B₁ := (HasPullbacks.has f Inl.arr).cone.π₂
   let f₂ : A₂.dom ⟶ B₂ := (HasPullbacks.has f Inr.arr).cone.π₂
   refine ⟨A₁.dom, A₂.dom, f₁, f₂, ?_⟩
-  -- A₁ ∪ A₂ = f#(inl ∪ inr) = f#(entire B₁+B₂) = entire A  (invImage_preserves_union + entire);
-  -- A₁ ∩ A₂ ≤ f#(inl ∩ inr) ≤ f#(0) = 0  (disjointness `inl_inter_inr_le_bottom`).
-  -- Then `pasting_lemma A₁ A₂` makes A (= A₁∪A₂) the pushout of A₁∩A₂; the intersection's apex
-  -- is the bottom subobject, whose domain is INITIAL (`minimal_subobject_of_one_is_coterminator`),
-  -- so `pushout_over_initial_is_coproduct` identifies A with `coprod A₁.dom A₂.dom`.
-  -- The two preservation steps (union = entire, intersection apex initial) are the residual
-  -- invImage-arithmetic; left as a faithful sorry pending those lemmas.
-  sorry
+  -- Abbreviations for the three pullbacks that make up A₁, A₂ and their intersection.
+  let pbL := HasPullbacks.has f Inl.arr   -- A₁.dom = pbL.pt, A₁.arr = pbL.π₁, f₁ = pbL.π₂
+  let pbR := HasPullbacks.has f Inr.arr   -- A₂.dom = pbR.pt, A₂.arr = pbR.π₁, f₂ = pbR.π₂
+  let pbI := HasPullbacks.has A₁.arr A₂.arr  -- intersection apex (span source of the pasting lemma)
+  -- ===== (1) The union A₁ ∪ A₂ is ENTIRE =====
+  -- entire A ≤ f#(entire B) ≤ f#(Inl ∪ Inr) = f#(Inl) ∪ f#(Inr) = A₁ ∪ A₂.
+  let B := HasBinaryCoproducts.coprod B₁ B₂
+  have hUnion_entire : (HasSubobjectUnions.union A₁ A₂).IsEntire := by
+    apply entire_of_entire_le
+    -- step a: entire A ≤ f#(entire B)
+    have ha : (Subobject.entire A).le (InverseImage f (Subobject.entire B)) :=
+      entire_le_invImage_entire f
+    -- step b: entire B ≤ Inl ∪ Inr  (disjoint coproduct union covers the whole)
+    have hbu : (Subobject.entire B).le (HasSubobjectUnions.union Inl Inr) :=
+      inl_union_inr_entire (𝒟 := 𝒞) (A := B₁) (B := B₂)
+    have hb : (InverseImage f (Subobject.entire B)).le
+        (InverseImage f (HasSubobjectUnions.union Inl Inr)) :=
+      invImage_mono_local f hbu
+    -- step c (pre-logos): f#(Inl ∪ Inr) ≤ f#Inl ∪ f#Inr = A₁ ∪ A₂
+    have hc : (InverseImage f (HasSubobjectUnions.union Inl Inr)).le
+        (HasSubobjectUnions.union (InverseImage f Inl) (InverseImage f Inr)) :=
+      (PreLogos.invImage_preserves_union f Inl Inr).1
+    exact subLe_trans ha (subLe_trans hb hc)
+  -- ===== (2) The intersection apex pbI.pt is INITIAL =====
+  -- Build a map pbI.pt → (Inl ∩ Inr).dom over B; that subobject is ≤ bottom B, and
+  -- bottom B's domain ≅ the coterminator 0, so pbI.pt has a map to 0, hence is iso to 0.
+  -- Use the DBC instance's PreLogos so it coincides with the one in the goal's subobjects.
+  let hPL : PreLogos 𝒞 := (DisjointBinaryCoproduct.toPositivePreLogos).toPreLogos
+  let zeroObj := (minimal_subobject_of_one_is_coterminator hPL).zero
+  have hCinit : ∀ {X : 𝒞} (u v : pbI.cone.pt ⟶ X), u = v := by
+    -- (a) cone over (Inl.arr, Inr.arr) from the intersection apex:
+    --     legs  q₁≫f₁ : pbI.pt → B₁  and  q₂≫f₂ : pbI.pt → B₂.
+    let pbJ := HasPullbacks.has Inl.arr Inr.arr   -- (Inl ∩ Inr).dom = pbJ.pt
+    have hsq : (pbI.cone.π₁ ≫ pbL.cone.π₂) ≫ Inl.arr
+             = (pbI.cone.π₂ ≫ pbR.cone.π₂) ≫ Inr.arr := by
+      calc (pbI.cone.π₁ ≫ pbL.cone.π₂) ≫ Inl.arr
+          = pbI.cone.π₁ ≫ (pbL.cone.π₂ ≫ Inl.arr) := Cat.assoc _ _ _
+        _ = pbI.cone.π₁ ≫ (pbL.cone.π₁ ≫ f) := by rw [pbL.cone.w]
+        _ = (pbI.cone.π₁ ≫ pbL.cone.π₁) ≫ f := (Cat.assoc _ _ _).symm
+        _ = (pbI.cone.π₁ ≫ A₁.arr) ≫ f := rfl
+        _ = (pbI.cone.π₂ ≫ A₂.arr) ≫ f := by rw [pbI.cone.w]
+        _ = (pbI.cone.π₂ ≫ pbR.cone.π₁) ≫ f := rfl
+        _ = pbI.cone.π₂ ≫ (pbR.cone.π₁ ≫ f) := Cat.assoc _ _ _
+        _ = pbI.cone.π₂ ≫ (pbR.cone.π₂ ≫ Inr.arr) := by rw [pbR.cone.w]
+        _ = (pbI.cone.π₂ ≫ pbR.cone.π₂) ≫ Inr.arr := (Cat.assoc _ _ _).symm
+    let cJ : Cone Inl.arr Inr.arr :=
+      ⟨pbI.cone.pt, pbI.cone.π₁ ≫ pbL.cone.π₂, pbI.cone.π₂ ≫ pbR.cone.π₂, hsq⟩
+    -- m lands in (Inl ∩ Inr).dom = pbJ.cone.pt, matching e's domain.
+    let m : pbI.cone.pt ⟶ (Subobject.inter Inl Inr).dom := pbJ.lift cJ
+    -- (b) Inl ∩ Inr ≤ bottom B : disjointness.  (Subobject.inter Inl Inr).arr = pbJ.π₁ ≫ Inl.arr.
+    obtain ⟨e, he⟩ := inl_inter_inr_le_bottom (𝒟 := 𝒞) (A := B₁) (B := B₂)
+    -- e : (Inl ∩ Inr).dom → (bottom B).dom,  e ≫ (bottom B).arr = (Inl ∩ Inr).arr.
+    -- (c) (bottom B).dom ≅ zeroObj.
+    have hbotiso : Isomorphic (PreLogos.bottom B).dom zeroObj :=
+      hPL.bottom_dom_iso B hPL.toHasTerminal.one
+    obtain ⟨ζ, hζ⟩ := hbotiso   -- ζ : (bottom B).dom → zeroObj, IsIso ζ
+    -- map pbI.pt → zeroObj, hence pbI.pt ≅ zeroObj by any_map_to_zero_is_iso.
+    let g₀ : pbI.cone.pt ⟶ zeroObj := m ≫ e ≫ ζ
+    have hg₀_iso : IsIso g₀ := any_map_to_zero_is_iso hPL g₀
+    obtain ⟨g₀inv, hg₀g₀inv, hg₀inv_g₀⟩ := hg₀_iso
+    -- pbI.pt ≅ zeroObj ⟹ any two maps out of pbI.pt agree (zeroObj is initial).
+    intro X u v
+    have key : ∀ (w : pbI.cone.pt ⟶ X), w = g₀ ≫ (g₀inv ≫ w) := by
+      intro w
+      rw [← Cat.assoc, hg₀g₀inv, Cat.id_comp]
+    rw [key u, key v,
+        (minimal_subobject_of_one_is_coterminator hPL).init_uniq (g₀inv ≫ u) (g₀inv ≫ v)]
+  -- ===== (3) Assemble: A ≅ (A₁ ∪ A₂).dom ≅ coprod A₁.dom A₂.dom =====
+  -- The pasting lemma: union is the pushout of the intersection's two projections.
+  let po := pasting_lemma A₁ A₂
+  -- pushout over the initial intersection apex IS the coproduct A₁.dom + A₂.dom.
+  have hpoiso : Isomorphic po.cocone.pt (HasBinaryCoproducts.coprod A₁.dom A₂.dom) :=
+    pushout_over_initial_is_coproduct po (@hCinit)
+  -- po.cocone.pt = (A₁ ∪ A₂).dom, which is ≅ A since the union is entire.
+  have hA_union : Isomorphic A (HasSubobjectUnions.union A₁ A₂).dom := by
+    obtain ⟨arrinv, h1, h2⟩ := hUnion_entire
+    exact ⟨arrinv, (HasSubobjectUnions.union A₁ A₂).arr, h2, h1⟩
+  exact isomorphic_trans hA_union hpoiso
 
 /-! ## §1.625 Representations of positive pre-logoi
 
@@ -894,12 +998,17 @@ def IsFilter (ℱ : (Subobject 𝒞 one) → Prop) : Prop :=
   coproduct inclusion; this is a cover of the projective Q, so it splits;
   composing with inl gives a section P → A. -/
 
+omit [PreLogos 𝒞] in
 /-- §1.631: In a positive pre-logos, a complemented subobject of a projective
-    object is projective. -/
-theorem complemented_of_projective_is_projective [PositivePreLogos 𝒞]
+    object is projective.
+
+    Stated with `[DisjointBinaryCoproduct 𝒞]`: Freyd's positivity (§1.621/§1.623) is exactly
+    coproduct disjointness, which the proof needs (`coprod_inl_inr_disjoint_elt`) to show that
+    `σ : P → B+P'` factors through `inl_B`.  `DisjointBinaryCoproduct` is the faithful rendering
+    of "positive pre-logos" in this repo. -/
+theorem complemented_of_projective_is_projective [DisjointBinaryCoproduct 𝒞]
     {Q : 𝒞} (hQ : Projective Q) {P : 𝒞} (P' : 𝒞)
-    (hiso : Isomorphic Q (HasBinaryCoproducts.coprod P P'))
-    {A : 𝒞} (x : A ⟶ P) (hx : Cover x) :
+    (hiso : Isomorphic Q (HasBinaryCoproducts.coprod P P')) :
     Projective P := by
   -- Given any cover y : B ↠ P we produce a section P → B.
   intro B y hy
@@ -1082,19 +1191,85 @@ theorem complemented_of_projective_is_projective [PositivePreLogos 𝒞]
     HasBinaryCoproducts.inl ≫ φ_inv ≫ s'
   have hσh : σ ≫ h = HasBinaryCoproducts.inl := by
     simp only [σ, Cat.assoc, h_section, Cat.comp_id]
-  -- KEY COMPUTATION: σ ≫ case(y, z) = id_P for ANY z : P' → P.
-  -- Proof: h ≫ case(id_P, z) = case(y, z)  (unfold h = case(y ≫ inl, inr), use case_inl/case_inr).
-  --        σ ≫ case(y, z) = σ ≫ h ≫ case(id_P, z) = inl_P ≫ case(id_P, z) = id_P.
-  -- Equivalently: r := σ ≫ case(id_B, w) satisfies r ≫ y = id_P for ANY w : P' → B
-  --   (since case(id_B, w) ≫ y = case(y, w ≫ y) and σ ≫ case(y, w ≫ y) = id_P by above).
-  -- The honest unblock is §1.624 (`decompose_via_coproduct`, now strengthened to
-  -- `[DisjointBinaryCoproduct 𝒞]` above): applied to `σ : P → B+P'`, coproduct
-  -- disjointness forces `σ` to factor through `inl_B` as `σ = r ≫ inl_B` (the P-summand),
-  -- whence `r ≫ y ≫ inl_P = σ ≫ h = inl_P` and `inl_P` monic (`inl_mono`) give `r ≫ y = id_P`.
-  -- `decompose_via_coproduct` itself still rests on the invImage-arithmetic residual; left as
-  -- a faithful sorry that consumes that one §1.624 fact.
-  obtain ⟨r, hr⟩ : ∃ r : P ⟶ B, r ≫ y = Cat.id P := by sorry
-  exact ⟨r, hr⟩
+  -- σ factors through inl_B : the P'-summand σ#(inr_{P'}) is empty by coproduct disjointness,
+  -- so σ#(inl_B) is the whole of P.  This is the §1.624 invImage-arithmetic, run on σ.
+  let hPL : PreLogos 𝒞 := (DisjointBinaryCoproduct.toPositivePreLogos).toPreLogos
+  let Inl_B := inlSub (𝒞 := 𝒞) (A := B) (B := P') inl_mono
+  let Inr_P' := inrSub (𝒞 := 𝒞) (A := B) (B := P') inr_mono
+  let P₁ : Subobject 𝒞 P := InverseImage σ Inl_B   -- σ#(inl_B)
+  let P₂ : Subobject 𝒞 P := InverseImage σ Inr_P'  -- σ#(inr_{P'})
+  let pb₁ := HasPullbacks.has σ Inl_B.arr   -- P₁.dom = pb₁.pt, P₁.arr = π₁, g₁ = π₂
+  let pb₂ := HasPullbacks.has σ Inr_P'.arr  -- P₂.dom = pb₂.pt, P₂.arr = π₁
+  let q₁ : P₁.dom ⟶ P := pb₁.cone.π₁
+  let g₁ : P₁.dom ⟶ B := pb₁.cone.π₂
+  have hsq₁ : q₁ ≫ σ = g₁ ≫ HasBinaryCoproducts.inl := pb₁.cone.w
+  -- (1) P₂.dom is INITIAL: q₂ ≫ inl_P = g₂ ≫ inr_{P'} in P+P', killed by disjointness.
+  let q₂ : P₂.dom ⟶ P := pb₂.cone.π₁
+  let g₂ : P₂.dom ⟶ P' := pb₂.cone.π₂
+  have hsq₂ : q₂ ≫ σ = g₂ ≫ HasBinaryCoproducts.inr := pb₂.cone.w
+  -- q₂ ≫ inl_P = g₂ ≫ inr_{P'→P+P'}: compose the square with h and use σ≫h=inl, inr≫h=inr.
+  have hdisj_elt : q₂ ≫ HasBinaryCoproducts.inl
+      = g₂ ≫ HasBinaryCoproducts.inr := by
+    have hr1 : (q₂ ≫ σ) ≫ h = q₂ ≫ HasBinaryCoproducts.inl := by
+      rw [Cat.assoc, hσh]
+    have hr2 : (g₂ ≫ HasBinaryCoproducts.inr) ≫ h = g₂ ≫ HasBinaryCoproducts.inr := by
+      rw [Cat.assoc, HasBinaryCoproducts.case_inr]
+    rw [← hr1, hsq₂, hr2]
+  obtain ⟨e₂, he₂⟩ := coprod_inl_inr_disjoint_elt (𝒟 := 𝒞) (A := P) (B := P') q₂ g₂ hdisj_elt
+  -- map P₂.dom → 0 ⟹ P₂.dom ≅ 0 ⟹ P₂.dom initial.
+  let zeroObj := (minimal_subobject_of_one_is_coterminator hPL).zero
+  obtain ⟨ζ, hζ⟩ := hPL.bottom_dom_iso (HasBinaryCoproducts.coprod P P') hPL.toHasTerminal.one
+  have hP₂init : IsIso (e₂ ≫ ζ) := any_map_to_zero_is_iso hPL (e₂ ≫ ζ)
+  obtain ⟨z₂inv, hz₂z₂inv, hz₂inv_z₂⟩ := hP₂init
+  have hP₂uniq : ∀ {X : 𝒞} (u v : P₂.dom ⟶ X), u = v := by
+    intro X u v
+    have key : ∀ (w : P₂.dom ⟶ X), w = (e₂ ≫ ζ) ≫ (z₂inv ≫ w) := by
+      intro w; rw [← Cat.assoc, hz₂z₂inv, Cat.id_comp]
+    rw [key u, key v,
+        (minimal_subobject_of_one_is_coterminator hPL).init_uniq (z₂inv ≫ u) (z₂inv ≫ v)]
+  -- (2) P₂ ≤ bottom P.  Build any map P₂.dom → (bottom P).dom (via P₂.dom ≅ 0 ≅ (bottom P).dom);
+  --     its triangle over (bottom P).arr holds because P₂.dom is initial (hP₂uniq).
+  have hP₂_le_bot : P₂.le (PreLogos.bottom P) := by
+    obtain ⟨ψ, _⟩ := hPL.bottom_dom_iso hPL.toHasTerminal.one P  -- ψ : 0 → (bottom P).dom
+    refine ⟨(e₂ ≫ ζ) ≫ ψ, ?_⟩
+    exact hP₂uniq _ _
+  -- (3) P₂ ≤ P₁  (through bottom P), hence union P₁ P₂ collapses to P₁.
+  have hP₂_le_P₁ : P₂.le P₁ := subLe_trans hP₂_le_bot (hPL.bottom_min P₁)
+  -- (4) union P₁ P₂ ≤ P₁  and  entire P ≤ union P₁ P₂, so P₁ is ENTIRE.
+  have hUnion_le_P₁ : (HasSubobjectUnions.union P₁ P₂).le P₁ :=
+    HasSubobjectUnions.union_min P₁ P₂ P₁ ⟨Cat.id _, Cat.id_comp _⟩ hP₂_le_P₁
+  have hEntireP_le_union : (Subobject.entire P).le (HasSubobjectUnions.union P₁ P₂) := by
+    have ha : (Subobject.entire P).le
+        (InverseImage σ (Subobject.entire (HasBinaryCoproducts.coprod B P'))) :=
+      entire_le_invImage_entire σ
+    have hbu : (Subobject.entire (HasBinaryCoproducts.coprod B P')).le
+        (HasSubobjectUnions.union Inl_B Inr_P') :=
+      inl_union_inr_entire (𝒟 := 𝒞) (A := B) (B := P')
+    have hb : (InverseImage σ (Subobject.entire (HasBinaryCoproducts.coprod B P'))).le
+        (InverseImage σ (HasSubobjectUnions.union Inl_B Inr_P')) :=
+      invImage_mono_local σ hbu
+    have hc : (InverseImage σ (HasSubobjectUnions.union Inl_B Inr_P')).le
+        (HasSubobjectUnions.union (InverseImage σ Inl_B) (InverseImage σ Inr_P')) :=
+      (PreLogos.invImage_preserves_union σ Inl_B Inr_P').1
+    exact subLe_trans ha (subLe_trans hb hc)
+  have hP₁_entire : P₁.IsEntire :=
+    entire_of_entire_le (subLe_trans hEntireP_le_union hUnion_le_P₁)
+  -- (5) q₁ = P₁.arr is iso; r := q₁⁻¹ ≫ g₁ : P → B  is the section.
+  obtain ⟨q₁inv, hq₁q₁inv, hq₁inv_q₁⟩ := hP₁_entire   -- q₁ ≫ q₁inv = id, q₁inv ≫ q₁ = id
+  -- q₁ = g₁ ≫ y   (push q₁≫σ=g₁≫inl through h, then inl_P monic).
+  have hq₁_eq : q₁ = g₁ ≫ y := by
+    apply (inl_mono (A := P) (B := P'))
+    calc q₁ ≫ HasBinaryCoproducts.inl
+        = (q₁ ≫ σ) ≫ h := by rw [Cat.assoc, hσh]
+      _ = (g₁ ≫ HasBinaryCoproducts.inl) ≫ h := by rw [hsq₁]
+      _ = g₁ ≫ (HasBinaryCoproducts.inl ≫ h) := Cat.assoc _ _ _
+      _ = g₁ ≫ (y ≫ HasBinaryCoproducts.inl) := by rw [h_inl]
+      _ = (g₁ ≫ y) ≫ HasBinaryCoproducts.inl := (Cat.assoc _ _ _).symm
+  refine ⟨q₁inv ≫ g₁, ?_⟩
+  -- (q₁inv ≫ g₁) ≫ y = q₁inv ≫ (g₁ ≫ y) = q₁inv ≫ q₁ = id_P.
+  calc (q₁inv ≫ g₁) ≫ y = q₁inv ≫ (g₁ ≫ y) := Cat.assoc _ _ _
+    _ = q₁inv ≫ q₁ := by rw [← hq₁_eq]
+    _ = Cat.id P := hq₁inv_q₁
 
 /-! ## §1.633 Characterization of capital positive pre-logoi
 
