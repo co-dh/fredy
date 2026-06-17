@@ -1081,4 +1081,80 @@ noncomputable def chainSliceSystem (P : PrefixChain 𝒞) :
         = innerSliceTr (P.prefix hjk) (innerSliceTr (P.prefix hij) X)
     exact innerSliceTr_trans (P.prefix hij) (P.prefix hjk) X
 
+/-! ### Morphism-level coherence of `chainSliceSystem` (`Coherent`)
+
+  `chainSliceSystem`'s `functF` is `chainSliceFunctor = transportSliceFunctor e (sliceCatFunctor d)`,
+  whose underlying object map is `innerSliceTr`.  The two `Coherent` fields are the MORPHISM-level
+  analogs of `innerSliceTr_refl`/`innerSliceTr_trans` (which are the OBJECT-level laws): an identity
+  transition acts as the identity *functor* and composites compose, both `HEq` (the endpoint objects
+  shift by `F_refl`/`F_trans`).  Everything reduces to the underlying `.f = catMap (suffix)` together
+  with `catMap_nil_heq` (refl) and `catMap_append_heq` (trans) — exactly the arrows used at the object
+  level — threaded through the transport via `transportSliceFunctor_map_f_heq`. -/
+
+/-- The underlying arrow of a transported slice morphism.  For `e : B = B'` and a slice functor
+    `FG : 𝒟 → Over B`, the `.f` of `(transportSliceFunctor e FG).map g` is `HEq` the `.f` of the
+    original `FG.map g` (the transport only re-types the base; the underlying arrow is unchanged).
+    `subst e` collapses the transport to `FG.map g` definitionally. -/
+theorem transportSliceFunctor_map_f_heq {𝒟 : Type u} [Cat.{u} 𝒟] {ℰ : Type u} [Cat.{u} ℰ]
+    {B B' : ℰ} (e : B = B') {G : 𝒟 → Over B}
+    (FG : @Functor 𝒟 _ (Over B) (overCat B) G) {X Y : 𝒟} (g : X ⟶ Y) :
+    HEq ((transportSliceFunctor e FG).map g).f (FG.map g).f := by
+  subst e; rfl
+
+/-- `catMap d g.f` for the suffix `d = prefixSuffix (chain i) (chain j)` is the `.f` of
+    `(chainSliceFunctor P hij).map g` up to `HEq`.  Peels the transport
+    (`transportSliceFunctor_map_f_heq`) then `sliceCatMap`'s `.f = catMap d g.f` definitionally. -/
+theorem chainSliceFunctor_map_f_heq (P : PrefixChain 𝒞) {i j : Nat} (hij : i ≤ j)
+    {X Y : innerSliceObj (𝒞 := 𝒞) (P.chain i)} (g : X ⟶ Y) :
+    HEq ((chainSliceFunctor P hij).map g).f (catMap (prefixSuffix (P.chain i) (P.chain j)) g.f) :=
+  transportSliceFunctor_map_f_heq _ _ g
+
+/-- Two slice morphisms over (possibly different, but equal) bases are `HEq` once their endpoints are
+    `HEq` as `Over`-objects and their underlying arrows are `HEq`.  Componentwise `HEq` extensionality
+    for `OverHom` (the `w` field is a `Prop`, so proof-irrelevant once `f` and the endpoints match);
+    `subst e` aligns the base types so the endpoint `HEq`s become genuine `Eq`s. -/
+theorem overHom_heq {ℰ : Type u} [Cat.{u} ℰ] {B B' : ℰ} (e : B = B')
+    {X Y : Over B} {X' Y' : Over B'} (hX : HEq X X') (hY : HEq Y Y')
+    {a : OverHom X Y} {b : OverHom X' Y'} (hf : HEq a.f b.f) : HEq a b := by
+  subst e; cases hX; cases hY; exact heq_of_eq (OverHom.ext (eq_of_heq hf))
+
+/-- **`Coherent` for the directed strict chain system.**  The morphism-level mate of
+    `innerSliceTr_refl`/`innerSliceTr_trans`.  `refl_map`: the empty-suffix transition's functor is the
+    identity on arrows (underlying `catMap [] g.f ≍ g.f`, `catMap_nil_heq`).  `trans_map`: the composite
+    transition's functor splits (underlying `catMap (dVU++dUW) g.f ≍ catMap dUW (catMap dVU g.f)`,
+    `catMap_append_heq`).  Both threaded through the base-transport by `overHom_heq` on the now-`HEq`
+    endpoints (`innerSliceTr_refl`/`_trans` at the OBJECT level).  Sorry-free, propext-only. -/
+theorem chainSliceCoherent (P : PrefixChain 𝒞) : (chainSliceSystem P).Coherent where
+  refl_map {i x x'} g := by
+    -- underlying `.f`: `catMap (prefixSuffix (chain i) (chain i)) g.f`, and the suffix is `[]`.
+    refine overHom_heq rfl ?_ ?_ ?_
+    · exact heq_of_eq (innerSliceTr_refl x)
+    · exact heq_of_eq (innerSliceTr_refl x')
+    · refine (chainSliceFunctor_map_f_heq P (uliftNatDirected.refl i) g).trans ?_
+      show HEq (catMap (prefixSuffix (P.chain i.down) (P.chain i.down)) g.f) g.f
+      rw [prefixSuffix, List.drop_length]
+      exact catMap_nil_heq g.f
+  trans_map {i j k} hij hjk x x' g := by
+    -- underlying `.f`: `catMap (prefixSuffix (chain i) (chain k)) g.f` vs the composite.
+    have hVU : prefixLe (P.chain i.down) (P.chain j.down) := P.prefix hij
+    have hUW : prefixLe (P.chain j.down) (P.chain k.down) := P.prefix hjk
+    refine overHom_heq rfl ?_ ?_ ?_
+    · exact heq_of_eq (innerSliceTr_trans hVU hUW x)
+    · exact heq_of_eq (innerSliceTr_trans hVU hUW x')
+    · -- LHS underlying = `catMap dVW g.f`; RHS = `((functF hjk).map ((functF hij).map g)).f`.
+      refine (chainSliceFunctor_map_f_heq P (uliftNatDirected.trans hij hjk) g).trans ?_
+      refine HEq.symm (HEq.trans (chainSliceFunctor_map_f_heq P hjk _) ?_)
+      -- the inner `((functF hij).map g).f ≍ catMap dVU g.f`; `catMap_heq_congr` lifts through `catMap dUW`.
+      have hinner : HEq ((chainSliceFunctor P hij).map g).f (catMap (prefixSuffix (P.chain i.down)
+          (P.chain j.down)) g.f) := chainSliceFunctor_map_f_heq P hij g
+      refine HEq.trans (catMap_heq_congr (prefixSuffix (P.chain j.down) (P.chain k.down))
+        (over_transport_dom _ _) (over_transport_dom _ _) _ _ hinner) ?_
+      -- now `catMap dUW (catMap dVU g.f) ≍ catMap dVW g.f` via `prefixSuffix_trans` + `catMap_append_heq`.
+      refine HEq.symm ?_
+      rw [show prefixSuffix (P.chain i.down) (P.chain k.down)
+          = prefixSuffix (P.chain i.down) (P.chain j.down)
+            ++ prefixSuffix (P.chain j.down) (P.chain k.down) from prefixSuffix_trans hVU hUW]
+      exact catMap_append_heq (prefixSuffix (P.chain i.down) (P.chain j.down))
+        (prefixSuffix (P.chain j.down) (P.chain k.down)) g.f
+
 end Freyd

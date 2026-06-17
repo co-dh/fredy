@@ -992,16 +992,35 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
     --   (B-package)  the inner `colimitPreRegular` package for `chainSliceSystem` — `Coherent` + the 9
     --        preservation hypotheses + `hcanon`, mirroring the OUTER `towerCoherent`/`capData_of_tower`
     --        assembly below; a full second copy of that assembly over the directed `ℕ`-index.
-    --   These three (NOT the import) are the honest residual; `hwall_step` stays a documented `sorry`.
+    --        PROGRESS (this session): the `Coherent` field IS NOW BUILT sorry-free as
+    --        `Freyd.chainSliceCoherent (P : PrefixChain 𝒞) : (chainSliceSystem P).Coherent`
+    --        (`Fredy.Inflation`, axioms = propext) — the morphism-level mate of `innerSliceTr_refl`/
+    --        `innerSliceTr_trans`, via `chainSliceFunctor_map_f_heq` (underlying `.f = catMap suffix`)
+    --        + `catMap_nil_heq`/`catMap_append_heq` threaded through `overHom_heq`.  So `colimitCat`
+    --        for the inner chain is now applicable.  STILL OPEN in (B-package): the 9 preservation
+    --        hypotheses + `hcanon`, which presuppose (i) `PreRegularCategory (Infl 𝒞)` — NOT yet built
+    --        (`Infl 𝒞 ≃ 𝒞`, but the equalizer/pullback/transfer-cover transfer across that equivalence
+    --        is unbuilt), so per-stage `overPreRegular` does not yet fire — and (ii) a base-change
+    --        preservation analysis of `innerSliceTr` (the strict suffix-append must be shown to
+    --        preserve terminals/products/equalizers and reflect/transfer covers).  Those two are
+    --        genuine new categorical work (the magnitude of the outer per-rung preservation), NOT a
+    --        mechanical transcription of the outer assembly.
+    --   These (NOT the import, NOT the now-done `Coherent`) are the honest residual; `hwall_step`
+    --   stays a documented `sorry`.
     --
     -- The (B-import) resolution is load-bearing, not just documentary: the inner directed strict
     -- `CatSystem` constructor is now IN SCOPE right here.  `innerSystemAt Sb P` is exactly the
     -- system whose colimit is the relative capitalization `S → S*` that `nextStep` must deliver
     -- (once (A) supplies the projections and (B-coverage) a cofinal `P`).
+    -- Both the inner directed strict `CatSystem` AND its `Coherent` proof are now in scope:
+    -- `chainSliceSystem P` with `chainSliceCoherent P : (chainSliceSystem P).Coherent` (sorry-free,
+    -- propext-only).  So `colimitCat (chainSliceSystem P) (chainSliceCoherent P)` — the relative
+    -- capitalization `S → S*` `nextStep` must deliver — is a genuine `Cat` already; the remaining
+    -- (B-package) gap is purely its pre-regular *package* (9 preservation hyps + `hcanon`), see above.
     have innerSystemAt :
         ∀ (Sb : Type u) [Cat.{u} Sb] [HasTerminal Sb] [HasBinaryProducts Sb] (P : PrefixChain Sb),
-          Colim.CatSystem.{u, u} (ULift.{u} Nat) uliftNatDirected :=
-      fun Sb _ _ _ P => chainSliceSystem P
+          (C : Colim.CatSystem.{u, u} (ULift.{u} Nat) uliftNatDirected) ×' C.Coherent :=
+      fun Sb _ _ _ P => ⟨chainSliceSystem P, chainSliceCoherent P⟩
     clear innerSystemAt
     sorry
   -- Unpack the successor and its full preservation package (the §1.543 "directed-tower" data).
