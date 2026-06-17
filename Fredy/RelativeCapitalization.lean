@@ -54,15 +54,32 @@
   directed union of the `A* | U = A/(∏U)` product-slices over finite sets `U` of
   well-supported objects).  This file delivers the per-`B`/per-factor points AND the
   finite-set index (`listDirected`/`listProd`/`listProdProj`/`listProdSliceAcquiresEveryFactor`)
-  sorry-free (above).  Two concrete pieces remain OPEN:
-    (A) the TRANSITION FUNCTOR `A/(∏V) → A/(∏U)` for `V ⊆ U` — this is BASE-CHANGE
-        (pullback) along the projection `∏U → ∏V`, NOT the slice embedding `sliceEmbedFunctor`
-        (which goes `A → A/B`, between base and one slice, not between two slices).  No
-        base-change/reindexing functor exists in the repo yet (only the forgetful `Σ`).
-    (B) assembling the inner finite-product-slice colimit `S*` (objects `A/(∏U)`, transitions
-        from (A)) over `listDirected`, proving `Coherent`, and discharging its
-        `colimitPreRegular` package — which itself needs the inner `hcanon`, hence recurses
-        into the same colimit-pre-regularity wall.
+  sorry-free (above).
+
+  INNER-SYSTEM SCAFFOLDING (this session, all sorry-free — see the `innerCatSystem` block):
+    * the TRANSITION FUNCTOR now EXISTS: `baseChangeFunctor (g : C ⟶ D) : Functor (Over D → Over C)`
+      (SliceRegular.lean), the genuine slice→slice base-change `A/(∏V) → A/(∏U)` by pullback along
+      `∏U → ∏V` — NOT the slice embedding (which is `A → A/B`, base→one-slice).
+    * `innerObj U = Over (listProd U)`, `innerCat`, `innerF P h = baseChangeObj (P.proj h)`,
+      `innerFunctF P h = baseChangeFunctor (P.proj h)` — the inner system's object family, `Cat`
+      instances, transition object map and per-rung functoriality.
+    * `innerCatSystem P hS : CatSystem (List 𝒞) listDirected` — the inner system, GIVEN its two
+      residuals as honest inputs (no false `sorry`):
+        (A) `P : ListProjFamily` — a choice-free product projection `∏U ⟶ ∏V` per `V ⊆ U` with
+            strict unit/composition.  NOT yet constructible: `listSubset V U` is a `Prop`, so a
+            positional factor-match needs `DecidableEq 𝒞` (the same `Prop`-no-large-elim wall that
+            forced `listProdProj` to be `Fin`-indexed).
+        (B-strict) `hS : StrictBaseChange P` — the on-the-nose `F_refl`/`F_trans`.  RAW base-change
+            is only PSEUDO-functorial (`baseChangeObj (Cat.id) X = X×_D D`, iso to `X` but NOT equal),
+            so these are FALSE for raw base-change and are declared as a hypothesis (a real theorem to
+            prove = base-change strictification), never asserted by `sorry`.
+  STILL OPEN to finish `S*`:
+    (B-package) `Coherent (innerCatSystem P hS)` + the 9 `colimitPreRegular` preservation hypotheses
+        + `hcanon`, mirroring the OUTER `towerSystem`/`towerCoherent`/`capData_of_tower`; then take
+        `colimitPreRegular` for the pre-regular `S*` and package as the `CapStep S` for `hwall_step`.
+    (B-import) `RelativeCapitalization` imports `Capitalization`, so `innerCatSystem`/… sit downstream
+        of `hwall_step`; closing `hwall_step` in place needs the ingredients moved up (e.g. into
+        `SliceRegular`) or `capData_exists` relocated here.
   See the `hwall_step` residual comment in `Capitalization.lean` for the full reduction.
 
   No mathlib (the category theory stays on this repo's own `Cat`).
@@ -331,5 +348,114 @@ theorem listProdSliceAcquiresEveryFactor (U : List 𝒞) (k : Fin U.length) :
         ≫ (sliceEmbedObj (listProd U) (U.get k)).hom
       = (overTerm (listProd U)).hom :=
   sliceAcquiresFactorPoint (U.get k) (listProdProj U k)
+
+/-! ## §1.547  Assembling the inner finite-product-slice `CatSystem` (residual (A)/(B))
+
+  This block builds the inner directed system of slices `A/(∏U)` over `listDirected`, the
+  one `hwall_step` (Capitalization.lean) consumes.  The OBJECTS (`Over (listProd U)`), the
+  INDEX (`listDirected`), and the per-rung POINTS (`listProdSliceAcquiresEveryFactor`) are all
+  in hand sorry-free above.  Two concrete primitives remain, isolated here as the interface
+  `ListProjFamily` (and an `import` obstruction that keeps the assembly in *this* file rather
+  than in `Capitalization.lean`):
+
+  ════ residual (A) — the choice-free TRANSITION BASE MORPHISM ════
+  The transition `A/(∏V) → A/(∏U)` for `V ⊆ U` is BASE-CHANGE (`baseChangeObj`/`baseChangeFunctor`,
+  SliceRegular.lean) along a product projection `listProd U ⟶ listProd V`.  That projection is
+  NOT constructible choice-free over the present index: `listSubset V U` is `∀ x ∈ V, x ∈ U`, a
+  `Prop`, so a *positional* match "factor `k` of `V` = factor `?` of `U`" cannot be extracted
+  without `DecidableEq 𝒞` (object equality) — exactly the same `Prop`-can't-large-eliminate wall
+  that forced `listProdProj` to be `Fin`-indexed rather than `(B ∈ U)`-indexed.  The honest
+  abstraction is therefore to take the projection family as DATA (`ListProjFamily` below); the
+  genuine missing primitive is one constructive instance of it.
+
+  ════ residual (B-strict) — base-change is only PSEUDO-functorial ════
+  `CatSystem.F_refl`/`F_trans` demand ON-THE-NOSE equalities `F (refl) X = X` and
+  `F (trans) X = F hjk (F hij X)`.  Base-change along `1` is `X ×_D D → D`, equal to `X` only up
+  to iso, and base-change along a composite re-associates pullbacks — both hold only up to
+  canonical iso, never definitionally (probed: `baseChangeObj (Cat.id D) X = X` does not reduce).
+  The outer ω-tower sidestepped this by transporting via `transN` (literal iterated composition,
+  strictly functorial).  The inner system needs the same strictification of base-change (or a
+  strictly-functorial replacement transition), which is a standalone construction.
+
+  ════ residual (B-import) — the assembly cannot live in `Capitalization.lean` ════
+  `RelativeCapitalization` imports `Capitalization` (for `CapStep`), so the ingredients
+  `listDirected`/`baseChangeFunctor`/`listProd`/`listProdSliceAcquiresEveryFactor` are visible
+  ONLY here, downstream of `hwall_step`.  Discharging `hwall_step` in place would require moving
+  the inner-system ingredients up into a file that `Capitalization` imports (e.g. `SliceRegular`),
+  or relocating `capData_exists` down here.  Until that reorganization, `hwall_step` stays a
+  documented `sorry` pointing at this block. -/
+
+/-- **The transition base-morphism family (residual (A), as data).**  A choice-free assignment,
+    for every inclusion `V ⊆ U` of finite object-sets, of a product projection
+    `listProd U ⟶ listProd V` (the bigger product projects onto the smaller), STRICTLY coherent:
+    the identity inclusion gives `Cat.id`, and a composite inclusion gives the composite
+    projection.  This is exactly the data missing from residual (A); one constructive instance of
+    it (needing `DecidableEq 𝒞` or a positional refinement of the index) closes residual (A).
+
+    Given such a family, the inner system's transition is `baseChangeFunctor (proj h)`; its strict
+    coherence laws are residual (B-strict) — base-change is only pseudo-functorial, so even with a
+    strict `ListProjFamily` the `CatSystem.F_refl`/`F_trans` need base-change strictification. -/
+structure ListProjFamily where
+  /-- the product projection `∏U → ∏V` for each `V ⊆ U`. -/
+  proj : ∀ {V U : List 𝒞}, listSubset V U → (listProd U ⟶ listProd V)
+  /-- strict unit: the projection along the reflexive inclusion is the identity. -/
+  proj_refl : ∀ (U : List 𝒞), proj (listDirected.refl U) = Cat.id (listProd U)
+  /-- strict composition: the projection along a composite inclusion is the composite. -/
+  proj_trans : ∀ {V U W : List 𝒞} (hVU : listSubset V U) (hUW : listSubset U W),
+    proj (listDirected.trans hVU hUW) = proj hUW ≫ proj hVU
+
+/-- **The inner finite-product-slice object map.**  Stage `U` of the inner system is the slice
+    `A/(∏U) = Over (listProd U)`.  This is residual-(A)/(B)-free (it is just the object family). -/
+def innerObj (U : List 𝒞) : Type u := Over (listProd U)
+
+instance innerCat (U : List 𝒞) : Cat.{u} (innerObj (𝒞 := 𝒞) U) := overCat (listProd U)
+
+/-- **The inner transition functor**, *given* a projection family `P` (residual (A)): for `V ⊆ U`,
+    base-change `A/(∏V) → A/(∏U)` along `P.proj : ∏U → ∏V`.  The OBJECT map is `baseChangeObj`,
+    the functoriality (in the slice variable) is `baseChangeFunctor` — both sorry-free.  What is
+    NOT yet available (residual (B-strict)) are the `CatSystem`-level strict laws `F_refl`/`F_trans`
+    relating different inclusions, because base-change is only pseudo-functorial in the base. -/
+def innerF (P : ListProjFamily (𝒞 := 𝒞)) {V U : List 𝒞} (h : listSubset V U) :
+    innerObj (𝒞 := 𝒞) V → innerObj (𝒞 := 𝒞) U :=
+  baseChangeObj (P.proj h)
+
+/-- The inner transition is a functor in the slice variable (base-change functoriality).  This is
+    sorry-free — it is exactly `baseChangeFunctor` along `P.proj h`. -/
+instance innerFunctF (P : ListProjFamily (𝒞 := 𝒞)) {V U : List 𝒞} (h : listSubset V U) :
+    @Functor (innerObj (𝒞 := 𝒞) V) (innerCat V) (innerObj (𝒞 := 𝒞) U) (innerCat U) (innerF P h) :=
+  baseChangeFunctor (P.proj h)
+
+/-- **The strict-functoriality obligation for the inner transition (residual (B-strict)), AS A
+    HYPOTHESIS — NOT asserted.**  A `CatSystem` demands the transitions be functorial *on the nose*:
+    `F_refl : F (refl) X = X` and `F_trans : F (trans) X = F hjk (F hij X)`.  For RAW base-change
+    these equations are **false** (`baseChangeObj (Cat.id (∏U)) X = X ×_{∏U} ∏U → ∏U`, canonically
+    iso to `X` but NOT equal; the composite re-associates the iterated pullback).  We therefore
+    DECLARE the strict laws as a hypothesis bundle rather than discharge them with a false `sorry`:
+    a witness of `StrictBaseChange P` is exactly the base-change strictification (or a strictly
+    functorial replacement transition) needed before `innerObj`/`innerF` form a `CatSystem`.
+
+    This is residual (B-strict) stated honestly: providing `StrictBaseChange P` is a real theorem
+    (it does NOT hold for raw base-change), so there is no false-statement-with-`sorry` here. -/
+structure StrictBaseChange (P : ListProjFamily (𝒞 := 𝒞)) : Prop where
+  F_refl : ∀ {U : List 𝒞} (X : innerObj (𝒞 := 𝒞) U), innerF P (listDirected.refl U) X = X
+  F_trans : ∀ {V U W : List 𝒞} (hVU : listSubset V U) (hUW : listSubset U W)
+    (X : innerObj (𝒞 := 𝒞) V),
+    innerF P (listDirected.trans hVU hUW) X = innerF P hUW (innerF P hVU X)
+
+/-- **The inner `CatSystem` over `listDirected`, GIVEN the residuals as inputs.**  Objects
+    `A/(∏U)`, transitions base-change along a projection family `P` (residual (A)), with the strict
+    laws supplied by `hS : StrictBaseChange P` (residual (B-strict)).  Sorry-free: every field is a
+    real construction or a fed-in hypothesis — no false equation is asserted.  Discharging the two
+    inputs `P`/`hS` (one constructive `ListProjFamily`, one base-change strictification) plus the 9
+    `colimitPreRegular` preservation hypotheses and `Coherent` (residual (B-package), mirroring the
+    OUTER `towerSystem`/`towerCoherent`/`capData_of_tower`) closes the inner construction. -/
+noncomputable def innerCatSystem (P : ListProjFamily (𝒞 := 𝒞)) (hS : StrictBaseChange P) :
+    Colim.CatSystem (List 𝒞) listDirected where
+  A := innerObj (𝒞 := 𝒞)
+  catA := innerCat
+  F := fun {V U} h => innerF P h
+  functF := fun {V U} h => innerFunctF P h
+  F_refl := fun {U} X => hS.F_refl X
+  F_trans := fun {V U W} hVU hUW X => hS.F_trans hVU hUW X
 
 end Freyd

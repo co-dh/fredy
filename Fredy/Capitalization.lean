@@ -937,26 +937,37 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
     -- The rung at `U` is the slice `S/(∏U)` (pre-regular by `overPreRegular`).  `S*` is the colimit
     -- `CatSystem.Obj` of this inner system, pre-regular by `colimitPreRegular`, faithful over `S`.
     --
-    -- WHY STILL A SORRY — the two concrete missing pieces (neither is the index, which is done):
-    --   (A) THE TRANSITION FUNCTOR `S/(∏V) → S/(∏U)` for `V ⊆ U` IS NOT `sliceEmbedFunctor`.
-    --       `sliceEmbedFunctor` is `S → S/B`, between the base and a single slice — it does NOT go
-    --       between two slices.  The genuine transition is BASE-CHANGE (pullback) along the projection
-    --       `∏U → ∏V`: an object `X → ∏V` goes to `X ×_{∏V} ∏U → ∏U`.  No base-change / reindexing
-    --       functor `Over(∏V) → Over(∏U)` exists in the repo (only the forgetful `Σ = SliceForget`,
-    --       SliceRegular.lean, and the slice-cover correspondence — not its right-hand reindexing).
-    --       Building this functor (object, map, functoriality) and its preservation lemmas is a
-    --       standalone construction requiring `HasPullbacks S`; it is the missing transition `F`/`functF`
-    --       of the inner `CatSystem`.
-    --   (B) THE INNER `colimitPreRegular` PACKAGE.  Even granting (A), `colimitPreRegular` on the inner
-    --       system demands its own `hcanon` (inner pullback-cover preservation) plus the terminal /
-    --       product / equalizer preservation hypotheses for the base-change transitions — i.e. building
-    --       `nextStep` honestly RECURSES into the very same `colimitPreRegular` package this `hwall_step`
-    --       produces for the OUTER ω-tower.  That inner assembly is a full second copy of
-    --       `towerSystem`/`capData_of_tower` over `Freyd.listDirected`, beyond the per-B rung.
-    -- RESIDUAL, precisely: (A) build the base-change transition functor + its preservation lemmas, then
-    -- (B) assemble the inner finite-product-slice `CatSystem` (objects `S/(∏U)`, transitions from (A))
-    -- over `Freyd.listDirected`, prove `Coherent`, and discharge its `colimitPreRegular` hypotheses,
-    -- uniformly in `S`; finally read the outer ω-tower preservation off rung composition.
+    -- PROGRESS (this session): the base-change TRANSITION FUNCTOR now EXISTS and the inner
+    -- finite-product-slice `CatSystem` SKELETON is assembled in `Fredy.RelativeCapitalization`:
+    --   * `Freyd.baseChangeFunctor (g : C ⟶ D) : Functor (Over D → Over C)` (SliceRegular.lean) —
+    --     the genuine slice→slice transition `S/(∏V) → S/(∏U)` by pullback along `∏U → ∏V`.
+    --   * `Freyd.innerObj U = Over (listProd U)`, `Freyd.innerCat`, `Freyd.innerF`/`innerFunctF`,
+    --     and `Freyd.innerCatSystem (P : ListProjFamily) : CatSystem (List S) listDirected` —
+    --     the inner system over `listDirected`, objects/Cat/transition-object-map/per-rung
+    --     functoriality all sorry-free; only the two strict `CatSystem` fields remain (below).
+    --
+    -- WHY STILL A SORRY — now reduced to THREE sharp, isolated residuals (the index, objects,
+    -- transition functor, and per-rung points are all DONE sorry-free):
+    --   (A)  THE CHOICE-FREE TRANSITION BASE MORPHISM — the data of `Freyd.ListProjFamily`:
+    --        a projection `listProd U ⟶ listProd V` per `V ⊆ U`, strictly coherent.  Not yet
+    --        constructible: `listSubset V U = ∀ x∈V, x∈U` is a `Prop`, so a positional
+    --        factor-match cannot be large-eliminated into a morphism without `DecidableEq S`
+    --        (same wall that forced `listProdProj` to be `Fin`-indexed).  Abstracted as data;
+    --        one constructive instance closes (A).
+    --   (B-strict)  BASE-CHANGE IS ONLY PSEUDO-FUNCTORIAL — the two `sorry`s inside
+    --        `Freyd.innerCatSystem` (`F_refl`/`F_trans`).  `baseChangeObj (Cat.id) X = X` and
+    --        the composite law hold only up to canonical pullback iso, never on the nose (probed),
+    --        so the strict `CatSystem.F_refl`/`F_trans` need base-change strictification (or a
+    --        strictly-functorial replacement transition), exactly as the OUTER tower used `transN`.
+    --   (B-package)  THE INNER `colimitPreRegular` PACKAGE — `Coherent` plus the 9 preservation
+    --        hypotheses and `hcanon` for `innerCatSystem`, mirroring `towerCoherent`/
+    --        `capData_of_tower`; a full second copy of the outer assembly over `listDirected`.
+    --   (B-import)  THE ASSEMBLY CANNOT LIVE HERE — `RelativeCapitalization` imports
+    --        `Capitalization` (for `CapStep`), so `innerCatSystem`/`listDirected`/… are downstream
+    --        of this `sorry`.  Discharging `hwall_step` in place needs the inner-system ingredients
+    --        moved up into a file `Capitalization` imports (e.g. `SliceRegular`), or `capData_exists`
+    --        relocated downstream.  Hence `hwall_step` stays a documented `sorry` pointing at the
+    --        `Freyd.innerCatSystem` block; the residual is (A)+(B-strict)+(B-package)+(B-import).
     sorry
   -- Unpack the successor and its full preservation package (the §1.543 "directed-tower" data).
   obtain ⟨nextStep, b, hb, ht, htpres, hp, hppres, hppres_pair, he, hepres, hepres_lift,
