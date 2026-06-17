@@ -2134,6 +2134,43 @@ noncomputable def colimitHasPullbacks (C : CatSystem ι D) (hC : C.Coherent) [hn
   letI : HasEqualizers C.Obj := colimitHasEqualizers C hC he hepres hepres_lift
   exact ⟨fun f g => products_equalizers_implies_pullbacks f g⟩
 
+/-- **Sealed accessor for the colimit pullback's chosen `HasPullback`.**  `colimitHasPullbacks`'s
+    `.has f g` is, by `rfl`, the §1.432 chosen pullback `products_equalizers_implies_pullbacks f g`
+    (pure β/structure-η, cheap).  The point is to expose this equation as a NAMED lemma: matching
+    `(colimitHasPullbacks …).has f g` against `products_equalizers_implies_pullbacks f g` directly in
+    a proof forces `whnf` of the whole finite-limit cascade
+    (`colimitHasBinaryProducts`/`colimitHasEqualizers`), which runs away even at multi-M heartbeats.
+    Downstream cover bridges (`colimitCanonicalCover`) `rw` this equation instead of re-forcing the
+    cascade — the §1.543 elaboration-performance fix. -/
+theorem colimitHasPullbacks_has (C : CatSystem ι D) (hC : C.Coherent) [hne : Nonempty ι]
+    (ht : ∀ i, HasTerminal (C.A i))
+    (htpres : ∀ {i j} (hij : D.le i j), C.F hij (ht i).one = (ht j).one)
+    (hp : ∀ i, HasBinaryProducts (C.A i))
+    (hppres : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
+        (u v : z ⟶ C.F hij ((hp i).prod a b)),
+        u ≫ (C.functF hij).map (hp i).fst = v ≫ (C.functF hij).map (hp i).fst →
+        u ≫ (C.functF hij).map (hp i).snd = v ≫ (C.functF hij).map (hp i).snd → u = v)
+    (hppres_pair : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
+        (p : z ⟶ C.F hij a) (q : z ⟶ C.F hij b),
+        ∃ r : z ⟶ C.F hij ((hp i).prod a b),
+          r ≫ (C.functF hij).map (hp i).fst = p ∧ r ≫ (C.functF hij).map (hp i).snd = q)
+    (he : ∀ i, HasEqualizers (C.A i))
+    (hepres : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
+        (u v : z ⟶ C.F hij (eqObj f g)),
+        u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
+    (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
+        (k : z ⟶ C.F hij A)
+        (hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
+        ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k) :
+    letI : Cat C.Obj := colimitCat C hC
+    letI : HasTerminal C.Obj := colimitHasTerminal C hC ht htpres
+    letI : HasBinaryProducts C.Obj := colimitHasBinaryProducts C hC hp hppres hppres_pair
+    letI : HasEqualizers C.Obj := colimitHasEqualizers C hC he hepres hepres_lift
+    ∀ {A B Z : C.Obj} (f : A ⟶ Z) (g : B ⟶ Z),
+      (colimitHasPullbacks C hC ht htpres hp hppres hppres_pair he hepres hepres_lift).has f g
+        = products_equalizers_implies_pullbacks f g :=
+  fun f g => rfl
+
 /-- **Comparison map of two pullbacks of the same cospan is an iso.**  If `c` and
     `c'` both satisfy `Cone.IsPullback` over the cospan `f, g`, the unique map
     `φ : c.pt ⟶ c'.pt` compatible with the projections is an isomorphism: its
@@ -2165,6 +2202,14 @@ theorem pullback_comparison_iso {𝒞 : Type u} [Cat.{v} 𝒞] {A B Z : 𝒞}
     `colimitPullbacksTransferCovers`: it turns the opaque "canonical `π₂` is a cover"
     obligation into the concrete "*some* pullback cone of `(f, g)` has `π₂` a cover".
     Reusable in any `[Cat] [HasPullbacks]`, so DRY for both colimit assemblies. -/
+theorem hasPullback_cover_of_witness {𝒞 : Type u} [Cat.{v} 𝒞]
+    {A B Z : 𝒞} {f : A ⟶ Z} {g : B ⟶ Z} (hpb : HasPullback f g)
+    {c : Cone f g} (hc : c.IsPullback) (hcov : Cover c.π₂) :
+    Cover hpb.cone.π₂ := by
+  obtain ⟨φ, hφiso, _, hφ2⟩ := pullback_comparison_iso hpb.cone_isPullback hc
+  rw [← hφ2]
+  exact cover_precomp_iso hφiso hcov
+
 theorem canonicalPullback_cover_of_witness {𝒞 : Type u} [Cat.{v} 𝒞] [HasPullbacks 𝒞]
     {A B Z : 𝒞} (f : A ⟶ Z) (g : B ⟶ Z)
     (c : Cone f g) (hc : c.IsPullback) (hcov : Cover c.π₂) :

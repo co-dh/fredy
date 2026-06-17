@@ -313,6 +313,111 @@ theorem objIncl_preserves_pullbacks (C : CatSystem.{u, u} ι D) (hC : C.Coherent
     (objIncl_preservesBinaryProducts C hC hp hpres hpres_pair i)
     (objIncl_preservesEqualizers C hC he hepres hepres_lift i) f g
 
+-- The single `whnf` of the §1.432 chosen colimit pullback cone (cascading through
+-- `colimitHasBinaryProducts`/`colimitHasEqualizers`) costs ~8s / well over the default heartbeat
+-- budget; paying it ONCE here (the §1.543 elaboration-performance fix) keeps every downstream
+-- `hcanon`-discharge cheap.
+set_option maxHeartbeats 4000000 in
+/-- **Generic `hcanon` discharge — the canonical colimit pullback's `π₂` is a cover.**
+
+  Assembles the full M3-cov argument, eliminating the `hcanon` hypothesis of
+  `colimitPreRegular`.  For a cospan `(f, g)` in `colimitCat` with `f` a cover:
+    * align `(f, g)` to a genuine STAGE cospan `(fN, gN)` at a shared codomain stage `N`
+      (`colimHom_cospan_as_homInclObj`), with `homInclObj fN ≅ f`, `homInclObj gN ≅ g`;
+    * `f`'s cover REFLECTS to a stage cover of `fN` (`homInclObj_cover_reflects`, via the
+      conservativity/mono hyps), transported across the HEq;
+    * the §1.432 STAGE pullback `P = products_equalizers_implies_pullbacks fN gN` has `P.cone.π₂`
+      a STAGE cover by the per-stage `PullbacksTransferCovers` hypothesis `hstagePTC`;
+    * every later transition `functF hNL` PRESERVES that cover (`hcovpres`), so `homInclObj P.cone.π₂`
+      is a COLIMIT cover (`homInclObj_cover_of_stage`);
+    * the `objIncl N`-image of `P.cone` is a pullback of `(homInclObj fN, homInclObj gN)`
+      (`objIncl_preserves_pullbacks`), hence — after the HEq identification — a WITNESS pullback cone
+      of `(f, g)` whose `π₂` is a cover;
+    * `canonicalPullback_cover_of_witness` upgrades this to the canonical pullback's `π₂`.
+
+  The witness route uses only the `Cone.IsPullback` INTERFACE, never forcing `whnf` of the giant
+  `colimitHasPullbacks` instance — that is the §1.543 elaboration-performance fix. -/
+theorem colimitCanonicalCover (C : CatSystem.{u, u} ι D) (hC : C.Coherent) [hne : Nonempty ι]
+    (ht : ∀ i, HasTerminal (C.A i))
+    (htpres : ∀ {i j} (hij : D.le i j), C.F hij (ht i).one = (ht j).one)
+    (hp : ∀ i, HasBinaryProducts (C.A i))
+    (hppres : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
+        (u v : z ⟶ C.F hij ((hp i).prod a b)),
+        u ≫ (C.functF hij).map (hp i).fst = v ≫ (C.functF hij).map (hp i).fst →
+        u ≫ (C.functF hij).map (hp i).snd = v ≫ (C.functF hij).map (hp i).snd → u = v)
+    (hppres_pair : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
+        (p : z ⟶ C.F hij a) (q : z ⟶ C.F hij b),
+        ∃ r : z ⟶ C.F hij ((hp i).prod a b),
+          r ≫ (C.functF hij).map (hp i).fst = p ∧ r ≫ (C.functF hij).map (hp i).snd = q)
+    (he : ∀ i, HasEqualizers (C.A i))
+    (hepres : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
+        (u v : z ⟶ C.F hij (eqObj f g)),
+        u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
+    (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
+        (k : z ⟶ C.F hij A)
+        (hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
+        ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k)
+    -- faithfulness / conservativity / mono-preservation of every transition (cover reflection)
+    (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (p q : x ⟶ y),
+        (C.functF hij).map p = (C.functF hij).map q → p = q)
+    (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
+        IsIso ((C.functF hij).map φ) → IsIso φ)
+    (hmono : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
+        Mono φ → Mono ((C.functF hij).map φ))
+    -- per-stage `PullbacksTransferCovers` (the stages are pre-regular)
+    (hstagePTC : ∀ (i : ι), letI : HasTerminal (C.A i) := ht i;
+        letI : HasBinaryProducts (C.A i) := hp i; letI : HasEqualizers (C.A i) := he i;
+        letI : HasPullbacks (C.A i) := ⟨fun f g => products_equalizers_implies_pullbacks f g⟩;
+        PullbacksTransferCovers (C.A i))
+    -- transition functors preserve covers
+    (hcovpres : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
+        Cover φ → Cover ((C.functF hij).map φ)) :
+    letI : Cat C.Obj := colimitCat C hC
+    letI : HasPullbacks C.Obj :=
+      colimitHasPullbacks C hC ht htpres hp hppres hppres_pair he hepres hepres_lift
+    ∀ {A B Z : C.Obj} (f : A ⟶ Z) (g : B ⟶ Z),
+        Cover f → Cover (HasPullbacks.has f g).cone.π₂ := by
+  letI : Cat C.Obj := colimitCat C hC
+  intro A B Z f g hf
+  -- SEALED accessor: replace the goal's `(colimitHasPullbacks …).has f g` by
+  -- `products_equalizers_implies_pullbacks f g` via the ALREADY-PROVEN equation — the `whnf` cost of
+  -- the finite-limit cascade was paid ONCE in `colimitHasPullbacks_has` (the §1.543 perf fix), so this
+  -- `rw` is cheap and the subsequent reasoning never re-forces it.
+  rw [colimitHasPullbacks_has C hC ht htpres hp hppres hppres_pair he hepres hepres_lift f g]
+  -- align `(f, g)` to a stage cospan `(fN, gN)` sharing codomain `xZ` at stage `N`
+  obtain ⟨N, xA, xB, xZ, fN, gN, eA, eB, eZ, hfHEq, hgHEq⟩ :=
+    colimHom_cospan_as_homInclObj C hC f g
+  -- identify the colimit objects with the stage `objIncl`-images, turning the HEqs into Eqs
+  subst eA; subst eB; subst eZ
+  have hfeq : homInclObj C hC fN = f := eq_of_heq hfHEq
+  have hgeq : homInclObj C hC gN = g := eq_of_heq hgHEq
+  subst hfeq; subst hgeq
+  -- `f = homInclObj fN` is a cover ⇒ `fN` is a STAGE cover (cover reflection)
+  have hfN_cov : Cover fN := homInclObj_cover_reflects C hC hcons hmono fN hf
+  -- the §1.432 stage pullback of `(fN, gN)`; its `π₂` is a stage cover by per-stage PTC
+  letI : HasTerminal (C.A N) := ht N
+  letI : HasBinaryProducts (C.A N) := hp N
+  letI : HasEqualizers (C.A N) := he N
+  letI hpullN : HasPullbacks (C.A N) := ⟨fun f g => products_equalizers_implies_pullbacks f g⟩
+  letI : PullbacksTransferCovers (C.A N) := hstagePTC N
+  let P := products_equalizers_implies_pullbacks fN gN
+  have hP2_cov : Cover P.cone.π₂ :=
+    PullbacksTransferCovers.pullbacks_transfer_covers _ P.cone_isPullback hfN_cov
+  -- lift the stage cover `P.cone.π₂` to a COLIMIT cover of its inclusion (cover-preservation)
+  have hPincl_cov : @Cover C.Obj (colimitCat C hC) _ _ (homInclObj C hC P.cone.π₂) :=
+    homInclObj_cover_of_stage C hC hfaith P.cone.π₂
+      (fun {j} hNj => hcovpres hNj P.cone.π₂ hP2_cov)
+  -- the `objIncl N`-image of `P.cone` is a pullback of `(homInclObj fN, homInclObj gN)`, a WITNESS
+  -- cone whose `π₂ = homInclObj P.cone.π₂` carries the lifted cover.
+  have hwit := objIncl_preserves_pullbacks C hC ht htpres hp hppres hppres_pair
+    he hepres hepres_lift N fN gN
+  -- the goal is `Cover (products_equalizers_implies_pullbacks (homInclObj fN) (homInclObj gN)).cone.π₂`
+  -- — a NAMED `HasPullback` term (no instance synthesis, no cascade).  Compare its chosen cone to the
+  -- WITNESS germ cone (`hwit`) and transport the lifted `π₂`-cover (`pullback_comparison_iso` +
+  -- `cover_precomp_iso`).  (The single ~8s `whnf` of the §1.432 chosen cone is paid here.)
+  intro D' m g hm hgm
+  exact hasPullback_cover_of_witness _ hwit hPincl_cov m g hm hgm
+
 end Freyd.Colim
 
 /-! ## §1.543 The capitalization data, and the reduction to it
