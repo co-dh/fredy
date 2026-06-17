@@ -24,6 +24,8 @@ import Fredy.S1_51
 import Fredy.S1_57
 import Fredy.S1_58
 import Fredy.S1_85
+import Fredy.S1_92
+import Fredy.S1_94
 
 
 universe v u
@@ -81,32 +83,157 @@ def expPostMap {𝒞 : Type u} [Cat.{v} 𝒞] [HasExponentials 𝒞] (A B C : �
 def IsIAC (𝒞 : Type u) [Cat.{v} 𝒞] [Topos 𝒞] [HasExponentials 𝒞] : Prop :=
   ∀ (A B C : 𝒞) (f : B ⟶ C), Cover f → Cover (expPostMap A B C f)
 
+/-- Absorbing a `pair` into the product functor: `⟨f,g⟩ ≫ (A × h) = ⟨f, g≫h⟩`. -/
+theorem pair_prodMap {𝒞 : Type u} [Cat.{v} 𝒞] [HasBinaryProducts 𝒞]
+    {A X Y W : 𝒞} (f : W ⟶ A) (g : W ⟶ X) (h : X ⟶ Y) :
+    pair f g ≫ prodMap A X Y h = pair f (g ≫ h) := by
+  apply pair_uniq
+  · rw [Cat.assoc, prodMap_fst, fst_pair]
+  · rw [Cat.assoc, prodMap_snd, ← Cat.assoc, snd_pair]
+
 /-! ## §1.974  AC ↔ IAC + projective terminal
 
   §1.974: A topos is AC (all objects are projective / choice) iff it is IAC
   and 1 is projective.
 
-  One direction: given an epic f : A → B in an IAC topos with projective 1,
-  pull f back along itself to get f×f : A×_B A → B×_B B ≅ B; the pullback
-  projection A×_B A → A is epic (pullbacks preserve epics in IAC), so
-  B→ is well-supported, and since 1 is projective there is a point, giving a
-  right-inverse to f.
+  Backward (IAC ∧ 1 projective ⇒ every object projective): given a cover
+  f : A → C, the post-composition cover q := f^C : A^C → C^C is a cover (IAC).
+  Pull q back along the name `⌜id_C⌝ : 1 → C^C` of the identity; the projection
+  P → 1 is a cover (pullbacks transfer covers, the topos-exactness fact Freyd
+  treats as ambient — `PullbacksTransferCovers`), and 1 projective splits it.
+  The splitting names a point p : 1 → A^C lifting ⌜id_C⌝; uncurrying p gives the
+  section s : C → A with s ≫ f = id_C.
 
-  The other direction: AC implies every object is projective (cover = split
-  epi by definition), so 1 is projective; and AC implies IAC (exponentials
-  preserve left-invertible maps and every epic is left-invertible in AC). -/
+  Forward (every object projective ⇒ IAC ∧ 1 projective): 1 projective is the
+  C := 1 instance.  IAC: a cover f is split (cover = split epi when its codomain
+  is projective), s ≫ f = id; exponential functoriality `f^C` then has the
+  section `s^C` (since `(s≫f)^C = s^C ≫ f^C = id`), so `f^C` is a split epi,
+  hence a cover.
 
-/-- §1.974: A topos is AC iff it is IAC and the terminal object 1 is projective. -/
-theorem ac_iff_iac_and_projective_one [HasExponentials 𝒞] [HasImages 𝒞] :
+  The book's argument explicitly invokes "pullbacks preserve epics", i.e.
+  `PullbacksTransferCovers` — a topos-exactness fact that this repo does NOT
+  derive from `Topos` (see the faithful sorries in §1.94 `topos_is_regular`).
+  We therefore carry it as an explicit hypothesis, matching the book's ambient
+  use of topos regularity. -/
+
+/-- A split epi (map with a right inverse `s ≫ f = id`) is a cover. -/
+theorem cover_of_split_epi {X Y : 𝒞} [HasImages 𝒞] {f : X ⟶ Y} {s : Y ⟶ X}
+    (hsf : s ≫ f = Cat.id Y) : Cover f := by
+  intro D m g hm hgm
+  -- (s ≫ g) ≫ m = s ≫ f = id_Y, so m has a section; m mono ⇒ m iso.
+  have hsec : (s ≫ g) ≫ m = Cat.id Y := by rw [Cat.assoc, hgm, hsf]
+  have hms : m ≫ (s ≫ g) = Cat.id D :=
+    hm _ _ (by rw [Cat.assoc, hsec, Cat.comp_id, Cat.id_comp])
+  exact ⟨s ≫ g, hms, hsec⟩
+
+/-- The NAME of a map `g : C → A` as a point `1 → A^C`: `⌜g⌝ = curry (fst ≫ g)`
+    where `fst : C × 1 → C`.  Its uncurry `apply ⌜g⌝ = g`. -/
+def expName {𝒞 : Type u} [Cat.{v} 𝒞] [HasTerminal 𝒞] [HasExponentials 𝒞] {A C : 𝒞}
+    (g : C ⟶ A) : one ⟶ A ^^ C :=
+  curry (fst ≫ g)
+
+/-- Uncurry a point `p : 1 → A^C` back to a map `C → A`: `⟨id_C, term≫p⟩ ≫ eval`. -/
+def expApply {𝒞 : Type u} [Cat.{v} 𝒞] [HasTerminal 𝒞] [HasExponentials 𝒞] {A C : 𝒞}
+    (p : one ⟶ A ^^ C) : C ⟶ A :=
+  pair (Cat.id C) (term C ≫ p) ≫ eval_exp C A
+
+/-- `apply ⌜g⌝ = g`. -/
+theorem expApply_expName {𝒞 : Type u} [Cat.{v} 𝒞] [HasTerminal 𝒞] [HasExponentials 𝒞]
+    {A C : 𝒞} (g : C ⟶ A) : expApply (expName g) = g := by
+  show pair (Cat.id C) (term C ≫ curry (fst ≫ g)) ≫ eval_exp C A = g
+  have key : pair (Cat.id C) (term C ≫ curry (fst ≫ g)) ≫ eval_exp C A
+      = pair (Cat.id C) (term C) ≫ prodMap C one (A ^^ C) (curry (fst ≫ g)) ≫ eval_exp C A := by
+    rw [← Cat.assoc, pair_prodMap]
+  rw [key, curry_eval_eq, ← Cat.assoc, fst_pair, Cat.id_comp]
+
+/-- Uncurry commutes with post-composition: `apply (p ≫ f^C) = apply p ≫ f`. -/
+theorem expApply_postMap {𝒞 : Type u} [Cat.{v} 𝒞] [HasTerminal 𝒞] [HasExponentials 𝒞]
+    {A B C : 𝒞} (p : one ⟶ A ^^ C) (f : A ⟶ B) :
+    expApply (p ≫ expPostMap C A B f) = expApply p ≫ f := by
+  show pair (Cat.id C) (term C ≫ p ≫ expPostMap C A B f) ≫ eval_exp C B
+      = (pair (Cat.id C) (term C ≫ p) ≫ eval_exp C A) ≫ f
+  calc pair (Cat.id C) (term C ≫ p ≫ expPostMap C A B f) ≫ eval_exp C B
+      = pair (Cat.id C) ((term C ≫ p) ≫ expPostMap C A B f) ≫ eval_exp C B := by
+        rw [Cat.assoc]
+    _ = (pair (Cat.id C) (term C ≫ p) ≫ prodMap C (A ^^ C) (B ^^ C) (curry (eval_exp C A ≫ f)))
+          ≫ eval_exp C B := by rw [expPostMap, ← pair_prodMap]
+    _ = pair (Cat.id C) (term C ≫ p) ≫ eval_exp C A ≫ f := by rw [Cat.assoc, curry_eval_eq]
+    _ = (pair (Cat.id C) (term C ≫ p) ≫ eval_exp C A) ≫ f := (Cat.assoc _ _ _).symm
+
+/-- Naming commutes with post-composition: `⌜g⌝ ≫ f^C = ⌜g ≫ f⌝`. -/
+theorem expName_postMap {𝒞 : Type u} [Cat.{v} 𝒞] [HasTerminal 𝒞] [HasExponentials 𝒞]
+    {A B C : 𝒞} (g : C ⟶ A) (f : A ⟶ B) :
+    expName g ≫ expPostMap C A B f = expName (g ≫ f) := by
+  -- both name `g ≫ f`; check by uncurrying (prodMap_eval_inj on points via curry_unique).
+  show expName g ≫ curry (eval_exp C A ≫ f) = curry (fst ≫ g ≫ f)
+  apply curry_unique_eq
+  -- (C × (⌜g⌝ ≫ curry(eval≫f))) ≫ eval = fst ≫ g ≫ f
+  rw [prodMap_comp, Cat.assoc, curry_eval_eq, ← Cat.assoc]
+  -- ((C × ⌜g⌝) ≫ eval) ≫ f = fst ≫ g ≫ f
+  show (prodMap C one (A ^^ C) (expName g) ≫ eval_exp C A) ≫ f = fst ≫ g ≫ f
+  -- (C × ⌜g⌝) ≫ eval = fst ≫ g, with ⌜g⌝ = curry (fst ≫ g)
+  show (prodMap C one (A ^^ C) (curry (fst ≫ g)) ≫ eval_exp C A) ≫ f = fst ≫ g ≫ f
+  rw [curry_eval_eq, Cat.assoc]
+
+/-- §1.974: A topos is AC iff it is IAC and the terminal object 1 is projective.
+    (`PullbacksTransferCovers` = the ambient topos-exactness the book uses.) -/
+theorem ac_iff_iac_and_projective_one [HasExponentials 𝒞] [HasImages 𝒞]
+    [HasPullbacks 𝒞] [PullbacksTransferCovers 𝒞] :
     (∀ (C : 𝒞), Projective C) ↔
     (IsIAC 𝒞 ∧ Projective (one (𝒞 := 𝒞))) := by
-  sorry
+  constructor
+  · -- Forward: all projective ⇒ IAC ∧ 1 projective.
+    intro hall
+    refine ⟨?_, hall one⟩
+    -- IAC: cover f ⇒ f^A := expPostMap A B C f is a cover.
+    intro A B C f hf
+    -- f is a cover with codomain C, and C is projective, so f splits.
+    obtain ⟨s, hs⟩ := hall C f hf
+    -- s ≫ f = id_C.  expPostMap is functorial: s^A ≫ f^A = (s≫f)^A = id^A = id.
+    have hfun : expPostMap A C B s ≫ expPostMap A B C f = Cat.id (C ^^ A) := by
+      show expCovMap A s ≫ expCovMap A f = Cat.id (C ^^ A)
+      rw [← expCovMap_comp, hs, expCovMap_id]
+    intro D m g hm hgm
+    exact (cover_of_split_epi (f := expPostMap A B C f) (s := expPostMap A C B s) hfun)
+      m g hm hgm
+  · -- Backward: IAC ∧ 1 projective ⇒ every object projective.
+    rintro ⟨hiac, h1⟩ C A f hf
+    -- q := f^C : A^C → C^C is a cover (IAC).
+    let q : (A ^^ C) ⟶ (C ^^ C) := expPostMap C A C f
+    have hq : Cover q := hiac C A C f hf
+    -- name of id_C : 1 → C^C
+    let nm : one ⟶ (C ^^ C) := expName (Cat.id C)
+    -- pull q back along nm; projection π₂ : P → 1 is a cover.
+    let pb := HasPullbacks.has q nm
+    have hπ₂ : Cover pb.cone.π₂ := cover_pullback nm hq
+    -- 1 projective splits π₂.
+    obtain ⟨r, hr⟩ := h1 pb.cone.π₂ hπ₂
+    -- p := r ≫ π₁ : 1 → A^C lifts nm:  p ≫ q = nm.
+    let p : one ⟶ (A ^^ C) := r ≫ pb.cone.π₁
+    have hp : p ≫ q = nm := by
+      show (r ≫ pb.cone.π₁) ≫ q = nm
+      rw [Cat.assoc, pb.cone.w, ← Cat.assoc, hr, Cat.id_comp]
+    -- s := uncurry p : C → A.  Then s ≫ f = apply (p ≫ q) = apply nm = id_C.
+    refine ⟨expApply p, ?_⟩
+    -- s ≫ f = apply p ≫ f = apply (p ≫ f^C) = apply (p ≫ q) = apply nm = id_C.
+    rw [← expApply_postMap p f]
+    show expApply (p ≫ expPostMap C A C f) = Cat.id C
+    rw [show expPostMap C A C f = q from rfl, hp]
+    exact expApply_expName (Cat.id C)
 
 /-! ## §1.981  NNO iterate for pairs
 
   §1.981: If 1 →⁰ N →ˢ N is a NNO, then for every A →ᵃ B ←ᵇ B there
   exists a unique A × N → B such that the two triangles commute.
   This is obtained by transposing through the exponential adjunction. -/
+
+/-- `g ↦ (A × g) ≫ eval` is injective: it is split by `curry`. -/
+theorem prodMap_eval_inj {𝒞 : Type u} [Cat.{v} 𝒞] [HasExponentials 𝒞]
+    {A B X : 𝒞} {g₁ g₂ : X ⟶ B ^^ A}
+    (h : prodMap A X (B ^^ A) g₁ ≫ eval_exp A B = prodMap A X (B ^^ A) g₂ ≫ eval_exp A B) :
+    g₁ = g₂ := by
+  rw [curry_unique_eq (f := prodMap A X (B ^^ A) g₁ ≫ eval_exp A B) rfl,
+      curry_unique_eq (f := prodMap A X (B ^^ A) g₂ ≫ eval_exp A B) rfl, h]
 
 /-- §1.981: Given an NNO and exponentials, from a : A → B and b : B → B
     build the unique morphism A × N → B satisfying the recursion equations.
@@ -125,44 +252,33 @@ theorem iteratePair_zero {𝒞 : Type u} [Cat.{v} 𝒞]
     [hN : HasNaturalNumbersObject 𝒞] [HasExponentials 𝒞]
     {A B : 𝒞} (a : A ⟶ B) (b : B ⟶ B) :
     pair (Cat.id A) (term A ≫ hN.zero) ≫ iteratePair a b = a := by
-  -- Abbreviations: a_hat = curry (fst ≫ a), H = iterate a_hat b_hat.
-  let a_hat : one ⟶ exp A B := curry (fst ≫ a)
-  let b_hat : exp A B ⟶ exp A B := expPostMap A B B b
-  let H : hN.nno ⟶ exp A B := hN.iterate a_hat b_hat
-  have hzH : hN.zero ≫ H = a_hat := hN.iterate_zero a_hat b_hat
-  -- LHS = pair id (term A ≫ zero) ≫ prodMap A N (B^A) H ≫ eval
-  --     = prodOneRightInv A ≫ prodMap A 1 (B^A) a_hat ≫ eval
-  --     = prodOneRightInv A ≫ fst ≫ a = a.
-  show pair (Cat.id A) (term A ≫ hN.zero) ≫ prodMap A hN.nno (exp A B) H ≫ eval_exp A B = a
-  have lhs_eq : pair (Cat.id A) (term A ≫ hN.zero) ≫ prodMap A hN.nno (exp A B) H
-      = pair (Cat.id A) (term A ≫ hN.zero ≫ H) := by
-    apply pair_uniq
-    · rw [Cat.assoc, prodMap_fst, fst_pair]
-    · rw [Cat.assoc, prodMap_snd, ← Cat.assoc, snd_pair, Cat.assoc]
-  have rhs_eq : pair (Cat.id A) (term A) ≫ prodMap A one (exp A B) a_hat
-      = pair (Cat.id A) (term A ≫ a_hat) := by
-    apply pair_uniq
-    · rw [Cat.assoc, prodMap_fst, fst_pair]
-    · rw [Cat.assoc, prodMap_snd, ← Cat.assoc, snd_pair]
-  rw [← Cat.assoc, lhs_eq, hzH, ← rhs_eq, Cat.assoc]
-  show pair (Cat.id A) (term A) ≫ prodMap A one (exp A B) (curry (fst ≫ a)) ≫ eval_exp A B = a
-  rw [curry_eval_eq, ← Cat.assoc, fst_pair, Cat.id_comp]
+  -- iteratePair a b = (A × iter) ≫ eval, with iter = iterate a_hat b_hat.
+  -- Absorb the pair, use zero ≫ iter = a_hat, then curry_eval to drop a_hat.
+  show pair (Cat.id A) (term A ≫ hN.zero) ≫
+      prodMap A hN.nno (exp A B) (hN.iterate (curry (fst ≫ a)) (expPostMap A B B b)) ≫ eval_exp A B = a
+  rw [← Cat.assoc, pair_prodMap, Cat.assoc, hN.iterate_zero]
+  -- goal: ⟨id, term ≫ a_hat⟩ ≫ eval = a, with a_hat = curry (fst ≫ a)
+  have key : pair (Cat.id A) (term A ≫ curry (fst ≫ a)) ≫ eval_exp A B
+      = pair (Cat.id A) (term A) ≫ prodMap A one (exp A B) (curry (fst ≫ a)) ≫ eval_exp A B := by
+    rw [← Cat.assoc, pair_prodMap]
+  rw [key, curry_eval_eq, ← Cat.assoc, fst_pair, Cat.id_comp]
 
 /-- §1.981 successor equation: (1_A, s) ≫ iteratePair a b = iteratePair a b ≫ b. -/
 theorem iteratePair_succ {𝒞 : Type u} [Cat.{v} 𝒞]
     [hN : HasNaturalNumbersObject 𝒞] [HasExponentials 𝒞]
     {A B : 𝒞} (a : A ⟶ B) (b : B ⟶ B) :
     prodMap A hN.nno hN.nno (hN.succ) ≫ iteratePair a b = iteratePair a b ≫ b := by
-  let a_hat : one ⟶ exp A B := curry (fst ≫ a)
-  let b_hat : exp A B ⟶ exp A B := expPostMap A B B b
-  let H : hN.nno ⟶ exp A B := hN.iterate a_hat b_hat
-  have hsH : hN.succ ≫ H = H ≫ b_hat := hN.iterate_succ a_hat b_hat
-  -- prodMap A N (B^A) (b_hat) ≫ eval = eval ≫ b  (defining eq of expPostMap).
-  have hbeval : prodMap A (exp A B) (exp A B) b_hat ≫ eval_exp A B = eval_exp A B ≫ b :=
-    curry_eval_eq (eval_exp A B ≫ b)
-  show prodMap A hN.nno hN.nno hN.succ ≫ prodMap A hN.nno (exp A B) H ≫ eval_exp A B
-      = (prodMap A hN.nno (exp A B) H ≫ eval_exp A B) ≫ b
-  rw [← Cat.assoc, ← prodMap_comp, hsH, prodMap_comp, Cat.assoc, hbeval, ← Cat.assoc]
+  show prodMap A hN.nno hN.nno hN.succ ≫
+      prodMap A hN.nno (exp A B) (hN.iterate (curry (fst ≫ a)) (expPostMap A B B b)) ≫ eval_exp A B
+    = (prodMap A hN.nno (exp A B) (hN.iterate (curry (fst ≫ a)) (expPostMap A B B b)) ≫ eval_exp A B) ≫ b
+  -- collapse the two prodMaps on N, then use succ ≫ iter = iter ≫ b_hat
+  rw [← Cat.assoc, ← prodMap_comp, hN.iterate_succ, prodMap_comp]
+  -- goal: (A × iter) ≫ (A × b_hat) ≫ eval = ((A × iter) ≫ eval) ≫ b
+  rw [Cat.assoc, Cat.assoc]
+  congr 1
+  -- (A × b_hat) ≫ eval = eval ≫ b, since b_hat = expPostMap = curry (eval ≫ b)
+  show prodMap A (exp A B) (exp A B) (curry (eval_exp A B ≫ b)) ≫ eval_exp A B = eval_exp A B ≫ b
+  rw [curry_eval_eq]
 
 /-- §1.981 uniqueness: iteratePair is the unique such morphism. -/
 theorem iteratePair_unique {𝒞 : Type u} [Cat.{v} 𝒞]
@@ -172,40 +288,32 @@ theorem iteratePair_unique {𝒞 : Type u} [Cat.{v} 𝒞]
     (h0 : pair (Cat.id A) (term A ≫ hN.zero) ≫ h = a)
     (hs : prodMap A hN.nno hN.nno hN.succ ≫ h = h ≫ b) :
     h = iteratePair a b := by
-  let a_hat : one ⟶ exp A B := curry (fst ≫ a)
-  let b_hat : exp A B ⟶ exp A B := expPostMap A B B b
-  -- The transpose curry h : N → B^A satisfies the NNO equations for (a_hat, b_hat).
-  -- General fact: precomposition commutes with currying.
-  have curry_precomp : ∀ {X Y : 𝒞} (g : X ⟶ Y) (f : prod A Y ⟶ B),
-      g ≫ curry f = curry (prodMap A X Y g ≫ f) := fun g f => by
-    apply curry_unique_eq
-    rw [prodMap_comp, Cat.assoc, curry_eval_eq]
-  -- zero ≫ curry h = a_hat
-  have hz : hN.zero ≫ curry h = a_hat := by
-    rw [curry_precomp]
-    apply congrArg curry
-    -- prodMap A 1 N zero ≫ h = fst ≫ a, via h0 and term-uniqueness.
-    have e1 : prodMap A one hN.nno hN.zero = fst ≫ pair (Cat.id A) (term A ≫ hN.zero) := by
-      show pair fst (snd ≫ hN.zero) = fst ≫ pair (Cat.id A) (term A ≫ hN.zero)
-      symm; apply pair_uniq
-      · rw [Cat.assoc, fst_pair, Cat.comp_id]
-      · rw [Cat.assoc, snd_pair, ← Cat.assoc]
-        congr 1; exact term_uniq _ _
-    rw [show prodMap A HasTerminal.one hN.nno hN.zero
-          = fst ≫ pair (Cat.id A) (term A ≫ hN.zero) from e1, Cat.assoc, h0]
-  -- succ ≫ curry h = curry h ≫ b_hat
-  have hsucc : hN.succ ≫ curry h = curry h ≫ b_hat := by
-    rw [curry_precomp]
-    have hb : curry h ≫ b_hat = curry (h ≫ b) := by
-      apply curry_unique_eq
-      show prodMap A hN.nno (exp A B) (curry h ≫ b_hat) ≫ eval_exp A B = h ≫ b
-      have hbev : prodMap A (exp A B) (exp A B) b_hat ≫ eval_exp A B = eval_exp A B ≫ b :=
-        curry_eval_eq (eval_exp A B ≫ b)
-      rw [prodMap_comp, Cat.assoc, hbev, ← Cat.assoc, curry_eval_eq]
-    rw [hb]; exact congrArg curry hs
-  have hcurry : curry h = hN.iterate a_hat b_hat := hN.iterate_unique a_hat b_hat (curry h) hz hsucc
-  -- Therefore iteratePair = prodMap N (B^A) (curry h) ≫ eval = h.
-  show h = prodMap A hN.nno (exp A B) (hN.iterate a_hat b_hat) ≫ eval_exp A B
+  -- Transpose h to curry h : N → B^A. Show curry h = iterate a_hat b_hat by NNO uniqueness,
+  -- then uncurry both sides.
+  have hbhat : prodMap A (exp A B) (exp A B) (expPostMap A B B b) ≫ eval_exp A B
+      = eval_exp A B ≫ b := by
+    show prodMap A (exp A B) (exp A B) (curry (eval_exp A B ≫ b)) ≫ eval_exp A B = eval_exp A B ≫ b
+    rw [curry_eval_eq]
+  -- curry h iterates the NNO data:
+  have hcurry : curry h = hN.iterate (curry (fst ≫ a)) (expPostMap A B B b) := by
+    apply hN.iterate_unique
+    · -- zero ≫ curry h = curry (fst ≫ a)
+      apply prodMap_eval_inj
+      rw [prodMap_comp, Cat.assoc, curry_eval_eq, curry_eval_eq]
+      -- goal: (A × zero) ≫ h = fst ≫ a
+      have hpm : prodMap A one hN.nno hN.zero = fst ≫ pair (Cat.id A) (term A ≫ hN.zero) := by
+        symm
+        apply pair_uniq
+        · rw [Cat.assoc, fst_pair, Cat.comp_id]
+        · rw [Cat.assoc, snd_pair, ← Cat.assoc]; congr 1; exact term_uniq _ _
+      rw [show prodMap A HasTerminal.one hN.nno hN.zero
+            = fst ≫ pair (Cat.id A) (term A ≫ hN.zero) from hpm, Cat.assoc, h0]
+    · -- succ ≫ curry h = curry h ≫ b_hat
+      apply prodMap_eval_inj
+      rw [prodMap_comp, Cat.assoc, curry_eval_eq, prodMap_comp, Cat.assoc, hbhat,
+          ← Cat.assoc, curry_eval_eq, hs]
+  -- now uncurry: h = (A × curry h) ≫ eval = (A × iter) ≫ eval = iteratePair a b
+  show h = prodMap A hN.nno (exp A B) (hN.iterate (curry (fst ≫ a)) (expPostMap A B B b)) ≫ eval_exp A B
   rw [← hcurry, curry_eval_eq]
 
 /-! ## §1.983  Primitive recursion in a topos
@@ -216,22 +324,75 @@ theorem iteratePair_unique {𝒞 : Type u} [Cat.{v} 𝒞]
     (1_A × s) ≫ f = (1_A, p₂, f) ≫ h
   where (1_A, p₂, f) : A × N → A × N × B. -/
 
+/-- §1.983 base value a' : A → (A×N)×B for the §1.981 iterate: `⟨⟨1_A, 0⟩, g⟩`. -/
+def primRecBase {𝒞 : Type u} [Cat.{v} 𝒞]
+    [hN : HasNaturalNumbersObject 𝒞] [HasExponentials 𝒞]
+    {A B : 𝒞} (g : A ⟶ B) : A ⟶ prod (prod A hN.nno) B :=
+  pair (pair (Cat.id A) (term A ≫ hN.zero)) g
+
+/-- §1.983 step b' : (A×N)×B → (A×N)×B for the §1.981 iterate:
+    `⟨⟨p₁, p₂·s⟩, h⟩` — advance the counter and apply h. -/
+def primRecStep {𝒞 : Type u} [Cat.{v} 𝒞]
+    [hN : HasNaturalNumbersObject 𝒞] [HasExponentials 𝒞]
+    {A B : 𝒞} (h : prod (prod A hN.nno) B ⟶ B) :
+    prod (prod A hN.nno) B ⟶ prod (prod A hN.nno) B :=
+  pair (pair (fst ≫ fst) (fst ≫ snd ≫ hN.succ)) h
+
 /-- §1.983: PRIMITIVE RECURSION. Given NNO 1→N→N, g : A→B, h : A×N×B→B,
-    the unique f : A×N→B satisfying the primitive recursion equations. -/
+    the unique f : A×N→B satisfying the primitive recursion equations.
+    Construction (book): k := iteratePair ⟨⟨1,0⟩,g⟩ ⟨⟨p₁,p₂s⟩,h⟩ : A×N → (A×N)×B,
+    then f = k ≫ p₃ (projection to B). -/
 def primRec {𝒞 : Type u} [Cat.{v} 𝒞]
     [hN : HasNaturalNumbersObject 𝒞] [HasExponentials 𝒞]
     {A B : 𝒞} (g : A ⟶ B) (h : prod (prod A hN.nno) B ⟶ B) :
     prod A hN.nno ⟶ B :=
-  -- The book constructs k : A × N → A × N × B via the iterate of §1.981,
-  -- then f = k ≫ p₃ (projection to B).  We sorry the full construction.
-  sorry
+  iteratePair (primRecBase g) (primRecStep h) ≫ snd
+
+/-- §1.983 carrier identity: the A×N-component of k is the identity, i.e. k ≫ p₁ = 1.
+    This is what makes k = ⟨p₁, p₂, f⟩.  Proved by §1.981-uniqueness: both k≫p₁ and 1
+    iterate ⟨1_A,0⟩ along (A × s). -/
+theorem primRec_fst {𝒞 : Type u} [Cat.{v} 𝒞]
+    [hN : HasNaturalNumbersObject 𝒞] [HasExponentials 𝒞]
+    {A B : 𝒞} (g : A ⟶ B) (h : prod (prod A hN.nno) B ⟶ B) :
+    iteratePair (primRecBase g) (primRecStep h) ≫ fst = Cat.id (prod A hN.nno) := by
+  -- k ≫ fst and id both equal iteratePair ⟨1,0⟩ (A × s); conclude by uniqueness.
+  have e0 : pair (Cat.id A) (term A ≫ hN.zero)
+        ≫ (iteratePair (primRecBase g) (primRecStep h) ≫ fst)
+      = pair (Cat.id A) (term A ≫ hN.zero) := by
+    rw [← Cat.assoc, iteratePair_zero]
+    show primRecBase g ≫ fst = _
+    rw [primRecBase, fst_pair]
+  have es : prodMap A hN.nno hN.nno hN.succ
+        ≫ (iteratePair (primRecBase g) (primRecStep h) ≫ fst)
+      = (iteratePair (primRecBase g) (primRecStep h) ≫ fst)
+        ≫ prodMap A hN.nno hN.nno hN.succ := by
+    rw [← Cat.assoc, iteratePair_succ, Cat.assoc, Cat.assoc]
+    congr 1
+    -- primRecStep h ≫ fst = ⟨p₁p₁, p₁p₂s⟩ = fst ≫ (A × s)
+    rw [primRecStep, fst_pair]
+    symm
+    apply pair_uniq
+    · rw [Cat.assoc, prodMap_fst]
+    · rw [Cat.assoc, prodMap_snd, ← Cat.assoc]
+  -- both k≫fst and id satisfy the same iterate equations for (⟨1,0⟩, A×s)
+  have huniq1 : iteratePair (primRecBase g) (primRecStep h) ≫ fst
+      = iteratePair (pair (Cat.id A) (term A ≫ hN.zero)) (prodMap A hN.nno hN.nno hN.succ) :=
+    iteratePair_unique _ _ _ e0 es
+  have huniq2 : Cat.id (prod A hN.nno)
+      = iteratePair (pair (Cat.id A) (term A ≫ hN.zero)) (prodMap A hN.nno hN.nno hN.succ) := by
+    apply iteratePair_unique
+    · rw [Cat.comp_id]
+    · rw [Cat.comp_id, Cat.id_comp]
+  rw [huniq1, ← huniq2]
 
 /-- §1.983 base equation: (1_A, 0) ≫ primRec g h = g. -/
 theorem primRec_zero {𝒞 : Type u} [Cat.{v} 𝒞]
     [hN : HasNaturalNumbersObject 𝒞] [HasExponentials 𝒞]
     {A B : 𝒞} (g : A ⟶ B) (h : prod (prod A hN.nno) B ⟶ B) :
     pair (Cat.id A) (term A ≫ hN.zero) ≫ primRec g h = g := by
-  sorry
+  show pair (Cat.id A) (term A ≫ hN.zero)
+      ≫ iteratePair (primRecBase g) (primRecStep h) ≫ snd = g
+  rw [← Cat.assoc, iteratePair_zero, primRecBase, snd_pair]
 
 /-- §1.983 step equation: (1_A × s) ≫ primRec g h = ⟨id, id, primRec g h⟩ ≫ h. -/
 theorem primRec_succ {𝒞 : Type u} [Cat.{v} 𝒞]
@@ -239,7 +400,16 @@ theorem primRec_succ {𝒞 : Type u} [Cat.{v} 𝒞]
     {A B : 𝒞} (g : A ⟶ B) (h : prod (prod A hN.nno) B ⟶ B) :
     prodMap A hN.nno hN.nno hN.succ ≫ primRec g h =
       pair (pair fst snd) (primRec g h) ≫ h := by
-  sorry
+  -- k = ⟨p₁, f⟩ since k≫p₁ = 1; LHS = k≫h, and ⟨⟨p₁,p₂⟩,f⟩ = k.
+  have hkeq : iteratePair (primRecBase g) (primRecStep h)
+      = pair (pair fst snd) (iteratePair (primRecBase g) (primRecStep h) ≫ snd) := by
+    apply pair_uniq
+    · rw [primRec_fst, pair_fst_snd]
+    · rfl
+  have hstep_snd : primRecStep h ≫ snd = h := by rw [primRecStep, snd_pair]
+  show prodMap A hN.nno hN.nno hN.succ ≫ iteratePair (primRecBase g) (primRecStep h) ≫ snd
+      = pair (pair fst snd) (iteratePair (primRecBase g) (primRecStep h) ≫ snd) ≫ h
+  rw [← Cat.assoc, iteratePair_succ, Cat.assoc, hstep_snd, ← hkeq]
 
 /-- §1.983 uniqueness. -/
 theorem primRec_unique {𝒞 : Type u} [Cat.{v} 𝒞]
@@ -249,7 +419,35 @@ theorem primRec_unique {𝒞 : Type u} [Cat.{v} 𝒞]
     (hf0 : pair (Cat.id A) (term A ≫ hN.zero) ≫ f = g)
     (hfs : prodMap A hN.nno hN.nno hN.succ ≫ f = pair (pair fst snd) f ≫ h) :
     f = primRec g h := by
-  sorry
+  -- kf := ⟨p₁, p₂, f⟩ satisfies the §1.981 iterate equations for (a', b'); by §1.981
+  -- uniqueness kf = k = iteratePair a' b', so f = kf ≫ snd = k ≫ snd = primRec g h.
+  have kf_fst : pair (pair fst snd) f ≫ fst = pair fst snd := fst_pair _ _
+  have hkf : pair (pair fst snd) f = iteratePair (primRecBase g) (primRecStep h) := by
+    apply iteratePair_unique
+    · -- ⟨1,0⟩ ≫ kf = a' = ⟨⟨1,0⟩, g⟩
+      rw [primRecBase]
+      apply pair_uniq
+      · apply pair_uniq <;>
+          simp only [Cat.assoc, fst_pair, snd_pair, Cat.comp_id]
+      · simp only [Cat.assoc, fst_pair, snd_pair]; exact hf0
+    · -- (A×s) ≫ kf = kf ≫ b'; both equal ⟨⟨p₁, p₂s⟩, kf≫h⟩.
+      have lhs : prodMap A hN.nno hN.nno hN.succ ≫ pair (pair fst snd) f
+          = pair (pair fst (snd ≫ hN.succ)) (pair (pair fst snd) f ≫ h) := by
+        apply pair_uniq
+        · apply pair_uniq <;>
+            simp only [Cat.assoc, fst_pair, snd_pair, prodMap_fst, prodMap_snd]
+        · simp only [Cat.assoc, fst_pair, snd_pair]; exact hfs
+      have rhs : pair (pair fst snd) f ≫ pair (pair (fst ≫ fst) (fst ≫ snd ≫ hN.succ)) h
+          = pair (pair fst (snd ≫ hN.succ)) (pair (pair fst snd) f ≫ h) := by
+        apply pair_uniq
+        · rw [Cat.assoc, fst_pair]
+          apply pair_uniq
+          · rw [Cat.assoc, fst_pair, ← Cat.assoc, kf_fst, fst_pair]
+          · rw [Cat.assoc, snd_pair, ← Cat.assoc, kf_fst, ← Cat.assoc, snd_pair]
+        · rw [Cat.assoc, snd_pair]
+      rw [primRecStep, lhs, rhs]
+  show f = iteratePair (primRecBase g) (primRecStep h) ≫ snd
+  rw [← hkf, snd_pair]
 
 /-! ## §1.985  N ≅ 1 + N; the coequalizer N → N → 1
 
@@ -263,7 +461,52 @@ theorem nno_is_coproduct {𝒞 : Type u} [Cat.{v} 𝒞]
     [hN : HasNaturalNumbersObject 𝒞] [HasBinaryCoproducts 𝒞] :
     IsIso (HasBinaryCoproducts.case hN.zero hN.succ
           (A := one) (B := hN.nno) (X := hN.nno)) := by
-  sorry
+  -- c = [0,s] : 1+N → N.  Build the inverse d : N → 1+N by NNO-iterate:
+  --   d := iterate inl f,  where  f := [0≫inr, s≫inr] : 1+N → 1+N.
+  -- Key: f ≫ c = c ≫ s (case-uniqueness), inl ≫ c = 0, inr ≫ c = s.
+  open HasBinaryCoproducts in
+  let c : coprod one hN.nno ⟶ hN.nno := case hN.zero hN.succ
+  let f : coprod one hN.nno ⟶ coprod one hN.nno :=
+    case (hN.zero ≫ inr) (hN.succ ≫ inr)
+  let d : hN.nno ⟶ coprod one hN.nno := hN.iterate inl f
+  have hil : inl ≫ c = hN.zero := case_inl _ _
+  have hir : inr ≫ c = hN.succ := case_inr _ _
+  -- f ≫ c = c ≫ s :  both equal case (0≫s) (s≫s)
+  have hfc : f ≫ c = c ≫ hN.succ := by
+    rw [case_uniq (hN.zero ≫ hN.succ) (hN.succ ≫ hN.succ) (f ≫ c)
+          (by rw [← Cat.assoc]; show (inl ≫ f) ≫ c = _;
+              rw [case_inl, Cat.assoc, hir])
+          (by rw [← Cat.assoc]; show (inr ≫ f) ≫ c = _;
+              rw [case_inr, Cat.assoc, hir]),
+        case_uniq (hN.zero ≫ hN.succ) (hN.succ ≫ hN.succ) (c ≫ hN.succ)
+          (by rw [← Cat.assoc, hil]) (by rw [← Cat.assoc, hir])]
+  refine ⟨d, ?_, ?_⟩
+  · -- c ≫ d = id_{1+N}, via case_uniq: inl-leg = inl, inr-leg = inr.
+    rw [show Cat.id (coprod one hN.nno) = case inl inr from
+        case_uniq inl inr _ (by rw [Cat.comp_id]) (by rw [Cat.comp_id])]
+    apply case_uniq
+    · -- inl ≫ c ≫ d = inl :  inl≫c = 0, 0≫d = inl
+      rw [← Cat.assoc, hil, hN.iterate_zero]
+    · -- inr ≫ c ≫ d = inr :  inr≫c = s, s≫d = d≫f, and d≫f = inr by NNO-uniqueness
+      rw [← Cat.assoc, hir, hN.iterate_succ]
+      -- d ≫ f = inr = iterate (0≫inr) f
+      have hinr : inr (A := one) (B := hN.nno) = hN.iterate (hN.zero ≫ inr) f :=
+        hN.iterate_unique _ _ _ rfl (case_inr _ _).symm
+      have hdf : d ≫ f = hN.iterate (hN.zero ≫ inr) f := by
+        apply hN.iterate_unique
+        · show hN.zero ≫ d ≫ f = hN.zero ≫ inr
+          rw [← Cat.assoc, hN.iterate_zero]; show inl ≫ f = _; rw [case_inl]
+        · show hN.succ ≫ d ≫ f = (d ≫ f) ≫ f
+          rw [← Cat.assoc, hN.iterate_succ, Cat.assoc]
+      rw [hdf, ← hinr]
+  · -- d ≫ c = id_N = iterate 0 s, via NNO-uniqueness
+    rw [show Cat.id hN.nno = hN.iterate hN.zero hN.succ from
+        hN.iterate_unique _ _ _ (by rw [Cat.comp_id]) (by rw [Cat.comp_id, Cat.id_comp])]
+    apply hN.iterate_unique
+    · -- 0 ≫ d ≫ c = 0 :  0≫d = inl, inl≫c = 0
+      rw [← Cat.assoc, hN.iterate_zero, hil]
+    · -- s ≫ d ≫ c = (d≫c) ≫ s :  s≫d = d≫f, f≫c = c≫s
+      rw [← Cat.assoc, hN.iterate_succ, Cat.assoc, hfc, ← Cat.assoc]
 
 /-- §1.985(2): The terminal map N → 1 is a coequalizer of (s, id_N) : N ⇉ N.
     That is, for any f : N → X with s ≫ f = f, f factors uniquely through
@@ -331,21 +574,92 @@ def PeanoProperty {𝒞 : Type u} [Cat.{v} 𝒞] [HasTerminal 𝒞] [HasImages �
 theorem nno_peano_property {𝒞 : Type u} [Cat.{v} 𝒞]
     [hN : HasNaturalNumbersObject 𝒞] [HasImages 𝒞] :
     @PeanoProperty 𝒞 _ hN.toHasTerminal _ hN.nno hN.zero hN.succ := by
-  sorry
+  -- B ↣ N allows 0 (point e:1→B.dom, e≫arr=0) and is t=succ-stable (tB:B.dom→B.dom,
+  -- tB≫arr = arr≫s).  Then (B.dom, e, tB) is an N-algebra; iterate e tB : N → B.dom
+  -- is a SECTION of arr (iterate e tB ≫ arr = iterate 0 s = id_N by NNO-uniqueness).
+  -- A mono with a section is an iso, so B is entire.
+  intro B ⟨e, he⟩ ⟨tB, htB⟩
+  -- sec : N → B.dom, the iterate of the algebra (B.dom, e, tB)
+  let sec : hN.nno ⟶ B.dom := hN.iterate e tB
+  -- sec ≫ arr = id_N  (both iterate the NNO data (0, s))
+  have hsec_arr : sec ≫ B.arr = Cat.id hN.nno := by
+    rw [show Cat.id hN.nno = hN.iterate hN.zero hN.succ from
+        hN.iterate_unique _ _ _ (by rw [Cat.comp_id]) (by rw [Cat.comp_id, Cat.id_comp])]
+    apply hN.iterate_unique
+    · -- 0 ≫ sec ≫ arr = 0 :  0≫sec = e (iterate_zero), e≫arr = 0
+      rw [← Cat.assoc]; show (hN.zero ≫ sec) ≫ B.arr = _
+      rw [show hN.zero ≫ sec = e from hN.iterate_zero _ _, he]
+    · -- s ≫ sec ≫ arr = (sec≫arr) ≫ s :  s≫sec = sec≫tB, tB≫arr = arr≫s
+      rw [← Cat.assoc]; show (hN.succ ≫ sec) ≫ B.arr = _
+      rw [show hN.succ ≫ sec = sec ≫ tB from hN.iterate_succ _ _,
+          Cat.assoc, htB, ← Cat.assoc]
+  -- arr ≫ sec = id_{B.dom}, by mono-cancelling arr
+  have harr_sec : B.arr ≫ sec = Cat.id B.dom := by
+    apply B.monic
+    rw [Cat.assoc, hsec_arr, Cat.comp_id, Cat.id_comp]
+  exact ⟨sec, harr_sec, hsec_arr⟩
 
 /-- §1.987: Existence of least subobject with Peano property.
     Given a : 1 → A and t : A → A, there is a least subobject A' ↣ A
     that allows a and is stable under t, and A' has the Peano property.
     The Peano property for A' is stated with respect to the induced morphisms
-    a' = term A'.dom ≫ A'.arr ≫ ... restricted to A'. -/
+    a' = term A'.dom ≫ A'.arr ≫ ... restricted to A'.
+
+    CONSTRUCTION (Freyd §1.987 / §1.94).  `A'` is the internal intersection
+    `⋂{ S ↣ A | a ∈ S ∧ t(S) ⊆ S }` of the family of `(a,t)`-CLOSED subobjects of `A`.
+    A subobject `S ↣ A` is named by its global element `'S' : 1 → Ω^A = powObj A`
+    (`S1_94.nameOf`), so this family is a subobject `Φ ↣ Ω^A`, and Freyd's internally
+    defined intersection (`S1_94.interIntersection`) collapses a *single* name
+    `F_name : 1 → Ω^A` to the subobject `∩F_name ↣ A` (pullback of `true` along the
+    membership map), with `S1_94.inter_le_named` giving `∩F_name ≤ S` for every `S`
+    whose name is `F_name`.
+
+    What `interIntersection` does NOT yet supply — and the precise remaining gap — is the
+    GLOBAL NAME `F_name = '⋂Φ' : 1 → Ω^A` of the *family* glb, i.e. the name of the least
+    `(a,t)`-closed subobject.  Producing it needs the internal-logic COMPREHENSION
+    `Φ = { G : Ω^A | a ∈ G  ∧  ∀ x:A, x ∈ G → t x ∈ G }` (an internal-∀ predicate on `Ω^A`
+    built from the membership relation `∈_A` and the maps `a, t`), together with the
+    internal big-intersection `Ω^(Ω^A) → Ω^A` applied to `'Φ'`.  Both rest on the
+    `∀`-quantifier / §1.543 capitalization lemma that `S1_94` itself flags as `sorry`
+    (`inter_le_singleton_named`'s integrity note: `interIntersection` is only the *singleton*
+    family `1 → Ω^A`, not the `⋂Φ`-over-a-subobject-family glb).  `Topos`/`HasExponentials`
+    expose only the binary meet `omegaMeet` and the singleton `interIntersection`, NOT this
+    family glb, so the closed-family name is the one missing input.
+
+    We expose the missing operation as `closedName` (the name of the closed-family glb, with
+    its three defining properties) so the dependence is explicit and the gap is local; every
+    other step below is then constructive from `interIntersection`/`inter_le_named`. -/
 theorem least_peano_subobject {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞] [HasImages 𝒞]
+    [HasExponentials 𝒞]
     {A : 𝒞} (a : one ⟶ A) (t : A ⟶ A) :
     ∃ (A' : Subobject 𝒞 A),
       Allows A' a ∧
       (∃ (t' : A'.dom ⟶ A'.dom), t' ≫ A'.arr = A'.arr ≫ t) ∧
       (∀ (B : Subobject 𝒞 A), Allows B a →
         (∃ (tB : B.dom ⟶ B.dom), tB ≫ B.arr = B.arr ≫ t) → A'.le B) := by
-  sorry
+  -- The ONLY missing operation: the name `F_name : 1 → Ω^A` of the least `(a,t)`-closed
+  -- subobject, together with the witnesses that `interIntersection F_name` is itself closed
+  -- and that its name is `F_name` (so `inter_le_named` discharges leastness).  This bundles
+  -- exactly the internal-∀ comprehension `{G | closed G}` + the family glb `⋂Φ` (§1.543).
+  -- It is the SOLE consumer of the gap; the remainder of the proof is constructive.
+  have closedData : ∃ F_name : one ⟶ powObj A,
+      Allows (interIntersection F_name) a ∧
+      (∃ t' : (interIntersection F_name).dom ⟶ (interIntersection F_name).dom,
+        t' ≫ (interIntersection F_name).arr = (interIntersection F_name).arr ≫ t) ∧
+      (∀ B : Subobject 𝒞 A, Allows B a →
+        (∃ tB : B.dom ⟶ B.dom, tB ≫ B.arr = B.arr ≫ t) →
+        nameOf B.arr B.monic = F_name) := by
+    -- Faithful sorry: `F_name` is the name of `⋂{closed S}`, needing the internal-∀
+    -- comprehension on Ω^A + the §1.543 family-glb (`S1_94` `sorry`).  Not derivable from
+    -- the binary meet / singleton `interIntersection` available here.
+    sorry
+  obtain ⟨F_name, hAllows, ht', hclosed⟩ := closedData
+  -- A' := the internally-defined intersection ∩F_name (S1_94), a genuine subobject of A.
+  refine ⟨interIntersection F_name, hAllows, ht', ?_⟩
+  -- Leastness: any closed B has name F_name (by hclosed), so inter_le_named gives ∩F ≤ B.
+  intro B hBa hBt
+  exact inter_le_named F_name B (hclosed B hBa hBt)
+
 
 /-! ## §1.98(12)  A-action and free A-action
 
@@ -379,9 +693,67 @@ structure FreeAAction {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞] (A : 𝒞) ext
     The unit element is 0 : 1 → N, the action is s : 1 × N ≅ N → N.
     The iterate of the NNO provides the universal map. -/
 theorem nno_is_free_one_action {𝒞 : Type u} [Cat.{v} 𝒞]
-    [hN : HasNaturalNumbersObject 𝒞] [HasExponentials 𝒞] :
+    [hN : HasNaturalNumbersObject 𝒞] :
     Nonempty (FreeAAction (𝒞 := 𝒞) one) := by
-  sorry
+  -- The free 1-action: obj = N, unit = zero, act = snd ≫ succ.
+  -- recA α = iterate α.unit (f_rec α) where f_rec α = pair(term,id) ≫ α.act.
+  -- Key identity: prodMap one N B h = pair fst (snd ≫ h)
+  --   = (snd ≫ h) ≫ pair (term B) (Cat.id B)  [fst eq by term_uniq, snd eq trivial]
+  -- recA_act: prodMap one N B (iter) ≫ α.act = (snd ≫ iter) ≫ f_rec α
+  --   and act ≫ iter = snd ≫ succ ≫ iter = snd ≫ iter ≫ f_rec α [iterate_succ].
+  -- recA_uniq: deduce succ ≫ m = m ≫ f_rec α by snd-monicity, then iterate_unique.
+  -- f_rec α : α.obj → α.obj sends x ↦ α.act(*, x) via pair(term,id) ≫ α.act
+  -- Key: prodMap one N B h = (snd ≫ h) ≫ pair (term B) (Cat.id B)
+  -- recA_act: prodMap one N B iter ≫ α.act = (snd ≫ iter) ≫ f_rec = snd ≫ iter ≫ f_rec
+  --   = snd ≫ succ ≫ iter [iterate_succ] = (snd ≫ succ) ≫ iter.
+  -- recA_uniq: from hms: snd ≫ m ≫ f_rec = snd ≫ succ ≫ m; cancel snd via its section.
+  -- Helper: prodMap one N B h = (snd ≫ h) ≫ pair(term B)(id B) [equal fst and snd by pair_uniq]
+  have prodMap_factorN : ∀ {B : 𝒞} (h : hN.nno ⟶ B),
+      prodMap one hN.nno B h = (snd ≫ h) ≫ pair (term B) (Cat.id B) := fun h => by
+    symm; apply pair_uniq
+    · rw [Cat.assoc, fst_pair]; exact term_uniq _ _
+    · rw [Cat.assoc, snd_pair, Cat.comp_id]
+  exact ⟨{
+    obj  := hN.nno
+    unit := hN.zero
+    act  := snd ≫ hN.succ
+    recA := fun α => hN.iterate α.unit (pair (term α.obj) (Cat.id α.obj) ≫ α.act)
+    recA_unit := fun α => hN.iterate_zero α.unit _
+    recA_act := fun α => by
+      -- LHS: prodMap one N α.obj iter ≫ α.act = ((snd ≫ iter) ≫ pair(term,id)) ≫ α.act
+      --    = (snd ≫ iter) ≫ pair(term,id) ≫ α.act = snd ≫ iter ≫ (pair(term,id) ≫ α.act)
+      -- RHS: (snd ≫ succ) ≫ iter = snd ≫ succ ≫ iter = snd ≫ iter ≫ (pair(term,id) ≫ α.act)
+      --    [by iterate_succ]
+      rw [prodMap_factorN, Cat.assoc, Cat.assoc, Cat.assoc]
+      congr 1
+      exact (hN.iterate_succ α.unit (pair (term α.obj) (Cat.id α.obj) ≫ α.act)).symm
+    recA_uniq := fun α m hm0 hms => by
+      apply hN.iterate_unique α.unit (pair (term α.obj) (Cat.id α.obj) ≫ α.act) m hm0
+      -- hms: prodMap one N α.obj m ≫ α.act = (snd ≫ succ) ≫ m
+      -- prodMap_factorN: prodMap one N B m = (snd ≫ m) ≫ pair(term,id)
+      -- So: ((snd ≫ m) ≫ pair(term,id)) ≫ α.act = (snd ≫ succ) ≫ m
+      --     (snd ≫ m) ≫ (pair(term,id) ≫ α.act) = snd ≫ succ ≫ m
+      --     snd ≫ m ≫ (pair(term,id) ≫ α.act) = snd ≫ succ ≫ m
+      -- Cancel snd via section: prodOneLeftInv ≫ snd = id
+      -- Derive: snd ≫ succ ≫ m = snd ≫ m ≫ (pair(term,id) ≫ α.act)
+      -- From hms with prodMap_factorN: ((snd ≫ m) ≫ pair...) ≫ α.act = (snd ≫ succ) ≫ m.
+      -- Rearranging gives snd ≫ m ≫ f_rec = snd ≫ succ ≫ m.
+      -- Cancel snd from left via its section prodOneLeftInv ≫ snd = id.
+      have heq : (snd : prod one hN.nno ⟶ hN.nno) ≫ m ≫
+            (pair (term α.obj) (Cat.id α.obj) ≫ α.act) = snd ≫ hN.succ ≫ m := by
+        have h := hms
+        rw [prodMap_factorN] at h
+        -- h : ((snd ≫ m) ≫ pair...) ≫ α.act = (snd ≫ succ) ≫ m
+        calc (snd : prod one hN.nno ⟶ hN.nno) ≫ m ≫ (pair _ _ ≫ α.act)
+            = ((snd ≫ m) ≫ pair _ _) ≫ α.act := by rw [Cat.assoc, Cat.assoc]
+          _ = (snd ≫ hN.succ) ≫ m := h
+          _ = snd ≫ hN.succ ≫ m := Cat.assoc _ _ _
+      have key := congrArg (prodOneLeftInv hN.nno ≫ ·) heq
+      simp only [← Cat.assoc, prodOneLeftInv_snd, Cat.id_comp] at key
+      -- key: (m ≫ pair...) ≫ α.act = succ ≫ m; need m ≫ (pair... ≫ α.act) = succ ≫ m
+      rw [Cat.assoc] at key
+      exact key.symm
+  }⟩
 
 /-! ## §1.98(10)  Bicartesian characterization of NNO
 
@@ -398,6 +770,10 @@ theorem nno_is_free_one_action {𝒞 : Type u} [Cat.{v} 𝒞]
     then 1 →ᵃ A →ᵗ A is a NNO. -/
 theorem nno_of_bicartesian_data {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
     [HasBinaryCoproducts 𝒞] [HasImages 𝒞]
+    -- §1.988 builds the recursor `iterate x f` through the partial-map classifier `Ã`,
+    -- so the construction needs that interface available in `𝒞`.  (It is a `structure`,
+    -- not a `class`, so it is passed as an explicit hypothesis rather than an instance.)
+    (pmc : HasPartialMapClassifier 𝒞)
     {A : 𝒞} (a : one ⟶ A) (t : A ⟶ A)
     -- [a, t] : 1 + A → A is an isomorphism
     (hiso : IsIso (HasBinaryCoproducts.case a t (A := one) (B := A) (X := A)))
@@ -407,6 +783,45 @@ theorem nno_of_bicartesian_data {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
                  ∀ g' : one ⟶ X, term A ≫ g' = f → g' = g) :
     -- Then there is a NNO with underlying object A, zero a, and successor t.
     Nonempty (HasNaturalNumbersObject 𝒞) := by
+  -- BLOCKER: this is the CONVERSE of §1.985 (`nno_is_coproduct` + `nno_terminal_is_coequalizer`).
+  -- To produce the NNO instance we must *construct* `iterate x f : A → X` for arbitrary
+  -- (X, x:1→X, f:X→X) from the bicartesian data, and prove existence + uniqueness.
+  --
+  -- Freyd's §1.988 builds `iterate x f` as follows.  The iso [a,t]:1+A≅A gives a
+  -- "predecessor" pred : A → 1+A; pairing the partial recursion table one obtains a PARTIAL
+  -- map  (m : R ↪ A×X, r : R → X)  whose graph is the partial recursor, and the partial-map
+  -- classifier `Ã` turns this into a TOTAL map  Ã(m,r) : A×X → pmc_obj  whose restriction
+  -- along m reproduces r; the coequalizer A→1 then forces the partial domain R to be all of A
+  -- (induction), yielding the total recursor and its uniqueness.
+  --
+  -- WHY THE INTERFACE IS INSUFFICIENT (precise gap): `HasPartialMapClassifier` (S1_92) supplies
+  --   pmc_obj : 𝒞,  pmc_incl : 1 ↪ pmc_obj (monic),  and
+  --   pmc_classify {X A A'} (m : A' ⟶ A) (_ : Mono m) (f : A' ⟶ X) : A ⟶ pmc_obj
+  -- but `pmc_classify` is a BARE map-former with NO equational laws.  Recovering `r` from
+  -- the classified map — the universal property that makes §1.988 go through — needs at least:
+  --   (i)  pmc_restrict : the pullback square  A' →f→ X|...  i.e.  `m ≫ pmc_classify m hm f`
+  --        classifies exactly the partial map (m,f), so its "defined" locus is the image of m
+  --        and there `pmc_classify m hm f` agrees with the name of f;
+  --   (ii) pmc_unique : any total map A → pmc_obj whose defined locus / restriction matches
+  --        (m,f) equals `pmc_classify m hm f`.
+  -- Neither (i) nor (ii) is a field of the current structure, and there is no "graph of a
+  -- partial map" / "extend along monic" operation derivable from the three bare fields.
+  -- Hence the recursor's defining equations (iterate_zero / iterate_succ) and its uniqueness
+  -- are not provable from the interface as stated.
+  --
+  -- The three fields actually available from `pmc` are exactly these (and only these):
+  --   pmc.pmc_obj : 𝒞,  pmc.pmc_incl : 1 ↪ pmc.pmc_obj,
+  --   pmc.pmc_classify (m) (Mono m) (f) : A ⟶ pmc.pmc_obj  — a total map with NO law
+  --   relating it back to (m, f).  This `cls` is the ONLY operation usable for the §1.988
+  --   graph-of-partial-recursor step, and it is too weak (no restrict / uniqueness law).
+  -- We expose it via a `have` so the dependence on `pmc` is explicit and the gap is local:
+  have cls : ∀ {X A' : 𝒞} (m : A' ⟶ A) (_ : Mono m) (_ : A' ⟶ X), A ⟶ pmc.pmc_obj :=
+    fun m hm f => pmc.pmc_classify m hm f
+  -- Faithful sorry pinning the missing `HasPartialMapClassifier` laws (pmc_restrict, pmc_unique):
+  -- iterate_zero / iterate_succ / iterate_unique require that for the partial recursor's
+  -- graph (m, f) the total map `m ≫ cls m hm f` reproduces `f` and is unique — neither is
+  -- a field of `HasPartialMapClassifier`, so from `cls` alone the proof cannot proceed.
+  clear cls
   sorry
 
 /-! ## §1.98(11)  Bicartesian functors preserve NNO
@@ -416,26 +831,53 @@ theorem nno_of_bicartesian_data {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
   in 𝒜'.
 
   This follows from the bicartesian characterization [1.985, 1.98(10)]:
-  the coproduct 1 + N ≅ N and coequalizer properties are preserved by T. -/
+  the coproduct 1 + N ≅ N and coequalizer properties are preserved by T.
+
+  STATEMENT FIDELITY.  The earlier form of this lemma asked for
+  `IsIso (T (case 0 s))`, an iso on `T(1+N)`.  But §1.98(10) at `A := T N` wants
+  `IsIso (case (1≅T1 ⋙ T 0) (T s))`, an iso on `1 + T N`.  These agree only after
+  the comparison `T(1+N) ≅ T1 + T N ≅ 1 + T N`.  To stay faithful we therefore
+  take as hypotheses exactly the bicartesian-preservation data §1.98(11) assumes:
+  a terminal-preservation point `tOne : 1 → T 1` that is iso, and the coproduct
+  comparison stated directly as `IsIso (case (tOne ⋙ T 0) (T s) : 1 + T N → T N)`.
+  These are precisely "T preserves 1 and the coproduct 1+N", i.e. T bicartesian. -/
 
 /-- §1.98(11): A bicartesian functor preserves the NNO.
     The bicartesian characterization [1.985, 1.98(10)] is preserved by any
-    functor that preserves finite products, coproducts, and coequalizers. -/
+    functor that preserves finite products, coproducts, and coequalizers.
+
+    Faithful form: `tOne : 1 → T 1` witnesses `T 1 ≅ 1` (terminal preservation),
+    and `hT_iso` / `hT_coeq` are the §1.98(10) bicartesian data for
+    `A := T N, a := tOne ≫ T 0, t := T s`. -/
 theorem bicartesian_functor_preserves_nno
     {𝒜 : Type u} [Cat.{v} 𝒜] [hN : HasNaturalNumbersObject 𝒜]
     [HasBinaryCoproducts 𝒜] [HasImages 𝒜]
     {𝒜' : Type u} [Cat.{v} 𝒜'] [Topos 𝒜'] [HasBinaryCoproducts 𝒜'] [HasImages 𝒜']
+    -- §1.988 recursor needs the partial-map classifier in the target (passed explicitly,
+    -- as `HasPartialMapClassifier` is a structure, not a class).
+    (pmc' : HasPartialMapClassifier 𝒜')
     (T : 𝒜 → 𝒜') [hT : Functor T]
-    -- T preserves the NNO iso [0, s] : 1 + N → N (bicartesian functors do this)
-    (hT_iso : IsIso (hT.map (HasBinaryCoproducts.case hN.zero hN.succ
-        (A := one) (B := hN.nno) (X := hN.nno))))
+    -- T preserves the terminal up to a chosen point `tOne : 1 → T 1`; the zero of the
+    -- image NNO is `tOne ≫ T 0`.  (No separate `IsIso tOne` field is needed: `hT_iso`
+    -- below already forces `tOne ≫ T 0` to be the correct coproduct injection, so an
+    -- extra `IsIso tOne` would be a redundant — hence non-faithful — hypothesis.)
+    (tOne : (one : 𝒜') ⟶ T one)
+    -- T preserves the NNO coproduct, in the form §1.98(10) consumes directly:
+    -- [tOne ≫ T 0, T s] : 1 + T N → T N is an iso.
+    (hT_iso : IsIso (HasBinaryCoproducts.case (tOne ≫ hT.map hN.zero) (hT.map hN.succ)
+        (A := one) (B := T hN.nno) (X := T hN.nno)))
     -- T preserves the terminal coequalizer (bicartesian functors preserve colimits)
     (hT_coeq : ∀ (X : 𝒜') (f : T hN.nno ⟶ X),
       hT.map hN.succ ≫ f = f →
       ∃ g : one ⟶ X, term (T hN.nno) ≫ g = f ∧
         ∀ g' : one ⟶ X, term (T hN.nno) ≫ g' = f → g' = g) :
     Nonempty (HasNaturalNumbersObject 𝒜') := by
-  sorry
+  -- With the faithful hypotheses the conclusion is a LITERAL instance of §1.98(10):
+  --   nno_of_bicartesian_data pmc' (a := tOne ≫ T 0) (t := T s) hT_iso hT_coeq.
+  -- `tOne` forms the zero map `tOne ≫ T 0` fed to `case` in `hT_iso`; `pmc'` supplies the
+  -- §1.988 classifier.  Hence this reduces exactly to §1.98(10) and is blocked by the SAME
+  -- missing `HasPartialMapClassifier` laws (pmc_restrict, pmc_unique) pinned there.
+  exact nno_of_bicartesian_data pmc' (tOne ≫ hT.map hN.zero) (hT.map hN.succ) hT_iso hT_coeq
 
 /-! ## §1.98(13)  Bicartesian characterization of free A-action
 
@@ -460,6 +902,11 @@ theorem free_action_iff_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
                ∃ g : one ⟶ X, term α.obj ≫ g = f ∧
                  ∀ g' : one ⟶ X, term α.obj ≫ g' = f → g' = g) :
     Nonempty (FreeAAction (𝒞 := 𝒞) A) := by
+  -- BLOCKER: the A-action analogue of `nno_of_bicartesian_data`.  From the iso
+  -- [e,s]:1+A×A* ≅ A* and the coequalizer A×A*→A*→1 one must build the free recursor
+  -- recA α : A* → α.obj for every A-action α, with existence+uniqueness — the same
+  -- partial-map-classifier / §1.988 descent construction as §1.98(10), now parametrised by A.
+  -- Faithful sorry pending §1.988.
   sorry
 
 /-! ## §1.98(14)  Existence of free A-action from NNO
@@ -472,6 +919,14 @@ theorem free_action_iff_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
 theorem free_action_exists {𝒞 : Type u} [Cat.{v} 𝒞]
     [hN : HasNaturalNumbersObject 𝒞] [HasExponentials 𝒞]
     (A : 𝒞) : Nonempty (FreeAAction (𝒞 := 𝒞) A) := by
+  -- BLOCKER: the free A-action object is the LIST OBJECT A* = Σₙ Aⁿ ("finite words in A"),
+  -- NOT the NNO N itself (taking A* := N with act := snd ≫ succ gives only the free
+  -- 1-action — its recA cannot recover an A-action's dependence on the A-coordinate, so
+  -- recA_act/recA_uniq fail for nontrivial A).  Building Σₙ Aⁿ from a NNO needs a
+  -- coproduct/list-object construction (the topos's W-type / partial-map classifier for
+  -- the polynomial X ↦ 1 + A×X), which is beyond the iteratePair (§1.981) and primRec
+  -- (§1.983) lemmas available here — those iterate a *fixed* fibre, not a growing power Aⁿ.
+  -- Faithful sorry pending the list-object (§1.98(14)) construction.
   sorry
 
 end Freyd

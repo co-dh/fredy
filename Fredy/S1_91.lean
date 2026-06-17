@@ -1,6 +1,8 @@
 /-
   Freyd & Scedrov, *Categories and Allegories* §1.91  Topos structure.
 
+  §1.911 Contravariant functor Rel(−,B); power-object [B] ↔ Rel(−,B) ≅ Hom(−,[B]).
+  §1.912 Subobject classifier Ω = [1] (in Fredy.S1_9).
   §1.913 All subobjects are equalizers, covers = epics.
   §1.914 Algebraic structure of Ω: internal meet ∧ and Heyting double-arrow ⇒.
   §1.919 Monic endomorphisms of Ω are involutions.
@@ -21,7 +23,85 @@ universe v u
 
 namespace Freyd
 
-variable {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
+variable {𝒞 : Type u} [Cat.{v} 𝒞]
+
+/-! ## §1.911  The contravariant relation functor Rel(−,B)
+
+  For any category with pullbacks and any object B, `BinRel 𝒞 − B` is a
+  contravariant set-valued functor: given f : A → A' and R : BinRel 𝒞 A' B,
+  define f*(R) := relPullback f R.  The functoriality equation is
+  g*(f*(R)) = (f ≫ g)*(R), i.e. relPullback is contravariantly functorial.
+
+  The existence of a power-object [B] (§1.9, `HasPowerObject B`) is equivalent
+  to this functor being representable: Rel(−,B) ≅ Hom(−,[B]).
+  (The formalization of `BinRel`, `relPullback`, `HasPowerObject` and
+  `IsUniversalRel` is in `Fredy.S1_9`.) -/
+
+/-- **§1.911**: The relation pullback is contravariantly functorial:
+    `relPullback f (relPullback g R) ≅ relPullback (f ≫ g) R`
+    (as `RelHom` in both directions), where f : A'' → A', g : A' → A.
+
+    Proved by hand from the pullback universal properties (pasting): the
+    composite of the two pullback squares — one for `(g, R.colA)` and one for
+    `(f, (relPullback g R).colA)` — is a pullback square for `(f ≫ g, R.colA)`.
+    Each direction is a `HasPullback.lift` of the cone induced by the other
+    side, with the colB legs matching by associativity. -/
+theorem relPullback_comp [HasPullbacks 𝒞] {A A' A'' B : 𝒞}
+    (f : A'' ⟶ A') (g : A' ⟶ A) (R : BinRel 𝒞 A B) :
+    RelHom (relPullback f (relPullback g R)) (relPullback (f ≫ g) R) ∧
+    RelHom (relPullback (f ≫ g) R) (relPullback f (relPullback g R)) := by
+  -- Pullback pasting, done by hand from the universal properties.
+  -- Pg : pullback of (g, R.colA);  (relPullback g R).colA = Pg.cone.π₁,
+  --                                (relPullback g R).colB = Pg.cone.π₂ ≫ R.colB.
+  -- Pf : pullback of (f, Pg.cone.π₁) = source of relPullback f (relPullback g R).
+  -- Q  : pullback of (f ≫ g, R.colA) = source of relPullback (f ≫ g) R.
+  let Pg := HasPullbacks.has g R.colA
+  let Pf := HasPullbacks.has f Pg.cone.π₁
+  let Q  := HasPullbacks.has (f ≫ g) R.colA
+  -- the two cone squares we'll keep reusing
+  have wPg : Pg.cone.π₁ ≫ g = Pg.cone.π₂ ≫ R.colA := Pg.cone.w
+  have wPf : Pf.cone.π₁ ≫ f = Pf.cone.π₂ ≫ Pg.cone.π₁ := Pf.cone.w
+  have wQ  : Q.cone.π₁ ≫ (f ≫ g) = Q.cone.π₂ ≫ R.colA := Q.cone.w
+  show RelHom (relPullback f (relPullback g R)) (relPullback (f ≫ g) R) ∧
+    RelHom (relPullback (f ≫ g) R) (relPullback f (relPullback g R))
+  constructor
+  · -- forward: h := Q.lift of the Pf-induced cone over (f≫g, R.colA)
+    refine ⟨Q.lift ⟨Pf.cone.pt, Pf.cone.π₁, Pf.cone.π₂ ≫ Pg.cone.π₂, ?_⟩, ?_, ?_⟩
+    · -- square: Pf.π₁ ≫ (f≫g) = (Pf.π₂ ≫ Pg.π₂) ≫ R.colA
+      calc Pf.cone.π₁ ≫ (f ≫ g)
+            = (Pf.cone.π₁ ≫ f) ≫ g := by rw [Cat.assoc]
+        _ = (Pf.cone.π₂ ≫ Pg.cone.π₁) ≫ g := by rw [wPf]
+        _ = Pf.cone.π₂ ≫ (Pg.cone.π₁ ≫ g) := by rw [Cat.assoc]
+        _ = Pf.cone.π₂ ≫ (Pg.cone.π₂ ≫ R.colA) := by rw [wPg]
+        _ = (Pf.cone.π₂ ≫ Pg.cone.π₂) ≫ R.colA := by rw [Cat.assoc]
+    · -- colA: h ≫ Q.π₁ = Pf.π₁
+      exact Q.lift_fst _
+    · -- colB: h ≫ (Q.π₂ ≫ R.colB) = (Pf.π₂ ≫ Pg.π₂) ≫ R.colB
+      change _ ≫ (Q.cone.π₂ ≫ R.colB)
+            = Pf.cone.π₂ ≫ (Pg.cone.π₂ ≫ R.colB)
+      rw [← Cat.assoc, Q.lift_snd, Cat.assoc]
+  · -- backward: k := Pf.lift of the Q-induced cone over (f, Pg.π₁)
+    -- m : Q.cone.pt → Pg.cone.pt, the lift over (g, R.colA)
+    let m := Pg.lift ⟨Q.cone.pt, Q.cone.π₁ ≫ f, Q.cone.π₂, by
+      calc (Q.cone.π₁ ≫ f) ≫ g = Q.cone.π₁ ≫ (f ≫ g) := by rw [Cat.assoc]
+        _ = Q.cone.π₂ ≫ R.colA := wQ⟩
+    have hm1 : m ≫ Pg.cone.π₁ = Q.cone.π₁ ≫ f := Pg.lift_fst _
+    have hm2 : m ≫ Pg.cone.π₂ = Q.cone.π₂ := Pg.lift_snd _
+    let k := Pf.lift ⟨Q.cone.pt, Q.cone.π₁, m, by rw [hm1]⟩
+    have hk1 : k ≫ Pf.cone.π₁ = Q.cone.π₁ := Pf.lift_fst _
+    have hk2 : k ≫ Pf.cone.π₂ = m := Pf.lift_snd _
+    refine ⟨k, ?_, ?_⟩
+    · -- colA: k ≫ Pf.π₁ = Q.π₁
+      exact hk1
+    · -- colB: k ≫ (Pf.π₂ ≫ Pg.π₂ ≫ R.colB) = Q.π₂ ≫ R.colB
+      change k ≫ Pf.cone.π₂ ≫ Pg.cone.π₂ ≫ R.colB = Q.cone.π₂ ≫ R.colB
+      calc k ≫ Pf.cone.π₂ ≫ Pg.cone.π₂ ≫ R.colB
+            = (k ≫ Pf.cone.π₂) ≫ (Pg.cone.π₂ ≫ R.colB) := (Cat.assoc _ _ _).symm
+        _ = m ≫ (Pg.cone.π₂ ≫ R.colB) := by rw [hk2]
+        _ = (m ≫ Pg.cone.π₂) ≫ R.colB := (Cat.assoc _ _ _).symm
+        _ = Q.cone.π₂ ≫ R.colB := by rw [hm2]
+
+variable [Topos 𝒞]
 
 /-! ## §1.913  Subobjects as equalizers
 
@@ -138,6 +218,69 @@ noncomputable def heytingDoubleArrow : prod (HasSubobjectClassifier.omega (𝒞 
     (diag (HasSubobjectClassifier.omega (𝒞 := 𝒞)))
     (diag_mono _)
 
+/-- **§1.912**: The classifier of the identity on Ω is the constant-true map:
+    `classify (Cat.id Ω) _ = term Ω ≫ true`.
+    Follows directly from `classify_sq (Cat.id Ω)` and `Cat.id_comp`. -/
+theorem classify_id_omega :
+    HasSubobjectClassifier.classify (Cat.id (HasSubobjectClassifier.omega (𝒞 := 𝒞)))
+      (fun f g h => by rwa [Cat.comp_id, Cat.comp_id] at h)
+    = term (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
+  have sq := HasSubobjectClassifier.classify_sq (Cat.id (HasSubobjectClassifier.omega (𝒞 := 𝒞)))
+    (fun f g h => by rwa [Cat.comp_id, Cat.comp_id] at h)
+  rwa [Cat.id_comp] at sq
+
+/-- **§1.912**: The classifier of the universal subobject `t : 1 → Ω` is the identity on Ω.
+    Equivalently, `1 → Ω` is the pullback of `t` along `Cat.id Ω`.
+    Proof: the cone `(1, t, term 1, ·)` over `(Cat.id Ω, t)` is a pullback because
+    the unique lift of any cone `(E, p, q)` with `p ≫ id = q ≫ t` is `q : E → 1`. -/
+theorem classify_true_eq_id :
+    HasSubobjectClassifier.classify
+      (HasSubobjectClassifier.true (𝒞 := 𝒞)) HasSubobjectClassifier.true_monic
+    = Cat.id (HasSubobjectClassifier.omega (𝒞 := 𝒞)) := by
+  symm
+  refine HasSubobjectClassifier.classify_unique
+      (HasSubobjectClassifier.true (𝒞 := 𝒞)) HasSubobjectClassifier.true_monic (Cat.id _) ?_ ?_
+  · rw [Cat.comp_id]
+    have h : term (HasTerminal.one (𝒞 := 𝒞)) = Cat.id (HasTerminal.one (𝒞 := 𝒞)) := term_uniq _ _
+    rw [h, Cat.id_comp]
+  · intro d
+    refine ⟨d.π₂, ⟨?_, ?_⟩, fun v _ _ => term_uniq _ _⟩
+    · have := d.w; rw [Cat.comp_id] at this; exact this.symm
+    · exact term_uniq _ _
+
+/-- **§1.912 (bijection, surjective half)**: `classify` is SURJECTIVE onto
+    `Hom(A, Ω)` — every map `χ : A → Ω` is the characteristic map of some monic,
+    namely the pullback projection `π₁ : P → A` of the universal subobject
+    `t : 1 → Ω` along `χ`.
+
+    Together with `classify_unique` (which is the injective half: two monics with
+    the same `classify` are isomorphic-as-subobjects via the common pullback of
+    `t`) this is the full subobject classifier bijection `Sub(A) ≅ Hom(A, Ω)`.
+
+    Proof: `P := pullback (χ, t)`.  Its `π₁` is monic because `t` is monic
+    (`mono_pullback`), the cone square gives `π₁ ≫ χ = π₂ ≫ t = term P ≫ t`
+    (using `term_uniq` to replace `π₂ : P → 1` by `term P`), and that very square
+    is a pullback of `t` along `χ`, so `classify_unique` forces `χ = classify π₁`. -/
+theorem classify_surjective {A : 𝒞}
+    (χ : A ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞)) :
+    ∃ (P : 𝒞) (m : P ⟶ A) (hm : Mono m), HasSubobjectClassifier.classify m hm = χ := by
+  -- P = pullback of (χ, t); π₁ : P → A is the monic subobject classified by χ.
+  let Pb := HasPullbacks.has χ HasSubobjectClassifier.true
+  have hmono : Mono Pb.cone.π₁ :=
+    mono_pullback χ HasSubobjectClassifier.true HasSubobjectClassifier.true_monic Pb
+  refine ⟨Pb.cone.pt, Pb.cone.π₁, hmono, ?_⟩
+  -- the cone square, with π₂ : P → 1 replaced by the canonical term P.
+  have hsq : Pb.cone.π₁ ≫ χ = term Pb.cone.pt ≫ HasSubobjectClassifier.true := by
+    rw [Pb.cone.w, term_uniq Pb.cone.π₂ (term Pb.cone.pt)]
+  -- χ classifies π₁: the chosen pullback IS the classifying pullback of t along χ.
+  symm
+  refine HasSubobjectClassifier.classify_unique Pb.cone.π₁ hmono χ hsq ?_
+  -- the square (P, π₁, term P, hsq) over (χ, t) is a pullback — same data as Pb.cone.
+  intro d
+  refine ⟨Pb.lift ⟨d.pt, d.π₁, d.π₂, d.w⟩, ⟨Pb.lift_fst _, term_uniq _ _⟩, ?_⟩
+  intro v hv₁ _
+  exact Pb.lift_uniq ⟨d.pt, d.π₁, d.π₂, d.w⟩ v hv₁ (term_uniq _ _)
+
 /-! ## §1.919  Monic endomorphisms of Ω are involutions
 
   §1.919: Every monic endomorphism g : Ω → Ω is an involution (g² = id).
@@ -149,23 +292,27 @@ noncomputable def heytingDoubleArrow : prod (HasSubobjectClassifier.omega (𝒞 
 /-- **§1.919**: Every monic endomorphism of Ω is an involution;
     that is, g : Ω → Ω monic implies g ≫ g = id.
 
-    Proof sketch (Freyd §1.919): A subobject A' ⊆ A is g-large iff g(A') = A
-    (i.e., the characteristic map of A' factors through g⁻¹(t)).
-    For monic g with g(V) = g(1_Ω), monicness forces V = 1_Ω.  Then g²(A)
-    equals (A ↔ A×U) ∧ A×U = A, so g² and id have the same large subobjects
-    and hence are equal.
+    Proof sketch (Freyd §1.919): Define U as the unique g-large subobject of 1
+    (where A' is g-large in A if χ_{A'} ≫ g = term_A ≫ true, meaning gA' = A).
+    Since g is monic, g(V) = g(1_Ω) implies V = 1_Ω.  For any A, A is g²-large
+    in itself, and the identity has the same property, so g² = id by extensionality.
 
-    **Blocked (infrastructure)**: `HasSubobjectClassifier.classify_unique`
-    already gives map-uniqueness, so that part of the old prerequisite note
-    is obsolete.  The real gap is the *subobject algebra* this proof runs on:
-    the g-large-subobject relation, the equational theory of `omegaMeet` (∧)
-    and `heytingDoubleArrow` (⇔) — both are merely *defined* above with NO
-    proven laws — and the bijection "maps `A → Ω` ↔ subobjects of `A`" used to
-    pass between `g²(A) = A` for all A and `g ≫ g = id`.  Discharging via
-    `apply hm` only reduces the goal to `g ≫ g ≫ g = g` (`g³ = g`), which still
-    needs the same algebra.  Removable once §1.914's operations are given their
-    equational laws and the subobject↔characteristic-map correspondence over an
-    arbitrary object is formalized. -/
+    **Proof gap** (confirmed by deep proof-search): via the available API the
+    goal reduces to showing `t : 1 → Ω` is the pullback of `t` along `g ≫ g`
+    (i.e. `g²` classifies the maximal subobject of Ω — "A is g²-large in itself").
+    Of the three pieces Freyd's argument needs, TWO are now available:
+    (1) `classify`-iso-invariance / the full `Sub(−) ≅ Hom(−,Ω)` bijection is
+    provided by `classify_unique` (injective half) + `classify_surjective`
+    (surjective half, proved above);
+    (3) operation-extensionality then follows from that bijection.
+    The REMAINING blocker is (2): the CHARACTERIZING universal properties of
+    `omegaMeet`/`heytingDoubleArrow` (defined below as bare classifying maps with
+    NO universal property) — concretely the pullback of `t` along
+    `⟨χ₁,χ₂⟩ ≫ omegaMeet` must be `Sub.inter A₁ A₂` (S1_45), and similarly the
+    Heyting arrow must compute `A₁ ∩ A' = A₂ ∩ A'`.  Without these the operation
+    `(A ↔ A×U) ∧ (A×U)` cannot be shown equal to `A`, so `g²` cannot be reduced to
+    the identity.  This is the substantive missing bridge.  Faithful sorry; see
+    S1_91.md for the sharpened blocker. -/
 theorem omega_monic_endo_is_involution (g : HasSubobjectClassifier.omega (𝒞 := 𝒞) ⟶
     HasSubobjectClassifier.omega (𝒞 := 𝒞)) (hm : Mono g) : g ≫ g = Cat.id _ := by
   sorry
@@ -188,28 +335,36 @@ theorem omega_monic_endo_is_involution (g : HasSubobjectClassifier.omega (𝒞 :
   formalized in this repo; we use `HasSubobjectClassifier` as the available
   proxy for the power-object hypothesis. -/
 
-/-- **§1.91(10)**: A non-empty category with binary products, equalizers, and a
-    subobject classifier has a terminator.
+/-- **§1.91(10)**: A non-empty category with binary products, equalizers, pullbacks,
+    and power objects FOR EVERY OBJECT (but NOT assumed to have a terminator) already
+    has a terminator.  `B` witnesses non-emptiness.
 
-    `hne`: witness that 𝒞 is non-empty (an object exists).
+    This is the faithful statement of Freyd's §1.91(10): the hypotheses are exactly
+    the data of his construction and DO NOT bundle a terminator (unlike
+    `HasSubobjectClassifier`, which `extends HasTerminal` and would make the
+    conclusion free).  Power objects are taken via `HasPowerObject`, which does not
+    presuppose a terminal object.
 
-    **Blocked (and statement defect)**: the faithful content of §1.91(10) is the
-    Λ(M_{B,B}) construction, requiring the full power-object machinery (Λ/ε
-    adjunction for [B]), which goes beyond `HasSubobjectClassifier`.
+    CONSTRUCTION (Freyd, faithful `sorry`).  Let `M_{A,C} : A → C` be the "full"
+    relation tabulated by the projection `A×C → A`.  For every `f : A' → A`,
+    `f(M_{A,C}) = M_{A',C}`, so `Λ(M_{−,B}) : (−) → [B]` is a CONSTANT map: any two
+    maps into `[B]` of the form `Λ(M_{A,B})` agree after precomposition.  In
+    particular `e := Λ(M_{B,B}) : [B] → [B]` is a constant idempotent.  Take
+        `T := equalizer (id_{[B]}, e)`.
+    For any object `A`, `Λ(M_{A,B}) : A → [B]` equalizes `id` and `e` (constancy),
+    so it factors uniquely through `T`; that factorization is the unique map `A → T`,
+    making `T` terminal.
 
-    DEFECT to fix before this can be closed honestly: `HasSubobjectClassifier`
-    `extends HasTerminal`, so the hypothesis here already *contains* a terminator
-    — `exact ⟨inferInstance⟩` type-checks but proves nothing (it would just
-    re-expose the assumed terminator, the very thing §1.91(10) says you need not
-    assume).  Closing it that way is rejected as vacuous.  The intended statement
-    should weaken the hypothesis to "binary products + equalizers + a power-object
-    for 1 (i.e. Ω with the classifier's pullback property) but NO terminator", and
-    then construct `HasTerminal` as the equalizer of `id_{[B]}` and `Λ(M_{B,B})`. -/
+    The remaining `sorry` is exactly the constancy lemma `f(M_{A,B}) = M_{A',B}`
+    together with the equalizer factorization; both rest on the Λ/∈ classify-bijection
+    of `HasPowerObject`, not yet packaged as the needed naturality.  See S1_91.md. -/
 theorem minimal_topos_has_terminator
-    [HasBinaryProducts 𝒞] [HasEqualizers 𝒞] [HasSubobjectClassifier 𝒞]
-    (hne : 𝒞) : Nonempty (HasTerminal 𝒞) := by
-  -- For any B, Λ(M_{B,B}) : [B] → [B] is a constant idempotent.
-  -- The equalizer of id_{[B]} and Λ(M_{B,B}) is a terminator.
+    [HasPullbacks 𝒞] [HasBinaryProducts 𝒞] [HasEqualizers 𝒞]
+    [∀ C : 𝒞, HasPowerObject C]
+    (B : 𝒞) : Nonempty (HasTerminal 𝒞) := by
+  -- T = equalizer of id_{[B]} and the constant idempotent Λ(M_{B,B}) : [B] → [B];
+  -- shown terminal via the constancy of Λ(M_{−,B}).  Constancy + equalizer
+  -- factorization not yet derivable from the bare Λ/∈ bijection.
   sorry
 
 end Freyd
