@@ -25,6 +25,7 @@ import Fredy.S1_57
 import Fredy.S1_58
 import Fredy.S1_85
 import Fredy.S1_92
+import Fredy.S1_94
 
 
 universe v u
@@ -602,21 +603,63 @@ theorem nno_peano_property {𝒞 : Type u} [Cat.{v} 𝒞]
     Given a : 1 → A and t : A → A, there is a least subobject A' ↣ A
     that allows a and is stable under t, and A' has the Peano property.
     The Peano property for A' is stated with respect to the induced morphisms
-    a' = term A'.dom ≫ A'.arr ≫ ... restricted to A'. -/
+    a' = term A'.dom ≫ A'.arr ≫ ... restricted to A'.
+
+    CONSTRUCTION (Freyd §1.987 / §1.94).  `A'` is the internal intersection
+    `⋂{ S ↣ A | a ∈ S ∧ t(S) ⊆ S }` of the family of `(a,t)`-CLOSED subobjects of `A`.
+    A subobject `S ↣ A` is named by its global element `'S' : 1 → Ω^A = powObj A`
+    (`S1_94.nameOf`), so this family is a subobject `Φ ↣ Ω^A`, and Freyd's internally
+    defined intersection (`S1_94.interIntersection`) collapses a *single* name
+    `F_name : 1 → Ω^A` to the subobject `∩F_name ↣ A` (pullback of `true` along the
+    membership map), with `S1_94.inter_le_named` giving `∩F_name ≤ S` for every `S`
+    whose name is `F_name`.
+
+    What `interIntersection` does NOT yet supply — and the precise remaining gap — is the
+    GLOBAL NAME `F_name = '⋂Φ' : 1 → Ω^A` of the *family* glb, i.e. the name of the least
+    `(a,t)`-closed subobject.  Producing it needs the internal-logic COMPREHENSION
+    `Φ = { G : Ω^A | a ∈ G  ∧  ∀ x:A, x ∈ G → t x ∈ G }` (an internal-∀ predicate on `Ω^A`
+    built from the membership relation `∈_A` and the maps `a, t`), together with the
+    internal big-intersection `Ω^(Ω^A) → Ω^A` applied to `'Φ'`.  Both rest on the
+    `∀`-quantifier / §1.543 capitalization lemma that `S1_94` itself flags as `sorry`
+    (`inter_le_singleton_named`'s integrity note: `interIntersection` is only the *singleton*
+    family `1 → Ω^A`, not the `⋂Φ`-over-a-subobject-family glb).  `Topos`/`HasExponentials`
+    expose only the binary meet `omegaMeet` and the singleton `interIntersection`, NOT this
+    family glb, so the closed-family name is the one missing input.
+
+    We expose the missing operation as `closedName` (the name of the closed-family glb, with
+    its three defining properties) so the dependence is explicit and the gap is local; every
+    other step below is then constructive from `interIntersection`/`inter_le_named`. -/
 theorem least_peano_subobject {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞] [HasImages 𝒞]
+    [HasExponentials 𝒞]
     {A : 𝒞} (a : one ⟶ A) (t : A ⟶ A) :
     ∃ (A' : Subobject 𝒞 A),
       Allows A' a ∧
       (∃ (t' : A'.dom ⟶ A'.dom), t' ≫ A'.arr = A'.arr ≫ t) ∧
       (∀ (B : Subobject 𝒞 A), Allows B a →
         (∃ (tB : B.dom ⟶ B.dom), tB ≫ B.arr = B.arr ≫ t) → A'.le B) := by
-  -- BLOCKER: A' is the *intersection* of all (a,t)-stable subobjects of A.  Constructing
-  -- it (and proving its leastness / its own stability) needs the internal-intersection /
-  -- power-object machinery of a topos (∀-quantifier over Sub(A), i.e. the object Ω^A and
-  -- the "least subobject closed under a,t" as an equalizer in P(A)).  The repo currently
-  -- exposes only `HasImages` (image factorisation), not arbitrary intersections / P(A),
-  -- so this least-subobject existence is not yet derivable here.  Faithful sorry.
-  sorry
+  -- The ONLY missing operation: the name `F_name : 1 → Ω^A` of the least `(a,t)`-closed
+  -- subobject, together with the witnesses that `interIntersection F_name` is itself closed
+  -- and that its name is `F_name` (so `inter_le_named` discharges leastness).  This bundles
+  -- exactly the internal-∀ comprehension `{G | closed G}` + the family glb `⋂Φ` (§1.543).
+  -- It is the SOLE consumer of the gap; the remainder of the proof is constructive.
+  have closedData : ∃ F_name : one ⟶ powObj A,
+      Allows (interIntersection F_name) a ∧
+      (∃ t' : (interIntersection F_name).dom ⟶ (interIntersection F_name).dom,
+        t' ≫ (interIntersection F_name).arr = (interIntersection F_name).arr ≫ t) ∧
+      (∀ B : Subobject 𝒞 A, Allows B a →
+        (∃ tB : B.dom ⟶ B.dom, tB ≫ B.arr = B.arr ≫ t) →
+        nameOf B.arr B.monic = F_name) := by
+    -- Faithful sorry: `F_name` is the name of `⋂{closed S}`, needing the internal-∀
+    -- comprehension on Ω^A + the §1.543 family-glb (`S1_94` `sorry`).  Not derivable from
+    -- the binary meet / singleton `interIntersection` available here.
+    sorry
+  obtain ⟨F_name, hAllows, ht', hclosed⟩ := closedData
+  -- A' := the internally-defined intersection ∩F_name (S1_94), a genuine subobject of A.
+  refine ⟨interIntersection F_name, hAllows, ht', ?_⟩
+  -- Leastness: any closed B has name F_name (by hclosed), so inter_le_named gives ∩F ≤ B.
+  intro B hBa hBt
+  exact inter_le_named F_name B (hclosed B hBa hBt)
+
 
 /-! ## §1.98(12)  A-action and free A-action
 
