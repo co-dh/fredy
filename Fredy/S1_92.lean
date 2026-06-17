@@ -370,6 +370,13 @@ theorem singletonMapCat_natural {A B : 𝒞} (f : A ⟶ B) :
   along `f`, §1.56 image factorization), classified back into `powerObj B` by the
   universality of `mem`. -/
 
+/-- `RelHom` is transitive: `R ≤ S ≤ T ⟹ R ≤ T` (compose the witness maps). -/
+theorem RelHom_trans {A B : 𝒞} {R S T : BinRel 𝒞 A B}
+    (hRS : RelHom R S) (hST : RelHom S T) : RelHom R T := by
+  obtain ⟨h, hA, hB⟩ := hRS
+  obtain ⟨k, kA, kB⟩ := hST
+  exact ⟨h ≫ k, by rw [Cat.assoc, kA, hA], by rw [Cat.assoc, kB, hB]⟩
+
 section PowerObjectDirectImage
 variable [HasImages 𝒞]
 
@@ -463,13 +470,6 @@ theorem compose_graph_id {A B : 𝒞} (R : BinRel 𝒞 A B) :
     · show (e ≫ image.lift sp) ≫ ((image sp).arr ≫ snd) = R.colB
       rw [← Cat.assoc, Cat.assoc e, image.lift_fac, hesp, snd_pair]
 
-/-- `RelHom` is transitive: `R ≤ S ≤ T ⟹ R ≤ T` (compose the witness maps). -/
-theorem RelHom_trans {A B : 𝒞} {R S T : BinRel 𝒞 A B}
-    (hRS : RelHom R S) (hST : RelHom S T) : RelHom R T := by
-  obtain ⟨h, hA, hB⟩ := hRS
-  obtain ⟨k, kA, kB⟩ := hST
-  exact ⟨h ≫ k, by rw [Cat.assoc, kA, hA], by rw [Cat.assoc, kB, hB]⟩
-
 /-- Pulling a relation `U : BinRel P C` back along the IDENTITY `1_P` leaves it
     unchanged up to relation-isomorphism: `relPullback (1_P) U ≅ U`.  (The pullback
     of `1_P` and `U.colA` is `U.src`, since one leg is an identity.)  Both directions. -/
@@ -530,6 +530,200 @@ theorem powerMapCovP_id (A : 𝒞) [HasPowerObject A] :
     (powerClassify (directImageRel (Cat.id A))) (Cat.id _) hspec hid_classifies
 
 end PowerObjectDirectImage
+
+/-! ## §1.92  Uniqueness of universal relations + the identification `Ω^A ≅ [A]`
+
+  Freyd §1.92: in a topos the exponential `Ω^A = exp A Ω` IS the power object
+  `[A] = HasPowerObject.powerObj A`.  Both represent `Sub(A × −)`: the universal
+  membership relation `∈_A ⊆ [A] × A` makes `[A]` universal targeted at `A`, and
+  the evaluation `eval : A × Ω^A → Ω` together with the subobject classifier makes
+  `Ω^A` universal targeted at `A` too.  Two universal relations targeted at the
+  SAME object have isomorphic carriers (Yoneda), giving `Ω^A ≅ [A]`. -/
+
+section UniversalRelUnique
+variable {C : 𝒞} [HasPullbacks 𝒞]
+
+/-- The classifying map `Λ_V(R) : A → Q` of `R : BinRel A C` along a universal
+    relation `V : BinRel Q C` (the `classify_exists` witness). -/
+noncomputable def univClassify {Q : 𝒞} {V : BinRel 𝒞 Q C} (hV : IsUniversalRel V)
+    {A : 𝒞} (R : BinRel 𝒞 A C) : A ⟶ Q :=
+  (hV.classify_exists A R).choose
+
+/-- `R ≅ relPullback (Λ_V R) V` (forward+backward), the defining property of `Λ_V`. -/
+theorem univClassify_spec {Q : 𝒞} {V : BinRel 𝒞 Q C} (hV : IsUniversalRel V)
+    {A : 𝒞} (R : BinRel 𝒞 A C) :
+    RelHom R (relPullback (univClassify hV R) V) ∧
+    RelHom (relPullback (univClassify hV R) V) R :=
+  (hV.classify_exists A R).choose_spec
+
+/-- **§1.92, naturality of `Λ_V`.**  For a universal `V : BinRel Q C` and
+    `g : X → A`, classifying the pullback `relPullback g R` along `V` factors:
+    `Λ_V(relPullback g R) = g ≫ Λ_V(R)`.  (Both classify `relPullback g R`, so
+    `classify_unique` forces them equal.) -/
+theorem univClassify_natural {Q : 𝒞} {V : BinRel 𝒞 Q C} (hV : IsUniversalRel V)
+    {A X : 𝒞} (R : BinRel 𝒞 A C) (g : X ⟶ A) :
+    univClassify hV (relPullback g R) = g ≫ univClassify hV R := by
+  -- `relPullback g R ≅ relPullback (g ≫ Λ_V R) V`, via
+  --   relPullback g R ≅ relPullback g (relPullback (Λ_V R) V)   (R ≅ relPullback (Λ_V R) V)
+  --                   ≅ relPullback (g ≫ Λ_V R) V               (relPullback_comp).
+  have hR := univClassify_spec hV R
+  obtain ⟨hc1, hc2⟩ := relPullback_comp g (univClassify hV R) V
+  -- relPullback g R ≅ relPullback g (relPullback (Λ_V R) V): pull `hR` back along g.
+  have hpg : RelHom (relPullback g R) (relPullback g (relPullback (univClassify hV R) V)) ∧
+             RelHom (relPullback g (relPullback (univClassify hV R) V)) (relPullback g R) := by
+    constructor
+    · -- forward: lift the source of relPullback g R into the inner pullback.
+      let P := HasPullbacks.has g R.colA
+      let P' := HasPullbacks.has g (relPullback (univClassify hV R) V).colA
+      obtain ⟨w, hwA, hwB⟩ := hR.1   -- w : R.src → (relPullback _ V).src
+      -- the cone over (g, (relPullback _ V).colA) given by (P.π₁, P.π₂ ≫ w).
+      refine ⟨P'.lift ⟨P.cone.pt, P.cone.π₁, P.cone.π₂ ≫ w, ?_⟩, ?_, ?_⟩
+      · show P.cone.π₁ ≫ g = (P.cone.π₂ ≫ w) ≫ (relPullback (univClassify hV R) V).colA
+        rw [Cat.assoc, hwA]; exact P.cone.w
+      · show _ ≫ (relPullback g (relPullback (univClassify hV R) V)).colA = _
+        exact P'.lift_fst _
+      · show _ ≫ (relPullback g (relPullback (univClassify hV R) V)).colB
+              = (relPullback g R).colB
+        show _ ≫ (P'.cone.π₂ ≫ (relPullback (univClassify hV R) V).colB)
+              = P.cone.π₂ ≫ R.colB
+        rw [← Cat.assoc, P'.lift_snd, Cat.assoc, hwB]
+    · -- backward: symmetric, using hR.2.
+      let P := HasPullbacks.has g R.colA
+      let P' := HasPullbacks.has g (relPullback (univClassify hV R) V).colA
+      obtain ⟨w, hwA, hwB⟩ := hR.2   -- w : (relPullback _ V).src → R.src
+      refine ⟨P.lift ⟨P'.cone.pt, P'.cone.π₁, P'.cone.π₂ ≫ w, ?_⟩, ?_, ?_⟩
+      · show P'.cone.π₁ ≫ g = (P'.cone.π₂ ≫ w) ≫ R.colA
+        rw [Cat.assoc, hwA]; exact P'.cone.w
+      · exact P.lift_fst _
+      · show _ ≫ (P.cone.π₂ ≫ R.colB)
+              = P'.cone.π₂ ≫ (relPullback (univClassify hV R) V).colB
+        rw [← Cat.assoc, P.lift_snd, Cat.assoc, hwB]
+  -- Chain: relPullback g R ≅ relPullback (g ≫ Λ_V R) V.
+  have hfin : RelHom (relPullback g R) (relPullback (g ≫ univClassify hV R) V) ∧
+              RelHom (relPullback (g ≫ univClassify hV R) V) (relPullback g R) :=
+    ⟨RelHom_trans hpg.1 hc1, RelHom_trans hc2 hpg.2⟩
+  -- Both `Λ_V(relPullback g R)` and `g ≫ Λ_V R` classify `relPullback g R`.
+  exact hV.classify_unique X (relPullback g R) _ _
+    (univClassify_spec hV (relPullback g R)) hfin
+
+/-- **§1.92, uniqueness of universal relations (Yoneda).**  If `U : BinRel P C`
+    and `V : BinRel Q C` are both universal targeted at `C`, then the comparison
+    map `φ = Λ_V(U) : P → Q` is an ISOMORPHISM.  Hence universal relations
+    targeted at a common object have isomorphic carriers.
+
+    Proof: `(· ≫ φ)` is a hom-bijection `(X ⟶ P) ≅ (X ⟶ Q)` — by
+    `univClassify_natural`, `g ≫ φ = Λ_V(relPullback g U)`, and the two universal
+    classifiers `Λ_U, Λ_V` are mutually inverse on relations up to `RelHom`.  Apply
+    the Yoneda corollary `iso_of_natural_hom_bijection`. -/
+theorem universalRel_unique {P Q : 𝒞} {U : BinRel 𝒞 P C} {V : BinRel 𝒞 Q C}
+    (hU : IsUniversalRel U) (hV : IsUniversalRel V) :
+    IsIso (univClassify hV U) := by
+  apply iso_of_natural_hom_bijection (univClassify hV U)
+  · -- SURJECTIVE: every k : X → Q is `g ≫ φ` for `g := Λ_U(relPullback k V)`.
+    intro X k
+    refine ⟨univClassify hU (relPullback k V), ?_⟩
+    -- `g ≫ φ = Λ_V(relPullback g U)` (naturality); show it equals `k` by V.classify_unique.
+    rw [← univClassify_natural hV U (univClassify hU (relPullback k V))]
+    -- `relPullback g U ≅ relPullback k V`, hence `Λ_V(relPullback g U) = Λ_V(relPullback k V) = k`.
+    have hgU := univClassify_spec hU (relPullback k V)  -- relPullback k V ≅ relPullback g U
+    -- `Λ_V` of two RelHom-iso relations agree; and `Λ_V(relPullback k V) = k` (uniqueness).
+    have h1 : univClassify hV (relPullback (univClassify hU (relPullback k V)) U)
+            = univClassify hV (relPullback k V) :=
+      hV.classify_unique X _ _ _
+        (univClassify_spec hV _)
+        ⟨RelHom_trans hgU.2 (univClassify_spec hV (relPullback k V)).1,
+         RelHom_trans (univClassify_spec hV (relPullback k V)).2 hgU.1⟩
+    rw [h1]
+    -- `k` classifies `relPullback k V` along V (reflexively), so `Λ_V(relPullback k V) = k`.
+    exact (hV.classify_unique X (relPullback k V) (univClassify hV (relPullback k V)) k
+      (univClassify_spec hV (relPullback k V))
+      ⟨⟨Cat.id _, by rw [Cat.id_comp], by rw [Cat.id_comp]⟩,
+       ⟨Cat.id _, by rw [Cat.id_comp], by rw [Cat.id_comp]⟩⟩)
+  · -- INJECTIVE: `g₁ ≫ φ = g₂ ≫ φ ⟹ g₁ = g₂`.
+    intro X g₁ g₂ heq
+    -- Apply naturality both sides: `Λ_V(relPullback gᵢ U) = gᵢ ≫ φ`.
+    have e1 := univClassify_natural hV U g₁
+    have e2 := univClassify_natural hV U g₂
+    -- `relPullback g₁ U ≅ relPullback g₂ U` because they classify the same `Λ_V`.
+    have hsame : univClassify hV (relPullback g₁ U) = univClassify hV (relPullback g₂ U) := by
+      rw [e1, e2, heq]
+    -- relPullback g₁ U ≅ relPullback g₂ U via V being universal (same Λ_V).
+    have hiso : RelHom (relPullback g₁ U) (relPullback g₂ U) ∧
+                RelHom (relPullback g₂ U) (relPullback g₁ U) := by
+      have s1 := univClassify_spec hV (relPullback g₁ U)
+      have s2 := univClassify_spec hV (relPullback g₂ U)
+      rw [hsame] at s1
+      exact ⟨RelHom_trans s1.1 s2.2, RelHom_trans s2.1 s1.2⟩
+    -- g₂ also classifies relPullback g₁ U along U (via the iso); U.classify_unique gives g₁ = g₂.
+    exact hU.classify_unique X (relPullback g₁ U) g₁ g₂
+      ⟨⟨Cat.id _, by rw [Cat.id_comp], by rw [Cat.id_comp]⟩,
+       ⟨Cat.id _, by rw [Cat.id_comp], by rw [Cat.id_comp]⟩⟩
+      ⟨RelHom_trans hiso.1 ⟨Cat.id _, by rw [Cat.id_comp], by rw [Cat.id_comp]⟩,
+       RelHom_trans ⟨Cat.id _, by rw [Cat.id_comp], by rw [Cat.id_comp]⟩ hiso.2⟩
+
+end UniversalRelUnique
+
+/-! ## §1.92  `eval` makes `Ω^A` a universal relation targeted at `A`
+
+  The evaluation `eval_exp A Ω : A × Ω^A → Ω` classifies, via the subobject
+  classifier, a subobject of `A × Ω^A`; swapping legs gives the universal
+  MEMBERSHIP relation `∈ ⊆ Ω^A × A`, `evalRel A`.  Combined with the curry/eval
+  adjunction and the classifier bijection `Sub(A×−) ≅ Hom(A×−,Ω)`, `evalRel A`
+  is universal targeted at `A` — Freyd's identification of `Ω^A` as a power object.
+
+  We take `[HasExponentials 𝒞]` as a faithful hypothesis (Freyd's topos has it);
+  the ambient `Topos` supplies the classifier and pullbacks.  All products are the
+  exponential's (`HasExponentials.toHasBinaryProducts`), which under the ambient
+  `topos_has_exponentials` instance coincide with `Topos.toHasBinaryProducts`. -/
+
+section EvalUniversal
+variable [HasExponentials 𝒞]
+
+/-- The relation `{(y,a) | χ(a,y) = ⊤}` cut out of `prod A Y` by a classifier map
+    `χ : prod A Y → Ω`, with columns swapped to `(Y, A)`.  Its source is the
+    pullback of `(χ, true)`; the product-monic is exactly `pb.π₁`, so `χ` classifies
+    it (`classRel_classify`). -/
+noncomputable def classRel {A Y : 𝒞} (χ : prod A Y ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞)) :
+    BinRel 𝒞 Y A :=
+  let pb := HasPullbacks.has χ HasSubobjectClassifier.true
+  { src  := pb.cone.pt
+    colA := pb.cone.π₁ ≫ snd
+    colB := pb.cone.π₁ ≫ fst
+    isMonicPair := by
+      -- jointly monic: `pair colB colA = pb.π₁` (a monic, being a pullback of the monic `true`).
+      have hmono : Mono pb.cone.π₁ :=
+        mono_pullback χ HasSubobjectClassifier.true HasSubobjectClassifier.true_monic pb
+      intro W f g hA hB
+      apply hmono
+      -- f ≫ pb.π₁ = g ≫ pb.π₁ by product-extensionality (agree on fst and snd).
+      -- hA : (f ≫ π₁) ≫ snd = (g ≫ π₁) ≫ snd ; hB : (f ≫ π₁) ≫ fst = (g ≫ π₁) ≫ fst (assoc).
+      have hAf : (f ≫ pb.cone.π₁) ≫ snd = (g ≫ pb.cone.π₁) ≫ snd := by
+        rw [Cat.assoc, Cat.assoc]; exact hA
+      have hBf : (f ≫ pb.cone.π₁) ≫ fst = (g ≫ pb.cone.π₁) ≫ fst := by
+        rw [Cat.assoc, Cat.assoc]; exact hB
+      calc f ≫ pb.cone.π₁
+          = pair ((f ≫ pb.cone.π₁) ≫ fst) ((f ≫ pb.cone.π₁) ≫ snd) :=
+            pair_uniq _ _ _ rfl rfl
+        _ = pair ((g ≫ pb.cone.π₁) ≫ fst) ((g ≫ pb.cone.π₁) ≫ snd) := by rw [hAf, hBf]
+        _ = g ≫ pb.cone.π₁ := (pair_uniq _ _ _ rfl rfl).symm }
+
+/-- `χ` classifies the product-monic of `classRel χ`: the subobject's representing
+    monic `pb.π₁` has characteristic map `χ`.  (`classify_eq_of_pullback`.) -/
+theorem classRel_classify {A Y : 𝒞} (χ : prod A Y ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞)) :
+    HasSubobjectClassifier.classify
+        ((HasPullbacks.has χ HasSubobjectClassifier.true).cone.π₁)
+        (mono_pullback χ HasSubobjectClassifier.true HasSubobjectClassifier.true_monic _) = χ := by
+  let pb := HasPullbacks.has χ HasSubobjectClassifier.true
+  have hsq : pb.cone.π₁ ≫ χ = term pb.cone.pt ≫ HasSubobjectClassifier.true := by
+    rw [pb.cone.w, term_uniq pb.cone.π₂ (term pb.cone.pt)]
+  symm
+  refine classify_eq_of_pullback pb.cone.π₁ _ χ hsq ?_
+  intro d
+  refine ⟨pb.lift ⟨d.pt, d.π₁, d.π₂, d.w⟩, ⟨pb.lift_fst _, term_uniq _ _⟩, ?_⟩
+  intro v hv₁ _
+  exact pb.lift_uniq ⟨d.pt, d.π₁, d.π₂, d.w⟩ v hv₁ (term_uniq _ _)
+
+end EvalUniversal
 
 /-! ## §1.921  Lawvere's original definition of elementary topos
 
