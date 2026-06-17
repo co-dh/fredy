@@ -36,18 +36,34 @@
                             — the two-factor crux: the SINGLE slice `A/(B×B')` points
                                BOTH factors at once, so one rung over `∏U` points every
                                member of `U` simultaneously.
+    * `listProd` / `listProdProj` / `listSubset` / `listDirected`
+                            — the §1.547 FINITE-SET INDEX (mathlib-free): finite sets of
+                               objects modelled as `List 𝒞`, `⊆`-ordered into a `Directed`
+                               (bound = `++`); `∏U` = right-folded binary product (`∏[]=1`);
+                               `listProdProj U k : ∏U → U.get k` the factor projection
+                               (`Fin`-indexed — a `Prop`-membership `B ∈ U` cannot large-
+                               eliminate into a morphism).
+    * `listProdSliceAcquiresEveryFactor`
+                            — the §1.547 payoff: `A/(∏U)` acquires a point of EVERY factor
+                               `U.get k` at once (one rung points all of `U`).
 
   WHAT REMAINS (the residual wall for `hwall_step`, Capitalization.lean).
   The *uniform* successor `nextStep : ∀ S, CapStep S` that `hwall_step` needs is
   STRONGER than a single slice rung: in ONE category `S*` it must add a point for
   *every* well-supported `B` simultaneously (Freyd's §1.547 rational category / the
   directed union of the `A* | U = A/(∏U)` product-slices over finite sets `U` of
-  well-supported objects, transition `A/(∏V) → A/(∏U)` for `V ⊆ U` = slice embedding).
-  This file delivers the per-`B` and per-factor points sorry-free (above); the OPEN
-  part is assembling that inner finite-product-slice colimit `S*` uniformly in `S` and
-  discharging its `colimitPreRegular` package — which itself needs the inner `hcanon`,
-  hence recurses into the same colimit-pre-regularity wall (see the `hwall_step`
-  residual comment in `Capitalization.lean` for the full reduction).
+  well-supported objects).  This file delivers the per-`B`/per-factor points AND the
+  finite-set index (`listDirected`/`listProd`/`listProdProj`/`listProdSliceAcquiresEveryFactor`)
+  sorry-free (above).  Two concrete pieces remain OPEN:
+    (A) the TRANSITION FUNCTOR `A/(∏V) → A/(∏U)` for `V ⊆ U` — this is BASE-CHANGE
+        (pullback) along the projection `∏U → ∏V`, NOT the slice embedding `sliceEmbedFunctor`
+        (which goes `A → A/B`, between base and one slice, not between two slices).  No
+        base-change/reindexing functor exists in the repo yet (only the forgetful `Σ`).
+    (B) assembling the inner finite-product-slice colimit `S*` (objects `A/(∏U)`, transitions
+        from (A)) over `listDirected`, proving `Coherent`, and discharging its
+        `colimitPreRegular` package — which itself needs the inner `hcanon`, hence recurses
+        into the same colimit-pre-regularity wall.
+  See the `hwall_step` residual comment in `Capitalization.lean` for the full reduction.
 
   No mathlib (the category theory stays on this repo's own `Cat`).
 -/
@@ -64,6 +80,7 @@ import Fredy.SliceRegular
 import Fredy.Capitalization
 
 open Freyd
+open Freyd.Colim
 
 universe u
 
@@ -258,5 +275,61 @@ theorem prodSliceAcquiresBothFactors (B B' : 𝒞) :
         = (overTerm (prod B B')).hom :=
   ⟨sliceAcquiresFactorPoint B (fst : prod B B' ⟶ B),
    sliceAcquiresFactorPoint B' (snd : prod B B' ⟶ B')⟩
+
+/-! ## §1.547  The finite-set index and the product over a finite set
+
+  Freyd's choice-free relative capitalization (§1.547) is the directed union of the slices
+  `A* | U = A/(∏U)` over *finite sets* `U` of (well-supported) objects, with transition
+  `A/(∏V) → A/(∏U)` for `V ⊆ U`.  The repo is mathlib-free, so we model a "finite set of
+  objects" as a `List 𝒞` and the order `V ⊆ U` as list-membership inclusion.  This is a
+  genuine `Directed` index (`bound` = append), and `∏U` is the right-folded binary product
+  of the members of `U` (with `∏[] = 1`, the terminator).  These are the concrete, reusable
+  ingredients of the inner directed system; everything below is sorry-free. -/
+
+/-- The product `∏U` of a finite list `U` of objects: right-folded binary product, with the
+    empty product `∏[] = 1` (the terminator).  `∏(B :: U) = B × (∏U)`. -/
+def listProd : List 𝒞 → 𝒞
+  | [] => HasTerminal.one
+  | B :: U => prod B (listProd U)
+
+@[simp] theorem listProd_nil : listProd ([] : List 𝒞) = HasTerminal.one := rfl
+@[simp] theorem listProd_cons (B : 𝒞) (U : List 𝒞) :
+    listProd (B :: U) = prod B (listProd U) := rfl
+
+/-- The projection `∏U → B` for the factor at a positional index `k : Fin U.length` (so
+    `B = U.get k`).  Positional indexing (rather than a `Prop`-valued membership `B ∈ U`) is
+    forced: `B ∈ U` lives in `Prop`, so a *morphism* `∏U → B` cannot be extracted from it by
+    recursion (large elimination of a `Prop` into `Type` is barred).  `Fin`-indexing carries
+    the data: head index projects by `fst`; a successor index projects by `snd` then recurses.
+    This is the map `g : ∏U → U.get k` along which the slice `A/(∏U)` acquires a point of that
+    factor (`sliceFactorPoint`/`sliceAcquiresFactorPoint`). -/
+def listProdProj : ∀ (U : List 𝒞) (k : Fin U.length), (listProd U ⟶ U.get k)
+  | C :: U, ⟨0,     _⟩ => (fst : prod C (listProd U) ⟶ C)
+  | C :: U, ⟨k + 1, hk⟩ =>
+      (snd : prod C (listProd U) ⟶ listProd U) ≫ listProdProj U ⟨k, Nat.lt_of_succ_lt_succ hk⟩
+
+/-- The list-subset order: `V ⊆ U` means every member of `V` is a member of `U`. -/
+def listSubset (V U : List 𝒞) : Prop := ∀ x ∈ V, x ∈ U
+
+/-- **The finite-set index is `Directed`** (subset order, `bound` = append).  This is the
+    inner directed system's index (§1.547): finite sets of objects ordered by inclusion. -/
+def listDirected : Directed (List 𝒞) where
+  le := listSubset
+  refl _ _ h := h
+  trans hVU hUW x hx := hUW x (hVU x hx)
+  bound V U := ⟨V ++ U, fun x hx => List.mem_append.2 (Or.inl hx),
+    fun x hx => List.mem_append.2 (Or.inr hx)⟩
+
+/-- **§1.547 — the product-slice `A/(∏U)` acquires a point of EVERY factor.**  For each
+    positional index `k`, `sliceFactorPoint (U.get k) (listProdProj U k)` is a point
+    `1 → sliceEmbedObj (∏U) (U.get k)` in `A/(∏U)`: the slice over the product of `U` points
+    every member of `U` simultaneously (one rung pins a point per element of `U`).  This is the
+    uniform §1.547 payoff of the index above, a direct instance of `sliceAcquiresFactorPoint`
+    along the projection `listProdProj`.  Sorry-free. -/
+theorem listProdSliceAcquiresEveryFactor (U : List 𝒞) (k : Fin U.length) :
+    (sliceFactorPoint (U.get k) (listProdProj U k)).f
+        ≫ (sliceEmbedObj (listProd U) (U.get k)).hom
+      = (overTerm (listProd U)).hom :=
+  sliceAcquiresFactorPoint (U.get k) (listProdProj U k)
 
 end Freyd
