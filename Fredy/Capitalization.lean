@@ -2543,36 +2543,37 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
   letI : PreRegularCategory (towerSystem b nextStep).Obj :=
     colimitPreRegular _ (towerCoherent b nextStep) ht htpres hp hppres hppres_pair he
       hepres hepres_lift hcanon
-  -- WALL 2.  CAPITAL CLOSURE of the colimit, consuming the package above.  Every well-supported
-  -- object of `Ā` is well-pointed: it appears at a finite stage `n`, the successor `nextStep`
-  -- (WALL 1) puts a point on it at stage `n+1`, and the point survives to the colimit because
-  -- the stage inclusion REFLECTS covers (`colimHom_cover_reflects` / `homInclObj_cover_reflects`).
+  -- INTEGRITY NOTE (do not re-introduce the old `hcap` over this ℕ-tower).  The colimit
+  -- `Ā = (towerSystem b nextStep).Obj` of THIS ω-tower is *not* capital when `A` is uncountable, so
+  -- `Capital (𝒞 := (towerSystem b nextStep).Obj)` is a FALSE statement and a `sorry` for it would be a
+  -- false-statement-with-`sorry` (forbidden).  Concretely: each rung `nextStep` is
+  -- `nextStepOfEnum (enum : Nat → S)`, whose inner slice-colimit `S*` acquires a point of only the
+  -- *enumerated* (countably many) factor objects; ω rungs therefore point at most countably many
+  -- objects, while an uncountable `A` has uncountably many well-supported objects left unpointed.
   --
-  -- TRANSFINITE ANALYSIS (`Fredy.CapitalizationTransfinite`).  `hcap` is genuinely UNPROVABLE from the
-  -- abstract `nextStep`/tower package, for TWO recorded reasons (see that file's header):
-  --   (1) `CapStep` (L716 above) carries NO points-acquisition field — only faithfulness + limit/cover
-  --       preservation — so nothing in the package says any object becomes well-pointed.  The missing
-  --       obligation is `Freyd.StepWellPoints` (CapitalizationTransfinite.lean), bundled into
-  --       `Freyd.CofinalCapStep`.
-  --   (2) the concrete `nextStep` is `nextStepOfEnum` of a `Classical.choose`-picked enumeration, which
-  --       `exists_wellSupported_enum` proves by the CONSTANT-`1` witness — so it is not cofinal over an
-  --       uncountable carrier; closing that needs the transfinite cofinal `<+:`-chain over `Infl 𝒞`
-  --       (a well-ordering of the objects — the one mathlib-set-theory step CLAUDE.md permits, but the
-  --       repo carries no mathlib dependency, so it is the irreducible residual).
-  -- REDUCTION (proven sorry-free in `CapitalizationTransfinite`): `Freyd.tower_capital_of_cofinal`
-  -- derives `Capital (𝒞 := (towerSystem b ccs.step).Obj)` from a `CofinalCapStep ccs` + the stage-
-  -- pointing hypothesis, ON TOP OF `Freyd.wellPointed_of_stage` (the cover-survival reduction: the TRUE
-  -- fact "a stage object whose pushforward stays well-pointed at every later stage gives a well-pointed
-  -- colimit object" — the all-later-stages form is necessary, since an arbitrary colimit mono aligns to
-  -- a mono into a LATER-stage pushforward; it carries the one residual: aligning that mono / point-
-  -- factorization to a common stage and pushing the stage point back out).  Wiring
-  -- that back here would require `hwall_step`/`CapStep` to also supply the points-acquisition data,
-  -- i.e. a `CapStep` field change — fenced as protected — so this `sorry` stays, documented, pointing
-  -- at the honest reduction infrastructure rather than faking a close.
-  have hcap : Capital (𝒞 := (towerSystem b nextStep).Obj) := by
-    sorry
-  exact ⟨capData_of_tower A nextStep b hb ht htpres hp hppres hppres_pair he hepres hepres_lift
-    hcanon hcap⟩
+  -- The genuine §1.543 construction is the TRANSFINITE tower (Freyd: iterate the relative-
+  -- capitalization successor to a regular cardinal `κ > #A`; limit stages are directed colimits of
+  -- categories; at length `κ` every well-supported object of `Ā` already appeared and got pointed at
+  -- an earlier stage).  Its honest assembly is a `CatSystem` over the well-ordered ordinal index
+  -- `{α // α < κ}` (`Freyd.WO.exists_wellOrder` → `IsWellOrder.toDirected`, or mathlib `Ordinal`),
+  -- with the generic `colimitCat`/`colimitPreRegular`/`ordChainSliceSystem` machinery at limit stages
+  -- and `Freyd.nextStep` at successors, closed by `wellPointed_of_stage` whose `hWP` (well-pointedness
+  -- of the pushforward at all later stages) is now TRUE by the regular-cardinal cofinality argument.
+  -- That `CatSystem`-valued transfinite recursion (categories + instances + transition functors +
+  -- coherence, plus the regular-cardinal counting) is the remaining work; it is NOT discharged by
+  -- `Ordinal.limitRecOn` alone (which yields pointwise stage data but not the inter-stage transition
+  -- functors / coherence a `CatSystem` requires).
+  --
+  -- Until that transfinite `CapData A` is built, the residual is carried HERE, on `capData_exists`'s
+  -- OWN statement `Nonempty (CapData.{u} A)` — which IS the true theorem of §1.543 (every small
+  -- pre-regular `A` admits capitalization data; `CapData` is generic in its index `ι`/`D`, so a
+  -- transfinite tower supplies it).  This is an honest residual at a TRUE statement, NOT a `sorry` for
+  -- a false sub-goal.  `capData_of_tower`/`hwall_step` above stay in scope (sorry-free, the ω-tower
+  -- categorical assembly) but are no longer the route to capitalness; the `nextStep`/`b`/package
+  -- bindings are retained so the diagnostic stays attached to the concrete construction.
+  exact (by
+    -- The genuine §1.543 transfinite-tower capitalization data (true theorem; construction pending).
+    sorry : Nonempty (CapData.{u} A))
 
 /-- **§1.543 Capitalization Lemma** (small case, object universe = morphism universe).
     Every small pre-regular category `A` admits a faithful representation into a capital
