@@ -202,6 +202,48 @@ theorem stageInclFaithful (C : CatSystem ι D) (hC : C.Coherent)
   · intro x y g hiso
     exact homInclObj_isIso_reflects C hC hcons g hiso
 
+/-- **The stage terminal is the colimit terminal.**  For any two stages `i j`,
+    `objIncl i (ht i).one = objIncl j (ht j).one`.  Both are carried to `objIncl k (ht k).one`
+    at a common bound `k` (via `objIncl_compat` + the on-the-nose `htpres`). -/
+theorem objIncl_terminal_eq (C : CatSystem.{u, u} ι D) (hC : C.Coherent) [hne : Nonempty ι]
+    (ht : ∀ i, HasTerminal (C.A i))
+    (htpres : ∀ {i j} (hij : D.le i j), C.F hij (ht i).one = (ht j).one) (i j : ι) :
+    C.objIncl i (ht i).one = C.objIncl j (ht j).one := by
+  -- common bound `k ≥ i, j`; `objIncl k (ht k).one = objIncl k (F (ht i).one) = objIncl i (ht i).one`
+  -- (and symmetrically for `j`), using `htpres : F (ht i).one = (ht k).one` and `objIncl_compat`.
+  obtain ⟨k, hik, hjk⟩ := D.bound i j
+  have hi : C.objIncl i (ht i).one = C.objIncl k (ht k).one := by
+    rw [← htpres hik, C.objIncl_compat hik]
+  have hj : C.objIncl j (ht j).one = C.objIncl k (ht k).one := by
+    rw [← htpres hjk, C.objIncl_compat hjk]
+  rw [hi, hj]
+
+/-- **`objIncl i` preserves the terminal, as `PreservesTerminal`.**  The colimit terminal is
+    `objIncl i₀ (ht i₀).one`; every stage terminal `objIncl i (ht i).one` equals it
+    (`objIncl_terminal_eq`), so the colimit's terminal uniqueness `(colimitHasTerminal …).uniq`
+    transports to give `PreservesTerminal (objIncl i)`. -/
+theorem objIncl_preservesTerminal (C : CatSystem.{u, u} ι D) (hC : C.Coherent) [hne : Nonempty ι]
+    (ht : ∀ i, HasTerminal (C.A i))
+    (htpres : ∀ {i j} (hij : D.le i j), C.F hij (ht i).one = (ht j).one) (i : ι) :
+    letI : Cat C.Obj := colimitCat C hC
+    letI : HasTerminal (C.A i) := ht i
+    letI : HasTerminal C.Obj := colimitHasTerminal C hC ht htpres
+    @PreservesTerminal (C.A i) C.Obj (C.catA i) (colimitCat C hC) (C.objIncl i)
+      (stageInclFunctor C hC i) _ _ := by
+  letI : Cat C.Obj := colimitCat C hC
+  letI htiOne : HasTerminal (C.A i) := ht i
+  letI htCol : HasTerminal C.Obj := colimitHasTerminal C hC ht htpres
+  -- `PreservesTerminal (objIncl i)` unfolds to `∀ X (f g : X ⟶ objIncl i one), f = g`.
+  -- `objIncl i one = objIncl i (ht i).one = colimit terminal`, so the colimit's uniqueness applies
+  -- after rewriting the codomain.
+  intro X f g
+  -- `objIncl i one` equals the colimit terminal `htCol.one`; abstract that target object so the
+  -- substitution motive is well-formed, then close by the colimit's terminal uniqueness.
+  suffices h : ∀ (T : C.Obj) (_ : T = htCol.one) (f g : X ⟶ T), f = g from
+    h _ (objIncl_terminal_eq C hC ht htpres i (Classical.choice hne)) f g
+  rintro T rfl f g
+  exact htCol.uniq f g
+
 /-- **`objIncl i` preserves binary products, as `PreservesBinaryProducts`.**  Repackage
     `objIncl_preserves_products` (the `IsIso (pair …)` fact) under the `stageInclFunctor`
     `Functor` instance so the §1.43/§1.437 machinery applies. -/
