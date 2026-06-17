@@ -736,26 +736,243 @@ theorem prefixSuffix_trans {V U W : List 𝒞} (hVU : prefixLe V U) (hUW : prefi
   show W.drop V.length = _
   rw [key, List.drop_left]
 
+/-! ### Associativity bridges for `catForget`/`catTail`/`catArrange` across `(x++d)++e = x++(d++e)`
+
+  The §1.547 `F_trans` law needs `catMap (d++e) f ≍ catMap e (catMap d f)`: appending the suffix
+  `d++e` equals appending `d` then `e`, modulo the strict-but-not-definitional reindexing
+  `(x++d)++e = x++(d++e)` (`List.append_assoc`).  We discharge it through three HEq "bridges" — one
+  per recursive concatenation map — each proved by induction on the BASE list `x`/`t`, delegating the
+  dependent product reindexing to a `subst`-kernel exactly as `catForget_nil_heq` did for `append_nil`.
+  All three are honest theorems (the equation holds on the nose; only the `HEq`/`▸` bookkeeping is
+  nontrivial). -/
+
+/-- Generic cons-step kernel: `pair fst (snd ≫ ·)` preserves HEq across a domain reindexing `Q = P`.
+    Given `u : P ⟶ R`, `v : Q ⟶ R` with `u ≍ v`, the cons-pairs over `prod a P` / `prod a Q` are HEq.
+    `subst`s the reindexing so both `snd`s land in the same type, then the HEq becomes plain. -/
+theorem pair_fst_snd_heq {a R P Q : 𝒞} (hPQ : Q = P)
+    (u : P ⟶ R) (v : Q ⟶ R) (huv : HEq u v) :
+    HEq (pair (fst : prod a P ⟶ a) ((snd : prod a P ⟶ P) ≫ u))
+        (pair (fst : prod a Q ⟶ a) ((snd : prod a Q ⟶ Q) ≫ v)) := by
+  subst hPQ; cases huv; rfl
+
+/-- **Bridge A.**  `catForget x (d++e) ≍ catForget (x++d) e ≫ catForget x d` — forgetting the suffix
+    `d++e` in one go equals forgetting `e` then `d` (modulo `(x++d)++e = x++(d++e)`).  Induction on `x`. -/
+theorem catForget_append_heq : ∀ (x d e : List 𝒞),
+    HEq (catForget (𝒞 := 𝒞) x (d ++ e))
+        (catForget (𝒞 := 𝒞) (x ++ d) e ≫ catForget (𝒞 := 𝒞) x d)
+  | [],      d, e => by
+      -- both sides `∏(d++e) ⟶ 1` (since `[]++(d++e) = ([]++d)++e = d++e`); into terminal.
+      show HEq (catForget (𝒞 := 𝒞) [] (d ++ e))
+               (catForget (𝒞 := 𝒞) ([] ++ d) e ≫ catForget (𝒞 := 𝒞) [] d)
+      rw [term_uniq (catForget [] (d ++ e)) (catForget ([] ++ d) e ≫ catForget [] d)]
+  | a :: x', d, e => by
+      -- LHS unfolds to a cons-`pair`; RHS composite unfolds to one too; bridge the two via the IH.
+      have hf : catForget (𝒞 := 𝒞) (a :: x') (d ++ e)
+          = pair (fst : prod a (listProd (x' ++ (d ++ e))) ⟶ a)
+                 ((snd : prod a (listProd (x' ++ (d ++ e))) ⟶ _) ≫ catForget x' (d ++ e)) := rfl
+      have hg : catForget (𝒞 := 𝒞) ((a :: x') ++ d) e ≫ catForget (𝒞 := 𝒞) (a :: x') d
+          = pair (fst : prod a (listProd ((x' ++ d) ++ e)) ⟶ a)
+                 ((snd : prod a (listProd ((x' ++ d) ++ e)) ⟶ _)
+                   ≫ (catForget (𝒞 := 𝒞) (x' ++ d) e ≫ catForget (𝒞 := 𝒞) x' d)) := by
+        show pair (fst : prod a (listProd ((x' ++ d) ++ e)) ⟶ a)
+                  ((snd : _) ≫ catForget (x' ++ d) e)
+              ≫ pair (fst : prod a (listProd (x' ++ d)) ⟶ a) ((snd : _) ≫ catForget x' d)
+            = _
+        refine pair_uniq _ _ _ ?_ ?_
+        · rw [Cat.assoc, fst_pair, fst_pair]
+        · rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair, Cat.assoc]
+      rw [hf, hg]
+      exact pair_fst_snd_heq (by rw [List.append_assoc]) _ _ (catForget_append_heq x' d e)
+
+/-- `catArrange` is natural in its source: `h ≫ catArrange t d g b = catArrange t d (h≫g) (h≫b)`.
+    (Precomposition distributes over the `pair`-assembly; induction on `t`.) -/
+theorem catArrange_snd_comp : ∀ (t d : List 𝒞) {W X : 𝒞} (h : W ⟶ X)
+    (g : X ⟶ listProd (𝒞 := 𝒞) t) (b : X ⟶ listProd d),
+    h ≫ catArrange t d g b = catArrange t d (h ≫ g) (h ≫ b)
+  | [],      d, W, X, h, g, b => rfl
+  | a :: t', d, W, X, h, g, b => by
+      show h ≫ pair (g ≫ fst) (catArrange t' d (g ≫ snd) b)
+          = pair ((h ≫ g) ≫ fst) (catArrange t' d ((h ≫ g) ≫ snd) (h ≫ b))
+      refine pair_uniq _ _ _ ?_ ?_
+      · rw [Cat.assoc, fst_pair, Cat.assoc]
+      · rw [Cat.assoc, snd_pair, catArrange_snd_comp t' d h (g ≫ snd) b, Cat.assoc]
+
+/-- Generic cons-step kernel for `catTail`: `snd ≫ ·` preserves HEq across a domain reindexing `Q = P`.
+    Given `u : P ⟶ R`, `v : Q ⟶ R` with `u ≍ v`, `snd ≫ u` (over `prod a P`) is HEq `snd ≫ v`. -/
+theorem snd_comp_heq {a R P Q : 𝒞} (hPQ : Q = P)
+    (u : P ⟶ R) (v : Q ⟶ R) (huv : HEq u v) :
+    HEq ((snd : prod a P ⟶ P) ≫ u) ((snd : prod a Q ⟶ Q) ≫ v) := by
+  subst hPQ; cases huv; rfl
+
+/-- **Bridge B.**  `catTail x (d++e) ≍ catTail (x++d) e ≫ catTail x d` — projecting onto the suffix
+    `d++e` equals projecting onto `e` then... wait: the suffix `d++e` is recovered from `(x++d)++e` by
+    `catArrange d e` of its `d`-part (`catForget(x++d) e ≫ catTail x d`) and `e`-part (`catTail(x++d) e`).
+    Induction on `x`; cons step bridges via the IH. -/
+theorem catTail_append_heq : ∀ (x d e : List 𝒞),
+    HEq (catTail (𝒞 := 𝒞) x (d ++ e))
+        (catArrange (𝒞 := 𝒞) d e (catForget (𝒞 := 𝒞) (x ++ d) e ≫ catTail (𝒞 := 𝒞) x d)
+                                  (catTail (𝒞 := 𝒞) (x ++ d) e))
+  | [],      d, e => by
+      -- LHS `= id (∏(d++e))`; RHS `= catArrange d e (catForget d e) (catTail d e) = catMap e id = id`.
+      show HEq (catTail (𝒞 := 𝒞) [] (d ++ e))
+               (catArrange (𝒞 := 𝒞) d e (catForget (𝒞 := 𝒞) ([] ++ d) e ≫ catTail (𝒞 := 𝒞) [] d)
+                                         (catTail (𝒞 := 𝒞) ([] ++ d) e))
+      have hL : catTail (𝒞 := 𝒞) [] (d ++ e) = Cat.id (listProd (d ++ e)) := rfl
+      have hR : catArrange (𝒞 := 𝒞) d e (catForget (𝒞 := 𝒞) ([] ++ d) e ≫ catTail (𝒞 := 𝒞) [] d)
+                  (catTail (𝒞 := 𝒞) ([] ++ d) e) = Cat.id (listProd (d ++ e)) := by
+        show catArrange d e (catForget d e ≫ Cat.id _) (catTail d e) = _
+        exact catMap_id d e
+      rw [hL, hR]
+  | a :: x', d, e => by
+      -- LHS `= snd ≫ catTail x' (d++e)`; RHS's `catArrange` over `(a::x')++d = a::(x'++d)` unfolds to a
+      -- cons-`pair`, whose `snd`-part is the IH'd `catArrange`; bridge the two `snd ≫ ·`s.
+      have hL : catTail (𝒞 := 𝒞) (a :: x') (d ++ e)
+          = (snd : prod a (listProd (x' ++ (d ++ e))) ⟶ _) ≫ catTail (𝒞 := 𝒞) x' (d ++ e) := rfl
+      have hR : catArrange (𝒞 := 𝒞) d e
+              (catForget (𝒞 := 𝒞) ((a :: x') ++ d) e ≫ catTail (𝒞 := 𝒞) (a :: x') d)
+              (catTail (𝒞 := 𝒞) ((a :: x') ++ d) e)
+          = (snd : prod a (listProd ((x' ++ d) ++ e)) ⟶ _)
+            ≫ catArrange (𝒞 := 𝒞) d e (catForget (𝒞 := 𝒞) (x' ++ d) e ≫ catTail (𝒞 := 𝒞) x' d)
+                                       (catTail (𝒞 := 𝒞) (x' ++ d) e) := by
+        -- `catForget (a::(x'++d)) e ≫ catTail (a::x') d = snd ≫ (catForget(x'++d) e ≫ catTail x' d)`,
+        -- and `catTail (a::(x'++d)) e = snd ≫ catTail(x'++d) e`; then `catArrange` is `snd ≫`-natural.
+        have hb : catForget (𝒞 := 𝒞) ((a :: x') ++ d) e ≫ catTail (𝒞 := 𝒞) (a :: x') d
+            = (snd : prod a (listProd ((x' ++ d) ++ e)) ⟶ _)
+              ≫ (catForget (𝒞 := 𝒞) (x' ++ d) e ≫ catTail (𝒞 := 𝒞) x' d) := by
+          show pair (fst : prod a (listProd ((x' ++ d) ++ e)) ⟶ a) ((snd : _) ≫ catForget (x' ++ d) e)
+                ≫ ((snd : prod a (listProd (x' ++ d)) ⟶ _) ≫ catTail x' d) = _
+          rw [← Cat.assoc, snd_pair, Cat.assoc]
+        have ht : catTail (𝒞 := 𝒞) ((a :: x') ++ d) e
+            = (snd : prod a (listProd ((x' ++ d) ++ e)) ⟶ _) ≫ catTail (𝒞 := 𝒞) (x' ++ d) e := rfl
+        rw [hb, ht]
+        exact (catArrange_snd_comp d e _ _ _).symm
+      rw [hL, hR]
+      exact snd_comp_heq (by rw [List.append_assoc]) _ _ (catTail_append_heq x' d e)
+
+/-- Full heterogeneous congruence for composition (all three objects may differ).  Local copy
+    (S1_49 has the same lemma but is not imported here). -/
+theorem comp_heq {X X' A A' Bo Bo' : 𝒞} (f : X ⟶ A) (f' : X' ⟶ A')
+    (s : A ⟶ Bo) (s' : A' ⟶ Bo') (hX : X = X') (hA : A = A') (hB : Bo = Bo')
+    (hf : HEq f f') (hs : HEq s s') : HEq (f ≫ s) (f' ≫ s') := by
+  cases hX; cases hA; cases hB; cases hf; cases hs; rfl
+
+/-- Double-transport HEq: an arrow is HEq its transport along domain `hX` and codomain `hB`. -/
+theorem transport_heq {X X' Bo Bo' : 𝒞} (hX : X = X') (hB : Bo = Bo') (R : X ⟶ Bo) :
+    HEq R (hB ▸ hX ▸ R : X' ⟶ Bo') := by
+  subst hX; subst hB; rfl
+
 /-- **`catMap (d ++ e) f` HEq `catMap e (catMap d f)`** — appending the concatenated suffix `d++e`
     equals appending `d` then `e`, modulo the `(s++d)++e = s++(d++e)` reindexing.  (`F_trans` core.)
-    RESIDUAL: the multi-step transport across `concat_assoc` (analogous to but heavier than the
-    `catMap_nil_heq` `append_nil` transport — it threads `cat_jointly_monic` through TWO appends and
-    the associativity reindexing).  The equation is TRUE (both sides extend `f` by `id` on `∏(d++e)`
-    = `∏d × ∏e`); only the `HEq`/`▸` bookkeeping is unfinished. -/
+    `R := catMap e (catMap d f)` and `catMap (d++e) f` satisfy the SAME joint-monic characterization
+    (over `catForget t (d++e)`/`catTail t (d++e)`): the bridges `catForget_append_heq`/`catTail_append_heq`
+    convert `R`'s `catMap e`/`catMap d` projection laws into the `d++e` ones (each equation collapses
+    from `HEq` to `Eq` because both sides share the type), and `cat_jointly_monic` finishes. -/
 theorem catMap_append_heq {s t : List 𝒞} (d e : List 𝒞) (f : listProd (𝒞 := 𝒞) s ⟶ listProd t) :
     HEq (catMap (d ++ e) f) (catMap e (catMap d f)) := by
-  sorry
+  have hS : listProd (𝒞 := 𝒞) ((s ++ d) ++ e) = listProd (s ++ (d ++ e)) := by rw [List.append_assoc]
+  have hT : listProd (𝒞 := 𝒞) ((t ++ d) ++ e) = listProd (t ++ (d ++ e)) := by rw [List.append_assoc]
+  let R := catMap (𝒞 := 𝒞) e (catMap d f)
+  -- transport `R` into the `d++e`-typed slot; `R ≍ R'`.
+  let R' : listProd (𝒞 := 𝒞) (s ++ (d ++ e)) ⟶ listProd (t ++ (d ++ e)) := hT ▸ hS ▸ R
+  show HEq (catMap (d ++ e) f) R
+  have hRR' : HEq R R' := transport_heq hS hT R
+  -- `R`'s two projection laws (for the outer suffix `e`):
+  have hRf : R ≫ catForget (𝒞 := 𝒞) (t ++ d) e = catForget (𝒞 := 𝒞) (s ++ d) e ≫ catMap d f :=
+    catMap_forget e (catMap d f)
+  have hRt : R ≫ catTail (𝒞 := 𝒞) (t ++ d) e = catTail (𝒞 := 𝒞) (s ++ d) e :=
+    catMap_tail e (catMap d f)
+  -- the FORGET equation `R' ≫ catForget t (d++e) = catForget s (d++e) ≫ f`.
+  have hForget : R' ≫ catForget (𝒞 := 𝒞) t (d ++ e)
+      = catForget (𝒞 := 𝒞) s (d ++ e) ≫ f := by
+    apply eq_of_heq
+    -- `R' ≫ catForget t (d++e) ≍ R ≫ (catForget(t++d)e ≫ catForget t d)`  (bridge A at t, `R ≍ R'`).
+    refine HEq.trans (comp_heq R' R _ _ hS.symm hT.symm rfl hRR'.symm
+      (catForget_append_heq t d e)) ?_
+    -- compute `R ≫ (catForget(t++d)e ≫ catForget t d) = (catForget(s++d)e ≫ catForget s d) ≫ f`.
+    have hcomp : R ≫ (catForget (𝒞 := 𝒞) (t ++ d) e ≫ catForget (𝒞 := 𝒞) t d)
+        = (catForget (𝒞 := 𝒞) (s ++ d) e ≫ catForget (𝒞 := 𝒞) s d) ≫ f := by
+      rw [← Cat.assoc, hRf, Cat.assoc, catMap_forget, ← Cat.assoc]
+    rw [hcomp]
+    -- `(catForget(s++d)e ≫ catForget s d) ≫ f ≍ catForget s (d++e) ≫ f`  (bridge A at s).
+    exact comp_heq _ _ f f hS rfl rfl (catForget_append_heq s d e).symm (HEq.refl f)
+  -- the TAIL equation `R' ≫ catTail t (d++e) = catTail s (d++e)`.
+  have hTail : R' ≫ catTail (𝒞 := 𝒞) t (d ++ e) = catTail (𝒞 := 𝒞) s (d ++ e) := by
+    apply eq_of_heq
+    -- `R' ≫ catTail t (d++e) ≍ R ≫ catArrange d e (catForget(t++d)e ≫ catTail t d) (catTail(t++d)e)`.
+    refine HEq.trans (comp_heq R' R _ _ hS.symm hT.symm rfl hRR'.symm
+      (catTail_append_heq t d e)) ?_
+    -- pull `R` inside the `catArrange`, simplify each leg, land on bridge B at `s`.
+    rw [catArrange_snd_comp]
+    have hleg1 : R ≫ (catForget (𝒞 := 𝒞) (t ++ d) e ≫ catTail (𝒞 := 𝒞) t d)
+        = catForget (𝒞 := 𝒞) (s ++ d) e ≫ catTail (𝒞 := 𝒞) s d := by
+      rw [← Cat.assoc, hRf, Cat.assoc, catMap_tail]
+    have hleg2 : R ≫ catTail (𝒞 := 𝒞) (t ++ d) e = catTail (𝒞 := 𝒞) (s ++ d) e := hRt
+    rw [hleg1, hleg2]
+    exact (catTail_append_heq s d e).symm
+  -- both equations hold ⟹ `R' = catMap (d++e) f` by joint monicity; transport back.
+  have hR'eq : R' = catMap (𝒞 := 𝒞) (d ++ e) f := by
+    apply cat_jointly_monic t (d ++ e)
+    · rw [hForget, catMap_forget]
+    · rw [hTail, catMap_tail]
+  rw [← hR'eq]; exact hRR'.symm
+
+/-- Transporting an `Over` along a base equality `e : B = B'` leaves its `dom` unchanged. -/
+theorem over_transport_dom {𝒟 : Type u} [Cat.{u} 𝒟] {B B' : 𝒟} (e : B = B') (X : Over B) :
+    (e ▸ X : Over B').dom = X.dom := by subst e; rfl
+
+/-- Transporting an `Over` along a base equality `e : B = B'` leaves its `hom` HEq the original. -/
+theorem over_transport_hom_heq {𝒟 : Type u} [Cat.{u} 𝒟] {B B' : 𝒟} (e : B = B') (X : Over B) :
+    HEq (e ▸ X : Over B').hom X.hom := by subst e; rfl
+
+/-- `catMap` respects HEq of its structure arrow across a LIST reindexing: if `s = s'`, `t = t'` as
+    lists and `g ≍ g'`, then `catMap d g ≍ catMap d g'`.  (`subst`s the list equalities, then `cases`.) -/
+theorem catMap_heq_congr {s t s' t' : List 𝒞} (d : List 𝒞)
+    (hs : s = s') (ht : t = t')
+    (g : listProd (𝒞 := 𝒞) s ⟶ listProd t) (g' : listProd (𝒞 := 𝒞) s' ⟶ listProd t')
+    (hg : HEq g g') :
+    HEq (catMap (𝒞 := 𝒞) d g) (catMap (𝒞 := 𝒞) d g') := by
+  subst hs; subst ht; cases hg; rfl
 
 /-- **`F_trans` for the strict inner system** — the composite suffix-transition equals appending the
-    concatenated suffix (modulo `(V++d)++e = V++(d++e)`).  Reduces to `prefixSuffix_trans` +
-    `catMap_append_heq` + `over_transport_ext`; the residual is `catMap_append_heq`'s transport. -/
+    concatenated suffix (modulo `(V++d)++e = V++(d++e)`).  `innerSliceTr` of a prefix step transports
+    `sliceCatObj (suffix)` along `V++suffix = U`; the composite over `V ⊑ U ⊑ W` therefore has `dom`
+    `(X.dom ++ dVU) ++ dUW` and structure `catMap dUW (catMap dVU X.hom)`, while the direct `V ⊑ W`
+    step has `dom` `X.dom ++ (dVU++dUW)` and `catMap (dVU++dUW) X.hom`.  `prefixSuffix_trans`
+    (`dVW = dVU++dUW`) reconciles the doms (`append_assoc`) and `catMap_append_heq` the structures. -/
 theorem innerSliceTr_trans {V U W : List 𝒞} (hVU : prefixLe V U) (hUW : prefixLe U W)
     (X : innerSliceObj (𝒞 := 𝒞) V) :
     innerSliceTr (hVU.trans hUW) X = innerSliceTr hUW (innerSliceTr hVU X) := by
-  -- The two sides differ by the NESTED transports `(V++dVW=W) ▸ ·` vs `(U++dUW=W) ▸ ((V++dVU=U) ▸ ·)`
-  -- plus `prefixSuffix_trans` (`dVW = dVU ++ dUW`) and `catMap_append_heq` (`catMap (dVU++dUW) =
-  -- catMap dUW ∘ catMap dVU`).  The equality HOLDS; the residual is threading `catMap_append_heq`
-  -- and the doubled `▸`-transport through `over_transport_ext`.  See the docstring.
-  sorry
+  -- abbreviations for the three suffixes; `prefixSuffix_trans` gives `dVW = dVU ++ dUW`.
+  have hdVW : prefixSuffix V W = prefixSuffix V U ++ prefixSuffix U W := prefixSuffix_trans hVU hUW
+  -- intermediate `Y := innerSliceTr hVU X : Over U`, with computed `dom`/`hom`.
+  have hYdom : (innerSliceTr hVU X).dom = X.dom ++ prefixSuffix V U := by
+    unfold innerSliceTr; rw [over_transport_dom]; rfl
+  have hYhom : HEq (innerSliceTr hVU X).hom (catMap (prefixSuffix V U) X.hom) := by
+    unfold innerSliceTr; exact over_transport_hom_heq _ _
+  -- the RHS `innerSliceTr hUW Y` dom/hom, peeling its outer transport.
+  have hRdom : (innerSliceTr hUW (innerSliceTr hVU X)).dom
+      = (X.dom ++ prefixSuffix V U) ++ prefixSuffix U W := by
+    unfold innerSliceTr
+    rw [over_transport_dom]
+    show (innerSliceTr hVU X).dom ++ prefixSuffix U W = _
+    rw [hYdom]
+  -- reduce the goal (LHS) by `over_transport_ext` to dom-eq + hom-HEq.
+  unfold innerSliceTr
+  apply over_transport_ext
+  · -- dom: `X.dom ++ dVW = (X.dom ++ dVU) ++ dUW`  (via `dVW = dVU++dUW` + `append_assoc`).
+    show X.dom ++ prefixSuffix V W = (innerSliceTr hUW (innerSliceTr hVU X)).dom
+    rw [hRdom, hdVW, List.append_assoc]
+  · -- hom: `catMap dVW X.hom ≍ (innerSliceTr hUW Y).hom ≍ catMap dUW (catMap dVU X.hom)`.
+    show HEq (catMap (prefixSuffix V W) X.hom) (innerSliceTr hUW (innerSliceTr hVU X)).hom
+    -- peel the RHS outer transport, then its `sliceCatObj` (= `catMap dUW Y.hom`), then `hYhom`.
+    refine HEq.trans ?_ (over_transport_hom_heq (prefixSuffix_eq hUW)
+      (sliceCatObj (prefixSuffix U W) (innerSliceTr hVU X))).symm
+    show HEq (catMap (prefixSuffix V W) X.hom)
+             (catMap (prefixSuffix U W) (innerSliceTr hVU X).hom)
+    -- replace `Y.hom` by `catMap dVU X.hom` (HEq), then `catMap_append_heq` does `dVW = dVU++dUW`.
+    refine HEq.trans ?_ (catMap_heq_congr (prefixSuffix U W) hYdom.symm (prefixSuffix_eq hVU)
+      (catMap (prefixSuffix V U) X.hom) (innerSliceTr hVU X).hom hYhom.symm)
+    rw [hdVW]
+    exact catMap_append_heq (prefixSuffix V U) (prefixSuffix U W) X.hom
 
 end Freyd
