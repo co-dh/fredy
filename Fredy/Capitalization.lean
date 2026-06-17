@@ -907,10 +907,21 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
     -- WALL 1.  Build the uniform pre-regular-preserving successor `nextStep : ∀ S, CapStep S.carrier`
     -- (Freyd's `A ↦ A*`: glue the slices `A/B` over well-supported `B`, adding a point per
     -- well-supported object) and supply the ω-tower's preservation package by rung-composing the
-    -- single-step preservation.  Buildable from `Freyd.overPreRegular` (SliceRegular: `A/B` is
-    -- pre-regular) and §1.544 `slice_embedding_separates` (one slice step separates morphisms);
-    -- the `A*` object is the colimit-of-slices, and `homInclObj_*`/`colimHom_*` thread its
-    -- pre-regularity.  RESIDUAL: the `A*` object construction and its single→iterated preservation.
+    -- single-step preservation.
+    --
+    -- THE PER-`B` SLICE RUNG IS NOW BUILT, sorry-free, in `Fredy.RelativeCapitalization`
+    -- (§1.544/§1.545): `Freyd.sliceCapStep B hws : CapStep S` is the faithful pre-regular embedding
+    -- `S → S/B` for a single well-supported `B` (`overPreRegular` gives `S/B` pre-regular;
+    -- `sliceEmbedFaithful` proves faithfulness — embedding via `slice_embedding_separates`,
+    -- reflects-iso via `f×B` iso ⟹ `f` mono+cover ⟹ iso), and `sliceAcquiresPoint` exhibits the
+    -- §1.546 generic point `1 → S(B)` that this rung adds.
+    --
+    -- RESIDUAL (the genuine wall): the successor `nextStep` must be UNIFORM over `S` and add a point
+    -- for *every* well-supported `B` of `S` in ONE category `S*` (Freyd's §1.547 rational category /
+    -- the directed union of the per-`B` slice rungs `sliceCapStep`), *plus* the lift of the per-rung
+    -- preservation to the iterated `colimitPreRegular` package.  Picking a single `B` here would not
+    -- satisfy WALL 2 (capital closure needs a point for *all* well-supported objects), so this is left
+    -- as the honest residual rather than reduced via an arbitrary `sliceCapStep B`.
     sorry
   -- Unpack the successor and its full preservation package (the §1.543 "directed-tower" data).
   obtain ⟨nextStep, b, hb, ht, htpres, hp, hppres, hppres_pair, he, hepres, hepres_lift,

@@ -44,6 +44,7 @@ import Fredy.DirectedColimit
 import Fredy.CatColimit
 import Fredy.CatColimitRegular
 import Fredy.Capitalization
+import Fredy.RelativeCapitalization
 import Fredy.S2_1
 import Fredy.S2_2
 import Fredy.S2_22
