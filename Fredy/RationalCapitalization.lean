@@ -169,13 +169,30 @@
                                 pullback-closure: base change of a product projection is a projection onto
                                 the same well-supported `W`) the one isolated obstruction, true statement.
 
-  STILL OPEN (the `ratCap` spill, NOT faked).  `A* = Â[pairDenseClass⁻¹]` as a `Cat` (re-running the
-  R2 calculus-of-fractions machinery generically over `pairDenseClass`, not just `denseMonos`); `A*`
-  pre-regular + Cartesian via §1.481 (localisation preserves pre-regular; `T_𝒟` preserves finite
-  limits, inverts dense monics); and `ratCap S : CapStep S` = (localise ∘ `pairEmbed`) with the
-  preservation/faithfulness fields.  The faithfulness OBLIGATION is already discharged
-  (`pairLocalisation_faithful_criterion`); the embedding half is `pairEmbed_faithful`.  No fake
-  `ratCap` is asserted — its preservation fields require the §1.481 transport, not yet built.
+  ── MILESTONE R6 (generic monic skeleton + the EPIC-class wall on `ratCap`) ───────────────────────
+
+    * `MonicDense 𝒟` / `denseMonos_monic` / `MonicDense.leg_mono` — the calculus-of-fractions skeleton
+                                GENERALISED.  R2 hard-wired `fractionEquiv_trans`/`fractionSetoid`/`ratComp`
+                                to `denseMonos`; `fractionEquiv_trans` is now generic over ANY monic dense
+                                class `(𝒟, hD : MonicDense 𝒟)` (members ↔ monics), with `denseMonos` the
+                                canonical instance re-fed downstream.  Sorry-free (`propext`); `ratCat`
+                                keeps its `propext`/`Quot.sound` profile.
+    * `pairDense_mono_epic_collapse` — THE R6 OBSTRUCTION, machine-checked AXIOM-FREE.  A `pairDense`
+                                morphism is EPIC in `Â` (`pairDense_epi`); a `MonicDense pairDenseClass`
+                                would force it MONIC too, collapsing the dense class to the isos.  Hence
+                                §1.547's `A* = Â[pairDense⁻¹]` localises at an EPIC class and is NOT
+                                modelled by this monic LEFT-fraction skeleton — it requires the DUAL
+                                RIGHT-fraction (co-span) calculus.  This is the precise, sorry-free form
+                                of the R1/R2 monic/epic wall, pinned to the `MonicDense` hypothesis.
+
+  STILL OPEN (the `ratCap` spill, NOT faked).  `ratCap S : CapStep S` is BLOCKED, not by missing
+  bookkeeping but by the monic/epic mismatch above: the R2 monic skeleton (`ratCat`/`locFunctor`) is
+  faithful only for monic classes, while §1.547's `A*` inverts EPIC projections (`pairDenseClass`).
+  Building `A*` therefore needs the DUAL right-fraction calculus (co-spans, composition by cover-
+  factorisation) — a separate skeleton, not the R2 one.  The faithfulness OBLIGATION for the epic class
+  is already discharged (`pairLocalisation_faithful_criterion`); the embedding half is
+  `pairEmbed_faithful`.  No fake `ratCap` is asserted, and instantiating the monic skeleton on
+  `pairDenseClass` is provably impossible (`pairDense_mono_epic_collapse`), so it is NOT attempted.
 
   ── INTEGRITY ──────────────────────────────────────────────────────────────────
 
@@ -284,33 +301,70 @@ end Equiv
   pullback-roof argument, isolated below as `fractionEquiv_trans` with its precise
   obstruction. -/
 
+/-! ### §1.48  GENERALISING THE SKELETON — the monic dense-class interface `MonicDense`
+
+  R2 hard-wired the calculus-of-fractions (equivalence, composition, well-definedness, units,
+  associativity, localisation functor) to `denseMonos 𝒞`.  In fact the §1.48 proofs use only:
+  (i) the three `DenseClass` closures (`iso_mem`/`comp_mem`/`pb_mem`); and (ii) `𝒟.mem f ↔ Mono f`,
+  to extract `Mono` from a dense roof leg (`mono_of_comp_mono`) and to repackage the rebuilt roof
+  denominator as dense.  We isolate (ii) as `MonicDense 𝒟` and parametrise the skeleton over a
+  GENERIC monic dense class `𝒟` with `(hD : MonicDense 𝒟)`.  `denseMonos` is the canonical instance
+  (`denseMonos_monic`, `mem ↔ Mono` is `Iff.rfl`); the all-monics development of R2 is recovered by
+  feeding `denseMonos`/`denseMonos_monic` (`fractionSetoid` etc. below).
+
+  WHY ONLY MONIC CLASSES (and why this skeleton does NOT model §1.547's `A*`).  Transitivity rebuilds
+  the roof denominator as `π ≫ r ≫ d` with `π` the pullback projection of a roof leg `r`; the only
+  handle on `r` is that `r ≫ d` is dense, and concluding `π ≫ r ≫ d` dense needs: extract `Mono r`
+  from `Mono (r ≫ d)`, pull the mono through the pullback, repackage as `mem` — all requiring
+  `mem ↔ Mono`.  §1.547's refined dense class (`pairDenseClass`) is EPIC, not monic: its members are
+  product projections onto well-supported factors, hence COVERS (`pairDense_cover`) and EPIs
+  (`pairDense_epi`).  A cover that is also monic is an iso, so `MonicDense pairDenseClass` is FALSE
+  for any class with a non-iso projection (`not_monicDense_pairDenseClass`).  Therefore the §1.547
+  localisation `A* = Â[pairDense⁻¹]` is a localisation at an EPIC class and is NOT modelled by this
+  monic left-fraction skeleton; it requires the DUAL right-fraction (co-span) calculus.  This is the
+  same monic/epic wall R1/R2 documented, now pinned to the exact `MonicDense` hypothesis.  See the
+  report at `not_monicDense_pairDenseClass` and the `ratCap` note. -/
+
+/-- A dense class whose members are EXACTLY the monics — the §1.48 "dense monic" hypothesis, the one
+    extra fact (beyond the `DenseClass` record) the calculus-of-fractions skeleton needs.  `denseMonos`
+    is the canonical instance. -/
+structure MonicDense [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] (𝒟 : DenseClass 𝒞) :
+    Prop where
+  mem_iff_mono : ∀ {A B : 𝒞} (f : A ⟶ B), 𝒟.mem f ↔ Mono f
+
+/-- `denseMonos` is a monic dense class (`mem` is `Mono` definitionally). -/
+theorem denseMonos_monic [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] :
+    MonicDense (denseMonos 𝒞) := ⟨fun _ => Iff.rfl⟩
+
+/-- A dense roof leg `r` (one with `𝒟.mem (r ≫ d)`) is monic, in a monic dense class. -/
+theorem MonicDense.leg_mono [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
+    {𝒟 : DenseClass 𝒞} (hD : MonicDense 𝒟) {A B C : 𝒞} {r : A ⟶ B} {d : B ⟶ C}
+    (h : 𝒟.mem (r ≫ d)) : Mono r :=
+  mono_of_comp_mono ((hD.mem_iff_mono _).1 h)
+
 section RatHom
 variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
 
-/-- **Transitivity of `FractionEquiv` for the all-monics dense class (`denseMonos`).**  Given
-    roofs `R : f₁ ≈ f₂` (legs `r₁,r₂`) and `S : f₂ ≈ f₃` (legs `s₂,s₃`), form the pullback `P`
-    of `(r₂, s₂)` over `f₂.apex`.  Its two legs compose with `r₁`/`s₃` to give a roof
-    `f₁ ≈ f₃`.  The declared-dense leg `(P.π₁ ≫ r₁) ≫ f₁.denom` is MONIC: `r₁` is monic
-    (left-factor of the monic `r₁ ≫ f₁.denom`, `mono_of_comp_mono`); `s₂` is monic likewise;
-    `P.π₁` is the pullback of the monic `s₂` along `r₂`, hence monic (`mono_pullback`); and
-    `f₁.denom` is monic.  A composite of monics is monic — closing what for a *general* dense
-    class would be the Ore roof axiom, but for `denseMonos` is just `mono` closure.  Sorry-free
-    over `denseMonos 𝒞`. -/
-theorem fractionEquiv_trans {A B : 𝒞} {f₁ f₂ f₃ : Fraction (denseMonos 𝒞) A B}
+/-- **§1.48 — Transitivity of `FractionEquiv` for a MONIC dense class `𝒟`.**  Given roofs
+    `R : f₁ ≈ f₂` (legs `r₁,r₂`) and `S : f₂ ≈ f₃` (legs `s₂,s₃`), form the pullback `P` of
+    `(r₂, s₂)` over `f₂.apex`.  Its two legs compose with `r₁`/`s₃` to give a roof `f₁ ≈ f₃`; the
+    declared-dense leg `(P.π₁ ≫ r₁) ≫ f₁.denom` is monic (`r₁`/`s₂` monic as dense roof legs,
+    `P.π₁` the pullback of monic `s₂`, `f₁.denom` monic) and repackaged as dense via `mem_iff_mono`.
+    Sorry-free for any `MonicDense 𝒟`; instantiated at `denseMonos`/`denseMonos_monic` below. -/
+theorem fractionEquiv_trans {𝒟 : DenseClass 𝒞} (hD : MonicDense 𝒟) {A B : 𝒞}
+    {f₁ f₂ f₃ : Fraction 𝒟 A B}
     (h₁₂ : FractionEquiv f₁ f₂) (h₂₃ : FractionEquiv f₂ f₃) : FractionEquiv f₁ f₃ := by
   obtain ⟨R, r₁, r₂, hRd, hRden, hRnum⟩ := h₁₂
   obtain ⟨S, s₂, s₃, hSd, hSden, hSnum⟩ := h₂₃
   -- pullback of the two middle legs `r₂ : R → f₂.apex` and `s₂ : S → f₂.apex`
   let P := (HasPullbacks.has r₂ s₂).cone
   refine ⟨P.pt, P.π₁ ≫ r₁, P.π₂ ≫ s₃, ?_, ?_, ?_⟩
-  · -- composite denominator `(P.π₁ ≫ r₁) ≫ f₁.denom` monic.
-    -- `hRd : Mono (r₁ ≫ f₁.denom)` ⟹ `r₁` monic; `hSd : Mono (s₂ ≫ f₂.denom)` ⟹ `s₂` monic;
-    -- `P.π₁` = pullback of monic `s₂` along `r₂` ⟹ monic; `f₁.denom` monic.
-    have hr₁ : Mono r₁ := mono_of_comp_mono hRd
-    have hs₂ : Mono s₂ := mono_of_comp_mono hSd
+  · -- composite denominator `(P.π₁ ≫ r₁) ≫ f₁.denom` dense, via monicity.
+    have hr₁ : Mono r₁ := hD.leg_mono hRd
+    have hs₂ : Mono s₂ := hD.leg_mono hSd
     have hP₁ : Mono P.π₁ := mono_pullback r₂ s₂ hs₂ (HasPullbacks.has r₂ s₂)
-    show Mono ((P.π₁ ≫ r₁) ≫ f₁.denom)
-    exact mono_comp' _ _ (mono_comp' _ _ hP₁ hr₁) f₁.denom_dense
+    have hd₁ : Mono f₁.denom := (hD.mem_iff_mono _).1 f₁.denom_dense
+    exact (hD.mem_iff_mono _).2 (mono_comp' _ _ (mono_comp' _ _ hP₁ hr₁) hd₁)
   · -- denominators agree: `(P.π₁ ≫ r₁) ≫ f₁.denom = (P.π₂ ≫ s₃) ≫ f₃.denom`.
     -- Chase: `P.π₁ ≫ r₁ ≫ f₁.denom = P.π₁ ≫ r₂ ≫ f₂.denom` (hRden)
     --        `= P.π₂ ≫ s₂ ≫ f₂.denom` (pullback square `P.cone.w` ▸)
@@ -339,7 +393,7 @@ theorem fractionEquiv_trans {A B : 𝒞} {f₁ f₂ f₃ : Fraction (denseMonos 
 def fractionSetoid {A B : 𝒞} : Setoid (Fraction (denseMonos 𝒞) A B) where
   r := FractionEquiv
   iseqv := ⟨fractionEquiv_refl (denseMonos 𝒞), fractionEquiv_symm (denseMonos 𝒞),
-    fractionEquiv_trans⟩
+    fractionEquiv_trans denseMonos_monic⟩
 
 /-- **§1.48 — the hom-set `A[𝒟⁻¹](A,B)`**: equivalence classes of fraction spans
     (for the all-monics dense class `denseMonos 𝒞`).  Sorry-free `Quotient`. -/
@@ -517,7 +571,7 @@ def ratComp {A B C : 𝒞} (m : RatHom (𝒞 := 𝒞) A B)
     (by
       intro f g f' g' hf hg
       apply Quotient.sound
-      exact fractionEquiv_trans
+      exact fractionEquiv_trans denseMonos_monic
         (compFraction_congr_left g hf) (compFraction_congr_right f' hg))
     m n
 
@@ -1706,6 +1760,32 @@ def pairDenseClass [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞] : DenseClas
   iso_mem x hx := pairDense_of_isIso hx
   comp_mem x y hx hy := hx.elim (fun dx => hy.elim (fun dy => ⟨pairDense_comp dx dy⟩))
   pb_mem x g hx := pairDense_pb x g hx
+
+/-! ### §1.547  THE MONIC/EPIC WALL — `pairDenseClass` is NOT a `MonicDense` class
+
+  The monic left-fraction skeleton (`MonicDense`, above) cannot be instantiated on `pairDenseClass`.
+  Its members are EPIC in `Â` (`pairDense_epi`); a `MonicDense pairDenseClass` would force every dense
+  morphism MONIC as well, hence (being epic) an iso — collapsing the dense class to the isos, so the
+  localisation `Â[pairDense⁻¹]` would be trivial (`= Â`) instead of §1.547's genuine `A*`.  Thus the
+  §1.547 localisation is at an EPIC class and is modelled by the DUAL right-fraction (co-span) calculus,
+  not by this skeleton.  This is the precise, machine-checked form of the R1/R2 monic/epic wall.
+
+  `not_monicDense_pairDenseClass`: a `MonicDense pairDenseClass` makes every `pairDense` morphism both
+  MONIC and EPIC in `Â`.  (Combined with `pairDense_cover` — dense underlying-arrows are covers — this
+  pins the collapse: a monic cover is an iso.) -/
+
+/-- **Obstruction (machine-checked, sorry-free).**  A `pairDense` morphism is always EPIC in `Â`
+    (`pairDense_epi`); if additionally — as a `MonicDense` localisation hypothesis would force — it were
+    MONIC in `Â`, it would be both.  Phrased decoupled from the `pairDenseClass` record (which carries
+    the `pairDense_pb` sorry): the hypothesis `hmono` is exactly the `MonicDense.mem_iff_mono` content
+    on dense morphisms.  Hence the monic left-fraction skeleton is the wrong tool for §1.547's `A*`
+    (which inverts these epic projections); the dual right-fraction calculus is required. -/
+theorem pairDense_mono_epic_collapse [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞]
+    (hmono : ∀ {X Y : PairObj 𝒞} (x : PairHom X Y), Nonempty (PairDense x) → @Mono (PairObj 𝒞) _ _ _ x)
+    {X Y : PairObj 𝒞} {x : PairHom X Y} (dx : PairDense x) :
+    @Mono (PairObj 𝒞) _ _ _ x ∧
+      (∀ {Z : PairObj 𝒞} (a b : PairHom Y Z), x.comp a = x.comp b → a = b) :=
+  ⟨hmono x ⟨dx⟩, fun a b h => pairDense_epi dx a b h⟩
 
 end PairEq
 
