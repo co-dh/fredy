@@ -1923,6 +1923,126 @@ def ordChainHasProducts (i : ι) : HasBinaryProducts ((ordChainSliceSystem O).A 
 def ordChainHasEqualizers (i : ι) : HasEqualizers ((ordChainSliceSystem O).A i) :=
   overHasEqualizers (O.chain i)
 
+/-! ### §1.546  Transition cover-reflection: `catForget` is a cover for a well-supported suffix
+
+  The strict suffix-append transition `catMap d` (§1.547, `chainSliceFunctor`'s underlying arrow) is a
+  pullback of its argument along the projection `catForget t d : ∏(t++d) ⟶ ∏t` (`catMap_isPullback`).
+  That projection is a COVER exactly when the appended suffix `∏d` is WELL-SUPPORTED — the §1.546
+  precondition the relative-capitalization successor supplies.  Cover-of-`catForget` is the KEY UNLOCK
+  that discharges the transition faithfulness / conservativity (`hfaith`/`hcons`) `colimitCanonicalCover`
+  needs: `catMap d f = catMap d g ⟹ catForget s d ≫ f = catForget s d ≫ g ⟹ f = g` (`cover_epi`). -/
+
+/-- The left-product map `id_B × x = pair fst (snd ≫ x) : B×A₁ ⟶ B×A₂` is a cover when `x` is.
+    It is the pullback of `x` along `snd : B×A₂ ⟶ A₂` (`prod_pullback`, with the cone swapped so the
+    transferred leg is `π₂`); pre-regular pullbacks transfer the cover `x`. -/
+theorem prodLeftMap_cover {B A1 A2 : 𝒞} (x : A1 ⟶ A2) (hx : Cover x) :
+    Cover (pair (fst : prod B A1 ⟶ B) (snd ≫ x)) := by
+  -- the §1.532 product-pullback square with `(x, snd)` as the cospan, `pair fst (snd≫x)` the leg
+  -- parallel to `x`; pre-regular pullbacks transfer the cover `x` to this `π₂`.
+  let c : Cone x (snd (A:=B) (B:=A2)) := ⟨prod B A1, snd, pair fst (snd ≫ x), by rw [snd_pair]⟩
+  have hpb : c.IsPullback := by
+    intro d
+    refine ⟨pair (d.π₂ ≫ fst) d.π₁, ⟨?_, ?_⟩, ?_⟩
+    · show pair (d.π₂ ≫ fst) d.π₁ ≫ snd = d.π₁; rw [snd_pair]
+    · show pair (d.π₂ ≫ fst) d.π₁ ≫ pair fst (snd ≫ x) = d.π₂
+      apply fst_snd_jointly_monic
+      · rw [Cat.assoc, fst_pair, fst_pair]
+      · rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair, d.w]
+    · intro v hv1 hv2
+      apply fst_snd_jointly_monic
+      · rw [fst_pair]
+        have hh : v ≫ pair (fst : prod B A1 ⟶ B) (snd ≫ x) = d.π₂ := hv2
+        have := congrArg (· ≫ (fst : prod B A2 ⟶ B)) hh
+        simpa [Cat.assoc, fst_pair] using this
+      · rw [snd_pair]; exact hv1
+  show Cover c.π₂
+  exact PullbacksTransferCovers.pullbacks_transfer_covers c hpb hx
+
+/-- **§1.546 — `catForget s d` is a cover when the suffix product `∏d` is well-supported.**
+    Induction on `s`: base `catForget [] d = term (∏d)` is a cover by `WellSupported`; step
+    `catForget (a::s') d = pair fst (snd ≫ catForget s' d) = id_a × (catForget s' d)` is a cover by
+    `prodLeftMap_cover` of the inductive cover. -/
+theorem catForget_cover {d : List 𝒞} (hws : WellSupported (listProd (𝒞 := 𝒞) d)) :
+    ∀ (s : List 𝒞), Cover (catForget (𝒞 := 𝒞) s d)
+  | [] => hws
+  | _a :: s' => prodLeftMap_cover (catForget s' d) (catForget_cover hws s')
+
+/-- **§1.546 transition faithfulness (`hfaith`, underlying arrow).**  For a well-supported suffix
+    `∏d`, the strict suffix-append `catMap d` is faithful on underlying arrows: `catMap d f =
+    catMap d g ⟹ f = g`.  Post-compose with `catForget t d` (`catMap_forget`) to get
+    `catForget s d ≫ f = catForget s d ≫ g`, then cancel the cover `catForget s d` (`cover_epi`). -/
+theorem catMap_faithful {d : List 𝒞} (hws : WellSupported (listProd (𝒞 := 𝒞) d)) {s t : List 𝒞}
+    (f g : listProd (𝒞 := 𝒞) s ⟶ listProd t) (h : catMap d f = catMap d g) : f = g := by
+  apply cover_epi (catForget_cover (𝒞 := 𝒞) (d := d) hws s)
+  rw [← catMap_forget d f, ← catMap_forget d g, h]
+
+/-- **§1.546 transition conservativity (`hcons`, underlying arrow).**  For a well-supported suffix
+    `∏d`, the strict suffix-append `catMap d` reflects isos on underlying arrows: `catMap d φ` iso
+    ⟹ `φ` iso.  `φ` is MONO (`mono_of_comp_left` on the cover-square: from a cover `g`, if `φ ≫ ?`…
+    — here proved via `catMap d φ` mono pulled back through the joint-monicity of `catForget`/`catTail`)
+    and a COVER (`catForget s d ≫ φ = catMap d φ ≫ catForget t d` is iso∘cover, hence a cover, whose
+    right factor `φ` is a cover); `monic_cover_iso` then makes `φ` iso.  Mirrors `sliceEmbedFaithful`. -/
+theorem catMap_conservative {d : List 𝒞} (hws : WellSupported (listProd (𝒞 := 𝒞) d)) {s t : List 𝒞}
+    (φ : listProd (𝒞 := 𝒞) s ⟶ listProd t) (hiso : IsIso (catMap d φ)) : IsIso φ := by
+  obtain ⟨inv, hinv1, hinv2⟩ := hiso
+  -- `φ` is a cover: `catForget s d ≫ φ = catMap d φ ≫ catForget t d` is `iso ∘ cover`, a cover; its
+  -- right factor `φ` is a cover (a cover through `φ` factors `φ` as a cover too).
+  have hφcover : Cover φ := by
+    have hstep : catForget s d ≫ φ = catMap d φ ≫ catForget t d := (catMap_forget d φ).symm
+    have hcov : Cover (catForget s d ≫ φ) := by
+      rw [hstep]
+      exact cover_precomp_iso ⟨inv, hinv1, hinv2⟩ (catForget_cover (𝒞 := 𝒞) (d := d) hws t)
+    intro K m h hm hfac
+    exact hcov m (catForget s d ≫ h) hm (by rw [Cat.assoc, hfac])
+  -- `φ` is mono: `catMap d φ` mono (it is iso).  Given `u≫φ = v≫φ` (`u v : Z → ∏s`), lift each to
+  -- `Z×∏d → ∏(s+d)` via `catArrange (fst≫u/v) snd` (forget-part `fst≫u`, tail-part `snd`).  Both lifts
+  -- agree under `catMap d φ` (forget-parts `fst≫u≫φ = fst≫v≫φ`, tails `snd`), so `catMap d φ`-mono
+  -- pins them equal; their forget-parts give `fst≫u = fst≫v`, and `fst : Z×∏d → Z` is a cover (`∏d`
+  -- well-supported), hence epic, so `u = v`.  (No point on `∏d` is needed — only `fst` epic.)
+  have hφmono : Mono φ := by
+    have hcfMono : Mono (catMap d φ) := mono_of_retraction (catMap d φ) inv hinv1
+    intro Z u v huv
+    let p : prod Z (listProd (𝒞 := 𝒞) d) ⟶ listProd (s ++ d) := catArrange s d (fst ≫ u) snd
+    let q : prod Z (listProd (𝒞 := 𝒞) d) ⟶ listProd (s ++ d) := catArrange s d (fst ≫ v) snd
+    have hpq : p ≫ catMap d φ = q ≫ catMap d φ := by
+      apply cat_jointly_monic t d
+      · show (p ≫ catMap d φ) ≫ catForget t d = (q ≫ catMap d φ) ≫ catForget t d
+        rw [Cat.assoc, catMap_forget, Cat.assoc, catMap_forget, ← Cat.assoc, ← Cat.assoc]
+        show (catArrange s d (fst ≫ u) snd ≫ catForget s d) ≫ φ
+            = (catArrange s d (fst ≫ v) snd ≫ catForget s d) ≫ φ
+        rw [catArrange_forget s d (fst ≫ u) snd, catArrange_forget s d (fst ≫ v) snd,
+            Cat.assoc, Cat.assoc, huv]
+      · show (p ≫ catMap d φ) ≫ catTail t d = (q ≫ catMap d φ) ≫ catTail t d
+        rw [Cat.assoc, catMap_tail, Cat.assoc, catMap_tail]
+        show catArrange s d (fst ≫ u) snd ≫ catTail s d = catArrange s d (fst ≫ v) snd ≫ catTail s d
+        rw [catArrange_tail s d (fst ≫ u) snd, catArrange_tail s d (fst ≫ v) snd]
+    have heq := hcfMono p q hpq
+    have hfst : (fst : prod Z (listProd (𝒞 := 𝒞) d) ⟶ Z) ≫ u
+        = (fst : prod Z (listProd (𝒞 := 𝒞) d) ⟶ Z) ≫ v := by
+      have := congrArg (· ≫ catForget s d) heq
+      simpa [p, q, catArrange_forget] using this
+    exact cover_epi (prod_fst_cover hws) hfst
+  exact monic_cover_iso φ hφcover hφmono
+
+/-- **`sliceCatFunctor d` is FAITHFUL** (separates slice morphisms) when the appended suffix `∏d` is
+    well-supported.  A slice equation is its underlying-arrow equation (`OverHom.ext`); the underlying
+    `catMap d` is faithful by `catMap_faithful` (cancel the cover `catForget`).  The slice-level mate of
+    `catMap_faithful` — the per-transition `hfaith` ingredient the §1.546 colimit cover-transfer needs. -/
+theorem sliceCatObj_faithful (d : List 𝒞) (hws : WellSupported (listProd (𝒞 := 𝒞) d))
+    {V : Infl 𝒞} {X Y : Over (B := V)} (g h : OverHom X Y)
+    (he : sliceCatMap d g = sliceCatMap d h) : g = h :=
+  OverHom.ext (catMap_faithful (d := d) hws g.f h.f (congrArg OverHom.f he))
+
+/-- **`sliceCatFunctor d` is CONSERVATIVE** (reflects slice isos) when `∏d` is well-supported.  From a
+    slice iso of `sliceCatMap d φ` take the underlying `IsIso (catMap d φ.f)` (`overIso_underlying`),
+    reflect it to `IsIso φ.f` (`catMap_conservative`), then re-wrap to a slice iso
+    (`overIso_of_underlying`).  The slice-level mate of `catMap_conservative` — the per-transition
+    `hcons` ingredient. -/
+theorem sliceCatObj_conservative (d : List 𝒞) (hws : WellSupported (listProd (𝒞 := 𝒞) d))
+    {V : Infl 𝒞} {X Y : Over (B := V)} (φ : OverHom X Y)
+    (hiso : OverIso (B := (V ++ d : List 𝒞)) (sliceCatMap d φ)) : OverIso (B := V) φ :=
+  overIso_of_underlying φ (catMap_conservative (d := d) hws φ.f (overIso_underlying hiso))
+
 /-- **GENERIC** product joint-monicity preservation (`hppres`) — lifts `sliceCatObj_prod_jointly_monic`
     through the base-transport of `ordChainSliceFunctor`, any index. -/
 theorem ordChainHppres {i j : ι} (hij : D.le i j)
@@ -2071,6 +2191,40 @@ theorem ordChainHmono {i j : ι} (hij : D.le i j) {x y : (ordChainSliceSystem O)
     intro d W e; cases e; exact fun hφ => sliceCatObj_mono d φ hφ
   exact gen _ _ (prefixSuffix_eq (O.mono hij))
 
+/-- **GENERIC** transition FAITHFULNESS (`hfaith`) — the inner transition separates slice morphisms,
+    lifting `sliceCatObj_faithful` through the base-transport, GIVEN the appended suffix product
+    `∏(prefixSuffix (chain i) (chain j))` is well-supported (the §1.546 precondition).  The `cases e`
+    collapse reduces to the strict `sliceCatObj_faithful` over `chain i ++ d`. -/
+theorem ordChainHfaith {i j : ι} (hij : D.le i j)
+    (hws : WellSupported (listProd (𝒞 := 𝒞) (prefixSuffix (O.chain i) (O.chain j))))
+    {x y : (ordChainSliceSystem O).A i} (p q : x ⟶ y)
+    (h : ((ordChainSliceFunctor O hij).map p) = ((ordChainSliceFunctor O hij).map q)) : p = q := by
+  revert h
+  unfold ordChainSliceFunctor
+  have gen : ∀ (d : List 𝒞) (W : Infl 𝒞) (e : (O.chain i : List 𝒞) ++ d = W)
+      (hwsd : WellSupported (listProd (𝒞 := 𝒞) d)),
+      (transportSliceFunctor e (sliceCatFunctor d (O.chain i))).map p
+        = (transportSliceFunctor e (sliceCatFunctor d (O.chain i))).map q → p = q := by
+    intro d W e hwsd; cases e; exact fun h => sliceCatObj_faithful d hwsd p q h
+  exact gen _ _ (prefixSuffix_eq (O.mono hij)) hws
+
+/-- **GENERIC** transition CONSERVATIVITY (`hcons`) — the inner transition reflects slice isos, lifting
+    `sliceCatObj_conservative` through the base-transport, GIVEN the appended suffix product is
+    well-supported.  Mate of `ordChainHfaith`. -/
+theorem ordChainHcons {i j : ι} (hij : D.le i j)
+    (hws : WellSupported (listProd (𝒞 := 𝒞) (prefixSuffix (O.chain i) (O.chain j))))
+    {x y : (ordChainSliceSystem O).A i} (φ : x ⟶ y)
+    (hiso : IsIso (𝒞 := (ordChainSliceSystem O).A j) ((ordChainSliceFunctor O hij).map φ)) :
+    IsIso (𝒞 := (ordChainSliceSystem O).A i) φ := by
+  revert hiso
+  unfold ordChainSliceFunctor
+  have gen : ∀ (d : List 𝒞) (W : Infl 𝒞) (e : (O.chain i : List 𝒞) ++ d = W)
+      (hwsd : WellSupported (listProd (𝒞 := 𝒞) d)),
+      OverIso (B := W) ((transportSliceFunctor e (sliceCatFunctor d (O.chain i))).map φ) →
+      OverIso (B := (O.chain i : Infl 𝒞)) φ := by
+    intro d W e hwsd; cases e; exact fun hiso => sliceCatObj_conservative d hwsd φ hiso
+  exact gen _ _ (prefixSuffix_eq (O.mono hij)) hws
+
 /-- **GENERIC** per-stage `PullbacksTransferCovers` (`hstagePTC`) — each stage `Over (chain i : A′)` is
     the slice of the pre-regular inflation `A′` (`inflPullbacksTransferCovers`), hence pre-regular by the
     §1.53 slice lemma (`overPullbacksTransferCovers`). -/
@@ -2161,6 +2315,26 @@ theorem chainHepres {i j : ULift.{u} Nat} (hij : uliftNatDirected.le i j)
         = v ≫ ((chainSliceSystem P).functF hij).map
           (@eqMap _ ((chainSliceSystem P).catA i) (chainHasEqualizers P i) _ _ f g)) : u = v :=
   ordChainHepres P.toOrdChain hij (f := f) (g := g) z u v h
+
+/-- Transition FAITHFULNESS (`hfaith`) for the ℕ-chain — the `uliftNatDirected` specialization of
+    `ordChainHfaith`, GIVEN the appended suffix product `∏(prefixSuffix (chain i) (chain j))` is
+    well-supported (§1.546 precondition; for the relative-capitalization chain the appended objects
+    ARE the well-supported `B`'s, so this discharges). -/
+theorem chainHfaith {i j : ULift.{u} Nat} (hij : uliftNatDirected.le i j)
+    (hws : WellSupported
+      (listProd (𝒞 := 𝒞) (prefixSuffix (P.toOrdChain.chain i) (P.toOrdChain.chain j))))
+    {x y : (chainSliceSystem P).A i} (p q : x ⟶ y)
+    (h : ((chainSliceSystem P).functF hij).map p = ((chainSliceSystem P).functF hij).map q) : p = q :=
+  ordChainHfaith P.toOrdChain hij hws p q h
+
+/-- Transition CONSERVATIVITY (`hcons`) for the ℕ-chain — the specialization of `ordChainHcons`,
+    GIVEN the appended suffix product is well-supported. -/
+theorem chainHcons {i j : ULift.{u} Nat} (hij : uliftNatDirected.le i j)
+    (hws : WellSupported
+      (listProd (𝒞 := 𝒞) (prefixSuffix (P.toOrdChain.chain i) (P.toOrdChain.chain j))))
+    {x y : (chainSliceSystem P).A i} (φ : x ⟶ y)
+    (hiso : IsIso (((chainSliceSystem P).functF hij).map φ)) : IsIso φ :=
+  ordChainHcons P.toOrdChain hij hws φ hiso
 
 /-- Equalizer-lift preservation (`hepres_lift`) for the ℕ-chain. -/
 theorem chainHepresLift {i j : ULift.{u} Nat} (hij : uliftNatDirected.le i j)
