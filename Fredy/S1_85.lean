@@ -379,6 +379,20 @@ theorem iso_of_natural_hom_bijection {𝒟 : Type u} [Cat.{v} 𝒟] {X Y : 𝒟}
   show (g ≫ r) ≫ g = Cat.id X ≫ g
   rw [Cat.assoc, hr, Cat.comp_id, Cat.id_comp]
 
+/-- DUAL YONEDA COROLLARY (object iso from a natural iso of *co*representables).
+    If PREcomposition `(g ≫ ·) : (Y ⟶ T) → (X ⟶ T)` is a bijection for EVERY test
+    object `T`, then `g` is an isomorphism.  Dual to `iso_of_natural_hom_bijection`. -/
+theorem iso_of_natural_hom_bijection_op {𝒟 : Type u} [Cat.{v} 𝒟] {X Y : 𝒟}
+    (g : X ⟶ Y)
+    (hsurj : ∀ {T : 𝒟} (k : X ⟶ T), ∃ h : Y ⟶ T, g ≫ h = k)
+    (hinj : ∀ {T : 𝒟} {h₁ h₂ : Y ⟶ T}, g ≫ h₁ = g ≫ h₂ → h₁ = h₂) :
+    IsIso g := by
+  obtain ⟨r, hr⟩ := hsurj (Cat.id X)
+  refine ⟨r, hr, ?_⟩
+  apply hinj
+  show g ≫ (r ≫ g) = g ≫ Cat.id Y
+  rw [← Cat.assoc, hr, Cat.id_comp, Cat.comp_id]
+
 /-- A full subcategory (via inclusion I : 𝒜' → 𝒜) is an EXPONENTIAL IDEAL of 𝒜
     if for all A ∈ |𝒜| and B ∈ |𝒜'|, the exponential B^A lies in 𝒜' (§1.857). -/
 def ExponentialIdeal (I : 𝒜' → 𝒜) [Functor I] : Prop :=
@@ -540,6 +554,245 @@ theorem reflective_counit_iso
     rw [Functor.map_comp (F := I), he', Functor.map_id (F := I)]
     exact triangle_two adjR C
 
+/-- A RIGHT ADJOINT preserves binary products.  Given `adj : L ⊣ I` and `B₁ B₂ : 𝒜'`,
+    the canonical comparison `⟨I(fst), I(snd)⟩ : I(B₁×B₂) → I B₁ × I B₂` is an iso. -/
+theorem right_adjoint_preserves_prod
+    {L : 𝒜 → 𝒜'} [Functor L] {I : 𝒜' → 𝒜} [Functor I] (adj : L ⊣ I)
+    [HasBinaryProducts 𝒜'] (B₁ B₂ : 𝒜') :
+    IsIso (pair (Functor.map (F := I) (fst : prod B₁ B₂ ⟶ B₁))
+                (Functor.map (F := I) (snd : prod B₁ B₂ ⟶ B₂))) := by
+  let ip := pair (Functor.map (F := I) (fst : prod B₁ B₂ ⟶ B₁))
+                 (Functor.map (F := I) (snd : prod B₁ B₂ ⟶ B₂))
+  show IsIso ip
+  have ip_fst : ip ≫ fst = Functor.map (F := I) (fst : prod B₁ B₂ ⟶ B₁) := fst_pair _ _
+  have ip_snd : ip ≫ snd = Functor.map (F := I) (snd : prod B₁ B₂ ⟶ B₂) := snd_pair _ _
+  let inv := adj.φ (pair (adj.ψ (fst : prod (I B₁) (I B₂) ⟶ I B₁))
+                         (adj.ψ (snd : prod (I B₁) (I B₂) ⟶ I B₂)))
+  have inv_ip : inv ≫ ip = Cat.id _ := by
+    have hf : (inv ≫ ip) ≫ fst = fst := by
+      rw [Cat.assoc, ip_fst]
+      show adj.φ _ ≫ Functor.map (F := I) (fst : prod B₁ B₂ ⟶ B₁) = _
+      rw [← adj.φ_nat_right, fst_pair, adj.φψ]
+    have hs : (inv ≫ ip) ≫ snd = snd := by
+      rw [Cat.assoc, ip_snd]
+      show adj.φ _ ≫ Functor.map (F := I) (snd : prod B₁ B₂ ⟶ B₂) = _
+      rw [← adj.φ_nat_right, snd_pair, adj.φψ]
+    exact (pair_uniq _ _ _ hf hs).trans pair_fst_snd
+  apply iso_of_natural_hom_bijection ip
+  · intro T k
+    exact ⟨k ≫ inv, by rw [Cat.assoc, inv_ip, Cat.comp_id]⟩
+  · intro T h₁ h₂ hh
+    have key : ∀ h : T ⟶ I (prod B₁ B₂), h = adj.φ (adj.ψ h) := fun h => (adj.φψ h).symm
+    have legfst : adj.ψ h₁ ≫ fst = adj.ψ h₂ ≫ fst := by
+      apply φ_inj adj
+      rw [adj.φ_nat_right, adj.φ_nat_right, adj.φψ, adj.φψ, ← ip_fst, ← Cat.assoc, ← Cat.assoc, hh]
+    have legsnd : adj.ψ h₁ ≫ snd = adj.ψ h₂ ≫ snd := by
+      apply φ_inj adj
+      rw [adj.φ_nat_right, adj.φ_nat_right, adj.φψ, adj.φψ, ← ip_snd, ← Cat.assoc, ← Cat.assoc, hh]
+    rw [key h₁, key h₂]
+    congr 1
+    rw [pair_eta (adj.ψ h₁), pair_eta (adj.ψ h₂), legfst, legsnd]
+
+/-- For a full-faithful right adjoint `I` (`adj : L ⊣ I`), precomposition by the
+    unit `η_A : A ⟶ I(L A)` is a bijection `(I(L A) ⟶ I Z) ≅ (A ⟶ I Z)` for `Z : 𝒜'`. -/
+theorem unit_precomp_bij
+    {L : 𝒜 → 𝒜'} [Functor L] {I : 𝒜' → 𝒜} [Functor I] (adj : L ⊣ I)
+    (hFull : Full I) (A : 𝒜) (Z : 𝒜') :
+    (∀ p : A ⟶ I Z, ∃ f : I (L A) ⟶ I Z, unit adj A ≫ f = p) ∧
+    (∀ {f₁ f₂ : I (L A) ⟶ I Z}, unit adj A ≫ f₁ = unit adj A ≫ f₂ → f₁ = f₂) := by
+  constructor
+  · intro p
+    refine ⟨Functor.map (F := I) (adj.ψ p), ?_⟩
+    rw [← φ_eq adj (adj.ψ p), adj.φψ]
+  · intro f₁ f₂ hf
+    obtain ⟨f₁', hf₁⟩ := hFull f₁
+    obtain ⟨f₂', hf₂⟩ := hFull f₂
+    rw [← hf₁, ← hf₂] at hf ⊢
+    rw [← φ_eq adj f₁', ← φ_eq adj f₂'] at hf
+    rw [φ_inj adj hf]
+
+/-- `curry` commutes with precomposition in the parameter variable. -/
+theorem curry_precomp {A B X Y : 𝒞} (u : X ⟶ Y) (g : prod A Y ⟶ B) :
+    u ≫ curry g = curry (prodMap A X Y u ≫ g) := by
+  apply curry_unique_eq
+  rw [prodMap_comp, Cat.assoc, curry_eval_eq]
+
+/-- The identity on `B^A` is `curry eval`. -/
+theorem id_eq_curry_eval (A B : 𝒞) : Cat.id (B ^^ A) = curry (eval_exp A B) := by
+  apply curry_unique_eq; rw [prodMap_id, Cat.id_comp]
+
+/-- The unit `η_A : A ⟶ I(L A)` of a full-faithful reflection is "left-orthogonal
+    to the exponential ideal" even after producting with a fixed object `W`:
+    precomposition by `(η_A × 1_W) : A × W ⟶ I(L A) × W` is a bijection on maps to
+    `I Z`.  This is the engine of the (⇒) direction (§1.857, Part 2).
+
+    Proof: swap so `W` is the first product factor, curry over `W` (landing in
+    `exp W (I Z)`), use the exponential ideal `exp W (I Z) ≅ I Z''` to bring the
+    codomain into the subcategory, then apply the *single-object* unit bijection
+    `unit_precomp_bij` at `A`. -/
+theorem unit_left_bij
+    {L : 𝒜 → 𝒜'} [Functor L] {I : 𝒜' → 𝒜} [Functor I] (adj : L ⊣ I)
+    (hFull : Full I)
+    (hExpId : ∀ (A : 𝒜) (B : 𝒜'), ∃ (E : 𝒜'), Isomorphic (I E) (exp A (I B)))
+    (A W : 𝒜) (Z : 𝒜') :
+    (∀ k : prod A W ⟶ I Z,
+        ∃ g : prod (I (L A)) W ⟶ I Z, pair (fst ≫ unit adj A) snd ≫ g = k) ∧
+    (∀ {g₁ g₂ : prod (I (L A)) W ⟶ I Z},
+        pair (fst ≫ unit adj A) snd ≫ g₁ = pair (fst ≫ unit adj A) snd ≫ g₂ → g₁ = g₂) := by
+  obtain ⟨Z'', j, j', jl, jr⟩ := hExpId W Z
+  obtain ⟨usurj, uinj⟩ := unit_precomp_bij adj hFull A Z''
+  -- `pml` = the unit-on-left product map.
+  let pml : prod A W ⟶ prod (I (L A)) W := pair (fst ≫ unit adj A) snd
+  have hpml : pml = pair (fst ≫ unit adj A) snd := rfl
+  -- pml ≫ prodSwap = pair snd (fst ≫ η_A).
+  have pml_swap : pml ≫ prodSwap (I (L A)) W = pair snd (fst ≫ unit adj A) := by
+    rw [hpml, pair_eta (pair (fst ≫ unit adj A) snd ≫ prodSwap (I (L A)) W)]
+    congr 1
+    · rw [Cat.assoc, prodSwap_fst, snd_pair]
+    · rw [Cat.assoc, prodSwap_snd, fst_pair]
+  constructor
+  · -- SURJECTIVE.
+    intro k
+    let pW := curry (prodSwap W A ≫ k)
+    obtain ⟨f, hf⟩ := usurj (pW ≫ j')
+    refine ⟨prodSwap (I (L A)) W ≫ prodMap W (I (L A)) (exp W (I Z)) (f ≫ j) ≫ eval_exp W (I Z), ?_⟩
+    -- Rewrite pml ≫ (swap ≫ prodMap ≫ eval).
+    rw [← Cat.assoc, ← Cat.assoc, pml_swap]
+    -- pair snd (fst≫η) ≫ prodMap W (ILA)(exp) (f≫j) = pair snd (fst≫η≫(f≫j)).
+    have step1 : pair snd (fst ≫ unit adj A) ≫ prodMap W (I (L A)) (exp W (I Z)) (f ≫ j) =
+        pair snd (fst ≫ unit adj A ≫ (f ≫ j)) := by
+      rw [pair_eta (pair snd (fst ≫ unit adj A) ≫ prodMap W (I (L A)) (exp W (I Z)) (f ≫ j))]
+      congr 1
+      · rw [Cat.assoc, prodMap_fst, fst_pair]
+      · rw [Cat.assoc, prodMap_snd, ← Cat.assoc, snd_pair, Cat.assoc]
+    rw [step1]
+    -- η ≫ (f ≫ j) = (η ≫ f) ≫ j = (pW ≫ j') ≫ j = pW.
+    rw [show unit adj A ≫ (f ≫ j) = pW by rw [← Cat.assoc, hf, Cat.assoc, jr, Cat.comp_id]]
+    -- pair snd (fst≫pW) ≫ eval = prodSwap A W ≫ (prodMap W A (exp) pW ≫ eval) = prodSwap ≫ prodSwap ≫ k.
+    have step2 : pair snd (fst ≫ pW) =
+        prodSwap A W ≫ prodMap W A (exp W (I Z)) pW := by
+      rw [pair_eta (prodSwap A W ≫ prodMap W A (exp W (I Z)) pW)]
+      congr 1
+      · rw [Cat.assoc, prodMap_fst, prodSwap_fst]
+      · rw [Cat.assoc, prodMap_snd, ← Cat.assoc, prodSwap_snd]
+    rw [step2, Cat.assoc]
+    show prodSwap A W ≫ prodMap W A (exp W (I Z)) pW ≫ eval_exp W (I Z) = k
+    rw [curry_eval_eq, ← Cat.assoc, prodSwap_prodSwap, Cat.id_comp]
+  · -- INJECTIVE.
+    intro g₁ g₂ hg
+    -- G g := curry (prodSwap W (ILA) ≫ g) : I L A ⟶ exp W IZ ; injective in g.
+    let G := fun (g : prod (I (L A)) W ⟶ I Z) => curry (prodSwap W (I (L A)) ≫ g)
+    have G_inj : ∀ {g₁ g₂ : prod (I (L A)) W ⟶ I Z}, G g₁ = G g₂ → g₁ = g₂ := by
+      intro g₁ g₂ h
+      have := curry_inj h
+      have h2 : prodSwap (I (L A)) W ≫ prodSwap W (I (L A)) ≫ g₁ =
+                prodSwap (I (L A)) W ≫ prodSwap W (I (L A)) ≫ g₂ := by rw [this]
+      rwa [← Cat.assoc, prodSwap_prodSwap, Cat.id_comp, ← Cat.assoc, prodSwap_prodSwap,
+           Cat.id_comp] at h2
+    -- KEY: curry (prodSwap W A ≫ (pml ≫ g)) = η_A ≫ G g.
+    have key : ∀ g : prod (I (L A)) W ⟶ I Z,
+        curry (prodSwap W A ≫ (pml ≫ g)) = unit adj A ≫ G g := by
+      intro g
+      show curry (prodSwap W A ≫ pml ≫ g) = unit adj A ≫ curry (prodSwap W (I (L A)) ≫ g)
+      rw [curry_precomp]
+      congr 1
+      have hswap : prodSwap W A ≫ pml =
+          prodMap W A (I (L A)) (unit adj A) ≫ prodSwap W (I (L A)) := by
+        rw [pair_eta (prodSwap W A ≫ pml),
+            pair_eta (prodMap W A (I (L A)) (unit adj A) ≫ prodSwap W (I (L A)))]
+        congr 1
+        · -- LHS ≫ fst = snd ≫ η = RHS ≫ fst
+          rw [hpml, Cat.assoc, fst_pair, ← Cat.assoc, prodSwap_fst,
+              Cat.assoc, prodSwap_fst, prodMap_snd]
+        · -- LHS ≫ snd = fst = RHS ≫ snd
+          rw [hpml, Cat.assoc, snd_pair, prodSwap_snd,
+              Cat.assoc, prodSwap_snd, prodMap_fst]
+      rw [← Cat.assoc, hswap, Cat.assoc]
+    apply G_inj
+    -- η_A ≫ G g₁ = η_A ≫ G g₂ via key + hg ; then strip η via j' and uinj.
+    have hηG : unit adj A ≫ G g₁ = unit adj A ≫ G g₂ := by
+      rw [← key, ← key, hg]
+    have hj : unit adj A ≫ (G g₁ ≫ j') = unit adj A ≫ (G g₂ ≫ j') := by
+      rw [← Cat.assoc, ← Cat.assoc, hηG]
+    have := uinj hj
+    -- G g₁ ≫ j' = G g₂ ≫ j' ⟹ G g₁ = G g₂ by ≫ j.
+    calc G g₁ = (G g₁ ≫ j') ≫ j := by rw [Cat.assoc, jr, Cat.comp_id]
+      _ = (G g₂ ≫ j') ≫ j := by rw [this]
+      _ = G g₂ := by rw [Cat.assoc, jr, Cat.comp_id]
+
+/-- Dual of `unit_left_bij`: precomposition by `(1_V × η_A)` is a bijection on maps
+    to `I Z`.  Obtained from `unit_left_bij` by conjugating with `prodSwap`. -/
+theorem unit_right_bij
+    {L : 𝒜 → 𝒜'} [Functor L] {I : 𝒜' → 𝒜} [Functor I] (adj : L ⊣ I)
+    (hFull : Full I)
+    (hExpId : ∀ (A : 𝒜) (B : 𝒜'), ∃ (E : 𝒜'), Isomorphic (I E) (exp A (I B)))
+    (V A : 𝒜) (Z : 𝒜') :
+    (∀ k : prod V A ⟶ I Z,
+        ∃ g : prod V (I (L A)) ⟶ I Z, pair fst (snd ≫ unit adj A) ≫ g = k) ∧
+    (∀ {g₁ g₂ : prod V (I (L A)) ⟶ I Z},
+        pair fst (snd ≫ unit adj A) ≫ g₁ = pair fst (snd ≫ unit adj A) ≫ g₂ → g₁ = g₂) := by
+  obtain ⟨lsurj, linj⟩ := unit_left_bij adj hFull hExpId A V Z
+  have swapcancel : ∀ {X Y : 𝒜} {W : 𝒜} (t : prod Y X ⟶ W),
+      prodSwap Y X ≫ prodSwap X Y ≫ t = t := by
+    intro X Y W t; rw [← Cat.assoc, prodSwap_prodSwap, Cat.id_comp]
+  -- prm = prodSwap V A ≫ pml ≫ prodSwap (ILA) V, where pml = pair (fst≫η) snd.
+  have hconj : pair fst (snd ≫ unit adj A) =
+      prodSwap V A ≫ pair (fst ≫ unit adj A) snd ≫ prodSwap (I (L A)) V := by
+    rw [pair_eta (prodSwap V A ≫ pair (fst ≫ unit adj A) snd ≫ prodSwap (I (L A)) V)]
+    congr 1
+    · rw [Cat.assoc, Cat.assoc, prodSwap_fst, snd_pair, prodSwap_snd]
+    · rw [Cat.assoc, Cat.assoc, prodSwap_snd, fst_pair, ← Cat.assoc, prodSwap_fst]
+  constructor
+  · intro k
+    obtain ⟨g', hg'⟩ := lsurj (prodSwap A V ≫ k)
+    refine ⟨prodSwap V (I (L A)) ≫ g', ?_⟩
+    rw [hconj]
+    simp only [Cat.assoc]
+    rw [swapcancel g', hg', swapcancel k]
+  · intro g₁ g₂ hg
+    rw [hconj] at hg
+    have hg2 : pair (fst ≫ unit adj A) snd ≫ (prodSwap (I (L A)) V ≫ g₁) =
+               pair (fst ≫ unit adj A) snd ≫ (prodSwap (I (L A)) V ≫ g₂) := by
+      have e := congrArg (fun t => prodSwap A V ≫ t) hg
+      simp only [Cat.assoc] at e
+      rwa [swapcancel, swapcancel] at e
+    have hcore := linj hg2
+    have e2 := congrArg (fun t => prodSwap V (I (L A)) ≫ t) hcore
+    simp only [] at e2
+    rwa [swapcancel, swapcancel] at e2
+
+/-- The kernel of the (⇒) direction: precomposition by the two-unit comparison
+    `w = (η_{A₁} × η_{A₂}) : A₁ × A₂ ⟶ I(L A₁) × I(L A₂)` is a bijection on maps to
+    `I Z`.  Factor `w = (η₁ × 1) ≫ (1 × η₂)` and apply `unit_left_bij`, `unit_right_bij`. -/
+theorem wbij_kernel
+    {L : 𝒜 → 𝒜'} [Functor L] {I : 𝒜' → 𝒜} [Functor I] (adj : L ⊣ I)
+    (hFull : Full I)
+    (hExpId : ∀ (A : 𝒜) (B : 𝒜'), ∃ (E : 𝒜'), Isomorphic (I E) (exp A (I B)))
+    (A₁ A₂ : 𝒜) (Z : 𝒜') :
+    (∀ k : prod A₁ A₂ ⟶ I Z,
+        ∃ g : prod (I (L A₁)) (I (L A₂)) ⟶ I Z,
+          pair (fst ≫ unit adj A₁) (snd ≫ unit adj A₂) ≫ g = k) ∧
+    (∀ {g₁ g₂ : prod (I (L A₁)) (I (L A₂)) ⟶ I Z},
+        pair (fst ≫ unit adj A₁) (snd ≫ unit adj A₂) ≫ g₁ =
+          pair (fst ≫ unit adj A₁) (snd ≫ unit adj A₂) ≫ g₂ → g₁ = g₂) := by
+  obtain ⟨lsurj, linj⟩ := unit_left_bij adj hFull hExpId A₁ A₂ Z
+  obtain ⟨rsurj, rinj⟩ := unit_right_bij adj hFull hExpId (I (L A₁)) A₂ Z
+  -- w = pml₁ ≫ prm₂ : pml₁ = pair (fst≫η₁) snd, prm₂ = pair fst (snd≫η₂).
+  have hw : pair (fst ≫ unit adj A₁) (snd ≫ unit adj A₂) =
+      pair (fst ≫ unit adj A₁) snd ≫ pair fst (snd ≫ unit adj A₂) := by
+    rw [pair_eta (pair (fst ≫ unit adj A₁) snd ≫ pair fst (snd ≫ unit adj A₂))]
+    congr 1
+    · rw [Cat.assoc, fst_pair, fst_pair]
+    · rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair]
+  constructor
+  · intro k
+    obtain ⟨g₁, hg₁⟩ := lsurj k
+    obtain ⟨g, hg⟩ := rsurj g₁
+    exact ⟨g, by rw [hw, Cat.assoc, hg, hg₁]⟩
+  · intro ga gb hgab
+    rw [hw, Cat.assoc, Cat.assoc] at hgab
+    exact rinj (linj hgab)
+
 /-- §1.857, Part 2: A full replete reflective subcategory of an exponential
     category is an exponential ideal iff its reflections preserve products.
     "Reflections preserve products" means: for A₁, A₂ ∈ |𝒜|, the image
@@ -551,11 +804,13 @@ theorem reflective_exponential_ideal_iff_refl_preserve_products
     (hFull : Full I) (hEmb : Embedding I)
     (hRepl : RepleteSubcategory I)
     (hRefl : ReflectiveSubcategory I) :
+    letI : Functor hRefl.reflection := hRefl.refl_functor
     ExponentialIdeal I ↔
     ∀ (A₁ A₂ : 𝒜),
-      Isomorphic
-        (I (hRefl.reflection (prod A₁ A₂)))
-        (I (prod (hRefl.reflection A₁) (hRefl.reflection A₂))) := by
+      @IsIso 𝒜' _ (hRefl.reflection (prod A₁ A₂))
+        (prod (hRefl.reflection A₁) (hRefl.reflection A₂))
+        (pair (Functor.map (F := hRefl.reflection) (fst : prod A₁ A₂ ⟶ A₁))
+              (Functor.map (F := hRefl.reflection) (snd : prod A₁ A₂ ⟶ A₂))) := by
   letI : Functor hRefl.reflection := hRefl.refl_functor
   let L := hRefl.reflection
   let adjR := hRefl.adj.adj
@@ -565,6 +820,7 @@ theorem reflective_exponential_ideal_iff_refl_preserve_products
   let c := fun (A₁ A₂ : 𝒜) =>
     pair (Functor.map (F := L) (fst : prod A₁ A₂ ⟶ A₁))
          (Functor.map (F := L) (snd : prod A₁ A₂ ⟶ A₂))
+  show ExponentialIdeal I ↔ ∀ (A₁ A₂ : 𝒜), IsIso (c A₁ A₂)
   constructor
   · -- (⇒) Exponential ideal  ⟹  L preserves products.
     --
@@ -574,19 +830,66 @@ theorem reflective_exponential_ideal_iff_refl_preserve_products
     -- agreeing under `c`, so `c` is a natural iso of representables, hence an iso of objects
     -- via the YONEDA corollary `iso_of_natural_hom_bijection`.
     intro hIdeal A₁ A₂
-    -- Reduce the I-image object-iso to an iso of the comparison map `c A₁ A₂` in 𝒜',
-    -- which functors (here I) preserve.
-    suffices hc : @IsIso 𝒜' _ (L (prod A₁ A₂)) (prod (L A₁) (L A₂)) (c A₁ A₂) by
-      exact functor_preserves_iso_obj I ⟨c A₁ A₂, hc⟩
-    -- The OBJECT iso `IsIso (c A₁ A₂)` now reduces, by the Yoneda corollary
-    -- `iso_of_natural_hom_bijection` (proved above, no longer a blocker), to the single fact
-    -- that post-composition `(· ≫ c A₁ A₂)` is a natural bijection of representables in 𝒜'.
-    -- That natural bijection is the exponential-ideal hom-bijection chain
-    --   Hom(L A₁ × L A₂, Z) ≅ Hom(A₁, (I Z)^{A₂}) ≅ Hom(A₁×A₂, I Z) ≅ Hom(L(A₁×A₂), Z),
-    -- whose middle iso uses `hIdeal` to land `(I Z)^{A₂}` inside 𝒜'.  Building that explicit
-    -- chain (adjunction-transpose + product-UP + curry, all available in this file) is the
-    -- remaining algebra; the statement is true (under `hIdeal`, `c` IS an iso).
-    sorry
+    obtain ⟨hFull', hExpId⟩ := hIdeal
+    obtain ⟨ip_inv, ip_l, ip_r⟩ := right_adjoint_preserves_prod adjR (L A₁) (L A₂)
+    let ip := pair (Functor.map (F := I) (fst : prod (L A₁) (L A₂) ⟶ L A₁))
+                   (Functor.map (F := I) (snd : prod (L A₁) (L A₂) ⟶ L A₂))
+    have ip_fst : ip ≫ fst = Functor.map (F := I) (fst : prod (L A₁) (L A₂) ⟶ L A₁) := fst_pair _ _
+    have ip_snd : ip ≫ snd = Functor.map (F := I) (snd : prod (L A₁) (L A₂) ⟶ L A₂) := snd_pair _ _
+    have ip_ii : ip ≫ ip_inv = Cat.id _ := ip_l
+    have ip_ii' : ip_inv ≫ ip = Cat.id _ := ip_r
+    let w := pair (fst ≫ unit adjR A₁) (snd ≫ unit adjR A₂)
+    let d := unit adjR (prod A₁ A₂) ≫ Functor.map (F := I) (c A₁ A₂)
+    have c_fst : c A₁ A₂ ≫ fst = Functor.map (F := L) (fst : prod A₁ A₂ ⟶ A₁) := fst_pair _ _
+    have c_snd : c A₁ A₂ ≫ snd = Functor.map (F := L) (snd : prod A₁ A₂ ⟶ A₂) := snd_pair _ _
+    have d_ip : d ≫ ip = w := by
+      have hf : (d ≫ ip) ≫ fst = w ≫ fst := by
+        show ((unit adjR (prod A₁ A₂) ≫ Functor.map (F := I) (c A₁ A₂)) ≫ ip) ≫ fst =
+             pair _ _ ≫ fst
+        rw [Cat.assoc, Cat.assoc, ip_fst, ← Functor.map_comp (F := I), c_fst,
+            ← unit_naturality adjR (fst : prod A₁ A₂ ⟶ A₁), fst_pair]
+      have hs : (d ≫ ip) ≫ snd = w ≫ snd := by
+        show ((unit adjR (prod A₁ A₂) ≫ Functor.map (F := I) (c A₁ A₂)) ≫ ip) ≫ snd =
+             pair _ _ ≫ snd
+        rw [Cat.assoc, Cat.assoc, ip_snd, ← Functor.map_comp (F := I), c_snd,
+            ← unit_naturality adjR (snd : prod A₁ A₂ ⟶ A₂), snd_pair]
+      rw [pair_eta (d ≫ ip), pair_eta w, hf, hs]
+    have phi_c : ∀ {Z : 𝒜'} (h : prod (L A₁) (L A₂) ⟶ Z),
+        adjR.φ (c A₁ A₂ ≫ h) = d ≫ Functor.map (F := I) h := by
+      intro Z h
+      rw [φ_eq adjR (c A₁ A₂ ≫ h), Functor.map_comp (F := I), ← Cat.assoc]
+    -- THE KERNEL: `(w ≫ ·)` is a bijection onto `Hom(A₁×A₂, I Z)`, for every `Z : 𝒜'`.
+    have wbij : ∀ (Z : 𝒜'),
+        (∀ k : prod A₁ A₂ ⟶ I Z, ∃ g : prod (I (L A₁)) (I (L A₂)) ⟶ I Z, w ≫ g = k) ∧
+        (∀ {g₁ g₂ : prod (I (L A₁)) (I (L A₂)) ⟶ I Z}, w ≫ g₁ = w ≫ g₂ → g₁ = g₂) :=
+      wbij_kernel adjR hFull hExpId A₁ A₂
+    apply iso_of_natural_hom_bijection_op (c A₁ A₂)
+    · intro Z k
+      obtain ⟨g, hg⟩ := (wbij Z).1 (adjR.φ k)
+      obtain ⟨h, hh⟩ := hFull' (ip ≫ g)
+      refine ⟨h, ?_⟩
+      apply φ_inj adjR
+      rw [phi_c h, hh, ← Cat.assoc, d_ip]
+      exact hg
+    · intro Z h₁ h₂ hh
+      have e : d ≫ Functor.map (F := I) h₁ = d ≫ Functor.map (F := I) h₂ := by
+        rw [← phi_c h₁, ← phi_c h₂, hh]
+      have e2 : Functor.map (F := I) h₁ = Functor.map (F := I) h₂ := by
+        have collapse : ∀ X : I (prod (L A₁) (L A₂)) ⟶ I Z,
+            w ≫ (ip_inv ≫ X) = d ≫ X := by
+          intro X
+          rw [← d_ip, Cat.assoc, ← Cat.assoc ip, ip_ii, Cat.id_comp]
+        have hw : w ≫ (ip_inv ≫ Functor.map (F := I) h₁) =
+                  w ≫ (ip_inv ≫ Functor.map (F := I) h₂) := by
+          rw [collapse, collapse]; exact e
+        have hii := (wbij Z).2 hw
+        calc Functor.map (F := I) h₁
+            = (ip ≫ ip_inv) ≫ Functor.map (F := I) h₁ := by rw [ip_ii, Cat.id_comp]
+          _ = ip ≫ ip_inv ≫ Functor.map (F := I) h₁ := by rw [Cat.assoc]
+          _ = ip ≫ ip_inv ≫ Functor.map (F := I) h₂ := by rw [hii]
+          _ = (ip ≫ ip_inv) ≫ Functor.map (F := I) h₂ := by rw [Cat.assoc]
+          _ = Functor.map (F := I) h₂ := by rw [ip_ii, Cat.id_comp]
+      exact hEmb h₁ h₂ e2
   · -- (⇐) L preserves products  ⟹  exponential ideal.
     intro hPres
     refine ⟨hFull, ?_⟩
@@ -608,7 +911,74 @@ theorem reflective_exponential_ideal_iff_refl_preserve_products
     -- `I (L (exp A (I B))) ≅ exp A (I B)` ⟸ `IsIso (unit adjR (exp A (I B)))` (then `isomorphic_symm`).
     suffices hη : IsIso (unit adjR (exp A (I B))) by
       exact isomorphic_symm ⟨unit adjR (exp A (I B)), hη⟩
-    sorry
+    -- NATURALITY of c in the second variable (dual to the sister theorem's `ip_nat`).
+    have c_fst : ∀ A₁ A₂ : 𝒜, c A₁ A₂ ≫ fst = Functor.map (F := L) (fst : prod A₁ A₂ ⟶ A₁) :=
+      fun A₁ A₂ => fst_pair _ _
+    have c_snd : ∀ A₁ A₂ : 𝒜, c A₁ A₂ ≫ snd = Functor.map (F := L) (snd : prod A₁ A₂ ⟶ A₂) :=
+      fun A₁ A₂ => snd_pair _ _
+    have c_nat : ∀ (A : 𝒜) {X Y : 𝒜} (u : X ⟶ Y),
+        Functor.map (F := L) (prodMap A X Y u) ≫ c A Y =
+          c A X ≫ prodMap (L A) (L X) (L Y) (Functor.map (F := L) u) := by
+      intro A X Y u
+      have hfst : (Functor.map (F := L) (prodMap A X Y u) ≫ c A Y) ≫ fst =
+                  (c A X ≫ prodMap (L A) (L X) (L Y) (Functor.map (F := L) u)) ≫ fst := by
+        rw [Cat.assoc, c_fst, ← Functor.map_comp (F := L), prodMap_fst,
+            Cat.assoc, prodMap_fst, c_fst]
+      have hsnd : (Functor.map (F := L) (prodMap A X Y u) ≫ c A Y) ≫ snd =
+                  (c A X ≫ prodMap (L A) (L X) (L Y) (Functor.map (F := L) u)) ≫ snd := by
+        rw [Cat.assoc, c_snd, ← Functor.map_comp (F := L), prodMap_snd, Functor.map_comp (F := L),
+            Cat.assoc, prodMap_snd, ← Cat.assoc, c_snd]
+      rw [pair_eta (Functor.map (F := L) (prodMap A X Y u) ≫ c A Y),
+          pair_eta (c A X ≫ prodMap (L A) (L X) (L Y) (Functor.map (F := L) u)), hfst, hsnd]
+    let EX := exp A (I B)
+    show IsIso (unit adjR EX)
+    obtain ⟨cAE_inv, cAE_l, cAE_r⟩ := hPres A EX
+    obtain ⟨cILE_inv, cILE_l, cILE_r⟩ := hPres A (I (L EX))
+    obtain ⟨εLE_inv, εLE_l, εLE_r⟩ := reflective_counit_iso I hFull hEmb hRefl (L EX)
+    let t : prod (L A) (L EX) ⟶ B := cAE_inv ≫ adjR.ψ (eval_exp A (I B))
+    let s : prod (L A) (L (I (L EX))) ⟶ B :=
+      prodMap (L A) (L (I (L EX))) (L EX) (counit adjR (L EX)) ≫ t
+    let q : L (prod A (I (L EX))) ⟶ B := c A (I (L EX)) ≫ s
+    let m : prod A (I (L EX)) ⟶ I B := adjR.φ q
+    let r : I (L EX) ⟶ EX := curry m
+    have hηr : unit adjR EX ≫ r = Cat.id EX := by
+      show unit adjR EX ≫ curry m = _
+      rw [curry_precomp, id_eq_curry_eval A (I B)]
+      congr 1
+      show prodMap A EX (I (L EX)) (unit adjR EX) ≫ adjR.φ q = eval_exp A (I B)
+      rw [← adjR.φ_nat_left, ← adjR.φψ (eval_exp A (I B))]
+      congr 1
+      show Functor.map (F := L) (prodMap A EX (I (L EX)) (unit adjR EX)) ≫
+            c A (I (L EX)) ≫ s = _
+      rw [← Cat.assoc, c_nat A (unit adjR EX), Cat.assoc]
+      show c A EX ≫ prodMap (L A) (L EX) (L (I (L EX))) (Functor.map (F := L) (unit adjR EX)) ≫
+            prodMap (L A) (L (I (L EX))) (L EX) (counit adjR (L EX)) ≫ t = _
+      rw [← Cat.assoc (prodMap (L A) (L EX) (L (I (L EX))) (Functor.map (F := L) (unit adjR EX))),
+          ← prodMap_comp, triangle_one adjR EX, prodMap_id, Cat.id_comp,
+          ← Cat.assoc, cAE_l, Cat.id_comp]
+    have hLη : Functor.map (F := L) (unit adjR EX) = εLE_inv := by
+      have h1 : Functor.map (F := L) (unit adjR EX) ≫ counit adjR (L EX) = Cat.id (L EX) :=
+        triangle_one adjR EX
+      calc Functor.map (F := L) (unit adjR EX)
+          = Functor.map (F := L) (unit adjR EX) ≫ counit adjR (L EX) ≫ εLE_inv := by
+            rw [εLE_l, Cat.comp_id]
+        _ = (Functor.map (F := L) (unit adjR EX) ≫ counit adjR (L EX)) ≫ εLE_inv := by rw [Cat.assoc]
+        _ = εLE_inv := by rw [h1, Cat.id_comp]
+    have hLηr : Functor.map (F := L) (unit adjR EX) ≫ Functor.map (F := L) r = Cat.id (L EX) := by
+      rw [← Functor.map_comp (F := L), hηr, Functor.map_id (F := L)]
+    have hLr : Functor.map (F := L) r = counit adjR (L EX) := by
+      have e : εLE_inv ≫ Functor.map (F := L) r = εLE_inv ≫ counit adjR (L EX) := by
+        rw [εLE_r, ← hLη, hLηr]
+      calc Functor.map (F := L) r
+          = (counit adjR (L EX) ≫ εLE_inv) ≫ Functor.map (F := L) r := by rw [εLE_l, Cat.id_comp]
+        _ = counit adjR (L EX) ≫ εLE_inv ≫ Functor.map (F := L) r := by rw [Cat.assoc]
+        _ = counit adjR (L EX) ≫ εLE_inv ≫ counit adjR (L EX) := by rw [e]
+        _ = (counit adjR (L EX) ≫ εLE_inv) ≫ counit adjR (L EX) := by rw [Cat.assoc]
+        _ = counit adjR (L EX) := by rw [εLE_l, Cat.id_comp]
+    have hrη : r ≫ unit adjR EX = Cat.id (I (L EX)) := by
+      rw [unit_naturality adjR r, hLr]
+      exact triangle_two adjR (L EX)
+    exact ⟨r, hηr, hrη⟩
 
 end ExponentialIdeal
 
