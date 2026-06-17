@@ -922,6 +922,27 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
     -- preservation to the iterated `colimitPreRegular` package.  Picking a single `B` here would not
     -- satisfy WALL 2 (capital closure needs a point for *all* well-supported objects), so this is left
     -- as the honest residual rather than reduced via an arbitrary `sliceCapStep B`.
+    --
+    -- §1.547 CONSTRUCTION (the path the residual must follow — *not* reducible to `sliceCapStep B`).
+    -- Index the per-`S` inner directed system by FINITE SETS `U` of well-supported objects of `S`,
+    -- ordered by inclusion (a `Directed`).  The rung at `U` is the slice `S / (∏ U)` over the product
+    -- of `U`; the transition `S/(∏V) → S/(∏U)` for `V ⊆ U` is the slice embedding `sliceEmbedFunctor`.
+    -- The target `S*` is the colimit `CatSystem.Obj` of this inner system, pre-regular by
+    -- `colimitPreRegular`, faithful over `S` (each rung is `sliceEmbedFaithful` for ∏U well-supported,
+    -- and well-supportedness of finite products holds when `S ≠ 1`).  The point added for each
+    -- well-supported `B ∈ U` is `Freyd.sliceFactorPoint B (proj : ∏U → B)`: by
+    -- `Freyd.sliceAcquiresFactorPoint`, the slice `S/(∏U)` acquires a point of `sliceEmbedObj (∏U) B`
+    -- along the product projection — so ONE rung simultaneously points every member of `U`
+    -- (`Freyd.prodSliceAcquiresBothFactors` is the two-factor crux).  These three §1.547 facts are now
+    -- built sorry-free in `Fredy.RelativeCapitalization`.
+    --
+    -- WHY STILL A SORRY: `colimitPreRegular` on the INNER finite-product-slice system itself demands
+    -- its own `hcanon` (inner pullback-cover preservation) — i.e. building `nextStep` honestly RECURSES
+    -- into the very same `colimitPreRegular` package this `hwall_step` produces for the OUTER ω-tower.
+    -- That inner assembly is a full second copy of `towerSystem`/`capData_of_tower` over the
+    -- finite-set index, beyond the per-B rung.  The residual is therefore exactly: assemble the inner
+    -- finite-product-slice `CatSystem` and discharge its `colimitPreRegular` hypotheses (incl. inner
+    -- `hcanon`), uniformly in `S`, then read the outer ω-tower preservation off rung composition.
     sorry
   -- Unpack the successor and its full preservation package (the §1.543 "directed-tower" data).
   obtain ⟨nextStep, b, hb, ht, htpres, hp, hppres, hppres_pair, he, hepres, hepres_lift,

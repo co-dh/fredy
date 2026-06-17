@@ -103,13 +103,29 @@ well-supported `B`, *adding a point* (generic element `1 → B`) per well-suppor
 - **Inputs available (do NOT re-prove):** `Freyd.overPreRegular` (`A/B` is pre-regular,
   `SliceRegular.lean`); §1.544 `slice_embedding_separates` (one slice step `(-)×B` separates
   morphisms — note: this is the *endofunctor* `prodRight B`, an `Embedding`, it does not by
-  itself add a point); the `CatColimit`/`CatColimitRegular` machinery for the `A*`
-  colimit-of-slices.
-- **Residual (the genuine wall):** the explicit `A*` object construction (the gluing/colimit of
-  the slices, which is what actually adds the points), plus lifting the single-step finite-limit
-  preservation to the arbitrary `i ≤ j` tower package by rung composition.  A trivial inhabitant
-  (`T := S`, `step := id`) is honest as a `CapStep` but makes WALL 2 *false* (constant tower never
-  becomes capital) — confirming the wall is real and cannot be shortcut.
+  itself add a point); `Freyd.sliceCapStep B hws : CapStep S` (the per-`B` faithful pre-regular
+  rung, sorry-free, `RelativeCapitalization.lean`); the `CatColimit`/`CatColimitRegular` machinery
+  for the `A*` colimit-of-slices.
+- **§1.547 facts now built sorry-free** (`RelativeCapitalization.lean`, this wave): the choice-free
+  relative capitalization is the *directed union of product-slices* `A* | U = A/(∏U)` over finite
+  sets `U` of well-supported objects (transition `A/(∏V) → A/(∏U)` for `V ⊆ U` = slice embedding).
+  The point a product-slice rung adds for a factor `B ∈ U` is read off the projection `∏U → B`:
+  - `sliceFactorPoint B (g : P ⟶ B) : OverHom (overTerm P) (sliceEmbedObj P B)` — the point of
+    `sliceEmbedObj P B` in `A/P` along any `g`, underlying arrow `pair g id_P`;
+  - `sliceAcquiresFactorPoint B g` — it IS a point (`. f ≫ hom = overTerm.hom`);
+  - `prodSliceAcquiresBothFactors B B'` — the two-factor crux: the SINGLE slice `A/(B×B')` points
+    BOTH factors (along `fst`, `snd`), so one rung over `∏U` simultaneously points every member.
+  These generalize `sliceGenericPoint`/`sliceAcquiresPoint` (the `P = B`, `g = id` diagonal case).
+- **Residual (the genuine wall — irreducible without the inner colimit):** assemble, *uniformly in
+  `S`*, the inner finite-product-slice `CatSystem` (index = finite sets of well-supported objects)
+  and discharge its `colimitPreRegular` hypotheses — **including the inner `hcanon`**.  This is the
+  crux of why the sorry persists: `colimitPreRegular` on the inner system demands its OWN inner
+  pullback-cover preservation, so building `nextStep` honestly RECURSES into the very same
+  `colimitPreRegular` package `hwall_step` produces for the outer ω-tower (a full second copy of
+  `towerSystem`/`capData_of_tower` over the finite-set index).  Then lift the single-step
+  finite-limit preservation to the arbitrary `i ≤ j` outer tower package by rung composition.  A
+  trivial inhabitant (`T := S`, `step := id`) is honest as a `CapStep` but makes WALL 2 *false*
+  (constant tower never becomes capital) — confirming the wall is real and cannot be shortcut.
 
 ### WALL 2 — `hwall_cap` (line ~924): the CAPITAL CLOSURE (§1.543 fixpoint)
 

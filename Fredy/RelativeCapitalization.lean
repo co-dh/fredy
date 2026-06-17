@@ -26,15 +26,28 @@
                                terminator-to-image diagonal `⟨diag B, …⟩ : 1 → B×B`
                                is a point of `sliceEmbedObj B B`.  This is §1.546's
                                "generic point" `1 → A(B)` for the chosen `B`.
+    * `sliceFactorPoint` / `sliceAcquiresFactorPoint`
+                            — §1.547 generalization: along ANY `g : P → B`, the slice
+                               `A/P` acquires a point of `sliceEmbedObj P B`
+                               (underlying arrow `pair g id_P`).  With `P = ∏U`,
+                               `g = projection`, this is the point the product-slice
+                               rung adds for a factor `B ∈ U`.
+    * `prodSliceAcquiresBothFactors`
+                            — the two-factor crux: the SINGLE slice `A/(B×B')` points
+                               BOTH factors at once, so one rung over `∏U` points every
+                               member of `U` simultaneously.
 
   WHAT REMAINS (the residual wall for `hwall_step`, Capitalization.lean).
   The *uniform* successor `nextStep : ∀ S, CapStep S` that `hwall_step` needs is
   STRONGER than a single slice rung: in ONE category `S*` it must add a point for
   *every* well-supported `B` simultaneously (Freyd's §1.547 rational category / the
-  directed union of the `A* I U` slice-products).  Building that glued category and
-  lifting the per-rung preservation to the iterated `colimitPreRegular` package is
-  the open part.  This file delivers the per-`B` slice rung sorry-free; see
-  `RELATIVE_CAPITALIZATION.md` for the reduction.
+  directed union of the `A* | U = A/(∏U)` product-slices over finite sets `U` of
+  well-supported objects, transition `A/(∏V) → A/(∏U)` for `V ⊆ U` = slice embedding).
+  This file delivers the per-`B` and per-factor points sorry-free (above); the OPEN
+  part is assembling that inner finite-product-slice colimit `S*` uniformly in `S` and
+  discharging its `colimitPreRegular` package — which itself needs the inner `hcanon`,
+  hence recurses into the same colimit-pre-regularity wall (see the `hwall_step`
+  residual comment in `Capitalization.lean` for the full reduction).
 
   No mathlib (the category theory stays on this repo's own `Cat`).
 -/
@@ -197,5 +210,53 @@ theorem sliceAcquiresPoint (B : 𝒞) :
     (sliceGenericPoint B).f ≫ (sliceEmbedObj B B).hom = (overTerm B).hom := by
   show diag B ≫ snd = Cat.id B
   exact diag_snd B
+
+/-! ## §1.547  Product slices acquire a point of every factor
+
+  Freyd's choice-free relative capitalization (§1.547) is the directed union of the
+  slices `A* | U = A / (∏ U)` over finite sets `U` of well-supported objects, with the
+  transition `A/(∏V) → A/(∏U)` (for `V ⊆ U`) being the slice embedding.  The point that
+  the rung over `U` must add for a *factor* `B ∈ U` is read off the slice over the product:
+  the projection `g : ∏U → B` is a map to a well-supported target, and `A/(∏U)` acquires a
+  point of `sliceEmbedObj (∏U) B` along `g`.  The two-factor case `∏U = B × B'` below is the
+  crux: ONE slice (over the product) simultaneously points BOTH factors, which is exactly why
+  the finite-product directed union pins down a point per well-supported object at once.
+
+  This generalizes `sliceGenericPoint`/`sliceAcquiresPoint` (the `B = ∏U` self-point case)
+  to an arbitrary projection `g : ∏U → B`.  Below, `g` is any map into a (well-supported)
+  target `B` from the base `P = ∏U`; the point's underlying arrow is `pair g (Cat.id P)`. -/
+
+/-- **Generic point of a factor in a product slice (§1.547).**  For any base `P` and any
+    map `g : P → B`, the slice `A/P` acquires a point of `sliceEmbedObj P B = ⟨B × P, snd⟩`:
+    the over-arrow from the terminator `⟨P, id_P⟩` whose underlying `𝒞`-arrow is
+    `pair g (id_P) : P → B × P`.  It is an `OverHom` because its second projection is `id_P`
+    (`snd_pair`).  Taking `g = fst : B × B' → B` points the factor `B` of `B × B'`; taking
+    `P = B`, `g = id_B` recovers `sliceGenericPoint B` (the diagonal). -/
+def sliceFactorPoint {P : 𝒞} (B : 𝒞) (g : P ⟶ B) :
+    OverHom (overTerm P) (sliceEmbedObj P B) :=
+  ⟨pair g (Cat.id P), by show pair g (Cat.id P) ≫ snd = Cat.id P; exact snd_pair g (Cat.id P)⟩
+
+/-- **§1.547 — `A/P` acquires a point of `sliceEmbedObj P B` along `g : P → B`.**
+    `sliceFactorPoint B g` is a point `1 → sliceEmbedObj P B` in `A/P` (source = the
+    terminator `overTerm P`).  This is the generic point the product-slice rung adds for the
+    well-supported target `B` reached from the base `P` by `g`. -/
+theorem sliceAcquiresFactorPoint {P : 𝒞} (B : 𝒞) (g : P ⟶ B) :
+    (sliceFactorPoint B g).f ≫ (sliceEmbedObj P B).hom = (overTerm P).hom := by
+  show pair g (Cat.id P) ≫ snd = Cat.id P
+  exact snd_pair g (Cat.id P)
+
+/-- **Both factors of a binary product slice are pointed (§1.547, two-factor crux).**
+    The single slice `A/(B × B')` acquires, from its own base, a point of the factor `B`
+    (along `fst`) AND a point of the factor `B'` (along `snd`).  This is the elementary fact
+    behind "the slice over the *product* of `U` points every member of `U` simultaneously":
+    iterating it over a finite `U` (its product carries a projection to each member) gives one
+    rung that points all of `U` at once, the content of the directed-union construction. -/
+theorem prodSliceAcquiresBothFactors (B B' : 𝒞) :
+    (sliceFactorPoint B (fst : prod B B' ⟶ B)).f ≫ (sliceEmbedObj (prod B B') B).hom
+        = (overTerm (prod B B')).hom
+      ∧ (sliceFactorPoint B' (snd : prod B B' ⟶ B')).f ≫ (sliceEmbedObj (prod B B') B').hom
+        = (overTerm (prod B B')).hom :=
+  ⟨sliceAcquiresFactorPoint B (fst : prod B B' ⟶ B),
+   sliceAcquiresFactorPoint B' (snd : prod B B' ⟶ B')⟩
 
 end Freyd
