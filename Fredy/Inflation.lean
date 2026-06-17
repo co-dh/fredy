@@ -30,16 +30,23 @@
       strict functor, not a base-change-up-to-iso.  This realizes the slice
       inclusion `A → A/B` STRICTLY, which is the whole point of §1.544.
 
-  WHAT IS SORRY-FREE HERE:  the inflation category (`inflationCat`), the forgetful
-  functor (`inflForget`), the cross-section (`inflFunctor`, with full/faithful), and
-  the strict slice-append functor (`appendFunctor`) with its `Functor` laws holding
-  definitionally from list concatenation.  `strict_cancel`/`concat_assoc`/`concat_nil` record the
-  strict cancellation / concatenation facts (list-cons injectivity; `(s++d)++e = s++(d++e)`;
-  `s++[] = s`) that make the inner §1.547 transition strict.  Also delivered sorry-free: the
-  whole-suffix strict slice base-change `sliceCatFunctor d : A′/V → A′/(V++d)` (the §1.547 inner
-  transition by concatenation) and the `F_refl` law `innerSliceTr_refl` of the inner directed
-  system.  REMAINING (honest `sorry`, true statements): `catMap_append_heq` and the `F_trans` law
-  `innerSliceTr_trans` — pure dependent `▸`/`HEq` transport across `List.append_assoc`.
+  THIS FILE IS FULLY SORRY-FREE (axioms = `propext`).  It delivers: the inflation category
+  (`inflationCat`), the forgetful functor (`inflForget`), the cross-section (`inflFunctor`, with
+  full/faithful), the strict slice-append functor (`appendFunctor`) with its `Functor` laws holding
+  definitionally from list concatenation; `strict_cancel`/`concat_assoc`/`concat_nil` (the strict
+  cancellation / concatenation facts: list-cons injectivity; `(s++d)++e = s++(d++e)`; `s++[] = s`);
+  the whole-suffix strict slice base-change `sliceCatFunctor d : A′/V → A′/(V++d)` (the §1.547 inner
+  transition by concatenation); and BOTH strict inner-system laws — `F_refl` (`innerSliceTr_refl`)
+  AND `F_trans` (`innerSliceTr_trans`, with its core `catMap_append_heq`), the dependent `▸`/`HEq`
+  transport across `List.append_assoc` now fully discharged.
+
+  THE DIRECTED STRICT `CatSystem` (this session).  The strict `innerSliceTr` lives on the PREFIX order
+  `<+:`, which is NOT directed.  `chainSliceSystem (P : PrefixChain)` lifts it to a genuine `Directed`
+  index — an ω-chain `ℕ` (`uliftNatDirected`, `bound = max`) along any increasing prefix-chain — giving
+  a sorry-free directed strict `Colim.CatSystem` whose `F_refl`/`F_trans` ARE `innerSliceTr_refl`/
+  `innerSliceTr_trans`.  See the final block for what this option-(b) ω-chain sacrifices vs §1.547's
+  full finite-subset index, and why the strict (concatenation) transition cannot be made directed over
+  the set-union index directly.
 
   This is the reusable keystone; `RelativeCapitalization.lean` consumes it to give the
   §1.547 inner directed system a strict transition functor.
@@ -574,18 +581,17 @@ instance sliceCatFunctor (d : List 𝒞) (V : Infl 𝒞) :
   `baseChangeObj (id) X` is only iso to `X`) — but, because list append is not *definitionally*
   unital/associative for variable lists, the stage objects `A′/(V++d)` must be TRANSPORTED along them.
 
-    * `F_refl` — `innerSliceTr_refl` — is PROVEN sorry-free (only `propext`): the empty-suffix
+    * `F_refl` — `innerSliceTr_refl` — PROVEN sorry-free (only `propext`): the empty-suffix
       transition is the identity on `A′/V`, via `over_transport_ext` + `catMap_nil_heq` (the latter a
       full `HEq` discharge of the `append_nil` reindexing through `catForget`/`catArrange`).
-    * `F_trans` — `innerSliceTr_trans` — is an HONEST `sorry`: the statement is TRUE (reduces to
-      `prefixSuffix_trans`, PROVEN, plus `catMap_append_heq`), but the doubled-`▸` nested transport
-      across `List.append_assoc` is unfinished.  `catMap_append_heq` (the `(s++d)++e = s++(d++e)`
-      reindexing of `catMap`) is its remaining core, also an honest `sorry` with a true statement.
+    * `F_trans` — `innerSliceTr_trans` — PROVEN sorry-free (only `propext`): reduces to
+      `prefixSuffix_trans` plus `catMap_append_heq` (the `(s++d)++e = s++(d++e)` reindexing of `catMap`,
+      also PROVEN), the doubled-`▸` nested transport across `List.append_assoc` fully discharged.
 
   So residual (A) (the `Prop`→suffix DATA wall) is DISSOLVED here by `List.drop`/`prefixSuffix`, and
   residual (B-strict) (strictness) is supplied by the inflation's object-level `concat_assoc`/
-  `concat_nil` — the genuine §1.544 advance over base-change.  What remains is purely the dependent
-  `▸`/`HEq` transport for the associativity law `F_trans` (F_refl is already closed). -/
+  `concat_nil` — the genuine §1.544 advance over base-change.  BOTH inner-system laws are now closed;
+  the directed lift is `chainSliceSystem` (final block). -/
 
 /-- The §1.547 inner index: `List 𝒞` ordered by the prefix relation `V ⊑ U` (`List.IsPrefix`).
     Directed: the common bound of `V, U` is... not generally a prefix-bound — so we restrict to
@@ -974,5 +980,95 @@ theorem innerSliceTr_trans {V U W : List 𝒞} (hVU : prefixLe V U) (hUW : prefi
       (catMap (prefixSuffix V U) X.hom) (innerSliceTr hVU X).hom hYhom.symm)
     rw [hdVW]
     exact catMap_append_heq (prefixSuffix V U) (prefixSuffix U W) X.hom
+
+/-! ## §1.547  A genuinely DIRECTED strict `CatSystem` from a prefix-chain (option (b))
+
+  The strict inner transition `innerSliceTr` lives on the PREFIX order `V <+: U`, which is NOT
+  directed: `[A]` and `[B]` have no common prefix-extension (a common upper bound would have to begin
+  with both `A` and `B`).  So the strict system cannot be indexed by `(List 𝒞, <+:)` directly.
+
+  Freyd's §1.547 index is finite SETS of well-supported objects under inclusion, directed by union.
+  Making the *strict* (concatenation) transition directed over that index would require reconciling
+  suffix-append `catMap` with set-union — needing both `V → V++U` AND `U → V++U`, but the second is a
+  PREPEND, not an append; `catMap` only appends.  (Quotienting `List 𝒞` by permutation to a canonical
+  product would restore append-only directedness, but the quotient destroys the strict *object*-level
+  `(s++d)++e = s++(d++e)` that `catMap_append_heq` relies on — the whole point of the inflation.)  So the
+  set-indexed directed system genuinely cannot be made strict with `catMap` alone.
+
+  We therefore take option (b): the **ω-chain**.  Fix any increasing prefix-chain `V : ℕ → Infl 𝒞`
+  (`V n <+: V (n+1)`).  `ℕ` under `≤` IS directed (`natDirected`, `bound = max`), and `i ≤ j ⟹ V i <+:
+  V j` (`PrefixChain.prefix`), so the strict `innerSliceTr` becomes a genuine **directed strict
+  `CatSystem`** over `natDirected` — `F_refl`/`F_trans` are the already-proven `innerSliceTr_refl`/
+  `innerSliceTr_trans` (proof-irrelevant in the `<+:` witness since `List.IsPrefix` is a `Prop`).
+  Sorry-free and propext-only.
+
+  WHAT (b) SACRIFICES vs §1.547's "all finite subsets" coverage.  A single chain only reaches the
+  factor-sets that appear as some `V n` — one cofinal tower of finite sets, not the full directed poset
+  of *all* finite subsets.  To point *every* well-supported `B` simultaneously the chain must be cofinal
+  among finite sets (enumerate well-supported objects `B₀, B₁, …` and take `V n := [B₀,…,Bₙ₋₁]`, so every
+  finite set is a prefix-suffix-subset of some `V n`); the colimit over the chain then has the SAME germs
+  as the colimit over all finite subsets, because every finite subset is dominated by a chain stage.  The
+  chain does NOT see two incomparable finite sets `U₁, U₂` as a span — it linearises them through a later
+  `V n ⊇ U₁ ∪ U₂` — sound for the directed *colimit* but a genuine restriction of the index *shape*
+  (linear, not the full subset lattice).  Building the chain cofinal needs an enumeration `ℕ → 𝒞` of
+  well-supported objects, which is the residual `hwall_step` input this construction is parameterised
+  over (the `PrefixChain` is supplied by such an enumeration). -/
+
+/-- A prefix-chain of factor-sequences: `chain n <+: chain (n+1)` for every `n`.  The data an ω-chain
+    strict `CatSystem` is built over (option (b)).  Cofinality among finite sets — needed to recover
+    §1.547's full coverage — is an *additional* property of the chain, not required to build the system. -/
+structure PrefixChain (𝒞 : Type u) [Cat.{u} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts 𝒞] where
+  chain : Nat → Infl 𝒞
+  step : ∀ n, chain n <+: chain (n + 1)
+
+/-- `i ≤ j ⟹ chain i <+: chain j` — the chain is monotone under the prefix order.  Induction on the
+    `≤`-witness, composing the single-step prefixes `step` by `List.IsPrefix.trans`. -/
+theorem PrefixChain.prefix (P : PrefixChain 𝒞) : ∀ {i j : Nat}, i ≤ j → P.chain i <+: P.chain j
+  | _, _, Nat.le.refl => List.prefix_refl _
+  | _, _, Nat.le.step (m := m) h => (P.prefix h).trans (P.step m)
+
+/-- Transport a slice-valued functor along a base equality.  For a source category `𝒟` and a base
+    category `ℰ` with `e : B = B'` (`B B' : ℰ`) and a functor `G : 𝒟 → Over B`, the map
+    `X ↦ e ▸ G X : 𝒟 → Over B'` is again a functor.  (`subst e` collapses the transport, leaving the
+    original functor — a definitional repackaging.)  Used to transport `sliceCatFunctor d` (a functor
+    `A′/V → A′/(V++d)`, source `Over V`, base object `V++d`) along `V++d = U` to land in `A′/U`. -/
+def transportSliceFunctor {𝒟 : Type u} [Cat.{u} 𝒟] {ℰ : Type u} [Cat.{u} ℰ] {B B' : ℰ} (e : B = B')
+    {G : 𝒟 → Over B} (FG : @Functor 𝒟 _ (Over B) (overCat B) G) :
+    @Functor 𝒟 _ (Over B') (overCat B') (fun X => e ▸ G X) := by
+  subst e; exact FG
+
+/-- The per-transition functor of the chain system: `innerSliceTr (P.prefix hij) : A′/(chain i) →
+    A′/(chain j)` is a functor — `sliceCatFunctor (suffix)` transported along `chain i ++ suffix =
+    chain j` (`transportSliceFunctor`).  The object map is `innerSliceTr` by `rfl` (its definition is
+    exactly `(prefixSuffix_eq h) ▸ sliceCatObj (suffix)`). -/
+noncomputable def chainSliceFunctor (P : PrefixChain 𝒞) {i j : Nat} (hij : i ≤ j) :
+    @Functor (innerSliceObj (𝒞 := 𝒞) (P.chain i)) (innerSliceCat (P.chain i))
+      (innerSliceObj (𝒞 := 𝒞) (P.chain j)) (innerSliceCat (P.chain j))
+      (innerSliceTr (P.prefix hij)) :=
+  transportSliceFunctor (𝒟 := Over (B := (P.chain i : Infl 𝒞)))
+    (B := P.chain i ++ prefixSuffix (P.chain i) (P.chain j))
+    (G := sliceCatObj (prefixSuffix (P.chain i) (P.chain j)))
+    (prefixSuffix_eq (P.prefix hij))
+    (sliceCatFunctor (prefixSuffix (P.chain i) (P.chain j)) (P.chain i))
+
+/-- **§1.547 (option (b)) — the DIRECTED strict `CatSystem` of inflation slices along a prefix-chain.**
+    Indexed by `ℕ` (genuinely `Directed` via `natDirected`, `bound = max`), stage `n` is the slice
+    `A′/(chain n)`, transition `A′/(chain i) → A′/(chain j)` for `i ≤ j` the strict suffix-append
+    `innerSliceTr (P.prefix hij)`.  The `CatSystem` laws are the already-proven strict
+    `innerSliceTr_refl`/`innerSliceTr_trans` (proof-irrelevant in the `<+:` witness, a `Prop`).  This is
+    the genuine directed strict system the prefix order alone could not provide — sorry-free, propext-only. -/
+noncomputable def chainSliceSystem (P : PrefixChain 𝒞) :
+    Colim.CatSystem.{u, u} (ULift.{u} Nat) uliftNatDirected where
+  A n := innerSliceObj (𝒞 := 𝒞) (P.chain n.down)
+  catA n := innerSliceCat (P.chain n.down)
+  F {i j} hij X := innerSliceTr (P.prefix hij) X
+  functF {i j} hij := chainSliceFunctor P hij
+  F_refl {i} X := by
+    show innerSliceTr (P.prefix (uliftNatDirected.refl i)) X = X
+    exact innerSliceTr_refl X
+  F_trans {i j k} hij hjk X := by
+    show innerSliceTr (P.prefix (uliftNatDirected.trans hij hjk)) X
+        = innerSliceTr (P.prefix hjk) (innerSliceTr (P.prefix hij) X)
+    exact innerSliceTr_trans (P.prefix hij) (P.prefix hjk) X
 
 end Freyd

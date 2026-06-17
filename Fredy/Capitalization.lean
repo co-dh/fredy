@@ -954,29 +954,36 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
     --        factor-match cannot be large-eliminated into a morphism without `DecidableEq S`
     --        (same wall that forced `listProdProj` to be `Fin`-indexed).  Abstracted as data;
     --        one constructive instance closes (A).
-    --   (B-strict)  BASE-CHANGE IS ONLY PSEUDO-FUNCTORIAL — `Freyd.StrictBaseChange` (the strict
-    --        `F_refl`/`F_trans` for `innerCatSystem`).  `baseChangeObj (Cat.id) X = X` and the
-    --        composite law hold only up to canonical pullback iso, never on the nose (probed), so the
-    --        strict `CatSystem` laws need base-change strictification.
-    --        ROUTE-1 (strict reindexing) — SETTLED NEGATIVELY (see `Freyd.strictReindexSystem` /
-    --        `Freyd.reindexFunctor`): the strict Σ / post-composition transition `A/C → A/D` along a
-    --        fixed `m : C → D` IS strictly functorial and discharges `F_refl`/`F_trans` ON THE NOSE
-    --        (`reindexObj_id`/`reindexObj_comp`, axiom-free), giving a genuine hypothesis-free
-    --        `CatSystem`.  But it has the WRONG variance for §1.547 (needs `∏V → ∏U` for `V ⊆ U`, not
-    --        choice-free — it would manufacture the new factors' points) AND keeps the slice domain
-    --        FIXED (`B×∏V`), so it cannot connect the stage embeddings whose domain must GROW to
-    --        `B×∏U`.  Only base-change grows the domain, hence is irreducibly pseudo-functorial.  So
-    --        route 1 does NOT close this; the residual stays base-change strictification (or a literal
-    --        directed-union-of-full-subcategories rational-category model with strict inclusions).
+    --   (B-strict)  BASE-CHANGE IS ONLY PSEUDO-FUNCTORIAL — *RESOLVED for a directed strict system*
+    --        by the INFLATION (`Fredy.Inflation`, §1.544, fully sorry-free, axioms = propext).  Freyd's
+    --        §1.544 replaces `A` by `A′ := List A` whose binary product IS list concatenation, so the
+    --        slice transition is the STRICT suffix-append `catMap`/`sliceCatFunctor`/`innerSliceTr`, with
+    --        BOTH `CatSystem` laws PROVEN on the nose: `Freyd.innerSliceTr_refl` (F_refl) and
+    --        `Freyd.innerSliceTr_trans` (F_trans, core `catMap_append_heq`) — genuine equalities of list
+    --        OBJECTS (`(s++d)++e = s++(d++e)`), exactly the strictness raw base-change LACKS.  The one
+    --        catch: the strict transition is along the PREFIX order `<+:`, which is NOT directed.
+    --        `Freyd.chainSliceSystem (P : Freyd.PrefixChain) : Colim.CatSystem (ULift Nat) uliftNatDirected`
+    --        lifts it to a genuine DIRECTED strict `CatSystem` (option (b): the ω-chain along an
+    --        increasing prefix-chain; `ℕ` is directed by `max`).  So (B-strict) — a directed *strict*
+    --        inner system — is now BUILT sorry-free.  ROUTE-1 (strict Σ-reindexing, `strictReindexSystem`)
+    --        stays NEGATIVE (wrong variance + fixed domain); the inflation is the route that works.
+    --   (B-coverage)  The ω-chain `chainSliceSystem` sees only a LINEAR cofinal tower of finite
+    --        factor-sets, not the full subset lattice of §1.547.  To point EVERY well-supported `B`
+    --        simultaneously the `PrefixChain` must be cofinal among finite sets — i.e. built from an
+    --        enumeration `ℕ → S` of well-supported objects (`chain n := [B₀,…,Bₙ₋₁]`).  Constructing that
+    --        enumeration (and a strict whole-suffix multi-factor append realising `<+:` from set-union)
+    --        is the residual the chain is parameterised over; the directed colimit then has the same germs
+    --        as §1.547's full directed union (every finite subset is dominated by a chain stage).
     --   (B-package)  THE INNER `colimitPreRegular` PACKAGE — `Coherent` plus the 9 preservation
-    --        hypotheses and `hcanon` for `innerCatSystem`, mirroring `towerCoherent`/
-    --        `capData_of_tower`; a full second copy of the outer assembly over `listDirected`.
-    --   (B-import)  THE ASSEMBLY CANNOT LIVE HERE — `RelativeCapitalization` imports
-    --        `Capitalization` (for `CapStep`), so `innerCatSystem`/`listDirected`/… are downstream
-    --        of this `sorry`.  Discharging `hwall_step` in place needs the inner-system ingredients
-    --        moved up into a file `Capitalization` imports (e.g. `SliceRegular`), or `capData_exists`
-    --        relocated downstream.  Hence `hwall_step` stays a documented `sorry` pointing at the
-    --        `Freyd.innerCatSystem` block; the residual is (A)+(B-strict)+(B-package)+(B-import).
+    --        hypotheses and `hcanon` for `chainSliceSystem`/`innerCatSystem`, mirroring `towerCoherent`/
+    --        `capData_of_tower`; a full second copy of the outer assembly over the directed index.
+    --   (B-import)  THE ASSEMBLY CANNOT LIVE HERE — `Inflation`/`RelativeCapitalization` import
+    --        `Capitalization` (for `CapStep`/`CatSystem`), so `chainSliceSystem`/`innerCatSystem`/… are
+    --        downstream of this `sorry`.  Discharging `hwall_step` in place needs the inner-system
+    --        ingredients moved up into a file `Capitalization` imports (e.g. `SliceRegular` /
+    --        `CatColimitRegular`), or `capData_exists` relocated downstream.  Hence `hwall_step` stays a
+    --        documented `sorry`; residual is now (A)+(B-coverage)+(B-package)+(B-import) — (B-strict) is
+    --        DONE via `Freyd.chainSliceSystem`.
     sorry
   -- Unpack the successor and its full preservation package (the §1.543 "directed-tower" data).
   obtain ⟨nextStep, b, hb, ht, htpres, hp, hppres, hppres_pair, he, hepres, hepres_lift,
