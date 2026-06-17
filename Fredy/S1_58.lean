@@ -39,6 +39,67 @@ class HasCoterminator (𝒞 : Type u) [Cat.{v} 𝒞] where
   init  : (X : 𝒞) → zero ⟶ X
   init_uniq  : ∀ {X : 𝒞} (f g : zero ⟶ X), f = g
 
+/-! ### §1.58 ¶2  Strict coterminator
+
+  Freyd: "In any Cartesian category with an object `0` such that all morphisms
+  targeted at `0` are isomorphisms, then `0` is a coterminator.  This extra
+  property is said to make `0` a STRICT COTERMINATOR."  Our earlier use of `0`
+  [§1.474, §1.552] is consistent with this.
+
+  The hypothesis is about maps *into* `0`; being a coterminator is about the
+  unique map *out* of `0`.  These are independent a priori — the paragraph
+  derives the latter from the former (needs only binary products). -/
+
+/-- An object `Z` is a STRICT COTERMINATOR when every morphism targeted at `Z`
+    is an isomorphism. -/
+def StrictCoterminator (Z : 𝒞) : Prop := ∀ {X : 𝒞} (f : X ⟶ Z), IsIso f
+
+/-- **§1.58 ¶2** (uniqueness half, choice-free).  A strict coterminator admits at
+    most one map to any `A`.  Let `inv : Z → Z×A` invert the projection
+    `fst : Z×A → Z` (an iso, since it is targeted at `Z`).  Every `h : Z → A` is
+    forced to equal `inv ≫ snd`, because `pair 1_Z h` is a section of `fst` and so
+    must be its inverse `inv` — independent of `h`. -/
+theorem strictCoterminator_hom_unique [HasBinaryProducts 𝒞] {Z : 𝒞}
+    (hZ : StrictCoterminator Z) {A : 𝒞} (f g : Z ⟶ A) : f = g := by
+  obtain ⟨inv, hfi, _hif⟩ := hZ (fst : prod Z A ⟶ Z)
+  -- hfi : fst ≫ inv = 1_{Z×A}.  Show every `h` collapses to `inv ≫ snd`.
+  have key : ∀ h : Z ⟶ A, h = inv ≫ snd := fun h => by
+    have hpair : pair (Cat.id Z) h = inv :=
+      calc pair (Cat.id Z) h
+          = pair (Cat.id Z) h ≫ Cat.id (prod Z A) := (Cat.comp_id _).symm
+        _ = pair (Cat.id Z) h ≫ (fst ≫ inv) := congrArg (pair (Cat.id Z) h ≫ ·) hfi.symm
+        _ = (pair (Cat.id Z) h ≫ fst) ≫ inv := (Cat.assoc _ _ _).symm
+        _ = Cat.id Z ≫ inv := congrArg (· ≫ inv) (fst_pair (Cat.id Z) h)
+        _ = inv := Cat.id_comp _
+    calc h = pair (Cat.id Z) h ≫ snd := (snd_pair _ _).symm
+      _ = inv ≫ snd := congrArg (· ≫ snd) hpair
+  exact (key f).trans (key g).symm
+
+/-- **§1.58 ¶2**.  A strict coterminator is a coterminator (initial object): the
+    composite `fst⁻¹ ≫ snd : Z → A` supplies the map out, and
+    `strictCoterminator_hom_unique` forces it to be the only one.  (`noncomputable`
+    because extracting the iso-inverse from `IsIso = ∃ …` needs `Classical.choice`,
+    exactly as for `Φinv`; the uniqueness fact above stays choice-free.) -/
+noncomputable def HasCoterminator.ofStrict [HasBinaryProducts 𝒞] {Z : 𝒞}
+    (hZ : StrictCoterminator Z) : HasCoterminator 𝒞 where
+  zero := Z
+  init A := (hZ (fst : prod Z A ⟶ Z)).choose ≫ snd
+  init_uniq f g := strictCoterminator_hom_unique hZ f g
+
+/-- **§1.58 ¶2 (strictness).**  A strict coterminator `Z` has **no proper
+    subobjects**: every monic into `Z` is an isomorphism.  (Immediate — *every*
+    morphism into `Z` is an iso; the mono is just the subobject case.) -/
+theorem strictCoterminator_subobject_improper {Z : 𝒞} (hZ : StrictCoterminator Z)
+    {S : 𝒞} (m : S ⟶ Z) (_hm : Mono m) : IsIso m := hZ m
+
+/-- **§1.58 ¶2 (strictness).**  Hence every equalizer targeted at a strict
+    coterminator is **entire**: the inclusion `E ↣ Z` of the equalizer of any
+    `f, g : Z → B` is an iso, i.e. the equalizer is the whole of `Z`.  (Freyd:
+    "all equalizers in `0` are entire.")  Just the subobject fact applied to the
+    equalizer cone's map. -/
+theorem strictCoterminator_equalizer_entire {Z B : 𝒞} (hZ : StrictCoterminator Z)
+    {f g : Z ⟶ B} (c : EqualizerCone f g) : IsIso c.map := hZ c.map
+
 variable [HasCoterminator 𝒞]
 
 def coterm : 𝒞 := HasCoterminator.zero
@@ -430,197 +491,5 @@ theorem effectiveness_iff_coeq_pullback [BicartesianCategory 𝒞] [RegularCateg
   a collectively faithful family of representations of cocartesian categories.
   Full formalization deferred: functor category machinery not yet available here. -/
 
-/-! ## §1.59 Abelian categories
-
-  ABELIAN: bicartesian satisfying all Horn sentences true for 𝒜𝒷.
-  First consequences: 0≅1 (zero object), finite (co)products coincide,
-  half-additive structure with the middle-two interchange law. -/
-
-/-- A ZERO OBJECT is simultaneously terminal and coterminal: 0 ≅ 1. -/
-def IsZeroObject (Z : 𝒞) [ht : HasTerminal 𝒞] [hc : HasCoterminator 𝒞] : Prop :=
-  hc.zero = ht.one
-
-/-! ### §1.591 Half-additive and additive categories
-
-  In an abelian category the canonical map A+B → A×B is an isomorphism.
-  This gives each hom-set an abelian monoid structure (half-additive),
-  with the middle-two interchange law.  Requiring inverses gives additive. -/
-
-/-- A HALF-ADDITIVE CATEGORY: finite products = finite coproducts, yielding
-    an abelian monoid structure on each Hom(A,B).  (§1.591)
-
-    Freyd's definition is *structural* — the addition is **defined**, not postulated.
-    There is a zero object (`zeroHom`, the unique A→0→B), and the canonical δᵢⱼ-matrix
-    `A+B → A×B` is an isomorphism (`prod_coprod_coincide`).  Freyd then writes the
-    two coincident operations (§1.591, eqs. (1.1)/(1.1')):
-
-        x +_L y = A --⟨⟩--> A+A --Φ⁻¹--> ... --[x,y]--> B   (codiagonal route)
-        x +_R y = A --⟨x,y⟩--> B×B --Φ⁻¹--> B+B --∇--> B    (diagonal  route)
-
-    Here `Φ⁻¹` is the inverse of the coincidence iso, `[x,y] = case x y`,
-    `⟨⟩ = diag`, `⟨x,y⟩ = pair x y`, `∇ = case id id`.  The two formulas define the
-    same map; we record `add` together with both defining equations
-    (`add_eq_addL`, `add_eq_addR`).  From these the middle-two interchange,
-    commutativity and associativity follow by Freyd's Eckmann–Hilton argument —
-    none of it is postulated (see `middle_two_interchange` below). -/
-class HalfAdditiveCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
-    HasTerminal 𝒞, HasBinaryProducts 𝒞, HasCoterminator 𝒞, HasBinaryCoproducts 𝒞 where
-  /-- Zero morphism A → 0 → B through the zero object (0 ≅ 1). -/
-  zeroHom : ∀ (A B : 𝒞), A ⟶ B
-  /-- The zero morphism is a two-sided absorbing ideal (it factors through 0):
-      `f ≫ zeroHom = zeroHom` and `zeroHom ≫ g = zeroHom` (§1.591: "two-sided ideal"). -/
-  zeroHom_comp_left  : ∀ {A B C : 𝒞} (f : A ⟶ B), f ≫ zeroHom B C = zeroHom A C
-  zeroHom_comp_right : ∀ {A B C : 𝒞} (g : B ⟶ C), zeroHom A B ≫ g = zeroHom A C
-  /-- The canonical map A+B → A×B (δᵢⱼ-matrix) is an isomorphism.
-      This is the key horn sentence expressing that products = coproducts. -/
-  prod_coprod_coincide : ∀ (A B : 𝒞),
-    IsIso (HasBinaryCoproducts.case
-        (pair (Cat.id A) (zeroHom A B))
-        (pair (zeroHom B A) (Cat.id B)) :
-      HasBinaryCoproducts.coprod A B ⟶ prod A B)
-  /-- The abelian-monoid addition on Hom(A,B), induced by products = coproducts. -/
-  add : ∀ {A B : 𝒞}, (A ⟶ B) → (A ⟶ B) → (A ⟶ B)
-  /-- **Freyd eq. (1.1)**: `add` is the coproduct/codiagonal operation `+_L`,
-      `x +_L y = diag ≫ Φ⁻¹ ≫ case x y`, with `Φ⁻¹` the inverse coincidence iso. -/
-  add_eq_addL : ∀ {A B : 𝒞} (x y : A ⟶ B),
-    add x y = diag A ≫ (prod_coprod_coincide A A).choose ≫
-      HasBinaryCoproducts.case x y
-  /-- **Freyd eq. (1.1')**: `add` is the product/diagonal operation `+_R`,
-      `x +_R y = pair x y ≫ Φ⁻¹ ≫ ∇`, with `∇ = case id id`. -/
-  add_eq_addR : ∀ {A B : 𝒞} (x y : A ⟶ B),
-    add x y = pair x y ≫ (prod_coprod_coincide B B).choose ≫
-      HasBinaryCoproducts.case (Cat.id B) (Cat.id B)
-
-/-- In a half-additive category, each Hom(A,B) carries the structure's addition. -/
-def homAdd [inst : HalfAdditiveCategory 𝒞] {A B : 𝒞} : (A ⟶ B) → (A ⟶ B) → (A ⟶ B) :=
-  inst.add
-
-namespace HalfAdditiveCategory
-
-variable [inst : HalfAdditiveCategory 𝒞]
-
-/-- The inverse `Φ⁻¹ : A×B → A+B` of the coincidence iso, chosen from
-    `prod_coprod_coincide`. -/
-private noncomputable def Φinv (A B : 𝒞) : prod A B ⟶ HasBinaryCoproducts.coprod A B :=
-  (inst.prod_coprod_coincide A B).choose
-
-/-- `add` in coproduct form (eq. 1.1), with the local name for `Φ⁻¹`. -/
-private theorem add_addL {A B : 𝒞} (x y : A ⟶ B) :
-    inst.add x y = diag A ≫ Φinv A A ≫ HasBinaryCoproducts.case x y :=
-  inst.add_eq_addL x y
-
-/-- `add` in product form (eq. 1.1'), with the local name for `Φ⁻¹`. -/
-private theorem add_addR {A B : 𝒞} (x y : A ⟶ B) :
-    inst.add x y = pair x y ≫ Φinv B B ≫ HasBinaryCoproducts.case (Cat.id B) (Cat.id B) :=
-  inst.add_eq_addR x y
-
-open HasBinaryCoproducts in
-/-- Post-composition collapses a `case`: `case x y ≫ v = case (x≫v) (y≫v)`
-    (coproduct functoriality). -/
-private theorem case_comp {X Y A B : 𝒞} (x : A ⟶ X) (y : B ⟶ X) (v : X ⟶ Y) :
-    case x y ≫ v = case (x ≫ v) (y ≫ v) :=
-  case_uniq _ _ _ (by rw [← Cat.assoc, case_inl]) (by rw [← Cat.assoc, case_inr])
-
-/-- Pre-composition collapses a `pair`: `w ≫ pair x y = pair (w≫x) (w≫y)`
-    (product functoriality). -/
-private theorem comp_pair {W X A B : 𝒞} (w : W ⟶ X) (x : X ⟶ A) (y : X ⟶ B) :
-    w ≫ pair x y = pair (w ≫ x) (w ≫ y) :=
-  pair_uniq (w ≫ x) (w ≫ y) (w ≫ pair x y)
-    (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])
-
-/-- **Matrix middle-four interchange** (pure (co)product universality, no iso):
-    `case (pair a b) (pair c d) = pair (case a c) (case b d)` as maps `A+A → B×B`.
-    This is the heart of Freyd's argument — the δ-matrix reads the same by rows or
-    columns. -/
-private theorem case_pair_swap {A B : 𝒞} (a b c d : A ⟶ B) :
-    HasBinaryCoproducts.case (pair a b) (pair c d)
-      = pair (HasBinaryCoproducts.case a c) (HasBinaryCoproducts.case b d) := by
-  -- Determined by precomposition with inl, inr (joint epi for the coproduct).
-  refine (HasBinaryCoproducts.case_uniq _ _ _ ?_ ?_).symm
-  · -- inl ≫ pair (case a c) (case b d) = pair a b
-    rw [comp_pair, HasBinaryCoproducts.case_inl, HasBinaryCoproducts.case_inl]
-  · rw [comp_pair, HasBinaryCoproducts.case_inr, HasBinaryCoproducts.case_inr]
-
-/-- `Φ ≫ Φ⁻¹ = id` on the coproduct (the δ-matrix iso), stated with the local name. -/
-private theorem Φ_Φinv (A B : 𝒞) :
-    HasBinaryCoproducts.case (pair (Cat.id A) (inst.zeroHom A B))
-        (pair (inst.zeroHom B A) (Cat.id B)) ≫ Φinv A B
-      = Cat.id (HasBinaryCoproducts.coprod A B) :=
-  (inst.prod_coprod_coincide A B).choose_spec.1
-
-/-- Right-associated cancellation `Φ ≫ Φ⁻¹ ≫ g = g`. -/
-private theorem Φ_Φinv_comp {A B X : 𝒞}
-    (g : HasBinaryCoproducts.coprod A B ⟶ X) :
-    HasBinaryCoproducts.case (pair (Cat.id A) (inst.zeroHom A B))
-        (pair (inst.zeroHom B A) (Cat.id B)) ≫ Φinv A B ≫ g = g := by
-  rw [← Cat.assoc, Φ_Φinv, Cat.id_comp]
-
-/-- Right unit `add f 0 = f` (eq. 1.1'): the second pair-slot is killed by `Φ⁻¹`. -/
-theorem add_zero {A B : 𝒞} (f : A ⟶ B) : inst.add f (inst.zeroHom A B) = f := by
-  rw [add_addR]
-  -- pair f 0 = f ≫ inl ≫ Φ : factor through inl, whose Φ-image is pair id 0.
-  have h1 : pair f (inst.zeroHom A B)
-      = f ≫ HasBinaryCoproducts.inl ≫ HasBinaryCoproducts.case
-          (pair (Cat.id B) (inst.zeroHom B B)) (pair (inst.zeroHom B B) (Cat.id B)) := by
-    rw [HasBinaryCoproducts.case_inl, comp_pair, Cat.comp_id, inst.zeroHom_comp_left]
-  rw [h1]
-  simp only [Cat.assoc]
-  rw [Φ_Φinv_comp, HasBinaryCoproducts.case_inl, Cat.comp_id]
-
-/-- Left unit `add 0 f = f` (eq. 1.1'), dual to `add_zero`. -/
-theorem zero_add {A B : 𝒞} (f : A ⟶ B) : inst.add (inst.zeroHom A B) f = f := by
-  rw [add_addR]
-  have h1 : pair (inst.zeroHom A B) f
-      = f ≫ HasBinaryCoproducts.inr ≫ HasBinaryCoproducts.case
-          (pair (Cat.id B) (inst.zeroHom B B)) (pair (inst.zeroHom B B) (Cat.id B)) := by
-    rw [HasBinaryCoproducts.case_inr, comp_pair, Cat.comp_id, inst.zeroHom_comp_left]
-  rw [h1]
-  simp only [Cat.assoc]
-  rw [Φ_Φinv_comp, HasBinaryCoproducts.case_inr, Cat.comp_id]
-
-/-- **Middle-two interchange law** (§1.591): `(u + v) + (x + y) = (u + x) + (v + y)`.
-
-    Freyd's Eckmann–Hilton argument.  `add` is simultaneously the coproduct
-    operation `+_L` (eq. 1.1) and the product operation `+_R` (eq. 1.1').  Expand
-    the *outer* add by `+_L` and the two *inner* adds by `+_R`; both sides become
-    the single composite
-
-        A --diag--> A×A --Φ⁻¹--> A+A --M--> B×B --Φ⁻¹--> B+B --∇--> B,
-
-    where `M` is the δ-matrix.  The only place the two argument orders differ is in
-    `M`, and `case_pair_swap` shows the two matrices are equal — that is the whole
-    content.  Commutativity (`u=y=0`) and associativity (`u=0`) of `+` follow. -/
-theorem middle_two_interchange {A B : 𝒞} (u v x y : A ⟶ B) :
-    inst.add (inst.add u v) (inst.add x y) =
-    inst.add (inst.add u x) (inst.add v y) := by
-  -- The common δ-matrix composite both sides reduce to.
-  let M : A ⟶ B :=
-    diag A ≫ Φinv A A ≫ pair (HasBinaryCoproducts.case u x) (HasBinaryCoproducts.case v y)
-      ≫ Φinv B B ≫ HasBinaryCoproducts.case (Cat.id B) (Cat.id B)
-  -- LHS: outer +_L, inner +_R, then case_comp + case_pair_swap.
-  have hLHS : inst.add (inst.add u v) (inst.add x y) = M := by
-    show inst.add (inst.add u v) (inst.add x y) = _
-    rw [add_addL (inst.add u v) (inst.add x y), add_addR u v, add_addR x y,
-        ← case_comp (pair u v) (pair x y)
-          (Φinv B B ≫ HasBinaryCoproducts.case (Cat.id B) (Cat.id B)),
-        case_pair_swap u v x y]
-  -- RHS: outer +_R, inner +_L, then comp_pair.
-  have hRHS : inst.add (inst.add u x) (inst.add v y) = M := by
-    show inst.add (inst.add u x) (inst.add v y) = _
-    rw [add_addR (inst.add u x) (inst.add v y), add_addL u x, add_addL v y,
-        ← Cat.assoc (diag A), ← Cat.assoc (diag A),
-        ← comp_pair (diag A ≫ Φinv A A) (HasBinaryCoproducts.case u x)
-          (HasBinaryCoproducts.case v y),
-        Cat.assoc, Cat.assoc]
-  rw [hLHS, hRHS]
-
-end HalfAdditiveCategory
-
-/-- ADDITIVE CATEGORY (§1.591): half-additive with additive inverses.
-    Every hom-set (A,B) is an abelian group: each f : A → B has a (unique)
-    additive inverse g : A → B satisfying f + g = 0_{A,B}. -/
-class AdditiveCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends HalfAdditiveCategory 𝒞 where
-  /-- Additive inverses exist: every f : A → B has a g with f + g = zeroHom A B. -/
-  addInv : ∀ {A B : 𝒞} (f : A ⟶ B), ∃ g : A ⟶ B, add f g = zeroHom A B
 
 end Freyd
