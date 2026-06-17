@@ -1552,13 +1552,21 @@ noncomputable def colimitPullbacksTransferCovers (C : CatSystem ι D) (hC : C.Co
   (the forward dual of `homInclObj_cover_reflects`): a stage cover stable under every
   transition `functF` becomes a `colimitCat` cover of `homInclObj`.  Its sibling
   `homInclObj_isIso_of_stage` (forward dual of `homInclObj_isIso_reflects`) supplies the
-  iso half.  Together with the existing mono preservation (`homInclObj_mono_of_stage`) and
-  functoriality (`homInclObj_comp`), the only piece still missing for a generic `hcanon`
-  is the germ cone's `IsPullback` at the colimit — i.e. that `homInclObj` carries a stage
-  pullback to a colimit pullback.  That comparison-iso is a separate bounded build
-  comparable in size to `colimitHasBinaryProducts` (it rebuilds the product+equalizer
-  universal property for `objIncl`-images); until it lands both assemblies pass `hcanon`
-  through. -/
+  iso half.  The stage inclusion is PACKAGED AS A FUNCTOR (`Capitalization.stageInclFunctor i`:
+  object map `objIncl i`, morphism map `homInclObj`, identities via `homInclObj_id`,
+  composition via `homInclObj_comp`), so the §1.43/§1.45 finite-limit machinery
+  (`PreservesPullbacks`, `Level.map`, `cartesianFunctor_preserves_pullbacks`, `reflectsMono`)
+  applies to it directly.
+
+  The ONE remaining piece for a generic `hcanon` is ingredient (3): the germ cone's
+  `IsPullback` at the colimit — equivalently `PreservesPullbacks (objIncl i)`.  With the
+  functor in hand this reduces (via `cartesianFunctor_preserves_pullbacks`) to
+  `PreservesBinaryProducts (objIncl i)` + `PreservesEqualizers (objIncl i)`, i.e. the two
+  comparison isos `objIncl(a×b) → objIncl a × objIncl b` and `objIncl(eqObj f g) →
+  eqObj (homInclObj f)(homInclObj g)`.  Each is a bounded representative-transport build
+  comparable in size to `colimitHasBinaryProducts`/`colimitHasEqualizers` (reusing
+  `homInclObj_eq`, `castHom`, the germ lemmas).  Until those two isos land, both assemblies
+  still pass `hcanon` through as a hypothesis. -/
 noncomputable def colimitPreRegular (C : CatSystem ι D) (hC : C.Coherent) [hne : Nonempty ι]
     -- terminal
     (ht : ∀ i, HasTerminal (C.A i))
