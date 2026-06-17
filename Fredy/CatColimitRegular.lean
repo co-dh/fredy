@@ -2486,6 +2486,233 @@ noncomputable def colimitPreRegular (C : CatSystem ι D) (hC : C.Coherent) [hne 
     colimitPullbacksTransferCovers C hC hpull hcanon
   exact {}
 
+/-! ## Converting `CartesianFunctor`/preservation into the `colimitPreRegular` hypothesis shapes
+
+  `colimitPreRegular` (and `colimitHasPullbacks`) consume the limit-preservation of a `CatSystem`
+  transition `C.functF hij` in a *per-pair, joint-monic + pairing* form (`htpres`/`hppres`/
+  `hppres_pair`/`hepres`/`hepres_lift`).  When a transition functor `F : 𝒜 → ℬ` between two
+  *small pre-regular* categories is supplied as the clean `§1.437` abstraction
+  (`PreservesTerminal` / `PreservesBinaryProducts` / `PreservesEqualizers`, the `CartesianFunctor`
+  payload), these lemmas re-express that abstraction in exactly those shapes.
+
+  This is the BRIDGE that lifts a *single-rung* preservation package (e.g. each rung of the §1.543
+  ω-tower, where the rung functor preserves finite limits) into the form the colimit assembly needs:
+  prove `CartesianFunctor` once per rung, convert here, and the `colimitPreRegular` package follows.
+  All lemmas are about a bare functor `F` and are independent of the colimit machinery (placed here
+  only to be in scope for `Capitalization`). -/
+section PreservationToColimShape
+
+variable {𝒜 ℬ : Type u} [Cat.{u} 𝒜] [Cat.{u} ℬ]
+
+/-- Transport `IsEqualizer` across a propositional equality of the cone map (same apex).  Avoids
+    a `rw`-in-motive on the dependent `EqualizerCone.map` field. -/
+theorem isEqualizer_map_congr {A B : ℬ} {f g : A ⟶ B} {E : ℬ} {e e' : E ⟶ A}
+    {he : e ≫ f = e ≫ g} {he' : e' ≫ f = e' ≫ g} (hee : e = e')
+    (h : (EqualizerCone.mk E e he).IsEqualizer) : (EqualizerCone.mk E e' he').IsEqualizer := by
+  subst hee; exact h
+
+/-- **Terminal-preservation, `htpres` shape.**  If `F one = one` on the nose, the transition sends
+    the stage terminal to the stage terminal — exactly what `colimitHasTerminal`'s `htpres` asks.
+    This lemma is the trivial repackaging `F one = one`; it exists to name the obligation
+    uniformly (every rung of a *strict* construction delivers the on-the-nose equality). -/
+theorem htpres_of_eq [HasTerminal 𝒜] [HasTerminal ℬ] (F : 𝒜 → ℬ) [Functor F]
+    (hone : F (one : 𝒜) = (one : ℬ)) : F (one : 𝒜) = (one : ℬ) := hone
+
+/-- **Joint monicity of `(F fst, F snd)` from `PreservesBinaryProducts`.**  If the canonical
+    comparison `pair (F fst) (F snd) : F(A×B) → F A × F B` is an iso, then `(F fst, F snd)` is a
+    monic pair: two maps into `F(A×B)` agreeing after `F fst` and `F snd` agree.  This is the
+    `hppres` content (`u ≫ F fst = v ≫ F fst → u ≫ F snd = v ≫ F snd → u = v`). -/
+theorem preservesBinaryProducts_jointly_monic [HasBinaryProducts 𝒜] [HasBinaryProducts ℬ]
+    (F : 𝒜 → ℬ) [hF : Functor F] (hpp : PreservesBinaryProducts F) {A B : 𝒜} :
+    MonicPair (hF.map (fst (A := A) (B := B))) (hF.map snd) := by
+  -- the comparison `φ = pair (F fst) (F snd)` is iso, hence mono; and `φ ≫ fst = F fst`,
+  -- `φ ≫ snd = F snd`, so two maps agreeing after both `F`-projections agree after `φ`.
+  let φ : F (prod A B) ⟶ prod (F A) (F B) := pair (hF.map (fst (A := A) (B := B))) (hF.map snd)
+  obtain ⟨φ', hφφ', _⟩ := (hpp (A := A) (B := B) : IsIso φ)
+  have hφmono : Mono φ := mono_of_retraction φ φ' hφφ'
+  intro W u v hu hv
+  apply hφmono
+  -- `u ≫ φ = v ≫ φ` from joint agreement after `fst`/`snd` (φ's legs are `F fst`, `F snd`).
+  apply fst_snd_jointly_monic (u ≫ φ) (v ≫ φ)
+  · rw [Cat.assoc, Cat.assoc, fst_pair, hu]
+  · rw [Cat.assoc, Cat.assoc, snd_pair, hv]
+
+/-- **Pairing through `(F fst, F snd)` from `PreservesBinaryProducts`.**  The comparison `φ` being
+    iso lets any pair of legs `p : Z ⟶ F A`, `q : Z ⟶ F B` factor through `F(A×B)`: take
+    `r := pair p q ≫ φ⁻¹`, then `r ≫ F fst = p` and `r ≫ F snd = q`.  This is the `hppres_pair`
+    content. -/
+theorem preservesBinaryProducts_pair [HasBinaryProducts 𝒜] [HasBinaryProducts ℬ]
+    (F : 𝒜 → ℬ) [hF : Functor F] (hpp : PreservesBinaryProducts F) {A B : 𝒜} {Z : ℬ}
+    (p : Z ⟶ F A) (q : Z ⟶ F B) :
+    ∃ r : Z ⟶ F (prod A B),
+      r ≫ hF.map (fst (A := A) (B := B)) = p ∧ r ≫ hF.map snd = q := by
+  let φ : F (prod A B) ⟶ prod (F A) (F B) := pair (hF.map (fst (A := A) (B := B))) (hF.map snd)
+  obtain ⟨φ', _, hφ'φ⟩ := (hpp (A := A) (B := B) : IsIso φ)
+  have hφ_fst : φ ≫ fst = hF.map (fst (A := A) (B := B)) := fst_pair _ _
+  have hφ_snd : φ ≫ snd = hF.map (snd (A := A) (B := B)) := snd_pair _ _
+  refine ⟨pair p q ≫ φ', ?_, ?_⟩
+  · -- (pair p q ≫ φ') ≫ F fst = (pair p q ≫ φ') ≫ φ ≫ fst = pair p q ≫ fst = p
+    rw [← hφ_fst, ← Cat.assoc, Cat.assoc (pair p q), hφ'φ, Cat.comp_id, fst_pair]
+  · rw [← hφ_snd, ← Cat.assoc, Cat.assoc (pair p q), hφ'φ, Cat.comp_id, snd_pair]
+
+/-- **Joint monicity of `F (eqMap f g)` from `PreservesEqualizers`.**  If `F` preserves the
+    equalizer of `f, g`, then `F (eqMap f g)` is monic (an equalizer map is monic, and its
+    `F`-image is again an equalizer map up to the comparison iso).  This is the `hepres` content
+    (`u ≫ F (eqMap f g) = v ≫ F (eqMap f g) → u = v`). -/
+theorem preservesEqualizers_mono [HasEqualizers 𝒜] [HasEqualizers ℬ]
+    (F : 𝒜 → ℬ) [hF : Functor F] (hpe : PreservesEqualizers F) {A B : 𝒜} (f g : A ⟶ B) :
+    Mono (hF.map (eqMap f g)) := by
+  -- comparison `k : F(eqObj f g) → eqObj (Ff)(Fg)` is iso; `eqMap (Ff)(Fg)` is monic; and
+  -- `k ≫ eqMap(Ff)(Fg) = F (eqMap f g)`, so `F (eqMap f g)` is `iso ≫ mono`, hence mono.
+  let cD := HasEqualizers.eq (F A) (F B) (hF.map f) (hF.map g)
+  let hcone : EqualizerCone (hF.map f) (hF.map g) :=
+    { dom := F (eqObj f g), map := hF.map (eqMap f g)
+      eq := by rw [← hF.map_comp, ← hF.map_comp, eqMap_eq] }
+  let k := cD.lift hcone
+  have hk_fac : k ≫ cD.cone.map = hF.map (eqMap f g) := cD.fac hcone
+  obtain ⟨k', hkk', _⟩ := (hpe f g : IsIso k)
+  -- `cD.cone.map = eqMap (F f)(F g)` is monic (two maps agreeing after it lift the same cone).
+  have hEqMono : Mono cD.cone.map := by
+    intro W p q hpq
+    have hc : (p ≫ cD.cone.map) ≫ hF.map f = (p ≫ cD.cone.map) ≫ hF.map g := by
+      rw [Cat.assoc, Cat.assoc, cD.cone.eq]
+    let c : EqualizerCone (hF.map f) (hF.map g) := ⟨W, p ≫ cD.cone.map, hc⟩
+    rw [cD.uniq c p rfl, cD.uniq c q hpq.symm]
+  -- `F (eqMap f g) = k ≫ cD.cone.map`, with `k` iso (mono via retraction) and `cD.cone.map` mono.
+  intro W p q hpq
+  rw [← hk_fac] at hpq
+  exact mono_of_retraction k k' hkk' p q (hEqMono _ _ (by rw [Cat.assoc, Cat.assoc]; exact hpq))
+
+/-- **Lifting through `F (eqMap f g)` from `PreservesEqualizers`.**  If a map `kk : Z ⟶ F A`
+    equalizes `F f, F g`, it factors through `F (eqObj f g)` via `F (eqMap f g)`.  This is the
+    `hepres_lift` content. -/
+theorem preservesEqualizers_lift [HasEqualizers 𝒜] [HasEqualizers ℬ]
+    (F : 𝒜 → ℬ) [hF : Functor F] (hpe : PreservesEqualizers F) {A B : 𝒜} (f g : A ⟶ B)
+    {Z : ℬ} (kk : Z ⟶ F A) (hk : kk ≫ hF.map f = kk ≫ hF.map g) :
+    ∃ r : Z ⟶ F (eqObj f g), r ≫ hF.map (eqMap f g) = kk := by
+  let cD := HasEqualizers.eq (F A) (F B) (hF.map f) (hF.map g)
+  let hcone : EqualizerCone (hF.map f) (hF.map g) :=
+    { dom := F (eqObj f g), map := hF.map (eqMap f g)
+      eq := by rw [← hF.map_comp, ← hF.map_comp, eqMap_eq] }
+  let k := cD.lift hcone
+  have hk_fac : k ≫ cD.cone.map = hF.map (eqMap f g) := cD.fac hcone
+  obtain ⟨k', _, hk'k⟩ := (hpe f g : IsIso k)
+  -- `kk` equalizes `F f, F g`, so it lifts to `eqObj (F f)(F g)` via `cD.cone.map`; then transport
+  -- across the iso `k` to `F (eqObj f g)`.
+  let u : Z ⟶ cD.cone.dom := cD.lift ⟨Z, kk, hk⟩
+  have hu : u ≫ cD.cone.map = kk := cD.fac ⟨Z, kk, hk⟩
+  refine ⟨u ≫ k', ?_⟩
+  -- (u ≫ k') ≫ F(eqMap) = (u ≫ k') ≫ (k ≫ cD.cone.map) = u ≫ cD.cone.map = kk
+  rw [← hk_fac, ← Cat.assoc, Cat.assoc u k' k, hk'k, Cat.comp_id, hu]
+
+/-! ### Composition of preservation (lift a single rung to the iterated transition)
+
+  The ω-tower transition `i ⟶ j` is the COMPOSITE of `(j - i)` single rungs.  These lemmas state
+  that finite-limit preservation is closed under functor composition, so a per-rung preservation
+  package lifts to the iterated transition by induction on the difference. -/
+
+variable {ℰ : Type u} [Cat.{u} ℰ]
+
+/-- **Terminal preservation composes** (on-the-nose form).  `(G ∘ F) one = one` from `F one = one`
+    and `G one = one`. -/
+theorem preservesTerminal_comp [HasTerminal 𝒜] [HasTerminal ℬ] [HasTerminal ℰ]
+    (F : 𝒜 → ℬ) (G : ℬ → ℰ) [Functor F] [Functor G]
+    (hF : F (one : 𝒜) = (one : ℬ)) (hG : G (one : ℬ) = (one : ℰ)) :
+    (G ∘ F) (one : 𝒜) = (one : ℰ) := by
+  show G (F (one : 𝒜)) = (one : ℰ); rw [hF, hG]
+
+/-- **Binary-product preservation composes.**  If `F` and `G` each make their product comparison an
+    iso, so does `G ∘ F`: the composite comparison factors as `G(φF) ≫ φG` (`φF`, `φG` the rung
+    comparisons), a composite of isos (`φF` iso ⟹ `G φF` iso by `functor_preserves_iso`). -/
+theorem preservesBinaryProducts_comp [HasBinaryProducts 𝒜] [HasBinaryProducts ℬ]
+    [HasBinaryProducts ℰ] (F : 𝒜 → ℬ) (G : ℬ → ℰ) [hF : Functor F] [hG : Functor G]
+    (hppF : PreservesBinaryProducts F) (hppG : PreservesBinaryProducts G) :
+    PreservesBinaryProducts (G ∘ F) := by
+  intro A B
+  -- φF : F(A×B) → FA×FB iso; φG : G(FA×FB) → G(FA)×G(FB) iso; composite = G(φF) ≫ φG.
+  let φF : F (prod A B) ⟶ prod (F A) (F B) := pair (hF.map (fst (A := A) (B := B))) (hF.map snd)
+  let φG : G (prod (F A) (F B)) ⟶ prod (G (F A)) (G (F B)) :=
+    pair (hG.map (fst (A := F A) (B := F B))) (hG.map snd)
+  have hGφF_iso : IsIso (hG.map φF) := functor_preserves_iso (F := G) φF (hppF (A := A) (B := B))
+  have hcomp_iso : IsIso (hG.map φF ≫ φG) := isIso_comp hGφF_iso (hppG (A := F A) (B := F B))
+  -- the `G∘F`-comparison equals `G(φF) ≫ φG`: agree after `fst` and after `snd` (jointly monic).
+  have hfst : (hG.map φF ≫ φG) ≫ fst = (compFunctor (F := F) (G := G)).map (fst (A := A) (B := B)) := by
+    -- (G φF ≫ φG) ≫ fst = G φF ≫ G fst = G(φF ≫ fst) = G(F fst) = (G∘F) fst
+    rw [Cat.assoc, fst_pair, ← hG.map_comp, fst_pair]; rfl
+  have hsnd : (hG.map φF ≫ φG) ≫ snd = (compFunctor (F := F) (G := G)).map (snd (A := A) (B := B)) := by
+    rw [Cat.assoc, snd_pair, ← hG.map_comp, snd_pair]; rfl
+  have hkey : pair ((compFunctor (F := F) (G := G)).map (fst (A := A) (B := B)))
+      ((compFunctor (F := F) (G := G)).map snd) = hG.map φF ≫ φG :=
+    (pair_uniq _ _ _ hfst hsnd).symm
+  rw [hkey]; exact hcomp_iso
+
+/-- **A preserved equalizer image stays an equalizer (any cone).**  If `F` preserves equalizers
+    and `c` is an equalizer cone of `(f, g)`, then `(F c.dom, F c.map)` is an equalizer of
+    `(Ff, Fg)`.  PROOF: `c` is iso to the chosen equalizer (`isIso_of_two_equalizers`), `F` of that
+    iso is iso, and the chosen image `(F(eqObj), F(eqMap))` is an equalizer (`PreservesEqualizers`
+    transported by `isEqualizer_iso_apex`); chain the two apex-transports. -/
+theorem preservesEqualizers_isEqualizer [HasEqualizers 𝒜] [HasEqualizers ℬ]
+    (F : 𝒜 → ℬ) [hF : Functor F] (hpe : PreservesEqualizers F) {A B : 𝒜} {f g : A ⟶ B}
+    {c : EqualizerCone f g} (hc : c.IsEqualizer) :
+    (EqualizerCone.mk (f := hF.map f) (g := hF.map g) (F c.dom) (hF.map c.map)
+      (by rw [← hF.map_comp, ← hF.map_comp, c.eq])).IsEqualizer := by
+  -- (1) chosen image `(F(eqObj), F(eqMap))` IsEqualizer of `(Ff, Fg)` via the comparison iso.
+  let cD := HasEqualizers.eq (F A) (F B) (hF.map f) (hF.map g)
+  let hcone : EqualizerCone (hF.map f) (hF.map g) :=
+    { dom := F (eqObj f g), map := hF.map (eqMap f g)
+      eq := by rw [← hF.map_comp, ← hF.map_comp, eqMap_eq] }
+  let k := cD.lift hcone
+  have hk_fac : k ≫ cD.cone.map = hF.map (eqMap f g) := cD.fac hcone
+  obtain ⟨k', hkk', hk'k⟩ := (hpe f g : IsIso k)
+  -- transport chosen equalizer apex `eqObj (Ff)(Fg)` to `F(eqObj)` along `k : F(eqObj) → eqObj…`
+  -- (with inverse `k'`); the new map is `k ≫ cD.cone.map = hF.map (eqMap f g)` (`hk_fac`).
+  have hChosenImg : (EqualizerCone.mk (f := hF.map f) (g := hF.map g) (F (eqObj f g))
+      (hF.map (eqMap f g)) hcone.eq).IsEqualizer := by
+    have h0 := isEqualizer_iso_apex (e := cD.cone.map) (hfe := cD.cone.eq)
+      (chosenEqualizer_isEqualizer (hF.map f) (hF.map g)) k k' hkk' hk'k
+    exact isEqualizer_map_congr hk_fac h0
+  -- (2) `c` is iso to the chosen `eqObj`: comparison `m := eqLift f g c.map c.eq`, iso by
+  -- `isIso_of_two_equalizers`; `F m : F c.dom → F(eqObj)` iso; transport (1) onto apex `F c.dom`.
+  let m : c.dom ⟶ eqObj f g := eqLift f g c.map c.eq
+  have hm_fac : m ≫ eqMap f g = c.map := eqLift_fac f g c.map c.eq
+  have hm_iso : IsIso m :=
+    isIso_of_two_equalizers hc (chosenEqualizer_isEqualizer f g) m hm_fac
+  obtain ⟨m', hmm', hm'm⟩ := functor_preserves_iso (F := F) m hm_iso
+  -- transport hChosenImg (apex F(eqObj), map F(eqMap)) along `F m : F c.dom → F(eqObj)`.
+  have h1 := isEqualizer_iso_apex (e := hF.map (eqMap f g)) (hfe := hcone.eq)
+    hChosenImg (hF.map m) m' hmm' hm'm
+  -- h1 : (F c.dom, F m ≫ F(eqMap)) IsEqualizer; and F m ≫ F(eqMap) = F(m ≫ eqMap) = F c.map.
+  have hcompmap : hF.map m ≫ hF.map (eqMap f g) = hF.map c.map := by
+    rw [← hF.map_comp, hm_fac]
+  exact isEqualizer_map_congr hcompmap h1
+
+/-- **Equalizer preservation composes.**  `(F(eqObj), F(eqMap))` is an equalizer of `(Ff, Fg)`
+    (`preservesEqualizers_isEqualizer` on the chosen `F`-equalizer), `G` sends it to an equalizer
+    of `(GFf, GFg)` (again `preservesEqualizers_isEqualizer`), and the chosen-equalizer comparison
+    for `G ∘ F` is then iso (two equalizers ⟹ comparison iso). -/
+theorem preservesEqualizers_comp [HasEqualizers 𝒜] [HasEqualizers ℬ] [HasEqualizers ℰ]
+    (F : 𝒜 → ℬ) (G : ℬ → ℰ) [hF : Functor F] [hG : Functor G]
+    (hpeF : PreservesEqualizers F) (hpeG : PreservesEqualizers G) :
+    PreservesEqualizers (G ∘ F) := by
+  intro A B f g
+  -- (F(eqObj), F(eqMap)) IsEqualizer of (Ff, Fg):
+  have hFeq : (EqualizerCone.mk (f := hF.map f) (g := hF.map g) (F (eqObj f g)) (hF.map (eqMap f g))
+      (by rw [← hF.map_comp, ← hF.map_comp, eqMap_eq])).IsEqualizer :=
+    preservesEqualizers_isEqualizer F hpeF (chosenEqualizer_isEqualizer f g)
+  -- apply G's preservation to this cone: (G(F(eqObj)), G(F(eqMap))) IsEqualizer of (GFf, GFg).
+  have hGFeq := preservesEqualizers_isEqualizer G hpeG hFeq
+  -- the colimit goal is `IsIso (chosenG.lift {(G∘F)(eqObj), (G∘F)(eqMap)})`; both this cone and the
+  -- chosen equalizer of (GFf, GFg) are equalizers, so the lift (comparison) is iso.
+  -- The goal `IsIso (chosenG.lift {(G∘F)(eqObj), (G∘F)(eqMap), …})`: `(G∘F)(eqMap) = G(F(eqMap))`
+  -- and `(G∘F)(eqObj) = G(F(eqObj))` definitionally, so the lifted cone IS `hGFeq`'s cone, the
+  -- chosen one is `chosenEqualizer_isEqualizer`, and the comparison is iso (two equalizers).
+  let chosenG := HasEqualizers.eq (G (F A)) (G (F B)) (hG.map (hF.map f)) (hG.map (hF.map g))
+  apply isIso_of_two_equalizers hGFeq
+    (chosenEqualizer_isEqualizer (hG.map (hF.map f)) (hG.map (hF.map g)))
+  exact chosenG.fac _
+
+end PreservationToColimShape
+
 end Freyd.Colim
 
 namespace Freyd
