@@ -2174,6 +2174,164 @@ theorem canonicalPullback_cover_of_witness {𝒞 : Type u} [Cat.{v} 𝒞] [HasPu
   rw [← hφ2]
   exact cover_precomp_iso hφiso hcov
 
+/-- **`homInclObj` of a germ is HEq to its rep inclusion** (subst-able alignment core).  For a
+    stage `i`, objects `x x' : C.A i`, a germ `g : x ⟶ x'`, and colimit objects `A Z` identified
+    with the `objIncl`-images via `eA, eZ`, the stage inclusion `homInclObj g` is heterogeneously
+    equal to the rep inclusion `homIncl (colimOut A).2 (colimOut Z).2 a g₀` whenever `g₀` is the
+    `a`-stage germ of `g` transported across the rep equalities `hxA, hxZ` of `colimOut A`/`colimOut Z`.
+    `subst eA eZ` makes the two `HomColim` types definitionally equal; both sides then reduce, via
+    `homInclObj_eq` at a shared witness and `homIncl_compat`, to the same canonical `functF`-germ. -/
+theorem homInclObj_heq_homIncl (C : CatSystem ι D) (hC : C.Coherent)
+    {i : ι} {x x' : C.A i} (g : x ⟶ x') {A Z : C.Obj}
+    (eA : C.objIncl i x = A) (eZ : C.objIncl i x' = Z)
+    (a : UpperBound D (colimOut C A).1 (colimOut C Z).1) (hiA : D.le i a.1)
+    (hxA : C.F a.2.1 (colimOut C A).2 = C.F hiA x)
+    (hxZ : C.F a.2.2 (colimOut C Z).2 = C.F hiA x') :
+    HEq (homInclObj C hC g)
+      (homIncl C hC (colimOut C A).2 (colimOut C Z).2 a
+        (castHom hxA.symm hxZ.symm ((C.functF hiA).map g))) := by
+  subst eA; subst eZ
+  apply heq_of_eq
+  -- witness for `homInclObj g` built from `a` and the rep equalities
+  let w : HioWitness C x x' := ⟨a.1, a.2.1, a.2.2, hiA, hxA, hxZ⟩
+  rw [homInclObj_eq C hC g w]
+  rfl
+
+/-- **Every colimit hom is `homInclObj` of a stage germ** (single-hom alignment).  Any
+    `f : A ⟶ Z` in `colimitCat` is, after identifying `A, Z` with `objIncl`-images at a stage `N`,
+    the stage inclusion of a genuine `C.A N`-hom (up to `HEq`).  `incl_surjective` writes
+    `f = homIncl (colimOut A).2 (colimOut Z).2 a f₀`; take `N := a.1`, `xA := F a.2.1 (colimOut A).2`,
+    `xZ := F a.2.2 (colimOut Z).2`, `fN := f₀`, with `objIncl N xA = A`, `objIncl N xZ = Z`
+    (`objIncl_compat`+`colimOut_spec`).  `homInclObj_heq_homIncl` (at the reflexive bound `i = a.1`,
+    where the rep equalities are `F_refl`) gives the `HEq` to `f`, the refl germ collapsing by
+    `refl_map`.  This is the per-hom half of the two-arbitrary-hom alignment. -/
+theorem colimHom_as_homInclObj (C : CatSystem ι D) (hC : C.Coherent) {A Z : C.Obj}
+    (f : HomColim C hC (colimOut C A).2 (colimOut C Z).2) :
+    ∃ (N : ι) (xA xZ : C.A N) (fN : xA ⟶ xZ),
+      C.objIncl N xA = A ∧ C.objIncl N xZ = Z ∧
+      HEq (homInclObj C hC fN) f := by
+  obtain ⟨a, f₀, hf₀⟩ := incl_surjective (homSystem C hC (colimOut C A).2 (colimOut C Z).2) f
+  refine ⟨a.1, C.F a.2.1 (colimOut C A).2, C.F a.2.2 (colimOut C Z).2, f₀,
+    (C.objIncl_compat a.2.1 (colimOut C A).2).trans (colimOut_spec C A),
+    (C.objIncl_compat a.2.2 (colimOut C Z).2).trans (colimOut_spec C Z), ?_⟩
+  -- `f = homIncl … a f₀` (incl = homIncl); compare via `homInclObj_heq_homIncl` at the refl bound.
+  have hf : f = homIncl C hC (colimOut C A).2 (colimOut C Z).2 a f₀ := hf₀.symm
+  rw [hf]
+  have hheq := homInclObj_heq_homIncl C hC f₀
+    ((C.objIncl_compat a.2.1 (colimOut C A).2).trans (colimOut_spec C A))
+    ((C.objIncl_compat a.2.2 (colimOut C Z).2).trans (colimOut_spec C Z))
+    a (D.refl a.1) (C.F_refl _).symm (C.F_refl _).symm
+  -- collapse the refl-bound germ `castHom (F_refl) ((functF (refl)).map f₀) = f₀`
+  rwa [castHom_of_heq _ _ (hC.refl_map f₀)] at hheq
+
+/-- **A common-bound witness for the `objIncl`-images of `xA, xZ` (at stage `N`), above `M`.**
+    Packages an upper bound `K` of the chosen reps of `objIncl N xA`, `objIncl N xZ` that also lies
+    above `M`, with the rep-agreement equalities at `K`.  Built from the two `colimOut_spec` `Rel`s
+    (via `Quotient.exact`) and `D.bound`.  Reused to align two separately-aligned homs onto one stage. -/
+theorem objIncl_pair_commonBound (C : CatSystem ι D)
+    {N M : ι} (hNM : D.le N M) (xA xZ : C.A N) :
+    ∃ (K : ι) (hMK : D.le M K)
+      (hpA : D.le (colimOut C (C.objIncl N xA)).1 K) (hpZ : D.le (colimOut C (C.objIncl N xZ)).1 K),
+      C.F hpA (colimOut C (C.objIncl N xA)).2 = C.F (D.trans hNM hMK) xA ∧
+      C.F hpZ (colimOut C (C.objIncl N xZ)).2 = C.F (D.trans hNM hMK) xZ := by
+  obtain ⟨kA, hpA0, hiA0, hAeq⟩ := Quotient.exact (colimOut_spec C (C.objIncl N xA))
+  obtain ⟨kZ, hpZ0, hiZ0, hZeq⟩ := Quotient.exact (colimOut_spec C (C.objIncl N xZ))
+  dsimp only [CatSystem.objSystem] at hAeq hZeq
+  obtain ⟨kAZ, hkA, hkZ⟩ := D.bound kA kZ
+  obtain ⟨K, hkAZ_K, hMK⟩ := D.bound kAZ M
+  refine ⟨K, hMK, D.trans hpA0 (D.trans hkA hkAZ_K), D.trans hpZ0 (D.trans hkZ hkAZ_K), ?_, ?_⟩
+  · calc C.F (D.trans hpA0 (D.trans hkA hkAZ_K)) (colimOut C (C.objIncl N xA)).2
+        = C.F (D.trans hkA hkAZ_K) (C.F hpA0 (colimOut C (C.objIncl N xA)).2) := by
+            rw [C.F_trans hpA0 (D.trans hkA hkAZ_K)]
+      _ = C.F (D.trans hkA hkAZ_K) (C.F hiA0 xA) := by rw [hAeq]
+      _ = C.F (D.trans hNM hMK) xA := by
+            rw [← C.F_trans hiA0 (D.trans hkA hkAZ_K)]
+  · calc C.F (D.trans hpZ0 (D.trans hkZ hkAZ_K)) (colimOut C (C.objIncl N xZ)).2
+        = C.F (D.trans hkZ hkAZ_K) (C.F hpZ0 (colimOut C (C.objIncl N xZ)).2) := by
+            rw [C.F_trans hpZ0 (D.trans hkZ hkAZ_K)]
+      _ = C.F (D.trans hkZ hkAZ_K) (C.F hiZ0 xZ) := by rw [hZeq]
+      _ = C.F (D.trans hNM hMK) xZ := by
+            rw [← C.F_trans hiZ0 (D.trans hkZ hkAZ_K)]
+
+/-- **Pushing a stage inclusion to a higher stage** (HEq).  For `hNM : N ≤ M` and a germ
+    `fN : xA ⟶ xZ` in `C.A N`, the stage-`M` inclusion of the pushed germ `(functF hNM).map fN` is
+    HEq to the stage-`N` inclusion `homInclObj fN`.  Both reduce, via `homInclObj_heq_homIncl` at the
+    common bound `objIncl_pair_commonBound`, to the same canonical-germ rep inclusion: the two germs
+    `functF (N→K).map fN` and `functF (M→K).map (functF (N→M).map fN)` agree by `trans_map`.  Brings
+    two separately-aligned homs onto a common codomain stage. -/
+theorem homInclObj_push_heq (C : CatSystem ι D) (hC : C.Coherent)
+    {N M : ι} (hNM : D.le N M) {xA xZ : C.A N} (fN : xA ⟶ xZ) :
+    HEq (homInclObj C hC ((C.functF hNM).map fN)) (homInclObj C hC fN) := by
+  obtain ⟨K, hMK, hpA, hpZ, hxA, hxZ⟩ := objIncl_pair_commonBound C hNM xA xZ
+  -- align `homInclObj fN` (stage N) at the bound `⟨K, hpA, hpZ⟩` over `objIncl N`
+  have hN := homInclObj_heq_homIncl C hC fN rfl rfl
+    ⟨K, hpA, hpZ⟩ (D.trans hNM hMK) hxA hxZ
+  -- align `homInclObj ((functF hNM).map fN)` (stage M) at the same bound, via `objIncl_compat`
+  have hM := homInclObj_heq_homIncl C hC ((C.functF hNM).map fN)
+    (C.objIncl_compat hNM xA) (C.objIncl_compat hNM xZ)
+    ⟨K, hpA, hpZ⟩ hMK
+    (hxA.trans (C.F_trans hNM hMK xA)) (hxZ.trans (C.F_trans hNM hMK xZ))
+  refine hM.trans ?_
+  refine HEq.trans (b := homIncl C hC (colimOut C (C.objIncl N xA)).2 (colimOut C (C.objIncl N xZ)).2
+    ⟨K, hpA, hpZ⟩ (castHom hxA.symm hxZ.symm ((C.functF (D.trans hNM hMK)).map fN))) ?_ hN.symm
+  -- the two germs agree: `functF (M→K) ∘ functF (N→M) = functF (N→K)` by `trans_map`
+  apply heq_of_eq; congr 1
+  apply castHom_heq_congr (h2X := hxA.symm) (h2Y := hxZ.symm)
+  exact (hC.trans_map hNM hMK fN).symm
+
+/-- **Two stage objects with equal `objIncl`-images agree at a common later stage.**  If
+    `objIncl N c₁ = objIncl N c₂` then there is `M ≥ N` with `F (N→M) c₁ = F (N→M) c₂`.  Direct
+    `Quotient.exact` of the object equality plus proof-irrelevance of the two transitions into the
+    witnessing stage. -/
+theorem objIncl_eq_commonStage (C : CatSystem ι D) {N : ι} (c₁ c₂ : C.A N)
+    (h : C.objIncl N c₁ = C.objIncl N c₂) :
+    ∃ (M : ι) (hNM : D.le N M), C.F hNM c₁ = C.F hNM c₂ := by
+  obtain ⟨M, h1, h2, heq⟩ := Quotient.exact h
+  dsimp only [CatSystem.objSystem] at heq
+  exact ⟨M, h1, heq.trans (C.F_proof_irrel h2 h1 c₂)⟩
+
+/-- **Two-arbitrary-hom alignment** (the codomain-shared form `hcanon` needs).  A cospan `f : A ⟶ Z`,
+    `g : B ⟶ Z` in `colimitCat` is, up to `HEq`, the stage inclusion of a genuine cospan
+    `fN : xA ⟶ xZ`, `gN : xB ⟶ xZ` in one `C.A N` (sharing the codomain object `xZ`), with the
+    `objIncl`-images identified with `A, B, Z`.  Align `f, g` separately (`colimHom_as_homInclObj`),
+    push both to a common stage `N₀` above both (`homInclObj_push_heq`), then equalize the two reps of
+    `Z` at a further stage (`objIncl_eq_commonStage`) and push once more, casting `gN`'s codomain onto
+    `xZ` (`castHom`, an iso, so `homInclObj` is unaffected up to the codomain identification). -/
+theorem colimHom_cospan_as_homInclObj (C : CatSystem ι D) (hC : C.Coherent) {A B Z : C.Obj}
+    (f : HomColim C hC (colimOut C A).2 (colimOut C Z).2)
+    (g : HomColim C hC (colimOut C B).2 (colimOut C Z).2) :
+    ∃ (N : ι) (xA xB xZ : C.A N) (fN : xA ⟶ xZ) (gN : xB ⟶ xZ),
+      C.objIncl N xA = A ∧ C.objIncl N xB = B ∧ C.objIncl N xZ = Z ∧
+      HEq (homInclObj C hC fN) f ∧ HEq (homInclObj C hC gN) g := by
+  obtain ⟨Nf, xAf, xZf, fN, eAf, eZf, hf⟩ := colimHom_as_homInclObj C hC f
+  obtain ⟨Ng, xBg, xZg, gN, eBg, eZg, hg⟩ := colimHom_as_homInclObj C hC g
+  -- common stage `N₀ ≥ Nf, Ng`; push both germs there
+  obtain ⟨N₀, hNf, hNg⟩ := D.bound Nf Ng
+  -- pushed germs at `N₀`
+  let fN0 : C.F hNf xAf ⟶ C.F hNf xZf := (C.functF hNf).map fN
+  let gN0 : C.F hNg xBg ⟶ C.F hNg xZg := (C.functF hNg).map gN
+  -- the two reps of `Z` at `N₀` have equal `objIncl`-images, hence agree at a later `N`
+  have hZ0 : C.objIncl N₀ (C.F hNf xZf) = C.objIncl N₀ (C.F hNg xZg) := by
+    rw [C.objIncl_compat hNf xZf, C.objIncl_compat hNg xZg, eZf, eZg]
+  obtain ⟨N, hN0N, hZeq⟩ := objIncl_eq_commonStage C (C.F hNf xZf) (C.F hNg xZg) hZ0
+  -- gN's codomain cast onto the shared `xZ := F hN0N (F hNf xZf)` via `hZeq`
+  refine ⟨N, C.F hN0N (C.F hNf xAf), C.F hN0N (C.F hNg xBg), C.F hN0N (C.F hNf xZf),
+    (C.functF hN0N).map fN0, castHom rfl hZeq.symm ((C.functF hN0N).map gN0),
+    ?_, ?_, ?_, ?_, ?_⟩
+  · rw [C.objIncl_compat hN0N (C.F hNf xAf), C.objIncl_compat hNf xAf, eAf]
+  · rw [C.objIncl_compat hN0N (C.F hNg xBg), C.objIncl_compat hNg xBg, eBg]
+  · rw [C.objIncl_compat hN0N (C.F hNf xZf), C.objIncl_compat hNf xZf, eZf]
+  · -- HEq (homInclObj (functF hN0N |>.map fN0)) f : push twice + original alignment
+    exact (homInclObj_push_heq C hC hN0N fN0).trans
+      ((homInclObj_push_heq C hC hNf fN).trans hf)
+  · -- HEq (homInclObj (castHom rfl hZeq.symm (functF hN0N |>.map gN0))) g; the cast is along the
+    -- codomain object equality `hZeq`, so `homInclObj` of it is HEq to `homInclObj (functF .. gN0)`.
+    refine HEq.trans ?_ ((homInclObj_push_heq C hC hN0N gN0).trans
+      ((homInclObj_push_heq C hC hNg gN).trans hg))
+    -- `castHom rfl hZeq.symm` re-types only the codomain; generalize it and `subst`.
+    generalize hY : C.F hN0N (C.F hNf xZf) = Y at hZeq
+    cases hZeq.symm; rfl
+
 /-- **M3b — pullbacks transfer covers in the colimit category.**
 
   Given the finite-limit data of `colimitHasPullbacks` (so `C.Obj` has pullbacks)
