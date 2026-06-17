@@ -22,6 +22,7 @@
 import Mathlib.CategoryTheory.Category.Cat.Colimit
 import Mathlib.CategoryTheory.SmallObject.TransfiniteIteration
 import Mathlib.SetTheory.Ordinal.Basic
+import Mathlib.SetTheory.Cardinal.Regular
 
 import Fredy.Capitalization
 import Fredy.CatColimit
@@ -127,21 +128,42 @@ noncomputable def succStruct (A : Type u) [hA : Cat.{u} A] [PreRegularCategory A
     succ := fun X => catSucc nextStep X
     toSucc := fun X => catToSucc nextStep X }
 
-/-! ## 3.  Iterate: the strict transfinite diagram `ℕ ⥤ Cat`
+/-! ## 3.  Iterate: the strict transfinite diagram `J ⥤ Cat` over a REGULAR-CARDINAL ordinal
 
-  We index the ω-tower by `J = ℕ`: `LinearOrder/OrderBot/SuccOrder/WellFoundedLT ℕ` are
-  mathlib instances, and `HasIterationOfShape ℕ Cat.{u,u}` follows from `HasColimits Cat.{u,u}`
-  (the generic `[HasColimitsOfSize.{u,u} C] → HasIterationOfShape J C` instance fires with
-  `J : Type u` = `ℕ`).  The result is a STRICT functor — `Functor.map_id`/`map_comp` hold on
-  the nose — which is exactly what the hand-rolled tower lacked. -/
+  B2 re-indexes the ω-tower of B1 by an ORDINAL `J := κ.ord.ToType` for a regular cardinal
+  `κ : Cardinal.{u}` (mathlib's canonical small-object index, cf. `SmallObject.Basic`).  Unlike
+  `ℕ`, this index HAS internal limit stages (every limit ordinal `< κ.ord`), which is what B3's
+  cofinal pointing needs.  The required order typeclasses all resolve:
 
--- `HasIterationOfShape ℕ Cat.{u,u}` is satisfiable (sanity check that the instances resolve).
-example : CategoryTheory.Limits.HasIterationOfShape ℕ CategoryTheory.Cat.{u, u} := inferInstance
+  * `LinearOrder (κ.ord.ToType)`, `SuccOrder`, `WellFoundedLT` are mathlib instances on
+    `Ordinal.ToType`;
+  * `OrderBot (κ.ord.ToType)` comes from `Ordinal.toTypeOrderBot` (needs `κ.ord ≠ 0`, i.e.
+    `κ` infinite — carried as the `[OrderBot κ.ord.ToType]` hypothesis, mirroring mathlib's
+    `SmallObject.Basic`);
+  * `HasIterationOfShape (κ.ord.ToType) Cat.{u,u}` then follows from `HasColimits Cat.{u,u}`
+    via the generic `[HasColimitsOfSize.{u,u} C] → HasIterationOfShape J C` instance, since
+    `κ.ord.ToType : Type u`.
 
-/-- The strict transfinite diagram of categories: mathlib's iteration of `succStruct`. -/
+  Crucially `κ.ord.ToType : Type u` (because `κ.ord : Ordinal.{u}` and `Ordinal.ToType` is a
+  `Type u`), so the index fits `CatSystem.{u,u}` WITHOUT any `ULift`.  The iteration is a STRICT
+  functor — `Functor.map_id`/`map_comp` hold on the nose — exactly what the hand-rolled tower
+  lacked, and now with limit stages handled internally by mathlib's `IsWellOrderContinuous`. -/
+
+variable (κ : Cardinal.{u}) [Fact (Cardinal.IsRegular κ)] [OrderBot κ.ord.ToType]
+
+/-- The index of the bridge transfinite system: the ordinal segment `[0, κ.ord)` as a
+    `Type u`, with its linear well-order.  Abbreviated for readability. -/
+abbrev Idx : Type u := κ.ord.ToType
+
+-- `HasIterationOfShape (Idx κ) Cat.{u,u}` is satisfiable (sanity check that the instances resolve).
+example : CategoryTheory.Limits.HasIterationOfShape (Idx κ) CategoryTheory.Cat.{u, u} :=
+  inferInstance
+
+/-- The strict transfinite diagram of categories: mathlib's iteration of `succStruct`, now
+    indexed by the regular-cardinal ordinal `Idx κ`. -/
 noncomputable def iterFunctor (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
-    CategoryTheory.Functor ℕ CategoryTheory.Cat.{u, u} :=
-  (succStruct nextStep A).iterationFunctor ℕ
+    CategoryTheory.Functor (Idx κ) CategoryTheory.Cat.{u, u} :=
+  (succStruct nextStep A).iterationFunctor (Idx κ)
 
 /-! ## 4.  Transport the strict diagram to a repo `Colim.CatSystem`
 
@@ -150,13 +172,13 @@ noncomputable def iterFunctor (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
   morphisms.  `F_refl`/`F_trans` are the strict functoriality `map_id`/`map_comp` of the
   mathlib functor, read off on objects — the whole payoff of routing through mathlib. -/
 
-/-- The index `ι := ULift.{u} ℕ` (so that it lives in `Type u`, matching the carriers; bare
-    `ℕ : Type 0` would only fit `u = 0`).  The directed order is `≤` on the underlying `ℕ`. -/
-def natDirected : Colim.Directed (ULift.{u} ℕ) where
-  le i j := i.down ≤ j.down
+/-- The directed order on `Idx κ`: since `Idx κ` is a `LinearOrder`, `≤` is already directed —
+    `max i j` is the upper bound.  No `ULift` needed (`Idx κ : Type u` already). -/
+def ordDirected : Colim.Directed (Idx κ) where
+  le i j := i ≤ j
   refl _ := le_refl _
   trans h h' := le_trans h h'
-  bound i j := ⟨⟨max i.down j.down⟩, le_max_left _ _, le_max_right _ _⟩
+  bound i j := ⟨max i j, le_max_left _ _, le_max_right _ _⟩
 
 /-- A repo `Functor` recovered from a mathlib `Cat` 1-morphism `f : X ⟶ Y`, on the repo
     categories obtained from `X.str`/`Y.str` by `ofMathlibCat`. -/
@@ -169,48 +191,100 @@ def ofCatHom {X Y : CategoryTheory.Cat.{u, u}} (f : X ⟶ Y) :
 
 variable (A : Type u) [hA : Cat.{u} A] [PreRegularCategory A]
 
-/-- Object-map of the iteration's transition `i ⟶ j` (for `i ≤ j`, `i j : ℕ`). -/
-noncomputable def bridgeF {i j : ℕ} (hij : i ≤ j) :
-    (iterFunctor nextStep A).obj i → (iterFunctor nextStep A).obj j :=
-  ((iterFunctor nextStep A).map (homOfLE hij)).toFunctor.obj
+/-- Object-map of the iteration's transition `i ⟶ j` (for `i ≤ j`, `i j : Idx κ`). -/
+noncomputable def bridgeF {i j : Idx κ} (hij : i ≤ j) :
+    (iterFunctor nextStep κ A).obj i → (iterFunctor nextStep κ A).obj j :=
+  ((iterFunctor nextStep κ A).map (homOfLE hij)).toFunctor.obj
 
 /-- The strict transfinite diagram of categories transported to a repo `Colim.CatSystem`.
     `F_refl`/`F_trans` are discharged from `Functor.map_id`/`map_comp` of the mathlib functor —
-    the strictness the hand-rolled `Colim.CatSystem` could not provide. -/
+    the strictness the hand-rolled `Colim.CatSystem` could not provide.  The index is the
+    regular-cardinal ordinal `Idx κ` (which carries limit stages, unlike B1's `ℕ`). -/
 noncomputable def bridgeSystem :
-    Colim.CatSystem.{u, u} (ULift.{u} ℕ) (natDirected) where
-  A i := (iterFunctor nextStep A).obj i.down
-  catA i := ofMathlibCat ((iterFunctor nextStep A).obj i.down).str
-  F hij x := bridgeF nextStep A hij x
-  functF hij := ofCatHom ((iterFunctor nextStep A).map (homOfLE hij))
+    Colim.CatSystem.{u, u} (Idx κ) (ordDirected κ) where
+  A i := (iterFunctor nextStep κ A).obj i
+  catA i := ofMathlibCat ((iterFunctor nextStep κ A).obj i).str
+  F hij x := bridgeF nextStep κ A hij x
+  functF hij := ofCatHom ((iterFunctor nextStep κ A).map (homOfLE hij))
   F_refl := fun {i} x => by
-    change ((iterFunctor nextStep A).map (homOfLE (le_refl i.down))).toFunctor.obj x = x
-    rw [Subsingleton.elim (homOfLE (le_refl i.down)) (𝟙 i.down),
-      (iterFunctor nextStep A).map_id]
+    change ((iterFunctor nextStep κ A).map (homOfLE (le_refl i))).toFunctor.obj x = x
+    rw [Subsingleton.elim (homOfLE (le_refl i)) (𝟙 i),
+      (iterFunctor nextStep κ A).map_id]
     rfl
   F_trans := fun {i j k} hij hjk x => by
-    change ((iterFunctor nextStep A).map (homOfLE (le_trans hij hjk))).toFunctor.obj x
-       = ((iterFunctor nextStep A).map (homOfLE hjk)).toFunctor.obj
-           (((iterFunctor nextStep A).map (homOfLE hij)).toFunctor.obj x)
+    change ((iterFunctor nextStep κ A).map (homOfLE (le_trans hij hjk))).toFunctor.obj x
+       = ((iterFunctor nextStep κ A).map (homOfLE hjk)).toFunctor.obj
+           (((iterFunctor nextStep κ A).map (homOfLE hij)).toFunctor.obj x)
     rw [Subsingleton.elim (homOfLE (le_trans hij hjk)) (homOfLE hij ≫ homOfLE hjk),
-      (iterFunctor nextStep A).map_comp]
+      (iterFunctor nextStep κ A).map_comp]
     rfl
 
 /-- Morphism-level coherence of the transported diagram.  `refl_map`/`trans_map` follow from the
     STRICT `map_id`/`map_comp` of the mathlib iteration functor: an identity transition maps to
     the identity functor (so acts as `id` on morphisms), and composite transitions compose.  The
     `HEq` absorbs the object-equalities `F_refl`/`F_trans`. -/
-theorem bridgeSystem_coherent : (bridgeSystem nextStep A).Coherent where
+theorem bridgeSystem_coherent : (bridgeSystem nextStep κ A).Coherent where
   refl_map := fun {i} {x x'} g => by
-    change HEq (((iterFunctor nextStep A).map (homOfLE (le_refl i.down))).toFunctor.map g) g
-    rw [Subsingleton.elim (homOfLE (le_refl i.down)) (𝟙 i.down),
-      (iterFunctor nextStep A).map_id]
+    change HEq (((iterFunctor nextStep κ A).map (homOfLE (le_refl i))).toFunctor.map g) g
+    rw [Subsingleton.elim (homOfLE (le_refl i)) (𝟙 i),
+      (iterFunctor nextStep κ A).map_id]
     rfl
   trans_map := fun {i j k} hij hjk {x x'} g => by
-    change HEq (((iterFunctor nextStep A).map (homOfLE (le_trans hij hjk))).toFunctor.map g) _
+    change HEq (((iterFunctor nextStep κ A).map (homOfLE (le_trans hij hjk))).toFunctor.map g) _
     rw [Subsingleton.elim (homOfLE (le_trans hij hjk)) (homOfLE hij ≫ homOfLE hjk),
-      (iterFunctor nextStep A).map_comp]
+      (iterFunctor nextStep κ A).map_comp]
     rfl
+
+/-! ## 5.  Per-stage pre-regularity
+
+  To feed the consumer `capData_of_cofinalSystem` we must equip every stage `iterFunctor.obj i`
+  with a `PreRegularCategory` (whence `HasTerminal`/`HasBinaryProducts`/`HasEqualizers`).  The
+  load-bearing invariant is the PROP
+
+      `StagePreReg X  :=  Nonempty (PreRegularCategory X)`         (on the repo cat `ofMathlibCat X.str`)
+
+  threaded by transfinite (well-founded) recursion on `i : Idx κ`:
+
+  * **bot.**  `iterFunctor.obj ⊥ ≅ X₀ = Cat.of A`, and `A` is pre-regular, so `StagePreReg ⊥`.
+  * **successor.**  `iterFunctor.obj (succ j) = catSucc (iterFunctor.obj j)` on the nose
+    (`iterationFunctorObjSuccIso` is `eqToIso` of a definitional equality).  When
+    `StagePreReg (iterFunctor.obj j)` holds, `catSucc` takes its pre-regular branch and the target
+    `Cat.of s.T` carries `s.preT` — so `StagePreReg (succ j)`.  This is `catSucc_preReg` below.
+  * **limit.**  `iterFunctor.obj i` is mathlib's colimit of the restriction `iterFunctor|_{<i}`
+    (`IsWellOrderContinuous`).  Pre-regularity of this colimit must be obtained from the repo
+    `colimitPreRegular` of the strict SUB-system `bridgeSystem|_{<i}` via the relating
+    equivalence (mathlib `Cat`-colimit ≅ repo `colimitCat` of the restriction).  This is the
+    crux relating-lemma, ISOLATED below as `limitStage_preReg` (TRUE statement, sharp obstruction).
+
+  Once `StagePreReg i` holds for all `i`, `Classical.choice` gives the per-stage
+  `PreRegularCategory`, and the `ht`/`hp`/`he` package fields are its `toHasTerminal`/… . -/
+
+variable (A : Type u) [hA : Cat.{u} A] [PreRegularCategory A]
+
+/-- The per-stage pre-regularity invariant: the mathlib `Cat` object `X` admits a repo
+    `PreRegularCategory` on its underlying repo category `ofMathlibCat X.str`. -/
+def StagePreReg (X : CategoryTheory.Cat.{u, u}) : Prop :=
+  Nonempty (@PreRegularCategory X (ofMathlibCat X.str))
+
+/-- **Successor stage stays pre-regular.**  If `X` is pre-regular then `catSucc X` is: the
+    positive branch of `catSucc` builds `Cat.of s.T` where `s := nextStep ⟨X, _, choice⟩`, and
+    `s.T` carries the pre-regular structure `s.preT`. -/
+theorem catSucc_preReg {X : CategoryTheory.Cat.{u, u}} (h : StagePreReg X) :
+    StagePreReg (catSucc nextStep X) := by
+  classical
+  letI hX : Cat.{u} X := ofMathlibCat X.str
+  refine ⟨?_⟩
+  -- reduce `catSucc X` along the positive branch, mirroring `catSucc`/`catToSucc`'s own `letI`s
+  -- so the bundle's `cat`/`pre` instances are in scope during elaboration of `s.preT`.
+  show @PreRegularCategory (catSucc nextStep X) (ofMathlibCat (catSucc nextStep X).str)
+  unfold StagePreReg at h
+  letI pre : @PreRegularCategory (X : Type u) hX := Classical.choice h
+  letI s := nextStep ⟨X, hX, pre⟩
+  letI := toMathlibCat s.catT
+  unfold catSucc
+  rw [dif_pos h]
+  -- now the carrier is `Cat.of s.T`; `ofMathlibCat (Cat.of s.T).str = s.catT` definitionally
+  exact s.preT
 
 end Freyd.Bridge
 
