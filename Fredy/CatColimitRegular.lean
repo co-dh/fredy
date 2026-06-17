@@ -1903,6 +1903,199 @@ theorem objIncl_preserves_equalizers (C : CatSystem ι D) (hC : C.Coherent)
     exact castHom_of_heq rfl _ HEq.rfl
   exact ⟨u, hux, fun v hv => hmono v u (hv.trans hux.symm)⟩
 
+/-! ## Generic finite-limit-preservation ⟹ pullback-cone preservation
+
+  A functor `F` preserving binary products and equalizers sends the §1.432
+  chosen pullback of any cospan to a pullback cone of the image cospan.  This is the
+  category-theoretic content behind `objIncl_preserves_pullbacks`: with the two
+  comparison isos (`PreservesBinaryProducts` / `PreservesEqualizers`, both established
+  for `objIncl i` by `objIncl_preserves_products` / `objIncl_preserves_equalizers`),
+  the image of a stage pullback is a colimit pullback.  We work directly from the
+  universal property — the §1.432 build expresses the pullback of `(f,g)` as the
+  equalizer of `(fst≫f, snd≫g)` over `prod A B`, and the two isos relate the `F`-image
+  of that equalizer to the equalizer of `(fst≫Ff, snd≫Fg)` over `prod (F A) (F B)`. -/
+
+/-- **An equalizer of `(fst≫f, snd≫g)` over `A × B` is a pullback of `(f, g)`.**
+    Constructive universal-property version of the §1.432 construction for an
+    *arbitrary* equalizer cone (not just the chosen one): if `(E, m)` equalizes
+    `fst≫f` and `snd≫g`, then `(E, m≫fst, m≫snd)` is a pullback of `(f, g)`. -/
+theorem pullback_of_equalizer {𝒟 : Type u} [Cat.{v} 𝒟] [HasBinaryProducts 𝒟]
+    {A B C E : 𝒟} {f : A ⟶ C} {g : B ⟶ C} {m : E ⟶ prod A B}
+    (hmeq : m ≫ (fst ≫ f) = m ≫ (snd ≫ g))
+    (heq : (EqualizerCone.mk E m hmeq).IsEqualizer) :
+    (Cone.mk (f := f) (g := g) E (m ≫ fst) (m ≫ snd)
+      (by rw [Cat.assoc, Cat.assoc]; exact hmeq)).IsPullback := by
+  intro d
+  -- a cone `d` over `(f,g)`: `d.π₁ ≫ f = d.π₂ ≫ g`.  Pair the legs to land in `A × B`.
+  have hpd : pair d.π₁ d.π₂ ≫ (fst ≫ f) = pair d.π₁ d.π₂ ≫ (snd ≫ g) := by
+    rw [← Cat.assoc, ← Cat.assoc, fst_pair, snd_pair]; exact d.w
+  obtain ⟨u, hu, huniq⟩ := heq (EqualizerCone.mk d.pt (pair d.π₁ d.π₂) hpd)
+  refine ⟨u, ⟨?_, ?_⟩, ?_⟩
+  · show u ≫ (m ≫ fst) = d.π₁
+    rw [← Cat.assoc, hu, fst_pair]
+  · show u ≫ (m ≫ snd) = d.π₂
+    rw [← Cat.assoc, hu, snd_pair]
+  · intro v hv₁ hv₂
+    -- `v ≫ m` equalizes the pair (it pairs to `(d.π₁,d.π₂)`), so `v = u` by uniqueness.
+    refine huniq v ?_
+    show v ≫ m = pair d.π₁ d.π₂
+    refine pair_uniq _ _ _ ?_ ?_
+    · rw [Cat.assoc]; exact hv₁
+    · rw [Cat.assoc]; exact hv₂
+
+/-- **Transport an equalizer along an iso of the parallel pair's domain.**  If `(E,e)`
+    is the equalizer of `(φ ≫ p, φ ≫ q)` and `φ : X ⟶ Y` is iso, then `(E, e ≫ φ)` is the
+    equalizer of `(p, q)`.  Used to slide the `F`-image equalizer of `(F(fst≫f),F(snd≫g))`
+    onto the cospan `(fst≫Ff, snd≫Fg)` over `prod (F A) (F B)` (the two pairs differ by the
+    product-comparison iso `φ = pair (F fst) (F snd)`). -/
+theorem isEqualizer_comp_iso {𝒟 : Type u} [Cat.{v} 𝒟]
+    {X Y Z E : 𝒟} {p q : Y ⟶ Z} {φ : X ⟶ Y} (hφ : IsIso φ) {e : E ⟶ X}
+    (hew : e ≫ (φ ≫ p) = e ≫ (φ ≫ q))
+    (heq : (EqualizerCone.mk (f := φ ≫ p) (g := φ ≫ q) E e hew).IsEqualizer) :
+    (EqualizerCone.mk (f := p) (g := q) E (e ≫ φ)
+      (show (e ≫ φ) ≫ p = (e ≫ φ) ≫ q by rw [Cat.assoc, Cat.assoc]; exact hew)).IsEqualizer := by
+  obtain ⟨φ', hφφ', hφ'φ⟩ := hφ
+  intro d
+  -- `d : EqualizerCone p q`, i.e. `d.map ≫ p = d.map ≫ q`.  Pull `d.map` back through `φ'`
+  -- to a cone over `(φ≫p, φ≫q)` with map `d.map ≫ φ'`.
+  have hd' : (d.map ≫ φ') ≫ (φ ≫ p) = (d.map ≫ φ') ≫ (φ ≫ q) := by
+    rw [← Cat.assoc, Cat.assoc d.map, hφ'φ, Cat.comp_id,
+        ← Cat.assoc (d.map ≫ φ'), Cat.assoc d.map, hφ'φ, Cat.comp_id]
+    exact d.eq
+  obtain ⟨u, hu, huniq⟩ := heq (EqualizerCone.mk d.dom (d.map ≫ φ') hd')
+  refine ⟨u, ?_, ?_⟩
+  · show u ≫ (e ≫ φ) = d.map
+    rw [← Cat.assoc, hu, Cat.assoc, hφ'φ, Cat.comp_id]
+  · intro v hv
+    -- `v ≫ e = d.map ≫ φ'` (post-compose `hv : v ≫ (e≫φ) = d.map` by `φ'`), so `v = u`.
+    refine huniq v ?_
+    show v ≫ e = d.map ≫ φ'
+    calc v ≫ e = (v ≫ e) ≫ Cat.id _ := (Cat.comp_id _).symm
+      _ = (v ≫ e) ≫ (φ ≫ φ') := by rw [hφφ']
+      _ = ((v ≫ e) ≫ φ) ≫ φ' := (Cat.assoc _ _ _).symm
+      _ = (v ≫ (e ≫ φ)) ≫ φ' := by rw [Cat.assoc v e φ]
+      _ = d.map ≫ φ' := by rw [hv]
+
+/-- **Transport an equalizer along an iso of its apex.**  If `(E, e)` is the equalizer of
+    `(f, g)` and `i : E' ⟶ E`, `j : E ⟶ E'` are mutually inverse, then `(E', i ≫ e)` is also
+    the equalizer of `(f, g)`.  Used to move the chosen equalizer (which `PreservesEqualizers`
+    relates by an iso `k`) onto the `F`-image apex `F (eqObj …)`. -/
+theorem isEqualizer_iso_apex {𝒟 : Type u} [Cat.{v} 𝒟] {A B E E' : 𝒟} {f g : A ⟶ B}
+    {e : E ⟶ A} {hfe : e ≫ f = e ≫ g} (heq : (EqualizerCone.mk E e hfe).IsEqualizer)
+    (i : E' ⟶ E) (j : E ⟶ E') (hij : i ≫ j = Cat.id E') (hji : j ≫ i = Cat.id E) :
+    (EqualizerCone.mk (f := f) (g := g) E' (i ≫ e)
+      (show (i ≫ e) ≫ f = (i ≫ e) ≫ g by rw [Cat.assoc, Cat.assoc, hfe])).IsEqualizer := by
+  intro d
+  obtain ⟨u, hu, huniq⟩ := heq d
+  refine ⟨u ≫ j, ?_, ?_⟩
+  · show (u ≫ j) ≫ (i ≫ e) = d.map
+    rw [Cat.assoc, ← Cat.assoc j i e, hji, Cat.id_comp, hu]
+  · intro v hv
+    -- `v ≫ i ≫ e = d.map`, so `v ≫ i = u`; hence `v = v ≫ id = v ≫ i ≫ j = u ≫ j`.
+    have hvi : (v ≫ i) ≫ e = d.map := by rw [Cat.assoc]; exact hv
+    have : v ≫ i = u := huniq (v ≫ i) hvi
+    calc v = v ≫ Cat.id E' := (Cat.comp_id _).symm
+      _ = v ≫ (i ≫ j) := by rw [hij]
+      _ = (v ≫ i) ≫ j := (Cat.assoc _ _ _).symm
+      _ = u ≫ j := by rw [this]
+
+/-- **A product- and equalizer-preserving functor sends the §1.432 chosen pullback to a
+    pullback cone.**  Given `PreservesBinaryProducts F` and `PreservesEqualizers F`, the
+    image `(F P.pt, F P.π₁, F P.π₂)` of the chosen pullback `P = products_equalizers_implies_pullbacks
+    f g` is a pullback of `(F f, F g)`.  Combining the two comparison isos: the §1.432 pullback
+    apex is `eqObj (fst≫f) (snd≫g)`; its `F`-image is (via `PreservesEqualizers`, `isEqualizer_iso_apex`)
+    the equalizer of `(F(fst≫f), F(snd≫g))`, which equals `(fst≫Ff, snd≫Fg)` precomposed by the
+    product-comparison iso `φ` (`isEqualizer_comp_iso`); `pullback_of_equalizer` then turns this
+    equalizer over `prod (F A)(F B)` into the desired pullback. -/
+theorem image_chosenPullback_isPullback {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
+    [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasEqualizers 𝒞]
+    [HasTerminal 𝒟] [HasBinaryProducts 𝒟] [HasEqualizers 𝒟]
+    (F : 𝒞 → 𝒟) [hF : Functor F]
+    (hprod : PreservesBinaryProducts F) (hpeq : PreservesEqualizers F)
+    {A B C : 𝒞} (f : A ⟶ C) (g : B ⟶ C) :
+    (Cone.mk (f := hF.map f) (g := hF.map g)
+      (F (products_equalizers_implies_pullbacks f g).cone.pt)
+      (hF.map (products_equalizers_implies_pullbacks f g).cone.π₁)
+      (hF.map (products_equalizers_implies_pullbacks f g).cone.π₂)
+      (by rw [← hF.map_comp, ← hF.map_comp,
+              (products_equalizers_implies_pullbacks f g).cone.w])).IsPullback := by
+  -- abbreviations for the §1.432 apex/map of the source pullback
+  let eo : 𝒞 := eqObj (fst ≫ f) (snd ≫ g)
+  let em : eo ⟶ prod A B := eqMap (fst ≫ f) (snd ≫ g)
+  -- (F eo, F em) is the equalizer of (F(fst≫f), F(snd≫g)) — `PreservesEqualizers` + apex-iso
+  have hFem_eq : hF.map em ≫ hF.map (fst ≫ f) = hF.map em ≫ hF.map (snd ≫ g) :=
+    (hF.map_comp em (fst ≫ f)).symm.trans
+      ((congrArg hF.map (eqMap_eq (fst ≫ f) (snd ≫ g))).trans (hF.map_comp em (snd ≫ g)))
+  -- chosen equalizer of (F(fst≫f), F(snd≫g)); k is the comparison from F eo, iso by hpeq
+  let cD := HasEqualizers.eq (F (prod A B)) (F C) (hF.map (fst ≫ f)) (hF.map (snd ≫ g))
+  let hcone : EqualizerCone (hF.map (fst ≫ f)) (hF.map (snd ≫ g)) :=
+    { dom := F eo, map := hF.map em, eq := hFem_eq }
+  let k := cD.lift hcone
+  have hk_fac : k ≫ eqMap (hF.map (fst ≫ f)) (hF.map (snd ≫ g)) = hF.map em := cD.fac hcone
+  have hk_iso : IsIso k := hpeq (fst ≫ f) (snd ≫ g)
+  obtain ⟨k', hkk', hk'k⟩ := hk_iso
+  -- (F eo, F em) is an equalizer: transport the chosen equalizer along the iso k (apex move)
+  have hFem_isEq : (EqualizerCone.mk (F eo) (hF.map em) hFem_eq).IsEqualizer := by
+    -- transport the chosen equalizer (apex eqObj..) to apex F eo via k : F eo → eqObj..
+    have h0 := isEqualizer_iso_apex
+      (chosenEqualizer_isEqualizer (hF.map (fst ≫ f)) (hF.map (snd ≫ g))) k k' hkk' hk'k
+    -- h0 : (F eo, k ≫ eqMap) IsEqualizer; and k ≫ eqMap = F em (hk_fac)
+    intro d
+    obtain ⟨u, hu, huniq⟩ := h0 d
+    refine ⟨u, ?_, fun v hv => huniq v ?_⟩
+    · -- hu : u ≫ (k ≫ eqMap) = d.map ; goal u ≫ F em = d.map
+      exact (congrArg (u ≫ ·) hk_fac).symm.trans hu
+    · -- hv : v ≫ F em = d.map ; goal v ≫ (k ≫ eqMap) = d.map
+      exact (congrArg (v ≫ ·) hk_fac).trans hv
+  -- product-comparison iso φ : F(prod A B) → prod (F A)(F B); φ ≫ fst = F fst, φ ≫ snd = F snd
+  let φ : F (prod A B) ⟶ prod (F A) (F B) :=
+    pair (hF.map (fst (A := A) (B := B))) (hF.map snd)
+  have hφ_iso : IsIso φ := hprod (A := A) (B := B)
+  have hφ_fst : φ ≫ fst = hF.map (fst (A := A) (B := B)) := fst_pair _ _
+  have hφ_snd : φ ≫ snd = hF.map (snd (A := A) (B := B)) := snd_pair _ _
+  -- the pair (F(fst≫f), F(snd≫g)) is (φ≫(fst≫Ff), φ≫(snd≫Fg))
+  have hpair_f : hF.map (fst ≫ f) = φ ≫ (fst ≫ hF.map f) := by
+    rw [hF.map_comp, ← Cat.assoc, hφ_fst]
+  have hpair_g : hF.map (snd ≫ g) = φ ≫ (snd ≫ hF.map g) := by
+    rw [hF.map_comp, ← Cat.assoc, hφ_snd]
+  -- transport hFem_isEq onto the φ-precomposed pair (proof-irrelevant cone rewrite)
+  have hFem_isEq' : (EqualizerCone.mk (f := φ ≫ (fst ≫ hF.map f)) (g := φ ≫ (snd ≫ hF.map g))
+      (F eo) (hF.map em) (by rw [← hpair_f, ← hpair_g]; exact hFem_eq)).IsEqualizer := by
+    intro d
+    -- a cone over (φ≫p, φ≫q) is the same data as a cone over (F(fst≫f),F(snd≫g)) by hpair
+    have hd : d.map ≫ hF.map (fst ≫ f) = d.map ≫ hF.map (snd ≫ g) := by
+      rw [hpair_f, hpair_g]; exact d.eq
+    obtain ⟨u, hu, huniq⟩ := hFem_isEq (EqualizerCone.mk d.dom d.map hd)
+    exact ⟨u, hu, huniq⟩
+  have hslid := isEqualizer_comp_iso hφ_iso
+    (by rw [← hpair_f, ← hpair_g]; exact hFem_eq) hFem_isEq'
+  -- hslid : (F eo, F em ≫ φ) is the equalizer of (fst≫Ff, snd≫Fg) over prod (F A)(F B)
+  have hmeq : (hF.map em ≫ φ) ≫ (fst ≫ hF.map f) = (hF.map em ≫ φ) ≫ (snd ≫ hF.map g) := by
+    rw [Cat.assoc, Cat.assoc, ← hpair_f, ← hpair_g]; exact hFem_eq
+  have hpb := pullback_of_equalizer hmeq hslid
+  -- hpb : (F eo, (F em ≫ φ)≫fst, (F em ≫ φ)≫snd) is the pullback of (Ff, Fg).
+  -- those projections equal F P.π₁ = F(em≫fst), F P.π₂ = F(em≫snd).
+  intro d
+  obtain ⟨u, ⟨hu₁, hu₂⟩, huniq⟩ := hpb d
+  -- bridge: (F em ≫ φ) ≫ fst = F (em ≫ fst), likewise snd
+  have hbr₁ : hF.map em ≫ φ ≫ fst = hF.map (em ≫ fst) := by rw [hφ_fst, ← hF.map_comp]
+  have hbr₂ : hF.map em ≫ φ ≫ snd = hF.map (em ≫ snd) := by rw [hφ_snd, ← hF.map_comp]
+  have hpr₁ : (hF.map em ≫ φ) ≫ fst = hF.map (em ≫ fst) := (Cat.assoc _ _ _).trans hbr₁
+  have hpr₂ : (hF.map em ≫ φ) ≫ snd = hF.map (em ≫ snd) := (Cat.assoc _ _ _).trans hbr₂
+  refine ⟨u, ⟨?_, ?_⟩, ?_⟩
+  · show u ≫ hF.map (em ≫ fst) = d.π₁
+    rw [← hpr₁]; exact hu₁
+  · show u ≫ hF.map (em ≫ snd) = d.π₂
+    rw [← hpr₂]; exact hu₂
+  · intro v hv₁ hv₂
+    refine huniq v ?_ ?_
+    · show v ≫ (hF.map em ≫ φ) ≫ fst = d.π₁
+      rw [show (hF.map em ≫ φ) ≫ fst = hF.map (em ≫ fst) from (Cat.assoc _ _ _).trans hbr₁]
+      exact hv₁
+    · show v ≫ (hF.map em ≫ φ) ≫ snd = d.π₂
+      rw [show (hF.map em ≫ φ) ≫ snd = hF.map (em ≫ snd) from (Cat.assoc _ _ _).trans hbr₂]
+      exact hv₂
+
 /-! ## M3b — pullbacks for the colimit category
 
   The colimit category has pullbacks, obtained from the terminal object,

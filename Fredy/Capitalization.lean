@@ -202,6 +202,117 @@ theorem stageInclFaithful (C : CatSystem ι D) (hC : C.Coherent)
   · intro x y g hiso
     exact homInclObj_isIso_reflects C hC hcons g hiso
 
+/-- **`objIncl i` preserves binary products, as `PreservesBinaryProducts`.**  Repackage
+    `objIncl_preserves_products` (the `IsIso (pair …)` fact) under the `stageInclFunctor`
+    `Functor` instance so the §1.43/§1.437 machinery applies. -/
+theorem objIncl_preservesBinaryProducts (C : CatSystem.{u, u} ι D) (hC : C.Coherent)
+    (hp : ∀ i, HasBinaryProducts (C.A i))
+    (hpres : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
+        (u v : z ⟶ C.F hij ((hp i).prod a b)),
+        u ≫ (C.functF hij).map (hp i).fst = v ≫ (C.functF hij).map (hp i).fst →
+        u ≫ (C.functF hij).map (hp i).snd = v ≫ (C.functF hij).map (hp i).snd → u = v)
+    (hpres_pair : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
+        (p : z ⟶ C.F hij a) (q : z ⟶ C.F hij b),
+        ∃ r : z ⟶ C.F hij ((hp i).prod a b),
+          r ≫ (C.functF hij).map (hp i).fst = p ∧ r ≫ (C.functF hij).map (hp i).snd = q)
+    (i : ι) :
+    letI : Cat C.Obj := colimitCat C hC
+    letI : HasBinaryProducts (C.A i) := hp i
+    letI : HasBinaryProducts C.Obj := colimitHasBinaryProducts C hC hp hpres hpres_pair
+    @PreservesBinaryProducts (C.A i) C.Obj (C.catA i) (colimitCat C hC) (C.objIncl i)
+      (stageInclFunctor C hC i) _ _ :=
+  fun {a b} => objIncl_preserves_products C hC hp hpres hpres_pair i a b
+
+/-- **`objIncl i` preserves equalizers, as `PreservesEqualizers`.**  Convert the
+    `EqualizerCone.IsEqualizer` form (`objIncl_preserves_equalizers`) to the comparison-map
+    iso form `PreservesEqualizers` wants, via `isIso_of_two_equalizers` against the chosen
+    equalizer of `(homInclObj f, homInclObj g)`. -/
+theorem objIncl_preservesEqualizers (C : CatSystem.{u, u} ι D) (hC : C.Coherent)
+    (he : ∀ i, HasEqualizers (C.A i))
+    (hepres : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
+        (u v : z ⟶ C.F hij (eqObj f g)),
+        u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
+    (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
+        (k : z ⟶ C.F hij A)
+        (hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
+        ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k)
+    (i : ι) :
+    letI : Cat C.Obj := colimitCat C hC
+    letI : HasEqualizers (C.A i) := he i
+    letI : HasEqualizers C.Obj := colimitHasEqualizers C hC he hepres hepres_lift
+    @PreservesEqualizers (C.A i) C.Obj (C.catA i) (colimitCat C hC) (C.objIncl i)
+      (stageInclFunctor C hC i) _ _ := by
+  letI : Cat C.Obj := colimitCat C hC
+  letI : HasEqualizers (C.A i) := he i
+  letI : HasEqualizers C.Obj := colimitHasEqualizers C hC he hepres hepres_lift
+  intro a b f g
+  -- the image cone (objIncl(eqObj f g), homInclObj (eqMap f g)) is an equalizer (item (3))
+  have himg := objIncl_preserves_equalizers C hC he hepres hepres_lift i f g
+  -- the chosen equalizer comparison map `k` factors `homInclObj (eqMap f g)`; both are
+  -- equalizers, so `k` is iso (`isIso_of_two_equalizers`).
+  let eqD := HasEqualizers.eq (C.objIncl i a) (C.objIncl i b)
+    (stageInclFunctor C hC i |>.map f) (stageInclFunctor C hC i |>.map g)
+  exact isIso_of_two_equalizers himg (chosenEqualizer_isEqualizer _ _) _ (eqD.fac _)
+
+/-- **`objIncl i` preserves pullbacks (M3-cov ingredient (3), assembled).**  The
+    `objIncl i`-image of the §1.432 *stage* pullback of a cospan `(f, g)` in `C.A i` is a
+    pullback cone in `colimitCat`.  Assembles `objIncl_preserves_products` and
+    `objIncl_preserves_equalizers` (repackaged as `PreservesBinaryProducts` /
+    `PreservesEqualizers` of `stageInclFunctor i`) through the generic
+    `image_chosenPullback_isPullback`. -/
+theorem objIncl_preserves_pullbacks (C : CatSystem.{u, u} ι D) (hC : C.Coherent) [hne : Nonempty ι]
+    (ht : ∀ i, HasTerminal (C.A i))
+    (htpres : ∀ {i j} (hij : D.le i j), C.F hij (ht i).one = (ht j).one)
+    (hp : ∀ i, HasBinaryProducts (C.A i))
+    (hpres : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
+        (u v : z ⟶ C.F hij ((hp i).prod a b)),
+        u ≫ (C.functF hij).map (hp i).fst = v ≫ (C.functF hij).map (hp i).fst →
+        u ≫ (C.functF hij).map (hp i).snd = v ≫ (C.functF hij).map (hp i).snd → u = v)
+    (hpres_pair : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
+        (p : z ⟶ C.F hij a) (q : z ⟶ C.F hij b),
+        ∃ r : z ⟶ C.F hij ((hp i).prod a b),
+          r ≫ (C.functF hij).map (hp i).fst = p ∧ r ≫ (C.functF hij).map (hp i).snd = q)
+    (he : ∀ i, HasEqualizers (C.A i))
+    (hepres : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
+        (u v : z ⟶ C.F hij (eqObj f g)),
+        u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
+    (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
+        (k : z ⟶ C.F hij A)
+        (hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
+        ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k)
+    (i : ι) {a b c : C.A i} (f : a ⟶ c) (g : b ⟶ c) :
+    letI : Cat C.Obj := colimitCat C hC
+    letI : HasTerminal (C.A i) := ht i
+    letI : HasBinaryProducts (C.A i) := hp i
+    letI : HasEqualizers (C.A i) := he i
+    letI : HasTerminal C.Obj := colimitHasTerminal C hC ht htpres
+    letI : HasBinaryProducts C.Obj := colimitHasBinaryProducts C hC hp hpres hpres_pair
+    letI : HasEqualizers C.Obj := colimitHasEqualizers C hC he hepres hepres_lift
+    (Cone.mk (f := homInclObj C hC f) (g := homInclObj C hC g)
+      (C.objIncl i (products_equalizers_implies_pullbacks f g).cone.pt)
+      (homInclObj C hC (products_equalizers_implies_pullbacks f g).cone.π₁)
+      (homInclObj C hC (products_equalizers_implies_pullbacks f g).cone.π₂)
+      (by
+          show colimComp C hC (homInclObj C hC (products_equalizers_implies_pullbacks f g).cone.π₁)
+              (homInclObj C hC f)
+            = colimComp C hC (homInclObj C hC (products_equalizers_implies_pullbacks f g).cone.π₂)
+              (homInclObj C hC g)
+          rw [← homInclObj_comp C hC (products_equalizers_implies_pullbacks f g).cone.π₁ f,
+              ← homInclObj_comp C hC (products_equalizers_implies_pullbacks f g).cone.π₂ g,
+              (products_equalizers_implies_pullbacks f g).cone.w])).IsPullback := by
+  letI : Cat C.Obj := colimitCat C hC
+  letI : HasTerminal (C.A i) := ht i
+  letI : HasBinaryProducts (C.A i) := hp i
+  letI : HasEqualizers (C.A i) := he i
+  letI : HasTerminal C.Obj := colimitHasTerminal C hC ht htpres
+  letI : HasBinaryProducts C.Obj := colimitHasBinaryProducts C hC hp hpres hpres_pair
+  letI : HasEqualizers C.Obj := colimitHasEqualizers C hC he hepres hepres_lift
+  letI hFun : @Functor (C.A i) (C.catA i) C.Obj (colimitCat C hC) (C.objIncl i) :=
+    stageInclFunctor C hC i
+  exact image_chosenPullback_isPullback (C.objIncl i)
+    (objIncl_preservesBinaryProducts C hC hp hpres hpres_pair i)
+    (objIncl_preservesEqualizers C hC he hepres hepres_lift i) f g
+
 end Freyd.Colim
 
 /-! ## §1.543 The capitalization data, and the reduction to it
