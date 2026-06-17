@@ -786,12 +786,101 @@ theorem expSubobj (A B : 𝒞) :
             HasSubobjectClassifier.classify (diag B) (diag_mono B)), ?_⟩
   -- MONO.  By `curry_precomp` + `curry_inj`, `h₁≫ι = h₂≫ι` reduces to the two graphs
   -- `prodMap _ _ _ hᵢ ≫ γ` agreeing as maps `(A×B)×W → Ω`.  Concluding `h₁ = h₂` is the
-  -- internal FUNCTIONALITY of the graph: a relation classified by `diag B` on the
-  -- `eval`-coordinate is single-valued, so equal graphs force `eval(a,h₁)=eval(a,h₂)`
-  -- and hence (curry uniqueness) `h₁=h₂`.  This single-valuedness extraction is the
-  -- §1.923 residual (it is exactly the faithfulness of `classify(diag B)`, the same
-  -- mechanism as `singletonMapCat_monic` but one transpose higher); not yet packaged.
-  sorry
+  -- internal FUNCTIONALITY of the graph: substituting the "diagonal section" `b := eval(a,h₁)`
+  -- (the map `σ` below) lands graph₁ on the diagonal — so graph₁'s classifier is `true` there —
+  -- hence by hypothesis graph₂'s is too, and `classify_pullback` lifts it through `diag B`,
+  -- forcing `eval(a,h₁) = eval(a,h₂)` i.e. `prodMap h₁ ≫ eval = prodMap h₂ ≫ eval`; `curry`
+  -- uniqueness then gives `h₁ = h₂`.  Same mechanism as `singletonMapCat_monic`, one transpose up.
+  intro W h₁ h₂ hΔ
+  let χd := HasSubobjectClassifier.classify (diag B) (diag_mono B)
+  -- The two precomposed graphs agree:  pair eᵢ p₀ ≫ χd  (i=1,2),  with
+  --   eᵢ = pair (fst≫fst) (snd≫hᵢ) ≫ eval_exp A B,   p₀ = fst≫snd   on  prod (prod A B) W.
+  have hγ : pair (pair (fst ≫ fst) (snd ≫ h₁) ≫ eval_exp A B)
+                 (fst ≫ snd : prod (prod A B) W ⟶ B) ≫ χd
+          = pair (pair (fst ≫ fst) (snd ≫ h₂) ≫ eval_exp A B)
+                 (fst ≫ snd : prod (prod A B) W ⟶ B) ≫ χd := by
+    have h' := hΔ
+    rw [curry_precomp, curry_precomp] at h'
+    have hkey := curry_inj h'
+    -- Distribute prodMap over the pair-of-eval/snd to identify the two coordinates.
+    -- prodMap h ≫ pair (fst≫fst) snd = pair (fst≫fst) (snd≫h)  (push prodMap through both legs).
+    have hpush : ∀ h : W ⟶ exp A B,
+        prodMap (prod A B) W (exp A B) h ≫ pair (fst ≫ fst) (snd : prod (prod A B) (exp A B) ⟶ exp A B)
+          = pair (fst ≫ fst) (snd ≫ h : prod (prod A B) W ⟶ exp A B) := by
+      intro h; apply pair_uniq
+      · rw [Cat.assoc, fst_pair, ← Cat.assoc, prodMap_fst]
+      · rw [Cat.assoc, snd_pair, prodMap_snd]
+    have hcoord : ∀ h : W ⟶ exp A B,
+        prodMap (prod A B) W (exp A B) h ≫
+            (pair (pair (fst ≫ fst) snd ≫ eval_exp A B) (fst ≫ snd) ≫ χd)
+          = pair (pair (fst ≫ fst) (snd ≫ h) ≫ eval_exp A B) (fst ≫ snd) ≫ χd := by
+      intro h
+      rw [← Cat.assoc]; congr 1
+      apply pair_uniq
+      · rw [Cat.assoc, fst_pair, ← Cat.assoc, hpush]
+      · rw [Cat.assoc, snd_pair, ← Cat.assoc, prodMap_fst]
+    rw [hcoord, hcoord] at hkey; exact hkey
+  -- The diagonal section  σ : prod A W → prod (prod A B) W,  b := eval(a, h₁).
+  let g₁ : prod A W ⟶ B := pair (fst : prod A W ⟶ A) (snd ≫ h₁) ≫ eval_exp A B
+  let σ : prod A W ⟶ prod (prod A B) W :=
+    pair (pair (fst : prod A W ⟶ A) g₁) (snd : prod A W ⟶ W)
+  -- σ ≫ (pair eᵢ p₀) reindexes:  σ ≫ pair (fst≫fst) (snd≫hᵢ) = pair fst (snd≫hᵢ).
+  have hreindex : ∀ h : W ⟶ exp A B,
+      σ ≫ pair (fst ≫ fst) (snd ≫ h) = pair (fst : prod A W ⟶ A) (snd ≫ h) := by
+    intro h
+    apply pair_uniq
+    · rw [Cat.assoc, fst_pair, ← Cat.assoc]; show (σ ≫ fst) ≫ fst = _
+      rw [show σ ≫ fst = pair (fst : prod A W ⟶ A) g₁ from fst_pair _ _, fst_pair]
+    · rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair]
+  -- σ ≫ p₀ = σ ≫ fst ≫ snd = g₁.
+  have hp : σ ≫ (fst ≫ snd : prod (prod A B) W ⟶ B) = g₁ := by
+    rw [← Cat.assoc]; show (σ ≫ fst) ≫ snd = g₁
+    rw [show σ ≫ fst = pair (fst : prod A W ⟶ A) g₁ from fst_pair _ _, snd_pair]
+  -- σ ≫ e₁ = g₁ too:  σ ≫ pair (fst≫fst)(snd≫h₁) ≫ eval = pair fst (snd≫h₁) ≫ eval = g₁.
+  have he₁ : σ ≫ (pair (fst ≫ fst) (snd ≫ h₁) ≫ eval_exp A B) = g₁ := by
+    rw [← Cat.assoc, hreindex]
+  -- Hence  σ ≫ (pair e₁ p₀)  factors through the diagonal:  = g₁ ≫ diag B.
+  have hdiag : σ ≫ pair (pair (fst ≫ fst) (snd ≫ h₁) ≫ eval_exp A B)
+                        (fst ≫ snd : prod (prod A B) W ⟶ B)
+             = g₁ ≫ diag B := by
+    have hL : σ ≫ pair (pair (fst ≫ fst) (snd ≫ h₁) ≫ eval_exp A B)
+                       (fst ≫ snd : prod (prod A B) W ⟶ B) = pair g₁ g₁ :=
+      pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair, he₁]) (by rw [Cat.assoc, snd_pair, hp])
+    have hR : g₁ ≫ diag B = pair g₁ g₁ :=
+      pair_uniq _ _ _ (by rw [Cat.assoc, diag_fst, Cat.comp_id]) (by rw [Cat.assoc, diag_snd, Cat.comp_id])
+    rw [hL, hR]
+  -- So σ ≫ graph₁ ≫ χd = g₁ ≫ diag ≫ χd = g₁ ≫ term ≫ true = term ≫ true.
+  have htrue : σ ≫ (pair (pair (fst ≫ fst) (snd ≫ h₂) ≫ eval_exp A B)
+                          (fst ≫ snd : prod (prod A B) W ⟶ B) ≫ χd)
+             = term (prod A W) ≫ HasSubobjectClassifier.true := by
+    rw [← hγ, ← Cat.assoc, hdiag, Cat.assoc,
+        HasSubobjectClassifier.classify_sq (diag B) (diag_mono B),
+        ← Cat.assoc, term_uniq (g₁ ≫ term B) (term (prod A W))]
+  -- `classify_pullback` lifts this cone through `diag B`, giving ℓ ≫ diag = σ ≫ pair e₂ p₀.
+  obtain ⟨ℓ, ⟨hℓ, _⟩, _⟩ :=
+    HasSubobjectClassifier.classify_pullback (diag B) (diag_mono B)
+      ⟨prod A W,
+       σ ≫ pair (pair (fst ≫ fst) (snd ≫ h₂) ≫ eval_exp A B) (fst ≫ snd),
+       term (prod A W),
+       by rw [Cat.assoc]; exact htrue⟩
+  simp only at hℓ
+  -- Project hℓ to fst/snd:  σ≫e₂ = ℓ = σ≫p₀ = g₁ = σ≫e₁.
+  have he₂ : σ ≫ (pair (fst ≫ fst) (snd ≫ h₂) ≫ eval_exp A B) = g₁ := by
+    have hA := congrArg (· ≫ fst) hℓ
+    have hB := congrArg (· ≫ snd) hℓ
+    simp only [Cat.assoc, diag_fst, diag_snd, Cat.comp_id, fst_pair, snd_pair] at hA hB
+    rw [← hA, hB]; exact hp
+  -- σ ≫ e₁ = σ ≫ e₂  (both g₁), and σ≫eᵢ = pair fst (snd≫hᵢ) ≫ eval = prodMap hᵢ ≫ eval.
+  have hev : prodMap A W (exp A B) h₁ ≫ eval_exp A B
+           = prodMap A W (exp A B) h₂ ≫ eval_exp A B := by
+    have e1 : prodMap A W (exp A B) h₁ = pair (fst : prod A W ⟶ A) (snd ≫ h₁) :=
+      pair_uniq _ _ _ (prodMap_fst _ _ _ _) (prodMap_snd _ _ _ _)
+    have e2 : prodMap A W (exp A B) h₂ = pair (fst : prod A W ⟶ A) (snd ≫ h₂) :=
+      pair_uniq _ _ _ (prodMap_fst _ _ _ _) (prodMap_snd _ _ _ _)
+    rw [e1, e2, ← hreindex h₁, ← hreindex h₂, Cat.assoc, Cat.assoc, he₁, he₂]
+  -- curry uniqueness:  both h₁, h₂ = curry (prodMap h₁ ≫ eval).
+  rw [curry_unique_eq (rfl : prodMap A W (exp A B) h₁ ≫ eval_exp A B = _),
+      curry_unique_eq hev.symm]
 
 /-! ## §1.924  FG computed via Yoneda (§1.924)
 
