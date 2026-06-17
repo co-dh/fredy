@@ -166,7 +166,18 @@ def IsSpecial.toSpecial [hcc : CartesianCategory 𝒞] (h : IsSpecial 𝒞) :
 
     Proof sketch (Freyd §1.471): In Set, for any two proper subobjects V₁, V₂ ↪ 1,
     either V₁ ↪ V₂ or V₂ ↪ 1 is an isomorphism; hence both are isomorphic to V₁ ∩ V₂.
-    Transferring this universally-quantified statement to A via specialness gives the result. -/
+    Transferring this universally-quantified statement to A via specialness gives the result.
+
+    BLOCKED (re-confirmed, independent pass): the obvious witness `W := V₁ × V₂` with
+    `i₁ := fst`, `i₂ := snd` has the WRONG polarity.  `special (term V₁) (term V₂)` gives
+    `ProperMono (pair (fst ≫ term V₁) snd : V₁×V₂ → 1×V₂)`; post-composing the iso
+    `snd : 1×V₂ ≅ V₂` (`prod_one_iso_left`) makes `snd : V₁×V₂ → V₂` a *proper* mono, i.e.
+    NOT iso — and symmetrically `fst : V₁×V₂ → V₁` is not iso.  So specialness forces the
+    product projections to be non-isos, the opposite of what the conclusion needs.  The
+    genuine dichotomy ("each proper subobject of 1 is the unique 0, and any two are iso") is
+    a *universal* Cartesian sentence true in Set; closing it needs the §1.646 faithful
+    properness-preserving representation `A → Set` (absent from the repo), not the elementary
+    §1.472 product condition.  Honest `sorry`; do not weaken the statement. -/
 theorem special_atMostTwoValues [SpecialCartesianCategory 𝒞]
     {V₁ V₂ : 𝒞} (hV₁ : ProperMono (term V₁)) (hV₂ : ProperMono (term V₂)) :
     ∃ (W : 𝒞) (i₁ : W ⟶ V₁) (i₂ : W ⟶ V₂), IsIso i₁ ∧ IsIso i₂ := by
@@ -722,6 +733,13 @@ theorem twoValued_special_prodEndo_faithful [CartesianCategory 𝒞] (hSp : IsSp
     -- §1.471/§1.646 representation — NOT derivable from `IsSpecial`+`TwoValued` alone
     -- (`IsSpecial` quantifies only over proper monos; `zero_uniq` needs `B×0` to be a
     -- subterminator, which it is not).  Isolated here; see final report.
+    --
+    -- BLOCKED (re-confirmed): an inverse `0 → B×0` would be `pair (g : 0→B) (id_0)`, which
+    -- needs a map `g : 0 → B`, i.e. `0 := zeroObj` must be INITIAL.  `TwoValued` only gives
+    -- `term zeroObj` monic/proper + uniqueness of proper subobjects of `1`; it never makes
+    -- `zeroObj` initial.  The repo has NO `HasInitial`/strict-initial infrastructure (the
+    -- §1.59 `HasZeroObject` is `0 ≅ 1`, the opposite situation, and is not imported here), so
+    -- `hstrict` is genuinely underivable from the hypotheses in scope.  Honest `sorry`.
     have hstrict : IsIso (snd (A := B) (B := h2v.zeroObj)) := sorry
     obtain ⟨fi, hfi1, hfi2⟩ := hfst_iso
     -- `fi ≫ snd : B → 0` is iso (composite of the iso `fi` and the iso `snd`).
