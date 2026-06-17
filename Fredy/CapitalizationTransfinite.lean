@@ -86,7 +86,118 @@ structure CofinalCapStep where
 
 /-! ## Cover-survival of well-pointedness through the colimit -/
 
+/-- **A map factors through a mono iff the pullback leg over it is an isomorphism.**
+    Pure category theory.  For a pullback cone `c` of the cospan `(f : A ⟶ C, g : B ⟶ C)` with
+    `f` MONIC, `g` factors through `f` (`∃ y, y ≫ f = g`) iff `c.π₂` (the leg over `g`) is an
+    isomorphism.  Forward: a factor `y` makes `(y, 1_B) : B → c.pt` a section of `c.π₂`, and since
+    `f` mono forces `c.π₂` mono (pullback of a mono is mono), a split-mono section makes `c.π₂` iso.
+    Backward: `y := c.π₂⁻¹ ≫ c.π₁` factors `g` (using the square `c.w` and `π₂⁻¹ ≫ π₂ = 1`). -/
+theorem factor_iff_pullback_π₂_iso {𝒞 : Type u} [Cat.{u} 𝒞] {A B C : 𝒞}
+    {f : A ⟶ C} {g : B ⟶ C} (hf : Mono f) (c : Cone f g) (hpb : c.IsPullback) :
+    (∃ y : B ⟶ A, y ≫ f = g) ↔ IsIso c.π₂ := by
+  constructor
+  · rintro ⟨y, hy⟩
+    -- `(y, 1_B)` is a cone over `(f, g)`; its lift `s : B → c.pt` is a section of `c.π₂`.
+    obtain ⟨s, ⟨hs₁, hs₂⟩, _⟩ := hpb ⟨B, y, Cat.id B, by rw [hy, Cat.id_comp]⟩
+    -- `c.π₂` is monic: pullback of the mono `f`.  `u ≫ π₂ = v ≫ π₂` and the square give
+    -- `u ≫ π₁ = v ≫ π₁` (cancel `f`), so `u = v` by the pullback's uniqueness.
+    have hπ₂mono : Mono c.π₂ := by
+      intro W u v huv
+      have h₁ : u ≫ c.π₁ = v ≫ c.π₁ := by
+        apply hf
+        rw [Cat.assoc, c.w, ← Cat.assoc, huv, Cat.assoc, ← c.w, Cat.assoc]
+      obtain ⟨_, _, huniq⟩ := hpb ⟨W, u ≫ c.π₁, u ≫ c.π₂, by rw [Cat.assoc, c.w, Cat.assoc]⟩
+      rw [huniq u rfl rfl, huniq v h₁.symm huv.symm]
+    -- `s ≫ c.π₂ = 1_B` (`hs₂`), so `c.π₂` is split mono; a monic split mono is iso.
+    refine ⟨s, ?_, hs₂⟩
+    -- `c.π₂ ≫ s = 1` from `(c.π₂ ≫ s) ≫ c.π₂ = c.π₂ = 1 ≫ c.π₂` and `c.π₂` mono.
+    exact hπ₂mono _ _ (by rw [Cat.assoc, hs₂, Cat.comp_id, Cat.id_comp])
+  · rintro ⟨inv, hinv₁, hinv₂⟩
+    -- `y := inv ≫ c.π₁` factors `g`: `y ≫ f = inv ≫ (π₁ ≫ f) = inv ≫ (π₂ ≫ g) = (inv ≫ π₂) ≫ g = g`.
+    exact ⟨inv ≫ c.π₁, by rw [Cat.assoc, c.w, ← Cat.assoc, hinv₂, Cat.id_comp]⟩
+
 variable {ι : Type u} {D : Directed ι}
+
+/-- **The stage inclusion reflects monos** (conservativity route, no faithfulness needed).  If
+    `homInclObj g` is monic in the colimit and transitions are conservative (`hcons`), then `g` is
+    monic at its stage.  `g` monic ⟺ the diagonal into a kernel-pair level is iso
+    (`mono_iff_level_diag_iso`).  The stage kernel-pair pullback of `(g, g)` is preserved by the stage
+    inclusion (`objIncl_preserves_pullbacks`), so its `homInclObj`-image is a level of `homInclObj g`
+    whose diagonal is `homInclObj kp_diag`.  `homInclObj g` monic forces that colimit diagonal iso;
+    iso-reflection (`homInclObj_isIso_reflects`, via `hcons`) brings it back to the stage diagonal. -/
+theorem homInclObj_mono_reflects (C : CatSystem.{u, u} ι D) (hC : C.Coherent) [hne : Nonempty ι]
+    (ht : ∀ i, HasTerminal (C.A i))
+    (htpres : ∀ {i j} (hij : D.le i j), C.F hij (ht i).one = (ht j).one)
+    (hp : ∀ i, HasBinaryProducts (C.A i))
+    (hppres : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
+        (u v : z ⟶ C.F hij ((hp i).prod a b)),
+        u ≫ (C.functF hij).map (hp i).fst = v ≫ (C.functF hij).map (hp i).fst →
+        u ≫ (C.functF hij).map (hp i).snd = v ≫ (C.functF hij).map (hp i).snd → u = v)
+    (hppres_pair : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
+        (p : z ⟶ C.F hij a) (q : z ⟶ C.F hij b),
+        ∃ r : z ⟶ C.F hij ((hp i).prod a b),
+          r ≫ (C.functF hij).map (hp i).fst = p ∧ r ≫ (C.functF hij).map (hp i).snd = q)
+    (he : ∀ i, HasEqualizers (C.A i))
+    (hepres : ∀ {i j} (hij : D.le i j) {X Y : C.A i} (f g : X ⟶ Y) (z : C.A j)
+        (u v : z ⟶ C.F hij (eqObj f g)),
+        u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
+    (hepres_lift : ∀ {i j} (hij : D.le i j) {X Y : C.A i} (f g : X ⟶ Y) (z : C.A j)
+        (k : z ⟶ C.F hij X)
+        (_hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
+        ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k)
+    (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
+        IsIso ((C.functF hij).map φ) → IsIso φ)
+    {K : ι} {x y : C.A K} (g : x ⟶ y)
+    (hm : @Mono C.Obj (colimitCat C hC) (C.objIncl K x) (C.objIncl K y) (homInclObj C hC g)) :
+    @Mono (C.A K) (C.catA K) x y g := by
+  letI : Cat C.Obj := colimitCat C hC
+  letI : HasTerminal (C.A K) := ht K
+  letI : HasBinaryProducts (C.A K) := hp K
+  letI : HasEqualizers (C.A K) := he K
+  letI : HasPullbacks (C.A K) := ⟨fun f g => products_equalizers_implies_pullbacks f g⟩
+  -- the chosen kernel-pair pullback of `(g, g)` (matches `objIncl_preserves_pullbacks`'s `P`)
+  let P := products_equalizers_implies_pullbacks g g
+  -- stage kernel-pair level of `g`, built directly on `P.cone` (so `Ls.c.pt` is `P.cone.pt`
+  -- syntactically, matching the colimit cone below)
+  let Ls : Level g :=
+    { c := P.cone, hpb := P.cone_isPullback, δ := P.lift diagCone,
+      δ₁ := P.lift_fst diagCone, δ₂ := P.lift_snd diagCone }
+  -- the colimit cone (the `homInclObj`-image of `P.cone`); its cospan is inferred from the legs
+  let cc := Cone.mk (f := homInclObj C hC g) (g := homInclObj C hC g)
+      (C.objIncl K P.cone.pt) (homInclObj C hC P.cone.π₁) (homInclObj C hC P.cone.π₂)
+      (show colimComp C hC (homInclObj C hC P.cone.π₁) (homInclObj C hC g)
+          = colimComp C hC (homInclObj C hC P.cone.π₂) (homInclObj C hC g) by
+        rw [← homInclObj_comp C hC P.cone.π₁ g, ← homInclObj_comp C hC P.cone.π₂ g, P.cone.w])
+  have hcc_pb : cc.IsPullback :=
+    objIncl_preserves_pullbacks C hC ht htpres hp hppres hppres_pair he hepres hepres_lift K g g
+  -- the two collapse equations of the colimit diagonal `homInclObj Ls.δ` against `cc`
+  have e₁ : Ls.δ ≫ P.cone.π₁ = Cat.id x := Ls.δ₁
+  have e₂ : Ls.δ ≫ P.cone.π₂ = Cat.id x := Ls.δ₂
+  have hδ₁ : homInclObj C hC Ls.δ ≫ cc.π₁ = Cat.id (C.objIncl K x) := by
+    show colimComp C hC (homInclObj C hC Ls.δ) (homInclObj C hC P.cone.π₁) = _
+    rw [← homInclObj_comp C hC Ls.δ P.cone.π₁, e₁]; exact homInclObj_id C hC x
+  have hδ₂ : homInclObj C hC Ls.δ ≫ cc.π₂ = Cat.id (C.objIncl K x) := by
+    show colimComp C hC (homInclObj C hC Ls.δ) (homInclObj C hC P.cone.π₂) = _
+    rw [← homInclObj_comp C hC Ls.δ P.cone.π₂, e₂]; exact homInclObj_id C hC x
+  -- `homInclObj g` mono ⇒ colimit level diagonal `homInclObj Ls.δ` iso (`mono_iff_level_diag_iso`)
+  -- `homInclObj g` mono ⇒ the colimit diagonal `homInclObj Ls.δ` is iso, with inverse `cc.π₁`.
+  -- (forward direction of `mono_iff_level_diag_iso`, inlined to dodge the `Level` elaboration of a
+  -- non-stage hom whose `⟶`-codomain is not syntactically exposed).
+  have hLcδ : @IsIso C.Obj (colimitCat C hC) (C.objIncl K x) (C.objIncl K Ls.c.pt)
+      (homInclObj C hC Ls.δ) := by
+    refine ⟨cc.π₁, hδ₁, ?_⟩
+    -- `cc.π₁ ≫ homInclObj Ls.δ = id`: both are the unique self-lift of the pullback cone `cc`.
+    have hπ : cc.π₁ = cc.π₂ := hm _ _ cc.w
+    obtain ⟨_, _, huniq⟩ := hcc_pb cc
+    have hid : Cat.id cc.pt = _ := huniq (Cat.id cc.pt) (Cat.id_comp _) (Cat.id_comp _)
+    have hcomp : cc.π₁ ≫ homInclObj C hC Ls.δ = _ := huniq (cc.π₁ ≫ homInclObj C hC Ls.δ)
+      (by rw [Cat.assoc, hδ₁, Cat.comp_id])
+      (by rw [Cat.assoc, hδ₂, Cat.comp_id, hπ])
+    rw [hcomp, ← hid]
+  -- iso-reflection (`hcons`) brings it to the stage diagonal; `Ls.δ` iso ⇒ `g` mono
+  have hLsδ : IsIso Ls.δ := homInclObj_isIso_reflects C hC hcons Ls.δ hLcδ
+  intro W u v huv
+  exact (mono_iff_level_diag_iso Ls).2 hLsδ u v huv
 
 /-- **Cover-survival reduction (the §1.543 fixpoint core).**  For a coherent `CatSystem` `C` whose
     transitions are mono-preserving (`hmono`) and conservative (`hcons`) — so the colimit is
@@ -116,7 +227,7 @@ variable {ι : Type u} {D : Directed ι}
     the same colimit-representative germ machinery as `colimHom_cover_reflects`, specialized to a mono
     with non-stage target; not rebuilt in this file. -/
 theorem wellPointed_of_stage
-    (C : CatSystem ι D) (hC : C.Coherent) [hne : Nonempty ι]
+    (C : CatSystem.{u, u} ι D) (hC : C.Coherent) [hne : Nonempty ι]
     (ht : ∀ i, HasTerminal (C.A i))
     (htpres : ∀ {i j} (hij : D.le i j), C.F hij (ht i).one = (ht j).one)
     (hp : ∀ i, HasBinaryProducts (C.A i))
@@ -150,12 +261,80 @@ theorem wellPointed_of_stage
     @WellPointed C.Obj (colimitCat C hC)
       ((colimitPreRegular C hC ht htpres hp hppres hppres_pair he hepres hepres_lift
         hcanon).toHasTerminal) (C.objIncl i A₀) := by
-  -- IRREDUCIBLE RESIDUAL (see the doc-comment): align an arbitrary colimit mono `E ⟶ objIncl i A₀` and
-  -- any colimit point-factorization to a common stage `K ≥ i` (`colimHom_as_homInclObj` /
-  -- `objIncl_pair_commonBound`), where `hWP (i→K)` applies to the pushforward `C.F (i→K) A₀`, then push
-  -- the resulting stage point back out by `homInclObj`.  Colimit-representative germ bookkeeping
-  -- specialized to a mono with non-stage target; not rebuilt in this file.
-  sorry
+  letI : Cat C.Obj := colimitCat C hC
+  intro E m hm hniso
+  -- align the colimit mono `m : E ⟶ objIncl i A₀` to a stage-`N` germ `mN : xE ⟶ xA`
+  obtain ⟨N, xE, xA, mN, eE, eA, hHEq⟩ := colimHom_as_homInclObj C hC m
+  subst eE
+  -- common stage `K ≥ N, i` where the codomain rep `xA` agrees with the pushforward `F (i→K) A₀`
+  obtain ⟨K, hNK, hiK, hAeq⟩ := Quotient.exact eA
+  dsimp only [CatSystem.objSystem] at hAeq
+  -- push `mN` to stage `K`; `m` is its stage-`K` inclusion (transported by the object equalities)
+  let mNK := (C.functF hNK).map mN
+  have hcodXE : C.objIncl K (C.F hNK xE) = C.objIncl N xE := C.objIncl_compat hNK xE
+  have hcodXA : C.objIncl K (C.F hNK xA) = C.objIncl i A₀ := (C.objIncl_compat hNK xA).trans eA
+  have hmeq : castHom hcodXE hcodXA (homInclObj C hC mNK) = m :=
+    castHom_of_heq hcodXE hcodXA ((homInclObj_push_heq C hC hNK mN).trans hHEq)
+  -- `homInclObj mNK` inherits `Mono` and `¬IsIso` from `m` (cast along the object equalities)
+  have hmNK_eq : homInclObj C hC mNK = castHom hcodXE.symm hcodXA.symm m := by
+    rw [← hmeq, castHom_castHom, castHom_rfl]
+  have hm' : @Mono C.Obj (colimitCat C hC) (C.objIncl K (C.F hNK xE)) (C.objIncl K (C.F hNK xA))
+      (homInclObj C hC mNK) := by
+    rw [hmNK_eq]; exact mono_castHom hcodXE.symm hcodXA.symm m hm
+  have hniso' : ¬ @IsIso C.Obj (colimitCat C hC) (C.objIncl K (C.F hNK xE)) (C.objIncl K (C.F hNK xA))
+      (homInclObj C hC mNK) := by
+    rw [hmNK_eq]; exact fun h => hniso (isIso_of_castHom hcodXE.symm hcodXA.symm m h)
+  -- reflect `Mono`/`¬IsIso` to the stage germ `mNK`
+  have hmNK_mono : @Mono (C.A K) (C.catA K) (C.F hNK xE) (C.F hNK xA) mNK :=
+    homInclObj_mono_reflects C hC ht htpres hp hppres hppres_pair he hepres hepres_lift hcons
+      (K := K) (x := C.F hNK xE) (y := C.F hNK xA) mNK hm'
+  have hmNK_niso : ¬ @IsIso (C.A K) (C.catA K) _ _ mNK := fun h => by
+    obtain ⟨g', hg1, hg2⟩ := h
+    exact hniso' (homInclObj_isIso_of_stage C hC mNK g' hg1 hg2)
+  -- `hWP (i→K)` at the codomain `F hNK xA` (rewriting `hAeq`); apply to the stage mono `mNK`
+  have hWP_K : @WellPointed (C.A K) (C.catA K) (ht K) (C.F hNK xA) := hAeq ▸ hWP hiK
+  obtain ⟨x₀, hx₀⟩ := hWP_K mNK hmNK_mono hmNK_niso
+  -- the colimit terminal `one` is `objIncl K (ht K).one` (`objIncl_terminal_eq`)
+  have hone : C.objIncl K (ht K).one
+      = @HasTerminal.one C.Obj (colimitCat C hC)
+          (colimitPreRegular C hC ht htpres hp hppres hppres_pair he hepres hepres_lift
+            hcanon).toHasTerminal :=
+    objIncl_terminal_eq C hC ht htpres K (Classical.choice hne)
+  -- the colimit point: `homInclObj x₀`, transported to `one ⟶ objIncl i A₀`
+  refine ⟨castHom hone hcodXA (homInclObj C hC x₀), ?_⟩
+  -- a colimit factorization of the point through `m` reflects, via the pullback of `(mNK, x₀)`
+  -- (preserved by the stage inclusion) and `homInclObj_isIso_reflects`, to a stage factorization of
+  -- `x₀` through `mNK` — contradicting `hx₀`.
+  rintro ⟨y, hy⟩
+  -- pullback of `(mNK, x₀)` at stage `K`; its `homInclObj`-image is a colimit pullback of `(m, point)`
+  let P' := products_equalizers_implies_pullbacks mNK x₀
+  have hP'_colim := objIncl_preserves_pullbacks C hC ht htpres hp hppres hppres_pair he hepres
+    hepres_lift K mNK x₀
+  -- the stage factorization, obtained by reflecting `IsIso (homInclObj P'.cone.π₂)` to the stage
+  apply hx₀
+  -- transport the colimit factorization `y ≫ m = point` to `y' ≫ homInclObj mNK = homInclObj x₀`
+  have hyt : castHom hone.symm hcodXE.symm y ≫ homInclObj C hC mNK = homInclObj C hC x₀ := by
+    rw [← hmeq] at hy
+    -- `y ≫ castHom hcodXE hcodXA (homInclObj mNK) = castHom hone hcodXA (homInclObj x₀)`
+    have : castHom hone.symm hcodXE.symm y ≫ homInclObj C hC mNK
+        = castHom hone.symm hcodXA.symm (y ≫ castHom hcodXE hcodXA (homInclObj C hC mNK)) := by
+      rw [← castHom_comp hone.symm hcodXE.symm hcodXA.symm y
+        (castHom hcodXE hcodXA (homInclObj C hC mNK)), castHom_castHom, castHom_rfl]
+    rw [this, hy, castHom_castHom, castHom_rfl]
+  -- `homInclObj mNK` mono + the colimit pullback ⇒ factorization ⇒ `IsIso (homInclObj P'.cone.π₂)`
+  have hcolim_iso : @IsIso C.Obj (colimitCat C hC) _ _ (homInclObj C hC P'.cone.π₂) :=
+    (factor_iff_pullback_π₂_iso hm'
+      (Cone.mk (f := homInclObj C hC mNK) (g := homInclObj C hC x₀)
+        (C.objIncl K P'.cone.pt) (homInclObj C hC P'.cone.π₁) (homInclObj C hC P'.cone.π₂)
+        (by
+          show colimComp C hC (homInclObj C hC P'.cone.π₁) (homInclObj C hC mNK)
+            = colimComp C hC (homInclObj C hC P'.cone.π₂) (homInclObj C hC x₀)
+          rw [← homInclObj_comp C hC P'.cone.π₁ mNK, ← homInclObj_comp C hC P'.cone.π₂ x₀,
+            P'.cone.w]))
+      hP'_colim).1 ⟨castHom hone.symm hcodXE.symm y, hyt⟩
+  -- reflect to the stage `IsIso P'.cone.π₂`, then the stage factor_iff gives the stage factorization
+  have hstage_iso : IsIso P'.cone.π₂ := homInclObj_isIso_reflects C hC hcons P'.cone.π₂ hcolim_iso
+  exact (factor_iff_pullback_π₂_iso hmNK_mono P'.cone P'.cone_isPullback).2 hstage_iso
 
 /-! ## The outer ω-fixpoint: a cofinal points-acquiring tower has a capital colimit -/
 
