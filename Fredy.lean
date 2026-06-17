@@ -46,6 +46,7 @@ import Fredy.DirectedColimit
 import Fredy.CatColimit
 import Fredy.CatColimitRegular
 import Fredy.Capitalization
+import Fredy.CapitalizationTransfinite
 import Fredy.RelativeCapitalization
 import Fredy.Inflation
 import Fredy.S2_1

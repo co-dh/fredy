@@ -2546,9 +2546,29 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
   -- WALL 2.  CAPITAL CLOSURE of the colimit, consuming the package above.  Every well-supported
   -- object of `Ā` is well-pointed: it appears at a finite stage `n`, the successor `nextStep`
   -- (WALL 1) puts a point on it at stage `n+1`, and the point survives to the colimit because
-  -- the stage inclusion REFLECTS covers (`colimHom_cover_reflects` / `homInclObj_cover_reflects`,
-  -- both available).  RESIDUAL: the fixpoint argument that the finite-stage point witnesses
-  -- well-pointedness in `Ā`.  This depends essentially on WALL 1's successor, hence the nesting.
+  -- the stage inclusion REFLECTS covers (`colimHom_cover_reflects` / `homInclObj_cover_reflects`).
+  --
+  -- TRANSFINITE ANALYSIS (`Fredy.CapitalizationTransfinite`).  `hcap` is genuinely UNPROVABLE from the
+  -- abstract `nextStep`/tower package, for TWO recorded reasons (see that file's header):
+  --   (1) `CapStep` (L716 above) carries NO points-acquisition field — only faithfulness + limit/cover
+  --       preservation — so nothing in the package says any object becomes well-pointed.  The missing
+  --       obligation is `Freyd.StepWellPoints` (CapitalizationTransfinite.lean), bundled into
+  --       `Freyd.CofinalCapStep`.
+  --   (2) the concrete `nextStep` is `nextStepOfEnum` of a `Classical.choose`-picked enumeration, which
+  --       `exists_wellSupported_enum` proves by the CONSTANT-`1` witness — so it is not cofinal over an
+  --       uncountable carrier; closing that needs the transfinite cofinal `<+:`-chain over `Infl 𝒞`
+  --       (a well-ordering of the objects — the one mathlib-set-theory step CLAUDE.md permits, but the
+  --       repo carries no mathlib dependency, so it is the irreducible residual).
+  -- REDUCTION (proven sorry-free in `CapitalizationTransfinite`): `Freyd.tower_capital_of_cofinal`
+  -- derives `Capital (𝒞 := (towerSystem b ccs.step).Obj)` from a `CofinalCapStep ccs` + the stage-
+  -- pointing hypothesis, ON TOP OF `Freyd.wellPointed_of_stage` (the cover-survival reduction: the TRUE
+  -- fact "a stage object whose pushforward stays well-pointed at every later stage gives a well-pointed
+  -- colimit object" — the all-later-stages form is necessary, since an arbitrary colimit mono aligns to
+  -- a mono into a LATER-stage pushforward; it carries the one residual: aligning that mono / point-
+  -- factorization to a common stage and pushing the stage point back out).  Wiring
+  -- that back here would require `hwall_step`/`CapStep` to also supply the points-acquisition data,
+  -- i.e. a `CapStep` field change — fenced as protected — so this `sorry` stays, documented, pointing
+  -- at the honest reduction infrastructure rather than faking a close.
   have hcap : Capital (𝒞 := (towerSystem b nextStep).Obj) := by
     sorry
   exact ⟨capData_of_tower A nextStep b hb ht htpres hp hppres hppres_pair he hepres hepres_lift
