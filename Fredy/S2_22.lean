@@ -277,15 +277,23 @@ theorem interUnionDistrib_iff_le [UnionAllegory 𝒜] :
     hypotheses here are exactly those produced inside
     `interUnionDistrib_of_tabular`; none is vacuous.
 
-    FAITHFUL SORRY: the transport is NOT elementarily reconstructible.  It
-    would require `ψ (φ Q) = f (f° Q g) g° = Q` for `Q ⊑ U`, but this
-    fixed-point identity is FALSE in a general tabular allegory.  Witness in
-    `Rel`: apex `c = {∗}`, `a = b = {1,2}`, `f,g` the unique maps to `{∗}`
-    (both maps, `f° f = g° g = 1_c`, so `(f,g)` tabulates the full relation
-    `U`); for `Q = {(1,1)} ⊑ U`, `f° Q g = 1_c`, so `f (f° Q g) g° = U ≠ Q`.
-    Freyd's order-iso therefore needs the coreflexive/symmetric-idempotent
-    splitting of §2.213/§2.226 (systemic completion), infrastructure not yet
-    on this repo. -/
+    The statement is also CONSISTENT: the §2.228(c) `Q3` counterexample to
+    `InterUnionDistrib` cannot satisfy these hypotheses — achieving its non-
+    distributive `R,S,T` forces `f g° = top`, whence `f° f = top ≠ 1_c`,
+    contradicting that `(f,g)` is a tabulation.  So no instance refutes it.
+
+    FAITHFUL SORRY: the transport is NOT elementarily reconstructible.  The
+    naive inverse `ψ A = f A g°` gives `ψ (φ Q) = (f f°) Q (g g°)`, which
+    equals `Q` only when `f f° = 1_a` and `g g° = 1_p` (i.e. `f,g` isos) —
+    a tabulation gives only `f° f = g° g = 1_c`, and even with `Map f, Map g`
+    just `f f° ≥ 1`, `g g° ≥ 1`, never equality.  Witness the failure in `Rel`:
+    apex `c = {∗}`, `a = b = {1,2}`, `f,g` the unique maps to `{∗}`; for
+    `Q = {(1,1)} ⊑ U`, `f° Q g = 1_c`, so `f (f° Q g) g° = U ≠ Q`.  The
+    PRECISE missing lemma is the ORDER-REFLECTION of `φ` on `{Q | Q ⊑ U}`:
+    `φ Q₁ ⊑ φ Q₂ → Q₁ ⊑ Q₂`.  That is exactly the coreflexive/symmetric-
+    idempotent splitting of §2.213/§2.226 (systemic completion), which makes
+    each coreflexive on `c` correspond bijectively to a subobject of `U` —
+    infrastructure not yet on this repo. -/
 theorem tab_transport_gap [UnionAllegory 𝒜] {a p c : 𝒜}
     {f : a ⟶ c} {g : p ⟶ c} {R S T : a ⟶ p}
     (_hcR : Coreflexive (f° ≫ R ≫ g)) (_hcS : Coreflexive (f° ≫ S ≫ g))
@@ -348,11 +356,14 @@ theorem interUnionDistrib_of_tabular [UnionAllegory 𝒜]
     union allegory with the same composition-over-union structure, where
     §2.228(a) applies, and pulling the result back.
 
-    FAITHFUL SORRY: the split-idempotent / systemic completion is not yet on
-    this repo, and even after splitting the result is fed to §2.228(a) whose
-    own transport (`tab_transport_gap`) is itself blocked by the same missing
-    splitting (see its docstring).  The hypotheses are the genuine semi-simple
-    witnesses of `R, S, T`; none is vacuous. -/
+    FAITHFUL SORRY: the SAME gap as `tab_transport_gap` blocks this — the
+    order-reflection of `φ` on `{Q | Q ⊑ U}` needs the §2.213/§2.226
+    coreflexive/idempotent splitting.  Moreover, a semi-simple factor
+    `R = Fᵣ° Gᵣ` yields a TABULATION (so §2.228(a) even applies) only when
+    `Fᵣ Fᵣ° ∩ Gᵣ Gᵣ° = 1`, an extra condition beyond simplicity of the
+    factors.  Both reduce to the systemic-completion infrastructure absent
+    from this repo.  The hypotheses are genuine semi-simple witnesses of
+    `R, S, T`; none is vacuous. -/
 theorem semiSimple_transport_gap [UnionAllegory 𝒜] {a b : 𝒜} {R S T : a ⟶ b}
     (_hR : SemiSimple R) (_hS : SemiSimple S) (_hT : SemiSimple T) :
     R ∩ (S ∪ᵤ T) ⊑ (R ∩ S) ∪ᵤ (R ∩ T) := by
