@@ -20,8 +20,8 @@
     * `sliceEmbedFaithful`  — it is FAITHFUL when `B` is well-supported
                               (embedding from `slice_embedding_separates`;
                                reflects-iso from `f×B` iso ⟹ `f` mono+cover ⟹ iso)
-    * `sliceCapStep`        — the packaged `CapStep A` (faithful pre-regular
-                               functor `A → A/B`)
+    * (§1.545 rung `A → A/B` is the faithful pre-regular extension above; the `CapStep`
+       the ω-tower iterates is the §1.547 colimit `nextStepOfEnum`, not a single slice)
     * `sliceAcquiresPoint`  — `A/B` ACQUIRES A POINT of `sliceEmbed B B`: the
                                terminator-to-image diagonal `⟨diag B, …⟩ : 1 → B×B`
                                is a point of `sliceEmbedObj B B`.  This is §1.546's
@@ -218,22 +218,15 @@ theorem sliceEmbedFaithful (B : 𝒞) [PullbacksTransferCovers 𝒞] (hws : Well
     exact hcov m ((fst : prod C B ⟶ C) ≫ h) hm (by rw [Cat.assoc, hfac])
   exact monic_cover_iso f hfcover hfmono
 
-/-! ## §1.545  The slice rung as a `CapStep`
+/-! ## §1.545  The slice rung as a faithful pre-regular extension
 
-  Packaging `A → A/B` as a `CapStep A`: target `A/B` (pre-regular by `overPreRegular`),
-  functor `sliceEmbedFunctor`, faithful by `sliceEmbedFaithful`.  This is one rung of
-  Freyd's relative capitalization — a faithful pre-regular extension of `A`. -/
-
-/-- **The single-slice `CapStep`** (§1.544/§1.545): for well-supported `B`, the faithful
-    pre-regular embedding `A → A/B`.  `Over B` is pre-regular by `overPreRegular`. -/
-noncomputable def sliceCapStep [PreRegularCategory 𝒞] (B : 𝒞) (hws : WellSupported B) :
-    CapStep 𝒞 where
-  T := Over B
-  catT := overCat B
-  preT := overPreRegular B
-  step := sliceEmbedObj B
-  stepFun := sliceEmbedFunctor B
-  stepFaithful := sliceEmbedFaithful B hws
+  `A → A/B` is one rung of Freyd's relative capitalization — a faithful pre-regular extension
+  of `A`: target `A/B` (pre-regular by `overPreRegular`), functor `sliceEmbedFunctor`, faithful
+  by `sliceEmbedFaithful`.  (A `CapStep`-packaged form is no longer materialised here: `CapStep`
+  now additionally carries the five limit- and cover-preservation fields the ω-tower consumes, and the
+  successor the tower actually iterates is the §1.547 enumeration colimit `nextStepOfEnum` — into
+  `A/(∏U)` over a chain of finite factor-sets — not a single slice `A/B`.  The §1.545 content used
+  downstream is exactly `sliceEmbedFaithful`/`overPreRegular`/`sliceAcquiresPoint`.) -/
 
 /-! ## §1.546  The slice rung acquires the generic point of `B`
 
