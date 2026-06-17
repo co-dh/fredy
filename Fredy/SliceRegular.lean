@@ -380,4 +380,25 @@ theorem reindexObj_comp (m : C ⟶ D) (m' : D ⟶ E) (X : Over C) :
 
 end reindex
 
+/-! ## §1.547  Finite product of a list of objects (`∏U`)
+
+  Relocated here (from `RelativeCapitalization`) so that it sits UPSTREAM of `Capitalization`:
+  the inflation/chain-slice machinery (`Fredy.Inflation`) needs `listProd` but must be importable
+  by `Capitalization` to discharge `hwall_step`.  `listProd` only needs finite products and a
+  terminator — no pullbacks — hence the dedicated section. -/
+section listProd
+variable {𝒞 : Type u} [Cat.{u} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
+
+/-- The product `∏U` of a finite list `U` of objects: right-folded binary product, with the
+    empty product `∏[] = 1` (the terminator).  `∏(B :: U) = B × (∏U)`. -/
+def listProd : List 𝒞 → 𝒞
+  | [] => HasTerminal.one
+  | B :: U => prod B (listProd U)
+
+@[simp] theorem listProd_nil : listProd ([] : List 𝒞) = HasTerminal.one := rfl
+@[simp] theorem listProd_cons (B : 𝒞) (U : List 𝒞) :
+    listProd (B :: U) = prod B (listProd U) := rfl
+
+end listProd
+
 end Freyd

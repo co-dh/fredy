@@ -61,8 +61,8 @@ import Fredy.S1_31
 import Fredy.S1_33
 import Fredy.S1_42
 import Fredy.S1_44
-import Fredy.S1_54
-import Fredy.RelativeCapitalization
+import Fredy.SliceRegular
+import Fredy.CatColimitRegular
 
 open Freyd
 
@@ -120,12 +120,22 @@ theorem listProd_singleton (A : 𝒞) :
     listProd (𝒞 := 𝒞) [A] = prod A HasTerminal.one := rfl
 
 /-- The cross-section `A → A′` is a functor: on `f : A ⟶ A'`, the inflation arrow
-    `[A] ⟶ [A']` is `f × 1 = prodRight 1`'s image (`A×1 ⟶ A'×1`).  Functoriality is
-    inherited from `prodRightFunctor HasTerminal.one`. -/
+    `[A] ⟶ [A']` is `f × 1` (`A×1 ⟶ A'×1`), i.e. `pair (fst ≫ f) snd`.  (This is the §1.544
+    "product with `1`" embedding `prodRight 1` of `S1_54`; inlined here so that `Inflation` sits
+    UPSTREAM of `Capitalization` — `S1_54` imports `Capitalization`, which would cycle.) -/
 instance inflFunctor : Functor (infl : 𝒞 → Infl 𝒞) where
-  map {A A'} f := (prodRightFunctor (𝒞 := 𝒞) HasTerminal.one).map f
-  map_id A := (prodRightFunctor (𝒞 := 𝒞) HasTerminal.one).map_id A
-  map_comp f g := (prodRightFunctor (𝒞 := 𝒞) HasTerminal.one).map_comp f g
+  map {A A'} f := pair (fst ≫ f) snd
+  map_id A := by
+    show pair (fst ≫ Cat.id A) snd = Cat.id (prod A HasTerminal.one)
+    rw [Cat.comp_id]
+    exact (pair_uniq fst snd (Cat.id (prod A HasTerminal.one))
+      (Cat.id_comp fst) (Cat.id_comp snd)).symm
+  map_comp {A A' A''} f g := by
+    show pair (fst ≫ f ≫ g) snd = pair (fst ≫ f) snd ≫ pair (fst ≫ g) snd
+    symm
+    apply pair_uniq
+    · rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair, Cat.assoc]
+    · rw [Cat.assoc, snd_pair, snd_pair]
 
 /-! ## §1.544  The STRICT slice-append functor `A′ → A′/B`
 

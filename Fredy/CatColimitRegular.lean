@@ -1496,3 +1496,19 @@ noncomputable def colimitPreRegular (C : CatSystem ι D) (hC : C.Coherent) [hne 
   letI hptc : PullbacksTransferCovers C.Obj :=
     colimitPullbacksTransferCovers C hC hpull hcanon
   exact {}
+
+end Freyd.Colim
+
+namespace Freyd
+
+/-- `ULift.{u} Nat` with `Nat`'s order is a directed preorder: the `Type u` index of the
+    ω-tower (the colimit machinery requires `ι : Type u`).  Relocated here (from `Capitalization`)
+    so it sits UPSTREAM of `Capitalization`: both `Capitalization` (the outer tower) and
+    `Fredy.Inflation` (the inner chain-slice `CatSystem`) index over it. -/
+def uliftNatDirected : Colim.Directed (ULift.{u} Nat) where
+  le a b := a.down ≤ b.down
+  refl a := Nat.le_refl a.down
+  trans h h' := Nat.le_trans h h'
+  bound a b := ⟨⟨Nat.max a.down b.down⟩, Nat.le_max_left _ _, Nat.le_max_right _ _⟩
+
+end Freyd

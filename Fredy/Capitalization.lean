@@ -64,6 +64,7 @@ import Fredy.S1_52
 import Fredy.SliceRegular
 import Fredy.CatColimit
 import Fredy.CatColimitRegular
+import Fredy.Inflation
 
 open Freyd
 open Freyd.Colim
@@ -470,13 +471,8 @@ theorem transNFaithful (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier
   §1.543 capital-closure of the resulting colimit — are the residual sub-obligations,
   isolated as the explicit hypotheses of `capData_of_nextStep`. -/
 
-/-- `ULift.{u} Nat` with `Nat`'s order is a directed preorder: the `Type u` index of the
-    ω-tower (the colimit machinery requires `ι : Type u`). -/
-def uliftNatDirected : Directed (ULift.{u} Nat) where
-  le a b := a.down ≤ b.down
-  refl a := Nat.le_refl a.down
-  trans h h' := Nat.le_trans h h'
-  bound a b := ⟨⟨Nat.max a.down b.down⟩, Nat.le_max_left _ _, Nat.le_max_right _ _⟩
+-- `uliftNatDirected` now lives upstream in `Fredy.CatColimitRegular` (so `Fredy.Inflation`'s inner
+-- chain-slice `CatSystem` can share the same `ℕ`-index without importing `Capitalization`).
 
 variable (b : PreRegBundle.{u})
 
@@ -977,13 +973,36 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
     --   (B-package)  THE INNER `colimitPreRegular` PACKAGE — `Coherent` plus the 9 preservation
     --        hypotheses and `hcanon` for `chainSliceSystem`/`innerCatSystem`, mirroring `towerCoherent`/
     --        `capData_of_tower`; a full second copy of the outer assembly over the directed index.
-    --   (B-import)  THE ASSEMBLY CANNOT LIVE HERE — `Inflation`/`RelativeCapitalization` import
-    --        `Capitalization` (for `CapStep`/`CatSystem`), so `chainSliceSystem`/`innerCatSystem`/… are
-    --        downstream of this `sorry`.  Discharging `hwall_step` in place needs the inner-system
-    --        ingredients moved up into a file `Capitalization` imports (e.g. `SliceRegular` /
-    --        `CatColimitRegular`), or `capData_exists` relocated downstream.  Hence `hwall_step` stays a
-    --        documented `sorry`; residual is now (A)+(B-coverage)+(B-package)+(B-import) — (B-strict) is
-    --        DONE via `Freyd.chainSliceSystem`.
+    --   (B-import)  ✅ RESOLVED.  The inner-system ingredients now sit UPSTREAM of `Capitalization`:
+    --        `Fredy.Inflation` (which carries `chainSliceSystem`/`PrefixChain`/`innerSliceTr`/`catMap`/
+    --        the slice-append machinery) was flipped to NOT import `Capitalization` — `listProd` moved up
+    --        into `Fredy.SliceRegular`, `uliftNatDirected` into `Fredy.CatColimitRegular`, and its lone
+    --        `prodRight 1` use (the cross-section `A → A′`) inlined — so `Inflation` depends only on
+    --        `S1_*`/`SliceRegular`/`CatColimitRegular`.  `Capitalization` now `import Fredy.Inflation`,
+    --        so `Freyd.chainSliceSystem (P : PrefixChain S′) : Colim.CatSystem (ULift Nat) uliftNatDirected`
+    --        — the sorry-free, propext-only DIRECTED STRICT inner system — is IN SCOPE right here.  No
+    --        import cycle (`Inflation`'s import closure is `Capitalization`-free; verified).
+    --
+    --   WHAT REMAINS to close `hwall_step` in place, now that the inner system is reachable:
+    --   (A)  the choice-free transition base morphism `listProd U ⟶ listProd V` per `V ⊆ U` (the
+    --        `ListProjFamily` datum) — needs `DecidableEq S` or an abstracted instance;
+    --   (B-coverage)  a COFINAL `PrefixChain S′` — a choice-free enumeration `ℕ → {well-supported B}`
+    --        with `chain n := [B₀,…,Bₙ₋₁]` — so the inner colimit germs match §1.547's full directed
+    --        union (pointing EVERY well-supported `B`, the precondition WALL 2 consumes);
+    --   (B-package)  the inner `colimitPreRegular` package for `chainSliceSystem` — `Coherent` + the 9
+    --        preservation hypotheses + `hcanon`, mirroring the OUTER `towerCoherent`/`capData_of_tower`
+    --        assembly below; a full second copy of that assembly over the directed `ℕ`-index.
+    --   These three (NOT the import) are the honest residual; `hwall_step` stays a documented `sorry`.
+    --
+    -- The (B-import) resolution is load-bearing, not just documentary: the inner directed strict
+    -- `CatSystem` constructor is now IN SCOPE right here.  `innerSystemAt Sb P` is exactly the
+    -- system whose colimit is the relative capitalization `S → S*` that `nextStep` must deliver
+    -- (once (A) supplies the projections and (B-coverage) a cofinal `P`).
+    have innerSystemAt :
+        ∀ (Sb : Type u) [Cat.{u} Sb] [HasTerminal Sb] [HasBinaryProducts Sb] (P : PrefixChain Sb),
+          Colim.CatSystem.{u, u} (ULift.{u} Nat) uliftNatDirected :=
+      fun Sb _ _ _ P => chainSliceSystem P
+    clear innerSystemAt
     sorry
   -- Unpack the successor and its full preservation package (the §1.543 "directed-tower" data).
   obtain ⟨nextStep, b, hb, ht, htpres, hp, hppres, hppres_pair, he, hepres, hepres_lift,

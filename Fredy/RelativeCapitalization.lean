@@ -316,15 +316,8 @@ theorem prodSliceAcquiresBothFactors (B B' : 𝒞) :
   of the members of `U` (with `∏[] = 1`, the terminator).  These are the concrete, reusable
   ingredients of the inner directed system; everything below is sorry-free. -/
 
-/-- The product `∏U` of a finite list `U` of objects: right-folded binary product, with the
-    empty product `∏[] = 1` (the terminator).  `∏(B :: U) = B × (∏U)`. -/
-def listProd : List 𝒞 → 𝒞
-  | [] => HasTerminal.one
-  | B :: U => prod B (listProd U)
-
-@[simp] theorem listProd_nil : listProd ([] : List 𝒞) = HasTerminal.one := rfl
-@[simp] theorem listProd_cons (B : 𝒞) (U : List 𝒞) :
-    listProd (B :: U) = prod B (listProd U) := rfl
+-- `listProd`/`listProd_nil`/`listProd_cons` now live upstream in `Fredy.SliceRegular`
+-- (imported above) so that `Fredy.Inflation` can use them without importing `Capitalization`.
 
 /-- The projection `∏U → B` for the factor at a positional index `k : Fin U.length` (so
     `B = U.get k`).  Positional indexing (rather than a `Prop`-valued membership `B ∈ U`) is
