@@ -40,18 +40,35 @@
   AND `F_trans` (`innerSliceTr_trans`, with its core `catMap_append_heq`), the dependent `▸`/`HEq`
   transport across `List.append_assoc` now fully discharged.
 
-  THE DIRECTED STRICT `CatSystem` (this session).  The strict `innerSliceTr` lives on the PREFIX order
-  `<+:`, which is NOT directed.  `chainSliceSystem (P : PrefixChain)` lifts it to a genuine `Directed`
-  index — an ω-chain `ℕ` (`uliftNatDirected`, `bound = max`) along any increasing prefix-chain — giving
-  a sorry-free directed strict `Colim.CatSystem` whose `F_refl`/`F_trans` ARE `innerSliceTr_refl`/
-  `innerSliceTr_trans`.  See the final block for what this option-(b) ω-chain sacrifices vs §1.547's
-  full finite-subset index, and why the strict (concatenation) transition cannot be made directed over
-  the set-union index directly.
+  THE DIRECTED STRICT `CatSystem`.  The strict `innerSliceTr` lives on the PREFIX order
+  `<+:`, which is NOT directed.  We lift it to a genuine `Directed` index in TWO flavors, the second
+  generalizing the first (the proofs are shared — DRY):
+
+    * `chainSliceSystem (P : PrefixChain)` — the ω-chain `ℕ` (`uliftNatDirected`, `bound = max`) along any
+      increasing prefix-chain `ℕ → Infl 𝒞`, a sorry-free directed strict `Colim.CatSystem` whose
+      `F_refl`/`F_trans` ARE `innerSliceTr_refl`/`innerSliceTr_trans`.
+
+    * `ordChainSliceSystem (O : OrdChain D)` — the TRANSFINITE generalization over an ARBITRARY directed
+      index `(ι, D : Colim.Directed ι)` with a `prefixLe`-monotone chain `chain : ι → Infl 𝒞`.  §1.544-546
+      runs the inner relative-capitalization by transfinite recursion over the (possibly uncountable)
+      well-supported objects of an arbitrary small category — `ℕ` cannot enumerate an uncountable object
+      set.  The whole system/coherence/preservation layer (`ordChainSliceFunctor`/`ordChainSliceSystem`/
+      `ordChainSliceCoherent`/`ordChainHas*`/`ordChainH*pres*`/`ordChainSlicePreRegular`) uses its index
+      ONLY through `D.refl`/`D.trans`/`D.bound` and `Prop`-irrelevance of `D.le`, so it holds over any
+      directed index.  The ℕ `chain*` names are the `uliftNatDirected` specialization (`P.toOrdChain`).
+      Supplying a `Colim.Directed` from mathlib's `Ordinal` (or any `LinearOrder + WellFoundedLT`) — done
+      in a SEPARATE file so this one stays mathlib-free/fast — plus a cofinal `OrdChain` over it points
+      EVERY well-supported object simultaneously, which is the transfinite input `hwall_step` needs.
+
+  See the final block for what the single ω-chain sacrifices vs §1.547's full finite-subset index, and
+  why the strict (concatenation) transition cannot be made directed over the set-union index directly.
 
   This is the reusable keystone; `RelativeCapitalization.lean` consumes it to give the
   §1.547 inner directed system a strict transition functor.
 
-  No mathlib (the category theory stays on this repo's own `Cat`).
+  No mathlib (the directed index is abstract `Colim.Directed`; the category theory stays on this repo's
+  own `Cat`).  A mathlib `Ordinal`-backed `Colim.Directed` instance, if used, is confined to a future
+  inner-colimit file per the §1.543 CLAUDE.md exception — it is NOT needed to build this file.
 -/
 
 import Fredy.S1_1
@@ -1294,6 +1311,33 @@ theorem innerSliceTr_trans {V U W : List 𝒞} (hVU : prefixLe V U) (hUW : prefi
   well-supported objects, which is the residual `hwall_step` input this construction is parameterised
   over (the `PrefixChain` is supplied by such an enumeration). -/
 
+/-! ### The TRANSFINITE generalization: a prefix chain over an ARBITRARY directed index
+
+  §1.544-546 (Freyd) runs the inner relative-capitalization by *transfinite recursion* over the
+  (possibly uncountable) well-supported objects of an arbitrary small category — `ℕ` cannot enumerate
+  an uncountable object set.  But the whole strict `CatSystem` machinery below uses its index ONLY
+  through (a) a `Colim.Directed ι` instance `D` (`refl`/`trans`/`bound`, and `Prop`-irrelevance of
+  `D.le`), and (b) a monotone map `chain : ι → Infl 𝒞` with `D.le i j ⟹ chain i <+: chain j` — i.e.
+  a `prefixLe`-monotone chain over the directed index.  So we abstract that data as `OrdChain D` and
+  re-derive the ENTIRE chain layer (`ordChainSliceFunctor`/`ordChainSliceSystem`/`ordChainSliceCoherent`/
+  the preservation package/`ordChainSlicePreRegular`) generically over any `Directed ι`.  Instantiating
+  `D := uliftNatDirected` recovers the ℕ-chain (`PrefixChain`, below) as a thin special case — the SAME
+  proofs serve both (DRY).  Instantiating `D` by mathlib's `Ordinal`/any `LinearOrder + WellFoundedLT`
+  (carried as a `Colim.Directed` via its `≤`, `bound = max`) gives the transfinite cofinal chain
+  `hwall_step` needs over an uncountable object set.  No category theory leaves the repo's own `Cat`. -/
+
+/-- A `prefixLe`-monotone chain of factor-sequences over a directed index `(ι, D)`: `chain : ι → Infl 𝒞`
+    with `D.le i j ⟹ chain i <+: chain j`.  The data the strict inner `CatSystem` is built over,
+    generalized from the ω-chain (`ℕ`) to an ARBITRARY directed index so the §1.544-546 inner system can
+    be cofinal over an uncountable object set (transfinite recursion).  Cofinality among finite sets —
+    needed to recover §1.547's full coverage — is an *additional* property of the chain (the chain being
+    cofinal in the index), not required to build the system. -/
+structure OrdChain {ι : Type u} (D : Colim.Directed ι)
+    (𝒞 : Type u) [Cat.{u} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts 𝒞] where
+  chain : ι → Infl 𝒞
+  /-- the chain is `prefixLe`-monotone along the directed order -/
+  mono : ∀ {i j : ι}, D.le i j → chain i <+: chain j
+
 /-- A prefix-chain of factor-sequences: `chain n <+: chain (n+1)` for every `n`.  The data an ω-chain
     strict `CatSystem` is built over (option (b)).  Cofinality among finite sets — needed to recover
     §1.547's full coverage — is an *additional* property of the chain, not required to build the system. -/
@@ -1307,6 +1351,12 @@ theorem PrefixChain.prefix (P : PrefixChain 𝒞) : ∀ {i j : Nat}, i ≤ j →
   | _, _, Nat.le.refl => List.prefix_refl _
   | _, _, Nat.le.step (m := m) h => (P.prefix h).trans (P.step m)
 
+/-- The ℕ-`PrefixChain` viewed as an `OrdChain` over `uliftNatDirected` — the bridge that makes the
+    generic `ordChain*` machinery specialize back to the ℕ-chain (DRY: one set of proofs). -/
+def PrefixChain.toOrdChain (P : PrefixChain 𝒞) : OrdChain (uliftNatDirected.{u}) 𝒞 where
+  chain n := P.chain n.down
+  mono {i j} hij := P.prefix hij
+
 /-- Transport a slice-valued functor along a base equality.  For a source category `𝒟` and a base
     category `ℰ` with `e : B = B'` (`B B' : ℰ`) and a functor `G : 𝒟 → Over B`, the map
     `X ↦ e ▸ G X : 𝒟 → Over B'` is again a functor.  (`subst e` collapses the transport, leaving the
@@ -1317,39 +1367,58 @@ def transportSliceFunctor {𝒟 : Type u} [Cat.{u} 𝒟] {ℰ : Type u} [Cat.{u}
     @Functor 𝒟 _ (Over B') (overCat B') (fun X => e ▸ G X) := by
   subst e; exact FG
 
-/-- The per-transition functor of the chain system: `innerSliceTr (P.prefix hij) : A′/(chain i) →
-    A′/(chain j)` is a functor — `sliceCatFunctor (suffix)` transported along `chain i ++ suffix =
-    chain j` (`transportSliceFunctor`).  The object map is `innerSliceTr` by `rfl` (its definition is
-    exactly `(prefixSuffix_eq h) ▸ sliceCatObj (suffix)`). -/
+/-- **GENERIC** per-transition functor of the chain system over ANY directed index: for an `OrdChain D O`
+    and `hij : D.le i j`, `innerSliceTr (O.mono hij) : A′/(chain i) → A′/(chain j)` is a functor —
+    `sliceCatFunctor (suffix)` transported along `chain i ++ suffix = chain j` (`transportSliceFunctor`).
+    Object map is `innerSliceTr` by `rfl`.  The `Nat` `chainSliceFunctor` is its `uliftNatDirected`
+    specialization. -/
+noncomputable def ordChainSliceFunctor {ι : Type u} {D : Colim.Directed ι} (O : OrdChain D 𝒞)
+    {i j : ι} (hij : D.le i j) :
+    @Functor (innerSliceObj (𝒞 := 𝒞) (O.chain i)) (innerSliceCat (O.chain i))
+      (innerSliceObj (𝒞 := 𝒞) (O.chain j)) (innerSliceCat (O.chain j))
+      (innerSliceTr (O.mono hij)) :=
+  transportSliceFunctor (𝒟 := Over (B := (O.chain i : Infl 𝒞)))
+    (B := O.chain i ++ prefixSuffix (O.chain i) (O.chain j))
+    (G := sliceCatObj (prefixSuffix (O.chain i) (O.chain j)))
+    (prefixSuffix_eq (O.mono hij))
+    (sliceCatFunctor (prefixSuffix (O.chain i) (O.chain j)) (O.chain i))
+
+/-- **GENERIC §1.544-546 — the DIRECTED strict `CatSystem` of inflation slices along an `OrdChain` over
+    ANY directed index `(ι, D)`.**  Stage `i` is the slice `A′/(chain i)`, transition for `hij : D.le i j`
+    the strict suffix-append `innerSliceTr (O.mono hij)`.  The `CatSystem` laws are the already-proven
+    strict `innerSliceTr_refl`/`innerSliceTr_trans` (proof-irrelevant in the `<+:` witness, a `Prop`) — so
+    they hold over ANY index, not just `ℕ`.  This is the transfinite-ready directed strict system the
+    §1.544-546 inner relative-capitalization needs cofinal over an uncountable object set; the ω-chain
+    `chainSliceSystem` is its `uliftNatDirected` specialization.  Sorry-free, propext-only. -/
+noncomputable def ordChainSliceSystem {ι : Type u} {D : Colim.Directed ι} (O : OrdChain D 𝒞) :
+    Colim.CatSystem.{u, u} ι D where
+  A i := innerSliceObj (𝒞 := 𝒞) (O.chain i)
+  catA i := innerSliceCat (O.chain i)
+  F {i j} hij X := innerSliceTr (O.mono hij) X
+  functF {i j} hij := ordChainSliceFunctor O hij
+  F_refl {i} X := by
+    show innerSliceTr (O.mono (D.refl i)) X = X
+    exact innerSliceTr_refl X
+  F_trans {i j k} hij hjk X := by
+    show innerSliceTr (O.mono (D.trans hij hjk)) X
+        = innerSliceTr (O.mono hjk) (innerSliceTr (O.mono hij) X)
+    exact innerSliceTr_trans (O.mono hij) (O.mono hjk) X
+
+/-- The per-transition functor of the ℕ-chain system — the `uliftNatDirected` specialization of the
+    generic `ordChainSliceFunctor`. -/
 noncomputable def chainSliceFunctor (P : PrefixChain 𝒞) {i j : Nat} (hij : i ≤ j) :
     @Functor (innerSliceObj (𝒞 := 𝒞) (P.chain i)) (innerSliceCat (P.chain i))
       (innerSliceObj (𝒞 := 𝒞) (P.chain j)) (innerSliceCat (P.chain j))
       (innerSliceTr (P.prefix hij)) :=
-  transportSliceFunctor (𝒟 := Over (B := (P.chain i : Infl 𝒞)))
-    (B := P.chain i ++ prefixSuffix (P.chain i) (P.chain j))
-    (G := sliceCatObj (prefixSuffix (P.chain i) (P.chain j)))
-    (prefixSuffix_eq (P.prefix hij))
-    (sliceCatFunctor (prefixSuffix (P.chain i) (P.chain j)) (P.chain i))
+  ordChainSliceFunctor P.toOrdChain (i := ⟨i⟩) (j := ⟨j⟩) hij
 
-/-- **§1.547 (option (b)) — the DIRECTED strict `CatSystem` of inflation slices along a prefix-chain.**
-    Indexed by `ℕ` (genuinely `Directed` via `natDirected`, `bound = max`), stage `n` is the slice
-    `A′/(chain n)`, transition `A′/(chain i) → A′/(chain j)` for `i ≤ j` the strict suffix-append
-    `innerSliceTr (P.prefix hij)`.  The `CatSystem` laws are the already-proven strict
-    `innerSliceTr_refl`/`innerSliceTr_trans` (proof-irrelevant in the `<+:` witness, a `Prop`).  This is
-    the genuine directed strict system the prefix order alone could not provide — sorry-free, propext-only. -/
+/-- **§1.547 (option (b)) — the DIRECTED strict `CatSystem` of inflation slices along an ℕ-prefix-chain.**
+    The `uliftNatDirected` specialization of the generic `ordChainSliceSystem` (`P.toOrdChain`): stage `n`
+    is the slice `A′/(chain n)`, transition the strict suffix-append `innerSliceTr (P.prefix hij)`.  Sorry-
+    free, propext-only. -/
 noncomputable def chainSliceSystem (P : PrefixChain 𝒞) :
-    Colim.CatSystem.{u, u} (ULift.{u} Nat) uliftNatDirected where
-  A n := innerSliceObj (𝒞 := 𝒞) (P.chain n.down)
-  catA n := innerSliceCat (P.chain n.down)
-  F {i j} hij X := innerSliceTr (P.prefix hij) X
-  functF {i j} hij := chainSliceFunctor P hij
-  F_refl {i} X := by
-    show innerSliceTr (P.prefix (uliftNatDirected.refl i)) X = X
-    exact innerSliceTr_refl X
-  F_trans {i j k} hij hjk X := by
-    show innerSliceTr (P.prefix (uliftNatDirected.trans hij hjk)) X
-        = innerSliceTr (P.prefix hjk) (innerSliceTr (P.prefix hij) X)
-    exact innerSliceTr_trans (P.prefix hij) (P.prefix hjk) X
+    Colim.CatSystem.{u, u} (ULift.{u} Nat) uliftNatDirected :=
+  ordChainSliceSystem P.toOrdChain
 
 /-! ### Morphism-level coherence of `chainSliceSystem` (`Coherent`)
 
@@ -1371,9 +1440,17 @@ theorem transportSliceFunctor_map_f_heq {𝒟 : Type u} [Cat.{u} 𝒟] {ℰ : Ty
     HEq ((transportSliceFunctor e FG).map g).f (FG.map g).f := by
   subst e; rfl
 
-/-- `catMap d g.f` for the suffix `d = prefixSuffix (chain i) (chain j)` is the `.f` of
-    `(chainSliceFunctor P hij).map g` up to `HEq`.  Peels the transport
+/-- **GENERIC** — `catMap d g.f` for the suffix `d = prefixSuffix (chain i) (chain j)` is the `.f` of
+    `(ordChainSliceFunctor O hij).map g` up to `HEq`, over ANY directed index.  Peels the transport
     (`transportSliceFunctor_map_f_heq`) then `sliceCatMap`'s `.f = catMap d g.f` definitionally. -/
+theorem ordChainSliceFunctor_map_f_heq {ι : Type u} {D : Colim.Directed ι} (O : OrdChain D 𝒞)
+    {i j : ι} (hij : D.le i j)
+    {X Y : innerSliceObj (𝒞 := 𝒞) (O.chain i)} (g : X ⟶ Y) :
+    HEq ((ordChainSliceFunctor O hij).map g).f (catMap (prefixSuffix (O.chain i) (O.chain j)) g.f) :=
+  transportSliceFunctor_map_f_heq _ _ g
+
+/-- `catMap d g.f` is the `.f` of `(chainSliceFunctor P hij).map g` up to `HEq` (the ℕ specialization of
+    `ordChainSliceFunctor_map_f_heq`). -/
 theorem chainSliceFunctor_map_f_heq (P : PrefixChain 𝒞) {i j : Nat} (hij : i ≤ j)
     {X Y : innerSliceObj (𝒞 := 𝒞) (P.chain i)} (g : X ⟶ Y) :
     HEq ((chainSliceFunctor P hij).map g).f (catMap (prefixSuffix (P.chain i) (P.chain j)) g.f) :=
@@ -1388,44 +1465,51 @@ theorem overHom_heq {ℰ : Type u} [Cat.{u} ℰ] {B B' : ℰ} (e : B = B')
     {a : OverHom X Y} {b : OverHom X' Y'} (hf : HEq a.f b.f) : HEq a b := by
   subst e; cases hX; cases hY; exact heq_of_eq (OverHom.ext (eq_of_heq hf))
 
-/-- **`Coherent` for the directed strict chain system.**  The morphism-level mate of
-    `innerSliceTr_refl`/`innerSliceTr_trans`.  `refl_map`: the empty-suffix transition's functor is the
+/-- **GENERIC `Coherent` for the directed strict chain system over ANY index.**  The morphism-level mate
+    of `innerSliceTr_refl`/`innerSliceTr_trans`.  `refl_map`: the empty-suffix transition's functor is the
     identity on arrows (underlying `catMap [] g.f ≍ g.f`, `catMap_nil_heq`).  `trans_map`: the composite
     transition's functor splits (underlying `catMap (dVU++dUW) g.f ≍ catMap dUW (catMap dVU g.f)`,
     `catMap_append_heq`).  Both threaded through the base-transport by `overHom_heq` on the now-`HEq`
-    endpoints (`innerSliceTr_refl`/`_trans` at the OBJECT level).  Sorry-free, propext-only. -/
-theorem chainSliceCoherent (P : PrefixChain 𝒞) : (chainSliceSystem P).Coherent where
+    endpoints (`innerSliceTr_refl`/`_trans` at the OBJECT level).  Index-agnostic — uses only `D.refl`/
+    `D.trans` and `Prop`-irrelevance of the `<+:` witness.  Sorry-free, propext-only. -/
+theorem ordChainSliceCoherent {ι : Type u} {D : Colim.Directed ι} (O : OrdChain D 𝒞) :
+    (ordChainSliceSystem O).Coherent where
   refl_map {i x x'} g := by
     -- underlying `.f`: `catMap (prefixSuffix (chain i) (chain i)) g.f`, and the suffix is `[]`.
     refine overHom_heq rfl ?_ ?_ ?_
     · exact heq_of_eq (innerSliceTr_refl x)
     · exact heq_of_eq (innerSliceTr_refl x')
-    · refine (chainSliceFunctor_map_f_heq P (uliftNatDirected.refl i) g).trans ?_
-      show HEq (catMap (prefixSuffix (P.chain i.down) (P.chain i.down)) g.f) g.f
+    · refine (ordChainSliceFunctor_map_f_heq O (D.refl i) g).trans ?_
+      show HEq (catMap (prefixSuffix (O.chain i) (O.chain i)) g.f) g.f
       rw [prefixSuffix, List.drop_length]
       exact catMap_nil_heq g.f
   trans_map {i j k} hij hjk x x' g := by
     -- underlying `.f`: `catMap (prefixSuffix (chain i) (chain k)) g.f` vs the composite.
-    have hVU : prefixLe (P.chain i.down) (P.chain j.down) := P.prefix hij
-    have hUW : prefixLe (P.chain j.down) (P.chain k.down) := P.prefix hjk
+    have hVU : prefixLe (O.chain i) (O.chain j) := O.mono hij
+    have hUW : prefixLe (O.chain j) (O.chain k) := O.mono hjk
     refine overHom_heq rfl ?_ ?_ ?_
     · exact heq_of_eq (innerSliceTr_trans hVU hUW x)
     · exact heq_of_eq (innerSliceTr_trans hVU hUW x')
     · -- LHS underlying = `catMap dVW g.f`; RHS = `((functF hjk).map ((functF hij).map g)).f`.
-      refine (chainSliceFunctor_map_f_heq P (uliftNatDirected.trans hij hjk) g).trans ?_
-      refine HEq.symm (HEq.trans (chainSliceFunctor_map_f_heq P hjk _) ?_)
+      refine (ordChainSliceFunctor_map_f_heq O (D.trans hij hjk) g).trans ?_
+      refine HEq.symm (HEq.trans (ordChainSliceFunctor_map_f_heq O hjk _) ?_)
       -- the inner `((functF hij).map g).f ≍ catMap dVU g.f`; `catMap_heq_congr` lifts through `catMap dUW`.
-      have hinner : HEq ((chainSliceFunctor P hij).map g).f (catMap (prefixSuffix (P.chain i.down)
-          (P.chain j.down)) g.f) := chainSliceFunctor_map_f_heq P hij g
-      refine HEq.trans (catMap_heq_congr (prefixSuffix (P.chain j.down) (P.chain k.down))
+      have hinner : HEq ((ordChainSliceFunctor O hij).map g).f (catMap (prefixSuffix (O.chain i)
+          (O.chain j)) g.f) := ordChainSliceFunctor_map_f_heq O hij g
+      refine HEq.trans (catMap_heq_congr (prefixSuffix (O.chain j) (O.chain k))
         (over_transport_dom _ _) (over_transport_dom _ _) _ _ hinner) ?_
       -- now `catMap dUW (catMap dVU g.f) ≍ catMap dVW g.f` via `prefixSuffix_trans` + `catMap_append_heq`.
       refine HEq.symm ?_
-      rw [show prefixSuffix (P.chain i.down) (P.chain k.down)
-          = prefixSuffix (P.chain i.down) (P.chain j.down)
-            ++ prefixSuffix (P.chain j.down) (P.chain k.down) from prefixSuffix_trans hVU hUW]
-      exact catMap_append_heq (prefixSuffix (P.chain i.down) (P.chain j.down))
-        (prefixSuffix (P.chain j.down) (P.chain k.down)) g.f
+      rw [show prefixSuffix (O.chain i) (O.chain k)
+          = prefixSuffix (O.chain i) (O.chain j)
+            ++ prefixSuffix (O.chain j) (O.chain k) from prefixSuffix_trans hVU hUW]
+      exact catMap_append_heq (prefixSuffix (O.chain i) (O.chain j))
+        (prefixSuffix (O.chain j) (O.chain k)) g.f
+
+/-- **`Coherent` for the ℕ directed strict chain system** — the `uliftNatDirected` specialization of the
+    generic `ordChainSliceCoherent`. -/
+theorem chainSliceCoherent (P : PrefixChain 𝒞) : (chainSliceSystem P).Coherent :=
+  ordChainSliceCoherent P.toOrdChain
 
 /-! ## §1.547  Preservation package for the inner chain-slice colimit
 
@@ -1706,81 +1790,212 @@ theorem sliceCatObj_eq_lift [HasEqualizers 𝒞] (d : List 𝒞) {V : Infl 𝒞}
   `PullbacksTransferCovers (Over (chain n))` (`overPreRegular`) + cover reflection. -/
 
 section InnerPackage
+variable [PreRegularCategory 𝒞] [HasEqualizers 𝒞]
+  {ι : Type u} {D : Colim.Directed ι} (O : OrdChain D 𝒞)
+
+/-- **GENERIC** per-stage terminal of the inner system over ANY directed index: each stage `Over (chain i)`
+    has the slice terminal. -/
+def ordChainHasTerminal (i : ι) : HasTerminal ((ordChainSliceSystem O).A i) :=
+  overHasTerminal (O.chain i)
+
+/-- **GENERIC** terminal preservation (`htpres`) — `innerSliceTr_terminal`, any index. -/
+theorem ordChainHtpres {i j : ι} (hij : D.le i j) :
+    (ordChainSliceSystem O).F hij (ordChainHasTerminal O i).one = (ordChainHasTerminal O j).one :=
+  innerSliceTr_terminal (O.mono hij)
+
+/-- **GENERIC** per-stage binary products. -/
+def ordChainHasProducts (i : ι) : HasBinaryProducts ((ordChainSliceSystem O).A i) :=
+  overHasBinaryProducts (O.chain i)
+
+/-- **GENERIC** per-stage equalizers. -/
+def ordChainHasEqualizers (i : ι) : HasEqualizers ((ordChainSliceSystem O).A i) :=
+  overHasEqualizers (O.chain i)
+
+/-- **GENERIC** product joint-monicity preservation (`hppres`) — lifts `sliceCatObj_prod_jointly_monic`
+    through the base-transport of `ordChainSliceFunctor`, any index. -/
+theorem ordChainHppres {i j : ι} (hij : D.le i j)
+    (a b : (ordChainSliceSystem O).A i) (z : (ordChainSliceSystem O).A j)
+    (u v : z ⟶ (ordChainSliceSystem O).F hij ((ordChainHasProducts O i).prod a b))
+    (hf : u ≫ ((ordChainSliceSystem O).functF hij).map (ordChainHasProducts O i).fst
+        = v ≫ ((ordChainSliceSystem O).functF hij).map (ordChainHasProducts O i).fst)
+    (hs : u ≫ ((ordChainSliceSystem O).functF hij).map (ordChainHasProducts O i).snd
+        = v ≫ ((ordChainSliceSystem O).functF hij).map (ordChainHasProducts O i).snd) : u = v := by
+  -- Unfold the system pieces so `z`, `u`, `v` mention only `innerSliceTr`/`ordChainSliceFunctor`.
+  revert z u v hf hs
+  show ∀ (z : Over (B := (O.chain j : Infl 𝒞)))
+      (u v : z ⟶ innerSliceTr (O.mono hij) (overProdPt a b)),
+      u ≫ (ordChainSliceFunctor O hij).map (overProdFst a b)
+        = v ≫ (ordChainSliceFunctor O hij).map (overProdFst a b) →
+      u ≫ (ordChainSliceFunctor O hij).map (overProdSnd a b)
+        = v ≫ (ordChainSliceFunctor O hij).map (overProdSnd a b) →
+      u = v
+  -- `innerSliceTr h = e ▸ sliceCatObj d`; `ordChainSliceFunctor = transportSliceFunctor e (sliceCatFunctor d)`.
+  unfold innerSliceTr ordChainSliceFunctor
+  -- generalise the suffix `d`, codomain base `W` and the transport proof `e`; `cases e` collapses every
+  -- transport, reducing to the strict `sliceCatObj_prod_jointly_monic` over `chain i ++ d`.
+  have gen : ∀ (d : List 𝒞) (W : Infl 𝒞) (e : (O.chain i : List 𝒞) ++ d = W) (z : Over W)
+      (u v : z ⟶ e ▸ sliceCatObj d (overProdPt a b)),
+      u ≫ (transportSliceFunctor e (sliceCatFunctor d (O.chain i))).map (overProdFst a b)
+        = v ≫ (transportSliceFunctor e (sliceCatFunctor d (O.chain i))).map (overProdFst a b) →
+      u ≫ (transportSliceFunctor e (sliceCatFunctor d (O.chain i))).map (overProdSnd a b)
+        = v ≫ (transportSliceFunctor e (sliceCatFunctor d (O.chain i))).map (overProdSnd a b) →
+      u = v := by
+    intro d W e; cases e; exact sliceCatObj_prod_jointly_monic d a b
+  exact gen _ _ (prefixSuffix_eq (O.mono hij))
+
+/-- **GENERIC** product pairing preservation (`hppres_pair`), any index. -/
+theorem ordChainHppresPair {i j : ι} (hij : D.le i j)
+    (a b : (ordChainSliceSystem O).A i) (z : (ordChainSliceSystem O).A j)
+    (p : z ⟶ (ordChainSliceSystem O).F hij a) (q : z ⟶ (ordChainSliceSystem O).F hij b) :
+    ∃ r : z ⟶ (ordChainSliceSystem O).F hij ((ordChainHasProducts O i).prod a b),
+      r ≫ ((ordChainSliceSystem O).functF hij).map (ordChainHasProducts O i).fst = p ∧
+      r ≫ ((ordChainSliceSystem O).functF hij).map (ordChainHasProducts O i).snd = q := by
+  revert z p q
+  show ∀ (z : Over (B := (O.chain j : Infl 𝒞)))
+      (p : z ⟶ innerSliceTr (O.mono hij) a) (q : z ⟶ innerSliceTr (O.mono hij) b),
+      ∃ r : z ⟶ innerSliceTr (O.mono hij) (overProdPt a b),
+        r ≫ (ordChainSliceFunctor O hij).map (overProdFst a b) = p ∧
+        r ≫ (ordChainSliceFunctor O hij).map (overProdSnd a b) = q
+  unfold innerSliceTr ordChainSliceFunctor
+  -- generalise the suffix `d`, codomain base `W`, transport `e`; `cases e` reduces to `sliceCatObj_prod_pair`.
+  have gen : ∀ (d : List 𝒞) (W : Infl 𝒞) (e : (O.chain i : List 𝒞) ++ d = W) (z : Over W)
+      (p : z ⟶ e ▸ sliceCatObj d a) (q : z ⟶ e ▸ sliceCatObj d b),
+      ∃ r : z ⟶ e ▸ sliceCatObj d (overProdPt a b),
+        r ≫ (transportSliceFunctor e (sliceCatFunctor d (O.chain i))).map (overProdFst a b) = p ∧
+        r ≫ (transportSliceFunctor e (sliceCatFunctor d (O.chain i))).map (overProdSnd a b) = q := by
+    intro d W e; cases e; exact sliceCatObj_prod_pair d a b
+  exact gen _ _ (prefixSuffix_eq (O.mono hij))
+
+/-- **GENERIC** equalizer-mono preservation (`hepres`), any index. -/
+theorem ordChainHepres {i j : ι} (hij : D.le i j)
+    {A B : (ordChainSliceSystem O).A i} (f g : A ⟶ B) (z : (ordChainSliceSystem O).A j)
+    (u v : z ⟶ (ordChainSliceSystem O).F hij
+      (@eqObj _ ((ordChainSliceSystem O).catA i) (ordChainHasEqualizers O i) _ _ f g))
+    (h : u ≫ ((ordChainSliceSystem O).functF hij).map
+          (@eqMap _ ((ordChainSliceSystem O).catA i) (ordChainHasEqualizers O i) _ _ f g)
+        = v ≫ ((ordChainSliceSystem O).functF hij).map
+          (@eqMap _ ((ordChainSliceSystem O).catA i) (ordChainHasEqualizers O i) _ _ f g)) : u = v := by
+  revert z u v h
+  -- `(ordChainSliceSystem O).catA i`/`ordChainHasEqualizers O i` are defeq `overCat`/`overHasEqualizers`,
+  -- so the `@eqObj`/`@eqMap` here ARE the plain `Over`-equalizer used by `sliceCatObj_eq_mono`.
+  letI E := ordChainHasEqualizers O i
+  show ∀ (z : Over (B := (O.chain j : Infl 𝒞)))
+      (u v : z ⟶ innerSliceTr (O.mono hij) (@eqObj _ _ E _ _ f g)),
+      u ≫ (ordChainSliceFunctor O hij).map (@eqMap _ _ E _ _ f g)
+        = v ≫ (ordChainSliceFunctor O hij).map (@eqMap _ _ E _ _ f g) → u = v
+  unfold innerSliceTr ordChainSliceFunctor
+  -- generalise the suffix `d`, codomain base `W`, transport `e`; `cases e` reduces to `sliceCatObj_eq_mono`.
+  have gen : ∀ (d : List 𝒞) (W : Infl 𝒞) (e : (O.chain i : List 𝒞) ++ d = W) (z : Over W)
+      (u v : z ⟶ e ▸ sliceCatObj d (@eqObj _ _ E _ _ f g)),
+      u ≫ (transportSliceFunctor e (sliceCatFunctor d (O.chain i))).map (@eqMap _ _ E _ _ f g)
+        = v ≫ (transportSliceFunctor e (sliceCatFunctor d (O.chain i))).map (@eqMap _ _ E _ _ f g) →
+      u = v := by
+    intro d W e; cases e; exact sliceCatObj_eq_mono d f g
+  exact gen _ _ (prefixSuffix_eq (O.mono hij))
+
+/-- **GENERIC** equalizer-lift preservation (`hepres_lift`), any index. -/
+theorem ordChainHepresLift {i j : ι} (hij : D.le i j)
+    {A B : (ordChainSliceSystem O).A i} (f g : A ⟶ B) (z : (ordChainSliceSystem O).A j)
+    (k : z ⟶ (ordChainSliceSystem O).F hij A)
+    (hk : k ≫ ((ordChainSliceSystem O).functF hij).map f
+        = k ≫ ((ordChainSliceSystem O).functF hij).map g) :
+    ∃ r : z ⟶ (ordChainSliceSystem O).F hij
+        (@eqObj _ ((ordChainSliceSystem O).catA i) (ordChainHasEqualizers O i) _ _ f g),
+      r ≫ ((ordChainSliceSystem O).functF hij).map
+        (@eqMap _ ((ordChainSliceSystem O).catA i) (ordChainHasEqualizers O i) _ _ f g) = k := by
+  revert z k hk
+  -- `(ordChainSliceSystem O).catA i`/`ordChainHasEqualizers O i` are defeq `overCat`/`overHasEqualizers`,
+  -- so the `@eqObj`/`@eqMap` here ARE the plain `Over`-equalizer used by `sliceCatObj_eq_lift`.
+  letI E := ordChainHasEqualizers O i
+  show ∀ (z : Over (B := (O.chain j : Infl 𝒞))) (k : z ⟶ innerSliceTr (O.mono hij) A),
+      k ≫ (ordChainSliceFunctor O hij).map f = k ≫ (ordChainSliceFunctor O hij).map g →
+      ∃ r : z ⟶ innerSliceTr (O.mono hij) (@eqObj _ _ E _ _ f g),
+        r ≫ (ordChainSliceFunctor O hij).map (@eqMap _ _ E _ _ f g) = k
+  unfold innerSliceTr ordChainSliceFunctor
+  -- generalise the suffix `d`, codomain base `W`, transport `e`; `cases e` reduces to `sliceCatObj_eq_lift`.
+  have gen : ∀ (d : List 𝒞) (W : Infl 𝒞) (e : (O.chain i : List 𝒞) ++ d = W) (z : Over W)
+      (k : z ⟶ e ▸ sliceCatObj d A),
+      k ≫ (transportSliceFunctor e (sliceCatFunctor d (O.chain i))).map f
+        = k ≫ (transportSliceFunctor e (sliceCatFunctor d (O.chain i))).map g →
+      ∃ r : z ⟶ e ▸ sliceCatObj d (@eqObj _ _ E _ _ f g),
+        r ≫ (transportSliceFunctor e (sliceCatFunctor d (O.chain i))).map (@eqMap _ _ E _ _ f g)
+          = k := by
+    intro d W e; cases e; exact sliceCatObj_eq_lift d f g
+  exact gen _ _ (prefixSuffix_eq (O.mono hij))
+
+open Freyd.Colim in
+/-- **GENERIC §1.544-546 (B-package) — the inner `OrdChain`-slice colimit is PRE-REGULAR over ANY directed
+    index.**  Assembles `colimitPreRegular` for `ordChainSliceSystem O` from the strict suffix-append
+    preservation facts (`innerSliceTr_terminal`, `sliceCatObj_prod_*`, `sliceCatObj_eq_*`) lifted through
+    the base-transport, plus the canonical cover-transfer `hcanon`.  This is the transfinite-ready
+    relative-capitalization successor `S → S*` (§1.543) at the level of pre-regular structure: index by a
+    well-ordered set (`Ordinal`/`WellFoundedLT` as a `Colim.Directed`) and a cofinal `OrdChain` to point
+    EVERY well-supported object of an uncountable object set.  The ω-chain `chainSlicePreRegular` is its
+    `uliftNatDirected` specialization. -/
+noncomputable def ordChainSlicePreRegular [Nonempty ι]
+    (hcanon : letI : Cat (ordChainSliceSystem O).Obj := colimitCat _ (ordChainSliceCoherent O)
+        letI : HasPullbacks (ordChainSliceSystem O).Obj :=
+          colimitHasPullbacks _ (ordChainSliceCoherent O)
+            (ordChainHasTerminal O) (ordChainHtpres O) (ordChainHasProducts O)
+            (ordChainHppres O) (ordChainHppresPair O)
+            (ordChainHasEqualizers O) (ordChainHepres O) (ordChainHepresLift O)
+      ∀ {X Y Z : (ordChainSliceSystem O).Obj} (f : X ⟶ Z) (g : Y ⟶ Z),
+          Cover f → Cover (HasPullbacks.has f g).cone.π₂) :
+    @PreRegularCategory (ordChainSliceSystem O).Obj (colimitCat _ (ordChainSliceCoherent O)) :=
+  colimitPreRegular (ordChainSliceSystem O) (ordChainSliceCoherent O)
+    (ordChainHasTerminal O) (ordChainHtpres O) (ordChainHasProducts O)
+    (ordChainHppres O) (ordChainHppresPair O)
+    (ordChainHasEqualizers O) (ordChainHepres O) (ordChainHepresLift O)
+    hcanon
+
+end InnerPackage
+
+/-! ### ℕ-chain specializations of the generic `ordChain*` preservation package
+
+  Each `chain*` name is the `uliftNatDirected` instance (`P.toOrdChain`) of its `ordChain*` generic — the
+  SAME proofs serve both ℕ and the transfinite index (DRY).  `Capitalization.lean`'s `hwall_step`
+  commentary consumes these ℕ-named facts verbatim. -/
+
+section InnerPackageNat
 variable [PreRegularCategory 𝒞] [HasEqualizers 𝒞] (P : PrefixChain 𝒞)
 
-/-- The inner system's per-stage terminal: each stage `Over (chain n)` has the slice terminal. -/
+/-- The inner system's per-stage terminal (ℕ specialization of `ordChainHasTerminal`). -/
 def chainHasTerminal (i : ULift.{u} Nat) : HasTerminal ((chainSliceSystem P).A i) :=
-  overHasTerminal (P.chain i.down)
+  ordChainHasTerminal P.toOrdChain i
 
-/-- Terminal preservation hypothesis (`htpres`) for the inner chain — `innerSliceTr_terminal`. -/
+/-- Terminal preservation (`htpres`) for the ℕ-chain (specialization of `ordChainHtpres`). -/
 theorem chainHtpres {i j : ULift.{u} Nat} (hij : uliftNatDirected.le i j) :
     (chainSliceSystem P).F hij (chainHasTerminal P i).one = (chainHasTerminal P j).one :=
-  innerSliceTr_terminal (P.prefix hij)
+  ordChainHtpres P.toOrdChain hij
 
-/-- The inner system's per-stage binary products. -/
+/-- Per-stage binary products (ℕ specialization). -/
 def chainHasProducts (i : ULift.{u} Nat) : HasBinaryProducts ((chainSliceSystem P).A i) :=
-  overHasBinaryProducts (P.chain i.down)
+  ordChainHasProducts P.toOrdChain i
 
-/-- The inner system's per-stage equalizers. -/
+/-- Per-stage equalizers (ℕ specialization). -/
 def chainHasEqualizers (i : ULift.{u} Nat) : HasEqualizers ((chainSliceSystem P).A i) :=
-  overHasEqualizers (P.chain i.down)
+  ordChainHasEqualizers P.toOrdChain i
 
-/-- Product joint-monicity preservation (`hppres`) for the inner chain — lifts
-    `sliceCatObj_prod_jointly_monic` through the base-transport of `chainSliceFunctor`. -/
+/-- Product joint-monicity preservation (`hppres`) for the ℕ-chain. -/
 theorem chainHppres {i j : ULift.{u} Nat} (hij : uliftNatDirected.le i j)
     (a b : (chainSliceSystem P).A i) (z : (chainSliceSystem P).A j)
     (u v : z ⟶ (chainSliceSystem P).F hij ((chainHasProducts P i).prod a b))
     (hf : u ≫ ((chainSliceSystem P).functF hij).map (chainHasProducts P i).fst
         = v ≫ ((chainSliceSystem P).functF hij).map (chainHasProducts P i).fst)
     (hs : u ≫ ((chainSliceSystem P).functF hij).map (chainHasProducts P i).snd
-        = v ≫ ((chainSliceSystem P).functF hij).map (chainHasProducts P i).snd) : u = v := by
-  -- Unfold the system pieces so `z`, `u`, `v` mention only `innerSliceTr`/`chainSliceFunctor`.
-  revert z u v hf hs
-  show ∀ (z : Over (B := (P.chain j.down : Infl 𝒞)))
-      (u v : z ⟶ innerSliceTr (P.prefix hij) (overProdPt a b)),
-      u ≫ (chainSliceFunctor P hij).map (overProdFst a b)
-        = v ≫ (chainSliceFunctor P hij).map (overProdFst a b) →
-      u ≫ (chainSliceFunctor P hij).map (overProdSnd a b)
-        = v ≫ (chainSliceFunctor P hij).map (overProdSnd a b) →
-      u = v
-  -- `innerSliceTr h = e ▸ sliceCatObj d`; `chainSliceFunctor = transportSliceFunctor e (sliceCatFunctor d)`.
-  unfold innerSliceTr chainSliceFunctor
-  -- generalise the suffix `d`, codomain base `W` and the transport proof `e`; `cases e` collapses every
-  -- transport, reducing to the strict `sliceCatObj_prod_jointly_monic` over `chain i.down ++ d`.
-  have gen : ∀ (d : List 𝒞) (W : Infl 𝒞) (e : (P.chain i.down : List 𝒞) ++ d = W) (z : Over W)
-      (u v : z ⟶ e ▸ sliceCatObj d (overProdPt a b)),
-      u ≫ (transportSliceFunctor e (sliceCatFunctor d (P.chain i.down))).map (overProdFst a b)
-        = v ≫ (transportSliceFunctor e (sliceCatFunctor d (P.chain i.down))).map (overProdFst a b) →
-      u ≫ (transportSliceFunctor e (sliceCatFunctor d (P.chain i.down))).map (overProdSnd a b)
-        = v ≫ (transportSliceFunctor e (sliceCatFunctor d (P.chain i.down))).map (overProdSnd a b) →
-      u = v := by
-    intro d W e; cases e; exact sliceCatObj_prod_jointly_monic d a b
-  exact gen _ _ (prefixSuffix_eq (P.prefix hij))
+        = v ≫ ((chainSliceSystem P).functF hij).map (chainHasProducts P i).snd) : u = v :=
+  ordChainHppres P.toOrdChain hij a b z u v hf hs
 
-/-- Product pairing preservation (`hppres_pair`) for the inner chain. -/
+/-- Product pairing preservation (`hppres_pair`) for the ℕ-chain. -/
 theorem chainHppresPair {i j : ULift.{u} Nat} (hij : uliftNatDirected.le i j)
     (a b : (chainSliceSystem P).A i) (z : (chainSliceSystem P).A j)
     (p : z ⟶ (chainSliceSystem P).F hij a) (q : z ⟶ (chainSliceSystem P).F hij b) :
     ∃ r : z ⟶ (chainSliceSystem P).F hij ((chainHasProducts P i).prod a b),
       r ≫ ((chainSliceSystem P).functF hij).map (chainHasProducts P i).fst = p ∧
-      r ≫ ((chainSliceSystem P).functF hij).map (chainHasProducts P i).snd = q := by
-  revert z p q
-  show ∀ (z : Over (B := (P.chain j.down : Infl 𝒞)))
-      (p : z ⟶ innerSliceTr (P.prefix hij) a) (q : z ⟶ innerSliceTr (P.prefix hij) b),
-      ∃ r : z ⟶ innerSliceTr (P.prefix hij) (overProdPt a b),
-        r ≫ (chainSliceFunctor P hij).map (overProdFst a b) = p ∧
-        r ≫ (chainSliceFunctor P hij).map (overProdSnd a b) = q
-  unfold innerSliceTr chainSliceFunctor
-  -- generalise the suffix `d`, codomain base `W`, transport `e`; `cases e` reduces to `sliceCatObj_prod_pair`.
-  have gen : ∀ (d : List 𝒞) (W : Infl 𝒞) (e : (P.chain i.down : List 𝒞) ++ d = W) (z : Over W)
-      (p : z ⟶ e ▸ sliceCatObj d a) (q : z ⟶ e ▸ sliceCatObj d b),
-      ∃ r : z ⟶ e ▸ sliceCatObj d (overProdPt a b),
-        r ≫ (transportSliceFunctor e (sliceCatFunctor d (P.chain i.down))).map (overProdFst a b) = p ∧
-        r ≫ (transportSliceFunctor e (sliceCatFunctor d (P.chain i.down))).map (overProdSnd a b) = q := by
-    intro d W e; cases e; exact sliceCatObj_prod_pair d a b
-  exact gen _ _ (prefixSuffix_eq (P.prefix hij))
+      r ≫ ((chainSliceSystem P).functF hij).map (chainHasProducts P i).snd = q :=
+  ordChainHppresPair P.toOrdChain hij a b z p q
 
-/-- Equalizer-mono preservation (`hepres`) for the inner chain. -/
+/-- Equalizer-mono preservation (`hepres`) for the ℕ-chain. -/
 theorem chainHepres {i j : ULift.{u} Nat} (hij : uliftNatDirected.le i j)
     {A B : (chainSliceSystem P).A i} (f g : A ⟶ B) (z : (chainSliceSystem P).A j)
     (u v : z ⟶ (chainSliceSystem P).F hij
@@ -1788,26 +2003,10 @@ theorem chainHepres {i j : ULift.{u} Nat} (hij : uliftNatDirected.le i j)
     (h : u ≫ ((chainSliceSystem P).functF hij).map
           (@eqMap _ ((chainSliceSystem P).catA i) (chainHasEqualizers P i) _ _ f g)
         = v ≫ ((chainSliceSystem P).functF hij).map
-          (@eqMap _ ((chainSliceSystem P).catA i) (chainHasEqualizers P i) _ _ f g)) : u = v := by
-  revert z u v h
-  -- `(chainSliceSystem P).catA i`/`chainHasEqualizers P i` are defeq `overCat`/`overHasEqualizers`,
-  -- so the `@eqObj`/`@eqMap` here ARE the plain `Over`-equalizer used by `sliceCatObj_eq_mono`.
-  letI E := chainHasEqualizers P i
-  show ∀ (z : Over (B := (P.chain j.down : Infl 𝒞)))
-      (u v : z ⟶ innerSliceTr (P.prefix hij) (@eqObj _ _ E _ _ f g)),
-      u ≫ (chainSliceFunctor P hij).map (@eqMap _ _ E _ _ f g)
-        = v ≫ (chainSliceFunctor P hij).map (@eqMap _ _ E _ _ f g) → u = v
-  unfold innerSliceTr chainSliceFunctor
-  -- generalise the suffix `d`, codomain base `W`, transport `e`; `cases e` reduces to `sliceCatObj_eq_mono`.
-  have gen : ∀ (d : List 𝒞) (W : Infl 𝒞) (e : (P.chain i.down : List 𝒞) ++ d = W) (z : Over W)
-      (u v : z ⟶ e ▸ sliceCatObj d (@eqObj _ _ E _ _ f g)),
-      u ≫ (transportSliceFunctor e (sliceCatFunctor d (P.chain i.down))).map (@eqMap _ _ E _ _ f g)
-        = v ≫ (transportSliceFunctor e (sliceCatFunctor d (P.chain i.down))).map (@eqMap _ _ E _ _ f g) →
-      u = v := by
-    intro d W e; cases e; exact sliceCatObj_eq_mono d f g
-  exact gen _ _ (prefixSuffix_eq (P.prefix hij))
+          (@eqMap _ ((chainSliceSystem P).catA i) (chainHasEqualizers P i) _ _ f g)) : u = v :=
+  ordChainHepres P.toOrdChain hij (f := f) (g := g) z u v h
 
-/-- Equalizer-lift preservation (`hepres_lift`) for the inner chain. -/
+/-- Equalizer-lift preservation (`hepres_lift`) for the ℕ-chain. -/
 theorem chainHepresLift {i j : ULift.{u} Nat} (hij : uliftNatDirected.le i j)
     {A B : (chainSliceSystem P).A i} (f g : A ⟶ B) (z : (chainSliceSystem P).A j)
     (k : z ⟶ (chainSliceSystem P).F hij A)
@@ -1816,33 +2015,13 @@ theorem chainHepresLift {i j : ULift.{u} Nat} (hij : uliftNatDirected.le i j)
     ∃ r : z ⟶ (chainSliceSystem P).F hij
         (@eqObj _ ((chainSliceSystem P).catA i) (chainHasEqualizers P i) _ _ f g),
       r ≫ ((chainSliceSystem P).functF hij).map
-        (@eqMap _ ((chainSliceSystem P).catA i) (chainHasEqualizers P i) _ _ f g) = k := by
-  revert z k hk
-  -- `(chainSliceSystem P).catA i`/`chainHasEqualizers P i` are defeq `overCat`/`overHasEqualizers`,
-  -- so the `@eqObj`/`@eqMap` here ARE the plain `Over`-equalizer used by `sliceCatObj_eq_lift`.
-  letI E := chainHasEqualizers P i
-  show ∀ (z : Over (B := (P.chain j.down : Infl 𝒞))) (k : z ⟶ innerSliceTr (P.prefix hij) A),
-      k ≫ (chainSliceFunctor P hij).map f = k ≫ (chainSliceFunctor P hij).map g →
-      ∃ r : z ⟶ innerSliceTr (P.prefix hij) (@eqObj _ _ E _ _ f g),
-        r ≫ (chainSliceFunctor P hij).map (@eqMap _ _ E _ _ f g) = k
-  unfold innerSliceTr chainSliceFunctor
-  -- generalise the suffix `d`, codomain base `W`, transport `e`; `cases e` reduces to `sliceCatObj_eq_lift`.
-  have gen : ∀ (d : List 𝒞) (W : Infl 𝒞) (e : (P.chain i.down : List 𝒞) ++ d = W) (z : Over W)
-      (k : z ⟶ e ▸ sliceCatObj d A),
-      k ≫ (transportSliceFunctor e (sliceCatFunctor d (P.chain i.down))).map f
-        = k ≫ (transportSliceFunctor e (sliceCatFunctor d (P.chain i.down))).map g →
-      ∃ r : z ⟶ e ▸ sliceCatObj d (@eqObj _ _ E _ _ f g),
-        r ≫ (transportSliceFunctor e (sliceCatFunctor d (P.chain i.down))).map (@eqMap _ _ E _ _ f g)
-          = k := by
-    intro d W e; cases e; exact sliceCatObj_eq_lift d f g
-  exact gen _ _ (prefixSuffix_eq (P.prefix hij))
+        (@eqMap _ ((chainSliceSystem P).catA i) (chainHasEqualizers P i) _ _ f g) = k :=
+  ordChainHepresLift P.toOrdChain hij f g z k hk
 
 open Freyd.Colim in
-/-- **§1.547 (B-package) — the inner chain-slice colimit is PRE-REGULAR.**  Assembles
-    `colimitPreRegular` for `chainSliceSystem P` from the strict suffix-append preservation facts
-    (`innerSliceTr_terminal`, `sliceCatObj_prod_*`, `sliceCatObj_eq_*`) lifted through the base-transport,
-    plus the canonical cover-transfer `hcanon`.  This is the relative-capitalization successor `S → S*`
-    `nextStep` (§1.543) at the level of pre-regular structure. -/
+/-- **§1.547 (B-package) — the inner ℕ-chain-slice colimit is PRE-REGULAR** (the `uliftNatDirected`
+    specialization of the generic `ordChainSlicePreRegular`).  The relative-capitalization successor
+    `S → S*` (§1.543) at the level of pre-regular structure. -/
 noncomputable def chainSlicePreRegular
     (hcanon : letI : Cat (chainSliceSystem P).Obj := colimitCat _ (chainSliceCoherent P)
         letI : HasPullbacks (chainSliceSystem P).Obj :=
@@ -1859,6 +2038,6 @@ noncomputable def chainSlicePreRegular
     (chainHasEqualizers P) (chainHepres P) (chainHepresLift P)
     hcanon
 
-end InnerPackage
+end InnerPackageNat
 
 end Freyd
