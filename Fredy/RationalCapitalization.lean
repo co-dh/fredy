@@ -108,12 +108,45 @@
                                 roof leg is not epic); §1.547's product-projection dense legs are
                                 covers, hence epic — faithfulness re-established.
 
-  Still R4 (not faked here): the full `HasPullbacks (PairObj 𝒞)` + `DenseClass (PairObj 𝒞)` to
-  instantiate the R2 generic rational-category skeleton on `(Â, PairDense)` and get the localised
-  category object `A*` + functor; and dense pullback-closure (needs `Â`'s own pullbacks).  The
-  faithfulness OBLIGATION of that functor is already discharged by
+  ── MILESTONE R4 (§1.547 `Â` IS CARTESIAN — terminal + binary products, sorry-free) ──────────────
+
+    * `WideEq`/`wideEqNil`/`wideEqCons`/`wideEq` — the reusable WIDE EQUALIZER of a finite LIST of
+                                parallel pairs over `X`: the maximal subobject `w : D ↪ X`
+                                equalizing all listed pairs, universal.  Built by iterated binary
+                                equalizer (`products_pullbacks_implies_equalizers`).  This is the
+                                `D ↪ A₁×A₂` kernel of Freyd's §1.547 product formula.  SORRY-FREE,
+                                choice-free (`propext`,`Quot.sound`).
+    * `pairHasTerminal` — `Â` HAS A TERMINAL OBJECT `(1,∅)` (terminator of `A`, no factors); the
+                                unique arrow is `term`, unique by `term_uniq`.  SORRY-FREE, NO axioms.
+    * `crossConstraints`/`pairProdD`/`pairProdW`/`pairProdK`/`pairProdObj` — the §1.547 PRODUCT
+                                OBJECT `(A₁,F₁)×(A₂,F₂) = (D,K)`: `D = wideEq` of the cross
+                                constraints `(fst≫f, snd≫f')` for matched factors `f∈F₁`,`f'∈F₂`
+                                (`f°=f'°`, decided by `DecidableEq 𝒞` = Freyd's "equal targets"),
+                                `w : D ↪ A₁×A₂`, `K = {w≫h | h∈H}`.  Projections `pairProjFst/Snd`.
+                                SORRY-FREE, choice-free.
+    * `pairProd_hom_ext` — UNIQUENESS of the product pairing (unconditional): agreement after both
+                                projections + `w` monic + `prod_hom_ext` ⟹ equality.  SORRY-FREE.
+    * `pairPair`/`pairPair_fst`/`pairPair_snd`/`pairProd_lift` — EXISTENCE of the pairing (data,
+                                choice-free) under the book's target-distinctness `Z.DistinctTargets`.
+    * `PairTargetsDistinct` + `pairHasBinaryProducts` — `Â` HAS BINARY PRODUCTS, under the book's
+                                STANDING ASSUMPTION (`PairTargetsDistinct 𝒞`: every object of `Â`
+                                has factors to DISTINCT targets — Freyd builds this into objects of
+                                `Â`; R3's `PairObj` recorded only well-supportedness, so it is made
+                                an explicit class here, NOT a weakening).  SORRY-FREE, choice-free.
+
+  THE DISTINCTNESS GATE (machine-checked, nothing faked).  Freyd's §1.547 objects of `Â` have
+  factors to DISTINCT well-supported targets; R3's `PairObj` (shared, downstream — not editable
+  here) dropped distinctness.  The product OBJECT/PROJECTIONS/UNIQUENESS are unconditional, but the
+  pairing EXISTENCE (`pairProd_lift`) genuinely needs `Z.DistinctTargets` (two factors of `Z` to one
+  target may differ otherwise).  So `HasBinaryProducts (PairObj 𝒞)` is GATED on the explicit class
+  `PairTargetsDistinct 𝒞`.  This is the sharply-located obstruction; nothing is stubbed.
+
+  Still R4/R5 (not faked here): `HasPullbacks (PairObj 𝒞)` (binary products + the §1.547 equalizers,
+  same gate); `PreRegularCategory (PairObj 𝒞)`; `DenseClass (PairObj 𝒞)` + dense pullback-closure;
+  the R2 generic skeleton instantiation on `(Â, PairDense)` to get `A* = Â[PairDense⁻¹]` + functor;
+  and `ratCap S : CapStep S`.  The faithfulness OBLIGATION of that functor is already discharged by
   `pairLocalisation_faithful_criterion`.  No `ratCap` is asserted (its `stepFaithful` field is
-  exactly this criterion; the remaining `CapStep` preservation fields are the R4 instantiation).
+  exactly this criterion; the remaining `CapStep` preservation fields are the further instantiation).
 
   ── INTEGRITY ──────────────────────────────────────────────────────────────────
 
@@ -978,6 +1011,345 @@ theorem pairLocalisation_faithful_criterion [PullbacksTransferCovers 𝒞] {R X 
     {r : PairHom R X} (d : PairDense r) (u v : PairHom X Y)
     (hruv : r.comp u = r.comp v) : u = v :=
   pairDense_epi d u v hruv
+
+/-! ### §1.547  WIDE EQUALIZER OF A FINITE LIST OF PARALLEL PAIRS (the `D ↪ A₁×A₂` kernel)
+
+  The §1.547 product `(A₁,F₁)×(A₂,F₂) = (D,K)` takes `D ↪ A₁×A₂` to be the maximal subobject
+  equalizing all morphisms in `H` with equal targets.  We realise this as the WIDE EQUALIZER of a
+  finite LIST `L` of parallel pairs `(u,v : X ⟶ B)` over `X = A₁×A₂`: a mono `w : D ↪ X` with
+  `w≫u = w≫v` for every listed pair, universal (any `k` equalizing all pairs factors uniquely
+  through `w`).  Built by iterated binary equalizer (`products_pullbacks_implies_equalizers`).
+  Avoiding `DecidableEq 𝒞`: instead of "morphisms with EQUAL targets" we list, for the product, the
+  pairs `(fst≫f, snd≫f')` for matching factors — see `pairProd` below; the wide equalizer is the
+  reusable kernel. -/
+
+/-- Equalizer maps are monic (inlined; `S1_57.eqMap_mono` is in a later, un-imported file).
+    `a ≫ e = b ≫ e` with `e = eqMap u v`: both factor `a≫e` through the equalizer; the lift is
+    unique, so `a = lift = b`. -/
+theorem eqMap_mono' [HasEqualizers 𝒞] {X B : 𝒞} (u v : X ⟶ B) : Mono (eqMap u v) := by
+  intro W a b hab
+  have ha : a ≫ eqMap u v ≫ u = a ≫ eqMap u v ≫ v := by rw [eqMap_eq]
+  have hb : (a ≫ eqMap u v) ≫ u = (a ≫ eqMap u v) ≫ v := by rw [Cat.assoc, Cat.assoc]; exact ha
+  rw [eqLift_uniq u v _ hb a rfl, eqLift_uniq u v _ hb b hab.symm]
+
+/-- A `WideEq` of a list `L` of parallel pairs over `X`: the maximal subobject equalizing all of
+    them.  `dom`/`map` is the subobject `w : D ↪ X`; `eq` says `w` equalizes every listed pair;
+    `mono` that `w` is monic; `lift`/`fac`/`uniq` the universal property. -/
+structure WideEq (X : 𝒞) (L : List (Σ B : 𝒞, (X ⟶ B) × (X ⟶ B))) where
+  dom  : 𝒞
+  map  : dom ⟶ X
+  mono : Mono map
+  eq   : ∀ p ∈ L, map ≫ p.2.1 = map ≫ p.2.2
+  lift : ∀ {Z : 𝒞} (k : Z ⟶ X), (∀ p ∈ L, k ≫ p.2.1 = k ≫ p.2.2) → (Z ⟶ dom)
+  fac  : ∀ {Z : 𝒞} (k : Z ⟶ X) (h : ∀ p ∈ L, k ≫ p.2.1 = k ≫ p.2.2), lift k h ≫ map = k
+  uniq : ∀ {Z : 𝒞} (k : Z ⟶ X) (h : ∀ p ∈ L, k ≫ p.2.1 = k ≫ p.2.2) (m : Z ⟶ dom),
+           m ≫ map = k → m = lift k h
+
+/-- The empty wide equalizer: `D = X`, `w = id` (no pairs to equalize). -/
+def wideEqNil (X : 𝒞) : WideEq X [] where
+  dom := X
+  map := Cat.id X
+  mono := by intro W a b hab; rw [← Cat.comp_id a, ← Cat.comp_id b]; exact hab
+  eq p hp := absurd hp List.not_mem_nil
+  lift k _ := k
+  fac k _ := Cat.comp_id k
+  uniq k _ m hm := by rw [← hm, Cat.comp_id]
+
+/-- The cons step: equalize the head pair, then wide-equalize the tail composed with that
+    equalizer's map.  `D = wideEq(tail ∘ e)`, `w = e' ≫ e` with `e = eqMap u v`. -/
+def wideEqCons [HasEqualizers 𝒞] (X B : 𝒞) (u v : X ⟶ B)
+    (L : List (Σ B : 𝒞, (X ⟶ B) × (X ⟶ B)))
+    (tail : WideEq (eqObj u v) (L.map (fun p => ⟨p.1, eqMap u v ≫ p.2.1, eqMap u v ≫ p.2.2⟩))) :
+    WideEq X (⟨B, u, v⟩ :: L) where
+  dom := tail.dom
+  map := tail.map ≫ eqMap u v
+  mono := mono_comp' _ _ tail.mono (eqMap_mono' u v)
+  eq p hp := by
+    rcases List.mem_cons.1 hp with h | h
+    · subst h; rw [Cat.assoc, Cat.assoc, eqMap_eq u v]
+    · -- p ∈ L: tail.eq on the pulled-back pair
+      have := tail.eq ⟨p.1, eqMap u v ≫ p.2.1, eqMap u v ≫ p.2.2⟩ (by
+        exact List.mem_map.2 ⟨p, h, rfl⟩)
+      simp only at this
+      rw [Cat.assoc, Cat.assoc, this]
+  lift {Z} k hk := by
+    -- k equalizes u,v (head) ⇒ factors through eqObj as k'; k' equalizes the tail's pulled pairs
+    have hhead : k ≫ u = k ≫ v := hk _ (List.mem_cons.2 (Or.inl rfl))
+    refine tail.lift (eqLift u v k hhead) ?_
+    intro p hp
+    rcases List.mem_map.1 hp with ⟨q, hq, hpe⟩
+    subst hpe
+    simp only
+    have hkq := hk q (List.mem_cons.2 (Or.inr hq))
+    rw [← Cat.assoc, ← Cat.assoc, eqLift_fac u v k hhead, hkq]
+  fac {Z} k hk := by
+    have hhead : k ≫ u = k ≫ v := hk _ (List.mem_cons.2 (Or.inl rfl))
+    rw [← Cat.assoc, tail.fac, eqLift_fac u v k hhead]
+  uniq {Z} k hk m hm := by
+    have hhead : k ≫ u = k ≫ v := hk _ (List.mem_cons.2 (Or.inl rfl))
+    apply tail.uniq
+    -- `m ≫ tail.map = eqLift u v k hhead`: cancel mono `eqMap u v` after `≫ eqMap`
+    apply eqLift_uniq u v k hhead
+    -- goal `(m ≫ tail.map) ≫ eqMap u v = k`; `hm` is the right-associated form.
+    rw [Cat.assoc]; exact hm
+
+/-- The wide equalizer of an arbitrary finite list, by recursion on the list length (the
+    recursive call is on the tail `L`, whose mapped form has length `L.length < (hd::L).length`,
+    even though its ambient object changes from `X` to `eqObj u v`). -/
+def wideEq [HasEqualizers 𝒞] (X : 𝒞) :
+    (L : List (Σ B : 𝒞, (X ⟶ B) × (X ⟶ B))) → WideEq X L
+  | [] => wideEqNil X
+  | ⟨B, u, v⟩ :: L => wideEqCons X B u v L (wideEq (eqObj u v) _)
+  termination_by L => L.length
+  decreasing_by simp only [List.length_map, List.length_cons]; omega
+
+/-! ### §1.547  `Â` IS CARTESIAN — terminal object (milestone R4)
+
+  Book (§1.547): "Note that `Â` is Cartesian, e.g. `(A₁,F₁) × (A₂,F₂) = (D,K)`" where `D ↪ A₁×A₂`
+  is the maximal subobject equalizing all morphisms in `H = H₁ ∪ H₂` (`H₁ = {fst≫f | f∈F₁}`,
+  `H₂ = {snd≫f | f∈F₂}`) with equal targets, and `K = {w≫h | h∈H}`.  The forgetful functor
+  `Â → A` REFLECTS these from `A`'s finite limits.
+
+  TERMINAL.  The terminal object of `Â` is `(1, ∅)` — the terminator of `A` with NO factors.  A
+  morphism `X → (1,∅)` is just `term X.A : X.A → 1` (compatibility vacuous, `Y.F = ∅`), and it is
+  unique because `term` is unique in `A`. -/
+
+/-- **§1.547 — the terminal object of `Â`** is `(1, ∅)`: the terminator of `A` with no factors. -/
+def pairTerminal : PairObj 𝒞 where
+  A := HasTerminal.one
+  F := []
+  wsupp := by intro p hp; exact absurd hp (List.not_mem_nil)
+
+/-- The unique `Â`-morphism `X → (1,∅)`: underlying `term`, compatibility vacuous (`F = ∅`). -/
+def pairToTerminal (X : PairObj 𝒞) : PairHom X pairTerminal where
+  g := term X.A
+  compat p hp := absurd hp (List.not_mem_nil)
+
+/-- **§1.547 — `Â` has a terminal object** `(1,∅)`.  Uniqueness of `X → (1,∅)` is uniqueness of
+    `X.A → 1` in `A` (`term_uniq`) lifted through `PairHom.ext` (a `PairHom` is its `.g`). -/
+instance pairHasTerminal : HasTerminal (PairObj 𝒞) where
+  one := pairTerminal
+  trm X := pairToTerminal X
+  uniq f g := PairHom.ext (term_uniq f.g g.g)
+
+/-! ### §1.547  `Â` IS CARTESIAN — binary products `(A₁,F₁) × (A₂,F₂) = (D,K)`
+
+  Book formula (§1.547): with `H₁ = {fst≫f | f∈F₁}`, `H₂ = {snd≫f' | f'∈F₂}` morphisms out of
+  `A₁×A₂`, `D ↪ A₁×A₂` is the maximal subobject equalizing the morphisms of `H = H₁∪H₂` that share
+  a target, and `K = {w≫h | h∈H}`.  Within `F₁` (resp. `F₂`) the targets are distinct, so the only
+  forced equalizations are the CROSS pairs `(fst≫f, snd≫f')` for `f∈F₁`, `f'∈F₂` with `f° = f'°`.
+  We collect those (decidable target match) and take their `wideEq`.
+
+  `[DecidableEq 𝒞]` is used ONLY to build the cross-pair constraint list — Freyd's "morphisms with
+  equal targets" is exactly this target-matching, which in his ambient (a category of sets) is
+  decidable.  It is a NEW typeclass argument on the product construction; it weakens no protected
+  statement. -/
+
+section PairProd
+variable [HasEqualizers 𝒞] [DecidableEq 𝒞]
+
+/-- The CROSS constraint list for `(A₁,F₁)×(A₂,F₂)`: pairs `(fst≫f, snd≫f')` over `A₁×A₂` for
+    `f∈F₁`, `f'∈F₂` whose targets agree (`f.1 = f'.1`), packaged for `wideEq`.  Built by a double
+    `filterMap`, the target match decided by `DecidableEq 𝒞`. -/
+def crossConstraints (X Y : PairObj 𝒞) :
+    List (Σ B : 𝒞, (prod X.A Y.A ⟶ B) × (prod X.A Y.A ⟶ B)) :=
+  X.F.flatMap (fun f => Y.F.filterMap (fun f' =>
+    if h : f.1 = f'.1 then
+      some ⟨f.1, (fst ≫ f.2, snd ≫ (h ▸ f'.2))⟩
+    else none))
+
+/-- The product OBJECT `D` of the §1.547 formula: the wide-equalizer of the cross constraints
+    inside `A₁×A₂`. -/
+def pairProdD (X Y : PairObj 𝒞) : 𝒞 := (wideEq (prod X.A Y.A) (crossConstraints X Y)).dom
+
+/-- The subobject `w : D ↪ A₁×A₂`. -/
+def pairProdW (X Y : PairObj 𝒞) : pairProdD X Y ⟶ prod X.A Y.A :=
+  (wideEq (prod X.A Y.A) (crossConstraints X Y)).map
+
+/-- `w` is monic. -/
+theorem pairProdW_mono (X Y : PairObj 𝒞) : Mono (pairProdW X Y) :=
+  (wideEq (prod X.A Y.A) (crossConstraints X Y)).mono
+
+/-- The factor list `K = {w≫h | h∈H}` of the product object: `w≫fst≫f` for `f∈F₁`, `w≫snd≫f'`
+    for `f'∈F₂`. -/
+def pairProdK (X Y : PairObj 𝒞) : List (Σ T : 𝒞, pairProdD X Y ⟶ T) :=
+  X.F.map (fun f => ⟨f.1, pairProdW X Y ≫ fst ≫ f.2⟩) ++
+  Y.F.map (fun f' => ⟨f'.1, pairProdW X Y ≫ snd ≫ f'.2⟩)
+
+/-- The targets in `K` are well-supported (they are targets of `F₁` or `F₂`). -/
+theorem pairProdK_wsupp (X Y : PairObj 𝒞) : ∀ p ∈ pairProdK X Y, WellSupported p.1 := by
+  intro p hp
+  rcases List.mem_append.1 hp with h | h
+  · rcases List.mem_map.1 h with ⟨f, hf, he⟩; rw [← he]; exact X.wsupp f hf
+  · rcases List.mem_map.1 h with ⟨f', hf', he⟩; rw [← he]; exact Y.wsupp f' hf'
+
+/-- **§1.547 — the product object `(D,K)`** of `(A₁,F₁)` and `(A₂,F₂)` in `Â`. -/
+def pairProdObj (X Y : PairObj 𝒞) : PairObj 𝒞 where
+  A := pairProdD X Y
+  F := pairProdK X Y
+  wsupp := pairProdK_wsupp X Y
+
+/-- **§1.547 — first projection** `(D,K) → (A₁,F₁)`, underlying `w≫fst`.  Compatibility: each
+    `f∈F₁` has `w≫fst≫f ∈ K` (the `F₁`-half of `K`), with `(w≫fst)≫f = w≫fst≫f`. -/
+def pairProjFst (X Y : PairObj 𝒞) : PairHom (pairProdObj X Y) X where
+  g := pairProdW X Y ≫ fst
+  compat p hp := by
+    refine ⟨⟨p.1, pairProdW X Y ≫ fst ≫ p.2⟩, ?_, rfl, by rw [Cat.assoc]⟩
+    exact List.mem_append.2 (Or.inl (List.mem_map.2 ⟨p, hp, rfl⟩))
+
+/-- **§1.547 — second projection** `(D,K) → (A₂,F₂)`, underlying `w≫snd`. -/
+def pairProjSnd (X Y : PairObj 𝒞) : PairHom (pairProdObj X Y) Y where
+  g := pairProdW X Y ≫ snd
+  compat p hp := by
+    refine ⟨⟨p.1, pairProdW X Y ≫ snd ≫ p.2⟩, ?_, rfl, by rw [Cat.assoc]⟩
+    exact List.mem_append.2 (Or.inr (List.mem_map.2 ⟨p, hp, rfl⟩))
+
+/-- **§1.547 — UNIQUENESS of the product pairing** (unconditional).  Two `Â`-arrows into `(D,K)`
+    agreeing after both projections are equal: underlying `α≫(w≫fst) = β≫(w≫fst)` and the `snd`
+    analogue give `(α≫w)≫fst = (β≫w)≫fst` and `≫snd`, so `α≫w = β≫w` (`prod_hom_ext`), then
+    `α = β` (`w` monic, `pairProdW_mono`), then `PairHom.ext`. -/
+theorem pairProd_hom_ext {Z X Y : PairObj 𝒞} (a b : PairHom Z (pairProdObj X Y))
+    (h₁ : a.comp (pairProjFst X Y) = b.comp (pairProjFst X Y))
+    (h₂ : a.comp (pairProjSnd X Y) = b.comp (pairProjSnd X Y)) : a = b := by
+  apply PairHom.ext
+  apply pairProdW_mono X Y
+  apply prod_hom_ext
+  · have := congrArg PairHom.g h₁
+    simpa [PairHom.comp, pairProjFst, Cat.assoc] using this
+  · have := congrArg PairHom.g h₂
+    simpa [PairHom.comp, pairProjSnd, Cat.assoc] using this
+
+/-! ### §1.547  Product pairing — EXISTENCE (the R3 `PairObj` distinctness gap)
+
+  The pairing `⟨a,b⟩ : Z → (D,K)` has underlying `pair α β : A₀ → A₁×A₂`; it factors through the
+  subobject `w : D ↪ A₁×A₂` iff `pair α β` EQUALIZES every cross constraint, i.e. for each matched
+  `f∈F₁`, `f'∈F₂` (`f° = f'°`), `α≫f = β≫f'`.  By compatibility of `a` (resp. `b`) this is
+  `r.2 = r'.2` for the factors `r,r' ∈ F₀` that `a` (resp. `b`) sends `f` (resp. `f'`) to — both of
+  TARGET `f° = f'°`.  The book guarantees this because `F₀`'s targets are DISTINCT (so `r = r'`),
+  but R3's `PairObj` (shared, downstream) records only well-supportedness, NOT distinctness.  So
+  the pairing factors precisely under the hypothesis `Hdistinct`: any two factors of `Z`'s set with
+  equal target are equal.  We state the pairing with this genuine hypothesis (NOT faked); the full
+  unconditional `HasBinaryProducts (PairObj 𝒞)` instance is blocked on adding distinctness to
+  `PairObj`, sharply documented here. -/
+
+/-- The "distinct targets" property of a `PairObj`'s factor set: factors with equal target are
+    equal (after transport).  Book §1.547 requires it of every object of `Â`; R3's `PairObj`
+    omits it. -/
+def PairObj.DistinctTargets (Z : PairObj 𝒞) : Prop :=
+  ∀ r ∈ Z.F, ∀ r' ∈ Z.F, ∀ h : r.1 = r'.1, h ▸ r.2 = r'.2
+
+/-- The underlying lift `pair a.g b.g` equalizes every cross constraint (matched factors of `X`,`Y`
+    pull back to factors of `Z` of equal target, equal by `Hdistinct`). -/
+theorem pairPair_equ {Z X Y : PairObj 𝒞} (Hdistinct : Z.DistinctTargets)
+    (a : PairHom Z X) (b : PairHom Z Y) :
+    ∀ q ∈ crossConstraints X Y, pair a.g b.g ≫ q.2.1 = pair a.g b.g ≫ q.2.2 := by
+  intro q hq
+  rcases List.mem_flatMap.1 hq with ⟨f, hf, hq2⟩
+  rcases List.mem_filterMap.1 hq2 with ⟨f', hf', hq3⟩
+  by_cases hff : f.1 = f'.1
+  · rw [dif_pos hff] at hq3
+    cases hq3
+    obtain ⟨r, hr, hrt, hre⟩ := a.compat f hf
+    obtain ⟨r', hr', hrt', hre'⟩ := b.compat f' hf'
+    have hmatch : (hrt.trans (hff.trans hrt'.symm) : r.1 = r'.1) ▸ r.2 = r'.2 :=
+      Hdistinct r hr r' hr' _
+    obtain ⟨B, ff⟩ := f; obtain ⟨B', ff'⟩ := f'
+    obtain ⟨C, rr⟩ := r; obtain ⟨C', rr'⟩ := r'
+    simp only at hff hrt hrt' hre hre' hmatch ⊢
+    subst hff; subst hrt; subst hrt'
+    simp only [eq_mpr_eq_cast, cast_eq] at hre hre' hmatch ⊢
+    rw [← Cat.assoc, ← Cat.assoc, fst_pair, snd_pair, hre, hre', hmatch]
+  · rw [dif_neg hff] at hq3; exact absurd hq3 (by simp)
+
+/-- The lift map `d : Z.A → D` of `pair a.g b.g` through the subobject `w`. -/
+def pairPairMap {Z X Y : PairObj 𝒞} (Hdistinct : Z.DistinctTargets)
+    (a : PairHom Z X) (b : PairHom Z Y) : Z.A ⟶ pairProdD X Y :=
+  (wideEq (prod X.A Y.A) (crossConstraints X Y)).lift (pair a.g b.g) (pairPair_equ Hdistinct a b)
+
+theorem pairPairMap_w {Z X Y : PairObj 𝒞} (Hdistinct : Z.DistinctTargets)
+    (a : PairHom Z X) (b : PairHom Z Y) :
+    pairPairMap Hdistinct a b ≫ pairProdW X Y = pair a.g b.g :=
+  (wideEq (prod X.A Y.A) (crossConstraints X Y)).fac (pair a.g b.g) (pairPair_equ Hdistinct a b)
+
+/-- **§1.547 — the product PAIRING** `⟨a,b⟩ : Z → (D,K)` (data, choice-free), under the book's
+    target-distinctness of `Z`.  Underlying `pair a.g b.g` factored through `w`; the compatibility
+    is the two half-compatibilities of `a`,`b`. -/
+def pairPair {Z X Y : PairObj 𝒞} (Hdistinct : Z.DistinctTargets)
+    (a : PairHom Z X) (b : PairHom Z Y) : PairHom Z (pairProdObj X Y) where
+  g := pairPairMap Hdistinct a b
+  compat := by
+    have hd := pairPairMap_w Hdistinct a b
+    intro p hp
+    rcases List.mem_append.1 hp with hL | hR
+    · rcases List.mem_map.1 hL with ⟨f, hf, he⟩
+      obtain ⟨r, hr, hrt, hre⟩ := a.compat f hf
+      refine ⟨r, hr, by rw [hrt]; exact congrArg (·.1) he, ?_⟩
+      subst he
+      have : pairPairMap Hdistinct a b ≫ pairProdW X Y ≫ fst ≫ f.2 = a.g ≫ f.2 := by
+        rw [← Cat.assoc _ (pairProdW X Y), hd, ← Cat.assoc, fst_pair]
+      rw [this, hre]
+    · rcases List.mem_map.1 hR with ⟨f', hf', he⟩
+      obtain ⟨r', hr', hrt', hre'⟩ := b.compat f' hf'
+      refine ⟨r', hr', by rw [hrt']; exact congrArg (·.1) he, ?_⟩
+      subst he
+      have : pairPairMap Hdistinct a b ≫ pairProdW X Y ≫ snd ≫ f'.2 = b.g ≫ f'.2 := by
+        rw [← Cat.assoc _ (pairProdW X Y), hd, ← Cat.assoc, snd_pair]
+      rw [this, hre']
+
+theorem pairPair_fst {Z X Y : PairObj 𝒞} (Hdistinct : Z.DistinctTargets)
+    (a : PairHom Z X) (b : PairHom Z Y) :
+    (pairPair Hdistinct a b).comp (pairProjFst X Y) = a :=
+  PairHom.ext (by
+    show (pairPairMap Hdistinct a b ≫ pairProdW X Y ≫ fst) = a.g
+    rw [← Cat.assoc, pairPairMap_w, fst_pair])
+
+theorem pairPair_snd {Z X Y : PairObj 𝒞} (Hdistinct : Z.DistinctTargets)
+    (a : PairHom Z X) (b : PairHom Z Y) :
+    (pairPair Hdistinct a b).comp (pairProjSnd X Y) = b :=
+  PairHom.ext (by
+    show (pairPairMap Hdistinct a b ≫ pairProdW X Y ≫ snd) = b.g
+    rw [← Cat.assoc, pairPairMap_w, snd_pair])
+
+/-- **§1.547 — EXISTENCE of the product pairing** under the book's target-distinctness (the
+    universal-property existence, repackaged from the choice-free `pairPair` data). -/
+theorem pairProd_lift {Z X Y : PairObj 𝒞} (Hdistinct : Z.DistinctTargets)
+    (a : PairHom Z X) (b : PairHom Z Y) :
+    ∃ p : PairHom Z (pairProdObj X Y),
+      p.comp (pairProjFst X Y) = a ∧ p.comp (pairProjSnd X Y) = b :=
+  ⟨pairPair Hdistinct a b, pairPair_fst Hdistinct a b, pairPair_snd Hdistinct a b⟩
+
+/-! ### §1.547  `HasBinaryProducts (PairObj 𝒞)` under the book's standing distinctness assumption
+
+  Freyd's §1.547 takes EVERY object of `Â` to have factors to "DISTINCT well-supported targets".
+  R3's `PairObj` (shared, downstream) records only well-supportedness.  We make the book's
+  distinctness a STANDING ASSUMPTION via a class `PairTargetsDistinct 𝒞` (every `PairObj` has
+  distinct targets) — this is NOT a weakening of any protected statement, it is the explicit form
+  of Freyd's "distinct targets".  Under it the §1.547 product is TOTAL: `pair = pairProd_lift`'s
+  witness, `pair_uniq = pairProd_hom_ext`.  Without it the lift can fail (two factors of `Z` to the
+  same target may differ), so the instance is genuinely GATED on this class. -/
+
+/-- **Book §1.547 standing assumption**: every object of `Â` has factors to DISTINCT targets.  This
+    is the distinctness Freyd builds into objects of `Â` but R3's `PairObj` omitted. -/
+class PairTargetsDistinct (𝒞 : Type u) [Cat.{u} 𝒞] [HasTerminal 𝒞] : Prop where
+  distinct : ∀ Z : PairObj 𝒞, Z.DistinctTargets
+
+/-- **§1.547 — `Â` HAS BINARY PRODUCTS** (under the book's distinctness assumption).  Object/
+    projections are the §1.547 `(D,K)` formula (`pairProdObj`/`pairProj…`); `pair` is the lift
+    `pairProd_lift` (total thanks to `PairTargetsDistinct`); `pair_uniq` is `pairProd_hom_ext`. -/
+instance pairHasBinaryProducts [HasEqualizers 𝒞] [DecidableEq 𝒞]
+    [PairTargetsDistinct 𝒞] : HasBinaryProducts (PairObj 𝒞) where
+  prod := pairProdObj
+  fst {X Y} := pairProjFst X Y
+  snd {X Y} := pairProjSnd X Y
+  pair {Z X Y} a b := pairPair (PairTargetsDistinct.distinct Z) a b
+  fst_pair {Z X Y} a b := pairPair_fst (PairTargetsDistinct.distinct Z) a b
+  snd_pair {Z X Y} a b := pairPair_snd (PairTargetsDistinct.distinct Z) a b
+  pair_uniq {Z X Y} a b h h₁ h₂ :=
+    pairProd_hom_ext h _
+      (h₁.trans (pairPair_fst (PairTargetsDistinct.distinct Z) a b).symm)
+      (h₂.trans (pairPair_snd (PairTargetsDistinct.distinct Z) a b).symm)
+
+end PairProd
 
 end PairsCategory
 
