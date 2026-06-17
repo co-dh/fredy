@@ -286,6 +286,150 @@ theorem catSucc_preReg {X : CategoryTheory.Cat.{u, u}} (h : StagePreReg X) :
   -- now the carrier is `Cat.of s.T`; `ofMathlibCat (Cat.of s.T).str = s.catT` definitionally
   exact s.preT
 
+/-! ### Bot and successor stage transport
+
+  The bottom and successor stages of the iteration are *object-equal* (not merely isomorphic)
+  to `X₀ = Cat.of A` and to `catSucc` of the previous stage: mathlib builds
+  `iterationFunctorObjBotIso`/`iterationFunctorObjSuccIso` as `eqToIso` of honest `Cat`-object
+  equalities (`(Φ.iter ⊥).obj_bot`, `prop_iterationFunctor_map_succ …).succ_eq`).  Because
+  `StagePreReg` is a predicate on the `Cat` object alone, those equalities transport it by `▸`,
+  no equivalence needed. -/
+
+/-- The bottom stage carries the seed's pre-regular structure: `iterFunctor.obj ⊥ = Cat.of A`
+    on the nose, and `ofMathlibCat (Cat.of A).str = hA` definitionally, so `A`'s
+    `PreRegularCategory` is exactly `StagePreReg ⊥`. -/
+theorem bot_preReg : StagePreReg (X := (iterFunctor nextStep κ A).obj ⊥) := by
+  letI := toMathlibCat hA
+  have hbot : (iterFunctor nextStep κ A).obj ⊥ = CategoryTheory.Cat.of A :=
+    (CategoryTheory.SmallObject.SuccStruct.iter (succStruct nextStep A) ⊥).obj_bot
+  -- transport the seed pre-regularity along the object equality
+  rw [show StagePreReg (X := (iterFunctor nextStep κ A).obj ⊥)
+        = StagePreReg (X := CategoryTheory.Cat.of A) from by rw [hbot]]
+  -- `ofMathlibCat (Cat.of A).str = hA` is `rfl`, so the seed instance discharges it
+  exact ⟨(inferInstance : PreRegularCategory A)⟩
+
+/-- A successor stage stays pre-regular: it is object-equal to `catSucc` of the predecessor
+    (mathlib's `iterationFunctorObjSuccIso` is `eqToIso` of `succ_eq`), and `catSucc_preReg`
+    carries pre-regularity across `catSucc`. -/
+theorem succ_preReg {j : Idx κ} (hj : ¬ IsMax j)
+    (ih : StagePreReg (X := (iterFunctor nextStep κ A).obj j)) :
+    StagePreReg (X := (iterFunctor nextStep κ A).obj (Order.succ j)) := by
+  have hsucc : (iterFunctor nextStep κ A).obj (Order.succ j)
+      = catSucc nextStep ((iterFunctor nextStep κ A).obj j) :=
+    ((CategoryTheory.SmallObject.SuccStruct.prop_iterationFunctor_map_succ
+      (Φ := succStruct nextStep A) j hj).succ_eq).symm
+  rw [show StagePreReg (X := (iterFunctor nextStep κ A).obj (Order.succ j))
+        = StagePreReg (X := catSucc nextStep ((iterFunctor nextStep κ A).obj j)) from by
+      rw [hsucc]]
+  exact catSucc_preReg nextStep ih
+
+/-! ### Limit-stage pre-regularity — ISOLATED (the crux relating-lemma)
+
+  For a limit `i : Idx κ`, mathlib's iteration is *well-order-continuous*: `iterFunctor.obj i`
+  is the mathlib colimit (`Functor.IsWellOrderContinuous`,
+  `isColimitOfIsWellOrderContinuous`) of the restriction `iterFunctor|_{<i}`.  Given
+  `StagePreReg (iterFunctor.obj j)` for every `j < i`, we must produce
+  `StagePreReg (iterFunctor.obj i)`.
+
+  **Why this is isolated as a `sorry` (the precise obstruction).**  The repo already proves
+  `Fredy.colimitPreRegular`, but for the repo's *concrete* `colimitCat` of a repo
+  `Colim.CatSystem` — whose objects are a Σ-quotient and whose homs are explicit germ classes.
+  Mathlib's `CategoryTheory.Cat` colimit is built through the *nerve / `SSet`* reflective
+  adjunction (`HasColimits Cat := hasColimits_of_reflective nerveFunctor`); its objects and
+  hom-sets are **opaque** — there is NO concrete Σ-quotient description, and (per a full search
+  of `Mathlib/CategoryTheory/Limits/Filtered`, `…/Filtered/Grothendieck`, `…/Category/Cat/*`)
+  mathlib exposes NO more-concrete filtered/well-ordered colimit-of-`Cat` API either.
+
+  To transport pre-regularity from the repo `colimitPreRegular` to `iterFunctor.obj i` one needs
+  the canonical category equivalence
+      `iterFunctor.obj i  ≃  colimitCat (bridgeSystem|_{<i})`
+  (uniqueness of colimits: both are colimit cocones over the same diagram).  Building this
+  equivalence requires either (a) presenting the repo `colimitCat` as a mathlib `IsColimit`
+  cocone in `Cat` and invoking `IsColimit.uniqueUpToIso` — large, because the repo colimit's
+  universal property is stated in repo terms, not as a mathlib `IsColimit`; or (b) a from-scratch
+  `PreRegularCategory`-transport-across-equivalence lemma (terminal/products/equalizers/
+  cover-pullbacks are each equivalence-invariant) — also large and absent from the repo.
+
+  **Unblocking API.**  EITHER a concrete Σ-quotient/`Grothendieck`-style description of
+  `colimit (F : J ⥤ Cat)` for filtered/well-ordered `J` in mathlib (none exists today), OR a
+  repo lemma `preRegular_of_equivalence : (𝒞 ≌ 𝒟) → PreRegularCategory 𝒞 → PreRegularCategory 𝒟`
+  PLUS `colimitCat_isColimit : IsColimit (mathlib cocone of bridgeSystem)`.  With either, this
+  lemma is mechanical.  The statement below is TRUE (it is the genuine limit-stage
+  pre-regularity); only its proof is deferred.
+
+  NOTE this is the SOLE residual of the bridge's per-stage pre-regularity: bot and successor are
+  discharged sorry-free above. -/
+theorem limitStage_preReg {i : Idx κ} (hi : Order.IsSuccLimit i)
+    (ih : ∀ j, j < i → StagePreReg (X := (iterFunctor nextStep κ A).obj j)) :
+    StagePreReg (X := (iterFunctor nextStep κ A).obj i) := by
+  sorry
+
+/-! ### Transfinite assembly: every stage is pre-regular
+
+  Well-founded recursion on `Idx κ` (a `WellFoundedLT` order with `OrderBot`, `SuccOrder`):
+  split each `i` into bot / successor / limit via `Order.isSuccLimitRecOn`-style case analysis,
+  discharging bot by `bot_preReg`, successor by `succ_preReg`, limit by `limitStage_preReg`.
+  Only the limit case routes through the isolated `sorry`. -/
+theorem stagePreReg (i : Idx κ) : StagePreReg (X := (iterFunctor nextStep κ A).obj i) := by
+  induction i using SuccOrder.limitRecOn with
+  | isMin j hj =>
+      -- `j` is a minimal element of `Idx κ`; with `OrderBot` the unique minimum is `⊥`.
+      obtain rfl : j = ⊥ := hj.eq_bot
+      exact bot_preReg nextStep κ A
+  | succ j hj ih =>
+      exact succ_preReg nextStep κ A hj ih
+  | isSuccLimit j hj ih =>
+      exact limitStage_preReg nextStep κ A hj (fun k hk => ih k hk)
+
+/-- The per-stage pre-regular structure, chosen by `Classical.choice` from `stagePreReg`.  This is
+    enough to derive `ht`/`hp`/`he` (terminal / binary products / equalizers) at EVERY stage:
+    `HasEqualizers` from `HasBinaryProducts + HasPullbacks` via
+    `Fredy.products_pullbacks_implies_equalizers`.  It is the existence half of the consumer's
+    per-stage limit hypotheses. -/
+noncomputable def stagePreRegular (i : Idx κ) :
+    @PreRegularCategory _ ((bridgeSystem nextStep κ A).catA i) :=
+  Classical.choice (stagePreReg nextStep κ A i)
+
+/-- Per-stage terminal (existence form). -/
+noncomputable def bridgeHasTerminal (i : Idx κ) :
+    @HasTerminal _ ((bridgeSystem nextStep κ A).catA i) :=
+  (stagePreRegular nextStep κ A i).toHasTerminal
+
+/-- Per-stage binary products (existence form). -/
+noncomputable def bridgeHasBinaryProducts (i : Idx κ) :
+    @HasBinaryProducts _ ((bridgeSystem nextStep κ A).catA i) :=
+  (stagePreRegular nextStep κ A i).toHasBinaryProducts
+
+/-- Per-stage equalizers (existence form), from products + pullbacks. -/
+noncomputable def bridgeHasEqualizers (i : Idx κ) :
+    @HasEqualizers _ ((bridgeSystem nextStep κ A).catA i) :=
+  letI := (stagePreRegular nextStep κ A i).toHasBinaryProducts
+  letI := (stagePreRegular nextStep κ A i).toHasPullbacks
+  products_pullbacks_implies_equalizers
+
+/-! ### Package-assembly status — the COHERENCE obstruction
+
+  The consumer `Freyd.capData_of_cofinalSystem` requires not just per-stage limits but COHERENT
+  preservation fields, e.g.
+      `htpres : ∀ {i j} (hij), C.F hij (ht i).one = (ht j).one`   (on-the-nose EQUALITY)
+  and the analogous `hppres`/`hppres_pair`/`hepres`/`hepres_lift`, plus reflection
+  `hfaith`/`hcons`/`hmono`.
+
+  These CANNOT be supplied from `bridgeHasTerminal`/… as defined here, because those pick an
+  ARBITRARY pre-regular structure per stage via `Classical.choice`.  Terminals/products/equalizers
+  are unique only up to ISO, so the pushforward `F hij (ht i).one` equals `(ht j).one` only when the
+  per-stage choices are THREADED along the transitions — exactly what the hand-rolled
+  `towerHasTerminalN` does (`(ht (n+1)).one := stageStep … (ht n).one` makes `htpres` hold by `rfl`).
+
+  Re-establishing that coherence over `Idx κ` means re-deriving the whole `towerHt*`/`towerHp*`/
+  `towerHe*`/`towerHtpres*`/… family transfinitely: at SUCCESSOR stages from the `CapStep`
+  preservation fields of `catToSucc` (mechanical, mirrors B1), but at LIMIT stages from the colimit
+  injections of the OPAQUE mathlib `Cat`-colimit — the SAME obstruction as `limitStage_preReg`.
+  Hence the preservation/reflection package is blocked on the identical missing API (a concrete
+  filtered-colimit-of-`Cat` description, or a `PreRegularCategory`-across-equivalence transport plus
+  `colimitCat_isColimit`).  No fields are stubbed with false-statement sorries: only the genuine
+  `limitStage_preReg` carries an isolated TRUE-statement `sorry`. -/
+
 end Freyd.Bridge
 
 -- Axiom audit: the strict diagram + its coherence depend only on mathlib's built-in
@@ -293,3 +437,10 @@ end Freyd.Bridge
 -- no `sorry`.
 #print axioms Freyd.Bridge.bridgeSystem
 #print axioms Freyd.Bridge.bridgeSystem_coherent
+
+-- Per-stage pre-regularity audit.  `bot_preReg`/`succ_preReg` are sorry-free (only mathlib's
+-- classical foundation).  `stagePreReg` (and `limitStage_preReg`) depend additionally on the
+-- ISOLATED `sorryAx` for the limit-stage relating-lemma (the opaque mathlib `Cat`-colimit).
+#print axioms Freyd.Bridge.bot_preReg
+#print axioms Freyd.Bridge.succ_preReg
+#print axioms Freyd.Bridge.stagePreReg
