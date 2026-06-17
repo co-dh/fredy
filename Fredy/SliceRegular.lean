@@ -209,6 +209,27 @@ theorem sliceForget_preserves_isPullback {B : 𝒞} {X Y Z : Over B}
   have := huniq vO (OverHom.ext hv₁) (OverHom.ext hv₂)
   exact congrArg OverHom.f this
 
+/-! ## Σ REFLECTS pullbacks over the terminal: `Over 1 ≃ A`
+
+  When the slice base is the terminal `1`, `Σ : Over 1 → A` is an equivalence, so it also *reflects*
+  pullbacks: a slice cone whose `Σ`-image (`sliceConeForget`) is a base pullback is itself a slice
+  pullback.  Every base arrow into a `Over 1`-object is automatically an over-hom (its triangle is
+  `term_uniq`), so the base lift wraps to a slice lift and the base uniqueness gives slice uniqueness. -/
+
+/-- **`Σ` reflects pullbacks over the terminal.**  For `Over (one : A)`, a slice cone `c` over `(m, n)`
+    whose `Σ`-image is a base pullback is a slice pullback.  (`Over 1 ≃ A`; over-hom triangles are free.) -/
+theorem sliceForget_reflects_isPullback_terminal [HasTerminal 𝒞]
+    {X Y Z : Over (HasTerminal.one : 𝒞)} {m : X ⟶ Z} {n : Y ⟶ Z}
+    (c : Cone m n) (hc : (sliceConeForget c).IsPullback) : c.IsPullback := by
+  intro d
+  -- base cone of `d`: apex `d.pt.dom`, legs `d.π₁.f`, `d.π₂.f`.
+  obtain ⟨u, ⟨hu₁, hu₂⟩, huniq⟩ := hc (sliceConeForget d)
+  -- `u : d.pt.dom → c.pt.dom` is an over-hom `d.pt → c.pt` (triangle is `term_uniq`).
+  let uO : OverHom d.pt c.pt := ⟨u, term_uniq _ _⟩
+  refine ⟨uO, ⟨OverHom.ext hu₁, OverHom.ext hu₂⟩, ?_⟩
+  intro v hv₁ hv₂
+  exact OverHom.ext (huniq v.f (congrArg OverHom.f hv₁) (congrArg OverHom.f hv₂))
+
 /-! ## §1.52 `PullbacksTransferCovers (Over B)`
 
   In a slice pullback square with a slice cover `f`, the opposite projection is a

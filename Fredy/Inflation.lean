@@ -819,6 +819,97 @@ instance inflPullbacksTransferCovers [HasEqualizers 𝒞] [PullbacksTransferCove
     exact coverC_to_inflCover (s := c.pt) (t := cc)
       (f := (c.π₂ : listProd (𝒞 := 𝒞) c.pt ⟶ listProd cc)) hcov𝒞 m h hm hhm
 
+/-! ### §1.544  The cross-section `infl : 𝒞 → A′` PRESERVES pullbacks (forward direction)
+
+  Dual to `inflIsPullback_to_isPullback`: a `𝒞`-pullback cone `c` over `(f, g)`, embedded by
+  `infl` (apex `[c.pt]`, legs `inflFunctor.map c.π₁/π₂`, cospan `inflFunctor.map f/g`), is an
+  `A′`-pullback.  An `A′`-cone `d` over `(infl f, infl g)` is projected to `𝒞` by the unitor `fst`
+  (`infl h ≫ fst = fst ≫ h`, naturality of `prodRight 1`); `c`'s `𝒞`-universal property lifts it,
+  and the `A′`-lift is `u ≫ prodOneRightInv c.pt`.  The leg/uniqueness equations ride
+  `fst_snd_jointly_monic` on `c.pt × 1` (the `1`-component collapses by `term_uniq`). -/
+
+/-- Unitor naturality for the cross-section, as a `𝒞`-equation on the underlying arrow:
+    `(infl h : X×1 ⟶ Y×1) ≫ fst = fst ≫ h`.  `infl h = pair (fst≫h) snd`, so this is `fst_pair`.
+    The `≫` is forced to `𝒞`'s by binding `infl h` as the `𝒞`-arrow `mf`. -/
+theorem inflMap_fst {X Y : 𝒞} (h : X ⟶ Y) :
+    ∀ mf : prod X one ⟶ prod Y one, mf = (inflFunctor.map h : (infl X : Infl 𝒞) ⟶ infl Y) →
+      mf ≫ (fst : prod Y one ⟶ Y) = (fst : prod X one ⟶ X) ≫ h := by
+  intro mf hmf; subst hmf; exact fst_pair (fst ≫ h) snd
+
+/-- The `infl`-image cone of a `𝒞`-cone `c` over `(f, g)`: apex `[c.pt]`, legs `infl c.π₁/π₂`,
+    over the inflated cospan `(infl f, infl g)`. -/
+def inflEmbedCone {A B C : 𝒞} {f : A ⟶ C} {g : B ⟶ C} (c : Cone f g) :
+    Cone (𝒞 := Infl 𝒞) (inflFunctor.map f : (infl A : Infl 𝒞) ⟶ infl C)
+      (inflFunctor.map g : (infl B : Infl 𝒞) ⟶ infl C) :=
+  { pt := (infl c.pt : Infl 𝒞)
+    π₁ := inflFunctor.map c.π₁
+    π₂ := inflFunctor.map c.π₂
+    w  := by rw [← inflFunctor.map_comp, ← inflFunctor.map_comp, c.w] }
+
+/-- **`infl` preserves pullbacks (forward).**  A `𝒞`-pullback cone `c` maps to an `A′`-pullback.
+
+    `A′`-cone `d` over `(infl f, infl g)`: legs `d.π₁ : ∏d.pt ⟶ A×1`, `d.π₂ : ∏d.pt ⟶ B×1`.  Bind
+    everything as `𝒞`-arrows (`∏[X] = X×1`), project to `𝒞` by `fst` to a `𝒞`-cone over `(f, g)`,
+    lift by `c`, and re-inflate the lift through `prodOneRightInv c.pt`.  All leg/uniqueness equations
+    are `fst_snd_jointly_monic` on `_×1` (the `snd`/`1`-component collapses by `term_uniq`). -/
+theorem infl_preserves_isPullback {A B C : 𝒞} {f : A ⟶ C} {g : B ⟶ C}
+    (c : Cone f g) (hc : c.IsPullback (𝒞 := 𝒞)) :
+    (inflEmbedCone c).IsPullback (𝒞 := Infl 𝒞) := by
+  intro d
+  -- Bind cospan and legs as `𝒞`-arrows so every `≫` reads in `𝒞`.
+  let If : prod A one ⟶ prod C one := inflFunctor.map f
+  let Ig : prod B one ⟶ prod C one := inflFunctor.map g
+  let dπ₁ : listProd (𝒞 := 𝒞) d.pt ⟶ prod A one := d.π₁
+  let dπ₂ : listProd (𝒞 := 𝒞) d.pt ⟶ prod B one := d.π₂
+  have hIf : If ≫ (fst : prod C one ⟶ C) = (fst : prod A one ⟶ A) ≫ f := inflMap_fst f If rfl
+  have hIg : Ig ≫ (fst : prod C one ⟶ C) = (fst : prod B one ⟶ B) ≫ g := inflMap_fst g Ig rfl
+  let p₁ : listProd (𝒞 := 𝒞) d.pt ⟶ A := dπ₁ ≫ (fst : prod A one ⟶ A)
+  let p₂ : listProd (𝒞 := 𝒞) d.pt ⟶ B := dπ₂ ≫ (fst : prod B one ⟶ B)
+  have hdw : dπ₁ ≫ If = dπ₂ ≫ Ig := d.w
+  have hpw : p₁ ≫ f = p₂ ≫ g := by
+    show (dπ₁ ≫ fst) ≫ f = (dπ₂ ≫ fst) ≫ g
+    rw [Cat.assoc, Cat.assoc, ← hIf, ← hIg, ← Cat.assoc, ← Cat.assoc, hdw]
+  obtain ⟨u, ⟨hu₁, hu₂⟩, huniq⟩ := hc ⟨listProd (𝒞 := 𝒞) d.pt, p₁, p₂, hpw⟩
+  -- The `A′`-lift is `U := u ≫ prodOneRightInv c.pt : ∏d.pt ⟶ c.pt×1`.
+  let U : listProd (𝒞 := 𝒞) d.pt ⟶ prod c.pt one := u ≫ prodOneRightInv c.pt
+  have hUfst : U ≫ (fst : prod c.pt one ⟶ c.pt) = u := by
+    show (u ≫ prodOneRightInv c.pt) ≫ (fst : prod c.pt one ⟶ c.pt) = u
+    rw [Cat.assoc, prodOneRightInv_fst, Cat.comp_id]
+  -- `U ≫ infl c.π_i = d.π_i` by joint monicity on `_×1`: `fst`-leg is `u ≫ c.π_i = p_i`, `snd`→`term`.
+  have hUleg : ∀ {Z : 𝒞} (k : c.pt ⟶ Z) (Ik : prod c.pt one ⟶ prod Z one)
+      (e : listProd (𝒞 := 𝒞) d.pt ⟶ prod Z one),
+      Ik = (inflFunctor.map k : (infl c.pt : Infl 𝒞) ⟶ infl Z) →
+      u ≫ k = e ≫ (fst : prod Z one ⟶ Z) → U ≫ Ik = e := by
+    intro Z k Ik e hIk hk
+    apply fst_snd_jointly_monic
+    · -- `fst`: `(U ≫ Ik) ≫ fst = (U ≫ fst) ≫ k = u ≫ k = e ≫ fst`.
+      rw [Cat.assoc, inflMap_fst k Ik hIk, ← Cat.assoc, hUfst, hk]
+    · exact term_uniq _ _
+  refine ⟨U, ⟨hUleg c.π₁ (inflFunctor.map c.π₁) dπ₁ rfl hu₁,
+              hUleg c.π₂ (inflFunctor.map c.π₂) dπ₂ rfl hu₂⟩, ?_⟩
+  -- uniqueness: any `A′`-lift `v` agreeing on both legs equals `U` (its `fst`-part is the unique `𝒞`-lift).
+  intro v hv₁ hv₂
+  let v𝒞 : listProd (𝒞 := 𝒞) d.pt ⟶ prod c.pt one := v
+  let Iπ₁ : prod c.pt one ⟶ prod A one := inflFunctor.map c.π₁
+  let Iπ₂ : prod c.pt one ⟶ prod B one := inflFunctor.map c.π₂
+  have hvI₁ : v𝒞 ≫ Iπ₁ = dπ₁ := hv₁
+  have hvI₂ : v𝒞 ≫ Iπ₂ = dπ₂ := hv₂
+  have hIπ₁ : Iπ₁ ≫ (fst : prod A one ⟶ A) = (fst : prod c.pt one ⟶ c.pt) ≫ c.π₁ :=
+    inflMap_fst c.π₁ Iπ₁ rfl
+  have hIπ₂ : Iπ₂ ≫ (fst : prod B one ⟶ B) = (fst : prod c.pt one ⟶ c.pt) ≫ c.π₂ :=
+    inflMap_fst c.π₂ Iπ₂ rfl
+  have hvfst₁ : (v𝒞 ≫ (fst : prod c.pt one ⟶ c.pt)) ≫ c.π₁ = p₁ := by
+    rw [Cat.assoc, ← hIπ₁, ← Cat.assoc, hvI₁]
+  have hvfst₂ : (v𝒞 ≫ (fst : prod c.pt one ⟶ c.pt)) ≫ c.π₂ = p₂ := by
+    rw [Cat.assoc, ← hIπ₂, ← Cat.assoc, hvI₂]
+  have hvu : v𝒞 ≫ (fst : prod c.pt one ⟶ c.pt) = u := huniq _ hvfst₁ hvfst₂
+  -- `v = U` by joint monicity: `fst`-leg is `v ≫ fst = u = U ≫ fst`, `snd`-leg forced by `term`.
+  show v𝒞 = U
+  apply fst_snd_jointly_monic
+  · show v𝒞 ≫ (fst : prod c.pt one ⟶ c.pt) = U ≫ (fst : prod c.pt one ⟶ c.pt)
+    rw [hvu, hUfst]
+  · exact term_uniq _ _
+
 /-- **The §1.547 inner transition preserves covers** (`hcovpres`): the concatenation map `catMap d f`
     is a cover whenever `f` is, since `catMap d f` is a pullback of `f` (`catMap_isPullback`) and `A′`
     transfers covers (`inflPullbacksTransferCovers`). -/
