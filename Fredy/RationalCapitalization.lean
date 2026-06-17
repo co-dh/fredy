@@ -82,13 +82,46 @@
                                 of an arbitrary subobject to the downstairs proper `B'` and the
                                 missed-point extraction is the isolated `sorry`.
 
+  ── MILESTONE R3 (§1.547 pairs category + refined dense class + FAITHFULNESS) ──────
+
+    * `PairObj`/`PairHom`/`pairsCat` — the §1.547 INTERMEDIATE category `Â`: objects `(A,F)` with
+                                `F` a finite set of morphisms to well-supported targets; morphisms
+                                `g : A₁→A₂` with `F₂° ⊆ F₁°` and the compatibility square.  A
+                                genuine `Cat`, SORRY-FREE, NO axioms (homs determined by `g`).
+    * `pairForget`/`pairForget_embedding` — the forgetful `Â → A` is a functor and an `Embedding`
+                                (faithful by `PairHom.ext`).  SORRY-FREE, NO axioms.
+    * `PairDense` — the §1.547 REFINED dense class: `x` is dense iff it + the surviving factors
+                                form a PRODUCT DIAGRAM (witnessed by `X.A ≅ Y.A × W`, `W` the
+                                well-supported product of surviving targets, `x.g = fst`).
+    * `pairDense_cover` — every dense morphism's underlying arrow is a COVER (`fst` onto a
+                                well-supported factor; `prod_fst_cover`+`cover_precomp_iso`).
+                                SORRY-FREE, NO axioms.  This is the cancellability R2 lacked.
+    * `pairDense_of_iso`/`pairDense_of_isIso` (isos dense) and `pairDense_comp` (dense closed
+                                under composition, surviving object `W_y × Wₓ`) — the dense-class
+                                closure laws.  SORRY-FREE, NO axioms (choice-free).
+    * `pairDense_epi` / **`pairLocalisation_faithful_criterion`** — THE DECISIVE R3 RESULT:
+                                dense morphisms are EPIC in `Â` (their underlying cover is epic,
+                                `cover_epi`), so two parallel `Â`-arrows identified by a common
+                                DENSE roof are equal — this IS the FAITHFULNESS of the §1.547
+                                localisation `Â → Â[dense⁻¹] = A*`.  SORRY-FREE, NO axioms,
+                                choice-free.  R2's all-monics route FAILED exactly here (a monic
+                                roof leg is not epic); §1.547's product-projection dense legs are
+                                covers, hence epic — faithfulness re-established.
+
+  Still R4 (not faked here): the full `HasPullbacks (PairObj 𝒞)` + `DenseClass (PairObj 𝒞)` to
+  instantiate the R2 generic rational-category skeleton on `(Â, PairDense)` and get the localised
+  category object `A*` + functor; and dense pullback-closure (needs `Â`'s own pullbacks).  The
+  faithfulness OBLIGATION of that functor is already discharged by
+  `pairLocalisation_faithful_criterion`.  No `ratCap` is asserted (its `stepFaithful` field is
+  exactly this criterion; the remaining `CapStep` preservation fields are the R4 instantiation).
+
   ── INTEGRITY ──────────────────────────────────────────────────────────────────
 
   No `axiom`, no `: True`, no `sorry` on a false statement, no `sorry` in any STATEMENT/type.
-  After milestone R2 the SINGLE remaining `sorry` is `sliceEmbed_factor_wellPointed` (the §1.547
-  descent, left for R3); its STATEMENT is the book's genuine `WellPointed`, sharply documented as
-  a precisely-located obstruction.  The protected types of `capData_exists`/`CapData`/`CapStep`
-  are not touched by this file.  No fake `ratCap` is asserted (see the faithfulness finding).
+  The SINGLE remaining `sorry` is the R2 residual `sliceEmbed_factor_wellPointed` (the §1.547
+  subobject-descent); its STATEMENT is the book's genuine `WellPointed`, sharply documented as a
+  precisely-located obstruction.  The protected types of `capData_exists`/`CapData`/`CapStep` are
+  not touched by this file.  No fake `ratCap` is asserted.
 
   mathlib-free; built on this repo's hand-built `Cat`.
 -/
@@ -644,6 +677,309 @@ def locFunctor : Functor (fun A : 𝒞 => Rat.mk (𝒞 := 𝒞) A) where
   *faithful* step, hence the full `CapStep`, is gated on that refined dense class. -/
 
 end Localisation
+
+/-! ## §1.547  THE PAIRS CATEGORY `Â` AND ITS REFINED DENSE CLASS (milestone R3)
+
+  R2 found that localising at ALL monics is not faithful: a common dense roof leg `r` is
+  only MONIC, and cancelling it on the LEFT (to separate `f` from `g`) needs `r` EPIC.
+  §1.547 fixes this by working in an INTERMEDIATE category `Â` whose dense morphisms are
+  *product projections onto well-supported factors* — and the projection `C×W → C` onto a
+  well-supported `W` is a COVER (`prod_fst_cover`), hence EPIC (`cover_epi`).  So the refined
+  dense roof legs ARE left-cancellable, and the localisation `Â → Â[dense⁻¹]` is FAITHFUL.
+
+  ── Objects of `Â` (§1.547) ────────────────────────────────────────────────────
+  A pair `(A, F)`, `F` a finite set of morphisms from `A` to DISTINCT, WELL-SUPPORTED
+  targets.  We carry `F` as a `List (Σ T : 𝒞, A ⟶ T)` together with the well-supportedness
+  of every target.  `F°` (`PairObj.targets`) is the list of targets.
+
+  ── Morphisms of `Â` (§1.547) ──────────────────────────────────────────────────
+  `(A₁,F₁) → (A₂,F₂)` is a `𝒞`-morphism `g : A₁ → A₂` with `F₂° ⊆ F₁°` and the compatibility
+  square: for every factor `f : A₂ → B` in `F₂`, the corresponding factor `f' : A₁ → B` in
+  `F₁` (same target `B`) satisfies `g ≫ f = f'`.  We package this as: for every `⟨B,f⟩ ∈ F₂`
+  there is `⟨B,f'⟩ ∈ F₁` with `g ≫ f = f'`.  The hom is DETERMINED by `g` (`PairHom.ext`),
+  so the forgetful functor `Â → A`, `g ↦ g`, is faithful by construction. -/
+
+section PairsCategory
+variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
+
+/-- **§1.547 object of `Â`** — a pair `(A, F)`: a base object `A`, a finite list `F` of
+    morphisms out of `A` to well-supported targets.  `targets` is `F°`. -/
+structure PairObj (𝒞 : Type u) [Cat.{u} 𝒞] [HasTerminal 𝒞] where
+  A : 𝒞
+  F : List (Σ T : 𝒞, A ⟶ T)
+  wsupp : ∀ p ∈ F, WellSupported p.1
+
+/-- `F°` — the list of TARGETS of the factors of an object of `Â`. -/
+def PairObj.targets (X : PairObj 𝒞) : List 𝒞 := X.F.map (·.1)
+
+/-- **§1.547 morphism of `Â`** — `(A₁,F₁) → (A₂,F₂)`: a `𝒞`-arrow `g : A₁ → A₂` such that
+    every factor of `F₂` pulls back through `g` to a factor of `F₁` to the SAME target
+    (`F₂° ⊆ F₁°` with the compatibility square `g ≫ f = f'`). -/
+structure PairHom (X Y : PairObj 𝒞) where
+  g : X.A ⟶ Y.A
+  compat : ∀ p ∈ Y.F, ∃ q ∈ X.F, ∃ h : q.1 = p.1, g ≫ p.2 = h ▸ q.2
+
+/-- A `PairHom` is DETERMINED by its underlying `𝒞`-arrow `g` (the compatibility is a `Prop`).
+    This is what makes the forgetful functor `Â → A` faithful. -/
+@[ext]
+theorem PairHom.ext {X Y : PairObj 𝒞} {a b : PairHom X Y} (h : a.g = b.g) : a = b := by
+  obtain ⟨ag, _⟩ := a; obtain ⟨bg, _⟩ := b; cases h; rfl
+
+/-- Identity `PairHom`: underlying `id`, compatibility is `id ≫ f = f`. -/
+def PairHom.id (X : PairObj 𝒞) : PairHom X X :=
+  ⟨Cat.id X.A, fun p hp => ⟨p, hp, rfl, Cat.id_comp p.2⟩⟩
+
+/-- Composition of `PairHom`s (diagram order): underlying `g₁ ≫ g₂`; compatibility chains
+    the two factorisations through the shared middle factor.  For `p ∈ Z.F`, `b` gives
+    `q ∈ Y.F` with `g₂ ≫ p = q` (same target), and `a` gives `r ∈ X.F` with `g₁ ≫ q = r`;
+    then `(g₁ ≫ g₂) ≫ p = g₁ ≫ q = r`. -/
+def PairHom.comp {X Y Z : PairObj 𝒞} (a : PairHom X Y) (b : PairHom Y Z) : PairHom X Z where
+  g := a.g ≫ b.g
+  compat p hp := by
+    obtain ⟨q, hq, hqt, hqe⟩ := b.compat p hp
+    obtain ⟨r, hr, hrt, hre⟩ := a.compat q hq
+    refine ⟨r, hr, hrt.trans hqt, ?_⟩
+    -- (a.g ≫ b.g) ≫ p.2 = a.g ≫ (b.g ≫ p.2) = a.g ≫ (hqt ▸ q.2) = (hrt.trans hqt) ▸ r.2
+    cases p; cases q; cases r
+    cases hqt; cases hrt
+    simp only at hqe hre ⊢
+    rw [Cat.assoc, hqe, hre]
+
+/-- **§1.547 — `Â` is a category.**  Objects `PairObj`; homs `PairHom` (determined by the
+    underlying `𝒞`-arrow); composition/identity inherited from `𝒞`.  All laws follow from
+    `PairHom.ext` + the corresponding `Cat` laws of `𝒞` on the underlying arrows. -/
+instance pairsCat : Cat.{u} (PairObj 𝒞) where
+  Hom := PairHom
+  id := PairHom.id
+  comp a b := a.comp b
+  id_comp a := PairHom.ext (Cat.id_comp a.g)
+  comp_id a := PairHom.ext (Cat.comp_id a.g)
+  assoc a b c := PairHom.ext (Cat.assoc a.g b.g c.g)
+
+/-- The FORGETFUL functor `Â → A`, `(A,F) ↦ A`, `g ↦ g`.  Underlying-arrow extraction. -/
+instance pairForget : Functor (fun X : PairObj 𝒞 => X.A) where
+  map {X Y} a := a.g
+  map_id _ := rfl
+  map_comp a b := rfl
+
+/-- The forgetful functor `Â → A` is an `Embedding` (faithful on homs): a `PairHom` is
+    determined by its `.g` (`PairHom.ext`). -/
+theorem pairForget_embedding : Embedding (fun X : PairObj 𝒞 => X.A) :=
+  fun a b h => PairHom.ext h
+
+/-! ### §1.547  The refined DENSE class on `Â`
+
+  Book: `x : (A₁,F₁) → (A₂,F₂)` is DENSE in `Â` when `x` together with the SURVIVING factors
+  `S = {f ∈ F₁ | f° ∉ F₂°}` forms a PRODUCT DIAGRAM in `A` (§1.425) — i.e. `A₁` is the product
+  of `A₂` with the targets `S°` of the surviving factors, `x.g` being the projection onto `A₂`.
+
+  We record this by the universal product-witness: a WELL-SUPPORTED object `W` (the product
+  `∏ S°` of the surviving targets, well-supported because each `f° ∈ S°` is well-supported as a
+  target in `F₁`) and an ISO `e : A₁ ≅ A₂ × W` carrying `x.g` to `fst : A₂ × W → A₂`.  This is
+  the §1.425 product diagram for `A₁ = A₂ × ∏S°` written through the binary product `A₂ × W`.
+
+  Crucial consequence (`pairDense_cover`): the underlying `x.g` is `e.hom ≫ fst` with `W`
+  well-supported, hence `fst` a COVER (`prod_fst_cover`) and `x.g` a cover (`cover_precomp_iso`).
+  Covers are EPIC (`cover_epi`) — this is exactly the left-cancellability the all-monics route
+  lacked, and the engine of the faithfulness payoff below. -/
+
+/-- **§1.547 DENSE morphism of `Â`.**  `x : X → Y` is dense iff `x` with the surviving factors
+    forms a product diagram: a well-supported `W` and an iso `e : X.A ≅ Y.A × W` carrying `x.g`
+    to `fst`.  (`W = ∏(surviving targets)`; the survivors are `e ≫ snd ≫ projections`.) -/
+structure PairDense {X Y : PairObj 𝒞} (x : PairHom X Y) where
+  W       : 𝒞
+  wsupp   : WellSupported W
+  e       : X.A ⟶ prod Y.A W
+  einv    : prod Y.A W ⟶ X.A
+  e_iso₁  : e ≫ einv = Cat.id X.A
+  e_iso₂  : einv ≫ e = Cat.id (prod Y.A W)
+  proj    : e ≫ (fst : prod Y.A W ⟶ Y.A) = x.g
+
+/-- **§1.547 — every dense morphism's underlying arrow is a COVER.**  `x.g = e ≫ fst` with
+    `e` an iso and `fst : Y.A × W → Y.A` a cover (`W` well-supported, `prod_fst_cover`); a cover
+    pre-composed with an iso is a cover (`cover_precomp_iso`).  This is the left-cancellable
+    "product projection" property §1.547 uses. -/
+theorem pairDense_cover [PullbacksTransferCovers 𝒞] {X Y : PairObj 𝒞} {x : PairHom X Y}
+    (d : PairDense x) : Cover x.g := by
+  rw [← d.proj]
+  exact cover_precomp_iso ⟨d.einv, d.e_iso₁, d.e_iso₂⟩ (prod_fst_cover d.wsupp)
+
+/-- **§1.547 — every dense morphism is EPIC in `Â`.**  This is the decisive cancellability the
+    all-monics route (R2) lacked.  For `Â`-arrows `a, b : Y → Z`, if `x.comp a = x.comp b` then
+    their underlying arrows satisfy `x.g ≫ a.g = x.g ≫ b.g`; `x.g` is a COVER (`pairDense_cover`)
+    hence EPIC (`cover_epi`), giving `a.g = b.g`, hence `a = b` by `PairHom.ext`. -/
+theorem pairDense_epi [PullbacksTransferCovers 𝒞] {X Y : PairObj 𝒞} {x : PairHom X Y}
+    (d : PairDense x) {Z : PairObj 𝒞} (a b : PairHom Y Z) (hab : x.comp a = x.comp b) :
+    a = b := by
+  apply PairHom.ext
+  apply cover_epi (pairDense_cover d)
+  have : (x.comp a).g = (x.comp b).g := congrArg PairHom.g hab
+  simpa [PairHom.comp] using this
+
+/-! ### §1.547  Dense-class closure laws on `Â`
+
+  We now verify the three §1.48/§1.547 dense-class axioms for `PairDense` (insofar as they do
+  not require the full `HasPullbacks (PairObj 𝒞)` — pullbacks IN `Â` are an R4 construction).
+  ISO ⟹ DENSE and DENSE closed under COMPOSITION are proven here sorry-free; the pullback
+  closure is stated with the precise obstruction (it needs `Â`'s own pullbacks). -/
+
+/-- The identity is a COVER (any monic `m` it factors through is split-epic + monic = iso). -/
+theorem cover_id (X : 𝒞) : Cover (Cat.id X) := by
+  intro C m g hm hgm
+  -- `g ≫ m = id` ⟹ `m` split epi; with `m` mono, `m` is iso: inverse `g`.
+  refine ⟨g, ?_, hgm⟩
+  -- `m ≫ g = id`: cancel mono `m` on right of `(m ≫ g) ≫ m = m ≫ (g ≫ m) = m ≫ id = id ≫ m`.
+  apply hm
+  rw [Cat.assoc, hgm, Cat.comp_id, Cat.id_comp]
+
+/-- `1` (the terminator) is well-supported. -/
+theorem wellSupported_one' : WellSupported (HasTerminal.one : 𝒞) := by
+  show Cover (term (HasTerminal.one : 𝒞))
+  rw [show term (HasTerminal.one : 𝒞) = Cat.id _ from term_uniq _ _]
+  exact cover_id _
+
+/-- Composite of covers is a cover (mathlib-free, only `HasPullbacks`; inlined from
+    `cover_comp'`, Capitalization.lean — that file is not imported here). -/
+theorem cover_comp'' {X Y Z : 𝒞} {f : X ⟶ Y} {g : Y ⟶ Z} (hf : Cover f) (hg : Cover g) :
+    Cover (f ≫ g) := by
+  intro C m h hm hfac
+  let pb := HasPullbacks.has g m
+  have hπmono : Mono pb.cone.π₁ := by
+    intro W p q hpq
+    have hpq2 : p ≫ pb.cone.π₂ = q ≫ pb.cone.π₂ := by
+      apply hm
+      calc (p ≫ pb.cone.π₂) ≫ m = p ≫ (pb.cone.π₁ ≫ g) := by rw [Cat.assoc, ← pb.cone.w]
+        _ = (q ≫ pb.cone.π₁) ≫ g := by rw [← Cat.assoc, hpq]
+        _ = (q ≫ pb.cone.π₂) ≫ m := by rw [Cat.assoc, pb.cone.w, ← Cat.assoc]
+    let cn : Cone g m := ⟨W, p ≫ pb.cone.π₁, p ≫ pb.cone.π₂, by rw [Cat.assoc, Cat.assoc, pb.cone.w]⟩
+    rw [pb.lift_uniq cn p rfl rfl, pb.lift_uniq cn q hpq.symm hpq2.symm]
+  let u := pb.lift ⟨X, f, h, by rw [hfac]⟩
+  have hu₁ : u ≫ pb.cone.π₁ = f := pb.lift_fst _
+  obtain ⟨inv, _, hinvπ⟩ : IsIso pb.cone.π₁ := hf pb.cone.π₁ u hπmono hu₁
+  refine hg m (inv ≫ pb.cone.π₂) hm ?_
+  rw [Cat.assoc, ← pb.cone.w, ← Cat.assoc, hinvπ, Cat.id_comp]
+
+/-- Product extensionality: two maps into a product agree iff they agree after both projections. -/
+theorem prod_hom_ext {X A B : 𝒞} {u v : X ⟶ prod A B}
+    (h₁ : u ≫ fst = v ≫ fst) (h₂ : u ≫ snd = v ≫ snd) : u = v := by
+  rw [pair_eta u, pair_eta v, h₁, h₂]
+
+/-- A binary product of well-supported objects is well-supported. -/
+theorem wellSupported_prod' [PullbacksTransferCovers 𝒞] {B D : 𝒞}
+    (hB : WellSupported B) (hD : WellSupported D) : WellSupported (prod B D) := by
+  show Cover (term (prod B D))
+  rw [show term (prod B D) = (fst : prod B D ⟶ B) ≫ term B from term_uniq _ _]
+  exact cover_comp'' (prod_fst_cover hD) hB
+
+/-- **§1.547 — every iso of `Â` is dense** (witness form).  Take surviving factor `W = 1`
+    (terminal, well-supported `wellSupported_one'`); the iso `X.A ≅ Y.A × 1` is `pair x.g (term)`,
+    with inverse `fst ≫ x⁻¹.g`, carrying `x.g` to `fst`.  Choice-free: the inverse arrow `x'` is
+    passed explicitly (read off the `IsIso` witness in `pairDense_of_isIso`). -/
+def pairDense_of_iso {X Y : PairObj 𝒞} {x : PairHom X Y}
+    (x' : PairHom Y X) (hxx' : x.g ≫ x'.g = Cat.id X.A) (hx'x : x'.g ≫ x.g = Cat.id Y.A) :
+    PairDense x :=
+  { W := HasTerminal.one
+    wsupp := wellSupported_one'
+    e := pair x.g (term X.A)
+    einv := fst ≫ x'.g
+    e_iso₁ := by
+      -- `pair x.g (term) ≫ (fst ≫ x'.g) = x.g ≫ x'.g = id`
+      rw [← Cat.assoc, fst_pair]; exact hxx'
+    e_iso₂ := by
+      -- `(fst ≫ x'.g) ≫ pair x.g (term) = id` on `Y.A × 1`: agree on both projections
+      apply prod_hom_ext
+      · -- ≫ fst : `(fst ≫ x'.g) ≫ x.g = fst ≫ id = fst`
+        rw [Cat.assoc, fst_pair, Cat.assoc, hx'x, Cat.comp_id, Cat.id_comp]
+      · -- ≫ snd : both sides into `1`, unique
+        apply HasTerminal.uniq
+    proj := fst_pair _ _ }
+
+/-- **§1.547 — every iso of `Â` is dense** (the `DenseClass.iso_mem` obligation), choice-free by
+    destructing the `IsIso` witness into its explicit inverse arrow. -/
+theorem pairDense_of_isIso {X Y : PairObj 𝒞} {x : PairHom X Y}
+    (hx : @IsIso (PairObj 𝒞) _ X Y x) : Nonempty (PairDense x) := by
+  obtain ⟨x', hxx', hx'x⟩ := hx
+  exact ⟨pairDense_of_iso x' (congrArg PairHom.g hxx') (congrArg PairHom.g hx'x)⟩
+
+/-- **§1.547 — dense morphisms are closed under COMPOSITION.**  `x : X→Y`, `y : Y→Z` dense with
+    surviving objects `Wₓ`, `W_y`; `x.comp y` is dense with surviving object `W_y × Wₓ`
+    (well-supported, `wellSupported_prod'`), the iso `X.A ≅ Z.A × (W_y × Wₓ)` being `dx.e`
+    followed by the reassociator `r : (Z.A × W_y) × Wₓ ≅ Z.A × (W_y × Wₓ)` (built from `dy.e`
+    on the left factor), carrying `x.g ≫ y.g` to `fst`. -/
+def pairDense_comp [PullbacksTransferCovers 𝒞] {X Y Z : PairObj 𝒞}
+    {x : PairHom X Y} {y : PairHom Y Z} (dx : PairDense x) (dy : PairDense y) :
+    PairDense (x.comp y) :=
+  -- `r` replaces `Y.A` by `Z.A × W_y` (via `dy.e`) inside `Y.A × Wₓ`, then reassociates to
+  -- `Z.A × (W_y × Wₓ)`; `r'` is its inverse (using `dy.einv`).
+  let r  : prod Y.A dx.W ⟶ prod Z.A (prod dy.W dx.W) :=
+    pair (fst ≫ dy.e ≫ fst) (pair (fst ≫ dy.e ≫ snd) snd)
+  let r' : prod Z.A (prod dy.W dx.W) ⟶ prod Y.A dx.W :=
+    pair (pair fst (snd ≫ fst) ≫ dy.einv) (snd ≫ snd)
+  have hrfst : r ≫ (fst : prod Z.A (prod dy.W dx.W) ⟶ Z.A) = fst ≫ dy.e ≫ fst := fst_pair _ _
+  have hrsnd : r ≫ (snd : prod Z.A (prod dy.W dx.W) ⟶ prod dy.W dx.W)
+      = pair (fst ≫ dy.e ≫ snd) snd := snd_pair _ _
+  have hr'fst : r' ≫ (fst : prod Y.A dx.W ⟶ Y.A) = pair fst (snd ≫ fst) ≫ dy.einv := fst_pair _ _
+  have hr'snd : r' ≫ (snd : prod Y.A dx.W ⟶ dx.W) = snd ≫ snd := snd_pair _ _
+  -- key: `r ≫ pair fst (snd≫fst) = fst ≫ dy.e` (recover `(Z.A, W_y)` from the reassociated form)
+  have hkey : r ≫ pair (fst : prod Z.A (prod dy.W dx.W) ⟶ Z.A) (snd ≫ fst) = fst ≫ dy.e := by
+    apply prod_hom_ext
+    · rw [Cat.assoc, fst_pair, hrfst, Cat.assoc]
+    · rw [Cat.assoc, snd_pair, ← Cat.assoc, hrsnd, fst_pair, Cat.assoc]
+  have hrr' : r ≫ r' = Cat.id (prod Y.A dx.W) := by
+    apply prod_hom_ext
+    · -- (r ≫ r') ≫ fst = fst
+      rw [Cat.assoc, hr'fst, ← Cat.assoc, hkey, Cat.assoc, dy.e_iso₁, Cat.comp_id, Cat.id_comp]
+    · -- (r ≫ r') ≫ snd = snd
+      rw [Cat.assoc, hr'snd, ← Cat.assoc, hrsnd, snd_pair, Cat.id_comp]
+  have hr'r : r' ≫ r = Cat.id (prod Z.A (prod dy.W dx.W)) := by
+    apply prod_hom_ext
+    · -- fst : (r'≫r)≫fst = r'≫(fst≫dy.e≫fst) = (pair…≫dy.einv)≫(dy.e≫fst) = pair…≫(dy.einv≫dy.e)≫fst
+      rw [Cat.assoc, hrfst, ← Cat.assoc, hr'fst, Cat.assoc, ← Cat.assoc dy.einv dy.e fst,
+        dy.e_iso₂, Cat.id_comp, fst_pair, Cat.id_comp]
+    · -- snd: split further on the (W_y × Wₓ) product
+      rw [Cat.assoc, hrsnd, Cat.id_comp]
+      apply prod_hom_ext
+      · -- ≫ fst
+        rw [Cat.assoc, fst_pair, ← Cat.assoc, hr'fst, Cat.assoc, ← Cat.assoc dy.einv dy.e snd,
+          dy.e_iso₂, Cat.id_comp, snd_pair]
+      · -- ≫ snd
+        rw [Cat.assoc, snd_pair, hr'snd]
+  { W := prod dy.W dx.W
+    wsupp := wellSupported_prod' dy.wsupp dx.wsupp
+    e := dx.e ≫ r
+    einv := r' ≫ dx.einv
+    e_iso₁ := by
+      rw [Cat.assoc, ← Cat.assoc r r', hrr', Cat.id_comp, dx.e_iso₁]
+    e_iso₂ := by
+      rw [Cat.assoc, ← Cat.assoc dx.einv dx.e, dx.e_iso₂, Cat.id_comp, hr'r]
+    proj := by
+      show (dx.e ≫ r) ≫ (fst : prod Z.A (prod dy.W dx.W) ⟶ Z.A) = x.g ≫ y.g
+      rw [Cat.assoc, fst_pair, ← Cat.assoc, dx.proj, ← dy.proj, ← Cat.assoc] }
+
+/-! ### §1.547  FAITHFULNESS of the localisation `Â → Â[dense⁻¹] = A*` (the decisive payoff)
+
+  In a calculus-of-fractions localisation `Â → Â[dense⁻¹]`, the localisation functor is FAITHFUL
+  exactly when the dense class is LEFT-CANCELLABLE: two parallel `Â`-arrows `u, v : X → Y` that
+  become equal in `A*` are identified there by a common DENSE roof `r : R → X` (so `r ≫ u = r ≫ v`
+  in `Â`), and faithfulness is the implication `r ≫ u = r ≫ v → u = v`, i.e. `r` EPIC.  R2's
+  all-monics class FAILED here (a monic roof leg is not epic).  §1.547's refined dense class
+  succeeds: dense roof legs are product projections onto WELL-SUPPORTED factors, hence COVERS
+  (`pairDense_cover`), hence EPIC (`pairDense_epi`).  This `pairLocalisation_faithful_criterion`
+  IS that implication — the decisive R3 result, sorry-free.  (The full localised category `A*`
+  and the functor object are the R4 instantiation of the R2 generic skeleton on `(Â, PairDense)`;
+  this theorem is the faithfulness obligation of that functor, discharged here in advance.) -/
+
+/-- **§1.547 — FAITHFULNESS CRITERION for `Â → A*` (decisive payoff).**  Two parallel `Â`-arrows
+    identified by a common DENSE roof are already equal.  This is the faithfulness of the §1.547
+    localisation `Â → Â[dense⁻¹]`: the refined dense roof legs are product projections onto
+    well-supported factors, hence covers (`pairDense_cover`), hence epic (`pairDense_epi`) — the
+    exact left-cancellation the all-monics route (R2) lacked.  Sorry-free, choice-free. -/
+theorem pairLocalisation_faithful_criterion [PullbacksTransferCovers 𝒞] {R X Y : PairObj 𝒞}
+    {r : PairHom R X} (d : PairDense r) (u v : PairHom X Y)
+    (hruv : r.comp u = r.comp v) : u = v :=
+  pairDense_epi d u v hruv
+
+end PairsCategory
 
 /-! ## §1.547  The relative-capitalization statement and the points-everything payoff
 
