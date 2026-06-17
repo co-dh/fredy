@@ -452,6 +452,76 @@ namespace Freyd
 
 open Freyd.Colim
 
+/-! ## §1.547 (B-package) — discharging `hcanon` for the inner `OrdChain`-slice colimit
+
+  The generic bridge `Freyd.Colim.colimitCanonicalCover` proves the canonical-pullback cover transfer
+  (`hcanon`) of the inner colimit `S*` from: the 8 limit-preservation hypotheses, the per-stage
+  `PullbacksTransferCovers`, the transition cover-preservation, and the transition cover-reflection
+  (faithful / conservative / mono-preserving).  For the concrete `ordChainSliceSystem` ALL of these are
+  now in hand sorry-free EXCEPT the cover-reflection pair `hfaith`/`hcons`:
+
+    * `hmono`     = `ordChainHmono`        (sorry-free, `Inflation`)
+    * `hcovpres`  = `ordChainHcovpres`     (sorry-free, `Inflation`; from `catMap_cover`, the
+                    `catMap_isPullback` cover transfer)
+    * `hstagePTC` = `ordChainStagePTC`     (sorry-free, `Inflation`; `overPullbacksTransferCovers`)
+
+  `hfaith`/`hcons` are the cover-REFLECTION half: the strict suffix-append transition `catMap d` is
+  faithful / conservative iff the projection `catForget (X.dom) d : ∏(X.dom ++ d) ⟶ ∏X.dom` is epic, i.e.
+  iff the appended suffix `∏d` is WELL-SUPPORTED — exactly the well-supportedness `§1.55`'s slice
+  `sliceEmbedFaithful` requires, and which the relative-capitalization successor `nextStep` (`hwall_step`,
+  still open) supplies for its chain but the BARE `OrdChain`/`PrefixChain` does not carry.  We therefore
+  take `hfaith`/`hcons` as honest explicit hypotheses (NOT a `sorry`): given them, `colimitCanonicalCover`
+  discharges `hcanon` end-to-end. -/
+
+/-- **Discharge of `hcanon` for `ordChainSliceSystem`**, modulo the cover-reflection pair `hfaith`/`hcons`
+    (well-supported suffix).  Supplies the bridge `colimitCanonicalCover` with the sorry-free per-stage PTC
+    (`ordChainStagePTC`), transition cover-preservation (`ordChainHcovpres`) and mono-preservation
+    (`ordChainHmono`), plus the 8 limit-preservation hypotheses already proven for the inner system. -/
+theorem ordChainCanonicalCover {𝒞 : Type u} [Cat.{u} 𝒞] [PreRegularCategory 𝒞] [HasEqualizers 𝒞]
+    {ι : Type u} {D : Directed ι} (O : OrdChain D 𝒞) [Nonempty ι]
+    (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : (ordChainSliceSystem O).A i} (p q : x ⟶ y),
+        ((ordChainSliceSystem O).functF hij).map p = ((ordChainSliceSystem O).functF hij).map q → p = q)
+    (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : (ordChainSliceSystem O).A i} (φ : x ⟶ y),
+        IsIso (((ordChainSliceSystem O).functF hij).map φ) → IsIso φ) :
+    letI : Cat (ordChainSliceSystem O).Obj := colimitCat _ (ordChainSliceCoherent O)
+    letI : HasPullbacks (ordChainSliceSystem O).Obj :=
+      colimitHasPullbacks _ (ordChainSliceCoherent O)
+        (ordChainHasTerminal O) (ordChainHtpres O) (ordChainHasProducts O)
+        (ordChainHppres O) (ordChainHppresPair O)
+        (ordChainHasEqualizers O) (ordChainHepres O) (ordChainHepresLift O)
+    ∀ {X Y Z : (ordChainSliceSystem O).Obj} (f : X ⟶ Z) (g : Y ⟶ Z),
+        Cover f → Cover (HasPullbacks.has f g).cone.π₂ :=
+  colimitCanonicalCover (ordChainSliceSystem O) (ordChainSliceCoherent O)
+    (ordChainHasTerminal O) (ordChainHtpres O) (ordChainHasProducts O)
+    (ordChainHppres O) (ordChainHppresPair O)
+    (ordChainHasEqualizers O) (ordChainHepres O) (ordChainHepresLift O)
+    (fun {_ _} hij {_ _} p q h => hfaith hij p q h)
+    (fun {_ _} hij {_ _} φ h => hcons hij φ h)
+    (fun {_ _} hij {_ _} φ h => ordChainHmono O hij φ h)
+    (fun i => ordChainStagePTC O i)
+    (fun {_ _} hij {_ _} φ h => ordChainHcovpres O hij φ h)
+
+/-- **`hcanon` discharge for the ℕ-chain `chainSliceSystem`** (the `uliftNatDirected` specialization),
+    modulo the same well-supported-suffix cover-reflection pair.  Feeds directly into the protected
+    `chainSlicePreRegular`. -/
+theorem chainCanonicalCover {𝒞 : Type u} [Cat.{u} 𝒞] [PreRegularCategory 𝒞] [HasEqualizers 𝒞]
+    (P : PrefixChain 𝒞)
+    (hfaith : ∀ {i j : ULift.{u} Nat} (hij : uliftNatDirected.le i j)
+        {x y : (chainSliceSystem P).A i} (p q : x ⟶ y),
+        ((chainSliceSystem P).functF hij).map p = ((chainSliceSystem P).functF hij).map q → p = q)
+    (hcons : ∀ {i j : ULift.{u} Nat} (hij : uliftNatDirected.le i j)
+        {x y : (chainSliceSystem P).A i} (φ : x ⟶ y),
+        IsIso (((chainSliceSystem P).functF hij).map φ) → IsIso φ) :
+    letI : Cat (chainSliceSystem P).Obj := colimitCat _ (chainSliceCoherent P)
+    letI : HasPullbacks (chainSliceSystem P).Obj :=
+      colimitHasPullbacks _ (chainSliceCoherent P)
+        (chainHasTerminal P) (chainHtpres P) (chainHasProducts P)
+        (chainHppres P) (chainHppresPair P)
+        (chainHasEqualizers P) (chainHepres P) (chainHepresLift P)
+    ∀ {X Y Z : (chainSliceSystem P).Obj} (f : X ⟶ Z) (g : Y ⟶ Z),
+        Cover f → Cover (HasPullbacks.has f g).cone.π₂ :=
+  ordChainCanonicalCover P.toOrdChain hfaith hcons
+
 /-- The data the §1.543 transfinite construction produces: a directed system of pre-regular
     categories, faithful in its transitions, whose colimit is capital, with a faithful base
     embedding of `A`.  See the module docstring for the field-by-field meaning. -/

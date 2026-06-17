@@ -527,6 +527,57 @@ theorem catMap_comp {s t r : List 𝒞} (d : List 𝒞)
     rw [← Cat.assoc (f := catMap d f), catMap_forget, Cat.assoc]
   · simp only [Cat.assoc, catMap_tail]
 
+/-! ### `catMap d f` is a PULLBACK of `f` along the projection `catForget t d`
+
+  The §1.547 inner transition `sliceCatFunctor d` is base-change by concatenation; the key fact that
+  makes it transfer covers and preserve monos is that `catMap d f` is a genuine pullback of `f` along
+  the projection `catForget t d : ∏(t++d) ⟶ ∏t`.  The square
+    `catMap d f ≫ catForget t d = catForget s d ≫ f` (`catMap_forget`)
+  is universal: the unique lift of a cone `(p : W → ∏s, q : W → ∏(t++d))` (with `p ≫ f = q ≫
+  catForget t d`) is `catArrange s d p (q ≫ catTail t d)` — its `∏s`-part is `p` (`catArrange_forget`)
+  and its image under `catMap d f` agrees with `q` on both `catForget t d` and `catTail t d`, so
+  `cat_jointly_monic` clinches it; uniqueness rides `cat_jointly_monic s d`. -/
+
+/-- The pullback cone of `f` along `catForget t d`: apex `∏(s++d)`, legs `(catForget s d, catMap d f)`. -/
+def catMapCone {s t : List 𝒞} (d : List 𝒞) (f : listProd (𝒞 := 𝒞) s ⟶ listProd t) :
+    Cone (𝒞 := Infl 𝒞) (f : (s : Infl 𝒞) ⟶ t) (catForget t d : (t ++ d : List 𝒞) ⟶ t) :=
+  { pt := (s ++ d : List 𝒞)
+    π₁ := (catForget s d : (s ++ d : List 𝒞) ⟶ s)
+    π₂ := (catMap d f : (s ++ d : List 𝒞) ⟶ (t ++ d : List 𝒞))
+    w := (catMap_forget d f).symm }
+
+/-- **`catMap d f` is a pullback of `f` along `catForget t d`.**  The unique lift of a cone
+    `(p, q)` is `catArrange s d p (q ≫ catTail t d)`. -/
+theorem catMap_isPullback {s t : List 𝒞} (d : List 𝒞) (f : listProd (𝒞 := 𝒞) s ⟶ listProd t) :
+    (catMapCone d f).IsPullback (𝒞 := Infl 𝒞) := by
+  intro c
+  -- name the cone legs as `A`-arrows out of the apex `∏c.pt`.
+  let p : listProd (𝒞 := 𝒞) c.pt ⟶ listProd s := c.π₁
+  let q : listProd (𝒞 := 𝒞) c.pt ⟶ listProd (t ++ d) := c.π₂
+  have hcw : p ≫ f = q ≫ catForget t d := c.w
+  let u : listProd (𝒞 := 𝒞) c.pt ⟶ listProd (s ++ d) := catArrange s d p (q ≫ catTail t d)
+  have hu1 : u ≫ catForget s d = p := catArrange_forget s d p (q ≫ catTail t d)
+  have hu2 : u ≫ catMap d f = q := by
+    apply cat_jointly_monic t d
+    · -- forget-part: `u ≫ catMap d f ≫ catForget t d = u ≫ catForget s d ≫ f = p ≫ f = q ≫ catForget t d`
+      rw [Cat.assoc, catMap_forget, ← Cat.assoc, hu1, hcw]
+    · -- tail-part: `u ≫ catMap d f ≫ catTail t d = u ≫ catTail s d = q ≫ catTail t d`
+      rw [Cat.assoc, catMap_tail]
+      exact catArrange_tail s d p (q ≫ catTail t d)
+  refine ⟨u, ⟨hu1, hu2⟩, ?_⟩
+  intro v0 hv1 hv2
+  -- uniqueness: `v` agrees with `u` on both projections of `∏(s++d)`.
+  let v : listProd (𝒞 := 𝒞) c.pt ⟶ listProd (s ++ d) := v0
+  have hv1' : v ≫ catForget s d = p := hv1
+  have hv2' : v ≫ catMap d f = q := hv2
+  show v = u
+  apply cat_jointly_monic s d (X := listProd (𝒞 := 𝒞) c.pt)
+  · -- forget-part: both equal `p`.
+    rw [hv1', hu1]
+  · -- tail-part: both equal `q ≫ catTail t d` (via `catMap d f ≫ catTail t d = catTail s d`).
+    rw [← catMap_tail (d := d) f, ← Cat.assoc, ← Cat.assoc, hv2', hu2]
+
+
 /-! ### §1.544  `A′` is Cartesian: binary products and equalizers
 
   With `catForget`/`catTail`/`catArrange` in hand the inflation's binary product is concatenation
@@ -767,6 +818,36 @@ instance inflPullbacksTransferCovers [HasEqualizers 𝒞] [PullbacksTransferCove
     intro C m h hm hhm
     exact coverC_to_inflCover (s := c.pt) (t := cc)
       (f := (c.π₂ : listProd (𝒞 := 𝒞) c.pt ⟶ listProd cc)) hcov𝒞 m h hm hhm
+
+/-- **The §1.547 inner transition preserves covers** (`hcovpres`): the concatenation map `catMap d f`
+    is a cover whenever `f` is, since `catMap d f` is a pullback of `f` (`catMap_isPullback`) and `A′`
+    transfers covers (`inflPullbacksTransferCovers`). -/
+theorem catMap_cover [HasEqualizers 𝒞] [PullbacksTransferCovers 𝒞] {s t : List 𝒞} (d : List 𝒞)
+    {f : listProd (𝒞 := 𝒞) s ⟶ listProd t} (hf : Cover (𝒞 := Infl 𝒞) f) :
+    Cover (𝒞 := Infl 𝒞) (catMap d f) :=
+  inflPullbacksTransferCovers.pullbacks_transfer_covers (catMapCone d f)
+    (catMap_isPullback d f) hf
+
+/-- **The §1.547 inner transition preserves monos**: `catMap d` carries an `A′`-mono to an `A′`-mono.
+    Forgetting to `A` (`inflMono_to_mono`), `cat_jointly_monic s d` reduces `Mono (catMap d m)` to
+    cancelling `m` on the `catForget t d`-part (via `catMap_forget`) and the trivial `catTail` part. -/
+theorem catMap_mono {s t : List 𝒞} (d : List 𝒞) {m : listProd (𝒞 := 𝒞) s ⟶ listProd t}
+    (hm : Mono (𝒞 := Infl 𝒞) m) : Mono (𝒞 := Infl 𝒞) (catMap d m) := by
+  -- work entirely in `A`: forget the `A′`-mono to an `A`-mono (`inflMono_to_mono`).
+  have hm𝒞 : Mono (𝒞 := 𝒞) m := inflMono_to_mono hm
+  intro W p0 q0 hpq
+  -- bind the legs as `A`-arrows so all compositions read in `A` (avoid the `A′`/`A` `≫` clash).
+  let p : listProd (𝒞 := 𝒞) W ⟶ listProd (s ++ d) := p0
+  let q : listProd (𝒞 := 𝒞) W ⟶ listProd (s ++ d) := q0
+  have hpq' : p ≫ catMap d m = q ≫ catMap d m := hpq
+  show p = q
+  apply cat_jointly_monic s d (X := listProd (𝒞 := 𝒞) W)
+  · -- forget: cancel `m` (mono in `A`) after post-composing `catForget t d`.
+    refine hm𝒞 (W := listProd (𝒞 := 𝒞) W) (p ≫ catForget s d) (q ≫ catForget s d) ?_
+    rw [Cat.assoc, Cat.assoc, ← catMap_forget d m, ← Cat.assoc, ← Cat.assoc, hpq']
+  · -- tail: post-compose `catTail t d`, which `catMap d m` carries to `catTail s d`.
+    show p ≫ catTail s d = q ≫ catTail s d
+    rw [← catMap_tail (d := d) m, ← Cat.assoc, ← Cat.assoc, hpq']
 
 /-- **§1.544 — `A′` is pre-regular** (Cartesian + pullbacks transfer covers).  `PreRegularCategory 𝒞`
     supplies products + pullbacks, hence equalizers (`products_pullbacks_implies_equalizers`), which
@@ -1778,6 +1859,37 @@ theorem sliceCatObj_eq_lift [HasEqualizers 𝒞] (d : List 𝒞) {V : Infl 𝒞}
   · rw [Cat.assoc, rfForget (eqMap f g).f]; exact hbase
   · rw [Cat.assoc]; exact rfTail (eqMap f g).f
 
+/-! ### The strict slice transition PRESERVES covers and monos
+
+  The §1.547 transition functor `sliceCatFunctor d` is base-change by concatenation, hence sends slice
+  covers/monos to slice covers/monos.  Both reduce, on underlying `Infl`-arrows (`.f`), to the
+  `catMap`-level facts `catMap_cover`/`catMap_mono` via the §1.531 slice⟷base correspondence
+  (`cover_f_of_cover`/`cover_of_cover_f`, `sigma_preserves_mono`/`cover_of_cover_f`).  These are the
+  per-transition `hcovpres`/`hmono` ingredients the generic `colimitCanonicalCover` bridge consumes. -/
+
+/-- **`sliceCatFunctor d` preserves covers**: a slice cover `φ : X ⟶ Y` of `A′/V` maps to a slice
+    cover of `A′/(V++d)`.  Underlying: `(sliceCatMap d φ).f = catMap d φ.f`, and `catMap d` preserves
+    covers (`catMap_cover`), bridged by the §1.531 cover correspondence. -/
+theorem sliceCatObj_cover [HasEqualizers 𝒞] [PullbacksTransferCovers 𝒞] (d : List 𝒞) {V : Infl 𝒞}
+    {X Y : Over (B := V)} (φ : X ⟶ Y) (hφ : Cover (𝒞 := Over (B := V)) φ) :
+    Cover (𝒞 := Over (B := (V ++ d : List 𝒞))) (sliceCatMap d φ) :=
+  letI : HasPullbacks (Infl 𝒞) := inflHasPullbacks
+  cover_of_cover_f (𝒞 := Infl 𝒞) (B := V ++ d) (sliceCatMap d φ)
+    (catMap_cover d (cover_f_of_cover (𝒞 := Infl 𝒞) (B := V) φ hφ))
+
+/-- **`sliceCatFunctor d` preserves monos**: a slice mono `φ` of `A′/V` maps to a slice mono of
+    `A′/(V++d)`.  Underlying: `catMap d` preserves monos (`catMap_mono`), bridged by the §1.531
+    mono correspondence (`sigma_preserves_mono` / `cover_of_cover_f`-style mono reflection). -/
+theorem sliceCatObj_mono [HasEqualizers 𝒞] (d : List 𝒞) {V : Infl 𝒞} {X Y : Over (B := V)}
+    (φ : X ⟶ Y) (hφ : OverMono (B := V) φ) :
+    OverMono (B := (V ++ d : List 𝒞)) (sliceCatMap d φ) := by
+  letI : HasPullbacks (Infl 𝒞) := inflHasPullbacks
+  -- underlying mono of `catMap d φ.f` (`catMap_mono` + `sigma_preserves_mono`), then reflect to the slice.
+  have hf : Mono (𝒞 := Infl 𝒞) (catMap d φ.f) := catMap_mono d (sigma_preserves_mono φ hφ)
+  -- `(sliceCatMap d φ).f = catMap d φ.f`, so a slice mono follows from `sigma_reflects_mono`.
+  intro W g h hgh
+  exact sigma_reflects_mono (𝒞 := Infl 𝒞) (B := V ++ d) (sliceCatMap d φ) hf g h hgh
+
 /-! ### Lifting the strict `sliceCatObj` preservation through the chain transition
 
   `(chainSliceSystem P).F hij = innerSliceTr (P.prefix hij)` and `.functF hij = chainSliceFunctor P hij
@@ -1922,6 +2034,50 @@ theorem ordChainHepresLift {i j : ι} (hij : D.le i j)
           = k := by
     intro d W e; cases e; exact sliceCatObj_eq_lift d f g
   exact gen _ _ (prefixSuffix_eq (O.mono hij))
+
+/-! ### Cover-preservation / mono-preservation / per-stage PTC for the inner system
+
+  The remaining ingredients the generic `colimitCanonicalCover` bridge consumes for `ordChainSliceSystem`:
+  every transition preserves covers (`hcovpres`) and monos (`hmono`), and every stage is a
+  `PullbacksTransferCovers` (`hstagePTC`).  The first two lift the strict `sliceCatObj_cover` /
+  `sliceCatObj_mono` through the base-transport (the `unfold`/`cases e` pattern of `ordChainHppres`);
+  the last is `overPullbacksTransferCovers` on `Over (chain i : Infl 𝒞)` (each stage is the slice of the
+  pre-regular inflation `A′`, `inflPullbacksTransferCovers`). -/
+
+/-- **GENERIC** cover-preservation (`hcovpres`) — the inner transition `ordChainSliceFunctor O hij` sends
+    covers to covers, lifting `sliceCatObj_cover` through the base-transport, any index. -/
+theorem ordChainHcovpres {i j : ι} (hij : D.le i j) {x y : (ordChainSliceSystem O).A i}
+    (φ : x ⟶ y) (hφ : Cover (𝒞 := (ordChainSliceSystem O).A i) φ) :
+    Cover (𝒞 := (ordChainSliceSystem O).A j) ((ordChainSliceFunctor O hij).map φ) := by
+  -- reduce to the strict `sliceCatObj_cover` over `chain i ++ d` by collapsing the transport.
+  revert hφ
+  unfold ordChainSliceFunctor
+  have gen : ∀ (d : List 𝒞) (W : Infl 𝒞) (e : (O.chain i : List 𝒞) ++ d = W),
+      Cover (𝒞 := Over (B := (O.chain i : Infl 𝒞))) φ →
+      Cover (𝒞 := Over W) ((transportSliceFunctor e (sliceCatFunctor d (O.chain i))).map φ) := by
+    intro d W e; cases e; exact fun hφ => sliceCatObj_cover d φ hφ
+  exact gen _ _ (prefixSuffix_eq (O.mono hij))
+
+/-- **GENERIC** mono-preservation (`hmono`) — the inner transition sends monos to monos, lifting
+    `sliceCatObj_mono` through the base-transport, any index. -/
+theorem ordChainHmono {i j : ι} (hij : D.le i j) {x y : (ordChainSliceSystem O).A i}
+    (φ : x ⟶ y) (hφ : Mono (𝒞 := (ordChainSliceSystem O).A i) φ) :
+    Mono (𝒞 := (ordChainSliceSystem O).A j) ((ordChainSliceFunctor O hij).map φ) := by
+  revert hφ
+  unfold ordChainSliceFunctor
+  have gen : ∀ (d : List 𝒞) (W : Infl 𝒞) (e : (O.chain i : List 𝒞) ++ d = W),
+      OverMono (B := (O.chain i : Infl 𝒞)) φ →
+      OverMono (B := W) ((transportSliceFunctor e (sliceCatFunctor d (O.chain i))).map φ) := by
+    intro d W e; cases e; exact fun hφ => sliceCatObj_mono d φ hφ
+  exact gen _ _ (prefixSuffix_eq (O.mono hij))
+
+/-- **GENERIC** per-stage `PullbacksTransferCovers` (`hstagePTC`) — each stage `Over (chain i : A′)` is
+    the slice of the pre-regular inflation `A′` (`inflPullbacksTransferCovers`), hence pre-regular by the
+    §1.53 slice lemma (`overPullbacksTransferCovers`). -/
+def ordChainStagePTC (i : ι) :
+    PullbacksTransferCovers ((ordChainSliceSystem O).A i) :=
+  letI : HasPullbacks (Infl 𝒞) := inflHasPullbacks
+  overPullbacksTransferCovers (O.chain i : Infl 𝒞)
 
 open Freyd.Colim in
 /-- **GENERIC §1.544-546 (B-package) — the inner `OrdChain`-slice colimit is PRE-REGULAR over ANY directed
