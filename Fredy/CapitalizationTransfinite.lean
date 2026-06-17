@@ -414,4 +414,120 @@ theorem tower_capital_of_cofinal
     (colimOut (towerSystem b ccs.step) X).1 (colimOut (towerSystem b ccs.step) X).2
     (hstage X hXws)
 
+/-! ## Generic wiring: any cofinal directed system has a capital colimit
+
+  The two declarations below are the verbatim generalizations of `tower_capital_of_cofinal` and
+  `capData_of_tower` from the concrete ℕ `towerSystem` to an ARBITRARY coherent `CatSystem`.  They
+  carry no new proof obligation beyond `wellPointed_of_stage` (already proven generically) plus the
+  explicit `hstage` premise.  Their purpose is to isolate the single residual of §1.543 to one
+  honest task — **exhibit a cofinal directed system** (an `ι`, `D`, `C`, base embedding, and the
+  per-object stage-pointing witness `hstage`) — with no `sorry` hidden in the colimit bookkeeping. -/
+
+/-- **Generic outer fixpoint.**  For any coherent `CatSystem C` with the full `colimitPreRegular`
+    preservation package and the two reflection hypotheses (`hcons`/`hmono`), if every well-supported
+    colimit object's representing stage object stays well-pointed at all later stages (`hstage` — the
+    cofinal-coverage obligation), the colimit category is **capital**.  Verbatim generalization of
+    `tower_capital_of_cofinal`; the residual is confined to `wellPointed_of_stage` and the explicit
+    `hstage` premise, isolating §1.543's gap to "construct a cofinal system". -/
+theorem capital_of_cofinalSystem {ι : Type u} {D : Colim.Directed ι}
+    (C : Colim.CatSystem.{u, u} ι D) (hC : C.Coherent) [Nonempty ι]
+    (ht : ∀ i, HasTerminal (C.A i))
+    (htpres : ∀ {i j} (hij : D.le i j), C.F hij (ht i).one = (ht j).one)
+    (hp : ∀ i, HasBinaryProducts (C.A i))
+    (hppres : ∀ {i j} (hij : D.le i j) (a c : C.A i) (z : C.A j)
+      (uu vv : z ⟶ C.F hij ((hp i).prod a c)),
+      uu ≫ ((C.functF hij).map (hp i).fst) = vv ≫ ((C.functF hij).map (hp i).fst) →
+      uu ≫ ((C.functF hij).map (hp i).snd) = vv ≫ ((C.functF hij).map (hp i).snd) → uu = vv)
+    (hppres_pair : ∀ {i j} (hij : D.le i j) (a c : C.A i) (z : C.A j)
+      (p : z ⟶ C.F hij a) (q : z ⟶ C.F hij c),
+      ∃ r : z ⟶ C.F hij ((hp i).prod a c),
+        r ≫ ((C.functF hij).map (hp i).fst) = p ∧ r ≫ ((C.functF hij).map (hp i).snd) = q)
+    (he : ∀ i, HasEqualizers (C.A i))
+    (hepres : ∀ {i j} (hij : D.le i j) {X Y : C.A i} (f g : X ⟶ Y) (z : C.A j)
+      (uu vv : z ⟶ C.F hij (eqObj f g)),
+      uu ≫ ((C.functF hij).map (eqMap f g)) = vv ≫ ((C.functF hij).map (eqMap f g)) → uu = vv)
+    (hepres_lift : ∀ {i j} (hij : D.le i j) {X Y : C.A i} (f g : X ⟶ Y) (z : C.A j)
+      (k : z ⟶ C.F hij X) (_hk : k ≫ ((C.functF hij).map f) = k ≫ ((C.functF hij).map g)),
+      ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ ((C.functF hij).map (eqMap f g)) = k)
+    (hcanon : letI : Cat C.Obj := colimitCat C hC
+        letI : HasPullbacks C.Obj :=
+          colimitHasPullbacks C hC ht htpres hp hppres hppres_pair he hepres hepres_lift
+        ∀ {X Y Z : C.Obj} (f : X ⟶ Z) (g : Y ⟶ Z),
+            Cover f → Cover (HasPullbacks.has f g).cone.π₂)
+    (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
+        IsIso ((C.functF hij).map φ) → IsIso φ)
+    (hmono : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
+        Mono φ → Mono ((C.functF hij).map φ))
+    (hstage : ∀ (X : C.Obj),
+        letI : Cat C.Obj := colimitCat C hC
+        letI : PreRegularCategory C.Obj :=
+          colimitPreRegular C hC ht htpres hp hppres hppres_pair he hepres hepres_lift hcanon
+        WellSupported X →
+        ∀ {j} (hij : D.le (colimOut C X).1 j),
+          @WellPointed (C.A j) (C.catA j) (ht j) (C.F hij (colimOut C X).2)) :
+    letI : Cat C.Obj := colimitCat C hC
+    letI : PreRegularCategory C.Obj :=
+      colimitPreRegular C hC ht htpres hp hppres hppres_pair he hepres hepres_lift hcanon
+    Capital (𝒞 := C.Obj) := by
+  intro X hXws
+  rw [← colimOut_spec C X]
+  exact wellPointed_of_stage C hC ht htpres hp hppres hppres_pair he hepres hepres_lift hcanon
+    hcons hmono (colimOut C X).1 (colimOut C X).2 (hstage X hXws)
+
+/-- **Generic `CapData` assembly.**  Packages a base stage `i₀`, a faithful start `A → C.A i₀`, the
+    transition faithfulness/conservativity, the preservation package, and the generic capital colimit
+    (`capital_of_cofinalSystem`) into the `CapData A` the §1.543 reduction
+    (`capitalization_of_capData`) consumes.  Verbatim generalization of `capData_of_tower` to an
+    arbitrary cofinal directed system; the only remaining input is exhibiting such a system together
+    with its stage-pointing witness `hstage`. -/
+theorem capData_of_cofinalSystem (A : Type u) [Cat.{u} A] [PreRegularCategory A]
+    {ι : Type u} {D : Colim.Directed ι} (C : Colim.CatSystem.{u, u} ι D) (hC : C.Coherent)
+    [hne : Nonempty ι] (i₀ : ι) (base : A → C.A i₀)
+    (baseFun : @Functor A _ (C.A i₀) (C.catA i₀) base)
+    (baseFaithful : @Faithful A _ (C.A i₀) (C.catA i₀) base baseFun)
+    (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (p q : x ⟶ y),
+      (C.functF hij).map p = (C.functF hij).map q → p = q)
+    (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
+        IsIso ((C.functF hij).map φ) → IsIso φ)
+    (hmono : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
+        Mono φ → Mono ((C.functF hij).map φ))
+    (ht : ∀ i, HasTerminal (C.A i))
+    (htpres : ∀ {i j} (hij : D.le i j), C.F hij (ht i).one = (ht j).one)
+    (hp : ∀ i, HasBinaryProducts (C.A i))
+    (hppres : ∀ {i j} (hij : D.le i j) (a c : C.A i) (z : C.A j)
+      (uu vv : z ⟶ C.F hij ((hp i).prod a c)),
+      uu ≫ ((C.functF hij).map (hp i).fst) = vv ≫ ((C.functF hij).map (hp i).fst) →
+      uu ≫ ((C.functF hij).map (hp i).snd) = vv ≫ ((C.functF hij).map (hp i).snd) → uu = vv)
+    (hppres_pair : ∀ {i j} (hij : D.le i j) (a c : C.A i) (z : C.A j)
+      (p : z ⟶ C.F hij a) (q : z ⟶ C.F hij c),
+      ∃ r : z ⟶ C.F hij ((hp i).prod a c),
+        r ≫ ((C.functF hij).map (hp i).fst) = p ∧ r ≫ ((C.functF hij).map (hp i).snd) = q)
+    (he : ∀ i, HasEqualizers (C.A i))
+    (hepres : ∀ {i j} (hij : D.le i j) {X Y : C.A i} (f g : X ⟶ Y) (z : C.A j)
+      (uu vv : z ⟶ C.F hij (eqObj f g)),
+      uu ≫ ((C.functF hij).map (eqMap f g)) = vv ≫ ((C.functF hij).map (eqMap f g)) → uu = vv)
+    (hepres_lift : ∀ {i j} (hij : D.le i j) {X Y : C.A i} (f g : X ⟶ Y) (z : C.A j)
+      (k : z ⟶ C.F hij X) (_hk : k ≫ ((C.functF hij).map f) = k ≫ ((C.functF hij).map g)),
+      ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ ((C.functF hij).map (eqMap f g)) = k)
+    (hcanon : letI : Cat C.Obj := colimitCat C hC
+        letI : HasPullbacks C.Obj :=
+          colimitHasPullbacks C hC ht htpres hp hppres hppres_pair he hepres hepres_lift
+        ∀ {X Y Z : C.Obj} (f : X ⟶ Z) (g : Y ⟶ Z),
+            Cover f → Cover (HasPullbacks.has f g).cone.π₂)
+    (hstage : ∀ (X : C.Obj),
+        letI : Cat C.Obj := colimitCat C hC
+        letI : PreRegularCategory C.Obj :=
+          colimitPreRegular C hC ht htpres hp hppres hppres_pair he hepres hepres_lift hcanon
+        WellSupported X →
+        ∀ {j} (hij : D.le (colimOut C X).1 j),
+          @WellPointed (C.A j) (C.catA j) (ht j) (C.F hij (colimOut C X).2)) :
+    Nonempty (CapData.{u} A) :=
+  ⟨{ ι := ι, D := D, C := C, hC := hC, hne := hne, i₀ := i₀
+     base := base, baseFun := baseFun, baseFaithful := baseFaithful
+     hfaith := hfaith, hcons := hcons
+     ht := ht, htpres := htpres, hp := hp, hppres := hppres, hppres_pair := hppres_pair
+     he := he, hepres := hepres, hepres_lift := hepres_lift, hcanon := hcanon
+     capital := capital_of_cofinalSystem C hC ht htpres hp hppres hppres_pair he hepres hepres_lift
+       hcanon hcons hmono hstage }⟩
+
 end Freyd
