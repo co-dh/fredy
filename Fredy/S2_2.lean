@@ -588,4 +588,52 @@ theorem systemic_completion_tabular_effective
       ∃ (b : 𝒜) (f : a ⟶ b), Map f ∧ f ≫ f° = ss.E ∧ f° ≫ f = Cat.id b :=
   fun _a ss => ⟨ss.b, ss.f, ss.hMap, ss.hffR, ss.hRff⟩
 
+/-! ## §2.145 / §2.163  A tabular coreflexive splits
+
+  **§2.145**: if a coreflexive morphism `A` is tabular — `(f,g)` tabulates `A`
+  with `A ⊑ 1` — then its two legs coincide, `f = g`, and `g` is a *splitting*
+  of `A`: `g° g = A` and `g g° = 1`.  Equivalently (**§2.163**) a coreflexive is
+  a split idempotent iff it is tabular.  In a `TabularAllegory` every coreflexive
+  is therefore split — the coreflexive half of effectiveness, the data §2.166
+  uses to refine a bare tabulation's apex.
+
+  This is sorry-free and constructive: the legs agree because
+  `f = f (f°f ∩ g°g) ⊑ f (g°g) = A g ⊑ g` (and symmetrically), then
+  `map_order_discrete`. -/
+
+/-- **§2.145**: the two legs of a tabulation of a coreflexive coincide. -/
+theorem tabulation_coreflexive_legs_eq {𝒜 : Type u} [Allegory 𝒜] {a c : 𝒜}
+    {f g : a ⟶ c} {A : a ⟶ a} (hf : Map f) (hg : Map g) (hA : A = f ≫ g°)
+    (htab : f° ≫ f ∩ g° ≫ g = Cat.id c) (hcor : Coreflexive A) : f = g := by
+  have hcoref1 : A ⊑ Cat.id a := hcor
+  -- f ⊑ g:  f = f·1 = f(f°f ∩ g°g) ⊑ f(g°g) = (f g°)g = A g ⊑ 1·g = g
+  have hfg : f ⊑ g := by
+    have e1 : f = f ≫ (f° ≫ f ∩ g° ≫ g) := by rw [htab, Cat.comp_id]
+    have e2 : f ≫ (f° ≫ f ∩ g° ≫ g) ⊑ f ≫ (g° ≫ g) := comp_mono_left f (inter_lb_right _ _)
+    have e3 : f ≫ (g° ≫ g) = A ≫ g := by rw [hA]; simp [Cat.assoc]
+    have e4 : A ≫ g ⊑ g := by have := comp_mono_right hcoref1 g; rwa [Cat.id_comp] at this
+    rw [e1]; exact le_trans e2 (e3 ▸ e4)
+  exact map_order_discrete hf hg hfg
+
+/-- **§2.145 / §2.163**: a tabular coreflexive splits.  From a tabulation `(f,g)`
+    of coreflexive `A` the legs agree (`f = g`) and `g` is a map with
+    `g ≫ g° = A` and `g° ≫ g = 1_c` — i.e. `g` *splits* `A` (`hh° = A`, `h°h = 1`). -/
+theorem coreflexive_split_of_tabulation {𝒜 : Type u} [Allegory 𝒜] {a c : 𝒜}
+    {f g : a ⟶ c} {A : a ⟶ a} (hf : Map f) (hg : Map g) (hA : A = f ≫ g°)
+    (htab : f° ≫ f ∩ g° ≫ g = Cat.id c) (hcor : Coreflexive A) :
+    Map g ∧ g ≫ g° = A ∧ g° ≫ g = Cat.id c := by
+  have hfeqg : f = g := tabulation_coreflexive_legs_eq hf hg hA htab hcor
+  subst hfeqg
+  -- now A = g g°, and htab : g°g ∩ g°g = g°g = 1_c
+  rw [Allegory.inter_idem] at htab
+  exact ⟨hf, hA.symm, htab⟩
+
+/-- In a `TabularAllegory` every coreflexive `A : a → a` splits: there is a map
+    `g : a → c` with `g ≫ g° = A`, `g° ≫ g = 1_c` (§2.163). -/
+theorem coreflexive_splits {𝒜 : Type u} [TabularAllegory 𝒜] {a : 𝒜} {A : a ⟶ a}
+    (hcor : Coreflexive A) :
+    ∃ (c : 𝒜) (g : a ⟶ c), Map g ∧ g ≫ g° = A ∧ g° ≫ g = Cat.id c := by
+  obtain ⟨c, f, g, hf, hg, hA, htab⟩ := TabularAllegory.tabular A
+  exact ⟨c, g, coreflexive_split_of_tabulation hf hg hA htab hcor⟩
+
 end Freyd.Alg
