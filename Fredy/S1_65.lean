@@ -120,14 +120,28 @@ private def coprod_is_pushout_of_init [HasBinaryCoproducts 𝒜]
     monics in ℬ, which (by the same amalgamation/effectiveness run in ℬ) is again
     the pullback of `T m, T n`.
 
-    BLOCKED — genuine residual.  The bicartesian-square fact reduces to
-    `amalgamation_lemma` (S1_64), whose two LEG-MONICITY obligations (`Mono u`,
-    `Mono v`) are themselves `sorry`: they need the §1.543 effective-quotient
-    zigzag/path-length descent over the generated equivalence relation, a
-    closure-induction principle the `HasReflTransClosure` abstraction does not
-    expose.  No bicartesian-of-monics lemma exists elsewhere in the repo.  Until
-    that descent lands, step (i) cannot be closed without itself introducing a
-    sorry.  Once it is closed, step (ii) (below) is already wired to it. -/
+    BLOCKED — genuine residual, but the precise gap is now pinned (2026-06-16).
+    The "intersection square is a pushout" HALF *is* available: `pasting_lemma`
+    (§1.62, S1_62) proves that for two subobjects `A₁, A₂ ↪ A`, the intersection
+    pullback's projections `π₁, π₂` push out to the UNION `U = A₁ ∪ A₂` (legs
+    `x : A₁ → U`, `y : A₂ → U`).  Feeding that pushout through `pres_pushouts`
+    DOES carry the span `(π₁, π₂)` to a pushout-to-`TU` in ℬ.  The genuinely
+    missing CONVERSE is: in a pre-topos, a pushout square whose cospan legs are
+    MONIC is itself a pullback (i.e. `TU` reconstructs the intersection of
+    `Tm, Tn` over `TA`).  That direction is the union/intersection EFFECTIVENESS
+    of §1.543 — equivalently the `amalgamation_lemma` (S1_64) leg-monicity
+    obligations (`Mono u`, `Mono v`), themselves `sorry`, which need the
+    effective-quotient zigzag/path-length descent over the generated equivalence
+    relation that `HasReflTransClosure` does not expose.  There is no
+    `pushout-of-monic-cospan ⇒ IsPullback` lemma in the repo, and the pasting
+    pushout lands on the union object `TU`, not on the cospan apex `TA`, so it
+    cannot be massaged into the pullback without that effectiveness step.  Until
+    it lands, step (i) cannot be closed without itself introducing a sorry.
+    Once it is closed, step (ii) (below) is already wired to it.
+
+    (Correction to a stale claim: a bicartesian-of-monics lemma — the pushout
+    half — DOES exist as `pasting_lemma`; only the monic-pushout ⇒ pullback
+    converse is missing.) -/
 theorem preTopos_functor_preserves_monic_pullbacks (hptf : PreToposFunctor F)
     {A₁ A₂ A : 𝒜} (m : A₁ ⟶ A) (hm : Mono m) (n : A₂ ⟶ A) (hn : Mono n)
     (pb : HasPullback m n) :
@@ -239,14 +253,29 @@ theorem preTopos_functor_preserves_equalizers (hptf : PreToposFunctor F)
     pushouts and `0`, so it preserves coequalizers; the image coequalizer is a
     cover by `bicart_repr_preserves_covers` (§1.581).
 
-    BLOCKED — genuine residual.  The missing link is a
-    `PreservesPushouts → preserves-coequalizers` bridge: a coequalizer is NOT a
-    pushout of the parallel pair (wrong cocone shape), so `pres_pushouts` does
-    not apply directly.  Reconstructing coequalizer-preservation from pushout-
-    and `0`-preservation requires the §1.652 cover-quotient analysis specialised
-    to `T`, which is not yet a lemma in this repo.  No shortcut via
-    `PreservesMono` alone (a functor preserving monics need not preserve
-    covers). -/
+    BLOCKED — genuine residual; two independent gaps pinned (2026-06-16).
+
+    Route A (coequalizer-preservation): reduce to `bicart_repr_preserves_covers`
+    (§1.581, S1_58), which needs `PreservesCoequalizers F`.  But a coequalizer is
+    NOT a pushout of the parallel pair (wrong cocone shape), so `pres_pushouts`
+    does not yield it; reconstructing it needs the §1.652 cover-quotient analysis
+    for `T`, not a lemma here.  (And `bicart_repr_preserves_covers` itself wants
+    `RegularCategory`/`HasCoequalizers` on both 𝒜, ℬ — not in this signature.)
+
+    Route B (epi route): `pres_pushouts` ⇒ `T` preserves epis (an epi is exactly
+    a map whose cokernel-pair legs coincide; `T` of the cokernel-pair pushout is
+    again a pushout, so the legs stay equal), and in a pre-topos epic ⟺ cover
+    (`cover_eq_epic_preTopos`, §1.64).  This route is real but doubly blocked:
+      (1) cokernel-pair PUSHOUT EXISTENCE — `pres_pushouts` needs an instance
+          `HasPushout f f`, yet `PreTopos` bundles no general pushout/cocartesian
+          existence (it extends only `EffectiveRegular`, `PositivePreLogos`); the
+          verbatim signature lacks `[HasBinaryCoproducts] [HasCoequalizers]`, so
+          the cokernel pair `B +_A B` cannot be built here; and
+      (2) `cover_eq_epic_preTopos` requires `[HasReflTransClosure ℬ]` (absent
+          from this signature) and internally bottoms out at `pretopos_balanced`,
+          itself `sorry` on the §1.543 effective-coregularity step.
+    No shortcut via `PreservesMono` alone (a functor preserving monics need not
+    preserve covers). -/
 theorem preTopos_functor_preserves_covers (hptf : PreToposFunctor F)
     {A B : 𝒜} (f : A ⟶ B) (hf : Cover f) : Cover (hF.map f) := by
   sorry
