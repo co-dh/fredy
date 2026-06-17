@@ -1009,27 +1009,51 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
     --        `coverC_to_inflCover` (the cover ↔ `A`-cover and `A′`-pullback-square ↔ `A`-pullback-square
     --        correspondences, each via the `X ≅ X×1` unitor).  So per-stage `overPreRegular` NOW FIRES:
     --        every inner stage `Over (chain n)` of `Infl 𝒞` is pre-regular.
-    --        STILL OPEN: only (ii) — the base-change preservation analysis of `innerSliceTr` (the strict
-    --        suffix-append `sliceCatFunctor` must be shown to preserve terminals/products/equalizers and
-    --        reflect/transfer covers, supplying the 9 hyps + `hcanon`).  This is genuine new categorical
-    --        work (the magnitude of the outer per-rung preservation), NOT a mechanical transcription.
-    --   These (NOT the import, NOT the now-done `Coherent`, NOT the now-done `PreRegularCategory (Infl 𝒞)`)
-    --   are the honest residual; `hwall_step` stays a documented `sorry`.
+    --        (ii) NOW LARGELY DONE — the base-change preservation analysis of `innerSliceTr` (the strict
+    --        suffix-append `sliceCatFunctor`) is built sorry-free in `Fredy.Inflation`:
+    --          * `sliceCatObj_terminal`/`innerSliceTr_terminal` — terminal preserved (`htpres`);
+    --          * `sliceCatObj_prod_jointly_monic`/`sliceCatObj_prod_pair` — binary products preserved,
+    --            lifted through the base-transport to `chainHppres`/`chainHppresPair` (`hppres`/`_pair`);
+    --          * `overHasEqualizers` (slice equalizers = base equalizers, in `SliceRegular`) +
+    --            `sliceCatObj_eq_mono`/`sliceCatObj_eq_lift` → `chainHepres`/`chainHepresLift`
+    --            (`hepres`/`_lift`).
+    --        All sorry-free, axioms = `propext`.  The package is ASSEMBLED as
+    --        `Freyd.chainSlicePreRegular P (hcanon) : PreRegularCategory (chainSliceSystem P).Obj`
+    --        — `colimitPreRegular` fed the 8 limit-preservation hyps above; `hcanon` (the canonical
+    --        colimit pullback-cover transfer) is its ONE remaining hypothesis parameter.
+    --   So (B-package) is reduced to just `hcanon` — the same canonical-pullback transfer the OUTER tower
+    --   defers (`capData_of_tower`'s `hcanon`), here to be supplied from per-stage
+    --   `PullbacksTransferCovers (Over (chain n))` (`overPreRegular`) + cover reflection.  That, plus
+    --   (A) the choice-free `ListProjFamily` projections and (B-coverage) a cofinal `PrefixChain`, are
+    --   the honest residual; `hwall_step` stays a documented `sorry`.
     --
     -- The (B-import) resolution is load-bearing, not just documentary: the inner directed strict
-    -- `CatSystem` constructor is now IN SCOPE right here.  `innerSystemAt Sb P` is exactly the
-    -- system whose colimit is the relative capitalization `S → S*` that `nextStep` must deliver
-    -- (once (A) supplies the projections and (B-coverage) a cofinal `P`).
-    -- Both the inner directed strict `CatSystem` AND its `Coherent` proof are now in scope:
-    -- `chainSliceSystem P` with `chainSliceCoherent P : (chainSliceSystem P).Coherent` (sorry-free,
-    -- propext-only).  So `colimitCat (chainSliceSystem P) (chainSliceCoherent P)` — the relative
-    -- capitalization `S → S*` `nextStep` must deliver — is a genuine `Cat` already; the remaining
-    -- (B-package) gap is purely its pre-regular *package* (9 preservation hyps + `hcanon`), see above.
+    -- `CatSystem` constructor AND its pre-regular package are now IN SCOPE right here.
+    -- `chainSliceSystem P` / `chainSliceCoherent P` give the system + `Coherent`; `chainSlicePreRegular P`
+    -- gives `PreRegularCategory (chainSliceSystem P).Obj` modulo `hcanon` — the relative capitalization
+    -- `S → S*` that `nextStep` must deliver (once (A) supplies the projections, (B-coverage) a cofinal `P`,
+    -- and `hcanon` the cover transfer).
     have innerSystemAt :
         ∀ (Sb : Type u) [Cat.{u} Sb] [HasTerminal Sb] [HasBinaryProducts Sb] (P : PrefixChain Sb),
           (C : Colim.CatSystem.{u, u} (ULift.{u} Nat) uliftNatDirected) ×' C.Coherent :=
       fun Sb _ _ _ P => ⟨chainSliceSystem P, chainSliceCoherent P⟩
     clear innerSystemAt
+    -- (B-package) DOWN-PAYMENT, made load-bearing: the inner colimit `S*` is pre-regular MODULO the
+    -- canonical cover transfer `hcanon` — `chainSlicePreRegular` consumes the 8 limit-preservation hyps
+    -- (terminal/products/equalizers preserved by the strict suffix-append transition), all sorry-free.
+    have innerPreRegularAt :
+        ∀ (Sb : Type u) [Cat.{u} Sb] [PreRegularCategory Sb] [HasEqualizers Sb] (P : PrefixChain Sb)
+          (hcanon : letI : Cat (chainSliceSystem P).Obj := colimitCat _ (chainSliceCoherent P)
+              letI : HasPullbacks (chainSliceSystem P).Obj :=
+                colimitHasPullbacks _ (chainSliceCoherent P)
+                  (chainHasTerminal P) (chainHtpres P) (chainHasProducts P)
+                  (chainHppres P) (chainHppresPair P)
+                  (chainHasEqualizers P) (chainHepres P) (chainHepresLift P)
+            ∀ {X Y Z : (chainSliceSystem P).Obj} (f : X ⟶ Z) (g : Y ⟶ Z),
+                Cover f → Cover (HasPullbacks.has f g).cone.π₂),
+          @PreRegularCategory (chainSliceSystem P).Obj (colimitCat _ (chainSliceCoherent P)) :=
+      fun Sb _ _ _ P hcanon => chainSlicePreRegular P hcanon
+    clear innerPreRegularAt
     sorry
   -- Unpack the successor and its full preservation package (the §1.543 "directed-tower" data).
   obtain ⟨nextStep, b, hb, ht, htpres, hp, hppres, hppres_pair, he, hepres, hepres_lift,

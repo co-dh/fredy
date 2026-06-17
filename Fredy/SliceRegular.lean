@@ -241,6 +241,29 @@ instance overPullbacksTransferCovers (B : 𝒞)
 instance overPreRegular (B : 𝒞) [PreRegularCategory 𝒞] :
     PreRegularCategory (Over B) where
 
+/-! ## `HasEqualizers (Over B)` — slice equalizers are base equalizers
+
+  The equalizer of two slice maps `f, g : X ⟶ Y` in `A/B` is the *base* equalizer `E ⟶ X.dom` of the
+  underlying `f.f, g.f`, with structure map `eqMap ≫ X.hom`.  The equalizer over-hom `⟨eqMap, rfl⟩` lies
+  over `B` because its structure map is *defined* to be `eqMap ≫ X.hom`; it equalizes `f, g` since the
+  base `eqMap` equalizes `f.f, g.f` (`OverHom.ext`); the lift of a cone `c : W → X` equalizing `f, g` is
+  the base lift `eqLift` (which is an over-hom because `eqLift ≫ eqMap = c.f`, so its structure map
+  matches `W.hom`).  Needed for the §1.543 inner colimit's `he : ∀ i, HasEqualizers (Over (chain i))`. -/
+
+instance overHasEqualizers (B : 𝒞) [HasEqualizers 𝒞] : HasEqualizers (Over B) where
+  eq X Y f g :=
+    { cone :=
+        { dom := ⟨eqObj f.f g.f, eqMap f.f g.f ≫ X.hom⟩
+          map := ⟨eqMap f.f g.f, rfl⟩
+          eq := OverHom.ext (eqMap_eq f.f g.f) }
+      lift := fun c =>
+        ⟨eqLift f.f g.f c.map.f (congrArg OverHom.f c.eq),
+          by show eqLift f.f g.f c.map.f _ ≫ (eqMap f.f g.f ≫ X.hom) = c.dom.hom
+             rw [← Cat.assoc, eqLift_fac]; exact c.map.w⟩
+      fac := fun c => OverHom.ext (eqLift_fac f.f g.f c.map.f (congrArg OverHom.f c.eq))
+      uniq := fun c m hm => OverHom.ext
+        (eqLift_uniq f.f g.f c.map.f (congrArg OverHom.f c.eq) m.f (congrArg OverHom.f hm)) }
+
 /-! ## §1.547 The slice base-change (pullback) functor `g* : A/D → A/C`
 
   Given a base arrow `g : C ⟶ D`, base-change sends an object `X = ⟨X, h : X → D⟩`
