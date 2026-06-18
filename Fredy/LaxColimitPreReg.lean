@@ -115,4 +115,85 @@ noncomputable def laxColimHasTerminal [hne : Nonempty ι] (T : LaxTerminalData L
 
 end LaxTerminal
 
+/-! ## The reflexive coherence component `reflApp` (lax analogue of `transApp`)
+
+  `transApp` (in `CapitalizationLaxColimit.lean`) extracts the forward component of `F_trans_iso`.
+  Its UNIT counterpart `reflApp` extracts the forward component of `F_refl_iso`: at an object `x` of
+  `L.A i` it is the canonical iso `L.F (D.refl i) x ⟶ x` (base-change of the identity onto `x`).
+  This is the conjugator that turns a STAGE morphism `f : x ⟶ y` in `L.A i` into a single-stage germ
+  representative `reflApp x ≫ f ≫ inv (reflApp y) : L.F (refl i) x ⟶ L.F (refl i) y`, the building
+  block of the stage-inclusion functor and of every finite-limit cone in the colimit. -/
+section ReflApp
+
+variable (L : LaxCatSystem.{u, w} ι D)
+
+/-- The forward component of the reflexive coherence iso `F_refl_iso` at an object `x : L.A i`:
+    the canonical iso `L.F (D.refl i) x ⟶ x`. -/
+def reflApp {i : ι} (x : L.A i) : L.F (D.refl i) x ⟶ x :=
+  @NaturalTransformation.app (L.A i) (L.catA i) (L.A i) (L.catA i)
+    (L.F (D.refl i)) (fun z => z) (L.functF (D.refl i)) (@idFunctor (L.A i) (L.catA i))
+    (@NatIso.nat (L.A i) (L.catA i) (L.A i) (L.catA i)
+      (L.F (D.refl i)) (fun z => z) (L.functF (D.refl i)) (@idFunctor (L.A i) (L.catA i))
+      L.F_refl_iso) x
+
+/-- `reflApp` is an isomorphism (it is a component of the natural iso `F_refl_iso`). -/
+theorem reflApp_isIso {i : ι} (x : L.A i) : IsIso (reflApp L x) :=
+  @NatIso.isIso (L.A i) (L.catA i) (L.A i) (L.catA i)
+    (L.F (D.refl i)) (fun z => z) (L.functF (D.refl i)) (@idFunctor (L.A i) (L.catA i))
+    L.F_refl_iso x
+
+/-- **Naturality of `reflApp`.**  `reflApp` is the component of the natural iso `F_refl_iso`, so for
+    any `f : x ⟶ y` in `L.A i` it intertwines the reflexive transition `F (refl i)` with the
+    identity functor: `(F (refl i)).map f ≫ reflApp y = reflApp x ≫ f`. -/
+theorem reflApp_natural {i : ι} {x y : L.A i} (f : x ⟶ y) :
+    @Functor.map (L.A i) (L.catA i) (L.A i) (L.catA i) (L.F (D.refl i)) (L.functF (D.refl i)) x y f
+        ≫ reflApp L y
+      = reflApp L x ≫ f :=
+  @NaturalTransformation.naturality (L.A i) (L.catA i) (L.A i) (L.catA i)
+    (L.F (D.refl i)) (fun z => z) (L.functF (D.refl i)) (@idFunctor (L.A i) (L.catA i))
+    (@NatIso.nat (L.A i) (L.catA i) (L.A i) (L.catA i)
+      (L.F (D.refl i)) (fun z => z) (L.functF (D.refl i)) (@idFunctor (L.A i) (L.catA i))
+      L.F_refl_iso) x y f
+
+end ReflApp
+
+/-! ## Interface bundles for the remaining finite limits (products, equalizers, pullbacks, PTC)
+
+  These mirror the STRICT `colimitPreRegular`'s hypothesis tuples (`CatColimitRegular.lean:2450`):
+  per-fibre limit existence PLUS the transitions' finite-limit PRESERVATION, packaged as one
+  structure each.  In the STRICT setting preservation is phrased with `C.functF hij`; here the same
+  shape applies verbatim with `L.functF hij` (each `L.F hij` is a genuine `Functor`).  For
+  base-change these hypotheses are TRUE (the pullback functor `g*` preserves all finite limits —
+  it is a right adjoint), so each bundle is inhabitable; discharging them for `laxOfProjSystem' P`
+  is downstream work.
+
+  The universal-property assembly (turning a bundle into a `HasBinaryProducts`/… instance on
+  `laxColimCat L hL`) is the germ-algebra mirror of `colimitHasBinaryProducts`/`…Equalizers`/
+  `…Pullbacks`; it is the precise NEXT BLOCKER (see the end of this file). -/
+
+/-- LAX binary-product preservation bundle (mirrors `colimitHasBinaryProducts`'s `hp`/`hpres`/
+    `hpres_pair`).  `hp` gives per-fibre products; `pres` is joint-monic preservation under a
+    transition; `presPair` is pairing preservation under a transition. -/
+structure LaxProductData (L : LaxCatSystem.{u, w} ι D) where
+  hp : ∀ i, HasBinaryProducts (L.A i)
+  pres : ∀ {i j} (hij : D.le i j) (a b : L.A i) (z : L.A j)
+      (u v : z ⟶ L.F hij ((hp i).prod a b)),
+      u ≫ (L.functF hij).map (hp i).fst = v ≫ (L.functF hij).map (hp i).fst →
+      u ≫ (L.functF hij).map (hp i).snd = v ≫ (L.functF hij).map (hp i).snd → u = v
+  presPair : ∀ {i j} (hij : D.le i j) (a b : L.A i) (z : L.A j)
+      (p : z ⟶ L.F hij a) (q : z ⟶ L.F hij b),
+      ∃ r : z ⟶ L.F hij ((hp i).prod a b),
+        r ≫ (L.functF hij).map (hp i).fst = p ∧ r ≫ (L.functF hij).map (hp i).snd = q
+
+/-- LAX equalizer-preservation bundle (mirrors `colimitHasEqualizers`'s `he`/`hepres`/`hepres_lift`). -/
+structure LaxEqualizerData (L : LaxCatSystem.{u, w} ι D) where
+  he : ∀ i, HasEqualizers (L.A i)
+  pres : ∀ {i j} (hij : D.le i j) {A B : L.A i} (f g : A ⟶ B) (z : L.A j)
+      (u v : z ⟶ L.F hij (eqObj f g)),
+      u ≫ (L.functF hij).map (eqMap f g) = v ≫ (L.functF hij).map (eqMap f g) → u = v
+  presLift : ∀ {i j} (hij : D.le i j) {A B : L.A i} (f g : A ⟶ B) (z : L.A j)
+      (k : z ⟶ L.F hij A)
+      (hk : k ≫ (L.functF hij).map f = k ≫ (L.functF hij).map g),
+      ∃ r : z ⟶ L.F hij (eqObj f g), r ≫ (L.functF hij).map (eqMap f g) = k
+
 end Freyd.LaxColim
