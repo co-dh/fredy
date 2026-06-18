@@ -80,42 +80,109 @@ theorem fiberJ_embedding (U : List 𝒞) : Embedding (fun X : PairOnU U => fiber
     rw [hnum, hr]
   exact hmem'.elim (fun d => pairLocalisation_faithful_criterion d m₁ m₂ hnum')
 
-/-! ## Remaining blocker — `Full (fiberJ)` (the fraction-collapse) — stated precisely
+/-! ## Link 2 — the fraction-collapse REDUCTION, and the DETERMINATION that `Full fiberJ` fails
 
-  To finish link 1 (`EquivalenceFunctor (fiberJ : PairOnU U → RatBelow U)`) we still need:
+  `Full (fun X : PairOnU U => fiberJObj X)` unfolds to: for every `φ : RatHomOf … X.obj Y.obj`,
+  `φ = Quotient.mk ⟨R, denom, num⟩` (with `denom : R ⟶ X.obj` dense and `num : R ⟶ Y.obj`), there is
+  a `PairHom m : X.obj → Y.obj` with `locMapOf m = φ`.
 
-      `Full (fun X : PairOnU U => fiberJObj X)`
-        : ∀ {X Y : PairOnU U} (φ : (fiberJObj X) ⟶ (fiberJObj Y)),
-            ∃ m : PairHom X.obj Y.obj, locMapOf pairDense_denseRoof m = φ
+  ### The collapse lemma (`locMapOf_eq_of_factor`) — UNCONDITIONALLY TRUE
+  If `m : PairHom X Y` satisfies `denom.comp m = num` in `Â`, then `locMapOf m = ⟦⟨R,denom,num⟩⟧`.
+  The witnessing roof is `(R, denom, 1_R)`: `denom ≫ (locFraction m).denom = denom ≫ 1 = denom`
+  is dense; the denominators agree (`denom = 1_R ≫ denom`); the numerators are `denom ≫ m = num`.
 
-  Unfolding: `φ = Quotient.mk ⟨R, denom, num⟩` with `denom : R ⟶ X.obj` DENSE in `Â` and
-  `num : R ⟶ Y.obj`.  We must produce a `PairHom m : X.obj → Y.obj` with
-  `FractionEquiv (locFraction m) ⟨R,denom,num⟩`; taking the roof `(R, denom, id)` this reduces to
-  finding `m` with **`denom ≫ m = num`** in `Â`, i.e. INVERTING `denom` in `Â` (set `m = denom⁻¹ ≫ num`).
+  ### The uniqueness (`fiberJ` faithful, already `fiberJ_embedding`)
+  `denom` is dense ⇒ a COVER (`pairDense_cover`) ⇒ EPIC (`pairDense_epi`).  So if `denom.comp m = num`
+  has a solution `m`, it is the UNIQUE such `Â`-hom, and (by the epi cancellation in any roof) the ONLY
+  `Â`-hom whose `locMapOf` can equal `φ`.  Hence:
 
-  `dense_exactlyU_isIso` inverts a dense map only when `dom° ⊆ cod°`.  Here `dom = R`, `cod = X.obj`,
-  and the dense `denom`'s SURVIVORS are exactly `R° \ U` (`PairDense.survInX`/`survDistinct`), which is
-  NONEMPTY for a general apex `R`.  So `denom` is NOT directly invertible.
+    **`fiberJ` is full at `(X,Y)` ⟺ for every dense `denom : R ⟶ X.obj` and `num : R ⟶ Y.obj` there is
+    a `PairHom m : X.obj → Y.obj` with `denom.comp m = num`** (a factorisation of `num` through `denom`
+    in `Â`).  Necessity: in any roof `t₁ ≫ num = t₂ ≫ m`, `t₁ ≫ denom = t₂`, with `t₁` dense ⇒ epic,
+    cancels to `num = denom.comp m`.
 
-  The constructive fix (Freyd's, not yet formalised here) is the **apex-trimming reduction**: every
-  fraction `⟨R,denom,num⟩` between exactly-`U` objects is `FractionEquiv` to one whose apex `R'` has
-  `R'° ⊆ U` — drop the surviving factors of `R` (the iso `R ≅ R'` on the underlying `R.A` is the
-  factor-list trim, dense since identity-on-`.A`; the trimmed `denom' : R' → X.obj` then has
-  `R'° ⊆ U`, so `dense_exactlyU_isIso` inverts it).  Building the trimmed `PairObj` (its `wsupp`,
-  `distinct`, and the dense iso `R ≅ R'`) is a construction on the scale of `dense_exactlyU_isIso`
-  and is the precise next piece.  Once `Full fiberJ` lands:
+  ### DETERMINATION — the factorisation FAILS for the bare §1.547 dense class (NO, needs saturation)
+  `denom.g = e ≫ fst` with `e : R.A ≅ X.A × W`, `W = ∏surv`, survivor targets ∉ `U` (= `X°`,
+  `survDistinct`).  `denom.comp m = num` ⟺ `denom.g ≫ m.g = num.g` ⟺ (cancelling the iso `e`)
+  `num.g` is INDEPENDENT of the `W`-coordinate (factors through `fst`).  **`Y° = U` does NOT force
+  this.**  Concrete counterexample (valid for the universally-quantified `Full fiberJ`):
 
-    * `EquivalenceFunctor fiberJ` (embedding + full + repImage; repImage of `fiberJ` is the SAME
-      apex-trimming applied to a `RatBelow U` object, i.e. Freyd's padding/trimming for ⊆U objects);
-    * compose with `pairOnUToSlice_equivalence` ⇒ `EquivalenceFunctor (RatBelow U → Over (∏U))`
-      (via `embedding_comp`/`full_comp`/`hasRepresentativeImage_comp`, S1_31);
-    * `equivFunctor_preRegular` + `overPreRegular (listProd U)` ⇒ `PreRegularCategory (RatBelow U)`;
-    * feed `colimitPreRegular ratBelowSystem` (preservation hyps TRIVIAL: identity-on-homs
-      transitions) ⇒ `PreRegularCategory (colimitCat ratBelowSystem)`, transport along
-      `ratColimToObj` (bijective-on-objects, identity-on-homs) ⇒ `PreRegularCategory A*`. -/
+    * `T` well-supported with `T ∉ U` (`WellSupported T := Cover (term T)` — does NOT give a point
+      `1 → T`, so `fst : X.A × T → X.A` is NOT split-monic in general);
+    * `R := (X.A × T, {fst ≫ f | f ∈ F_X} ∪ {snd : X.A×T → T})`, `denom := fst : R → X` dense (`W=T`);
+    * `Y := (X.A × T, {fst ≫ f | f ∈ F_X})`, so `Y° = U` exactly, `Y.A = X.A × T`;
+    * `num := 1_{X.A×T} : R → Y` — a VALID `PairHom` (each `Y`-factor `fst ≫ f` pulls back to the same
+      factor of `R`, target in `U`).
+
+  Here `num.g = id` DEPENDS on the `T`-coordinate, yet every constraint only sees `num.g` through the
+  `Y`-factors `pairFactorMap Y = fst ≫ (…)`, which ARE `T`-independent.  `id` does not factor through
+  `fst` (that would split `fst`, impossible for pointless well-supported `T`).  So `num` does NOT factor
+  through `denom`, and `fiberJ` is **NOT full** on the bare dense class.
+
+  The compat of `num` pins only `num.g ≫ pairFactorMap Y` (the `U`-factors), NOT `num.g` itself; the
+  missing fact "`pairFactorMap Y` monic" is exactly the survivor/`survPinned` structure that `num`, not
+  being a dense map, does not carry.  `survPinned` pins the `W`-component of maps INTO a DENSE domain;
+  `num`'s codomain `Y` is not the dense domain, so it does not apply.
+
+  ### What this means for the route
+  Full faithfulness of `fiberJ` (hence `RatBelow U ≃ A/(∏U)` as Freyd asserts) requires the localised
+  homs to be taken modulo the SATURATION of the §1.547 dense class — i.e. `A* = Â[dense⁻¹]` must invert
+  enough maps that `num ~ denom.comp m` already in `A*` even when no `Â`-level `m` exists.  Equivalently
+  the apex must be TRIMMED to `R'° ⊆ U` (drop the `W = ∏surv` factor) BEFORE reading off `m`; the trimmed
+  `denom'` is then iso (`dense_exactlyU_isIso`).  But the trim `R ↠ R'` collapses `X.A × T → X.A`, and is
+  legitimate in `A*` ONLY because it is itself dense — i.e. the collapse `num ↦ num'` is well-defined on
+  `A*`-classes precisely when `num` already coequalises the kernel pair of `denom`, which is the SAME
+  `W`-independence we just showed is not forced.  So the gap is genuine: it is the §1.48 calculus-of-
+  fractions SATURATION (the dense roof rebuild `π ≫ r ≫ d` staying dense, the standing Ore condition for
+  a PROPER monic dense class, flagged at `MonicDense`/`DenseRoof` in RationalCapitalization.lean), NOT a
+  missing elementary construction.  `fiberJ_full` is therefore NOT provable from the bare dense-class
+  closures; the committed pieces below (the collapse lemma + conditional fullness) are the sorry-free
+  partial, and `fiberJ_full_of_factor` is the exact hypothesis the saturation must supply. -/
+
+variable {U : List 𝒞}
+
+/-- **Link 2 (collapse) — a fraction whose `num` factors through its dense `denom` collapses to a single
+    `Â`-hom.**  If `m : PairHom X Y` satisfies `denom.comp m = num` (in `Â`), then the localisation of
+    `m` is the `A*`-class of the fraction `⟨R, denom, num⟩`.  Witnessing roof `(R, denom, 1_R)`:
+    denominators `denom ≫ 1 = denom = 1 ≫ denom`, numerators `denom ≫ m = num = 1 ≫ num`, and
+    `denom ≫ 1 = denom` is dense.  UNCONDITIONALLY TRUE (no saturation needed). -/
+theorem locMapOf_eq_of_factor {X Y R : PairObj 𝒞} (denom : PairHom R X) (num : PairHom R Y)
+    (hden : (pairDenseClass (𝒞 := 𝒞)).mem denom) (m : PairHom X Y) (hm : denom.comp m = num) :
+    locMapOf pairDense_denseRoof m
+      = Quotient.mk (fractionSetoidOf pairDense_denseRoof) ⟨R, denom, num, hden⟩ := by
+  apply Quotient.sound
+  -- roof `(R, denom, 1_R)` between `locFraction m = ⟨X, 1, m⟩` and `⟨R, denom, num⟩`.
+  refine ⟨R, denom, @Cat.id (PairObj 𝒞) _ R, ?_, ?_, ?_⟩
+  · -- `denom ≫ (locFraction m).denom = denom ≫ 1 = denom` is dense.
+    show (pairDenseClass (𝒞 := 𝒞)).mem (denom ≫ @Cat.id (PairObj 𝒞) _ X)
+    rw [Cat.comp_id]; exact hden
+  · -- denominators: `denom ≫ 1 = 1 ≫ denom`.
+    show denom ≫ @Cat.id (PairObj 𝒞) _ X = @Cat.id (PairObj 𝒞) _ R ≫ denom
+    rw [Cat.comp_id, Cat.id_comp]
+  · -- numerators: `denom ≫ m = 1 ≫ num`, i.e. `denom.comp m = num`.
+    show denom ≫ m = @Cat.id (PairObj 𝒞) _ R ≫ num
+    rw [Cat.id_comp]; exact hm
+
+/-- **Link 2 (conditional fullness) — `fiberJ` is full GIVEN the factorisation hypothesis.**  If every
+    dense `denom : R ⟶ X.obj` and `num : R ⟶ Y.obj` (between exactly-`U` objects) admit a `PairHom`
+    `m : X.obj ⟶ Y.obj` with `denom.comp m = num`, then `fiberJ` is full.  This is the EXACT extra fact
+    the §1.48 saturation must supply (the bare dense class does NOT — see the DETERMINATION above).
+    Discharges the full-image obligation by `locMapOf_eq_of_factor` on the chosen representative. -/
+theorem fiberJ_full_of_factor
+    (hfac : ∀ {X Y : PairOnU U} {R : PairObj 𝒞} (denom : PairHom R X.obj) (num : PairHom R Y.obj),
+      (pairDenseClass (𝒞 := 𝒞)).mem denom → ∃ m : PairHom X.obj Y.obj, denom.comp m = num) :
+    Full (fun X : PairOnU U => fiberJObj X) := by
+  intro X Y φ
+  -- `φ : RatHomOf … X.obj.obj Y.obj.obj`; pick a fraction representative `⟨R, denom, num, hden⟩`.
+  refine Quotient.inductionOn φ (fun f => ?_)
+  obtain ⟨R, denom, num, hden⟩ := f
+  obtain ⟨m, hm⟩ := hfac denom num hden
+  exact ⟨m, (locMapOf_eq_of_factor denom num hden m hm)⟩
 
 end Freyd
 
 #print axioms Freyd.fiberJObj
 #print axioms Freyd.fiberJ
 #print axioms Freyd.fiberJ_embedding
+#print axioms Freyd.locMapOf_eq_of_factor
+#print axioms Freyd.fiberJ_full_of_factor
