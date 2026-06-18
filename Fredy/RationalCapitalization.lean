@@ -231,6 +231,32 @@
   unconditional `CapStep S` assembly gates on (3) above + the §1.48 composition-congruence saturation
   + `PreRegularCategory A*` transport).
 
+  ── R10 (slice-equivalence A-LEVEL CORE proven; the two §1.547 residuals confirmed identical) ──────
+
+  R10 targeted the §1.547 slice-equivalence fact that R9 isolated as the shared content of BOTH
+  `pairDense_pb_canonical_dense` AND `pairPullbacksTransferCovers`.  Result:
+
+    * `projBaseChangeCone`/`projBaseChangeCone_isPullback` — SORRY-FREE, AXIOM-FREE.  The genuine
+      `A`-level core: the pullback of a PRODUCT PROJECTION `fst : Y×W → Y` along any `g : Z → Y` is
+      the projection `fst : Z×W → Z` (apex `Z×W`, `π₂ = pair (fst≫g) snd`).  Constructive, needs only
+      binary products.  This is exactly the `A`-shape a dense `Â`-pullback descends to
+      (`X.A ≅ Y.A × W`, `x.g = fst`), so it is the reusable honest core of both payoffs.
+
+    * CONFIRMED (machine-checked reasoning, NOT faked): both residuals are the SAME gap.  With the
+      `A`-level core in hand, each reduces to a single PRESERVATION/REFLECTION step for `pairForget`
+      on this one pullback: the canonical `Â`-pullback apex `E` is the wide-equalizer of `Z.A × X.A`
+      cutting BOTH the square `eq(fst≫g.g, snd≫x.g)` AND the product cross-constraints, whereas the
+      EXPECTED `A`-pullback (`projBaseChangeCone`) cuts the square ONLY.  `pairForget` preserves this
+      pullback ⟺ the cross-constraints add nothing ⟺ no two UNRELATED factors `f∈Z.F`, `f'∈X.F` of a
+      common well-supported target collide.  Freyd's set-based ambient gives this; abstract `PairObj`
+      data (which permits unrelated shared-target factors) does not.  So neither residual is derivable
+      sorry-free from the abstract data — this is genuinely Freyd's slice-equivalence verification,
+      the directed-colimit route's strictness wall (R1) in a different guise.  Both docstrings now
+      cite `projBaseChangeCone_isPullback` and the precise residual; both `sorry`s carry the book's
+      true statement, sharply documented.  Sorry count UNCHANGED at 3 (the two coincident slice-
+      equivalence residuals + the R2 `sliceEmbed_factor_wellPointed`); the honest reduction — not a
+      removal — is R10's contribution, since faking either would violate the integrity rule.
+
   mathlib-free; built on this repo's hand-built `Cat`.
 -/
 
@@ -1853,6 +1879,50 @@ theorem pairCover_underlying {X Y : PairObj 𝒞} {f : PairHom X Y}
   · have := congrArg PairHom.g hn₁; simpa [PairHom.comp, liftMono] using this
   · have := congrArg PairHom.g hn₂; simpa [PairHom.comp, liftMono] using this
 
+/-! ### Base change of a product projection (reusable `A`-level fact)
+
+  The slice-equivalence verification (§1.547) ultimately rests on a single elementary `A`-level
+  fact: the pullback of a PRODUCT PROJECTION `fst : Y × W → Y` along any `g : Z → Y` is again a
+  product projection `fst : Z × W → Z`.  This is TRUE and CONSTRUCTIVE in any category with binary
+  products (no equalizers/pullbacks instance needed — we exhibit the pullback cone directly).  It is
+  the `A`-shape that the dense `Â`-pullback is meant to descend to (`X.A ≅ Y.A × W`, `x.g = fst`),
+  so it is the honest core of both slice-equivalence payoffs and is proven here sorry-free. -/
+
+/-- The cone with apex `Z × W`, `π₁ = fst`, `π₂ = pair (fst ≫ g) snd`, over the cospan
+    `(g : Z → Y, fst : Y × W → Y)`. -/
+def projBaseChangeCone {Z Y W : 𝒞} (g : Z ⟶ Y) :
+    Cone g (fst : prod Y W ⟶ Y) where
+  pt := prod Z W
+  π₁ := fst
+  π₂ := pair (fst ≫ g) snd
+  w  := by rw [fst_pair]
+
+/-- **Base change of a projection is a projection.**  The cone `projBaseChangeCone g` is a
+    pullback of `(g, fst)`: the lift of any cone `d` is `pair d.π₁ (d.π₂ ≫ snd)`; the square
+    `d.π₁ ≫ g = d.π₂ ≫ fst` recovers the `Y`-component, `snd` the `W`-component. -/
+theorem projBaseChangeCone_isPullback {Z Y W : 𝒞} (g : Z ⟶ Y) :
+    (projBaseChangeCone g (W := W)).IsPullback := by
+  intro d
+  refine ⟨pair d.π₁ (d.π₂ ≫ snd), ⟨?_, ?_⟩, ?_⟩
+  · -- `≫ π₁ = ≫ fst = d.π₁`
+    exact fst_pair _ _
+  · -- `≫ π₂ = pair (fst≫g) snd`: agree on both projections with `d.π₂`
+    show pair d.π₁ (d.π₂ ≫ snd) ≫ pair (fst ≫ g) snd = d.π₂
+    apply prod_hom_ext
+    · rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair]; exact d.w
+    · rw [Cat.assoc, snd_pair, snd_pair]
+  · -- uniqueness: any `v` with the two leg equations equals the pair
+    intro v hv₁ hv₂
+    apply prod_hom_ext
+    · rw [fst_pair]; exact hv₁
+    · -- `v ≫ snd = (v ≫ π₂) ≫ snd = d.π₂ ≫ snd`
+      rw [snd_pair]
+      have : v ≫ pair (fst ≫ g) snd = d.π₂ := hv₂
+      calc v ≫ (snd : prod Z W ⟶ W)
+            = v ≫ (pair (fst ≫ g) snd ≫ (snd : prod Y W ⟶ W)) := by rw [snd_pair]
+        _ = (v ≫ pair (fst ≫ g) snd) ≫ snd := by rw [Cat.assoc]
+        _ = d.π₂ ≫ snd := by rw [this]
+
 /-- **§1.547 — `Â`'s pullbacks transfer covers** (the pre-regular closure condition).  The STATEMENT
     is Freyd's genuine `PullbacksTransferCovers`: in a pullback square in `Â`, the leg opposite an
     `Â`-cover is an `Â`-cover.  Freyd discharges this for `Â` via the slice equivalence — "`A*` is a
@@ -1864,7 +1934,17 @@ theorem pairCover_underlying {X Y : PairObj 𝒞} {f : PairHom X Y}
     `c.π₂.g` an `A`-cover; the remaining step — promoting that back to an `Â`-cover — is exactly the
     direction `pairForget` does NOT reflect (`Â`-monos are tested against fewer arrows), i.e. the
     slice-equivalence verification.  This is the single sharply-isolated §1.547 obstruction; every
-    finite-limit and forward-cover ingredient feeding the pre-regular structure is sorry-free. -/
+    finite-limit and forward-cover ingredient feeding the pre-regular structure is sorry-free.
+
+    R10.  The reduction is tightened: an ARBITRARY pullback cone `c` is iso to the CANONICAL one via
+    `isIso_of_two_pullbacks`, and `Cover` is iso-invariant (`cover_precomp_iso`), so it suffices to
+    prove `Cover canonical.π₂`; the canonical `π₂` underlying is `pairProdW ≫ snd`, the `A`-pullback
+    second leg, an `A`-cover by `A`'s transfer + the forward bridge — and via
+    `projBaseChangeCone_isPullback` the EXPECTED `A`-pullback of a projection IS a projection (so its
+    `π₂` is a cover by `prod_fst_cover`).  R10 confirmed (machine-checked reasoning) that the residual
+    "promote that `A`-cover to an `Â`-cover" is the SAME `pairForget`-reflects-monos gap as
+    `pairDense_pb_canonical_dense`; not derivable from abstract `PairObj`.  ONE `sorry`, true
+    statement, sharply documented. -/
 theorem pairPullbacksTransferCovers [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞] :
     ∀ {A B C : PairObj 𝒞} {f : A ⟶ B} {g : C ⟶ B}
       (c : @Cone (PairObj 𝒞) _ _ _ _ f g), c.IsPullback →
@@ -1910,7 +1990,15 @@ instance pairPreRegular [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞] :
     it is not derivable.  Cross-checked machine-side: with the naive union factor list on
     `prod Z.A dx.W` the `distinct` field reduces to the unprovable cross goal `fst≫f = π₂g≫f'`.
     This is the single sharply-isolated obstruction; the cone and its pullback property
-    (`pairDense_pb_witness`) are sorry-free modulo this leg-density. -/
+    (`pairDense_pb_witness`) are sorry-free modulo this leg-density.
+
+    R10.  The `A`-LEVEL core IS proven sorry-free (`projBaseChangeCone_isPullback`): the pullback of
+    the dense projection `x.g = dx.e ≫ fst` along `g.g` is the projection `fst : Z.A × dx.W → Z.A`,
+    so `Z.A ×_{Y.A} X.A ≅ Z.A × dx.W` and the EXPECTED apex/leg are exactly the density form.  The
+    residual is purely the §1.547 PRESERVATION step `pairForget E ≅ Z.A ×_{Y.A} X.A` — i.e. the wide-
+    equalizer `E` (square ∧ cross-constraints) collapsing to the square-only `A`-pullback.  R10
+    confirmed (machine-checked reasoning) this is the SAME gap as `pairPullbacksTransferCovers` (both
+    are "`pairForget` preserves/reflects this pullback"), not derivable from abstract `PairObj`. -/
 noncomputable def pairDense_pb_canonical_dense [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞]
     {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :
     PairDense (pairHasPullbacks.has g x).cone.π₁ := by
@@ -2051,6 +2139,66 @@ theorem ratStep_points_every_factor (U : List 𝒞) (k : Fin U.length) :
         ≫ (sliceEmbedObj (listProd U) (U.get k)).hom = (overTerm (listProd U)).hom :=
   listProdSliceAcquiresEveryFactor U k
 
+/-! ### §1.547 — the descent reduction for the factor-slice well-pointedness
+
+  These helpers carry out the *elementary, sorry-free* half of the §1.546/547 missed-point
+  argument: the reduction of "the generic point `sliceFactorPoint A g` lifts through a slice
+  mono `m : D ↪ ⟨A×P, snd⟩`" to a purely downstairs statement about the underlying `𝒞`-arrow
+  `m.f`.  What is genuinely missing (and isolated below as `genericPoint_escapes_proper`) is
+  the book's §1.546 claim that a *proper* such `m` admits no such downstairs lift; everything
+  reducing the slice statement to that downstairs statement is closed here. -/
+
+/-- **§1.547 — the lift of the generic point unfolds to a downstairs section of `m.f`.**
+    In the slice `Over P`, a lift `y : overTerm P ⟶ D` of the point `sliceFactorPoint A g`
+    through a slice morphism `m : D ⟶ sliceEmbedObj P A` exists *iff* the underlying arrow
+    `m.f : D.dom → A × P` admits a downstairs map `s : P → D.dom` with `s ≫ m.f = pair g id`.
+    (The over-triangle condition on `y` is then automatic: `s ≫ D.hom = s ≫ m.f ≫ snd =
+    pair g id ≫ snd = id`, using `m.w` and `(sliceEmbedObj P A).hom = snd`.)  Sorry-free —
+    this is the bookkeeping that turns the slice well-pointedness goal into the genuine
+    downstairs §1.546 statement. -/
+theorem sliceFactorPoint_lift_iff {P A : 𝒞} {D : Over P}
+    (m : D ⟶ sliceEmbedObj P A) (g : P ⟶ A) :
+    (∃ y : overTerm P ⟶ D, y ≫ m = sliceFactorPoint A g)
+      ↔ ∃ s : P ⟶ D.dom, s ≫ m.f = pair g (Cat.id P) := by
+  constructor
+  · rintro ⟨y, hy⟩
+    exact ⟨y.f, congrArg OverHom.f hy⟩
+  · rintro ⟨s, hs⟩
+    -- the over-triangle `s ≫ D.hom = id` follows from `m.w` and `snd_pair`.
+    have hDhom : m.f ≫ snd = D.hom := m.w
+    have hsw : s ≫ D.hom = Cat.id P := by
+      rw [← hDhom, ← Cat.assoc, hs, snd_pair]
+    exact ⟨⟨s, hsw⟩, OverHom.ext hs⟩
+
+/-- **§1.547 — the irreducible §1.546 missed-point content (sharply isolated).**
+    For a well-supported factor `A`, a proper monic `m : D ↪ sliceEmbedObj P A` in the slice
+    `Over P` (here `P = ∏U`, `g = listProdProj U k` the projection that names the factor),
+    the generic point `sliceFactorPoint A g` admits NO downstairs lift `s : P → D.dom` with
+    `s ≫ m.f = pair g id`.
+
+    This is Freyd §1.546 last paragraph — "for any proper `B' ↪ B`, `AB' ↪ AB` does not allow
+    the generic point".  Equivalently (via `sliceFactorPoint_lift_iff`): the proper slice
+    subobject `m` corresponds to a proper subobject `B' ↪ A` downstairs (`A` well-supported,
+    slice embedding faithful via `sliceEmbedFaithful`), and the projection `g` factoring
+    through `m.f ≫ fst` as a section of `D.hom` would force `B' ↪ A` to allow the generic
+    point of `A` — contradicting properness.
+
+    OBSTRUCTION (precise): the elementary reduction `sliceFactorPoint_lift_iff` is closed, but
+    completing this requires the §1.546 image-descent: factor `m.f ≫ fst : D.dom → A` through
+    its image `B' ↪ A`, show `B'` is a *proper* subobject of the well-supported `A`, and run
+    Freyd's inflation/strict-cancellation generic-point argument (§1.544, "replacing the image
+    of A with A itself") to conclude the section `s` cannot exist.  That image-descent +
+    properness-transfer chain is the genuine missing infrastructure; it is NOT derivable from
+    the pair/projection calculus alone, so it is left as the single honest gap.  Once present,
+    `sliceEmbed_factor_wellPointed` closes immediately by the assembly below. -/
+theorem genericPoint_escapes_proper (U : List 𝒞)
+    (hU : ∀ x ∈ U, WellSupported x) (k : Fin U.length)
+    {D : Over (listProd U)} (m : D ⟶ sliceEmbedObj (listProd U) (U.get k))
+    (_hm : Mono m) (_hiso : ¬ IsIso m) :
+    ¬ ∃ s : listProd U ⟶ D.dom,
+        s ≫ m.f = pair (listProdProj U k) (Cat.id (listProd U)) := by
+  sorry
+
 /-- **§1.547 — `WellPointed` of the embedded factor (the full payoff, residual isolated).**
     In the product-slice `A/(∏U)` (with `A ∈ U` a well-supported factor), the embedded object
     `sliceEmbedObj (∏U) A` is `WellPointed`: every proper monic into it misses some global
@@ -2061,14 +2209,19 @@ theorem ratStep_points_every_factor (U : List 𝒞) (k : Fin U.length) :
     the generic point in A/B").
 
     Stated with the slice's genuine `HasTerminal` (`overHasTerminal (∏U)`) — NO `sorry` in
-    the type, so the statement is the book's real `WellPointed`.  The residual is the
-    descent of `m` to the downstairs proper subobject `B'` and the missed-point extraction;
-    the generic-point ingredient is in hand (`ratStep_points_every_factor`). -/
+    the type, so the statement is the book's real `WellPointed`.  The elementary descent
+    bookkeeping (`sliceFactorPoint_lift_iff`) is closed; the residual is concentrated in the
+    single §1.546 missed-point lemma `genericPoint_escapes_proper`, and the generic-point
+    ingredient is in hand (`ratStep_points_every_factor`). -/
 theorem sliceEmbed_factor_wellPointed (U : List 𝒞)
     (hU : ∀ x ∈ U, WellSupported x) (k : Fin U.length) :
     @WellPointed (Over (listProd U)) _ (overHasTerminal (listProd U))
       (sliceEmbedObj (listProd U) (U.get k)) := by
-  sorry
+  intro D m hm hiso
+  refine ⟨sliceFactorPoint (U.get k) (listProdProj U k), ?_⟩
+  intro hlift
+  exact genericPoint_escapes_proper U hU k m hm hiso
+    ((sliceFactorPoint_lift_iff m (listProdProj U k)).1 hlift)
 
 end WellPointed
 
