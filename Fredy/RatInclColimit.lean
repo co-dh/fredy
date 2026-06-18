@@ -127,7 +127,75 @@ theorem ratBelowSystem_coherent : (ratBelowSystem (𝒞 := 𝒞)).Coherent where
   refl_map := fun _ => HEq.rfl
   trans_map := by intros; exact HEq.rfl
 
+/-! ## Step 4 (object half) — `colimitCat ratBelowSystem` and `A*` have the SAME objects
+
+  The colimit's OBJECT type is `Colimit ratBelowSystem.objSystem`: classes of `⟨U, X : RatBelow U⟩`.
+  The forgetful map `⟨U, X⟩ ↦ X.obj` lands in `RatObj` (= objects of `A* = pairRatCat`) and is
+  compatible with the inclusion transitions (which fix `.obj`), so it descends to the colimit
+  (`ratColimToObj`).  It is a BIJECTION on objects:
+
+    * SURJECTIVE — every `Y : RatObj` sits in the stage `RatBelow Y.obj.targets` (its targets are
+      `⊆` themselves by `listDirected.refl`), and `ratColimToObj` of that stage-inclusion is `Y`
+      (`ratColimToObj_objIncl_self`).
+    * INJECTIVE — two stage objects with equal `.obj` already become equal in the colimit at the
+      common upper bound (`bound = append`), because the inclusion transitions are IDENTITY on `.obj`
+      (`ratColimToObj_inj`).
+
+  This is the OBJECT-level half of the recognition `colimitCat ratBelowSystem ≃ A*`.  The HOM-level
+  half (a `Functor` whose hom-action is "the underlying `A*`-fraction is independent of the stage",
+  full + faithful) reduces, via the same identity-on-homs transitions, to the `colimHom`/`HomColim`
+  quotient being a singleton-per-underlying-`A*`-hom; it is the remaining recognition residual. -/
+
+/-- The forgetful map on stage objects: a `RatBelow U` object forgets to its underlying `A*` object. -/
+def ratBelowForget {U : List 𝒞} (X : RatBelow (𝒞 := 𝒞) U) : RatObj (pairDense_denseRoof (𝒞 := 𝒞)) :=
+  X.obj
+
+/-- **The object map `colimitCat ratBelowSystem → A*`.**  Descends `⟨U, X⟩ ↦ X.obj` through the
+    colimit; well-defined because the inclusion transitions fix the underlying `A*` object. -/
+def ratColimToObj (c : (ratBelowSystem (𝒞 := 𝒞)).Obj) : RatObj (pairDense_denseRoof (𝒞 := 𝒞)) :=
+  Colim.desc (ratBelowSystem (𝒞 := 𝒞)).objSystem (fun _ X => ratBelowForget X)
+    (fun _ _ => rfl) c
+
+@[simp] theorem ratColimToObj_objIncl {U : List 𝒞} (X : RatBelow (𝒞 := 𝒞) U) :
+    ratColimToObj ((ratBelowSystem (𝒞 := 𝒞)).objIncl U X) = X.obj := rfl
+
+/-- Every `A*`-object lies in its own targets-stage. -/
+def ratBelowSelf (Y : RatObj (pairDense_denseRoof (𝒞 := 𝒞))) :
+    RatBelow (𝒞 := 𝒞) Y.obj.targets :=
+  ⟨Y, (listDirected (𝒞 := 𝒞)).refl Y.obj.targets⟩
+
+/-- **`ratColimToObj` is SURJECTIVE** — every `A*`-object is the image of its own targets-stage. -/
+theorem ratColimToObj_objIncl_self (Y : RatObj (pairDense_denseRoof (𝒞 := 𝒞))) :
+    ratColimToObj ((ratBelowSystem (𝒞 := 𝒞)).objIncl Y.obj.targets (ratBelowSelf Y)) = Y := rfl
+
+theorem ratColimToObj_surjective (Y : RatObj (pairDense_denseRoof (𝒞 := 𝒞))) :
+    ∃ c : (ratBelowSystem (𝒞 := 𝒞)).Obj, ratColimToObj c = Y :=
+  ⟨_, ratColimToObj_objIncl_self Y⟩
+
+/-- **`ratColimToObj` is INJECTIVE.**  Two stage objects with the same underlying `A*` object are
+    already identified in the colimit: include both into the common upper bound `U ++ V` (`bound`);
+    the inclusion transitions fix `.obj`, so the two upper-bound objects are equal (`RatBelow.ext`),
+    hence the two classes coincide (`objIncl_compat`). -/
+theorem ratColimToObj_inj {c d : (ratBelowSystem (𝒞 := 𝒞)).Obj}
+    (h : ratColimToObj c = ratColimToObj d) : c = d := by
+  obtain ⟨U, X, rfl⟩ := Colim.incl_surjective _ c
+  obtain ⟨V, Z, rfl⟩ := Colim.incl_surjective _ d
+  -- `ratColimToObj (objIncl U X) = X.obj`, similarly for Z; `h : X.obj = Z.obj`.
+  have hobj : X.obj = Z.obj := h
+  -- common upper bound and its two inclusions
+  obtain ⟨W, hUW, hVW⟩ := (listDirected (𝒞 := 𝒞)).bound U V
+  have eXZ : ratBelowIncl hUW X = ratBelowIncl hVW Z := RatBelow.ext hobj
+  calc (ratBelowSystem (𝒞 := 𝒞)).objIncl U X
+      = (ratBelowSystem (𝒞 := 𝒞)).objIncl W (ratBelowIncl hUW X) :=
+        ((ratBelowSystem (𝒞 := 𝒞)).objIncl_compat hUW X).symm
+    _ = (ratBelowSystem (𝒞 := 𝒞)).objIncl W (ratBelowIncl hVW Z) := by rw [eXZ]
+    _ = (ratBelowSystem (𝒞 := 𝒞)).objIncl V Z :=
+        (ratBelowSystem (𝒞 := 𝒞)).objIncl_compat hVW Z
+
 end Freyd
 
 #print axioms Freyd.ratBelowSystem
 #print axioms Freyd.ratBelowSystem_coherent
+#print axioms Freyd.ratColimToObj
+#print axioms Freyd.ratColimToObj_surjective
+#print axioms Freyd.ratColimToObj_inj
