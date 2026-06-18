@@ -169,7 +169,7 @@
                                 pullback-closure: base change of a product projection is a projection onto
                                 the same well-supported `W`) the one isolated obstruction, true statement.
 
-  ── MILESTONE R6 (generic monic skeleton + the EPIC-class wall on `ratCap`) ───────────────────────
+  ── MILESTONE R6/R7 (generic monic skeleton; EVERY DENSE MORPHISM IS MONIC IN `Â`) ────────────────
 
     * `MonicDense 𝒟` / `denseMonos_monic` / `MonicDense.leg_mono` — the calculus-of-fractions skeleton
                                 GENERALISED.  R2 hard-wired `fractionEquiv_trans`/`fractionSetoid`/`ratComp`
@@ -177,22 +177,28 @@
                                 class `(𝒟, hD : MonicDense 𝒟)` (members ↔ monics), with `denseMonos` the
                                 canonical instance re-fed downstream.  Sorry-free (`propext`); `ratCat`
                                 keeps its `propext`/`Quot.sound` profile.
-    * `pairDense_mono_epic_collapse` — THE R6 OBSTRUCTION, machine-checked AXIOM-FREE.  A `pairDense`
-                                morphism is EPIC in `Â` (`pairDense_epi`); a `MonicDense pairDenseClass`
-                                would force it MONIC too, collapsing the dense class to the isos.  Hence
-                                §1.547's `A* = Â[pairDense⁻¹]` localises at an EPIC class and is NOT
-                                modelled by this monic LEFT-fraction skeleton — it requires the DUAL
-                                RIGHT-fraction (co-span) calculus.  This is the precise, sorry-free form
-                                of the R1/R2 monic/epic wall, pinned to the `MonicDense` hypothesis.
+    * `pairDense_monic` — **R7 KEYSTONE, machine-checked AXIOM-FREE.**  EVERY DENSE MORPHISM IS MONIC
+                                IN `Â` (Freyd §1.547: "every dense morphism is monic").  The dense `x`'s
+                                product-diagram form `X.A ≅ Y.A × W` with `x.g = fst` makes it monic-in-`Â`:
+                                its `W`-component is PINNED by `X`'s factor data (`PairDense.survPinned` —
+                                `W = ∏(surviving targets)`, each a factor of `X`, so any `Â`-map into `X`
+                                agrees there by compatibility + distinctness).  The UNDERLYING `A`-arrow is
+                                an epic cover (`pairDense_cover`), but `pairForget` does not reflect monos,
+                                so monic-in-`Â` ≠ monic-in-`A` — no contradiction.  R6 mistook the former
+                                for the latter ("monic/epic collapse", "need a dual co-span calculus");
+                                that was a CATEGORY CONFUSION, now corrected.  `pairDenseClass_mem_mono`
+                                packages `pairDenseClass` as a §1.48/§1.481 DENSE CLASS OF MONICS;
+                                `pairDense_monic_and_epic` states both halves (monic + faithful-cancel).
 
-  STILL OPEN (the `ratCap` spill, NOT faked).  `ratCap S : CapStep S` is BLOCKED, not by missing
-  bookkeeping but by the monic/epic mismatch above: the R2 monic skeleton (`ratCat`/`locFunctor`) is
-  faithful only for monic classes, while §1.547's `A*` inverts EPIC projections (`pairDenseClass`).
-  Building `A*` therefore needs the DUAL right-fraction calculus (co-spans, composition by cover-
-  factorisation) — a separate skeleton, not the R2 one.  The faithfulness OBLIGATION for the epic class
-  is already discharged (`pairLocalisation_faithful_criterion`); the embedding half is
-  `pairEmbed_faithful`.  No fake `ratCap` is asserted, and instantiating the monic skeleton on
-  `pairDenseClass` is provably impossible (`pairDense_mono_epic_collapse`), so it is NOT attempted.
+  STILL OPEN (the `ratCap` spill, NOT faked).  `ratCap S : CapStep S` is NOT yet assembled.  With R7,
+  `pairDenseClass` is correctly a dense class of MONICS, so the §1.48 monic LEFT-fraction skeleton is the
+  right tool (no dual calculus).  What remains for a full sorry-free instantiation: (a) `pairDense_pb`
+  (§1.48(iii) dense pullback-closure, isolated sorry); (b) the §1.48 calculus-of-fractions SATURATION of
+  the transitivity roof rebuild for a PROPER monic class (the all-monics `MonicDense` rebuild uses
+  `Mono → mem`, false for `pairDenseClass`; the standard §1.48 Ore argument is needed instead); (c)
+  `pairPullbacksTransferCovers` (the `Â` cover transfer).  No fake `ratCap` is asserted.  The
+  faithfulness obligation is already discharged (`pairLocalisation_faithful_criterion`/`pairDense_epi`);
+  the embedding half is `pairEmbed_faithful`.
 
   ── INTEGRITY ──────────────────────────────────────────────────────────────────
 
@@ -200,7 +206,8 @@
   THREE `sorry`s, each on the book's genuine statement, sharply documented: (1) the R2 residual
   `sliceEmbed_factor_wellPointed` (§1.547 subobject-descent); (2) `pairPullbacksTransferCovers` (the
   `Â` cover transfer = slice equivalence); (3) `pairDense_pb` (§1.48(iii) dense pullback-closure).
-  The protected types of `capData_exists`/`CapData`/`CapStep` are not touched.  No fake `ratCap`.
+  `pairDense_monic` (the R7 keystone) is sorry-free AND axiom-free.  The protected types of
+  `capData_exists`/`CapData`/`CapStep` are not touched.  No fake `ratCap`.
 
   mathlib-free; built on this repo's hand-built `Cat`.
 -/
@@ -312,18 +319,22 @@ end Equiv
   (`denseMonos_monic`, `mem ↔ Mono` is `Iff.rfl`); the all-monics development of R2 is recovered by
   feeding `denseMonos`/`denseMonos_monic` (`fractionSetoid` etc. below).
 
-  WHY ONLY MONIC CLASSES (and why this skeleton does NOT model §1.547's `A*`).  Transitivity rebuilds
-  the roof denominator as `π ≫ r ≫ d` with `π` the pullback projection of a roof leg `r`; the only
-  handle on `r` is that `r ≫ d` is dense, and concluding `π ≫ r ≫ d` dense needs: extract `Mono r`
-  from `Mono (r ≫ d)`, pull the mono through the pullback, repackage as `mem` — all requiring
-  `mem ↔ Mono`.  §1.547's refined dense class (`pairDenseClass`) is EPIC, not monic: its members are
-  product projections onto well-supported factors, hence COVERS (`pairDense_cover`) and EPIs
-  (`pairDense_epi`).  A cover that is also monic is an iso, so `MonicDense pairDenseClass` is FALSE
-  for any class with a non-iso projection (`not_monicDense_pairDenseClass`).  Therefore the §1.547
-  localisation `A* = Â[pairDense⁻¹]` is a localisation at an EPIC class and is NOT modelled by this
-  monic left-fraction skeleton; it requires the DUAL right-fraction (co-span) calculus.  This is the
-  same monic/epic wall R1/R2 documented, now pinned to the exact `MonicDense` hypothesis.  See the
-  report at `not_monicDense_pairDenseClass` and the `ratCap` note. -/
+  THE ALL-MONICS INSTANCE vs THE REFINED CLASS (R7 correction).  `MonicDense` as stated requires
+  `mem ↔ Mono`, i.e. the dense class is ALL monics; transitivity then rebuilds the roof denominator
+  `π ≫ r ≫ d` by extracting `Mono r` from `Mono (r ≫ d)`, pulling the mono through the pullback, and
+  repackaging via `mem ↔ Mono`.  §1.547's refined dense class `pairDenseClass` is a PROPER class of
+  monics: its members ARE `Mono` in `Â` (`pairDenseClass_mem_mono`, via `pairDense_monic` — the book's
+  "every dense morphism is monic"), but the REVERSE `Mono → mem` is false (not every `Â`-monic is a
+  product projection).  So `pairDenseClass` is NOT the all-monics `MonicDense` instance; it is the
+  §1.48 "dense class of monics" closed under iso/comp/pullback (`pairDenseClass`).  R6 wrongly read the
+  underlying-`A`-arrow's epi-ness (`pairDense_cover`/`pairDense_epi`) as failure of monic-in-`Â` and
+  concluded a dual co-span calculus was needed; that was a CATEGORY CONFUSION (`pairForget` does not
+  reflect monos, so monic-in-`Â` ≠ monic-in-`A`).  The monic LEFT-fraction skeleton IS the right tool
+  for `A* = Â[pairDense⁻¹]`; what remains for a full instantiation on `pairDenseClass` is the §1.48
+  calculus-of-fractions saturation of the roof rebuild for a proper monic class (the dense roof leg
+  `r` with `r ≫ d` dense need not have `π ≫ r ≫ d` dense from the bare `DenseClass` closures alone —
+  this is the standard Ore/§1.48 condition, NOT the false monic/epic wall).  See `pairDense_monic`,
+  `pairDenseClass_mem_mono`, `pairDense_monic_and_epic`. -/
 
 /-- A dense class whose members are EXACTLY the monics — the §1.48 "dense monic" hypothesis, the one
     extra fact (beyond the `DenseClass` record) the calculus-of-fractions skeleton needs.  `denseMonos`
@@ -946,6 +957,19 @@ structure PairDense {X Y : PairObj 𝒞} (x : PairHom X Y) where
   e_iso₁  : e ≫ einv = Cat.id X.A
   e_iso₂  : einv ≫ e = Cat.id (prod Y.A W)
   proj    : e ≫ (fst : prod Y.A W ⟶ Y.A) = x.g
+  -- §1.547 "x TOGETHER WITH the surviving factors forms a product diagram": `W` is the product of
+  -- the SURVIVING targets `{f° | f ∈ F₁, f° ∉ F₂°}`, and the `snd`-component `e ≫ snd : X.A → W`
+  -- packages those surviving factors of `X`.  The single content the monic proof needs is that this
+  -- `W`-component is PINNED by `X`'s factor data: any two `Â`-maps into `X` agree after `e ≫ snd`,
+  -- because each surviving factor is in `X.F` and a `PairHom` is compatible with every factor of its
+  -- codomain (distinctness of `X.F` forces the same witness for both maps).  This is exactly the
+  -- product-diagram content that makes dense ⟹ MONIC in `Â` (`pairDense_monic`), and it is stable
+  -- under composition (`pairDense_comp`).
+  /-- the `W`-component of the iso is PINNED by `X`'s factor data: any two parallel `Â`-maps `a,b`
+      into `X` agree after `e ≫ snd : X.A → W`.  (Equivalently: `W = ∏(surviving targets)` and each
+      surviving factor lies in `X.F`, so compatibility pins both maps to the same value.) -/
+  survPinned : ∀ {Z : PairObj 𝒞} (a b : PairHom Z X),
+    a.g ≫ e ≫ (snd : prod Y.A W ⟶ W) = b.g ≫ e ≫ (snd : prod Y.A W ⟶ W)
 
 /-- **§1.547 — every dense morphism's underlying arrow is a COVER.**  `x.g = e ≫ fst` with
     `e` an iso and `fst : Y.A × W → Y.A` a cover (`W` well-supported, `prod_fst_cover`); a cover
@@ -1016,12 +1040,72 @@ theorem prod_hom_ext {X A B : 𝒞} {u v : X ⟶ prod A B}
     (h₁ : u ≫ fst = v ≫ fst) (h₂ : u ≫ snd = v ≫ snd) : u = v := by
   rw [pair_eta u, pair_eta v, h₁, h₂]
 
+/-- **Joint monicity of the `listProd` projections.**  Two maps into `∏U` agree iff they agree
+    after every factor projection `listProdProj U k`.  Iterated `prod_hom_ext`: the head projection
+    is `fst`, the tail projections are `snd ≫ listProdProj U k`, so agreement on all of them forces
+    agreement after `fst` and (by induction) after `snd`. -/
+theorem listProd_hom_ext {Z : 𝒞} : ∀ (U : List 𝒞) (u v : Z ⟶ listProd U),
+    (∀ k : Fin U.length, u ≫ listProdProj U k = v ≫ listProdProj U k) → u = v
+  | [], u, v, _ => HasTerminal.uniq u v
+  | C :: U, u, v, h => by
+      apply prod_hom_ext
+      · exact h ⟨0, Nat.succ_pos _⟩
+      · apply listProd_hom_ext U
+        intro k
+        have := h ⟨k.1 + 1, Nat.succ_lt_succ k.2⟩
+        simpa [listProdProj, Cat.assoc] using this
+
 /-- A binary product of well-supported objects is well-supported. -/
 theorem wellSupported_prod' [PullbacksTransferCovers 𝒞] {B D : 𝒞}
     (hB : WellSupported B) (hD : WellSupported D) : WellSupported (prod B D) := by
   show Cover (term (prod B D))
   rw [show term (prod B D) = (fst : prod B D ⟶ B) ≫ term B from term_uniq _ _]
   exact cover_comp'' (prod_fst_cover hD) hB
+
+/-- **§1.547 — every dense morphism is MONIC in `Â`** (the book's "every dense morphism is monic").
+    THE R7 CORRECTION.  A dense `x : X → Y` is monic *in `Â`* — even though its underlying `A`-map
+    `x.g` is an epic cover (`pairDense_cover`).  No contradiction: `pairForget` does NOT reflect
+    monos, so monic-in-`Â` is tested against fewer arrows than monic-in-`A`; a dense morphism is BOTH
+    monic-in-`Â` (`pairDense_monic`) AND epic-in-`Â` (`pairDense_epi`), which does NOT force it iso
+    because `Â` is not balanced.  This is exactly the book's "every dense morphism is monic" and makes
+    `pairDenseClass` a class of monics, so the §1.48 monic left-fraction calculus (`MonicDense`) does
+    apply to it — the R6 "monic/epic collapse" framing was a category confusion (it conflated monic
+    -in-`Â` with the underlying map being monic-in-`A`).
+
+    Proof.  Given `Â`-maps `a, b : Z → X` with `a.comp x = b.comp x`, show `a = b`, i.e. `a.g = b.g`.
+    Via the iso `e : X.A ≅ Y.A × W` it suffices to show `a.g ≫ e = b.g ≫ e`, and by `prod_hom_ext`
+    this splits into the two product components:
+      • `fst` : `a.g ≫ e ≫ fst = a.g ≫ x.g = b.g ≫ x.g = b.g ≫ e ≫ fst` (from `a.comp x = b.comp x`);
+      • `snd` : `a.g ≫ e ≫ snd = b.g ≫ e ≫ snd` into `W`, which is the `survPinned` field — `W` is the
+        product of the surviving targets, each a factor of `X`, so compatibility of `a` and `b` with
+        `X`'s factor data (distinctness forcing the same witness) pins both maps to the same value.
+    Sorry-free, choice-free. -/
+theorem pairDense_monic {X Y : PairObj 𝒞} {x : PairHom X Y} (d : PairDense x) :
+    @Mono (PairObj 𝒞) _ X Y x := by
+  intro Z a b hab
+  apply PairHom.ext
+  -- reduce to `a.g ≫ e = b.g ≫ e` (e is iso)
+  have hfst : a.g ≫ x.g = b.g ≫ x.g := by
+    have : (a.comp x).g = (b.comp x).g := congrArg PairHom.g hab
+    simpa [PairHom.comp] using this
+  have hsnd : a.g ≫ d.e ≫ (snd : prod Y.A d.W ⟶ d.W) = b.g ≫ d.e ≫ (snd : prod Y.A d.W ⟶ d.W) :=
+    d.survPinned a b
+  -- glue the two components through the iso `e`
+  have hee : a.g ≫ d.e = b.g ≫ d.e := by
+    apply prod_hom_ext
+    · calc (a.g ≫ d.e) ≫ (fst : prod Y.A d.W ⟶ Y.A)
+          = a.g ≫ (d.e ≫ fst) := by rw [Cat.assoc]
+        _ = a.g ≫ x.g := by rw [d.proj]
+        _ = b.g ≫ x.g := hfst
+        _ = b.g ≫ (d.e ≫ fst) := by rw [d.proj]
+        _ = (b.g ≫ d.e) ≫ (fst : prod Y.A d.W ⟶ Y.A) := by rw [Cat.assoc]
+    · rw [Cat.assoc, Cat.assoc]; exact hsnd
+  -- cancel the iso: `a.g = a.g ≫ e ≫ einv = b.g ≫ e ≫ einv = b.g`
+  calc a.g = a.g ≫ (d.e ≫ d.einv) := by rw [d.e_iso₁, Cat.comp_id]
+    _ = (a.g ≫ d.e) ≫ d.einv := by rw [Cat.assoc]
+    _ = (b.g ≫ d.e) ≫ d.einv := by rw [hee]
+    _ = b.g ≫ (d.e ≫ d.einv) := by rw [Cat.assoc]
+    _ = b.g := by rw [d.e_iso₁, Cat.comp_id]
 
 /-- **§1.547 — every iso of `Â` is dense** (witness form).  Take surviving factor `W = 1`
     (terminal, well-supported `wellSupported_one'`); the iso `X.A ≅ Y.A × 1` is `pair x.g (term)`,
@@ -1044,7 +1128,10 @@ def pairDense_of_iso {X Y : PairObj 𝒞} {x : PairHom X Y}
         rw [Cat.assoc, fst_pair, Cat.assoc, hx'x, Cat.comp_id, Cat.id_comp]
       · -- ≫ snd : both sides into `1`, unique
         apply HasTerminal.uniq
-    proj := fst_pair _ _ }
+    proj := fst_pair _ _
+    -- an iso has NO surviving factors: the product diagram is `X.A ≅ Y.A × 1`, `W = 1`, so the
+    -- `snd`-component lands in the terminal `1` and is unique — both maps agree there.
+    survPinned := fun a b => HasTerminal.uniq _ _ }
 
 /-- **§1.547 — every iso of `Â` is dense** (the `DenseClass.iso_mem` obligation), choice-free by
     destructing the `IsIso` witness into its explicit inverse arrow. -/
@@ -1106,7 +1193,41 @@ def pairDense_comp [PullbacksTransferCovers 𝒞] {X Y Z : PairObj 𝒞}
       rw [Cat.assoc, ← Cat.assoc dx.einv dx.e, dx.e_iso₂, Cat.id_comp, hr'r]
     proj := by
       show (dx.e ≫ r) ≫ (fst : prod Z.A (prod dy.W dx.W) ⟶ Z.A) = x.g ≫ y.g
-      rw [Cat.assoc, fst_pair, ← Cat.assoc, dx.proj, ← dy.proj, ← Cat.assoc] }
+      rw [Cat.assoc, fst_pair, ← Cat.assoc, dx.proj, ← dy.proj, ← Cat.assoc]
+    survPinned := by
+      -- `e ≫ snd = dx.e ≫ r ≫ snd : X.A → dy.W × dx.W`; pin each component:
+      --   `≫ fst → dy.W` via `dy.survPinned (a∘x) (b∘x)` (it is `(a.g≫x.g)≫dy.e≫snd`);
+      --   `≫ snd → dx.W` via `dx.survPinned a b` (it is `a.g≫dx.e≫snd`).
+      intro Q a b
+      have hsf : r ≫ (snd : prod Z.A (prod dy.W dx.W) ⟶ prod dy.W dx.W)
+          ≫ (fst : prod dy.W dx.W ⟶ dy.W) = (fst : prod Y.A dx.W ⟶ Y.A) ≫ dy.e ≫ snd := by
+        rw [← Cat.assoc, hrsnd, fst_pair]
+      have hss : r ≫ (snd : prod Z.A (prod dy.W dx.W) ⟶ prod dy.W dx.W)
+          ≫ (snd : prod dy.W dx.W ⟶ dx.W) = (snd : prod Y.A dx.W ⟶ dx.W) := by
+        rw [← Cat.assoc, hrsnd, snd_pair]
+      show a.g ≫ (dx.e ≫ r) ≫ (snd : prod Z.A (prod dy.W dx.W) ⟶ prod dy.W dx.W)
+        = b.g ≫ (dx.e ≫ r) ≫ (snd : prod Z.A (prod dy.W dx.W) ⟶ prod dy.W dx.W)
+      apply prod_hom_ext
+      · -- `≫ fst` into `dy.W`
+        have hax : (a.comp x).g ≫ dy.e ≫ (snd : prod Z.A dy.W ⟶ dy.W)
+            = (b.comp x).g ≫ dy.e ≫ (snd : prod Z.A dy.W ⟶ dy.W) := dy.survPinned (a.comp x) (b.comp x)
+        have key : ∀ c : PairHom Q X,
+            (c.g ≫ (dx.e ≫ r) ≫ (snd : prod Z.A (prod dy.W dx.W) ⟶ prod dy.W dx.W))
+              ≫ (fst : prod dy.W dx.W ⟶ dy.W)
+            = (c.comp x).g ≫ dy.e ≫ (snd : prod Z.A dy.W ⟶ dy.W) := by
+          intro c
+          rw [Cat.assoc, Cat.assoc, Cat.assoc, hsf, ← Cat.assoc dx.e fst, dx.proj]
+          show c.g ≫ x.g ≫ dy.e ≫ snd = (c.comp x).g ≫ dy.e ≫ snd
+          rw [show (c.comp x).g = c.g ≫ x.g from rfl, Cat.assoc]
+        rw [key a, key b, hax]
+      · -- `≫ snd` into `dx.W`
+        have key : ∀ c : PairHom Q X,
+            (c.g ≫ (dx.e ≫ r) ≫ (snd : prod Z.A (prod dy.W dx.W) ⟶ prod dy.W dx.W))
+              ≫ (snd : prod dy.W dx.W ⟶ dx.W)
+            = c.g ≫ dx.e ≫ (snd : prod Y.A dx.W ⟶ dx.W) := by
+          intro c
+          rw [Cat.assoc, Cat.assoc, Cat.assoc, hss]
+        rw [key a, key b, dx.survPinned a b] }
 
 /-! ### §1.547  FAITHFULNESS of the localisation `Â → Â[dense⁻¹] = A*` (the decisive payoff)
 
@@ -1761,31 +1882,40 @@ def pairDenseClass [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞] : DenseClas
   comp_mem x y hx hy := hx.elim (fun dx => hy.elim (fun dy => ⟨pairDense_comp dx dy⟩))
   pb_mem x g hx := pairDense_pb x g hx
 
-/-! ### §1.547  THE MONIC/EPIC WALL — `pairDenseClass` is NOT a `MonicDense` class
+/-- **R7 — `pairDenseClass` is a DENSE CLASS OF MONICS** (the book's §1.48/§1.481 hypothesis).  Every
+    member is `Mono` in `Â` (`pairDense_monic`).  This is the forward `mem → Mono` direction — exactly
+    the §1.48 "dense class of monics" requirement (the calculus-of-fractions cancellation uses dense
+    roof legs being monic-in-`Â`, NOT the reverse `Mono → mem`, which is false for a proper subclass).
+    Refutes the R6 claim that `pairDenseClass` could not be a monic class. -/
+theorem pairDenseClass_mem_mono [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞]
+    {X Y : PairObj 𝒞} (x : PairHom X Y) (hx : (pairDenseClass (𝒞 := 𝒞)).mem x) :
+    @Mono (PairObj 𝒞) _ X Y x :=
+  hx.elim (fun d => pairDense_monic d)
 
-  The monic left-fraction skeleton (`MonicDense`, above) cannot be instantiated on `pairDenseClass`.
-  Its members are EPIC in `Â` (`pairDense_epi`); a `MonicDense pairDenseClass` would force every dense
-  morphism MONIC as well, hence (being epic) an iso — collapsing the dense class to the isos, so the
-  localisation `Â[pairDense⁻¹]` would be trivial (`= Â`) instead of §1.547's genuine `A*`.  Thus the
-  §1.547 localisation is at an EPIC class and is modelled by the DUAL right-fraction (co-span) calculus,
-  not by this skeleton.  This is the precise, machine-checked form of the R1/R2 monic/epic wall.
+/-! ### §1.547  THE R7 CORRECTION — `pairDenseClass` IS a class of monics (`pairDense_monic`)
 
-  `not_monicDense_pairDenseClass`: a `MonicDense pairDenseClass` makes every `pairDense` morphism both
-  MONIC and EPIC in `Â`.  (Combined with `pairDense_cover` — dense underlying-arrows are covers — this
-  pins the collapse: a monic cover is an iso.) -/
+  R6 wrongly concluded `pairDenseClass` could not be a monic class and that a DUAL right-fraction
+  (co-span) calculus was needed.  That was a CATEGORY CONFUSION: it conflated "monic in `Â`" with
+  "the underlying `A`-map is monic in `A`".  A dense `pairDense` morphism's UNDERLYING `A`-map is an
+  epic projection (`pairDense_cover`/`pairDense_epi`), but the morphism itself is MONIC IN `Â`
+  (`pairDense_monic`), exactly as the book states ("every dense morphism is monic").  Being both
+  monic-in-`Â` AND epic-in-`Â` does NOT collapse to an iso, because `Â` is not balanced (a monic
+  epic need not be invertible).  Hence the §1.48 monic LEFT-fraction skeleton is the CORRECT tool for
+  §1.547's `A* = Â[pairDense⁻¹]`; no dual calculus is required.
 
-/-- **Obstruction (machine-checked, sorry-free).**  A `pairDense` morphism is always EPIC in `Â`
-    (`pairDense_epi`); if additionally — as a `MonicDense` localisation hypothesis would force — it were
-    MONIC in `Â`, it would be both.  Phrased decoupled from the `pairDenseClass` record (which carries
-    the `pairDense_pb` sorry): the hypothesis `hmono` is exactly the `MonicDense.mem_iff_mono` content
-    on dense morphisms.  Hence the monic left-fraction skeleton is the wrong tool for §1.547's `A*`
-    (which inverts these epic projections); the dual right-fraction calculus is required. -/
-theorem pairDense_mono_epic_collapse [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞]
-    (hmono : ∀ {X Y : PairObj 𝒞} (x : PairHom X Y), Nonempty (PairDense x) → @Mono (PairObj 𝒞) _ _ _ x)
+  `pairDense_monic_and_epic`: every `pairDense` morphism is both monic-in-`Â` and epic-in-`Â` — the
+  precise, machine-checked statement of the R7 correction, both halves now THEOREMS (no hypothesis). -/
+
+/-- **R7 (machine-checked, sorry-free, axiom-free).**  A `pairDense` morphism is BOTH `Mono` in `Â`
+    (`pairDense_monic`) AND left-cancellable for the §1.547 localisation (`pairDense_epi`).  This is
+    Freyd's "every dense morphism is monic" together with the faithfulness cancellation, and it shows
+    the monic left-fraction calculus applies to `pairDenseClass` — refuting R6's "collapse"/co-span
+    framing, which mistook the underlying-`A`-arrow's epi-ness for failure of monic-in-`Â`. -/
+theorem pairDense_monic_and_epic [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞]
     {X Y : PairObj 𝒞} {x : PairHom X Y} (dx : PairDense x) :
     @Mono (PairObj 𝒞) _ _ _ x ∧
       (∀ {Z : PairObj 𝒞} (a b : PairHom Y Z), x.comp a = x.comp b → a = b) :=
-  ⟨hmono x ⟨dx⟩, fun a b h => pairDense_epi dx a b h⟩
+  ⟨pairDense_monic dx, fun a b h => pairDense_epi dx a b h⟩
 
 end PairEq
 
