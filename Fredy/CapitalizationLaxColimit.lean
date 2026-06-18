@@ -682,6 +682,28 @@ noncomputable def pushHom {i j : ι} (x : L.A i) (y : L.A j) {k m : ι}
     ≫ @Functor.map (L.A k) (L.catA k) (L.A m) (L.catA m) (L.F hkm) (L.functF hkm) _ _ g
     ≫ isoInv (transApp_isIso L hjk hkm y)
 
+/-- `pushHom` distributes over composition — the iso-conjugation analogue of `homTr_comp`.  The
+    middle coherence iso `inv (transApp y) ≫ transApp y = id` cancels, and `map (f ≫ g) = map f ≫
+    map g`.  PROVEN from the bare structure — needs NO pseudofunctor coherence. -/
+theorem pushHom_comp {i j l : ι} (x : L.A i) (y : L.A j) (z : L.A l) {k m : ι}
+    (hik : D.le i k) (hjk : D.le j k) (hlk : D.le l k) (hkm : D.le k m)
+    (f : L.F hik x ⟶ L.F hjk y) (g : L.F hjk y ⟶ L.F hlk z) :
+    pushHom L x z hik hlk hkm (f ≫ g)
+      = pushHom L x y hik hjk hkm f ≫ pushHom L y z hjk hlk hkm g := by
+  unfold pushHom
+  rw [@Functor.map_comp (L.A k) (L.catA k) (L.A m) (L.catA m) (L.F hkm) (L.functF hkm) _ _ _ f g]
+  -- collapse `inv (transApp y) ≫ transApp y = id` in the middle.
+  simp only [Cat.assoc]
+  rw [← Cat.assoc (isoInv (transApp_isIso L hjk hkm y)), inv_isoInv_comp, Cat.id_comp]
+
+/-- `pushHom` preserves identities — the analogue of `homTr_id`.  `map id = id`, then `transApp x ≫
+    inv (transApp x) = id`.  PROVEN from the bare structure — needs NO pseudofunctor coherence. -/
+theorem pushHom_id {i : ι} (x : L.A i) {k m : ι} (hik : D.le i k) (hkm : D.le k m) :
+    pushHom L x x hik hik hkm (Cat.id (L.F hik x)) = Cat.id (L.F (D.trans hik hkm) x) := by
+  unfold pushHom
+  rw [@Functor.map_id (L.A k) (L.catA k) (L.A m) (L.catA m) (L.F hkm) (L.functF hkm),
+    Cat.id_comp, isoInv_comp]
+
 /-! ### Pseudofunctor coherence of the lax hom-transition
 
   The bare `LaxCatSystem` carries the coherence isos `F_refl_iso`/`F_trans_iso` but NO laws relating
@@ -751,6 +773,11 @@ theorem homInclL_compat {i j : ι} (x : L.A i) (y : L.A j)
     (g : L.F a.2.1 x ⟶ L.F a.2.2 y) :
     homInclL L hL x y b (pushHom L x y a.2.1 a.2.2 hab g) = homInclL L hL x y a g :=
   incl_compat (homSystemL L hL x y) hab g
+
+/-- The identity germ at `⟨i,x⟩`: the germ of `𝟙 (F (refl i) x)` at the trivial upper bound
+    `⟨i, refl i, refl i⟩`. -/
+noncomputable def homIdL {i : ι} (x : L.A i) : HomColimL L hL x x :=
+  homInclL L hL x x ⟨i, D.refl i, D.refl i⟩ (Cat.id (L.F (D.refl i) x))
 
 end HomColim
 
