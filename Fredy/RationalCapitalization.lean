@@ -205,9 +205,31 @@
   No `axiom`, no `: True`, no `sorry` on a false statement, no `sorry` in any STATEMENT/type.
   THREE `sorry`s, each on the book's genuine statement, sharply documented: (1) the R2 residual
   `sliceEmbed_factor_wellPointed` (§1.547 subobject-descent); (2) `pairPullbacksTransferCovers` (the
-  `Â` cover transfer = slice equivalence); (3) `pairDense_pb` (§1.48(iii) dense pullback-closure).
+  `Â` cover transfer = slice equivalence); (3) `pairDense_pb_canonical_dense` (§1.48(iii) leg-density).
+
+  ── R9 (dense-pullback-closure: reduction done, residual sharply isolated) ──────────────────────
+
+  `pairDense_pb` (§1.48(iii) `DenseClass.pb_mem` for `PairDense`) is now SORRY-FREE *modulo* a single
+  isolated sub-lemma.  R9 split it:
+    * `pairDense_pb_witness` — produces the genuine `Â`-pullback cone of the cospan `(g, x)` and proves
+      `c.IsPullback` (both SORRY-FREE — the cone is the canonical `pairHasPullbacks` pullback).
+    * `pairDense_pb` itself — SORRY-FREE: transports density across the canonical pullback.
+    * `pairDense_pb_canonical_dense` — the ONLY residual `sorry`: the first leg `canonical.π₁` is dense,
+      i.e. the canonical `Â`-pullback apex is `≅ Z.A × dx.W` (base change of the product projection
+      `fst` onto the SAME well-supported `W`), with `survPinned` discharged via `dx.survPinned` pulled
+      back along `canonical.π₂`.  THE GAP (machine-verified, R9): the underlying `A`-object of the
+      canonical `Â`-pullback is the wide-equalizer subobject `pairEqObj … (pairProdObj Z X)` of
+      `Z.A × X.A`, and proving it `≅ Z.A × dx.W` is exactly "`pairForget` preserves this pullback" —
+      Freyd's §1.547 slice-equivalence verification, the SAME content as `pairPullbacksTransferCovers`.
+      From the abstract `PairObj`/`PairDense` data alone (which permits `Z` and `X` to record unrelated
+      factors to a shared well-supported target) the cross-collision cannot be ruled out, so the naive
+      `prod Z.A dx.W` apex with a union factor list is an ILLEGAL `PairObj` (its `distinct` reduces to
+      an unprovable cross goal `fst≫f = π₂g≫f'`).  Not faked, not weakened — isolated honestly.
+
   `pairDense_monic` (the R7 keystone) is sorry-free AND axiom-free.  The protected types of
-  `capData_exists`/`CapData`/`CapStep` are not touched.  No fake `ratCap`.
+  `capData_exists`/`CapData`/`CapStep` are not touched.  No fake `ratCap` (it spills to R10: the
+  unconditional `CapStep S` assembly gates on (3) above + the §1.48 composition-congruence saturation
+  + `PreRegularCategory A*` transport).
 
   mathlib-free; built on this repo's hand-built `Cat`.
 -/
@@ -1868,14 +1890,73 @@ instance pairPreRegular [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞] :
   the underlying product-pullback in `A`; it is stated here with that exact obstruction and is the
   one remaining dense-class field (the rest sorry-free). -/
 
+/-- **§1.547 — the FIRST LEG of the canonical `Â`-pullback of `(g, x)` is DENSE**, for `x` dense.
+    This is the irreducible §1.547 content isolated out of `pairDense_pb_witness`.
+
+    The canonical `Â`-pullback apex is the wide-equalizer subobject
+    `E ↪ pairProdD Z X ↪ Z.A × X.A` cutting BOTH the square-equalizer `eq(fst≫g.g, snd≫x.g)` AND the
+    product's cross-constraints `{(fst≫f, snd≫f') | f∈Z.F, f'∈X.F, f° = f'°}`.  For `c.π₁` to be
+    DENSE we need `E ≅ Z.A × dx.W` with `c.π₁.g` = the projection `fst` — i.e. the surviving factors
+    of `c.π₁` (the X-factors that are NOT pulled back from `Z`) must be exactly the `dx.W`-half of the
+    density iso `X.A ≅ Y.A × dx.W`.  Under density the Y-DERIVED X-factors (targets in `Y.F°`) coincide
+    on `E` with the corresponding Z-factors (both equal `·≫g.g≫f_Y` by the pullback square), so they do
+    NOT survive; the survivors are precisely the `dx.W`-component.  Hence `E ≅ Z.A × dx.W`.
+
+    GAP.  Making this an equality of subobjects requires that the only cross-collisions between `Z.F`
+    and `X.F` on the square-equalizer are the Y-derived ones — i.e. NO two unrelated factors
+    `f∈Z.F`, `f'∈X.F` of a common well-supported target `T` collide.  Freyd works in a set-based
+    ambient where the surviving factors form a genuine product and this holds; from the abstract
+    `PairObj` data alone (which permits `Z` and `X` to record unrelated factors to a shared target)
+    it is not derivable.  Cross-checked machine-side: with the naive union factor list on
+    `prod Z.A dx.W` the `distinct` field reduces to the unprovable cross goal `fst≫f = π₂g≫f'`.
+    This is the single sharply-isolated obstruction; the cone and its pullback property
+    (`pairDense_pb_witness`) are sorry-free modulo this leg-density. -/
+noncomputable def pairDense_pb_canonical_dense [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞]
+    {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :
+    PairDense (pairHasPullbacks.has g x).cone.π₁ := by
+  sorry
+
+/-- **§1.547 — the WITNESS for dense-pullback-closure.**  For a dense `x : X → Y` (data `dx`) and
+    any `g : Z → Y`, there is a pullback cone `c` of the cospan `(g, x)` in `Â` whose first leg
+    `c.π₁ : c.pt → Z` is again DENSE.  This is the genuine §1.547 content: the dense `x`'s
+    product-projection form (`X.A ≅ Y.A × W`, `x.g` = projection) is stable under base change.
+
+    The cone is the CANONICAL `Â`-pullback (`pairHasPullbacks`), so `c` itself and its pullback
+    property `c.IsPullback` are SORRY-FREE; the only residual is the first-leg density, isolated as
+    `pairDense_pb_canonical_dense` (the single sharply-documented §1.547 obstruction). -/
+theorem pairDense_pb_witness [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞]
+    {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :
+    ∃ c : @Cone (PairObj 𝒞) _ _ _ _ g x, c.IsPullback ∧ Nonempty (PairDense c.π₁) := by
+  -- The CANONICAL `Â`-pullback of the cospan `(g, x)` is the witness cone; `c` and `c.IsPullback`
+  -- are sorry-free, the residual being only the first-leg density (`pairDense_pb_canonical_dense`).
+  refine ⟨(pairHasPullbacks.has g x).cone, (pairHasPullbacks.has g x).cone_isPullback, ?_⟩
+  exact ⟨pairDense_pb_canonical_dense x g dx⟩
+
 /-- §1.48(iii) for `Â`: the dense morphisms are closed under pullback.  STATEMENT is the genuine
     `DenseClass.pb_mem` obligation for `PairDense`; the dense `x`'s product-projection form
     (`X.A ≅ Y.A × W`, `x.g = fst`) is stable under base change, the `Â`-pullback projection being
-    `Z.A × W → Z.A` onto the same `W` — read off the underlying product-pullback in `A`. -/
+    `Z.A × W → Z.A` onto the same `W` — read off the underlying product-pullback in `A`.
+
+    Sorry-free modulo `pairDense_pb_witness`: take the witnessing pullback cone `c` (with `c.π₁`
+    dense); the canonical pullback cone `(HasPullbacks.has g x).cone` is comparison-iso to `c`
+    (`isIso_of_two_pullbacks`), so `canonical.π₁ = u.comp c.π₁` for an iso `Â`-arrow `u`; an iso is
+    dense (`pairDense_of_iso`) and dense is composition-closed (`pairDense_comp`), giving
+    `PairDense canonical.π₁`. -/
 theorem pairDense_pb [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞]
     {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (hx : Nonempty (PairDense x)) :
     Nonempty (PairDense ((HasPullbacks.has g x).cone.π₁)) := by
-  sorry
+  obtain ⟨dx⟩ := hx
+  obtain ⟨c, hc, ⟨dπ₁⟩⟩ := pairDense_pb_witness x g dx
+  -- the canonical cone of the same cospan is a pullback
+  have hcanpb : ((HasPullbacks.has g x).cone).IsPullback := (HasPullbacks.has g x).cone_isPullback
+  -- comparison `Â`-arrow `u : can.pt → c.pt` with `u ≫ c.π₁ = can.π₁`, `u ≫ c.π₂ = can.π₂`
+  obtain ⟨u, ⟨hu₁, hu₂⟩, _⟩ := hc (HasPullbacks.has g x).cone
+  have huiso : @IsIso (PairObj 𝒞) _ _ _ u := isIso_of_two_pullbacks hcanpb hc u hu₁ hu₂
+  obtain ⟨u', huu', hu'u⟩ := huiso
+  -- `can.π₁ = u.comp c.π₁`; iso `u` is dense, `c.π₁` is dense, composite is dense
+  have hdu : PairDense u := pairDense_of_iso u' (congrArg PairHom.g huu') (congrArg PairHom.g hu'u)
+  have hcomp : PairDense (u.comp c.π₁) := pairDense_comp hdu dπ₁
+  exact ⟨hu₁ ▸ hcomp⟩
 
 /-- **§1.547 — `PairDense` is a `DenseClass (PairObj 𝒞)`.**  `mem x := Nonempty (PairDense x)`; isos
     dense (`pairDense_of_isIso`), composition-closed (`pairDense_comp`), pullback-closed
