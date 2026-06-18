@@ -3395,6 +3395,71 @@ theorem bMap_g_factor {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : P
       rw [Cat.assoc, Cat.assoc, Cat.assoc, Cat.assoc, Cat.assoc,
         partHom_snd_proj (fun T => collides Z T) dx.surv k hnc hget]
 
+/-- **The comparison `Â`-map `b : apex_obj → X`.**  Underlying `bMap_g`; compatibility from
+    `bMap_g_factor` (`bMap_g ≫ f'.2 = apexL2 ≫ f'.2`) plus the canonical pullback leg `cone.π₂`'s
+    own compatibility (`apexL2 = cone.π₂.g` hits the apex factor `⟨f'.1, apexL2≫f'.2⟩`). -/
+def bMap {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :
+    PairHom (pairHasPullbacks.has g x).cone.pt X where
+  g := bMap_g x g dx
+  compat p hp := by
+    obtain ⟨q, hq, hqt, hqe⟩ := ((pairHasPullbacks.has g x).cone.π₂).compat p hp
+    exact ⟨q, hq, hqt, by rw [bMap_g_factor x g dx p hp]; exact hqe⟩
+
+/-- **`apexL2 ≫ dx.e ≫ snd = apexHom ≫ wRecon`** — the `dx.W`-component agreement, via `survPinned`.
+    The canonical pullback leg `cone.π₂` and the comparison map `bMap` are both `Â`-maps into `X`, so
+    `survPinned` pins them after `dx.e ≫ snd`; `cone.π₂.g = apexL2`, `bMap.g ≫ dx.e ≫ snd =
+    apexHom ≫ wRecon` (`bMap_g_e_snd`). -/
+theorem apexL2_e_snd {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :
+    apexL2 x g ≫ dx.e ≫ (snd : prod Y.A dx.W ⟶ dx.W) = apexHom x g dx ≫ wRecon x g dx := by
+  have hpin := dx.survPinned ((pairHasPullbacks.has g x).cone.π₂) (bMap x g dx)
+  -- `cone.π₂.g ≫ e ≫ snd = bMap.g ≫ e ≫ snd`; lhs = `apexL2 ≫ e ≫ snd`, rhs = `apexHom ≫ wRecon`
+  rw [show ((pairHasPullbacks.has g x).cone.π₂).g = apexL2 x g from rfl] at hpin
+  rw [hpin]
+  show bMap_g x g dx ≫ dx.e ≫ snd = _
+  exact bMap_g_e_snd x g dx
+
+/-- **Step 4b — `apexHom ≫ apexInv = id`.**  Cancel the two monos `eqMap` (apex inclusion) and
+    `pairProdW` (product subobject): suffices `apexHom ≫ mProd = eqMap ≫ pairProdW`.  Both sides are
+    `pair apexL1 (·)` on the `Z.A`-leg; the `X.A`-leg reduces (post-composing the density iso `dx.e`)
+    to `apex_square` on `fst` and `apexL2_e_snd` on `snd`. -/
+theorem apexHom_apexInv {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :
+    apexHom x g dx ≫ apexInv x g dx = Cat.id _ := by
+  -- cancel mono `eqMap u v`
+  have hmono : Mono (eqMap ((pairProjFst Z X).comp g).g ((pairProjSnd Z X).comp x).g) :=
+    eqMap_mono' _ _
+  apply hmono
+  rw [Cat.assoc, apexInv_fac, Cat.id_comp]
+  -- goal: `apexHom ≫ mProdW = eqMap`.  Cancel mono `pairProdW`.
+  apply pairProdW_mono Z X
+  rw [Cat.assoc, mProdW_fac]
+  -- goal: `apexHom ≫ mProd = eqMap ≫ pairProdW`.  Compare on both product projections.
+  apply prod_hom_ext
+  · -- `≫ fst`: both `apexL1`
+    rw [Cat.assoc, Cat.assoc]
+    rw [show pairProdW Z X ≫ fst = (pairProjFst Z X).g from rfl,
+      show eqMap ((pairProjFst Z X).comp g).g ((pairProjSnd Z X).comp x).g ≫ (pairProjFst Z X).g
+        = apexL1 x g from rfl]
+    unfold mProd; rw [fst_pair, apexHom_fst]; rfl
+  · -- `≫ snd`: `apexHom ≫ mProd ≫ snd = apexL2`
+    rw [Cat.assoc, Cat.assoc]
+    rw [show eqMap ((pairProjFst Z X).comp g).g ((pairProjSnd Z X).comp x).g
+          ≫ pairProdW Z X ≫ snd = apexL2 x g from rfl]
+    unfold mProd
+    rw [snd_pair]
+    -- `apexHom ≫ pair (fst≫g.g) wRecon ≫ dx.einv = apexL2`; post-compose iso `dx.e`
+    have hiso : (apexHom x g dx ≫ pair (fst ≫ g.g) (wRecon x g dx) ≫ dx.einv) ≫ dx.e
+        = apexL2 x g ≫ dx.e := by
+      rw [Cat.assoc, Cat.assoc, dx.e_iso₂, Cat.comp_id]
+      apply prod_hom_ext
+      · -- `(apexHom ≫ pair (fst≫g.g) wRecon) ≫ fst = (apexL2 ≫ dx.e) ≫ fst`
+        rw [Cat.assoc, fst_pair, ← Cat.assoc, apexHom_fst, Cat.assoc, dx.proj]
+        exact (apex_square x g)
+      · -- `(apexHom ≫ pair (fst≫g.g) wRecon) ≫ snd = (apexL2 ≫ dx.e) ≫ snd`
+        rw [Cat.assoc, snd_pair, Cat.assoc, apexL2_e_snd]
+    -- cancel iso `dx.e` (it has inverse `dx.einv`)
+    have := congrArg (· ≫ dx.einv) hiso
+    simpa [Cat.assoc, dx.e_iso₁, Cat.comp_id] using this
+
 /-- The packaged absorption iso: hom/inv + the two round-trips + the leg-compat. -/
 structure ApexIso {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) where
   hom : (pairHasPullbacks.has g x).cone.pt.A ⟶
