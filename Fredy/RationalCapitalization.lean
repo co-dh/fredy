@@ -1641,6 +1641,149 @@ theorem listProdPartitionInv_projL_heq (p : 𝒞 → Bool) :
         exact comp_heq _ _ _ _ (by rw [hAobj, hsnd]) hAobj hBobj
           (fst_heq hAobj hsnd) (listProdProj_heq_list hfe.symm _ _)
 
+/-- **`=`-form of `listProdPartitionInv_projL_heq`** (transport the codomain along `filterIdx_get`).
+    For a `p`-TRUE factor `l.get k`, the inverse-then-projection equals `fst` into the filtered
+    product, transported by `h : (l.filter p).get (filterIdx …) = l.get k`. -/
+theorem listProdPartitionInv_projL (p : 𝒞 → Bool) (l : List 𝒞) (k : Fin l.length)
+    (hk : p (l.get k) = true) (h : (l.filter p).get (filterIdx p l k hk) = l.get k) :
+    listProdPartitionInv p l ≫ listProdProj l k
+      = (fst : prod (listProd (l.filter p)) (listProd (l.filter (fun a => !p a)))
+          ⟶ listProd (l.filter p))
+        ≫ (h ▸ listProdProj (l.filter p) (filterIdx p l k hk)) := by
+  apply eq_of_heq
+  refine (listProdPartitionInv_projL_heq p l k hk).trans ?_
+  refine (comp_right_heq h.symm fst _ _ ?_).symm
+  exact eqRec_heq (φ := fun z => listProd (l.filter p) ⟶ z) h _
+
+/-- **`listProdPartitionInv` then a projection into a `p`-FALSE factor is `snd ≫ (filtered projection)`**
+    (HEq workhorse).  Symmetric to `listProdPartitionInv_projL_heq`: a `(!p)`-true factor `l.get k`
+    sits in the RIGHT block `listProd (l.filter (!p))`, reached by `snd` then the filtered projection
+    at `filterIdx (!p) l k hk`. -/
+theorem listProdPartitionInv_projR_heq (p : 𝒞 → Bool) :
+    ∀ (l : List 𝒞) (k : Fin l.length) (hk : (fun a => !p a) (l.get k) = true),
+      HEq (listProdPartitionInv p l ≫ listProdProj l k)
+          ((snd : prod (listProd (l.filter p)) (listProd (l.filter (fun a => !p a)))
+              ⟶ listProd (l.filter (fun a => !p a)))
+            ≫ listProdProj (l.filter (fun a => !p a)) (filterIdx (fun a => !p a) l k hk))
+  | [],      k, _ => k.elim0
+  | C :: l, ⟨0, hk0⟩, hk => by
+      have hC : p C = false := by
+        have : (!p C) = true := hk
+        simpa using this
+      have hidx : filterIdx (fun a => !p a) (C :: l) ⟨0, hk0⟩ hk = ⟨0, by simp [hC]⟩ := by
+        simp only [filterIdx]
+      simp only [listProdProj]
+      unfold listProdPartitionInv
+      split
+      case h_1 heq => simp [hC] at heq
+      case h_2 heq =>
+        simp only [eq_mpr_eq_cast]
+        have hfe : List.filter (fun a => !p a) (C :: l) = C :: List.filter (fun a => !p a) l :=
+          List.filter_cons_of_pos (by simp [hC])
+        refine HEq.trans (castDom_comp_heq (by simp [hC]) _ _ _) ?_
+        rw [fst_pair, hidx]
+        have hAobj : prod C (listProd (List.filter (fun a => !p a) l))
+            = listProd (List.filter (fun a => !p a) (C :: l)) := by rw [hfe]; rfl
+        have hpfe : listProd (if false = true then C :: List.filter p l else List.filter p l)
+            = listProd (List.filter p (C :: l)) := by rw [List.filter_cons]; simp [hC]
+        have hBget := filterIdx_get (fun a => !p a) (C :: l) ⟨0, hk0⟩ hk
+        rw [hidx] at hBget
+        have hBobj : C = (List.filter (fun a => !p a) (C :: l)).get ⟨0, by rw [hfe]; simp⟩ :=
+          hBget.symm
+        exact comp_heq _ _ _ _
+          (by rw [hpfe, show List.filter (fun a => !p a) (C :: l) = C :: List.filter (fun a => !p a) l
+                from hfe]) hAobj hBobj
+          (snd_heq hpfe hAobj) (listProdProj_zero_heq _ hfe _).symm
+  | C :: l, ⟨j + 1, hj⟩, hk => by
+      have hjk : j < l.length := Nat.lt_of_succ_lt_succ hj
+      have hk' : (fun a => !p a) (l.get ⟨j, hjk⟩) = true := hk
+      have hrec := listProdPartitionInv_projR_heq p l ⟨j, hjk⟩ hk'
+      simp only [listProdProj]
+      unfold listProdPartitionInv
+      split <;> rename_i heq
+      · -- p C = true : head joins LEFT block, RIGHT (`!p`) filtered index UNCHANGED
+        refine HEq.trans (castDom_comp_heq (by simp [heq]) _ _ _) ?_
+        rw [← Cat.assoc, snd_pair, Cat.assoc]
+        refine HEq.trans
+          (comp_right_heq (filterIdx_get (fun a => !p a) l ⟨j, hjk⟩ hk').symm
+            (pair (fst ≫ snd) snd) _ _ hrec) ?_
+        rw [← Cat.assoc, snd_pair]
+        have hfe : List.filter (fun a => !p a) (C :: l) = List.filter (fun a => !p a) l :=
+          List.filter_cons_of_neg (by simp [heq])
+        have hbnd : (filterIdx (fun a => !p a) l ⟨j, hjk⟩ hk').1
+            < (List.filter (fun a => !p a) (C :: l)).length := by
+          rw [hfe]; exact (filterIdx (fun a => !p a) l ⟨j, hjk⟩ hk').2
+        have hidx2 : filterIdx (fun a => !p a) (C :: l) ⟨j + 1, hj⟩ hk
+            = ⟨(filterIdx (fun a => !p a) l ⟨j, hjk⟩ hk').1, hbnd⟩ := by
+          apply Fin.ext; simp only [filterIdx]; split <;> rename_i h2
+          · exact absurd h2 (by simp [heq])
+          · rfl
+        rw [hidx2]
+        have hAobj : listProd (List.filter (fun a => !p a) l)
+            = listProd (List.filter (fun a => !p a) (C :: l)) := by rw [hfe]
+        have hfst : prod C (listProd (List.filter p l)) = listProd (List.filter p (C :: l)) := by
+          rw [List.filter_cons_of_pos heq]; rfl
+        have hBget := filterIdx_get (fun a => !p a) (C :: l) ⟨j + 1, hj⟩ hk
+        rw [hidx2] at hBget
+        have hBobj : (List.filter (fun a => !p a) l).get (filterIdx (fun a => !p a) l ⟨j, hjk⟩ hk')
+            = (List.filter (fun a => !p a) (C :: l)).get
+                ⟨(filterIdx (fun a => !p a) l ⟨j, hjk⟩ hk').1, hbnd⟩ :=
+          (filterIdx_get (fun a => !p a) l ⟨j, hjk⟩ hk').trans hBget.symm
+        have hite : listProd (if false = true then C :: List.filter (fun a => !p a) l
+              else List.filter (fun a => !p a) l)
+            = listProd (List.filter (fun a => !p a) (C :: l)) := by rw [List.filter_cons]; simp [heq]
+        exact comp_heq _ _ _ _ (by rw [hfst, hite]) hAobj hBobj
+          (snd_heq hfst hAobj) (listProdProj_heq_list hfe.symm _ _)
+      · -- p C = false : head joins RIGHT block, RIGHT (`!p`) filtered index SHIFTS by one
+        refine HEq.trans (castDom_comp_heq (by simp [heq]) _ _ _) ?_
+        rw [← Cat.assoc, snd_pair, Cat.assoc]
+        refine HEq.trans
+          (comp_right_heq (filterIdx_get (fun a => !p a) l ⟨j, hjk⟩ hk').symm
+            (pair fst (snd ≫ snd)) _ _ hrec) ?_
+        rw [← Cat.assoc, snd_pair, Cat.assoc]
+        have hfe : List.filter (fun a => !p a) (C :: l) = C :: List.filter (fun a => !p a) l :=
+          List.filter_cons_of_pos (by simp [heq])
+        have hbnd : (filterIdx (fun a => !p a) l ⟨j, hjk⟩ hk').1 + 1
+            < (List.filter (fun a => !p a) (C :: l)).length := by
+          rw [hfe]; simp [(filterIdx (fun a => !p a) l ⟨j, hjk⟩ hk').2]
+        have hidx2 : filterIdx (fun a => !p a) (C :: l) ⟨j + 1, hj⟩ hk
+            = ⟨(filterIdx (fun a => !p a) l ⟨j, hjk⟩ hk').1 + 1, hbnd⟩ := by
+          apply Fin.ext; simp only [filterIdx]; split <;> rename_i h2
+          · rfl
+          · exact absurd h2 (by simp [heq])
+        rw [hidx2]
+        have hsucc := listProdProj_succ_heq (List.filter (fun a => !p a) (C :: l)) hfe
+          (n := (filterIdx (fun a => !p a) l ⟨j, hjk⟩ hk').1) hbnd
+          (filterIdx (fun a => !p a) l ⟨j, hjk⟩ hk').2
+        rw [show (⟨(filterIdx (fun a => !p a) l ⟨j, hjk⟩ hk').1,
+              (filterIdx (fun a => !p a) l ⟨j, hjk⟩ hk').2⟩ : Fin (List.filter (fun a => !p a) l).length)
+            = filterIdx (fun a => !p a) l ⟨j, hjk⟩ hk' from Fin.ext rfl] at hsucc
+        have hAobj : prod C (listProd (List.filter (fun a => !p a) l))
+            = listProd (List.filter (fun a => !p a) (C :: l)) := by rw [hfe]; rfl
+        have hfst : listProd (if false = true then C :: List.filter p l else List.filter p l)
+            = listProd (List.filter p (C :: l)) := by rw [List.filter_cons]; simp [heq]
+        have hBget := filterIdx_get (fun a => !p a) (C :: l) ⟨j + 1, hj⟩ hk
+        rw [hidx2] at hBget
+        have hBobj : (List.filter (fun a => !p a) l).get (filterIdx (fun a => !p a) l ⟨j, hjk⟩ hk')
+            = (List.filter (fun a => !p a) (C :: l)).get
+                ⟨(filterIdx (fun a => !p a) l ⟨j, hjk⟩ hk').1 + 1, hbnd⟩ :=
+          (filterIdx_get (fun a => !p a) l ⟨j, hjk⟩ hk').trans hBget.symm
+        exact comp_heq _ _ _ _ (by rw [hfst, hAobj]) hAobj hBobj
+          (snd_heq hfst hAobj) hsucc.symm
+
+/-- **`=`-form of `listProdPartitionInv_projR_heq`** (transport along `filterIdx_get`). -/
+theorem listProdPartitionInv_projR (p : 𝒞 → Bool) (l : List 𝒞) (k : Fin l.length)
+    (hk : (fun a => !p a) (l.get k) = true)
+    (h : (l.filter (fun a => !p a)).get (filterIdx (fun a => !p a) l k hk) = l.get k) :
+    listProdPartitionInv p l ≫ listProdProj l k
+      = (snd : prod (listProd (l.filter p)) (listProd (l.filter (fun a => !p a)))
+          ⟶ listProd (l.filter (fun a => !p a)))
+        ≫ (h ▸ listProdProj (l.filter (fun a => !p a)) (filterIdx (fun a => !p a) l k hk)) := by
+  apply eq_of_heq
+  refine (listProdPartitionInv_projR_heq p l k hk).trans ?_
+  refine (comp_right_heq h.symm snd _ _ ?_).symm
+  exact eqRec_heq (φ := fun z => listProd (l.filter (fun a => !p a)) ⟶ z) h _
+
 /-- A binary product of well-supported objects is well-supported. -/
 theorem wellSupported_prod' [PullbacksTransferCovers 𝒞] {B D : 𝒞}
     (hB : WellSupported B) (hD : WellSupported D) : WellSupported (prod B D) := by
