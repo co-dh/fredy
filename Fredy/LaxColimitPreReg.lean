@@ -360,6 +360,122 @@ private theorem prPairExists {i j : ι} (x : L.A i) (y : L.A j) {l : ι} (z : L.
   · exact leg i x hik (data.hp k).fst af fa hafm hr_fst
   · exact leg j y hjk (data.hp k).snd ag ga hagm hr_snd
 
+/-- The single-germ representative `Ψ` produced by `prCompProj`, as a TWO `pushHom`s (the projection
+    germ folded back by `pushHom_proj`): `pushHom m (aw→v) ≫ pushHom (reflApp p ≫ proj) (k→v)`.
+    This form makes the level-push coherence `prPsi_push` a pair of `push_trans` applications. -/
+private noncomputable def prPsi {i' k : ι} {l : ι} (z : L.A l) (p : L.A k) (w : L.A i')
+    (hi'k : D.le i' k) (proj : p ⟶ L.F hi'k w)
+    (aw : UpperBound D l k) (m : L.F aw.2.1 z ⟶ L.F aw.2.2 p)
+    (v : ι) (hawv : D.le aw.1 v) (hkv : D.le k v) :
+    L.F (D.trans aw.2.1 hawv) z ⟶ L.F (D.trans hi'k hkv) w :=
+  pushHom L z p aw.2.1 aw.2.2 hawv m
+    ≫ pushHom L p w (D.refl k) hi'k hkv (reflApp L p ≫ proj)
+
+private theorem prCompProj {i' k : ι} {l : ι} (z : L.A l) (p : L.A k) (w : L.A i')
+    (hi'k : D.le i' k) (proj : p ⟶ L.F hi'k w)
+    (a₁ : UpperBound D l k) (m₁ : L.F a₁.2.1 z ⟶ L.F a₁.2.2 p)
+    (e : ι) (ha₁e : D.le a₁.1 e) (hke : D.le k e) :
+    @compL _ _ L hL ⟨l, z⟩ ⟨k, p⟩ ⟨i', w⟩ (Quotient.mk _ ⟨a₁, m₁⟩)
+        (homInclL L hL p w ⟨k, D.refl k, hi'k⟩ (reflApp L p ≫ proj))
+      = homInclL L hL z w ⟨e, D.trans a₁.2.1 ha₁e, D.trans hi'k hke⟩
+          (prPsi L z p w hi'k proj a₁ m₁ e ha₁e hke) := by
+  show homCompRawL L hL z p w a₁ m₁ ⟨k, D.refl k, hi'k⟩ (reflApp L p ≫ proj) = _
+  rw [homCompRawL_eq_compAtL L hL z p w a₁ m₁ ⟨k, D.refl k, hi'k⟩ (reflApp L p ≫ proj) e ha₁e hke]
+  rfl
+
+/-- **Level-push coherence of `prPsi`.**  Pushing the single-germ rep from `v` to `n` (along `hvn`)
+    recomputes the rep at `n`: both `pushHom`s merge by `push_trans` (associativity). -/
+private theorem prPsi_push (hL : Coherent L) {i' k : ι} {l : ι} (z : L.A l) (p : L.A k) (w : L.A i')
+    (hi'k : D.le i' k) (proj : p ⟶ L.F hi'k w)
+    (aw : UpperBound D l k) (m : L.F aw.2.1 z ⟶ L.F aw.2.2 p)
+    (v n : ι) (hawv : D.le aw.1 v) (hkv : D.le k v) (hvn : D.le v n) :
+    pushHom L z w (D.trans aw.2.1 hawv) (D.trans hi'k hkv) hvn
+        (prPsi L z p w hi'k proj aw m v hawv hkv)
+      = prPsi L z p w hi'k proj aw m n (D.trans hawv hvn) (D.trans hkv hvn) := by
+  unfold prPsi
+  rw [pushHom_comp L z p w (D.trans aw.2.1 hawv) (D.trans aw.2.2 hawv) (D.trans hi'k hkv) hvn
+        (pushHom L z p aw.2.1 aw.2.2 hawv m)
+        (pushHom L p w (D.refl k) hi'k hkv (reflApp L p ≫ proj)),
+      ← hL.push_trans z p aw.2.1 aw.2.2 hawv hvn m,
+      ← hL.push_trans p w (D.refl k) hi'k hkv hvn (reflApp L p ≫ proj)]
+
+/-- **Joint monomorphy of the two projections** (lax mirror of `colimHom_monicPair_of_rep`).  Two
+    germs `⟨l,z⟩ ⟶ ⟨k,p⟩` that agree after `prFst` and after `prSnd` are equal.  Reduce both
+    projection-composites to single germs (`prCompProj`), extract a common bound from the germ
+    equalities, strip the trailing `isoInv (transApp)` isos, and apply `data.pres` (the fibre's
+    joint-monic preservation) to the `prUnit`-conjugated representatives. -/
+private theorem prJointMono {i j : ι} (x : L.A i) (y : L.A j) {l : ι} (z : L.A l)
+    (h₁ h₂ : homL L hL ⟨l, z⟩ (prObj L data x y))
+    (hf : compL L hL h₁ (prFst L hL data x y) = compL L hL h₂ (prFst L hL data x y))
+    (hs : compL L hL h₁ (prSnd L hL data x y) = compL L hL h₂ (prSnd L hL data x y)) :
+    h₁ = h₂ := by
+  have hik : D.le i (prK D i j) := (prK_le D i j).1
+  have hjk : D.le j (prK D i j) := (prK_le D i j).2
+  revert hf hs
+  refine Quotient.inductionOn₂ h₁ h₂ (fun rh₁ rh₂ hf hs => ?_)
+  obtain ⟨a₁, m₁⟩ := rh₁
+  obtain ⟨a₂, m₂⟩ := rh₂
+  simp only [prFst, prSnd, prObj] at hf hs ⊢
+  -- common bound `e ≥ a₁.1, a₂.1, k`.
+  obtain ⟨w0, hw0a, hw0b⟩ := D.bound a₁.1 a₂.1
+  obtain ⟨e, hew, hek⟩ := D.bound w0 (prK D i j)
+  have ha₁e : D.le a₁.1 e := D.trans hw0a hew
+  have ha₂e : D.le a₂.1 e := D.trans hw0b hew
+  rw [prCompProj L hL z _ x hik (data.hp (prK D i j)).fst a₁ m₁ e ha₁e hek,
+      prCompProj L hL z _ x hik (data.hp (prK D i j)).fst a₂ m₂ e ha₂e hek] at hf
+  rw [prCompProj L hL z _ y hjk (data.hp (prK D i j)).snd a₁ m₁ e ha₁e hek,
+      prCompProj L hL z _ y hjk (data.hp (prK D i j)).snd a₂ m₂ e ha₂e hek] at hs
+  -- extract germ relations from `hf`/`hs`, then a common bound `n`.
+  obtain ⟨cf, hcf1, hcf2, eqf⟩ := Quotient.exact hf
+  obtain ⟨cs, hcs1, hcs2, eqs⟩ := Quotient.exact hs
+  obtain ⟨n, hcfn, hcsn⟩ := D.bound cf.1 cs.1
+  -- `eqf`/`eqs` are `pushHom`-of-`prPsi` equalities at `cf.1`/`cs.1`; fold by `prPsi_push` to `prPsi`
+  -- at that level, then push on to the common bound `n`.
+  simp only [homSystemL] at eqf eqs
+  rw [prPsi_push L hL z _ x hik (data.hp (prK D i j)).fst a₁ m₁ e cf.1 ha₁e hek hcf1,
+      prPsi_push L hL z _ x hik (data.hp (prK D i j)).fst a₂ m₂ e cf.1 ha₂e hek hcf2] at eqf
+  rw [prPsi_push L hL z _ y hjk (data.hp (prK D i j)).snd a₁ m₁ e cs.1 ha₁e hek hcs1,
+      prPsi_push L hL z _ y hjk (data.hp (prK D i j)).snd a₂ m₂ e cs.1 ha₂e hek hcs2] at eqs
+  have eqf' := congrArg (pushHom L z x (D.trans a₁.2.1 (D.trans ha₁e hcf1))
+      (D.trans hik (D.trans hek hcf1)) hcfn) eqf
+  have eqs' := congrArg (pushHom L z y (D.trans a₁.2.1 (D.trans ha₁e hcs1))
+      (D.trans hjk (D.trans hek hcs1)) hcsn) eqs
+  rw [prPsi_push L hL z _ x hik (data.hp (prK D i j)).fst a₁ m₁ cf.1 n _ _ hcfn,
+      prPsi_push L hL z _ x hik (data.hp (prK D i j)).fst a₂ m₂ cf.1 n _ _ hcfn] at eqf'
+  rw [prPsi_push L hL z _ y hjk (data.hp (prK D i j)).snd a₁ m₁ cs.1 n _ _ hcsn,
+      prPsi_push L hL z _ y hjk (data.hp (prK D i j)).snd a₂ m₂ cs.1 n _ _ hcsn] at eqs'
+  -- unfold `prPsi` and fold the projection germ to `prUnit ≫ map proj ≫ isoInv (transApp)`.
+  unfold prPsi at eqf' eqs'
+  rw [pushHom_proj L x _ hik _ (data.hp (prK D i j)).fst] at eqf'
+  rw [pushHom_proj L y _ hjk _ (data.hp (prK D i j)).snd] at eqs'
+  -- level data at `n`.
+  have hkn : D.le (prK D i j) n := D.trans hek (D.trans hcf1 hcfn)
+  have ha₁n : D.le a₁.1 n := D.trans ha₁e (D.trans hcf1 hcfn)
+  have ha₂n : D.le a₂.1 n := D.trans ha₂e (D.trans hcf1 hcfn)
+  -- the `prUnit`-conjugated reps `u₁,u₂ : F(l≤n)z ⟶ F(k≤n)p`.
+  let u₁ : L.F (D.trans a₁.2.1 ha₁n) z ⟶ L.F hkn ((data.hp (prK D i j)).prod (L.F hik x) (L.F hjk y)) :=
+    pushHom L z _ a₁.2.1 a₁.2.2 ha₁n m₁ ≫ prUnit L _ hkn
+  let u₂ : L.F (D.trans a₂.2.1 ha₂n) z ⟶ L.F hkn ((data.hp (prK D i j)).prod (L.F hik x) (L.F hjk y)) :=
+    pushHom L z _ a₂.2.1 a₂.2.2 ha₂n m₂ ≫ prUnit L _ hkn
+  -- cancel the trailing `isoInv (transApp)` (post-compose with `transApp`).
+  have hfst : u₁ ≫ (L.functF hkn).map (data.hp (prK D i j)).fst
+      = u₂ ≫ (L.functF hkn).map (data.hp (prK D i j)).fst := by
+    have := congrArg (· ≫ transApp L hik hkn x) eqf'
+    simp only [Cat.assoc, inv_isoInv_comp, Cat.comp_id] at this
+    simpa only [u₁, u₂, Cat.assoc] using this
+  have hsnd : u₁ ≫ (L.functF hkn).map (data.hp (prK D i j)).snd
+      = u₂ ≫ (L.functF hkn).map (data.hp (prK D i j)).snd := by
+    have := congrArg (· ≫ transApp L hjk hkn y) eqs'
+    simp only [Cat.assoc, inv_isoInv_comp, Cat.comp_id] at this
+    simpa only [u₁, u₂, Cat.assoc] using this
+  -- joint-monic preservation gives `u₁ = u₂`; cancel `prUnit` to get the germ witness.
+  have huv : u₁ = u₂ :=
+    data.pres hkn (L.F hik x) (L.F hjk y) (L.F (D.trans a₁.2.1 ha₁n) z) u₁ u₂ hfst hsnd
+  have hmm : pushHom L z _ a₁.2.1 a₁.2.2 ha₁n m₁ = pushHom L z _ a₂.2.1 a₂.2.2 ha₂n m₂ := by
+    have h2 := congrArg (· ≫ isoInv (prUnit_isIso L _ hkn)) huv
+    simpa only [u₁, u₂, Cat.assoc, isoInv_comp, Cat.comp_id] using h2
+  exact Quotient.sound ⟨⟨n, D.trans a₁.2.1 ha₁n, hkn⟩, ha₁n, ha₂n, hmm⟩
+
 end LaxProduct
 
 end Freyd.LaxColim
