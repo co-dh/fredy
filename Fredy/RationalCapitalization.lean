@@ -3015,6 +3015,21 @@ def collReconstruct (Z : PairObj 𝒞) :
       pair (pickArrow Z T (h T (List.mem_cons_self))).1
            (collReconstruct Z l (fun S hS => h S (List.mem_cons_of_mem _ hS)))
 
+/-- **Projection of `collReconstruct`**: the `k`-th coordinate of the reconstructed colliding block
+    is the chosen Z-factor to that coordinate's target.  Structural induction on `l`/`k`. -/
+theorem collReconstruct_proj (Z : PairObj 𝒞) :
+    ∀ (l : List 𝒞) (h : ∀ T ∈ l, collides Z T = true) (k : Fin l.length),
+      collReconstruct Z l h ≫ listProdProj l k
+        = (pickArrow Z (l.get k) (h (l.get k) (l.get_mem k))).1
+  | [], _, k => k.elim0
+  | T :: l, h, ⟨0, hk0⟩ => by
+      show pair _ _ ≫ (fst : prod T (listProd l) ⟶ T) = _
+      rw [fst_pair]; rfl
+  | T :: l, h, ⟨n + 1, hk⟩ => by
+      show pair _ (collReconstruct Z l _) ≫ ((snd : prod T (listProd l) ⟶ listProd l)
+            ≫ listProdProj l ⟨n, Nat.lt_of_succ_lt_succ hk⟩) = _
+      rw [← Cat.assoc, snd_pair, collReconstruct_proj Z l _ ⟨n, Nat.lt_of_succ_lt_succ hk⟩]; rfl
+
 /-- All members of `dx.surv.filter (collides Z)` collide (`List.mem_filter`). -/
 theorem collFilter_all {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (dx : PairDense x) :
     ∀ T ∈ dx.surv.filter (fun T => collides Z T), collides Z T = true :=
@@ -3028,6 +3043,39 @@ def survRecon {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (dx : PairDense x) :
   pair (fst ≫ collReconstruct Z (dx.surv.filter (fun T => collides Z T)) (collFilter_all x dx))
        snd
   ≫ listProdPartitionInv (fun T => collides Z T) dx.surv
+
+/-- `pickArrow`'s chosen arrow is HEq-stable across equal targets (proof-irrelevant in its witness). -/
+theorem pickArrow_heq (Z : PairObj 𝒞) {T T' : 𝒞} (h : T = T')
+    (hc : collides Z T = true) (hc' : collides Z T' = true) :
+    HEq (pickArrow Z T hc).1 (pickArrow Z T' hc').1 := by
+  cases h; rfl
+
+/-- **A colliding survivor coordinate of `survRecon` is `fst ≫ (chosen Z-factor)`.**  For a survivor
+    target `dx.surv.get k` that COLLIDES, the partition inverse routes it to the LEFT (colliding)
+    block (`listProdPartitionInv_projL`), whose entries are `collReconstruct`'s chosen Z-factors
+    (`collReconstruct_proj`); the `filterIdx`/get bookkeeping cancels. -/
+theorem survRecon_proj_coll {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (dx : PairDense x)
+    (k : Fin dx.surv.length) (hk : collides Z (dx.surv.get k) = true) :
+    survRecon x dx ≫ listProdProj dx.surv k
+      = fst ≫ (pickArrow Z (dx.surv.get k) hk).1 := by
+  have hget : ((dx.surv.filter (fun T => collides Z T)).get
+      (filterIdx (fun T => collides Z T) dx.surv k hk)) = dx.surv.get k :=
+    filterIdx_get (fun T => collides Z T) dx.surv k hk
+  unfold survRecon
+  rw [Cat.assoc, listProdPartitionInv_projL (fun T => collides Z T) dx.surv k hk hget,
+    ← Cat.assoc, fst_pair, Cat.assoc]
+  -- goal: `fst ≫ collReconstruct .. ≫ (hget ▸ listProdProj (filter) j) = fst ≫ (pickArrow Z (surv.get k) hk).1`
+  refine congrArg (fst ≫ ·) ?_
+  -- the inner: transport `collReconstruct .. ≫ listProdProj (filter) j = pickArrow ((filter).get j)`
+  -- across `hget`, landing on `pickArrow (surv.get k)` (proof-irrelevant in the collides witness).
+  apply eq_of_heq
+  refine (comp_right_heq hget (collReconstruct Z (dx.surv.filter (fun T => collides Z T))
+      (collFilter_all x dx)) _ _ (eqRec_heq hget
+    (listProdProj (dx.surv.filter (fun T => collides Z T))
+      (filterIdx (fun T => collides Z T) dx.surv k hk))).symm).symm.trans ?_
+  refine (heq_of_eq (collReconstruct_proj Z (dx.surv.filter (fun T => collides Z T))
+    (collFilter_all x dx) (filterIdx (fun T => collides Z T) dx.surv k hk))).trans ?_
+  exact pickArrow_heq Z hget _ _
 
 /-- The reconstructed `dx.W`-coordinate: `survRecon ≫ dx.wg`. -/
 def wRecon {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :
