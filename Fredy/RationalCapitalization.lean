@@ -3230,6 +3230,52 @@ theorem apexInv_fac {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : Pai
       = mProdW x g dx :=
   eqLift_fac ((pairProjFst Z X).comp g).g ((pairProjSnd Z X).comp x).g (mProdW x g dx) _
 
+/-- The apex's two legs are the equalizer map post-composed with the two product projections (def
+    of the §1.432 pullback-from-equalizer).  `apexL1` is `canonical_pb_probe`; `apexL2` analogous. -/
+theorem apexL1_eq {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) :
+    apexL1 x g = eqMap ((pairProjFst Z X).comp g).g ((pairProjSnd Z X).comp x).g
+      ≫ pairProdW Z X ≫ fst := rfl
+
+theorem apexL2_eq {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) :
+    apexL2 x g = eqMap ((pairProjFst Z X).comp g).g ((pairProjSnd Z X).comp x).g
+      ≫ pairProdW Z X ≫ snd := rfl
+
+/-- `apexInv ≫ apexL1 = fst` (the `Z.A`-leg is the projection).  `apexL1` factors through the apex
+    equalizer; `apexInv_fac` + `mProdW_fac` collapse it to `mProd ≫ fst = fst`. -/
+theorem apexInv_apexL1 {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :
+    apexInv x g dx ≫ apexL1 x g = fst := by
+  rw [apexL1_eq, ← Cat.assoc, ← Cat.assoc, apexInv_fac, mProdW_fac]
+  show mProd x g dx ≫ fst = fst
+  unfold mProd; rw [fst_pair]
+
+/-- `apexInv ≫ apexL2 = pair (fst≫g.g) wRecon ≫ dx.einv` (the `X.A`-leg is `mProd`'s `snd`). -/
+theorem apexInv_apexL2 {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :
+    apexInv x g dx ≫ apexL2 x g = pair (fst ≫ g.g) (wRecon x g dx) ≫ dx.einv := by
+  rw [apexL2_eq, ← Cat.assoc, ← Cat.assoc, apexInv_fac, mProdW_fac]
+  show mProd x g dx ≫ snd = _
+  unfold mProd; rw [snd_pair]
+
+/-- **Step 4a — `apexInv ≫ apexHom = id`.**  Check on both projections of `prod Z.A W'`:
+    `≫ fst` is `apexInv ≫ apexL1 = fst`; `≫ snd` is `apexInv ≫ apexL2 ≫ (density+partition snd)`,
+    which peels `dx.einv≫dx.e` (`e_iso₂`), `wRecon≫wf = survRecon` (`wRecon_wf`), and the partition
+    handle `survRecon_hom_snd` back to `snd`. -/
+theorem apexInv_apexHom {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :
+    apexInv x g dx ≫ apexHom x g dx = Cat.id _ := by
+  apply prod_hom_ext
+  · rw [Cat.assoc, apexHom_fst]
+    show apexInv x g dx ≫ apexL1 x g = Cat.id _ ≫ fst
+    rw [apexInv_apexL1, Cat.id_comp]
+  · rw [Cat.assoc]
+    have hsnd : apexHom x g dx ≫ snd = apexL2 x g ≫ dx.e ≫ snd ≫ dx.wf
+          ≫ listProdPartitionHom (fun T => collides Z T) dx.surv ≫ snd := by
+      unfold apexHom; rw [snd_pair]
+    rw [hsnd, Cat.id_comp, ← Cat.assoc (apexInv x g dx) (apexL2 x g), apexInv_apexL2]
+    -- `(pair (fst≫g.g) wRecon ≫ dx.einv) ≫ dx.e ≫ snd ≫ wf ≫ partHom ≫ snd`
+    rw [Cat.assoc (pair (fst ≫ g.g) (wRecon x g dx)) dx.einv,
+      ← Cat.assoc dx.einv dx.e _, dx.e_iso₂, Cat.id_comp,
+      ← Cat.assoc (pair (fst ≫ g.g) (wRecon x g dx)) snd _, snd_pair,
+      ← Cat.assoc (wRecon x g dx) dx.wf _, wRecon_wf, survRecon_hom_snd]
+
 /-- The packaged absorption iso: hom/inv + the two round-trips + the leg-compat. -/
 structure ApexIso {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) where
   hom : (pairHasPullbacks.has g x).cone.pt.A ⟶
