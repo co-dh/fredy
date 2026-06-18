@@ -2586,6 +2586,38 @@ variable [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞]
 /-- The collision predicate: `T` collides if some factor of `Z` targets `T`. -/
 def collides (Z : PairObj 𝒞) (T : 𝒞) : Bool := decide (∃ f ∈ Z.F, f.1 = T)
 
+/-- The apex carrier: the underlying object of the canonical `Â`-pullback cone of `(g, x)`. -/
+abbrev apexCarrier {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) : 𝒞 :=
+  (pairHasPullbacks.has g x).cone.pt.A
+
+/-- The first apex leg `apex → Z.A` (underlying the `Â`-pullback `π₁`). -/
+def apexL1 {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) : apexCarrier x g ⟶ Z.A :=
+  ((pairHasPullbacks.has g x).cone.π₁).g
+
+/-- The second apex leg `apex → X.A` (underlying the `Â`-pullback `π₂`). -/
+def apexL2 {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) : apexCarrier x g ⟶ X.A :=
+  ((pairHasPullbacks.has g x).cone.π₂).g
+
+/-- The defining square of the apex: `apexL1 ≫ g.g = apexL2 ≫ x.g` (underlying `cone.w`). -/
+theorem apex_square {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) :
+    apexL1 x g ≫ g.g = apexL2 x g ≫ x.g := by
+  have h := congrArg PairHom.g (pairHasPullbacks.has g x).cone.w
+  simpa [PairHom.comp, apexL1, apexL2] using h
+
+/-- The `hom` direction of the absorption iso: `apex → Z.A × W'`.  Both components are PROJECTIONS
+    out of the apex (no reconstruction): the `Z.A`-part is the first leg `apexL1`; the `W'`-part
+    sends `apexL2 : apex → X.A` through the density iso `dx.e` to `dx.W`, then `dx.wf` to
+    `listProd dx.surv`, then the partition's `snd` to the non-colliding block `W'`. -/
+def apexHom {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :
+    apexCarrier x g ⟶ prod Z.A (listProd (dx.surv.filter (fun T => !collides Z T))) :=
+  pair (apexL1 x g)
+       (apexL2 x g ≫ dx.e ≫ snd ≫ dx.wf
+          ≫ listProdPartitionHom (fun T => collides Z T) dx.surv ≫ snd)
+
+theorem apexHom_fst {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :
+    apexHom x g dx ≫ fst = ((pairHasPullbacks.has g x).cone.π₁).g := by
+  unfold apexHom; rw [fst_pair]; rfl
+
 /-- The packaged absorption iso: hom/inv + the two round-trips + the leg-compat. -/
 structure ApexIso {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) where
   hom : (pairHasPullbacks.has g x).cone.pt.A ⟶
