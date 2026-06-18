@@ -92,7 +92,64 @@ theorem bridge_roundtrip_f {X Y : PairObj 𝒞} (hsub : ∀ T ∈ Y.targets, T �
                  (pairSliceObj Y)) :
     (pairHomToSlice (pairHomOfSlice hsub φ)).f = φ.f := rfl
 
+/-! ## The well-pointedness reduction: from product-form to the R15 escape
+
+  This is the genuine §1.546/547 content, isolated so the single missing fact is a NAMED
+  hypothesis and the escape around it is machine-checked.  Freyd's §1.546 escape
+  (`prodFormMono_misses_point`, sorry-free, axiom-free) handles any *product-form* proper mono
+  `id_A × (i : B'↪P)`.  The open content (`sliceEmbed_factor_wellPointed`'s `sorry`) is the
+  reduction of an *arbitrary* proper mono to product form.  We name exactly that reduction as
+  `ProperMonoIsProductForm` and prove the well-pointedness payoff from it sorry-free. -/
+
+variable [PullbacksTransferCovers 𝒞]
+
+/-- **The single missing §1.546/547 fact, named.**  Every proper mono `m : D ↪ sliceEmbedObj P A`
+    in the slice `Over P` factors as an iso of its domain followed by a PRODUCT-FORM mono
+    `prodFormMono i` (for a proper base mono `i : B' ↪ P`): there is a proper monic `i : B' ↪ P` and
+    a slice iso `e : D ≅ ⟨A×B', snd≫i⟩` with `e ≫ prodFormMono i = m`.  This is Freyd's §1.546
+    reduction — "every subobject of `AB` is of the form `AB'`" — which is NOT elementary in the plain
+    slice (`graph_satisfies_hyps` refutes the naive form; the genuine reduction lives in the
+    localization layer).  Naming it makes the well-pointedness payoff machine-checkable. -/
+def ProperMonoIsProductForm (P A : 𝒞) : Prop :=
+  ∀ {D : Over P} (m : D ⟶ sliceEmbedObj P A), OverMono m → ¬ OverIso m →
+    ∃ (B' : 𝒞) (i : B' ⟶ P) (_ : Mono i) (_ : ¬ IsIso i)
+      (e : D ⟶ (⟨prod A B', snd ≫ i⟩ : Over P)),
+      OverIso e ∧ e ⊚ prodFormMono (A := A) i = m
+
+/-- **Well-pointedness from the product-form reduction (the R15 escape, applied uniformly).**
+    GIVEN the named §1.546 reduction `ProperMonoIsProductForm P A`, the structured embedded object
+    `sliceEmbedObj P A` is `WellPointed` in `Over P` whenever some `g : P → A` exists (the witness
+    g-point).  Proof: a proper mono `m` is, by `hpf`, `e ≫ prodFormMono i` with `e` a slice iso and
+    `i : B' ↪ P` proper; `prodFormMono_misses_slicePoint` gives a g-point missed by `prodFormMono i`;
+    any factorization through `m` would, post-composed with `e⁻¹`, factor through `prodFormMono i`,
+    contradiction.  This is the sorry-free half — the only open input is `hpf`. -/
+theorem wellPointed_of_productForm {P A : 𝒞} (g : P ⟶ A) (hpf : ProperMonoIsProductForm P A) :
+    @WellPointed (Over P) _ (overHasTerminal P) (sliceEmbedObj P A) := by
+  intro D m hm hniso
+  obtain ⟨B', i, hi_mono, hi_proper, e, he_iso, hfac⟩ := hpf m hm hniso
+  -- the g-point missed by the product-form mono `prodFormMono i`
+  refine ⟨sliceFactorPoint A g, ?_⟩
+  rintro ⟨y, hy⟩
+  -- `y ≫ m = point`, and `m = e ≫ prodFormMono i`, so `(y ≫ e) ≫ prodFormMono i = point`.
+  refine prodFormMono_misses_slicePoint (A := A) i hi_mono hi_proper g ⟨y ≫ e, ?_⟩
+  rw [Cat.assoc, show e ≫ prodFormMono (A := A) i = m from hfac]; exact hy
+
+/-- **Well-pointedness of the structured factor object (the §1.547 payoff under the named gap).**
+    For `A = U.get k` a well-supported factor of a finite set `U`, the embedded object
+    `sliceEmbedObj (∏U) A` is `WellPointed` in `Over (∏U)`, GIVEN the §1.546 reduction
+    `ProperMonoIsProductForm`.  This is exactly `sliceEmbed_factor_wellPointed`
+    (`RationalCapitalization.lean`) — byte-for-byte the book's `WellPointed` — with its lone `sorry`
+    replaced by the honest named hypothesis.  The g-point witness is the projection
+    `listProdProj U k : ∏U → U.get k`. -/
+theorem sliceEmbed_factor_wellPointed_of_productForm (U : List 𝒞) (k : Fin U.length)
+    (hpf : ProperMonoIsProductForm (listProd U) (U.get k)) :
+    @WellPointed (Over (listProd U)) _ (overHasTerminal (listProd U))
+      (sliceEmbedObj (listProd U) (U.get k)) :=
+  wellPointed_of_productForm (listProdProj U k) hpf
+
 end Freyd
 
 #print axioms Freyd.bridge_roundtrip_pairHom
 #print axioms Freyd.bridge_roundtrip_f
+#print axioms Freyd.wellPointed_of_productForm
+#print axioms Freyd.sliceEmbed_factor_wellPointed_of_productForm
