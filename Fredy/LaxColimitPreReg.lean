@@ -706,47 +706,123 @@ noncomputable def laxColimHasEqualizers :
 
 end LaxEqualizer
 
+/-! ## §M3d (lax) — pullbacks, PullbacksTransferCovers, and the pre-regular assembly
+
+  Mirrors `Colim.colimitHasPullbacks`/`colimitPullbacksTransferCovers`/`colimitPreRegular`.  Pullbacks
+  come for free from terminal + products + equalizers via the §1.432 route
+  `products_equalizers_implies_pullbacks`.  `PullbacksTransferCovers` compares an arbitrary pullback
+  to the canonical one (generic `pullback_comparison_iso`/`cover_precomp_iso`) and reduces to the
+  canonical-pullback cover-transfer `hcanon` (the only representative-level hypothesis, TRUE for
+  base-change since each fibre is `overPreRegular`).  The final bundle is `PreRegularCategory`. -/
+section LaxPreRegular
+
+variable (L : LaxCatSystem.{u, w} ι D) (hL : Coherent L) [hne : Nonempty ι]
+
+/-- **§M3d (lax): the lax colimit category has pullbacks**, via terminal + products + equalizers and
+    the §1.432 construction `products_equalizers_implies_pullbacks`.  Mirrors `colimitHasPullbacks`. -/
+noncomputable def laxColimHasPullbacks
+    (tData : LaxTerminalData L) (pData : LaxProductData L) (eqData : LaxEqualizerData L) :
+    @HasPullbacks (Obj L) (laxColimCat L hL) := by
+  letI : Cat (Obj L) := laxColimCat L hL
+  letI : HasTerminal (Obj L) := laxColimHasTerminal L hL tData
+  letI : HasBinaryProducts (Obj L) := laxColimHasBinaryProducts L hL pData
+  letI : HasEqualizers (Obj L) := laxColimHasEqualizers L hL eqData
+  exact ⟨fun f g => products_equalizers_implies_pullbacks f g⟩
+
+/-- Any two pullback cones of the same cospan are connected by a unique compatible iso (generic;
+    a local copy of `Colim.pullback_comparison_iso`, which lives in the import-banned strict file). -/
+private theorem pullbackComparisonIso {𝒜 : Type w} [Cat.{w} 𝒜] {A B Z : 𝒜}
+    {f : A ⟶ Z} {g : B ⟶ Z} {c c' : Cone f g}
+    (hc : c.IsPullback) (hc' : c'.IsPullback) :
+    ∃ φ : c.pt ⟶ c'.pt, IsIso φ ∧ φ ≫ c'.π₁ = c.π₁ ∧ φ ≫ c'.π₂ = c.π₂ := by
+  obtain ⟨φ, ⟨hφ1, hφ2⟩, _⟩ := hc' c
+  obtain ⟨ψ, ⟨hψ1, hψ2⟩, _⟩ := hc c'
+  obtain ⟨_, _, huniq⟩ := hc c
+  have hψφ : ψ ≫ φ = Cat.id c'.pt := by
+    obtain ⟨_, _, huniq'⟩ := hc' c'
+    rw [huniq' (ψ ≫ φ) (by rw [Cat.assoc, hφ1, hψ1]) (by rw [Cat.assoc, hφ2, hψ2]),
+        ← huniq' (Cat.id c'.pt) (by rw [Cat.id_comp]) (by rw [Cat.id_comp])]
+  have hφψ : φ ≫ ψ = Cat.id c.pt := by
+    rw [huniq (φ ≫ ψ) (by rw [Cat.assoc, hψ1, hφ1]) (by rw [Cat.assoc, hψ2, hφ2]),
+        ← huniq (Cat.id c.pt) (by rw [Cat.id_comp]) (by rw [Cat.id_comp])]
+  exact ⟨φ, ⟨ψ, hφψ, hψφ⟩, hφ1, hφ2⟩
+
+/-- **§M3d (lax): pullbacks transfer covers**, given the canonical-pullback cover-transfer `hcanon`.
+    Mirrors `colimitPullbacksTransferCovers` (generic `pullbackComparisonIso`/`cover_precomp_iso`). -/
+noncomputable def laxColimPullbacksTransferCovers
+    (hpull : @HasPullbacks (Obj L) (laxColimCat L hL))
+    (hcanon : letI : Cat (Obj L) := laxColimCat L hL
+      ∀ {A B Z : Obj L} (f : A ⟶ Z) (g : B ⟶ Z),
+        Cover f → Cover (hpull.has f g).cone.π₂) :
+    @PullbacksTransferCovers (Obj L) (laxColimCat L hL) := by
+  letI : Cat (Obj L) := laxColimCat L hL
+  letI : HasPullbacks (Obj L) := hpull
+  refine ⟨fun {A B Z f g} c hc hf => ?_⟩
+  let pb := hpull.has f g
+  have hpbcov : Cover pb.cone.π₂ := hcanon f g hf
+  obtain ⟨φ, hφiso, _, hφ2⟩ := pullbackComparisonIso hc pb.cone_isPullback
+  rw [← hφ2]
+  show Cover (φ ≫ pb.cone.π₂)
+  exact cover_precomp_iso hφiso hpbcov
+
+/-- **§M3 assembly (lax): the lax colimit `ratCapCat`-style category is PRE-REGULAR.**  Bundles
+    `laxColimHasTerminal`/`…HasBinaryProducts`/`…HasPullbacks`/`…PullbacksTransferCovers` into
+    `PreRegularCategory`.  Mirrors `Colim.colimitPreRegular`.  The `hcanon` hypothesis (canonical
+    pullback's `π₂` is a cover when `f` is) is the lax analogue of the strict `hcanon`; TRUE for
+    base-change (each fibre `Over (listProd U)` is `overPreRegular`), discharged downstream. -/
+noncomputable def laxColimPreRegular
+    (tData : LaxTerminalData L) (pData : LaxProductData L) (eqData : LaxEqualizerData L)
+    (hcanon : letI : Cat (Obj L) := laxColimCat L hL
+        letI : HasPullbacks (Obj L) := laxColimHasPullbacks L hL tData pData eqData
+      ∀ {A B Z : Obj L} (f : A ⟶ Z) (g : B ⟶ Z),
+        Cover f → Cover (HasPullbacks.has f g).cone.π₂) :
+    @PreRegularCategory (Obj L) (laxColimCat L hL) := by
+  letI : Cat (Obj L) := laxColimCat L hL
+  letI hterm : HasTerminal (Obj L) := laxColimHasTerminal L hL tData
+  letI hprod : HasBinaryProducts (Obj L) := laxColimHasBinaryProducts L hL pData
+  letI hpull : HasPullbacks (Obj L) := laxColimHasPullbacks L hL tData pData eqData
+  letI hptc : PullbacksTransferCovers (Obj L) :=
+    laxColimPullbacksTransferCovers L hL hpull hcanon
+  exact {}
+
+end LaxPreRegular
+
 end Freyd.LaxColim
 
 /-!
 ════════════════════════════════════════════════════════════════════════════════════════════════
-  STATUS + PRECISE NEXT BLOCKER (§1.543 — pre-regularity of the filtered lax colimit `ratCapCat P`)
+  STATUS (§1.543 — pre-regularity of the filtered lax colimit `ratCapCat P`)  —  GAP 1 COMPLETE
 ════════════════════════════════════════════════════════════════════════════════════════════════
 
-DONE here (all sorry-free; `#print axioms` = `Classical.choice`, `Quot.sound`; `reflApp_natural` = none):
+DONE here (all sorry-free; every result `#print axioms = propext, Classical.choice, Quot.sound`,
+NO `sorryAx`):
 
-  * `laxColimHasTerminal` — `HasTerminal (laxColimCat L hL)` from a `LaxTerminalData L` (per-fibre
-    terminal + the pushed terminal is again terminal — the LAX analogue of the strict
-    `hpres : F hij one = one`, which is FALSE in the lax setting since `F hij one ≅ one` only).
-    Mirrors `Colim.colimitHasTerminal`; the bare-sigma carrier removes all `colimOut`.
+  * `laxColimHasTerminal` — `HasTerminal` from a `LaxTerminalData L` (mirrors `colimitHasTerminal`).
   * `reflApp` / `reflApp_isIso` / `reflApp_natural` — the UNIT coherence component (forward of
-    `F_refl_iso`), the lax companion of `transApp`.  The conjugator for single-stage germ reps.
+    `F_refl_iso`), lax companion of `transApp`; conjugator for single-stage germ reps.
   * `homInclL_isIso_of_rep` — a stage iso includes to a colimit iso (lax `colimHom_isIso_of_rep`).
-    The workhorse for showing an included stage limit-cone is universal (via `isIso_of_product_up`).
-  * `LaxProductData` / `LaxEqualizerData` — the per-fibre-limit + transition-preservation hypothesis
-    bundles (the exact shapes the strict `colimitPreRegular` consumes, re-expressed with `L.functF`).
-    TRUE for base-change (`g*` is a right adjoint ⇒ preserves finite limits); inhabiting them for
-    `laxOfProjSystem' P` is downstream.
+  * `LaxProductData` / `LaxEqualizerData` — the per-fibre-limit + transition-preservation bundles.
+  * **`laxColimHasBinaryProducts`** — `HasBinaryProducts` from a `LaxProductData L` (mirrors
+    `colimitHasBinaryProducts`).  Product object `⟨k, (hp k).prod (F x)(F y)⟩` at a common bound `k`;
+    projections single-stage germs `reflApp ≫ (hp k).fst|snd`; `pair` from `presPair`; `pair_uniq`
+    via `prJointMono`.  Key infra: `prUnit` (the unit conjugator iso, baked-in & cancelled since no
+    pseudofunctor triangle lives in `Coherent`), `pushHom_proj`, `prCompProj`, `prPsi`, `prPsi_push`
+    (level-push coherence = two `push_trans`).
+  * **`laxColimHasEqualizers`** — `HasEqualizers` from a `LaxEqualizerData L` (mirrors
+    `colimitHasEqualizers`).  `⟨M, eqObj fM gM⟩` at a common stage `M`; `eqMap` a single-stage germ;
+    equalizing by `eqMap_eq`; lift by `presLift`; uniqueness by `eqMono` (single-map mirror of
+    `prJointMono`).  Reuses the SAME generic `prUnit`/`prCompProj`/`prPsi`/`prPsi_push` helpers.
+  * **`laxColimHasPullbacks`** — `HasPullbacks` from terminal+products+equalizers via the §1.432
+    `products_equalizers_implies_pullbacks` (mirrors `colimitHasPullbacks`).
+  * **`laxColimPullbacksTransferCovers`** — `PullbacksTransferCovers` from the canonical-pullback
+    cover-transfer `hcanon` (mirrors `colimitPullbacksTransferCovers`; uses local
+    `pullbackComparisonIso` + `cover_precomp_iso`).
+  * **`laxColimPreRegular`** — assembles `PreRegularCategory (laxColimCat L hL)` from
+    `LaxTerminalData` + `LaxProductData` + `LaxEqualizerData` + `hcanon` (mirrors `colimitPreRegular`).
 
-PRECISE NEXT BLOCKER — `HasBinaryProducts (laxColimCat L hL)` from a `LaxProductData L` (then the
-analogous `HasEqualizers`/`HasPullbacks`, then `PullbacksTransferCovers`, then assemble
-`PreRegularCategory`).  This is the germ-algebra mirror of `Colim.colimitHasBinaryProducts`
-(`CatColimitRegular.lean:104`), the largest single block of the strict assembly (~300 lines of
-`castHom` algebra).  The lax version replaces:
-
-    strict `castHom` (transport along the strict object-eqs `F_refl`/`F_trans`)
-  ⟶ lax     `pushHom` / `reflApp` / `transApp` (conjugation by the coherence iso COMPONENTS),
-
-and otherwise follows the same plan: for `⟨i,x⟩ × ⟨j,y⟩`, choose a common bound `k` (filtered),
-set the product object to `objIncl k ((data.hp k).prod (F x) (F y)) = ⟨k, …⟩`, take projections as
-single-stage germs `reflApp ≫ (data.hp k).fst|snd` at `⟨k, refl, …⟩`, define `pair` by the mediating
-germ from `data.presPair` at a common stage of the two competitor germs, and prove `fst_pair`/
-`snd_pair`/`pair_uniq` by pushing competitors to a common stage and applying `data.pres` (the
-joint-monic preservation) — the lax mirror of `objIncl_preserves_products` /
-`colimHom_monicPair_of_rep`.  The mechanical risk is entirely the `pushHom`/`reflApp` conjugation
-bookkeeping (the strict proof's `castHom_castHom`/`map_castHom`/`castHom_comp` chains become
-`pushHom_comp` + `reflApp_natural`/`transApp_natural` + iso-cancellation chains).  Once products,
-equalizers and pullbacks land, `PullbacksTransferCovers` aligns a colimit cover+pullback to a common
-fibre (each fibre is `overPreRegular`, so has PTC) and transfers back, and `PreRegularCategory
-(ratCapCat P)` assembles exactly as `Colim.colimitPreRegular`.
+This FINISHES GAP 1 (`PreRegular A*`) modulo inhabiting the four hypothesis bundles for
+`laxOfProjSystem' P` (`LaxTerminalData`/`LaxProductData`/`LaxEqualizerData` — TRUE since each fibre
+`Over (listProd U)` is `overPreRegular` and base-change `g*` preserves finite limits — plus the
+canonical-pullback cover-transfer `hcanon`).  Remaining downstream: gap 2 (relative-cap via R15) and
+the `CofinalCapStep` assembly.
 -/
