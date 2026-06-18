@@ -3077,6 +3077,33 @@ theorem survRecon_proj_coll {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (dx : PairDense
     (collFilter_all x dx) (filterIdx (fun T => collides Z T) dx.surv k hk))).trans ?_
   exact pickArrow_heq Z hget _ _
 
+/-- **A non-colliding survivor coordinate of `survRecon` is `snd ≫ (filtered W'-projection)`.**  The
+    partition inverse routes a non-colliding coordinate to the RIGHT (`W'`) block, whose entries are
+    `snd` verbatim (`listProdPartitionInv_projR`). -/
+theorem survRecon_proj_noncoll {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (dx : PairDense x)
+    (k : Fin dx.surv.length) (hk : (fun T => !collides Z T) (dx.surv.get k) = true)
+    (hget : (dx.surv.filter (fun T => !collides Z T)).get
+        (filterIdx (fun T => !collides Z T) dx.surv k hk) = dx.surv.get k) :
+    survRecon x dx ≫ listProdProj dx.surv k
+      = snd ≫ (hget ▸ listProdProj (dx.surv.filter (fun T => !collides Z T))
+          (filterIdx (fun T => !collides Z T) dx.surv k hk)) := by
+  unfold survRecon
+  rw [Cat.assoc, listProdPartitionInv_projR (fun T => collides Z T) dx.surv k hk hget,
+    ← Cat.assoc, snd_pair]
+
+/-- **Partition-hom recovers a `!p`-coordinate from its `W'` block.**  `partHom ≫ snd ≫ (filtered
+    W'-projection at `filterIdx`) = proj_k` for a `!p`-true coordinate `k`.  By the round-trip
+    `partHom ≫ partInv = id` and `listProdPartitionInv_projR`. -/
+theorem partHom_snd_proj (p : 𝒞 → Bool) (l : List 𝒞) (k : Fin l.length)
+    (hk : (fun a => !p a) (l.get k) = true)
+    (hget : (l.filter (fun a => !p a)).get (filterIdx (fun a => !p a) l k hk) = l.get k) :
+    listProdPartitionHom p l ≫ (snd : prod (listProd (l.filter p))
+        (listProd (l.filter (fun a => !p a))) ⟶ listProd (l.filter (fun a => !p a)))
+      ≫ (hget ▸ listProdProj (l.filter (fun a => !p a)) (filterIdx (fun a => !p a) l k hk))
+      = listProdProj l k := by
+  rw [← listProdPartitionInv_projR p l k hk hget, ← Cat.assoc,
+    listProdPartition_hom_inv, Cat.id_comp]
+
 /-- The reconstructed `dx.W`-coordinate: `survRecon ≫ dx.wg`. -/
 def wRecon {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :
     prod Z.A (listProd (dx.surv.filter (fun T => !collides Z T))) ⟶ dx.W :=
@@ -3275,6 +3302,98 @@ theorem apexInv_apexHom {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx :
       ← Cat.assoc dx.einv dx.e _, dx.e_iso₂, Cat.id_comp,
       ← Cat.assoc (pair (fst ≫ g.g) (wRecon x g dx)) snd _, snd_pair,
       ← Cat.assoc (wRecon x g dx) dx.wf _, wRecon_wf, survRecon_hom_snd]
+
+/-- **The apex's CROSS-CONSTRAINT.**  For a `Z`-factor `w` and an `X`-factor `f'` of a common
+    target, the apex's two legs agree on them: `apexL1 ≫ w.2 = apexL2 ≫ (hww ▸ f'.2)`.  This is
+    `pairProdW_cross` (the product subobject equalizes the cross constraint) pre-composed with the
+    apex equalizer `eqMap`, using `apexL1 = eqMap≫w≫fst`, `apexL2 = eqMap≫w≫snd`. -/
+theorem apex_cross {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y)
+    {w : Σ T : 𝒞, Z.A ⟶ T} (hw : w ∈ Z.F) {f' : Σ T : 𝒞, X.A ⟶ T} (hf' : f' ∈ X.F)
+    (hww : w.1 = f'.1) :
+    apexL1 x g ≫ w.2 = apexL2 x g ≫ (hww ▸ f'.2) := by
+  have hc := pairProdW_cross Z X hw hf' hww
+  rw [apexL1_eq, apexL2_eq, Cat.assoc, Cat.assoc, Cat.assoc, Cat.assoc, hc]
+
+/-- The underlying arrow `apex.A → X.A` of the comparison map `b` used in step 4b: pairs the
+    square-forced `Y.A`-component `apexL1 ≫ g.g` with the reconstructed `dx.W`-component
+    `apexHom ≫ wRecon`, then crosses the density iso `dx.einv`. -/
+def bMap_g {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :
+    (pairHasPullbacks.has g x).cone.pt.A ⟶ X.A :=
+  pair (apexL1 x g ≫ g.g) (apexHom x g dx ≫ wRecon x g dx) ≫ dx.einv
+
+/-- `bMap_g ≫ x.g = apexL1 ≫ g.g` (the density iso carries `x.g` to `fst`). -/
+theorem bMap_g_xg {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :
+    bMap_g x g dx ≫ x.g = apexL1 x g ≫ g.g := by
+  unfold bMap_g; rw [Cat.assoc, einv_xg (Z := Z) x dx, fst_pair]
+
+/-- `bMap_g ≫ dx.e ≫ snd = apexHom ≫ wRecon` (the `dx.W`-component survives the iso round-trip). -/
+theorem bMap_g_e_snd {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :
+    bMap_g x g dx ≫ dx.e ≫ (snd : prod Y.A dx.W ⟶ dx.W) = apexHom x g dx ≫ wRecon x g dx := by
+  unfold bMap_g
+  rw [Cat.assoc, ← Cat.assoc dx.einv dx.e snd, dx.e_iso₂, Cat.id_comp, snd_pair]
+
+/-- **The comparison map agrees with `apexL2` on every `X`-factor.**  `bMap_g ≫ f'.2 = apexL2 ≫ f'.2`
+    for `f' ∈ X.F`.  Split `f'` by `dx.factorSplit`:
+    * Y-DERIVED `f'.2 = x.g ≫ gY.2`: both sides become `apexL1 ≫ g.g ≫ gY.2` (via `bMap_g_xg`,
+      `apex_square`).
+    * SURVIVOR `f'.2 = e ≫ snd ≫ wf ≫ proj_k`: `bMap_g ≫ f'.2 = apexHom ≫ survRecon ≫ proj_k`
+      (`bMap_g_e_snd`, `wRecon_wf`).  If `surv.get k` COLLIDES, `survRecon_proj_coll` gives
+      `apexL1 ≫ (chosen Z-factor)`, matched to `apexL2 ≫ f'.2` by the cross constraint `apex_cross`
+      (here `f'` IS the X-factor at that target).  If NON-COLLIDING, `survRecon_proj_noncoll` +
+      `partHom_snd_proj` route through the `W'` block back to `apexL2 ≫ f'.2`. -/
+theorem bMap_g_factor {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :
+    ∀ f' ∈ X.F, bMap_g x g dx ≫ f'.2 = apexL2 x g ≫ f'.2 := by
+  intro f' hf'
+  rcases dx.factorSplit f' hf' with ⟨gY, hgY, hgt, hge⟩ | ⟨k, hkt, hke⟩
+  · -- Y-DERIVED
+    rw [hge, ← Cat.assoc, ← Cat.assoc, bMap_g_xg, ← apex_square]
+  · -- SURVIVOR.  Destructure `f'` and case the target equality to kill the transport.
+    obtain ⟨f't, f'm⟩ := f'
+    simp only at hkt hke ⊢
+    cases hkt
+    simp only at hke ⊢
+    -- now `f'm : X.A ⟶ dx.surv.get k`, `f'm = dx.e ≫ snd ≫ dx.wf ≫ listProdProj dx.surv k`
+    rw [hke]
+    -- LHS `bMap_g ≫ (dx.e≫snd≫wf≫proj_k)` = `apexHom ≫ survRecon ≫ proj_k`
+    have hLHS : bMap_g x g dx ≫ dx.e ≫ snd ≫ dx.wf ≫ listProdProj dx.surv k
+        = apexHom x g dx ≫ survRecon x dx ≫ listProdProj dx.surv k := by
+      calc bMap_g x g dx ≫ dx.e ≫ snd ≫ dx.wf ≫ listProdProj dx.surv k
+          = (bMap_g x g dx ≫ dx.e ≫ snd) ≫ dx.wf ≫ listProdProj dx.surv k := by
+            rw [Cat.assoc, Cat.assoc]
+        _ = (apexHom x g dx ≫ wRecon x g dx) ≫ dx.wf ≫ listProdProj dx.surv k := by
+            rw [bMap_g_e_snd]
+        _ = apexHom x g dx ≫ (wRecon x g dx ≫ dx.wf) ≫ listProdProj dx.surv k := by
+            rw [Cat.assoc, Cat.assoc]
+        _ = apexHom x g dx ≫ survRecon x dx ≫ listProdProj dx.surv k := by rw [wRecon_wf]
+    rw [hLHS]
+    by_cases hc : collides Z (dx.surv.get k) = true
+    · -- COLLIDING: cross constraint with the chosen Z-factor `w` and `f'm`.
+      rw [survRecon_proj_coll x dx k hc, ← Cat.assoc, apexHom_fst]
+      -- goal: `apexL1 ≫ (pickArrow Z (surv.get k) hc).1 = apexL2 ≫ dx.e ≫ snd ≫ dx.wf ≫ proj_k`
+      obtain ⟨w, hw, hwt, hwe⟩ := (pickArrow Z (dx.surv.get k) hc).2
+      -- rewrite goal to `apexL1 ≫ (pickArrow).1 = apexL2 ≫ f'm` and use the cross constraint
+      show apexL1 x g ≫ (pickArrow Z (dx.surv.get k) hc).1 = _
+      rw [hwe, ← hke]
+      -- goal: `apexL1 ≫ (hwt ▸ w.2) = apexL2 ≫ f'm`
+      obtain ⟨wt, wm⟩ := w
+      simp only at hwt hwe ⊢
+      cases hwt
+      -- goal: `apexL1 ≫ wm = apexL2 ≫ f'm`; this is `apex_cross` with `w=⟨surv.get k,wm⟩`, `f'=⟨_,f'm⟩`
+      exact apex_cross (x := x) (g := g) hw (f' := ⟨dx.surv.get k, f'm⟩) hf' rfl
+    · -- NON-COLLIDING: route through the `W'` block (`survRecon_proj_noncoll`, `partHom_snd_proj`).
+      have hnc : (fun T => !collides Z T) (dx.surv.get k) = true := by
+        simp only [Bool.not_eq_true']; exact Bool.eq_false_iff.2 hc
+      have hget : (dx.surv.filter (fun T => !collides Z T)).get
+          (filterIdx (fun T => !collides Z T) dx.surv k hnc) = dx.surv.get k :=
+        filterIdx_get (fun T => !collides Z T) dx.surv k hnc
+      have hsnd_apexHom : apexHom x g dx ≫ snd = apexL2 x g ≫ dx.e ≫ snd ≫ dx.wf
+          ≫ listProdPartitionHom (fun T => collides Z T) dx.surv ≫ snd := by
+        unfold apexHom; rw [snd_pair]
+      rw [survRecon_proj_noncoll x dx k hnc hget, ← Cat.assoc, hsnd_apexHom]
+      -- goal: `(apexL2 ≫ dx.e ≫ snd ≫ dx.wf ≫ partHom ≫ snd) ≫ (hget ▸ filtered proj)
+      --        = apexL2 ≫ dx.e ≫ snd ≫ dx.wf ≫ proj_k`
+      rw [Cat.assoc, Cat.assoc, Cat.assoc, Cat.assoc, Cat.assoc,
+        partHom_snd_proj (fun T => collides Z T) dx.surv k hnc hget]
 
 /-- The packaged absorption iso: hom/inv + the two round-trips + the leg-compat. -/
 structure ApexIso {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) where
