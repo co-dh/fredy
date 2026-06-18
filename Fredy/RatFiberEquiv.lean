@@ -58,7 +58,30 @@ instance fiberJ {U : List 𝒞} : @Functor (PairOnU U) _ (RatBelow (𝒞 := 𝒞
 @[simp] theorem fiberJ_map {U : List 𝒞} {X Y : PairOnU U} (m : PairHom X.obj Y.obj) :
     (fiberJ (U := U)).map m = locMapOf pairDense_denseRoof m := rfl
 
+/-- **Link 1 — `J : PairOnU U → RatBelow U` is an `Embedding`** (faithful).  `locMapOf m₁ = locMapOf m₂`
+    gives, by `Quotient.exact`, a `FractionEquiv` of the two localisation spans `[id, mᵢ]`: a common
+    roof `R, r₁, r₂ : R → X.obj` with `r₁ = r₂` (denominators are `id`, `Cat.comp_id`), `r₁` DENSE
+    (`mem (r₁ ≫ id) = mem r₁`), and `r₁ ≫ m₁ = r₁ ≫ m₂` (numerators).  A dense leg is epic in `Â`
+    (`pairLocalisation_faithful_criterion`), so `m₁ = m₂`. -/
+theorem fiberJ_embedding (U : List 𝒞) : Embedding (fun X : PairOnU U => fiberJObj X) := by
+  intro X Y m₁ m₂ h
+  -- `h : locMapOf m₁ = locMapOf m₂` (the two `RatBelow`-homs).  Extract the `FractionEquiv`.
+  have heq : FractionEquiv (locFraction pairDenseClass m₁) (locFraction pairDenseClass m₂) :=
+    Quotient.exact h
+  obtain ⟨R, r₁, r₂, hmem, hden, hnum⟩ := heq
+  simp only [locFraction] at hmem hden hnum
+  -- denominators of `locFraction` are `id`: `r₁ ≫ id = r₂ ≫ id` ⟹ `r₁ = r₂`.
+  have hr : r₁ = r₂ := by rwa [Cat.comp_id, Cat.comp_id] at hden
+  -- `r₁` is dense (`mem (r₁ ≫ id) = mem r₁`).
+  have hmem' : (pairDenseClass (𝒞 := 𝒞)).mem r₁ := by rwa [Cat.comp_id] at hmem
+  -- numerators: `r₁ ≫ m₁ = r₂ ≫ m₂ = r₁ ≫ m₂`.
+  have hnum' : r₁.comp m₁ = r₁.comp m₂ := by
+    show r₁ ≫ m₁ = r₁ ≫ m₂
+    rw [hnum, hr]
+  exact hmem'.elim (fun d => pairLocalisation_faithful_criterion d m₁ m₂ hnum')
+
 end Freyd
 
 #print axioms Freyd.fiberJObj
 #print axioms Freyd.fiberJ
+#print axioms Freyd.fiberJ_embedding
