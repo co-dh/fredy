@@ -623,4 +623,26 @@ theorem homInclL_factor {ia iz : ι} (xa : L.A ia) (xz : L.A iz) (a : UpperBound
   rw [← Cat.assoc (isoInv (reflApp_isIso L (L.F (D.trans a.2.1 haU) xa))),
       inv_isoInv_comp, Cat.id_comp, inv_isoInv_comp, Cat.comp_id]
 
+/-! ## The lax stage-inclusion functor (single-universe)
+
+  `image_chosenPullback_isPullback` (the §1.45 finite-limit machinery) requires the source and target
+  categories at the SAME hom-universe.  The fibre `L.A i` has hom-universe `w`; the colimit `Obj L` has
+  `max u w`.  These coincide exactly when the index universe `u ≤ w` — concretely when `ι : Type w`,
+  matching the strict `colimitCanonicalCover`'s `CatSystem.{u,u}` constraint.  We therefore package the
+  stage-inclusion FUNCTOR (and everything downstream toward `hcanon`) for `ι : Type w`. -/
+section SingleUniverse
+
+variable {ι : Type w} {D : Directed ι} (L : LaxCatSystem.{w, w} ι D) (hL : Coherent L)
+
+/-- The lax stage-inclusion functor at stage `i` (object map `⟨i,·⟩`, morphism map `stageInclL`).
+    Requires `ι : Type w` so source `L.A i` and target `Obj L` share the hom-universe `w`. -/
+noncomputable def stageInclFunctorL (i : ι) :
+    @Functor (L.A i) (L.catA i) (Obj L) (laxColimCat L hL) (fun x => ⟨i, x⟩) :=
+  letI : Cat (Obj L) := laxColimCat L hL
+  { map := fun {x y} g => stageInclL L hL g
+    map_id := fun x => stageInclL_id L hL x
+    map_comp := fun {x y z} g h => stageInclL_comp L hL g h }
+
+end SingleUniverse
+
 end Freyd.LaxColim
