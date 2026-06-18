@@ -157,6 +157,41 @@ theorem reflApp_natural {i : ι} {x y : L.A i} (f : x ⟶ y) :
 
 end ReflApp
 
+/-! ## A stage iso includes to a colimit iso (lax `colimHom_isIso_of_rep`)
+
+  If a germ representative `f₀ : L.F a.2.1 x ⟶ L.F a.2.2 y` at a common bound `a` has a two-sided
+  stage inverse `g₀`, then its inclusion `homInclL … a f₀` is an ISO in `laxColimCat L hL`.  The
+  inverse is the germ of `g₀` at the swapped bound; both round-trips reduce — at the same stage `a.1`
+  via `homCompRawL_eq_compAtL` + `push_refl` + `pushHom_id` — to the included stage identity, which
+  is the colimit identity by `homInclL_compat`.  Mirrors the strict `colimHom_isIso_of_rep`, but the
+  bare-sigma objects remove all `colimOut` transport. -/
+theorem homInclL_isIso_of_rep (L : LaxCatSystem.{u, w} ι D) (hL : Coherent L)
+    {i j : ι} (x : L.A i) (y : L.A j) (a : UpperBound D i j)
+    (f₀ : L.F a.2.1 x ⟶ L.F a.2.2 y) (g₀ : L.F a.2.2 y ⟶ L.F a.2.1 x)
+    (h1 : f₀ ≫ g₀ = Cat.id (L.F a.2.1 x)) (h2 : g₀ ≫ f₀ = Cat.id (L.F a.2.2 y)) :
+    @IsIso (Obj L) (laxColimCat L hL) ⟨i, x⟩ ⟨j, y⟩
+      (homInclL L hL x y a f₀) := by
+  letI : Cat (Obj L) := laxColimCat L hL
+  obtain ⟨av, ah1, ah2⟩ := a
+  refine ⟨homInclL L hL y x ⟨av, ah2, ah1⟩ g₀, ?_, ?_⟩
+  · -- f₀ ⊚ g₀ = id at level `av`: reduce to the stage composite `f₀ ≫ g₀ = id`, then `homInclL_compat`.
+    show homCompRawL L hL x y x ⟨av, ah1, ah2⟩ f₀ ⟨av, ah2, ah1⟩ g₀ = idL L hL ⟨i, x⟩
+    rw [homCompRawL_eq_compAtL L hL x y x ⟨av, ah1, ah2⟩ f₀ ⟨av, ah2, ah1⟩ g₀ av (D.refl av) (D.refl av)]
+    unfold compAtL
+    rw [hL.push_refl x y ah1 ah2 f₀, hL.push_refl y x ah2 ah1 g₀, h1]
+    show homInclL L hL x x ⟨av, ah1, ah1⟩ (Cat.id (L.F ah1 x)) = idL L hL ⟨i, x⟩
+    rw [show (idL L hL ⟨i, x⟩ : homL L hL ⟨i,x⟩ ⟨i,x⟩) = homIdL L hL x from rfl, homIdL,
+        ← pushHom_id L x (D.refl i) ah1]
+    exact homInclL_compat L hL x x (a := ⟨i, D.refl i, D.refl i⟩) (b := ⟨av, ah1, ah1⟩) ah1 (Cat.id _)
+  · show homCompRawL L hL y x y ⟨av, ah2, ah1⟩ g₀ ⟨av, ah1, ah2⟩ f₀ = idL L hL ⟨j, y⟩
+    rw [homCompRawL_eq_compAtL L hL y x y ⟨av, ah2, ah1⟩ g₀ ⟨av, ah1, ah2⟩ f₀ av (D.refl av) (D.refl av)]
+    unfold compAtL
+    rw [hL.push_refl y x ah2 ah1 g₀, hL.push_refl x y ah1 ah2 f₀, h2]
+    show homInclL L hL y y ⟨av, ah2, ah2⟩ (Cat.id (L.F ah2 y)) = idL L hL ⟨j, y⟩
+    rw [show (idL L hL ⟨j, y⟩ : homL L hL ⟨j,y⟩ ⟨j,y⟩) = homIdL L hL y from rfl, homIdL,
+        ← pushHom_id L y (D.refl j) ah2]
+    exact homInclL_compat L hL y y (a := ⟨j, D.refl j, D.refl j⟩) (b := ⟨av, ah2, ah2⟩) ah2 (Cat.id _)
+
 /-! ## Interface bundles for the remaining finite limits (products, equalizers, pullbacks, PTC)
 
   These mirror the STRICT `colimitPreRegular`'s hypothesis tuples (`CatColimitRegular.lean:2450`):
