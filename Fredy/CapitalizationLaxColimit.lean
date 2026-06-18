@@ -1026,6 +1026,165 @@ noncomputable def laxColimCat : Cat (Obj L) where
 
 end HomColim
 
+/-! ## Coherence of the base-change `LaxCatSystem` (`laxOfProjSystem' P`)
+
+  The remaining §1.543 obligation: discharge `LaxCatSystem.Coherent (laxOfProjSystem' P)`, i.e. the
+  pseudofunctor UNIT (`push_refl`) and ASSOCIATIVITY (`push_trans`) of the lax hom-transition
+  `pushHom` built from the pullback coherence isos `projReflIso`/`projTransIso`.  Both reduce to
+  arrow-equalities between fixed pullback apices, provable by pullback-`lift` uniqueness. -/
+section BaseChangeCoherent
+
+variable {𝒞 : Type w} [Cat.{w} 𝒞] [HasPullbacks 𝒞]
+variable {ι : Type u} {D : Directed ι}
+
+/-- The `.nat.app` underlying arrow of a base-map-transport of a `NatIso` of base-change functors:
+    transporting `baseChangeObj b ≅ G` along `e : a = b` conjugates the component by the `eqToHom`
+    of the pullback objects.  (The pullbacks coincide after `subst e`, so it is the identity.) -/
+private theorem mpr_natiso_app {C E : 𝒞} {a b : E ⟶ C} (e : a = b)
+    {G : Over C → Over E} [hG : Functor G]
+    (N : @NatIso (Over C) _ (Over E) _ (baseChangeObj b) G _ hG) (X : Over C) :
+    ((Eq.mpr (congrArg (fun z => @NatIso (Over C) _ (Over E) _ (baseChangeObj z) G _ hG) e) N).nat.app
+        X).f
+      = (eqToHom (congrArg (fun z => baseChangeObj z X) e)).f ≫ (N.nat.app X).f := by
+  subst e
+  show (N.nat.app X).f = (eqToHom (rfl : baseChangeObj a X = _)).f ≫ (N.nat.app X).f
+  rw [show ((eqToHom (rfl : baseChangeObj a X = baseChangeObj a X)) : baseChangeObj a X ⟶ _)
+        = Cat.id _ from rfl]
+  exact (Cat.id_comp _).symm
+
+/-- The `.nat.app` of the transported composite coherence iso `projTransIso`, computed via
+    `eqToHom`-conjugation of the underlying `baseChangeTransNatIso`.  Generalises the internal
+    `rw [P.proj_trans …]` transport so that the pushed-morphism arrows become explicit. -/
+private theorem projTransIso_app (P : ProjSystem ι D 𝒞) {i j k : ι}
+    (hij : D.le i j) (hjk : D.le j k) (X : pcObj P i) :
+    (transApp (laxOfProjSystem' P) hij hjk X).f
+      = (eqToHom (congrArg (fun z => baseChangeObj z X) (P.proj_trans hij hjk))).f
+          ≫ _transFwdf (P.proj hij) (P.proj hjk) X := by
+  unfold transApp
+  simp only [laxOfProjSystem', laxOfProjSystem, pseudoBaseChange, projTransIso, id_eq]
+  rw [mpr_natiso_app (P.proj_trans hij hjk) (baseChangeTransNatIso (P.proj hij) (P.proj hjk)) X]
+  rfl
+
+/-- `eqToHom` between two base-change objects over equal base maps, post-composed with the chosen
+    pullback's `π₂`, is the source `π₂` (the transport is the identity on pullbacks). -/
+private theorem eqToHom_bc_π₂ {C E : 𝒞} {a b : E ⟶ C} (e : a = b) (X : Over C) :
+    (eqToHom (congrArg (fun z => baseChangeObj z X) e)).f ≫ (_pb b X).cone.π₂
+      = (_pb a X).cone.π₂ := by
+  subst e
+  rw [show (eqToHom (congrArg (fun z => baseChangeObj z X) (rfl : a = a))
+        : baseChangeObj a X ⟶ baseChangeObj a X) = Cat.id _ from rfl]
+  exact Cat.id_comp _
+
+/-- Same, post-composed with the chosen pullback's `π₁`. -/
+private theorem eqToHom_bc_π₁ {C E : 𝒞} {a b : E ⟶ C} (e : a = b) (X : Over C) :
+    (eqToHom (congrArg (fun z => baseChangeObj z X) e)).f ≫ (_pb b X).cone.π₁
+      = (_pb a X).cone.π₁ := by
+  subst e
+  rw [show (eqToHom (congrArg (fun z => baseChangeObj z X) (rfl : a = a))
+        : baseChangeObj a X ⟶ baseChangeObj a X) = Cat.id _ from rfl]
+  exact Cat.id_comp _
+
+/-- `baseChangeMap`'s underlying arrow against the codomain pullback's `π₂` is the source `π₂`. -/
+private theorem baseChangeMap_f_π₂ {C E : 𝒞} (g : E ⟶ C) {X Y : Over C} (m : OverHom X Y) :
+    (baseChangeMap g m).f ≫ (_pb g Y).cone.π₂ = (_pb g X).cone.π₂ :=
+  (_pb g Y).lift_snd (baseChangeCone g m)
+
+/-- `baseChangeMap`'s underlying arrow against the codomain pullback's `π₁` is `π₁ ≫ m.f`. -/
+private theorem baseChangeMap_f_π₁ {C E : 𝒞} (g : E ⟶ C) {X Y : Over C} (m : OverHom X Y) :
+    (baseChangeMap g m).f ≫ (_pb g Y).cone.π₁ = (_pb g X).cone.π₁ ≫ m.f :=
+  (_pb g Y).lift_fst (baseChangeCone g m)
+
+/-- Two arrows into a chosen pullback agreeing on both projections are equal. -/
+private theorem pb_hom_ext {A B C : 𝒞} {f : A ⟶ C} {g : B ⟶ C} (p : HasPullback f g)
+    {Z : 𝒞} {u v : Z ⟶ p.cone.pt}
+    (h₁ : u ≫ p.cone.π₁ = v ≫ p.cone.π₁) (h₂ : u ≫ p.cone.π₂ = v ≫ p.cone.π₂) : u = v := by
+  rw [p.lift_uniq ⟨Z, u ≫ p.cone.π₁, u ≫ p.cone.π₂,
+        by rw [Cat.assoc, p.cone.w, Cat.assoc]⟩ u rfl rfl,
+      p.lift_uniq ⟨Z, u ≫ p.cone.π₁, u ≫ p.cone.π₂,
+        by rw [Cat.assoc, p.cone.w, Cat.assoc]⟩ v h₁.symm h₂.symm]
+
+/-- The composite `eqToHom (proj_trans) ≫ _qInner (proj hik) (proj (refl)) x` is the identity on the
+    pullback `baseChangeObj (P.proj hik) x` (the `trans`-iso's inner factorisation, at a reflexive
+    second leg `P.proj (D.refl k) = id`, collapses to the identity).  This is the local heart of the
+    reflexive coherence. -/
+private theorem qInner_refl_id (P : ProjSystem ι D 𝒞) {i : ι} {k : ι}
+    (hik : D.le i k) (x : pcObj P i) :
+    (eqToHom (congrArg (fun z => baseChangeObj z x) (P.proj_trans hik (D.refl k)))).f
+        ≫ _qInner (P.proj hik) (P.proj (D.refl k)) x
+      = Cat.id (baseChangeObj (P.proj hik) x).dom := by
+  apply pb_hom_ext (_pb (P.proj hik) x)
+  · rw [Cat.assoc, _qInner_fst (P.proj hik) (P.proj (D.refl k)) x,
+        eqToHom_bc_π₁ (P.proj_trans hik (D.refl k)) x, Cat.id_comp]
+  · have hr : (_pb (P.proj (D.refl k) ≫ P.proj hik) x).cone.π₂ ≫ P.proj (D.refl k)
+        = (_pb (P.proj (D.refl k) ≫ P.proj hik) x).cone.π₂ := by
+      rw [P.proj_refl k, Cat.comp_id]
+    rw [Cat.assoc, _qInner_snd (P.proj hik) (P.proj (D.refl k)) x, hr,
+        eqToHom_bc_π₂ (P.proj_trans hik (D.refl k)) x, Cat.id_comp]
+
+/-- The naturality-square reduction of `proj_push_refl`: pushing `g` along the reflexive bound
+    intertwines the two `trans`-coherence forward maps. -/
+private theorem proj_push_refl_key (P : ProjSystem ι D 𝒞)
+    {i j : ι} (x : (laxOfProjSystem' P).A i) (y : (laxOfProjSystem' P).A j) {k : ι}
+    (hik : D.le i k) (hjk : D.le j k)
+    (g : (laxOfProjSystem' P).F hik x ⟶ (laxOfProjSystem' P).F hjk y) :
+    transApp (laxOfProjSystem' P) hik (D.refl k) x
+      ≫ Functor.map (self := (laxOfProjSystem' P).functF (D.refl k)) g
+      = g ≫ transApp (laxOfProjSystem' P) hjk (D.refl k) y := by
+  apply OverHom.ext
+  show (transApp (laxOfProjSystem' P) hik (D.refl k) x).f ≫ (baseChangeMap (P.proj (D.refl k)) g).f
+      = g.f ≫ (transApp (laxOfProjSystem' P) hjk (D.refl k) y).f
+  rw [projTransIso_app, projTransIso_app]
+  apply pb_hom_ext (_pb (P.proj (D.refl k)) (baseChangeObj (P.proj hjk) y))
+  · -- π₁ leg: reduces (via `_qInner`) to an equality of arrows into the pullback `bc (P.proj hjk) y`.
+    simp only [Cat.assoc]
+    rw [baseChangeMap_f_π₁ (P.proj (D.refl k)) g]
+    rw [← Cat.assoc (_transFwdf (P.proj hik) (P.proj (D.refl k)) x),
+        _transFwd_outer_fst (P.proj hik) (P.proj (D.refl k)) x,
+        _transFwd_outer_fst (P.proj hjk) (P.proj (D.refl k)) y]
+    -- goal: eqToHom.f ≫ _qInner gik r x ≫ g.f = g.f ≫ eqToHom.f ≫ _qInner gjk r y
+    -- both inner factorisations collapse to the identity (`qInner_refl_id`).
+    rw [← Cat.assoc, qInner_refl_id P hik x, qInner_refl_id P hjk y]
+    exact (Cat.id_comp _).trans (Cat.comp_id _).symm
+  · -- π₂ leg: both sides reduce to `(baseChangeObj (P.proj hik) x).hom`.
+    simp only [Cat.assoc]
+    rw [baseChangeMap_f_π₂ (P.proj (D.refl k)) g,
+        _transFwd_π₂ (P.proj hik) (P.proj (D.refl k)) x,
+        eqToHom_bc_π₂ (P.proj_trans hik (D.refl k)) x,
+        _transFwd_π₂ (P.proj hjk) (P.proj (D.refl k)) y,
+        eqToHom_bc_π₂ (P.proj_trans hjk (D.refl k)) y]
+    exact (g.w).symm
+
+/-- `push_refl` for the base-change system. -/
+theorem proj_push_refl (P : ProjSystem ι D 𝒞)
+    {i j : ι} (x : (laxOfProjSystem' P).A i) (y : (laxOfProjSystem' P).A j) {k : ι}
+    (hik : D.le i k) (hjk : D.le j k)
+    (g : (laxOfProjSystem' P).F hik x ⟶ (laxOfProjSystem' P).F hjk y) :
+    pushHom (laxOfProjSystem' P) x y hik hjk (D.refl k) g = g := by
+  unfold pushHom
+  rw [← Cat.assoc, proj_push_refl_key P x y hik hjk g, Cat.assoc, isoInv_comp, Cat.comp_id]
+
+/-- `push_trans` for the base-change system. -/
+theorem proj_push_trans (P : ProjSystem ι D 𝒞)
+    {i j : ι} (x : (laxOfProjSystem' P).A i) (y : (laxOfProjSystem' P).A j) {k m n : ι}
+    (hik : D.le i k) (hjk : D.le j k) (hkm : D.le k m) (hmn : D.le m n)
+    (g : (laxOfProjSystem' P).F hik x ⟶ (laxOfProjSystem' P).F hjk y) :
+    pushHom (laxOfProjSystem' P) x y hik hjk (D.trans hkm hmn) g
+      = pushHom (laxOfProjSystem' P) x y (D.trans hik hkm) (D.trans hjk hkm) hmn
+          (pushHom (laxOfProjSystem' P) x y hik hjk hkm g) := by
+  sorry
+
+/-- **`Coherent (laxOfProjSystem' P)`** — the §1.547 base-change system is pseudofunctor-coherent. -/
+def coherentProj (P : ProjSystem ι D 𝒞) : Coherent (laxOfProjSystem' P) where
+  push_refl := proj_push_refl P
+  push_trans := proj_push_trans P
+
+/-- **The §1.547 relative-capitalization category `A*`** — the lax hom-colimit of the base-change
+    slice system, as a concrete `Cat` instance (no `Coherent` hypothesis to supply). -/
+noncomputable def ratCapCat (P : ProjSystem ι D 𝒞) : Cat (Obj (laxOfProjSystem' P)) :=
+  laxColimCat (laxOfProjSystem' P) (coherentProj P)
+
+end BaseChangeCoherent
+
 end Freyd.LaxColim
 
 /-!
