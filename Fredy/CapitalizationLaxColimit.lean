@@ -62,6 +62,7 @@
   `IsIso`, and `Freyd.Colim` (`DirectedColimit.lean`).
 -/
 import Fredy.S1_31
+import Fredy.S1_36
 import Fredy.S1_41
 import Fredy.DirectedColimit
 
@@ -101,5 +102,49 @@ structure LaxCatSystem (ι : Type u) (D : Directed ι) where
         (functF hij) (functF hjk))
 
 attribute [instance] LaxCatSystem.catA
+
+/-! ## The object carrier of the pseudo-colimit: the bare Σ-type
+
+  For a FILTERED colimit of categories the objects are the bare `Σ i, A i` — NO quotient.  (Two
+  representatives that become isomorphic at a common bound are *isomorphic in the colimit category*,
+  but they are kept as distinct objects; the colimit category is not skeletal.)  This is the same
+  carrier as `CapitalizationGroth.lean`'s `SigmaObj`, but here it costs nothing: it needs no
+  transition laws at all, so it is well-defined for a LAX system where the object-level `F_refl`/
+  `F_trans` are only isos.  Contrast the STRICT `Colim.CatSystem.Obj`, a quotient of `Σ i, A i` by
+  germ equivalence, whose well-definedness uses the strict `F_refl`/`F_trans` (`DirectedColimit`'s
+  `System.tr_refl`/`tr_trans`) — exactly the laws base-change lacks. -/
+abbrev Obj (S : LaxCatSystem.{u, w} ι D) : Type _ := Σ i, S.A i
+
+/-- The cocone inclusion `A i → Σ i, A i` is the bare injection. -/
+def objIncl (S : LaxCatSystem ι D) (i : ι) (x : S.A i) : Obj S := ⟨i, x⟩
+
+/-! ## A natural iso from a pointwise object-equality of two functors
+
+  Given functors `F G : 𝒜 → ℬ` whose object maps agree pointwise (`∀ x, F x = G x`) AND whose
+  morphism maps match under the induced `eqToHom` conjugation, the family of `eqToHom` arrows is a
+  natural isomorphism `F ≅ G`.  This is the bridge that turns the STRICT `CatSystem.F_refl`/
+  `F_trans` *equalities* into the LAX `F_refl_iso`/`F_trans_iso` *isos*, proving the lax interface
+  genuinely generalises the strict one (`ofStrict`).  Built on the repo's `eqToHom` (§1.36). -/
+section PointwiseNatIso
+
+variable {𝒜 ℬ : Type w} [Cat.{w} 𝒜] [Cat.{w} ℬ]
+
+/-- **Pointwise object-equality ⟹ natural iso.**  If two functors agree on objects pointwise and
+    their morphism maps satisfy the `eqToHom` conjugation `G.map f = eqToHom (hpt X).symm ≫ F.map f
+    ≫ eqToHom (hpt Y)`, the `eqToHom` family is a `NatIso F G`. -/
+def natIsoOfPointwise {F G : 𝒜 → ℬ} [hF : Functor F] [hG : Functor G]
+    (hpt : ∀ x, F x = G x)
+    (hmap : ∀ {X Y : 𝒜} (f : X ⟶ Y),
+      hG.map f = eqToHom (hpt X).symm ≫ hF.map f ≫ eqToHom (hpt Y)) :
+    NatIso F G where
+  nat :=
+    { app X := eqToHom (hpt X)
+      naturality {X Y} f := by
+        -- goal: `F.map f ≫ eqToHom (hpt Y) = eqToHom (hpt X) ≫ G.map f`.  Expand `G.map f` by
+        -- `hmap`, then collapse `eqToHom (hpt X) ≫ eqToHom (hpt X).symm = id` on the RHS.
+        rw [hmap f, ← Cat.assoc (eqToHom (hpt X)), eqToHom_comp_eqToHom_symm, Cat.id_comp] }
+  isIso X := ⟨eqToHom (hpt X).symm, eqToHom_comp_eqToHom_symm _, eqToHom_symm_comp_eqToHom _⟩
+
+end PointwiseNatIso
 
 end Freyd.LaxColim
