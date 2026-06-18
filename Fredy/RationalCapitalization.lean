@@ -192,8 +192,9 @@
 
   STILL OPEN (the `ratCap` spill, NOT faked).  `ratCap S : CapStep S` is NOT yet assembled.  With R7,
   `pairDenseClass` is correctly a dense class of MONICS, so the §1.48 monic LEFT-fraction skeleton is the
-  right tool (no dual calculus).  What remains for a full sorry-free instantiation: (a) `pairDense_pb`
-  (§1.48(iii) dense pullback-closure, isolated sorry); (b) the §1.48 calculus-of-fractions SATURATION of
+  right tool (no dual calculus).  What remains for a full sorry-free instantiation: (a) DONE —
+  `pairDense_pb` (§1.48(iii) dense pullback-closure) is now sorry-free, its leg-density
+  `pairDense_pb_canonical_dense` CLOSED (R11i, absorption iso); (b) the §1.48 calculus-of-fractions SATURATION of
   the transitivity roof rebuild for a PROPER monic class (the all-monics `MonicDense` rebuild uses
   `Mono → mem`, false for `pairDenseClass`; the standard §1.48 Ore argument is needed instead); (c)
   `pairPullbacksTransferCovers` (the `Â` cover transfer).  No fake `ratCap` is asserted.  The
@@ -203,9 +204,12 @@
   ── INTEGRITY ──────────────────────────────────────────────────────────────────
 
   No `axiom`, no `: True`, no `sorry` on a false statement, no `sorry` in any STATEMENT/type.
-  THREE `sorry`s, each on the book's genuine statement, sharply documented: (1) the R2 residual
-  `sliceEmbed_factor_wellPointed` (§1.547 subobject-descent); (2) `pairPullbacksTransferCovers` (the
-  `Â` cover transfer = slice equivalence); (3) `pairDense_pb_canonical_dense` (§1.48(iii) leg-density).
+  TWO `sorry`s, each on the book's genuine statement, sharply documented: (1) the R2 residual
+  `genericPoint_escapes_proper`/`sliceEmbed_factor_wellPointed` (§1.547 subobject-descent); (2)
+  `pairPullbacksTransferCovers` (the `Â` cover transfer = slice equivalence).
+  CLOSED (R11i, sorry-free + axiom-clean): `pairDense_pb_canonical_dense` (§1.48(iii) leg-density),
+  via the explicit absorption iso `apexHom/apexInv` (`apex.A ≅ Z.A × W'`, collided survivors absorbed
+  by `apex_cross`/`PairObj.distinct`).
 
   ── R9 (dense-pullback-closure: reduction done, residual sharply isolated) ──────────────────────
 
@@ -2862,14 +2866,14 @@ theorem pairDensePbBaseCone_isPullback [PullbacksTransferCovers 𝒞] {X Y Z : P
     slice-equivalence verification.  This is the single sharply-isolated §1.547 obstruction; every
     finite-limit and forward-cover ingredient feeding the pre-regular structure is sorry-free.
 
-    R10.  The reduction is tightened: an ARBITRARY pullback cone `c` is iso to the CANONICAL one via
-    `isIso_of_two_pullbacks`, and `Cover` is iso-invariant (`cover_precomp_iso`), so it suffices to
-    prove `Cover canonical.π₂`; the canonical `π₂` underlying is `pairProdW ≫ snd`, the `A`-pullback
-    second leg, an `A`-cover by `A`'s transfer + the forward bridge — and via
-    `projBaseChangeCone_isPullback` the EXPECTED `A`-pullback of a projection IS a projection (so its
-    `π₂` is a cover by `prod_fst_cover`).  R10 confirmed (machine-checked reasoning) that the residual
-    "promote that `A`-cover to an `Â`-cover" is the SAME `pairForget`-reflects-monos gap as
-    `pairDense_pb_canonical_dense`; not derivable from abstract `PairObj`.  ONE `sorry`, true
+    R11i.  NOTE — this is NO LONGER the same gap as `pairDense_pb_canonical_dense`, which is now
+    CLOSED (sorry-free, axiom-clean): the DENSE-map pullback absorbs its cross-collisions via the
+    explicit `apexHom/apexInv` iso.  That absorption is specific to a dense leg (`x.g = e ≫ fst`), so
+    the underlying apex collapses onto `Z.A × W'`.  For an ARBITRARY `Â`-cover `f` (NOT dense) the
+    cross-constraints between `A.F` and `C.F` need not be absorbable, so even the underlying
+    `canonical.π₂.g` is not in general the `A`-pullback opposite leg, and the `A`-level transfer does
+    not apply.  This residual is the genuine §1.547 slice-equivalence verification (directed union of
+    pre-regular slices), independent of the now-closed dense-pullback density.  ONE `sorry`, true
     statement, sharply documented. -/
 theorem pairPullbacksTransferCovers [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞] :
     ∀ {A B C : PairObj 𝒞} {f : A ⟶ B} {g : C ⟶ B}
@@ -2908,23 +2912,19 @@ instance pairPreRegular [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞] :
     on `E` with the corresponding Z-factors (both equal `·≫g.g≫f_Y` by the pullback square), so they do
     NOT survive; the survivors are precisely the `dx.W`-component.  Hence `E ≅ Z.A × dx.W`.
 
-    GAP.  Making this an equality of subobjects requires that the only cross-collisions between `Z.F`
-    and `X.F` on the square-equalizer are the Y-derived ones — i.e. NO two unrelated factors
-    `f∈Z.F`, `f'∈X.F` of a common well-supported target `T` collide.  Freyd works in a set-based
-    ambient where the surviving factors form a genuine product and this holds; from the abstract
-    `PairObj` data alone (which permits `Z` and `X` to record unrelated factors to a shared target)
-    it is not derivable.  Cross-checked machine-side: with the naive union factor list on
-    `prod Z.A dx.W` the `distinct` field reduces to the unprovable cross goal `fst≫f = π₂g≫f'`.
-    This is the single sharply-isolated obstruction; the cone and its pullback property
-    (`pairDense_pb_witness`) are sorry-free modulo this leg-density.
+    RESOLVED (R11i).  The collisions are ABSORBABLE, not an obstruction.  A colliding survivor target
+    `T` (some `f∈Z.F` targets it) is REDUNDANT on `E`: the cross-constraint `pairProdW_cross` pins that
+    `X`-coordinate to the `Z`-factor `fst≫f`, so the apex collapses to `prod Z.A W'` with
+    `W' = ∏(dx.surv.filter (!collides Z))` (the NON-collided survivors).  This is realised CONSTRUCTIVELY
+    as an explicit iso `apexHom/apexInv` (`apex.A ≅ Z.A × W'`, round-trips `apexHom_apexInv`/
+    `apexInv_apexHom`), whose forward map projects (`apexHom_fst : apexHom ≫ fst = c.π₁.g`) and whose
+    `factorSplit` routes every apex factor: Z-half ⇒ Y-derived; X-half ⇒ `dx.factorSplit` with
+    `apex_cross` absorbing collided survivors and `partHom_snd_proj` keeping non-collided ones.  Hence
+    `c.π₁` is dense (`pairDense_pb_canonical_dense`), SORRY-FREE and axiom-clean.
 
-    R10.  The `A`-LEVEL core IS proven sorry-free (`projBaseChangeCone_isPullback`): the pullback of
-    the dense projection `x.g = dx.e ≫ fst` along `g.g` is the projection `fst : Z.A × dx.W → Z.A`,
-    so `Z.A ×_{Y.A} X.A ≅ Z.A × dx.W` and the EXPECTED apex/leg are exactly the density form.  The
-    residual is purely the §1.547 PRESERVATION step `pairForget E ≅ Z.A ×_{Y.A} X.A` — i.e. the wide-
-    equalizer `E` (square ∧ cross-constraints) collapsing to the square-only `A`-pullback.  R10
-    confirmed (machine-checked reasoning) this is the SAME gap as `pairPullbacksTransferCovers` (both
-    are "`pairForget` preserves/reflects this pullback"), not derivable from abstract `PairObj`. -/
+    The `A`-level core (`projBaseChangeCone_isPullback`) and the absorption are both constructive; the
+    earlier worry that distinctness forces an unprovable cross goal was wrong — `PairObj.distinct`
+    together with `pairProdW_cross` exactly supplies the needed coincidence. -/
 theorem canonical_pb_probe [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞]
     {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) :
     ((pairHasPullbacks.has g x).cone.π₁).g
