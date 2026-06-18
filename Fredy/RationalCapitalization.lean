@@ -1207,6 +1207,139 @@ private theorem cast_comp_hom {𝒞 : Type u} [Cat 𝒞] {X Y Z Z' : 𝒞} (h : 
     (f : X ⟶ Y) (g : Y ⟶ Z) : (h ▸ (f ≫ g) : X ⟶ Z') = f ≫ (h ▸ g) := by
   cases h; rfl
 
+/-- Cancel the codomain-cast of one factor against the (inverse) domain-cast of the next.
+    The `cast`s introduced by `List.filter_cons` reduction in `listProdPartitionHom`/`Inv` are along
+    the *same* object equality `P = Q`, one on the codomain and one on the domain, so they cancel and
+    leave `A ≫ B` after transporting `B` back.  Proof irrelevance lets us match whatever proof terms
+    `simp`'s `eq_mpr`/`cast` normalisation produces. -/
+private theorem castObj_comp {𝒞 : Type u} [Cat 𝒞] {X Y P Q : 𝒞}
+    (hPQ : P = Q) (h₁ : (X ⟶ P) = (X ⟶ Q)) (h₂ : (P ⟶ Y) = (Q ⟶ Y))
+    (A : X ⟶ P) (B : P ⟶ Y) :
+    cast h₁ A ≫ cast h₂ B = A ≫ B := by
+  cases hPQ; rfl
+
+/-- Cancel an outer pair of inverse object-casts (on the domain of the first factor and the codomain
+    of the second) against the identity target: the structural round-trip `A ≫ B = id` transports. -/
+private theorem castObj_idcomp {𝒞 : Type u} [Cat 𝒞] {M P Q : 𝒞}
+    (hPQ : P = Q) (h₁ : (P ⟶ M) = (Q ⟶ M)) (h₂ : (M ⟶ P) = (M ⟶ Q))
+    (A : P ⟶ M) (B : M ⟶ P) (hAB : A ≫ B = Cat.id P) :
+    cast h₁ A ≫ cast h₂ B = Cat.id Q := by
+  cases hPQ; simpa using hAB
+
+/-- **`listProd` splits along a `Bool` filter-partition** (forward map):
+    `listProd l ⟶ prod (listProd (l.filter p)) (listProd (l.filter ¬p))`.  By recursion on `l`,
+    case-splitting on `p C` in the cons case: the head `C` joins the left block (`p C = true`) or
+    the right block (`p C = false`), and the tail is split by the IH.  Structurally a re-association
+    mirror of `listProdAppendHom`, the only difference being which side the head goes to. -/
+def listProdPartitionHom (p : 𝒞 → Bool) : ∀ (l : List 𝒞),
+    listProd l ⟶ prod (listProd (l.filter p)) (listProd (l.filter (fun a => !p a)))
+  | [] => pair (term (HasTerminal.one : 𝒞)) (term (HasTerminal.one : 𝒞))
+  | C :: l => by
+      match hpC : p C with
+      | true =>
+          simp only [List.filter_cons, hpC, Bool.not_true, if_true]
+          exact pair (pair (fst : prod C (listProd l) ⟶ C)
+                       (snd ≫ listProdPartitionHom p l ≫ fst))
+                     (snd ≫ listProdPartitionHom p l ≫ snd)
+      | false =>
+          simp only [List.filter_cons, hpC, Bool.not_false, if_true]
+          exact pair (snd ≫ listProdPartitionHom p l ≫ fst)
+                     (pair (fst : prod C (listProd l) ⟶ C)
+                       (snd ≫ listProdPartitionHom p l ≫ snd))
+
+/-- Inverse of `listProdPartitionHom`. -/
+def listProdPartitionInv (p : 𝒞 → Bool) : ∀ (l : List 𝒞),
+    prod (listProd (l.filter p)) (listProd (l.filter (fun a => !p a))) ⟶ listProd l
+  | [] => term _
+  | C :: l => by
+      match hpC : p C with
+      | true =>
+          simp only [List.filter_cons, hpC, Bool.not_true, if_true]
+          exact pair (fst ≫ (fst : prod C (listProd (l.filter p)) ⟶ C))
+                     (pair (fst ≫ (snd : prod C (listProd (l.filter p)) ⟶ _)) snd
+                        ≫ listProdPartitionInv p l)
+      | false =>
+          simp only [List.filter_cons, hpC, Bool.not_false, if_true]
+          exact pair (snd ≫ (fst : prod C (listProd (l.filter (fun a => !p a))) ⟶ C))
+                     (pair fst (snd ≫ (snd : prod C (listProd (l.filter (fun a => !p a))) ⟶ _))
+                        ≫ listProdPartitionInv p l)
+
+theorem listProdPartition_hom_inv (p : 𝒞 → Bool) : ∀ (l : List 𝒞),
+    listProdPartitionHom p l ≫ listProdPartitionInv p l = Cat.id (listProd l)
+  | [] => by apply HasTerminal.uniq
+  | C :: l => by
+      have hrec := listProdPartition_hom_inv p l
+      show listProdPartitionHom p (C :: l) ≫ listProdPartitionInv p (C :: l) = _
+      unfold listProdPartitionHom listProdPartitionInv
+      split <;> rename_i heq <;> simp only [eq_mpr_eq_cast]
+      · -- p C = true : head `C` joined the left block
+        rw [castObj_comp (by simp [heq])]
+        apply prod_hom_ext
+        · show _ ≫ (fst : prod C (listProd l) ⟶ C) = _
+          rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair, fst_pair, Cat.id_comp]
+        · show _ ≫ (snd : prod C (listProd l) ⟶ listProd l) = _
+          rw [Cat.assoc, snd_pair, Cat.id_comp]
+          have hcollapse :
+              pair (pair (fst : prod C (listProd l) ⟶ C)
+                       (snd ≫ listProdPartitionHom p l ≫ fst))
+                   (snd ≫ listProdPartitionHom p l ≫ snd)
+                ≫ pair (fst ≫ (snd : prod C (listProd (l.filter p)) ⟶ _)) snd
+              = snd ≫ listProdPartitionHom p l := by
+            apply prod_hom_ext
+            · rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair, snd_pair, Cat.assoc]
+            · rw [Cat.assoc, snd_pair, snd_pair, Cat.assoc]
+          rw [← Cat.assoc, hcollapse, Cat.assoc, hrec, Cat.comp_id]
+      · -- p C = false : head `C` joined the right block
+        rw [castObj_comp (by simp [heq])]
+        apply prod_hom_ext
+        · show _ ≫ (fst : prod C (listProd l) ⟶ C) = _
+          rw [Cat.assoc, fst_pair, ← Cat.assoc, snd_pair, fst_pair, Cat.id_comp]
+        · show _ ≫ (snd : prod C (listProd l) ⟶ listProd l) = _
+          rw [Cat.assoc, snd_pair, Cat.id_comp]
+          have hcollapse :
+              pair (snd ≫ listProdPartitionHom p l ≫ fst)
+                   (pair (fst : prod C (listProd l) ⟶ C)
+                     (snd ≫ listProdPartitionHom p l ≫ snd))
+                ≫ pair fst (snd ≫ (snd : prod C (listProd (l.filter (fun a => !p a))) ⟶ _))
+              = snd ≫ listProdPartitionHom p l := by
+            apply prod_hom_ext
+            · rw [Cat.assoc, fst_pair, fst_pair, Cat.assoc]
+            · rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair, snd_pair, Cat.assoc]
+          rw [← Cat.assoc, hcollapse, Cat.assoc, hrec, Cat.comp_id]
+
+theorem listProdPartition_inv_hom (p : 𝒞 → Bool) : ∀ (l : List 𝒞),
+    listProdPartitionInv p l ≫ listProdPartitionHom p l
+      = Cat.id (prod (listProd (l.filter p)) (listProd (l.filter (fun a => !p a))))
+  | [] => by
+      apply prod_hom_ext
+      · apply HasTerminal.uniq
+      · apply HasTerminal.uniq
+  | C :: l => by
+      have hrec := listProdPartition_inv_hom p l
+      show listProdPartitionInv p (C :: l) ≫ listProdPartitionHom p (C :: l) = _
+      unfold listProdPartitionHom listProdPartitionInv
+      split <;> rename_i heq <;> simp only [eq_mpr_eq_cast]
+      · -- p C = true
+        refine castObj_idcomp (by simp [heq]) _ _ _ _ ?_
+        apply prod_hom_ext
+        · rw [Cat.assoc, fst_pair, Cat.id_comp]
+          apply prod_hom_ext
+          · rw [Cat.assoc, fst_pair, fst_pair]
+          · rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair, Cat.assoc,
+                ← Cat.assoc (listProdPartitionInv p l), hrec, Cat.id_comp, fst_pair]
+        · rw [Cat.assoc, snd_pair, Cat.id_comp, ← Cat.assoc, snd_pair, Cat.assoc,
+              ← Cat.assoc (listProdPartitionInv p l), hrec, Cat.id_comp, snd_pair]
+      · -- p C = false
+        refine castObj_idcomp (by simp [heq]) _ _ _ _ ?_
+        apply prod_hom_ext
+        · rw [Cat.assoc, fst_pair, Cat.id_comp, ← Cat.assoc, snd_pair, Cat.assoc,
+              ← Cat.assoc (listProdPartitionInv p l), hrec, Cat.id_comp, fst_pair]
+        · rw [Cat.assoc, snd_pair, Cat.id_comp]
+          apply prod_hom_ext
+          · rw [Cat.assoc, fst_pair, fst_pair]
+          · rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair, Cat.assoc,
+                ← Cat.assoc (listProdPartitionInv p l), hrec, Cat.id_comp, snd_pair]
+
 /-- `listProdAppendInv` then a projection into the FIRST block `l₁` is `fst ≫ (l₁'s projection)`.
     The codomain `(l₁++l₂).get ⟨k,_⟩` equals `l₁.get k` (prefix index), carried by `h`; in each
     pattern case the cast `h ▸` is trivially eliminated. -/
