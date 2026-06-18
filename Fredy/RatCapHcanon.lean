@@ -556,4 +556,71 @@ theorem homInclL_cover_reflects
     hcov (stageInclL L hL m') (stageInclL L hL g'') hM_mono hfac
   exact homInclL_isIso_reflects' L hL hcons c y m' hMiso
 
+/-! ## Object realignment: identifying `⟨i,x⟩` with its push `⟨e, F x⟩`
+
+  The bare-Σ objects live at different stages, but `⟨i,x⟩` is ISOMORPHIC in the colimit to
+  `⟨e, F (i≤e) x⟩` for any `e ≥ i` (the inclusion of the iso `reflApp`-style germ).  This is the lax
+  replacement for the strict `objIncl`-image identification: it lets an arbitrary cospan be aligned to
+  a single fibre by transporting along these isos. -/
+
+/-- The realignment germ `⟨i,x⟩ ⟶ ⟨e, F (i≤e) x⟩`: the germ of `reflApp (F x)`-style identity at the
+    bound `⟨e, hie, refl e⟩`.  Concretely the identity map `id (F (i≤e) x)` viewed as a germ from `x`
+    (at source transition `hie`) to `F x` (at target transition `refl e`). -/
+noncomputable def alignGerm {i : ι} (x : L.A i) {e : ι} (hie : D.le i e) :
+    @homL _ _ L hL ⟨i, x⟩ ⟨e, L.F hie x⟩ :=
+  homInclL L hL x (L.F hie x) ⟨e, hie, D.refl e⟩ (isoInv (reflApp_isIso L (L.F hie x)))
+
+/-- The inverse realignment germ `⟨e, F x⟩ ⟶ ⟨i,x⟩`. -/
+noncomputable def alignGermInv {i : ι} (x : L.A i) {e : ι} (hie : D.le i e) :
+    @homL _ _ L hL ⟨e, L.F hie x⟩ ⟨i, x⟩ :=
+  homInclL L hL (L.F hie x) x ⟨e, D.refl e, hie⟩ (reflApp L (L.F hie x))
+
+/-- `alignGerm` is an iso (the realignment identifies `⟨i,x⟩` with `⟨e, F x⟩`).  Both round-trips
+    reduce, at stage `e`, to the included identity via `homInclL_isIso_of_rep`. -/
+theorem alignGerm_isIso {i : ι} (x : L.A i) {e : ι} (hie : D.le i e) :
+    @IsIso (Obj L) (laxColimCat L hL) ⟨i, x⟩ ⟨e, L.F hie x⟩ (alignGerm L hL x hie) := by
+  unfold alignGerm
+  refine homInclL_isIso_of_rep L hL x (L.F hie x) ⟨e, hie, D.refl e⟩
+    (isoInv (reflApp_isIso L (L.F hie x))) (reflApp L (L.F hie x)) ?_ ?_
+  · exact inv_isoInv_comp (reflApp_isIso L (L.F hie x))
+  · exact isoInv_comp (reflApp_isIso L (L.F hie x))
+
+/-- **Factorization of an arbitrary hom through the realignment isos.**  For `f = homInclL xa xz a f₀`
+    and any `U ≥ a.1`, `f = alignGerm xa ⊚ stageInclL (pushHom f₀) ⊚ alignGermInv xz`, where
+    `pushHom f₀ : F(ia≤U) xa ⟶ F(iz≤U) xz` is the stage-`U` push.  This expresses any colimit hom as a
+    stage-inclusion flanked by the (iso) realignments — the bridge to single-fibre cospans.  Both
+    sides reduce, at stage `U`, to the same germ (the `reflApp`/`isoInv` units cancel telescopically). -/
+theorem homInclL_factor {ia iz : ι} (xa : L.A ia) (xz : L.A iz) (a : UpperBound D ia iz)
+    (f₀ : L.F a.2.1 xa ⟶ L.F a.2.2 xz) {U : ι} (haU : D.le a.1 U) :
+    homInclL L hL xa xz a f₀
+      = @compL _ _ L hL ⟨ia, xa⟩ ⟨U, L.F (D.trans a.2.1 haU) xa⟩ ⟨iz, xz⟩
+          (alignGerm L hL xa (D.trans a.2.1 haU))
+          (@compL _ _ L hL ⟨U, L.F (D.trans a.2.1 haU) xa⟩ ⟨U, L.F (D.trans a.2.2 haU) xz⟩ ⟨iz, xz⟩
+            (stageInclL L hL (pushHom L xa xz a.2.1 a.2.2 haU f₀))
+            (alignGermInv L hL xz (D.trans a.2.2 haU))) := by
+  -- compute the RHS inner `compL (stageInclL ...) (alignGermInv ...)` first, then the outer.
+  unfold stageInclL alignGerm alignGermInv
+  -- inner: stageInclL pushed-f₀ (bound ⟨U,refl,refl⟩) ⊚ alignGermInv xz (bound ⟨U,refl, iz≤U⟩) at U.
+  rw [compL_homInclL_compAtL L hL (L.F (D.trans a.2.1 haU) xa) (L.F (D.trans a.2.2 haU) xz) xz
+      ⟨U, D.refl U, D.refl U⟩ _ ⟨U, D.refl U, D.trans a.2.2 haU⟩ _ U (D.refl U) (D.refl U)]
+  rw [hL.push_refl (L.F (D.trans a.2.1 haU) xa) (L.F (D.trans a.2.2 haU) xz) (D.refl U) (D.refl U)
+        (reflApp L (L.F (D.trans a.2.1 haU) xa) ≫ pushHom L xa xz a.2.1 a.2.2 haU f₀
+          ≫ isoInv (reflApp_isIso L (L.F (D.trans a.2.2 haU) xz))),
+      hL.push_refl (L.F (D.trans a.2.2 haU) xz) xz (D.refl U) (D.trans a.2.2 haU)
+        (reflApp L (L.F (D.trans a.2.2 haU) xz))]
+  -- outer: alignGerm xa (bound ⟨U, ia≤U, refl⟩) ⊚ (the inner germ at bound ⟨U, refl, iz≤U⟩) at U.
+  rw [compL_homInclL_compAtL L hL xa (L.F (D.trans a.2.1 haU) xa) xz
+      ⟨U, D.trans a.2.1 haU, D.refl U⟩ _ ⟨U, D.refl U, D.trans a.2.2 haU⟩ _ U (D.refl U) (D.refl U)]
+  rw [hL.push_refl xa (L.F (D.trans a.2.1 haU) xa) (D.trans a.2.1 haU) (D.refl U)
+        (isoInv (reflApp_isIso L (L.F (D.trans a.2.1 haU) xa))),
+      hL.push_refl (L.F (D.trans a.2.1 haU) xa) xz (D.refl U) (D.trans a.2.2 haU) _]
+  -- LHS: include `f₀` at bound `a`, then absorb to stage `U` via `homInclL_compat`.
+  rw [← homInclL_compat L hL xa xz (a := a) (b := ⟨U, D.trans a.2.1 haU, D.trans a.2.2 haU⟩) haU f₀]
+  -- both sides now `homInclL` at bound `⟨U, ia≤U, iz≤U⟩`; reduce the germ reps.
+  congr 1
+  -- telescoping cancellation: `isoInv(reflApp ·) ≫ reflApp · = id` on both ends.
+  simp only [Cat.assoc]
+  rw [← Cat.assoc (isoInv (reflApp_isIso L (L.F (D.trans a.2.1 haU) xa))),
+      inv_isoInv_comp, Cat.id_comp, inv_isoInv_comp, Cat.comp_id]
+
 end Freyd.LaxColim
