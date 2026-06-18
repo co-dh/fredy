@@ -1018,6 +1018,17 @@ structure PairDense {X Y : PairObj 𝒞} (x : PairHom X Y) where
       surviving factor lies in `X.F`, so compatibility pins both maps to the same value.) -/
   survPinned : ∀ {Z : PairObj 𝒞} (a b : PairHom Z X),
     a.g ≫ e ≫ (snd : prod Y.A W ⟶ W) = b.g ≫ e ≫ (snd : prod Y.A W ⟶ W)
+  /-- **§1.547 — every factor of `X` is either Y-DERIVED or SURVIVING.**  Each `f ∈ X.F` either
+      factors through `x.g` to a matching factor `gY ∈ Y.F` of the SAME target (the "left"
+      disjunct — `f° ∈ Y.F°`), or it is a SURVIVOR pinned by the `W`-coordinate: `f.1` splits off
+      `W` as a retract (`W ≅ f.1 × Wf`) and `f.2 = e ≫ snd ≫ (split) ≫ fst` recovers it from the
+      surviving product coordinate.  This is the structural content "`x` together with the surviving
+      factors forms a product diagram": survivors are exactly the `W`-coordinates. -/
+  factorSplit : ∀ f ∈ X.F,
+      (∃ gY ∈ Y.F, ∃ h : f.1 = gY.1, f.2 = x.g ≫ (h ▸ gY.2))
+    ∨ (∃ (Wf : 𝒞) (p : W ⟶ prod f.1 Wf) (q : prod f.1 Wf ⟶ W),
+         p ≫ q = Cat.id W ∧ q ≫ p = Cat.id (prod f.1 Wf)
+         ∧ f.2 = e ≫ (snd : prod Y.A W ⟶ W) ≫ p ≫ (fst : prod f.1 Wf ⟶ f.1))
 
 /-- **§1.547 — every dense morphism's underlying arrow is a COVER.**  `x.g = e ≫ fst` with
     `e` an iso and `fst : Y.A × W → Y.A` a cover (`W` well-supported, `prod_fst_cover`); a cover
@@ -1189,6 +1200,16 @@ theorem wellSupported_prod' [PullbacksTransferCovers 𝒞] {B D : 𝒞}
   rw [show term (prod B D) = (fst : prod B D ⟶ B) ≫ term B from term_uniq _ _]
   exact cover_comp'' (prod_fst_cover hD) hB
 
+/-- A right factor of a well-supported binary product is well-supported.  The unique
+    `prod B D ⟶ 1` equals `snd ≫ (D ⟶ 1)` by terminal uniqueness, and is a cover (`prod B D`
+    well-supported), so `D ⟶ 1` is a cover by `cover_of_comp_cover`. -/
+theorem wellSupported_prod_right {B D : 𝒞} (h : WellSupported (prod B D)) :
+    WellSupported D := by
+  show Cover (term D)
+  apply cover_of_comp_cover (snd : prod B D ⟶ D) (term D)
+  rw [show (snd : prod B D ⟶ D) ≫ term D = term (prod B D) from term_uniq _ _]
+  exact h
+
 /-- **§1.547 — every dense morphism is MONIC in `Â`** (the book's "every dense morphism is monic").
     THE R7 CORRECTION.  A dense `x : X → Y` is monic *in `Â`* — even though its underlying `A`-map
     `x.g` is an epic cover (`pairDense_cover`).  No contradiction: `pairForget` does NOT reflect
@@ -1258,7 +1279,19 @@ def pairDense_of_iso {X Y : PairObj 𝒞} {x : PairHom X Y}
     proj := fst_pair _ _
     -- an iso has NO surviving factors: the product diagram is `X.A ≅ Y.A × 1`, `W = 1`, so the
     -- `snd`-component lands in the terminal `1` and is unique — both maps agree there.
-    survPinned := fun a b => HasTerminal.uniq _ _ }
+    survPinned := fun a b => HasTerminal.uniq _ _
+    -- an iso has W = 1 ⇒ NO surviving factors: every `f ∈ X.F` is Y-DERIVED (LEFT disjunct).
+    -- Use the inverse's compat (X→Y direction): `x'.compat f` gives `q ∈ Y.F` of the same target
+    -- with `x'.g ≫ f = q`; then `f = (x.g ≫ x'.g) ≫ f = x.g ≫ q` since `x.g ≫ x'.g = id`.
+    factorSplit := by
+      intro f hf
+      left
+      obtain ⟨q, hq, hq1, hqe⟩ := x'.compat f hf
+      refine ⟨q, hq, hq1.symm, ?_⟩
+      obtain ⟨ft, fm⟩ := f; obtain ⟨qt, qm⟩ := q
+      cases hq1
+      simp only at hqe ⊢
+      rw [← hqe, ← Cat.assoc, hxx', Cat.id_comp] }
 
 /-- **§1.547 — every iso of `Â` is dense** (the `DenseClass.iso_mem` obligation), choice-free by
     destructing the `IsIso` witness into its explicit inverse arrow. -/
@@ -1266,6 +1299,64 @@ theorem pairDense_of_isIso {X Y : PairObj 𝒞} {x : PairHom X Y}
     (hx : @IsIso (PairObj 𝒞) _ X Y x) : Nonempty (PairDense x) := by
   obtain ⟨x', hxx', hx'x⟩ := hx
   exact ⟨pairDense_of_iso x' (congrArg PairHom.g hxx') (congrArg PairHom.g hx'x)⟩
+
+/-- **Retract extension (right factor).**  If `W` retracts onto `prod T Wf` via `(p,q)` (`p≫q=id`,
+    `q≫p=id`), then for any object `D` the product `prod D W` retracts onto `prod T (prod D Wf)`,
+    the new `fst`-component being `snd ≫ p ≫ fst` (recovering `T` from the `W`-coordinate). -/
+theorem retractExtendRight {T Wf W D : 𝒞} (p : W ⟶ prod T Wf) (q : prod T Wf ⟶ W)
+    (hpq : p ≫ q = Cat.id W) (hqp : q ≫ p = Cat.id (prod T Wf)) :
+    ∃ (p' : prod D W ⟶ prod T (prod D Wf)) (q' : prod T (prod D Wf) ⟶ prod D W),
+      p' ≫ q' = Cat.id (prod D W) ∧ q' ≫ p' = Cat.id (prod T (prod D Wf))
+      ∧ p' ≫ (fst : prod T (prod D Wf) ⟶ T) = (snd : prod D W ⟶ W) ≫ p ≫ fst := by
+  refine ⟨pair (snd ≫ p ≫ fst) (pair fst (snd ≫ p ≫ snd)),
+          pair (snd ≫ fst) (pair fst (snd ≫ snd) ≫ q), ?_, ?_, fst_pair _ _⟩
+  · -- p' ≫ q' = id on `prod D W`: check both projections
+    apply prod_hom_ext
+    · rw [Cat.assoc, fst_pair, ← Cat.assoc, snd_pair, fst_pair, Cat.id_comp]
+    · rw [Cat.assoc, snd_pair, Cat.id_comp, ← Cat.assoc]
+      have hrec : pair (snd ≫ p ≫ fst) (pair (fst : prod D W ⟶ D) (snd ≫ p ≫ snd))
+          ≫ pair fst (snd ≫ snd) = (snd : prod D W ⟶ W) ≫ p := by
+        apply prod_hom_ext
+        · rw [Cat.assoc, fst_pair, fst_pair, Cat.assoc]
+        · rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair, snd_pair, Cat.assoc]
+      rw [hrec, Cat.assoc, hpq, Cat.comp_id]
+  · -- q' ≫ p' = id on `prod T (prod D Wf)`: check both projections
+    apply prod_hom_ext
+    · rw [Cat.assoc, fst_pair, Cat.id_comp, ← Cat.assoc, snd_pair, Cat.assoc,
+        ← Cat.assoc q p fst, hqp, Cat.id_comp, fst_pair]
+    · rw [Cat.assoc, snd_pair, Cat.id_comp]
+      apply prod_hom_ext
+      · rw [Cat.assoc, fst_pair, fst_pair]
+      · rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair, Cat.assoc,
+          ← Cat.assoc q p snd, hqp, Cat.id_comp, snd_pair]
+
+/-- **Retract extension (left factor).**  If `W` retracts onto `prod T Wf` via `(p,q)`, then for
+    any `D` the product `prod W D` retracts onto `prod T (prod Wf D)`, the new `fst`-component being
+    `fst ≫ p ≫ fst` (recovering `T` from the left `W`-coordinate). -/
+theorem retractExtendLeft {T Wf W D : 𝒞} (p : W ⟶ prod T Wf) (q : prod T Wf ⟶ W)
+    (hpq : p ≫ q = Cat.id W) (hqp : q ≫ p = Cat.id (prod T Wf)) :
+    ∃ (p' : prod W D ⟶ prod T (prod Wf D)) (q' : prod T (prod Wf D) ⟶ prod W D),
+      p' ≫ q' = Cat.id (prod W D) ∧ q' ≫ p' = Cat.id (prod T (prod Wf D))
+      ∧ p' ≫ (fst : prod T (prod Wf D) ⟶ T) = (fst : prod W D ⟶ W) ≫ p ≫ fst := by
+  refine ⟨pair (fst ≫ p ≫ fst) (pair (fst ≫ p ≫ snd) snd),
+          pair (pair fst (snd ≫ fst) ≫ q) (snd ≫ snd), ?_, ?_, fst_pair _ _⟩
+  · apply prod_hom_ext
+    · rw [Cat.assoc, fst_pair, Cat.id_comp, ← Cat.assoc]
+      have hrec : pair (fst ≫ p ≫ fst) (pair (fst ≫ p ≫ snd) (snd : prod W D ⟶ D))
+          ≫ pair fst (snd ≫ fst) = (fst : prod W D ⟶ W) ≫ p := by
+        apply prod_hom_ext
+        · rw [Cat.assoc, fst_pair, fst_pair, Cat.assoc]
+        · rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair, fst_pair, Cat.assoc]
+      rw [hrec, Cat.assoc, hpq, Cat.comp_id]
+    · rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair, snd_pair, Cat.id_comp]
+  · apply prod_hom_ext
+    · rw [Cat.assoc, fst_pair, Cat.id_comp, ← Cat.assoc, fst_pair, Cat.assoc,
+        ← Cat.assoc q p fst, hqp, Cat.id_comp, fst_pair]
+    · rw [Cat.assoc, snd_pair, Cat.id_comp]
+      apply prod_hom_ext
+      · rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair, Cat.assoc,
+          ← Cat.assoc q p snd, hqp, Cat.id_comp, snd_pair]
+      · rw [Cat.assoc, snd_pair, snd_pair]
 
 /-- **§1.547 — dense morphisms are closed under COMPOSITION.**  `x : X→Y`, `y : Y→Z` dense with
     surviving objects `Wₓ`, `W_y`; `x.comp y` is dense with surviving object `W_y × Wₓ`
@@ -1354,7 +1445,50 @@ def pairDense_comp [PullbacksTransferCovers 𝒞] {X Y Z : PairObj 𝒞}
             = c.g ≫ dx.e ≫ (snd : prod Y.A dx.W ⟶ dx.W) := by
           intro c
           rw [Cat.assoc, Cat.assoc, Cat.assoc, hss]
-        rw [key a, key b, dx.survPinned a b] }
+        rw [key a, key b, dx.survPinned a b]
+    factorSplit := by
+      -- bridging equations for `esc := (dx.e ≫ r) ≫ snd : X.A → prod dy.W dx.W`
+      intro f hf
+      -- bridging equations in fully right-associated form (matching `simp only [Cat.assoc]`).
+      have hescR : dx.e ≫ r ≫ (snd : prod Z.A (prod dy.W dx.W) ⟶ prod dy.W dx.W)
+          ≫ (snd : prod dy.W dx.W ⟶ dx.W) = dx.e ≫ (snd : prod Y.A dx.W ⟶ dx.W) := by
+        rw [← Cat.assoc r snd snd, hrsnd, snd_pair]
+      have hescL : dx.e ≫ r ≫ (snd : prod Z.A (prod dy.W dx.W) ⟶ prod dy.W dx.W)
+          ≫ (fst : prod dy.W dx.W ⟶ dy.W) = x.g ≫ dy.e ≫ (snd : prod Z.A dy.W ⟶ dy.W) := by
+        rw [← Cat.assoc r snd fst, hrsnd, fst_pair, ← Cat.assoc dx.e fst, dx.proj]
+      rcases dx.factorSplit f hf with ⟨gY, hgY, hgYt, hgYe⟩ | ⟨Wf, p, q, hpq, hqp, hsplit⟩
+      · -- dx-Y-derived: `f.2 = x.g ≫ (hgYt ▸ gY.2)`, `gY ∈ Y.F`.  Case on dy.factorSplit gY.
+        rcases dy.factorSplit gY hgY with ⟨gZ, hgZ, hgZt, hgZe⟩ | ⟨Wf, p, q, hpq, hqp, hsplit⟩
+        · -- dy-Y-derived ⇒ composite LEFT: `f.2 = x.g ≫ y.g ≫ gZ.2 = (x.comp y).g ≫ gZ.2`
+          left
+          refine ⟨gZ, hgZ, hgYt.trans hgZt, ?_⟩
+          obtain ⟨ft, fm⟩ := f; obtain ⟨gYt, gYm⟩ := gY; obtain ⟨gZt, gZm⟩ := gZ
+          cases hgYt; cases hgZt
+          simp only at hgYe hgZe ⊢
+          show fm = (x.g ≫ y.g) ≫ gZm
+          rw [hgYe, hgZe, Cat.assoc]
+        · -- dy-surviving ⇒ composite RIGHT, survivor in LEFT factor `dy.W`.
+          right
+          -- `f.2 = x.g ≫ (hgYt ▸ gY.2)`; `gY.2 = dy.e ≫ snd ≫ p ≫ fst`; `e_comp≫snd≫fst = x.g≫dy.e≫snd`
+          obtain ⟨ft, fm⟩ := f; obtain ⟨gYt, gYm⟩ := gY
+          cases hgYt
+          simp only at hgYe hsplit
+          obtain ⟨p', q', hp'q', hq'p', hp'fst⟩ := retractExtendLeft (D := dx.W) p q hpq hqp
+          refine ⟨prod Wf dx.W, p', q', hp'q', hq'p', ?_⟩
+          simp only
+          rw [hgYe, hsplit, hp'fst]
+          -- goal: x.g ≫ dy.e ≫ snd ≫ p ≫ fst = e_comp ≫ snd ≫ (fst ≫ p ≫ fst)
+          have hb := congrArg (· ≫ p ≫ fst) hescL
+          simp only [Cat.assoc] at hb ⊢
+          exact hb.symm
+      · -- dx-surviving ⇒ composite RIGHT, survivor in RIGHT factor `dx.W`.
+        right
+        obtain ⟨p', q', hp'q', hq'p', hp'fst⟩ := retractExtendRight (D := dy.W) p q hpq hqp
+        refine ⟨prod dy.W Wf, p', q', hp'q', hq'p', ?_⟩
+        rw [hsplit, hp'fst]
+        have hb := congrArg (· ≫ p ≫ fst) hescR
+        simp only [Cat.assoc] at hb ⊢
+        exact hb.symm }
 
 /-! ### §1.547  FAITHFULNESS of the localisation `Â → Â[dense⁻¹] = A*` (the decisive payoff)
 
