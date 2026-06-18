@@ -69,4 +69,49 @@ theorem compL_homInclL_compAtL {ip iq ir : ι} (xp : L.A ip) (xq : L.A iq) (xr :
   rw [compL_homInclL L hL, homCompRawL_eq_compAtL L hL xp xq xr a f b g e hae hbe]
   rfl
 
+/-! ## Reflection of equalities/monos/covers/isos through the stage inclusion
+
+  These mirror `homIncl_injective` / `colimHom_mono_reflects` / `homInclObj_cover_reflects` /
+  `homInclObj_isIso_reflects` of the strict file.  The bare-Σ objects mean `homInclL x y a g` is
+  ALREADY a hom `⟨i,x⟩ ⟶ ⟨j,y⟩`; there is no `colimOut`/object-rep transport. -/
+
+/-- `pushHom` is injective when `functF` is faithful: `pushHom = transApp ≫ map · ≫ isoInv transApp`
+    is `map ·` flanked by two isos, so equal pushes give equal `map`s, hence (faithfulness) equal
+    arrows.  The lax companion of stripping `homTr`'s `castHom`. -/
+theorem pushHom_injective
+    (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (p q : x ⟶ y),
+        @Functor.map _ _ _ _ _ (L.functF hij) x y p
+          = @Functor.map _ _ _ _ _ (L.functF hij) x y q → p = q)
+    {i j : ι} (x : L.A i) (y : L.A j) {k m : ι}
+    (hik : D.le i k) (hjk : D.le j k) (hkm : D.le k m)
+    {f g : L.F hik x ⟶ L.F hjk y}
+    (h : pushHom L x y hik hjk hkm f = pushHom L x y hik hjk hkm g) : f = g := by
+  apply hfaith hkm
+  -- strip the flanking isos.  pushHom = transApp ≫ map · ≫ isoInv transApp.
+  unfold pushHom at h
+  -- left-cancel `transApp` (iso) and right-cancel `isoInv transApp` (iso)
+  have hL' := congrArg (fun t => isoInv (transApp_isIso L hik hkm x) ≫ t) h
+  simp only at hL'
+  rw [← Cat.assoc, ← Cat.assoc, inv_isoInv_comp, Cat.id_comp,
+      ← Cat.assoc, ← Cat.assoc, inv_isoInv_comp, Cat.id_comp] at hL'
+  have hR' := congrArg (fun t => t ≫ transApp L hjk hkm y) hL'
+  simp only at hR'
+  rw [Cat.assoc, inv_isoInv_comp, Cat.comp_id, Cat.assoc, inv_isoInv_comp, Cat.comp_id] at hR'
+  exact hR'
+
+/-- **`homInclL` is injective on hom-sets when transitions are faithful.**  Two germs at the same
+    bound `a` including to the same colimit morphism agree: `Quotient.exact` gives a higher bound
+    where the `pushHom`s agree, and `pushHom_injective` strips back.  Lax `homIncl_injective`. -/
+theorem homInclL_injective
+    (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (p q : x ⟶ y),
+        @Functor.map _ _ _ _ _ (L.functF hij) x y p
+          = @Functor.map _ _ _ _ _ (L.functF hij) x y q → p = q)
+    {i j : ι} (x : L.A i) (y : L.A j) (a : UpperBound D i j)
+    {g g' : L.F a.2.1 x ⟶ L.F a.2.2 y}
+    (h : homInclL L hL x y a g = homInclL L hL x y a g') : g = g' := by
+  obtain ⟨k, hak, hak', heq⟩ := Quotient.exact h
+  dsimp only [homSystemL] at heq
+  rw [Subsingleton.elim hak' hak] at heq
+  exact pushHom_injective L hfaith x y a.2.1 a.2.2 hak heq
+
 end Freyd.LaxColim
