@@ -1006,6 +1006,22 @@ theorem compL_assoc {p q r s : Obj L}
     _ = compL L hL (Quotient.mk _ ⟨a, f⟩) (compL L hL (Quotient.mk _ ⟨b, g⟩) (Quotient.mk _ ⟨c, h⟩)) := by
           rw [h_innerR]
 
+/-! ### The `Cat` instance on the lax colimit -/
+
+/-- **The lax colimit category `LaxColim L`.**  Objects are the bare `Σ i, A i` (`Obj L`); morphisms
+    `⟨i,x⟩ → ⟨j,y⟩` are germs of `Hom_{A k}(F x, F y)` over upper bounds `k` (`homL`); identity is the
+    germ of `𝟙` (`idL`); composition is the bound-coherent germ composition (`compL`).  The three
+    category axioms are `compL_id_left`/`compL_id_right`/`compL_assoc`.  Built relative to the
+    pseudofunctor coherence `Coherent L` (the lax analogue of `CatSystem.Coherent` — TRUE for
+    base-change, unlike the strict `StrictBaseChange`). -/
+noncomputable def laxColimCat : Cat (Obj L) where
+  Hom p q := homL L hL p q
+  id p := idL L hL p
+  comp m n := compL L hL m n
+  id_comp m := compL_id_left L hL m
+  comp_id m := compL_id_right L hL m
+  assoc m n k := compL_assoc L hL m n k
+
 end HomColim
 
 end Freyd.LaxColim
