@@ -1099,6 +1099,15 @@ instance pairEmbed : Functor (fun A : 𝒞 => pairEmbedObj A) where
   map_id _ := PairHom.ext rfl
   map_comp f g := PairHom.ext rfl
 
+/-- A `PairHom`'s codomain targets are a SUBSET of its domain targets (`Y° ⊆ X°`).  Immediate from
+    compat: every `p ∈ Y.F` has a matching `q ∈ X.F` of the SAME target, so `p.1 = q.1 ∈ X°`. -/
+theorem pairHom_targets_subset {X Y : PairObj 𝒞} (m : PairHom X Y) :
+    ∀ T ∈ Y.targets, T ∈ X.targets := by
+  intro T hT
+  obtain ⟨p, hp, rfl⟩ := List.mem_map.1 hT
+  obtain ⟨q, hq, hqt, _⟩ := m.compat p hp
+  exact List.mem_map.2 ⟨q, hq, hqt⟩
+
 /-- The §1.547 embedding `A ↪ Â` is an `Embedding` (faithful on homs): a `PairHom` is determined by
     its underlying `.g`, which is exactly the input arrow (`PairHom.ext`). -/
 theorem pairEmbed_embedding : Embedding (fun A : 𝒞 => pairEmbedObj A) :=
@@ -1177,6 +1186,16 @@ structure PairDense {X Y : PairObj 𝒞} (x : PairHom X Y) where
       (∃ gY ∈ Y.F, ∃ h : f.1 = gY.1, f.2 = x.g ≫ (h ▸ gY.2))
     ∨ (∃ k : Fin surv.length, ∃ h : f.1 = surv.get k,
          f.2 = e ≫ (snd : prod Y.A W ⟶ W) ≫ wf ≫ (h ▸ listProdProj surv k))
+  /-- **§1.547 standing condition — the surviving targets are NOT in the codomain.**  Each surviving
+      target `surv.get k` lies OUTSIDE `Y°` (`Y.targets`): a survivor is by definition a factor of `X`
+      whose target is not already a target of `Y` (`f° ∉ F₂°`).  This is what makes the survivors the
+      genuine "extra" product factors split off by `x`. -/
+  survDistinct : ∀ k : Fin surv.length, surv.get k ∉ Y.targets
+  /-- **§1.547 — every surviving target IS a target of the domain `X`.**  A survivor is a coordinate of
+      `W = ∏surv` pinned to an `X`-factor (`factorSplit`'s survivor branch), so its target lies in
+      `X°` (`X.targets`).  Together with `survDistinct`, the survivors are exactly the `X`-factor
+      targets that disappear in `Y`. -/
+  survInX : ∀ k : Fin surv.length, surv.get k ∈ X.targets
 
 /-- **§1.547 — every dense morphism's underlying arrow is a COVER.**  `x.g = e ≫ fst` with
     `e` an iso and `fst : Y.A × W → Y.A` a cover (`W` well-supported, `prod_fst_cover`); a cover
@@ -2029,7 +2048,10 @@ def pairDense_of_iso {X Y : PairObj 𝒞} {x : PairHom X Y}
       obtain ⟨ft, fm⟩ := f; obtain ⟨qt, qm⟩ := q
       cases hq1
       simp only at hqe ⊢
-      rw [← hqe, ← Cat.assoc, hxx', Cat.id_comp] }
+      rw [← hqe, ← Cat.assoc, hxx', Cat.id_comp]
+    -- surv = [] ⇒ `Fin 0` is empty.
+    survDistinct := fun k => k.elim0
+    survInX := fun k => k.elim0 }
 
 /-- **§1.547 — every iso of `Â` is dense** (the `DenseClass.iso_mem` obligation), choice-free by
     destructing the `IsIso` witness into its explicit inverse arrow. -/
@@ -2273,7 +2295,38 @@ def pairDense_comp [PullbacksTransferCovers 𝒞] {X Y Z : PairObj 𝒞}
           ← Cat.assoc (pair (fst ≫ dy.wf) (snd ≫ dx.wf)) snd, snd_pair]
         have hb := congrArg (· ≫ dx.wf ≫ listProdProj dx.surv kk) hescR
         simp only [Cat.assoc] at hb ⊢
-        exact hb.symm }
+        exact hb.symm
+    -- survDistinct: codomain is `Z`.  FIRST block (`dy.surv`): ∉ Z.targets directly by `dy.survDistinct`.
+    -- SECOND block (`dx.surv`): ∉ Y.targets by `dx.survDistinct`; since `y : Y → Z` gives
+    -- `Z.targets ⊆ Y.targets` (`pairHom_targets_subset y`), ∉ Y.targets ⟹ ∉ Z.targets.
+    survDistinct := by
+      intro k
+      rcases Nat.lt_or_ge k.1 dy.surv.length with hlt | hge
+      · -- FIRST block
+        have hget : (dy.surv ++ dx.surv).get k = dy.surv.get ⟨k.1, hlt⟩ := by
+          simp [List.get_eq_getElem, List.getElem_append_left hlt]
+        rw [hget]; exact dy.survDistinct _
+      · -- SECOND block
+        have hkb : k.1 - dy.surv.length < dx.surv.length := by
+          have hk2 := k.2; simp only [List.length_append] at hk2; omega
+        have hget : (dy.surv ++ dx.surv).get k = dx.surv.get ⟨k.1 - dy.surv.length, hkb⟩ := by
+          simp [List.get_eq_getElem, List.getElem_append_right hge]
+        rw [hget]
+        exact fun hZ => dx.survDistinct _ (pairHom_targets_subset y _ hZ)
+    -- survInX: codomain is `X` (domain of `x.comp y`).  FIRST block (`dy.surv`): ∈ Y.targets by
+    -- `dy.survInX`; `x : X → Y` gives `Y.targets ⊆ X.targets` (`pairHom_targets_subset x`).
+    -- SECOND block (`dx.surv`): ∈ X.targets directly by `dx.survInX`.
+    survInX := by
+      intro k
+      rcases Nat.lt_or_ge k.1 dy.surv.length with hlt | hge
+      · have hget : (dy.surv ++ dx.surv).get k = dy.surv.get ⟨k.1, hlt⟩ := by
+          simp [List.get_eq_getElem, List.getElem_append_left hlt]
+        rw [hget]; exact pairHom_targets_subset x _ (dy.survInX _)
+      · have hkb : k.1 - dy.surv.length < dx.surv.length := by
+          have hk2 := k.2; simp only [List.length_append] at hk2; omega
+        have hget : (dy.surv ++ dx.surv).get k = dx.surv.get ⟨k.1 - dy.surv.length, hkb⟩ := by
+          simp [List.get_eq_getElem, List.getElem_append_right hge]
+        rw [hget]; exact dx.survInX _ }
 
 /-! ### §1.547  FAITHFULNESS of the localisation `Â → Â[dense⁻¹] = A*` (the decisive payoff)
 
@@ -3790,6 +3843,31 @@ noncomputable def pairDense_pb_canonical_dense [DecidableEq 𝒞] [PullbacksTran
           rw [← Cat.assoc (apexHom x g dx) snd, hsnd]
           simp only [Cat.assoc]
           rw [partHom_snd_proj (fun T => collides Z T) dx.surv k hnc hget]
+  -- survDistinct: the codomain is `Z`.  A surviving target `T` is in `dx.surv.filter (!collides Z)`,
+  -- so `!collides Z T = true`, i.e. `collides Z T = false`, i.e. `¬ ∃ f ∈ Z.F, f.1 = T`, which is
+  -- exactly `T ∉ Z.targets`.
+  survDistinct := by
+    intro k
+    have hmem := List.get_mem (dx.surv.filter (fun T => !collides Z T)) k
+    have hnc := (List.mem_filter.1 hmem).2
+    have hcf : collides Z ((dx.surv.filter (fun T => !collides Z T)).get k) = false := by
+      simp only [Bool.not_eq_true', decide_eq_false_iff_not, Bool.not_eq_true] at hnc
+      exact hnc
+    intro hZ
+    obtain ⟨p, hp, hpe⟩ := List.mem_map.1 hZ
+    have : collides Z ((dx.surv.filter (fun T => !collides Z T)).get k) = true :=
+      decide_eq_true ⟨p, hp, hpe⟩
+    rw [hcf] at this; exact Bool.noConfusion this
+  -- survInX: the codomain of the apex is `pt`; the second leg `π₂ : pt → X` is a `PairHom`, so
+  -- `X.targets ⊆ pt.targets`.  A survivor `T ∈ dx.surv.filter (…) ⊆ dx.surv` has `T ∈ X.targets`
+  -- by `dx.survInX`, hence `T ∈ pt.targets`.
+  survInX := by
+    intro k
+    have hmem := List.get_mem (dx.surv.filter (fun T => !collides Z T)) k
+    rcases List.mem_filter.1 hmem with ⟨hmemSurv, _⟩
+    obtain ⟨j, hj⟩ := List.mem_iff_get.1 hmemSurv
+    have hXt : (dx.surv.filter (fun T => !collides Z T)).get k ∈ X.targets := hj ▸ dx.survInX j
+    exact pairHom_targets_subset (pairHasPullbacks.has g x).cone.π₂ _ hXt
 
 end ApexIso
 
@@ -4092,14 +4170,6 @@ theorem factorTuple_findProj {A : 𝒞} (T : 𝒞) :
         obtain ⟨f, hf, h, he⟩ := factorTuple_findProj T F _
         exact ⟨f, List.mem_cons_of_mem _ hf, h, he⟩
 
-/-- A `PairHom`'s codomain targets are a SUBSET of its domain targets (`Y° ⊆ X°`).  Immediate from
-    compat: every `p ∈ Y.F` has a matching `q ∈ X.F` of the SAME target, so `p.1 = q.1 ∈ X°`. -/
-theorem pairHom_targets_subset {X Y : PairObj 𝒞} (m : PairHom X Y) :
-    ∀ T ∈ Y.targets, T ∈ X.targets := by
-  intro T hT
-  obtain ⟨p, hp, rfl⟩ := List.mem_map.1 hT
-  obtain ⟨q, hq, hqt, _⟩ := m.compat p hp
-  exact List.mem_map.2 ⟨q, hq, hqt⟩
 
 /-- **§1.547 — the MORPHISM HALF of the bridge: `m` commutes with the base restriction.**  For a
     `PairHom m : X → Y`, the underlying arrow `m.g` makes the factor maps commute over the base
