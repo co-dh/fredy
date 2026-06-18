@@ -4214,6 +4214,48 @@ def pairHomOfSlice [HasPullbacks 𝒞] {X Y : PairObj 𝒞} (hsub : ∀ T ∈ Y.
 
 end restrict
 
+/-- **§1.547 — `pairForget` reflects isos when the target sets COINCIDE.**  An `Â`-arrow `n : K → C`
+    whose underlying `A`-arrow `n.g` is an iso, AND whose codomain targets are a SUBSET of the domain's
+    (`K° ⊇ C°` is automatic from `compat`; the extra hypothesis is `K° ⊆ C°`, so the two target sets
+    coincide), is an iso IN `Â`.  This is the precise form of "`pairForget` reflects isos": the
+    obstruction (2) of `pairPullbacksTransferCovers` is EXACTLY the failure of `K° ⊆ C°` for a free
+    test mono; when it holds, the underlying inverse `i := n.g⁻¹` IS a `PairHom C → K`.
+
+    The inverse's `compat` is built directly (no fullness needed): for `p ∈ K.F`, `K° ⊆ C°` gives a
+    `C`-factor `q` of the same target; `n.compat q` then yields a `K`-factor `q'` of target `p.1` with
+    `n.g ≫ q.2 = q'.2`, and `K.distinct` pins `q' = p`, so `i ≫ p.2 = i ≫ n.g ≫ q.2 = q.2`. -/
+theorem pairForget_reflects_iso_of_targets_subset [HasPullbacks 𝒞] {K C : PairObj 𝒞}
+    (n : PairHom K C) (hg : IsIso n.g) (htgt : ∀ T ∈ K.targets, T ∈ C.targets) :
+    @IsIso (PairObj 𝒞) _ K C n := by
+  obtain ⟨i, hi₁, hi₂⟩ := hg
+  -- the inverse `Â`-arrow `i : C → K`, underlying `i = n.g⁻¹`.
+  have hicompat : ∀ p ∈ K.F, ∃ q ∈ C.F, ∃ h : q.1 = p.1, i ≫ p.2 = h ▸ q.2 := by
+    intro p hp
+    -- `p.1 ∈ K°`, so by `htgt` some `C`-factor `q` has target `p.1`.
+    have hp1K : p.1 ∈ K.targets := List.mem_map.2 ⟨p, hp, rfl⟩
+    obtain ⟨q, hq, hqt⟩ := List.mem_map.1 (htgt p.1 hp1K)
+    -- `n.compat q` : some `q' ∈ K.F` of target `q.1` with `n.g ≫ q.2 = q'.2`.
+    obtain ⟨q', hq', hq't, hq'e⟩ := n.compat q hq
+    -- `q'.1 = q.1 = p.1`; `K.distinct` pins `q' = p` (as arrows after the target cast).
+    have hq'p : q'.1 = p.1 := hq't.trans hqt
+    have hq'eq : hq'p ▸ q'.2 = p.2 := K.distinct q' hq' p hp hq'p
+    refine ⟨q, hq, hqt, ?_⟩
+    -- i ≫ p.2 = i ≫ (n.g ≫ q.2) (via hq'e, hq'eq, casts) = (i ≫ n.g) ≫ q.2 = q.2.
+    -- Reconcile casts by generalizing the targets.
+    revert hq'e hq'eq hqt hq't
+    obtain ⟨pT, pa⟩ := p
+    obtain ⟨qT, qa⟩ := q
+    obtain ⟨q'T, q'a⟩ := q'
+    intro hq't hqt hq'e hq'eq
+    simp only at hqt hq't hq'p hq'e hq'eq ⊢
+    subst hqt; subst hq't
+    simp only at hq'e hq'eq ⊢
+    subst hq'eq
+    rw [← hq'e, ← Cat.assoc, hi₂, Cat.id_comp]
+  let iHom : PairHom C K := ⟨i, hicompat⟩
+  exact ⟨iHom, PairHom.ext (by show n.g ≫ i = _; exact hi₁),
+              PairHom.ext (by show i ≫ n.g = _; exact hi₂)⟩
+
 /-- **§1.547 — the base `∏(X.targets)` of the slice is WELL-SUPPORTED.**  Every factor target of
     `X` is well-supported (`X.wsupp`), and a finite product of well-supported objects is
     well-supported (`wellSupported_listProd'`).  Hence the slice `A/(∏ X.targets)` lives over a
