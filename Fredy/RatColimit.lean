@@ -66,4 +66,36 @@ theorem equivFunctor_reflects_iso {F : 𝒞 → 𝒟} [hF : Functor F]
   · apply emb (g ≫ f) (Cat.id Y)
     rw [hF.map_comp, hg, hF.map_id, hhf]
 
+/-! ## Terminal object transport
+
+  Pick `A : 𝒞` with `F A ≅ 1_𝒟` (representative image of the `𝒟`-terminal).  `A` is terminal in
+  `𝒞`: a map `X ⟶ A` is the fullness-preimage of `F X ⟶ F A` (the composite `term (F X) ≫ iso⁻¹`),
+  and any two maps `X ⟶ A` agree because their `F`-images both equal `term (F X)` after the iso
+  (faithfulness + `term_uniq`). -/
+
+/-- **`HasTerminal` transports backward across an `EquivalenceFunctor`.**  With `𝒟` having a
+    terminal, the representative-image preimage `A` of `1_𝒟` is terminal in `𝒞`. -/
+noncomputable def equivFunctor_hasTerminal {F : 𝒞 → 𝒟} [hF : Functor F]
+    (emb : Embedding F) (full : Full F) (hri : HasRepresentativeImage F)
+    [ht : HasTerminal 𝒟] : HasTerminal 𝒞 :=
+  -- `A` = representative-image preimage of `1_𝒟`; `ι : F A ≅ 1_𝒟` with inverse `ι'`.
+  let A : 𝒞 := (hri (one : 𝒟)).choose
+  let ι : F A ⟶ (one : 𝒟) := (hri (one : 𝒟)).choose_spec.choose
+  let ι' : (one : 𝒟) ⟶ F A := (hri (one : 𝒟)).choose_spec.choose_spec.choose
+  { one := A
+    -- the trm map X ⟶ A: fullness-preimage of `term (F X) ≫ ι' : F X ⟶ F A`.
+    trm := fun X => (full (term (F X) ≫ ι')).choose
+    uniq := fun {X} f g => by
+      -- two maps X ⟶ A agree: their F-images, post-composed with `ι`, both hit `term (F X)`.
+      apply emb f g
+      have hιι' : ι ≫ ι' = Cat.id (F A) :=
+        (hri (one : 𝒟)).choose_spec.choose_spec.choose_spec.1
+      have key : ∀ h : X ⟶ A, hF.map h ≫ ι = term (F X) := fun h => term_uniq _ _
+      have e : hF.map f ≫ ι = hF.map g ≫ ι := by rw [key f, key g]
+      calc hF.map f = hF.map f ≫ ι ≫ ι' := by rw [hιι', Cat.comp_id]
+        _ = (hF.map f ≫ ι) ≫ ι' := (Cat.assoc _ _ _).symm
+        _ = (hF.map g ≫ ι) ≫ ι' := by rw [e]
+        _ = hF.map g ≫ ι ≫ ι' := Cat.assoc _ _ _
+        _ = hF.map g := by rw [hιι', Cat.comp_id] }
+
 end Freyd
