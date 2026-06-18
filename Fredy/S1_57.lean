@@ -135,7 +135,22 @@ theorem ac_factorization [ACRegularCategory 𝒞] {A B : 𝒞} (f : A ⟶ B) :
   `e : A → A` (`e² = e`) with `ex = x` and `e` and `x` have the same level
   (kernel pair).  Then the equalizer of `id_A` and `e` splits `e`, yielding a
   factorization `x = p ≫ n` where `p` is left-invertible and `n` is monic.
-  Hence the category is AC regular (alternative definition from §1.57). -/
+  Hence the category is AC regular (alternative definition from §1.57).
+
+  §1.571 — decoding Freyd's paragraph "Let C → A be an equalizer of 1, e …"
+  (composition in diagram order: `m;e` means first `m` then `e`).  Let
+  `m : C → A` be the equalizer of `id_A` and `e`.
+    1. `m` = equalizer of `1, e` — the subobject of fixed points of `e`, where
+       `id = e`.  Equalizer maps are monic (`eqMap_mono`).        [`m`, `hm_mono`]
+    2. `A → C → A = e` splits the idempotent: `e = p;m` with `p : A → C`.  [`hp_fac`]
+    3. `A → C` has left-inverse `C → A`, i.e. `m;p = id_C`, so `p` is
+       left-invertible (a cover).  Uses `m;e = m` + monicity of `m`.   [`hm_p`]
+    4. `x = A → C → A → B`: from `ex = x` and `e = p;m`, `x = e;x = p;(m;x)`;
+       set `n := m;x`, giving `x = p;n`.                                [`hx_fac`]
+    5. `C → A → B` is monic: `n = m;x` is monic — the ONLY step using "same
+       level".  If `u;n = v;n` then `(u;m, v;m) ∈ ker x = ker e`, so `u;m;e =
+       v;m;e`; but `m;e = m`, so `u;m = v;m`, and `m` monic gives `u = v`.
+       (Uses only `hle2 : ker x ⊂ ker e`; `_hle1` is discarded.)       [`hn_mono`] -/
 
 section S1_571
 
@@ -153,7 +168,23 @@ theorem eqMap_mono {A B : 𝒞} (f g : A ⟶ B) : Mono (eqMap f g) := by
 
 /-- **§1.571**: In a Cartesian category, if every morphism admits an idempotent
     with the same level (kernel pair) that stabilizes it, then every morphism
-    factors as left-invertible followed by monic — so the category is AC regular. -/
+    factors as left-invertible followed by monic — so the category is AC regular.
+
+    §1.571 — why "same level" must be assumed (it is NOT derivable from `e² = e`
+    and `ex = x`).  Split `ker e = ker x` into its two inclusions:
+      • `ker e ⊆ ker x` IS free from `ex = x`: `u;e = v;e ⇒ u;e;x = v;e;x ⇒ u;x = v;x`
+        (this is `_hle1`, the inclusion this proof never uses).
+      • `ker x ⊆ ker e` is NOT derivable — it says `x` merges no more than `e`, and
+        nothing in `e² = e`, `ex = x` bounds how much `x` collapses (this is `hle2`,
+        the inclusion the monicity of `n = m;x` actually consumes).
+    Counterexample for the missing direction: take `e = id_A`.  It is idempotent and
+    `id;x = x` for EVERY `x`, yet `ker(id) =` diagonal, so "same level" would force
+    every `x` monic.  Concretely in Set: `x : {0,1} → {∗}` the constant map has
+    `ker x = ⊤` but `ker id =` diagonal.  Intuition: `ex = x` only says `e` fixes `x`
+    (and `e = id` fixes everything); the hypothesis is exactly the extra constraint
+    that `e`'s fixed-point subobject `C ↣ A` is no bigger than the image of `x`, which
+    is what makes the second leg `n = m;x` monic.  With `e = id` we get `C = A`,
+    `n = x`, and the factorization degenerates to `x = id;x` with `n` non-monic. -/
 theorem ac_factorization_via_idempotent
     (h_exists : ∀ {A B : 𝒞} (x : A ⟶ B), ∃ (e : A ⟶ A),
       e ≫ e = e ∧ e ≫ x = x ∧

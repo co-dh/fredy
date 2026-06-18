@@ -14,6 +14,10 @@ on non-comment lines (block-comment-stripped Python scan). Total files: 60.
 | `DirectedColimit.lean` |       0 | Directed colimit of types (foundation for §1.543 transfinite argument); sorry-free      |
 | `CatColimit.lean`      |       0 | Directed colimit of categories (CatSystem, Coherent, colimitCat); sorry-free            |
 | `CatColimitRegular.lean` |     0 | M3a: colimit inherits terminal when transitions preserve it; sorry-free                 |
+| `HornDiagram.lean`     |       0 | §1.39 Horn sentence ↔ Freyd diagram: syntactic `Horn`/`Diagram` types + constructive `hornDiagramIso` (axiom-free) + Typst/fletcher renderer obeying §1.391/§1.393 (objects not collapsed, explicit identities — left-invertibility drawn as the triangle, not an iso). `lake env lean --run` emits diagrams; tested on §1.39/§1.41/§1.45 book samples. Standalone. |
+| `HornToQSeq.lean`      |       0 | Bridge to the semantic `QSeq` (`S1_38b`): `qLeftInv f` realizes the §1.39 left-invertible diagram as a genuine Q-sequence, and `satisfies_qLeftInv` proves its §1.395 `Satisfies` IS `∃ g, f≫g=1_A` (axiom-free); complement = negation (Classical, via Thm 2); iso-invariance (axiom-free). |
+| `QSeqExamples.lean`    |       0 | TEN book Q-sequences generated as real `QSeq` terms, each PROVED `Satisfies = book meaning` (`ex01`–`ex10`): §1.39 left-invertible/∀∃-lifting, §1.3(9) factor-through/∃∃-conjunction, §1.395 complement (×2, Classical), `nil` ∀/∃ boundary, vacuous ∀-step, Thm-1 iso-invariance. ex01–04 constructive, ex05–06 Classical, ex07–10 axiom-free. |
+| `QSeqRender.lean`      |       0 | IN-LEAN renderer for Freyd's §1.39 Q-sequence notation (panels of growing diagrams separated by vertical bars with ∀/∃/∃!/! ON TOP; covers `↠`, parallel pairs, puncture marks `÷`). `Panel`/`Item`/`QDiagram` + `render : QDiagram → String` (Typst/fletcher). Reproduces — MATCHING the book (verified vs PDF): left-invertible §1.39, single-monic §1.41, EQUALIZER §1.428, PROJECTIVE §1.524. (§1.523 well-pointed is a Q-*tree*, §1.398 — branching, beyond this linear-sequence renderer.) `lake env lean --run Fredy/QSeqRender.lean`. |
 
 ---
 
