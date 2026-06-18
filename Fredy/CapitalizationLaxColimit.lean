@@ -352,6 +352,156 @@ theorem pasteCone_isPullback {X : 𝒞} {h : X ⟶ D}
     -- then v lifts the c2-cone (e, d.π₂), hence equals u.
     exact huniq v hve hv₂
 
+/-! ### From pasting to the `trans` natural iso
+
+  `baseChangeObj g X` is, definitionally, the chosen pullback of `X.hom` along `g`.  We abbreviate
+  that chosen pullback as `_pb`.  The LHS `baseChangeObj (g' ≫ g) X` and the pasted RHS
+  `baseChangeObj g' (baseChangeObj g X)` are two pullbacks of the SAME cospan `(X.hom, g' ≫ g)`
+  (by `pasteCone_isPullback`), so they are canonically iso (`isIso_of_two_pullbacks`). -/
+
+/-- The chosen pullback of `X.hom` along a base map, matching `baseChangeObj`'s internal choice. -/
+private def _pb (g : C ⟶ D) (X : Over D) : HasPullback X.hom g := HasPullbacks.has X.hom g
+
+/-- The pasted RHS cone `baseChangeObj g' (baseChangeObj g X)`, viewed as a cone over the composite
+    cospan `(X.hom, g' ≫ g)`, is a pullback. -/
+private theorem _rhsPasted (X : Over D) :
+    (Cone.mk (f := X.hom) (g := g' ≫ g)
+      (_pb g' (baseChangeObj g X)).cone.pt
+      ((_pb g' (baseChangeObj g X)).cone.π₁ ≫ (_pb g X).cone.π₁)
+      (_pb g' (baseChangeObj g X)).cone.π₂
+      (by
+        have hc1 := (_pb g X).cone.w
+        have hc2 := (_pb g' (baseChangeObj g X)).cone.w
+        calc ((_pb g' (baseChangeObj g X)).cone.π₁ ≫ (_pb g X).cone.π₁) ≫ X.hom
+            = (_pb g' (baseChangeObj g X)).cone.π₁ ≫ ((_pb g X).cone.π₁ ≫ X.hom) := Cat.assoc _ _ _
+          _ = (_pb g' (baseChangeObj g X)).cone.π₁ ≫ ((_pb g X).cone.π₂ ≫ g) :=
+                congrArg ((_pb g' (baseChangeObj g X)).cone.π₁ ≫ ·) hc1
+          _ = ((_pb g' (baseChangeObj g X)).cone.π₁ ≫ (_pb g X).cone.π₂) ≫ g := (Cat.assoc _ _ _).symm
+          _ = ((_pb g' (baseChangeObj g X)).cone.π₂ ≫ g') ≫ g := congrArg (· ≫ g) hc2
+          _ = (_pb g' (baseChangeObj g X)).cone.π₂ ≫ (g' ≫ g) := Cat.assoc _ _ _)).IsPullback :=
+  pasteCone_isPullback g g'
+    (h := X.hom) ((_pb g X).cone_isPullback) ((_pb g' (baseChangeObj g X)).cone_isPullback)
+
+/-- The LHS pullback cone of `baseChangeObj (g' ≫ g) X`, as a cone over `(X.hom, g' ≫ g)`. -/
+private def _lhsCone (X : Over D) : Cone X.hom (g' ≫ g) := (_pb (g' ≫ g) X).cone
+
+/-- The forward comparison map `(baseChangeObj (g' ≫ g) X).dom ⟶ (baseChangeObj g' (baseChangeObj g
+    X)).dom`: the unique factorization of the LHS pullback cone through the pasted RHS pullback. -/
+private noncomputable def _transFwdf (X : Over D) :
+    (baseChangeObj (g' ≫ g) X).dom ⟶ (baseChangeObj g' (baseChangeObj g X)).dom :=
+  ((_rhsPasted g g' X) (_lhsCone g g' X)).choose
+
+private theorem _transFwd_π₁ (X : Over D) :
+    _transFwdf g g' X ≫ ((_pb g' (baseChangeObj g X)).cone.π₁ ≫ (_pb g X).cone.π₁)
+      = (_pb (g' ≫ g) X).cone.π₁ :=
+  ((_rhsPasted g g' X) (_lhsCone g g' X)).choose_spec.1.1
+
+private theorem _transFwd_π₂ (X : Over D) :
+    _transFwdf g g' X ≫ (_pb g' (baseChangeObj g X)).cone.π₂ = (_pb (g' ≫ g) X).cone.π₂ :=
+  ((_rhsPasted g g' X) (_lhsCone g g' X)).choose_spec.1.2
+
+/-- The forward comparison as a slice arrow `baseChangeObj (g' ≫ g) X ⟶ baseChangeObj g'
+    (baseChangeObj g X)`.  Its `π₂`-leg is the over-`pr k` triangle, which is `_transFwd_π₂`
+    (recall the structure map of both slice objects is `π₂`). -/
+private noncomputable def _transFwd (X : Over D) :
+    OverHom (baseChangeObj (g' ≫ g) X) (baseChangeObj g' (baseChangeObj g X)) :=
+  ⟨_transFwdf g g' X, _transFwd_π₂ g g' X⟩
+
+/-- The forward comparison is iso: it is the comparison of two pullbacks of `(X.hom, g' ≫ g)` —
+    the LHS chosen pullback and the pasted RHS pullback — so `isIso_of_two_pullbacks` applies. -/
+private theorem _transFwd_isIso (X : Over D) : OverIso (_transFwd g g' X) :=
+  overIso_of_underlying _
+    (isIso_of_two_pullbacks ((_pb (g' ≫ g) X).cone_isPullback) (_rhsPasted g g' X)
+      (_transFwdf g g' X) (_transFwd_π₁ g g' X) (_transFwd_π₂ g g' X))
+
+/-- Naturality of the forward comparison, at the level of underlying arrows: for `m : OverHom X Y`,
+    `(baseChangeMap (g' ≫ g) m).f ≫ _transFwdf Y = _transFwdf X ≫ (baseChangeMap g' (baseChangeMap g
+    m)).f`.  Both sides factor the same cone through the RHS pasted pullback of `Y`, so they agree by
+    `lift_uniq`.  The shared cone has legs `((_pb (g'≫g) X).π₁ ≫ m.f, (_pb (g'≫g) X).π₂)` over the
+    pasted projections `((_pb g' (bc g Y)).π₁ ≫ (_pb g Y).π₁, (_pb g' (bc g Y)).π₂)`. -/
+private theorem _transFwd_natf {X Y : Over D} (m : OverHom X Y) :
+    (baseChangeMap (g' ≫ g) m).f ≫ _transFwdf g g' Y
+      = _transFwdf g g' X ≫ (baseChangeMap g' (baseChangeMap g m)).f := by
+  -- It suffices that both sides agree after post-composing with the two pasted projections of `Y`,
+  -- since the pasted cone of `Y` is a pullback (`_rhsPasted ... Y`).  Apply that uniqueness to the
+  -- shared cone `d` with legs `((_pb (g'≫g) X).π₁ ≫ m.f, (_pb (g'≫g) X).π₂)` over `(Y.hom, g'≫g)`.
+  have hdw : ((_pb (g' ≫ g) X).cone.π₁ ≫ m.f) ≫ Y.hom
+      = (_pb (g' ≫ g) X).cone.π₂ ≫ (g' ≫ g) := by
+    calc ((_pb (g' ≫ g) X).cone.π₁ ≫ m.f) ≫ Y.hom
+        = (_pb (g' ≫ g) X).cone.π₁ ≫ (m.f ≫ Y.hom) := Cat.assoc _ _ _
+      _ = (_pb (g' ≫ g) X).cone.π₁ ≫ X.hom := congrArg ((_pb (g' ≫ g) X).cone.π₁ ≫ ·) m.w
+      _ = (_pb (g' ≫ g) X).cone.π₂ ≫ (g' ≫ g) := (_pb (g' ≫ g) X).cone.w
+  obtain ⟨_, _, huniq⟩ := (_rhsPasted g g' Y)
+    (Cone.mk (f := Y.hom) (g := g' ≫ g) (baseChangeObj (g' ≫ g) X).dom
+      ((_pb (g' ≫ g) X).cone.π₁ ≫ m.f) ((_pb (g' ≫ g) X).cone.π₂) hdw)
+  -- `baseChangeMap`'s `.f` projected against the relevant pullback legs (term-typed so they `rw`).
+  have hg_fst : (baseChangeMap g m).f ≫ (_pb g Y).cone.π₁ = (_pb g X).cone.π₁ ≫ m.f :=
+    (_pb g Y).lift_fst (baseChangeCone g m)
+  have hg'_fst : (baseChangeMap g' (baseChangeMap g m)).f ≫ (_pb g' (baseChangeObj g Y)).cone.π₁
+      = (_pb g' (baseChangeObj g X)).cone.π₁ ≫ (baseChangeMap g m).f :=
+    (_pb g' (baseChangeObj g Y)).lift_fst (baseChangeCone g' (baseChangeMap g m))
+  have hg'_snd : (baseChangeMap g' (baseChangeMap g m)).f ≫ (_pb g' (baseChangeObj g Y)).cone.π₂
+      = (_pb g' (baseChangeObj g X)).cone.π₂ :=
+    (_pb g' (baseChangeObj g Y)).lift_snd (baseChangeCone g' (baseChangeMap g m))
+  refine (huniq ((baseChangeMap (g' ≫ g) m).f ≫ _transFwdf g g' Y) ?rl1 ?rl2).trans
+    (huniq (_transFwdf g g' X ≫ (baseChangeMap g' (baseChangeMap g m)).f) ?ll1 ?ll2).symm
+  case ll1 =>
+    -- π₁ leg: (_transFwdf X ≫ (bc g' (bc g m)).f) ≫ (p₁ʸ) = (_pb (g'≫g) X).π₁ ≫ m.f
+    calc (_transFwdf g g' X ≫ (baseChangeMap g' (baseChangeMap g m)).f)
+            ≫ ((_pb g' (baseChangeObj g Y)).cone.π₁ ≫ (_pb g Y).cone.π₁)
+        = _transFwdf g g' X ≫ (((baseChangeMap g' (baseChangeMap g m)).f
+            ≫ (_pb g' (baseChangeObj g Y)).cone.π₁) ≫ (_pb g Y).cone.π₁) := by
+          simp only [Cat.assoc]
+      _ = _transFwdf g g' X ≫ (((_pb g' (baseChangeObj g X)).cone.π₁ ≫ (baseChangeMap g m).f)
+            ≫ (_pb g Y).cone.π₁) := by rw [hg'_fst]
+      _ = _transFwdf g g' X ≫ ((_pb g' (baseChangeObj g X)).cone.π₁
+            ≫ ((baseChangeMap g m).f ≫ (_pb g Y).cone.π₁)) := by rw [Cat.assoc]
+      _ = _transFwdf g g' X ≫ ((_pb g' (baseChangeObj g X)).cone.π₁
+            ≫ ((_pb g X).cone.π₁ ≫ m.f)) := by rw [hg_fst]
+      _ = (_transFwdf g g' X ≫ ((_pb g' (baseChangeObj g X)).cone.π₁ ≫ (_pb g X).cone.π₁)) ≫ m.f := by
+          simp only [Cat.assoc]
+      _ = (_pb (g' ≫ g) X).cone.π₁ ≫ m.f := by rw [_transFwd_π₁ g g' X]
+  case ll2 =>
+    calc (_transFwdf g g' X ≫ (baseChangeMap g' (baseChangeMap g m)).f)
+            ≫ (_pb g' (baseChangeObj g Y)).cone.π₂
+        = _transFwdf g g' X
+            ≫ ((baseChangeMap g' (baseChangeMap g m)).f ≫ (_pb g' (baseChangeObj g Y)).cone.π₂) :=
+          Cat.assoc _ _ _
+      _ = _transFwdf g g' X ≫ (_pb g' (baseChangeObj g X)).cone.π₂ := by rw [hg'_snd]
+      _ = (_pb (g' ≫ g) X).cone.π₂ := _transFwd_π₂ g g' X
+  case rl1 =>
+    calc ((baseChangeMap (g' ≫ g) m).f ≫ _transFwdf g g' Y)
+            ≫ ((_pb g' (baseChangeObj g Y)).cone.π₁ ≫ (_pb g Y).cone.π₁)
+        = (baseChangeMap (g' ≫ g) m).f ≫ (_transFwdf g g' Y
+            ≫ ((_pb g' (baseChangeObj g Y)).cone.π₁ ≫ (_pb g Y).cone.π₁)) := Cat.assoc _ _ _
+      _ = (baseChangeMap (g' ≫ g) m).f ≫ (_pb (g' ≫ g) Y).cone.π₁ := by
+          rw [_transFwd_π₁ g g' Y]
+      _ = (_pb (g' ≫ g) X).cone.π₁ ≫ m.f :=
+          (_pb (g' ≫ g) Y).lift_fst (baseChangeCone (g' ≫ g) m)
+  case rl2 =>
+    calc ((baseChangeMap (g' ≫ g) m).f ≫ _transFwdf g g' Y)
+            ≫ (_pb g' (baseChangeObj g Y)).cone.π₂
+        = (baseChangeMap (g' ≫ g) m).f ≫ (_transFwdf g g' Y
+            ≫ (_pb g' (baseChangeObj g Y)).cone.π₂) := Cat.assoc _ _ _
+      _ = (baseChangeMap (g' ≫ g) m).f ≫ (_pb (g' ≫ g) Y).cone.π₂ := by
+          rw [_transFwd_π₂ g g' Y]
+      _ = (_pb (g' ≫ g) X).cone.π₂ := (_pb (g' ≫ g) Y).lift_snd (baseChangeCone (g' ≫ g) m)
+
+/-- **The composite coherence iso of base-change, over arbitrary composable base maps.**
+    `baseChangeObj (g' ≫ g) ≅ baseChangeObj g' ∘ baseChangeObj g` as a `NatIso` (natural in `X`):
+    the iterated-pullback / pullback-pasting isomorphism.  Components are `_transFwd` (iso by
+    `_transFwd_isIso`); naturality is `_transFwd_natf` (pullback-lift uniqueness). -/
+noncomputable def baseChangeTransNatIso :
+    @NatIso (Over D) _ (Over E) _
+      (baseChangeObj (g' ≫ g)) (baseChangeObj g' ∘ baseChangeObj g)
+      (baseChangeFunctor (g' ≫ g))
+      (@compFunctor (Over D) _ (Over C) _ (Over E) _
+        (baseChangeObj g) (baseChangeObj g') (baseChangeFunctor g) (baseChangeFunctor g')) where
+  nat :=
+    { app := _transFwd g g'
+      naturality {X Y} m := OverHom.ext (_transFwd_natf g g' m) }
+  isIso := _transFwd_isIso g g'
+
 end BaseChangeTransIso
 
 /-- **The composite coherence iso of base-change (the ONE honest remaining obligation).**  Unlike
