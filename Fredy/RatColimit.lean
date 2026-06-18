@@ -235,4 +235,45 @@ noncomputable def equivFunctor_hasPullbacks {F : 𝒞 → 𝒟} [hF : Functor F]
         _ = (hF.map v ≫ ι) ≫ ι' := (Cat.assoc _ _ _).symm
         _ = (HasPullbacks.has (hF.map f) (hF.map g)).lift (mapCone c) ≫ ι' := by rw [hlift]
 
+/-! ## Mono / cover preservation and reflection (for `PullbacksTransferCovers`) -/
+
+/-- **An `EquivalenceFunctor` preserves monos.**  `F f` mono: take `u, v : Z ⟶ F X` with
+    `u ≫ F f = v ≫ F f`.  The test object `Z` need not be in the image, so use essential
+    surjectivity: `Z ≅ F W` (iso `j`, inverse `j'`).  Then `j ≫ u`, `j ≫ v : F W ⟶ F X` are
+    `F`-images (fullness) `u'`, `v'`; faithfulness + mono `f` give `u' = v'`, so `j ≫ u = j ≫ v`,
+    and left-cancelling the iso `j` gives `u = v`. -/
+theorem equivFunctor_preserves_mono {F : 𝒞 → 𝒟} [hF : Functor F]
+    (emb : Embedding F) (full : Full F) (hri : HasRepresentativeImage F)
+    {X Y : 𝒞} {f : X ⟶ Y} (hf : Mono f) :
+    Mono (hF.map f) := by
+  intro Z u v huv
+  -- Z ≅ F W
+  obtain ⟨W, j, j', hjj', hj'j⟩ := hri Z
+  obtain ⟨u', hu'⟩ := full (j ≫ u)
+  obtain ⟨v', hv'⟩ := full (j ≫ v)
+  -- u' = v' from faithfulness + mono f
+  have hcomp : hF.map (u' ≫ f) = hF.map (v' ≫ f) := by
+    rw [hF.map_comp, hF.map_comp, hu', hv', Cat.assoc, Cat.assoc, huv]
+  have huv' : u' = v' := hf _ _ (emb _ _ hcomp)
+  -- j ≫ u = j ≫ v, then left-cancel iso j
+  have hju : j ≫ u = j ≫ v := by rw [← hu', ← hv', huv']
+  calc u = (Cat.id Z) ≫ u := (Cat.id_comp u).symm
+    _ = (j' ≫ j) ≫ u := by rw [hj'j]
+    _ = j' ≫ (j ≫ u) := Cat.assoc _ _ _
+    _ = j' ≫ (j ≫ v) := by rw [hju]
+    _ = (j' ≫ j) ≫ v := (Cat.assoc _ _ _).symm
+    _ = (Cat.id Z) ≫ v := by rw [hj'j]
+    _ = v := Cat.id_comp v
+
+/-- **A fully-faithful functor reflects covers.**  `Cover (F f)` ⟹ `Cover f`.  A monic `m` that
+    `f` factors through `g` maps to a monic `F m` (preserve mono) that `F f` factors through, so
+    `Cover (F f)` forces `IsIso (F m)`, reflected to `IsIso m`. -/
+theorem equivFunctor_reflects_cover {F : 𝒞 → 𝒟} [hF : Functor F]
+    (emb : Embedding F) (full : Full F) (hri : HasRepresentativeImage F) {X Y : 𝒞} {f : X ⟶ Y}
+    (hf : Cover (hF.map f)) : Cover f := by
+  intro C m g hm hgm
+  apply equivFunctor_reflects_iso emb full m
+  apply hf (hF.map m) (hF.map g) (equivFunctor_preserves_mono emb full hri hm)
+  rw [← hF.map_comp, hgm]
+
 end Freyd
