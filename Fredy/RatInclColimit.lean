@@ -192,6 +192,109 @@ theorem ratColimToObj_inj {c d : (ratBelowSystem (𝒞 := 𝒞)).Obj}
     _ = (ratBelowSystem (𝒞 := 𝒞)).objIncl V Z :=
         (ratBelowSystem (𝒞 := 𝒞)).objIncl_compat hVW Z
 
+/-! ## §1.543 G — dense maps localise to ISOS in `A[𝒟⁻¹]` (`locMapOf_isIso`)
+
+  The fraction-fiber pre-regularity route needs the calculus-of-fractions fact the repo's concrete
+  `ratCatOf` does not yet record: for `f` a MEMBER of the dense class `𝒟` (`hD.mem f`), its
+  localisation `locMapOf hD f : RatHomOf hD A B` is an ISO in `A[𝒟⁻¹] = ratCatOf hD`.  The inverse is
+  the SWAPPED span `B ←[f]— A —id→ A` (denominator `f`, dense; numerator `id`).  Both round-trips are
+  single diagonal roofs into the pullback `Q = pb(f,f)`: `compFraction (loc f) (swap f)` has apex `Q`,
+  denom `Q.π₁`, num `Q.π₂`, and the diagonal `Δ = Q.lift⟨A,id,id⟩` is a dense roof to `idFraction`
+  (`Δ≫π₁ = Δ≫π₂ = id`).  This is the §1.547/§1.48 "`T_𝒟` inverts every member" fact for the concrete
+  `ratCatOf`, sorry-free, and is exactly what lets an A*-fraction between exactly-`U` objects collapse
+  to a single `Â`-hom (the denominator there is a member, so its localisation is invertible). -/
+
+section LocIso
+variable {𝒟 : DenseClass 𝒞} (hD : DenseRoof 𝒟)
+
+/-- The SWAPPED span of a member `f : A → B`: `B ←[f]— A —id→ A` (denominator `f` dense, num `id`). -/
+def swapFraction {A B : 𝒞} {f : A ⟶ B} (hf : 𝒟.mem f) : Fraction 𝒟 B A :=
+  ⟨A, f, Cat.id A, hf⟩
+
+/-- **§1.543 G — `compFraction (loc f) (swap f) ≈ idFraction A`.**  The composite apex is the
+    pullback `Q = pb(f,f)` (num of `loc f` is `f`, denom of `swap f` is `f`), with denom `Q.π₁`,
+    num `Q.π₂`.  The diagonal `Δ = Q.lift⟨A,id,id⟩` is a roof from `idFraction A` to the composite:
+    `Δ≫(Q.π₁) = id` (dense) and `Δ≫(Q.π₂) = id`, matching `idFraction`'s `id`/`id`. -/
+theorem compFraction_loc_swap {A B : 𝒞} {f : A ⟶ B} (hf : 𝒟.mem f) :
+    FractionEquiv (compFraction 𝒟 (locFraction 𝒟 f) (swapFraction (𝒟 := 𝒟) hf)) (idFraction 𝒟 A) := by
+  -- the composite span: apex Q = pb(f,f); denom = Q.π₁ ≫ id_A = Q.π₁; num = Q.π₂ ≫ id_A = Q.π₂.
+  let Q := (HasPullbacks.has (locFraction 𝒟 f).num (swapFraction (𝒟 := 𝒟) hf).denom).cone
+  -- Q.w : Q.π₁ ≫ f = Q.π₂ ≫ f.   (num (loc f) = f; denom (swap) = f.)
+  have hQw : Q.π₁ ≫ f = Q.π₂ ≫ f := Q.w
+  -- diagonal Δ : A → Q with Δ≫π₁ = id, Δ≫π₂ = id.
+  let Δ : A ⟶ Q.pt := (HasPullbacks.has (locFraction 𝒟 f).num (swapFraction (𝒟 := 𝒟) hf).denom).lift
+    ⟨A, Cat.id A, Cat.id A, by show Cat.id A ≫ f = Cat.id A ≫ f; rfl⟩
+  have hΔ₁ : Δ ≫ Q.π₁ = Cat.id A :=
+    (HasPullbacks.has (locFraction 𝒟 f).num (swapFraction (𝒟 := 𝒟) hf).denom).lift_fst _
+  have hΔ₂ : Δ ≫ Q.π₂ = Cat.id A :=
+    (HasPullbacks.has (locFraction 𝒟 f).num (swapFraction (𝒟 := 𝒟) hf).denom).lift_snd _
+  -- roof R = A, r₁ = Δ, r₂ = id_A.
+  refine ⟨A, Δ, Cat.id A, ?_, ?_, ?_⟩
+  · -- (Δ ≫ composite.denom) member: composite.denom = Q.π₁ ≫ id = Q.π₁, and Δ ≫ Q.π₁ = id (member).
+    show 𝒟.mem (Δ ≫ ((Q.π₁ ≫ (locFraction 𝒟 f).denom)))
+    have : Δ ≫ (Q.π₁ ≫ (locFraction 𝒟 f).denom) = Cat.id A := by
+      show Δ ≫ (Q.π₁ ≫ Cat.id A) = Cat.id A
+      rw [← Cat.assoc, hΔ₁, Cat.id_comp]
+    rw [this]; exact 𝒟.iso_mem _ ⟨Cat.id A, Cat.id_comp _, Cat.id_comp _⟩
+  · -- denominators agree: Δ ≫ (Q.π₁ ≫ id) = id ≫ id.
+    show Δ ≫ (Q.π₁ ≫ (locFraction 𝒟 f).denom) = Cat.id A ≫ (idFraction 𝒟 A).denom
+    show Δ ≫ (Q.π₁ ≫ Cat.id A) = Cat.id A ≫ Cat.id A
+    rw [← Cat.assoc, hΔ₁, Cat.id_comp]
+  · -- numerators agree: Δ ≫ (Q.π₂ ≫ id) = id ≫ id.
+    show Δ ≫ (Q.π₂ ≫ (swapFraction (𝒟 := 𝒟) hf).num) = Cat.id A ≫ (idFraction 𝒟 A).num
+    show Δ ≫ (Q.π₂ ≫ Cat.id A) = Cat.id A ≫ Cat.id A
+    rw [← Cat.assoc, hΔ₂, Cat.id_comp]
+
+/-- **§1.543 G — `compFraction (swap f) (loc f) ≈ idFraction B`.**  Symmetric: apex `Q' = pb(id, id)`
+    (num of `swap f` is `id`, denom of `loc f` is `id`), so `Q'.π₁ = Q'.π₂` after the trivial square;
+    the composite is `B ←[Q'.π₁≫f]— Q' —Q'.π₂≫f→ B`, and the roof `Δ' = Q'.lift⟨B,id,id⟩` gives
+    `Δ'≫(Q'.π₁≫f) = f` ... actually denom = Q'.π₁ ≫ (swap).denom = Q'.π₁ ≫ f, num = Q'.π₂ ≫ f.
+    The roof `r₁ = Δ'` with `Δ'≫Q'.π₁ = Δ'≫Q'.π₂ = id` matches `idFraction B` (denom/num `id`) after
+    noting `idFraction B`'s denom/num are `id`, so we need `Δ'≫(Q'.π₁≫f) = r₂≫id`; take `r₂ = f`. -/
+theorem compFraction_swap_loc {A B : 𝒞} {f : A ⟶ B} (hf : 𝒟.mem f) :
+    FractionEquiv (compFraction 𝒟 (swapFraction (𝒟 := 𝒟) hf) (locFraction 𝒟 f)) (idFraction 𝒟 B) := by
+  -- apex Q' = pb(num(swap)=id_A, denom(loc f)=id_A); both legs land in A.
+  let Q := (HasPullbacks.has (swapFraction (𝒟 := 𝒟) hf).num (locFraction 𝒟 f).denom).cone
+  -- Q.w : Q.π₁ ≫ id = Q.π₂ ≫ id, i.e. Q.π₁ = Q.π₂.
+  have hQw : Q.π₁ = Q.π₂ := by
+    have := Q.w; show Q.π₁ = Q.π₂
+    simpa [swapFraction, locFraction, Cat.comp_id] using this
+  -- diagonal Δ : A → Q with Δ≫π₁ = id, Δ≫π₂ = id.
+  let Δ : A ⟶ Q.pt := (HasPullbacks.has (swapFraction (𝒟 := 𝒟) hf).num (locFraction 𝒟 f).denom).lift
+    ⟨A, Cat.id A, Cat.id A, by show Cat.id A ≫ Cat.id A = Cat.id A ≫ Cat.id A; rfl⟩
+  have hΔ₁ : Δ ≫ Q.π₁ = Cat.id A :=
+    (HasPullbacks.has (swapFraction (𝒟 := 𝒟) hf).num (locFraction 𝒟 f).denom).lift_fst _
+  have hΔ₂ : Δ ≫ Q.π₂ = Cat.id A :=
+    (HasPullbacks.has (swapFraction (𝒟 := 𝒟) hf).num (locFraction 𝒟 f).denom).lift_snd _
+  -- composite.denom = Q.π₁ ≫ (swap).denom = Q.π₁ ≫ f;  composite.num = Q.π₂ ≫ (loc f).num = Q.π₂ ≫ f.
+  -- roof R = A, r₁ = Δ, r₂ = f.
+  refine ⟨A, Δ, f, ?_, ?_, ?_⟩
+  · show 𝒟.mem (Δ ≫ (Q.π₁ ≫ (swapFraction (𝒟 := 𝒟) hf).denom))
+    have : Δ ≫ (Q.π₁ ≫ (swapFraction (𝒟 := 𝒟) hf).denom) = f := by
+      show Δ ≫ (Q.π₁ ≫ f) = f
+      rw [← Cat.assoc, hΔ₁, Cat.id_comp]
+    rw [this]; exact hf
+  · show Δ ≫ (Q.π₁ ≫ (swapFraction (𝒟 := 𝒟) hf).denom) = f ≫ (idFraction 𝒟 B).denom
+    show Δ ≫ (Q.π₁ ≫ f) = f ≫ Cat.id B
+    rw [Cat.comp_id, ← Cat.assoc, hΔ₁, Cat.id_comp]
+  · show Δ ≫ (Q.π₂ ≫ (locFraction 𝒟 f).num) = f ≫ (idFraction 𝒟 B).num
+    show Δ ≫ (Q.π₂ ≫ f) = f ≫ Cat.id B
+    rw [Cat.comp_id, ← Cat.assoc, hΔ₂, Cat.id_comp]
+
+/-- **§1.543 G — a member of the dense class localises to an ISO.**  For `f : A → B` with `𝒟.mem f`,
+    `locMapOf hD f` is an iso in `ratCatOf hD`, inverse `Quotient.mk (swapFraction hf)`.  Both
+    round-trips reduce, by `Quotient.sound`, to `compFraction_loc_swap`/`compFraction_swap_loc`. -/
+theorem locMapOf_isIso {A B : 𝒞} {f : A ⟶ B} (hf : 𝒟.mem f) :
+    @IsIso (RatObj hD) (ratCatOf hD) ⟨A⟩ ⟨B⟩ (locMapOf hD f) := by
+  refine ⟨Quotient.mk _ (swapFraction (𝒟 := 𝒟) hf), ?_, ?_⟩
+  · -- locMapOf f ≫ swap = id_A
+    show ratCompOf hD (locMapOf hD f) (Quotient.mk _ (swapFraction (𝒟 := 𝒟) hf)) = ratIdOf hD A
+    exact Quotient.sound (compFraction_loc_swap hf)
+  · show ratCompOf hD (Quotient.mk _ (swapFraction (𝒟 := 𝒟) hf)) (locMapOf hD f) = ratIdOf hD B
+    exact Quotient.sound (compFraction_swap_loc hf)
+
+end LocIso
+
 end Freyd
 
 #print axioms Freyd.ratBelowSystem
@@ -199,3 +302,4 @@ end Freyd
 #print axioms Freyd.ratColimToObj
 #print axioms Freyd.ratColimToObj_surjective
 #print axioms Freyd.ratColimToObj_inj
+#print axioms Freyd.locMapOf_isIso
