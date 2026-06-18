@@ -4400,6 +4400,85 @@ theorem sliceFactorPoint_lift_iff {P A : 𝒞} {D : Over P}
       rw [← hDhom, ← Cat.assoc, hs, snd_pair]
     exact ⟨⟨s, hsw⟩, OverHom.ext hs⟩
 
+/-! ### §1.546 — the product-form escape (the true core of the missed-point argument)
+
+  Freyd's §1.546 statement is precise: for a *proper* `B' ↪ B` (here `i : B' ↪ P`, the base
+  of the slice), the PRODUCT-FORM subobject `AB' ↪ AB` (`id_A × i`) "does not allow the generic
+  point" — and in fact does not allow *any* `g`-point `sliceFactorPoint A g`.  This is the
+  high-value standalone core; it needs only pair/projection algebra + `split_epi_cover`/
+  `monic_cover_iso` (a split epi which is monic is iso).
+
+  The underlying arrow of the product-form slice mono is `id_A × i = pair fst (snd ≫ i) :
+  A × B' → A × P`, with slice domain `⟨A × B', snd ≫ i⟩` over `P` (`(id_A × i) ≫ snd = snd ≫ i`).
+  A section of it over a `g`-point would force `i` split epi, hence (mono) iso — contradicting
+  properness. -/
+
+/-- **The product-form slice mono `id_A × i : ⟨A×B', snd≫i⟩ ↪ ⟨A×P, snd⟩`.**  Underlying arrow
+    `pair fst (snd ≫ i)`; it is an `OverHom` into `sliceEmbedObj P A` because its second projection
+    is `snd ≫ i = (the domain structure map)`.  Monic in the slice because its underlying arrow is
+    monic (`i` monic ⟹ `snd ≫ i`… in fact `pair fst (snd ≫ i)` is split-monic via `pair fst (snd ≫
+    i) ≫ pair fst snd`-style retract; we record monicity directly from joint-monicity of fst/snd). -/
+def prodFormMono {A P B' : 𝒞} (i : B' ⟶ P) :
+    OverHom (⟨prod A B', snd ≫ i⟩ : Over P) (sliceEmbedObj P A) :=
+  ⟨pair fst (snd ≫ i), by
+    show pair (fst : prod A B' ⟶ A) (snd ≫ i) ≫ snd = snd ≫ i
+    exact snd_pair _ _⟩
+
+/-- **§1.546 product-form escape.**  For a *proper* monic `i : B' ↪ P` of the base, the
+    product-form subobject `id_A × i` of `sliceEmbedObj P A` is missed by EVERY `g`-point
+    `sliceFactorPoint A g` (`g : P → A`).  A section `s` over the `g`-point would give
+    `s ≫ snd : P → B'` a section of `i` (`(s ≫ snd) ≫ i = id_P`), making `i` a split epi; being
+    monic, `i` would be iso (`monic_cover_iso` via `split_epi_cover`) — contradicting properness.
+    This is the core of "AB' ↪ AB does not allow the generic point" (§1.546). -/
+theorem prodFormMono_misses_point {A P B' : 𝒞} (i : B' ⟶ P)
+    (hi_mono : Mono i) (hi_proper : ¬ IsIso i) (g : P ⟶ A) :
+    ¬ ∃ s : P ⟶ prod A B', s ≫ (prodFormMono (A := A) i).f = pair g (Cat.id P) := by
+  rintro ⟨s, hs⟩
+  -- `s ≫ snd` is a section of `i`: compose `hs` with `snd`.
+  have hsec : (s ≫ snd) ≫ i = Cat.id P := by
+    have : s ≫ pair (fst : prod A B' ⟶ A) (snd ≫ i) ≫ snd = pair g (Cat.id P) ≫ snd := by
+      rw [← Cat.assoc]; exact congrArg (· ≫ snd) hs
+    rw [snd_pair, snd_pair] at this
+    rw [Cat.assoc]; exact this
+  -- `i` has a right inverse `s ≫ snd` and is monic ⟹ `i` iso, contradicting properness.
+  -- monic `i` cancels `(i ≫ (s≫snd)) ≫ i = i ≫ ((s≫snd) ≫ i) = i ≫ id = i = id ≫ i`.
+  have hleft : i ≫ (s ≫ snd) = Cat.id B' := by
+    apply hi_mono
+    rw [Cat.assoc, hsec, Cat.comp_id, Cat.id_comp]
+  exact hi_proper ⟨s ≫ snd, hleft, hsec⟩
+
+/-- **§1.546 product-form escape, slice form.**  The product-form mono `prodFormMono i` (for a
+    proper base monic `i : B' ↪ P`) misses the slice point `sliceFactorPoint A g` in `Over P`, for
+    every `g : P → A`.  This is `prodFormMono_misses_point` lifted through `sliceFactorPoint_lift_iff`
+    — the slice-level "AB' ↪ AB does not allow the generic point". -/
+theorem prodFormMono_misses_slicePoint {A P B' : 𝒞} (i : B' ⟶ P)
+    (hi_mono : Mono i) (hi_proper : ¬ IsIso i) (g : P ⟶ A) :
+    ¬ ∃ y : overTerm P ⟶ (⟨prod A B', snd ≫ i⟩ : Over P),
+        y ≫ prodFormMono (A := A) i = sliceFactorPoint A g := by
+  rw [sliceFactorPoint_lift_iff (prodFormMono (A := A) i) g]
+  exact prodFormMono_misses_point i hi_mono hi_proper g
+
+/-- **§1.546 — the product-form mono is monic in the slice when `i` is.**  Its underlying arrow
+    `pair fst (snd ≫ i)` is monic — `fst` and `snd ≫ i` are jointly monic since `fst, snd` are
+    jointly monic and `i` is monic (`snd ≫ i` cancels through `i`); slice monicity then follows by
+    `sigma_reflects_mono`.  (Properness of `id_A × i` would need `A` well-supported and is not
+    needed below: the escape `prodFormMono_misses_point` already holds for any `g`.) -/
+theorem prodFormMono_mono {A P B' : 𝒞} (i : B' ⟶ P) (hi_mono : Mono i) :
+    OverMono (prodFormMono (A := A) i) := by
+  have hf_mono : Mono (pair (fst : prod A B' ⟶ A) (snd ≫ i)) := by
+    intro W u v huv
+    have h1 : u ≫ fst = v ≫ fst := by
+      have e : (u ≫ pair (fst : prod A B' ⟶ A) (snd ≫ i)) ≫ fst
+             = (v ≫ pair (fst : prod A B' ⟶ A) (snd ≫ i)) ≫ fst := by rw [huv]
+      rwa [Cat.assoc, Cat.assoc, fst_pair] at e
+    have h2 : (u ≫ snd) ≫ i = (v ≫ snd) ≫ i := by
+      have e : (u ≫ pair (fst : prod A B' ⟶ A) (snd ≫ i)) ≫ snd
+             = (v ≫ pair (fst : prod A B' ⟶ A) (snd ≫ i)) ≫ snd := by rw [huv]
+      rwa [Cat.assoc, Cat.assoc, snd_pair, ← Cat.assoc, ← Cat.assoc] at e
+    exact fst_snd_jointly_monic u v h1 (hi_mono _ _ h2)
+  intro W u v huv
+  exact OverHom.ext (hf_mono u.f v.f (congrArg OverHom.f huv))
+
 /-- **§1.547 — `WellPointed` of the embedded factor (the full payoff; honest residual).**
     In the product-slice `A/(∏U)` (with `A = U.get k` a well-supported factor), the embedded
     object `sliceEmbedObj (∏U) A` is `WellPointed`: every proper monic into it misses some
