@@ -453,6 +453,40 @@ def padPairObj (U : List 𝒞) (hws : ∀ T ∈ U, WellSupported T) (hnd : U.Nod
       distinct := fun r hr r' hr' heq => padFactors_distinct U hnd h r hr r' hr' heq }
   htgt := padFactors_targets U h
 
+/-- **The padded pair recovers the slice object on the nose.**  `pairOnUSlice (padPairObj U _ _ h)`
+    is literally `⟨A, h⟩`: its structure map is `factorTuple (padFactors U h) ≫ eqToHom = h`
+    (`padFactors_factorTuple`).  So no nontrivial iso is needed — the representative is exact. -/
+theorem pairOnUSlice_padPairObj [HasPullbacks 𝒞] (U : List 𝒞) (hws : ∀ T ∈ U, WellSupported T)
+    (hnd : U.Nodup) {A : 𝒞} (h : A ⟶ listProd U) :
+    pairOnUSlice (padPairObj U hws hnd h) = (⟨A, h⟩ : Over (listProd U)) := by
+  show (⟨A, factorTuple (padFactors U h) ≫ eqToHom (congrArg listProd (padFactors_targets U h))⟩
+        : Over (listProd U)) = ⟨A, h⟩
+  rw [padFactors_factorTuple]
+
+/-- **§1.547 — `Φ : A*|U → A/(∏U)` is essentially surjective** (has a representative image): for a
+    SET `U` of well-supported objects (`U.Nodup`, each `T ∈ U` well-supported), every slice object
+    `Z : Over (∏U)` is `Φ` of a `PairOnU`-object (the padded `padPairObj` of `Z.hom`), and in fact
+    EQUAL to it (`pairOnUSlice_padPairObj`), so the witnessing iso is the identity. -/
+theorem pairOnUToSlice_representativeImage [HasPullbacks 𝒞] (U : List 𝒞)
+    (hws : ∀ T ∈ U, WellSupported T) (hnd : U.Nodup) :
+    HasRepresentativeImage (fun X : PairOnU U => pairOnUSlice X) := by
+  intro Z
+  have heq : pairOnUSlice (padPairObj U hws hnd Z.hom) = Z := by
+    rw [pairOnUSlice_padPairObj]
+  exact ⟨padPairObj U hws hnd Z.hom, eqToHom heq,
+    ⟨eqToHom heq.symm, eqToHom_comp_eqToHom_symm _, eqToHom_symm_comp_eqToHom _⟩⟩
+
+/-- **§1.547 — the fixed-`U` slice equivalence `A*|U ≃ A/(∏U)`.**  For a SET `U` of well-supported
+    objects (`U.Nodup`, each well-supported), the factor-slice functor `Φ : A*|U → A/(∏U)` is an
+    `EquivalenceFunctor` (an embedding, full, with representative image — i.e. fully faithful and
+    essentially surjective).  This is Freyd §1.547 (lines 4958-4961) at a FIXED base, packaging the
+    sorry-free bridge `pairHomToSlice`/`pairHomOfSlice` plus the padding `padPairObj`. -/
+theorem pairOnUToSlice_equivalence [HasPullbacks 𝒞] (U : List 𝒞)
+    (hws : ∀ T ∈ U, WellSupported T) (hnd : U.Nodup) :
+    EquivalenceFunctor (fun X : PairOnU U => pairOnUSlice X) :=
+  ⟨pairOnUToSlice_embedding U, pairOnUToSlice_full U,
+   pairOnUToSlice_representativeImage U hws hnd⟩
+
 end FixedU
 
 end Freyd
@@ -461,3 +495,7 @@ end Freyd
 #print axioms Freyd.bridge_roundtrip_f
 #print axioms Freyd.wellPointed_of_productForm
 #print axioms Freyd.sliceEmbed_factor_wellPointed_of_productForm
+#print axioms Freyd.pairOnUToSlice_full
+#print axioms Freyd.padFactors_factorTuple
+#print axioms Freyd.pairOnUToSlice_representativeImage
+#print axioms Freyd.pairOnUToSlice_equivalence
