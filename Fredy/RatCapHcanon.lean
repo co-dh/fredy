@@ -114,9 +114,29 @@ theorem homInclL_injective
   rw [Subsingleton.elim hak' hak] at heq
   exact pushHom_injective L hfaith x y a.2.1 a.2.2 hak heq
 
-/-- **A colimit composite equal to the identity becomes a stage identity.**  If the inclusions of
-    germs `f` (at `a`) and `g` (at `b`) compose to `idL ⟨ip,xp⟩`, then at a common stage `N` the
-    pushed composite `pushHom f ≫ pushHom g` is the stage identity.  Lax `homCompRaw_eq_id_stage`. -/
+/-- **Stage equation from a colimit composite equality.**  If `homInclL a f ⊚ homInclL b g`
+    (= `homCompRawL a f b g`) equals `homInclL c hh`, then at a common stage `N` the pushed germs
+    compose to the pushed `hh`.  Lax `homCompRaw_eq_stage`. -/
+theorem homCompRawL_eq_stage {ip iq ir : ι} (xp : L.A ip) (xq : L.A iq) (xr : L.A ir)
+    (a : UpperBound D ip iq) (f : L.F a.2.1 xp ⟶ L.F a.2.2 xq)
+    (b : UpperBound D iq ir) (g : L.F b.2.1 xq ⟶ L.F b.2.2 xr)
+    (c : UpperBound D ip ir) (hh : L.F c.2.1 xp ⟶ L.F c.2.2 xr)
+    (h : homCompRawL L hL xp xq xr a f b g = homInclL L hL xp xr c hh) :
+    ∃ (N : ι) (haN : D.le a.1 N) (hbN : D.le b.1 N) (hcN : D.le c.1 N),
+      pushHom L xp xq a.2.1 a.2.2 haN f ≫ pushHom L xq xr b.2.1 b.2.2 hbN g
+        = pushHom L xp xr c.2.1 c.2.2 hcN hh := by
+  obtain ⟨M, hfM, hgM⟩ := D.bound a.1 b.1
+  rw [homCompRawL_eq_compAtL L hL xp xq xr a f b g M hfM hgM] at h
+  unfold compAtL at h
+  obtain ⟨N, h1, h2, heq⟩ := Quotient.exact h
+  dsimp only [homSystemL] at heq
+  rw [pushHom_comp L xp xq xr (D.trans a.2.1 hfM) (D.trans a.2.2 hfM) (D.trans b.2.2 hgM) h1
+        (pushHom L xp xq a.2.1 a.2.2 hfM f) (pushHom L xq xr b.2.1 b.2.2 hgM g),
+      ← hL.push_trans xp xq a.2.1 a.2.2 hfM h1 f, ← hL.push_trans xq xr b.2.1 b.2.2 hgM h1 g] at heq
+  exact ⟨N.1, D.trans hfM h1, D.trans hgM h1, h2, heq⟩
+
+/-- **A colimit composite equal to the identity becomes a stage identity.**  The `homInclL … id`
+    special case of `homCompRawL_eq_stage`, finished by `pushHom_id`.  Lax `homCompRaw_eq_id_stage`. -/
 theorem homCompRawL_eq_id_stage {ip iq : ι} (xp : L.A ip) (xq : L.A iq)
     (a : UpperBound D ip iq) (f : L.F a.2.1 xp ⟶ L.F a.2.2 xq)
     (b : UpperBound D iq ip) (g : L.F b.2.1 xq ⟶ L.F b.2.2 xp)
@@ -125,17 +145,10 @@ theorem homCompRawL_eq_id_stage {ip iq : ι} (xp : L.A ip) (xq : L.A iq)
     ∃ (N : ι) (haN : D.le a.1 N) (hbN : D.le b.1 N),
       pushHom L xp xq a.2.1 a.2.2 haN f ≫ pushHom L xq xp b.2.1 b.2.2 hbN g
         = Cat.id (L.F (D.trans a.2.1 haN) xp) := by
-  obtain ⟨M, hfM, hgM⟩ := D.bound a.1 b.1
-  rw [homCompRawL_eq_compAtL L hL xp xq xp a f b g M hfM hgM] at h
-  unfold compAtL at h
-  obtain ⟨N, h1, h2, heq⟩ := Quotient.exact h
-  dsimp only [homSystemL] at heq
-  -- LHS: expand `pushHom (push f ≫ push g)` at bound `h1` into `pushHom f ≫ pushHom g` to `N.1`.
-  rw [pushHom_comp L xp xq xp (D.trans a.2.1 hfM) (D.trans a.2.2 hfM) (D.trans b.2.2 hgM) h1
-        (pushHom L xp xq a.2.1 a.2.2 hfM f) (pushHom L xq xp b.2.1 b.2.2 hgM g),
-      ← hL.push_trans xp xq a.2.1 a.2.2 hfM h1 f, ← hL.push_trans xq xp b.2.1 b.2.2 hgM h1 g,
-      pushHom_id L xp (D.refl ip) h2] at heq
-  exact ⟨N.1, D.trans hfM h1, D.trans hgM h1, heq⟩
+  obtain ⟨N, haN, hbN, hcN, key⟩ := homCompRawL_eq_stage L hL xp xq xp a f b g
+    ⟨ip, D.refl ip, D.refl ip⟩ (Cat.id (L.F (D.refl ip) xp)) h
+  rw [pushHom_id L xp (D.refl ip) hcN] at key
+  exact ⟨N, haN, hbN, key⟩
 
 /-- **Iso reflection through the stage inclusion.**  If `homInclL a g` is iso in the colimit, then
     at some higher stage `L'` the transition `map g` is iso.  Lax `colimHom_isIso_reflects`. -/
@@ -230,5 +243,42 @@ theorem homInclL_mono_of_stage
   dsimp only [homSystemL]
   -- the goal's `.tr` reduces to the collapsed-bound pushes, matching `hu` directly.
   exact hu
+
+/-- **Mono reflection through the stage inclusion.**  If `homInclL a g` is monic in the colimit and
+    transitions are faithful, then the germ `g` is left-cancellable under every transition.  Include
+    the two stage competitors `u, v` as colimit germs `⟨e,z⟩ ⟶ ⟨i,x⟩` and compose with `homInclL a g`;
+    the colimit mono forces the inclusions equal, and `homInclL_injective`/`pushHom_injective` strip
+    back.  Lax `colimHom_mono_reflects`. -/
+theorem homInclL_mono_reflects
+    (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (p q : x ⟶ y),
+        @Functor.map _ _ _ _ _ (L.functF hij) x y p
+          = @Functor.map _ _ _ _ _ (L.functF hij) x y q → p = q)
+    {i j : ι} (x : L.A i) (y : L.A j) (a : UpperBound D i j)
+    (g : L.F a.2.1 x ⟶ L.F a.2.2 y)
+    (hmono : @Mono (Obj L) (laxColimCat L hL) ⟨i, x⟩ ⟨j, y⟩ (homInclL L hL x y a g))
+    {e : ι} (hae : D.le a.1 e) (z : L.A e)
+    (u v : z ⟶ L.F (D.trans a.2.1 hae) x)
+    (huv : u ≫ pushHom L x y a.2.1 a.2.2 hae g = v ≫ pushHom L x y a.2.1 a.2.2 hae g) : u = v := by
+  letI : Cat (Obj L) := laxColimCat L hL
+  -- include `reflApp z ≫ u`, `reflApp z ≫ v` as germs `⟨e,z⟩ ⟶ ⟨i,x⟩` at bound `⟨e, refl e, i≤e⟩`.
+  let bnd : UpperBound D e i := ⟨e, D.refl e, D.trans a.2.1 hae⟩
+  let U : @homL _ _ L hL ⟨e, z⟩ ⟨i, x⟩ := homInclL L hL z x bnd (reflApp L z ≫ u)
+  let V : @homL _ _ L hL ⟨e, z⟩ ⟨i, x⟩ := homInclL L hL z x bnd (reflApp L z ≫ v)
+  have hUV : @compL _ _ L hL ⟨e, z⟩ ⟨i, x⟩ ⟨j, y⟩ U (homInclL L hL x y a g)
+      = @compL _ _ L hL ⟨e, z⟩ ⟨i, x⟩ ⟨j, y⟩ V (homInclL L hL x y a g) := by
+    rw [compL_homInclL_compAtL L hL z x y bnd _ a g e (D.refl e) hae,
+        compL_homInclL_compAtL L hL z x y bnd _ a g e (D.refl e) hae]
+    -- the left push at refl is identity (push_refl): both sides `homInclL ((reflApp z ≫ u|v) ≫ pushHom g)`.
+    rw [hL.push_refl z x (D.refl e) (D.trans a.2.1 hae) (reflApp L z ≫ u),
+        hL.push_refl z x (D.refl e) (D.trans a.2.1 hae) (reflApp L z ≫ v),
+        Cat.assoc, Cat.assoc, huv]
+  have hUVeq : U = V := hmono U V hUV
+  -- strip the inclusion (faithful), then cancel the iso `reflApp z` (mono).
+  have hstrip := homInclL_injective L hL hfaith z x bnd hUVeq
+  -- `reflApp z ≫ u = reflApp z ≫ v` with `reflApp z` iso ⇒ `u = v`.
+  have hiso := reflApp_isIso L z
+  obtain ⟨rinv, hr1, hr2⟩ := hiso
+  have := congrArg (fun t => rinv ≫ t) hstrip
+  simpa only [← Cat.assoc, hr2, Cat.id_comp] using this
 
 end Freyd.LaxColim
