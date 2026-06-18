@@ -265,6 +265,38 @@ private noncomputable def prSnd {i j : ι} (x : L.A i) (y : L.A j) :
     ⟨prK D i j, D.refl (prK D i j), (prK_le D i j).2⟩
     (reflApp L _ ≫ (data.hp (prK D i j)).snd)
 
+/-! ### The "unit conjugator" `U`
+
+  Pushing the projection germ `reflApp p ≫ fst` from `k` to `m` produces the prefactor
+  `transApp (refl k) hkm p ≫ (functF hkm).map (reflApp p) : F (trans (refl k) hkm) p ⟶ F hkm p`.
+  This composite of two coherence isos is itself an iso `U`; it has no closed form (no pseudofunctor
+  triangle is assumed in `Coherent`), so we keep it abstract and CANCEL it by building the pair
+  germ's representative with `isoInv U` baked in.  Both projections share the same `U` (same
+  `reflApp p` source side), so one inverse serves both legs. -/
+private noncomputable def prUnit {k m : ι} (p : L.A k) (hkm : D.le k m) :
+    L.F (D.trans (D.refl k) hkm) p ⟶ L.F hkm p :=
+  transApp L (D.refl k) hkm p ≫ (L.functF hkm).map (reflApp L p)
+
+private theorem prUnit_isIso {k m : ι} (p : L.A k) (hkm : D.le k m) :
+    IsIso (prUnit L p hkm) :=
+  isIso_comp (transApp_isIso L (D.refl k) hkm p)
+    (@functor_preserves_iso (L.A k) (L.catA k) (L.A m) (L.catA m) (L.F hkm) (L.functF hkm)
+      _ _ (reflApp L p) (reflApp_isIso L p))
+
+/-- Pushing a single-stage projection germ `reflApp p ≫ proj` from `k` to `m` (along `hkm`) equals
+    `prUnit ≫ (functF hkm).map proj ≫ isoInv (transApp hik hkm tgt)`.  Unfold `pushHom`, distribute
+    `map` over the composite, and fold the `transApp ≫ map reflApp` prefactor into `prUnit`. -/
+private theorem pushHom_proj {i k m : ι} (x : L.A i) (p : L.A k)
+    (hik : D.le i k) (hkm : D.le k m) (proj : p ⟶ L.F hik x) :
+    pushHom L p x (D.refl k) hik hkm (reflApp L p ≫ proj)
+      = prUnit L p hkm
+        ≫ (L.functF hkm).map proj
+        ≫ isoInv (transApp_isIso L hik hkm x) := by
+  unfold pushHom prUnit
+  rw [@Functor.map_comp (L.A k) (L.catA k) (L.A m) (L.catA m) (L.F hkm) (L.functF hkm)
+        _ _ _ (reflApp L p) proj]
+  simp only [Cat.assoc]
+
 end LaxProduct
 
 end Freyd.LaxColim
