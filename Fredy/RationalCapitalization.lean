@@ -3974,6 +3974,172 @@ def pairSliceObj (X : PairObj 𝒞) : Over (listProd X.targets) :=
 @[simp] theorem pairSliceObj_hom (X : PairObj 𝒞) :
     (pairSliceObj X).hom = pairFactorMap X := rfl
 
+/-- **§1.547 — the factor map of `X` recovers every factor of `X` by projection.**  Specialisation
+    of `factorTuple_proj` to `X.F`/`X.targets`: composing `pairFactorMap X` with the `k`-th
+    projection of `∏(X.targets)` recovers the `k`-th factor's arrow `(X.F.get k').2` (transported
+    across the target identity).  This is what makes `pairSliceObj X` a faithful record of `X`: its
+    structure map encodes ALL of `X`'s factors. -/
+theorem pairFactorMap_proj (X : PairObj 𝒞) (n : Nat)
+    (hk : n < X.targets.length) (hk' : n < X.F.length)
+    (h : X.targets.get ⟨n, hk⟩ = (X.F.get ⟨n, hk'⟩).1) :
+    pairFactorMap X ≫ listProdProj X.targets ⟨n, hk⟩ = h ▸ (X.F.get ⟨n, hk'⟩).2 :=
+  factorTuple_proj X.F n hk hk' h
+
+/-! ### §1.547 — the CHOICE-FREE base restriction `∏l₁ → ∏l₂` for `l₂ ⊆ l₁`
+
+  The §1.547 directed transition `A/(∏V) → A/(∏U)` (for `V ⊆ U`) base-changes along a product
+  projection `∏U → ∏V`.  Constructing that projection CHOICE-FREE is the residual (A) recorded in
+  `RelativeCapitalization.lean` (`StrictBaseChange`): list-subset `V ⊆ U` is a `Prop`, so a
+  *positional* match cannot be extracted from it.  With `DecidableEq 𝒞`, however, it CAN — by a
+  decidable target SEARCH (the same device as `findArrow`/`collReconstruct`): for each target `T` of
+  `l₂`, search `l₁` for a coordinate of target `T` and project to it.  This builds the base map
+  `∏l₁ → ∏l₂` constructively, sidestepping the choice obstruction whenever `DecidableEq 𝒞` holds. -/
+
+section restrict
+variable [DecidableEq 𝒞]
+
+/-- Search a product-coordinate list `l` for one of target `T`, returning its PROJECTION
+    `∏l → T` (the §1.547 base-restriction coordinate).  Decidable analogue of `findArrow`
+    (which searches a FACTOR list for an arrow); here we search a list of *objects* and return
+    the projection `listProdProj l k` at the found position. -/
+def findProj (T : 𝒞) :
+    ∀ (l : List 𝒞), (∃ S ∈ l, S = T) → (listProd l ⟶ T)
+  | [], hex => absurd hex (by simp)
+  | S :: l, hex => by
+      by_cases hST : S = T
+      · exact (fst : prod S (listProd l) ⟶ S) ≫ (hST ▸ Cat.id S)
+      · refine (snd : prod S (listProd l) ⟶ listProd l) ≫ findProj T l ?_
+        rcases hex with ⟨S', hS', hS'T⟩
+        rcases List.mem_cons.1 hS' with rfl | hS'tail
+        · exact absurd hS'T hST
+        · exact ⟨S', hS'tail, hS'T⟩
+
+/-- **§1.547 — the choice-free base restriction `∏l₁ → ∏l₂` for `l₂ ⊆ l₁` (with `DecidableEq`).**
+    Each `l₂`-coordinate is the `findProj` of that target into `l₁`.  This is the product projection
+    the §1.547 directed transition `A/(∏V) → A/(∏U)` base-changes along (for `V = l₂ ⊆ l₁ = U`),
+    built constructively by decidable target search instead of by choice over the subset `Prop`. -/
+def listProdRestrict : ∀ (l₁ l₂ : List 𝒞), (∀ T ∈ l₂, T ∈ l₁) → (listProd l₁ ⟶ listProd l₂)
+  | _, [], _ => term _
+  | l₁, T :: l₂, h =>
+      pair (findProj T l₁ ⟨T, h T (List.mem_cons_self), rfl⟩)
+           (listProdRestrict l₁ l₂ (fun S hS => h S (List.mem_cons_of_mem _ hS)))
+
+/-- **§1.547 — the `k`-th coordinate of the base restriction is the `findProj` of that target.**
+    `listProdRestrict l₁ l₂ h ≫ listProdProj l₂ k = findProj (l₂.get k) l₁ _`: the restriction
+    really does project `∏l₁` onto each `l₂`-coordinate via the searched-for `l₁`-coordinate.
+    Structural induction on `l₂`/`k` (parallel to `collReconstruct_proj`). -/
+theorem listProdRestrict_proj :
+    ∀ (l₁ l₂ : List 𝒞) (h : ∀ T ∈ l₂, T ∈ l₁) (k : Fin l₂.length),
+      listProdRestrict l₁ l₂ h ≫ listProdProj l₂ k
+        = findProj (l₂.get k) l₁ ⟨l₂.get k, h (l₂.get k) (l₂.get_mem k), rfl⟩
+  | _, [], _, k => k.elim0
+  | l₁, T :: l₂, h, ⟨0, hk0⟩ => by
+      show pair _ _ ≫ (fst : prod T (listProd l₂) ⟶ T) = _
+      rw [fst_pair]; rfl
+  | l₁, T :: l₂, h, ⟨n + 1, hk⟩ => by
+      show pair _ (listProdRestrict l₁ l₂ _) ≫ ((snd : prod T (listProd l₂) ⟶ listProd l₂)
+            ≫ listProdProj l₂ ⟨n, Nat.lt_of_succ_lt_succ hk⟩) = _
+      rw [← Cat.assoc, snd_pair, listProdRestrict_proj l₁ l₂ _ ⟨n, Nat.lt_of_succ_lt_succ hk⟩]
+      rfl
+
+/-- **§1.547 — the factor map followed by `findProj` recovers a factor of that target.**  Composing
+    `factorTuple F` (the factor map) with the searched projection `findProj T (F°)` lands on the
+    underlying arrow of SOME `F`-factor of target `T` (the one the decidable search lands on).  Under
+    `PairObj.distinct` all `F`-factors of a fixed target agree, so this pins the value.  This is the
+    KEY morphism-half computation: it lets a `PairHom` (whose compat matches Y-factors to X-factors of
+    the same target) commute with the base restriction `listProdRestrict X° Y°`. -/
+theorem factorTuple_findProj {A : 𝒞} (T : 𝒞) :
+    ∀ (F : List (Σ S : 𝒞, A ⟶ S)) (hex : ∃ S ∈ F.map (·.1), S = T),
+      ∃ f ∈ F, ∃ h : f.1 = T, factorTuple F ≫ findProj T (F.map (·.1)) hex = h ▸ f.2
+  | [], hex => absurd hex (by simp)
+  | p :: F, hex => by
+      show ∃ f ∈ p :: F, ∃ h : f.1 = T,
+        pair p.2 (factorTuple F) ≫ findProj T ((p :: F).map (·.1)) hex = h ▸ f.2
+      by_cases hpT : p.1 = T
+      · refine ⟨p, List.mem_cons_self, hpT, ?_⟩
+        -- findProj on a HEAD match unfolds to `fst ≫ (hpT ▸ id)`; precompose `pair p.2 _`.
+        have hfp : findProj T ((p :: F).map (·.1)) hex
+            = (fst : prod p.1 (listProd (F.map (·.1))) ⟶ p.1) ≫ (hpT ▸ Cat.id p.1) := by
+          show (if h : p.1 = T then _ else _) = _
+          rw [dif_pos hpT]
+        rw [hfp, ← Cat.assoc, fst_pair]
+        cases hpT; rw [Cat.comp_id]
+      · -- TAIL: findProj recurses via `snd`; `pair p.2 _ ≫ snd = factorTuple F`.
+        have hfp : findProj T ((p :: F).map (·.1)) hex
+            = (snd : prod p.1 (listProd (F.map (·.1))) ⟶ listProd (F.map (·.1)))
+                ≫ findProj T (F.map (·.1)) (by
+                    rcases hex with ⟨S', hS', hS'T⟩
+                    rcases List.mem_cons.1 hS' with rfl | hS'tail
+                    · exact absurd hS'T hpT
+                    · exact ⟨S', hS'tail, hS'T⟩) := by
+          show (if h : p.1 = T then _ else _) = _
+          rw [dif_neg hpT]
+        rw [hfp, ← Cat.assoc, snd_pair]
+        obtain ⟨f, hf, h, he⟩ := factorTuple_findProj T F _
+        exact ⟨f, List.mem_cons_of_mem _ hf, h, he⟩
+
+/-- A `PairHom`'s codomain targets are a SUBSET of its domain targets (`Y° ⊆ X°`).  Immediate from
+    compat: every `p ∈ Y.F` has a matching `q ∈ X.F` of the SAME target, so `p.1 = q.1 ∈ X°`. -/
+theorem pairHom_targets_subset {X Y : PairObj 𝒞} (m : PairHom X Y) :
+    ∀ T ∈ Y.targets, T ∈ X.targets := by
+  intro T hT
+  obtain ⟨p, hp, rfl⟩ := List.mem_map.1 hT
+  obtain ⟨q, hq, hqt, _⟩ := m.compat p hp
+  exact List.mem_map.2 ⟨q, hq, hqt⟩
+
+/-- **§1.547 — the MORPHISM HALF of the bridge: `m` commutes with the base restriction.**  For a
+    `PairHom m : X → Y`, the underlying arrow `m.g` makes the factor maps commute over the base
+    restriction `∏X° → ∏Y°`:
+        `m.g ≫ pairFactorMap Y = pairFactorMap X ≫ listProdRestrict X° Y° (Y°⊆X°)`.
+    Equivalently, `m.g : pairSliceObj X → (base-change of pairSliceObj Y)` is a slice morphism over
+    `∏X°`.  Proof by projection-extensionality: at each `Y°`-coordinate, the LHS is `m.g ≫ (Y-factor)`
+    (`factorTuple_proj`) and the RHS is the searched `X`-factor of the same target
+    (`listProdRestrict_proj` + `factorTuple_findProj`); compat matches them, and `X.distinct` pins the
+    searched factor to compat's.  This is the choice-free morphism half of `Â → Σ U, A/(∏U)`. -/
+theorem pairHom_commutes_restrict [HasPullbacks 𝒞] {X Y : PairObj 𝒞} (m : PairHom X Y) :
+    m.g ≫ pairFactorMap Y
+      = pairFactorMap X ≫ listProdRestrict X.targets Y.targets (pairHom_targets_subset m) := by
+  apply listProd_hom_ext Y.targets
+  intro k
+  rw [Cat.assoc, Cat.assoc]
+  -- the matching index into Y.F (same Nat, Y.targets = Y.F.map ·.1)
+  have hk' : k.1 < Y.F.length := by simpa [PairObj.targets] using k.2
+  have htgt : Y.targets.get k = (Y.F.get ⟨k.1, hk'⟩).1 := by
+    simp only [PairObj.targets, List.get_eq_getElem, List.getElem_map]
+  -- LHS: m.g ≫ (pairFactorMap Y ≫ proj_k) = m.g ≫ (htgt ▸ (Y.F.get k').2)
+  rw [show k = ⟨k.1, k.2⟩ from rfl, pairFactorMap_proj Y k.1 k.2 hk' htgt]
+  -- the Y-factor `p := Y.F.get k'` and its compat-matched X-factor `q`
+  have hpmem : Y.F.get ⟨k.1, hk'⟩ ∈ Y.F := List.get_mem _ _
+  obtain ⟨q, hq, hqt, hqe⟩ := m.compat (Y.F.get ⟨k.1, hk'⟩) hpmem
+  -- RHS: pairFactorMap X ≫ listProdRestrict ≫ proj_k = pairFactorMap X ≫ findProj (htgt-target) X°
+  rw [listProdRestrict_proj X.targets Y.targets _ k]
+  -- findProj recovers SOME X-factor `f` of target `Y.targets.get k`; pin it via distinct.
+  obtain ⟨f, hf, hfh, hfe⟩ := factorTuple_findProj (Y.targets.get k) X.F
+    ⟨Y.targets.get k, pairHom_targets_subset m _ (List.get_mem _ _), rfl⟩
+  rw [(show pairFactorMap X = factorTuple X.F from rfl)]
+  rw [show findProj (Y.targets.get k) X.targets
+        ⟨Y.targets.get k, pairHom_targets_subset m _ (List.get_mem _ _), rfl⟩
+      = findProj (Y.targets.get k) (X.F.map (·.1)) _ from rfl, hfe]
+  -- goal: m.g ≫ (htgt ▸ (Y.F.get k').2) = hfh ▸ f.2.
+  -- `f` and `q` are both X-factors of target `Y.targets.get k`; X.distinct pins their arrows.
+  -- target chain: q.1 = (Y.F.get k').1 = Y.targets.get k = f.1.
+  have hqf : q.1 = f.1 := hqt.trans (htgt.symm.trans hfh.symm)
+  have hqf2 : hqf ▸ q.2 = f.2 := X.distinct q hq f hf hqf
+  -- compat gives `m.g ≫ p.2 = hqt ▸ q.2`.  Substitute it (after pushing `htgt ▸` through `≫`),
+  -- then every remaining cast lands `q.2` at the common target `Y.targets.get k`; `subst` them all.
+  -- Generalize the Y-factor (target + arrow) so the target equalities become substitutable.
+  revert htgt hqt hqe
+  generalize Y.F.get ⟨k.1, hk'⟩ = p
+  obtain ⟨pT, pa⟩ := p
+  obtain ⟨qT, qa⟩ := q
+  obtain ⟨fT, fa⟩ := f
+  intro htgt hqt hqe
+  simp only at htgt hqt hfh hqf hqe hqf2 ⊢
+  subst hqt; subst htgt; subst hfh
+  rw [hqe, hqf2]
+
+end restrict
+
 /-- **§1.547 — the base `∏(X.targets)` of the slice is WELL-SUPPORTED.**  Every factor target of
     `X` is well-supported (`X.wsupp`), and a finite product of well-supported objects is
     well-supported (`wellSupported_listProd'`).  Hence the slice `A/(∏ X.targets)` lives over a
@@ -3986,17 +4152,6 @@ theorem pairSlice_base_wellSupported [HasPullbacks 𝒞] [HasEqualizers 𝒞] [D
     intro B hB
     obtain ⟨p, hp, rfl⟩ := List.mem_map.1 hB
     exact X.wsupp p hp)
-
-/-- **§1.547 — the factor map of `X` recovers every factor of `X` by projection.**  Specialisation
-    of `factorTuple_proj` to `X.F`/`X.targets`: composing `pairFactorMap X` with the `k`-th
-    projection of `∏(X.targets)` recovers the `k`-th factor's arrow `(X.F.get k').2` (transported
-    across the target identity).  This is what makes `pairSliceObj X` a faithful record of `X`: its
-    structure map encodes ALL of `X`'s factors. -/
-theorem pairFactorMap_proj (X : PairObj 𝒞) (n : Nat)
-    (hk : n < X.targets.length) (hk' : n < X.F.length)
-    (h : X.targets.get ⟨n, hk⟩ = (X.F.get ⟨n, hk'⟩).1) :
-    pairFactorMap X ≫ listProdProj X.targets ⟨n, hk⟩ = h ▸ (X.F.get ⟨n, hk'⟩).2 :=
-  factorTuple_proj X.F n hk hk' h
 
 /-- **§1.547 — the slice over `pairSliceObj X`'s base acquires a point of every factor.**  Directly
     `listProdSliceAcquiresEveryFactor` at `X.targets`: for each positional factor index `k`, the
