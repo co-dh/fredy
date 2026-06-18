@@ -187,6 +187,56 @@ noncomputable def ratLaxProductData : LaxProductData (laxOfProjSystem' P) where
       rw [bcTranspose_bcLift (pj P hij)]
       exact (overHasBinaryProducts (P.pr i)).snd_pair p' q'
 
+/-! ### `LaxEqualizerData`
+
+  Requires `[HasEqualizers 𝒞]` (the per-fibre `overHasEqualizers`).  `g*(eqObj f g)`-maps transpose
+  to `eqObj`-maps in the fibre; `bcTranspose_natural` carries `· ≫ map (eqMap)` to `· ≫ eqMap` and
+  `· ≫ map f|g` to `· ≫ f|g`, so the fibre equalizer's monicity (`pres`) and lift (`presLift`) push
+  across via the transpose bijection. -/
+
+variable [HasEqualizers 𝒞]
+
+/-- The fibre equalizer map is monic: two maps `s t` into `eqObj f g` equal after `eqMap` are equal
+    (both are the unique lift of the same equalizing cone, by `HasEqualizer.uniq`). -/
+private theorem fibreEq_mono {i : ι} {A B : Over (P.pr i)} (f g : A ⟶ B) (z : Over (P.pr i))
+    (s t : z ⟶ @eqObj _ _ (overHasEqualizers (P.pr i)) _ _ f g)
+    (h : s ≫ @eqMap _ _ (overHasEqualizers (P.pr i)) _ _ f g
+       = t ≫ @eqMap _ _ (overHasEqualizers (P.pr i)) _ _ f g) :
+    s = t := by
+  letI : HasEqualizers (Over (P.pr i)) := overHasEqualizers (P.pr i)
+  let E := (HasEqualizers.eq A B f g)
+  -- the cone whose map is `s ≫ eqMap`; both `s` and `t` are its lift.
+  have he : (s ≫ eqMap f g) ≫ f = (s ≫ eqMap f g) ≫ g := by
+    rw [Cat.assoc, Cat.assoc, eqMap_eq f g]
+  let c : EqualizerCone f g := ⟨z, s ≫ eqMap f g, he⟩
+  have hs : s = E.lift c := E.uniq c s rfl
+  have ht : t = E.lift c := E.uniq c t h.symm
+  rw [hs, ht]
+
+/-- **`LaxEqualizerData (laxOfProjSystem' P)`.**  Per-fibre equalizers `overHasEqualizers`; `pres`
+    (monicity preservation) and `presLift` (lift preservation) via the adjunction transpose. -/
+noncomputable def ratLaxEqualizerData : LaxEqualizerData (laxOfProjSystem' P) where
+  he i := overHasEqualizers (P.pr i)
+  pres {i j} hij A B f g z u v huv := by
+    letI : HasEqualizers (Over (P.pr i)) := overHasEqualizers (P.pr i)
+    apply bcTranspose_inj (pj P hij)
+    refine fibreEq_mono P f g _ _ _ ?_
+    exact (bcTranspose_natural (pj P hij) u _).symm.trans
+      ((congrArg (bcTranspose (pj P hij)) huv).trans (bcTranspose_natural (pj P hij) v _))
+  presLift {i j} hij A B f g z k hk := by
+    letI : HasEqualizers ((laxOfProjSystem' P).A i) := overHasEqualizers (P.pr i)
+    -- transpose `k` into the fibre; it equalizes `f,g` there; take the fibre lift, push back.
+    let k' := bcTranspose (pj P hij) k
+    have hk' : k' ≫ f = k' ≫ g :=
+      (bcTranspose_natural (pj P hij) k f).symm.trans
+        ((congrArg (bcTranspose (pj P hij)) hk).trans (bcTranspose_natural (pj P hij) k g))
+    let l : reindexObj (pj P hij) z ⟶ eqObj f g := eqLift f g k' hk'
+    refine ⟨bcLift (pj P hij) l, ?_⟩
+    apply bcTranspose_inj (pj P hij)
+    refine (bcTranspose_natural (pj P hij) _ _).trans ?_
+    rw [bcTranspose_bcLift (pj P hij)]
+    exact eqLift_fac f g k' hk'
+
 end Bundles
 
 end Freyd.LaxColim
