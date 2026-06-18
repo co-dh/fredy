@@ -2676,6 +2676,37 @@ def mProd {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) 
     prod Z.A (listProd (dx.surv.filter (fun T => !collides Z T))) ⟶ prod Z.A X.A :=
   pair fst (pair (fst ≫ g.g) (wRecon x g dx) ≫ dx.einv)
 
+/-- **Partition handle.**  `survRecon ≫ partitionHom = pair (fst ≫ collReconstruct) snd`: the
+    partition splits the reconstructed product back into its colliding block (`fst ≫ collReconstruct`)
+    and its non-colliding block `W'` (`snd`).  By `listProdPartition_inv_hom`. -/
+theorem survRecon_hom {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (dx : PairDense x) :
+    survRecon x dx ≫ listProdPartitionHom (fun T => collides Z T) dx.surv
+      = pair (fst ≫ collReconstruct Z (dx.surv.filter (fun T => collides Z T)) (collFilter_all x dx))
+             snd := by
+  unfold survRecon
+  rw [Cat.assoc, listProdPartition_inv_hom, Cat.comp_id]
+
+/-- `survRecon ≫ partitionHom ≫ snd = snd` — the non-colliding block is recovered verbatim. -/
+theorem survRecon_hom_snd {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (dx : PairDense x) :
+    survRecon x dx ≫ listProdPartitionHom (fun T => collides Z T) dx.surv ≫ snd
+      = snd := by
+  rw [← Cat.assoc, survRecon_hom, snd_pair]
+
+/-- `dx.einv ≫ x.g = fst` (the density iso carries `x.g` to `fst`, inverse side). -/
+theorem einv_xg {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (dx : PairDense x) :
+    dx.einv ≫ x.g = (fst : prod Y.A dx.W ⟶ Y.A) := by
+  rw [← dx.proj, ← Cat.assoc, dx.e_iso₂, Cat.id_comp]
+
+/-- `dx.einv ≫ dx.e ≫ snd = snd` (used to peel a survivor factor through the density iso). -/
+theorem einv_e_snd {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (dx : PairDense x) :
+    dx.einv ≫ dx.e ≫ (snd : prod Y.A dx.W ⟶ dx.W) = snd := by
+  rw [← Cat.assoc, dx.e_iso₂, Cat.id_comp]
+
+/-- `wRecon ≫ dx.wf = survRecon` (since `dx.wg ≫ dx.wf = id`). -/
+theorem wRecon_wf {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :
+    wRecon x g dx ≫ dx.wf = survRecon x dx := by
+  unfold wRecon; rw [Cat.assoc, dx.wgf, Cat.comp_id]
+
 /-- The packaged absorption iso: hom/inv + the two round-trips + the leg-compat. -/
 structure ApexIso {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) where
   hom : (pairHasPullbacks.has g x).cone.pt.A ⟶
