@@ -297,6 +297,69 @@ private theorem pushHom_proj {i k m : ι} (x : L.A i) (p : L.A k)
         _ _ _ (reflApp L p) proj]
   simp only [Cat.assoc]
 
+/-- **Existence of the pairing mediator.**  For competitor germs `f : ⟨l,z⟩ ⟶ ⟨i,x⟩`,
+    `g : ⟨l,z⟩ ⟶ ⟨j,y⟩`, push both to a common stage `m ≥ k`, convert their targets to
+    `F hkm (F hik x)`/`F hkm (F hjk y)` by `transApp`, apply `presPair`, and bake `isoInv prUnit`
+    into the resulting germ so the projection's `prUnit` prefactor cancels. -/
+private theorem prPairExists {i j : ι} (x : L.A i) (y : L.A j) {l : ι} (z : L.A l)
+    (f : @Quotient _ (setoid (homSystemL L hL z x))) (g : @Quotient _ (setoid (homSystemL L hL z y))) :
+    ∃ h : homL L hL ⟨l, z⟩ (prObj L data x y),
+      compL L hL h (prFst L hL data x y) = f ∧ compL L hL h (prSnd L hL data x y) = g := by
+  refine Quotient.inductionOn f (fun rf => ?_)
+  refine Quotient.inductionOn g (fun rg => ?_)
+  obtain ⟨af, fa⟩ := rf
+  obtain ⟨ag, ga⟩ := rg
+  let k := prK D i j
+  have hik : D.le i k := (prK_le D i j).1
+  have hjk : D.le j k := (prK_le D i j).2
+  let ak := L.F hik x
+  let bk := L.F hjk y
+  let p := (data.hp k).prod ak bk
+  -- common stage `m ≥ af.1, ag.1, k`.
+  obtain ⟨e1, he1a, he1b⟩ := D.bound af.1 ag.1
+  obtain ⟨m, hme, hmk⟩ := D.bound e1 k
+  have hafm : D.le af.1 m := D.trans he1a hme
+  have hagm : D.le ag.1 m := D.trans he1b hme
+  have hkm : D.le k m := hmk
+  have hlm : D.le l m := D.trans af.2.1 hafm
+  -- convert pushed competitors' targets to `F hkm ak` / `F hkm bk` via `transApp`.
+  let p_comp : L.F hlm z ⟶ L.F hkm ak :=
+    pushHom L z x af.2.1 af.2.2 hafm fa ≫ transApp L hik hkm x
+  let q_comp : L.F hlm z ⟶ L.F hkm bk :=
+    pushHom L z y ag.2.1 ag.2.2 hagm ga ≫ transApp L hjk hkm y
+  obtain ⟨r, hr_fst, hr_snd⟩ := data.presPair hkm ak bk (L.F hlm z) p_comp q_comp
+  -- both legs share the cancellation `r' ≫ pushHom(reflApp ≫ proj) = (pushed competitor)`, where the
+  -- pair germ rep `r' = r ≫ isoInv prUnit` bakes in the inverse unit so `prUnit` cancels.
+  have leg : ∀ (i' : ι) (w : L.A i') (hi'k : D.le i' k) (proj : p ⟶ L.F hi'k w)
+      (aw : UpperBound D l i') (wa : L.F aw.2.1 z ⟶ L.F aw.2.2 w) (hawm : D.le aw.1 m),
+      r ≫ (L.functF hkm).map proj
+          = pushHom L z w aw.2.1 aw.2.2 hawm wa ≫ transApp L hi'k hkm w →
+      @compL _ _ L hL ⟨l, z⟩ ⟨k, p⟩ ⟨i', w⟩
+          (homInclL L hL z p ⟨m, hlm, hkm⟩ (r ≫ isoInv (prUnit_isIso L p hkm)))
+          (homInclL L hL p w ⟨k, D.refl k, hi'k⟩ (reflApp L p ≫ proj))
+        = Quotient.mk (setoid (homSystemL L hL z w)) ⟨aw, wa⟩ := by
+    intro i' w hi'k proj aw wa hawm hcomp
+    -- reduce the colimit composite to a stage composite at level `m`.
+    show homCompRawL L hL z p w ⟨m, hlm, hkm⟩ (r ≫ isoInv (prUnit_isIso L p hkm))
+        ⟨k, D.refl k, hi'k⟩ (reflApp L p ≫ proj)
+      = homInclL L hL z w aw wa
+    rw [homCompRawL_eq_compAtL L hL z p w ⟨m, hlm, hkm⟩ (r ≫ isoInv (prUnit_isIso L p hkm))
+          ⟨k, D.refl k, hi'k⟩ (reflApp L p ≫ proj) m (D.refl m) hkm]
+    unfold compAtL
+    -- left push along `refl m` is the identity (`push_refl`); right push is `pushHom_proj`.
+    rw [hL.push_refl z p hlm hkm (r ≫ isoInv (prUnit_isIso L p hkm)),
+        pushHom_proj L w p hi'k hkm proj]
+    -- cancel `r' ≫ prUnit = r` (by `inv_isoInv_comp`), then apply `hcomp`.
+    rw [Cat.assoc, ← Cat.assoc (isoInv (prUnit_isIso L p hkm)),
+        inv_isoInv_comp, Cat.id_comp, ← Cat.assoc, hcomp,
+        Cat.assoc, isoInv_comp, Cat.comp_id]
+    -- absorb the level `aw.1 → m` transition by `homInclL_compat`.
+    exact homInclL_compat L hL z w (a := aw)
+      (b := ⟨m, D.trans aw.2.1 hawm, D.trans aw.2.2 hawm⟩) hawm wa
+  refine ⟨homInclL L hL z p ⟨m, hlm, hkm⟩ (r ≫ isoInv (prUnit_isIso L p hkm)), ?_, ?_⟩
+  · exact leg i x hik (data.hp k).fst af fa hafm hr_fst
+  · exact leg j y hjk (data.hp k).snd ag ga hagm hr_snd
+
 end LaxProduct
 
 end Freyd.LaxColim
