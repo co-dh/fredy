@@ -382,28 +382,55 @@ private theorem _rhsPasted (X : Over D) :
   pasteCone_isPullback g g'
     (h := X.hom) ((_pb g X).cone_isPullback) ((_pb g' (baseChangeObj g X)).cone_isPullback)
 
-/-- The LHS pullback cone of `baseChangeObj (g' ≫ g) X`, as a cone over `(X.hom, g' ≫ g)`. -/
-private def _lhsCone (X : Over D) : Cone X.hom (g' ≫ g) := (_pb (g' ≫ g) X).cone
+/-! The forward comparison map is built CONSTRUCTIVELY from the chosen pullbacks' `lift` (no
+    `Classical.choice` on the `IsPullback` existential): first lift the LHS cone into the inner
+    pullback `(_pb g X)` to get `_qInner : (LHS X).dom ⟶ (bc g X).dom`, then lift `(_qInner,
+    (LHS X).π₂)` into the outer pullback `(_pb g' (bc g X))`. -/
+
+/-- The inner factorization `(LHS X).dom ⟶ (bc g X).dom`: the lift of `((LHS X).π₁, (LHS X).π₂ ≫ g')`
+    through the inner pullback `(_pb g X)` (cone over `(X.hom, g)`). -/
+private def _qInner (X : Over D) : (baseChangeObj (g' ≫ g) X).dom ⟶ (baseChangeObj g X).dom :=
+  (_pb g X).lift (Cone.mk (f := X.hom) (g := g) (baseChangeObj (g' ≫ g) X).dom
+    ((_pb (g' ≫ g) X).cone.π₁) ((_pb (g' ≫ g) X).cone.π₂ ≫ g')
+    (by rw [(_pb (g' ≫ g) X).cone.w, Cat.assoc]))
+
+private theorem _qInner_fst (X : Over D) :
+    _qInner g g' X ≫ (_pb g X).cone.π₁ = (_pb (g' ≫ g) X).cone.π₁ :=
+  (_pb g X).lift_fst _
+
+private theorem _qInner_snd (X : Over D) :
+    _qInner g g' X ≫ (_pb g X).cone.π₂ = (_pb (g' ≫ g) X).cone.π₂ ≫ g' :=
+  (_pb g X).lift_snd _
 
 /-- The forward comparison map `(baseChangeObj (g' ≫ g) X).dom ⟶ (baseChangeObj g' (baseChangeObj g
-    X)).dom`: the unique factorization of the LHS pullback cone through the pasted RHS pullback. -/
-private noncomputable def _transFwdf (X : Over D) :
+    X)).dom`: the lift of `(_qInner, (LHS X).π₂)` through the outer pullback `(_pb g' (bc g X))`. -/
+private def _transFwdf (X : Over D) :
     (baseChangeObj (g' ≫ g) X).dom ⟶ (baseChangeObj g' (baseChangeObj g X)).dom :=
-  ((_rhsPasted g g' X) (_lhsCone g g' X)).choose
-
-private theorem _transFwd_π₁ (X : Over D) :
-    _transFwdf g g' X ≫ ((_pb g' (baseChangeObj g X)).cone.π₁ ≫ (_pb g X).cone.π₁)
-      = (_pb (g' ≫ g) X).cone.π₁ :=
-  ((_rhsPasted g g' X) (_lhsCone g g' X)).choose_spec.1.1
+  (_pb g' (baseChangeObj g X)).lift
+    (Cone.mk (f := (baseChangeObj g X).hom) (g := g') (baseChangeObj (g' ≫ g) X).dom
+      (_qInner g g' X) ((_pb (g' ≫ g) X).cone.π₂)
+      (by show _qInner g g' X ≫ (_pb g X).cone.π₂ = (_pb (g' ≫ g) X).cone.π₂ ≫ g'
+          exact _qInner_snd g g' X))
 
 private theorem _transFwd_π₂ (X : Over D) :
     _transFwdf g g' X ≫ (_pb g' (baseChangeObj g X)).cone.π₂ = (_pb (g' ≫ g) X).cone.π₂ :=
-  ((_rhsPasted g g' X) (_lhsCone g g' X)).choose_spec.1.2
+  (_pb g' (baseChangeObj g X)).lift_snd _
+
+private theorem _transFwd_outer_fst (X : Over D) :
+    _transFwdf g g' X ≫ (_pb g' (baseChangeObj g X)).cone.π₁ = _qInner g g' X :=
+  (_pb g' (baseChangeObj g X)).lift_fst _
+
+private theorem _transFwd_π₁ (X : Over D) :
+    _transFwdf g g' X ≫ ((_pb g' (baseChangeObj g X)).cone.π₁ ≫ (_pb g X).cone.π₁)
+      = (_pb (g' ≫ g) X).cone.π₁ := by
+  -- `_transFwdf ≫ (_pb g' ..).π₁ = _qInner` (lift_fst); then `_qInner ≫ (_pb g X).π₁ = (LHS).π₁`.
+  rw [← Cat.assoc, _transFwd_outer_fst g g' X]
+  exact _qInner_fst g g' X
 
 /-- The forward comparison as a slice arrow `baseChangeObj (g' ≫ g) X ⟶ baseChangeObj g'
     (baseChangeObj g X)`.  Its `π₂`-leg is the over-`pr k` triangle, which is `_transFwd_π₂`
     (recall the structure map of both slice objects is `π₂`). -/
-private noncomputable def _transFwd (X : Over D) :
+private def _transFwd (X : Over D) :
     OverHom (baseChangeObj (g' ≫ g) X) (baseChangeObj g' (baseChangeObj g X)) :=
   ⟨_transFwdf g g' X, _transFwd_π₂ g g' X⟩
 
@@ -491,7 +518,7 @@ private theorem _transFwd_natf {X Y : Over D} (m : OverHom X Y) :
     `baseChangeObj (g' ≫ g) ≅ baseChangeObj g' ∘ baseChangeObj g` as a `NatIso` (natural in `X`):
     the iterated-pullback / pullback-pasting isomorphism.  Components are `_transFwd` (iso by
     `_transFwd_isIso`); naturality is `_transFwd_natf` (pullback-lift uniqueness). -/
-noncomputable def baseChangeTransNatIso :
+def baseChangeTransNatIso :
     @NatIso (Over D) _ (Over E) _
       (baseChangeObj (g' ≫ g)) (baseChangeObj g' ∘ baseChangeObj g)
       (baseChangeFunctor (g' ≫ g))
@@ -499,23 +526,23 @@ noncomputable def baseChangeTransNatIso :
         (baseChangeObj g) (baseChangeObj g') (baseChangeFunctor g) (baseChangeFunctor g')) where
   nat :=
     { app := _transFwd g g'
-      naturality {X Y} m := OverHom.ext (_transFwd_natf g g' m) }
+      naturality {_ _} m := OverHom.ext (_transFwd_natf g g' m) }
   isIso := _transFwd_isIso g g'
 
 end BaseChangeTransIso
 
-/-- **The composite coherence iso of base-change (the ONE honest remaining obligation).**  Unlike
-    `StrictBaseChange` (a FALSE equation taken as a hypothesis), this is the canonical iterated-
-    pullback isomorphism, which genuinely exists:
+/-- **The composite coherence iso of base-change.**  Unlike `StrictBaseChange` (a FALSE equation
+    taken as a hypothesis), this is the canonical iterated-pullback isomorphism, which genuinely
+    exists:
 
-      `trans_iso` : `baseChangeObj (g ≫ g') ≅ baseChangeObj g' ∘ baseChangeObj g`
+      `trans_iso` : `baseChangeObj (g' ≫ g) ≅ baseChangeObj g' ∘ baseChangeObj g`
                     — pullback pasting / iterated-pullback iso.
 
-    The REFLEXIVE coherence iso is NO LONGER an obligation: `projReflIso` proves it for every
-    `ProjSystem` sorry-free (transport of `baseChangeIdNatIso`).  Supplying this one field turns the
-    base-change inner system into a `LaxCatSystem` (`laxOfProjSystem`).  Constructing it is the
-    precise §1.543 NEXT BLOCKER: the pullback-pasting natural isomorphism, a standard but nontrivial
-    pullback-universal-property argument (see the file footer). -/
+    BOTH coherence isos are now DISCHARGED, sorry-free and axiom-free: `projReflIso` (reflexive,
+    transport of `baseChangeIdNatIso`) and `projTransIso` (composite, transport of
+    `baseChangeTransNatIso`, the pullback-pasting iso `pasteCone_isPullback` + `isIso_of_two_pullbacks`).
+    So `PseudoBaseChange` is inhabited UNCONDITIONALLY (`pseudoBaseChange`), and `laxOfProjSystem'`
+    builds the §1.543 inner base-change `LaxCatSystem` outright (no hypothesis to discharge). -/
 structure PseudoBaseChange (P : ProjSystem ι D 𝒞) where
   trans_iso : ∀ {i j k : ι} (hij : D.le i j) (hjk : D.le j k),
     @NatIso (pcObj P i) (overCat (P.pr i)) (pcObj P k) (overCat (P.pr k))
@@ -537,6 +564,36 @@ def projReflIso (P : ProjSystem ι D 𝒞) (i : ι) :
   rw [P.proj_refl i]
   exact baseChangeIdNatIso
 
+/-- **The composite coherence iso of ANY base-change projection system is real.**  Transporting
+    `baseChangeTransNatIso` along `P.proj_trans hij hjk : P.proj (D.trans hij hjk) = P.proj hjk ≫
+    P.proj hij` discharges the `trans_iso` field for every `ProjSystem` — sorry-free.  This is the
+    pullback-pasting natural iso, instantiated at the projection composite.  So `PseudoBaseChange` is
+    inhabited UNCONDITIONALLY (`pseudoBaseChange`): neither coherence half is a blocker. -/
+def projTransIso (P : ProjSystem ι D 𝒞) {i j k : ι} (hij : D.le i j) (hjk : D.le j k) :
+    @NatIso (pcObj P i) (overCat (P.pr i)) (pcObj P k) (overCat (P.pr k))
+      (pcF P (D.trans hij hjk)) (fun X => pcF P hjk (pcF P hij X))
+      (pcFunctF P (D.trans hij hjk))
+      (@compFunctor (pcObj P i) _ (pcObj P j) _ (pcObj P k) _
+        (pcF P hij) (pcF P hjk) (pcFunctF P hij) (pcFunctF P hjk)) := by
+  -- `pcF P (D.trans hij hjk) = baseChangeObj (P.proj (D.trans hij hjk))`; rewrite the projection to
+  -- the composite `P.proj hjk ≫ P.proj hij` and apply `baseChangeTransNatIso`.
+  show @NatIso (Over (P.pr i)) _ (Over (P.pr k)) _
+    (baseChangeObj (P.proj (D.trans hij hjk)))
+    (baseChangeObj (P.proj hjk) ∘ baseChangeObj (P.proj hij))
+    (baseChangeFunctor (P.proj (D.trans hij hjk)))
+    (@compFunctor (Over (P.pr i)) _ (Over (P.pr j)) _ (Over (P.pr k)) _
+      (baseChangeObj (P.proj hij)) (baseChangeObj (P.proj hjk))
+      (baseChangeFunctor (P.proj hij)) (baseChangeFunctor (P.proj hjk)))
+  rw [P.proj_trans hij hjk]
+  exact baseChangeTransNatIso (P.proj hij) (P.proj hjk)
+
+/-- **`PseudoBaseChange` is inhabited for every projection system**, sorry-free: both coherence
+    isos (`projReflIso`, `projTransIso`) are the canonical pullback isos, which genuinely exist.
+    This turns `laxOfProjSystem` into an UNCONDITIONAL construction — the §1.543 inner base-change
+    slice system is a `LaxCatSystem` with no hypothesis to discharge. -/
+def pseudoBaseChange (P : ProjSystem ι D 𝒞) : PseudoBaseChange P where
+  trans_iso := fun hij hjk => projTransIso P hij hjk
+
 /-- **The §1.547 base-change slice system as a `LaxCatSystem`.**  Given the directed projection
     system `P` and its (TRUE) pseudo-coherence isos `H`, the finite-product slices `A/(pr i)` with
     base-change transitions form a `LaxCatSystem` — sorry-free.  This is the lax analogue of
@@ -549,6 +606,14 @@ def laxOfProjSystem (P : ProjSystem ι D 𝒞) (H : PseudoBaseChange P) : LaxCat
   functF := fun h => pcFunctF P h
   F_refl_iso := fun {i} => projReflIso P i
   F_trans_iso := fun hij hjk => H.trans_iso hij hjk
+
+/-- **The §1.547 base-change slice system as a `LaxCatSystem`, UNCONDITIONALLY.**  Since
+    `pseudoBaseChange P` supplies the coherence isos for free (both `projReflIso` and `projTransIso`
+    are real pullback isos), no `PseudoBaseChange` hypothesis is needed: every `ProjSystem` yields a
+    `LaxCatSystem` outright.  This closes the §1.543 wall for the base-change inner system — the
+    documented blocker (`PseudoBaseChange.trans_iso`, the pullback-pasting iso) is discharged. -/
+def laxOfProjSystem' (P : ProjSystem ι D 𝒞) : LaxCatSystem.{u, w} ι D :=
+  laxOfProjSystem P (pseudoBaseChange P)
 
 end BaseChangeLax
 
@@ -572,11 +637,18 @@ WHAT THIS FILE ESTABLISHES (all sorry-free, axiom-free):
     FILTERED colimit of categories the objects are kept distinct (the colimit is non-skeletal), so
     no transition law on objects is needed.  Same carrier `CapitalizationGroth.lean` uses, but here
     it costs nothing and is correct for the lax setting.
-  * `ProjSystem`/`pcF`/`pcFunctF`/`laxOfProjSystem` — the §1.547 inner base-change slice system
-    (`A/(∏U)`, base-change transitions over the filtered `listDirected`) as a `LaxCatSystem`, the
-    lax analogue of `Freyd.innerCatSystem` but WITHOUT the false `StrictBaseChange`.
+  * `ProjSystem`/`pcF`/`pcFunctF`/`laxOfProjSystem`/`laxOfProjSystem'` — the §1.547 inner base-change
+    slice system (`A/(∏U)`, base-change transitions over the filtered `listDirected`) as a
+    `LaxCatSystem`, the lax analogue of `Freyd.innerCatSystem` but WITHOUT the false
+    `StrictBaseChange`.  `laxOfProjSystem'` is UNCONDITIONAL (no hypothesis).
   * `baseChangeIdNatIso` + `projReflIso` — the REFLEXIVE coherence iso `baseChangeObj (id) ≅ id`,
-    PROVEN (pullback along an identity is iso).  So `PseudoBaseChange` carries only ONE field.
+    PROVEN (pullback along an identity is iso).
+  * `pasteCone_isPullback` + `baseChangeTransNatIso` + `projTransIso` + `pseudoBaseChange` — the
+    COMPOSITE coherence iso `baseChangeObj (g' ≫ g) ≅ baseChangeObj g' ∘ baseChangeObj g`, PROVEN:
+    the two-pullback pasting lemma gives a second pullback of the same cospan, `isIso_of_two_pullbacks`
+    makes the comparison `lift` an iso, naturality is `lift`-uniqueness.  Built constructively from
+    the chosen pullbacks' `lift` (NO `Classical.choice`; `#print axioms` = `propext` only).  So
+    `PseudoBaseChange` is now FULLY discharged — both coherence fields are real.
 
 WHY THE FILTERED ROUTE (this file) BEATS THE TRANSFINITE TOWER (`CapitalizationGroth.lean`):
 
@@ -586,25 +658,21 @@ WHY THE FILTERED ROUTE (this file) BEATS THE TRANSFINITE TOWER (`CapitalizationG
     there are NO limit ordinals, NO `below*` agreement, NO transfinite coherence.  The Σ-object
     carrier is unconditional, and the coherence is entirely on hom-sets / per-pair transition isos.
 
-THE PRECISE NEXT BLOCKER — the ONE remaining field, `PseudoBaseChange.trans_iso`:
+`PseudoBaseChange.trans_iso` — DISCHARGED (was the prior NEXT BLOCKER):
 
-    `baseChangeObj (g ≫ g') X  ≅  baseChangeObj g' (baseChangeObj g X)`   as a `NatIso`,
+    `baseChangeObj (g' ≫ g) X  ≅  baseChangeObj g' (baseChangeObj g X)`   as a `NatIso`,
 
-  i.e. the iterated-pullback (pullback-pasting) natural isomorphism: pulling `X.hom` back along the
-  composite `g ≫ g'` equals pulling back along `g` then along `g'`.  Concretely, with
-  `Z := baseChangeObj g X = ⟨X ×_{C} B, π₂⟩` (over `B`, along `g : B ⟶ C`) and then pulling along
-  `g' : A ⟶ B`, the apex `(X ×_C B) ×_B A` is canonically iso to `X ×_C A` — by the pullback-
-  pasting lemma (the outer rectangle is a pullback iff the two squares are).  The component iso is
-  the unique pullback `lift`, and its inverse is the lift the other way; naturality is `lift_uniq`.
-  This is a standard but multi-step pullback argument (the harder half of the two coherence isos;
-  the reflexive half `projReflIso` is already done above).  It needs only `HasPullbacks 𝒞` and the
-  pullback-pasting lemma — no choice, no transfinite recursion.
+  the iterated-pullback (pullback-pasting) natural isomorphism — pulling `X.hom` back along the
+  composite `g' ≫ g` equals pulling back along `g` then along `g'`.  Proven by `baseChangeTransNatIso`
+  (apices `(X ×_C B) ×_B A ≅ X ×_C A` via `pasteCone_isPullback` + `isIso_of_two_pullbacks`;
+  naturality by `lift`-uniqueness), and discharged for every `ProjSystem` by `projTransIso` /
+  `pseudoBaseChange`.  Needs only `HasPullbacks 𝒞`; constructive (no choice, no transfinite recursion).
 
-AFTER `trans_iso`: the remaining work toward `PreRegular A*` is the PSEUDO HOM-COLIMIT — a morphism
+THE PRECISE NEXT BLOCKER — the PSEUDO HOM-COLIMIT — a morphism
 `⟨i,x⟩ → ⟨j,y⟩` is a germ of `Hom_{A k}(F_{ik} x, F_{jk} y)` over upper bounds `k`, with germ
 equivalence transported along `F_trans_iso` (NOT strict equalities, as the strict `HomColim` does).
 The category laws and finite-limit preservation then transfer from the fibres' `overPreRegular` by
 the standard "filtered colimits commute with finite limits" argument.  That hom-colimit is the next
-milestone once `trans_iso` lands.
+milestone now that `trans_iso` has landed.
 -/
 
