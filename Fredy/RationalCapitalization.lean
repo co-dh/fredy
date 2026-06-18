@@ -3987,6 +3987,30 @@ theorem pairSlice_base_wellSupported [HasPullbacks 𝒞] [HasEqualizers 𝒞] [D
     obtain ⟨p, hp, rfl⟩ := List.mem_map.1 hB
     exact X.wsupp p hp)
 
+/-- **§1.547 — the factor map of `X` recovers every factor of `X` by projection.**  Specialisation
+    of `factorTuple_proj` to `X.F`/`X.targets`: composing `pairFactorMap X` with the `k`-th
+    projection of `∏(X.targets)` recovers the `k`-th factor's arrow `(X.F.get k').2` (transported
+    across the target identity).  This is what makes `pairSliceObj X` a faithful record of `X`: its
+    structure map encodes ALL of `X`'s factors. -/
+theorem pairFactorMap_proj (X : PairObj 𝒞) (n : Nat)
+    (hk : n < X.targets.length) (hk' : n < X.F.length)
+    (h : X.targets.get ⟨n, hk⟩ = (X.F.get ⟨n, hk'⟩).1) :
+    pairFactorMap X ≫ listProdProj X.targets ⟨n, hk⟩ = h ▸ (X.F.get ⟨n, hk'⟩).2 :=
+  factorTuple_proj X.F n hk hk' h
+
+/-- **§1.547 — the slice over `pairSliceObj X`'s base acquires a point of every factor.**  Directly
+    `listProdSliceAcquiresEveryFactor` at `X.targets`: for each positional factor index `k`, the
+    slice `A/(∏ X.targets)` (where `pairSliceObj X` lives) carries a global point
+    `1 → sliceEmbedObj (∏ X.targets) (X.targets.get k)`.  Together with `pairSlice_base_wellSupported`
+    (the base is well-supported, so the slice is pre-regular and the point exists) this is the
+    per-object §1.547 structure: every object of `Â` determines a slice that points all its factors. -/
+theorem pairSlice_points_every_factor [HasPullbacks 𝒞] (X : PairObj 𝒞)
+    (k : Fin X.targets.length) :
+    (sliceFactorPoint (X.targets.get k) (listProdProj X.targets k)).f
+        ≫ (sliceEmbedObj (listProd X.targets) (X.targets.get k)).hom
+      = (overTerm (listProd X.targets)).hom :=
+  listProdSliceAcquiresEveryFactor X.targets k
+
 end FactorSlice
 
 /-! ## §1.547  The relative-capitalization statement and the points-everything payoff
