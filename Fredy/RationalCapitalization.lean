@@ -4479,25 +4479,64 @@ theorem prodFormMono_mono {A P B' : 𝒞} (i : B' ⟶ P) (hi_mono : Mono i) :
   intro W u v huv
   exact OverHom.ext (hf_mono u.f v.f (congrArg OverHom.f huv))
 
+/-- **§1.547 — exact "reach" characterization of a missed g-point (sorry-free).**  In `Over P`,
+    a slice mono `m : D ↪ sliceEmbedObj P A`, the global points are the g-points `sliceFactorPoint
+    A g` (`g : P → A`).  `m` MISSES `sliceFactorPoint A g` iff `g` is *not reachable*: there is no
+    section `s : P → D.dom` of the structure map `D.hom` with `s ≫ (m.f ≫ fst) = g`.  (A lift of the
+    g-point is a `𝒞`-section `s` with `s ≫ m.f = pair g id`; equating `fst`/`snd` legs, that is
+    exactly `s ≫ D.hom = id` and `s ≫ m.f ≫ fst = g`, since `m.f ≫ snd = D.hom`.)  So `m` misses
+    *some* g-point iff the "reach set" `{s ≫ m.f ≫ fst | s ≫ D.hom = id}` is a *proper* subset of
+    `Hom(P, A)` — the precise downstairs §1.546 content, with no slice bookkeeping left. -/
+theorem sliceMiss_iff_g_unreachable {P A : 𝒞} {D : Over P}
+    (m : D ⟶ sliceEmbedObj P A) (g : P ⟶ A) :
+    (¬ ∃ y : overTerm P ⟶ D, y ≫ m = sliceFactorPoint A g)
+      ↔ ¬ ∃ s : P ⟶ D.dom, s ≫ D.hom = Cat.id P ∧ s ≫ (m.f ≫ fst) = g := by
+  rw [sliceFactorPoint_lift_iff m g]
+  have hmw : m.f ≫ snd = D.hom := m.w
+  constructor
+  · intro h ⟨s, hsw, hsp⟩
+    exact h ⟨s, by
+      -- `s ≫ m.f = pair g id`: legs `fst` give `g`, `snd` gives `id` (via `m.w`).
+      refine pair_uniq _ _ _ ?_ ?_
+      · rw [Cat.assoc]; exact hsp
+      · rw [Cat.assoc, hmw]; exact hsw⟩
+  · intro h ⟨s, hs⟩
+    refine h ⟨s, ?_, ?_⟩
+    · have : s ≫ m.f ≫ snd = pair g (Cat.id P) ≫ snd := by rw [← Cat.assoc, hs]
+      rw [hmw, snd_pair] at this; exact this
+    · have : s ≫ m.f ≫ fst = pair g (Cat.id P) ≫ fst := by rw [← Cat.assoc, hs]
+      rw [fst_pair] at this; exact this
+
 /-- **§1.547 — `WellPointed` of the embedded factor (the full payoff; honest residual).**
     In the product-slice `A/(∏U)` (with `A = U.get k` a well-supported factor), the embedded
     object `sliceEmbedObj (∏U) A` is `WellPointed`: every proper monic into it misses some
     global point.  Stated with the slice's genuine `HasTerminal` (`overHasTerminal (∏U)`) — NO
     `sorry` in the type, so this is the book's real `WellPointed`.
 
-    RESIDUAL (`sorry` on this TRUE statement).  Freyd's §1.546/§1.547 argument is "for any proper
-    `B' ↪ B`, `AB' ↪ AB` does not allow the generic point".  An earlier version isolated this as a
-    lemma `genericPoint_escapes_proper` claiming *every* proper slice monic `m` misses the GENERIC
-    point `sliceFactorPoint A (proj)` — that lemma is **FALSE** (removed): the *graph of the generic
-    point* `⟨∏U, id⟩ ↪ ⟨A×∏U, snd⟩`, `m.f = pair (proj_k) id`, is a proper monic (iso iff `A ≅ 1`)
-    that DOES admit the generic point (section `s = id`), see the axiom-free `graph_satisfies_hyps`
-    below.  So a single fixed point is NOT a universal escaper, and `WellPointed` cannot be proven by
-    committing to the generic point for all `m`.  Freyd's claim is specifically about subobjects of
-    the PRODUCT FORM `AB' ↪ AB` (`id_A × (B' ↪ B)`); the correct proof must, per proper subobject,
-    EITHER reduce it to product form via §1.544 strict cancellation and then escape with the generic
-    point, OR select a non-generic global point it misses.  That point-selection/reduction argument is
-    the genuine missing §1.547 content; the elementary descent bookkeeping (`sliceFactorPoint_lift_iff`)
-    and the per-factor generic point (`ratStep_points_every_factor`) are sorry-free in hand. -/
+    STATUS.  The high-value §1.546 CORE is now sorry-free and standalone:
+    `prodFormMono_misses_point` / `prodFormMono_misses_slicePoint` — for a proper base monic
+    `i : B' ↪ P`, the product-form subobject `id_A × i` is missed by EVERY g-point (a section over
+    a g-point forces `i` split-epi hence (mono) iso).  And `sliceMiss_iff_g_unreachable` reduces
+    "`m` misses some g-point" to the precise downstairs reach statement (no slice bookkeeping left).
+
+    RESIDUAL (`sorry` on this TRUE statement) — the §1.546/547 REDUCTION.  Given an *arbitrary*
+    proper slice mono `m : D ↪ ⟨A×∏U, snd⟩` (`m.f = pair p q`, `q = D.hom`, `p = m.f ≫ fst`),
+    by `sliceMiss_iff_g_unreachable` the goal is: some `g : ∏U → A` is *unreachable*, i.e. no
+    section `s` of `q` has `s ≫ p = g`.  The naive "the GENERIC point escapes" is FALSE
+    (`graph_satisfies_hyps`: the graph `⟨∏U,id⟩`, `m.f = pair (proj_k) id`, reaches the generic
+    point via `s = id`) — but that same graph is missed by any OTHER g-point, illustrating that the
+    escaper must be chosen per `m`.  In **Set** the statement is exactly true (reaching every `g`
+    ⟺ `image m ⊇` every graph ⟺ `m` surjective ⟺ (mono) iso), so the theorem is TRUE; but the
+    categorical proof that "every g reached ⟹ `m.f` iso" is NOT elementary in the *plain* slice:
+    the family `{pair g id}_{g:P→A}` is jointly epic only against the `snd = id` part of `A×∏U`, so
+    no joint-cover argument closes it directly (`prod_fst_cover`/`prod_snd_cover` give only that
+    `snd : A×∏U → ∏U` is a cover, insufficient to lift an arbitrary `b : T → ∏U` to a section).
+    Freyd's actual reduction forces `m` into PRODUCT FORM using the rational-LOCALIZATION structure
+    (§1.547: objects `(A,F)`, dense monos), where surviving subobjects are exactly the product-form
+    `AB' ↪ AB` that `prodFormMono_misses_point` then escapes — that localization-level reduction is
+    the genuine missing content and lives above the plain slice. The §1.544 strict cancellation in
+    the repo (`Inflation.strict_cancel`) is list-cons injectivity on the inflation index, NOT a
+    `𝒞`-level `B×A ≅ B×A' ⟹ A ≅ A'`, so it does not by itself drive the reduction. -/
 theorem sliceEmbed_factor_wellPointed (U : List 𝒞)
     (hU : ∀ x ∈ U, WellSupported x) (k : Fin U.length) :
     @WellPointed (Over (listProd U)) _ (overHasTerminal (listProd U))
