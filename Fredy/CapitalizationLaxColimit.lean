@@ -617,6 +617,73 @@ def laxOfProjSystem' (P : ProjSystem ι D 𝒞) : LaxCatSystem.{u, w} ι D :=
 
 end BaseChangeLax
 
+/-! ## The PSEUDO hom-colimit — morphisms of `LaxColim L`
+
+  A morphism `⟨i,x⟩ → ⟨j,y⟩` is a germ of `Hom_{L.A k}(L.F (i≤k) x, L.F (j≤k) y)` over the upper
+  bounds `k ≥ i,j`, quotiented by agreement at a common higher bound.  The strict construction
+  (`CatColimit.lean`'s `HomColim`) re-types the pushed morphism along the STRICT object equalities
+  `F_refl`/`F_trans` using `castHom`.  Here the objects only agree UP TO the coherence isos
+  `F_refl_iso`/`F_trans_iso`, so `castHom` (transport along an *equality*) is replaced by
+  CONJUGATION by the coherence-iso components — the lax `pushHom`.
+
+  This section isolates, sorry-free, the lax hom-transition `pushHom` and the EXACT coherence
+  obligations its functoriality (`pushHom_refl`/`pushHom_trans`) demands — which are precisely the
+  pseudofunctor UNIT and ASSOCIATIVITY coherences the bare `LaxCatSystem` does not yet carry. -/
+section LaxHom
+
+variable (L : LaxCatSystem.{u, w} ι D)
+
+/-- The chosen inverse of an iso (the `NatIso`/`IsIso` field is a `Prop`-existential, so extracting
+    the inverse arrow as data is necessarily noncomputable — this is an interface limitation of the
+    `IsIso := ∃ g, …` encoding, not a use of choice on mathematical content). -/
+noncomputable def isoInv {𝒜 : Type w} [Cat.{w} 𝒜] {X Y : 𝒜} {f : X ⟶ Y} (h : IsIso f) : Y ⟶ X :=
+  Classical.choose h
+
+theorem isoInv_comp {𝒜 : Type w} [Cat.{w} 𝒜] {X Y : 𝒜} {f : X ⟶ Y} (h : IsIso f) :
+    f ≫ isoInv h = Cat.id X := (Classical.choose_spec h).1
+
+theorem inv_isoInv_comp {𝒜 : Type w} [Cat.{w} 𝒜] {X Y : 𝒜} {f : X ⟶ Y} (h : IsIso f) :
+    isoInv h ≫ f = Cat.id Y := (Classical.choose_spec h).2
+
+/-- The forward component of the `trans` coherence iso at an object, `F (trans hik hkm) x ⟶
+    F hkm (F hik x)`: the "source coercion" that the pushed morphism's domain needs. -/
+def transApp {i k m : ι} (hik : D.le i k) (hkm : D.le k m) (x : L.A i) :
+    L.F (D.trans hik hkm) x ⟶ L.F hkm (L.F hik x) :=
+  @NaturalTransformation.app (L.A i) (L.catA i) (L.A m) (L.catA m)
+    (L.F (D.trans hik hkm)) (fun x => L.F hkm (L.F hik x))
+    (L.functF (D.trans hik hkm))
+    (@compFunctor (L.A i) (L.catA i) (L.A k) (L.catA k) (L.A m) (L.catA m)
+      (L.F hik) (L.F hkm) (L.functF hik) (L.functF hkm))
+    (@NatIso.nat (L.A i) (L.catA i) (L.A m) (L.catA m)
+      (L.F (D.trans hik hkm)) (fun x => L.F hkm (L.F hik x))
+      (L.functF (D.trans hik hkm))
+      (@compFunctor (L.A i) (L.catA i) (L.A k) (L.catA k) (L.A m) (L.catA m)
+        (L.F hik) (L.F hkm) (L.functF hik) (L.functF hkm))
+      (L.F_trans_iso hik hkm)) x
+
+theorem transApp_isIso {i k m : ι} (hik : D.le i k) (hkm : D.le k m) (x : L.A i) :
+    IsIso (transApp L hik hkm x) :=
+  @NatIso.isIso (L.A i) (L.catA i) (L.A m) (L.catA m)
+    (L.F (D.trans hik hkm)) (fun x => L.F hkm (L.F hik x))
+    (L.functF (D.trans hik hkm))
+    (@compFunctor (L.A i) (L.catA i) (L.A k) (L.catA k) (L.A m) (L.catA m)
+      (L.F hik) (L.F hkm) (L.functF hik) (L.functF hkm))
+    (L.F_trans_iso hik hkm) x
+
+/-- The lax hom-transition (the pseudo analogue of `castHom`-based `homTr`).  Given a stage-`k`
+    morphism `g : F hik x ⟶ F hjk y` and `hkm : k ≤ m`, push it to a morphism
+    `F (trans hik hkm) x ⟶ F (trans hjk hkm) y` at level `m`, by mapping along `F hkm` and
+    CONJUGATING by the two `trans` coherence isos (forward on the source, inverse on the target). -/
+noncomputable def pushHom {i j : ι} (x : L.A i) (y : L.A j) {k m : ι}
+    (hik : D.le i k) (hjk : D.le j k) (hkm : D.le k m)
+    (g : L.F hik x ⟶ L.F hjk y) :
+    L.F (D.trans hik hkm) x ⟶ L.F (D.trans hjk hkm) y :=
+  transApp L hik hkm x
+    ≫ @Functor.map (L.A k) (L.catA k) (L.A m) (L.catA m) (L.F hkm) (L.functF hkm) _ _ g
+    ≫ isoInv (transApp_isIso L hjk hkm y)
+
+end LaxHom
+
 end Freyd.LaxColim
 
 /-!
