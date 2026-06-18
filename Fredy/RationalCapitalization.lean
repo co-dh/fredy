@@ -1103,6 +1103,85 @@ theorem listProd_hom_ext {Z : 𝒞} : ∀ (U : List 𝒞) (u v : Z ⟶ listProd 
         have := h ⟨k.1 + 1, Nat.succ_lt_succ k.2⟩
         simpa [listProdProj, Cat.assoc] using this
 
+/-- **`listProd` of an append splits as a binary product** (forward map).
+    `listProd (l₁ ++ l₂) ⟶ prod (listProd l₁) (listProd l₂)`, by induction on `l₁`:
+    `[]` ↦ `pair (term) id` (`listProd [] = 1`); `C::l₁` ↦ pull the head `fst` out and recurse on
+    the tail with `snd`. -/
+def listProdAppendHom : ∀ (l₁ l₂ : List 𝒞),
+    listProd (l₁ ++ l₂) ⟶ prod (listProd l₁) (listProd l₂)
+  | [],      l₂ => pair (term (listProd l₂)) (Cat.id (listProd l₂))
+  | C :: l₁, l₂ =>
+      pair (pair (fst : prod C (listProd (l₁ ++ l₂)) ⟶ C)
+                 (snd ≫ listProdAppendHom l₁ l₂ ≫ fst))
+           (snd ≫ listProdAppendHom l₁ l₂ ≫ snd)
+
+/-- Inverse of `listProdAppendHom`: `prod (listProd l₁) (listProd l₂) ⟶ listProd (l₁ ++ l₂)`. -/
+def listProdAppendInv : ∀ (l₁ l₂ : List 𝒞),
+    prod (listProd l₁) (listProd l₂) ⟶ listProd (l₁ ++ l₂)
+  | [],      _  => (snd : prod (listProd ([] : List 𝒞)) _ ⟶ _)
+  | C :: l₁, l₂ =>
+      pair (fst ≫ (fst : prod C (listProd l₁) ⟶ C))
+           (pair (fst ≫ (snd : prod C (listProd l₁) ⟶ listProd l₁)) snd
+              ≫ listProdAppendInv l₁ l₂)
+
+theorem listProdAppend_hom_inv : ∀ (l₁ l₂ : List 𝒞),
+    listProdAppendHom l₁ l₂ ≫ listProdAppendInv l₁ l₂ = Cat.id (listProd (l₁ ++ l₂))
+  | [],      l₂ => by
+      show pair (term (listProd l₂)) (Cat.id (listProd l₂)) ≫ snd = Cat.id _
+      rw [snd_pair]
+  | C :: l₁, l₂ => by
+      show pair (pair (fst : prod C (listProd (l₁ ++ l₂)) ⟶ C)
+                 (snd ≫ listProdAppendHom l₁ l₂ ≫ fst))
+           (snd ≫ listProdAppendHom l₁ l₂ ≫ snd)
+        ≫ listProdAppendInv (C :: l₁) l₂ = Cat.id _
+      apply prod_hom_ext
+      · show _ ≫ (fst : prod C (listProd (l₁ ++ l₂)) ⟶ C) = _
+        rw [Cat.id_comp]
+        unfold listProdAppendInv
+        rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair, fst_pair]
+      · show _ ≫ (snd : prod C (listProd (l₁ ++ l₂)) ⟶ listProd (l₁ ++ l₂)) = _
+        rw [Cat.id_comp]
+        unfold listProdAppendInv
+        rw [Cat.assoc, snd_pair]
+        have hrec := listProdAppend_hom_inv l₁ l₂
+        -- collapse `pair (pair fst (snd≫hom≫fst)) (snd≫hom≫snd) ≫ pair (fst≫snd) snd`
+        -- to `snd ≫ hom l₁ l₂`, then `≫ inv = snd ≫ id = snd`.
+        have hcollapse :
+            pair (pair (fst : prod C (listProd (l₁ ++ l₂)) ⟶ C)
+                     (snd ≫ listProdAppendHom l₁ l₂ ≫ fst))
+                 (snd ≫ listProdAppendHom l₁ l₂ ≫ snd)
+              ≫ pair (fst ≫ (snd : prod C (listProd l₁) ⟶ listProd l₁)) snd
+            = snd ≫ listProdAppendHom l₁ l₂ := by
+          apply prod_hom_ext
+          · rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair, snd_pair, Cat.assoc]
+          · rw [Cat.assoc, snd_pair, snd_pair, Cat.assoc]
+        rw [← Cat.assoc, hcollapse, Cat.assoc, hrec, Cat.comp_id]
+
+theorem listProdAppend_inv_hom : ∀ (l₁ l₂ : List 𝒞),
+    listProdAppendInv l₁ l₂ ≫ listProdAppendHom l₁ l₂ = Cat.id (prod (listProd l₁) (listProd l₂))
+  | [],      l₂ => by
+      show (snd : prod (listProd ([] : List 𝒞)) _ ⟶ _)
+          ≫ pair (term (listProd l₂)) (Cat.id (listProd l₂)) = Cat.id _
+      apply prod_hom_ext
+      · rw [Cat.assoc, fst_pair, Cat.id_comp]; apply HasTerminal.uniq
+      · rw [Cat.assoc, snd_pair, Cat.comp_id, Cat.id_comp]
+  | C :: l₁, l₂ => by
+      show listProdAppendInv (C :: l₁) l₂ ≫ listProdAppendHom (C :: l₁) l₂ = Cat.id _
+      have hrec := listProdAppend_inv_hom l₁ l₂
+      unfold listProdAppendHom listProdAppendInv
+      apply prod_hom_ext
+      · -- ≫ fst : recover prod C (listProd l₁)
+        rw [Cat.assoc, fst_pair, Cat.id_comp]
+        apply prod_hom_ext
+        · -- ≫ fst : `inv ≫ fst = fst ≫ fst`
+          rw [Cat.assoc, fst_pair, fst_pair]
+        · -- ≫ snd : `inv ≫ (snd≫hom≫fst)`, use `inv l₁ ≫ hom l₁ = id`
+          rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair, Cat.assoc,
+              ← Cat.assoc (listProdAppendInv l₁ l₂), hrec, Cat.id_comp, fst_pair]
+      · -- ≫ snd : recover listProd l₂; `inv ≫ (snd≫hom≫snd)`, use `inv l₁ ≫ hom l₁ = id`
+        rw [Cat.assoc, snd_pair, Cat.id_comp, ← Cat.assoc, snd_pair, Cat.assoc,
+          ← Cat.assoc (listProdAppendInv l₁ l₂), hrec, Cat.id_comp, snd_pair]
+
 /-- A binary product of well-supported objects is well-supported. -/
 theorem wellSupported_prod' [PullbacksTransferCovers 𝒞] {B D : 𝒞}
     (hB : WellSupported B) (hD : WellSupported D) : WellSupported (prod B D) := by
