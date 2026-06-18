@@ -1062,6 +1062,16 @@ theorem wellSupported_prod' [PullbacksTransferCovers 𝒞] {B D : 𝒞}
   rw [show term (prod B D) = (fst : prod B D ⟶ B) ≫ term B from term_uniq _ _]
   exact cover_comp'' (prod_fst_cover hD) hB
 
+/-- A right factor of a well-supported binary product is well-supported.  The unique
+    `prod B D ⟶ 1` equals `snd ≫ (D ⟶ 1)` by terminal uniqueness, and is a cover (`prod B D`
+    well-supported), so `D ⟶ 1` is a cover by `cover_of_comp_cover`. -/
+theorem wellSupported_prod_right {B D : 𝒞} (h : WellSupported (prod B D)) :
+    WellSupported D := by
+  show Cover (term D)
+  apply cover_of_comp_cover (snd : prod B D ⟶ D) (term D)
+  rw [show (snd : prod B D ⟶ D) ≫ term D = term (prod B D) from term_uniq _ _]
+  exact h
+
 /-- **§1.547 — every dense morphism is MONIC in `Â`** (the book's "every dense morphism is monic").
     THE R7 CORRECTION.  A dense `x : X → Y` is monic *in `Â`* — even though its underlying `A`-map
     `x.g` is an epic cover (`pairDense_cover`).  No contradiction: `pairForget` does NOT reflect
