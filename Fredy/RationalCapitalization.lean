@@ -3470,10 +3470,128 @@ structure ApexIso {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairD
   inv_hom : inv ≫ hom = Cat.id _
   hom_fst : hom ≫ fst = ((pairHasPullbacks.has g x).cone.π₁).g
 
+/-- A `listProd` of well-supported objects is well-supported (inlined; the `Capitalization.lean`
+    version is not imported here).  `∏[] = 1` (`wellSupported_one'`); `∏(C::l) = C × ∏l`
+    (`wellSupported_prod'`). -/
+theorem wellSupported_listProd' [PullbacksTransferCovers 𝒞] :
+    ∀ {l : List 𝒞}, (∀ B ∈ l, WellSupported B) → WellSupported (listProd l)
+  | [], _ => wellSupported_one'
+  | C :: l, h => wellSupported_prod' (h C (List.mem_cons_self))
+      (wellSupported_listProd' (fun B hB => h B (List.mem_cons_of_mem _ hB)))
+
+/-- **§1.547 — the FIRST LEG of the canonical `Â`-pullback of `(g, x)` is DENSE.**  The absorption
+    iso `apexHom/apexInv` (`apex.A ≅ Z.A × W'`, `W' = ∏ non-collided survivors) packages the
+    density: `e := apexHom`, `einv := apexInv` (round-trips `apexHom_apexInv`/`apexInv_apexHom`),
+    `proj := apexHom_fst` (`apexHom ≫ fst = π₁.g`), `surv := dx.surv.filter (!collides)` (literally
+    `W'`, so `wf = wg = id`), `survPinned` pulled back along `cone.π₂` + `apexL2_e_snd`, and
+    `factorSplit`: each apex factor (Z-half ⇒ Y-derived; X-half ⇒ `dx.factorSplit` + `apex_cross`
+    for collided, `W'`-coordinate for non-collided). -/
 noncomputable def pairDense_pb_canonical_dense [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞]
     {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :
-    PairDense (pairHasPullbacks.has g x).cone.π₁ := by
-  sorry
+    PairDense (pairHasPullbacks.has g x).cone.π₁ where
+  W := listProd (dx.surv.filter (fun T => !collides Z T))
+  wsupp := wellSupported_listProd' (fun B hB => dx.survWS B (List.mem_filter.1 hB).1)
+  e := apexHom x g dx
+  einv := apexInv x g dx
+  e_iso₁ := apexHom_apexInv x g dx
+  e_iso₂ := apexInv_apexHom x g dx
+  proj := apexHom_fst x g dx
+  survPinned := by
+    intro V a b
+    -- `a.g ≫ apexHom ≫ snd = b.g ≫ apexHom ≫ snd`; `apexHom ≫ snd = apexL2 ≫ dx.e ≫ snd ≫ wf ≫ partHom ≫ snd`
+    have hsnd : apexHom x g dx ≫ (snd : prod Z.A (listProd (dx.surv.filter (fun T => !collides Z T)))
+          ⟶ listProd (dx.surv.filter (fun T => !collides Z T)))
+        = apexL2 x g ≫ dx.e ≫ snd ≫ dx.wf
+          ≫ listProdPartitionHom (fun T => collides Z T) dx.surv ≫ snd := by
+      unfold apexHom; rw [snd_pair]
+    rw [hsnd]
+    -- `dx.survPinned` equalizes the `dx.e ≫ snd` prefix of `(a.comp π₂)`, `(b.comp π₂)`
+    have hpin := dx.survPinned (a.comp (pairHasPullbacks.has g x).cone.π₂)
+      (b.comp (pairHasPullbacks.has g x).cone.π₂)
+    -- `(c.comp π₂).g ≫ dx.e ≫ snd = c.g ≫ apexL2 ≫ dx.e ≫ snd`; post-compose the common tail.
+    have key := congrArg
+      (· ≫ (dx.wf ≫ listProdPartitionHom (fun T => collides Z T) dx.surv ≫ snd)) hpin
+    simp only [PairHom.comp, Cat.assoc] at key ⊢
+    -- both sides now `c.g ≫ apexL2 ≫ dx.e ≫ snd ≫ dx.wf ≫ partHom ≫ snd`
+    exact key
+  surv := dx.surv.filter (fun T => !collides Z T)
+  survWS := fun B hB => dx.survWS B (List.mem_filter.1 hB).1
+  wf := Cat.id _
+  wg := Cat.id _
+  wfg := Cat.id_comp _
+  wgf := Cat.id_comp _
+  factorSplit := by
+    intro f hf
+    -- deconstruct `f ∈ apex_obj.F = pairEqK …`: `f = ⟨p.1, eqMap ≫ p.2⟩` for `p ∈ pairProdK Z X`
+    rcases List.mem_map.1 hf with ⟨p, hp, hpe⟩
+    subst hpe  -- f = ⟨p.1, eqMap ≫ p.2⟩
+    rcases List.mem_append.1 hp with hpZ | hpX
+    · -- Z-HALF: `p = ⟨q.1, pairProdW ≫ fst ≫ q.2⟩`, q ∈ Z.F ⇒ Y-DERIVED with `gY := q`.
+      rcases List.mem_map.1 hpZ with ⟨q, hq, hqe⟩
+      subst hqe
+      left
+      refine ⟨q, hq, rfl, ?_⟩
+      -- `f.snd = eqMap ≫ pairProdW ≫ fst ≫ q.2 = apexL1 ≫ q.2 = cone.π₁.g ≫ q.2` (defeq + assoc)
+      show eqMap ((pairProjFst Z X).comp g).g ((pairProjSnd Z X).comp x).g
+        ≫ pairProdW Z X ≫ fst ≫ q.2 = apexL1 x g ≫ q.2
+      rw [apexL1_eq, Cat.assoc, Cat.assoc]
+    · -- X-HALF: `p = ⟨q'.1, pairProdW ≫ snd ≫ q'.2⟩`, q' ∈ X.F.
+      rcases List.mem_map.1 hpX with ⟨q', hq', hqe⟩
+      subst hqe
+      -- reduce nested projections, then re-associate so the prefix `eqMap ≫ (pairProdW ≫ snd)`
+      -- (which IS `apexL2 x g` by `rfl`) is exposed.
+      simp only []
+      rw [← Cat.assoc (pairProdW Z X) snd q'.snd, ← Cat.assoc _ (pairProdW Z X ≫ snd) q'.snd]
+      rcases dx.factorSplit q' hq' with ⟨gY, hgY, hgt, hge⟩ | ⟨k, hkt, hke⟩
+      · -- q' Y-DERIVED: `q'.2 = x.g ≫ gY.2`; match `g.g ≫ gY.2` to a `Z`-factor ⇒ Y-DERIVED.
+        obtain ⟨r, hr, hrt, hre⟩ := g.compat gY hgY
+        left
+        refine ⟨r, hr, hgt.trans hrt.symm, ?_⟩
+        -- `apexL2 ≫ q'.2 = apexL2 ≫ x.g ≫ gY.2 = apexL1 ≫ g.g ≫ gY.2 = apexL1 ≫ r.2 = cone.π₁.g ≫ r.2`
+        obtain ⟨q't, q'm⟩ := q'; obtain ⟨gYt, gYm⟩ := gY; obtain ⟨rt, rm⟩ := r
+        simp only at hgt hrt hge hre ⊢
+        cases hgt; cases hrt
+        simp only at hge hre ⊢
+        show apexL2 x g ≫ q'm = _
+        rw [hge, ← Cat.assoc, ← apex_square, Cat.assoc, hre]
+        rfl
+      · -- q' SURVIVOR coordinate `k`.
+        by_cases hc : collides Z (dx.surv.get k) = true
+        · -- COLLIDING ⇒ Y-DERIVED via the cross constraint with the chosen Z-factor `w`.
+          obtain ⟨w, hw, hwt, hwe⟩ := (pickArrow Z (dx.surv.get k) hc).2
+          left
+          refine ⟨w, hw, hkt.trans hwt.symm, ?_⟩
+          -- `apexL2 ≫ q'.2 = apexL1 ≫ w.2 = cone.π₁.g ≫ w.2`
+          obtain ⟨q't, q'm⟩ := q'; obtain ⟨wt, wm⟩ := w
+          simp only at hkt hwt hke hwe ⊢
+          cases hkt; cases hwt
+          show apexL2 x g ≫ q'm = _
+          rw [← apex_cross (x := x) (g := g) hw (f' := ⟨dx.surv.get k, q'm⟩) hq' rfl]
+          rfl
+        · -- NON-COLLIDING ⇒ SURVIVOR coordinate of the new density `W'`.
+          right
+          have hnc : (fun T => !collides Z T) (dx.surv.get k) = true := by
+            simp only [Bool.not_eq_true']; exact Bool.eq_false_iff.2 hc
+          have hget : (dx.surv.filter (fun T => !collides Z T)).get
+              (filterIdx (fun T => !collides Z T) dx.surv k hnc) = dx.surv.get k :=
+            filterIdx_get (fun T => !collides Z T) dx.surv k hnc
+          refine ⟨filterIdx (fun T => !collides Z T) dx.surv k hnc, hkt.trans hget.symm, ?_⟩
+          -- `apexL2 ≫ q'.2 = apexL2 ≫ dx.e ≫ snd ≫ dx.wf ≫ proj_k = apexHom ≫ snd ≫ id ≫ (h ▸ proj_{k'})`
+          obtain ⟨q't, q'm⟩ := q'
+          simp only at hkt hke ⊢
+          cases hkt
+          simp only at hke ⊢
+          show apexL2 x g ≫ q'm = _
+          rw [hke, Cat.id_comp]
+          have hsnd : apexHom x g dx ≫ (snd : prod Z.A (listProd
+                (dx.surv.filter (fun T => !collides Z T))) ⟶ _)
+              = apexL2 x g ≫ dx.e ≫ snd ≫ dx.wf
+                ≫ listProdPartitionHom (fun T => collides Z T) dx.surv ≫ snd := by
+            unfold apexHom; rw [snd_pair]
+          -- RHS `apexHom ≫ snd ≫ (hget' ▸ proj_{k'})`; peel `apexHom ≫ snd`, then `partHom_snd_proj`.
+          rw [← Cat.assoc (apexHom x g dx) snd, hsnd]
+          simp only [Cat.assoc]
+          rw [partHom_snd_proj (fun T => collides Z T) dx.surv k hnc hget]
 
 end ApexIso
 
