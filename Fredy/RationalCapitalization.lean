@@ -878,6 +878,94 @@ def locFunctor : Functor (fun A : 𝒞 => Rat.mk (𝒞 := 𝒞) A) where
     show locMap (f ≫ g) = ratComp (locMap f) (locMap g)
     exact Quotient.sound (fractionEquiv_symm (denseMonos 𝒞) (locMap_comp_equiv f g))
 
+/-! ### §1.48/§1.547  THE GENERIC RATIONAL CATEGORY `ratCatOf 𝒟 hD` over a `DenseRoof` class
+
+  The R2 `RatHom`/`ratCat`/`locFunctor` fix `denseMonos`.  We now repackage the WHOLE pipeline over
+  an ARBITRARY `(𝒟 : DenseClass 𝒞) (hD : DenseRoof 𝒟)`, using ONLY the dense-class interface
+  (`iso_mem`/`comp_mem`/`pb_mem`) plus the §1.48 right-cancellation `DenseRoof.roof_mem`.  Every
+  ingredient — `fractionEquiv_refl/symm/trans`, `compFraction`, the congruences, the unit/assoc laws,
+  `locMap_comp_equiv` — is already generic; here we just glue the `Quotient` / `Cat` / `Functor`.
+  `denseMonos` recovers the R2 `ratCat`/`locFunctor` (`denseMonos_denseRoof`); `pairDenseClass` (once a
+  `DenseRoof` witness is supplied) gives `A* = Â[pairDense⁻¹]`. -/
+
+section GenericRat
+variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
+
+/-- The setoid on fraction spans for a general `DenseRoof` class. -/
+def fractionSetoidOf {𝒟 : DenseClass 𝒞} (hD : DenseRoof 𝒟) {A B : 𝒞} :
+    Setoid (Fraction 𝒟 A B) where
+  r := FractionEquiv
+  iseqv := ⟨fractionEquiv_refl 𝒟, fractionEquiv_symm 𝒟, fractionEquiv_trans hD⟩
+
+/-- Hom-set of `A[𝒟⁻¹]` for a general `DenseRoof` class: equivalence classes of fraction spans. -/
+def RatHomOf {𝒟 : DenseClass 𝒞} (hD : DenseRoof 𝒟) (A B : 𝒞) : Type u :=
+  Quotient (fractionSetoidOf hD (A := A) (B := B))
+
+/-- Identity morphism of `A[𝒟⁻¹]`. -/
+def ratIdOf {𝒟 : DenseClass 𝒞} (hD : DenseRoof 𝒟) (A : 𝒞) : RatHomOf hD A A :=
+  Quotient.mk _ (idFraction 𝒟 A)
+
+/-- Localisation of an arrow `f : A → B`. -/
+def locMapOf {𝒟 : DenseClass 𝒞} (hD : DenseRoof 𝒟) {A B : 𝒞} (f : A ⟶ B) : RatHomOf hD A B :=
+  Quotient.mk _ (locFraction 𝒟 f)
+
+/-- Composition in `A[𝒟⁻¹]`, well-defined by the (generic) LEFT/RIGHT congruences + transitivity. -/
+def ratCompOf {𝒟 : DenseClass 𝒞} (hD : DenseRoof 𝒟) {A B C : 𝒞}
+    (m : RatHomOf hD A B) (n : RatHomOf hD B C) : RatHomOf hD A C :=
+  Quotient.lift₂ (fun f g => Quotient.mk _ (compFraction 𝒟 f g))
+    (by
+      intro f g f' g' hf hg
+      apply Quotient.sound
+      exact fractionEquiv_trans hD
+        (compFraction_congr_left hD g hf) (compFraction_congr_right hD f' hg))
+    m n
+
+theorem ratCompOf_id_left {𝒟 : DenseClass 𝒞} (hD : DenseRoof 𝒟) {A B : 𝒞}
+    (m : RatHomOf hD A B) : ratCompOf hD (ratIdOf hD A) m = m := by
+  refine Quotient.inductionOn m (fun f => ?_)
+  exact Quotient.sound (compFraction_idFraction_left f)
+
+theorem ratCompOf_id_right {𝒟 : DenseClass 𝒞} (hD : DenseRoof 𝒟) {A B : 𝒞}
+    (m : RatHomOf hD A B) : ratCompOf hD m (ratIdOf hD B) = m := by
+  refine Quotient.inductionOn m (fun f => ?_)
+  exact Quotient.sound (compFraction_idFraction_right f)
+
+theorem ratCompOf_assoc {𝒟 : DenseClass 𝒞} (hD : DenseRoof 𝒟) {A B C D : 𝒞}
+    (m : RatHomOf hD A B) (n : RatHomOf hD B C) (p : RatHomOf hD C D) :
+    ratCompOf hD (ratCompOf hD m n) p = ratCompOf hD m (ratCompOf hD n p) := by
+  refine Quotient.inductionOn₃ m n p (fun f g h => ?_)
+  exact Quotient.sound (compFraction_assoc f g h)
+
+/-- Object carrier of `A[𝒟⁻¹]` for a general `DenseRoof` class (one-field wrapper of `𝒞`'s objects,
+    keyed by the class so `Cat` resolution does not collapse). -/
+structure RatObj {𝒟 : DenseClass 𝒞} (_hD : DenseRoof 𝒟) where mk :: (obj : 𝒞)
+
+/-- **§1.48/§1.547 — the generic rational category `A[𝒟⁻¹]`** for any `DenseRoof` class `𝒟`.
+    Objects = `𝒞`'s objects; homs = `RatHomOf` (fraction quotients); comp = `ratCompOf`; id =
+    `ratIdOf`.  The three laws are the lifted generic `compFraction` unit/assoc laws.  Sorry-free. -/
+def ratCatOf {𝒟 : DenseClass 𝒞} (hD : DenseRoof 𝒟) : Cat.{u} (RatObj hD) where
+  Hom A B := RatHomOf hD A.obj B.obj
+  id := fun A => ratIdOf hD A.obj
+  comp := fun m n => ratCompOf hD m n
+  id_comp := fun m => ratCompOf_id_left hD m
+  comp_id := fun m => ratCompOf_id_right hD m
+  assoc := fun m n p => ratCompOf_assoc hD m n p
+
+/-- **§1.48/§1.547 — the localisation functor `T_𝒟 : 𝒞 → A[𝒟⁻¹]`** for any `DenseRoof` class.
+    Identity on objects, `f ↦ locMapOf f`; `map_id` definitional, `map_comp` is `locMap_comp_equiv`. -/
+def locFunctorOf {𝒟 : DenseClass 𝒞} (hD : DenseRoof 𝒟) :
+    @Functor 𝒞 _ (RatObj hD) (ratCatOf hD) (fun A : 𝒞 => RatObj.mk (_hD := hD) A) :=
+  letI : Cat.{u} (RatObj hD) := ratCatOf hD
+  { map := fun {A B} f => locMapOf hD f
+    map_id := fun A => by
+      show locMapOf hD (Cat.id A) = ratIdOf hD A
+      rfl
+    map_comp := fun {A B C} f g => by
+      show locMapOf hD (f ≫ g) = ratCompOf hD (locMapOf hD f) (locMapOf hD g)
+      exact Quotient.sound (fractionEquiv_symm 𝒟 (locMap_comp_equiv f g)) }
+
+end GenericRat
+
 /-! ### §1.547 FAITHFULNESS FINDING (machine-checked obstruction; nothing faked)
 
   The repo's `Faithful F := Embedding F ∧ (∀ f, IsIso (map f) → IsIso f)` — i.e. injective on
