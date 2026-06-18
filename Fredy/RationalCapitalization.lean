@@ -2899,8 +2899,30 @@ theorem pairCover_pi2_underlying_of_underlying_pullback [PullbacksTransferCovers
     cross-constraints between `A.F` and `C.F` need not be absorbable, so even the underlying
     `canonical.π₂.g` is not in general the `A`-pullback opposite leg, and the `A`-level transfer does
     not apply.  This residual is the genuine §1.547 slice-equivalence verification (directed union of
-    pre-regular slices), independent of the now-closed dense-pullback density.  ONE `sorry`, true
-    statement, sharply documented. -/
+    pre-regular slices), independent of the now-closed dense-pullback density.
+
+    R11j.  The honest A-LEVEL half is now factored out sorry-free as
+    `pairCover_pi2_underlying_of_underlying_pullback`: GIVEN that the underlying cone `pairForgetCone c`
+    is an `A`-pullback, `c.π₂.g` is an `A`-cover.  The two reasons this does NOT finish the `Â`-cover:
+
+      (1) `pairForget` does NOT preserve pullbacks.  `canonical_pb_probe` shows `c.π₁.g = eqMap … ≫
+          pairProjFst.g`, i.e. the `Â`-pullback apex is the cross-constrained equalizer SUBOBJECT of
+          `prod A.A C.A`, strictly smaller than the `A`-pullback of `(f.g, g.g)`.  So the hypothesis
+          `hpbA` of the helper fails for an arbitrary `Â`-cover; it holds only when the cross-constraints
+          collapse (the dense case, already handled separately).
+
+      (2) `pairForget` does NOT reflect monos/isos (faithful, not full).  Even if (1) were waived and
+          `c.π₂.g` were an `A`-cover, promoting `Cover c.π₂` in `Â` requires: for an `Â`-mono `n : D⟶C`
+          with `n.g` an `A`-iso, build the `Â`-inverse — a `PairHom C⟶D` underlying `n.g⁻¹`.  Its
+          `compat` obligation runs `D.F → C.F` (each `p ∈ D.F` needs a matching `q ∈ C.F` with `n.g⁻¹ ≫
+          p.2 = q.2`), whereas `n.compat` only supplies `C.F → D.F` and `n`'s `Â`-monicity gives mere
+          left-cancellation against `Â`-maps — neither yields the reverse factor correspondence.  So the
+          inverse is not a `PairHom` in general; reflection genuinely fails.
+
+    Closing this needs the §1.547 slice equivalence `Â ≃ ⋃ (A*|U)` (pre-regular slices) — infrastructure
+    NOT in this file.  The relational `x°x = 1` route (S1_56 `regular_of_compose_assoc`) is also
+    unavailable: `Â` has no `HasImages` instance and no allegory/reciprocation calculus.  ONE `sorry`,
+    true statement, sharply documented; every constructive ingredient is committed sorry-free. -/
 theorem pairPullbacksTransferCovers [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞] :
     ∀ {A B C : PairObj 𝒞} {f : A ⟶ B} {g : C ⟶ B}
       (c : @Cone (PairObj 𝒞) _ _ _ _ f g), c.IsPullback →
