@@ -323,4 +323,62 @@ theorem equivFunctor_preserves_cover {F : 𝒞 → 𝒟} [hF : Functor F]
   have : m = j' ≫ (j ≫ m) := by rw [← Cat.assoc, hj'j, Cat.id_comp]
   rw [this]; exact isIso_comp ⟨j, hj'j, hjj'⟩ hjm_iso
 
+/-! ## Pullback-square preservation, and `PullbacksTransferCovers` transport -/
+
+/-- **An `EquivalenceFunctor` preserves the `IsPullback` predicate.**  If `c` is a 𝒞-pullback of
+    `(f, g)`, then `mapCone c` is a 𝒟-pullback of `(F f, F g)`.  Any 𝒟-cone `d` over `(F f, F g)`
+    has `d.pt ≅ F W` (ess surj); its legs pull back (fullness) to a 𝒞-cone over `(f, g)` whose
+    unique 𝒞-lift, transported through `F` and the iso, gives the unique 𝒟-lift. -/
+theorem equivFunctor_preserves_isPullback {F : 𝒞 → 𝒟} [hF : Functor F]
+    (emb : Embedding F) (full : Full F) (hri : HasRepresentativeImage F)
+    {A B C : 𝒞} {f : A ⟶ C} {g : B ⟶ C} {c : Cone f g} (hc : c.IsPullback) :
+    (mapCone (F := F) c).IsPullback := by
+  intro d
+  -- d.pt ≅ F W (j : F W ⟶ d.pt, inverse j')
+  obtain ⟨W, j, j', hjj', hj'j⟩ := hri d.pt
+  -- 𝒞-cone over (f,g): legs are fullness-preimages of `j ≫ d.π₁`, `j ≫ d.π₂`.
+  obtain ⟨q₁, hq₁⟩ := full (j ≫ d.π₁)
+  obtain ⟨q₂, hq₂⟩ := full (j ≫ d.π₂)
+  have hqw : q₁ ≫ f = q₂ ≫ g := by
+    apply emb
+    rw [hF.map_comp, hF.map_comp, hq₁, hq₂, Cat.assoc, Cat.assoc, d.w]
+  obtain ⟨t, ⟨ht₁, ht₂⟩, htuniq⟩ := hc ⟨W, q₁, q₂, hqw⟩
+  -- the 𝒟-lift: `j' ≫ F t : d.pt ⟶ F c.pt`.
+  refine ⟨j' ≫ hF.map t, ⟨?_, ?_⟩, ?_⟩
+  · -- (j' ≫ F t) ≫ (mapCone c).π₁ = d.π₁, i.e. = F c.π₁; reduces through F t ≫ F c.π₁ = F q₁ = j ≫ dπ₁.
+    show (j' ≫ hF.map t) ≫ hF.map c.π₁ = d.π₁
+    rw [Cat.assoc, ← hF.map_comp, ht₁, hq₁, ← Cat.assoc, hj'j, Cat.id_comp]
+  · show (j' ≫ hF.map t) ≫ hF.map c.π₂ = d.π₂
+    rw [Cat.assoc, ← hF.map_comp, ht₂, hq₂, ← Cat.assoc, hj'j, Cat.id_comp]
+  · -- uniqueness: any v with v ≫ (mapCone c).π_i = d.π_i has `j ≫ v = F t₀` for a 𝒞-lift t₀ = t.
+    intro v hv₁ hv₂
+    obtain ⟨t₀, ht₀⟩ := full (j ≫ v)
+    -- t₀ is a 𝒞-lift of the cone ⟨W, q₁, q₂⟩, so t₀ = t.
+    have e₀ : t₀ = t := by
+      apply htuniq
+      · apply emb; rw [hF.map_comp, ht₀, hq₁, Cat.assoc]
+        exact congrArg (j ≫ ·) hv₁
+      · apply emb; rw [hF.map_comp, ht₀, hq₂, Cat.assoc]
+        exact congrArg (j ≫ ·) hv₂
+    -- v = j' ≫ (j ≫ v) = j' ≫ F t₀ = j' ≫ F t.
+    calc v = j' ≫ (j ≫ v) := by rw [← Cat.assoc, hj'j, Cat.id_comp]
+      _ = j' ≫ hF.map t₀ := by rw [ht₀]
+      _ = j' ≫ hF.map t := by rw [e₀]
+
+/-- **`PullbacksTransferCovers` transports backward across an `EquivalenceFunctor`** (given `𝒟`
+    pre-regular, so the obligation can be discharged in `𝒟`).  A 𝒞-pullback `c` of `(f, g)` with
+    `Cover f` maps to the 𝒟-pullback `mapCone c` of `(F f, F g)` with `Cover (F f)`; PTC in `𝒟`
+    gives `Cover (F c.π₂)`, reflected to `Cover c.π₂`. -/
+theorem equivFunctor_pullbacksTransferCovers {F : 𝒞 → 𝒟} [hF : Functor F]
+    (emb : Embedding F) (full : Full F) (hri : HasRepresentativeImage F)
+    [HasBinaryProducts 𝒟] [HasPullbacks 𝒟] [PullbacksTransferCovers 𝒟] :
+    PullbacksTransferCovers 𝒞 where
+  pullbacks_transfer_covers {A B C f g} c hc hf := by
+    apply equivFunctor_reflects_cover emb full hri (f := c.π₂)
+    have hFpb : (mapCone (F := F) c).IsPullback :=
+      equivFunctor_preserves_isPullback emb full hri hc
+    show Cover (mapCone (F := F) c).π₂
+    exact PullbacksTransferCovers.pullbacks_transfer_covers (mapCone c) hFpb
+      (equivFunctor_preserves_cover emb full hri hf)
+
 end Freyd
