@@ -69,7 +69,7 @@ open Colim
 universe u
 
 variable {𝒞 : Type u} [Cat.{u} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
-  [PullbacksTransferCovers 𝒞]
+  [HasEqualizers 𝒞] [PullbacksTransferCovers 𝒞]
 
 /-! ## The §1.546 product-form escape, transported to the inflation slice
 
@@ -92,5 +92,29 @@ theorem prodFormMono_misses_point_infl {A : 𝒞} (U : List 𝒞) {B' : 𝒞} (i
   prodFormMono_misses_point i hi_mono hi_proper g
 
 #print axioms prodFormMono_misses_point_infl
+
+/-! ## The structural determination, as a theorem: an inflation-slice mono is a bare `𝒞`-mono
+
+  The substance of the determination is this: a mono `m` into an inflation-slice object
+  `Y : Over (w : Infl 𝒞)` has, via `sigma_preserves_mono` (Σ : `Over (w : Infl 𝒞) → Infl 𝒞` preserves
+  monos), an underlying `Infl 𝒞`-arrow `m.f : Z.dom ⟶ Y.dom` that is monic — and `Infl 𝒞`'s hom is
+  *definitionally* a bare `𝒞`-arrow `listProd Z.dom ⟶ listProd Y.dom` (`inflHom_eq`).  No product-form
+  decomposition of `m.f` along the factor list of `Y.dom` is recorded anywhere: the inflation keeps the
+  factor list on the *object* but forgets it on the *morphism*.  This is precisely why the §1.546
+  product-form escape (`prodFormMono_misses_point_infl`) cannot be invoked against an arbitrary stage
+  mono — its hypothesis (`m.f = pair fst (snd ≫ i)`, i.e. product form `id_A × i`) is not derivable. -/
+
+/-- **An inflation-slice mono is a bare `𝒞`-mono between the products** (no product-form structure).
+    For `Y : Over (w : Infl 𝒞)` and `m : OverHom Z Y` monic in the slice, the underlying arrow
+    `m.f : listProd Z.dom ⟶ listProd Y.dom` (an `Infl 𝒞`-arrow, definitionally a `𝒞`-arrow between the
+    products by `inflHom_eq`) is monic in `𝒞`.  This is `sigma_preserves_mono` at `Infl 𝒞`; it exhibits
+    the determination as a fact — an arbitrary stage subobject is an unstructured `𝒞`-subobject of the
+    product, carrying no `id_A × (B' ↪ ∏rest)` decomposition the §1.546 escape would need. -/
+theorem inflSliceMono_is_bare_prodMono {w : List 𝒞} {Z Y : Over (w : Infl 𝒞)}
+    (m : OverHom Z Y) (hm : OverMono m) :
+    @Mono (Infl 𝒞) _ Z.dom Y.dom m.f :=
+  sigma_preserves_mono (𝒞 := Infl 𝒞) m hm
+
+#print axioms inflSliceMono_is_bare_prodMono
 
 end Freyd
