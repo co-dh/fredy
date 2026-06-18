@@ -310,6 +310,50 @@ def baseChangeIdNatIso : @NatIso (Over C) _ (Over C) _
 
 end BaseChangeIdIso
 
+/-! ### The composite coherence iso is REAL — pullback pasting `baseChangeObj (g' ≫ g) ≅ baseChangeObj g' ∘ baseChangeObj g`
+
+  The pullback-pasting lemma plus `isIso_of_two_pullbacks` (§1.43) gives the iterated-pullback
+  natural iso.  With base maps `g : C ⟶ D`, `g' : E ⟶ C` (diagram-order, so `g' ≫ g : E ⟶ D`):
+  pulling `X.hom` back along `g' ≫ g` is canonically iso to pulling back along `g` then `g'`.  This
+  discharges `PseudoBaseChange.trans_iso`; needs only `HasPullbacks 𝒞`, NO choice. -/
+section BaseChangeTransIso
+
+variable {D C E : 𝒞} (g : C ⟶ D) (g' : E ⟶ C)
+
+/-- **Pullback pasting.**  If the inner square (cone `c1` over `(h, g)`) is a pullback and the outer
+    square (cone `c2` over `(c1.π₂, g')`) is a pullback, then the composite cone
+    `⟨c2.pt, c2.π₁ ≫ c1.π₁, c2.π₂⟩` over `(h, g' ≫ g)` is a pullback.  The classic two-pullback
+    pasting lemma (left + right square pullbacks ⇒ outer rectangle pullback). -/
+theorem pasteCone_isPullback {X : 𝒞} {h : X ⟶ D}
+    {c1 : Cone h g} (hc1 : c1.IsPullback)
+    {c2 : Cone c1.π₂ g'} (hc2 : c2.IsPullback) :
+    (Cone.mk (f := h) (g := g' ≫ g) c2.pt (c2.π₁ ≫ c1.π₁) c2.π₂
+      (by rw [Cat.assoc, c1.w, ← Cat.assoc, c2.w, Cat.assoc])).IsPullback := by
+  intro d
+  -- d : cone over (h, g' ≫ g): d.π₁ ≫ h = d.π₂ ≫ (g' ≫ g).
+  -- Step 1: (d.π₁, d.π₂ ≫ g') is a cone over (h, g), lift into c1 ⇒ e : d.pt ⟶ c1.pt.
+  have hw1 : d.π₁ ≫ h = (d.π₂ ≫ g') ≫ g := by rw [d.w, Cat.assoc]
+  obtain ⟨e, ⟨he₁, he₂⟩, huniq1⟩ := hc1 (Cone.mk d.pt d.π₁ (d.π₂ ≫ g') hw1)
+  -- Step 2: (e, d.π₂) is a cone over (c1.π₂, g') (he₂ : e ≫ c1.π₂ = d.π₂ ≫ g'), lift into c2.
+  obtain ⟨u, ⟨hu₁, hu₂⟩, huniq⟩ := hc2 (Cone.mk d.pt e d.π₂ he₂)
+  refine ⟨u, ⟨?_, hu₂⟩, ?_⟩
+  · -- u ≫ (c2.π₁ ≫ c1.π₁) = d.π₁
+    rw [← Cat.assoc, hu₁, he₁]
+  · -- uniqueness: any v with v ≫ (c2.π₁ ≫ c1.π₁) = d.π₁ and v ≫ c2.π₂ = d.π₂ equals u.
+    intro v hv₁ hv₂
+    -- v ≫ c2.π₁ lifts the c1-cone (d.π₁, d.π₂ ≫ g'), hence equals e by uniqueness in c1.
+    have hve : v ≫ c2.π₁ = e :=
+      huniq1 (v ≫ c2.π₁) (by rw [Cat.assoc]; exact hv₁)
+        (by show (v ≫ c2.π₁) ≫ c1.π₂ = d.π₂ ≫ g'
+            calc (v ≫ c2.π₁) ≫ c1.π₂ = v ≫ (c2.π₁ ≫ c1.π₂) := Cat.assoc _ _ _
+              _ = v ≫ (c2.π₂ ≫ g') := congrArg (v ≫ ·) c2.w
+              _ = (v ≫ c2.π₂) ≫ g' := (Cat.assoc _ _ _).symm
+              _ = d.π₂ ≫ g' := congrArg (· ≫ g') hv₂)
+    -- then v lifts the c2-cone (e, d.π₂), hence equals u.
+    exact huniq v hve hv₂
+
+end BaseChangeTransIso
+
 /-- **The composite coherence iso of base-change (the ONE honest remaining obligation).**  Unlike
     `StrictBaseChange` (a FALSE equation taken as a hypothesis), this is the canonical iterated-
     pullback isomorphism, which genuinely exists:
