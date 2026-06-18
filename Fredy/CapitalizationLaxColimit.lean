@@ -672,6 +672,33 @@ theorem transApp_isIso {i k m : ι} (hik : D.le i k) (hkm : D.le k m) (x : L.A i
       (L.F hik) (L.F hkm) (L.functF hik) (L.functF hkm))
     (L.F_trans_iso hik hkm) x
 
+/-- **Naturality of the `trans` coherence component.**  `transApp L hkm hmn (·)` is the component
+    of the natural iso `F_trans_iso hkm hmn`, so for any `f : X ⟶ Y` in `L.A k` it intertwines the
+    composite transition `F (trans hkm hmn)` with the iterated `F hmn ∘ F hkm`.  (Stated in the
+    abstract section so all `Functor`/`compFunctor` instances are supplied explicitly — avoids the
+    `compFunctor` instance-head synthesis trap inside the base-change namespace.) -/
+theorem transApp_natural {k m n : ι} (hkm : D.le k m) (hmn : D.le m n)
+    {X Y : L.A k} (f : X ⟶ Y) :
+    @Functor.map (L.A k) (L.catA k) (L.A n) (L.catA n)
+        (L.F (D.trans hkm hmn)) (L.functF (D.trans hkm hmn)) X Y f
+      ≫ transApp L hkm hmn Y
+    = transApp L hkm hmn X
+      ≫ @Functor.map (L.A k) (L.catA k) (L.A n) (L.catA n)
+          (fun z => L.F hmn (L.F hkm z))
+          (@compFunctor (L.A k) (L.catA k) (L.A m) (L.catA m) (L.A n) (L.catA n)
+            (L.F hkm) (L.F hmn) (L.functF hkm) (L.functF hmn)) X Y f :=
+  @NaturalTransformation.naturality (L.A k) (L.catA k) (L.A n) (L.catA n)
+    (L.F (D.trans hkm hmn)) (fun z => L.F hmn (L.F hkm z))
+    (L.functF (D.trans hkm hmn))
+    (@compFunctor (L.A k) (L.catA k) (L.A m) (L.catA m) (L.A n) (L.catA n)
+      (L.F hkm) (L.F hmn) (L.functF hkm) (L.functF hmn))
+    (@NatIso.nat (L.A k) (L.catA k) (L.A n) (L.catA n)
+      (L.F (D.trans hkm hmn)) (fun z => L.F hmn (L.F hkm z))
+      (L.functF (D.trans hkm hmn))
+      (@compFunctor (L.A k) (L.catA k) (L.A m) (L.catA m) (L.A n) (L.catA n)
+        (L.F hkm) (L.F hmn) (L.functF hkm) (L.functF hmn))
+      (L.F_trans_iso hkm hmn)) X Y f
+
 /-- The lax hom-transition (the pseudo analogue of `castHom`-based `homTr`).  Given a stage-`k`
     morphism `g : F hik x ⟶ F hjk y` and `hkm : k ≤ m`, push it to a morphism
     `F (trans hik hkm) x ⟶ F (trans hjk hkm) y` at level `m`, by mapping along `F hkm` and
@@ -1163,6 +1190,156 @@ theorem proj_push_refl (P : ProjSystem ι D 𝒞)
   unfold pushHom
   rw [← Cat.assoc, proj_push_refl_key P x y hik hjk g, Cat.assoc, isoInv_comp, Cat.comp_id]
 
+/-- Right-cancellation of an isomorphism: if `a ≫ h = b ≫ h` and `h` is iso, then `a = b`.  Stated
+    over an arbitrary category `𝒜` (the cancellation happens in a slice `L.A n`, not the base `𝒞`). -/
+private theorem iso_cancel_right {𝒜 : Type w} [Cat.{w} 𝒜] {X Y Y' : 𝒜} {a b : X ⟶ Y}
+    (h : Y ⟶ Y') (hh : IsIso h) (e : a ≫ h = b ≫ h) : a = b := by
+  obtain ⟨h', hh1, _⟩ := hh
+  calc a = a ≫ (h ≫ h') := by rw [hh1, Cat.comp_id]
+    _ = (a ≫ h) ≫ h' := (Cat.assoc _ _ _).symm
+    _ = (b ≫ h) ≫ h' := by rw [e]
+    _ = b ≫ (h ≫ h') := Cat.assoc _ _ _
+    _ = b := by rw [hh1, Cat.comp_id]
+
+/-- `reassoc` form of `baseChangeMap_f_π₁`. -/
+private theorem baseChangeMap_f_π₁' {C E : 𝒞} (g : E ⟶ C) {X Y : Over C} (m : OverHom X Y)
+    {W : 𝒞} (z : Y.dom ⟶ W) :
+    (baseChangeMap g m).f ≫ (_pb g Y).cone.π₁ ≫ z = (_pb g X).cone.π₁ ≫ m.f ≫ z := by
+  rw [← Cat.assoc, baseChangeMap_f_π₁ g m, Cat.assoc]
+
+/-- `reassoc` form of `baseChangeMap_f_π₂`. -/
+private theorem baseChangeMap_f_π₂' {C E : 𝒞} (g : E ⟶ C) {X Y : Over C} (m : OverHom X Y)
+    {W : 𝒞} (z : E ⟶ W) :
+    (baseChangeMap g m).f ≫ (_pb g Y).cone.π₂ ≫ z = (_pb g X).cone.π₂ ≫ z := by
+  rw [← Cat.assoc, baseChangeMap_f_π₂ g m]
+
+/-- The outer `π₂`-leg of `transApp`'s underlying arrow: it is the composite pullback's `π₂` (the
+    structure map to `pr m`).  Stated in `reassoc` form (trailing `≫ z`) so it applies as a `simp`
+    lemma regardless of how the surrounding composite is associated. -/
+private theorem transApp_f_π₂ (P : ProjSystem ι D 𝒞) {i k m : ι} (hik : D.le i k) (hkm : D.le k m)
+    (x : pcObj P i) {W : 𝒞} (z : P.pr m ⟶ W) :
+    (transApp (laxOfProjSystem' P) hik hkm x).f
+        ≫ (_pb (P.proj hkm) (baseChangeObj (P.proj hik) x)).cone.π₂ ≫ z
+      = (_pb (P.proj (D.trans hik hkm)) x).cone.π₂ ≫ z := by
+  rw [← Cat.assoc, projTransIso_app, Cat.assoc, Cat.assoc,
+      ← Cat.assoc (_transFwdf (P.proj hik) (P.proj hkm) x),
+      _transFwd_π₂ (P.proj hik) (P.proj hkm) x, ← Cat.assoc,
+      eqToHom_bc_π₂ (P.proj_trans hik hkm) x]
+
+/-- The deep `π₁ ≫ π₁`-leg of `transApp`'s underlying arrow projects to the composite pullback's
+    `π₁` (down to `x.dom`).  `reassoc` form. -/
+private theorem transApp_f_π₁π₁ (P : ProjSystem ι D 𝒞) {i k m : ι}
+    (hik : D.le i k) (hkm : D.le k m) (x : pcObj P i) {W : 𝒞} (z : x.dom ⟶ W) :
+    (transApp (laxOfProjSystem' P) hik hkm x).f
+        ≫ (_pb (P.proj hkm) (baseChangeObj (P.proj hik) x)).cone.π₁
+            ≫ (_pb (P.proj hik) x).cone.π₁ ≫ z
+      = (_pb (P.proj (D.trans hik hkm)) x).cone.π₁ ≫ z := by
+  rw [projTransIso_app, Cat.assoc,
+      ← Cat.assoc ((_pb (P.proj hkm) (baseChangeObj (P.proj hik) x)).cone.π₁)
+        ((_pb (P.proj hik) x).cone.π₁) z,
+      ← Cat.assoc (_transFwdf (P.proj hik) (P.proj hkm) x),
+      _transFwd_π₁ (P.proj hik) (P.proj hkm) x, ← Cat.assoc,
+      eqToHom_bc_π₁ (P.proj_trans hik hkm) x]
+
+/-- The mixed `π₁ ≫ π₂`-leg of `transApp`'s underlying arrow: it is the composite pullback's `π₂`
+    post-composed with the second projection `proj hkm` (the inner pasting square).  `reassoc` form. -/
+private theorem transApp_f_π₁π₂ (P : ProjSystem ι D 𝒞) {i k m : ι}
+    (hik : D.le i k) (hkm : D.le k m) (x : pcObj P i) {W : 𝒞} (z : P.pr k ⟶ W) :
+    (transApp (laxOfProjSystem' P) hik hkm x).f
+        ≫ (_pb (P.proj hkm) (baseChangeObj (P.proj hik) x)).cone.π₁
+            ≫ (_pb (P.proj hik) x).cone.π₂ ≫ z
+      = (_pb (P.proj (D.trans hik hkm)) x).cone.π₂ ≫ P.proj hkm ≫ z := by
+  rw [projTransIso_app, Cat.assoc,
+      ← Cat.assoc (_transFwdf (P.proj hik) (P.proj hkm) x)
+        ((_pb (P.proj hkm) (baseChangeObj (P.proj hik) x)).cone.π₁),
+      _transFwd_outer_fst (P.proj hik) (P.proj hkm) x,
+      ← Cat.assoc (_qInner (P.proj hik) (P.proj hkm) x),
+      _qInner_snd (P.proj hik) (P.proj hkm) x, Cat.assoc,
+      ← Cat.assoc (eqToHom (congrArg (fun z => baseChangeObj z x) (P.proj_trans hik hkm))).f,
+      eqToHom_bc_π₂ (P.proj_trans hik hkm) x]
+
+/-- Terminal (`z = id`) form of `transApp_f_π₂`. -/
+private theorem transApp_f_π₂₀ (P : ProjSystem ι D 𝒞) {i k m : ι} (hik : D.le i k) (hkm : D.le k m)
+    (x : pcObj P i) :
+    (transApp (laxOfProjSystem' P) hik hkm x).f
+        ≫ (_pb (P.proj hkm) (baseChangeObj (P.proj hik) x)).cone.π₂
+      = (_pb (P.proj (D.trans hik hkm)) x).cone.π₂ := by
+  have h := transApp_f_π₂ P hik hkm x (Cat.id _); rwa [Cat.comp_id, Cat.comp_id] at h
+
+/-- Terminal form of `transApp_f_π₁π₁`. -/
+private theorem transApp_f_π₁π₁₀ (P : ProjSystem ι D 𝒞) {i k m : ι}
+    (hik : D.le i k) (hkm : D.le k m) (x : pcObj P i) :
+    (transApp (laxOfProjSystem' P) hik hkm x).f
+        ≫ (_pb (P.proj hkm) (baseChangeObj (P.proj hik) x)).cone.π₁
+            ≫ (_pb (P.proj hik) x).cone.π₁
+      = (_pb (P.proj (D.trans hik hkm)) x).cone.π₁ := by
+  have h := transApp_f_π₁π₁ P hik hkm x (Cat.id _); rwa [Cat.comp_id, Cat.comp_id] at h
+
+/-- Terminal form of `transApp_f_π₁π₂`. -/
+private theorem transApp_f_π₁π₂₀ (P : ProjSystem ι D 𝒞) {i k m : ι}
+    (hik : D.le i k) (hkm : D.le k m) (x : pcObj P i) :
+    (transApp (laxOfProjSystem' P) hik hkm x).f
+        ≫ (_pb (P.proj hkm) (baseChangeObj (P.proj hik) x)).cone.π₁
+            ≫ (_pb (P.proj hik) x).cone.π₂
+      = (_pb (P.proj (D.trans hik hkm)) x).cone.π₂ ≫ P.proj hkm := by
+  have h := transApp_f_π₁π₂ P hik hkm x (Cat.id _); rwa [Cat.comp_id, Cat.comp_id] at h
+
+/-- Terminal form of `baseChangeMap_f_π₁'` (= `baseChangeMap_f_π₁`). -/
+private theorem baseChangeMap_f_π₂₀ {C E : 𝒞} (g : E ⟶ C) {X Y : Over C} (m : OverHom X Y) :
+    (baseChangeMap g m).f ≫ (_pb g Y).cone.π₂ = (_pb g X).cone.π₂ := baseChangeMap_f_π₂ g m
+
+/-- **The `transApp` pentagon / 2-cocycle.**  Pushing the source along the composite `k ≤ m ≤ n`
+    factors as the iterated push: `transApp (k≤m·n) ≫ transApp (m≤n)` equals
+    `transApp (i·k≤n) ≫ F(m≤n)(transApp (i≤k…))`.  Both are arrows
+    `F(trans hik (trans hkm hmn)) x ⟶ F hmn (F hkm (F hik x))`; geometrically the two ways to
+    re-associate the iterated pullback of `x.hom` along `proj hik`, `proj hkm`, `proj hmn`.  Proved
+    by pullback-`lift` uniqueness into the deepest pullback apex. -/
+private theorem transApp_cocycle (P : ProjSystem ι D 𝒞) {i : ι} {k m n : ι}
+    (hik : D.le i k) (hkm : D.le k m) (hmn : D.le m n) (x : pcObj P i) :
+    transApp (laxOfProjSystem' P) hik (D.trans hkm hmn) x
+        ≫ transApp (laxOfProjSystem' P) hkm hmn ((laxOfProjSystem' P).F hik x)
+      = transApp (laxOfProjSystem' P) (D.trans hik hkm) hmn x
+          ≫ Functor.map (self := (laxOfProjSystem' P).functF hmn)
+              (transApp (laxOfProjSystem' P) hik hkm x) := by
+  apply OverHom.ext
+  show (transApp (laxOfProjSystem' P) hik (D.trans hkm hmn) x).f
+        ≫ (transApp (laxOfProjSystem' P) hkm hmn (baseChangeObj (P.proj hik) x)).f
+      = (transApp (laxOfProjSystem' P) (D.trans hik hkm) hmn x).f
+        ≫ (baseChangeMap (P.proj hmn) (transApp (laxOfProjSystem' P) hik hkm x)).f
+  -- Abbreviation for the two stacked inner `transApp`s, projected leg-by-leg via the clean
+  -- `transApp_f_*` lemmas.  The codomain is the triple pullback `bc hmn (bc hkm (bc hik x))`.
+  -- Every leaf reduces both sides to the SAME composite-pullback projection (equal up to
+  -- `proj_trans` proof irrelevance on the `D.le i n` index), via the `transApp_f_*` leg lemmas.
+  apply pb_hom_ext (_pb (P.proj hmn) (baseChangeObj (P.proj hkm) (baseChangeObj (P.proj hik) x)))
+  · -- π₁ leg: lands in the inner double pullback `bc hkm (bc hik x)`; nest twice more.
+    apply pb_hom_ext (_pb (P.proj hkm) (baseChangeObj (P.proj hik) x))
+    · apply pb_hom_ext (_pb (P.proj hik) x)
+      · -- innermost π₁ → `x.dom`
+        simp only [Cat.assoc]
+        rw [transApp_f_π₁π₁ P hkm hmn (baseChangeObj (P.proj hik) x),
+            transApp_f_π₁π₁₀ P hik (D.trans hkm hmn) x,
+            baseChangeMap_f_π₁' (P.proj hmn) (transApp (laxOfProjSystem' P) hik hkm x),
+            transApp_f_π₁π₁₀ P hik hkm x, transApp_f_π₁π₁₀ P (D.trans hik hkm) hmn x]
+      · -- innermost π₂ → `pr k`
+        simp only [Cat.assoc]
+        rw [transApp_f_π₁π₁ P hkm hmn (baseChangeObj (P.proj hik) x),
+            transApp_f_π₁π₂₀ P hik (D.trans hkm hmn) x,
+            baseChangeMap_f_π₁' (P.proj hmn) (transApp (laxOfProjSystem' P) hik hkm x),
+            transApp_f_π₁π₂₀ P hik hkm x, transApp_f_π₁π₂ P (D.trans hik hkm) hmn x,
+            P.proj_trans hkm hmn]
+    · -- middle π₂ → `pr m`
+      simp only [Cat.assoc]
+      rw [transApp_f_π₁π₂₀ P hkm hmn (baseChangeObj (P.proj hik) x),
+          transApp_f_π₂ P hik (D.trans hkm hmn) x,
+          baseChangeMap_f_π₁' (P.proj hmn) (transApp (laxOfProjSystem' P) hik hkm x),
+          transApp_f_π₂₀ P hik hkm x, transApp_f_π₁π₂₀ P (D.trans hik hkm) hmn x]
+  · -- outer π₂ → `pr n`
+    simp only [Cat.assoc]
+    rw [transApp_f_π₂₀ P hkm hmn (baseChangeObj (P.proj hik) x),
+        transApp_f_π₂₀ P hik (D.trans hkm hmn) x,
+        baseChangeMap_f_π₂₀ (P.proj hmn) (transApp (laxOfProjSystem' P) hik hkm x),
+        transApp_f_π₂₀ P (D.trans hik hkm) hmn x]
+
 /-- `push_trans` for the base-change system. -/
 theorem proj_push_trans (P : ProjSystem ι D 𝒞)
     {i j : ι} (x : (laxOfProjSystem' P).A i) (y : (laxOfProjSystem' P).A j) {k m n : ι}
@@ -1171,7 +1348,95 @@ theorem proj_push_trans (P : ProjSystem ι D 𝒞)
     pushHom (laxOfProjSystem' P) x y hik hjk (D.trans hkm hmn) g
       = pushHom (laxOfProjSystem' P) x y (D.trans hik hkm) (D.trans hjk hkm) hmn
           (pushHom (laxOfProjSystem' P) x y hik hjk hkm g) := by
-  sorry
+  -- `key`: the source-naturality characterisation of `pushHom` (the `isoInv` cancels on the right).
+  have key : ∀ {i' j' : ι} (x' : (laxOfProjSystem' P).A i') (y' : (laxOfProjSystem' P).A j')
+      {k' m' : ι} (hik' : D.le i' k') (hjk' : D.le j' k') (hkm' : D.le k' m')
+      (g' : (laxOfProjSystem' P).F hik' x' ⟶ (laxOfProjSystem' P).F hjk' y'),
+      pushHom (laxOfProjSystem' P) x' y' hik' hjk' hkm' g'
+          ≫ transApp (laxOfProjSystem' P) hjk' hkm' y'
+        = transApp (laxOfProjSystem' P) hik' hkm' x'
+          ≫ Functor.map (self := (laxOfProjSystem' P).functF hkm') g' := by
+    intro i' j' x' y' k' m' hik' hjk' hkm' g'
+    unfold pushHom
+    rw [Cat.assoc, Cat.assoc, inv_isoInv_comp, Cat.comp_id]
+  -- Naturality of `transApp hkm hmn (·)` at `g` (it is the component of `F_trans_iso hkm hmn`).
+  have tnat := transApp_natural (laxOfProjSystem' P) hkm hmn g
+  -- Cancel the iso `Φ_y := transApp(hjk, trans hkm hmn, y) ≫ transApp(hkm, hmn, F hjk y)`; both LHS
+  -- and RHS post-composed with it equal a common arrow into `F hmn (F hkm (F hjk y))`.
+  refine iso_cancel_right (Y' := (laxOfProjSystem' P).F hmn
+      ((laxOfProjSystem' P).F hkm ((laxOfProjSystem' P).F hjk y)))
+    (transApp (laxOfProjSystem' P) hjk (D.trans hkm hmn) y
+        ≫ transApp (laxOfProjSystem' P) hkm hmn ((laxOfProjSystem' P).F hjk y))
+    (isIso_comp (transApp_isIso (laxOfProjSystem' P) hjk (D.trans hkm hmn) y)
+      (transApp_isIso (laxOfProjSystem' P) hkm hmn ((laxOfProjSystem' P).F hjk y))) ?_
+  calc pushHom (laxOfProjSystem' P) x y hik hjk (D.trans hkm hmn) g
+          ≫ (transApp (laxOfProjSystem' P) hjk (D.trans hkm hmn) y
+              ≫ transApp (laxOfProjSystem' P) hkm hmn ((laxOfProjSystem' P).F hjk y))
+      = (pushHom (laxOfProjSystem' P) x y hik hjk (D.trans hkm hmn) g
+            ≫ transApp (laxOfProjSystem' P) hjk (D.trans hkm hmn) y)
+          ≫ transApp (laxOfProjSystem' P) hkm hmn ((laxOfProjSystem' P).F hjk y) :=
+        (Cat.assoc _ _ _).symm
+    _ = (transApp (laxOfProjSystem' P) hik (D.trans hkm hmn) x
+          ≫ Functor.map (self := (laxOfProjSystem' P).functF (D.trans hkm hmn)) g)
+          ≫ transApp (laxOfProjSystem' P) hkm hmn ((laxOfProjSystem' P).F hjk y) := by rw [key]
+    _ = transApp (laxOfProjSystem' P) hik (D.trans hkm hmn) x
+          ≫ (Functor.map (self := (laxOfProjSystem' P).functF (D.trans hkm hmn)) g
+              ≫ transApp (laxOfProjSystem' P) hkm hmn ((laxOfProjSystem' P).F hjk y)) :=
+        Cat.assoc _ _ _
+    _ = transApp (laxOfProjSystem' P) hik (D.trans hkm hmn) x
+          ≫ (transApp (laxOfProjSystem' P) hkm hmn ((laxOfProjSystem' P).F hik x)
+              ≫ Functor.map (self := (laxOfProjSystem' P).functF hmn)
+                  (Functor.map (self := (laxOfProjSystem' P).functF hkm) g)) := by rw [tnat]; rfl
+    _ = (transApp (laxOfProjSystem' P) hik (D.trans hkm hmn) x
+          ≫ transApp (laxOfProjSystem' P) hkm hmn ((laxOfProjSystem' P).F hik x))
+          ≫ Functor.map (self := (laxOfProjSystem' P).functF hmn)
+              (Functor.map (self := (laxOfProjSystem' P).functF hkm) g) := (Cat.assoc _ _ _).symm
+    _ = (transApp (laxOfProjSystem' P) (D.trans hik hkm) hmn x
+          ≫ Functor.map (self := (laxOfProjSystem' P).functF hmn)
+              (transApp (laxOfProjSystem' P) hik hkm x))
+          ≫ Functor.map (self := (laxOfProjSystem' P).functF hmn)
+              (Functor.map (self := (laxOfProjSystem' P).functF hkm) g) := by
+        rw [transApp_cocycle P hik hkm hmn x]
+    _ = transApp (laxOfProjSystem' P) (D.trans hik hkm) hmn x
+          ≫ (Functor.map (self := (laxOfProjSystem' P).functF hmn)
+                (transApp (laxOfProjSystem' P) hik hkm x)
+              ≫ Functor.map (self := (laxOfProjSystem' P).functF hmn)
+                  (Functor.map (self := (laxOfProjSystem' P).functF hkm) g)) := Cat.assoc _ _ _
+    _ = transApp (laxOfProjSystem' P) (D.trans hik hkm) hmn x
+          ≫ Functor.map (self := (laxOfProjSystem' P).functF hmn)
+              (transApp (laxOfProjSystem' P) hik hkm x
+                ≫ Functor.map (self := (laxOfProjSystem' P).functF hkm) g) := by
+        rw [Functor.map_comp (self := (laxOfProjSystem' P).functF hmn)]
+    _ = transApp (laxOfProjSystem' P) (D.trans hik hkm) hmn x
+          ≫ Functor.map (self := (laxOfProjSystem' P).functF hmn)
+              (pushHom (laxOfProjSystem' P) x y hik hjk hkm g
+                ≫ transApp (laxOfProjSystem' P) hjk hkm y) := by rw [key]
+    _ = transApp (laxOfProjSystem' P) (D.trans hik hkm) hmn x
+          ≫ (Functor.map (self := (laxOfProjSystem' P).functF hmn)
+                (pushHom (laxOfProjSystem' P) x y hik hjk hkm g)
+              ≫ Functor.map (self := (laxOfProjSystem' P).functF hmn)
+                  (transApp (laxOfProjSystem' P) hjk hkm y)) := by
+        rw [Functor.map_comp (self := (laxOfProjSystem' P).functF hmn)]
+    _ = (transApp (laxOfProjSystem' P) (D.trans hik hkm) hmn x
+          ≫ Functor.map (self := (laxOfProjSystem' P).functF hmn)
+              (pushHom (laxOfProjSystem' P) x y hik hjk hkm g))
+          ≫ Functor.map (self := (laxOfProjSystem' P).functF hmn)
+              (transApp (laxOfProjSystem' P) hjk hkm y) := (Cat.assoc _ _ _).symm
+    _ = (pushHom (laxOfProjSystem' P) x y (D.trans hik hkm) (D.trans hjk hkm) hmn
+            (pushHom (laxOfProjSystem' P) x y hik hjk hkm g)
+          ≫ transApp (laxOfProjSystem' P) (D.trans hjk hkm) hmn y)
+          ≫ Functor.map (self := (laxOfProjSystem' P).functF hmn)
+              (transApp (laxOfProjSystem' P) hjk hkm y) := by rw [key]
+    _ = pushHom (laxOfProjSystem' P) x y (D.trans hik hkm) (D.trans hjk hkm) hmn
+            (pushHom (laxOfProjSystem' P) x y hik hjk hkm g)
+          ≫ (transApp (laxOfProjSystem' P) (D.trans hjk hkm) hmn y
+              ≫ Functor.map (self := (laxOfProjSystem' P).functF hmn)
+                  (transApp (laxOfProjSystem' P) hjk hkm y)) := Cat.assoc _ _ _
+    _ = pushHom (laxOfProjSystem' P) x y (D.trans hik hkm) (D.trans hjk hkm) hmn
+            (pushHom (laxOfProjSystem' P) x y hik hjk hkm g)
+          ≫ (transApp (laxOfProjSystem' P) hjk (D.trans hkm hmn) y
+              ≫ transApp (laxOfProjSystem' P) hkm hmn ((laxOfProjSystem' P).F hjk y)) := by
+        rw [transApp_cocycle P hjk hkm hmn y]
 
 /-- **`Coherent (laxOfProjSystem' P)`** — the §1.547 base-change system is pseudofunctor-coherent. -/
 def coherentProj (P : ProjSystem ι D 𝒞) : Coherent (laxOfProjSystem' P) where
