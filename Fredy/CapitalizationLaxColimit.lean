@@ -682,6 +682,33 @@ noncomputable def pushHom {i j : ι} (x : L.A i) (y : L.A j) {k m : ι}
     ≫ @Functor.map (L.A k) (L.catA k) (L.A m) (L.catA m) (L.F hkm) (L.functF hkm) _ _ g
     ≫ isoInv (transApp_isIso L hjk hkm y)
 
+/-! ### Pseudofunctor coherence of the lax hom-transition
+
+  The bare `LaxCatSystem` carries the coherence isos `F_refl_iso`/`F_trans_iso` but NO laws relating
+  them (no pseudofunctor unit/associativity / triangle / pentagon).  The hom-colimit needs exactly
+  the two laws that make `pushHom` behave like the strict `homTr`: pushing along `refl` is the
+  identity, and pushing along a composite bound is pushing twice.  These are the pseudofunctor UNIT
+  and ASSOCIATIVITY coherences expressed directly on hom-sets.
+
+  Unlike the STRICT `CatSystem.Coherent` (a `HEq` statement that is *false* for raw base-change),
+  these are TRUE for base-change — they are the standard pullback-pasting coherences.  We isolate
+  them here as a hypothesis (`Coherent`); the whole hom-colimit `Cat` is built relative to it, and
+  the remaining §1.543 obligation is to discharge `Coherent` for `laxOfProjSystem'` (base-change),
+  which is the pullback pentagon — genuinely true, large, deferred. -/
+structure Coherent (L : LaxCatSystem.{u, w} ι D) : Prop where
+  /-- UNIT: pushing a stage-`k` morphism along the reflexive bound `k ≤ k` is the identity.
+      (Type-correct because `D.trans hik (D.refl k) = hik` by proof irrelevance of `D.le`.) -/
+  push_refl : ∀ {i j : ι} (x : L.A i) (y : L.A j) {k : ι}
+    (hik : D.le i k) (hjk : D.le j k) (g : L.F hik x ⟶ L.F hjk y),
+    pushHom L x y hik hjk (D.refl k) g = g
+  /-- ASSOCIATIVITY: pushing along a composite bound `k ≤ m ≤ n` equals pushing to `m` then to `n`.
+      (Type-correct because `D.trans hik (D.trans hkm hmn) = D.trans (D.trans hik hkm) hmn`.) -/
+  push_trans : ∀ {i j : ι} (x : L.A i) (y : L.A j) {k m n : ι}
+    (hik : D.le i k) (hjk : D.le j k) (hkm : D.le k m) (hmn : D.le m n)
+    (g : L.F hik x ⟶ L.F hjk y),
+    pushHom L x y hik hjk (D.trans hkm hmn) g
+      = pushHom L x y (D.trans hik hkm) (D.trans hjk hkm) hmn (pushHom L x y hik hjk hkm g)
+
 end LaxHom
 
 end Freyd.LaxColim
