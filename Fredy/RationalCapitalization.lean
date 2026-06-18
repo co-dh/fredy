@@ -204,9 +204,10 @@
   ── INTEGRITY ──────────────────────────────────────────────────────────────────
 
   No `axiom`, no `: True`, no `sorry` on a false statement, no `sorry` in any STATEMENT/type.
-  TWO `sorry`s, each on the book's genuine statement, sharply documented: (1) the R2 residual
-  `genericPoint_escapes_proper`/`sliceEmbed_factor_wellPointed` (§1.547 subobject-descent); (2)
-  `pairPullbacksTransferCovers` (the `Â` cover transfer = slice equivalence).
+  TWO `sorry`s, each on the book's genuine statement, sharply documented: (1) `sliceEmbed_factor_wellPointed`
+  (§1.547 well-pointedness — the naive over-general `genericPoint_escapes_proper` was FALSE and was
+  REMOVED, see `graph_satisfies_hyps`); (2) `pairPullbacksTransferCovers` (the `Â` cover transfer =
+  slice equivalence).
   CLOSED (R11i, sorry-free + axiom-clean): `pairDense_pb_canonical_dense` (§1.48(iii) leg-density),
   via the explicit absorption iso `apexHom/apexInv` (`apex.A ≅ Z.A × W'`, collided survivors absorbed
   by `apex_cross`/`PairObj.distinct`).
@@ -3783,9 +3784,10 @@ theorem ratStep_points_every_factor (U : List 𝒞) (k : Fin U.length) :
   These helpers carry out the *elementary, sorry-free* half of the §1.546/547 missed-point
   argument: the reduction of "the generic point `sliceFactorPoint A g` lifts through a slice
   mono `m : D ↪ ⟨A×P, snd⟩`" to a purely downstairs statement about the underlying `𝒞`-arrow
-  `m.f`.  What is genuinely missing (and isolated below as `genericPoint_escapes_proper`) is
-  the book's §1.546 claim that a *proper* such `m` admits no such downstairs lift; everything
-  reducing the slice statement to that downstairs statement is closed here. -/
+  `m.f`.  What is genuinely missing (the residual `sorry` on `sliceEmbed_factor_wellPointed`) is
+  the book's §1.546 point-selection: a *proper* `m` misses *some* global point.  NOTE the naive
+  "every proper `m` misses the GENERIC point" is FALSE (`graph_satisfies_hyps`); everything
+  reducing the slice statement to the downstairs statement is closed here. -/
 
 /-- **§1.547 — the lift of the generic point unfolds to a downstairs section of `m.f`.**
     In the slice `Over P`, a lift `y : overTerm P ⟶ D` of the point `sliceFactorPoint A g`
@@ -3809,67 +3811,30 @@ theorem sliceFactorPoint_lift_iff {P A : 𝒞} {D : Over P}
       rw [← hDhom, ← Cat.assoc, hs, snd_pair]
     exact ⟨⟨s, hsw⟩, OverHom.ext hs⟩
 
-/-- **§1.547 — the irreducible §1.546 missed-point content (sharply isolated).**
-    For a well-supported factor `A`, a proper monic `m : D ↪ sliceEmbedObj P A` in the slice
-    `Over P` (here `P = ∏U`, `g = listProdProj U k` the projection that names the factor),
-    the generic point `sliceFactorPoint A g` admits NO downstairs lift `s : P → D.dom` with
-    `s ≫ m.f = pair g id`.
+/-- **§1.547 — `WellPointed` of the embedded factor (the full payoff; honest residual).**
+    In the product-slice `A/(∏U)` (with `A = U.get k` a well-supported factor), the embedded
+    object `sliceEmbedObj (∏U) A` is `WellPointed`: every proper monic into it misses some
+    global point.  Stated with the slice's genuine `HasTerminal` (`overHasTerminal (∏U)`) — NO
+    `sorry` in the type, so this is the book's real `WellPointed`.
 
-    This is Freyd §1.546 last paragraph — "for any proper `B' ↪ B`, `AB' ↪ AB` does not allow
-    the generic point".  Equivalently (via `sliceFactorPoint_lift_iff`): the proper slice
-    subobject `m` corresponds to a proper subobject `B' ↪ A` downstairs (`A` well-supported,
-    slice embedding faithful via `sliceEmbedFaithful`), and the projection `g` factoring
-    through `m.f ≫ fst` as a section of `D.hom` would force `B' ↪ A` to allow the generic
-    point of `A` — contradicting properness.
-
-    ⚠ FALSE AS STATED (do not prove — `sorry` left verbatim).  The universal quantifier over
-    ARBITRARY slice monics `m` is too strong.  Counterexample (`graph_satisfies_hyps`, axiom-free,
-    `sorry`-free below): the *graph of the generic point* `D := ⟨∏U, id⟩`,
-    `m.f := pair (proj_k) id : ∏U → A×∏U`, is a proper monic (iso iff `A ≅ 1`) that DOES admit the
-    generic point via the section `s := id` (`id ≫ pair (proj_k) id = pair (proj_k) id`).  So the
-    statement contradicts itself for any well-supported `A ≇ 1`.
-
-    Freyd §1.546/§1.547 ("`AB' ↪ AB` does not allow the generic point") is about subobjects of the
-    PRODUCT FORM `id_A × (B' ↪ B)` — NOT arbitrary slice subobjects.  The correct lemma must restrict
-    `D = ⟨A × B', snd⟩` and `m.f = id_A × i` for a *proper* monic `i : B' ↪ ∏U` of the BASE (the slice
-    terminator `B = ∏U`), and then runs Freyd's inflation/strict-cancellation argument (§1.544): a
-    section `s` of `id_A × i` over the generic point would force `i` to be split-epi hence (being monic)
-    iso, contradicting properness of `i`.  Reformulating `genericPoint_escapes_proper` to this
-    product-form hypothesis is the missing piece; the present over-general signature is unprovable.
-
-    (Image factorization IS available — `HasImages`/`image.lift`/`cover_iff_image_entire` in S1_51 —
-    but it does not rescue the over-general statement, which is simply false.) -/
-theorem genericPoint_escapes_proper (U : List 𝒞)
-    (hU : ∀ x ∈ U, WellSupported x) (k : Fin U.length)
-    {D : Over (listProd U)} (m : D ⟶ sliceEmbedObj (listProd U) (U.get k))
-    (_hm : Mono m) (_hiso : ¬ IsIso m) :
-    ¬ ∃ s : listProd U ⟶ D.dom,
-        s ≫ m.f = pair (listProdProj U k) (Cat.id (listProd U)) := by
-  sorry
-
-/-- **§1.547 — `WellPointed` of the embedded factor (the full payoff, residual isolated).**
-    In the product-slice `A/(∏U)` (with `A ∈ U` a well-supported factor), the embedded object
-    `sliceEmbedObj (∏U) A` is `WellPointed`: every proper monic into it misses some global
-    point.  The book's argument (§1.547 last paragraph): a proper subobject `m` corresponds
-    to a proper subobject `B' ↪ A` downstairs (`A` well-supported, slice embedding faithful),
-    and the generic point `sliceFactorPoint A (proj)` — which factors through `A` itself, not
-    through any proper `B'` — is exactly the point `m` cannot lift ("AB' ↪ AB does not allow
-    the generic point in A/B").
-
-    Stated with the slice's genuine `HasTerminal` (`overHasTerminal (∏U)`) — NO `sorry` in
-    the type, so the statement is the book's real `WellPointed`.  The elementary descent
-    bookkeeping (`sliceFactorPoint_lift_iff`) is closed; the residual is concentrated in the
-    single §1.546 missed-point lemma `genericPoint_escapes_proper`, and the generic-point
-    ingredient is in hand (`ratStep_points_every_factor`). -/
+    RESIDUAL (`sorry` on this TRUE statement).  Freyd's §1.546/§1.547 argument is "for any proper
+    `B' ↪ B`, `AB' ↪ AB` does not allow the generic point".  An earlier version isolated this as a
+    lemma `genericPoint_escapes_proper` claiming *every* proper slice monic `m` misses the GENERIC
+    point `sliceFactorPoint A (proj)` — that lemma is **FALSE** (removed): the *graph of the generic
+    point* `⟨∏U, id⟩ ↪ ⟨A×∏U, snd⟩`, `m.f = pair (proj_k) id`, is a proper monic (iso iff `A ≅ 1`)
+    that DOES admit the generic point (section `s = id`), see the axiom-free `graph_satisfies_hyps`
+    below.  So a single fixed point is NOT a universal escaper, and `WellPointed` cannot be proven by
+    committing to the generic point for all `m`.  Freyd's claim is specifically about subobjects of
+    the PRODUCT FORM `AB' ↪ AB` (`id_A × (B' ↪ B)`); the correct proof must, per proper subobject,
+    EITHER reduce it to product form via §1.544 strict cancellation and then escape with the generic
+    point, OR select a non-generic global point it misses.  That point-selection/reduction argument is
+    the genuine missing §1.547 content; the elementary descent bookkeeping (`sliceFactorPoint_lift_iff`)
+    and the per-factor generic point (`ratStep_points_every_factor`) are sorry-free in hand. -/
 theorem sliceEmbed_factor_wellPointed (U : List 𝒞)
     (hU : ∀ x ∈ U, WellSupported x) (k : Fin U.length) :
     @WellPointed (Over (listProd U)) _ (overHasTerminal (listProd U))
       (sliceEmbedObj (listProd U) (U.get k)) := by
-  intro D m hm hiso
-  refine ⟨sliceFactorPoint (U.get k) (listProdProj U k), ?_⟩
-  intro hlift
-  exact genericPoint_escapes_proper U hU k m hm hiso
-    ((sliceFactorPoint_lift_iff m (listProdProj U k)).1 hlift)
+  sorry
 
 /-- **The over-general `genericPoint_escapes_proper` is FALSE — explicit witness.**
     The "graph of the generic point", `D := ⟨∏U, id⟩` with slice arrow
