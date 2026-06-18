@@ -2567,10 +2567,41 @@ theorem canonical_pb_probe [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞]
         ≫ (pairProjFst Z X).g := by
   rfl
 
+/-! ### §1.543 R11g — the ABSORPTION ISO `apex ≅ Z.A × W'`
+
+  The canonical `Â`-pullback apex of the cospan `(g, x)` (for dense `x`) is the wide-equalizer
+  `apex = eqObj (w≫fst≫g.g) (w≫snd≫x.g)` over `D = pairProdD Z X` (`w = pairProdW Z X`).  By
+  `pairDensePbBaseCone_isPullback` the underlying `A`-pullback of the SQUARE `(g.g, x.g)` is the
+  projection `prod Z.A dx.W → Z.A`.  The CROSS-constraints of `D` (`pairProdW_cross`) additionally
+  pin, for each COLLIDING survivor `T ∈ dx.surv` (`∃ f ∈ Z.F, f.1 = T`), that survivor-coordinate of
+  `dx.W` to a function of `Z.A`.  So the collided block of `dx.W` is redundant and the apex collapses
+  to `prod Z.A W'`, `W' = listProd (dx.surv.filter (!collides))`.
+
+  We build the iso as explicit data (hom/inv/round-trips, repo style); the deliverable is the iso
+  with `apexIso.hom ≫ fst = π₁.g`. -/
+
+section ApexIso
+variable [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞]
+
+/-- The collision predicate: `T` collides if some factor of `Z` targets `T`. -/
+def collides (Z : PairObj 𝒞) (T : 𝒞) : Bool := decide (∃ f ∈ Z.F, f.1 = T)
+
+/-- The packaged absorption iso: hom/inv + the two round-trips + the leg-compat. -/
+structure ApexIso {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) where
+  hom : (pairHasPullbacks.has g x).cone.pt.A ⟶
+          prod Z.A (listProd (dx.surv.filter (fun T => !collides Z T)))
+  inv : prod Z.A (listProd (dx.surv.filter (fun T => !collides Z T))) ⟶
+          (pairHasPullbacks.has g x).cone.pt.A
+  hom_inv : hom ≫ inv = Cat.id _
+  inv_hom : inv ≫ hom = Cat.id _
+  hom_fst : hom ≫ fst = ((pairHasPullbacks.has g x).cone.π₁).g
+
 noncomputable def pairDense_pb_canonical_dense [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞]
     {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :
     PairDense (pairHasPullbacks.has g x).cone.π₁ := by
   sorry
+
+end ApexIso
 
 /-- **§1.547 — the WITNESS for dense-pullback-closure.**  For a dense `x : X → Y` (data `dx`) and
     any `g : Z → Y`, there is a pullback cone `c` of the cospan `(g, x)` in `Â` whose first leg
