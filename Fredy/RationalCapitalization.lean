@@ -4154,6 +4154,64 @@ def pairHomToSlice [HasPullbacks 𝒞] {X Y : PairObj 𝒞} (m : PairHom X Y) :
         = pairFactorMap X ≫ listProdRestrict X.targets Y.targets (pairHom_targets_subset m)
     exact pairHom_commutes_restrict m⟩
 
+/-- **§1.547 — FULLNESS of the bridge over the codomain base `∏Y°`.**  Conversely to
+    `pairHomToSlice`, EVERY slice morphism `φ` over `∏Y°` from the reindexed `pairSliceObj X` to
+    `pairSliceObj Y` (i.e. `φ.f ≫ pairFactorMap Y = pairFactorMap X ≫ listProdRestrict X° Y° hsub`)
+    is the image of a `PairHom X → Y` with underlying arrow `φ.f`.  This is the KEY fullness: a slice
+    map over `∏Y°` commuting with the factor maps respects every `Y`-factor, which is exactly the
+    `PairHom.compat` obligation.  Proof: project the commuting square at each `Y°`-coordinate; the LHS
+    is `φ.f ≫ (Y-factor)` (`factorTuple_proj`), the RHS is the searched `X`-factor of the SAME target
+    (`listProdRestrict_proj` + `factorTuple_findProj`), giving the matched `q ∈ X.F`. -/
+def pairHomOfSlice [HasPullbacks 𝒞] {X Y : PairObj 𝒞} (hsub : ∀ T ∈ Y.targets, T ∈ X.targets)
+    (φ : OverHom (reindexObj (listProdRestrict X.targets Y.targets hsub) (pairSliceObj X))
+                 (pairSliceObj Y)) : PairHom X Y where
+  g := φ.f
+  compat p hp := by
+    -- locate `p` positionally in `Y.F` (so we can project the commuting square at its coordinate)
+    obtain ⟨k, hk⟩ := List.mem_iff_get.1 hp
+    -- the same Nat index into `Y.targets` (= Y.F.map ·.1)
+    have hkt : k.1 < Y.targets.length := by simp [PairObj.targets]
+    let kt : Fin Y.targets.length := ⟨k.1, hkt⟩
+    have htgt : Y.targets.get kt = p.1 := by
+      simp only [kt, PairObj.targets, List.get_eq_getElem, List.getElem_map]
+      rw [← hk]; rfl
+    -- the slice commuting square, projected at coordinate `kt`
+    have hw : φ.f ≫ pairFactorMap Y
+        = pairFactorMap X ≫ listProdRestrict X.targets Y.targets hsub := φ.w
+    have hproj := congrArg (· ≫ listProdProj Y.targets kt) hw
+    simp only [Cat.assoc] at hproj
+    -- LHS coordinate: `pairFactorMap Y ≫ proj_kt = htgt? ▸ (Y.F.get k).2`
+    have hkF : k.1 < Y.F.length := k.2
+    -- `Y.F.get ⟨k.1,hkF⟩ = Y.F.get k = p`, so project lands on `p.2`.
+    have hgetp : Y.F.get ⟨k.1, hkF⟩ = p := hk
+    have htgt' : Y.targets.get kt = (Y.F.get ⟨k.1, hkF⟩).1 := by
+      rw [hgetp]; exact htgt
+    rw [pairFactorMap_proj Y k.1 hkt hkF htgt'] at hproj
+    -- RHS coordinate: `pairFactorMap X ≫ listProdRestrict ≫ proj_kt = pairFactorMap X ≫ findProj …`
+    rw [listProdRestrict_proj X.targets Y.targets hsub kt] at hproj
+    obtain ⟨f, hf, hfh, hfe⟩ := factorTuple_findProj (Y.targets.get kt) X.F
+      ⟨Y.targets.get kt, hsub _ (List.get_mem _ _), rfl⟩
+    rw [(show pairFactorMap X = factorTuple X.F from rfl),
+        show findProj (Y.targets.get kt) X.targets
+              ⟨Y.targets.get kt, hsub _ (List.get_mem _ _), rfl⟩
+            = findProj (Y.targets.get kt) (X.F.map (·.1)) _ from rfl, hfe] at hproj
+    -- now `hproj : φ.f ≫ (htgt' ▸ (Y.F.get k).2) = hfh ▸ f.2`; package as compat for `p`.
+    refine ⟨f, hf, hfh.trans htgt, ?_⟩
+    -- replace `p` by the positional factor `yp := Y.F.get ⟨k.1,hkF⟩` (`hgetp : yp = p`), so the cast
+    -- in `hproj` and the goal share the same term; then match casts on the target.
+    subst hgetp
+    -- `htgt` and `htgt'` now coincide; generalize the two target terms so the casts substitute.
+    clear hfe hk hp hw
+    revert htgt htgt' hproj hfh
+    obtain ⟨fT, fa⟩ := f
+    generalize Y.F.get ⟨k.1, hkF⟩ = yp
+    obtain ⟨yT, ya⟩ := yp
+    generalize Y.targets.get kt = T
+    intro htgt htgt' hproj hfh
+    simp only at htgt htgt' hfh hproj ⊢
+    subst hfh; subst htgt'
+    simpa using hproj
+
 end restrict
 
 /-- **§1.547 — the base `∏(X.targets)` of the slice is WELL-SUPPORTED.**  Every factor target of
