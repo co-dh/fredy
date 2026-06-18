@@ -4138,6 +4138,22 @@ theorem pairHom_commutes_restrict [HasPullbacks 𝒞] {X Y : PairObj 𝒞} (m : 
   subst hqt; subst htgt; subst hfh
   rw [hqe, hqf2]
 
+/-- **§1.547 — a `PairHom` IS a slice morphism (the bridge's morphism, packaged).**  By
+    `pairHom_commutes_restrict`, the underlying arrow `m.g` of a `PairHom m : X → Y` is an `OverHom`
+    in `Over (∏Y.targets)` from the REINDEXED slice object `reindexObj (listProdRestrict X° Y°)
+    (pairSliceObj X)` (= `⟨X.A, pairFactorMap X ≫ listProdRestrict⟩`) to `pairSliceObj Y`.  This is
+    the choice-free realisation of "`Â`-morphism ↦ slice morphism" along the §1.547 directed
+    transition (here the strict reindexing `reindexObj`, whose `r = listProdRestrict X° Y°` is the
+    base projection `∏X° → ∏Y°` built by decidable search).  It packages the full bridge object+map
+    over the common base `∏Y.targets`. -/
+def pairHomToSlice [HasPullbacks 𝒞] {X Y : PairObj 𝒞} (m : PairHom X Y) :
+    OverHom (reindexObj (listProdRestrict X.targets Y.targets (pairHom_targets_subset m))
+              (pairSliceObj X)) (pairSliceObj Y) :=
+  ⟨m.g, by
+    show m.g ≫ pairFactorMap Y
+        = pairFactorMap X ≫ listProdRestrict X.targets Y.targets (pairHom_targets_subset m)
+    exact pairHom_commutes_restrict m⟩
+
 end restrict
 
 /-- **§1.547 — the base `∏(X.targets)` of the slice is WELL-SUPPORTED.**  Every factor target of
