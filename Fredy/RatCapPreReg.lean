@@ -139,6 +139,54 @@ noncomputable def ratLaxTerminalData : LaxTerminalData (laxOfProjSystem' P) wher
     exact bcTranspose_inj (pj P hij)
       (term_uniq (bcTranspose (pj P hij) f) (bcTranspose (pj P hij) g))
 
+/-! ### `LaxProductData`
+
+  `g*((hp i).prod a b)`-maps transpose to `(a × b)`-maps in the fibre; `bcTranspose_natural`
+  carries `· ≫ map fst|snd` to `· ≫ fst|snd`, so the fibre product's joint-monicity (`pres`) and
+  pairing (`presPair`) push across via the transpose bijection. -/
+
+/-- Joint-monicity of a fibre binary product (from `pair_uniq`): two maps equal after `fst` and
+    after `snd` are equal. -/
+private theorem fibreProd_jointMono {i : ι} (a b : Over (P.pr i)) (z : Over (P.pr i))
+    (s t : z ⟶ (overHasBinaryProducts (P.pr i)).prod a b)
+    (hf : s ≫ (overHasBinaryProducts (P.pr i)).fst = t ≫ (overHasBinaryProducts (P.pr i)).fst)
+    (hs : s ≫ (overHasBinaryProducts (P.pr i)).snd = t ≫ (overHasBinaryProducts (P.pr i)).snd) :
+    s = t := by
+  letI : HasBinaryProducts (Over (P.pr i)) := overHasBinaryProducts (P.pr i)
+  have ht := (overHasBinaryProducts (P.pr i)).pair_uniq (t ≫ (overHasBinaryProducts (P.pr i)).fst)
+    (t ≫ (overHasBinaryProducts (P.pr i)).snd) t rfl rfl
+  have hsp := (overHasBinaryProducts (P.pr i)).pair_uniq (t ≫ (overHasBinaryProducts (P.pr i)).fst)
+    (t ≫ (overHasBinaryProducts (P.pr i)).snd) s hf hs
+  rw [hsp, ← ht]
+
+/-- **`LaxProductData (laxOfProjSystem' P)`.**  Per-fibre products `overHasBinaryProducts`; `pres`
+    (joint-monic preservation) and `presPair` (pairing preservation) via the adjunction transpose. -/
+noncomputable def ratLaxProductData : LaxProductData (laxOfProjSystem' P) where
+  hp i := overHasBinaryProducts (P.pr i)
+  pres {i j} hij a b z u v hf hs := by
+    letI : HasBinaryProducts (Over (P.pr i)) := overHasBinaryProducts (P.pr i)
+    -- transpose both projection-equalities (naturality), then fibre joint-monicity.
+    apply bcTranspose_inj (pj P hij)
+    refine fibreProd_jointMono P a b _ _ _ ?_ ?_
+    · exact (bcTranspose_natural (pj P hij) u _).symm.trans
+        ((congrArg (bcTranspose (pj P hij)) hf).trans (bcTranspose_natural (pj P hij) v _))
+    · exact (bcTranspose_natural (pj P hij) u _).symm.trans
+        ((congrArg (bcTranspose (pj P hij)) hs).trans (bcTranspose_natural (pj P hij) v _))
+  presPair {i j} hij a b z p q := by
+    letI : HasBinaryProducts (Over (P.pr i)) := overHasBinaryProducts (P.pr i)
+    -- transpose `p,q` into the fibre, pair, lift back.
+    let p' := bcTranspose (pj P hij) p
+    let q' := bcTranspose (pj P hij) q
+    refine ⟨bcLift (pj P hij) ((overHasBinaryProducts (P.pr i)).pair p' q'), ?_, ?_⟩
+    · apply bcTranspose_inj (pj P hij)
+      refine (bcTranspose_natural (pj P hij) _ _).trans ?_
+      rw [bcTranspose_bcLift (pj P hij)]
+      exact (overHasBinaryProducts (P.pr i)).fst_pair p' q'
+    · apply bcTranspose_inj (pj P hij)
+      refine (bcTranspose_natural (pj P hij) _ _).trans ?_
+      rw [bcTranspose_bcLift (pj P hij)]
+      exact (overHasBinaryProducts (P.pr i)).snd_pair p' q'
+
 end Bundles
 
 end Freyd.LaxColim
