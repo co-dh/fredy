@@ -3120,6 +3120,78 @@ theorem wRecon_wf {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairD
     wRecon x g dx ≫ dx.wf = survRecon x dx := by
   unfold wRecon; rw [Cat.assoc, dx.wgf, Cat.comp_id]
 
+/-- **Step 1 — `mProd` equalizes every cross constraint of `Z × X`.**  A cross constraint is
+    `(fst≫f.2, snd≫(hff▸f'.2))` for `f ∈ Z.F`, `f' ∈ X.F` of a common target.  `mProd ≫ fst = fst`
+    gives the LHS `= fst≫f.2`.  For the RHS, `f'` is by `dx.factorSplit` either Y-DERIVED (then
+    `dx.einv` carries it to `fst≫(Y-factor)`, and `g.compat`+`Z.distinct` match it to `f`) or a
+    SURVIVOR coordinate (then `dx.einv≫dx.e≫snd = snd`, `wRecon≫wf = survRecon`, and the colliding
+    survivor projection `survRecon_proj_coll` recovers `fst≫(chosen Z-factor) = fst≫f.2` by
+    `Z.distinct`). -/
+theorem mProd_equalizes {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :
+    ∀ p ∈ crossConstraints Z X, mProd x g dx ≫ p.2.1 = mProd x g dx ≫ p.2.2 := by
+  intro p hp
+  rcases List.mem_flatMap.1 hp with ⟨f, hf, hpf⟩
+  rcases List.mem_filterMap.1 hpf with ⟨f', hf', hpe⟩
+  by_cases hff : f.1 = f'.1
+  · rw [dif_pos hff] at hpe
+    -- `some ⟨f.1, (fst≫f.2, snd≫(hff▸f'.2))⟩ = some p`
+    cases hpe
+    show mProd x g dx ≫ fst ≫ f.2 = mProd x g dx ≫ snd ≫ (hff ▸ f'.2)
+    -- LHS `mProd ≫ fst ≫ f.2 = fst ≫ f.2`
+    have hL : mProd x g dx ≫ fst ≫ f.2 = fst ≫ f.2 := by
+      rw [← Cat.assoc]; unfold mProd; rw [fst_pair]
+    -- RHS `mProd ≫ snd ≫ (hff ▸ f'.2) = pair (fst≫g.g) wRecon ≫ dx.einv ≫ (hff ▸ f'.2)`
+    have hR0 : mProd x g dx ≫ snd ≫ (hff ▸ f'.2)
+        = pair (fst ≫ g.g) (wRecon x g dx) ≫ dx.einv ≫ (hff ▸ f'.2) := by
+      rw [← Cat.assoc]; unfold mProd; rw [snd_pair, Cat.assoc]
+    rw [hL, hR0]
+    -- now split `f'` by density
+    rcases dx.factorSplit f' hf' with ⟨gY, hgY, hgt, hge⟩ | ⟨k, hkt, hke⟩
+    · -- Y-DERIVED: `f'.2 = x.g ≫ (hgt ▸ gY.2)`.  Match `f` (in `Z.F`) to `gY` via `g.compat`+`Z.distinct`.
+      obtain ⟨q, hq, hqt, hqe⟩ := g.compat gY hgY  -- q ∈ Z.F, q.1 = gY.1, g.g ≫ gY.2 = hqt ▸ q.2
+      -- normalise away transports by casing on the target equalities
+      obtain ⟨ft, fm⟩ := f; obtain ⟨f't, f'm⟩ := f'; obtain ⟨gYt, gYm⟩ := gY; obtain ⟨qt, qm⟩ := q
+      simp only at hff hgt hqt hge hqe ⊢
+      cases hff; cases hgt; cases hqt
+      simp only at hge hqe ⊢
+      have hdist : fm = qm := Z.distinct ⟨ft, fm⟩ hf ⟨ft, qm⟩ hq rfl
+      -- goal: `fst ≫ fm = pair (fst≫g.g) wRecon ≫ dx.einv ≫ f'm`, with f'm = x.g ≫ gYm, fm = qm,
+      -- g.g ≫ gYm = qm
+      rw [hge, ← Cat.assoc dx.einv x.g gYm, einv_xg (Z := Z) x dx, ← Cat.assoc, fst_pair,
+        Cat.assoc, hqe, hdist]
+    · -- SURVIVOR: `f'.2 = dx.e ≫ snd ≫ dx.wf ≫ (hkt ▸ listProdProj dx.surv k)`.
+      -- target chain: f.1 = f'.1 = surv.get k; `f ∈ Z.F` ⇒ that coordinate COLLIDES.
+      have hftk : f.1 = dx.surv.get k := hff.trans hkt
+      have hcoll : collides Z (dx.surv.get k) = true :=
+        decide_eq_true (⟨f, hf, hftk⟩ : ∃ f ∈ Z.F, f.1 = dx.surv.get k)
+      -- normalise transports: case the target equalities
+      obtain ⟨ft, fm⟩ := f; obtain ⟨f't, f'm⟩ := f'
+      simp only at hff hkt hke hftk ⊢
+      cases hff; cases hkt
+      simp only at hke ⊢
+      -- now `f'm = dx.e ≫ snd ≫ dx.wf ≫ listProdProj dx.surv k`, `a = w.2`-transported.
+      -- `dx.einv ≫ f'm = snd ≫ dx.wf ≫ proj_k` (peel the density iso with `einv_e_snd`)
+      have heinv : dx.einv ≫ f'm = snd ≫ dx.wf ≫ listProdProj dx.surv k := by
+        rw [hke]
+        calc dx.einv ≫ dx.e ≫ snd ≫ dx.wf ≫ listProdProj dx.surv k
+            = (dx.einv ≫ dx.e ≫ snd) ≫ dx.wf ≫ listProdProj dx.surv k := by
+              rw [Cat.assoc, Cat.assoc]
+          _ = snd ≫ dx.wf ≫ listProdProj dx.surv k := by rw [einv_e_snd (Z := Z) x dx]
+      -- RHS reduction: `pair _ wRecon ≫ (dx.einv ≫ f'm) = pair _ wRecon ≫ snd ≫ wf ≫ proj_k`
+      rw [heinv, ← Cat.assoc (pair (fst ≫ g.g) (wRecon x g dx)) snd _, snd_pair,
+        ← Cat.assoc (wRecon x g dx) dx.wf _, wRecon_wf, survRecon_proj_coll x dx k hcoll]
+      -- goal: `fst ≫ fm = fst ≫ (pickArrow ..).1`; reduce to `fm = (pickArrow ..).1`.
+      congr 1
+      -- the chosen Z-factor to `surv.get k` equals `fm` (both Z-factors of target `surv.get k`).
+      obtain ⟨w, hw, hwt, hwe⟩ := (pickArrow Z (dx.surv.get k) hcoll).2
+      obtain ⟨wt, wm⟩ := w
+      simp only at hwt hwe ⊢
+      cases hwt
+      simp only at hwe ⊢
+      rw [hwe]
+      exact (Z.distinct ⟨dx.surv.get k, wm⟩ hw ⟨dx.surv.get k, fm⟩ hf rfl).symm
+  · rw [dif_neg hff] at hpe; exact absurd hpe (by simp)
+
 /-- The packaged absorption iso: hom/inv + the two round-trips + the leg-compat. -/
 structure ApexIso {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) where
   hom : (pairHasPullbacks.has g x).cone.pt.A ⟶
