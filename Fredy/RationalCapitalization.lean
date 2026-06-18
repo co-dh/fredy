@@ -2650,6 +2650,32 @@ def collReconstruct (Z : PairObj 𝒞) :
       pair (pickArrow Z T (h T (List.mem_cons_self))).1
            (collReconstruct Z l (fun S hS => h S (List.mem_cons_of_mem _ hS)))
 
+/-- All members of `dx.surv.filter (collides Z)` collide (`List.mem_filter`). -/
+theorem collFilter_all {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (dx : PairDense x) :
+    ∀ T ∈ dx.surv.filter (fun T => collides Z T), collides Z T = true :=
+  fun _ hT => (List.mem_filter.1 hT).2
+
+/-- **Reconstruct the full survivor product** `prod Z.A W' → listProd dx.surv`: the colliding block
+    from `fst ≫ collReconstruct`, the non-colliding block `W'` from `snd`; re-assembled by the
+    partition inverse. -/
+def survRecon {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (dx : PairDense x) :
+    prod Z.A (listProd (dx.surv.filter (fun T => !collides Z T))) ⟶ listProd dx.surv :=
+  pair (fst ≫ collReconstruct Z (dx.surv.filter (fun T => collides Z T)) (collFilter_all x dx))
+       snd
+  ≫ listProdPartitionInv (fun T => collides Z T) dx.surv
+
+/-- The reconstructed `dx.W`-coordinate: `survRecon ≫ dx.wg`. -/
+def wRecon {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :
+    prod Z.A (listProd (dx.surv.filter (fun T => !collides Z T))) ⟶ dx.W :=
+  survRecon x dx ≫ dx.wg
+
+/-- The reconstructed map into the binary product `Z.A × X.A`: `Z.A`-coordinate is `fst`; the
+    `X.A`-coordinate is `pair (fst ≫ g.g) wRecon ≫ dx.einv` (the density iso `prod Y.A dx.W ≅ X.A`
+    with the `Y.A`-part forced by the square to `fst ≫ g.g`). -/
+def mProd {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :
+    prod Z.A (listProd (dx.surv.filter (fun T => !collides Z T))) ⟶ prod Z.A X.A :=
+  pair fst (pair (fst ≫ g.g) (wRecon x g dx) ≫ dx.einv)
+
 /-- The packaged absorption iso: hom/inv + the two round-trips + the leg-compat. -/
 structure ApexIso {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) where
   hom : (pairHasPullbacks.has g x).cone.pt.A ⟶
