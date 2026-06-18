@@ -97,6 +97,26 @@ theorem cover_comp_iso' {𝒜 : Type w} [Cat.{w} 𝒜] {X Y Z : 𝒜} {f : X ⟶
   · rw [← Cat.assoc m gi w, hw1]
   · rw [Cat.assoc, hwm, hg2]
 
+/-- **Iso un-conjugation.**  If `i`, `j` are isos and `i ≫ f ≫ j` is an iso, then `f` is an iso
+    (`f = i⁻¹ ≫ (i ≫ f ≫ j) ≫ j⁻¹`, a composite of isos).  Used to strip the coherence isos that
+    flank `Functor.map` inside `pushHom`. -/
+theorem isIso_unconj {𝒜 : Type w} [Cat.{w} 𝒜] {W X Y Z : 𝒜}
+    {i : W ⟶ X} {f : X ⟶ Y} {j : Y ⟶ Z}
+    (hi : IsIso i) (hj : IsIso j) (h : IsIso (i ≫ f ≫ j)) : IsIso f := by
+  obtain ⟨ii, hi1, hi2⟩ := hi
+  obtain ⟨jj, hj1, hj2⟩ := hj
+  obtain ⟨w, hw1, hw2⟩ := h
+  -- inverse of `f` is `j ≫ w ≫ i`.
+  refine ⟨j ≫ w ≫ i, ?_, ?_⟩
+  · calc f ≫ j ≫ w ≫ i = (ii ≫ i) ≫ f ≫ j ≫ w ≫ i := by rw [hi2, Cat.id_comp]
+      _ = ii ≫ (i ≫ f ≫ j) ≫ w ≫ i := by simp only [Cat.assoc]
+      _ = ii ≫ Cat.id W ≫ i := by rw [← Cat.assoc (i ≫ f ≫ j), hw1]
+      _ = Cat.id X := by rw [Cat.id_comp, hi2]
+  · calc (j ≫ w ≫ i) ≫ f = j ≫ (w ≫ i ≫ f ≫ j) ≫ jj := by
+            simp only [Cat.assoc]; rw [hj1, Cat.comp_id]
+      _ = j ≫ Cat.id Z ≫ jj := by rw [hw2]
+      _ = Cat.id Y := by rw [Cat.id_comp, hj1]
+
 /-! ## Reflection of equalities/monos/covers/isos through the stage inclusion
 
   These mirror `homIncl_injective` / `colimHom_mono_reflects` / `homInclObj_cover_reflects` /
@@ -397,5 +417,37 @@ theorem homInclL_cover_of_stage
       ≫ isoInv (transApp_isIso L (D.refl i) hie y)) :=
     cover_comp_iso' c2 hi4
   exact @cover_precomp_iso _ _ _ _ _ _ hi1 _ c3
+
+/-- **Iso reflection (clean form).**  If `homInclL a g` is iso and transitions are conservative,
+    then `g` is iso.  `homInclL_isIso_reflects` gives a stage `e` with `pushHom g` iso; `pushHom` is
+    `map g` flanked by isos, so `map g` is iso, and `hcons` reflects to `g`.  Lax
+    `homInclObj_isIso_reflects`. -/
+theorem homInclL_isIso_reflects'
+    (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (φ : x ⟶ y),
+        IsIso (@Functor.map _ _ _ _ _ (L.functF hij) x y φ) → IsIso φ)
+    {i : ι} (x y : L.A i) (g : x ⟶ y)
+    (hiso : @IsIso (Obj L) (laxColimCat L hL) ⟨i, x⟩ ⟨i, y⟩
+      (homInclL L hL x y ⟨i, D.refl i, D.refl i⟩ (reflApp L x ≫ g ≫ isoInv (reflApp_isIso L y)))) :
+    IsIso g := by
+  obtain ⟨e, hae, hpiso⟩ := homInclL_isIso_reflects L hL x y ⟨i, D.refl i, D.refl i⟩
+    (reflApp L x ≫ g ≫ isoInv (reflApp_isIso L y)) hiso
+  apply hcons hae
+  -- `pushHom gᵣ = transApp ≫ (map gᵣ) ≫ isoInv transApp`; un-conjugate by the two isos.
+  have hi1 : IsIso (transApp L (D.refl i) hae x) := transApp_isIso L (D.refl i) hae x
+  have hi1' : IsIso (isoInv (transApp_isIso L (D.refl i) hae y)) :=
+    ⟨transApp L (D.refl i) hae y, inv_isoInv_comp _, isoInv_comp _⟩
+  have hmapr : IsIso (@Functor.map _ _ _ _ _ (L.functF hae) _ _
+      (reflApp L x ≫ g ≫ isoInv (reflApp_isIso L y))) := by
+    have := hpiso; unfold pushHom at this
+    exact isIso_unconj hi1 hi1' this
+  -- `map gᵣ = (map reflApp x) ≫ (map g) ≫ (map isoInv)`; un-conjugate again.
+  rw [@Functor.map_comp _ _ _ _ _ (L.functF hae) _ _ _ (reflApp L x) (g ≫ isoInv (reflApp_isIso L y)),
+      @Functor.map_comp _ _ _ _ _ (L.functF hae) _ _ _ g (isoInv (reflApp_isIso L y))] at hmapr
+  have hi2 : IsIso (@Functor.map _ _ _ _ _ (L.functF hae) _ _ (reflApp L x)) :=
+    @functor_preserves_iso _ _ _ _ _ (L.functF hae) _ _ (reflApp L x) (reflApp_isIso L x)
+  have hi3 : IsIso (@Functor.map _ _ _ _ _ (L.functF hae) _ _ (isoInv (reflApp_isIso L y))) :=
+    @functor_preserves_iso _ _ _ _ _ (L.functF hae) _ _ (isoInv (reflApp_isIso L y))
+      ⟨reflApp L y, inv_isoInv_comp _, isoInv_comp _⟩
+  exact isIso_unconj hi2 hi3 hmapr
 
 end Freyd.LaxColim
