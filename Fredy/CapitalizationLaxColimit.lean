@@ -824,6 +824,66 @@ theorem compAtL_indep {ip iq ir : ι} (xp : L.A ip) (xq : L.A iq) (xr : L.A ir)
   rw [compAtL_mono L hL xp xq xr a f b g hae₁ hbe₁ h1d,
       compAtL_mono L hL xp xq xr a f b g hae₂ hbe₂ h2d]
 
+/-! ### Raw composition of germ representatives, and its well-definedness -/
+
+/-- Raw composition of germ representatives: compose at the CHOSEN common bound `D.bound a.1 b.1`. -/
+noncomputable def homCompRawL {ip iq ir : ι} (xp : L.A ip) (xq : L.A iq) (xr : L.A ir)
+    (a : UpperBound D ip iq) (f : L.F a.2.1 xp ⟶ L.F a.2.2 xq)
+    (b : UpperBound D iq ir) (g : L.F b.2.1 xq ⟶ L.F b.2.2 xr) : HomColimL L hL xp xr :=
+  compAtL L hL xp xq xr a f b g (Classical.choose (D.bound a.1 b.1))
+    (Classical.choose_spec (D.bound a.1 b.1)).1 (Classical.choose_spec (D.bound a.1 b.1)).2
+
+/-- `homCompRawL` equals `compAtL` at ANY common bound (all bounds agree, `compAtL_indep`). -/
+theorem homCompRawL_eq_compAtL {ip iq ir : ι} (xp : L.A ip) (xq : L.A iq) (xr : L.A ir)
+    (a : UpperBound D ip iq) (f : L.F a.2.1 xp ⟶ L.F a.2.2 xq)
+    (b : UpperBound D iq ir) (g : L.F b.2.1 xq ⟶ L.F b.2.2 xr)
+    (e : ι) (hae : D.le a.1 e) (hbe : D.le b.1 e) :
+    homCompRawL L hL xp xq xr a f b g = compAtL L hL xp xq xr a f b g e hae hbe :=
+  compAtL_indep L hL xp xq xr a f b g _ _ hae hbe
+
+/-- Pushing the LEFT germ's representative up to a higher bound doesn't change the composite. -/
+theorem homCompRawL_push_left {ip iq ir : ι} (xp : L.A ip) (xq : L.A iq) (xr : L.A ir)
+    (a a₂ : UpperBound D ip iq) (h : D.le a.1 a₂.1) (f : L.F a.2.1 xp ⟶ L.F a.2.2 xq)
+    (b : UpperBound D iq ir) (g : L.F b.2.1 xq ⟶ L.F b.2.2 xr) :
+    homCompRawL L hL xp xq xr a₂ (pushHom L xp xq a.2.1 a.2.2 h f) b g
+      = homCompRawL L hL xp xq xr a f b g := by
+  obtain ⟨M, ha₂M, hbM⟩ := D.bound a₂.1 b.1
+  rw [homCompRawL_eq_compAtL L hL xp xq xr a₂ (pushHom L xp xq a.2.1 a.2.2 h f) b g M ha₂M hbM,
+      homCompRawL_eq_compAtL L hL xp xq xr a f b g M (D.trans h ha₂M) hbM]
+  unfold compAtL
+  rw [hL.push_trans xp xq a.2.1 a.2.2 h ha₂M f]
+
+/-- Pushing the RIGHT germ's representative up to a higher bound doesn't change the composite. -/
+theorem homCompRawL_push_right {ip iq ir : ι} (xp : L.A ip) (xq : L.A iq) (xr : L.A ir)
+    (a : UpperBound D ip iq) (f : L.F a.2.1 xp ⟶ L.F a.2.2 xq)
+    (b b₂ : UpperBound D iq ir) (h : D.le b.1 b₂.1) (g : L.F b.2.1 xq ⟶ L.F b.2.2 xr) :
+    homCompRawL L hL xp xq xr a f b₂ (pushHom L xq xr b.2.1 b.2.2 h g)
+      = homCompRawL L hL xp xq xr a f b g := by
+  obtain ⟨M, haM, hb₂M⟩ := D.bound a.1 b₂.1
+  rw [homCompRawL_eq_compAtL L hL xp xq xr a f b₂ (pushHom L xq xr b.2.1 b.2.2 h g) M haM hb₂M,
+      homCompRawL_eq_compAtL L hL xp xq xr a f b g M haM (D.trans h hb₂M)]
+  unfold compAtL
+  rw [hL.push_trans xq xr b.2.1 b.2.2 h hb₂M g]
+
+/-- Raw composition respects germ equivalence on BOTH arguments (well-definedness): push each
+    representative up to its germ-witness level (`push_left`/`push_right`), where they agree. -/
+theorem homCompRawL_wd {ip iq ir : ι} (xp : L.A ip) (xq : L.A iq) (xr : L.A ir)
+    (a : UpperBound D ip iq) (f : L.F a.2.1 xp ⟶ L.F a.2.2 xq)
+    (a' : UpperBound D ip iq) (f' : L.F a'.2.1 xp ⟶ L.F a'.2.2 xq)
+    (hP : Rel (homSystemL L hL xp xq) ⟨a, f⟩ ⟨a', f'⟩)
+    (b : UpperBound D iq ir) (g : L.F b.2.1 xq ⟶ L.F b.2.2 xr)
+    (b' : UpperBound D iq ir) (g' : L.F b'.2.1 xq ⟶ L.F b'.2.2 xr)
+    (hQ : Rel (homSystemL L hL xq xr) ⟨b, g⟩ ⟨b', g'⟩) :
+    homCompRawL L hL xp xq xr a f b g = homCompRawL L hL xp xq xr a' f' b' g' := by
+  obtain ⟨k, hak, ha'k, hf⟩ := hP
+  obtain ⟨l, hbl, hb'l, hg⟩ := hQ
+  have hf' : pushHom L xp xq a.2.1 a.2.2 hak f = pushHom L xp xq a'.2.1 a'.2.2 ha'k f' := hf
+  have hg' : pushHom L xq xr b.2.1 b.2.2 hbl g = pushHom L xq xr b'.2.1 b'.2.2 hb'l g' := hg
+  rw [← homCompRawL_push_left L hL xp xq xr a k hak f b g, hf',
+      homCompRawL_push_left L hL xp xq xr a' k ha'k f' b g,
+      ← homCompRawL_push_right L hL xp xq xr a' f' b l hbl g, hg',
+      homCompRawL_push_right L hL xp xq xr a' f' b' l hb'l g']
+
 end HomColim
 
 end Freyd.LaxColim
