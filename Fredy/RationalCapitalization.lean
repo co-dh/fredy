@@ -410,33 +410,27 @@ theorem MonicDense.leg_mono [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPull
 
   `MonicDense` (members ↔ monics) suffices for the all-monics class but is FALSE for a proper
   dense class such as `pairDenseClass` (not every `Â`-monic is a product projection).  The §1.48
-  calculus-of-fractions proofs use exactly ONE property of `denseMonos` beyond the bare `DenseClass`
-  record: a roof leg `r`, which is only known dense AFTER composing with a denominator
-  (`𝒟.mem (r ≫ d)`, the `FractionEquiv` field), is itself dense — i.e. **dense roof legs are dense**.
-  Concretely the transitivity/congruence/associativity proofs rebuild the comparison roof by
-  pulling the bare leg `r` back along a projection; `pb_mem` then needs `𝒟.mem r`, NOT just
-  `𝒟.mem (r ≫ d)`.  We isolate this as `DenseRoof`:
+  calculus-of-fractions proofs need exactly ONE property of `denseMonos` beyond the bare `DenseClass`
+  record: **members are monic** (`pairDenseClass_mem_mono` for the pairs class).  We isolate this as
 
-      `roof_mem : 𝒟.mem (r ≫ d) → 𝒟.mem d → 𝒟.mem r`
+      `DenseRoof 𝒟 := ∀ f, 𝒟.mem f → Mono f`
 
-  the §1.48 **right-cancellation / left-saturation** of a dense class (dense ÷ dense = dense).  For
-  `denseMonos` it is `mono_of_comp_mono` (a left-factor of a monic is monic) plus `mem ↔ Mono`, so
-  `denseMonos` is `DenseRoof` (`denseMonos_denseRoof`).  This is the genuine left-calculus-of-fractions
-  hypothesis — strictly weaker than `MonicDense` (it does not assert `Mono → mem`), so it is the right
-  abstraction to feed `pairDenseClass`.  See `denseRoof_*` below for the generalised skeleton. -/
+  the §1.48/§1.481 "dense class of monics" hypothesis.  Crucially the comparison roofs are rebuilt by
+  pulling back the dense DENOMINATORS (which are MEMBERS, `mem(r ≫ d)` is the `FractionEquiv` field)
+  over the common target — never a bare roof leg — so density stays inside `pb_mem`/`comp_mem`; the
+  one cancellation step (recovering equality of the inner legs from equality-after-a-denominator) uses
+  members being monic.  This is STRICTLY WEAKER than `MonicDense` (no `Mono → mem`), and holds for
+  `pairDenseClass` (`pairDense_denseRoof`).  No saturation/Ore condition beyond the `DenseClass`
+  record is needed — the standard left-calculus-of-fractions. -/
 structure DenseRoof [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] (𝒟 : DenseClass 𝒞) :
     Prop where
   /-- members are monic (`pairDenseClass_mem_mono` for the pairs class) -/
   mem_mono : ∀ {A B : 𝒞} (f : A ⟶ B), 𝒟.mem f → Mono f
-  /-- §1.48 right-cancellation: if `r ≫ d` and `d` are dense then `r` is dense. -/
-  roof_mem : ∀ {A B C : 𝒞} {r : A ⟶ B} {d : B ⟶ C}, 𝒟.mem (r ≫ d) → 𝒟.mem d → 𝒟.mem r
 
-/-- A `MonicDense` class is `DenseRoof`: `mem_mono` is the forward biconditional; `roof_mem` is
-    `mono_of_comp_mono` (left-factor of a monic is monic) repackaged via `mem ↔ Mono`. -/
+/-- A `MonicDense` class is `DenseRoof`: `mem_mono` is the forward biconditional. -/
 theorem MonicDense.toDenseRoof [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
     {𝒟 : DenseClass 𝒞} (hD : MonicDense 𝒟) : DenseRoof 𝒟 where
   mem_mono _ h := (hD.mem_iff_mono _).1 h
-  roof_mem h _ := (hD.mem_iff_mono _).2 (mono_of_comp_mono ((hD.mem_iff_mono _).1 h))
 
 /-- `denseMonos` is `DenseRoof`. -/
 theorem denseMonos_denseRoof [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] :
@@ -462,37 +456,36 @@ theorem fractionEquiv_trans {𝒟 : DenseClass 𝒞} (hD : DenseRoof 𝒟) {A B 
     (h₁₂ : FractionEquiv f₁ f₂) (h₂₃ : FractionEquiv f₂ f₃) : FractionEquiv f₁ f₃ := by
   obtain ⟨R, r₁, r₂, hRd, hRden, hRnum⟩ := h₁₂
   obtain ⟨S, s₂, s₃, hSd, hSden, hSnum⟩ := h₂₃
-  -- pullback of the two middle legs `r₂ : R → f₂.apex` and `s₂ : S → f₂.apex`
-  let P := (HasPullbacks.has r₂ s₂).cone
+  -- §1.48 left-calculus: pull back the DENSE DENOMINATORS `r₁≫f₁.denom : R → A` and
+  -- `s₃≫f₃.denom : S → A` over `A` (both MEMBERS).  `P.π₁` = pb of the member `s₃≫f₃.denom` is a
+  -- member (`pb_mem`); the new roof denom `(P.π₁≫r₁)≫f₁.denom = P.π₁≫(member)` is a member.
+  let P := (HasPullbacks.has (r₁ ≫ f₁.denom) (s₃ ≫ f₃.denom)).cone
+  have hPw : P.π₁ ≫ (r₁ ≫ f₁.denom) = P.π₂ ≫ (s₃ ≫ f₃.denom) := P.w
   refine ⟨P.pt, P.π₁ ≫ r₁, P.π₂ ≫ s₃, ?_, ?_, ?_⟩
-  · -- composite denominator `(P.π₁ ≫ r₁) ≫ f₁.denom` dense, WITHIN the dense-class interface:
-    -- `r₁` dense (`roof_mem` from `mem(r₁≫f₁.denom)`, `mem f₁.denom`); `s₂` dense likewise; `P.π₁`
-    -- the pullback of dense `s₂` (`pb_mem`); composite dense (`comp_mem` ×2 with `f₁.denom`).
-    have hr₁ : 𝒟.mem r₁ := hD.roof_mem hRd f₁.denom_dense
-    have hs₂ : 𝒟.mem s₂ := hD.roof_mem hSd f₂.denom_dense
-    have hP₁ : 𝒟.mem P.π₁ := 𝒟.pb_mem s₂ r₂ hs₂
-    rw [Cat.assoc]
-    exact 𝒟.comp_mem P.π₁ (r₁ ≫ f₁.denom) hP₁ (𝒟.comp_mem r₁ f₁.denom hr₁ f₁.denom_dense)
-  · -- denominators agree: `(P.π₁ ≫ r₁) ≫ f₁.denom = (P.π₂ ≫ s₃) ≫ f₃.denom`.
-    -- Chase: `P.π₁ ≫ r₁ ≫ f₁.denom = P.π₁ ≫ r₂ ≫ f₂.denom` (hRden)
-    --        `= P.π₂ ≫ s₂ ≫ f₂.denom` (pullback square `P.cone.w` ▸)
-    --        `= P.π₂ ≫ s₃ ≫ f₃.denom` (hSden).
-    have hw : P.π₁ ≫ r₂ = P.π₂ ≫ s₂ := P.w
-    calc (P.π₁ ≫ r₁) ≫ f₁.denom
-        = P.π₁ ≫ (r₁ ≫ f₁.denom) := by rw [Cat.assoc]
-      _ = P.π₁ ≫ (r₂ ≫ f₂.denom) := by rw [hRden]
-      _ = (P.π₁ ≫ r₂) ≫ f₂.denom := by rw [Cat.assoc]
-      _ = (P.π₂ ≫ s₂) ≫ f₂.denom := by rw [hw]
-      _ = P.π₂ ≫ (s₂ ≫ f₂.denom) := by rw [Cat.assoc]
-      _ = P.π₂ ≫ (s₃ ≫ f₃.denom) := by rw [hSden]
+  · -- denom is a member: `(P.π₁≫r₁)≫f₁.denom = P.π₁≫(r₁≫f₁.denom)`, `P.π₁` member, comp member.
+    have hSd' : 𝒟.mem (s₃ ≫ f₃.denom) := by rw [← hSden]; exact hSd
+    have hP₁ : 𝒟.mem P.π₁ := 𝒟.pb_mem (s₃ ≫ f₃.denom) (r₁ ≫ f₁.denom) hSd'
+    rw [Cat.assoc]; exact 𝒟.comp_mem P.π₁ (r₁ ≫ f₁.denom) hP₁ hRd
+  · -- denominators agree by `P`'s pullback square (definitionally the two member-denoms).
+    calc (P.π₁ ≫ r₁) ≫ f₁.denom = P.π₁ ≫ (r₁ ≫ f₁.denom) := by rw [Cat.assoc]
+      _ = P.π₂ ≫ (s₃ ≫ f₃.denom) := hPw
       _ = (P.π₂ ≫ s₃) ≫ f₃.denom := by rw [Cat.assoc]
-  · -- numerators agree: same chase via the numerator squares `hRnum`/`hSnum`.
-    have hw : P.π₁ ≫ r₂ = P.π₂ ≫ s₂ := P.w
+  · -- numerators agree.  Cancel `f₂.denom` (MONIC member) from the square to relate the inner legs.
+    have hd₂ : Mono f₂.denom := hD.mem_mono _ f₂.denom_dense
+    -- `P.π₁≫r₂≫f₂.denom = P.π₁≫r₁≫f₁.denom = P.π₂≫s₃≫f₃.denom = P.π₂≫s₂≫f₂.denom`
+    have hmid : (P.π₁ ≫ r₂) ≫ f₂.denom = (P.π₂ ≫ s₂) ≫ f₂.denom := by
+      calc (P.π₁ ≫ r₂) ≫ f₂.denom
+          = P.π₁ ≫ (r₂ ≫ f₂.denom) := by rw [Cat.assoc]
+        _ = P.π₁ ≫ (r₁ ≫ f₁.denom) := congrArg (P.π₁ ≫ ·) hRden.symm
+        _ = P.π₂ ≫ (s₃ ≫ f₃.denom) := hPw
+        _ = P.π₂ ≫ (s₂ ≫ f₂.denom) := congrArg (P.π₂ ≫ ·) hSden.symm
+        _ = (P.π₂ ≫ s₂) ≫ f₂.denom := by rw [Cat.assoc]
+    have hleg : P.π₁ ≫ r₂ = P.π₂ ≫ s₂ := hd₂ _ _ hmid
     calc (P.π₁ ≫ r₁) ≫ f₁.num
         = P.π₁ ≫ (r₁ ≫ f₁.num) := by rw [Cat.assoc]
       _ = P.π₁ ≫ (r₂ ≫ f₂.num) := by rw [hRnum]
       _ = (P.π₁ ≫ r₂) ≫ f₂.num := by rw [Cat.assoc]
-      _ = (P.π₂ ≫ s₂) ≫ f₂.num := by rw [hw]
+      _ = (P.π₂ ≫ s₂) ≫ f₂.num := by rw [hleg]
       _ = P.π₂ ≫ (s₂ ≫ f₂.num) := by rw [Cat.assoc]
       _ = P.π₂ ≫ (s₃ ≫ f₃.num) := by rw [hSnum]
       _ = (P.π₂ ≫ s₃) ≫ f₃.num := by rw [Cat.assoc]
@@ -584,26 +577,30 @@ theorem compFraction_congr_right {𝒟 : DenseClass 𝒞} (hD : DenseRoof 𝒟) 
   obtain ⟨S, s, s', hSd, hSden, hSnum⟩ := hg
   let Q := (HasPullbacks.has f.num g.denom).cone
   let Q' := (HasPullbacks.has f.num g'.denom).cone
-  -- `R := pb(Q.π₂, s)` over `g.apex`
-  let R := (HasPullbacks.has Q.π₂ s).cone
-  -- comparison cone into `Q'`
+  -- §1.48 left-calculus: pull `Q`'s `B`-leg `Q.π₁ ≫ f.num` back against the MEMBER `s ≫ g.denom`
+  -- over `B`.  `R.π₁` = pb of the member is a member (`pb_mem`); the roof denom stays in `𝒟`.
+  let R := (HasPullbacks.has (Q.π₁ ≫ f.num) (s ≫ g.denom)).cone
+  have hRw : R.π₁ ≫ (Q.π₁ ≫ f.num) = R.π₂ ≫ (s ≫ g.denom) := R.w
+  -- `R.π₁ ≫ Q.π₂ = R.π₂ ≫ s` after cancelling the MONIC member `g.denom`.
+  have hd : Mono g.denom := hD.mem_mono _ g.denom_dense
+  have hleg : R.π₁ ≫ Q.π₂ = R.π₂ ≫ s := by
+    apply hd
+    calc (R.π₁ ≫ Q.π₂) ≫ g.denom = R.π₁ ≫ (Q.π₂ ≫ g.denom) := by rw [Cat.assoc]
+      _ = R.π₁ ≫ (Q.π₁ ≫ f.num) := by rw [← Q.w]
+      _ = R.π₂ ≫ (s ≫ g.denom) := hRw
+      _ = (R.π₂ ≫ s) ≫ g.denom := by rw [Cat.assoc]
+  -- comparison cone into `Q'`: `(R.π₁ ≫ Q.π₁, R.π₂ ≫ s')`, square via `hRw`/`hSden`.
   have sq : (R.π₁ ≫ Q.π₁) ≫ f.num = (R.π₂ ≫ s') ≫ g'.denom := by
-    calc (R.π₁ ≫ Q.π₁) ≫ f.num
-        = R.π₁ ≫ (Q.π₁ ≫ f.num) := by rw [Cat.assoc]
-      _ = R.π₁ ≫ (Q.π₂ ≫ g.denom) := by rw [Q.w]
-      _ = (R.π₁ ≫ Q.π₂) ≫ g.denom := by rw [Cat.assoc]
-      _ = (R.π₂ ≫ s) ≫ g.denom := by rw [R.w]
-      _ = R.π₂ ≫ (s ≫ g.denom) := by rw [Cat.assoc]
-      _ = R.π₂ ≫ (s' ≫ g'.denom) := by rw [hSden]
+    calc (R.π₁ ≫ Q.π₁) ≫ f.num = R.π₁ ≫ (Q.π₁ ≫ f.num) := by rw [Cat.assoc]
+      _ = R.π₂ ≫ (s ≫ g.denom) := hRw
+      _ = R.π₂ ≫ (s' ≫ g'.denom) := congrArg (R.π₂ ≫ ·) hSden
       _ = (R.π₂ ≫ s') ≫ g'.denom := by rw [Cat.assoc]
   let ρ' := (HasPullbacks.has f.num g'.denom).lift ⟨R.pt, R.π₁ ≫ Q.π₁, R.π₂ ≫ s', sq⟩
   have hρ'1 : ρ' ≫ Q'.π₁ = R.π₁ ≫ Q.π₁ := (HasPullbacks.has f.num g'.denom).lift_fst _
   have hρ'2 : ρ' ≫ Q'.π₂ = R.π₂ ≫ s' := (HasPullbacks.has f.num g'.denom).lift_snd _
   refine ⟨R.pt, R.π₁, ρ', ?_, ?_, ?_⟩
-  · -- dense WITHIN the interface: `s` dense (`roof_mem` from `mem(s≫g.denom)`, `mem g.denom`),
-    -- `R.π₁ = pb(s)` dense (`pb_mem`), composite dense with `compFraction.denom_dense`.
-    have hs : 𝒟.mem s := hD.roof_mem hSd g.denom_dense
-    have hR₁ : 𝒟.mem R.π₁ := 𝒟.pb_mem s Q.π₂ hs
+  · -- dense WITHIN the interface: `R.π₁ = pb(member s≫g.denom)` is a member; comp with `Q`'s denom.
+    have hR₁ : 𝒟.mem R.π₁ := 𝒟.pb_mem (s ≫ g.denom) (Q.π₁ ≫ f.num) hSd
     show 𝒟.mem (R.π₁ ≫ (Q.π₁ ≫ f.denom))
     exact 𝒟.comp_mem R.π₁ (Q.π₁ ≫ f.denom) hR₁ (compFraction 𝒟 f g).denom_dense
   · -- denoms agree
@@ -616,7 +613,7 @@ theorem compFraction_congr_right {𝒟 : DenseClass 𝒞} (hD : DenseRoof 𝒟) 
     show R.π₁ ≫ (Q.π₂ ≫ g.num) = ρ' ≫ (Q'.π₂ ≫ g'.num)
     calc R.π₁ ≫ (Q.π₂ ≫ g.num)
         = (R.π₁ ≫ Q.π₂) ≫ g.num := by rw [Cat.assoc]
-      _ = (R.π₂ ≫ s) ≫ g.num := by rw [R.w]
+      _ = (R.π₂ ≫ s) ≫ g.num := by rw [hleg]
       _ = R.π₂ ≫ (s ≫ g.num) := by rw [Cat.assoc]
       _ = R.π₂ ≫ (s' ≫ g'.num) := by rw [hSnum]
       _ = (R.π₂ ≫ s') ≫ g'.num := by rw [Cat.assoc]
@@ -633,15 +630,24 @@ theorem compFraction_congr_left {𝒟 : DenseClass 𝒞} (hD : DenseRoof 𝒟) {
   obtain ⟨T, t, t', hTd, hTden, hTnum⟩ := hf
   let Q := (HasPullbacks.has f.num g.denom).cone
   let Q' := (HasPullbacks.has f'.num g.denom).cone
-  -- `R := pb(Q.π₁, t)` over `f.apex`
-  let R := (HasPullbacks.has Q.π₁ t).cone
-  -- comparison cone into `Q'`
+  -- §1.48 left-calculus: pull `Q`'s denom `Q.π₁ ≫ f.denom : Q → A` back against the MEMBER
+  -- `t ≫ f.denom : T → A` over `A`.  `R.π₁` = pb of the member is a member (`pb_mem`).
+  let R := (HasPullbacks.has (Q.π₁ ≫ f.denom) (t ≫ f.denom)).cone
+  have hRw : R.π₁ ≫ (Q.π₁ ≫ f.denom) = R.π₂ ≫ (t ≫ f.denom) := R.w
+  -- `R.π₁ ≫ Q.π₁ = R.π₂ ≫ t` after cancelling the MONIC member `f.denom`.
+  have hd : Mono f.denom := hD.mem_mono _ f.denom_dense
+  have hleg : R.π₁ ≫ Q.π₁ = R.π₂ ≫ t := by
+    apply hd
+    calc (R.π₁ ≫ Q.π₁) ≫ f.denom = R.π₁ ≫ (Q.π₁ ≫ f.denom) := by rw [Cat.assoc]
+      _ = R.π₂ ≫ (t ≫ f.denom) := hRw
+      _ = (R.π₂ ≫ t) ≫ f.denom := by rw [Cat.assoc]
+  -- comparison cone into `Q'`: `(R.π₂ ≫ t', R.π₁ ≫ Q.π₂)`.
   have sq : (R.π₂ ≫ t') ≫ f'.num = (R.π₁ ≫ Q.π₂) ≫ g.denom := by
     calc (R.π₂ ≫ t') ≫ f'.num
         = R.π₂ ≫ (t' ≫ f'.num) := by rw [Cat.assoc]
       _ = R.π₂ ≫ (t ≫ f.num) := by rw [hTnum]
       _ = (R.π₂ ≫ t) ≫ f.num := by rw [Cat.assoc]
-      _ = (R.π₁ ≫ Q.π₁) ≫ f.num := by rw [R.w]
+      _ = (R.π₁ ≫ Q.π₁) ≫ f.num := by rw [hleg]
       _ = R.π₁ ≫ (Q.π₁ ≫ f.num) := by rw [Cat.assoc]
       _ = R.π₁ ≫ (Q.π₂ ≫ g.denom) := by rw [Q.w]
       _ = (R.π₁ ≫ Q.π₂) ≫ g.denom := by rw [Cat.assoc]
@@ -649,19 +655,15 @@ theorem compFraction_congr_left {𝒟 : DenseClass 𝒞} (hD : DenseRoof 𝒟) {
   have hρ'1 : ρ' ≫ Q'.π₁ = R.π₂ ≫ t' := (HasPullbacks.has f'.num g.denom).lift_fst _
   have hρ'2 : ρ' ≫ Q'.π₂ = R.π₁ ≫ Q.π₂ := (HasPullbacks.has f'.num g.denom).lift_snd _
   refine ⟨R.pt, R.π₁, ρ', ?_, ?_, ?_⟩
-  · -- dense WITHIN the interface: `t` dense (`roof_mem` from `mem(t≫f.denom)`, `mem f.denom`),
-    -- `R.π₁ = pb(t)` dense (`pb_mem`), composite dense with `compFraction.denom_dense`.
-    have ht : 𝒟.mem t := hD.roof_mem hTd f.denom_dense
-    have hR₁ : 𝒟.mem R.π₁ := 𝒟.pb_mem t Q.π₁ ht
+  · -- dense WITHIN the interface: `R.π₁ = pb(member t≫f.denom)` is a member; comp with `Q`'s denom.
+    have hR₁ : 𝒟.mem R.π₁ := 𝒟.pb_mem (t ≫ f.denom) (Q.π₁ ≫ f.denom) hTd
     show 𝒟.mem (R.π₁ ≫ (Q.π₁ ≫ f.denom))
     exact 𝒟.comp_mem R.π₁ (Q.π₁ ≫ f.denom) hR₁ (compFraction 𝒟 f g).denom_dense
   · -- denoms agree
     show R.π₁ ≫ (Q.π₁ ≫ f.denom) = ρ' ≫ (Q'.π₁ ≫ f'.denom)
     calc R.π₁ ≫ (Q.π₁ ≫ f.denom)
-        = (R.π₁ ≫ Q.π₁) ≫ f.denom := by rw [Cat.assoc]
-      _ = (R.π₂ ≫ t) ≫ f.denom := by rw [R.w]
-      _ = R.π₂ ≫ (t ≫ f.denom) := by rw [Cat.assoc]
-      _ = R.π₂ ≫ (t' ≫ f'.denom) := by rw [hTden]
+        = R.π₂ ≫ (t ≫ f.denom) := hRw
+      _ = R.π₂ ≫ (t' ≫ f'.denom) := congrArg (R.π₂ ≫ ·) hTden
       _ = (R.π₂ ≫ t') ≫ f'.denom := by rw [Cat.assoc]
       _ = (ρ' ≫ Q'.π₁) ≫ f'.denom := by rw [hρ'1]
       _ = ρ' ≫ (Q'.π₁ ≫ f'.denom) := by rw [Cat.assoc]
