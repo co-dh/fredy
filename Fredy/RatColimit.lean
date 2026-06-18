@@ -164,4 +164,75 @@ noncomputable def equivFunctor_hasBinaryProducts {F : 𝒞 → 𝒟} [hF : Funct
       _ = (hF.map h ≫ prodPreι hri A B) ≫ prodPreι' hri A B := (Cat.assoc _ _ _).symm
       _ = pair (hF.map f) (hF.map g) ≫ prodPreι' hri A B := by rw [key]
 
+/-! ## Pullbacks transport
+
+  For a cospan `f : A ⟶ C`, `g : B ⟶ C`, take the representative-image preimage `P` of the 𝒟
+  pullback of `(F f, F g)` (iso `ι : F P ≅ Pull`, inverse `ι'`).  The cone legs are the
+  fullness-preimages of `ι ≫ 𝒟π₁`, `ι ≫ 𝒟π₂`; the square commutes by `emb`.  Any 𝒞-cone `c` maps
+  (via `F`) to a 𝒟-cone over `(F f, F g)`; its 𝒟-lift, transported through `ι'` and pulled back by
+  fullness, is the 𝒞-lift.  Universality is `emb`/faithfulness from the 𝒟-pullback's. -/
+
+/-- The chosen 𝒟-pullback cone of `(F f, F g)`. -/
+noncomputable def pbDCone {F : 𝒞 → 𝒟} [hF : Functor F] [HasPullbacks 𝒟]
+    {A B C : 𝒞} (f : A ⟶ C) (g : B ⟶ C) : Cone (hF.map f) (hF.map g) :=
+  (HasPullbacks.has (hF.map f) (hF.map g)).cone
+
+/-- The image, under a functor, of a 𝒞-cone over `(f, g)`, as a 𝒟-cone over `(F f, F g)`. -/
+def mapCone {F : 𝒞 → 𝒟} [hF : Functor F] {A B C : 𝒞} {f : A ⟶ C} {g : B ⟶ C}
+    (c : Cone f g) : Cone (hF.map f) (hF.map g) :=
+  ⟨F c.pt, hF.map c.π₁, hF.map c.π₂, by rw [← hF.map_comp, ← hF.map_comp, c.w]⟩
+
+/-- **`HasPullbacks` transports backward across an `EquivalenceFunctor`.** -/
+noncomputable def equivFunctor_hasPullbacks {F : 𝒞 → 𝒟} [hF : Functor F]
+    (emb : Embedding F) (full : Full F) (hri : HasRepresentativeImage F)
+    [hpull : HasPullbacks 𝒟] : HasPullbacks 𝒞 where
+  has {A B C} f g := by
+    -- `P` = preimage of the 𝒟-pullback apex; `ι : F P ≅ pbD.pt`.
+    let pbD := pbDCone (F := F) f g
+    let P : 𝒞 := (hri pbD.pt).choose
+    let ι : F P ⟶ pbD.pt := (hri pbD.pt).choose_spec.choose
+    let ι' : pbD.pt ⟶ F P := (hri pbD.pt).choose_spec.choose_spec.choose
+    have hιι' : ι ≫ ι' = Cat.id _ := (hri pbD.pt).choose_spec.choose_spec.choose_spec.1
+    have hι'ι : ι' ≫ ι = Cat.id _ := (hri pbD.pt).choose_spec.choose_spec.choose_spec.2
+    -- the cone legs as fullness-preimages of `ι ≫ 𝒟π₁`, `ι ≫ 𝒟π₂`.
+    let p₁ : P ⟶ A := (full (ι ≫ pbD.π₁)).choose
+    let p₂ : P ⟶ B := (full (ι ≫ pbD.π₂)).choose
+    have hp₁ : hF.map p₁ = ι ≫ pbD.π₁ := (full (ι ≫ pbD.π₁)).choose_spec
+    have hp₂ : hF.map p₂ = ι ≫ pbD.π₂ := (full (ι ≫ pbD.π₂)).choose_spec
+    have hw : p₁ ≫ f = p₂ ≫ g := by
+      apply emb
+      rw [hF.map_comp, hF.map_comp, hp₁, hp₂, Cat.assoc, Cat.assoc, pbD.w]
+    refine
+      { cone := ⟨P, p₁, p₂, hw⟩
+        lift := fun c => (full ((HasPullbacks.has (hF.map f) (hF.map g)).lift (mapCone c) ≫ ι')).choose
+        lift_fst := fun c => ?_
+        lift_snd := fun c => ?_
+        lift_uniq := fun c v h₁ h₂ => ?_ }
+    · -- (lift c) ≫ p₁ = c.π₁ : apply `emb`, push through F.
+      apply emb
+      rw [hF.map_comp, (full ((HasPullbacks.has (hF.map f) (hF.map g)).lift (mapCone c) ≫ ι')).choose_spec,
+        hp₁, Cat.assoc, ← Cat.assoc ι', hι'ι, Cat.id_comp]
+      exact (HasPullbacks.has (hF.map f) (hF.map g)).lift_fst (mapCone c)
+    · apply emb
+      rw [hF.map_comp, (full ((HasPullbacks.has (hF.map f) (hF.map g)).lift (mapCone c) ≫ ι')).choose_spec,
+        hp₂, Cat.assoc, ← Cat.assoc ι', hι'ι, Cat.id_comp]
+      exact (HasPullbacks.has (hF.map f) (hF.map g)).lift_snd (mapCone c)
+    · -- uniqueness: F v ≫ ι is the 𝒟-lift of (mapCone c), so v = the preimage.
+      apply emb
+      rw [(full ((HasPullbacks.has (hF.map f) (hF.map g)).lift (mapCone c) ≫ ι')).choose_spec]
+      -- show F v = 𝒟-lift ≫ ι' by right-cancelling ι: F v ≫ ι = 𝒟-lift.
+      have hFv₁ := congrArg hF.map h₁
+      have hFv₂ := congrArg hF.map h₂
+      rw [hF.map_comp, hp₁] at hFv₁
+      rw [hF.map_comp, hp₂] at hFv₂
+      have hlift : hF.map v ≫ ι = (HasPullbacks.has (hF.map f) (hF.map g)).lift (mapCone c) := by
+        apply (HasPullbacks.has (hF.map f) (hF.map g)).lift_uniq (mapCone c)
+        · show (hF.map v ≫ ι) ≫ pbD.π₁ = (mapCone c).π₁
+          rw [Cat.assoc]; exact hFv₁
+        · show (hF.map v ≫ ι) ≫ pbD.π₂ = (mapCone c).π₂
+          rw [Cat.assoc]; exact hFv₂
+      calc hF.map v = hF.map v ≫ ι ≫ ι' := by rw [hιι', Cat.comp_id]
+        _ = (hF.map v ≫ ι) ≫ ι' := (Cat.assoc _ _ _).symm
+        _ = (HasPullbacks.has (hF.map f) (hF.map g)).lift (mapCone c) ≫ ι' := by rw [hlift]
+
 end Freyd
