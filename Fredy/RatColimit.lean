@@ -98,4 +98,70 @@ noncomputable def equivFunctor_hasTerminal {F : 𝒞 → 𝒟} [hF : Functor F]
         _ = hF.map g ≫ ι ≫ ι' := Cat.assoc _ _ _
         _ = hF.map g := by rw [hιι', Cat.comp_id] }
 
+/-! ## Binary products transport
+
+  For `A B : 𝒞`, take the representative-image preimage `P` of `F A × F B` (iso `ι : F P ≅ FA×FB`,
+  inverse `ι'`).  The projections are the fullness-preimages of `ι ≫ fst`, `ι ≫ snd`; the pairing
+  of `f : X ⟶ A`, `g : X ⟶ B` is the preimage of `pair (F f) (F g) ≫ ι'`.  Each product law follows
+  by `emb` from the corresponding `𝒟`-law after passing through `ι`/`ι'`. -/
+
+/-- The representative-image iso `F (prodPre A B) ≅ prod (F A) (F B)`, packaged for products. -/
+noncomputable def prodPre {F : 𝒞 → 𝒟} [Functor F] (hri : HasRepresentativeImage F)
+    [HasBinaryProducts 𝒟] (A B : 𝒞) : 𝒞 := (hri (prod (F A) (F B))).choose
+
+/-- The forward iso leg `F (prodPre A B) ⟶ prod (F A) (F B)`. -/
+noncomputable def prodPreι {F : 𝒞 → 𝒟} [Functor F] (hri : HasRepresentativeImage F)
+    [HasBinaryProducts 𝒟] (A B : 𝒞) : F (prodPre hri A B) ⟶ prod (F A) (F B) :=
+  (hri (prod (F A) (F B))).choose_spec.choose
+
+/-- The inverse iso leg `prod (F A) (F B) ⟶ F (prodPre A B)`. -/
+noncomputable def prodPreι' {F : 𝒞 → 𝒟} [Functor F] (hri : HasRepresentativeImage F)
+    [HasBinaryProducts 𝒟] (A B : 𝒞) : prod (F A) (F B) ⟶ F (prodPre hri A B) :=
+  (hri (prod (F A) (F B))).choose_spec.choose_spec.choose
+
+theorem prodPreι_ι' {F : 𝒞 → 𝒟} [Functor F] (hri : HasRepresentativeImage F)
+    [HasBinaryProducts 𝒟] (A B : 𝒞) :
+    prodPreι hri A B ≫ prodPreι' hri A B = Cat.id _ :=
+  (hri (prod (F A) (F B))).choose_spec.choose_spec.choose_spec.1
+
+theorem prodPreι'_ι {F : 𝒞 → 𝒟} [Functor F] (hri : HasRepresentativeImage F)
+    [HasBinaryProducts 𝒟] (A B : 𝒞) :
+    prodPreι' hri A B ≫ prodPreι hri A B = Cat.id _ :=
+  (hri (prod (F A) (F B))).choose_spec.choose_spec.choose_spec.2
+
+/-- **`HasBinaryProducts` transports backward across an `EquivalenceFunctor`.** -/
+noncomputable def equivFunctor_hasBinaryProducts {F : 𝒞 → 𝒟} [hF : Functor F]
+    (emb : Embedding F) (full : Full F) (hri : HasRepresentativeImage F)
+    [hp : HasBinaryProducts 𝒟] : HasBinaryProducts 𝒞 where
+  prod A B := prodPre hri A B
+  fst {A B} := (full (prodPreι hri A B ≫ fst)).choose
+  snd {A B} := (full (prodPreι hri A B ≫ snd)).choose
+  pair {X A B} f g := (full (pair (hF.map f) (hF.map g) ≫ prodPreι' hri A B)).choose
+  fst_pair {X A B} f g := by
+    apply emb
+    rw [hF.map_comp, (full (pair (hF.map f) (hF.map g) ≫ prodPreι' hri A B)).choose_spec,
+      (full (prodPreι hri A B ≫ fst)).choose_spec, Cat.assoc,
+      ← Cat.assoc (prodPreι' hri A B), prodPreι'_ι, Cat.id_comp, fst_pair]
+  snd_pair {X A B} f g := by
+    apply emb
+    rw [hF.map_comp, (full (pair (hF.map f) (hF.map g) ≫ prodPreι' hri A B)).choose_spec,
+      (full (prodPreι hri A B ≫ snd)).choose_spec, Cat.assoc,
+      ← Cat.assoc (prodPreι' hri A B), prodPreι'_ι, Cat.id_comp, snd_pair]
+  pair_uniq {X A B} f g h h₁ h₂ := by
+    apply emb
+    rw [(full (pair (hF.map f) (hF.map g) ≫ prodPreι' hri A B)).choose_spec]
+    -- F h ≫ ι = pair (Ff)(Fg) via the two projection laws; then right-cancel ι (using ι ≫ ι' = id).
+    have hfst := congrArg hF.map h₁
+    have hsnd := congrArg hF.map h₂
+    rw [hF.map_comp, (full (prodPreι hri A B ≫ fst)).choose_spec] at hfst
+    rw [hF.map_comp, (full (prodPreι hri A B ≫ snd)).choose_spec] at hsnd
+    have key : hF.map h ≫ prodPreι hri A B = pair (hF.map f) (hF.map g) := by
+      apply pair_uniq
+      · rw [Cat.assoc]; exact hfst
+      · rw [Cat.assoc]; exact hsnd
+    calc hF.map h = hF.map h ≫ prodPreι hri A B ≫ prodPreι' hri A B := by
+            rw [prodPreι_ι', Cat.comp_id]
+      _ = (hF.map h ≫ prodPreι hri A B) ≫ prodPreι' hri A B := (Cat.assoc _ _ _).symm
+      _ = pair (hF.map f) (hF.map g) ≫ prodPreι' hri A B := by rw [key]
+
 end Freyd
