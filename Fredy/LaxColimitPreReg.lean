@@ -497,6 +497,215 @@ noncomputable def laxColimHasBinaryProducts :
 
 end LaxProduct
 
+/-! ## §M3c (lax) — equalizers of the lax colimit category
+
+  Mirrors `Colim.colimitHasEqualizers`.  For parallel germs `F,G : ⟨i,x⟩ ⟶ ⟨j,y⟩`, push both to a
+  common stage `M`, form the fibre equalizer `⟨M, eqObj fM gM⟩`, and include its `eqMap` as a
+  single-stage germ `reflApp ≫ eqMap fM gM` (same shape as `prFst`, so the generic `prUnit`/
+  `prCompProj`/`prPsi`/`prPsi_push` helpers above apply verbatim).  Monicity uses `eqData.pres`;
+  the lift uses `eqData.presLift`.  As with products the bare-σ carrier removes all `colimOut`. -/
+section LaxEqualizer
+
+variable (L : LaxCatSystem.{u, w} ι D) (hL : Coherent L) (eqData : LaxEqualizerData L)
+
+/-- **The equalizer germ-map is monic** (single-map mirror of `prJointMono`).  Two germs
+    `⟨lW,w⟩ ⟶ ⟨M,Eobj⟩` equal after `m = reflApp ≫ eqMap fM gM` are equal — `prCompProj`/`prPsi_push`
+    reduce both to single germs, and `eqData.pres` (the fibre's `eqMap` joint-monic preservation)
+    cancels the `prUnit`-conjugated reps. -/
+private theorem eqMono (eqData : LaxEqualizerData L) {i j M : ι} (x : L.A i) (y : L.A j)
+    {lW : ι} (w : L.A lW) (hiM : D.le i M) (hjM : D.le j M)
+    (fM gM : L.F hiM x ⟶ L.F hjM y)
+    (h₁ h₂ : homL L hL ⟨lW, w⟩ ⟨M, @eqObj _ _ (eqData.he M) _ _ fM gM⟩)
+    (heq : @compL _ _ L hL ⟨lW, w⟩ ⟨M, @eqObj _ _ (eqData.he M) _ _ fM gM⟩ ⟨i, x⟩ h₁
+          (homInclL L hL (@eqObj _ _ (eqData.he M) _ _ fM gM) x ⟨M, D.refl M, hiM⟩
+            (reflApp L _ ≫ @eqMap _ _ (eqData.he M) _ _ fM gM))
+        = @compL _ _ L hL ⟨lW, w⟩ ⟨M, @eqObj _ _ (eqData.he M) _ _ fM gM⟩ ⟨i, x⟩ h₂
+          (homInclL L hL (@eqObj _ _ (eqData.he M) _ _ fM gM) x ⟨M, D.refl M, hiM⟩
+            (reflApp L _ ≫ @eqMap _ _ (eqData.he M) _ _ fM gM))) :
+    h₁ = h₂ := by
+  letI : HasEqualizers (L.A M) := eqData.he M
+  revert heq
+  refine Quotient.inductionOn₂ h₁ h₂ (fun rh₁ rh₂ heq => ?_)
+  obtain ⟨a₁, m₁⟩ := rh₁
+  obtain ⟨a₂, m₂⟩ := rh₂
+  -- common bound `e ≥ a₁.1, a₂.1, M`.
+  obtain ⟨w0, hw0a, hw0b⟩ := D.bound a₁.1 a₂.1
+  obtain ⟨e, hew, heM⟩ := D.bound w0 M
+  have ha₁e : D.le a₁.1 e := D.trans hw0a hew
+  have ha₂e : D.le a₂.1 e := D.trans hw0b hew
+  rw [prCompProj L hL w (eqObj fM gM) x hiM (eqMap fM gM) a₁ m₁ e ha₁e heM,
+      prCompProj L hL w (eqObj fM gM) x hiM (eqMap fM gM) a₂ m₂ e ha₂e heM] at heq
+  obtain ⟨c, hc1, hc2, ceq⟩ := Quotient.exact heq
+  simp only [homSystemL] at ceq
+  rw [prPsi_push L hL w _ x hiM (eqMap fM gM) a₁ m₁ e c.1 ha₁e heM hc1,
+      prPsi_push L hL w _ x hiM (eqMap fM gM) a₂ m₂ e c.1 ha₂e heM hc2] at ceq
+  -- `ceq : prPsi (eqMap) m₁ c.1 = prPsi (eqMap) m₂ c.1`.
+  unfold prPsi at ceq
+  rw [pushHom_proj L x _ hiM _ (eqMap fM gM)] at ceq
+  -- cancel the trailing `isoInv (transApp)`, then `eqData.pres`, then cancel `prUnit`.
+  let N := c.1
+  have heN : D.le M N := D.trans heM hc1
+  have ha₁N : D.le a₁.1 N := D.trans ha₁e hc1
+  have ha₂N : D.le a₂.1 N := D.trans ha₂e hc1
+  let u₁ : L.F (D.trans a₁.2.1 ha₁N) w ⟶ L.F heN (eqObj fM gM) :=
+    pushHom L w _ a₁.2.1 a₁.2.2 ha₁N m₁ ≫ prUnit L _ heN
+  let u₂ : L.F (D.trans a₂.2.1 ha₂N) w ⟶ L.F heN (eqObj fM gM) :=
+    pushHom L w _ a₂.2.1 a₂.2.2 ha₂N m₂ ≫ prUnit L _ heN
+  have hmap : u₁ ≫ (L.functF heN).map (eqMap fM gM) = u₂ ≫ (L.functF heN).map (eqMap fM gM) := by
+    have := congrArg (· ≫ transApp L hiM heN x) ceq
+    simp only [Cat.assoc, inv_isoInv_comp, Cat.comp_id] at this
+    simpa only [u₁, u₂, Cat.assoc] using this
+  have huv : u₁ = u₂ := eqData.pres heN fM gM (L.F (D.trans a₁.2.1 ha₁N) w) u₁ u₂ hmap
+  have hmm : pushHom L w _ a₁.2.1 a₁.2.2 ha₁N m₁ = pushHom L w _ a₂.2.1 a₂.2.2 ha₂N m₂ := by
+    have h2 := congrArg (· ≫ isoInv (prUnit_isIso L _ heN)) huv
+    simpa only [u₁, u₂, Cat.assoc, isoInv_comp, Cat.comp_id] using h2
+  exact Quotient.sound ⟨⟨N, D.trans a₁.2.1 ha₁N, heN⟩, ha₁N, ha₂N, hmm⟩
+
+/-- **§M3c (lax): the lax colimit category has equalizers.**  For each parallel pair `F,G` an
+    existence `Prop` (`hEdata`) packages the equalizer object/map and its universal property so
+    `Quotient.inductionOn` can eliminate `F`, `G`, and cone legs alike; the `HasEqualizer` is then
+    extracted by choice.  `eqData.pres` (mono) gives uniqueness, `eqData.presLift` the factorisation. -/
+noncomputable def laxColimHasEqualizers :
+    @HasEqualizers (Obj L) (laxColimCat L hL) := by
+  letI : Cat (Obj L) := laxColimCat L hL
+  have hEdata : ∀ (X Y : Obj L) (F G : X ⟶ Y),
+      ∃ (E : Obj L) (m : E ⟶ X), m ≫ F = m ≫ G ∧
+        ∀ (W : Obj L) (c : W ⟶ X), c ≫ F = c ≫ G →
+          ∃ l : W ⟶ E, l ≫ m = c ∧ ∀ l' : W ⟶ E, l' ≫ m = c → l' = l := by
+    intro X Y F G
+    obtain ⟨i, x⟩ := X
+    obtain ⟨j, y⟩ := Y
+    refine Quotient.inductionOn F (fun Fr => ?_)
+    refine Quotient.inductionOn G (fun Gr => ?_)
+    obtain ⟨aF, fF⟩ := Fr
+    obtain ⟨aG, gG⟩ := Gr
+    -- common stage `M` for the two parallel germs.
+    obtain ⟨M, haFM, haGM⟩ := D.bound aF.1 aG.1
+    have hiM : D.le i M := D.trans aF.2.1 haFM
+    have hjM : D.le j M := D.trans aF.2.2 haFM
+    letI : HasEqualizers (L.A M) := eqData.he M
+    let fM : L.F hiM x ⟶ L.F hjM y := pushHom L x y aF.2.1 aF.2.2 haFM fF
+    let gM : L.F hiM x ⟶ L.F hjM y := pushHom L x y aG.2.1 aG.2.2 haGM gG
+    let Eobj : L.A M := eqObj fM gM
+    -- the two parallel germs, re-represented at the common stage `M` (`fM`/`gM`).
+    have hFM : (Quotient.mk (setoid (homSystemL L hL x y)) ⟨aF, fF⟩
+        : @homL _ _ L hL ⟨i, x⟩ ⟨j, y⟩) = homInclL L hL x y ⟨M, hiM, hjM⟩ fM :=
+      (homInclL_compat L hL x y (a := aF) (b := ⟨M, hiM, hjM⟩) haFM fF).symm
+    have hGM : (Quotient.mk (setoid (homSystemL L hL x y)) ⟨aG, gG⟩
+        : @homL _ _ L hL ⟨i, x⟩ ⟨j, y⟩) = homInclL L hL x y ⟨M, hiM, hjM⟩ gM :=
+      (homInclL_compat L hL x y (a := aG) (b := ⟨M, hiM, hjM⟩) haGM gG).symm
+    -- generic: composing the eqMap germ (at `⟨M,refl M,hiM⟩`) with a stage-`M` right germ `r`
+    -- reduces to `reflApp ≫ eqMap fM gM ≫ r` at `⟨M, refl M, hjM⟩` (both pushes are `refl M`).
+    have compRight : ∀ (r : L.F hiM x ⟶ L.F hjM y),
+        @compL _ _ L hL ⟨M, Eobj⟩ ⟨i, x⟩ ⟨j, y⟩
+            (homInclL L hL Eobj x ⟨M, D.refl M, hiM⟩ (reflApp L Eobj ≫ eqMap fM gM))
+            (homInclL L hL x y ⟨M, hiM, hjM⟩ r)
+          = homInclL L hL Eobj y ⟨M, D.refl M, hjM⟩ (reflApp L Eobj ≫ eqMap fM gM ≫ r) := by
+      intro r
+      show homCompRawL L hL Eobj x y ⟨M, D.refl M, hiM⟩ (reflApp L Eobj ≫ eqMap fM gM)
+          ⟨M, hiM, hjM⟩ r = _
+      rw [homCompRawL_eq_compAtL L hL Eobj x y ⟨M, D.refl M, hiM⟩ (reflApp L Eobj ≫ eqMap fM gM)
+            ⟨M, hiM, hjM⟩ r M (D.refl M) (D.refl M)]
+      unfold compAtL
+      rw [hL.push_refl Eobj x (D.refl M) hiM (reflApp L Eobj ≫ eqMap fM gM),
+          hL.push_refl x y hiM hjM r, Cat.assoc]
+    refine ⟨⟨M, Eobj⟩, homInclL L hL Eobj x ⟨M, D.refl M, hiM⟩ (reflApp L Eobj ≫ eqMap fM gM),
+      ?_, ?_⟩
+    · -- equalizing: both sides reduce (via `compRight`) to `reflApp ≫ eqMap ≫ fM|gM`, equal by `eqMap_eq`.
+      rw [hFM, hGM]
+      show @compL _ _ L hL ⟨M, Eobj⟩ ⟨i, x⟩ ⟨j, y⟩ _ (homInclL L hL x y ⟨M, hiM, hjM⟩ fM)
+        = @compL _ _ L hL ⟨M, Eobj⟩ ⟨i, x⟩ ⟨j, y⟩ _ (homInclL L hL x y ⟨M, hiM, hjM⟩ gM)
+      rw [compRight fM, compRight gM, eqMap_eq fM gM]
+    · -- universal property.
+      rintro ⟨lW, w⟩ c hcond
+      refine Quotient.inductionOn c (fun rc => ?_) hcond
+      clear hcond c
+      intro hcond
+      obtain ⟨ac, cc⟩ := rc
+      -- `compStage`: `compL (mk ⟨ac,cc⟩) (homInclL ⟨M,hiM,hjM⟩ r) = homInclL ⟨P⟩ (pushHom cc ≫ pushHom r)`.
+      have compStage : ∀ (r : L.F hiM x ⟶ L.F hjM y) (P : ι) (haP : D.le ac.1 P) (hMP : D.le M P),
+          @compL _ _ L hL ⟨lW, w⟩ ⟨i, x⟩ ⟨j, y⟩ (Quotient.mk _ ⟨ac, cc⟩)
+              (homInclL L hL x y ⟨M, hiM, hjM⟩ r)
+            = homInclL L hL w y ⟨P, D.trans ac.2.1 haP, D.trans hjM hMP⟩
+                (pushHom L w x ac.2.1 ac.2.2 haP cc ≫ pushHom L x y hiM hjM hMP r) := by
+        intro r P haP hMP
+        show homCompRawL L hL w x y ac cc ⟨M, hiM, hjM⟩ r = _
+        rw [homCompRawL_eq_compAtL L hL w x y ac cc ⟨M, hiM, hjM⟩ r P haP hMP]
+        rfl
+      -- reduce `hcond` to germ equality at a first common bound `N0`, then extract a working stage
+      -- `N` (≥ N0) where the merged reps `pushHom cc ≫ pushHom (f|g)M` agree ON THE NOSE.
+      obtain ⟨N0, haN0, hMN0⟩ := D.bound ac.1 M
+      rw [hFM, hGM] at hcond
+      change @compL _ _ L hL ⟨lW, w⟩ ⟨i, x⟩ ⟨j, y⟩ _ _
+        = @compL _ _ L hL ⟨lW, w⟩ ⟨i, x⟩ ⟨j, y⟩ _ _ at hcond
+      rw [compStage fM N0 haN0 hMN0, compStage gM N0 haN0 hMN0] at hcond
+      obtain ⟨q, hqN, _, qeq⟩ := Quotient.exact hcond
+      -- working stage `N := q.1 ≥ N0`; push the merged reps from `N0` to `N` (`pushHom_comp` +
+      -- `push_trans` merge), giving the on-the-nose `pushHom cc ≫ pushHom (f|g)M` equality at `N`.
+      let N : ι := q.1
+      have hN0N : D.le N0 N := hqN
+      have hacN : D.le ac.1 N := D.trans haN0 hN0N
+      have hMN : D.le M N := D.trans hMN0 hN0N
+      have hlWN : D.le lW N := D.trans ac.2.1 hacN
+      have hjN : D.le j N := D.trans hjM hMN
+      -- `qeq` is `pushHom (pushHom cc ≫ pushHom (f)M) (N0→N) = pushHom (… (g)M) (N0→N)`; split and merge.
+      simp only [homSystemL] at qeq
+      rw [pushHom_comp L w x y (D.trans ac.2.1 haN0) (D.trans hiM hMN0) (D.trans hjM hMN0) hN0N
+            (pushHom L w x ac.2.1 ac.2.2 haN0 cc) (pushHom L x y hiM hjM hMN0 fM),
+          pushHom_comp L w x y (D.trans ac.2.1 haN0) (D.trans hiM hMN0) (D.trans hjM hMN0) hN0N
+            (pushHom L w x ac.2.1 ac.2.2 haN0 cc) (pushHom L x y hiM hjM hMN0 gM),
+          ← hL.push_trans w x ac.2.1 ac.2.2 haN0 hN0N cc,
+          ← hL.push_trans x y hiM hjM hMN0 hN0N fM,
+          ← hL.push_trans x y hiM hjM hMN0 hN0N gM] at qeq
+      -- `qeq : pushHom cc (ac→N) ≫ pushHom fM (M→N) = pushHom cc (ac→N) ≫ pushHom gM (M→N)`.
+      -- convert each `pushHom (f|g)M ≫ transApp hjM hMN y = transApp hiM hMN x ≫ map (f|g)M`.
+      let cN : L.F hlWN w ⟶ L.F hMN (L.F hiM x) :=
+        pushHom L w x ac.2.1 ac.2.2 hacN cc ≫ transApp L hiM hMN x
+      have pushHom_transApp : ∀ (r : L.F hiM x ⟶ L.F hjM y),
+          pushHom L x y hiM hjM hMN r ≫ transApp L hjM hMN y
+            = transApp L hiM hMN x ≫ (L.functF hMN).map r := by
+        intro r
+        unfold pushHom
+        rw [Cat.assoc, Cat.assoc, inv_isoInv_comp, Cat.comp_id]
+      have hcN : cN ≫ (L.functF hMN).map fM = cN ≫ (L.functF hMN).map gM := by
+        have h := congrArg (· ≫ transApp L hjM hMN y) qeq
+        simp only [Cat.assoc, pushHom_transApp] at h
+        simpa only [cN, Cat.assoc] using h
+      -- equalizer lift at stage `M`, pushed: `r : F(lW≤N)w ⟶ F hMN Eobj` with `r ≫ map eqMap = cN`.
+      obtain ⟨r, hr⟩ := eqData.presLift hMN fM gM (L.F hlWN w) cN hcN
+      -- the lift germ and its `lift ≫ m = c` fact (`prUnit`-cancellation, as the product `leg`).
+      have hLiftEq : @compL _ _ L hL ⟨lW, w⟩ ⟨M, Eobj⟩ ⟨i, x⟩
+            (homInclL L hL w Eobj ⟨N, hlWN, hMN⟩ (r ≫ isoInv (prUnit_isIso L Eobj hMN)))
+            (homInclL L hL Eobj x ⟨M, D.refl M, hiM⟩ (reflApp L Eobj ≫ eqMap fM gM))
+          = Quotient.mk _ ⟨ac, cc⟩ := by
+        show homCompRawL L hL w Eobj x ⟨N, hlWN, hMN⟩ (r ≫ isoInv (prUnit_isIso L Eobj hMN))
+            ⟨M, D.refl M, hiM⟩ (reflApp L Eobj ≫ eqMap fM gM) = homInclL L hL w x ac cc
+        rw [homCompRawL_eq_compAtL L hL w Eobj x ⟨N, hlWN, hMN⟩ (r ≫ isoInv (prUnit_isIso L Eobj hMN))
+              ⟨M, D.refl M, hiM⟩ (reflApp L Eobj ≫ eqMap fM gM) N (D.refl N) hMN]
+        unfold compAtL
+        rw [hL.push_refl w Eobj hlWN hMN (r ≫ isoInv (prUnit_isIso L Eobj hMN)),
+            pushHom_proj L x Eobj hiM hMN (eqMap fM gM),
+            Cat.assoc, ← Cat.assoc (isoInv (prUnit_isIso L Eobj hMN)),
+            inv_isoInv_comp, Cat.id_comp, ← Cat.assoc, hr,
+            Cat.assoc, isoInv_comp, Cat.comp_id]
+        exact homInclL_compat L hL w x (a := ac)
+          (b := ⟨N, D.trans ac.2.1 hacN, D.trans ac.2.2 hacN⟩) hacN cc
+      refine ⟨homInclL L hL w Eobj ⟨N, hlWN, hMN⟩ (r ≫ isoInv (prUnit_isIso L Eobj hMN)),
+        hLiftEq, fun l' hl' => ?_⟩
+      -- uniqueness: `l'` and the lift agree after `m`; `m` is monic (`eqMono`).
+      exact eqMono L hL eqData x y w hiM hjM fM gM l' _ (hl'.trans hLiftEq.symm)
+  refine @HasEqualizers.mk (Obj L) (laxColimCat L hL) (fun X Y F G => ?_)
+  let E := Classical.choose (hEdata X Y F G)
+  let m := Classical.choose (Classical.choose_spec (hEdata X Y F G))
+  have hspec := Classical.choose_spec (Classical.choose_spec (hEdata X Y F G))
+  exact
+    { cone := ⟨E, m, hspec.1⟩
+      lift := fun c => Classical.choose (hspec.2 c.dom c.map c.eq)
+      fac := fun c => (Classical.choose_spec (hspec.2 c.dom c.map c.eq)).1
+      uniq := fun c m' hm' => (Classical.choose_spec (hspec.2 c.dom c.map c.eq)).2 m' hm' }
+
+end LaxEqualizer
+
 end Freyd.LaxColim
 
 /-!
