@@ -2853,6 +2853,32 @@ theorem pairDensePbBaseCone_isPullback [PullbacksTransferCovers 𝒞] {X Y Z : P
   · intro v hv₁ hv₂
     exact huniq v hv₁ hv₂
 
+/-- The underlying `A`-cone of an `Â`-cone (apply the forgetful functor `pairForget` leg-wise).
+    Its square is `pairForget` applied to `c.w` (functoriality of `.g`). -/
+def pairForgetCone {A B C : PairObj 𝒞} {f : A ⟶ B} {g : C ⟶ B}
+    (c : @Cone (PairObj 𝒞) _ _ _ _ f g) : Cone f.g g.g where
+  pt := c.pt.A
+  π₁ := c.π₁.g
+  π₂ := c.π₂.g
+  w  := congrArg PairHom.g c.w
+
+/-- **§1.547 — the `A`-cover reduction (sorry-free).**  IF the underlying `A`-cone of the `Â`-pullback
+    `c` is itself an `A`-pullback, then the opposite leg `c.π₂.g` is an `A`-cover.  Combines the
+    forward bridge `pairCover_underlying` (`Â`-cover `f` ⟹ `A`-cover `f.g`) with `A`'s own
+    `PullbacksTransferCovers` applied to the underlying cone.  This is the honest `A`-LEVEL half of the
+    transfer; what it does NOT supply is the hypothesis `hpbA`, because `pairForget` does NOT preserve
+    pullbacks: the `Â`-pullback apex `c.pt.A` is the cross-constrained equalizer subobject
+    (`canonical_pb_probe`: `c.π₁.g = eqMap … ≫ pairProjFst.g`), strictly smaller than the `A`-pullback
+    of `(f.g, g.g)` in general.  So `hpbA` holds only in special cases (e.g. dense `f`, where the
+    cross-constraints are absorbed by the density iso); for an arbitrary `Â`-cover it is exactly the
+    missing slice-equivalence content.  Stated with `hpbA` as an explicit hypothesis so the half that
+    IS constructive is recorded sorry-free. -/
+theorem pairCover_pi2_underlying_of_underlying_pullback [PullbacksTransferCovers 𝒞]
+    {A B C : PairObj 𝒞} {f : A ⟶ B} {g : C ⟶ B}
+    (c : @Cone (PairObj 𝒞) _ _ _ _ f g) (hpbA : (pairForgetCone c).IsPullback)
+    (hf : @Cover (PairObj 𝒞) _ _ _ f) : Cover (c.π₂.g) :=
+  PullbacksTransferCovers.pullbacks_transfer_covers (pairForgetCone c) hpbA (pairCover_underlying hf)
+
 /-- **§1.547 — `Â`'s pullbacks transfer covers** (the pre-regular closure condition).  The STATEMENT
     is Freyd's genuine `PullbacksTransferCovers`: in a pullback square in `Â`, the leg opposite an
     `Â`-cover is an `Â`-cover.  Freyd discharges this for `Â` via the slice equivalence — "`A*` is a
