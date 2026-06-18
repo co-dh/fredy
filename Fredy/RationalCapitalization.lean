@@ -1193,6 +1193,91 @@ theorem listProdAppend_inv_hom : ∀ (l₁ l₂ : List 𝒞),
         rw [Cat.assoc, snd_pair, Cat.id_comp, ← Cat.assoc, snd_pair, Cat.assoc,
           ← Cat.assoc (listProdAppendInv l₁ l₂), hrec, Cat.id_comp, snd_pair]
 
+/-- Cast distributes over composition: `h ▸ (f ≫ g) = f ≫ (h ▸ g)`.
+    Proved by `cases h; rfl`; used to push index-equality casts inside list-product projections. -/
+private theorem cast_comp_hom {𝒞 : Type u} [Cat 𝒞] {X Y Z Z' : 𝒞} (h : Z = Z')
+    (f : X ⟶ Y) (g : Y ⟶ Z) : (h ▸ (f ≫ g) : X ⟶ Z') = f ≫ (h ▸ g) := by
+  cases h; rfl
+
+/-- `listProdAppendInv` then a projection into the FIRST block `l₁` is `fst ≫ (l₁'s projection)`.
+    The codomain `(l₁++l₂).get ⟨k,_⟩` equals `l₁.get k` (prefix index), carried by `h`; in each
+    pattern case the cast `h ▸` is trivially eliminated. -/
+theorem listProdAppendInv_projL :
+    ∀ (l₁ l₂ : List 𝒞) (k : Fin l₁.length) (hk : k.1 < (l₁ ++ l₂).length)
+      (h : (l₁ ++ l₂).get ⟨k.1, hk⟩ = l₁.get k),
+      listProdAppendInv l₁ l₂ ≫ (h ▸ listProdProj (l₁ ++ l₂) ⟨k.1, hk⟩)
+        = (fst : prod (listProd l₁) (listProd l₂) ⟶ listProd l₁) ≫ listProdProj l₁ k
+  | [],      _,  k, _, _ => k.elim0
+  | C :: l₁, l₂, ⟨0,     _⟩, _, h => by
+      unfold listProdAppendInv
+      simp only [listProdProj]
+      show pair (fst ≫ fst) (pair (fst ≫ snd) snd ≫ listProdAppendInv l₁ l₂) ≫ fst = fst ≫ fst
+      rw [fst_pair]
+  | C :: l₁, l₂, ⟨j + 1, hj⟩, hk, h => by
+      have hjk : j < (l₁ ++ l₂).length := by
+        have : (Fin.mk (j + 1) hj : Fin (C :: l₁).length).val = j + 1 := rfl
+        have : (C :: l₁ ++ l₂).length = (l₁ ++ l₂).length + 1 := rfl
+        omega
+      have htl : (l₁ ++ l₂).get ⟨j, hjk⟩ = l₁.get ⟨j, Nat.lt_of_succ_lt_succ hj⟩ := by
+        have := List.getElem_append_left (as := l₁) (bs := l₂) (Nat.lt_of_succ_lt_succ hj) (h' := hjk)
+        simpa [List.get_eq_getElem] using this
+      show listProdAppendInv (C :: l₁) l₂ ≫ (h ▸ (snd ≫ listProdProj (l₁ ++ l₂) ⟨j, hjk⟩))
+          = fst ≫ snd ≫ listProdProj l₁ ⟨j, Nat.lt_of_succ_lt_succ hj⟩
+      rw [cast_comp_hom h]
+      unfold listProdAppendInv
+      rw [← Cat.assoc, snd_pair, Cat.assoc]
+      have hc : h ▸ listProdProj (l₁ ++ l₂) ⟨j, hjk⟩ = htl ▸ listProdProj (l₁ ++ l₂) ⟨j, hjk⟩ := rfl
+      rw [hc, listProdAppendInv_projL l₁ l₂ ⟨j, _⟩ hjk htl, ← Cat.assoc, fst_pair, Cat.assoc]
+
+-- `listProdProj` is proof-irrelevant: same nat index with different bounds gives HEq result.
+private theorem listProdProj_heq_nat (l : List 𝒞) {n m : Nat}
+    (hn : n < l.length) (hm : m < l.length) (heqn : n = m) :
+    HEq (listProdProj l ⟨n, hn⟩) (listProdProj l ⟨m, hm⟩) := by
+  subst heqn; rfl
+
+/-- `listProdAppendInv` then a projection into the SECOND block `l₂` is `snd ≫ (l₂'s projection)`.
+    The offset index `l₁.length + k.1` into `l₁++l₂` lands in the `l₂` part; `h` carries the
+    equality, and the cast is eliminated by the same `cast_comp_hom` technique as `projL`. -/
+theorem listProdAppendInv_projR :
+    ∀ (l₁ l₂ : List 𝒞) (k : Fin l₂.length) (hk : l₁.length + k.1 < (l₁ ++ l₂).length)
+      (h : (l₁ ++ l₂).get ⟨l₁.length + k.1, hk⟩ = l₂.get k),
+      listProdAppendInv l₁ l₂ ≫ (h ▸ listProdProj (l₁ ++ l₂) ⟨l₁.length + k.1, hk⟩)
+        = (snd : prod (listProd l₁) (listProd l₂) ⟶ listProd l₂) ≫ listProdProj l₂ k
+  | [],      l₂, k, hk, h => by
+      simp only [List.nil_append, List.length_nil] at *
+      unfold listProdAppendInv; congr 1
+      -- h ▸ listProdProj l₂ ⟨0+k.1, hk⟩  =  listProdProj l₂ k:
+      -- chain HEq: (h ▸ f) ≍ f ≍ listProdProj l₂ k  via eqRec_heq + listProdProj_heq_nat
+      exact eq_of_heq ((eqRec_heq (φ := fun z => listProd l₂ ⟶ z) h _).trans
+                       (listProdProj_heq_nat l₂ hk k.2 (Nat.zero_add k.1)))
+  | C :: l₁, l₂, k, hk, h => by
+      have hjk : l₁.length + k.1 < (l₁ ++ l₂).length := by
+        have : (C :: l₁ ++ l₂).length = (l₁ ++ l₂).length + 1 := rfl
+        have : (C :: l₁).length = l₁.length + 1 := rfl
+        omega
+      have htl : (l₁ ++ l₂).get ⟨l₁.length + k.1, hjk⟩ = l₂.get k := by
+        simp [List.get_eq_getElem, List.getElem_append_right, Nat.add_sub_cancel_left]
+      have hsucc : (l₁.length + k.1).succ < (C :: l₁ ++ l₂).length := Nat.succ_lt_succ hjk
+      -- h' uses the explicit bound hsucc (not ⋯) so simp [listProdProj] can reduce it later
+      have h' : (C :: l₁ ++ l₂).get ⟨(l₁.length + k.1).succ, hsucc⟩ = l₂.get k :=
+        (congrArg (C :: l₁ ++ l₂).get (Fin.ext (Nat.succ_add l₁.length k.1).symm)).trans h
+      have hfin : (⟨(C :: l₁).length + k.1, hk⟩ : Fin (C :: l₁ ++ l₂).length)
+                = ⟨(l₁.length + k.1).succ, hsucc⟩ :=
+        Fin.ext (Nat.succ_add l₁.length k.1)
+      -- hrw: convert h ▸ proj to h' ▸ proj via HEq transitivity
+      have hrw : h ▸ listProdProj (C :: l₁ ++ l₂) ⟨(C :: l₁).length + k.1, hk⟩
+               = h' ▸ listProdProj (C :: l₁ ++ l₂) ⟨(l₁.length + k.1).succ, hsucc⟩ :=
+        eq_of_heq ((eqRec_heq (φ := fun z => listProd (C :: l₁ ++ l₂) ⟶ z) h _).trans
+          ((listProdProj_heq_nat (C :: l₁ ++ l₂) hk hsucc (Nat.succ_add l₁.length k.1)).trans
+           (eqRec_heq (φ := fun z => listProd (C :: l₁ ++ l₂) ⟶ z) h' _).symm))
+      rw [hrw]; simp [listProdProj]
+      rw [cast_comp_hom h']
+      unfold listProdAppendInv
+      rw [← Cat.assoc, snd_pair, Cat.assoc]
+      have hc : h' ▸ listProdProj (l₁ ++ l₂) ⟨l₁.length + k.1, hjk⟩
+                = htl ▸ listProdProj (l₁ ++ l₂) ⟨l₁.length + k.1, hjk⟩ := rfl
+      rw [hc, listProdAppendInv_projR l₁ l₂ k hjk htl, ← Cat.assoc, snd_pair]
+
 /-- A binary product of well-supported objects is well-supported. -/
 theorem wellSupported_prod' [PullbacksTransferCovers 𝒞] {B D : 𝒞}
     (hB : WellSupported B) (hD : WellSupported D) : WellSupported (prod B D) := by
@@ -2439,3 +2524,6 @@ theorem sliceEmbed_factor_wellPointed (U : List 𝒞)
 end WellPointed
 
 end Freyd
+
+#print axioms Freyd.listProdAppendInv_projL
+#print axioms Freyd.listProdAppendInv_projR
