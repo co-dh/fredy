@@ -3055,10 +3055,24 @@ theorem pairCover_pi2_underlying_of_underlying_pullback [PullbacksTransferCovers
           left-cancellation against `Â`-maps — neither yields the reverse factor correspondence.  So the
           inverse is not a `PairHom` in general; reflection genuinely fails.
 
+    R14.  The cover-REFLECTION mechanism for (2) is now factored out sorry-free as
+    `pairCover_of_underlying_cover_targets`: GIVEN (i) `m.g` an `A`-cover, (ii) every test `Â`-mono has
+    `A`-mono underlying, and (iii) every test `Â`-mono's domain targets `⊆` codomain targets, `m` is an
+    `Â`-cover.  Its iso-reflection core is `pairForget_reflects_iso_of_targets_subset` (`n.g` `A`-iso +
+    `K° ⊆ C°` ⟹ `n` `Â`-iso, the inverse `compat` built directly from `n.compat` + `K.distinct`), and
+    the fullness of the slice bridge `pairHomOfSlice` (a slice `OverHom` over `∏Y°` lifts to a
+    `PairHom`) is the structural reason (ii)/(iii) are exactly what a SINGLE pre-regular slice supplies.
+    What `pairPullbacksTransferCovers` cannot do with these is DISCHARGE (i)/(ii)/(iii) for the cospan's
+    `c.π₂`: (i) needs `hpbA` (obstruction (1)); (ii)/(iii) fail for a free external test mono `n : K↪C`
+    whose `K°` is unbounded by the finite square — the test mono lands in SOME slice `A*|U`, but no
+    single `U` bounds all of them.  That unbounded quantifier over external test objects is precisely
+    why Freyd's directed UNION `⋃_U (A*|U)` (not one slice) is required.
+
     Closing this needs the §1.547 slice equivalence `Â ≃ ⋃ (A*|U)` (pre-regular slices) — infrastructure
     NOT in this file.  The relational `x°x = 1` route (S1_56 `regular_of_compose_assoc`) is also
     unavailable: `Â` has no `HasImages` instance and no allegory/reciprocation calculus.  ONE `sorry`,
-    true statement, sharply documented; every constructive ingredient is committed sorry-free. -/
+    true statement, sharply documented; every constructive ingredient (R14 reflection machinery
+    included) is committed sorry-free. -/
 theorem pairPullbacksTransferCovers [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞] :
     ∀ {A B C : PairObj 𝒞} {f : A ⟶ B} {g : C ⟶ B}
       (c : @Cone (PairObj 𝒞) _ _ _ _ f g), c.IsPullback →
