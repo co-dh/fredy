@@ -69,6 +69,34 @@ theorem compL_homInclL_compAtL {ip iq ir : ι} (xp : L.A ip) (xq : L.A iq) (xr :
   rw [compL_homInclL L hL, homCompRawL_eq_compAtL L hL xp xq xr a f b g e hae hbe]
   rfl
 
+/-- **A cover post-composed with an iso is a cover** (bare-`Cat` version; the `PreLogos`
+    `cover_comp_iso` is unavailable here).  A mono `m` with `h ≫ m = f ≫ g` gives `m ≫ g⁻¹` mono with
+    `h ≫ (m ≫ g⁻¹) = f`, so `f`'s cover forces `m ≫ g⁻¹` iso, hence `m` iso. -/
+theorem cover_comp_iso' {𝒜 : Type w} [Cat.{w} 𝒜] {X Y Z : 𝒜} {f : X ⟶ Y} {g : Y ⟶ Z}
+    (hf : Cover f) (hg : IsIso g) : Cover (f ≫ g) := by
+  obtain ⟨gi, hg1, hg2⟩ := hg
+  intro C m h hm hcm
+  -- `m ≫ gi` is mono and factors `f` (via `h`).
+  have hmgi_mono : Mono (m ≫ gi) := by
+    intro W u v huv
+    apply hm u v
+    -- u ≫ m = v ≫ m from u ≫ (m ≫ gi) = v ≫ (m ≫ gi) by post-composing `g`.
+    have := congrArg (fun t => t ≫ g) huv
+    simp only [Cat.assoc, hg2, Cat.comp_id] at this
+    exact this
+  have hf_iso : IsIso (m ≫ gi) := hf (m ≫ gi) h hmgi_mono (by
+    rw [← Cat.assoc, hcm, Cat.assoc, hg1, Cat.comp_id])
+  -- `m = (m ≫ gi) ≫ g`, a composite of isos.
+  obtain ⟨w, hw1, hw2⟩ := hf_iso
+  -- `w ≫ m = g` (post-compose `hw2 : w ≫ (m ≫ gi) = id` with `g`).
+  have hwm : w ≫ m = g := by
+    have := congrArg (fun t => t ≫ g) hw2
+    simp only [Cat.assoc, hg2, Cat.comp_id, Cat.id_comp] at this
+    exact this
+  refine ⟨gi ≫ w, ?_, ?_⟩
+  · rw [← Cat.assoc m gi w, hw1]
+  · rw [Cat.assoc, hwm, hg2]
+
 /-! ## Reflection of equalities/monos/covers/isos through the stage inclusion
 
   These mirror `homIncl_injective` / `colimHom_mono_reflects` / `homInclObj_cover_reflects` /
@@ -280,5 +308,94 @@ theorem homInclL_mono_reflects
   obtain ⟨rinv, hr1, hr2⟩ := hiso
   have := congrArg (fun t => rinv ≫ t) hstrip
   simpa only [← Cat.assoc, hr2, Cat.id_comp] using this
+
+/-- **Cover of a germ that is a cover at every stage.**  If `pushHom g` is a cover for every
+    transition from `a.1`, then `homInclL a g` is a cover in the colimit.  Given a colimit mono `m`
+    and factor `homInclL a g = g' ⊚ m`, reflect the factorization to a stage `N`
+    (`homCompRawL_eq_stage`); the stage `pushHom m` is mono (mono reflection) and factors the stage
+    cover `pushHom g`, so it is a stage iso; lift to the colimit (`homInclL_isIso_of_rep`) and absorb
+    the level shift (`homInclL_compat`).  Lax `colimHom_cover_of_rep`. -/
+theorem homInclL_cover_of_rep
+    (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (p q : x ⟶ y),
+        @Functor.map _ _ _ _ _ (L.functF hij) x y p
+          = @Functor.map _ _ _ _ _ (L.functF hij) x y q → p = q)
+    {i j : ι} (x : L.A i) (y : L.A j) (a : UpperBound D i j)
+    (g : L.F a.2.1 x ⟶ L.F a.2.2 y)
+    (hcov : ∀ (e : ι) (hae : D.le a.1 e), Cover (pushHom L x y a.2.1 a.2.2 hae g)) :
+    @Cover (Obj L) (laxColimCat L hL) ⟨i, x⟩ ⟨j, y⟩ (homInclL L hL x y a g) := by
+  letI : Cat (Obj L) := laxColimCat L hL
+  intro Cobj m g' hm hg'm
+  -- `m : Cobj ⟶ ⟨j,y⟩`, `g' : ⟨i,x⟩ ⟶ Cobj`, both germs.
+  revert hm hg'm
+  refine Quotient.inductionOn₂ m g' (fun mrep grep => ?_)
+  obtain ⟨bm, m₀⟩ := mrep
+  obtain ⟨bg, g₀⟩ := grep
+  obtain ⟨ck, cx⟩ := Cobj
+  intro hm hg'm
+  -- factorization `g₀ ⊚ m₀ = homInclL a g` ⇒ stage equation at `N`.
+  have hg'm' : homCompRawL L hL x cx y bg g₀ bm m₀ = homInclL L hL x y a g := hg'm
+  obtain ⟨N, hgN, hmN, hfN, eqN⟩ := homCompRawL_eq_stage L hL x cx y bg g₀ bm m₀ a g hg'm'
+  -- `pushHom m₀` is mono at `N` (mono reflection of the colimit mono `m`).
+  have hm_mono : Mono (pushHom L cx y bm.2.1 bm.2.2 hmN m₀) := by
+    intro Z' u v huv
+    exact homInclL_mono_reflects L hL hfaith cx y bm m₀ hm hmN Z' u v huv
+  -- `pushHom g` is a cover at `N`; `pushHom m₀` factors it ⇒ `pushHom m₀` iso.
+  have hcov_N : Cover (pushHom L x y a.2.1 a.2.2 hfN g) := hcov N hfN
+  have hiso_mN : IsIso (pushHom L cx y bm.2.1 bm.2.2 hmN m₀) :=
+    hcov_N _ _ hm_mono eqN
+  obtain ⟨nN, hn1, hn2⟩ := hiso_mN
+  -- lift the stage iso to the colimit; `homInclL_compat` absorbs the level shift `bm → N`.
+  have hlift := homInclL_isIso_of_rep L hL cx y ⟨N, D.trans bm.2.1 hmN, D.trans bm.2.2 hmN⟩
+    (pushHom L cx y bm.2.1 bm.2.2 hmN m₀) nN hn1 hn2
+  rwa [homInclL_compat L hL cx y (a := bm)
+    (b := ⟨N, D.trans bm.2.1 hmN, D.trans bm.2.2 hmN⟩) hmN m₀] at hlift
+
+/-- **Cover preservation through the stage inclusion.**  If `g` is a cover stable under every
+    transition from `a.1` (each `(functF hij).map g` a cover), then `homInclL a g` is a colimit
+    cover.  Feed `homInclL_cover_of_rep` the pushed covers: `pushHom = transApp ≫ map · ≫ isoInv`, and
+    pre/post-composing a cover with isos keeps it a cover.  Lax `homInclObj_cover_of_stage`. -/
+theorem homInclL_cover_of_stage
+    (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (p q : x ⟶ y),
+        @Functor.map _ _ _ _ _ (L.functF hij) x y p
+          = @Functor.map _ _ _ _ _ (L.functF hij) x y q → p = q)
+    {i : ι} (x y : L.A i) (g : x ⟶ y)
+    (hcov : ∀ {e : ι} (hie : D.le i e), Cover (@Functor.map _ _ _ _ _ (L.functF hie) x y g)) :
+    @Cover (Obj L) (laxColimCat L hL) ⟨i, x⟩ ⟨i, y⟩
+      (homInclL L hL x y ⟨i, D.refl i, D.refl i⟩ (reflApp L x ≫ g ≫ isoInv (reflApp_isIso L y))) := by
+  -- the germ `gᵣ := reflApp x ≫ g ≫ (reflApp y)⁻¹` at the reflexive bound `⟨i, refl i, refl i⟩`.
+  apply homInclL_cover_of_rep L hL hfaith x y ⟨i, D.refl i, D.refl i⟩
+  intro e hie
+  -- `pushHom gᵣ` (along `refl i ≤ e`) is a cover: it is `(functF hie').map g` flanked by isos.
+  -- `pushHom x y (refl i)(refl i) hie gᵣ = transApp ≫ map gᵣ ≫ isoInv transApp`; and
+  -- `map gᵣ = map (reflApp x) ≫ map g ≫ map (reflApp y)⁻¹`, all but `map g` being isos.
+  unfold pushHom
+  -- the middle `map gᵣ` factors through `map g` flanked by isos (functor preserves iso & comp).
+  rw [@Functor.map_comp _ _ _ _ _ (L.functF hie) _ _ _ (reflApp L x) (g ≫ isoInv (reflApp_isIso L y)),
+      @Functor.map_comp _ _ _ _ _ (L.functF hie) _ _ _ g (isoInv (reflApp_isIso L y))]
+  -- assemble: cover flanked by four isos (transApp, map reflApp x, map (reflApp y)⁻¹, isoInv transApp).
+  have hi1 : IsIso (transApp L (D.refl i) hie x) := transApp_isIso L (D.refl i) hie x
+  have hi2 : IsIso (@Functor.map _ _ _ _ _ (L.functF hie) _ _ (reflApp L x)) :=
+    @functor_preserves_iso _ _ _ _ _ (L.functF hie) _ _ (reflApp L x) (reflApp_isIso L x)
+  have hi3 : IsIso (@Functor.map _ _ _ _ _ (L.functF hie) _ _ (isoInv (reflApp_isIso L y))) :=
+    @functor_preserves_iso _ _ _ _ _ (L.functF hie) _ _ (isoInv (reflApp_isIso L y))
+      ⟨reflApp L y, inv_isoInv_comp _, isoInv_comp _⟩
+  have hi4 : IsIso (isoInv (transApp_isIso L (D.refl i) hie y)) :=
+    ⟨transApp L (D.refl i) hie y, inv_isoInv_comp _, isoInv_comp _⟩
+  -- cover (map g) ⇒ cover of the whole flanked composite (iso pre/post composition).
+  have hg_cov : Cover (@Functor.map _ _ _ _ _ (L.functF hie) x y g) := hcov hie
+  -- peel the flanking isos: transApp (pre), isoInv transApp (post), map reflApp x (pre), map isoInv (post).
+  have c1 : Cover (@Functor.map _ _ _ _ _ (L.functF hie) x y g
+      ≫ @Functor.map _ _ _ _ _ (L.functF hie) _ _ (isoInv (reflApp_isIso L y))) :=
+    cover_comp_iso' hg_cov hi3
+  have c2 : Cover (@Functor.map _ _ _ _ _ (L.functF hie) _ _ (reflApp L x)
+      ≫ @Functor.map _ _ _ _ _ (L.functF hie) x y g
+      ≫ @Functor.map _ _ _ _ _ (L.functF hie) _ _ (isoInv (reflApp_isIso L y))) :=
+    cover_precomp_iso hi2 c1
+  have c3 : Cover ((@Functor.map _ _ _ _ _ (L.functF hie) _ _ (reflApp L x)
+      ≫ @Functor.map _ _ _ _ _ (L.functF hie) x y g
+      ≫ @Functor.map _ _ _ _ _ (L.functF hie) _ _ (isoInv (reflApp_isIso L y)))
+      ≫ isoInv (transApp_isIso L (D.refl i) hie y)) :=
+    cover_comp_iso' c2 hi4
+  exact @cover_precomp_iso _ _ _ _ _ _ hi1 _ c3
 
 end Freyd.LaxColim
