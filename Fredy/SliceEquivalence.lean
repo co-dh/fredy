@@ -147,6 +147,55 @@ theorem sliceEmbed_factor_wellPointed_of_productForm (U : List 𝒞) (k : Fin U.
       (sliceEmbedObj (listProd U) (U.get k)) :=
   wellPointed_of_productForm (listProdProj U k) hpf
 
+/-! ## §1.547 — the FIXED-`U` slice equivalence `A*|U ≃ A/(∏U)`
+
+  Freyd (§1.547, lines 4958-4961): for a finite list `U` of well-supported objects, `A*|U` is the
+  full subcategory of the rational category `A*` on objects `(A,F)` with `F° ⊆ U`, and it is
+  EQUIVALENT to the slice `A/(∏U) = Over (listProd U)`.  This is the FIXED-base equivalence — NO
+  colimit; the directed union `A* = ⋃_U A*|U` comes later.
+
+  ### The design (chosen given this repo's vocabulary)
+
+  The repo has NO bundled `Equivalence` record; its functor-equivalence notion is
+  `EquivalenceFunctor F := Embedding F ∧ Full F ∧ HasRepresentativeImage F` (S1_31), i.e. fully
+  faithful + essentially surjective.  So we express `A*|U ≃ A/(∏U)` as an `EquivalenceFunctor`.
+
+  Freyd's `F° ⊆ U` subcategory has objects sitting over DIFFERENT bases `∏(F°)`, so the object map
+  into the single slice `Over (∏U)` is not literal.  We follow Freyd's own padding: work with the
+  full subcategory `PairOnU U` on objects whose targets are EXACTLY `U` (in order), where every
+  object sits over the common base `∏U` and `pairSliceObj` is an HONEST object map into `Over(∏U)`.
+  The bridge (`pairHomToSlice`/`pairHomOfSlice`, sorry-free in `RationalCapitalization.lean`) makes
+  the resulting functor fully faithful; representative-image is the slice→pair construction (every
+  `⟨A,h:A→∏U⟩` is `pairSliceObj` of the padded `(A, {h ≫ proj_k})`).  The padding `A*|U ≃ PairOnU U`
+  (every `F° ⊆ U` is iso to one with `F'° = U`) is the remaining inclusion; the equivalence
+  `PairOnU U ≃ A/(∏U)` is what is built sorry-free below.
+
+  Morphisms of `PairOnU U` are plain `PairHom`s (the subcategory is FULL), so the category structure
+  is inherited from `pairsCat`. -/
+
+section FixedU
+
+variable (U : List 𝒞)
+
+/-- **§1.547 — `A*|U` on the nose: the full subcategory of `Â` on objects with `F° = U`.**  An
+    object bundles a `PairObj` together with a proof that its target list is exactly `U` (in order),
+    so it sits over the common base `∏U`.  Morphisms are inherited from `pairsCat` (the subcategory
+    is FULL: a `PairOnU`-map is just a `PairHom` of the underlying objects). -/
+structure PairOnU where
+  obj : PairObj 𝒞
+  htgt : obj.targets = U
+
+/-- Homs of `PairOnU U` are the `PairHom`s of underlying objects (full subcategory). -/
+instance : Cat.{u} (PairOnU U) where
+  Hom X Y := PairHom X.obj Y.obj
+  id X := PairHom.id X.obj
+  comp f g := f.comp g
+  id_comp f := PairHom.ext (Cat.id_comp f.g)
+  comp_id f := PairHom.ext (Cat.comp_id f.g)
+  assoc f g h := PairHom.ext (Cat.assoc f.g g.g h.g)
+
+end FixedU
+
 end Freyd
 
 #print axioms Freyd.bridge_roundtrip_pairHom
