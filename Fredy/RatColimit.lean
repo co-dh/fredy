@@ -381,4 +381,41 @@ theorem equivFunctor_pullbacksTransferCovers {F : 𝒞 → 𝒟} [hF : Functor F
     exact PullbacksTransferCovers.pullbacks_transfer_covers (mapCone c) hFpb
       (equivFunctor_preserves_cover emb full hri hf)
 
+/-! ## `PreRegularCategory` transports backward across an `EquivalenceFunctor` -/
+
+/-- **`PreRegularCategory` transports backward across an `EquivalenceFunctor`.**  A fully-faithful,
+    essentially-surjective `F : 𝒞 → 𝒟` into a pre-regular `𝒟` makes `𝒞` pre-regular: terminal,
+    binary products, pullbacks, and cover-transfer all pull back through the equivalence (the
+    standard "an equivalence creates finite limits" fact, hand-built on this repo's `Cat`).  This is
+    the FIBERWISE ingredient the §1.547 directed-union route needs for each slice `A*|U ≃ A/(∏U)`. -/
+noncomputable def equivFunctor_preRegular {F : 𝒞 → 𝒟} [hF : Functor F]
+    (eq : EquivalenceFunctor F) [PreRegularCategory 𝒟] : PreRegularCategory 𝒞 := by
+  obtain ⟨emb, full, hri⟩ := eq
+  letI : HasTerminal 𝒞 := equivFunctor_hasTerminal (F := F) emb full hri
+  letI : HasBinaryProducts 𝒞 := equivFunctor_hasBinaryProducts (F := F) emb full hri
+  letI : HasPullbacks 𝒞 := equivFunctor_hasPullbacks (F := F) emb full hri
+  letI : PullbacksTransferCovers 𝒞 := equivFunctor_pullbacksTransferCovers (F := F) emb full hri
+  exact { }
+
+/-! ## §1.547 — each fixed-`U` fiber `A*|U = PairOnU U` is PRE-REGULAR
+
+  Combining the equivalence `pairOnUToSlice_equivalence : PairOnU U ≃ A/(∏U)` (SliceEquivalence.lean)
+  with `overPreRegular` (the slice over any base is pre-regular) and the equivalence-transport above,
+  every fixed-`U` fiber `PairOnU U` is pre-regular — for a `Nodup` list `U` of well-supported objects.
+  This is the per-stage pre-regularity any directed-colimit assembly of the §1.547 slice-union
+  consumes (the `colimitPreRegular` per-stage `HasTerminal`/products/equalizers/PTC). -/
+
+/-- **§1.547 — the fixed-`U` fiber `A*|U = PairOnU U` is `PreRegularCategory`.**  Transport
+    `overPreRegular (listProd U)` backward along the equivalence `pairOnUToSlice_equivalence`. -/
+noncomputable def pairOnU_preRegular {𝒞 : Type u} [Cat.{u} 𝒞] [PreRegularCategory 𝒞]
+    [DecidableEq 𝒞]
+    (U : List 𝒞) (hws : ∀ T ∈ U, WellSupported T) (hnd : U.Nodup) :
+    PreRegularCategory (PairOnU U) :=
+  letI : PreRegularCategory (Over (listProd U)) := overPreRegular (listProd U)
+  equivFunctor_preRegular (F := fun X : PairOnU U => pairOnUSlice X)
+    (pairOnUToSlice_equivalence U hws hnd)
+
 end Freyd
+
+#print axioms Freyd.equivFunctor_preRegular
+#print axioms Freyd.pairOnU_preRegular
