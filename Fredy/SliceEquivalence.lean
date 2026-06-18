@@ -1,4 +1,5 @@
 import Fredy.RationalCapitalization
+import Fredy.S1_36 -- `eqToHom`: cast-free transport along object equalities (for the fixed-`U` base)
 
 /-! # §1.543 C — the §1.547 slice equivalence interface, and the precise well-pointedness gap
 
@@ -193,6 +194,102 @@ instance : Cat.{u} (PairOnU U) where
   id_comp f := PairHom.ext (Cat.id_comp f.g)
   comp_id f := PairHom.ext (Cat.comp_id f.g)
   assoc f g h := PairHom.ext (Cat.assoc f.g g.g h.g)
+
+/-- **The object map `A*|U → A/(∏U)`.**  `X = ⟨(A,F), F° = U⟩ ↦ ⟨A, factorMap : A → ∏U⟩`.  This is
+    `pairSliceObj` of the underlying object, whose base `∏(F°)` is rewritten to `∏U` along `X.htgt`.
+    Concretely `⟨X.obj.A, X.htgt ▸ pairFactorMap X.obj⟩ : Over (listProd U)`. -/
+def pairOnUSlice {U : List 𝒞} (X : PairOnU U) : Over (listProd U) :=
+  ⟨X.obj.A, pairFactorMap X.obj ≫ eqToHom (congrArg listProd X.htgt)⟩
+
+@[simp] theorem pairOnUSlice_hom {U : List 𝒞} (X : PairOnU U) :
+    (pairOnUSlice X).hom = pairFactorMap X.obj ≫ eqToHom (congrArg listProd X.htgt) := rfl
+
+@[simp] theorem pairOnUSlice_dom {U : List 𝒞} (X : PairOnU U) :
+    (pairOnUSlice X).dom = X.obj.A := rfl
+
+/-- **The factor map is FIXED by the self base-restriction.**  `pairFactorMap X` post-composed with
+    `listProdRestrict X° X°` (the §1.547 base projection of `∏X°` onto itself) is `pairFactorMap X`
+    again.  Projection-extensionality: at coordinate `k`, the LHS is `factorTuple X.F ≫ findProj
+    (X°.get k) X°` = some factor `f` of target `X°.get k` (`factorTuple_findProj`), the RHS is the
+    positional factor `X.F.get k'` of the same target (`factorTuple_proj`); `X.distinct` pins them
+    equal.  (This is exactly why `listProdRestrict U U` acts as the identity on factor maps even when
+    `U` has repeated targets — the decidable search may pick a different coordinate, but distinctness
+    makes all coordinates of a given target carry the same arrow.) -/
+theorem pairFactorMap_restrict_self [HasPullbacks 𝒞] (X : PairObj 𝒞)
+    (h : ∀ T ∈ X.targets, T ∈ X.targets) :
+    pairFactorMap X ≫ listProdRestrict X.targets X.targets h = pairFactorMap X := by
+  apply listProd_hom_ext X.targets
+  intro k
+  rw [Cat.assoc, listProdRestrict_proj X.targets X.targets h k]
+  -- RHS coordinate: factor map ≫ proj_k = (X.F.get k').2 (positional)
+  have hk' : k.1 < X.F.length := by simpa [PairObj.targets] using k.2
+  have htgt : X.targets.get k = (X.F.get ⟨k.1, hk'⟩).1 := by
+    simp only [PairObj.targets, List.get_eq_getElem, List.getElem_map]
+  rw [show k = ⟨k.1, k.2⟩ from rfl, pairFactorMap_proj X k.1 k.2 hk' htgt]
+  -- LHS coordinate: factor map ≫ findProj = (f).2 for some X-factor f of target X°.get k
+  obtain ⟨f, hf, hfh, hfe⟩ := factorTuple_findProj (X.targets.get k) X.F
+    ⟨X.targets.get k, h _ (List.get_mem _ _), rfl⟩
+  rw [(show pairFactorMap X = factorTuple X.F from rfl),
+      show findProj (X.targets.get k) X.targets ⟨X.targets.get k, h _ (List.get_mem _ _), rfl⟩
+          = findProj (X.targets.get k) (X.F.map (·.1)) _ from rfl, hfe]
+  -- both factors target X°.get k; X.distinct pins their arrows equal
+  have hqf : f.1 = (X.F.get ⟨k.1, hk'⟩).1 := hfh.trans htgt
+  have hqf2 : hqf ▸ f.2 = (X.F.get ⟨k.1, hk'⟩).2 :=
+    X.distinct f hf (X.F.get ⟨k.1, hk'⟩) (List.get_mem _ _) hqf
+  clear hfe hf h
+  revert hfh htgt hqf hqf2
+  obtain ⟨fT, fa⟩ := f
+  generalize X.F.get ⟨k.1, hk'⟩ = yp
+  obtain ⟨yT, ya⟩ := yp
+  generalize X.targets.get k = T
+  intro htgt hfh hqf hqf2
+  simp only at htgt hfh hqf hqf2 ⊢
+  subst hfh; subst htgt; exact hqf2
+
+/-- **Self base-restriction as `eqToHom`, under the factor map.**  When the target list `l` equals
+    `Xo.targets`, `pairFactorMap Xo ≫ listProdRestrict Xo.targets l h` is `pairFactorMap Xo ≫
+    eqToHom`.  `l` is a free variable, so `cases e` reduces this to `pairFactorMap_restrict_self`. -/
+theorem pairFactorMap_restrict_eqToHom [HasPullbacks 𝒞] (Xo : PairObj 𝒞) (l : List 𝒞)
+    (h : ∀ T ∈ l, T ∈ Xo.targets) (e : Xo.targets = l) :
+    pairFactorMap Xo ≫ listProdRestrict Xo.targets l h
+      = pairFactorMap Xo ≫ eqToHom (congrArg listProd e) := by
+  cases e
+  rw [pairFactorMap_restrict_self Xo h, eqToHom_refl, Cat.comp_id]
+
+/-- The morphism map: a `PairOnU`-hom `m` (a `PairHom X.obj → Y.obj`) gives the slice triangle
+    `m.g ≫ (pairOnUSlice Y).hom = (pairOnUSlice X).hom`.  After `subst`ing both `htgt` proofs, this
+    is `pairHom_commutes_restrict` plus `pairFactorMap_restrict_self` (both targets are `U`, so the
+    base restriction is the identity on factor maps). -/
+def pairOnUSliceMap [HasPullbacks 𝒞] {U : List 𝒞} {X Y : PairOnU U} (m : PairHom X.obj Y.obj) :
+    OverHom (pairOnUSlice X) (pairOnUSlice Y) :=
+  ⟨m.g, by
+    simp only [pairOnUSlice_hom]
+    -- LHS: m.g ≫ pairFactorMap Y.obj ≫ eqToHom Y.htgt.  Re-associate, apply `pairHom_commutes_restrict`,
+    -- collapse the base restriction via `restrict_eqToHom`, fuse the two `eqToHom`s.
+    rw [show m.g ≫ pairFactorMap Y.obj ≫ eqToHom (congrArg listProd Y.htgt)
+          = (m.g ≫ pairFactorMap Y.obj) ≫ eqToHom (congrArg listProd Y.htgt) from (Cat.assoc _ _ _).symm,
+       pairHom_commutes_restrict m,
+       show pairFactorMap X.obj ≫ listProdRestrict X.obj.targets Y.obj.targets (pairHom_targets_subset m)
+            = pairFactorMap X.obj ≫ eqToHom (congrArg listProd (X.htgt.trans Y.htgt.symm)) from
+         pairFactorMap_restrict_eqToHom X.obj Y.obj.targets _ (X.htgt.trans Y.htgt.symm),
+       Cat.assoc, eqToHom_trans]
+    -- both sides now `pairFactorMap X.obj ≫ eqToHom (·)`; the two equalities `X° = U` coincide (proof
+    -- irrelevance), so `eqToHom_trans` already closed the goal.
+    ⟩
+
+/-- **§1.547 — the functor `Φ : A*|U → A/(∏U)`.**  Objects `↦ pairOnUSlice` (the factor-slice over
+    the common base `∏U`); morphisms `↦ pairOnUSliceMap` (the underlying arrow `m.g`, the slice
+    triangle from the bridge).  Functoriality is `OverHom.ext` on underlying arrows (`id ↦ id`,
+    `m.g₁ ≫ m.g₂ ↦ (m₁ ≫ m₂).g`). -/
+instance pairOnUToSlice [HasPullbacks 𝒞] {U : List 𝒞} :
+    Functor (fun X : PairOnU U => pairOnUSlice X) where
+  map {X Y} (m : PairHom X.obj Y.obj) := pairOnUSliceMap m
+  map_id X := OverHom.ext rfl
+  map_comp m n := OverHom.ext rfl
+
+@[simp] theorem pairOnUToSlice_map_f [HasPullbacks 𝒞] {U : List 𝒞} {X Y : PairOnU U}
+    (m : PairHom X.obj Y.obj) :
+    (pairOnUToSlice.map m : OverHom (pairOnUSlice X) (pairOnUSlice Y)).f = m.g := rfl
 
 end FixedU
 
