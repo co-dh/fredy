@@ -98,6 +98,47 @@ theorem bcTranspose_natural {z : Over C} {W W' : Over D} (u : z ⟶ baseChangeOb
   show u.f ≫ ((bcPB g W).cone.π₁ ≫ m.f) = (u.f ≫ (bcPB g W).cone.π₁) ≫ m.f
   rw [Cat.assoc]
 
+/-- **Base-change reflects equality of maps into `g* W`.**  If two maps `u v : z ⟶ g* W` have equal
+    transposes, they are equal (the transpose is injective, being one half of a bijection). -/
+theorem bcTranspose_inj {z : Over C} {W : Over D} {u v : z ⟶ baseChangeObj g W}
+    (h : bcTranspose g u = bcTranspose g v) : u = v := by
+  rw [← bcLift_bcTranspose g u, ← bcLift_bcTranspose g v, h]
+
 end BaseChangeAdj
+
+/-! ## Inhabiting the four bundles for `L := laxOfProjSystem' P`
+
+  Throughout, `L.A i = Over (P.pr i)`, `L.F hij = baseChangeObj (P.proj hij)`, and
+  `(L.functF hij).map = baseChangeMap (P.proj hij)`.  Each fibre is `overPreRegular`, supplying
+  `HasTerminal`/`HasBinaryProducts`/`HasEqualizers`.  The transition-preservation fields are proved
+  by transporting the fibre's universal property across the base-change adjunction `bcTranspose`. -/
+section Bundles
+
+variable (P : ProjSystem ι D 𝒞)
+
+/-- The base map of the `i ≤ j` transition: the projection `P.proj hij : P.pr j ⟶ P.pr i`. -/
+private abbrev pj {i j : ι} (hij : D.le i j) : P.pr j ⟶ P.pr i := P.proj hij
+
+/-- `(laxOfProjSystem' P).functF hij` acts on arrows as `baseChangeMap (P.proj hij)`. -/
+private theorem functF_map {i j : ι} (hij : D.le i j) {X Y : Over (P.pr i)} (m : X ⟶ Y) :
+    @Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) X Y m
+      = baseChangeMap (pj P hij) m := rfl
+
+/-! ### `LaxTerminalData` -/
+
+/-- **`LaxTerminalData (laxOfProjSystem' P)`.**  Per-fibre terminal is `overHasTerminal (P.pr i)`.
+    The pushed terminal `g*(overTerm)` receives `bcLift g (term …)` from any `X`; uniqueness is the
+    fibre terminal's `term_uniq` transported across the transpose bijection. -/
+noncomputable def ratLaxTerminalData : LaxTerminalData (laxOfProjSystem' P) where
+  ht i := overHasTerminal (P.pr i)
+  pushTrm {i j} hij X :=
+    letI : HasTerminal (Over (P.pr i)) := overHasTerminal (P.pr i)
+    bcLift (pj P hij) (term (reindexObj (pj P hij) X))
+  pushUniq {i j} hij {X} f g := by
+    letI : HasTerminal (Over (P.pr i)) := overHasTerminal (P.pr i)
+    exact bcTranspose_inj (pj P hij)
+      (term_uniq (bcTranspose (pj P hij) f) (bcTranspose (pj P hij) g))
+
+end Bundles
 
 end Freyd.LaxColim
