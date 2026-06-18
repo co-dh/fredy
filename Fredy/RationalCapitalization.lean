@@ -1770,7 +1770,12 @@ theorem pullbackFactors_wsupp {E : 𝒞} {X : PairObj 𝒞} (e : E ⟶ X.A) :
     ∀ p ∈ pullbackFactors e, WellSupported p.1 := by
   intro p hp; rcases List.mem_map.1 hp with ⟨f, hf, he⟩; rw [← he]; exact X.wsupp f hf
 
-theorem pullbackFactors_distinct {E : 𝒞} {X : PairObj 𝒞} {e : E ⟶ X.A} (hm : Mono e) :
+-- NOTE (R8): distinctness of a SINGLE-`e` pulled-back factor list needs NO `Mono e`.  Two entries
+-- `⟨f°, e≫f⟩`, `⟨f'°, e≫f'⟩` of equal target have `f = f'` by `X`'s OWN distinctness (the targets are
+-- unchanged by `e`), and `e≫f = e≫f'` follows by congruence — `e` monic is irrelevant.  Dropping the
+-- spurious hypothesis is what makes the eventual `pairDense_pb` explicit-cone factor lists (each a
+-- single-`e` pullback along a NON-monic projection `fst`) legal `PairObj`s with no extra obligation.
+theorem pullbackFactors_distinct {E : 𝒞} {X : PairObj 𝒞} {e : E ⟶ X.A} :
     ∀ r ∈ pullbackFactors e, ∀ r' ∈ pullbackFactors e, ∀ h : r.1 = r'.1, h ▸ r.2 = r'.2 := by
   have congP : ∀ {B B' : 𝒞} (p : X.A ⟶ B) (q : X.A ⟶ B') (h : B = B'), h ▸ p = q →
       (h ▸ (e ≫ p) : E ⟶ B') = e ≫ q := by
@@ -1785,7 +1790,7 @@ def liftObj {C : 𝒞} {Y : PairObj 𝒞} {m : C ⟶ Y.A} (hm : Mono m) : PairOb
   A := C
   F := pullbackFactors m
   wsupp := pullbackFactors_wsupp m
-  distinct := pullbackFactors_distinct hm
+  distinct := pullbackFactors_distinct
 
 /-- The lifted `Â`-arrow `m̂ : (C, m^*F) → Y`, underlying `m`.  Compat: `f ∈ Y.F` ↦ `⟨f°, m≫f⟩`. -/
 def liftMono {C : 𝒞} {Y : PairObj 𝒞} {m : C ⟶ Y.A} (hm : Mono m) : PairHom (liftObj hm) Y where
