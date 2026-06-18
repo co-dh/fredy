@@ -349,6 +349,110 @@ theorem pairOnUToSlice_full [HasPullbacks 𝒞] (U : List 𝒞) :
   rw [pairSliceObj_hom]
   exact pairOnUSlice_triangle_to_bridge φ
 
+/-! ### Essential surjectivity (Freyd's padding)
+
+  Every slice object `⟨A, h : A → ∏U⟩` is `pairOnUSlice` of a padded pair `(A, F)` with `F° = U`:
+  take `F` to record, for each coordinate of `∏U`, the component `h ≫ projₖ` of `h`.  Built by
+  recursion on `U` (decomposing `∏(T::U) = T × ∏U` via `fst`/`snd`), so `F° = U` definitionally and
+  `factorTuple F = h` by `pair_eta`.  Well-supportedness of the factors needs each `T ∈ U` well
+  supported; the `distinct` field needs `U` to have NO repeated target (`U.Nodup`) — otherwise two
+  coordinates of `∏U` with the same target carry the (possibly different) components `h ≫ projₖ`,
+  which `PairObj.distinct` would force equal.  (For a SET `U` of well-supported objects, exactly
+  Freyd's hypothesis, both hold.) -/
+
+/-- The padding factor list of `h : A → ∏U`: the components `h ≫ projₖ`, one per coordinate of
+    `∏U`, recursing through `∏(T::U) = T × ∏U`.  `targets = U` definitionally; `factorTuple = h`. -/
+def padFactors : ∀ (U : List 𝒞) {A : 𝒞}, (A ⟶ listProd U) → List (Σ T : 𝒞, A ⟶ T)
+  | [],     _, _ => []
+  | T :: U, _, h => ⟨T, h ≫ (fst : prod T (listProd U) ⟶ T)⟩
+                      :: padFactors U (h ≫ (snd : prod T (listProd U) ⟶ listProd U))
+
+/-- The padding factor list's targets are exactly `U`. -/
+theorem padFactors_targets : ∀ (U : List 𝒞) {A : 𝒞} (h : A ⟶ listProd U),
+    (padFactors U h).map (·.1) = U
+  | [],     _, _ => rfl
+  | T :: U, _, h =>
+      congrArg (T :: ·) (padFactors_targets U (h ≫ (snd : prod T (listProd U) ⟶ listProd U)))
+
+/-- `eqToHom` along a `listProd` of a `T :: ·` congruence splits as `pair fst (snd ≫ eqToHom)`.
+    Proof: `cases` the list equality `e₀` (its LHS `l` is free), then both sides are `id` /
+    `pair fst snd`. -/
+theorem eqToHom_listProd_cons {T : 𝒞} {l : List 𝒞} {U : List 𝒞} (e₀ : l = U) :
+    eqToHom (congrArg listProd (congrArg (T :: ·) e₀))
+      = pair (fst : prod T (listProd l) ⟶ T) (snd ≫ eqToHom (congrArg listProd e₀)) := by
+  cases e₀; simp only [eqToHom_refl, Cat.comp_id]; exact pair_fst_snd.symm
+
+/-- The padding factor list reconstructs `h`: composing `factorTuple (padFactors U h)` with the
+    `eqToHom` re-typing its codomain `∏((padFactors U h)°)` to `∏U` recovers `h`.  By `pair_eta`:
+    each step is `pair (h≫fst) (h≫snd) = h`. -/
+theorem padFactors_factorTuple : ∀ (U : List 𝒞) {A : 𝒞} (h : A ⟶ listProd U),
+    factorTuple (padFactors U h) ≫ eqToHom (congrArg listProd (padFactors_targets U h)) = h
+  | [],     _, h => by
+      simp only [padFactors, factorTuple_nil]
+      exact (HasTerminal.uniq _ _)
+  | T :: U, _, h => by
+      -- `factorTuple (padFactors (T::U) h) = pair (h≫fst) (factorTuple (padFactors U (h≫snd)))`.
+      -- The codomain re-typing splits as `prod T (eqToHom …)`; `pair`-functoriality + IH + `pair_eta`.
+      show (pair (h ≫ fst) (factorTuple (padFactors U (h ≫ snd))))
+            ≫ eqToHom (congrArg listProd (padFactors_targets (T :: U) h)) = h
+      have hsub := padFactors_factorTuple U (h ≫ (snd : prod T (listProd U) ⟶ listProd U))
+      -- the `T::U` re-typing is `pair fst (snd ≫ (U re-typing))` (`eqToHom_listProd_cons`); the
+      -- equality `padFactors_targets (T::U) h` is defeq to `congrArg (T::·) (…U…)`.
+      rw [show (eqToHom (congrArg listProd (padFactors_targets (T :: U) h))
+              : prod T (listProd ((padFactors U (h ≫ snd)).map (·.1))) ⟶ listProd (T :: U))
+            = pair (fst : prod T (listProd ((padFactors U (h ≫ snd)).map (·.1))) ⟶ T)
+                (snd ≫ eqToHom (congrArg listProd (padFactors_targets U (h ≫ snd)))) from
+          eqToHom_listProd_cons (padFactors_targets U (h ≫ snd))]
+      -- project both sides: fst gives `h≫fst`, snd gives `FT ≫ e = h≫snd` (IH); conclude by `pair_eta`.
+      have hfst : (pair (h ≫ fst) (factorTuple (padFactors U (h ≫ snd)))
+          ≫ pair (fst : prod T (listProd ((padFactors U (h ≫ snd)).map (·.1))) ⟶ T)
+              (snd ≫ eqToHom (congrArg listProd (padFactors_targets U (h ≫ snd))))) ≫ fst
+          = h ≫ fst := by rw [Cat.assoc, fst_pair, fst_pair]
+      have hsnd : (pair (h ≫ fst) (factorTuple (padFactors U (h ≫ snd)))
+          ≫ pair (fst : prod T (listProd ((padFactors U (h ≫ snd)).map (·.1))) ⟶ T)
+              (snd ≫ eqToHom (congrArg listProd (padFactors_targets U (h ≫ snd))))) ≫ snd
+          = h ≫ snd := by rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair, hsub]
+      rw [pair_eta (pair (h ≫ fst) (factorTuple (padFactors U (h ≫ snd))) ≫ _), hfst, hsnd,
+        ← pair_eta h]
+
+/-- A member of `padFactors U h` has its target IN `U` (its factors record `U`'s coordinates). -/
+theorem padFactors_mem_target {U : List 𝒞} {A : 𝒞} (h : A ⟶ listProd U)
+    {r : Σ T : 𝒞, A ⟶ T} (hr : r ∈ padFactors U h) : r.1 ∈ U := by
+  have : r.1 ∈ (padFactors U h).map (·.1) := List.mem_map.2 ⟨r, hr, rfl⟩
+  rwa [padFactors_targets] at this
+
+/-- **The padding factor list is `distinct`** (under `U.Nodup`): two factors of the same target are
+    equal.  By induction on `U`: a head factor `⟨T, h≫fst⟩` and a tail factor (target `∈ U`) cannot
+    share a target (`T ∉ U` by `Nodup`); two tail factors are handled by the IH. -/
+theorem padFactors_distinct : ∀ (U : List 𝒞), U.Nodup → ∀ {A : 𝒞} (h : A ⟶ listProd U)
+    (r : Σ T : 𝒞, A ⟶ T), r ∈ padFactors U h → ∀ (r' : Σ T : 𝒞, A ⟶ T), r' ∈ padFactors U h →
+    ∀ (heq : r.1 = r'.1), heq ▸ r.2 = r'.2
+  | [], _, _, _, _, hr, _, _, _ => absurd hr (by simp [padFactors])
+  | T :: U, hnd, _, h, r, hr, r', hr', heq => by
+      rw [List.nodup_cons] at hnd
+      simp only [padFactors, List.mem_cons] at hr hr'
+      rcases hr with rfl | hr <;> rcases hr' with rfl | hr'
+      · -- both the head factor
+        cases heq; rfl
+      · -- r = head (target T), r' tail (target ∈ U): T ∈ U, contradiction
+        dsimp only at heq
+        exact absurd (show T ∈ U by rw [heq]; exact padFactors_mem_target (h ≫ snd) hr') hnd.1
+      · -- symmetric: r tail, r' head (target T)
+        dsimp only at heq
+        exact absurd (show T ∈ U by rw [← heq]; exact padFactors_mem_target (h ≫ snd) hr) hnd.1
+      · -- both tail: IH
+        exact padFactors_distinct U hnd.2 (h ≫ snd) r hr r' hr' heq
+
+/-- **The padded `PairObj` over the base `∏U`** (needs each `T ∈ U` well-supported and `U.Nodup`). -/
+def padPairObj (U : List 𝒞) (hws : ∀ T ∈ U, WellSupported T) (hnd : U.Nodup)
+    {A : 𝒞} (h : A ⟶ listProd U) : PairOnU U where
+  obj :=
+    { A := A
+      F := padFactors U h
+      wsupp := fun p hp => hws p.1 (padFactors_mem_target h hp)
+      distinct := fun r hr r' hr' heq => padFactors_distinct U hnd h r hr r' hr' heq }
+  htgt := padFactors_targets U h
+
 end FixedU
 
 end Freyd
