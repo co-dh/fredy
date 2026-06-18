@@ -3822,14 +3822,23 @@ theorem sliceFactorPoint_lift_iff {P A : 𝒞} {D : Over P}
     through `m.f ≫ fst` as a section of `D.hom` would force `B' ↪ A` to allow the generic
     point of `A` — contradicting properness.
 
-    OBSTRUCTION (precise): the elementary reduction `sliceFactorPoint_lift_iff` is closed, but
-    completing this requires the §1.546 image-descent: factor `m.f ≫ fst : D.dom → A` through
-    its image `B' ↪ A`, show `B'` is a *proper* subobject of the well-supported `A`, and run
-    Freyd's inflation/strict-cancellation generic-point argument (§1.544, "replacing the image
-    of A with A itself") to conclude the section `s` cannot exist.  That image-descent +
-    properness-transfer chain is the genuine missing infrastructure; it is NOT derivable from
-    the pair/projection calculus alone, so it is left as the single honest gap.  Once present,
-    `sliceEmbed_factor_wellPointed` closes immediately by the assembly below. -/
+    ⚠ FALSE AS STATED (do not prove — `sorry` left verbatim).  The universal quantifier over
+    ARBITRARY slice monics `m` is too strong.  Counterexample (`graph_satisfies_hyps`, axiom-free,
+    `sorry`-free below): the *graph of the generic point* `D := ⟨∏U, id⟩`,
+    `m.f := pair (proj_k) id : ∏U → A×∏U`, is a proper monic (iso iff `A ≅ 1`) that DOES admit the
+    generic point via the section `s := id` (`id ≫ pair (proj_k) id = pair (proj_k) id`).  So the
+    statement contradicts itself for any well-supported `A ≇ 1`.
+
+    Freyd §1.546/§1.547 ("`AB' ↪ AB` does not allow the generic point") is about subobjects of the
+    PRODUCT FORM `id_A × (B' ↪ B)` — NOT arbitrary slice subobjects.  The correct lemma must restrict
+    `D = ⟨A × B', snd⟩` and `m.f = id_A × i` for a *proper* monic `i : B' ↪ ∏U` of the BASE (the slice
+    terminator `B = ∏U`), and then runs Freyd's inflation/strict-cancellation argument (§1.544): a
+    section `s` of `id_A × i` over the generic point would force `i` to be split-epi hence (being monic)
+    iso, contradicting properness of `i`.  Reformulating `genericPoint_escapes_proper` to this
+    product-form hypothesis is the missing piece; the present over-general signature is unprovable.
+
+    (Image factorization IS available — `HasImages`/`image.lift`/`cover_iff_image_entire` in S1_51 —
+    but it does not rescue the over-general statement, which is simply false.) -/
 theorem genericPoint_escapes_proper (U : List 𝒞)
     (hU : ∀ x ∈ U, WellSupported x) (k : Fin U.length)
     {D : Over (listProd U)} (m : D ⟶ sliceEmbedObj (listProd U) (U.get k))
@@ -3861,6 +3870,34 @@ theorem sliceEmbed_factor_wellPointed (U : List 𝒞)
   intro hlift
   exact genericPoint_escapes_proper U hU k m hm hiso
     ((sliceFactorPoint_lift_iff m (listProdProj U k)).1 hlift)
+
+/-- **The over-general `genericPoint_escapes_proper` is FALSE — explicit witness.**
+    The "graph of the generic point", `D := ⟨∏U, id⟩` with slice arrow
+    `m.f := pair (proj_k) id : ∏U → (U.get k)×∏U`, is a *proper monic* slice subobject
+    of `sliceEmbedObj (∏U) (U.get k)` that DOES admit the generic point (section `s = id`).
+    This lemma (axiom-free, `sorry`-free) exhibits exactly that: `m` is monic in `Over (∏U)`
+    and `s := id` satisfies `s ≫ m.f = pair (proj_k) id`.  `m` is iso *iff* `pair (proj_k) id`
+    is iso, i.e. iff `(U.get k) ≅ 1` — false for a generic well-supported factor.  Hence the
+    universally-quantified "no proper monic allows the generic point" is refuted: Freyd's §1.546
+    claim is specifically about subobjects of the FORM `AB' ↪ AB` (product monics `id_A × (B'↪B)`),
+    NOT arbitrary slice monics.  See the note on `genericPoint_escapes_proper`. -/
+theorem graph_satisfies_hyps (U : List 𝒞) (k : Fin U.length) :
+    ∃ (m : (⟨listProd U, Cat.id (listProd U)⟩ : Over (listProd U))
+            ⟶ sliceEmbedObj (listProd U) (U.get k)),
+        m.f = pair (listProdProj U k) (Cat.id (listProd U)) ∧ Mono m ∧
+        (∃ s : listProd U ⟶ listProd U,
+          s ≫ m.f = pair (listProdProj U k) (Cat.id (listProd U))) := by
+  have hw : pair (listProdProj U k) (Cat.id (listProd U))
+      ≫ (sliceEmbedObj (listProd U) (U.get k)).hom = Cat.id (listProd U) := snd_pair _ _
+  have hidmono : Mono (Cat.id (listProd U)) := by
+    intro W a b heq; rw [← Cat.comp_id a, ← Cat.comp_id b, heq]
+  have hmf : Mono (pair (listProdProj U k) (Cat.id (listProd U))) :=
+    mono_pair_of_mono _ (Cat.id (listProd U)) hidmono
+  refine ⟨⟨pair (listProdProj U k) (Cat.id (listProd U)), hw⟩, rfl,
+    sigma_reflects_mono (B := listProd U) ⟨_, hw⟩ hmf, ⟨Cat.id (listProd U), ?_⟩⟩
+  show Cat.id (listProd U) ≫ pair (listProdProj U k) (Cat.id (listProd U))
+      = pair (listProdProj U k) (Cat.id (listProd U))
+  rw [Cat.id_comp]
 
 end WellPointed
 
