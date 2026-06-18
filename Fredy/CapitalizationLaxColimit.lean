@@ -66,6 +66,7 @@ import Fredy.S1_36
 import Fredy.S1_41
 import Fredy.DirectedColimit
 import Fredy.CatColimit
+import Fredy.SliceRegular
 
 open Freyd
 open Freyd.Colim
@@ -185,5 +186,92 @@ noncomputable def ofStrict (C : Colim.CatSystem.{u, w} ι D) (hC : C.Coherent) :
     (fun x => C.F_trans hij hjk x)
     (fun {X Y} f =>
       heq_eqToHom_conj (C.F_trans hij hjk X) (C.F_trans hij hjk Y) (hC.trans_map hij hjk f))
+
+/-! ## The §1.547 base-change slice system as a `LaxCatSystem`
+
+  Here is the payoff for §1.547.  The inner directed system of finite-product slices `A/(∏U)` over
+  the filtered index `listDirected`, with BASE-CHANGE transitions (`RelativeCapitalization.lean`'s
+  `innerObj`/`innerF`/`innerFunctF`), CANNOT be a strict `Colim.CatSystem` — its
+  `StrictBaseChange` hypothesis is a *false* statement for raw base-change (`baseChangeObj (id) X =
+  X ×_D D ≠ X` on the nose).  But it IS a `LaxCatSystem`: the coherence isos are the canonical
+  pullback isomorphisms, which DO exist.
+
+  We phrase this abstractly over any directed product-projection system so it is reusable and
+  imports only the light `SliceRegular` (not the heavy `Capitalization` chain): a `ProjSystem` is a
+  `Directed ι` together with stage products `pr i` and a strictly-coherent projection family
+  `proj`.  Its base-change object/functor data is sorry-free; the two pseudo-coherence isos are the
+  genuine remaining content, isolated as honest TRUE obligations in `PseudoBaseChange` (no false
+  equation — unlike `StrictBaseChange`, these isos really hold). -/
+section BaseChangeLax
+
+variable {𝒞 : Type w} [Cat.{w} 𝒞] [HasPullbacks 𝒞]
+
+/-- A directed system of "products with projections": stage objects `pr i`, and for every
+    `i ≤ j` a projection `pr j ⟶ pr i` (the bigger product onto the smaller), strictly coherent
+    (`Cat.id` on `refl`, composite on `trans`).  This abstracts §1.547's `ListProjFamily` over
+    `listDirected`; the projections ARE constructible (the only obstruction to a concrete instance
+    is `DecidableEq 𝒞` for positional matching, orthogonal to the colimit construction here). -/
+structure ProjSystem (ι : Type u) (D : Directed ι) (𝒞 : Type w) [Cat.{w} 𝒞] where
+  /-- the stage product object `∏(stage i)` -/
+  pr : ι → 𝒞
+  /-- the projection `∏j ⟶ ∏i` for `i ≤ j` -/
+  proj : ∀ {i j}, D.le i j → (pr j ⟶ pr i)
+  /-- strict unit: the reflexive projection is the identity -/
+  proj_refl : ∀ i, proj (D.refl i) = Cat.id (pr i)
+  /-- strict composition (note the contravariance: `i ≤ j ≤ k` gives `∏k ⟶ ∏i` two ways) -/
+  proj_trans : ∀ {i j k} (hij : D.le i j) (hjk : D.le j k),
+    proj (D.trans hij hjk) = proj hjk ≫ proj hij
+
+variable {ι : Type u} {D : Directed ι}
+
+/-- Stage `i` of the base-change system: the slice `A/(pr i) = Over (pr i)`. -/
+abbrev pcObj (P : ProjSystem ι D 𝒞) (i : ι) : Type w := Over (P.pr i)
+
+/-- The base-change transition object map `A/(pr i) → A/(pr j)` along the projection `proj : pr j
+    ⟶ pr i` (for `i ≤ j`): `X ↦ X ×_{pr i} pr j`.  Sorry-free (`baseChangeObj`). -/
+def pcF (P : ProjSystem ι D 𝒞) {i j} (h : D.le i j) : pcObj P i → pcObj P j :=
+  baseChangeObj (P.proj h)
+
+/-- The base-change transition is a functor (sorry-free, `baseChangeFunctor`). -/
+instance pcFunctF (P : ProjSystem ι D 𝒞) {i j} (h : D.le i j) :
+    @Functor (pcObj P i) (overCat (P.pr i)) (pcObj P j) (overCat (P.pr j)) (pcF P h) :=
+  baseChangeFunctor (P.proj h)
+
+/-- **The pseudo-coherence isos of base-change (honest TRUE obligations).**  Unlike
+    `StrictBaseChange` (a FALSE equation taken as a hypothesis), these are the canonical pullback
+    isomorphisms, which genuinely exist:
+
+      * `refl_iso`  : `baseChangeObj (id) ≅ id`            — pullback along an identity is iso
+      * `trans_iso` : `baseChangeObj (g ≫ g') ≅ baseChangeObj g' ∘ baseChangeObj g`
+                                                            — pullback pasting / iterated-pullback iso
+
+    Supplying these turns the base-change inner system into a `LaxCatSystem` (`laxOfProjSystem`).
+    They are stated as `NatIso`s of the transition functors; constructing them is the genuine
+    next-blocker content (each is a standard pullback-universal-property argument). -/
+structure PseudoBaseChange (P : ProjSystem ι D 𝒞) where
+  refl_iso : ∀ {i : ι},
+    @NatIso (pcObj P i) (overCat (P.pr i)) (pcObj P i) (overCat (P.pr i))
+      (pcF P (D.refl i)) (fun X => X) (pcFunctF P (D.refl i)) (@idFunctor (pcObj P i) _)
+  trans_iso : ∀ {i j k : ι} (hij : D.le i j) (hjk : D.le j k),
+    @NatIso (pcObj P i) (overCat (P.pr i)) (pcObj P k) (overCat (P.pr k))
+      (pcF P (D.trans hij hjk)) (fun X => pcF P hjk (pcF P hij X))
+      (pcFunctF P (D.trans hij hjk))
+      (@compFunctor (pcObj P i) _ (pcObj P j) _ (pcObj P k) _
+        (pcF P hij) (pcF P hjk) (pcFunctF P hij) (pcFunctF P hjk))
+
+/-- **The §1.547 base-change slice system as a `LaxCatSystem`.**  Given the directed projection
+    system `P` and its (TRUE) pseudo-coherence isos `H`, the finite-product slices `A/(pr i)` with
+    base-change transitions form a `LaxCatSystem` — sorry-free.  This is the lax analogue of
+    `Freyd.innerCatSystem`, but WITHOUT the false `StrictBaseChange` input: the coherence is carried
+    by genuine isos.  THIS is the construction the strict `Colim.CatSystem` could not host. -/
+def laxOfProjSystem (P : ProjSystem ι D 𝒞) (H : PseudoBaseChange P) : LaxCatSystem.{u, w} ι D where
+  A := pcObj P
+  catA := fun i => overCat (P.pr i)
+  F := fun h => pcF P h
+  functF := fun h => pcFunctF P h
+  F_refl_iso := H.refl_iso
+  F_trans_iso := fun hij hjk => H.trans_iso hij hjk
+
+end BaseChangeLax
 
 end Freyd.LaxColim
