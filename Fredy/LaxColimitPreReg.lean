@@ -232,3 +232,46 @@ structure LaxEqualizerData (L : LaxCatSystem.{u, w} ι D) where
       ∃ r : z ⟶ L.F hij (eqObj f g), r ≫ (L.functF hij).map (eqMap f g) = k
 
 end Freyd.LaxColim
+
+/-!
+════════════════════════════════════════════════════════════════════════════════════════════════
+  STATUS + PRECISE NEXT BLOCKER (§1.543 — pre-regularity of the filtered lax colimit `ratCapCat P`)
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+DONE here (all sorry-free; `#print axioms` = `Classical.choice`, `Quot.sound`; `reflApp_natural` = none):
+
+  * `laxColimHasTerminal` — `HasTerminal (laxColimCat L hL)` from a `LaxTerminalData L` (per-fibre
+    terminal + the pushed terminal is again terminal — the LAX analogue of the strict
+    `hpres : F hij one = one`, which is FALSE in the lax setting since `F hij one ≅ one` only).
+    Mirrors `Colim.colimitHasTerminal`; the bare-sigma carrier removes all `colimOut`.
+  * `reflApp` / `reflApp_isIso` / `reflApp_natural` — the UNIT coherence component (forward of
+    `F_refl_iso`), the lax companion of `transApp`.  The conjugator for single-stage germ reps.
+  * `homInclL_isIso_of_rep` — a stage iso includes to a colimit iso (lax `colimHom_isIso_of_rep`).
+    The workhorse for showing an included stage limit-cone is universal (via `isIso_of_product_up`).
+  * `LaxProductData` / `LaxEqualizerData` — the per-fibre-limit + transition-preservation hypothesis
+    bundles (the exact shapes the strict `colimitPreRegular` consumes, re-expressed with `L.functF`).
+    TRUE for base-change (`g*` is a right adjoint ⇒ preserves finite limits); inhabiting them for
+    `laxOfProjSystem' P` is downstream.
+
+PRECISE NEXT BLOCKER — `HasBinaryProducts (laxColimCat L hL)` from a `LaxProductData L` (then the
+analogous `HasEqualizers`/`HasPullbacks`, then `PullbacksTransferCovers`, then assemble
+`PreRegularCategory`).  This is the germ-algebra mirror of `Colim.colimitHasBinaryProducts`
+(`CatColimitRegular.lean:104`), the largest single block of the strict assembly (~300 lines of
+`castHom` algebra).  The lax version replaces:
+
+    strict `castHom` (transport along the strict object-eqs `F_refl`/`F_trans`)
+  ⟶ lax     `pushHom` / `reflApp` / `transApp` (conjugation by the coherence iso COMPONENTS),
+
+and otherwise follows the same plan: for `⟨i,x⟩ × ⟨j,y⟩`, choose a common bound `k` (filtered),
+set the product object to `objIncl k ((data.hp k).prod (F x) (F y)) = ⟨k, …⟩`, take projections as
+single-stage germs `reflApp ≫ (data.hp k).fst|snd` at `⟨k, refl, …⟩`, define `pair` by the mediating
+germ from `data.presPair` at a common stage of the two competitor germs, and prove `fst_pair`/
+`snd_pair`/`pair_uniq` by pushing competitors to a common stage and applying `data.pres` (the
+joint-monic preservation) — the lax mirror of `objIncl_preserves_products` /
+`colimHom_monicPair_of_rep`.  The mechanical risk is entirely the `pushHom`/`reflApp` conjugation
+bookkeeping (the strict proof's `castHom_castHom`/`map_castHom`/`castHom_comp` chains become
+`pushHom_comp` + `reflApp_natural`/`transApp_natural` + iso-cancellation chains).  Once products,
+equalizers and pullbacks land, `PullbacksTransferCovers` aligns a colimit cover+pullback to a common
+fibre (each fibre is `overPreRegular`, so has PTC) and transfers back, and `PreRegularCategory
+(ratCapCat P)` assembles exactly as `Colim.colimitPreRegular`.
+-/
