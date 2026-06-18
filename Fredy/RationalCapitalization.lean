@@ -406,6 +406,48 @@ theorem MonicDense.leg_mono [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPull
     (h : 𝒟.mem (r ≫ d)) : Mono r :=
   mono_of_comp_mono ((hD.mem_iff_mono _).1 h)
 
+/-! ### §1.48  THE SATURATING INTERFACE — `DenseRoof`
+
+  `MonicDense` (members ↔ monics) suffices for the all-monics class but is FALSE for a proper
+  dense class such as `pairDenseClass` (not every `Â`-monic is a product projection).  The §1.48
+  calculus-of-fractions proofs use exactly ONE property of `denseMonos` beyond the bare `DenseClass`
+  record: a roof leg `r`, which is only known dense AFTER composing with a denominator
+  (`𝒟.mem (r ≫ d)`, the `FractionEquiv` field), is itself dense — i.e. **dense roof legs are dense**.
+  Concretely the transitivity/congruence/associativity proofs rebuild the comparison roof by
+  pulling the bare leg `r` back along a projection; `pb_mem` then needs `𝒟.mem r`, NOT just
+  `𝒟.mem (r ≫ d)`.  We isolate this as `DenseRoof`:
+
+      `roof_mem : 𝒟.mem (r ≫ d) → 𝒟.mem d → 𝒟.mem r`
+
+  the §1.48 **right-cancellation / left-saturation** of a dense class (dense ÷ dense = dense).  For
+  `denseMonos` it is `mono_of_comp_mono` (a left-factor of a monic is monic) plus `mem ↔ Mono`, so
+  `denseMonos` is `DenseRoof` (`denseMonos_denseRoof`).  This is the genuine left-calculus-of-fractions
+  hypothesis — strictly weaker than `MonicDense` (it does not assert `Mono → mem`), so it is the right
+  abstraction to feed `pairDenseClass`.  See `denseRoof_*` below for the generalised skeleton. -/
+structure DenseRoof [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] (𝒟 : DenseClass 𝒞) :
+    Prop where
+  /-- members are monic (`pairDenseClass_mem_mono` for the pairs class) -/
+  mem_mono : ∀ {A B : 𝒞} (f : A ⟶ B), 𝒟.mem f → Mono f
+  /-- §1.48 right-cancellation: if `r ≫ d` and `d` are dense then `r` is dense. -/
+  roof_mem : ∀ {A B C : 𝒞} {r : A ⟶ B} {d : B ⟶ C}, 𝒟.mem (r ≫ d) → 𝒟.mem d → 𝒟.mem r
+
+/-- A `MonicDense` class is `DenseRoof`: `mem_mono` is the forward biconditional; `roof_mem` is
+    `mono_of_comp_mono` (left-factor of a monic is monic) repackaged via `mem ↔ Mono`. -/
+theorem MonicDense.toDenseRoof [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
+    {𝒟 : DenseClass 𝒞} (hD : MonicDense 𝒟) : DenseRoof 𝒟 where
+  mem_mono _ h := (hD.mem_iff_mono _).1 h
+  roof_mem h _ := (hD.mem_iff_mono _).2 (mono_of_comp_mono ((hD.mem_iff_mono _).1 h))
+
+/-- `denseMonos` is `DenseRoof`. -/
+theorem denseMonos_denseRoof [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] :
+    DenseRoof (denseMonos 𝒞) := denseMonos_monic.toDenseRoof
+
+/-- A dense roof leg `r` (`𝒟.mem (r ≫ d)`) is monic, in a `DenseRoof` class. -/
+theorem DenseRoof.leg_mono [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
+    {𝒟 : DenseClass 𝒞} (hD : DenseRoof 𝒟) {A B C : 𝒞} {r : A ⟶ B} {d : B ⟶ C}
+    (h : 𝒟.mem (r ≫ d)) : Mono r :=
+  mono_of_comp_mono (hD.mem_mono _ h)
+
 section RatHom
 variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
 
@@ -415,7 +457,7 @@ variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
     declared-dense leg `(P.π₁ ≫ r₁) ≫ f₁.denom` is monic (`r₁`/`s₂` monic as dense roof legs,
     `P.π₁` the pullback of monic `s₂`, `f₁.denom` monic) and repackaged as dense via `mem_iff_mono`.
     Sorry-free for any `MonicDense 𝒟`; instantiated at `denseMonos`/`denseMonos_monic` below. -/
-theorem fractionEquiv_trans {𝒟 : DenseClass 𝒞} (hD : MonicDense 𝒟) {A B : 𝒞}
+theorem fractionEquiv_trans {𝒟 : DenseClass 𝒞} (hD : DenseRoof 𝒟) {A B : 𝒞}
     {f₁ f₂ f₃ : Fraction 𝒟 A B}
     (h₁₂ : FractionEquiv f₁ f₂) (h₂₃ : FractionEquiv f₂ f₃) : FractionEquiv f₁ f₃ := by
   obtain ⟨R, r₁, r₂, hRd, hRden, hRnum⟩ := h₁₂
@@ -423,12 +465,14 @@ theorem fractionEquiv_trans {𝒟 : DenseClass 𝒞} (hD : MonicDense 𝒟) {A B
   -- pullback of the two middle legs `r₂ : R → f₂.apex` and `s₂ : S → f₂.apex`
   let P := (HasPullbacks.has r₂ s₂).cone
   refine ⟨P.pt, P.π₁ ≫ r₁, P.π₂ ≫ s₃, ?_, ?_, ?_⟩
-  · -- composite denominator `(P.π₁ ≫ r₁) ≫ f₁.denom` dense, via monicity.
-    have hr₁ : Mono r₁ := hD.leg_mono hRd
-    have hs₂ : Mono s₂ := hD.leg_mono hSd
-    have hP₁ : Mono P.π₁ := mono_pullback r₂ s₂ hs₂ (HasPullbacks.has r₂ s₂)
-    have hd₁ : Mono f₁.denom := (hD.mem_iff_mono _).1 f₁.denom_dense
-    exact (hD.mem_iff_mono _).2 (mono_comp' _ _ (mono_comp' _ _ hP₁ hr₁) hd₁)
+  · -- composite denominator `(P.π₁ ≫ r₁) ≫ f₁.denom` dense, WITHIN the dense-class interface:
+    -- `r₁` dense (`roof_mem` from `mem(r₁≫f₁.denom)`, `mem f₁.denom`); `s₂` dense likewise; `P.π₁`
+    -- the pullback of dense `s₂` (`pb_mem`); composite dense (`comp_mem` ×2 with `f₁.denom`).
+    have hr₁ : 𝒟.mem r₁ := hD.roof_mem hRd f₁.denom_dense
+    have hs₂ : 𝒟.mem s₂ := hD.roof_mem hSd f₂.denom_dense
+    have hP₁ : 𝒟.mem P.π₁ := 𝒟.pb_mem s₂ r₂ hs₂
+    rw [Cat.assoc]
+    exact 𝒟.comp_mem P.π₁ (r₁ ≫ f₁.denom) hP₁ (𝒟.comp_mem r₁ f₁.denom hr₁ f₁.denom_dense)
   · -- denominators agree: `(P.π₁ ≫ r₁) ≫ f₁.denom = (P.π₂ ≫ s₃) ≫ f₃.denom`.
     -- Chase: `P.π₁ ≫ r₁ ≫ f₁.denom = P.π₁ ≫ r₂ ≫ f₂.denom` (hRden)
     --        `= P.π₂ ≫ s₂ ≫ f₂.denom` (pullback square `P.cone.w` ▸)
@@ -457,7 +501,7 @@ theorem fractionEquiv_trans {𝒟 : DenseClass 𝒞} (hD : MonicDense 𝒟) {A B
 def fractionSetoid {A B : 𝒞} : Setoid (Fraction (denseMonos 𝒞) A B) where
   r := FractionEquiv
   iseqv := ⟨fractionEquiv_refl (denseMonos 𝒞), fractionEquiv_symm (denseMonos 𝒞),
-    fractionEquiv_trans denseMonos_monic⟩
+    fractionEquiv_trans denseMonos_denseRoof⟩
 
 /-- **§1.48 — the hom-set `A[𝒟⁻¹](A,B)`**: equivalence classes of fraction spans
     (for the all-monics dense class `denseMonos 𝒞`).  Sorry-free `Quotient`. -/
@@ -635,7 +679,7 @@ def ratComp {A B C : 𝒞} (m : RatHom (𝒞 := 𝒞) A B)
     (by
       intro f g f' g' hf hg
       apply Quotient.sound
-      exact fractionEquiv_trans denseMonos_monic
+      exact fractionEquiv_trans denseMonos_denseRoof
         (compFraction_congr_left g hf) (compFraction_congr_right f' hg))
     m n
 
