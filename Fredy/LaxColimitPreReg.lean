@@ -243,23 +243,23 @@ section LaxProduct
 variable (L : LaxCatSystem.{u, w} ι D) (hL : Coherent L) (data : LaxProductData L)
 
 /-- Common product bound of `i,j`. -/
-private noncomputable def prK (D : Directed ι) (i j : ι) : ι := Classical.choose (D.bound i j)
-private theorem prK_le (D : Directed ι) (i j : ι) : D.le i (prK D i j) ∧ D.le j (prK D i j) :=
+noncomputable def prK (D : Directed ι) (i j : ι) : ι := Classical.choose (D.bound i j)
+theorem prK_le (D : Directed ι) (i j : ι) : D.le i (prK D i j) ∧ D.le j (prK D i j) :=
   Classical.choose_spec (D.bound i j)
 
 /-- The product object `⟨k, (hp k).prod (F x) (F y)⟩` in `Obj L`. -/
-private noncomputable def prObj {i j : ι} (x : L.A i) (y : L.A j) : Obj L :=
+noncomputable def prObj {i j : ι} (x : L.A i) (y : L.A j) : Obj L :=
   ⟨prK D i j, (data.hp (prK D i j)).prod (L.F (prK_le D i j).1 x) (L.F (prK_le D i j).2 y)⟩
 
 /-- The `fst` projection germ: `reflApp ≫ (hp k).fst` at bound `⟨k, refl k, hik⟩`. -/
-private noncomputable def prFst {i j : ι} (x : L.A i) (y : L.A j) :
+noncomputable def prFst {i j : ι} (x : L.A i) (y : L.A j) :
     homL L hL (prObj L data x y) ⟨i, x⟩ :=
   homInclL L hL ((data.hp (prK D i j)).prod (L.F (prK_le D i j).1 x) (L.F (prK_le D i j).2 y)) x
     ⟨prK D i j, D.refl (prK D i j), (prK_le D i j).1⟩
     (reflApp L _ ≫ (data.hp (prK D i j)).fst)
 
 /-- The `snd` projection germ. -/
-private noncomputable def prSnd {i j : ι} (x : L.A i) (y : L.A j) :
+noncomputable def prSnd {i j : ι} (x : L.A i) (y : L.A j) :
     homL L hL (prObj L data x y) ⟨j, y⟩ :=
   homInclL L hL ((data.hp (prK D i j)).prod (L.F (prK_le D i j).1 x) (L.F (prK_le D i j).2 y)) y
     ⟨prK D i j, D.refl (prK D i j), (prK_le D i j).2⟩
@@ -273,11 +273,11 @@ private noncomputable def prSnd {i j : ι} (x : L.A i) (y : L.A j) :
   triangle is assumed in `Coherent`), so we keep it abstract and CANCEL it by building the pair
   germ's representative with `isoInv U` baked in.  Both projections share the same `U` (same
   `reflApp p` source side), so one inverse serves both legs. -/
-private noncomputable def prUnit {k m : ι} (p : L.A k) (hkm : D.le k m) :
+noncomputable def prUnit {k m : ι} (p : L.A k) (hkm : D.le k m) :
     L.F (D.trans (D.refl k) hkm) p ⟶ L.F hkm p :=
   transApp L (D.refl k) hkm p ≫ (L.functF hkm).map (reflApp L p)
 
-private theorem prUnit_isIso {k m : ι} (p : L.A k) (hkm : D.le k m) :
+theorem prUnit_isIso {k m : ι} (p : L.A k) (hkm : D.le k m) :
     IsIso (prUnit L p hkm) :=
   isIso_comp (transApp_isIso L (D.refl k) hkm p)
     (@functor_preserves_iso (L.A k) (L.catA k) (L.A m) (L.catA m) (L.F hkm) (L.functF hkm)
@@ -286,7 +286,7 @@ private theorem prUnit_isIso {k m : ι} (p : L.A k) (hkm : D.le k m) :
 /-- Pushing a single-stage projection germ `reflApp p ≫ proj` from `k` to `m` (along `hkm`) equals
     `prUnit ≫ (functF hkm).map proj ≫ isoInv (transApp hik hkm tgt)`.  Unfold `pushHom`, distribute
     `map` over the composite, and fold the `transApp ≫ map reflApp` prefactor into `prUnit`. -/
-private theorem pushHom_proj {i k m : ι} (x : L.A i) (p : L.A k)
+theorem pushHom_proj {i k m : ι} (x : L.A i) (p : L.A k)
     (hik : D.le i k) (hkm : D.le k m) (proj : p ⟶ L.F hik x) :
     pushHom L p x (D.refl k) hik hkm (reflApp L p ≫ proj)
       = prUnit L p hkm
@@ -301,7 +301,7 @@ private theorem pushHom_proj {i k m : ι} (x : L.A i) (p : L.A k)
     `g : ⟨l,z⟩ ⟶ ⟨j,y⟩`, push both to a common stage `m ≥ k`, convert their targets to
     `F hkm (F hik x)`/`F hkm (F hjk y)` by `transApp`, apply `presPair`, and bake `isoInv prUnit`
     into the resulting germ so the projection's `prUnit` prefactor cancels. -/
-private theorem prPairExists {i j : ι} (x : L.A i) (y : L.A j) {l : ι} (z : L.A l)
+theorem prPairExists {i j : ι} (x : L.A i) (y : L.A j) {l : ι} (z : L.A l)
     (f : @Quotient _ (setoid (homSystemL L hL z x))) (g : @Quotient _ (setoid (homSystemL L hL z y))) :
     ∃ h : homL L hL ⟨l, z⟩ (prObj L data x y),
       compL L hL h (prFst L hL data x y) = f ∧ compL L hL h (prSnd L hL data x y) = g := by
@@ -363,7 +363,7 @@ private theorem prPairExists {i j : ι} (x : L.A i) (y : L.A j) {l : ι} (z : L.
 /-- The single-germ representative `Ψ` produced by `prCompProj`, as a TWO `pushHom`s (the projection
     germ folded back by `pushHom_proj`): `pushHom m (aw→v) ≫ pushHom (reflApp p ≫ proj) (k→v)`.
     This form makes the level-push coherence `prPsi_push` a pair of `push_trans` applications. -/
-private noncomputable def prPsi {i' k : ι} {l : ι} (z : L.A l) (p : L.A k) (w : L.A i')
+noncomputable def prPsi {i' k : ι} {l : ι} (z : L.A l) (p : L.A k) (w : L.A i')
     (hi'k : D.le i' k) (proj : p ⟶ L.F hi'k w)
     (aw : UpperBound D l k) (m : L.F aw.2.1 z ⟶ L.F aw.2.2 p)
     (v : ι) (hawv : D.le aw.1 v) (hkv : D.le k v) :
@@ -371,7 +371,7 @@ private noncomputable def prPsi {i' k : ι} {l : ι} (z : L.A l) (p : L.A k) (w 
   pushHom L z p aw.2.1 aw.2.2 hawv m
     ≫ pushHom L p w (D.refl k) hi'k hkv (reflApp L p ≫ proj)
 
-private theorem prCompProj {i' k : ι} {l : ι} (z : L.A l) (p : L.A k) (w : L.A i')
+theorem prCompProj {i' k : ι} {l : ι} (z : L.A l) (p : L.A k) (w : L.A i')
     (hi'k : D.le i' k) (proj : p ⟶ L.F hi'k w)
     (a₁ : UpperBound D l k) (m₁ : L.F a₁.2.1 z ⟶ L.F a₁.2.2 p)
     (e : ι) (ha₁e : D.le a₁.1 e) (hke : D.le k e) :
@@ -385,7 +385,7 @@ private theorem prCompProj {i' k : ι} {l : ι} (z : L.A l) (p : L.A k) (w : L.A
 
 /-- **Level-push coherence of `prPsi`.**  Pushing the single-germ rep from `v` to `n` (along `hvn`)
     recomputes the rep at `n`: both `pushHom`s merge by `push_trans` (associativity). -/
-private theorem prPsi_push (hL : Coherent L) {i' k : ι} {l : ι} (z : L.A l) (p : L.A k) (w : L.A i')
+theorem prPsi_push (hL : Coherent L) {i' k : ι} {l : ι} (z : L.A l) (p : L.A k) (w : L.A i')
     (hi'k : D.le i' k) (proj : p ⟶ L.F hi'k w)
     (aw : UpperBound D l k) (m : L.F aw.2.1 z ⟶ L.F aw.2.2 p)
     (v n : ι) (hawv : D.le aw.1 v) (hkv : D.le k v) (hvn : D.le v n) :
@@ -404,7 +404,7 @@ private theorem prPsi_push (hL : Coherent L) {i' k : ι} {l : ι} (z : L.A l) (p
     projection-composites to single germs (`prCompProj`), extract a common bound from the germ
     equalities, strip the trailing `isoInv (transApp)` isos, and apply `data.pres` (the fibre's
     joint-monic preservation) to the `prUnit`-conjugated representatives. -/
-private theorem prJointMono {i j : ι} (x : L.A i) (y : L.A j) {l : ι} (z : L.A l)
+theorem prJointMono {i j : ι} (x : L.A i) (y : L.A j) {l : ι} (z : L.A l)
     (h₁ h₂ : homL L hL ⟨l, z⟩ (prObj L data x y))
     (hf : compL L hL h₁ (prFst L hL data x y) = compL L hL h₂ (prFst L hL data x y))
     (hs : compL L hL h₁ (prSnd L hL data x y) = compL L hL h₂ (prSnd L hL data x y)) :
@@ -512,7 +512,7 @@ variable (L : LaxCatSystem.{u, w} ι D) (hL : Coherent L) (eqData : LaxEqualizer
     `⟨lW,w⟩ ⟶ ⟨M,Eobj⟩` equal after `m = reflApp ≫ eqMap fM gM` are equal — `prCompProj`/`prPsi_push`
     reduce both to single germs, and `eqData.pres` (the fibre's `eqMap` joint-monic preservation)
     cancels the `prUnit`-conjugated reps. -/
-private theorem eqMono (eqData : LaxEqualizerData L) {i j M : ι} (x : L.A i) (y : L.A j)
+theorem eqMono (eqData : LaxEqualizerData L) {i j M : ι} (x : L.A i) (y : L.A j)
     {lW : ι} (w : L.A lW) (hiM : D.le i M) (hjM : D.le j M)
     (fM gM : L.F hiM x ⟶ L.F hjM y)
     (h₁ h₂ : homL L hL ⟨lW, w⟩ ⟨M, @eqObj _ _ (eqData.he M) _ _ fM gM⟩)
