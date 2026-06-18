@@ -3192,6 +3192,44 @@ theorem mProd_equalizes {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx :
       exact (Z.distinct ⟨dx.surv.get k, wm⟩ hw ⟨dx.surv.get k, fm⟩ hf rfl).symm
   · rw [dif_neg hff] at hpe; exact absurd hpe (by simp)
 
+/-- **Step 2 — `mProd` satisfies the apex square.**  `mProd ≫ fst ≫ g.g = mProd ≫ snd ≫ x.g`:
+    `mProd ≫ fst = fst` and `mProd ≫ snd ≫ x.g = pair (fst≫g.g) wRecon ≫ dx.einv ≫ x.g
+    = pair (fst≫g.g) wRecon ≫ fst = fst ≫ g.g` (`einv_xg`). -/
+theorem mProd_square {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :
+    mProd x g dx ≫ (fst : prod Z.A X.A ⟶ Z.A) ≫ g.g
+      = mProd x g dx ≫ (snd : prod Z.A X.A ⟶ X.A) ≫ x.g := by
+  unfold mProd
+  rw [← Cat.assoc, fst_pair, ← Cat.assoc, snd_pair, Cat.assoc, einv_xg (Z := Z) x dx, fst_pair]
+
+/-- `mProd` factored through the product subobject `pairProdW Z X` (step 1: it equalizes every
+    cross constraint).  `mProdW ≫ pairProdW Z X = mProd`. -/
+def mProdW {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :
+    prod Z.A (listProd (dx.surv.filter (fun T => !collides Z T))) ⟶ pairProdD Z X :=
+  (wideEq (prod Z.A X.A) (crossConstraints Z X)).lift (mProd x g dx) (mProd_equalizes x g dx)
+
+theorem mProdW_fac {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :
+    mProdW x g dx ≫ pairProdW Z X = mProd x g dx :=
+  (wideEq (prod Z.A X.A) (crossConstraints Z X)).fac (mProd x g dx) (mProd_equalizes x g dx)
+
+/-- **Step 3 — the absorption iso's `inv : prod Z.A W' → apex.A`.**  `mProdW` satisfies the apex
+    equalizer condition `mProdW ≫ (w≫fst≫g.g) = mProdW ≫ (w≫snd≫x.g)` (step 2 `mProd_square`
+    pushed through `mProdW_fac`), so it lifts through the apex equalizer `eqMap`. -/
+def apexInv {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :
+    prod Z.A (listProd (dx.surv.filter (fun T => !collides Z T))) ⟶
+      (pairHasPullbacks.has g x).cone.pt.A :=
+  eqLift ((pairProjFst Z X).comp g).g ((pairProjSnd Z X).comp x).g (mProdW x g dx) (by
+    -- `mProdW ≫ (w≫fst≫g.g) = mProdW ≫ (w≫snd≫x.g)`: reassociate to `(mProdW≫w)≫fst≫g.g`,
+    -- use `mProdW_fac` then `mProd_square`.
+    show mProdW x g dx ≫ (pairProdW Z X ≫ fst) ≫ g.g
+       = mProdW x g dx ≫ (pairProdW Z X ≫ snd) ≫ x.g
+    rw [Cat.assoc, Cat.assoc, ← Cat.assoc (mProdW x g dx) (pairProdW Z X) (fst ≫ g.g),
+      ← Cat.assoc (mProdW x g dx) (pairProdW Z X) (snd ≫ x.g), mProdW_fac, mProd_square])
+
+theorem apexInv_fac {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :
+    apexInv x g dx ≫ eqMap ((pairProjFst Z X).comp g).g ((pairProjSnd Z X).comp x).g
+      = mProdW x g dx :=
+  eqLift_fac ((pairProjFst Z X).comp g).g ((pairProjSnd Z X).comp x).g (mProdW x g dx) _
+
 /-- The packaged absorption iso: hom/inv + the two round-trips + the leg-compat. -/
 structure ApexIso {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) where
   hom : (pairHasPullbacks.has g x).cone.pt.A ⟶
