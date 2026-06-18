@@ -237,6 +237,36 @@ noncomputable def ratLaxEqualizerData : LaxEqualizerData (laxOfProjSystem' P) wh
     rw [bcTranspose_bcLift (pj P hij)]
     exact eqLift_fac f g k' hk'
 
+/-! ### Assembly: pre-regularity of `ratCapCat P` modulo `hcanon`
+
+  With the three concrete bundles `ratLaxTerminalData`/`ratLaxProductData`/`ratLaxEqualizerData`
+  inhabited, `laxColimPreRegular` reduces `PreRegularCategory (ratCapCat P)` to the SINGLE remaining
+  representative-level hypothesis `hcanon` (the canonical colimit pullback's `π₂` is a cover whenever
+  the cospan leg is).  This mirrors the STRICT `Colim.colimitPreRegular`, which likewise takes its
+  `hcanon` as a hypothesis (the strict file's own assembly does not discharge it generically — it
+  needs the stage-inclusion-preserves-pullbacks + cover-lifting infrastructure).  We package the
+  concrete three-bundle reduction here; `hcanon` is the precise next blocker. -/
+
+/-- `ratCapCat P` as the lax colimit category (definitionally `laxColimCat (laxOfProjSystem' P)
+    (coherentProj P)`). -/
+noncomputable abbrev ratCat (P : ProjSystem ι D 𝒞) : Cat (Obj (laxOfProjSystem' P)) :=
+  laxColimCat (laxOfProjSystem' P) (coherentProj P)
+
+/-- **`PreRegularCategory (ratCapCat P)` from the canonical-pullback cover-transfer `hcanon`.**  The
+    three finite-limit bundles are the concrete `ratLax*Data` (base-change preserves slice
+    terminal/products/equalizers, proved via the adjunction transpose); the only residual is
+    `hcanon`, identical in shape to the strict `colimitPreRegular`'s `hcanon`. -/
+noncomputable def ratCapPreRegular [Nonempty ι] [HasEqualizers 𝒞] (P : ProjSystem ι D 𝒞)
+    (hcanon : letI : Cat (Obj (laxOfProjSystem' P)) := ratCat P
+        letI : HasPullbacks (Obj (laxOfProjSystem' P)) :=
+          laxColimHasPullbacks (laxOfProjSystem' P) (coherentProj P)
+            (ratLaxTerminalData P) (ratLaxProductData P) (ratLaxEqualizerData P)
+      ∀ {A B Z : Obj (laxOfProjSystem' P)} (f : A ⟶ Z) (g : B ⟶ Z),
+        Cover f → Cover (HasPullbacks.has f g).cone.π₂) :
+    @PreRegularCategory (Obj (laxOfProjSystem' P)) (ratCat P) :=
+  laxColimPreRegular (laxOfProjSystem' P) (coherentProj P)
+    (ratLaxTerminalData P) (ratLaxProductData P) (ratLaxEqualizerData P) hcanon
+
 end Bundles
 
 end Freyd.LaxColim
