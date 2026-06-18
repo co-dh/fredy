@@ -1018,17 +1018,25 @@ structure PairDense {X Y : PairObj 𝒞} (x : PairHom X Y) where
       surviving factor lies in `X.F`, so compatibility pins both maps to the same value.) -/
   survPinned : ∀ {Z : PairObj 𝒞} (a b : PairHom Z X),
     a.g ≫ e ≫ (snd : prod Y.A W ⟶ W) = b.g ≫ e ≫ (snd : prod Y.A W ⟶ W)
-  /-- **§1.547 — every factor of `X` is either Y-DERIVED or SURVIVING.**  Each `f ∈ X.F` either
-      factors through `x.g` to a matching factor `gY ∈ Y.F` of the SAME target (the "left"
-      disjunct — `f° ∈ Y.F°`), or it is a SURVIVOR pinned by the `W`-coordinate: `f.1` splits off
-      `W` as a retract (`W ≅ f.1 × Wf`) and `f.2 = e ≫ snd ≫ (split) ≫ fst` recovers it from the
-      surviving product coordinate.  This is the structural content "`x` together with the surviving
-      factors forms a product diagram": survivors are exactly the `W`-coordinates. -/
+  /-- **§1.547 — the GLOBAL surviving-factor decomposition.**  `W` is (a retract of) the product
+      `∏surv` of an explicit list `surv` of well-supported surviving targets, via the round-trip
+      `(wf, wg)`. -/
+  surv    : List 𝒞
+  survWS  : ∀ T ∈ surv, WellSupported T
+  wf      : W ⟶ listProd surv
+  wg      : listProd surv ⟶ W
+  wfg     : wf ≫ wg = Cat.id W
+  wgf     : wg ≫ wf = Cat.id (listProd surv)
+  /-- **§1.547 — every factor of `X` is either Y-DERIVED or a SURVIVOR.**  Each `f ∈ X.F` either
+      factors through `x.g` to a matching factor `gY ∈ Y.F` of the SAME target (the "left" disjunct
+      — `f° ∈ Y.F°`), or it is a SURVIVOR pinned by a GLOBAL coordinate `k : Fin surv.length` of the
+      product `∏surv`: `f.2 = e ≫ snd ≫ wf ≫ (listProdProj surv k)`.  Unlike the per-factor retract,
+      this names ALL survivors as coordinates of one product, so MULTIPLE collided coordinates can be
+      split off simultaneously (needed by the pullback proof). -/
   factorSplit : ∀ f ∈ X.F,
       (∃ gY ∈ Y.F, ∃ h : f.1 = gY.1, f.2 = x.g ≫ (h ▸ gY.2))
-    ∨ (∃ (Wf : 𝒞) (p : W ⟶ prod f.1 Wf) (q : prod f.1 Wf ⟶ W),
-         p ≫ q = Cat.id W ∧ q ≫ p = Cat.id (prod f.1 Wf)
-         ∧ f.2 = e ≫ (snd : prod Y.A W ⟶ W) ≫ p ≫ (fst : prod f.1 Wf ⟶ f.1))
+    ∨ (∃ k : Fin surv.length, ∃ h : f.1 = surv.get k,
+         f.2 = e ≫ (snd : prod Y.A W ⟶ W) ≫ wf ≫ (h ▸ listProdProj surv k))
 
 /-- **§1.547 — every dense morphism's underlying arrow is a COVER.**  `x.g = e ≫ fst` with
     `e` an iso and `fst : Y.A × W → Y.A` a cover (`W` well-supported, `prod_fst_cover`); a cover
@@ -1365,6 +1373,13 @@ def pairDense_of_iso {X Y : PairObj 𝒞} {x : PairHom X Y}
     -- an iso has NO surviving factors: the product diagram is `X.A ≅ Y.A × 1`, `W = 1`, so the
     -- `snd`-component lands in the terminal `1` and is unique — both maps agree there.
     survPinned := fun a b => HasTerminal.uniq _ _
+    -- an iso has W = 1 and EMPTY surviving list; `listProd [] = 1`, so wf/wg are the unique maps.
+    surv := []
+    survWS := fun _ h => absurd h (List.not_mem_nil)
+    wf := term _
+    wg := term _
+    wfg := HasTerminal.uniq _ _
+    wgf := HasTerminal.uniq _ _
     -- an iso has W = 1 ⇒ NO surviving factors: every `f ∈ X.F` is Y-DERIVED (LEFT disjunct).
     -- Use the inverse's compat (X→Y direction): `x'.compat f` gives `q ∈ Y.F` of the same target
     -- with `x'.g ≫ f = q`; then `f = (x.g ≫ x'.g) ≫ f = x.g ≫ q` since `x.g ≫ x'.g = id`.
@@ -1531,6 +1546,33 @@ def pairDense_comp [PullbacksTransferCovers 𝒞] {X Y Z : PairObj 𝒞}
           intro c
           rw [Cat.assoc, Cat.assoc, Cat.assoc, hss]
         rw [key a, key b, dx.survPinned a b]
+    surv := dy.surv ++ dx.surv
+    survWS := fun T hT => by
+      rcases List.mem_append.1 hT with h | h
+      · exact dy.survWS T h
+      · exact dx.survWS T h
+    wf := pair (fst ≫ dy.wf) (snd ≫ dx.wf) ≫ listProdAppendInv dy.surv dx.surv
+    wg := listProdAppendHom dy.surv dx.surv ≫ pair (fst ≫ dy.wg) (snd ≫ dx.wg)
+    wfg := by
+      -- pair(..) ≫ (Inv ≫ Hom) ≫ pair(..) = pair(..) ≫ pair(..) = id
+      rw [Cat.assoc, ← Cat.assoc (listProdAppendInv _ _), listProdAppend_inv_hom,
+        Cat.id_comp]
+      apply prod_hom_ext
+      · rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair, Cat.assoc, dy.wfg, Cat.comp_id,
+          Cat.id_comp]
+      · rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair, Cat.assoc, dx.wfg, Cat.comp_id,
+          Cat.id_comp]
+    wgf := by
+      -- Hom ≫ (pair(..) ≫ pair(..)) ≫ Inv = Hom ≫ Inv = id
+      rw [Cat.assoc, ← Cat.assoc (pair (fst ≫ dy.wg) (snd ≫ dx.wg))]
+      have hmid : pair (fst ≫ dy.wg) (snd ≫ dx.wg) ≫ pair (fst ≫ dy.wf) (snd ≫ dx.wf)
+          = Cat.id (prod (listProd dy.surv) (listProd dx.surv)) := by
+        apply prod_hom_ext
+        · rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair, Cat.assoc, dy.wgf, Cat.comp_id,
+            Cat.id_comp]
+        · rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair, Cat.assoc, dx.wgf, Cat.comp_id,
+            Cat.id_comp]
+      rw [hmid, Cat.id_comp, listProdAppend_hom_inv]
     factorSplit := by
       -- bridging equations for `esc := (dx.e ≫ r) ≫ snd : X.A → prod dy.W dx.W`
       intro f hf
@@ -1541,9 +1583,9 @@ def pairDense_comp [PullbacksTransferCovers 𝒞] {X Y Z : PairObj 𝒞}
       have hescL : dx.e ≫ r ≫ (snd : prod Z.A (prod dy.W dx.W) ⟶ prod dy.W dx.W)
           ≫ (fst : prod dy.W dx.W ⟶ dy.W) = x.g ≫ dy.e ≫ (snd : prod Z.A dy.W ⟶ dy.W) := by
         rw [← Cat.assoc r snd fst, hrsnd, fst_pair, ← Cat.assoc dx.e fst, dx.proj]
-      rcases dx.factorSplit f hf with ⟨gY, hgY, hgYt, hgYe⟩ | ⟨Wf, p, q, hpq, hqp, hsplit⟩
+      rcases dx.factorSplit f hf with ⟨gY, hgY, hgYt, hgYe⟩ | ⟨kk, hkt, hsplit⟩
       · -- dx-Y-derived: `f.2 = x.g ≫ (hgYt ▸ gY.2)`, `gY ∈ Y.F`.  Case on dy.factorSplit gY.
-        rcases dy.factorSplit gY hgY with ⟨gZ, hgZ, hgZt, hgZe⟩ | ⟨Wf, p, q, hpq, hqp, hsplit⟩
+        rcases dy.factorSplit gY hgY with ⟨gZ, hgZ, hgZt, hgZe⟩ | ⟨kk, hkt, hsplit⟩
         · -- dy-Y-derived ⇒ composite LEFT: `f.2 = x.g ≫ y.g ≫ gZ.2 = (x.comp y).g ≫ gZ.2`
           left
           refine ⟨gZ, hgZ, hgYt.trans hgZt, ?_⟩
@@ -1552,26 +1594,46 @@ def pairDense_comp [PullbacksTransferCovers 𝒞] {X Y Z : PairObj 𝒞}
           simp only at hgYe hgZe ⊢
           show fm = (x.g ≫ y.g) ≫ gZm
           rw [hgYe, hgZe, Cat.assoc]
-        · -- dy-surviving ⇒ composite RIGHT, survivor in LEFT factor `dy.W`.
+        · -- dy-surviving ⇒ composite RIGHT, survivor in FIRST block of `dy.surv ++ dx.surv`.
           right
-          -- `f.2 = x.g ≫ (hgYt ▸ gY.2)`; `gY.2 = dy.e ≫ snd ≫ p ≫ fst`; `e_comp≫snd≫fst = x.g≫dy.e≫snd`
+          -- target index: `⟨kk.1, _⟩` into the append (FIRST block).
+          have hk_app : kk.1 < (dy.surv ++ dx.surv).length := by
+            rw [List.length_append]; exact Nat.lt_of_lt_of_le kk.2 (Nat.le_add_right _ _)
+          have hL : (dy.surv ++ dx.surv).get ⟨kk.1, hk_app⟩ = dy.surv.get kk := by
+            simp [List.get_eq_getElem, List.getElem_append_left kk.2]
+          refine ⟨⟨kk.1, hk_app⟩, hgYt.trans (hkt.trans hL.symm), ?_⟩
           obtain ⟨ft, fm⟩ := f; obtain ⟨gYt, gYm⟩ := gY
-          cases hgYt
-          simp only at hgYe hsplit
-          obtain ⟨p', q', hp'q', hq'p', hp'fst⟩ := retractExtendLeft (D := dx.W) p q hpq hqp
-          refine ⟨prod Wf dx.W, p', q', hp'q', hq'p', ?_⟩
-          simp only
-          rw [hgYe, hsplit, hp'fst]
-          -- goal: x.g ≫ dy.e ≫ snd ≫ p ≫ fst = e_comp ≫ snd ≫ (fst ≫ p ≫ fst)
-          have hb := congrArg (· ≫ p ≫ fst) hescL
+          cases hgYt; cases hkt
+          simp only at hgYe hsplit ⊢
+          -- the goal's projAppend cast IS `hL ▸` (defeq); rewrite to `hL`, then projL + hescL.
+          rw [hgYe, hsplit,
+            show (hL ▸ listProdProj (dy.surv ++ dx.surv) ⟨↑kk, hk_app⟩
+                  : listProd (dy.surv ++ dx.surv) ⟶ dy.surv.get kk)
+               = hL ▸ listProdProj (dy.surv ++ dx.surv) ⟨↑kk, hk_app⟩ from rfl,
+            Cat.assoc (pair (fst ≫ dy.wf) (snd ≫ dx.wf)) (listProdAppendInv dy.surv dx.surv),
+            listProdAppendInv_projL dy.surv dx.surv kk hk_app hL,
+            ← Cat.assoc (pair (fst ≫ dy.wf) (snd ≫ dx.wf)) fst, fst_pair]
+          have hb := congrArg (· ≫ dy.wf ≫ listProdProj dy.surv kk) hescL
           simp only [Cat.assoc] at hb ⊢
           exact hb.symm
-      · -- dx-surviving ⇒ composite RIGHT, survivor in RIGHT factor `dx.W`.
+      · -- dx-surviving ⇒ composite RIGHT, survivor in SECOND block of `dy.surv ++ dx.surv`.
         right
-        obtain ⟨p', q', hp'q', hq'p', hp'fst⟩ := retractExtendRight (D := dy.W) p q hpq hqp
-        refine ⟨prod dy.W Wf, p', q', hp'q', hq'p', ?_⟩
-        rw [hsplit, hp'fst]
-        have hb := congrArg (· ≫ p ≫ fst) hescR
+        have hk_app : dy.surv.length + kk.1 < (dy.surv ++ dx.surv).length := by
+          rw [List.length_append]; exact Nat.add_lt_add_left kk.2 _
+        have hR : (dy.surv ++ dx.surv).get ⟨dy.surv.length + kk.1, hk_app⟩ = dx.surv.get kk := by
+          simp [List.get_eq_getElem, List.getElem_append_right (Nat.le_add_right _ _)]
+        refine ⟨⟨dy.surv.length + kk.1, hk_app⟩, hkt.trans hR.symm, ?_⟩
+        obtain ⟨ft, fm⟩ := f
+        cases hkt
+        simp only at hsplit ⊢
+        rw [hsplit,
+          show (hR ▸ listProdProj (dy.surv ++ dx.surv) ⟨dy.surv.length + ↑kk, hk_app⟩
+                : listProd (dy.surv ++ dx.surv) ⟶ dx.surv.get kk)
+             = hR ▸ listProdProj (dy.surv ++ dx.surv) ⟨dy.surv.length + ↑kk, hk_app⟩ from rfl,
+          Cat.assoc (pair (fst ≫ dy.wf) (snd ≫ dx.wf)) (listProdAppendInv dy.surv dx.surv),
+          listProdAppendInv_projR dy.surv dx.surv kk hk_app hR,
+          ← Cat.assoc (pair (fst ≫ dy.wf) (snd ≫ dx.wf)) snd, snd_pair]
+        have hb := congrArg (· ≫ dx.wf ≫ listProdProj dx.surv kk) hescR
         simp only [Cat.assoc] at hb ⊢
         exact hb.symm }
 
