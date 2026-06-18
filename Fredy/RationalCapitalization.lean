@@ -2416,6 +2416,74 @@ theorem projBaseChangeCone_isPullback {Z Y W : 𝒞} (g : Z ⟶ Y) :
         _ = (v ≫ pair (fst ≫ g) snd) ≫ snd := by rw [Cat.assoc]
         _ = d.π₂ ≫ snd := by rw [this]
 
+/-- **Iso on the right leg transports a pullback.**  If `c : Cone f h` is a pullback and `e : B' ≅ B`
+    with inverse `einv` (so `e ≫ einv = id`, `einv ≫ e = id`), then the cone over the cospan
+    `(f, e ≫ h)` with the SAME apex, first leg `c.π₁`, and second leg `c.π₂ ≫ einv` is again a
+    pullback.  (Reindexing cones: a cone over `(f, e≫h)` is exactly a cone over `(f, h)` with its
+    second leg post-composed with `e`.) -/
+theorem isPullback_precomp_iso_right {A B B' C : 𝒞} {f : A ⟶ C} {h : B ⟶ C}
+    {c : Cone f h} (hc : c.IsPullback) (e : B' ⟶ B) (einv : B ⟶ B')
+    (he₁ : e ≫ einv = Cat.id B') (he₂ : einv ≫ e = Cat.id B) :
+    (⟨c.pt, c.π₁, c.π₂ ≫ einv, by
+      rw [Cat.assoc, ← Cat.assoc einv, he₂, Cat.id_comp]; exact c.w⟩ : Cone f (e ≫ h)).IsPullback := by
+  intro d
+  -- reindex `d : Cone f (e≫h)` to `d' : Cone f h` by post-composing leg 2 with `e`
+  have hd'w : d.π₁ ≫ f = (d.π₂ ≫ e) ≫ h := by rw [Cat.assoc]; exact d.w
+  let d' : Cone f h := ⟨d.pt, d.π₁, d.π₂ ≫ e, hd'w⟩
+  obtain ⟨u, ⟨hu₁, hu₂⟩, huniq⟩ := hc d'
+  refine ⟨u, ⟨hu₁, ?_⟩, ?_⟩
+  · -- `u ≫ (c.π₂ ≫ einv) = d.π₂`: from `u ≫ c.π₂ = d.π₂ ≫ e`, cancel `e`
+    rw [← Cat.assoc, hu₂]
+    show (d.π₂ ≫ e) ≫ einv = d.π₂
+    rw [Cat.assoc, he₁, Cat.comp_id]
+  · intro v hv₁ hv₂
+    apply huniq v hv₁
+    -- `v ≫ c.π₂ = d.π₂ ≫ e`: from `v ≫ (c.π₂ ≫ einv) = d.π₂`
+    show v ≫ c.π₂ = d.π₂ ≫ e
+    have hvc : v ≫ (c.π₂ ≫ einv) = d.π₂ := hv₂
+    have key : (v ≫ (c.π₂ ≫ einv)) ≫ e = d.π₂ ≫ e := congrArg (· ≫ e) hvc
+    calc v ≫ c.π₂
+          = (v ≫ (c.π₂ ≫ einv)) ≫ e := by
+            simp only [Cat.assoc, he₂, Cat.comp_id]
+      _ = d.π₂ ≫ e := key
+
+/-- **§1.547 — the `A`-level pullback of the cospan `(g.g, x.g)` is a PROJECTION.**  For dense `x`
+    (data `dx`, so `x.g = dx.e ≫ fst` with `dx.e : X.A ≅ Y.A × dx.W`), the pullback of `(g.g, x.g)`
+    in `A` has apex `prod Z.A dx.W`, first leg `fst : Z.A × dx.W → Z.A`.  This is `projBaseChangeCone`
+    (base change of `fst` along `g.g`) reindexed across the density iso (`isPullback_precomp_iso_right`).
+    The honest `A`-LEVEL core of dense-pullback-closure (the `Â`-apex `E` then collapses onto this). -/
+def pairDensePbBaseCone [PullbacksTransferCovers 𝒞] {X Y Z : PairObj 𝒞}
+    (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) : Cone g.g x.g where
+  pt := prod Z.A dx.W
+  π₁ := fst
+  π₂ := pair (fst ≫ g.g) snd ≫ dx.einv
+  w := by
+    -- `fst ≫ g.g = (pair (fst≫g.g) snd ≫ dx.einv) ≫ x.g`, using `x.g = dx.e ≫ fst` and `einv≫e=id`
+    have hx : dx.einv ≫ x.g = fst := by rw [← dx.proj, ← Cat.assoc, dx.e_iso₂, Cat.id_comp]
+    calc (fst : prod Z.A dx.W ⟶ Z.A) ≫ g.g
+          = pair (fst ≫ g.g) snd ≫ (fst : prod Y.A dx.W ⟶ Y.A) := by rw [fst_pair]
+      _ = pair (fst ≫ g.g) snd ≫ (dx.einv ≫ x.g) := by rw [hx]
+      _ = (pair (fst ≫ g.g) snd ≫ dx.einv) ≫ x.g := by rw [Cat.assoc]
+
+theorem pairDensePbBaseCone_isPullback [PullbacksTransferCovers 𝒞] {X Y Z : PairObj 𝒞}
+    (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :
+    (pairDensePbBaseCone x g dx).IsPullback := by
+  -- `x.g = dx.e ≫ fst`; reindex `projBaseChangeCone g.g` (pullback of `(g.g, fst)`) by `dx.e`.
+  have hxg : x.g = dx.e ≫ (fst : prod Y.A dx.W ⟶ Y.A) := dx.proj.symm
+  have hbase := isPullback_precomp_iso_right
+    (projBaseChangeCone_isPullback (W := dx.W) g.g) dx.e dx.einv dx.e_iso₁ dx.e_iso₂
+  -- `hbase` is a pullback of `(g.g, dx.e ≫ fst)`; our cone has the SAME pt/π₁/π₂ but cospan `x.g`.
+  -- transfer cone-by-cone, recasting each `d : Cone g.g x.g` to `Cone g.g (dx.e≫fst)`.
+  intro d
+  have hd'w : d.π₁ ≫ g.g = d.π₂ ≫ (dx.e ≫ (fst : prod Y.A dx.W ⟶ Y.A)) := by rw [← hxg]; exact d.w
+  let d' : Cone g.g (dx.e ≫ (fst : prod Y.A dx.W ⟶ Y.A)) := ⟨d.pt, d.π₁, d.π₂, hd'w⟩
+  obtain ⟨u, ⟨hu₁, hu₂⟩, huniq⟩ := hbase d'
+  refine ⟨u, ⟨?_, ?_⟩, ?_⟩
+  · show u ≫ (fst : prod Z.A dx.W ⟶ Z.A) = d.π₁; exact hu₁
+  · show u ≫ (pair (fst ≫ g.g) snd ≫ dx.einv) = d.π₂; exact hu₂
+  · intro v hv₁ hv₂
+    exact huniq v hv₁ hv₂
+
 /-- **§1.547 — `Â`'s pullbacks transfer covers** (the pre-regular closure condition).  The STATEMENT
     is Freyd's genuine `PullbacksTransferCovers`: in a pullback square in `Â`, the leg opposite an
     `Â`-cover is an `Â`-cover.  Freyd discharges this for `Â` via the slice equivalence — "`A*` is a
@@ -2492,6 +2560,13 @@ instance pairPreRegular [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞] :
     equalizer `E` (square ∧ cross-constraints) collapsing to the square-only `A`-pullback.  R10
     confirmed (machine-checked reasoning) this is the SAME gap as `pairPullbacksTransferCovers` (both
     are "`pairForget` preserves/reflects this pullback"), not derivable from abstract `PairObj`. -/
+theorem canonical_pb_probe [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞]
+    {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) :
+    ((pairHasPullbacks.has g x).cone.π₁).g
+      = eqMap ((pairProjFst Z X).comp g).g ((pairProjSnd Z X).comp x).g
+        ≫ (pairProjFst Z X).g := by
+  rfl
+
 noncomputable def pairDense_pb_canonical_dense [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞]
     {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :
     PairDense (pairHasPullbacks.has g x).cone.π₁ := by
