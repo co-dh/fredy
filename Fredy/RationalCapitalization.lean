@@ -2328,6 +2328,67 @@ def pairDense_comp [PullbacksTransferCovers 𝒞] {X Y Z : PairObj 𝒞}
           simp [List.get_eq_getElem, List.getElem_append_right hge]
         rw [hget]; exact dx.survInX _ }
 
+/-- **§1.547 — a dense map with NO new targets is already an ISO.**  If `x : X → Y` is dense and the
+    domain's targets are contained in the codomain's (`X° ⊆ Y°`), then `x` is an iso in `Â`.  Reason:
+    every surviving target lies in `X°` (`survInX`) but OUTSIDE `Y°` (`survDistinct`); with `X° ⊆ Y°`
+    that is impossible, so `surv = []`, hence `W ≅ listProd [] = 1`, the density iso `e : X.A ≅ Y.A × 1`
+    collapses to `X.A ≅ Y.A`, and `x.g = e ≫ fst` is an iso.  The inverse `Â`-arrow's compatibility is
+    discharged from `factorSplit` (every `X`-factor is now Y-derived, the survivor branch being empty).
+    This is the fraction-fiber slice-equivalence step `RatBelow U ≃ A/(∏U)`. -/
+theorem dense_exactlyU_isIso {X Y : PairObj 𝒞} {x : PairHom X Y}
+    (d : PairDense x) (hXY : ∀ T ∈ X.targets, T ∈ Y.targets) :
+    @IsIso (PairObj 𝒞) _ X Y x := by
+  -- (1) no survivors: a survivor's target is in `X°` (survInX) AND not in `Y°` (survDistinct),
+  -- contradicting `X° ⊆ Y°`.  So `surv = []`.
+  have hnil : d.surv = [] := by
+    cases hs : d.surv with
+    | nil => rfl
+    | cons T ts =>
+      have hpos : 0 < d.surv.length := by rw [hs]; exact Nat.succ_pos _
+      exact absurd (hXY _ (d.survInX ⟨0, hpos⟩)) (d.survDistinct ⟨0, hpos⟩)
+  -- (2) `listProd d.surv` is the terminal object (it reduces to `listProd [] = one`), so any two
+  -- arrows into it agree; in particular `d.wg : listProd d.surv → W` precomposes a `term`.
+  have hone : listProd d.surv = HasTerminal.one := by rw [hnil]; rfl
+  have htermInto : ∀ {V : 𝒞} (a b : V ⟶ listProd d.surv), a = b := by
+    intro V a b; revert a b; rw [hone]; intro a b; exact HasTerminal.uniq a b
+  -- the `W`-component map `Y.A → W` used to invert: `term Y.A` lifted into `listProd surv`, then `wg`.
+  let tW : Y.A ⟶ listProd d.surv := hnil ▸ (term Y.A : Y.A ⟶ HasTerminal.one)
+  let ginv : Y.A ⟶ X.A := pair (Cat.id Y.A) (tW ≫ d.wg) ≫ d.einv
+  -- `ginv ≫ x.g = id Y.A`: `ginv ≫ (e ≫ fst) = pair id _ ≫ (einv ≫ e) ≫ fst = pair id _ ≫ fst = id`.
+  have hgi : ginv ≫ x.g = Cat.id Y.A := by
+    rw [← d.proj]
+    show (pair (Cat.id Y.A) (tW ≫ d.wg) ≫ d.einv) ≫ d.e ≫ fst = Cat.id Y.A
+    rw [Cat.assoc, ← Cat.assoc d.einv d.e fst, d.e_iso₂, Cat.id_comp, fst_pair]
+  -- `x.g ≫ ginv = id X.A`: reduces (after `← proj`, `← e_iso₁`) to
+  -- `fst ≫ pair id (tW ≫ wg) = id (prod Y.A W)`, proven by `prod_hom_ext`.
+  have hcollapse : (fst : prod Y.A d.W ⟶ Y.A) ≫ pair (Cat.id Y.A) (tW ≫ d.wg)
+      = Cat.id (prod Y.A d.W) := by
+    apply prod_hom_ext
+    · rw [Cat.assoc, fst_pair, Cat.comp_id, Cat.id_comp]
+    · rw [Cat.assoc, snd_pair, Cat.id_comp]
+      -- `fst ≫ tW ≫ wg = snd`: `snd = (snd ≫ wf) ≫ wg` (wfg) and `fst ≫ tW = snd ≫ wf` (htermInto).
+      have hsnd : (snd ≫ d.wf) ≫ d.wg = (snd : prod Y.A d.W ⟶ d.W) := by
+        rw [Cat.assoc, d.wfg, Cat.comp_id]
+      rw [← Cat.assoc (fst : prod Y.A d.W ⟶ Y.A) tW d.wg,
+        htermInto (fst ≫ tW) (snd ≫ d.wf), hsnd]
+  have hig : x.g ≫ ginv = Cat.id X.A := by
+    rw [← d.proj]
+    show (d.e ≫ fst) ≫ pair (Cat.id Y.A) (tW ≫ d.wg) ≫ d.einv = Cat.id X.A
+    rw [Cat.assoc, ← Cat.assoc fst (pair _ _) d.einv, hcollapse, Cat.id_comp, d.e_iso₁]
+  -- (3) the inverse `Â`-arrow: underlying `ginv`; compat from `factorSplit` (no survivors).
+  let xinv : PairHom Y X :=
+    { g := ginv
+      compat := by
+        intro p hp
+        rcases d.factorSplit p hp with ⟨gY, hgY, h, hpe⟩ | ⟨k, _, _⟩
+        · refine ⟨gY, hgY, h.symm, ?_⟩
+          obtain ⟨pt, pm⟩ := p; obtain ⟨gYt, gYm⟩ := gY
+          cases h; simp only at hpe ⊢
+          rw [hpe, ← Cat.assoc, hgi, Cat.id_comp]
+        · have hlen0 : d.surv.length = 0 := by rw [hnil]; rfl
+          have hk := k.2; omega }
+  exact ⟨xinv, PairHom.ext hig, PairHom.ext hgi⟩
+
 /-! ### §1.547  FAITHFULNESS of the localisation `Â → Â[dense⁻¹] = A*` (the decisive payoff)
 
   In a calculus-of-fractions localisation `Â → Â[dense⁻¹]`, the localisation functor is FAITHFUL
