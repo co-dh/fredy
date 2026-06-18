@@ -577,9 +577,10 @@ def compFraction {A B C : 𝒞} (f : Fraction G A B) (g : Fraction G B C) : Frac
 /-- **RIGHT congruence**: replacing the second span by an equivalent one yields an equivalent
     composite.  Roof = pullback of `compFraction f g`'s `Q.π₂` against the `g ≈ g'` roof leg
     `s : S → g.apex`; the leg into `Q' := pb(f.num, g'.denom)` is built by `Q'`'s lift. -/
-theorem compFraction_congr_right {A B C : 𝒞} (f : Fraction (denseMonos 𝒞) A B)
-    {g g' : Fraction (denseMonos 𝒞) B C} (hg : FractionEquiv g g') :
-    FractionEquiv (compFraction (denseMonos 𝒞) f g) (compFraction (denseMonos 𝒞) f g') := by
+theorem compFraction_congr_right {𝒟 : DenseClass 𝒞} (hD : DenseRoof 𝒟) {A B C : 𝒞}
+    (f : Fraction 𝒟 A B)
+    {g g' : Fraction 𝒟 B C} (hg : FractionEquiv g g') :
+    FractionEquiv (compFraction 𝒟 f g) (compFraction 𝒟 f g') := by
   obtain ⟨S, s, s', hSd, hSden, hSnum⟩ := hg
   let Q := (HasPullbacks.has f.num g.denom).cone
   let Q' := (HasPullbacks.has f.num g'.denom).cone
@@ -599,11 +600,12 @@ theorem compFraction_congr_right {A B C : 𝒞} (f : Fraction (denseMonos 𝒞) 
   have hρ'1 : ρ' ≫ Q'.π₁ = R.π₁ ≫ Q.π₁ := (HasPullbacks.has f.num g'.denom).lift_fst _
   have hρ'2 : ρ' ≫ Q'.π₂ = R.π₂ ≫ s' := (HasPullbacks.has f.num g'.denom).lift_snd _
   refine ⟨R.pt, R.π₁, ρ', ?_, ?_, ?_⟩
-  · -- dense: `R.π₁ ≫ (Q.π₁ ≫ f.denom)` mono.  `s` mono ⇒ `R.π₁ = pb(s)` mono; comp mono.
-    have hs : Mono s := mono_of_comp_mono hSd
-    have hR₁ : Mono R.π₁ := mono_pullback Q.π₂ s hs (HasPullbacks.has Q.π₂ s)
-    show Mono (R.π₁ ≫ (Q.π₁ ≫ f.denom))
-    exact mono_comp' _ _ hR₁ (compFraction (denseMonos 𝒞) f g).denom_dense
+  · -- dense WITHIN the interface: `s` dense (`roof_mem` from `mem(s≫g.denom)`, `mem g.denom`),
+    -- `R.π₁ = pb(s)` dense (`pb_mem`), composite dense with `compFraction.denom_dense`.
+    have hs : 𝒟.mem s := hD.roof_mem hSd g.denom_dense
+    have hR₁ : 𝒟.mem R.π₁ := 𝒟.pb_mem s Q.π₂ hs
+    show 𝒟.mem (R.π₁ ≫ (Q.π₁ ≫ f.denom))
+    exact 𝒟.comp_mem R.π₁ (Q.π₁ ≫ f.denom) hR₁ (compFraction 𝒟 f g).denom_dense
   · -- denoms agree
     show R.π₁ ≫ (Q.π₁ ≫ f.denom) = ρ' ≫ (Q'.π₁ ≫ f.denom)
     calc R.π₁ ≫ (Q.π₁ ≫ f.denom)
@@ -624,9 +626,10 @@ theorem compFraction_congr_right {A B C : 𝒞} (f : Fraction (denseMonos 𝒞) 
 /-- **LEFT congruence**: replacing the first span by an equivalent one yields an equivalent
     composite.  Roof = pullback of `compFraction f g`'s `Q.π₁` against the `f ≈ f'` roof leg
     `t : T → f.apex`; the leg into `Q' := pb(f'.num, g.denom)` is built by `Q'`'s lift. -/
-theorem compFraction_congr_left {A B C : 𝒞} {f f' : Fraction (denseMonos 𝒞) A B}
-    (g : Fraction (denseMonos 𝒞) B C) (hf : FractionEquiv f f') :
-    FractionEquiv (compFraction (denseMonos 𝒞) f g) (compFraction (denseMonos 𝒞) f' g) := by
+theorem compFraction_congr_left {𝒟 : DenseClass 𝒞} (hD : DenseRoof 𝒟) {A B C : 𝒞}
+    {f f' : Fraction 𝒟 A B}
+    (g : Fraction 𝒟 B C) (hf : FractionEquiv f f') :
+    FractionEquiv (compFraction 𝒟 f g) (compFraction 𝒟 f' g) := by
   obtain ⟨T, t, t', hTd, hTden, hTnum⟩ := hf
   let Q := (HasPullbacks.has f.num g.denom).cone
   let Q' := (HasPullbacks.has f'.num g.denom).cone
@@ -646,11 +649,12 @@ theorem compFraction_congr_left {A B C : 𝒞} {f f' : Fraction (denseMonos 𝒞
   have hρ'1 : ρ' ≫ Q'.π₁ = R.π₂ ≫ t' := (HasPullbacks.has f'.num g.denom).lift_fst _
   have hρ'2 : ρ' ≫ Q'.π₂ = R.π₁ ≫ Q.π₂ := (HasPullbacks.has f'.num g.denom).lift_snd _
   refine ⟨R.pt, R.π₁, ρ', ?_, ?_, ?_⟩
-  · -- dense: `R.π₁ ≫ (Q.π₁ ≫ f.denom)` mono.  `t` mono ⇒ `R.π₁ = pb(t)` mono; comp mono.
-    have ht : Mono t := mono_of_comp_mono hTd
-    have hR₁ : Mono R.π₁ := mono_pullback Q.π₁ t ht (HasPullbacks.has Q.π₁ t)
-    show Mono (R.π₁ ≫ (Q.π₁ ≫ f.denom))
-    exact mono_comp' _ _ hR₁ (compFraction (denseMonos 𝒞) f g).denom_dense
+  · -- dense WITHIN the interface: `t` dense (`roof_mem` from `mem(t≫f.denom)`, `mem f.denom`),
+    -- `R.π₁ = pb(t)` dense (`pb_mem`), composite dense with `compFraction.denom_dense`.
+    have ht : 𝒟.mem t := hD.roof_mem hTd f.denom_dense
+    have hR₁ : 𝒟.mem R.π₁ := 𝒟.pb_mem t Q.π₁ ht
+    show 𝒟.mem (R.π₁ ≫ (Q.π₁ ≫ f.denom))
+    exact 𝒟.comp_mem R.π₁ (Q.π₁ ≫ f.denom) hR₁ (compFraction 𝒟 f g).denom_dense
   · -- denoms agree
     show R.π₁ ≫ (Q.π₁ ≫ f.denom) = ρ' ≫ (Q'.π₁ ≫ f'.denom)
     calc R.π₁ ≫ (Q.π₁ ≫ f.denom)
@@ -680,7 +684,8 @@ def ratComp {A B C : 𝒞} (m : RatHom (𝒞 := 𝒞) A B)
       intro f g f' g' hf hg
       apply Quotient.sound
       exact fractionEquiv_trans denseMonos_denseRoof
-        (compFraction_congr_left g hf) (compFraction_congr_right f' hg))
+        (compFraction_congr_left denseMonos_denseRoof g hf)
+        (compFraction_congr_right denseMonos_denseRoof f' hg))
     m n
 
 /-! ### §1.48  Identity and associativity laws — the `Cat` instance
@@ -692,40 +697,37 @@ def ratComp {A B C : 𝒞} (m : RatHom (𝒞 := 𝒞) A B)
 
 /-- LEFT UNIT: `[idFraction A] ∘ f ≈ f`.  Composite apex `Q = pb(id_A, f.denom)`; the roof
     `(id, Q.π₂)` to `f` works because `Q.π₁ = Q.π₂ ≫ f.denom` (the square with `id_A`). -/
-theorem compFraction_idFraction_left {A B : 𝒞} (f : Fraction (denseMonos 𝒞) A B) :
-    FractionEquiv (compFraction (denseMonos 𝒞) (idFraction (denseMonos 𝒞) A) f) f := by
-  let Q := (HasPullbacks.has (idFraction (denseMonos 𝒞) A).num f.denom).cone
+theorem compFraction_idFraction_left {𝒟 : DenseClass 𝒞} {A B : 𝒞} (f : Fraction 𝒟 A B) :
+    FractionEquiv (compFraction 𝒟 (idFraction 𝒟 A) f) f := by
+  let Q := (HasPullbacks.has (idFraction 𝒟 A).num f.denom).cone
   -- `idFraction A`.num = id_A, .denom = id_A, .apex = A; square: `Q.π₁ ≫ id_A = Q.π₂ ≫ f.denom`
   have hw : Q.π₁ = Q.π₂ ≫ f.denom := by
     have := Q.w; simp only [idFraction, Cat.comp_id] at this; exact this
   refine ⟨Q.pt, Cat.id Q.pt, Q.π₂, ?_, ?_, ?_⟩
-  · -- dense: `id ≫ (Q.π₁ ≫ id_A) = Q.π₁` mono — pullback of mono `f.denom` along `id_A`
-    have hm : Mono Q.π₁ :=
-      mono_pullback (idFraction (denseMonos 𝒞) A).num f.denom f.denom_dense
-        (HasPullbacks.has (idFraction (denseMonos 𝒞) A).num f.denom)
-    have he : Cat.id Q.pt ≫ (compFraction (denseMonos 𝒞) (idFraction (denseMonos 𝒞) A) f).denom
-        = Q.π₁ := by
+  · -- dense WITHIN the interface: `Q.π₁ = pb(f.denom)` along `id_A` is dense (`pb_mem`).
+    have hm : 𝒟.mem Q.π₁ := 𝒟.pb_mem f.denom (idFraction 𝒟 A).num f.denom_dense
+    have he : Cat.id Q.pt ≫ (compFraction 𝒟 (idFraction 𝒟 A) f).denom = Q.π₁ := by
       show Cat.id Q.pt ≫ (Q.π₁ ≫ Cat.id A) = Q.π₁
       rw [Cat.id_comp]; exact Cat.comp_id Q.π₁
-    rw [he]; exact (hm : (denseMonos 𝒞).mem Q.π₁)
-  · show Cat.id Q.pt ≫ (Q.π₁ ≫ (idFraction (denseMonos 𝒞) A).denom) = Q.π₂ ≫ f.denom
+    rw [he]; exact hm
+  · show Cat.id Q.pt ≫ (Q.π₁ ≫ (idFraction 𝒟 A).denom) = Q.π₂ ≫ f.denom
     simp only [idFraction, Cat.comp_id, Cat.id_comp]; exact hw
   · show Cat.id Q.pt ≫ (Q.π₂ ≫ f.num) = Q.π₂ ≫ f.num
     rw [Cat.id_comp]
 
 /-- RIGHT UNIT: `f ∘ [idFraction B] ≈ f`.  Composite apex `Q = pb(f.num, id_B)`; roof
     `(id, Q.π₁)` to `f` works because `Q.π₂ = Q.π₁ ≫ f.num` (the square with `id_B`). -/
-theorem compFraction_idFraction_right {A B : 𝒞} (f : Fraction (denseMonos 𝒞) A B) :
-    FractionEquiv (compFraction (denseMonos 𝒞) f (idFraction (denseMonos 𝒞) B)) f := by
-  let Q := (HasPullbacks.has f.num (idFraction (denseMonos 𝒞) B).denom).cone
+theorem compFraction_idFraction_right {𝒟 : DenseClass 𝒞} {A B : 𝒞} (f : Fraction 𝒟 A B) :
+    FractionEquiv (compFraction 𝒟 f (idFraction 𝒟 B)) f := by
+  let Q := (HasPullbacks.has f.num (idFraction 𝒟 B).denom).cone
   have hw : Q.π₁ ≫ f.num = Q.π₂ := by
     have := Q.w; simp only [idFraction, Cat.comp_id] at this; exact this
   refine ⟨Q.pt, Cat.id Q.pt, Q.π₁, ?_, ?_, ?_⟩
-  · show Mono (Cat.id Q.pt ≫ (Q.π₁ ≫ f.denom))
-    rw [Cat.id_comp]; exact (compFraction (denseMonos 𝒞) f (idFraction (denseMonos 𝒞) B)).denom_dense
+  · show 𝒟.mem (Cat.id Q.pt ≫ (Q.π₁ ≫ f.denom))
+    rw [Cat.id_comp]; exact (compFraction 𝒟 f (idFraction 𝒟 B)).denom_dense
   · show Cat.id Q.pt ≫ (Q.π₁ ≫ f.denom) = Q.π₁ ≫ f.denom
     rw [Cat.id_comp]
-  · show Cat.id Q.pt ≫ (Q.π₂ ≫ (idFraction (denseMonos 𝒞) B).num) = Q.π₁ ≫ f.num
+  · show Cat.id Q.pt ≫ (Q.π₂ ≫ (idFraction 𝒟 B).num) = Q.π₁ ≫ f.num
     simp only [idFraction, Cat.comp_id, Cat.id_comp]; exact hw.symm
 
 /-- **ASSOCIATIVITY** of `compFraction` up to `FractionEquiv`: `(f∘g)∘h ≈ f∘(g∘h)`.
@@ -734,11 +736,11 @@ theorem compFraction_idFraction_right {A B : 𝒞} (f : Fraction (denseMonos �
     apex `Q₂.pt` as the roof, `r₁ := id`, and build the comparison `r₂ : Q₂.pt → P₂.pt`
     (`P₂.pt` = the RIGHT composite's apex) by the universal property of the inner pullback
     `P₁ := pb(g.num, h.denom)` then the outer `P₂ := pb(f.num, P₁.π₁ ≫ g.denom)`. -/
-theorem compFraction_assoc {A B C D : 𝒞} (f : Fraction (denseMonos 𝒞) A B)
-    (g : Fraction (denseMonos 𝒞) B C) (h : Fraction (denseMonos 𝒞) C D) :
+theorem compFraction_assoc {𝒟 : DenseClass 𝒞} {A B C D : 𝒞} (f : Fraction 𝒟 A B)
+    (g : Fraction 𝒟 B C) (h : Fraction 𝒟 C D) :
     FractionEquiv
-      (compFraction (denseMonos 𝒞) (compFraction (denseMonos 𝒞) f g) h)
-      (compFraction (denseMonos 𝒞) f (compFraction (denseMonos 𝒞) g h)) := by
+      (compFraction 𝒟 (compFraction 𝒟 f g) h)
+      (compFraction 𝒟 f (compFraction 𝒟 g h)) := by
   -- LEFT composite: `Q₁ = pb(f.num, g.denom)`, `Q₂ = pb(Q₁.π₂ ≫ g.num, h.denom)`
   let Q₁ := (HasPullbacks.has f.num g.denom).cone
   let Q₂ := (HasPullbacks.has (Q₁.π₂ ≫ g.num) h.denom).cone
@@ -763,10 +765,10 @@ theorem compFraction_assoc {A B C D : 𝒞} (f : Fraction (denseMonos 𝒞) A B)
   have hr₂1 : r₂ ≫ P₂.π₁ = Q₂.π₁ ≫ Q₁.π₁ := (HasPullbacks.has f.num (P₁.π₁ ≫ g.denom)).lift_fst _
   have hr₂2 : r₂ ≫ P₂.π₂ = w₁ := (HasPullbacks.has f.num (P₁.π₁ ≫ g.denom)).lift_snd _
   refine ⟨Q₂.pt, Cat.id Q₂.pt, r₂, ?_, ?_, ?_⟩
-  · -- dense: `id ≫ (LEFT).denom` mono = `(LEFT).denom_dense`
-    show Mono (Cat.id Q₂.pt ≫ (compFraction (denseMonos 𝒞) (compFraction (denseMonos 𝒞) f g) h).denom)
+  · -- dense: `id ≫ (LEFT).denom` = `(LEFT).denom_dense`
+    show 𝒟.mem (Cat.id Q₂.pt ≫ (compFraction 𝒟 (compFraction 𝒟 f g) h).denom)
     rw [Cat.id_comp]
-    exact (compFraction (denseMonos 𝒞) (compFraction (denseMonos 𝒞) f g) h).denom_dense
+    exact (compFraction 𝒟 (compFraction 𝒟 f g) h).denom_dense
   · -- denoms agree
     show Cat.id Q₂.pt ≫ (Q₂.π₁ ≫ (Q₁.π₁ ≫ f.denom)) = r₂ ≫ (P₂.π₁ ≫ f.denom)
     rw [Cat.id_comp]
@@ -844,25 +846,24 @@ variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
 
 /-- `T_𝒟 (f ≫ g) ≈ T_𝒟 f ∘ T_𝒟 g` at the fraction level: pullback of `f` against `id`
     re-bases to the identity-denominator span of `f ≫ g`. -/
-theorem locMap_comp_equiv {A B C : 𝒞} (f : A ⟶ B) (g : B ⟶ C) :
+theorem locMap_comp_equiv {𝒟 : DenseClass 𝒞} {A B C : 𝒞} (f : A ⟶ B) (g : B ⟶ C) :
     FractionEquiv
-      (compFraction (denseMonos 𝒞) (locFraction (denseMonos 𝒞) f) (locFraction (denseMonos 𝒞) g))
-      (locFraction (denseMonos 𝒞) (f ≫ g)) := by
-  let Q := (HasPullbacks.has (locFraction (denseMonos 𝒞) f).num (locFraction (denseMonos 𝒞) g).denom).cone
+      (compFraction 𝒟 (locFraction 𝒟 f) (locFraction 𝒟 g))
+      (locFraction 𝒟 (f ≫ g)) := by
+  let Q := (HasPullbacks.has (locFraction 𝒟 f).num (locFraction 𝒟 g).denom).cone
   -- square: `Q.π₁ ≫ f = Q.π₂ ≫ id_B = Q.π₂`
   have hw : Q.π₁ ≫ f = Q.π₂ := by
     have := Q.w; simp only [locFraction, Cat.comp_id] at this; exact this
   refine ⟨Q.pt, Cat.id Q.pt, Q.π₁, ?_, ?_, ?_⟩
-  · show Mono (Cat.id Q.pt ≫
-      (compFraction (denseMonos 𝒞) (locFraction (denseMonos 𝒞) f) (locFraction (denseMonos 𝒞) g)).denom)
+  · show 𝒟.mem (Cat.id Q.pt ≫
+      (compFraction 𝒟 (locFraction 𝒟 f) (locFraction 𝒟 g)).denom)
     rw [Cat.id_comp]
-    exact (compFraction (denseMonos 𝒞) (locFraction (denseMonos 𝒞) f)
-      (locFraction (denseMonos 𝒞) g)).denom_dense
-  · show Cat.id Q.pt ≫ (Q.π₁ ≫ (locFraction (denseMonos 𝒞) f).denom)
-        = Q.π₁ ≫ (locFraction (denseMonos 𝒞) (f ≫ g)).denom
+    exact (compFraction 𝒟 (locFraction 𝒟 f) (locFraction 𝒟 g)).denom_dense
+  · show Cat.id Q.pt ≫ (Q.π₁ ≫ (locFraction 𝒟 f).denom)
+        = Q.π₁ ≫ (locFraction 𝒟 (f ≫ g)).denom
     simp only [locFraction, Cat.comp_id, Cat.id_comp]
-  · show Cat.id Q.pt ≫ (Q.π₂ ≫ (locFraction (denseMonos 𝒞) g).num)
-        = Q.π₁ ≫ (locFraction (denseMonos 𝒞) (f ≫ g)).num
+  · show Cat.id Q.pt ≫ (Q.π₂ ≫ (locFraction 𝒟 g).num)
+        = Q.π₁ ≫ (locFraction 𝒟 (f ≫ g)).num
     simp only [locFraction, Cat.id_comp]
     rw [← Cat.assoc, hw]
 
