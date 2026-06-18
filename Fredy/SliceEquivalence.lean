@@ -291,6 +291,64 @@ instance pairOnUToSlice [HasPullbacks 𝒞] {U : List 𝒞} :
     (m : PairHom X.obj Y.obj) :
     (pairOnUToSlice.map m : OverHom (pairOnUSlice X) (pairOnUSlice Y)).f = m.g := rfl
 
+/-! ### The functor `Φ` is an `EquivalenceFunctor` (fully faithful + essentially surjective)
+
+  `Embedding Φ`: `Φ` is injective on homs (a `PairOnU`-map is its underlying `.g`, recovered as the
+  slice map's `.f`).  `Full Φ`: every slice map `φ : pairOnUSlice X → pairOnUSlice Y` is `Φ` of a
+  `PairHom` — exactly the bridge fullness `pairHomOfSlice` (the slice triangle over `∏U` re-presents
+  the reindexed commuting square the bridge needs).  `HasRepresentativeImage Φ`: every slice object
+  `⟨A, h : A → ∏U⟩` is iso to `Φ` of the padded pair `(A, {h ≫ proj_k})` (Freyd's padding). -/
+
+/-- **`Φ : A*|U → A/(∏U)` is an `Embedding`** (injective on homs).  A `PairOnU`-hom is determined by
+    its underlying `𝒞`-arrow `m.g`, which is `Φ.map`'s `.f`; equality of `.f` gives equality of `m`
+    by `PairHom.ext`. -/
+theorem pairOnUToSlice_embedding [HasPullbacks 𝒞] (U : List 𝒞) :
+    Embedding (fun X : PairOnU U => pairOnUSlice X) := by
+  intro X Y m₁ m₂ h
+  exact PairHom.ext (congrArg OverHom.f h)
+
+/-- For `X Y : PairOnU U`, `Y°` is a subset of `X°` (both equal `U`).  The bridge's `hsub`. -/
+theorem pairOnU_targets_sub {U : List 𝒞} (X Y : PairOnU U) :
+    ∀ T ∈ Y.obj.targets, T ∈ X.obj.targets := by
+  intro T hT; rw [X.htgt]; rw [Y.htgt] at hT; exact hT
+
+/-- **The slice triangle over `∏U` re-presents the reindexed bridge square.**  Given a slice map
+    `φ : pairOnUSlice X → pairOnUSlice Y` over `∏U` (triangle `φ.f ≫ pairFactorMap Y ≫ eqToHom hY =
+    pairFactorMap X ≫ eqToHom hX`), the underlying `φ.f` satisfies the bridge's reindexed commuting
+    square `φ.f ≫ pairFactorMap Y.obj = pairFactorMap X.obj ≫ listProdRestrict X° Y° hsub`.  Proof:
+    cancel the (iso) `eqToHom hY` on the right, fuse `eqToHom hX ≫ eqToHom hY⁻¹ = eqToHom (X°=Y°)`,
+    and apply `pairFactorMap_restrict_eqToHom` to turn that into the base restriction. -/
+theorem pairOnUSlice_triangle_to_bridge [HasPullbacks 𝒞] {U : List 𝒞} {X Y : PairOnU U}
+    (φ : OverHom (pairOnUSlice X) (pairOnUSlice Y)) :
+    φ.f ≫ pairFactorMap Y.obj
+      = pairFactorMap X.obj
+          ≫ listProdRestrict X.obj.targets Y.obj.targets (pairOnU_targets_sub X Y) := by
+  have hw : φ.f ≫ (pairFactorMap Y.obj ≫ eqToHom (congrArg listProd Y.htgt))
+      = pairFactorMap X.obj ≫ eqToHom (congrArg listProd X.htgt) := by
+    have := φ.w; simpa [pairOnUSlice_hom] using this
+  -- right-cancel the iso `eqToHom (congrArg listProd Y.htgt)` from `hw`
+  have hiso : φ.f ≫ pairFactorMap Y.obj
+      = pairFactorMap X.obj ≫ eqToHom (congrArg listProd (X.htgt.trans Y.htgt.symm)) := by
+    have h2 := congrArg (· ≫ eqToHom (congrArg listProd Y.htgt).symm) hw
+    -- LHS: cancel `eqToHom hY ≫ eqToHom hY.symm = id`; RHS: fuse the two `eqToHom`s.
+    simp only [Cat.assoc] at h2
+    rw [eqToHom_comp_eqToHom_symm, Cat.comp_id, eqToHom_trans] at h2
+    exact h2
+  rw [hiso, ← pairFactorMap_restrict_eqToHom X.obj Y.obj.targets _ (X.htgt.trans Y.htgt.symm)]
+
+/-- **`Φ : A*|U → A/(∏U)` is FULL.**  Every slice map `φ : pairOnUSlice X → pairOnUSlice Y` is `Φ`
+    of a `PairHom`.  The bridge fullness `pairHomOfSlice` builds that `PairHom` from the reindexed
+    square `pairOnUSlice_triangle_to_bridge`; its underlying `.g` is `φ.f`, so `Φ.map` of it is `φ`
+    (`OverHom.ext`). -/
+theorem pairOnUToSlice_full [HasPullbacks 𝒞] (U : List 𝒞) :
+    Full (fun X : PairOnU U => pairOnUSlice X) := by
+  intro X Y φ
+  refine ⟨pairHomOfSlice (pairOnU_targets_sub X Y) ⟨φ.f, ?_⟩, OverHom.ext rfl⟩
+  show φ.f ≫ (pairSliceObj Y.obj).hom
+      = pairFactorMap X.obj ≫ listProdRestrict X.obj.targets Y.obj.targets (pairOnU_targets_sub X Y)
+  rw [pairSliceObj_hom]
+  exact pairOnUSlice_triangle_to_bridge φ
+
 end FixedU
 
 end Freyd
