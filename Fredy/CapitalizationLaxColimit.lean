@@ -779,6 +779,51 @@ theorem homInclL_compat {i j : ι} (x : L.A i) (y : L.A j)
 noncomputable def homIdL {i : ι} (x : L.A i) : HomColimL L hL x x :=
   homInclL L hL x x ⟨i, D.refl i, D.refl i⟩ (Cat.id (L.F (D.refl i) x))
 
+/-! ### Composition at an explicit common bound, and bound-independence -/
+
+/-- Compose germs `f` (level `a`) and `g` (level `b`) at an explicit common bound `e`: push both to
+    `e` (`pushHom`) and compose in `A e`.  The middle objects `F(trans a.2.2 hae) xq` and
+    `F(trans b.2.1 hbe) xq` are defeq (proof irrelevance of `D.le iq e`), so the composite
+    typechecks without re-typing. -/
+noncomputable def compAtL {ip iq ir : ι} (xp : L.A ip) (xq : L.A iq) (xr : L.A ir)
+    (a : UpperBound D ip iq) (f : L.F a.2.1 xp ⟶ L.F a.2.2 xq)
+    (b : UpperBound D iq ir) (g : L.F b.2.1 xq ⟶ L.F b.2.2 xr)
+    (e : ι) (hae : D.le a.1 e) (hbe : D.le b.1 e) : HomColimL L hL xp xr :=
+  homInclL L hL xp xr ⟨e, D.trans a.2.1 hae, D.trans b.2.2 hbe⟩
+    (pushHom L xp xq a.2.1 a.2.2 hae f ≫ pushHom L xq xr b.2.1 b.2.2 hbe g)
+
+/-- Composing at level `e` equals composing at any higher level `d` (`e ≤ d`): push each pushed
+    piece further by `push_trans`, merge by `pushHom_comp`, absorb by `homInclL_compat`. -/
+theorem compAtL_mono {ip iq ir : ι} (xp : L.A ip) (xq : L.A iq) (xr : L.A ir)
+    (a : UpperBound D ip iq) (f : L.F a.2.1 xp ⟶ L.F a.2.2 xq)
+    (b : UpperBound D iq ir) (g : L.F b.2.1 xq ⟶ L.F b.2.2 xr)
+    {e d : ι} (hae : D.le a.1 e) (hbe : D.le b.1 e) (hed : D.le e d) :
+    compAtL L hL xp xq xr a f b g e hae hbe
+      = compAtL L hL xp xq xr a f b g d (D.trans hae hed) (D.trans hbe hed) := by
+  symm
+  unfold compAtL
+  -- push each piece from `e` to `d` via the associativity coherence `push_trans`.
+  rw [hL.push_trans xp xq a.2.1 a.2.2 hae hed f, hL.push_trans xq xr b.2.1 b.2.2 hbe hed g]
+  -- merge the two `pushHom …hed` into one composite via `pushHom_comp`.
+  rw [← pushHom_comp L xp xq xr (D.trans a.2.1 hae) (D.trans a.2.2 hae) (D.trans b.2.2 hbe) hed
+        (pushHom L xp xq a.2.1 a.2.2 hae f) (pushHom L xq xr b.2.1 b.2.2 hbe g)]
+  -- absorb the level `e → d` transition by `homInclL_compat`.
+  exact homInclL_compat L hL xp xr
+    (a := ⟨e, D.trans a.2.1 hae, D.trans b.2.2 hbe⟩)
+    (b := ⟨d, D.trans (D.trans a.2.1 hae) hed, D.trans (D.trans b.2.2 hbe) hed⟩) hed _
+
+/-- Composition is independent of the chosen common bound: route any two bounds through a higher
+    one (`D.bound`) and apply `compAtL_mono`. -/
+theorem compAtL_indep {ip iq ir : ι} (xp : L.A ip) (xq : L.A iq) (xr : L.A ir)
+    (a : UpperBound D ip iq) (f : L.F a.2.1 xp ⟶ L.F a.2.2 xq)
+    (b : UpperBound D iq ir) (g : L.F b.2.1 xq ⟶ L.F b.2.2 xr)
+    {e₁ e₂ : ι} (hae₁ : D.le a.1 e₁) (hbe₁ : D.le b.1 e₁)
+    (hae₂ : D.le a.1 e₂) (hbe₂ : D.le b.1 e₂) :
+    compAtL L hL xp xq xr a f b g e₁ hae₁ hbe₁ = compAtL L hL xp xq xr a f b g e₂ hae₂ hbe₂ := by
+  obtain ⟨d, h1d, h2d⟩ := D.bound e₁ e₂
+  rw [compAtL_mono L hL xp xq xr a f b g hae₁ hbe₁ h1d,
+      compAtL_mono L hL xp xq xr a f b g hae₂ hbe₂ h2d]
+
 end HomColim
 
 end Freyd.LaxColim
