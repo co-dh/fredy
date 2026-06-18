@@ -30,13 +30,13 @@ import Fredy.Capitalization
 
   * `StepWellPoints` / `CofinalCapStep` — the points-acquisition obligation the bare `CapStep` omits,
     stated against the book's own `WellPointed`, bundled with the uniform successor.
-  * `wellPointed_of_stage` — the cover-survival reduction: if the pushforward of a stage object is
-    well-pointed at EVERY later stage, the colimit object is well-pointed.  (The all-later-stages
-    hypothesis is necessary, not stage-`i` alone — an arbitrary colimit mono aligns to a mono into a
-    LATER-stage pushforward, which stage-`i` well-pointedness cannot witness; see the lemma's
-    doc-comment.)  The genuine reusable categorical content of Freyd's fixpoint; its statement is a true
-    mathematical fact and its proof carries the ONE irreducible residual of the whole file, sharply
-    documented (colimit-mono / point-factorization alignment to a common stage).
+  * `StageRelCap` / `wellPointed_of_stage` — the cover-survival reduction from Freyd's RELATIVE-CAP
+    hypothesis (def 1.545): if every *proper* mono into a later-stage pushforward of `A₀` is missed by
+    a point at SOME *still-later* stage, the colimit object `objIncl i A₀` is well-pointed.  This is
+    strictly weaker than full well-pointedness of the pushforward at each stage (which would force the
+    missing point to live at the same stage as the mono — false after one §1.547 step).  The genuine
+    reusable categorical content of Freyd's fixpoint, now stated against the honest §1.546/1.547
+    interface; proven sorry-free (the colimit-mono / point-factorization alignment to a common stage).
   * `tower_capital_of_cofinal` — the OUTER ω-fixpoint: from a cofinal points-acquiring tower in which
     every well-supported colimit object's stage representative stays well-pointed at all later stages,
     the colimit is capital.  Reduces `hwall_cap` to the single hypothesis bundle that is exactly
@@ -83,6 +83,23 @@ structure CofinalCapStep where
   step : ∀ (S : PreRegBundle.{u}), CapStep S.carrier
   /-- the obligation the bare `CapStep` omits: each rung points every well-supported object. -/
   wellPoints : ∀ (S : PreRegBundle.{u}), StepWellPoints (step S)
+
+/-- **Freyd's RELATIVE-CAP condition (§1.545/1.547), per stage object.**  For a `CatSystem` `C`, a
+    stage `i`, and an object `A₀` of stage `i`, this says: every *proper* mono `m'` into a pushforward
+    `C.F hij A₀` (at any later stage `j ≥ i`) is MISSED by a point `pt` of a *still-later* pushforward
+    `C.F hjk (C.F hij A₀)` — `pt` does not factor through the pushed mono `(functF hjk).map m'`.
+
+    This is strictly WEAKER than asking every `C.F hij A₀` be `WellPointed` (which would force the
+    missing point to live at stage `j` itself).  Def 1.545 only guarantees each subobject is missed at
+    *some later* stage — exactly what one §1.547 relative-capitalization step provides; after one step
+    the stage is NOT fully well-pointed.  This is the honest hypothesis `wellPointed_of_stage` consumes. -/
+def StageRelCap {ι : Type u} {D : Colim.Directed ι} (C : Colim.CatSystem.{u, u} ι D)
+    (ht : ∀ i, HasTerminal (C.A i)) (i : ι) (A₀ : C.A i) : Prop :=
+  ∀ {j} (hij : D.le i j) {E' : C.A j} (m' : E' ⟶ C.F hij A₀),
+    @Mono (C.A j) (C.catA j) _ _ m' → ¬ @IsIso (C.A j) (C.catA j) _ _ m' →
+    ∃ (k : ι) (hjk : D.le j k)
+      (pt : @HasTerminal.one (C.A k) (C.catA k) (ht k) ⟶ C.F hjk (C.F hij A₀)),
+      ¬ ∃ y, y ≫ (C.functF hjk).map m' = pt
 
 /-! ## Cover-survival of well-pointedness through the colimit -/
 
@@ -199,33 +216,29 @@ theorem homInclObj_mono_reflects (C : CatSystem.{u, u} ι D) (hC : C.Coherent) [
   intro W u v huv
   exact (mono_iff_level_diag_iso Ls).2 hLsδ u v huv
 
-/-- **Cover-survival reduction (the §1.543 fixpoint core).**  For a coherent `CatSystem` `C` whose
-    transitions are mono-preserving (`hmono`) and conservative (`hcons`) — so the colimit is
+/-- **Cover-survival reduction (the §1.543 fixpoint core), from Freyd's RELATIVE-CAP hypothesis.**
+    For a coherent `CatSystem` `C` whose transitions are conservative (`hcons`) — so the colimit is
     pre-regular and its stage inclusions reflect covers — a colimit object represented at stage `i` as
-    `objIncl i A₀` is well-pointed in `C.Obj`, PROVIDED the pushforward `C.F hij A₀` is well-pointed at
-    EVERY later stage `j ≥ i` (hypothesis `hWP`).
+    `objIncl i A₀` is well-pointed in `C.Obj`, PROVIDED `StageRelCap C ht i A₀` (`hRC`): every *proper*
+    mono into a pushforward `C.F hij A₀` (any later stage `j ≥ i`) is MISSED by a point of a
+    *still-later* pushforward `C.F hjk (C.F hij A₀)`.
 
-    WHY the hypothesis quantifies over all `j ≥ i` (and not just stage `i`).  An arbitrary colimit mono
-    `m : E ⟶ objIncl i A₀` aligns, via `colimHom_as_homInclObj`, to a stage germ whose codomain becomes
-    `objIncl i A₀` only after pushing to a COMMON stage `K ≥ i`; the reflected stage mono there is a
-    mono into `C.F (i→K) A₀`, NOT into `A₀` at stage `i`.  Since the transition functors are not full,
-    a proper subobject of `C.F (i→K) A₀` need not come from a subobject of `A₀`, so stage-`i`
-    well-pointedness is genuinely INSUFFICIENT (it controls no later-stage subobject).  The correct,
-    TRUE hypothesis is well-pointedness of the pushforward at every later stage — exactly what a
-    cofinal points-acquiring tower supplies (each rung re-points everything).
+    WHY relative-cap, NOT full well-pointedness of the pushforward.  Freyd def 1.545 only guarantees
+    each subobject is missed at SOME later stage; after one §1.547 relative-capitalization step the
+    stage is not fully well-pointed.  The earlier (over-strong) form `hWP : ∀ j ≥ i, WellPointed
+    (C.F hij A₀)` forced the missing point to live at the SAME stage `j` as the mono.  The proof only
+    ever needs ONE point missing ONE reflected mono, and it can come from any later stage — so the
+    honest relative-cap form (point at a later stage `k`) suffices.
 
-    PROOF SHAPE (Freyd §1.543).  Take a colimit mono `m : E ⟶ objIncl i A₀`, `¬ IsIso m`.  Align it
-    (`colimHom_as_homInclObj`) to a stage-`K` mono `m₀ : E₀ ⟶ C.F (i→K) A₀` (mono reflected by
-    `colimHom_mono_reflects`; `¬ IsIso` reflected by `hcons`).  `hWP (i→K)` gives a stage-`K` point
-    `x₀ : 1 → C.F (i→K) A₀` not factoring through `m₀`; `homInclObj x₀` is a colimit point of
-    `objIncl i A₀` (`objIncl_terminal_eq`) not factoring through `m` (a colimit factorization reflects,
-    by faithful + conservative inclusion, to a stage one contradicting the choice).
-
-    IRREDUCIBLE RESIDUAL (the single `sorry`): the alignment-and-reflection bookkeeping — pushing the
-    arbitrary colimit mono / point-factorization to the common stage `K` (via `colimHom_as_homInclObj`
-    / `objIncl_pair_commonBound`) and transporting the stage point back out by `homInclObj`.  This is
-    the same colimit-representative germ machinery as `colimHom_cover_reflects`, specialized to a mono
-    with non-stage target; not rebuilt in this file. -/
+    PROOF SHAPE.  Take a colimit mono `m : E ⟶ objIncl i A₀`, `¬ IsIso m`.  Align it
+    (`colimHom_as_homInclObj`) to a stage-`K` mono `mNK : E₀ ⟶ C.F (i→K) A₀` (mono reflected by
+    `homInclObj_mono_reflects`; `¬ IsIso` reflected by `hcons`).  `hRC (i→K)` supplies a LATER stage
+    `k ≥ K` and a point `pt : 1 → C.F (K→k) (C.F (i→K) A₀)` missing the PUSHED mono
+    `mNk = (functF (K→k)).map mNK`.  Push the whole mono to stage `k` (the colimit mono `m` is
+    invariant under the push, `homInclObj_push_heq`); `homInclObj pt` is a colimit point of
+    `objIncl i A₀` (`objIncl_terminal_eq`) not factoring through `m` — a colimit factorization would
+    reflect (via the stage pullback of `(mNk, pt)`, preserved by `objIncl_preserves_pullbacks`, and
+    `homInclObj_isIso_reflects`) to a stage factorization of `pt` through `mNk`, contradicting `hRC`. -/
 theorem wellPointed_of_stage
     (C : CatSystem.{u, u} ι D) (hC : C.Coherent) [hne : Nonempty ι]
     (ht : ∀ i, HasTerminal (C.A i))
@@ -253,10 +266,8 @@ theorem wellPointed_of_stage
             Cover f → Cover (HasPullbacks.has f g).cone.π₂)
     (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
         IsIso ((C.functF hij).map φ) → IsIso φ)
-    (hmono : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
-        Mono φ → Mono ((C.functF hij).map φ))
     (i : ι) (A₀ : C.A i)
-    (hWP : ∀ {j} (hij : D.le i j), @WellPointed (C.A j) (C.catA j) (ht j) (C.F hij A₀)) :
+    (hRC : StageRelCap C ht i A₀) :
     letI : Cat C.Obj := colimitCat C hC
     @WellPointed C.Obj (colimitCat C hC)
       ((colimitPreRegular C hC ht htpres hp hppres hppres_pair he hepres hepres_lift
@@ -291,56 +302,96 @@ theorem wellPointed_of_stage
   have hmNK_niso : ¬ @IsIso (C.A K) (C.catA K) _ _ mNK := fun h => by
     obtain ⟨g', hg1, hg2⟩ := h
     exact hniso' (homInclObj_isIso_of_stage C hC mNK g' hg1 hg2)
-  -- `hWP (i→K)` at the codomain `F hNK xA` (rewriting `hAeq`); apply to the stage mono `mNK`
-  have hWP_K : @WellPointed (C.A K) (C.catA K) (ht K) (C.F hNK xA) := hAeq ▸ hWP hiK
-  obtain ⟨x₀, hx₀⟩ := hWP_K mNK hmNK_mono hmNK_niso
-  -- the colimit terminal `one` is `objIncl K (ht K).one` (`objIncl_terminal_eq`)
-  have hone : C.objIncl K (ht K).one
+  -- **RELATIVE-CAP step (§1.547).**  `hRC` at stage `K`, applied to the aligned stage mono
+  -- (`hAeq ▸ mNK : C.F hNK xE ⟶ C.F hiK A₀`), supplies a LATER stage `k ≥ K` and a point `pt` of the
+  -- pushforward `C.F hKk (C.F hNK xA)` MISSING the pushed mono `mNk = (functF hKk).map mNK` — NOT a
+  -- point at stage `K` itself.  We then push the whole mono to stage `k` and run the colimit-mono
+  -- contradiction there (the colimit mono `m` is invariant under the push, `homInclObj_push_heq`).
+  -- Rewrite `mNK` to a mono into `C.F hiK A₀` so `hRC hiK` applies; the result transports back.
+  -- generalize the codomain to a fresh object so `hAeq` can rewrite the existential goal uniformly.
+  obtain ⟨k, hKk, pt, hpt⟩ : ∃ (k : ι) (hKk : D.le K k)
+      (pt : @HasTerminal.one (C.A k) (C.catA k) (ht k) ⟶ C.F hKk (C.F hNK xA)),
+      ¬ ∃ y, y ≫ (C.functF hKk).map mNK = pt := by
+    -- clear the `m`-aligned facts (they mention `C.F hNK xA` via casts) so only `mNK`,
+    -- `hmNK_mono`, `hmNK_niso` depend on the rewritten codomain and get carried through `rw [hAeq]`.
+    clear hmeq hmNK_eq hm' hniso' hHEq
+    clear_value mNK
+    -- rewrite the GOAL + the two carried facts' codomain `C.F hNK xA → C.F hiK A₀`; then `hRC hiK`.
+    revert mNK hmNK_mono hmNK_niso; rw [hAeq]; intro mNK hmNK_mono hmNK_niso
+    exact hRC hiK mNK hmNK_mono hmNK_niso
+  -- push the mono to stage `k`: `mNk : C.F hKk (C.F hNK xE) ⟶ C.F hKk (C.F hNK xA)`
+  let mNk := (C.functF hKk).map mNK
+  -- colimit-object equalities at stage `k`: `objIncl k (F hKk ·) = objIncl i A₀ / objIncl N xE`
+  have hcodXEk : C.objIncl k (C.F hKk (C.F hNK xE)) = C.objIncl N xE :=
+    (C.objIncl_compat hKk (C.F hNK xE)).trans hcodXE
+  have hcodXAk : C.objIncl k (C.F hKk (C.F hNK xA)) = C.objIncl i A₀ :=
+    (C.objIncl_compat hKk (C.F hNK xA)).trans hcodXA
+  -- `homInclObj mNk = castHom (homInclObj mNK)` (push-invariance), so colimit mono/niso transfer
+  have hmNk_push : homInclObj C hC mNk
+      = castHom (C.objIncl_compat hKk (C.F hNK xE)).symm (C.objIncl_compat hKk (C.F hNK xA)).symm
+          (homInclObj C hC mNK) :=
+    (castHom_of_heq (C.objIncl_compat hKk (C.F hNK xE)).symm (C.objIncl_compat hKk (C.F hNK xA)).symm
+      ((homInclObj_push_heq C hC hKk mNK).symm)).symm
+  have hmk' : @Mono C.Obj (colimitCat C hC) (C.objIncl k (C.F hKk (C.F hNK xE)))
+      (C.objIncl k (C.F hKk (C.F hNK xA))) (homInclObj C hC mNk) := by
+    rw [hmNk_push]
+    exact mono_castHom (C.objIncl_compat hKk (C.F hNK xE)).symm
+      (C.objIncl_compat hKk (C.F hNK xA)).symm (homInclObj C hC mNK) hm'
+  -- reflect `Mono` to the stage germ `mNk`
+  have hmNk_mono : @Mono (C.A k) (C.catA k) (C.F hKk (C.F hNK xE)) (C.F hKk (C.F hNK xA)) mNk :=
+    homInclObj_mono_reflects C hC ht htpres hp hppres hppres_pair he hepres hepres_lift hcons
+      (K := k) (x := C.F hKk (C.F hNK xE)) (y := C.F hKk (C.F hNK xA)) mNk hmk'
+  -- the colimit terminal `one` is `objIncl k (ht k).one` (`objIncl_terminal_eq`)
+  have hone : C.objIncl k (ht k).one
       = @HasTerminal.one C.Obj (colimitCat C hC)
           (colimitPreRegular C hC ht htpres hp hppres hppres_pair he hepres hepres_lift
             hcanon).toHasTerminal :=
-    objIncl_terminal_eq C hC ht htpres K (Classical.choice hne)
-  -- the colimit point: `homInclObj x₀`, transported to `one ⟶ objIncl i A₀`
-  refine ⟨castHom hone hcodXA (homInclObj C hC x₀), ?_⟩
-  -- a colimit factorization of the point through `m` reflects, via the pullback of `(mNK, x₀)`
+    objIncl_terminal_eq C hC ht htpres k (Classical.choice hne)
+  -- the colimit point: `homInclObj pt`, transported to `one ⟶ objIncl i A₀`
+  refine ⟨castHom hone hcodXAk (homInclObj C hC pt), ?_⟩
+  -- a colimit factorization of the point through `m` reflects, via the pullback of `(mNk, pt)`
   -- (preserved by the stage inclusion) and `homInclObj_isIso_reflects`, to a stage factorization of
-  -- `x₀` through `mNK` — contradicting `hx₀`.
+  -- `pt` through `mNk` — contradicting `hpt`.
   rintro ⟨y, hy⟩
-  -- pullback of `(mNK, x₀)` at stage `K`; its `homInclObj`-image is a colimit pullback of `(m, point)`
-  let P' := products_equalizers_implies_pullbacks mNK x₀
+  -- `m = homInclObj mNk` (modulo casts): combine `hmeq` (`m = castHom (homInclObj mNK)`) with the push.
+  have hmeqk : castHom hcodXEk hcodXAk (homInclObj C hC mNk) = m := by
+    rw [hmNk_push, castHom_castHom]
+    simpa only [hcodXEk, hcodXAk] using hmeq
+  -- pullback of `(mNk, pt)` at stage `k`; its `homInclObj`-image is a colimit pullback of `(m, point)`
+  let P' := products_equalizers_implies_pullbacks mNk pt
   have hP'_colim := objIncl_preserves_pullbacks C hC ht htpres hp hppres hppres_pair he hepres
-    hepres_lift K mNK x₀
+    hepres_lift k mNk pt
   -- the stage factorization, obtained by reflecting `IsIso (homInclObj P'.cone.π₂)` to the stage
-  apply hx₀
-  -- transport the colimit factorization `y ≫ m = point` to `y' ≫ homInclObj mNK = homInclObj x₀`
-  have hyt : castHom hone.symm hcodXE.symm y ≫ homInclObj C hC mNK = homInclObj C hC x₀ := by
-    rw [← hmeq] at hy
-    -- `y ≫ castHom hcodXE hcodXA (homInclObj mNK) = castHom hone hcodXA (homInclObj x₀)`
-    have : castHom hone.symm hcodXE.symm y ≫ homInclObj C hC mNK
-        = castHom hone.symm hcodXA.symm (y ≫ castHom hcodXE hcodXA (homInclObj C hC mNK)) := by
-      rw [← castHom_comp hone.symm hcodXE.symm hcodXA.symm y
-        (castHom hcodXE hcodXA (homInclObj C hC mNK)), castHom_castHom, castHom_rfl]
+  apply hpt
+  -- transport the colimit factorization `y ≫ m = point` to `y' ≫ homInclObj mNk = homInclObj pt`
+  have hyt : castHom hone.symm hcodXEk.symm y ≫ homInclObj C hC mNk = homInclObj C hC pt := by
+    rw [← hmeqk] at hy
+    have : castHom hone.symm hcodXEk.symm y ≫ homInclObj C hC mNk
+        = castHom hone.symm hcodXAk.symm (y ≫ castHom hcodXEk hcodXAk (homInclObj C hC mNk)) := by
+      rw [← castHom_comp hone.symm hcodXEk.symm hcodXAk.symm y
+        (castHom hcodXEk hcodXAk (homInclObj C hC mNk)), castHom_castHom, castHom_rfl]
     rw [this, hy, castHom_castHom, castHom_rfl]
-  -- `homInclObj mNK` mono + the colimit pullback ⇒ factorization ⇒ `IsIso (homInclObj P'.cone.π₂)`
+  -- `homInclObj mNk` mono + the colimit pullback ⇒ factorization ⇒ `IsIso (homInclObj P'.cone.π₂)`
   have hcolim_iso : @IsIso C.Obj (colimitCat C hC) _ _ (homInclObj C hC P'.cone.π₂) :=
-    (factor_iff_pullback_π₂_iso hm'
-      (Cone.mk (f := homInclObj C hC mNK) (g := homInclObj C hC x₀)
-        (C.objIncl K P'.cone.pt) (homInclObj C hC P'.cone.π₁) (homInclObj C hC P'.cone.π₂)
+    (factor_iff_pullback_π₂_iso hmk'
+      (Cone.mk (f := homInclObj C hC mNk) (g := homInclObj C hC pt)
+        (C.objIncl k P'.cone.pt) (homInclObj C hC P'.cone.π₁) (homInclObj C hC P'.cone.π₂)
         (by
-          show colimComp C hC (homInclObj C hC P'.cone.π₁) (homInclObj C hC mNK)
-            = colimComp C hC (homInclObj C hC P'.cone.π₂) (homInclObj C hC x₀)
-          rw [← homInclObj_comp C hC P'.cone.π₁ mNK, ← homInclObj_comp C hC P'.cone.π₂ x₀,
+          show colimComp C hC (homInclObj C hC P'.cone.π₁) (homInclObj C hC mNk)
+            = colimComp C hC (homInclObj C hC P'.cone.π₂) (homInclObj C hC pt)
+          rw [← homInclObj_comp C hC P'.cone.π₁ mNk, ← homInclObj_comp C hC P'.cone.π₂ pt,
             P'.cone.w]))
-      hP'_colim).1 ⟨castHom hone.symm hcodXE.symm y, hyt⟩
+      hP'_colim).1 ⟨castHom hone.symm hcodXEk.symm y, hyt⟩
   -- reflect to the stage `IsIso P'.cone.π₂`, then the stage factor_iff gives the stage factorization
   have hstage_iso : IsIso P'.cone.π₂ := homInclObj_isIso_reflects C hC hcons P'.cone.π₂ hcolim_iso
-  exact (factor_iff_pullback_π₂_iso hmNK_mono P'.cone P'.cone_isPullback).2 hstage_iso
+  exact (factor_iff_pullback_π₂_iso hmNk_mono P'.cone P'.cone_isPullback).2 hstage_iso
 
 /-! ## The outer ω-fixpoint: a cofinal points-acquiring tower has a capital colimit -/
 
 /-- **Outer fixpoint, reduced to the per-object stage-pointing hypothesis.**  Given the cofinal
     points-acquiring successor `ccs` and the hypothesis `hstage` that every well-supported colimit
-    object's representing stage object stays well-pointed at ALL later stages (this is precisely where
+    object's representing stage object satisfies `StageRelCap` (def 1.545: each proper subobject of a
+    later-stage pushforward is missed by a point at a still-later stage — this is precisely where
     `ccs.wellPoints` and the cofinal enumeration would be consumed — obstruction (1)+(2): each rung
     re-points everything), the ω-tower colimit is **capital**.  The conclusion is byte-for-byte the
     book's `Capital` (S1_52.lean) — no weakening.  Proven sorry-free *on top of* `wellPointed_of_stage`:
@@ -391,9 +442,8 @@ theorem tower_capital_of_cofinal
           colimitPreRegular _ (towerCoherent b ccs.step) ht htpres hp hppres hppres_pair he
             hepres hepres_lift hcanon
         WellSupported X →
-        ∀ {j} (hij : uliftNatDirected.le (colimOut (towerSystem b ccs.step) X).1 j),
-          @WellPointed ((towerSystem b ccs.step).A j) ((towerSystem b ccs.step).catA j) (ht j)
-            ((towerSystem b ccs.step).F hij (colimOut (towerSystem b ccs.step) X).2)) :
+        StageRelCap (towerSystem b ccs.step) ht
+          (colimOut (towerSystem b ccs.step) X).1 (colimOut (towerSystem b ccs.step) X).2) :
     letI : Cat (towerSystem b ccs.step).Obj := colimitCat _ (towerCoherent b ccs.step)
     letI : PreRegularCategory (towerSystem b ccs.step).Obj :=
       colimitPreRegular _ (towerCoherent b ccs.step) ht htpres hp hppres hppres_pair he
@@ -410,7 +460,6 @@ theorem tower_capital_of_cofinal
   exact wellPointed_of_stage (towerSystem b ccs.step) (towerCoherent b ccs.step)
     ht htpres hp hppres hppres_pair he hepres hepres_lift hcanon
     (fun {i j} hij {x y} φ hiso => towerHcons b ccs.step hij φ hiso)
-    (fun {i j} hij {x y} φ hmono => towerHmono b ccs.step hij φ hmono)
     (colimOut (towerSystem b ccs.step) X).1 (colimOut (towerSystem b ccs.step) X).2
     (hstage X hXws)
 
@@ -456,15 +505,16 @@ theorem capital_of_cofinalSystem {ι : Type u} {D : Colim.Directed ι}
             Cover f → Cover (HasPullbacks.has f g).cone.π₂)
     (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
         IsIso ((C.functF hij).map φ) → IsIso φ)
-    (hmono : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
+    -- `_hmono` (stage push of monos) is part of the cofinal-system reflection package a caller
+    -- supplies; the weakened `wellPointed_of_stage` no longer needs it (monos reflect from the colimit).
+    (_hmono : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
         Mono φ → Mono ((C.functF hij).map φ))
     (hstage : ∀ (X : C.Obj),
         letI : Cat C.Obj := colimitCat C hC
         letI : PreRegularCategory C.Obj :=
           colimitPreRegular C hC ht htpres hp hppres hppres_pair he hepres hepres_lift hcanon
         WellSupported X →
-        ∀ {j} (hij : D.le (colimOut C X).1 j),
-          @WellPointed (C.A j) (C.catA j) (ht j) (C.F hij (colimOut C X).2)) :
+        StageRelCap C ht (colimOut C X).1 (colimOut C X).2) :
     letI : Cat C.Obj := colimitCat C hC
     letI : PreRegularCategory C.Obj :=
       colimitPreRegular C hC ht htpres hp hppres hppres_pair he hepres hepres_lift hcanon
@@ -472,7 +522,7 @@ theorem capital_of_cofinalSystem {ι : Type u} {D : Colim.Directed ι}
   intro X hXws
   rw [← colimOut_spec C X]
   exact wellPointed_of_stage C hC ht htpres hp hppres hppres_pair he hepres hepres_lift hcanon
-    hcons hmono (colimOut C X).1 (colimOut C X).2 (hstage X hXws)
+    hcons (colimOut C X).1 (colimOut C X).2 (hstage X hXws)
 
 /-- **Generic `CapData` assembly.**  Packages a base stage `i₀`, a faithful start `A → C.A i₀`, the
     transition faithfulness/conservativity, the preservation package, and the generic capital colimit
@@ -519,8 +569,7 @@ theorem capData_of_cofinalSystem (A : Type u) [Cat.{u} A] [PreRegularCategory A]
         letI : PreRegularCategory C.Obj :=
           colimitPreRegular C hC ht htpres hp hppres hppres_pair he hepres hepres_lift hcanon
         WellSupported X →
-        ∀ {j} (hij : D.le (colimOut C X).1 j),
-          @WellPointed (C.A j) (C.catA j) (ht j) (C.F hij (colimOut C X).2)) :
+        StageRelCap C ht (colimOut C X).1 (colimOut C X).2) :
     Nonempty (CapData.{u} A) :=
   ⟨{ ι := ι, D := D, C := C, hC := hC, hne := hne, i₀ := i₀
      base := base, baseFun := baseFun, baseFaithful := baseFaithful
