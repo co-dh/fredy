@@ -3902,6 +3902,93 @@ end PairEq
 
 end PairsCategory
 
+/-! ## §1.547  The factor-slice bridge `Â → Σ U, A/(∏U)`
+
+  The conceptual core of §1.547: `A*` is the directed union, over finite sets `U` of
+  well-supported objects, of the pre-regular slices `A/(∏U)` (`SliceRegular`).  An object
+  `(A, F)` of `Â` carries exactly the data of a slice object over the product of its factor
+  TARGETS `F° = X.targets`: namely the FACTOR MAP `A → ∏(F°)` tupling all the recorded
+  factors `f.2 : A → f.1`.  This block builds that bridge — the object map
+  `Â → Σ U, Over (∏U)`, `(A,F) ↦ ⟨F°, ⟨A, factorMap⟩⟩` — and its defining property that the
+  `k`-th projection of the factor map recovers the `k`-th factor.  These are the sorry-free
+  foundations connecting `PairObj` (this file's `Â`) to the §1.547 product-slices.
+
+  This is the OBJECT half of Freyd's slice-equivalence verification.  The factor map's targets
+  `X.targets` are all well-supported (`X.wsupp`), so `∏(X.targets)` is well-supported, and the
+  slice `A/(∏X.targets)` is pre-regular (`overPreRegular`) and acquires a point of every factor
+  (`listProdSliceAcquiresEveryFactor`).  The MORPHISM half — a `PairHom`/dense map descending to
+  a slice morphism along the directed transition — is the remaining content (see the note at the
+  end of the section), and is exactly what the colimit-of-categories step needs. -/
+
+section FactorSlice
+variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
+
+/-- **§1.547 — the FACTOR MAP `A → ∏(F°)` of a factor list.**  Tuples the recorded factors
+    `f.2 : A → f.1` of `F` into the product of their targets `F.map (·.1)`.  Empty list ↦ the
+    unique map to `∏[] = 1`; `p :: F ↦ pair p.2 (rec F)`.  This is the underlying arrow of the
+    slice object an object of `Â` determines over the product of its factor targets. -/
+def factorTuple {A : 𝒞} : ∀ (F : List (Σ T : 𝒞, A ⟶ T)), A ⟶ listProd (F.map (·.1))
+  | [] => term A
+  | p :: F => pair p.2 (factorTuple F)
+
+@[simp] theorem factorTuple_nil {A : 𝒞} :
+    factorTuple ([] : List (Σ T : 𝒞, A ⟶ T)) = term A := rfl
+
+@[simp] theorem factorTuple_cons {A : 𝒞} (p : Σ T : 𝒞, A ⟶ T)
+    (F : List (Σ T : 𝒞, A ⟶ T)) :
+    factorTuple (p :: F) = pair p.2 (factorTuple F) := rfl
+
+/-- **§1.547 — the `k`-th projection of the factor map recovers the `k`-th factor.**  Composing
+    `factorTuple F` with the product projection `listProdProj (F.map ·.1) k` gives back the
+    recorded factor's arrow at the SAME position, transported across the target identity
+    `h : (F.map (·.1)).get k = (F.get k').1` (with `k'` the matching index into `F`).  This is the
+    DEFINING property of the factor map: it packages every factor as a coordinate of `∏(F°)`. -/
+theorem factorTuple_proj {A : 𝒞} :
+    ∀ (F : List (Σ T : 𝒞, A ⟶ T)) (n : Nat)
+      (hk : n < (F.map (·.1)).length) (hk' : n < F.length)
+      (h : (F.map (·.1)).get ⟨n, hk⟩ = (F.get ⟨n, hk'⟩).1),
+      factorTuple F ≫ listProdProj (F.map (·.1)) ⟨n, hk⟩ = h ▸ (F.get ⟨n, hk'⟩).2
+  | p :: F, 0, hk, hk', h => by
+      have hh : h = rfl := rfl
+      subst hh
+      show pair p.2 (factorTuple F) ≫ (fst : prod p.1 _ ⟶ p.1) = _
+      rw [fst_pair]; rfl
+  | p :: F, n + 1, hk, hk', h => by
+      show pair p.2 (factorTuple F) ≫ ((snd : prod p.1 _ ⟶ _) ≫ _) = _
+      rw [← Cat.assoc, snd_pair]
+      exact factorTuple_proj F n (Nat.lt_of_succ_lt_succ hk) (Nat.lt_of_succ_lt_succ hk') h
+
+/-- **§1.547 — the factor map of an object of `Â`.**  The `factorTuple` of `X.F`, into the product
+    of `X.targets = X.F.map (·.1)`.  This is the underlying `𝒞`-arrow of the slice object `X`
+    determines over `∏(X.targets)`. -/
+def pairFactorMap (X : PairObj 𝒞) : X.A ⟶ listProd X.targets := factorTuple X.F
+
+/-- **§1.547 — the SLICE OBJECT an object of `Â` determines.**  `(A, F) ↦ ⟨A, A → ∏(F°)⟩`, an
+    object of the product-slice `A/(∏ X.targets)`.  This is the OBJECT part of the §1.547 bridge
+    `Â → Σ U, A/(∏U)`: an object of `Â` is exactly a slice object over the product of its factor
+    targets, the factor map tupling all recorded factors. -/
+def pairSliceObj (X : PairObj 𝒞) : Over (listProd X.targets) :=
+  ⟨X.A, pairFactorMap X⟩
+
+@[simp] theorem pairSliceObj_dom (X : PairObj 𝒞) : (pairSliceObj X).dom = X.A := rfl
+@[simp] theorem pairSliceObj_hom (X : PairObj 𝒞) :
+    (pairSliceObj X).hom = pairFactorMap X := rfl
+
+/-- **§1.547 — the base `∏(X.targets)` of the slice is WELL-SUPPORTED.**  Every factor target of
+    `X` is well-supported (`X.wsupp`), and a finite product of well-supported objects is
+    well-supported (`wellSupported_listProd'`).  Hence the slice `A/(∏ X.targets)` lives over a
+    well-supported base — exactly the §1.547 requirement that puts `pairSliceObj X` in a
+    pre-regular, point-acquiring slice. -/
+theorem pairSlice_base_wellSupported [HasPullbacks 𝒞] [HasEqualizers 𝒞] [DecidableEq 𝒞]
+    [PullbacksTransferCovers 𝒞] (X : PairObj 𝒞) :
+    WellSupported (listProd X.targets) :=
+  wellSupported_listProd' (by
+    intro B hB
+    obtain ⟨p, hp, rfl⟩ := List.mem_map.1 hB
+    exact X.wsupp p hp)
+
+end FactorSlice
+
 /-! ## §1.547  The relative-capitalization statement and the points-everything payoff
 
   The rational category `A[denseMonos⁻¹]` is §1.547's `A*` (up to the equivalence with the
