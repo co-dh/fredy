@@ -4256,6 +4256,32 @@ theorem pairForget_reflects_iso_of_targets_subset [HasPullbacks 𝒞] {K C : Pai
   exact ⟨iHom, PairHom.ext (by show n.g ≫ i = _; exact hi₁),
               PairHom.ext (by show i ≫ n.g = _; exact hi₂)⟩
 
+/-- **§1.547 — `pairForget` REFLECTS covers under the target-subset condition (the converse half).**
+    If the underlying arrow `m.g` is an `A`-cover, AND every `Â`-arrow `n : K ↪ Y` factoring `m`
+    (via some `Â`-arrow `t`) has BOTH an `A`-mono underlying arrow `n.g` AND its domain targets
+    `K° ⊆ Y°`, then `m` is an `Â`-cover.  Combined with the forward
+    `pairCover_pi2_underlying_of_underlying_pullback` (which gives `Cover c.π₂.g` from an `A`-pullback
+    underlying cone), this is the converse half of "`pairForget` preserves covers": the test arrow's
+    `A`-mono `n.g` factors the `A`-cover `m.g` (`t.g ≫ n.g = m.g`), so `m.g`-as-cover forces `n.g` an
+    `A`-iso, and the target-subset condition lets `pairForget_reflects_iso_of_targets_subset` promote
+    it to an `Â`-iso.
+
+    The TWO hypotheses are exactly the §1.547 slice-equivalence content: for an UNCONSTRAINED `Â`,
+    neither "`Â`-mono ⟹ `A`-mono underlying" (`pairForget` faithful ≠ mono-preserving) NOR `K° ⊆ Y°`
+    holds for a free test arrow — this is obstruction (2) of `pairPullbacksTransferCovers`, here
+    isolated as explicit hypotheses so the cover-reflection mechanism is recorded sorry-free. -/
+theorem pairCover_of_underlying_cover_targets [HasPullbacks 𝒞] {X Y : PairObj 𝒞} {m : PairHom X Y}
+    (hg : Cover m.g)
+    (hmono : ∀ {K : PairObj 𝒞} (n : PairHom K Y), @Mono (PairObj 𝒞) _ K Y n → Mono n.g)
+    (htgt : ∀ {K : PairObj 𝒞} (n : PairHom K Y), @Mono (PairObj 𝒞) _ K Y n →
+              ∀ T ∈ K.targets, T ∈ Y.targets) :
+    @Cover (PairObj 𝒞) _ X Y m := by
+  intro K n t hn htn
+  -- `n.g` is `A`-monic (hmono); `t.g ≫ n.g = m.g`; `m.g`-cover forces `n.g` an `A`-iso.
+  have htng : t.g ≫ n.g = m.g := congrArg PairHom.g htn
+  have hng : IsIso n.g := hg n.g t.g (hmono n hn) htng
+  exact pairForget_reflects_iso_of_targets_subset n hng (htgt n hn)
+
 /-- **§1.547 — the base `∏(X.targets)` of the slice is WELL-SUPPORTED.**  Every factor target of
     `X` is well-supported (`X.wsupp`), and a finite product of well-supported objects is
     well-supported (`wellSupported_listProd'`).  Hence the slice `A/(∏ X.targets)` lives over a
