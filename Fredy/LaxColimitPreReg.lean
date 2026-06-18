@@ -231,6 +231,42 @@ structure LaxEqualizerData (L : LaxCatSystem.{u, w} ι D) where
       (hk : k ≫ (L.functF hij).map f = k ≫ (L.functF hij).map g),
       ∃ r : z ⟶ L.F hij (eqObj f g), r ≫ (L.functF hij).map (eqMap f g) = k
 
+/-! ## §M3b (lax) — binary products of the lax colimit category
+
+  Mirrors `Colim.colimitHasBinaryProducts`.  For `⟨i,x⟩ × ⟨j,y⟩` pick a common bound `k` (filtered);
+  the product object is the bare `⟨k, (hp k).prod (F x) (F y)⟩`.  Projections are SINGLE-STAGE germs
+  `reflApp ≫ (hp k).fst|snd` at the trivial bound `⟨k, refl k, hik⟩` — no `colimOut`/`kp` transport,
+  because the product object lives literally at stage `k`.  `pair` mediates via `presPair` at a common
+  competitor stage; the laws push competitors to a common stage and apply `pres`. -/
+section LaxProduct
+
+variable (L : LaxCatSystem.{u, w} ι D) (hL : Coherent L) (data : LaxProductData L)
+
+/-- Common product bound of `i,j`. -/
+private noncomputable def prK (D : Directed ι) (i j : ι) : ι := Classical.choose (D.bound i j)
+private theorem prK_le (D : Directed ι) (i j : ι) : D.le i (prK D i j) ∧ D.le j (prK D i j) :=
+  Classical.choose_spec (D.bound i j)
+
+/-- The product object `⟨k, (hp k).prod (F x) (F y)⟩` in `Obj L`. -/
+private noncomputable def prObj {i j : ι} (x : L.A i) (y : L.A j) : Obj L :=
+  ⟨prK D i j, (data.hp (prK D i j)).prod (L.F (prK_le D i j).1 x) (L.F (prK_le D i j).2 y)⟩
+
+/-- The `fst` projection germ: `reflApp ≫ (hp k).fst` at bound `⟨k, refl k, hik⟩`. -/
+private noncomputable def prFst {i j : ι} (x : L.A i) (y : L.A j) :
+    homL L hL (prObj L data x y) ⟨i, x⟩ :=
+  homInclL L hL ((data.hp (prK D i j)).prod (L.F (prK_le D i j).1 x) (L.F (prK_le D i j).2 y)) x
+    ⟨prK D i j, D.refl (prK D i j), (prK_le D i j).1⟩
+    (reflApp L _ ≫ (data.hp (prK D i j)).fst)
+
+/-- The `snd` projection germ. -/
+private noncomputable def prSnd {i j : ι} (x : L.A i) (y : L.A j) :
+    homL L hL (prObj L data x y) ⟨j, y⟩ :=
+  homInclL L hL ((data.hp (prK D i j)).prod (L.F (prK_le D i j).1 x) (L.F (prK_le D i j).2 y)) y
+    ⟨prK D i j, D.refl (prK D i j), (prK_le D i j).2⟩
+    (reflApp L _ ≫ (data.hp (prK D i j)).snd)
+
+end LaxProduct
+
 end Freyd.LaxColim
 
 /-!
