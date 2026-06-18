@@ -2618,6 +2618,38 @@ theorem apexHom_fst {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : Pai
     apexHom x g dx ≫ fst = ((pairHasPullbacks.has g x).cone.π₁).g := by
   unfold apexHom; rw [fst_pair]; rfl
 
+/-- Constructive search over a factor list `fs` for one of target `T`, returning its underlying
+    arrow `Z.A → T` together with a witness that it is a `Z`-factor (membership in the ORIGINAL
+    `Z.F`, threaded through `hsub`). -/
+def findArrow (Z : PairObj 𝒞) (T : 𝒞) :
+    ∀ (fs : List (Σ S : 𝒞, Z.A ⟶ S)), (∀ f ∈ fs, f ∈ Z.F) →
+      (∃ f ∈ fs, f.1 = T) →
+      {a : Z.A ⟶ T // ∃ f ∈ Z.F, ∃ h : f.1 = T, a = h ▸ f.2}
+  | [], _, hex => absurd hex (by simp)
+  | f :: fs, hsub, hex => by
+      by_cases hfT : f.1 = T
+      · exact ⟨hfT ▸ f.2, f, hsub f (List.mem_cons_self), hfT, rfl⟩
+      · refine findArrow Z T fs (fun f' hf' => hsub f' (List.mem_cons_of_mem _ hf')) ?_
+        rcases hex with ⟨f', hf', hf'T⟩
+        rcases List.mem_cons.1 hf' with rfl | hf'tail
+        · exact absurd hf'T hfT
+        · exact ⟨f', hf'tail, hf'T⟩
+
+/-- The chosen Z-factor's underlying arrow `Z.A → T` for a colliding `T` (constructive search over
+    `Z.F`).  Carries the witness `∃ f ∈ Z.F, ∃ h:f.1=T, a = h ▸ f.2`. -/
+def pickArrow (Z : PairObj 𝒞) (T : 𝒞) (h : collides Z T = true) :
+    {a : Z.A ⟶ T // ∃ f ∈ Z.F, ∃ h : f.1 = T, a = h ▸ f.2} :=
+  findArrow Z T Z.F (fun _ hf => hf) (of_decide_eq_true h)
+
+/-- **Reconstruct the colliding block** `Z.A → listProd l` for a list `l` all of whose members
+    collide: each coordinate is the chosen Z-factor to that target. -/
+def collReconstruct (Z : PairObj 𝒞) :
+    ∀ (l : List 𝒞), (∀ T ∈ l, collides Z T = true) → (Z.A ⟶ listProd l)
+  | [], _ => term Z.A
+  | T :: l, h =>
+      pair (pickArrow Z T (h T (List.mem_cons_self))).1
+           (collReconstruct Z l (fun S hS => h S (List.mem_cons_of_mem _ hS)))
+
 /-- The packaged absorption iso: hom/inv + the two round-trips + the leg-compat. -/
 structure ApexIso {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) where
   hom : (pairHasPullbacks.has g x).cone.pt.A ⟶
