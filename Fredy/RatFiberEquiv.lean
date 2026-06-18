@@ -80,6 +80,40 @@ theorem fiberJ_embedding (U : List 𝒞) : Embedding (fun X : PairOnU U => fiber
     rw [hnum, hr]
   exact hmem'.elim (fun d => pairLocalisation_faithful_criterion d m₁ m₂ hnum')
 
+/-! ## Remaining blocker — `Full (fiberJ)` (the fraction-collapse) — stated precisely
+
+  To finish link 1 (`EquivalenceFunctor (fiberJ : PairOnU U → RatBelow U)`) we still need:
+
+      `Full (fun X : PairOnU U => fiberJObj X)`
+        : ∀ {X Y : PairOnU U} (φ : (fiberJObj X) ⟶ (fiberJObj Y)),
+            ∃ m : PairHom X.obj Y.obj, locMapOf pairDense_denseRoof m = φ
+
+  Unfolding: `φ = Quotient.mk ⟨R, denom, num⟩` with `denom : R ⟶ X.obj` DENSE in `Â` and
+  `num : R ⟶ Y.obj`.  We must produce a `PairHom m : X.obj → Y.obj` with
+  `FractionEquiv (locFraction m) ⟨R,denom,num⟩`; taking the roof `(R, denom, id)` this reduces to
+  finding `m` with **`denom ≫ m = num`** in `Â`, i.e. INVERTING `denom` in `Â` (set `m = denom⁻¹ ≫ num`).
+
+  `dense_exactlyU_isIso` inverts a dense map only when `dom° ⊆ cod°`.  Here `dom = R`, `cod = X.obj`,
+  and the dense `denom`'s SURVIVORS are exactly `R° \ U` (`PairDense.survInX`/`survDistinct`), which is
+  NONEMPTY for a general apex `R`.  So `denom` is NOT directly invertible.
+
+  The constructive fix (Freyd's, not yet formalised here) is the **apex-trimming reduction**: every
+  fraction `⟨R,denom,num⟩` between exactly-`U` objects is `FractionEquiv` to one whose apex `R'` has
+  `R'° ⊆ U` — drop the surviving factors of `R` (the iso `R ≅ R'` on the underlying `R.A` is the
+  factor-list trim, dense since identity-on-`.A`; the trimmed `denom' : R' → X.obj` then has
+  `R'° ⊆ U`, so `dense_exactlyU_isIso` inverts it).  Building the trimmed `PairObj` (its `wsupp`,
+  `distinct`, and the dense iso `R ≅ R'`) is a construction on the scale of `dense_exactlyU_isIso`
+  and is the precise next piece.  Once `Full fiberJ` lands:
+
+    * `EquivalenceFunctor fiberJ` (embedding + full + repImage; repImage of `fiberJ` is the SAME
+      apex-trimming applied to a `RatBelow U` object, i.e. Freyd's padding/trimming for ⊆U objects);
+    * compose with `pairOnUToSlice_equivalence` ⇒ `EquivalenceFunctor (RatBelow U → Over (∏U))`
+      (via `embedding_comp`/`full_comp`/`hasRepresentativeImage_comp`, S1_31);
+    * `equivFunctor_preRegular` + `overPreRegular (listProd U)` ⇒ `PreRegularCategory (RatBelow U)`;
+    * feed `colimitPreRegular ratBelowSystem` (preservation hyps TRIVIAL: identity-on-homs
+      transitions) ⇒ `PreRegularCategory (colimitCat ratBelowSystem)`, transport along
+      `ratColimToObj` (bijective-on-objects, identity-on-homs) ⇒ `PreRegularCategory A*`. -/
+
 end Freyd
 
 #print axioms Freyd.fiberJObj
