@@ -97,6 +97,27 @@ theorem cover_comp_iso' {𝒜 : Type w} [Cat.{w} 𝒜] {X Y Z : 𝒜} {f : X ⟶
   · rw [← Cat.assoc m gi w, hw1]
   · rw [Cat.assoc, hwm, hg2]
 
+/-- A mono pre-composed with an iso is mono. -/
+theorem mono_precomp_iso' {𝒜 : Type w} [Cat.{w} 𝒜] {X Y Z : 𝒜} {i : X ⟶ Y} {f : Y ⟶ Z}
+    (hi : IsIso i) (hf : Mono f) : Mono (i ≫ f) := by
+  obtain ⟨ii, hi1, hi2⟩ := hi
+  intro W u v huv
+  -- u ≫ i ≫ f = v ≫ i ≫ f ⇒ (u ≫ i) ≫ f = (v ≫ i) ≫ f ⇒ u ≫ i = v ≫ i ⇒ u = v.
+  have h1 : (u ≫ i) ≫ f = (v ≫ i) ≫ f := by rw [Cat.assoc, Cat.assoc]; exact huv
+  have h2 : u ≫ i = v ≫ i := hf _ _ h1
+  have := congrArg (fun t => t ≫ ii) h2
+  simpa only [Cat.assoc, hi1, Cat.comp_id] using this
+
+/-- A mono post-composed with an iso is mono. -/
+theorem mono_postcomp_iso' {𝒜 : Type w} [Cat.{w} 𝒜] {X Y Z : 𝒜} {f : X ⟶ Y} {j : Y ⟶ Z}
+    (hf : Mono f) (hj : IsIso j) : Mono (f ≫ j) := by
+  obtain ⟨jj, hj1, hj2⟩ := hj
+  intro W u v huv
+  apply hf
+  -- u ≫ (f ≫ j) = v ≫ (f ≫ j) ⇒ post-compose `jj`: u ≫ f = v ≫ f.
+  have := congrArg (fun t => t ≫ jj) huv
+  simpa only [Cat.assoc, hj1, Cat.comp_id] using this
+
 /-- **Iso un-conjugation.**  If `i`, `j` are isos and `i ≫ f ≫ j` is an iso, then `f` is an iso
     (`f = i⁻¹ ≫ (i ≫ f ≫ j) ≫ j⁻¹`, a composite of isos).  Used to strip the coherence isos that
     flank `Functor.map` inside `pushHom`. -/
@@ -449,5 +470,90 @@ theorem homInclL_isIso_reflects'
     @functor_preserves_iso _ _ _ _ _ (L.functF hae) _ _ (isoInv (reflApp_isIso L y))
       ⟨reflApp L y, inv_isoInv_comp _, isoInv_comp _⟩
   exact isIso_unconj hi2 hi3 hmapr
+
+/-- The reflexive-bound germ of a stage morphism `g : x ⟶ y` in `L.A i`: the colimit hom
+    `⟨i,x⟩ ⟶ ⟨i,y⟩` given by `reflApp x ≫ g ≫ (reflApp y)⁻¹` at the bound `⟨i, refl, refl⟩`.  This is
+    the lax stage-inclusion of `g` (the `homInclObj` analogue). -/
+noncomputable def stageInclL {i : ι} {x y : L.A i} (g : x ⟶ y) :
+    @homL _ _ L hL ⟨i, x⟩ ⟨i, y⟩ :=
+  homInclL L hL x y ⟨i, D.refl i, D.refl i⟩ (reflApp L x ≫ g ≫ isoInv (reflApp_isIso L y))
+
+/-- `stageInclL` is functorial on identities: `stageInclL (id) = idL`.  (`reflApp x ≫ id ≫
+    (reflApp x)⁻¹ = id`, the reflexive-bound identity germ.) -/
+theorem stageInclL_id {i : ι} (x : L.A i) :
+    stageInclL L hL (Cat.id x) = @idL _ _ L hL ⟨i, x⟩ := by
+  unfold stageInclL
+  rw [Cat.id_comp, isoInv_comp]
+  rfl
+
+/-- `stageInclL` preserves composition: `stageInclL (g ≫ h) = compL (stageInclL g) (stageInclL h)`.
+    The middle `(reflApp y)⁻¹ ≫ reflApp y = id` cancels (lax functoriality of the inclusion). -/
+theorem stageInclL_comp {i : ι} {x y z : L.A i} (g : x ⟶ y) (h : y ⟶ z) :
+    stageInclL L hL (g ≫ h)
+      = @compL _ _ L hL ⟨i, x⟩ ⟨i, y⟩ ⟨i, z⟩ (stageInclL L hL g) (stageInclL L hL h) := by
+  unfold stageInclL
+  rw [compL_homInclL_compAtL L hL x y z ⟨i, D.refl i, D.refl i⟩ _ ⟨i, D.refl i, D.refl i⟩ _ i
+    (D.refl i) (D.refl i)]
+  -- both pushes at refl are identity (push_refl); the middle isoInv ≫ reflApp cancels.
+  rw [hL.push_refl x y (D.refl i) (D.refl i) (reflApp L x ≫ g ≫ isoInv (reflApp_isIso L y)),
+      hL.push_refl y z (D.refl i) (D.refl i) (reflApp L y ≫ h ≫ isoInv (reflApp_isIso L z))]
+  congr 1
+  -- RHS: cancel `isoInv y ≫ reflApp y = id`.
+  simp only [Cat.assoc]
+  rw [← Cat.assoc (isoInv (reflApp_isIso L y)) (reflApp L y), inv_isoInv_comp, Cat.id_comp]
+
+/-- **Cover reflection through the stage inclusion.**  If `stageInclL g` is a cover in the colimit
+    (transitions conservative `hcons`, mono-preserving `hmono`, faithful for the iso reflection), then
+    `g` is a cover in its stage `L.A i`.  A stage mono `m'` factoring `g` includes (`stageInclL`) to a
+    colimit mono (`homInclL_mono_of_stage` via `hmono`) factoring `stageInclL g`; the colimit cover
+    forces it iso; iso reflection (`homInclL_isIso_reflects'` via `hcons`) brings the iso back.  Lax
+    `homInclObj_cover_reflects`. -/
+theorem homInclL_cover_reflects
+    (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (p q : x ⟶ y),
+        @Functor.map _ _ _ _ _ (L.functF hij) x y p
+          = @Functor.map _ _ _ _ _ (L.functF hij) x y q → p = q)
+    (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (φ : x ⟶ y),
+        IsIso (@Functor.map _ _ _ _ _ (L.functF hij) x y φ) → IsIso φ)
+    (hmono : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (φ : x ⟶ y),
+        Mono φ → Mono (@Functor.map _ _ _ _ _ (L.functF hij) x y φ))
+    {i : ι} {x y : L.A i} (g : x ⟶ y)
+    (hcov : @Cover (Obj L) (laxColimCat L hL) ⟨i, x⟩ ⟨i, y⟩ (stageInclL L hL g)) :
+    Cover g := by
+  letI : Cat (Obj L) := laxColimCat L hL
+  intro c m' g'' hm' hg''m'
+  -- include the stage mono `m'` as a colimit mono (mono of stage via hmono).
+  have hM_mono : @Mono (Obj L) (laxColimCat L hL) ⟨i, c⟩ ⟨i, y⟩ (stageInclL L hL m') := by
+    unfold stageInclL
+    apply homInclL_mono_of_stage L hL c y ⟨i, D.refl i, D.refl i⟩
+    intro e hie z u v huv
+    -- `pushHom (reflApp ≫ m' ≫ isoInv) = transApp ≫ map(reflApp ≫ m' ≫ isoInv) ≫ isoInv`,
+    -- all but `map m'` isos, and `map m'` mono (hmono) ⇒ the push is mono.
+    -- left/right-cancel the flanking isos in `huv`, apply `hmono`, re-flank.
+    have hmono_map : Mono (@Functor.map _ _ _ _ _ (L.functF hie) c y m') := hmono hie m' hm'
+    -- `pushHom = transApp ≫ map(reflApp x ≫ m' ≫ isoInv) ≫ isoInv transApp`; expand `map`.
+    revert huv
+    unfold pushHom
+    rw [@Functor.map_comp _ _ _ _ _ (L.functF hie) _ _ _ (reflApp L c) (m' ≫ isoInv (reflApp_isIso L y)),
+        @Functor.map_comp _ _ _ _ _ (L.functF hie) _ _ _ m' (isoInv (reflApp_isIso L y))]
+    intro huv
+    -- the composite map is mono: map m' mono flanked by isos (pre/post compose mono by iso stays mono).
+    have hbig : Mono (@Functor.map _ _ _ _ _ (L.functF hie) _ _ (reflApp L c)
+          ≫ @Functor.map _ _ _ _ _ (L.functF hie) c y m'
+          ≫ @Functor.map _ _ _ _ _ (L.functF hie) _ _ (isoInv (reflApp_isIso L y))) :=
+      mono_precomp_iso'
+        (@functor_preserves_iso _ _ _ _ _ (L.functF hie) _ _ (reflApp L c) (reflApp_isIso L c))
+        (mono_postcomp_iso' hmono_map
+          (@functor_preserves_iso _ _ _ _ _ (L.functF hie) _ _ (isoInv (reflApp_isIso L y))
+            ⟨reflApp L y, inv_isoInv_comp _, isoInv_comp _⟩))
+    exact mono_precomp_iso' (transApp_isIso L (D.refl i) hie c)
+      (mono_postcomp_iso' hbig
+        ⟨transApp L (D.refl i) hie y, inv_isoInv_comp _, isoInv_comp _⟩) u v huv
+  -- factorization `stageInclL g'' ⊚ stageInclL m' = stageInclL g`.
+  have hfac : @compL _ _ L hL ⟨i, x⟩ ⟨i, c⟩ ⟨i, y⟩ (stageInclL L hL g'') (stageInclL L hL m')
+      = stageInclL L hL g := by
+    rw [← stageInclL_comp L hL g'' m', hg''m']
+  have hMiso : @IsIso (Obj L) (laxColimCat L hL) ⟨i, c⟩ ⟨i, y⟩ (stageInclL L hL m') :=
+    hcov (stageInclL L hL m') (stageInclL L hL g'') hM_mono hfac
+  exact homInclL_isIso_reflects' L hL hcons c y m' hMiso
 
 end Freyd.LaxColim
