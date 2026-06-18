@@ -181,4 +181,54 @@ theorem homInclL_isIso_reflects
     exact t
   exact ⟨e, hae, pushHom L y x b.2.1 b.2.2 hbe g', eq1e, eq2e⟩
 
+/-- **Mono preservation through the stage inclusion.**  If a germ `g` is left-cancellable under
+    EVERY transition from `a.1` (`hcancel`), then `homInclL a g` is monic in the colimit.  Reduce a
+    colimit cancellation `u ⊚ (homInclL a g) = v ⊚ (homInclL a g)` to a stage equation of pushed
+    competitors (`homCompRawL` + `Quotient.exact`), cancel by `hcancel`, repackage as a germ relation.
+    Lax `colimHom_mono_of_rep`/`homInclObj_mono_of_stage`. -/
+theorem homInclL_mono_of_stage
+    {i j : ι} (x : L.A i) (y : L.A j) (a : UpperBound D i j)
+    (g : L.F a.2.1 x ⟶ L.F a.2.2 y)
+    (hcancel : ∀ {e : ι} (hae : D.le a.1 e) (z : L.A e)
+        (u v : z ⟶ L.F (D.trans a.2.1 hae) x),
+        u ≫ pushHom L x y a.2.1 a.2.2 hae g = v ≫ pushHom L x y a.2.1 a.2.2 hae g → u = v) :
+    @Mono (Obj L) (laxColimCat L hL) ⟨i, x⟩ ⟨j, y⟩ (homInclL L hL x y a g) := by
+  letI : Cat (Obj L) := laxColimCat L hL
+  intro W
+  refine Quotient.ind₂ (fun pr qr hpq => ?_)
+  obtain ⟨ap, p₀⟩ := pr
+  obtain ⟨aq, q₀⟩ := qr
+  -- common bound `P` of `ap.1, aq.1, a.1`
+  obtain ⟨P0, hP0p, hP0q⟩ := D.bound ap.1 aq.1
+  obtain ⟨P, hP0P, haP⟩ := D.bound P0 a.1
+  have hapP : D.le ap.1 P := D.trans hP0p hP0P
+  have haqP : D.le aq.1 P := D.trans hP0q hP0P
+  -- both composites are `homInclL` of the pushed composite at bound `P`.
+  change homCompRawL L hL W.2 x y ap p₀ a g = homCompRawL L hL W.2 x y aq q₀ a g at hpq
+  rw [homCompRawL_eq_compAtL L hL W.2 x y ap p₀ a g P hapP haP,
+      homCompRawL_eq_compAtL L hL W.2 x y aq q₀ a g P haqP haP] at hpq
+  unfold compAtL at hpq
+  obtain ⟨R, hPR, hPR', heq⟩ := Quotient.exact hpq
+  dsimp only [homSystemL] at heq
+  rw [Subsingleton.elim hPR' hPR] at heq
+  -- split off the common `pushHom g` factor (pushed once more from `P` to `R.1`).
+  rw [pushHom_comp L W.2 x y (D.trans ap.2.1 hapP) (D.trans ap.2.2 hapP) (D.trans a.2.2 haP) hPR
+        (pushHom L W.2 x ap.2.1 ap.2.2 hapP p₀) (pushHom L x y a.2.1 a.2.2 haP g),
+      pushHom_comp L W.2 x y (D.trans aq.2.1 haqP) (D.trans aq.2.2 haqP) (D.trans a.2.2 haP) hPR
+        (pushHom L W.2 x aq.2.1 aq.2.2 haqP q₀) (pushHom L x y a.2.1 a.2.2 haP g),
+      ← hL.push_trans x y a.2.1 a.2.2 haP hPR g,
+      ← hL.push_trans W.2 x ap.2.1 ap.2.2 hapP hPR p₀,
+      ← hL.push_trans W.2 x aq.2.1 aq.2.2 haqP hPR q₀] at heq
+  -- cancel that common right factor by `hcancel` at `e := R.1`.
+  have hu := hcancel (D.trans haP hPR) (L.F (D.trans (D.trans ap.2.1 hapP) hPR) W.2)
+    (pushHom L W.2 x ap.2.1 ap.2.2 (D.trans hapP hPR) p₀)
+    (pushHom L W.2 x aq.2.1 aq.2.2 (D.trans haqP hPR) q₀)
+    heq
+  -- repackage `hu` as a germ relation at bound `R.1`.
+  refine Quotient.sound ⟨⟨R.1, D.trans (D.trans ap.2.1 hapP) hPR, D.trans (D.trans ap.2.2 hapP) hPR⟩,
+    D.trans hapP hPR, D.trans haqP hPR, ?_⟩
+  dsimp only [homSystemL]
+  -- the goal's `.tr` reduces to the collapsed-bound pushes, matching `hu` directly.
+  exact hu
+
 end Freyd.LaxColim
