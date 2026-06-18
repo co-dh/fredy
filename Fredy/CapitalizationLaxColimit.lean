@@ -65,6 +65,7 @@ import Fredy.S1_31
 import Fredy.S1_36
 import Fredy.S1_41
 import Fredy.DirectedColimit
+import Fredy.CatColimit
 
 open Freyd
 open Freyd.Colim
@@ -145,6 +146,44 @@ def natIsoOfPointwise {F G : 𝒜 → ℬ} [hF : Functor F] [hG : Functor G]
         rw [hmap f, ← Cat.assoc (eqToHom (hpt X)), eqToHom_comp_eqToHom_symm, Cat.id_comp] }
   isIso X := ⟨eqToHom (hpt X).symm, eqToHom_comp_eqToHom_symm _, eqToHom_symm_comp_eqToHom _⟩
 
+/-- A `HEq` between two morphisms over equal endpoints is the `eqToHom` conjugation.  This converts
+    the STRICT system's morphism-coherence (`CatSystem.Coherent.refl_map`/`trans_map`, stated with
+    `HEq`) into the `hmap` hypothesis `natIsoOfPointwise` needs. -/
+theorem heq_eqToHom_conj {A B A' B' : ℬ} (hA : A = A') (hB : B = B')
+    {m : A ⟶ B} {m' : A' ⟶ B'} (h : HEq m m') :
+    m' = eqToHom hA.symm ≫ m ≫ eqToHom hB := by
+  cases hA; cases hB
+  simp only [eqToHom_refl, Cat.id_comp, Cat.comp_id]
+  exact (eq_of_heq h).symm
+
 end PointwiseNatIso
+
+/-! ## Every strict `Colim.CatSystem` is a `LaxCatSystem`
+
+  The lax interface generalises the strict one: the object data, `Cat`, and transition functors are
+  carried over verbatim, and the strict `F_refl`/`F_trans` *equalities* yield the coherence *isos*
+  via `natIsoOfPointwise` (the morphism-level `hmap` comes from `Coherent.refl_map`/`trans_map`
+  through `heq_eqToHom_conj`).  So nothing is lost in moving to the lax setting — and base-change,
+  which is NOT a strict `CatSystem`, will still be a `LaxCatSystem`. -/
+noncomputable def ofStrict (C : Colim.CatSystem.{u, w} ι D) (hC : C.Coherent) :
+    LaxCatSystem.{u, w} ι D where
+  A := C.A
+  catA := C.catA
+  F := @C.F
+  functF := @C.functF
+  F_refl_iso {i} := natIsoOfPointwise (F := C.F (D.refl i)) (G := fun x => x)
+    (hF := C.functF (D.refl i)) (hG := @idFunctor (C.A i) (C.catA i))
+    (fun x => C.F_refl x)
+    (fun {X Y} f =>
+      -- `idFunctor.map f = f`; `Coherent.refl_map f : HEq ((functF refl).map f) f` conjugates.
+      heq_eqToHom_conj (C.F_refl X) (C.F_refl Y) (hC.refl_map f))
+  F_trans_iso {i j k} hij hjk := natIsoOfPointwise
+    (F := C.F (D.trans hij hjk)) (G := fun x => C.F hjk (C.F hij x))
+    (hF := C.functF (D.trans hij hjk))
+    (hG := @compFunctor (C.A i) (C.catA i) (C.A j) (C.catA j) (C.A k) (C.catA k)
+      (C.F hij) (C.F hjk) (C.functF hij) (C.functF hjk))
+    (fun x => C.F_trans hij hjk x)
+    (fun {X Y} f =>
+      heq_eqToHom_conj (C.F_trans hij hjk X) (C.F_trans hij hjk Y) (hC.trans_map hij hjk f))
 
 end Freyd.LaxColim
