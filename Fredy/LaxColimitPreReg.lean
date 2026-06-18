@@ -476,6 +476,25 @@ private theorem prJointMono {i j : ι} (x : L.A i) (y : L.A j) {l : ι} (z : L.A
     simpa only [u₁, u₂, Cat.assoc, isoInv_comp, Cat.comp_id] using h2
   exact Quotient.sound ⟨⟨n, D.trans a₁.2.1 ha₁n, hkn⟩, ha₁n, ha₂n, hmm⟩
 
+/-- **§M3b (lax): the lax colimit category has binary products.**  The product of `⟨i,x⟩`, `⟨j,y⟩` is
+    `prObj = ⟨k, (hp k).prod (F x) (F y)⟩` at a common bound `k`; projections are `prFst`/`prSnd`;
+    `pair` is the mediator from `prPairExists`; the laws are its spec plus `prJointMono`. -/
+noncomputable def laxColimHasBinaryProducts :
+    @HasBinaryProducts (Obj L) (laxColimCat L hL) := by
+  letI : Cat (Obj L) := laxColimCat L hL
+  refine @HasBinaryProducts.mk (Obj L) (laxColimCat L hL)
+    (fun X Y => prObj L data X.2 Y.2)
+    (fun {X Y} => prFst L hL data X.2 Y.2)
+    (fun {X Y} => prSnd L hL data X.2 Y.2)
+    (fun {Z X Y} f g => Classical.choose (prPairExists L hL data X.2 Y.2 Z.2 f g))
+    (fun {Z X Y} f g => (Classical.choose_spec (prPairExists L hL data X.2 Y.2 Z.2 f g)).1)
+    (fun {Z X Y} f g => (Classical.choose_spec (prPairExists L hL data X.2 Y.2 Z.2 f g)).2)
+    (fun {Z X Y} f g h hfst hsnd => ?_)
+  -- `h` and `pair f g` agree after both projections ⇒ equal by `prJointMono`.
+  refine prJointMono L hL data X.2 Y.2 Z.2 h _ ?_ ?_
+  · exact hfst.trans (Classical.choose_spec (prPairExists L hL data X.2 Y.2 Z.2 f g)).1.symm
+  · exact hsnd.trans (Classical.choose_spec (prPairExists L hL data X.2 Y.2 Z.2 f g)).2.symm
+
 end LaxProduct
 
 end Freyd.LaxColim
