@@ -276,4 +276,51 @@ theorem equivFunctor_reflects_cover {F : 𝒞 → 𝒟} [hF : Functor F]
   apply hf (hF.map m) (hF.map g) (equivFunctor_preserves_mono emb full hri hm)
   rw [← hF.map_comp, hgm]
 
+/-- **A faithful functor reflects monos.**  If `F m` is mono, so is `m`: two maps `u, v` with
+    `u ≫ m = v ≫ m` give `F u ≫ F m = F v ≫ F m`, so `F u = F v` (`F m` mono), so `u = v`
+    (faithful). -/
+theorem equivFunctor_reflects_mono {F : 𝒞 → 𝒟} [hF : Functor F]
+    (emb : Embedding F) {X Y : 𝒞} {m : X ⟶ Y} (hm : Mono (hF.map m)) : Mono m := by
+  intro Z u v huv
+  apply emb
+  apply hm
+  rw [← hF.map_comp, ← hF.map_comp, huv]
+
+/-- **An `EquivalenceFunctor` preserves covers.**  `Cover f` ⟹ `Cover (F f)`.  A monic `m : C' ⟶ F Y`
+    that `F f` factors through is, after `C' ≅ F C` (ess surj), the `F`-image of a 𝒞-monic `m₀`
+    (reflect mono); the factorization transports to `g₀ ≫ m₀ = f` (faithfulness), so `Cover f`
+    forces `IsIso m₀`, hence `IsIso (F m₀) = IsIso (j' ≫ m)`, hence `IsIso m` (= `j ≫ (j' ≫ m)`). -/
+theorem equivFunctor_preserves_cover {F : 𝒞 → 𝒟} [hF : Functor F]
+    (emb : Embedding F) (full : Full F) (hri : HasRepresentativeImage F)
+    {X Y : 𝒞} {f : X ⟶ Y} (hf : Cover f) : Cover (hF.map f) := by
+  intro C' m g' hm hgm
+  -- C' ≅ F C, with `j : F C ⟶ C'`, inverse `j' : C' ⟶ F C`.
+  obtain ⟨C, j, j', hjj', hj'j⟩ := hri C'
+  -- m₀ : C ⟶ Y with F m₀ = j ≫ m
+  obtain ⟨m₀, hm₀⟩ := full (j ≫ m)
+  -- g₀ : F X ⟶ F C with F g₀ = g' ≫ j'
+  obtain ⟨g₀, hg₀⟩ := full (g' ≫ j')
+  -- m₀ is mono (F m₀ = j ≫ m is iso ≫ mono)
+  have hFm₀mono : Mono (hF.map m₀) := by
+    rw [hm₀]
+    -- `j ≫ m` mono: `j` iso (inverse `j'`), `m` mono.  Direct cancellation.
+    intro Z u v huv
+    have h1 : (u ≫ j) ≫ m = (v ≫ j) ≫ m := by
+      rw [Cat.assoc, Cat.assoc]; exact huv
+    have h2 : u ≫ j = v ≫ j := hm _ _ h1
+    calc u = (u ≫ j) ≫ j' := by rw [Cat.assoc, hjj', Cat.comp_id]
+      _ = (v ≫ j) ≫ j' := by rw [h2]
+      _ = v := by rw [Cat.assoc, hjj', Cat.comp_id]
+  have hm₀mono : Mono m₀ := equivFunctor_reflects_mono emb hFm₀mono
+  -- g₀ ≫ m₀ = f (faithfulness): F(g₀ ≫ m₀) = (g' ≫ j') ≫ (j ≫ m) = g' ≫ m = F f.
+  have hfac : g₀ ≫ m₀ = f := by
+    apply emb
+    rw [hF.map_comp, hg₀, hm₀, Cat.assoc, ← Cat.assoc j', hj'j, Cat.id_comp, hgm]
+  -- Cover f ⟹ IsIso m₀ ⟹ IsIso (F m₀) = IsIso (j ≫ m)
+  have hm₀iso : IsIso m₀ := hf m₀ g₀ hm₀mono hfac
+  have hjm_iso : IsIso (j ≫ m) := by rw [← hm₀]; exact functor_preserves_iso m₀ hm₀iso
+  -- m = j' ≫ (j ≫ m) is iso ∘ iso
+  have : m = j' ≫ (j ≫ m) := by rw [← Cat.assoc, hj'j, Cat.id_comp]
+  rw [this]; exact isIso_comp ⟨j, hj'j, hjj'⟩ hjm_iso
+
 end Freyd
