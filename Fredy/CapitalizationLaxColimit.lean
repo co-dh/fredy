@@ -941,6 +941,71 @@ theorem compL_id_right {p q : Obj L} (m : homL L hL p q) : compL L hL m (idL L h
   induction m using Quotient.ind with
   | _ rm => obtain ⟨a, f⟩ := rm; exact homCompRawL_id_right L hL p.2 q.2 a f
 
+/-- Associativity in `LaxColim L`.  Mirrors the strict `colimComp_assoc`: push all three germ
+    representatives to a single common bound `M`, where both bracketings reduce to one stage
+    composite `(F_M ≫ G_M) ≫ H_M` resp. `F_M ≫ (G_M ≫ H_M)`, equal by `Cat.assoc`.  The strict
+    `homTr_refl`/`homTr_comp` become `push_refl`/`pushHom_comp`. -/
+theorem compL_assoc {p q r s : Obj L}
+    (m : homL L hL p q) (n : homL L hL q r) (k : homL L hL r s) :
+    compL L hL (compL L hL m n) k = compL L hL m (compL L hL n k) := by
+  refine Quotient.inductionOn m (fun rm => ?_)
+  refine Quotient.inductionOn n (fun rn => ?_)
+  refine Quotient.inductionOn k (fun rk => ?_)
+  obtain ⟨a, f⟩ := rm; obtain ⟨b, g⟩ := rn; obtain ⟨c, h⟩ := rk
+  let xp := p.2
+  let xq := q.2
+  let xr := r.2
+  let xs := s.2
+  -- common bound `M` of `a.1, b.1, c.1`.
+  obtain ⟨e₁, hae₁, hbe₁⟩ := D.bound a.1 b.1
+  obtain ⟨M, he₁M, hcM⟩ := D.bound e₁ c.1
+  have haM : D.le a.1 M := D.trans hae₁ he₁M
+  have hbM : D.le b.1 M := D.trans hbe₁ he₁M
+  -- bounds at `M`.
+  let aM : UpperBound D p.1 q.1 := ⟨M, D.trans a.2.1 haM, D.trans a.2.2 haM⟩
+  let bM : UpperBound D q.1 r.1 := ⟨M, D.trans b.2.1 hbM, D.trans b.2.2 hbM⟩
+  let cM : UpperBound D r.1 s.1 := ⟨M, D.trans c.2.1 hcM, D.trans c.2.2 hcM⟩
+  let F_M : L.F aM.2.1 xp ⟶ L.F aM.2.2 xq := pushHom L xp xq a.2.1 a.2.2 haM f
+  let G_M : L.F bM.2.1 xq ⟶ L.F bM.2.2 xr := pushHom L xq xr b.2.1 b.2.2 hbM g
+  let H_M : L.F cM.2.1 xr ⟶ L.F cM.2.2 xs := pushHom L xr xs c.2.1 c.2.2 hcM h
+  let ub_pr : UpperBound D p.1 r.1 := ⟨M, D.trans a.2.1 haM, D.trans b.2.2 hbM⟩
+  let ub_qs : UpperBound D q.1 s.1 := ⟨M, D.trans b.2.1 hbM, D.trans c.2.2 hcM⟩
+  let ub_ps : UpperBound D p.1 s.1 := ⟨M, D.trans a.2.1 haM, D.trans c.2.2 hcM⟩
+  -- inner composites reduce to `compAtL` at `M`.
+  have h_innerL : compL L hL (Quotient.mk _ ⟨a, f⟩) (Quotient.mk _ ⟨b, g⟩)
+      = compAtL L hL xp xq xr a f b g M haM hbM :=
+    homCompRawL_eq_compAtL L hL xp xq xr a f b g M haM hbM
+  have h_innerR : compL L hL (Quotient.mk _ ⟨b, g⟩) (Quotient.mk _ ⟨c, h⟩)
+      = compAtL L hL xq xr xs b g c h M hbM hcM :=
+    homCompRawL_eq_compAtL L hL xq xr xs b g c h M hbM hcM
+  -- outer composites (`compAtL` returns a `homInclL = mk`, so the next `compL` is `homCompRawL`).
+  have h_outerL : compL L hL (compAtL L hL xp xq xr a f b g M haM hbM) (Quotient.mk _ ⟨c, h⟩)
+      = homCompRawL L hL xp xr xs ub_pr (F_M ≫ G_M) c h := rfl
+  have h_outerR : compL L hL (Quotient.mk _ ⟨a, f⟩) (compAtL L hL xq xr xs b g c h M hbM hcM)
+      = homCompRawL L hL xp xq xs a f ub_qs (G_M ≫ H_M) := rfl
+  -- push outer `homCompRawL` to `compAtL` at `M`, then simplify the `D.refl M` push by `push_refl`.
+  have h_simpL : homCompRawL L hL xp xr xs ub_pr (F_M ≫ G_M) c h
+      = homInclL L hL xp xs ub_ps ((F_M ≫ G_M) ≫ H_M) := by
+    rw [homCompRawL_eq_compAtL L hL xp xr xs ub_pr (F_M ≫ G_M) c h M (D.refl M) hcM]
+    unfold compAtL
+    rw [hL.push_refl xp xr ub_pr.2.1 ub_pr.2.2 (F_M ≫ G_M)]
+  have h_simpR : homCompRawL L hL xp xq xs a f ub_qs (G_M ≫ H_M)
+      = homInclL L hL xp xs ub_ps (F_M ≫ (G_M ≫ H_M)) := by
+    rw [homCompRawL_eq_compAtL L hL xp xq xs a f ub_qs (G_M ≫ H_M) M haM (D.refl M)]
+    unfold compAtL
+    rw [hL.push_refl xq xs ub_qs.2.1 ub_qs.2.2 (G_M ≫ H_M)]
+  calc
+    compL L hL (compL L hL (Quotient.mk _ ⟨a, f⟩) (Quotient.mk _ ⟨b, g⟩)) (Quotient.mk _ ⟨c, h⟩)
+        = compL L hL (compAtL L hL xp xq xr a f b g M haM hbM) (Quotient.mk _ ⟨c, h⟩) := by
+          rw [h_innerL]
+    _ = homCompRawL L hL xp xr xs ub_pr (F_M ≫ G_M) c h := h_outerL
+    _ = homInclL L hL xp xs ub_ps ((F_M ≫ G_M) ≫ H_M) := h_simpL
+    _ = homInclL L hL xp xs ub_ps (F_M ≫ (G_M ≫ H_M)) := by rw [Cat.assoc F_M G_M H_M]
+    _ = homCompRawL L hL xp xq xs a f ub_qs (G_M ≫ H_M) := h_simpR.symm
+    _ = compL L hL (Quotient.mk _ ⟨a, f⟩) (compAtL L hL xq xr xs b g c h M hbM hcM) := h_outerR.symm
+    _ = compL L hL (Quotient.mk _ ⟨a, f⟩) (compL L hL (Quotient.mk _ ⟨b, g⟩) (Quotient.mk _ ⟨c, h⟩)) := by
+          rw [h_innerR]
+
 end HomColim
 
 end Freyd.LaxColim
