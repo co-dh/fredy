@@ -53,10 +53,12 @@
     * `ofStrict` — every strict `Colim.CatSystem` is a `LaxCatSystem` (the lax interface
       generalises the strict one; coherence isos are the identity NatIso), so nothing is lost.
 
-  The remaining work (documented `next blocker` at the end) is the PSEUDO hom-colimit: a morphism
-  `⟨i,x⟩ → ⟨j,y⟩` is a germ of `Hom_{A k}(F_{ik} x, F_{jk} y)` over upper bounds `k`, where the
-  germ equivalence now transports along the COHERENCE ISOS (not strict equalities).  That is the
-  genuine next coherence obligation and is stated precisely below.
+  AND the PSEUDO hom-colimit + the `Cat` instance `laxColimCat : Cat (Obj L)` (relative to the
+  pseudofunctor coherence `Coherent L`): a morphism `⟨i,x⟩ → ⟨j,y⟩` is a germ of
+  `Hom_{A k}(F_{ik} x, F_{jk} y)` over upper bounds `k`, with germ equivalence transported along the
+  COHERENCE ISOS (`pushHom`, the iso-conjugation analogue of the strict `castHom`).  The remaining
+  work (documented `next blocker` at the end) is to discharge `Coherent` for base-change (the
+  pullback unit/pentagon coherence) — stated precisely below.
 
   Mathlib-free; built on the repo's own `Cat`, `Functor`, `NaturalTransformation`, `NatIso`,
   `IsIso`, and `Freyd.Colim` (`DirectedColimit.lean`).
@@ -752,9 +754,9 @@ variable (L : LaxCatSystem.{u, w} ι D) (hL : Coherent L)
 noncomputable def homSystemL {i j : ι} (x : L.A i) (y : L.A j) :
     System (UpperBound D i j) (upperDirected D i j) where
   X a := L.F a.2.1 x ⟶ L.F a.2.2 y
-  tr {a b} hab g := pushHom L x y a.2.1 a.2.2 hab g
+  tr {a _} hab g := pushHom L x y a.2.1 a.2.2 hab g
   tr_refl {a} g := hL.push_refl x y a.2.1 a.2.2 g
-  tr_trans {a b c} hab hbc g := hL.push_trans x y a.2.1 a.2.2 hab hbc g
+  tr_trans {a _ _} hab hbc g := hL.push_trans x y a.2.1 a.2.2 hab hbc g
 
 /-- Morphisms `⟨i,x⟩ → ⟨j,y⟩` in `LaxColim L`: the directed colimit of `Hom_{A k}(F x, F y)` over
     the common upper bounds `k` (germs of stage morphisms under the lax transition). -/
@@ -1075,11 +1077,43 @@ WHY THE FILTERED ROUTE (this file) BEATS THE TRANSFINITE TOWER (`CapitalizationG
   naturality by `lift`-uniqueness), and discharged for every `ProjSystem` by `projTransIso` /
   `pseudoBaseChange`.  Needs only `HasPullbacks 𝒞`; constructive (no choice, no transfinite recursion).
 
-THE PRECISE NEXT BLOCKER — the PSEUDO HOM-COLIMIT — a morphism
-`⟨i,x⟩ → ⟨j,y⟩` is a germ of `Hom_{A k}(F_{ik} x, F_{jk} y)` over upper bounds `k`, with germ
-equivalence transported along `F_trans_iso` (NOT strict equalities, as the strict `HomColim` does).
-The category laws and finite-limit preservation then transfer from the fibres' `overPreRegular` by
-the standard "filtered colimits commute with finite limits" argument.  That hom-colimit is the next
-milestone now that `trans_iso` has landed.
+THE PSEUDO HOM-COLIMIT + `Cat` INSTANCE — DONE (was the prior NEXT BLOCKER):
+
+  A morphism `⟨i,x⟩ → ⟨j,y⟩` is a germ of `Hom_{A k}(F_{ik} x, F_{jk} y)` over upper bounds `k`,
+  with germ equivalence transported along the COHERENCE ISOS via `pushHom` (iso-conjugation, the
+  lax analogue of the strict `castHom`-based `homTr`).  Now built, sorry-free:
+
+    * `pushHom` / `transApp` / `isoInv` — the lax hom-transition: map along `F hkm`, conjugate by the
+      `F_trans_iso` components (forward on source, inverse on target).
+    * `pushHom_comp` / `pushHom_id` — `pushHom` is functorial on hom-sets; PROVEN from the bare
+      structure (iso cancellation + `map_comp`/`map_id`), NEEDS NO extra coherence.
+    * `LaxCatSystem.Coherent` — the two pseudofunctor coherences `pushHom` needs as `System` laws:
+      `push_refl` (UNIT: pushing along `refl` = id) and `push_trans` (ASSOCIATIVITY: pushing along a
+      composite bound = pushing twice).  TRUE for base-change (the pullback pasting coherences),
+      unlike the strict `CatSystem.Coherent` which is FALSE for base-change.
+    * `homSystemL` / `HomColimL` / `homInclL` — the germ hom-colimit as a `Colim.System`
+      (`tr_refl`/`tr_trans` = `push_refl`/`push_trans`), so the strict `DirectedColimit` germ
+      machinery (`Colimit`, `incl`, `incl_compat`, the universal property) applies verbatim.
+    * `compAtL` / `compAtL_mono` / `compAtL_indep` / `homCompRawL` / `homCompRawL_wd` — bound-coherent
+      germ composition + well-definedness on BOTH germ quotients.
+    * `compL` / `idL` / `homL` — composition, identity, hom-type on the bare Σ-carrier `Obj L`
+      (NO `Quotient.out`/choice on objects, unlike the strict `colimitCat`).
+    * `compL_id_left` / `compL_id_right` / `compL_assoc` — the three `Cat` axioms.
+    * `laxColimCat : Cat (Obj L)` — THE CATEGORY.  `#print axioms` = `Classical.choice`, `Quot.sound`,
+      `propext` (NO `sorryAx`).  The `Classical.choice` is forced only by the interface
+      (`IsIso := ∃ g, …` is a Prop, so the inverse arrow `isoInv` is extracted by choice; and the raw
+      composite picks a bound by `D.bound`'s choice) — never by faking mathematical content.
+
+THE PRECISE NEXT BLOCKER — discharge `Coherent (laxOfProjSystem' P)` for the §1.547 base-change
+system, i.e. prove `push_refl`/`push_trans` for `pushHom` built from the pullback coherence isos
+`projReflIso`/`projTransIso`.  Unfolding `pushHom` there, `push_refl` is the pullback UNIT-coherence
+(`baseChangeIdNatIso` interacting with `D.refl`) and `push_trans` is the pullback PENTAGON /
+2-cocycle condition relating `baseChangeTransNatIso (proj hkm) (proj hmn)` to the iterated
+single-step transports — the standard (true, but sizeable) coherence of the pullback pseudofunctor.
+Both are equalities of arrows between fixed pullback apices, provable by pullback-`lift` uniqueness
+(every leg matches).  Once `Coherent (laxOfProjSystem' P)` lands, `laxColimCat (laxOfProjSystem' P)`
+IS the §1.547 relative capitalization `A*` as an honest category, and the downstream
+`PreRegular (LaxColim L)` follows by "filtered colimits commute with finite limits" from the fibres'
+`overPreRegular`.
 -/
 
