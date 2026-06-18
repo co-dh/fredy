@@ -884,6 +884,63 @@ theorem homCompRawL_wd {ip iq ir : ι} (xp : L.A ip) (xq : L.A iq) (xr : L.A ir)
       ← homCompRawL_push_right L hL xp xq xr a' f' b l hbl g, hg',
       homCompRawL_push_right L hL xp xq xr a' f' b' l hb'l g']
 
+/-! ### The hom-type, identity, and composition on the bare Σ-object carrier `Obj L`
+
+  Objects of `LaxColim L` are the bare `Σ i, A i` (`Obj`), so a morphism `⟨i,x⟩ → ⟨j,y⟩` is directly
+  the germ colimit `HomColimL x y` — NO `Quotient.out`/choice on objects (the strict `colimitCat`
+  needed `colimOut`).  Composition lifts `homCompRawL` over the two germ quotients
+  (`homCompRawL_wd`). -/
+
+/-- The hom-type `⟨i,x⟩ ⟶ ⟨j,y⟩` of `LaxColim L`: the germ colimit of the fibre representatives. -/
+noncomputable def homL (p q : Obj L) : Type _ := HomColimL L hL p.2 q.2
+
+/-- Identity of `⟨i,x⟩`: the identity germ `homIdL`. -/
+noncomputable def idL (p : Obj L) : homL L hL p p := homIdL L hL p.2
+
+/-- Composition of germs, lifted from `homCompRawL` over the two quotients (well-defined by
+    `homCompRawL_wd`). -/
+noncomputable def compL {p q r : Obj L} (m : homL L hL p q) (n : homL L hL q r) : homL L hL p r :=
+  Quotient.lift₂
+    (fun rm rn => homCompRawL L hL p.2 q.2 r.2 rm.1 rm.2 rn.1 rn.2)
+    (fun _ _ _ _ hP hQ => homCompRawL_wd L hL p.2 q.2 r.2 _ _ _ _ hP _ _ _ _ hQ)
+    m n
+
+/-! ### Category axioms (identity laws and associativity) -/
+
+/-- Left identity at the raw level: `id ∘ f = f` (composing the identity germ with `f`). -/
+theorem homCompRawL_id_left {ip iq : ι} (xp : L.A ip) (xq : L.A iq)
+    (a : UpperBound D ip iq) (f : L.F a.2.1 xp ⟶ L.F a.2.2 xq) :
+    homCompRawL L hL xp xp xq ⟨ip, D.refl ip, D.refl ip⟩ (Cat.id (L.F (D.refl ip) xp)) a f
+      = homInclL L hL xp xq a f := by
+  rw [homCompRawL_eq_compAtL L hL xp xp xq ⟨ip, D.refl ip, D.refl ip⟩
+        (Cat.id (L.F (D.refl ip) xp)) a f a.1 a.2.1 (D.refl a.1)]
+  unfold compAtL
+  -- left push: `pushHom id = id` (`pushHom_id`); right push at `refl`: `pushHom f = f` (`push_refl`).
+  rw [pushHom_id L xp (D.refl ip) a.2.1, hL.push_refl xp xq a.2.1 a.2.2 f, Cat.id_comp]
+  -- the remaining bound differs from `a` only in `D.le` proofs (irrelevant): defeq.
+  rfl
+
+/-- Right identity at the raw level: `f ∘ id = f`. -/
+theorem homCompRawL_id_right {ip iq : ι} (xp : L.A ip) (xq : L.A iq)
+    (a : UpperBound D ip iq) (f : L.F a.2.1 xp ⟶ L.F a.2.2 xq) :
+    homCompRawL L hL xp xq xq a f ⟨iq, D.refl iq, D.refl iq⟩ (Cat.id (L.F (D.refl iq) xq))
+      = homInclL L hL xp xq a f := by
+  rw [homCompRawL_eq_compAtL L hL xp xq xq a f ⟨iq, D.refl iq, D.refl iq⟩
+        (Cat.id (L.F (D.refl iq) xq)) a.1 (D.refl a.1) a.2.2]
+  unfold compAtL
+  rw [pushHom_id L xq (D.refl iq) a.2.2, hL.push_refl xp xq a.2.1 a.2.2 f, Cat.comp_id]
+  rfl
+
+/-- Left identity in `LaxColim L`: `idL ∘ m = m`. -/
+theorem compL_id_left {p q : Obj L} (m : homL L hL p q) : compL L hL (idL L hL p) m = m := by
+  induction m using Quotient.ind with
+  | _ rm => obtain ⟨a, f⟩ := rm; exact homCompRawL_id_left L hL p.2 q.2 a f
+
+/-- Right identity in `LaxColim L`: `m ∘ idL = m`. -/
+theorem compL_id_right {p q : Obj L} (m : homL L hL p q) : compL L hL m (idL L hL q) = m := by
+  induction m using Quotient.ind with
+  | _ rm => obtain ⟨a, f⟩ := rm; exact homCompRawL_id_right L hL p.2 q.2 a f
+
 end HomColim
 
 end Freyd.LaxColim
