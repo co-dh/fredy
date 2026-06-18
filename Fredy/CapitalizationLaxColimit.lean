@@ -711,6 +711,49 @@ structure Coherent (L : LaxCatSystem.{u, w} ι D) : Prop where
 
 end LaxHom
 
+/-! ## The germ hom-colimit and the `Cat` instance on `LaxColim L`
+
+  With `Coherent L` in hand, the lax hom-transition `pushHom` is a genuine `Colim.System` over the
+  directed set of upper bounds (`pushHom_refl`/`pushHom_trans` ARE the `System` laws `tr_refl`/
+  `tr_trans`).  So the entire strict `CatColimit.lean` germ machinery (`Colimit`, `incl`,
+  `incl_compat`, the universal property) applies VERBATIM — only the transition map changed from
+  `castHom`-based `homTr` to iso-conjugation `pushHom`.  Objects are the bare `Σ i, A i` (`Obj`), so
+  unlike the strict colimit we need NO `Quotient.out`/choice on objects: the hom-type of `⟨i,x⟩ →
+  ⟨j,y⟩` is directly the germ colimit. -/
+section HomColim
+
+variable (L : LaxCatSystem.{u, w} ι D) (hL : Coherent L)
+
+/-- The hom-colimit `Colim.System` for fixed representatives `x : A i`, `y : A j`: at each upper
+    bound `k` the hom-set `Hom_{A k}(F x, F y)`, with transition the lax `pushHom`.  Its `tr_refl`/
+    `tr_trans` are exactly `Coherent.push_refl`/`push_trans`. -/
+noncomputable def homSystemL {i j : ι} (x : L.A i) (y : L.A j) :
+    System (UpperBound D i j) (upperDirected D i j) where
+  X a := L.F a.2.1 x ⟶ L.F a.2.2 y
+  tr {a b} hab g := pushHom L x y a.2.1 a.2.2 hab g
+  tr_refl {a} g := hL.push_refl x y a.2.1 a.2.2 g
+  tr_trans {a b c} hab hbc g := hL.push_trans x y a.2.1 a.2.2 hab hbc g
+
+/-- Morphisms `⟨i,x⟩ → ⟨j,y⟩` in `LaxColim L`: the directed colimit of `Hom_{A k}(F x, F y)` over
+    the common upper bounds `k` (germs of stage morphisms under the lax transition). -/
+noncomputable def HomColimL {i j : ι} (x : L.A i) (y : L.A j) : Type _ :=
+  Colimit (homSystemL L hL x y)
+
+/-- Include a stage-`a` morphism into the lax hom-colimit. -/
+noncomputable def homInclL {i j : ι} (x : L.A i) (y : L.A j)
+    (a : UpperBound D i j) (g : L.F a.2.1 x ⟶ L.F a.2.2 y) : HomColimL L hL x y :=
+  incl (homSystemL L hL x y) a g
+
+/-- Pushing a germ to a higher bound and including equals including at the lower bound (the colimit
+    absorbs the transition — `incl_compat` for `homSystemL`). -/
+theorem homInclL_compat {i j : ι} (x : L.A i) (y : L.A j)
+    {a b : UpperBound D i j} (hab : (upperDirected D i j).le a b)
+    (g : L.F a.2.1 x ⟶ L.F a.2.2 y) :
+    homInclL L hL x y b (pushHom L x y a.2.1 a.2.2 hab g) = homInclL L hL x y a g :=
+  incl_compat (homSystemL L hL x y) hab g
+
+end HomColim
+
 end Freyd.LaxColim
 
 /-!
