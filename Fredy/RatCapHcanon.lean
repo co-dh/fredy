@@ -509,9 +509,6 @@ theorem stageInclL_comp {i : ι} {x y z : L.A i} (g : x ⟶ y) (h : y ⟶ z) :
     forces it iso; iso reflection (`homInclL_isIso_reflects'` via `hcons`) brings the iso back.  Lax
     `homInclObj_cover_reflects`. -/
 theorem homInclL_cover_reflects
-    (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (p q : x ⟶ y),
-        @Functor.map _ _ _ _ _ (L.functF hij) x y p
-          = @Functor.map _ _ _ _ _ (L.functF hij) x y q → p = q)
     (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (φ : x ⟶ y),
         IsIso (@Functor.map _ _ _ _ _ (L.functF hij) x y φ) → IsIso φ)
     (hmono : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (φ : x ⟶ y),
