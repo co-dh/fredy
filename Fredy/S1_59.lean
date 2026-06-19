@@ -217,6 +217,56 @@ theorem middle_two_interchange {A B : 𝒞} (u v x y : A ⟶ B) :
         Cat.assoc, Cat.assoc]
   rw [hLHS, hRHS]
 
+/-- Commutativity of `add` (Eckmann–Hilton, `u=y=0` in middle-two interchange). -/
+theorem add_comm {A B : 𝒞} (x y : A ⟶ B) : inst.add x y = inst.add y x := by
+  have h := middle_two_interchange (inst.zeroHom A B) x y (inst.zeroHom A B)
+  rwa [zero_add, add_zero, zero_add, add_zero] at h
+
+/-- Associativity of `add` (Eckmann–Hilton, `v=0` in middle-two interchange). -/
+theorem add_assoc {A B : 𝒞} (u x y : A ⟶ B) :
+    inst.add u (inst.add x y) = inst.add (inst.add u x) y := by
+  have h := middle_two_interchange u (inst.zeroHom A B) x y
+  rwa [add_zero, zero_add] at h
+
+/-- Left distributivity `h ≫ (x + y) = (h≫x) + (h≫y)` (pre-composition is additive).
+    From `add` in product form (eq. 1.1') and `comp_pair`. -/
+theorem comp_add {W A B : 𝒞} (h : W ⟶ A) (x y : A ⟶ B) :
+    h ≫ inst.add x y = inst.add (h ≫ x) (h ≫ y) := by
+  rw [add_addR, add_addR, ← Cat.assoc, ← Cat.assoc, comp_pair, Cat.assoc]
+
+/-- Right distributivity `(x + y) ≫ k = (x≫k) + (y≫k)` (post-composition is additive).
+    From `add` in coproduct form (eq. 1.1) and `case_comp`. -/
+theorem add_comp {A B C : 𝒞} (x y : A ⟶ B) (k : B ⟶ C) :
+    inst.add x y ≫ k = inst.add (x ≫ k) (y ≫ k) := by
+  rw [add_addL, add_addL, Cat.assoc, Cat.assoc, case_comp]
+
+/-- The SHEAR (elementary) matrix `(1 x; 0 1) : A×B → A×B` (§1.591).
+
+    As a map *into* `A×B` it is `⟨fst, (fst≫x) + snd⟩`: the first coordinate is the
+    first input (top row `(1 0)`), the second is `x·(first input) + (second input)`
+    (bottom row `(x 1)`).  Additivity of the category is equivalent to every shear
+    being an isomorphism; the inverse is the shear by the additive inverse `−x`. -/
+def shear {A B : 𝒞} (x : A ⟶ B) : prod A B ⟶ prod A B :=
+  pair fst (inst.add (fst ≫ x) snd)
+
+theorem shear_fst {A B : 𝒞} (x : A ⟶ B) : shear x ≫ fst = fst := fst_pair _ _
+
+theorem shear_snd {A B : 𝒞} (x : A ⟶ B) :
+    shear x ≫ snd = inst.add (fst ≫ x) snd := snd_pair _ _
+
+/-- Composing shears adds parameters: `shear x ≫ shear y = shear (x + y)`.
+    The shears form a one-parameter additive subgroup of `Aut(A×B)`. -/
+theorem shear_comp {A B : 𝒞} (x y : A ⟶ B) :
+    shear x ≫ shear y = shear (inst.add x y) := by
+  refine (pair_uniq _ _ _ ?_ ?_).trans (pair_eta (shear (inst.add x y))).symm
+  · rw [Cat.assoc, shear_fst, shear_fst, shear_fst]
+  · rw [Cat.assoc, shear_snd, comp_add, ← Cat.assoc, shear_fst, shear_snd,
+        add_assoc, add_comm (fst ≫ y) (fst ≫ x), ← comp_add, shear_snd]
+
+/-- `shear 0 = id`: the trivial shear is the identity. -/
+theorem shear_zero {A B : 𝒞} : shear (inst.zeroHom A B) = Cat.id (prod A B) := by
+  rw [shear, inst.zeroHom_comp_left, zero_add, pair_fst_snd]
+
 end HalfAdditiveCategory
 
 /-- ADDITIVE CATEGORY (§1.591): half-additive with additive inverses.
@@ -225,6 +275,68 @@ end HalfAdditiveCategory
 class AdditiveCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends HalfAdditiveCategory 𝒞 where
   /-- Additive inverses exist: every f : A → B has a g with f + g = zeroHom A B. -/
   addInv : ∀ {A B : 𝒞} (f : A ⟶ B), ∃ g : A ⟶ B, add f g = zeroHom A B
+
+/-! ### §1.591 Shear-matrix characterization of additivity
+
+  Freyd's parenthetical: a half-additive category is *additive* iff for every
+  `x : A → B` the shear matrix `(1 x; 0 1) : A×B → A×B` is an isomorphism.
+  "If `(f, Y)` is its inverse one may show first that `y = 1` and then that
+  `u + x = 0`" — the inverse is the shear by `−x`, and that `−x = u` is exactly
+  how the additive inverse is extracted. -/
+
+namespace HalfAdditiveCategory
+
+variable [inst : HalfAdditiveCategory 𝒞]
+
+/-- **Forward direction.** If every hom has an additive inverse, every shear is an
+    isomorphism: the inverse of `shear x` is `shear g` where `g = −x`
+    (`add x g = 0`), since `shear x ≫ shear g = shear (x + g) = shear 0 = id`. -/
+theorem shear_isIso_of_addInv
+    (hinv : ∀ {A B : 𝒞} (f : A ⟶ B), ∃ g : A ⟶ B, inst.add f g = inst.zeroHom A B)
+    {A B : 𝒞} (x : A ⟶ B) : IsIso (shear x) := by
+  obtain ⟨g, hg⟩ := hinv x
+  refine ⟨shear g, ?_, ?_⟩
+  · rw [shear_comp, hg, shear_zero]
+  · rw [shear_comp, add_comm, hg, shear_zero]
+
+/-- **Extraction lemma** (Freyd's hint).  Let `inv` be a left inverse of `shear x`
+    (`inv ≫ shear x = id`).  Feeding the first injection `j₁ = ⟨1, 0⟩` gives
+    `w = j₁ ≫ inv` with `w ≫ fst = 1` (Freyd's "`y = 1`") and `x + (w ≫ snd) = 0`
+    (Freyd's "`u + x = 0`").  Thus `w ≫ snd` is the additive inverse `−x`. -/
+theorem shear_inv_extract {A B : 𝒞} (x : A ⟶ B)
+    (inv : prod A B ⟶ prod A B) (h : inv ≫ shear x = Cat.id (prod A B)) :
+    (pair (Cat.id A) (inst.zeroHom A B) ≫ inv) ≫ fst = Cat.id A ∧
+    inst.add x ((pair (Cat.id A) (inst.zeroHom A B) ≫ inv) ≫ snd) = inst.zeroHom A B := by
+  -- j₁ = ⟨1,0⟩ is the first injection; w = j₁ ≫ inv.  Mathlib-free, so no `set`.
+  -- key : w ≫ shear x = j₁  (since inv ≫ shear x = id).
+  have key : (pair (Cat.id A) (inst.zeroHom A B) ≫ inv) ≫ shear x
+      = pair (Cat.id A) (inst.zeroHom A B) := by rw [Cat.assoc, h, Cat.comp_id]
+  -- y = 1 : first projection of w
+  have hy : (pair (Cat.id A) (inst.zeroHom A B) ≫ inv) ≫ fst = Cat.id A := by
+    rw [← shear_fst x, ← Cat.assoc, key, fst_pair]
+  refine ⟨hy, ?_⟩
+  -- u + x = 0 : second projection equation, expanded by distributivity
+  have hs : ((pair (Cat.id A) (inst.zeroHom A B) ≫ inv) ≫ shear x) ≫ snd
+      = inst.zeroHom A B := by rw [key, snd_pair]
+  rw [Cat.assoc, shear_snd, comp_add, ← Cat.assoc, hy, Cat.id_comp] at hs
+  exact hs
+
+/-- **Backward direction.** If every shear is an isomorphism, every hom has an
+    additive inverse: extract it from the shear's inverse via `shear_inv_extract`. -/
+theorem addInv_of_shear_isIso
+    (hiso : ∀ {A B : 𝒞} (x : A ⟶ B), IsIso (shear x))
+    {A B : 𝒞} (f : A ⟶ B) : ∃ g : A ⟶ B, inst.add f g = inst.zeroHom A B := by
+  obtain ⟨inv, _, h2⟩ := hiso f
+  exact ⟨_, (shear_inv_extract f inv h2).2⟩
+
+/-- **§1.591 (Freyd's parenthetical).** A half-additive category is additive iff
+    every shear matrix `(1 x; 0 1)` is an isomorphism. -/
+theorem additive_iff_shear_isIso :
+    (∀ {A B : 𝒞} (f : A ⟶ B), ∃ g : A ⟶ B, inst.add f g = inst.zeroHom A B) ↔
+    (∀ {A B : 𝒞} (x : A ⟶ B), IsIso (shear x)) :=
+  ⟨fun hinv => shear_isIso_of_addInv hinv, fun hiso => addInv_of_shear_isIso hiso⟩
+
+end HalfAdditiveCategory
 
 /-! ## §1.591 Zero object
 
