@@ -555,6 +555,57 @@ theorem omega_endo_eq_id_of_classifies_true
   exact HasSubobjectClassifier.classify_unique
     (HasSubobjectClassifier.true (𝒞 := 𝒞)) HasSubobjectClassifier.true_monic h hsq hpb
 
+/-! ### §1.919  Reusable infrastructure for the involution argument -/
+
+/-- The maximal subobject `t : 1 ↪ Ω` of `Ω` itself (the "truth" subterminal). -/
+noncomputable def topOmega : Subobject 𝒞 (HasSubobjectClassifier.omega (𝒞 := 𝒞)) :=
+  ⟨HasTerminal.one, HasSubobjectClassifier.true, HasSubobjectClassifier.true_monic⟩
+
+/-- `G := g⁻¹(t)` — the inverse image along `g` of the maximal subobject of `Ω`.
+    This is the subobject of `Ω` "on which `g` is true"; its classifying map is `g`
+    itself (`classify_invImg` + `classify_true_eq_id`). -/
+noncomputable def invTrue (g : HasSubobjectClassifier.omega (𝒞 := 𝒞) ⟶
+    HasSubobjectClassifier.omega (𝒞 := 𝒞)) : Subobject 𝒞 (HasSubobjectClassifier.omega (𝒞 := 𝒞)) :=
+  invImg g topOmega (HasPullbacks.has _ _)
+
+/-- The classifying map of `G = g⁻¹(t)` is `g` itself.  (`χ_{g# ⊤} = g ≫ χ_⊤ = g ≫ id`.) -/
+theorem classify_invTrue (g : HasSubobjectClassifier.omega (𝒞 := 𝒞) ⟶
+    HasSubobjectClassifier.omega (𝒞 := 𝒞)) :
+    HasSubobjectClassifier.classify (invTrue g).arr (invTrue g).monic = g := by
+  unfold invTrue
+  rw [classify_invImg]
+  show g ≫ HasSubobjectClassifier.classify (topOmega).arr (topOmega).monic = g
+  rw [show HasSubobjectClassifier.classify (topOmega (𝒞 := 𝒞)).arr (topOmega).monic
+        = HasSubobjectClassifier.classify HasSubobjectClassifier.true
+            HasSubobjectClassifier.true_monic from rfl,
+      classify_true_eq_id, Cat.comp_id]
+
+/-- **§1.919 (key monicity lemma)**: when `g` is monic, `G = g⁻¹(t)` is SUBTERMINAL
+    — its domain has at most one map from any object.  Reason: for `a, b : W → G.dom`,
+    both `a ≫ G.arr` and `b ≫ G.arr` compose with `g` to the constant `term ≫ true`
+    (they factor through the classifier square of `g`), so `g` monic forces
+    `a ≫ G.arr = b ≫ G.arr`, and `G.arr` monic forces `a = b`. -/
+theorem invTrue_subterminal (g : HasSubobjectClassifier.omega (𝒞 := 𝒞) ⟶
+    HasSubobjectClassifier.omega (𝒞 := 𝒞)) (hm : Mono g) {W : 𝒞}
+    (a b : W ⟶ (invTrue g).dom) : a = b := by
+  let hp : HasPullback g (topOmega (𝒞 := 𝒞)).arr := HasPullbacks.has _ _
+  have hGarr : (invTrue g).arr = hp.cone.π₁ := rfl
+  have htopArr : (topOmega (𝒞 := 𝒞)).arr = HasSubobjectClassifier.true := rfl
+  have ha : (a ≫ (invTrue g).arr) ≫ g = term W ≫ HasSubobjectClassifier.true := by
+    rw [hGarr, Cat.assoc, hp.cone.w, ← Cat.assoc, term_uniq (a ≫ hp.cone.π₂) (term W), htopArr]
+  have hb : (b ≫ (invTrue g).arr) ≫ g = term W ≫ HasSubobjectClassifier.true := by
+    rw [hGarr, Cat.assoc, hp.cone.w, ← Cat.assoc, term_uniq (b ≫ hp.cone.π₂) (term W), htopArr]
+  exact (invTrue g).monic _ _ (hm _ _ (by rw [ha, hb]))
+
+/-- **§1.919 (cancellation skeleton)**: a monic endomorphism `g` of `Ω` is an
+    involution as soon as `g ≫ g ≫ g = g` (idempotence of `g ≫ g` up to the cube
+    law): cancel the rightmost `g` by monicity.  This isolates the genuine content
+    `g³ = g` from the trivial final step. -/
+theorem omega_involution_of_cube (g : HasSubobjectClassifier.omega (𝒞 := 𝒞) ⟶
+    HasSubobjectClassifier.omega (𝒞 := 𝒞)) (hm : Mono g)
+    (hcube : (g ≫ g) ≫ g = g) : g ≫ g = Cat.id _ :=
+  hm (g ≫ g) (Cat.id _) (by rw [Cat.id_comp]; exact hcube)
+
 /-! ## §1.919  Monic endomorphisms of Ω are involutions
 
   §1.919: Every monic endomorphism g : Ω → Ω is an involution (g² = id).
