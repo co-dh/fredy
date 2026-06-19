@@ -24,6 +24,7 @@
 -/
 import Fredy.UniformWellPoints
 import Fredy.CofinalHstage
+import Fredy.FibreDensityProof
 
 universe u
 
@@ -49,9 +50,7 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
   -- THE SOLE RESIDUAL: §1.546 fibre-density, for every bundle's cofinal cover `wsCover S`.
   have hFD : ∀ (S : PreRegBundle.{u}),
       letI := S.cat; letI := S.pre; letI := (wsCover S).dec
-      FibreDensity (wsCover S) := fun S => by
-    letI := S.cat; letI := S.pre; letI := (wsCover S).dec
-    sorry
+      FibreDensity (wsCover S) := fun S => Freyd.CofinalProj.wsCover_fibreDensity S
   -- The cofinal capitalizing successor: uniform step per bundle, well-points from `hFD`.
   let ccs : CofinalCapStep.{u} :=
     { step := fun S =>
