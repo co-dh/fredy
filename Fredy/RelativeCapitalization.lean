@@ -348,6 +348,82 @@ theorem listProdSliceAcquiresEveryFactor (U : List 𝒞) (k : Fin U.length) :
       = (overTerm (listProd U)).hom :=
   sliceAcquiresFactorPoint (U.get k) (listProdProj U k)
 
+/-! ## §1.546 — the directed-union escape: base-change to a FRESH factor misses its point
+
+  The genuine §1.546 density content, isolated as a single sorry-free SLICE lemma.
+
+  Freyd's §1.546: a proper subobject of the embedded object `AB ↪ B` is, at a RICHER slice, missed
+  by a point.  At a single fixed slice this is FALSE (`properMono_forces_graph_iso`,
+  SliceEquivalence): the graph `pair (proj_k) id` of the generic slice point is a proper mono
+  reaching every fixed-slice point.  The escape is the directed union: pass to a richer base
+  `P' = A × P` carrying a FRESH, independent `A`-coordinate `c : P' → A` (the new projection), and
+  base-change the subobject along the projection `q : P' → P`.  The base-changed subobject's
+  `A`-value is the OLD subobject's `A`-value pulled back through `P`, so it is DECOUPLED from the
+  fresh coordinate `c`; reaching the fresh point `sliceFactorPoint A c` would force the old
+  subobject to contain its whole graph, i.e. force the proper mono to be a cover — contradiction.
+
+  This is the precise, point-free reason the directed UNION (not a single slice) closes §1.546, and
+  it needs NO fractions-saturation: only the two base-change pullback squares and joint-monicity of
+  `(fst, snd)`.  The lemma is stated against the explicit pullback cones so it is reusable for any
+  base map `q` and any fresh coordinate `c` with `c`'s `P`-shadow factoring as `q`. -/
+
+/-- **§1.546 base-change escape (the genuine directed-union escape, sorry-free).**  Let
+    `m : D ↪ sliceEmbedObj P A` be a PROPER slice mono (`D.dom ↪ A×P` with structure `snd`).
+    Base-change along the SECOND PROJECTION `q := snd : A×P ⟶ P` (so the richer base is `P' = A×P`,
+    carrying the FRESH `A`-coordinate `fst : A×P ⟶ A`).  Suppose:
+
+      * `cnD : Cone D.hom (snd : prod A P ⟶ P)` is a pullback (the base-change of `D`);
+      * `mf' : cnD.pt ⟶ prod A (prod A P)` is the induced map on the base-changed embedded apex —
+        we take that apex to be the canonical `A × (A×P)` product cone of the cospan
+        `(snd, snd)`, with legs `fst`, `snd`.  So `mf'` satisfies
+        `mf' ≫ fst = cnD.π₁ ≫ m.f ≫ fst` (the `A`-leg of `D ↪ A×P`) and `mf' ≫ snd = cnD.π₂`
+        (the base leg, landing in `A×P = P'`).
+
+    Then there is NO section `s : (prod A P) ⟶ cnD.pt` of the base-change structure map `cnD.π₂`
+    (`s ≫ cnD.π₂ = id`) whose `A`-coordinate is the FRESH coordinate `fst`
+    (`s ≫ mf' ≫ fst = fst`).  For such a section makes `(s ≫ cnD.π₁) : A×P → D.dom` a SECTION of
+    `m.f` (`(s ≫ cnD.π₁) ≫ m.f = pair fst snd = id_{A×P}`), so `m.f` is split-epi hence a cover;
+    being monic (`m` mono), `m.f` is then iso, so `m` is a slice-iso — contradicting properness.
+
+    This is the precise point-free directed-union escape; no fractions saturation is used. -/
+theorem baseChange_freshFactor_missed {P A : 𝒞} {D : Over P}
+    (m : OverHom D (sliceEmbedObj P A)) (hmono : OverMono m) (hproper : ¬ OverIso m)
+    (cnD : Cone D.hom (snd : prod A P ⟶ P)) (_hcnD : cnD.IsPullback)
+    (mf' : cnD.pt ⟶ prod A (prod A P))
+    (hmf'₁ : mf' ≫ (fst : prod A (prod A P) ⟶ A) = cnD.π₁ ≫ m.f ≫ (fst : prod A P ⟶ A))
+    (_hmf'₂ : mf' ≫ (snd : prod A (prod A P) ⟶ prod A P) = cnD.π₂)
+    (s : (prod A P) ⟶ cnD.pt) (hs₂ : s ≫ cnD.π₂ = Cat.id (prod A P))
+    (hsA : s ≫ (mf' ≫ (fst : prod A (prod A P) ⟶ A)) = (fst : prod A P ⟶ A)) : False := by
+  -- `D.hom = m.f ≫ snd` (the over-hom law, since `(sliceEmbedObj P A).hom = snd`).
+  have hmw : m.f ≫ (snd : prod A P ⟶ P) = D.hom := m.w
+  -- `t := s ≫ cnD.π₁ : A×P → D.dom`.  Show `t ≫ m.f = id_{A×P}` via joint-monicity of `(fst, snd)`.
+  -- `A`-leg: `s ≫ cnD.π₁ ≫ m.f ≫ fst = s ≫ mf' ≫ fst = fst`.
+  have hAleg : s ≫ cnD.π₁ ≫ m.f ≫ (fst : prod A P ⟶ A) = (fst : prod A P ⟶ A) := by
+    rw [← hmf'₁]; rw [← Cat.assoc] at hsA ⊢; exact hsA
+  -- `P`-leg: `s ≫ cnD.π₁ ≫ m.f ≫ snd = s ≫ cnD.π₁ ≫ D.hom = s ≫ cnD.π₂ ≫ snd = snd`.
+  have hPleg : s ≫ cnD.π₁ ≫ m.f ≫ (snd : prod A P ⟶ P) = (snd : prod A P ⟶ P) := by
+    rw [hmw, cnD.w, ← Cat.assoc s, hs₂, Cat.id_comp]
+  -- hence `t ≫ m.f = pair fst snd = id_{A×P}`.
+  have htmf : (s ≫ cnD.π₁) ≫ m.f = Cat.id (prod A P) := by
+    have hpair : (s ≫ cnD.π₁) ≫ m.f = pair (fst : prod A P ⟶ A) (snd : prod A P ⟶ P) :=
+      pair_uniq _ _ _
+        (by rw [Cat.assoc, Cat.assoc]; exact hAleg)
+        (by rw [Cat.assoc, Cat.assoc]; exact hPleg)
+    rw [hpair, pair_fst_snd]
+  -- `m.f` is split-epi (right inverse `s ≫ cnD.π₁`), hence a cover; monic ⟹ iso ⟹ `m` slice-iso.
+  have hfmono : Mono m.f := sigma_preserves_mono m hmono
+  have hcover : Cover m.f := by
+    intro K n h hn hfac
+    -- `n` mono, `h ≫ n = m.f`; the right inverse of `n` is `(s ≫ cnD.π₁) ≫ h`.
+    have hni : ((s ≫ cnD.π₁) ≫ h) ≫ n = Cat.id (prod A P) := by
+      rw [Cat.assoc, hfac, htmf]
+    refine ⟨(s ≫ cnD.π₁) ≫ h, ?_, hni⟩
+    -- `n ≫ ((s≫cnD.π₁)≫h) = id`: cancel `n` mono on `(… ≫ n) = (id ≫ n)`.
+    apply hn
+    rw [Cat.assoc, hni]; rw [Cat.id_comp]; exact Cat.comp_id n
+  have hfiso : IsIso m.f := monic_cover_iso m.f hcover hfmono
+  exact hproper (overIso_of_underlying m hfiso)
+
 /-! ## §1.547  Assembling the inner finite-product-slice `CatSystem` (residual (A)/(B))
 
   This block builds the inner directed system of slices `A/(∏U)` over `listDirected`, the

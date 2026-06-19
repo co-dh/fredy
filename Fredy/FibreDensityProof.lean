@@ -264,40 +264,67 @@ theorem fibreDensity_of_richerSliceMiss (W : WSCover S) (hcore : RicherSliceMiss
 /-! ## Phase 3 — the genuine §1.546 density core `RicherSliceMiss`
 
   ════════════════════════════════════════════════════════════════════════════════════════════
-  STATUS — the one honest `sorry`, on Freyd's genuine §1.546 density.  Precise blocker below.
+  STATUS — the one honest `sorry`.  The genuine §1.546 ESCAPE is now PROVEN sorry-free; the
+  residual is the mechanical colimit-level plumbing on top of it.  Precise account below.
   ════════════════════════════════════════════════════════════════════════════════════════════
 
   `RicherSliceMiss W` is exactly Freyd's §1.546 density: a proper fibre subobject of the embedded
   object `sliceEmbedObj (∏U) A` is, at a RICHER slice `U' ⊇ U`, missed by a colimit point.
 
-  WHY IT IS A GENUINE OPEN CORE (not mechanically derivable from the built infrastructure):
+  ── THE ESCAPE (the genuine new math) — now PROVEN sorry-free as `baseChange_freshFactor_missed`
+     (`RelativeCapitalization.lean`) ───────────────────────────────────────────────────────────
 
-  1. The single-slice product-form reduction is **PROVABLY FALSE** (`properMono_forces_graph_iso`,
-     SliceEquivalence): the graph of the generic point `pair (proj_k) id : ∏U → A × ∏U` is a proper
-     mono into `sliceEmbedObj (∏U) A` that REACHES the generic slice point.  So one cannot show "every
-     proper mono is product-form" at any fixed slice, and the escape must use the directed UNION.
+  The directed-union escape is REAL and needs NO calculus-of-fractions saturation (the prior note
+  claiming a §1.48-saturation blocker was TOO PESSIMISTIC — superseded).  Take the richer stage
+  `U' = A :: U` (insert the well-supported `A` as a fresh factor; `A` ws ⟹ `U' ∈ WSList`).  Then
+  `∏U' = A × ∏U` (`listProd_cons`) carries a FRESH, independent `A`-coordinate `fst : A×∏U → A`,
+  and the §1.547 transition `U ≤ U'` is base-change along the projection `selectProj (A::U.1) U.1`,
+  which equals `snd : A×∏U → ∏U` (by `listProd_hom_ext` + `selectProj_factor`/`factorProj_cons_ne`,
+  since `A ∉ U.1` by nodup).  So `pushFibre g''` is the base-change of `g''` along `snd`.
 
-  2. The directed-union escape needs PER-MONO point SELECTION at the richer slice.  At `U' = U ∪ {A}`
-     the slice `Over (∏U')` acquires a NEW A-point `sliceFactorPoint A (proj to A's coordinate)`
-     (`listProdSliceAcquiresEveryFactor`), decoupled from the old `proj_k`.  Freyd's §1.546 shows the
-     base-change of the proper subobject misses THAT point.  But establishing this missing requires
-     the survivors-product / localization structure (`PairDense.factorSplit` — `W ≅ ∏surv`, the
-     surviving factors form a product diagram, RationalCapitalization) bridged into the `Over (∏U')`
-     fibre — and that bridge ultimately rests on the §1.48 calculus-of-fractions SATURATION for the
-     proper-monic dense class, which is NOT BUILT (documented `fiberJ_full_of_factor` /
-     `MonicDense`/`DenseRoof` in RationalCapitalization, and the memory note
-     `capitalization-543-pb-breakthrough`).
+  `baseChange_freshFactor_missed` then shows, point-free and sorry-free: the base-changed proper
+  mono MISSES the fresh slice point `sliceFactorPoint A (fst : A×∏U → A)`.  WHY (and why this is NOT
+  the FALSE single-slice statement `properMono_forces_graph_iso`): the base-changed subobject's
+  `A`-coordinate is the OLD subobject's `A`-value pulled back through `∏U`, hence DECOUPLED from the
+  fresh coordinate `fst`.  A section reaching the fresh point would, via the base-change pullback
+  square and joint-monicity of `(fst,snd)`, exhibit a section of `g''.f` (i.e. `g''.f` split-epi
+  hence a cover); with `g''` monic this forces `g''` ISO — contradicting properness.  The graph
+  `pair (proj_k) id` that defeats the single-slice statement reaches the OLD point `proj_k`, never
+  the FRESH coordinate `fst` of `∏U'` — which is exactly why the directed UNION (not one slice)
+  closes §1.546.
+
+  ── THE RESIDUAL (mechanical colimit plumbing, the lone `sorry`) ──────────────────────────────
+
+  `RicherSliceMiss` is stated at the COLIMIT level: it asks for a colimit point `x'` of
+  `⟨U', F hUU' (F hbU (terminalSliceObj A))⟩` (against the lax-colimit terminal) that
+  `stageInclL (pushFibre g'')` does not factor.  What remains is to thread the proven slice escape
+  through the colimit interface:
+    (a) identify the codomain `F hUU' (F hbU (terminalSliceObj A))` with `sliceEmbedObj (∏U') A`
+        (`pushTerminalSlice_iso` at `U'` conjugated by the pseudo-functor `transApp` iso), and
+        present `pushFibre g''` as `baseChangeMap snd ḡ` with `ḡ` the conjugate of `g''` — supplying
+        the `cnD`/`mf'` pullback data `baseChange_freshFactor_missed` consumes;
+    (b) build the colimit point: realign the lax-colimit terminal `one ≅ ⟨U', stage-U'-terminal⟩`
+        (both terminal, `laxTerminalArrowAt` + `laxTerminalUniqAt`), then `stageInclL U'` the slice
+        point `sliceFactorPoint A fst` (transported to the codomain via the iso of (a));
+    (c) reflect a hypothetical colimit factor back to a stage-`U'` slice factor (`stageInclFunctorL
+        U'` faithful/full on the relevant homs, as in `colimitMono_reflects_to_fibre`), then apply
+        `baseChange_freshFactor_missed` to derive `False`.
+  This is bookkeeping over already-built lemmas (no new mathematics); it mirrors, in reverse, the
+  sorry-free `colimitMono_reflects_to_fibre`.  Isolated here as the single honest `sorry`.
 
   The reduction `fibreDensity_of_richerSliceMiss` (Phase 2) and the colimit↔fibre passage
-  (`stageInclL_g''_factor`, Phase 1) are SORRY-FREE.  The single residual is `RicherSliceMiss W`
-  itself — Freyd's genuine §1.546 density, isolated as one honestly-stated TRUE obligation.
+  (`stageInclL_g''_factor`, Phase 1) are SORRY-FREE, as is the §1.546 escape itself
+  (`baseChange_freshFactor_missed`).  The lone residual is the (a)–(c) colimit plumbing.
 
   HONEST `sorry` — on a TRUE statement (Freyd §1.546).  No weakening, no `axiom`, no false claim. -/
 
-/-- **Freyd's §1.546 density (the genuine open core).**  See the section note for the precise
-    blocker: the per-mono richer-slice point selection ultimately needs the §1.48 calculus-of-fractions
-    saturation of the proper-monic dense class, which is not built.  Committed as ONE honest `sorry` on
-    a TRUE intermediate statement; the §1.547 reduction around it is machine-checked. -/
+/-- **Freyd's §1.546 density (the genuine open core).**  The §1.546 ESCAPE is proven sorry-free as
+    `baseChange_freshFactor_missed` (`RelativeCapitalization.lean`): at the richer stage `U' = A::U`,
+    whose product `∏U' = A×∏U` carries a fresh independent `A`-coordinate, the base-changed proper
+    mono misses the fresh slice point (reaching it would force the mono to be a cover, hence iso).
+    The lone residual `sorry` is the mechanical colimit plumbing wiring that slice escape through the
+    lax-colimit terminal/point interface — see the section note's (a)–(c).  No fractions saturation
+    is needed (the prior §1.48 claim is superseded); the §1.547 reduction around it is machine-checked. -/
 theorem richerSliceMiss (W : WSCover S) : RicherSliceMiss W := by
   sorry
 
