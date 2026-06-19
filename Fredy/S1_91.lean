@@ -281,6 +281,137 @@ theorem classify_surjective {A : 𝒞}
   intro v hv₁ _
   exact Pb.lift_uniq ⟨d.pt, d.π₁, d.π₂, d.w⟩ v hv₁ (term_uniq _ _)
 
+/-- **§1.914 (internal-meet universal property)**: the classifying map
+    `⟨χ_{S₁}, χ_{S₂}⟩ ≫ omegaMeet : A → Ω` of the pair of characteristic maps
+    classifies the intersection `S₁ ∩ S₂` (`Sub.inter`, §1.452).
+
+    This is the bridge that turns the bare classifying-map definition of
+    `omegaMeet` into the subobject operation `g(A₁,A₂) = A₁ ∩ A₂` (§1.914).
+
+    Proof by pullback pasting against `classify_unique`.  The commuting square
+    `inter.arr ≫ (⟨χ₁,χ₂⟩ ≫ omegaMeet) = term ≫ t` holds because along `inter.arr`
+    both `χ₁` and `χ₂` collapse to `term ≫ t` (classifier squares), so
+    `inter.arr ≫ ⟨χ₁,χ₂⟩ = term ≫ ⟨t,t⟩`, and `⟨t,t⟩ ≫ omegaMeet = t` by the
+    classifier square of `omegaMeet`.  For the pullback property: any cone whose
+    apex `E` maps by `d.π₁` with `d.π₁ ≫ ⟨χ₁,χ₂⟩ ≫ omegaMeet = term ≫ t` makes
+    `⟨d.π₁≫χ₁, d.π₁≫χ₂⟩ : E → Ω×Ω` factor through `⟨t,t⟩` (the `omegaMeet`
+    classifier pullback), i.e. `d.π₁ ≫ χ₁ = term ≫ t = d.π₁ ≫ χ₂`; each of these,
+    via the classifier pullbacks of `χ₁`/`χ₂`, factors `d.π₁` through `m₁`/`m₂`;
+    the pullback `hp` of `m₁,m₂` then yields the unique factorization through
+    `inter.dom`. -/
+theorem omegaMeet_classifies_inter {A : 𝒞} (S₁ S₂ : Subobject 𝒞 A)
+    (hp : HasPullback S₁.arr S₂.arr) :
+    pair (HasSubobjectClassifier.classify S₁.arr S₁.monic)
+         (HasSubobjectClassifier.classify S₂.arr S₂.monic) ≫ omegaMeet
+      = HasSubobjectClassifier.classify (Sub.inter S₁ S₂ hp).arr
+          (Sub.inter S₁ S₂ hp).monic := by
+  let χ₁ := HasSubobjectClassifier.classify S₁.arr S₁.monic
+  let χ₂ := HasSubobjectClassifier.classify S₂.arr S₂.monic
+  let I := Sub.inter S₁ S₂ hp
+  show pair χ₁ χ₂ ≫ omegaMeet = HasSubobjectClassifier.classify I.arr I.monic
+  -- The two classifier squares for m₁, m₂.
+  have sq₁ : S₁.arr ≫ χ₁ = term S₁.dom ≫ HasSubobjectClassifier.true :=
+    HasSubobjectClassifier.classify_sq S₁.arr S₁.monic
+  have sq₂ : S₂.arr ≫ χ₂ = term S₂.dom ≫ HasSubobjectClassifier.true :=
+    HasSubobjectClassifier.classify_sq S₂.arr S₂.monic
+  -- omegaMeet classifier square: (t,t) ≫ omegaMeet = term 1 ≫ t = t.
+  have sqM : pair HasSubobjectClassifier.true HasSubobjectClassifier.true ≫ omegaMeet
+      = term (HasTerminal.one (𝒞 := 𝒞)) ≫ HasSubobjectClassifier.true :=
+    HasSubobjectClassifier.classify_sq
+      (pair HasSubobjectClassifier.true HasSubobjectClassifier.true)
+      (fun f g _ => HasTerminal.uniq f g)
+  -- I.arr = hp.cone.π₁ ≫ S₁.arr; also I.arr = hp.cone.π₂ ≫ S₂.arr (cone.w).
+  have hIarr₁ : I.arr = hp.cone.π₁ ≫ S₁.arr := rfl
+  have hIarr₂ : I.arr = hp.cone.π₂ ≫ S₂.arr := by
+    rw [hIarr₁]; exact hp.cone.w
+  -- Commuting square: I.arr ≫ (⟨χ₁,χ₂⟩ ≫ omegaMeet) = term I.dom ≫ t.
+  have hsq : I.arr ≫ (pair χ₁ χ₂ ≫ omegaMeet)
+      = term I.dom ≫ HasSubobjectClassifier.true := by
+    -- I.arr ≫ ⟨χ₁,χ₂⟩ = ⟨I.arr≫χ₁, I.arr≫χ₂⟩ = ⟨term≫t, term≫t⟩ = term ≫ ⟨t,t⟩.
+    have e1 : I.arr ≫ χ₁ = term I.dom ≫ HasSubobjectClassifier.true := by
+      rw [hIarr₁, Cat.assoc, sq₁, ← Cat.assoc, term_uniq (hp.cone.π₁ ≫ term S₁.dom) (term I.dom)]
+    have e2 : I.arr ≫ χ₂ = term I.dom ≫ HasSubobjectClassifier.true := by
+      rw [hIarr₂, Cat.assoc, sq₂, ← Cat.assoc, term_uniq (hp.cone.π₂ ≫ term S₂.dom) (term I.dom)]
+    have hpair : I.arr ≫ pair χ₁ χ₂
+        = term I.dom ≫ pair HasSubobjectClassifier.true HasSubobjectClassifier.true := by
+      have hL : I.arr ≫ pair χ₁ χ₂
+          = pair (term I.dom ≫ HasSubobjectClassifier.true)
+                 (term I.dom ≫ HasSubobjectClassifier.true) := by
+        refine pair_uniq _ _ (I.arr ≫ pair χ₁ χ₂) ?_ ?_
+        · rw [Cat.assoc, fst_pair]; exact e1
+        · rw [Cat.assoc, snd_pair]; exact e2
+      have hR : term I.dom ≫ pair HasSubobjectClassifier.true HasSubobjectClassifier.true
+          = pair (term I.dom ≫ HasSubobjectClassifier.true)
+                 (term I.dom ≫ HasSubobjectClassifier.true) := by
+        refine pair_uniq _ _ _ ?_ ?_
+        · rw [Cat.assoc, fst_pair]
+        · rw [Cat.assoc, snd_pair]
+      rw [hL, hR]
+    calc I.arr ≫ (pair χ₁ χ₂ ≫ omegaMeet)
+        = (I.arr ≫ pair χ₁ χ₂) ≫ omegaMeet := (Cat.assoc _ _ _).symm
+      _ = (term I.dom ≫ pair HasSubobjectClassifier.true HasSubobjectClassifier.true) ≫ omegaMeet :=
+            by rw [hpair]
+      _ = term I.dom ≫ (pair HasSubobjectClassifier.true HasSubobjectClassifier.true ≫ omegaMeet) :=
+            Cat.assoc _ _ _
+      _ = term I.dom ≫ (term HasTerminal.one ≫ HasSubobjectClassifier.true) := by rw [sqM]
+      _ = (term I.dom ≫ term HasTerminal.one) ≫ HasSubobjectClassifier.true := (Cat.assoc _ _ _).symm
+      _ = term I.dom ≫ HasSubobjectClassifier.true := by
+            rw [term_uniq (term I.dom ≫ term HasTerminal.one) (term I.dom)]
+  -- Now show the square is a pullback, then conclude by classify_unique.
+  refine HasSubobjectClassifier.classify_unique I.arr I.monic _ hsq ?_
+  intro d
+  -- d : Cone (⟨χ₁,χ₂⟩ ≫ omegaMeet) t, apex E = d.pt.
+  -- Step A: ⟨d.π₁≫χ₁, d.π₁≫χ₂⟩ ≫ omegaMeet = term ≫ t  (from d.w).
+  have hk : pair (d.π₁ ≫ χ₁) (d.π₁ ≫ χ₂) ≫ omegaMeet
+      = term d.pt ≫ HasSubobjectClassifier.true := by
+    have : pair (d.π₁ ≫ χ₁) (d.π₁ ≫ χ₂) = d.π₁ ≫ pair χ₁ χ₂ := by
+      refine (pair_uniq _ _ _ ?_ ?_).symm <;> rw [Cat.assoc]
+      · rw [fst_pair]
+      · rw [snd_pair]
+    rw [this, Cat.assoc, d.w, term_uniq d.π₂ (term d.pt)]
+  -- Step B: factor ⟨d.π₁≫χ₁, d.π₁≫χ₂⟩ through (t,t) via omegaMeet's pullback.
+  obtain ⟨w, ⟨hw₁, _⟩, _⟩ :=
+    HasSubobjectClassifier.classify_pullback
+      (pair HasSubobjectClassifier.true HasSubobjectClassifier.true)
+      (fun f g _ => HasTerminal.uniq f g)
+      ⟨d.pt, pair (d.π₁ ≫ χ₁) (d.π₁ ≫ χ₂), term d.pt, hk⟩
+  -- hw₁ : w ≫ (t,t) = ⟨d.π₁≫χ₁, d.π₁≫χ₂⟩.  Read off the two components.
+  have hcomp₁ : d.π₁ ≫ χ₁ = term d.pt ≫ HasSubobjectClassifier.true := by
+    have := congrArg (· ≫ fst) hw₁
+    simp only [Cat.assoc, fst_pair] at this
+    rw [← this, term_uniq w (term d.pt)]
+  have hcomp₂ : d.π₁ ≫ χ₂ = term d.pt ≫ HasSubobjectClassifier.true := by
+    have := congrArg (· ≫ snd) hw₁
+    simp only [Cat.assoc, snd_pair] at this
+    rw [← this, term_uniq w (term d.pt)]
+  -- Step C: each component factors d.π₁ through m₁ / m₂ (classifier pullbacks).
+  obtain ⟨u₁, ⟨hu₁, _⟩, _⟩ :=
+    HasSubobjectClassifier.classify_pullback S₁.arr S₁.monic
+      ⟨d.pt, d.π₁, term d.pt, by rw [hcomp₁]⟩
+  obtain ⟨u₂, ⟨hu₂, _⟩, _⟩ :=
+    HasSubobjectClassifier.classify_pullback S₂.arr S₂.monic
+      ⟨d.pt, d.π₁, term d.pt, by rw [hcomp₂]⟩
+  -- hu₁ : u₁ ≫ S₁.arr = d.π₁;  hu₂ : u₂ ≫ S₂.arr = d.π₁.
+  -- Step D: lift into the pullback hp to land in I.dom.
+  have hpw : u₁ ≫ S₁.arr = u₂ ≫ S₂.arr := by rw [hu₁, hu₂]
+  refine ⟨hp.lift ⟨d.pt, u₁, u₂, hpw⟩, ⟨?_, term_uniq _ _⟩, ?_⟩
+  · -- (lift) ≫ I.arr = (lift) ≫ π₁ ≫ S₁.arr = u₁ ≫ S₁.arr = d.π₁.
+    show hp.lift ⟨d.pt, u₁, u₂, hpw⟩ ≫ I.arr = d.π₁
+    calc hp.lift ⟨d.pt, u₁, u₂, hpw⟩ ≫ I.arr
+        = hp.lift ⟨d.pt, u₁, u₂, hpw⟩ ≫ (hp.cone.π₁ ≫ S₁.arr) := by rw [hIarr₁]
+      _ = (hp.lift ⟨d.pt, u₁, u₂, hpw⟩ ≫ hp.cone.π₁) ≫ S₁.arr := (Cat.assoc _ _ _).symm
+      _ = u₁ ≫ S₁.arr := by rw [hp.lift_fst]
+      _ = d.π₁ := hu₁
+  · -- uniqueness of the lift among maps into I.dom.
+    intro v hv₁ _
+    refine hp.lift_uniq ⟨d.pt, u₁, u₂, hpw⟩ v ?_ ?_
+    · -- v ≫ π₁ = u₁: cancel the monic S₁.arr; (v ≫ π₁) ≫ S₁.arr = v ≫ I.arr = d.π₁ = u₁ ≫ S₁.arr.
+      refine S₁.monic _ _ ?_
+      rw [Cat.assoc, ← hIarr₁, hv₁, hu₁]
+    · -- v ≫ π₂ = u₂: cancel the monic S₂.arr; (v ≫ π₂) ≫ S₂.arr = v ≫ I.arr = d.π₁ = u₂ ≫ S₂.arr.
+      refine S₂.monic _ _ ?_
+      rw [Cat.assoc, ← hIarr₂, hv₁, hu₂]
+
 /-! ## §1.919  Monic endomorphisms of Ω are involutions
 
   §1.919: Every monic endomorphism g : Ω → Ω is an involution (g² = id).
@@ -297,22 +428,27 @@ theorem classify_surjective {A : 𝒞}
     Since g is monic, g(V) = g(1_Ω) implies V = 1_Ω.  For any A, A is g²-large
     in itself, and the identity has the same property, so g² = id by extensionality.
 
-    **Proof gap** (confirmed by deep proof-search): via the available API the
-    goal reduces to showing `t : 1 → Ω` is the pullback of `t` along `g ≫ g`
-    (i.e. `g²` classifies the maximal subobject of Ω — "A is g²-large in itself").
-    Of the three pieces Freyd's argument needs, TWO are now available:
-    (1) `classify`-iso-invariance / the full `Sub(−) ≅ Hom(−,Ω)` bijection is
-    provided by `classify_unique` (injective half) + `classify_surjective`
-    (surjective half, proved above);
-    (3) operation-extensionality then follows from that bijection.
-    The REMAINING blocker is (2): the CHARACTERIZING universal properties of
-    `omegaMeet`/`heytingDoubleArrow` (defined below as bare classifying maps with
-    NO universal property) — concretely the pullback of `t` along
-    `⟨χ₁,χ₂⟩ ≫ omegaMeet` must be `Sub.inter A₁ A₂` (S1_45), and similarly the
-    Heyting arrow must compute `A₁ ∩ A' = A₂ ∩ A'`.  Without these the operation
-    `(A ↔ A×U) ∧ (A×U)` cannot be shown equal to `A`, so `g²` cannot be reduced to
-    the identity.  This is the substantive missing bridge.  Faithful sorry; see
-    S1_91.md for the sharpened blocker. -/
+    **Proof gap** (sharpened).  Via the available API the goal reduces to showing
+    `t : 1 → Ω` is the pullback of `t` along `g ≫ g` (i.e. `g²` classifies the
+    maximal subobject of Ω — "A is g²-large in itself").  Freyd's argument needs
+    FOUR pieces; THREE are now available in this file:
+    (1) the full `Sub(−) ≅ Hom(−,Ω)` bijection: `classify_unique` (injective half)
+        + `classify_surjective` (surjective half, above);
+    (2a) the internal-MEET universal property: `omegaMeet_classifies_inter` (above)
+        proves `⟨χ_{A₁},χ_{A₂}⟩ ≫ omegaMeet` classifies `Sub.inter A₁ A₂` (S1_45),
+        so `omegaMeet` realises the subobject operation `g(A₁,A₂) = A₁ ∩ A₂`;
+    (3) operation-extensionality then follows from (1).
+    The REMAINING blocker is (2b): the universal property of `heytingDoubleArrow`
+    (defined below as a bare classifying map of the diagonal) — concretely that
+    `⟨χ₁,χ₂⟩ ≫ heytingDoubleArrow` classifies the subobject on which `χ₁ = χ₂`,
+    equivalently `A₁ ∩ A' = A₂ ∩ A'` — TOGETHER WITH the internal-Heyting identity
+    `(A ↔ A×U) ∧ (A×U) = A`.  The latter needs Sub(A) to be developed as a Heyting
+    semilattice (the g-large-subobject correspondence `A'∈g-large ↔ char factors
+    through gᵐ(t)`, and the operation `A' ↦ (A ↔ A×U) ∧ A×U`), none of which is
+    formalised here — this is a multi-lemma development of internal Heyting algebra
+    on subobjects, not a single bridge lemma.  Faithful sorry; the meet-bridge
+    `omegaMeet_classifies_inter` is now in place, residual = Heyting-arrow UMP +
+    Sub(A)-Heyting-algebra infra.  See S1_91.md. -/
 theorem omega_monic_endo_is_involution (g : HasSubobjectClassifier.omega (𝒞 := 𝒞) ⟶
     HasSubobjectClassifier.omega (𝒞 := 𝒞)) (hm : Mono g) : g ≫ g = Cat.id _ := by
   sorry
