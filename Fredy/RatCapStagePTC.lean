@@ -137,6 +137,36 @@ theorem projStage_faithful [PreRegularCategory 𝒞] {i j : ι} (hij : D.le i j)
   have hcancel : PX.cone.π₁ ≫ p.f = PX.cone.π₁ ≫ q.f := by rw [← hp, ← hq, hfeq]
   exact OverHom.ext (cover_epi hπ₁X_cover hcancel)
 
+/-- **`g*` is UNCONDITIONALLY conservative when `g` is a cover** (no mono restriction).  For a cover
+    transition the mono-restricted `projStage_conservative` upgrades to full conservativity: `g* φ`
+    iso ⟹ `g* φ` mono ⟹ `φ` mono (a faithful functor — `projStage_faithful`, since `g` cover ⟹ `g*`
+    faithful — reflects monos) ⟹ `φ` iso (mono-restricted descent).  This is the unconditional
+    `hcons` shape `RatCapHcanon.stageInclFunctorL_faithful` / `capData_of_cofinalSystem` consume.
+    (The §1.543 generic "g* not conservative" obstruction needed `g` NOT a cover; here `g` IS.) -/
+theorem projStage_conservative_full [PreRegularCategory 𝒞] {i j : ι} (hij : D.le i j)
+    (hpc : Cover (sproj P hij))
+    {x y : (laxOfProjSystem' P).A i} (φ : x ⟶ y)
+    (hiso : IsIso (@Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) x y φ)) :
+    IsIso φ := by
+  obtain ⟨inv, hinv1, hinv2⟩ := hiso
+  -- `φ` is monic: a faithful functor (`projStage_faithful`) reflects monos, and `g* φ` is monic (iso).
+  have hmonoφ : Mono φ := by
+    intro Z a b hab
+    apply projStage_faithful P hij hpc a b
+    have hcomp : @Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) _ _ (a ≫ φ)
+        = @Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) _ _ (b ≫ φ) := by rw [hab]
+    rw [@Functor.map_comp _ _ _ _ _ ((laxOfProjSystem' P).functF hij) _ _ _ a φ,
+        @Functor.map_comp _ _ _ _ _ ((laxOfProjSystem' P).functF hij) _ _ _ b φ] at hcomp
+    calc @Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) _ _ a
+        = (@Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) _ _ a
+            ≫ @Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) _ _ φ) ≫ inv := by
+          rw [Cat.assoc, hinv1, Cat.comp_id]
+      _ = (@Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) _ _ b
+            ≫ @Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) _ _ φ) ≫ inv := by rw [hcomp]
+      _ = @Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) _ _ b := by
+          rw [Cat.assoc, hinv1, Cat.comp_id]
+  exact projStage_conservative P hij hpc φ hmonoφ ⟨inv, hinv1, hinv2⟩
+
 /-\! ### 5. Cover preservation — `g*` preserves covers (given `g` a cover)
 
   `g* m` is a cover in `Over (pr j)` iff its underlying arrow `(g* m).f` is a base cover
