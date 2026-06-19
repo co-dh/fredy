@@ -425,6 +425,276 @@ theorem selectProj_cover : ∀ (U V : List 𝒞), V.Nodup → ∀ (h : ∀ B ∈
 
 end Cover
 
+/-! ## Phase 3b — the TOKEN-keyed engine (fresh-copy index, for §1.546 c.ii)
+
+  The object engine above keys the factor projection `∏U ⟶ B` by the OBJECT `B`, so it cannot tell
+  two copies of the same object apart (nodup is on the object list).  For §1.546 c.ii (`A ∈ U`) the
+  escape needs a FRESH decoupled copy of an object that is ALREADY a factor.  We re-key the engine by
+  a TOKEN type `τ` with a "well-support" / object map `f : τ → 𝒞`: the index is a NODUP `List τ`, the
+  stage product is `listProd (l.map f)`, and the factor projection `tFactorProj f l t (t ∈ l) :
+  listProd (l.map f) ⟶ f t` recurses on the TOKEN list (head-match by TOKEN equality).  A fresh copy
+  of object `A` is a fresh token `t` with `f t = A`; nodup on `List τ` holds even when `f t` already
+  appears.  Specializing `τ := 𝒞, f := id` recovers the object engine (up to `List.map_id`).
+
+  Everything below is the object engine with `B ∈ U`-keying replaced by `t ∈ l`-keying and `listProd
+  U` replaced by `listProd (l.map f)`; the proofs are line-for-line the object versions. -/
+
+section TokenEngine
+
+variable {τ : Type u} {𝒟 : Type u} [Cat.{u} 𝒟] [HasTerminal 𝒟] [HasBinaryProducts 𝒟]
+variable [DecidableEq τ] (f : τ → 𝒟)
+
+/-- The token factor projection `listProd (l.map f) ⟶ f t` at the first occurrence of token `t` in
+    `l` (head ⟹ `fst`; otherwise `snd` then recurse).  Keyed by the TOKEN `t`, not the object `f t`,
+    so distinct tokens over the same object are reachable independently. -/
+noncomputable def tFactorProj : ∀ (l : List τ) (t : τ), t ∈ l →
+    (listProd (𝒞 := 𝒟) (l.map f) ⟶ f t)
+  | c :: l', t, h =>
+    if hct : c = t then
+      (hct ▸ (fst : prod (f c) (listProd (l'.map f)) ⟶ f c))
+    else (snd : prod (f c) (listProd (l'.map f)) ⟶ listProd (l'.map f)) ≫ tFactorProj l' t
+      ((List.mem_cons.1 h).resolve_left (fun e => hct e.symm))
+  | [], _, h => absurd h (by simp)
+
+/-- `tFactorProj` at a head match is `fst`. -/
+theorem tFactorProj_cons_head {c : τ} {l' : List τ} (ht : c ∈ c :: l') :
+    tFactorProj f (c :: l') c ht = (fst : prod (f c) (listProd (l'.map f)) ⟶ f c) := by
+  rw [tFactorProj]; simp
+
+/-- `tFactorProj` past a non-matching head is `snd` then recurse. -/
+theorem tFactorProj_cons_ne {c t : τ} {l' : List τ} (ht : t ∈ c :: l') (hne : c ≠ t)
+    (ht' : t ∈ l') :
+    tFactorProj f (c :: l') t ht
+      = (snd : prod (f c) (listProd (l'.map f)) ⟶ listProd (l'.map f)) ≫ tFactorProj f l' t ht' := by
+  rw [tFactorProj]; simp only [hne, dif_neg, not_false_iff]
+
+/-- **`listProd (l.map f)` is jointly monic in its token factor projections** (NODUP token list). -/
+theorem tListProd_hom_ext : ∀ {l : List τ}, l.Nodup → ∀ {X : 𝒟}
+    (p q : X ⟶ listProd (𝒞 := 𝒟) (l.map f))
+    (_ : ∀ (t : τ) (ht : t ∈ l), p ≫ tFactorProj f l t ht = q ≫ tFactorProj f l t ht), p = q
+  | [], _, _, p, q, _ => term_uniq p q
+  | c :: l', hnd, _, p, q, h => by
+    apply fst_snd_jointly_monic
+    · have hh := h c List.mem_cons_self; rwa [tFactorProj_cons_head] at hh
+    · apply tListProd_hom_ext (List.nodup_cons.1 hnd).2
+      intro t ht
+      have hct : c ≠ t := fun e => (List.nodup_cons.1 hnd).1 (e ▸ ht)
+      have hh := h t (List.mem_cons.2 (Or.inr ht))
+      rw [tFactorProj_cons_ne f (List.mem_cons.2 (Or.inr ht)) hct ht, ← Cat.assoc, ← Cat.assoc] at hh
+      exact hh
+
+/-- The token assembled projection `listProd (l.map f) ⟶ listProd (m.map f)` for `m ⊆ l`. -/
+noncomputable def tSelectProj (l : List τ) : ∀ (m : List τ), (∀ t ∈ m, t ∈ l) →
+    (listProd (𝒞 := 𝒟) (l.map f) ⟶ listProd (𝒞 := 𝒟) (m.map f))
+  | [], _ => (term (listProd (𝒞 := 𝒟) (l.map f)) :
+      _ ⟶ listProd (𝒞 := 𝒟) (List.map f ([] : List τ)))
+  | c :: m', h =>
+    pair (tFactorProj f l c (h c List.mem_cons_self))
+         (tSelectProj l m' (fun t ht => h t (List.mem_cons.2 (Or.inr ht))))
+
+/-- **Recovery — token `tSelectProj` followed by a factor projection IS the factor projection.** -/
+theorem tSelectProj_factor (l : List τ) :
+    ∀ (m : List τ) (h : ∀ t ∈ m, t ∈ l) (t : τ) (ht : t ∈ m),
+      tSelectProj f l m h ≫ tFactorProj f m t ht = tFactorProj f l t (h t ht)
+  | [], _, _, ht => absurd ht (by simp)
+  | c :: m', h, t, ht => by
+    rw [tSelectProj]
+    by_cases hct : c = t
+    · subst hct; rw [tFactorProj_cons_head, fst_pair]
+    · have ht' : t ∈ m' := (List.mem_cons.1 ht).resolve_left (fun e => hct e.symm)
+      rw [tFactorProj_cons_ne f ht hct ht', ← Cat.assoc, snd_pair]
+      exact tSelectProj_factor l m' _ t ht'
+
+/-- **STRICT unit** — token `tSelectProj` over the reflexive inclusion is the identity. -/
+theorem tSelectProj_refl {l : List τ} (hnd : l.Nodup) (h : ∀ t ∈ l, t ∈ l) :
+    tSelectProj f l l h = Cat.id (listProd (𝒞 := 𝒟) (l.map f)) := by
+  apply tListProd_hom_ext f hnd
+  intro t ht
+  rw [tSelectProj_factor f l l h t ht, Cat.id_comp]
+
+/-- **STRICT composition** (contravariant) for the token engine. -/
+theorem tSelectProj_trans {m l w : List τ} (hmnd : m.Nodup)
+    (hml : ∀ t ∈ m, t ∈ l) (hlw : ∀ t ∈ l, t ∈ w) (hmw : ∀ t ∈ m, t ∈ w) :
+    tSelectProj f w m hmw = tSelectProj f w l hlw ≫ tSelectProj f l m hml := by
+  apply tListProd_hom_ext f hmnd
+  intro t ht
+  rw [tSelectProj_factor f w m hmw t ht, Cat.assoc, tSelectProj_factor f l m hml t ht,
+      tSelectProj_factor f w l hlw t (hml t ht)]
+
+/-- **Reordering iso** for the token engine. -/
+theorem tSelectProj_reorder_iso {m m' : List τ} (hm : m.Nodup) (hm' : m'.Nodup)
+    (hmm' : ∀ t ∈ m, t ∈ m') (hm'm : ∀ t ∈ m', t ∈ m) :
+    IsIso (tSelectProj f m m' hm'm) := by
+  refine ⟨tSelectProj f m' m hmm', ?_, ?_⟩
+  · apply tListProd_hom_ext f hm
+    intro t ht
+    rw [Cat.assoc, tSelectProj_factor f m' m hmm' t ht, tSelectProj_factor f m m' hm'm t (hmm' t ht),
+        Cat.id_comp]
+  · apply tListProd_hom_ext f hm'
+    intro t ht
+    rw [Cat.assoc, tSelectProj_factor f m m' hm'm t ht, tSelectProj_factor f m' m hmm' t (hm'm t ht),
+        Cat.id_comp]
+
+/-- When the head token `c` of `l` is NOT in `m`, `tSelectProj (c::l') m` strips `c` via `snd`. -/
+theorem tSelectProj_head_notin (c : τ) (l' : List τ) :
+    ∀ (m : List τ) (h : ∀ t ∈ m, t ∈ c :: l') (_hc : c ∉ m) (h' : ∀ t ∈ m, t ∈ l'),
+      tSelectProj f (c :: l') m h
+        = (snd : prod (f c) (listProd (l'.map f)) ⟶ listProd (l'.map f)) ≫ tSelectProj f l' m h'
+  | [], _, _, _ => by rw [tSelectProj, tSelectProj]; exact (term_uniq _ _)
+  | c2 :: m', h, hc, h' => by
+    have hpp : (snd : prod (f c) (listProd (l'.map f)) ⟶ listProd (l'.map f))
+        ≫ tSelectProj f l' (c2 :: m') h'
+        = pair (snd ≫ tFactorProj f l' c2 (h' c2 List.mem_cons_self))
+            (snd ≫ tSelectProj f l' m' (fun t ht => h' t (List.mem_cons.2 (Or.inr ht)))) := by
+      rw [tSelectProj]
+      exact pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])
+    rw [tSelectProj, hpp]
+    have hc2 : c ≠ c2 := fun e => hc (e ▸ List.mem_cons_self)
+    have hfp : tFactorProj f (c :: l') c2 (h c2 List.mem_cons_self)
+        = (snd : prod (f c) (listProd (l'.map f)) ⟶ listProd (l'.map f))
+          ≫ tFactorProj f l' c2 (h' c2 List.mem_cons_self) :=
+      tFactorProj_cons_ne f (h c2 List.mem_cons_self) hc2 (h' c2 List.mem_cons_self)
+    rw [hfp, tSelectProj_head_notin c l' m' (fun t ht => h t (List.mem_cons.2 (Or.inr ht)))
+        (fun e => hc (List.mem_cons.2 (Or.inr e)))
+        (fun t ht => h' t (List.mem_cons.2 (Or.inr ht)))]
+
+end TokenEngine
+
+section TokenCover
+
+variable {τ : Type u} {𝒟 : Type u} [Cat.{u} 𝒟] [PreRegularCategory 𝒟] [HasEqualizers 𝒟]
+variable [DecidableEq τ] [DecidableEq 𝒟] (f : τ → 𝒟)
+
+private theorem tmem_filter_ne {c x : τ} {m : List τ} :
+    x ∈ m.filter (fun y => y ≠ c) ↔ x ∈ m ∧ x ≠ c := by
+  rw [List.mem_filter]; simp
+
+private theorem tnodup_filter (p : τ → Bool) : ∀ {l : List τ}, l.Nodup → (l.filter p).Nodup
+  | [], _ => by simp
+  | a :: t, hh => by
+    rw [List.filter_cons]
+    by_cases hp : p a
+    · simp only [hp, if_pos]
+      exact List.nodup_cons.2
+        ⟨fun hcc => (List.nodup_cons.1 hh).1 (List.mem_filter.1 hcc).1,
+          tnodup_filter p (List.nodup_cons.1 hh).2⟩
+    · simp only [hp, if_neg, Bool.false_eq_true, not_false_iff]
+      exact tnodup_filter p (List.nodup_cons.1 hh).2
+
+private theorem tfrontList_mem_left {c : τ} {m : List τ} :
+    ∀ t ∈ m, t ∈ c :: m.filter (fun x => x ≠ c) := by
+  intro t ht
+  by_cases htc : t = c
+  · exact htc ▸ List.mem_cons_self
+  · exact List.mem_cons.2 (Or.inr (tmem_filter_ne.2 ⟨ht, htc⟩))
+
+private theorem tfrontList_mem_right {c : τ} {m : List τ} (hc : c ∈ m) :
+    ∀ t ∈ c :: m.filter (fun x => x ≠ c), t ∈ m := by
+  intro t ht
+  rcases List.mem_cons.1 ht with e | hf
+  · exact e ▸ hc
+  · exact (tmem_filter_ne.1 hf).1
+
+/-- **`tSelectProj l m h` is a COVER when `m` is nodup and every `f t` (for `t ∈ l`) is
+    well-supported.**  Token version of `selectProj_cover` (induction on `l`). -/
+theorem tSelectProj_cover : ∀ (l m : List τ), m.Nodup → ∀ (h : ∀ t ∈ m, t ∈ l)
+    (_hws : ∀ t ∈ l, WellSupported (f t)), Cover (tSelectProj f l m h)
+  | [], m, _, h, _ => by
+    have hm : m = [] := List.eq_nil_iff_forall_not_mem.2 (fun x hx => by simpa using h x hx)
+    subst hm; exact wellSupported_one
+  | c :: l', m, hmnd, h, hws => by
+    have hwsTail : ∀ t ∈ l', WellSupported (f t) := fun t ht => hws t (List.mem_cons.2 (Or.inr ht))
+    have hwsC : WellSupported (f c) := hws c List.mem_cons_self
+    by_cases hcm : c ∈ m
+    · have hFnd : (c :: m.filter (fun x => x ≠ c)).Nodup :=
+        List.nodup_cons.2 ⟨fun hcc => (tmem_filter_ne.1 hcc).2 rfl, tnodup_filter _ hmnd⟩
+      have hmF : ∀ t ∈ m, t ∈ c :: m.filter (fun x => x ≠ c) := tfrontList_mem_left
+      have hFm : ∀ t ∈ c :: m.filter (fun x => x ≠ c), t ∈ m := tfrontList_mem_right hcm
+      have hFsub : ∀ t ∈ c :: m.filter (fun x => x ≠ c), t ∈ c :: l' := fun t ht => h t (hFm t ht)
+      rw [tSelectProj_trans f hmnd hmF hFsub h]
+      refine cover_postcomp_iso ?_ (tSelectProj_reorder_iso f hFnd hmnd hFm hmF)
+      rw [tSelectProj, tFactorProj_cons_head]
+      have hcFrem : c ∉ m.filter (fun x => x ≠ c) := fun hcc => (tmem_filter_ne.1 hcc).2 rfl
+      have hmrem' : ∀ t ∈ m.filter (fun x => x ≠ c), t ∈ l' := fun t ht =>
+        (List.mem_cons.1 (h t (hFm t (List.mem_cons.2 (Or.inr ht))))).resolve_left
+          (fun e => hcFrem (e ▸ ht))
+      rw [tSelectProj_head_notin f c l' (m.filter (fun x => x ≠ c)) _ hcFrem hmrem']
+      apply prodLeftMap_cover
+      exact tSelectProj_cover l' (m.filter (fun x => x ≠ c)) (tnodup_filter _ hmnd) hmrem' hwsTail
+    · have h' : ∀ t ∈ m, t ∈ l' := fun t ht =>
+        (List.mem_cons.1 (h t ht)).resolve_left (fun e => hcm (e ▸ ht))
+      rw [tSelectProj_head_notin f c l' m h hcm h']
+      exact cover_comp' (prod_snd_cover hwsC) (tSelectProj_cover l' m hmnd h' hwsTail)
+
+end TokenCover
+
+section TokenPull
+
+variable {τ : Type u} {𝒟 : Type u} [Cat.{u} 𝒟] [HasTerminal 𝒟] [HasBinaryProducts 𝒟]
+variable [DecidableEq τ] (f : τ → 𝒟)
+
+/-- **Pull a single token factor to the front.**  For nodup token list `l ∋ t₀`, the reordering
+    `ψ := tSelectProj f l (t₀ :: l.erase t₀)` is an ISO `listProd (l.map f) ≅ f t₀ × listProd
+    ((l.erase t₀).map f)` with `ψ ≫ fst = tFactorProj f l t₀` and `ψ ≫ snd = tSelectProj` onto the
+    residual.  Token version of `listProd_pull_factor`. -/
+theorem tListProd_pull_factor (l : List τ) (t₀ : τ) (hnd : l.Nodup) (ht₀ : t₀ ∈ l) :
+    let l' := l.erase t₀
+    let hsub : ∀ t ∈ t₀ :: l', t ∈ l := fun _ ht =>
+      (List.mem_cons.1 ht).elim (· ▸ ht₀) List.mem_of_mem_erase
+    let ψ : listProd (𝒞 := 𝒟) (l.map f) ⟶ prod (f t₀) (listProd (l'.map f)) :=
+      tSelectProj f l (t₀ :: l') hsub
+    IsIso ψ ∧ ψ ≫ (fst : prod (f t₀) (listProd (l'.map f)) ⟶ f t₀) = tFactorProj f l t₀ ht₀ ∧
+      ψ ≫ (snd : prod (f t₀) (listProd (l'.map f)) ⟶ listProd (l'.map f))
+        = tSelectProj f l l' (fun _ ht => List.mem_of_mem_erase ht) := by
+  intro l' hsub ψ
+  have hlnd : (t₀ :: l').Nodup := List.nodup_cons.2 ⟨List.Nodup.not_mem_erase hnd, hnd.erase t₀⟩
+  have hsup : ∀ t ∈ l, t ∈ t₀ :: l' := fun t ht => by
+    by_cases e : t = t₀
+    · exact e ▸ List.mem_cons_self
+    · exact List.mem_cons.2 (Or.inr (List.mem_erase_of_ne e |>.2 ht))
+  refine ⟨tSelectProj_reorder_iso f hnd hlnd hsup hsub, ?_, ?_⟩
+  · have : (fst : prod (f t₀) (listProd (l'.map f)) ⟶ f t₀)
+        = tFactorProj f (t₀ :: l') t₀ List.mem_cons_self := (tFactorProj_cons_head f _).symm
+    rw [this, tSelectProj_factor f l (t₀ :: l') hsub t₀ List.mem_cons_self]
+  · have hsnd : (snd : prod (f t₀) (listProd (l'.map f)) ⟶ listProd (l'.map f))
+        = tSelectProj f (t₀ :: l') l' (fun t ht => List.mem_cons.2 (Or.inr ht)) := by
+      rw [tSelectProj_head_notin f t₀ l' l' (fun t ht => List.mem_cons.2 (Or.inr ht))
+            (List.Nodup.not_mem_erase hnd) (fun t ht => ht),
+          tSelectProj_refl f (hnd.erase t₀) (fun t ht => ht), Cat.comp_id]
+    rw [hsnd]
+    show tSelectProj f l (t₀ :: l') hsub ≫ tSelectProj f (t₀ :: l') l' _ = _
+    rw [← tSelectProj_trans f (hnd.erase t₀) (fun t ht => List.mem_cons.2 (Or.inr ht)) hsub
+          (fun _ ht => List.mem_of_mem_erase ht)]
+
+/-- **Routing a richer token projection through the fresh token coordinate.**  Token version of
+    `selectProj_pull_head`. -/
+theorem tSelectProj_pull_head (l : List τ) (t₀ : τ) (m : List τ)
+    (hnd : l.Nodup) (hndm : (t₀ :: m).Nodup) (ht₀ : t₀ ∈ l)
+    (hme : ∀ t ∈ m, t ∈ l.erase t₀)
+    (hml : ∀ t ∈ t₀ :: m, t ∈ l) :
+    let hsub : ∀ t ∈ t₀ :: l.erase t₀, t ∈ l := fun _ ht =>
+      (List.mem_cons.1 ht).elim (· ▸ ht₀) List.mem_of_mem_erase
+    tSelectProj f l (t₀ :: m) hml
+      = tSelectProj f l (t₀ :: l.erase t₀) hsub
+        ≫ pair (fst : prod (f t₀) (listProd ((l.erase t₀).map f)) ⟶ f t₀)
+            ((snd : prod (f t₀) (listProd ((l.erase t₀).map f)) ⟶ listProd ((l.erase t₀).map f))
+              ≫ tSelectProj f (l.erase t₀) m hme) := by
+  intro hsub
+  obtain ⟨_, hψfst, hψsnd⟩ := tListProd_pull_factor (𝒟 := 𝒟) f l t₀ hnd ht₀
+  apply tListProd_hom_ext f hndm
+  intro t ht
+  rw [tSelectProj_factor f l (t₀ :: m) hml t ht]
+  by_cases ht₀t : t₀ = t
+  · subst ht₀t
+    rw [tFactorProj_cons_head, Cat.assoc, fst_pair, hψfst]
+  · have ht' : t ∈ m := (List.mem_cons.1 ht).resolve_left (fun e => ht₀t e.symm)
+    rw [tFactorProj_cons_ne f ht ht₀t ht', Cat.assoc, ← Cat.assoc (pair _ _), snd_pair,
+        Cat.assoc, tSelectProj_factor f (l.erase t₀) m hme t ht',
+        ← Cat.assoc, hψsnd,
+        tSelectProj_factor f l (l.erase t₀) (fun _ hh => List.mem_of_mem_erase hh) t (hme t ht')]
+
+end TokenPull
+
 /-! ## Phase 4 — the cofinal directed SUBSET index and the strict `ProjSystem`
 
   `WSList S` = NODUP lists of WELL-SUPPORTED objects, ordered by `⊆`; `wsDirected` is its `Directed`
