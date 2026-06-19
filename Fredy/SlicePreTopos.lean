@@ -853,6 +853,43 @@ instance overDisjointBinaryCoproduct (B : 𝒞) : DisjointBinaryCoproduct (Over 
 
 end overDisjoint
 
+/-! ## Slice-choice transport (one verified rung of the Diaconescu argument)
+
+  A *base* choice object lifts to a *slice* choice object: if `Y.dom` is choice in `𝒞`,
+  then `Y` is choice in `Over B`.  The point is that a base map realized inside a slice
+  relation is automatically a slice arrow, because the relation's legs already commute with
+  the structure maps. -/
+
+section sliceChoice
+variable [RegularCategory 𝒞] {B : 𝒞}
+
+/-- **Slice-choice from base-choice.**  If `Y.dom` is `Choice` in `𝒞`, then `Y` is `Choice`
+    in `Over B`.  An entire slice relation `R : X → Y` forgets to an entire base relation
+    `R.forgetSlice : X.dom → Y.dom` (entirety is "left leg is a cover", and `Σ_B` preserves
+    covers, `cover_f_of_cover`); base choice extracts a map `f : X.dom → Y.dom` with a section
+    `h`.  Both `f` and `h` are *automatically* slice arrows: `f ≫ Y.hom = h ≫ R.colB.f ≫ Y.hom
+    = h ≫ R.src.hom = h ≫ R.colA.f ≫ X.hom = X.hom`, using that `R`'s legs are slice arrows. -/
+theorem slice_choice_of_dom_choice (Y : Over B) (hY : Choice Y.dom) : Choice Y := by
+  intro X R hent
+  have hcov : Cover R.colA :=
+    (tabulated_is_entire_iff_left_cover R.colA R.colB R.isMonicPair).mp hent
+  have hcovf : Cover R.colA.f := cover_f_of_cover R.colA hcov
+  have hentf : Entire R.forgetSlice := by
+    rw [show R.forgetSlice
+          = BinRel.mk R.src.dom R.colA.f R.colB.f R.forgetSlice.isMonicPair from rfl]
+    exact (tabulated_is_entire_iff_left_cover _ _ _).mpr hcovf
+  obtain ⟨f, h, hA, hB⟩ := hY R.forgetSlice hentf
+  simp only [BinRel.forgetSlice_colA, BinRel.forgetSlice_colB] at hA hB
+  have hsecw : h ≫ R.src.hom = X.hom := by
+    have e2 : h ≫ (R.colA.f ≫ X.hom) = h ≫ R.src.hom := by rw [R.colA.w]
+    rw [← Cat.assoc, hA, Cat.id_comp] at e2; rw [← e2]
+  have hfw : f ≫ Y.hom = X.hom := by
+    have e1 : h ≫ (R.colB.f ≫ Y.hom) = f ≫ Y.hom := by rw [← Cat.assoc, hB]
+    rw [R.colB.w, hsecw] at e1; rw [← e1]
+  exact ⟨⟨f, hfw⟩, ⟨h, hsecw⟩, OverHom.ext hA, OverHom.ext hB⟩
+
+end sliceChoice
+
 /-! ## Residual: completing the slice pre-topos tower (toward §1.662 Diaconescu)
 
   Rungs 1, 2, 3, 4 are now DONE sorry-free above:
@@ -873,19 +910,35 @@ end overDisjoint
      `DisjointBinaryCoproduct` through the subobject identification.
   4. ✅ **`HasReflTransClosure (Over B)`** (`overHasReflTransClosure`, via `sliceTransRefClos`).
 
-  REMAINING (final residual):
+  REMAINING (final residual) — SHARPENED, with the precise wall located:
 
   5. **Diaconescu transport (final).**  `preTopos_boolean_iff_all_decidable.mpr` reduces the
      `S1_64` goal to `∀ A, DecidableObject A`.  Decidability of `A` is the diagonal
-     `Δ : A ↣ A×A` complemented; working in the slice `𝒮(A×A)` (now a pre-topos by 2–4),
-     `Δ` is a subobject of the slice terminal, and `Choice (1+1)` in `𝒞` transports to
-     `Choice (1_𝒮 + 1_𝒮)` in `𝒮(A×A)` (this is `Choice ((A×A) + (A×A) → A×A)`, the codiagonal
-     slice object — a projectivity-transport step, NOT automatic from `Choice (1+1)` in `𝒞`).
-     Then the §1.658 engine `subobject_complemented_of_decidable` / `preTopos_boolean_iff_all_decidable`
-     run *inside the slice* to complement `Δ`, i.e. make `A` decidable.
+     `Δ : A ↣ A×A` complemented; the slice `𝒮(A×A)` is now a pre-topos (rungs 2–4) and `Δ` is
+     a subterminal there.  Running Freyd's `U ⊆ 1` argument inside `𝒮(A×A)` (form `P = 1_𝒮 +_Δ
+     1_𝒮`, a quotient of `1_𝒮 + 1_𝒮`; choice splits the quotient so `P ⊆ 1_𝒮 + 1_𝒮`;
+     `1_𝒮 + 1_𝒮` decidable ⟹ `P` decidable ⟹ `Δ` complemented) needs **slice choice of the
+     codiagonal `1_𝒮 + 1_𝒮`**.
 
-  Steps 1–4 are mechanical transport (no new mathematical idea, but ~several hundred lines).
-  Step 5's projectivity transport (`Choice (1+1)` ⇒ slice codiagonal choice) is the one genuinely
-  delicate point and the true residual flagged in the `one_one_choice_to_boolean` doc-comment. -/
+     `slice_choice_of_dom_choice` (proven above, axiom-free) reduces *slice* choice of any
+     `Y : Over (A×A)` to *base* choice of `Y.dom`.  For `Y = 1_𝒮 + 1_𝒮` this is base
+     `Choice ((A×A) + (A×A))`, which by `coprodProdDistrib` is base `Choice ((1+1) × (A×A))`,
+     and `prod_choice` needs **`Choice (A×A)`** — NOT supplied by the hypothesis `Choice (1+1)`.
+     So the full slice-choice route is provably too strong here: it demands `A×A` choice.
+
+     Freyd avoids this by routing through condition (2a) ("every cover `X∪Y = ⊤` refines to a
+     complemented partition"), a *lattice* statement equivalent to `Choice (1+1)` and inherited
+     by slices through the already-built `forgetSlice`/`liftSlice` lattice iso
+     (`forgetSlice_union`, `forgetSlice_inter_le`).  The genuine remaining work is therefore:
+     (a) `Choice (1+1) ⟹ (2a)` in `𝒞`; (b) `(2a)` ⟹ the pushout-split `P ⊆ 1+1` WITHOUT full
+     coproduct choice (the step whose choice-freeness must be reconstructed from Freyd's
+     partition argument, not from `quotient_of_choice_is_choice`); (c) assemble `Δ` complemented.
+     Pieces (a)/(c) are lattice-level; piece (b) — deriving "P is a subobject of 1+1" from the
+     weaker (2a) rather than from splitting the cover — is the one genuinely open mathematical
+     step and the true residual of `one_one_choice_to_boolean`.
+
+  Steps 1–4 are mechanical transport.  `slice_choice_of_dom_choice` is the one verified rung of
+  step 5; it also pins down *why* the naive slice-choice transport fails (it would need `A×A`
+  choice), redirecting the remaining work to the (2a) lattice route. -/
 
 end Freyd
