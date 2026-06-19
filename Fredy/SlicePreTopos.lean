@@ -178,6 +178,149 @@ theorem forgetSlice_reflects_relLe {X Y : Over B} {R S : BinRel (Over B) X Y}
     rwa [S.colA.w, R.colA.w] at this
   exact ⟨⟨⟨k, hkw⟩, OverHom.ext hA, OverHom.ext hB⟩⟩
 
+/-! ### `Σ_B` commutes with `⊚` up to the canonical comparison iso
+
+  The slice composite `R ⊚ S` is the slice image of the slice span over the *slice* pullback
+  `R.colB ×_Y S.colA`; forgetting, the underlying span lives over the base pullback
+  `R.colB.f ×_{Y.dom} S.colA.f`, and the slice image forgets to the base image (definitionally,
+  by `overHasImages = liftSlice ∘ image`).  The base composite `Σ_B R ⊚ Σ_B S` is the base image
+  of the base span over the *base* pullback `R.colB.f ×_{Y.dom} S.colA.f`.  Both spans land on the
+  same legs once the two chosen pullbacks are compared; `relLe_of_cover_factor` (cover⊥mono) gives
+  the containment each way without identifying the chosen pullbacks/images on the nose. -/
+
+section composeComparison
+variable [RegularCategory 𝒞] {X Y Z : Over B}
+
+/-- `Σ_B (R ⊚ S) ⊂ (Σ_B R) ⊚ (Σ_B S)`: the slice composite forgets into the base composite. -/
+theorem forgetSlice_compose_le (R : BinRel (Over B) X Y) (S : BinRel (Over B) Y Z) :
+    (R ⊚ S).forgetSlice ⊂ (R.forgetSlice ⊚ S.forgetSlice) := by
+  -- slice pullback of the inner legs, and its forgotten (base) span
+  let pbs := HasPullbacks.has R.colB S.colA
+  let spans : pbs.cone.pt ⟶ (overProdPt X Z) :=
+    pair (pbs.cone.π₁ ⊚ R.colA) (pbs.cone.π₂ ⊚ S.colB)
+  -- base pullback of the forgotten legs, with its comparison map from `pbs.cone.pt.dom`
+  let pbc := HasPullbacks.has R.colB.f S.colA.f
+  have hpbsw : (pbs.cone.π₁).f ≫ R.colB.f = (pbs.cone.π₂).f ≫ S.colA.f :=
+    congrArg OverHom.f pbs.cone.w
+  let cmp : pbs.cone.pt.dom ⟶ pbc.cone.pt :=
+    pbc.lift ⟨pbs.cone.pt.dom, (pbs.cone.π₁).f, (pbs.cone.π₂).f, hpbsw⟩
+  have hcmp₁ : cmp ≫ pbc.cone.π₁ = (pbs.cone.π₁).f := pbc.lift_fst _
+  have hcmp₂ : cmp ≫ pbc.cone.π₂ = (pbs.cone.π₂).f := pbc.lift_snd _
+  let spanc : pbc.cone.pt ⟶ prod X.dom Z.dom :=
+    pair (pbc.cone.π₁ ≫ R.colA.f) (pbc.cone.π₂ ≫ S.colB.f)
+  -- the cover onto `(R⊚S).forgetSlice.src = (image spans.f).dom` is `image.lift spans.f`
+  refine relLe_of_cover_factor (Y := R.forgetSlice ⊚ S.forgetSlice)
+    (image.lift spans.f) (image_lift_cover spans.f)
+    (cmp ≫ image.lift spanc) ?_ ?_
+  · -- column A
+    show (cmp ≫ image.lift spanc) ≫ ((image spanc).arr ≫ fst)
+        = image.lift spans.f ≫ ((R ⊚ S).forgetSlice.colA)
+    have hL : (cmp ≫ image.lift spanc) ≫ ((image spanc).arr ≫ fst)
+        = (pbs.cone.π₁).f ≫ R.colA.f := by
+      calc (cmp ≫ image.lift spanc) ≫ ((image spanc).arr ≫ fst)
+          = cmp ≫ ((image.lift spanc ≫ (image spanc).arr) ≫ fst) := by
+            rw [Cat.assoc cmp, ← Cat.assoc (image.lift spanc)]
+        _ = cmp ≫ (spanc ≫ fst) := by rw [image.lift_fac]
+        _ = cmp ≫ (pbc.cone.π₁ ≫ R.colA.f) := by rw [show spanc ≫ fst = _ from fst_pair _ _]
+        _ = (cmp ≫ pbc.cone.π₁) ≫ R.colA.f := (Cat.assoc _ _ _).symm
+        _ = (pbs.cone.π₁).f ≫ R.colA.f := by rw [hcmp₁]
+    have hR : image.lift spans.f ≫ ((R ⊚ S).forgetSlice.colA)
+        = (pbs.cone.π₁).f ≫ R.colA.f := by
+      calc image.lift spans.f ≫ ((image spans.f).arr ≫ (overProdFst X Z).f)
+          = (image.lift spans.f ≫ (image spans.f).arr) ≫ (overProdFst X Z).f := (Cat.assoc _ _ _).symm
+        _ = spans.f ≫ (overProdFst X Z).f := by rw [image.lift_fac]
+        _ = (spans ⊚ overProdFst X Z).f := rfl
+        _ = (pbs.cone.π₁ ⊚ R.colA).f := by
+            rw [show spans ⊚ overProdFst X Z = _ from overProdPair_fst _ _]
+        _ = (pbs.cone.π₁).f ≫ R.colA.f := rfl
+    rw [hL, hR]
+  · -- column B (mirror)
+    show (cmp ≫ image.lift spanc) ≫ ((image spanc).arr ≫ snd)
+        = image.lift spans.f ≫ ((R ⊚ S).forgetSlice.colB)
+    have hL : (cmp ≫ image.lift spanc) ≫ ((image spanc).arr ≫ snd)
+        = (pbs.cone.π₂).f ≫ S.colB.f := by
+      calc (cmp ≫ image.lift spanc) ≫ ((image spanc).arr ≫ snd)
+          = cmp ≫ ((image.lift spanc ≫ (image spanc).arr) ≫ snd) := by
+            rw [Cat.assoc cmp, ← Cat.assoc (image.lift spanc)]
+        _ = cmp ≫ (spanc ≫ snd) := by rw [image.lift_fac]
+        _ = cmp ≫ (pbc.cone.π₂ ≫ S.colB.f) := by rw [show spanc ≫ snd = _ from snd_pair _ _]
+        _ = (cmp ≫ pbc.cone.π₂) ≫ S.colB.f := (Cat.assoc _ _ _).symm
+        _ = (pbs.cone.π₂).f ≫ S.colB.f := by rw [hcmp₂]
+    have hR : image.lift spans.f ≫ ((R ⊚ S).forgetSlice.colB)
+        = (pbs.cone.π₂).f ≫ S.colB.f := by
+      calc image.lift spans.f ≫ ((image spans.f).arr ≫ (overProdSnd X Z).f)
+          = (image.lift spans.f ≫ (image spans.f).arr) ≫ (overProdSnd X Z).f := (Cat.assoc _ _ _).symm
+        _ = spans.f ≫ (overProdSnd X Z).f := by rw [image.lift_fac]
+        _ = (spans ⊚ overProdSnd X Z).f := rfl
+        _ = (pbs.cone.π₂ ⊚ S.colB).f := by
+            rw [show spans ⊚ overProdSnd X Z = _ from overProdPair_snd _ _]
+        _ = (pbs.cone.π₂).f ≫ S.colB.f := rfl
+    rw [hL, hR]
+
+/-- `(Σ_B R) ⊚ (Σ_B S) ⊂ Σ_B (R ⊚ S)`: the base composite forgets back into the slice
+    composite.  The base pullback `pbc` maps into the forgotten slice pullback (a base
+    pullback by `sliceForget_preserves_isPullback`); the rest mirrors `forgetSlice_compose_le`. -/
+theorem le_forgetSlice_compose (R : BinRel (Over B) X Y) (S : BinRel (Over B) Y Z) :
+    (R.forgetSlice ⊚ S.forgetSlice) ⊂ (R ⊚ S).forgetSlice := by
+  let pbs := HasPullbacks.has R.colB S.colA
+  let spans : pbs.cone.pt ⟶ (overProdPt X Z) :=
+    pair (pbs.cone.π₁ ⊚ R.colA) (pbs.cone.π₂ ⊚ S.colB)
+  let pbc := HasPullbacks.has R.colB.f S.colA.f
+  let spanc : pbc.cone.pt ⟶ prod X.dom Z.dom :=
+    pair (pbc.cone.π₁ ≫ R.colA.f) (pbc.cone.π₂ ≫ S.colB.f)
+  -- the forgotten slice pullback is a base pullback; lift `pbc.cone` into it.
+  have hsforget : (sliceConeForget pbs.cone).IsPullback :=
+    sliceForget_preserves_isPullback pbs.cone pbs.cone_isPullback
+  obtain ⟨cmp, ⟨hcmp₁0, hcmp₂0⟩, _⟩ := hsforget pbc.cone
+  -- restate with the defeq-normalised legs `(pbs.cone.π·).f`.
+  have hcmp₁ : cmp ≫ (pbs.cone.π₁).f = pbc.cone.π₁ := hcmp₁0
+  have hcmp₂ : cmp ≫ (pbs.cone.π₂).f = pbc.cone.π₂ := hcmp₂0
+  refine relLe_of_cover_factor (X := R.forgetSlice ⊚ S.forgetSlice)
+    (image.lift spanc) (image_lift_cover spanc)
+    (cmp ≫ image.lift spans.f) ?_ ?_
+  · show (cmp ≫ image.lift spans.f) ≫ ((R ⊚ S).forgetSlice.colA)
+        = image.lift spanc ≫ ((image spanc).arr ≫ fst)
+    have hL : (cmp ≫ image.lift spans.f) ≫ ((R ⊚ S).forgetSlice.colA)
+        = pbc.cone.π₁ ≫ R.colA.f := by
+      calc (cmp ≫ image.lift spans.f) ≫ ((image spans.f).arr ≫ (overProdFst X Z).f)
+          = cmp ≫ ((image.lift spans.f ≫ (image spans.f).arr) ≫ (overProdFst X Z).f) := by
+            rw [Cat.assoc cmp, ← Cat.assoc (image.lift spans.f)]
+        _ = cmp ≫ (spans.f ≫ (overProdFst X Z).f) := by rw [image.lift_fac]
+        _ = cmp ≫ ((spans ⊚ overProdFst X Z).f) := rfl
+        _ = cmp ≫ ((pbs.cone.π₁ ⊚ R.colA).f) := by
+            rw [show spans ⊚ overProdFst X Z = _ from overProdPair_fst _ _]
+        _ = cmp ≫ ((pbs.cone.π₁).f ≫ R.colA.f) := rfl
+        _ = (cmp ≫ (pbs.cone.π₁).f) ≫ R.colA.f := (Cat.assoc _ _ _).symm
+        _ = pbc.cone.π₁ ≫ R.colA.f := by rw [hcmp₁]
+    have hR : image.lift spanc ≫ ((image spanc).arr ≫ fst) = pbc.cone.π₁ ≫ R.colA.f := by
+      calc image.lift spanc ≫ ((image spanc).arr ≫ fst)
+          = (image.lift spanc ≫ (image spanc).arr) ≫ fst := (Cat.assoc _ _ _).symm
+        _ = spanc ≫ fst := by rw [image.lift_fac]
+        _ = pbc.cone.π₁ ≫ R.colA.f := fst_pair _ _
+    rw [hL, hR]
+  · show (cmp ≫ image.lift spans.f) ≫ ((R ⊚ S).forgetSlice.colB)
+        = image.lift spanc ≫ ((image spanc).arr ≫ snd)
+    have hL : (cmp ≫ image.lift spans.f) ≫ ((R ⊚ S).forgetSlice.colB)
+        = pbc.cone.π₂ ≫ S.colB.f := by
+      calc (cmp ≫ image.lift spans.f) ≫ ((image spans.f).arr ≫ (overProdSnd X Z).f)
+          = cmp ≫ ((image.lift spans.f ≫ (image spans.f).arr) ≫ (overProdSnd X Z).f) := by
+            rw [Cat.assoc cmp, ← Cat.assoc (image.lift spans.f)]
+        _ = cmp ≫ (spans.f ≫ (overProdSnd X Z).f) := by rw [image.lift_fac]
+        _ = cmp ≫ ((spans ⊚ overProdSnd X Z).f) := rfl
+        _ = cmp ≫ ((pbs.cone.π₂ ⊚ S.colB).f) := by
+            rw [show spans ⊚ overProdSnd X Z = _ from overProdPair_snd _ _]
+        _ = cmp ≫ ((pbs.cone.π₂).f ≫ S.colB.f) := rfl
+        _ = (cmp ≫ (pbs.cone.π₂).f) ≫ S.colB.f := (Cat.assoc _ _ _).symm
+        _ = pbc.cone.π₂ ≫ S.colB.f := by rw [hcmp₂]
+    have hR : image.lift spanc ≫ ((image spanc).arr ≫ snd) = pbc.cone.π₂ ≫ S.colB.f := by
+      calc image.lift spanc ≫ ((image spanc).arr ≫ snd)
+          = (image.lift spanc ≫ (image spanc).arr) ≫ snd := (Cat.assoc _ _ _).symm
+        _ = spanc ≫ snd := by rw [image.lift_fac]
+        _ = pbc.cone.π₂ ≫ S.colB.f := snd_pair _ _
+    rw [hL, hR]
+
+end composeComparison
+
 /-! ## Residual: completing the slice pre-topos tower (toward §1.662 Diaconescu)
 
   With `HasImages (Over B)` and `RegularCategory (Over B)` above, the slice now supports the
