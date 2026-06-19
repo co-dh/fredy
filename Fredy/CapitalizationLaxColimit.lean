@@ -1170,7 +1170,7 @@ private theorem projTransIso_app (P : ProjSystem ι D 𝒞) {i j k : ι}
 
 /-- `eqToHom` between two base-change objects over equal base maps, post-composed with the chosen
     pullback's `π₂`, is the source `π₂` (the transport is the identity on pullbacks). -/
-private theorem eqToHom_bc_π₂ {C E : 𝒞} {a b : E ⟶ C} (e : a = b) (X : Over C) :
+theorem eqToHom_bc_π₂ {C E : 𝒞} {a b : E ⟶ C} (e : a = b) (X : Over C) :
     (eqToHom (congrArg (fun z => baseChangeObj z X) e)).f ≫ (_pb b X).cone.π₂
       = (_pb a X).cone.π₂ := by
   subst e
@@ -1179,7 +1179,7 @@ private theorem eqToHom_bc_π₂ {C E : 𝒞} {a b : E ⟶ C} (e : a = b) (X : O
   exact Cat.id_comp _
 
 /-- Same, post-composed with the chosen pullback's `π₁`. -/
-private theorem eqToHom_bc_π₁ {C E : 𝒞} {a b : E ⟶ C} (e : a = b) (X : Over C) :
+theorem eqToHom_bc_π₁ {C E : 𝒞} {a b : E ⟶ C} (e : a = b) (X : Over C) :
     (eqToHom (congrArg (fun z => baseChangeObj z X) e)).f ≫ (_pb b X).cone.π₁
       = (_pb a X).cone.π₁ := by
   subst e
