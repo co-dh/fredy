@@ -1397,7 +1397,7 @@ theorem complemented_subterminator_projective [DisjointBinaryCoproduct 𝒞]
 
 /-- A map with a section is a cover: if `s ≫ f = id` then every monic `f` factors through
     is split (by `s ≫ g`) and hence iso. -/
-theorem cover_of_section {X Y : 𝒞} (f : X ⟶ Y) (s : Y ⟶ X) (hs : s ≫ f = Cat.id Y) :
+private theorem cover_of_section {X Y : 𝒞} (f : X ⟶ Y) (s : Y ⟶ X) (hs : s ≫ f = Cat.id Y) :
     Cover f := by
   intro C m g hm hgm
   have hsplit : (s ≫ g) ≫ m = Cat.id Y := by rw [Cat.assoc, hgm, hs]
