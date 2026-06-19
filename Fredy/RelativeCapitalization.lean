@@ -424,6 +424,47 @@ theorem baseChange_freshFactor_missed {P A : 𝒞} {D : Over P}
   have hfiso : IsIso m.f := monic_cover_iso m.f hcover hfmono
   exact hproper (overIso_of_underlying m hfiso)
 
+/-- **§1.546 base-change escape — POINT-FACTORIZATION form (sorry-free, axiom-free).**  The same
+    §1.546 directed-union escape as `baseChange_freshFactor_missed`, but stated to consume a
+    *point factorization* directly: at the richer base `P' = A×P` (the fresh `A`-coordinate is
+    `fst : A×P ⟶ A`), if the FRESH slice point `sliceFactorPoint A (fst : A×P ⟶ A)` factors through
+    a PROPER slice mono `m̄ : D̄ ↪ sliceEmbedObj (A×P) A` whose domain `D̄` is the base-change of the
+    proper mono `m : D ↪ sliceEmbedObj P A` along `snd : A×P ⟶ P`, then `False`.
+
+    Concretely the hypotheses present the base-change by its pullback cone `cnD` of `D.hom` along
+    `snd` (so `D̄.dom = cnD.pt`, `D̄.hom = cnD.π₂`) and the embedded-apex comparison `m̄.f = mf'` with
+    `mf' ≫ fst = cnD.π₁ ≫ m.f ≫ fst`, `mf' ≫ snd = cnD.π₂` — exactly the data
+    `baseChange_freshFactor_missed` consumes.  A point factorization `t ⊚ m̄ = sliceFactorPoint A fst`
+    yields its underlying `t.f : A×P ⟶ cnD.pt` AS the missing section: `t.f ≫ cnD.π₂ = id` (it is a
+    point over `A×P`, the over-hom law `t.w`) reaching the fresh coordinate
+    `t.f ≫ mf' ≫ fst = fst` (the underlying `A`-leg of `t ⊚ m̄ = sliceFactorPoint A fst`).  Then
+    `baseChange_freshFactor_missed` refutes it.
+
+    This is the reusable consumer of a POINT factorization (an `OverHom` equation), the shape a
+    slice-point density argument actually produces, rather than the raw cone arrows; the section
+    extraction is internal here. -/
+theorem freshSlicePoint_factors_imp_false {P A : 𝒞} {D : Over P}
+    (m : OverHom D (sliceEmbedObj P A)) (hmono : OverMono m) (hproper : ¬ OverIso m)
+    (cnD : Cone D.hom (snd : prod A P ⟶ P)) (hcnD : cnD.IsPullback)
+    -- the base-changed mono `m̄ : ⟨cnD.pt, cnD.π₂⟩ ↪ sliceEmbedObj (A×P) A`, underlying `mf'`.
+    (mf' : cnD.pt ⟶ prod A (prod A P))
+    (hmf'₁ : mf' ≫ (fst : prod A (prod A P) ⟶ A) = cnD.π₁ ≫ m.f ≫ (fst : prod A P ⟶ A))
+    (hmf'₂ : mf' ≫ (snd : prod A (prod A P) ⟶ prod A P) = cnD.π₂)
+    (mbar : OverHom (⟨cnD.pt, cnD.π₂⟩ : Over (prod A P)) (sliceEmbedObj (prod A P) A))
+    (hmbar : mbar.f = mf')
+    -- the FRESH slice point factors through `m̄`.
+    (t : OverHom (overTerm (prod A P)) (⟨cnD.pt, cnD.π₂⟩ : Over (prod A P)))
+    (hfac : t ⊚ mbar = sliceFactorPoint A (fst : prod A P ⟶ A)) : False := by
+  -- the underlying point-factorization arrow: `t.f ≫ mbar.f = (sliceFactorPoint A fst).f = pair fst id`.
+  have hfacf : t.f ≫ mbar.f = pair (fst : prod A P ⟶ A) (Cat.id (prod A P)) :=
+    congrArg OverHom.f hfac
+  -- `t.f : A×P ⟶ cnD.pt` is a section of `cnD.π₂` (the over-hom law `t.w`, since `D̄.hom = cnD.π₂`).
+  have hs₂ : t.f ≫ cnD.π₂ = Cat.id (prod A P) := t.w
+  -- and it reaches the fresh coordinate `fst`: `t.f ≫ (mf' ≫ fst) = (t.f ≫ mbar.f) ≫ fst = fst`.
+  have hsA : t.f ≫ (mf' ≫ (fst : prod A (prod A P) ⟶ A)) = (fst : prod A P ⟶ A) := by
+    rw [← hmbar, ← Cat.assoc, hfacf, fst_pair]
+  exact baseChange_freshFactor_missed m hmono hproper cnD hcnD mf' hmf'₁ hmf'₂ t.f hs₂ hsA
+
 /-! ## §1.547  Assembling the inner finite-product-slice `CatSystem` (residual (A)/(B))
 
   This block builds the inner directed system of slices `A/(∏U)` over `listDirected`, the

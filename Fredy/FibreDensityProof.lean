@@ -541,22 +541,35 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
     selectProj N.1 (A :: N.1.erase A)
       (fun _ hB => (List.mem_cons.1 hB).elim (· ▸ hA_in_N) List.mem_of_mem_erase)
   -- ════════════════════════════════════════════════════════════════════════════════════════════
-  -- THE SHARPEST RESIDUAL (single isolated section). The `N`-image of the fresh slice point
-  -- `sfp ⊚ cod` (codomain `L.F hUN' (L.F hUU' (L.F hbU term))`) factors, by `hstage`, through the
-  -- `N`-image of `pushFibre g''`, witnessed by `zN`.  Reading that factorization OFF as a
-  -- base-change SECTION over `PN = ∏(N.erase A)` — i.e. producing `s_N : A×PN ⟶ cnD_N.pt` with
-  -- `s_N ≫ cnD_N.π₂ = id` and `s_N ≫ mf_N ≫ fst = fst` for the `ψ`-reindexed `N`-level base-change
-  -- pullback `cnD_N` of `xE'.hom` along `snd` — is the `Over (∏N)` pullback-cone transport
-  -- (the three-layer `pushHom`/`transApp`/`reflApp` base-change re-association of the object
-  -- coherence `L.F hUN' (L.F hUU' (L.F hbU term)) ≅ sliceEmbedObj (∏N) A`, conjugated by `ψ`, all
-  -- unfolded to underlying `S`-arrows).  This object-coherence chain is the genuine remaining
-  -- §1.546 content; `hψiso`/`hψfst`/`hψsnd` and the `N`-level `pushTerminalSlice_iso`
-  -- (`pushTerminalSlice_iso W A (D.trans hbU (D.trans hUU' hUN))`) are the ingredients, but
-  -- assembling the section from `hstage`'s underlying arrow requires the three-layer pullback
-  -- pasting not yet built.  Once `cnD_N`/`mf_N`/`s_N` are in hand, the escape
-  -- `baseChange_freshFactor_missed` (proper at `N` via `L_cons`/`projStage_conservative_full`)
-  -- refutes them.  All colimit plumbing AROUND this — `align`-kill, germ reduction `z ↦ zN`, push
-  -- to stage `N` (`hstage`), `ψ` reindexing, the escape math — is machine-checked sorry-free.
+  -- THE SHARPEST RESIDUAL (single isolated section).  The CONSUMER is now a reusable, sorry-free,
+  -- axiom-free escape: `freshSlicePoint_factors_imp_false` (RelativeCapitalization.lean) — the §1.546
+  -- escape in POINT-FACTORIZATION form.  Given the proper base-changed mono `m̄ : ⟨cnD_N.pt, π₂⟩ ↪
+  -- sliceEmbedObj (∏N) A` (apex comparison `mf_N`) and a POINT factorization
+  -- `t ⊚ m̄ = sliceFactorPoint A (factorProj N A)`, it directly derives `False` (it extracts the
+  -- section `t.f` internally and routes through `baseChange_freshFactor_missed`).  So the Step-2
+  -- obligation is now exactly: PRODUCE that point factorization `t` (an `OverHom` equation), proper
+  -- `m̄`, and the cone/apex data, from `hstage`.
+  --
+  -- WHAT REMAINS (the genuine §1.546 transport — unchanged in difficulty by the reformulation).
+  -- `hstage` is an equation of THREE `pushHom`-conjugated arrows in `Over (∏N)`.  `pushHom` (see
+  -- `CapitalizationLaxColimit.pushHom`) conjugates by the `transApp`/`reflApp` coherence isos, which
+  -- are the ABSTRACT pullback-pasting isos `L.F_trans_iso`/`L.F_refl_iso` of the base-change lax
+  -- system (`projTransIso`/`projReflIso`) — NOT definitional rewrites.  Turning `hstage` into the
+  -- point-factorization `t ⊚ m̄ = sliceFactorPoint A (factorProj N A)` requires unfolding all three
+  -- `pushHom` conjugations AND identifying the codomain object `L.F hUN' (L.F hUU' (L.F hbU term))`
+  -- with `sliceEmbedObj (∏N) A` via the `N`-level `pushTerminalSlice_iso`
+  -- (`pushTerminalSlice_iso W A (D.trans hbU (D.trans hUU' hUN))`), reindexed by `ψ`
+  -- (`hψiso`/`hψfst`/`hψsnd`).  Each layer is an abstract pullback-coherence iso, so this is the
+  -- three-layer pullback pasting — the genuine remaining §1.546 content — NOT a `▸`/`OverHom.ext`
+  -- (probed: the `pushHom`/`transApp` conjugation does not reduce definitionally).  Reformulating the
+  -- escape into point form (done, sorry-free) removed the section-extraction step from this residual
+  -- but did NOT remove the object-coherence transport, which is where the difficulty lives.
+  --
+  -- Once `m̄`/`mf_N`/`cnD_N` and the point `t` are assembled (proper at `N` via
+  -- `L_cons`/`projStage_conservative_full`), `freshSlicePoint_factors_imp_false` closes the goal.  All
+  -- colimit plumbing AROUND this — `align`-kill, germ reduction `z ↦ zN`, push to stage `N`
+  -- (`hstage`), `ψ` reindexing, the escape math, the point-form consumer — is machine-checked
+  -- sorry-free.
   exact (by sorry : False)
 
 /-- **Freyd's §1.546 density (the genuine open core).**  The §1.546 ESCAPE is sorry-free
