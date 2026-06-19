@@ -319,6 +319,45 @@ theorem listProd_pull_factor (N : List 𝒞) (A : 𝒞) (hnd : N.Nodup) (hA : A 
     rw [← selectProj_trans (hnd.erase A) (fun B hB => List.mem_cons.2 (Or.inr hB)) hsub
           (fun _ hB => List.mem_of_mem_erase hB)]
 
+/-- **Routing a richer projection `∏N ⟶ A::U` through the fresh `A`-coordinate.**  For nodup `N ∋ A`
+    and `U ⊆ N.erase A` (i.e. `A ∉ U`, `U ⊆ N`), the projection `selectProj N (A::U)` factors through
+    the reindexing iso `ψ = selectProj N (A :: N.erase A) : ∏N ≅ A × ∏(N.erase A)` as
+    `ψ ≫ pair fst (snd ≫ selectProj (N.erase A) U)` — i.e. the `A`-leg is the fresh coordinate
+    (`ψ ≫ fst = factorProj N A`) and the `U`-block routes through the residual product `∏(N.erase A)`
+    via `snd`.  This is the §1.546 DESCENT shape: the fresh `A`-factor is split off `∏N` and the
+    remaining `U`-data lives over `∏(N.erase A)`, so base-change along `selectProj N (A::U)` splits
+    (via `ψ`) as base-change along `snd : A×∏(N.erase A) ⟶ ∏(N.erase A)` precomposed with the residual
+    `selectProj (N.erase A) U`.  Proved by joint monicity (`listProd_hom_ext`) over the nodup `A::U`,
+    each leg discharged by `selectProj_factor`/`factorProj_cons_*` and the `ψ` leg-equations. -/
+theorem selectProj_pull_head (N : List 𝒞) (A : 𝒞) (U : List 𝒞)
+    (hnd : N.Nodup) (hndU : (A :: U).Nodup) (hA : A ∈ N)
+    (hUe : ∀ B ∈ U, B ∈ N.erase A)
+    (hUN' : ∀ B ∈ A :: U, B ∈ N) :
+    let hsub : ∀ B ∈ A :: N.erase A, B ∈ N := fun _ hB =>
+      (List.mem_cons.1 hB).elim (· ▸ hA) List.mem_of_mem_erase
+    selectProj N (A :: U) hUN'
+      = selectProj N (A :: N.erase A) hsub
+        ≫ pair (fst : prod A (listProd (N.erase A)) ⟶ A)
+            ((snd : prod A (listProd (N.erase A)) ⟶ listProd (N.erase A))
+              ≫ selectProj (N.erase A) U hUe) := by
+  intro hsub
+  -- the `ψ` leg-equations from `listProd_pull_factor`.
+  obtain ⟨_, hψfst, hψsnd⟩ := listProd_pull_factor (𝒞 := 𝒞) N A hnd hA
+  apply listProd_hom_ext hndU
+  intro B hB
+  -- LHS leg: `selectProj N (A::U) ≫ factorProj (A::U) B = factorProj N B`.
+  rw [selectProj_factor N (A :: U) hUN' B hB]
+  by_cases hAB : A = B
+  · -- the fresh `A`-coordinate.
+    subst hAB
+    rw [factorProj_cons_head, Cat.assoc, fst_pair, hψfst]
+  · -- a `U`-factor `B`: route `ψ ≫ snd = selectProj N (N.erase A)`, then `selectProj_trans`.
+    have hB' : B ∈ U := (List.mem_cons.1 hB).resolve_left (fun e => hAB e.symm)
+    rw [factorProj_cons_ne hB hAB hB', Cat.assoc, ← Cat.assoc (pair _ _), snd_pair,
+        Cat.assoc, selectProj_factor (N.erase A) U hUe B hB',
+        ← Cat.assoc, hψsnd,
+        selectProj_factor N (N.erase A) (fun _ hh => List.mem_of_mem_erase hh) B (hUe B hB')]
+
 private theorem mem_filter_ne {C x : 𝒞} {V : List 𝒞} :
     x ∈ V.filter (fun y => y ≠ C) ↔ x ∈ V ∧ x ≠ C := by
   rw [List.mem_filter]; simp

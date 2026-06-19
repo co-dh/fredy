@@ -633,6 +633,35 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
   -- splits `selectProj N U'` through `snd : A×PN ⟶ PN`) is the remaining multi-screen step; with
   -- the descended `m`, the point factorization `t` is read off `hstage` via `proj_pushHom_f_π₁/π₂`
   -- and `freshSlicePoint_factors_imp_false` closes the goal.
+  --
+  -- ── THE DESCENT, MADE EXPLICIT (the projection identity is now in hand). ──
+  -- `A ∉ U` (`hAU`) and `U ⊆ N` (`hUN`) give `U ⊆ N.erase A`, so the §1.547 SUCCESSOR projection
+  -- `selectProj N (A::U)` — the base map along which `pushFibre g''` was base-changed to produce the
+  -- N-image `m_N` over `∏N` — SPLITS through the fresh `A`-coordinate via `selectProj_pull_head`:
+  --   `selectProj N (A::U) = ψ ≫ pair fst (snd ≫ selectProj (N.erase A) U)`,
+  -- with `ψ : ∏N ≅ A×PN` (`PN = ∏(N.erase A)`) the reindexing onto the fresh `A`-factor.  So the
+  -- base-change along `selectProj N (A::U)` FACTORS (pseudofunctorially, `projTransIso`) as
+  -- base-change along `selectProj (N.erase A) U` (landing at the PN-level — the proper mono `m` the
+  -- consumer `freshSlicePoint_factors_imp_false` eats) THEN along `snd : A×PN ⟶ PN` (the
+  -- base-change whose section the §1.546 escape refutes) THEN transported by `ψ` (recovering `m_N`
+  -- over `∏N`).  `hUe` and the split identity are recorded for the assembly:
+  have hUe : ∀ B ∈ U.1, B ∈ N.1.erase A := fun B hB =>
+    List.mem_erase_of_ne (a := B) (by rintro rfl; exact hAU hB)
+      |>.mpr (hUN B (List.mem_cons.2 (Or.inr hB)))
+  have hsplit :
+      selectProj N.1 (A :: U.1) hUN'
+        = selectProj N.1 (A :: N.1.erase A)
+            (fun _ hB => (List.mem_cons.1 hB).elim (· ▸ hA_in_N) List.mem_of_mem_erase)
+          ≫ pair (fst : prod A PN ⟶ A)
+              ((snd : prod A PN ⟶ PN) ≫ selectProj (N.1.erase A) U.1 hUe) :=
+    selectProj_pull_head (𝒞 := S) N.1 A U.1 N.2.1 hnd hA_in_N hUe hUN'
+  -- WHAT REMAINS (the SINGLE sharpest residual — the §1.546 base-change descent).  With `hsplit` the
+  -- base map splitting is no longer opaque; the residual is the pullback-pasting (`projTransIso` /
+  -- `baseChangeTransNatIso`) that exhibits `m_N` as the `ψ`-transport of the `snd`-base-change of a
+  -- PN-level proper mono `m`, then reads the section `t.f : A×PN ⟶ cnD.pt` off `hstage` via
+  -- `proj_pushHom_f_π₁`/`proj_pushHom_f_π₂` (the `.f`-leg characterisations) precomposed by `ψ⁻¹`,
+  -- and applies `freshSlicePoint_factors_imp_false`.  EXACT residual goal: `⊢ False` with `hsplit`,
+  -- `m_N`/`hm_N_mono`/`hm_N_niso`, `Θ`/`hΘiso`, `ψ`/`hψiso`/`hψfst`/`hψsnd`, `hstage` in context.
   exact (by sorry : False)
 
 /-- **Freyd's §1.546 density (the genuine open core).**  The §1.546 ESCAPE is sorry-free
