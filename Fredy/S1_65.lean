@@ -88,7 +88,8 @@ proves this in three steps:
   (iii) T preserves covers — covers = coequalizers (§1.652 + §1.566 kernel pair),
         and T preserves pushouts and 0, hence T preserves coequalizers.
 
-Each sub-theorem below has an honest sorry documented with its precise blocker. -/
+Steps (i) and (ii) are CLOSED (via the §1.64 `amalgamation_is_pullback`); step (iii) is
+the sole remaining sorry, documented with its precise blocker. -/
 
 section BiCartRepr
 
@@ -118,40 +119,28 @@ private def coprod_is_pushout_of_init [HasBinaryCoproducts 𝒜]
   fac₂  := fun c => HasBinaryCoproducts.case_inr c.ι₁ c.ι₂
   uniq  := fun c h h1 h2 => HasBinaryCoproducts.case_uniq c.ι₁ c.ι₂ h h1 h2
 
-/-- **§1.655 step (i)**: a pre-topos functor preserves pullbacks of monics.
-    Proof sketch (Freyd): the pullback (intersection) square of two monic
-    subobjects `m, n` is bicartesian — also a PUSHOUT (this is the content of
-    §1.651 amalgamation: the intersection legs `π₁, π₂` and the inclusions into
-    the union present a pushout, and over the cospan `(m, n)` the square is
-    simultaneously a pullback because the legs are monic with intersection apex).
-    `T` preserves pushouts and monics, so the `T`-image is a pushout of two
-    monics in ℬ, which (by the same amalgamation/effectiveness run in ℬ) is again
-    the pullback of `T m, T n`.
+set_option maxHeartbeats 1000000 in
+/-- **§1.655 step (i)**: a pre-topos functor preserves pullbacks of monics.  CLOSED.
 
-    STILL BLOCKED — residual re-checked against the 2026-06-19 §1.64 closures and
-    confirmed independent of them.  The "intersection square is a pushout" HALF is
-    available: `pasting_lemma` (§1.62, S1_62) proves that for two subobjects
-    `A₁, A₂ ↪ A`, the intersection pullback's projections `π₁, π₂` push out to the
-    UNION `U = A₁ ∪ A₂` (legs `x : A₁ → U`, `y : A₂ → U`).  Feeding that pushout
-    through `pres_pushouts` carries the span `(π₁, π₂)` to a pushout-to-`TU` in ℬ.
-    The genuinely missing CONVERSE is unchanged: in a pre-topos, a pushout square
-    whose cospan legs are MONIC is itself a pullback (so `TU` reconstructs the
-    intersection of `Tm, Tn`, since `T U.arr` is monic and pulling back along it
-    leaves the cospan apex `TA` invariant).
+    Freyd's argument, now fully discharged via the 2026-06-19 §1.64 closures
+    (`amalgamation_is_pullback` and its bicartesian upgrade):
 
-    This converse is NOT supplied by the now-closed `amalgamation_lemma`.  That
-    lemma gives only the EXISTENCE of a monic-legged amalgamating cocone `(D,u,v)`
-    over a monic SPAN; applied to the intersection projections `q₁,q₂ : Q ⇉ A_i`
-    of the ℬ-pullback `Q`, it yields a cocone `(D,u,v)` that (via `q₁≫x = q₂≫y`)
-    even factors the pushout span, but the pushout UMP only produces a map
-    `U → D` OUT of `U` — it gives no map cancelling the comparison `k : TP → Q`,
-    so neither `k` epic nor `k` iso follows.  The converse is exactly the
-    union/intersection EFFECTIVENESS of §1.543, whose elementary intermediate in
-    this repo is `pushout_monic_in_pretopos` (§1.653, S1_64) — itself still a
-    `sorry`.  Closing step (i) honestly therefore needs a fresh relational
-    descent (or that §1.653 lemma) and cannot be discharged from the lemmas
-    currently available, so this single sorry remains.  Step (ii) (equalizers) is
-    already wired to it and closes automatically once it lands. -/
+    * `pb.cone.π₁, pb.cone.π₂` are monic (`mono_pullback`), and `F` preserves monics
+      (`pres_mono`), so `(F π₁, F π₂)` is a monic SPAN in ℬ.
+    * `amalgamation_is_pullback (F π₁) (F π₂)` builds the §1.651 amalgamation `(D; u, v)`,
+      which is BICARTESIAN: the square with apex `F pb.cone.pt` and legs `(F π₁, F π₂)` over
+      the cospan `(u, v)` is a PULLBACK, and `(D; u, v)` is a PUSHOUT of `(F π₁, F π₂)`.
+    * The intersection square `(pb.cone.pt; π₁, π₂; x, y; U)` is a PUSHOUT in 𝒜
+      (`pasting_lemma`: the union `U = A₁∪A₂` is the pushout of the intersection
+      projections, with `x≫U.arr = m`, `y≫U.arr = n`).  `pres_pushouts` carries it to a
+      pushout `(F U; F x, F y)` of `(F π₁, F π₂)` in ℬ (reindexed across the pullback iso
+      `ρ : pb ≅ HasPullbacks.has m n`).
+    * `D` and `F U` are two pushouts of the SAME span, so the `D`-descent `δ : D → F A` to the
+      cocone `(F A; F m, F n)` factors as `(iso) ≫ F U.arr` (`pushout_descent_mono`); since
+      `F U.arr` is monic (`U.arr` monic, `F` preserves monics), `δ` is MONIC.
+    * `isPullback_postcomp_mono` then descends the pullback over `(u, v)` to a pullback over
+      `(u≫δ, v≫δ) = (F m, F n)` — exactly the goal.  (Step (ii) equalizers is already wired
+      to this and now closes automatically.) -/
 theorem preTopos_functor_preserves_monic_pullbacks (hptf : PreToposFunctor F)
     {A₁ A₂ A : 𝒜} (m : A₁ ⟶ A) (hm : Mono m) (n : A₂ ⟶ A) (hn : Mono n)
     (pb : HasPullback m n) :
@@ -161,7 +150,80 @@ theorem preTopos_functor_preserves_monic_pullbacks (hptf : PreToposFunctor F)
         u ≫ hF.map pb.cone.π₁ = c.π₁ ∧ u ≫ hF.map pb.cone.π₂ = c.π₂
         ∧ ∀ v : c.pt ⟶ F pb.cone.pt,
             v ≫ hF.map pb.cone.π₁ = c.π₁ → v ≫ hF.map pb.cone.π₂ = c.π₂ → v = u := by
-  sorry
+  intro c
+  -- `π₁, π₂` monic (pullback of a monic); build the swapped pullback for `π₂`.
+  have hπ₁ : Mono pb.cone.π₁ := mono_pullback m n hn pb
+  let pbS : HasPullback n m :=
+    { cone := ⟨pb.cone.pt, pb.cone.π₂, pb.cone.π₁, pb.cone.w.symm⟩
+      lift := fun d => pb.lift ⟨d.pt, d.π₂, d.π₁, d.w.symm⟩
+      lift_fst := fun d => pb.lift_snd ⟨d.pt, d.π₂, d.π₁, d.w.symm⟩
+      lift_snd := fun d => pb.lift_fst ⟨d.pt, d.π₂, d.π₁, d.w.symm⟩
+      lift_uniq := fun d w h₁ h₂ => pb.lift_uniq ⟨d.pt, d.π₂, d.π₁, d.w.symm⟩ w h₂ h₁ }
+  have hπ₂ : Mono pb.cone.π₂ := mono_pullback n m hm pbS
+  have hFπ₁ : Mono (hF.map pb.cone.π₁) := hptf.pres_mono hπ₁
+  have hFπ₂ : Mono (hF.map pb.cone.π₂) := hptf.pres_mono hπ₂
+  -- §1.651 amalgamation of the monic span `(Fπ₁, Fπ₂)`: pullback over `(u,v)` + pushout UMP.
+  obtain ⟨D, u, v, hsqD, hpbD, hUMPD⟩ :=
+    amalgamation_is_pullback (hF.map pb.cone.π₁) hFπ₁ (hF.map pb.cone.π₂) hFπ₂
+  -- §1.62 union pushout in 𝒜: `U = A₁∪A₂` is the pushout of the intersection projections.
+  let S₁ : Subobject 𝒜 A := ⟨A₁, m, hm⟩
+  let S₂ : Subobject 𝒜 A := ⟨A₂, n, hn⟩
+  let po := pasting_lemma S₁ S₂
+  let U := HasSubobjectUnions.union S₁ S₂
+  have hx : po.cocone.ι₁ ≫ U.arr = m := (HasSubobjectUnions.union_left S₁ S₂).choose_spec
+  have hy : po.cocone.ι₂ ≫ U.arr = n := (HasSubobjectUnions.union_right S₁ S₂).choose_spec
+  -- iso `ρ : pb ≅ canonical pullback`, to reindex `po` (over canonical projections).
+  let cpb := HasPullbacks.has S₁.arr S₂.arr
+  let ρ : pb.cone.pt ⟶ cpb.cone.pt := cpb.lift ⟨pb.cone.pt, pb.cone.π₁, pb.cone.π₂, pb.cone.w⟩
+  have hρ₁ : ρ ≫ cpb.cone.π₁ = pb.cone.π₁ := cpb.lift_fst _
+  have hρ₂ : ρ ≫ cpb.cone.π₂ = pb.cone.π₂ := cpb.lift_snd _
+  obtain ⟨ρinv, hρρinv, hρinvρ⟩ :=
+    isIso_of_two_pullbacks pb.cone_isPullback cpb.cone_isPullback ρ hρ₁ hρ₂
+  -- `F ρ` is iso (`F` preserves the iso `ρ`), with left-inverse `F ρinv`.
+  have hFρinvρ : hF.map ρinv ≫ hF.map ρ = Cat.id (F cpb.cone.pt) := by
+    rw [← hF.map_comp, hρinvρ, hF.map_id]
+  have hFρ₁ : hF.map ρ ≫ hF.map cpb.cone.π₁ = hF.map pb.cone.π₁ := by rw [← hF.map_comp, hρ₁]
+  have hFρ₂ : hF.map ρ ≫ hF.map cpb.cone.π₂ = hF.map pb.cone.π₂ := by rw [← hF.map_comp, hρ₂]
+  -- `F U` is a pushout of `(Fπ₁, Fπ₂)` — `pres_pushouts po` reindexed across `Fρ`.
+  have hUMPW : ∀ (Q : ℬ) (uQ : F A₁ ⟶ Q) (vQ : F A₂ ⟶ Q),
+      hF.map pb.cone.π₁ ≫ uQ = hF.map pb.cone.π₂ ≫ vQ →
+        ∃ dd : F po.cocone.pt ⟶ Q,
+          hF.map po.cocone.ι₁ ≫ dd = uQ ∧ hF.map po.cocone.ι₂ ≫ dd = vQ ∧
+          ∀ d' : F po.cocone.pt ⟶ Q,
+            hF.map po.cocone.ι₁ ≫ d' = uQ → hF.map po.cocone.ι₂ ≫ d' = vQ → d' = dd := by
+    intro Q uQ vQ hQ
+    have hQ' : hF.map cpb.cone.π₁ ≫ uQ = hF.map cpb.cone.π₂ ≫ vQ := by
+      -- left-cancel `F ρ` (iso): `Fρ ≫ (cpb.π₁≫uQ) = Fpb.π₁≫uQ = Fpb.π₂≫vQ = Fρ ≫ (cpb.π₂≫vQ)`.
+      have hkey : hF.map ρ ≫ (hF.map cpb.cone.π₁ ≫ uQ) = hF.map ρ ≫ (hF.map cpb.cone.π₂ ≫ vQ) := by
+        rw [← Cat.assoc, ← Cat.assoc, hFρ₁, hFρ₂]; exact hQ
+      calc hF.map cpb.cone.π₁ ≫ uQ
+          = (hF.map ρinv ≫ hF.map ρ) ≫ (hF.map cpb.cone.π₁ ≫ uQ) := by
+            rw [hFρinvρ, Cat.id_comp]
+        _ = hF.map ρinv ≫ (hF.map ρ ≫ (hF.map cpb.cone.π₁ ≫ uQ)) := Cat.assoc _ _ _
+        _ = hF.map ρinv ≫ (hF.map ρ ≫ (hF.map cpb.cone.π₂ ≫ vQ)) := by rw [hkey]
+        _ = (hF.map ρinv ≫ hF.map ρ) ≫ (hF.map cpb.cone.π₂ ≫ vQ) := (Cat.assoc _ _ _).symm
+        _ = hF.map cpb.cone.π₂ ≫ vQ := by rw [hFρinvρ, Cat.id_comp]
+    obtain ⟨dd, hd1, hd2, huniq⟩ :=
+      hptf.pres_pushouts cpb.cone.π₁ cpb.cone.π₂ (h := po) ⟨Q, uQ, vQ, hQ'⟩
+    exact ⟨dd, hd1, hd2, fun d' h1 h2 => huniq d' h1 h2⟩
+  -- descent `δ : D → F A` to the cocone `(F A; F m, F n)`.
+  have hcoc : hF.map pb.cone.π₁ ≫ hF.map m = hF.map pb.cone.π₂ ≫ hF.map n := by
+    rw [← hF.map_comp, ← hF.map_comp, pb.cone.w]
+  obtain ⟨δ, hδu, hδv, _⟩ := hUMPD (F A) (hF.map m) (hF.map n) hcoc
+  -- `δ` monic: `D ≅ F U` (both pushouts), `δ = (iso) ≫ F U.arr`, `F U.arr` monic.
+  have hsqW : hF.map pb.cone.π₁ ≫ hF.map po.cocone.ι₁
+      = hF.map pb.cone.π₂ ≫ hF.map po.cocone.ι₂ := by
+    rw [← hF.map_comp, ← hF.map_comp]; congr 1
+    apply U.monic; rw [Cat.assoc, Cat.assoc, hx, hy]; exact pb.cone.w
+  have hFUmono : Mono (hF.map U.arr) := hptf.pres_mono U.monic
+  have hδmono : Mono δ :=
+    pushout_descent_mono hsqD hUMPD hsqW hUMPW hFUmono
+      (by rw [hδu, ← hF.map_comp, hx]) (by rw [hδv, ← hF.map_comp, hy])
+  -- descend the pullback over `(u,v)` to a pullback over `(u≫δ, v≫δ) = (F m, F n)`.
+  have hpbFA := isPullback_postcomp_mono hpbD hδmono
+  have hc' : c.π₁ ≫ (u ≫ δ) = c.π₂ ≫ (v ≫ δ) := by rw [hδu, hδv]; exact c.w
+  obtain ⟨k, ⟨hk₁, hk₂⟩, huniq⟩ := hpbFA (Cone.mk c.pt c.π₁ c.π₂ hc')
+  exact ⟨k, hk₁, hk₂, fun w hw₁ hw₂ => huniq w hw₁ hw₂⟩
 
 /-- **§1.655 step (ii)**: a pre-topos functor preserves equalizers — a genuine
     reduction to step (i), with NO independent obligation of its own.
@@ -177,7 +239,7 @@ theorem preTopos_functor_preserves_monic_pullbacks (hptf : PreToposFunctor F)
     (`isPullback_of_iso_cospan`), and `isEqualizer_iff_isPullback` run backwards
     in ℬ identifies `(F E, F m)` as the equalizer of `(F f, F g)`.
 
-    The only residual is step (i)'s sorry; step (ii) itself is sorry-free. -/
+    Step (i) is now closed, so this step (ii) is fully closed (sorry-free). -/
 theorem preTopos_functor_preserves_equalizers (hptf : PreToposFunctor F)
     {A B : 𝒜} (f g : A ⟶ B) (heq : HasEqualizer f g) :
     ∀ (c : EqualizerCone (hF.map f) (hF.map g)),
@@ -353,13 +415,12 @@ theorem preTopos_functor_preserves_covers
     (equalizers, via step (ii)) are PROVED; part (a) (covers) reduces to step
     (iii).
 
-    Residual blockers (only steps (i)/(iii) carry a sorry):
-    - step (i): bicartesian-of-monics ⇒ `amalgamation_lemma` leg-monicity
-      (§1.543 effective-quotient descent), sorry in S1_64.
-    - step (iii): `PreservesPushouts → preserves-coequalizers` bridge (§1.652),
-      not yet a lemma.
-    Step (ii) is sorry-free: it is a real reduction to step (i) via
-    `isEqualizer_iff_isPullback` + `pres_products` (so closing (i) closes (b)). -/
+    Residual blockers: step (i) is now CLOSED
+    (`preTopos_functor_preserves_monic_pullbacks`, via the 2026-06-19 §1.64
+    `amalgamation_is_pullback` + bicartesian upgrade), so step (ii) (equalizers) is
+    likewise closed.  Step (iii) (covers, `preTopos_functor_preserves_covers`) is the
+    sole remaining route here and carries the `[HasBinaryCoproducts 𝒜]`
+    `[HasCoequalizers 𝒜]` additions. -/
 theorem preTopos_functor_is_bicartesian_repr (hptf : PreToposFunctor F)
     [HasBinaryCoproducts 𝒜] [HasCoequalizers 𝒜]
     [HasBinaryCoproducts ℬ] [HasCoequalizers ℬ] :

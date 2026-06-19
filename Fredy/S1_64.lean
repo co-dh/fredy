@@ -687,6 +687,63 @@ private theorem amalgamation_F_equiv [PreToposDisjoint 𝒞] {M : 𝒞} (R₀ : 
         exact le_relUnion (rel_le_trans (comp_graph_id (R₀°)) hRopF) (rel_le_trans hRopR hΔF)
       · exact rel_le_trans hRopRop hΔF
 
+/-- A *point* of a composite relation `R ⊚ S`: given matching span legs `w₁ : T → R.src`,
+    `w₂ : T → S.src` whose middle columns agree (`w₁ ≫ R.colB = w₂ ≫ S.colA`), the pair
+    `(w₁≫R.colA, w₂≫S.colB)` is allowed by `relSub (R ⊚ S)`.  This is the introduction rule
+    for composite relations used in the §1.651 pullback read-off (dual to the elimination
+    `compose_le`): it threads a `d.pt`-point through the composition pullback + image. -/
+private theorem compose_point_allows [PreLogos 𝒞] [HasBinaryCoproducts 𝒞]
+    {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C)
+    {T : 𝒞} (w₁ : T ⟶ R.src) (w₂ : T ⟶ S.src)
+    (hmid : w₁ ≫ R.colB = w₂ ≫ S.colA) :
+    Allows (relSub (R ⊚ S)) (pair (w₁ ≫ R.colA) (w₂ ≫ S.colB)) := by
+  let pb := HasPullbacks.has R.colB S.colA
+  let span : pb.cone.pt ⟶ prod A C :=
+    pair (pb.cone.π₁ ≫ R.colA) (pb.cone.π₂ ≫ S.colB)
+  let t : T ⟶ pb.cone.pt := pb.lift ⟨T, w₁, w₂, hmid⟩
+  have ht₁ : t ≫ pb.cone.π₁ = w₁ := pb.lift_fst _
+  have ht₂ : t ≫ pb.cone.π₂ = w₂ := pb.lift_snd _
+  have harr : (relSub (R ⊚ S)).arr = (image span).arr := by
+    show pair (R ⊚ S).colA (R ⊚ S).colB = (image span).arr
+    exact (pair_uniq (R ⊚ S).colA (R ⊚ S).colB (image span).arr rfl rfl).symm
+  refine ⟨t ≫ image.lift span, ?_⟩
+  rw [harr, Cat.assoc, image.lift_fac]
+  exact pair_uniq (w₁ ≫ R.colA) (w₂ ≫ S.colB) (t ≫ span)
+    (by show (t ≫ pair (pb.cone.π₁ ≫ R.colA) (pb.cone.π₂ ≫ S.colB)) ≫ fst = _
+        rw [Cat.assoc, fst_pair, ← Cat.assoc, ht₁])
+    (by show (t ≫ pair (pb.cone.π₁ ≫ R.colA) (pb.cone.π₂ ≫ S.colB)) ≫ snd = _
+        rw [Cat.assoc, snd_pair, ← Cat.assoc, ht₂])
+
+/-- `(graph m)° ⊚ graph n ≤ ⟨A, m, n⟩`: the reciprocal composite, whose composition
+    pullback is the trivial diagonal `A` (both middle columns are `id_A`), factors through the
+    span relation `(m, n)` (a monic pair when `n` is monic).  This is the read-off lemma that
+    turns a point of `(graph m)° ⊚ graph n` into a genuine pullback factor through `A`. -/
+private theorem recipGraph_comp_graph_le_span [PreLogos 𝒞] [HasBinaryCoproducts 𝒞]
+    {A B C : 𝒞} (m : A ⟶ B) (n : A ⟶ C) (hn : Mono n) :
+    RelLe ((graph m)° ⊚ graph n)
+      (⟨A, m, n, monicPair_of_monic_pair m n (mono_pair_of_mono m n hn)⟩ : BinRel 𝒞 B C) := by
+  let pb := HasPullbacks.has ((graph m)°).colB ((graph n).colA)
+  let span : pb.cone.pt ⟶ prod B C :=
+    pair (pb.cone.π₁ ≫ ((graph m)°).colA) (pb.cone.π₂ ≫ (graph n).colB)
+  have h_simp : pb.cone.π₁ = pb.cone.π₂ := by
+    have h := pb.cone.w; show pb.cone.π₁ = pb.cone.π₂
+    simpa [reciprocal, graph, Cat.comp_id] using h
+  let I := image span
+  let S : Subobject 𝒞 (prod B C) := ⟨A, pair m n, mono_pair_of_mono m n hn⟩
+  have h_span_eq : span = pb.cone.π₁ ≫ pair m n := by
+    show pair (pb.cone.π₁ ≫ m) (pb.cone.π₂ ≫ n) = pb.cone.π₁ ≫ pair m n
+    refine (pair_uniq _ _ _ ?_ ?_).symm
+    · rw [Cat.assoc, fst_pair]
+    · rw [Cat.assoc, snd_pair, h_simp]
+  obtain ⟨k, hk⟩ := image_min span S ⟨pb.cone.π₁, h_span_eq.symm⟩
+  refine ⟨⟨k, ?_, ?_⟩⟩
+  · show k ≫ m = I.arr ≫ fst
+    calc k ≫ m = (k ≫ pair m n) ≫ fst := by rw [Cat.assoc, fst_pair]
+      _ = I.arr ≫ fst := by rw [hk]
+  · show k ≫ n = I.arr ≫ snd
+    calc k ≫ n = (k ≫ pair m n) ≫ snd := by rw [Cat.assoc, snd_pair]
+      _ = I.arr ≫ snd := by rw [hk]
+
 /-! ## §1.651 Amalgamation Lemma
 
   In a pre-topos, given monics x: A↣B, y: A↣C, there exists a
@@ -859,6 +916,410 @@ theorem amalgamation_lemma [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞]
       _ = (image.lift sp ≫ R₀.colB) ≫ q := (Cat.assoc _ _ _).symm
       _ = yi ≫ q := by rw [hR₀B]
       _ = y ≫ HasBinaryCoproducts.inr ≫ q := Cat.assoc _ _ _
+
+set_option maxHeartbeats 1000000 in
+/-- **§1.651 (pullback half)**: the amalgamating square of two monics is a PULLBACK.
+
+    For monics `m : A↣B`, `n : A↣C`, run the §1.651 amalgamation construction on `B+C`:
+    `R₀ :=` image of `pair(m≫inl, n≫inr)`, minimal equivalence `E ⊇ R₀`, effective quotient
+    `q : B+C ↠ D`, legs `u := inl≫q`, `v := inr≫q`.  The square `m≫u = n≫v` (the
+    commutativity leg) is a pullback: `A` with `(m, n)` IS `B ×_D C`.
+
+    The factorization is the CROSS read-off, dual to `amalgamation_lemma`'s diagonal
+    leg-monicity.  A cone point `(b, c)` with `b≫u = c≫v` means `b≫inl ∼_E c≫inr`, i.e.
+    `(b≫inl, c≫inr)` lies in `kernelPairRel q`.  Pre/post-composing with `inl`, `inr°`
+    keeps the point in the inl×inr CROSS, where (by `E ⊆ F = 1 ∪ R₀ ∪ R₀°` minimality and
+    §1.62 disjointness vanishing the `1`/`R₀°` summands) the relation collapses to
+    `R₀ ≤ (m≫inl)° ⊚ (n≫inr)`, and the two monic injections cancel to `m° ⊚ n`.  So the
+    point factors through `relSub(m° ⊚ n) = image(pair m n)`, giving `a : pt → A` with
+    `a≫m = b`, `a≫n = c`; uniqueness from `m` monic. -/
+theorem amalgamation_is_pullback [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞]
+    {A B C : 𝒞} (m : A ⟶ B) (hm : Mono m) (n : A ⟶ C) (hn : Mono n) :
+    ∃ (D : 𝒞) (u : B ⟶ D) (v : C ⟶ D) (hsq : m ≫ u = n ≫ v),
+      (Cone.mk (f := u) (g := v) A m n hsq).IsPullback ∧
+      (∀ (Q : 𝒞) (uQ : B ⟶ Q) (vQ : C ⟶ Q), m ≫ uQ = n ≫ vQ →
+        ∃ dd : D ⟶ Q, u ≫ dd = uQ ∧ v ≫ dd = vQ ∧
+          ∀ d' : D ⟶ Q, u ≫ d' = uQ → v ≫ d' = vQ → d' = dd) := by
+  -- ===== Reconstruct the §1.651 relational scaffold (DRY with amalgamation_lemma). =====
+  let xi : A ⟶ HasBinaryCoproducts.coprod B C := m ≫ HasBinaryCoproducts.inl
+  let yi : A ⟶ HasBinaryCoproducts.coprod B C := n ≫ HasBinaryCoproducts.inr
+  let sp : A ⟶ prod (HasBinaryCoproducts.coprod B C) (HasBinaryCoproducts.coprod B C) := pair xi yi
+  let I := image sp
+  have hImp : MonicPair (I.arr ≫ fst) (I.arr ≫ snd) :=
+    monicPair_of_monic_pair _ _ (by rw [← pair_eta I.arr]; exact I.monic)
+  let R₀ : BinRel 𝒞 (HasBinaryCoproducts.coprod B C) (HasBinaryCoproducts.coprod B C) :=
+    ⟨I.dom, I.arr ≫ fst, I.arr ≫ snd, hImp⟩
+  have hR₀A : image.lift sp ≫ R₀.colA = xi := by
+    show image.lift sp ≫ I.arr ≫ fst = xi; rw [← Cat.assoc, image.lift_fac, fst_pair]
+  have hR₀B : image.lift sp ≫ R₀.colB = yi := by
+    show image.lift sp ≫ I.arr ≫ snd = yi; rw [← Cat.assoc, image.lift_fac, snd_pair]
+  obtain ⟨E, hEeq, hR₀E, hEmin⟩ := minEquiv_of_rtc (HasBinaryCoproducts.coprod B C) R₀
+  obtain ⟨_, D, q, hqcov, _hEle, hleE⟩ := EffectiveRegular.effective E hEeq
+  let inl' := HasBinaryCoproducts.inl (A := B) (B := C)
+  let inr' := HasBinaryCoproducts.inr (A := B) (B := C)
+  have hinl : Mono inl' := inl_mono
+  have hinr : Mono inr' := inr_mono
+  -- `xi`, `yi` monic; `R₀`'s columns factor through the injections (cover⊥mono descent).
+  have hxi : Mono xi := by
+    intro W f g h; apply hm; apply hinl
+    show (f ≫ m) ≫ inl' = (g ≫ m) ≫ inl'; simpa [xi, Cat.assoc] using h
+  have hyi : Mono yi := by
+    intro W f g h; apply hn; apply hinr
+    show (f ≫ n) ≫ inr' = (g ≫ n) ≫ inr'; simpa [yi, Cat.assoc] using h
+  obtain ⟨tA, htA⟩ : ∃ t : R₀.src ⟶ B, t ≫ inl' = R₀.colA := by
+    obtain ⟨t, _, ht⟩ := cover_mono_diagonal (image_lift_cover sp) inl_mono
+      (c := image.lift sp) (f := R₀.colA) (m := inl') (d := m) (by rw [hR₀A])
+    exact ⟨t, ht⟩
+  obtain ⟨tB, htB⟩ : ∃ t : R₀.src ⟶ C, t ≫ inr' = R₀.colB := by
+    obtain ⟨t, _, ht⟩ := cover_mono_diagonal (image_lift_cover sp) inr_mono
+      (c := image.lift sp) (f := R₀.colB) (m := inr') (d := n) (by rw [hR₀B])
+    exact ⟨t, ht⟩
+  -- The four cross bounds + F-equivalence + E ⊆ F (verbatim from §1.651).
+  have hR₀P : RelLe R₀ ((graph xi)° ⊚ (graph yi)) := image_pair_le_recip_comp xi yi
+  have hRRop : RelLe (R₀ ⊚ R₀°) (graph (Cat.id (HasBinaryCoproducts.coprod B C))) :=
+    rel_le_trans (compose_le hR₀P (reciprocal_monotone hR₀P))
+      (comp_recip_self_le_diag xi yi hyi)
+  have hRopR : RelLe (R₀° ⊚ R₀) (graph (Cat.id (HasBinaryCoproducts.coprod B C))) :=
+    rel_le_trans (compose_le (reciprocal_monotone hR₀P) hR₀P) (diag_le_one xi yi hxi)
+  have hRR : RelLe (R₀ ⊚ R₀) (graph (Cat.id (HasBinaryCoproducts.coprod B C))) :=
+    relLe_of_relSub_le_bottom (relSub_comp_le_bottom_mirror R₀ R₀ tB htB tA htA)
+  have hRopRop : RelLe (R₀° ⊚ R₀°) (graph (Cat.id (HasBinaryCoproducts.coprod B C))) :=
+    relLe_of_relSub_le_bottom (relSub_comp_le_bottom R₀° R₀° tA htA tB htB)
+  let Δ : BinRel 𝒞 (HasBinaryCoproducts.coprod B C) (HasBinaryCoproducts.coprod B C) :=
+    graph (Cat.id (HasBinaryCoproducts.coprod B C))
+  have hFeq : EquivalenceRelation ((Δ ∪ᵣ R₀) ∪ᵣ R₀°) :=
+    amalgamation_F_equiv R₀ hRRop hRopR hRR hRopRop
+  have hR₀F : RelLe R₀ ((Δ ∪ᵣ R₀) ∪ᵣ R₀°) :=
+    rel_le_trans (relUnion_le_right _ R₀) (relUnion_le_left _ _)
+  have hEF : RelLe E ((Δ ∪ᵣ R₀) ∪ᵣ R₀°) := hEmin _ hFeq hR₀F
+  -- ===== CROSS COLLAPSE: graph inl ⊚ (E ⊚ graph inr°) ≤ graph m° ⊚ graph n. =====
+  -- (a) E ⊆ F.
+  have hEFcross : RelLe (graph inl' ⊚ (E ⊚ (graph inr')°))
+      (graph inl' ⊚ (((Δ ∪ᵣ R₀) ∪ᵣ R₀°) ⊚ (graph inr')°)) :=
+    compose_le (rel_le_refl _) (compose_le hEF (rel_le_refl _))
+  -- (b) distribute F over the cross, vanish 1/R₀° summands (disjointness) → inl ⊚ (R₀ ⊚ inr°).
+  have hcollapseF : RelLe (graph inl' ⊚ (((Δ ∪ᵣ R₀) ∪ᵣ R₀°) ⊚ (graph inr')°))
+      (graph inl' ⊚ (R₀ ⊚ (graph inr')°)) := by
+    have hΔ0 : RelLe (graph inl' ⊚ (Δ ⊚ (graph inr')°)) (graph inl' ⊚ (R₀ ⊚ (graph inr')°)) := by
+      refine rel_le_trans (compose_le (rel_le_refl _) (graph_id_comp ((graph inr')°))) ?_
+      refine relLe_of_relSub_le_bottom (relSub_comp_le_bottom (graph inl') ((graph inr')°)
+        (Cat.id B) (Cat.id_comp _) (Cat.id C) ?_)
+      exact Cat.id_comp _
+    have hRop0 : RelLe (graph inl' ⊚ (R₀° ⊚ (graph inr')°))
+        (graph inl' ⊚ (R₀ ⊚ (graph inr')°)) := by
+      refine relLe_of_relSub_le_bottom (relSub_comp_le_bottom_right (graph inl') _ ?_)
+      exact relSub_comp_le_bottom R₀° ((graph inr')°) tA htA (Cat.id C) (Cat.id_comp _)
+    have hdistL : RelLe (((Δ ∪ᵣ R₀) ∪ᵣ R₀°) ⊚ (graph inr')°)
+        (((Δ ⊚ (graph inr')°) ∪ᵣ (R₀ ⊚ (graph inr')°)) ∪ᵣ (R₀° ⊚ (graph inr')°)) := by
+      refine rel_le_trans (compose_union_left (Δ ∪ᵣ R₀) R₀° ((graph inr')°)) ?_
+      exact le_relUnion
+        (rel_le_trans (compose_union_left Δ R₀ ((graph inr')°))
+          (relUnion_le_left _ _))
+        (relUnion_le_right _ _)
+    refine rel_le_trans (compose_le (rel_le_refl _) hdistL) ?_
+    refine rel_le_trans (compose_union_right (graph inl') _ _) ?_
+    refine le_relUnion ?_ hRop0
+    refine rel_le_trans (compose_union_right (graph inl') _ _) ?_
+    exact le_relUnion hΔ0 (rel_le_refl _)
+  -- (c) inl ⊚ (R₀ ⊚ inr°) ≤ graph m° ⊚ graph n  (both inl, inr monic; R₀ ≤ xi° ⊚ yi).
+  have hcollapse : RelLe (graph inl' ⊚ (R₀ ⊚ (graph inr')°)) ((graph m)° ⊚ graph n) := by
+    have hR₀P' : RelLe (graph inl' ⊚ (R₀ ⊚ (graph inr')°))
+        (graph inl' ⊚ (((graph xi)° ⊚ graph yi) ⊚ (graph inr')°)) :=
+      compose_le (rel_le_refl _) (compose_le hR₀P (rel_le_refl _))
+    refine rel_le_trans hR₀P' ?_
+    have hA : RelLe (graph inl' ⊚ (((graph xi)° ⊚ graph yi) ⊚ (graph inr')°))
+        ((graph inl' ⊚ (graph xi)°) ⊚ (graph yi ⊚ (graph inr')°)) := by
+      refine rel_le_trans (compose_le (rel_le_refl _)
+        (compose_assoc_of_regular ((graph xi)°) (graph yi) ((graph inr')°)).1) ?_
+      exact (compose_assoc_of_regular (graph inl') ((graph xi)°)
+        (graph yi ⊚ (graph inr')°)).2
+    refine rel_le_trans hA ?_
+    -- inl ⊚ xi° = inl ⊚ (inl° ⊚ m°) ≤ (inl ⊚ inl°) ⊚ m° ≤ m° (inl monic).
+    have hL : RelLe (graph inl' ⊚ (graph xi)°) ((graph m)°) := by
+      have hxirec : RelLe ((graph xi)°) ((graph inl')° ⊚ (graph m)°) := by
+        refine rel_le_trans ?_ (rel_le_trans (reciprocal_comp_le (graph m) (graph inl')) ?_)
+        · exact reciprocal_monotone (show RelLe (graph xi) (graph m ⊚ graph inl') from graph_comp m inl')
+        · exact rel_le_refl _
+      refine rel_le_trans (compose_le (rel_le_refl _) hxirec) ?_
+      refine rel_le_trans (compose_assoc_of_regular (graph inl') ((graph inl')°) ((graph m)°)).2 ?_
+      refine rel_le_trans (compose_le (graph_comp_recip_le_one_of_mono inl' hinl) (rel_le_refl _)) ?_
+      exact graph_id_comp ((graph m)°)
+    -- yi ⊚ inr° = (n ≫ inr) ⊚ inr° ≤ n ⊚ (inr ⊚ inr°) ≤ n (inr monic).
+    have hR : RelLe (graph yi ⊚ (graph inr')°) (graph n) := by
+      have hyile : RelLe (graph yi) (graph n ⊚ graph inr') := graph_comp n inr'
+      refine rel_le_trans (compose_le hyile (rel_le_refl _)) ?_
+      refine rel_le_trans (compose_assoc_of_regular (graph n) (graph inr') ((graph inr')°)).1 ?_
+      refine rel_le_trans (compose_le (rel_le_refl _) (graph_comp_recip_le_one_of_mono inr' hinr)) ?_
+      exact comp_graph_id (graph n)
+    exact compose_le hL hR
+  -- Full cross collapse as a SUBOBJECT containment (for the pointwise factorization).
+  have hcross : RelLe (graph inl' ⊚ ((kernelPairRel q) ⊚ (graph inr')°)) ((graph m)° ⊚ graph n) := by
+    have hkpE : RelLe (kernelPairRel q) E :=
+      rel_le_trans (kernelPairRel_le_graphComp q) hleE
+    refine rel_le_trans (compose_le (rel_le_refl _) (compose_le hkpE (rel_le_refl _))) ?_
+    exact rel_le_trans hEFcross (rel_le_trans hcollapseF hcollapse)
+  have hcrossSub : (relSub (graph inl' ⊚ ((kernelPairRel q) ⊚ (graph inr')°))).le
+      (relSub ((graph m)° ⊚ graph n)) := subLe_of_relLe hcross
+  -- the commutativity leg, exactly as in §1.651.
+  have hR₀kp : RelLe R₀ (kernelPairRel q) :=
+    rel_le_trans (rel_le_trans hR₀E _hEle) (graphComp_le_kernelPairRel q)
+  have hsq : m ≫ (inl' ≫ q) = n ≫ (inr' ≫ q) := by
+    obtain ⟨⟨w, hwA, hwB⟩⟩ := hR₀kp
+    have e1 : w ≫ kp₁ (f := q) = R₀.colA := by simpa [kernelPairRel] using hwA
+    have e2 : w ≫ kp₂ (f := q) = R₀.colB := by simpa [kernelPairRel] using hwB
+    have hcolq : R₀.colA ≫ q = R₀.colB ≫ q := by
+      calc R₀.colA ≫ q = (w ≫ kp₁ (f := q)) ≫ q := by rw [e1]
+        _ = w ≫ kp₂ (f := q) ≫ q := by rw [Cat.assoc, kp_sq]
+        _ = R₀.colB ≫ q := by rw [← Cat.assoc, e2]
+    calc m ≫ inl' ≫ q = xi ≫ q := by rw [← Cat.assoc]
+      _ = (image.lift sp ≫ R₀.colA) ≫ q := by rw [hR₀A]
+      _ = image.lift sp ≫ R₀.colA ≫ q := Cat.assoc _ _ _
+      _ = image.lift sp ≫ R₀.colB ≫ q := by rw [hcolq]
+      _ = (image.lift sp ≫ R₀.colB) ≫ q := (Cat.assoc _ _ _).symm
+      _ = yi ≫ q := by rw [hR₀B]
+      _ = n ≫ inr' ≫ q := Cat.assoc _ _ _
+  -- ===== Assemble the pullback. =====
+  refine ⟨D, inl' ≫ q, inr' ≫ q, hsq, ?_, ?_⟩
+  -- ===== (1) PULLBACK property. =====
+  -- `(graph m)° ⊚ graph n ≤ mn := ⟨A, m, n⟩` (pair m n monic, n monic): the cross point
+  -- descends through `A`.  relSub(mn).arr = pair m n.
+  let mn : BinRel 𝒞 B C := ⟨A, m, n, monicPair_of_monic_pair m n (mono_pair_of_mono m n hn)⟩
+  have hmnSub : (relSub ((graph m)° ⊚ graph n)).le (relSub mn) :=
+    subLe_of_relLe (recipGraph_comp_graph_le_span m n hn)
+  have hmnarr : (relSub mn).arr = pair m n := rfl
+  -- chained subobject containment: relSub Λ ≤ relSub(m°⊚n) ≤ relSub mn.
+  let Λ : BinRel 𝒞 B C := graph inl' ⊚ ((kernelPairRel q) ⊚ (graph inr')°)
+  have hΛmn : (relSub Λ).le (relSub mn) := subLe_trans hcrossSub hmnSub
+  -- ===== Pullback universal property. =====
+  intro d
+  -- `d.π₁ ≫ (inl'≫q) = d.π₂ ≫ (inr'≫q)`, i.e. `(d.π₁≫inl')≫q = (d.π₂≫inr')≫q`.
+  have hdq : (d.π₁ ≫ inl') ≫ q = (d.π₂ ≫ inr') ≫ q := by
+    rw [Cat.assoc, Cat.assoc]; exact d.w
+  -- lift into the kernel pair of q.
+  let wk : d.pt ⟶ kernelPair q := (HasPullbacks.has q q).lift ⟨d.pt, d.π₁ ≫ inl', d.π₂ ≫ inr', hdq⟩
+  have hwk₁ : wk ≫ kp₁ (f := q) = d.π₁ ≫ inl' := kp_lift_p₁ _ _ hdq
+  have hwk₂ : wk ≫ kp₂ (f := q) = d.π₂ ≫ inr' := kp_lift_p₂ _ _ hdq
+  -- point of X := kernelPairRel q ⊚ (graph inr')°  →  allows pair (d.π₁≫inl') d.π₂.
+  let X : BinRel 𝒞 (HasBinaryCoproducts.coprod B C) C := (kernelPairRel q) ⊚ (graph inr')°
+  have hXmid : wk ≫ (kernelPairRel q).colB = d.π₂ ≫ ((graph inr')°).colA := by
+    show wk ≫ kp₂ (f := q) = d.π₂ ≫ inr'; exact hwk₂
+  have hXallows : Allows (relSub X) (pair (wk ≫ kp₁ (f := q)) (d.π₂ ≫ ((graph inr')°).colB)) :=
+    compose_point_allows (kernelPairRel q) ((graph inr')°) wk d.π₂ hXmid
+  -- normalise the allowed pair to `pair (d.π₁≫inl') d.π₂`.
+  obtain ⟨kX, hkX⟩ := hXallows
+  have hkXA : kX ≫ X.colA = d.π₁ ≫ inl' := by
+    have := congrArg (· ≫ fst) hkX
+    simp only [Cat.assoc] at this
+    rw [show (relSub X).arr ≫ fst = X.colA from fst_pair _ _, fst_pair] at this
+    rw [this, hwk₁]
+  have hkXB : kX ≫ X.colB = d.π₂ := by
+    have := congrArg (· ≫ snd) hkX
+    simp only [Cat.assoc] at this
+    rw [show (relSub X).arr ≫ snd = X.colB from snd_pair _ _, snd_pair] at this
+    show kX ≫ X.colB = d.π₂; rw [this]; exact Cat.comp_id _
+  -- point of Λ = graph inl' ⊚ X  →  allows pair d.π₁ d.π₂.
+  have hΛmid : d.π₁ ≫ (graph inl').colB = kX ≫ X.colA := by
+    show d.π₁ ≫ inl' = kX ≫ X.colA; exact hkXA.symm
+  have hΛallows : Allows (relSub Λ) (pair (d.π₁ ≫ (graph inl').colA) (kX ≫ X.colB)) :=
+    compose_point_allows (graph inl') X d.π₁ kX hΛmid
+  have hΛpair : pair (d.π₁ ≫ (graph inl').colA) (kX ≫ X.colB) = pair d.π₁ d.π₂ := by
+    rw [hkXB]; congr 1; exact Cat.comp_id _
+  rw [hΛpair] at hΛallows
+  -- descend through relSub mn ⟹ a : d.pt → A with a ≫ pair m n = pair d.π₁ d.π₂.
+  obtain ⟨gΛ, hgΛ⟩ := hΛallows
+  obtain ⟨h, hh⟩ := hΛmn
+  let a : d.pt ⟶ A := gΛ ≫ h
+  have ha : a ≫ pair m n = pair d.π₁ d.π₂ := by
+    show (gΛ ≫ h) ≫ (relSub mn).arr = pair d.π₁ d.π₂
+    rw [Cat.assoc, hh, hgΛ]
+  have ha₁ : a ≫ m = d.π₁ := by
+    have := congrArg (· ≫ fst) ha; simpa [Cat.assoc, fst_pair] using this
+  have ha₂ : a ≫ n = d.π₂ := by
+    have := congrArg (· ≫ snd) ha; simpa [Cat.assoc, snd_pair] using this
+  refine ⟨a, ⟨ha₁, ha₂⟩, fun w hw₁ hw₂ => ?_⟩
+  -- uniqueness from m monic: w ≫ m = d.π₁ = a ≫ m.
+  exact hm w a (by rw [hw₁, ha₁])
+  -- ===== (2) PUSHOUT universal property (identifies D with the §1.62 union). =====
+  intro Q uQ vQ hQ
+  let caseuv : HasBinaryCoproducts.coprod B C ⟶ Q := HasBinaryCoproducts.case uQ vQ
+  have hxicase : xi ≫ caseuv = m ≫ uQ := by
+    show (m ≫ inl') ≫ caseuv = m ≫ uQ
+    rw [Cat.assoc]; congr 1; exact HasBinaryCoproducts.case_inl _ _
+  have hyicase : yi ≫ caseuv = n ≫ vQ := by
+    show (n ≫ inr') ≫ caseuv = n ≫ vQ
+    rw [Cat.assoc]; congr 1; exact HasBinaryCoproducts.case_inr _ _
+  have hR₀case : R₀.colA ≫ caseuv = R₀.colB ≫ caseuv := by
+    apply cover_epi (image_lift_cover sp)
+    calc image.lift sp ≫ R₀.colA ≫ caseuv = xi ≫ caseuv := by rw [← Cat.assoc, hR₀A]
+      _ = m ≫ uQ := hxicase
+      _ = n ≫ vQ := hQ
+      _ = yi ≫ caseuv := hyicase.symm
+      _ = image.lift sp ≫ R₀.colB ≫ caseuv := by rw [← Cat.assoc, hR₀B]
+  have hR₀kpc : RelLe R₀ (kernelPairRel caseuv) := by
+    let l := (HasPullbacks.has caseuv caseuv).lift ⟨_, R₀.colA, R₀.colB, hR₀case⟩
+    exact ⟨⟨l, kp_lift_p₁ R₀.colA R₀.colB hR₀case, kp_lift_p₂ R₀.colA R₀.colB hR₀case⟩⟩
+  have hEkpc := hEmin (kernelPairRel caseuv) (level_is_equivalence_relation caseuv) hR₀kpc
+  have hkpqkpc : RelLe (kernelPairRel q) (kernelPairRel caseuv) :=
+    rel_le_trans (rel_le_trans (kernelPairRel_le_graphComp q) hleE) hEkpc
+  have hkpeq : kp₁ (f := q) ≫ caseuv = kp₂ (f := q) ≫ caseuv := by
+    obtain ⟨⟨φ, hφA, hφB⟩⟩ := hkpqkpc
+    have e1 : φ ≫ kp₁ (f := caseuv) = kp₁ (f := q) := by simpa [kernelPairRel] using hφA
+    have e2 : φ ≫ kp₂ (f := caseuv) = kp₂ (f := q) := by simpa [kernelPairRel] using hφB
+    calc kp₁ (f := q) ≫ caseuv = (φ ≫ kp₁ (f := caseuv)) ≫ caseuv := by rw [e1]
+      _ = φ ≫ kp₂ (f := caseuv) ≫ caseuv := by rw [Cat.assoc, kp_sq]
+      _ = kp₂ (f := q) ≫ caseuv := by rw [← Cat.assoc, e2]
+  obtain ⟨dd, hdd, huniqdd⟩ := cover_is_coequalizer_of_level q hqcov caseuv hkpeq
+  refine ⟨dd, ?_, ?_, ?_⟩
+  · show (inl' ≫ q) ≫ dd = uQ
+    rw [Cat.assoc, hdd]; exact HasBinaryCoproducts.case_inl _ _
+  · show (inr' ≫ q) ≫ dd = vQ
+    rw [Cat.assoc, hdd]; exact HasBinaryCoproducts.case_inr _ _
+  · intro d' hd'1 hd'2
+    apply huniqdd
+    refine HasBinaryCoproducts.case_uniq uQ vQ (q ≫ d') ?_ ?_
+    · rw [← Cat.assoc]; exact hd'1
+    · rw [← Cat.assoc]; exact hd'2
+
+set_option maxHeartbeats 1000000 in
+/-- **§1.651 (pushout property)**: the amalgamating square of two maps is a PUSHOUT.
+
+    Companion to `amalgamation_is_pullback` (which needs `m, n` monic); the pushout
+    universal property holds for ARBITRARY `m, n`.  The effective quotient `q : B+C ↠ D` by
+    the minimal equivalence `E ⊇ R₀` is universal: any cocone `(Q; uQ, vQ)` over `(m, n)`
+    yields `case uQ vQ : B+C → Q` respecting `R₀` (so `E ⊆ level(case uQ vQ)` by minimality),
+    hence factoring uniquely through the cover `q` (`cover_is_coequalizer_of_level`).  This is
+    what identifies the §1.651 `D` with the §1.62 union `A₁∪A₂` (both pushouts of the same
+    span), the missing converse flagged on `preTopos_functor_preserves_monic_pullbacks`. -/
+theorem amalgamation_is_pushout [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞]
+    {A B C : 𝒞} (m : A ⟶ B) (n : A ⟶ C) :
+    ∃ (D : 𝒞) (u : B ⟶ D) (v : C ⟶ D) (_hsq : m ≫ u = n ≫ v),
+      ∀ (Q : 𝒞) (uQ : B ⟶ Q) (vQ : C ⟶ Q), m ≫ uQ = n ≫ vQ →
+        ∃ d : D ⟶ Q, u ≫ d = uQ ∧ v ≫ d = vQ ∧
+          ∀ d' : D ⟶ Q, u ≫ d' = uQ → v ≫ d' = vQ → d' = d := by
+  let inl' := HasBinaryCoproducts.inl (A := B) (B := C)
+  let inr' := HasBinaryCoproducts.inr (A := B) (B := C)
+  let xi : A ⟶ HasBinaryCoproducts.coprod B C := m ≫ inl'
+  let yi : A ⟶ HasBinaryCoproducts.coprod B C := n ≫ inr'
+  let sp : A ⟶ prod (HasBinaryCoproducts.coprod B C) (HasBinaryCoproducts.coprod B C) := pair xi yi
+  let I := image sp
+  have hImp : MonicPair (I.arr ≫ fst) (I.arr ≫ snd) :=
+    monicPair_of_monic_pair _ _ (by rw [← pair_eta I.arr]; exact I.monic)
+  let R₀ : BinRel 𝒞 (HasBinaryCoproducts.coprod B C) (HasBinaryCoproducts.coprod B C) :=
+    ⟨I.dom, I.arr ≫ fst, I.arr ≫ snd, hImp⟩
+  have hR₀A : image.lift sp ≫ R₀.colA = xi := by
+    show image.lift sp ≫ I.arr ≫ fst = xi; rw [← Cat.assoc, image.lift_fac, fst_pair]
+  have hR₀B : image.lift sp ≫ R₀.colB = yi := by
+    show image.lift sp ≫ I.arr ≫ snd = yi; rw [← Cat.assoc, image.lift_fac, snd_pair]
+  obtain ⟨E, hEeq, hR₀E, hEmin⟩ := minEquiv_of_rtc (HasBinaryCoproducts.coprod B C) R₀
+  obtain ⟨_, D, q, hqcov, hEle, hleE⟩ := EffectiveRegular.effective E hEeq
+  have hR₀kp : RelLe R₀ (kernelPairRel q) :=
+    rel_le_trans (rel_le_trans hR₀E hEle) (graphComp_le_kernelPairRel q)
+  have hsq : m ≫ (inl' ≫ q) = n ≫ (inr' ≫ q) := by
+    obtain ⟨⟨w, hwA, hwB⟩⟩ := hR₀kp
+    have e1 : w ≫ kp₁ (f := q) = R₀.colA := by simpa [kernelPairRel] using hwA
+    have e2 : w ≫ kp₂ (f := q) = R₀.colB := by simpa [kernelPairRel] using hwB
+    have hcolq : R₀.colA ≫ q = R₀.colB ≫ q := by
+      calc R₀.colA ≫ q = (w ≫ kp₁ (f := q)) ≫ q := by rw [e1]
+        _ = w ≫ kp₂ (f := q) ≫ q := by rw [Cat.assoc, kp_sq]
+        _ = R₀.colB ≫ q := by rw [← Cat.assoc, e2]
+    calc m ≫ inl' ≫ q = xi ≫ q := by rw [← Cat.assoc]
+      _ = (image.lift sp ≫ R₀.colA) ≫ q := by rw [hR₀A]
+      _ = image.lift sp ≫ R₀.colA ≫ q := Cat.assoc _ _ _
+      _ = image.lift sp ≫ R₀.colB ≫ q := by rw [hcolq]
+      _ = (image.lift sp ≫ R₀.colB) ≫ q := (Cat.assoc _ _ _).symm
+      _ = yi ≫ q := by rw [hR₀B]
+      _ = n ≫ inr' ≫ q := Cat.assoc _ _ _
+  refine ⟨D, inl' ≫ q, inr' ≫ q, hsq, ?_⟩
+  intro Q uQ vQ hQ
+  let caseuv : HasBinaryCoproducts.coprod B C ⟶ Q := HasBinaryCoproducts.case uQ vQ
+  have hxicase : xi ≫ caseuv = m ≫ uQ := by
+    show (m ≫ inl') ≫ caseuv = m ≫ uQ
+    rw [Cat.assoc]; congr 1; exact HasBinaryCoproducts.case_inl _ _
+  have hyicase : yi ≫ caseuv = n ≫ vQ := by
+    show (n ≫ inr') ≫ caseuv = n ≫ vQ
+    rw [Cat.assoc]; congr 1; exact HasBinaryCoproducts.case_inr _ _
+  have hR₀case : R₀.colA ≫ caseuv = R₀.colB ≫ caseuv := by
+    apply cover_epi (image_lift_cover sp)
+    calc image.lift sp ≫ R₀.colA ≫ caseuv = xi ≫ caseuv := by rw [← Cat.assoc, hR₀A]
+      _ = m ≫ uQ := hxicase
+      _ = n ≫ vQ := hQ
+      _ = yi ≫ caseuv := hyicase.symm
+      _ = image.lift sp ≫ R₀.colB ≫ caseuv := by rw [← Cat.assoc, hR₀B]
+  have hR₀kpc : RelLe R₀ (kernelPairRel caseuv) := by
+    let l := (HasPullbacks.has caseuv caseuv).lift ⟨_, R₀.colA, R₀.colB, hR₀case⟩
+    exact ⟨⟨l, kp_lift_p₁ R₀.colA R₀.colB hR₀case, kp_lift_p₂ R₀.colA R₀.colB hR₀case⟩⟩
+  have hEkpc := hEmin (kernelPairRel caseuv) (level_is_equivalence_relation caseuv) hR₀kpc
+  have hkpqkpc : RelLe (kernelPairRel q) (kernelPairRel caseuv) :=
+    rel_le_trans (rel_le_trans (kernelPairRel_le_graphComp q) hleE) hEkpc
+  have hkpeq : kp₁ (f := q) ≫ caseuv = kp₂ (f := q) ≫ caseuv := by
+    obtain ⟨⟨φ, hφA, hφB⟩⟩ := hkpqkpc
+    have e1 : φ ≫ kp₁ (f := caseuv) = kp₁ (f := q) := by simpa [kernelPairRel] using hφA
+    have e2 : φ ≫ kp₂ (f := caseuv) = kp₂ (f := q) := by simpa [kernelPairRel] using hφB
+    calc kp₁ (f := q) ≫ caseuv = (φ ≫ kp₁ (f := caseuv)) ≫ caseuv := by rw [e1]
+      _ = φ ≫ kp₂ (f := caseuv) ≫ caseuv := by rw [Cat.assoc, kp_sq]
+      _ = kp₂ (f := q) ≫ caseuv := by rw [← Cat.assoc, e2]
+  obtain ⟨d, hd, huniqd⟩ := cover_is_coequalizer_of_level q hqcov caseuv hkpeq
+  refine ⟨d, ?_, ?_, ?_⟩
+  · show (inl' ≫ q) ≫ d = uQ
+    rw [Cat.assoc, hd]; exact HasBinaryCoproducts.case_inl _ _
+  · show (inr' ≫ q) ≫ d = vQ
+    rw [Cat.assoc, hd]; exact HasBinaryCoproducts.case_inr _ _
+  · intro d' hd'1 hd'2
+    apply huniqd
+    refine HasBinaryCoproducts.case_uniq uQ vQ (q ≫ d') ?_ ?_
+    · rw [← Cat.assoc]; exact hd'1
+    · rw [← Cat.assoc]; exact hd'2
+
+/-- Post-composing a pullback cospan with a MONIC leaves it a pullback: a cone over
+    `(f≫w, g≫w)` is, after cancelling the monic `w`, a cone over `(f, g)`.  (Pasting a
+    pullback square with a trivial monic square.)  Used to descend the §1.651 pullback over
+    the union legs to a pullback over the original monic cospan. -/
+theorem isPullback_postcomp_mono {A B C' D : 𝒞} {f : A ⟶ C'} {g : B ⟶ C'}
+    {c : Cone f g} (hc : c.IsPullback) {w : C' ⟶ D} (hw : Mono w) :
+    (Cone.mk (f := f ≫ w) (g := g ≫ w) c.pt c.π₁ c.π₂
+      (by rw [← Cat.assoc, ← Cat.assoc, c.w])).IsPullback := by
+  intro d
+  have hdw : d.π₁ ≫ f = d.π₂ ≫ g := by
+    apply hw; rw [Cat.assoc, Cat.assoc]; exact d.w
+  obtain ⟨u, ⟨hu₁, hu₂⟩, huniq⟩ := hc (Cone.mk d.pt d.π₁ d.π₂ hdw)
+  exact ⟨u, ⟨hu₁, hu₂⟩, fun v hv₁ hv₂ => huniq v hv₁ hv₂⟩
+
+/-- A descent out of one pushout that factors through a MONIC on a SECOND pushout of the SAME
+    span is itself monic.  Two pushouts of `(f, g)` are canonically isomorphic (`θ : D ≅ W` by
+    mutual universal descent); the `D`-descent `δ` to `(AA; ι₁≫w, ι₂≫w)` equals `θ ≫ w`, and
+    `θ` (split monic) composed with the monic `w` is monic.  This is how the §1.651 amalgamation
+    `D` (a pushout) is identified with the §1.62 union `W ↪ AA` (monic), making the descent
+    `δ : D → AA` monic — the missing leg of `preTopos_functor_preserves_monic_pullbacks`. -/
+theorem pushout_descent_mono {A B C D W AA : 𝒞} {f : A ⟶ B} {g : A ⟶ C}
+    {u : B ⟶ D} {v : C ⟶ D} (hsqD : f ≫ u = g ≫ v)
+    (hUMPD : ∀ (Q : 𝒞) (uQ : B ⟶ Q) (vQ : C ⟶ Q), f ≫ uQ = g ≫ vQ →
+        ∃ dd : D ⟶ Q, u ≫ dd = uQ ∧ v ≫ dd = vQ ∧
+          ∀ d' : D ⟶ Q, u ≫ d' = uQ → v ≫ d' = vQ → d' = dd)
+    {ι₁ : B ⟶ W} {ι₂ : C ⟶ W} (hsqW : f ≫ ι₁ = g ≫ ι₂)
+    (hUMPW : ∀ (Q : 𝒞) (uQ : B ⟶ Q) (vQ : C ⟶ Q), f ≫ uQ = g ≫ vQ →
+        ∃ dd : W ⟶ Q, ι₁ ≫ dd = uQ ∧ ι₂ ≫ dd = vQ ∧
+          ∀ d' : W ⟶ Q, ι₁ ≫ d' = uQ → ι₂ ≫ d' = vQ → d' = dd)
+    {w : W ⟶ AA} (hw : Mono w) {δ : D ⟶ AA}
+    (hδ₁ : u ≫ δ = ι₁ ≫ w) (hδ₂ : v ≫ δ = ι₂ ≫ w) :
+    Mono δ := by
+  obtain ⟨θ, hθ₁, hθ₂, _⟩ := hUMPD W ι₁ ι₂ hsqW
+  obtain ⟨θ', hθ'₁, hθ'₂, _⟩ := hUMPW D u v hsqD
+  obtain ⟨_, _, _, huniqD⟩ := hUMPD D u v hsqD
+  have hθθ' : θ ≫ θ' = Cat.id D := by
+    rw [huniqD (θ ≫ θ') (by rw [← Cat.assoc, hθ₁, hθ'₁]) (by rw [← Cat.assoc, hθ₂, hθ'₂]),
+        ← huniqD (Cat.id D) (Cat.comp_id _) (Cat.comp_id _)]
+  obtain ⟨_, _, _, huniqDA⟩ := hUMPD AA (ι₁ ≫ w) (ι₂ ≫ w) (by rw [← Cat.assoc, ← Cat.assoc, hsqW])
+  have hδ_eq : δ = θ ≫ w := by
+    rw [huniqDA δ hδ₁ hδ₂,
+        ← huniqDA (θ ≫ w) (by rw [← Cat.assoc, hθ₁]) (by rw [← Cat.assoc, hθ₂])]
+  rw [hδ_eq]
+  intro X p₁ p₂ hp
+  apply (show Mono θ from by
+    intro Y a b hab
+    have : a ≫ (θ ≫ θ') = b ≫ (θ ≫ θ') := by rw [← Cat.assoc, ← Cat.assoc, hab]
+    rwa [hθθ', Cat.comp_id, Cat.comp_id] at this)
+  apply hw
+  simpa only [Cat.assoc] using hp
 
 /-! ## §1.652 Covers = epics, Monics = cocovers
 
