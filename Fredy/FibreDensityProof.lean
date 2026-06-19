@@ -1222,6 +1222,170 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
             --     = transApp(hUN',one).f ≫ π₁(proj hUN', one) ≫ sc₀.f
             -- where `π₁ ≫ pf₀.f`/`π₁ ≫ sc₀.f` reach the slice-domain pullbacks (NOT `prod A P`
             -- literally; the A-content needs the `bcSliceIso`/`pIso` reconciliation).
+            -- The shared A-leg `Λ` of the codomain `L.F hUU' (L.F hbU term)` of `cod`/`sc₀`/`pf₀`.
+            -- `L.F hUU' (L.F hbU term) = baseChangeObj snd (L.F hbU term)` (`hcodEq`); the A-content
+            -- is the pullback `π₁` to `(L.F hbU term).dom`, transported by `pInv` to `sliceEmbedObj P A
+            -- = ⟨prod A P, snd⟩`, then `fst`.
+            let Λ : (L.F hUU' (L.F hbU (terminalSliceObj W A))).dom ⟶ A :=
+              (eqToHom hcodEq).f
+                ≫ (_pb (snd : prod A P ⟶ P) (L.F hbU (terminalSliceObj W A))).cone.π₁
+                  ≫ pInv.f ≫ (fst : prod A P ⟶ A)
+            have gen' : ∀ {C : S} {Z Y Y' : Over C} (e : Y = Y') (f : OverHom Z Y),
+                (e ▸ f).f = f.f ≫ (eqToHom e).f := by
+              intro C Z Y Y' e f; subst e
+              rw [eqToHom_refl]; show f.f = f.f ≫ (Cat.id Y).f
+              rw [show (Cat.id Y).f = Cat.id Y.dom from rfl, Cat.comp_id]
+            have hcodf : cod.f = cod'.f ≫ (eqToHom hcodEq.symm).f := gen' hcodEq.symm cod'
+            -- the two `eqToHom hcodEq.symm`/`hcodEq` cancel.
+            have hee : (eqToHom hcodEq.symm).f
+                  ≫ (eqToHom hcodEq).f
+                = Cat.id _ :=
+              congrArg OverHom.f (eqToHom_symm_comp_eqToHom hcodEq)
+            -- `cod`'s A-leg is `fst`: chain `bcSliceIso`/`baseChangeMap pIso`/`pInv`.
+            have hcod_A : cod.f ≫ Λ = (fst : prod A (prod A P) ⟶ A) := by
+              show cod.f ≫ (eqToHom hcodEq).f
+                  ≫ (_pb (snd : prod A P ⟶ P) (L.F hbU (terminalSliceObj W A))).cone.π₁
+                    ≫ pInv.f ≫ (fst : prod A P ⟶ A) = _
+              rw [hcodf]
+              -- collapse the eqToHom pair.
+              rw [Cat.assoc, ← Cat.assoc (eqToHom hcodEq.symm).f, hee, Cat.id_comp]
+              -- `cod'.f = bcSliceIso.f ≫ (baseChangeMap snd pIso).f`.
+              show ((bcSliceIso A P).f
+                  ≫ (@Functor.map _ _ _ _ _ (baseChangeFunctor (snd : prod A P ⟶ P)) _ _ pIso).f)
+                  ≫ (_pb (snd : prod A P ⟶ P) (L.F hbU (terminalSliceObj W A))).cone.π₁
+                    ≫ pInv.f ≫ (fst : prod A P ⟶ A) = _
+              rw [Cat.assoc,
+                  show (@Functor.map _ _ _ _ _ (baseChangeFunctor (snd : prod A P ⟶ P)) _ _ pIso)
+                      = baseChangeMap (snd : prod A P ⟶ P) pIso from rfl,
+                  ← Cat.assoc (baseChangeMap (snd : prod A P ⟶ P) pIso).f,
+                  baseChangeMap_f_π₁ (snd : prod A P ⟶ P) pIso]
+              simp only [Cat.assoc]
+              rw [show pIso.f ≫ pInv.f ≫ (fst : prod A P ⟶ A) = (fst : prod A P ⟶ A) from by
+                    rw [← Cat.assoc, show pIso.f ≫ pInv.f = Cat.id (prod A P) from
+                      congrArg OverHom.f hp1]; exact Cat.id_comp _,
+                  ← Cat.assoc,
+                  show (bcSliceIso A P).f
+                      ≫ (_pb (snd : prod A P ⟶ P) (sliceEmbedObj P A)).cone.π₁
+                    = pair (fst : prod A (prod A P) ⟶ A)
+                        ((snd : prod A (prod A P) ⟶ prod A P) ≫ snd) from
+                    (HasPullbacks.has ((sliceEmbedObj P A).hom) (snd : prod A P ⟶ P)).lift_fst _,
+                  fst_pair]
+            -- the A-leg of `pf₀`/`sc₀`'s codomain `L.F (refl U') (L.F hUU' (L.F hbU term))`:
+            -- post-compose `reflApp` onto `Λ`.
+            let Λr : (L.F ((wsDirected S).refl U') (L.F hUU' (L.F hbU (terminalSliceObj W A)))).dom ⟶ A :=
+              (reflApp L (L.F hUU' (L.F hbU (terminalSliceObj W A)))).f ≫ Λ
+            -- `sfp.f ≫ fst = fst`.
+            have hsfp_A : sfp.f ≫ (fst : prod A (prod A P) ⟶ A) = (fst : prod A P ⟶ A) := by
+              show pair (fst : prod A P ⟶ A) (Cat.id (prod A P)) ≫ (fst : prod A (prod A P) ⟶ A) = _
+              exact fst_pair _ _
+            -- PIECE 1a: `sc₀.f ≫ Λr = (reflApp L one).f ≫ fst`.
+            have hsc_A : sc₀.f ≫ Λr
+                = (reflApp L (T.ht U').one).f ≫ (fst : prod A P ⟶ A) := by
+              show ((reflApp L (T.ht U').one).f ≫ (sfp ⊚ cod).f
+                  ≫ (isoInv (reflApp_isIso L (L.F hUU' (L.F hbU (terminalSliceObj W A))))).f)
+                  ≫ (reflApp L (L.F hUU' (L.F hbU (terminalSliceObj W A)))).f ≫ Λ = _
+              rw [Cat.assoc, Cat.assoc,
+                  ← Cat.assoc (isoInv (reflApp_isIso L (L.F hUU' (L.F hbU (terminalSliceObj W A))))).f,
+                  show (isoInv (reflApp_isIso L (L.F hUU' (L.F hbU (terminalSliceObj W A))))).f
+                      ≫ (reflApp L (L.F hUU' (L.F hbU (terminalSliceObj W A)))).f
+                    = Cat.id _ from
+                  congrArg OverHom.f
+                    (inv_isoInv_comp (reflApp_isIso L (L.F hUU' (L.F hbU (terminalSliceObj W A))))),
+                  Cat.id_comp,
+                  show (sfp ⊚ cod).f = sfp.f ≫ cod.f from rfl, Cat.assoc, hcod_A, hsfp_A]
+            -- PIECE 1b: `(pushFibre g'').f ≫ Λ`.  `pushFibre g'' = Functor.map (functF hUU') g''
+            -- = baseChangeMap (selectProj U' U hUU') g''`; with `selectProj U' U hUU' = snd` and the
+            -- eqToHom casts (`hLF`/`hcodEq`), its A-leg is `(eqToHom hLF).f ≫ π₁(snd, xE') ≫ g''.f`.
+            -- cast-naturality of `baseChangeMap` under a base-map equality (subst-trivial).
+            have bcMap_cast : ∀ {C E : S} {a b : E ⟶ C} (e : a = b) {X Y : Over C} (gg : OverHom X Y),
+                (baseChangeMap a gg).f ≫ (eqToHom (congrArg (fun z => baseChangeObj z Y) e)).f
+                  = (eqToHom (congrArg (fun z => baseChangeObj z X) e)).f ≫ (baseChangeMap b gg).f := by
+              intro C E a b e X Y gg; subst e
+              rw [eqToHom_refl, eqToHom_refl]
+              show (baseChangeMap a gg).f ≫ Cat.id _ = Cat.id _ ≫ (baseChangeMap a gg).f
+              rw [Cat.comp_id, Cat.id_comp]
+            have hpushFibre_A : (pushFibre W A hbU hUU' g'').f ≫ Λ
+                = (eqToHom hLF).f ≫ (_pb (snd : prod A P ⟶ P) xE').cone.π₁ ≫ m.f ≫ (fst : prod A P ⟶ A) := by
+              show (baseChangeMap (selectProj U'.val U.val hUU') g'').f
+                  ≫ (eqToHom hcodEq).f ≫ (_pb (snd : prod A P ⟶ P) (L.F hbU (terminalSliceObj W A))).cone.π₁
+                    ≫ pInv.f ≫ (fst : prod A P ⟶ A) = _
+              rw [← Cat.assoc,
+                  show (eqToHom hcodEq)
+                      = (eqToHom (congrArg (fun z => baseChangeObj z (L.F hbU (terminalSliceObj W A))) hsp))
+                    from rfl,
+                  bcMap_cast hsp g'',
+                  show (eqToHom (congrArg (fun z => baseChangeObj z xE') hsp)) = (eqToHom hLF) from rfl,
+                  Cat.assoc, ← Cat.assoc (baseChangeMap (snd : prod A P ⟶ P) g'').f,
+                  baseChangeMap_f_π₁ (snd : prod A P ⟶ P) g'']
+              -- `g''.f ≫ pInv.f = m.f`.
+              simp only [Cat.assoc]
+              rw [show g''.f ≫ pInv.f ≫ (fst : prod A P ⟶ A) = m.f ≫ (fst : prod A P ⟶ A) from by
+                    rw [← Cat.assoc]; rfl]
+            -- PIECE 1b (assembled): `pf₀.f ≫ Λr`.
+            have hpf_A : pf₀.f ≫ Λr
+                = (reflApp L (L.F hUU' xE')).f
+                    ≫ (eqToHom hLF).f ≫ (_pb (snd : prod A P ⟶ P) xE').cone.π₁
+                      ≫ m.f ≫ (fst : prod A P ⟶ A) := by
+              show ((reflApp L (L.F hUU' xE')).f ≫ (pushFibre W A hbU hUU' g'').f
+                  ≫ (isoInv (reflApp_isIso L (L.F hUU' (L.F hbU (terminalSliceObj W A))))).f)
+                  ≫ (reflApp L (L.F hUU' (L.F hbU (terminalSliceObj W A)))).f ≫ Λ = _
+              rw [Cat.assoc, Cat.assoc,
+                  ← Cat.assoc (isoInv (reflApp_isIso L (L.F hUU' (L.F hbU (terminalSliceObj W A))))).f,
+                  show (isoInv (reflApp_isIso L (L.F hUU' (L.F hbU (terminalSliceObj W A))))).f
+                      ≫ (reflApp L (L.F hUU' (L.F hbU (terminalSliceObj W A)))).f
+                    = Cat.id _ from
+                  congrArg OverHom.f
+                    (inv_isoInv_comp (reflApp_isIso L (L.F hUU' (L.F hbU (terminalSliceObj W A))))),
+                  Cat.id_comp, hpushFibre_A]
+            -- ── PIECE 2: cast-eliminate the goal LHS down to `zN.f ≫ π₁(inner)`. ──
+            -- collapse `(hcodObj ▸ zN).f ≫ πOut ≫ πIn` to `zN.f ≫ π₁(proj(trans b.2.2 hbN), L.F hUU' xE')`.
+            have hLHScollapse : (hcodObj ▸ zN).f
+                  ≫ (_pb (selectProj N.val U'.val hUN') (baseChangeObj (snd : prod A P ⟶ P) xE')).cone.π₁
+                    ≫ (_pb (snd : prod A P ⟶ P) xE').cone.π₁
+                = zN.f
+                  ≫ (_pb (selectProj N.val U'.val hUN') (L.F hUU' xE')).cone.π₁
+                    ≫ (_pb (selectProj U'.val U.val hUU') xE').cone.π₁ := by
+              rw [hcastf, Cat.assoc,
+                  ← Cat.assoc (eqToHom hcodObj).f, hcodObj', hbcInner hLF, Cat.assoc,
+                  hLF', eqToHom_bc_π₁ hsp xE']
+            -- post-compose `hstageProj` with the shared A-leg `Λr`, then apply Pieces 1a/1b.
+            have hSP := congrArg (· ≫ Λr) hstageProj
+            simp only [Cat.assoc] at hSP
+            rw [hpf_A, hsc_A] at hSP
+            -- rewrite the goal LHS via `hLHScollapse` (with the `≫ m.f ≫ fst` tail).
+            have hLHSfull : (hcodObj ▸ zN).f
+                  ≫ ((_pb (selectProj N.val U'.val hUN') (baseChangeObj (snd : prod A P ⟶ P) xE')).cone.π₁
+                      ≫ (_pb (snd : prod A P ⟶ P) xE').cone.π₁) ≫ m.f ≫ (fst : prod A P ⟶ A)
+                = zN.f
+                  ≫ ((_pb (selectProj N.val U'.val hUN') (L.F hUU' xE')).cone.π₁
+                      ≫ (_pb (selectProj U'.val U.val hUU') xE').cone.π₁) ≫ m.f ≫ (fst : prod A P ⟶ A) := by
+              rw [← Cat.assoc, ← Cat.assoc, hLHScollapse, Cat.assoc, Cat.assoc]
+            rw [hLHSfull]
+            -- ── ISOLATED RESIDUAL (★ + Piece 3).  Goal now:
+            --   zN.f ≫ (πOut' ≫ πIn') ≫ m.f ≫ fst = srcPB.cone.π₂ ≫ ψ ≫ fst.
+            -- `hSP` (post-composed `hstageProj` with `Λr`, Pieces 1a/1b applied) reads:
+            --   zN.f ≫ (transApp(refl U',hUN) xE').f ≫ π₁ ≫ (reflApp (L.F hUU' xE')).f
+            --        ≫ (eqToHom hLF).f ≫ πIn ≫ m.f ≫ fst
+            --     = (transApp(refl U',hUN') one).f ≫ π₁ ≫ (reflApp one).f ≫ fst.
+            -- TWO remaining micro-steps, both pullback-pasting reindexings:
+            --  (★)  πOut' ≫ πIn' = (transApp(refl U',hUN) xE').f ≫ π₁ ≫ (reflApp (L.F hUU' xE')).f
+            --         ≫ (eqToHom hLF).f ≫ πIn  — identifies the descent-domain projection
+            --       (`_pb (proj hUN') (L.F hUU' xE')`·`_pb (selectProj U' U hUU') xE'`) with the
+            --       `proj_pushHom_f_π₁`-presentation of `pf₀`'s pushed content.  KEY LEMMA:
+            --       `transApp_f_π₁π₁ cofinalProjSystem (refl U') hUN (L.F hUU' xE') z` with
+            --       `z := (eqToHom hLF).f ≫ πIn` collapses the `transApp ≫ π₁ ≫ (inner π₁) ≫ z` to
+            --       `(_pb (proj (trans (refl U') hUN)) (L.F hUU' xE')).cone.π₁ ≫ z = πOut' ≫ z`; then
+            --       `eqToHom_bc_π₁ hsp xE'` turns `z = (eqToHom hLF).f ≫ πIn` into `πIn'`.  The ONLY
+            --       gap is identifying `(reflApp (L.F hUU' xE')).f` (the explicit `pf₀` unit) with the
+            --       transApp inner `(_pb (proj (refl U')) (L.F hUU' xE')).cone.π₁` — a `projReflIso`/
+            --       `baseChangeIdNatIso` component characterisation (the lax `reflApp` of
+            --       `laxOfProjSystem'` IS this pullback projection; needs a `reflApp_f_π₁`-style lemma).
+            --  (Piece 3)  `hSP`'s RHS `(transApp(refl U',hUN') one).f ≫ π₁ ≫ (reflApp one).f ≫ fst`
+            --       = srcPB.cone.π₂ ≫ ψ ≫ fst, via `hψfst : ψ ≫ fst = factorProj N A` and
+            --       `hsrcEq : L.F (trans b.2.1 hbN) one = ⟨srcPB.pt, srcPB.π₂⟩` (rfl).
+            -- Everything substantive (all A-leg sub-laws `hcod_A`/`hsc_A`/`hpf_A`, the cast-elimination
+            -- `hLHScollapse`, and the goal-LHS reduction `hLHSfull`) is machine-checked above; the
+            -- residual is the final on-the-nose `transApp`/`reflApp`/`ψ` pullback-pasting reindexing.
             sorry
           rw [show (r ≫ (zNd.f ≫ codPB.cone.π₁)) ≫ cnDN.π₁ ≫ mC.f ≫ (fst : prod A PN ⟶ A)
                 = r ≫ ((zNd.f ≫ codPB.cone.π₁) ≫ cnDN.π₁ ≫ mC.f ≫ (fst : prod A PN ⟶ A)) from
