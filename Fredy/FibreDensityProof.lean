@@ -471,29 +471,74 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
     (stageInclL L hL (sfp ⊚ cod))
   refine ⟨x', ?_⟩
   rintro ⟨y', hy'⟩
-  -- ===== (c) reflect the colimit factor to a base-change section, then apply the escape =====
-  -- THE HONEST RESIDUAL (c.i), now NARROWED to a single base-change transport.  The colimit-factor
-  -- `hy'` reduces (germ machinery: `incl_surjective` of `homSystemL` to write `y'` at a bound
-  -- `N ⊇ U'`, conjugated by `align`/`laxTerminalArrowAt`, then `homCompRawL_eq_stage` on
-  -- `compL y' (stageInclL (pushFibre g'')) = x'`) to an ON-THE-NOSE stage-`N` `Over (∏N)` equation:
-  -- a section `s_N : ∏N ⟶ (base-change of cnD to ∏N).pt` whose `A`-coordinate is the `N`-image of
-  -- the fresh `fst : A×∏U → A`, i.e. (by `selectProj_factor`) `factorProj N A`.
+  -- ===== (c.i) reflect the colimit factor `y'` to a stage-`N` base-change section =====
+  -- Steps (1)+(2) below (`align`-kill, germ reduction, push to stage `N`) are SORRY-FREE and narrow
+  -- the colimit factor `hy'` to the on-the-nose stage-`N` factorization `hstage` (`Over (∏N)`).  The
+  -- single remaining gap is the stage-`N` base-change escape on `hstage`; see the note at it below.
+  -- `align` is iso (a map between two terminals: `one` and the stage-`U'` terminal).
+  letI htOne : HasTerminal (Obj L) := (uniformStepTarget_preRegular W).toHasTerminal
+  have halignIso : @IsIso (Obj L) (laxColimCat L hL) _ _ align :=
+    ⟨htOne.trm _, htOne.uniq _ _, laxTerminalUniqAt L hL T U' _ _ _⟩
+  obtain ⟨alignInv, halign1, halign2⟩ := halignIso
+  -- kill `align`: `z := alignInv ≫ y'` satisfies `z ≫ M = stageInclL (sfp ⊚ cod)` (a stage point).
+  -- `z : ⟨U', (T.ht U').one⟩ ⟶ ⟨U', F hUU' xE'⟩`, a colimit hom between stage-`U'` objects.
+  let z : @Cat.Hom (Obj L) (laxColimCat L hL) ⟨U', (T.ht U').one⟩ ⟨U', L.F hUU' xE'⟩ :=
+    @Cat.comp (Obj L) (laxColimCat L hL) _ _ _ alignInv y'
+  have hz : @Cat.comp (Obj L) (laxColimCat L hL) _ _ _ z
+        (stageInclL L hL (pushFibre W A hbU hUU' g''))
+      = stageInclL L hL (sfp ⊚ cod) := by
+    show @Cat.comp (Obj L) (laxColimCat L hL) _ _ _
+        (@Cat.comp (Obj L) (laxColimCat L hL) _ _ _ alignInv y')
+        (stageInclL L hL (pushFibre W A hbU hUU' g'')) = _
+    rw [Cat.assoc, hy']
+    show @Cat.comp (Obj L) (laxColimCat L hL) _ _ _ alignInv
+        (@Cat.comp (Obj L) (laxColimCat L hL) _ _ _ align (stageInclL L hL (sfp ⊚ cod))) = _
+    rw [← Cat.assoc, halign2, Cat.id_comp]
+  -- germ-reduce `z`: a representative `z₀` at a bound `b ⊇ U'`.
+  obtain ⟨b, z₀, hz₀⟩ :=
+    incl_surjective (homSystemL L hL (T.ht U').one (L.F hUU' xE')) z
+  -- the refl-bound germ representatives of the two `stageInclL`s.
+  let pf₀ : L.F ((wsDirected S).refl U') (L.F hUU' xE')
+      ⟶ L.F ((wsDirected S).refl U') (L.F hUU' (L.F hbU (terminalSliceObj W A))) :=
+    reflApp L (L.F hUU' xE') ≫ pushFibre W A hbU hUU' g''
+      ≫ isoInv (reflApp_isIso L (L.F hUU' (L.F hbU (terminalSliceObj W A))))
+  let sc₀ : L.F ((wsDirected S).refl U') (T.ht U').one
+      ⟶ L.F ((wsDirected S).refl U') (L.F hUU' (L.F hbU (terminalSliceObj W A))) :=
+    reflApp L (T.ht U').one ≫ (sfp ⊚ cod)
+      ≫ isoInv (reflApp_isIso L (L.F hUU' (L.F hbU (terminalSliceObj W A))))
+  -- `hz` as a `homCompRawL = homInclL` equation, then push to a stage `N`.
+  have hraw : homCompRawL L hL (T.ht U').one (L.F hUU' xE')
+        (L.F hUU' (L.F hbU (terminalSliceObj W A)))
+        b z₀ ⟨U', (wsDirected S).refl U', (wsDirected S).refl U'⟩ pf₀
+      = homInclL L hL (T.ht U').one (L.F hUU' (L.F hbU (terminalSliceObj W A)))
+          ⟨U', (wsDirected S).refl U', (wsDirected S).refl U'⟩ sc₀ := by
+    rw [← compL_homInclL L hL (T.ht U').one (L.F hUU' xE')
+          (L.F hUU' (L.F hbU (terminalSliceObj W A))) b z₀
+          ⟨U', (wsDirected S).refl U', (wsDirected S).refl U'⟩ pf₀]
+    rw [show homInclL L hL (T.ht U').one (L.F hUU' xE') b z₀ = z from hz₀]
+    exact hz
+  obtain ⟨N, hbN, hUN, hUN', hstage⟩ :=
+    homCompRawL_eq_stage L hL (T.ht U').one (L.F hUU' xE')
+      (L.F hUU' (L.F hbU (terminalSliceObj W A)))
+      b z₀ ⟨U', (wsDirected S).refl U', (wsDirected S).refl U'⟩ pf₀
+      ⟨U', (wsDirected S).refl U', (wsDirected S).refl U'⟩ sc₀ hraw
+  -- ===== (c.i) THE SHARPEST RESIDUAL — the stage-`N` base-change escape =====
+  -- `hstage` is the ON-THE-NOSE factorization, in `L.A N = Over (∏N)`, of the `N`-image of the fresh
+  -- slice point `sfp ⊚ cod` (= `sliceFactorPoint A fst` base-changed to `N`) through the `N`-image of
+  -- `pushFibre g''` (= `g''` base-changed along `selectProj N.1 U.1`), witnessed by the `N`-rep
+  -- `zN := pushHom … z₀` of the colimit factor `z`.  Steps (1) `align`-kill and (2) the germ
+  -- reduction `z ↦ zN` + push of the colimit equation to this stage-`N` equation are now sorry-free.
   --
-  -- THE REINDEXING IS NOW BUILT.  `CofinalProj.listProd_pull_factor N A N.2.1 (hA_in_N)` supplies the
-  -- permutation iso `ψ : ∏N ≅ A × ∏(N.erase A)` with `ψ ≫ fst = factorProj N A` and
-  -- `ψ ≫ snd = selectProj N (N.erase A)`, EXACTLY the binary-product shape
-  -- `baseChange_freshFactor_missed` consumes with `A` as the fresh coordinate — even with `A` buried
-  -- in the middle of the right-folded `∏N`.  `A ∈ U' = A::U ⊆ N` gives `hA_in_N`.
-  --
-  -- THE REMAINING BLOCKER (sharpest).  What is NOT yet assembled is the transport of the N-pushed
-  -- PULLBACK DIAGRAM through `ψ`: presenting the base-change of `cnD` (the chosen pullback of
-  -- `xE'.hom` along `snd : A×∏U → ∏U`) to stage `N` as the canonical `cnD_N`/`mf_N` data over
-  -- `∏(N.erase A)` with cospan `snd : A×∏(N.erase A) → ∏(N.erase A)`, plus the identification of the
-  -- N-pushed mono `pushFibre … g''` as a PROPER `OverHom` into `sliceEmbedObj (∏(N.erase A)) A`
-  -- (properness at `N` via `g''` proper + `L_cons`/`projStage_conservative_full` reflecting iso along
-  -- the transitions).  Once those are threaded, `baseChange_freshFactor_missed` applies on the nose at
-  -- `N` and refutes `s_N` ⟹ `False`.  The escape MATH, the (a) base-change data, the (b) point, and
-  -- now the (c) reindexing iso are all in hand; only this pullback-diagram transport remains.
+  -- WHAT REMAINS (single sharp gap): translate `hstage` into the binary-product shape
+  -- `baseChange_freshFactor_missed` consumes.  `A ∈ U' = A::U ⊆ N` gives `hA_in_N : A ∈ N.1`, and
+  -- `CofinalProj.listProd_pull_factor N.1 A N.2.1 hA_in_N` supplies `ψ : ∏N ≅ A × ∏(N.erase A)` with
+  -- `ψ ≫ fst = factorProj N A`, `ψ ≫ snd = selectProj N (N.erase A)`.  Through `ψ` the `N`-pushed
+  -- chosen pullback of `xE'.hom`, the `N`-pushed proper mono `pushFibre g''` (proper at `N` via
+  -- `L_cons`/`projStage_conservative_full`), and the section read off `zN` present exactly the
+  -- `cnD_N`/`mf_N`/`s_N` data over `P := ∏(N.erase A)` with fresh coordinate `fst = factorProj N A`,
+  -- whereupon `baseChange_freshFactor_missed` refutes them.  This is `Over (∏N)` pullback-cone
+  -- transport (the `pushHom`/`transApp`/`reflApp` base-change re-association unfolded to underlying
+  -- `S`-arrows); the escape MATH and all colimit plumbing around it are machine-checked.
   exact (by sorry : False)
 
 /-- **Freyd's §1.546 density (the genuine open core).**  The §1.546 ESCAPE is sorry-free
