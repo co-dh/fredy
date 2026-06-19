@@ -301,26 +301,54 @@ def StepsSeparate {𝒞 : Type u} [Cat.{v} 𝒞] (Sep : ∀ {A A' : 𝒞}, (A �
   | _, .nil _ _       => True
   | _, .cons _ α rest => Sep α ∧ StepsSeparate Sep rest
 
-/-- §1.397 (GENERAL inflation-class case) — DOCUMENTED SORRY.
+/-- §1.397 (GENERAL inflation-class case), axiom-free.
 
     The book's statement: an equivalence functor `T : 𝒞 → 𝒟` preserves satisfaction.
     Re-indexing the telescope along `T` (`s.map T`) and pushing the witness `f`
     through `T` (`hT.map f`), satisfaction transports: `Satisfies s f → Satisfies
-    (s.map T) (T.map f)`.  This is the honest cross-category conclusion (NOT a `True`
-    stub).
+    (s.map T) (T.map f)`.
 
-    REASON FOR SORRY (precise): the proof needs (i) §1.361 "every equivalence functor
-    factors as a composite of inflations", and (ii) §1.396 (`diagFill_preserves_…`)
-    applied to each inflation cross-section's `DiagonalFill`.  Both are heavy
-    cross-category constructions from `S1_36` (`Inflation`, `InflationCrossSection`);
-    routing them is out of scope for this file.  The in-category iso case is fully
-    proved above (`iso_preserves_satisfies`).  This is the ONLY `sorry` in the file;
-    the statement is the book's real one, not weakened. -/
+    PROOF: by induction on the telescope `s`.  An equivalence functor is full and
+    faithful (`EquivalenceFunctor T = Embedding T ∧ Full T ∧ HasRepresentativeImage T`),
+    so each quantifier transports along `T`:
+
+    * `∃`-step: push the chosen witness `g'` forward to `hT.map g'`; the factoring
+      equation transports by `map_comp`.
+    * `∀`-step: any `g : T A' ⟶ T B` over `T.map f` is `hT.map g'` by FULLNESS, and
+      `T.map α ≫ T.map g' = T.map f` reflects to `α ≫ g' = f` by FAITHFULNESS
+      (`Embedding`), so the universally-quantified premise of `Satisfies s f` applies.
+
+    The §1.361 inflation-class factorization is NOT needed: full + faithful already
+    give the cross-category transport directly.  `_hsep` (`StepsSeparate`) is the
+    book's hypothesis on the telescope but is subsumed by faithfulness of `T`, hence
+    unused. -/
 theorem equiv_preserves_satisfies {𝒞 : Type u} [Cat.{v} 𝒞] (T : 𝒞 → 𝒟) [hT : Functor T]
-    (_hT : EquivalenceFunctor T) {A B : 𝒞} (s : QSeq 𝒞 A) (f : A ⟶ B)
+    (hT' : EquivalenceFunctor T) {A B : 𝒞} (s : QSeq 𝒞 A) (f : A ⟶ B)
     {Sep : ∀ {X Y : 𝒞}, (X ⟶ Y) → Prop} (_hsep : StepsSeparate Sep s)
-    (_hsat : Satisfies s f) : Satisfies (s.map T) (hT.map f) :=
-  sorry
+    (hsat : Satisfies s f) : Satisfies (s.map T) (hT.map f) := by
+  obtain ⟨hfaith, hfull, _⟩ := hT'
+  clear _hsep
+  induction s generalizing B with
+  | nil A q =>
+    cases q with
+    | all => exact (satisfies_nil_all _)
+    | ex  => exact (not_satisfies_nil_ex f hsat).elim
+  | cons q α rest ih =>
+    cases q with
+    | all =>
+      -- goal: ∀ g, T.map α ≫ g = T.map f → Satisfies (rest.map T) g
+      rw [QSeq.map, satisfies_cons_all]
+      intro g hg
+      obtain ⟨g', rfl⟩ := hfull g                    -- g = hT.map g' by fullness
+      have hαg : α ≫ g' = f := by                     -- reflect the factoring
+        apply hfaith
+        rw [hT.map_comp]; exact hg
+      have := (satisfies_cons_all α rest f).1 hsat g' hαg
+      exact ih g' this
+    | ex =>
+      rw [QSeq.map, satisfies_cons_ex]
+      obtain ⟨g', hαg, hrest⟩ := (satisfies_cons_ex α rest f).1 hsat
+      exact ⟨hT.map g', by rw [← hT.map_comp, hαg], ih g' hrest⟩
 
 /-! ## Examples (§1.39 sanity checks): unfold `Satisfies` to recognisable ∀/∃ statements -/
 
