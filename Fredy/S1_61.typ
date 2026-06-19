@@ -27,14 +27,14 @@ $C times B$, is the inverse image of $S$ along $y times 1$:
 where $y times 1 = y times 1_B : C times B -> A times B, thick (c, b) |-> (y(c), b)$. As a pullback:
 
 #align(center)[
-  #diagram(spacing: (40mm, 15mm), node-stroke: none, node-inset: 4pt,
+  #diagram(spacing: (44mm, 16mm), node-stroke: none, node-inset: 4pt,
     node((0,0), $C times B$),
     node((1,0), $A times B$),
     node((0,1), text(fill: prec)[$y S$]),
     node((1,1), text(fill: imgc)[$S$]),
+    node((0,1.45), text(8pt, fill: prec)[subobject of $C times B$]),
+    node((1,1.45), text(8pt, fill: imgc)[subobject of $A times B$]),
     edge((0,0), (1,0), text()[$y times 1$], "->", stroke: 0.8pt),
-    edge((0,1), (0,0), ">->", stroke: 0.9pt + prec),
-    edge((1,1), (1,0), ">->", stroke: 0.9pt + imgc),
     edge((1,1), (0,1), text(fill: prec)[$(y times 1)^(#text(0.55em)[\#])$], "->", stroke: 0.7pt + prec),
   )
 ]

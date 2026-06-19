@@ -402,12 +402,20 @@ theorem union_via_coproduct_image [HasImages 𝒞] [HasSubobjectUnions 𝒞] [Ha
   product `A × B`) inherit the distributive-lattice structure of the subobject lattices:
   for relations `R, S, T`,
       `R ∩ (S ∪ T) = (R ∩ S) ∪ (R ∩ T)`  and  `R(S ∪ T) = RS ∪ RT`,
-  the second being distributivity of relational composition over union.  The underlying
-  fact is exactly `monic_inverseImage_iff_distributive` above together with the union
-  preservation of inverse images packaged into `PreLogos`.  The *relational* (composition)
-  half belongs to the allegory development (Chapter 2, `S2_*`), where relations and their
-  composition `R ; S` are defined; it is formalized there rather than duplicated here so the
-  single source of truth for relations stays in the allegory files. -/
+  the second being distributivity of relational composition over union.  The lattice
+  (`∩`) half is exactly `monic_inverseImage_iff_distributive` above together with the union
+  preservation of inverse images packaged into `PreLogos`.
+
+  The *relational* (composition) half is proved CONSTRUCTIVELY IN CHAPTER 1 — see
+  `S1_60.lean` §1.616 (`compose_union_right` and `compose_union_right_le`, giving the
+  equality `R ⊚ (S ∪ T) = (R ⊚ S) ∪ (R ⊚ T)`), with reciprocation-over-union in
+  `relUnion_le_reciprocal`/`relUnion_reciprocal_le`.  That proof is FAITHFUL to Freyd and
+  uses NO allegory axiom: it is coproduct-free, reducing `relSub (R ⊚ X) = ∃_{ω_R}(θ_R# (relSub X))`
+  to two pre-logos primitives that each preserve unions — inverse image `θ_R#`
+  (`PreLogos.invImage_preserves_union`) and direct image `∃_{ω_R}` (`existsAlong_union_le`).
+  This is the Chapter-1 content; the Chapter-2 `DistributiveAllegory.comp_union_distrib`
+  axiom is the *abstraction* of it, not its proof.  (Still open: the LEFT form
+  `(S ∪ T) ⊚ R = S⊚R ∪ T⊚R`, awaiting reciprocation-of-composition `(R⊚S)° = S°⊚R°`.) -/
 
 /-- **§1.621**: If A₁ ∩ A₂ = 0 and A₁ ∪ A₂ = A (as subobjects of A in a pre-logos)
     then A is the binary coproduct of A₁.dom and A₂.dom via the inclusions A₁.arr, A₂.arr.
