@@ -8,14 +8,14 @@
   upstream placement is impossible (it would create an import cycle); `RelativeCapitalization.lean`'s
   own notes anticipate "`capData_exists` relocated here".
 
-  THE SOLE RESIDUAL is the genuine §1.546 density obligation `FibreDensity (wsCover S)` — the one
-  book statement still unproved.  Every other step (the uniform `CapStep`, its pre-regular target,
-  faithfulness, finite-limit preservation; the cofinal cover `wsCover`; the ω-tower preservation
-  package `towerH*`; the cofinal `hstage`; the capital fixpoint `tower_capital_of_cofinal`; the
-  `CapData` packaging `capData_of_tower`) is sorry-free and already committed upstream.
+  COMPLETE — `capitalization_lemma` is SORRY-FREE (axioms `[propext, Classical.choice, Quot.sound]`).
+  The §1.546 density `FibreDensity (wsCover S)` is discharged by `wsCover_fibreDensity`; every step
+  (the uniform `CapStep`, its pre-regular target, faithfulness, finite-limit preservation; the cofinal
+  cover `wsCover`; the ω-tower preservation package `towerH*`; the cofinal `hstage`; the capital
+  fixpoint `tower_capital_of_cofinal`; the `CapData` packaging `capData_of_tower`) is sorry-free.
 
   Assembled term (read top-down):
-    * `hFD : ∀ S, FibreDensity (wsCover S)`              — the SOLE `sorry` (§1.546).
+    * `hFD : ∀ S, FibreDensity (wsCover S)`              — `wsCover_fibreDensity` (the §1.546 density).
     * `ccs : CofinalCapStep`                             — `step := uniformStep ∘ wsCover`,
         `wellPoints := stepWellPoints_of_fibreDensity ∘ hFD`.
     * `capData_of_tower A ccs.step b rfl <package> hcap` — the `CapData A`, where
@@ -43,11 +43,11 @@ open Freyd.UniformWellPoints (FibreDensity stepWellPoints_of_fibreDensity)
     (`towerH*` package) and **capital** (`tower_capital_of_cofinal`, via the cofinal `hstage`),
     packaged into `Nonempty (CapData A)` by `capData_of_tower`.
 
-    The ONLY residual `sorry` is `FibreDensity (wsCover S)` — the genuine §1.546 stage-local
-    density statement (every proper fibre mono is missed by a fibre point at a later stage). -/
+    The §1.546 stage-local density `FibreDensity (wsCover S)` (every proper fibre mono is missed by a
+    fibre point at a later stage) is `wsCover_fibreDensity`; the whole lemma is sorry-free. -/
 theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
     Nonempty (CapData.{u} A) := by
-  -- THE SOLE RESIDUAL: §1.546 fibre-density, for every bundle's cofinal cover `wsCover S`.
+  -- §1.546 fibre-density, for every bundle's cofinal cover `wsCover S` (sorry-free: `wsCover_fibreDensity`).
   have hFD : ∀ (S : PreRegBundle.{u}),
       letI := S.cat; letI := S.pre; letI := (wsCover S).dec
       FibreDensity (wsCover S) := fun S => Freyd.CofinalProj.wsCover_fibreDensity S
