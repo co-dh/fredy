@@ -92,8 +92,16 @@ Each sub-theorem below has an honest sorry documented with its precise blocker. 
 
 section BiCartRepr
 
+-- `ℬ` carries the FULL disjoint pre-topos structure (`PreToposDisjoint`) plus a
+-- reflexive-transitive-closure operator (`HasReflTransClosure`): exactly the §1.64
+-- hypotheses under which `cover_eq_epic_preTopos`/`pretopos_balanced` are closed.
+-- Deriving `PreTopos ℬ` from `PreToposDisjoint ℬ` (rather than a separate
+-- `[PreTopos ℬ]` binder) keeps a SINGLE instance path to `HasBinaryProducts ℬ`
+-- etc., so the `HasReflTransClosure ℬ` argument of `cover_eq_epic_preTopos`
+-- matches in step (iii) (no instance diamond).
 variable {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
-variable [PreTopos 𝒜] [PreTopos ℬ] [HasCoterminator 𝒜] [HasCoterminator ℬ]
+variable [PreTopos 𝒜] [PreToposDisjoint ℬ] [HasReflTransClosure ℬ]
+variable [HasCoterminator 𝒜] [HasCoterminator ℬ]
 variable {F : 𝒜 → ℬ} [hF : Functor F]
 
 /-- The binary coproduct A+B is the pushout of the two initial maps 0→A and 0→B.
@@ -120,28 +128,30 @@ private def coprod_is_pushout_of_init [HasBinaryCoproducts 𝒜]
     monics in ℬ, which (by the same amalgamation/effectiveness run in ℬ) is again
     the pullback of `T m, T n`.
 
-    BLOCKED — genuine residual, but the precise gap is now pinned (2026-06-16).
-    The "intersection square is a pushout" HALF *is* available: `pasting_lemma`
-    (§1.62, S1_62) proves that for two subobjects `A₁, A₂ ↪ A`, the intersection
-    pullback's projections `π₁, π₂` push out to the UNION `U = A₁ ∪ A₂` (legs
-    `x : A₁ → U`, `y : A₂ → U`).  Feeding that pushout through `pres_pushouts`
-    DOES carry the span `(π₁, π₂)` to a pushout-to-`TU` in ℬ.  The genuinely
-    missing CONVERSE is: in a pre-topos, a pushout square whose cospan legs are
-    MONIC is itself a pullback (i.e. `TU` reconstructs the intersection of
-    `Tm, Tn` over `TA`).  That direction is the union/intersection EFFECTIVENESS
-    of §1.543 — equivalently the `amalgamation_lemma` (S1_64) leg-monicity
-    obligations (`Mono u`, `Mono v`), themselves `sorry`, which need the
-    effective-quotient zigzag/path-length descent over the generated equivalence
-    relation that `HasReflTransClosure` does not expose.  There is no
-    `pushout-of-monic-cospan ⇒ IsPullback` lemma in the repo, and the pasting
-    pushout lands on the union object `TU`, not on the cospan apex `TA`, so it
-    cannot be massaged into the pullback without that effectiveness step.  Until
-    it lands, step (i) cannot be closed without itself introducing a sorry.
-    Once it is closed, step (ii) (below) is already wired to it.
+    STILL BLOCKED — residual re-checked against the 2026-06-19 §1.64 closures and
+    confirmed independent of them.  The "intersection square is a pushout" HALF is
+    available: `pasting_lemma` (§1.62, S1_62) proves that for two subobjects
+    `A₁, A₂ ↪ A`, the intersection pullback's projections `π₁, π₂` push out to the
+    UNION `U = A₁ ∪ A₂` (legs `x : A₁ → U`, `y : A₂ → U`).  Feeding that pushout
+    through `pres_pushouts` carries the span `(π₁, π₂)` to a pushout-to-`TU` in ℬ.
+    The genuinely missing CONVERSE is unchanged: in a pre-topos, a pushout square
+    whose cospan legs are MONIC is itself a pullback (so `TU` reconstructs the
+    intersection of `Tm, Tn`, since `T U.arr` is monic and pulling back along it
+    leaves the cospan apex `TA` invariant).
 
-    (Correction to a stale claim: a bicartesian-of-monics lemma — the pushout
-    half — DOES exist as `pasting_lemma`; only the monic-pushout ⇒ pullback
-    converse is missing.) -/
+    This converse is NOT supplied by the now-closed `amalgamation_lemma`.  That
+    lemma gives only the EXISTENCE of a monic-legged amalgamating cocone `(D,u,v)`
+    over a monic SPAN; applied to the intersection projections `q₁,q₂ : Q ⇉ A_i`
+    of the ℬ-pullback `Q`, it yields a cocone `(D,u,v)` that (via `q₁≫x = q₂≫y`)
+    even factors the pushout span, but the pushout UMP only produces a map
+    `U → D` OUT of `U` — it gives no map cancelling the comparison `k : TP → Q`,
+    so neither `k` epic nor `k` iso follows.  The converse is exactly the
+    union/intersection EFFECTIVENESS of §1.543, whose elementary intermediate in
+    this repo is `pushout_monic_in_pretopos` (§1.653, S1_64) — itself still a
+    `sorry`.  Closing step (i) honestly therefore needs a fresh relational
+    descent (or that §1.653 lemma) and cannot be discharged from the lemmas
+    currently available, so this single sorry remains.  Step (ii) (equalizers) is
+    already wired to it and closes automatically once it lands. -/
 theorem preTopos_functor_preserves_monic_pullbacks (hptf : PreToposFunctor F)
     {A₁ A₂ A : 𝒜} (m : A₁ ⟶ A) (hm : Mono m) (n : A₂ ⟶ A) (hn : Mono n)
     (pb : HasPullback m n) :
@@ -275,10 +285,67 @@ theorem preTopos_functor_preserves_equalizers (hptf : PreToposFunctor F)
           from this signature) and internally bottoms out at `pretopos_balanced`,
           itself `sorry` on the §1.543 effective-coregularity step.
     No shortcut via `PreservesMono` alone (a functor preserving monics need not
-    preserve covers). -/
-theorem preTopos_functor_preserves_covers (hptf : PreToposFunctor F)
+    preserve covers).
+
+    UNBLOCKED (2026-06-19) via the §1.64 closures.  Route B is now realizable:
+    * cokernel-pair PUSHOUT existence is supplied by `[HasBinaryCoproducts 𝒜]`
+      `[HasCoequalizers 𝒜]` (faithful additions — the §1.655 main theorem already
+      carries them); the helper `cokernelPair_pushout` builds `HasPushout f f` as
+      the coequalizer of `(f≫inl, f≫inr)`;
+    * `pres_pushouts` carries that cokernel pair to a pushout in ℬ.  `f` is a
+      cover, hence epic (`cover_epi`), so its two cokernel-pair legs `inl≫c`,
+      `inr≫c` coincide in 𝒜 (epic cancels `f` on the left of the coequalizer
+      relation), and their `F`-images coincide; a pushout whose two cocone legs
+      are equal forces `F f` epic in ℬ;
+    * `cover_eq_epic_preTopos` (§1.64, `[PreToposDisjoint ℬ] [HasReflTransClosure ℬ]`)
+      turns `F f` epic back into `Cover (F f)`. -/
+private def cokernelPair_pushout [HasBinaryCoproducts 𝒜] [HasCoequalizers 𝒜]
+    {A B : 𝒜} (f : A ⟶ B) :
+    HasPushout f f :=
+  let hc := HasCoequalizers.coeq (f ≫ HasBinaryCoproducts.inl (B := B))
+                                 (f ≫ HasBinaryCoproducts.inr (B := B))
+  { cocone :=
+      { pt := hc.obj
+        ι₁ := HasBinaryCoproducts.inl ≫ hc.map
+        ι₂ := HasBinaryCoproducts.inr ≫ hc.map
+        w  := by rw [← Cat.assoc, ← Cat.assoc]; exact hc.eq }
+    desc := fun c =>
+      hc.desc (HasBinaryCoproducts.case c.ι₁ c.ι₂)
+        (by rw [Cat.assoc, Cat.assoc, HasBinaryCoproducts.case_inl,
+                HasBinaryCoproducts.case_inr]; exact c.w)
+    fac₁ := fun c => by
+      rw [Cat.assoc, hc.fac, HasBinaryCoproducts.case_inl]
+    fac₂ := fun c => by
+      rw [Cat.assoc, hc.fac, HasBinaryCoproducts.case_inr]
+    uniq := fun c h h₁ h₂ => by
+      -- `h` agrees with `case c.ι₁ c.ι₂` after `hc.map`, so equals the coeq descent.
+      refine hc.uniq (HasBinaryCoproducts.case c.ι₁ c.ι₂) _ h ?_
+      refine HasBinaryCoproducts.case_uniq c.ι₁ c.ι₂ (hc.map ≫ h) ?_ ?_
+      · rw [← Cat.assoc]; exact h₁
+      · rw [← Cat.assoc]; exact h₂ }
+
+theorem preTopos_functor_preserves_covers
+    [HasBinaryCoproducts 𝒜] [HasCoequalizers 𝒜]
+    (hptf : PreToposFunctor F)
     {A B : 𝒜} (f : A ⟶ B) (hf : Cover f) : Cover (hF.map f) := by
-  sorry
+  -- It suffices to prove `F f` is epic; in ℬ epic ⟺ cover (`cover_eq_epic_preTopos`).
+  rw [cover_eq_epic_preTopos (hF.map f)]
+  intro C g h hgh
+  -- Cokernel pair of `f` in 𝒜 (pushout of `f` along itself), built from coeq + coprod.
+  let hpb := cokernelPair_pushout (𝒜 := 𝒜) f
+  -- The two cokernel-pair legs coincide in 𝒜: `f` is a cover, hence epic, and the
+  -- coequalizer relation is `f ≫ ι₁ = f ≫ ι₂`, so cancelling `f` gives `ι₁ = ι₂`.
+  have hlegs : hpb.cocone.ι₁ = hpb.cocone.ι₂ := cover_epi hf hpb.cocone.w
+  -- Target cocone in ℬ over `(F f, F f)` with both legs `g` precomposed appropriately:
+  -- use the parallel pair `g, h : F B ⟶ C`.  Build a `PushoutCocone (F f) (F f)`
+  -- with legs `g, h`; commutativity is exactly `hgh`.
+  let tgt : PushoutCocone (hF.map f) (hF.map f) :=
+    { pt := C, ι₁ := g, ι₂ := h, w := hgh }
+  obtain ⟨w, hw₁, hw₂, _⟩ := hptf.pres_pushouts f f (h := hpb) tgt
+  -- `hw₁ : F(ι₁) ≫ w = g`, `hw₂ : F(ι₂) ≫ w = h`; but `F(ι₁) = F(ι₂)` (legs equal).
+  calc g = hF.map hpb.cocone.ι₁ ≫ w := hw₁.symm
+    _ = hF.map hpb.cocone.ι₂ ≫ w := by rw [hlegs]
+    _ = h := hw₂
 
 /-- **§1.655 (main theorem)**: A pre-topos functor T : A → B is a bicartesian
     representation — it preserves pullbacks, equalizers, covers, and coproducts.
