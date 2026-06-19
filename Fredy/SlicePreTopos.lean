@@ -564,42 +564,28 @@ instance overHasReflTransClosure (B : 𝒞) [RegularCategory 𝒞] [HasReflTrans
 
 /-! ## Residual: completing the slice pre-topos tower (toward §1.662 Diaconescu)
 
-  With `HasImages (Over B)` and `RegularCategory (Over B)` above, the slice now supports the
-  full relational calculus of §1.56 (`BinRel (Over B)`, `⊚`, `reciprocal`, `graph`, `RelLe`,
-  `EquivalenceRelation`, `IsEffective`), because that calculus is generic over any category
-  with `HasBinaryProducts + HasPullbacks + HasImages`.  What remains for the prompt's target
-  `one_one_choice_to_boolean` (`S1_64`, §1.662) — i.e. for `∀ A, DecidableObject A` from
-  `Choice (1+1)` — is the following tower, each step well-defined but substantial:
+  Rungs 1, 2, 4 are now DONE sorry-free above:
 
-  1. **Forget commutes with the calculus.**  The forgetful `Σ_B : Over B → 𝒞` preserves
-     pullbacks (`sliceForget_preserves_isPullback`) and images (`overHasImages`, this file),
-     so for slice relations `R, S` on `X` there are RelHom-isos
-       `Σ_B(R ⊚ S) ≅ Σ_B R ⊚ Σ_B S`,  `Σ_B(R°) ≅ (Σ_B R)°`,  `Σ_B(graph m) ≅ graph m.f`.
-     PROVING these on the nose is the bulk: `compose` is defined via the *chosen* pullback and
-     *chosen* image of a span, and `Σ_B` lands on a different chosen pullback/image of the
-     forwarded span, so the identification is up-to-the-canonical-comparison-iso, not `rfl`.
-     (Engine: `image_comparison_iso` + `sliceForget_preserves_isPullback` per operation.)
+  1. ✅ **Forget commutes with the calculus** (`BinRel.forgetSlice`, `forgetSlice_graph`,
+     `forgetSlice_reciprocal` on the nose; `forgetSlice_compose_le` + `le_forgetSlice_compose`
+     for `⊚` up to the comparison iso; `forgetSlice_mono_relLe` / `forgetSlice_reflects_relLe`
+     for faithfulness).
+  2. ✅ **`EffectiveRegular (Over B)`** (`overEffectiveRegular`, via `sliceIsEffective`).
+  4. ✅ **`HasReflTransClosure (Over B)`** (`overHasReflTransClosure`, via `sliceTransRefClos`).
 
-  2. **`EffectiveRegular (Over B)`.**  Given an equivalence relation `E : BinRel (Over B) X X`,
-     its underlying `E̅ : BinRel 𝒞 X.dom X.dom` (columns `E.colA.f`, `E.colB.f`) is an
-     equivalence relation in `𝒞` by step 1.  KEY: the two legs automatically equalize `X.hom`
-     (both `E.colA.f ≫ X.hom` and `E.colB.f ≫ X.hom` equal `E.src.hom`, since `colA, colB`
-     are slice arrows).  `𝒞`'s `EffectiveRegular.effective` gives a cover `q : X.dom ↠ Q₀` with
-     `E̅ = level q`; the leg-equalisation lets `X.hom` factor as `q ≫ b` (`b : Q₀ → B`,
-     `cover_is_coequalizer_of_level` / `cover_epi`).  Then `q : X → ⟨Q₀, b⟩` is a slice cover
-     (`cover_of_cover_f`) whose slice level is `E` (step 1 + `sliceForget_preserves_isPullback`
-     on the kernel pair).  Hence `IsEffective E`, giving `EffectiveRegular (Over B)` and so
-     `PreTopos (Over B)` once `PositivePreLogos (Over B)` is supplied.
+  REMAINING (next-rung residual):
 
-  3. **`DisjointBinaryCoproduct (Over B)`.**  Slice coproducts are `𝒞`-coproducts over `B`
-     (`X + Y → B` by copairing the two structure maps); the positive/disjointness data
-     (`inlSub`, `inrSub`, `inl_inter_inr_le_bottom`, `inl_union_inr_entire`, §1.62) transports
-     because forget preserves the union/intersection of subobjects (it preserves images and
-     pullbacks, the ingredients of `PreLogos`).  Needs `PositivePreLogos (Over B)` first.
-
-  4. **`HasReflTransClosure (Over B)`.**  The rtc of a slice relation `R` is the slice lift of
-     `rtc (Σ_B R)`: reflexivity/transitivity/minimality transport along the RelHom-isos of
-     step 1, so `transRefClos` for `Over B` is built from `𝒞`'s.
+  3. **`DisjointBinaryCoproduct (Over B)`** — NOT yet built.  This is the heaviest rung: it
+     extends `PositivePreLogos (Over B)`, which in turn needs `HasBinaryCoproducts (Over B)`
+     (slice coproduct `X + Y → B` by copairing the two structure maps), `HasSubobjectUnions
+     (Over B)`, and the full `PreLogos (Over B)` data (`bottom`, `bottom_min`, `bottom_dom_iso`,
+     `invImage_preserves_union`, `invImage_preserves_bottom`).  NONE of these slice instances
+     exist yet in the repo.  Only after `PositivePreLogos (Over B)` is in hand can the three
+     §1.621 disjointness fields (`inl_monic`, `inr_monic`, `inl_inter_inr`, `inl_union_inr`)
+     be transported.  Combined with rung 2 this would give `PreToposDisjoint (Over B)`; with
+     rung 4 it closes the §1.662 Diaconescu hypotheses.  This is a self-contained multi-hundred-
+     line PreLogos-transport (slice coproducts + subobject-union transport along the faithful
+     forgetful functor `Σ_B`, which preserves images and pullbacks) and is the exact next task.
 
   5. **Diaconescu transport (final).**  `preTopos_boolean_iff_all_decidable.mpr` reduces the
      `S1_64` goal to `∀ A, DecidableObject A`.  Decidability of `A` is the diagonal
