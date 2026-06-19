@@ -281,6 +281,57 @@ theorem classify_surjective {A : 𝒞}
   intro v hv₁ _
   exact Pb.lift_uniq ⟨d.pt, d.π₁, d.π₂, d.w⟩ v hv₁ (term_uniq _ _)
 
+/-- **§1.912 (classify naturality under pullback)**: the characteristic map of an
+    inverse image `f# S` is `f ≫ χ_S`.  Equivalently, `Sub(−) ≅ Hom(−,Ω)` is
+    natural: pulling a subobject back along `f` precomposes its classifier with `f`.
+
+    Proof by pullback pasting against `classify_unique`.  The pasted square (the
+    `f`-pullback square of `S.arr` stacked on the classifier square of `S`) is a
+    pullback of `t` along `f ≫ χ_S`, whose left leg is `(f# S).arr = π₁`. -/
+theorem classify_invImg {A B : 𝒞} (f : B ⟶ A) (S : Subobject 𝒞 A)
+    (hp : HasPullback f S.arr) :
+    HasSubobjectClassifier.classify (invImg f S hp).arr (invImg f S hp).monic
+      = f ≫ HasSubobjectClassifier.classify S.arr S.monic := by
+  let χ := HasSubobjectClassifier.classify S.arr S.monic
+  show HasSubobjectClassifier.classify (invImg f S hp).arr (invImg f S hp).monic = f ≫ χ
+  have sqS : S.arr ≫ χ = term S.dom ≫ HasSubobjectClassifier.true :=
+    HasSubobjectClassifier.classify_sq S.arr S.monic
+  -- the pasted commuting square over (f ≫ χ, true).
+  have hsq : (invImg f S hp).arr ≫ (f ≫ χ)
+      = term (invImg f S hp).dom ≫ HasSubobjectClassifier.true := by
+    show hp.cone.π₁ ≫ (f ≫ χ) = term hp.cone.pt ≫ HasSubobjectClassifier.true
+    calc hp.cone.π₁ ≫ (f ≫ χ)
+        = (hp.cone.π₁ ≫ f) ≫ χ := (Cat.assoc _ _ _).symm
+      _ = (hp.cone.π₂ ≫ S.arr) ≫ χ := by rw [hp.cone.w]
+      _ = hp.cone.π₂ ≫ (S.arr ≫ χ) := Cat.assoc _ _ _
+      _ = hp.cone.π₂ ≫ (term S.dom ≫ HasSubobjectClassifier.true) := by rw [sqS]
+      _ = (hp.cone.π₂ ≫ term S.dom) ≫ HasSubobjectClassifier.true := (Cat.assoc _ _ _).symm
+      _ = term hp.cone.pt ≫ HasSubobjectClassifier.true := by
+            rw [term_uniq (hp.cone.π₂ ≫ term S.dom) (term hp.cone.pt)]
+  symm
+  refine HasSubobjectClassifier.classify_unique (invImg f S hp).arr (invImg f S hp).monic _ hsq ?_
+  intro d
+  -- d : cone over (f ≫ χ, true).  (d.π₁ ≫ f, d.π₂) is a cone over (χ, true).
+  have hcS : (d.π₁ ≫ f) ≫ χ = d.π₂ ≫ HasSubobjectClassifier.true := by
+    rw [Cat.assoc]; exact d.w
+  obtain ⟨e, ⟨he₁, _⟩, _⟩ :=
+    HasSubobjectClassifier.classify_pullback S.arr S.monic
+      ⟨d.pt, d.π₁ ≫ f, d.π₂, hcS⟩
+  -- he₁ : e ≫ S.arr = d.π₁ ≫ f.  So (d.π₁, e) is a cone over (f, S.arr); lift into hp.
+  have hw : d.π₁ ≫ f = e ≫ S.arr := he₁.symm
+  refine ⟨hp.lift ⟨d.pt, d.π₁, e, hw⟩, ⟨hp.lift_fst _, term_uniq _ _⟩, ?_⟩
+  intro v hv₁ _
+  -- v ≫ π₂ = e by cancelling the monic S.arr: both compose with S.arr to d.π₁ ≫ f.
+  have hv₁' : v ≫ hp.cone.π₁ = d.π₁ := hv₁
+  refine hp.lift_uniq ⟨d.pt, d.π₁, e, hw⟩ v hv₁ (S.monic _ _ ?_)
+  show (v ≫ hp.cone.π₂) ≫ S.arr = e ≫ S.arr
+  calc (v ≫ hp.cone.π₂) ≫ S.arr
+      = v ≫ (hp.cone.π₂ ≫ S.arr) := Cat.assoc _ _ _
+    _ = v ≫ (hp.cone.π₁ ≫ f) := congrArg (v ≫ ·) hp.cone.w.symm
+    _ = (v ≫ hp.cone.π₁) ≫ f := (Cat.assoc _ _ _).symm
+    _ = d.π₁ ≫ f := congrArg (· ≫ f) hv₁'
+    _ = e ≫ S.arr := hw
+
 /-- **§1.914 (internal-meet universal property)**: the classifying map
     `⟨χ_{S₁}, χ_{S₂}⟩ ≫ omegaMeet : A → Ω` of the pair of characteristic maps
     classifies the intersection `S₁ ∩ S₂` (`Sub.inter`, §1.452).
