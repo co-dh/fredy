@@ -777,6 +777,24 @@ theorem image_chosenPullback_isPullback' {𝒞 : Type w} [Cat.{w} 𝒞]
       rw [show (hF.map em ≫ φ) ≫ snd = hF.map (em ≫ snd) from (Cat.assoc _ _ _).trans hbr₂]
       exact hv₂
 
+/-- **A cone with the binary-product universal property has iso comparison map** (ported from
+    `CatColimitRegular.isIso_of_product_up`). -/
+theorem isIso_of_product_up' [HasBinaryProducts 𝒟]
+    {A B P : 𝒟} (p₁ : P ⟶ A) (p₂ : P ⟶ B)
+    (hup : ∀ {Z : 𝒟} (f : Z ⟶ A) (g : Z ⟶ B),
+      ∃ u : Z ⟶ P, (u ≫ p₁ = f ∧ u ≫ p₂ = g) ∧
+        ∀ v : Z ⟶ P, v ≫ p₁ = f → v ≫ p₂ = g → v = u) :
+    IsIso (pair p₁ p₂ : P ⟶ prod A B) := by
+  obtain ⟨u, ⟨hu₁, hu₂⟩, _⟩ := hup (fst (A := A) (B := B)) (snd (A := A) (B := B))
+  refine ⟨u, ?_, ?_⟩
+  · obtain ⟨_, _, huniq⟩ := hup p₁ p₂
+    have e1 : (pair p₁ p₂ ≫ u) ≫ p₁ = p₁ := by rw [Cat.assoc, hu₁, fst_pair]
+    have e2 : (pair p₁ p₂ ≫ u) ≫ p₂ = p₂ := by rw [Cat.assoc, hu₂, snd_pair]
+    rw [huniq (pair p₁ p₂ ≫ u) e1 e2, huniq (Cat.id P) (Cat.id_comp _) (Cat.id_comp _)]
+  · have h1 : (u ≫ pair p₁ p₂) ≫ fst = fst (A := A) (B := B) := by rw [Cat.assoc, fst_pair, hu₁]
+    have h2 : (u ≫ pair p₁ p₂) ≫ snd = snd (A := A) (B := B) := by rw [Cat.assoc, snd_pair, hu₂]
+    rw [pair_uniq _ _ (u ≫ pair p₁ p₂) h1 h2, pair_fst_snd]
+
 end GenericPullbackPres
 
 /-! ## The lax stage-inclusion functor (single-universe)
@@ -798,6 +816,195 @@ noncomputable def stageInclFunctorL (i : ι) :
   { map := fun {x y} g => stageInclL L hL g
     map_id := fun x => stageInclL_id L hL x
     map_comp := fun {x y z} g h => stageInclL_comp L hL g h }
+
+/-! ## Cover reflection/preservation for the stage-inclusion functor need faithfulness etc.
+
+  The remaining `hcanon` discharge instantiates the toolkit above (`homInclL_cover_reflects`,
+  `homInclL_cover_of_stage`, `homInclL_factor`) at the lax base-change system.  Cover
+  reflection/preservation through `stageInclFunctorL` is just `homInclL_cover_reflects` /
+  `homInclL_cover_of_stage` since `stageInclFunctorL.map = stageInclL`. -/
+
+/-! ### `stageInclFunctorL` preserves binary products
+
+  The comparison map `pair (F fst) (F snd) : ⟨i, A×B⟩ ⟶ prod_colim (⟨i,A⟩) (⟨i,B⟩)` is iso.  By
+  `isIso_of_product_up'` it suffices that the cone `(⟨i, A×B⟩, F fst, F snd)` has the binary-product
+  universal property in the colimit: this is the lax mirror of the strict `objIncl_preserves_products`
+  mediator construction (push competitors to a common stage `N ≥ i`, use `pData.presPair` there). -/
+
+/-- Universal property of the `F`-image product cone `(⟨i, (hp i).prod x y⟩, F fst, F snd)`. -/
+theorem stageInclL_product_up (pData : LaxProductData L) (i : ι) (x y : L.A i)
+    {Z : Obj L}
+    (f : homL L hL Z ⟨i, x⟩)
+    (g : homL L hL Z ⟨i, y⟩) :
+    letI : Cat (Obj L) := laxColimCat L hL
+    ∃ u : Z ⟶ (⟨i, (pData.hp i).prod x y⟩ : Obj L),
+      (u ≫ stageInclL L hL (pData.hp i).fst = f ∧ u ≫ stageInclL L hL (pData.hp i).snd = g) ∧
+      ∀ v : Z ⟶ (⟨i, (pData.hp i).prod x y⟩ : Obj L),
+        v ≫ stageInclL L hL (pData.hp i).fst = f →
+        v ≫ stageInclL L hL (pData.hp i).snd = g → v = u := by
+  letI : Cat (Obj L) := laxColimCat L hL
+  obtain ⟨lz, z⟩ := Z
+  let p := (pData.hp i).prod x y
+  -- The projection germs as `homInclL` of `reflApp p ≫ proj` with `proj : p ⟶ L.F (refl i) ·`.
+  have hfst_eq : stageInclL L hL (pData.hp i).fst
+      = homInclL L hL p x ⟨i, D.refl i, D.refl i⟩
+          (reflApp L p ≫ ((pData.hp i).fst ≫ isoInv (reflApp_isIso L x))) := by
+    rfl
+  have hsnd_eq : stageInclL L hL (pData.hp i).snd
+      = homInclL L hL p y ⟨i, D.refl i, D.refl i⟩
+          (reflApp L p ≫ ((pData.hp i).snd ≫ isoInv (reflApp_isIso L y))) := by
+    rfl
+  -- ===== Joint monicity of the two projections at apex `⟨i,p⟩` (uniqueness ingredient). =====
+  have hjm : ∀ h₁ h₂ : homL L hL ⟨lz, z⟩ ⟨i, p⟩,
+      compL L hL h₁ (stageInclL L hL (pData.hp i).fst)
+        = compL L hL h₂ (stageInclL L hL (pData.hp i).fst) →
+      compL L hL h₁ (stageInclL L hL (pData.hp i).snd)
+        = compL L hL h₂ (stageInclL L hL (pData.hp i).snd) →
+      h₁ = h₂ := by
+    -- Same-stage mirror of `prJointMono`: product at stage `i`, projection germs
+    -- `homInclL ⟨i,refl,refl⟩ (reflApp p ≫ (proj ≫ isoInv reflApp))`.  Set `k := i`, `hik := refl i`
+    -- and `projF := fst ≫ isoInv reflApp`, `projS := snd ≫ isoInv reflApp`.
+    intro h₁ h₂ hf hs
+    rw [hfst_eq] at hf
+    rw [hsnd_eq] at hs
+    let hik : D.le i i := D.refl i
+    let projF : p ⟶ L.F hik x := (pData.hp i).fst ≫ isoInv (reflApp_isIso L x)
+    let projS : p ⟶ L.F hik y := (pData.hp i).snd ≫ isoInv (reflApp_isIso L y)
+    revert hf hs
+    refine Quotient.inductionOn₂ h₁ h₂ (fun rh₁ rh₂ hf hs => ?_)
+    obtain ⟨a₁, m₁⟩ := rh₁
+    obtain ⟨a₂, m₂⟩ := rh₂
+    -- common bound `e ≥ a₁.1, a₂.1, i`.
+    obtain ⟨w0, hw0a, hw0b⟩ := D.bound a₁.1 a₂.1
+    obtain ⟨e, hew, hek⟩ := D.bound w0 i
+    have ha₁e : D.le a₁.1 e := D.trans hw0a hew
+    have ha₂e : D.le a₂.1 e := D.trans hw0b hew
+    rw [prCompProj L hL z p x hik projF a₁ m₁ e ha₁e hek,
+        prCompProj L hL z p x hik projF a₂ m₂ e ha₂e hek] at hf
+    rw [prCompProj L hL z p y hik projS a₁ m₁ e ha₁e hek,
+        prCompProj L hL z p y hik projS a₂ m₂ e ha₂e hek] at hs
+    obtain ⟨cf, hcf1, hcf2, eqf⟩ := Quotient.exact hf
+    obtain ⟨cs, hcs1, hcs2, eqs⟩ := Quotient.exact hs
+    obtain ⟨n, hcfn, hcsn⟩ := D.bound cf.1 cs.1
+    simp only [homSystemL] at eqf eqs
+    rw [prPsi_push L hL z p x hik projF a₁ m₁ e cf.1 ha₁e hek hcf1,
+        prPsi_push L hL z p x hik projF a₂ m₂ e cf.1 ha₂e hek hcf2] at eqf
+    rw [prPsi_push L hL z p y hik projS a₁ m₁ e cs.1 ha₁e hek hcs1,
+        prPsi_push L hL z p y hik projS a₂ m₂ e cs.1 ha₂e hek hcs2] at eqs
+    have eqf' := congrArg (pushHom L z x (D.trans a₁.2.1 (D.trans ha₁e hcf1))
+        (D.trans hik (D.trans hek hcf1)) hcfn) eqf
+    have eqs' := congrArg (pushHom L z y (D.trans a₁.2.1 (D.trans ha₁e hcs1))
+        (D.trans hik (D.trans hek hcs1)) hcsn) eqs
+    rw [prPsi_push L hL z p x hik projF a₁ m₁ cf.1 n _ _ hcfn,
+        prPsi_push L hL z p x hik projF a₂ m₂ cf.1 n _ _ hcfn] at eqf'
+    rw [prPsi_push L hL z p y hik projS a₁ m₁ cs.1 n _ _ hcsn,
+        prPsi_push L hL z p y hik projS a₂ m₂ cs.1 n _ _ hcsn] at eqs'
+    unfold prPsi at eqf' eqs'
+    rw [pushHom_proj L x p hik _ projF] at eqf'
+    rw [pushHom_proj L y p hik _ projS] at eqs'
+    have hkn : D.le i n := D.trans hek (D.trans hcf1 hcfn)
+    have ha₁n : D.le a₁.1 n := D.trans ha₁e (D.trans hcf1 hcfn)
+    have ha₂n : D.le a₂.1 n := D.trans ha₂e (D.trans hcf1 hcfn)
+    let u₁ : L.F (D.trans a₁.2.1 ha₁n) z ⟶ L.F hkn p :=
+      pushHom L z p a₁.2.1 a₁.2.2 ha₁n m₁ ≫ prUnit L p hkn
+    let u₂ : L.F (D.trans a₂.2.1 ha₂n) z ⟶ L.F hkn p :=
+      pushHom L z p a₂.2.1 a₂.2.2 ha₂n m₂ ≫ prUnit L p hkn
+    -- strip the trailing `isoInv (transApp)` AND the trailing `map (isoInv reflApp)` (from `projF`).
+    have hproj : ∀ (w : L.A i) (pr : p ⟶ w),
+        (L.functF hkn).map (pr ≫ isoInv (reflApp_isIso L w))
+            ≫ isoInv (transApp_isIso L hik hkn w) ≫ transApp L hik hkn w
+              ≫ (L.functF hkn).map (reflApp L w)
+          = (L.functF hkn).map pr := by
+      intro w pr
+      rw [← Cat.assoc (isoInv (transApp_isIso L hik hkn w)), inv_isoInv_comp, Cat.id_comp,
+          @Functor.map_comp (L.A i) (L.catA i) (L.A n) (L.catA n) (L.F hkn) (L.functF hkn)
+            _ _ _ pr (isoInv (reflApp_isIso L w)),
+          Cat.assoc, ← @Functor.map_comp (L.A i) (L.catA i) (L.A n) (L.catA n) (L.F hkn)
+            (L.functF hkn) _ _ _ (isoInv (reflApp_isIso L w)) (reflApp L w),
+          inv_isoInv_comp,
+          @Functor.map_id (L.A i) (L.catA i) (L.A n) (L.catA n) (L.F hkn) (L.functF hkn) w,
+          Cat.comp_id]
+    have hfst : u₁ ≫ (L.functF hkn).map (pData.hp i).fst
+        = u₂ ≫ (L.functF hkn).map (pData.hp i).fst := by
+      have := congrArg (· ≫ transApp L hik hkn x ≫ (L.functF hkn).map (reflApp L x)) eqf'
+      simp only [projF, Cat.assoc] at this ⊢
+      rw [hproj x (pData.hp i).fst] at this
+      simpa only [u₁, u₂, Cat.assoc] using this
+    have hsnd : u₁ ≫ (L.functF hkn).map (pData.hp i).snd
+        = u₂ ≫ (L.functF hkn).map (pData.hp i).snd := by
+      have := congrArg (· ≫ transApp L hik hkn y ≫ (L.functF hkn).map (reflApp L y)) eqs'
+      simp only [projS, Cat.assoc] at this ⊢
+      rw [hproj y (pData.hp i).snd] at this
+      simpa only [u₁, u₂, Cat.assoc] using this
+    have huv : u₁ = u₂ :=
+      pData.pres hkn x y (L.F (D.trans a₁.2.1 ha₁n) z) u₁ u₂ hfst hsnd
+    have hmm : pushHom L z p a₁.2.1 a₁.2.2 ha₁n m₁ = pushHom L z p a₂.2.1 a₂.2.2 ha₂n m₂ := by
+      have h2 := congrArg (· ≫ isoInv (prUnit_isIso L p hkn)) huv
+      simpa only [u₁, u₂, Cat.assoc, isoInv_comp, Cat.comp_id] using h2
+    exact Quotient.sound ⟨⟨n, D.trans a₁.2.1 ha₁n, hkn⟩, ha₁n, ha₂n, hmm⟩
+  -- ===== EXISTENCE: build the mediator via `pData.presPair` at a common stage `N ≥ i`. =====
+  refine Quotient.inductionOn f (fun rf => ?_)
+  refine Quotient.inductionOn g (fun rg => ?_)
+  obtain ⟨af, fa⟩ := rf
+  obtain ⟨ag, ga⟩ := rg
+  -- common stage `N ≥ af.1, ag.1, i`.
+  obtain ⟨e1, he1a, he1b⟩ := D.bound af.1 ag.1
+  obtain ⟨N, hNe, hNi⟩ := D.bound e1 i
+  have hafN : D.le af.1 N := D.trans he1a hNe
+  have hagN : D.le ag.1 N := D.trans he1b hNe
+  have hiN : D.le i N := hNi
+  have hlN : D.le lz N := D.trans af.2.1 hafN
+  -- push competitors and convert targets to `F (i≤N) x` / `F (i≤N) y` via `transApp`.
+  let p_comp : L.F hlN z ⟶ L.F hiN x :=
+    pushHom L z x af.2.1 af.2.2 hafN fa ≫ transApp L (D.refl i) hiN x ≫ (L.functF hiN).map (reflApp L x)
+  let q_comp : L.F hlN z ⟶ L.F hiN y :=
+    pushHom L z y ag.2.1 ag.2.2 hagN ga ≫ transApp L (D.refl i) hiN y ≫ (L.functF hiN).map (reflApp L y)
+  obtain ⟨r, hr_fst, hr_snd⟩ := pData.presPair hiN x y (L.F hlN z) p_comp q_comp
+  -- the shared cancellation: `(r ≫ isoInv prUnit) ⊚ stageInclL proj` reduces to the pushed
+  -- competitor at stage `N`, hence (homInclL_compat) the original competitor germ.
+  have leg : ∀ (w : L.A i) (proj : p ⟶ w) (aw : UpperBound D lz i)
+      (wa : L.F aw.2.1 z ⟶ L.F aw.2.2 w) (hawN : D.le aw.1 N),
+      r ≫ (L.functF hiN).map proj
+          = pushHom L z w aw.2.1 aw.2.2 hawN wa ≫ transApp L (D.refl i) hiN w
+              ≫ (L.functF hiN).map (reflApp L w) →
+      @compL _ _ L hL ⟨lz, z⟩ ⟨i, p⟩ ⟨i, w⟩
+          (homInclL L hL z p ⟨N, hlN, hiN⟩ (r ≫ isoInv (prUnit_isIso L p hiN)))
+          (homInclL L hL p w ⟨i, D.refl i, D.refl i⟩
+            (reflApp L p ≫ (proj ≫ isoInv (reflApp_isIso L w))))
+        = Quotient.mk (setoid (homSystemL L hL z w)) ⟨aw, wa⟩ := by
+    intro w proj aw wa hawN hcomp
+    show homCompRawL L hL z p w ⟨N, hlN, hiN⟩ (r ≫ isoInv (prUnit_isIso L p hiN))
+        ⟨i, D.refl i, D.refl i⟩ (reflApp L p ≫ (proj ≫ isoInv (reflApp_isIso L w)))
+      = homInclL L hL z w aw wa
+    rw [homCompRawL_eq_compAtL L hL z p w ⟨N, hlN, hiN⟩ (r ≫ isoInv (prUnit_isIso L p hiN))
+          ⟨i, D.refl i, D.refl i⟩ (reflApp L p ≫ (proj ≫ isoInv (reflApp_isIso L w))) N (D.refl N) hiN]
+    unfold compAtL
+    -- left push along `refl N` is the identity; right push by `pushHom_proj` (source `refl i`).
+    rw [hL.push_refl z p hlN hiN (r ≫ isoInv (prUnit_isIso L p hiN)),
+        pushHom_proj L w p (D.refl i) hiN (proj ≫ isoInv (reflApp_isIso L w))]
+    -- cancel `isoInv prUnit ≫ prUnit = id`.
+    rw [Cat.assoc, ← Cat.assoc (isoInv (prUnit_isIso L p hiN)),
+        inv_isoInv_comp, Cat.id_comp]
+    -- distribute `map (proj ≫ isoInv reflApp)` and use `hcomp` to substitute `r ≫ map proj`.
+    rw [@Functor.map_comp (L.A i) (L.catA i) (L.A N) (L.catA N) (L.F hiN) (L.functF hiN)
+          _ _ _ proj (isoInv (reflApp_isIso L w)), ← Cat.assoc, ← Cat.assoc r,
+        hcomp]
+    -- now `pushHom wa ≫ transApp ≫ map(reflApp w) ≫ map(isoInv reflApp w) ≫ isoInv transApp`.
+    -- `map(reflApp) ≫ map(isoInv reflApp) = id`, then `transApp ≫ isoInv transApp = id`.
+    simp only [Cat.assoc, ← Functor.map_comp, isoInv_comp, Functor.map_id, Cat.comp_id]
+    -- absorb the level `aw.1 → N` transition by `homInclL_compat`.
+    exact homInclL_compat L hL z w (a := aw)
+      (b := ⟨N, D.trans aw.2.1 hawN, D.trans aw.2.2 hawN⟩) hawN wa
+  -- the mediator `u` (with `isoInv prUnit` baked in to cancel the projection's `prUnit` prefactor).
+  refine ⟨homInclL L hL z p ⟨N, hlN, hiN⟩ (r ≫ isoInv (prUnit_isIso L p hiN)), ⟨?_, ?_⟩, ?_⟩
+  · rw [hfst_eq]; exact leg x (pData.hp i).fst af fa hafN hr_fst
+  · rw [hsnd_eq]; exact leg y (pData.hp i).snd ag ga hagN hr_snd
+  · intro v hv1 hv2
+    apply hjm
+    · show v ≫ stageInclL L hL (pData.hp i).fst = _
+      rw [hv1, hfst_eq]; exact (leg x (pData.hp i).fst af fa hafN hr_fst).symm
+    · show v ≫ stageInclL L hL (pData.hp i).snd = _
+      rw [hv2, hsnd_eq]; exact (leg y (pData.hp i).snd ag ga hagN hr_snd).symm
 
 end SingleUniverse
 
