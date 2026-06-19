@@ -620,9 +620,12 @@ theorem nno_peano_property {𝒞 : Type u} [Cat.{v} 𝒞]
     `Φ = { G : Ω^A | a ∈ G  ∧  ∀ x:A, x ∈ G → t x ∈ G }` (an internal-∀ predicate on `Ω^A`
     built from the membership relation `∈_A` and the maps `a, t`), together with the
     internal big-intersection `Ω^(Ω^A) → Ω^A` applied to `'Φ'`.  Both rest on the
-    `∀`-quantifier / §1.543 capitalization lemma that `S1_94` itself flags as `sorry`
-    (`inter_le_singleton_named`'s integrity note: `interIntersection` is only the *singleton*
-    family `1 → Ω^A`, not the `⋂Φ`-over-a-subobject-family glb).  `Topos`/`HasExponentials`
+    `∀`-quantifier / family-glb that `S1_94` never constructs (`inter_le_singleton_named`'s
+    integrity note: `interIntersection` is only the *singleton* family `1 → Ω^A`, not the
+    `⋂Φ`-over-a-subobject-family glb).  STATUS: this is NOT the §1.543 capitalization lemma,
+    which is now PROVEN sorry-free (`Fredy.CapDataWiring.capData_exists`); the gap is the
+    separate internal-∀ comprehension / family-glb that `S1_94` flags but never builds.
+    `Topos`/`HasExponentials`
     expose only the binary meet `omegaMeet` and the singleton `interIntersection`, NOT this
     family glb, so the closed-family name is the one missing input.
 
@@ -640,7 +643,8 @@ theorem least_peano_subobject {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞] [HasIm
   -- The ONLY missing operation: the name `F_name : 1 → Ω^A` of the least `(a,t)`-closed
   -- subobject, together with the witnesses that `interIntersection F_name` is itself closed
   -- and that its name is `F_name` (so `inter_le_named` discharges leastness).  This bundles
-  -- exactly the internal-∀ comprehension `{G | closed G}` + the family glb `⋂Φ` (§1.543).
+  -- exactly the internal-∀ comprehension `{G | closed G}` + the family glb `⋂Φ` (the `S1_94`
+  -- family-glb gap — NOT the now-proven §1.543 capitalization lemma).
   -- It is the SOLE consumer of the gap; the remainder of the proof is constructive.
   have closedData : ∃ F_name : one ⟶ powObj A,
       Allows (interIntersection F_name) a ∧
@@ -650,8 +654,9 @@ theorem least_peano_subobject {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞] [HasIm
         (∃ tB : B.dom ⟶ B.dom, tB ≫ B.arr = B.arr ≫ t) →
         nameOf B.arr B.monic = F_name) := by
     -- Faithful sorry: `F_name` is the name of `⋂{closed S}`, needing the internal-∀
-    -- comprehension on Ω^A + the §1.543 family-glb (`S1_94` `sorry`).  Not derivable from
-    -- the binary meet / singleton `interIntersection` available here.
+    -- comprehension on Ω^A + the family-glb that `S1_94` never constructs (only the singleton
+    -- `interIntersection` and binary `omegaMeet` are available).  NOT the §1.543 capitalization
+    -- lemma (now proven sorry-free) — this is the separate internal-∀/family-glb infra gap.
     sorry
   obtain ⟨F_name, hAllows, ht', hclosed⟩ := closedData
   -- A' := the internally-defined intersection ∩F_name (S1_94), a genuine subobject of A.
@@ -764,7 +769,8 @@ theorem nno_is_free_one_action {𝒞 : Type u} [Cat.{v} 𝒞]
   The Peano property follows from §1.988 (or its generalization, cited as [2.542]
   in the book) and the NNO uniqueness and existence conditions are verified from
   the bicartesian data.  We record the statement here with a sorry pending the
-  Peano property infrastructure from §1.988. -/
+  §1.988 partial-map-classifier recursor + §1.987 internal-∀ Peano induction
+  (W-type infrastructure absent in this repo — NOT the now-proven §1.543 lemma). -/
 
 /-- §1.98(10): If [a, t] : 1 + A → A is iso and A → 1 is a coequalizer of (t, id_A),
     then 1 →ᵃ A →ᵗ A is a NNO. -/
@@ -802,25 +808,24 @@ theorem nno_of_bicartesian_data {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
   --     partial-map category — so a partial map `A ⇀ X` becomes a TOTAL `A → X̃` (pullback of η_X).
   --     The single `pmc_obj` here is structurally only the `X=1` case `1̃ = Ω₊`; it cannot name a
   --     partial recursor valued in a general `X`.
-  --   • LAW.  Even the lawful per-object version (add the pullback universal property as fields)
-  --     would NOT close this sorry, because the §1.98(10) PROOF is capitalization-gated INDEPENDENTLY
-  --     of the PMC laws (see below).  So the reported "missing pmc_restrict/pmc_unique" is only the
-  --     proximate symptom, not the real wall.
+  --   • LAW.  Even adding the per-object pullback universal property as fields, the recursor needs
+  --     §1.988's INDUCTION step: the coequalizer `A→1` says `A` has no proper `(a,t)`-stable
+  --     subobject, so the partial recursor's domain `R↣A` (also `(a,t)`-stable) is all of `A`.
+  --     That induction is exactly the Peano property of `A`, i.e. `least_peano_subobject` (§1.987)
+  --     below — whose ONE residual is the internal-∀ family-glb name `closedName`, NOT available here.
   --
-  -- REAL BOOK-LEVEL ROOT CAUSE (§2.542 / §1.989 / §1.935 capitalization — the §1.543 gate):
-  -- Freyd proves §1.98(10) via "A has the Peano property [1.988, 2.542]" and "C↣A is monic [1.989,
-  -- 2.542]".  Both feeder lemmas are proved only AFTER reducing to a CAPITAL/boolean topos:
-  --   • §1.988 (Peano property) is stated "In a boolean topos …"; the word 'boolean' is removed only
-  --     via §2.542 = a FAITHFUL BICARTESIAN functor A → (boolean topos), i.e. capitalization.
-  --   • §1.989 (the monicity of C↣A used in the existence step) opens "We may assume that the topos
-  --     is capital [1.935]."
-  --   • The partial-map classifier `B̃` itself (§1.934/§1.935/§1.963) is CONSTRUCTED via capitalization
-  --     (`B̃ = Π_t(B/0)`, "value-based in any capital topos").
-  -- This is exactly the §1.543 capitalization wall this repo has NOT discharged: `Fredy/Capitalization.lean`
-  -- (`capData_exists`) and `least_peano_subobject` (§1.987, below) bottom out on the SAME §1.543 gate.
-  -- Hence faithfully completing `HasPartialMapClassifier` with its universal property buys nothing here,
-  -- and (no topos instance can build `B̃` without §1.935) would itself be §1.543-gated.  We therefore
-  -- leave the honest sorry and do not bloat the structure with fields no instance can supply.
+  -- WHAT IS *NOT* THE BLOCKER (status correction).  §1.543 capitalization is now PROVEN sorry-free
+  -- in this repo (`Fredy.CapDataWiring.capData_exists`; `Fredy/Capitalization.lean` `capData_exists`).
+  -- So this sorry is NOT capitalization-gated.  Freyd's book proof of §1.98(10) does route §1.988 /
+  -- §1.989 through a boolean/capital topos (§2.542 / §1.935), but in THIS layer the residual is the
+  -- elementary infrastructure those feeders rest on once capitalization is in hand:
+  --   • a LAWFUL per-codomain partial-map classifier `B ↦ B̃` (the bare single-object `pmc_obj`
+  --     here has no restrict/uniqueness law — §1.988's recursor cannot be named or made unique); AND
+  --   • the internal-∀ family-glb `closedName` of §1.987 (Peano induction), the SAME absent
+  --     comprehension `least_peano_subobject` bottoms out on — a `S1_94` gap distinct from §1.543.
+  -- Hence the residual is missing W-type / partial-map-recursor / internal-∀ infrastructure, not the
+  -- (now-closed) capitalization lemma.  We leave the honest sorry and do not bloat the bare
+  -- `HasPartialMapClassifier` structure with fields no current instance can supply.
   --
   -- The bare classifier `pmc.pmc_classify` is the only PMC operation available, and is too weak:
   have _cls : ∀ {X A' : 𝒞} (m : A' ⟶ A) (_ : Mono m) (_ : A' ⟶ X), A ⟶ pmc.pmc_obj :=
@@ -908,10 +913,11 @@ theorem free_action_iff_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
   -- BLOCKER: the A-action analogue of `nno_of_bicartesian_data` (§1.98(13) is proved "analogously
   -- to [1.985] and [1.98(10)]").  From the iso [e,s]:1+A×A* ≅ A* and the coequalizer A×A*→A*→1 one
   -- builds the free recursor recA α : A* → α.obj for every A-action α, with existence+uniqueness.
-  -- It therefore inherits §1.98(10)'s REAL root cause: the Peano-property / monicity feeders
-  -- (§1.988, §1.989) are capitalization-gated (§2.542 boolean embedding / §1.935 "assume capital"),
-  -- i.e. the §1.543 wall this repo has not discharged (`Capitalization.lean` capData_exists).
-  -- Faithful sorry — blocked on §1.543 capitalization, not merely on PMC laws.
+  -- It therefore inherits §1.98(10)'s REAL residual (see `nno_of_bicartesian_data`): the §1.988
+  -- partial-map-classifier recursor + the §1.987 internal-∀ Peano induction (`least_peano_subobject`).
+  -- STATUS CORRECTION: §1.543 capitalization is now PROVEN sorry-free
+  -- (`Fredy.CapDataWiring.capData_exists`); this sorry is NOT capitalization-gated.  The residual is
+  -- the absent W-type / lawful per-codomain PMC / internal-∀ comprehension infrastructure.
   sorry
 
 /-! ## §1.98(14)  Existence of free A-action from NNO
@@ -978,9 +984,12 @@ theorem free_action_exists {𝒞 : Type u} [Cat.{v} 𝒞]
   --       (S1_58); no countable/NNO-indexed coproduct exists, and binary ⊔ + NNO do not yield it;
   --   (b) the LIST OBJECT as a definable subobject of `(1+A)^N` cut out by a "bounded-length"
   --       predicate — but that comprehension is the internal-∀ / family-glb on `Ω^…` that
-  --       `least_peano_subobject` (above) and `S1_94` both bottom out on as the §1.543 sorry;
-  --   (c) the PARTIAL-MAP CLASSIFIER recursor `B̃` of §1.988/§1.934 — itself `B̃ = Π_t(B/0)`,
-  --       CONSTRUCTED only in a CAPITAL topos (§1.935), the same §1.543 gate hit by
+  --       `least_peano_subobject` (above) and `S1_94` both bottom out on (the internal-∀ /
+  --       family-glb that `S1_94` never constructs — NOT the now-proven §1.543 lemma);
+  --   (c) the PARTIAL-MAP CLASSIFIER recursor `B̃` of §1.988/§1.934 — Freyd builds `B̃ = Π_t(B/0)`
+  --       in a CAPITAL topos (§1.935); §1.543 capitalization is now PROVEN sorry-free here, so the
+  --       residual is the absent LAWFUL per-codomain PMC interface (`S1_92` has only a bare
+  --       single-object `pmc_obj`, no restrict/uniqueness law), the same gap hit by
   --       `nno_of_bicartesian_data`.  The available `iteratePair`/`primRec` (§1.981/§1.983)
   --       iterate a FIXED fibre `B`, not the growing power `Aⁿ`, so they cannot define `fold`.
   --
@@ -989,7 +998,9 @@ theorem free_action_exists {𝒞 : Type u} [Cat.{v} 𝒞]
   obtain ⟨LD⟩ : Nonempty (ListObjectData (𝒞 := 𝒞) A) := by
     -- MISSING PRIMITIVE: existence of the list object `A* = Σₙ Aⁿ` (initial `1 + A×(−)`-algebra).
     -- Not constructible from `HasNaturalNumbersObject` + `HasExponentials` + binary coproducts
-    -- alone; requires (a)/(b)/(c) above — all §1.543-capitalization-gated in this repo.
+    -- alone; requires (a)/(b)/(c) above.  STATUS: NOT §1.543-capitalization (now proven sorry-free,
+    -- `Fredy.CapDataWiring.capData_exists`); the residual is the absent N-indexed coproduct /
+    -- internal-∀ comprehension / lawful per-codomain partial-map-classifier infrastructure.
     sorry
   exact ⟨freeAAction_of_listObject LD⟩
 
