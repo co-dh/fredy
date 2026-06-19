@@ -109,7 +109,7 @@ noncomputable instance uniformTargetCat (W : WSCover S) : Cat.{u} (uniformTarget
   ratCat (cofinalProjSystem (S := S))
 
 /-- The base stage product is the terminal of `S` (`listProd (W.base).1 = listProd [] = 1_S`). -/
-theorem pr_base_eq : listProd (𝒞 := S) (W.base).1 = (HasTerminal.one : S) := by
+theorem pr_base_eq : listProd (𝒞 := S) ((W.base).1.map Prod.snd) = (HasTerminal.one : S) := by
   rw [W.base_chain]; rfl
 
 /-- Any two maps into an object equal to the terminal agree. -/
@@ -117,17 +117,17 @@ theorem hom_uniq_of_eq_one {Z : S} (hZ : Z = (HasTerminal.one : S)) {X : S}
     (f g : X ⟶ Z) : f = g := by subst hZ; exact term_uniq f g
 
 /-- Any two maps into the base stage `listProd (W.base).1 = 1` agree (it is terminal). -/
-theorem base_hom_uniq {X : S} (f g : X ⟶ listProd (𝒞 := S) (W.base).1) : f = g :=
+theorem base_hom_uniq {X : S} (f g : X ⟶ listProd (𝒞 := S) ((W.base).1.map Prod.snd)) : f = g :=
   hom_uniq_of_eq_one (pr_base_eq W) f g
 
 /-- The fibre at the base index is the slice `S/1` over the terminal of `S`. -/
 theorem fibre_base_eq :
-    (laxOfProjSystem' (cofinalProjSystem (S := S))).A W.base = Over (listProd (𝒞 := S) (W.base).1) :=
+    (laxOfProjSystem' (cofinalProjSystem (S := S))).A W.base = Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd)) :=
   rfl
 
 /-- **The §1.547 base embedding `S → S/(∏(base)) = S/1`**, `X ↦ ⟨X, term X⟩` (transported along
     `pr_base_eq` so the structure map `X ⟶ listProd (W.base).1` is the canonical terminator). -/
-def terminalSliceObj (X : S) : Over (listProd (𝒞 := S) (W.base).1) :=
+def terminalSliceObj (X : S) : Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd)) :=
   ⟨X, ((pr_base_eq W).symm ▸ (term X : X ⟶ (HasTerminal.one : S)))⟩
 
 /-- The morphism part: `f : X ⟶ Y ↦ ⟨f, term_uniq⟩` (commutes with the structure maps since any two
@@ -139,8 +139,8 @@ def terminalSliceMap {X Y : S} (f : X ⟶ Y) :
 /-- The base embedding `S → S/1` is a functor (laws transport via `OverHom.ext` to the underlying
     `S`-arrow equalities, which hold by the source's `Functor`/`Cat` laws). -/
 instance terminalSliceFunctor :
-    @Functor S _ (Over (listProd (𝒞 := S) (W.base).1))
-      (overCat (listProd (𝒞 := S) (W.base).1)) (terminalSliceObj W) where
+    @Functor S _ (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd)))
+      (overCat (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) (terminalSliceObj W) where
   map {_ _} f := terminalSliceMap W f
   map_id _ := OverHom.ext rfl
   map_comp {_ _ _} _ _ := OverHom.ext rfl
@@ -148,8 +148,8 @@ instance terminalSliceFunctor :
 /-- **`terminalSliceObj` is FAITHFUL.**  The underlying arrow of `terminalSliceMap f` IS `f`, so two
     maps with equal images have equal `f` (`OverHom.f` is literally the original arrow). -/
 theorem terminalSliceFaithful :
-    @Faithful S _ (Over (listProd (𝒞 := S) ((W.base).1)))
-      (overCat (listProd (𝒞 := S) ((W.base).1)))
+    @Faithful S _ (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd)))
+      (overCat (listProd (𝒞 := S) ((W.base).1.map Prod.snd)))
       (terminalSliceObj W) (terminalSliceFunctor W) := by
   refine ⟨?_, ?_⟩
   · -- embedding: the underlying arrow of `terminalSliceMap f` IS `f`.
@@ -169,8 +169,8 @@ def uniformStepObj (X : S) : uniformTargetTy W :=
     `⟨W.base, ·⟩`.  (`stageInclFunctorL` of RatCapHcanon.lean, instantiated at the §1.547 system and
     stage `W.base`.) -/
 noncomputable def stageInclNil :
-    @Functor (Over (listProd (𝒞 := S) ((W.base).1)))
-      (overCat (listProd (𝒞 := S) ((W.base).1)))
+    @Functor (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd)))
+      (overCat (listProd (𝒞 := S) ((W.base).1.map Prod.snd)))
       (uniformTargetTy W) (uniformTargetCat W)
       (fun x => (⟨W.base, x⟩ : uniformTargetTy W)) :=
   stageInclFunctorL (laxOfProjSystem' (cofinalProjSystem (S := S))) (coherentProj (cofinalProjSystem (S := S)))
@@ -181,8 +181,8 @@ noncomputable def stageInclNil :
     terminalSliceObj` definitionally, so this IS its functoriality. -/
 noncomputable instance uniformStepFunctor :
     @Functor S _ (uniformTargetTy W) (uniformTargetCat W) (uniformStepObj W) :=
-  @compFunctor S _ (Over (listProd (𝒞 := S) ((W.base).1)))
-    (overCat (listProd (𝒞 := S) ((W.base).1)))
+  @compFunctor S _ (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd)))
+    (overCat (listProd (𝒞 := S) ((W.base).1.map Prod.snd)))
     (uniformTargetTy W) (uniformTargetCat W)
     (terminalSliceObj W) (fun x => (⟨W.base, x⟩ : uniformTargetTy W))
     (terminalSliceFunctor W) (stageInclNil W)
@@ -201,8 +201,8 @@ noncomputable local instance : HasEqualizers S := products_pullbacks_implies_equ
 /-- **`terminalSliceObj` preserves the terminal.**  Maps into `terminalSliceObj W one` in the slice
     are determined by their underlying `S`-arrow into `one`, and any two such agree (`term_uniq`). -/
 theorem terminalSlicePresTerminal :
-    letI : HasTerminal (Over (listProd (𝒞 := S) ((W.base).1))) := overHasTerminal _
-    @PreservesTerminal S (Over (listProd (𝒞 := S) ((W.base).1))) _ _
+    letI : HasTerminal (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) := overHasTerminal _
+    @PreservesTerminal S (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) _ _
       (terminalSliceObj W) (terminalSliceFunctor W)
       PreRegularCategory.toHasTerminal (overHasTerminal _) := by
   intro X f g
@@ -212,15 +212,15 @@ theorem terminalSlicePresTerminal :
     underlying `S`-arrow is; `terminalSliceObj` is the underlying-identity slice equivalence, so the
     comparison is the `S`-product comparison (an iso, `prod_self_iso`). -/
 theorem terminalSlicePresProds :
-    letI : HasBinaryProducts (Over (listProd (𝒞 := S) ((W.base).1))) := overHasBinaryProducts _
-    @PreservesBinaryProducts S (Over (listProd (𝒞 := S) ((W.base).1))) _ _
+    letI : HasBinaryProducts (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) := overHasBinaryProducts _
+    @PreservesBinaryProducts S (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) _ _
       (terminalSliceObj W) (terminalSliceFunctor W)
       PreRegularCategory.toHasBinaryProducts (overHasBinaryProducts _) := by
-  letI : HasBinaryProducts (Over (listProd (𝒞 := S) ((W.base).1))) := overHasBinaryProducts _
+  letI : HasBinaryProducts (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) := overHasBinaryProducts _
   intro A B
   -- the cone `(terminalSliceObj (A×B), map fst, map snd)` has the slice product universal property:
   -- underlying it is the `S`-product of `A, B`, and slice maps are determined by underlying arrows.
-  refine isIso_of_product_up' (𝒟 := Over (listProd (𝒞 := S) ((W.base).1)))
+  refine isIso_of_product_up' (𝒟 := Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd)))
     (terminalSliceFunctor W |>.map fst) (terminalSliceFunctor W |>.map snd) ?_
   intro Z f g
   -- mediator: pair the underlying arrows in `S`, lift to the slice (term-uniqueness over `pr base`).
@@ -234,11 +234,11 @@ theorem terminalSlicePresProds :
     map (eqMap f g))` has the slice equalizer universal property (underlying it is the `S`-equalizer,
     slice maps determined by underlying arrows); two equalizers ⟹ comparison iso. -/
 theorem terminalSlicePresEqs :
-    letI : HasEqualizers (Over (listProd (𝒞 := S) ((W.base).1))) := overHasEqualizers _
-    @PreservesEqualizers S (Over (listProd (𝒞 := S) ((W.base).1))) _ _
+    letI : HasEqualizers (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) := overHasEqualizers _
+    @PreservesEqualizers S (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) _ _
       (terminalSliceObj W) (terminalSliceFunctor W)
       products_pullbacks_implies_equalizers (overHasEqualizers _) := by
-  letI : HasEqualizers (Over (listProd (𝒞 := S) ((W.base).1))) := overHasEqualizers _
+  letI : HasEqualizers (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) := overHasEqualizers _
   intro A B f g
   -- the image cone is an equalizer of `(map f, map g)` in the slice.
   have himg : (EqualizerCone.mk (f := terminalSliceFunctor W |>.map f)
@@ -260,7 +260,7 @@ theorem terminalSlicePresEqs :
 /-- **`terminalSliceObj` preserves monos.**  A slice map is monic iff its underlying `S`-arrow is
     (`Σ` preserves/reflects monos); `terminalSliceMap φ` is underlying `φ`, so `Mono φ ⟹ Mono`. -/
 theorem terminalSlicePresMono {x y : S} (φ : x ⟶ y) (hφ : Mono φ) :
-    @Mono (Over (listProd (𝒞 := S) ((W.base).1))) _ _ _ (terminalSliceFunctor W |>.map φ) := by
+    @Mono (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) _ _ _ (terminalSliceFunctor W |>.map φ) := by
   intro Z u v huv
   -- underlying: `u.f ≫ φ = v.f ≫ φ` (the slice equation, underlying), `φ` monic ⟹ `u.f = v.f`.
   have h : u.f ≫ φ = v.f ≫ φ := congrArg OverHom.f huv
@@ -269,14 +269,14 @@ theorem terminalSlicePresMono {x y : S} (φ : x ⟶ y) (hφ : Mono φ) :
 /-- **`terminalSliceObj` preserves covers.**  A slice map is a cover iff its underlying `S`-arrow is
     (`cover_of_cover_f`); `terminalSliceMap φ` is underlying `φ`. -/
 theorem terminalSlicePresCover {x y : S} (φ : x ⟶ y) (hφ : Cover φ) :
-    @Cover (Over (listProd (𝒞 := S) ((W.base).1))) _ _ _ (terminalSliceFunctor W |>.map φ) :=
+    @Cover (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) _ _ _ (terminalSliceFunctor W |>.map φ) :=
   cover_of_cover_f (terminalSliceFunctor W |>.map φ) hφ
 
 /-- **The base-stage terminal receives a map from `terminalSliceObj one`.**  A slice arrow from any
     object `X` of the fibre to `terminalSliceObj one`; underlying it is `term X.dom : X.dom ⟶ one`,
     slice-condition by `term`-uniqueness over `pr base`. -/
-def terminalSliceTerminalArrow (X : Over (listProd (𝒞 := S) ((W.base).1))) :
-    @Cat.Hom _ (overCat (listProd (𝒞 := S) ((W.base).1))) X (terminalSliceObj W (one : S)) :=
+def terminalSliceTerminalArrow (X : Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) :
+    @Cat.Hom _ (overCat (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) X (terminalSliceObj W (one : S)) :=
   ⟨term X.dom, base_hom_uniq W _ _⟩
 
 /-! ### Lax stage-inclusion (`stageInclNil`) terminal preservation
@@ -316,8 +316,8 @@ noncomputable def laxTerminalArrowAt {ι : Type w} {D : Directed ι} (L : LaxCat
     terminal are unique.  `stageInclNil W (overHasTerminal _).one = ⟨base, (ht base).one⟩`. -/
 theorem stageInclNilPresTerminal :
     letI : Nonempty (WSList S) := ⟨W.base⟩
-    letI : HasTerminal (Over (listProd (𝒞 := S) ((W.base).1))) := overHasTerminal _
-    @PreservesTerminal (Over (listProd (𝒞 := S) ((W.base).1))) (uniformTargetTy W) _
+    letI : HasTerminal (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) := overHasTerminal _
+    @PreservesTerminal (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) (uniformTargetTy W) _
       (uniformTargetCat W) (fun x => (⟨W.base, x⟩ : uniformTargetTy W)) (stageInclNil W)
       (overHasTerminal _)
       (laxColimHasTerminal (laxOfProjSystem' (cofinalProjSystem (S := S))) (coherentProj (cofinalProjSystem (S := S)))
@@ -332,8 +332,8 @@ theorem stageInclNilPresTerminal :
 theorem uniformStepFaithful :
     @Faithful S _ (uniformTargetTy W) (uniformTargetCat W)
       (uniformStepObj W) (uniformStepFunctor W) :=
-  @faithful_comp S _ (Over (listProd (𝒞 := S) ((W.base).1)))
-    (overCat (listProd (𝒞 := S) ((W.base).1))) (uniformTargetTy W) (uniformTargetCat W)
+  @faithful_comp S _ (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd)))
+    (overCat (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) (uniformTargetTy W) (uniformTargetCat W)
     (terminalSliceObj W) (fun x => (⟨W.base, x⟩ : uniformTargetTy W))
     (terminalSliceFunctor W) (stageInclNil W)
     (terminalSliceFaithful W)
@@ -367,12 +367,12 @@ noncomputable def uniformStep (W : WSCover S) : CapStep S where
   stepFaithful := uniformStepFaithful W
   stepTerminal := by
     letI : Nonempty (WSList S) := ⟨W.base⟩
-    letI : HasTerminal (Over (listProd (𝒞 := S) ((W.base).1))) := overHasTerminal _
+    letI : HasTerminal (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) := overHasTerminal _
     letI : Cat (uniformTargetTy W) := uniformTargetCat W
     letI : HasTerminal (uniformTargetTy W) := (uniformStepTarget_preRegular W).toHasTerminal
     intro X f g
     exact preservesTerminal_uniq_comp (𝒜 := S)
-      (ℬ := Over (listProd (𝒞 := S) ((W.base).1))) (ℰ := uniformTargetTy W)
+      (ℬ := Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) (ℰ := uniformTargetTy W)
       (F := terminalSliceObj W) (G := fun x => (⟨W.base, x⟩ : uniformTargetTy W))
       (hF := terminalSliceFunctor W) (hG := stageInclNil W)
       (terminalSlicePresTerminal W) (stageInclNilPresTerminal W)
@@ -394,11 +394,11 @@ noncomputable def uniformStep (W : WSCover S) : CapStep S where
   stepProds := by
     letI : HasBinaryProducts (uniformTargetTy W) :=
       (uniformStepTarget_preRegular W).toHasBinaryProducts
-    letI : HasBinaryProducts (Over (listProd (𝒞 := S) ((W.base).1))) := overHasBinaryProducts _
+    letI : HasBinaryProducts (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) := overHasBinaryProducts _
     letI : Cat (uniformTargetTy W) := uniformTargetCat W
     intro A B
     exact preservesBinaryProducts_comp (𝒜 := S)
-      (ℬ := Over (listProd (𝒞 := S) ((W.base).1))) (ℰ := uniformTargetTy W)
+      (ℬ := Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) (ℰ := uniformTargetTy W)
       (F := terminalSliceObj W) (G := fun x => (⟨W.base, x⟩ : uniformTargetTy W))
       (hF := terminalSliceFunctor W) (hG := stageInclNil W)
       (terminalSlicePresProds W)
@@ -409,11 +409,11 @@ noncomputable def uniformStep (W : WSCover S) : CapStep S where
     letI heCol : HasEqualizers (uniformTargetTy W) :=
       laxColimHasEqualizers (laxOfProjSystem' (cofinalProjSystem (S := S))) (coherentProj (cofinalProjSystem (S := S)))
         (ratLaxEqualizerData (cofinalProjSystem (S := S)))
-    letI : HasEqualizers (Over (listProd (𝒞 := S) ((W.base).1))) := overHasEqualizers _
+    letI : HasEqualizers (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) := overHasEqualizers _
     have hcomp : @PreservesEqualizers S (uniformTargetTy W) _ (uniformTargetCat W)
         (uniformStepObj W) (uniformStepFunctor W) _ heCol :=
       preservesEqualizers_comp (𝒜 := S)
-        (ℬ := Over (listProd (𝒞 := S) ((W.base).1))) (ℰ := uniformTargetTy W)
+        (ℬ := Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) (ℰ := uniformTargetTy W)
         (F := terminalSliceObj W) (G := fun x => (⟨W.base, x⟩ : uniformTargetTy W))
         (hF := terminalSliceFunctor W) (hG := stageInclNil W)
         (terminalSlicePresEqs W)

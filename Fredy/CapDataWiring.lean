@@ -115,3 +115,9 @@ theorem capitalization_lemma (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
   capitalization_lemma_small A
 
 end Freyd
+
+-- §1.543 FULLY DONE: the capitalization lemma depends only on [propext, Classical.choice, Quot.sound]
+-- — NO `sorryAx`.  The §1.546 c.ii (`A ∈ U`) fresh-copy gap is closed by the token-indexed cofinal
+-- system (`richerSliceMiss` is uniform over a fresh-tagged token).
+#print axioms Freyd.capData_exists
+#print axioms Freyd.capitalization_lemma

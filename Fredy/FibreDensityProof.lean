@@ -415,41 +415,44 @@ theorem baseChangeTransNatIso_app_f_π₁_cast {C D E : S} (g : C ⟶ D) (g' : E
     lemmas; it is the genuine remaining content.  Everything else of §1.546 (the escape
     `baseChange_freshFactor_missed`, the (a) base-change data, the (b) point `x'`, the §1.547
     reduction) is machine-checked sorry-free. -/
-theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : WSList S)
-    (hbU : (wsDirected S).le W.base U) (hAU : A ∉ U.1)
+theorem richerSliceSection (W : WSCover S) (aT : Tok S)
+    (hA : WellSupported aT.2) (U : WSList S)
+    (hbU : (wsDirected S).le W.base U) (hAU : aT ∉ U.1)
     (xE' : (laxOfProjSystem' (cofinalProjSystem (S := S))).A U)
-    (g'' : xE' ⟶ (laxOfProjSystem' (cofinalProjSystem (S := S))).F hbU (terminalSliceObj W A))
+    (g'' : xE' ⟶ (laxOfProjSystem' (cofinalProjSystem (S := S))).F hbU (terminalSliceObj W aT.2))
     (hmono : Mono g'') (hniso : ¬ IsIso g'')
-    (hnd : (A :: U.1).Nodup) (hws : ∀ B ∈ (A :: U.1), WellSupported B) :
+    (hnd : (aT :: U.1).Nodup) (hws : ∀ t ∈ (aT :: U.1), WellSupported t.2) :
     letI : Cat (uniformTargetTy W) := uniformTargetCat W
     ∃ (x' : @Cat.Hom _ (uniformTargetCat W)
               (@HasTerminal.one _ (uniformTargetCat W) (uniformStepTarget_preRegular W).toHasTerminal)
-              ⟨⟨A :: U.1, hnd, hws⟩, (laxOfProjSystem' (cofinalProjSystem (S := S))).F
-                (fun B hB => List.mem_cons.2 (Or.inr hB))
-                ((laxOfProjSystem' (cofinalProjSystem (S := S))).F hbU (terminalSliceObj W A))⟩),
+              ⟨⟨aT :: U.1, hnd, hws⟩, (laxOfProjSystem' (cofinalProjSystem (S := S))).F
+                (fun t hB => List.mem_cons.2 (Or.inr hB))
+                ((laxOfProjSystem' (cofinalProjSystem (S := S))).F hbU (terminalSliceObj W aT.2))⟩),
       ¬ ∃ (y' : @Cat.Hom _ (uniformTargetCat W)
                 (@HasTerminal.one _ (uniformTargetCat W)
                   (uniformStepTarget_preRegular W).toHasTerminal)
-                ⟨⟨A :: U.1, hnd, hws⟩, (laxOfProjSystem' (cofinalProjSystem (S := S))).F
-                  (fun B hB => List.mem_cons.2 (Or.inr hB)) xE'⟩),
+                ⟨⟨aT :: U.1, hnd, hws⟩, (laxOfProjSystem' (cofinalProjSystem (S := S))).F
+                  (fun t hB => List.mem_cons.2 (Or.inr hB)) xE'⟩),
         @Cat.comp _ (uniformTargetCat W) _
-            ⟨⟨A :: U.1, hnd, hws⟩, (laxOfProjSystem' (cofinalProjSystem (S := S))).F
-              (fun B hB => List.mem_cons.2 (Or.inr hB)) xE'⟩ _ y'
+            ⟨⟨aT :: U.1, hnd, hws⟩, (laxOfProjSystem' (cofinalProjSystem (S := S))).F
+              (fun t hB => List.mem_cons.2 (Or.inr hB)) xE'⟩ _ y'
           (stageInclL (laxOfProjSystem' (cofinalProjSystem (S := S)))
             (coherentProj (cofinalProjSystem (S := S)))
-            (pushFibre W A hbU (fun B hB => List.mem_cons.2 (Or.inr hB)) g'')) = x' := by
+            (pushFibre W aT.2 hbU (fun t hB => List.mem_cons.2 (Or.inr hB)) g'')) = x' := by
   letI : HasEqualizers S := products_pullbacks_implies_equalizers
   letI : Cat (uniformTargetTy W) := uniformTargetCat W
+  let A : S := aT.2
   let L := laxOfProjSystem' (cofinalProjSystem (S := S))
   let hL := coherentProj (cofinalProjSystem (S := S))
   let T := ratLaxTerminalData (cofinalProjSystem (S := S))
-  let P := listProd (𝒞 := S) U.1
-  let U' : WSList S := ⟨A :: U.1, hnd, hws⟩
-  have hUU' : (wsDirected S).le U U' := fun B hB => List.mem_cons.2 (Or.inr hB)
-  have hsp : selectProj U'.1 U.1 hUU' = (snd : prod A P ⟶ P) := by
-    show selectProj (A :: U.1) U.1 hUU' = _
-    rw [selectProj_head_notin A U.1 U.1 hUU' hAU (fun B hB => hB),
-        selectProj_refl U.2.1 (fun B hB => hB), Cat.comp_id]
+  let P := listProd (𝒞 := S) (U.1.map Prod.snd)
+  let U' : WSList S := ⟨aT :: U.1, hnd, hws⟩
+  have hUU' : (wsDirected S).le U U' := fun t hB => List.mem_cons.2 (Or.inr hB)
+  -- `pr U' = listProd ((aT :: U.1).map Prod.snd) = prod aT.2 P = prod A P` definitionally.
+  have hsp : tSelectProj Prod.snd U'.1 U.1 hUU' = (snd : prod A P ⟶ P) := by
+    show tSelectProj Prod.snd (aT :: U.1) U.1 hUU' = _
+    rw [tSelectProj_head_notin Prod.snd aT U.1 U.1 hUU' hAU (fun t hB => hB),
+        tSelectProj_refl Prod.snd U.2.1 (fun t hB => hB), Cat.comp_id]
   -- ===== (a) the §1.546 escape data (sorry-free) =====
   let pIso : OverHom (sliceEmbedObj P A) (L.F hbU (terminalSliceObj W A)) := pushTerminalSlice_iso W A hbU
   obtain ⟨pInv, hp1, hp2⟩ := pushTerminalSlice_iso_isIso W A hbU
@@ -479,7 +482,8 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
     bcSliceIso A P ⊚ (@Functor.map _ _ _ _ _ (baseChangeFunctor (snd : prod A P ⟶ P)) _ _ pIso)
   have hcodEq : L.F hUU' (L.F hbU (terminalSliceObj W A))
       = baseChangeObj (snd : prod A P ⟶ P) (L.F hbU (terminalSliceObj W A)) := by
-    show baseChangeObj (selectProj U'.1 U.1 hUU') (L.F hbU (terminalSliceObj W A)) = _; rw [hsp]
+    show baseChangeObj (tSelectProj Prod.snd U'.1 U.1 hUU') (L.F hbU (terminalSliceObj W A)) = _
+    rw [hsp]
   let cod : OverHom (sliceEmbedObj (prod A P) A) (L.F hUU' (L.F hbU (terminalSliceObj W A))) := hcodEq ▸ cod'
   let sfp : OverHom (overTerm (prod A P)) (sliceEmbedObj (prod A P) A) :=
     sliceFactorPoint A (fst : prod A P ⟶ A)
@@ -544,7 +548,7 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
   -- ===== (c.i) THE SHARPEST RESIDUAL — the stage-`N` base-change escape =====
   -- `hstage` is the ON-THE-NOSE factorization, in `L.A N = Over (∏N)`, of the `N`-image of the fresh
   -- slice point `sfp ⊚ cod` (= `sliceFactorPoint A fst` base-changed to `N`) through the `N`-image of
-  -- `pushFibre g''` (= `g''` base-changed along `selectProj N.1 U.1`), witnessed by the `N`-rep
+  -- `pushFibre g''` (= `g''` base-changed along `tSelectProj Prod.snd N.1 U.1`), witnessed by the `N`-rep
   -- `zN := pushHom … z₀` of the colimit factor `z`.  Steps (1) `align`-kill and (2) the germ
   -- reduction `z ↦ zN` + push of the colimit equation to this stage-`N` equation are now sorry-free.
   --
@@ -552,12 +556,12 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
   -- `baseChange_freshFactor_missed` consumes.  `A ∈ U' = A::U ⊆ N` gives `hA_in_N : A ∈ N.1`, and
   -- `CofinalProj.listProd_pull_factor N.1 A N.2.1 hA_in_N` supplies `ψ : ∏N ≅ A × ∏(N.erase A)` with
   -- `ψ ≫ fst = factorProj N A`, `ψ ≫ snd = selectProj N (N.erase A)`.
-  have hA_in_N : A ∈ N.1 := hUN A List.mem_cons_self
-  -- `ψ : ∏N ≅ A × ∏(N.erase A)`, the reindexing onto the fresh `A`-coordinate `factorProj N A`.
-  obtain ⟨hψiso, hψfst, hψsnd⟩ := listProd_pull_factor (𝒞 := S) N.1 A N.2.1 hA_in_N
-  let PN : S := listProd (N.1.erase A)
-  let ψ : listProd N.1 ⟶ prod A PN :=
-    selectProj N.1 (A :: N.1.erase A)
+  have hA_in_N : aT ∈ N.1 := hUN aT List.mem_cons_self
+  -- `ψ : ∏N ≅ A × ∏(N.erase aT)`, the reindexing onto the fresh `aT`-coordinate `tFactorProj N aT`.
+  obtain ⟨hψiso, hψfst, hψsnd⟩ := tListProd_pull_factor (𝒟 := S) Prod.snd N.1 aT N.2.1 hA_in_N
+  let PN : S := listProd ((N.1.erase aT).map Prod.snd)
+  let ψ : listProd (N.1.map Prod.snd) ⟶ prod A PN :=
+    tSelectProj Prod.snd N.1 (aT :: N.1.erase aT)
       (fun _ hB => (List.mem_cons.1 hB).elim (· ▸ hA_in_N) List.mem_of_mem_erase)
   -- ════════════════════════════════════════════════════════════════════════════════════════════
   -- THE SHARPEST RESIDUAL (single isolated section).  The CONSUMER is now a reusable, sorry-free,
@@ -600,34 +604,34 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
   -- left as the single sharpest residual.
   -- ── (i) identify the `hstage` codomain over `∏N` with `sliceEmbedObj (∏N) A`. ──
   let hbN3 : (wsDirected S).le W.base N := (wsDirected S).trans hbU ((wsDirected S).trans hUU' hUN')
-  let Θ : sliceEmbedObj (listProd N.1) A
+  let Θ : sliceEmbedObj (listProd (N.1.map Prod.snd)) A
       ⟶ L.F hUN' (L.F hUU' (L.F hbU (terminalSliceObj W A))) :=
     pushTerminalSlice_iso W A hbN3 ≫ nestApp3 L hbU hUU' hUN' (terminalSliceObj W A)
-  have hΘiso : @IsIso (Over (listProd N.1)) _ _ _ Θ :=
+  have hΘiso : @IsIso (Over (listProd (N.1.map Prod.snd))) _ _ _ Θ :=
     isIso_comp (pushTerminalSlice_iso_isIso W A hbN3)
       (nestApp3_isIso L hbU hUU' hUN' (terminalSliceObj W A))
   -- ── (ii) the N-image of `pushFibre g''`, a PROPER mono into `sliceEmbedObj (∏N) A` via `Θ⁻¹`. ──
   -- N-image of `pushFibre = Functor.map (functF hUU') g''`.
   let pfN : L.F hUN' (L.F hUU' xE') ⟶ L.F hUN' (L.F hUU' (L.F hbU (terminalSliceObj W A))) :=
     @Functor.map _ _ _ _ _ (L.functF hUN') _ _ (pushFibre W A hbU hUU' g'')
-  let m_N : OverHom (L.F hUN' (L.F hUU' xE')) (sliceEmbedObj (listProd N.1) A) :=
+  let m_N : OverHom (L.F hUN' (L.F hUU' xE')) (sliceEmbedObj (listProd (N.1.map Prod.snd)) A) :=
     pfN ⊚ isoInv hΘiso
   have hpfN_mono : Mono pfN :=
     projStage_preservesMono (cofinalProjSystem (S := S)) hUN'
       (@Functor.map _ _ _ _ _ (L.functF hUU') _ _ g'')
       (projStage_preservesMono (cofinalProjSystem (S := S)) hUU' g'' hmono)
   have hΘinv_iso : IsIso (isoInv hΘiso) := ⟨Θ, inv_isoInv_comp hΘiso, isoInv_comp hΘiso⟩
-  have hm_N_mono : @Mono (Over (listProd N.1)) _ _ _ m_N :=
+  have hm_N_mono : @Mono (Over (listProd (N.1.map Prod.snd))) _ _ _ m_N :=
     mono_postcomp_iso' hpfN_mono hΘinv_iso
-  have hm_N_niso : ¬ @IsIso (Over (listProd N.1)) _ _ _ m_N := by
+  have hm_N_niso : ¬ @IsIso (Over (listProd (N.1.map Prod.snd))) _ _ _ m_N := by
     intro hmi
     -- `m_N = pfN ≫ Θ⁻¹` iso, `Θ⁻¹` iso ⇒ `pfN` iso ⇒ (L_cons) push iso ⇒ g'' iso.
     have hpfN_iso : IsIso pfN := by
-      have hmΘ : @IsIso (Over (listProd N.1)) _ _ _ (@Cat.comp (Over (listProd N.1)) _ _ _ _ m_N Θ) :=
+      have hmΘ : @IsIso (Over (listProd (N.1.map Prod.snd))) _ _ _ (@Cat.comp (Over (listProd (N.1.map Prod.snd))) _ _ _ _ m_N Θ) :=
         isIso_comp hmi hΘiso
-      have heq : (@Cat.comp (Over (listProd N.1)) _ _ _ _ m_N Θ) = pfN := by
-        show @Cat.comp (Over (listProd N.1)) _ _ _ _
-            (@Cat.comp (Over (listProd N.1)) _ _ _ _ pfN (isoInv hΘiso)) Θ = pfN
+      have heq : (@Cat.comp (Over (listProd (N.1.map Prod.snd))) _ _ _ _ m_N Θ) = pfN := by
+        show @Cat.comp (Over (listProd (N.1.map Prod.snd))) _ _ _ _
+            (@Cat.comp (Over (listProd (N.1.map Prod.snd))) _ _ _ _ pfN (isoInv hΘiso)) Θ = pfN
         rw [Cat.assoc, inv_isoInv_comp hΘiso, Cat.comp_id]
       rwa [heq] at hmΘ
     exact hniso (L_cons hUU' g'' (L_cons hUN' (pushFibre W A hbU hUU' g'') hpfN_iso))
@@ -664,64 +668,64 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
   -- consumer `freshSlicePoint_factors_imp_false` eats) THEN along `snd : A×PN ⟶ PN` (the
   -- base-change whose section the §1.546 escape refutes) THEN transported by `ψ` (recovering `m_N`
   -- over `∏N`).  `hUe` and the split identity are recorded for the assembly:
-  have hUe : ∀ B ∈ U.1, B ∈ N.1.erase A := fun B hB =>
-    List.mem_erase_of_ne (a := B) (by rintro rfl; exact hAU hB)
-      |>.mpr (hUN B (List.mem_cons.2 (Or.inr hB)))
+  have hUe : ∀ t ∈ U.1, t ∈ N.1.erase aT := fun t hB =>
+    (List.mem_erase_of_ne (a := t) (b := aT) (l := N.1) (by intro h; cases h; exact hAU hB)).mpr
+      (hUN t (List.mem_cons.2 (Or.inr hB)))
   have hsplit :
-      selectProj N.1 (A :: U.1) hUN'
-        = selectProj N.1 (A :: N.1.erase A)
+      tSelectProj Prod.snd N.1 (aT :: U.1) hUN'
+        = tSelectProj Prod.snd N.1 (aT :: N.1.erase aT)
             (fun _ hB => (List.mem_cons.1 hB).elim (· ▸ hA_in_N) List.mem_of_mem_erase)
           ≫ pair (fst : prod A PN ⟶ A)
-              ((snd : prod A PN ⟶ PN) ≫ selectProj (N.1.erase A) U.1 hUe) :=
-    selectProj_pull_head (𝒞 := S) N.1 A U.1 N.2.1 hnd hA_in_N hUe hUN'
+              ((snd : prod A PN ⟶ PN) ≫ tSelectProj Prod.snd (N.1.erase aT) U.1 hUe) :=
+    tSelectProj_pull_head (𝒟 := S) Prod.snd N.1 aT U.1 N.2.1 hnd hA_in_N hUe hUN'
   -- ── THE PN-LEVEL PROPER MONO `m_PN` (the descended subobject the consumer eats) — SORRY-FREE. ──
-  -- `selectProj (N.erase A) U` is a cover (bigger nodup product of well-supported objects projects).
-  have hcov : Cover (selectProj (N.1.erase A) U.1 hUe) :=
-    selectProj_cover (𝒞 := S) (N.1.erase A) U.1 U.2.1 hUe
-      (fun B hB => N.2.2 B (List.mem_of_mem_erase hB))
+  -- `tSelectProj (N.erase aT) U` is a cover (bigger nodup product of well-supported objects projects).
+  have hcov : Cover (tSelectProj Prod.snd (N.1.erase aT) U.1 hUe) :=
+    tSelectProj_cover (𝒟 := S) Prod.snd (N.1.erase aT) U.1 U.2.1 hUe
+      (fun t hB => N.2.2 t (List.mem_of_mem_erase hB))
   -- `m_PN := baseChangeMap (selectProj (N.erase A) U) m`, the base-change of the `∏U`-level proper
   -- mono `m` down to `PN = ∏(N.erase A)`.  Mono: base-change preserves monos
   -- (`projStage_preservesMono`).  ¬Iso: base-change along the COVER `selectProj (N.erase A) U`
   -- reflects iso among monos (`isIso_of_baseChange_isIso_of_cover`, BaseChangeDescent.lean), so an
   -- iso `m_PN` would force `m` iso, contradicting `hm_niso`.
-  have hmPN_mono : @Mono (Over PN) _ _ _ (baseChangeMap (selectProj (N.1.erase A) U.1 hUe) m) :=
+  have hmPN_mono : @Mono (Over PN) _ _ _ (baseChangeMap (tSelectProj Prod.snd (N.1.erase aT) U.1 hUe) m) :=
     projStage_preservesMono (cofinalProjSystem (S := S)) (i := U)
-      (j := (⟨N.1.erase A, N.2.1.erase A,
-        fun B hB => N.2.2 B (List.mem_of_mem_erase hB)⟩ : WSList S)) hUe m hm_mono
-  have hmPN_niso : ¬ @IsIso (Over PN) _ _ _ (baseChangeMap (selectProj (N.1.erase A) U.1 hUe) m) :=
-    fun hiso => hm_niso (isIso_of_baseChange_isIso_of_cover (selectProj (N.1.erase A) U.1 hUe)
+      (j := (⟨N.1.erase aT, N.2.1.erase aT,
+        fun t hB => N.2.2 t (List.mem_of_mem_erase hB)⟩ : WSList S)) hUe m hm_mono
+  have hmPN_niso : ¬ @IsIso (Over PN) _ _ _ (baseChangeMap (tSelectProj Prod.snd (N.1.erase aT) U.1 hUe) m) :=
+    fun hiso => hm_niso (isIso_of_baseChange_isIso_of_cover (tSelectProj Prod.snd (N.1.erase aT) U.1 hUe)
       hcov m hm_mono hiso)
   -- ── THE COMPARISON ISO `bcGen : sliceEmbedObj PN A ≅ baseChangeObj (selectProj (N.erase A) U) … ──
   -- the codomain identification (§1.546(a), generic base map `q := selectProj (N.erase A) U`):
   -- `baseChangeObj q (sliceEmbedObj P A) ≅ sliceEmbedObj PN A` (both pullbacks of `snd : A×P → P`
   -- along `q`, apex `A×PN`), via `bcSlice_isPullback … q` + `isIso_of_two_pullbacks`.  Transporting
   -- `m_PN` across it gives the consumer's `m : OverHom (baseChangeObj q xE') (sliceEmbedObj PN A)`.
-  let bcGenCone : Cone (snd : prod A P ⟶ P) (selectProj (N.1.erase A) U.1 hUe) :=
-    Cone.mk (f := (snd : prod A P ⟶ P)) (g := selectProj (N.1.erase A) U.1 hUe) (prod A PN)
-      (pair (fst : prod A PN ⟶ A) ((snd : prod A PN ⟶ PN) ≫ selectProj (N.1.erase A) U.1 hUe))
+  let bcGenCone : Cone (snd : prod A P ⟶ P) (tSelectProj Prod.snd (N.1.erase aT) U.1 hUe) :=
+    Cone.mk (f := (snd : prod A P ⟶ P)) (g := tSelectProj Prod.snd (N.1.erase aT) U.1 hUe) (prod A PN)
+      (pair (fst : prod A PN ⟶ A) ((snd : prod A PN ⟶ PN) ≫ tSelectProj Prod.snd (N.1.erase aT) U.1 hUe))
       (snd : prod A PN ⟶ PN) (by rw [snd_pair])
   let bcGen : OverHom (sliceEmbedObj PN A)
-      (baseChangeObj (selectProj (N.1.erase A) U.1 hUe) (sliceEmbedObj P A)) :=
-    ⟨(HasPullbacks.has ((sliceEmbedObj P A).hom) (selectProj (N.1.erase A) U.1 hUe)).lift bcGenCone,
-      (HasPullbacks.has ((sliceEmbedObj P A).hom) (selectProj (N.1.erase A) U.1 hUe)).lift_snd
+      (baseChangeObj (tSelectProj Prod.snd (N.1.erase aT) U.1 hUe) (sliceEmbedObj P A)) :=
+    ⟨(HasPullbacks.has ((sliceEmbedObj P A).hom) (tSelectProj Prod.snd (N.1.erase aT) U.1 hUe)).lift bcGenCone,
+      (HasPullbacks.has ((sliceEmbedObj P A).hom) (tSelectProj Prod.snd (N.1.erase aT) U.1 hUe)).lift_snd
         bcGenCone⟩
   have bcGen_iso : @IsIso (Over PN) _ _ _ bcGen := by
     apply overIso_of_underlying
     show @IsIso S _ _ _
-      ((HasPullbacks.has ((sliceEmbedObj P A).hom) (selectProj (N.1.erase A) U.1 hUe)).lift bcGenCone)
+      ((HasPullbacks.has ((sliceEmbedObj P A).hom) (tSelectProj Prod.snd (N.1.erase aT) U.1 hUe)).lift bcGenCone)
     exact isIso_of_two_pullbacks
-      (bcSlice_isPullback A P PN (selectProj (N.1.erase A) U.1 hUe))
-      (HasPullbacks.has ((sliceEmbedObj P A).hom) (selectProj (N.1.erase A) U.1 hUe)).cone_isPullback
+      (bcSlice_isPullback A P PN (tSelectProj Prod.snd (N.1.erase aT) U.1 hUe))
+      (HasPullbacks.has ((sliceEmbedObj P A).hom) (tSelectProj Prod.snd (N.1.erase aT) U.1 hUe)).cone_isPullback
       _
-      ((HasPullbacks.has ((sliceEmbedObj P A).hom) (selectProj (N.1.erase A) U.1 hUe)).lift_fst
+      ((HasPullbacks.has ((sliceEmbedObj P A).hom) (tSelectProj Prod.snd (N.1.erase aT) U.1 hUe)).lift_fst
         bcGenCone)
-      ((HasPullbacks.has ((sliceEmbedObj P A).hom) (selectProj (N.1.erase A) U.1 hUe)).lift_snd
+      ((HasPullbacks.has ((sliceEmbedObj P A).hom) (tSelectProj Prod.snd (N.1.erase aT) U.1 hUe)).lift_snd
         bcGenCone)
   -- the projection split routed through `snd : A×PN → PN` (consumed by the descent pasting below):
   -- `selectProj N U' ≫ snd = ψ ≫ (snd ≫ selectProj (N.erase A) U)`.
-  have hsplit2 : selectProj N.1 U'.1 hUN' ≫ (snd : prod A P ⟶ P)
-      = ψ ≫ ((snd : prod A PN ⟶ PN) ≫ selectProj (N.1.erase A) U.1 hUe) := by
-    rw [show selectProj N.1 U'.1 hUN' = _ from hsplit, Cat.assoc, snd_pair]
+  have hsplit2 : tSelectProj Prod.snd N.1 U'.1 hUN' ≫ (snd : prod A P ⟶ P)
+      = ψ ≫ ((snd : prod A PN ⟶ PN) ≫ tSelectProj Prod.snd (N.1.erase aT) U.1 hUe) := by
+    rw [show tSelectProj Prod.snd N.1 U'.1 hUN' = _ from hsplit, Cat.assoc, snd_pair]
   -- ════════════════════════════════════════════════════════════════════════════════════════════
   -- THE SINGLE SHARPEST RESIDUAL — the §1.546 descent EQUATION + section read-off.
   --
@@ -762,56 +766,56 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
   --   • `dStep2 : baseChangeObj (snd ≫ selectProj (N.erase A) U) xE' ≅ baseChangeObj snd Dbar`,
   --       transported into the ψ-slice by `Functor.map (baseChangeObj ψ)`.
   -- Composite descent iso: `domain(m_N) ≅ baseChangeObj ψ (baseChangeObj snd Dbar)`.
-  let Dbar : Over PN := baseChangeObj (selectProj (N.1.erase A) U.1 hUe) xE'
+  let Dbar : Over PN := baseChangeObj (tSelectProj Prod.snd (N.1.erase aT) U.1 hUe) xE'
   -- the three pasting comparisons (all iso by `_transFwd_isIso`):  codomains are the `∘`-composed
   -- `baseChangeObj _ ∘ baseChangeObj _` form, defeq to the iterated `baseChangeObj`/`L.F` shape.
-  let dStep1 := (baseChangeTransNatIso (snd : prod A P ⟶ P) (selectProj N.1 U'.1 hUN')).nat.app xE'
+  let dStep1 := (baseChangeTransNatIso (snd : prod A P ⟶ P) (tSelectProj Prod.snd N.1 U'.1 hUN')).nat.app xE'
   have hdStep1_iso : IsIso dStep1 :=
-    (baseChangeTransNatIso (snd : prod A P ⟶ P) (selectProj N.1 U'.1 hUN')).isIso xE'
+    (baseChangeTransNatIso (snd : prod A P ⟶ P) (tSelectProj Prod.snd N.1 U'.1 hUN')).isIso xE'
   let dStep2 :=
-    (baseChangeTransNatIso (selectProj (N.1.erase A) U.1 hUe) (snd : prod A PN ⟶ PN)).nat.app xE'
+    (baseChangeTransNatIso (tSelectProj Prod.snd (N.1.erase aT) U.1 hUe) (snd : prod A PN ⟶ PN)).nat.app xE'
   have hdStep2_iso : IsIso dStep2 :=
-    (baseChangeTransNatIso (selectProj (N.1.erase A) U.1 hUe) (snd : prod A PN ⟶ PN)).isIso xE'
+    (baseChangeTransNatIso (tSelectProj Prod.snd (N.1.erase aT) U.1 hUe) (snd : prod A PN ⟶ PN)).isIso xE'
   let dStep3 :=
-    (baseChangeTransNatIso ((snd : prod A PN ⟶ PN) ≫ selectProj (N.1.erase A) U.1 hUe) ψ).nat.app xE'
+    (baseChangeTransNatIso ((snd : prod A PN ⟶ PN) ≫ tSelectProj Prod.snd (N.1.erase aT) U.1 hUe) ψ).nat.app xE'
   have hdStep3_iso : IsIso dStep3 :=
-    (baseChangeTransNatIso ((snd : prod A PN ⟶ PN) ≫ selectProj (N.1.erase A) U.1 hUe) ψ).isIso xE'
+    (baseChangeTransNatIso ((snd : prod A PN ⟶ PN) ≫ tSelectProj Prod.snd (N.1.erase aT) U.1 hUe) ψ).isIso xE'
   -- `dStep1`'s domain equals `dStep3`'s domain after the `hsplit2` base-map rewrite, so we may
   -- compose `dStep1⁻¹` with `dStep3` and the ψ-lift of `dStep2` into the single descent iso.
   -- The base-map equality `selectProj N U' ≫ snd = ψ ≫ (snd ≫ selectProj (N.erase A) U)` (`hsplit2`)
   -- identifies the two `baseChangeObj _ xE'` source objects on the nose.
   -- recast `dStep3` along the base-map equality `hsplit2` so its source is `dStep1`'s `xE'`-pullback.
   -- (the dependent `▸` transports both the morphism and its `IsIso` witness simultaneously.)
-  have hsplit2' : ψ ≫ ((snd : prod A PN ⟶ PN) ≫ selectProj (N.1.erase A) U.1 hUe)
-      = selectProj N.1 U'.1 hUN' ≫ (snd : prod A P ⟶ P) := hsplit2.symm
+  have hsplit2' : ψ ≫ ((snd : prod A PN ⟶ PN) ≫ tSelectProj Prod.snd (N.1.erase aT) U.1 hUe)
+      = tSelectProj Prod.snd N.1 U'.1 hUN' ≫ (snd : prod A P ⟶ P) := hsplit2.symm
   -- transport `dStep3` together with its iso witness along the SOURCE-object equality `hsplit2'`.
   -- Phrasing the cast over the dependent pair `(morphism, IsIso)` keeps the `▸` motive type-correct.
-  let dStep3pack : Σ' (f : OverHom (baseChangeObj (selectProj N.1 U'.1 hUN' ≫ (snd : prod A P ⟶ P)) xE')
-      (baseChangeObj ψ (baseChangeObj ((snd : prod A PN ⟶ PN) ≫ selectProj (N.1.erase A) U.1 hUe) xE'))),
-      @IsIso (Over (listProd N.1)) _ _ _ f :=
+  let dStep3pack : Σ' (f : OverHom (baseChangeObj (tSelectProj Prod.snd N.1 U'.1 hUN' ≫ (snd : prod A P ⟶ P)) xE')
+      (baseChangeObj ψ (baseChangeObj ((snd : prod A PN ⟶ PN) ≫ tSelectProj Prod.snd (N.1.erase aT) U.1 hUe) xE'))),
+      @IsIso (Over (listProd (N.1.map Prod.snd))) _ _ _ f :=
     hsplit2' ▸ (⟨dStep3, hdStep3_iso⟩ :
-      Σ' (f : OverHom (baseChangeObj (ψ ≫ ((snd : prod A PN ⟶ PN) ≫ selectProj (N.1.erase A) U.1 hUe)) xE')
-        (baseChangeObj ψ (baseChangeObj ((snd : prod A PN ⟶ PN) ≫ selectProj (N.1.erase A) U.1 hUe) xE'))),
-        @IsIso (Over (listProd N.1)) _ _ _ f)
+      Σ' (f : OverHom (baseChangeObj (ψ ≫ ((snd : prod A PN ⟶ PN) ≫ tSelectProj Prod.snd (N.1.erase aT) U.1 hUe)) xE')
+        (baseChangeObj ψ (baseChangeObj ((snd : prod A PN ⟶ PN) ≫ tSelectProj Prod.snd (N.1.erase aT) U.1 hUe) xE'))),
+        @IsIso (Over (listProd (N.1.map Prod.snd))) _ _ _ f)
   let dStep3' := dStep3pack.1
-  have hdStep3'_iso : @IsIso (Over (listProd N.1)) _ _ _ dStep3' := dStep3pack.2
+  have hdStep3'_iso : @IsIso (Over (listProd (N.1.map Prod.snd))) _ _ _ dStep3' := dStep3pack.2
   -- the ψ-lift of `dStep2` (base-change preserves iso, `baseChangeFunctor ψ` is a functor):
   let dStep2ψ : OverHom (baseChangeObj ψ (baseChangeObj ((snd : prod A PN ⟶ PN) ≫
-        selectProj (N.1.erase A) U.1 hUe) xE'))
+        tSelectProj Prod.snd (N.1.erase aT) U.1 hUe) xE'))
       (baseChangeObj ψ (baseChangeObj (snd : prod A PN ⟶ PN) Dbar)) :=
     @Functor.map _ _ _ _ _ (baseChangeFunctor ψ) _ _ dStep2
-  have hdStep2ψ_iso : @IsIso (Over (listProd N.1)) _ _ _ dStep2ψ :=
+  have hdStep2ψ_iso : @IsIso (Over (listProd (N.1.map Prod.snd))) _ _ _ dStep2ψ :=
     @functor_preserves_iso _ _ _ _ _ (baseChangeFunctor ψ) _ _ dStep2 hdStep2_iso
   -- `isoInv dStep1 : domain(m_N) ⟶ baseChangeObj (selectProj N U' ≫ snd) xE'` (forward into the
   -- descent), with its iso witness assembled from `isoInv_comp`/`inv_isoInv_comp`.  `dStep1`'s
   -- codomain is the `∘`-composed base-change form, which is defeq to `L.F hUN' (L.F hUU' xE')`.
-  let dStep1inv := @isoInv (Over (listProd N.1)) _ _ _ dStep1 hdStep1_iso
-  have hdStep1inv_iso : @IsIso (Over (listProd N.1)) _ _ _ dStep1inv :=
+  let dStep1inv := @isoInv (Over (listProd (N.1.map Prod.snd))) _ _ _ dStep1 hdStep1_iso
+  have hdStep1inv_iso : @IsIso (Over (listProd (N.1.map Prod.snd))) _ _ _ dStep1inv :=
     ⟨dStep1, inv_isoInv_comp hdStep1_iso, isoInv_comp hdStep1_iso⟩
   -- THE DESCENT EQUATION: the composite iso `domain(m_N) ≅ baseChangeObj ψ (baseChangeObj snd Dbar)`.
   -- (domain stated in the `∘`-composed form, defeq to `L.F hUN' (L.F hUU' xE')` = `m_N`'s domain.)
   let descent := dStep1inv ⊚ dStep3' ⊚ dStep2ψ
-  have hdescent : @IsIso (Over (listProd N.1)) _ _ _ descent :=
+  have hdescent : @IsIso (Over (listProd (N.1.map Prod.snd))) _ _ _ descent :=
     isIso_comp hdStep1inv_iso (isIso_comp hdStep3'_iso hdStep2ψ_iso)
   -- ════════════════════════════════════════════════════════════════════════════════════════════
   -- PHASE 1 — the consumer's PN-level cone data (does NOT depend on `hstage`).
@@ -819,16 +823,16 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
   have hbcGenInv_iso : @IsIso (Over PN) _ _ _ (isoInv bcGen_iso) :=
     ⟨bcGen, inv_isoInv_comp bcGen_iso, isoInv_comp bcGen_iso⟩
   let mC : OverHom Dbar (sliceEmbedObj PN A) :=
-    @Cat.comp (Over PN) _ _ _ _ (baseChangeMap (selectProj (N.1.erase A) U.1 hUe) m)
+    @Cat.comp (Over PN) _ _ _ _ (baseChangeMap (tSelectProj Prod.snd (N.1.erase aT) U.1 hUe) m)
       (isoInv bcGen_iso)
   have hmC_mono : @Mono (Over PN) _ _ _ mC := mono_postcomp_iso' hmPN_mono hbcGenInv_iso
   have hmC_niso : ¬ @IsIso (Over PN) _ _ _ mC := by
     intro hmi; apply hmPN_niso
-    have he : baseChangeMap (selectProj (N.1.erase A) U.1 hUe) m
+    have he : baseChangeMap (tSelectProj Prod.snd (N.1.erase aT) U.1 hUe) m
         = @Cat.comp (Over PN) _ _ _ _ mC bcGen := by
-      show baseChangeMap (selectProj (N.1.erase A) U.1 hUe) m
+      show baseChangeMap (tSelectProj Prod.snd (N.1.erase aT) U.1 hUe) m
         = @Cat.comp (Over PN) _ _ _ _
-            (@Cat.comp (Over PN) _ _ _ _ (baseChangeMap (selectProj (N.1.erase A) U.1 hUe) m)
+            (@Cat.comp (Over PN) _ _ _ _ (baseChangeMap (tSelectProj Prod.snd (N.1.erase aT) U.1 hUe) m)
               (isoInv bcGen_iso)) bcGen
       rw [Cat.assoc]
       rw [show @Cat.comp (Over PN) _ _ _ _ (isoInv bcGen_iso) bcGen = Cat.id _ from
@@ -917,31 +921,31 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
         -- form `baseChangeObj (selectProj N U') (baseChangeObj snd xE')`.  `L.F hij = baseChangeObj
         -- (selectProj _ _ hij)` defeq, and `selectProj U' U hUU' = snd` is `hsp`.
         have hLF : L.F hUU' xE' = baseChangeObj snd xE' := by
-          show baseChangeObj (selectProj U'.val U.val hUU') xE' = baseChangeObj snd xE'
+          show baseChangeObj (tSelectProj Prod.snd U'.val U.val hUU') xE' = baseChangeObj snd xE'
           rw [hsp]
         have hcodObj : L.F ((wsDirected S).trans b.2.2 hbN) (L.F hUU' xE')
-            = (baseChangeObj (selectProj N.val U'.val hUN') ∘ baseChangeObj snd) xE' := by
-          show baseChangeObj (selectProj N.val U'.val ((wsDirected S).trans b.2.2 hbN))
+            = (baseChangeObj (tSelectProj Prod.snd N.val U'.val hUN') ∘ baseChangeObj snd) xE' := by
+          show baseChangeObj (tSelectProj Prod.snd N.val U'.val ((wsDirected S).trans b.2.2 hbN))
               (L.F hUU' xE')
-            = baseChangeObj (selectProj N.val U'.val hUN') (baseChangeObj snd xE')
+            = baseChangeObj (tSelectProj Prod.snd N.val U'.val hUN') (baseChangeObj snd xE')
           rw [hLF]
         -- cast `zN` into the descent domain, then compose with `descent`.
         let zNd : OverHom (L.F ((wsDirected S).trans b.2.1 hbN) (T.ht U').one)
             (baseChangeObj ψ (baseChangeObj snd Dbar)) :=
-          @Cat.comp (Over (listProd N.1)) _ _ _ _ (hcodObj ▸ zN) descent
+          @Cat.comp (Over (listProd (N.1.map Prod.snd))) _ _ _ _ (hcodObj ▸ zN) descent
         -- source object: N-image of slice terminal = pullback of `id ∏U'` along `selectProj N U'`.
         -- the chosen pullback giving `source.dom`.
-        let srcPB := HasPullbacks.has (𝒞 := S) (overTerm (listProd U'.1)).hom
-          (selectProj N.1 U'.1 ((wsDirected S).trans b.2.1 hbN))
+        let srcPB := HasPullbacks.has (𝒞 := S) (overTerm (listProd (U'.1.map Prod.snd))).hom
+          (tSelectProj Prod.snd N.1 U'.1 ((wsDirected S).trans b.2.1 hbN))
         have hsrcEq : L.F ((wsDirected S).trans b.2.1 hbN) (T.ht U').one
-            = (⟨srcPB.cone.pt, srcPB.cone.π₂⟩ : Over (listProd N.1)) := rfl
+            = (⟨srcPB.cone.pt, srcPB.cone.π₂⟩ : Over (listProd (N.1.map Prod.snd))) := rfl
         -- `a := ψ⁻¹ : A×PN ⟶ ∏N`; cone over `(id ∏U', selectProj N U')` with legs `(a ≫ sel, a)`.
-        let a : prod A PN ⟶ listProd N.1 := isoInv hψiso
-        let srcCone : Cone (𝒞 := S) (overTerm (listProd U'.1)).hom
-            (selectProj N.1 U'.1 ((wsDirected S).trans b.2.1 hbN)) :=
-          ⟨prod A PN, a ≫ selectProj N.1 U'.1 ((wsDirected S).trans b.2.1 hbN), a, by
-            show (a ≫ selectProj N.1 U'.1 ((wsDirected S).trans b.2.1 hbN)) ≫ Cat.id _
-              = a ≫ selectProj N.1 U'.1 ((wsDirected S).trans b.2.1 hbN)
+        let a : prod A PN ⟶ listProd (N.1.map Prod.snd) := isoInv hψiso
+        let srcCone : Cone (𝒞 := S) (overTerm (listProd (U'.1.map Prod.snd))).hom
+            (tSelectProj Prod.snd N.1 U'.1 ((wsDirected S).trans b.2.1 hbN)) :=
+          ⟨prod A PN, a ≫ tSelectProj Prod.snd N.1 U'.1 ((wsDirected S).trans b.2.1 hbN), a, by
+            show (a ≫ tSelectProj Prod.snd N.1 U'.1 ((wsDirected S).trans b.2.1 hbN)) ≫ Cat.id _
+              = a ≫ tSelectProj Prod.snd N.1 U'.1 ((wsDirected S).trans b.2.1 hbN)
             rw [Cat.comp_id]⟩
         let r : prod A PN ⟶ srcPB.cone.pt := srcPB.lift srcCone
         -- codomain pullback `baseChangeObj ψ (bc snd Dbar)` = pullback of `cnDN.π₂` along `ψ`.
@@ -990,7 +994,7 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
           have hbridge : (zNd.f ≫ codPB.cone.π₁) ≫ cnDN.π₁ ≫ mC.f ≫ (fst : prod A PN ⟶ A)
               = srcPB.cone.π₂ ≫ ψ ≫ (fst : prod A PN ⟶ A) := by
             -- abbreviations for the relevant chosen pullbacks.
-            let q' := selectProj (N.1.erase A) U.1 hUe
+            let q' := tSelectProj Prod.snd (N.1.erase aT) U.1 hUe
             -- the `bc q' (sliceEmbedObj P A)` pullback (of `snd : A×P → P` along `q'`).
             let bcPB_P := HasPullbacks.has (𝒞 := S) ((sliceEmbedObj P A).hom) q'
             -- `(isoInv bcGen_iso).f ≫ fst = bcPB_P.π₁ ≫ fst`: from `lift_fst` (bcGen.f ≫ π₁ =
@@ -1040,7 +1044,7 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
             -- `dStep1inv` to `proj_pushHom_f_π₁` of `hstage` is the remaining mechanical descent.
             -- ── STEP A: reduce the descent's deep content to the SOURCE deep content projection. ──
             -- abbreviations: the source-object pullbacks `bc g₁ (bc snd xE')`.
-            let g₁ := selectProj N.1 U'.1 hUN'
+            let g₁ := tSelectProj Prod.snd N.1 U'.1 hUN'
             -- the deep source content projection (of `(bc g₁ ∘ bc snd) xE' = (hcodObj ▸ zN)`'s codom).
             -- leg reductions (all `lift_fst`/public `baseChangeTransNatIso_app_f_π₁`):
             have e1 : dStep2ψ.f ≫ codPB.cone.π₁
@@ -1134,7 +1138,7 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
                 = congrArg (fun X => baseChangeObj g₁ X) hLF := rfl
             -- companion to `eqToHom_bc_π₁`: the inner-object `eqToHom` commutes past `π₁` (down to the
             -- varying inner `.dom`).  Proved by `subst` on the object equality.
-            have hbcInner : ∀ {X Y : Over (listProd U'.val)} (e : X = Y),
+            have hbcInner : ∀ {X Y : Over (listProd (U'.val.map Prod.snd))} (e : X = Y),
                 (eqToHom (congrArg (fun Z => baseChangeObj g₁ Z) e)).f
                     ≫ (_pb g₁ Y).cone.π₁
                   = (_pb g₁ X).cone.π₁ ≫ (eqToHom e).f := by
@@ -1306,7 +1310,7 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
               rw [Cat.comp_id, Cat.id_comp]
             have hpushFibre_A : (pushFibre W A hbU hUU' g'').f ≫ Λ
                 = (eqToHom hLF).f ≫ (_pb (snd : prod A P ⟶ P) xE').cone.π₁ ≫ m.f ≫ (fst : prod A P ⟶ A) := by
-              show (baseChangeMap (selectProj U'.val U.val hUU') g'').f
+              show (baseChangeMap (tSelectProj Prod.snd U'.val U.val hUU') g'').f
                   ≫ (eqToHom hcodEq).f ≫ (_pb (snd : prod A P ⟶ P) (L.F hbU (terminalSliceObj W A))).cone.π₁
                     ≫ pInv.f ≫ (fst : prod A P ⟶ A) = _
               rw [← Cat.assoc,
@@ -1340,11 +1344,11 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
             -- ── PIECE 2: cast-eliminate the goal LHS down to `zN.f ≫ π₁(inner)`. ──
             -- collapse `(hcodObj ▸ zN).f ≫ πOut ≫ πIn` to `zN.f ≫ π₁(proj(trans b.2.2 hbN), L.F hUU' xE')`.
             have hLHScollapse : (hcodObj ▸ zN).f
-                  ≫ (_pb (selectProj N.val U'.val hUN') (baseChangeObj (snd : prod A P ⟶ P) xE')).cone.π₁
+                  ≫ (_pb (tSelectProj Prod.snd N.val U'.val hUN') (baseChangeObj (snd : prod A P ⟶ P) xE')).cone.π₁
                     ≫ (_pb (snd : prod A P ⟶ P) xE').cone.π₁
                 = zN.f
-                  ≫ (_pb (selectProj N.val U'.val hUN') (L.F hUU' xE')).cone.π₁
-                    ≫ (_pb (selectProj U'.val U.val hUU') xE').cone.π₁ := by
+                  ≫ (_pb (tSelectProj Prod.snd N.val U'.val hUN') (L.F hUU' xE')).cone.π₁
+                    ≫ (_pb (tSelectProj Prod.snd U'.val U.val hUU') xE').cone.π₁ := by
               rw [hcastf, Cat.assoc,
                   ← Cat.assoc (eqToHom hcodObj).f, hcodObj', hbcInner hLF, Cat.assoc,
                   hLF', eqToHom_bc_π₁ hsp xE']
@@ -1354,11 +1358,11 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
             rw [hpf_A, hsc_A] at hSP
             -- rewrite the goal LHS via `hLHScollapse` (with the `≫ m.f ≫ fst` tail).
             have hLHSfull : (hcodObj ▸ zN).f
-                  ≫ ((_pb (selectProj N.val U'.val hUN') (baseChangeObj (snd : prod A P ⟶ P) xE')).cone.π₁
+                  ≫ ((_pb (tSelectProj Prod.snd N.val U'.val hUN') (baseChangeObj (snd : prod A P ⟶ P) xE')).cone.π₁
                       ≫ (_pb (snd : prod A P ⟶ P) xE').cone.π₁) ≫ m.f ≫ (fst : prod A P ⟶ A)
                 = zN.f
-                  ≫ ((_pb (selectProj N.val U'.val hUN') (L.F hUU' xE')).cone.π₁
-                      ≫ (_pb (selectProj U'.val U.val hUU') xE').cone.π₁) ≫ m.f ≫ (fst : prod A P ⟶ A) := by
+                  ≫ ((_pb (tSelectProj Prod.snd N.val U'.val hUN') (L.F hUU' xE')).cone.π₁
+                      ≫ (_pb (tSelectProj Prod.snd U'.val U.val hUU') xE').cone.π₁) ≫ m.f ≫ (fst : prod A P ⟶ A) := by
               rw [← Cat.assoc, ← Cat.assoc, hLHScollapse, Cat.assoc, Cat.assoc]
             rw [hLHSfull]
             -- ── ISOLATED RESIDUAL (★ + Piece 3).  Goal now:
@@ -1400,33 +1404,33 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
                   (fst : prod A P ⟶ A)] at hSP
             -- collapse `(eqToHom hLF).f ≫ π₁(snd)` to `π₁_U'`.
             have hcollapse0 : (eqToHom hLF).f ≫ (_pb (snd : prod A P ⟶ P) xE').cone.π₁
-                = (_pb (selectProj U'.val U.val hUU') xE').cone.π₁ := by
+                = (_pb (tSelectProj Prod.snd U'.val U.val hUU') xE').cone.π₁ := by
               rw [hLF']; exact eqToHom_bc_π₁ hsp xE'
             have hcollapseU' : (eqToHom hLF).f ≫ (_pb (snd : prod A P ⟶ P) xE').cone.π₁
                   ≫ m.f ≫ (fst : prod A P ⟶ A)
-                = (_pb (selectProj U'.val U.val hUU') xE').cone.π₁ ≫ m.f ≫ (fst : prod A P ⟶ A) := by
+                = (_pb (tSelectProj Prod.snd U'.val U.val hUU') xE').cone.π₁ ≫ m.f ≫ (fst : prod A P ⟶ A) := by
               rw [← Cat.assoc, hcollapse0]
             rw [hcollapseU'] at hSP
             -- hSP now: `zN.f ≫ π₁_N ≫ π₁_U' ≫ m.f ≫ fst = srcPB.π₁ ≫ fst`.  Match goal LHS via assoc.
             rw [show (_pb (cofinalProjSystem.proj ((wsDirected S).trans ((wsDirected S).refl U') hUN))
                         (L.F hUU' xE')).cone.π₁
-                      ≫ (_pb (selectProj U'.val U.val hUU') xE').cone.π₁ ≫ m.f ≫ (fst : prod A P ⟶ A)
+                      ≫ (_pb (tSelectProj Prod.snd U'.val U.val hUU') xE').cone.π₁ ≫ m.f ≫ (fst : prod A P ⟶ A)
                   = ((_pb (cofinalProjSystem.proj ((wsDirected S).trans ((wsDirected S).refl U') hUN))
                         (L.F hUU' xE')).cone.π₁
-                      ≫ (_pb (selectProj U'.val U.val hUU') xE').cone.π₁) ≫ m.f ≫ (fst : prod A P ⟶ A)
+                      ≫ (_pb (tSelectProj Prod.snd U'.val U.val hUU') xE').cone.π₁) ≫ m.f ≫ (fst : prod A P ⟶ A)
                 from (Cat.assoc _ _ _).symm] at hSP
             rw [hSP]
             -- Piece 3: `srcPB.cone.π₁ ≫ fst = srcPB.cone.π₂ ≫ ψ ≫ fst`.
             -- `srcPB.cone.w` (with `(overTerm _).hom = id`): `π₁ = π₂ ≫ selectProj N U' hUN'`.
-            have hsrcW : srcPB.cone.π₁ = srcPB.cone.π₂ ≫ selectProj N.val U'.val hUN' :=
+            have hsrcW : srcPB.cone.π₁ = srcPB.cone.π₂ ≫ tSelectProj Prod.snd N.val U'.val hUN' :=
               (Cat.comp_id srcPB.cone.π₁).symm.trans srcPB.cone.w
-            -- `selectProj N U' hUN' ≫ fst = factorProj N A = ψ ≫ fst`.
-            have hfstFactor : selectProj N.val U'.val hUN' ≫ (fst : prod A P ⟶ A)
+            -- `tSelectProj N U' hUN' ≫ fst = tFactorProj N aT = ψ ≫ fst`.
+            have hfstFactor : tSelectProj Prod.snd N.val U'.val hUN' ≫ (fst : prod A P ⟶ A)
                 = ψ ≫ (fst : prod A PN ⟶ A) := by
               rw [hψfst,
-                  show (fst : prod A P ⟶ A) = factorProj U'.val A List.mem_cons_self from
-                    (factorProj_cons_head (U' := U.val) List.mem_cons_self).symm,
-                  selectProj_factor N.val U'.val hUN' A List.mem_cons_self]
+                  show (fst : prod A P ⟶ A) = tFactorProj Prod.snd U'.val aT List.mem_cons_self from
+                    (tFactorProj_cons_head (l' := U.val) (f := Prod.snd) List.mem_cons_self).symm,
+                  tSelectProj_factor Prod.snd N.val U'.val hUN' aT List.mem_cons_self]
             rw [hsrcW, Cat.assoc, hfstFactor]
           rw [show (r ≫ (zNd.f ≫ codPB.cone.π₁)) ≫ cnDN.π₁ ≫ mC.f ≫ (fst : prod A PN ⟶ A)
                 = r ≫ ((zNd.f ≫ codPB.cone.π₁) ≫ cnDN.π₁ ≫ mC.f ≫ (fst : prod A PN ⟶ A)) from
@@ -1461,35 +1465,46 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
   exact freshSlicePoint_factors_imp_false mC hmC_mono hmC_niso cnDN hcnDN mf'N hmf1N hmf2N
     mbarN rfl t hfac
 
-/-- **Freyd's §1.546 density (the genuine open core).**  The §1.546 ESCAPE is sorry-free
-    (`baseChange_freshFactor_missed`); the (a) base-change comparison (`bcSliceIso`) and (b) colimit
-    point are sorry-free in `richerSliceSection`.  Two sharp residuals remain (see the Phase 3 note):
-    (c.i) the `stageInclFunctorL U'` fullness reflection of a colimit factor to a base-change section
-    (`richerSliceSection`), and (c.ii) the `A ∈ U` fresh-copy case.  No fractions saturation is needed;
-    the §1.547 reduction around the core is machine-checked. -/
+/-- A `Nat` tag strictly larger than every tag appearing in a token list `l` — hence no token
+    `(freshTag l, _)` occurs in `l`.  `freshTag l := 1 + foldr max 0 (l.map Prod.fst)`. -/
+def freshTag (l : List (Tok S)) : Nat := 1 + (l.map Prod.fst).foldr Nat.max 0
+
+theorem le_foldr_max_of_mem : ∀ {ns : List Nat} {n : Nat}, n ∈ ns → n ≤ ns.foldr Nat.max 0
+  | _ :: ns, n, h => by
+    rcases List.mem_cons.1 h with e | hf
+    · exact e ▸ Nat.le_max_left _ _
+    · exact Nat.le_trans (le_foldr_max_of_mem hf) (Nat.le_max_right _ _)
+
+/-- The fresh-tagged token is not in `l` (its tag exceeds every tag in `l`). -/
+theorem freshTok_not_mem (l : List (Tok S)) (X : S) : ((freshTag l, X) : Tok S) ∉ l := by
+  intro h
+  have hmem : freshTag l ∈ l.map Prod.fst := List.mem_map.2 ⟨_, h, rfl⟩
+  have hle : freshTag l ≤ (l.map Prod.fst).foldr Nat.max 0 := le_foldr_max_of_mem hmem
+  exact absurd hle (by simp only [freshTag]; omega)
+
+/-- **Freyd's §1.546 density (the genuine open core), now CLOSED.**  The §1.546 ESCAPE is sorry-free
+    (`baseChange_freshFactor_missed`); the (a) base-change comparison (`bcSliceIso`), (b) colimit
+    point, and (c) reflection are sorry-free in the TOKEN-lifted `richerSliceSection`.  Both the
+    `A ∉ U` and `A ∈ U` cases are now the SAME branch: the embedded object `A` is added as a FRESH
+    `Nat`-tagged token `aTok = (freshTag U.1, A)`, which is ALWAYS addable (`freshTok_not_mem`), so the
+    richer stage `aTok :: U` exists unconditionally.  No fractions saturation is needed; the §1.547
+    reduction around the core is machine-checked. -/
 theorem richerSliceMiss (W : WSCover S) : RicherSliceMiss W := by
   letI : Cat (uniformTargetTy W) := uniformTargetCat W
   intro A hA U hbU xE' g'' hmono hniso
-  by_cases hAU : A ∈ U.1
-  · -- SECOND RESIDUAL (c.ii): `A ∈ U`.  The escape needs a FRESH independent `A`-factor in the base,
-    -- but `A ∈ U.1` blocks `A :: U.1` being nodup, so the richer stage `U' = A::U` is unavailable.
-    -- Route (1) (reflect at an `A`-free stage) is IMPOSSIBLE: the stage `U` here is universally
-    -- quantified in `RicherSliceMiss`, and the directed `WSList` index only ENLARGES stages
-    -- (`hUU' : U ≤ U'` adds factors), never removes `A`; so an `A ∉ U'` stage with `U ⊆ U'` cannot
-    -- exist when `A ∈ U`.  The principled fix is ROUTE (2): re-index `cofinalProjSystem` by nodup
-    -- lists over `S ⊕ Unit` (or `S` with a distinguished prependable "point slot") so the embedded
-    -- object's fresh `A`-factor is ALWAYS addable.  This re-threads `WSList`/`selectProj`/
-    -- `cofinalProjSystem`/`uniformStep`/`FibreDensity` — LARGE; deferred (see report).
-    sorry
-  · -- `A ∉ U`: the directed-union escape at `U' = A :: U`, via `richerSliceSection` (sorry-free
-    -- except for the isolated §1.546(c) fullness residual it documents).
-    have hnd : (A :: U.1).Nodup := List.nodup_cons.2 ⟨hAU, U.2.1⟩
-    have hws : ∀ B ∈ (A :: U.1), WellSupported B := by
-      intro B hB; rcases List.mem_cons.1 hB with e | hf
-      · exact e ▸ hA
-      · exact U.2.2 B hf
-    obtain ⟨x', hx'⟩ := richerSliceSection W A hA U hbU hAU xE' g'' hmono hniso hnd hws
-    exact ⟨⟨A :: U.1, hnd, hws⟩, fun B hB => List.mem_cons.2 (Or.inr hB), x', hx'⟩
+  -- UNIFORM escape (both `A ∈ U` and `A ∉ U`): add a FRESH copy of `A` as a fresh-tagged token
+  -- `aTok = (freshTag U.1, A)`, which is ALWAYS addable (`freshTok_not_mem`) since its tag exceeds
+  -- every tag in `U.1`.  `aTok.2 = A` definitionally, so `g''`'s type is unchanged.  Then the directed
+  -- escape at `U' = aTok :: U` is the lifted `richerSliceSection`.
+  let aTok : Tok S := (freshTag U.1, A)
+  have hAU : aTok ∉ U.1 := freshTok_not_mem U.1 A
+  have hnd : (aTok :: U.1).Nodup := List.nodup_cons.2 ⟨hAU, U.2.1⟩
+  have hws : ∀ t ∈ (aTok :: U.1), WellSupported t.2 := by
+    intro t hB; rcases List.mem_cons.1 hB with e | hf
+    · exact e ▸ hA
+    · exact U.2.2 t hf
+  obtain ⟨x', hx'⟩ := richerSliceSection W aTok hA U hbU hAU xE' g'' hmono hniso hnd hws
+  exact ⟨⟨aTok :: U.1, hnd, hws⟩, fun t hB => List.mem_cons.2 (Or.inr hB), x', hx'⟩
 
 /-- **§1.546 DENSITY — `FibreDensity W`** for the §1.547 cofinal cover `W`.  The §1.547 stage-local
     density, the `wellPoints` field of the §1.543 `CofinalCapStep`.  Reduces (Phases 1–2, sorry-free)
@@ -1531,3 +1546,5 @@ end Freyd.CofinalProj
 -- (`baseChange_freshFactor_missed`), the (a) base-change comparison, the (b) colimit point, and the
 -- §1.547 colimit↔fibre reduction are machine-checked sorry-free.
 #print axioms Freyd.FibreDensityProof.fibreDensity
+#print axioms Freyd.FibreDensityProof.richerSliceSection
+#print axioms Freyd.FibreDensityProof.richerSliceMiss

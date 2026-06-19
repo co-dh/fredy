@@ -705,12 +705,29 @@ section System
 
 variable {S : Type u} [Cat.{u} S] [PreRegularCategory S] [DecidableEq S]
 
-/-- The index: finite SETS of WELL-SUPPORTED objects, modelled as NODUP lists. -/
+/-- A **token** is a `Nat`-tagged object.  The `Nat`-tag lets a FRESH copy of an object that already
+    appears be added (distinct tag ⟹ nodup preserved), which the object-keyed index could not do.
+    The object carried by a token is `Prod.snd`. -/
+abbrev Tok (S : Type u) := Nat × S
+
+/-- Token equality is decidable from object equality (`Nat`'s is decidable). -/
+instance instDecidableEqTok [DecidableEq S] : DecidableEq (Tok S) :=
+  inferInstanceAs (DecidableEq (Nat × S))
+
+/-- The canonical `BEq (Tok S)` is the `DecidableEq`-derived one (matching the token engine's
+    `List.erase`/`List.filter`), given HIGH priority so it is preferred over the generic `Prod` BEq
+    (the two are defeq, but `List.erase`/membership unify syntactically only when one is chosen). -/
+instance (priority := 2000) instBEqTok [DecidableEq S] : BEq (Tok S) :=
+  instBEqOfDecidableEq
+
+/-- The index: finite NODUP lists of TOKENS, every token's object WELL-SUPPORTED.  Nodup is on the
+    whole token `ℕ × S` (so two tokens over the same object are distinct iff their tags differ);
+    well-supportedness is required of each token's object (`Prod.snd`). -/
 def WSList (S : Type u) [Cat.{u} S] [PreRegularCategory S] :=
-  {U : List S // U.Nodup ∧ ∀ B ∈ U, WellSupported B}
+  {U : List (Tok S) // U.Nodup ∧ ∀ t ∈ U, WellSupported t.2}
 
 /-- The subset relation on the index. -/
-def WSList.le (U V : WSList S) : Prop := ∀ B ∈ U.1, B ∈ V.1
+def WSList.le (U V : WSList S) : Prop := ∀ t ∈ U.1, t ∈ V.1
 
 /-- **The cofinal directed SUBSET index.**  `le = ⊆`; reflexive/transitive by the subset order;
     `bound = dedup (U ++ V)` (nodup, ws, contains both).  Unlike the prefix index, this is cofinal
@@ -721,30 +738,31 @@ def wsDirected (S : Type u) [Cat.{u} S] [PreRegularCategory S] [DecidableEq S] :
   refl _ _ h := h
   trans hUV hVW x hx := hVW x (hUV x hx)
   bound U V := ⟨⟨dedup (U.1 ++ V.1), dedup_nodup _,
-      fun B hB => by
+      fun t hB => by
         rcases List.mem_append.1 (mem_dedup.1 hB) with hl | hr
-        · exact U.2.2 B hl
-        · exact V.2.2 B hr⟩,
+        · exact U.2.2 t hl
+        · exact V.2.2 t hr⟩,
     fun x hx => mem_dedup.2 (List.mem_append.2 (Or.inl hx)),
     fun x hx => mem_dedup.2 (List.mem_append.2 (Or.inr hx))⟩
 
-/-- **The cofinal strict `ProjSystem`.**  Stage product `pr i = ∏(i.1)`; projection `proj h =
-    selectProj j.1 i.1 h` (the bigger product onto the smaller).  `proj_refl`/`proj_trans` are STRICT
-    (on-the-nose) — the keystone, discharged by `selectProj_refl`/`selectProj_trans`. -/
+/-- **The cofinal strict `ProjSystem`.**  Stage product `pr i = ∏(i.1.map Prod.snd)`; projection
+    `proj h = tSelectProj Prod.snd j.1 i.1 h` (the bigger product onto the smaller).
+    `proj_refl`/`proj_trans` are STRICT (on-the-nose) — the keystone, discharged by
+    `tSelectProj_refl`/`tSelectProj_trans`. -/
 noncomputable def cofinalProjSystem : ProjSystem (WSList S) (wsDirected S) S where
-  pr i := listProd (𝒞 := S) i.1
-  proj {i j} h := selectProj j.1 i.1 h
-  proj_refl i := selectProj_refl i.2.1 _
-  proj_trans {i _ _} hij hjk := selectProj_trans i.2.1 hij hjk _
+  pr i := listProd (𝒞 := S) (i.1.map Prod.snd)
+  proj {i j} h := tSelectProj (Prod.snd) j.1 i.1 h
+  proj_refl i := tSelectProj_refl _ i.2.1 _
+  proj_trans {i _ _} hij hjk := tSelectProj_trans _ i.2.1 hij hjk _
 
 /-- **Every projection of `cofinalProjSystem` is a cover.**  The bigger index `j` lists only
-    well-supported objects (`j.2.2`) and is nodup (`i.2.1`), so `selectProj_cover` applies.  This is
+    well-supported objects (`j.2.2`) and is nodup (`i.2.1`), so `tSelectProj_cover` applies.  This is
     the `hpc` premise of `ratCapPreRegular_of_projCover` (and `projStage_faithful`, etc.). -/
 theorem cofinalProjSystem_cover {i j : WSList S} (h : (wsDirected S).le i j) :
     Cover ((cofinalProjSystem (S := S)).proj h) := by
   letI : HasEqualizers S := products_pullbacks_implies_equalizers
-  show Cover (selectProj j.1 i.1 h)
-  exact selectProj_cover (𝒞 := S) j.1 i.1 i.2.1 h (fun B hB => j.2.2 B hB)
+  show Cover (tSelectProj (Prod.snd) j.1 i.1 h)
+  exact tSelectProj_cover (Prod.snd) j.1 i.1 i.2.1 h (fun t hB => j.2.2 t hB)
 
 end System
 
@@ -769,9 +787,10 @@ variable (S : Type u) [Cat.{u} S] [PreRegularCategory S]
 structure WSCover where
   /-- object equality, used for positional selection (`Classical.decEq` in the inhabitant). -/
   dec : DecidableEq S
-  /-- **cofinality** — every well-supported object appears in SOME index (its singleton suffices). -/
+  /-- **cofinality** — every well-supported object is the object of SOME token in SOME index (its
+      singleton token `(0, B)` suffices). -/
   cofinal : ∀ (B : S), WellSupported B →
-    ∃ (i : @WSList S _ _), B ∈ i.1
+    ∃ (i : @WSList S _ _) (t : Tok S), t ∈ i.1 ∧ t.2 = B
 
 variable {S}
 
@@ -788,7 +807,7 @@ noncomputable def WSCover.projSystem (W : WSCover S) :
 def WSCover.base (_ : WSCover S) : @WSList S _ _ :=
   ⟨[], List.nodup_nil, fun _ h => absurd h (by simp)⟩
 
-theorem WSCover.base_chain (W : WSCover S) : (W.base).1 = ([] : List S) := rfl
+theorem WSCover.base_chain (W : WSCover S) : (W.base).1 = ([] : List (Tok S)) := rfl
 
 /-- The projections of `cofinalProjSystem` are covers — re-exposed under a `WSCover` (whose `dec`
     supplies the positional object equality).  This is the `hpc` premise the §1.547 successor's
@@ -812,8 +831,8 @@ noncomputable def wsCover (S : PreRegBundle.{u}) : WSCover S.carrier :=
   letI dec : DecidableEq S.carrier := Classical.typeDecidableEq S.carrier
   { dec := dec
     cofinal := fun B hB =>
-      ⟨⟨[B], List.nodup_cons.2 ⟨by simp, List.nodup_nil⟩,
-        fun C hC => by rw [List.mem_singleton.1 hC]; exact hB⟩,
-        List.mem_singleton.2 rfl⟩ }
+      ⟨⟨[((0 : Nat), B)], List.nodup_cons.2 ⟨by simp, List.nodup_nil⟩,
+        fun t hC => by rw [List.mem_singleton.1 hC]; exact hB⟩,
+        ((0 : Nat), B), List.mem_singleton.2 rfl, rfl⟩ }
 
 end Freyd.CofinalProj

@@ -118,16 +118,16 @@ end IsoConj
 variable (W : WSCover S)
 
 /-- Any two maps into the base stage `∏(chain base) = ∏[] = 1` agree (it is terminal). -/
-private theorem base_triv {Z : S} (u v : Z ⟶ listProd (𝒞 := S) ((W.base).1)) : u = v :=
+private theorem base_triv {Z : S} (u v : Z ⟶ listProd (𝒞 := S) ((W.base).1.map Prod.snd)) : u = v :=
   base_hom_uniq W u v
 
 /-- The product cone `(A × ∏(chain U), fst, snd)` is a pullback of the cospan
     `((terminalSliceObj A).hom, proj)` — both legs end in the terminal-equal base `∏(chain base)`. -/
 private theorem prod_isPullback_of_terminalBase (A : S) {i : WSList S} (h : (wsDirected S).le W.base i) :
     (Cone.mk (f := (terminalSliceObj W A).hom) (g := (cofinalProjSystem (S := S)).proj h)
-      (prod A (listProd (𝒞 := S) (i.1)))
-      (fst : prod A (listProd (𝒞 := S) (i.1)) ⟶ A)
-      (snd : prod A (listProd (𝒞 := S) (i.1)) ⟶ listProd (𝒞 := S) (i.1))
+      (prod A (listProd (𝒞 := S) (i.1.map Prod.snd)))
+      (fst : prod A (listProd (𝒞 := S) (i.1.map Prod.snd)) ⟶ A)
+      (snd : prod A (listProd (𝒞 := S) (i.1.map Prod.snd)) ⟶ listProd (𝒞 := S) (i.1.map Prod.snd))
       (base_triv W (fst ≫ (terminalSliceObj W A).hom)
         (snd ≫ (cofinalProjSystem (S := S)).proj h))).IsPullback := by
   intro d
@@ -145,13 +145,13 @@ private theorem baseChange_isPullback (A : S) {i : WSList S} (h : (wsDirected S)
 private def prodCone (A : S) {i : WSList S} (h : (wsDirected S).le W.base i) :
     Cone (terminalSliceObj W A).hom ((cofinalProjSystem (S := S)).proj h) :=
   Cone.mk (f := (terminalSliceObj W A).hom) (g := (cofinalProjSystem (S := S)).proj h)
-    (prod A (listProd (𝒞 := S) (i.1))) fst snd
+    (prod A (listProd (𝒞 := S) (i.1.map Prod.snd))) fst snd
     (base_triv W (fst ≫ (terminalSliceObj W A).hom) (snd ≫ (cofinalProjSystem (S := S)).proj h))
 
 /-- The underlying `S`-arrow `A × ∏(chain U) ⟶ pushforward.dom`: the comparison `pair fst snd` from
     the product cone into the chosen base-change pullback. -/
 noncomputable def pushTerminalSlice_cmp (A : S) {i : WSList S} (h : (wsDirected S).le W.base i) :
-    prod A (listProd (𝒞 := S) (i.1)) ⟶
+    prod A (listProd (𝒞 := S) (i.1.map Prod.snd)) ⟶
       ((laxOfProjSystem' (cofinalProjSystem (S := S))).F h (terminalSliceObj W A)).dom :=
   (HasPullbacks.has (terminalSliceObj W A).hom ((cofinalProjSystem (S := S)).proj h)).lift (prodCone W A h)
 
@@ -167,19 +167,19 @@ theorem pushTerminalSlice_cmp_isIso (A : S) {i : WSList S} (h : (wsDirected S).l
     (`lift_snd`, since `pushforward.hom = π₂` and `(prodCone).π₂ = snd`). -/
 theorem pushTerminalSlice_cmp_hom (A : S) {i : WSList S} (h : (wsDirected S).le W.base i) :
     pushTerminalSlice_cmp W A h ≫ ((laxOfProjSystem' (cofinalProjSystem (S := S))).F h (terminalSliceObj W A)).hom
-      = (sliceEmbedObj (listProd (𝒞 := S) (i.1)) A).hom :=
+      = (sliceEmbedObj (listProd (𝒞 := S) (i.1.map Prod.snd)) A).hom :=
   (HasPullbacks.has (terminalSliceObj W A).hom ((cofinalProjSystem (S := S)).proj h)).lift_snd (prodCone W A h)
 
 /-- **Phase 1 result.**  The pushforward of `terminalSliceObj A` to stage `U` is iso, in
     `Over (∏(chain U))`, to `sliceEmbedObj (∏(chain U)) A`.  Underlying arrow `pushTerminalSlice_cmp`
     (iso, commuting with the `snd` structure map). -/
 noncomputable def pushTerminalSlice_iso (A : S) {i : WSList S} (h : (wsDirected S).le W.base i) :
-    OverHom (sliceEmbedObj (listProd (𝒞 := S) (i.1)) A)
+    OverHom (sliceEmbedObj (listProd (𝒞 := S) (i.1.map Prod.snd)) A)
       ((laxOfProjSystem' (cofinalProjSystem (S := S))).F h (terminalSliceObj W A)) :=
   ⟨pushTerminalSlice_cmp W A h, pushTerminalSlice_cmp_hom W A h⟩
 
 theorem pushTerminalSlice_iso_isIso (A : S) {i : WSList S} (h : (wsDirected S).le W.base i) :
-    @IsIso (Over (listProd (𝒞 := S) (i.1))) _ _ _ (pushTerminalSlice_iso W A h) :=
+    @IsIso (Over (listProd (𝒞 := S) (i.1.map Prod.snd))) _ _ _ (pushTerminalSlice_iso W A h) :=
   overIso_of_underlying _ (pushTerminalSlice_cmp_isIso W A h)
 
 /-! ## Phase 2 — an arbitrary proper colimit mono reflects to a proper fibre mono
