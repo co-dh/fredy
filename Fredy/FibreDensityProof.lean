@@ -1196,6 +1196,32 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
             -- `pushHom pf₀`, with `pf₀ = reflApp ≫ Functor.map g'' ≫ isoInv`, `baseChangeMap_f_π₁` =
             -- `g''.f`, `m.f = g''.f ≫ pInv.f`) against the `sc₀` RHS (content `fst` via the verified
             -- sub-laws + `hψfst`).  This is the genuine multi-screen reindexing.
+            -- ── projected content legs of `hstage` over `∏N`. ──
+            -- `pf₀` pushed: project to its `π₁` (content) leg via `proj_pushHom_f_π₁`.
+            have hpfPush := proj_pushHom_f_π₁ cofinalProjSystem (L.F hUU' xE')
+              (L.F hUU' (L.F hbU (terminalSliceObj W A))) ((wsDirected S).refl U')
+              ((wsDirected S).refl U') hUN pf₀
+            -- project `hstage`'s `.f` onto the codomain content leg (matching `hscPush`).
+            have hstageProj := congrArg (fun w => OverHom.f w
+                ≫ (transApp L ((wsDirected S).refl U') hUN'
+                      (L.F hUU' (L.F hbU (terminalSliceObj W A)))).f
+                  ≫ (_pb (cofinalProjSystem.proj hUN')
+                      (baseChangeObj (cofinalProjSystem.proj ((wsDirected S).refl U'))
+                        (L.F hUU' (L.F hbU (terminalSliceObj W A))))).cone.π₁) hstage
+            simp only [] at hstageProj
+            rw [show (pushHom L (T.ht U').one (L.F hUU' xE') b.2.1 b.2.2 hbN z₀
+                    ≫ pushHom L (L.F hUU' xE') (L.F hUU' (L.F hbU (terminalSliceObj W A)))
+                        ((wsDirected S).refl U') ((wsDirected S).refl U') hUN pf₀).f
+                  = (pushHom L (T.ht U').one (L.F hUU' xE') b.2.1 b.2.2 hbN z₀).f
+                    ≫ (pushHom L (L.F hUU' xE') (L.F hUU' (L.F hbU (terminalSliceObj W A)))
+                        ((wsDirected S).refl U') ((wsDirected S).refl U') hUN pf₀).f from rfl] at hstageProj
+            simp only [Cat.assoc] at hstageProj
+            rw [hscPush, hpfPush] at hstageProj
+            -- `hstageProj` now reads (a clean content equation over `S`):
+            --   (pushHom z₀).f ≫ transApp(hUN,xE').f ≫ π₁(proj hUN, L.F hUU' xE') ≫ pf₀.f
+            --     = transApp(hUN',one).f ≫ π₁(proj hUN', one) ≫ sc₀.f
+            -- where `π₁ ≫ pf₀.f`/`π₁ ≫ sc₀.f` reach the slice-domain pullbacks (NOT `prod A P`
+            -- literally; the A-content needs the `bcSliceIso`/`pIso` reconciliation).
             sorry
           rw [show (r ≫ (zNd.f ≫ codPB.cone.π₁)) ≫ cnDN.π₁ ≫ mC.f ≫ (fst : prod A PN ⟶ A)
                 = r ≫ ((zNd.f ≫ codPB.cone.π₁) ≫ cnDN.π₁ ≫ mC.f ≫ (fst : prod A PN ⟶ A)) from
