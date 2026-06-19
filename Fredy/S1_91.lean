@@ -486,6 +486,24 @@ theorem heytingDoubleArrow_classifies_eq {A E : 𝒞} (χ₁ χ₂ : A ⟶ HasSu
   intro v hv₁ _
   exact huu v hv₁
 
+/-- **§1.919 (reduction)**: an endomorphism `h : Ω → Ω` equals the identity as
+    soon as `t : 1 → Ω` is a pullback of `t` along `h` — i.e. `Ω` is "`h`-large in
+    itself" (`h` classifies the maximal subobject `t : 1 → Ω`).
+
+    Proof: the hypotheses are exactly the data making `h` the characteristic map of
+    `t`, so `classify_unique` gives `h = classify t = id` (`classify_true_eq_id`). -/
+theorem omega_endo_eq_id_of_classifies_true
+    (h : HasSubobjectClassifier.omega (𝒞 := 𝒞) ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞))
+    (hsq : HasSubobjectClassifier.true (𝒞 := 𝒞) ≫ h
+      = term (HasTerminal.one (𝒞 := 𝒞)) ≫ HasSubobjectClassifier.true)
+    (hpb : (Cone.mk (f := h) (g := HasSubobjectClassifier.true)
+        (pt := HasTerminal.one) (π₁ := HasSubobjectClassifier.true)
+        (π₂ := term HasTerminal.one) (w := hsq)).IsPullback) :
+    h = Cat.id (HasSubobjectClassifier.omega (𝒞 := 𝒞)) := by
+  rw [← classify_true_eq_id]
+  exact HasSubobjectClassifier.classify_unique
+    (HasSubobjectClassifier.true (𝒞 := 𝒞)) HasSubobjectClassifier.true_monic h hsq hpb
+
 /-! ## §1.919  Monic endomorphisms of Ω are involutions
 
   §1.919: Every monic endomorphism g : Ω → Ω is an involution (g² = id).
