@@ -1411,6 +1411,85 @@ theorem wellSupported_coprod_one [DisjointBinaryCoproduct 𝒞] (A : 𝒞) :
     WellSupported (HasBinaryCoproducts.coprod A one) :=
   cover_of_section (term _) HasBinaryCoproducts.inr (term_uniq _ _)
 
+section IsoCoprodComplemented
+-- own section without the file-level `[PreLogos 𝒞]`, so the sole `PreLogos` is the one
+-- `DisjointBinaryCoproduct` provides — the disjoint-coproduct lemmas and the
+-- `InverseImage`/`inter`/`union`/`bottom` in the statement then share a single instance.
+variable {𝒞 : Type u} [Cat.{v} 𝒞]
+
+/-- For **any** point `φ : 1 → B₁ + B₂` (no iso needed), the `inl`-inverse-image `U := φ#(inlSub)`
+    is a COMPLEMENTED subterminator of `1` (complement `U₂ := φ#(inrSub)`), and the two pullback legs
+    `f₁ : U.dom → B₁`, `f₂ : U₂.dom → B₂` satisfy `U.arr ≫ φ = f₁ ≫ inl` and `U₂.arr ≫ φ = f₂ ≫ inr`,
+    with `U ∪ U₂` entire.  Disjointness/cover come from the disjoint-coproduct facts
+    (`inl_inter_inr_le_bottom`, `inl_union_inr_entire`) pulled back along `φ`; the `inl∩inr`-summand
+    collapses to `⊥` because its domain is initial (its two legs are equalized in `B₁+B₂`).
+
+    This packages a point's `inl`/`inr` split as a complemented-subterminator pair with the leg data
+    the §1.633 basis argument needs — the `inl`-leg is the witness map, the cover lets a missing point
+    of `image (coprodMapOne m)` be reconstructed from its two parts. -/
+theorem point_inl_complementedSubterminator [DisjointBinaryCoproduct 𝒞] {B₁ B₂ : 𝒞}
+    (φ : one ⟶ HasBinaryCoproducts.coprod B₁ B₂) :
+    ∃ (U U₂ : Subobject 𝒞 one) (f₁ : U.dom ⟶ B₁) (f₂ : U₂.dom ⟶ B₂),
+      IsComplementedSub U ∧ (Subobject.entire one).le (HasSubobjectUnions.union U U₂) ∧
+      U.arr ≫ φ = f₁ ≫ HasBinaryCoproducts.inl ∧
+      U₂.arr ≫ φ = f₂ ≫ HasBinaryCoproducts.inr := by
+  -- abbreviations: the two coproduct subobjects of B₁+B₂.
+  let Inl := inlSub (𝒞 := 𝒞) (A := B₁) (B := B₂) inl_mono
+  let Inr := inrSub (𝒞 := 𝒞) (A := B₁) (B := B₂) inr_mono
+  let U  : Subobject 𝒞 one := InverseImage φ Inl
+  let U₂ : Subobject 𝒞 one := InverseImage φ Inr
+  -- the pullback legs: π₂ of `φ#Inl` is f₁ : U.dom → B₁, of `φ#Inr` is f₂ : U₂.dom → B₂.
+  let pbU := HasPullbacks.has φ Inl.arr
+  let pbR0 := HasPullbacks.has φ Inr.arr
+  -- the two relations are the pullback squares for `φ#Inl`, `φ#Inr`.
+  have hrel₁ : U.arr ≫ φ = pbU.cone.π₂ ≫ HasBinaryCoproducts.inl := pbU.cone.w
+  have hrel₂ : U₂.arr ≫ φ = pbR0.cone.π₂ ≫ HasBinaryCoproducts.inr := pbR0.cone.w
+  -- DISJOINTNESS `inter U U₂ ≤ ⊥(1)`: its domain (pullback of U.arr,U₂.arr) is initial — the two
+  -- legs into B₁,B₂ are equalized in B₁+B₂, so disjointness maps it to `⊥(B₁+B₂).dom`, then to `0`.
+  have hdisj : (Subobject.inter U U₂).le (PreLogos.bottom one) := by
+    let pbI := HasPullbacks.has U.arr U₂.arr
+    have hsq : (pbI.cone.π₁ ≫ pbU.cone.π₂) ≫ Inl.arr
+             = (pbI.cone.π₂ ≫ pbR0.cone.π₂) ≫ Inr.arr := by
+      calc (pbI.cone.π₁ ≫ pbU.cone.π₂) ≫ Inl.arr
+          = pbI.cone.π₁ ≫ (pbU.cone.π₂ ≫ Inl.arr) := Cat.assoc _ _ _
+        _ = pbI.cone.π₁ ≫ (pbU.cone.π₁ ≫ φ) := by rw [pbU.cone.w]
+        _ = (pbI.cone.π₁ ≫ pbU.cone.π₁) ≫ φ := (Cat.assoc _ _ _).symm
+        _ = (pbI.cone.π₁ ≫ U.arr) ≫ φ := rfl
+        _ = (pbI.cone.π₂ ≫ U₂.arr) ≫ φ := by rw [pbI.cone.w]
+        _ = (pbI.cone.π₂ ≫ pbR0.cone.π₁) ≫ φ := rfl
+        _ = pbI.cone.π₂ ≫ (pbR0.cone.π₁ ≫ φ) := Cat.assoc _ _ _
+        _ = pbI.cone.π₂ ≫ (pbR0.cone.π₂ ≫ Inr.arr) := by rw [pbR0.cone.w]
+        _ = (pbI.cone.π₂ ≫ pbR0.cone.π₂) ≫ Inr.arr := (Cat.assoc _ _ _).symm
+    have hsq' : (pbI.cone.π₁ ≫ pbU.cone.π₂) ≫ HasBinaryCoproducts.inl
+              = (pbI.cone.π₂ ≫ pbR0.cone.π₂) ≫ HasBinaryCoproducts.inr := hsq
+    obtain ⟨e, _⟩ := coprod_inl_inr_disjoint_elt (𝒟 := 𝒞) (A := B₁) (B := B₂)
+      (pbI.cone.π₁ ≫ pbU.cone.π₂) (pbI.cone.π₂ ≫ pbR0.cone.π₂) hsq'
+    let hDPL : PreLogos 𝒞 := DisjointBinaryCoproduct.toPositivePreLogos.toPreLogos
+    obtain ⟨ζ, _⟩ := hDPL.bottom_dom_iso (HasBinaryCoproducts.coprod B₁ B₂) hDPL.toHasTerminal.one
+    have hiso := any_map_to_zero_is_iso hDPL ((e ≫ ζ))
+    obtain ⟨zinv, hz, _⟩ := hiso
+    have hinit : ∀ {X : 𝒞} (u v : pbI.cone.pt ⟶ X), u = v := by
+      intro X u v
+      have key : ∀ (r : pbI.cone.pt ⟶ X), r = (e ≫ ζ) ≫ (zinv ≫ r) := by
+        intro r; rw [← Cat.assoc, hz, Cat.id_comp]
+      rw [key u, key v,
+          (minimal_subobject_of_one_is_coterminator hDPL).init_uniq (zinv ≫ u) (zinv ≫ v)]
+    exact ⟨(e ≫ ζ) ≫ (minimal_subobject_of_one_is_coterminator hDPL).init _, hinit (X := one) _ _⟩
+  -- COVER `entire 1 ≤ U ∪ U₂`:  entire 1 ≤ φ#(entire) ≤ φ#(Inl∪Inr) ≤ φ#Inl ∪ φ#Inr = U ∪ U₂.
+  have hcover : (Subobject.entire one).le (HasSubobjectUnions.union U U₂) := by
+    have ha := entire_le_invImage_entire (B := HasBinaryCoproducts.coprod B₁ B₂) φ
+    have hbu : (Subobject.entire (HasBinaryCoproducts.coprod B₁ B₂)).le
+        (HasSubobjectUnions.union (inlSub (𝒞 := 𝒞) (A := B₁) (B := B₂) inl_mono)
+          (inrSub (𝒞 := 𝒞) (A := B₁) (B := B₂) inr_mono)) :=
+      inl_union_inr_entire (𝒟 := 𝒞) (A := B₁) (B := B₂)
+    have hb := invImage_mono_local φ hbu
+    have hc := (PreLogos.invImage_preserves_union φ
+      (inlSub (𝒞 := 𝒞) (A := B₁) (B := B₂) inl_mono)
+      (inrSub (𝒞 := 𝒞) (A := B₁) (B := B₂) inr_mono)).1
+    exact subLe_trans ha (subLe_trans hb hc)
+  have hcomp : IsComplementedSub U := ⟨U₂, hdisj, hcover⟩
+  exact ⟨U, U₂, pbU.cone.π₂, pbR0.cone.π₂, hcomp, hcover, hrel₁, hrel₂⟩
+
 /-- The coproduct map `A'+1 → A+1` of a mono `m : A' → A` is `case (m ≫ inl) inr`.
     It is monic: a parallel pair agreeing after it agrees after the two injections
     (the left half cancels `m`'s monicity, the right is `inr` monic), and the disjointness
@@ -1418,6 +1497,128 @@ theorem wellSupported_coprod_one [DisjointBinaryCoproduct 𝒞] (A : 𝒞) :
 def coprodMapOne [DisjointBinaryCoproduct 𝒞] {A' A : 𝒞} (m : A' ⟶ A) :
     HasBinaryCoproducts.coprod A' one ⟶ HasBinaryCoproducts.coprod A one :=
   HasBinaryCoproducts.case (m ≫ HasBinaryCoproducts.inl) HasBinaryCoproducts.inr
+
+variable [DisjointBinaryCoproduct 𝒞]
+
+/-- The post-composition subobject `T ≫ i` of a subobject `T ↣ A` along a mono `i : A ↣ B`. -/
+def postcompSub {A B : 𝒞} (T : Subobject 𝒞 A) {i : A ⟶ B} (hi : Mono i) : Subobject 𝒞 B :=
+  ⟨T.dom, T.arr ≫ i, by
+    intro W u v huv
+    refine T.monic _ _ (hi _ _ ?_)
+    rw [Cat.assoc, Cat.assoc]; exact huv⟩
+
+/-- Pulling a post-composed subobject back along the SAME mono recovers (at most) the original:
+    `i⁻¹(T ≫ i) ≤ T` for `i` monic.  The pullback's `π₂` leg is the witness: `π₁ ≫ i = π₂ ≫ (T.arr ≫ i)`
+    and `i` monic gives `π₁ = π₂ ≫ T.arr`, exactly `(i⁻¹(T≫i)).arr = π₂ ≫ T.arr`. -/
+theorem invImage_postcompSub_le {A B : 𝒞} (T : Subobject 𝒞 A) {i : A ⟶ B} (hi : Mono i) :
+    (InverseImage i (postcompSub T hi)).le T := by
+  let pb := HasPullbacks.has i (postcompSub T hi).arr
+  refine ⟨pb.cone.π₂, ?_⟩
+  -- π₂ ≫ T.arr = π₁ = (InverseImage i (T≫i)).arr, from `π₁ ≫ i = π₂ ≫ (T.arr ≫ i)` and `i` monic.
+  apply hi
+  show (pb.cone.π₂ ≫ T.arr) ≫ i = pb.cone.π₁ ≫ i
+  calc (pb.cone.π₂ ≫ T.arr) ≫ i = pb.cone.π₂ ≫ (T.arr ≫ i) := Cat.assoc _ _ _
+    _ = pb.cone.π₂ ≫ (postcompSub T hi).arr := rfl
+    _ = pb.cone.π₁ ≫ i := (pb.cone.w).symm
+
+/-- §1.621 in pulled-back form: `inl⁻¹(inrSub) ≤ T` for **any** subobject `T` of `A`.  The pullback
+    of `inr` along `inl` has the two legs `(π₁, π₂)` equalized in `A+B`; disjointness
+    (`coprod_inl_inr_disjoint_elt`) makes its domain map to `⊥(A+B)` (DBC instance), so the domain is
+    INITIAL — a Prop independent of which `PreLogos` instance built the pullback.  An initial-domain
+    subobject is `≤` everything (map via the **ambient** coterminator `0 → T.dom`, triangle by
+    `init_uniq`).  Stated against arbitrary `T` to keep `⊥` out of the type.  The pullback (`pb`) and
+    the `init` map both use the ambient `[PreLogos 𝒞]`, matching the `InverseImage` in the goal. -/
+theorem invImage_inl_inrSub_le_any {A B : 𝒞} (T : Subobject 𝒞 A) :
+    (InverseImage (HasBinaryCoproducts.inl (A := A) (B := B))
+        (inrSub (𝒞 := 𝒞) (A := A) (B := B) inr_mono)).le T := by
+  -- ambient pullback (matches the goal's `InverseImage`).
+  let pb := HasPullbacks.has (HasBinaryCoproducts.inl (A := A) (B := B))
+                             (inrSub (𝒞 := 𝒞) (A := A) (B := B) inr_mono).arr
+  have hcomm : pb.cone.π₁ ≫ HasBinaryCoproducts.inl
+             = pb.cone.π₂ ≫ HasBinaryCoproducts.inr := pb.cone.w
+  -- DBC disjointness sends `pb.cone.pt` into `⊥(A+B)` (DBC instance), hence to the DBC coterminator;
+  -- that proves INITIALITY of `pb.cone.pt`, a Prop the instance choice does not affect.
+  let hDPL : PreLogos 𝒞 := DisjointBinaryCoproduct.toPositivePreLogos.toPreLogos
+  obtain ⟨e, _⟩ := coprod_inl_inr_disjoint_elt (𝒟 := 𝒞) (A := A) (B := B) pb.cone.π₁ pb.cone.π₂ hcomm
+  obtain ⟨ζ, _⟩ := hDPL.bottom_dom_iso (HasBinaryCoproducts.coprod A B) hDPL.toHasTerminal.one
+  have hiso : IsIso (e ≫ ζ) := any_map_to_zero_is_iso hDPL (e ≫ ζ)
+  obtain ⟨zinv, hz, _⟩ := hiso
+  have hinit : ∀ {X : 𝒞} (u v : pb.cone.pt ⟶ X), u = v := by
+    intro X u v
+    have key : ∀ (w : pb.cone.pt ⟶ X), w = (e ≫ ζ) ≫ (zinv ≫ w) := by
+      intro w; rw [← Cat.assoc, hz, Cat.id_comp]
+    rw [key u, key v,
+        (minimal_subobject_of_one_is_coterminator hDPL).init_uniq (zinv ≫ u) (zinv ≫ v)]
+  -- witness: any map `pb.cone.pt → T.dom`; use the AMBIENT coterminator's `init`, then transport
+  -- `pb.cone.pt` there (it is initial).  The triangle holds by `hinit`.
+  obtain ⟨ψ, _⟩ := hDPL.bottom_dom_iso (HasBinaryCoproducts.coprod A B) hDPL.toHasTerminal.one
+  exact ⟨(e ≫ ζ) ≫ (minimal_subobject_of_one_is_coterminator hDPL).init T.dom, hinit _ _⟩
+
+/-- §1.633 core: for a mono `m : A' ↣ A` that is NOT iso, the image of the coproduct map
+    `coprodMapOne m : A'+1 ↣ A+1` is a PROPER subobject of `A+1` — it is not entire.
+
+    Extensivity-free proof: by §1.615 (`union_via_coproduct_image`) the image of `case (m≫inl) inr`
+    is `union (image (m≫inl)) (image inr)`.  Pull that union back along `inl : A → A+1`:
+    `inl⁻¹` preserves `entire`, `union`, and (by disjointness) sends the `inr`-summand to `≤ ⊥`.
+    The `image (m≫inl)` summand pulls back `≤ image m` (`invImage_postcompSub_le`, image-min).  So if the
+    union were entire, `image m` would be entire — i.e. `m` a cover — and a monic cover is iso. -/
+theorem coprodMapOne_image_proper {A' A : 𝒞} (m : A' ⟶ A)
+    (hm : Mono m) (hmiso : ¬ IsIso m) : ¬ (image (coprodMapOne m)).IsEntire := by
+  intro hEntire
+  apply hmiso
+  -- `m` is iso: it is a monic cover, since `image m` is entire.
+  refine monic_cover_iso m ((cover_iff_image_entire m).2 ?_) hm
+  -- Goal: `(image m).IsEntire`.  Show `entire A ≤ image m`.
+  apply entire_of_entire_le
+  -- The image of `coprodMapOne m = case (m≫inl) inr` is `union (image (m≫inl)) (image inr)`.
+  let J := image (m ≫ HasBinaryCoproducts.inl (A := A) (B := one))
+  let Kr := image (HasBinaryCoproducts.inr (A := A) (B := one))
+  have hUimg : IsImage (coprodMapOne m) (HasSubobjectUnions.union J Kr) :=
+    union_via_coproduct_image (m ≫ HasBinaryCoproducts.inl (A := A) (B := one))
+      (HasBinaryCoproducts.inr (A := A) (B := one))
+  -- `union J Kr` is entire (it is isomorphic to the entire `image (coprodMapOne m)`).
+  have hUnion_entire : (HasSubobjectUnions.union J Kr).IsEntire := by
+    -- `union J Kr` is an image of `coprodMapOne m`, so `image (coprodMapOne m) ≤ union J Kr`; and
+    -- `image (coprodMapOne m)` is entire (`entire ≤ image`), so `entire ≤ union J Kr` ⟹ entire.
+    apply entire_of_entire_le
+    have him_le : (image (coprodMapOne m)).le (HasSubobjectUnions.union J Kr) :=
+      image_min (coprodMapOne m) _ hUimg.1
+    obtain ⟨inv, hinv1, hinv2⟩ := hEntire        -- (image …).arr is iso
+    refine subLe_trans (Y := image (coprodMapOne m)) ?_ him_le
+    -- entire (A+1) ≤ image..  via the inverse `inv` of (image..).arr.
+    exact ⟨inv, hinv2⟩
+  -- The `inl⁻¹` lattice-hom chain: entire A ≤ inl⁻¹(entire) ≤ inl⁻¹(union J Kr)
+  --   ≤ union (inl⁻¹ J) (inl⁻¹ Kr) ≤ image m.
+  let il : A ⟶ HasBinaryCoproducts.coprod A one := HasBinaryCoproducts.inl
+  -- entire A ≤ inl⁻¹(entire (A+1))
+  have ha : (Subobject.entire A).le (InverseImage il (Subobject.entire _)) :=
+    entire_le_invImage_entire il
+  -- union J Kr is entire ⟹ entire (A+1) ≤ union J Kr
+  have hbu : (Subobject.entire (HasBinaryCoproducts.coprod A one)).le (HasSubobjectUnions.union J Kr) := by
+    obtain ⟨inv, hinv1, hinv2⟩ := hUnion_entire
+    exact ⟨inv, hinv2⟩
+  have hb : (InverseImage il (Subobject.entire _)).le (InverseImage il (HasSubobjectUnions.union J Kr)) :=
+    invImage_mono_local il hbu
+  have hc : (InverseImage il (HasSubobjectUnions.union J Kr)).le
+      (HasSubobjectUnions.union (InverseImage il J) (InverseImage il Kr)) :=
+    (PreLogos.invImage_preserves_union il J Kr).1
+  -- inl⁻¹ J ≤ image m :  J ≤ postcompSub (image m) inl  (image-min), then invImage_postcompSub_le.
+  have hJ_le : J.le (postcompSub (image m) inl_mono) := by
+    refine image_min (m ≫ HasBinaryCoproducts.inl) _ ⟨image.lift m, ?_⟩
+    show image.lift m ≫ ((image m).arr ≫ HasBinaryCoproducts.inl) = m ≫ HasBinaryCoproducts.inl
+    rw [← Cat.assoc, image.lift_fac]
+  have hJl : (InverseImage il J).le (image m) :=
+    subLe_trans (invImage_mono_local il hJ_le) (invImage_postcompSub_le (image m) inl_mono)
+  -- inl⁻¹ Kr ≤ bottom A ≤ image m :  Kr = image inr ≤ inrSub, so inl⁻¹ Kr ≤ inl⁻¹ inrSub = inl ∩ inr ≤ ⊥.
+  have hKr_le : Kr.le (inrSub (𝒞 := 𝒞) (A := A) (B := one) inr_mono) :=
+    image_min _ _ ⟨Cat.id _, Cat.id_comp _⟩
+  have hKl : (InverseImage il Kr).le (image m) :=
+    -- inl⁻¹ Kr ≤ inl⁻¹ inrSub ≤ image m  (the latter has an initial domain).
+    subLe_trans (invImage_mono_local il hKr_le)
+      (invImage_inl_inrSub_le_any (A := A) (B := one) (image m))
+  -- assemble: entire A ≤ inl⁻¹(entire) ≤ inl⁻¹(union) ≤ union(inl⁻¹J)(inl⁻¹Kr) ≤ image m.
+  exact subLe_trans ha (subLe_trans hb (subLe_trans hc
+    (HasSubobjectUnions.union_min _ _ _ hJl hKl)))
 
 /-- §1.633: A positive pre-logos is capital iff
     (1) every complemented subterminator is projective, and
@@ -1429,39 +1630,134 @@ def coprodMapOne [DisjointBinaryCoproduct 𝒞] {A' A : 𝒞} (m : A' ⟶ A) :
     `coprod_inl_inr_disjoint_elt`).  `DisjointBinaryCoproduct` is this repo's faithful rendering
     of Freyd's "positive pre-logos" (§1.621/§1.623), so the strengthening is faithful, matching
     the §1.631 precedent in this same file. -/
-theorem capital_iff_complemented_subterminators [DisjointBinaryCoproduct 𝒞] :
+theorem capital_iff_complemented_subterminators :
     Capital (𝒞 := 𝒞) ↔
     (∀ U : Subobject 𝒞 one, IsComplementedSub U → Projective U.dom)
     ∧ IsBasis (fun G => ∃ U : Subobject 𝒞 one, IsComplementedSub U ∧ Isomorphic G U.dom) := by
   constructor
   · -- (⟹)  Capital ⟹ subterminators projective ∧ form a basis.
     intro hcap
-    refine ⟨complemented_subterminator_projective hcap, ?_, ?_⟩
-    · -- IsGeneratingSet: the complemented subterminators separate maps.
-      -- RESIDUAL (precise spec): this is the standard "basis ⟹ generating".  For `f ≠ g : A → B`
-      -- form the equalizer `eq ↣ A` (available: products+pullbacks give equalizers, `S1_43`);
-      -- it is a PROPER mono (a cover through it would force `f = g` by `cover_epi`).  Apply the
-      -- proper-monic basis clause below (`refine_2`) to `eq.arr`: it yields `G ≅ V.dom` and
-      -- `x : G → A` not factoring through `eq`, whence `x ≫ f ≠ x ≫ g`, contradicting the
-      -- hypothesis.  BLOCKED ONLY on `refine_2` (the `A'+1` clause) being available as a lemma.
-      sorry
-    · -- Proper-monic basis clause.
-      -- RESIDUAL (precise spec): the `A'+1 ↣ A+1` argument, reduced (this build) to ONE missing
-      -- lemma — `coprodMapOne_image_proper`:
-      --     `m : A' → A` mono → ¬ IsIso m → ¬ (image (coprodMapOne m)).IsEntire`.
-      -- Proof of that lemma (PreLogos-internal, extensivity-free): pull the subobject
-      -- `image (coprodMapOne m) = union (image (m ≫ inl)) inrSub` back along `inl`; disjointness
-      -- (`inl_inter_inr_le_bottom`) kills the `inrSub` summand and `inl⁻¹(image (m≫inl)) = image m`
-      -- (since `m ≫ inl = inl ∘ m` and `inl` is monic), so `inl⁻¹` of an entire image would force
-      -- `image m` entire, i.e. `m` a cover, hence iso (mono+cover) — contradiction.
-      -- GIVEN that lemma the rest is built infra: `wellSupported_coprod_one` + `hcap` make `A+1`
-      -- well-pointed; apply it to `(image (coprodMapOne m)).arr` for a point `p : 1 → A+1` missing
-      -- it; `decompose_via_coproduct p` gives `1 ≅ V.dom + V₂.dom` (V a complemented subterminator)
-      -- with `f₁ : V.dom → A`; `f₁` cannot factor through `m` (else `p`'s `inl`-part lies in the
-      -- image), giving the witness `⟨V.dom, ⟨V, _, _⟩, f₁, _⟩`.  The single open step is the
-      -- subobject-bookkeeping lemma above (image-of-`case` = union, `inl⁻¹` of a union, image of a
-      -- mono = the mono); all PreLogos-internal, no new typeclass.
-      sorry
+    -- PROPER-MONIC clause first (it powers the generating clause): for a proper mono `m : A' ↣ A`,
+    -- find a complemented subterminator `G` and `x : G → A` not factoring through `m`.
+    have hpm : ∀ {A' A : 𝒞} (m : A' ⟶ A), Mono m → ¬ IsIso m →
+        ∃ G, (∃ U : Subobject 𝒞 one, IsComplementedSub U ∧ Isomorphic G U.dom) ∧
+          ∃ x : G ⟶ A, ¬ ∃ y, y ≫ m = x := by
+      intro A' A m hm hmiso
+      -- `A+1` is well-supported, so capital ⟹ well-pointed.
+      have hwp : WellPointed (HasBinaryCoproducts.coprod A one) :=
+        hcap _ (wellSupported_coprod_one A)
+      -- `S := image (coprodMapOne m)` is a PROPER mono into `A+1` (`coprodMapOne_image_proper`);
+      -- well-pointedness gives a point `p : 1 → A+1` missing it.
+      let S := image (coprodMapOne m)
+      obtain ⟨p, hp⟩ := hwp S.arr S.monic (coprodMapOne_image_proper m hm hmiso)
+      -- split `p` into its `inl`/`inr` parts: `U := p#inl` is a complemented subterminator with
+      -- leg `f₁ : U.dom → A`, complement `U₂ := p#inr` (leg `f₂`), and `U ∪ U₂` entire.
+      obtain ⟨U, U₂, f₁, f₂, hcomp, hcover, hr1, hr2⟩ :=
+        point_inl_complementedSubterminator (B₁ := A) (B₂ := one) p
+      refine ⟨U.dom, ⟨U, hcomp, isomorphic_refl _⟩, f₁, ?_⟩
+      rintro ⟨y, hy⟩            -- y : U.dom → A', hy : y ≫ m = f₁
+      -- contradiction: `p` then factors through `S`, against `hp`.
+      apply hp
+      -- `c := case U.arr U₂.arr : U.dom + U₂.dom → 1` is a cover (its image `U ∪ U₂` is entire).
+      let c := HasBinaryCoproducts.case U.arr U₂.arr
+      have hc_cover : Cover c := by
+        refine (cover_iff_image_entire c).2 (entire_of_entire_le ?_)
+        -- entire 1 ≤ U ∪ U₂ ≤ union (image U.arr) (image U₂.arr) ≤ image c.
+        have hUle : U.le (image U.arr) := ⟨image.lift U.arr, image.lift_fac U.arr⟩
+        have hU₂le : U₂.le (image U₂.arr) := ⟨image.lift U₂.arr, image.lift_fac U₂.arr⟩
+        -- U ∪ U₂ ≤ union (image U.arr) (image U₂.arr).
+        have hmono : (HasSubobjectUnions.union U U₂).le
+            (HasSubobjectUnions.union (image U.arr) (image U₂.arr)) :=
+          HasSubobjectUnions.union_min _ _ _
+            (subLe_trans hUle (HasSubobjectUnions.union_left _ _))
+            (subLe_trans hU₂le (HasSubobjectUnions.union_right _ _))
+        -- union (image U.arr) (image U₂.arr) ≤ image c  (it is an image of `c`, `image c` minimal-target).
+        have huac : (HasSubobjectUnions.union (image U.arr) (image U₂.arr)).le (image c) :=
+          (union_via_coproduct_image U.arr U₂.arr).2 (image c) (image_allows c)
+        exact subLe_trans hcover (subLe_trans hmono huac)
+      -- `c ≫ p` factors through `coprodMapOne m`:  both `inl`/`inr` legs do.
+      let d : HasBinaryCoproducts.coprod U.dom U₂.dom ⟶ HasBinaryCoproducts.coprod A' one :=
+        HasBinaryCoproducts.case (y ≫ HasBinaryCoproducts.inl) (f₂ ≫ HasBinaryCoproducts.inr)
+      have hcp : c ≫ p = d ≫ coprodMapOne m := by
+        -- both sides equal `case (inl ≫ d ≫ coprodMapOne m) (inr ≫ d ≫ coprodMapOne m)`.
+        refine (HasBinaryCoproducts.case_uniq _ _ (c ≫ p) ?_ ?_).trans
+          (HasBinaryCoproducts.case_uniq _ _ (d ≫ coprodMapOne m) rfl rfl).symm
+        · -- inl ≫ c ≫ p = U.arr ≫ p = f₁ ≫ inl = (y≫m)≫inl = inl ≫ (d ≫ coprodMapOne m).
+          calc HasBinaryCoproducts.inl ≫ (c ≫ p)
+              = (HasBinaryCoproducts.inl ≫ c) ≫ p := (Cat.assoc _ _ _).symm
+            _ = U.arr ≫ p := by rw [HasBinaryCoproducts.case_inl]
+            _ = f₁ ≫ HasBinaryCoproducts.inl := hr1
+            _ = (y ≫ m) ≫ HasBinaryCoproducts.inl := by rw [hy]
+            _ = y ≫ (m ≫ HasBinaryCoproducts.inl) := Cat.assoc _ _ _
+            _ = y ≫ (HasBinaryCoproducts.inl ≫ coprodMapOne m) := by
+                  rw [coprodMapOne, HasBinaryCoproducts.case_inl]
+            _ = (y ≫ HasBinaryCoproducts.inl) ≫ coprodMapOne m := (Cat.assoc _ _ _).symm
+            _ = (HasBinaryCoproducts.inl ≫ d) ≫ coprodMapOne m := by
+                  rw [HasBinaryCoproducts.case_inl]
+            _ = HasBinaryCoproducts.inl ≫ (d ≫ coprodMapOne m) := Cat.assoc _ _ _
+        · calc HasBinaryCoproducts.inr ≫ (c ≫ p)
+              = (HasBinaryCoproducts.inr ≫ c) ≫ p := (Cat.assoc _ _ _).symm
+            _ = U₂.arr ≫ p := by rw [HasBinaryCoproducts.case_inr]
+            _ = f₂ ≫ HasBinaryCoproducts.inr := hr2
+            _ = f₂ ≫ (HasBinaryCoproducts.inr ≫ coprodMapOne m) := by
+                  rw [coprodMapOne, HasBinaryCoproducts.case_inr]
+            _ = (f₂ ≫ HasBinaryCoproducts.inr) ≫ coprodMapOne m := (Cat.assoc _ _ _).symm
+            _ = (HasBinaryCoproducts.inr ≫ d) ≫ coprodMapOne m := by
+                  rw [HasBinaryCoproducts.case_inr]
+            _ = HasBinaryCoproducts.inr ≫ (d ≫ coprodMapOne m) := Cat.assoc _ _ _
+      -- so `c ≫ p` factors through `S = image (coprodMapOne m)`; the cover/mono diagonal lifts `p`.
+      have hsq : c ≫ p = (d ≫ image.lift (coprodMapOne m)) ≫ S.arr := by
+        rw [hcp, Cat.assoc, image.lift_fac]
+      obtain ⟨gg, _, hgg⟩ := cover_mono_diagonal hc_cover S.monic hsq
+      exact ⟨gg, hgg⟩
+    refine ⟨complemented_subterminator_projective hcap, ?_, hpm⟩
+    · -- IsGeneratingSet: the complemented subterminators separate maps.  Standard "basis ⟹
+      -- generating": for `f ≠ g : A → B` the equalizer `e ↣ A` (built as the pullback of `pair f g`
+      -- and the diagonal `Δ = pair id id`, products+pullbacks suffice) is a PROPER mono; the
+      -- proper-monic clause `hpm` gives `x : G → A` not factoring through it, but the
+      -- separation hypothesis makes `x` equalize `f,g`, hence factor through `e` — contradiction.
+      intro A B f g hsep
+      refine Classical.byContradiction fun hfg => ?_
+      -- equalizer `e = π₁ : P ↣ A` of `f, g`, as the pullback of `pair f g` and `Δ`.
+      let pb := HasPullbacks.has (pair f g) (diag B)
+      let e : pb.cone.pt ⟶ A := pb.cone.π₁
+      -- `diag` is monic (retraction `fst`), so `e = π₁` (pullback of `diag`) is monic.
+      have hemono : Mono e := pullback_fst_mono (pair f g) (diag B) (diag_mono B)
+      -- `e ≫ f = e ≫ g`:  `e ≫ pair f g = π₂ ≫ diag`, post-compose `fst`/`snd`.
+      have hef : e ≫ f = e ≫ g := by
+        have hw : e ≫ pair f g = pb.cone.π₂ ≫ diag B := pb.cone.w
+        have h1 : e ≫ f = pb.cone.π₂ := by
+          calc e ≫ f = e ≫ (pair f g ≫ fst) := by rw [fst_pair]
+            _ = (e ≫ pair f g) ≫ fst := (Cat.assoc _ _ _).symm
+            _ = (pb.cone.π₂ ≫ diag B) ≫ fst := by rw [hw]
+            _ = pb.cone.π₂ ≫ (diag B ≫ fst) := Cat.assoc _ _ _
+            _ = pb.cone.π₂ := by rw [diag_fst, Cat.comp_id]
+        have h2 : e ≫ g = pb.cone.π₂ := by
+          calc e ≫ g = e ≫ (pair f g ≫ snd) := by rw [snd_pair]
+            _ = (e ≫ pair f g) ≫ snd := (Cat.assoc _ _ _).symm
+            _ = (pb.cone.π₂ ≫ diag B) ≫ snd := by rw [hw]
+            _ = pb.cone.π₂ ≫ (diag B ≫ snd) := Cat.assoc _ _ _
+            _ = pb.cone.π₂ := by rw [diag_snd, Cat.comp_id]
+        rw [h1, h2]
+      -- `e` is NOT iso:  an iso `e` would force `f = g` (cancel the iso, `e≫f = e≫g`).
+      have heproper : ¬ IsIso e := by
+        rintro ⟨einv, _, hinv2⟩
+        exact hfg (by rw [← Cat.id_comp f, ← Cat.id_comp g, ← hinv2, Cat.assoc, Cat.assoc, hef])
+      -- proper-monic clause gives `G`, `ℱ G`, `x : G → A` not factoring through `e`.
+      obtain ⟨G, hGℱ, x, hx⟩ := hpm e hemono heproper
+      -- but `x ≫ f = x ≫ g` (separation, since `ℱ G`), so `x` factors through `e` — contra.
+      apply hx
+      have hxeq : x ≫ f = x ≫ g := hsep G hGℱ x
+      -- cone `⟨G, x, x≫f⟩` over `(pair f g, diag)`:  both `x ≫ pair f g` and `(x≫f) ≫ diag` equal
+      -- `pair (x≫f) (x≫f)` (using `x≫f = x≫g`), so they agree.
+      have hcone : x ≫ pair f g = (x ≫ f) ≫ diag B := by
+        have hL : x ≫ pair f g = pair (x ≫ f) (x ≫ f) :=
+          pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair, ← hxeq])
+        have hR : (x ≫ f) ≫ diag B = pair (x ≫ f) (x ≫ f) :=
+          pair_uniq _ _ _ (by rw [Cat.assoc, diag_fst, Cat.comp_id])
+            (by rw [Cat.assoc, diag_snd, Cat.comp_id])
+        rw [hL, hR]
+      exact ⟨pb.lift ⟨G, x, x ≫ f, hcone⟩, pb.lift_fst ⟨G, x, x ≫ f, hcone⟩⟩
   · -- (⟸)  subterminators projective ∧ basis ⟹ Capital.
     -- Given proper `m : D ↣ A` with `A` well-supported, the basis gives a complemented
     -- subterminator `V` (`G ≅ V.dom`) and `x : V.dom → A` not factoring through `m`.  Extend `x`
@@ -1502,5 +1798,7 @@ theorem capital_iff_complemented_subterminators [DisjointBinaryCoproduct 𝒞] :
       _ = φ ≫ x' := by rw [HasBinaryCoproducts.case_inl]
       _ = (φ ≫ φinv) ≫ x := by rw [Cat.assoc]
       _ = x := by rw [hφφ, Cat.id_comp]
+
+end IsoCoprodComplemented
 
 end Freyd
