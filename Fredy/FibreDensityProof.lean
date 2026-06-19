@@ -794,7 +794,58 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
   let descent := dStep1inv ⊚ dStep3' ⊚ dStep2ψ
   have hdescent : @IsIso (Over (listProd N.1)) _ _ _ descent :=
     isIso_comp hdStep1inv_iso (isIso_comp hdStep3'_iso hdStep2ψ_iso)
-  exact (by sorry : False)
+  -- ════════════════════════════════════════════════════════════════════════════════════════════
+  -- PHASE 1 — the consumer's PN-level cone data (does NOT depend on `hstage`).
+  -- the descended proper mono over `PN`: `mC := m_PN ⊚ bcGen⁻¹ : OverHom Dbar (sliceEmbedObj PN A)`.
+  have hbcGenInv_iso : @IsIso (Over PN) _ _ _ (isoInv bcGen_iso) :=
+    ⟨bcGen, inv_isoInv_comp bcGen_iso, isoInv_comp bcGen_iso⟩
+  let mC : OverHom Dbar (sliceEmbedObj PN A) :=
+    @Cat.comp (Over PN) _ _ _ _ (baseChangeMap (selectProj (N.1.erase A) U.1 hUe) m)
+      (isoInv bcGen_iso)
+  have hmC_mono : @Mono (Over PN) _ _ _ mC := mono_postcomp_iso' hmPN_mono hbcGenInv_iso
+  have hmC_niso : ¬ @IsIso (Over PN) _ _ _ mC := by
+    intro hmi; apply hmPN_niso
+    have he : baseChangeMap (selectProj (N.1.erase A) U.1 hUe) m
+        = @Cat.comp (Over PN) _ _ _ _ mC bcGen := by
+      show baseChangeMap (selectProj (N.1.erase A) U.1 hUe) m
+        = @Cat.comp (Over PN) _ _ _ _
+            (@Cat.comp (Over PN) _ _ _ _ (baseChangeMap (selectProj (N.1.erase A) U.1 hUe) m)
+              (isoInv bcGen_iso)) bcGen
+      rw [Cat.assoc]
+      rw [show @Cat.comp (Over PN) _ _ _ _ (isoInv bcGen_iso) bcGen = Cat.id _ from
+        inv_isoInv_comp bcGen_iso, Cat.comp_id]
+    rw [he]; exact isIso_comp hmi bcGen_iso
+  -- the consumer's base-change cone `cnDN` (chosen pullback of `Dbar.hom` along `snd : A×PN ⟶ PN`).
+  let cnDN : Cone (Dbar.hom) (snd : prod A PN ⟶ PN) :=
+    (HasPullbacks.has (Dbar.hom) (snd : prod A PN ⟶ PN)).cone
+  have hcnDN : cnDN.IsPullback :=
+    (HasPullbacks.has (Dbar.hom) (snd : prod A PN ⟶ PN)).cone_isPullback
+  let mf'N : cnDN.pt ⟶ prod A (prod A PN) :=
+    pair (cnDN.π₁ ≫ mC.f ≫ (fst : prod A PN ⟶ A)) cnDN.π₂
+  have hmf1N : mf'N ≫ (fst : prod A (prod A PN) ⟶ A) = cnDN.π₁ ≫ mC.f ≫ (fst : prod A PN ⟶ A) :=
+    fst_pair _ _
+  have hmf2N : mf'N ≫ (snd : prod A (prod A PN) ⟶ prod A PN) = cnDN.π₂ := snd_pair _ _
+  -- the base-changed mono `mbarN : ⟨cnDN.pt, π₂⟩ ↪ sliceEmbedObj (A×PN) A` with underlying `mf'N`.
+  let mbarN : OverHom (⟨cnDN.pt, cnDN.π₂⟩ : Over (prod A PN)) (sliceEmbedObj (prod A PN) A) :=
+    ⟨mf'N, by show mf'N ≫ (snd : prod A (prod A PN) ⟶ prod A PN) = cnDN.π₂; exact hmf2N⟩
+  -- ════════════════════════════════════════════════════════════════════════════════════════════
+  -- PHASE 2 — the point read-off from `hstage` (the §1.546 transport).
+  -- The fresh slice point `sliceFactorPoint A fst` factors through `mbarN` via the transported `z₀`.
+  -- THE SINGLE SHARPEST RESIDUAL (c.i) — the §1.546 point read-off.  Everything around it is now
+  -- machine-checked sorry-free: the consumer cone data (`mC`/`cnDN`/`mf'N`/`mbarN`, Phase 1) and the
+  -- `freshSlicePoint_factors_imp_false` finish below.  What remains is to transport the fresh-point
+  -- factorization `hstage` (an `Over (∏N)` equation of three `pushHom`-conjugated arrows) into the
+  -- point `t : 1 → ⟨cnDN.pt, cnDN.π₂⟩` with `t ⊚ mbarN = sliceFactorPoint A fst`.  The transport
+  -- routes the LHS point `pushHom … z₀` of `hstage` through `descent`/`hdescent` (identifying
+  -- `m_N`'s domain with `ψ*(snd*(Dbar))`) and the iso `ψ` (`hψiso`, so `baseChangeObj ψ X ≅ X`),
+  -- reading both legs of `t.f` off `proj_pushHom_f_π₁`/`proj_pushHom_f_π₂` by `pb_hom_ext`.  This is
+  -- the genuine multi-screen §1.546 descent; every primitive it needs is in scope sorry-free.
+  have hpt : ∃ t : OverHom (overTerm (prod A PN)) (⟨cnDN.pt, cnDN.π₂⟩ : Over (prod A PN)),
+      t ⊚ mbarN = sliceFactorPoint A (fst : prod A PN ⟶ A) := by
+    sorry
+  obtain ⟨t, hfac⟩ := hpt
+  exact freshSlicePoint_factors_imp_false mC hmC_mono hmC_niso cnDN hcnDN mf'N hmf1N hmf2N
+    mbarN rfl t hfac
 
 /-- **Freyd's §1.546 density (the genuine open core).**  The §1.546 ESCAPE is sorry-free
     (`baseChange_freshFactor_missed`); the (a) base-change comparison (`bcSliceIso`) and (b) colimit
