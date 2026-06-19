@@ -412,6 +412,80 @@ theorem omegaMeet_classifies_inter {A : 𝒞} (S₁ S₂ : Subobject 𝒞 A)
       refine S₂.monic _ _ ?_
       rw [Cat.assoc, ← hIarr₂, hv₁, hu₂]
 
+/-- **§1.914 (heyting double-arrow universal property)**: if `e : E → A` is a
+    monic that EQUALIZES `χ₁, χ₂ : A → Ω` (`e ≫ χ₁ = e ≫ χ₂`) and is universal
+    among such (every `k` with `k ≫ χ₁ = k ≫ χ₂` factors uniquely through `e`),
+    then the classifying map `⟨χ₁,χ₂⟩ ≫ heytingDoubleArrow : A → Ω` of the pair
+    classifies that subobject `e`.  This is the bridge turning the bare diagonal
+    definition of `heytingDoubleArrow` into the subobject operation
+    "the largest subobject on which `χ₁ = χ₂`" (equivalently `A₁ ∩ A' = A₂ ∩ A'`).
+
+    Proof by pullback pasting against `classify_unique`, exactly parallel to
+    `omegaMeet_classifies_inter`.  The commuting square holds because along `e`,
+    `χ₁ = χ₂` so `e ≫ ⟨χ₁,χ₂⟩ = (e ≫ χ₁) ≫ diag`, and `diag ≫ heytingDoubleArrow
+    = term ≫ true` is the diagonal's classifier square.  For the pullback: a cone
+    `d` whose apex maps by `d.π₁` with the composite collapsing to `term ≫ true`
+    makes `d.π₁ ≫ ⟨χ₁,χ₂⟩` factor through `diag` (diag's classifier pullback), so
+    `d.π₁ ≫ χ₁ = d.π₁ ≫ χ₂`; the equalizer universal property of `e` then yields
+    the unique factorization through `E`. -/
+theorem heytingDoubleArrow_classifies_eq {A E : 𝒞} (χ₁ χ₂ : A ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞))
+    (e : E ⟶ A) (he : Mono e) (heq : e ≫ χ₁ = e ≫ χ₂)
+    (huniv : ∀ {W : 𝒞} (k : W ⟶ A), k ≫ χ₁ = k ≫ χ₂ →
+      ∃ u : W ⟶ E, u ≫ e = k ∧ ∀ u' : W ⟶ E, u' ≫ e = k → u' = u) :
+    pair χ₁ χ₂ ≫ heytingDoubleArrow = HasSubobjectClassifier.classify e he := by
+  -- diagonal classifier square: diag ≫ heytingDoubleArrow = term Ω ≫ true.
+  have sqD : diag (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ≫ heytingDoubleArrow
+      = term (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ≫ HasSubobjectClassifier.true :=
+    HasSubobjectClassifier.classify_sq _ (diag_mono _)
+  -- e ≫ ⟨χ₁,χ₂⟩ = (e ≫ χ₁) ≫ diag  (since e ≫ χ₁ = e ≫ χ₂).
+  have hpairE : e ≫ pair χ₁ χ₂ = (e ≫ χ₁) ≫ diag (HasSubobjectClassifier.omega (𝒞 := 𝒞)) := by
+    have hL : e ≫ pair χ₁ χ₂ = pair (e ≫ χ₁) (e ≫ χ₂) :=
+      pair_uniq (e ≫ χ₁) (e ≫ χ₂) (e ≫ pair χ₁ χ₂)
+        (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])
+    have hR : (e ≫ χ₁) ≫ diag (HasSubobjectClassifier.omega (𝒞 := 𝒞))
+        = pair (e ≫ χ₁) (e ≫ χ₂) :=
+      pair_uniq (e ≫ χ₁) (e ≫ χ₂) _
+        (by rw [Cat.assoc, diag_fst, Cat.comp_id])
+        (by rw [Cat.assoc, diag_snd, Cat.comp_id, heq])
+    rw [hL, hR]
+  -- Commuting square: e ≫ (⟨χ₁,χ₂⟩ ≫ heytingDoubleArrow) = term E ≫ true.
+  have hsq : e ≫ (pair χ₁ χ₂ ≫ heytingDoubleArrow)
+      = term E ≫ HasSubobjectClassifier.true := by
+    calc e ≫ (pair χ₁ χ₂ ≫ heytingDoubleArrow)
+        = (e ≫ pair χ₁ χ₂) ≫ heytingDoubleArrow := (Cat.assoc _ _ _).symm
+      _ = ((e ≫ χ₁) ≫ diag (HasSubobjectClassifier.omega (𝒞 := 𝒞))) ≫ heytingDoubleArrow := by
+            rw [hpairE]
+      _ = (e ≫ χ₁) ≫ (diag (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ≫ heytingDoubleArrow) :=
+            Cat.assoc _ _ _
+      _ = (e ≫ χ₁) ≫ (term (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ≫ HasSubobjectClassifier.true) := by
+            rw [sqD]
+      _ = ((e ≫ χ₁) ≫ term (HasSubobjectClassifier.omega (𝒞 := 𝒞))) ≫ HasSubobjectClassifier.true :=
+            (Cat.assoc _ _ _).symm
+      _ = term E ≫ HasSubobjectClassifier.true := by
+            rw [term_uniq ((e ≫ χ₁) ≫ term _) (term E)]
+  refine HasSubobjectClassifier.classify_unique e he _ hsq ?_
+  intro d
+  -- d.π₁ ≫ (⟨χ₁,χ₂⟩ ≫ heytingDoubleArrow) = term ≫ true  (from d.w).
+  have hk : (d.π₁ ≫ pair χ₁ χ₂) ≫ heytingDoubleArrow
+      = term d.pt ≫ HasSubobjectClassifier.true := by
+    rw [Cat.assoc, d.w, term_uniq d.π₂ (term d.pt)]
+  -- factor d.π₁ ≫ ⟨χ₁,χ₂⟩ through diag via diag's classifier pullback.
+  obtain ⟨w, ⟨hw₁, _⟩, _⟩ :=
+    HasSubobjectClassifier.classify_pullback
+      (diag (HasSubobjectClassifier.omega (𝒞 := 𝒞))) (diag_mono _)
+      ⟨d.pt, d.π₁ ≫ pair χ₁ χ₂, term d.pt, hk⟩
+  -- hw₁ : w ≫ diag = d.π₁ ≫ ⟨χ₁,χ₂⟩.  Read off the two components → χ₁ = χ₂ along d.π₁.
+  have hcomp : d.π₁ ≫ χ₁ = d.π₁ ≫ χ₂ := by
+    have e1 := congrArg (· ≫ fst) hw₁
+    have e2 := congrArg (· ≫ snd) hw₁
+    simp only [Cat.assoc, diag_fst, diag_snd, fst_pair, snd_pair, Cat.comp_id] at e1 e2
+    rw [← e1, ← e2]
+  -- equalizer universal property of e factors d.π₁ through E.
+  obtain ⟨u, hu, huu⟩ := huniv d.π₁ hcomp
+  refine ⟨u, ⟨hu, term_uniq _ _⟩, ?_⟩
+  intro v hv₁ _
+  exact huu v hv₁
+
 /-! ## §1.919  Monic endomorphisms of Ω are involutions
 
   §1.919: Every monic endomorphism g : Ω → Ω is an involution (g² = id).
