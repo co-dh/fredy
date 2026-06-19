@@ -2421,7 +2421,7 @@ private theorem cover_right_factor {X Y Z : 𝒞} (c : X ⟶ Y) (g : Y ⟶ Z)
 /-- A relation composed with the graph of a map stays entire (the totality of
     `R` is preserved by post-composition with a total map `p`).  Used in §1.661 to
     project the entire `R : A → B₁×B₂` through `fst`/`snd` into the choice factors. -/
-private theorem entire_comp_graph {A B C : 𝒞} [PullbacksTransferCovers 𝒞]
+theorem entire_comp_graph {A B C : 𝒞} [PullbacksTransferCovers 𝒞]
     (R : BinRel 𝒞 A B) (hent : Entire R) (p : B ⟶ C) : Entire (R ⊚ graph p) := by
   have hRcov : Cover R.colA :=
     (tabulated_is_entire_iff_left_cover R.colA R.colB R.isMonicPair).mp hent
@@ -2454,7 +2454,7 @@ private theorem entire_comp_graph {A B C : 𝒞} [PullbacksTransferCovers 𝒞]
     `p : B → C`) is contained in the "agree at C" relation: its two legs satisfy
     `colA ≫ f = colB ≫ p`.  (Its image-cover `image.lift span` carries the pullback
     square `π₁ ≫ f = π₂ ≫ p`; covers are epic, so the equation descends.) -/
-private theorem comp_recip_pin {A B C : 𝒞} (f : A ⟶ C) (p : B ⟶ C) :
+theorem comp_recip_pin {A B C : 𝒞} (f : A ⟶ C) (p : B ⟶ C) :
     (graph f ⊚ (graph p)°).colA ≫ f = (graph f ⊚ (graph p)°).colB ≫ p := by
   let pb := HasPullbacks.has (graph f).colB ((graph p)°).colA
   let span : pb.cone.pt ⟶ prod A B :=
@@ -2493,7 +2493,7 @@ private theorem comp_recip_pin {A B C : 𝒞} (f : A ⟶ C) (p : B ⟶ C) :
     = id_A`, i.e. `(R'⊚graph p).colA` is split epi hence a cover; its left leg factors the
     cover `image.lift` of `R'.colA`, so `R'.colA` is a composite of covers, hence a cover —
     which is exactly `Entire R'`. -/
-private theorem entire_refine {A B C : 𝒞} [PullbacksTransferCovers 𝒞]
+theorem entire_refine {A B C : 𝒞} [PullbacksTransferCovers 𝒞]
     (R : BinRel 𝒞 A B) (p : B ⟶ C) (f : A ⟶ C)
     (hf : graph f ⊂ R ⊚ graph p) :
     Entire (R ⊓ (graph f ⊚ (graph p)°)) := by
