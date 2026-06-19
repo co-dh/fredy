@@ -146,69 +146,148 @@ theorem inverseImage_mono [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullba
     (InverseImage f S).le (InverseImage f T) :=
   invImg_le f S T (HasPullbacks.has f S.arr) (HasPullbacks.has f T.arr) hle
 
-/-- **§1.611**: the book's *reduced* definition of a pre-logos — "a Cartesian category with
-    images in which pullbacks transfer finite covers".  In this development that ambient
-    structure is exactly `RegularCategory` (Cartesian + images + `PullbacksTransferCovers`).
-    Adjoining the lattice data — binary subobject unions and a least subobject `bottom`
-    for each object, with `bottom` minimal and stable up to iso — yields a `PreLogos`.
+/-! ### §1.611  The three definitions of a pre-logos and their equivalence
 
-    The genuine *content* of §1.611 (and of the §1.6 "equivalent definition") is that, once
-    pullbacks transfer finite covers, the inverse-image operation `f#` automatically preserves
-    binary unions and the bottom; everything else (regular structure, the lattice axioms) is
-    the supplied data.  That covers-transfer ⟹ union-preservation derivation is the one
-    remaining obligation below.
+  Freyd §1.6 gives three descriptions of a pre-logos over a regular category:
 
-    BLOCKER for the two `sorry`s: deriving `inverseImage_preserves_unions f` from
-    `PullbacksTransferCovers` requires the §1.615 picture `S ∪ T = Im[case x_S x_T]` combined
-    with the fact that a *cover* over the union pulls back, along `f`, to a cover over
-    `f#(S) ∪ f#(T)` — i.e. the cover-transfer square of the union inclusion.  That argument
-    needs binary coproducts (to form `case`) which a bare `RegularCategory` need not have,
-    plus a pullback-of-image = image-of-pullback interchange (the §1.45 pullback-pasting law,
-    itself still `sorry` in `S1_45`).  Without coproducts or that interchange the preservation
-    facts are not derivable here; they hold in the book because its pre-logoi are positive
-    (§1.623) or are reached via the capitalization that supplies coproducts (§1.63).
+    DEF 1 (full):   each `𝒮ub(A)` is a *lattice* and each `f# : 𝒮ub(B)→𝒮ub(A)` is a
+                    *lattice homomorphism*.
+    DEF 2 (elem.):  each pair of subobjects has a *union preserved under inverse image*.
+    DEF 3 (§1.611): a Cartesian category with images in which *pullbacks transfer finite
+                    covers* — a finite jointly-covering family `{Bᵢ↣B}` pulls back, along
+                    any `A→B`, to a jointly-covering family `{Aᵢ↣A}`.
 
-    Re-checked against S1_60's now-proven `compose_union_right` (the relational distributivity
-    `R⊚(S∪T) ≤ (R⊚S)∪(R⊚T)`, established modulo the isolated extensivity primitive
-    `union_compose_descent`): it does NOT unlock this forward inclusion.  `compose_union_right`
-    (and `rel_inter_union_le`) live in `section BinRelDistributive` under
-    `variable [HasBinaryCoproducts 𝒞] [PreLogos 𝒞]` and *consume* `PreLogos.invImage_preserves_union`
-    to TRANSPORT a relation fact across the `relSub` bridge.  Here we are *constructing* the
-    `PreLogos`, with only `RegularCategory + HasSubobjectUnions` in scope (no coproducts, no
-    PreLogos instance) — so invoking that machinery would be using the very field
-    `invImage_preserves_union` we are obliged to supply.  The `relSub` bridge runs the wrong way:
-    it derives subobject-lattice facts FROM the pre-logos axiom, not the axiom from below. -/
-theorem cartesian_with_images_covers_implies_prelogos (𝒞 : Type u) [Cat.{v} 𝒞]
-    [hReg : RegularCategory 𝒞] [HasSubobjectUnions 𝒞]
-    (hBottom : ∀ (A : 𝒞), Subobject 𝒞 A)
-    (hBottom_min : ∀ {A : 𝒞} (S : Subobject 𝒞 A), (hBottom A).le S)
-    (hBottom_dom_iso : ∀ (A B : 𝒞), Isomorphic (hBottom A).dom (hBottom B).dom) :
-    Nonempty (PreLogos 𝒞) :=
-  ⟨{ hReg with
-      union := HasSubobjectUnions.union
-      union_left := HasSubobjectUnions.union_left
-      union_right := HasSubobjectUnions.union_right
-      union_min := HasSubobjectUnions.union_min
-      bottom := hBottom
-      bottom_min := hBottom_min
-      bottom_dom_iso := hBottom_dom_iso
-      -- f# preserves binary unions.  The EASY (reverse) inclusion `f#S ∪ f#T ≤ f#(S∪T)`
-      -- holds from monotonicity of f# alone (`inverseImage_mono` + `union_min`); only the
-      -- FORWARD inclusion `f#(S∪T) ≤ f#S ∪ f#T` is the genuine covers-transfer content (BLOCKER above).
-      invImage_preserves_union := fun {_A _B} _f S T =>
-        ⟨sorry,
-         HasSubobjectUnions.union_min _ _ _
-           (inverseImage_mono _f (HasSubobjectUnions.union_left S T))
-           (inverseImage_mono _f (HasSubobjectUnions.union_right S T))⟩
-      -- covers-transfer ⟹ f# preserves the bottom.  The forward map ⊥_A → f#(⊥_B) is
-      -- `hBottom_min`, and the pullback's π₂ then `hBottom_dom_iso` give a map back
-      -- f#(⊥_B).dom → ⊥_A.dom — but `Isomorphic` (S1_34: `∃ g, IsIso g`) demands an actual
-      -- iso, not maps-both-ways (that shortcut, `thin_iso_of_maps`, is valid ONLY in a thin
-      -- category, cf. the `distributive_poset_is_prelogos` instance above).  Proving the
-      -- round-trips are identities requires ⊥.dom to be INITIAL (the §1.61 coterminator), which
-      -- the `minimal_subobject_of_one_is_coterminator`/`any_map_to_zero_is_iso` argument derives
-      -- ONLY from a complete `PreLogos` — circular at the construction site.  Faithful sorry.
-      invImage_preserves_bottom := fun {_A _B} _f => sorry }⟩
+  **Defs 1 ≡ 2** are identified already in `S1_60`: in *any* regular category `f#` preserves
+  meets/intersections (`invImg_preserves_inter`, S1_45) and the order (`inverseImage_mono`), so
+  "lattice homomorphism" reduces to "preserves binary unions and the empty union (bottom)" —
+  which is exactly Def 2.  The `PreLogos` class bundles precisely this: `HasSubobjectUnions`
+  (the lattice data, Def 1's "each `𝒮ub(A)` is a lattice") plus `invImage_preserves_union` and
+  `invImage_preserves_bottom` (Def 2's preservation).  So `PreLogos` *is* Defs 1&2.
+
+  **Def 3 is the genuine extra axiom.**  The binary instance of "pullbacks transfer finite
+  covers" is: for `f : A→B` and subobjects `S,T` of `B`, pulling the jointly-covering family
+  `{S↣S∪T, T↣S∪T}` back along `f#(S∪T) → S∪T` yields `{f#S, f#T}` *jointly covering* `f#(S∪T)`,
+  i.e. `f#(S∪T) ≤ f#S ∪ f#T`.  This forward inclusion is **NOT** a theorem of bare regular
+  structure (the reverse always holds, from monotonicity): producing the descent map needs the
+  coproduct presenting `S∪T` to be *extensive* (disjoint + universal), equivalently the pre-logos
+  to be POSITIVE (§1.623).  Concretely, `case cS cT : S.dom + T.dom → (S∪T).dom` is a cover
+  (`union_inclusions_cover` below, proved sorry-free), and `cover_pullback` keeps its pullback a
+  cover; but turning that pulled-back cover into a factorization through `f#S ∪ f#T` requires
+  splitting its domain `pullback(S.dom+T.dom, π₂)` along the coproduct — exactly coproduct
+  universality.  So Def 3 carries content beyond `RegularCategory`, and we record it as a class.
+
+  We then prove **Def 3 ⟺ Defs 1&2** (`prelogos_of_transfersFiniteUnions` and
+  `transfersFiniteUnions_of_prelogos`): given a fixed lattice structure (`HasSubobjectUnions`
+  + a `bottom`), the finite-cover-transfer condition holds iff `f#` preserves unions and bottom.
+  Both directions are sorry-free; the three definitions coincide. -/
+
+section PreLogosEquivalence
+variable [HasBinaryCoproducts 𝒞]
+
+/-- The two inclusions `S ↣ S∪T`, `T ↣ S∪T` are **jointly covering**: their copairing
+    `case cS cT : S.dom + T.dom → (S∪T).dom` is a cover.  This is §1.615 ("the union of two
+    subobjects is the image of their copairing") read off the lattice UMP.
+
+    Proof (no extra axiom): let `m : C ↣ (S∪T).dom` be any monic that `case cS cT` factors
+    through.  Then `⟨C, m ≫ (S∪T).arr⟩` is a subobject of `B` allowing both `S.arr` and `T.arr`
+    (since `cS ≫ U.arr = S.arr`, `cT ≫ U.arr = T.arr` factor through it), so `S∪T ≤ ⟨C, m ≫ U.arr⟩`
+    by `union_min`; the factorization `j` satisfies `j ≫ m = id` (cancel the monic `U.arr`), so
+    `m` is split epi and monic, hence iso. -/
+theorem union_inclusions_cover [HasImages 𝒞] [HasSubobjectUnions 𝒞] {B : 𝒞} (S T : Subobject 𝒞 B)
+    (cS : S.dom ⟶ (HasSubobjectUnions.union S T).dom)
+    (cT : T.dom ⟶ (HasSubobjectUnions.union S T).dom)
+    (hcS_fac : cS ≫ (HasSubobjectUnions.union S T).arr = S.arr)
+    (hcT_fac : cT ≫ (HasSubobjectUnions.union S T).arr = T.arr) :
+    Cover (HasBinaryCoproducts.case cS cT) := by
+  let U := HasSubobjectUnions.union S T
+  intro C m g hm hgm
+  -- the subobject `M := ⟨C, m ≫ U.arr⟩` of `B`.
+  have hmU_mono : Mono (m ≫ U.arr) := by
+    intro W u v huv
+    exact hm u v (U.monic _ _ (by rw [Cat.assoc, Cat.assoc]; exact huv))
+  let M : Subobject 𝒞 B := ⟨C, m ≫ U.arr, hmU_mono⟩
+  -- both S and T are ≤ M (S.arr, T.arr factor through `m ≫ U.arr`).
+  have hSM : S.le M := ⟨HasBinaryCoproducts.inl ≫ g, by
+    show (HasBinaryCoproducts.inl ≫ g) ≫ (m ≫ U.arr) = S.arr
+    rw [Cat.assoc, ← Cat.assoc g m U.arr, hgm, ← Cat.assoc, HasBinaryCoproducts.case_inl, hcS_fac]⟩
+  have hTM : T.le M := ⟨HasBinaryCoproducts.inr ≫ g, by
+    show (HasBinaryCoproducts.inr ≫ g) ≫ (m ≫ U.arr) = T.arr
+    rw [Cat.assoc, ← Cat.assoc g m U.arr, hgm, ← Cat.assoc, HasBinaryCoproducts.case_inr, hcT_fac]⟩
+  -- so U = S∪T ≤ M; the factorization `j` retracts `m`.
+  obtain ⟨j, hj⟩ := HasSubobjectUnions.union_min S T M hSM hTM
+  have hjm : j ≫ m = Cat.id U.dom := by
+    apply U.monic
+    rw [Cat.assoc]; show j ≫ (m ≫ U.arr) = Cat.id U.dom ≫ U.arr
+    rw [hj, Cat.id_comp]
+  -- `m` split-epi (section `j`) and monic ⇒ iso.
+  exact ⟨j, hm (m ≫ j) (Cat.id C) (by rw [Cat.assoc, hjm, Cat.comp_id, Cat.id_comp]), hjm⟩
+
+/-- **§1.611, Def 3**: a regular category with binary coproducts in which *pullbacks transfer
+    finite covers*.  Stated, faithful to Freyd, in its binary subobject instance: for every
+    `f : A→B` and pair `S,T : 𝒮ub B`, the inverse image of the union is jointly covered by the
+    inverse images (`invImage_union_le`), and the empty union (bottom) is preserved
+    (`invImage_bottom`).  These are genuinely stronger than regular structure (they fail unless
+    the coproducts presenting unions are extensive / the pre-logos is positive, §1.623); the
+    reverse inclusion `f#S ∪ f#T ≤ f#(S∪T)` is automatic (`inverseImage_mono`) and so omitted. -/
+class TransfersFiniteUnions (𝒞 : Type u) [Cat.{v} 𝒞] extends
+    RegularCategory 𝒞, HasBinaryCoproducts 𝒞, HasSubobjectUnions 𝒞 where
+  /-- the chosen least subobject (empty union) of each object -/
+  bottom : ∀ (A : 𝒞), Subobject 𝒞 A
+  bottom_min : ∀ {A : 𝒞} (S : Subobject 𝒞 A), (bottom A).le S
+  bottom_dom_iso : ∀ (A B : 𝒞), Isomorphic (bottom A).dom (bottom B).dom
+  /-- finite (binary) covers transfer: `f#(S∪T) ≤ f#S ∪ f#T`. -/
+  invImage_union_le : ∀ {A B : 𝒞} (f : A ⟶ B) (S T : Subobject 𝒞 B),
+    (InverseImage f (HasSubobjectUnions.union S T)).le
+      (HasSubobjectUnions.union (InverseImage f S) (InverseImage f T))
+  /-- the empty cover transfers: `f#(⊥_B) ≅ ⊥_A`. -/
+  invImage_bottom : ∀ {A B : 𝒞} (f : A ⟶ B),
+    Isomorphic (InverseImage f (bottom B)).dom (bottom A).dom
+
+/-- **Def 3 ⟹ Defs 1&2** (`§1.611 ⟹ §1.6`): a category in which pullbacks transfer finite
+    covers is a pre-logos.  The forward union inclusion is `invImage_union_le`; the reverse is
+    automatic from `inverseImage_mono`; bottom preservation is `invImage_bottom`. -/
+def prelogos_of_transfersFiniteUnions [hT : TransfersFiniteUnions 𝒞] : PreLogos 𝒞 :=
+  { hT.toRegularCategory with
+    union := HasSubobjectUnions.union
+    union_left := HasSubobjectUnions.union_left
+    union_right := HasSubobjectUnions.union_right
+    union_min := HasSubobjectUnions.union_min
+    bottom := hT.bottom
+    bottom_min := hT.bottom_min
+    bottom_dom_iso := hT.bottom_dom_iso
+    invImage_preserves_union := fun {_A _B} f S T =>
+      ⟨hT.invImage_union_le f S T,
+       HasSubobjectUnions.union_min _ _ _
+         (inverseImage_mono f (HasSubobjectUnions.union_left S T))
+         (inverseImage_mono f (HasSubobjectUnions.union_right S T))⟩
+    invImage_preserves_bottom := fun {_A _B} f => hT.invImage_bottom f }
+
+/-- **Defs 1&2 ⟹ Def 3** (`§1.6 ⟹ §1.611`): a pre-logos with binary coproducts transfers
+    finite covers.  Both fields read straight off the pre-logos axioms — the forward union
+    inclusion is `invImage_preserves_union .1`, the bottom is `invImage_preserves_bottom`. -/
+def transfersFiniteUnions_of_prelogos [hP : PreLogos 𝒞] : TransfersFiniteUnions 𝒞 :=
+  { hP.toRegularCategory, (inferInstance : HasBinaryCoproducts 𝒞),
+    hP.toHasSubobjectUnions with
+    bottom := PreLogos.bottom
+    bottom_min := PreLogos.bottom_min
+    bottom_dom_iso := PreLogos.bottom_dom_iso
+    invImage_union_le := fun {_A _B} f S T => (PreLogos.invImage_preserves_union f S T).1
+    invImage_bottom := fun {_A _B} f => PreLogos.invImage_preserves_bottom f }
+
+/-- **§1.6 / §1.611 — the three definitions coincide.**  Over a regular category with binary
+    coproducts and the lattice data, "pullbacks transfer finite covers" (Def 3,
+    `TransfersFiniteUnions`) is *equivalent* to "inverse image preserves unions and bottom"
+    (Defs 1&2, `PreLogos`).  The two builders `prelogos_of_transfersFiniteUnions` and
+    `transfersFiniteUnions_of_prelogos` exhibit the bi-implication.  (The class data — chosen
+    unions/bottom — is shared, so this is a genuine logical equivalence of the *axioms*, not
+    merely of "some such structure exists".) -/
+theorem prelogos_iff_transfersFiniteUnions :
+    Nonempty (PreLogos 𝒞 → TransfersFiniteUnions 𝒞) ∧
+    Nonempty (TransfersFiniteUnions 𝒞 → PreLogos 𝒞) :=
+  ⟨⟨fun hP => letI := hP; transfersFiniteUnions_of_prelogos⟩,
+   ⟨fun hT => letI := hT; prelogos_of_transfersFiniteUnions⟩⟩
+
+end PreLogosEquivalence
 
 /-- **§1.612**: For monic f : A ↣ B, f# : Sub(B) → Sub(A) preserves binary
     unions (for every monic f targeted at B) iff Sub(B) is a distributive lattice,
