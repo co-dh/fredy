@@ -472,10 +472,22 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
   refine ⟨x', ?_⟩
   rintro ⟨y', hy'⟩
   -- ===== (c) reflect the colimit factor to a base-change section, then apply the escape =====
-  -- THE HONEST RESIDUAL: `stageInclFunctorL U'` fullness on this hom (see the docstring blocker).
-  -- The reflection of `y'` yields `s : A×P → cnD.pt` with `s ≫ cnD.π₂ = id` and
-  -- `s ≫ mf' ≫ fst = fst`; `key s …` then derives `False`.  `key`, `cnD`, `mf'` (the §1.546 escape
-  -- data) are all in hand above; only the fullness reflection of `y'` to `s` is missing.
+  -- THE HONEST RESIDUAL (c.i).  The colimit-factor `hy'` reduces (germ machinery: `incl_surjective`
+  -- of `homSystemL` to write `y'` at a bound `N ⊇ U'`, then `homCompRawL_eq_stage` on
+  -- `compL y' (stageInclL (pushFibre g'')) = x'`) to an ON-THE-NOSE stage-`N` `Over (∏N)` equation:
+  -- a section `s_N : ∏N ⟶ (base-change of cnD to ∏N).pt` whose `A`-coordinate is the `N`-image of
+  -- the fresh `fst : A×∏U → A`, i.e. (by `selectProj_factor`) `factorProj N A`.
+  --
+  -- THE BLOCKER (refined).  `key`/`baseChange_freshFactor_missed` is GENERIC, but applying it at the
+  -- germ stage `N` needs `∏N ≅ A × ∏(N\{A})` with the *binary-product* `fst` matching `factorProj N A`,
+  -- AND `selectProj N U` factoring through `snd` (true since `A ∉ U`).  When the germ stage `N ⊋ U'`
+  -- is strictly richer than `U' = A::U`, `∏N` is a right-fold with `A` buried in the middle, so this
+  -- permutation iso `∏N ≅ A × ∏(N\{A})` is NOT among the built lemmas (it is a genuine new
+  -- `listProd`-reindexing fact, plus its threading through base-change of the point/escape data).
+  -- Equivalently: `stageInclFunctorL U'` is not full on points of base-changed objects, so the germ
+  -- of `y'` need not descend to `U'` where `∏U' = A×∏U` makes the escape apply on the nose.
+  -- The escape MATH, the (a) base-change data, and the (b) point are all in hand; only this
+  -- stage-`N` permutation/descent is missing.  See `richerSliceMiss`'s note for the precise plan.
   exact (by sorry : False)
 
 /-- **Freyd's §1.546 density (the genuine open core).**  The §1.546 ESCAPE is sorry-free
@@ -488,8 +500,15 @@ theorem richerSliceMiss (W : WSCover S) : RicherSliceMiss W := by
   letI : Cat (uniformTargetTy W) := uniformTargetCat W
   intro A hA U hbU xE' g'' hmono hniso
   by_cases hAU : A ∈ U.1
-  · -- SECOND RESIDUAL: `A ∈ U` (the fresh `A`-coordinate cannot be appended nodup; needs a fresh
-    -- independent copy of `A` — not expressible at the object level of this index).  See the note.
+  · -- SECOND RESIDUAL (c.ii): `A ∈ U`.  The escape needs a FRESH independent `A`-factor in the base,
+    -- but `A ∈ U.1` blocks `A :: U.1` being nodup, so the richer stage `U' = A::U` is unavailable.
+    -- Route (1) (reflect at an `A`-free stage) is IMPOSSIBLE: the stage `U` here is universally
+    -- quantified in `RicherSliceMiss`, and the directed `WSList` index only ENLARGES stages
+    -- (`hUU' : U ≤ U'` adds factors), never removes `A`; so an `A ∉ U'` stage with `U ⊆ U'` cannot
+    -- exist when `A ∈ U`.  The principled fix is ROUTE (2): re-index `cofinalProjSystem` by nodup
+    -- lists over `S ⊕ Unit` (or `S` with a distinguished prependable "point slot") so the embedded
+    -- object's fresh `A`-factor is ALWAYS addable.  This re-threads `WSList`/`selectProj`/
+    -- `cofinalProjSystem`/`uniformStep`/`FibreDensity` — LARGE; deferred (see report).
     sorry
   · -- `A ∉ U`: the directed-union escape at `U' = A :: U`, via `richerSliceSection` (sorry-free
     -- except for the isolated §1.546(c) fullness residual it documents).
