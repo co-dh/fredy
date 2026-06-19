@@ -571,27 +571,31 @@ theorem omega_endo_eq_id_of_classifies_true
     Since g is monic, g(V) = g(1_Ω) implies V = 1_Ω.  For any A, A is g²-large
     in itself, and the identity has the same property, so g² = id by extensionality.
 
-    **Proof gap** (sharpened).  Via the available API the goal reduces to showing
-    `t : 1 → Ω` is the pullback of `t` along `g ≫ g` (i.e. `g²` classifies the
-    maximal subobject of Ω — "A is g²-large in itself").  Freyd's argument needs
-    FOUR pieces; THREE are now available in this file:
-    (1) the full `Sub(−) ≅ Hom(−,Ω)` bijection: `classify_unique` (injective half)
-        + `classify_surjective` (surjective half, above);
-    (2a) the internal-MEET universal property: `omegaMeet_classifies_inter` (above)
-        proves `⟨χ_{A₁},χ_{A₂}⟩ ≫ omegaMeet` classifies `Sub.inter A₁ A₂` (S1_45),
-        so `omegaMeet` realises the subobject operation `g(A₁,A₂) = A₁ ∩ A₂`;
-    (3) operation-extensionality then follows from (1).
-    The REMAINING blocker is (2b): the universal property of `heytingDoubleArrow`
-    (defined below as a bare classifying map of the diagonal) — concretely that
-    `⟨χ₁,χ₂⟩ ≫ heytingDoubleArrow` classifies the subobject on which `χ₁ = χ₂`,
-    equivalently `A₁ ∩ A' = A₂ ∩ A'` — TOGETHER WITH the internal-Heyting identity
-    `(A ↔ A×U) ∧ (A×U) = A`.  The latter needs Sub(A) to be developed as a Heyting
-    semilattice (the g-large-subobject correspondence `A'∈g-large ↔ char factors
-    through gᵐ(t)`, and the operation `A' ↦ (A ↔ A×U) ∧ A×U`), none of which is
-    formalised here — this is a multi-lemma development of internal Heyting algebra
-    on subobjects, not a single bridge lemma.  Faithful sorry; the meet-bridge
-    `omegaMeet_classifies_inter` is now in place, residual = Heyting-arrow UMP +
-    Sub(A)-Heyting-algebra infra.  See S1_91.md. -/
+    **Proof gap** (sharpened — the whole subobject-algebra layer is now built).
+    The clean reduction (proven, above): it suffices to show, for EVERY `χ : A → Ω`,
+    `χ ≫ g ≫ g = χ`; taking `A = Ω`, `χ = id` then gives `g ≫ g = id` directly.
+    (Equivalently `omega_endo_eq_id_of_classifies_true`: `t` is a pullback of `t`
+    along `g ≫ g`.)  Freyd proves `χ ≫ g ≫ g = χ` by exhibiting, on every `Sub(A)`,
+    the operation `T_U(A') = (A' ↔ A'×U) ∧ (A'×U)` and showing it equals BOTH `g²`
+    AND the identity.  The bridge lemmas this needs are now all available here:
+    (1) `Sub(−) ≅ Hom(−,Ω)`: `classify_unique` (inj.) + `classify_surjective` (surj.);
+    (2a) internal-MEET UMP: `omegaMeet_classifies_inter` (∧ = ∩ on subobjects);
+    (2b) heyting double-arrow UMP: `heytingDoubleArrow_classifies_eq` (⇔ classifies
+        the equalizer of `χ₁,χ₂`, i.e. "where `χ₁ = χ₂`");
+    (2c) classify naturality: `classify_invImg` (`χ_{A'×U} = term_A ≫ χ_U` for the
+        subterminal `U ⊆ 1`, since `A'×U = (term A)# U ∩ A'`).
+
+    THE ONE GENUINELY MISSING STEP is `U = 1` (Freyd's "`g(V) = g(1)` implies
+    `V = 1`"): the unique `g`-large subobject of `1` is the MAXIMAL one, forced by
+    `g` monic AS AN OPERATION on `Sub(1)`.  This needs (i) the definition of `U` as
+    the `g`-large subobject of `1` and (ii) the fact that a monic `g : Ω → Ω`
+    induces an INJECTIVE operation on subobjects (`g(A₁) = g(A₂) ⟹ A₁ = A₂`),
+    neither of which is a one-liner from the present API — `g` monic gives
+    injectivity on POINTS, and lifting that to the subobject operation is the
+    remaining content.  Once `U = 1`, `A'×U = A'`, `(A' ↔ A') = ⊤`, and
+    `⊤ ∧ A' = A'` collapse `T_U` to the identity via the three UMPs above, closing
+    the proof.  Faithful sorry: meet/double-arrow UMPs + classify-naturality are in
+    place; residual = the `U = 1` (monic ⟹ subobject-injective) step.  See S1_91.md. -/
 theorem omega_monic_endo_is_involution (g : HasSubobjectClassifier.omega (𝒞 := 𝒞) ⟶
     HasSubobjectClassifier.omega (𝒞 := 𝒞)) (hm : Mono g) : g ≫ g = Cat.id _ := by
   sorry
