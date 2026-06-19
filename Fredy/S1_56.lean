@@ -955,25 +955,6 @@ theorem pullback_of_surjective_is_pushout_Set {A B C P : Type u}
   rcases h_surj_x b with ⟨a, ha⟩
   rw [← ha, h'x, hxu]
 
-/-- **§1.565** (general case): In a regular category, a pullback of covers is
-    a pushout.  The book proof transfers the **Set** statement
-    (`pullback_of_surjective_is_pushout_Set`, proved above) along an *exact*
-    Henkin–Lubkin representation.
-
-    SHARP FAITHFUL SORRY — BLOCKED ON EXACT REPRESENTATION.  §1.55 supplies only the
-    *faithful* covariant-hom representation (`henkin_lubkin`), which preserves limits
-    but NOT covers/images (see the `S1_55.lean` header).  An *exact* faithful
-    representation — the one that would carry the Set pushout back to `𝒞` — needs the
-    §1.543 Capitalization Lemma (transfinite, still `sorry` in `S1_54.lean`).  Until
-    that lands, no constructive route discharges this from the regular/effective infra
-    in this file (covers, coequalizers, kernel pairs do not by themselves build the
-    pushout cocone).  Left as the single deliberate gap of §1.56. -/
-def pullback_of_covers_is_pushout {A B C P : 𝒞} (x : A ⟶ B) (y : C ⟶ B)
-    (p₁ : P ⟶ A) (p₂ : P ⟶ C) (h_sq : p₁ ≫ x = p₂ ≫ y)
-    [RegularCategory 𝒞] (_h_pb : HasPullback x y) (_h_cover_x : Cover x)
-    (_h_cover_y : Cover y) : HasPushout p₁ p₂ := by
-  sorry
-
 /-- In any category with images, `image.lift f` is a cover (the first factor in the
     cover-monic factorization of `f`).  Proof: if it factors through a monic `m`, then
     the subobject with arr = `m ≫ (image f).arr` allows `f`; image-minimality forces `m`
@@ -1122,6 +1103,100 @@ theorem covers_same_kernelPair_iso {A B B' : 𝒞} [RegularCategory 𝒞]
       _ = x ≫ φ := by rw [hψ]
       _ = y := hφ
       _ = y ≫ Cat.id B' := (Cat.comp_id _).symm
+
+/-- **§1.565 (crux, constructive in 𝒞)**: if `(P; p₁, p₂)` is a pullback of the
+    covers `x : A ↠ B`, `y : C ↠ B`, then any cocone leg `u : A ⟶ Q` over the
+    cospan (i.e. `u, v` with `p₁ ≫ u = p₂ ≫ v`) EQUALIZES the kernel pair of `x`:
+    `kp₁ x ≫ u = kp₂ x ≫ u`.
+
+    This is the Set-level `h_key` (`x a₁ = x a₂ ⟹ u a₁ = u a₂`) made elementary:
+    a pair `(a₁, a₂)` agreeing under `x` lands, after pulling the cover `y` back
+    along `kp₁ x ≫ x`, on two preimages `z₁, z₂ : K' ⟶ P` sharing the same
+    `C`-coordinate; the cocone identity then forces agreement under `u`, and the
+    pullback leg over `K` is a cover, so it cancels. -/
+theorem cocone_equalizes_kernelPair {A B C P Q : 𝒞} [RegularCategory 𝒞]
+    (x : A ⟶ B) (y : C ⟶ B) (p₁ : P ⟶ A) (p₂ : P ⟶ C) (h_sq : p₁ ≫ x = p₂ ≫ y)
+    (h_isPb : (⟨P, p₁, p₂, h_sq⟩ : Cone x y).IsPullback)
+    (hy : Cover y) (u : A ⟶ Q) (v : C ⟶ Q) (hcocone : p₁ ≫ u = p₂ ≫ v) :
+    kp₁ (f := x) ≫ u = kp₂ (f := x) ≫ u := by
+  -- Pull the cover `y` back along `k₁ ≫ x : K → B`; the leg over `K` is a cover.
+  let k₁ := kp₁ (f := x); let k₂ := kp₂ (f := x)
+  have hkx : k₁ ≫ x = k₂ ≫ x := kp_sq
+  let pby := HasPullbacks.has y (k₁ ≫ x)
+  have hπ_cover : Cover pby.cone.π₂ := cover_pullback (k₁ ≫ x) hy
+  -- pby.cone.w : π₁ ≫ y = π₂ ≫ (k₁ ≫ x).  Cone over (x,y) using (π₂ ≫ k₁, π₁).
+  have hw₁ : (pby.cone.π₂ ≫ k₁) ≫ x = pby.cone.π₁ ≫ y :=
+    (Cat.assoc _ _ _).trans pby.cone.w.symm
+  obtain ⟨z₁, ⟨hz₁a, hz₁b⟩, _⟩ := h_isPb ⟨pby.cone.pt, pby.cone.π₂ ≫ k₁, pby.cone.π₁, hw₁⟩
+  -- Same with k₂: (π₂ ≫ k₂) ≫ x = π₂ ≫ (k₁ ≫ x) = π₁ ≫ y.
+  have hw₂ : (pby.cone.π₂ ≫ k₂) ≫ x = pby.cone.π₁ ≫ y := by
+    rw [Cat.assoc, ← hkx]; exact pby.cone.w.symm
+  obtain ⟨z₂, ⟨hz₂a, hz₂b⟩, _⟩ := h_isPb ⟨pby.cone.pt, pby.cone.π₂ ≫ k₂, pby.cone.π₁, hw₂⟩
+  -- hz₁a : z₁ ≫ p₁ = π₂ ≫ k₁,  hz₁b : z₁ ≫ p₂ = π₁;  similarly z₂.
+  have key : pby.cone.π₂ ≫ (k₁ ≫ u) = pby.cone.π₂ ≫ (k₂ ≫ u) := by
+    calc pby.cone.π₂ ≫ (k₁ ≫ u)
+        = (pby.cone.π₂ ≫ k₁) ≫ u := (Cat.assoc _ _ _).symm
+      _ = (z₁ ≫ p₁) ≫ u := by rw [hz₁a]
+      _ = z₁ ≫ (p₁ ≫ u) := Cat.assoc _ _ _
+      _ = z₁ ≫ (p₂ ≫ v) := by rw [hcocone]
+      _ = (z₁ ≫ p₂) ≫ v := (Cat.assoc _ _ _).symm
+      _ = pby.cone.π₁ ≫ v := by rw [hz₁b]
+      _ = (z₂ ≫ p₂) ≫ v := by rw [hz₂b]
+      _ = z₂ ≫ (p₂ ≫ v) := Cat.assoc _ _ _
+      _ = z₂ ≫ (p₁ ≫ u) := by rw [hcocone]
+      _ = (z₂ ≫ p₁) ≫ u := (Cat.assoc _ _ _).symm
+      _ = (pby.cone.π₂ ≫ k₂) ≫ u := by rw [hz₂a]
+      _ = pby.cone.π₂ ≫ (k₂ ≫ u) := Cat.assoc _ _ _
+  exact cover_epi hπ_cover key
+
+/-- **§1.565** (general case): In a regular category, a pullback of covers is a
+    PUSHOUT.  Constructive proof, directly in `𝒞` (no representation transfer).
+
+    The pushout cocone is `(B; x, y)` itself — the cover legs are the injections.
+    Given any cocone `(Q; u, v)` with `p₁ ≫ u = p₂ ≫ v`, the descent map
+    `h : B ⟶ Q` is produced by §1.566 (`cover_is_coequalizer_of_level`): `x` is the
+    coequalizer of its kernel pair, and `u` equalizes that kernel pair by
+    `cocone_equalizes_kernelPair`, so `h` with `x ≫ h = u` exists and is unique.
+    The second leg `y ≫ h = v` follows because `p₂` is a cover (pullback of the
+    cover `x` along `y`) and `p₂ ≫ (y ≫ h) = (p₁ ≫ x) ≫ h = p₁ ≫ u = p₂ ≫ v`.
+    Uniqueness of `desc` is immediate from `x` (or `y`) being epic.
+
+    The hypothesis `h_isPb` (the given square IS a pullback) is required — and was
+    present in the proved Set version `pullback_of_surjective_is_pushout_Set` as
+    `h_isPullback` — without it an arbitrary commuting square of covers is not a
+    pushout. -/
+noncomputable def pullback_of_covers_is_pushout {A B C P : 𝒞} (x : A ⟶ B) (y : C ⟶ B)
+    (p₁ : P ⟶ A) (p₂ : P ⟶ C) (h_sq : p₁ ≫ x = p₂ ≫ y)
+    [RegularCategory 𝒞] (h_isPb : (⟨P, p₁, p₂, h_sq⟩ : Cone x y).IsPullback)
+    (h_cover_x : Cover x) (h_cover_y : Cover y) : HasPushout p₁ p₂ where
+  cocone := ⟨B, x, y, h_sq⟩
+  desc c :=
+    (cover_is_coequalizer_of_level x h_cover_x c.ι₁
+      (cocone_equalizes_kernelPair x y p₁ p₂ h_sq h_isPb h_cover_y c.ι₁ c.ι₂ c.w)).choose
+  fac₁ c :=
+    (cover_is_coequalizer_of_level x h_cover_x c.ι₁
+      (cocone_equalizes_kernelPair x y p₁ p₂ h_sq h_isPb h_cover_y c.ι₁ c.ι₂ c.w)).choose_spec.1
+  fac₂ c := by
+    have hxh : x ≫ (cover_is_coequalizer_of_level x h_cover_x c.ι₁
+        (cocone_equalizes_kernelPair x y p₁ p₂ h_sq h_isPb h_cover_y c.ι₁ c.ι₂ c.w)).choose
+        = c.ι₁ := (cover_is_coequalizer_of_level x h_cover_x c.ι₁
+      (cocone_equalizes_kernelPair x y p₁ p₂ h_sq h_isPb h_cover_y c.ι₁ c.ι₂ c.w)).choose_spec.1
+    -- p₂ is a cover: it is the `π₂`-leg of the pullback `(P; p₁, p₂)` of the
+    -- cover `x` along `y`, so covers transfer to it.
+    have hp₂_cover : Cover p₂ :=
+      PullbacksTransferCovers.pullbacks_transfer_covers
+        (⟨P, p₁, p₂, h_sq⟩ : Cone x y) h_isPb h_cover_x
+    apply cover_epi hp₂_cover
+    show p₂ ≫ (y ≫ _) = p₂ ≫ c.ι₂
+    calc p₂ ≫ (y ≫ _) = (p₂ ≫ y) ≫ _ := (Cat.assoc _ _ _).symm
+      _ = (p₁ ≫ x) ≫ _ := by rw [h_sq]
+      _ = p₁ ≫ (x ≫ _) := Cat.assoc _ _ _
+      _ = p₁ ≫ c.ι₁ := by rw [hxh]
+      _ = p₂ ≫ c.ι₂ := c.w
+  uniq c h hι₁ _ :=
+    (cover_is_coequalizer_of_level x h_cover_x c.ι₁
+      (cocone_equalizes_kernelPair x y p₁ p₂ h_sq h_isPb h_cover_y c.ι₁ c.ι₂ c.w)).choose_spec.2
+        h hι₁
 
 /-! ## §1.567 Equivalence relations
 
