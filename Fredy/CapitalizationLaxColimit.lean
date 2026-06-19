@@ -760,6 +760,29 @@ structure Coherent (L : LaxCatSystem.{u, w} ι D) : Prop where
     pushHom L x y hik hjk (D.trans hkm hmn) g
       = pushHom L x y (D.trans hik hkm) (D.trans hjk hkm) hmn (pushHom L x y hik hjk hkm g)
 
+/-! ### Object-level nested-`F` collapse isos (Phase 1 (i))
+
+  `transApp L hik hkm x : F (trans hik hkm) x ⟶ F hkm (F hik x)` is the BINARY object collapse iso.
+  For a three-step bound `i ≤ b ≤ c ≤ d` we want the analogous iso
+  `F (trans (trans hib hbc) hcd) x ⟶ F hcd (F hbc (F hib x))`, obtained by collapsing the outer
+  `trans` first (`transApp … x : F (trans (…) hcd) x ⟶ F hcd (F (trans hib hbc) x)`) and then mapping
+  the inner collapse `transApp hib hbc x` along `F hcd`.  This is exactly the object-level analogue of
+  the hom-level `pushHom`-composition used by `homCompRawL_eq_stage`. -/
+
+/-- The three-fold object collapse iso `F (trans (trans hib hbc) hcd) x ⟶ F hcd (F hbc (F hib x))`,
+    built by collapsing the outer `trans` (`transApp`) then mapping the inner collapse along `F hcd`. -/
+noncomputable def nestApp3 {i b c d : ι}
+    (hib : D.le i b) (hbc : D.le b c) (hcd : D.le c d) (x : L.A i) :
+    L.F (D.trans (D.trans hib hbc) hcd) x ⟶ L.F hcd (L.F hbc (L.F hib x)) :=
+  transApp L (D.trans hib hbc) hcd x
+    ≫ @Functor.map _ _ _ _ _ (L.functF hcd) _ _ (transApp L hib hbc x)
+
+theorem nestApp3_isIso {i b c d : ι}
+    (hib : D.le i b) (hbc : D.le b c) (hcd : D.le c d) (x : L.A i) :
+    IsIso (nestApp3 L hib hbc hcd x) :=
+  isIso_comp (transApp_isIso L (D.trans hib hbc) hcd x)
+    (@functor_preserves_iso _ _ _ _ _ (L.functF hcd) _ _ _ (transApp_isIso L hib hbc x))
+
 end LaxHom
 
 /-! ## The germ hom-colimit and the `Cat` instance on `LaxColim L`
