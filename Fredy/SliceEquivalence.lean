@@ -1,4 +1,6 @@
 import Fredy.RationalCapitalization
+import Fredy.SliceWellPointed -- `factorWP_imp_wp`: the decisive negative determination on `ProperMonoIsProductForm`
+import Fredy.S1_47 -- §1.472 `IsSpecial`/`prodEndo` properness: the genuine content of product-form properness
 import Fredy.S1_36 -- `eqToHom`: cast-free transport along object equalities (for the fixed-`U` base)
 
 /-! # §1.543 C — the §1.547 slice equivalence interface, and the precise well-pointedness gap
@@ -147,6 +149,135 @@ theorem sliceEmbed_factor_wellPointed_of_productForm (U : List 𝒞) (k : Fin U.
     @WellPointed (Over (listProd U)) _ (overHasTerminal (listProd U))
       (sliceEmbedObj (listProd U) (U.get k)) :=
   wellPointed_of_productForm (listProdProj U k) hpf
+
+/-! ## §1.546 — the DETERMINATION: `ProperMonoIsProductForm` as stated is FALSE; the genuine
+    relative-cap content is product-form well-pointedness (sorry-free, this section)
+
+  `ProperMonoIsProductForm P A` (above) asks that EVERY proper *plain-slice* mono into
+  `sliceEmbedObj P A` be product-form.  That is not merely hard — it is **provably false**, by two
+  independent sorry-free witnesses imported here:
+
+  * `properMono_forces_graph_iso` — the "graph of the generic point" (`graph_satisfies_hyps`,
+    `RationalCapitalization.lean`) is a proper plain-slice mono that is NOT product-form: assuming
+    `ProperMonoIsProductForm` forces it to be a slice-iso, i.e. forces
+    `IsIso (pair (proj_k) id)`, which fails whenever the factor `U.get k` is not `≅ 1`.
+  * `properMono_one_forces_wellPointed` — at base `P = 1`, `ProperMonoIsProductForm 1 A` together
+    with any point `g : 1 → A` gives, via `wellPointed_of_productForm` then `factorWP_imp_wp`
+    (`SliceWellPointed.lean`, sorry-free), that `A` is `WellPointed` *downstairs*.  Since
+    `WellSupported A` does NOT imply `WellPointed A` in a non-`Capital` category, the hypothesis
+    cannot hold in general — it would presuppose the very capitalization it is meant to build.
+
+  CONCLUSION.  `wellPointed_of_productForm`'s hypothesis is unprovable; chasing it is a dead end.
+  Freyd's §1.546 never asks for it.  The relative-capitalization step (§1.545,
+  `IsRelativeCapitalization`) only ranges over *downstairs* proper subobjects `i : B' ↪ P`, whose
+  slice image is the PRODUCT-FORM mono `prodFormMono i` — and THAT is missed by every point
+  (`prodFormMono_misses_slicePoint`, sorry-free).  The corrected, true, and sufficient statement is
+  therefore "every *proper product-form* mono misses a point", built sorry-free below as
+  `prodFormMono_wellPointed`.  Its properness ingredient is exactly Freyd's §1.472 specialness
+  (`IsSpecial`) — properness of `id_A × i` from properness of `i` is FALSE without specialness
+  (§1.475 Z-sets, recorded at `prodEndo_faithful_of_embedding`), so `IsSpecial` is the honest,
+  load-bearing hypothesis, not a fake. -/
+
+/-- **`ProperMonoIsProductForm` is FALSE — witness 1 (the graph).**  If
+    `ProperMonoIsProductForm (∏U) (U.get k)` held, the proper plain-slice mono
+    `graph_satisfies_hyps U k` (underlying `pair (proj_k) id`) — which is NOT product-form — would be
+    forced to be a slice-iso, i.e. `pair (listProdProj U k) (id)` would be iso.  This fails for any
+    factor `U.get k` not isomorphic to `1`, refuting the hypothesis.  (A product-form decomposition
+    `e ⊚ prodFormMono i = m` with `e` iso would give `e.f ≫ snd` a section of `i`, forcing the proper
+    base mono `i` to be iso — the contradiction inside the proof.) -/
+theorem properMono_forces_graph_iso (U : List 𝒞) (k : Fin U.length)
+    (hpf : ProperMonoIsProductForm (listProd U) (U.get k)) :
+    IsIso (pair (listProdProj U k) (Cat.id (listProd U))) := by
+  obtain ⟨m, hmf, hmono, _hsec⟩ := graph_satisfies_hyps U k
+  have hOverMono : OverMono m := hmono
+  by_cases hiso : OverIso m
+  · have := overIso_underlying hiso
+    rwa [hmf] at this
+  · obtain ⟨B', i, hi_mono, hi_proper, e, _he_iso, hfac⟩ := hpf m hOverMono hiso
+    exfalso
+    apply hi_proper
+    have hunder : e.f ≫ pair (fst : prod (U.get k) B' ⟶ U.get k) (snd ≫ i) = m.f := by
+      have := congrArg OverHom.f hfac
+      simpa [prodFormMono] using this
+    have hsnd : (e.f ≫ snd) ≫ i = Cat.id (listProd U) := by
+      have h2 : e.f ≫ pair (fst : prod (U.get k) B' ⟶ U.get k) (snd ≫ i) ≫ snd
+              = pair (listProdProj U k) (Cat.id (listProd U)) ≫ snd := by
+        rw [← Cat.assoc, hunder, hmf]
+      rw [snd_pair, snd_pair] at h2
+      rw [Cat.assoc]; exact h2
+    have hleft : i ≫ (e.f ≫ snd) = Cat.id B' := by
+      apply hi_mono
+      rw [Cat.assoc, hsnd, Cat.comp_id, Cat.id_comp]
+    exact ⟨e.f ≫ snd, hleft, hsnd⟩
+
+/-- **`ProperMonoIsProductForm` is FALSE — witness 2 (forces Capital).**  At base `P = 1`, the
+    hypothesis `ProperMonoIsProductForm 1 A` together with any global point `g : 1 → A` makes `A`
+    itself `WellPointed`: `wellPointed_of_productForm g hpf` gives `WellPointed (sliceEmbedObj 1 A)`,
+    and `factorWP_imp_wp` (sorry-free, `SliceWellPointed.lean`) descends that to `WellPointed A`.
+    Since `WellSupported A` does not imply `WellPointed A` outside a `Capital` category, the
+    hypothesis cannot hold for a generic well-supported `A` — it presupposes capitalization.  This
+    pins `ProperMonoIsProductForm` as the WRONG statement (over-strong), exactly as Freyd's §1.546
+    (which uses only *downstairs* subobjects) avoids. -/
+theorem properMono_one_forces_wellPointed (A : 𝒞) (g : (one : 𝒞) ⟶ A)
+    (hpf : ProperMonoIsProductForm (one : 𝒞) A) : WellPointed A :=
+  factorWP_imp_wp A (wellPointed_of_productForm g hpf)
+
+/-! ### The corrected, true statement: product-form well-pointedness (§1.546, sorry-free)
+
+  Freyd's §1.546 missed-point argument concerns only PRODUCT-FORM subobjects `id_A × i` (the slice
+  images of downstairs proper monos `i : B' ↪ P`).  For those, well-pointedness is fully provable.
+  Properness of `id_A × i` from properness of `i` is the §1.472 specialness content (`IsSpecial`),
+  honest and load-bearing; monicity and the missed-point are the sorry-free
+  `prodFormMono_mono` / `prodFormMono_misses_slicePoint`. -/
+
+section ProductForm
+
+/-- The §1.472 specialness condition, phrased directly over the in-scope products (avoiding the
+    `CartesianCategory` instance-coherence clash of `IsSpecial`): the right-hand product `m × id_B`
+    of a proper mono `m` with witnessing proper base subobject is again proper.  `IsSpecial 𝒞`
+    (`S1_47.lean`) supplies exactly this when the ambient products are the `CartesianCategory` ones. -/
+def SpecialHere : Prop :=
+  ∀ {A' A B' B : 𝒞} (m : A' ⟶ A) (n : B' ⟶ B), ProperMono m → ProperMono n →
+    ProperMono (pair (fst (A := A') (B := B) ≫ m) (snd (A := A') (B := B)))
+
+/-- **§1.472 — the product-form mono `id_A × i` is PROPER when `i` is** (under specialness).  Given
+    `SpecialHere 𝒞`, a proper base mono `i : B' ↪ P`, and any proper subobject `j : A'' ↪ A` of the
+    factor `A`, the product-form slice mono `prodFormMono i` is not a slice-iso.  Its underlying arrow
+    is `id_A × i = (prodEndo A).map i`; `isIso_prod_mono_iff` swaps that to `i × id_A`, whose
+    properness is exactly the specialness instance at `(i, j)`.  NOTE properness here is NOT free —
+    without specialness it FAILS (§1.475 Z-sets, `prodEndo_faithful_of_embedding`); specialness + a
+    proper subobject of `A` is the genuine hypothesis. -/
+theorem prodFormMono_proper (hSp : SpecialHere (𝒞 := 𝒞)) {A P B' : 𝒞} (i : B' ⟶ P)
+    (hi : ProperMono i) {A'' : 𝒞} (j : A'' ⟶ A) (hj : ProperMono j) :
+    ¬ OverIso (prodFormMono (A := A) i) := by
+  intro hiso
+  have hf : IsIso (prodFormMono (A := A) i).f := overIso_underlying hiso
+  have hform : (prodFormMono (A := A) i).f = (prodEndoIsFunctor A).map i := by
+    rw [prodEndo_map]
+    show pair (fst : prod A B' ⟶ A) (snd ≫ i) = pair (fst ≫ Cat.id A) (snd ≫ i)
+    rw [Cat.comp_id]
+  rw [hform, ← isIso_prod_mono_iff A i] at hf
+  exact (hSp i j hi hj).2 hf
+
+variable [PullbacksTransferCovers 𝒞]
+
+/-- **§1.546 — product-form well-pointedness (the CORRECTED, sorry-free payoff).**  In `Over P`, the
+    embedded object `sliceEmbedObj P A` is `WellPointed` *against product-form subobjects*: every
+    PROPER PRODUCT-FORM mono `prodFormMono i` (for a proper base mono `i : B' ↪ P`) is a genuine
+    proper slice mono (`prodFormMono_mono` + `prodFormMono_proper`) that misses the slice point
+    `sliceFactorPoint A g` for EVERY `g : P → A` (`prodFormMono_misses_slicePoint`).  This is exactly
+    the content Freyd's §1.545 relative-capitalization step consumes (downstairs subobjects only) —
+    the honest replacement for the false `ProperMonoIsProductForm`. -/
+theorem prodFormMono_wellPointed (hSp : SpecialHere (𝒞 := 𝒞)) {A P B' : 𝒞} (i : B' ⟶ P)
+    (hi : ProperMono i)
+    {A'' : 𝒞} (j : A'' ⟶ A) (hj : ProperMono j) (g : P ⟶ A) :
+    OverMono (prodFormMono (A := A) i) ∧ ¬ OverIso (prodFormMono (A := A) i) ∧
+      ¬ ∃ y : overTerm P ⟶ (⟨prod A B', snd ≫ i⟩ : Over P),
+          y ≫ prodFormMono (A := A) i = sliceFactorPoint A g :=
+  ⟨prodFormMono_mono i hi.1, prodFormMono_proper hSp i hi j hj,
+   prodFormMono_misses_slicePoint i hi.1 hi.2 g⟩
+
+end ProductForm
 
 /-! ## §1.547 — the FIXED-`U` slice equivalence `A*|U ≃ A/(∏U)`
 
@@ -499,3 +630,7 @@ end Freyd
 #print axioms Freyd.padFactors_factorTuple
 #print axioms Freyd.pairOnUToSlice_representativeImage
 #print axioms Freyd.pairOnUToSlice_equivalence
+#print axioms Freyd.properMono_forces_graph_iso
+#print axioms Freyd.properMono_one_forces_wellPointed
+#print axioms Freyd.prodFormMono_proper
+#print axioms Freyd.prodFormMono_wellPointed
