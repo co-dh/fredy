@@ -579,6 +579,60 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
   -- This step is pure pullback bookkeeping over the now-explicit `.f` legs — no opaque coherence
   -- remains — but it is a multi-screen `pb_hom_ext` reindexing chain, the genuine §1.546 content,
   -- left as the single sharpest residual.
+  -- ── (i) identify the `hstage` codomain over `∏N` with `sliceEmbedObj (∏N) A`. ──
+  let hbN3 : (wsDirected S).le W.base N := (wsDirected S).trans hbU ((wsDirected S).trans hUU' hUN')
+  let Θ : sliceEmbedObj (listProd N.1) A
+      ⟶ L.F hUN' (L.F hUU' (L.F hbU (terminalSliceObj W A))) :=
+    pushTerminalSlice_iso W A hbN3 ≫ nestApp3 L hbU hUU' hUN' (terminalSliceObj W A)
+  have hΘiso : @IsIso (Over (listProd N.1)) _ _ _ Θ :=
+    isIso_comp (pushTerminalSlice_iso_isIso W A hbN3)
+      (nestApp3_isIso L hbU hUU' hUN' (terminalSliceObj W A))
+  -- ── (ii) the N-image of `pushFibre g''`, a PROPER mono into `sliceEmbedObj (∏N) A` via `Θ⁻¹`. ──
+  -- N-image of `pushFibre = Functor.map (functF hUU') g''`.
+  let pfN : L.F hUN' (L.F hUU' xE') ⟶ L.F hUN' (L.F hUU' (L.F hbU (terminalSliceObj W A))) :=
+    @Functor.map _ _ _ _ _ (L.functF hUN') _ _ (pushFibre W A hbU hUU' g'')
+  let m_N : OverHom (L.F hUN' (L.F hUU' xE')) (sliceEmbedObj (listProd N.1) A) :=
+    pfN ⊚ isoInv hΘiso
+  have hpfN_mono : Mono pfN :=
+    projStage_preservesMono (cofinalProjSystem (S := S)) hUN'
+      (@Functor.map _ _ _ _ _ (L.functF hUU') _ _ g'')
+      (projStage_preservesMono (cofinalProjSystem (S := S)) hUU' g'' hmono)
+  have hΘinv_iso : IsIso (isoInv hΘiso) := ⟨Θ, inv_isoInv_comp hΘiso, isoInv_comp hΘiso⟩
+  have hm_N_mono : @Mono (Over (listProd N.1)) _ _ _ m_N :=
+    mono_postcomp_iso' hpfN_mono hΘinv_iso
+  have hm_N_niso : ¬ @IsIso (Over (listProd N.1)) _ _ _ m_N := by
+    intro hmi
+    -- `m_N = pfN ≫ Θ⁻¹` iso, `Θ⁻¹` iso ⇒ `pfN` iso ⇒ (L_cons) push iso ⇒ g'' iso.
+    have hpfN_iso : IsIso pfN := by
+      have hmΘ : @IsIso (Over (listProd N.1)) _ _ _ (@Cat.comp (Over (listProd N.1)) _ _ _ _ m_N Θ) :=
+        isIso_comp hmi hΘiso
+      have heq : (@Cat.comp (Over (listProd N.1)) _ _ _ _ m_N Θ) = pfN := by
+        show @Cat.comp (Over (listProd N.1)) _ _ _ _
+            (@Cat.comp (Over (listProd N.1)) _ _ _ _ pfN (isoInv hΘiso)) Θ = pfN
+        rw [Cat.assoc, inv_isoInv_comp hΘiso, Cat.comp_id]
+      rwa [heq] at hmΘ
+    exact hniso (L_cons hUU' g'' (L_cons hUN' (pushFibre W A hbU hUU' g'') hpfN_iso))
+  -- ════════════════════════════════════════════════════════════════════════════════════════════
+  -- SHARPEST RESIDUAL (now reduced to ONE structural step — the §1.546 descent).
+  --
+  -- VERIFIED ABOVE (sorry-free):  `m_N : OverHom (L.F hUN' (L.F hUU' xE')) (sliceEmbedObj (∏N) A)`
+  -- is a PROPER mono (`hm_N_mono`, `hm_N_niso`) — the N-image of `pushFibre g''` transported by the
+  -- object iso `Θ` (`nestApp3 ≫ pushTerminalSlice_iso`) onto `sliceEmbedObj (∏N) A`.  The `ψ`-reindex
+  -- `∏N ≅ A×PN` (`hψiso`/`hψfst`/`hψsnd`) is in hand.
+  --
+  -- WHAT REMAINS — the §1.546 DESCENT (the genuine open core, NOT a `pb_hom_ext` triviality).
+  -- `freshSlicePoint_factors_imp_false` consumes a proper mono `m` over the OLD base `PN` whose
+  -- base-change along `snd : A×PN ⟶ PN` is the apex of the fresh-point factorization.  But `m_N`
+  -- lives over `∏N ≅ A×PN` (the base WITH the fresh `A`-coordinate `factorProj N A = ψ≫fst`), one
+  -- product-factor RICHER than `PN`.  To feed the consumer we must DESCEND `m_N` to a proper mono
+  -- `m` over `PN` whose `snd`-base-change recovers `m_N` — i.e. exhibit `m_N` AS the base-change
+  -- (along `snd : A×PN ⟶ PN`) of an `A/PN`-mono.  This is the §1.546 structural fact that the fresh
+  -- `A`-factor is INDEPENDENT of `PN`: it holds because `m_N` is the N-image (base-change along
+  -- `selectProj N U'`) of `pushFibre g''`, and `selectProj N U' = ψ ≫ (A × selectProj_{PN←U}) ≫ …`
+  -- routes through `snd`.  Establishing that base-change factorization (the pullback-pasting that
+  -- splits `selectProj N U'` through `snd : A×PN ⟶ PN`) is the remaining multi-screen step; with
+  -- the descended `m`, the point factorization `t` is read off `hstage` via `proj_pushHom_f_π₁/π₂`
+  -- and `freshSlicePoint_factors_imp_false` closes the goal.
   exact (by sorry : False)
 
 /-- **Freyd's §1.546 density (the genuine open core).**  The §1.546 ESCAPE is sorry-free
