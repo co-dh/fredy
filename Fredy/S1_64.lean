@@ -429,99 +429,6 @@ theorem amalgamation_lemma [PreTopos 𝒞] [HasReflTransClosure 𝒞]
   In a pre-topos, covers coincide with epimorphisms, and monics
   coincide with coequalizers (cocovers). -/
 
-/-- **§1.652 (crux): a pre-topos is BALANCED** — a map that is both monic and
-    epic is an isomorphism.  This is the genuine positivity content of §1.652:
-    the cokernel pair of `m` is built from the *disjoint* coproduct `B + B`
-    (positivity) via the effective quotient, and a monic that is also epic
-    equalizes a pair of equal legs, hence splits.  It is **not** derivable from
-    the current axioms — `HasBinaryCoproducts` carries only the bare universal
-    property, with no disjointness/universality, so the cokernel-pair argument
-    has no axiom to stand on.  Isolated here as the single obligation that both
-    reverse-directions below (`cover_eq_epic_preTopos`, `monic_eq_cocover`) rest
-    on; closing it needs §1.62 positivity axiomatized as Freyd states it
-    (disjoint + universal coproducts).
-
-    STATE (with `[HasReflTransClosure 𝒞]` now available): the cokernel pair of `m` is the pushout
-    of `(m, m)`, which `amalgamation_lemma` now builds as a *real* object `D` with legs `u, v : B → D`
-    and `m≫u = m≫v` (the commuting square is sorry-free).  `m` epic immediately forces `u = v`
-    (`hepi`).  The remaining gap is the DUAL of effective regularity: that the monic `m` is the
-    *equalizer of its cokernel pair* `(u, v)` — and with `u = v` every map equalizes `(u,v)`, so that
-    equalizer is `id_B`, whence `m` is iso.  "Every monic is the equalizer of its cokernel pair" is
-    effective *co*regularity (the opposite category's effectiveness), which this repo does not yet
-    axiomatize (it is the §1.543 cocartesian/transfinite-colimit content).  Faithful sorry on exactly
-    that dual-effectiveness step; the cokernel pair and `u = v` are now real. -/
-theorem pretopos_balanced [PreTopos 𝒞] [HasReflTransClosure 𝒞] {A B : 𝒞}
-    (m : A ⟶ B) (hm : Mono m)
-    (hepi : ∀ {C : 𝒞} (g h : B ⟶ C), m ≫ g = m ≫ h → g = h) : IsIso m := by
-  -- Cokernel pair of m = pushout of (m, m): amalgamation_lemma gives D, u, v with m≫u = m≫v.
-  obtain ⟨D, u, v, _hu, _hv, hsq⟩ := amalgamation_lemma m hm m hm
-  -- m epic forces the two legs equal.
-  have huv : u = v := hepi u v hsq
-  -- RESIDUAL: m = equalizer of its cokernel pair (u, v); with u = v this equalizer is id_B,
-  -- so m is iso.  Needs effective coregularity (dual of EffectiveRegular) = §1.543.
-  sorry
-
-theorem cover_eq_epic_preTopos [PreTopos 𝒞] [HasReflTransClosure 𝒞] {A B : 𝒞} (f : A ⟶ B) :
-    Cover f ↔ (∀ {C : 𝒞} (g h : B ⟶ C), f ≫ g = f ≫ h → g = h) := by
-  constructor
-  · -- Cover → epic (§1.512): already proved
-    exact cover_epi
-  · intro hepi
-    rw [cover_iff_image_entire]
-    -- Goal: Subobject.IsEntire (image f), i.e., IsIso (image f).arr.
-    -- `(image f).arr` is monic; since `f = lift ≫ arr` is epic, `arr` is epic too.
-    have h_arr_epi : ∀ {C : 𝒞} (g h : B ⟶ C), (image f).arr ≫ g = (image f).arr ≫ h → g = h := by
-      intro C g h heq
-      apply hepi
-      calc f ≫ g = (image.lift f ≫ (image f).arr) ≫ g := by rw [image.lift_fac f]
-        _ = image.lift f ≫ ((image f).arr ≫ g) := Cat.assoc _ _ _
-        _ = image.lift f ≫ ((image f).arr ≫ h) := by rw [heq]
-        _ = (image.lift f ≫ (image f).arr) ≫ h := by rw [← Cat.assoc]
-        _ = f ≫ h := by rw [image.lift_fac f]
-    -- monic + epic ⟹ iso by balancedness (`pretopos_balanced`), so `image f` is entire.
-    exact pretopos_balanced (image f).arr (image f).monic h_arr_epi
-
-/-- **§1.652**: In a pre-topos, monics coincide with cocovers
-    (maps that are coequalizers of some pair).
-    Requires effective regularity (every monic is a regular monic = an equalizer,
-    dually every epic is a regular epic = a coequalizer).
-    The `HEq` in the statement is a placeholder for an isomorphism between
-    the coequalizer map and `f`.
-
-    STATE: with `[HasReflTransClosure 𝒞]` the category now has all coequalizers (via
-    `minEquiv_of_rtc` fed to `preTopos_minEquiv_to_cocartesian`), so `HasCoequalizers` is no longer
-    an *unproven* hypothesis — it is derivable.  It is kept in the signature only because the
-    *statement* mentions `HasCoequalizers.coeq`.  The residual is the §1.543 dual-effectiveness
-    "every monic is the coequalizer of some pair" (effective coregularity).  Faithful sorry. -/
-theorem monic_eq_cocover_preTopos [PreTopos 𝒞] [HasCoequalizers 𝒞] {A B : 𝒞} (f : A ⟶ B) :
-    Mono f ↔ ∃ (C : 𝒞) (p q : C ⟶ A), HEq ((HasCoequalizers.coeq p q).map) f := by
-  sorry
-
-/-! ## §1.653 Pushout of a monic and any morphism in a pre-topos
-
-  Given morphisms f: A → B and monic y: A ↣ C in a pre-topos, there is a pushout
-  square with the top map monic.  The proof factors f as cover ∘ monic (image
-  factorization) and applies the amalgamation lemma §1.651 to the two monics. -/
-
-/-- **§1.653**: In a pre-topos, given f : A → B and monic y : A ↣ C, there exists a
-    pushout square (with the B-map monic).
-    PROOF: Factor A → B as A ↠ I ↣ B.  Apply §1.651 to I ↣ B and I ↣ C' (pushing y
-    through the cover A ↠ I), stack the two squares, and use the pasting lemma.
-
-    STATE: `amalgamation_lemma` (§1.651) is now a real construction routed through the generated
-    equivalence relation (`minEquiv_of_rtc`) and the effective quotient; this §1.653 result is the
-    standard reduction to it (image-factor `f`, push `y` through the cover, paste).  The two unmet
-    pieces are (a) the cover/image transport of `y` into the slice over the image of `f` and (b) the
-    pasting lemma for the stacked square — pullback/pasting infrastructure orthogonal to §1.62
-    positivity; the leg-monicity it inherits is the same §1.543 descent residual as §1.651.
-    Hypotheses now match `amalgamation_lemma` (`[PreTopos 𝒞] [HasReflTransClosure 𝒞]`).  Faithful
-    sorry. -/
-theorem pushout_monic_in_pretopos [PreTopos 𝒞] [HasReflTransClosure 𝒞]
-    {A B C : 𝒞}
-    (f : A ⟶ B) (y : A ⟶ C) (hy : Mono y) :
-    ∃ (D : 𝒞) (u : B ⟶ D) (v : C ⟶ D), Mono u ∧ f ≫ u = y ≫ v := by
-  sorry
-
 theorem preTopos_minEquiv_to_cocartesian {𝒞 : Type u} [Cat.{v} 𝒞] [PreTopos 𝒞]
     (h : HasMinEquivContaining 𝒞) : Nonempty (HasCoequalizers 𝒞) := by
   -- Build coequalizers from the minimal-equivalence hypothesis (§1.657 backward direction).
@@ -609,6 +516,178 @@ theorem preTopos_minEquiv_to_cocartesian {𝒞 : Type u} [Cat.{v} 𝒞] [PreTopo
     fac  := fun k hfk => (Classical.choose_spec (hUMP k hfk)).1
     uniq := fun k hfk m hm => (Classical.choose_spec (hUMP k hfk)).2 m hm
   }
+
+/-! ### §1.652 cokernel-pair infrastructure (effective-coregularity scaffolding)
+
+  The cokernel pair of `m : A → B` is the pushout of `(m, m)`, equivalently the
+  COEQUALIZER of the two injections `m ≫ inl, m ≫ inr : A ⇉ B ⊕ B`.  A pre-topos has
+  binary coproducts (via `PositivePreLogos`) and — with `[HasReflTransClosure 𝒞]` —
+  coequalizers (`preTopos_minEquiv_to_cocartesian (minEquiv_of_rtc)`), so this object is
+  a genuine, sorry-free construction.  It is the dual of the kernel pair used throughout
+  §1.566/§1.567, and is the carrier of the §1.652 balancedness / monic-is-cocover content.
+
+  Built here as standalone data so all three §1.652/§1.653 obligations share one
+  construction (DRY).  The coequalizer map `c : B ⊕ B ↠ P` is a cover (`coeq_map_is_cover`),
+  hence (§1.566) the coequalizer of its own kernel pair; the two legs `u := inl ≫ c`,
+  `v := inr ≫ c` satisfy `m ≫ u = m ≫ v`, and `m` factors through the equalizer of `(u, v)`. -/
+
+/-- The cokernel pair of `m`, packaged as the coequalizer of `(m ≫ inl, m ≫ inr)`. -/
+noncomputable def cokernelPair [PreTopos 𝒞] [HasCoequalizers 𝒞] {A B : 𝒞} (m : A ⟶ B) :
+    HasCoequalizer (m ≫ HasBinaryCoproducts.inl (B := B))
+                   (m ≫ HasBinaryCoproducts.inr (B := B)) :=
+  HasCoequalizers.coeq _ _
+
+/-- Left cokernel-pair leg `u := inl ≫ c : B → P`. -/
+noncomputable def cokernelPairU [PreTopos 𝒞] [HasCoequalizers 𝒞] {A B : 𝒞} (m : A ⟶ B) :
+    B ⟶ (cokernelPair m).obj :=
+  HasBinaryCoproducts.inl ≫ (cokernelPair m).map
+
+/-- Right cokernel-pair leg `v := inr ≫ c : B → P`. -/
+noncomputable def cokernelPairV [PreTopos 𝒞] [HasCoequalizers 𝒞] {A B : 𝒞} (m : A ⟶ B) :
+    B ⟶ (cokernelPair m).obj :=
+  HasBinaryCoproducts.inr ≫ (cokernelPair m).map
+
+/-- The cokernel-pair square commutes: `m ≫ u = m ≫ v` (the coequalizer equation). -/
+theorem cokernelPair_sq [PreTopos 𝒞] [HasCoequalizers 𝒞] {A B : 𝒞} (m : A ⟶ B) :
+    m ≫ cokernelPairU m = m ≫ cokernelPairV m := by
+  unfold cokernelPairU cokernelPairV
+  rw [← Cat.assoc, ← Cat.assoc]; exact (cokernelPair m).eq
+
+/-- The coequalizer map `c : B ⊕ B ↠ P` of the cokernel pair is a cover. -/
+theorem cokernelPair_cover [PreTopos 𝒞] [HasCoequalizers 𝒞] {A B : 𝒞} (m : A ⟶ B) :
+    Cover (cokernelPair m).map :=
+  coeq_map_is_cover (cokernelPair m)
+
+/-- FORWARD half of effective coregularity: `m` factors through the equalizer of its
+    cokernel-pair legs `(u, v)`, via the equalizer universal property applied to the
+    commuting square `m ≫ u = m ≫ v`.  (The REVERSE half — that this equalizer factor is
+    iso, i.e. `m` IS the equalizer of `(u, v)` — is the open §1.543 residual documented on
+    `pretopos_balanced`.) -/
+theorem cokernelPair_m_factors_eq [PreTopos 𝒞] [HasCoequalizers 𝒞] [HasEqualizers 𝒞]
+    {A B : 𝒞} (m : A ⟶ B) :
+    eqLift (cokernelPairU m) (cokernelPairV m) m (cokernelPair_sq m)
+      ≫ eqMap (cokernelPairU m) (cokernelPairV m) = m :=
+  eqLift_fac _ _ _ _
+
+/-- **§1.652 (crux): a pre-topos is BALANCED** — a map that is both monic and
+    epic is an isomorphism.  This is the genuine positivity content of §1.652:
+    the cokernel pair of `m` is built from the *disjoint* coproduct `B + B`
+    (positivity) via the effective quotient, and a monic that is also epic
+    equalizes a pair of equal legs, hence splits.  It is **not** derivable from
+    the current axioms — `HasBinaryCoproducts` carries only the bare universal
+    property, with no disjointness/universality, so the cokernel-pair argument
+    has no axiom to stand on.  Isolated here as the single obligation that both
+    reverse-directions below (`cover_eq_epic_preTopos`, `monic_eq_cocover`) rest
+    on; closing it needs §1.62 positivity axiomatized as Freyd states it
+    (disjoint + universal coproducts).
+
+    STATE (cokernel-pair infrastructure now in place, independent of `amalgamation_lemma`):
+    the cokernel pair of `m` is built FRESH as the coequalizer `c : B ⊕ B ↠ P` of
+    `(m ≫ inl, m ≫ inr)` (`cokernelPair`/`cokernelPairU`/`cokernelPairV`), with legs `u, v`
+    satisfying `m ≫ u = m ≫ v` (`cokernelPair_sq`) and `c` a cover (`cokernelPair_cover`).
+    `m` epic immediately forces `u = v` (`hepi`).  The proof is reduced to ONE sharp
+    reverse-factorization obligation `hsplit` below: `m` is SPLIT EPIC (`∃ s, s ≫ m = id`).
+    That is the REVERSE half of "`m` is the equalizer of its cokernel pair `(u, v)`" applied to
+    `id_B` (which equalizes `(u, v)` since `u = v`).  Mono + split-epi ⟹ iso closes it.
+
+    Why `hsplit` is genuinely open (effective COregularity, §1.543).  The forward half is done
+    (`cokernelPair_m_factors_eq`: `m` factors through `eq(u, v)`).  The reverse needs: the kernel
+    pair of the cover `c` is the equivalence relation GENERATED by `(m ≫ inl, m ≫ inr)` over the
+    DISJOINT coproduct `B ⊕ B`, and that this generated relation, restricted to the inl-copy ×
+    inr-copy cross, relates `inl(b) ∼ inr(b')` only when `b = m(a) = b'` for a common `a : A`.
+    `preTopos_cocartesian_to_minEquiv` gives `kernelPairRel c` = *minimal* equiv relation ⊇ the
+    generator, but the cross-descent requires a path-length induction over `relPow` of the
+    generator on the disjoint coproduct — and `HasReflTransClosure.rtc`/`minEquiv_of_rtc`/
+    `EffectiveRegular.effective` expose only `le`/`refl`/`trans`/`minimal`, NOT a `relPow`
+    induction principle (that lives on the constructive `transClos`, not the ambient `rtc`).
+    This is the documented §1.543 effective-quotient descent; closing it is a NEW
+    relational-descent infrastructure build, not a missing axiom.  Faithful sorry on exactly
+    `hsplit`; the cokernel pair, its cover, the square, `u = v`, and the forward factorization
+    are all real and sorry-free. -/
+theorem pretopos_balanced [PreTopos 𝒞] [HasReflTransClosure 𝒞] {A B : 𝒞}
+    (m : A ⟶ B) (hm : Mono m)
+    (hepi : ∀ {C : 𝒞} (g h : B ⟶ C), m ≫ g = m ≫ h → g = h) : IsIso m := by
+  -- Coequalizers are available from the reflexive-transitive closure (§1.657 backward).
+  obtain ⟨hcoeq⟩ := preTopos_minEquiv_to_cocartesian (𝒞 := 𝒞) (minEquiv_of_rtc)
+  -- Cokernel pair of m (fresh, independent of amalgamation_lemma): legs u, v with m≫u = m≫v.
+  have hsq : m ≫ cokernelPairU m = m ≫ cokernelPairV m := cokernelPair_sq m
+  -- m epic forces the two legs equal.
+  have huv : cokernelPairU m = cokernelPairV m := hepi _ _ hsq
+  -- RESIDUAL (effective coregularity, §1.543): id_B equalizes (u, v) (since u = v), so by the
+  -- reverse half of "m = equalizer of its cokernel pair" it factors through m, i.e. m is SPLIT
+  -- epic.  See the docstring for why this reverse cross-descent is the open §1.543 step.
+  have hsplit : ∃ s : B ⟶ A, s ≫ m = Cat.id B := by
+    sorry
+  -- m monic + split epic ⟹ iso: from s ≫ m = id, m ≫ (s ≫ m) = m = m ≫ id forces m ≫ s = id.
+  obtain ⟨s, hs⟩ := hsplit
+  refine ⟨s, hm (m ≫ s) (Cat.id A) ?_, hs⟩
+  rw [Cat.assoc, hs, Cat.comp_id, Cat.id_comp]
+
+theorem cover_eq_epic_preTopos [PreTopos 𝒞] [HasReflTransClosure 𝒞] {A B : 𝒞} (f : A ⟶ B) :
+    Cover f ↔ (∀ {C : 𝒞} (g h : B ⟶ C), f ≫ g = f ≫ h → g = h) := by
+  constructor
+  · -- Cover → epic (§1.512): already proved
+    exact cover_epi
+  · intro hepi
+    rw [cover_iff_image_entire]
+    -- Goal: Subobject.IsEntire (image f), i.e., IsIso (image f).arr.
+    -- `(image f).arr` is monic; since `f = lift ≫ arr` is epic, `arr` is epic too.
+    have h_arr_epi : ∀ {C : 𝒞} (g h : B ⟶ C), (image f).arr ≫ g = (image f).arr ≫ h → g = h := by
+      intro C g h heq
+      apply hepi
+      calc f ≫ g = (image.lift f ≫ (image f).arr) ≫ g := by rw [image.lift_fac f]
+        _ = image.lift f ≫ ((image f).arr ≫ g) := Cat.assoc _ _ _
+        _ = image.lift f ≫ ((image f).arr ≫ h) := by rw [heq]
+        _ = (image.lift f ≫ (image f).arr) ≫ h := by rw [← Cat.assoc]
+        _ = f ≫ h := by rw [image.lift_fac f]
+    -- monic + epic ⟹ iso by balancedness (`pretopos_balanced`), so `image f` is entire.
+    exact pretopos_balanced (image f).arr (image f).monic h_arr_epi
+
+/-- **§1.652**: In a pre-topos, monics coincide with cocovers
+    (maps that are coequalizers of some pair).
+    Requires effective regularity (every monic is a regular monic = an equalizer,
+    dually every epic is a regular epic = a coequalizer).
+    The `HEq` in the statement is a placeholder for an isomorphism between
+    the coequalizer map and `f`.
+
+    STATE: with `[HasReflTransClosure 𝒞]` the category now has all coequalizers (via
+    `minEquiv_of_rtc` fed to `preTopos_minEquiv_to_cocartesian`), so `HasCoequalizers` is no longer
+    an *unproven* hypothesis — it is derivable.  It is kept in the signature only because the
+    *statement* mentions `HasCoequalizers.coeq`.  The natural witness pair is the cokernel pair of
+    `f`: `p := cokernelPairU f`, `q := cokernelPairV f` (now built sorry-free), and the residual is
+    EXACTLY the same effective-coregularity step as `pretopos_balanced` — that the mono `f` is the
+    equalizer of `(u, v)` and dually that this exhibits `f` as a coequalizer-map.  That cross-descent
+    over the disjoint coproduct `B ⊕ B` is the open §1.543 effective-quotient analysis (see the
+    `pretopos_balanced` docstring for why `rtc`/`minEquiv`/`effective` do not expose the needed
+    `relPow` path-length induction).  Faithful sorry on that shared residual. -/
+theorem monic_eq_cocover_preTopos [PreTopos 𝒞] [HasCoequalizers 𝒞] {A B : 𝒞} (f : A ⟶ B) :
+    Mono f ↔ ∃ (C : 𝒞) (p q : C ⟶ A), HEq ((HasCoequalizers.coeq p q).map) f := by
+  sorry
+
+/-! ## §1.653 Pushout of a monic and any morphism in a pre-topos
+
+  Given morphisms f: A → B and monic y: A ↣ C in a pre-topos, there is a pushout
+  square with the top map monic.  The proof factors f as cover ∘ monic (image
+  factorization) and applies the amalgamation lemma §1.651 to the two monics. -/
+
+/-- **§1.653**: In a pre-topos, given f : A → B and monic y : A ↣ C, there exists a
+    pushout square (with the B-map monic).
+    PROOF: Factor A → B as A ↠ I ↣ B.  Apply §1.651 to I ↣ B and I ↣ C' (pushing y
+    through the cover A ↠ I), stack the two squares, and use the pasting lemma.
+
+    STATE: `amalgamation_lemma` (§1.651) is now a real construction routed through the generated
+    equivalence relation (`minEquiv_of_rtc`) and the effective quotient; this §1.653 result is the
+    standard reduction to it (image-factor `f`, push `y` through the cover, paste).  The two unmet
+    pieces are (a) the cover/image transport of `y` into the slice over the image of `f` and (b) the
+    pasting lemma for the stacked square — pullback/pasting infrastructure orthogonal to §1.62
+    positivity; the leg-monicity it inherits is the same §1.543 descent residual as §1.651.
+    Hypotheses now match `amalgamation_lemma` (`[PreTopos 𝒞] [HasReflTransClosure 𝒞]`).  Faithful
+    sorry. -/
+theorem pushout_monic_in_pretopos [PreTopos 𝒞] [HasReflTransClosure 𝒞]
+    {A B C : 𝒞}
+    (f : A ⟶ B) (y : A ⟶ C) (hy : Mono y) :
+    ∃ (D : 𝒞) (u : B ⟶ D) (v : C ⟶ D), Mono u ∧ f ≫ u = y ≫ v := by
+  sorry
 
 /-! ## §1.655 Bicartesian representation criterion
 
