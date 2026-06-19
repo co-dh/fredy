@@ -1120,7 +1120,66 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
             -- present the SAME nested base-change `bc g₁ (bc snd xE')`, by `transApp_f_π₁π₁` ↔ the
             -- iterated `_pb.π₁`) and then chaining `hstage` + `hψfst` (`ψ ≫ fst = factorProj N A`,
             -- the content `sc₀` carries) closes it.  The two private reconciliation legs
-            -- (`transApp_f_π₁π₁`, `baseChangeMap_f_π₁` in CapitalizationLaxColimit) need un-privating.
+            -- (`transApp_f_π₁π₁`, `baseChangeMap_f_π₁` in CapitalizationLaxColimit) now public.
+            have gen : ∀ {Z Y Y' : L.A N} (e : Y = Y') (f : Z ⟶ Y),
+                (e ▸ f) = f ≫ eqToHom e := by
+              intro Z Y Y' e f; subst e; rw [eqToHom_refl, Cat.comp_id]
+            have hcastf : (hcodObj ▸ zN).f = zN.f ≫ (eqToHom hcodObj).f :=
+              congrArg OverHom.f (gen hcodObj zN)
+            have hpush := proj_pushHom_f_π₁ cofinalProjSystem (T.ht U').one (L.F hUU' xE')
+              b.2.1 b.2.2 hbN z₀
+            -- the cast `hcodObj` factors as `congrArg (bc g₁) hLF` (the base `proj (trans b.2.2 hbN)
+            -- = g₁` defeq, only the inner object `L.F hUU' xE' = bc snd xE'` varies).
+            have hcodObj' : hcodObj
+                = congrArg (fun X => baseChangeObj g₁ X) hLF := rfl
+            -- companion to `eqToHom_bc_π₁`: the inner-object `eqToHom` commutes past `π₁` (down to the
+            -- varying inner `.dom`).  Proved by `subst` on the object equality.
+            have hbcInner : ∀ {X Y : Over (listProd U'.val)} (e : X = Y),
+                (eqToHom (congrArg (fun Z => baseChangeObj g₁ Z) e)).f
+                    ≫ (_pb g₁ Y).cone.π₁
+                  = (_pb g₁ X).cone.π₁ ≫ (eqToHom e).f := by
+              intro X Y e; subst e
+              rw [eqToHom_refl, eqToHom_refl]
+              show Cat.id _ ≫ _ = _ ≫ Cat.id _
+              rw [Cat.id_comp, Cat.comp_id]
+            have hLF' : hLF = congrArg (fun z => baseChangeObj z xE') hsp := rfl
+            -- `hrec`: the content of `zN` (the cast colimit germ) against the deep source projection,
+            -- read off `hpush` by post-composing with the inner `π₁(proj b.2.2)`.
+            have hrec : zN.f
+                  ≫ (_pb (cofinalProjSystem.proj ((wsDirected S).trans b.2.2 hbN))
+                        (L.F hUU' xE')).cone.π₁
+                = (transApp (laxOfProjSystem' cofinalProjSystem) b.2.1 hbN (T.ht U').one).f
+                    ≫ (_pb (cofinalProjSystem.proj hbN)
+                        (baseChangeObj (cofinalProjSystem.proj b.2.1) (T.ht U').one)).cone.π₁
+                      ≫ z₀.f ≫ (_pb (cofinalProjSystem.proj b.2.2) (L.F hUU' xE')).cone.π₁ := by
+              have hcollapse := transApp_f_π₁π₁ cofinalProjSystem b.2.2 hbN (L.F hUU' xE')
+                (Cat.id _)
+              rw [Cat.comp_id, Cat.comp_id] at hcollapse
+              have hp := congrArg
+                (· ≫ (_pb (cofinalProjSystem.proj b.2.2) (L.F hUU' xE')).cone.π₁) hpush
+              simp only [Cat.assoc] at hp
+              rw [hcollapse] at hp
+              exact hp
+            -- content of the `sc₀` push (RHS of `hstage`): the fresh point `sliceFactorPoint A fst`.
+            have hscPush := proj_pushHom_f_π₁ cofinalProjSystem (T.ht U').one
+              (L.F hUU' (L.F hbU (terminalSliceObj W A))) ((wsDirected S).refl U')
+              ((wsDirected S).refl U') hUN' sc₀
+            -- VERIFIED SCAFFOLDING above (`gen`/`hcastf`/`hpush`/`hcodObj'`/`hbcInner`/`hLF'`/`hrec`/
+            -- `hscPush`, all typecheck).  REMAINING RESIDUAL (the §1.546 hstage content-push):
+            --   `hrec` reduces the LHS deep source-content to `transApp(one).f ≫ π₁ ≫ z₀.f ≫
+            --   π₁(proj b.2.2, L.F hUU' xE')`; the goal still needs `… ≫ m.f ≫ fst`.  Close by
+            --   projecting `hstage` (`zN ⊚ pushHom pf₀ = pushHom sc₀`) to its `.f` deep A-coordinate:
+            --     • RHS leg `pushHom sc₀`: `proj_pushHom_f_π₁` (= `hscPush`) + `transApp_f_π₁π₁` gives
+            --       `sc₀`'s deep content; `sc₀ = reflApp ≫ (sfp ⊚ cod) ≫ isoInv`, and `(sfp ⊚ cod).f
+            --       ≫ fst = (sliceFactorPoint A fst).f ≫ fst = fst` (via `bcSliceIso`/`pIso`/`cod`
+            --       content laws on the A-coordinate);
+            --     • LHS leg `zN ⊚ pushHom pf₀`: `pf₀ = reflApp ≫ pushFibre g'' ≫ isoInv`, `pushFibre =
+            --       Functor.map g''`, content `baseChangeMap_f_π₁` = `g''.f`, and `m.f = (g'' ⊚ pInv).f
+            --       = g''.f ≫ pInv.f`, so the A-coordinate of `pf₀`-pushed `zN` is `z₀`-content `≫ m.f
+            --       ≫ fst`.  Equating the two legs (hstage) + `hψfst` (`ψ ≫ fst = factorProj N A`,
+            --       which the `sc₀`/fresh-point content carries) and `srcPB.π₂ = (zN.dom).hom` closes.
+            -- This is the genuine multi-screen §1.546 content reindexing; the cast/transApp bridge
+            -- (`hrec`) and the descent layer (STEPS A–B) are fully discharged.
             sorry
           rw [show (r ≫ (zNd.f ≫ codPB.cone.π₁)) ≫ cnDN.π₁ ≫ mC.f ≫ (fst : prod A PN ⟶ A)
                 = r ≫ ((zNd.f ≫ codPB.cone.π₁) ≫ cnDN.π₁ ≫ mC.f ≫ (fst : prod A PN ⟶ A)) from
