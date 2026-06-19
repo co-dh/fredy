@@ -725,6 +725,21 @@ theorem pushHom_comp {i j l : ι} (x : L.A i) (y : L.A j) (z : L.A l) {k m : ι}
   simp only [Cat.assoc]
   rw [← Cat.assoc (isoInv (transApp_isIso L hjk hkm y)), inv_isoInv_comp, Cat.id_comp]
 
+/-- **The source-naturality characterisation of `pushHom`** (the decisive Phase-1 primitive).  By
+    construction `pushHom g = transApp x ≫ map g ≫ inv (transApp y)`, so post-composing with the
+    target collapse iso `transApp y` cancels its inverse, leaving `transApp x ≫ map g`.  This is the
+    clean equation that lets one COMPUTE `(pushHom g)` (and hence its `.f` underlying arrow) WITHOUT
+    unfolding `isoInv`: the two collapse isos `transApp x`, `transApp y` are the concrete pullback
+    comparison isos, whose `.f` legs are characterised by the `transApp_f_*` lemmas. -/
+theorem pushHom_transApp {i j : ι} (x : L.A i) (y : L.A j) {k m : ι}
+    (hik : D.le i k) (hjk : D.le j k) (hkm : D.le k m)
+    (g : L.F hik x ⟶ L.F hjk y) :
+    pushHom L x y hik hjk hkm g ≫ transApp L hjk hkm y
+      = transApp L hik hkm x
+        ≫ @Functor.map (L.A k) (L.catA k) (L.A m) (L.catA m) (L.F hkm) (L.functF hkm) _ _ g := by
+  unfold pushHom
+  rw [Cat.assoc, Cat.assoc, inv_isoInv_comp, Cat.comp_id]
+
 /-- `pushHom` preserves identities — the analogue of `homTr_id`.  `map id = id`, then `transApp x ≫
     inv (transApp x) = id`.  PROVEN from the bare structure — needs NO pseudofunctor coherence. -/
 theorem pushHom_id {i : ι} (x : L.A i) {k m : ι} (hik : D.le i k) (hkm : D.le k m) :
@@ -1380,8 +1395,7 @@ theorem proj_push_trans (P : ProjSystem ι D 𝒞)
         = transApp (laxOfProjSystem' P) hik' hkm' x'
           ≫ Functor.map (self := (laxOfProjSystem' P).functF hkm') g' := by
     intro i' j' x' y' k' m' hik' hjk' hkm' g'
-    unfold pushHom
-    rw [Cat.assoc, Cat.assoc, inv_isoInv_comp, Cat.comp_id]
+    exact pushHom_transApp (laxOfProjSystem' P) x' y' hik' hjk' hkm' g'
   -- Naturality of `transApp hkm hmn (·)` at `g` (it is the component of `F_trans_iso hkm hmn`).
   have tnat := transApp_natural (laxOfProjSystem' P) hkm hmn g
   -- Cancel the iso `Φ_y := transApp(hjk, trans hkm hmn, y) ≫ transApp(hkm, hmn, F hjk y)`; both LHS
@@ -1460,6 +1474,63 @@ theorem proj_push_trans (P : ProjSystem ι D 𝒞)
           ≫ (transApp (laxOfProjSystem' P) hjk (D.trans hkm hmn) y
               ≫ transApp (laxOfProjSystem' P) hkm hmn ((laxOfProjSystem' P).F hjk y)) := by
         rw [transApp_cocycle P hjk hkm hmn y]
+
+/-- **`.f`-projection characterisation of `pushHom` for the base-change system — the `π₂` (structure
+    map) leg.**  The codomain `F (trans hjk hkm) y = baseChangeObj (proj (trans hjk hkm)) y` carries a
+    pullback whose `π₂` is its over-`(pr m)` structure map.  Post-composing `(pushHom g).f` with the
+    target collapse iso `(transApp hjk hkm y).f` lands in the nested pullback `bc hkm (bc hjk y)`,
+    whose outer `π₂` is `proj`-pullback projection; `pushHom_transApp` then collapses the whole thing
+    to the source side `(transApp hik hkm x).f ≫ (map g).f`.  Concretely this says `pushHom` preserves
+    the deepest `(pr m)`-projection, i.e. it is an over-`(pr m)` arrow on the nose. -/
+theorem proj_pushHom_f_π₂ (P : ProjSystem ι D 𝒞)
+    {i j : ι} (x : (laxOfProjSystem' P).A i) (y : (laxOfProjSystem' P).A j) {k m : ι}
+    (hik : D.le i k) (hjk : D.le j k) (hkm : D.le k m)
+    (g : (laxOfProjSystem' P).F hik x ⟶ (laxOfProjSystem' P).F hjk y) :
+    (pushHom (laxOfProjSystem' P) x y hik hjk hkm g).f
+        ≫ (_pb (P.proj (D.trans hjk hkm)) y).cone.π₂
+      = (_pb (P.proj (D.trans hik hkm)) x).cone.π₂ := by
+  -- post-compose `pushHom_transApp` with the `π₂`-leg of the target collapse iso; both reduce to the
+  -- deepest projection via `transApp_f_π₂₀` and `baseChangeMap_f_π₂₀`.
+  have h : (pushHom (laxOfProjSystem' P) x y hik hjk hkm g).f
+        ≫ (transApp (laxOfProjSystem' P) hjk hkm y).f
+      = (transApp (laxOfProjSystem' P) hik hkm x).f
+        ≫ (@Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hkm) _ _ g).f :=
+    congrArg OverHom.f (pushHom_transApp (laxOfProjSystem' P) x y hik hjk hkm g)
+  have h₂ := congrArg (· ≫ (_pb (P.proj hkm) (baseChangeObj (P.proj hjk) y)).cone.π₂) h
+  simp only at h₂
+  rw [Cat.assoc, Cat.assoc, transApp_f_π₂₀ P hjk hkm y,
+      show (@Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hkm) _ _ g)
+        = baseChangeMap (P.proj hkm) g from rfl,
+      baseChangeMap_f_π₂₀ (P.proj hkm) g, transApp_f_π₂₀ P hik hkm x] at h₂
+  exact h₂
+
+/-- **`.f`-projection characterisation of `pushHom` for the base-change system — the `π₁` (content)
+    leg.**  The codomain pullback `(_pb (proj (trans hjk hkm)) y)`'s `π₁` reaches `y.dom`; `pushHom g`
+    intertwines it with the source pullback's `π₁` post-composed by the underlying `g.f`.  This is the
+    on-the-nose statement that base-change `pushHom` is "`g.f` on the fibre over the `y.dom` factor",
+    the content the §1.546 escape extracts.  Proven by post-composing `pushHom_transApp` (`.f`) with
+    the `π₁∘π₁`-path of the target collapse iso (`transApp_f_π₁π₁`) and `baseChangeMap_f_π₁`. -/
+theorem proj_pushHom_f_π₁ (P : ProjSystem ι D 𝒞)
+    {i j : ι} (x : (laxOfProjSystem' P).A i) (y : (laxOfProjSystem' P).A j) {k m : ι}
+    (hik : D.le i k) (hjk : D.le j k) (hkm : D.le k m)
+    (g : (laxOfProjSystem' P).F hik x ⟶ (laxOfProjSystem' P).F hjk y) :
+    (pushHom (laxOfProjSystem' P) x y hik hjk hkm g).f
+        ≫ (transApp (laxOfProjSystem' P) hjk hkm y).f
+          ≫ (_pb (P.proj hkm) (baseChangeObj (P.proj hjk) y)).cone.π₁
+      = (transApp (laxOfProjSystem' P) hik hkm x).f
+          ≫ (_pb (P.proj hkm) (baseChangeObj (P.proj hik) x)).cone.π₁ ≫ g.f := by
+  have h : (pushHom (laxOfProjSystem' P) x y hik hjk hkm g).f
+        ≫ (transApp (laxOfProjSystem' P) hjk hkm y).f
+      = (transApp (laxOfProjSystem' P) hik hkm x).f
+        ≫ (@Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hkm) _ _ g).f :=
+    congrArg OverHom.f (pushHom_transApp (laxOfProjSystem' P) x y hik hjk hkm g)
+  -- post-compose with the OUTER `π₁` (reaching `(F hjk y).dom = (bc (proj hjk) y).dom`).
+  have h₂ := congrArg (· ≫ (_pb (P.proj hkm) (baseChangeObj (P.proj hjk) y)).cone.π₁) h
+  simp only [Cat.assoc] at h₂
+  rw [show (@Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hkm) _ _ g)
+        = baseChangeMap (P.proj hkm) g from rfl,
+      baseChangeMap_f_π₁ (P.proj hkm) g] at h₂
+  exact h₂
 
 /-- **`Coherent (laxOfProjSystem' P)`** — the §1.547 base-change system is pseudofunctor-coherent. -/
 def coherentProj (P : ProjSystem ι D 𝒞) : Coherent (laxOfProjSystem' P) where

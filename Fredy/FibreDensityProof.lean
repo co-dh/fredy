@@ -550,26 +550,35 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
   -- obligation is now exactly: PRODUCE that point factorization `t` (an `OverHom` equation), proper
   -- `m̄`, and the cone/apex data, from `hstage`.
   --
-  -- WHAT REMAINS (the genuine §1.546 transport — unchanged in difficulty by the reformulation).
-  -- `hstage` is an equation of THREE `pushHom`-conjugated arrows in `Over (∏N)`.  `pushHom` (see
-  -- `CapitalizationLaxColimit.pushHom`) conjugates by the `transApp`/`reflApp` coherence isos, which
-  -- are the ABSTRACT pullback-pasting isos `L.F_trans_iso`/`L.F_refl_iso` of the base-change lax
-  -- system (`projTransIso`/`projReflIso`) — NOT definitional rewrites.  Turning `hstage` into the
-  -- point-factorization `t ⊚ m̄ = sliceFactorPoint A (factorProj N A)` requires unfolding all three
-  -- `pushHom` conjugations AND identifying the codomain object `L.F hUN' (L.F hUU' (L.F hbU term))`
-  -- with `sliceEmbedObj (∏N) A` via the `N`-level `pushTerminalSlice_iso`
-  -- (`pushTerminalSlice_iso W A (D.trans hbU (D.trans hUU' hUN))`), reindexed by `ψ`
-  -- (`hψiso`/`hψfst`/`hψsnd`).  Each layer is an abstract pullback-coherence iso, so this is the
-  -- three-layer pullback pasting — the genuine remaining §1.546 content — NOT a `▸`/`OverHom.ext`
-  -- (probed: the `pushHom`/`transApp` conjugation does not reduce definitionally).  Reformulating the
-  -- escape into point form (done, sorry-free) removed the section-extraction step from this residual
-  -- but did NOT remove the object-coherence transport, which is where the difficulty lives.
+  -- WHAT REMAINS (the genuine §1.546 transport).  `hstage` is an equation of THREE `pushHom`-
+  -- conjugated arrows in `Over (∏N)`.  The `pushHom` `.f`-conjugation is NO LONGER opaque: the
+  -- decisive Phase-1 primitives now exist sorry-free in `CapitalizationLaxColimit.lean`:
+  --   • `pushHom_transApp` : `pushHom g ≫ transApp y = transApp x ≫ Functor.map g` — the
+  --     source-naturality form (the `isoInv` cancels; no `transApp`-inverse left).
+  --   • `proj_pushHom_f_π₂` : `(pushHom g).f ≫ (_pb (proj (trans hjk hkm)) y).π₂
+  --        = (_pb (proj (trans hik hkm)) x).π₂` — `pushHom.f` preserves the `∏N`-structure map
+  --     ON THE NOSE (so each layer IS an over-`∏N` arrow with computable structure leg).
+  --   • `proj_pushHom_f_π₁` : `(pushHom g).f ≫ (transApp hjk hkm y).f ≫ outerπ₁
+  --        = (transApp hik hkm x).f ≫ outerπ₁ ≫ g.f` — `pushHom.f` intertwines the CONTENT
+  --     projection with the underlying `g.f` (the §1.546 content arrow), explicitly via the
+  --     concrete pullback `lift`s of `transApp`/`baseChangeMap` (`transApp_f_π₁π₁₀`,
+  --     `baseChangeMap_f_π₁`).
+  -- So `(pushHom … wa).f` over `∏N` IS now an explicit composite of `baseChangeMap` underlying
+  -- arrows and pullback `lift`s, exactly as the brief demanded — the conjugation reduces to pullback
+  -- algebra, not an abstract iso.
   --
-  -- Once `m̄`/`mf_N`/`cnD_N` and the point `t` are assembled (proper at `N` via
-  -- `L_cons`/`projStage_conservative_full`), `freshSlicePoint_factors_imp_false` closes the goal.  All
-  -- colimit plumbing AROUND this — `align`-kill, germ reduction `z ↦ zN`, push to stage `N`
-  -- (`hstage`), `ψ` reindexing, the escape math, the point-form consumer — is machine-checked
-  -- sorry-free.
+  -- THE REMAINING ASSEMBLY (Phase 2, the residual).  With the primitives above, building the
+  -- point-factorization `t ⊚ m̄ = sliceFactorPoint A (factorProj N A)` for
+  -- `freshSlicePoint_factors_imp_false` reduces to: (i) identify the codomain object
+  -- `L.F hUN' (L.F hUU' (L.F hbU term))` over `∏N` with `sliceEmbedObj (∏N) A` via `nestApp3`
+  -- (`CapitalizationLaxColimit`) `≫ pushTerminalSlice_iso W A (D.trans hbU (D.trans hUU' hUN))`;
+  -- (ii) reindex `∏N ≅ A×PN` by `ψ` (`hψiso`/`hψfst`/`hψsnd`); (iii) read off the base-change cone
+  -- `cnD_N` (pullback of `xE'`'s N-image hom along `snd : A×PN → PN`), the apex comparison `mf'_N`,
+  -- and the section `t.f` from `hstage` projected through `proj_pushHom_f_π₁`/`π₂` and precomposed by
+  -- `ψ⁻¹`.  `m̄` is proper at `N` via `L_cons`/`projStage_conservative_full` on `g''` (`hniso`).
+  -- This step is pure pullback bookkeeping over the now-explicit `.f` legs — no opaque coherence
+  -- remains — but it is a multi-screen `pb_hom_ext` reindexing chain, the genuine §1.546 content,
+  -- left as the single sharpest residual.
   exact (by sorry : False)
 
 /-- **Freyd's §1.546 density (the genuine open core).**  The §1.546 ESCAPE is sorry-free
