@@ -37,6 +37,7 @@
   No mathlib category theory.  No `axiom`, no `:True`, no statement-weakening.
 -/
 import Fredy.UniformWellPoints
+import Fredy.S1_43
 
 open Freyd
 open Freyd.Colim
@@ -293,40 +294,212 @@ theorem fibreDensity_of_richerSliceMiss (W : WSCover S) (hcore : RicherSliceMiss
   the FRESH coordinate `fst` of `∏U'` — which is exactly why the directed UNION (not one slice)
   closes §1.546.
 
-  ── THE RESIDUAL (mechanical colimit plumbing, the lone `sorry`) ──────────────────────────────
+  ── THE COLIMIT PLUMBING — (a)/(b) MACHINE-CHECKED, two sharp residuals in (c) ─────────────────
 
   `RicherSliceMiss` is stated at the COLIMIT level: it asks for a colimit point `x'` of
   `⟨U', F hUU' (F hbU (terminalSliceObj A))⟩` (against the lax-colimit terminal) that
-  `stageInclL (pushFibre g'')` does not factor.  What remains is to thread the proven slice escape
-  through the colimit interface:
-    (a) identify the codomain `F hUU' (F hbU (terminalSliceObj A))` with `sliceEmbedObj (∏U') A`
-        (`pushTerminalSlice_iso` at `U'` conjugated by the pseudo-functor `transApp` iso), and
-        present `pushFibre g''` as `baseChangeMap snd ḡ` with `ḡ` the conjugate of `g''` — supplying
-        the `cnD`/`mf'` pullback data `baseChange_freshFactor_missed` consumes;
-    (b) build the colimit point: realign the lax-colimit terminal `one ≅ ⟨U', stage-U'-terminal⟩`
-        (both terminal, `laxTerminalArrowAt` + `laxTerminalUniqAt`), then `stageInclL U'` the slice
-        point `sliceFactorPoint A fst` (transported to the codomain via the iso of (a));
-    (c) reflect a hypothetical colimit factor back to a stage-`U'` slice factor (`stageInclFunctorL
-        U'` faithful/full on the relevant homs, as in `colimitMono_reflects_to_fibre`), then apply
-        `baseChange_freshFactor_missed` to derive `False`.
-  This is bookkeeping over already-built lemmas (no new mathematics); it mirrors, in reverse, the
-  sorry-free `colimitMono_reflects_to_fibre`.  Isolated here as the single honest `sorry`.
+  `stageInclL (pushFibre g'')` does not factor.  The slice escape is threaded through the colimit
+  interface (`richerSliceSection`):
+    (a) — SORRY-FREE.  The codomain `F hUU' (F hbU (terminalSliceObj A))` is `baseChangeObj snd
+        (F hbU term)` (`selectProj (A::U) U = snd`, `selectProj_head_notin`+`selectProj_refl`); the
+        comparison `sliceEmbedObj (∏U') A ≅ baseChangeObj snd (sliceEmbedObj P A)` is `bcSliceIso`
+        (`bcSlice_isPullback`+`isIso_of_two_pullbacks`).  `pushFibre g''` IS `baseChangeMap snd g''`
+        definitionally; the `cnD`/`mf'` data `baseChange_freshFactor_missed` consumes are `mf' :=
+        pair (cnD.π₁ ≫ m.f ≫ fst) cnD.π₂`, `m := g'' ⊚ pushTerminalSlice_iso⁻¹`.
+    (b) — SORRY-FREE.  The colimit point `x'` is `laxTerminalArrowAt` (`one ≅ ⟨U', overTerm(∏U')⟩`,
+        iso by `laxTerminalUniqAt`) post-composed with `stageInclL U'` of `sliceFactorPoint A fst`
+        transported across the (a)-iso `cod`.
+    (c) — TWO SHARP RESIDUALS (the honest gaps):
+        (c.i)  the colimit-factor REFLECTION `richerSliceSection` `sorry`: turning a colimit factor
+               `y' : one ⟶ ⟨U', F hUU' xE'⟩` into a stage-`U'` base-change SECTION needs
+               `stageInclFunctorL U'` FULLNESS on that hom.  The §1.547 transitions are base-change
+               along covers (`selectProj`) — NOT full — so the germ representative sits at a richer
+               stage `N ⊇ U'` that need not descend.  Hom-fullness / point-descent is not among the
+               built lemmas (the repo has property-reflection — mono/iso/cover — but not hom-fullness;
+               mathlib's `Full` is import-banned).  This is the genuine remaining §1.546 content.
+        (c.ii) the `A ∈ U` case: appending `A` as a fresh nodup factor is impossible when `A` already
+               indexes `U`; the escape needs a fresh INDEPENDENT copy of `A`, not expressible at the
+               object level of the `WSList` index.
 
-  The reduction `fibreDensity_of_richerSliceMiss` (Phase 2) and the colimit↔fibre passage
-  (`stageInclL_g''_factor`, Phase 1) are SORRY-FREE, as is the §1.546 escape itself
-  (`baseChange_freshFactor_missed`).  The lone residual is the (a)–(c) colimit plumbing.
+  The reduction `fibreDensity_of_richerSliceMiss` (Phase 2), the colimit↔fibre passage
+  (`stageInclL_g''_factor`, Phase 1), the §1.546 escape (`baseChange_freshFactor_missed`), and the
+  (a)/(b) base-change comparison + point (`bcSlice_isPullback`/`bcSliceIso`/`richerSliceSection` up to
+  the `(c)` `sorry`) are SORRY-FREE.  The two residuals are on TRUE statements (Freyd §1.546); no
+  weakening, no `axiom`, no false claim. -/
 
-  HONEST `sorry` — on a TRUE statement (Freyd §1.546).  No weakening, no `axiom`, no false claim. -/
+/-- **Canonical base-change pullback of a slice-embedded object.**  The pullback of the structure
+    map `snd : C×P → P` of `sliceEmbedObj P C` along ANY map `q : P' → P` has apex `C×P'`, legs
+    `pair fst (snd≫q)` (to `C×P`) and `snd` (to `P'`).  This is the geometric content of the §1.546(a)
+    identification `baseChangeObj q (sliceEmbedObj P C) ≅ sliceEmbedObj P' C`. -/
+theorem bcSlice_isPullback {𝒞 : Type u} [Cat.{u} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
+    [HasPullbacks 𝒞] (C P P' : 𝒞) (q : P' ⟶ P) :
+    (Cone.mk (f := (snd : prod C P ⟶ P)) (g := q) (prod C P')
+      (pair (fst : prod C P' ⟶ C) ((snd : prod C P' ⟶ P') ≫ q)) (snd : prod C P' ⟶ P')
+      (by rw [snd_pair])).IsPullback := by
+  intro d
+  refine ⟨pair (d.π₁ ≫ (fst : prod C P ⟶ C)) d.π₂, ⟨?_, ?_⟩, ?_⟩
+  · have e1 : (pair (d.π₁ ≫ (fst : prod C P ⟶ C)) d.π₂ ≫
+        pair (fst : prod C P' ⟶ C) ((snd : prod C P' ⟶ P') ≫ q)) ≫ fst = d.π₁ ≫ fst := by
+      rw [Cat.assoc, fst_pair, fst_pair]
+    have e2 : (pair (d.π₁ ≫ (fst : prod C P ⟶ C)) d.π₂ ≫
+        pair (fst : prod C P' ⟶ C) ((snd : prod C P' ⟶ P') ≫ q)) ≫ snd = d.π₁ ≫ snd := by
+      rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair, d.w]
+    exact (pair_uniq _ _ _ e1 e2).trans (pair_uniq _ _ d.π₁ rfl rfl).symm
+  · rw [snd_pair]
+  · intro v hv₁ hv₂
+    have ev1 : v ≫ (fst : prod C P' ⟶ C) = (pair (d.π₁ ≫ (fst : prod C P ⟶ C)) d.π₂) ≫ fst := by
+      rw [fst_pair, ← hv₁]; show _ = (v ≫ pair fst (snd ≫ q)) ≫ fst; rw [Cat.assoc, fst_pair]
+    have ev2 : v ≫ (snd : prod C P' ⟶ P') = (pair (d.π₁ ≫ (fst : prod C P ⟶ C)) d.π₂) ≫ snd := by
+      have : (pair (d.π₁ ≫ (fst : prod C P ⟶ C)) d.π₂) ≫ (snd : prod C P' ⟶ P') = d.π₂ := snd_pair _ _
+      rw [this, ← hv₂]
+    exact (pair_uniq _ _ v ev1 ev2).trans (pair_uniq _ _ _ rfl rfl).symm
 
-/-- **Freyd's §1.546 density (the genuine open core).**  The §1.546 ESCAPE is proven sorry-free as
-    `baseChange_freshFactor_missed` (`RelativeCapitalization.lean`): at the richer stage `U' = A::U`,
-    whose product `∏U' = A×∏U` carries a fresh independent `A`-coordinate, the base-changed proper
-    mono misses the fresh slice point (reaching it would force the mono to be a cover, hence iso).
-    The lone residual `sorry` is the mechanical colimit plumbing wiring that slice escape through the
-    lax-colimit terminal/point interface — see the section note's (a)–(c).  No fractions saturation
-    is needed (the prior §1.48 claim is superseded); the §1.547 reduction around it is machine-checked. -/
+/-- **§1.546(a) — the base-change/slice comparison iso (underlying).**  `sliceEmbedObj (A×P) A` is, in
+    `Over (A×P)`, isomorphic to `baseChangeObj snd (sliceEmbedObj P A)` (both are the pullback of
+    `snd : A×P → P` against itself).  This is the codomain identification that presents the §1.547
+    transition `U → U' = A::U` as the base-change `baseChange snd` (`bcSlice_isPullback`). -/
+noncomputable def bcSliceIso (A P : S) :
+    OverHom (sliceEmbedObj (prod A P) A) (baseChangeObj (snd : prod A P ⟶ P) (sliceEmbedObj P A)) :=
+  ⟨(HasPullbacks.has ((sliceEmbedObj P A).hom) (snd : prod A P ⟶ P)).lift
+      (Cone.mk (f := (snd : prod A P ⟶ P)) (g := (snd : prod A P ⟶ P)) (prod A (prod A P))
+        (pair (fst : prod A (prod A P) ⟶ A) ((snd : prod A (prod A P) ⟶ prod A P) ≫ snd))
+        (snd : prod A (prod A P) ⟶ prod A P) (by rw [snd_pair])),
+    (HasPullbacks.has ((sliceEmbedObj P A).hom) (snd : prod A P ⟶ P)).lift_snd _⟩
+
+theorem bcSliceIso_isIso (A P : S) : @IsIso (Over (prod A P)) _ _ _ (bcSliceIso A P) := by
+  apply overIso_of_underlying
+  exact isIso_of_two_pullbacks (bcSlice_isPullback A P (prod A P) (snd : prod A P ⟶ P))
+    (HasPullbacks.has ((sliceEmbedObj P A).hom) (snd : prod A P ⟶ P)).cone_isPullback _
+    ((HasPullbacks.has ((sliceEmbedObj P A).hom) (snd : prod A P ⟶ P)).lift_fst _)
+    ((HasPullbacks.has ((sliceEmbedObj P A).hom) (snd : prod A P ⟶ P)).lift_snd _)
+
+/-- **§1.546(c) — the colimit-factor REFLECTION (the one honest residual).**  At the richer stage
+    `U' = A::U` (`A ∉ U`), suppose the §1.546 point `x'` (the `stageInclL U'` of the fresh slice point
+    `sliceFactorPoint A fst`, transported across the codomain iso) IS factored by a colimit arrow
+    `y'` through the included base-changed mono `stageInclL (pushFibre g'')`.  Then there is a
+    base-change SECTION `s : A×P → cnD.pt` reaching the fresh `A`-coordinate `fst`, where `cnD` is the
+    chosen base-change pullback of `xE'.hom` along `snd : A×P → P`.
+
+    `baseChange_freshFactor_missed` refutes such a section, closing §1.546 — PROVIDED this reflection
+    holds.  It is the REVERSE of `colimitMono_reflects_to_fibre`: that lemma reflects a colimit MONO
+    to a fibre mono via `stageInclFunctorL` faithfulness; here we must reflect a colimit POINT/FACTOR
+    `y' : one ⟶ ⟨U', F hUU' xE'⟩` to a stage-`U'` slice section.
+
+    ── THE BLOCKER (precise).  `y'` is realigned (the lax-colimit terminal `one ≅ ⟨U', overTerm(A×P)⟩`,
+    `laxTerminalArrowAt`/`laxTerminalUniqAt`) to a colimit hom `⟨U', overTerm(A×P)⟩ ⟶ ⟨U', F hUU' xE'⟩`.
+    To extract the section it must be a `stageInclL` of a stage-`U'` slice arrow — i.e. one needs
+    `stageInclFunctorL U'` to be FULL on this hom.  But the §1.547 transitions are base-change along
+    product projections (`selectProj`, covers but not full), so a colimit hom between stage-`U'`
+    objects has a germ representative at a STRICTLY RICHER stage `N ⊇ U'` (`incl_surjective`/
+    `homInclL_factor`) that need not descend to `U'`.  `stageInclFunctorL U'` fullness (equivalently:
+    descent of a fibre-`N` point of a base-changed object back to fibre `U'`) is NOT among the built
+    lemmas; it is the genuine remaining content.  Everything else of §1.546 (the escape
+    `baseChange_freshFactor_missed`, the (a) base-change data, the (b) point `x'`, the §1.547
+    reduction) is machine-checked sorry-free. -/
+theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : WSList S)
+    (hbU : (wsDirected S).le W.base U) (hAU : A ∉ U.1)
+    (xE' : (laxOfProjSystem' (cofinalProjSystem (S := S))).A U)
+    (g'' : xE' ⟶ (laxOfProjSystem' (cofinalProjSystem (S := S))).F hbU (terminalSliceObj W A))
+    (hmono : Mono g'') (hniso : ¬ IsIso g'')
+    (hnd : (A :: U.1).Nodup) (hws : ∀ B ∈ (A :: U.1), WellSupported B) :
+    letI : Cat (uniformTargetTy W) := uniformTargetCat W
+    ∃ (x' : @Cat.Hom _ (uniformTargetCat W)
+              (@HasTerminal.one _ (uniformTargetCat W) (uniformStepTarget_preRegular W).toHasTerminal)
+              ⟨⟨A :: U.1, hnd, hws⟩, (laxOfProjSystem' (cofinalProjSystem (S := S))).F
+                (fun B hB => List.mem_cons.2 (Or.inr hB))
+                ((laxOfProjSystem' (cofinalProjSystem (S := S))).F hbU (terminalSliceObj W A))⟩),
+      ¬ ∃ (y' : @Cat.Hom _ (uniformTargetCat W)
+                (@HasTerminal.one _ (uniformTargetCat W)
+                  (uniformStepTarget_preRegular W).toHasTerminal)
+                ⟨⟨A :: U.1, hnd, hws⟩, (laxOfProjSystem' (cofinalProjSystem (S := S))).F
+                  (fun B hB => List.mem_cons.2 (Or.inr hB)) xE'⟩),
+        @Cat.comp _ (uniformTargetCat W) _
+            ⟨⟨A :: U.1, hnd, hws⟩, (laxOfProjSystem' (cofinalProjSystem (S := S))).F
+              (fun B hB => List.mem_cons.2 (Or.inr hB)) xE'⟩ _ y'
+          (stageInclL (laxOfProjSystem' (cofinalProjSystem (S := S)))
+            (coherentProj (cofinalProjSystem (S := S)))
+            (pushFibre W A hbU (fun B hB => List.mem_cons.2 (Or.inr hB)) g'')) = x' := by
+  letI : HasEqualizers S := products_pullbacks_implies_equalizers
+  letI : Cat (uniformTargetTy W) := uniformTargetCat W
+  let L := laxOfProjSystem' (cofinalProjSystem (S := S))
+  let hL := coherentProj (cofinalProjSystem (S := S))
+  let T := ratLaxTerminalData (cofinalProjSystem (S := S))
+  let P := listProd (𝒞 := S) U.1
+  let U' : WSList S := ⟨A :: U.1, hnd, hws⟩
+  have hUU' : (wsDirected S).le U U' := fun B hB => List.mem_cons.2 (Or.inr hB)
+  have hsp : selectProj U'.1 U.1 hUU' = (snd : prod A P ⟶ P) := by
+    show selectProj (A :: U.1) U.1 hUU' = _
+    rw [selectProj_head_notin A U.1 U.1 hUU' hAU (fun B hB => hB),
+        selectProj_refl U.2.1 (fun B hB => hB), Cat.comp_id]
+  -- ===== (a) the §1.546 escape data (sorry-free) =====
+  let pIso : OverHom (sliceEmbedObj P A) (L.F hbU (terminalSliceObj W A)) := pushTerminalSlice_iso W A hbU
+  obtain ⟨pInv, hp1, hp2⟩ := pushTerminalSlice_iso_isIso W A hbU
+  let m : OverHom xE' (sliceEmbedObj P A) := g'' ⊚ pInv
+  have hpInv_iso : @IsIso (Over P) _ _ _ pInv := ⟨pIso, hp2, hp1⟩
+  have hm_mono : @Mono (Over P) _ _ _ m := mono_postcomp_iso' hmono hpInv_iso
+  have hm_niso : ¬ @IsIso (Over P) _ _ _ m := by
+    intro hmi; apply hniso
+    have he : g'' = @Cat.comp (Over P) _ _ _ _ m pIso := by
+      apply OverHom.ext
+      have hpp : pInv.f ≫ pIso.f = Cat.id _ := congrArg OverHom.f hp2
+      show g''.f = (g''.f ≫ pInv.f) ≫ pIso.f
+      rw [Cat.assoc, hpp, Cat.comp_id]
+    rw [he]; exact isIso_comp hmi ⟨pInv, hp1, hp2⟩
+  let cnD : Cone (xE'.hom) (snd : prod A P ⟶ P) := (HasPullbacks.has (xE'.hom) (snd : prod A P ⟶ P)).cone
+  have hcnD : cnD.IsPullback := (HasPullbacks.has (xE'.hom) (snd : prod A P ⟶ P)).cone_isPullback
+  let mf' : cnD.pt ⟶ prod A (prod A P) := pair (cnD.π₁ ≫ m.f ≫ (fst : prod A P ⟶ A)) cnD.π₂
+  have hmf1 : mf' ≫ (fst : prod A (prod A P) ⟶ A) = cnD.π₁ ≫ m.f ≫ (fst : prod A P ⟶ A) := fst_pair _ _
+  have hmf2 : mf' ≫ (snd : prod A (prod A P) ⟶ prod A P) = cnD.π₂ := snd_pair _ _
+  -- the escape: NO base-change section reaches the fresh `A`-coordinate `fst`.
+  have key : ∀ (s : (prod A P) ⟶ cnD.pt), s ≫ cnD.π₂ = Cat.id (prod A P) →
+      s ≫ (mf' ≫ (fst : prod A (prod A P) ⟶ A)) = (fst : prod A P ⟶ A) → False :=
+    fun s hs2 hsA => baseChange_freshFactor_missed m hm_mono hm_niso cnD hcnD mf' hmf1 hmf2 s hs2 hsA
+  -- ===== (b) the §1.546 colimit point `x'` (sorry-free) =====
+  let cod' : OverHom (sliceEmbedObj (prod A P) A)
+      (baseChangeObj (snd : prod A P ⟶ P) (L.F hbU (terminalSliceObj W A))) :=
+    bcSliceIso A P ⊚ (@Functor.map _ _ _ _ _ (baseChangeFunctor (snd : prod A P ⟶ P)) _ _ pIso)
+  have hcodEq : L.F hUU' (L.F hbU (terminalSliceObj W A))
+      = baseChangeObj (snd : prod A P ⟶ P) (L.F hbU (terminalSliceObj W A)) := by
+    show baseChangeObj (selectProj U'.1 U.1 hUU') (L.F hbU (terminalSliceObj W A)) = _; rw [hsp]
+  let cod : OverHom (sliceEmbedObj (prod A P) A) (L.F hUU' (L.F hbU (terminalSliceObj W A))) := hcodEq ▸ cod'
+  let sfp : OverHom (overTerm (prod A P)) (sliceEmbedObj (prod A P) A) :=
+    sliceFactorPoint A (fst : prod A P ⟶ A)
+  let align : @Cat.Hom (Obj L) (laxColimCat L hL)
+      (@HasTerminal.one _ (uniformTargetCat W) (uniformStepTarget_preRegular W).toHasTerminal)
+      ⟨U', (T.ht U').one⟩ := laxTerminalArrowAt L hL T U' _
+  let x' := @Cat.comp (Obj L) (laxColimCat L hL) _ _ _ align
+    (stageInclL L hL (sfp ⊚ cod))
+  refine ⟨x', ?_⟩
+  rintro ⟨y', hy'⟩
+  -- ===== (c) reflect the colimit factor to a base-change section, then apply the escape =====
+  -- THE HONEST RESIDUAL: `stageInclFunctorL U'` fullness on this hom (see the docstring blocker).
+  -- The reflection of `y'` yields `s : A×P → cnD.pt` with `s ≫ cnD.π₂ = id` and
+  -- `s ≫ mf' ≫ fst = fst`; `key s …` then derives `False`.  `key`, `cnD`, `mf'` (the §1.546 escape
+  -- data) are all in hand above; only the fullness reflection of `y'` to `s` is missing.
+  exact (by sorry : False)
+
+/-- **Freyd's §1.546 density (the genuine open core).**  The §1.546 ESCAPE is sorry-free
+    (`baseChange_freshFactor_missed`); the (a) base-change comparison (`bcSliceIso`) and (b) colimit
+    point are sorry-free in `richerSliceSection`.  Two sharp residuals remain (see the Phase 3 note):
+    (c.i) the `stageInclFunctorL U'` fullness reflection of a colimit factor to a base-change section
+    (`richerSliceSection`), and (c.ii) the `A ∈ U` fresh-copy case.  No fractions saturation is needed;
+    the §1.547 reduction around the core is machine-checked. -/
 theorem richerSliceMiss (W : WSCover S) : RicherSliceMiss W := by
-  sorry
+  letI : Cat (uniformTargetTy W) := uniformTargetCat W
+  intro A hA U hbU xE' g'' hmono hniso
+  by_cases hAU : A ∈ U.1
+  · -- SECOND RESIDUAL: `A ∈ U` (the fresh `A`-coordinate cannot be appended nodup; needs a fresh
+    -- independent copy of `A` — not expressible at the object level of this index).  See the note.
+    sorry
+  · -- `A ∉ U`: the directed-union escape at `U' = A :: U`, via `richerSliceSection` (sorry-free
+    -- except for the isolated §1.546(c) fullness residual it documents).
+    have hnd : (A :: U.1).Nodup := List.nodup_cons.2 ⟨hAU, U.2.1⟩
+    have hws : ∀ B ∈ (A :: U.1), WellSupported B := by
+      intro B hB; rcases List.mem_cons.1 hB with e | hf
+      · exact e ▸ hA
+      · exact U.2.2 B hf
+    obtain ⟨x', hx'⟩ := richerSliceSection W A hA U hbU hAU xE' g'' hmono hniso hnd hws
+    exact ⟨⟨A :: U.1, hnd, hws⟩, fun B hB => List.mem_cons.2 (Or.inr hB), x', hx'⟩
 
 /-- **§1.546 DENSITY — `FibreDensity W`** for the §1.547 cofinal cover `W`.  The §1.547 stage-local
     density, the `wellPoints` field of the §1.543 `CofinalCapStep`.  Reduces (Phases 1–2, sorry-free)
@@ -356,9 +529,15 @@ theorem wsCover_fibreDensity (S : PreRegBundle.{u}) :
 
 end Freyd.CofinalProj
 
--- The §1.547 reduction is SORRY-FREE / axiom-clean; the residual is isolated in `richerSliceMiss`.
+-- The §1.547 reduction is SORRY-FREE / axiom-clean; the residuals are isolated in `richerSliceMiss`.
+-- The §1.546(a) base-change/slice comparison is sorry-free:
+#print axioms Freyd.FibreDensityProof.bcSlice_isPullback
+#print axioms Freyd.FibreDensityProof.bcSliceIso_isIso
 #print axioms Freyd.FibreDensityProof.stageInclL_g''_factor
 #print axioms Freyd.FibreDensityProof.fibreDensity_of_richerSliceMiss
--- `fibreDensity` / `wsCover_fibreDensity` depend on `sorryAx` *only* through `richerSliceMiss`
--- (Freyd's genuine §1.546 density — the single honest residual).
+-- `fibreDensity` / `wsCover_fibreDensity` depend on `sorryAx` *only* through `richerSliceMiss`,
+-- whose two isolated residuals are (i) the §1.546(c) `stageInclFunctorL U'` fullness reflection
+-- (`richerSliceSection`) and (ii) the `A ∈ U` fresh-copy case.  The whole §1.546 escape
+-- (`baseChange_freshFactor_missed`), the (a) base-change comparison, the (b) colimit point, and the
+-- §1.547 colimit↔fibre reduction are machine-checked sorry-free.
 #print axioms Freyd.FibreDensityProof.fibreDensity
