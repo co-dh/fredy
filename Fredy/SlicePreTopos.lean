@@ -103,4 +103,65 @@ instance overHasImages [HasImages 𝒞] (B : 𝒞) : HasImages (Over B) where
   image := sliceImage
   isImage := sliceImage_isImage
 
+/-! ## `RegularCategory (Over B)`
+
+  With `HasImages (Over B)` now in hand, all four `RegularCategory` mixins for `Over B`
+  are available: `HasTerminal` (`overHasTerminal`, §1.44), `HasBinaryProducts`
+  (`overHasBinaryProducts`, §1.441), `HasPullbacks` (`overHasPullbacks`, §1.441), and
+  `PullbacksTransferCovers` (`overPullbacksTransferCovers`, §1.52).  The slice of a regular
+  category is regular. -/
+instance overRegular (B : 𝒞) [RegularCategory 𝒞] : RegularCategory (Over B) where
+
+/-! ## Residual: completing the slice pre-topos tower (toward §1.662 Diaconescu)
+
+  With `HasImages (Over B)` and `RegularCategory (Over B)` above, the slice now supports the
+  full relational calculus of §1.56 (`BinRel (Over B)`, `⊚`, `reciprocal`, `graph`, `RelLe`,
+  `EquivalenceRelation`, `IsEffective`), because that calculus is generic over any category
+  with `HasBinaryProducts + HasPullbacks + HasImages`.  What remains for the prompt's target
+  `one_one_choice_to_boolean` (`S1_64`, §1.662) — i.e. for `∀ A, DecidableObject A` from
+  `Choice (1+1)` — is the following tower, each step well-defined but substantial:
+
+  1. **Forget commutes with the calculus.**  The forgetful `Σ_B : Over B → 𝒞` preserves
+     pullbacks (`sliceForget_preserves_isPullback`) and images (`overHasImages`, this file),
+     so for slice relations `R, S` on `X` there are RelHom-isos
+       `Σ_B(R ⊚ S) ≅ Σ_B R ⊚ Σ_B S`,  `Σ_B(R°) ≅ (Σ_B R)°`,  `Σ_B(graph m) ≅ graph m.f`.
+     PROVING these on the nose is the bulk: `compose` is defined via the *chosen* pullback and
+     *chosen* image of a span, and `Σ_B` lands on a different chosen pullback/image of the
+     forwarded span, so the identification is up-to-the-canonical-comparison-iso, not `rfl`.
+     (Engine: `image_comparison_iso` + `sliceForget_preserves_isPullback` per operation.)
+
+  2. **`EffectiveRegular (Over B)`.**  Given an equivalence relation `E : BinRel (Over B) X X`,
+     its underlying `E̅ : BinRel 𝒞 X.dom X.dom` (columns `E.colA.f`, `E.colB.f`) is an
+     equivalence relation in `𝒞` by step 1.  KEY: the two legs automatically equalize `X.hom`
+     (both `E.colA.f ≫ X.hom` and `E.colB.f ≫ X.hom` equal `E.src.hom`, since `colA, colB`
+     are slice arrows).  `𝒞`'s `EffectiveRegular.effective` gives a cover `q : X.dom ↠ Q₀` with
+     `E̅ = level q`; the leg-equalisation lets `X.hom` factor as `q ≫ b` (`b : Q₀ → B`,
+     `cover_is_coequalizer_of_level` / `cover_epi`).  Then `q : X → ⟨Q₀, b⟩` is a slice cover
+     (`cover_of_cover_f`) whose slice level is `E` (step 1 + `sliceForget_preserves_isPullback`
+     on the kernel pair).  Hence `IsEffective E`, giving `EffectiveRegular (Over B)` and so
+     `PreTopos (Over B)` once `PositivePreLogos (Over B)` is supplied.
+
+  3. **`DisjointBinaryCoproduct (Over B)`.**  Slice coproducts are `𝒞`-coproducts over `B`
+     (`X + Y → B` by copairing the two structure maps); the positive/disjointness data
+     (`inlSub`, `inrSub`, `inl_inter_inr_le_bottom`, `inl_union_inr_entire`, §1.62) transports
+     because forget preserves the union/intersection of subobjects (it preserves images and
+     pullbacks, the ingredients of `PreLogos`).  Needs `PositivePreLogos (Over B)` first.
+
+  4. **`HasReflTransClosure (Over B)`.**  The rtc of a slice relation `R` is the slice lift of
+     `rtc (Σ_B R)`: reflexivity/transitivity/minimality transport along the RelHom-isos of
+     step 1, so `transRefClos` for `Over B` is built from `𝒞`'s.
+
+  5. **Diaconescu transport (final).**  `preTopos_boolean_iff_all_decidable.mpr` reduces the
+     `S1_64` goal to `∀ A, DecidableObject A`.  Decidability of `A` is the diagonal
+     `Δ : A ↣ A×A` complemented; working in the slice `𝒮(A×A)` (now a pre-topos by 2–4),
+     `Δ` is a subobject of the slice terminal, and `Choice (1+1)` in `𝒞` transports to
+     `Choice (1_𝒮 + 1_𝒮)` in `𝒮(A×A)` (this is `Choice ((A×A) + (A×A) → A×A)`, the codiagonal
+     slice object — a projectivity-transport step, NOT automatic from `Choice (1+1)` in `𝒞`).
+     Then the §1.658 engine `subobject_complemented_of_decidable` / `preTopos_boolean_iff_all_decidable`
+     run *inside the slice* to complement `Δ`, i.e. make `A` decidable.
+
+  Steps 1–4 are mechanical transport (no new mathematical idea, but ~several hundred lines).
+  Step 5's projectivity transport (`Choice (1+1)` ⇒ slice codiagonal choice) is the one genuinely
+  delicate point and the true residual flagged in the `one_one_choice_to_boolean` doc-comment. -/
+
 end Freyd
