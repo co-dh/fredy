@@ -263,7 +263,7 @@ private def _idFwd (X : Over C) : OverHom X (baseChangeObj (Cat.id C) X) :=
 
 /-- The backward arrow `baseChangeObj (id) X ⟶ X`: the first projection `π₁`.  Its over-`C` triangle
     is `π₁ ≫ X.hom = π₂` from the pullback square `w` (since the other leg is `id_C`). -/
-private def _idBwd (X : Over C) : OverHom (baseChangeObj (Cat.id C) X) X :=
+def _idBwd (X : Over C) : OverHom (baseChangeObj (Cat.id C) X) X :=
   ⟨(_idPB X).cone.π₁, by
     show (_idPB X).cone.π₁ ≫ X.hom = (_idPB X).cone.π₂
     have := (_idPB X).cone.w; rw [Cat.comp_id] at this; exact this⟩
@@ -1143,7 +1143,7 @@ variable {ι : Type u} {D : Directed ι}
 /-- The `.nat.app` underlying arrow of a base-map-transport of a `NatIso` of base-change functors:
     transporting `baseChangeObj b ≅ G` along `e : a = b` conjugates the component by the `eqToHom`
     of the pullback objects.  (The pullbacks coincide after `subst e`, so it is the identity.) -/
-private theorem mpr_natiso_app {C E : 𝒞} {a b : E ⟶ C} (e : a = b)
+theorem mpr_natiso_app {C E : 𝒞} {a b : E ⟶ C} (e : a = b)
     {G : Over C → Over E} [hG : Functor G]
     (N : @NatIso (Over C) _ (Over E) _ (baseChangeObj b) G _ hG) (X : Over C) :
     ((Eq.mpr (congrArg (fun z => @NatIso (Over C) _ (Over E) _ (baseChangeObj z) G _ hG) e) N).nat.app

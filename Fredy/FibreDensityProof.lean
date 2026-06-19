@@ -1386,7 +1386,48 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
             -- Everything substantive (all A-leg sub-laws `hcod_A`/`hsc_A`/`hpf_A`, the cast-elimination
             -- `hLHScollapse`, and the goal-LHS reduction `hLHSfull`) is machine-checked above; the
             -- residual is the final on-the-nose `transApp`/`reflApp`/`ψ` pullback-pasting reindexing.
-            sorry
+            -- ── (★): collapse `transApp ≫ π₁ ≫ reflApp ≫ (eqToHom hLF).f ≫ π₁(snd)` in hSP's LHS to
+            -- `π₁_N ≫ π₁_U'`, and the RHS `transApp ≫ π₁ ≫ reflApp ≫ fst` to `srcPB.π₁ ≫ fst`.
+            rw [reflApp_f_π₁ cofinalProjSystem (L.F hUU' xE'),
+                reflApp_f_π₁ (i := U') cofinalProjSystem HasTerminal.one] at hSP
+            -- LHS: `transApp(refl U',hUN) xE').f ≫ π₁(proj hUN, bc) ≫ π₁(proj(refl U'),xE') ≫ z`,
+            -- with `z := (eqToHom hLF).f ≫ π₁(snd,xE') ≫ m.f ≫ fst`.
+            rw [transApp_f_π₁π₁ cofinalProjSystem ((wsDirected S).refl U') hUN (L.F hUU' xE')
+                  ((eqToHom hLF).f ≫ (_pb (snd : prod A P ⟶ P) xE').cone.π₁
+                    ≫ m.f ≫ (fst : prod A P ⟶ A))] at hSP
+            -- RHS: collapse with `z := fst`.
+            rw [transApp_f_π₁π₁ cofinalProjSystem ((wsDirected S).refl U') hUN' HasTerminal.one
+                  (fst : prod A P ⟶ A)] at hSP
+            -- collapse `(eqToHom hLF).f ≫ π₁(snd)` to `π₁_U'`.
+            have hcollapse0 : (eqToHom hLF).f ≫ (_pb (snd : prod A P ⟶ P) xE').cone.π₁
+                = (_pb (selectProj U'.val U.val hUU') xE').cone.π₁ := by
+              rw [hLF']; exact eqToHom_bc_π₁ hsp xE'
+            have hcollapseU' : (eqToHom hLF).f ≫ (_pb (snd : prod A P ⟶ P) xE').cone.π₁
+                  ≫ m.f ≫ (fst : prod A P ⟶ A)
+                = (_pb (selectProj U'.val U.val hUU') xE').cone.π₁ ≫ m.f ≫ (fst : prod A P ⟶ A) := by
+              rw [← Cat.assoc, hcollapse0]
+            rw [hcollapseU'] at hSP
+            -- hSP now: `zN.f ≫ π₁_N ≫ π₁_U' ≫ m.f ≫ fst = srcPB.π₁ ≫ fst`.  Match goal LHS via assoc.
+            rw [show (_pb (cofinalProjSystem.proj ((wsDirected S).trans ((wsDirected S).refl U') hUN))
+                        (L.F hUU' xE')).cone.π₁
+                      ≫ (_pb (selectProj U'.val U.val hUU') xE').cone.π₁ ≫ m.f ≫ (fst : prod A P ⟶ A)
+                  = ((_pb (cofinalProjSystem.proj ((wsDirected S).trans ((wsDirected S).refl U') hUN))
+                        (L.F hUU' xE')).cone.π₁
+                      ≫ (_pb (selectProj U'.val U.val hUU') xE').cone.π₁) ≫ m.f ≫ (fst : prod A P ⟶ A)
+                from (Cat.assoc _ _ _).symm] at hSP
+            rw [hSP]
+            -- Piece 3: `srcPB.cone.π₁ ≫ fst = srcPB.cone.π₂ ≫ ψ ≫ fst`.
+            -- `srcPB.cone.w` (with `(overTerm _).hom = id`): `π₁ = π₂ ≫ selectProj N U' hUN'`.
+            have hsrcW : srcPB.cone.π₁ = srcPB.cone.π₂ ≫ selectProj N.val U'.val hUN' :=
+              (Cat.comp_id srcPB.cone.π₁).symm.trans srcPB.cone.w
+            -- `selectProj N U' hUN' ≫ fst = factorProj N A = ψ ≫ fst`.
+            have hfstFactor : selectProj N.val U'.val hUN' ≫ (fst : prod A P ⟶ A)
+                = ψ ≫ (fst : prod A PN ⟶ A) := by
+              rw [hψfst,
+                  show (fst : prod A P ⟶ A) = factorProj U'.val A List.mem_cons_self from
+                    (factorProj_cons_head (U' := U.val) List.mem_cons_self).symm,
+                  selectProj_factor N.val U'.val hUN' A List.mem_cons_self]
+            rw [hsrcW, Cat.assoc, hfstFactor]
           rw [show (r ≫ (zNd.f ≫ codPB.cone.π₁)) ≫ cnDN.π₁ ≫ mC.f ≫ (fst : prod A PN ⟶ A)
                 = r ≫ ((zNd.f ≫ codPB.cone.π₁) ≫ cnDN.π₁ ≫ mC.f ≫ (fst : prod A PN ⟶ A)) from
               Cat.assoc _ _ _, hbridge]

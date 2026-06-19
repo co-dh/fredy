@@ -155,6 +155,19 @@ theorem reflApp_natural {i : ι} {x y : L.A i} (f : x ⟶ y) :
       (L.F (D.refl i)) (fun z => z) (L.functF (D.refl i)) (@idFunctor (L.A i) (L.catA i))
       L.F_refl_iso) x y f
 
+/-- **`reflApp` of `laxOfProjSystem'` IS the reflexive base-change pullback `π₁`.**  `reflApp` is the
+    `.nat.app` of `projReflIso`, which is `baseChangeIdNatIso` (component `_idBwd = π₁`) transported
+    along `P.proj_refl i : P.proj (D.refl i) = Cat.id`; the transport `eqToHom` collapses against the
+    chosen pullback's `π₁` by `eqToHom_bc_π₁`, leaving the reflexive pullback's first projection. -/
+theorem reflApp_f_π₁ {𝒞 : Type w} [Cat.{w} 𝒞] [HasPullbacks 𝒞] {ι : Type u} {D : Directed ι}
+    (P : ProjSystem ι D 𝒞) {i : ι} (x : pcObj P i) :
+    (reflApp (laxOfProjSystem' P) x).f = (_pb (P.proj (D.refl i)) x).cone.π₁ := by
+  show ((projReflIso P i).nat.app x).f = _
+  unfold projReflIso
+  simp only [id_eq]
+  rw [mpr_natiso_app (P.proj_refl i) baseChangeIdNatIso x]
+  exact eqToHom_bc_π₁ (P.proj_refl i) x
+
 end ReflApp
 
 /-! ## A stage iso includes to a colimit iso (lax `colimHom_isIso_of_rep`)
