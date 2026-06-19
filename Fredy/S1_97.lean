@@ -920,18 +920,77 @@ theorem free_action_iff_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
   The construction uses primRec (or iteratePair) applied to A: the free A-action
   A* is the A-fold "list" object built from the NNO universal property. -/
 
+/-- §1.98(14): The LIST OBJECT `A*` of `A` — the initial algebra of the polynomial
+    functor `F X = 1 + A × X`, packaged as `nil`/`cons` plus a `fold` recursor.
+
+    This is exactly the free-A-action data in algebra form: `nil = []` is the empty
+    word, `cons : A × A* → A*` prepends a letter, and `fold e c : A* → B` is the unique
+    `F`-algebra homomorphism into `(B, e, c)`.  `fold_nil`/`fold_cons` are the algebra
+    square and `fold_uniq` is initiality (the Peano/induction principle for `A*`). -/
+structure ListObjectData {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞] (A : 𝒞) where
+  /-- The list object `A* = Σₙ Aⁿ`. -/
+  L    : 𝒞
+  /-- The empty word `[] : 1 → A*`. -/
+  nil  : one ⟶ L
+  /-- Prepend `cons : A × A* → A*`. -/
+  cons : prod A L ⟶ L
+  /-- The fold/recursor into any `F`-algebra `(B, e : 1 → B, c : A × B → B)`. -/
+  fold : {B : 𝒞} → (one ⟶ B) → (prod A B ⟶ B) → (L ⟶ B)
+  /-- `fold` sends the empty word to the algebra's unit. -/
+  fold_nil  : ∀ {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B), nil ≫ fold e c = e
+  /-- `fold` is an `F`-algebra homomorphism: it commutes with `cons` / `c`. -/
+  fold_cons : ∀ {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B),
+    prodMap A L B (fold e c) ≫ c = cons ≫ fold e c
+  /-- Initiality: any algebra homomorphism `A* → B` equals `fold`. -/
+  fold_uniq : ∀ {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B) (m : L ⟶ B),
+    nil ≫ m = e → prodMap A L B m ≫ c = cons ≫ m → m = fold e c
+
+/-- §1.98(14): A list object for `A` IS a free A-action.
+
+    This reduction is sorry-free: the free-A-action universal property is precisely the
+    initiality of the list object `A*` as an `F`-algebra (`F X = 1 + A × X`).  The unit
+    is `nil`, the action is `cons`, and the unique map into any A-action `(B, f, b)` is
+    `fold f b`; the three commutation laws are `fold_nil`, `fold_cons`, `fold_uniq`. -/
+def freeAAction_of_listObject {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞] {A : 𝒞}
+    (LD : ListObjectData (𝒞 := 𝒞) A) : FreeAAction (𝒞 := 𝒞) A where
+  obj       := LD.L
+  unit      := LD.nil
+  act       := LD.cons
+  recA      := fun α => LD.fold α.unit α.act
+  recA_unit := fun α => LD.fold_nil α.unit α.act
+  recA_act  := fun α => LD.fold_cons α.unit α.act
+  recA_uniq := fun α m hm0 hms => LD.fold_uniq α.unit α.act m hm0 hms
+
 /-- §1.98(14): In a topos with a NNO, every object A has a free A-action. -/
 theorem free_action_exists {𝒞 : Type u} [Cat.{v} 𝒞]
     [hN : HasNaturalNumbersObject 𝒞] [HasExponentials 𝒞]
     (A : 𝒞) : Nonempty (FreeAAction (𝒞 := 𝒞) A) := by
-  -- BLOCKER: the free A-action object is the LIST OBJECT A* = Σₙ Aⁿ ("finite words in A"),
-  -- NOT the NNO N itself (taking A* := N with act := snd ≫ succ gives only the free
-  -- 1-action — its recA cannot recover an A-action's dependence on the A-coordinate, so
-  -- recA_act/recA_uniq fail for nontrivial A).  Building Σₙ Aⁿ from a NNO needs a
-  -- coproduct/list-object construction (the topos's W-type / partial-map classifier for
-  -- the polynomial X ↦ 1 + A×X), which is beyond the iteratePair (§1.981) and primRec
-  -- (§1.983) lemmas available here — those iterate a *fixed* fibre, not a growing power Aⁿ.
-  -- Faithful sorry pending the list-object (§1.98(14)) construction.
-  sorry
+  -- The free A-action IS a list object `A*` (`freeAAction_of_listObject` above discharges the
+  -- whole universal property sorry-free once `A*` is in hand).  So the entire content of
+  -- §1.98(14) is now isolated in the SINGLE primitive `ListObjectData A` — the initial algebra
+  -- of `F X = 1 + A × X`, i.e. `A* = Σₙ Aⁿ` ("finite words in A").
+  --
+  -- WHY THE NNO ALONE CANNOT BUILD `A*` IN THIS LAYER.  The NNO is the initial algebra of the
+  -- 1-parameter functor `X ↦ 1 + X` (`iterate`, §1.98).  The list object is the initial algebra
+  -- of the A-PARAMETRISED functor `X ↦ 1 + A × X`; classically `A* ≅ ∐ₙ Aⁿ`.  Passing from the
+  -- former to the latter needs ONE of:
+  --   (a) the N-INDEXED COPRODUCT `∐ₙ Aⁿ` — but the repo has only BINARY `HasBinaryCoproducts`
+  --       (S1_58); no countable/NNO-indexed coproduct exists, and binary ⊔ + NNO do not yield it;
+  --   (b) the LIST OBJECT as a definable subobject of `(1+A)^N` cut out by a "bounded-length"
+  --       predicate — but that comprehension is the internal-∀ / family-glb on `Ω^…` that
+  --       `least_peano_subobject` (above) and `S1_94` both bottom out on as the §1.543 sorry;
+  --   (c) the PARTIAL-MAP CLASSIFIER recursor `B̃` of §1.988/§1.934 — itself `B̃ = Π_t(B/0)`,
+  --       CONSTRUCTED only in a CAPITAL topos (§1.935), the same §1.543 gate hit by
+  --       `nno_of_bicartesian_data`.  The available `iteratePair`/`primRec` (§1.981/§1.983)
+  --       iterate a FIXED fibre `B`, not the growing power `Aⁿ`, so they cannot define `fold`.
+  --
+  -- Residual = the SINGLE, sharply named gap `ListObjectData A` (= §1.98(14) list object
+  -- existence), with its lawful consumer `freeAAction_of_listObject` already proved sorry-free.
+  obtain ⟨LD⟩ : Nonempty (ListObjectData (𝒞 := 𝒞) A) := by
+    -- MISSING PRIMITIVE: existence of the list object `A* = Σₙ Aⁿ` (initial `1 + A×(−)`-algebra).
+    -- Not constructible from `HasNaturalNumbersObject` + `HasExponentials` + binary coproducts
+    -- alone; requires (a)/(b)/(c) above — all §1.543-capitalization-gated in this repo.
+    sorry
+  exact ⟨freeAAction_of_listObject LD⟩
 
 end Freyd
