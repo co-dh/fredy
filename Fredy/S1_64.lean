@@ -1700,27 +1700,48 @@ theorem cover_eq_epic_preTopos [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞
     -- monic + epic ⟹ iso by balancedness (`pretopos_balanced`), so `image f` is entire.
     exact pretopos_balanced (image f).arr (image f).monic h_arr_epi
 
-/-- **§1.652**: In a pre-topos, monics coincide with cocovers
-    (maps that are coequalizers of some pair).
-    Requires effective regularity (every monic is a regular monic = an equalizer,
-    dually every epic is a regular epic = a coequalizer).
-    The `HEq` in the statement is a placeholder for an isomorphism between
-    the coequalizer map and `f`.
+/-- **§1.652**: In a pre-topos, monics coincide with cocovers.
 
-    STATE (the F-analysis residual is now CLOSED; the remaining blocker is a STATEMENT defect):
-    the effective-coregularity cross-descent that `pretopos_balanced` once shared with this lemma
-    has been discharged (`monic_epic_is_cover`, the reverse F-analysis `1_B ≤ m° ⊚ m`), so that is
-    no longer the obstruction.  What blocks THIS lemma is its `HEq`-based encoding.  `HEq` between
-    `(coeq p q).map : A ⟶ (coeq p q).obj` and `f : A ⟶ B` forces the *objects* `(coeq p q).obj` and
-    `B` to be (heterogeneously) equal — but a coequalizer object is only ever *isomorphic* to `B`,
-    never definitionally equal to it.  So neither direction is provable as written: forward would
-    need an arbitrary mono's "cocover witness object" to be defeq to `B`, and reverse would make a
-    coequalizer-map (a cover) monic.  A faithful fix is to replace the `HEq` with an explicit
-    isomorphism `(coeq p q).obj ≅ B` intertwining `(coeq p q).map` and `f`; that is a statement
-    change (header-fenced), not available here.  Faithful sorry on the `HEq` defect. -/
-theorem monic_eq_cocover_preTopos [PreTopos 𝒞] [HasCoequalizers 𝒞] {A B : 𝒞} (f : A ⟶ B) :
-    Mono f ↔ ∃ (C : 𝒞) (p q : C ⟶ A), HEq ((HasCoequalizers.coeq p q).map) f := by
-  sorry
+    A *cocover* is the dual of a cover: a regular mono = the equalizer of some parallel pair.
+    Freyd's argument (§1.652) is: given a monic `x : A ↣ B`, form its cokernel pair `y, z : B ⇉ C`
+    (so `x ≫ y = x ≫ z`); then "`x` is an equalizer of `y, z`, hence a cocover."  The amalgamation
+    lemma §1.651 makes the cokernel-pair square `(A; x, x)` a *pullback*, and a pullback of `(y, z)`
+    whose two legs coincide is exactly an equalizer of `(y, z)`.
+
+    STATEMENT REDRAFT (the previous `HEq` encoding was a defect):
+    the old form `∃ C p q, HEq ((coeq p q).map) f` is unprovable.  `HEq` between
+    `(coeq p q).map : C ⟶ (coeq p q).obj` and `f : A ⟶ B` forces the *objects* `(coeq p q).obj` and
+    `B` to be heterogeneously equal — but a (co)limit object is only ever *isomorphic* to `B`, never
+    definitionally equal.  So forward would need an arbitrary mono's witness object to be defeq to
+    `B`, and reverse would make a cover (coequalizer-map) monic.  The faithful statement, matching
+    "`x` is an equalizer of `y, z`", is: `f` is monic iff `f` is the equalizer of some parallel pair
+    `p, q : B ⇉ C` out of its codomain (predicate `EqualizerCone.IsEqualizer`, choice-free, with no
+    object collapse).  This is precisely the book's "monics coincide with cocovers (= regular
+    monos)".  The extra `[PreToposDisjoint]`/`[HasReflTransClosure]` instances are the same ambient
+    pre-topos data §1.651 uses for the amalgamation pullback. -/
+theorem monic_eq_cocover_preTopos [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞] {A B : 𝒞}
+    (f : A ⟶ B) :
+    Mono f ↔ ∃ (C : 𝒞) (p q : B ⟶ C) (h : f ≫ p = f ≫ q),
+      (EqualizerCone.mk A f h).IsEqualizer := by
+  constructor
+  · -- FORWARD: a monic is the equalizer of its cokernel pair (§1.651 makes the square a pullback).
+    intro hf
+    obtain ⟨D, u, v, hsq, hpb, _⟩ := amalgamation_is_pullback f hf f hf
+    refine ⟨D, u, v, hsq, ?_⟩
+    -- The pullback cone of `(u, v)` is `(A; f, f)`; convert its UMP into the equalizer UMP of `(u,v)`.
+    intro d
+    -- `d : EqualizerCone u v` gives a cone over the cospan `(u, v)` with both legs `d.map`.
+    obtain ⟨w, ⟨hw₁, _⟩, huniq⟩ := hpb (Cone.mk d.dom d.map d.map d.eq)
+    refine ⟨w, hw₁, ?_⟩
+    intro v' hv'
+    exact huniq v' hv' hv'
+  · -- REVERSE: an equalizer map is monic (two factors of the same cone are equal by uniqueness).
+    rintro ⟨C, p, q, h, heq⟩ W g₁ g₂ hg
+    -- `g₁, g₂ : W ⟶ A` with `g₁ ≫ f = g₂ ≫ f`; both equalize `(p, q)` via `f`, so both lift the
+    -- equalizer cone `(W, g₁ ≫ f)` and are forced equal by uniqueness of the equalizer factor.
+    have hk : (g₁ ≫ f) ≫ p = (g₁ ≫ f) ≫ q := by rw [Cat.assoc, Cat.assoc, h]
+    obtain ⟨_, _, huniq⟩ := heq (EqualizerCone.mk W (g₁ ≫ f) hk)
+    rw [huniq g₁ rfl, huniq g₂ hg.symm]
 
 /-! ## §1.653 Pushout of a monic and any morphism in a pre-topos
 
