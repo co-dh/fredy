@@ -532,13 +532,31 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
   -- WHAT REMAINS (single sharp gap): translate `hstage` into the binary-product shape
   -- `baseChange_freshFactor_missed` consumes.  `A ∈ U' = A::U ⊆ N` gives `hA_in_N : A ∈ N.1`, and
   -- `CofinalProj.listProd_pull_factor N.1 A N.2.1 hA_in_N` supplies `ψ : ∏N ≅ A × ∏(N.erase A)` with
-  -- `ψ ≫ fst = factorProj N A`, `ψ ≫ snd = selectProj N (N.erase A)`.  Through `ψ` the `N`-pushed
-  -- chosen pullback of `xE'.hom`, the `N`-pushed proper mono `pushFibre g''` (proper at `N` via
-  -- `L_cons`/`projStage_conservative_full`), and the section read off `zN` present exactly the
-  -- `cnD_N`/`mf_N`/`s_N` data over `P := ∏(N.erase A)` with fresh coordinate `fst = factorProj N A`,
-  -- whereupon `baseChange_freshFactor_missed` refutes them.  This is `Over (∏N)` pullback-cone
-  -- transport (the `pushHom`/`transApp`/`reflApp` base-change re-association unfolded to underlying
-  -- `S`-arrows); the escape MATH and all colimit plumbing around it are machine-checked.
+  -- `ψ ≫ fst = factorProj N A`, `ψ ≫ snd = selectProj N (N.erase A)`.
+  have hA_in_N : A ∈ N.1 := hUN A List.mem_cons_self
+  -- `ψ : ∏N ≅ A × ∏(N.erase A)`, the reindexing onto the fresh `A`-coordinate `factorProj N A`.
+  obtain ⟨hψiso, hψfst, hψsnd⟩ := listProd_pull_factor (𝒞 := S) N.1 A N.2.1 hA_in_N
+  let PN : S := listProd (N.1.erase A)
+  let ψ : listProd N.1 ⟶ prod A PN :=
+    selectProj N.1 (A :: N.1.erase A)
+      (fun _ hB => (List.mem_cons.1 hB).elim (· ▸ hA_in_N) List.mem_of_mem_erase)
+  -- ════════════════════════════════════════════════════════════════════════════════════════════
+  -- THE SHARPEST RESIDUAL (single isolated section). The `N`-image of the fresh slice point
+  -- `sfp ⊚ cod` (codomain `L.F hUN' (L.F hUU' (L.F hbU term))`) factors, by `hstage`, through the
+  -- `N`-image of `pushFibre g''`, witnessed by `zN`.  Reading that factorization OFF as a
+  -- base-change SECTION over `PN = ∏(N.erase A)` — i.e. producing `s_N : A×PN ⟶ cnD_N.pt` with
+  -- `s_N ≫ cnD_N.π₂ = id` and `s_N ≫ mf_N ≫ fst = fst` for the `ψ`-reindexed `N`-level base-change
+  -- pullback `cnD_N` of `xE'.hom` along `snd` — is the `Over (∏N)` pullback-cone transport
+  -- (the three-layer `pushHom`/`transApp`/`reflApp` base-change re-association of the object
+  -- coherence `L.F hUN' (L.F hUU' (L.F hbU term)) ≅ sliceEmbedObj (∏N) A`, conjugated by `ψ`, all
+  -- unfolded to underlying `S`-arrows).  This object-coherence chain is the genuine remaining
+  -- §1.546 content; `hψiso`/`hψfst`/`hψsnd` and the `N`-level `pushTerminalSlice_iso`
+  -- (`pushTerminalSlice_iso W A (D.trans hbU (D.trans hUU' hUN))`) are the ingredients, but
+  -- assembling the section from `hstage`'s underlying arrow requires the three-layer pullback
+  -- pasting not yet built.  Once `cnD_N`/`mf_N`/`s_N` are in hand, the escape
+  -- `baseChange_freshFactor_missed` (proper at `N` via `L_cons`/`projStage_conservative_full`)
+  -- refutes them.  All colimit plumbing AROUND this — `align`-kill, germ reduction `z ↦ zN`, push
+  -- to stage `N` (`hstage`), `ψ` reindexing, the escape math — is machine-checked sorry-free.
   exact (by sorry : False)
 
 /-- **Freyd's §1.546 density (the genuine open core).**  The §1.546 ESCAPE is sorry-free
