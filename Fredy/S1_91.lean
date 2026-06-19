@@ -566,36 +566,42 @@ theorem omega_endo_eq_id_of_classifies_true
 /-- **§1.919**: Every monic endomorphism of Ω is an involution;
     that is, g : Ω → Ω monic implies g ≫ g = id.
 
-    Proof sketch (Freyd §1.919): Define U as the unique g-large subobject of 1
-    (where A' is g-large in A if χ_{A'} ≫ g = term_A ≫ true, meaning gA' = A).
-    Since g is monic, g(V) = g(1_Ω) implies V = 1_Ω.  For any A, A is g²-large
-    in itself, and the identity has the same property, so g² = id by extensionality.
+    Proof sketch (Freyd §1.919): viewing `g` as an operation `ĝ` on `Sub(A)` via
+    `ĝ(S) := classify⁻¹(χ_S ≫ g)`, a subobject `S ⊆ A` is "`g`-large" when
+    `ĝ(S) = ⊤_A` (`χ_S ≫ g = term_A ≫ true`).  Freyd exhibits a `U ⊆ 1` (a
+    subterminal) such that `ĝ(S) = (S ⇔ A×U)` (the Heyting double-arrow of `S`
+    with the inverse image `A×U := (term_A)# U`); `g` monic forces this operation
+    to be involutive, so `ĝ²(S) = S` for all `S`, and taking `A = Ω, S = id` gives
+    `g ≫ g = id` via the reduction below.
 
-    **Proof gap** (sharpened — the whole subobject-algebra layer is now built).
-    The clean reduction (proven, above): it suffices to show, for EVERY `χ : A → Ω`,
-    `χ ≫ g ≫ g = χ`; taking `A = Ω`, `χ = id` then gives `g ≫ g = id` directly.
-    (Equivalently `omega_endo_eq_id_of_classifies_true`: `t` is a pullback of `t`
-    along `g ≫ g`.)  Freyd proves `χ ≫ g ≫ g = χ` by exhibiting, on every `Sub(A)`,
-    the operation `T_U(A') = (A' ↔ A'×U) ∧ (A'×U)` and showing it equals BOTH `g²`
-    AND the identity.  The bridge lemmas this needs are now all available here:
-    (1) `Sub(−) ≅ Hom(−,Ω)`: `classify_unique` (inj.) + `classify_surjective` (surj.);
-    (2a) internal-MEET UMP: `omegaMeet_classifies_inter` (∧ = ∩ on subobjects);
-    (2b) heyting double-arrow UMP: `heytingDoubleArrow_classifies_eq` (⇔ classifies
-        the equalizer of `χ₁,χ₂`, i.e. "where `χ₁ = χ₂`");
-    (2c) classify naturality: `classify_invImg` (`χ_{A'×U} = term_A ≫ χ_U` for the
-        subterminal `U ⊆ 1`, since `A'×U = (term A)# U ∩ A'`).
+    **Status: HONEST SORRY — residual is a substantial internal-logic layer, NOT a
+    one-step `U = 1` cancellation.**  The clean reduction is proven
+    (`omega_endo_eq_id_of_classifies_true`): it suffices to make `t` a pullback of
+    `t` along `g ≫ g`, equivalently `ĝ²(S) = S` for every `S`.  The bridge UMPs
+    `Sub(−) ≅ Hom(−,Ω)` (`classify_unique` + `classify_surjective`),
+    `omegaMeet_classifies_inter` (`∧ = ∩`), `heytingDoubleArrow_classifies_eq`
+    (`⇔` classifies the equalizer of `χ₁,χ₂`), and `classify_invImg`
+    (`χ_{f# S} = f ≫ χ_S`) are the necessary INGREDIENTS but are NOT sufficient.
 
-    THE ONE GENUINELY MISSING STEP is `U = 1` (Freyd's "`g(V) = g(1)` implies
-    `V = 1`"): the unique `g`-large subobject of `1` is the MAXIMAL one, forced by
-    `g` monic AS AN OPERATION on `Sub(1)`.  This needs (i) the definition of `U` as
-    the `g`-large subobject of `1` and (ii) the fact that a monic `g : Ω → Ω`
-    induces an INJECTIVE operation on subobjects (`g(A₁) = g(A₂) ⟹ A₁ = A₂`),
-    neither of which is a one-liner from the present API — `g` monic gives
-    injectivity on POINTS, and lifting that to the subobject operation is the
-    remaining content.  Once `U = 1`, `A'×U = A'`, `(A' ↔ A') = ⊤`, and
-    `⊤ ∧ A' = A'` collapse `T_U` to the identity via the three UMPs above, closing
-    the proof.  Faithful sorry: meet/double-arrow UMPs + classify-naturality are in
-    place; residual = the `U = 1` (monic ⟹ subobject-injective) step.  See S1_91.md. -/
+    What is genuinely still UNBUILT:
+    (a) the operation `ĝ(S) = (S ⇔ A×U)` itself — needs the inverse-image
+        subterminal `A×U = (term_A)# U` as a `Sub(A)`-valued operation and its
+        characteristic map `term_A ≫ χ_U` (via `classify_invImg`), then the
+        ⇔-UMP applied to the pair `(χ_S, term_A ≫ χ_U)`;
+    (b) the internal Heyting identity that `g` monic ⟹ `S ↦ (S ⇔ A×U)` is
+        involutive (`((S ⇔ u) ⇔ u) = S`).  In a general (non-Boolean) topos `⇔`
+        is NOT associative and `(x ⇔ u) ⇔ u = x` FAILS pointwise; it holds only
+        because monicity of `ĝ` (injectivity of `S ↦ (S ⇔ u)` on `Sub(A)`) forces
+        it.  Turning that injectivity-⟹-involutivity argument into an internal
+        Heyting-algebra lemma over arbitrary `Sub(A)` is the real missing content.
+
+    CAUTION — corrects an earlier WRONG note: the residual is NOT "`U = 1`".  `U`
+    is the unique `g`-large subobject of `1`, and `U = 1` would mean `t ≫ g = t`
+    (`⊤` a fixed point of `g`).  That is FALSE in general: for `g = ¬` in a Boolean
+    topos (where `¬` IS monic and IS a genuine involution), the unique `g`-large
+    subobject of `1` is `∅`, so `U = ∅ ≠ 1`.  The prior note conflated `U` with
+    Freyd's `V` (`V = 1`, the vacuous "every `A` has a large subobject" constraint).
+    The collapse therefore does NOT go through `u = ⊤`.  See S1_91.md. -/
 theorem omega_monic_endo_is_involution (g : HasSubobjectClassifier.omega (𝒞 := 𝒞) ⟶
     HasSubobjectClassifier.omega (𝒞 := 𝒞)) (hm : Mono g) : g ≫ g = Cat.id _ := by
   sorry
