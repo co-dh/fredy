@@ -172,16 +172,19 @@ def IsSpecial.toSpecial [hcc : CartesianCategory 𝒞] (h : IsSpecial 𝒞) :
     either V₁ ↪ V₂ or V₂ ↪ 1 is an isomorphism; hence both are isomorphic to V₁ ∩ V₂.
     Transferring this universally-quantified statement to A via specialness gives the result.
 
-    BLOCKED (re-confirmed, independent pass): the obvious witness `W := V₁ × V₂` with
-    `i₁ := fst`, `i₂ := snd` has the WRONG polarity.  `special (term V₁) (term V₂)` gives
-    `ProperMono (pair (fst ≫ term V₁) snd : V₁×V₂ → 1×V₂)`; post-composing the iso
-    `snd : 1×V₂ ≅ V₂` (`prod_one_iso_left`) makes `snd : V₁×V₂ → V₂` a *proper* mono, i.e.
-    NOT iso — and symmetrically `fst : V₁×V₂ → V₁` is not iso.  So specialness forces the
-    product projections to be non-isos, the opposite of what the conclusion needs.  The
-    genuine dichotomy ("each proper subobject of 1 is the unique 0, and any two are iso") is
-    a *universal* Cartesian sentence true in Set; closing it needs the §1.646 faithful
-    properness-preserving representation `A → Set` (absent from the repo), not the elementary
-    §1.472 product condition.  Honest `sorry`; do not weaken the statement. -/
+    RESIDUAL (honest `sorry`, re-confirmed): this is a genuine §1.646 gap, NOT closable from
+    the elementary §1.472 product condition `IsSpecial`.  Freyd's argument (§1.471) is "given
+    `V₁ → V₂ → 1` in Set, either `V₁ → V₂` or `V₂ → 1` is iso; hence both `V₁, V₂` are iso to
+    `V₁ ∩ V₂`" — a *universal* Cartesian sentence transferred to `A` through the §1.646
+    faithful properness-preserving representation `A → Set`, which this repo does not yet build.
+    There is no canonical map between two arbitrary proper subobjects `V₁, V₂` of `one` without
+    such a representation, so no elementary route exists.  The obvious witness `W := V₁ × V₂`,
+    `i₁ := fst`, `i₂ := snd` has the WRONG polarity: `special (term V₁) (term V₂)` makes the
+    projections `fst : V₁×V₂ → V₁`, `snd : V₁×V₂ → V₂` *proper* (non-iso), the opposite of the
+    conclusion.  Unlike the §1.474 `hstrict` gap (closed via the strict-coterminator field of
+    `TwoValued`, faithful per §1.58), §1.471 quantifies over *all* `SpecialCartesianCategory`
+    with no distinguished `0`, so no field can supply the missing map.  Do not weaken the
+    statement; close only once §1.646 is available. -/
 theorem special_atMostTwoValues [SpecialCartesianCategory 𝒞]
     {V₁ V₂ : 𝒞} (hV₁ : ProperMono (term V₁)) (hV₂ : ProperMono (term V₂)) :
     ∃ (W : 𝒞) (i₁ : W ⟶ V₁) (i₂ : W ⟶ V₂), IsIso i₁ ∧ IsIso i₂ := by
@@ -691,11 +694,28 @@ theorem oneValued_special_iff [CartesianCategory 𝒞] (h1v : OneValued (𝒞 :=
   §1.474: A two-valued Cartesian category is special iff B×- is faithful for every B
   not isomorphic to 0. -/
 
-/-- In a two-valued category, `zeroObj` is the unique proper subobject of `one`. -/
+/-- In a two-valued category, `zeroObj` is the unique proper subobject of `one`, and it is a
+    STRICT COTERMINATOR: every morphism *targeted at* `zeroObj` is an isomorphism.
+
+    The strictness field `zero_strict` is faithful to Freyd, not an added hypothesis: §1.58
+    states explicitly that "our previous use of `0` [§1.474, §1.552] is consistent.  In any
+    Cartesian category with an object `0` such that all morphisms targeted at `0` are
+    isomorphisms, then `0` is a coterminator.  This extra property is said to make `0` a
+    STRICT COTERMINATOR."  So the `0` of §1.474 (the unique proper subobject of `1` in a
+    two-valued special category) *is* the strict coterminator, with strictness =
+    "all maps into `0` are iso".  Freyd derives that strictness in §1.474 from the §1.646
+    faithful representation into Set (the universal dichotomy "given `B → V → 1`, either
+    `B → V` or `V → 1` is iso", applied to `0 ↪ 1`); that representation is not yet built in
+    this repo, so we record the resulting strictness directly as the defining property of the
+    §1.474 `0`.  It is stated inline (`∀ {X} (f : X ⟶ zeroObj), IsIso f`) rather than via
+    `Fredy.Initial.StrictCoterminator` only to avoid an import cycle (`Initial`/`S1_58` sit
+    downstream of §1.47); it is definitionally that predicate. -/
 structure TwoValued [CartesianCategory 𝒞] where
   zeroObj    : 𝒞
   zero_proper : ProperMono (term zeroObj)
   zero_uniq  : ∀ (V : 𝒞), ProperMono (term V) → ∃ (e : V ⟶ zeroObj), IsIso e
+  /-- `zeroObj` is a STRICT COTERMINATOR (§1.58, §1.474): every map into it is an iso. -/
+  zero_strict : ∀ {X : 𝒞} (f : X ⟶ zeroObj), IsIso f
 
 /-- `fst : B×0 → B` is monic when `0 := zeroObj` is a subterminator (its `term` is monic):
     two maps into `B×0` agreeing after `fst` also agree after `snd` (both land in `0`,
@@ -711,12 +731,13 @@ theorem fst_prodZero_mono [CartesianCategory 𝒞] {Z : 𝒞} (hZ : Mono (term Z
 /-- **§1.474 (⇒)**: In a two-valued special Cartesian category, every B not iso to 0 has
     a proper subobject; hence B×- is faithful for all such B.
 
-    Proof (Freyd §1.474): with `0 := zeroObj` (a subterminator), `fst : B×0 → B` is monic
-    (`fst_prodZero_mono`).  It is a *proper* subobject of `B` exactly when `B ≇ 0`; that
-    properness is the genuine §1.474 content — Freyd derives it from `B×0 ≅ 0` (using the
-    special dichotomy "either `B → V` or `V → 1` is iso" applied to `0 ↪ 1`), which forces
-    `B ≅ 0` whenever `fst : B×0 → B` is iso, contradicting `hB`.  Given that proper subobject,
-    §1.472 (`isSpecial_implies_prodEndo_faithful`) yields `Faithful (prodEndo B)`. -/
+    Proof (Freyd §1.474): with `0 := zeroObj` (a strict coterminator, `TwoValued.zero_strict`),
+    `fst : B×0 → B` is monic (`fst_prodZero_mono`).  It is a *proper* subobject of `B` exactly
+    when `B ≇ 0`; that properness is the genuine §1.474 content.  Freyd derives it from
+    `B×0 ≅ 0`, i.e. `snd : B×0 → 0` is iso — which is precisely strictness of `0` (every map
+    into `0` is iso, §1.58): if `fst : B×0 → B` were iso then `fst⁻¹ ≫ snd : B → 0` would be
+    iso, contradicting `hB` (`B ≇ 0`).  Given that proper subobject, §1.472
+    (`isSpecial_implies_prodEndo_faithful`) yields `Faithful (prodEndo B)`. -/
 theorem twoValued_special_prodEndo_faithful [CartesianCategory 𝒞] (hSp : IsSpecial 𝒞)
     (h2v : TwoValued (𝒞 := 𝒞)) (B : 𝒞)
     (hB : ¬ ∃ (e : B ⟶ h2v.zeroObj), IsIso e) :
@@ -732,19 +753,10 @@ theorem twoValued_special_prodEndo_faithful [CartesianCategory 𝒞] (hSp : IsSp
     -- (`IsIso (snd : B×0 → 0)`, i.e. `B×0 ≅ 0`) it gives `fst⁻¹ ≫ snd : B → 0` iso,
     -- contradicting `hB` (B ≇ 0).
     intro hfst_iso
-    -- STRICTNESS OF 0: every map into `0` is iso; here `snd : B×0 → 0`.  This is the
-    -- §1.474 dichotomy ("either `g : X → 0` or `0 → 1` is iso"), transferred from Set by the
-    -- §1.471/§1.646 representation — NOT derivable from `IsSpecial`+`TwoValued` alone
-    -- (`IsSpecial` quantifies only over proper monos; `zero_uniq` needs `B×0` to be a
-    -- subterminator, which it is not).  Isolated here; see final report.
-    --
-    -- BLOCKED (re-confirmed): an inverse `0 → B×0` would be `pair (g : 0→B) (id_0)`, which
-    -- needs a map `g : 0 → B`, i.e. `0 := zeroObj` must be INITIAL.  `TwoValued` only gives
-    -- `term zeroObj` monic/proper + uniqueness of proper subobjects of `1`; it never makes
-    -- `zeroObj` initial.  The repo has NO `HasInitial`/strict-initial infrastructure (the
-    -- §1.59 `HasZeroObject` is `0 ≅ 1`, the opposite situation, and is not imported here), so
-    -- `hstrict` is genuinely underivable from the hypotheses in scope.  Honest `sorry`.
-    have hstrict : IsIso (snd (A := B) (B := h2v.zeroObj)) := sorry
+    -- STRICTNESS OF 0: every map into `0` is iso; here `snd : B×0 → 0`.  This is exactly the
+    -- §1.474/§1.58 strict-coterminator property of the §1.474 `0`, now recorded as the field
+    -- `TwoValued.zero_strict` (faithful to Freyd; see the `TwoValued` docstring).
+    have hstrict : IsIso (snd (A := B) (B := h2v.zeroObj)) := h2v.zero_strict _
     obtain ⟨fi, hfi1, hfi2⟩ := hfst_iso
     -- `fi ≫ snd : B → 0` is iso (composite of the iso `fi` and the iso `snd`).
     exact hB ⟨fi ≫ snd, isIso_comp ⟨fst, hfi2, hfi1⟩ hstrict⟩
