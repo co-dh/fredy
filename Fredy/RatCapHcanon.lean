@@ -1262,6 +1262,115 @@ theorem stageInclFunctorL_preservesPullbacks [Nonempty ι]
     (stageInclFunctorL_preservesProducts L hL pData i)
     (stageInclFunctorL_preservesEqualizers L hL eqData i) f g
 
+/-- **`stageInclFunctorL i` is faithful** (injective on hom-sets), given transition faithfulness
+    `hfaith`.  `stageInclL g = stageInclL g'` is an equality of reflexive-bound germs, which
+    `homInclL_injective` reduces to `reflApp ≫ g ≫ isoInv = reflApp ≫ g' ≫ isoInv`; cancelling the
+    flanking isos `reflApp` gives `g = g'`.  Lax `objIncl_faithful` (embedding part). -/
+theorem stageInclFunctorL_faithful
+    (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (p q : x ⟶ y),
+        @Functor.map _ _ _ _ _ (L.functF hij) x y p
+          = @Functor.map _ _ _ _ _ (L.functF hij) x y q → p = q)
+    (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (φ : x ⟶ y),
+        IsIso (@Functor.map _ _ _ _ _ (L.functF hij) x y φ) → IsIso φ)
+    (i : ι) :
+    @Faithful (L.A i) (L.catA i) (Obj L) (laxColimCat L hL)
+      (fun x => (⟨i, x⟩ : Obj L)) (stageInclFunctorL L hL i) := by
+  letI : Cat (Obj L) := laxColimCat L hL
+  refine ⟨?_, ?_⟩
+  · -- Embedding: `stageInclL` injective on hom-sets.
+    intro x y g g' hgg'
+    -- `stageInclFunctorL.map g = stageInclL g`; unfold to germ equality and strip via injectivity.
+    have hgg'' : stageInclL L hL g = stageInclL L hL g' := hgg'
+    unfold stageInclL at hgg''
+    have hstrip := homInclL_injective L hL hfaith x y ⟨i, D.refl i, D.refl i⟩ hgg''
+    -- `reflApp x ≫ g ≫ isoInv = reflApp x ≫ g' ≫ isoInv`; cancel iso `reflApp x` then `isoInv`.
+    obtain ⟨rinv, hr1, hr2⟩ := reflApp_isIso L x
+    have h2 := congrArg (fun t => rinv ≫ t) hstrip
+    simp only [← Cat.assoc, hr2, Cat.id_comp] at h2
+    -- now `g ≫ isoInv = g' ≫ isoInv`; cancel the iso `isoInv (reflApp y)`.
+    have h3 := congrArg (fun t => t ≫ reflApp L y) h2
+    simp only [Cat.assoc, inv_isoInv_comp, Cat.comp_id] at h3
+    exact h3
+  · -- reflects-iso: `IsIso (stageInclL g) → IsIso g`, via stage iso reflection + conservativity.
+    intro x y g hiso
+    have hiso' : @IsIso (Obj L) (laxColimCat L hL) ⟨i, x⟩ ⟨i, y⟩
+        (homInclL L hL x y ⟨i, D.refl i, D.refl i⟩
+          (reflApp L x ≫ g ≫ isoInv (reflApp_isIso L y))) := hiso
+    obtain ⟨e, hae, hpiso⟩ := homInclL_isIso_reflects L hL x y ⟨i, D.refl i, D.refl i⟩
+      (reflApp L x ≫ g ≫ isoInv (reflApp_isIso L y)) hiso'
+    apply hcons hae
+    -- `pushHom gᵣ = transApp ≫ (map gᵣ) ≫ isoInv transApp`; un-conjugate by the two isos.
+    have hi1 : IsIso (transApp L (D.refl i) hae x) := transApp_isIso L (D.refl i) hae x
+    have hi1' : IsIso (isoInv (transApp_isIso L (D.refl i) hae y)) :=
+      ⟨transApp L (D.refl i) hae y, inv_isoInv_comp _, isoInv_comp _⟩
+    have hmapr : IsIso (@Functor.map _ _ _ _ _ (L.functF hae) _ _
+        (reflApp L x ≫ g ≫ isoInv (reflApp_isIso L y))) := by
+      have := hpiso; unfold pushHom at this
+      exact isIso_unconj hi1 hi1' this
+    -- `map gᵣ = (map reflApp x) ≫ (map g) ≫ (map isoInv)`; un-conjugate again.
+    rw [@Functor.map_comp _ _ _ _ _ (L.functF hae) _ _ _ (reflApp L x)
+          (g ≫ isoInv (reflApp_isIso L y)),
+        @Functor.map_comp _ _ _ _ _ (L.functF hae) _ _ _ g (isoInv (reflApp_isIso L y))] at hmapr
+    have hi2 : IsIso (@Functor.map _ _ _ _ _ (L.functF hae) _ _ (reflApp L x)) :=
+      @functor_preserves_iso _ _ _ _ _ (L.functF hae) _ _ (reflApp L x) (reflApp_isIso L x)
+    have hi3 : IsIso (@Functor.map _ _ _ _ _ (L.functF hae) _ _ (isoInv (reflApp_isIso L y))) :=
+      @functor_preserves_iso _ _ _ _ _ (L.functF hae) _ _ (isoInv (reflApp_isIso L y))
+        ⟨reflApp L y, inv_isoInv_comp _, isoInv_comp _⟩
+    exact isIso_unconj hi2 hi3 hmapr
+
+/-- **`stageInclFunctorL i` preserves monos.**  A stage mono `φ` includes to a colimit mono: at the
+    reflexive bound `stageInclL φ = homInclL … (reflApp ≫ φ ≫ isoInv)`, and `homInclL_mono_of_stage`
+    reduces colimit monicity to per-transition left-cancellability of the pushed germ, where the
+    pushed `φ` is `(functF).map φ` (mono by `hmono`) flanked by isos.  Standalone form of the
+    `hM_mono` block inside `homInclL_cover_reflects`. -/
+theorem stageInclFunctorL_preservesMono
+    (hmono : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (φ : x ⟶ y),
+        Mono φ → Mono (@Functor.map _ _ _ _ _ (L.functF hij) x y φ))
+    {i : ι} {x y : L.A i} (φ : x ⟶ y) (hφ : Mono φ) :
+    @Mono (Obj L) (laxColimCat L hL) ⟨i, x⟩ ⟨i, y⟩ (stageInclL L hL φ) := by
+  letI : Cat (Obj L) := laxColimCat L hL
+  unfold stageInclL
+  apply homInclL_mono_of_stage L hL x y ⟨i, D.refl i, D.refl i⟩
+  intro e hie z u v huv
+  -- `pushHom (reflApp ≫ φ ≫ isoInv) = transApp ≫ map(reflApp ≫ φ ≫ isoInv) ≫ isoInv`,
+  -- all but `map φ` isos, and `map φ` mono (hmono) ⇒ the push is mono.
+  have hmono_map : Mono (@Functor.map _ _ _ _ _ (L.functF hie) x y φ) := hmono hie φ hφ
+  revert huv
+  unfold pushHom
+  rw [@Functor.map_comp _ _ _ _ _ (L.functF hie) _ _ _ (reflApp L x)
+        (φ ≫ isoInv (reflApp_isIso L y)),
+      @Functor.map_comp _ _ _ _ _ (L.functF hie) _ _ _ φ (isoInv (reflApp_isIso L y))]
+  intro huv
+  -- the composite map is mono: map φ mono flanked by isos (pre/post compose mono by iso stays mono).
+  have hbig : Mono (@Functor.map _ _ _ _ _ (L.functF hie) _ _ (reflApp L x)
+        ≫ @Functor.map _ _ _ _ _ (L.functF hie) x y φ
+        ≫ @Functor.map _ _ _ _ _ (L.functF hie) _ _ (isoInv (reflApp_isIso L y))) :=
+    mono_precomp_iso'
+      (@functor_preserves_iso _ _ _ _ _ (L.functF hie) _ _ (reflApp L x) (reflApp_isIso L x))
+      (mono_postcomp_iso' hmono_map
+        (@functor_preserves_iso _ _ _ _ _ (L.functF hie) _ _ (isoInv (reflApp_isIso L y))
+          ⟨reflApp L y, inv_isoInv_comp _, isoInv_comp _⟩))
+  exact mono_precomp_iso' (transApp_isIso L (D.refl i) hie x)
+    (mono_postcomp_iso' hbig
+      ⟨transApp L (D.refl i) hie y, inv_isoInv_comp _, isoInv_comp _⟩) u v huv
+
+/-- **`stageInclFunctorL i` preserves covers.**  A stage cover `φ` includes to a colimit cover: at the
+    reflexive bound `stageInclL φ = homInclL … (reflApp ≫ φ ≫ isoInv)`, and `homInclL_cover_of_stage`
+    turns a per-transition cover (`hcovpres φ` keeps `(functF).map φ` a cover) into a colimit cover.
+    Wrapper of `homInclL_cover_of_stage` at the reflexive bound. -/
+theorem stageInclFunctorL_preservesCover
+    (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (p q : x ⟶ y),
+        @Functor.map _ _ _ _ _ (L.functF hij) x y p
+          = @Functor.map _ _ _ _ _ (L.functF hij) x y q → p = q)
+    (hcovpres : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (φ : x ⟶ y),
+        Cover φ → Cover (@Functor.map _ _ _ _ _ (L.functF hij) x y φ))
+    {i : ι} {x y : L.A i} (φ : x ⟶ y) (hφ : Cover φ) :
+    @Cover (Obj L) (laxColimCat L hL) ⟨i, x⟩ ⟨i, y⟩ (stageInclL L hL φ) := by
+  unfold stageInclL
+  apply homInclL_cover_of_stage L hL hfaith x y φ
+  intro e hie
+  exact hcovpres hie φ hφ
+
 /-! ## Generic `hcanon` discharge for the lax colimit
 
   Mirrors the strict `Colim.colimitCanonicalCover` assembly (CatColimitRegular ~2200-2410, import-
