@@ -726,6 +726,25 @@ class WellJoinedAllegory (𝒜 : Type u) extends Allegory 𝒜 where
   /-- For every pair (A, B), maps f : A → C and g : B → C to a common target. -/
   well_joined (A B : 𝒜) : ∃ (C : 𝒜) (f : A ⟶ C) (g : B ⟶ C), Map f ∧ Map g
 
+/-- A PRE-POSITIVE POWER ALLEGORY (§2.442): a single class extending BOTH `PowerAllegory`
+    and `PrePositiveAllegory`, sharing ONE underlying `Allegory`.
+
+    This is the book's actual setting for the law of metonymy ("a pre-positive power allegory
+    is semi-simple iff it obeys the law of metonymy", §2.442): the allegory is at once a power
+    allegory (giving `∋`/`A`/`Straight`) and pre-positive (giving the §2.441 covering maps).
+
+    Stating the biconditional over the *conjunction* of the two separate instance arguments
+    `[PowerAllegory 𝒜] [PrePositiveAllegory 𝒜]` is unsound for the FORWARD proof: the two
+    parents reach `Allegory 𝒜` by DISTINCT paths (`PowerAllegory → DivisionAllegory →
+    DistributiveAllegory → Allegory` vs `PrePositiveAllegory → DistributiveAllegory →
+    Allegory`), so a freshly-bound `S : a ⟶ c` (whose `⟶` resolves through the pre-positive
+    `Allegory`) fails to unify with `Straight S` (which resolves `⟶` through the power
+    `Allegory`).  A single combined class flattens the shared `Allegory`, eliminating the
+    diamond so `Straight S` and `PrePositiveAllegory.pre_positive` coexist.  This is a faithful
+    architecture fix, not a weakening: an instance of the combined class is exactly an instance
+    of both parents over one `Allegory`. -/
+class PrePositivePowerAllegory (𝒜 : Type u) extends PowerAllegory 𝒜, PrePositiveAllegory 𝒜
+
 /-- Pre-positive implies well-joined (§2.441): the covering maps witness well-joinedness. -/
 theorem pre_positive_to_well_joined {𝒜 : Type u} [PrePositiveAllegory 𝒜] :
     ∀ (A B : 𝒜), ∃ (C : 𝒜) (f : A ⟶ C) (g : B ⟶ C), Map f ∧ Map g := by
@@ -829,29 +848,54 @@ def bigUnion {a : 𝒜} [PowerAllegory 𝒜] :
 def MetonymyLaw (𝒜 : Type u) [PowerAllegory 𝒜] : Prop :=
   ∀ (a : 𝒜), @bigInter 𝒜 a _ ⊑ @bigUnion 𝒜 a _
 
+/-- §2.442 forward, the SHARP residual of GAP 1 — metonymy ⟹ the partial-order
+    `2 = ∋/∋ = powerOrder` is semi-simple.
+
+    This is the ONLY genuinely-missing piece of "metonymy ⟹ `∋` semi-simple": everything else
+    around it is now proven (`eps_semiSimple_of_metonymy` consumes this and closes honestly).
+
+    MISSING OPERATION (precise): deriving `SemiSimple powerOrder` from `MetonymyLaw`.  In `Rel(C)`
+    Freyd reads `2 = ∋°∋` off as the inclusion order; its semi-simplicity is the content of `⊓ ⊑ ⊔`
+    interpreted via `bigInter`/`bigUnion`.  The abstract derivation needs the `bigUnion`/`bigInter`
+    `A`-calculus on `[[a]]` (`A(f∪g) ≫ ⊔ ≫ ∋ = f∋ ∪ g∋`, `⊓(f∪g) ∩ ∋ = f∋ ∩ g∋`, §2.443) — the same
+    equations the converse needs, none yet derived in S2_3/S2_4.  Left as the single sharp sorry. -/
+private theorem powerOrder_semiSimple_of_metonymy {𝒜 : Type u} [PowerAllegory 𝒜]
+    (hMet : MetonymyLaw 𝒜) (b : 𝒜) : SemiSimple (powerOrder (a := b)) := by
+  -- Needs the §2.443 bigUnion/bigInter A-calculus to turn `hMet` into the semi-simplicity of
+  -- `powerOrder = ∋/∋`.  This is the lone remaining content of GAP 1.
+  sorry
+
 /-- §2.442 forward GAP (1/2) — metonymy ⟹ `∋` semi-simple.
     Book: metonymy `⊓ ⊑ ⊔` forces the partial-order `2 = ∋/∋` to be semi-simple, and from
     `∋ ≫ A(1) ⊑ 2` (`eps_singleton_le_powerOrder`) plus `2 ≫ ∋ ⊑ ∋` (`div_comp_eq_le`)
-    Freyd derives the equation `∋ = ∋ ≫ A(1)°`, whence `∋ ⊑ 2 ≫ ∋` exhibits `∋` as
-    contained in a semi-simple morphism (`semiSimple_of_le`, since `2 = ∋/∋` semi-simple
-    and `2 ≫ ∋` is `(simple°simple) ≫ ∋`… ).
+    Freyd derives the equation `∋ = ∋ ≫ A(1)°`, whence `∋ ⊑ 2 ≫ A°(1)` exhibits `∋` as
+    contained in a semi-simple morphism (`semiSimple_of_le`).
 
-    MISSING OPERATION: the *metonymy ⟹ `2 = ∋/∋` semi-simple* link.  In `Rel(C)` Freyd reads
-    `2` off as the inclusion order and tabulates it (`2 = ∋°∋` already, but its semi-simplicity
-    is the content of `⊓ ⊑ ⊔` interpreted via `bigInter`/`bigUnion`).  Deriving `SemiSimple (∋/∋)`
-    from `MetonymyLaw` needs the `bigUnion`/`bigInter` `A`-calculus on `[[a]]`
-    (`A(f∪g) ≫ ⊔ = f∋ ∪ g∋`, `⊓(f∪g) ∩ ∋ = f∋ ∩ g∋`) — exactly the equations listed in the
-    converse below, none yet derived in S2_3/S2_4.  Left as a single sharp sorry. -/
+    NOW PROVEN modulo the single `powerOrder_semiSimple_of_metonymy` residual: the honest algebra
+    `∋ = ∋ A(1)A°(1)` (`A(1)` entire) and `∋ A(1) ⊑ 2` (`eps_singleton_le_powerOrder`) give
+    `∋ ⊑ 2 ≫ A°(1)`; `A°(1) = singletonMap°` is SIMPLE (`singletonMap_monic`), so with
+    `SemiSimple 2 = P°Q` we get `∋ ⊑ P° ≫ (Q ≫ A°(1))`, a `simple°·simple` — `semiSimple_of_le`. -/
 private theorem eps_semiSimple_of_metonymy {𝒜 : Type u} [PowerAllegory 𝒜]
     (hMet : MetonymyLaw 𝒜) (b : 𝒜) : SemiSimple (∋ b) := by
-  -- The honest reductions in place: ∋ ≫ A(1) ⊑ 2 and 2 ≫ ∋ ⊑ ∋.
+  -- ∋ A(1) ⊑ 2 (book step), and A°(1) = singletonMap° ⊑ ∋ (second symmDiv component).
   have hle : ∋ b ≫ singletonMap ⊑ powerOrder := eps_singleton_le_powerOrder
-  have hpo : powerOrder ≫ ∋ b ⊑ ∋ b := by rw [powerOrder]; exact div_comp_eq_le _ _
-  -- MISSING: metonymy ⟹ SemiSimple (∋ b / ∋ b) = SemiSimple powerOrder, then
-  -- ∋ b = ∋ b ≫ A(1)° ⊑ powerOrder ≫ ∋ b gives ∋ b semi-simple via semiSimple_of_le.
-  -- Needs the bigUnion/bigInter A-calculus (see converse) to turn `hMet` into the
-  -- semi-simplicity of `powerOrder`.
-  sorry
+  -- A(1) is entire: 1 ⊑ A(1)A°(1) (so we may insert it after ∋).
+  have hsm_entire : Cat.id b ⊑ singletonMap (a := b) ≫ (singletonMap (a := b))° := by
+    have h := (A_is_map (Cat.id b)).1; dsimp only [Entire, dom] at h
+    rw [← h, singletonMap]; exact inter_lb_right _ _
+  -- ∋ ⊑ 2 ≫ A°(1): ∋ = ∋·1 ⊑ ∋(A(1)A°(1)) = (∋A(1))A°(1) ⊑ 2·A°(1).
+  have heps2 : ∋ b ⊑ powerOrder ≫ (singletonMap (a := b))° := by
+    have e1 : ∋ b ≫ Cat.id b ⊑ ∋ b ≫ (singletonMap ≫ (singletonMap (a := b))°) :=
+      comp_mono_left _ hsm_entire
+    rw [Cat.comp_id, ← Cat.assoc] at e1
+    exact le_trans e1 (comp_mono_right hle _)
+  -- A°(1) = singletonMap° is simple (singletonMap monic).
+  have hsm_simple : Simple ((singletonMap (a := b))°) := by
+    dsimp [Simple]; rw [Allegory.recip_recip]; exact singletonMap_monic
+  -- powerOrder = 2 is semi-simple (the lone residual); write 2 = P°Q and finish via semiSimple_of_le.
+  obtain ⟨d, P, Q, hP, hQ, hPQ⟩ := powerOrder_semiSimple_of_metonymy hMet b
+  refine semiSimple_of_le ⟨d, P, Q ≫ (singletonMap (a := b))°, hP, simple_comp hQ hsm_simple, ?_⟩
+  rw [← Cat.assoc, ← hPQ]; exact heps2
 
 /-- §2.442 forward, the instance-clean core: from the §2.441 `(1)⟹(4)` factorization
     `R = S ≫ F` (`S` straight, `F` simple) and metonymy, `R` is semi-simple.
@@ -867,6 +911,30 @@ private theorem semiSimple_of_straight_simple_factor {𝒜 : Type u} [PowerAlleg
     straight_semiSimple_of_eps_semiSimple hS (eps_semiSimple_of_metonymy hMet c)
   rw [hReq]; exact semiSimple_comp_simple hSss hF
 
+/-- §2.441 `(1)⟹(4)` factorization (the FORWARD gap, now stateable thanks to the combined
+    `PrePositivePowerAllegory` class).  In a pre-positive (power) allegory every `R : a → b`
+    factors as `R = S ≫ F` with `S` straight and `F` simple.
+
+    Because `PrePositivePowerAllegory` flattens the `Allegory` diamond, this existential CAN now
+    be stated and consumed inline by `pre_positive_semi_simple_iff_metonymic` below — the apex `c`
+    and the morphisms `S, F` all live over the single shared `Allegory`, so `Straight S` unifies.
+
+    RESIDUAL (honest sorry): the book's recipe (§2.441) takes the pre-positive maps `f, g` for
+    `(a, b)` and builds `S = f ∪ R r̃`, `F = r̃°`.  Freyd's construction needs the pre-positive
+    maps to be MONIC (`f f° = 1_a`, `g g° = 1_b`, his `ℓ°ℓ = 1`, `ρ°ρ = 1`); the repo's
+    `PrePositiveAllegory.pre_positive` field encodes only the image-cover `f°f ∪ g°g = 1_γ` and
+    disjointness `f g° = 0`, NOT the monic conditions, so `r̃` (and hence the exact equation
+    `S ≫ F = R`, which otherwise only yields `R ⊑ S ≫ F` via `g g° ⊒ 1_b`) is not assemblable
+    from the present field.  Strengthening `pre_positive` to the book's monic form is a
+    STATEMENT change (header-fenced), so this is reported as a precise definitional residual
+    rather than forced.  Once available, the proof is `S = f ∪ R≫g`, `F = g°`, `rightInvertible_straight`. -/
+theorem pre_positive_straight_simple_factor {𝒜 : Type u} [PrePositivePowerAllegory 𝒜]
+    {a b : 𝒜} (R : a ⟶ b) :
+    ∃ (c : 𝒜) (S : a ⟶ c) (F : c ⟶ b), Straight S ∧ Simple F ∧ R = S ≫ F := by
+  -- Needs the book's MONIC pre-positive maps; the repo field gives only cover+disjointness.
+  -- (See docstring: definitional residual, header-fenced.)
+  sorry
+
 /-- A pre-positive power allegory is semi-simple iff it obeys the law of metonymy (§2.442).
 
     FORWARD direction (metonymy ⟹ every morphism semi-simple) is reduced to exactly two named
@@ -878,45 +946,35 @@ private theorem semiSimple_of_straight_simple_factor {𝒜 : Type u} [PowerAlleg
                                                        `A_monic_of_straight`, `semiSimple_of_le`)
         ⟹ every `R = S ≫ F` semi-simple              (PROVEN `semiSimple_of_straight_simple_factor`,
                                                        i.e. `semiSimple_comp_simple`)
-      GAP 2 = the §2.441 `(1)⟹(4)` factorization `R = S ≫ F` (`S` straight, `F` simple).
+      GAP 2 = the §2.441 `(1)⟹(4)` factorization `R = S ≫ F` (`pre_positive_straight_simple_factor`).
+
+    The diamond that previously blocked even *stating* GAP 2 inline is now removed: this theorem is
+    stated over the combined `PrePositivePowerAllegory`, so `S, F` over a fresh apex `c` unify with
+    `Straight`/`Simple` and the forward branch CONSUMES `pre_positive_straight_simple_factor`
+    directly (no false specialization of the apex).
 
     GAP 1 (metonymy ⟹ `∋` semi-simple): needs the *metonymy ⟹ `2 = ∋/∋` semi-simple* link, which
     in turn needs the `bigUnion`/`bigInter` `A`-calculus (`A(f∪g) ≫ ⊔ = f∋ ∪ g∋`,
     `⊓(f∪g) ∩ ∋ = f∋ ∩ g∋`).  The honest intermediate `∋ ≫ A(1) ⊑ 2` and `2 ≫ ∋ ⊑ ∋` ARE in place
     (`eps_singleton_le_powerOrder`, `div_comp_eq_le`); the missing bridge is `SemiSimple (∋/∋)`.
 
-    GAP 2 (§2.441 (1)⟹(4)): in a pre-positive division allegory every `R : a → b` factors as
-    `R = S ≫ F` (`S` straight via a right-inverse, `F = r̃°` simple) using the pre-positive `R̃`.
-    The `PrePositiveAllegory.pre_positive` covering maps are available, but assembling `R̃`/`S`/`F`
-    is unbuilt.  STRUCTURAL NOTE: this gap cannot even be *stated* inside this proof mixing
-    `Straight` (the `PowerAllegory` `DivisionAllegory` side) with `pre_positive` (the
-    `PrePositiveAllegory` `DistributiveAllegory` side) — the two parents supply *distinct*
-    `Allegory 𝒜` instances (a diamond), so a freshly-bound `S : a ⟶ c` with `Straight S` fails to
-    unify.  A faithful §2.441 development first needs the two classes to share one `Allegory`
-    (a single combined `PrePositivePowerAllegory` class), which is outside this file's edit scope.
-    Hence GAP 2 is carried as the converse-side sorry rather than an inline factorization.
+    GAP 2 (§2.441 (1)⟹(4)): carried by `pre_positive_straight_simple_factor` (definitional residual:
+    the repo's `pre_positive` field lacks the book's monic conditions — see that lemma's docstring).
 
     CONVERSE (every morphism semi-simple ⟹ metonymy): single sharp sorry — needs the same
     `bigUnion`/`bigInter` `A`-calculus as GAP 1.
 
     The statement is the book's genuine biconditional (not vacuous): LHS quantifies semi-simplicity
     of every morphism, RHS is `⊓ ⊑ ⊔` for every object. -/
-theorem pre_positive_semi_simple_iff_metonymic {𝒜 : Type u}
-    [PowerAllegory 𝒜] [PrePositiveAllegory 𝒜] :
+theorem pre_positive_semi_simple_iff_metonymic {𝒜 : Type u} [PrePositivePowerAllegory 𝒜] :
     (∀ (a b : 𝒜) (R : a ⟶ b), SemiSimple R) ↔ MetonymyLaw 𝒜 := by
   refine ⟨fun _hSS => ?_, fun hMet a b R => ?_⟩
   · -- CONVERSE (semi-simple ⟹ metonymy): needs the bigUnion/bigInter A-calculus (see docstring).
     sorry
-  · -- FORWARD: GAP 2 (§2.441 (1)⟹(4)) must supply a straight `S` and simple `F` with `R = S ≫ F`
-    -- over a fresh apex `c`; the proven `semiSimple_of_straight_simple_factor hMet · · ·` then
-    -- finishes (metonymy ⟹ `∋` semi-simple ⟹ `S` semi-simple; `S ≫ F` semi-simple).  GAP 2 is the
-    -- residual sorry: it cannot be honestly *stated* inline with a fresh apex because the
-    -- `PowerAllegory`/`PrePositiveAllegory` `Allegory` diamond breaks `Straight S` unification for a
-    -- freshly-bound `S : a ⟶ c` (`Straight` resolves `DivisionAllegory` to `PowerAllegory`'s, but
-    -- the existential's `⟶` defaults to `PrePositiveAllegory`'s `Allegory` — distinct instances).
-    -- Forcing the apex to a concrete wrong object would be a false specialization, so GAP 2 stays a
-    -- single sharp sorry here; once supplied, `semiSimple_of_straight_simple_factor hMet _ _ _`
-    -- (proven above, consuming metonymy + the factor data) closes it.  See docstring.
-    exact (sorry : SemiSimple R)
+  · -- FORWARD: consume the §2.441 (1)⟹(4) factorization (diamond now gone via the combined class).
+    -- `semiSimple_of_straight_simple_factor` (PROVEN above) then finishes: metonymy ⟹ `∋`
+    -- semi-simple ⟹ `S` semi-simple; `S ≫ F` semi-simple.
+    obtain ⟨c, S, F, hS, hF, hReq⟩ := pre_positive_straight_simple_factor R
+    exact semiSimple_of_straight_simple_factor hMet hS hF hReq
 
 end Freyd.Alg
