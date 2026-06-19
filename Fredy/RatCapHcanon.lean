@@ -1006,6 +1006,262 @@ theorem stageInclL_product_up (pData : LaxProductData L) (i : ι) (x y : L.A i)
     · show v ≫ stageInclL L hL (pData.hp i).snd = _
       rw [hv2, hsnd_eq]; exact (leg y (pData.hp i).snd ag ga hagN hr_snd).symm
 
+/-- **`stageInclFunctorL i` preserves binary products** (for the colimit's
+    `laxColimHasBinaryProducts`).  The comparison map `pair (F fst) (F snd)` is iso by
+    `isIso_of_product_up'`, whose hypothesis is the product universal property `stageInclL_product_up`. -/
+theorem stageInclFunctorL_preservesProducts (pData : LaxProductData L) (i : ι) :
+    @PreservesBinaryProducts (L.A i) (Obj L) (L.catA i) (laxColimCat L hL)
+      (fun x => (⟨i, x⟩ : Obj L)) (stageInclFunctorL L hL i) (pData.hp i)
+      (laxColimHasBinaryProducts L hL pData) := by
+  letI : Cat (Obj L) := laxColimCat L hL
+  letI : HasBinaryProducts (Obj L) := laxColimHasBinaryProducts L hL pData
+  intro A B
+  exact isIso_of_product_up' (𝒟 := Obj L) (stageInclL L hL (pData.hp i).fst)
+    (stageInclL L hL (pData.hp i).snd)
+    (fun {Z} f g => stageInclL_product_up L hL pData i A B f g)
+
+/-! ### `stageInclFunctorL` preserves equalizers
+
+  Mirror of the product development.  For a stage-`i` parallel pair `f g : x ⟶ y`, the `F`-image of
+  the fibre equalizer `(⟨i, eqObj f g⟩, stageInclL (eqMap f g))` has the equalizer universal property
+  in the colimit: existence of the mediator uses `eqData.presLift` (push the competitor to a common
+  stage, lift there); joint monicity / uniqueness is `eqMono` specialized to the same stage. -/
+
+/-- Universal property of the `F`-image equalizer cone `(⟨i, eqObj f g⟩, stageInclL (eqMap f g))`
+    for the stage-`i` parallel pair `f, g`.  A competitor `c : Z ⟶ ⟨i,x⟩` equalizing `stageInclL f`
+    and `stageInclL g` factors uniquely through `stageInclL (eqMap f g)`. -/
+theorem stageInclL_equalizer_up (eqData : LaxEqualizerData L) (i : ι) {x y : L.A i}
+    (f g : x ⟶ y) {Z : Obj L}
+    (c : homL L hL Z ⟨i, x⟩)
+    (hc : compL L hL c (stageInclL L hL f) = compL L hL c (stageInclL L hL g)) :
+    letI : HasEqualizers (L.A i) := eqData.he i
+    letI : Cat (Obj L) := laxColimCat L hL
+    ∃ u : Z ⟶ (⟨i, eqObj f g⟩ : Obj L),
+      u ≫ stageInclL L hL (eqMap f g) = c ∧
+      ∀ v : Z ⟶ (⟨i, eqObj f g⟩ : Obj L),
+        v ≫ stageInclL L hL (eqMap f g) = c → v = u := by
+  letI : HasEqualizers (L.A i) := eqData.he i
+  letI : Cat (Obj L) := laxColimCat L hL
+  obtain ⟨lz, z⟩ := Z
+  let Eobj : L.A i := eqObj f g
+  -- the equalizer projection germ, as `homInclL` of `reflApp Eobj ≫ (eqMap f g ≫ isoInv (reflApp x))`.
+  let projE : Eobj ⟶ L.F (D.refl i) x := eqMap f g ≫ isoInv (reflApp_isIso L x)
+  have hmap_eq : stageInclL L hL (eqMap f g)
+      = homInclL L hL Eobj x ⟨i, D.refl i, D.refl i⟩ (reflApp L Eobj ≫ projE) := rfl
+  -- ===== Monicity of the equalizer projection at apex `⟨i,Eobj⟩` (uniqueness ingredient). =====
+  have hjm : ∀ h₁ h₂ : homL L hL ⟨lz, z⟩ ⟨i, Eobj⟩,
+      compL L hL h₁ (stageInclL L hL (eqMap f g))
+        = compL L hL h₂ (stageInclL L hL (eqMap f g)) →
+      h₁ = h₂ := by
+    intro h₁ h₂ he
+    rw [hmap_eq] at he
+    let hik : D.le i i := D.refl i
+    revert he
+    refine Quotient.inductionOn₂ h₁ h₂ (fun rh₁ rh₂ he => ?_)
+    obtain ⟨a₁, m₁⟩ := rh₁
+    obtain ⟨a₂, m₂⟩ := rh₂
+    -- common bound `e ≥ a₁.1, a₂.1, i`.
+    obtain ⟨w0, hw0a, hw0b⟩ := D.bound a₁.1 a₂.1
+    obtain ⟨e, hew, hek⟩ := D.bound w0 i
+    have ha₁e : D.le a₁.1 e := D.trans hw0a hew
+    have ha₂e : D.le a₂.1 e := D.trans hw0b hew
+    rw [prCompProj L hL z Eobj x hik projE a₁ m₁ e ha₁e hek,
+        prCompProj L hL z Eobj x hik projE a₂ m₂ e ha₂e hek] at he
+    obtain ⟨c0, hc1, hc2, eqe⟩ := Quotient.exact he
+    simp only [homSystemL] at eqe
+    rw [prPsi_push L hL z Eobj x hik projE a₁ m₁ e c0.1 ha₁e hek hc1,
+        prPsi_push L hL z Eobj x hik projE a₂ m₂ e c0.1 ha₂e hek hc2] at eqe
+    unfold prPsi at eqe
+    rw [pushHom_proj L x Eobj hik _ projE] at eqe
+    let N := c0.1
+    have hkn : D.le i N := D.trans hek hc1
+    have ha₁n : D.le a₁.1 N := D.trans ha₁e hc1
+    have ha₂n : D.le a₂.1 N := D.trans ha₂e hc1
+    let u₁ : L.F (D.trans a₁.2.1 ha₁n) z ⟶ L.F hkn Eobj :=
+      pushHom L z Eobj a₁.2.1 a₁.2.2 ha₁n m₁ ≫ prUnit L Eobj hkn
+    let u₂ : L.F (D.trans a₂.2.1 ha₂n) z ⟶ L.F hkn Eobj :=
+      pushHom L z Eobj a₂.2.1 a₂.2.2 ha₂n m₂ ≫ prUnit L Eobj hkn
+    -- strip the trailing `isoInv (transApp)` AND the trailing `map (isoInv reflApp)` (from `projE`).
+    have hproj : (L.functF hkn).map (eqMap f g ≫ isoInv (reflApp_isIso L x))
+            ≫ isoInv (transApp_isIso L hik hkn x) ≫ transApp L hik hkn x
+              ≫ (L.functF hkn).map (reflApp L x)
+          = (L.functF hkn).map (eqMap f g) := by
+      rw [← Cat.assoc (isoInv (transApp_isIso L hik hkn x)), inv_isoInv_comp, Cat.id_comp,
+          @Functor.map_comp (L.A i) (L.catA i) (L.A N) (L.catA N) (L.F hkn) (L.functF hkn)
+            _ _ _ (eqMap f g) (isoInv (reflApp_isIso L x)),
+          Cat.assoc, ← @Functor.map_comp (L.A i) (L.catA i) (L.A N) (L.catA N) (L.F hkn)
+            (L.functF hkn) _ _ _ (isoInv (reflApp_isIso L x)) (reflApp L x),
+          inv_isoInv_comp,
+          @Functor.map_id (L.A i) (L.catA i) (L.A N) (L.catA N) (L.F hkn) (L.functF hkn) x,
+          Cat.comp_id]
+    have hmapeq : u₁ ≫ (L.functF hkn).map (eqMap f g)
+        = u₂ ≫ (L.functF hkn).map (eqMap f g) := by
+      have := congrArg (· ≫ transApp L hik hkn x ≫ (L.functF hkn).map (reflApp L x)) eqe
+      simp only [projE, Cat.assoc] at this ⊢
+      rw [hproj] at this
+      simpa only [u₁, u₂, Cat.assoc] using this
+    have huv : u₁ = u₂ :=
+      eqData.pres hkn f g (L.F (D.trans a₁.2.1 ha₁n) z) u₁ u₂ hmapeq
+    have hmm : pushHom L z Eobj a₁.2.1 a₁.2.2 ha₁n m₁ = pushHom L z Eobj a₂.2.1 a₂.2.2 ha₂n m₂ := by
+      have h2 := congrArg (· ≫ isoInv (prUnit_isIso L Eobj hkn)) huv
+      simpa only [u₁, u₂, Cat.assoc, isoInv_comp, Cat.comp_id] using h2
+    exact Quotient.sound ⟨⟨N, D.trans a₁.2.1 ha₁n, hkn⟩, ha₁n, ha₂n, hmm⟩
+  -- ===== EXISTENCE: build the mediator via `eqData.presLift` at the working stage `N = q.1`. =====
+  refine Quotient.inductionOn c (fun rc => ?_) hc
+  clear hc
+  intro hc
+  obtain ⟨ac, cc⟩ := rc
+  -- `compStage`: composing the competitor germ with `stageInclL m` reduces, at any stage `P ≥ ac.1,i`,
+  -- to the single germ `prPsi` of `reflApp x ≫ (m ≫ isoInv reflApp)` (the `stageInclL m` proj germ).
+  have compStage : ∀ (m : x ⟶ y) (P : ι) (haP : D.le ac.1 P) (hiP : D.le i P),
+      @compL _ _ L hL ⟨lz, z⟩ ⟨i, x⟩ ⟨i, y⟩ (Quotient.mk _ ⟨ac, cc⟩) (stageInclL L hL m)
+        = homInclL L hL z y ⟨P, D.trans ac.2.1 haP, D.trans (D.refl i) hiP⟩
+            (prPsi L z x y (D.refl i) (m ≫ isoInv (reflApp_isIso L y)) ac cc P haP hiP) := by
+    intro m P haP hiP
+    exact prCompProj L hL z x y (D.refl i) (m ≫ isoInv (reflApp_isIso L y)) ac cc P haP hiP
+  -- first common bound `N0 ≥ ac.1, i`; reduce `hc` to germ equality, extract the working stage `N`.
+  obtain ⟨N0, haN0, hiN0⟩ := D.bound ac.1 i
+  rw [compStage f N0 haN0 hiN0, compStage g N0 haN0 hiN0] at hc
+  obtain ⟨q, hqN, _, qe⟩ := Quotient.exact hc
+  simp only [homSystemL] at qe
+  -- working stage `N := q.1 ≥ N0`.
+  let N : ι := q.1
+  have hN0N : D.le N0 N := hqN
+  have haN : D.le ac.1 N := D.trans haN0 hN0N
+  have hiN : D.le i N := D.trans hiN0 hN0N
+  have hlN : D.le lz N := D.trans ac.2.1 haN
+  -- push both `prPsi` reps from `N0` to `N` (`prPsi_push`), unfold to two `pushHom`s, refold `proj`.
+  rw [prPsi_push L hL z x y (D.refl i) (f ≫ isoInv (reflApp_isIso L y)) ac cc N0 N haN0 hiN0 hN0N,
+      prPsi_push L hL z x y (D.refl i) (g ≫ isoInv (reflApp_isIso L y)) ac cc N0 N haN0 hiN0 hN0N] at qe
+  unfold prPsi at qe
+  rw [pushHom_proj L y x (D.refl i) hiN (f ≫ isoInv (reflApp_isIso L y)),
+      pushHom_proj L y x (D.refl i) hiN (g ≫ isoInv (reflApp_isIso L y))] at qe
+  -- `cN` is the pushed competitor with target converted to `F hiN x` via `transApp ≫ map reflApp`.
+  let cN : L.F hlN z ⟶ L.F hiN x :=
+    pushHom L z x ac.2.1 ac.2.2 haN cc ≫ prUnit L x hiN
+  -- strip the trailing `map(isoInv reflApp) ≫ isoInv transApp` on both sides of `qe`, giving `hcN`.
+  have hstrip : ∀ (m : x ⟶ y),
+      cN ≫ (L.functF hiN).map m
+        = pushHom L z x ac.2.1 ac.2.2 haN cc ≫ prUnit L x hiN
+            ≫ (L.functF hiN).map (m ≫ isoInv (reflApp_isIso L y))
+              ≫ isoInv (transApp_isIso L (D.refl i) hiN y)
+              ≫ transApp L (D.refl i) hiN y ≫ (L.functF hiN).map (reflApp L y) := by
+    intro m
+    rw [← Cat.assoc (isoInv (transApp_isIso L (D.refl i) hiN y)), inv_isoInv_comp, Cat.id_comp,
+        @Functor.map_comp (L.A i) (L.catA i) (L.A N) (L.catA N) (L.F hiN) (L.functF hiN)
+          _ _ _ m (isoInv (reflApp_isIso L y))]
+    rw [Cat.assoc ((L.functF hiN).map m), ← @Functor.map_comp (L.A i) (L.catA i) (L.A N) (L.catA N)
+          (L.F hiN) (L.functF hiN) _ _ _ (isoInv (reflApp_isIso L y)) (reflApp L y),
+        inv_isoInv_comp,
+        @Functor.map_id (L.A i) (L.catA i) (L.A N) (L.catA N) (L.F hiN) (L.functF hiN) y,
+        Cat.comp_id]
+    simp only [cN, Cat.assoc]
+  have hcN : cN ≫ (L.functF hiN).map f = cN ≫ (L.functF hiN).map g := by
+    have := congrArg (· ≫ transApp L (D.refl i) hiN y ≫ (L.functF hiN).map (reflApp L y)) qe
+    simp only [Cat.assoc] at this
+    rw [hstrip f, hstrip g]
+    simpa only [Cat.assoc] using this
+  -- equalizer lift at stage `N`.
+  obtain ⟨r, hr⟩ := eqData.presLift hiN f g (L.F hlN z) cN hcN
+  -- the lift germ and its `lift ≫ m = c` fact (`prUnit`-cancellation, as the product `leg`).
+  have hLiftEq : @compL _ _ L hL ⟨lz, z⟩ ⟨i, Eobj⟩ ⟨i, x⟩
+        (homInclL L hL z Eobj ⟨N, hlN, hiN⟩ (r ≫ isoInv (prUnit_isIso L Eobj hiN)))
+        (homInclL L hL Eobj x ⟨i, D.refl i, D.refl i⟩ (reflApp L Eobj ≫ projE))
+      = Quotient.mk (setoid (homSystemL L hL z x)) ⟨ac, cc⟩ := by
+    show homCompRawL L hL z Eobj x ⟨N, hlN, hiN⟩ (r ≫ isoInv (prUnit_isIso L Eobj hiN))
+        ⟨i, D.refl i, D.refl i⟩ (reflApp L Eobj ≫ projE) = homInclL L hL z x ac cc
+    rw [homCompRawL_eq_compAtL L hL z Eobj x ⟨N, hlN, hiN⟩ (r ≫ isoInv (prUnit_isIso L Eobj hiN))
+          ⟨i, D.refl i, D.refl i⟩ (reflApp L Eobj ≫ projE) N (D.refl N) hiN]
+    unfold compAtL
+    rw [hL.push_refl z Eobj hlN hiN (r ≫ isoInv (prUnit_isIso L Eobj hiN)),
+        pushHom_proj L x Eobj (D.refl i) hiN projE]
+    -- cancel `isoInv prUnit ≫ prUnit = id`.
+    rw [Cat.assoc, ← Cat.assoc (isoInv (prUnit_isIso L Eobj hiN)),
+        inv_isoInv_comp, Cat.id_comp]
+    -- distribute `map (eqMap ≫ isoInv reflApp)` and use `hr` to substitute `r ≫ map eqMap`.
+    rw [show projE = eqMap f g ≫ isoInv (reflApp_isIso L x) from rfl,
+        @Functor.map_comp (L.A i) (L.catA i) (L.A N) (L.catA N) (L.F hiN) (L.functF hiN)
+          _ _ _ (eqMap f g) (isoInv (reflApp_isIso L x)), ← Cat.assoc, ← Cat.assoc r, hr]
+    -- now `cN ≫ map(isoInv reflApp) ≫ isoInv transApp`; unfold cN and cancel the units.
+    simp only [cN, prUnit, Cat.assoc, ← Functor.map_comp, isoInv_comp, Functor.map_id, Cat.comp_id]
+    exact homInclL_compat L hL z x (a := ac)
+      (b := ⟨N, D.trans ac.2.1 haN, D.trans ac.2.2 haN⟩) haN cc
+  refine ⟨homInclL L hL z Eobj ⟨N, hlN, hiN⟩ (r ≫ isoInv (prUnit_isIso L Eobj hiN)), ?_, ?_⟩
+  · rw [hmap_eq]; exact hLiftEq
+  · intro v hv
+    apply hjm
+    rw [show compL L hL v (stageInclL L hL (eqMap f g)) = _ from hv, ← hLiftEq, hmap_eq]
+
+/-- **`stageInclFunctorL i` preserves equalizers** (for the colimit's `laxColimHasEqualizers`).  The
+    `F`-image of the fibre equalizer cone is an equalizer in the colimit (`stageInclL_equalizer_up`),
+    so the canonical comparison to the chosen colimit equalizer is iso (`isIso_of_two_equalizers`). -/
+theorem stageInclFunctorL_preservesEqualizers (eqData : LaxEqualizerData L) (i : ι) :
+    @PreservesEqualizers (L.A i) (Obj L) (L.catA i) (laxColimCat L hL)
+      (fun x => (⟨i, x⟩ : Obj L)) (stageInclFunctorL L hL i) (eqData.he i)
+      (laxColimHasEqualizers L hL eqData) := by
+  letI : Cat (Obj L) := laxColimCat L hL
+  letI hEq : HasEqualizers (Obj L) := laxColimHasEqualizers L hL eqData
+  letI : HasEqualizers (L.A i) := eqData.he i
+  intro x y f g
+  -- the `F`-image equalizer cone is an equalizer in the colimit.
+  have hFeqMap_eq :
+      @compL _ _ L hL ⟨i, eqObj f g⟩ ⟨i, x⟩ ⟨i, y⟩ (stageInclL L hL (eqMap f g)) (stageInclL L hL f)
+      = @compL _ _ L hL ⟨i, eqObj f g⟩ ⟨i, x⟩ ⟨i, y⟩ (stageInclL L hL (eqMap f g)) (stageInclL L hL g) := by
+    rw [← stageInclL_comp L hL (eqMap f g) f, ← stageInclL_comp L hL (eqMap f g) g, eqMap_eq f g]
+  have hFeq_isEq :
+      (EqualizerCone.mk (f := stageInclL L hL f) (g := stageInclL L hL g)
+        (⟨i, eqObj f g⟩ : Obj L) (stageInclL L hL (eqMap f g)) hFeqMap_eq).IsEqualizer := by
+    intro d
+    obtain ⟨u, hu, huniq⟩ := stageInclL_equalizer_up L hL eqData i f g d.map d.eq
+    exact ⟨u, hu, huniq⟩
+  -- the canonical comparison to the chosen colimit equalizer is iso.
+  refine isIso_of_two_equalizers (c := EqualizerCone.mk _ _ hFeqMap_eq)
+    (d := EqualizerCone.mk (@eqObj (Obj L) _ hEq _ _ (stageInclL L hL f) (stageInclL L hL g))
+      (@eqMap (Obj L) _ hEq _ _ (stageInclL L hL f) (stageInclL L hL g))
+      (@eqMap_eq (Obj L) _ hEq _ _ (stageInclL L hL f) (stageInclL L hL g)))
+    hFeq_isEq (@chosenEqualizer_isEqualizer (Obj L) _ hEq _ _
+      (stageInclL L hL f) (stageInclL L hL g)) _ ?_
+  exact @eqLift_fac (Obj L) _ hEq _ _ _ (stageInclL L hL f) (stageInclL L hL g)
+    (stageInclL L hL (eqMap f g)) hFeqMap_eq
+
+/-! ### `stageInclFunctorL` sends chosen pullbacks to pullbacks
+
+  Combining the product- and equalizer-preservation above with the generic §1.45 machinery
+  (`image_chosenPullback_isPullback'`), the stage-`i` chosen pullback of any cospan `f g` in `L.A i`
+  maps under `stageInclFunctorL` to a pullback cone in the colimit. -/
+
+/-- **`stageInclFunctorL i` sends the §1.432 chosen pullback to a pullback cone in the colimit.**  For
+    a cospan `f : A ⟶ C`, `g : B ⟶ C` in `L.A i`, the image under `stageInclFunctorL` of the chosen
+    pullback cone of `f, g` is a pullback of `stageInclL f`, `stageInclL g` in the colimit. -/
+theorem stageInclFunctorL_preservesPullbacks [Nonempty ι]
+    (tData : LaxTerminalData L) (pData : LaxProductData L) (eqData : LaxEqualizerData L) (i : ι)
+    {A B C : L.A i} (f : A ⟶ C) (g : B ⟶ C) :
+    letI : HasTerminal (L.A i) := tData.ht i
+    letI : HasBinaryProducts (L.A i) := pData.hp i
+    letI : HasEqualizers (L.A i) := eqData.he i
+    letI : Cat (Obj L) := laxColimCat L hL
+    letI : HasTerminal (Obj L) := laxColimHasTerminal L hL tData
+    letI : HasBinaryProducts (Obj L) := laxColimHasBinaryProducts L hL pData
+    letI : HasEqualizers (Obj L) := laxColimHasEqualizers L hL eqData
+    (Cone.mk (f := stageInclL L hL f) (g := stageInclL L hL g)
+      ((⟨i, (products_equalizers_implies_pullbacks f g).cone.pt⟩ : Obj L))
+      (stageInclL L hL (products_equalizers_implies_pullbacks f g).cone.π₁)
+      (stageInclL L hL (products_equalizers_implies_pullbacks f g).cone.π₂)
+      ((stageInclL_comp L hL _ f).symm.trans
+        ((congrArg (stageInclL L hL ·) (products_equalizers_implies_pullbacks f g).cone.w).trans
+          (stageInclL_comp L hL _ g)))).IsPullback := by
+  letI : HasTerminal (L.A i) := tData.ht i
+  letI : HasBinaryProducts (L.A i) := pData.hp i
+  letI : HasEqualizers (L.A i) := eqData.he i
+  letI : Cat (Obj L) := laxColimCat L hL
+  letI : HasTerminal (Obj L) := laxColimHasTerminal L hL tData
+  letI : HasBinaryProducts (Obj L) := laxColimHasBinaryProducts L hL pData
+  letI : HasEqualizers (Obj L) := laxColimHasEqualizers L hL eqData
+  exact image_chosenPullback_isPullback' (𝒞 := L.A i) (𝒟 := Obj L)
+    (fun x => (⟨i, x⟩ : Obj L)) (hF := stageInclFunctorL L hL i)
+    (stageInclFunctorL_preservesProducts L hL pData i)
+    (stageInclFunctorL_preservesEqualizers L hL eqData i) f g
+
 end SingleUniverse
 
 end Freyd.LaxColim
