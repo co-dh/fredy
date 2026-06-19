@@ -465,6 +465,31 @@ theorem freshSlicePoint_factors_imp_false {P A : 𝒞} {D : Over P}
     rw [← hmbar, ← Cat.assoc, hfacf, fst_pair]
   exact baseChange_freshFactor_missed m hmono hproper cnD hcnD mf' hmf'₁ hmf'₂ t.f hs₂ hsA
 
+/-- **§1.546 fresh-section read-off (the consumer-facing half of the descent).**  The §1.546 escape
+    consumer `freshSlicePoint_factors_imp_false` needs, at base `A×PN`, an arrow
+    `q : A×PN ⟶ Dbar.dom` with `q ≫ Dbar.hom = snd` (a section of the base-change structure map) whose
+    fresh `A`-coordinate is `fst` (`q ≫ mC.f ≫ fst = fst`).  This lemma BUILDS that `q` from the more
+    primitive datum produced by the lax-colimit descent: a section `s : A×PN ⟶ cnDN.pt` of the
+    base-change pullback `cnDN` (chosen pullback of `Dbar.hom` along `snd : A×PN ⟶ PN`) that is a
+    point over `A×PN` (`s ≫ cnDN.π₂ = id`) reaching the fresh coordinate
+    (`s ≫ cnDN.π₁ ≫ mC.f ≫ fst = fst`).  The witness is `q := s ≫ cnDN.π₁`: the structure leg uses the
+    pullback square `cnDN.w` (`cnDN.π₁ ≫ Dbar.hom = cnDN.π₂ ≫ snd`) and `s ≫ cnDN.π₂ = id`; the fresh
+    leg is `hsA` verbatim.  This isolates the EASY half of the §1.546 descent so the read-off is a
+    standalone, small-context lemma; the genuine §1.546 content (producing the section `s` itself,
+    transported from the stage-`N` colimit factor through the descent iso and the `ψ`-reindex) is the
+    remaining core. -/
+theorem freshSection_of_descentSection {PN A : 𝒞} (Dbar : Over PN)
+    (mC : OverHom Dbar (sliceEmbedObj PN A))
+    (cnDN : Cone Dbar.hom (snd : prod A PN ⟶ PN)) (_hcnDN : cnDN.IsPullback)
+    (s : prod A PN ⟶ cnDN.pt) (hs₂ : s ≫ cnDN.π₂ = Cat.id (prod A PN))
+    (hsA : s ≫ cnDN.π₁ ≫ mC.f ≫ (fst : prod A PN ⟶ A) = (fst : prod A PN ⟶ A)) :
+    ∃ q : prod A PN ⟶ Dbar.dom,
+      q ≫ Dbar.hom = (snd : prod A PN ⟶ PN) ∧
+        q ≫ mC.f ≫ (fst : prod A PN ⟶ A) = (fst : prod A PN ⟶ A) := by
+  refine ⟨s ≫ cnDN.π₁, ?_, ?_⟩
+  · rw [Cat.assoc, cnDN.w, ← Cat.assoc, hs₂, Cat.id_comp]
+  · rw [Cat.assoc]; exact hsA
+
 /-! ## §1.547  Assembling the inner finite-product-slice `CatSystem` (residual (A)/(B))
 
   This block builds the inner directed system of slices `A/(∏U)` over `listDirected`, the

@@ -855,14 +855,18 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
         ∃ q : prod A PN ⟶ Dbar.dom,
           q ≫ Dbar.hom = (snd : prod A PN ⟶ PN) ∧ q ≫ mC.f ≫ (fst : prod A PN ⟶ A) = fst := by
       -- ════════════════════════════════════════════════════════════════════════════════════════
-      -- THE GENUINE §1.546 DESCENT CORE (single isolated residual).  Everything ELSE in `hpt` is
-      -- proven sorry-free above: the over-hom packaging, the pullback `lift` of the cone `(q, id)`,
-      -- the `pair_eta` split of `t ⊚ mbarN = sliceFactorPoint A fst` into the two legs, and the final
-      -- `freshSlicePoint_factors_imp_false` application.  The WHOLE remaining content is to produce
-      -- the section `q : A×PN ⟶ Dbar.dom` with `q ≫ Dbar.hom = snd` (a section of the base-change
-      -- `Dbar` over `A×PN` via `snd`) reaching the fresh `A`-coordinate (`q ≫ mC.f ≫ fst = fst`).
-      --
-      -- `q` is the §1.546 point read-off from `hstage`, transported by `descent`/`ψ`:
+      -- THE GENUINE §1.546 DESCENT CORE (single isolated residual), now reduced by the standalone
+      -- read-off lemma `freshSection_of_descentSection` (RelativeCapitalization.lean) to the SHARPER,
+      -- equivalent residual: producing the §1.546 DESCENT SECTION
+      --   `s : A×PN ⟶ cnDN.pt`  with  `s ≫ cnDN.π₂ = id`  and  `s ≫ cnDN.π₁ ≫ mC.f ≫ fst = fst`.
+      -- `freshSection_of_descentSection` then assembles `q := s ≫ cnDN.π₁` with the two goal legs
+      -- (structure via `cnDN.w`/`hs₂`, fresh via `hsA`) — sorry-free, machine-checked.
+      obtain ⟨s, hs₂, hsA⟩ :
+          ∃ s : prod A PN ⟶ cnDN.pt,
+            s ≫ cnDN.π₂ = Cat.id (prod A PN) ∧
+              s ≫ cnDN.π₁ ≫ mC.f ≫ (fst : prod A PN ⟶ A) = fst := by
+      -- ── THE REMAINING §1.546 CORE: the descent section `s` over `A×PN`. ──
+      -- `s` is the §1.546 point read-off from `hstage`, transported by `descent`/`ψ`:
       --   • `hstage` (an `Over (∏N)` equation) says the N-image of the fresh point `sfp ⊚ cod`
       --     (`pushHom … sc₀`) FACTORS through the N-image of `pushFibre g''` (`pushHom … pf₀`) via the
       --     N-rep `pushHom … z₀` of the colimit factor.  `proj_pushHom_f_π₁`/`proj_pushHom_f_π₂`
@@ -871,16 +875,17 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
       --   • `descent : IsIso descent` identifies `m_N`'s domain `L.F hUN' (L.F hUU' xE')` with
       --     `baseChangeObj ψ (baseChangeObj snd Dbar)`; since `ψ` is an iso (`hψiso`),
       --     `baseChangeObj ψ X ≅ X`, so this is `≅ baseChangeObj snd Dbar = ⟨cnDN.pt, cnDN.π₂⟩`.
-      --   • routing `(pushHom … z₀).f` through `descent.f` and the `ψ`-iso yields the section over
-      --     `A×PN`; its `cnDN.π₁`-leg (`hstage` content leg via `proj_pushHom_f_π₁`, `hψfst`) reaches
-      --     `fst`, giving `q := descent-transport(z₀) ≫ cnDN.π₁` with the two equations.
-      --
-      -- This is the genuine multi-screen `pb_hom_ext` reindexing chain — the §1.546 open core the
-      -- file documents (lines 525–635, 706–845).  All primitives are in scope; isolated here as the
-      -- single sharpest residual.  EXACT goal:
-      --   ⊢ ∃ q : prod A PN ⟶ Dbar.dom,
-      --       q ≫ Dbar.hom = snd ∧ q ≫ mC.f ≫ fst = fst
-      sorry
+      --   • routing `(pushHom … z₀).f` through `descent.f` and the `ψ`-iso yields `s` over `A×PN`; its
+      --     `cnDN.π₁`-leg (`hstage` content leg via `proj_pushHom_f_π₁`, `hψfst`) reaches `fst`.
+      -- This is the genuine multi-screen `pb_hom_ext` reindexing chain — the §1.546 open core the file
+      -- documents (lines 525–635, 706–845) — needing the DESCENT EQUATION relating `m_N.f` (over ∏N,
+      -- content `factorProj N A = ψ ≫ fst` via `proj_pushHom_f_π₁`) to `cnDN.π₁ ≫ mC.f` (over A×PN),
+      -- which is proven from the PRIVATE `baseChangeTransNatIso` leg lemmas (`_transFwd_π₁/π₂`) inside
+      -- CapitalizationLaxColimit.lean composed with `proj_pushHom_f_π₁/π₂`.  All primitives are in
+      -- scope; isolated here as the single sharpest residual.  EXACT goal:
+      --   ⊢ ∃ s : A×PN ⟶ cnDN.pt, s ≫ cnDN.π₂ = id ∧ s ≫ cnDN.π₁ ≫ mC.f ≫ fst = fst
+        sorry
+      exact freshSection_of_descentSection Dbar mC cnDN hcnDN s hs₂ hsA
     -- the cone `(q, id)` over `(Dbar.hom, snd)`, and its pullback lift `u : A×PN ⟶ cnDN.pt`.
     have hsq : q ≫ Dbar.hom = (Cat.id (prod A PN)) ≫ (snd : prod A PN ⟶ PN) := by
       rw [Cat.id_comp]; exact hqstruct
