@@ -283,6 +283,42 @@ theorem selectProj_head_notin (C : 𝒞) (U' : List 𝒞) :
         (fun e => hC (List.mem_cons.2 (Or.inr e)))
         (fun B hB => h' B (List.mem_cons.2 (Or.inr hB)))]
 
+/-- **Pull a single factor to the front (`listProd` reindexing).**  For a NODUP list `N` containing
+    `A`, the reordering projection `ψ := selectProj N (A :: N.erase A)` is an ISO
+    `∏N ≅ A × ∏(N.erase A)` whose first leg is the factor projection at `A`
+    (`ψ ≫ fst = factorProj N A`) and whose second leg is the projection onto the remaining factors
+    (`ψ ≫ snd = selectProj N (N.erase A)`).  This presents `∏N` in the binary-product shape the
+    §1.546 escape (`baseChange_freshFactor_missed`) consumes, with `A` as the fresh coordinate — even
+    when `A` is buried in the middle of the right-folded `∏N`.  Mathlib-free (`List.erase` is core);
+    `IsIso` via `selectProj_reorder_iso`, the leg equations via `selectProj_factor`. -/
+theorem listProd_pull_factor (N : List 𝒞) (A : 𝒞) (hnd : N.Nodup) (hA : A ∈ N) :
+    let N' := N.erase A
+    let hsub : ∀ B ∈ A :: N', B ∈ N := fun _ hB =>
+      (List.mem_cons.1 hB).elim (· ▸ hA) List.mem_of_mem_erase
+    let ψ : listProd (𝒞 := 𝒞) N ⟶ prod A (listProd N') := selectProj N (A :: N') hsub
+    IsIso ψ ∧ ψ ≫ (fst : prod A (listProd N') ⟶ A) = factorProj N A hA ∧
+      ψ ≫ (snd : prod A (listProd N') ⟶ listProd N')
+        = selectProj N N' (fun _ hB => List.mem_of_mem_erase hB) := by
+  intro N' hsub ψ
+  have hNnd : (A :: N').Nodup := List.nodup_cons.2 ⟨List.Nodup.not_mem_erase hnd, hnd.erase A⟩
+  have hsup : ∀ B ∈ N, B ∈ A :: N' := fun B hB => by
+    by_cases e : B = A
+    · exact e ▸ List.mem_cons_self
+    · exact List.mem_cons.2 (Or.inr (List.mem_erase_of_ne e |>.2 hB))
+  refine ⟨selectProj_reorder_iso hnd hNnd hsup hsub, ?_, ?_⟩
+  · have : (fst : prod A (listProd N') ⟶ A) = factorProj (A :: N') A List.mem_cons_self :=
+      (factorProj_cons_head _).symm
+    rw [this, selectProj_factor N (A :: N') hsub A List.mem_cons_self]
+  · have hsnd : (snd : prod A (listProd N') ⟶ listProd N')
+        = selectProj (A :: N') N' (fun B hB => List.mem_cons.2 (Or.inr hB)) := by
+      rw [selectProj_head_notin A N' N' (fun B hB => List.mem_cons.2 (Or.inr hB))
+            (List.Nodup.not_mem_erase hnd) (fun B hB => hB),
+          selectProj_refl (hnd.erase A) (fun B hB => hB), Cat.comp_id]
+    rw [hsnd]
+    show selectProj N (A :: N') hsub ≫ selectProj (A :: N') N' _ = _
+    rw [← selectProj_trans (hnd.erase A) (fun B hB => List.mem_cons.2 (Or.inr hB)) hsub
+          (fun _ hB => List.mem_of_mem_erase hB)]
+
 private theorem mem_filter_ne {C x : 𝒞} {V : List 𝒞} :
     x ∈ V.filter (fun y => y ≠ C) ↔ x ∈ V ∧ x ≠ C := by
   rw [List.mem_filter]; simp

@@ -472,22 +472,28 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
   refine ⟨x', ?_⟩
   rintro ⟨y', hy'⟩
   -- ===== (c) reflect the colimit factor to a base-change section, then apply the escape =====
-  -- THE HONEST RESIDUAL (c.i).  The colimit-factor `hy'` reduces (germ machinery: `incl_surjective`
-  -- of `homSystemL` to write `y'` at a bound `N ⊇ U'`, then `homCompRawL_eq_stage` on
+  -- THE HONEST RESIDUAL (c.i), now NARROWED to a single base-change transport.  The colimit-factor
+  -- `hy'` reduces (germ machinery: `incl_surjective` of `homSystemL` to write `y'` at a bound
+  -- `N ⊇ U'`, conjugated by `align`/`laxTerminalArrowAt`, then `homCompRawL_eq_stage` on
   -- `compL y' (stageInclL (pushFibre g'')) = x'`) to an ON-THE-NOSE stage-`N` `Over (∏N)` equation:
   -- a section `s_N : ∏N ⟶ (base-change of cnD to ∏N).pt` whose `A`-coordinate is the `N`-image of
   -- the fresh `fst : A×∏U → A`, i.e. (by `selectProj_factor`) `factorProj N A`.
   --
-  -- THE BLOCKER (refined).  `key`/`baseChange_freshFactor_missed` is GENERIC, but applying it at the
-  -- germ stage `N` needs `∏N ≅ A × ∏(N\{A})` with the *binary-product* `fst` matching `factorProj N A`,
-  -- AND `selectProj N U` factoring through `snd` (true since `A ∉ U`).  When the germ stage `N ⊋ U'`
-  -- is strictly richer than `U' = A::U`, `∏N` is a right-fold with `A` buried in the middle, so this
-  -- permutation iso `∏N ≅ A × ∏(N\{A})` is NOT among the built lemmas (it is a genuine new
-  -- `listProd`-reindexing fact, plus its threading through base-change of the point/escape data).
-  -- Equivalently: `stageInclFunctorL U'` is not full on points of base-changed objects, so the germ
-  -- of `y'` need not descend to `U'` where `∏U' = A×∏U` makes the escape apply on the nose.
-  -- The escape MATH, the (a) base-change data, and the (b) point are all in hand; only this
-  -- stage-`N` permutation/descent is missing.  See `richerSliceMiss`'s note for the precise plan.
+  -- THE REINDEXING IS NOW BUILT.  `CofinalProj.listProd_pull_factor N A N.2.1 (hA_in_N)` supplies the
+  -- permutation iso `ψ : ∏N ≅ A × ∏(N.erase A)` with `ψ ≫ fst = factorProj N A` and
+  -- `ψ ≫ snd = selectProj N (N.erase A)`, EXACTLY the binary-product shape
+  -- `baseChange_freshFactor_missed` consumes with `A` as the fresh coordinate — even with `A` buried
+  -- in the middle of the right-folded `∏N`.  `A ∈ U' = A::U ⊆ N` gives `hA_in_N`.
+  --
+  -- THE REMAINING BLOCKER (sharpest).  What is NOT yet assembled is the transport of the N-pushed
+  -- PULLBACK DIAGRAM through `ψ`: presenting the base-change of `cnD` (the chosen pullback of
+  -- `xE'.hom` along `snd : A×∏U → ∏U`) to stage `N` as the canonical `cnD_N`/`mf_N` data over
+  -- `∏(N.erase A)` with cospan `snd : A×∏(N.erase A) → ∏(N.erase A)`, plus the identification of the
+  -- N-pushed mono `pushFibre … g''` as a PROPER `OverHom` into `sliceEmbedObj (∏(N.erase A)) A`
+  -- (properness at `N` via `g''` proper + `L_cons`/`projStage_conservative_full` reflecting iso along
+  -- the transitions).  Once those are threaded, `baseChange_freshFactor_missed` applies on the nose at
+  -- `N` and refutes `s_N` ⟹ `False`.  The escape MATH, the (a) base-change data, the (b) point, and
+  -- now the (c) reindexing iso are all in hand; only this pullback-diagram transport remains.
   exact (by sorry : False)
 
 /-- **Freyd's §1.546 density (the genuine open core).**  The §1.546 ESCAPE is sorry-free
