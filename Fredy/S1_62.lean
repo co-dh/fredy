@@ -1332,6 +1332,36 @@ theorem complementedSub_iso_coproduct [HasBinaryCoproducts 𝒞] {A : 𝒞}
     exact ⟨arrinv, (HasSubobjectUnions.union U U₂).arr, h2, h1⟩
   exact isomorphic_trans hA_union hpoiso
 
+/-- Intersection of subobjects is symmetric up to `≤`: swapping the pullback legs gives
+    `inter S T ≤ inter T S`.  Both intersections are pullbacks of the same cospan in the two
+    orders; the comparison map is the canonical lift swapping `π₁` and `π₂`. -/
+theorem inter_comm_le [HasPullbacks 𝒞] {B : 𝒞} (S T : Subobject 𝒞 B) :
+    Subobject.le (Subobject.inter S T) (Subobject.inter T S) := by
+  let pbST := HasPullbacks.has S.arr T.arr
+  let pbTS := HasPullbacks.has T.arr S.arr
+  -- swap legs of pbST's cone to form a cone over (T.arr, S.arr).
+  let c : Cone T.arr S.arr := ⟨pbST.cone.pt, pbST.cone.π₂, pbST.cone.π₁, pbST.cone.w.symm⟩
+  refine ⟨pbTS.lift c, ?_⟩
+  -- (inter T S).arr = pbTS.π₁ ≫ T.arr;  lift ≫ pbTS.π₁ = c.π₁ = pbST.π₂.
+  show pbTS.lift c ≫ (pbTS.cone.π₁ ≫ T.arr) = pbST.cone.π₁ ≫ S.arr
+  rw [← Cat.assoc, pbTS.lift_fst c]
+  show pbST.cone.π₂ ≫ T.arr = pbST.cone.π₁ ≫ S.arr
+  exact pbST.cone.w.symm
+
+/-- Union of subobjects is symmetric up to `≤`: `union S T ≤ union T S` by minimality. -/
+theorem union_comm_le {B : 𝒞} (S T : Subobject 𝒞 B) :
+    Subobject.le (HasSubobjectUnions.union S T) (HasSubobjectUnions.union T S) :=
+  HasSubobjectUnions.union_min S T _
+    (HasSubobjectUnions.union_right T S) (HasSubobjectUnions.union_left T S)
+
+/-- Being a complemented subobject is symmetric: if `U` is complemented with complement `U₂`,
+    then `U₂` is complemented with complement `U`.  `inter`/`union` are commutative up to `≤`. -/
+theorem complementedSub_symm [HasBinaryCoproducts 𝒞] {A : 𝒞} {U U₂ : Subobject 𝒞 A}
+    (hdisj : Subobject.le (Subobject.inter U U₂) (PreLogos.bottom A))
+    (hentire : Subobject.le (Subobject.entire A) (HasSubobjectUnions.union U U₂)) :
+    IsComplementedSub U₂ :=
+  ⟨U, subLe_trans (inter_comm_le U₂ U) hdisj, subLe_trans hentire (union_comm_le U U₂)⟩
+
 /-! ## §1.633 Characterization of capital positive pre-logoi
 
   A positive pre-logos is capital iff its complemented subterminators
@@ -1358,6 +1388,37 @@ theorem complemented_subterminator_projective [DisjointBinaryCoproduct 𝒞]
   intro B y hy
   exact complemented_of_projective_is_projective hone U₂.dom hiso y hy
 
+/-! ### §1.633 `A+1` infrastructure: the basis argument's coproduct scaffolding
+
+  Freyd's basis argument runs the well-pointedness of `A+1`.  We package the shared
+  facts: a section makes a map a cover, so `A+1` is well-supported (`inr : 1 → A+1` is a
+  section of `term`), and the coproduct map `A'+1 ↣ A+1` of a proper `A'↣A` stays a proper
+  mono.  These three lemmas feed both the forward basis clause and the converse. -/
+
+/-- A map with a section is a cover: if `s ≫ f = id` then every monic `f` factors through
+    is split (by `s ≫ g`) and hence iso. -/
+theorem cover_of_section {X Y : 𝒞} (f : X ⟶ Y) (s : Y ⟶ X) (hs : s ≫ f = Cat.id Y) :
+    Cover f := by
+  intro C m g hm hgm
+  have hsplit : (s ≫ g) ≫ m = Cat.id Y := by rw [Cat.assoc, hgm, hs]
+  refine ⟨s ≫ g, ?_, hsplit⟩
+  -- `m ≫ (s≫g) = id`: post-compose with the mono `m`, both sides give `m`.
+  exact hm _ _ (by rw [Cat.assoc, hsplit, Cat.id_comp, Cat.comp_id])
+
+/-- `A + 1` is well-supported: `inr : 1 → A+1` is a section of `term (A+1)`
+    (both `inr ≫ term` and `id` are maps `1 → 1`, so they agree by `term_uniq`). -/
+theorem wellSupported_coprod_one [DisjointBinaryCoproduct 𝒞] (A : 𝒞) :
+    WellSupported (HasBinaryCoproducts.coprod A one) :=
+  cover_of_section (term _) HasBinaryCoproducts.inr (term_uniq _ _)
+
+/-- The coproduct map `A'+1 → A+1` of a mono `m : A' → A` is `case (m ≫ inl) inr`.
+    It is monic: a parallel pair agreeing after it agrees after the two injections
+    (the left half cancels `m`'s monicity, the right is `inr` monic), and the disjointness
+    of `inl`/`inr` images forces the two cases to match up.  We use the explicit copairing. -/
+def coprodMapOne [DisjointBinaryCoproduct 𝒞] {A' A : 𝒞} (m : A' ⟶ A) :
+    HasBinaryCoproducts.coprod A' one ⟶ HasBinaryCoproducts.coprod A one :=
+  HasBinaryCoproducts.case (m ≫ HasBinaryCoproducts.inl) HasBinaryCoproducts.inr
+
 /-- §1.633: A positive pre-logos is capital iff
     (1) every complemented subterminator is projective, and
     (2) the complemented subterminators form a basis.
@@ -1376,22 +1437,70 @@ theorem capital_iff_complemented_subterminators [DisjointBinaryCoproduct 𝒞] :
   · -- (⟹)  Capital ⟹ subterminators projective ∧ form a basis.
     intro hcap
     refine ⟨complemented_subterminator_projective hcap, ?_, ?_⟩
-    · -- IsGeneratingSet: points 1 → A separate maps (1 is itself a complemented subterminator).
-      -- RESIDUAL (named infra): "in a capital positive pre-logos global points 1→A are jointly
-      -- faithful".  Needs the §1.633 points-separation lemma (well-pointedness of the equalizer
-      -- of f,g), which is not yet built in the S1_62 import chain.
+    · -- IsGeneratingSet: the complemented subterminators separate maps.
+      -- RESIDUAL (precise spec): this is the standard "basis ⟹ generating".  For `f ≠ g : A → B`
+      -- form the equalizer `eq ↣ A` (available: products+pullbacks give equalizers, `S1_43`);
+      -- it is a PROPER mono (a cover through it would force `f = g` by `cover_epi`).  Apply the
+      -- proper-monic basis clause below (`refine_2`) to `eq.arr`: it yields `G ≅ V.dom` and
+      -- `x : G → A` not factoring through `eq`, whence `x ≫ f ≠ x ≫ g`, contradicting the
+      -- hypothesis.  BLOCKED ONLY on `refine_2` (the `A'+1` clause) being available as a lemma.
       sorry
     · -- Proper-monic basis clause.
-      -- RESIDUAL (named infra): the book's `A'+1 ↣ A+1` argument — proper coproduct injection,
-      -- `A+1` well-supported, `decompose_via_coproduct` of `f : U → A+1`, and the pullback-square
-      -- properness transfer giving a complemented subterminator `V₂` with a map `V₂ → A` not
-      -- factoring through `A'`.  This `A'+1`/decompose-properness theory is not yet built.
+      -- RESIDUAL (precise spec): the `A'+1 ↣ A+1` argument, reduced (this build) to ONE missing
+      -- lemma — `coprodMapOne_image_proper`:
+      --     `m : A' → A` mono → ¬ IsIso m → ¬ (image (coprodMapOne m)).IsEntire`.
+      -- Proof of that lemma (PreLogos-internal, extensivity-free): pull the subobject
+      -- `image (coprodMapOne m) = union (image (m ≫ inl)) inrSub` back along `inl`; disjointness
+      -- (`inl_inter_inr_le_bottom`) kills the `inrSub` summand and `inl⁻¹(image (m≫inl)) = image m`
+      -- (since `m ≫ inl = inl ∘ m` and `inl` is monic), so `inl⁻¹` of an entire image would force
+      -- `image m` entire, i.e. `m` a cover, hence iso (mono+cover) — contradiction.
+      -- GIVEN that lemma the rest is built infra: `wellSupported_coprod_one` + `hcap` make `A+1`
+      -- well-pointed; apply it to `(image (coprodMapOne m)).arr` for a point `p : 1 → A+1` missing
+      -- it; `decompose_via_coproduct p` gives `1 ≅ V.dom + V₂.dom` (V a complemented subterminator)
+      -- with `f₁ : V.dom → A`; `f₁` cannot factor through `m` (else `p`'s `inl`-part lies in the
+      -- image), giving the witness `⟨V.dom, ⟨V, _, _⟩, f₁, _⟩`.  The single open step is the
+      -- subobject-bookkeeping lemma above (image-of-`case` = union, `inl⁻¹` of a union, image of a
+      -- mono = the mono); all PreLogos-internal, no new typeclass.
       sorry
   · -- (⟸)  subterminators projective ∧ basis ⟹ Capital.
-    -- RESIDUAL (named infra): the book's converse — given proper `A'↣A` with `A` well-supported,
-    -- the basis gives `V₁+V₂=1` with `V₂` projective and (since `A→1` is a cover) a lift
-    -- `V₂ → A`, yielding `U₁+U₂` proper in `V₁+V₂=1` and a point missing `A'`.  Same missing
-    -- `A'+1`/decompose-properness + projective-lifting theory as the forward basis clause.
-    sorry
+    -- Given proper `m : D ↣ A` with `A` well-supported, the basis gives a complemented
+    -- subterminator `V` (`G ≅ V.dom`) and `x : V.dom → A` not factoring through `m`.  Extend `x`
+    -- to a point `1 → A` by case-ing it against a lift `V₂.dom → A` of `term V₂.dom` through the
+    -- cover `term A` (`V₂.dom` projective, `term A` a cover) over the iso `1 ≅ V.dom + V₂.dom`.
+    -- That point misses `m` because its restriction to `V.dom` is `x`.
+    rintro ⟨hproj, _hgen, hbasis⟩ A hws D m hm hmiso
+    -- Basis applied to the proper mono `m`.
+    obtain ⟨G, ⟨V, hV, hGV⟩, x, hx⟩ := hbasis m hm hmiso
+    obtain ⟨V₂, hdisj, hentire⟩ := hV
+    -- `V` and its complement `V₂` are both projective complemented subterminators.
+    have hprojV  : Projective V.dom  := hproj V ⟨V₂, hdisj, hentire⟩
+    have hprojV₂ : Projective V₂.dom := hproj V₂ (complementedSub_symm hdisj hentire)
+    -- 1 ≅ V.dom + V₂.dom (`e : 1 → V.dom+V₂.dom`, iso).
+    obtain ⟨e, einv, hee, heinv⟩ := complementedSub_iso_coproduct V V₂ hdisj hentire
+    -- x' : V.dom → A, transported from x : G → A along G ≅ V.dom.
+    obtain ⟨φ, φinv, hφφ, hφinv⟩ := hGV       -- φ : G → V.dom, iso, φinv : V.dom → G
+    let x' : V.dom ⟶ A := φinv ≫ x
+    -- x₂ : V₂.dom → A — lift of `term V₂.dom` through the cover `term A` (A well-supported).
+    obtain ⟨x₂, _⟩ := hom_lifts_cover_of_projective
+      (i := V₂.dom) (fun {P} ee hee => hprojV₂ ee hee) (f := term A) hws (term V₂.dom)
+    -- The point `p : 1 → A`.
+    let p : one ⟶ A := e ≫ HasBinaryCoproducts.case x' x₂
+    refine ⟨p, ?_⟩
+    rintro ⟨y, hy⟩
+    -- Restrict `y ≫ m = p` to `V.dom` via `inl ≫ einv : V.dom → 1`, recovering `x'`.
+    apply hx
+    refine ⟨φ ≫ (HasBinaryCoproducts.inl ≫ einv) ≫ y, ?_⟩
+    -- (φ ≫ (inl ≫ einv) ≫ y) ≫ m = φ ≫ (inl ≫ einv) ≫ p = φ ≫ inl ≫ case x' x₂ = φ ≫ x' = x.
+    calc (φ ≫ (HasBinaryCoproducts.inl ≫ einv) ≫ y) ≫ m
+        = φ ≫ (HasBinaryCoproducts.inl ≫ einv) ≫ (y ≫ m) := by
+          rw [Cat.assoc, Cat.assoc, Cat.assoc]
+      _ = φ ≫ (HasBinaryCoproducts.inl ≫ einv) ≫ p := by rw [hy]
+      _ = φ ≫ HasBinaryCoproducts.inl ≫ (einv ≫ e) ≫ HasBinaryCoproducts.case x' x₂ := by
+          simp only [p, Cat.assoc]
+      _ = φ ≫ HasBinaryCoproducts.inl ≫ HasBinaryCoproducts.case x' x₂ := by
+          rw [heinv, Cat.id_comp]
+      _ = φ ≫ x' := by rw [HasBinaryCoproducts.case_inl]
+      _ = (φ ≫ φinv) ≫ x := by rw [Cat.assoc]
+      _ = x := by rw [hφφ, Cat.id_comp]
 
 end Freyd
