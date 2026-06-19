@@ -27,6 +27,7 @@ import Fredy.S1_59
 import Fredy.S1_62
 import Fredy.S1_77
 import Fredy.S1_64
+import Fredy.Complement
 import Fredy.SliceRegular
 
 universe v u
@@ -562,30 +563,317 @@ instance overHasReflTransClosure (B : 𝒞) [RegularCategory 𝒞] [HasReflTrans
     HasReflTransClosure (Over B) where
   transRefClos R := sliceTransRefClos R
 
+/-! ## Rung 3: `DisjointBinaryCoproduct (Over B)`
+
+  The heaviest rung.  Its mathematical content is entirely *transport along the faithful
+  forgetful functor* `Σ_B`: a slice subobject of `Y : Over B` IS a `𝒞`-subobject of `Y.dom`
+  (the structure map rides along), via the round-tripping pair `Subobject.forgetSlice` /
+  `Subobject.liftSlice` (`forgetSlice (liftSlice T) = T` on the nose).  So the ENTIRE
+  `PreLogos (Over B)` lattice structure is the `𝒞` one re-attached to the structure map:
+
+  * `bottom A := liftSlice (bottom A.dom)`,
+  * `union S T := liftSlice (union (forgetSlice S) (forgetSlice T))`,
+  * `InverseImage` transports because `Σ_B` preserves pullbacks
+    (`sliceForget_preserves_isPullback`).
+
+  The only genuinely new construction is the slice coproduct `X + Y` = `X.dom + Y.dom` with
+  structure map `case X.hom Y.hom` (copairing); the four §1.621 disjointness fields then
+  transport from `𝒞`'s `DisjointBinaryCoproduct` through the subobject identification. -/
+
+section rung3
+variable {B : 𝒞} [HasPullbacks 𝒞]
+
+/-! ### Subobject correspondence is an order-iso `Sub (Over B) Y ≃ Sub 𝒞 Y.dom`
+
+  `forgetSlice`/`liftSlice` are mutually monotone and `forgetSlice ∘ liftSlice = id` on the
+  nose, so each lattice operation transports field-for-field. -/
+
+/-- `forgetSlice` is monotone: a slice `S ≤ T` forgets to `S.forgetSlice ≤ T.forgetSlice`. -/
+theorem Subobject.forgetSlice_mono {Y : Over B} {S T : Subobject (Over B) Y}
+    (h : S.le T) : (Subobject.forgetSlice Y S).le (Subobject.forgetSlice Y T) := by
+  obtain ⟨g, hg⟩ := h; exact ⟨g.f, congrArg OverHom.f hg⟩
+
+/-- `forgetSlice` reflects `≤`: promote the underlying factorization arrow to a slice arrow. -/
+theorem Subobject.forgetSlice_reflects {Y : Over B} {S T : Subobject (Over B) Y}
+    (h : (Subobject.forgetSlice Y S).le (Subobject.forgetSlice Y T)) : S.le T := by
+  obtain ⟨g, hg⟩ := h
+  have hgf : g ≫ T.arr.f = S.arr.f := hg
+  have hgw : g ≫ T.dom.hom = S.dom.hom := by
+    have : g ≫ (T.arr.f ≫ Y.hom) = S.arr.f ≫ Y.hom := by rw [← Cat.assoc, hgf]
+    rwa [T.arr.w, S.arr.w] at this
+  exact ⟨⟨g, hgw⟩, OverHom.ext hgf⟩
+
+/-- `liftSlice` is monotone: a `𝒞` `S ≤ T` lifts to a slice `liftSlice S ≤ liftSlice T`. -/
+theorem Subobject.liftSlice_mono {Y : Over B} {S T : Subobject 𝒞 Y.dom}
+    (h : S.le T) : (Subobject.liftSlice Y S).le (Subobject.liftSlice Y T) := by
+  obtain ⟨g, hg⟩ := h
+  refine ⟨⟨g, ?_⟩, OverHom.ext hg⟩
+  show g ≫ (T.arr ≫ Y.hom) = S.arr ≫ Y.hom
+  rw [← Cat.assoc, hg]
+
+/-- Mutual `≤` of `𝒞`-subobjects gives a `𝒞`-iso of their domains (subobject antisymmetry):
+    the two factorization maps cancel by monicity of the respective subobject arrows. -/
+theorem Subobject.le_antisymm_iso {W : 𝒞} {S T : Subobject 𝒞 W}
+    (h1 : S.le T) (h2 : T.le S) : Isomorphic S.dom T.dom := by
+  obtain ⟨a, ha⟩ := h1; obtain ⟨c, hc⟩ := h2
+  refine ⟨a, c, ?_, ?_⟩
+  · apply S.monic; rw [Cat.assoc, hc, ha, Cat.id_comp]
+  · apply T.monic; rw [Cat.assoc, ha, hc, Cat.id_comp]
+
+/-! ### `Σ_B` transports the inverse image (it preserves pullbacks)
+
+  The slice inverse image `InverseImage (Over B) f S` is the slice pullback of `f` along
+  `S.arr`; forgetting, that slice pullback is a *base* pullback of `(f.f, S.forgetSlice.arr)`
+  (`sliceForget_preserves_isPullback`), hence mutually `≤` with the chosen base inverse image
+  `InverseImage f.f S.forgetSlice`. -/
+
+/-- The forgotten slice inverse image is below the base inverse image. -/
+theorem forgetSlice_invImage_le {X Y : Over B} (f : OverHom X Y) (S : Subobject (Over B) Y) :
+    Subobject.le (Subobject.forgetSlice X (InverseImage f S))
+                 (InverseImage f.f (Subobject.forgetSlice Y S)) := by
+  let pbc := HasPullbacks.has f.f (Subobject.forgetSlice Y S).arr
+  exact ⟨pbc.lift (sliceConeForget (overPullbackCone f S.arr)),
+    pbc.lift_fst (sliceConeForget (overPullbackCone f S.arr))⟩
+
+/-- The base inverse image is below the forgotten slice inverse image. -/
+theorem le_forgetSlice_invImage {X Y : Over B} (f : OverHom X Y) (S : Subobject (Over B) Y) :
+    Subobject.le (InverseImage f.f (Subobject.forgetSlice Y S))
+                 (Subobject.forgetSlice X (InverseImage f S)) := by
+  have hfor : (sliceConeForget (B := B) (overPullbackCone f S.arr)).IsPullback :=
+    sliceForget_preserves_isPullback _ ((overHasPullbacks B).has f S.arr).cone_isPullback
+  obtain ⟨h, ⟨h₁, _⟩, _⟩ := hfor (HasPullbacks.has f.f (Subobject.forgetSlice Y S).arr).cone
+  exact ⟨h, h₁⟩
+
+end rung3
+
+/-! ### Slice binary coproducts (the one genuinely new construction)
+
+  `X + Y` in `Over B` is `X.dom + Y.dom` with structure map `case X.hom Y.hom`; the injections
+  are the `𝒞` injections (as slice arrows), and the universal property copairs. -/
+
+open HasBinaryCoproducts in
+/-- **The slice of a category with binary coproducts has binary coproducts.**  The coproduct of
+    `X→B`, `Y→B` is `X.dom + Y.dom → B` via the copairing `case X.hom Y.hom`. -/
+instance overHasBinaryCoproducts (B : 𝒞) [HasBinaryCoproducts 𝒞] :
+    HasBinaryCoproducts (Over B) where
+  coprod X Y := ⟨coprod X.dom Y.dom, case X.hom Y.hom⟩
+  inl {X Y} := ⟨inl, case_inl _ _⟩
+  inr {X Y} := ⟨inr, case_inr _ _⟩
+  case {W X Y} f g := ⟨case f.f g.f, by
+    apply case_uniq
+    · rw [← Cat.assoc, case_inl, f.w]
+    · rw [← Cat.assoc, case_inr, g.w]⟩
+  case_inl {W X Y} f g := OverHom.ext (case_inl _ _)
+  case_inr {W X Y} f g := OverHom.ext (case_inr _ _)
+  case_uniq {W X Y} f g h h1 h2 :=
+    OverHom.ext (case_uniq _ _ h.f (congrArg OverHom.f h1) (congrArg OverHom.f h2))
+
+/-! ### `PreLogos (Over B)` by domain transport
+
+  Every lattice field is the `𝒞` operation on `Y.dom`'s subobject lattice, re-attached to the
+  structure map.  `bottom`/`union`/`inverse image` all round-trip through `forgetSlice`. -/
+
+section overPreLogos
+variable [PreLogos 𝒞]
+
+/-- `forgetSlice` is a retraction of `liftSlice` on the nose. -/
+@[simp] theorem forgetSlice_liftSlice (Y : Over B) (T : Subobject 𝒞 Y.dom) :
+    Subobject.forgetSlice Y (Subobject.liftSlice Y T) = T := rfl
+
+/-- Slice subobject unions: lift the `𝒞`-union of the forgotten subobjects. -/
+instance overHasSubobjectUnions (B : 𝒞) : HasSubobjectUnions (Over B) where
+  union {Y} S T := Subobject.liftSlice Y
+    (HasSubobjectUnions.union (Subobject.forgetSlice Y S) (Subobject.forgetSlice Y T))
+  union_left {Y} S T := by
+    apply Subobject.forgetSlice_reflects
+    rw [forgetSlice_liftSlice]
+    exact HasSubobjectUnions.union_left _ _
+  union_right {Y} S T := by
+    apply Subobject.forgetSlice_reflects
+    rw [forgetSlice_liftSlice]
+    exact HasSubobjectUnions.union_right _ _
+  union_min {Y} S T U hSU hTU := by
+    apply Subobject.forgetSlice_reflects
+    rw [forgetSlice_liftSlice]
+    exact HasSubobjectUnions.union_min _ _ _
+      (Subobject.forgetSlice_mono hSU) (Subobject.forgetSlice_mono hTU)
+
+@[simp] theorem forgetSlice_union (Y : Over B) (S T : Subobject (Over B) Y) :
+    Subobject.forgetSlice Y (HasSubobjectUnions.union S T)
+      = HasSubobjectUnions.union (Subobject.forgetSlice Y S) (Subobject.forgetSlice Y T) := rfl
+
+/-- `𝒞`-union is monotone in both arguments (from `union_min`/`union_left`/`union_right`). -/
+theorem union_mono {W : 𝒞} {S S' T T' : Subobject 𝒞 W}
+    (hS : S.le S') (hT : T.le T') :
+    (HasSubobjectUnions.union S T).le (HasSubobjectUnions.union S' T') :=
+  HasSubobjectUnions.union_min _ _ _
+    (subLe_trans' hS (HasSubobjectUnions.union_left S' T'))
+    (subLe_trans' hT (HasSubobjectUnions.union_right S' T'))
+
+/-- **The slice of a pre-logos is a pre-logos.**  Subobject lattices, bottom, and inverse-image
+    preservation all transport from `𝒞`'s lattice on `Y.dom` along the subobject identification
+    `Sub (Over B) Y ≃ Sub 𝒞 Y.dom`. -/
+instance overPreLogos (B : 𝒞) : PreLogos (Over B) where
+  bottom A := Subobject.liftSlice A (PreLogos.bottom A.dom)
+  bottom_min {A} S := by
+    apply Subobject.forgetSlice_reflects
+    rw [forgetSlice_liftSlice]
+    exact PreLogos.bottom_min _
+  bottom_dom_iso A A' := by
+    -- both slice-bottom domains have `𝒞`-domain the coterminator `0`, hence iso; promote
+    -- the `𝒞`-iso to a slice iso using uniqueness of maps out of an initial object.
+    letI hCot := minimal_subobject_of_one_is_coterminator (𝒞 := 𝒞) ‹PreLogos 𝒞›
+    have h1 : Isomorphic (PreLogos.bottom A.dom).dom hCot.zero := PreLogos.bottom_dom_iso A.dom _
+    have h2 : Isomorphic (PreLogos.bottom A'.dom).dom hCot.zero := PreLogos.bottom_dom_iso A'.dom _
+    obtain ⟨g, ginv, hgg, hgg'⟩ := isomorphic_trans h1 (isomorphic_symm h2)
+    obtain ⟨φ, φinv, hφ, _⟩ := h1
+    have uniqA : ∀ {Z : 𝒞} (p q : (PreLogos.bottom A.dom).dom ⟶ Z), p = q := fun p q => by
+      have : φinv ≫ p = φinv ≫ q := hCot.init_uniq _ _
+      calc p = (φ ≫ φinv) ≫ p := by rw [hφ, Cat.id_comp]
+        _ = φ ≫ (φinv ≫ q) := by rw [Cat.assoc, this]
+        _ = q := by rw [← Cat.assoc, hφ, Cat.id_comp]
+    obtain ⟨ψ, ψinv, hψ, _⟩ := h2
+    have uniqA' : ∀ {Z : 𝒞} (p q : (PreLogos.bottom A'.dom).dom ⟶ Z), p = q := fun p q => by
+      have : ψinv ≫ p = ψinv ≫ q := hCot.init_uniq _ _
+      calc p = (ψ ≫ ψinv) ≫ p := by rw [hψ, Cat.id_comp]
+        _ = ψ ≫ (ψinv ≫ q) := by rw [Cat.assoc, this]
+        _ = q := by rw [← Cat.assoc, hψ, Cat.id_comp]
+    exact ⟨⟨g, uniqA _ _⟩, ⟨ginv, uniqA' _ _⟩, OverHom.ext hgg, OverHom.ext hgg'⟩
+  invImage_preserves_union {X Y} f S T := by
+    -- forget both sides to `𝒞`, chain through `𝒞`'s preservation and the `Σ_B`-invImage
+    -- transport (`forgetSlice_invImage_le` / `le_forgetSlice_invImage`), reflect back.
+    refine ⟨?_, ?_⟩
+    · apply Subobject.forgetSlice_reflects
+      show Subobject.le
+          (Subobject.forgetSlice X (InverseImage f (HasSubobjectUnions.union S T)))
+          (HasSubobjectUnions.union (Subobject.forgetSlice X (InverseImage f S))
+                                    (Subobject.forgetSlice X (InverseImage f T)))
+      refine subLe_trans' (forgetSlice_invImage_le f _) ?_
+      refine subLe_trans' (PreLogos.invImage_preserves_union f.f
+        (Subobject.forgetSlice Y S) (Subobject.forgetSlice Y T)).1 ?_
+      exact union_mono (le_forgetSlice_invImage f S) (le_forgetSlice_invImage f T)
+    · apply Subobject.forgetSlice_reflects
+      show Subobject.le
+          (HasSubobjectUnions.union (Subobject.forgetSlice X (InverseImage f S))
+                                    (Subobject.forgetSlice X (InverseImage f T)))
+          (Subobject.forgetSlice X (InverseImage f (HasSubobjectUnions.union S T)))
+      refine subLe_trans'
+        (union_mono (forgetSlice_invImage_le f S) (forgetSlice_invImage_le f T)) ?_
+      refine subLe_trans' ?_ (le_forgetSlice_invImage f _)
+      exact (PreLogos.invImage_preserves_union f.f
+        (Subobject.forgetSlice Y S) (Subobject.forgetSlice Y T)).2
+  invImage_preserves_bottom {X Y} f := by
+    -- domain iso `(f# ⊥).dom ≅ ⊥.dom` in `𝒞` (from invImage transport + `𝒞`'s preservation),
+    -- promoted to a slice iso using uniqueness of maps out of the initial bottom-domain.
+    letI hCot := minimal_subobject_of_one_is_coterminator (𝒞 := 𝒞) ‹PreLogos 𝒞›
+    let S : Subobject (Over B) Y := Subobject.liftSlice Y (PreLogos.bottom Y.dom)
+    have hAC : Isomorphic (Subobject.forgetSlice X (InverseImage f S)).dom
+                          (InverseImage f.f (PreLogos.bottom Y.dom)).dom :=
+      Subobject.le_antisymm_iso (forgetSlice_invImage_le f S) (le_forgetSlice_invImage f S)
+    have hABD : Isomorphic (Subobject.forgetSlice X (InverseImage f S)).dom
+                           (PreLogos.bottom X.dom).dom :=
+      isomorphic_trans hAC (PreLogos.invImage_preserves_bottom f.f)
+    have hD0 : Isomorphic (PreLogos.bottom X.dom).dom hCot.zero := PreLogos.bottom_dom_iso X.dom _
+    obtain ⟨φ, φinv, hφ, _⟩ := isomorphic_trans hABD hD0
+    obtain ⟨g, ginv, hgg, hgg'⟩ := hABD
+    have uniqA : ∀ {Z : 𝒞}
+        (p q : (Subobject.forgetSlice X (InverseImage f S)).dom ⟶ Z), p = q := fun p q => by
+      have : φinv ≫ p = φinv ≫ q := hCot.init_uniq _ _
+      calc p = (φ ≫ φinv) ≫ p := by rw [hφ, Cat.id_comp]
+        _ = φ ≫ (φinv ≫ q) := by rw [Cat.assoc, this]
+        _ = q := by rw [← Cat.assoc, hφ, Cat.id_comp]
+    obtain ⟨ψ, ψinv, hψ, _⟩ := hD0
+    have uniqD : ∀ {Z : 𝒞} (p q : (PreLogos.bottom X.dom).dom ⟶ Z), p = q := fun p q => by
+      have : ψinv ≫ p = ψinv ≫ q := hCot.init_uniq _ _
+      calc p = (ψ ≫ ψinv) ≫ p := by rw [hψ, Cat.id_comp]
+        _ = ψ ≫ (ψinv ≫ q) := by rw [Cat.assoc, this]
+        _ = q := by rw [← Cat.assoc, hψ, Cat.id_comp]
+    exact ⟨⟨g, uniqA _ _⟩, ⟨ginv, uniqD _ _⟩, OverHom.ext hgg, OverHom.ext hgg'⟩
+
+end overPreLogos
+
+/-! ### `PositivePreLogos (Over B)` and the §1.621 disjointness fields
+
+  With `PreLogos (Over B)` and `HasBinaryCoproducts (Over B)` in hand, `PositivePreLogos
+  (Over B)` is immediate.  The four §1.621 disjointness fields transport from `𝒞`'s
+  `DisjointBinaryCoproduct` through the subobject identification:  the slice injection `inl`
+  is `⟨inl, …⟩`, monic by `sigma_reflects_mono`; disjointness `inl ∩ inr ≤ ⊥` and the cover
+  `⊤ ≤ inl ∪ inr` reflect from the corresponding `𝒞` facts. -/
+
+section overDisjoint
+variable [DisjointBinaryCoproduct 𝒞]
+
+instance overPositivePreLogos (B : 𝒞) : PositivePreLogos (Over B) where
+
+/-- The slice left injection `inl : X ⟶ X+Y` is monic (`Σ_B` reflects monos). -/
+theorem over_inl_monic {X Y : Over B} :
+    Mono (HasBinaryCoproducts.inl (𝒞 := Over B) (A := X) (B := Y)) :=
+  sigma_reflects_mono (HasBinaryCoproducts.inl (𝒞 := Over B)) DisjointBinaryCoproduct.inl_monic
+
+/-- The slice right injection `inr : Y ⟶ X+Y` is monic. -/
+theorem over_inr_monic {X Y : Over B} :
+    Mono (HasBinaryCoproducts.inr (𝒞 := Over B) (A := X) (B := Y)) :=
+  sigma_reflects_mono (HasBinaryCoproducts.inr (𝒞 := Over B)) DisjointBinaryCoproduct.inr_monic
+
+/-- The forgotten slice intersection is below the `𝒞`-intersection of the forgotten subobjects
+    (`Σ_B` preserves the defining pullback): lift the forgotten slice pullback into the chosen
+    base pullback. -/
+theorem forgetSlice_inter_le {Y : Over B} (S T : Subobject (Over B) Y) :
+    Subobject.le (Subobject.forgetSlice Y (Subobject.inter S T))
+                 (Subobject.inter (Subobject.forgetSlice Y S) (Subobject.forgetSlice Y T)) := by
+  let pbc := HasPullbacks.has (Subobject.forgetSlice Y S).arr (Subobject.forgetSlice Y T).arr
+  refine ⟨pbc.lift (sliceConeForget (overPullbackCone S.arr T.arr)), ?_⟩
+  show pbc.lift _ ≫ (pbc.cone.π₁ ≫ (Subobject.forgetSlice Y S).arr) = _
+  rw [← Cat.assoc, pbc.lift_fst]; rfl
+
+/-- **Rung 3: the slice of a disjoint-binary-coproduct pre-topos has disjoint binary coproducts.**
+    The four §1.621 fields transport through the subobject identification `Sub (Over B) Y ≃
+    Sub 𝒞 Y.dom`:  injections are monic by `sigma_reflects_mono`; `inl ∩ inr ≤ ⊥` forgets to the
+    `𝒞` disjointness through `forgetSlice_inter_le`; `⊤ ≤ inl ∪ inr` forgets to the `𝒞` union
+    cover (the slice union/bottom/entire forget on the nose). -/
+instance overDisjointBinaryCoproduct (B : 𝒞) : DisjointBinaryCoproduct (Over B) where
+  inl_monic := over_inl_monic
+  inr_monic := over_inr_monic
+  inl_inter_inr {X Y} := by
+    apply Subobject.forgetSlice_reflects
+    show Subobject.le
+        (Subobject.forgetSlice (HasBinaryCoproducts.coprod X Y)
+          (Subobject.inter (inlSub over_inl_monic) (inrSub over_inr_monic)))
+        (PreLogos.bottom (HasBinaryCoproducts.coprod X Y).dom)
+    exact subLe_trans' (forgetSlice_inter_le _ _) inl_inter_inr_le_bottom
+  inl_union_inr {X Y} := by
+    apply Subobject.forgetSlice_reflects
+    show Subobject.le
+        (Subobject.forgetSlice (HasBinaryCoproducts.coprod X Y)
+          (Subobject.entire (HasBinaryCoproducts.coprod X Y)))
+        (HasSubobjectUnions.union
+          (Subobject.forgetSlice (HasBinaryCoproducts.coprod X Y) (inlSub over_inl_monic))
+          (Subobject.forgetSlice (HasBinaryCoproducts.coprod X Y) (inrSub over_inr_monic)))
+    exact inl_union_inr_entire
+
+end overDisjoint
+
 /-! ## Residual: completing the slice pre-topos tower (toward §1.662 Diaconescu)
 
-  Rungs 1, 2, 4 are now DONE sorry-free above:
+  Rungs 1, 2, 3, 4 are now DONE sorry-free above:
 
   1. ✅ **Forget commutes with the calculus** (`BinRel.forgetSlice`, `forgetSlice_graph`,
      `forgetSlice_reciprocal` on the nose; `forgetSlice_compose_le` + `le_forgetSlice_compose`
      for `⊚` up to the comparison iso; `forgetSlice_mono_relLe` / `forgetSlice_reflects_relLe`
      for faithfulness).
   2. ✅ **`EffectiveRegular (Over B)`** (`overEffectiveRegular`, via `sliceIsEffective`).
+  3. ✅ **`DisjointBinaryCoproduct (Over B)`** (`overDisjointBinaryCoproduct`).  Built by
+     domain-transport along the faithful `Σ_B`: the order-iso `Sub (Over B) Y ≃ Sub 𝒞 Y.dom`
+     (`Subobject.forgetSlice`/`liftSlice`, mutually monotone with `forgetSlice ∘ liftSlice = id`)
+     transports the WHOLE `PreLogos (Over B)` lattice — `overHasSubobjectUnions`,
+     `overPreLogos` (`bottom`/`bottom_min`/`bottom_dom_iso`/`invImage_preserves_union`/
+     `invImage_preserves_bottom`) — from `𝒞`'s lattice on `Y.dom`.  The one new construction is
+     `overHasBinaryCoproducts` (`X + Y = X.dom + Y.dom` with structure map `case X.hom Y.hom`);
+     `overPositivePreLogos` and the four §1.621 disjointness fields then transport from `𝒞`'s
+     `DisjointBinaryCoproduct` through the subobject identification.
   4. ✅ **`HasReflTransClosure (Over B)`** (`overHasReflTransClosure`, via `sliceTransRefClos`).
 
-  REMAINING (next-rung residual):
-
-  3. **`DisjointBinaryCoproduct (Over B)`** — NOT yet built.  This is the heaviest rung: it
-     extends `PositivePreLogos (Over B)`, which in turn needs `HasBinaryCoproducts (Over B)`
-     (slice coproduct `X + Y → B` by copairing the two structure maps), `HasSubobjectUnions
-     (Over B)`, and the full `PreLogos (Over B)` data (`bottom`, `bottom_min`, `bottom_dom_iso`,
-     `invImage_preserves_union`, `invImage_preserves_bottom`).  NONE of these slice instances
-     exist yet in the repo.  Only after `PositivePreLogos (Over B)` is in hand can the three
-     §1.621 disjointness fields (`inl_monic`, `inr_monic`, `inl_inter_inr`, `inl_union_inr`)
-     be transported.  Combined with rung 2 this would give `PreToposDisjoint (Over B)`; with
-     rung 4 it closes the §1.662 Diaconescu hypotheses.  This is a self-contained multi-hundred-
-     line PreLogos-transport (slice coproducts + subobject-union transport along the faithful
-     forgetful functor `Σ_B`, which preserves images and pullbacks) and is the exact next task.
+  REMAINING (final residual):
 
   5. **Diaconescu transport (final).**  `preTopos_boolean_iff_all_decidable.mpr` reduces the
      `S1_64` goal to `∀ A, DecidableObject A`.  Decidability of `A` is the diagonal
