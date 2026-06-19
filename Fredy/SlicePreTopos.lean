@@ -455,6 +455,113 @@ end effective
 instance overEffectiveRegular (B : 𝒞) [EffectiveRegular 𝒞] : EffectiveRegular (Over B) where
   effective E hE := sliceIsEffective E hE
 
+/-! ## Rung 4: `HasReflTransClosure (Over B)`
+
+  The reflexive-transitive closure of a slice relation `R` is the slice lift of `rtc R̄`
+  (`R̄ = R.forgetSlice`).  `R̄`'s legs equalise `A.hom` (they come from slice arrows), and
+  `kernelPairRel A.hom` is a reflexive+transitive relation containing `R̄`, so by `rtc`-minimality
+  `rtc R̄`'s legs *also* equalise `A.hom`; hence `rtc R̄` lifts to a slice relation `M` with
+  `M.forgetSlice = rtc R̄` (on the nose).  Reflexivity/transitivity/minimality then transport
+  through `forgetSlice_reflects_relLe` and the rung-1 comparison. -/
+
+section rtc
+variable [RegularCategory 𝒞] [HasReflTransClosure 𝒞] {A : Over B}
+
+/-- Lift a `𝒞`-relation on `A.dom` whose legs equalise `A.hom` back to a slice relation on `A`.
+    Round-trips with `forgetSlice` on the nose. -/
+def BinRel.liftSlice (M : BinRel 𝒞 A.dom A.dom)
+    (hleg : M.colA ≫ A.hom = M.colB ≫ A.hom) : BinRel (Over B) A A where
+  src := ⟨M.src, M.colA ≫ A.hom⟩
+  colA := ⟨M.colA, rfl⟩
+  colB := ⟨M.colB, hleg.symm⟩
+  isMonicPair := by
+    intro W f g hA hB
+    apply OverHom.ext
+    exact M.isMonicPair f.f g.f (congrArg OverHom.f hA) (congrArg OverHom.f hB)
+
+@[simp] theorem BinRel.forgetSlice_liftSlice (M : BinRel 𝒞 A.dom A.dom)
+    (hleg : M.colA ≫ A.hom = M.colB ≫ A.hom) :
+    (BinRel.liftSlice M hleg).forgetSlice = M := rfl
+
+/-- `R.forgetSlice`'s legs equalise `A.hom` (they are slice arrows). -/
+theorem forgetSlice_endo_legs_equalise (R : BinRel (Over B) A A) :
+    R.forgetSlice.colA ≫ A.hom = R.forgetSlice.colB ≫ A.hom := by
+  show R.colA.f ≫ A.hom = R.colB.f ≫ A.hom
+  rw [R.colA.w, R.colB.w]
+
+/-- `kernelPairRel A.hom`'s legs equalise `A.hom` (`kp₁ ≫ A.hom = kp₂ ≫ A.hom`). -/
+theorem kernelPairRel_legs_equalise (A : Over B) :
+    (kernelPairRel A.hom).colA ≫ A.hom = (kernelPairRel A.hom).colB ≫ A.hom :=
+  kp_sq
+
+/-- `rtc R̄`'s legs equalise `A.hom`: `rtc R̄ ⊂ kernelPairRel A.hom` (a reflexive+transitive
+    relation containing `R̄`), and the latter equalises by `kp_sq`. -/
+theorem rtc_forgetSlice_legs_equalise (R : BinRel (Over B) A A) :
+    (rtc R.forgetSlice).colA ≫ A.hom = (rtc R.forgetSlice).colB ≫ A.hom := by
+  -- `R̄ ⊂ kernelPairRel A.hom`: the kernel-pair lift of `R̄`'s (equalising) legs is the witness.
+  have hRle : RelLe R.forgetSlice (kernelPairRel A.hom) :=
+    ⟨⟨(HasPullbacks.has A.hom A.hom).lift
+        ⟨R.forgetSlice.src, R.forgetSlice.colA, R.forgetSlice.colB,
+          forgetSlice_endo_legs_equalise R⟩,
+      kp_lift_p₁ _ _ (forgetSlice_endo_legs_equalise R),
+      kp_lift_p₂ _ _ (forgetSlice_endo_legs_equalise R)⟩⟩
+  -- `kernelPairRel A.hom` is reflexive + transitive
+  obtain ⟨hrefl, _, htrans⟩ := level_is_equivalence_relation A.hom
+  have hreflD : IsReflexive (kernelPairRel A.hom) := by
+    obtain ⟨h, hA, hB⟩ := hrefl
+    exact ⟨⟨h, by simpa [graph, Cat.id_comp] using hA, by simpa [graph, Cat.id_comp] using hB⟩⟩
+  -- `rtc R̄ ⊂ kernelPairRel A.hom`
+  obtain ⟨w, hwA, hwB⟩ := rtc_minimal R.forgetSlice (kernelPairRel A.hom) hRle hreflD htrans
+  calc (rtc R.forgetSlice).colA ≫ A.hom
+      = (w ≫ (kernelPairRel A.hom).colA) ≫ A.hom := by rw [hwA]
+    _ = w ≫ ((kernelPairRel A.hom).colA ≫ A.hom) := Cat.assoc _ _ _
+    _ = w ≫ ((kernelPairRel A.hom).colB ≫ A.hom) := by rw [kernelPairRel_legs_equalise]
+    _ = (w ≫ (kernelPairRel A.hom).colB) ≫ A.hom := (Cat.assoc _ _ _).symm
+    _ = (rtc R.forgetSlice).colB ≫ A.hom := by rw [hwB]
+
+/-- The slice reflexive-transitive closure: lift `rtc R̄` back to the slice. -/
+def sliceTransRefClos (R : BinRel (Over B) A A) : TransRefClos R where
+  clos := BinRel.liftSlice (rtc R.forgetSlice) (rtc_forgetSlice_legs_equalise R)
+  le := by
+    apply forgetSlice_reflects_relLe
+    rw [BinRel.forgetSlice_liftSlice]
+    exact le_rtc R.forgetSlice
+  refl := by
+    -- `1_A ⊂ M`: reflect `graph (id A.dom) ⊂ rtc R̄`; `(graph (id A)).forgetSlice = graph (id A.dom)`.
+    have h := forgetSlice_reflects_relLe (R := graph (Cat.id A))
+      (S := BinRel.liftSlice (rtc R.forgetSlice) (rtc_forgetSlice_legs_equalise R))
+    apply h
+    rw [BinRel.forgetSlice_liftSlice]
+    -- `(graph (Cat.id A)).forgetSlice = graph (Cat.id A.dom)` on the nose.
+    show graph (Cat.id A.dom) ⊂ rtc R.forgetSlice
+    exact rtc_reflexive R.forgetSlice
+  trans := by
+    -- `M ⊚ M ⊂ M`: reflect to `(M ⊚ M).forgetSlice ⊂ M̄`; forward-compare then `rtc`-transitivity.
+    apply forgetSlice_reflects_relLe
+    rw [BinRel.forgetSlice_liftSlice]
+    refine rel_le_trans (forgetSlice_compose_le _ _) ?_
+    rw [BinRel.forgetSlice_liftSlice]
+    exact rtc_transitive R.forgetSlice
+  minimal := by
+    intro T hRT hReflT hTransT
+    -- reflect `M̄ ⊂ T̄` via `rtc`-minimality on `R̄ ⊂ T̄`, `T̄` reflexive + transitive.
+    apply forgetSlice_reflects_relLe
+    rw [BinRel.forgetSlice_liftSlice]
+    refine rtc_minimal R.forgetSlice T.forgetSlice (forgetSlice_mono_relLe hRT) ?_ ?_
+    · -- `T̄` reflexive: reflect `graph (id A.dom) ⊂ T̄` from slice `1_A ⊂ T`.
+      have := forgetSlice_mono_relLe hReflT
+      -- `(graph (Cat.id A)).forgetSlice = graph (Cat.id A.dom)`.
+      exact this
+    · -- `T̄` transitive: `T̄ ⊚ T̄ ⊂ (T ⊚ T).forgetSlice ⊂ T̄`.
+      exact rel_le_trans (le_forgetSlice_compose T T) (forgetSlice_mono_relLe hTransT)
+
+end rtc
+
+/-- **The slice of a category with reflexive-transitive closures has them** (rung 4). -/
+instance overHasReflTransClosure (B : 𝒞) [RegularCategory 𝒞] [HasReflTransClosure 𝒞] :
+    HasReflTransClosure (Over B) where
+  transRefClos R := sliceTransRefClos R
+
 /-! ## Residual: completing the slice pre-topos tower (toward §1.662 Diaconescu)
 
   With `HasImages (Over B)` and `RegularCategory (Over B)` above, the slice now supports the
