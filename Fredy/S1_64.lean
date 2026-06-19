@@ -2377,7 +2377,7 @@ private theorem choice_factor_through_map {A C D : 𝒞}
 /-- A morphism with a section is a cover (split epi ⟹ cover):
     given `s ≫ e = id`, any monic `m` that `e` factors through is split epi
     (via `s ≫ g`), and a monic split epi is an iso. -/
-private theorem cover_of_section {X Y : 𝒞} (e : X ⟶ Y) (s : Y ⟶ X)
+private theorem cover_of_split_section {X Y : 𝒞} (e : X ⟶ Y) (s : Y ⟶ X)
     (hs : s ≫ e = Cat.id Y) : Cover e := by
   intro C m g hm hgm
   -- m is split epi: (s ≫ g) ≫ m = s ≫ e = id_Y.
@@ -2501,7 +2501,7 @@ private theorem entire_refine {A B C : 𝒞} [PullbacksTransferCovers 𝒞]
   -- (R'⊚graph p).colA is a cover: graph f ⊂ R'⊚graph p gives a section (graph f has colA = id_A).
   obtain ⟨h, hA, _hB⟩ := hgf
   have hsec : h ≫ (R' ⊚ graph p).colA = Cat.id A := by simpa [graph] using hA
-  have hcov_comp : Cover (R' ⊚ graph p).colA := cover_of_section _ h hsec
+  have hcov_comp : Cover (R' ⊚ graph p).colA := cover_of_split_section _ h hsec
   -- pb.cone.π₁ is iso (pullback against id_B): section s := pb.lift ⟨_, id, R'.colB, _⟩.
   have hsq : Cat.id R'.src ≫ R'.colB = R'.colB ≫ Cat.id B := by rw [Cat.id_comp, Cat.comp_id]
   let s : R'.src ⟶ pb.cone.pt := pb.lift ⟨R'.src, Cat.id R'.src, R'.colB, hsq⟩
