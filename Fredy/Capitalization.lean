@@ -2255,13 +2255,17 @@ noncomputable def nextStep (S : PreRegBundle.{u}) : CapStep S.carrier :=
   nextStepOfEnum (Classical.choose (exists_wellSupported_enum S.carrier))
     (Classical.choose_spec (exists_wellSupported_enum S.carrier))
 
--- `capData_exists` (below) can now NAME the §1.546/§1.547 successor in place — verified:
---   #check (Freyd.nextStep : ∀ (S : PreRegBundle), CapStep S.carrier)
--- (the local `obtain ⟨nextStep, …⟩ := hwall_step` in `capData_exists` shadows it; wiring `nextStep`
--- into `hwall_step` is a SEPARATE task — this relocation only makes the name referenceable here).
+-- `capData_exists` (the §1.543 discharge) is RELOCATED to `Fredy.CapDataWiring` — it must reference
+-- the §1.547 uniform successor (`uniformStep`/`wsCover`/`stepWellPoints_of_fibreDensity`), the
+-- cofinal `hstage` (`hstage_of_cofinal`) and the capital fixpoint (`tower_capital_of_cofinal`), all
+-- of which transitively IMPORT this file, so an in-place discharge here would be an import cycle.
+-- The sorry-free ω-tower package (`towerH*`/`capData_of_tower` below) is what that wiring consumes;
+-- `Freyd.nextStep` here is the legacy countable successor, superseded by the cofinal `uniformStep`.
+-- See `Fredy.CapDataWiring.capData_exists` (sole residual: the §1.546 `FibreDensity`).
 
-/-- **§1.543 — THE REMAINING WALL** (reduced to two sharp sub-obligations).  Every small
-    pre-regular category `A` admits capitalization data `CapData A`.
+/- (Documentation retained; the declarations it described are relocated to `Fredy.CapDataWiring`.)
+    **§1.543 — THE REMAINING WALL** (reduced to two sharp
+    sub-obligations).  Every small pre-regular category `A` admits capitalization data `CapData A`.
 
     The categorical assembly is now *complete and sorry-free* (`capData_of_tower`, `towerSystem`,
     `towerCoherent`, the cast-coherence and the faithful-stage packaging).  `capData_exists` is
@@ -2280,7 +2284,15 @@ noncomputable def nextStep (S : PreRegBundle.{u}) : CapStep S.carrier :=
     These two are the *only* residue, and are now SPLIT into two separately-stated `sorry`s with
     their dependency exposed: `hwall_step` (the successor + full preservation package) and, after
     `obtain`ing it and introducing the colimit's pre-regular instance, `hcap` (the capital closure
-    stated *over* that instance — it genuinely consumes `hwall_step`, hence the nesting). -/
+    stated *over* that instance — it genuinely consumes `hwall_step`, hence the nesting).
+
+   ── RELOCATED.  The former `capData_exists` / `capitalization_lemma_small` bodies (and the
+   sorry-free `hwall_step` ω-tower preservation package they assembled) now live, fully wired to the
+   §1.547 uniform successor, in `Fredy.CapDataWiring`.  Their text is retained below for reference,
+   inside this comment, because the live discharge had to move downstream of the uniform-successor
+   pieces (`uniformStep`/`wsCover`/`hstage_of_cofinal`/`tower_capital_of_cofinal`), all of which
+   import THIS file — so an in-place discharge would be an import cycle. ──
+
 theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
     Nonempty (CapData.{u} A) := by
   -- The two genuine §1.543 walls, now SEPARATED into two named sub-obligations with the
@@ -2584,5 +2596,6 @@ theorem capitalization_lemma_small (A : Type u) [Cat.{u} A] [PreRegularCategory 
       @Capital.{u, u} Ā hC (hP.toHasTerminal) ∧
       ∃ (F : A → Ā) (hF : Functor F), @Faithful.{u, u} A _ Ā hC F hF :=
   (capData_exists A).elim (fun cd => capitalization_of_capData cd)
+-/
 
 end Freyd

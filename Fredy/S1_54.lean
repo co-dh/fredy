@@ -127,10 +127,9 @@ def IsRelativeCapitalization [HasTerminal 𝒞] [HasImages 𝒞] (A A_star : �
   Freyd's "small" hypothesis); it is `capitalization_lemma_small`, hence reduced
   to `capData_exists`. -/
 
-theorem capitalization_lemma (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
-    ∃ (Ā : Type u) (hC : Cat.{u} Ā) (hP : PreRegularCategory Ā),
-      @Capital.{u, u} Ā hC (hP.toHasTerminal) ∧
-      ∃ (F : A → Ā) (hF : Functor F), @Faithful.{u, u} A _ Ā hC F hF :=
-  capitalization_lemma_small A
+-- `capitalization_lemma` (= `capitalization_lemma_small`) is RELOCATED to `Fredy.CapDataWiring`:
+-- it forwards to `capData_exists`, whose §1.543 discharge wires the §1.547 uniform successor, which
+-- transitively imports this file — so it cannot live upstream here.  See
+-- `Fredy.CapDataWiring.capitalization_lemma` (sole residual: the §1.546 `FibreDensity`).
 
 end Freyd
