@@ -531,6 +531,44 @@ def baseChangeTransNatIso :
       naturality {_ _} m := OverHom.ext (_transFwd_natf g g' m) }
   isIso := _transFwd_isIso g g'
 
+-- Public `.f`-leg characterisation of the composite coherence iso.
+-- `baseChangeTransNatIso g g' X` has underlying comparison arrow `_transFwdf g g' X`
+-- (the iterated-/pasted-pullback comparison).  The lemmas below expose how it interacts with the
+-- chosen pullback projections, stated entirely in PUBLIC terms (`HasPullbacks.has _ _` — exactly what
+-- the private `_pb` abbreviates — and `baseChangeObj`).  Downstream §1.546 descent code consumes them.
+
+/-- The underlying comparison arrow of `baseChangeTransNatIso g g' X` is `_transFwdf g g' X`. -/
+theorem baseChangeTransNatIso_app_f (X : Over D) :
+    ((baseChangeTransNatIso g g').nat.app X).f = _transFwdf g g' X := rfl
+
+/-- **`π₂`-leg of the composite coherence comparison.**  The comparison sends the outer (structure)
+    projection of the pasted RHS pullback to the LHS structure projection. -/
+theorem baseChangeTransNatIso_app_f_π₂ (X : Over D) :
+    ((baseChangeTransNatIso g g').nat.app X).f
+        ≫ (HasPullbacks.has (baseChangeObj g X).hom g').cone.π₂
+      = (HasPullbacks.has X.hom (g' ≫ g)).cone.π₂ :=
+  _transFwd_π₂ g g' X
+
+/-- **`π₁ ≫ π₁`-leg of the composite coherence comparison.**  The comparison sends the deep
+    (content) projection of the pasted RHS pullback — outer `π₁` then inner `π₁` — to the LHS
+    content projection. -/
+theorem baseChangeTransNatIso_app_f_π₁ (X : Over D) :
+    ((baseChangeTransNatIso g g').nat.app X).f
+        ≫ ((HasPullbacks.has (baseChangeObj g X).hom g').cone.π₁
+            ≫ (HasPullbacks.has X.hom g).cone.π₁)
+      = (HasPullbacks.has X.hom (g' ≫ g)).cone.π₁ :=
+  _transFwd_π₁ g g' X
+
+/-- **mixed `π₁ ≫ π₂`-leg of the composite coherence comparison.**  Outer `π₁` then inner `π₂` of the
+    pasted RHS pullback equals the LHS structure projection post-composed with `g'`. -/
+theorem baseChangeTransNatIso_app_f_π₁π₂ (X : Over D) :
+    ((baseChangeTransNatIso g g').nat.app X).f
+        ≫ ((HasPullbacks.has (baseChangeObj g X).hom g').cone.π₁
+            ≫ (HasPullbacks.has X.hom g).cone.π₂)
+      = (HasPullbacks.has X.hom (g' ≫ g)).cone.π₂ ≫ g' := by
+  show _transFwdf g g' X ≫ _ = _
+  rw [← Cat.assoc, _transFwd_outer_fst g g' X]; exact _qInner_snd g g' X
+
 end BaseChangeTransIso
 
 /-- **The composite coherence iso of base-change.**  Unlike `StrictBaseChange` (a FALSE equation

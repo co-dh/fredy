@@ -879,10 +879,18 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
       --     `cnDN.π₁`-leg (`hstage` content leg via `proj_pushHom_f_π₁`, `hψfst`) reaches `fst`.
       -- This is the genuine multi-screen `pb_hom_ext` reindexing chain — the §1.546 open core the file
       -- documents (lines 525–635, 706–845) — needing the DESCENT EQUATION relating `m_N.f` (over ∏N,
-      -- content `factorProj N A = ψ ≫ fst` via `proj_pushHom_f_π₁`) to `cnDN.π₁ ≫ mC.f` (over A×PN),
-      -- which is proven from the PRIVATE `baseChangeTransNatIso` leg lemmas (`_transFwd_π₁/π₂`) inside
-      -- CapitalizationLaxColimit.lean composed with `proj_pushHom_f_π₁/π₂`.  All primitives are in
-      -- scope; isolated here as the single sharpest residual.  EXACT goal:
+      -- content `factorProj N A = ψ ≫ fst` via `proj_pushHom_f_π₁`) to `cnDN.π₁ ≫ mC.f` (over A×PN).
+      -- The `baseChangeTransNatIso` comparison legs are now PUBLIC (Step 1, CapitalizationLaxColimit):
+      --   `baseChangeTransNatIso_app_f`     : `(…nat.app X).f = _transFwdf …` (defeq witness);
+      --   `baseChangeTransNatIso_app_f_π₁`  : outer·inner `π₁` ↦ LHS `π₁` (content leg);
+      --   `baseChangeTransNatIso_app_f_π₂`  : outer `π₂` ↦ LHS `π₂` (structure leg);
+      --   `baseChangeTransNatIso_app_f_π₁π₂`: outer `π₁`·inner `π₂` ↦ LHS `π₂ ≫ g'` (pasting leg).
+      -- These characterise `dStep1`/`dStep2`/`dStep3` (and hence `descent`) leg-by-leg in public terms,
+      -- composed with `proj_pushHom_f_π₁/π₂` for `hstage` and `hψfst`/`hψsnd` for the `ψ`-reindex.  ALL
+      -- primitives are now in scope and public; the residual is purely the in-file descent transport
+      -- (compose the three `dStep` legs across the `dStep3pack` `▸`-cast `eqToHom`s, route `hstage`'s
+      -- `pushHom … z₀` content/structure legs through them, read off `s` by `pb_hom_ext` over `cnDN`).
+      -- Isolated here as the single sharpest residual.  EXACT goal:
       --   ⊢ ∃ s : A×PN ⟶ cnDN.pt, s ≫ cnDN.π₂ = id ∧ s ≫ cnDN.π₁ ≫ mC.f ≫ fst = fst
         sorry
       exact freshSection_of_descentSection Dbar mC cnDN hcnDN s hs₂ hsA
