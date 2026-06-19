@@ -22,6 +22,11 @@ import Fredy.S1_44
 import Fredy.S1_45
 import Fredy.S1_51
 import Fredy.S1_52
+import Fredy.S1_56
+import Fredy.S1_59
+import Fredy.S1_62
+import Fredy.S1_77
+import Fredy.S1_64
 import Fredy.SliceRegular
 
 universe v u
@@ -111,6 +116,67 @@ instance overHasImages [HasImages 𝒞] (B : 𝒞) : HasImages (Over B) where
   `PullbacksTransferCovers` (`overPullbacksTransferCovers`, §1.52).  The slice of a regular
   category is regular. -/
 instance overRegular (B : 𝒞) [RegularCategory 𝒞] : RegularCategory (Over B) where
+
+/-! ## Rung 1: the forgetful functor on binary relations
+
+  `Σ_B` sends a slice relation `R : BinRel (Over B) X Y` to the `𝒞`-relation on
+  `X.dom, Y.dom` with columns `R.colA.f, R.colB.f`.  Joint monicity transports by the
+  same object-promotion trick as `sigma_preserves_mono`: a bare span `f, g : W ⟶ R.src.dom`
+  equalising both forgotten columns promotes to a slice span (give `W` the structure map
+  `f ≫ R.src.hom`), where `R.isMonicPair` cancels it. -/
+
+/-- The underlying `𝒞`-relation of a slice relation `R : BinRel (Over B) X Y`. -/
+def BinRel.forgetSlice {X Y : Over B} (R : BinRel (Over B) X Y) :
+    BinRel 𝒞 X.dom Y.dom where
+  src := R.src.dom
+  colA := R.colA.f
+  colB := R.colB.f
+  isMonicPair := by
+    intro W f g hA hB
+    -- Promote `f` to the slice span `⟨W, f ≫ R.src.hom⟩ ⟶ R.src`.
+    have hgw : g ≫ R.src.hom = f ≫ R.src.hom := by
+      have : f ≫ (R.colA.f ≫ X.hom) = g ≫ (R.colA.f ≫ X.hom) := by
+        rw [← Cat.assoc, ← Cat.assoc, hA]
+      rw [R.colA.w] at this; exact this.symm
+    let Wo : Over B := ⟨W, f ≫ R.src.hom⟩
+    let fo : OverHom Wo R.src := ⟨f, rfl⟩
+    let go : OverHom Wo R.src := ⟨g, hgw⟩
+    have := R.isMonicPair fo go (OverHom.ext hA) (OverHom.ext hB)
+    exact congrArg OverHom.f this
+
+@[simp] theorem BinRel.forgetSlice_src {X Y : Over B} (R : BinRel (Over B) X Y) :
+    R.forgetSlice.src = R.src.dom := rfl
+@[simp] theorem BinRel.forgetSlice_colA {X Y : Over B} (R : BinRel (Over B) X Y) :
+    R.forgetSlice.colA = R.colA.f := rfl
+@[simp] theorem BinRel.forgetSlice_colB {X Y : Over B} (R : BinRel (Over B) X Y) :
+    R.forgetSlice.colB = R.colB.f := rfl
+
+/-- `Σ_B` commutes with `reciprocal` on the nose. -/
+theorem forgetSlice_reciprocal {X Y : Over B} (R : BinRel (Over B) X Y) :
+    (reciprocal R).forgetSlice = reciprocal R.forgetSlice := rfl
+
+/-- `Σ_B` commutes with `graph` on the nose: `Σ_B (graph m) = graph m.f`. -/
+theorem forgetSlice_graph {X Y : Over B} (m : OverHom X Y) :
+    (graph m).forgetSlice = graph m.f := rfl
+
+/-- `Σ_B` is monotone on relations: a slice `RelHom R ⟶ S` forgets to a `𝒞`
+    `RelHom R.forgetSlice ⟶ S.forgetSlice` (its witness arrow is `.f`). -/
+theorem forgetSlice_mono_relLe {X Y : Over B} {R S : BinRel (Over B) X Y}
+    (h : R ⊂ S) : R.forgetSlice ⊂ S.forgetSlice := by
+  obtain ⟨k, hA, hB⟩ := h
+  exact ⟨⟨k.f, congrArg OverHom.f hA, congrArg OverHom.f hB⟩⟩
+
+/-- `Σ_B` reflects relation containment: a `𝒞` `RelHom` between forgotten relations
+    promotes (object-promotion trick) to a slice `RelHom`. -/
+theorem forgetSlice_reflects_relLe {X Y : Over B} {R S : BinRel (Over B) X Y}
+    (h : R.forgetSlice ⊂ S.forgetSlice) : R ⊂ S := by
+  obtain ⟨k, hA, hB⟩ := h
+  -- `k : R.src.dom ⟶ S.src.dom`, `k ≫ S.colA.f = R.colA.f`, etc.  Promote `k`.
+  have hkf : k ≫ S.colA.f = R.colA.f := hA
+  have hkw : k ≫ S.src.hom = R.src.hom := by
+    have : k ≫ (S.colA.f ≫ X.hom) = R.colA.f ≫ X.hom := by rw [← Cat.assoc, hkf]
+    rwa [S.colA.w, R.colA.w] at this
+  exact ⟨⟨⟨k, hkw⟩, OverHom.ext hA, OverHom.ext hB⟩⟩
 
 /-! ## Residual: completing the slice pre-topos tower (toward §1.662 Diaconescu)
 
