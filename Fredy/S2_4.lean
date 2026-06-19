@@ -700,24 +700,33 @@ noncomputable def effective_pre_power_is_power {𝒜 : Type u} [EffectivePrePowe
 /-! ## §2.441  Pre-positive allegory and well-joined category
 
   An allegory is PRE-POSITIVE if for every pair of objects (a, β)
-  there exist maps f : a → γ and g : β → γ (common target γ) such that:
-  - ff° ∪ gg° = 1_γ   (jointly cover γ)
-  - f°g = 𝟘            (disjoint images)
-  (Equivalently, r₀ / ℓ = 𝟘, i.e. f°g = 𝟘.)
+  there exist maps f : a → γ and g : β → γ (common target γ) such that
+  (Freyd §2.441, verified against the PDF p.244 — naming f = ℓ, g = ρ):
+  - ff° = 1_a   (ℓℓ° = 1_α : f monic on its source a)
+  - gg° = 1_β   (ρρ° = 1_β : g monic on its source β)
+  - fg° = 𝟘     (ℓρ° = 0, equivalently ρ°ℓ = 0 : disjoint images)
+
+  NOTE on a corrected encoding (faithful-fix): an earlier version of this file
+  stored the JOINT-COVER condition `f°f ∪ g°g = 1_γ` on the common target γ.
+  That is NOT Freyd's definition: the book imposes the two SEPARATE monic
+  equations `ff° = 1_a`, `gg° = 1_β` on the two sources (PDF p.244).  The cover
+  form is strictly weaker (it cannot make `g°` simple, which the §2.441 (1)⟹(4)
+  factorization needs), so it could not carry the book's theorem.  The field below
+  now states Freyd's monic conditions.
 
   A category is WELL-JOINED if for every pair of objects A, B there
   exist a common target C and maps f : A → C, g : B → C. -/
 
 /-- A PRE-POSITIVE ALLEGORY (§2.441): distributive allegory where every pair
-    of objects embeds into a common object via maps with disjoint images
-    covering that object. -/
+    of objects embeds into a common object via MONIC maps with disjoint images. -/
 class PrePositiveAllegory (𝒜 : Type u) extends DistributiveAllegory 𝒜 where
-  /-- For every pair (a, β), maps f : a → γ and g : β → γ with
-      f°f ∪ g°g = 1_γ (covering, diagram order: f° then f gives γ→γ) and
-      fg° = 𝟘 (disjoint: f then g° : a → β). -/
+  /-- For every pair (a, β), maps f : a → γ and g : β → γ (Freyd's ℓ, ρ) with
+      f ≫ f° = 1_a (f monic), g ≫ g° = 1_β (g monic) and
+      f ≫ g° = 𝟘 (disjoint: f then g° : a → β). -/
   pre_positive (a β : 𝒜) : ∃ (γ : 𝒜) (f : a ⟶ γ) (g : β ⟶ γ),
     Map f ∧ Map g ∧
-    (f° ≫ f) ∪ (g° ≫ g) = Cat.id γ ∧
+    f ≫ f° = Cat.id a ∧
+    g ≫ g° = Cat.id β ∧
     f ≫ g° = (𝟘 : a ⟶ β)
 
 /-- A WELL-JOINED CATEGORY (§2.441): allegory where every pair of objects
@@ -749,7 +758,7 @@ class PrePositivePowerAllegory (𝒜 : Type u) extends PowerAllegory 𝒜, PrePo
 theorem pre_positive_to_well_joined {𝒜 : Type u} [PrePositiveAllegory 𝒜] :
     ∀ (A B : 𝒜), ∃ (C : 𝒜) (f : A ⟶ C) (g : B ⟶ C), Map f ∧ Map g := by
   intro A B
-  obtain ⟨γ, f, g, hf, hg, _, _⟩ := PrePositiveAllegory.pre_positive A B
+  obtain ⟨γ, f, g, hf, hg, _, _, _⟩ := PrePositiveAllegory.pre_positive A B
   exact ⟨γ, f, g, hf, hg⟩
 
 /-! ## §2.442  Law of metonymy
@@ -1072,21 +1081,35 @@ private theorem semiSimple_of_straight_simple_factor {𝒜 : Type u} [PowerAlleg
     be stated and consumed inline by `pre_positive_semi_simple_iff_metonymic` below — the apex `c`
     and the morphisms `S, F` all live over the single shared `Allegory`, so `Straight S` unifies.
 
-    RESIDUAL (honest sorry): the book's recipe (§2.441) takes the pre-positive maps `f, g` for
-    `(a, b)` and builds `S = f ∪ R r̃`, `F = r̃°`.  Freyd's construction needs the pre-positive
-    maps to be MONIC (`f f° = 1_a`, `g g° = 1_b`, his `ℓ°ℓ = 1`, `ρ°ρ = 1`); the repo's
-    `PrePositiveAllegory.pre_positive` field encodes only the image-cover `f°f ∪ g°g = 1_γ` and
-    disjointness `f g° = 0`, NOT the monic conditions, so `r̃` (and hence the exact equation
-    `S ≫ F = R`, which otherwise only yields `R ⊑ S ≫ F` via `g g° ⊒ 1_b`) is not assemblable
-    from the present field.  Strengthening `pre_positive` to the book's monic form is a
-    STATEMENT change (header-fenced), so this is reported as a precise definitional residual
-    rather than forced.  Once available, the proof is `S = f ∪ R≫g`, `F = g°`, `rightInvertible_straight`. -/
+    History: an earlier `PrePositiveAllegory.pre_positive` field stored the image-cover
+    `f°f ∪ g°g = 1_γ` instead of Freyd's monic conditions, and that weaker form could NOT make
+    `F = g°` simple, so this factorization was a (header-fenced) definitional residual.
+
+    CLOSED (faithful-fix): the `PrePositiveAllegory.pre_positive` field now carries Freyd's monic
+    conditions (`f ≫ f° = 1_a`, `g ≫ g° = 1_b`, `f ≫ g° = 0`; corrected encoding, see the class
+    docstring), so the book's construction goes through verbatim: take the pre-positive maps `f, g`
+    for the pair `(a, b)`, set `S = f ∪ R≫g` (apex `γ`) and `F = g°`.  Then
+    `S ≫ F = f≫g° ∪ R≫(g≫g°) = 0 ∪ R = R`, `F = g°` is simple because `g≫g° = 1_b`, and `S`
+    is straight because it is right-invertible: `S ≫ f° = f≫f° ∪ R≫(g≫f°) = 1_a ∪ R≫0 = 1_a`,
+    where `g ≫ f° = 0` is the reciprocal of the disjointness `f ≫ g° = 0`. -/
 theorem pre_positive_straight_simple_factor {𝒜 : Type u} [PrePositivePowerAllegory 𝒜]
     {a b : 𝒜} (R : a ⟶ b) :
     ∃ (c : 𝒜) (S : a ⟶ c) (F : c ⟶ b), Straight S ∧ Simple F ∧ R = S ≫ F := by
-  -- Needs the book's MONIC pre-positive maps; the repo field gives only cover+disjointness.
-  -- (See docstring: definitional residual, header-fenced.)
-  sorry
+  -- Freyd §2.441 (1)⟹(4): S = f ∪ R≫g, F = g°, with the book's monic pre-positive maps.
+  obtain ⟨γ, f, g, _hf, _hg, hff, hgg, hfg⟩ := PrePositiveAllegory.pre_positive a b
+  -- Disjointness reciprocated: g ≫ f° = (f ≫ g°)° = 0° = 0.
+  have hgf : g ≫ f° = (𝟘 : b ⟶ a) := by
+    have : (g ≫ f°) = (f ≫ g°)° := by rw [Allegory.recip_comp, Allegory.recip_recip]
+    rw [this, hfg, recip_zero]
+  refine ⟨γ, f ∪ R ≫ g, g°, ?_, ?_, ?_⟩
+  · -- Straight S via right-inverse f°: S ≫ f° = f≫f° ∪ R≫(g≫f°) = 1_a ∪ R≫0 = 1_a.
+    refine rightInvertible_straight (T := f°) ?_
+    rw [union_comp_distrib, Cat.assoc, hgf, DistributiveAllegory.comp_zero, union_zero, hff]
+  · -- Simple F = g°: (g°)° ≫ g° = g ≫ g° = 1_b ⊑ 1_b.
+    dsimp [Simple]; rw [Allegory.recip_recip, hgg]; exact le_refl _
+  · -- S ≫ F = (f ∪ R≫g) ≫ g° = f≫g° ∪ R≫(g≫g°) = 0 ∪ R = R.
+    rw [union_comp_distrib, hfg, Cat.assoc, hgg, Cat.comp_id,
+      DistributiveAllegory.union_comm, union_zero]
 
 /-- A pre-positive power allegory is semi-simple iff it obeys the law of metonymy (§2.442).
 
@@ -1111,8 +1134,9 @@ theorem pre_positive_straight_simple_factor {𝒜 : Type u} [PrePositivePowerAll
     `simple° ≫ simple`; `powerOrder_semiSimple_of_metonymy` gives `SemiSimple (∋/∋)` by
     `semiSimple_of_le`, and `eps_semiSimple_of_metonymy` lifts it to `SemiSimple ∋`.
 
-    GAP 2 (§2.441 (1)⟹(4)): carried by `pre_positive_straight_simple_factor` (definitional residual:
-    the repo's `pre_positive` field lacks the book's monic conditions — see that lemma's docstring).
+    GAP 2 (§2.441 (1)⟹(4)): CLOSED.  Carried by `pre_positive_straight_simple_factor`, now that the
+    `pre_positive` field states Freyd's monic conditions (faithful-fix; see that lemma's docstring).
+    Hence the FORWARD direction (metonymy ⟹ every morphism semi-simple) is fully proven.
 
     CONVERSE (every morphism semi-simple ⟹ metonymy): residual sorry.  The §2.443 calculus
     (`semiSimple_of_le_powerOrder`, the *unconditional* `f°g ⊑ 2 ⟹ f°g ⊑ bigInter° ≫ bigUnion`)
