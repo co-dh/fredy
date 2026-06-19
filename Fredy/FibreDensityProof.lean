@@ -373,6 +373,25 @@ theorem bcSliceIso_isIso (A P : S) : @IsIso (Over (prod A P)) _ _ _ (bcSliceIso 
     ((HasPullbacks.has ((sliceEmbedObj P A).hom) (snd : prod A P ⟶ P)).lift_fst _)
     ((HasPullbacks.has ((sliceEmbedObj P A).hom) (snd : prod A P ⟶ P)).lift_snd _)
 
+/-- **Transport of the composite-coherence `π₁` content law across a base-map equality.**  The
+    descent leg `dStep3'` is `baseChangeTransNatIso g g'`'s component, cast along a base-map equality
+    `g' ≫ g = Z` (a dependent `PSigma` `▸`).  Reading off `dStep3'`'s deep-content law from the
+    genuine (uncast) `baseChangeTransNatIso_app_f_π₁` requires transporting along that cast; this
+    lemma performs it by generalizing the cast pair and `cases`-ing the equality. -/
+theorem baseChangeTransNatIso_app_f_π₁_cast {C D E : S} (g : C ⟶ D) (g' : E ⟶ C) (X : Over D)
+    {Z : E ⟶ D} (hZ : g' ≫ g = Z) :
+    (Eq.ndrec
+        (motive := fun Z => Σ' f : OverHom (baseChangeObj Z X)
+            ((baseChangeObj g' ∘ baseChangeObj g) X),
+            @IsIso (Over E) _ (baseChangeObj Z X) ((baseChangeObj g' ∘ baseChangeObj g) X) f)
+        (⟨(Freyd.LaxColim.baseChangeTransNatIso g g').nat.app X,
+          (Freyd.LaxColim.baseChangeTransNatIso g g').isIso X⟩) hZ).fst.f
+        ≫ ((HasPullbacks.has (baseChangeObj g X).hom g').cone.π₁
+            ≫ (HasPullbacks.has X.hom g).cone.π₁)
+      = (HasPullbacks.has X.hom Z).cone.π₁ := by
+  cases hZ
+  exact Freyd.LaxColim.baseChangeTransNatIso_app_f_π₁ g g' X
+
 /-- **§1.546(c) — the colimit-factor REFLECTION (the one honest residual).**  At the richer stage
     `U' = A::U` (`A ∉ U`), suppose the §1.546 point `x'` (the `stageInclL U'` of the fresh slice point
     `sliceFactorPoint A fst`, transported across the codomain iso) IS factored by a colimit arrow
@@ -1019,6 +1038,89 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
             -- e.g. `dStep2ψ.f ≫ codPB.π₁ = (ψ-pullback of dStep2 source).π₁ ≫ dStep2.f` by
             -- `lift_fst (baseChangeCone ψ dStep2)`); chaining them across the `dStep3pack` `▸`-cast and
             -- `dStep1inv` to `proj_pushHom_f_π₁` of `hstage` is the remaining mechanical descent.
+            -- ── STEP A: reduce the descent's deep content to the SOURCE deep content projection. ──
+            -- abbreviations: the source-object pullbacks `bc g₁ (bc snd xE')`.
+            let g₁ := selectProj N.1 U'.1 hUN'
+            -- the deep source content projection (of `(bc g₁ ∘ bc snd) xE' = (hcodObj ▸ zN)`'s codom).
+            -- leg reductions (all `lift_fst`/public `baseChangeTransNatIso_app_f_π₁`):
+            have e1 : dStep2ψ.f ≫ codPB.cone.π₁
+                = (HasPullbacks.has (baseChangeObj ((snd : prod A PN ⟶ PN) ≫ q') xE').hom ψ).cone.π₁
+                    ≫ dStep2.f :=
+              codPB.lift_fst (baseChangeCone ψ dStep2)
+            have e2 : dStep2.f ≫ cnDN.π₁ ≫ bcPB_E.cone.π₁
+                = (HasPullbacks.has xE'.hom ((snd : prod A PN ⟶ PN) ≫ q')).cone.π₁ :=
+              baseChangeTransNatIso_app_f_π₁ q' (snd : prod A PN ⟶ PN) xE'
+            have e3' : dStep3'.f
+                  ≫ (HasPullbacks.has (baseChangeObj ((snd : prod A PN ⟶ PN) ≫ q') xE').hom ψ).cone.π₁
+                    ≫ (HasPullbacks.has xE'.hom ((snd : prod A PN ⟶ PN) ≫ q')).cone.π₁
+                = (HasPullbacks.has xE'.hom (g₁ ≫ (snd : prod A P ⟶ P))).cone.π₁ :=
+              baseChangeTransNatIso_app_f_π₁_cast ((snd : prod A PN ⟶ PN) ≫ q') ψ xE' hsplit2'
+            -- the `dStep1` content law, and its inverse for `dStep1inv`.
+            have e0 : dStep1.f
+                  ≫ (HasPullbacks.has (baseChangeObj snd xE').hom g₁).cone.π₁
+                    ≫ (HasPullbacks.has xE'.hom (snd : prod A P ⟶ P)).cone.π₁
+                = (HasPullbacks.has xE'.hom (g₁ ≫ (snd : prod A P ⟶ P))).cone.π₁ :=
+              baseChangeTransNatIso_app_f_π₁ (snd : prod A P ⟶ P) g₁ xE'
+            have e0inv : dStep1inv.f
+                  ≫ (HasPullbacks.has xE'.hom (g₁ ≫ (snd : prod A P ⟶ P))).cone.π₁
+                = (HasPullbacks.has (baseChangeObj snd xE').hom g₁).cone.π₁
+                    ≫ (HasPullbacks.has xE'.hom (snd : prod A P ⟶ P)).cone.π₁ := by
+              have hid : dStep1inv.f ≫ dStep1.f = Cat.id _ :=
+                congrArg OverHom.f (inv_isoInv_comp hdStep1_iso)
+              calc dStep1inv.f
+                      ≫ (HasPullbacks.has xE'.hom (g₁ ≫ (snd : prod A P ⟶ P))).cone.π₁
+                  = dStep1inv.f ≫ dStep1.f
+                      ≫ (HasPullbacks.has (baseChangeObj snd xE').hom g₁).cone.π₁
+                        ≫ (HasPullbacks.has xE'.hom (snd : prod A P ⟶ P)).cone.π₁ := by rw [e0]
+                _ = (dStep1inv.f ≫ dStep1.f)
+                      ≫ (HasPullbacks.has (baseChangeObj snd xE').hom g₁).cone.π₁
+                        ≫ (HasPullbacks.has xE'.hom (snd : prod A P ⟶ P)).cone.π₁ :=
+                    (Cat.assoc _ _ _).symm
+                _ = (HasPullbacks.has (baseChangeObj snd xE').hom g₁).cone.π₁
+                      ≫ (HasPullbacks.has xE'.hom (snd : prod A P ⟶ P)).cone.π₁ := by
+                    rw [hid, Cat.id_comp]
+            -- chain the legs into the master descent-content reduction.
+            have hdescent_content : descent.f ≫ codPB.cone.π₁ ≫ cnDN.π₁ ≫ bcPB_E.cone.π₁
+                = (HasPullbacks.has (baseChangeObj snd xE').hom g₁).cone.π₁
+                    ≫ (HasPullbacks.has xE'.hom (snd : prod A P ⟶ P)).cone.π₁ := by
+              show (dStep1inv.f ≫ dStep3'.f ≫ dStep2ψ.f) ≫ codPB.cone.π₁ ≫ cnDN.π₁ ≫ bcPB_E.cone.π₁
+                = _
+              calc (dStep1inv.f ≫ dStep3'.f ≫ dStep2ψ.f)
+                      ≫ codPB.cone.π₁ ≫ cnDN.π₁ ≫ bcPB_E.cone.π₁
+                  = dStep1inv.f ≫ dStep3'.f
+                      ≫ (dStep2ψ.f ≫ codPB.cone.π₁) ≫ cnDN.π₁ ≫ bcPB_E.cone.π₁ := by
+                    simp only [Cat.assoc]
+                _ = dStep1inv.f ≫ dStep3'.f
+                      ≫ (HasPullbacks.has (baseChangeObj ((snd : prod A PN ⟶ PN) ≫ q') xE').hom ψ).cone.π₁
+                        ≫ dStep2.f ≫ cnDN.π₁ ≫ bcPB_E.cone.π₁ := by rw [e1]; simp only [Cat.assoc]
+                _ = dStep1inv.f ≫ dStep3'.f
+                      ≫ (HasPullbacks.has (baseChangeObj ((snd : prod A PN ⟶ PN) ≫ q') xE').hom ψ).cone.π₁
+                        ≫ (HasPullbacks.has xE'.hom ((snd : prod A PN ⟶ PN) ≫ q')).cone.π₁ := by
+                    rw [e2]
+                _ = dStep1inv.f
+                      ≫ (HasPullbacks.has xE'.hom (g₁ ≫ (snd : prod A P ⟶ P))).cone.π₁ := by
+                    rw [e3']
+                _ = (HasPullbacks.has (baseChangeObj snd xE').hom g₁).cone.π₁
+                      ≫ (HasPullbacks.has xE'.hom (snd : prod A P ⟶ P)).cone.π₁ := e0inv
+            -- ── STEP B: fold the descent content into the SOURCE deep content of `zN`. ──
+            have hzNdf : zNd.f = (hcodObj ▸ zN).f ≫ descent.f := rfl
+            rw [show (zNd.f ≫ codPB.cone.π₁) ≫ cnDN.π₁ ≫ bcPB_E.cone.π₁ ≫ m.f ≫ (fst : prod A P ⟶ A)
+                  = (hcodObj ▸ zN).f
+                      ≫ (descent.f ≫ codPB.cone.π₁ ≫ cnDN.π₁ ≫ bcPB_E.cone.π₁) ≫ m.f ≫ fst from by
+                rw [hzNdf]; simp only [Cat.assoc], hdescent_content]
+            -- ── STEP C (the remaining isolated residual): the SOURCE-content transport. ──
+            -- The descent layer is now fully discharged (STEPS A–B, `hdescent_content`).  EXACT goal:
+            --   (hcodObj ▸ zN).f ≫ (srcDeep₁ ≫ srcDeep₂) ≫ m.f ≫ fst = srcPB.π₂ ≫ ψ ≫ fst
+            -- where srcDeep₁ ≫ srcDeep₂ = the deep content projection of `(bc g₁ ∘ bc snd) xE'`
+            -- (the `hcodObj`-cast codomain of `zN`) reaching `xE'.dom`.
+            -- This is read off `hstage` (the on-the-nose `pushHom`-factorization of the fresh point
+            -- `sc₀`, content `fst`) via `proj_pushHom_f_π₁ cofinalProjSystem _ (L.F hUU' xE') b.2.1 b.2.2
+            -- hbN z₀` (verified in scope), which gives `zN`'s content leg through `transApp`; reconciling
+            -- that `transApp`-presentation with the `hcodObj`-cast `srcDeep` deep projection (both
+            -- present the SAME nested base-change `bc g₁ (bc snd xE')`, by `transApp_f_π₁π₁` ↔ the
+            -- iterated `_pb.π₁`) and then chaining `hstage` + `hψfst` (`ψ ≫ fst = factorProj N A`,
+            -- the content `sc₀` carries) closes it.  The two private reconciliation legs
+            -- (`transApp_f_π₁π₁`, `baseChangeMap_f_π₁` in CapitalizationLaxColimit) need un-privating.
             sorry
           rw [show (r ≫ (zNd.f ≫ codPB.cone.π₁)) ≫ cnDN.π₁ ≫ mC.f ≫ (fst : prod A PN ⟶ A)
                 = r ≫ ((zNd.f ≫ codPB.cone.π₁) ≫ cnDN.π₁ ≫ mC.f ≫ (fst : prod A PN ⟶ A)) from
