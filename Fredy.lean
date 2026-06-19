@@ -23,6 +23,7 @@ import Fredy.S1_51
 import Fredy.S1_52
 import Fredy.S1_53
 import Fredy.SliceRegular
+import Fredy.BaseChangeDescent
 import Fredy.S1_55
 import Fredy.S1_36
 import Fredy.S1_54

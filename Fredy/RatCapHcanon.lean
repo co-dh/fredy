@@ -445,14 +445,14 @@ theorem homInclL_cover_of_stage
     `homInclObj_isIso_reflects`. -/
 theorem homInclL_isIso_reflects'
     (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (φ : x ⟶ y),
-        IsIso (@Functor.map _ _ _ _ _ (L.functF hij) x y φ) → IsIso φ)
-    {i : ι} (x y : L.A i) (g : x ⟶ y)
+        Mono φ → IsIso (@Functor.map _ _ _ _ _ (L.functF hij) x y φ) → IsIso φ)
+    {i : ι} (x y : L.A i) (g : x ⟶ y) (hgmono : Mono g)
     (hiso : @IsIso (Obj L) (laxColimCat L hL) ⟨i, x⟩ ⟨i, y⟩
       (homInclL L hL x y ⟨i, D.refl i, D.refl i⟩ (reflApp L x ≫ g ≫ isoInv (reflApp_isIso L y)))) :
     IsIso g := by
   obtain ⟨e, hae, hpiso⟩ := homInclL_isIso_reflects L hL x y ⟨i, D.refl i, D.refl i⟩
     (reflApp L x ≫ g ≫ isoInv (reflApp_isIso L y)) hiso
-  apply hcons hae
+  apply hcons hae _ hgmono
   -- `pushHom gᵣ = transApp ≫ (map gᵣ) ≫ isoInv transApp`; un-conjugate by the two isos.
   have hi1 : IsIso (transApp L (D.refl i) hae x) := transApp_isIso L (D.refl i) hae x
   have hi1' : IsIso (isoInv (transApp_isIso L (D.refl i) hae y)) :=
@@ -510,7 +510,7 @@ theorem stageInclL_comp {i : ι} {x y z : L.A i} (g : x ⟶ y) (h : y ⟶ z) :
     `homInclObj_cover_reflects`. -/
 theorem homInclL_cover_reflects
     (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (φ : x ⟶ y),
-        IsIso (@Functor.map _ _ _ _ _ (L.functF hij) x y φ) → IsIso φ)
+        Mono φ → IsIso (@Functor.map _ _ _ _ _ (L.functF hij) x y φ) → IsIso φ)
     (hmono : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (φ : x ⟶ y),
         Mono φ → Mono (@Functor.map _ _ _ _ _ (L.functF hij) x y φ))
     {i : ι} {x y : L.A i} (g : x ⟶ y)
@@ -551,7 +551,7 @@ theorem homInclL_cover_reflects
     rw [← stageInclL_comp L hL g'' m', hg''m']
   have hMiso : @IsIso (Obj L) (laxColimCat L hL) ⟨i, c⟩ ⟨i, y⟩ (stageInclL L hL m') :=
     hcov (stageInclL L hL m') (stageInclL L hL g'') hM_mono hfac
-  exact homInclL_isIso_reflects' L hL hcons c y m' hMiso
+  exact homInclL_isIso_reflects' L hL hcons c y m' hm' hMiso
 
 /-! ## Object realignment: identifying `⟨i,x⟩` with its push `⟨e, F x⟩`
 
@@ -1428,7 +1428,7 @@ theorem laxColim_hcanon_of_stage [Nonempty ι]
         @Functor.map _ _ _ _ _ (L.functF hij) x y p
           = @Functor.map _ _ _ _ _ (L.functF hij) x y q → p = q)
     (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (φ : x ⟶ y),
-        IsIso (@Functor.map _ _ _ _ _ (L.functF hij) x y φ) → IsIso φ)
+        Mono φ → IsIso (@Functor.map _ _ _ _ _ (L.functF hij) x y φ) → IsIso φ)
     (hmono : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (φ : x ⟶ y),
         Mono φ → Mono (@Functor.map _ _ _ _ _ (L.functF hij) x y φ))
     (hcovpres : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (φ : x ⟶ y),
