@@ -2089,18 +2089,79 @@ theorem pushout_monic_in_pretopos [PreToposDisjoint 𝒞] [HasReflTransClosure �
 def DecidableObject [PreLogos 𝒞] [HasBinaryProducts 𝒞] (A : 𝒞) : Prop :=
   IsComplemented ({ dom := A, arr := diag A, monic := diag_mono A } : Subobject 𝒞 (prod A A))
 
+/-- **§1.658 (engine)**: every subobject `S ⊆ B` is the inverse image of a DECIDABLE diagonal,
+    hence complemented.  Take `D := B +_S B` (the amalgamation pushout of `S.arr` with itself,
+    `amalgamation_is_pullback`) with monic legs `u, v : B ↣ D`, and the classifying map
+    `c := pair u v : B → D×D`.  The amalgamating square `S.arr ≫ u = S.arr ≫ v` makes `S` land in
+    the diagonal (`S ≤ c#(Δ D)`); the PULLBACK half makes `c#(Δ D)` — the equalizer of `u, v`,
+    i.e. `B ×_D B` — coincide with `S` (`c#(Δ D) ≤ S`).  Then `diagonal_classifies` (with `D`
+    decidable from `h`) and the `isComplemented_iff_sub` bridge give `IsComplemented S`. -/
+theorem subobject_complemented_of_decidable [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞]
+    (h : ∀ (A : 𝒞), DecidableObject A) {B : 𝒞} (S : Subobject 𝒞 B) :
+    IsComplemented S := by
+  -- Amalgamation of `S.arr : S.dom ↣ B` with itself: object `D`, monic legs `u, v`,
+  -- commuting square `S.arr ≫ u = S.arr ≫ v`, which is moreover a PULLBACK.
+  obtain ⟨D, u, v, hsq, hpb, _hpush⟩ :=
+    amalgamation_is_pullback S.arr S.monic S.arr S.monic
+  let c : B ⟶ prod D D := pair u v
+  -- `D` is decidable (diagonal subobject complemented) → `DecidableObjectSub D` via the bridge.
+  have hD : DecidableObjectSub D := by
+    have : IsComplemented (diagSub D) := h D
+    exact (isComplemented_iff_sub (diagSub D)).mp this
+  -- The chosen pullback computing `c # (Δ D)`.
+  let pb := HasPullbacks.has c (diagSub D).arr
+  -- `S ≤ c#(Δ D)`: `S.arr ≫ c` factors through `Δ D` via `S.arr ≫ u` (square commutes).
+  have hS₁ : S.le (InverseImage c (diagSub D)) := by
+    have hw : S.arr ≫ c = (S.arr ≫ u) ≫ (diagSub D).arr := by
+      show S.arr ≫ pair u v = (S.arr ≫ u) ≫ diag D
+      -- compare projections: fst both give `S.arr ≫ u`; snd give `S.arr ≫ v` vs `S.arr ≫ u`.
+      have e1 : (S.arr ≫ pair u v) ≫ fst = ((S.arr ≫ u) ≫ diag D) ≫ fst := by
+        rw [Cat.assoc, fst_pair, Cat.assoc, diag_fst, Cat.comp_id]
+      have e2 : (S.arr ≫ pair u v) ≫ snd = ((S.arr ≫ u) ≫ diag D) ≫ snd := by
+        rw [Cat.assoc, snd_pair, Cat.assoc, diag_snd, Cat.comp_id, ← hsq]
+      calc S.arr ≫ pair u v
+          = pair ((S.arr ≫ pair u v) ≫ fst) ((S.arr ≫ pair u v) ≫ snd) := pair_eta _
+        _ = pair (((S.arr ≫ u) ≫ diag D) ≫ fst) (((S.arr ≫ u) ≫ diag D) ≫ snd) := by rw [e1, e2]
+        _ = (S.arr ≫ u) ≫ diag D := (pair_eta _).symm
+    let d : Cone c (diagSub D).arr := ⟨S.dom, S.arr, S.arr ≫ u, hw⟩
+    exact ⟨pb.lift d, pb.lift_fst d⟩
+  -- `c#(Δ D) ≤ S`: pullback `pt = {b : u b = v b}`; the IsPullback of the amalgamation square
+  -- factors any such `b` through `S.arr`.
+  have hS₂ : (InverseImage c (diagSub D)).le S := by
+    -- `π₁ ≫ u = π₂ = π₁ ≫ v` from the pullback square `π₁ ≫ c = π₂ ≫ Δ D`, by post-fst/snd.
+    have hw : pb.cone.π₁ ≫ c = pb.cone.π₂ ≫ diag D := pb.cone.w
+    have hfst : pb.cone.π₁ ≫ u = pb.cone.π₂ := by
+      calc pb.cone.π₁ ≫ u
+          = (pb.cone.π₁ ≫ c) ≫ fst := by rw [Cat.assoc, fst_pair]
+        _ = (pb.cone.π₂ ≫ diag D) ≫ fst := by rw [hw]
+        _ = pb.cone.π₂ := by rw [Cat.assoc, diag_fst (A := D)]; exact Cat.comp_id _
+    have hsnd : pb.cone.π₁ ≫ v = pb.cone.π₂ := by
+      calc pb.cone.π₁ ≫ v
+          = (pb.cone.π₁ ≫ c) ≫ snd := by rw [Cat.assoc, snd_pair]
+        _ = (pb.cone.π₂ ≫ diag D) ≫ snd := by rw [hw]
+        _ = pb.cone.π₂ := by rw [Cat.assoc, diag_snd (A := D)]; exact Cat.comp_id _
+    have heq : pb.cone.π₁ ≫ u = pb.cone.π₁ ≫ v := by rw [hfst, hsnd]
+    obtain ⟨g, ⟨hg₁, _hg₂⟩, _⟩ := hpb ⟨pb.cone.pt, pb.cone.π₁, pb.cone.π₁, heq⟩
+    exact ⟨g, hg₁⟩
+  -- Assemble: `S` complemented (inter-form via `diagonal_classifies`, then the bridge back).
+  exact (isComplemented_iff_sub S).mpr (diagonal_classifies hD c hS₁ hS₂)
+
 /-- **§1.658**: Every object in a pre-topos is decidable iff the pre-topos is boolean.
     The harder direction (all decidable → boolean) follows because pullbacks of
     complemented subobjects are complemented, and every subobject U ⊆ 1 can be
     pulled back to any slice, where it coincides with the diagonal. -/
-theorem preTopos_boolean_iff_all_decidable [PreTopos 𝒞] [HasBinaryProducts 𝒞] :
+theorem preTopos_boolean_iff_all_decidable [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞] :
     (Nonempty (BooleanPreLogos 𝒞)) ↔ ∀ (A : 𝒞), DecidableObject A := by
   refine ⟨fun ⟨hbool⟩ A => ?_, fun h => ?_⟩
   · -- (⇒) BooleanPreLogos → every diagonal subobject is complemented = DecidableObject A.
     -- The instance mismatch between hbool.toPreLogos and the ambient [PreLogos 𝒞] variable
     -- is resolved by using hbool's union_min to bridge to the ambient union.
     unfold DecidableObject IsComplemented
-    let diagSub : Subobject 𝒞 (prod A A) := { dom := A, arr := diag A, monic := diag_mono A }
+    -- Pin `prod A A`, `diag A` to the ambient `PreTopos` products (NOT `hbool`'s), so the
+    -- complement `A₂` produced below lives in the same lattice the goal `DecidableObject A` uses.
+    letI hP : HasBinaryProducts 𝒞 := PreTopos.toPositivePreLogos.toHasBinaryProducts
+    let diagSub : Subobject 𝒞 (@prod 𝒞 _ hP A A) :=
+      { dom := A, arr := @diag 𝒞 _ hP A, monic := @diag_mono 𝒞 _ hP A }
     obtain ⟨A₂, hdisj, hunion⟩ := hbool.hasComplement diagSub
     -- `hdisj` concludes in `hbool`'s bottom; the goal wants the ambient `PreTopos` bottom.
     -- Both are minimal, so `hbool.bottom ≤ ambient.bottom` (`bottom_min`) bridges by composition.
@@ -2130,28 +2191,14 @@ theorem preTopos_boolean_iff_all_decidable [PreTopos 𝒞] [HasBinaryProducts �
     obtain ⟨e1, he1⟩ := hunion
     obtain ⟨e2, he2⟩ := hle
     exact ⟨e1 ≫ e2, by rw [Cat.assoc, he2, he1]⟩
-  · -- (⇐) All decidable → BooleanPreLogos.
-    -- STATUS (Gap C audit): the complement-side infrastructure is now CLOSED and available —
-    --   • pullback-stability of complements: `invImage_complementedSub` (Complement.lean);
-    --   • the `IsComplemented ↔ IsComplementedSub` bridge: `isComplemented_iff_sub` (above);
-    --   • diagonal-classifies transfer: `diagonal_classifies` (Complement.lean).
-    -- So GIVEN a classifying map `c : B → A×A` exhibiting an arbitrary `S ⊆ B` as the inverse
-    -- image `c#(diagSub A)` of a *decidable* diagonal, `S` is complemented in one line
-    --   `(isComplemented_iff_sub S).mpr (diagonal_classifies (h A) c hS₁ hS₂)`.
-    --
-    -- GENUINE RESIDUAL (not reachable from Complement.lean): the *construction of `c`* for an
-    -- ARBITRARY subobject `S`.  Exhibiting any `S ⊆ B` as a pullback of a FIXED subobject is
-    -- exactly a subobject-classifier property — a pre-topos has none (that is §1.91 topos
-    -- territory, downstream of §1.64, so importing it would be circular).  Freyd's classifier-
-    -- free route takes `A := B +_S B` (the amalgamation pushout of `m : S ↣ B` with itself) and
-    -- `c := ⟨i₀, i₁⟩`, whence `S = equalizer(i₀,i₁) = c#(diagSub A)` — but this needs the
-    -- GENUINE pushout universal property to force `c#(diagSub A) ≤ S` (the reverse `S ≤ c#…`
-    -- holds from the commuting square alone).  `amalgamation_lemma` (§1.651) returns only a
-    -- commuting square of monics `∃ D u v, Mono u ∧ Mono v ∧ x≫u = y≫v` — NO universal property
-    -- — and even that carries its own leg-monicity `sorry`.  Closing this requires rebuilding
-    -- §1.651's effective-quotient pushout WITH its UMP; out of scope for the Complement layer.
-    -- Reduces to: the genuine `B +_S B` pushout (UMP). Faithful sorry.
-    sorry
+  · -- (⇐) All decidable → BooleanPreLogos.  Every subobject `S ⊆ B` is complemented via the
+    -- amalgamation classifier `c = pair u v : B → D×D` for `D = B +_S B`:
+    -- `subobject_complemented_of_decidable` packages the `S = c#(Δ D)` argument (using the
+    -- `amalgamation_is_pullback` UMP) and the `diagonal_classifies` + `isComplemented_iff_sub`
+    -- discharge.  We construct `BooleanPreLogos` directly from `h` (no `hbool` in scope here,
+    -- so no product-instance diamond).
+    exact ⟨{ toPreLogos := PreTopos.toPositivePreLogos.toPreLogos
+             hasComplement := fun {A} S => subobject_complemented_of_decidable h S }⟩
 
 /-! ## §1.659 Decidability in functor categories and sheaves
 
@@ -2587,15 +2634,19 @@ theorem coprod_choice_to_one_one_choice
     of 1+1; 1+1 is decidable (§1.658) and so is P; U is complemented as a
     pullback of a complemented subobject.
 
-    STATUS (Gap C audit): clause (c) "pullback of a complemented subobject is complemented"
-    is now CLOSED (`invImage_complementedSub` + `isComplemented_iff_sub` bridge), and the
-    decidability transfer (`diagonal_classifies`) is available.  Two clauses remain genuinely
-    absent: (a) the slice pre-topos 𝒮(1) inheriting condition (2a) — no slice-transport layer
-    in this repo at §1.64 — and (b) the pushout `P = 1 +_U 1` with its UNIVERSAL property, which
-    is what forces `U = equalizer(i₀,i₁) = c#(diagSub P)`.  `amalgamation_lemma` (§1.651) returns
-    only a commuting square of monics (no UMP, and a leg-monicity `sorry`), so it cannot supply
-    `U = c#(diagSub P)` — only `U ≤ c#…`.  Faithful statement; reduces to the genuine `1 +_U 1`
-    pushout (UMP) + slice transport.  Complement pullback-stability (c) is no longer the gap. -/
+    STATUS: clause (b) the pushout `P = 1 +_U 1` WITH its universal property is now CLOSED
+    (`amalgamation_is_pullback`, the pullback half of §1.651), and clause (c) pullback-stability
+    of complements is CLOSED (`invImage_complementedSub` + `isComplemented_iff_sub`).  In fact
+    `subobject_complemented_of_decidable` (above) already packages (b)+(c) into a one-shot
+    "every subobject is complemented PROVIDED every object is decidable", so once `∀ A,
+    DecidableObject A` is in hand, `preTopos_boolean_iff_all_decidable` finishes `BooleanPreLogos`.
+    The SOLE remaining gap is (a): deriving `∀ A, DecidableObject A` from `Choice (1+1)`.  Freyd
+    routes this through slices — condition (2a) (every cover `X∪Y=B` refines to a partition) is a
+    restatement of `Choice (1+1)`, is inherited by every slice `𝒮(B)`, and decidability of `A`
+    is (2a) in the slice over `A` applied to the diagonal cover.  That slice-transport layer
+    (`(2a)` pulled back along `𝒮(B)→𝒮(1)`) does not yet exist at §1.64: the amalgamation pushout
+    only realizes subobjects of `1` (via `1 +_U 1`), not the diagonal `A ↣ A×A` of an arbitrary
+    `A`.  Faithful statement; residual = the slice transport of (2a), NOT the pushout UMP. -/
 theorem one_one_choice_to_boolean [HasBinaryProducts 𝒞]
     (h : Choice (HasBinaryCoproducts.coprod (one : 𝒞) one)) :
     Nonempty (BooleanPreLogos 𝒞) := by
