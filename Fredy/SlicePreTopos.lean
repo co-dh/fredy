@@ -35,6 +35,7 @@ variable {𝒞 : Type u} [Cat.{v} 𝒞]
 
 namespace Freyd
 
+section rung01
 variable [HasPullbacks 𝒞]
 
 /-! ## Subobject correspondence `Subobject (Over B) Y ≃ Subobject 𝒞 Y.dom`
@@ -319,7 +320,140 @@ theorem le_forgetSlice_compose (R : BinRel (Over B) X Y) (S : BinRel (Over B) Y 
         _ = pbc.cone.π₂ ≫ S.colB.f := snd_pair _ _
     rw [hL, hR]
 
+/-- `Σ_B (R ⊚ S)` and `(Σ_B R) ⊚ (Σ_B S)` are mutually contained: the comparison iso. -/
+theorem forgetSlice_compose_iso (R : BinRel (Over B) X Y) (S : BinRel (Over B) Y Z) :
+    ((R ⊚ S).forgetSlice ⊂ (R.forgetSlice ⊚ S.forgetSlice)) ∧
+    ((R.forgetSlice ⊚ S.forgetSlice) ⊂ (R ⊚ S).forgetSlice) :=
+  ⟨forgetSlice_compose_le R S, le_forgetSlice_compose R S⟩
+
 end composeComparison
+
+end rung01
+
+variable {B : 𝒞}
+
+/-! ## Rung 2: `EffectiveRegular (Over B)`
+
+  A slice equivalence relation `E` forgets to a `𝒞`-equivalence relation `E̅` (reflexivity and
+  symmetry transport on the nose; transitivity uses the rung-1 comparison).  `𝒞`'s effectiveness
+  hands a cover `q̄ : X.dom ↠ Q₀` with `E̅ ≅ q̄q̄°`.  Both legs `E.colA.f, E.colB.f` equalise
+  `X.hom`, and `q̄` coequalises them (`cover_is_coequalizer_of_level`), so `X.hom = q̄ ≫ b` for a
+  unique `b : Q₀ ⟶ B`.  Then `q : X ↠ ⟨Q₀, b⟩` is a slice cover whose slice level forgets back to
+  `E̅`; reflecting the `𝒞`-iso through `Σ_B` (faithful) and the rung-1 comparison gives the slice
+  iso `E ≅ q q°`, i.e. `IsEffective E`. -/
+
+section effective
+-- `EffectiveRegular 𝒞` bundles `HasPullbacks`/`HasImages`/`HasBinaryProducts`; using it as the
+-- sole source (no standalone `[HasPullbacks 𝒞]` here) keeps a single instance, so the slice
+-- relation predicates and `EffectiveRegular.effective` agree without a diamond.
+variable [EffectiveRegular 𝒞] {X : Over B}
+
+/-- `kernelPairRel g ⊂ (graph g) ⊚ (graph g)°` (re-proved here; the `S1_64` copy is `private`).
+    The kernel-pair legs cone over `g, g`, lift into the composition's pullback, then through
+    `image.lift`. -/
+theorem kernelPairRel_le_graphComp [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
+    [HasImages 𝒞] {A Q : 𝒞} (g : A ⟶ Q) :
+    RelLe (kernelPairRel g) ((graph g) ⊚ (graph g)°) := by
+  let pb := HasPullbacks.has (graph g).colB ((graph g)°).colA
+  let a' := pb.cone.π₁ ≫ (graph g).colA
+  let c' := pb.cone.π₂ ≫ ((graph g)°).colB
+  let sp : pb.cone.pt ⟶ prod A A := pair a' c'
+  have hcone : kp₁ (f := g) ≫ (graph g).colB = kp₂ (f := g) ≫ ((graph g)°).colA := by
+    simp only [graph, reciprocal]; exact kp_sq
+  let v := pb.lift ⟨_, kp₁ (f := g), kp₂ (f := g), hcone⟩
+  have hv1 : v ≫ pb.cone.π₁ = kp₁ (f := g) := pb.lift_fst _
+  have hv2 : v ≫ pb.cone.π₂ = kp₂ (f := g) := pb.lift_snd _
+  refine ⟨⟨v ≫ image.lift sp, ?_, ?_⟩⟩
+  · show (v ≫ image.lift sp) ≫ ((image sp).arr ≫ fst) = kp₁ (f := g)
+    calc (v ≫ image.lift sp) ≫ ((image sp).arr ≫ fst)
+        = v ≫ ((image.lift sp ≫ (image sp).arr) ≫ fst) := by simp [Cat.assoc]
+      _ = v ≫ (sp ≫ fst) := by rw [image.lift_fac]
+      _ = v ≫ a' := by rw [fst_pair]
+      _ = (v ≫ pb.cone.π₁) ≫ (graph g).colA := by dsimp [a']; rw [Cat.assoc]
+      _ = kp₁ (f := g) := by rw [hv1]; simp [graph, Cat.comp_id]
+  · show (v ≫ image.lift sp) ≫ ((image sp).arr ≫ snd) = kp₂ (f := g)
+    calc (v ≫ image.lift sp) ≫ ((image sp).arr ≫ snd)
+        = v ≫ ((image.lift sp ≫ (image sp).arr) ≫ snd) := by simp [Cat.assoc]
+      _ = v ≫ (sp ≫ snd) := by rw [image.lift_fac]
+      _ = v ≫ c' := by rw [snd_pair]
+      _ = (v ≫ pb.cone.π₂) ≫ ((graph g)°).colB := by dsimp [c']; rw [Cat.assoc]
+      _ = kp₂ (f := g) := by rw [hv2]; simp [graph, reciprocal, Cat.comp_id]
+
+/-- The forgotten relation of a slice equivalence relation is a `𝒞`-equivalence relation. -/
+theorem forgetSlice_equivalenceRelation (E : BinRel (Over B) X X)
+    (hE : EquivalenceRelation E) : EquivalenceRelation E.forgetSlice := by
+  obtain ⟨⟨ho, hoA, hoB⟩, hsym, htrans⟩ := hE
+  refine ⟨⟨ho.f, ?_, ?_⟩, ?_, ?_⟩
+  · -- reflexivity, column A: `ho.f ≫ E.colA.f = (ho ⊚ E.colA).f = id`
+    show ho.f ≫ E.colA.f = Cat.id X.dom
+    exact congrArg OverHom.f hoA
+  · show ho.f ≫ E.colB.f = Cat.id X.dom
+    exact congrArg OverHom.f hoB
+  · -- symmetry: forget the slice `RelHom E ⟶ E°`; `(E°).forgetSlice = (E.forgetSlice)°` (rfl).
+    exact forgetSlice_mono_relLe hsym
+  · -- transitivity: `E̅ ⊚ E̅ ⊂ (E ⊚ E).forgetSlice ⊂ E̅`.
+    exact rel_le_trans (le_forgetSlice_compose E E) (forgetSlice_mono_relLe htrans)
+
+/-- Both legs of `E̅ = E.forgetSlice` equalise `X.hom` (both compose to `E.src.hom`). -/
+theorem forgetSlice_legs_equalise (E : BinRel (Over B) X X) :
+    E.forgetSlice.colA ≫ X.hom = E.forgetSlice.colB ≫ X.hom := by
+  show E.colA.f ≫ X.hom = E.colB.f ≫ X.hom
+  rw [E.colA.w, E.colB.w]
+
+/-- `Σ_B (graph q ⊚ (graph q)°) ` versus `graph q.f ⊚ (graph q.f)°`: contained each way
+    via rung 1 and the on-the-nose `forgetSlice_graph` / `forgetSlice_reciprocal`. -/
+theorem forgetSlice_graphComp_iso {Q : Over B} (q : OverHom X Q) :
+    ((graph q ⊚ (graph q)°).forgetSlice ⊂ (graph q.f ⊚ (graph q.f)°)) ∧
+    ((graph q.f ⊚ (graph q.f)°) ⊂ (graph q ⊚ (graph q)°).forgetSlice) := by
+  have he : (graph q).forgetSlice = graph q.f := forgetSlice_graph q
+  have hr : ((graph q)°).forgetSlice = (graph q.f)° := by
+    rw [forgetSlice_reciprocal, he]
+  refine ⟨?_, ?_⟩
+  · have := forgetSlice_compose_le (graph q) ((graph q)°)
+    rwa [he, hr] at this
+  · have := le_forgetSlice_compose (graph q) ((graph q)°)
+    rwa [he, hr] at this
+
+/-- **Rung 2: every slice equivalence relation is effective.**  Forget to `𝒞`, apply `𝒞`'s
+    effectiveness for the cover `q̄`, factor `X.hom = q̄ ≫ b` (leg-equalisation + coequaliser),
+    lift `q̄` to a slice cover `q : X ↠ ⟨Q₀, b⟩`, and reflect the `𝒞`-iso `E̅ ≅ q̄q̄°` back through
+    `Σ_B` (faithful) using rung 1. -/
+theorem sliceIsEffective (E : BinRel (Over B) X X) (hE : EquivalenceRelation E) :
+    IsEffective E := by
+  -- forget and apply 𝒞-effectiveness
+  obtain ⟨_, Q₀, qbar, hqcov, hf1, hf2⟩ :=
+    EffectiveRegular.effective E.forgetSlice (forgetSlice_equivalenceRelation E hE)
+  -- hf1 : E̅ ⊂ graph q̄ ⊚ graph q̄°,  hf2 : graph q̄ ⊚ graph q̄° ⊂ E̅
+  -- `X.hom` equalises `q̄`'s kernel pair, so it factors `q̄ ≫ b`.
+  have hkpb : kp₁ (f := qbar) ≫ X.hom = kp₂ (f := qbar) ≫ X.hom := by
+    obtain ⟨w, hwA0, hwB0⟩ := rel_le_trans (kernelPairRel_le_graphComp qbar) hf2
+    -- restate with the defeq-normalised kernel-pair legs.
+    have hwA : w ≫ E.forgetSlice.colA = kp₁ (f := qbar) := hwA0
+    have hwB : w ≫ E.forgetSlice.colB = kp₂ (f := qbar) := hwB0
+    calc kp₁ (f := qbar) ≫ X.hom = (w ≫ E.forgetSlice.colA) ≫ X.hom := by rw [hwA]
+      _ = w ≫ (E.forgetSlice.colA ≫ X.hom) := Cat.assoc _ _ _
+      _ = w ≫ (E.forgetSlice.colB ≫ X.hom) := by rw [forgetSlice_legs_equalise]
+      _ = (w ≫ E.forgetSlice.colB) ≫ X.hom := (Cat.assoc _ _ _).symm
+      _ = kp₂ (f := qbar) ≫ X.hom := by rw [hwB]
+  obtain ⟨b, hqb, _⟩ := cover_is_coequalizer_of_level qbar hqcov X.hom hkpb
+  -- slice quotient object and slice cover
+  let Q : Over B := ⟨Q₀, b⟩
+  let q : OverHom X Q := ⟨qbar, hqb⟩
+  have hqcov_slice : Cover (𝒞 := Over B) q := cover_of_cover_f q hqcov
+  obtain ⟨hgc1, hgc2⟩ := forgetSlice_graphComp_iso q
+  refine ⟨hE, Q, q, hqcov_slice, ?_, ?_⟩
+  · -- E ⊂ graph q ⊚ graph q°  (reflect: E̅ ⊂ (graph q ⊚ graph q°).forgetSlice)
+    apply forgetSlice_reflects_relLe
+    exact rel_le_trans hf1 hgc2
+  · -- graph q ⊚ graph q° ⊂ E  (reflect: (...).forgetSlice ⊂ E̅)
+    apply forgetSlice_reflects_relLe
+    exact rel_le_trans hgc1 hf2
+
+end effective
+
+/-- **The slice of an effective regular category is effective regular** (rung 2). -/
+instance overEffectiveRegular (B : 𝒞) [EffectiveRegular 𝒞] : EffectiveRegular (Over B) where
+  effective E hE := sliceIsEffective E hE
 
 /-! ## Residual: completing the slice pre-topos tower (toward §1.662 Diaconescu)
 
