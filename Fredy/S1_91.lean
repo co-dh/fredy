@@ -281,6 +281,57 @@ theorem classify_surjective {A : 𝒞}
   intro v hv₁ _
   exact Pb.lift_uniq ⟨d.pt, d.π₁, d.π₂, d.w⟩ v hv₁ (term_uniq _ _)
 
+/-- **§1.912 (classify naturality under pullback)**: the characteristic map of an
+    inverse image `f# S` is `f ≫ χ_S`.  Equivalently, `Sub(−) ≅ Hom(−,Ω)` is
+    natural: pulling a subobject back along `f` precomposes its classifier with `f`.
+
+    Proof by pullback pasting against `classify_unique`.  The pasted square (the
+    `f`-pullback square of `S.arr` stacked on the classifier square of `S`) is a
+    pullback of `t` along `f ≫ χ_S`, whose left leg is `(f# S).arr = π₁`. -/
+theorem classify_invImg {A B : 𝒞} (f : B ⟶ A) (S : Subobject 𝒞 A)
+    (hp : HasPullback f S.arr) :
+    HasSubobjectClassifier.classify (invImg f S hp).arr (invImg f S hp).monic
+      = f ≫ HasSubobjectClassifier.classify S.arr S.monic := by
+  let χ := HasSubobjectClassifier.classify S.arr S.monic
+  show HasSubobjectClassifier.classify (invImg f S hp).arr (invImg f S hp).monic = f ≫ χ
+  have sqS : S.arr ≫ χ = term S.dom ≫ HasSubobjectClassifier.true :=
+    HasSubobjectClassifier.classify_sq S.arr S.monic
+  -- the pasted commuting square over (f ≫ χ, true).
+  have hsq : (invImg f S hp).arr ≫ (f ≫ χ)
+      = term (invImg f S hp).dom ≫ HasSubobjectClassifier.true := by
+    show hp.cone.π₁ ≫ (f ≫ χ) = term hp.cone.pt ≫ HasSubobjectClassifier.true
+    calc hp.cone.π₁ ≫ (f ≫ χ)
+        = (hp.cone.π₁ ≫ f) ≫ χ := (Cat.assoc _ _ _).symm
+      _ = (hp.cone.π₂ ≫ S.arr) ≫ χ := by rw [hp.cone.w]
+      _ = hp.cone.π₂ ≫ (S.arr ≫ χ) := Cat.assoc _ _ _
+      _ = hp.cone.π₂ ≫ (term S.dom ≫ HasSubobjectClassifier.true) := by rw [sqS]
+      _ = (hp.cone.π₂ ≫ term S.dom) ≫ HasSubobjectClassifier.true := (Cat.assoc _ _ _).symm
+      _ = term hp.cone.pt ≫ HasSubobjectClassifier.true := by
+            rw [term_uniq (hp.cone.π₂ ≫ term S.dom) (term hp.cone.pt)]
+  symm
+  refine HasSubobjectClassifier.classify_unique (invImg f S hp).arr (invImg f S hp).monic _ hsq ?_
+  intro d
+  -- d : cone over (f ≫ χ, true).  (d.π₁ ≫ f, d.π₂) is a cone over (χ, true).
+  have hcS : (d.π₁ ≫ f) ≫ χ = d.π₂ ≫ HasSubobjectClassifier.true := by
+    rw [Cat.assoc]; exact d.w
+  obtain ⟨e, ⟨he₁, _⟩, _⟩ :=
+    HasSubobjectClassifier.classify_pullback S.arr S.monic
+      ⟨d.pt, d.π₁ ≫ f, d.π₂, hcS⟩
+  -- he₁ : e ≫ S.arr = d.π₁ ≫ f.  So (d.π₁, e) is a cone over (f, S.arr); lift into hp.
+  have hw : d.π₁ ≫ f = e ≫ S.arr := he₁.symm
+  refine ⟨hp.lift ⟨d.pt, d.π₁, e, hw⟩, ⟨hp.lift_fst _, term_uniq _ _⟩, ?_⟩
+  intro v hv₁ _
+  -- v ≫ π₂ = e by cancelling the monic S.arr: both compose with S.arr to d.π₁ ≫ f.
+  have hv₁' : v ≫ hp.cone.π₁ = d.π₁ := hv₁
+  refine hp.lift_uniq ⟨d.pt, d.π₁, e, hw⟩ v hv₁ (S.monic _ _ ?_)
+  show (v ≫ hp.cone.π₂) ≫ S.arr = e ≫ S.arr
+  calc (v ≫ hp.cone.π₂) ≫ S.arr
+      = v ≫ (hp.cone.π₂ ≫ S.arr) := Cat.assoc _ _ _
+    _ = v ≫ (hp.cone.π₁ ≫ f) := congrArg (v ≫ ·) hp.cone.w.symm
+    _ = (v ≫ hp.cone.π₁) ≫ f := (Cat.assoc _ _ _).symm
+    _ = d.π₁ ≫ f := congrArg (· ≫ f) hv₁'
+    _ = e ≫ S.arr := hw
+
 /-- **§1.914 (internal-meet universal property)**: the classifying map
     `⟨χ_{S₁}, χ_{S₂}⟩ ≫ omegaMeet : A → Ω` of the pair of characteristic maps
     classifies the intersection `S₁ ∩ S₂` (`Sub.inter`, §1.452).
@@ -412,6 +463,98 @@ theorem omegaMeet_classifies_inter {A : 𝒞} (S₁ S₂ : Subobject 𝒞 A)
       refine S₂.monic _ _ ?_
       rw [Cat.assoc, ← hIarr₂, hv₁, hu₂]
 
+/-- **§1.914 (heyting double-arrow universal property)**: if `e : E → A` is a
+    monic that EQUALIZES `χ₁, χ₂ : A → Ω` (`e ≫ χ₁ = e ≫ χ₂`) and is universal
+    among such (every `k` with `k ≫ χ₁ = k ≫ χ₂` factors uniquely through `e`),
+    then the classifying map `⟨χ₁,χ₂⟩ ≫ heytingDoubleArrow : A → Ω` of the pair
+    classifies that subobject `e`.  This is the bridge turning the bare diagonal
+    definition of `heytingDoubleArrow` into the subobject operation
+    "the largest subobject on which `χ₁ = χ₂`" (equivalently `A₁ ∩ A' = A₂ ∩ A'`).
+
+    Proof by pullback pasting against `classify_unique`, exactly parallel to
+    `omegaMeet_classifies_inter`.  The commuting square holds because along `e`,
+    `χ₁ = χ₂` so `e ≫ ⟨χ₁,χ₂⟩ = (e ≫ χ₁) ≫ diag`, and `diag ≫ heytingDoubleArrow
+    = term ≫ true` is the diagonal's classifier square.  For the pullback: a cone
+    `d` whose apex maps by `d.π₁` with the composite collapsing to `term ≫ true`
+    makes `d.π₁ ≫ ⟨χ₁,χ₂⟩` factor through `diag` (diag's classifier pullback), so
+    `d.π₁ ≫ χ₁ = d.π₁ ≫ χ₂`; the equalizer universal property of `e` then yields
+    the unique factorization through `E`. -/
+theorem heytingDoubleArrow_classifies_eq {A E : 𝒞} (χ₁ χ₂ : A ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞))
+    (e : E ⟶ A) (he : Mono e) (heq : e ≫ χ₁ = e ≫ χ₂)
+    (huniv : ∀ {W : 𝒞} (k : W ⟶ A), k ≫ χ₁ = k ≫ χ₂ →
+      ∃ u : W ⟶ E, u ≫ e = k ∧ ∀ u' : W ⟶ E, u' ≫ e = k → u' = u) :
+    pair χ₁ χ₂ ≫ heytingDoubleArrow = HasSubobjectClassifier.classify e he := by
+  -- diagonal classifier square: diag ≫ heytingDoubleArrow = term Ω ≫ true.
+  have sqD : diag (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ≫ heytingDoubleArrow
+      = term (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ≫ HasSubobjectClassifier.true :=
+    HasSubobjectClassifier.classify_sq _ (diag_mono _)
+  -- e ≫ ⟨χ₁,χ₂⟩ = (e ≫ χ₁) ≫ diag  (since e ≫ χ₁ = e ≫ χ₂).
+  have hpairE : e ≫ pair χ₁ χ₂ = (e ≫ χ₁) ≫ diag (HasSubobjectClassifier.omega (𝒞 := 𝒞)) := by
+    have hL : e ≫ pair χ₁ χ₂ = pair (e ≫ χ₁) (e ≫ χ₂) :=
+      pair_uniq (e ≫ χ₁) (e ≫ χ₂) (e ≫ pair χ₁ χ₂)
+        (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])
+    have hR : (e ≫ χ₁) ≫ diag (HasSubobjectClassifier.omega (𝒞 := 𝒞))
+        = pair (e ≫ χ₁) (e ≫ χ₂) :=
+      pair_uniq (e ≫ χ₁) (e ≫ χ₂) _
+        (by rw [Cat.assoc, diag_fst, Cat.comp_id])
+        (by rw [Cat.assoc, diag_snd, Cat.comp_id, heq])
+    rw [hL, hR]
+  -- Commuting square: e ≫ (⟨χ₁,χ₂⟩ ≫ heytingDoubleArrow) = term E ≫ true.
+  have hsq : e ≫ (pair χ₁ χ₂ ≫ heytingDoubleArrow)
+      = term E ≫ HasSubobjectClassifier.true := by
+    calc e ≫ (pair χ₁ χ₂ ≫ heytingDoubleArrow)
+        = (e ≫ pair χ₁ χ₂) ≫ heytingDoubleArrow := (Cat.assoc _ _ _).symm
+      _ = ((e ≫ χ₁) ≫ diag (HasSubobjectClassifier.omega (𝒞 := 𝒞))) ≫ heytingDoubleArrow := by
+            rw [hpairE]
+      _ = (e ≫ χ₁) ≫ (diag (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ≫ heytingDoubleArrow) :=
+            Cat.assoc _ _ _
+      _ = (e ≫ χ₁) ≫ (term (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ≫ HasSubobjectClassifier.true) := by
+            rw [sqD]
+      _ = ((e ≫ χ₁) ≫ term (HasSubobjectClassifier.omega (𝒞 := 𝒞))) ≫ HasSubobjectClassifier.true :=
+            (Cat.assoc _ _ _).symm
+      _ = term E ≫ HasSubobjectClassifier.true := by
+            rw [term_uniq ((e ≫ χ₁) ≫ term _) (term E)]
+  refine HasSubobjectClassifier.classify_unique e he _ hsq ?_
+  intro d
+  -- d.π₁ ≫ (⟨χ₁,χ₂⟩ ≫ heytingDoubleArrow) = term ≫ true  (from d.w).
+  have hk : (d.π₁ ≫ pair χ₁ χ₂) ≫ heytingDoubleArrow
+      = term d.pt ≫ HasSubobjectClassifier.true := by
+    rw [Cat.assoc, d.w, term_uniq d.π₂ (term d.pt)]
+  -- factor d.π₁ ≫ ⟨χ₁,χ₂⟩ through diag via diag's classifier pullback.
+  obtain ⟨w, ⟨hw₁, _⟩, _⟩ :=
+    HasSubobjectClassifier.classify_pullback
+      (diag (HasSubobjectClassifier.omega (𝒞 := 𝒞))) (diag_mono _)
+      ⟨d.pt, d.π₁ ≫ pair χ₁ χ₂, term d.pt, hk⟩
+  -- hw₁ : w ≫ diag = d.π₁ ≫ ⟨χ₁,χ₂⟩.  Read off the two components → χ₁ = χ₂ along d.π₁.
+  have hcomp : d.π₁ ≫ χ₁ = d.π₁ ≫ χ₂ := by
+    have e1 := congrArg (· ≫ fst) hw₁
+    have e2 := congrArg (· ≫ snd) hw₁
+    simp only [Cat.assoc, diag_fst, diag_snd, fst_pair, snd_pair, Cat.comp_id] at e1 e2
+    rw [← e1, ← e2]
+  -- equalizer universal property of e factors d.π₁ through E.
+  obtain ⟨u, hu, huu⟩ := huniv d.π₁ hcomp
+  refine ⟨u, ⟨hu, term_uniq _ _⟩, ?_⟩
+  intro v hv₁ _
+  exact huu v hv₁
+
+/-- **§1.919 (reduction)**: an endomorphism `h : Ω → Ω` equals the identity as
+    soon as `t : 1 → Ω` is a pullback of `t` along `h` — i.e. `Ω` is "`h`-large in
+    itself" (`h` classifies the maximal subobject `t : 1 → Ω`).
+
+    Proof: the hypotheses are exactly the data making `h` the characteristic map of
+    `t`, so `classify_unique` gives `h = classify t = id` (`classify_true_eq_id`). -/
+theorem omega_endo_eq_id_of_classifies_true
+    (h : HasSubobjectClassifier.omega (𝒞 := 𝒞) ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞))
+    (hsq : HasSubobjectClassifier.true (𝒞 := 𝒞) ≫ h
+      = term (HasTerminal.one (𝒞 := 𝒞)) ≫ HasSubobjectClassifier.true)
+    (hpb : (Cone.mk (f := h) (g := HasSubobjectClassifier.true)
+        (pt := HasTerminal.one) (π₁ := HasSubobjectClassifier.true)
+        (π₂ := term HasTerminal.one) (w := hsq)).IsPullback) :
+    h = Cat.id (HasSubobjectClassifier.omega (𝒞 := 𝒞)) := by
+  rw [← classify_true_eq_id]
+  exact HasSubobjectClassifier.classify_unique
+    (HasSubobjectClassifier.true (𝒞 := 𝒞)) HasSubobjectClassifier.true_monic h hsq hpb
+
 /-! ## §1.919  Monic endomorphisms of Ω are involutions
 
   §1.919: Every monic endomorphism g : Ω → Ω is an involution (g² = id).
@@ -428,27 +571,31 @@ theorem omegaMeet_classifies_inter {A : 𝒞} (S₁ S₂ : Subobject 𝒞 A)
     Since g is monic, g(V) = g(1_Ω) implies V = 1_Ω.  For any A, A is g²-large
     in itself, and the identity has the same property, so g² = id by extensionality.
 
-    **Proof gap** (sharpened).  Via the available API the goal reduces to showing
-    `t : 1 → Ω` is the pullback of `t` along `g ≫ g` (i.e. `g²` classifies the
-    maximal subobject of Ω — "A is g²-large in itself").  Freyd's argument needs
-    FOUR pieces; THREE are now available in this file:
-    (1) the full `Sub(−) ≅ Hom(−,Ω)` bijection: `classify_unique` (injective half)
-        + `classify_surjective` (surjective half, above);
-    (2a) the internal-MEET universal property: `omegaMeet_classifies_inter` (above)
-        proves `⟨χ_{A₁},χ_{A₂}⟩ ≫ omegaMeet` classifies `Sub.inter A₁ A₂` (S1_45),
-        so `omegaMeet` realises the subobject operation `g(A₁,A₂) = A₁ ∩ A₂`;
-    (3) operation-extensionality then follows from (1).
-    The REMAINING blocker is (2b): the universal property of `heytingDoubleArrow`
-    (defined below as a bare classifying map of the diagonal) — concretely that
-    `⟨χ₁,χ₂⟩ ≫ heytingDoubleArrow` classifies the subobject on which `χ₁ = χ₂`,
-    equivalently `A₁ ∩ A' = A₂ ∩ A'` — TOGETHER WITH the internal-Heyting identity
-    `(A ↔ A×U) ∧ (A×U) = A`.  The latter needs Sub(A) to be developed as a Heyting
-    semilattice (the g-large-subobject correspondence `A'∈g-large ↔ char factors
-    through gᵐ(t)`, and the operation `A' ↦ (A ↔ A×U) ∧ A×U`), none of which is
-    formalised here — this is a multi-lemma development of internal Heyting algebra
-    on subobjects, not a single bridge lemma.  Faithful sorry; the meet-bridge
-    `omegaMeet_classifies_inter` is now in place, residual = Heyting-arrow UMP +
-    Sub(A)-Heyting-algebra infra.  See S1_91.md. -/
+    **Proof gap** (sharpened — the whole subobject-algebra layer is now built).
+    The clean reduction (proven, above): it suffices to show, for EVERY `χ : A → Ω`,
+    `χ ≫ g ≫ g = χ`; taking `A = Ω`, `χ = id` then gives `g ≫ g = id` directly.
+    (Equivalently `omega_endo_eq_id_of_classifies_true`: `t` is a pullback of `t`
+    along `g ≫ g`.)  Freyd proves `χ ≫ g ≫ g = χ` by exhibiting, on every `Sub(A)`,
+    the operation `T_U(A') = (A' ↔ A'×U) ∧ (A'×U)` and showing it equals BOTH `g²`
+    AND the identity.  The bridge lemmas this needs are now all available here:
+    (1) `Sub(−) ≅ Hom(−,Ω)`: `classify_unique` (inj.) + `classify_surjective` (surj.);
+    (2a) internal-MEET UMP: `omegaMeet_classifies_inter` (∧ = ∩ on subobjects);
+    (2b) heyting double-arrow UMP: `heytingDoubleArrow_classifies_eq` (⇔ classifies
+        the equalizer of `χ₁,χ₂`, i.e. "where `χ₁ = χ₂`");
+    (2c) classify naturality: `classify_invImg` (`χ_{A'×U} = term_A ≫ χ_U` for the
+        subterminal `U ⊆ 1`, since `A'×U = (term A)# U ∩ A'`).
+
+    THE ONE GENUINELY MISSING STEP is `U = 1` (Freyd's "`g(V) = g(1)` implies
+    `V = 1`"): the unique `g`-large subobject of `1` is the MAXIMAL one, forced by
+    `g` monic AS AN OPERATION on `Sub(1)`.  This needs (i) the definition of `U` as
+    the `g`-large subobject of `1` and (ii) the fact that a monic `g : Ω → Ω`
+    induces an INJECTIVE operation on subobjects (`g(A₁) = g(A₂) ⟹ A₁ = A₂`),
+    neither of which is a one-liner from the present API — `g` monic gives
+    injectivity on POINTS, and lifting that to the subobject operation is the
+    remaining content.  Once `U = 1`, `A'×U = A'`, `(A' ↔ A') = ⊤`, and
+    `⊤ ∧ A' = A'` collapse `T_U` to the identity via the three UMPs above, closing
+    the proof.  Faithful sorry: meet/double-arrow UMPs + classify-naturality are in
+    place; residual = the `U = 1` (monic ⟹ subobject-injective) step.  See S1_91.md. -/
 theorem omega_monic_endo_is_involution (g : HasSubobjectClassifier.omega (𝒞 := 𝒞) ⟶
     HasSubobjectClassifier.omega (𝒞 := 𝒞)) (hm : Mono g) : g ≫ g = Cat.id _ := by
   sorry
