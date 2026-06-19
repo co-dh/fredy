@@ -362,7 +362,7 @@ theorem pasteCone_isPullback {X : 𝒞} {h : X ⟶ D}
   (by `pasteCone_isPullback`), so they are canonically iso (`isIso_of_two_pullbacks`). -/
 
 /-- The chosen pullback of `X.hom` along a base map, matching `baseChangeObj`'s internal choice. -/
-private def _pb (g : C ⟶ D) (X : Over D) : HasPullback X.hom g := HasPullbacks.has X.hom g
+def _pb (g : C ⟶ D) (X : Over D) : HasPullback X.hom g := HasPullbacks.has X.hom g
 
 /-- The pasted RHS cone `baseChangeObj g' (baseChangeObj g X)`, viewed as a cone over the composite
     cospan `(X.hom, g' ≫ g)`, is a pullback. -/
@@ -1193,7 +1193,7 @@ private theorem baseChangeMap_f_π₂ {C E : 𝒞} (g : E ⟶ C) {X Y : Over C} 
   (_pb g Y).lift_snd (baseChangeCone g m)
 
 /-- `baseChangeMap`'s underlying arrow against the codomain pullback's `π₁` is `π₁ ≫ m.f`. -/
-private theorem baseChangeMap_f_π₁ {C E : 𝒞} (g : E ⟶ C) {X Y : Over C} (m : OverHom X Y) :
+theorem baseChangeMap_f_π₁ {C E : 𝒞} (g : E ⟶ C) {X Y : Over C} (m : OverHom X Y) :
     (baseChangeMap g m).f ≫ (_pb g Y).cone.π₁ = (_pb g X).cone.π₁ ≫ m.f :=
   (_pb g Y).lift_fst (baseChangeCone g m)
 
@@ -1304,7 +1304,7 @@ private theorem transApp_f_π₂ (P : ProjSystem ι D 𝒞) {i k m : ι} (hik : 
 
 /-- The deep `π₁ ≫ π₁`-leg of `transApp`'s underlying arrow projects to the composite pullback's
     `π₁` (down to `x.dom`).  `reassoc` form. -/
-private theorem transApp_f_π₁π₁ (P : ProjSystem ι D 𝒞) {i k m : ι}
+theorem transApp_f_π₁π₁ (P : ProjSystem ι D 𝒞) {i k m : ι}
     (hik : D.le i k) (hkm : D.le k m) (x : pcObj P i) {W : 𝒞} (z : x.dom ⟶ W) :
     (transApp (laxOfProjSystem' P) hik hkm x).f
         ≫ (_pb (P.proj hkm) (baseChangeObj (P.proj hik) x)).cone.π₁
