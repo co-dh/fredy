@@ -348,11 +348,331 @@ theorem minEquiv_of_rtc {𝒞 : Type u} [Cat.{v} 𝒞]
   exact ec.minimal F hRF (isEquivRel_of_equivalenceRelation hF)
 
 
+/-! ### Relation-algebra infrastructure for amalgamation leg-monicity (§1.651)
+
+  The leg-monicity `Mono (inl ≫ q)` reduces to a relation containment
+  `graph inl ⊚ E ⊚ (graph inl)° ⊂ 1_B`.  Distributing `E ⊂ F = 1 ∪ R₀ ∪ R₀°`
+  (minimality of `E`), the cross terms `R₀, R₀°` vanish because `R₀` only relates
+  `inl(B)` to `inr(C)`: composing them against `graph inl` hits the disjoint
+  intersection `inl ∩ inr = 0` (§1.62 positivity), so the composite relation's
+  tabulation sits below the bottom subobject — hence below *every* relation, in
+  particular the diagonal.  The diagonal term `graph inl ⊚ 1 ⊚ (graph inl)° =
+  graph inl ⊚ (graph inl)°` is `⊂ 1_B` since `inl` is monic. -/
+
+/-- `f : A → B` is monic if its level (kernel pair) lies inside the diagonal. -/
+private theorem mono_of_kernelPairRel_le_diag [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
+    [HasPullbacks 𝒞] {A B : 𝒞} (f : A ⟶ B)
+    (h : RelLe (kernelPairRel f) (graph (Cat.id A))) : Mono f := by
+  intro W u v huv
+  have hw1 : ((HasPullbacks.has f f).lift ⟨W, u, v, huv⟩) ≫ kp₁ (f := f) = u :=
+    kp_lift_p₁ u v huv
+  have hw2 : ((HasPullbacks.has f f).lift ⟨W, u, v, huv⟩) ≫ kp₂ (f := f) = v :=
+    kp_lift_p₂ u v huv
+  obtain ⟨⟨z, hzA, hzB⟩⟩ := h
+  have hcol : kp₁ (f := f) = kp₂ (f := f) := by
+    have ha : z ≫ Cat.id A = (kernelPairRel f).colA := hzA
+    have hb : z ≫ Cat.id A = (kernelPairRel f).colB := hzB
+    show (kernelPairRel f).colA = (kernelPairRel f).colB; rw [← ha, ← hb]
+  calc u = _ ≫ kp₁ (f := f) := hw1.symm
+    _ = _ ≫ kp₂ (f := f) := by rw [hcol]
+    _ = v := hw2
+
+/-- A relation whose tabulation `pair colA colB` factors through the bottom subobject of
+    `A×B` is contained in EVERY relation `A → B` (bottom is the minimal subobject). -/
+private theorem relLe_of_relSub_le_bottom [PreLogos 𝒞] [HasBinaryCoproducts 𝒞]
+    {X Y : 𝒞} {R U : BinRel 𝒞 X Y}
+    (h : (relSub R).le (PreLogos.bottom (prod X Y))) : RelLe R U :=
+  relLe_of_subLe (subLe_trans h (PreLogos.bottom_min (relSub U)))
+
+/-- Left distributivity of composition over union (pre-logos): `(S ∪ T) ⊚ U ⊂ (S⊚U) ∪ (T⊚U)`.
+    Derived from the right-distributive `compose_union_right` by reciprocation. -/
+private theorem compose_union_left [PreLogos 𝒞] [HasBinaryCoproducts 𝒞]
+    {X Y Z : 𝒞} (S T : BinRel 𝒞 X Y) (U : BinRel 𝒞 Y Z) :
+    RelLe ((S ∪ᵣ T) ⊚ U) ((S ⊚ U) ∪ᵣ (T ⊚ U)) := by
+  have h1 : RelLe (((S ∪ᵣ T) ⊚ U)°) (U° ⊚ (S ∪ᵣ T)°) := reciprocal_comp_le _ _
+  have h2 : RelLe (U° ⊚ (S ∪ᵣ T)°) (U° ⊚ (T° ∪ᵣ S°)) :=
+    compose_le (rel_le_refl _) (relUnion_le_reciprocal S T)
+  have h3 : RelLe (U° ⊚ (T° ∪ᵣ S°)) ((U° ⊚ T°) ∪ᵣ (U° ⊚ S°)) := compose_union_right _ _ _
+  have h4 : RelLe ((U° ⊚ T°) ∪ᵣ (U° ⊚ S°)) (((T ⊚ U)°) ∪ᵣ ((S ⊚ U)°)) :=
+    le_relUnion (rel_le_trans (comp_reciprocal_le T U) (relUnion_le_left _ _))
+                (rel_le_trans (comp_reciprocal_le S U) (relUnion_le_right _ _))
+  have h5 : RelLe (((T ⊚ U)°) ∪ᵣ ((S ⊚ U)°)) (((S ⊚ U) ∪ᵣ (T ⊚ U))°) :=
+    relUnion_reciprocal_le (S ⊚ U) (T ⊚ U)
+  have hrec := rel_le_trans h1 (rel_le_trans h2 (rel_le_trans h3 (rel_le_trans h4 h5)))
+  have := reciprocal_monotone hrec
+  rwa [reciprocal_invol, reciprocal_invol] at this
+
+/-- DISJOINTNESS VANISHING (§1.62 positivity): if `R`'s right column factors through `inl`
+    and `S`'s left column factors through `inr`, then the composite `R ⊚ S` is "empty" — its
+    tabulation factors through the bottom subobject.  The composition pullback equalises a
+    map into `inl(B)` with a map into `inr(C)`; `inl ∩ inr = 0` (`coprod_inl_inr_disjoint_elt`)
+    sends that pullback to `0`, which is initial (`any_map_to_zero_is_iso`), so the whole span
+    factors through `bottom`. -/
+private theorem relSub_comp_le_bottom [PreToposDisjoint 𝒞]
+    {X Y B C : 𝒞} (R : BinRel 𝒞 X (HasBinaryCoproducts.coprod B C))
+    (S : BinRel 𝒞 (HasBinaryCoproducts.coprod B C) Y)
+    (rB : R.src ⟶ B) (hrB : rB ≫ HasBinaryCoproducts.inl = R.colB)
+    (sC : S.src ⟶ C) (hsC : sC ≫ HasBinaryCoproducts.inr = S.colA) :
+    (relSub (R ⊚ S)).le (PreLogos.bottom (prod X Y)) := by
+  let hPL : PreLogos 𝒞 := inferInstance
+  let pb := HasPullbacks.has R.colB S.colA
+  have hw : pb.cone.π₁ ≫ R.colB = pb.cone.π₂ ≫ S.colA := pb.cone.w
+  have hdisj : (pb.cone.π₁ ≫ rB) ≫ HasBinaryCoproducts.inl
+             = (pb.cone.π₂ ≫ sC) ≫ HasBinaryCoproducts.inr := by
+    rw [Cat.assoc, hrB, Cat.assoc, hsC]; exact hw
+  obtain ⟨e, _⟩ := coprod_inl_inr_disjoint_elt (pb.cone.π₁ ≫ rB) (pb.cone.π₂ ≫ sC) hdisj
+  let zeroObj := (minimal_subobject_of_one_is_coterminator hPL).zero
+  obtain ⟨ζ, _⟩ := hPL.bottom_dom_iso (HasBinaryCoproducts.coprod B C) hPL.toHasTerminal.one
+  let g₀ : pb.cone.pt ⟶ zeroObj := e ≫ ζ
+  obtain ⟨g₀inv, hg₀g₀inv, _⟩ := any_map_to_zero_is_iso hPL g₀
+  let span : pb.cone.pt ⟶ prod X Y := pair (pb.cone.π₁ ≫ R.colA) (pb.cone.π₂ ≫ S.colB)
+  let t : pb.cone.pt ⟶ (PreLogos.bottom (prod X Y)).dom :=
+    g₀ ≫ (minimal_subobject_of_one_is_coterminator hPL).init _
+  have hfac : span = t ≫ (PreLogos.bottom (prod X Y)).arr := by
+    have key : ∀ (w : pb.cone.pt ⟶ prod X Y), w = g₀ ≫ (g₀inv ≫ w) := by
+      intro w; rw [← Cat.assoc, hg₀g₀inv, Cat.id_comp]
+    rw [key span, key (t ≫ (PreLogos.bottom (prod X Y)).arr)]; congr 1
+    exact (minimal_subobject_of_one_is_coterminator hPL).init_uniq _ _
+  obtain ⟨k, hk⟩ := image_min span (PreLogos.bottom (prod X Y)) ⟨t, hfac.symm⟩
+  exact ⟨k, by rw [hk]; exact (pair_uniq _ _ _ rfl rfl)⟩
+
+/-- Mirror of `relSub_comp_le_bottom`: `R`'s right column through `inr`, `S`'s left through `inl`. -/
+private theorem relSub_comp_le_bottom_mirror [PreToposDisjoint 𝒞]
+    {X Y B C : 𝒞} (R : BinRel 𝒞 X (HasBinaryCoproducts.coprod B C))
+    (S : BinRel 𝒞 (HasBinaryCoproducts.coprod B C) Y)
+    (rC : R.src ⟶ C) (hrC : rC ≫ HasBinaryCoproducts.inr = R.colB)
+    (sB : S.src ⟶ B) (hsB : sB ≫ HasBinaryCoproducts.inl = S.colA) :
+    (relSub (R ⊚ S)).le (PreLogos.bottom (prod X Y)) := by
+  let hPL : PreLogos 𝒞 := inferInstance
+  let pb := HasPullbacks.has R.colB S.colA
+  have hw : pb.cone.π₁ ≫ R.colB = pb.cone.π₂ ≫ S.colA := pb.cone.w
+  have hdisj : (pb.cone.π₂ ≫ sB) ≫ HasBinaryCoproducts.inl
+             = (pb.cone.π₁ ≫ rC) ≫ HasBinaryCoproducts.inr := by
+    rw [Cat.assoc, hsB, Cat.assoc, hrC]; exact hw.symm
+  obtain ⟨e, _⟩ := coprod_inl_inr_disjoint_elt (pb.cone.π₂ ≫ sB) (pb.cone.π₁ ≫ rC) hdisj
+  let zeroObj := (minimal_subobject_of_one_is_coterminator hPL).zero
+  obtain ⟨ζ, _⟩ := hPL.bottom_dom_iso (HasBinaryCoproducts.coprod B C) hPL.toHasTerminal.one
+  let g₀ : pb.cone.pt ⟶ zeroObj := e ≫ ζ
+  obtain ⟨g₀inv, hg₀g₀inv, _⟩ := any_map_to_zero_is_iso hPL g₀
+  let span : pb.cone.pt ⟶ prod X Y := pair (pb.cone.π₁ ≫ R.colA) (pb.cone.π₂ ≫ S.colB)
+  let t : pb.cone.pt ⟶ (PreLogos.bottom (prod X Y)).dom :=
+    g₀ ≫ (minimal_subobject_of_one_is_coterminator hPL).init _
+  have hfac : span = t ≫ (PreLogos.bottom (prod X Y)).arr := by
+    have key : ∀ (w : pb.cone.pt ⟶ prod X Y), w = g₀ ≫ (g₀inv ≫ w) := by
+      intro w; rw [← Cat.assoc, hg₀g₀inv, Cat.id_comp]
+    rw [key span, key (t ≫ (PreLogos.bottom (prod X Y)).arr)]; congr 1
+    exact (minimal_subobject_of_one_is_coterminator hPL).init_uniq _ _
+  obtain ⟨k, hk⟩ := image_min span (PreLogos.bottom (prod X Y)) ⟨t, hfac.symm⟩
+  exact ⟨k, by rw [hk]; exact (pair_uniq _ _ _ rfl rfl)⟩
+
+/-- Below-bottom propagates through right-composition: if `Z`'s tabulation is below bottom
+    (so `Z.src ≅ 0`), then so is `T ⊚ Z`'s (its composition pullback maps to the initial
+    `Z.src`, hence is initial). -/
+private theorem relSub_comp_le_bottom_right [PreToposDisjoint 𝒞]
+    {X Y W : 𝒞} (T : BinRel 𝒞 W X) (Z : BinRel 𝒞 X Y)
+    (h : (relSub Z).le (PreLogos.bottom (prod X Y))) :
+    (relSub (T ⊚ Z)).le (PreLogos.bottom (prod W Y)) := by
+  let hPL : PreLogos 𝒞 := inferInstance
+  let zeroObj := (minimal_subobject_of_one_is_coterminator hPL).zero
+  obtain ⟨zb, _⟩ := h
+  obtain ⟨ζ, _⟩ := hPL.bottom_dom_iso (prod X Y) hPL.toHasTerminal.one
+  let pb := HasPullbacks.has T.colB Z.colA
+  let span : pb.cone.pt ⟶ prod W Y := pair (pb.cone.π₁ ≫ T.colA) (pb.cone.π₂ ≫ Z.colB)
+  let g₀ : pb.cone.pt ⟶ zeroObj := pb.cone.π₂ ≫ zb ≫ ζ
+  obtain ⟨g₀inv, hg₀g₀inv, _⟩ := any_map_to_zero_is_iso hPL g₀
+  let t : pb.cone.pt ⟶ (PreLogos.bottom (prod W Y)).dom :=
+    g₀ ≫ (minimal_subobject_of_one_is_coterminator hPL).init _
+  have hfac : span = t ≫ (PreLogos.bottom (prod W Y)).arr := by
+    have key : ∀ (w : pb.cone.pt ⟶ prod W Y), w = g₀ ≫ (g₀inv ≫ w) := by
+      intro w; rw [← Cat.assoc, hg₀g₀inv, Cat.id_comp]
+    rw [key span, key (t ≫ (PreLogos.bottom (prod W Y)).arr)]; congr 1
+    exact (minimal_subobject_of_one_is_coterminator hPL).init_uniq _ _
+  obtain ⟨k, hk⟩ := image_min span (PreLogos.bottom (prod W Y)) ⟨t, hfac.symm⟩
+  exact ⟨k, by rw [hk]; exact (pair_uniq _ _ _ rfl rfl)⟩
+
+/-- Below-bottom propagates through left-composition (mirror of `relSub_comp_le_bottom_right`). -/
+private theorem relSub_comp_le_bottom_left [PreToposDisjoint 𝒞]
+    {W X Y : 𝒞} (Z : BinRel 𝒞 W X) (T : BinRel 𝒞 X Y)
+    (h : (relSub Z).le (PreLogos.bottom (prod W X))) :
+    (relSub (Z ⊚ T)).le (PreLogos.bottom (prod W Y)) := by
+  let hPL : PreLogos 𝒞 := inferInstance
+  let zeroObj := (minimal_subobject_of_one_is_coterminator hPL).zero
+  obtain ⟨zb, _⟩ := h
+  obtain ⟨ζ, _⟩ := hPL.bottom_dom_iso (prod W X) hPL.toHasTerminal.one
+  let pb := HasPullbacks.has Z.colB T.colA
+  let span : pb.cone.pt ⟶ prod W Y := pair (pb.cone.π₁ ≫ Z.colA) (pb.cone.π₂ ≫ T.colB)
+  let g₀ : pb.cone.pt ⟶ zeroObj := pb.cone.π₁ ≫ zb ≫ ζ
+  obtain ⟨g₀inv, hg₀g₀inv, _⟩ := any_map_to_zero_is_iso hPL g₀
+  let t : pb.cone.pt ⟶ (PreLogos.bottom (prod W Y)).dom :=
+    g₀ ≫ (minimal_subobject_of_one_is_coterminator hPL).init _
+  have hfac : span = t ≫ (PreLogos.bottom (prod W Y)).arr := by
+    have key : ∀ (w : pb.cone.pt ⟶ prod W Y), w = g₀ ≫ (g₀inv ≫ w) := by
+      intro w; rw [← Cat.assoc, hg₀g₀inv, Cat.id_comp]
+    rw [key span, key (t ≫ (PreLogos.bottom (prod W Y)).arr)]; congr 1
+    exact (minimal_subobject_of_one_is_coterminator hPL).init_uniq _ _
+  obtain ⟨k, hk⟩ := image_min span (PreLogos.bottom (prod W Y)) ⟨t, hfac.symm⟩
+  exact ⟨k, by rw [hk]; exact (pair_uniq _ _ _ rfl rfl)⟩
+
+/-- The amalgamation descent core: with `LE := level q` packaged inside the minimal
+    equivalence `E` (`LE ⊂ E ⊂ F = 1 ∪ R₀ ∪ R₀°`), and the cross terms vanishing against the
+    monic injection `j` (positivity), the level of `j ≫ q` is contained in the diagonal, so
+    `j ≫ q` is monic.  Both legs (`inl`, `inr`) of §1.651 are instances of this. -/
+private theorem amalgamation_leg_mono [PreToposDisjoint 𝒞]
+    {Bj M D : 𝒞} (j : Bj ⟶ M) (hj : Mono j) (q : M ⟶ D)
+    (R₀ : BinRel 𝒞 M M)
+    (hLELE : RelLe (kernelPairRel (j ≫ q)) (graph j ⊚ ((graph q ⊚ (graph q)°) ⊚ (graph j)°)))
+    (hLEF : RelLe (graph q ⊚ (graph q)°) ((graph (Cat.id M) ∪ᵣ R₀) ∪ᵣ R₀°))
+    (hc1 : RelLe (graph j ⊚ (R₀ ⊚ (graph j)°)) (graph (Cat.id Bj)))
+    (hc2 : RelLe (graph j ⊚ (R₀° ⊚ (graph j)°)) (graph (Cat.id Bj))) :
+    Mono (j ≫ q) := by
+  apply mono_of_kernelPairRel_le_diag
+  -- bound graph j ⊚ ((graph q ⊚ (graph q)°) ⊚ (graph j)°) ⊂ 1_Bj
+  let Δ : BinRel 𝒞 M M := graph (Cat.id M)
+  let G := graph q ⊚ (graph q)°
+  let F := (Δ ∪ᵣ R₀) ∪ᵣ R₀°
+  have hmono : RelLe (graph j ⊚ (G ⊚ (graph j)°)) (graph j ⊚ (F ⊚ (graph j)°)) :=
+    compose_le (rel_le_refl _) (compose_le hLEF (rel_le_refl _))
+  have hdL : RelLe (F ⊚ (graph j)°)
+      ((((Δ ⊚ (graph j)°) ∪ᵣ (R₀ ⊚ (graph j)°))) ∪ᵣ (R₀° ⊚ (graph j)°)) := by
+    refine rel_le_trans (compose_union_left (Δ ∪ᵣ R₀) R₀° ((graph j)°)) ?_
+    exact le_relUnion
+      (rel_le_trans (compose_union_left Δ R₀ ((graph j)°))
+        (le_relUnion (rel_le_trans (relUnion_le_left _ _) (relUnion_le_left _ _))
+                     (rel_le_trans (relUnion_le_right _ _) (relUnion_le_left _ _))))
+      (relUnion_le_right _ _)
+  have hpushL : RelLe (graph j ⊚ (F ⊚ (graph j)°))
+      (graph j ⊚ ((((Δ ⊚ (graph j)°) ∪ᵣ (R₀ ⊚ (graph j)°))) ∪ᵣ (R₀° ⊚ (graph j)°))) :=
+    compose_le (rel_le_refl _) hdL
+  have hdR : RelLe (graph j ⊚ ((((Δ ⊚ (graph j)°) ∪ᵣ (R₀ ⊚ (graph j)°))) ∪ᵣ (R₀° ⊚ (graph j)°)))
+      ((((graph j ⊚ (Δ ⊚ (graph j)°)) ∪ᵣ (graph j ⊚ (R₀ ⊚ (graph j)°))))
+        ∪ᵣ (graph j ⊚ (R₀° ⊚ (graph j)°))) := by
+    refine rel_le_trans (compose_union_right (graph j) _ _) ?_
+    exact le_relUnion
+      (rel_le_trans (compose_union_right (graph j) _ _)
+        (le_relUnion (rel_le_trans (relUnion_le_left _ _) (relUnion_le_left _ _))
+                     (rel_le_trans (relUnion_le_right _ _) (relUnion_le_left _ _))))
+      (relUnion_le_right _ _)
+  have hdiag : RelLe (graph j ⊚ (Δ ⊚ (graph j)°)) (graph (Cat.id Bj)) :=
+    rel_le_trans (compose_le (rel_le_refl _) (graph_id_comp ((graph j)°)))
+      (graph_comp_recip_le_one_of_mono j hj)
+  have hfinal : RelLe ((((graph j ⊚ (Δ ⊚ (graph j)°)) ∪ᵣ (graph j ⊚ (R₀ ⊚ (graph j)°))))
+        ∪ᵣ (graph j ⊚ (R₀° ⊚ (graph j)°))) (graph (Cat.id Bj)) :=
+    le_relUnion (le_relUnion hdiag hc1) hc2
+  exact rel_le_trans hLELE
+    (rel_le_trans hmono (rel_le_trans hpushL (rel_le_trans hdR hfinal)))
+
+/-- The generated relation `R₀` (image of `pair xi yi`) is contained in the reciprocal
+    composite `(graph xi)° ⊚ (graph yi)`: a point `a : A` lifts to the pullback diagonal,
+    and the image of its span allows `R₀`'s tabulation. -/
+private theorem image_pair_le_recip_comp [PreToposDisjoint 𝒞] {A M N : 𝒞}
+    (xi : A ⟶ M) (yi : A ⟶ N) :
+    RelLe (⟨(image (pair xi yi)).dom, (image (pair xi yi)).arr ≫ fst,
+            (image (pair xi yi)).arr ≫ snd,
+            monicPair_of_monic_pair _ _ (by rw [← pair_eta]; exact (image (pair xi yi)).monic)⟩
+            : BinRel 𝒞 M N)
+      ((graph xi)° ⊚ (graph yi)) := by
+  let P := (graph xi)° ⊚ (graph yi)
+  let pbP := HasPullbacks.has ((graph xi)°).colB ((graph yi).colA)
+  have hcw : (Cat.id A) ≫ ((graph xi)°).colB = (Cat.id A) ≫ ((graph yi).colA) := by
+    simp [graph, reciprocal]
+  let dpt : A ⟶ pbP.cone.pt := pbP.lift ⟨A, Cat.id A, Cat.id A, hcw⟩
+  have hd1 : dpt ≫ pbP.cone.π₁ = Cat.id A := pbP.lift_fst _
+  have hd2 : dpt ≫ pbP.cone.π₂ = Cat.id A := pbP.lift_snd _
+  let spanP : pbP.cone.pt ⟶ prod M N :=
+    pair (pbP.cone.π₁ ≫ ((graph xi)°).colA) (pbP.cone.π₂ ≫ (graph yi).colB)
+  have hdsp : dpt ≫ spanP = pair xi yi := by
+    apply pair_uniq
+    · show (dpt ≫ spanP) ≫ fst = xi
+      rw [Cat.assoc, fst_pair, ← Cat.assoc, hd1, Cat.id_comp]; rfl
+    · show (dpt ≫ spanP) ≫ snd = yi
+      rw [Cat.assoc, snd_pair, ← Cat.assoc, hd2, Cat.id_comp]; rfl
+  let Psub : Subobject 𝒞 (prod M N) := relSub P
+  have hPsub_arr : Psub.arr = (image spanP).arr := (pair_uniq _ _ _ rfl rfl).symm
+  have hallow : Allows Psub (pair xi yi) :=
+    ⟨dpt ≫ image.lift spanP, by rw [hPsub_arr, Cat.assoc, image.lift_fac, hdsp]⟩
+  obtain ⟨k, hk⟩ := image_min (pair xi yi) Psub hallow
+  have hkP : k ≫ (image spanP).arr = (image (pair xi yi)).arr := by rw [← hPsub_arr]; exact hk
+  refine ⟨⟨k, ?_, ?_⟩⟩
+  · show k ≫ ((image spanP).arr ≫ fst) = (image (pair xi yi)).arr ≫ fst
+    rw [← Cat.assoc, hkP]
+  · show k ≫ ((image spanP).arr ≫ snd) = (image (pair xi yi)).arr ≫ snd
+    rw [← Cat.assoc, hkP]
+
+/-- Partial-bijection lemma: `P ⊚ P° ⊂ 1` for `P = (graph s)° ⊚ graph t` when the RIGHT
+    morphism `t` is monic.  (Companion to the §1.62 `diag_le_one`, which gives `P° ⊚ P ⊂ 1`
+    for `s` monic.)  Both feed the transitivity of the generated equivalence `F`. -/
+private theorem comp_recip_self_le_diag [PreToposDisjoint 𝒞] {Bj N M : 𝒞}
+    (s : Bj ⟶ M) (t : Bj ⟶ N) (ht : Mono t) :
+    RelLe (((graph s)° ⊚ graph t) ⊚ ((graph s)° ⊚ graph t)°) (graph (Cat.id M)) := by
+  let P := (graph s)° ⊚ graph t
+  have hP : RelLe (P°) ((graph t)° ⊚ graph s) := by
+    have h := reciprocal_comp_le ((graph s)°) (graph t)
+    rw [reciprocal_invol] at h; exact h
+  have h1 : RelLe (P ⊚ P°) (P ⊚ ((graph t)° ⊚ graph s)) := compose_le (rel_le_refl _) hP
+  have h2 : RelLe (P ⊚ ((graph t)° ⊚ graph s))
+      ((graph s)° ⊚ (graph t ⊚ ((graph t)° ⊚ graph s))) :=
+    (compose_assoc_of_regular ((graph s)°) (graph t) ((graph t)° ⊚ graph s)).1
+  have h3 : RelLe (graph t ⊚ ((graph t)° ⊚ graph s)) ((graph t ⊚ (graph t)°) ⊚ graph s) :=
+    (compose_assoc_of_regular (graph t) ((graph t)°) (graph s)).2
+  have h4 : RelLe ((graph t ⊚ (graph t)°) ⊚ graph s) (graph (Cat.id Bj) ⊚ graph s) :=
+    compose_le (graph_comp_recip_le_one_of_mono t ht) (rel_le_refl _)
+  have h345 : RelLe (graph t ⊚ ((graph t)° ⊚ graph s)) (graph s) :=
+    rel_le_trans h3 (rel_le_trans h4 (graph_id_comp (graph s)))
+  have h6 : RelLe ((graph s)° ⊚ (graph t ⊚ ((graph t)° ⊚ graph s))) ((graph s)° ⊚ graph s) :=
+    compose_le (rel_le_refl _) h345
+  exact rel_le_trans h1 (rel_le_trans h2 (rel_le_trans h6 (reciprocal_comp_self_le_one s)))
+
+/-- The generated relation `F = 1 ∪ R₀ ∪ R₀°` is an equivalence relation, given the four
+    cross-composite bounds (`R₀R₀°, R₀°R₀ ⊂ 1` from partial-bijectivity; `R₀R₀, R₀°R₀° ⊂ 1`
+    from coproduct disjointness).  Reflexivity and symmetry are union bookkeeping; transitivity
+    distributes `F ⊚ F` into nine pieces, each landing back inside `F`. -/
+private theorem amalgamation_F_equiv [PreToposDisjoint 𝒞] {M : 𝒞} (R₀ : BinRel 𝒞 M M)
+    (hRRop : RelLe (R₀ ⊚ R₀°) (graph (Cat.id M)))
+    (hRopR : RelLe (R₀° ⊚ R₀) (graph (Cat.id M)))
+    (hRR : RelLe (R₀ ⊚ R₀) (graph (Cat.id M)))
+    (hRopRop : RelLe (R₀° ⊚ R₀°) (graph (Cat.id M))) :
+    EquivalenceRelation ((graph (Cat.id M) ∪ᵣ R₀) ∪ᵣ R₀°) := by
+  let Δ : BinRel 𝒞 M M := graph (Cat.id M)
+  let F : BinRel 𝒞 M M := (Δ ∪ᵣ R₀) ∪ᵣ R₀°
+  have hΔF : RelLe Δ F := rel_le_trans (relUnion_le_left Δ R₀) (relUnion_le_left _ _)
+  have hRF : RelLe R₀ F := rel_le_trans (relUnion_le_right Δ R₀) (relUnion_le_left _ _)
+  have hRopF : RelLe (R₀°) F := relUnion_le_right _ _
+  apply equivalenceRelation_of_isEquivRel
+  refine ⟨hΔF, ?_, ?_⟩
+  · show RelLe (F°) F
+    have e1 : RelLe (F°) ((R₀°)° ∪ᵣ (Δ ∪ᵣ R₀)°) := relUnion_le_reciprocal (Δ ∪ᵣ R₀) (R₀°)
+    have e2 : RelLe ((Δ ∪ᵣ R₀)°) (R₀° ∪ᵣ Δ°) := relUnion_le_reciprocal Δ R₀
+    have e3 : RelLe ((R₀°)° ∪ᵣ (Δ ∪ᵣ R₀)°) F := by
+      apply le_relUnion
+      · rw [reciprocal_invol]; exact hRF
+      · refine rel_le_trans e2 (le_relUnion hRopF ?_)
+        refine rel_le_trans ?_ hΔF
+        have h := reciprocal_monotone (graph_id_le_reciprocal (A := M))
+        rwa [reciprocal_invol] at h
+    exact rel_le_trans e1 e3
+  · show RelLe (F ⊚ F) F
+    refine rel_le_trans (compose_union_left (Δ ∪ᵣ R₀) (R₀°) F) ?_
+    apply le_relUnion
+    · refine rel_le_trans (compose_union_left Δ R₀ F) ?_
+      apply le_relUnion
+      · exact graph_id_comp F
+      · refine rel_le_trans (compose_union_right R₀ (Δ ∪ᵣ R₀) (R₀°)) ?_
+        apply le_relUnion
+        · refine rel_le_trans (compose_union_right R₀ Δ R₀) ?_
+          exact le_relUnion (rel_le_trans (comp_graph_id R₀) hRF) (rel_le_trans hRR hΔF)
+        · exact rel_le_trans hRRop hΔF
+    · refine rel_le_trans (compose_union_right (R₀°) (Δ ∪ᵣ R₀) (R₀°)) ?_
+      apply le_relUnion
+      · refine rel_le_trans (compose_union_right (R₀°) Δ R₀) ?_
+        exact le_relUnion (rel_le_trans (comp_graph_id (R₀°)) hRopF) (rel_le_trans hRopR hΔF)
+      · exact rel_le_trans hRopRop hΔF
+
 /-! ## §1.651 Amalgamation Lemma
 
   In a pre-topos, given monics x: A↣B, y: A↣C, there exists a
   pushout B ↣ D, C ↣ D completing the square. -/
 
+set_option maxHeartbeats 1000000 in
 /-- **§1.651 Amalgamation Lemma**: In a pre-topos, the pushout of two
     monics with a common source exists and the resulting maps are monic.
     Proof: form B+C, define equivalence relation E identifying x(a)∼y(a),
@@ -378,7 +698,7 @@ theorem minEquiv_of_rtc {𝒞 : Type u} [Cat.{v} 𝒞]
     path-length descent is exactly the §1.543 effective-quotient analysis.  Faithful sorry on
     precisely the two leg monicities; the object `D`, the maps `u, v`, and the commuting square are
     now real and routed through Freyd's generated-equivalence-relation construction. -/
-theorem amalgamation_lemma [PreTopos 𝒞] [HasReflTransClosure 𝒞]
+theorem amalgamation_lemma [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞]
     {A B C : 𝒞}
     (x : A ⟶ B) (hx : Mono x) (y : A ⟶ C) (hy : Mono y) :
     ∃ (D : 𝒞) (u : B ⟶ D) (v : C ⟶ D), Mono u ∧ Mono v ∧ x ≫ u = y ≫ v := by
@@ -406,11 +726,101 @@ theorem amalgamation_lemma [PreTopos 𝒞] [HasReflTransClosure 𝒞]
   obtain ⟨E, hEeq, hR₀E, _hEmin⟩ := minEquiv_of_rtc (HasBinaryCoproducts.coprod B C) R₀
   -- Effective quotient: a cover q : B+C ↠ D with level(q) ⊇ E.
   obtain ⟨_, D, q, _hqcov, hEle, _hleE⟩ := EffectiveRegular.effective E hEeq
+  -- ===== Shared leg-monicity infrastructure (used for both `u` and `v`) =====
+  -- `xi`, `yi` are monic (composites of monics with the monic injections).
+  have hxi : Mono xi := by
+    intro W f g h
+    apply hx; apply inl_mono (A := B) (B := C)
+    show (f ≫ x) ≫ HasBinaryCoproducts.inl = (g ≫ x) ≫ HasBinaryCoproducts.inl
+    simpa [xi, Cat.assoc] using h
+  have hyi : Mono yi := by
+    intro W f g h
+    apply hy; apply inr_mono (A := B) (B := C)
+    show (f ≫ y) ≫ HasBinaryCoproducts.inr = (g ≫ y) ≫ HasBinaryCoproducts.inr
+    simpa [yi, Cat.assoc] using h
+  -- `R₀`'s columns factor through the injections (cover⊥mono descent over the image cover).
+  obtain ⟨tA, htA⟩ : ∃ t : R₀.src ⟶ B, t ≫ HasBinaryCoproducts.inl = R₀.colA := by
+    obtain ⟨t, _, ht⟩ := cover_mono_diagonal (image_lift_cover sp) inl_mono
+      (c := image.lift sp) (f := R₀.colA) (m := HasBinaryCoproducts.inl) (d := x) (by rw [hR₀A])
+    exact ⟨t, ht⟩
+  obtain ⟨tB, htB⟩ : ∃ t : R₀.src ⟶ C, t ≫ HasBinaryCoproducts.inr = R₀.colB := by
+    obtain ⟨t, _, ht⟩ := cover_mono_diagonal (image_lift_cover sp) inr_mono
+      (c := image.lift sp) (f := R₀.colB) (m := HasBinaryCoproducts.inr) (d := y) (by rw [hR₀B])
+    exact ⟨t, ht⟩
+  -- `R₀ ⊂ P := (graph xi)° ⊚ (graph yi)` (proof-irrelevant monic-pair field makes `R₀` defeq).
+  have hR₀P : RelLe R₀ ((graph xi)° ⊚ (graph yi)) := image_pair_le_recip_comp xi yi
+  -- The four cross-composite bounds for the generated relation `F = 1 ∪ R₀ ∪ R₀°`.
+  have hRRop : RelLe (R₀ ⊚ R₀°) (graph (Cat.id (HasBinaryCoproducts.coprod B C))) :=
+    rel_le_trans (compose_le hR₀P (reciprocal_monotone hR₀P))
+      (comp_recip_self_le_diag xi yi hyi)
+  have hRopR : RelLe (R₀° ⊚ R₀) (graph (Cat.id (HasBinaryCoproducts.coprod B C))) :=
+    rel_le_trans (compose_le (reciprocal_monotone hR₀P) hR₀P) (diag_le_one xi yi hxi)
+  have hRR : RelLe (R₀ ⊚ R₀) (graph (Cat.id (HasBinaryCoproducts.coprod B C))) :=
+    relLe_of_relSub_le_bottom (relSub_comp_le_bottom_mirror R₀ R₀ tB htB tA htA)
+  have hRopRop : RelLe (R₀° ⊚ R₀°) (graph (Cat.id (HasBinaryCoproducts.coprod B C))) :=
+    relLe_of_relSub_le_bottom (relSub_comp_le_bottom R₀° R₀° tA htA tB htB)
+  -- `F` is an equivalence relation ⊇ R₀; minimality of `E` gives `level q ⊂ E ⊂ F`.
+  have hFeq : EquivalenceRelation
+      ((graph (Cat.id (HasBinaryCoproducts.coprod B C)) ∪ᵣ R₀) ∪ᵣ R₀°) :=
+    amalgamation_F_equiv R₀ hRRop hRopR hRR hRopRop
+  have hR₀F : RelLe R₀
+      ((graph (Cat.id (HasBinaryCoproducts.coprod B C)) ∪ᵣ R₀) ∪ᵣ R₀°) :=
+    rel_le_trans (relUnion_le_right _ R₀) (relUnion_le_left _ _)
+  have hEF : RelLe E ((graph (Cat.id (HasBinaryCoproducts.coprod B C)) ∪ᵣ R₀) ∪ᵣ R₀°) :=
+    _hEmin _ hFeq hR₀F
+  have hLEF : RelLe (graph q ⊚ (graph q)°)
+      ((graph (Cat.id (HasBinaryCoproducts.coprod B C)) ∪ᵣ R₀) ∪ᵣ R₀°) :=
+    rel_le_trans _hleE hEF
+  -- The level-of-`(j ≫ q)` containment chain (shared shape for both legs).
+  have hLELE : ∀ {Bj : 𝒞} (j : Bj ⟶ HasBinaryCoproducts.coprod B C),
+      RelLe (kernelPairRel (j ≫ q)) (graph j ⊚ ((graph q ⊚ (graph q)°) ⊚ (graph j)°)) := by
+    intro Bj j
+    have s0 : RelLe (kernelPairRel (j ≫ q)) (graph (j ≫ q) ⊚ (graph (j ≫ q))°) :=
+      kernelPairRel_le_graphComp (j ≫ q)
+    have s1 : RelLe (graph (j ≫ q)) (graph j ⊚ graph q) := graph_comp j q
+    have s2 : RelLe ((graph (j ≫ q))°) ((graph q)° ⊚ (graph j)°) :=
+      rel_le_trans (reciprocal_monotone s1) (reciprocal_comp_le (graph j) (graph q))
+    have s3 : RelLe (graph (j ≫ q) ⊚ (graph (j ≫ q))°)
+        ((graph j ⊚ graph q) ⊚ ((graph q)° ⊚ (graph j)°)) := compose_le s1 s2
+    have s4 : RelLe ((graph j ⊚ graph q) ⊚ ((graph q)° ⊚ (graph j)°))
+        (graph j ⊚ (graph q ⊚ ((graph q)° ⊚ (graph j)°))) :=
+      (compose_assoc_of_regular (graph j) (graph q) ((graph q)° ⊚ (graph j)°)).1
+    have s5 : RelLe (graph q ⊚ ((graph q)° ⊚ (graph j)°))
+        ((graph q ⊚ (graph q)°) ⊚ (graph j)°) :=
+      (compose_assoc_of_regular (graph q) ((graph q)°) ((graph j)°)).2
+    have s6 : RelLe (graph j ⊚ (graph q ⊚ ((graph q)° ⊚ (graph j)°)))
+        (graph j ⊚ ((graph q ⊚ (graph q)°) ⊚ (graph j)°)) := compose_le (rel_le_refl _) s5
+    exact rel_le_trans s0 (rel_le_trans s3 (rel_le_trans s4 s6))
   refine ⟨D, HasBinaryCoproducts.inl ≫ q, HasBinaryCoproducts.inr ≫ q, ?_, ?_, ?_⟩
-  · -- Mono u: effective-descent leg-monicity (zigzag/path-length over E). Faithful §1.543 sorry.
-    sorry
-  · -- Mono v: symmetric to Mono u.
-    sorry
+  · -- Mono u = Mono (inl ≫ q): minimality-descent leg-monicity (§1.651, positivity).
+    refine amalgamation_leg_mono HasBinaryCoproducts.inl inl_mono q R₀ (hLELE _) hLEF ?_ ?_
+    · -- graph inl ⊚ (R₀ ⊚ (graph inl)°) ⊂ 1_B
+      refine relLe_of_relSub_le_bottom
+        (relSub_comp_le_bottom_right (graph HasBinaryCoproducts.inl) _ ?_)
+      refine relSub_comp_le_bottom_mirror R₀ ((graph HasBinaryCoproducts.inl)°) tB htB
+        (Cat.id B) ?_
+      exact Cat.id_comp _
+    · -- graph inl ⊚ (R₀° ⊚ (graph inl)°) ⊂ 1_B  (reassociate, vanish at graph inl / R₀°)
+      refine rel_le_trans (compose_assoc_of_regular (graph HasBinaryCoproducts.inl) (R₀°)
+        ((graph HasBinaryCoproducts.inl)°)).2 ?_
+      refine relLe_of_relSub_le_bottom (relSub_comp_le_bottom_left _ ((graph HasBinaryCoproducts.inl)°) ?_)
+      refine relSub_comp_le_bottom (graph HasBinaryCoproducts.inl) (R₀°) (Cat.id B) ?_ tB htB
+      exact Cat.id_comp _
+  · -- Mono v = Mono (inr ≫ q): symmetric (swap inl↔inr, R₀↔R₀° at the junctions).
+    refine amalgamation_leg_mono HasBinaryCoproducts.inr inr_mono q R₀ (hLELE _) hLEF ?_ ?_
+    · -- graph inr ⊚ (R₀ ⊚ (graph inr)°) ⊂ 1_C  (reassociate, vanish at graph inr / R₀)
+      refine rel_le_trans (compose_assoc_of_regular (graph HasBinaryCoproducts.inr) R₀
+        ((graph HasBinaryCoproducts.inr)°)).2 ?_
+      refine relLe_of_relSub_le_bottom
+        (relSub_comp_le_bottom_left _ ((graph HasBinaryCoproducts.inr)°) ?_)
+      refine relSub_comp_le_bottom_mirror (graph HasBinaryCoproducts.inr) R₀ (Cat.id C) ?_ tA htA
+      exact Cat.id_comp _
+    · -- graph inr ⊚ (R₀° ⊚ (graph inr)°) ⊂ 1_C
+      refine relLe_of_relSub_le_bottom
+        (relSub_comp_le_bottom_right (graph HasBinaryCoproducts.inr) _ ?_)
+      refine relSub_comp_le_bottom R₀° ((graph HasBinaryCoproducts.inr)°) tA htA
+        (Cat.id C) ?_
+      exact Cat.id_comp _
   · -- commutativity: x≫(inl≫q) = y≫(inr≫q), since R₀ ⊑ E ⊑ level q and R₀'s columns are x≫inl, y≫inr.
     have hR₀kp : RelLe R₀ (kernelPairRel q) :=
       rel_le_trans (rel_le_trans hR₀E hEle) (graphComp_le_kernelPairRel q)
@@ -456,7 +866,7 @@ theorem amalgamation_lemma [PreTopos 𝒞] [HasReflTransClosure 𝒞]
     effective *co*regularity (the opposite category's effectiveness), which this repo does not yet
     axiomatize (it is the §1.543 cocartesian/transfinite-colimit content).  Faithful sorry on exactly
     that dual-effectiveness step; the cokernel pair and `u = v` are now real. -/
-theorem pretopos_balanced [PreTopos 𝒞] [HasReflTransClosure 𝒞] {A B : 𝒞}
+theorem pretopos_balanced [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞] {A B : 𝒞}
     (m : A ⟶ B) (hm : Mono m)
     (hepi : ∀ {C : 𝒞} (g h : B ⟶ C), m ≫ g = m ≫ h → g = h) : IsIso m := by
   -- Cokernel pair of m = pushout of (m, m): amalgamation_lemma gives D, u, v with m≫u = m≫v.
@@ -467,7 +877,7 @@ theorem pretopos_balanced [PreTopos 𝒞] [HasReflTransClosure 𝒞] {A B : 𝒞
   -- so m is iso.  Needs effective coregularity (dual of EffectiveRegular) = §1.543.
   sorry
 
-theorem cover_eq_epic_preTopos [PreTopos 𝒞] [HasReflTransClosure 𝒞] {A B : 𝒞} (f : A ⟶ B) :
+theorem cover_eq_epic_preTopos [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞] {A B : 𝒞} (f : A ⟶ B) :
     Cover f ↔ (∀ {C : 𝒞} (g h : B ⟶ C), f ≫ g = f ≫ h → g = h) := by
   constructor
   · -- Cover → epic (§1.512): already proved
