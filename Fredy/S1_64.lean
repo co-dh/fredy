@@ -1267,24 +1267,332 @@ theorem monic_eq_cocover_preTopos [PreTopos 𝒞] [HasCoequalizers 𝒞] {A B : 
   square with the top map monic.  The proof factors f as cover ∘ monic (image
   factorization) and applies the amalgamation lemma §1.651 to the two monics. -/
 
+/-- Composition membership: a point `k` whose images sit in `R` (over `(α, m)`) and in `S`
+    (over `(m, γ)`) yields a point of `R ⊚ S` over `(α, γ)`.  The shared midpoint `m` matches
+    the two columns at the pullback, and the span factors through the composition image. -/
+private theorem pair_mem_compose [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
+    {A B C K : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C)
+    {α : K ⟶ A} {m : K ⟶ B} {γ : K ⟶ C}
+    (p : K ⟶ R.src) (hpA : p ≫ R.colA = α) (hpB : p ≫ R.colB = m)
+    (q : K ⟶ S.src) (hqA : q ≫ S.colA = m) (hqB : q ≫ S.colB = γ) :
+    ∃ g : K ⟶ (R ⊚ S).src, g ≫ (R ⊚ S).colA = α ∧ g ≫ (R ⊚ S).colB = γ := by
+  let pb := HasPullbacks.has R.colB S.colA
+  have hcompat : p ≫ R.colB = q ≫ S.colA := by rw [hpB, hqA]
+  let z : K ⟶ pb.cone.pt := pb.lift ⟨K, p, q, hcompat⟩
+  have hz1 : z ≫ pb.cone.π₁ = p := pb.lift_fst _
+  have hz2 : z ≫ pb.cone.π₂ = q := pb.lift_snd _
+  let spanRS : pb.cone.pt ⟶ prod A C :=
+    pair (pb.cone.π₁ ≫ R.colA) (pb.cone.π₂ ≫ S.colB)
+  -- z ≫ spanRS = pair α γ.
+  have hzs : z ≫ spanRS = pair α γ := by
+    apply pair_uniq
+    · rw [Cat.assoc, fst_pair, ← Cat.assoc, hz1, hpA]
+    · rw [Cat.assoc, snd_pair, ← Cat.assoc, hz2, hqB]
+  -- (R⊚S).src = (image spanRS).dom; its arr = pair (R⊚S).colA (R⊚S).colB.
+  refine ⟨z ≫ image.lift spanRS, ?_, ?_⟩
+  · show (z ≫ image.lift spanRS) ≫ ((image spanRS).arr ≫ fst) = α
+    rw [Cat.assoc, ← Cat.assoc (image.lift spanRS), image.lift_fac, ← Cat.assoc, hzs, fst_pair]
+  · show (z ≫ image.lift spanRS) ≫ ((image spanRS).arr ≫ snd) = γ
+    rw [Cat.assoc, ← Cat.assoc (image.lift spanRS), image.lift_fac, ← Cat.assoc, hzs, snd_pair]
+
+/-- **§1.653 (cover transport)**: given a cover `e : A ↠ I` and a monic `y : A ↣ C`,
+    push `y` along `e` to a monic `y' : I ↣ C'` over a fresh codomain `C'`, with a
+    comparison cover `c' : C ↠ C'` making the square commute (`e ≫ y' = y ≫ c'`).
+    Freyd's construction (§1.653): on `C` form `R₀ := y° (level e) y` (the image, under
+    `y`, of the kernel-pair relation of `e`), generate the equivalence relation
+    `E' := Δ_C ∪ R₀`, and let `c' : C ↠ C'` be its effective quotient.  Then `level e =
+    level (y ≫ c')`, so `y ≫ c'` coequalizes the kernel pair of `e` (gives `y'`), and
+    `y'` is monic because `level (y ≫ c') ⊂ Δ_I`. -/
+private theorem cover_transport_mono [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞]
+    {A I C : 𝒞} (e : A ⟶ I) (he : Cover e) (y : A ⟶ C) (hy : Mono y) :
+    ∃ (C' : 𝒞) (y' : I ⟶ C') (c' : C ⟶ C'), Mono y' ∧ e ≫ y' = y ≫ c' := by
+  -- E = level e = graph e ⊚ (graph e)° on A; R₀ = (graph y)° ⊚ E ⊚ graph y on C.
+  let E : BinRel 𝒞 A A := graph e ⊚ (graph e)°
+  let R₀ : BinRel 𝒞 C C := ((graph y)° ⊚ E) ⊚ graph y
+  -- E is symmetric (E° = E) and transitive (E ⊚ E ⊂ E, from kernelPair transitivity).
+  have hEsym : RelLe (E°) E := by
+    have h1 : RelLe (E°) ((graph e)°° ⊚ (graph e)°) := reciprocal_comp_le (graph e) ((graph e)°)
+    rw [reciprocal_invol] at h1; exact h1
+  have hEsym' : RelLe E (E°) := by
+    have h2 := reciprocal_monotone hEsym; rwa [reciprocal_invol] at h2
+  have hEtrans : RelLe (E ⊚ E) E := by
+    have h1 : RelLe (kernelPairRel e) E := kernelPairRel_le_graphComp e
+    have h2 : RelLe E (kernelPairRel e) := graphComp_le_kernelPairRel e
+    have h3 : RelLe (E ⊚ E) (kernelPairRel e ⊚ kernelPairRel e) := compose_le h2 h2
+    exact rel_le_trans h3 (rel_le_trans (kernelPair_transitive e) h1)
+  -- y ⊚ y° ⊂ 1  (y monic).
+  have hyy : RelLe (graph y ⊚ (graph y)°) (graph (Cat.id A)) :=
+    graph_comp_recip_le_one_of_mono y hy
+  -- R₀ symmetric:  R₀° ⊂ y° ⊚ (E° ⊚ y) ⊂ y° ⊚ (E ⊚ y) reassociated to (y° ⊚ E) ⊚ y = R₀.
+  have hR₀sym : RelLe (R₀°) R₀ := by
+    have s1 : RelLe (R₀°) ((graph y)° ⊚ ((graph y)° ⊚ E)°) :=
+      reciprocal_comp_le ((graph y)° ⊚ E) (graph y)
+    have s2 : RelLe (((graph y)° ⊚ E)°) (E° ⊚ (graph y)°°) :=
+      reciprocal_comp_le ((graph y)°) E
+    have s2' : RelLe (E° ⊚ (graph y)°°) (E ⊚ graph y) := by
+      rw [reciprocal_invol]; exact compose_le hEsym (rel_le_refl _)
+    have s3 : RelLe ((graph y)° ⊚ ((graph y)° ⊚ E)°) ((graph y)° ⊚ (E ⊚ graph y)) :=
+      compose_le (rel_le_refl _) (rel_le_trans s2 s2')
+    have s4 : RelLe ((graph y)° ⊚ (E ⊚ graph y)) (((graph y)° ⊚ E) ⊚ graph y) :=
+      (compose_assoc_of_regular ((graph y)°) E (graph y)).2
+    exact rel_le_trans s1 (rel_le_trans s3 s4)
+  -- R₀ transitive:  reassociate R₀⊚R₀ = (y°E) ⊚ ((y⊚y°) ⊚ (E y)); kill y⊚y° ⊂ 1, then E⊚E ⊂ E.
+  have hR₀trans : RelLe (R₀ ⊚ R₀) R₀ := by
+    -- Abbreviations matching `R₀ = ((y°⊚E)⊚y)`.
+    let yo : BinRel 𝒞 C A := (graph y)°
+    let gy : BinRel 𝒞 A C := graph y
+    -- Step A: ((yo⊚E)⊚gy) ⊚ R₀  ⊂  (yo⊚E) ⊚ (gy ⊚ R₀).
+    have a1 : RelLe (R₀ ⊚ R₀) ((yo ⊚ E) ⊚ (gy ⊚ R₀)) :=
+      (compose_assoc_of_regular (yo ⊚ E) gy R₀).1
+    -- Step B: gy ⊚ R₀ = gy ⊚ ((yo⊚E)⊚gy) ⊂ (gy ⊚ (yo⊚E)) ⊚ gy ⊂ ((gy⊚yo)⊚E) ⊚ gy.
+    have b1 : RelLe (gy ⊚ R₀) ((gy ⊚ (yo ⊚ E)) ⊚ gy) :=
+      (compose_assoc_of_regular gy (yo ⊚ E) gy).2
+    have b2 : RelLe (gy ⊚ (yo ⊚ E)) ((gy ⊚ yo) ⊚ E) :=
+      (compose_assoc_of_regular gy yo E).2
+    have b3 : RelLe ((gy ⊚ yo) ⊚ E) (graph (Cat.id A) ⊚ E) := compose_le hyy (rel_le_refl _)
+    have b4 : RelLe (graph (Cat.id A) ⊚ E) E := graph_id_comp E
+    have b5 : RelLe (gy ⊚ R₀) (E ⊚ gy) :=
+      rel_le_trans b1 (compose_le (rel_le_trans b2 (rel_le_trans b3 b4)) (rel_le_refl _))
+    -- Step C: (yo⊚E) ⊚ (E⊚gy) ⊂ yo ⊚ ((E⊚E)⊚gy) ⊂ yo ⊚ (E⊚gy) ⊂ (yo⊚E)⊚gy = R₀.
+    have c1 : RelLe ((yo ⊚ E) ⊚ (gy ⊚ R₀)) ((yo ⊚ E) ⊚ (E ⊚ gy)) :=
+      compose_le (rel_le_refl _) b5
+    have c2 : RelLe ((yo ⊚ E) ⊚ (E ⊚ gy)) (yo ⊚ (E ⊚ (E ⊚ gy))) :=
+      (compose_assoc_of_regular yo E (E ⊚ gy)).1
+    have c3 : RelLe (E ⊚ (E ⊚ gy)) ((E ⊚ E) ⊚ gy) :=
+      (compose_assoc_of_regular E E gy).2
+    have c4 : RelLe ((E ⊚ E) ⊚ gy) (E ⊚ gy) := compose_le hEtrans (rel_le_refl _)
+    have c5 : RelLe (yo ⊚ (E ⊚ (E ⊚ gy))) (yo ⊚ (E ⊚ gy)) :=
+      compose_le (rel_le_refl _) (rel_le_trans c3 c4)
+    have c6 : RelLe (yo ⊚ (E ⊚ gy)) ((yo ⊚ E) ⊚ gy) :=
+      (compose_assoc_of_regular yo E gy).2
+    exact rel_le_trans a1 (rel_le_trans c1 (rel_le_trans c2 (rel_le_trans c5 c6)))
+  -- E' := Δ_C ∪ R₀ is an equivalence relation.
+  let Δ : BinRel 𝒞 C C := graph (Cat.id C)
+  let E' : BinRel 𝒞 C C := Δ ∪ᵣ R₀
+  have hΔE' : RelLe Δ E' := relUnion_le_left Δ R₀
+  have hRE' : RelLe R₀ E' := relUnion_le_right Δ R₀
+  have hE'eq : EquivalenceRelation E' := by
+    apply equivalenceRelation_of_isEquivRel
+    refine ⟨?_, ?_, ?_⟩
+    · -- reflexivity: graph(id) ⊂ E'.
+      exact hΔE'
+    · -- symmetry: E'° ⊂ E'  (distribute ° over ∪, Δ° ⊂ Δ, R₀° ⊂ R₀).
+      refine rel_le_trans (relUnion_le_reciprocal Δ R₀) ?_
+      apply le_relUnion
+      · exact rel_le_trans hR₀sym hRE'
+      · -- Δ° ⊂ Δ ⊂ E'.
+        have h0 : RelLe (Δ°) (Δ°°) := reciprocal_monotone graph_id_le_reciprocal
+        rw [reciprocal_invol] at h0
+        exact rel_le_trans h0 hΔE'
+    · -- transitivity: E'⊚E' ⊂ E'  (four pieces ΔΔ, ΔR₀, R₀Δ, R₀R₀).
+      refine rel_le_trans (compose_union_left Δ R₀ E') ?_
+      apply le_relUnion
+      · -- Δ ⊚ E' ⊂ E'.
+        exact graph_id_comp E'
+      · -- R₀ ⊚ E' = R₀ ⊚ (Δ ∪ R₀) ⊂ (R₀⊚Δ) ∪ (R₀⊚R₀) ⊂ E'.
+        refine rel_le_trans (compose_union_right R₀ Δ R₀) ?_
+        apply le_relUnion
+        · exact rel_le_trans (comp_graph_id R₀) hRE'
+        · exact rel_le_trans hR₀trans hRE'
+  -- Effective quotient: cover c' : C ↠ C' with level c' = E' (both directions).
+  obtain ⟨_, C', c', hc'cov, hle, hge⟩ := EffectiveRegular.effective E' hE'eq
+  -- hle : E' ⊂ graph c' ⊚ (graph c')°   ;   hge : graph c' ⊚ (graph c')° ⊂ E'.
+  -- ===== level e = level (y ≫ c'), giving y' and its monicity. =====
+  -- (1) y ≫ c' coequalizes the kernel pair of e:  e's two preimages get identified by c'.
+  -- R₀ = y°(level e)y ⊂ E' ⊂ level c', so y maps level-e-related points to c'-equal points.
+  have hkpe_g : kp₁ (f := e) ≫ (y ≫ c') = kp₂ (f := e) ≫ (y ≫ c') := by
+    -- The kernel-pair span (kp₁, kp₂) of `e` sits inside `E = level e` (via kernelPairRel ⊂ E).
+    have hkpE : RelLe (kernelPairRel e) E := kernelPairRel_le_graphComp e
+    obtain ⟨⟨w, hwA, hwB⟩⟩ := hkpE
+    -- w : kernelPair e → E.src with w ≫ E.colA = kp₁, w ≫ E.colB = kp₂.
+    have hwA' : w ≫ E.colA = kp₁ (f := e) := by simpa [kernelPairRel] using hwA
+    have hwB' : w ≫ E.colB = kp₂ (f := e) := by simpa [kernelPairRel] using hwB
+    -- R₀ ⊂ E' ⊂ level c' ⊂ kernelPairRel c'.
+    have hR₀kp : RelLe R₀ (kernelPairRel c') :=
+      rel_le_trans (rel_le_trans hRE' hle) (graphComp_le_kernelPairRel c')
+    -- P-witness over (kp₁≫y, kp₂):  p = kp₁ into (graph y)°, q = w into E.
+    obtain ⟨pP, hpPA, hpPB⟩ := pair_mem_compose ((graph y)°) E
+      (α := kp₁ (f := e) ≫ y) (m := kp₁ (f := e)) (γ := kp₂ (f := e))
+      (kp₁ (f := e)) (by show kp₁ (f := e) ≫ y = _; rfl)
+        (by show kp₁ (f := e) ≫ Cat.id A = _; rw [Cat.comp_id])
+      w hwA' hwB'
+    -- R₀-witness over (kp₁≫y, kp₂≫y):  p = pP into P, q = kp₂ into graph y.
+    obtain ⟨g, hgA, hgB⟩ := pair_mem_compose ((graph y)° ⊚ E) (graph y)
+      (α := kp₁ (f := e) ≫ y) (m := kp₂ (f := e)) (γ := kp₂ (f := e) ≫ y)
+      pP hpPA hpPB
+      (kp₂ (f := e)) (by show kp₂ (f := e) ≫ Cat.id A = _; rw [Cat.comp_id])
+        (by show kp₂ (f := e) ≫ y = _; rfl)
+    -- Transport g through R₀ ⊂ kernelPairRel c'.
+    obtain ⟨⟨h, hhA, hhB⟩⟩ := hR₀kp
+    -- (g≫h) lands in kernelPair c' with legs kp₁≫y, kp₂≫y; kp_sq closes after c'.
+    have ek1 : (g ≫ h) ≫ kp₁ (f := c') = kp₁ (f := e) ≫ y := by
+      rw [Cat.assoc]; show g ≫ (h ≫ (kernelPairRel c').colA) = _
+      rw [hhA]; exact hgA
+    have ek2 : (g ≫ h) ≫ kp₂ (f := c') = kp₂ (f := e) ≫ y := by
+      rw [Cat.assoc]; show g ≫ (h ≫ (kernelPairRel c').colB) = _
+      rw [hhB]; exact hgB
+    calc kp₁ (f := e) ≫ (y ≫ c')
+        = (kp₁ (f := e) ≫ y) ≫ c' := (Cat.assoc _ _ _).symm
+      _ = ((g ≫ h) ≫ kp₁ (f := c')) ≫ c' := by rw [ek1]
+      _ = (g ≫ h) ≫ (kp₁ (f := c') ≫ c') := Cat.assoc _ _ _
+      _ = (g ≫ h) ≫ (kp₂ (f := c') ≫ c') := by rw [kp_sq]
+      _ = ((g ≫ h) ≫ kp₂ (f := c')) ≫ c' := (Cat.assoc _ _ _).symm
+      _ = (kp₂ (f := e) ≫ y) ≫ c' := by rw [ek2]
+      _ = kp₂ (f := e) ≫ (y ≫ c') := Cat.assoc _ _ _
+  obtain ⟨y', hy'fac, _⟩ := cover_is_coequalizer_of_level e he (y ≫ c') hkpe_g
+  -- (2) y' is monic.  First: level (y≫c') ⊂ E = level e (the reverse containment).
+  --     graph(y≫c')⊚graph(y≫c')° ⊂ y ⊚ (level c') ⊚ y° ⊂ y ⊚ (Δ_C ∪ R₀) ⊚ y° ⊂ E.
+  have hge2 : RelLe (graph (y ≫ c') ⊚ (graph (y ≫ c'))°) E := by
+    have gc : RelLe (graph (y ≫ c')) (graph y ⊚ graph c') := graph_comp y c'
+    have gcr : RelLe ((graph (y ≫ c'))°) ((graph c')° ⊚ (graph y)°) :=
+      rel_le_trans (reciprocal_monotone gc) (reciprocal_comp_le (graph y) (graph c'))
+    have t1 : RelLe (graph (y ≫ c') ⊚ (graph (y ≫ c'))°)
+        ((graph y ⊚ graph c') ⊚ ((graph c')° ⊚ (graph y)°)) := compose_le gc gcr
+    -- reassociate to graph y ⊚ ((graph c' ⊚ graph c'°) ⊚ graph y°).
+    have t2 : RelLe ((graph y ⊚ graph c') ⊚ ((graph c')° ⊚ (graph y)°))
+        (graph y ⊚ (graph c' ⊚ ((graph c')° ⊚ (graph y)°))) :=
+      (compose_assoc_of_regular (graph y) (graph c') ((graph c')° ⊚ (graph y)°)).1
+    have t3 : RelLe (graph c' ⊚ ((graph c')° ⊚ (graph y)°))
+        ((graph c' ⊚ (graph c')°) ⊚ (graph y)°) :=
+      (compose_assoc_of_regular (graph c') ((graph c')°) ((graph y)°)).2
+    have t4 : RelLe (graph y ⊚ (graph c' ⊚ ((graph c')° ⊚ (graph y)°)))
+        (graph y ⊚ ((graph c' ⊚ (graph c')°) ⊚ (graph y)°)) :=
+      compose_le (rel_le_refl _) t3
+    -- graph c' ⊚ graph c'° ⊂ E' = Δ_C ∪ R₀ (effectiveness reverse bound).
+    have t5 : RelLe (graph y ⊚ ((graph c' ⊚ (graph c')°) ⊚ (graph y)°))
+        (graph y ⊚ ((Δ ∪ᵣ R₀) ⊚ (graph y)°)) :=
+      compose_le (rel_le_refl _) (compose_le hge (rel_le_refl _))
+    -- distribute the union: graph y ⊚ ((Δ ∪ R₀) ⊚ y°) ⊂ (y⊚(Δ⊚y°)) ∪ (y⊚(R₀⊚y°)).
+    have t6 : RelLe (graph y ⊚ ((Δ ∪ᵣ R₀) ⊚ (graph y)°))
+        ((graph y ⊚ (Δ ⊚ (graph y)°)) ∪ᵣ (graph y ⊚ (R₀ ⊚ (graph y)°))) := by
+      refine rel_le_trans (compose_le (rel_le_refl _) (compose_union_left Δ R₀ ((graph y)°))) ?_
+      exact compose_union_right (graph y) (Δ ⊚ (graph y)°) (R₀ ⊚ (graph y)°)
+    -- piece 1:  y ⊚ (Δ_C ⊚ y°) ⊂ y ⊚ y° ⊂ 1_A ⊂ E.
+    have hΔE : RelLe (graph (Cat.id A)) E :=
+      rel_le_trans
+        (show RelLe (graph (Cat.id A)) (kernelPairRel e) from
+          ⟨⟨kp_diag (f := e), by simpa [kernelPairRel, graph] using kp_diag_p₁ (f := e),
+            by simpa [kernelPairRel, graph] using kp_diag_p₂ (f := e)⟩⟩)
+        (kernelPairRel_le_graphComp e)
+    have p1 : RelLe (graph y ⊚ (Δ ⊚ (graph y)°)) E :=
+      rel_le_trans (compose_le (rel_le_refl _) (graph_id_comp ((graph y)°)))
+        (rel_le_trans hyy hΔE)
+    -- piece 2:  y ⊚ (R₀ ⊚ y°) = y ⊚ (((y°⊚E)⊚y) ⊚ y°);  collapse y⊚y° ⊂ 1 on both ends.
+    have p2 : RelLe (graph y ⊚ (R₀ ⊚ (graph y)°)) E := by
+      -- R₀ ⊚ y° = ((y°⊚E)⊚y) ⊚ y° ⊂ (y°⊚E) ⊚ (y⊚y°) ⊂ (y°⊚E) ⊚ 1 ⊂ y°⊚E.
+      have q1 : RelLe (R₀ ⊚ (graph y)°) (((graph y)° ⊚ E) ⊚ (graph y ⊚ (graph y)°)) :=
+        (compose_assoc_of_regular ((graph y)° ⊚ E) (graph y) ((graph y)°)).1
+      have q2 : RelLe (((graph y)° ⊚ E) ⊚ (graph y ⊚ (graph y)°))
+          (((graph y)° ⊚ E) ⊚ graph (Cat.id A)) :=
+        compose_le (rel_le_refl _) hyy
+      have q3 : RelLe (((graph y)° ⊚ E) ⊚ graph (Cat.id A)) ((graph y)° ⊚ E) :=
+        comp_graph_id ((graph y)° ⊚ E)
+      have qR : RelLe (R₀ ⊚ (graph y)°) ((graph y)° ⊚ E) :=
+        rel_le_trans q1 (rel_le_trans q2 q3)
+      -- y ⊚ (R₀ ⊚ y°) ⊂ y ⊚ (y°⊚E) ⊂ (y⊚y°)⊚E ⊂ 1⊚E ⊂ E.
+      have q4 : RelLe (graph y ⊚ (R₀ ⊚ (graph y)°)) (graph y ⊚ ((graph y)° ⊚ E)) :=
+        compose_le (rel_le_refl _) qR
+      have q5 : RelLe (graph y ⊚ ((graph y)° ⊚ E)) ((graph y ⊚ (graph y)°) ⊚ E) :=
+        (compose_assoc_of_regular (graph y) ((graph y)°) E).2
+      have q6 : RelLe ((graph y ⊚ (graph y)°) ⊚ E) (graph (Cat.id A) ⊚ E) :=
+        compose_le hyy (rel_le_refl _)
+      exact rel_le_trans q4 (rel_le_trans q5 (rel_le_trans q6 (graph_id_comp E)))
+    have t7 : RelLe ((graph y ⊚ (Δ ⊚ (graph y)°)) ∪ᵣ (graph y ⊚ (R₀ ⊚ (graph y)°))) E :=
+      le_relUnion p1 p2
+    exact rel_le_trans t1 (rel_le_trans t2 (rel_le_trans t4
+      (rel_le_trans t5 (rel_le_trans t6 t7))))
+  -- level (y≫c') ⊂ E ⊂ kernelPairRel e.
+  have hkp_le : RelLe (kernelPairRel (y ≫ c')) (kernelPairRel e) :=
+    rel_le_trans (kernelPairRel_le_graphComp (y ≫ c'))
+      (rel_le_trans hge2 (graphComp_le_kernelPairRel e))
+  -- Mono y':  pull the cover `e` back along any pair `u,v : W → I` with `u≫y' = v≫y'`.
+  have hy'mono : Mono y' := by
+    intro W u v huv
+    -- pull cover e back along u, then along (that pullback ≫ v).
+    let pb1 := HasPullbacks.has e u
+    have hπ₂u_cover : Cover pb1.cone.π₂ := cover_pullback u he
+    let pb2 := HasPullbacks.has e (pb1.cone.π₂ ≫ v)
+    have hρ_cover : Cover pb2.cone.π₂ := cover_pullback (pb1.cone.π₂ ≫ v) he
+    let c := pb2.cone.π₂ ≫ pb1.cone.π₂
+    let au := pb2.cone.π₂ ≫ pb1.cone.π₁
+    let av := pb2.cone.π₁
+    have hau_e : au ≫ e = c ≫ u := by
+      dsimp only [au, c]; rw [Cat.assoc, pb1.cone.w, ← Cat.assoc]
+    have hav_e : av ≫ e = c ≫ v := by
+      dsimp only [av, c]; rw [pb2.cone.w, ← Cat.assoc]
+    -- au, av agree after y≫c' (= e≫y'), so land in kernelPair (y≫c').
+    have hag : au ≫ (y ≫ c') = av ≫ (y ≫ c') := by
+      calc au ≫ (y ≫ c') = au ≫ (e ≫ y') := by rw [hy'fac]
+        _ = (au ≫ e) ≫ y' := (Cat.assoc _ _ _).symm
+        _ = (c ≫ u) ≫ y' := by rw [hau_e]
+        _ = c ≫ (u ≫ y') := Cat.assoc _ _ _
+        _ = c ≫ (v ≫ y') := by rw [huv]
+        _ = (c ≫ v) ≫ y' := (Cat.assoc _ _ _).symm
+        _ = (av ≫ e) ≫ y' := by rw [hav_e]
+        _ = av ≫ (e ≫ y') := Cat.assoc _ _ _
+        _ = av ≫ (y ≫ c') := by rw [hy'fac]
+    -- (au, av) ∈ kernelPairRel (y≫c') ⊂ kernelPairRel e, so au ≫ e = av ≫ e.
+    let l := (HasPullbacks.has (y ≫ c') (y ≫ c')).lift ⟨_, au, av, hag⟩
+    have hl1 : l ≫ kp₁ (f := y ≫ c') = au := kp_lift_p₁ au av hag
+    have hl2 : l ≫ kp₂ (f := y ≫ c') = av := kp_lift_p₂ au av hag
+    obtain ⟨⟨t, htA, htB⟩⟩ := hkp_le
+    have hae : au ≫ e = av ≫ e := by
+      have ha : (l ≫ t) ≫ kp₁ (f := e) = au := by
+        rw [Cat.assoc]; show l ≫ (t ≫ (kernelPairRel e).colA) = au
+        rw [htA]; show l ≫ (kernelPairRel (y ≫ c')).colA = au; exact hl1
+      have hb : (l ≫ t) ≫ kp₂ (f := e) = av := by
+        rw [Cat.assoc]; show l ≫ (t ≫ (kernelPairRel e).colB) = av
+        rw [htB]; show l ≫ (kernelPairRel (y ≫ c')).colB = av; exact hl2
+      calc au ≫ e = ((l ≫ t) ≫ kp₁ (f := e)) ≫ e := by rw [ha]
+        _ = (l ≫ t) ≫ (kp₁ (f := e) ≫ e) := Cat.assoc _ _ _
+        _ = (l ≫ t) ≫ (kp₂ (f := e) ≫ e) := by rw [kp_sq]
+        _ = ((l ≫ t) ≫ kp₂ (f := e)) ≫ e := (Cat.assoc _ _ _).symm
+        _ = av ≫ e := by rw [hb]
+    -- au≫e = av≫e ⟹ c≫u = c≫v ⟹ u = v (cancel the two covers).
+    have hcuv : c ≫ u = c ≫ v := by rw [← hau_e, ← hav_e, hae]
+    -- c = pb2.π₂ ≫ pb1.π₂; cancel pb2.π₂ to get pb1.π₂≫u = pb1.π₂≫v, then cancel pb1.π₂.
+    apply cover_epi hπ₂u_cover
+    apply cover_epi hρ_cover
+    show pb2.cone.π₂ ≫ (pb1.cone.π₂ ≫ u) = pb2.cone.π₂ ≫ (pb1.cone.π₂ ≫ v)
+    rw [← Cat.assoc, ← Cat.assoc]; exact hcuv
+  exact ⟨C', y', c', hy'mono, hy'fac⟩
+
+/-! ## §1.653 Pushout of a monic and any morphism in a pre-topos (assembly)
+
+  Given morphisms f: A → B and monic y: A ↣ C in a pre-topos, there is a pushout
+  square with the top map monic.  The proof factors f as cover ∘ monic (image
+  factorization) and applies the amalgamation lemma §1.651 to the two monics. -/
+
 /-- **§1.653**: In a pre-topos, given f : A → B and monic y : A ↣ C, there exists a
     pushout square (with the B-map monic).
-    PROOF: Factor A → B as A ↠ I ↣ B.  Apply §1.651 to I ↣ B and I ↣ C' (pushing y
-    through the cover A ↠ I), stack the two squares, and use the pasting lemma.
-
-    STATE: `amalgamation_lemma` (§1.651) is now a real construction routed through the generated
-    equivalence relation (`minEquiv_of_rtc`) and the effective quotient; this §1.653 result is the
-    standard reduction to it (image-factor `f`, push `y` through the cover, paste).  The two unmet
-    pieces are (a) the cover/image transport of `y` into the slice over the image of `f` and (b) the
-    pasting lemma for the stacked square — pullback/pasting infrastructure orthogonal to §1.62
-    positivity; the leg-monicity it inherits is the same §1.543 descent residual as §1.651.
-    Hypotheses now match `amalgamation_lemma` (`[PreTopos 𝒞] [HasReflTransClosure 𝒞]`).  Faithful
-    sorry. -/
-theorem pushout_monic_in_pretopos [PreTopos 𝒞] [HasReflTransClosure 𝒞]
+    PROOF: Factor A → B as A ↠ I ↣ B (image factorization, `e := image.lift f`, `i :=
+    (image f).arr`).  Transport `y` along the cover `e` to a monic `y' : I ↣ C'` with a
+    comparison cover `c' : C ↠ C'` (`cover_transport_mono`), giving `e ≫ y' = y ≫ c'`.
+    Apply the amalgamation lemma §1.651 to the two monics `i : I ↣ B` and `y' : I ↣ C',
+    yielding monics `u : B ↣ D`, `w : C' ↣ D` with `i ≫ u = y' ≫ w`.  The pushout square is
+    `(u, c' ≫ w)`: `f ≫ u = e ≫ i ≫ u = e ≫ y' ≫ w = y ≫ c' ≫ w`. -/
+theorem pushout_monic_in_pretopos [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞]
     {A B C : 𝒞}
     (f : A ⟶ B) (y : A ⟶ C) (hy : Mono y) :
     ∃ (D : 𝒞) (u : B ⟶ D) (v : C ⟶ D), Mono u ∧ f ≫ u = y ≫ v := by
-  sorry
+  -- Image factorization of f:  e : A ↠ I (cover),  i : I ↣ B (monic),  e ≫ i = f.
+  let e : A ⟶ (image f).dom := image.lift f
+  let i : (image f).dom ⟶ B := (image f).arr
+  have he : Cover e := image_lift_cover f
+  have hi : Mono i := (image f).monic
+  have hei : e ≫ i = f := image.lift_fac f
+  -- Transport y along the cover e to a monic y' : I ↣ C', with comparison cover c'.
+  obtain ⟨C', y', c', hy', hsq⟩ := cover_transport_mono e he y hy
+  -- Amalgamate the two monics i : I ↣ B and y' : I ↣ C'.
+  obtain ⟨D, u, w, hu, _hw, hiu⟩ := amalgamation_lemma i hi y' hy'
+  -- The pushout square:  u : B ↣ D (monic),  v := c' ≫ w : C → D.
+  refine ⟨D, u, c' ≫ w, hu, ?_⟩
+  calc f ≫ u = (e ≫ i) ≫ u := by rw [hei]
+    _ = e ≫ (i ≫ u) := Cat.assoc _ _ _
+    _ = e ≫ (y' ≫ w) := by rw [hiu]
+    _ = (e ≫ y') ≫ w := (Cat.assoc _ _ _).symm
+    _ = (y ≫ c') ≫ w := by rw [hsq]
+    _ = y ≫ (c' ≫ w) := Cat.assoc _ _ _
 
 /-! ## §1.655 Bicartesian representation criterion
 
