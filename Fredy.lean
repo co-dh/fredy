@@ -62,3 +62,4 @@ import Fredy.S2_4
 import Fredy.S2_43
 import Fredy.S2_5
 import Fredy.S1_38b
+import Fredy.FiniteSeparation
