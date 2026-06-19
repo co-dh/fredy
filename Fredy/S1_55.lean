@@ -18,7 +18,10 @@
   covers), which is what powers the §1.551 Horn-sentence metatheorem; the
   covariant-hom representation preserves limits but NOT images, so exactness is
   not established here.  An exact faithful representation needs the §1.543
-  Capitalization Lemma (transfinite) and remains deferred.
+  Capitalization Lemma — now PROVEN sorry-free as
+  `Fredy.capitalization_lemma` (`Fredy/CapDataWiring.lean`, axioms
+  `[propext, Classical.choice, Quot.sound]`).  Only the wiring that APPLIES it
+  to upgrade this representation to an exact one remains to be done here.
 -/
 
 
@@ -134,8 +137,9 @@ theorem homRep_reflects_mono (𝒞 : Type u) [Cat.{u} 𝒞] : ReflectsMono (homR
     `h : i → Y` lifts through `f`.  Pull `f` back along `h`; the leg over `i` is a
     cover (`cover_pullback`), and projectivity splits it, giving the lift.
     (`hi` is `Projective i` of §1.57 written out; projectivity is precisely what
-    the §1.543 capitalization supplies, so this pinpoints capitalization as the
-    ONLY missing ingredient for an *exact* Henkin–Lubkin representation.) -/
+    the §1.543 capitalization supplies — now proven sorry-free as
+    `Fredy.capitalization_lemma` — so this pinpoints the remaining work for an
+    *exact* Henkin–Lubkin representation as WIRING that proven lemma in.) -/
 theorem hom_lifts_cover_of_projective {𝒞 : Type u} [Cat.{w} 𝒞] [HasPullbacks 𝒞]
     [PullbacksTransferCovers 𝒞] {i X Y : 𝒞}
     (hi : ∀ {P : 𝒞} (e : P ⟶ i), Cover e → ∃ s : i ⟶ P, s ≫ e = Cat.id i)
@@ -148,12 +152,14 @@ theorem hom_lifts_cover_of_projective {𝒞 : Type u} [Cat.{w} 𝒞] [HasPullbac
     _ = (s ≫ pb.cone.π₂) ≫ h := (Cat.assoc _ _ _).symm
     _ = h := by rw [hs, Cat.id_comp]
 
-/-- **Exact Henkin–Lubkin, modulo capitalization:** if every object of the
+/-- **Exact Henkin–Lubkin, given capitalization:** if every object of the
     regular category `𝒞` is projective (a *capital* category — what §1.543
-    delivers), then `homRep` preserves covers componentwise: `Hom(i, f)` is
-    surjective at every index `i` for a cover `f`.  Combined with
+    delivers, now proven sorry-free as `Fredy.capitalization_lemma`), then
+    `homRep` preserves covers componentwise: `Hom(i, f)` is surjective at every
+    index `i` for a cover `f`.  Combined with
     `homRep_preserves_mono`/`_reflects_mono`, this is the full exactness of the
-    representation; only the projectivity hypothesis (capitalization) is open. -/
+    representation; the projectivity hypothesis is taken as `hproj` here, to be
+    discharged by applying the (proven) capitalization lemma. -/
 theorem homRep_preserves_cover_pointwise {𝒞 : Type u} [Cat.{u} 𝒞] [HasPullbacks 𝒞]
     [PullbacksTransferCovers 𝒞]
     (hproj : ∀ C : 𝒞, ∀ {P : 𝒞} (e : P ⟶ C), Cover e → ∃ s : C ⟶ P, s ≫ e = Cat.id C)
@@ -212,14 +218,16 @@ theorem henkin_lubkin (𝒞 : Type u) [Cat.{u} 𝒞] [PreRegularCategory 𝒞] :
   §1.551: every Horn sentence in the predicates of regular categories true for the
   category of sets is true for every regular category.  This follows from the
   *exact* form of Henkin-Lubkin, which in turn needs the capitalization lemma
-  (`Fredy/S1_54.lean : capitalization_lemma`, §1.543, still `sorry`).
+  (`Fredy.capitalization_lemma`, §1.543) — now PROVEN sorry-free in
+  `Fredy/CapDataWiring.lean`.  What remains for §1.551 is the exactness wiring,
+  not the capitalization lemma itself.
 
   It is NOT stated as a theorem here: a faithful statement requires the Horn-sentence
   machinery (`HornSentence`/`HoldsIn`), which lives in `Fredy/S1_56.lean` — and S1_56
   imports this file, so referencing it here would be circular.  The faithful Horn
   reflection statement therefore lives downstream in S1_56
-  (`horn_sentence_reflected_by_faithful`, §1.563), left as a faithful `sorry` pending
-  the same capitalization lemma.  Per the integrity rule we do NOT emit a vacuous
-  `: True` stub for §1.551 here. -/
+  (`horn_sentence_reflected_by_faithful`, §1.563), proven sorry-free there as the
+  honest content-bearing faithful version.  Per the integrity rule we do NOT emit a
+  vacuous `: True` stub for §1.551 here. -/
 
 end Freyd

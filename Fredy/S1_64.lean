@@ -772,7 +772,8 @@ set_option maxHeartbeats 1000000 in
     `inl/inr_mono` are necessary, but the proof additionally needs a zigzag/path-length induction
     over the transitive-closure structure of `E`, which the `rtc` abstraction does NOT expose (it
     gives the four closure properties, not an induction principle on `relPow` path length).  That
-    path-length descent is exactly the §1.543 effective-quotient analysis.  Faithful sorry on
+    path-length descent is the effective-quotient analysis of this section (independent of the
+    §1.543 capitalization lemma, which is proven).  Faithful sorry on
     precisely the two leg monicities; the object `D`, the maps `u, v`, and the commuting square are
     now real and routed through Freyd's generated-equivalence-relation construction. -/
 theorem amalgamation_lemma [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞]
@@ -1458,8 +1459,9 @@ theorem cokernelPair_cover [PreTopos 𝒞] [HasCoequalizers 𝒞] {A B : 𝒞} (
 /-- FORWARD half of effective coregularity: `m` factors through the equalizer of its
     cokernel-pair legs `(u, v)`, via the equalizer universal property applied to the
     commuting square `m ≫ u = m ≫ v`.  (The REVERSE half — that this equalizer factor is
-    iso, i.e. `m` IS the equalizer of `(u, v)` — is the open §1.543 residual documented on
-    `pretopos_balanced`.) -/
+    iso, i.e. `m` IS the equalizer of `(u, v)` — is the open effective-coregularity
+    residual; `pretopos_balanced` is now proven sorry-free, so it no longer carries this
+    obligation.  Unrelated to the §1.543 capitalization lemma, which is itself proven.) -/
 theorem cokernelPair_m_factors_eq [PreTopos 𝒞] [HasCoequalizers 𝒞] [HasEqualizers 𝒞]
     {A B : 𝒞} (m : A ⟶ B) :
     eqLift (cokernelPairU m) (cokernelPairV m) m (cokernelPair_sq m)

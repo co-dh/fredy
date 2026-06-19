@@ -47,8 +47,16 @@
                             — the §1.547 payoff: `A/(∏U)` acquires a point of EVERY factor
                                `U.get k` at once (one rung points all of `U`).
 
-  WHAT REMAINS (the residual wall for `hwall_step`, Capitalization.lean).
-  The *uniform* successor `nextStep : ∀ S, CapStep S` that `hwall_step` needs is
+  STATUS: §1.543 is now PROVEN sorry-free (`Fredy.capitalization_lemma`, in
+  `Fredy/CapDataWiring.lean`).  The uniform successor was ultimately built by the
+  COFINAL (object-indexed) route — `uniformStep` (`Fredy/UniformCapStep.lean`) over the
+  `cofinalProjSystem` (`Fredy/CofinalProjSystem.lean`), using `Classical.decEq` — NOT by
+  closing the `innerCatSystem` route this header explored.  The discussion below is the
+  historical exploration of the per-`B` slice rung that this file delivers (sorry-free) and
+  feeds into that solution; the "residual wall" / "STILL OPEN" framing it uses is superseded.
+
+  THE GENUINE STRENGTHENING (recorded for context).
+  The *uniform* successor `nextStep : ∀ S, CapStep S` is
   STRONGER than a single slice rung: in ONE category `S*` it must add a point for
   *every* well-supported `B` simultaneously (Freyd's §1.547 rational category / the
   directed union of the `A* | U = A/(∏U)` product-slices over finite sets `U` of
@@ -86,14 +94,11 @@
       must GROW to `B×∏U`.  Only base-change (pullback) grows the domain — hence pseudo-functorial.
       Strictness and the growing-product embedding are mutually exclusive; route 1 does not close
       `hwall_step`.
-  STILL OPEN to finish `S*`:
-    (B-package) `Coherent (innerCatSystem P hS)` + the 9 `colimitPreRegular` preservation hypotheses
-        + `hcanon`, mirroring the OUTER `towerSystem`/`towerCoherent`/`capData_of_tower`; then take
-        `colimitPreRegular` for the pre-regular `S*` and package as the `CapStep S` for `hwall_step`.
-    (B-import) `RelativeCapitalization` imports `Capitalization`, so `innerCatSystem`/… sit downstream
-        of `hwall_step`; closing `hwall_step` in place needs the ingredients moved up (e.g. into
-        `SliceRegular`) or `capData_exists` relocated here.
-  See the `hwall_step` residual comment in `Capitalization.lean` for the full reduction.
+  (This `innerCatSystem` route was NOT the one taken to close `S*`.  The actual uniform
+  successor is the cofinal `uniformStep` / `cofinalProjSystem` route — see the STATUS note
+  above — which sidesteps both the (B-package) coherence/preservation obligations for
+  `innerCatSystem` and the (B-import) cycle, by living downstream in
+  `Fredy/CapDataWiring.lean`.  §1.543 is proven there.)
 
   No mathlib (the category theory stays on this repo's own `Cat`).
 -/
@@ -521,10 +526,14 @@ theorem freshSection_of_descentSection {PN A : 𝒞} (Dbar : Over PN)
   ════ residual (B-import) — the assembly cannot live in `Capitalization.lean` ════
   `RelativeCapitalization` imports `Capitalization` (for `CapStep`), so the ingredients
   `listDirected`/`baseChangeFunctor`/`listProd`/`listProdSliceAcquiresEveryFactor` are visible
-  ONLY here, downstream of `hwall_step`.  Discharging `hwall_step` in place would require moving
+  ONLY here, downstream of `hwall_step`.  Discharging it in place would require moving
   the inner-system ingredients up into a file that `Capitalization` imports (e.g. `SliceRegular`),
-  or relocating `capData_exists` down here.  Until that reorganization, `hwall_step` stays a
-  documented `sorry` pointing at this block. -/
+  or relocating `capData_exists` down here.
+
+  RESOLUTION (since written): the relocation route was taken — `capData_exists` lives downstream
+  in `Fredy/CapDataWiring.lean`, and residual (A) was discharged by accepting `Classical.decEq`
+  for the positional projection (the §1.543 exception, `Fredy/CofinalProjSystem.lean`).  §1.543 is
+  now PROVEN sorry-free; this block records the obstructions of the *abandoned* in-place route. -/
 
 /-- **The transition base-morphism family (residual (A), as data).**  A choice-free assignment,
     for every inclusion `V ⊆ U` of finite object-sets, of a product projection
@@ -650,9 +659,10 @@ noncomputable def innerCatSystem (P : ListProjFamily (𝒞 := 𝒞)) (hS : Stric
   inner system (`innerCatSystem`) keeps the correct variance and embedding but is irreducibly
   pseudo-functorial (its `StrictBaseChange` is a real, non-trivial strictification obligation).  The
   two cannot be merged: strictness and the growing-product embedding pull in opposite directions.  So
-  `hwall_step` keeps its honest `sorry`; the residual is base-change strictification (residual
-  (B-strict)) OR a literal directed-union-of-full-subcategories model of the rational category whose
-  inclusions are strict by construction — NOT route-1 reindexing. -/
+  route-1 reindexing does NOT close the successor here; the way it WAS closed (now PROVEN sorry-free,
+  §1.543) is the rational-category route: a directed-union-of-full-subcategories model whose
+  inclusions are up-to-iso, built as `uniformStep` over the cofinal `cofinalProjSystem`
+  (`Fredy/UniformCapStep.lean`, `Fredy/CofinalProjSystem.lean`, `Fredy/CapDataWiring.lean`). -/
 
 /-- **The strict reindexing transition base-map family (the Σ analogue of `ListProjFamily`).**  Data
     of a base map `∏V ⟶ ∏U` per inclusion `V ⊆ U`, strictly coherent.  NOTE the direction `∏V → ∏U`:
@@ -686,7 +696,8 @@ instance reindexFunctStage (R : ReindexFamily (𝒞 := 𝒞)) {V U : List 𝒞} 
     `R.base_refl`/`R.base_trans`), NOT supplied as `StrictBaseChange`-style hypotheses.  This is the
     concrete route-1 deliverable: strict laws ARE dischargeable on the nose for the reindexing
     transition.  Its limitation (wrong variance + fixed domain, so it does NOT carry the §1.547
-    embedding/point-acquisition) is documented above and is why it does not close `hwall_step`. -/
+    embedding/point-acquisition) is documented above and is why this route was abandoned in favour
+    of the rational-category `uniformStep` that actually closes §1.543 (now proven). -/
 def strictReindexSystem (R : ReindexFamily (𝒞 := 𝒞)) :
     Colim.CatSystem (List 𝒞) listDirected where
   A := innerObj (𝒞 := 𝒞)

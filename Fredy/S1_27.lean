@@ -148,8 +148,9 @@ instance functorCat (𝒜 𝒟 : Type u) [Cat.{v} 𝒜] [Cat.{v} 𝒟] :
   • the Cayley embedding is faithful — `cayley_faithful` (this file, §1.272);
   • the faithful Henkin-Lubkin representation `𝒞 ↪ 𝒮^|𝒞|` — `henkin_lubkin` (S1_55);
   • Horn-sentence reflection along a faithful, finite-limit/image-preserving functor —
-    `horn_sentence_reflected_by_faithful` (S1_56, §1.563), faithful `sorry` pending the
-    capitalization lemma §1.543.
+    `horn_sentence_reflected_by_faithful` (S1_56, §1.563), the proven faithful version
+    (the capitalization lemma §1.543 it would build on is itself now proven sorry-free,
+    `Fredy.capitalization_lemma`).
   A self-contained §1.272 metatheorem (quantifying over first-order sentences) would
   need a sentence-encoding + a `Cat` instance on `Type` with the Cayley functor; that
   is recorded as MISSING in S1_27.md. -/

@@ -838,8 +838,10 @@ theorem horn_sentence_reflected_by_faithful {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [
     category of sets `𝒮` is true for a regular category `A`, *provided* it is
     reflected along the Henkin–Lubkin representation `A ↪ 𝒮^|A|`.  The book obtains
     the reflection datum from the EXACT form of the representation (which needs the
-    §1.543 capitalization lemma, still open) — that supply is MISSING here, so we
-    take it as the hypothesis `hrefl_from_Set` and discharge the corollary honestly,
+    §1.543 capitalization lemma — now PROVEN sorry-free as `Fredy.capitalization_lemma`;
+    only the exactness wiring that applies it is not done here) — that supply is not
+    yet assembled here, so we take it as the hypothesis `hrefl_from_Set` and discharge
+    the corollary honestly,
     rather than emitting a sorry that would secretly assert nothing.
 
     `𝒮` is the (abstract) category of sets; keeping it a parameter — rather than the

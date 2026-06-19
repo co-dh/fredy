@@ -1,5 +1,7 @@
 /-
-  §1.546 DENSITY — `FibreDensity (wsCover S)`: the one genuine remaining theorem of §1.543.
+  §1.546 DENSITY — `FibreDensity (wsCover S)`: the last genuine theorem of §1.543, now PROVEN
+  sorry-free (`fibreDensity`/`wsCover_fibreDensity`).  With it, §1.543 (`Fredy.capitalization_lemma`)
+  is proven (axioms `[propext, Classical.choice, Quot.sound]`).
 
   `FibreDensity W` (`UniformWellPoints.lean`, Phase 3) is the §1.546 stage-local density obligation:
   for every well-supported `A`, every cofinal stage `U ≥ base`, and every PROPER FIBRE mono
@@ -1520,9 +1522,9 @@ end Freyd.FibreDensityProof
 namespace Freyd.CofinalProj
 
 /-- **§1.546 DENSITY — `FibreDensity (wsCover S)`** for the concrete cofinal inhabitant of a bundled
-    pre-regular category.  This is the literal §1.546 density of the task: the one genuine remaining
-    theorem of §1.543, with the §1.547 reduction machine-checked and the genuine §1.546 core isolated
-    as the single honest `richerSliceMiss` obligation. -/
+    pre-regular category.  This is the literal §1.546 density of the task — the last genuine theorem
+    of §1.543, now PROVEN sorry-free, with the §1.547 reduction machine-checked and the genuine §1.546
+    core `richerSliceMiss` itself proven. -/
 theorem wsCover_fibreDensity (S : PreRegBundle.{u}) :
     letI := S.cat
     letI := S.pre
