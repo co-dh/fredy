@@ -2652,6 +2652,179 @@ theorem one_one_choice_to_boolean [HasBinaryProducts 𝒞]
     Nonempty (BooleanPreLogos 𝒞) := by
   sorry
 
+/-- A complemented partition `(U, U₂)` of `A` realises `A` as the coproduct of the two
+    domains *with the injections matching the subobject inclusions*: there is an iso
+    `ψ : U.dom + U₂.dom ≅ A` with `inl ≫ ψ = U.arr` and `inr ≫ ψ = U₂.arr`.  This is
+    `complementedSub_iso_coproduct` refined to expose the legs (needed so a copairing
+    `case s₁ s₂` post-composed with `ψ⁻¹` restricts each section to its half of `A`). -/
+private theorem complemented_legs_iso [HasBinaryProducts 𝒞] {A : 𝒞} (U U₂ : Subobject 𝒞 A)
+    (hdisj : Subobject.le (Subobject.inter U U₂) (PreLogos.bottom A))
+    (hentire : Subobject.le (Subobject.entire A) (HasSubobjectUnions.union U U₂)) :
+    ∃ (ψ : HasBinaryCoproducts.coprod U.dom U₂.dom ⟶ A)
+      (ψinv : A ⟶ HasBinaryCoproducts.coprod U.dom U₂.dom),
+      ψ ≫ ψinv = Cat.id _ ∧ ψinv ≫ ψ = Cat.id _ ∧
+      HasBinaryCoproducts.inl ≫ ψ = U.arr ∧ HasBinaryCoproducts.inr ≫ ψ = U₂.arr := by
+  classical
+  have hCinit : ∀ {X : 𝒞} (u v : (HasPullbacks.has U.arr U₂.arr).cone.pt ⟶ X), u = v :=
+    dom_initial_of_le_bottom (S := Subobject.inter U U₂) hdisj
+  let po := pasting_lemma U U₂
+  let Un := HasSubobjectUnions.union U U₂
+  have hx : po.cocone.ι₁ ≫ Un.arr = U.arr := (HasSubobjectUnions.union_left U U₂).choose_spec
+  have hy : po.cocone.ι₂ ≫ Un.arr = U₂.arr := (HasSubobjectUnions.union_right U U₂).choose_spec
+  let coCoc : PushoutCocone (HasPullbacks.has U.arr U₂.arr).cone.π₁
+      (HasPullbacks.has U.arr U₂.arr).cone.π₂ :=
+    ⟨HasBinaryCoproducts.coprod U.dom U₂.dom, HasBinaryCoproducts.inl, HasBinaryCoproducts.inr,
+     hCinit _ _⟩
+  let φ : po.cocone.pt ⟶ HasBinaryCoproducts.coprod U.dom U₂.dom := po.desc coCoc
+  have hφ₁ : po.cocone.ι₁ ≫ φ = HasBinaryCoproducts.inl := po.fac₁ coCoc
+  have hφ₂ : po.cocone.ι₂ ≫ φ = HasBinaryCoproducts.inr := po.fac₂ coCoc
+  let χ : HasBinaryCoproducts.coprod U.dom U₂.dom ⟶ po.cocone.pt :=
+    HasBinaryCoproducts.case po.cocone.ι₁ po.cocone.ι₂
+  have hχ₁ : HasBinaryCoproducts.inl ≫ χ = po.cocone.ι₁ := HasBinaryCoproducts.case_inl _ _
+  have hχ₂ : HasBinaryCoproducts.inr ≫ χ = po.cocone.ι₂ := HasBinaryCoproducts.case_inr _ _
+  have hφχ : φ ≫ χ = Cat.id _ := by
+    have h1 : po.cocone.ι₁ ≫ (φ ≫ χ) = po.cocone.ι₁ := by rw [← Cat.assoc, hφ₁, hχ₁]
+    have h2 : po.cocone.ι₂ ≫ (φ ≫ χ) = po.cocone.ι₂ := by rw [← Cat.assoc, hφ₂, hχ₂]
+    rw [po.uniq po.cocone (φ ≫ χ) h1 h2,
+        po.uniq po.cocone (Cat.id _) (Cat.comp_id _) (Cat.comp_id _)]
+  have hχφ : χ ≫ φ = Cat.id _ := by
+    have h1 : HasBinaryCoproducts.inl ≫ (χ ≫ φ) = HasBinaryCoproducts.inl := by
+      rw [← Cat.assoc, hχ₁, hφ₁]
+    have h2 : HasBinaryCoproducts.inr ≫ (χ ≫ φ) = HasBinaryCoproducts.inr := by
+      rw [← Cat.assoc, hχ₂, hφ₂]
+    rw [HasBinaryCoproducts.case_uniq _ _ (χ ≫ φ) h1 h2,
+        HasBinaryCoproducts.case_uniq _ _ (Cat.id _) (Cat.comp_id _) (Cat.comp_id _)]
+  obtain ⟨arrinv, h1, h2⟩ := entire_of_entire_le hentire
+  refine ⟨χ ≫ Un.arr, arrinv ≫ φ, ?_, ?_, ?_, ?_⟩
+  · -- (χ≫Un.arr)≫(arrinv≫φ) = χ≫(Un.arr≫arrinv)≫φ = χ≫φ = id
+    have e1 : (χ ≫ Un.arr) ≫ (arrinv ≫ φ) = χ ≫ ((Un.arr ≫ arrinv) ≫ φ) := by
+      simp only [Cat.assoc]
+    rw [e1, h1, show (Cat.id Un.dom ≫ φ) = φ from Cat.id_comp φ]; exact hχφ
+  · have e2 : (arrinv ≫ φ) ≫ (χ ≫ Un.arr) = arrinv ≫ ((φ ≫ χ) ≫ Un.arr) := by
+      simp only [Cat.assoc]
+    rw [e2, hφχ, show (Cat.id po.cocone.pt ≫ Un.arr) = Un.arr from Cat.id_comp Un.arr]
+    exact h2
+  · calc HasBinaryCoproducts.inl ≫ (χ ≫ Un.arr)
+        = (HasBinaryCoproducts.inl ≫ χ) ≫ Un.arr := (Cat.assoc _ _ _).symm
+      _ = po.cocone.ι₁ ≫ Un.arr := by rw [hχ₁]
+      _ = U.arr := hx
+  · calc HasBinaryCoproducts.inr ≫ (χ ≫ Un.arr)
+        = (HasBinaryCoproducts.inr ≫ χ) ≫ Un.arr := (Cat.assoc _ _ _).symm
+      _ = po.cocone.ι₂ ≫ Un.arr := by rw [hχ₂]
+      _ = U₂.arr := hy
+
+/-- The complement `Dc` of `D₁` is `≤` any `D₂` that completes a cover `entire A ≤ D₁ ∪ D₂`:
+    `Dc = Dc ∩ ⊤ ≤ Dc ∩ (D₁ ∪ D₂) ≤ (Dc ∩ D₁) ∪ (Dc ∩ D₂) ≤ ⊥ ∪ D₂ = D₂` (distributivity
+    of meet over join, `Dc ∩ D₁ ≤ ⊥` from disjointness, `Dc ∩ D₂ ≤ D₂`). -/
+private theorem complement_le_other {A : 𝒞} (D₁ D₂ Dc : Subobject 𝒞 A)
+    (hdisj : Subobject.le (Subobject.inter D₁ Dc) (PreLogos.bottom A))
+    (hcov  : Subobject.le (Subobject.entire A) (HasSubobjectUnions.union D₁ D₂)) :
+    Dc.le D₂ := by
+  have hA : Dc.le (Subobject.inter Dc (HasSubobjectUnions.union D₁ D₂)) :=
+    Subobject.le_inter ⟨Cat.id _, Cat.id_comp _⟩
+      (subLe_trans' (Y := Subobject.entire A) ⟨Dc.arr, Cat.comp_id _⟩ hcov)
+  have hdist : (Subobject.inter Dc (HasSubobjectUnions.union D₁ D₂)).le
+      (HasSubobjectUnions.union (Subobject.inter Dc D₁) (Subobject.inter Dc D₂)) := by
+    have e1 : Subobject.inter Dc (HasSubobjectUnions.union D₁ D₂)
+        = pushMono Dc.arr Dc.monic (InverseImage Dc.arr (HasSubobjectUnions.union D₁ D₂)) := rfl
+    have e2 : Subobject.inter Dc D₁ = pushMono Dc.arr Dc.monic (InverseImage Dc.arr D₁) := rfl
+    have e3 : Subobject.inter Dc D₂ = pushMono Dc.arr Dc.monic (InverseImage Dc.arr D₂) := rfl
+    rw [e1, e2, e3]
+    have hpre : (InverseImage Dc.arr (HasSubobjectUnions.union D₁ D₂)).le
+        (HasSubobjectUnions.union (InverseImage Dc.arr D₁) (InverseImage Dc.arr D₂)) :=
+      (PreLogos.invImage_preserves_union Dc.arr D₁ D₂).1
+    exact subLe_trans' (pushMono_mono Dc.arr Dc.monic hpre)
+      (pushMono_union_le Dc.arr Dc.monic _ _)
+  have hbot : (Subobject.inter Dc D₁).le (PreLogos.bottom A) :=
+    subLe_trans' (inter_comm_le Dc D₁) hdisj
+  have hfin : (HasSubobjectUnions.union (Subobject.inter Dc D₁) (Subobject.inter Dc D₂)).le D₂ :=
+    HasSubobjectUnions.union_min _ _ _
+      (subLe_trans' hbot (PreLogos.bottom_min D₂)) (Subobject.inter_le_right _ _)
+  exact subLe_trans' hA (subLe_trans' hdist hfin)
+
+/-- Restriction of an entire relation `R : A → B` to the part landing in a monic summand
+    `inj : B' ↣ B`.  Set `D := ∃_{R.colA}(R.colB # ⟨inj⟩) ⊆ A` (the image in `A` of the
+    points whose `R`-value factors through `inj`).  The relation `D → B'` tabulated by that
+    pullback has cover left leg, so is entire; `Choice B'` extracts a map `f : D → B'` together
+    with a section `s : D → R.src` of `R` over `D` whose `B`-value is `f ≫ inj`. -/
+private theorem restrict_to_summand [HasBinaryProducts 𝒞] {A B B' : 𝒞} (R : BinRel 𝒞 A B)
+    (inj : B' ⟶ B) (hinj : Mono inj) (hch : Choice B') :
+    ∃ (f : (existsAlong R.colA (InverseImage R.colB ⟨B', inj, hinj⟩)).dom ⟶ B')
+      (s : (existsAlong R.colA (InverseImage R.colB ⟨B', inj, hinj⟩)).dom ⟶ R.src),
+      s ≫ R.colA = (existsAlong R.colA (InverseImage R.colB ⟨B', inj, hinj⟩)).arr
+      ∧ s ≫ R.colB = f ≫ inj := by
+  classical
+  let M : Subobject 𝒞 B := ⟨B', inj, hinj⟩
+  let P : Subobject 𝒞 R.src := InverseImage R.colB M
+  let pb := HasPullbacks.has R.colB M.arr
+  have hsq : P.arr ≫ R.colB = pb.cone.π₂ ≫ inj := by
+    show pb.cone.π₁ ≫ R.colB = pb.cone.π₂ ≫ M.arr; exact pb.cone.w
+  let D : Subobject 𝒞 A := existsAlong R.colA P
+  let il : P.dom ⟶ D.dom := image.lift (P.arr ≫ R.colA)
+  have hil : il ≫ D.arr = P.arr ≫ R.colA := image.lift_fac _
+  let q : P.dom ⟶ B' := pb.cone.π₂
+  have hp : MonicPair il q := by
+    intro W u v hua hub
+    apply P.monic
+    apply R.isMonicPair
+    · calc (u ≫ P.arr) ≫ R.colA = u ≫ (P.arr ≫ R.colA) := Cat.assoc _ _ _
+        _ = u ≫ (il ≫ D.arr) := by rw [hil]
+        _ = (u ≫ il) ≫ D.arr := (Cat.assoc _ _ _).symm
+        _ = (v ≫ il) ≫ D.arr := by rw [hua]
+        _ = v ≫ (il ≫ D.arr) := Cat.assoc _ _ _
+        _ = v ≫ (P.arr ≫ R.colA) := by rw [hil]
+        _ = (v ≫ P.arr) ≫ R.colA := (Cat.assoc _ _ _).symm
+    · calc (u ≫ P.arr) ≫ R.colB = u ≫ (P.arr ≫ R.colB) := Cat.assoc _ _ _
+        _ = u ≫ (q ≫ inj) := by rw [hsq]
+        _ = (u ≫ q) ≫ inj := (Cat.assoc _ _ _).symm
+        _ = (v ≫ q) ≫ inj := by rw [hub]
+        _ = v ≫ (q ≫ inj) := Cat.assoc _ _ _
+        _ = v ≫ (P.arr ≫ R.colB) := by rw [hsq]
+        _ = (v ≫ P.arr) ≫ R.colB := (Cat.assoc _ _ _).symm
+  let T : BinRel 𝒞 D.dom B' := BinRel.mk P.dom il q hp
+  have hcov : Cover il := image_lift_cover (P.arr ≫ R.colA)
+  have hentT : Entire T := (tabulated_is_entire_iff_left_cover il q hp).mpr hcov
+  obtain ⟨f, w, hwA, hwB⟩ := hch T hentT
+  refine ⟨f, w ≫ P.arr, ?_, ?_⟩
+  · calc (w ≫ P.arr) ≫ R.colA = w ≫ (P.arr ≫ R.colA) := Cat.assoc _ _ _
+      _ = w ≫ (il ≫ D.arr) := by rw [hil]
+      _ = (w ≫ il) ≫ D.arr := (Cat.assoc _ _ _).symm
+      _ = (Cat.id _) ≫ D.arr := by rw [hwA]
+      _ = D.arr := Cat.id_comp _
+  · calc (w ≫ P.arr) ≫ R.colB = w ≫ (P.arr ≫ R.colB) := Cat.assoc _ _ _
+      _ = w ≫ (q ≫ inj) := by rw [hsq]
+      _ = (w ≫ q) ≫ inj := (Cat.assoc _ _ _).symm
+      _ = f ≫ inj := by rw [hwB]
+
+/-- A `BooleanPreLogos` witness complements every subobject **in the ambient pre-topos
+    lattice**.  The witness `bl` carries its own `PreLogos` instance, distinct from the one
+    `PreToposDisjoint` supplies; we bridge `bl`'s complement to the ambient lattice exactly as
+    in `preTopos_boolean_iff_all_decidable` — `bl.bottom_min` upgrades the disjointness clause
+    and `bl.union_min` (against the ambient union as common bound) upgrades the cover clause. -/
+private theorem boolean_complementedSub (hbool : Nonempty (BooleanPreLogos 𝒞)) {A : 𝒞}
+    (S : Subobject 𝒞 A) : IsComplementedSub S := by
+  -- Produce the *meet-universal* `IsComplemented S` in the ambient lattice (its disjointness
+  -- clause quantifies over arbitrary subobjects `S'`, so it never mentions a specific `inter`
+  -- and avoids the `bl`/ambient pullback-instance diamond); then convert via the §1.631 bridge.
+  apply (isComplemented_iff_sub S).mp
+  obtain ⟨bl⟩ := hbool
+  obtain ⟨S₂, hdisj, hunion⟩ := bl.hasComplement S
+  refine ⟨S₂, ?_, ?_⟩
+  · -- disjointness (universal): any common lower bound `S'` lands in `bl`-bottom (`hdisj`),
+    -- then `bl`-bottom ≤ ambient-bottom by minimality.
+    intro S' h1 h2
+    obtain ⟨g1, hg1⟩ := hdisj S' h1 h2
+    obtain ⟨g2, hg2⟩ := bl.toPreLogos.bottom_min
+      (@PreLogos.bottom 𝒞 _ (‹PreToposDisjoint 𝒞›).toPositivePreLogos.toPreLogos A)
+    exact ⟨g1 ≫ g2, by rw [Cat.assoc, hg2]; exact hg1⟩
+  · -- cover: bl-union ≤ ambient-union bridges `⊤ ≤ S ∪ S₂`.
+    refine subLe_trans hunion ?_
+    exact bl.toPreLogos.toHasSubobjectUnions.union_min S S₂ _
+      (HasSubobjectUnions.union_left
+        (self := (‹PreToposDisjoint 𝒞›).toPositivePreLogos.toPreLogos.toHasSubobjectUnions) S S₂)
+      (HasSubobjectUnions.union_right
+        (self := (‹PreToposDisjoint 𝒞›).toPositivePreLogos.toPreLogos.toHasSubobjectUnions) S S₂)
+
 /-- **§1.662**: (3) → (1): boolean implies binary coproducts of choice objects are choice.
     PROOF: Given S: A → B₁+B₂ entire, the subobject Dom(S∘inl°) ⊆ A is complemented
     (boolean pre-topos). The restriction of S to Dom(S∘inl°) is entire into B₁, so
@@ -2675,7 +2848,74 @@ theorem boolean_to_coprod_choice_is_choice [HasBinaryProducts 𝒞]
     (hbool : Nonempty (BooleanPreLogos 𝒞)) :
     ∀ (B₁ B₂ : 𝒞), Choice B₁ → Choice B₂ →
       Choice (HasBinaryCoproducts.coprod B₁ B₂) := by
-  sorry
+  classical
+  intro B₁ B₂ hch₁ hch₂ A R hent
+  -- R.colA is a cover (entire left leg, §1.564).
+  have hcovA : Cover R.colA :=
+    (tabulated_is_entire_iff_left_cover R.colA R.colB R.isMonicPair).mp hent
+  -- The two summand subobjects of `B₁ + B₂` and the inverse images carving `R.src` in two.
+  let Inl : Subobject 𝒞 (HasBinaryCoproducts.coprod B₁ B₂) :=
+    ⟨B₁, HasBinaryCoproducts.inl, inl_mono⟩
+  let Inr : Subobject 𝒞 (HasBinaryCoproducts.coprod B₁ B₂) :=
+    ⟨B₂, HasBinaryCoproducts.inr, inr_mono⟩
+  -- restriction of R to each summand: maps f₁ : D₁ → B₁, f₂ : D₂ → B₂ with sections of R.
+  obtain ⟨f₁, s₁, hs₁A, hs₁B⟩ :=
+    restrict_to_summand R HasBinaryCoproducts.inl inl_mono hch₁
+  obtain ⟨f₂, s₂, hs₂A, hs₂B⟩ :=
+    restrict_to_summand R HasBinaryCoproducts.inr inr_mono hch₂
+  let D₁ : Subobject 𝒞 A := existsAlong R.colA (InverseImage R.colB Inl)
+  let D₂ : Subobject 𝒞 A := existsAlong R.colA (InverseImage R.colB Inr)
+  -- (1) D₁ ∪ D₂ is entire: entire A ≤ ∃(entire R.src) ≤ ∃(P₁∪P₂) ≤ D₁ ∪ D₂.
+  let Bc := HasBinaryCoproducts.coprod B₁ B₂
+  have hRsrc : (Subobject.entire R.src).le
+      (HasSubobjectUnions.union (InverseImage R.colB Inl) (InverseImage R.colB Inr)) := by
+    have ha : (Subobject.entire R.src).le (InverseImage R.colB (Subobject.entire Bc)) :=
+      entire_le_invImage_entire R.colB
+    have hbu : (Subobject.entire Bc).le (HasSubobjectUnions.union Inl Inr) :=
+      inl_union_inr_entire (𝒟 := 𝒞) (A := B₁) (B := B₂)
+    exact subLe_trans' ha (subLe_trans' (invImage_mono_local R.colB hbu)
+      (PreLogos.invImage_preserves_union R.colB Inl Inr).1)
+  have hAex : (Subobject.entire A).le (existsAlong R.colA (Subobject.entire R.src)) := by
+    -- existsAlong R.colA (entire R.src) = image ((entire).arr ≫ colA); (entire).arr ≫ colA
+    -- is a cover (= colA up to the iso id), so its image is entire.
+    have hcov' : Cover ((Subobject.entire R.src).arr ≫ R.colA) := by
+      -- (entire R.src).arr = id, so the composite is defeq to R.colA, which is a cover.
+      intro C m g hm hfac
+      refine hcovA m g hm ?_
+      have : g ≫ m = Cat.id R.src ≫ R.colA := hfac
+      rwa [Cat.id_comp] at this
+    obtain ⟨inv, _, hinv2⟩ :=
+      (cover_iff_image_entire ((Subobject.entire R.src).arr ≫ R.colA)).1 hcov'
+    exact ⟨inv, hinv2⟩
+  have hcov : (Subobject.entire A).le (HasSubobjectUnions.union D₁ D₂) :=
+    subLe_trans' hAex (subLe_trans' (existsAlong_mono R.colA hRsrc)
+      (existsAlong_union_le R.colA _ _))
+  -- (2) boolean: D₁ is complemented; pick complement Dc with D₁ ∩ Dc ≤ ⊥, entire A ≤ D₁ ∪ Dc.
+  obtain ⟨Dc, hDcdisj, hDccov⟩ := boolean_complementedSub hbool D₁
+  -- Dc ≤ D₂ (complement of D₁ lands in any D₂ completing the cover).
+  have hDcD₂ : Dc.le D₂ := complement_le_other D₁ D₂ Dc hDcdisj hcov
+  obtain ⟨k, hk⟩ := hDcD₂
+  -- (3) A ≅ D₁.dom + Dc.dom with injections matching the inclusions.
+  obtain ⟨ψ, ψinv, _hψψ, hψinvψ, hl, hr⟩ := complemented_legs_iso D₁ Dc hDcdisj hDccov
+  -- (4) restrict s₂ to Dc, copair with s₁ over the iso to get the global section h : A → R.src.
+  let s₂' : Dc.dom ⟶ R.src := k ≫ s₂
+  have hs₂'A : s₂' ≫ R.colA = Dc.arr := by
+    calc (k ≫ s₂) ≫ R.colA = k ≫ (s₂ ≫ R.colA) := Cat.assoc _ _ _
+      _ = k ≫ D₂.arr := by rw [hs₂A]
+      _ = Dc.arr := hk
+  let h : A ⟶ R.src := ψinv ≫ HasBinaryCoproducts.case s₁ s₂'
+  -- case s₁ s₂' ≫ colA = ψ, since both have inl-leg D₁.arr and inr-leg Dc.arr.
+  have hcase : HasBinaryCoproducts.case s₁ s₂' ≫ R.colA = ψ := by
+    rw [HasBinaryCoproducts.case_uniq (s₁ ≫ R.colA) (s₂' ≫ R.colA)
+          (HasBinaryCoproducts.case s₁ s₂' ≫ R.colA)
+          (by rw [← Cat.assoc, HasBinaryCoproducts.case_inl])
+          (by rw [← Cat.assoc, HasBinaryCoproducts.case_inr]),
+        hs₁A, hs₂'A]
+    exact (HasBinaryCoproducts.case_uniq D₁.arr Dc.arr ψ hl hr).symm
+  refine ⟨h ≫ R.colB, h, ?_, rfl⟩
+  calc h ≫ R.colA = ψinv ≫ (HasBinaryCoproducts.case s₁ s₂' ≫ R.colA) := Cat.assoc _ _ _
+    _ = ψinv ≫ ψ := by rw [hcase]
+    _ = Cat.id A := hψinvψ
 
 end Diaconescu
 
