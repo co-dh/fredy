@@ -731,6 +731,69 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
   --   Then `freshSlicePoint_factors_imp_false (bcGen⁻¹ ⊚ m_PN) … cnD_N hcnD_N mf'_N … m̄_N rfl t hfac`
   --   closes the goal.  This is the multi-screen `pb_hom_ext` reindexing chain (the genuine §1.546
   --   content); every primitive it needs is now in scope sorry-free.
+  -- ════════════════════════════════════════════════════════════════════════════════════════════
+  -- THE DESCENT EQUATION (sorry-free).  `m_N`'s domain `baseChangeObj (selectProj N U') (baseChangeObj
+  -- (selectProj U' U) xE')` (= `baseChangeObj (selectProj N U') (baseChangeObj snd xE')`, `hsp`) is
+  -- the ψ-base-change of the `snd`-base-change of the PN-level object `Dbar := baseChangeObj
+  -- (selectProj (N.erase A) U) xE'`.  Built from three pullback-pasting isos (`baseChangeTransNatIso`):
+  --   • `dStep1 : baseChangeObj (selectProj N U' ≫ snd) xE' ≅ baseChangeObj (selectProj N U')
+  --       (baseChangeObj snd xE')` = domain(m_N);
+  --   • `dStep3 : baseChangeObj (selectProj N U' ≫ snd) xE' ≅ baseChangeObj ψ (baseChangeObj
+  --       (snd ≫ selectProj (N.erase A) U) xE')`  (after rewriting `selectProj N U' ≫ snd` by `hsplit2`);
+  --   • `dStep2 : baseChangeObj (snd ≫ selectProj (N.erase A) U) xE' ≅ baseChangeObj snd Dbar`,
+  --       transported into the ψ-slice by `Functor.map (baseChangeObj ψ)`.
+  -- Composite descent iso: `domain(m_N) ≅ baseChangeObj ψ (baseChangeObj snd Dbar)`.
+  let Dbar : Over PN := baseChangeObj (selectProj (N.1.erase A) U.1 hUe) xE'
+  -- the three pasting comparisons (all iso by `_transFwd_isIso`):  codomains are the `∘`-composed
+  -- `baseChangeObj _ ∘ baseChangeObj _` form, defeq to the iterated `baseChangeObj`/`L.F` shape.
+  let dStep1 := (baseChangeTransNatIso (snd : prod A P ⟶ P) (selectProj N.1 U'.1 hUN')).nat.app xE'
+  have hdStep1_iso : IsIso dStep1 :=
+    (baseChangeTransNatIso (snd : prod A P ⟶ P) (selectProj N.1 U'.1 hUN')).isIso xE'
+  let dStep2 :=
+    (baseChangeTransNatIso (selectProj (N.1.erase A) U.1 hUe) (snd : prod A PN ⟶ PN)).nat.app xE'
+  have hdStep2_iso : IsIso dStep2 :=
+    (baseChangeTransNatIso (selectProj (N.1.erase A) U.1 hUe) (snd : prod A PN ⟶ PN)).isIso xE'
+  let dStep3 :=
+    (baseChangeTransNatIso ((snd : prod A PN ⟶ PN) ≫ selectProj (N.1.erase A) U.1 hUe) ψ).nat.app xE'
+  have hdStep3_iso : IsIso dStep3 :=
+    (baseChangeTransNatIso ((snd : prod A PN ⟶ PN) ≫ selectProj (N.1.erase A) U.1 hUe) ψ).isIso xE'
+  -- `dStep1`'s domain equals `dStep3`'s domain after the `hsplit2` base-map rewrite, so we may
+  -- compose `dStep1⁻¹` with `dStep3` and the ψ-lift of `dStep2` into the single descent iso.
+  -- The base-map equality `selectProj N U' ≫ snd = ψ ≫ (snd ≫ selectProj (N.erase A) U)` (`hsplit2`)
+  -- identifies the two `baseChangeObj _ xE'` source objects on the nose.
+  -- recast `dStep3` along the base-map equality `hsplit2` so its source is `dStep1`'s `xE'`-pullback.
+  -- (the dependent `▸` transports both the morphism and its `IsIso` witness simultaneously.)
+  have hsplit2' : ψ ≫ ((snd : prod A PN ⟶ PN) ≫ selectProj (N.1.erase A) U.1 hUe)
+      = selectProj N.1 U'.1 hUN' ≫ (snd : prod A P ⟶ P) := hsplit2.symm
+  -- transport `dStep3` together with its iso witness along the SOURCE-object equality `hsplit2'`.
+  -- Phrasing the cast over the dependent pair `(morphism, IsIso)` keeps the `▸` motive type-correct.
+  let dStep3pack : Σ' (f : OverHom (baseChangeObj (selectProj N.1 U'.1 hUN' ≫ (snd : prod A P ⟶ P)) xE')
+      (baseChangeObj ψ (baseChangeObj ((snd : prod A PN ⟶ PN) ≫ selectProj (N.1.erase A) U.1 hUe) xE'))),
+      @IsIso (Over (listProd N.1)) _ _ _ f :=
+    hsplit2' ▸ (⟨dStep3, hdStep3_iso⟩ :
+      Σ' (f : OverHom (baseChangeObj (ψ ≫ ((snd : prod A PN ⟶ PN) ≫ selectProj (N.1.erase A) U.1 hUe)) xE')
+        (baseChangeObj ψ (baseChangeObj ((snd : prod A PN ⟶ PN) ≫ selectProj (N.1.erase A) U.1 hUe) xE'))),
+        @IsIso (Over (listProd N.1)) _ _ _ f)
+  let dStep3' := dStep3pack.1
+  have hdStep3'_iso : @IsIso (Over (listProd N.1)) _ _ _ dStep3' := dStep3pack.2
+  -- the ψ-lift of `dStep2` (base-change preserves iso, `baseChangeFunctor ψ` is a functor):
+  let dStep2ψ : OverHom (baseChangeObj ψ (baseChangeObj ((snd : prod A PN ⟶ PN) ≫
+        selectProj (N.1.erase A) U.1 hUe) xE'))
+      (baseChangeObj ψ (baseChangeObj (snd : prod A PN ⟶ PN) Dbar)) :=
+    @Functor.map _ _ _ _ _ (baseChangeFunctor ψ) _ _ dStep2
+  have hdStep2ψ_iso : @IsIso (Over (listProd N.1)) _ _ _ dStep2ψ :=
+    @functor_preserves_iso _ _ _ _ _ (baseChangeFunctor ψ) _ _ dStep2 hdStep2_iso
+  -- `isoInv dStep1 : domain(m_N) ⟶ baseChangeObj (selectProj N U' ≫ snd) xE'` (forward into the
+  -- descent), with its iso witness assembled from `isoInv_comp`/`inv_isoInv_comp`.  `dStep1`'s
+  -- codomain is the `∘`-composed base-change form, which is defeq to `L.F hUN' (L.F hUU' xE')`.
+  let dStep1inv := @isoInv (Over (listProd N.1)) _ _ _ dStep1 hdStep1_iso
+  have hdStep1inv_iso : @IsIso (Over (listProd N.1)) _ _ _ dStep1inv :=
+    ⟨dStep1, inv_isoInv_comp hdStep1_iso, isoInv_comp hdStep1_iso⟩
+  -- THE DESCENT EQUATION: the composite iso `domain(m_N) ≅ baseChangeObj ψ (baseChangeObj snd Dbar)`.
+  -- (domain stated in the `∘`-composed form, defeq to `L.F hUN' (L.F hUU' xE')` = `m_N`'s domain.)
+  let descent := dStep1inv ⊚ dStep3' ⊚ dStep2ψ
+  have hdescent : @IsIso (Over (listProd N.1)) _ _ _ descent :=
+    isIso_comp hdStep1inv_iso (isIso_comp hdStep3'_iso hdStep2ψ_iso)
   exact (by sorry : False)
 
 /-- **Freyd's §1.546 density (the genuine open core).**  The §1.546 ESCAPE is sorry-free
