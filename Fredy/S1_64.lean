@@ -2616,7 +2616,7 @@ end Choice661
 
 section Diaconescu
 
-variable [PreTopos 𝒞] [HasBinaryCoproducts 𝒞]
+variable [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞]
 
 /-- **§1.662**: (1) → (2): trivially, 1+1 is a coproduct of 1 and 1, and 1 is choice. -/
 theorem coprod_choice_to_one_one_choice
