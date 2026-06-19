@@ -842,7 +842,62 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
   -- the genuine multi-screen §1.546 descent; every primitive it needs is in scope sorry-free.
   have hpt : ∃ t : OverHom (overTerm (prod A PN)) (⟨cnDN.pt, cnDN.π₂⟩ : Over (prod A PN)),
       t ⊚ mbarN = sliceFactorPoint A (fst : prod A PN ⟶ A) := by
-    sorry
+    -- REDUCTION.  `t ⊚ mbarN = sliceFactorPoint A fst` (an `OverHom (overTerm (A×PN)) (sliceEmbedObj
+    -- (A×PN) A)` equation) holds iff its underlying `A×PN`-arrow `t.f ≫ mf'N = pair fst id`.  By the
+    -- product universal property (`pair_eta`) and `hmf1N`/`hmf2N`, that splits into:
+    --   • `A`-leg : `t.f ≫ cnDN.π₁ ≫ mC.f ≫ fst = fst`  (the FRESH coordinate — the §1.546 content);
+    --   • `PN`-structure leg : `t.f ≫ cnDN.π₂ = id`       (the over-`A×PN` point law, = `t.w`).
+    -- So it suffices to build `q : A×PN ⟶ Dbar.dom` (a section of `Dbar.hom` over `A×PN` via `snd`)
+    -- with `q ≫ Dbar.hom = snd` and `q ≫ mC.f ≫ fst = fst`; then `t.f := the pullback lift` of the
+    -- cone `(q, id)` over the cospan `(Dbar.hom, snd)`.
+    -- ── the section `q` of the base-change `Dbar` over `A×PN` reaching the fresh `A`-coordinate ──
+    obtain ⟨q, hqstruct, hqfresh⟩ :
+        ∃ q : prod A PN ⟶ Dbar.dom,
+          q ≫ Dbar.hom = (snd : prod A PN ⟶ PN) ∧ q ≫ mC.f ≫ (fst : prod A PN ⟶ A) = fst := by
+      -- ════════════════════════════════════════════════════════════════════════════════════════
+      -- THE GENUINE §1.546 DESCENT CORE (single isolated residual).  Everything ELSE in `hpt` is
+      -- proven sorry-free above: the over-hom packaging, the pullback `lift` of the cone `(q, id)`,
+      -- the `pair_eta` split of `t ⊚ mbarN = sliceFactorPoint A fst` into the two legs, and the final
+      -- `freshSlicePoint_factors_imp_false` application.  The WHOLE remaining content is to produce
+      -- the section `q : A×PN ⟶ Dbar.dom` with `q ≫ Dbar.hom = snd` (a section of the base-change
+      -- `Dbar` over `A×PN` via `snd`) reaching the fresh `A`-coordinate (`q ≫ mC.f ≫ fst = fst`).
+      --
+      -- `q` is the §1.546 point read-off from `hstage`, transported by `descent`/`ψ`:
+      --   • `hstage` (an `Over (∏N)` equation) says the N-image of the fresh point `sfp ⊚ cod`
+      --     (`pushHom … sc₀`) FACTORS through the N-image of `pushFibre g''` (`pushHom … pf₀`) via the
+      --     N-rep `pushHom … z₀` of the colimit factor.  `proj_pushHom_f_π₁`/`proj_pushHom_f_π₂`
+      --     (CapitalizationLaxColimit.lean) give the two pullback legs of each `(pushHom _).f` over
+      --     `∏N` explicitly (no opaque coherence left).
+      --   • `descent : IsIso descent` identifies `m_N`'s domain `L.F hUN' (L.F hUU' xE')` with
+      --     `baseChangeObj ψ (baseChangeObj snd Dbar)`; since `ψ` is an iso (`hψiso`),
+      --     `baseChangeObj ψ X ≅ X`, so this is `≅ baseChangeObj snd Dbar = ⟨cnDN.pt, cnDN.π₂⟩`.
+      --   • routing `(pushHom … z₀).f` through `descent.f` and the `ψ`-iso yields the section over
+      --     `A×PN`; its `cnDN.π₁`-leg (`hstage` content leg via `proj_pushHom_f_π₁`, `hψfst`) reaches
+      --     `fst`, giving `q := descent-transport(z₀) ≫ cnDN.π₁` with the two equations.
+      --
+      -- This is the genuine multi-screen `pb_hom_ext` reindexing chain — the §1.546 open core the
+      -- file documents (lines 525–635, 706–845).  All primitives are in scope; isolated here as the
+      -- single sharpest residual.  EXACT goal:
+      --   ⊢ ∃ q : prod A PN ⟶ Dbar.dom,
+      --       q ≫ Dbar.hom = snd ∧ q ≫ mC.f ≫ fst = fst
+      sorry
+    -- the cone `(q, id)` over `(Dbar.hom, snd)`, and its pullback lift `u : A×PN ⟶ cnDN.pt`.
+    have hsq : q ≫ Dbar.hom = (Cat.id (prod A PN)) ≫ (snd : prod A PN ⟶ PN) := by
+      rw [Cat.id_comp]; exact hqstruct
+    obtain ⟨u, ⟨hu₁, hu₂⟩, _⟩ := hcnDN ⟨prod A PN, q, Cat.id (prod A PN), hsq⟩
+    -- `t.f := u`; over-hom law `u ≫ cnDN.π₂ = id` is `hu₂`.
+    refine ⟨⟨u, ?_⟩, ?_⟩
+    · show u ≫ cnDN.π₂ = (overTerm (prod A PN)).hom
+      show u ≫ cnDN.π₂ = Cat.id (prod A PN); exact hu₂
+    · -- `t ⊚ mbarN = sliceFactorPoint A fst`: check underlying `u ≫ mf'N = pair fst id` by `pair_eta`.
+      apply OverHom.ext
+      show u ≫ mf'N = pair (fst : prod A PN ⟶ A) (Cat.id (prod A PN))
+      rw [pair_eta (u ≫ mf'N)]
+      congr 1
+      · -- `A`-leg: `(u ≫ mf'N) ≫ fst = fst`.
+        rw [Cat.assoc, hmf1N, ← Cat.assoc, hu₁]; exact hqfresh
+      · -- `PN`-leg: `(u ≫ mf'N) ≫ snd = id`.
+        rw [Cat.assoc, hmf2N]; exact hu₂
   obtain ⟨t, hfac⟩ := hpt
   exact freshSlicePoint_factors_imp_false mC hmC_mono hmC_niso cnDN hcnDN mf'N hmf1N hmf2N
     mbarN rfl t hfac
