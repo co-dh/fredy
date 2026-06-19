@@ -27,6 +27,7 @@ import Fredy.S1_60
 import Fredy.S1_57
 import Fredy.S1_62
 import Fredy.S1_77
+import Fredy.Complement
 
 
 open Freyd
@@ -60,6 +61,25 @@ def IsComplemented [PreLogos 𝒞] {A : 𝒞} (A₁ : Subobject 𝒞 A) : Prop :
     -- A₁∩A₂ ≤ 0 (meet is bottom — instance-free phrasing of `inter A₁ A₂ ≤ bottom`)
     ∧ Subobject.le (Subobject.entire A) (HasSubobjectUnions.union A₁ A₂)
     -- A₁∪A₂ = A (entire)
+
+/-- **Bridge** (§1.631 ⇔ §1.62): the meet-universal form `IsComplemented` (this file) and the
+    inter-based form `IsComplementedSub` (`S1_62`, consumed by `Complement.lean`) agree.
+    Same witness `A₂`; the union clauses are literally identical, and the two disjointness
+    clauses are equivalent because `Subobject.inter A₁ A₂` is the meet (greatest common lower
+    bound): `inter A₁ A₂ ≤ ⊥` iff every common lower bound `S` of `A₁`, `A₂` is `≤ ⊥`. -/
+theorem isComplemented_iff_sub [PreLogos 𝒞] {A : 𝒞} (A₁ : Subobject 𝒞 A) :
+    IsComplemented A₁ ↔ IsComplementedSub A₁ := by
+  constructor
+  · rintro ⟨A₂, hdisj, hcover⟩
+    refine ⟨A₂, ?_, hcover⟩
+    -- inter A₁ A₂ is a common lower bound of A₁, A₂, so the universal clause sends it to ⊥.
+    exact hdisj (Subobject.inter A₁ A₂)
+      (Subobject.inter_le_left A₁ A₂) (Subobject.inter_le_right A₁ A₂)
+  · rintro ⟨A₂, hdisj, hcover⟩
+    refine ⟨A₂, ?_, hcover⟩
+    -- any common lower bound S factors through the meet inter A₁ A₂, which is ≤ ⊥.
+    intro S h1 h2
+    exact subLe_trans' (Subobject.le_inter h1 h2) hdisj
 
 /-! ## §1.64 Boolean pre-logos
 
@@ -1342,24 +1362,26 @@ theorem preTopos_boolean_iff_all_decidable [PreTopos 𝒞] [HasBinaryProducts �
     obtain ⟨e2, he2⟩ := hle
     exact ⟨e1 ≫ e2, by rw [Cat.assoc, he2, he1]⟩
   · -- (⇐) All decidable → BooleanPreLogos.
-    -- Requires pullback stability of complements (§1.658): if K is complemented and f : B → C,
-    -- then InverseImage f K is complemented. Every subobject S of B can then be shown
-    -- complemented by pulling back the diagonal (which is decidable) along an appropriate map.
+    -- STATUS (Gap C audit): the complement-side infrastructure is now CLOSED and available —
+    --   • pullback-stability of complements: `invImage_complementedSub` (Complement.lean);
+    --   • the `IsComplemented ↔ IsComplementedSub` bridge: `isComplemented_iff_sub` (above);
+    --   • diagonal-classifies transfer: `diagonal_classifies` (Complement.lean).
+    -- So GIVEN a classifying map `c : B → A×A` exhibiting an arbitrary `S ⊆ B` as the inverse
+    -- image `c#(diagSub A)` of a *decidable* diagonal, `S` is complemented in one line
+    --   `(isComplemented_iff_sub S).mpr (diagonal_classifies (h A) c hS₁ hS₂)`.
     --
-    -- SHARPENED BLOCKER (infra audit):
-    --   • InverseImage (S1_60:51) and its union-preservation (PreLogos.invImage_preserves_union,
-    --     invImage_preserves_bottom, S1_60:89/91) ARE available — so "f# of a complement is a
-    --     complement" is *almost* in reach for the `IsComplementedSub` formulation
-    --     (Subobject.inter, S1_62:75), but NOT for the `IsComplemented` placeholder used here,
-    --     whose intersection clause is the ad-hoc "no nontrivial common lower bound" predicate
-    --     rather than `Subobject.inter _ _ ≤ bottom`.  The two are not interchangeable without a
-    --     bridge lemma `IsComplemented ↔ IsComplementedSub` (also unformalized).
-    --   • The genuine missing step is the *construction* exhibiting an arbitrary S ⊆ B as a
-    --     pullback of the (decidable, hence complemented) diagonal diag A ⊆ A×A along some
-    --     classifying map B → A×A.  Freyd builds this in the slice 𝒮(1) and transports along the
-    --     slice projection; the slice pre-topos and its complement transport are not in this repo.
-    -- Reduces to: (a) IsComplemented↔IsComplementedSub bridge, (b) the diagonal-classifies-S
-    -- slice construction. Faithful sorry.
+    -- GENUINE RESIDUAL (not reachable from Complement.lean): the *construction of `c`* for an
+    -- ARBITRARY subobject `S`.  Exhibiting any `S ⊆ B` as a pullback of a FIXED subobject is
+    -- exactly a subobject-classifier property — a pre-topos has none (that is §1.91 topos
+    -- territory, downstream of §1.64, so importing it would be circular).  Freyd's classifier-
+    -- free route takes `A := B +_S B` (the amalgamation pushout of `m : S ↣ B` with itself) and
+    -- `c := ⟨i₀, i₁⟩`, whence `S = equalizer(i₀,i₁) = c#(diagSub A)` — but this needs the
+    -- GENUINE pushout universal property to force `c#(diagSub A) ≤ S` (the reverse `S ≤ c#…`
+    -- holds from the commuting square alone).  `amalgamation_lemma` (§1.651) returns only a
+    -- commuting square of monics `∃ D u v, Mono u ∧ Mono v ∧ x≫u = y≫v` — NO universal property
+    -- — and even that carries its own leg-monicity `sorry`.  Closing this requires rebuilding
+    -- §1.651's effective-quotient pushout WITH its UMP; out of scope for the Complement layer.
+    -- Reduces to: the genuine `B +_S B` pushout (UMP). Faithful sorry.
     sorry
 
 /-! ## §1.659 Decidability in functor categories and sheaves
@@ -1796,15 +1818,15 @@ theorem coprod_choice_to_one_one_choice
     of 1+1; 1+1 is decidable (§1.658) and so is P; U is complemented as a
     pullback of a complemented subobject.
 
-    BLOCKER: the chain needs (a) the slice pre-topos 𝒮(1)=𝒞 inheriting condition
-    (2a), (b) the pushout P = 1 +_U 1 — now a real construction via `amalgamation_lemma`
-    (§1.651), whose residual is only the leg-monicity descent, (c) "pullback of a
-    complemented subobject is complemented" (§1.658 complement intersection/union infra,
-    not yet formalized — IsComplemented uses a placeholder intersection).  The §1.62
-    disjointness lemmas (`coprod_inl_inr_disjoint_elt`, `inl_union_inr_entire`) supply the
-    "maps B→1+1 are disjoint-complemented partitions" content for (2a), but the slice
-    transport (a) and complement pullback-stability (c) remain genuinely absent.  Faithful
-    statement; reduces to amalgamation_lemma + complement pullback-stability. -/
+    STATUS (Gap C audit): clause (c) "pullback of a complemented subobject is complemented"
+    is now CLOSED (`invImage_complementedSub` + `isComplemented_iff_sub` bridge), and the
+    decidability transfer (`diagonal_classifies`) is available.  Two clauses remain genuinely
+    absent: (a) the slice pre-topos 𝒮(1) inheriting condition (2a) — no slice-transport layer
+    in this repo at §1.64 — and (b) the pushout `P = 1 +_U 1` with its UNIVERSAL property, which
+    is what forces `U = equalizer(i₀,i₁) = c#(diagSub P)`.  `amalgamation_lemma` (§1.651) returns
+    only a commuting square of monics (no UMP, and a leg-monicity `sorry`), so it cannot supply
+    `U = c#(diagSub P)` — only `U ≤ c#…`.  Faithful statement; reduces to the genuine `1 +_U 1`
+    pushout (UMP) + slice transport.  Complement pullback-stability (c) is no longer the gap. -/
 theorem one_one_choice_to_boolean [HasBinaryProducts 𝒞]
     (h : Choice (HasBinaryCoproducts.coprod (one : 𝒞) one)) :
     Nonempty (BooleanPreLogos 𝒞) := by
@@ -1816,13 +1838,19 @@ theorem one_one_choice_to_boolean [HasBinaryProducts 𝒞]
     contains f₁ (B₁ choice). The restriction to the complement is entire into B₂,
     so contains f₂ (B₂ choice). Then f₁+f₂ (copairing) is a map in S.
 
-    BLOCKER (genuine residual): "Dom(S∘inl°) ⊆ A is complemented" and "the restriction of S
-    to that (complemented) subobject is entire into B₁" require a relation domain/restriction
-    operator (`Dom`, not yet defined in this repo) and the §1.658 complement infrastructure
-    (`IsComplemented` currently a placeholder; complement pullback-stability absent).  The
-    §1.563 modular gluing is now AVAILABLE (`modular_identity` proven; cf. the sorry-free
-    `entire_refine`/`prod_choice_is_choice` above), so the only remaining gap is the §1.658
-    complement layer + the relation-domain operator.  Faithful statement; reduces to those. -/
+    STATUS (Gap C audit): the §1.658 complement layer is now AVAILABLE — `Subobject.Dom`
+    (Complement.lean) gives the relation-domain operator, `invImage_complementedSub` +
+    `isComplemented_iff_sub` give "Dom(S∘inl°) is complemented", and `modular_identity`
+    (§1.563) the gluing.  Two pieces are still genuinely missing and are NOT supplied by
+    Complement.lean: (i) a BRIDGE turning the `BinRel` `S ⊚ (graph inl)°` into the
+    `Subobject 𝒞 (prod A B₁)` that `Subobject.Dom` consumes (tabulation of a relation as a
+    subobject of the product), together with the lemma that RESTRICTING `S` to a complemented
+    subobject `D ⊆ A` of its source yields an entire relation `D.dom → B₁`; and (ii) the
+    DISJOINT-COPRODUCT copairing that recombines the two restriction-maps `f₁ : D.dom → B₁`,
+    `f₂ : Dᶜ.dom → B₂` into a single map `A → B₁+B₂` lying in `S` — this needs `A ≅ D ⊔ Dᶜ`
+    from the §1.62 positive/effective structure.  Neither the relation⇄subobject tabulation
+    bridge nor the source-restriction-is-entire lemma exists at §1.64.  Faithful statement;
+    reduces to those two relation-restriction pieces (the complement layer itself is done). -/
 theorem boolean_to_coprod_choice_is_choice [HasBinaryProducts 𝒞]
     (hbool : Nonempty (BooleanPreLogos 𝒞)) :
     ∀ (B₁ B₂ : 𝒞), Choice B₁ → Choice B₂ →
