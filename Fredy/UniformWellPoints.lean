@@ -28,11 +28,13 @@
     to a proper fibre mono into the pushforward at some stage.  SORRY-FREE (uses only the existing
     lax reflection lemmas).
   * Phase 3 — `StageDensity`: the §1.546 density obligation, stated precisely as a `Prop`; the
-    genuine remaining content.  `stepWellPoints_of_density` derives `StepWellPoints (uniformStep W)`
-    from `StageDensity W` SORRY-FREE.  The density itself is the wall — honestly flagged.
+    genuine mathematical heart.  `stepWellPoints_of_density` derives `StepWellPoints (uniformStep W)`
+    from `StageDensity W` SORRY-FREE.  `StageDensity`/`FibreDensity` itself is now PROVEN in
+    `FibreDensityProof.lean` (`fibreDensity`/`wsCover_fibreDensity`), so §1.543 is proven.
 
-  No mathlib category theory; the lax colimit is on this repo's own `Cat`.  No `axiom`, no `:True`,
-  no statement-weakening; every `sorry` is on the book's genuine §1.546 density and reported.
+  No mathlib category theory; the lax colimit is on this repo's own `Cat`.  This file is sorry-free
+  (it defines and reduces to the density Prop, proven downstream); no `axiom`, no `:True`, no
+  statement-weakening.
 -/
 import Fredy.UniformCapStep
 import Fredy.SliceEquivalence
@@ -307,9 +309,9 @@ theorem colimitMono_reflects_to_fibre (A : S)
   sorry-free, under `SpecialHere`) supplies a slice g-point of `sliceEmbedObj (∏(chain U')) A`
   missing the pushed mono.  That slice point, included at stage `U'` and transported back to
   `⟨base, terminalSliceObj A⟩` along the realignment iso `alignGerm` (the pushforward is iso to the
-  base object in the colimit), is the missing COLIMIT point.  The remaining unbuilt step is the
-  density-driven product-form reduction + this point transport; it is isolated entirely inside
-  `StageDensity`, which the reduction below consumes sorry-free. -/
+  base object in the colimit), is the missing COLIMIT point.  The density-driven product-form
+  reduction + this point transport is isolated entirely inside `StageDensity`, which the reduction
+  below consumes sorry-free — and `StageDensity` is now PROVEN in `FibreDensityProof.lean`. -/
 
 /-- **The §1.546 density obligation for the uniform successor at `A`.**  For every proper FIBRE mono
     `g''` into the pushforward `L.F hbU (terminalSliceObj A)` of `terminalSliceObj A` at any stage `U`,
@@ -317,8 +319,9 @@ theorem colimitMono_reflects_to_fibre (A : S)
     germ `homInclL` of `g''`, realigned to land in `⟨base, terminalSliceObj A⟩`) does NOT factor.
 
     This is precisely the content the directed-union density supplies (product-form at a later stage
-    + slice g-point + realignment transport); it is the genuine remaining §1.546 research piece,
-    isolated here as a single named hypothesis.  Stated against the book's `WellPointed` shape — no
+    + slice g-point + realignment transport); it is the genuine §1.546 mathematical heart, isolated
+    here as a single named Prop and PROVEN in `FibreDensityProof.lean`.  Stated against the book's
+    `WellPointed` shape — no
     weakening: the conclusion is "∃ point, ¬∃ y factoring it through the colimit mono". -/
 def StageDensity (W : WSCover S) : Prop :=
   letI : Cat (uniformTargetTy W) := uniformTargetCat W

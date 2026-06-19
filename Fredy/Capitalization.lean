@@ -45,15 +45,18 @@
       `colimitPreRegular` preservation package and the capital closure: `base = id`
       (stage 0 is `A`), `hfaith`/`hcons` from `transNFaithful` via `towerHfaith`/`towerHcons`.
 
-  `capData_exists` is thereby reduced to the two genuine §1.543 walls, now SPLIT into two
-  separately-stated, separately-attackable `sorry`s with their dependency exposed:
-    (1) `hwall_step` — the uniform pre-regular-preserving successor `nextStep` (§1.544/§1.545
-        slice successor `A ↦ A*`, buildable from `overPreRegular`) together with the per-`i≤j`
+  `capData_exists` is thereby reduced to the two genuine §1.543 ingredients, BOTH now
+  discharged (downstream, in `Fredy/CapDataWiring.lean`, where the §1.547 uniform successor
+  is reachable):
+    (1) the uniform pre-regular-preserving successor `nextStep` (§1.544/§1.545 slice
+        successor `A ↦ A*`, buildable from `overPreRegular`) together with the per-`i≤j`
         tower preservation package; and
-    (2) `hwall_cap` — the capital closure of the colimit (§1.543 fixpoint via
-        `colimHom_cover_reflects`), stated *over* the colimit pre-regular structure that (1)
-        supplies, so it genuinely consumes (1).
-  No other gap remains.
+    (2) the capital closure of the colimit (§1.543 fixpoint via `colimHom_cover_reflects`),
+        over the colimit pre-regular structure that (1) supplies.
+  §1.543 is now PROVEN: `Freyd.capitalization_lemma` / `Freyd.capData_exists` are
+  sorry-free (axioms `[propext, Classical.choice, Quot.sound]`).  The former in-place
+  `capData_exists` body in this file (with its two `sorry` walls) is RETAINED only as the
+  big reference block comment below (around the `RELOCATED` marker), and is dead code.
 -/
 
 import Fredy.S1_1
@@ -485,10 +488,11 @@ end Freyd.Colim
       of `base` (bundled faithful) with `stageInclFunctor i₀` (faithful by
       `stageInclFaithful`).
 
-  What remains for a sorry-free §1.543 is exactly `capData_exists : ∀ A, CapData A` — the
-  transfinite recursion building the tower and proving the capital closure.  That is the
-  genuine wall (a type-level ordinal recursion whose limit stages are the colimits of their
-  predecessors, plus the fixpoint argument).  `capitalization_lemma` below is reduced to it. -/
+  The one thing this needed for a sorry-free §1.543 was `capData_exists : ∀ A, CapData A` —
+  the cofinal capitalizing tower and its capital-closure fixpoint.  That is now PROVEN
+  sorry-free in `Fredy/CapDataWiring.lean` (it had to live downstream, where the §1.547
+  uniform successor is reachable), so `capitalization_lemma` — which reduces to it — is
+  likewise proven (axioms `[propext, Classical.choice, Quot.sound]`). -/
 
 namespace Freyd
 
@@ -1568,9 +1572,10 @@ theorem towerHcanon (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier) :
       * `base = id` (stage 0 is `A`), faithful by `idFunctor`/`Faithful.id`;
       * `hfaith`/`hcons` are `towerHfaith`/`towerHcons` (cast-drop + `transNFaithful`);
       * the preservation package and `capital` are passed through verbatim.
-    This isolates the two genuine §1.543 walls — the successor `nextStep` and the capital closure
-    `hcap` — as the *only* inputs; everything categorical (cast-coherence, faithfulness, colimit
-    pre-regularity) is discharged. -/
+    This isolates the two genuine §1.543 ingredients — the successor `nextStep` and the capital
+    closure `hcap` — as the *only* inputs; everything categorical (cast-coherence, faithfulness,
+    colimit pre-regularity) is discharged here, and both inputs are themselves now supplied
+    sorry-free in `Fredy/CapDataWiring.lean`, so §1.543 is proven. -/
 noncomputable def capData_of_tower (A : Type u) [Cat.{u} A] [PreRegularCategory A]
     (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier)
     (b : PreRegBundle.{u}) (hb : b = ⟨A, inferInstance, inferInstance⟩)
@@ -2234,12 +2239,13 @@ noncomputable def nextStepOfEnum {S : Type u} [Cat.{u} S] [hpre : PreRegularCate
   into well-supported objects works (the constant `1`-enumeration is always available, so the choice
   set is nonempty); `Classical.choice` picks one.
 
-  COFINALITY CAVEAT (the WALL 2 residual, NOT a defect of `nextStep` itself): a *single* `ℕ`-indexed
+  COFINALITY CAVEAT (NOT a defect of `nextStep` itself): a *single* `ℕ`-indexed
   `enum` can be cofinal among the well-supported objects only when they are ℕ-enumerable.  For an
-  uncountable carrier, pointing EVERY well-supported `B` (what `hwall_cap` consumes) needs the
-  ordinal-indexed `OrdChain` (§1.543 transfinite), not this `ℕ`-chain — exactly the documented
-  (B-coverage) residual.  `nextStep` is nonetheless a genuine faithful pre-regular successor for
-  every `S`, sorry-free; the cofinal enumeration enters only at the `hwall_cap` fixpoint. -/
+  uncountable carrier, pointing EVERY well-supported `B` needs the cofinal (object-indexed)
+  successor, not this legacy `ℕ`-chain.  That cofinal route — and with it the capital fixpoint —
+  is built downstream in `Fredy/CapDataWiring.lean` (`uniformStep`/`tower_capital_of_cofinal`),
+  which is where §1.543 is closed PROVEN sorry-free.  This legacy `nextStep` is nonetheless a
+  genuine faithful pre-regular successor for every `S`, sorry-free. -/
 
 /-- A well-supported-valued enumeration of `S` always exists: the constant terminator `fun _ => 1`
     (`1` is well-supported, `wellSupported_one`).  This makes the `nextStep` choice set nonempty. -/

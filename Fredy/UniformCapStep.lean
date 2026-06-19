@@ -1,8 +1,8 @@
 /-
   §1.547 — THE UNIFORM CAPITALIZATION SUCCESSOR as a `CapStep`.
 
-  This file BEGINS the construction of `uniformStep (S : PreRegBundle) : CapStep S.carrier`, the
-  remaining content of `Freyd.capData_exists`.  Its point (vs. the countable `nextStepOfEnum`) is that
+  This file constructs `uniformStep (S : PreRegBundle) : CapStep S.carrier`, the successor that
+  drives the (now proven) `Freyd.capData_exists`.  Its point (vs. the countable `nextStepOfEnum`) is that
   ONE rung adjoins a point to EVERY well-supported object of `S` simultaneously, so it can satisfy
   `StepWellPoints` (`CapitalizationTransfinite.lean`).
 
@@ -38,7 +38,8 @@
   ── STATUS ───────────────────────────────────────────────────────────────────────────────────────
   This file is SORRY-FREE: `uniformStep (W : WSCover S) : CapStep S` is fully assembled (pre-regular
   target, faithful successor, and all six finite-limit/cover preservation fields) over the cofinal
-  index.  The remaining §1.546 density obligation lives in `UniformWellPoints.lean` (`FibreDensity`).
+  index.  The §1.546 density obligation lives in `UniformWellPoints.lean`/`FibreDensityProof.lean`
+  (`FibreDensity`) — now likewise proven sorry-free, so §1.543 is proven.
 
   No mathlib category theory (the lax colimit is on this repo's own `Cat`); the ordinal exception is
   not needed here.  No `axiom`, no `: True`, no statement-weakening, no `sorry`.

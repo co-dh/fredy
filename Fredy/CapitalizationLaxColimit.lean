@@ -2,7 +2,9 @@
   §1.543 — the FILTERED, PSEUDO-functorial colimit of categories (lax interface).
 
   ════════════════════════════════════════════════════════════════════════════════════════════
-  WHY THIS FILE EXISTS — the precise diagnosis of the §1.543 capitalization wall.
+  WHY THIS FILE EXISTS — the precise diagnosis of the §1.543 capitalization wall, AND the route
+  that resolves it.  §1.543 is now PROVEN sorry-free (`Fredy.capitalization_lemma`): the lax
+  interface built here is exactly what sidesteps the strict base-change obstruction below.
   ════════════════════════════════════════════════════════════════════════════════════════════
 
   The §1.547 relative capitalization needs `PreRegular A*`, where `A*` is the colimit of the
@@ -796,9 +798,9 @@ theorem pushHom_id {i : ι} (x : L.A i) {k m : ι} (hik : D.le i k) (hkm : D.le 
 
   Unlike the STRICT `CatSystem.Coherent` (a `HEq` statement that is *false* for raw base-change),
   these are TRUE for base-change — they are the standard pullback-pasting coherences.  We isolate
-  them here as a hypothesis (`Coherent`); the whole hom-colimit `Cat` is built relative to it, and
-  the remaining §1.543 obligation is to discharge `Coherent` for `laxOfProjSystem'` (base-change),
-  which is the pullback pentagon — genuinely true, large, deferred. -/
+  them here as a hypothesis (`Coherent`); the whole hom-colimit `Cat` is built relative to it.
+  `Coherent` for `laxOfProjSystem'` (base-change) — the pullback pentagon — is now DISCHARGED
+  sorry-free as `coherentProj` (below), so §1.543 is proven and nothing here is deferred. -/
 structure Coherent (L : LaxCatSystem.{u, w} ι D) : Prop where
   /-- UNIT: pushing a stage-`k` morphism along the reflexive bound `k ≤ k` is the identity.
       (Type-correct because `D.trans hik (D.refl k) = hik` by proof irrelevance of `D.le`.) -/
@@ -1131,10 +1133,11 @@ end HomColim
 
 /-! ## Coherence of the base-change `LaxCatSystem` (`laxOfProjSystem' P`)
 
-  The remaining §1.543 obligation: discharge `LaxCatSystem.Coherent (laxOfProjSystem' P)`, i.e. the
-  pseudofunctor UNIT (`push_refl`) and ASSOCIATIVITY (`push_trans`) of the lax hom-transition
-  `pushHom` built from the pullback coherence isos `projReflIso`/`projTransIso`.  Both reduce to
-  arrow-equalities between fixed pullback apices, provable by pullback-`lift` uniqueness. -/
+  The last §1.543 obligation, now DISCHARGED here (`coherentProj`): `LaxCatSystem.Coherent
+  (laxOfProjSystem' P)`, i.e. the pseudofunctor UNIT (`push_refl`) and ASSOCIATIVITY (`push_trans`)
+  of the lax hom-transition `pushHom` built from the pullback coherence isos
+  `projReflIso`/`projTransIso`.  Both reduce to arrow-equalities between fixed pullback apices,
+  proved by pullback-`lift` uniqueness.  With this, §1.543 is proven sorry-free. -/
 section BaseChangeCoherent
 
 variable {𝒞 : Type w} [Cat.{w} 𝒞] [HasPullbacks 𝒞]
@@ -1586,7 +1589,9 @@ end Freyd.LaxColim
 
 /-!
 ════════════════════════════════════════════════════════════════════════════════════════════════
-  DESIGN ASSESSMENT + PRECISE NEXT BLOCKER (§1.543 capitalization, filtered pseudo-colimit route)
+  DESIGN ASSESSMENT (§1.543 capitalization, filtered pseudo-colimit route) — NOW COMPLETE.
+  §1.543 is PROVEN sorry-free (`Fredy.capitalization_lemma`); the former "NEXT BLOCKER" below
+  (`Coherent (laxOfProjSystem' P)`) is discharged by `coherentProj`.
 ════════════════════════════════════════════════════════════════════════════════════════════════
 
 WHAT THIS FILE ESTABLISHES (all sorry-free, axiom-free):
@@ -1660,16 +1665,16 @@ THE PSEUDO HOM-COLIMIT + `Cat` INSTANCE — DONE (was the prior NEXT BLOCKER):
       (`IsIso := ∃ g, …` is a Prop, so the inverse arrow `isoInv` is extracted by choice; and the raw
       composite picks a bound by `D.bound`'s choice) — never by faking mathematical content.
 
-THE PRECISE NEXT BLOCKER — discharge `Coherent (laxOfProjSystem' P)` for the §1.547 base-change
-system, i.e. prove `push_refl`/`push_trans` for `pushHom` built from the pullback coherence isos
-`projReflIso`/`projTransIso`.  Unfolding `pushHom` there, `push_refl` is the pullback UNIT-coherence
+THE FORMER NEXT BLOCKER — DISCHARGED — `Coherent (laxOfProjSystem' P)` for the §1.547 base-change
+system: `push_refl`/`push_trans` for `pushHom` built from the pullback coherence isos
+`projReflIso`/`projTransIso`.  Unfolding `pushHom`, `push_refl` is the pullback UNIT-coherence
 (`baseChangeIdNatIso` interacting with `D.refl`) and `push_trans` is the pullback PENTAGON /
 2-cocycle condition relating `baseChangeTransNatIso (proj hkm) (proj hmn)` to the iterated
-single-step transports — the standard (true, but sizeable) coherence of the pullback pseudofunctor.
-Both are equalities of arrows between fixed pullback apices, provable by pullback-`lift` uniqueness
-(every leg matches).  Once `Coherent (laxOfProjSystem' P)` lands, `laxColimCat (laxOfProjSystem' P)`
-IS the §1.547 relative capitalization `A*` as an honest category, and the downstream
-`PreRegular (LaxColim L)` follows by "filtered colimits commute with finite limits" from the fibres'
-`overPreRegular`.
+single-step transports — the standard coherence of the pullback pseudofunctor.
+Both are equalities of arrows between fixed pullback apices, proved by pullback-`lift` uniqueness
+(every leg matches), as `coherentProj` (`proj_push_refl`/`proj_push_trans`).  With it,
+`laxColimCat (laxOfProjSystem' P)` (= `ratCapCat P`) IS the §1.547 relative capitalization `A*` as
+an honest category, and `PreRegular (ratCapCat P)` follows (`RatCapPreReg`/`RatCapStagePTC`/
+`RatCapHcanon`); §1.543 is proven.
 -/
 
