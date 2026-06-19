@@ -1180,6 +1180,22 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
             --       which the `sc₀`/fresh-point content carries) and `srcPB.π₂ = (zN.dom).hom` closes.
             -- This is the genuine multi-screen §1.546 content reindexing; the cast/transApp bridge
             -- (`hrec`) and the descent layer (STEPS A–B) are fully discharged.
+            -- ── REMAINING (the §1.546 hstage content-push), sharpened by this pass: ──
+            -- KEY FINDING: `hcodObj` and `hLF` are *reflexive* (their two sides are defeq); but the
+            -- cast `(hcodObj ▸ zN).f` does NOT collapse via `eqToHom_refl`/`Subsingleton.elim`/`rfl`
+            -- because the two object expressions `L.F (trans b.2.2 hbN) (L.F hUU' xE')` and
+            -- `(baseChangeObj g₁ ∘ baseChangeObj snd) xE'` are defeq but not syntactically `Eq.refl`-
+            -- headed (so `Cat.id`/`eqToHom rfl` typecheck against only ONE of the two displayed doms).
+            -- The cast must therefore be eliminated by the already-proven `hbcInner`/`eqToHom_bc_π₁`
+            -- (which `subst` the equality), NOT by `eqToHom_refl`.  Verified content sub-laws for the
+            -- push: `(sliceFactorPoint A fst).f ≫ fst = fst` (`pair`/`fst_pair`); `bcSliceIso`'s A-leg
+            -- `bcSliceIso.f ≫ (_pb snd (sliceEmbedObj P A)).π₁ = pair fst (snd≫snd)` (`lift_fst`), so
+            -- `≫ fst = fst`.  CHAIN (still to assemble): `rw [hcastf]`; reassociate; `rw [hcodObj',
+            -- hbcInner hLF]` to move the cast past `π₁(g₁)`; `eqToHom_bc_π₁` (via `hLF'`) past
+            -- `π₁(snd)`; then `hrec` to expose `z₀.f`; then project `hstage` (`proj_pushHom_f_π₁` on
+            -- `pushHom pf₀`, with `pf₀ = reflApp ≫ Functor.map g'' ≫ isoInv`, `baseChangeMap_f_π₁` =
+            -- `g''.f`, `m.f = g''.f ≫ pInv.f`) against the `sc₀` RHS (content `fst` via the verified
+            -- sub-laws + `hψfst`).  This is the genuine multi-screen reindexing.
             sorry
           rw [show (r ≫ (zNd.f ≫ codPB.cone.π₁)) ≫ cnDN.π₁ ≫ mC.f ≫ (fst : prod A PN ⟶ A)
                 = r ≫ ((zNd.f ≫ codPB.cone.π₁) ≫ cnDN.π₁ ≫ mC.f ≫ (fst : prod A PN ⟶ A)) from
