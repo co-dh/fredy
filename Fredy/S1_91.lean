@@ -609,10 +609,13 @@ theorem omega_involution_of_cube (g : HasSubobjectClassifier.omega (𝒞 := 𝒞
 /-! ## §1.919  Monic endomorphisms of Ω are involutions
 
   §1.919: Every monic endomorphism g : Ω → Ω is an involution (g² = id).
-  BECAUSE: For monic g, define U = g(1_Ω) (the unique g-large subobject of 1)
-  and V = 1 (since g is monic and g(V) = g(1) implies V = 1).  Then g²(A') =
-  (A ↔ A×U) ∧ A×U = A itself for any A', so g² has the same large subobjects
-  as the identity, hence g² = id. -/
+  BECAUSE: viewing `g` as the operation `ĝ = (· ≫ g)` on `Sub(A) ≅ Hom(A,Ω)`,
+  `ĝ(S) = (S ⇔ u_A)` with `u_A := ĝ(⊤_A) = (term_A) ≫ (t ≫ g)`.  In every Heyting
+  algebra `((x ⇔ u) ⇔ u) ⇔ u = x ⇔ u`, so `ĝ³ = ĝ`; `g` monic makes `ĝ`
+  injective, whence `ĝ² = id`.  At `A = Ω, S = id` this gives `g ≫ g = id`.
+  The hard kernel is the operation form, which rests on the CRUX `t ≫ g ≫ g = t`
+  (the subterminal `G = g⁻¹(t)` is inhabited by the point `g(⊤)`); see the
+  theorem docstring for the precise residual. -/
 
 /-- **§1.919**: Every monic endomorphism of Ω is an involution;
     that is, g : Ω → Ω monic implies g ≫ g = id.
@@ -634,17 +637,38 @@ theorem omega_involution_of_cube (g : HasSubobjectClassifier.omega (𝒞 := 𝒞
     (`⇔` classifies the equalizer of `χ₁,χ₂`), and `classify_invImg`
     (`χ_{f# S} = f ≫ χ_S`) are the necessary INGREDIENTS but are NOT sufficient.
 
-    What is genuinely still UNBUILT:
-    (a) the operation `ĝ(S) = (S ⇔ A×U)` itself — needs the inverse-image
-        subterminal `A×U = (term_A)# U` as a `Sub(A)`-valued operation and its
-        characteristic map `term_A ≫ χ_U` (via `classify_invImg`), then the
-        ⇔-UMP applied to the pair `(χ_S, term_A ≫ χ_U)`;
-    (b) the internal Heyting identity that `g` monic ⟹ `S ↦ (S ⇔ A×U)` is
-        involutive (`((S ⇔ u) ⇔ u) = S`).  In a general (non-Boolean) topos `⇔`
-        is NOT associative and `(x ⇔ u) ⇔ u = x` FAILS pointwise; it holds only
-        because monicity of `ĝ` (injectivity of `S ↦ (S ⇔ u)` on `Sub(A)`) forces
-        it.  Turning that injectivity-⟹-involutivity argument into an internal
-        Heyting-algebra lemma over arbitrary `Sub(A)` is the real missing content.
+    PROGRESS THIS PASS — the reduction is now fully mechanized down to ONE sharp
+    map equation, the CRUX.  `omega_involution_of_cube` (proven, axiom-free)
+    cancels the rightmost `g` by monicity, so the whole theorem is equivalent to
+    the cube law
+        `(g ≫ g) ≫ g = g`                                                    (CUBE)
+    Under the bijection `Sub(−) ≅ Hom(−,Ω)`, post-composition `(· ≫ g)` IS the
+    operation `ĝ`, so (CUBE) is exactly `ĝ³(id_Ω) = ĝ(id_Ω)` — the Heyting cube
+    law `((x ⇔ u) ⇔ u) ⇔ u = x ⇔ u` applied at `x = id_Ω`, `u = t ≫ g`.
+
+    WHY THE 4 UMPs ARE NOT SUFFICIENT (sharpened, verified this pass).  The
+    operation form `ĝ(χ) = (χ ⇔ u_A)` with `u_A := term_A ≫ (t ≫ g)` is the
+    keystone.  Via `heytingDoubleArrow_classifies_eq`, its RHS classifies the
+    universal equalizer `E_χ` of `χ` and the constant `u_A`, i.e.
+    `E_χ = {a : χ a = (t ≫ g)}`.  Via `classify_invImg` + `classify_invTrue`
+    (`χ_G = g`, where `G := g⁻¹(t) =` `invTrue g`), the LHS `χ ≫ g` classifies
+    `χ⁻¹(G) = {a : g(χ a) = ⊤}`.  These two subobjects coincide for ALL `χ`
+    **iff** `G ≅ (t ≫ g : 1 ↪ Ω)` as subobjects of `Ω`, i.e.
+
+        CRUX:  `t ≫ g ≫ g = t`   (the point `g(⊤) = t ≫ g` lies in `G`).
+
+    `G` IS subterminal when `g` is monic (`invTrue_subterminal`, proven this pass),
+    and `χ_G = g` (`classify_invTrue`, proven).  So CRUX is exactly the statement
+    that the subterminal `G` is INHABITED by its canonical candidate point
+    `t ≫ g`.  But inhabitation `t ≫ g ∈ G` unfolds to `(t ≫ g) ≫ g = term ≫ t`,
+    i.e. `t ≫ g ≫ g = t` — the theorem restricted to the point `⊤`.  It is NOT a
+    free consequence of `g : Ω → Ω` monic in isolation: it encodes the naturality
+    of `ĝ` across all `Sub(A)` (injectivity of `ĝ` as a natural endo-operation,
+    strictly stronger than `Mono g`).  Hence no route through `A = 1` alone, and
+    no combination of the 4 bare UMPs, closes it; the genuine remaining work is
+    the internal Sub(A) Heyting layer (⇒-adjunction `S ∧ X ≤ Y ⟺ X ≤ S ⇒ Y` and
+    the ⇔-laws over an arbitrary topos) feeding the injectivity-⟹-involutivity
+    argument — a multi-lemma build, deliberately NOT faked here.
 
     CAUTION — corrects an earlier WRONG note: the residual is NOT "`U = 1`".  `U`
     is the unique `g`-large subobject of `1`, and `U = 1` would mean `t ≫ g = t`
@@ -655,6 +679,9 @@ theorem omega_involution_of_cube (g : HasSubobjectClassifier.omega (𝒞 := 𝒞
     The collapse therefore does NOT go through `u = ⊤`.  See S1_91.md. -/
 theorem omega_monic_endo_is_involution (g : HasSubobjectClassifier.omega (𝒞 := 𝒞) ⟶
     HasSubobjectClassifier.omega (𝒞 := 𝒞)) (hm : Mono g) : g ≫ g = Cat.id _ := by
+  -- Reduced (axiom-free) to the cube law `(g ≫ g) ≫ g = g`; see CRUX above.
+  refine omega_involution_of_cube g hm ?_
+  -- CRUX residual: `(g ≫ g) ≫ g = g`, equivalently `t ≫ g ≫ g = t` at the point ⊤.
   sorry
 
 /-! ## §1.91(10)  Minimal topos definition
