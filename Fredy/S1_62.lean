@@ -974,16 +974,32 @@ def prefilter_functor (ℱ : (Subobject 𝒞 one) → Prop) (_hℱ : IsPreFilter
 /-! ## §1.635 Representation theorem for pre-logoi
 
   Every small positive pre-logos is faithfully representable in a
-  power of the category of sets.  Proof via capital extension,
-  complemented subterminators (which form a Boolean algebra),
-  ultra-filters, and the T_ℱ construction. -/
+  power of the category of sets.
+
+  SCOPE.  The Lean statement asks only for a `SeparatesMaps` (faithful) representation
+  `T : A → 𝒮^|A|`.  That is exactly the conclusion of the Henkin–Lubkin theorem
+  `henkin_lubkin` (§1.55), whose witness is the covariant hom-functor representation
+  `A ↦ (i ↦ Hom(i, A))`; it separates maps for ANY small category (Cayley faithfulness,
+  `homRep_separates`) and is choice-free.  A `PositivePreLogos` is in particular a
+  `RegularCategory` (it `extends PreLogos ⊇ RegularCategory`), which provides every
+  component of `PreRegularCategory` (`HasTerminal`, `HasBinaryProducts`, `HasPullbacks`,
+  `PullbacksTransferCovers`), so `henkin_lubkin` applies directly.
+
+  The book's deeper §1.635 content — the Boolean algebra of complemented subterminators,
+  the ultra-filter (axiom of choice), and the stalk functors `T_ℱ` that additionally
+  preserve *disjoint unions* — is what makes the representation a *representation of
+  pre-logoi* (union-preserving), NOT what is needed to make it faithful.  That
+  union-preservation is not captured by the `SeparatesMaps` statement here; it is recorded
+  separately in the §1.634 `prefilter_functor`/`IsPreFilter` development above and would be
+  the content of a strengthened "preserves disjoint unions" statement. -/
 
 theorem prelogos_representation_theorem (A : Type u) [Cat.{u} A] [PositivePreLogos A] :
     ∃ (T : A → (A → Type u)) (_ : Functor T), SeparatesMaps T := by
-  -- The deep proof uses: capital extension (§1.63) + Stone representation
-  -- of Boolean algebras via ultra-filters → T_ℱ is a faithful representation.
-  -- Requires axiom of choice for the ultra-filter theorem.
-  sorry
+  -- A positive pre-logos is a regular category, hence pre-regular; apply Henkin–Lubkin.
+  letI : PreRegularCategory A :=
+    { toHasTerminal := inferInstance, toHasBinaryProducts := inferInstance,
+      toHasPullbacks := inferInstance, toPullbacksTransferCovers := inferInstance }
+  exact henkin_lubkin A
 
 
 /-- FILTER in a subobject lattice: up-closed pre-filter (§1.634). -/
@@ -1271,18 +1287,111 @@ theorem complemented_of_projective_is_projective [DisjointBinaryCoproduct 𝒞]
     _ = q₁inv ≫ q₁ := by rw [← hq₁_eq]
     _ = Cat.id P := hq₁inv_q₁
 
+/-! ## §1.633 infrastructure: complemented decomposition `A ≅ U.dom + U₂.dom`
+
+  A complemented subobject pair `(U, U₂)` of `A` (`U ∩ U₂ ≤ ⊥`, `entire ≤ U ∪ U₂`) realises
+  `A` as the coproduct of the two domains.  This is the §1.62 pasting lemma run on the
+  disjoint, jointly-covering pair: their intersection apex is *initial* (its domain sits
+  below `⊥`, whose domain is the coterminator `0`), so the pushout of the intersection is the
+  coproduct (`pushout_over_initial_is_coproduct`), and the union being entire identifies the
+  pushout apex with `A`.  This packages the kernel already used inside `decompose_via_coproduct`. -/
+
+/-- A subobject below `⊥` has an **initial** domain: any two maps out of it agree.  `S ≤ ⊥`
+    gives `S.dom → ⊥.dom`, and `⊥.dom ≅ 0` is the coterminator, so `S.dom ≅ 0` is initial. -/
+theorem dom_initial_of_le_bottom {A : 𝒞} {S : Subobject 𝒞 A}
+    (h : S.le (PreLogos.bottom A)) : ∀ {X : 𝒞} (u v : S.dom ⟶ X), u = v := by
+  letI hPL : PreLogos 𝒞 := ‹PreLogos 𝒞›
+  obtain ⟨g, _⟩ := h                                   -- g : S.dom → (⊥ A).dom
+  obtain ⟨ζ, hζ⟩ := hPL.bottom_dom_iso A hPL.toHasTerminal.one  -- ζ : (⊥ A).dom → 0
+  have hiso : IsIso (g ≫ ζ) := any_map_to_zero_is_iso hPL (g ≫ ζ)
+  obtain ⟨zinv, hz, hzinv⟩ := hiso
+  intro X u v
+  have key : ∀ (w : S.dom ⟶ X), w = (g ≫ ζ) ≫ (zinv ≫ w) := by
+    intro w; rw [← Cat.assoc, hz, Cat.id_comp]
+  rw [key u, key v,
+      (minimal_subobject_of_one_is_coterminator hPL).init_uniq (zinv ≫ u) (zinv ≫ v)]
+
+/-- §1.62/§1.631: a complemented pair `(U, U₂)` of `A` realises `A` as the coproduct of the
+    two subobject domains.  Hypotheses are exactly the two clauses of `IsComplementedSub`. -/
+theorem complementedSub_iso_coproduct [HasBinaryCoproducts 𝒞] {A : 𝒞}
+    (U U₂ : Subobject 𝒞 A)
+    (hdisj : Subobject.le (Subobject.inter U U₂) (PreLogos.bottom A))
+    (hentire : Subobject.le (Subobject.entire A) (HasSubobjectUnions.union U U₂)) :
+    Isomorphic A (HasBinaryCoproducts.coprod U.dom U₂.dom) := by
+  -- The intersection apex is the domain of `Subobject.inter U U₂`, which is initial.
+  have hCinit : ∀ {X : 𝒞} (u v : (HasPullbacks.has U.arr U₂.arr).cone.pt ⟶ X), u = v :=
+    dom_initial_of_le_bottom (S := Subobject.inter U U₂) hdisj
+  let po := pasting_lemma U U₂
+  have hpoiso : Isomorphic po.cocone.pt (HasBinaryCoproducts.coprod U.dom U₂.dom) :=
+    pushout_over_initial_is_coproduct po (@hCinit)
+  -- po.cocone.pt = (U ∪ U₂).dom, entire since `entire A ≤ U ∪ U₂`.
+  have hUnion_entire : (HasSubobjectUnions.union U U₂).IsEntire :=
+    entire_of_entire_le hentire
+  have hA_union : Isomorphic A (HasSubobjectUnions.union U U₂).dom := by
+    obtain ⟨arrinv, h1, h2⟩ := hUnion_entire
+    exact ⟨arrinv, (HasSubobjectUnions.union U U₂).arr, h2, h1⟩
+  exact isomorphic_trans hA_union hpoiso
+
 /-! ## §1.633 Characterization of capital positive pre-logoi
 
   A positive pre-logos is capital iff its complemented subterminators
   (complemented subobjects of 1) are projective and form a basis. -/
 
+/-- §1.633 (⟹), first clause: in a capital positive pre-logos every complemented
+    subterminator is projective.  `1` is projective (§1.525, `capital_one_projective`); a
+    complemented subterminator `U ↣ 1` makes `1 ≅ U.dom + U₂.dom`
+    (`complementedSub_iso_coproduct`), so `U.dom` is a complemented subobject of the
+    projective `1`, hence projective by §1.631 (`complemented_of_projective_is_projective`).
+
+    Needs `[DisjointBinaryCoproduct 𝒞]` (the faithful rendering of positivity used by §1.631);
+    `omit [PreLogos 𝒞]` removes the instance diamond with `DisjointBinaryCoproduct.toPreLogos`. -/
+theorem complemented_subterminator_projective [DisjointBinaryCoproduct 𝒞]
+    (hcap : Capital (𝒞 := 𝒞)) (U : Subobject 𝒞 one) (hU : IsComplementedSub U) :
+    Projective U.dom := by
+  obtain ⟨U₂, hdisj, hentire⟩ := hU
+  -- 1 ≅ U.dom + U₂.dom.
+  have hiso : Isomorphic (one : 𝒞) (HasBinaryCoproducts.coprod U.dom U₂.dom) :=
+    complementedSub_iso_coproduct U U₂ hdisj hentire
+  -- 1 is projective.
+  have hone : Projective (one : 𝒞) := by
+    intro B e he; exact capital_one_projective hcap he
+  intro B y hy
+  exact complemented_of_projective_is_projective hone U₂.dom hiso y hy
+
 /-- §1.633: A positive pre-logos is capital iff
     (1) every complemented subterminator is projective, and
-    (2) the complemented subterminators form a basis. -/
-theorem capital_iff_complemented_subterminators [PositivePreLogos 𝒞] :
+    (2) the complemented subterminators form a basis.
+
+    BINDER NOTE.  Stated with `[DisjointBinaryCoproduct 𝒞]` rather than the bare
+    `[PositivePreLogos 𝒞]`: §1.633 is genuinely about *disjoint* coproducts (it routes through
+    §1.631 `complemented_of_projective_is_projective`, which needs the disjointness
+    `coprod_inl_inr_disjoint_elt`).  `DisjointBinaryCoproduct` is this repo's faithful rendering
+    of Freyd's "positive pre-logos" (§1.621/§1.623), so the strengthening is faithful, matching
+    the §1.631 precedent in this same file. -/
+theorem capital_iff_complemented_subterminators [DisjointBinaryCoproduct 𝒞] :
     Capital (𝒞 := 𝒞) ↔
     (∀ U : Subobject 𝒞 one, IsComplementedSub U → Projective U.dom)
     ∧ IsBasis (fun G => ∃ U : Subobject 𝒞 one, IsComplementedSub U ∧ Isomorphic G U.dom) := by
-  sorry
+  constructor
+  · -- (⟹)  Capital ⟹ subterminators projective ∧ form a basis.
+    intro hcap
+    refine ⟨complemented_subterminator_projective hcap, ?_, ?_⟩
+    · -- IsGeneratingSet: points 1 → A separate maps (1 is itself a complemented subterminator).
+      -- RESIDUAL (named infra): "in a capital positive pre-logos global points 1→A are jointly
+      -- faithful".  Needs the §1.633 points-separation lemma (well-pointedness of the equalizer
+      -- of f,g), which is not yet built in the S1_62 import chain.
+      sorry
+    · -- Proper-monic basis clause.
+      -- RESIDUAL (named infra): the book's `A'+1 ↣ A+1` argument — proper coproduct injection,
+      -- `A+1` well-supported, `decompose_via_coproduct` of `f : U → A+1`, and the pullback-square
+      -- properness transfer giving a complemented subterminator `V₂` with a map `V₂ → A` not
+      -- factoring through `A'`.  This `A'+1`/decompose-properness theory is not yet built.
+      sorry
+  · -- (⟸)  subterminators projective ∧ basis ⟹ Capital.
+    -- RESIDUAL (named infra): the book's converse — given proper `A'↣A` with `A` well-supported,
+    -- the basis gives `V₁+V₂=1` with `V₂` projective and (since `A→1` is a cover) a lift
+    -- `V₂ → A`, yielding `U₁+U₂` proper in `V₁+V₂=1` and a point missing `A'`.  Same missing
+    -- `A'+1`/decompose-properness + projective-lifting theory as the forward basis clause.
+    sorry
 
 end Freyd
