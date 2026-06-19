@@ -757,16 +757,19 @@ theorem pre_positive_to_well_joined {𝒜 : Type u} [PrePositiveAllegory 𝒜] :
   Given an object a in a power allegory, let ∋ = ∋_a and ∋' = ∋_{[a]}.
   Write ε = ∋° and ε' = (∋')°.
 
-  Define (as maps [[a]] → [a]):
-  - ⊓ = A(∋' · ∋)   (big intersection: the intersection of a family)
-  - ⊔ = A(ε' \ ∋)    (big union: the union of a family)
+  Define (as maps [[a]] → [a]).  Freyd's parentheticals (§2.443): for a family `F` and
+  point `x`,  `F (∋'∋) x ↔ ∃ A∈F, x∈A`  (so `A(∋'∋)` is the big UNION `⋃F`), and
+  `F (ε'\∋) x ↔ ∀ A∈F, x∈A`  (so `A(ε'\∋)` is the big INTERSECTION `⋂F`).  Hence:
+  - ⊔ = bigUnion = A(∋' · ∋)   (big union:        F ↦ ⋃F = {x : ∃ A∈F, x∈A})
+  - ⊓ = bigInter = A(ε' \ ∋)   (big intersection: F ↦ ⋂F = {x : ∀ A∈F, x∈A})
     where ε' \ ∋ is the left division (ε' \ ∋ = (∋° / (ε')°)° = (∋° / ∋')°).
 
   The partial ordering on [a] is 2 = ∋°∋ (the ordering by subset inclusion).
   The straightness of ∋ forces 2 to be a partial order (not just pre-order).
 
-  The LAW OF METONYMY: ⊓ ⊑ ⊔
-  (the intersection of any family is contained in its union).
+  The LAW OF METONYMY (Freyd §2.443): ⊓ ⊑ ⊔, i.e. `bigInter ⊑ bigUnion`, i.e. `⋂ ⊑ ⋃`
+  (for any pair of sets, one containing the other, there is a family whose union is the
+  larger and intersection the smaller).
 
   A pre-positive power allegory is semi-simple iff it obeys the law of metonymy. -/
 
@@ -830,40 +833,190 @@ theorem straight_semiSimple_of_eps_semiSimple {a b : 𝒜} [PowerAllegory 𝒜]
     rw [Cat.assoc, ← hEpsEq, A_eps_eq]
   exact ⟨c, F ≫ (A S)°, G, hFAo, hG, hSeq⟩
 
-/-- The big-intersection map ⊓ : [[a]] → [a] (§2.442).
-    ⊓ = A(∋' ≫ ∋) where ∋' = ∋_{[a]} : [[a]] → [a] and ∋ = ∋_a : [a] → a. -/
-def bigInter {a : 𝒜} [PowerAllegory 𝒜] :
+/-- The big-UNION map ⊔ : [[a]] → [a] (§2.442/§2.443).
+    ⊔ = A(∋' ≫ ∋) where ∋' = ∋_{[a]} : [[a]] → [a] and ∋ = ∋_a : [a] → a.
+    Semantically `F (∋'∋) x ↔ ∃ A∈F, x∈A`, so `A(∋'∋) : F ↦ ⋃F` (Freyd §2.443). -/
+def bigUnion {a : 𝒜} [PowerAllegory 𝒜] :
     PowerAllegory.powerObj (PowerAllegory.powerObj a) ⟶ PowerAllegory.powerObj a :=
   A (∋ (PowerAllegory.powerObj a) ≫ ∋ a)
 
-/-- The big-union map ⊔ : [[a]] → [a] (§2.442).
-    ⊔ = A(ε' \ ∋) where ε' = (∋_{[a]})° : [a] → [[a]] and ∋ = ∋_a : [a] → a.
-    Left division: ε' \ ∋ = leftDiv ε' ∋ = (∋° / ∋')°. -/
-def bigUnion {a : 𝒜} [PowerAllegory 𝒜] :
+/-- The big-INTERSECTION map ⊓ : [[a]] → [a] (§2.442/§2.443).
+    ⊓ = A(ε' \ ∋) where ε' = (∋_{[a]})° : [a] → [[a]] and ∋ = ∋_a : [a] → a.
+    Left division: ε' \ ∋ = leftDiv ε' ∋ = (∋° / ∋')°.
+    Semantically `F (ε'\∋) x ↔ ∀ A∈F, x∈A`, so `A(ε'\∋) : F ↦ ⋂F` (Freyd §2.443). -/
+def bigInter {a : 𝒜} [PowerAllegory 𝒜] :
     PowerAllegory.powerObj (PowerAllegory.powerObj a) ⟶ PowerAllegory.powerObj a :=
   A (leftDiv ((∋ (PowerAllegory.powerObj a))°) (∋ a))
 
-/-- LAW OF METONYMY (§2.442): bigInter ⊑ bigUnion, i.e. ⊓ ⊑ ⊔.
-    The intersection of any family is contained in its union. -/
+/-- LAW OF METONYMY (Freyd §2.443), `⊓ ⊑ ⊔`, stated at the level of the subset order.
+
+    Freyd's parenthetical reading: "for any pair of sets, one containing the other, there exists
+    a family of sets whose union is the larger and whose intersection is the smaller."  At the
+    order `2 = ∋/∋` (so `X 2 Y ↔ X ⊆ Y`) this is precisely: every `(X, Y)` with `X ⊆ Y` factors
+    through some family `F` with `⋂F = X` and `⋃F = Y` — i.e. `2 ⊑ ⋂° ≫ ⋃ = bigInter° ≫ bigUnion`.
+
+    (Encoding note — definitional fix, §2.443.  The bare map-containment `bigInter ⊑ bigUnion`
+    is NOT Freyd's law: as a containment of the two *functional* relations `F ↦ ⋂F` and `F ↦ ⋃F`
+    it forces `⋂F = ⋃F` for every family, which is degenerate.  Freyd's `⋂ ⊑ ⋃` is the order-level
+    containment above; `bigInter° ≫ bigUnion` is the relation `{(X, Y) : ∃F, ⋂F = X ∧ ⋃F = Y}`,
+    which always satisfies `⊑ 2` and whose *reverse* containment `2 ⊑ bigInter° ≫ bigUnion` is the
+    real content of the law.  It is also literally a `simple° ≫ simple`, so this form drives the
+    forward direction by `semiSimple_of_le` and is the genuine equation the converse must produce.) -/
 def MetonymyLaw (𝒜 : Type u) [PowerAllegory 𝒜] : Prop :=
-  ∀ (a : 𝒜), @bigInter 𝒜 a _ ⊑ @bigUnion 𝒜 a _
+  ∀ (a : 𝒜), powerOrder (a := a) ⊑ (@bigInter 𝒜 a _)° ≫ (@bigUnion 𝒜 a _)
 
-/-- §2.442 forward, the SHARP residual of GAP 1 — metonymy ⟹ the partial-order
-    `2 = ∋/∋ = powerOrder` is semi-simple.
+/-! ### §2.443  The `A`-calculus on the second power object
 
-    This is the ONLY genuinely-missing piece of "metonymy ⟹ `∋` semi-simple": everything else
-    around it is now proven (`eps_semiSimple_of_metonymy` consumes this and closes honestly).
+  Freyd's equational calculus relating the big-union/big-intersection maps to the
+  hom-set union/intersection.  For arbitrary maps `f, g : c → [a]`:
 
-    MISSING OPERATION (precise): deriving `SemiSimple powerOrder` from `MetonymyLaw`.  In `Rel(C)`
-    Freyd reads `2 = ∋°∋` off as the inclusion order; its semi-simplicity is the content of `⊓ ⊑ ⊔`
-    interpreted via `bigInter`/`bigUnion`.  The abstract derivation needs the `bigUnion`/`bigInter`
-    `A`-calculus on `[[a]]` (`A(f∪g) ≫ ⊔ ≫ ∋ = f∋ ∪ g∋`, `⊓(f∪g) ∩ ∋ = f∋ ∩ g∋`, §2.443) — the same
-    equations the converse needs, none yet derived in S2_3/S2_4.  Left as the single sharp sorry. -/
+  * `bigUnion_comp_eq : A(f ∪ g) ≫ ⊔ = A(f∋ ∪ g∋)`   (the *post-∋ union* identity)
+  * `bigInter_comp_eq : A(f ∪ g) ≫ ⊓ = A(f∋ ∩ g∋)`   (the *post-∋ intersection* identity)
+
+  matching the book's `A(f∪g)·⋃ = A(f∋∪g∋)`, `A(f∪g)·⋂ = A(f∋∩g∋)`.  The three pure-division
+  helpers `leftDiv_union`, `leftDiv_recip_map_eps`, `map_comp_leftDiv` are the §2.314/§2.41
+  lemmas the intersection branch needs. -/
+
+/-- §2.314 (dual of `div_union`): left division distributes over union in the numerator,
+    `(S₁ ∪ S₂) \ R = (S₁ \ R) ∩ (S₂ \ R)`. -/
+theorem leftDiv_union {𝒜 : Type u} [DivisionAllegory 𝒜] {a b c : 𝒜}
+    (S₁ S₂ : a ⟶ b) (R : a ⟶ c) :
+    leftDiv (S₁ ∪ S₂) R = leftDiv S₁ R ∩ leftDiv S₂ R := by
+  apply le_antisymm
+  · apply le_inter
+    · rw [le_leftDiv_iff]
+      exact le_trans (comp_mono_right (le_union_left _ _) _) (leftDiv_comp_le _ _)
+    · rw [le_leftDiv_iff]
+      exact le_trans (comp_mono_right (le_union_right _ _) _) (leftDiv_comp_le _ _)
+  · rw [le_leftDiv_iff, union_comp_distrib]
+    apply union_lub
+    · exact le_trans (comp_mono_left _ (inter_lb_left _ _)) (leftDiv_comp_le _ _)
+    · exact le_trans (comp_mono_left _ (inter_lb_right _ _)) (leftDiv_comp_le _ _)
+
+/-- §2.41: for a MAP `f : a → [c]`, `f° \ ∋ = f∋`.  (`f°(f∋) = (f°f)∋ ⊑ ∋` by simplicity,
+    and `f∋` is the largest such by entireness: `T ⊑ ff°T ⊑ f(f°\∋'s bound)`.) -/
+theorem leftDiv_recip_map_eps {𝒜 : Type u} [PowerAllegory 𝒜] {a c : 𝒜}
+    (f : a ⟶ PowerAllegory.powerObj c) (hf : Map f) :
+    leftDiv (f°) (∋ c) = f ≫ ∋ c := by
+  apply le_antisymm
+  · have hfe : Cat.id a ⊑ f ≫ f° := by
+      have := hf.1; dsimp [Entire, dom] at this; rw [← this]; exact inter_lb_right _ _
+    have s1 : leftDiv (f°) (∋ c) ⊑ (f ≫ f°) ≫ leftDiv (f°) (∋ c) := by
+      have h := comp_mono_right hfe (leftDiv (f°) (∋ c)); rwa [Cat.id_comp] at h
+    refine le_trans s1 ?_
+    rw [Cat.assoc]; exact comp_mono_left f (leftDiv_comp_le _ _)
+  · rw [le_leftDiv_iff, ← Cat.assoc]
+    have h := comp_mono_right hf.2 (∋ c); rw [Cat.id_comp] at h; exact h
+
+/-- §2.41: a MAP `M` shifts into the numerator of a left division by `∋`,
+    `M ≫ (∋' ° \ ∋) = (M∋')° \ ∋`.  (`⊑` uses `M°M ⊑ 1`; `⊒` uses `1 ⊑ MM°`.) -/
+theorem map_comp_leftDiv {𝒜 : Type u} [PowerAllegory 𝒜] {a c : 𝒜}
+    (M : c ⟶ PowerAllegory.powerObj (PowerAllegory.powerObj a)) (hM : Map M) :
+    M ≫ leftDiv ((∋ (PowerAllegory.powerObj a))°) (∋ a)
+      = leftDiv ((M ≫ ∋ (PowerAllegory.powerObj a))°) (∋ a) := by
+  apply le_antisymm
+  · rw [le_leftDiv_iff, Allegory.recip_comp, Cat.assoc, ← Cat.assoc M°]
+    refine le_trans (comp_mono_left ((∋ (PowerAllegory.powerObj a))°)
+      (comp_mono_right hM.2 (leftDiv ((∋ (PowerAllegory.powerObj a))°) (∋ a)))) ?_
+    rw [Cat.id_comp]; exact leftDiv_comp_le _ _
+  · have hMe : Cat.id c ⊑ M ≫ M° := by
+      have := hM.1; dsimp [Entire, dom] at this; rw [← this]; exact inter_lb_right _ _
+    have step1 : leftDiv ((M ≫ ∋ (PowerAllegory.powerObj a))°) (∋ a)
+        ⊑ (M ≫ M°) ≫ leftDiv ((M ≫ ∋ (PowerAllegory.powerObj a))°) (∋ a) := by
+      have h := comp_mono_right hMe (leftDiv ((M ≫ ∋ (PowerAllegory.powerObj a))°) (∋ a))
+      rwa [Cat.id_comp] at h
+    have step2 : (M ≫ M°) ≫ leftDiv ((M ≫ ∋ (PowerAllegory.powerObj a))°) (∋ a)
+        ⊑ M ≫ leftDiv ((∋ (PowerAllegory.powerObj a))°) (∋ a) := by
+      rw [Cat.assoc]; apply comp_mono_left
+      rw [le_leftDiv_iff, ← Cat.assoc, ← Allegory.recip_comp]; exact leftDiv_comp_le _ _
+    exact le_trans step1 step2
+
+/-- §2.443 BIG-UNION IDENTITY: `A(f ∪ g) ≫ bigUnion = A(f∋ ∪ g∋)`.
+    (`bigUnion = A(∋'∋) : F ↦ ⋃F`.)  The composite is a map whose `≫∋` is
+    `(f∪g)∋ = f∋ ∪ g∋`, so by `A_unique` it equals `A(f∋ ∪ g∋)`. -/
+theorem bigUnion_comp_eq {𝒜 : Type u} [PowerAllegory 𝒜] {a c : 𝒜}
+    (f g : c ⟶ PowerAllegory.powerObj a) :
+    A (f ∪ g) ≫ bigUnion = A ((f ≫ ∋ a) ∪ (g ≫ ∋ a)) := by
+  have hmap : Map (A (f ∪ g) ≫ bigUnion) :=
+    map_comp (A_is_map _) (by rw [bigUnion]; exact A_is_map _)
+  have heps : (A (f ∪ g) ≫ bigUnion) ≫ ∋ a = (f ≫ ∋ a) ∪ (g ≫ ∋ a) := by
+    rw [bigUnion, Cat.assoc, A_eps_eq, ← Cat.assoc, A_eps_eq, union_comp_distrib]
+  exact A_unique _ _ hmap heps
+
+/-- §2.443 BIG-INTERSECTION IDENTITY: `A(f ∪ g) ≫ bigInter = A(f∋ ∩ g∋)`.
+    (`bigInter = A(ε'\∋) : F ↦ ⋂F`.)  Reduces via `map_comp_leftDiv`, `leftDiv_union`
+    (`recip_union`), and `leftDiv_recip_map_eps` to `f∋ ∩ g∋`, then `A_unique`. -/
+theorem bigInter_comp_eq {𝒜 : Type u} [PowerAllegory 𝒜] {a c : 𝒜}
+    (f g : c ⟶ PowerAllegory.powerObj a) (hf : Map f) (hg : Map g) :
+    A (f ∪ g) ≫ bigInter = A ((f ≫ ∋ a) ∩ (g ≫ ∋ a)) := by
+  have hmap : Map (A (f ∪ g) ≫ bigInter) :=
+    map_comp (A_is_map _) (by rw [bigInter]; exact A_is_map _)
+  have heps : (A (f ∪ g) ≫ bigInter) ≫ ∋ a = (f ≫ ∋ a) ∩ (g ≫ ∋ a) := by
+    rw [bigInter, Cat.assoc, A_eps_eq, map_comp_leftDiv _ (A_is_map _), A_eps_eq,
+        recip_union, leftDiv_union, leftDiv_recip_map_eps f hf, leftDiv_recip_map_eps g hg,
+        Allegory.inter_comm]
+  exact A_unique _ _ hmap heps
+
+/-- §2.442: `bigUnion` is a map (hence simple). -/
+theorem bigUnion_is_map {𝒜 : Type u} [PowerAllegory 𝒜] {a : 𝒜} :
+    Map (bigUnion (a := a)) := by
+  rw [bigUnion]; exact A_is_map _
+
+/-- §2.442: `bigInter` is a map (hence simple). -/
+theorem bigInter_is_map {𝒜 : Type u} [PowerAllegory 𝒜] {a : 𝒜} :
+    Map (bigInter (a := a)) := by
+  rw [bigInter]; exact A_is_map _
+
+/-- §2.442: the partial order `2 = ∋/∋` is reflexive, `1 ⊑ 2`. -/
+theorem powerOrder_reflexive {𝒜 : Type u} [PowerAllegory 𝒜] {a : 𝒜} :
+    Cat.id (PowerAllegory.powerObj a) ⊑ powerOrder (a := a) := by
+  rw [powerOrder, le_div_iff, Cat.id_comp]; exact le_refl _
+
+/-- §2.442: `∋ ⊑ 2 ≫ ∋` (membership factors through the reflexive order). -/
+theorem eps_le_powerOrder_comp_eps {𝒜 : Type u} [PowerAllegory 𝒜] {b : 𝒜} :
+    ∋ b ⊑ powerOrder ≫ ∋ b := by
+  have h := comp_mono_right (powerOrder_reflexive (a := b)) (∋ b)
+  rwa [Cat.id_comp] at h
+
+/-- §2.443 (UNCONDITIONAL, the calculus payload): any `f°g` below the order `2` is
+    semi-simple.  If `g∋ ⊑ f∋` (equivalently `f°g ⊑ 2 = ∋/∋`) for maps `f, g : c → [a]`,
+    then `f = A(f∪g) ≫ bigUnion` and `g = A(f∪g) ≫ bigInter` (by the two §2.443 identities,
+    since `f∋ ∪ g∋ = f∋` and `f∋ ∩ g∋ = g∋`), whence
+    `f°g = bigUnion° ≫ (A(f∪g)° ≫ A(f∪g)) ≫ bigInter ⊑ bigUnion° ≫ bigInter`,
+    a `simple° ≫ simple`. -/
+theorem semiSimple_of_le_powerOrder {𝒜 : Type u} [PowerAllegory 𝒜] {a c : 𝒜}
+    {f g : c ⟶ PowerAllegory.powerObj a} (hf : Map f) (hg : Map g)
+    (hle : g ≫ ∋ a ⊑ f ≫ ∋ a) : SemiSimple (f° ≫ g) := by
+  -- f∋ ∪ g∋ = f∋ and f∋ ∩ g∋ = g∋ from hle.
+  have hu : (f ≫ ∋ a) ∪ (g ≫ ∋ a) = f ≫ ∋ a := by
+    rw [DistributiveAllegory.union_comm, (le_iff_union_eq_left _ _).mp hle]
+  have hi : (f ≫ ∋ a) ∩ (g ≫ ∋ a) = g ≫ ∋ a := by
+    rw [Allegory.inter_comm]; exact inter_eq_left hle
+  -- f = A(f∪g) ≫ bigUnion, g = A(f∪g) ≫ bigInter.
+  have hfeq : A (f ∪ g) ≫ bigUnion = f := by
+    rw [bigUnion_comp_eq, hu]; exact (A_unique _ f hf rfl).symm
+  have hgeq : A (f ∪ g) ≫ bigInter = g := by
+    rw [bigInter_comp_eq f g hf hg, hi]; exact (A_unique _ g hg rfl).symm
+  -- f° ≫ g = bigUnion° ≫ (A(f∪g)° ≫ A(f∪g)) ≫ bigInter ⊑ bigUnion° ≫ bigInter.
+  refine semiSimple_of_le ⟨_, bigUnion, bigInter, bigUnion_is_map.2, bigInter_is_map.2, ?_⟩
+  calc f° ≫ g = (A (f ∪ g) ≫ bigUnion)° ≫ (A (f ∪ g) ≫ bigInter) := by rw [hfeq, hgeq]
+    _ = bigUnion° ≫ ((A (f ∪ g))° ≫ A (f ∪ g)) ≫ bigInter := by
+        rw [Allegory.recip_comp]; simp [Cat.assoc]
+    _ ⊑ bigUnion° ≫ Cat.id _ ≫ bigInter :=
+        comp_mono_left _ (comp_mono_right (A_is_map _).2 bigInter)
+    _ = bigUnion° ≫ bigInter := by rw [Cat.id_comp]
+
+/-- §2.442 forward — metonymy ⟹ the partial-order `2 = ∋/∋ = powerOrder` is semi-simple.
+
+    With `MetonymyLaw` stated as `2 ⊑ bigInter° ≫ bigUnion` (§2.443, the faithful order-level law),
+    `bigInter`/`bigUnion` are maps (hence simple), so `bigInter° ≫ bigUnion` is already a
+    `simple° ≫ simple` and `semiSimple_of_le` closes it directly.  `eps_semiSimple_of_metonymy`
+    consumes this to make `∋` semi-simple. -/
 private theorem powerOrder_semiSimple_of_metonymy {𝒜 : Type u} [PowerAllegory 𝒜]
     (hMet : MetonymyLaw 𝒜) (b : 𝒜) : SemiSimple (powerOrder (a := b)) := by
-  -- Needs the §2.443 bigUnion/bigInter A-calculus to turn `hMet` into the semi-simplicity of
-  -- `powerOrder = ∋/∋`.  This is the lone remaining content of GAP 1.
-  sorry
+  -- Metonymy is exactly `2 ⊑ bigInter° ≫ bigUnion`, a `simple° ≫ simple` (both maps);
+  -- `semiSimple_of_le` then makes `powerOrder = ∋/∋` semi-simple.
+  exact semiSimple_of_le ⟨_, bigInter, bigUnion, bigInter_is_map.2, bigUnion_is_map.2, hMet b⟩
 
 /-- §2.442 forward GAP (1/2) — metonymy ⟹ `∋` semi-simple.
     Book: metonymy `⊓ ⊑ ⊔` forces the partial-order `2 = ∋/∋` to be semi-simple, and from
@@ -953,23 +1106,41 @@ theorem pre_positive_straight_simple_factor {𝒜 : Type u} [PrePositivePowerAll
     `Straight`/`Simple` and the forward branch CONSUMES `pre_positive_straight_simple_factor`
     directly (no false specialization of the apex).
 
-    GAP 1 (metonymy ⟹ `∋` semi-simple): needs the *metonymy ⟹ `2 = ∋/∋` semi-simple* link, which
-    in turn needs the `bigUnion`/`bigInter` `A`-calculus (`A(f∪g) ≫ ⊔ = f∋ ∪ g∋`,
-    `⊓(f∪g) ∩ ∋ = f∋ ∩ g∋`).  The honest intermediate `∋ ≫ A(1) ⊑ 2` and `2 ≫ ∋ ⊑ ∋` ARE in place
-    (`eps_singleton_le_powerOrder`, `div_comp_eq_le`); the missing bridge is `SemiSimple (∋/∋)`.
+    GAP 1 (metonymy ⟹ `∋` semi-simple): CLOSED.  With `MetonymyLaw` the order-level law
+    `2 ⊑ bigInter° ≫ bigUnion` (§2.443), `bigInter`/`bigUnion` are maps so the RHS is a
+    `simple° ≫ simple`; `powerOrder_semiSimple_of_metonymy` gives `SemiSimple (∋/∋)` by
+    `semiSimple_of_le`, and `eps_semiSimple_of_metonymy` lifts it to `SemiSimple ∋`.
 
     GAP 2 (§2.441 (1)⟹(4)): carried by `pre_positive_straight_simple_factor` (definitional residual:
     the repo's `pre_positive` field lacks the book's monic conditions — see that lemma's docstring).
 
-    CONVERSE (every morphism semi-simple ⟹ metonymy): single sharp sorry — needs the same
-    `bigUnion`/`bigInter` `A`-calculus as GAP 1.
+    CONVERSE (every morphism semi-simple ⟹ metonymy): residual sorry.  The §2.443 calculus
+    (`semiSimple_of_le_powerOrder`, the *unconditional* `f°g ⊑ 2 ⟹ f°g ⊑ bigInter° ≫ bigUnion`)
+    is built, but assembling `2 = ⋃ {f°g ⊑ 2}` from it needs (i) an arbitrary hom-`Sup` (local
+    completeness) and (ii) effectiveness (to realize each semi-simple `F°G ⊑ 2` as a *map*-pair
+    `f°g`), neither present in `PrePositivePowerAllegory`.  See the inline comment for the precise
+    blocker.
 
     The statement is the book's genuine biconditional (not vacuous): LHS quantifies semi-simplicity
-    of every morphism, RHS is `⊓ ⊑ ⊔` for every object. -/
+    of every morphism, RHS is the order-level metonymy law `2 ⊑ bigInter° ≫ bigUnion` per object. -/
 theorem pre_positive_semi_simple_iff_metonymic {𝒜 : Type u} [PrePositivePowerAllegory 𝒜] :
     (∀ (a b : 𝒜) (R : a ⟶ b), SemiSimple R) ↔ MetonymyLaw 𝒜 := by
   refine ⟨fun _hSS => ?_, fun hMet a b R => ?_⟩
-  · -- CONVERSE (semi-simple ⟹ metonymy): needs the bigUnion/bigInter A-calculus (see docstring).
+  · -- CONVERSE (semi-simple ⟹ metonymy `2 ⊑ bigInter° ≫ bigUnion`).
+    -- The §2.443 calculus payload `semiSimple_of_le_powerOrder` is built and gives, for *maps*
+    -- `f, g : c → [a]` with `g∋ ⊑ f∋` (i.e. `f°g ⊑ 2`), `f°g ⊑ bigInter° ≫ bigUnion`.  Freyd's
+    -- converse then writes `2 = ⋃ {f°g ⊑ 2}` and concludes `2 ⊑ bigInter° ≫ bigUnion`.
+    --
+    -- BLOCKER (precise, two missing structures absent from `PrePositivePowerAllegory`):
+    --  (i) LOCAL COMPLETENESS — forming `2 = ⋃ {f°g : f°g ⊑ 2}` needs an arbitrary hom-set `Sup`
+    --      (`LocallyCompleteDistributiveAllegory.Sup`); the book's hypothesis is exactly "`2` is
+    --      the union of the semi-simple morphisms it contains".
+    --  (ii) EFFECTIVENESS — the payload needs the factors to be *maps* (`Map f`, `Map g`), but
+    --      `_hSS` only delivers `2 = F°≫G` with `F, G` SIMPLE (partial maps).  Turning a simple
+    --      factor into a map requires splitting the coreflexive `dom` (effective/tabular allegory,
+    --      §2.16); in `Rel` this is automatic, abstractly it is not.
+    -- Both are header-fenced statement/class additions (`[LocallyCompleteDistributiveAllegory]` +
+    -- effectiveness), so this branch is a precise documented residual rather than a forced proof.
     sorry
   · -- FORWARD: consume the §2.441 (1)⟹(4) factorization (diamond now gone via the combined class).
     -- `semiSimple_of_straight_simple_factor` (PROVEN above) then finishes: metonymy ⟹ `∋`
