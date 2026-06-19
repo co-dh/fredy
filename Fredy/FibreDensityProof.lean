@@ -655,13 +655,82 @@ theorem richerSliceSection (W : WSCover S) (A : S) (hA : WellSupported A) (U : W
           ≫ pair (fst : prod A PN ⟶ A)
               ((snd : prod A PN ⟶ PN) ≫ selectProj (N.1.erase A) U.1 hUe) :=
     selectProj_pull_head (𝒞 := S) N.1 A U.1 N.2.1 hnd hA_in_N hUe hUN'
-  -- WHAT REMAINS (the SINGLE sharpest residual — the §1.546 base-change descent).  With `hsplit` the
-  -- base map splitting is no longer opaque; the residual is the pullback-pasting (`projTransIso` /
-  -- `baseChangeTransNatIso`) that exhibits `m_N` as the `ψ`-transport of the `snd`-base-change of a
-  -- PN-level proper mono `m`, then reads the section `t.f : A×PN ⟶ cnD.pt` off `hstage` via
-  -- `proj_pushHom_f_π₁`/`proj_pushHom_f_π₂` (the `.f`-leg characterisations) precomposed by `ψ⁻¹`,
-  -- and applies `freshSlicePoint_factors_imp_false`.  EXACT residual goal: `⊢ False` with `hsplit`,
-  -- `m_N`/`hm_N_mono`/`hm_N_niso`, `Θ`/`hΘiso`, `ψ`/`hψiso`/`hψfst`/`hψsnd`, `hstage` in context.
+  -- ── THE PN-LEVEL PROPER MONO `m_PN` (the descended subobject the consumer eats) — SORRY-FREE. ──
+  -- `selectProj (N.erase A) U` is a cover (bigger nodup product of well-supported objects projects).
+  have hcov : Cover (selectProj (N.1.erase A) U.1 hUe) :=
+    selectProj_cover (𝒞 := S) (N.1.erase A) U.1 U.2.1 hUe
+      (fun B hB => N.2.2 B (List.mem_of_mem_erase hB))
+  -- `m_PN := baseChangeMap (selectProj (N.erase A) U) m`, the base-change of the `∏U`-level proper
+  -- mono `m` down to `PN = ∏(N.erase A)`.  Mono: base-change preserves monos
+  -- (`projStage_preservesMono`).  ¬Iso: base-change along the COVER `selectProj (N.erase A) U`
+  -- reflects iso among monos (`isIso_of_baseChange_isIso_of_cover`, BaseChangeDescent.lean), so an
+  -- iso `m_PN` would force `m` iso, contradicting `hm_niso`.
+  have hmPN_mono : @Mono (Over PN) _ _ _ (baseChangeMap (selectProj (N.1.erase A) U.1 hUe) m) :=
+    projStage_preservesMono (cofinalProjSystem (S := S)) (i := U)
+      (j := (⟨N.1.erase A, N.2.1.erase A,
+        fun B hB => N.2.2 B (List.mem_of_mem_erase hB)⟩ : WSList S)) hUe m hm_mono
+  have hmPN_niso : ¬ @IsIso (Over PN) _ _ _ (baseChangeMap (selectProj (N.1.erase A) U.1 hUe) m) :=
+    fun hiso => hm_niso (isIso_of_baseChange_isIso_of_cover (selectProj (N.1.erase A) U.1 hUe)
+      hcov m hm_mono hiso)
+  -- ── THE COMPARISON ISO `bcGen : sliceEmbedObj PN A ≅ baseChangeObj (selectProj (N.erase A) U) … ──
+  -- the codomain identification (§1.546(a), generic base map `q := selectProj (N.erase A) U`):
+  -- `baseChangeObj q (sliceEmbedObj P A) ≅ sliceEmbedObj PN A` (both pullbacks of `snd : A×P → P`
+  -- along `q`, apex `A×PN`), via `bcSlice_isPullback … q` + `isIso_of_two_pullbacks`.  Transporting
+  -- `m_PN` across it gives the consumer's `m : OverHom (baseChangeObj q xE') (sliceEmbedObj PN A)`.
+  let bcGenCone : Cone (snd : prod A P ⟶ P) (selectProj (N.1.erase A) U.1 hUe) :=
+    Cone.mk (f := (snd : prod A P ⟶ P)) (g := selectProj (N.1.erase A) U.1 hUe) (prod A PN)
+      (pair (fst : prod A PN ⟶ A) ((snd : prod A PN ⟶ PN) ≫ selectProj (N.1.erase A) U.1 hUe))
+      (snd : prod A PN ⟶ PN) (by rw [snd_pair])
+  let bcGen : OverHom (sliceEmbedObj PN A)
+      (baseChangeObj (selectProj (N.1.erase A) U.1 hUe) (sliceEmbedObj P A)) :=
+    ⟨(HasPullbacks.has ((sliceEmbedObj P A).hom) (selectProj (N.1.erase A) U.1 hUe)).lift bcGenCone,
+      (HasPullbacks.has ((sliceEmbedObj P A).hom) (selectProj (N.1.erase A) U.1 hUe)).lift_snd
+        bcGenCone⟩
+  have bcGen_iso : @IsIso (Over PN) _ _ _ bcGen := by
+    apply overIso_of_underlying
+    show @IsIso S _ _ _
+      ((HasPullbacks.has ((sliceEmbedObj P A).hom) (selectProj (N.1.erase A) U.1 hUe)).lift bcGenCone)
+    exact isIso_of_two_pullbacks
+      (bcSlice_isPullback A P PN (selectProj (N.1.erase A) U.1 hUe))
+      (HasPullbacks.has ((sliceEmbedObj P A).hom) (selectProj (N.1.erase A) U.1 hUe)).cone_isPullback
+      _
+      ((HasPullbacks.has ((sliceEmbedObj P A).hom) (selectProj (N.1.erase A) U.1 hUe)).lift_fst
+        bcGenCone)
+      ((HasPullbacks.has ((sliceEmbedObj P A).hom) (selectProj (N.1.erase A) U.1 hUe)).lift_snd
+        bcGenCone)
+  -- the projection split routed through `snd : A×PN → PN` (consumed by the descent pasting below):
+  -- `selectProj N U' ≫ snd = ψ ≫ (snd ≫ selectProj (N.erase A) U)`.
+  have hsplit2 : selectProj N.1 U'.1 hUN' ≫ (snd : prod A P ⟶ P)
+      = ψ ≫ ((snd : prod A PN ⟶ PN) ≫ selectProj (N.1.erase A) U.1 hUe) := by
+    rw [show selectProj N.1 U'.1 hUN' = _ from hsplit, Cat.assoc, snd_pair]
+  -- ════════════════════════════════════════════════════════════════════════════════════════════
+  -- THE SINGLE SHARPEST RESIDUAL — the §1.546 descent EQUATION + section read-off.
+  --
+  -- VERIFIED ABOVE (sorry-free): the PN-level PROPER mono `m_PN := baseChangeMap (selectProj
+  -- (N.erase A) U) m` (`hmPN_mono`/`hmPN_niso`), the codomain comparison iso `bcGen`/`bcGen_iso`
+  -- (so `m̄_PN := bcGen⁻¹ ⊚ m_PN : OverHom (baseChangeObj (selectProj (N.erase A) U) xE')
+  -- (sliceEmbedObj PN A)` is the proper mono `freshSlicePoint_factors_imp_false` consumes at base
+  -- `PN`), and the base-map split `hsplit2` routing `selectProj N U' ≫ snd` through `snd : A×PN→PN`.
+  --
+  -- WHAT REMAINS — two coupled steps:
+  --   (1) THE DESCENT EQUATION.  `m_N = ψ-iso-transport (baseChangeMap (snd : A×PN→PN) m̄_PN)`.
+  --       `m_N`'s domain `L.F hUN' (L.F hUU' xE') = baseChangeObj (selectProj N U') (baseChangeObj
+  --       (selectProj U' U) xE')` (rfl).  By `hsplit2` the OUTER base `selectProj N U'` post-composed
+  --       with `snd` (= `selectProj U' U`, `hsp`) factors as `ψ ≫ (snd ≫ selectProj (N.erase A) U)`;
+  --       `baseChangeTransNatIso` (+ `pasteCone_isPullback`) identifies the chosen pullback at `∏N`
+  --       (apex of `m_N`) with the PASTED pullback `(snd-pullback over A×PN) ∘ ((selectProj (N.erase
+  --       A) U)-pullback over PN)`, ψ-transported.  The two inner `bcGen`-style comparison isos (at
+  --       P and at PN) reconcile the `sliceEmbedObj`/`baseChangeObj` codomains; `pfN`'s `.f`-legs are
+  --       `proj_pushHom_f_π₁`/`proj_pushHom_f_π₂`.  Output: cone `cnD_N` (= `snd`-pullback of
+  --       `(baseChangeObj (selectProj (N.erase A) U) xE').hom`), apex `mf'_N`, and `m̄_N : OverHom
+  --       ⟨cnD_N.pt, π₂⟩ (sliceEmbedObj (A×PN) A)` with `m̄_N.f = mf'_N` — the consumer's cone data.
+  --   (2) THE POINT READ-OFF.  `hstage` (the on-the-nose stage-`N` factorization of the fresh point
+  --       through `pfN`) gives, via `proj_pushHom_f_π₂` (structure leg) and `proj_pushHom_f_π₁`
+  --       (content leg) precomposed by `ψ⁻¹` (`hψiso`) and transported by `Θ`/`hΘiso`, a point
+  --       `t : OverHom (overTerm (A×PN)) ⟨cnD_N.pt, π₂⟩` with `t ⊚ m̄_N = sliceFactorPoint A fst`.
+  --   Then `freshSlicePoint_factors_imp_false (bcGen⁻¹ ⊚ m_PN) … cnD_N hcnD_N mf'_N … m̄_N rfl t hfac`
+  --   closes the goal.  This is the multi-screen `pb_hom_ext` reindexing chain (the genuine §1.546
+  --   content); every primitive it needs is now in scope sorry-free.
   exact (by sorry : False)
 
 /-- **Freyd's §1.546 density (the genuine open core).**  The §1.546 ESCAPE is sorry-free
