@@ -1620,6 +1620,183 @@ theorem coprodMapOne_image_proper {A' A : 𝒞} (m : A' ⟶ A)
   exact subLe_trans ha (subLe_trans hb (subLe_trans hc
     (HasSubobjectUnions.union_min _ _ _ hJl hKl)))
 
+section Distributivity
+open HasBinaryCoproducts
+/-! ### §1.626 Distributivity of products over coproducts (UNIVERSAL coproducts)
+
+  Freyd §1.626: in a POSITIVE pre-logos the coproduct is not just disjoint but *universal*
+  (stable under pullback), and universality is equivalent to the distributive law
+
+      (A + B) × C  ≅  A × C  +  B × C.
+
+  This is the missing keystone `coprodProdDistrib`.  CRUCIALLY it is **derivable** from the
+  `DisjointBinaryCoproduct` data already recorded (`inl ∩ inr ≤ ⊥`, `inl ∪ inr = ⊤`, `inl/inr`
+  monic) — no separate `universal`/extensivity axiom is needed — because the inverse-image
+  functor `fst#` along `fst : (A+B)×C → A+B` already preserves `entire` and `union`
+  (`PreLogos.invImage_preserves_union`), and the two summand inclusions
+
+      `prodCoprodInl = inl × id_C : A×C ↣ (A+B)×C`,
+      `prodCoprodInr = inr × id_C : B×C ↣ (A+B)×C`
+
+  are exactly `fst#(inl)` and `fst#(inr)`.  Disjointness `inl ∩ inr ≤ ⊥` and the cover
+  `inl ∪ inr = ⊤` then transport (along `fst#`) to a *complemented pair* on `(A+B)×C`, and
+  `complementedSub_iso_coproduct` (§1.62/§1.631) converts a complemented pair into the
+  coproduct iso `(A+B)×C ≅ A×C + B×C`.  So Freyd's universal coproducts are a *theorem* here,
+  not extra structure: the `DisjointBinaryCoproduct` encoding is faithful and complete. -/
+
+/-- `inl × id_C : A×C → (A+B)×C`, the left injection of the distributivity comparison. -/
+noncomputable def prodCoprodInl (A B C : 𝒞) : prod A C ⟶ prod (coprod A B) C :=
+  pair (fst ≫ HasBinaryCoproducts.inl) snd
+
+/-- `inr × id_C : B×C → (A+B)×C`, the right injection of the distributivity comparison. -/
+noncomputable def prodCoprodInr (A B C : 𝒞) : prod B C ⟶ prod (coprod A B) C :=
+  pair (fst ≫ HasBinaryCoproducts.inr) snd
+
+/-- `inl × id_C` is monic (`inl` monic + projections jointly monic). -/
+theorem prodCoprodInl_mono (A B C : 𝒞) : Mono (prodCoprodInl (𝒞 := 𝒞) A B C) := by
+  intro W u v huv
+  have h1 : (u ≫ fst) ≫ (HasBinaryCoproducts.inl (A := A) (B := B)) = (v ≫ fst) ≫ HasBinaryCoproducts.inl := by
+    have := congrArg (· ≫ fst) huv
+    simpa only [prodCoprodInl, Cat.assoc, fst_pair] using this
+  have h2 : u ≫ snd = v ≫ snd := by
+    have := congrArg (· ≫ snd) huv
+    simpa only [prodCoprodInl, Cat.assoc, snd_pair] using this
+  exact fst_snd_jointly_monic u v (inl_mono _ _ h1) h2
+
+/-- `inr × id_C` is monic. -/
+theorem prodCoprodInr_mono (A B C : 𝒞) : Mono (prodCoprodInr (𝒞 := 𝒞) A B C) := by
+  intro W u v huv
+  have h1 : (u ≫ fst) ≫ (HasBinaryCoproducts.inr (A := A) (B := B)) = (v ≫ fst) ≫ HasBinaryCoproducts.inr := by
+    have := congrArg (· ≫ fst) huv
+    simpa only [prodCoprodInr, Cat.assoc, fst_pair] using this
+  have h2 : u ≫ snd = v ≫ snd := by
+    have := congrArg (· ≫ snd) huv
+    simpa only [prodCoprodInr, Cat.assoc, snd_pair] using this
+  exact fst_snd_jointly_monic u v (inr_mono _ _ h1) h2
+
+/-- The left summand `inl × id_C` packaged as a subobject of `(A+B)×C`. -/
+noncomputable def prodCoprodInlSub (A B C : 𝒞) : Subobject 𝒞 (prod (coprod A B) C) :=
+  ⟨_, prodCoprodInl A B C, prodCoprodInl_mono A B C⟩
+
+/-- The right summand `inr × id_C` packaged as a subobject of `(A+B)×C`. -/
+noncomputable def prodCoprodInrSub (A B C : 𝒞) : Subobject 𝒞 (prod (coprod A B) C) :=
+  ⟨_, prodCoprodInr A B C, prodCoprodInr_mono A B C⟩
+
+/-- `fst#(inl) ≤ inl × id_C`: the pullback of `inl` along `fst : (A+B)×C → A+B` factors through
+    `inl × id_C`.  A pullback point `w` has `w#₁ : ·→(A+B)×C`, `w#₂ : ·→A` with
+    `w#₁ ≫ fst = w#₂ ≫ inl`; the witness `pair w#₂ (w#₁ ≫ snd) : ·→A×C` composes with
+    `inl × id_C` back to `w#₁` (jointly monic check). -/
+theorem invImg_fst_inl_le (A B C : 𝒞) :
+    (InverseImage (fst : prod (coprod A B) C ⟶ coprod A B)
+        (inlSub (𝒞 := 𝒞) (A := A) (B := B) inl_mono)).le (prodCoprodInlSub A B C) := by
+  let pb := HasPullbacks.has (fst : prod (coprod A B) C ⟶ coprod A B)
+              (inlSub (𝒞 := 𝒞) (A := A) (B := B) inl_mono).arr
+  have hw : pb.cone.π₁ ≫ (fst : prod (coprod A B) C ⟶ coprod A B)
+          = pb.cone.π₂ ≫ (inlSub (𝒞 := 𝒞) (A := A) (B := B) inl_mono).arr := pb.cone.w
+  refine ⟨pair pb.cone.π₂ (pb.cone.π₁ ≫ snd), ?_⟩
+  show pair pb.cone.π₂ (pb.cone.π₁ ≫ snd) ≫ prodCoprodInl A B C = pb.cone.π₁
+  apply fst_snd_jointly_monic
+  · show (pair pb.cone.π₂ (pb.cone.π₁ ≫ snd) ≫ prodCoprodInl A B C) ≫ fst = pb.cone.π₁ ≫ fst
+    simp only [prodCoprodInl, Cat.assoc, fst_pair]; rw [← Cat.assoc, fst_pair]; exact hw.symm
+  · show (pair pb.cone.π₂ (pb.cone.π₁ ≫ snd) ≫ prodCoprodInl A B C) ≫ snd = pb.cone.π₁ ≫ snd
+    simp only [prodCoprodInl, Cat.assoc, snd_pair]
+
+/-- `fst#(inr) ≤ inr × id_C` (mirror of `invImg_fst_inl_le`). -/
+theorem invImg_fst_inr_le (A B C : 𝒞) :
+    (InverseImage (fst : prod (coprod A B) C ⟶ coprod A B)
+        (inrSub (𝒞 := 𝒞) (A := A) (B := B) inr_mono)).le (prodCoprodInrSub A B C) := by
+  let pb := HasPullbacks.has (fst : prod (coprod A B) C ⟶ coprod A B)
+              (inrSub (𝒞 := 𝒞) (A := A) (B := B) inr_mono).arr
+  have hw : pb.cone.π₁ ≫ (fst : prod (coprod A B) C ⟶ coprod A B)
+          = pb.cone.π₂ ≫ (inrSub (𝒞 := 𝒞) (A := A) (B := B) inr_mono).arr := pb.cone.w
+  refine ⟨pair pb.cone.π₂ (pb.cone.π₁ ≫ snd), ?_⟩
+  show pair pb.cone.π₂ (pb.cone.π₁ ≫ snd) ≫ prodCoprodInr A B C = pb.cone.π₁
+  apply fst_snd_jointly_monic
+  · show (pair pb.cone.π₂ (pb.cone.π₁ ≫ snd) ≫ prodCoprodInr A B C) ≫ fst = pb.cone.π₁ ≫ fst
+    simp only [prodCoprodInr, Cat.assoc, fst_pair]; rw [← Cat.assoc, fst_pair]; exact hw.symm
+  · show (pair pb.cone.π₂ (pb.cone.π₁ ≫ snd) ≫ prodCoprodInr A B C) ≫ snd = pb.cone.π₁ ≫ snd
+    simp only [prodCoprodInr, Cat.assoc, snd_pair]
+
+/-- **Universality (cover half)**: the two summands jointly cover, `⊤ ≤ (inl×id) ∪ (inr×id)`.
+    Pull the cover `inl ∪ inr = ⊤` back along `fst`: `fst#` preserves `entire` and `union`, and
+    `fst#(inl) ≤ inl×id`, `fst#(inr) ≤ inr×id`. -/
+theorem prodCoprod_entire_le_union (A B C : 𝒞) :
+    (Subobject.entire (prod (coprod A B) C)).le
+      (HasSubobjectUnions.union (prodCoprodInlSub A B C) (prodCoprodInrSub A B C)) := by
+  let f : prod (coprod A B) C ⟶ coprod A B := fst
+  have ha : (Subobject.entire (prod (coprod A B) C)).le (InverseImage f (Subobject.entire _)) :=
+    entire_le_invImage_entire f
+  have hbu : (Subobject.entire (coprod A B)).le
+      (HasSubobjectUnions.union (inlSub (𝒞 := 𝒞) (A := A) (B := B) inl_mono)
+                                (inrSub (𝒞 := 𝒞) (A := A) (B := B) inr_mono)) :=
+    inl_union_inr_entire
+  have hb : (InverseImage f (Subobject.entire _)).le
+      (InverseImage f (HasSubobjectUnions.union (inlSub (𝒞 := 𝒞) (A := A) (B := B) inl_mono)
+                                                (inrSub (𝒞 := 𝒞) (A := A) (B := B) inr_mono))) :=
+    invImage_mono_local f hbu
+  have hc : (InverseImage f (HasSubobjectUnions.union (inlSub (𝒞 := 𝒞) (A := A) (B := B) inl_mono)
+                                                      (inrSub (𝒞 := 𝒞) (A := A) (B := B) inr_mono))).le
+      (HasSubobjectUnions.union (InverseImage f (inlSub (𝒞 := 𝒞) (A := A) (B := B) inl_mono))
+                                (InverseImage f (inrSub (𝒞 := 𝒞) (A := A) (B := B) inr_mono))) :=
+    (PreLogos.invImage_preserves_union f _ _).1
+  have hd : (HasSubobjectUnions.union (InverseImage f (inlSub (𝒞 := 𝒞) (A := A) (B := B) inl_mono))
+                                      (InverseImage f (inrSub (𝒞 := 𝒞) (A := A) (B := B) inr_mono))).le
+      (HasSubobjectUnions.union (prodCoprodInlSub A B C) (prodCoprodInrSub A B C)) :=
+    HasSubobjectUnions.union_min _ _ _
+      (subLe_trans (invImg_fst_inl_le A B C) (HasSubobjectUnions.union_left _ _))
+      (subLe_trans (invImg_fst_inr_le A B C) (HasSubobjectUnions.union_right _ _))
+  exact subLe_trans ha (subLe_trans hb (subLe_trans hc hd))
+
+/-- **Disjointness half**: the two summands are disjoint, `(inl×id) ∩ (inr×id) ≤ ⊥`.
+    A point of the intersection (pullback of `inl×id`, `inr×id`) has `fst`-images colliding
+    `(π₁≫fst)≫inl = (π₂≫fst)≫inr`, so `coprod_inl_inr_disjoint_elt` (§1.621) makes its apex
+    initial; a map into the bottom of `(A+B)×C` then exists and is unique. -/
+theorem prodCoprod_inter_le_bottom (A B C : 𝒞) :
+    (Subobject.inter (prodCoprodInlSub A B C) (prodCoprodInrSub A B C)).le
+      (PreLogos.bottom (prod (coprod A B) C)) := by
+  let pb := HasPullbacks.has (prodCoprodInlSub A B C).arr (prodCoprodInrSub A B C).arr
+  have hw : pb.cone.π₁ ≫ prodCoprodInl A B C = pb.cone.π₂ ≫ prodCoprodInr A B C := pb.cone.w
+  have hcollide : (pb.cone.π₁ ≫ fst) ≫ (HasBinaryCoproducts.inl (A := A) (B := B))
+                = (pb.cone.π₂ ≫ fst) ≫ HasBinaryCoproducts.inr := by
+    have := congrArg (· ≫ fst) hw
+    simp only [prodCoprodInl, prodCoprodInr, Cat.assoc, fst_pair] at this
+    simpa only [Cat.assoc] using this
+  letI hPL : PreLogos 𝒞 := DisjointBinaryCoproduct.toPositivePreLogos.toPreLogos
+  obtain ⟨e, _⟩ := coprod_inl_inr_disjoint_elt (𝒟 := 𝒞) (A := A) (B := B)
+    (pb.cone.π₁ ≫ fst) (pb.cone.π₂ ≫ fst) hcollide
+  obtain ⟨ζ, _⟩ := hPL.bottom_dom_iso (coprod A B) hPL.toHasTerminal.one
+  have hiso : IsIso (e ≫ ζ) := any_map_to_zero_is_iso hPL (e ≫ ζ)
+  obtain ⟨zinv, hz, _⟩ := hiso
+  have hinit : ∀ {X : 𝒞} (s t : pb.cone.pt ⟶ X), s = t := by
+    intro X s t
+    have key : ∀ (w : pb.cone.pt ⟶ X), w = (e ≫ ζ) ≫ (zinv ≫ w) := by
+      intro w; rw [← Cat.assoc, hz, Cat.id_comp]
+    rw [key s, key t,
+        (minimal_subobject_of_one_is_coterminator hPL).init_uniq (zinv ≫ s) (zinv ≫ t)]
+  obtain ⟨ψ, _⟩ := hPL.bottom_dom_iso (coprod A B) (prod (coprod A B) C)
+  exact ⟨e ≫ ψ, hinit _ _⟩
+
+/-- **§1.626 DISTRIBUTIVITY / UNIVERSAL COPRODUCTS** — the keystone.
+
+    `(A + B) × C  ≅  A × C  +  B × C`.
+
+    Derived (no extra axiom) from `DisjointBinaryCoproduct`: the pair
+    `(inl × id_C, inr × id_C)` is a *complemented pair* on `(A+B)×C`
+    (`prodCoprod_inter_le_bottom` + `prodCoprod_entire_le_union`), and
+    `complementedSub_iso_coproduct` converts a complemented pair into the coproduct iso.
+    This shows Freyd's "positive ⟹ universal coproducts" is a theorem of the present
+    `DisjointBinaryCoproduct` encoding — the encoding is faithful and needs no `universal` field. -/
+theorem coprodProdDistrib (A B C : 𝒞) :
+    Isomorphic (prod (coprod A B) C) (coprod (prod A C) (prod B C)) := by
+  have hiso := complementedSub_iso_coproduct
+    (prodCoprodInlSub A B C) (prodCoprodInrSub A B C)
+    (prodCoprod_inter_le_bottom A B C) (prodCoprod_entire_le_union A B C)
+  -- `complementedSub_iso_coproduct` gives `(A+B)×C ≅ (inl×id).dom + (inr×id).dom`; the summand
+  -- domains are definitionally `A×C` and `B×C`.
+  exact hiso
+
+end Distributivity
+
 /-- §1.633: A positive pre-logos is capital iff
     (1) every complemented subterminator is projective, and
     (2) the complemented subterminators form a basis.
