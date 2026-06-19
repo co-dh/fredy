@@ -293,15 +293,163 @@ noncomputable instance uniformStepFunctor :
     (terminalSliceObj C) (fun x => (⟨C.base, x⟩ : uniformTargetTy C))
     (terminalSliceFunctor C) (stageInclNil C)
 
+/-! ### Base-embedding (`terminalSliceObj : S → Over (chain base)`) finite-limit preservation
+
+  `terminalSliceObj` is the canonical `S ≃ S/(∏(chain base)) = S/1` (the stage product is the
+  terminal, `pr_base_eq`).  Maps in the slice are determined by their underlying `S`-arrow
+  (`OverHom.ext`), and the slice terminal/products/equalizers are the `over*` instances; each
+  preservation reduces to the corresponding `S`-fact (the slice over the terminal is `S` itself). -/
+
+/-- The fibre `HasEqualizers (Over (chain base))` instance the lax data uses (`overHasEqualizers`,
+    needs `HasEqualizers S`). -/
+noncomputable local instance : HasEqualizers S := products_pullbacks_implies_equalizers
+
+/-- **`terminalSliceObj` preserves the terminal.**  Maps into `terminalSliceObj C one` in the slice
+    are determined by their underlying `S`-arrow into `one`, and any two such agree (`term_uniq`). -/
+theorem terminalSlicePresTerminal :
+    letI : HasTerminal (Over (listProd (𝒞 := S) (C.chain C.base))) := overHasTerminal _
+    @PreservesTerminal S (Over (listProd (𝒞 := S) (C.chain C.base))) _ _
+      (terminalSliceObj C) (terminalSliceFunctor C)
+      PreRegularCategory.toHasTerminal (overHasTerminal _) := by
+  intro X f g
+  exact OverHom.ext (term_uniq f.f g.f)
+
+/-- **`terminalSliceObj` preserves binary products.**  The slice product comparison is iso iff its
+    underlying `S`-arrow is; `terminalSliceObj` is the underlying-identity slice equivalence, so the
+    comparison is the `S`-product comparison (an iso, `prod_self_iso`). -/
+theorem terminalSlicePresProds :
+    letI : HasBinaryProducts (Over (listProd (𝒞 := S) (C.chain C.base))) := overHasBinaryProducts _
+    @PreservesBinaryProducts S (Over (listProd (𝒞 := S) (C.chain C.base))) _ _
+      (terminalSliceObj C) (terminalSliceFunctor C)
+      PreRegularCategory.toHasBinaryProducts (overHasBinaryProducts _) := by
+  letI : HasBinaryProducts (Over (listProd (𝒞 := S) (C.chain C.base))) := overHasBinaryProducts _
+  intro A B
+  -- the cone `(terminalSliceObj (A×B), map fst, map snd)` has the slice product universal property:
+  -- underlying it is the `S`-product of `A, B`, and slice maps are determined by underlying arrows.
+  refine isIso_of_product_up' (𝒟 := Over (listProd (𝒞 := S) (C.chain C.base)))
+    (terminalSliceFunctor C |>.map fst) (terminalSliceFunctor C |>.map snd) ?_
+  intro Z f g
+  -- mediator: pair the underlying arrows in `S`, lift to the slice (term-uniqueness over `pr base`).
+  refine ⟨⟨pair f.f g.f, base_hom_uniq C _ _⟩, ⟨OverHom.ext (fst_pair f.f g.f),
+      OverHom.ext (snd_pair f.f g.f)⟩, ?_⟩
+  intro v hv₁ hv₂
+  -- uniqueness: underlying `v.f` equals `pair f.f g.f` by `pair_uniq` (its `fst`/`snd` legs are `f.f`/`g.f`).
+  exact OverHom.ext (pair_uniq f.f g.f v.f (congrArg OverHom.f hv₁) (congrArg OverHom.f hv₂))
+
+/-- **`terminalSliceObj` preserves equalizers.**  The image cone `(terminalSliceObj (eqObj f g),
+    map (eqMap f g))` has the slice equalizer universal property (underlying it is the `S`-equalizer,
+    slice maps determined by underlying arrows); two equalizers ⟹ comparison iso. -/
+theorem terminalSlicePresEqs :
+    letI : HasEqualizers (Over (listProd (𝒞 := S) (C.chain C.base))) := overHasEqualizers _
+    @PreservesEqualizers S (Over (listProd (𝒞 := S) (C.chain C.base))) _ _
+      (terminalSliceObj C) (terminalSliceFunctor C)
+      products_pullbacks_implies_equalizers (overHasEqualizers _) := by
+  letI : HasEqualizers (Over (listProd (𝒞 := S) (C.chain C.base))) := overHasEqualizers _
+  intro A B f g
+  -- the image cone is an equalizer of `(map f, map g)` in the slice.
+  have himg : (EqualizerCone.mk (f := terminalSliceFunctor C |>.map f)
+      (g := terminalSliceFunctor C |>.map g) (terminalSliceObj C (eqObj f g))
+      (terminalSliceFunctor C |>.map (eqMap f g))
+      (by rw [← (terminalSliceFunctor C).map_comp, ← (terminalSliceFunctor C).map_comp,
+        eqMap_eq f g])).IsEqualizer := by
+    intro d
+    -- underlying `d.map.f : d.dom.dom ⟶ A` equalizes `f, g` (the slice cone equation, underlying).
+    have hd : d.map.f ≫ f = d.map.f ≫ g := congrArg OverHom.f d.eq
+    refine ⟨⟨eqLift f g d.map.f hd, base_hom_uniq C _ _⟩,
+      OverHom.ext (eqLift_fac f g d.map.f hd), ?_⟩
+    intro v hv
+    exact OverHom.ext (eqLift_uniq f g d.map.f hd v.f (congrArg OverHom.f hv))
+  -- the chosen-equalizer comparison factors `map (eqMap f g)`; two equalizers ⟹ iso.
+  exact isIso_of_two_equalizers himg (chosenEqualizer_isEqualizer _ _) _
+    ((HasEqualizers.eq _ _ _ _).fac _)
+
+/-- **`terminalSliceObj` preserves monos.**  A slice map is monic iff its underlying `S`-arrow is
+    (`Σ` preserves/reflects monos); `terminalSliceMap φ` is underlying `φ`, so `Mono φ ⟹ Mono`. -/
+theorem terminalSlicePresMono {x y : S} (φ : x ⟶ y) (hφ : Mono φ) :
+    @Mono (Over (listProd (𝒞 := S) (C.chain C.base))) _ _ _ (terminalSliceFunctor C |>.map φ) := by
+  intro Z u v huv
+  -- underlying: `u.f ≫ φ = v.f ≫ φ` (the slice equation, underlying), `φ` monic ⟹ `u.f = v.f`.
+  have h : u.f ≫ φ = v.f ≫ φ := congrArg OverHom.f huv
+  exact OverHom.ext (hφ u.f v.f h)
+
+/-- **`terminalSliceObj` preserves covers.**  A slice map is a cover iff its underlying `S`-arrow is
+    (`cover_of_cover_f`); `terminalSliceMap φ` is underlying `φ`. -/
+theorem terminalSlicePresCover {x y : S} (φ : x ⟶ y) (hφ : Cover φ) :
+    @Cover (Over (listProd (𝒞 := S) (C.chain C.base))) _ _ _ (terminalSliceFunctor C |>.map φ) :=
+  cover_of_cover_f (terminalSliceFunctor C |>.map φ) hφ
+
+/-- **The base-stage terminal receives a map from `terminalSliceObj one`.**  A slice arrow from any
+    object `X` of the fibre to `terminalSliceObj one`; underlying it is `term X.dom : X.dom ⟶ one`,
+    slice-condition by `term`-uniqueness over `pr base`. -/
+def terminalSliceTerminalArrow (X : Over (listProd (𝒞 := S) (C.chain C.base))) :
+    @Cat.Hom _ (overCat (listProd (𝒞 := S) (C.chain C.base))) X (terminalSliceObj C (one : S)) :=
+  ⟨term X.dom, base_hom_uniq C _ _⟩
+
+/-! ### Lax stage-inclusion (`stageInclNil`) terminal preservation
+
+  The stage-`base` terminal `⟨base, (overHasTerminal _).one⟩` is terminal in the lax colimit (maps
+  into it are unique — the `uniq` argument of `laxColimHasTerminal`, valid at any stage since it only
+  uses `pushUniq`).  This is the lax mirror of `objIncl_preservesTerminal`, in uniqueness form. -/
+
+/-- **Maps into the stage-`i` terminal `⟨i, (T.ht i).one⟩` are unique** in the lax colimit — the
+    `uniq` half of `laxColimHasTerminal`, valid at ANY stage `i` (it only uses `T.pushUniq`). -/
+theorem laxTerminalUniqAt {ι : Type w} {D : Directed ι} (L : LaxCatSystem.{w, w} ι D)
+    (hL : Coherent L) (T : LaxTerminalData L) (i : ι) (X : Obj L)
+    (f g : @Cat.Hom (Obj L) (laxColimCat L hL) X ⟨i, (T.ht i).one⟩) : f = g := by
+  letI : Cat (Obj L) := laxColimCat L hL
+  obtain ⟨jX, xX⟩ := X
+  refine Quotient.inductionOn f (fun ⟨a, fa⟩ => ?_)
+  refine Quotient.inductionOn g (fun ⟨b, gb⟩ => ?_)
+  apply Quotient.sound
+  obtain ⟨k', hak', hbk'⟩ := D.bound a.1 b.1
+  refine ⟨⟨k', D.trans a.2.1 hak', D.trans a.2.2 hak'⟩, hak', hbk', ?_⟩
+  exact T.pushUniq (D.trans a.2.2 hak') _ _
+
+/-- **A map `X ⟶ ⟨i, (T.ht i).one⟩` into the stage-`i` terminal exists** for every `X` in the lax
+    colimit — the `trm` construction of `laxColimHasTerminal`, targeted at stage `i` (germ of
+    `pushTrm` at a common bound). -/
+noncomputable def laxTerminalArrowAt {ι : Type w} {D : Directed ι} (L : LaxCatSystem.{w, w} ι D)
+    (hL : Coherent L) (T : LaxTerminalData L) (i : ι) (X : Obj L) :
+    @Cat.Hom (Obj L) (laxColimCat L hL) X ⟨i, (T.ht i).one⟩ := by
+  letI : Cat (Obj L) := laxColimCat L hL
+  obtain ⟨jX, xX⟩ := X
+  let bd := D.bound jX i
+  let k := Classical.choose bd
+  have hk : D.le jX k ∧ D.le i k := Classical.choose_spec bd
+  exact homInclL L hL xX (T.ht i).one ⟨k, hk.1, hk.2⟩ (T.pushTrm hk.2 (L.F hk.1 xX))
+
+/-- **`stageInclNil` preserves the terminal** (uniqueness form): maps into the lax stage-`base`
+    terminal are unique.  `stageInclNil C (overHasTerminal _).one = ⟨base, (ht base).one⟩`. -/
+theorem stageInclNilPresTerminal :
+    letI : Nonempty C.ι := ⟨C.base⟩
+    letI : HasTerminal (Over (listProd (𝒞 := S) (C.chain C.base))) := overHasTerminal _
+    @PreservesTerminal (Over (listProd (𝒞 := S) (C.chain C.base))) (uniformTargetTy C) _
+      (uniformTargetCat C) (fun x => (⟨C.base, x⟩ : uniformTargetTy C)) (stageInclNil C)
+      (overHasTerminal _)
+      (laxColimHasTerminal (laxOfProjSystem' (projSystemOfWS C)) (coherentProj (projSystemOfWS C))
+        (ratLaxTerminalData (projSystemOfWS C))) := by
+  letI : Nonempty C.ι := ⟨C.base⟩
+  intro X f g
+  exact laxTerminalUniqAt (laxOfProjSystem' (projSystemOfWS C)) (coherentProj (projSystemOfWS C))
+    (ratLaxTerminalData (projSystemOfWS C)) C.base X f g
+
 /-- **(R-step) The successor functor is FAITHFUL.**  Composite of the faithful base embedding
-    `terminalSliceFaithful` and the faithful lax stage-`[]` inclusion `stageInclNil`.  The latter's
-    faithfulness is `homInclL_injective` (embedding half, transitions of the base-change system are
-    faithful, `projStage_faithful`) plus iso-reflection (`homInclL_isIso_reflects`); packaging the
-    composite into `Faithful` is the residual lax-inclusion assembly. -/
+    `terminalSliceFaithful` and the faithful lax stage-`[]` inclusion `stageInclNil`. -/
 theorem uniformStepFaithful :
     @Faithful S _ (uniformTargetTy C) (uniformTargetCat C)
-      (uniformStepObj C) (uniformStepFunctor C) := by
-  sorry
+      (uniformStepObj C) (uniformStepFunctor C) :=
+  @faithful_comp S _ (Over (listProd (𝒞 := S) (C.chain C.base)))
+    (overCat (listProd (𝒞 := S) (C.chain C.base))) (uniformTargetTy C) (uniformTargetCat C)
+    (terminalSliceObj C) (fun x => (⟨C.base, x⟩ : uniformTargetTy C))
+    (terminalSliceFunctor C) (stageInclNil C)
+    (terminalSliceFaithful C)
+    (stageInclFunctorL_faithful (laxOfProjSystem' (projSystemOfWS C))
+      (coherentProj (projSystemOfWS C))
+      (fun {_ _} hij {_ _} p q heq =>
+        projStage_faithful (projSystemOfWS C) hij (projSystemOfWS_cover C hij) p q heq)
+      (fun {_ _} hij {_ _} φ hiso =>
+        projStage_conservative_full (projSystemOfWS C) hij (projSystemOfWS_cover C hij) φ hiso)
+      C.base)
 
 /-! ## Phase 5 — the assembled `CapStep`
 
@@ -324,11 +472,80 @@ noncomputable def uniformStep (C : WSChain S) : CapStep S where
   step := uniformStepObj C
   stepFun := uniformStepFunctor C
   stepFaithful := uniformStepFaithful C
-  stepTerminal := by sorry
-  stepTerminalArrow := by sorry
-  stepProds := by sorry
-  stepEqs := by sorry
-  stepMono := by sorry
-  stepCover := by sorry
+  stepTerminal := by
+    letI : Nonempty C.ι := ⟨C.base⟩
+    letI : HasTerminal (Over (listProd (𝒞 := S) (C.chain C.base))) := overHasTerminal _
+    letI : Cat (uniformTargetTy C) := uniformTargetCat C
+    letI : HasTerminal (uniformTargetTy C) := (uniformStepTarget_preRegular C).toHasTerminal
+    intro X f g
+    exact preservesTerminal_uniq_comp (𝒜 := S)
+      (ℬ := Over (listProd (𝒞 := S) (C.chain C.base))) (ℰ := uniformTargetTy C)
+      (F := terminalSliceObj C) (G := fun x => (⟨C.base, x⟩ : uniformTargetTy C))
+      (hF := terminalSliceFunctor C) (hG := stageInclNil C)
+      (terminalSlicePresTerminal C) (stageInclNilPresTerminal C)
+      (fun {a b} ψ hψ =>
+        stageInclFunctorL_preservesMono (laxOfProjSystem' (projSystemOfWS C))
+          (coherentProj (projSystemOfWS C))
+          (fun {i j} hij {p q} χ hχ => projStage_preservesMono (projSystemOfWS C) hij χ hχ)
+          (i := C.base) ψ hψ)
+      X f g
+  stepTerminalArrow := by
+    -- `step one = ⟨base, terminalSliceObj one⟩`.  Land at the stage-`base` lax terminal
+    -- `⟨base, (overHasTerminal _).one⟩` (`laxTerminalArrowAt`), then include the fibre arrow
+    -- `(overHasTerminal _).one ⟶ terminalSliceObj one` (`terminalSliceTerminalArrow`).
+    letI : Cat (uniformTargetTy C) := uniformTargetCat C
+    intro X
+    exact laxTerminalArrowAt (laxOfProjSystem' (projSystemOfWS C)) (coherentProj (projSystemOfWS C))
+        (ratLaxTerminalData (projSystemOfWS C)) C.base X ≫
+      (stageInclNil C).map (terminalSliceTerminalArrow C (overHasTerminal _).one)
+  stepProds := by
+    letI : HasBinaryProducts (uniformTargetTy C) :=
+      (uniformStepTarget_preRegular C).toHasBinaryProducts
+    letI : HasBinaryProducts (Over (listProd (𝒞 := S) (C.chain C.base))) := overHasBinaryProducts _
+    letI : Cat (uniformTargetTy C) := uniformTargetCat C
+    intro A B
+    exact preservesBinaryProducts_comp (𝒜 := S)
+      (ℬ := Over (listProd (𝒞 := S) (C.chain C.base))) (ℰ := uniformTargetTy C)
+      (F := terminalSliceObj C) (G := fun x => (⟨C.base, x⟩ : uniformTargetTy C))
+      (hF := terminalSliceFunctor C) (hG := stageInclNil C)
+      (terminalSlicePresProds C)
+      (stageInclFunctorL_preservesProducts (laxOfProjSystem' (projSystemOfWS C))
+        (coherentProj (projSystemOfWS C)) (ratLaxProductData (projSystemOfWS C)) C.base)
+  stepEqs := by
+    letI : Cat (uniformTargetTy C) := uniformTargetCat C
+    letI heCol : HasEqualizers (uniformTargetTy C) :=
+      laxColimHasEqualizers (laxOfProjSystem' (projSystemOfWS C)) (coherentProj (projSystemOfWS C))
+        (ratLaxEqualizerData (projSystemOfWS C))
+    letI : HasEqualizers (Over (listProd (𝒞 := S) (C.chain C.base))) := overHasEqualizers _
+    have hcomp : @PreservesEqualizers S (uniformTargetTy C) _ (uniformTargetCat C)
+        (uniformStepObj C) (uniformStepFunctor C) _ heCol :=
+      preservesEqualizers_comp (𝒜 := S)
+        (ℬ := Over (listProd (𝒞 := S) (C.chain C.base))) (ℰ := uniformTargetTy C)
+        (F := terminalSliceObj C) (G := fun x => (⟨C.base, x⟩ : uniformTargetTy C))
+        (hF := terminalSliceFunctor C) (hG := stageInclNil C)
+        (terminalSlicePresEqs C)
+        (stageInclFunctorL_preservesEqualizers (laxOfProjSystem' (projSystemOfWS C))
+          (coherentProj (projSystemOfWS C)) (ratLaxEqualizerData (projSystemOfWS C)) C.base)
+    letI preT := uniformStepTarget_preRegular C
+    have hgoal := @preservesEqualizers_target_irrel S (uniformTargetTy C) _ (uniformTargetCat C)
+      (uniformStepObj C) (uniformStepFunctor C) products_pullbacks_implies_equalizers
+      heCol
+      (@products_pullbacks_implies_equalizers (uniformTargetTy C) _
+        preT.toHasBinaryProducts preT.toHasPullbacks)
+      hcomp
+    intro A B f g
+    exact hgoal f g
+  stepMono := fun {x y} φ hφ =>
+    stageInclFunctorL_preservesMono (laxOfProjSystem' (projSystemOfWS C))
+      (coherentProj (projSystemOfWS C))
+      (fun {i j} hij {a b} ψ hψ => projStage_preservesMono (projSystemOfWS C) hij ψ hψ)
+      (i := C.base) (terminalSliceFunctor C |>.map φ) (terminalSlicePresMono C φ hφ)
+  stepCover := fun {x y} φ hφ =>
+    stageInclFunctorL_preservesCover (laxOfProjSystem' (projSystemOfWS C))
+      (coherentProj (projSystemOfWS C))
+      (fun {i j} hij {a b} p q heq =>
+        projStage_faithful (projSystemOfWS C) hij (projSystemOfWS_cover C hij) p q heq)
+      (fun {i j} hij {a b} ψ hψ => projStage_preservesCover (projSystemOfWS C) hij ψ hψ)
+      (i := C.base) (terminalSliceFunctor C |>.map φ) (terminalSlicePresCover C φ hφ)
 
 end Freyd.UniformCap
