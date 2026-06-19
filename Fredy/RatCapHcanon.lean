@@ -1262,6 +1262,225 @@ theorem stageInclFunctorL_preservesPullbacks [Nonempty ι]
     (stageInclFunctorL_preservesProducts L hL pData i)
     (stageInclFunctorL_preservesEqualizers L hL eqData i) f g
 
+/-! ## Generic `hcanon` discharge for the lax colimit
+
+  Mirrors the strict `Colim.colimitCanonicalCover` assembly (CatColimitRegular ~2200-2410, import-
+  banned).  Given the lax colimit has pullbacks, the canonical pullback's `π₂` of a cospan `(f,g)`
+  with `f` a cover is itself a cover.  Assembled from the stage-inclusion toolkit:
+  align the cospan to a single fibre (`colimHom_cospan_as_stageInclL`), reflect the cover to the
+  fibre (`homInclL_cover_reflects`), apply the fibre's `PullbacksTransferCovers`, push the fibre
+  pullback to the colimit (`stageInclFunctorL_preservesPullbacks`), preserve the cover
+  (`homInclL_cover_of_stage`), and transfer back across the realignment isos
+  (`canonicalPullbackL_cover_of_witness`). -/
+
+/-- Any two pullback cones of the same cospan are connected by a unique compatible iso (generic;
+    local copy of `Colim.pullback_comparison_iso`, which lives in the import-banned strict file;
+    `LaxColimitPreReg.pullbackComparisonIso` is `private` so re-derived here). -/
+private theorem pullbackComparisonIsoL {𝒜 : Type w} [Cat.{w} 𝒜] {A B Z : 𝒜}
+    {f : A ⟶ Z} {g : B ⟶ Z} {c c' : Cone f g}
+    (hc : c.IsPullback) (hc' : c'.IsPullback) :
+    ∃ φ : c.pt ⟶ c'.pt, IsIso φ ∧ φ ≫ c'.π₁ = c.π₁ ∧ φ ≫ c'.π₂ = c.π₂ := by
+  obtain ⟨φ, ⟨hφ1, hφ2⟩, _⟩ := hc' c
+  obtain ⟨ψ, ⟨hψ1, hψ2⟩, _⟩ := hc c'
+  obtain ⟨_, _, huniq⟩ := hc c
+  have hψφ : ψ ≫ φ = Cat.id c'.pt := by
+    obtain ⟨_, _, huniq'⟩ := hc' c'
+    rw [huniq' (ψ ≫ φ) (by rw [Cat.assoc, hφ1, hψ1]) (by rw [Cat.assoc, hφ2, hψ2]),
+        ← huniq' (Cat.id c'.pt) (by rw [Cat.id_comp]) (by rw [Cat.id_comp])]
+  have hφψ : φ ≫ ψ = Cat.id c.pt := by
+    rw [huniq (φ ≫ ψ) (by rw [Cat.assoc, hψ1, hφ1]) (by rw [Cat.assoc, hψ2, hφ2]),
+        ← huniq (Cat.id c.pt) (by rw [Cat.id_comp]) (by rw [Cat.id_comp])]
+  exact ⟨φ, ⟨ψ, hφψ, hψφ⟩, hφ1, hφ2⟩
+
+/-- **Cover of the canonical pullback's `π₂` from *any* witnessing pullback cone** (generic, lax
+    copy of `Colim.canonicalPullback_cover_of_witness`).  Reduces `hcanon` to: exhibit one pullback
+    cone of `(f,g)` whose `π₂` is a cover. -/
+theorem canonicalPullbackL_cover_of_witness {𝒜 : Type w} [Cat.{w} 𝒜] [HasPullbacks 𝒜]
+    {A B Z : 𝒜} (f : A ⟶ Z) (g : B ⟶ Z)
+    (c : Cone f g) (hc : c.IsPullback) (hcov : Cover c.π₂) :
+    Cover (HasPullbacks.has f g).cone.π₂ := by
+  obtain ⟨φ, hφiso, _, hφ2⟩ := pullbackComparisonIsoL (HasPullbacks.has f g).cone_isPullback hc
+  rw [← hφ2]
+  exact cover_precomp_iso hφiso hcov
+
+/-- **Pullback transfer along an iso re-coordinatization of a cospan** (generic, reusable in any
+    `[Cat]`).  Given a cospan `(f,g)` with `f : A ⟶ Z`, `g : B ⟶ Z` whose legs factor through isos
+    `eA : A ⟶ A'`, `eB : B ⟶ B'`, `eZinv : Z' ⟶ Z` as `f = eA ≫ f' ≫ eZinv`, `g = eB ≫ g' ≫ eZinv`,
+    a pullback cone `c'` of the re-coordinatized cospan `(f', g')` transfers to a pullback cone of
+    `(f,g)` with `π₁ = c'.π₁ ≫ eA⁻¹`, `π₂ = c'.π₂ ≫ eB⁻¹` (same apex).  Used to push the fibre
+    pullback back onto the original colimit cospan. -/
+theorem cospanIsoTransferPullback {𝒜 : Type w} [Cat.{w} 𝒜]
+    {A B Z A' B' Z' : 𝒜} {f : A ⟶ Z} {g : B ⟶ Z} {f' : A' ⟶ Z'} {g' : B' ⟶ Z'}
+    {eA : A ⟶ A'} {eB : B ⟶ B'} {eZinv : Z' ⟶ Z}
+    (hAiso : IsIso eA) (hBiso : IsIso eB) (hZiso : IsIso eZinv)
+    (hf : f = eA ≫ f' ≫ eZinv) (hg : g = eB ≫ g' ≫ eZinv)
+    (c' : Cone f' g') (hc' : c'.IsPullback) (hcov : Cover c'.π₂) :
+    ∃ c : Cone f g, c.IsPullback ∧ Cover c.π₂ := by
+  -- the transferred cone: π₁ := c'.π₁ ≫ eA⁻¹, π₂ := c'.π₂ ≫ eB⁻¹.
+  have hw : (c'.π₁ ≫ isoInv hAiso) ≫ f = (c'.π₂ ≫ isoInv hBiso) ≫ g := by
+    rw [hf, hg]
+    -- `(c'.π₁ ≫ eA⁻¹) ≫ (eA ≫ f' ≫ eZinv) = c'.π₁ ≫ f' ≫ eZinv`, ditto for g; use c'.w.
+    rw [Cat.assoc, ← Cat.assoc (isoInv hAiso), inv_isoInv_comp, Cat.id_comp,
+        Cat.assoc, ← Cat.assoc (isoInv hBiso), inv_isoInv_comp, Cat.id_comp,
+        ← Cat.assoc c'.π₁, ← Cat.assoc c'.π₂, c'.w]
+  -- the leg-cancellation facts `eA ≫ f' = f ≫ eZinv⁻¹`, `eB ≫ g' = g ≫ eZinv⁻¹`.
+  have hAf : eA ≫ f' = f ≫ isoInv hZiso := by
+    rw [hf, Cat.assoc, Cat.assoc, isoInv_comp, Cat.comp_id]
+  have hBg : eB ≫ g' = g ≫ isoInv hZiso := by
+    rw [hg, Cat.assoc, Cat.assoc, isoInv_comp, Cat.comp_id]
+  let c : Cone f g := ⟨c'.pt, c'.π₁ ≫ isoInv hAiso, c'.π₂ ≫ isoInv hBiso, hw⟩
+  refine ⟨c, ?_, cover_comp_iso' hcov ⟨eB, inv_isoInv_comp hBiso, isoInv_comp hBiso⟩⟩
+  -- universal property: a competitor `d` of `(f,g)` becomes a competitor of `(f',g')` by
+  -- post-composing the legs with `eA, eB` (`hAf`/`hBg` + `d.w`); lift through `c'`.
+  show c.IsPullback
+  intro d
+  have hd' : (d.π₁ ≫ eA) ≫ f' = (d.π₂ ≫ eB) ≫ g' := by
+    rw [Cat.assoc, hAf, Cat.assoc, hBg, ← Cat.assoc d.π₁, ← Cat.assoc d.π₂, d.w]
+  obtain ⟨u, ⟨hu1, hu2⟩, huuniq⟩ := hc' ⟨d.pt, d.π₁ ≫ eA, d.π₂ ≫ eB, hd'⟩
+  refine ⟨u, ⟨?_, ?_⟩, ?_⟩
+  · -- u ≫ (c'.π₁ ≫ eA⁻¹) = d.π₁ : use hu1 : u ≫ c'.π₁ = d.π₁ ≫ eA, cancel eA.
+    show u ≫ c'.π₁ ≫ isoInv hAiso = d.π₁
+    rw [← Cat.assoc, hu1, Cat.assoc, isoInv_comp, Cat.comp_id]
+  · show u ≫ c'.π₂ ≫ isoInv hBiso = d.π₂
+    rw [← Cat.assoc, hu2, Cat.assoc, isoInv_comp, Cat.comp_id]
+  · -- uniqueness: a `v` with the transferred fac is a competitor lift for the `(f',g')` problem.
+    intro v hv1 hv2
+    apply huuniq
+    · -- v ≫ c'.π₁ = d.π₁ ≫ eA : from hv1 : v ≫ (c'.π₁ ≫ eA⁻¹) = d.π₁, post-compose eA.
+      show v ≫ c'.π₁ = d.π₁ ≫ eA
+      have h : (v ≫ c'.π₁ ≫ isoInv hAiso) ≫ eA = d.π₁ ≫ eA := congrArg (fun t => t ≫ eA) hv1
+      rwa [Cat.assoc, Cat.assoc, inv_isoInv_comp, Cat.comp_id] at h
+    · show v ≫ c'.π₂ = d.π₂ ≫ eB
+      have h : (v ≫ c'.π₂ ≫ isoInv hBiso) ≫ eB = d.π₂ ≫ eB := congrArg (fun t => t ≫ eB) hv2
+      rwa [Cat.assoc, Cat.assoc, inv_isoInv_comp, Cat.comp_id] at h
+
+/-- `alignGermInv` is an iso (inverse realignment `⟨e, F x⟩ ⟶ ⟨i,x⟩`).  Mirror of `alignGerm_isIso`
+    with the two round-trip reps (`reflApp`/`isoInv reflApp`) swapped. -/
+theorem alignGermInv_isIso {i : ι} (x : L.A i) {e : ι} (hie : D.le i e) :
+    @IsIso (Obj L) (laxColimCat L hL) ⟨e, L.F hie x⟩ ⟨i, x⟩ (alignGermInv L hL x hie) := by
+  unfold alignGermInv
+  refine homInclL_isIso_of_rep L hL (L.F hie x) x ⟨e, D.refl e, hie⟩
+    (reflApp L (L.F hie x)) (isoInv (reflApp_isIso L (L.F hie x))) ?_ ?_
+  · exact isoInv_comp (reflApp_isIso L (L.F hie x))
+  · exact inv_isoInv_comp (reflApp_isIso L (L.F hie x))
+
+/-- **Lax cospan alignment.**  A cospan `f : A ⟶ Z`, `g : B ⟶ Z` in `laxColimCat` is, after
+    identifying `A, B, Z` with stage objects via realignment isos, the stage inclusion of a genuine
+    single-fibre cospan `fN : xA ⟶ xZ`, `gN : xB ⟶ xZ` in one `L.A N` (sharing the codomain object
+    `xZ`).  Each leg factors as `alignGerm ⊚ stageInclL · ⊚ alignGermInv` (`homInclL_factor`), so the
+    realignment isos `alignGerm xA`, `alignGerm xB`, `alignGerm xZ` identify the stage objects with
+    `A, B, Z`; the SHARED codomain rep `xZ` is the common bound `U ≥ a.1, b.1` push of `Z`'s rep.
+    Lax analogue of the strict `colimHom_cospan_as_homInclObj`. -/
+theorem colimHom_cospan_as_stageInclL {A B Z : Obj L}
+    (f : @homL _ _ L hL A Z) (g : @homL _ _ L hL B Z) :
+    ∃ (N : ι) (xA xB xZ : L.A N) (fN : xA ⟶ xZ) (gN : xB ⟶ xZ)
+      (eA : @homL _ _ L hL A ⟨N, xA⟩) (eB : @homL _ _ L hL B ⟨N, xB⟩)
+      (eZinv : @homL _ _ L hL ⟨N, xZ⟩ Z),
+      @IsIso (Obj L) (laxColimCat L hL) A ⟨N, xA⟩ eA ∧
+      @IsIso (Obj L) (laxColimCat L hL) B ⟨N, xB⟩ eB ∧
+      @IsIso (Obj L) (laxColimCat L hL) ⟨N, xZ⟩ Z eZinv ∧
+      f = @compL _ _ L hL A ⟨N, xA⟩ Z eA
+            (@compL _ _ L hL ⟨N, xA⟩ ⟨N, xZ⟩ Z (stageInclL L hL fN) eZinv) ∧
+      g = @compL _ _ L hL B ⟨N, xB⟩ Z eB
+            (@compL _ _ L hL ⟨N, xB⟩ ⟨N, xZ⟩ Z (stageInclL L hL gN) eZinv) := by
+  letI : Cat (Obj L) := laxColimCat L hL
+  obtain ⟨ia, xa⟩ := A
+  obtain ⟨ib, xb⟩ := B
+  obtain ⟨iz, xz⟩ := Z
+  -- representatives of `f, g` at bounds `a, b`
+  obtain ⟨a, f₀, hf₀⟩ := incl_surjective (homSystemL L hL xa xz) f
+  obtain ⟨b, g₀, hg₀⟩ := incl_surjective (homSystemL L hL xb xz) g
+  -- common stage `U ≥ a.1, b.1`
+  obtain ⟨U, haU, hbU⟩ := D.bound a.1 b.1
+  refine ⟨U, L.F (D.trans a.2.1 haU) xa, L.F (D.trans b.2.1 hbU) xb, L.F (D.trans a.2.2 haU) xz,
+    pushHom L xa xz a.2.1 a.2.2 haU f₀, pushHom L xb xz b.2.1 b.2.2 hbU g₀,
+    alignGerm L hL xa (D.trans a.2.1 haU), alignGerm L hL xb (D.trans b.2.1 hbU),
+    alignGermInv L hL xz (D.trans a.2.2 haU), ?_, ?_, ?_, ?_, ?_⟩
+  · exact alignGerm_isIso L hL xa (D.trans a.2.1 haU)
+  · exact alignGerm_isIso L hL xb (D.trans b.2.1 hbU)
+  · exact alignGermInv_isIso L hL xz (D.trans a.2.2 haU)
+  · -- `f = homInclL xa xz a f₀` (from `hf₀`), then `homInclL_factor` at bound `U`.
+    rw [← hf₀]; exact homInclL_factor L hL xa xz a f₀ haU
+  · rw [← hg₀]; exact homInclL_factor L hL xb xz b g₀ hbU
+
+/-- **Generic `hcanon` discharge for the lax colimit.**  Given that each transition is conservative
+    (`hcons`) and mono-preserving (`hmono`) and faithful (`hfaith`), that each transition preserves
+    covers (`hcovpres`), and that each fibre `L.A i` satisfies `PullbacksTransferCovers`
+    (`hstagePTC`), the canonical pullback's `π₂` of a cospan `(f,g)` with `f` a cover is itself a
+    cover in the lax colimit `laxColimCat L hL`.  This is exactly the `hcanon` hypothesis consumed by
+    `laxColimPreRegular`.
+
+    Assembly (mirrors the strict `Colim.colimitCanonicalCover`):
+    1. align `(f,g)` to a single-fibre cospan `(fN,gN)` in `L.A N` flanked by realignment isos
+       (`colimHom_cospan_as_stageInclL`);
+    2. transfer `Cover f` backward across the iso flanks to `Cover (stageInclL fN)`, then reflect to
+       `Cover fN` in the fibre (`homInclL_cover_reflects`);
+    3. the fibre's `PullbacksTransferCovers` gives `Cover` of the fibre chosen-pullback `π₂`;
+    4. push that fibre pullback to a colimit pullback of `(stageInclL fN, stageInclL gN)`
+       (`stageInclFunctorL_preservesPullbacks`) and its `π₂`-cover to the colimit
+       (`homInclL_cover_of_stage`, with `hcovpres`);
+    5. transfer the colimit pullback back onto `(f,g)` across the realignment isos
+       (`cospanIsoTransferPullback`), giving a witness pullback of `(f,g)` with `π₂` a cover;
+    6. `canonicalPullbackL_cover_of_witness` closes. -/
+theorem laxColim_hcanon_of_stage [Nonempty ι]
+    (tData : LaxTerminalData L) (pData : LaxProductData L) (eqData : LaxEqualizerData L)
+    (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (p q : x ⟶ y),
+        @Functor.map _ _ _ _ _ (L.functF hij) x y p
+          = @Functor.map _ _ _ _ _ (L.functF hij) x y q → p = q)
+    (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (φ : x ⟶ y),
+        IsIso (@Functor.map _ _ _ _ _ (L.functF hij) x y φ) → IsIso φ)
+    (hmono : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (φ : x ⟶ y),
+        Mono φ → Mono (@Functor.map _ _ _ _ _ (L.functF hij) x y φ))
+    (hcovpres : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (φ : x ⟶ y),
+        Cover φ → Cover (@Functor.map _ _ _ _ _ (L.functF hij) x y φ))
+    (hstagePTC : ∀ i, @PullbacksTransferCovers (L.A i) (L.catA i)) :
+    letI : Cat (Obj L) := laxColimCat L hL
+    letI : HasPullbacks (Obj L) := laxColimHasPullbacks L hL tData pData eqData
+    ∀ {A B Z : Obj L} (f : A ⟶ Z) (g : B ⟶ Z), Cover f →
+      Cover (HasPullbacks.has f g).cone.π₂ := by
+  letI : Cat (Obj L) := laxColimCat L hL
+  letI : HasPullbacks (Obj L) := laxColimHasPullbacks L hL tData pData eqData
+  intro A B Z f g hfcov
+  -- 1. align the cospan to a single fibre `L.A N`.
+  obtain ⟨N, xA, xB, xZ, fN, gN, eA, eB, eZinv, hAiso, hBiso, hZiso, hfeq, hgeq⟩ :=
+    colimHom_cospan_as_stageInclL L hL f g
+  -- per-fibre finite-limit instances at `N`.
+  letI : HasTerminal (L.A N) := tData.ht N
+  letI : HasBinaryProducts (L.A N) := pData.hp N
+  letI : HasEqualizers (L.A N) := eqData.he N
+  -- 2. transfer `Cover f` backward across the iso flanks to `Cover (stageInclL fN)`.
+  -- `stageInclL fN = eA⁻¹ ≫ f ≫ eZinv⁻¹` (cancel the iso flanks in `hfeq`).
+  have hrw : stageInclL L hL fN = isoInv hAiso ≫ f ≫ isoInv hZiso := by
+    have hf' : f = eA ≫ stageInclL L hL fN ≫ eZinv := hfeq
+    rw [hf']
+    simp only [Cat.assoc]
+    rw [← Cat.assoc (isoInv hAiso) eA, inv_isoInv_comp, Cat.id_comp,
+        isoInv_comp, Cat.comp_id]
+  have hstagefN_cov : @Cover (Obj L) (laxColimCat L hL) _ _ (stageInclL L hL fN) := by
+    rw [hrw]
+    exact cover_precomp_iso ⟨eA, inv_isoInv_comp hAiso, isoInv_comp hAiso⟩
+      (cover_comp_iso' hfcov ⟨eZinv, inv_isoInv_comp hZiso, isoInv_comp hZiso⟩)
+  -- reflect to a fibre cover `Cover fN`.
+  have hfN_cov : Cover fN := homInclL_cover_reflects L hL hcons hmono fN hstagefN_cov
+  -- 3. fibre PTC on the chosen pullback of `(fN, gN)` gives `Cover (chosen π₂)`.
+  have hstagePB_cov : Cover (products_equalizers_implies_pullbacks fN gN).cone.π₂ :=
+    (hstagePTC N).pullbacks_transfer_covers _
+      (products_equalizers_implies_pullbacks fN gN).cone_isPullback hfN_cov
+  -- 4. push the fibre pullback to a colimit pullback of `(stageInclL fN, stageInclL gN)`.
+  have hPBcolim := stageInclFunctorL_preservesPullbacks L hL tData pData eqData N fN gN
+  -- the image cone's `π₂` is a cover in the colimit (cover preservation `homInclL_cover_of_stage`).
+  have hπ₂colim_cov : @Cover (Obj L) _ _ _
+      (stageInclL L hL (products_equalizers_implies_pullbacks fN gN).cone.π₂) := by
+    apply homInclL_cover_of_stage L hL hfaith
+    intro e hie
+    exact hcovpres hie _ hstagePB_cov
+  -- 5. transfer the colimit pullback back onto `(f,g)` across the realignment isos.
+  obtain ⟨c, hc_pb, hc_cov⟩ := cospanIsoTransferPullback (𝒜 := Obj L)
+    hAiso hBiso hZiso hfeq hgeq _ hPBcolim hπ₂colim_cov
+  -- 6. canonical-pullback cover from the witness.
+  exact @canonicalPullbackL_cover_of_witness (Obj L) (laxColimCat L hL)
+    (laxColimHasPullbacks L hL tData pData eqData) A B Z f g c hc_pb hc_cov
+
 end SingleUniverse
 
 end Freyd.LaxColim
