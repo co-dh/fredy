@@ -460,4 +460,24 @@ theorem bigInter_ge {A : 𝒞} (Fname : one ⟶ powObj (powObj A)) (a : one ⟶ 
   rw [hcl]
   congr 1
 
+/-- **§1.943 — `⋂F` is the family GLB (both bounds).**  The genuine §1.943 statement that
+    `S1_94.inter_le_singleton_named`'s integrity note said could not even be *stated* with the
+    singleton-only `interIntersection`: for a family `F ↣ [A]` named by `Fname : 1 → [[A]]`,
+    `⋂F` is below every `F`-named subobject (lower bound), and — for a point `a` — `a ∈ ⋂F`
+    exactly when every member of `F` contains `a` (upper bound / greatest).
+
+    This bundles `bigInter_le_named` (LOWER) and `bigInter_ge` (UPPER, via `imp_adjunction`). -/
+theorem bigInter_glb {A : 𝒞} (Fname : one ⟶ powObj (powObj A)) :
+    -- LOWER BOUND: ⋂F ≤ every F-named subobject.
+    (∀ B : Subobject 𝒞 A,
+      nameOf B.arr B.monic ≫ membershipMap Fname
+          = term one ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) →
+      (bigInter Fname).le B)
+    -- GREATEST: a point a lies in ⋂F as soon as every member of F (as F0 ↣ [A]) contains it.
+    ∧ (∀ (a : one ⟶ A) (F0 Ga : Subobject 𝒞 (powObj A)),
+        subChar F0 = membershipMap Fname → subChar Ga = memAtPoint a → F0.le Ga →
+        Allows (bigInter Fname) a) :=
+  ⟨fun B hB => bigInter_le_named Fname B hB,
+   fun a F0 Ga hF0 hGa hle => bigInter_ge Fname a F0 Ga hF0 hGa hle⟩
+
 end Freyd
