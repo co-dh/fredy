@@ -880,6 +880,54 @@ theorem imp_adjunction {A : 𝒞} (S T X : Subobject 𝒞 A)
             (omegaMeet_classifies_inter XS XT hpXT).symm
       _ = X.arr ≫ M := hMpb.symm
 
+/-! ### §1.914  The Heyting double-arrow `S ⇔ u` on `Sub(A)` and `φ³ = φ` -/
+
+/-- **Subobject equality** = mutual `≤`.  `Sub(A)` is a preorder; this is the
+    induced equivalence (anti-symmetry up to isomorphism). -/
+def Sub.equiv {A : 𝒞} (S T : Subobject 𝒞 A) : Prop := S.le T ∧ T.le S
+
+/-- `Sub.le` is reflexive. -/
+theorem Sub.le_refl {A : 𝒞} (S : Subobject 𝒞 A) : S.le S := ⟨Cat.id S.dom, Cat.id_comp _⟩
+
+/-- `Sub.le` is transitive. -/
+theorem Sub.le_trans {A : 𝒞} {S T U : Subobject 𝒞 A} (h₁ : S.le T) (h₂ : T.le U) : S.le U := by
+  obtain ⟨a, ha⟩ := h₁; obtain ⟨b, hb⟩ := h₂
+  exact ⟨a ≫ b, by rw [Cat.assoc, hb, ha]⟩
+
+/-- **Leibniz characterization of subobject equality**: `S ≃ T` iff they have the
+    same lower set (same predecessors).  This reduces equalities of Heyting terms to
+    equivalences of their membership predicates `· ≤ S ↔ · ≤ T`. -/
+theorem Sub.equiv_iff_forall_le {A : 𝒞} (S T : Subobject 𝒞 A) :
+    Sub.equiv S T ↔ ∀ X : Subobject 𝒞 A, X.le S ↔ X.le T := by
+  constructor
+  · rintro ⟨hST, hTS⟩ X
+    exact ⟨fun h => Sub.le_trans h hST, fun h => Sub.le_trans h hTS⟩
+  · intro h
+    exact ⟨(h S).1 (Sub.le_refl S), (h T).2 (Sub.le_refl T)⟩
+
+/-- The Heyting double-arrow `S ⇔ u` as a subobject of `A`: the monic classified by
+    `⟨χ_S, χ_u⟩ ≫ heytingDoubleArrow` (the largest subobject where `χ_S = χ_u`). -/
+noncomputable def Sub.dbar {A : 𝒞} (S u : Subobject 𝒞 A) : Subobject 𝒞 A :=
+  ⟨(classify_surjective (pair (subChar S) (subChar u) ≫ heytingDoubleArrow)).choose,
+   (classify_surjective (pair (subChar S) (subChar u) ≫ heytingDoubleArrow)).choose_spec.choose,
+   (classify_surjective (pair (subChar S) (subChar u) ≫ heytingDoubleArrow)).choose_spec.choose_spec.choose⟩
+
+/-- `χ_{S⇔u} = ⟨χ_S,χ_u⟩ ≫ ⇔`. -/
+theorem classify_dbar {A : 𝒞} (S u : Subobject 𝒞 A) :
+    subChar (Sub.dbar S u) = pair (subChar S) (subChar u) ≫ heytingDoubleArrow :=
+  (classify_surjective (pair (subChar S) (subChar u) ≫ heytingDoubleArrow)).choose_spec.choose_spec.choose_spec
+
+/-- **§1.914 (double-arrow membership UMP)**: `X ≤ (S ⇔ u)` iff `χ_S` and `χ_u` agree
+    along `X.arr`.  Immediate from `classify_dbar`, the order bridge, and the
+    pointwise double-arrow UMP `heyting_true_iff_eq`. -/
+theorem mem_dbar_iff {A : 𝒞} (S u X : Subobject 𝒞 A) :
+    X.le (Sub.dbar S u) ↔ X.arr ≫ subChar S = X.arr ≫ subChar u := by
+  rw [le_iff_classify]
+  show X.arr ≫ subChar (Sub.dbar S u) = term X.dom ≫ HasSubobjectClassifier.true
+    ↔ X.arr ≫ subChar S = X.arr ≫ subChar u
+  rw [classify_dbar]
+  exact heyting_true_iff_eq _ _ X.arr
+
 /-- **§1.919 (reduction)**: an endomorphism `h : Ω → Ω` equals the identity as
     soon as `t : 1 → Ω` is a pullback of `t` along `h` — i.e. `Ω` is "`h`-large in
     itself" (`h` classifies the maximal subobject `t : 1 → Ω`).
