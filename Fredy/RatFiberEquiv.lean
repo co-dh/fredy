@@ -136,7 +136,7 @@ theorem fiberJ_embedding (U : List 𝒞) : Embedding (fun X : PairOnU U => fiber
   fractions SATURATION (the dense roof rebuild `π ≫ r ≫ d` staying dense, the standing Ore condition for
   a PROPER monic dense class, flagged at `MonicDense`/`DenseRoof` in RationalCapitalization.lean), NOT a
   missing elementary construction.  `fiberJ_full` is therefore NOT provable from the bare dense-class
-  closures; the committed pieces below (the collapse lemma + conditional fullness) are the sorry-free
+  closures; the committed pieces below (the collapse lemma + conditional fullness) are the Sorry-free
   partial, and `fiberJ_full_of_factor` is the exact hypothesis the saturation must supply. -/
 
 variable {U : List 𝒞}

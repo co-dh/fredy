@@ -45,7 +45,7 @@
   generalizing the first (the proofs are shared — DRY):
 
     * `chainSliceSystem (P : PrefixChain)` — the ω-chain `ℕ` (`uliftNatDirected`, `bound = max`) along any
-      increasing prefix-chain `ℕ → Infl 𝒞`, a sorry-free directed strict `Colim.CatSystem` whose
+      increasing prefix-chain `ℕ → Infl 𝒞`, a Sorry-free directed strict `Colim.CatSystem` whose
       `F_refl`/`F_trans` ARE `innerSliceTr_refl`/`innerSliceTr_trans`.
 
     * `ordChainSliceSystem (O : OrdChain D)` — the TRANSFINITE generalization over an ARBITRARY directed
@@ -1043,17 +1043,17 @@ theorem sliceCatObj_terminal (d : List 𝒞) (V : Infl 𝒞) :
   wall, since the suffix comes from the list `U`, not from the inclusion proof) via the strict
   `sliceCatObj`/`sliceCatFunctor`.
 
-  STRICTNESS STATUS.  The transition functor `sliceCatFunctor d`/`sliceCatObj d` is sorry-free and
+  STRICTNESS STATUS.  The transition functor `sliceCatFunctor d`/`sliceCatObj d` is Sorry-free and
   STRICT (no pullback, no iso — concatenation).  The `CatSystem` LAWS reduce to the propositional
   list identities `V ++ [] = V` (`List.append_nil`) and `(V++d)++e = V++(d++e)` (`List.append_assoc`):
   these are genuine equalities of list OBJECTS — exactly the strictness raw base-change LACKS (where
   `baseChangeObj (id) X` is only iso to `X`) — but, because list append is not *definitionally*
   unital/associative for variable lists, the stage objects `A′/(V++d)` must be TRANSPORTED along them.
 
-    * `F_refl` — `innerSliceTr_refl` — PROVEN sorry-free (only `propext`): the empty-suffix
+    * `F_refl` — `innerSliceTr_refl` — PROVEN Sorry-free (only `propext`): the empty-suffix
       transition is the identity on `A′/V`, via `over_transport_ext` + `catMap_nil_heq` (the latter a
       full `HEq` discharge of the `append_nil` reindexing through `catForget`/`catArrange`).
-    * `F_trans` — `innerSliceTr_trans` — PROVEN sorry-free (only `propext`): reduces to
+    * `F_trans` — `innerSliceTr_trans` — PROVEN Sorry-free (only `propext`): reduces to
       `prefixSuffix_trans` plus `catMap_append_heq` (the `(s++d)++e = s++(d++e)` reindexing of `catMap`,
       also PROVEN), the doubled-`▸` nested transport across `List.append_assoc` fully discharged.
 

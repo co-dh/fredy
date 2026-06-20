@@ -7,11 +7,11 @@
             limit_cone_unique — limits unique up to iso (PROVED)
   §1.823    Complete / Cocomplete
   §1.825    complete_iff_eq_prod — iff equalizers + products
-            (⇐ hard direction PROVED; ⇒ easy direction sorry)
+            (⇐ hard direction PROVED; ⇒ easy direction Sorry)
   §1.827    IsContinuous / IsCocontinuous
   §1.828    HasWeakLimit / WeaklyComplete
             complete_imp_weaklyComplete (PROVED)
-  §1.829    preserves_weaklim_iff_preserves_lim (partial; uniqueness sorry)
+  §1.829    preserves_weaklim_iff_preserves_lim (partial; uniqueness Sorry)
   §1.82(10) HasPreLimit / PreComplete
             complete_imp_preComplete (PROVED)
   §1.83     PreAdjointObj / PreAdjointFunctor
@@ -47,7 +47,7 @@
             special_adjoint_functor_theorem — FULLY PROVED (axioms = propext, Classical.choice,
             Quot.sound)
 
-  Remaining sorries (0).  GAFT (§1.83), MGAFT (§1.831), SAFT (§1.83(10)) and §1.837 are all
+  Remaining Sorries (0).  GAFT (§1.83), MGAFT (§1.831), SAFT (§1.83(10)) and §1.837 are all
   fully proved.  MGAFT's "pre-complete + split idempotents" weak-initial-object cutoff (which the
   full-`Complete` GAFT engine cannot supply) is built directly via wide-fork pre-limits and the
   `IdempotentsSplit` hypothesis.  See S1_82.md.

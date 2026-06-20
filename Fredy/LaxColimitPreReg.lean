@@ -3,7 +3,7 @@
   capitalization `A*`).
 
   ════════════════════════════════════════════════════════════════════════════════════════════
-  GOAL.  `CapitalizationLaxColimit.lean` builds, sorry-free, the §1.547 relative capitalization
+  GOAL.  `CapitalizationLaxColimit.lean` builds, Sorry-free, the §1.547 relative capitalization
   `A* = ratCapCat P : Cat (Obj (laxOfProjSystem' P))` — the FILTERED lax colimit of the slices
   `A/(∏U) = Over (listProd U)` over the filtered index of finite ws-lists, with BASE-CHANGE
   transitions (a pseudofunctor, coherence supplied as natural isos `F_refl_iso`/`F_trans_iso`,
@@ -807,8 +807,8 @@ end Freyd.LaxColim
   STATUS (§1.543 — pre-regularity of the filtered lax colimit `ratCapCat P`)  —  GAP 1 COMPLETE
 ════════════════════════════════════════════════════════════════════════════════════════════════
 
-DONE here (all sorry-free; every result `#print axioms = propext, Classical.choice, Quot.sound`,
-NO `sorryAx`):
+DONE here (all Sorry-free; every result `#print axioms = propext, Classical.choice, Quot.sound`,
+NO `SorryAx`):
 
   * `laxColimHasTerminal` — `HasTerminal` from a `LaxTerminalData L` (mirrors `colimitHasTerminal`).
   * `reflApp` / `reflApp_isIso` / `reflApp_natural` — the UNIT coherence component (forward of

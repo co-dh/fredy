@@ -113,7 +113,7 @@ theorem pair_prodMap {𝒞 : Type u} [Cat.{v} 𝒞] [HasBinaryProducts 𝒞]
 
   The book's argument explicitly invokes "pullbacks preserve epics", i.e.
   `PullbacksTransferCovers` — a topos-exactness fact that this repo does NOT
-  derive from `Topos` (see the faithful sorries in §1.94 `topos_is_regular`).
+  derive from `Topos` (see the faithful Sorries in §1.94 `topos_is_regular`).
   We therefore carry it as an explicit hypothesis, matching the book's ambient
   use of topos regularity. -/
 
@@ -615,7 +615,7 @@ theorem nno_peano_property {𝒞 : Type u} [Cat.{v} 𝒞]
     `S1_94.inter_le_singleton_named`'s integrity note.  The missing operation is the
     internal-∀ (right adjoint to weakening), whose β/η computation rests on the concrete
     power-object exponential adjunction (`S1_92.topos_has_exponentials`, off-limits and
-    itself `sorry`), so it cannot be built here from the currently-proven primitives.
+    itself `Sorry`), so it cannot be built here from the currently-proven primitives.
 
     We therefore consume the genuine §1.987 conclusion as the explicit hypothesis
     `[HasLeastClosedSubobject 𝒞]` (`Fredy/InternalForall.lean`): in every topos the least
@@ -623,7 +623,7 @@ theorem nno_peano_property {𝒞 : Type u} [Cat.{v} 𝒞]
     and crucially the LEASTNESS clause is the CORRECT one (`A'.le B` for every closed `B`,
     exactly §1.987) — NOT the earlier broken reduction, which demanded all closed `B` share
     one name `nameOf B.arr = F_name` (forcing them all equal, a false statement).  STATUS:
-    this is NOT the §1.543 capitalization lemma (PROVEN sorry-free); it is the separate
+    this is NOT the §1.543 capitalization lemma (PROVEN Sorry-free); it is the separate
     internal-∀ / family-glb gap that `S1_94` flags but never builds. -/
 theorem least_peano_subobject {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞] [HasImages 𝒞]
     [HasExponentials 𝒞] [HasLeastClosedSubobject 𝒞]
@@ -746,7 +746,7 @@ theorem nno_is_free_one_action {𝒞 : Type u} [Cat.{v} 𝒞]
 
   The Peano property follows from §1.988 (or its generalization, cited as [2.542]
   in the book) and the NNO uniqueness and existence conditions are verified from
-  the bicartesian data.  We record the statement here with a sorry pending the
+  the bicartesian data.  We record the statement here with a Sorry pending the
   §1.988 partial-map-classifier recursor + §1.987 internal-∀ Peano induction
   (W-type infrastructure absent in this repo — NOT the now-proven §1.543 lemma). -/
 
@@ -792,9 +792,9 @@ theorem nno_of_bicartesian_data {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
   --     That induction is exactly the Peano property of `A`, i.e. `least_peano_subobject` (§1.987)
   --     below — whose ONE residual is the internal-∀ family-glb name `closedName`, NOT available here.
   --
-  -- WHAT IS *NOT* THE BLOCKER (status correction).  §1.543 capitalization is now PROVEN sorry-free
+  -- WHAT IS *NOT* THE BLOCKER (status correction).  §1.543 capitalization is now PROVEN Sorry-free
   -- in this repo (`Fredy.CapDataWiring.capData_exists`; `Fredy/Capitalization.lean` `capData_exists`).
-  -- So this sorry is NOT capitalization-gated.  Freyd's book proof of §1.98(10) does route §1.988 /
+  -- So this Sorry is NOT capitalization-gated.  Freyd's book proof of §1.98(10) does route §1.988 /
   -- §1.989 through a boolean/capital topos (§2.542 / §1.935), but in THIS layer the residual is the
   -- elementary infrastructure those feeders rest on once capitalization is in hand:
   --   • a LAWFUL per-codomain partial-map classifier `B ↦ B̃` (the bare single-object `pmc_obj`
@@ -802,7 +802,7 @@ theorem nno_of_bicartesian_data {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
   --   • the internal-∀ family-glb `closedName` of §1.987 (Peano induction), the SAME absent
   --     comprehension `least_peano_subobject` bottoms out on — a `S1_94` gap distinct from §1.543.
   -- Hence the residual is missing W-type / partial-map-recursor / internal-∀ infrastructure, not the
-  -- (now-closed) capitalization lemma.  We leave the honest sorry and do not bloat the bare
+  -- (now-closed) capitalization lemma.  We leave the honest Sorry and do not bloat the bare
   -- `HasPartialMapClassifier` structure with fields no current instance can supply.
   --
   -- The bare classifier `pmc.pmc_classify` is the only PMC operation available, and is too weak:
@@ -893,8 +893,8 @@ theorem free_action_iff_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
   -- builds the free recursor recA α : A* → α.obj for every A-action α, with existence+uniqueness.
   -- It therefore inherits §1.98(10)'s REAL residual (see `nno_of_bicartesian_data`): the §1.988
   -- partial-map-classifier recursor + the §1.987 internal-∀ Peano induction (`least_peano_subobject`).
-  -- STATUS CORRECTION: §1.543 capitalization is now PROVEN sorry-free
-  -- (`Fredy.CapDataWiring.capData_exists`); this sorry is NOT capitalization-gated.  The residual is
+  -- STATUS CORRECTION: §1.543 capitalization is now PROVEN Sorry-free
+  -- (`Fredy.CapDataWiring.capData_exists`); this Sorry is NOT capitalization-gated.  The residual is
   -- the absent W-type / lawful per-codomain PMC / internal-∀ comprehension infrastructure.
   sorry
 
@@ -931,7 +931,7 @@ structure ListObjectData {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞] (A : 𝒞) 
 
 /-- §1.98(14): A list object for `A` IS a free A-action.
 
-    This reduction is sorry-free: the free-A-action universal property is precisely the
+    This reduction is Sorry-free: the free-A-action universal property is precisely the
     initiality of the list object `A*` as an `F`-algebra (`F X = 1 + A × X`).  The unit
     is `nil`, the action is `cons`, and the unique map into any A-action `(B, f, b)` is
     `fold f b`; the three commutation laws are `fold_nil`, `fold_cons`, `fold_uniq`. -/
@@ -950,7 +950,7 @@ theorem free_action_exists {𝒞 : Type u} [Cat.{v} 𝒞]
     [hN : HasNaturalNumbersObject 𝒞] [HasExponentials 𝒞]
     (A : 𝒞) : Nonempty (FreeAAction (𝒞 := 𝒞) A) := by
   -- The free A-action IS a list object `A*` (`freeAAction_of_listObject` above discharges the
-  -- whole universal property sorry-free once `A*` is in hand).  So the entire content of
+  -- whole universal property Sorry-free once `A*` is in hand).  So the entire content of
   -- §1.98(14) is now isolated in the SINGLE primitive `ListObjectData A` — the initial algebra
   -- of `F X = 1 + A × X`, i.e. `A* = Σₙ Aⁿ` ("finite words in A").
   --
@@ -965,18 +965,18 @@ theorem free_action_exists {𝒞 : Type u} [Cat.{v} 𝒞]
   --       `least_peano_subobject` (above) and `S1_94` both bottom out on (the internal-∀ /
   --       family-glb that `S1_94` never constructs — NOT the now-proven §1.543 lemma);
   --   (c) the PARTIAL-MAP CLASSIFIER recursor `B̃` of §1.988/§1.934 — Freyd builds `B̃ = Π_t(B/0)`
-  --       in a CAPITAL topos (§1.935); §1.543 capitalization is now PROVEN sorry-free here, so the
+  --       in a CAPITAL topos (§1.935); §1.543 capitalization is now PROVEN Sorry-free here, so the
   --       residual is the absent LAWFUL per-codomain PMC interface (`S1_92` has only a bare
   --       single-object `pmc_obj`, no restrict/uniqueness law), the same gap hit by
   --       `nno_of_bicartesian_data`.  The available `iteratePair`/`primRec` (§1.981/§1.983)
   --       iterate a FIXED fibre `B`, not the growing power `Aⁿ`, so they cannot define `fold`.
   --
   -- Residual = the SINGLE, sharply named gap `ListObjectData A` (= §1.98(14) list object
-  -- existence), with its lawful consumer `freeAAction_of_listObject` already proved sorry-free.
+  -- existence), with its lawful consumer `freeAAction_of_listObject` already proved Sorry-free.
   obtain ⟨LD⟩ : Nonempty (ListObjectData (𝒞 := 𝒞) A) := by
     -- MISSING PRIMITIVE: existence of the list object `A* = Σₙ Aⁿ` (initial `1 + A×(−)`-algebra).
     -- Not constructible from `HasNaturalNumbersObject` + `HasExponentials` + binary coproducts
-    -- alone; requires (a)/(b)/(c) above.  STATUS: NOT §1.543-capitalization (now proven sorry-free,
+    -- alone; requires (a)/(b)/(c) above.  STATUS: NOT §1.543-capitalization (now proven Sorry-free,
     -- `Fredy.CapDataWiring.capData_exists`); the residual is the absent N-indexed coproduct /
     -- internal-∀ comprehension / lawful per-codomain partial-map-classifier infrastructure.
     sorry

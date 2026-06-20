@@ -24,14 +24,14 @@
 
   ── THE DETERMINATION (this file) ──────────────────────────────────────────────
 
-  REDUCTION (sorry-free, `cover_imp_slice_iso`).  "Every `g` reachable" says exactly that
+  REDUCTION (Sorry-free, `cover_imp_slice_iso`).  "Every `g` reachable" says exactly that
   every map `pair g id : ∏U → A×∏U` factors through `m.f`.  If those maps `{pair g id}_g`
   jointly make `m.f` a *cover*, then `m.f` is a mono cover, hence iso (`monic_cover_iso`),
   hence `m` is a slice-iso (`overIso_of_underlying`).  That is the entire categorical
   content the reduction needs.
 
   THE RESIDUAL IS GENUINELY CAPITAL-LEVEL, NOT well-supportedness.  The crux is whether
-  REACH-ALL forces `m.f` to be a cover.  This file PROVES (sorry-free, `factorWP_imp_wp`)
+  REACH-ALL forces `m.f` to be a cover.  This file PROVES (Sorry-free, `factorWP_imp_wp`)
   that for the base `P = 1` (the one-element index) the slice-`WellPointed` of the embedded
   factor `sliceEmbedObj 1 A` IMPLIES `A` is `WellPointed` downstairs.  Hence:
 
@@ -47,7 +47,7 @@
   the product-form `AB' ↪ AB` that `prodFormMono_misses_point` escapes — that
   localization-level reduction is the genuine missing content, above the plain slice.
 
-  Everything here is sorry-free and depends on NO axioms (`#print axioms` below); the
+  Everything here is Sorry-free and depends on NO axioms (`#print axioms` below); the
   honest reduction is committed, and the obstruction is pinned to the exact fact.
 -/
 import Fredy.RationalCapitalization
@@ -60,7 +60,7 @@ variable {𝒞 : Type u} [Cat.{u} 𝒞]
 section SliceWellPointed
 variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [PullbacksTransferCovers 𝒞]
 
-/-! ## The reduction `REACH-ALL ⟹ ISO` via the cover hypothesis (sorry-free)
+/-! ## The reduction `REACH-ALL ⟹ ISO` via the cover hypothesis (Sorry-free)
 
   A slice mono `m : D ↪ sliceEmbedObj P A = ⟨A×P, snd⟩` has underlying arrow
   `m.f : D.dom → A×P`.  If `m.f` is a *cover*, then (being also mono) it is iso, and then
@@ -75,7 +75,7 @@ theorem cover_imp_slice_iso {P A : 𝒞} {D : Over P}
     OverIso m :=
   overIso_of_underlying m (monic_cover_iso m.f hcov (sigma_preserves_mono m hm))
 
-/-! ## The decisive negative determination (sorry-free)
+/-! ## The decisive negative determination (Sorry-free)
 
   The §1.547 obligation `sliceEmbed_factor_wellPointed` asks the embedded factor to be
   `WellPointed` from `WellSupported A` ALONE.  We show this is too strong: already for the
@@ -101,7 +101,7 @@ theorem mono_pair_of_mono_fst {T A B : 𝒞} (m : T ⟶ A) (t : T ⟶ B) (hm : M
     _ = (h ≫ pair m t) ≫ fst := by rw [heq]
     _ = h ≫ m := by rw [Cat.assoc, fst_pair]
 
-/-- **The §1.547 factor-`WellPointed` obligation forces `A` well-pointed (sorry-free).**
+/-- **The §1.547 factor-`WellPointed` obligation forces `A` well-pointed (Sorry-free).**
     If the embedded factor `sliceEmbedObj 1 A` is `WellPointed` in `Over 1`, then `A` is
     `WellPointed` in `𝒞`.  Hence `sliceEmbed_factor_wellPointed` cannot follow from
     `WellSupported A` alone (that would make every well-supported object well-pointed, i.e.

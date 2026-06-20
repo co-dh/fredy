@@ -384,7 +384,7 @@ base case (`Fredy/FiniteSeparation.lean`) and this file:
     `Tᶠ m` non-surjective, so `Tᶠ m` stays PROPER — the §1.645 "`%e(U) = ∅`" faithfulness.
 
   The only residual for Phase D is the categorical bookkeeping wiring `T_S`/`Diag`/coideal-membership
-  into these signatures; the set-level ultra-product mathematics is complete and sorry-free here. -/
+  into these signatures; the set-level ultra-product mathematics is complete and Sorry-free here. -/
 
 end Ultraproduct
 

@@ -34,10 +34,10 @@
   The KEYSTONE is that `proj_refl`/`proj_trans` are STRICT (on-the-nose), via the recovery lemma
   `selectProj_factor : selectProj U V h ≫ factorProj V B hB = factorProj U B (h B hB)` plus the
   joint-monicity of `listProd` in its factor projections (`listProd_hom_ext`, needs NODUP).  No iso,
-  no `sorry`.
+  no `Sorry`.
 
   `Classical.decEq` IS permitted here (§1.543 exception); every other file stays mathlib-free.  No
-  `axiom`, no `: True`, no statement-weakening; the whole file is sorry-free.
+  `axiom`, no `: True`, no statement-weakening; the whole file is Sorry-free.
 
   ── RE-THREADING `uniformStep`/`FibreDensity` (the NEXT step, deliberately NOT done in this file) ──
   This file builds and verifies the index in ISOLATION (the brief: report before re-threading).

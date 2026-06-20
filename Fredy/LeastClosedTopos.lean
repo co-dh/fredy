@@ -1,6 +1,6 @@
 /-
   Freyd & Scedrov, *Categories and Allegories* §1.987 — the LEAST `(a,t)`-closed
-  subobject in a topos, constructed (sorry-free) via the internal-∀ family-glb
+  subobject in a topos, constructed (Sorry-free) via the internal-∀ family-glb
   `bigInter` of `Fredy/InternalForallTopos.lean`.
 
   ## What this file builds
@@ -427,7 +427,7 @@ theorem least_isClosed_closed {A : 𝒞} (a : one ⟶ A) (t : A ⟶ A) :
     IsClosedSub (bigInter (closedFamily a t)) a t :=
   ⟨least_allows a t, least_tStable a t⟩
 
-/-- **§1.987 — every topos HAS a LEAST `(a,t)`-closed subobject.**  Constructed sorry-free as
+/-- **§1.987 — every topos HAS a LEAST `(a,t)`-closed subobject.**  Constructed Sorry-free as
     the internal-∀ family-glb `bigInter (closedFamily a t)` of the closedness comprehension
     `{σ : [A] | (a∈σ) ∧ (∀x. x∈σ ⇒ t(x)∈σ)}`.  This discharges, for every topos, the
     `HasLeastClosedSubobject` hypothesis that `Fredy/InternalForall.lean` relocated — unblocking

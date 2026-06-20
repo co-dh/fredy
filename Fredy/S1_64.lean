@@ -117,7 +117,7 @@ def killedValues {𝒟 : Type u} [Cat.{v} 𝒟] [PreLogos 𝒞] [PreLogos 𝒟]
   PROOF (§1.646): Combine §1.472/§1.637 (finite separation) with a diagonal
   ultra-filter argument: I = finite sets of proper subobjects, choose T_S for
   each S, form T : A → Set^I, extend to an ultra-filter F ⊇ principal coideals.
-  T^F is faithful.  (Requires ultra-filter machinery; sorry.) -/
+  T^F is faithful.  (Requires ultra-filter machinery; Sorry.) -/
 
 -- §1.646 (note): Every small special Cartesian category embeds faithfully in Set.
 -- Proof combines §1.472/§1.637 with an ultra-filter diagonal argument.
@@ -764,17 +764,17 @@ set_option maxHeartbeats 1000000 in
     genuine constructive object via `minEquiv_of_rtc` (the §1.775 equivalence closure
     `(R₀ ∪ R₀°)*`) — and let `q : B+C ↠ D` be the effective quotient by `E` (effectiveness,
     §1.568/§1.65).  Then `u := inl≫q`, `v := inr≫q`.  The commutativity leg `x≫u = y≫v` is
-    discharged sorry-free: `R₀ ⊑ E ⊑ level q`, and `R₀`'s two columns are exactly `x≫inl`,
+    discharged Sorry-free: `R₀ ⊑ E ⊑ level q`, and `R₀`'s two columns are exactly `x≫inl`,
     `y≫inr`, so they agree after `q`.
 
-    SHARPENED RESIDUAL (the `sorry`s below): leg-monicity `Mono u`, `Mono v` — that the level of
+    SHARPENED RESIDUAL (the `Sorry`s below): leg-monicity `Mono u`, `Mono v` — that the level of
     `q` (= `E`, the generated equivalence relation) restricts to the *diagonal* on `inl(B)` (resp.
     `inr(C)`).  Disjointness (`inl_inter_inr_le_bottom`, `coprod_inl_inr_disjoint_elt`) and
     `inl/inr_mono` are necessary, but the proof additionally needs a zigzag/path-length induction
     over the transitive-closure structure of `E`, which the `rtc` abstraction does NOT expose (it
     gives the four closure properties, not an induction principle on `relPow` path length).  That
     path-length descent is the effective-quotient analysis of this section (independent of the
-    §1.543 capitalization lemma, which is proven).  Faithful sorry on
+    §1.543 capitalization lemma, which is proven).  Faithful Sorry on
     precisely the two leg monicities; the object `D`, the maps `u, v`, and the commuting square are
     now real and routed through Freyd's generated-equivalence-relation construction. -/
 theorem amalgamation_lemma [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞]
@@ -1422,7 +1422,7 @@ theorem preTopos_minEquiv_to_cocartesian {𝒞 : Type u} [Cat.{v} 𝒞] [PreTopo
   COEQUALIZER of the two injections `m ≫ inl, m ≫ inr : A ⇉ B ⊕ B`.  A pre-topos has
   binary coproducts (via `PositivePreLogos`) and — with `[HasReflTransClosure 𝒞]` —
   coequalizers (`preTopos_minEquiv_to_cocartesian (minEquiv_of_rtc)`), so this object is
-  a genuine, sorry-free construction.  It is the dual of the kernel pair used throughout
+  a genuine, Sorry-free construction.  It is the dual of the kernel pair used throughout
   §1.566/§1.567, and is the carrier of the §1.652 balancedness / monic-is-cocover content.
 
   Built here as standalone data so all three §1.652/§1.653 obligations share one
@@ -1461,7 +1461,7 @@ theorem cokernelPair_cover [PreTopos 𝒞] [HasCoequalizers 𝒞] {A B : 𝒞} (
     cokernel-pair legs `(u, v)`, via the equalizer universal property applied to the
     commuting square `m ≫ u = m ≫ v`.  (The REVERSE half — that this equalizer factor is
     iso, i.e. `m` IS the equalizer of `(u, v)` — is the open effective-coregularity
-    residual; `pretopos_balanced` is now proven sorry-free, so it no longer carries this
+    residual; `pretopos_balanced` is now proven Sorry-free, so it no longer carries this
     obligation.  Unrelated to the §1.543 capitalization lemma, which is itself proven.) -/
 theorem cokernelPair_m_factors_eq [PreTopos 𝒞] [HasCoequalizers 𝒞] [HasEqualizers 𝒞]
     {A B : 𝒞} (m : A ⟶ B) :
@@ -1675,7 +1675,7 @@ theorem monic_epic_is_cover [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞] {
   exact (cover_iff_one_le_reciprocal_comp_self m).mpr hcover n g hn hg
 
 /-- **§1.652 (crux): a pre-topos is BALANCED** — a map that is both monic and epic is an
-    isomorphism.  Now sorry-free: monic + epic ⟹ cover (`monic_epic_is_cover`, the reverse
+    isomorphism.  Now Sorry-free: monic + epic ⟹ cover (`monic_epic_is_cover`, the reverse
     F-analysis), and monic + cover ⟹ iso (`monic_cover_iso`). -/
 theorem pretopos_balanced [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞] {A B : 𝒞}
     (m : A ⟶ B) (hm : Mono m)
@@ -2230,7 +2230,7 @@ theorem preTopos_boolean_iff_all_decidable [PreToposDisjoint 𝒞] [HasReflTrans
   For sheaves: X → Y is decidable iff every pair of points with the same
   stalk have disjoint neighborhoods; in particular, decidable iff Y is Hausdorff.
   (These results require the sheaf/functor-category infrastructure; stated
-  with sorry pending that development.) -/
+  with Sorry pending that development.) -/
 
 -- §1.659 (note): T ∈ Fᴬ is decidable iff T(x) is a monic map for all x : A → B in A.
 -- For sheaves on Y: X → Y is decidable iff stalk-equal points have disjoint neighborhoods
@@ -2361,7 +2361,7 @@ theorem terminator_is_choice : Choice (one : 𝒞) := by
     `g : C → D` and extract, from `Choice D`, an actual morphism `f : A → D` that is
     realized inside `R` after `g` — there is a witness `w : A → R.src` with
     `w ≫ R.colA = id_A` and `w ≫ R.colB ≫ g = f`.  This is the constructive,
-    sorry-free half of §1.661: the image relation
+    Sorry-free half of §1.661: the image relation
     `R_g := {(R.colA a, (R.colB ≫ g) a)}` is jointly monic and its left leg is a
     cover (it post-factors the cover `R.colA`), hence entire; choice of `D` hands
     back the factor map together with its section.  (No modular law needed here.) -/
@@ -2555,7 +2555,7 @@ theorem entire_refine {A B C : 𝒞} [PullbacksTransferCovers 𝒞]
     PROOF (book §1.661): Let R be entire from A to B₁×B₂.
     R∘fst° is entire targeted at B₁, so it contains a map f₁ (`entire_comp_graph` +
     `Choice B₁`).  The *refined* relation R' := R ∩ (f₁∘fst°) is again entire — this is
-    the §1.563 intersection-modular content, discharged here sorry-free by `entire_refine`
+    the §1.563 intersection-modular content, discharged here Sorry-free by `entire_refine`
     (built on `modular_identity`).  R' pins the B₁-coordinate to f₁ (`comp_recip_pin`),
     so ⟨R'.colA, R'.colB ≫ snd⟩ is jointly monic; its left leg is the cover R'.colA, hence
     the B₂-valued relation R'₂ is entire and `Choice B₂` extracts f₂ *together with a single

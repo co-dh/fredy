@@ -19,7 +19,7 @@ import Fredy.RelativeCapitalization
     * `ordChainHmono`/`ordChainHcovpres`/`ordChainStagePTC` — the canonical-cover bridge ingredients
 
   The ℕ specializations (`chain*` = `P.toOrdChain` instances) are exactly what `nextStepOfEnum` uses;
-  here we lift the SAME assembly to the generic `OrdChain`.  Two genuinely new sorry-free pieces:
+  here we lift the SAME assembly to the generic `OrdChain`.  Two genuinely new Sorry-free pieces:
 
     * `ordChainSlicePreRegularWS` — the generic `chainSlicePreRegularWS`: the inner colimit `S*` is
       pre-regular once every appended suffix product `∏(prefixSuffix (chain i) (chain j))` is
@@ -35,7 +35,7 @@ import Fredy.RelativeCapitalization
       `OrdChain` only knows `O.chain i₀ = []` propositionally, and transporting `baseSlice*` across that
       would re-type the whole stage).
 
-  What this does NOT yet build (the precise remaining §1.543 blocker, stated honestly, no `sorry`
+  What this does NOT yet build (the precise remaining §1.543 blocker, stated honestly, no `Sorry`
   here): a CONCRETE cofinal `OrdChain D O` over a well-ordering of the well-supported objects (the
   transfinite cofinal chain, needing the mathlib `Ordinal`-backed `Colim.Directed` confined to the
   separate transfinite file), AND the `StepWellPoints` obligation — `WellPointed (st.step A)` for every

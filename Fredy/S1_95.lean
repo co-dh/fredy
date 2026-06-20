@@ -114,7 +114,7 @@ private theorem level_le_graphComp {A Q : 𝒞} (g : A ⟶ Q) :
     This is the *substantive content* of §1.568/§1.951 once the quotient cover is
     available: it packages `E ≅ level x ≅ (graph x) ⊚ (graph x)°` using the two
     bridges above, producing the `IsEffective` data (`Q`, `x`, `Cover x`, and the
-    mutual relational containments with `(graph x) ⊚ (graph x)°`).  No `sorry`. -/
+    mutual relational containments with `(graph x) ⊚ (graph x)°`).  No `Sorry`. -/
 theorem effective_of_quotient_cover {A Q : 𝒞} (E : BinRel 𝒞 A A)
     (hE : EquivalenceRelation E) (x : A ⟶ Q) (hx : Cover x)
     (hElx : RelLe E (kernelPairRel x)) (hlxE : RelLe (kernelPairRel x) E) :
@@ -135,18 +135,18 @@ end Effective
     (kernel pair) is exactly `E`.  Granting that quotient cover,
     `effective_of_quotient_cover` discharges effectiveness completely.
 
-    **Sharpened blocker (faithful sorry).**  Building the `EffectiveRegular`
+    **Sharpened blocker (faithful Sorry).**  Building the `EffectiveRegular`
     instance from bare `[Topos 𝒞]` needs THREE ingredients, of which the
     quotient-cover machinery is now within reach but the regular core is not:
 
       (1) `HasImages 𝒞` — NOT yet derivable from `Topos` in this repo.  The only
           topos construction of `image f` is `⋂{B' ↣ B | f factors through B'}`
           (§1.943), the glb over a subobject *family*.  Note §1.54's
-          `capitalization_lemma` is itself PROVEN sorry-free
+          `capitalization_lemma` is itself PROVEN Sorry-free
           (`CapDataWiring.lean`, axioms `[propext, Classical.choice, Quot.sound]`);
           but it represents a SMALL pre-regular category into a capital one, and
           wiring that into `HasImages` for an arbitrary topos is NOT done — that
-          connection (`topos_is_regular`, S1_94:346) is the still-`sorry` step.
+          connection (`topos_is_regular`, S1_94:346) is the still-`Sorry` step.
 
       (2) `PullbacksTransferCovers 𝒞` — topos exactness; bundled with (1) inside
           `RegularCategory` (S1_52:39), and blocked at the same wiring step.
@@ -176,8 +176,8 @@ instance topos_is_effective [Topos 𝒞] : EffectiveRegular 𝒞 := by
     and through Δ0 iff R = 0.  So A + 1 exists.  Then A + B is constructed
     as a subobject of [A] × [B] = [A + B].
 
-    BLOCKER (faithful sorry) — a SUBOBJECT-UNION / PARTIAL-MAP gap.  The §1.54
-    `capitalization_lemma` is PROVEN sorry-free (`CapDataWiring.lean`), and power
+    BLOCKER (faithful Sorry) — a SUBOBJECT-UNION / PARTIAL-MAP gap.  The §1.54
+    `capitalization_lemma` is PROVEN Sorry-free (`CapDataWiring.lean`), and power
     objects `[A] = HasPowerObject.powerObj A` plus the singleton map `A ↣ [A]` are
     now BUNDLED in `Topos` (`Topos.has_pow`, S1_9) and PROVEN axiom-clean
     (`Baseable923 :: singletonMap`/`singletonMap_monic`).  So ingredient (S) below
@@ -186,7 +186,7 @@ instance topos_is_effective [Topos 𝒞] : EffectiveRegular 𝒞 := by
 
       (S) [AVAILABLE]  the power objects `[A]`, `[B]` and singleton maps
           `A → [A]`, `B → [B]` — `HasPowerObject.powerObj` / `Baseable923.singletonMap`,
-          both sorry-free under `[Topos 𝒞]`.
+          both Sorry-free under `[Topos 𝒞]`.
 
       (U) [BLOCKED on `HasImages`]  the CARRIER `A + B ↪ [A] × [B]` is the union of
           the two singleton-image subobjects `{(s,∅)}` and `{(∅,t)}` of `[A]×[B]`.
@@ -225,7 +225,7 @@ variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasIma
 
 end Coequalizers
 
-/-- **§1.954, substantive reduction (no `sorry`)**: a PRE-TOPOS that has
+/-- **§1.954, substantive reduction (no `Sorry`)**: a PRE-TOPOS that has
     reflexive-transitive closures has coequalizers.
 
     Construction: from `[HasReflTransClosure 𝒞]`, `minEquiv_of_rtc` gives
@@ -233,7 +233,7 @@ end Coequalizers
     equivalence containing `R`); then `preTopos_minEquiv_to_cocartesian` (§1.657)
     builds coequalizers via the *effective-regular* route — the minimal equivalence
     `S` containing `R = «f,g»` is the level of a cover `q : B ↠ C` (effectiveness,
-    §1.951), and `q` is the coequalizer of `f, g`.  No `sorry`. -/
+    §1.951), and `q` is the coequalizer of `f, g`.  No `Sorry`. -/
 noncomputable def preTopos_rtc_has_coequalizers [inst : PreTopos 𝒞]
     [hRtc : @HasReflTransClosure 𝒞 _ PreTopos.toPositivePreLogos.toHasBinaryProducts
       PreTopos.toPositivePreLogos.toHasPullbacks PreTopos.toPositivePreLogos.toHasImages] :
@@ -256,18 +256,18 @@ noncomputable def preTopos_rtc_has_coequalizers [inst : PreTopos 𝒞]
     This B → C is the coequalizer of f and g.
 
     The *substantive content* is fully discharged in `preTopos_rtc_has_coequalizers`
-    (no `sorry`): once `[PreTopos 𝒞]` (= effective-regular + positive pre-logos) and
+    (no `Sorry`): once `[PreTopos 𝒞]` (= effective-regular + positive pre-logos) and
     `[HasReflTransClosure 𝒞]` are available, the equivalence-closure construction
     `(R ∪ R° ∪ 1)*` (now constructive via `rtc`) plus §1.657/§1.951 yield
     coequalizers.
 
-    **Sharpened blocker (faithful sorry).**  Synthesising the instance from bare
+    **Sharpened blocker (faithful Sorry).**  Synthesising the instance from bare
     `[Topos 𝒞]` needs two things this repo cannot yet provide from `Topos`:
 
       (1) `PreTopos 𝒞` — in particular `EffectiveRegular 𝒞` (and the underlying
           `RegularCategory`/`HasImages`/`PullbacksTransferCovers`).  This is
-          `topos_is_effective` (above), still a `sorry`.  Note `capitalization_lemma`
-          itself is PROVEN sorry-free (`CapDataWiring.lean`); the open step is
+          `topos_is_effective` (above), still a `Sorry`.  Note `capitalization_lemma`
+          itself is PROVEN Sorry-free (`CapDataWiring.lean`); the open step is
           wiring it into `HasImages` for an arbitrary topos (`topos_is_regular`,
           S1_94:346), so the topos image `⋂{B' ↣ B | f ↦ B'}` is constructed.
 
@@ -411,25 +411,25 @@ theorem expMap_omega_eq_omegaPow [Topos 𝒞] {A B : 𝒞} (f : A ⟶ B) :
     **Proof structure (load-bearing).**  The proof is reduced to its genuine residual:
     `cover_of_section (expMap Ω f) s hs` turns the goal into the EXISTENCE of a section
     `s : Ω^^A → Ω^^B` of `expMap Ω f` with `s ≫ (Ω^f) = 1` — i.e. exactly Freyd's
-    direct-image unit `f"f = 1` for monic `f`.  This is the ONLY thing now sorried; the
+    direct-image unit `f"f = 1` for monic `f`.  This is the ONLY thing now Sorried; the
     `cover_of_section`/`expMap` plumbing and the `Mono f` hypothesis (the section exists
     *because* `f` is monic) are load-bearing.
 
-    **Sharp residual (the faithful sorry).**  The section `s` is the direct image `f"`.
+    **Sharp residual (the faithful Sorry).**  The section `s` is the direct image `f"`.
     On genuine power objects S1_92 now PROVES this map (`powerMapCovP f : [A] → [B]`,
-    `directImageRel`) sorry-free, together with its unit at `f = 1` (`powerMapCovP_id :
+    `directImageRel`) Sorry-free, together with its unit at `f = 1` (`powerMapCovP_id :
     [1_A] = 1_{[A]}`).  Two gaps remain before `powerMapCovP f` can be USED as `s` here,
-    and they are exactly what the sorry pins:
+    and they are exactly what the Sorry pins:
 
     1. **`exp A Ω ≅ [A]` identification.**  `expMap Ω f` is typed against the
        exponential `exp A Ω = Ω^^A`, whereas `powerMapCovP f` is typed against the power
        object `[A] = HasPowerObject.powerObj A`.  `Topos` now BUNDLES
        `∀ C, HasPowerObject C` (`Topos.has_pow`, S1_9), and `universalRel_unique`
-       (S1_92:614, PROVEN sorry-free) gives `exp A Ω ≅ [A]` *as soon as* `evalRel A`
+       (S1_92:614, PROVEN Sorry-free) gives `exp A Ω ≅ [A]` *as soon as* `evalRel A`
        is a universal relation — but that universality rests on honest
-       `[HasExponentials 𝒞]`, supplied here only via the `sorry` instance
+       `[HasExponentials 𝒞]`, supplied here only via the `Sorry` instance
        `topos_has_exponentials` (S1_92:102, residual `∀ B, Baseable B`).  So `exp` is
-       still sorry-contaminated and `powerMapCovP f` cannot be *named* at the type
+       still Sorry-contaminated and `powerMapCovP f` cannot be *named* at the type
        `Ω^^A → Ω^^B` required for `s`.
 
     2. **The GENERAL unit `f"f = 1` for monic `f`.**  `powerMapCovP_id` settles the unit
@@ -438,7 +438,7 @@ theorem expMap_omega_eq_omegaPow [Topos 𝒞] {A B : 𝒞} (f : A ⟶ B) :
        pullback-classify roundtrip) that S1_92's membership universality does not yet
        discharge past `f = id`.
 
-    Either residual alone blocks the discharge, so the section existence is sorried as a
+    Either residual alone blocks the discharge, so the section existence is Sorried as a
     single faithful claim, with both gaps named above. -/
 theorem omega_is_internally_injective [Topos 𝒞] :
     IsInternallyInjective (𝒞 := 𝒞) (HasSubobjectClassifier.omega (𝒞 := 𝒞)) := by
@@ -733,7 +733,7 @@ class LocallySmallTopos (𝒞 : Type u) [Cat.{v} 𝒞] extends Topos 𝒞
     (b)→(c): trivially, copower of A specializes to copower of 1.
     (c)→(a): ∏ᵢ A ≅ A^(I⊗1) using the exponential structure of the topos.
 
-    We state (a)↔(b)↔(c) and each implies local completeness; all proofs are sorry
+    We state (a)↔(b)↔(c) and each implies local completeness; all proofs are Sorry
     since each direction requires substantial topos-theory infrastructure. -/
 theorem topos_powers_copowers_equiv [LocallySmallTopos 𝒞]
     [HasBinaryProducts 𝒞] [HasBinaryCoproducts 𝒞] :

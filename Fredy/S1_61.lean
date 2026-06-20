@@ -171,7 +171,7 @@ theorem inverseImage_mono [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullba
   structure (the reverse always holds, from monotonicity): producing the descent map needs the
   coproduct presenting `S∪T` to be *extensive* (disjoint + universal), equivalently the pre-logos
   to be POSITIVE (§1.623).  Concretely, `case cS cT : S.dom + T.dom → (S∪T).dom` is a cover
-  (`union_inclusions_cover` below, proved sorry-free), and `cover_pullback` keeps its pullback a
+  (`union_inclusions_cover` below, proved Sorry-free), and `cover_pullback` keeps its pullback a
   cover; but turning that pulled-back cover into a factorization through `f#S ∪ f#T` requires
   splitting its domain `pullback(S.dom+T.dom, π₂)` along the coproduct — exactly coproduct
   universality.  So Def 3 carries content beyond `RegularCategory`, and we record it as a class.
@@ -179,7 +179,7 @@ theorem inverseImage_mono [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullba
   We then prove **Def 3 ⟺ Defs 1&2** (`prelogos_of_transfersFiniteUnions` and
   `transfersFiniteUnions_of_prelogos`): given a fixed lattice structure (`HasSubobjectUnions`
   + a `bottom`), the finite-cover-transfer condition holds iff `f#` preserves unions and bottom.
-  Both directions are sorry-free; the three definitions coincide. -/
+  Both directions are Sorry-free; the three definitions coincide. -/
 
 section PreLogosEquivalence
 variable [HasBinaryCoproducts 𝒞]

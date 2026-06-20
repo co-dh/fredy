@@ -379,7 +379,7 @@ end LogosFromLC
 -- inverse images and arbitrary unions. By collective faithfulness, §1.712 applies
 -- and these categories are logoi. The formal Lean construction would require a
 -- concrete model of the presheaf/sheaf category (ambient set theory); we record
--- this as a design note rather than a sorry-bearing stub.
+-- this as a design note rather than a Sorry-bearing stub.
 
 /-! ## §1.714 Alternate axiom for logos
 

@@ -89,7 +89,7 @@ proves this in three steps:
         and T preserves pushouts and 0, hence T preserves coequalizers.
 
 Steps (i) and (ii) are CLOSED (via the §1.64 `amalgamation_is_pullback`); step (iii) is
-the sole remaining sorry, documented with its precise blocker. -/
+the sole remaining Sorry, documented with its precise blocker. -/
 
 section BiCartRepr
 
@@ -239,7 +239,7 @@ theorem preTopos_functor_preserves_monic_pullbacks (hptf : PreToposFunctor F)
     (`isPullback_of_iso_cospan`), and `isEqualizer_iff_isPullback` run backwards
     in ℬ identifies `(F E, F m)` as the equalizer of `(F f, F g)`.
 
-    Step (i) is now closed, so this step (ii) is fully closed (sorry-free). -/
+    Step (i) is now closed, so this step (ii) is fully closed (Sorry-free). -/
 theorem preTopos_functor_preserves_equalizers (hptf : PreToposFunctor F)
     {A B : 𝒜} (f g : A ⟶ B) (heq : HasEqualizer f g) :
     ∀ (c : EqualizerCone (hF.map f) (hF.map g)),
@@ -345,7 +345,7 @@ theorem preTopos_functor_preserves_equalizers (hptf : PreToposFunctor F)
           the cokernel pair `B +_A B` cannot be built here; and
       (2) `cover_eq_epic_preTopos` requires `[HasReflTransClosure ℬ]` (absent
           from this signature) and internally bottoms out at `pretopos_balanced`,
-          itself `sorry` on the §1.543 effective-coregularity step.
+          itself `Sorry` on the §1.543 effective-coregularity step.
     No shortcut via `PreservesMono` alone (a functor preserving monics need not
     preserve covers).
 

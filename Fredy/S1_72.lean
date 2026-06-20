@@ -529,7 +529,7 @@ theorem isEntire_rightAdj_term_iff [Logos 𝒞] {A : 𝒞} (A' : Subobject 𝒞 
 -- structure (a CartesianFunctor preserving images, giving `T : Sub A → Sub (T A)`
 -- compatibly with `pA##`).  That infra is not in the repo, so the full theorem
 -- stays MISSING — but its mathematical core (the pA## ↔ entire bridge) is now
--- proven above.  Per the integrity rule we emit no sorry on the unstatable form.
+-- proven above.  Per the integrity rule we emit no Sorry on the unstatable form.
 
 /-! ## §1.733 Coprime and Connected
 

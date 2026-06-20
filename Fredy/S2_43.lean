@@ -146,7 +146,7 @@ theorem inconsistency_core {a : 𝒜} (T : a ⟶ a) (R' : a ⟶ a)
   additional §2.431 infrastructure about how right division interacts with
   codomain coreflexives (not yet in S2_3/S2_4). -/
 
-/-- §2.436 (main, **sorry-free**, with Freyd's suppressed side-condition restored).
+/-- §2.436 (main, **Sorry-free**, with Freyd's suppressed side-condition restored).
 
     Freyd's §2.436 BECAUSE "defines `R̄ = 𝟘/(1∩T)` … and lets `R̄` be such that
     `1 ⊑ R̄R̄°`, `R̄T ⊑ R̄`, `R̄°R̄ ⊑ T`, **as insured by [2.431]**".  But §2.431 (the
@@ -158,7 +158,7 @@ theorem inconsistency_core {a : 𝒜} (T : a ⟶ a) (R' : a ⟶ a)
         `Cat.id a ∩ (diag T)° ≫ diag T = Cat.id a ∩ T° ≫ T`.
 
     Freyd's prose silently assumes it.  It is the genuinely load-bearing hypothesis,
-    so we make it explicit (rather than `sorry` a false `have`): the diagonal collapse
+    so we make it explicit (rather than `Sorry` a false `have`): the diagonal collapse
     is valid **exactly** when it holds, and then the whole §2.436 chain goes through
     with no gap.  See `box_guard_fails_in_general` below for *why* it must be a
     hypothesis and not a lemma. -/
@@ -193,7 +193,7 @@ theorem one_object_pre_power_inconsistent {a : 𝒜} (T : a ⟶ a) (hT : Thick T
 
   One might hope to *prove* `codBox (diag T) = codBox T` and recover Freyd's
   unconditional statement.  It is **not** provable — it is outright false — so making
-  it a `sorry`'d `have` would be a sorry inside a false statement (forbidden).
+  it a `Sorry`'d `have` would be a Sorry inside a false statement (forbidden).
 
   The cleanest refutation is the reflexive case `T = 1_a` (`1 ∩ T = 1`):
     * `diag T = 𝟘 / 1 = 𝟘`              (`div_one`),  so

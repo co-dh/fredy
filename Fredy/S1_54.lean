@@ -98,7 +98,7 @@ def IsRelativeCapitalization [HasTerminal 𝒞] [HasImages 𝒞] (A A_star : �
   (pre-)regular category Ā and a faithful representation A → Ā.
 
   Status of the proof in this formalization:
-  • §1.544 (one slice step separates morphisms) is PROVED, sorry-free:
+  • §1.544 (one slice step separates morphisms) is PROVED, Sorry-free:
     `slice_embedding_separates` — the keystone facts `cover_epi` (covers are
     right-cancellable) and `prod_fst_cover` (`fst : C×B → C` is a cover when B is
     well-supported) are in `S1_52.lean`.
@@ -115,12 +115,12 @@ def IsRelativeCapitalization [HasTerminal 𝒞] [HasImages 𝒞] (A A_star : �
     `Freyd.Colim.stageInclFaithful` (the colimit stage-injection is a faithful
     functor — proved via `homInclObj_id` + `homInclObj_comp` + `homInclObj_injective`
     + `homInclObj_isIso_reflects`).
-  • `Freyd.capData_exists` is now PROVEN sorry-free (in `Fredy/CapDataWiring.lean`):
+  • `Freyd.capData_exists` is now PROVEN Sorry-free (in `Fredy/CapDataWiring.lean`):
     the cofinal capitalizing tower (`A₀=A`, `A_{α+1}=(A_α)*`, limit stages as
     directed colimits) plus the §1.543 capital-closure.  It wires the §1.547 uniform
     successor (`uniformStep`), the cofinal `hstage`, and the capital fixpoint
     (`tower_capital_of_cofinal`); the §1.546 fibre-density core (`fibreDensity`) it
-    consumes is likewise proven sorry-free.
+    consumes is likewise proven Sorry-free.
 
   Below, `capitalization_lemma` is the small case (object universe = morphism
   universe `u`, as is forced by the `CatSystem` colimit machinery and matches
@@ -130,7 +130,7 @@ def IsRelativeCapitalization [HasTerminal 𝒞] [HasImages 𝒞] (A A_star : �
 -- `capitalization_lemma` (= `capitalization_lemma_small`) is RELOCATED to `Fredy.CapDataWiring`:
 -- it forwards to `capData_exists`, whose §1.543 discharge wires the §1.547 uniform successor, which
 -- transitively imports this file — so it cannot live upstream here.  See
--- `Fredy.CapDataWiring.capitalization_lemma`, now PROVEN sorry-free (axioms
+-- `Fredy.CapDataWiring.capitalization_lemma`, now PROVEN Sorry-free (axioms
 -- `[propext, Classical.choice, Quot.sound]`).
 
 end Freyd

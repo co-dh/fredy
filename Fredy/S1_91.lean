@@ -1056,7 +1056,7 @@ theorem comp_dbar {V W : 𝒞} (k : V ⟶ W)
 -- structure of `φ² = (·⇔u)⇔u` — which routes through the `⇒`-laws derived from
 -- `imp_adjunction`.  Deliberately left unfinished rather than faked; the reusable
 -- infra (`true_dbar`, `dbar_refl_top`, `dbar_unit`, `dbar_symm`, `omega_ext`,
--- `comp_dbar`, the ⇒-adjunction) is all sorry-free above.
+-- `comp_dbar`, the ⇒-adjunction) is all Sorry-free above.
 
 /-- **§1.919 (reduction)**: an endomorphism `h : Ω → Ω` equals the identity as
     soon as `t : 1 → Ω` is a pullback of `t` along `h` — i.e. `Ω` is "`h`-large in
@@ -1243,7 +1243,7 @@ theorem omega_involution_of_cube (g : HasSubobjectClassifier.omega (𝒞 := 𝒞
     internal-logic build STRICTLY STRONGER than `Mono g` in isolation; it is NOT
     a single additive lemma reachable from the present API (the order layer
     `imp_adjunction` is available but does not break the circle).  Deliberately
-    left as an honest `sorry` with this sharpened reason rather than faked. -/
+    left as an honest `Sorry` with this sharpened reason rather than faked. -/
 theorem omega_monic_endo_is_involution (g : HasSubobjectClassifier.omega (𝒞 := 𝒞) ⟶
     HasSubobjectClassifier.omega (𝒞 := 𝒞)) (hm : Mono g) : g ≫ g = Cat.id _ := by
   -- Reduced (axiom-free) to the cube law `(g ≫ g) ≫ g = g`; see CRUX above.

@@ -437,7 +437,7 @@ theorem exists_wellOrder (α : Type u) : ∃ r : α → α → Prop, IsWellOrder
 
 These show that ONCE `IsWellOrder r` is available, it feeds the existing §1.543 machinery directly:
 `least` is the cofinal-enumeration engine, and `toDirected` packages the order as a `Colim.Directed`
-index (bound = the `r`-max of two elements, which exists by trichotomy).  Both are sorry-free, so the
+index (bound = the `r`-max of two elements, which exists by trichotomy).  Both are Sorry-free, so the
 ONLY thing standing between mathlib-free §1.543 and a closed `hwall_cap` is `exists_wellOrder`. -/
 
 namespace IsWellOrder

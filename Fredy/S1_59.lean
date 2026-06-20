@@ -457,7 +457,7 @@ def IsExactStructure (𝒞 : Type u) [Cat.{v} 𝒞]
   (←) exact ⟹ every monic x is the kernel of its cokernel (`monic_kernel_of_cokernel`), i.e.
   normal.  This converse direction is, in fact, already provable from `monic_kernel_of_cokernel`
   once exactness is packaged as an `ExactCategory`; only the forward direction strictly needs
-  the Ab-representation.  Faithful sorry retained for both. -/
+  the Ab-representation.  Faithful Sorry retained for both. -/
 theorem abelian_iff_regular_additive_all_normal
     (𝒞 : Type u) [Cat.{v} 𝒞]
     [RegularCategory 𝒞] [AdditiveCategory 𝒞] [HasZeroObject 𝒞]
@@ -751,7 +751,7 @@ theorem abelian_iff_normal_kernels_cokernels
   which is also absent.  No shortcut exists from the present `AbelianCategory` / `ExactCategory`
   fields alone: the goal is bare `IsIso v₃` with only the six exactness isos and four square
   commutativities, and `IsIso` is not recoverable without constructing ker(v₃)=0 ∧ coker(v₃)=0.
-  Faithful sorry retained (statement is Freyd §1.599, verified true and non-vacuous). -/
+  Faithful Sorry retained (statement is Freyd §1.599, verified true and non-vacuous). -/
 theorem five_lemma [AbelianCategory 𝒞]
     {A₁ A₂ A₃ A₄ A₅ B₁ B₂ B₃ B₄ B₅ : 𝒞}
     {a₁ : A₁ ⟶ A₂} {a₂ : A₂ ⟶ A₃} {a₃ : A₃ ⟶ A₄} {a₄ : A₄ ⟶ A₅}
@@ -801,8 +801,8 @@ theorem five_lemma [AbelianCategory 𝒞]
   capitalization metatheorem (concurrent agent, not yet importable).  The kernel/cokernel
   functoriality maps κ_*, π_* DO follow from the present universal properties, but the
   conjunction's hard core (existence of δ + four exactness isos) cannot be discharged without
-  the relational calculus; a partial proof would leave δ a `sorry` inside the existential and
-  is no more honest than the whole-statement sorry.  Faithful sorry retained. -/
+  the relational calculus; a partial proof would leave δ a `Sorry` inside the existential and
+  is no more honest than the whole-statement Sorry.  Faithful Sorry retained. -/
 theorem snake_lemma [AbelianCategory 𝒞]
     {A B C A' B' C' : 𝒞}
     {f : A ⟶ B} {g : B ⟶ C} {α : A ⟶ A'} {β : B ⟶ B'} {γ : C ⟶ C'}

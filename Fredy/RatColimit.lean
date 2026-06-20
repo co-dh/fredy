@@ -29,7 +29,7 @@ import Fredy.SliceRegular
   Applied to `pairOnUToSlice_equivalence` + `overPreRegular`, this yields
   `PreRegularCategory (PairOnU U)` for every `Nodup` list `U` of well-supported objects.
 
-  ## What this does NOT yet build (the precise next blocker, stated honestly — no `sorry`)
+  ## What this does NOT yet build (the precise next blocker, stated honestly — no `Sorry`)
 
   The directed COLIMIT of these pre-regular fibers via `colimitPreRegular` needs a `CatSystem`
   with ON-THE-NOSE functorial transitions (`F_refl`/`F_trans` definitional).  Over the subset

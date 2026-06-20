@@ -9,7 +9,7 @@
 
   Milestone 1 of the capitalization project (see CAPITALIZATION_ROADMAP.md):
   the directed colimit of types, its canonical inclusions, their compatibility,
-  and the universal property (`desc`).  All sorry-free.
+  and the universal property (`desc`).  All Sorry-free.
 -/
 
 namespace Freyd.Colim

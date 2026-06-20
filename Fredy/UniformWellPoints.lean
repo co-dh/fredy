@@ -32,7 +32,7 @@
     from `StageDensity W` SORRY-FREE.  `StageDensity`/`FibreDensity` itself is now PROVEN in
     `FibreDensityProof.lean` (`fibreDensity`/`wsCover_fibreDensity`), so §1.543 is proven.
 
-  No mathlib category theory; the lax colimit is on this repo's own `Cat`.  This file is sorry-free
+  No mathlib category theory; the lax colimit is on this repo's own `Cat`.  This file is Sorry-free
   (it defines and reduces to the density Prop, proven downstream); no `axiom`, no `:True`, no
   statement-weakening.
 -/
@@ -306,12 +306,12 @@ theorem colimitMono_reflects_to_fibre (A : S)
   need miss it.  But `ratCapCat` is the directed COLIMIT; the §1.546 DENSITY (`pairDense_*`,
   `pairDense_pb_canonical_dense`, already closed in `RationalCapitalization.lean`) makes the mono
   product-form at a LATER stage `U'`, where `prodFormMono_wellPointed` (`SliceEquivalence.lean`,
-  sorry-free, under `SpecialHere`) supplies a slice g-point of `sliceEmbedObj (∏(chain U')) A`
+  Sorry-free, under `SpecialHere`) supplies a slice g-point of `sliceEmbedObj (∏(chain U')) A`
   missing the pushed mono.  That slice point, included at stage `U'` and transported back to
   `⟨base, terminalSliceObj A⟩` along the realignment iso `alignGerm` (the pushforward is iso to the
   base object in the colimit), is the missing COLIMIT point.  The density-driven product-form
   reduction + this point transport is isolated entirely inside `StageDensity`, which the reduction
-  below consumes sorry-free — and `StageDensity` is now PROVEN in `FibreDensityProof.lean`. -/
+  below consumes Sorry-free — and `StageDensity` is now PROVEN in `FibreDensityProof.lean`. -/
 
 /-- **The §1.546 density obligation for the uniform successor at `A`.**  For every proper FIBRE mono
     `g''` into the pushforward `L.F hbU (terminalSliceObj A)` of `terminalSliceObj A` at any stage `U`,
@@ -344,7 +344,7 @@ def StageDensity (W : WSCover S) : Prop :=
     This is the GENUINE §1.546 content, now isolated at the exact stage where the directed-union
     density applies: `g''` becomes product-form at a later stage and `prodFormMono_wellPointed` gives
     the slice g-point.  Strictly sharper than `StageDensity` (no realignment bookkeeping — the point
-    lives at the SAME object as the reflected mono).  `StageDensity` follows from it sorry-free via
+    lives at the SAME object as the reflected mono).  `StageDensity` follows from it Sorry-free via
     Phase 2's factorization + `point_transport_unconj`. -/
 def FibreDensity (W : WSCover S) : Prop :=
   letI : Cat (uniformTargetTy W) := uniformTargetCat W

@@ -693,7 +693,7 @@ theorem straight_factor_map_monic {𝒜 : Type u} [DivisionAllegory 𝒜] {x c a
     assumed positive, so supplying them as instance fields would weaken the theorem below
     the book's hypotheses.  Precise missing primitive: a progenitor `y : 𝒜` (§1.966) with
     its copower `coprod (powerObj b) p` (`PositiveAllegory.has_coproduct`).  We leave
-    `eps_thick` as this single sharp sorry. -/
+    `eps_thick` as this single sharp Sorry. -/
 noncomputable def effective_pre_power_is_power {𝒜 : Type u} [EffectivePrePowerAllegory 𝒜] :
     PowerAllegory 𝒜 :=
   { powerObj := fun b => (exists_straight_thick_target b).choose
@@ -1155,7 +1155,7 @@ theorem pre_positive_straight_simple_factor {𝒜 : Type u} [PrePositivePowerAll
     `pre_positive` field states Freyd's monic conditions (faithful-fix; see that lemma's docstring).
     Hence the FORWARD direction (metonymy ⟹ every morphism semi-simple) is fully proven.
 
-    CONVERSE (every morphism semi-simple ⟹ metonymy): residual sorry.  The §2.443 calculus
+    CONVERSE (every morphism semi-simple ⟹ metonymy): residual Sorry.  The §2.443 calculus
     (`semiSimple_of_le_powerOrder`) is built, and — for *maps* `f, g : c → [a]` with `g∋ ⊑ f∋` — it
     produces the bound `f°g ⊑ bigUnion° ≫ bigInter`, which now MATCHES the corrected law
     `2 ⊑ bigUnion° ≫ bigInter` exactly (the former "obstacle (iii)" operand-order mismatch was an OCR

@@ -182,7 +182,7 @@ def InterUnionDistrib (𝒜 : Type u) [UnionAllegory 𝒜] : Prop :=
   Rel counterexample in `tab_transport_gap`'s docstring).  The genuinely
   constructive content (`tab_phi_coreflexive`, `tab_deflate_source/target`)
   is recorded below; the distributivity is recovered in the SOURCE-apex frame
-  (§2.143/§2.166, `interUnionU_distrib_of_srcTabulation`) — now sorry-free. -/
+  (§2.143/§2.166, `interUnionU_distrib_of_srcTabulation`) — now Sorry-free. -/
 
 /-- For a tabulation, `φ Q = f° Q g` is coreflexive whenever `Q ⊑ f g°`. -/
 theorem tab_phi_coreflexive [UnionAllegory 𝒜] {a p c : 𝒜}
@@ -267,7 +267,7 @@ theorem interUnionDistrib_iff_le [UnionAllegory 𝒜] :
   coreflexives of the apex `c`, where ∩ and composition coincide
   (`coreflexive_comp_eq_inter`, §2.121) so that the lattice is distributive.
 
-  Everything in this block is sorry-free.  The *bridge* hypotheses
+  Everything in this block is Sorry-free.  The *bridge* hypotheses
   (`hsplit*`, `hψcap`, `hψcup`) of `interUnionU_distrib_of_transport` package
   exactly the §2.213/§2.226 splitting: a coreflexive-valued retraction `ψ` of
   `φ Q := f° Q g` on `{Q ⊑ U}` that preserves ∩ and ∪.  In an EFFECTIVE
@@ -347,7 +347,7 @@ theorem psi_unionU [UnionAllegory 𝒜] {a p c : 𝒜} (f : a ⟶ c) (g : p ⟶ 
 
 /-! ### Modular meet calculus: maps distribute over intersection (§2.136)
 
-  Two genuinely-new modular-law facts, proved sorry-free, that the §2.228(a)
+  Two genuinely-new modular-law facts, proved Sorry-free, that the §2.228(a)
   transport needs.  `simple_comp_inter` is Freyd §2.136 (`F(R∩S) = FR ∩ FS`
   for `F` simple); `modular_le_left` is the left-handed companion of
   `modular_le` (`(R≫S)∩T ⊑ R≫(S ∩ R°≫T)`), obtained by reciprocating the
@@ -404,7 +404,7 @@ theorem modular_le_left [UnionAllegory 𝒜] {a b c : 𝒜} (R : a ⟶ b) (S : b
   completion — the single construction still absent (it needs products or the
   completion object, neither available from `EffectiveAllegory` alone). -/
 
-/-- **§2.143 source-apex round-trip** (sorry-free).  For maps `F : c → a`,
+/-- **§2.143 source-apex round-trip** (Sorry-free).  For maps `F : c → a`,
     `G : c → p` and any `Q ⊑ F° ≫ G`, the transport `Φ Q := 1_c ∩ F Q G°`
     (a coreflexive on the apex `c`) is inverted by `Ψ A := F° A G`:
         `F° ≫ (1_c ∩ F ≫ Q ≫ G°) ≫ G = Q`.
@@ -454,7 +454,7 @@ theorem coreflexive_inter_unionU_distrib [UnionAllegory 𝒜] {c : 𝒜} {A B C 
   rw [← coreflexive_comp_eq_inter hA hBC, UnionAllegory.comp_union_distrib,
       coreflexive_comp_eq_inter hA hB, coreflexive_comp_eq_inter hA hC]
 
-/-- **§2.213/§2.226 transport theorem** (sorry-free, conditional).  Given a
+/-- **§2.213/§2.226 transport theorem** (Sorry-free, conditional).  Given a
     coreflexive-valued retraction `ψ` of `φ Q := f° Q g` on `{Q ⊑ U}` that
     preserves ∩ (on coreflexives) and ∪, the coreflexive distributive law
     transports back to give the full ∩-over-∪ *equality* `R ∩ (S∪T) =
@@ -494,7 +494,7 @@ theorem interUnionU_distrib_of_transport [UnionAllegory 𝒜] {a p c : 𝒜}
 
   between `{Q | Q ⊑ U}` and the coreflexives of `c` is *genuine* — BOTH round-trips
   hold — and the distributive coreflexive lattice transports back.  Everything in
-  this block is sorry-free; the four order-iso half-identities are
+  this block is Sorry-free; the four order-iso half-identities are
   `src_roundtrip_le` (`ψφ ⊑ id`), `src_roundtrip_ge` (`id ⊑ ψφ`),
   `src_phipsi_le` (`φψ ⊑ id`), `src_phipsi_ge` (`id ⊑ φψ`).  The single piece
   still missing from this repo is the *construction* of such a span for an
@@ -633,7 +633,7 @@ theorem src_roundtrip_ge {a p c : 𝒜} [Allegory 𝒜] {F : c ⟶ a} {G : c ⟶
     have h := comp_mono_right hmid G; rwa [Cat.assoc] at h
   exact le_trans hstep1 hstep2
 
-/-- **§2.228(a) transport, made unconditional on the span** (sorry-free).  Given a
+/-- **§2.228(a) transport, made unconditional on the span** (Sorry-free).  Given a
     SOURCE-APEX span of maps `(F, G)` jointly monic on the apex (`F F° ∩ G G° = 1_c`)
     with `R, S, T ⊑ F° G`, the order-iso `φ Q := 1_c ∩ F Q G°` / `ψ A := F° A G`
     transports the distributive coreflexive lattice of `c` back to give the
@@ -701,12 +701,12 @@ theorem interUnionU_distrib_of_srcTabulation [UnionAllegory 𝒜] {a p c : 𝒜}
   coreflexives of `c` via `φ Q := 1_c ∩ F Q G°`, `ψ A := F° A G`, where
   coreflexives form a distributive lattice (`coreflexive_comp_eq_inter`).  Hence ∩
   distributes over ∪.  The order-iso is `interUnionU_distrib_of_srcTabulation`
-  (sorry-free); the span itself is `srcTabulation_exists`, now CLOSED via §2.16(10)
+  (Sorry-free); the span itself is `srcTabulation_exists`, now CLOSED via §2.16(10)
   (`srcTabulation_of_semiSimple_split`: split `F₀F₀° ∩ G₀G₀°` of `U = F₀° G₀`). -/
 
 /-! ### §2.16(10)  Building the source-apex span by splitting `F₀F₀° ∩ G₀G₀°`
 
-  Freyd's §2.16(10) "routine" construction, made sorry-free.  From a semi-simple
+  Freyd's §2.16(10) "routine" construction, made Sorry-free.  From a semi-simple
   factorisation `U = F₀° G₀` (`F₀, G₀` simple) the meet `E := F₀F₀° ∩ G₀G₀°` is a
   symmetric idempotent (symmetric + transitive ⟹ idempotent, §2.12).  In an
   EFFECTIVE allegory `E` splits: a map `f : c₀ → c` with `f f° = E`, `f° f = 1_c`.
@@ -929,7 +929,7 @@ theorem srcTabulation_of_semiSimple_split [UnionAllegory 𝒜]
     through the union allegory's own reciprocation/composition (this `Prop`)
     keeps every morphism typed by the single `UnionAllegory` instance.  Likewise
     semi-simplicity is the explicit `hss`.  The order-iso the transport needs is
-    proven sorry-free: `src_roundtrip_le/ge`, `src_phipsi_le/ge`,
+    proven Sorry-free: `src_roundtrip_le/ge`, `src_phipsi_le/ge`,
     `interUnionU_distrib_of_srcTabulation`. -/
 theorem srcTabulation_exists [UnionAllegory 𝒜]
     (hss : ∀ {a b : 𝒜} (R : a ⟶ b), SemiSimple R) (hsplit : SplitsSymmIdem 𝒜)

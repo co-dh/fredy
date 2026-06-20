@@ -18,7 +18,7 @@
   covers), which is what powers the §1.551 Horn-sentence metatheorem; the
   covariant-hom representation preserves limits but NOT images, so exactness is
   not established here.  An exact faithful representation needs the §1.543
-  Capitalization Lemma — now PROVEN sorry-free as
+  Capitalization Lemma — now PROVEN Sorry-free as
   `Fredy.capitalization_lemma` (`Fredy/CapDataWiring.lean`, axioms
   `[propext, Classical.choice, Quot.sound]`).  Only the wiring that APPLIES it
   to upgrade this representation to an exact one remains to be done here.
@@ -137,7 +137,7 @@ theorem homRep_reflects_mono (𝒞 : Type u) [Cat.{u} 𝒞] : ReflectsMono (homR
     `h : i → Y` lifts through `f`.  Pull `f` back along `h`; the leg over `i` is a
     cover (`cover_pullback`), and projectivity splits it, giving the lift.
     (`hi` is `Projective i` of §1.57 written out; projectivity is precisely what
-    the §1.543 capitalization supplies — now proven sorry-free as
+    the §1.543 capitalization supplies — now proven Sorry-free as
     `Fredy.capitalization_lemma` — so this pinpoints the remaining work for an
     *exact* Henkin–Lubkin representation as WIRING that proven lemma in.) -/
 theorem hom_lifts_cover_of_projective {𝒞 : Type u} [Cat.{w} 𝒞] [HasPullbacks 𝒞]
@@ -154,7 +154,7 @@ theorem hom_lifts_cover_of_projective {𝒞 : Type u} [Cat.{w} 𝒞] [HasPullbac
 
 /-- **Exact Henkin–Lubkin, given capitalization:** if every object of the
     regular category `𝒞` is projective (a *capital* category — what §1.543
-    delivers, now proven sorry-free as `Fredy.capitalization_lemma`), then
+    delivers, now proven Sorry-free as `Fredy.capitalization_lemma`), then
     `homRep` preserves covers componentwise: `Hom(i, f)` is surjective at every
     index `i` for a cover `f`.  Combined with
     `homRep_preserves_mono`/`_reflects_mono`, this is the full exactness of the
@@ -205,7 +205,7 @@ theorem exists_separating_family (𝒞 : Type u) [Cat.{u} 𝒞] [PreRegularCateg
 /-- **§1.55 Henkin-Lubkin.**  Every small pre-regular category `𝒞` is faithfully
     represented in the power `𝒮^|𝒞|`: there is a functor `T : 𝒞 → 𝒮^𝒞` that
     separates morphisms.  The witness is the covariant hom-functor representation;
-    the proof is sorry-free and choice-free (depends only on `Quot.sound`, via
+    the proof is Sorry-free and choice-free (depends only on `Quot.sound`, via
     `funext`).  See the file header for the faithful-vs-exact scope note. -/
 theorem henkin_lubkin (𝒞 : Type u) [Cat.{u} 𝒞] [PreRegularCategory 𝒞] :
     ∃ (T : 𝒞 → (𝒞 → Type u)) (_ : Functor T), SeparatesMaps T := by
@@ -218,7 +218,7 @@ theorem henkin_lubkin (𝒞 : Type u) [Cat.{u} 𝒞] [PreRegularCategory 𝒞] :
   §1.551: every Horn sentence in the predicates of regular categories true for the
   category of sets is true for every regular category.  This follows from the
   *exact* form of Henkin-Lubkin, which in turn needs the capitalization lemma
-  (`Fredy.capitalization_lemma`, §1.543) — now PROVEN sorry-free in
+  (`Fredy.capitalization_lemma`, §1.543) — now PROVEN Sorry-free in
   `Fredy/CapDataWiring.lean`.  What remains for §1.551 is the exactness wiring,
   not the capitalization lemma itself.
 
@@ -226,7 +226,7 @@ theorem henkin_lubkin (𝒞 : Type u) [Cat.{u} 𝒞] [PreRegularCategory 𝒞] :
   machinery (`HornSentence`/`HoldsIn`), which lives in `Fredy/S1_56.lean` — and S1_56
   imports this file, so referencing it here would be circular.  The faithful Horn
   reflection statement therefore lives downstream in S1_56
-  (`horn_sentence_reflected_by_faithful`, §1.563), proven sorry-free there as the
+  (`horn_sentence_reflected_by_faithful`, §1.563), proven Sorry-free there as the
   honest content-bearing faithful version.  Per the integrity rule we do NOT emit a
   vacuous `: True` stub for §1.551 here. -/
 

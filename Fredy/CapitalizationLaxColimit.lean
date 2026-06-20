@@ -3,7 +3,7 @@
 
   ════════════════════════════════════════════════════════════════════════════════════════════
   WHY THIS FILE EXISTS — the precise diagnosis of the §1.543 capitalization wall, AND the route
-  that resolves it.  §1.543 is now PROVEN sorry-free (`Fredy.capitalization_lemma`): the lax
+  that resolves it.  §1.543 is now PROVEN Sorry-free (`Fredy.capitalization_lemma`): the lax
   interface built here is exactly what sidesteps the strict base-change obstruction below.
   ════════════════════════════════════════════════════════════════════════════════════════════
 
@@ -203,7 +203,7 @@ noncomputable def ofStrict (C : Colim.CatSystem.{u, w} ι D) (hC : C.Coherent) :
   We phrase this abstractly over any directed product-projection system so it is reusable and
   imports only the light `SliceRegular` (not the heavy `Capitalization` chain): a `ProjSystem` is a
   `Directed ι` together with stage products `pr i` and a strictly-coherent projection family
-  `proj`.  Its base-change object/functor data is sorry-free; the two pseudo-coherence isos are the
+  `proj`.  Its base-change object/functor data is Sorry-free; the two pseudo-coherence isos are the
   genuine remaining content, isolated as honest TRUE obligations in `PseudoBaseChange` (no false
   equation — unlike `StrictBaseChange`, these isos really hold). -/
 section BaseChangeLax
@@ -236,7 +236,7 @@ abbrev pcObj (P : ProjSystem ι D 𝒞) (i : ι) : Type w := Over (P.pr i)
 def pcF (P : ProjSystem ι D 𝒞) {i j} (h : D.le i j) : pcObj P i → pcObj P j :=
   baseChangeObj (P.proj h)
 
-/-- The base-change transition is a functor (sorry-free, `baseChangeFunctor`). -/
+/-- The base-change transition is a functor (Sorry-free, `baseChangeFunctor`). -/
 instance pcFunctF (P : ProjSystem ι D 𝒞) {i j} (h : D.le i j) :
     @Functor (pcObj P i) (overCat (P.pr i)) (pcObj P j) (overCat (P.pr j)) (pcF P h) :=
   baseChangeFunctor (P.proj h)
@@ -580,7 +580,7 @@ end BaseChangeTransIso
       `trans_iso` : `baseChangeObj (g' ≫ g) ≅ baseChangeObj g' ∘ baseChangeObj g`
                     — pullback pasting / iterated-pullback iso.
 
-    BOTH coherence isos are now DISCHARGED, sorry-free and axiom-free: `projReflIso` (reflexive,
+    BOTH coherence isos are now DISCHARGED, Sorry-free and axiom-free: `projReflIso` (reflexive,
     transport of `baseChangeIdNatIso`) and `projTransIso` (composite, transport of
     `baseChangeTransNatIso`, the pullback-pasting iso `pasteCone_isPullback` + `isIso_of_two_pullbacks`).
     So `PseudoBaseChange` is inhabited UNCONDITIONALLY (`pseudoBaseChange`), and `laxOfProjSystem'`
@@ -595,7 +595,7 @@ structure PseudoBaseChange (P : ProjSystem ι D 𝒞) where
 
 /-- **The reflexive coherence iso of ANY base-change projection system is real.**  Transporting
     `baseChangeIdNatIso` along `P.proj_refl i : P.proj (D.refl i) = Cat.id (pr i)` discharges the
-    `refl_iso` field for every `ProjSystem` — sorry-free.  So `PseudoBaseChange` reduces to its
+    `refl_iso` field for every `ProjSystem` — Sorry-free.  So `PseudoBaseChange` reduces to its
     `trans_iso` field alone: the reflexive half is NOT a blocker. -/
 def projReflIso (P : ProjSystem ι D 𝒞) (i : ι) :
     @NatIso (pcObj P i) (overCat (P.pr i)) (pcObj P i) (overCat (P.pr i))
@@ -608,7 +608,7 @@ def projReflIso (P : ProjSystem ι D 𝒞) (i : ι) :
 
 /-- **The composite coherence iso of ANY base-change projection system is real.**  Transporting
     `baseChangeTransNatIso` along `P.proj_trans hij hjk : P.proj (D.trans hij hjk) = P.proj hjk ≫
-    P.proj hij` discharges the `trans_iso` field for every `ProjSystem` — sorry-free.  This is the
+    P.proj hij` discharges the `trans_iso` field for every `ProjSystem` — Sorry-free.  This is the
     pullback-pasting natural iso, instantiated at the projection composite.  So `PseudoBaseChange` is
     inhabited UNCONDITIONALLY (`pseudoBaseChange`): neither coherence half is a blocker. -/
 def projTransIso (P : ProjSystem ι D 𝒞) {i j k : ι} (hij : D.le i j) (hjk : D.le j k) :
@@ -629,7 +629,7 @@ def projTransIso (P : ProjSystem ι D 𝒞) {i j k : ι} (hij : D.le i j) (hjk :
   rw [P.proj_trans hij hjk]
   exact baseChangeTransNatIso (P.proj hij) (P.proj hjk)
 
-/-- **`PseudoBaseChange` is inhabited for every projection system**, sorry-free: both coherence
+/-- **`PseudoBaseChange` is inhabited for every projection system**, Sorry-free: both coherence
     isos (`projReflIso`, `projTransIso`) are the canonical pullback isos, which genuinely exist.
     This turns `laxOfProjSystem` into an UNCONDITIONAL construction — the §1.543 inner base-change
     slice system is a `LaxCatSystem` with no hypothesis to discharge. -/
@@ -638,7 +638,7 @@ def pseudoBaseChange (P : ProjSystem ι D 𝒞) : PseudoBaseChange P where
 
 /-- **The §1.547 base-change slice system as a `LaxCatSystem`.**  Given the directed projection
     system `P` and its (TRUE) pseudo-coherence isos `H`, the finite-product slices `A/(pr i)` with
-    base-change transitions form a `LaxCatSystem` — sorry-free.  This is the lax analogue of
+    base-change transitions form a `LaxCatSystem` — Sorry-free.  This is the lax analogue of
     `Freyd.innerCatSystem`, but WITHOUT the false `StrictBaseChange` input: the coherence is carried
     by genuine isos.  THIS is the construction the strict `Colim.CatSystem` could not host. -/
 def laxOfProjSystem (P : ProjSystem ι D 𝒞) (H : PseudoBaseChange P) : LaxCatSystem.{u, w} ι D where
@@ -668,7 +668,7 @@ end BaseChangeLax
   `F_refl_iso`/`F_trans_iso`, so `castHom` (transport along an *equality*) is replaced by
   CONJUGATION by the coherence-iso components — the lax `pushHom`.
 
-  This section isolates, sorry-free, the lax hom-transition `pushHom` and the EXACT coherence
+  This section isolates, Sorry-free, the lax hom-transition `pushHom` and the EXACT coherence
   obligations its functoriality (`pushHom_refl`/`pushHom_trans`) demands — which are precisely the
   pseudofunctor UNIT and ASSOCIATIVITY coherences the bare `LaxCatSystem` does not yet carry. -/
 section LaxHom
@@ -800,7 +800,7 @@ theorem pushHom_id {i : ι} (x : L.A i) {k m : ι} (hik : D.le i k) (hkm : D.le 
   these are TRUE for base-change — they are the standard pullback-pasting coherences.  We isolate
   them here as a hypothesis (`Coherent`); the whole hom-colimit `Cat` is built relative to it.
   `Coherent` for `laxOfProjSystem'` (base-change) — the pullback pentagon — is now DISCHARGED
-  sorry-free as `coherentProj` (below), so §1.543 is proven and nothing here is deferred. -/
+  Sorry-free as `coherentProj` (below), so §1.543 is proven and nothing here is deferred. -/
 structure Coherent (L : LaxCatSystem.{u, w} ι D) : Prop where
   /-- UNIT: pushing a stage-`k` morphism along the reflexive bound `k ≤ k` is the identity.
       (Type-correct because `D.trans hik (D.refl k) = hik` by proof irrelevance of `D.le`.) -/
@@ -1137,7 +1137,7 @@ end HomColim
   (laxOfProjSystem' P)`, i.e. the pseudofunctor UNIT (`push_refl`) and ASSOCIATIVITY (`push_trans`)
   of the lax hom-transition `pushHom` built from the pullback coherence isos
   `projReflIso`/`projTransIso`.  Both reduce to arrow-equalities between fixed pullback apices,
-  proved by pullback-`lift` uniqueness.  With this, §1.543 is proven sorry-free. -/
+  proved by pullback-`lift` uniqueness.  With this, §1.543 is proven Sorry-free. -/
 section BaseChangeCoherent
 
 variable {𝒞 : Type w} [Cat.{w} 𝒞] [HasPullbacks 𝒞]
@@ -1590,11 +1590,11 @@ end Freyd.LaxColim
 /-!
 ════════════════════════════════════════════════════════════════════════════════════════════════
   DESIGN ASSESSMENT (§1.543 capitalization, filtered pseudo-colimit route) — NOW COMPLETE.
-  §1.543 is PROVEN sorry-free (`Fredy.capitalization_lemma`); the former "NEXT BLOCKER" below
+  §1.543 is PROVEN Sorry-free (`Fredy.capitalization_lemma`); the former "NEXT BLOCKER" below
   (`Coherent (laxOfProjSystem' P)`) is discharged by `coherentProj`.
 ════════════════════════════════════════════════════════════════════════════════════════════════
 
-WHAT THIS FILE ESTABLISHES (all sorry-free, axiom-free):
+WHAT THIS FILE ESTABLISHES (all Sorry-free, axiom-free):
 
   * `LaxCatSystem` — the missing abstraction: a directed system of categories whose transitions are
     FUNCTORS with coherence given as natural ISOS (`F_refl_iso`/`F_trans_iso`), not strict
@@ -1623,7 +1623,7 @@ WHAT THIS FILE ESTABLISHES (all sorry-free, axiom-free):
 WHY THE FILTERED ROUTE (this file) BEATS THE TRANSFINITE TOWER (`CapitalizationGroth.lean`):
 
   * The tower indexes by a well-order with LIMIT ordinals and needs cross-stage `belowObjAgree`/
-    `belowCoherent` (5 `sorry`s bottoming out in `CapitalizationTower.lean`) plus `gLimTopPre`.
+    `belowCoherent` (5 `Sorry`s bottoming out in `CapitalizationTower.lean`) plus `gLimTopPre`.
   * Here the index `listDirected` is FILTERED (any two finite lists have an upper bound = append);
     there are NO limit ordinals, NO `below*` agreement, NO transfinite coherence.  The Σ-object
     carrier is unconditional, and the coherence is entirely on hom-sets / per-pair transition isos.
@@ -1642,7 +1642,7 @@ THE PSEUDO HOM-COLIMIT + `Cat` INSTANCE — DONE (was the prior NEXT BLOCKER):
 
   A morphism `⟨i,x⟩ → ⟨j,y⟩` is a germ of `Hom_{A k}(F_{ik} x, F_{jk} y)` over upper bounds `k`,
   with germ equivalence transported along the COHERENCE ISOS via `pushHom` (iso-conjugation, the
-  lax analogue of the strict `castHom`-based `homTr`).  Now built, sorry-free:
+  lax analogue of the strict `castHom`-based `homTr`).  Now built, Sorry-free:
 
     * `pushHom` / `transApp` / `isoInv` — the lax hom-transition: map along `F hkm`, conjugate by the
       `F_trans_iso` components (forward on source, inverse on target).
@@ -1661,7 +1661,7 @@ THE PSEUDO HOM-COLIMIT + `Cat` INSTANCE — DONE (was the prior NEXT BLOCKER):
       (NO `Quotient.out`/choice on objects, unlike the strict `colimitCat`).
     * `compL_id_left` / `compL_id_right` / `compL_assoc` — the three `Cat` axioms.
     * `laxColimCat : Cat (Obj L)` — THE CATEGORY.  `#print axioms` = `Classical.choice`, `Quot.sound`,
-      `propext` (NO `sorryAx`).  The `Classical.choice` is forced only by the interface
+      `propext` (NO `SorryAx`).  The `Classical.choice` is forced only by the interface
       (`IsIso := ∃ g, …` is a Prop, so the inverse arrow `isoInv` is extracted by choice; and the raw
       composite picks a bound by `D.bound`'s choice) — never by faking mathematical content.
 

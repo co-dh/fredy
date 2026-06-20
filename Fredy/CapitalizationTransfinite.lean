@@ -2,10 +2,12 @@ import Fredy.Capitalization
 
 /-! # §1.543 — the capital-closure fixpoint `hwall_cap`, transfinite analysis
 
-  This file isolates and reduces the LAST wall of Freyd's §1.543 capitalization: `hwall_cap`, the
-  single remaining `sorry` of `Freyd.capData_exists` (Capitalization.lean), which asks that the
-  ω-tower colimit `Ā = (towerSystem b nextStep).Obj` is **capital** — every well-supported object of
-  `Ā` is well-pointed (`Capital 𝒞 := ∀ A, WellSupported A → WellPointed A`, S1_52.lean).
+  This file isolates and analyses the capital-closure fixpoint `hwall_cap` of Freyd's §1.543: the
+  obligation that the ω-tower colimit `Ā = (towerSystem b nextStep).Obj` is **capital** — every
+  well-supported object of `Ā` is well-pointed (`Capital 𝒞 := ∀ A, WellSupported A → WellPointed A`,
+  S1_52.lean).  NOTE: §1.543 itself is now PROVEN Sorry-free — `Freyd.capData_exists` /
+  `Freyd.capitalization_lemma` are discharged in `Fredy/CapDataWiring.lean`; this file is the
+  standalone transfinite diagnostic of the `hwall_cap` ingredient (not a remaining hole in the lemma).
 
   ## The precise obstruction (diagnosed, not re-derived)
 
@@ -36,11 +38,11 @@ import Fredy.Capitalization
     strictly weaker than full well-pointedness of the pushforward at each stage (which would force the
     missing point to live at the same stage as the mono — false after one §1.547 step).  The genuine
     reusable categorical content of Freyd's fixpoint, now stated against the honest §1.546/1.547
-    interface; proven sorry-free (the colimit-mono / point-factorization alignment to a common stage).
+    interface; proven Sorry-free (the colimit-mono / point-factorization alignment to a common stage).
   * `tower_capital_of_cofinal` — the OUTER ω-fixpoint: from a cofinal points-acquiring tower in which
     every well-supported colimit object's stage representative stays well-pointed at all later stages,
     the colimit is capital.  Reduces `hwall_cap` to the single hypothesis bundle that is exactly
-    obstruction (1)+(2); proven sorry-free *on top of* `wellPointed_of_stage`.
+    obstruction (1)+(2); proven Sorry-free *on top of* `wellPointed_of_stage`.
 
   ## IMPORT note (why this file stays mathlib-free)
 
@@ -73,7 +75,7 @@ def StepWellPoints {S : Type u} [Cat.{u} S] [PreRegularCategory S] (st : CapStep
   ∀ A : S, WellSupported A → WellPointed (st.step A)
 
 /-- **A cofinal capitalizing successor** — the data the §1.543 fixpoint genuinely consumes: the
-    uniform `CapStep` successor (exactly `nextStep`'s content, already sorry-free in
+    uniform `CapStep` successor (exactly `nextStep`'s content, already Sorry-free in
     Capitalization.lean) bundled with the points-acquisition obligation `StepWellPoints` for every
     bundle.  Producing a `CofinalCapStep` is the whole remaining work of §1.543: for the constant-`1` /
     countable enumeration the current `nextStep` uses, `wellPoints` FAILS over an uncountable carrier
@@ -394,9 +396,9 @@ theorem wellPointed_of_stage
     later-stage pushforward is missed by a point at a still-later stage — this is precisely where
     `ccs.wellPoints` and the cofinal enumeration would be consumed — obstruction (1)+(2): each rung
     re-points everything), the ω-tower colimit is **capital**.  The conclusion is byte-for-byte the
-    book's `Capital` (S1_52.lean) — no weakening.  Proven sorry-free *on top of* `wellPointed_of_stage`:
+    book's `Capital` (S1_52.lean) — no weakening.  Proven Sorry-free *on top of* `wellPointed_of_stage`:
     the residual is confined to that one lemma plus the explicit `hstage` premise (the cofinal-coverage
-    obligation, not hidden in a `sorry`). -/
+    obligation, not hidden in a `Sorry`). -/
 theorem tower_capital_of_cofinal
     (A : Type u) [Cat.{u} A] [PreRegularCategory A]
     (ccs : CofinalCapStep.{u}) (b : PreRegBundle.{u})
@@ -470,7 +472,7 @@ theorem tower_capital_of_cofinal
   carry no new proof obligation beyond `wellPointed_of_stage` (already proven generically) plus the
   explicit `hstage` premise.  Their purpose is to isolate the single residual of §1.543 to one
   honest task — **exhibit a cofinal directed system** (an `ι`, `D`, `C`, base embedding, and the
-  per-object stage-pointing witness `hstage`) — with no `sorry` hidden in the colimit bookkeeping. -/
+  per-object stage-pointing witness `hstage`) — with no `Sorry` hidden in the colimit bookkeeping. -/
 
 /-- **Generic outer fixpoint.**  For any coherent `CatSystem C` with the full `colimitPreRegular`
     preservation package and the two reflection hypotheses (`hcons`/`hmono`), if every well-supported

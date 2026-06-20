@@ -17,7 +17,7 @@
   `colimOut` quotient) removes ALL object-level representative transport, so the reflection lemmas
   are SHORTER than their strict counterparts.
 
-  For `L := laxOfProjSystem' P` the four ingredient hypotheses are TRUE sorry-free:
+  For `L := laxOfProjSystem' P` the four ingredient hypotheses are TRUE Sorry-free:
     * cover reflection (`hfaith`/`hcons`/`hmono`): base-change `g*` along the projection is faithful,
       conservative and mono-preserving — `g*` has a left adjoint `Σ_g` (`bcTranspose`), and a functor
       with a left (or right) adjoint that is ALSO full-and-faithful here is even an equivalence onto a

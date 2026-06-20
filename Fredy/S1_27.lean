@@ -141,7 +141,7 @@ instance functorCat (𝒜 𝒟 : Type u) [Cat.{v} 𝒜] [Cat.{v} 𝒟] :
   attempt (`cayley_completeness`, a property `P` reflected along faithful functors)
   was LOGICALLY FALSE as stated — `P := fun _ => False` satisfies the reflection
   hypothesis vacuously yet makes the conclusion `∀ f, False` unprovable: it lacked the
-  essential anchor that `P` actually holds in Set.  A sorry inside a false statement is
+  essential anchor that `P` actually holds in Set.  A Sorry inside a false statement is
   a lie, so it has been removed.
 
   The faithful, genuinely-proved content is split across the repo:
@@ -149,7 +149,7 @@ instance functorCat (𝒜 𝒟 : Type u) [Cat.{v} 𝒜] [Cat.{v} 𝒟] :
   • the faithful Henkin-Lubkin representation `𝒞 ↪ 𝒮^|𝒞|` — `henkin_lubkin` (S1_55);
   • Horn-sentence reflection along a faithful, finite-limit/image-preserving functor —
     `horn_sentence_reflected_by_faithful` (S1_56, §1.563), the proven faithful version
-    (the capitalization lemma §1.543 it would build on is itself now proven sorry-free,
+    (the capitalization lemma §1.543 it would build on is itself now proven Sorry-free,
     `Fredy.capitalization_lemma`).
   A self-contained §1.272 metatheorem (quantifying over first-order sentences) would
   need a sentence-encoding + a `Cat` instance on `Type` with the Cayley functor; that

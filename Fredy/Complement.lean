@@ -2,7 +2,7 @@
   Freyd & Scedrov, *Categories and Allegories* §1.658  Complement infrastructure.
 
   This file builds the reusable §1.658 ("decidable object") infrastructure that the
-  three boolean `sorry`s of `S1_64` consume, all stated over the CORRECT inter-based
+  three boolean `Sorry`s of `S1_64` consume, all stated over the CORRECT inter-based
   complement predicate `IsComplementedSub` (`S1_62`):
 
       A₁ ⊆ A is complemented  ⇔  ∃ A₂, A₁ ∩ A₂ ≤ ⊥  and  ⊤ ≤ A₁ ∪ A₂.

@@ -12,7 +12,7 @@
   The §1.546 density `FibreDensity (wsCover S)` is discharged by `wsCover_fibreDensity`; every step
   (the uniform `CapStep`, its pre-regular target, faithfulness, finite-limit preservation; the cofinal
   cover `wsCover`; the ω-tower preservation package `towerH*`; the cofinal `hstage`; the capital
-  fixpoint `tower_capital_of_cofinal`; the `CapData` packaging `capData_of_tower`) is sorry-free.
+  fixpoint `tower_capital_of_cofinal`; the `CapData` packaging `capData_of_tower`) is Sorry-free.
 
   Assembled term (read top-down):
     * `hFD : ∀ S, FibreDensity (wsCover S)`              — `wsCover_fibreDensity` (the §1.546 density).
@@ -44,10 +44,10 @@ open Freyd.UniformWellPoints (FibreDensity stepWellPoints_of_fibreDensity)
     packaged into `Nonempty (CapData A)` by `capData_of_tower`.
 
     The §1.546 stage-local density `FibreDensity (wsCover S)` (every proper fibre mono is missed by a
-    fibre point at a later stage) is `wsCover_fibreDensity`; the whole lemma is sorry-free. -/
+    fibre point at a later stage) is `wsCover_fibreDensity`; the whole lemma is Sorry-free. -/
 theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
     Nonempty (CapData.{u} A) := by
-  -- §1.546 fibre-density, for every bundle's cofinal cover `wsCover S` (sorry-free: `wsCover_fibreDensity`).
+  -- §1.546 fibre-density, for every bundle's cofinal cover `wsCover S` (Sorry-free: `wsCover_fibreDensity`).
   have hFD : ∀ (S : PreRegBundle.{u}),
       letI := S.cat; letI := S.pre; letI := (wsCover S).dec
       FibreDensity (wsCover S) := fun S => Freyd.CofinalProj.wsCover_fibreDensity S
@@ -117,7 +117,7 @@ theorem capitalization_lemma (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
 end Freyd
 
 -- §1.543 FULLY DONE: the capitalization lemma depends only on [propext, Classical.choice, Quot.sound]
--- — NO `sorryAx`.  The §1.546 c.ii (`A ∈ U`) fresh-copy gap is closed by the token-indexed cofinal
+-- — NO `SorryAx`.  The §1.546 c.ii (`A ∈ U`) fresh-copy gap is closed by the token-indexed cofinal
 -- system (`richerSliceMiss` is uniform over a fresh-tagged token).
 #print axioms Freyd.capData_exists
 #print axioms Freyd.capitalization_lemma

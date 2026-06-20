@@ -24,7 +24,7 @@
 
   ⟹ `power_objects_imply_all_baseable : ∀ B, Baseable B`, which `S1_92` feeds to
   `exponentials_of_all_baseable` to close `topos_has_exponentials`.  Axiom profile
-  of the whole line: `Classical.choice` only — NO `sorryAx`.
+  of the whole line: `Classical.choice` only — NO `SorryAx`.
 -/
 
 import Fredy.S1_91

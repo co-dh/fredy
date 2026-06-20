@@ -16,7 +16,7 @@
 
   The remaining tower (`EffectiveRegular (Over B)`, `DisjointBinaryCoproduct (Over B)`,
   `HasReflTransClosure (Over B)`) and the final Diaconescu transport are tracked in the
-  trailing doc-comment; this file lands the image foundation sorry-free.
+  trailing doc-comment; this file lands the image foundation Sorry-free.
 -/
 import Fredy.S1_44
 import Fredy.S1_45
@@ -892,7 +892,7 @@ end sliceChoice
 
 /-! ## Residual: completing the slice pre-topos tower (toward §1.662 Diaconescu)
 
-  Rungs 1, 2, 3, 4 are now DONE sorry-free above:
+  Rungs 1, 2, 3, 4 are now DONE Sorry-free above:
 
   1. ✅ **Forget commutes with the calculus** (`BinRel.forgetSlice`, `forgetSlice_graph`,
      `forgetSlice_reciprocal` on the nose; `forgetSlice_compose_le` + `le_forgetSlice_compose`

@@ -23,7 +23,7 @@
   (`baseSliceObj`, Capitalization.lean — already faithful, terminal/product/equalizer/pullback/cover
   preserving) followed by the lax stage-0 inclusion `stageInclFunctorL []` (RatCapHcanon.lean).
 
-  ── (R-A) SOLVED — the STRICT directed projection family is now CONCRETE, COFINAL & sorry-free ───
+  ── (R-A) SOLVED — the STRICT directed projection family is now CONCRETE, COFINAL & Sorry-free ───
   `proj_refl`/`proj_trans` must be ON-THE-NOSE.  Over the SUBSET-ordered index they cannot be built
   choice-free without positional matching (the `DecidableEq 𝒞` `ListProjFamily` wall).  We pay that
   wall with `Classical.decEq S` (the §1.543 exception) in `CofinalProjSystem.lean`, which builds the
@@ -39,10 +39,10 @@
   This file is SORRY-FREE: `uniformStep (W : WSCover S) : CapStep S` is fully assembled (pre-regular
   target, faithful successor, and all six finite-limit/cover preservation fields) over the cofinal
   index.  The §1.546 density obligation lives in `UniformWellPoints.lean`/`FibreDensityProof.lean`
-  (`FibreDensity`) — now likewise proven sorry-free, so §1.543 is proven.
+  (`FibreDensity`) — now likewise proven Sorry-free, so §1.543 is proven.
 
   No mathlib category theory (the lax colimit is on this repo's own `Cat`); the ordinal exception is
-  not needed here.  No `axiom`, no `: True`, no statement-weakening, no `sorry`.
+  not needed here.  No `axiom`, no `: True`, no statement-weakening, no `Sorry`.
 -/
 import Fredy.RatCapStagePTC
 import Fredy.RelativeCapitalization
@@ -355,10 +355,10 @@ theorem uniformStepFaithful :
   embedding's preservation (`terminalSliceObj` preserves all finite limits/covers — the slice `S/1`
   is `S`) with the lax stage-inclusion's preservation (`stageInclFunctorL_preservesProducts`,
   `…_preservesEqualizers`, `…_preservesPullbacks`, `homInclL_cover_*` of RatCapHcanon.lean).  Each is a
-  genuine lemma threaded through `compFunctor` into the exact `CapStep` field shape — sorry-free. -/
+  genuine lemma threaded through `compFunctor` into the exact `CapStep` field shape — Sorry-free. -/
 
 /-- **The §1.547 uniform capitalization successor as a `CapStep`.**  Real `T`/`catT`/`preT`/`step`/
-    `stepFun`; every preservation/faithfulness field is a real lax-composition lemma (sorry-free). -/
+    `stepFun`; every preservation/faithfulness field is a real lax-composition lemma (Sorry-free). -/
 noncomputable def uniformStep (W : WSCover S) : CapStep S where
   T := uniformTargetTy W
   catT := uniformTargetCat W

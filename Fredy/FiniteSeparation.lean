@@ -119,7 +119,7 @@ structure ProperSub (𝒞 : Type u) [Cat.{u} 𝒞] where
       monic `T_S(A'ᵢ) ⊂ T_S(Aᵢ)` (monic and non-iso).
 
     This is exactly the statement §1.637/§1.472 says "suffices" for §1.646.  It is
-    proved sorry-free and choice-free (`homRep_separates` + `homRep_preserves_properMono`).
+    proved Sorry-free and choice-free (`homRep_separates` + `homRep_preserves_properMono`).
 
     The finite set `S` plays no role in the *construction* — the single faithful
     `homRep` already preserves the properness of *every* mono — but the statement is

@@ -743,7 +743,7 @@ theorem entire_contains_map_projective {A : 𝒞}
   In a regular category: RS ∩ T ⊆ (R ∩ TS°)S.
   This is one of the defining axioms of allegories (§2).
 
-  **Now PROVED** (sorry-free) as `modular_identity`, later in this file — see the
+  **Now PROVED** (Sorry-free) as `modular_identity`, later in this file — see the
   `§1.569` block, where the cover/image descent infrastructure
   (`relLe_of_cover_factor`, `cover_pullback`, `image_lift_cover`) is in scope.
   The proof is the standard *tabular-allegory* construction and needs no
@@ -813,7 +813,7 @@ end
     NOT give for free is the metatheorem that EVERY syntactic Horn sentence is
     automatically reflected by faithful structure-preserving functors — that needs
     the syntactic induction over Horn formulas (§1.55 / §1.551) and is recorded as
-    MISSING in the tracker, NOT asserted here as a sorry. -/
+    MISSING in the tracker, NOT asserted here as a Sorry. -/
 def HornSentence : Type (max (u+1) (v+1)) :=
   (𝒟 : Type u) → [Cat.{v} 𝒟] → Prop
 
@@ -825,7 +825,7 @@ def HoldsIn (H : HornSentence) (𝒟 : Type u) [Cat.{v} 𝒟] : Prop := H 𝒟
     sentence is reflected by any faithful functor preserving the Cartesian-with-images
     structure; capturing that uniformly requires the syntactic induction (MISSING,
     see tracker).  We make the dependence on a *named hypothesis* explicit so the
-    reflection theorem has genuine content and needs no sorry. -/
+    reflection theorem has genuine content and needs no Sorry. -/
 def ReflectedBy (H : HornSentence) {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ] (_F : 𝒜 → ℬ) : Prop :=
   HoldsIn H ℬ → HoldsIn H 𝒜
 
@@ -834,7 +834,7 @@ def ReflectedBy (H : HornSentence) {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} �
     that is structurally reflected (`ReflectedBy`).  The book's metatheorem is that
     `ReflectedBy H F` holds for EVERY Horn sentence under these hypotheses; that
     universal claim is the §1.55 syntactic induction and is left MISSING (tracker)
-    rather than asserted by a vacuous sorry.  This statement is the honest, content-
+    rather than asserted by a vacuous Sorry.  This statement is the honest, content-
     bearing residue: faithfulness + structure-preservation lets a reflected sentence
     pass upward.  `hrefl` is exactly the per-sentence reflection datum the induction
     would supply. -/
@@ -851,11 +851,11 @@ theorem horn_sentence_reflected_by_faithful {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [
     category of sets `𝒮` is true for a regular category `A`, *provided* it is
     reflected along the Henkin–Lubkin representation `A ↪ 𝒮^|A|`.  The book obtains
     the reflection datum from the EXACT form of the representation (which needs the
-    §1.543 capitalization lemma — now PROVEN sorry-free as `Fredy.capitalization_lemma`;
+    §1.543 capitalization lemma — now PROVEN Sorry-free as `Fredy.capitalization_lemma`;
     only the exactness wiring that applies it is not done here) — that supply is not
     yet assembled here, so we take it as the hypothesis `hrefl_from_Set` and discharge
     the corollary honestly,
-    rather than emitting a sorry that would secretly assert nothing.
+    rather than emitting a Sorry that would secretly assert nothing.
 
     `𝒮` is the (abstract) category of sets; keeping it a parameter — rather than the
     concrete `Type u`, which is a `Type (u+1)` and so cannot be tested by the same

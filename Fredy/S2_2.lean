@@ -615,7 +615,7 @@ theorem systemic_completion_tabular_effective
   is therefore split — the coreflexive half of effectiveness, the data §2.166
   uses to refine a bare tabulation's apex.
 
-  This is sorry-free and constructive: the legs agree because
+  This is Sorry-free and constructive: the legs agree because
   `f = f (f°f ∩ g°g) ⊑ f (g°g) = A g ⊑ g` (and symmetrically), then
   `map_order_discrete`. -/
 

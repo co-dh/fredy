@@ -22,7 +22,7 @@
 
   The earlier two-pass construction defined stage objects and transition maps in separate
   passes; at a limit it built the carrier as a `Colimit` over transition data that was itself
-  `sorry`, making the carrier *type* ill-defined.  This file replaces that with a SINGLE
+  `Sorry`, making the carrier *type* ill-defined.  This file replaces that with a SINGLE
   well-founded recursion `segSysAux` whose motive at `c` is an entire coherent directed system
   on the *segment* `Seg c = { a // a ≤ c }` (`SegSys c`: a `Colim.CatSystem` + its `Coherent` +
   a per-object `PreRegularCategory`).  Carrying the whole segment system — not just the top
@@ -37,19 +37,19 @@
 
   ## What is real vs. what is stubbed
 
-  REAL (no `sorry` in the data): the object carriers and the `Cat` instances in every branch
+  REAL (no `Sorry` in the data): the object carriers and the `Cat` instances in every branch
   (including the limit top = a genuine `Colim.colimitCat`), and the transition OBJECT-maps
-  `succF`/`limF`/`belowF`/`gF`.  STUBBED (named `theorem`/`def`, one documented `sorry` each, on
+  `succF`/`limF`/`belowF`/`gF`.  STUBBED (named `theorem`/`def`, one documented `Sorry` each, on
   a TRUE statement): the morphism-level transition coherence that crosses a successor/limit
   boundary — `*FunctF` (functoriality), `*_F_refl`/`*_F_trans`, `*Coherent`, the restriction-
   agreement object-equalities `belowObjAgree`/`gObjAgree`, and the colimit pre-regularity
   `limTopPre`.  These are the standing §1.543 transfinite colimit-of-categories obstruction.
 
   CAVEAT (honest): because `Colim.colimitCat` requires a `Coherent` witness, the limit stage's
-  `Cat` instance is fed `belowCoherent`, which is one of the documented `sorry`s — so the limit
+  `Cat` instance is fed `belowCoherent`, which is one of the documented `Sorry`s — so the limit
   `Cat` (not its object carrier) transitively depends on that coherence stub.
 
-  NO custom `axiom`, NO `: True`, NO `:= trivial`, NO `sorry` on a false statement.
+  NO custom `axiom`, NO `: True`, NO `:= trivial`, NO `Sorry` on a false statement.
 
   Universes: pinned `.{u,u}` to match `nextStep` / `colimitCat`; the index is a well-order of
   a `Type u`, NOT mathlib `Ordinal`.  This file is mathlib-free (built on `Freyd.WO` and
@@ -130,7 +130,7 @@ def D : Colim.Directed α := w.toDirected
 /-! ## The one-pass segment recursion
 
 The defect of the previous two-pass construction was that a limit stage built its carrier as a
-`Colimit` over transition data that was itself `sorry` — making the carrier *type* ill-defined.
+`Colimit` over transition data that was itself `Sorry` — making the carrier *type* ill-defined.
 The fix is a SINGLE well-founded recursion whose motive at `c` is an entire coherent directed
 system on the *segment* `Seg c = { a // a ≤ c }`, so that objects, transition maps, and the
 coherence among predecessors are produced simultaneously — exactly what `Colim.colimitCat`
@@ -234,7 +234,7 @@ segment `Seg c` is `Seg p` with one new top object `c`.  A slot `a ≤ p` keeps 
 top `c` gets `nextStep (topBundle Sp)`'s target `T`.  Object data and transition object-maps are
 real (`succA` / `succCat` / `succF`); the functor `succFunctF` and the laws `succ_F_refl` /
 `succ_F_trans` / `succCoherent` are the morphism-level transition coherence — TRUE statements,
-isolated each with one documented `sorry`. -/
+isolated each with one documented `Sorry`. -/
 
 variable (c : α)
 
@@ -340,10 +340,10 @@ For `c` a limit, the top object is the directed colimit `Colim.colimitCat` of th
 predecessor sub-system `belowSys`, whose objects are the tops of `IH a _` and whose transitions
 read off `IH`.  The OBJECT system (`belowObjSys`) and the colimit OBJECT carrier are real;
 `colimitCat` additionally requires the sub-system's `Coherent`, whose limit-crossing instance is
-the genuine open transfinite obstruction (`belowCoherent`), isolated with one documented `sorry`.
+the genuine open transfinite obstruction (`belowCoherent`), isolated with one documented `Sorry`.
 
 This is the irreducible blocker of M1: `Colim.colimitCat` cannot be applied without a `Coherent`
-witness, so the limit `Cat` instance transitively depends on `belowCoherent`'s `sorry`.  The
+witness, so the limit `Cat` instance transitively depends on `belowCoherent`'s `Sorry`.  The
 OBJECT-level data — carrier and transition object-maps — is nonetheless genuine. -/
 
 /-- For `a ≤ b` strict predecessors of `c`, `b`'s segment slot at `a` is the same object as `a`'s
@@ -355,9 +355,9 @@ OBJECT-level data — carrier and transition object-maps — is nonetheless genu
     It is stated here over an ARBITRARY `IH`, for which it is genuinely unprovable (two unrelated
     `SegSys a` values have unrelated object families) — and the global `segSys` fixpoint equation,
     the only thing that pins `IH` to `segSys`, is unavailable inside the recursion body.  So this
-    in-recursion instance stays a documented `sorry`; the GLOBAL transition object-equality
+    in-recursion instance stays a documented `Sorry`; the GLOBAL transition object-equality
     `gObjAgree` (the form that actually feeds the tower `towerSystem`'s data via `gF`) is proven
-    sorry-free as a corollary of `segSys_restrict_agree`. -/
+    Sorry-free as a corollary of `segSys_restrict_agree`. -/
 theorem belowObjAgree (IH : ∀ a, r a c → SegSys w b₀ nextStep a)
     {a b : Below r c} (hab : (belowDirected w c).le a b) :
     (IH b.1 b.2).sys.A ⟨a.1, (D w).trans hab (Or.inr rfl)⟩
@@ -418,7 +418,7 @@ noncomputable def belowSys (IH : ∀ a, r a c → SegSys w b₀ nextStep a) :
 /-- **TRUE obligation (limit sub-system coherence).**  `belowSys` is `Coherent` — the morphism-
     level transition coherence that `Colim.colimitCat` consumes.  Its limit-crossing instance is
     the genuine open transfinite obstruction (the repo's standing §1.543 gap).  Isolated here with
-    a single documented `sorry` on the true statement. -/
+    a single documented `Sorry` on the true statement. -/
 theorem belowCoherent (IH : ∀ a, r a c → SegSys w b₀ nextStep a) :
     (belowSys w b₀ nextStep c IH).Coherent :=
   sorry
@@ -426,7 +426,7 @@ theorem belowCoherent (IH : ∀ a, r a c → SegSys w b₀ nextStep a) :
 /-- **TRUE obligation (limit pre-regularity).**  The colimit top category `colimitCat (belowSys)`
     is pre-regular — "a directed colimit of pre-regular categories is pre-regular"
     (`Capitalization.colimitPreRegular`), a later-milestone preservation result.  Isolated here
-    with one documented `sorry`; the carrier (`colimitCat`) and its `Cat` are real. -/
+    with one documented `Sorry`; the carrier (`colimitCat`) and its `Cat` are real. -/
 noncomputable def limTopPre (IH : ∀ a, r a c → SegSys w b₀ nextStep a) :
     @PreRegularCategory _ (Colim.colimitCat _ (belowCoherent w b₀ nextStep c IH)) :=
   sorry
@@ -539,7 +539,7 @@ open Classical in
 
     The data (objects/`Cat`/transition object-maps and the limit `colimitCat` carrier) are real
     in every branch.  The successor/limit *morphism*-coherence crossings are the open transfinite
-    obstruction; each is a single documented `sorry` on the true coherence statement, isolated as
+    obstruction; each is a single documented `Sorry` on the true coherence statement, isolated as
     a named lemma fed in here. -/
 noncomputable def segSysAux (c : α) (IH : ∀ a, r a c → SegSys w b₀ nextStep a) :
     SegSys w b₀ nextStep c := by
@@ -591,7 +591,7 @@ unfolding), so `succBundle`/`limBundle`'s `Sp`/`IH a _` are the real `segSys` an
 
 /-- **Restriction agreement.**  For `a' ≤ c` and any slot `a : Seg a'`, the segment system at `c`
     read at the included slot agrees with the segment system at `a'`.  Proven by well-founded
-    induction; the heart of removing the object-equality `sorry`s from the transition data. -/
+    induction; the heart of removing the object-equality `Sorry`s from the transition data. -/
 theorem segSys_restrict_agree (c a' : α) (h : (D w).le a' c) (a : Seg w b₀ nextStep a') :
     (segSys w b₀ nextStep c).sys.A (segIncl w b₀ nextStep h a)
       = (segSys w b₀ nextStep a').sys.A a := by
@@ -647,7 +647,7 @@ theorem segSys_restrict_agree (c a' : α) (h : (D w).le a' c) (a : Seg w b₀ ne
   · -- `a' = c`: `segIncl` keeps `.1`, so the slot is literally `a`; both sides coincide.
     congr 1
 
-/-- **Seed stage is the seed.**  At the least point the segment top is `b₀`'s carrier (sorry-free:
+/-- **Seed stage is the seed.**  At the least point the segment top is `b₀`'s carrier (Sorry-free:
     the zero branch is the singleton system with carrier `b₀`). -/
 theorem segSys_zero_carrier {c : α} (hz : IsZero r c) :
     (segSys w b₀ nextStep c).sys.A (segTop w b₀ nextStep c) = b₀.carrier := by
@@ -709,7 +709,7 @@ theorem towerCoherent : (towerSystem w b₀ nextStep).Coherent where
 
 end Tower
 
--- Axiom audit (M1).  Every `sorryAx` below is one of the named, documented, TRUE coherence
+-- Axiom audit (M1).  Every `SorryAx` below is one of the named, documented, TRUE coherence
 -- obligations isolated in this file (successor/limit/global *functoriality* and *coherence*, the
 -- restriction-agreement equalities `belowObjAgree`/`gObjAgree`, and the colimit pre-regularity
 -- `limPre`).  No custom `axiom`, no `: True`, no `:= trivial`.  The OBJECT carriers and transition

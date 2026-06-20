@@ -26,14 +26,14 @@ import Fredy.RelativeCapitalization
   No `StrictBaseChange`, no `ListProjFamily`, no pseudo-functoriality.  The index is the FILTERED
   finite-set lattice `listDirected` (`bound = append`) — no transfinite limit.
 
-  ## What this file delivers (sorry-free, committed)
+  ## What this file delivers (Sorry-free, committed)
 
     * `RatBelow U` — the fiber type + its full-subcategory `Cat` instance (fraction homs).
     * `ratBelowIncl` / `ratBelowInclFunctor` — the inclusion transition + its (identity) functoriality.
     * `ratBelowSystem : CatSystem (List Â) listDirected` — the inclusion directed system.
     * `ratBelowSystem_coherent : ratBelowSystem.Coherent` — morphism-coherence (identity ⟹ `HEq.rfl`).
 
-  ## The remaining blocker (stated precisely, no `sorry`, no fake)
+  ## The remaining blocker (stated precisely, no `Sorry`, no fake)
 
   `colimitPreRegular` consumes per-fiber `HasTerminal`/`HasBinaryProducts`/`HasEqualizers`/PTC of each
   `RatBelow U`.  `RatColimit.lean`'s `pairOnU_preRegular` proves the analogous fact for `PairOnU U` —
@@ -201,7 +201,7 @@ theorem ratColimToObj_inj {c d : (ratBelowSystem (𝒞 := 𝒞)).Obj}
   single diagonal roofs into the pullback `Q = pb(f,f)`: `compFraction (loc f) (swap f)` has apex `Q`,
   denom `Q.π₁`, num `Q.π₂`, and the diagonal `Δ = Q.lift⟨A,id,id⟩` is a dense roof to `idFraction`
   (`Δ≫π₁ = Δ≫π₂ = id`).  This is the §1.547/§1.48 "`T_𝒟` inverts every member" fact for the concrete
-  `ratCatOf`, sorry-free, and is exactly what lets an A*-fraction between exactly-`U` objects collapse
+  `ratCatOf`, Sorry-free, and is exactly what lets an A*-fraction between exactly-`U` objects collapse
   to a single `Â`-hom (the denominator there is a member, so its localisation is invertible). -/
 
 section LocIso

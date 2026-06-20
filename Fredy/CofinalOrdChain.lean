@@ -6,7 +6,7 @@ import Fredy.WellOrdering
   `SliceCatSystem.lean` produced the index-agnostic §1.547 successor `nextStepOfOrdChain` : from any
   `OrdChain D O`, an initial index `i₀`, a `BaseStageEmbed O i₀`, and the well-supported-suffix
   hypothesis `hwsuf`, it yields a `CapStep 𝒞` (faithful pre-regular embed + all preservation fields,
-  sorry-free).  Its one MISSING input was a concrete chain.  This file supplies it and assembles
+  Sorry-free).  Its one MISSING input was a concrete chain.  This file supplies it and assembles
 
       `cofinalStep : ∀ (S : PreRegBundle), CapStep S.carrier`
 
@@ -134,7 +134,7 @@ end Step
 
 /-- **The uniform cofinal-chain successor.**  `nextStepOfOrdChain` over the concrete `cofinalOrdChain`
     for every bundle, packaging the bottom-stage embedding and the well-supported-suffix witness.
-    Faithful pre-regular `S → S*`, sorry-free; this is `CofinalCapStep.step`. -/
+    Faithful pre-regular `S → S*`, Sorry-free; this is `CofinalCapStep.step`. -/
 noncomputable def cofinalStep (S : PreRegBundle.{u}) : CapStep S.carrier :=
   letI := S.cat
   letI := S.pre

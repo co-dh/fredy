@@ -5,7 +5,7 @@ import Fredy.RationalCapitalization
 /-! # §1.543 B — `StepWellPoints` for the §1.547 successor: the §1.546 missed-point crux
 
   This file makes the *precise determination* the §1.543 capitalization program turns on, and commits
-  the reusable sorry-free content that is unconditionally available, isolating the single genuine gap.
+  the reusable Sorry-free content that is unconditionally available, isolating the single genuine gap.
 
   ## The goal
 
@@ -15,7 +15,7 @@ import Fredy.RationalCapitalization
   the colimit of inflation-slices `S* = (ordChainSliceSystem O).Obj`, of the base-embedded object
   `E.base A` at the initial stage `i₀`.  We must show that colimit object is `WellPointed`.
 
-  ## The reduction already in hand (upstream, sorry-free)
+  ## The reduction already in hand (upstream, Sorry-free)
 
   `wellPointed_of_stage` (`CapitalizationTransfinite.lean`) REDUCES well-pointedness of a colimit object
   `objIncl i A₀` to **per-stage** well-pointedness: `C.F hij A₀` is `WellPointed` in the slice
@@ -32,10 +32,10 @@ import Fredy.RationalCapitalization
   is therefore exactly a `𝒞`-mono into `listProd (O.chain j)` (with the appended `A`-factor) — with **no
   product-form constraint** recorded.
 
-  R15 (`RationalCapitalization.lean`) built the §1.546 CORE sorry-free:
+  R15 (`RationalCapitalization.lean`) built the §1.546 CORE Sorry-free:
   `prodFormMono_misses_point` — a *product-form* slice mono `id_A × (i : B'↪P)` for proper `i` is missed
   by every g-point — and `sliceMiss_iff_g_unreachable` reducing "misses some g-point" to "some g is
-  unreachable".  R15's residual (`sliceEmbed_factor_wellPointed`, the lone `sorry`) is exactly: an
+  unreachable".  R15's residual (`sliceEmbed_factor_wellPointed`, the lone `Sorry`) is exactly: an
   *arbitrary* proper slice mono need not be product form, and `graph_satisfies_hyps` exhibits a proper
   mono (the "graph of the generic point") that reaches the generic point — so no single g-point escapes
   uniformly; the escaper must be chosen per `m`, and that choice needs the mono to be product form.
@@ -50,7 +50,7 @@ import Fredy.RationalCapitalization
   open `sliceEmbed_factor_wellPointed`, transported across the inflation-slice ≅ `𝒞`-product-slice
   identification; it is NOT closable at this (plain inflation slice) level.
 
-  ## What IS committed here (sorry-free, axiom-clean)
+  ## What IS committed here (Sorry-free, axiom-clean)
 
   * `perStageGoal` / `stepWellPoints_iff_perStage` — the exact per-stage reduction `wellPointed_of_stage`
     leaves, named as a definition, with the iff to `StepWellPoints` modulo the colimit reduction; the
@@ -60,7 +60,7 @@ import Fredy.RationalCapitalization
     positive content (R15's core, now usable at the stage level), should the product-form reduction
     later be supplied by the rational layer.
 
-  Everything in this file is sorry-free; the residual is named, not hidden. -/
+  Everything in this file is Sorry-free; the residual is named, not hidden. -/
 
 namespace Freyd
 

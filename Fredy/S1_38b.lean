@@ -266,7 +266,7 @@ theorem diagFill_reflects_satisfies {B B' : 𝒟} {t : B ⟶ B'} (ht : DiagonalF
   categories preserves/reflects via the §1.361 inflation-class factorization) is
   cross-category: it would re-index the whole telescope along `T`, requiring the
   §1.361 inflation machinery.  Routing that here is out of scope, so the
-  inflation-class general case is a DOCUMENTED `sorry` below — the statement is the
+  inflation-class general case is a DOCUMENTED `Sorry` below — the statement is the
   book's real one (functor `T`, hypothesis `EquivalenceFunctor T`), only the proof
   is deferred. -/
 

@@ -14,7 +14,7 @@
   (`slice_embedding_separates`, S1_54.lean — repackaged here as a faithful functor
   *into `Over B`*), so it packages as a `CapStep A`.
 
-  WHAT THIS FILE DELIVERS (all sorry-free):
+  WHAT THIS FILE DELIVERS (all Sorry-free):
     * `sliceEmbedObj` / `sliceEmbedMap` / `sliceEmbedFunctor`
                             — the functor `A → A/B`, `C ↦ ⟨C×B, snd⟩`, `f ↦ f×B`
     * `sliceEmbedFaithful`  — it is FAITHFUL when `B` is well-supported
@@ -47,12 +47,12 @@
                             — the §1.547 payoff: `A/(∏U)` acquires a point of EVERY factor
                                `U.get k` at once (one rung points all of `U`).
 
-  STATUS: §1.543 is now PROVEN sorry-free (`Fredy.capitalization_lemma`, in
+  STATUS: §1.543 is now PROVEN Sorry-free (`Fredy.capitalization_lemma`, in
   `Fredy/CapDataWiring.lean`).  The uniform successor was ultimately built by the
   COFINAL (object-indexed) route — `uniformStep` (`Fredy/UniformCapStep.lean`) over the
   `cofinalProjSystem` (`Fredy/CofinalProjSystem.lean`), using `Classical.decEq` — NOT by
   closing the `innerCatSystem` route this header explored.  The discussion below is the
-  historical exploration of the per-`B` slice rung that this file delivers (sorry-free) and
+  historical exploration of the per-`B` slice rung that this file delivers (Sorry-free) and
   feeds into that solution; the "residual wall" / "STILL OPEN" framing it uses is superseded.
 
   THE GENUINE STRENGTHENING (recorded for context).
@@ -62,9 +62,9 @@
   directed union of the `A* | U = A/(∏U)` product-slices over finite sets `U` of
   well-supported objects).  This file delivers the per-`B`/per-factor points AND the
   finite-set index (`listDirected`/`listProd`/`listProdProj`/`listProdSliceAcquiresEveryFactor`)
-  sorry-free (above).
+  Sorry-free (above).
 
-  INNER-SYSTEM SCAFFOLDING (this session, all sorry-free — see the `innerCatSystem` block):
+  INNER-SYSTEM SCAFFOLDING (this session, all Sorry-free — see the `innerCatSystem` block):
     * the TRANSITION FUNCTOR now EXISTS: `baseChangeFunctor (g : C ⟶ D) : Functor (Over D → Over C)`
       (SliceRegular.lean), the genuine slice→slice base-change `A/(∏V) → A/(∏U)` by pullback along
       `∏U → ∏V` — NOT the slice embedding (which is `A → A/B`, base→one-slice).
@@ -72,7 +72,7 @@
       `innerFunctF P h = baseChangeFunctor (P.proj h)` — the inner system's object family, `Cat`
       instances, transition object map and per-rung functoriality.
     * `innerCatSystem P hS : CatSystem (List 𝒞) listDirected` — the inner system, GIVEN its two
-      residuals as honest inputs (no false `sorry`):
+      residuals as honest inputs (no false `Sorry`):
         (A) `P : ListProjFamily` — a choice-free product projection `∏U ⟶ ∏V` per `V ⊆ U` with
             strict unit/composition.  NOT yet constructible: `listSubset V U` is a `Prop`, so a
             positional factor-match needs `DecidableEq 𝒞` (the same `Prop`-no-large-elim wall that
@@ -80,13 +80,13 @@
         (B-strict) `hS : StrictBaseChange P` — the on-the-nose `F_refl`/`F_trans`.  RAW base-change
             is only PSEUDO-functorial (`baseChangeObj (Cat.id) X = X×_D D`, iso to `X` but NOT equal),
             so these are FALSE for raw base-change and are declared as a hypothesis (a real theorem to
-            prove = base-change strictification), never asserted by `sorry`.
+            prove = base-change strictification), never asserted by `Sorry`.
 
   ROUTE-1 (strict reindexing) INVESTIGATION — settled NEGATIVELY for §1.547, see the
   `strictReindexSystem` block + `Freyd.reindexFunctor` (SliceRegular.lean):
     * the STRICT transition EXISTS — `reindexFunctor m` (Σ / post-composition along `m : C → D`) is
       strictly functorial AND `reindexObj_id`/`reindexObj_comp` give `CatSystem.F_refl`/`F_trans` ON
-      THE NOSE (sorry-free, axiom-free).  `strictReindexSystem R` is a genuine `CatSystem` with those
+      THE NOSE (Sorry-free, axiom-free).  `strictReindexSystem R` is a genuine `CatSystem` with those
       laws as THEOREMS, no `StrictBaseChange` needed.
     * but it is the WRONG transition for §1.547: variance `A/(∏V) → A/(∏U)` needs base map `∏V → ∏U`
       (Σ-direction), not choice-free for `V ⊆ U` (would manufacture the missing factors' points); and
@@ -312,7 +312,7 @@ theorem prodSliceAcquiresBothFactors (B B' : 𝒞) :
   objects" as a `List 𝒞` and the order `V ⊆ U` as list-membership inclusion.  This is a
   genuine `Directed` index (`bound` = append), and `∏U` is the right-folded binary product
   of the members of `U` (with `∏[] = 1`, the terminator).  These are the concrete, reusable
-  ingredients of the inner directed system; everything below is sorry-free. -/
+  ingredients of the inner directed system; everything below is Sorry-free. -/
 
 -- `listProd`/`listProd_nil`/`listProd_cons` now live upstream in `Fredy.SliceRegular`
 -- (imported above) so that `Fredy.Inflation` can use them without importing `Capitalization`.
@@ -355,7 +355,7 @@ theorem listProdSliceAcquiresEveryFactor (U : List 𝒞) (k : Fin U.length) :
 
 /-! ## §1.546 — the directed-union escape: base-change to a FRESH factor misses its point
 
-  The genuine §1.546 density content, isolated as a single sorry-free SLICE lemma.
+  The genuine §1.546 density content, isolated as a single Sorry-free SLICE lemma.
 
   Freyd's §1.546: a proper subobject of the embedded object `AB ↪ B` is, at a RICHER slice, missed
   by a point.  At a single fixed slice this is FALSE (`properMono_forces_graph_iso`,
@@ -372,7 +372,7 @@ theorem listProdSliceAcquiresEveryFactor (U : List 𝒞) (k : Fin U.length) :
   `(fst, snd)`.  The lemma is stated against the explicit pullback cones so it is reusable for any
   base map `q` and any fresh coordinate `c` with `c`'s `P`-shadow factoring as `q`. -/
 
-/-- **§1.546 base-change escape (the genuine directed-union escape, sorry-free).**  Let
+/-- **§1.546 base-change escape (the genuine directed-union escape, Sorry-free).**  Let
     `m : D ↪ sliceEmbedObj P A` be a PROPER slice mono (`D.dom ↪ A×P` with structure `snd`).
     Base-change along the SECOND PROJECTION `q := snd : A×P ⟶ P` (so the richer base is `P' = A×P`,
     carrying the FRESH `A`-coordinate `fst : A×P ⟶ A`).  Suppose:
@@ -429,7 +429,7 @@ theorem baseChange_freshFactor_missed {P A : 𝒞} {D : Over P}
   have hfiso : IsIso m.f := monic_cover_iso m.f hcover hfmono
   exact hproper (overIso_of_underlying m hfiso)
 
-/-- **§1.546 base-change escape — POINT-FACTORIZATION form (sorry-free, axiom-free).**  The same
+/-- **§1.546 base-change escape — POINT-FACTORIZATION form (Sorry-free, axiom-free).**  The same
     §1.546 directed-union escape as `baseChange_freshFactor_missed`, but stated to consume a
     *point factorization* directly: at the richer base `P' = A×P` (the fresh `A`-coordinate is
     `fst : A×P ⟶ A`), if the FRESH slice point `sliceFactorPoint A (fst : A×P ⟶ A)` factors through
@@ -500,7 +500,7 @@ theorem freshSection_of_descentSection {PN A : 𝒞} (Dbar : Over PN)
   This block builds the inner directed system of slices `A/(∏U)` over `listDirected`, the
   one `hwall_step` (Capitalization.lean) consumes.  The OBJECTS (`Over (listProd U)`), the
   INDEX (`listDirected`), and the per-rung POINTS (`listProdSliceAcquiresEveryFactor`) are all
-  in hand sorry-free above.  Two concrete primitives remain, isolated here as the interface
+  in hand Sorry-free above.  Two concrete primitives remain, isolated here as the interface
   `ListProjFamily` (and an `import` obstruction that keeps the assembly in *this* file rather
   than in `Capitalization.lean`):
 
@@ -533,7 +533,7 @@ theorem freshSection_of_descentSection {PN A : 𝒞} (Dbar : Over PN)
   RESOLUTION (since written): the relocation route was taken — `capData_exists` lives downstream
   in `Fredy/CapDataWiring.lean`, and residual (A) was discharged by accepting `Classical.decEq`
   for the positional projection (the §1.543 exception, `Fredy/CofinalProjSystem.lean`).  §1.543 is
-  now PROVEN sorry-free; this block records the obstructions of the *abandoned* in-place route. -/
+  now PROVEN Sorry-free; this block records the obstructions of the *abandoned* in-place route. -/
 
 /-- **The transition base-morphism family (residual (A), as data).**  A choice-free assignment,
     for every inclusion `V ⊆ U` of finite object-sets, of a product projection
@@ -562,7 +562,7 @@ instance innerCat (U : List 𝒞) : Cat.{u} (innerObj (𝒞 := 𝒞) U) := overC
 
 /-- **The inner transition functor**, *given* a projection family `P` (residual (A)): for `V ⊆ U`,
     base-change `A/(∏V) → A/(∏U)` along `P.proj : ∏U → ∏V`.  The OBJECT map is `baseChangeObj`,
-    the functoriality (in the slice variable) is `baseChangeFunctor` — both sorry-free.  What is
+    the functoriality (in the slice variable) is `baseChangeFunctor` — both Sorry-free.  What is
     NOT yet available (residual (B-strict)) are the `CatSystem`-level strict laws `F_refl`/`F_trans`
     relating different inclusions, because base-change is only pseudo-functorial in the base. -/
 def innerF (P : ListProjFamily (𝒞 := 𝒞)) {V U : List 𝒞} (h : listSubset V U) :
@@ -570,7 +570,7 @@ def innerF (P : ListProjFamily (𝒞 := 𝒞)) {V U : List 𝒞} (h : listSubset
   baseChangeObj (P.proj h)
 
 /-- The inner transition is a functor in the slice variable (base-change functoriality).  This is
-    sorry-free — it is exactly `baseChangeFunctor` along `P.proj h`. -/
+    Sorry-free — it is exactly `baseChangeFunctor` along `P.proj h`. -/
 instance innerFunctF (P : ListProjFamily (𝒞 := 𝒞)) {V U : List 𝒞} (h : listSubset V U) :
     @Functor (innerObj (𝒞 := 𝒞) V) (innerCat V) (innerObj (𝒞 := 𝒞) U) (innerCat U) (innerF P h) :=
   baseChangeFunctor (P.proj h)
@@ -580,12 +580,12 @@ instance innerFunctF (P : ListProjFamily (𝒞 := 𝒞)) {V U : List 𝒞} (h : 
     `F_refl : F (refl) X = X` and `F_trans : F (trans) X = F hjk (F hij X)`.  For RAW base-change
     these equations are **false** (`baseChangeObj (Cat.id (∏U)) X = X ×_{∏U} ∏U → ∏U`, canonically
     iso to `X` but NOT equal; the composite re-associates the iterated pullback).  We therefore
-    DECLARE the strict laws as a hypothesis bundle rather than discharge them with a false `sorry`:
+    DECLARE the strict laws as a hypothesis bundle rather than discharge them with a false `Sorry`:
     a witness of `StrictBaseChange P` is exactly the base-change strictification (or a strictly
     functorial replacement transition) needed before `innerObj`/`innerF` form a `CatSystem`.
 
     This is residual (B-strict) stated honestly: providing `StrictBaseChange P` is a real theorem
-    (it does NOT hold for raw base-change), so there is no false-statement-with-`sorry` here. -/
+    (it does NOT hold for raw base-change), so there is no false-statement-with-`Sorry` here. -/
 structure StrictBaseChange (P : ListProjFamily (𝒞 := 𝒞)) : Prop where
   F_refl : ∀ {U : List 𝒞} (X : innerObj (𝒞 := 𝒞) U), innerF P (listDirected.refl U) X = X
   F_trans : ∀ {V U W : List 𝒞} (hVU : listSubset V U) (hUW : listSubset U W)
@@ -619,7 +619,7 @@ noncomputable def innerCatSystem (P : ListProjFamily (𝒞 := 𝒞)) (hS : Stric
   Investigation of the §1.543 task "replace the pseudo-functorial base-change transition with a
   STRICTLY functorial one so `CatSystem.F_refl`/`F_trans` hold on the nose."
 
-  RESULT (machine-checked, sorry-free below).  The honest strict transition is the dependent-sum /
+  RESULT (machine-checked, Sorry-free below).  The honest strict transition is the dependent-sum /
   post-composition functor `reindexFunctor` (SliceRegular.lean): along a FIXED base map `m : C ⟶ D`,
   `Σ_m : A/C → A/D`, `⟨X, x⟩ ↦ ⟨X, x ≫ m⟩`.  It is STRICTLY functorial and — unlike base-change —
   satisfies the `CatSystem` object laws DEFINITIONALLY:
@@ -659,7 +659,7 @@ noncomputable def innerCatSystem (P : ListProjFamily (𝒞 := 𝒞)) (hS : Stric
   inner system (`innerCatSystem`) keeps the correct variance and embedding but is irreducibly
   pseudo-functorial (its `StrictBaseChange` is a real, non-trivial strictification obligation).  The
   two cannot be merged: strictness and the growing-product embedding pull in opposite directions.  So
-  route-1 reindexing does NOT close the successor here; the way it WAS closed (now PROVEN sorry-free,
+  route-1 reindexing does NOT close the successor here; the way it WAS closed (now PROVEN Sorry-free,
   §1.543) is the rational-category route: a directed-union-of-full-subcategories model whose
   inclusions are up-to-iso, built as `uniformStep` over the cofinal `cofinalProjSystem`
   (`Fredy/UniformCapStep.lean`, `Fredy/CofinalProjSystem.lean`, `Fredy/CapDataWiring.lean`). -/
@@ -690,7 +690,7 @@ instance reindexFunctStage (R : ReindexFamily (𝒞 := 𝒞)) {V U : List 𝒞} 
       (reindexObjStage R h) :=
   reindexFunctor (R.base h)
 
-/-- **The strict reindexing inner `CatSystem` — route 1, sorry-free, NO strictness hypothesis.**
+/-- **The strict reindexing inner `CatSystem` — route 1, Sorry-free, NO strictness hypothesis.**
     Given a (route-1) base-map family `R`, the Σ-transition system over `listDirected` is a genuine
     `CatSystem` whose `F_refl`/`F_trans` are PROVEN — `reindexObj_id` and `reindexObj_comp` (modulo
     `R.base_refl`/`R.base_trans`), NOT supplied as `StrictBaseChange`-style hypotheses.  This is the

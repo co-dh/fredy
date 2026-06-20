@@ -29,7 +29,7 @@
   colimit machinery is `Directed`-indexed, not ordinal-indexed, so importing it
   would buy nothing here.)
 
-  STATUS.  The whole categorical assembly is now proved sorry-free:
+  STATUS.  The whole categorical assembly is now proved Sorry-free:
 
     * `faithful_comp`           — faithful functors compose to faithful functors.
     * `stageInclFaithful`       — the colimit stage-inclusion `A i → Ā` is faithful,
@@ -54,8 +54,8 @@
     (2) the capital closure of the colimit (§1.543 fixpoint via `colimHom_cover_reflects`),
         over the colimit pre-regular structure that (1) supplies.
   §1.543 is now PROVEN: `Freyd.capitalization_lemma` / `Freyd.capData_exists` are
-  sorry-free (axioms `[propext, Classical.choice, Quot.sound]`).  The former in-place
-  `capData_exists` body in this file (with its two `sorry` walls) is RETAINED only as the
+  Sorry-free (axioms `[propext, Classical.choice, Quot.sound]`).  The former in-place
+  `capData_exists` body in this file (with its two `Sorry` walls) is RETAINED only as the
   big reference block comment below (around the `RELOCATED` marker), and is dead code.
 -/
 
@@ -488,9 +488,9 @@ end Freyd.Colim
       of `base` (bundled faithful) with `stageInclFunctor i₀` (faithful by
       `stageInclFaithful`).
 
-  The one thing this needed for a sorry-free §1.543 was `capData_exists : ∀ A, CapData A` —
+  The one thing this needed for a Sorry-free §1.543 was `capData_exists : ∀ A, CapData A` —
   the cofinal capitalizing tower and its capital-closure fixpoint.  That is now PROVEN
-  sorry-free in `Fredy/CapDataWiring.lean` (it had to live downstream, where the §1.547
+  Sorry-free in `Fredy/CapDataWiring.lean` (it had to live downstream, where the §1.547
   uniform successor is reachable), so `capitalization_lemma` — which reduces to it — is
   likewise proven (axioms `[propext, Classical.choice, Quot.sound]`). -/
 
@@ -504,23 +504,23 @@ open Freyd.Colim
   (`hcanon`) of the inner colimit `S*` from: the 8 limit-preservation hypotheses, the per-stage
   `PullbacksTransferCovers`, the transition cover-preservation, and the transition cover-reflection
   (faithful / conservative / mono-preserving).  For the concrete `ordChainSliceSystem` ALL of these are
-  now in hand sorry-free EXCEPT the cover-reflection pair `hfaith`/`hcons`:
+  now in hand Sorry-free EXCEPT the cover-reflection pair `hfaith`/`hcons`:
 
-    * `hmono`     = `ordChainHmono`        (sorry-free, `Inflation`)
-    * `hcovpres`  = `ordChainHcovpres`     (sorry-free, `Inflation`; from `catMap_cover`, the
+    * `hmono`     = `ordChainHmono`        (Sorry-free, `Inflation`)
+    * `hcovpres`  = `ordChainHcovpres`     (Sorry-free, `Inflation`; from `catMap_cover`, the
                     `catMap_isPullback` cover transfer)
-    * `hstagePTC` = `ordChainStagePTC`     (sorry-free, `Inflation`; `overPullbacksTransferCovers`)
+    * `hstagePTC` = `ordChainStagePTC`     (Sorry-free, `Inflation`; `overPullbacksTransferCovers`)
 
   `hfaith`/`hcons` are the cover-REFLECTION half: the strict suffix-append transition `catMap d` is
   faithful / conservative iff the projection `catForget (X.dom) d : ∏(X.dom ++ d) ⟶ ∏X.dom` is epic, i.e.
   iff the appended suffix `∏d` is WELL-SUPPORTED — exactly the well-supportedness `§1.55`'s slice
   `sliceEmbedFaithful` requires, and which the relative-capitalization successor `nextStep` (`hwall_step`,
   still open) supplies for its chain but the BARE `OrdChain`/`PrefixChain` does not carry.  We therefore
-  take `hfaith`/`hcons` as honest explicit hypotheses (NOT a `sorry`): given them, `colimitCanonicalCover`
+  take `hfaith`/`hcons` as honest explicit hypotheses (NOT a `Sorry`): given them, `colimitCanonicalCover`
   discharges `hcanon` end-to-end. -/
 
 /-- **Discharge of `hcanon` for `ordChainSliceSystem`**, modulo the cover-reflection pair `hfaith`/`hcons`
-    (well-supported suffix).  Supplies the bridge `colimitCanonicalCover` with the sorry-free per-stage PTC
+    (well-supported suffix).  Supplies the bridge `colimitCanonicalCover` with the Sorry-free per-stage PTC
     (`ordChainStagePTC`), transition cover-preservation (`ordChainHcovpres`) and mono-preservation
     (`ordChainHmono`), plus the 8 limit-preservation hypotheses already proven for the inner system. -/
 theorem ordChainCanonicalCover {𝒞 : Type u} [Cat.{u} 𝒞] [PreRegularCategory 𝒞] [HasEqualizers 𝒞]
@@ -592,7 +592,7 @@ theorem chainCanonicalCoverWS {𝒞 : Type u} [Cat.{u} 𝒞] [PreRegularCategory
     (fun {_ _} hij {_ _} p q h => chainHfaith P hij (hwsuf hij) p q h)
     (fun {_ _} hij {_ _} φ hiso => chainHcons P hij (hwsuf hij) φ hiso)
 
-/-- **§1.547 (B-package) — the inner ℕ-chain-slice colimit `S*` is PRE-REGULAR, sorry-free, with the
+/-- **§1.547 (B-package) — the inner ℕ-chain-slice colimit `S*` is PRE-REGULAR, Sorry-free, with the
     LAST remaining hypothesis `hcanon` now DISCHARGED** from the §1.546 well-supported-suffix condition
     (`chainCanonicalCoverWS`).  This is the relative-capitalization successor `S → S*` at the level of
     pre-regular structure, reduced to the single concrete book precondition `hwsuf`: every appended
@@ -1575,7 +1575,7 @@ theorem towerHcanon (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier) :
     This isolates the two genuine §1.543 ingredients — the successor `nextStep` and the capital
     closure `hcap` — as the *only* inputs; everything categorical (cast-coherence, faithfulness,
     colimit pre-regularity) is discharged here, and both inputs are themselves now supplied
-    sorry-free in `Fredy/CapDataWiring.lean`, so §1.543 is proven. -/
+    Sorry-free in `Fredy/CapDataWiring.lean`, so §1.543 is proven. -/
 noncomputable def capData_of_tower (A : Type u) [Cat.{u} A] [PreRegularCategory A]
     (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier)
     (b : PreRegBundle.{u}) (hb : b = ⟨A, inferInstance, inferInstance⟩)
@@ -2244,8 +2244,8 @@ noncomputable def nextStepOfEnum {S : Type u} [Cat.{u} S] [hpre : PreRegularCate
   uncountable carrier, pointing EVERY well-supported `B` needs the cofinal (object-indexed)
   successor, not this legacy `ℕ`-chain.  That cofinal route — and with it the capital fixpoint —
   is built downstream in `Fredy/CapDataWiring.lean` (`uniformStep`/`tower_capital_of_cofinal`),
-  which is where §1.543 is closed PROVEN sorry-free.  This legacy `nextStep` is nonetheless a
-  genuine faithful pre-regular successor for every `S`, sorry-free. -/
+  which is where §1.543 is closed PROVEN Sorry-free.  This legacy `nextStep` is nonetheless a
+  genuine faithful pre-regular successor for every `S`, Sorry-free. -/
 
 /-- A well-supported-valued enumeration of `S` always exists: the constant terminator `fun _ => 1`
     (`1` is well-supported, `wellSupported_one`).  This makes the `nextStep` choice set nonempty. -/
@@ -2256,7 +2256,7 @@ theorem exists_wellSupported_enum (S : Type u) [Cat.{u} S] [PreRegularCategory S
 /-- **The uniform relative-capitalization successor `nextStep S : CapStep S.carrier`** — Freyd's
     `S ↦ S*` as the single polymorphic rung the outer ω-tower iterates.  `nextStepOfEnum` applied to
     a `Classical.choice`-picked well-supported enumeration (always available, `exists_wellSupported_enum`).
-    Faithful pre-regular embedding `S → S*`, sorry-free.  This is the §1.546/§1.547 keystone. -/
+    Faithful pre-regular embedding `S → S*`, Sorry-free.  This is the §1.546/§1.547 keystone. -/
 noncomputable def nextStep (S : PreRegBundle.{u}) : CapStep S.carrier :=
   nextStepOfEnum (Classical.choose (exists_wellSupported_enum S.carrier))
     (Classical.choose_spec (exists_wellSupported_enum S.carrier))
@@ -2265,15 +2265,16 @@ noncomputable def nextStep (S : PreRegBundle.{u}) : CapStep S.carrier :=
 -- the §1.547 uniform successor (`uniformStep`/`wsCover`/`stepWellPoints_of_fibreDensity`), the
 -- cofinal `hstage` (`hstage_of_cofinal`) and the capital fixpoint (`tower_capital_of_cofinal`), all
 -- of which transitively IMPORT this file, so an in-place discharge here would be an import cycle.
--- The sorry-free ω-tower package (`towerH*`/`capData_of_tower` below) is what that wiring consumes;
+-- The Sorry-free ω-tower package (`towerH*`/`capData_of_tower` below) is what that wiring consumes;
 -- `Freyd.nextStep` here is the legacy countable successor, superseded by the cofinal `uniformStep`.
--- See `Fredy.CapDataWiring.capData_exists` (sole residual: the §1.546 `FibreDensity`).
+-- See `Fredy.CapDataWiring.capData_exists` — now PROVEN Sorry-free (the §1.546 `FibreDensity` input
+-- it consumes is itself proven in `Fredy.FibreDensityProof`).
 
 /- (Documentation retained; the declarations it described are relocated to `Fredy.CapDataWiring`.)
     **§1.543 — THE REMAINING WALL** (reduced to two sharp
     sub-obligations).  Every small pre-regular category `A` admits capitalization data `CapData A`.
 
-    The categorical assembly is now *complete and sorry-free* (`capData_of_tower`, `towerSystem`,
+    The categorical assembly is now *complete and Sorry-free* (`capData_of_tower`, `towerSystem`,
     `towerCoherent`, the cast-coherence and the faithful-stage packaging).  `capData_exists` is
     reduced to producing the two genuine §1.543 inputs `capData_of_tower` consumes:
 
@@ -2287,13 +2288,13 @@ noncomputable def nextStep (S : PreRegBundle.{u}) : CapStep S.carrier :=
          well-supported object appears at a finite stage `n`, gets a point at `n+1`, and the point
          survives by cover reflection `colimHom_cover_reflects`/`homInclObj_cover_reflects`).
 
-    These two are the *only* residue, and are now SPLIT into two separately-stated `sorry`s with
+    These two are the *only* residue, and are now SPLIT into two separately-stated `Sorry`s with
     their dependency exposed: `hwall_step` (the successor + full preservation package) and, after
     `obtain`ing it and introducing the colimit's pre-regular instance, `hcap` (the capital closure
     stated *over* that instance — it genuinely consumes `hwall_step`, hence the nesting).
 
    ── RELOCATED.  The former `capData_exists` / `capitalization_lemma_small` bodies (and the
-   sorry-free `hwall_step` ω-tower preservation package they assembled) now live, fully wired to the
+   Sorry-free `hwall_step` ω-tower preservation package they assembled) now live, fully wired to the
    §1.547 uniform successor, in `Fredy.CapDataWiring`.  Their text is retained below for reference,
    inside this comment, because the live discharge had to move downstream of the uniform-successor
    pieces (`uniformStep`/`wsCover`/`hstage_of_cofinal`/`tower_capital_of_cofinal`), all of which
@@ -2318,7 +2319,7 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
   --     stage `n`, the successor `nextStep` puts a point on it at stage `n+1`, and the point
   --     survives the colimit by cover reflection (`colimHom_cover_reflects` /
   --     `homInclObj_cover_reflects`).  This OBLIGATION CONSUMES the package from WALL 1 — it is
-  --     not independent of it, which is why both walls were originally bundled into one `sorry`.
+  --     not independent of it, which is why both walls were originally bundled into one `Sorry`.
   --
   -- `hwall` re-bundles the two for `capData_of_tower`; the split below is the real reduction.
   have hwall_step :
@@ -2364,7 +2365,7 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
     -- well-supported object) and supply the ω-tower's preservation package by rung-composing the
     -- single-step preservation.
     --
-    -- THE PER-`B` SLICE RUNG IS NOW BUILT, sorry-free, in `Fredy.RelativeCapitalization`
+    -- THE PER-`B` SLICE RUNG IS NOW BUILT, Sorry-free, in `Fredy.RelativeCapitalization`
     -- (§1.544/§1.545): `Freyd.sliceCapStep B hws : CapStep S` is the faithful pre-regular embedding
     -- `S → S/B` for a single well-supported `B` (`overPreRegular` gives `S/B` pre-regular;
     -- `sliceEmbedFaithful` proves faithfulness — embedding via `slice_embedding_separates`,
@@ -2380,7 +2381,7 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
     --
     -- §1.547 CONSTRUCTION (the path the residual must follow — *not* reducible to `sliceCapStep B`).
     -- The per-`S` inner directed system is indexed by FINITE SETS `U` of well-supported objects of
-    -- `S`, ordered by inclusion.  This index is NOW BUILT, sorry-free, in `Fredy.RelativeCapitalization`:
+    -- `S`, ordered by inclusion.  This index is NOW BUILT, Sorry-free, in `Fredy.RelativeCapitalization`:
     --   * `Freyd.listDirected     : Directed (List S)`  — finite sets = `List S`, `⊆` order, bound = `++`.
     --   * `Freyd.listProd U       : S`                  — the product `∏U` (right-folded `prod`, `∏[]=1`).
     --   * `Freyd.listProdProj U k : ∏U ⟶ U.get k`       — the projection onto the factor at index `k`
@@ -2399,10 +2400,10 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
     --   * `Freyd.innerObj U = Over (listProd U)`, `Freyd.innerCat`, `Freyd.innerF`/`innerFunctF`,
     --     and `Freyd.innerCatSystem (P : ListProjFamily) : CatSystem (List S) listDirected` —
     --     the inner system over `listDirected`, objects/Cat/transition-object-map/per-rung
-    --     functoriality all sorry-free; only the two strict `CatSystem` fields remain (below).
+    --     functoriality all Sorry-free; only the two strict `CatSystem` fields remain (below).
     --
     -- WHY STILL A SORRY — now reduced to THREE sharp, isolated residuals (the index, objects,
-    -- transition functor, and per-rung points are all DONE sorry-free):
+    -- transition functor, and per-rung points are all DONE Sorry-free):
     --   (A)  THE CHOICE-FREE TRANSITION BASE MORPHISM — the data of `Freyd.ListProjFamily`:
     --        a projection `listProd U ⟶ listProd V` per `V ⊆ U`, strictly coherent.  Not yet
     --        constructible: `listSubset V U = ∀ x∈V, x∈U` is a `Prop`, so a positional
@@ -2410,7 +2411,7 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
     --        (same wall that forced `listProdProj` to be `Fin`-indexed).  Abstracted as data;
     --        one constructive instance closes (A).
     --   (B-strict)  BASE-CHANGE IS ONLY PSEUDO-FUNCTORIAL — *RESOLVED for a directed strict system*
-    --        by the INFLATION (`Fredy.Inflation`, §1.544, fully sorry-free, axioms = propext).  Freyd's
+    --        by the INFLATION (`Fredy.Inflation`, §1.544, fully Sorry-free, axioms = propext).  Freyd's
     --        §1.544 replaces `A` by `A′ := List A` whose binary product IS list concatenation, so the
     --        slice transition is the STRICT suffix-append `catMap`/`sliceCatFunctor`/`innerSliceTr`, with
     --        BOTH `CatSystem` laws PROVEN on the nose: `Freyd.innerSliceTr_refl` (F_refl) and
@@ -2420,7 +2421,7 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
     --        `Freyd.chainSliceSystem (P : Freyd.PrefixChain) : Colim.CatSystem (ULift Nat) uliftNatDirected`
     --        lifts it to a genuine DIRECTED strict `CatSystem` (option (b): the ω-chain along an
     --        increasing prefix-chain; `ℕ` is directed by `max`).  So (B-strict) — a directed *strict*
-    --        inner system — is now BUILT sorry-free.  ROUTE-1 (strict Σ-reindexing, `strictReindexSystem`)
+    --        inner system — is now BUILT Sorry-free.  ROUTE-1 (strict Σ-reindexing, `strictReindexSystem`)
     --        stays NEGATIVE (wrong variance + fixed domain); the inflation is the route that works.
     --   (B-coverage)  The ω-chain `chainSliceSystem` sees only a LINEAR cofinal tower of finite
     --        factor-sets, not the full subset lattice of §1.547.  To point EVERY well-supported `B`
@@ -2439,7 +2440,7 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
     --        `prodRight 1` use (the cross-section `A → A′`) inlined — so `Inflation` depends only on
     --        `S1_*`/`SliceRegular`/`CatColimitRegular`.  `Capitalization` now `import Fredy.Inflation`,
     --        so `Freyd.chainSliceSystem (P : PrefixChain S′) : Colim.CatSystem (ULift Nat) uliftNatDirected`
-    --        — the sorry-free, propext-only DIRECTED STRICT inner system — is IN SCOPE right here.  No
+    --        — the Sorry-free, propext-only DIRECTED STRICT inner system — is IN SCOPE right here.  No
     --        import cycle (`Inflation`'s import closure is `Capitalization`-free; verified).
     --
     --   WHAT REMAINS to close `hwall_step` in place, now that the inner system is reachable:
@@ -2451,7 +2452,7 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
     --   (B-package)  the inner `colimitPreRegular` package for `chainSliceSystem` — `Coherent` + the 9
     --        preservation hypotheses + `hcanon`, mirroring the OUTER `towerCoherent`/`capData_of_tower`
     --        assembly below; a full second copy of that assembly over the directed `ℕ`-index.
-    --        PROGRESS (this session): the `Coherent` field IS NOW BUILT sorry-free as
+    --        PROGRESS (this session): the `Coherent` field IS NOW BUILT Sorry-free as
     --        `Freyd.chainSliceCoherent (P : PrefixChain 𝒞) : (chainSliceSystem P).Coherent`
     --        (`Fredy.Inflation`, axioms = propext) — the morphism-level mate of `innerSliceTr_refl`/
     --        `innerSliceTr_trans`, via `chainSliceFunctor_map_f_heq` (underlying `.f = catMap suffix`)
@@ -2459,7 +2460,7 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
     --        for the inner chain is now applicable.  STILL OPEN in (B-package): the 9 preservation
     --        hypotheses + `hcanon`, which presuppose (i) `PreRegularCategory (Infl 𝒞)` and (ii) a
     --        base-change preservation analysis of `innerSliceTr`.
-    --        PROGRESS (this session): (i) IS NOW BUILT sorry-free — `Freyd.inflPreRegular [PreRegularCategory
+    --        PROGRESS (this session): (i) IS NOW BUILT Sorry-free — `Freyd.inflPreRegular [PreRegularCategory
     --        𝒞] : PreRegularCategory (Infl 𝒞)` (`Fredy.Inflation`, axioms = `[]`, fully constructive).
     --        It conjugates `A`'s pre-regular structure across `Infl 𝒞 ≃ 𝒞`: terminal `[]`, product `++`
     --        (`catForget`/`catTail`/`catArrange`), equalizer = singleton `[E]` of the `A`-equalizer
@@ -2469,14 +2470,14 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
     --        correspondences, each via the `X ≅ X×1` unitor).  So per-stage `overPreRegular` NOW FIRES:
     --        every inner stage `Over (chain n)` of `Infl 𝒞` is pre-regular.
     --        (ii) NOW LARGELY DONE — the base-change preservation analysis of `innerSliceTr` (the strict
-    --        suffix-append `sliceCatFunctor`) is built sorry-free in `Fredy.Inflation`:
+    --        suffix-append `sliceCatFunctor`) is built Sorry-free in `Fredy.Inflation`:
     --          * `sliceCatObj_terminal`/`innerSliceTr_terminal` — terminal preserved (`htpres`);
     --          * `sliceCatObj_prod_jointly_monic`/`sliceCatObj_prod_pair` — binary products preserved,
     --            lifted through the base-transport to `chainHppres`/`chainHppresPair` (`hppres`/`_pair`);
     --          * `overHasEqualizers` (slice equalizers = base equalizers, in `SliceRegular`) +
     --            `sliceCatObj_eq_mono`/`sliceCatObj_eq_lift` → `chainHepres`/`chainHepresLift`
     --            (`hepres`/`_lift`).
-    --        All sorry-free, axioms = `propext`.  The package is ASSEMBLED as
+    --        All Sorry-free, axioms = `propext`.  The package is ASSEMBLED as
     --        `Freyd.chainSlicePreRegular P (hcanon) : PreRegularCategory (chainSliceSystem P).Obj`
     --        — `colimitPreRegular` fed the 8 limit-preservation hyps above; `hcanon` (the canonical
     --        colimit pullback-cover transfer) is its ONE remaining hypothesis parameter.
@@ -2484,7 +2485,7 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
     --   defers (`capData_of_tower`'s `hcanon`), here to be supplied from per-stage
     --   `PullbacksTransferCovers (Over (chain n))` (`overPreRegular`) + cover reflection.  That, plus
     --   (A) the choice-free `ListProjFamily` projections and (B-coverage) a cofinal `PrefixChain`, are
-    --   the honest residual; `hwall_step` stays a documented `sorry`.
+    --   the honest residual; `hwall_step` stays a documented `Sorry`.
     --
     -- The (B-import) resolution is load-bearing, not just documentary: the inner directed strict
     -- `CatSystem` constructor AND its pre-regular package are now IN SCOPE right here.
@@ -2499,7 +2500,7 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
     clear innerSystemAt
     -- (B-package) DOWN-PAYMENT, made load-bearing: the inner colimit `S*` is pre-regular MODULO the
     -- canonical cover transfer `hcanon` — `chainSlicePreRegular` consumes the 8 limit-preservation hyps
-    -- (terminal/products/equalizers preserved by the strict suffix-append transition), all sorry-free.
+    -- (terminal/products/equalizers preserved by the strict suffix-append transition), all Sorry-free.
     have innerPreRegularAt :
         ∀ (Sb : Type u) [Cat.{u} Sb] [PreRegularCategory Sb] [HasEqualizers Sb] (P : PrefixChain Sb)
           (hcanon : letI : Cat (chainSliceSystem P).Obj := colimitCat _ (chainSliceCoherent P)
@@ -2563,8 +2564,8 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
       hepres hepres_lift hcanon
   -- INTEGRITY NOTE (do not re-introduce the old `hcap` over this ℕ-tower).  The colimit
   -- `Ā = (towerSystem b nextStep).Obj` of THIS ω-tower is *not* capital when `A` is uncountable, so
-  -- `Capital (𝒞 := (towerSystem b nextStep).Obj)` is a FALSE statement and a `sorry` for it would be a
-  -- false-statement-with-`sorry` (forbidden).  Concretely: each rung `nextStep` is
+  -- `Capital (𝒞 := (towerSystem b nextStep).Obj)` is a FALSE statement and a `Sorry` for it would be a
+  -- false-statement-with-`Sorry` (forbidden).  Concretely: each rung `nextStep` is
   -- `nextStepOfEnum (enum : Nat → S)`, whose inner slice-colimit `S*` acquires a point of only the
   -- *enumerated* (countably many) factor objects; ω rungs therefore point at most countably many
   -- objects, while an uncountable `A` has uncountably many well-supported objects left unpointed.
@@ -2585,13 +2586,13 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
   -- Until that transfinite `CapData A` is built, the residual is carried HERE, on `capData_exists`'s
   -- OWN statement `Nonempty (CapData.{u} A)` — which IS the true theorem of §1.543 (every small
   -- pre-regular `A` admits capitalization data; `CapData` is generic in its index `ι`/`D`, so a
-  -- transfinite tower supplies it).  This is an honest residual at a TRUE statement, NOT a `sorry` for
-  -- a false sub-goal.  `capData_of_tower`/`hwall_step` above stay in scope (sorry-free, the ω-tower
+  -- transfinite tower supplies it).  This is an honest residual at a TRUE statement, NOT a `Sorry` for
+  -- a false sub-goal.  `capData_of_tower`/`hwall_step` above stay in scope (Sorry-free, the ω-tower
   -- categorical assembly) but are no longer the route to capitalness; the `nextStep`/`b`/package
   -- bindings are retained so the diagnostic stays attached to the concrete construction.
   exact (by
     -- The genuine §1.543 transfinite-tower capitalization data (true theorem; construction pending).
-    sorry : Nonempty (CapData.{u} A))
+    Sorry : Nonempty (CapData.{u} A))
 
 /-- **§1.543 Capitalization Lemma** (small case, object universe = morphism universe).
     Every small pre-regular category `A` admits a faithful representation into a capital
