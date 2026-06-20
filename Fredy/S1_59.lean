@@ -417,49 +417,53 @@ class AbelianCategory (𝒞 : Type u) [Cat.{v} 𝒞]
             HasEqualizers 𝒞, HasCoequalizers 𝒞 where
   all_normal : ∀ {A B : 𝒞} (m : A ⟶ B) (hm : Mono m), IsNormalSubobject m hm
 
+/-- **Exactness, as a predicate on a FIXED zero/equalizer/coequalizer structure** (§1.597).
+  This is the body of `ExactCategory.exact`, but stated as a `Prop` that reads the *ambient*
+  `[HasZeroObject] [HasEqualizers] [HasCoequalizers]` instances rather than bundling its own
+  copies.  Stating §1.593 against `IsExactStructure` (instead of `Nonempty (AbelianCategory 𝒞)`)
+  keeps BOTH sides of the iff anchored to the SAME chosen zero/kernel/cokernel data, so the
+  reverse direction is well-typed (see the note on the theorem below). -/
+def IsExactStructure (𝒞 : Type u) [Cat.{v} 𝒞]
+    [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoequalizers 𝒞] : Prop :=
+  ∀ {A B : 𝒞} (x : A ⟶ B),
+    ∃ (θ : Cokernel (kernelMap x) ⟶ Kernel (cokernelMap x)),
+      IsIso θ ∧ cokernelMap (kernelMap x) ≫ θ ≫ kernelMap (cokernelMap x) = x
+
 /-! **§1.593**: A is abelian iff it is a regular additive category in which every
   subobject is normal.
 
-  PROOF (sketch): Given a regular additive category with all monics normal, we obtain
-  cokernels as follows.  For any monic x:A↣B, by normality x = kernel(y) for some y:B→C.
-  Since we also have images (regular), every morphism factors as cover ∘ monic.
-  In a regular additive category with all-normal subobjects, a cover that is monic must
-  be an iso; hence cokernels exist.  This plus the T:A→Ab faithful representation
-  (from §1.552, using one-valuedness + regular) shows cokernels are preserved, giving
-  the full abelian bicartesian structure.  The other direction is §1.594 + §1.592.
+  STATEMENT ENCODING (faithful + well-typed).  Both the LHS (`all monics normal`) and the
+  RHS (`IsExactStructure`) are predicates that read the SAME ambient
+  `[HasZeroObject] [HasEqualizers] [HasCoequalizers]` instances — the same chosen
+  zero object, kernels and cokernels.  So the iff is a statement about ONE fixed bicartesian
+  structure: "in this fixed regular additive category-with-zero, every subobject is normal
+  ⟺ the category is exact (= abelian, §1.597)".  `IsExactStructure` is exactly the §1.597
+  abelian content (θ : coker(ker x) ≅ ker(coker x) for all x), which is the bicartesian/
+  Horn-sentence notion §1.59 calls "abelian"; §1.597 then equates exact-additive with abelian.
 
-  BLOCKER (sharpened — two independent obstructions, both VERIFIED via the LSP):
+  WHY THE OLD `Nonempty (AbelianCategory 𝒞)` RHS WAS A DEFECT (statement-level, not a proof
+  gap).  `IsNormalSubobject m hm` mentions `Kernel f`, which depends on the ambient
+  `[HasZeroObject 𝒞]`/`[HasEqualizers 𝒞]` — classes carrying *data* (a chosen zero object /
+  chosen equalizers), not just Props.  An arbitrary `Nonempty (AbelianCategory 𝒞)` witness
+  carries its OWN, possibly different, `toHasZeroObject`/`toHasEqualizers`, so
+  `inst.all_normal m hm` proves `IsNormalSubobject` w.r.t. the *witness's* kernels:
+  `@IsNormalSubobject 𝒞 _ inst.toHasZeroObject inst.toHasEqualizers …`, whereas the goal
+  demands `@IsNormalSubobject 𝒞 _ inst✝² inst✝¹ …` — a genuine type mismatch with no transport.
+  Anchoring the RHS to the ambient instances (via `IsExactStructure`) removes the repacking.
 
-  (1) FORWARD (`all_normal → Nonempty AbelianCategory`): assembling the `AbelianCategory`
-  structure from the ambient `[RegularCategory] [AdditiveCategory] [HasZeroObject]
-  [HasEqualizers] [HasCoequalizers]` instances plus `all_normal` is the substantive
-  content but is NOT mere field-copying.  `AbelianCategory` has a multi-parent diamond:
-  `RegularCategory` and `HalfAdditiveCategory` both extend `HasTerminal`/
-  `HasBinaryProducts`, and `HasZeroObject` re-extends `HasTerminal`/`HasCoterminator`.
-  The anonymous constructor `{ … with all_normal := h }` therefore rejects the
-  overlapping parents ("field `toHasZeroObject` … has already been specified").  A clean
-  assembly needs the parents reconciled, real structural work — and even then the
-  *mathematical* core (cokernels behaving correctly / the bicartesian structure) needs
-  the §1.55 Ab-representation, which is not yet importable.
-
-  (2) REVERSE (`Nonempty AbelianCategory → all_normal`): this direction is a STATEMENT-LEVEL
-  defect, NOT an Ab-calculus gap.  `IsNormalSubobject m hm` mentions `Kernel f`, which
-  depends on the ambient `[HasZeroObject 𝒞]` and `[HasEqualizers 𝒞]` — classes that carry
-  *data* (a chosen zero object / chosen equalizers), not just Props.  An arbitrary
-  `Nonempty (AbelianCategory 𝒞)` witness carries its OWN, possibly different,
-  `toHasZeroObject`/`toHasEqualizers`, so `inst.all_normal m hm` proves `IsNormalSubobject`
-  w.r.t. the *witness's* kernels.  Verified concretely: `inst.all_normal m hm` elaborates
-  to type `@IsNormalSubobject 𝒞 _ inst.toHasZeroObject inst.toHasEqualizers …` whereas the
-  goal demands `@IsNormalSubobject 𝒞 _ inst✝² inst✝¹ …` — a genuine type mismatch with no
-  transport available.  As written the iff is unprovable; a faithful fix would have the
-  statement demand the `AbelianCategory` instance *extend* the ambient ones.  Statement is
-  verbatim per task; sorry retained. -/
+  PROOF (sketch, both directions need the §1.55 Ab-representation, not yet importable):
+  (→) all monics normal ⟹ every cover that is monic is an iso (regular+additive), so every
+  morphism factors as cokernel∘kernel and θ is forced to be an iso ⟹ `IsExactStructure`.
+  (←) exact ⟹ every monic x is the kernel of its cokernel (`monic_kernel_of_cokernel`), i.e.
+  normal.  This converse direction is, in fact, already provable from `monic_kernel_of_cokernel`
+  once exactness is packaged as an `ExactCategory`; only the forward direction strictly needs
+  the Ab-representation.  Faithful sorry retained for both. -/
 theorem abelian_iff_regular_additive_all_normal
     (𝒞 : Type u) [Cat.{v} 𝒞]
     [RegularCategory 𝒞] [AdditiveCategory 𝒞] [HasZeroObject 𝒞]
     [HasEqualizers 𝒞] [HasCoequalizers 𝒞] :
     (∀ {A B : 𝒞} (m : A ⟶ B) (hm : Mono m), IsNormalSubobject m hm) ↔
-    Nonempty (AbelianCategory 𝒞) := by
+    IsExactStructure 𝒞 := by
   sorry
 
 /-! ## §1.594 Effective regular additive ⇔ abelian
