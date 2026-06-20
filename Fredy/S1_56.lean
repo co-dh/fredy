@@ -94,6 +94,11 @@ def graph {A B : 𝒞} (x : A ⟶ B) : BinRel 𝒞 A B where
     -- hA: f ≫ id = g ≫ id  →  f = g
     simpa [Cat.id_comp, Cat.comp_id] using hA
 
+/-- A map *is* a relation (Freyd): a morphism `x : A ⟶ B` silently embeds into the
+    relational calculus as its graph `↑x = graph x`.  This lets §1.62 read in book
+    notation — `x° ⊚ f` for `(graph x)° ⊚ (graph f)`. -/
+instance graphCoe {A B : 𝒞} : Coe (A ⟶ B) (BinRel 𝒞 A B) := ⟨graph⟩
+
 /-! ## §1.561 Reciprocal -/
 
 def reciprocal {A B : 𝒞} (R : BinRel 𝒞 A B) : BinRel 𝒞 B A where
