@@ -206,15 +206,15 @@ noncomputable def interUnion [HasImages 𝒞] {A : 𝒞} (F : Subobject 𝒞 (po
         (`invImage_bottomSub_le`, proved sorry-free from `radjImage_adjunction`);
         then `HasCoterminator.ofStrict` (S1_58).
 
-    The lone residual is `bottomSub_dom_iso A B : (∅_A).dom ≅ (∅_B).dom` (cross-base bottom-
-    domain iso), equivalently the strict-initial absorption `0 × A ≅ 0`, equivalently the
-    existence of the universal arrow `0 → A`.  This is NOT supplied by either adjoint to
-    inverse image: `g* ⊣ g##` (sorry-free, used here) gives only `g*(⊥) ≅ ⊥` (the emptiness
-    direction), and `∃_g ⊣ g*` is gated behind `[PreLogos 𝒞]` (which a bare topos lacks).
-    The viable sorry-free route is the partial-map-classifier undefined-point construction
-    (`Fredy.PartialMapClassifier`, now sorry-free at the interface) — power-object internals,
-    left for a follow-up.  Hence this theorem still carries `sorryAx` THROUGH that one seed
-    (`Fredy.ToposStrictZero.bottomSub_dom_iso`); everything else in §1.944 is sorry-free. -/
+    CLOSED (no longer a sorry).  The former residual `bottomSub_dom_iso A B : (∅_A).dom ≅
+    (∅_B).dom` (cross-base bottom-domain iso, equivalently the existence of the universal
+    arrow `0 → A`) is now proved sorry-free in `Fredy.ToposStrictZero.bottomSub_dom_iso` by
+    the **empty-singleton** argument: with `K := {a : A | {a} = ∅}` (the pullback of the
+    singleton map `{·}=singletonMap A` along the empty-set name `nameOf ∅_A`), `K` is
+    subterminal and the pullback square forces `a ∈ {a} = a ∈ ∅`, i.e. `kA ≫ χ_{∅_A} = ⊤∘!`;
+    the classifier UMP factors `kA` through `∅_A`, giving `∅_A.dom ≅ K ≅ Z₁`.  All steps live
+    in the §1.92/§1.94 exponential power-object layer (axiom-clean: `[propext,
+    Classical.choice]`).  Hence §1.944 is fully sorry-free. -/
 theorem topos_has_strict_coterminator : Nonempty (HasCoterminator 𝒞) :=
   topos_has_coterminator
 
