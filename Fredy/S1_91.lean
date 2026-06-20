@@ -928,6 +928,68 @@ theorem mem_dbar_iff {A : 𝒞} (S u X : Subobject 𝒞 A) :
   rw [classify_dbar]
   exact heyting_true_iff_eq _ _ X.arr
 
+/-- **§1.914 (⇔ is symmetric)**: `(S ⇔ u) ≃ (u ⇔ S)` as subobjects.  Their
+    membership predicates `χ_S = χ_u` and `χ_u = χ_S` along `X.arr` coincide. -/
+theorem dbar_symm {A : 𝒞} (S u : Subobject 𝒞 A) : Sub.equiv (Sub.dbar S u) (Sub.dbar u S) := by
+  rw [Sub.equiv_iff_forall_le]
+  intro X
+  rw [mem_dbar_iff, mem_dbar_iff]
+  exact ⟨Eq.symm, Eq.symm⟩
+
+/-- **§1.914 (Heyting law `⊤ ⇔ c = c`)**: for any `c : W → Ω`,
+    `⟨term ≫ true, c⟩ ≫ ⇔ = c`.  The double-arrow with a constantly-true first
+    component is the identity.  Proof: pick a monic `m` with `c = χ_m`
+    (`classify_surjective`); both `⟨t∘!,c⟩ ≫ ⇔` and `c` make `m` a pullback of `t`
+    (the agreement `m≫(t∘!)=m≫c` holds because both equal `term ≫ true`), so
+    `classify_unique` forces them equal. -/
+theorem true_dbar {W : 𝒞} (c : W ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞)) :
+    pair (term W ≫ HasSubobjectClassifier.true) c ≫ heytingDoubleArrow = c := by
+  obtain ⟨P, m, hm, hmc⟩ := classify_surjective c
+  -- c = χ_m;  show ⟨t∘!,c⟩ ≫ ⇔ = χ_m too, via classify_unique.
+  rw [← hmc]
+  -- abbreviations
+  let χ := HasSubobjectClassifier.classify m hm
+  -- the square: m ≫ (⟨t∘!,χ⟩ ≫ ⇔) = term P ≫ true  (heyting: m≫(t∘!)=m≫χ).
+  have hagm : m ≫ (term W ≫ HasSubobjectClassifier.true) = m ≫ χ := by
+    have sqm : m ≫ χ = term P ≫ HasSubobjectClassifier.true :=
+      HasSubobjectClassifier.classify_sq m hm
+    rw [sqm, ← Cat.assoc, term_uniq (m ≫ term W) (term P)]
+  have hsq : m ≫ (pair (term W ≫ HasSubobjectClassifier.true) χ ≫ heytingDoubleArrow)
+      = term P ≫ HasSubobjectClassifier.true :=
+    (heyting_true_iff_eq (term W ≫ HasSubobjectClassifier.true) χ m).2 hagm
+  refine HasSubobjectClassifier.classify_unique m hm _ hsq ?_
+  intro d
+  -- d.π₁ ≫ (⟨t∘!,χ⟩≫⇔) = term ≫ true  ⟹ (heyting) d.π₁≫(t∘!)=d.π₁≫χ ⟹ d.π₁≫χ=term≫true.
+  have hd : d.π₁ ≫ (pair (term W ≫ HasSubobjectClassifier.true) χ ≫ heytingDoubleArrow)
+      = term d.pt ≫ HasSubobjectClassifier.true := by
+    rw [d.w, term_uniq d.π₂ (term d.pt)]
+  have hag : d.π₁ ≫ (term W ≫ HasSubobjectClassifier.true) = d.π₁ ≫ χ :=
+    (heyting_true_iff_eq (term W ≫ HasSubobjectClassifier.true) χ d.π₁).1 hd
+  have hdχ : d.π₁ ≫ χ = term d.pt ≫ HasSubobjectClassifier.true := by
+    rw [← hag, ← Cat.assoc, term_uniq (d.π₁ ≫ term W) (term d.pt)]
+  obtain ⟨e, ⟨he₁, _⟩, heu⟩ :=
+    HasSubobjectClassifier.classify_pullback m hm ⟨d.pt, d.π₁, term d.pt, hdχ⟩
+  exact ⟨e, ⟨he₁, term_uniq _ _⟩, fun v hv₁ _ => heu v hv₁ (term_uniq _ _)⟩
+
+/-- **§1.914 (⇔ unit)**: `S ≤ ((S ⇔ u) ⇔ u)` — `s ≤ (s⇔u)⇔u`.  Along `S.arr`, `χ_S`
+    is constantly true, so `S⇔u` reduces to `u` (`true_dbar`); hence `χ_{S⇔u}` and
+    `χ_u` agree along `S.arr`, which is exactly `S ≤ (S⇔u)⇔u` by `mem_dbar_iff`. -/
+theorem dbar_unit {A : 𝒞} (S u : Subobject 𝒞 A) : S.le (Sub.dbar (Sub.dbar S u) u) := by
+  rw [mem_dbar_iff]
+  -- Goal: S.arr ≫ χ_{S⇔u} = S.arr ≫ χ_u.
+  rw [classify_dbar]
+  -- S.arr ≫ (⟨χS,χu⟩ ≫ ⇔) = ⟨S.arr≫χS, S.arr≫χu⟩ ≫ ⇔ = ⟨term≫true, S.arr≫χu⟩ ≫ ⇔ = S.arr≫χu.
+  have hSt : S.arr ≫ subChar S = term S.dom ≫ HasSubobjectClassifier.true :=
+    HasSubobjectClassifier.classify_sq S.arr S.monic
+  calc S.arr ≫ (pair (subChar S) (subChar u) ≫ heytingDoubleArrow)
+      = (S.arr ≫ pair (subChar S) (subChar u)) ≫ heytingDoubleArrow := (Cat.assoc _ _ _).symm
+    _ = pair (S.arr ≫ subChar S) (S.arr ≫ subChar u) ≫ heytingDoubleArrow := by
+          rw [pair_uniq (S.arr ≫ subChar S) (S.arr ≫ subChar u) (S.arr ≫ pair (subChar S) (subChar u))
+                (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])]
+    _ = pair (term S.dom ≫ HasSubobjectClassifier.true) (S.arr ≫ subChar u) ≫ heytingDoubleArrow := by
+          rw [hSt]
+    _ = S.arr ≫ subChar u := true_dbar (S.arr ≫ subChar u)
+
 /-- **§1.919 (reduction)**: an endomorphism `h : Ω → Ω` equals the identity as
     soon as `t : 1 → Ω` is a pullback of `t` along `h` — i.e. `Ω` is "`h`-large in
     itself" (`h` classifies the maximal subobject `t : 1 → Ω`).
