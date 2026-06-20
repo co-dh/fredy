@@ -32,6 +32,7 @@ import Fredy.S1_85
 import Fredy.S1_91
 import Fredy.S1_92
 import Fredy.S1_94
+import Fredy.ToposExists
 
 
 universe v u
@@ -172,46 +173,41 @@ instance topos_is_effective [Topos 𝒞] : EffectiveRegular 𝒞 := by
 /-! ## §1.952  A topos is positive -/
 
 /-- **§1.952**: A topos is positive: it has binary coproducts A + B.
-    Proof sketch (Freyd): For any A, ΔR factors through ΔA1 iff R is a map,
-    and through Δ0 iff R = 0.  So A + 1 exists.  Then A + B is constructed
-    as a subobject of [A] × [B] = [A + B].
+    `A + B` is the subobject `union (image inlRaw)(image inrRaw) ⊆ [A] × [B]`, with
+    `inlRaw a = ({a},∅)`, `inrRaw b = (∅,{b})`.
 
-    BLOCKER (faithful Sorry) — a SUBOBJECT-UNION / PARTIAL-MAP gap.  The §1.54
-    `capitalization_lemma` is PROVEN Sorry-free (`CapDataWiring.lean`), and power
-    objects `[A] = HasPowerObject.powerObj A` plus the singleton map `A ↣ [A]` are
-    now BUNDLED in `Topos` (`Topos.has_pow`, S1_9) and PROVEN axiom-clean
-    (`Baseable923 :: singletonMap`/`singletonMap_monic`).  So ingredient (S) below
-    is now AVAILABLE; the two genuine residuals are the carrier's *subobject union*
-    and the coproduct UMP's *partial-map classifier*:
+    Most of the construction is now DELIVERED sorry-free in `Fredy/ToposExists.lean`
+    (GOAL 3), the frame law `invImage_preserves_union` having unblocked the union layer:
+      * CARRIER + EMBEDDING       — `coprodSub`, `coprodObj`, `coprodArr` (monic).
+      * INJECTIONS                — `coprodInl`, `coprodInr`, with `coprodInl_arr`/
+                                    `coprodInr_arr` and `coprodInl_monic`/`coprodInr_monic`.
+      * `case_uniq` (jointly epi) — `coprod_jointly_epi` (equalizer + `union_min`, FULL).
+      * PARTIAL-MAP DATA          — `casePMf`/`casePMg` + their classify β-squares, via the
+                                    lawful PMC `partialMapClassifier_exists`
+                                    (`Fredy/PartialMapClassifier.lean`, sorry-free).
 
-      (S) [AVAILABLE]  the power objects `[A]`, `[B]` and singleton maps
-          `A → [A]`, `B → [B]` — `HasPowerObject.powerObj` / `Baseable923.singletonMap`,
-          both Sorry-free under `[Topos 𝒞]`.
+    The SINGLE remaining piece is the copairing existence
 
-      (U) [BLOCKED on `HasImages`]  the CARRIER `A + B ↪ [A] × [B]` is the union of
-          the two singleton-image subobjects `{(s,∅)}` and `{(∅,t)}` of `[A]×[B]`.
-          Forming a subobject UNION needs `HasSubobjectUnions` (S1_60:42), which
-          `extends HasImages`; and there is NO internal disjunction `∨ : Ω×Ω → Ω`
-          in the topos layer (S1_91 supplies internal `∧`/`⇒` only — `∨` is itself
-          an image/`∃` construction).  Either route bottoms out on `HasImages`, the
-          same regular-core gap as `topos_is_effective` (the §1.54→`HasImages`
-          wiring, `topos_is_regular`).  So the carrier is NOT classifier-only here.
+        coprod_case_exists {A B X} (f : A ⟶ X) (g : B ⟶ X) :
+          ∃ c, coprodInl A B ≫ c = f ∧ coprodInr A B ≫ c = g
 
-      (P) [BLOCKED on `Ω₊`]  the COPRODUCT UNIVERSAL PROPERTY (`case`/`inl`/`inr` +
-          uniqueness): building `[f,g] : A + B → X` is factoring a partial map out
-          of the singleton-or-empty subobject — the universal property of the
-          PARTIAL-MAP CLASSIFIER `Ω₊ = Ã` (`HasPartialMapClassifier`, S1_92:751).
-          That structure exists in the repo only as a field-stub (`pmc_classify`
-          carries no laws) and is NOT derived from `Topos`; `LawvereTopos`
-          (S1_92:762) *bundles* coproducts, so it cannot be used here without
-          circularity.
+    — Freyd's §1.935 amalgamation: GLUE `f,g` into one map out of `A+B`.  This is NOT
+    reducible to the join-lattice/PMC data already present, because a subobject JOIN
+    (`union`) carries only a map-IN universal property (`union_left/right/min`), never a
+    map-OUT (colimit) one, and the PMC only certifies TOTALITY of a candidate `χ : A+B→X̃`,
+    not its existence.  Producing `χ = χf ∨ χg` as a single total map needs the
+    DISJOINTNESS `image inl ⊓ image inr = ⊥` (a singleton is not the empty subobject — a
+    non-degeneracy fact) plus the union-cover, i.e. the value-object amalgamation.  See the
+    RESIDUAL note in `Fredy/ToposExists.lean` for the exact stuck step.
 
-    Because `HasBinaryCoproducts` is an all-or-nothing class (carrier + lawful
-    `case`/`case_uniq`), no partial instance can be supplied without faking the UMP
-    fields.  The precise residual is the pair {(U) `HasImages`/subobject-union for
-    the carrier; (P) the lawful partial-map-classifier `Ω₊`}. -/
-instance topos_is_positive [Topos 𝒞] : HasBinaryCoproducts 𝒞 := by
-  sorry
+    Because `HasBinaryCoproducts` is all-or-nothing (carrier + lawful `case`/`case_uniq`),
+    no honest partial instance can be supplied without faking `case`.  Once
+    `coprod_case_exists` lands, `case := …choose`, the β-laws are `…choose_spec`,
+    `case_uniq := coprod_jointly_epi`, assembling
+    `toposHasBinaryCoproducts : HasBinaryCoproducts 𝒞`, after which this becomes
+    `exact toposHasBinaryCoproducts`. -/
+noncomputable instance topos_is_positive [Topos 𝒞] : HasBinaryCoproducts 𝒞 :=
+  toposHasBinaryCoproducts
 
 /-! ## §1.954  A topos has coequalizers -/
 
