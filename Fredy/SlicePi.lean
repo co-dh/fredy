@@ -22,6 +22,7 @@
 -/
 import Fredy.SlicePower
 import Fredy.SliceRegular
+import Fredy.ToposCoversEpis
 
 open Freyd
 
@@ -525,5 +526,54 @@ def sliceForallAdj : Adjunction (baseChangeObj f) (piForallObj f) where
   φ_nat_right g b := piPhi_nat_right f g b
 
 end PiForall
+
+/-! ## §1.933  `f*` preserves epis, hence covers (the regularity payload)
+
+  A LEFT adjoint preserves epimorphisms (`leftAdjoint_preserves_epi`).  The pullback
+  functor `f* = baseChangeObj f` IS a left adjoint (`sliceForallAdj`), so it preserves
+  epis.  In the slice topos `Over B`, epis coincide with covers (`cover_iff_epi`, since
+  `Over B` is a topos), so `f*` preserves covers.  This is precisely
+  pullback-stability of covers — the `PullbacksTransferCovers` content.  See the file
+  trailer for the exact wiring to `topos_is_regular_real`. -/
+
+/-- **A LEFT adjoint preserves epimorphisms.**  If `F ⊣ G` and `e` is epic, then `F e`
+    is epic.  Proof: `F e ≫ a = F e ≫ b` transposes (via `φ_nat_left`) to
+    `e ≫ φ a = e ≫ φ b`; cancel the epi `e` to get `φ a = φ b`, then `φ` injective. -/
+theorem leftAdjoint_preserves_epi {𝒟 : Type u} [Cat.{v} 𝒟]
+    {F : 𝒞 → 𝒟} {G : 𝒟 → 𝒞} [Functor F] [Functor G] (adj : F ⊣ G)
+    {X Y : 𝒞} {e : X ⟶ Y} (he : ∀ {Z : 𝒞} (a b : Y ⟶ Z), e ≫ a = e ≫ b → a = b)
+    {W : 𝒟} (a b : F Y ⟶ W) (hab : Functor.map e ≫ a = Functor.map e ≫ b) : a = b := by
+  apply φ_inj adj
+  apply he (adj.φ a) (adj.φ b)
+  rw [← adj.φ_nat_left, ← adj.φ_nat_left, hab]
+
+section PullbackPreservesEpi
+variable {A B : 𝒞} (f : A ⟶ B) [Topos 𝒞]
+
+/-- **The pullback functor `f*` preserves epis** — instance of `leftAdjoint_preserves_epi`
+    applied to `f* ⊣ Π_f` (`sliceForallAdj`).  `f* Y = baseChangeObj f Y`, the pullback of
+    `Y` along `f` in the slice. -/
+theorem baseChange_preserves_epi {X Y : Over B} {e : X ⟶ Y}
+    (he : ∀ {Z : Over B} (a b : Y ⟶ Z), e ≫ a = e ≫ b → a = b)
+    {W : Over A} (a b : baseChangeObj f Y ⟶ W)
+    (hab : Functor.map (F := baseChangeObj f) e ≫ a = Functor.map (F := baseChangeObj f) e ≫ b) :
+    a = b :=
+  leftAdjoint_preserves_epi (sliceForallAdj f) he a b hab
+
+/-- **The pullback functor `f*` preserves covers**, in the slice topos.  `Cover` in
+    `Over B`/`Over A` coincides with epic (`cover_iff_epi`, both are toposes via `overTopos`),
+    and `f*` preserves epis (`baseChange_preserves_epi`).  This is the slice form of
+    pullback-stability of covers. -/
+theorem baseChange_preserves_cover {X Y : Over B} {e : X ⟶ Y} (he : Cover e) :
+    Cover (Functor.map (F := baseChangeObj f) e) := by
+  -- Over B and Over A are toposes; use cover ⟺ epic on both sides.
+  have heEpi : ∀ {Z : Over B} (a b : Y ⟶ Z), e ≫ a = e ≫ b → a = b :=
+    fun {Z} a b h => (cover_iff_epi (𝒞 := Over B) e).mp he a b h
+  have hFeEpi : ∀ {Z : Over A} (a b : baseChangeObj f Y ⟶ Z),
+      Functor.map (F := baseChangeObj f) e ≫ a = Functor.map (F := baseChangeObj f) e ≫ b → a = b :=
+    fun {Z} a b h => baseChange_preserves_epi f heEpi a b h
+  rw [cover_iff_epi (𝒞 := Over A) (Functor.map (F := baseChangeObj f) e)]; exact hFeEpi
+
+end PullbackPreservesEpi
 
 end Freyd
