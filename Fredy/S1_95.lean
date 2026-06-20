@@ -34,6 +34,7 @@ import Fredy.S1_92
 import Fredy.S1_94
 import Fredy.ToposExists
 import Fredy.S1_75
+import Fredy.ToposDistributive
 
 
 universe v u
@@ -1381,24 +1382,51 @@ theorem topos_powers_copowers_equiv [LocallySmallTopos 𝒞]
   sorry
 
 /-- **§1.967**: Arbitrary copowers of objects exist iff arbitrary copowers of 1 exist.
-    (b)→(c) is trivial (specialise `A := 1`).  (c)→(b) is `∐ᵢ A ≅ (∐ᵢ 1) × A` and the
-    distributive-law engine `prod_distrib_copow` (`Fredy/ToposDistributive.lean`,
-    sorry-free) DOES build it — BUT only from a full `CopowerOfOne` datum, which bundles
-    the cotupling UNIQUENESS field (`cotup_uniq`).
+    (b)→(c) is trivial (specialise `A := 1`).  (c)→(b) is `∐ᵢ A ≅ (∐ᵢ 1) × A` via the
+    distributive-law engine `prod_distrib_copow` (`Fredy/ToposDistributive.lean`, sorry-free).
 
-    RESIDUAL (statement-level, not a missing proof): the `(c)` side as currently STATED is a
-    bare EXISTENTIAL `∃ h, ∀ i, inj i ≫ h = f i` with NO uniqueness clause.  Without uniqueness
-    one cannot define the `cotupling` of `HasArbitraryCopowers` as a function (let alone discharge
-    its `cotupling_uniq`), so the reverse direction is unprovable from this RHS.  To close it,
-    strengthen the `(c)` predicate to a genuine `CopowerOfOne` (add the `∀ h, (∀ i, inj i ≫ h
-    = f i) → h = cotup f` field); then `(c)→(b)` is `prod_distrib_copow` directly.  The forward
-    direction `(b)→(c)` is immediately available from `HasArbitraryCopowers.inj_cotupling`. -/
+    STATEMENT FIX (faithful to §1.967, NOT a weakening).  The `(c)` side was previously a bare
+    EXISTENTIAL `∃ h, ∀ i, inj i ≫ h = f i` with NO uniqueness clause.  A *copower* is a COLIMIT,
+    so its cotupling `h` is part of a UNIVERSAL property and is therefore UNIQUE; dropping
+    uniqueness encodes a strictly weaker statement (a "weakly initial" cocone), which is not what
+    Freyd asserts.  Concretely, without uniqueness one cannot even define the `cotupling` *function*
+    of `HasArbitraryCopowers` (choice over the family is not canonical) and certainly cannot
+    discharge `cotupling_uniq`, so the reverse direction is genuinely unprovable from the bare
+    existential.  The RHS is therefore restated as a genuine `CopowerOfOne I 𝒞` datum
+    (`Fredy/ToposDistributive.lean`), which bundles `cotup` together with its uniqueness field
+    `cotup_uniq` — exactly the colimit universal property.
+
+    Both directions now CLOSE, sorry-free:
+    * `(b)→(c)`: specialise the copower of `A := 1`; `cotup`/`inj_cotup`/`cotup_uniq` come straight
+      from `HasArbitraryCopowers.{cotupling, inj_cotupling, cotupling_uniq}`.
+    * `(c)→(b)`: `prod_distrib_copow` turns each `CopowerOfOne I 𝒞` into a `CopowerOf I A` on
+      `A × cI`, transferring cotupling AND uniqueness across the distributivity iso. -/
 theorem topos_copowers_equiv_copowers_of_one [LocallySmallTopos 𝒞]
     [HasBinaryProducts 𝒞] [HasBinaryCoproducts 𝒞] :
     (Nonempty (HasArbitraryCopowers (𝒞 := 𝒞))) ↔
-    (∀ (I : Type v), ∃ (cI : 𝒞) (inj : I → one ⟶ cI),
-      ∀ {X : 𝒞} (f : I → one ⟶ X), ∃ (h : cI ⟶ X), ∀ i, inj i ≫ h = f i) := by
-  sorry
+    (∀ (I : Type v), Nonempty (CopowerOfOne I 𝒞)) := by
+  constructor
+  · -- (b)→(c): the copower of `A := 1` IS a copower of 1, with full universal property.
+    rintro ⟨C⟩ I
+    exact ⟨{ obj := C.copow I one
+             inj := fun i => C.inj i
+             cotup := fun f => C.cotupling f
+             inj_cotup := fun f i => C.inj_cotupling f i
+             cotup_uniq := fun f h hh => C.cotupling_uniq f h hh }⟩
+  · -- (c)→(b): assemble `HasArbitraryCopowers` from the per-index `CopowerOf I A` built by
+    -- `prod_distrib_copow` from the chosen `CopowerOfOne`.  `Classical.choice` picks the datum.
+    intro hc
+    -- `P I := Classical.choice (hc I)` is the chosen copower-of-1 for index `I`; written out
+    -- identically in every field, so the structure is coherent.  `Classical.choice` selects the
+    -- datum (this category's `Nonempty` is the prop-truncation without a `.some` projection).
+    exact ⟨{
+      copow := fun I A => (prod_distrib_copow (Classical.choice (hc I)) A).obj
+      inj := fun {I A} i => (prod_distrib_copow (Classical.choice (hc I)) A).inj i
+      cotupling := fun {I A X} f => (prod_distrib_copow (Classical.choice (hc I)) A).cotup f
+      inj_cotupling := fun {I A X} f i =>
+        (prod_distrib_copow (Classical.choice (hc I)) A).inj_cotup f i
+      cotupling_uniq := fun {I A X} f h hh =>
+        (prod_distrib_copow (Classical.choice (hc I)) A).cotup_uniq f h hh }⟩
 
 /-- **§1.967**: Arbitrary powers imply local completeness in a locally small topos.
     Proof: let {Bᵢ ↣ B} be a family of subobjects.  Since the topos is locally small,
