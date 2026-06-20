@@ -24,6 +24,7 @@ import Fredy.S1_52
 import Fredy.S1_53
 import Fredy.SliceRegular
 import Fredy.SliceTopos
+import Fredy.SlicePower
 import Fredy.BaseChangeDescent
 import Fredy.S1_55
 import Fredy.S1_36
