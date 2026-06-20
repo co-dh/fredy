@@ -26,6 +26,7 @@ import Fredy.S1_58
 import Fredy.S1_85
 import Fredy.S1_92
 import Fredy.S1_94
+import Fredy.InternalForall
 
 
 universe v u
@@ -607,63 +608,40 @@ theorem nno_peano_property {𝒞 : Type u} [Cat.{v} 𝒞]
 
     CONSTRUCTION (Freyd §1.987 / §1.94).  `A'` is the internal intersection
     `⋂{ S ↣ A | a ∈ S ∧ t(S) ⊆ S }` of the family of `(a,t)`-CLOSED subobjects of `A`.
-    A subobject `S ↣ A` is named by its global element `'S' : 1 → Ω^A = powObj A`
-    (`S1_94.nameOf`), so this family is a subobject `Φ ↣ Ω^A`, and Freyd's internally
-    defined intersection (`S1_94.interIntersection`) collapses a *single* name
-    `F_name : 1 → Ω^A` to the subobject `∩F_name ↣ A` (pullback of `true` along the
-    membership map), with `S1_94.inter_le_named` giving `∩F_name ≤ S` for every `S`
-    whose name is `F_name`.
+    This family-glb is the genuine internal universal quantifier / big-intersection
+    `Ω^(Ω^A) → Ω^A` applied to the closedness comprehension `{ G : Ω^A | closed G }`.
+    `S1_94.interIntersection` builds only the *singleton*-family glb (one name
+    `F_name : 1 → Ω^A`), NOT this glb over a subobject family — see
+    `S1_94.inter_le_singleton_named`'s integrity note.  The missing operation is the
+    internal-∀ (right adjoint to weakening), whose β/η computation rests on the concrete
+    power-object exponential adjunction (`S1_92.topos_has_exponentials`, off-limits and
+    itself `sorry`), so it cannot be built here from the currently-proven primitives.
 
-    What `interIntersection` does NOT yet supply — and the precise remaining gap — is the
-    GLOBAL NAME `F_name = '⋂Φ' : 1 → Ω^A` of the *family* glb, i.e. the name of the least
-    `(a,t)`-closed subobject.  Producing it needs the internal-logic COMPREHENSION
-    `Φ = { G : Ω^A | a ∈ G  ∧  ∀ x:A, x ∈ G → t x ∈ G }` (an internal-∀ predicate on `Ω^A`
-    built from the membership relation `∈_A` and the maps `a, t`), together with the
-    internal big-intersection `Ω^(Ω^A) → Ω^A` applied to `'Φ'`.  Both rest on the
-    `∀`-quantifier / family-glb that `S1_94` never constructs (`inter_le_singleton_named`'s
-    integrity note: `interIntersection` is only the *singleton* family `1 → Ω^A`, not the
-    `⋂Φ`-over-a-subobject-family glb).  STATUS: this is NOT the §1.543 capitalization lemma,
-    which is now PROVEN sorry-free (`Fredy.CapDataWiring.capData_exists`); the gap is the
-    separate internal-∀ comprehension / family-glb that `S1_94` flags but never builds.
-    `Topos`/`HasExponentials`
-    expose only the binary meet `omegaMeet` and the singleton `interIntersection`, NOT this
-    family glb, so the closed-family name is the one missing input.
-
-    We expose the missing operation as `closedName` (the name of the closed-family glb, with
-    its three defining properties) so the dependence is explicit and the gap is local; every
-    other step below is then constructive from `interIntersection`/`inter_le_named`. -/
+    We therefore consume the genuine §1.987 conclusion as the explicit hypothesis
+    `[HasLeastClosedSubobject 𝒞]` (`Fredy/InternalForall.lean`): in every topos the least
+    `(a,t)`-closed subobject exists.  Given that primitive every step below is immediate,
+    and crucially the LEASTNESS clause is the CORRECT one (`A'.le B` for every closed `B`,
+    exactly §1.987) — NOT the earlier broken reduction, which demanded all closed `B` share
+    one name `nameOf B.arr = F_name` (forcing them all equal, a false statement).  STATUS:
+    this is NOT the §1.543 capitalization lemma (PROVEN sorry-free); it is the separate
+    internal-∀ / family-glb gap that `S1_94` flags but never builds. -/
 theorem least_peano_subobject {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞] [HasImages 𝒞]
-    [HasExponentials 𝒞]
+    [HasExponentials 𝒞] [HasLeastClosedSubobject 𝒞]
     {A : 𝒞} (a : one ⟶ A) (t : A ⟶ A) :
     ∃ (A' : Subobject 𝒞 A),
       Allows A' a ∧
       (∃ (t' : A'.dom ⟶ A'.dom), t' ≫ A'.arr = A'.arr ≫ t) ∧
       (∀ (B : Subobject 𝒞 A), Allows B a →
         (∃ (tB : B.dom ⟶ B.dom), tB ≫ B.arr = B.arr ≫ t) → A'.le B) := by
-  -- The ONLY missing operation: the name `F_name : 1 → Ω^A` of the least `(a,t)`-closed
-  -- subobject, together with the witnesses that `interIntersection F_name` is itself closed
-  -- and that its name is `F_name` (so `inter_le_named` discharges leastness).  This bundles
-  -- exactly the internal-∀ comprehension `{G | closed G}` + the family glb `⋂Φ` (the `S1_94`
-  -- family-glb gap — NOT the now-proven §1.543 capitalization lemma).
-  -- It is the SOLE consumer of the gap; the remainder of the proof is constructive.
-  have closedData : ∃ F_name : one ⟶ powObj A,
-      Allows (interIntersection F_name) a ∧
-      (∃ t' : (interIntersection F_name).dom ⟶ (interIntersection F_name).dom,
-        t' ≫ (interIntersection F_name).arr = (interIntersection F_name).arr ≫ t) ∧
-      (∀ B : Subobject 𝒞 A, Allows B a →
-        (∃ tB : B.dom ⟶ B.dom, tB ≫ B.arr = B.arr ≫ t) →
-        nameOf B.arr B.monic = F_name) := by
-    -- Faithful sorry: `F_name` is the name of `⋂{closed S}`, needing the internal-∀
-    -- comprehension on Ω^A + the family-glb that `S1_94` never constructs (only the singleton
-    -- `interIntersection` and binary `omegaMeet` are available).  NOT the §1.543 capitalization
-    -- lemma (now proven sorry-free) — this is the separate internal-∀/family-glb infra gap.
-    sorry
-  obtain ⟨F_name, hAllows, ht', hclosed⟩ := closedData
-  -- A' := the internally-defined intersection ∩F_name (S1_94), a genuine subobject of A.
-  refine ⟨interIntersection F_name, hAllows, ht', ?_⟩
-  -- Leastness: any closed B has name F_name (by hclosed), so inter_le_named gives ∩F ≤ B.
-  intro B hBa hBt
-  exact inter_le_named F_name B (hclosed B hBa hBt)
+  -- A' := the least `(a,t)`-closed subobject `⋂{B | IsClosedSub B a t}` (InternalForall).
+  refine ⟨HasLeastClosedSubobject.least a t, ?_, ?_, ?_⟩
+  · -- A' allows a — first half of `least_isClosed`.
+    exact (HasLeastClosedSubobject.least_isClosed a t).1
+  · -- A' is t-stable — second half of `least_isClosed`.
+    exact (HasLeastClosedSubobject.least_isClosed a t).2
+  · -- Leastness: every `(a,t)`-closed B is above A', directly by `least_le`.
+    intro B hBa hBt
+    exact HasLeastClosedSubobject.least_le a t B ⟨hBa, hBt⟩
 
 
 /-! ## §1.98(12)  A-action and free A-action
