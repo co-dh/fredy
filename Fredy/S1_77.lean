@@ -103,16 +103,32 @@ class OmegaTransitiveLogos (𝒞 : Type u) [Cat.{v} 𝒞]
   transClos_le_of_pow_le : ∀ {A : 𝒞} (R : BinRel 𝒞 A A) (T : BinRel 𝒞 A A),
     (∀ n : Nat, 1 ≤ n → RelLe (relPow R n) T) → RelLe (transClos R).clos T
 
-/-- An ω-TRANSITIVE PRE-LOGOS (§1.772): transitive pre-logos in which R^t is
-    the STABLE least upper bound of {R^n | n ≥ 1}.
-    Stability: the countable union is preserved under all inverse images f#. -/
+/-- An ω-TRANSITIVE PRE-LOGOS (§1.772): a transitive pre-logos in which, for every
+    endo-relation R, R† is the **STABLE** least upper bound of the positive finite powers
+    {R^n | n ≥ 1}.
+
+    Book §1.772: "R† = ⋃ₙ₌₁^∞ Rⁿ AND the countable union in question is preserved under
+    inverse images."  This is strictly stronger than the (logos) lub property: the lub must
+    survive pullback along every map into the carrier `A × A`.  Book §1.772 spells out the exact
+    infinitary Horn sentence for pre-logoi (line 507–508): given `R ⊂ B×B`, `f : A → B×B` and a
+    subobject `A' ⊂ A`,
+        (f#(R) ⊑ A') ∧ (f#(R²) ⊑ A') ∧ ⋯ ∧ (f#(Rⁿ) ⊑ A') ∧ ⋯   implies   f#(R†) ⊑ A'.
+    `transClos_stable` below is exactly this clause, with `B×B = prod A A`, the carrier of the
+    endo-relation.  The `f = 𝟙` instance recovers the plain (logos) lub, so this is the σ-transitive
+    LOGOS condition pulled back along *every* `f` — the distinguishing "stable" requirement that the
+    logos field (`transClos_le_of_pow_le`) lacks. -/
 class OmegaTransitivePreLogos (𝒞 : Type u) [Cat.{v} 𝒞]
     [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
     extends TransitivePreLogos 𝒞 where
   pow_le_transClos : ∀ {A : 𝒞} (R : BinRel 𝒞 A A) (n : Nat), 1 ≤ n →
     RelLe (relPow R n) (transClos R).clos
-  transClos_stable_lub : ∀ {A : 𝒞} (R : BinRel 𝒞 A A) (T : BinRel 𝒞 A A),
-    (∀ n : Nat, 1 ≤ n → RelLe (relPow R n) T) → RelLe (transClos R).clos T
+  /-- STABLE least upper bound (book §1.772, lines 507–508): for every map `f : X ⟶ A × A` into the
+      carrier and every subobject `A' ⊑ X`, if every positive finite power's inverse image `f#(Rⁿ)`
+      lies under `A'`, then so does the inverse image `f#(R†)` of the transitive closure. -/
+  transClos_stable : ∀ {A : 𝒞} (R : BinRel 𝒞 A A) {X : 𝒞} (f : X ⟶ prod A A)
+      (A' : Subobject 𝒞 X),
+    (∀ n : Nat, 1 ≤ n → (InverseImage f (relSub (relPow R n))).le A') →
+    (InverseImage f (relSub (transClos R).clos)).le A'
 
 /-! ## §1.775 Equivalence closure R^E and E-standard pre-logos -/
 
@@ -190,16 +206,29 @@ def equivClos_from_symm_transRefClos [HasBinaryProducts 𝒞] [HasPullbacks 𝒞
     · exact hEquiv.1
     · exact hEquiv.2.2
 
-/-- An E-STANDARD PRE-LOGOS (§1.775): every endo-relation has an equivalence closure,
-    and R^E is the stable union of finite powers of the symmetrisation. -/
+/-- An E-STANDARD PRE-LOGOS (§1.775): every endo-relation R has an equivalence closure R≡,
+    and R≡ is always the **STABLE** union of the finite powers of the symmetrisation `R° ∪ 1 ∪ R`.
+
+    Book §1.775 (line 529): "R≡ is always the stable union of finite powers of `R° ∪ 1 ∪ R`."
+    As in §1.772 (E-standardness is implied by σ-transitivity and shares its stability clause), the
+    "stable" union must be preserved under inverse images.  `equivClos_stable` below is the §1.772
+    Horn sentence (lines 507–508) transported to the equivalence closure: with the symmetrisation
+    `Rsym` (pinned down by `R ⊑ Rsym`, `1 ⊑ Rsym`, `Rsym° ⊑ Rsym`), for every `f : X ⟶ A × A` and
+    subobject `A' ⊑ X`, if every finite power's inverse image `f#(Rsymⁿ)` lies under `A'`, then so
+    does `f#(R≡)`.  The `f = 𝟙` instance is the plain (non-stable) lub, so this strictly strengthens
+    a bare PreLogos field. -/
 class EStandardPreLogos (𝒞 : Type u) [Cat.{v} 𝒞]
     [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
     extends PreLogos 𝒞 where
   equivClos : ∀ {A : 𝒞} (R : BinRel 𝒞 A A), EquivClos R
-  equivClos_stable_lub : ∀ {A : 𝒞} (R : BinRel 𝒞 A A) (Rsym T : BinRel 𝒞 A A),
+  /-- STABLE union of finite powers of the symmetrisation (book §1.775 + §1.772 lines 507–508):
+      for the symmetrisation `Rsym = R° ∪ 1 ∪ R`, every map `f : X ⟶ A × A` and subobject `A' ⊑ X`,
+      if each `f#(Rsymⁿ)` lies under `A'` then so does `f#(R≡)`. -/
+  equivClos_stable : ∀ {A : 𝒞} (R : BinRel 𝒞 A A) (Rsym : BinRel 𝒞 A A)
+      {X : 𝒞} (f : X ⟶ prod A A) (A' : Subobject 𝒞 X),
     RelLe R Rsym → RelLe (graph (Cat.id A)) Rsym → RelLe (Rsym°) Rsym →
-    (∀ n : Nat, RelLe (relPow Rsym n) T) →
-    RelLe (equivClos R).clos T
+    (∀ n : Nat, (InverseImage f (relSub (relPow Rsym n))).le A') →
+    (InverseImage f (relSub (equivClos R).clos)).le A'
 
 /-! ## §1.78 Relational quotient R/S -/
 
