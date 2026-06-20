@@ -129,22 +129,60 @@ theorem forallC_eq (C : 𝒞) :
       ≫ HasSubobjectClassifier.classify (diag (powObj C)) (diag_mono (powObj C)) := by
   rw [forallC, singletonName, membershipMap_singletonMap]
 
-/-- Evaluating `forallC` at a global element `σ : 1 → [C]` gives `⟨σ, topName C⟩ ≫ χ_Δ`. -/
-theorem comp_forallC (C : 𝒞) (σ : one ⟶ powObj C) :
-    σ ≫ forallC C = pair σ (topName C)
+/-- Evaluating `forallC` at a generalized point `σ : X → [C]` gives
+    `⟨σ, term X ≫ topName C⟩ ≫ χ_Δ`. -/
+theorem comp_forallC {X : 𝒞} (C : 𝒞) (σ : X ⟶ powObj C) :
+    σ ≫ forallC C = pair σ (term X ≫ topName C)
       ≫ HasSubobjectClassifier.classify (diag (powObj C)) (diag_mono (powObj C)) := by
   rw [forallC_eq, ← Cat.assoc]
   congr 1
   apply pair_uniq
   · rw [Cat.assoc, fst_pair, Cat.comp_id]
-  · rw [Cat.assoc, snd_pair, ← Cat.assoc, term_uniq (σ ≫ term (powObj C)) (term one),
-      term_uniq (term one) (Cat.id one), Cat.id_comp]
+  · rw [Cat.assoc, snd_pair, ← Cat.assoc, term_uniq (σ ≫ term (powObj C)) (term X)]
 
-/-- **§1.94 — β-law of the internal-∀.**  For a global element `σ : 1 → [C]`,
-    `σ ≫ forallC C = ⊤∘!` iff `σ = topName C`, i.e. iff the subobject named by `σ`
-    is the entire one (`∀ c : C, c ∈ σ`). -/
-theorem forall_beta (C : 𝒞) (σ : one ⟶ powObj C) :
-    σ ≫ forallC C = term one ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) ↔ σ = topName C := by
-  rw [comp_forallC]; exact diag_classify_iff σ (topName C)
+/-- **§1.94 — β-law of the internal-∀ (generalized points).**  For `σ : X → [C]`,
+    `σ ≫ forallC C = ⊤∘!_X` iff `σ = term X ≫ topName C`, i.e. iff the `X`-indexed
+    subobject named by `σ` is constantly the entire one (`∀ c : C, c ∈ σ`). -/
+theorem forall_beta {X : 𝒞} (C : 𝒞) (σ : X ⟶ powObj C) :
+    σ ≫ forallC C = term X ≫ HasSubobjectClassifier.true (𝒞 := 𝒞)
+      ↔ σ = term X ≫ topName C := by
+  rw [comp_forallC]; exact diag_classify_iff σ (term X ≫ topName C)
+
+/-! ## §1.94  The family big-intersection `⋂F` via the internal-∀
+
+  Given a subobject FAMILY `F ↣ [A]` presented by its name `Fname : 1 → [[A]]`, the
+  big-intersection `⋂F : Subobject A` has characteristic map
+
+      χ_{⋂F}(a)  =  ∀ σ : [A].  (σ ∈ F) ⇒ (a ∈ σ).
+
+  The quantified body `body(σ, a) = (σ∈F) ⇒ (a∈σ)` is a map `[A] × A → Ω`; currying in
+  the σ-slot gives `A → Ω^[A] = [[A]]`, and post-composing with `forallC [A]` performs
+  the universal quantification over `σ` (the §1.94 trick: `forall_beta` reads
+  `∀σ. P(σ)` as "the subobject `{σ | P}` of `[A]` is the entire one").
+
+  This realises the genuine fibered internal-∀ `∀_[A] : Ω^([A]×A) → Ω^A` as
+  `curry(−) ≫ forallC [A]`, the parameter `a` being absorbed by `curry`. -/
+
+/-- The implication map on `Ω`, `impΩ = ⟨π₁, π₁ ∧ π₂⟩ ≫ ⇔` (Freyd's `x⇒y := x ⇔ (x∧y)`,
+    the §1.91 `impChar` recipe at the level of `Ω×Ω`). -/
+noncomputable def impΩ : prod (omega (𝒞 := 𝒞)) (omega (𝒞 := 𝒞)) ⟶ omega (𝒞 := 𝒞) :=
+  pair fst (pair fst snd ≫ omegaMeet) ≫ heytingDoubleArrow
+
+/-- The big-intersection body `[A]×A → Ω`: `(σ∈F) ⇒ (a∈σ)`.  `σ∈F` is
+    `fst ≫ membershipMap Fname`; `a∈σ` is `⟨a,σ⟩ ≫ eval = ⟨snd,fst⟩ ≫ eval`. -/
+noncomputable def bigInterBody {A : 𝒞} (Fname : one ⟶ powObj (powObj A)) :
+    prod (powObj A) A ⟶ omega (𝒞 := 𝒞) :=
+  pair (fst ≫ membershipMap Fname) (pair snd fst ≫ eval_exp A (omega (𝒞 := 𝒞))) ≫ impΩ
+
+/-- The characteristic map `A → Ω` of `⋂F`: curry the body in the `[A]`-slot, then
+    universally quantify with `forallC [A]`. -/
+noncomputable def bigInterChar {A : 𝒞} (Fname : one ⟶ powObj (powObj A)) :
+    A ⟶ omega (𝒞 := 𝒞) :=
+  curry (bigInterBody Fname) ≫ forallC (powObj A)
+
+/-- **§1.94 — the internal family big-intersection `⋂F`** for a family `F ↣ [A]` named
+    by `Fname : 1 → [[A]]`.  It is the pullback of `true` along `bigInterChar Fname`. -/
+noncomputable def bigInter {A : 𝒞} (Fname : one ⟶ powObj (powObj A)) : Subobject 𝒞 A :=
+  InverseImage (bigInterChar Fname) ⟨one, true (𝒞 := 𝒞), true_monic⟩
 
 end Freyd
