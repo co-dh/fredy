@@ -32,9 +32,9 @@ open HasSubobjectClassifier
 
 variable {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
 
-/-- Transitivity of the subobject order (local copy; avoids importing the heavy
-    `Complement` tower). -/
-theorem subLe_trans' {W : 𝒞} {X Y Z : Subobject 𝒞 W} (h₁ : X.le Y) (h₂ : Y.le Z) : X.le Z := by
+/-- Transitivity of the subobject order (local `private` copy; avoids importing the heavy
+    `Complement` tower, and avoids a name clash with `Complement.subLe_transTE`). -/
+private theorem subLe_transTE {W : 𝒞} {X Y Z : Subobject 𝒞 W} (h₁ : X.le Y) (h₂ : Y.le Z) : X.le Z := by
   obtain ⟨f, hf⟩ := h₁; obtain ⟨g, hg⟩ := h₂
   exact ⟨f ≫ g, by rw [Cat.assoc, hg, hf]⟩
 
@@ -119,7 +119,7 @@ theorem orChar_classifies_ge {A : 𝒞} (S T : Subobject 𝒞 A)
     (HasSubobjectUnions.union_left trueFst trueSnd)
   have hG_le := invImg_le P trueSnd (HasSubobjectUnions.union trueFst trueSnd) hpS hpU
     (HasSubobjectUnions.union_right trueFst trueSnd)
-  exact HasSubobjectUnions.union_min S T _ (subLe_trans' hS_le hF_le) (subLe_trans' hT_le hG_le)
+  exact HasSubobjectUnions.union_min S T _ (subLe_transTE hS_le hF_le) (subLe_transTE hT_le hG_le)
 
 /-! ## GOAL 2 — Direct image `∃_f` and the adjunction `∃_f ⊣ f#` -/
 
@@ -146,7 +146,7 @@ theorem directImage_adjunction {A B : 𝒞} (f : A ⟶ B) (S : Subobject 𝒞 A)
   · -- ∃_f S ≤ T : compose S ≤ f#(∃_f S) ≤ f# T (inverse image monotone).
     intro hle
     have hpI : HasPullback f (directImage f S).arr := HasPullbacks.has _ _
-    exact subLe_trans' (directImage_unit f S hpI) (invImg_le f (directImage f S) T hpI hp hle)
+    exact subLe_transTE (directImage_unit f S hpI) (invImg_le f (directImage f S) T hpI hp hle)
   · -- S ≤ f# T : then S.arr ≫ f factors through T, so T is an upper bound — image is minimal.
     intro hle
     -- f# T allows S.arr (S ≤ f# T), and (f# T).arr ≫ f factors through T via π₂.
@@ -158,5 +158,48 @@ theorem directImage_adjunction {A B : 𝒞} (f : A ⟶ B) (S : Subobject 𝒞 A)
     -- `(invImg f T hp).arr` is definitionally `hp.cone.π₁`, so `hk : k ≫ π₁ = S.arr`.
     have hk' : k ≫ hp.cone.π₁ = S.arr := hk
     rw [Cat.assoc, ← hp.cone.w, ← Cat.assoc, hk']
+
+/-! ## RESIDUALS — what remains, and the single missing lemma that closes it all
+
+  DELIVERED sorry-free (axioms ⊆ {propext, Classical.choice}):
+    * `orChar`             — internal disjunction `∨ : Ω×Ω → Ω`.
+    * `orChar_classifies_ge` — forward half of the `∨` UMP.
+    * `directImage` / `directImage_unit` / `directImage_adjunction` — `∃_f ⊣ f#` (FULL).
+
+  The ONE missing lemma, which closes BOTH the `∨` UMP *and* binary coproducts:
+
+      theorem invImage_preserves_union {A B : 𝒞} (f : A ⟶ B) (S T : Subobject 𝒞 B)
+          (hpU : HasPullback f (HasSubobjectUnions.union S T).arr)
+          (hpS : HasPullback f S.arr) (hpT : HasPullback f T.arr) :
+          (invImg f (HasSubobjectUnions.union S T) hpU).le
+            (HasSubobjectUnions.union (invImg f S hpS) (invImg f T hpT))
+
+  This is the frame / join-distributivity law `f#(S∪T) ≤ f#S ∪ f#T`.  It is the forward
+  conjunct of `inverseImage_preserves_unions` (S1_60:73), available today ONLY as an
+  unproven *field* of the `PreLogos` class — and a topos is NOT yet an instance of `PreLogos`.
+  The lattice UMP of the union (`union_left/right/min`) does NOT entail it; it needs the
+  topos's frame structure on `Sub(A)`, i.e. one must first establish `PreLogos 𝒞` (equivalently
+  `Logos 𝒞`) under `[Topos 𝒞]` (the regular half — image/cover pullback-stability — is already
+  proven in `InternalForallTopos`/`SliceRegular`; the join-distributivity half is the gap).
+
+  HOW IT CLOSES THE `∨` UMP.  With `invImage_preserves_union` at `f := pair χ_S χ_T`:
+    `χ_{S∪T} = ⟨χ_S, χ_T⟩ ≫ orChar`  follows from `classify_eq_of_le_le`:
+      * `≥` (i.e. `S∪T ≤ (pair χ_S χ_T)#(trueFst∪trueSnd)`) is `orChar_classifies_ge` (DONE);
+      * `≤` is `invImage_preserves_union` + the two `subChar`-identities
+        `(pair χ_S χ_T)# trueFst ≅ S`, `(pair χ_S χ_T)# trueSnd ≅ T` (already extracted inside
+        `orChar_classifies_ge` as `hSchar`/`hTchar`), via `union_min`.
+
+  HOW IT CLOSES BINARY COPRODUCTS (`S1_95.topos_is_positive`).  The carrier
+  `A + B ⊂ [A]×[B]` is `union {(s,∅)} {(∅,t)}` (singletons via `singletonMap`, the empty
+  slot via `bottomSub`/`subOfChar false`, carved with `orChar` + `topos_has_equalizers`).
+  `inl`/`inr` factor through the carrier by `union_left`/`union_right` (FORWARD only — available).
+  `case f g` is the partial-map copairing via `partialMapClassifier_exists` (LawfulPMC, sorry-free).
+  `case_uniq` needs "the carrier is covered by `inl,inr`", i.e. `entire = union(im inl)(im inr)`,
+  which is the SAME join-cover/`f#`-union fact.  So coproducts inherit exactly this one blocker.
+
+  Once `invImage_preserves_union` (⇐ `PreLogos 𝒞` for a topos) lands, this file extends to:
+  the full `orChar_ump`, the `HasBinaryCoproducts 𝒞` instance, and thence `topos_is_positive`
+  becomes `exact ‹HasBinaryCoproducts 𝒞›` — unblocking §1.954 coequalizers (with
+  `HasReflTransClosure`), §1.955 `topos_is_bicartesian`, and the strict coterminator `0`. -/
 
 end Freyd
