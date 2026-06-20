@@ -608,4 +608,161 @@ theorem imageF_le_of_allows {A B : 𝒞} (f : A ⟶ B) (S : Subobject 𝒞 B) (h
     (imageF f).le S :=
   bigInter_le_named (imageFamily f) S ((name_mem_imageFamily_iff f S).2 hS)
 
+/-- **§1.945 STEP 3b helper — membership transfer on the family carrier.**  For any
+    `k : K → prod [B] A`, if `k ≫ (fst ≫ membershipMap (imageFamily f)) = ⊤` (the first projection
+    `k≫fst` is in the family `F_f`), then `k ≫ (⟨snd≫f, fst⟩ ≫ eval) = ⊤` (i.e. `f(k≫snd) ∈ k≫fst`).
+
+    This is exactly ∀-elimination at the generalized point `τ = k≫snd`: `k≫fst ∈ F_f` says (via
+    `forall_beta`) the `A`-indexed subobject `(k≫fst) ≫ curry(imageBody f)` is constantly entire,
+    and `forall_elim` at `τ` then makes `imageBody f (τ, k≫fst) = f(τ) ∈ (k≫fst)` true. -/
+private theorem imageF_carrier_in_mem {A B K : 𝒞} (f : A ⟶ B) (k : K ⟶ prod (powObj B) A)
+    (hk : k ≫ (fst ≫ membershipMap (imageFamily f)) = term K ≫ HasSubobjectClassifier.true (𝒞 := 𝒞)) :
+    k ≫ (pair (snd (A := powObj B) (B := A) ≫ f) fst ≫ eval_exp B (omega (𝒞 := 𝒞)))
+      = term K ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
+  -- σ := k ≫ fst : K → [B], τ := k ≫ snd : K → A.
+  -- hk : σ ≫ predF f = ⊤ ; forall_beta ⟹ σ ≫ curry(imageBody f) = term K ≫ topName A.
+  rw [← Cat.assoc, membershipMap_imageFamily, predF_eq, ← Cat.assoc] at hk
+  have hentire : (k ≫ fst) ≫ curry (imageBody f) = term K ≫ topName A :=
+    (forall_beta A ((k ≫ fst) ≫ curry (imageBody f))).mp hk
+  -- forall_elim at τ = k ≫ snd: ⟨τ, σ ≫ curry body⟩ ≫ eval = ⊤.
+  have helim := forall_elim ((k ≫ fst) ≫ curry (imageBody f)) hentire (k ≫ snd)
+  -- eval_curry_point: ⟨τ, σ ≫ curry body⟩ ≫ eval = ⟨τ, σ⟩ ≫ body.
+  rw [eval_curry_point (imageBody f) (k ≫ snd) (k ≫ fst)] at helim
+  -- ⟨τ, σ⟩ ≫ imageBody f = ⟨τ≫f, σ⟩ ≫ eval = k ≫ ⟨snd≫f, fst⟩ ≫ eval.
+  rw [imageBody, ← Cat.assoc] at helim
+  rw [← helim, ← Cat.assoc]
+  congr 1
+  -- k ≫ pair (snd≫f) fst = pair (k≫snd) (k≫fst) ≫ pair (fst≫f) snd; both = pair (k≫snd≫f) (k≫fst).
+  rw [show k ≫ pair (snd (A := powObj B) (B := A) ≫ f) fst
+        = pair (k ≫ snd ≫ f) (k ≫ fst) from by
+      apply pair_uniq
+      · rw [Cat.assoc, fst_pair]
+      · rw [Cat.assoc, snd_pair]]
+  symm
+  apply pair_uniq
+  · rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair, Cat.assoc]
+  · rw [Cat.assoc, snd_pair, snd_pair]
+
+/-- **§1.945 STEP 3b — `f` factors through its image.**  `Allows (imageF f) f`.
+
+    Reduces (via `allows_iff_classify`, `classify_invImage_true`, `bigInterChar`, the
+    generalized-point `forall_beta`, `curry_precomp`/`curry_inj`) to the prod-body equation
+    `prodMap [B] A B f ≫ bigInterBody (imageFamily f) = ⊤∘!`, i.e. the §1.91 Heyting implication
+    `S_F ⇒ S_∈` (over `prod [B] A`) is entire — which by `imp_adjunction` is `S_F ≤ S_∈`, proved
+    pointwise on the carrier of `S_F` via `forall_beta`/`forall_elim` at the generalized point. -/
+theorem allows_imageF {A B : 𝒞} (f : A ⟶ B) : Allows (imageF f) f := by
+  rw [imageF, allows_iff_classify]
+  rw [show HasSubobjectClassifier.classify (bigInter (imageFamily f)).arr
+        (bigInter (imageFamily f)).monic = bigInterChar (imageFamily f) from
+      classify_invImage_true (bigInterChar (imageFamily f))]
+  rw [bigInterChar, ← Cat.assoc]
+  rw [forall_beta (powObj B) (f ≫ curry (bigInterBody (imageFamily f)))]
+  -- Reduce both sides to curries, then `curry_inj`.
+  rw [curry_precomp]
+  rw [show topName (powObj B)
+        = curry (fst ≫ HasSubobjectClassifier.classify (Subobject.entire (powObj B)).arr
+            (Subobject.entire (powObj B)).monic) from rfl]
+  rw [curry_precomp]
+  apply congrArg curry
+  -- RHS = ⊤∘! :  prodMap … ≫ fst = fst, classify(entire) = term ≫ true.
+  rw [← Cat.assoc, prodMap_fst, classify_entire, ← Cat.assoc,
+    term_uniq (fst ≫ term (powObj B)) (term (prod (powObj B) A))]
+  -- Goal: prodMap [B] A B f ≫ bigInterBody (imageFamily f) = term ≫ true.
+  -- This is the §1.91 Heyting implication (S_F ⇒ S_In) being entire, via imp_adjunction.
+  -- the two component characteristic maps on P = prod [B] A.
+  let chiF : prod (powObj B) A ⟶ omega (𝒞 := 𝒞) := fst ≫ membershipMap (imageFamily f)
+  let chiIn : prod (powObj B) A ⟶ omega (𝒞 := 𝒞) :=
+    pair (snd (A := powObj B) (B := A) ≫ f) fst ≫ eval_exp B (omega (𝒞 := 𝒞))
+  -- LHS = ⟨chiF, chiIn⟩ ≫ impΩ.
+  have hsplit : prodMap (powObj B) A B f ≫ bigInterBody (imageFamily f)
+      = pair chiF chiIn ≫ impΩ := by
+    rw [bigInterBody, ← Cat.assoc]
+    congr 1
+    apply pair_uniq
+    · show _ = chiF
+      rw [Cat.assoc, fst_pair, ← Cat.assoc]
+      congr 1
+      rw [prodMap_fst]
+    · show _ = chiIn
+      rw [Cat.assoc, snd_pair, ← Cat.assoc]
+      congr 1
+      apply pair_uniq
+      · rw [Cat.assoc, fst_pair, prodMap_snd]
+      · rw [Cat.assoc, snd_pair, prodMap_fst]
+  rw [hsplit, pair_impΩ]
+  -- Realise chiF, chiIn as subobjects S_F, S_In of P.
+  obtain ⟨_, mF, hmF, hSF⟩ := classify_surjective chiF
+  obtain ⟨_, mIn, hmIn, hSIn⟩ := classify_surjective chiIn
+  let S_F : Subobject 𝒞 (prod (powObj B) A) := ⟨_, mF, hmF⟩
+  let S_In : Subobject 𝒞 (prod (powObj B) A) := ⟨_, mIn, hmIn⟩
+  have hcF : subChar S_F = chiF := hSF
+  have hcIn : subChar S_In = chiIn := hSIn
+  -- LHS = impChar S_F S_In = subChar (Sub.imp S_F S_In).
+  rw [show pair chiF (pair chiF chiIn ≫ omegaMeet) ≫ heytingDoubleArrow
+        = subChar (Sub.imp S_F S_In) by rw [classify_imp, impChar, hcF, hcIn]]
+  -- Goal: subChar (Sub.imp S_F S_In) = term ≫ true, i.e. (S_F ⇒ S_In) is entire.
+  have hp : HasPullback S_F.arr (Subobject.entire (prod (powObj B) A)).arr := HasPullbacks.has _ _
+  -- pointwise S_F ≤ S_In: on the carrier of S_F, σ∈F_f holds, so ∀a. f(a)∈σ holds (forall_elim).
+  have hSFle : S_F.le S_In := by
+    apply (allows_iff_classify S_In S_F.arr).2
+    rw [show HasSubobjectClassifier.classify S_In.arr S_In.monic = chiIn from hcIn]
+    -- carrier c := S_F.arr; c ≫ chiF = ⊤  (the carrier lies in its own classifier).
+    have hcarF : S_F.arr ≫ chiF = term S_F.dom ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
+      rw [show chiF = HasSubobjectClassifier.classify S_F.arr S_F.monic from hcF.symm]
+      exact HasSubobjectClassifier.classify_sq S_F.arr S_F.monic
+    exact imageF_carrier_in_mem f S_F.arr hcarF
+  have hentireLe : (Subobject.entire (prod (powObj B) A)).le (Sub.imp S_F S_In) := by
+    rw [imp_adjunction S_F S_In (Subobject.entire (prod (powObj B) A)) hp]
+    obtain ⟨h₁, e₁⟩ := Sub.inter_le_left S_F (Subobject.entire (prod (powObj B) A)) hp
+    obtain ⟨h₂, e₂⟩ := hSFle
+    exact ⟨h₁ ≫ h₂, by rw [Cat.assoc, e₂, e₁]⟩
+  have hcl := (le_iff_classify (Subobject.entire (prod (powObj B) A))
+    (Sub.imp S_F S_In)).mp hentireLe
+  show subChar (Sub.imp S_F S_In) = term (prod (powObj B) A) ≫ HasSubobjectClassifier.true (𝒞 := 𝒞)
+  rw [show (Subobject.entire (prod (powObj B) A)).arr ≫ subChar (Sub.imp S_F S_In)
+        = subChar (Sub.imp S_F S_In) from Cat.id_comp _] at hcl
+  rw [hcl]
+  congr 1
+
+/-- **§1.945 STEP 3 — `imageF f` IS the image of `f`.**  Bundles `allows_imageF` (it allows `f`)
+    and `imageF_le_of_allows` (it is the least such). -/
+theorem isImage_imageF {A B : 𝒞} (f : A ⟶ B) : IsImage f (imageF f) :=
+  ⟨allows_imageF f, fun S hS => imageF_le_of_allows f S hS⟩
+
+/-- **§1.945 — a topos HAS IMAGES.**  Every `f : A → B` has an image, namely the family
+    big-intersection `⋂{B' | f factors through B'}` (`imageF f`).  This is the §1.945 statement
+    that `S1_94`/`S1_95` flagged as blocked on the §1.543 capitalization lemma — here closed
+    directly via the internal-∀ family-glb (`bigInter`), no transfinite capitalization. -/
+noncomputable instance toposHasImages : HasImages 𝒞 where
+  image f := imageF f
+  isImage f := isImage_imageF f
+
+/-- **§1.945 — a topos is REGULAR, modulo `PullbacksTransferCovers`.**  A topos is Cartesian
+    (`HasTerminal`/`HasBinaryProducts`/`HasPullbacks` from `Topos` via the classifier) and now
+    `HasImages` (`toposHasImages`).  Assembling `RegularCategory` requires one more mixin —
+    `PullbacksTransferCovers 𝒞` (pullback-of-a-cover-is-a-cover) — supplied as a hypothesis.
+
+    This isolates the genuine remaining topos-exactness content: `PullbacksTransferCovers` is the
+    `topos_is_effective`-flavoured fact (cf. the still-`sorry` `topos_is_effective` in S1_95) and
+    is NOT derivable from the internal-∀ machinery built here.  With it, regularity is immediate. -/
+theorem topos_is_regular_of_transfer [PullbacksTransferCovers 𝒞] :
+    Nonempty (RegularCategory 𝒞) :=
+  ⟨{ }⟩
+
+/-- **§1.945 — a topos is REGULAR.**  `HasImages` is now genuinely available (`toposHasImages`,
+    via the internal-∀ family-glb), so the ONLY residual is the exactness mixin
+    `PullbacksTransferCovers 𝒞` (pullback-of-cover-is-cover).
+
+    HONEST SORRY (precise residual): the missing piece is exactly the instance
+    `PullbacksTransferCovers 𝒞` for a topos — the topos-exactness fact that pullbacks of covers
+    are covers (equivalently, image factorizations are pullback-stable; cf. the still-`sorry`
+    `topos_is_effective` in S1_95).  It is NOT derivable from the internal-∀ image construction
+    in this file and is left as the single outstanding lemma; once it is an instance,
+    `topos_is_regular_of_transfer` discharges this with no sorry. -/
+theorem topos_is_regular_real : Nonempty (RegularCategory 𝒞) := by
+  have htc : PullbacksTransferCovers 𝒞 := by
+    -- residual: pullback-of-cover-is-cover in a topos (topos exactness, cf. S1_95).
+    sorry
+  exact topos_is_regular_of_transfer
+
 end Freyd
