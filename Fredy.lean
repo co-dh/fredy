@@ -35,6 +35,7 @@ import Fredy.S1_54
 import Fredy.S1_58
 import Fredy.S1_59
 import Fredy.AbCategory
+import Fredy.AbAbelian
 import Fredy.ExactRepresentation
 import Fredy.S1_60
 import Fredy.S1_70
