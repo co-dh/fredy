@@ -576,4 +576,150 @@ theorem baseChange_preserves_cover {X Y : Over B} {e : X ⟶ Y} (he : Cover e) :
 
 end PullbackPreservesEpi
 
+/-! ## §1.945  `PullbacksTransferCovers` for a bare topos — closing `topos_is_regular_real`
+
+  Given a topos `𝒞`, the pullback of a cover is a cover.  The non-circular route uses the
+  right-adjoint payload `f*` PRESERVES covers (`baseChange_preserves_cover`), NOT the (still
+  open) base `PullbacksTransferCovers 𝒞`.
+
+  Plan, for `f : A ⟶ B` a cover and `g : C ⟶ B`:
+    * In `Over B`, the terminal map `mf : f̂ = ⟨A,f⟩ ⟶ ⟨B, id_B⟩` has `mf.f = f`, hence is a slice
+      cover (`cover_of_cover_f`).
+    * `g* = baseChangeObj g` preserves it: `Cover (baseChangeMap g mf)` in `Over C`.
+    * `cover_f_of_cover` makes its underlying base map a cover; that map is the lift into the chosen
+      `g*⟨B,id⟩`-pullback, which equals `pf.cone.π₂` post-composed with the comparison into the
+      `id_B`-pullback.  We instead read off `pf.cone.π₂` directly and bridge `c.π₂` by the
+      universal-property comparison iso (`cover_precomp_iso`). -/
+
+/-- **Cover post-composed with an iso is a cover** (the post-composition dual of
+    `cover_precomp_iso`).  If `h` is a cover and `i` iso, then `h ≫ i` is a cover:
+    a monic `m` factoring `h ≫ i` also factors `h` (via `g ≫ i⁻¹`), so `h`-cover
+    forces `m` iso. -/
+theorem cover_postcomp_iso {X Y Y' : 𝒞} {h : X ⟶ Y} (hc : Cover h) {i : Y ⟶ Y'}
+    (hi : IsIso i) : Cover (h ≫ i) := by
+  obtain ⟨i', hi1, hi2⟩ := hi
+  intro C m c hm hcm
+  -- `c ≫ m = h ≫ i`, so `(c ≫ (i' ≫ m … )) ` -- factor `h` through `m`? No: through a NEW monic.
+  -- Instead push `i'` in: `h = (h ≫ i) ≫ i' = (c ≫ m) ≫ i' = c ≫ (m ≫ i')`.
+  -- `m ≫ i'` is monic (m monic, i' iso ⇒ monic); `h`-cover forces it iso ⇒ `m` iso.
+  have hmi'_mono : Mono (m ≫ i') := by
+    intro W a b hab
+    apply hm
+    -- a ≫ m = b ≫ m from a ≫ (m ≫ i') = b ≫ (m ≫ i') and i iso.
+    have : (a ≫ m) ≫ i' = (b ≫ m) ≫ i' := by rw [Cat.assoc, Cat.assoc]; exact hab
+    -- cancel i' (post-compose i): right-cancel by composing with i.
+    calc a ≫ m = (a ≫ m) ≫ Cat.id Y' := (Cat.comp_id _).symm
+      _ = (a ≫ m) ≫ (i' ≫ i) := by rw [hi2]
+      _ = ((a ≫ m) ≫ i') ≫ i := (Cat.assoc _ _ _).symm
+      _ = ((b ≫ m) ≫ i') ≫ i := by rw [this]
+      _ = (b ≫ m) ≫ (i' ≫ i) := Cat.assoc _ _ _
+      _ = (b ≫ m) ≫ Cat.id Y' := by rw [hi2]
+      _ = b ≫ m := Cat.comp_id _
+  have hfac : c ≫ (m ≫ i') = h := by
+    calc c ≫ (m ≫ i') = (c ≫ m) ≫ i' := (Cat.assoc _ _ _).symm
+      _ = (h ≫ i) ≫ i' := by rw [hcm]
+      _ = h ≫ (i ≫ i') := Cat.assoc _ _ _
+      _ = h ≫ Cat.id Y := by rw [hi1]
+      _ = h := Cat.comp_id _
+  -- `m ≫ i'` iso; then `m = (m ≫ i') ≫ i` is iso (iso ∘ iso).
+  have hmi'_iso : IsIso (m ≫ i') := hc (m ≫ i') c hmi'_mono hfac
+  -- m = (m ≫ i') ≫ i.
+  have hm_eq : m = (m ≫ i') ≫ i := by rw [Cat.assoc, hi2, Cat.comp_id]
+  rw [hm_eq]; exact isIso_comp hmi'_iso ⟨i', hi1, hi2⟩
+
+noncomputable section ToposTransfer
+variable [Topos 𝒞]
+
+/-- The terminal-shaped object `⟨B, id_B⟩ : Over B`.  (Used only as the codomain of the
+    structure-map-as-slice-arrow.) -/
+private def _idB (B : 𝒞) : Over B := ⟨B, Cat.id B⟩
+
+/-- The slice terminal map `f̂ = ⟨A,f⟩ ⟶ ⟨B, id_B⟩`, underlying `f`. -/
+private def _mfTerm {A B : 𝒞} (f : A ⟶ B) : OverHom (fHat f) (_idB B) :=
+  ⟨f, by show f ≫ Cat.id B = f; exact Cat.comp_id f⟩
+
+/-- The structure map of `g*(⟨B,id_B⟩)` — projection `π₂` of the pullback of `id_B`
+    along `g` — is an iso.  Its inverse is the lift of the cone `(g, id_C)`. -/
+private theorem _bcIdB_hom_iso {B C : 𝒞} (g : C ⟶ B) :
+    IsIso (baseChangeObj g (_idB B)).hom := by
+  -- `(baseChangeObj g (_idB B)).hom = (HasPullbacks.has (id_B) g).cone.π₂`.
+  let pb := HasPullbacks.has (_idB B).hom g
+  -- cone (g, id_C) over the cospan (id_B, g):  g ≫ id_B = id_C ≫ g.
+  let cC : Cone (_idB B).hom g := ⟨C, g, Cat.id C, by
+    show g ≫ Cat.id B = Cat.id C ≫ g; rw [Cat.comp_id, Cat.id_comp]⟩
+  refine ⟨pb.lift cC, ?_, ?_⟩
+  · -- π₂ ≫ lift cC = id_pt : both lift the chosen cone (π₁, π₂) into the pullback.
+    show pb.cone.π₂ ≫ pb.lift cC = Cat.id pb.cone.pt
+    have huniq := pb.lift_uniq pb.cone
+    rw [huniq (Cat.id pb.cone.pt) (Cat.id_comp _) (Cat.id_comp _)]
+    refine huniq (pb.cone.π₂ ≫ pb.lift cC) ?_ ?_
+    · -- (π₂ ≫ lift) ≫ π₁ = π₁:  use π₁ = π₂ ≫ id_B  (cone.w with id_B) and lift_fst.
+      rw [Cat.assoc, pb.lift_fst cC]
+      show pb.cone.π₂ ≫ g = pb.cone.π₁
+      -- cone.w : π₁ ≫ id_B = π₂ ≫ g, and π₁ ≫ id_B = π₁.
+      have hw : pb.cone.π₁ ≫ (_idB B).hom = pb.cone.π₂ ≫ g := pb.cone.w
+      have hw' : pb.cone.π₁ = pb.cone.π₂ ≫ g := by
+        rw [← hw]; exact (Cat.comp_id pb.cone.π₁).symm
+      exact hw'.symm
+    · rw [Cat.assoc, pb.lift_snd cC]; show pb.cone.π₂ ≫ Cat.id C = pb.cone.π₂; rw [Cat.comp_id]
+  · show pb.lift cC ≫ pb.cone.π₂ = Cat.id C; rw [pb.lift_snd cC]
+
+/-- **The chosen pullback `π₂` of a cover is a cover.**  In `Over B`, `f̂ ⟶ ⟨B,id⟩` is a
+    slice cover (underlying map `f`); `g*` preserves covers; its underlying base map is a
+    cover, and the slice over-hom law identifies it as `π₂ ≫ (iso)`. -/
+private theorem _chosenPi2_cover {A B C : 𝒞} (f : A ⟶ B) (g : C ⟶ B) (hf : Cover f) :
+    Cover (HasPullbacks.has f g).cone.π₂ := by
+  -- mf is a slice cover; g* preserves it; its underlying base map is a cover.
+  have hmf : Cover (𝒞 := Over B) (_mfTerm f) := cover_of_cover_f (_mfTerm f) hf
+  have hbc : Cover (Functor.map (F := baseChangeObj g) (_mfTerm f)) :=
+    baseChange_preserves_cover g hmf
+  have hbcf : Cover (Functor.map (F := baseChangeObj g) (_mfTerm f)).f :=
+    cover_f_of_cover (Functor.map (F := baseChangeObj g) (_mfTerm f)) hbc
+  -- The over-hom law: `(g* mf).f ≫ (g*⟨B,id⟩).hom = (g* f̂).hom`.
+  -- `(g* f̂).hom = (HasPullbacks.has f g).cone.π₂`  (since `(fHat f).hom = f`).
+  -- `(g*⟨B,id⟩).hom` is an iso (`_bcIdB_hom_iso`), so `π₂ = cover ≫ iso` is a cover.
+  have hw : (Functor.map (F := baseChangeObj g) (_mfTerm f)).f ≫ (baseChangeObj g (_idB B)).hom
+      = (baseChangeObj g (fHat f)).hom :=
+    (Functor.map (F := baseChangeObj g) (_mfTerm f)).w
+  have hπ₂ : (baseChangeObj g (fHat f)).hom = (HasPullbacks.has f g).cone.π₂ := rfl
+  rw [← hπ₂, ← hw]
+  -- unfold `Cover` by hand to dodge the `Cover`-def `{C}`-binder clash with section `C`.
+  intro D m gg hm hgm
+  exact cover_postcomp_iso hbcf (_bcIdB_hom_iso g) m gg hm hgm
+
+/-- **§1.945 — for a bare topos, the pullback of a cover is a cover.**  Closes the residual
+    behind `topos_is_regular_real`.  Non-circular: the cover-stability of `f*` comes from the
+    right-adjoint `Π_f` (`baseChange_preserves_cover`), not from any assumed base
+    `PullbacksTransferCovers 𝒞`.  An arbitrary pullback cone `c` of `(f,g)` is iso to the chosen
+    pullback; `cover_precomp_iso` transports `Cover (chosen π₂)` to `Cover c.π₂`. -/
+instance toposPullbacksTransferCovers : PullbacksTransferCovers 𝒞 where
+  pullbacks_transfer_covers {A₁ B₁ C₁} f g c hc hf := by
+    -- The chosen pullback π₂ is a cover.
+    have hchosen : Cover (HasPullbacks.has f g).cone.π₂ := _chosenPi2_cover f g hf
+    -- Comparison iso `j : c.pt ≅ chosen.pt` with `j ≫ chosen.π₂ = c.π₂`.
+    let pf := HasPullbacks.has f g
+    -- `c` is a pullback, so it lifts the chosen cone; `pf.cone` is a pullback, so it lifts `c`.
+    obtain ⟨j, ⟨_hj₁, hj₂⟩, _⟩ := hc pf.cone           -- j : pf.cone.pt ⟶ c.pt
+    have hcj := pf.cone_isPullback c                    -- lift of c into chosen
+    obtain ⟨k, ⟨hk₁, hk₂⟩, kuniq⟩ := hcj                -- k : c.pt ⟶ pf.cone.pt
+    -- k is a two-sided inverse of j (both pullback self-maps that fix the legs are id).
+    have hkj_id : k ≫ j = Cat.id c.pt := by
+      -- c.IsPullback self-uniqueness:  k ≫ j and id both lift c into c.
+      obtain ⟨_, _, cuniq⟩ := hc c
+      rw [cuniq (k ≫ j) (by rw [Cat.assoc, _hj₁, hk₁]) (by rw [Cat.assoc, hj₂, hk₂]),
+          cuniq (Cat.id c.pt) (Cat.id_comp _) (Cat.id_comp _)]
+    have hjk_id : j ≫ k = Cat.id pf.cone.pt := by
+      -- self-uniqueness of the CHOSEN pullback `pf.cone`: both `j ≫ k` and `id` lift `pf.cone`.
+      have puniq := pf.lift_uniq pf.cone
+      rw [puniq (j ≫ k) (by rw [Cat.assoc, hk₁, _hj₁]) (by rw [Cat.assoc, hk₂, hj₂]),
+          puniq (Cat.id pf.cone.pt) (Cat.id_comp _) (Cat.id_comp _)]
+    -- `c.π₂ = k ≫ pf.cone.π₂`, and `k` is iso, so `cover_precomp_iso`.
+    have hkiso : IsIso k := ⟨j, hkj_id, hjk_id⟩
+    rw [← hk₂]
+    -- unfold `Cover` by hand to dodge the `Cover`-def `{C}`-binder clash with section `C₁`.
+    intro D m gg hm hgm
+    exact cover_precomp_iso hkiso hchosen m gg hm hgm
+
+end ToposTransfer
+
 end Freyd
