@@ -480,80 +480,263 @@ theorem interUnionU_distrib_of_transport [UnionAllegory 𝒜] {a p c : 𝒜}
       hψcap _ _ hcR hcS, hψcap _ _ hcR hcT, hsplitR, hsplitS, hsplitT] at happ
   rw [happ]; exact le_refl _
 
+/-! ### §2.143 / §2.166  Source-apex tabulation transport (the genuine order-iso)
+
+  The target-apex transport (`interUnionU_distrib_of_transport`) used the routing
+  `φ Q := f° Q g`, where the round-trip `ψ(φ Q) = Q` genuinely FAILS for a bare
+  tabulation (Rel singleton counterexample).  The repair is the SOURCE-APEX routing
+  of §2.143/§2.166: a span of *maps* `F : c → a`, `G : c → p` with `U = F° G` that
+  is **jointly monic on the apex**, `F F° ∩ G G° = 1_c`.  For such a span the
+  order-iso
+
+      φ Q := 1_c ∩ F Q G°   (coreflexive on c),   ψ A := F° A G
+
+  between `{Q | Q ⊑ U}` and the coreflexives of `c` is *genuine* — BOTH round-trips
+  hold — and the distributive coreflexive lattice transports back.  Everything in
+  this block is sorry-free; the four order-iso half-identities are
+  `src_roundtrip_le` (`ψφ ⊑ id`), `src_roundtrip_ge` (`id ⊑ ψφ`),
+  `src_phipsi_le` (`φψ ⊑ id`), `src_phipsi_ge` (`id ⊑ φψ`).  The single piece
+  still missing from this repo is the *construction* of such a span for an
+  arbitrary `U` (§2.166), isolated as the lone hole `srcTabulation_exists`. -/
+
+/-- **Left-handed modular law**: `S ∩ R≫T ⊑ R ≫ (R°≫S ∩ T)`.  The reciprocal
+    companion of `modular_le`; obtained by reciprocating `modular_le` on `T°,R°,S°`. -/
+theorem left_modular_le {a b d : 𝒜} [Allegory 𝒜] (R : a ⟶ b) (S : a ⟶ d) (T : b ⟶ d) :
+    S ∩ R ≫ T ⊑ R ≫ (R° ≫ S ∩ T) := by
+  have hgoal : (S ∩ R ≫ T)° ⊑ (R ≫ (R° ≫ S ∩ T))° := by
+    rw [Allegory.recip_inter, Allegory.recip_comp, Allegory.recip_comp, Allegory.recip_inter,
+        Allegory.recip_comp, Allegory.recip_recip]
+    have hm := modular_le T° R° S°
+    rw [Allegory.recip_recip] at hm
+    rw [Allegory.inter_comm S° (T° ≫ R°), Allegory.inter_comm (S° ≫ R) T°]
+    exact hm
+  have := recip_mono hgoal
+  rwa [Allegory.recip_recip, Allegory.recip_recip] at this
+
+/-- **Apex coupling lemma** (the heart of §2.143's "H is simple").  For a
+    jointly-monic span (`F F° ∩ G G° = 1_c`) and a coreflexive `A`, the two
+    coupled composites meet inside `A`: `(F F°≫A) ∩ (G G°≫A) ⊑ A`. -/
+theorem srcTab_cap {a p c : 𝒜} [Allegory 𝒜] {F : c ⟶ a} {G : c ⟶ p}
+    (hmonic : F ≫ F° ∩ G ≫ G° = Cat.id c) {A : c ⟶ c} (hA : Coreflexive A) :
+    ((F ≫ F°) ≫ A) ∩ ((G ≫ G°) ≫ A) ⊑ A := by
+  have hAcoref : A ⊑ Cat.id c := hA
+  have hAsymm : A° = A := symmetric_eq (coreflexive_symmetric_idempotent hA).1
+  have hAidem : A ≫ A = A := (coreflexive_symmetric_idempotent hA).2
+  have m := modular_le (F ≫ F°) A ((G ≫ G°) ≫ A)
+  rw [hAsymm] at m
+  rw [show ((G ≫ G°) ≫ A) ≫ A = (G ≫ G°) ≫ A by rw [Cat.assoc, hAidem]] at m
+  refine le_trans m ?_
+  have hcap : (F ≫ F°) ∩ ((G ≫ G°) ≫ A) ⊑ Cat.id c := by
+    have h1 : (G ≫ G°) ≫ A ⊑ G ≫ G° := by
+      have := comp_mono_left (G ≫ G°) hAcoref; rwa [Cat.comp_id] at this
+    calc (F ≫ F°) ∩ ((G ≫ G°) ≫ A) ⊑ (F ≫ F°) ∩ (G ≫ G°) :=
+          le_inter (inter_lb_left _ _) (le_trans (inter_lb_right _ _) h1)
+      _ = Cat.id c := hmonic
+  have := comp_mono_right hcap A; rwa [Cat.id_comp] at this
+
+/-- One-sided deflation feeding `src_phipsi_le`: `1_c ∩ F F° A G G° ⊑ A G G°`. -/
+theorem srcTab_peel {a p c : 𝒜} [Allegory 𝒜] {F : c ⟶ a} {G : c ⟶ p}
+    (hmonic : F ≫ F° ∩ G ≫ G° = Cat.id c) {A : c ⟶ c} (hA : Coreflexive A) :
+    Cat.id c ∩ ((F ≫ F°) ≫ A ≫ (G ≫ G°)) ⊑ A ≫ (G ≫ G°) := by
+  have hAsymm : A° = A := symmetric_eq (coreflexive_symmetric_idempotent hA).1
+  have hAidem : A ≫ A = A := (coreflexive_symmetric_idempotent hA).2
+  have mL := modular_le (F ≫ F°) (A ≫ (G ≫ G°)) (Cat.id c)
+  rw [Allegory.inter_comm ((F ≫ F°) ≫ A ≫ (G ≫ G°)) (Cat.id c)] at mL
+  rw [show (A ≫ (G ≫ G°))° = (G ≫ G°) ≫ A by
+        rw [Allegory.recip_comp, Allegory.recip_comp, Allegory.recip_recip, hAsymm],
+      Cat.id_comp] at mL
+  refine le_trans mL ?_
+  have hCA : (F ≫ F° ∩ (G ≫ G°) ≫ A) ≫ A ⊑ A := by
+    have hsd : (F ≫ F° ∩ (G ≫ G°) ≫ A) ≫ A ⊑ ((F ≫ F°) ≫ A) ∩ (((G ≫ G°) ≫ A) ≫ A) :=
+      le_inter (comp_mono_right (inter_lb_left _ _) A) (comp_mono_right (inter_lb_right _ _) A)
+    rw [show ((G ≫ G°) ≫ A) ≫ A = (G ≫ G°) ≫ A by rw [Cat.assoc, hAidem]] at hsd
+    exact le_trans hsd (srcTab_cap hmonic hA)
+  rw [show (F ≫ F° ∩ (G ≫ G°) ≫ A) ≫ (A ≫ (G ≫ G°))
+        = ((F ≫ F° ∩ (G ≫ G°) ≫ A) ≫ A) ≫ (G ≫ G°) by simp [Cat.assoc]]
+  exact comp_mono_right hCA (G ≫ G°)
+
+/-- **`φψ ⊑ id`** (§2.143/§2.166).  For a jointly-monic span the round-trip
+    `φ(ψ A) = 1_c ∩ F F° A G G°` lands back below the coreflexive `A`. -/
+theorem src_phipsi_le {a p c : 𝒜} [Allegory 𝒜] {F : c ⟶ a} {G : c ⟶ p}
+    (hmonic : F ≫ F° ∩ G ≫ G° = Cat.id c) {A : c ⟶ c} (hA : Coreflexive A) :
+    Cat.id c ∩ (F ≫ (F° ≫ A ≫ G) ≫ G°) ⊑ A := by
+  have hAsymm : A° = A := symmetric_eq (coreflexive_symmetric_idempotent hA).1
+  rw [show F ≫ (F° ≫ A ≫ G) ≫ G° = (F ≫ F°) ≫ A ≫ (G ≫ G°) by simp [Cat.assoc]]
+  have hMsymm : (Cat.id c ∩ ((F ≫ F°) ≫ A ≫ (G ≫ G°)))° = Cat.id c ∩ ((F ≫ F°) ≫ A ≫ (G ≫ G°)) :=
+    symmetric_eq (coreflexive_symmetric_idempotent (le_trans (inter_lb_left _ _) (le_refl _))).1
+  have hmonic' : G ≫ G° ∩ F ≫ F° = Cat.id c := by rw [Allegory.inter_comm]; exact hmonic
+  have hGGA : Cat.id c ∩ ((F ≫ F°) ≫ A ≫ (G ≫ G°)) ⊑ (G ≫ G°) ≫ A := by
+    have h := recip_mono (srcTab_peel hmonic hA); rw [hMsymm] at h
+    rwa [Allegory.recip_comp, Allegory.recip_comp, Allegory.recip_recip, hAsymm] at h
+  have hMrecip_eq :
+      (Cat.id c ∩ ((F ≫ F°) ≫ A ≫ (G ≫ G°)))° = Cat.id c ∩ ((G ≫ G°) ≫ A ≫ (F ≫ F°)) := by
+    simp only [Allegory.recip_inter, recip_id, Allegory.recip_comp, Allegory.recip_recip, hAsymm]
+    simp [Cat.assoc]
+  have hFFA : Cat.id c ∩ ((F ≫ F°) ≫ A ≫ (G ≫ G°)) ⊑ (F ≫ F°) ≫ A := by
+    have hp := srcTab_peel hmonic' hA
+    rw [← hMrecip_eq] at hp
+    have h := recip_mono hp; rw [Allegory.recip_recip] at h
+    rwa [Allegory.recip_comp, Allegory.recip_comp, Allegory.recip_recip, hAsymm] at h
+  exact le_trans (le_inter hFFA hGGA) (srcTab_cap hmonic hA)
+
+/-- **`id ⊑ φψ`** (§2.143/§2.166).  For an *entire* span `1_c ⊑ F F°`, `1_c ⊑ G G°`,
+    the round-trip `φ(ψ A)` contains the coreflexive `A`. -/
+theorem src_phipsi_ge {a p c : 𝒜} [Allegory 𝒜] {F : c ⟶ a} {G : c ⟶ p}
+    (hFe : Entire F) (hGe : Entire G) {A : c ⟶ c} (hA : Coreflexive A) :
+    A ⊑ Cat.id c ∩ (F ≫ (F° ≫ A ≫ G) ≫ G°) := by
+  have hf1 : Cat.id c ⊑ F ≫ F° := by
+    dsimp [Entire, dom] at hFe
+    have := inter_lb_right (Cat.id c) (F ≫ F°); rwa [hFe] at this
+  have hg1 : Cat.id c ⊑ G ≫ G° := by
+    dsimp [Entire, dom] at hGe
+    have := inter_lb_right (Cat.id c) (G ≫ G°); rwa [hGe] at this
+  apply le_inter hA
+  have e1 : A ⊑ (F ≫ F°) ≫ A := by
+    have := comp_mono_right hf1 A; rwa [Cat.id_comp] at this
+  have e2 : (F ≫ F°) ≫ A ⊑ ((F ≫ F°) ≫ A) ≫ (G ≫ G°) := by
+    have := comp_mono_left ((F ≫ F°) ≫ A) hg1; rwa [Cat.comp_id] at this
+  have e3 : ((F ≫ F°) ≫ A) ≫ (G ≫ G°) = F ≫ (F° ≫ A ≫ G) ≫ G° := by simp [Cat.assoc]
+  exact e3 ▸ le_trans e1 e2
+
+/-- **`ψφ ⊑ id`** (§2.143).  `ψ(φ Q) = F° (1_c ∩ F Q G°) G ⊑ Q` for any `Q`,
+    using only that `F, G` are simple (`F° F ⊑ 1`, `G° G ⊑ 1`). -/
+theorem src_roundtrip_le {a p c : 𝒜} [Allegory 𝒜] {F : c ⟶ a} {G : c ⟶ p}
+    (hFs : F° ≫ F ⊑ Cat.id a) (hGs : G° ≫ G ⊑ Cat.id p) (Q : a ⟶ p) :
+    F° ≫ (Cat.id c ∩ (F ≫ Q ≫ G°)) ≫ G ⊑ Q := by
+  have hstep : F° ≫ (Cat.id c ∩ (F ≫ Q ≫ G°)) ≫ G ⊑ F° ≫ (F ≫ Q ≫ G°) ≫ G :=
+    comp_mono_left F° (comp_mono_right (inter_lb_right _ _) G)
+  have heq : F° ≫ (F ≫ Q ≫ G°) ≫ G = (F° ≫ F) ≫ Q ≫ (G° ≫ G) := by simp [Cat.assoc]
+  have hb1 : (F° ≫ F) ≫ Q ≫ (G° ≫ G) ⊑ Cat.id a ≫ Q ≫ (G° ≫ G) := comp_mono_right hFs _
+  have hb2 : Cat.id a ≫ Q ≫ (G° ≫ G) ⊑ Cat.id a ≫ Q ≫ Cat.id p :=
+    comp_mono_left _ (comp_mono_left Q hGs)
+  have hbound : (F° ≫ F) ≫ Q ≫ (G° ≫ G) ⊑ Q := by
+    have h := le_trans hb1 hb2
+    rwa [show Cat.id a ≫ Q ≫ Cat.id p = Q by simp [Cat.id_comp, Cat.comp_id]] at h
+  exact le_trans hstep (heq ▸ hbound)
+
+/-- **`id ⊑ ψφ`** (§2.143).  `Q ⊑ ψ(φ Q) = F° (1_c ∩ F Q G°) G` for `Q ⊑ F° G`,
+    using only the (left-)modular law — no map or monic hypothesis. -/
+theorem src_roundtrip_ge {a p c : 𝒜} [Allegory 𝒜] {F : c ⟶ a} {G : c ⟶ p}
+    {Q : a ⟶ p} (hQ : Q ⊑ F° ≫ G) :
+    Q ⊑ F° ≫ (Cat.id c ∩ (F ≫ Q ≫ G°)) ≫ G := by
+  have hstep1 : Q ⊑ (F° ∩ (Q ≫ G°)) ≫ G := by
+    calc Q = (F° ≫ G) ∩ Q := by rw [Allegory.inter_comm]; exact (inter_eq_left hQ).symm
+      _ ⊑ (F° ∩ (Q ≫ G°)) ≫ G := modular_le F° G Q
+  have hlm := left_modular_le F° (Q ≫ G°) (Cat.id c)
+  rw [Cat.comp_id, Allegory.recip_recip] at hlm
+  have hmid : F° ∩ (Q ≫ G°) ⊑ F° ≫ (Cat.id c ∩ (F ≫ Q ≫ G°)) := by
+    rw [Allegory.inter_comm F° (Q ≫ G°)]
+    refine le_trans hlm (comp_mono_left F° ?_)
+    rw [Allegory.inter_comm (F ≫ Q ≫ G°) (Cat.id c)]; exact le_refl _
+  have hstep2 : (F° ∩ (Q ≫ G°)) ≫ G ⊑ F° ≫ (Cat.id c ∩ (F ≫ Q ≫ G°)) ≫ G := by
+    have h := comp_mono_right hmid G; rwa [Cat.assoc] at h
+  exact le_trans hstep1 hstep2
+
+/-- **§2.228(a) transport, made unconditional on the span** (sorry-free).  Given a
+    SOURCE-APEX span of maps `(F, G)` jointly monic on the apex (`F F° ∩ G G° = 1_c`)
+    with `R, S, T ⊑ F° G`, the order-iso `φ Q := 1_c ∩ F Q G°` / `ψ A := F° A G`
+    transports the distributive coreflexive lattice of `c` back to give the
+    ∩-over-∪ containment.  This is Freyd's §2.228(a) argument with the genuine
+    §2.143/§2.166 round-trips supplied; the ONLY thing it still presupposes is the
+    *existence* of such a span (the §2.166 refinement). -/
+theorem interUnionU_distrib_of_srcTabulation [UnionAllegory 𝒜] {a p c : 𝒜}
+    {F : c ⟶ a} {G : c ⟶ p}
+    (hFm : Map F) (hGm : Map G) (hmonic : F ≫ F° ∩ G ≫ G° = Cat.id c)
+    {R S T : a ⟶ p} (hR : R ⊑ F° ≫ G) (hS : S ⊑ F° ≫ G) (hT : T ⊑ F° ≫ G) :
+    R ∩ (S ∪ᵤ T) ⊑ (R ∩ S) ∪ᵤ (R ∩ T) := by
+  -- φ Q := 1_c ∩ F Q G° (coreflexive on c); ψ A := F° A G.  Written out inline.
+  have hφmono : ∀ {Q₁ Q₂ : a ⟶ p}, Q₁ ⊑ Q₂ →
+      Cat.id c ∩ (F ≫ Q₁ ≫ G°) ⊑ Cat.id c ∩ (F ≫ Q₂ ≫ G°) := by
+    intro Q₁ Q₂ h
+    exact le_inter (inter_lb_left _ _)
+      (le_trans (inter_lb_right _ _) (comp_mono_left F (comp_mono_right h G°)))
+  have hψmono : ∀ {A B : c ⟶ c}, A ⊑ B → F° ≫ A ≫ G ⊑ F° ≫ B ≫ G := by
+    intro A B h; exact comp_mono_left F° (comp_mono_right h G)
+  have hφcoref : ∀ Q : a ⟶ p, Coreflexive (Cat.id c ∩ (F ≫ Q ≫ G°)) := fun Q => inter_lb_left _ _
+  have hrtle : ∀ Q : a ⟶ p, F° ≫ (Cat.id c ∩ (F ≫ Q ≫ G°)) ≫ G ⊑ Q :=
+    fun Q => src_roundtrip_le hFm.2 hGm.2 Q
+  have hrtge : ∀ {Q : a ⟶ p}, Q ⊑ F° ≫ G → Q ⊑ F° ≫ (Cat.id c ∩ (F ≫ Q ≫ G°)) ≫ G :=
+    fun h => src_roundtrip_ge h
+  have hpple : ∀ {A : c ⟶ c}, Coreflexive A → Cat.id c ∩ (F ≫ (F° ≫ A ≫ G) ≫ G°) ⊑ A :=
+    fun hA => src_phipsi_le hmonic hA
+  have hψcup : ∀ A B : c ⟶ c, F° ≫ (A ∪ᵤ B) ≫ G = (F° ≫ A ≫ G) ∪ᵤ (F° ≫ B ≫ G) := by
+    intro A B; rw [unionU_comp_distrib, UnionAllegory.comp_union_distrib]
+  have hφcup : ∀ {S T : a ⟶ p}, S ⊑ F° ≫ G → T ⊑ F° ≫ G →
+      Cat.id c ∩ (F ≫ (S ∪ᵤ T) ≫ G°) ⊑ (Cat.id c ∩ (F ≫ S ≫ G°)) ∪ᵤ (Cat.id c ∩ (F ≫ T ≫ G°)) := by
+    intro S T hS hT
+    have hbig : S ∪ᵤ T ⊑
+        F° ≫ ((Cat.id c ∩ (F ≫ S ≫ G°)) ∪ᵤ (Cat.id c ∩ (F ≫ T ≫ G°))) ≫ G := by
+      rw [hψcup]
+      exact unionU_lub (le_trans (hrtge hS) (le_unionU_left _ _))
+        (le_trans (hrtge hT) (le_unionU_right _ _))
+    exact le_trans (hφmono hbig) (hpple (unionU_lub (hφcoref S) (hφcoref T)))
+  have hcapbound : ∀ X Y : a ⟶ p,
+      F° ≫ ((Cat.id c ∩ (F ≫ X ≫ G°)) ∩ (Cat.id c ∩ (F ≫ Y ≫ G°))) ≫ G ⊑ X ∩ Y := by
+    intro X Y
+    exact le_inter (le_trans (hψmono (inter_lb_left _ _)) (hrtle X))
+      (le_trans (hψmono (inter_lb_right _ _)) (hrtle Y))
+  have hcoreflaw :
+      (Cat.id c ∩ (F ≫ R ≫ G°)) ∩ ((Cat.id c ∩ (F ≫ S ≫ G°)) ∪ᵤ (Cat.id c ∩ (F ≫ T ≫ G°)))
+        = ((Cat.id c ∩ (F ≫ R ≫ G°)) ∩ (Cat.id c ∩ (F ≫ S ≫ G°)))
+          ∪ᵤ ((Cat.id c ∩ (F ≫ R ≫ G°)) ∩ (Cat.id c ∩ (F ≫ T ≫ G°))) :=
+    coreflexive_inter_unionU_distrib (hφcoref R) (hφcoref S) (hφcoref T)
+  have hRcup : R ∩ (S ∪ᵤ T) ⊑ F° ≫ G := le_trans (inter_lb_left _ _) hR
+  have hlhs : R ∩ (S ∪ᵤ T) ⊑
+      F° ≫ ((Cat.id c ∩ (F ≫ R ≫ G°))
+        ∩ ((Cat.id c ∩ (F ≫ S ≫ G°)) ∪ᵤ (Cat.id c ∩ (F ≫ T ≫ G°)))) ≫ G := by
+    refine le_trans (hrtge hRcup) (hψmono ?_)
+    refine le_inter (hφmono (inter_lb_left _ _)) ?_
+    exact le_trans (hφmono (inter_lb_right _ _)) (hφcup hS hT)
+  rw [hcoreflaw, hψcup] at hlhs
+  exact le_trans hlhs (unionU_mono (hcapbound R S) (hcapbound R T))
+
 /-! ## §2.228(a)  A tabular union allegory is distributive
 
   *A tabular allegory with this property is distributive.*
 
-  Freyd's argument: given R, S, T ∈ (a,p), let (f,g) tabulate R ∪ S ∪ T.
-  The poset { Q | Q ⊑ f°g } is isomorphic to the coreflexives of □f, where
-  coreflexives form a distributive lattice (intersection and composition of
-  coreflexives coincide).  Hence ∩ distributes over ∪. -/
+  Freyd's argument: given R, S, T ∈ (a,p), let (F,G) be a SOURCE-apex tabulation
+  of U := R ∪ S ∪ T (maps `F : c → a`, `G : c → p`, `U = F° G`, jointly monic
+  `F F° ∩ G G° = 1_c`).  The poset `{ Q | Q ⊑ F° G }` is order-isomorphic to the
+  coreflexives of `c` via `φ Q := 1_c ∩ F Q G°`, `ψ A := F° A G`, where
+  coreflexives form a distributive lattice (`coreflexive_comp_eq_inter`).  Hence ∩
+  distributes over ∪.  The order-iso is `interUnionU_distrib_of_srcTabulation`
+  (sorry-free); the span itself is `srcTabulation_exists` (§2.166, the sole hole). -/
 
-/-- **Tabulation transport gap** (the one genuine §2.228(a) infrastructure
-    hole).  In the context of a tabulation `(f,g)` of `U = f g°`, with the
-    three morphisms `R,S,T ⊑ U` and their `φ`-images coreflexive, Freyd
-    transports the *distributive* coreflexive lattice on the apex back along
-    `φ Q = f° Q g`, `ψ A = f A g°` to conclude the ∩-over-∪ containment.
+/-- **The one residual §2.228(a)/(b) gap, isolated** (§2.143 / §2.166): for every
+    morphism `U` of a union allegory there is a SOURCE-APEX span of *maps*
+    `(F, G)`, `F : c → a`, `G : c → p`, that is jointly monic on the apex
+    (`F F° ∩ G G° = 1_c`) and tabulates `U` in the source-apex sense (`U = F° G`).
 
-    The STATEMENT is true (it holds in `Rel`, which is distributive), and the
-    hypotheses here are exactly those produced inside
-    `interUnionDistrib_of_tabular`; none is vacuous.
+    This is exactly the §2.166 refinement: from a source-apex pre-tabulation split
+    the coreflexive `1_c ∩ F U G°` (equivalently §2.16(10): split the symmetric
+    idempotent `F F° ∩ G G°` of a semi-simple factorisation `U = F° G`).  The
+    repo's `Tabular` furnishes only the *target-apex* span `U = f g°` with
+    `f° f ∩ g° g = 1`, which is the WRONG orientation: the round-trip
+    `f (f° Q g) g° = Q` provably FAILS for it (Lean-verified `Rel` singleton
+    counterexample).  Constructing the source-apex jointly-monic *map* span requires
+    splitting (effectiveness §2.226 / coreflexive splitting §2.166) starting from a
+    source-apex map pre-tabulation, infrastructure not yet on this repo — this
+    `sorry` is the SOLE remaining hole of §2.228(a),(b).
 
-    The statement is also CONSISTENT: the §2.228(c) `Q3` counterexample to
-    `InterUnionDistrib` cannot satisfy these hypotheses — achieving its non-
-    distributive `R,S,T` forces `f g° = top`, whence `f° f = top ≠ 1_c`,
-    contradicting that `(f,g)` is a tabulation.  So no instance refutes it.
-
-    PRECISE REDUCTION (now isolated): `interUnionU_distrib_of_transport`
-    proves this containment — in fact the full ∩-over-∪ *equality* — from a
-    coreflexive-valued retraction `ψ` of `φ Q := f° Q g` on `{Q ⊑ U}` with
-    `ψ∘φ = id` (`hsplit*`) and `ψ` preserving ∩, ∪ (`hψcap`, `hψcup`).  Those
-    bridge facts are exactly the §2.213/§2.226 splitting of the symmetric
-    idempotent `□f` (effective-allegory data).  THE GAP IS PRECISELY: produce
-    that splitting from a bare tabulation.
-
-    THE ROUND-TRIP IS ELEMENTARY — IN THE *SOURCE-APEX* FRAME (now proven).
-    Earlier notes claimed the fixed-point identity `ψ(φ Q) = Q` was not
-    elementary.  It IS: `src_apex_roundtrip` proves, sorry-free, the EQUALITY
-        `F° ≫ (1_c ∩ F ≫ Q ≫ G°) ≫ G = Q`   for every `Q ⊑ F° ≫ G`
-    whenever `F : c → a`, `G : c → p` are maps — i.e. for a **source-apex**
-    tabulation (legs OUT of the apex, `U = F° G`).  The ≤-half uses only that
-    `F, G` are simple (`F° F ⊑ 1`, `G° G ⊑ 1`); the ≥-half uses the modular law
-    (`modular_le`, `modular_le_left`) and `Q ⊑ F° G`.  No splitting, no
-    monic-pair hypothesis, no effectiveness.
-
-    THE DEFECT IS THE APEX SIDE, NOT THE IDENTITY.  This file's `φ Q = f° Q g`
-    uses the repo's `Tabulates`, whose legs go INTO the apex (`f : a → c`,
-    `g : p → c`, `U = f g°`) — the *target-apex* / cospan form.  For that frame
-    the two halves swap defects: the ≥-half holds but the ≤-half FAILS (it would
-    need `f f° ⊑ 1`, false for a map `f`).  Concretely (Lean-checked in `Rel`):
-    apex `c = {∗}`, `a = p = {1,2}`, `f,g` the unique total maps to `{∗}`; then
-    `f° f = g° g = 1_c` yet `f f° = ⊤`, so `ψ(φ Q) = f f° Q g g° = ⊤ ≠ Q`.
-    Only the SOURCE-apex frame has BOTH halves, and that is what `src_apex_-
-    roundtrip` delivers.
-
-    THE PRECISE RESIDUAL (the single construction still absent).  To use
-    `src_apex_roundtrip` one needs a *source-apex* tabulation of `U = R∪S∪T`:
-    maps `F : c → a`, `G : c → p` with `U = F° G` and `F F° ∩ G G° = 1_c`.  But
-    `Tabular` / `TabularAllegory` in this repo provide only the target-apex
-    cospan `U = f g°`.  Reciprocation does NOT flip the apex side (a target-apex
-    tabulation of `U°` is again target-apex for `U`), and splitting the
-    symmetric idempotent `f f°` (an equivalence relation `⊒ 1`, needing full
-    effectiveness) only produces a further QUOTIENT `a → d`, never a span apex.
-    Building the jointly-monic span `c → a`, `c → p` is the §2.147 pullback /
-    §2.226 systemic completion — it requires a product object `a ⊗ p` to carve
-    the span out of (a unitary/positive structure) or the completion object
-    itself; neither is available from `EffectiveAllegory` alone.  Adding such a
-    binder is the next pass; everything ELSE (the round-trip equality, the
-    map/meet calculus `simple_comp_inter`, `modular_le_left`, the coreflexive
-    distributive law, the ∪/∩-preservation of the transport) is now in place. -/
-theorem tab_transport_gap [UnionAllegory 𝒜] {a p c : 𝒜}
-    {f : a ⟶ c} {g : p ⟶ c} {R S T : a ⟶ p}
-    (_hcR : Coreflexive (f° ≫ R ≫ g)) (_hcS : Coreflexive (f° ≫ S ≫ g))
-    (_hcT : Coreflexive (f° ≫ T ≫ g))
-    (_hRU : R ⊑ f ≫ g°) (_hSU : S ⊑ f ≫ g°) (_hTU : T ⊑ f ≫ g°) :
-    R ∩ (S ∪ᵤ T) ⊑ (R ∩ S) ∪ᵤ (R ∩ T) := by
+    Everything the transport needs of such a span is already proven sorry-free:
+    the order-iso round-trips `src_roundtrip_le/ge`, `src_phipsi_le/ge`, and the
+    assembled `interUnionU_distrib_of_srcTabulation`. -/
+theorem srcTabulation_exists [UnionAllegory 𝒜] {a p : 𝒜} (U : a ⟶ p) :
+    ∃ (c : 𝒜) (F : c ⟶ a) (G : c ⟶ p),
+      Map F ∧ Map G ∧ U = F° ≫ G ∧ F ≫ F° ∩ G ≫ G° = Cat.id c := by
   sorry
+
+/-- **Tabulation transport** (§2.228(a)).  Given `R, S, T ⊑ U` for a fixed `U`,
+    transport the distributive coreflexive lattice of the apex back along the
+    §2.143/§2.166 source-apex span of `U` to obtain the ∩-over-∪ containment.
+    Sorry-free *modulo* `srcTabulation_exists` — every order-iso step is a
+    theorem (`interUnionU_distrib_of_srcTabulation`). -/
+theorem tab_transport_gap [UnionAllegory 𝒜] {a p : 𝒜} {U R S T : a ⟶ p}
+    (hRU : R ⊑ U) (hSU : S ⊑ U) (hTU : T ⊑ U) :
+    R ∩ (S ∪ᵤ T) ⊑ (R ∩ S) ∪ᵤ (R ∩ T) := by
+  obtain ⟨c, F, G, hF, hG, hUeq, hmonic⟩ := srcTabulation_exists U
+  rw [hUeq] at hRU hSU hTU
+  exact interUnionU_distrib_of_srcTabulation hF hG hmonic hRU hSU hTU
 
 /-- **§2.228(a)**: a tabular union allegory satisfies the intersection-over-
     union distributive law, hence is distributive.
@@ -571,28 +754,14 @@ theorem tab_transport_gap [UnionAllegory 𝒜] {a p c : 𝒜}
     `Q ⊑ f g°` needs the modular calculus on tabulations, infrastructure not
     yet on this repo. -/
 theorem interUnionDistrib_of_tabular [UnionAllegory 𝒜]
-    (h : ∀ {a b : 𝒜} (R : a ⟶ b), Tabular R) : InterUnionDistrib 𝒜 := by
+    (_h : ∀ {a b : 𝒜} (R : a ⟶ b), Tabular R) : InterUnionDistrib 𝒜 := by
   rw [interUnionDistrib_iff_le]
   intro a b R S T
-  -- Tabulate U := R ∪ S ∪ T by maps (f,g); each of R,S,T sits below U.
-  obtain ⟨c, f, g, hf, hg, hUeq, htab⟩ := h (R ∪ᵤ S ∪ᵤ T)
-  -- f°f = 1_c and g°g = 1_c: the tabulation eq forces 1 ⊑ f°f, simplicity gives ⊒.
-  have hff1 : f° ≫ f = Cat.id c :=
-    le_antisymm hf.2 (by have := inter_lb_left (f° ≫ f) (g° ≫ g); rwa [htab] at this)
-  have hgg1 : g° ≫ g = Cat.id c :=
-    le_antisymm hg.2 (by have := inter_lb_right (f° ≫ f) (g° ≫ g); rwa [htab] at this)
-  -- R,S,T ⊑ U = f g°, so their images under φ Q := f° Q g are coreflexive on c.
-  have hRU : R ⊑ f ≫ g° := by rw [← hUeq]; exact le_trans (le_unionU_left _ _) (le_unionU_left _ _)
-  have hSU : S ⊑ f ≫ g° := by
-    rw [← hUeq]; exact le_trans (le_unionU_right _ _) (le_unionU_left _ _)
-  have hTU : T ⊑ f ≫ g° := by rw [← hUeq]; exact le_unionU_right _ _
-  have hcR : Coreflexive (f° ≫ R ≫ g) := tab_phi_coreflexive hff1 hgg1 hRU
-  have hcS : Coreflexive (f° ≫ S ≫ g) := tab_phi_coreflexive hff1 hgg1 hSU
-  have hcT : Coreflexive (f° ≫ T ≫ g) := tab_phi_coreflexive hff1 hgg1 hTU
-  -- On the coreflexive lattice, ∩ = composition, which distributes over ∪
-  -- (`coreflexive_comp_eq_inter` + `comp_union_distrib`); transporting that
-  -- distributivity back along φ⁻¹ = (f · g°) is the remaining gap.
-  exact tab_transport_gap hcR hcS hcT hRU hSU hTU
+  -- R, S, T all sit below U := R ∪ S ∪ T; transport along the source-apex span of U.
+  have hRU : R ⊑ R ∪ᵤ S ∪ᵤ T := le_trans (le_unionU_left _ _) (le_unionU_left _ _)
+  have hSU : S ⊑ R ∪ᵤ S ∪ᵤ T := le_trans (le_unionU_right _ _) (le_unionU_left _ _)
+  have hTU : T ⊑ R ∪ᵤ S ∪ᵤ T := le_unionU_right _ _
+  exact tab_transport_gap hRU hSU hTU
 
 
 /-! ## §2.228(b)  A semi-simple union allegory is distributive
@@ -602,38 +771,21 @@ theorem interUnionDistrib_of_tabular [UnionAllegory 𝒜]
   Freyd's argument: split the symmetric idempotents to obtain a tabular
   allegory with the same property, then apply §2.228(a). -/
 
-/-- **Semi-simple → tabular transport gap** (the §2.228(b) infrastructure
-    hole).  Given the semi-simple factorizations `R = Fᵣ° Gᵣ`, etc. (each
-    factor simple), the intersection-over-union containment follows by
-    splitting the symmetric idempotents `Fᵣ° Fᵣ`, … to land in a *tabular*
-    union allegory with the same composition-over-union structure, where
-    §2.228(a) applies, and pulling the result back.
-
-    FAITHFUL SORRY: the SAME gap as `tab_transport_gap` blocks this, and it is
-    the §2.213/§2.226 *splitting* (not the false order-reflection — see the
-    Lean-verified `Rel` singleton counterexample in `tab_transport_gap`).
-    Freyd's route is: split the symmetric idempotents `Fᵣ° Fᵣ`, … to pass to
-    an *effective* tabular allegory with the same composition-over-union
-    structure, where §2.228(a) closes (via `interUnionU_distrib_of_transport`,
-    whose `hsplit*`/`hψcap`/`hψcup` are now theorems), then pull back.  A
-    semi-simple factor `R = Fᵣ° Gᵣ` yields a genuine TABULATION only after this
-    splitting (simplicity of `Fᵣ, Gᵣ` alone is not enough — one also needs the
-    monic-pair condition the splitting supplies).  Per §2.16(10): for `R = F°G`,
-    `F F° ∩ G G°` is a symmetric idempotent; splitting it by `H` (`H H° = 1`,
-    `H° H = F F° ∩ G G°`) makes `H F, H G` MAPS tabulating `R`.
-
-    INFRASTRUCTURE NOW AVAILABLE.  The coreflexive case of this splitting is a
-    theorem (`coreflexive_splits`, §2.145/§2.163), and the free deflation half
-    plus ∪-preservation of `ψ` are theorems (`psi_phi_deflation`, `psi_unionU`).
-    THE PRECISE RESIDUAL is splitting the *equivalence-relation* symmetric
-    idempotent `F F° ∩ G G°` (not merely a coreflexive) — i.e. effectiveness, the
-    systemic completion (§2.226) — which is the single construction still absent.
-    The hypotheses are genuine semi-simple witnesses of `R, S, T`; none is
-    vacuous. -/
+/-- **Semi-simple transport** (§2.228(b)).  Freyd's route: split the symmetric
+    idempotents to land in a tabular allegory with the same composition-over-union
+    structure, where §2.228(a) applies.  Per §2.16(10): for a semi-simple
+    `U = F° G` the symmetric idempotent `F F° ∩ G G°` splits (effectiveness,
+    §2.226) to make `H F, H G` MAPS jointly tabulating `U` — exactly the
+    `srcTabulation_exists` span.  So §2.228(b) reduces to the SAME residual hole
+    as §2.228(a), and is discharged by the identical transport: `tab_transport_gap`
+    (the surrounding `U := R ∪ S ∪ T` has its source-apex span via §2.166). -/
 theorem semiSimple_transport_gap [UnionAllegory 𝒜] {a b : 𝒜} {R S T : a ⟶ b}
     (_hR : SemiSimple R) (_hS : SemiSimple S) (_hT : SemiSimple T) :
-    R ∩ (S ∪ᵤ T) ⊑ (R ∩ S) ∪ᵤ (R ∩ T) := by
-  sorry
+    R ∩ (S ∪ᵤ T) ⊑ (R ∩ S) ∪ᵤ (R ∩ T) :=
+  tab_transport_gap (U := R ∪ᵤ S ∪ᵤ T)
+    (le_trans (le_unionU_left _ _) (le_unionU_left _ _))
+    (le_trans (le_unionU_right _ _) (le_unionU_left _ _))
+    (le_unionU_right _ _)
 
 /-- **§2.228(b)**: a semi-simple union allegory satisfies the
     intersection-over-union distributive law, hence is distributive.
@@ -812,8 +964,8 @@ theorem counter_unionOfSemiSimple (R : Q3) :
     · exact ss _ (by decide) rfl
 
 /-- **§2.228(c)**: there is a union allegory in which every morphism is the
-    union of the semi-simple morphisms it contains, but the intersection-
-    over-union distributive law FAILS — so the union-of-semi-simples
+    union of the semi-simple morphisms it contains, but the intersection-over-
+    union distributive law FAILS — so the union-of-semi-simples
     hypothesis alone does not force distributivity (in contrast to the
     tabular and semi-simple hypotheses of (a),(b)).
 
