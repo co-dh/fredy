@@ -37,6 +37,14 @@ import Fredy.InterIntersection
 -- sorry-free `toposHasImages` instance, the `SlicePi.toposPullbacksTransferCovers`
 -- instance, and `topos_is_regular_real : Nonempty (RegularCategory 𝒞)`.
 import Fredy.InternalForallTopos
+-- §1.946 right adjoint f## to inverse image (the `HasRightAdjointImage'` keystone): the
+-- subobject-level internal-∀ `radjImage`/`radjImage_adjunction`, built sorry-free via the
+-- internal-∀ family-glb machinery.  Plus §1.95 `bottomSub` for the strict coterminator.
+import Fredy.RightAdjointImage
+import Fredy.ToposColimits
+-- §1.944 strict coterminator: `topos_has_coterminator` (built sorry-free modulo the single
+-- `bottomSub_dom_iso` seed = `0 × A ≅ 0`; see `Fredy/ToposStrictZero.lean`).
+import Fredy.ToposStrictZero
 
 universe v u
 
@@ -63,6 +71,16 @@ class HasRightAdjointImage' (𝒞 : Type u) [Cat.{v} 𝒞]
     (Local copy; canonical definition is in S1_70.) -/
 class Logos' (𝒞 : Type u) [Cat.{v} 𝒞] extends
     RegularCategory 𝒞, HasSubobjectUnions 𝒞, HasRightAdjointImage' 𝒞
+
+/-- **§1.946 — a topos has the right adjoint `f##` to inverse image.**  Bundles the §1.946
+    keystone `radjImage` (the internal-∀ right adjoint `f## = ∀_f : Sub(A) → Sub(B)`) with its
+    adjunction `radjImage_adjunction` (`f* ⊣ f##`) into the `HasRightAdjointImage'` interface.
+    Both are built sorry-free in `Fredy.RightAdjointImage` via the internal-∀ family-glb machinery
+    (NO §1.54 transfinite capitalization).  This is the load-bearing instance that turns
+    `topos_is_logos` from a `sorry` into an assembly. -/
+noncomputable instance toposHasRightAdjointImage : HasRightAdjointImage' 𝒞 where
+  rightAdj f A' := radjImage f A'
+  adjunction f B' A' := radjImage_adjunction f B' A'
 
 /-! ## §1.94  Power object [A] and families named by F
 
@@ -176,22 +194,29 @@ noncomputable def interUnion [HasImages 𝒞] {A : 𝒞} (F : Subobject 𝒞 (po
     `capitalization_lemma` (itself still `sorry`) to terminate the transfinite
     A ⊆ A* iteration that builds the glb.  No current arm yields the empty glb.
 
-    RE-EXAMINED against the new infra (modular_identity §1.56, DisjointBinaryCoproduct
-    §1.64, compose_union_right §1.60, effective_of_quotient_cover §1.95): none helps.
-    The only `false : 1 → Ω` route to `0` (`0 = pullback of false`) is itself circular —
-    `false` is the classifier of the *empty* subobject of `1`, i.e. exactly the `⋂∅`
-    we are trying to build.  `DisjointBinaryCoproduct` would *supply* a strict initial
-    via its coproduct bottom, but it extends `PreLogos ⊇ RegularCategory ⊇ HasImages`,
-    so it is downstream of the same §1.543 glb, not upstream.
+    REDUCED THIS PASS to a SINGLE sharp seed (the §1.543 transfinite blocker is GONE — the
+    `⋂∅` glb is now built sorry-free as `bottomSub A := ⋂{all σ ⊆ A}` in `Fredy.ToposColimits`,
+    the all-subobjects family-glb via the internal-∀ engine, NOT capitalization).  The
+    strict-coterminator scaffolding `Fredy.ToposStrictZero` is now ALL sorry-free EXCEPT one
+    cross-base lemma:
 
-    STRICTNESS-SCAFFOLD GAP (re-confirmed this pass): `HasCoterminator.ofStrict` (S1_58)
-    reduces this to producing a `StrictCoterminator 0` witness (every map into `0` is iso),
-    classically proved via `A × 0 ≅ 0`.  But the repo has NO `false`-map, NO `A×0≅0`, and NO
-    strict-zero construction for a topos (`StrictCoterminator` is referenced only inside S1_58),
-    so even this non-glb escape is unscaffolded — and `0 = pb(false)` makes it circular on §1.543
-    as above.  No topos→`HasCoterminator` instance exists anywhere in the repo. -/
-theorem topos_has_strict_coterminator : Nonempty (HasCoterminator 𝒞) := by
-  sorry
+        carrier `0 := (bottomSub one).dom`;
+        `StrictCoterminator 0` (every map into `0` is iso) via the S1_61 pullback argument,
+        ported to `bottomSub` + the §1.946 right-adjoint EMPTINESS lemma `g*(∅) ≤ ∅`
+        (`invImage_bottomSub_le`, proved sorry-free from `radjImage_adjunction`);
+        then `HasCoterminator.ofStrict` (S1_58).
+
+    The lone residual is `bottomSub_dom_iso A B : (∅_A).dom ≅ (∅_B).dom` (cross-base bottom-
+    domain iso), equivalently the strict-initial absorption `0 × A ≅ 0`, equivalently the
+    existence of the universal arrow `0 → A`.  This is NOT supplied by either adjoint to
+    inverse image: `g* ⊣ g##` (sorry-free, used here) gives only `g*(⊥) ≅ ⊥` (the emptiness
+    direction), and `∃_g ⊣ g*` is gated behind `[PreLogos 𝒞]` (which a bare topos lacks).
+    The viable sorry-free route is the partial-map-classifier undefined-point construction
+    (`Fredy.PartialMapClassifier`, now sorry-free at the interface) — power-object internals,
+    left for a follow-up.  Hence this theorem still carries `sorryAx` THROUGH that one seed
+    (`Fredy.ToposStrictZero.bottomSub_dom_iso`); everything else in §1.944 is sorry-free. -/
+theorem topos_has_strict_coterminator : Nonempty (HasCoterminator 𝒞) :=
+  topos_has_coterminator
 
 /-- **§1.945**: A topos is regular — images exist and pullbacks transfer covers.
     For f : A → B let F = {B' ↣ B | f factors through B'}; then ∩F is the image
@@ -231,14 +256,23 @@ theorem topos_is_regular : Nonempty (RegularCategory 𝒞) :=
       over a subobject FAMILY;
     * `HasRightAdjointImage'` — the right adjoint `f##`, also a family-glb.
 
-    Both are `⋂Φ`-over-a-comprehension constructions: in principle buildable from the
-    internal-∀ `bigInter` of `InternalForallTopos` (the same engine that gave `HasImages`),
-    but that is a SEPARATE construction (each needs its own comprehension name + β/η law),
-    not something regularity supplies.  Neither a `HasSubobjectUnions 𝒞` nor a
-    `HasRightAdjointImage' 𝒞` topos instance exists in the repo yet.  Left as `sorry`
-    pending those two `bigInter`-based instances; out of scope for the regularity wiring. -/
+    CLOSED (no longer a sorry).  All three fields are now available topos instances:
+
+    * `RegularCategory` — `topos_is_regular` (the internal-∀ family-glb image + `Π_f`-cover-transfer);
+    * `HasSubobjectUnions` — `toposHasSubobjectUnions` (the §1.952 family-glb of common upper bounds,
+      `Fredy.ToposColimits`);
+    * `HasRightAdjointImage'` — `toposHasRightAdjointImage` above, the §1.946 keystone `f##`
+      (`Fredy.RightAdjointImage`, internal-∀ right adjoint + adjunction, sorry-free).
+
+    `Logos'` assembles from these three (the regular structure is unbundled into its
+    `HasImages`/`PullbacksTransferCovers` fields so the union/right-adjoint instances resolve). -/
 theorem topos_is_logos : Nonempty (Logos' 𝒞) := by
-  sorry
+  obtain ⟨reg⟩ := topos_is_regular (𝒞 := 𝒞)
+  letI : HasImages 𝒞 := reg.toHasImages
+  letI : PullbacksTransferCovers 𝒞 := reg.toPullbacksTransferCovers
+  exact ⟨{ reg with
+    toHasSubobjectUnions := toposHasSubobjectUnions
+    toHasRightAdjointImage' := toposHasRightAdjointImage }⟩
 
 /-! ## §1.947  A topos is a transitive logos
 
