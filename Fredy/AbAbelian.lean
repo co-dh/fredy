@@ -134,6 +134,81 @@ noncomputable def prodGObj (A B : AbelianGroupObject 𝒞) : AbelianGroupObject 
     · rw [prodAdd_proj_snd, prodAddCar_snd]
       exact GElt.add_comm B (snd ≫ snd) (fst ≫ snd)
 
+/-- An idempotent generalized element is zero: if `e ⊕ e = e` then `e = O`.
+    (Cancel `e`: `e = e ⊕ O = e ⊕ (e ⊕ ⊖e) = (e ⊕ e) ⊕ ⊖e = e ⊕ ⊖e = O`.) -/
+theorem GElt.idem_zero {T : 𝒞} (P : AbelianGroupObject 𝒞) {e : T ⟶ P.carrier}
+    (he : pair e e ≫ P.add = e) : e = term T ≫ P.zero :=
+  calc e = pair e (term T ≫ P.zero) ≫ P.add := (GElt.add_zero P e).symm
+    _ = pair e (pair e (e ≫ P.neg) ≫ P.add) ≫ P.add := by rw [GElt.add_neg P e]
+    _ = pair (pair e e ≫ P.add) (e ≫ P.neg) ≫ P.add := (GElt.add_assoc P e e (e ≫ P.neg)).symm
+    _ = pair e (e ≫ P.neg) ≫ P.add := by rw [he]
+    _ = term T ≫ P.zero := GElt.add_neg P e
+
+/-! ### The zero (terminal = coterminal) group object
+
+  Carrier `one` (the terminal of `𝒞`); all structure maps are forced by `term_uniq`.
+  It is simultaneously terminal and coterminal in `Ab(𝒞)` (`0 ≅ 1`). -/
+
+/-- The zero group object: carrier `1`, all operations the unique maps to `1`. -/
+noncomputable def zeroGObj : AbelianGroupObject 𝒞 where
+  carrier := one
+  zero := Cat.id one
+  neg := Cat.id one
+  add := term _
+  add_zero := term_uniq _ _
+  add_neg := term_uniq _ _
+  add_assoc := term_uniq _ _
+  add_comm := term_uniq _ _
+
+/-- Any carrier map into `1` is a homomorphism (both sides of the hom square land in `1`). -/
+theorem isHom_toZero (A : AbelianGroupObject 𝒞) (x : A.carrier ⟶ one) :
+    IsHomAbelianGroupObject A (zeroGObj) x := term_uniq _ _
+
+/-- `Ab(𝒞)` has a terminal object: the zero group object, with `term` as the unique map. -/
+noncomputable instance instHasTerminalAb : HasTerminal (AbelianGroupObject 𝒞) where
+  one := zeroGObj
+  trm A := ⟨term A.carrier, isHom_toZero A _⟩
+  uniq f g := Subtype.ext (term_uniq f.val g.val)
+
+/-- `A.zero : 1 → A` is a homomorphism `zeroGObj → A` (`O ⊕ O = O`). -/
+theorem isHom_fromZero (A : AbelianGroupObject 𝒞) :
+    IsHomAbelianGroupObject (zeroGObj) A A.zero := by
+  show (zeroGObj : AbelianGroupObject 𝒞).add ≫ A.zero
+        = pair (fst ≫ A.zero) (snd ≫ A.zero) ≫ A.add
+  -- LHS: term(1×1) ≫ A.zero;  RHS: ⟨fst≫A.zero, snd≫A.zero⟩ ≫ A.add.
+  -- Write both as `(t ≫ A.zero) ⊕ (t ≫ A.zero)` form via term collapse, then `zero_add_zero`.
+  show term (prod one one) ≫ A.zero = pair (fst ≫ A.zero) (snd ≫ A.zero) ≫ A.add
+  have hf : (fst : prod (one : 𝒞) one ⟶ one) ≫ A.zero
+          = term (prod one one) ≫ A.zero := by rw [term_uniq fst (term _)]
+  have hs : (snd : prod (one : 𝒞) one ⟶ one) ≫ A.zero
+          = term (prod one one) ≫ A.zero := by rw [term_uniq snd (term _)]
+  rw [hf, hs, GElt.zero_add_zero A]
+
+/-- Uniqueness of homs out of `zeroGObj`: any hom `x : 1 → A` is `A.zero`.
+    The hom condition pulled back along the diagonal forces `x = x ⊕ x`, so `x = O`. -/
+theorem hom_fromZero_unique {A : AbelianGroupObject 𝒞} {x : (one : 𝒞) ⟶ A.carrier}
+    (hx : IsHomAbelianGroupObject (zeroGObj) A x) : x = A.zero := by
+  -- hx : term(1×1) ≫ x = ⟨fst≫x, snd≫x⟩ ≫ A.add.  Precompose with `diag one : 1 → 1×1`.
+  have key := congrArg (fun m => diag (one : 𝒞) ≫ m) hx
+  simp only at key
+  -- LHS: diag ≫ zeroGObj.add ≫ x.  `diag ≫ zeroGObj.add : 1→1` is `id 1`, so LHS = x.
+  rw [← Cat.assoc, term_uniq (diag (one : 𝒞) ≫ (zeroGObj : AbelianGroupObject 𝒞).add)
+        (Cat.id one), Cat.id_comp] at key
+  have hsplit : diag (one : 𝒞) ≫ pair (fst ≫ x) (snd ≫ x) ≫ A.add = pair x x ≫ A.add := by
+    rw [← Cat.assoc, aa_pair_precomp, ← Cat.assoc, ← Cat.assoc, diag_fst, diag_snd]
+    simp only [Cat.id_comp]
+  rw [hsplit] at key
+  -- key : x = ⟨x, x⟩ ≫ A.add.  Idempotent ⟹ x = term 1 ≫ A.zero = id ≫ A.zero = A.zero.
+  have hidem := GElt.idem_zero A key.symm
+  rwa [term_uniq (term (one : 𝒞)) (Cat.id one), Cat.id_comp] at hidem
+
+/-- `Ab(𝒞)` has a coterminator: the zero group object `zeroGObj` (so `0 ≅ 1`). -/
+noncomputable instance instHasCoterminatorAb : HasCoterminator (AbelianGroupObject 𝒞) where
+  zero := zeroGObj
+  init A := ⟨A.zero, isHom_fromZero A⟩
+  init_uniq f g := Subtype.ext ((hom_fromZero_unique f.property).trans
+    (hom_fromZero_unique g.property).symm)
+
 /-! ### Products in `Ab(𝒞)`
 
   The projections `π₁ : prodGObj A B → A`, `π₂ : prodGObj A B → B` and the pairing
@@ -195,16 +270,6 @@ theorem hom_preserves_add {T : 𝒞} {P X : AbelianGroupObject 𝒞}
     (pair u w ≫ P.add) ≫ h = pair (u ≫ h) (w ≫ h) ≫ X.add := by
   rw [Cat.assoc, hh, ← Cat.assoc, aa_pair_precomp]
   simp only [← Cat.assoc, fst_pair, snd_pair]
-
-/-- An idempotent generalized element is zero: if `e ⊕ e = e` then `e = O`.
-    (Cancel `e`: `e = e ⊕ O = e ⊕ (e ⊕ ⊖e) = (e ⊕ e) ⊕ ⊖e = e ⊕ ⊖e = O`.) -/
-theorem GElt.idem_zero {T : 𝒞} (P : AbelianGroupObject 𝒞) {e : T ⟶ P.carrier}
-    (he : pair e e ≫ P.add = e) : e = term T ≫ P.zero :=
-  calc e = pair e (term T ≫ P.zero) ≫ P.add := (GElt.add_zero P e).symm
-    _ = pair e (pair e (e ≫ P.neg) ≫ P.add) ≫ P.add := by rw [GElt.add_neg P e]
-    _ = pair (pair e e ≫ P.add) (e ≫ P.neg) ≫ P.add := (GElt.add_assoc P e e (e ≫ P.neg)).symm
-    _ = pair e (e ≫ P.neg) ≫ P.add := by rw [he]
-    _ = term T ≫ P.zero := GElt.add_neg P e
 
 /-- A homomorphism preserves zero: `(t ≫ P.zero) ≫ h = t ≫ X.zero` for any `t : T → 1`.
     (`P.zero≫h` is idempotent because `O ⊕ O = O` and `h` preserves `⊕`, so it is `O_X`.) -/
@@ -312,5 +377,24 @@ theorem caseCar_uniq {f : A.carrier ⟶ X.carrier} {g : B.carrier ⟶ X.carrier}
           rw [Cat.assoc, h₁, Cat.assoc, h₂]
 
 end AbCoprod
+
+/-! ### Coproducts in `Ab(𝒞)` = products (the biproduct)
+
+  The coproduct object is the SAME `prodGObj A B`; the injections are the biproduct matrix
+  `⟨id,0⟩`, `⟨0,id⟩`; the copairing is the hom-set sum `(π₁≫f)+(π₂≫g)`.  All four data are
+  homomorphisms and the universal property is `AbCoprod.caseCar_uniq`. -/
+
+open AbCoprod in
+/-- §1.595: `Ab(𝒞)` has binary coproducts, carried by the *product* group object.
+    This is half of the product/coproduct coincidence. -/
+noncomputable instance instHasBinaryCoproductsAb : HasBinaryCoproducts (AbelianGroupObject 𝒞) where
+  coprod A B := prodGObj A B
+  inl := ⟨pair (Cat.id _) (HomAb.zeroCar _ _), isHom_inl _ _⟩
+  inr := ⟨pair (HomAb.zeroCar _ _) (Cat.id _), isHom_inr _ _⟩
+  case f g := ⟨caseCar f.val g.val, isHom_caseCar f.property g.property⟩
+  case_inl f g := Subtype.ext (caseCar_inl f.val g.property)
+  case_inr f g := Subtype.ext (caseCar_inr g.val f.property)
+  case_uniq f g hm h₁ h₂ :=
+    Subtype.ext (caseCar_uniq hm.property (congrArg Subtype.val h₁) (congrArg Subtype.val h₂))
 
 end Freyd
