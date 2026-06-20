@@ -51,6 +51,7 @@ import Fredy.S1_82
 import Fredy.S1_84
 import Fredy.S1_95
 import Fredy.ToposColimits
+import Fredy.ToposIndexedJoins
 import Fredy.ToposExists
 import Fredy.DirectedColimit
 import Fredy.WellOrdering
