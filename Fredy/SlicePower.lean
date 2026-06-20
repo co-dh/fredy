@@ -335,24 +335,55 @@ theorem sliceRelHom_of_baseRelHom {B : 𝒞} {A C : Over B}
 
   • `classify_unique` is the SINGLE RESIDUAL (one `sorry`).  Reduction (done in
     code): by Σ-faithfulness + `pair`-eta on `Δ[Σ C]`, `f = g` ⟺ `f.f ≫ fst =
-    g.f ≫ fst`.  Each of `f.f ≫ fst`, `g.f ≫ fst` is the BASE classifier of
-    `sigmaRel R` IF `sigmaRel R ≅ relPullback (f.f ≫ fst) (baseMem)` BOTH ways.
-    The forward `sigmaRel R ⟶ relPullback (f.f ≫ fst) (baseMem)` is available
-    (Σ of the slice RelHom + easy bridge).  The MISSING piece is the REVERSE
-    `relPullback (f.f ≫ fst) (baseMem) ⟶ sigmaRel R`: this is the *loose ⟶ tight*
-    transport `relPullback (f.f ≫ fst) (baseMem) ⟶ sigmaRel (relPullback f
-    (sliceMem))`, which does NOT hold as a bare pullback map (the loose base
-    pullback of `(f.f ≫ fst, mem.colA)` is strictly larger than the tight pullback
-    of `(f.f, pair mem.colA (mem.colB ≫ C.hom))` — its B-leg constraint
-    `aleg ≫ A.hom = mleg ≫ mem.colB ≫ C.hom` is not forced).  Closing it needs the
-    genuine §1.93 natural iso of subobject functors `Sub(− × ΔA) ≃ Sub(Σ(−) × A)`
-    (equivalently Freyd's idempotent-splitting `e = Λ(∈ ∩ ([A]×A'))` restriction),
-    not a relation-level rewrite.  PRECISE MISSING LEMMA:
-      `relHom_sigmaRel_sliceMem_of_baseMem (f : A ⟶ Δ[Σ C]) :
-         RelHom (relPullback (f.f ≫ fst) (baseMem B C))
-                (sigmaRel (relPullback f (sliceMem B C)))`
-    valid only on the image of an actual slice relation (where the B-leg is forced),
-    or the subobject-functor naturality that supplies it. -/
+    g.f ≫ fst`.
+
+    *** DIAGNOSIS (2026-06-20): the residual is NOT merely hard — `classify_unique`
+    is FALSE for the present power object `slicePowObj B C = Δ[Σ C]` whenever `C`
+    is a PROPER subobject of `Δ(Σ C)` (i.e. for a general `C : Over B`).  Freyd's
+    first construction `Δ[A]` is a power object only for objects of the form
+    `Δ(A)` (book §1.93: "`Δ[A]` is a power-object for `Δ(A)`").  For a general `C`
+    one must FURTHER restrict `[Σ C]` to the idempotent-split subobject; this file
+    skips that step, so `Δ[Σ C]` is only WEAKLY universal (classifiers exist —
+    `classify_exists` is genuinely closed — but they are NOT unique). ***
+
+    Why uniqueness fails.  A slice classifier `f : A ⟶ Δ[Σ C]` is `pair (f.f≫fst)
+    A.hom` (snd-leg forced to `A.hom`), so only `f.f≫fst : A.dom ⟶ [Σ C]` is free.
+    Its Σ-image relation `relPullback f.f (sigmaRel sliceMem)` is, componentwise on
+    `[Σ C]×B`, the conjunction
+      (I)  `a ≫ (f.f≫fst) = m ≫ mem.colA`      (membership in `[Σ C]`), and
+      (II) `a ≫ A.hom     = m ≫ mem.colB ≫ C.hom`   (same B-fibre / slice-compat).
+    `R` (hence `sigmaRel R`) only constrains the part of `f.f≫fst` visible THROUGH
+    (II) — the same-fibre membership.  The CROSS-FIBRE membership of `f.f≫fst`
+    (does `a` "contain" a `C`-element living over a DIFFERENT point of `B`?) is
+    invisible to the tight relation, hence unconstrained.  So two names that agree
+    on the same-fibre part but differ cross-fibre give the SAME `R` yet differ as
+    maps `A.dom ⟶ [Σ C]`.
+
+    Concrete Set counterexample.  `B = {0,1}`, `C.dom = {p,q}` with `p↦0, q↦1`
+    (`Σ C` meets both fibres), `A = ⟨{a}, a↦0⟩`.  Then `[Σ C] = 𝒫{p,q}` (4 names).
+    The relation `R = {a∼p}` (forced: `a` is over `0`, so it can only relate to the
+    fibre-0 element `p`) is classified by BOTH `f.f≫fst = {p}` and `g.f≫fst =
+    {p,q}` — both restrict to `{p}` on the fibre-0 part `(II)`.  Hence two distinct
+    slice classifiers of the same `R`: `classify_unique` is refuted.
+
+    CORRECT FIX (Freyd §1.93, the part this file omits): the slice power object is
+    NOT `Δ[Σ C]` but the idempotent-split subobject `[C] ⊆ Δ[Σ C]`.  Let
+    `e := powerClassify (sliceMem B (Δ(Σ C)) ∩ (Δ[Σ C] × C)) : Δ[Σ C] ⟶ Δ[Σ C]`
+    (Freyd's `e = Λ(∈ ∩ ([A]×A'))`, here `A = Δ(Σ C)`, `A' = C`); `e` is an
+    idempotent (book §1.93), and `[C] := equalizer 1 e` (equalizers exist:
+    `topos_has_equalizers`).  Re-running existence + uniqueness against `[C]`'s
+    membership gives genuine universality, because cross-fibre names are exactly
+    those `e` kills, so on `[C]` names ARE unique.  This requires NEW machinery
+    (relation intersection `∩` as a `BinRel` constructor, the slice membership of
+    `Δ(Σ C)` itself, `e`-idempotence, and the equalizer-as-sub-power-object
+    universality lift).  PRECISE NEXT SUB-LEMMAS:
+      `sliceRelMeet : BinRel (Over B) P C → BinRel (Over B) P C → BinRel (Over B) P C`
+      `sliceCrossIdem (C : Over B) : let e := powerClassify (sliceMem B (Δ(Σ C)) ∩ …);
+          (e ≫ e = e)`    -- e is idempotent
+      `slicePowObj' B C := equalizer (id (Δ[Σ C])) e`   -- the genuine [C]
+      `is_universal_sliceMem' : IsUniversalRel (mem on slicePowObj')`  -- both ways.
+    Until that rebuild lands, the residual below is NOT closable by any transport
+    on `Δ[Σ C]` (the goal is literally false there). -/
 theorem is_universal_sliceMem (B : 𝒞) (C : Over B) :
     IsUniversalRel (sliceMem B C) := by
   -- base universality of `∈_{Σ C}` (the base power object of `C.dom`).
