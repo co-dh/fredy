@@ -737,6 +737,46 @@ noncomputable instance toposHasImages : HasImages 𝒞 where
   image f := imageF f
   isImage f := isImage_imageF f
 
+/-! ## §1.945 — pullbacks transfer covers (topos exactness, Beck–Chevalley)
+
+  The classifier makes the categorical image of `f` pullback-stable.  Concretely the
+  classifier of an inverse image `g# S` is `g ≫ χ_S` (`classify_InverseImage`), so a cover
+  (`image f` entire ⟺ `χ_{image f} = ⊤`) pulls back to a cover. -/
+
+/-- **The classifier of an inverse image is the precomposed classifier.**  `χ_{g# S} = g ≫ χ_S`.
+    Since `g# S` is, by definition, the pullback of `S.arr` along `g`, pasting that pullback square
+    onto `S`'s defining pullback (`classify_pullback`) exhibits `g# S` as the pullback of `true`
+    along `g ≫ χ_S`; `classify_unique` then identifies the classifier. -/
+theorem classify_InverseImage {A B : 𝒞} (g : A ⟶ B) (S : Subobject 𝒞 B) :
+    HasSubobjectClassifier.classify (InverseImage g S).arr (InverseImage g S).monic
+      = g ≫ HasSubobjectClassifier.classify S.arr S.monic := by
+  symm
+  -- `(InverseImage g S)` is the pullback `hpb` of `S.arr` along `g`; `arr = hpb.cone.π₁` (defeq).
+  let hpb := HasPullbacks.has g S.arr
+  have harr : (InverseImage g S).arr = hpb.cone.π₁ := rfl
+  -- The defining square: π₁ ≫ (g ≫ χ_S) = term ≫ true.
+  have hsq : hpb.cone.π₁ ≫ (g ≫ HasSubobjectClassifier.classify S.arr S.monic)
+      = term hpb.cone.pt ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
+    rw [← Cat.assoc, hpb.cone.w, Cat.assoc, HasSubobjectClassifier.classify_sq S.arr S.monic,
+        ← Cat.assoc, term_uniq (hpb.cone.π₂ ≫ term S.dom) (term hpb.cone.pt)]
+  refine HasSubobjectClassifier.classify_unique hpb.cone.π₁ (InverseImage g S).monic _ hsq ?_
+  -- The cone (g# S, π₁, term) is a pullback of (g ≫ χ_S, true).
+  intro d
+  -- Step 1: (d.π₁ ≫ g) ≫ χ_S = term ≫ true, so d.π₁ ≫ g factors through S (classify_pullback).
+  have hd : (d.π₁ ≫ g) ≫ HasSubobjectClassifier.classify S.arr S.monic
+      = term d.pt ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
+    rw [Cat.assoc, d.w, term_uniq d.π₂ (term d.pt)]
+  obtain ⟨w, ⟨hw₁, _⟩, _⟩ :=
+    HasSubobjectClassifier.classify_pullback S.arr S.monic ⟨d.pt, d.π₁ ≫ g, term d.pt, hd⟩
+  -- hw₁ : w ≫ S.arr = d.π₁ ≫ g.  Now lift (d.π₁, w) into the pullback `hpb = g# S`.
+  have hcone : d.π₁ ≫ g = w ≫ S.arr := hw₁.symm
+  refine ⟨hpb.lift ⟨d.pt, d.π₁, w, hcone⟩, ⟨hpb.lift_fst _, term_uniq _ _⟩, ?_⟩
+  intro v hv₁ _
+  -- v ≫ π₁ = d.π₁ ; v ≫ π₂ = w follows since S.arr monic.
+  have hvπ₂ : v ≫ hpb.cone.π₂ = w := S.monic _ _ (by
+    rw [Cat.assoc, ← hpb.cone.w, ← Cat.assoc, hv₁]; exact hcone)
+  exact hpb.lift_uniq ⟨d.pt, d.π₁, w, hcone⟩ v hv₁ hvπ₂
+
 /-- **§1.945 — a topos is REGULAR, modulo `PullbacksTransferCovers`.**  A topos is Cartesian
     (`HasTerminal`/`HasBinaryProducts`/`HasPullbacks` from `Topos` via the classifier) and now
     `HasImages` (`toposHasImages`).  Assembling `RegularCategory` requires one more mixin —
@@ -762,6 +802,13 @@ theorem topos_is_regular_of_transfer [PullbacksTransferCovers 𝒞] :
 theorem topos_is_regular_real : Nonempty (RegularCategory 𝒞) := by
   have htc : PullbacksTransferCovers 𝒞 := by
     -- residual: pullback-of-cover-is-cover in a topos (topos exactness, cf. S1_95).
+    -- HALF of Beck–Chevalley is now available: `classify_InverseImage` gives
+    -- `χ_{g# (image f)} = g ≫ χ_{image f}`, so `f` cover (⟹ `χ_{image f} = ⊤`) makes
+    -- `g# (image f)` entire, and the EASY inclusion `image c.π₂ ≤ g# (image f)` holds.
+    -- The OUTSTANDING piece is the REVERSE inclusion `g# (image f) ≤ image c.π₂`, i.e. that
+    -- the pullback of the image is CONTAINED in the image of the pullback leg.  That is the
+    -- direct-image / effective-epi descent (`∃_{c.π₂}`), which is NOT constructible from the
+    -- ∀-based image-as-intersection + inverse-image API in this file (no internal `∃` here).
     sorry
   exact topos_is_regular_of_transfer
 
