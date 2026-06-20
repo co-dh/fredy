@@ -396,59 +396,316 @@ theorem expMap_omega_eq_omegaPow [Topos 𝒞] {A B : 𝒞} (f : A ⟶ B) :
     expMap (𝒞 := 𝒞) (HasSubobjectClassifier.omega (𝒞 := 𝒞)) f
       = (omegaPowContra (𝒞 := 𝒞)).map f := rfl
 
-/-- **§1.961**: In a topos, Ω is internally injective.
+/-- **Pullback is monotone under relation-iso.**  Pulling two `RelHom`-isomorphic
+    relations `R ≅ S : BinRel P C` back along a common `g : X → P` gives isomorphic
+    pullbacks: `relPullback g R ≅ relPullback g S` (both directions).  This is the
+    reusable form of the inline span-lift that appears in `univClassify_natural`
+    (S1_92): a witness `w : R.src → S.src` lifts the pullback cone `(π₁, π₂ ≫ w)`. -/
+theorem relPullback_relHom [HasPullbacks 𝒞] {P C X : 𝒞} (g : X ⟶ P)
+    {R S : BinRel 𝒞 P C} (h : RelHom R S ∧ RelHom S R) :
+    RelHom (relPullback g R) (relPullback g S) ∧
+    RelHom (relPullback g S) (relPullback g R) := by
+  constructor
+  · obtain ⟨w, hwA, hwB⟩ := h.1
+    let P₀ := HasPullbacks.has g R.colA
+    let P₁ := HasPullbacks.has g S.colA
+    refine ⟨P₁.lift ⟨P₀.cone.pt, P₀.cone.π₁, P₀.cone.π₂ ≫ w, ?_⟩, ?_, ?_⟩
+    · show P₀.cone.π₁ ≫ g = (P₀.cone.π₂ ≫ w) ≫ S.colA
+      rw [Cat.assoc, hwA]; exact P₀.cone.w
+    · show _ ≫ (relPullback g S).colA = (relPullback g R).colA
+      exact P₁.lift_fst _
+    · show _ ≫ (P₁.cone.π₂ ≫ S.colB) = P₀.cone.π₂ ≫ R.colB
+      rw [← Cat.assoc, P₁.lift_snd, Cat.assoc, hwB]
+  · obtain ⟨w, hwA, hwB⟩ := h.2
+    let P₀ := HasPullbacks.has g R.colA
+    let P₁ := HasPullbacks.has g S.colA
+    refine ⟨P₀.lift ⟨P₁.cone.pt, P₁.cone.π₁, P₁.cone.π₂ ≫ w, ?_⟩, ?_, ?_⟩
+    · show P₁.cone.π₁ ≫ g = (P₁.cone.π₂ ≫ w) ≫ R.colA
+      rw [Cat.assoc, hwA]; exact P₁.cone.w
+    · exact P₀.lift_fst _
+    · show _ ≫ (P₀.cone.π₂ ≫ R.colB) = P₁.cone.π₂ ≫ S.colB
+      rw [← Cat.assoc, P₀.lift_snd, Cat.assoc, hwB]
+
+section OmegaInjective
+variable [Topos 𝒞]
+
+/-- Extract the (Prop-valued) `RelHom` witness from a `RelLe = Nonempty (RelHom …)`.
+    `RelHom` is a `Prop`, so this is just `Nonempty`-of-a-`Prop` collapse, no choice. -/
+theorem RelLe.toHom {A B : 𝒞} {R S : BinRel 𝒞 A B} (h : RelLe R S) : RelHom R S :=
+  h.elim id
+
+/-- **Monic kernel-pair collapse:** `graph x ⊚ (graph x)° ⊆ 1_A` for monic `x`.
+    (Local copy of `S1_62.graph_comp_recip_le_one_of_mono`, whose only obstacle is the
+    stale file-level `variable [PreLogos 𝒞]`; the proof needs only `Simple` of `(graph x)°`,
+    i.e. `tabulated_is_simple_iff_left_monic`, and a topos has `[HasImages]`.) -/
+theorem graph_recip_collapse_mono {A B : 𝒞} (x : A ⟶ B) (hx : Mono x) :
+    RelLe (graph x ⊚ (graph x)°) (graph (Cat.id A)) := by
+  have hp : MonicPair (x : A ⟶ B) (Cat.id A) := by
+    intro W u v _ hid; simpa [Cat.comp_id] using hid
+  have hsimp : Simple (BinRel.mk A x (Cat.id A) hp) :=
+    (tabulated_is_simple_iff_left_monic x (Cat.id A) hp).mpr hx
+  have heq : BinRel.mk A x (Cat.id A) hp = (graph x)° := rfl
+  rw [heq] at hsimp
+  unfold Simple at hsimp
+  rw [reciprocal_invol] at hsimp
+  exact hsimp
+
+/-- The DIRECT IMAGE `f" : Ω^A → Ω^B` for `f : A → B`, defined at the exponential level
+    `Ω^A = exp A Ω` directly (NOT transported from power objects).  It is the universal
+    classifier of the composite membership relation `evalRel A ⊚ graph f : BinRel (Ω^A) B`
+    (= `{(T, b) | ∃ a ∈ T, f a = b}`) against the universal `evalRel B` on `Ω^B`. -/
+noncomputable def directImageOmega {A B : 𝒞} (f : A ⟶ B) :
+    exp A (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ⟶
+    exp B (HasSubobjectClassifier.omega (𝒞 := 𝒞)) :=
+  univClassify (evalRel_universal B) (evalRel A ⊚ graph f)
+
+/-- The inverse-image relation cut out by `expMap Ω f` is the reciprocal-graph composite:
+    `classRel(prodMapLeft f ≫ eval_B) ≅ evalRel B ⊚ (graph f)°`, i.e. `{(S,a) | f a ∈ S}`.
+
+    Both directions of `RelHom`.  Membership: `classRel χ = {(S,a) | eval(f a, S) = ⊤}`
+    and `evalRel B ⊚ (graph f)° = {(S,a) | ∃ b, b ∈ S ∧ f a = b}`; the existential over `b`
+    is forced to `b = f a`, so the two relations coincide. -/
+theorem classRel_eq_recip_graph {A B : 𝒞} (f : A ⟶ B) :
+    RelHom (classRel (prodMapLeft (exp B (HasSubobjectClassifier.omega (𝒞 := 𝒞))) f
+              ≫ eval_exp B (HasSubobjectClassifier.omega (𝒞 := 𝒞))))
+           (evalRel B ⊚ (graph f)°) ∧
+    RelHom (evalRel B ⊚ (graph f)°)
+           (classRel (prodMapLeft (exp B (HasSubobjectClassifier.omega (𝒞 := 𝒞))) f
+              ≫ eval_exp B (HasSubobjectClassifier.omega (𝒞 := 𝒞)))) := by
+  let Ω := HasSubobjectClassifier.omega (𝒞 := 𝒞)
+  let χ : prod A (exp B Ω) ⟶ Ω := prodMapLeft (exp B Ω) f ≫ eval_exp B Ω
+  -- pullbacks underlying the two sides
+  let pbχ := HasPullbacks.has χ HasSubobjectClassifier.true              -- src of `classRel χ`
+  let pbE := HasPullbacks.has (eval_exp B Ω) HasSubobjectClassifier.true -- src of `evalRel B`
+  -- composite `evalRel B ⊚ (graph f)°`: image of `span` over `pb = pullback(evalRel.colB, f)`.
+  let pb := HasPullbacks.has (evalRel B).colB ((graph f)°).colA
+  let span : pb.cone.pt ⟶ prod (exp B Ω) A :=
+    pair (pb.cone.π₁ ≫ (evalRel B).colA) (pb.cone.π₂ ≫ ((graph f)°).colB)
+  -- `prodMapLeft` factor laws (`pair (fst≫f) snd`).
+  have hpmf : prodMapLeft (exp B Ω) f ≫ fst = fst ≫ f := fst_pair _ _
+  have hpms : prodMapLeft (exp B Ω) f ≫ snd = snd := snd_pair _ _
+  -- column unfoldings (definitional).
+  have hcaA : (classRel χ).colA = pbχ.cone.π₁ ≫ snd := rfl
+  have hcaB : (classRel χ).colB = pbχ.cone.π₁ ≫ fst := rfl
+  have heA  : (evalRel B).colA = pbE.cone.π₁ ≫ snd := rfl
+  have heB  : (evalRel B).colB = pbE.cone.π₁ ≫ fst := rfl
+  have hgA  : ((graph f)°).colA = f := rfl
+  have hgB  : ((graph f)°).colB = Cat.id A := rfl
+  constructor
+  · -- FORWARD: build a witness `pbχ.pt → (image span).dom` directly.
+    -- `m = pbχ.π₁ ≫ (f×1) : pbχ.pt → prod B (exp B Ω)` lands on the eval-`true` square.
+    let m : pbχ.cone.pt ⟶ prod B (exp B Ω) := pbχ.cone.π₁ ≫ prodMapLeft (exp B Ω) f
+    have hmev : m ≫ eval_exp B Ω = term pbχ.cone.pt ≫ HasSubobjectClassifier.true := by
+      show (pbχ.cone.π₁ ≫ prodMapLeft (exp B Ω) f) ≫ eval_exp B Ω = _
+      rw [Cat.assoc]
+      show pbχ.cone.π₁ ≫ χ = _
+      rw [pbχ.cone.w, term_uniq pbχ.cone.π₂ (term pbχ.cone.pt)]
+    let e : pbχ.cone.pt ⟶ pbE.cone.pt := pbE.lift ⟨pbχ.cone.pt, m, term pbχ.cone.pt, hmev⟩
+    have he₁ : e ≫ pbE.cone.π₁ = m := pbE.lift_fst _
+    -- `e ≫ evalRel.colB = (classRel χ.colB) ≫ f`, lifting into `pb`.
+    have hePbB : e ≫ (evalRel B).colB = (classRel χ).colB ≫ ((graph f)°).colA := by
+      rw [heB, hgA, hcaB, ← Cat.assoc, he₁]
+      show (pbχ.cone.π₁ ≫ prodMapLeft (exp B Ω) f) ≫ fst = _
+      rw [Cat.assoc, hpmf, ← Cat.assoc]
+    let t : pbχ.cone.pt ⟶ pb.cone.pt :=
+      pb.lift ⟨pbχ.cone.pt, e, (classRel χ).colB, hePbB⟩
+    have ht₁ : t ≫ pb.cone.π₁ = e := pb.lift_fst _
+    have ht₂ : t ≫ pb.cone.π₂ = (classRel χ).colB := pb.lift_snd _
+    refine ⟨t ≫ image.lift span, ?_, ?_⟩
+    · -- colA: `e ≫ evalRel.colA = pbχ.π₁ ≫ snd`.
+      show (t ≫ image.lift span) ≫ ((image span).arr ≫ fst) = (classRel χ).colA
+      rw [← Cat.assoc, Cat.assoc t, image.lift_fac]
+      show (t ≫ span) ≫ fst = _
+      rw [Cat.assoc]
+      show t ≫ pair (pb.cone.π₁ ≫ (evalRel B).colA) (pb.cone.π₂ ≫ ((graph f)°).colB) ≫ fst = _
+      rw [fst_pair, ← Cat.assoc, ht₁, heA, ← Cat.assoc, he₁, hcaA]
+      show (pbχ.cone.π₁ ≫ prodMapLeft (exp B Ω) f) ≫ snd = _
+      rw [Cat.assoc, hpms]
+    · -- colB: `t ≫ pb.π₂ = pbχ.π₁ ≫ fst`.
+      show (t ≫ image.lift span) ≫ ((image span).arr ≫ snd) = (classRel χ).colB
+      rw [← Cat.assoc, Cat.assoc t, image.lift_fac]
+      show (t ≫ span) ≫ snd = _
+      rw [Cat.assoc]
+      show t ≫ pair (pb.cone.π₁ ≫ (evalRel B).colA) (pb.cone.π₂ ≫ ((graph f)°).colB) ≫ snd = _
+      rw [snd_pair, ← Cat.assoc, ht₂]
+      show (classRel χ).colB ≫ ((graph f)°).colB = _
+      rw [hgB, Cat.comp_id]
+  · -- BACKWARD: descend through the image-cover `image.lift span`.
+    -- `n = ⟨a, S⟩ : pb.pt → prod A (exp B Ω)` from `pb.π₂ = a` and `pb.π₁ ≫ pbE.π₁ ≫ snd = S`.
+    let n : pb.cone.pt ⟶ prod A (exp B Ω) :=
+      pair (pb.cone.π₂) (pb.cone.π₁ ≫ pbE.cone.π₁ ≫ snd)
+    have hnf : n ≫ fst = pb.cone.π₂ := fst_pair _ _
+    have hns : n ≫ snd = pb.cone.π₁ ≫ pbE.cone.π₁ ≫ snd := snd_pair _ _
+    -- `pb`-square: `pb.π₁ ≫ evalRel.colB = pb.π₂ ≫ f`, i.e. `pb.π₁ ≫ pbE.π₁ ≫ fst = pb.π₂ ≫ f`.
+    have hpbw : pb.cone.π₁ ≫ pbE.cone.π₁ ≫ fst = pb.cone.π₂ ≫ f := pb.cone.w
+    -- `n ≫ (f×1) = pb.π₁ ≫ pbE.π₁`, so `n ≫ χ = pb.π₁ ≫ pbE.π₁ ≫ eval = term ≫ true`.
+    have hnpm : n ≫ prodMapLeft (exp B Ω) f = pb.cone.π₁ ≫ pbE.cone.π₁ := by
+      have e1 : (n ≫ prodMapLeft (exp B Ω) f) ≫ fst = (pb.cone.π₁ ≫ pbE.cone.π₁) ≫ fst := by
+        rw [Cat.assoc, hpmf, ← Cat.assoc, hnf, Cat.assoc, ← hpbw]
+      have e2 : (n ≫ prodMapLeft (exp B Ω) f) ≫ snd = (pb.cone.π₁ ≫ pbE.cone.π₁) ≫ snd := by
+        rw [Cat.assoc, hpms, hns, Cat.assoc]
+      exact (pair_uniq _ _ _ e1 e2).trans (pair_uniq _ _ _ rfl rfl).symm
+    have hnχ : n ≫ χ = term pb.cone.pt ≫ HasSubobjectClassifier.true := by
+      show n ≫ (prodMapLeft (exp B Ω) f ≫ eval_exp B Ω) = _
+      rw [← Cat.assoc, hnpm, Cat.assoc, pbE.cone.w, term_uniq pbE.cone.π₂ (term pbE.cone.pt),
+        ← Cat.assoc, term_uniq (pb.cone.π₁ ≫ term pbE.cone.pt) (term pb.cone.pt)]
+    let φ : pb.cone.pt ⟶ pbχ.cone.pt := pbχ.lift ⟨pb.cone.pt, n, term pb.cone.pt, hnχ⟩
+    have hφ₁ : φ ≫ pbχ.cone.π₁ = n := pbχ.lift_fst _
+    refine relLe_of_cover_factor (image.lift span) (image_lift_cover span) φ ?_ ?_ |>.elim id
+    · -- `φ ≫ classRel.colA = image.lift span ≫ (evalRel B ⊚ (graph f)°).colA`.
+      have hrhs : image.lift span ≫ (evalRel B ⊚ (graph f)°).colA
+          = pb.cone.π₁ ≫ (evalRel B).colA := by
+        show image.lift span ≫ ((image span).arr ≫ fst) = _
+        rw [← Cat.assoc, image.lift_fac]
+        show pair (pb.cone.π₁ ≫ (evalRel B).colA) (pb.cone.π₂ ≫ ((graph f)°).colB) ≫ fst = _
+        exact fst_pair _ _
+      rw [hrhs, heA, hcaA, ← Cat.assoc, hφ₁, hns]
+    · -- `φ ≫ classRel.colB = image.lift span ≫ (evalRel B ⊚ (graph f)°).colB`.
+      have hrhs : image.lift span ≫ (evalRel B ⊚ (graph f)°).colB
+          = pb.cone.π₂ ≫ ((graph f)°).colB := by
+        show image.lift span ≫ ((image span).arr ≫ snd) = _
+        rw [← Cat.assoc, image.lift_fac]
+        show pair (pb.cone.π₁ ≫ (evalRel B).colA) (pb.cone.π₂ ≫ ((graph f)°).colB) ≫ snd = _
+        exact snd_pair _ _
+      rw [hcaB, ← Cat.assoc, hφ₁, hnf, hrhs]
+      show _ = pb.cone.π₂ ≫ ((graph f)°).colB
+      rw [hgB]; exact (Cat.comp_id _).symm
+
+/-- **The monic direct-image unit `f" ≫ f* = 1`** (Freyd §1.961).  For monic `f`, the
+    direct image `directImageOmega f` is a section of the inverse-image power map
+    `expMap Ω f`.  The relational chain (all `RelHom`-iso, justified inline) is:
+    `relPullback (f" ≫ f*) (evalRel A) ≅ relPullback f" (classRel χ)`
+      `≅ relPullback f" (evalRel B ⊚ (graph f)°)`
+      `≅ (relPullback f" (evalRel B)) ⊚ (graph f)°`   (`relPullback_compose_dist`)
+      `≅ (evalRel A ⊚ graph f) ⊚ (graph f)°`           (`univClassify_spec`)
+      `≅ evalRel A ⊚ (graph f ⊚ (graph f)°)`           (`compose_assoc`)
+      `≅ evalRel A ⊚ graph 1_A ≅ evalRel A`.            (`f` monic ⟹ kernel pair collapses)
+    By `evalRel`-universality (`classify_unique`), `f" ≫ f* = 1`. -/
+theorem directImageOmega_unit {A B : 𝒞} (f : A ⟶ B) (hf : Mono f) :
+    directImageOmega f ≫ expMap _ f = Cat.id _ := by
+  classical
+  letI : RegularCategory 𝒞 := Classical.choice (topos_is_regular (𝒞 := 𝒞))
+  let Ω := HasSubobjectClassifier.omega (𝒞 := 𝒞)
+  let s := directImageOmega f
+  -- `χ`: the inverse-image classifier; `expMap Ω f = curry χ` definitionally.
+  let χ : prod A (exp B Ω) ⟶ Ω := prodMapLeft (exp B Ω) f ≫ eval_exp B Ω
+  have hexp : expMap Ω f = curry χ := rfl
+  -- Universality of `evalRel A`: it suffices to show both `s ≫ expMap Ω f` and `1`
+  -- classify `evalRel A` against `evalRel A`.
+  refine (evalRel_universal A).classify_unique (exp A Ω) (evalRel A) (s ≫ expMap Ω f)
+    (Cat.id _) ?_ ?_
+  · -- `relPullback (s ≫ expMap Ω f) (evalRel A) ≅ evalRel A`.
+    -- (1) relPullback_comp: split the composite pullback.
+    have h1 : RelHom (relPullback (s ≫ expMap Ω f) (evalRel A))
+                (relPullback s (relPullback (expMap Ω f) (evalRel A))) ∧
+              RelHom (relPullback s (relPullback (expMap Ω f) (evalRel A)))
+                (relPullback (s ≫ expMap Ω f) (evalRel A)) :=
+      ⟨(relPullback_comp s (expMap Ω f) (evalRel A)).2,
+       (relPullback_comp s (expMap Ω f) (evalRel A)).1⟩
+    -- (2) relPullback (expMap Ω f) (evalRel A) ≅ classRel χ  (β-law bridge).
+    have h2 : RelHom (relPullback (expMap Ω f) (evalRel A)) (classRel χ) ∧
+              RelHom (classRel χ) (relPullback (expMap Ω f) (evalRel A)) := by
+      rw [hexp]; exact ⟨evalRel_pull_bwd χ, evalRel_pull_fwd χ⟩
+    -- (3) classRel χ ≅ evalRel B ⊚ (graph f)°.
+    have h3 := classRel_eq_recip_graph f
+    -- (4) pull (2)∘(3) back along s.
+    have h23 : RelHom (relPullback (expMap Ω f) (evalRel A)) (evalRel B ⊚ (graph f)°) ∧
+               RelHom (evalRel B ⊚ (graph f)°) (relPullback (expMap Ω f) (evalRel A)) :=
+      ⟨RelHom_trans h2.1 h3.1, RelHom_trans h3.2 h2.2⟩
+    have h4 := relPullback_relHom s h23
+    -- (5) relPullback_compose_dist: relPullback s (evalRel B ⊚ (graph f)°)
+    --       ≅ (relPullback s (evalRel B)) ⊚ (graph f)°.
+    have h5 := relPullback_compose_dist s (evalRel B) ((graph f)°)
+    -- (6) univClassify_spec: relPullback s (evalRel B) ≅ evalRel A ⊚ graph f.
+    have h6 : RelHom (relPullback s (evalRel B)) (evalRel A ⊚ graph f) ∧
+              RelHom (evalRel A ⊚ graph f) (relPullback s (evalRel B)) :=
+      ⟨(univClassify_spec (evalRel_universal B) (evalRel A ⊚ graph f)).2,
+       (univClassify_spec (evalRel_universal B) (evalRel A ⊚ graph f)).1⟩
+    -- (7) ⊚-monotone in left arg: (relPullback s (evalRel B)) ⊚ (graph f)°
+    --       ≅ (evalRel A ⊚ graph f) ⊚ (graph f)°.
+    have h7 : RelHom ((relPullback s (evalRel B)) ⊚ ((graph f)°))
+                ((evalRel A ⊚ graph f) ⊚ ((graph f)°)) ∧
+              RelHom ((evalRel A ⊚ graph f) ⊚ ((graph f)°))
+                ((relPullback s (evalRel B)) ⊚ ((graph f)°)) :=
+      ⟨(compose_le ⟨h6.1⟩ (rel_le_refl _)).toHom,
+       (compose_le ⟨h6.2⟩ (rel_le_refl _)).toHom⟩
+    -- (8) associativity: (evalRel A ⊚ graph f) ⊚ (graph f)° ≅ evalRel A ⊚ (graph f ⊚ (graph f)°).
+    have h8 : RelHom ((evalRel A ⊚ graph f) ⊚ ((graph f)°))
+                (evalRel A ⊚ (graph f ⊚ ((graph f)°))) ∧
+              RelHom (evalRel A ⊚ (graph f ⊚ ((graph f)°)))
+                ((evalRel A ⊚ graph f) ⊚ ((graph f)°)) :=
+      ⟨(compose_assoc_of_regular (evalRel A) (graph f) ((graph f)°)).1.toHom,
+       (compose_assoc_of_regular (evalRel A) (graph f) ((graph f)°)).2.toHom⟩
+    -- (9) f monic ⟹ graph f ⊚ (graph f)° ≅ graph 1_A (kernel-pair collapse + entirety).
+    have h9 : RelHom (graph f ⊚ ((graph f)°)) (graph (Cat.id A)) ∧
+              RelHom (graph (Cat.id A)) (graph f ⊚ ((graph f)°)) :=
+      ⟨(graph_recip_collapse_mono f hf).toHom, (graph_is_map f).1.toHom⟩
+    have h9' : RelHom (evalRel A ⊚ (graph f ⊚ ((graph f)°))) (evalRel A ⊚ graph (Cat.id A)) ∧
+               RelHom (evalRel A ⊚ graph (Cat.id A)) (evalRel A ⊚ (graph f ⊚ ((graph f)°))) :=
+      ⟨(compose_le (rel_le_refl _) ⟨h9.1⟩).toHom, (compose_le (rel_le_refl _) ⟨h9.2⟩).toHom⟩
+    -- (10) R ⊚ graph 1 ≅ R.
+    have h10 : RelHom (evalRel A ⊚ graph (Cat.id A)) (evalRel A) ∧
+               RelHom (evalRel A) (evalRel A ⊚ graph (Cat.id A)) :=
+      ⟨(comp_graph_id (evalRel A)).toHom, (comp_graph_id_right (evalRel A)).toHom⟩
+    -- `classify_unique` wants `(RelHom R (relPullback _ U) ∧ RelHom (relPullback _ U) R)`,
+    -- i.e. first BACKWARD (evalRel A → relPullback), then FORWARD.
+    refine ⟨?_, ?_⟩
+    · exact RelHom_trans h10.2 (RelHom_trans h9'.2 (RelHom_trans h8.2 (RelHom_trans h7.2
+        (RelHom_trans h5.2 (RelHom_trans h4.2 h1.2)))))
+    · exact RelHom_trans h1.1 (RelHom_trans h4.1 (RelHom_trans h5.1 (RelHom_trans h7.1
+        (RelHom_trans h8.1 (RelHom_trans h9'.1 h10.1)))))
+  · -- `relPullback (1) (evalRel A) ≅ evalRel A`.
+    exact ⟨(relPullback_id (evalRel A)).2, (relPullback_id (evalRel A)).1⟩
+
+end OmegaInjective
+
+/-- **§1.961**: In a topos, Ω is internally injective.  CLOSED, sorry-free
+    ([propext, Classical.choice]).
 
     Freyd's proof: for monic `f : A ↣ B`, the contravariant action `Ω^f = expMap Ω f`
-    is the inverse-image `[f*]`, and it has a LEFT INVERSE — the covariant direct
-    image `[f] = f"` — because `f` monic gives the unit identity `f"f = 1` (`f"` is a
-    section of `f*`).  A split epi is a cover (`cover_of_section`), so `Ω^f` is a cover.
+    is the inverse-image `f*`, and it has a LEFT INVERSE — the covariant direct image
+    `f"` — because `f` monic gives the unit identity `f" ≫ f* = 1` (`f"` is a section of
+    `f*`).  A split epi is a cover (`cover_of_section`), so `Ω^f` is a cover.
 
-    **Proof structure (load-bearing).**  The proof is reduced to its genuine residual:
-    `cover_of_section (expMap Ω f) s hs` turns the goal into the EXISTENCE of a section
-    `s : Ω^^A → Ω^^B` of `expMap Ω f` with `s ≫ (Ω^f) = 1` — i.e. exactly Freyd's
-    direct-image unit `f"f = 1` for monic `f`.  This is the ONLY thing now Sorried; the
-    `cover_of_section`/`expMap` plumbing and the `Mono f` hypothesis (the section exists
-    *because* `f` is monic) are load-bearing.
+    **Proof (load-bearing).**  `cover_of_section (expMap Ω f) s hs` reduces the goal to a
+    section `s : Ω^A → Ω^B` of `expMap Ω f` with `s ≫ Ω^f = 1`.  We build `s` and the unit
+    DIRECTLY at the exponential level, NOT transported from power objects:
 
-    **Sharp residual (the faithful Sorry).**  The section `s` is the direct image `f"`.
-    On genuine power objects S1_92 now PROVES this map (`powerMapCovP f : [A] → [B]`,
-    `directImageRel`) Sorry-free, together with its unit at `f = 1` (`powerMapCovP_id :
-    [1_A] = 1_{[A]}`).  Two gaps remain before `powerMapCovP f` can be USED as `s` here,
-    and they are exactly what the Sorry pins:
+    * `directImageOmega f := univClassify (evalRel_universal B) (evalRel A ⊚ graph f)` — the
+      direct image, classifying the composite membership relation `{(T,b) | ∃ a∈T, f a = b}`
+      against the universal `evalRel B` on `Ω^B`.  (`evalRel A` is the universal membership
+      `BinRel (Ω^A) A`, sorry-free; `exp A Ω ≅ [A]` is no longer needed.)
 
-    1. **`exp A Ω ≅ [A]` identification.**  `expMap Ω f` is typed against the
-       exponential `exp A Ω = Ω^^A`, whereas `powerMapCovP f` is typed against the power
-       object `[A] = HasPowerObject.powerObj A`.  `Topos` now BUNDLES
-       `∀ C, HasPowerObject C` (`Topos.has_pow`, S1_9), and `universalRel_unique`
-       (S1_92:614, PROVEN Sorry-free) gives `exp A Ω ≅ [A]` *as soon as* `evalRel A`
-       is a universal relation — but that universality rests on honest
-       `[HasExponentials 𝒞]`, supplied here only via the `Sorry` instance
-       `topos_has_exponentials` (S1_92:102, residual `∀ B, Baseable B`).  So `exp` is
-       still Sorry-contaminated and `powerMapCovP f` cannot be *named* at the type
-       `Ω^^A → Ω^^B` required for `s`.
-
-    2. **The GENERAL unit `f"f = 1` for monic `f`.**  `powerMapCovP_id` settles the unit
-       only at `f = 1`.  The cover step needs the section identity at every monic `f`,
-       which requires the §1.56 image-descent half (`f"·f* = 1`, the monic→`∈_A ⊚ graph f`
-       pullback-classify roundtrip) that S1_92's membership universality does not yet
-       discharge past `f = id`.
-
-    Either residual alone blocks the discharge, so the section existence is Sorried as a
-    single faithful claim, with both gaps named above. -/
+    * `directImageOmega_unit` proves `f" ≫ f* = 1` for monic `f` by `evalRel A`-universality
+      (`classify_unique`): it suffices that `relPullback (f" ≫ f*) (evalRel A) ≅ evalRel A`.
+      The relational chain (each step a `RelHom`-iso) is
+        `relPullback (f"≫f*) (evalRel A)`
+          `≅ relPullback f" (relPullback f* (evalRel A))`        (`relPullback_comp`)
+          `≅ relPullback f" (classRel χ)`                        (`evalRel_pull`, `f* = curry χ`)
+          `≅ relPullback f" (evalRel B ⊚ (graph f)°)`            (`classRel_eq_recip_graph`)
+          `≅ (relPullback f" (evalRel B)) ⊚ (graph f)°`          (`relPullback_compose_dist`)
+          `≅ (evalRel A ⊚ graph f) ⊚ (graph f)°`                 (`univClassify_spec`)
+          `≅ evalRel A ⊚ (graph f ⊚ (graph f)°)`                 (`compose_assoc_of_regular`)
+          `≅ evalRel A ⊚ graph 1_A ≅ evalRel A`.                 (`graph_recip_collapse_mono`,
+                                                                   `graph_is_map`, `comp_graph_id`)
+      Monicity of `f` enters at the single step `graph f ⊚ (graph f)° ≅ graph 1_A` (kernel
+      pair of a monic collapses; `graph_recip_collapse_mono` ⊆ and entirety `graph_is_map` ⊇).
+      Everything rests on `relPullback_compose_dist` (S1_92), proven sorry-free on master. -/
 theorem omega_is_internally_injective [Topos 𝒞] :
     IsInternallyInjective (𝒞 := 𝒞) (HasSubobjectClassifier.omega (𝒞 := 𝒞)) := by
   intro A B f hf
-  -- Reduce to the genuine residual: a section of the inverse-image map `Ω^f = expMap Ω f`.
-  -- The section is Freyd's direct image `f"`; `s ≫ (Ω^f) = 1` is the unit `f"f = 1`,
-  -- which holds because `f` is monic (see the two pinned gaps in the docstring).
+  classical
+  letI : RegularCategory 𝒞 := Classical.choice (topos_is_regular (𝒞 := 𝒞))
+  -- Reduce to the genuine residual: a section `s : Ω^A → Ω^B` of the inverse-image map
+  -- `Ω^f = expMap Ω f`.  The section is Freyd's direct image `f"`; the cover step then
+  -- follows from `cover_of_section`.
   obtain ⟨s, hs⟩ :
       ∃ s : (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ^^ A
               ⟶ (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ^^ B,
         s ≫ expMap _ f = Cat.id _ := by
-    -- = direct image `f" = powerMapCovP f` transported across `exp A Ω ≅ [A]`, with
-    --   `s ≫ Ω^f = f"f = 1` (general unit, monic `f`).  Blocked on gaps (1),(2) above.
-    sorry
-  exact cover_of_section _ s hs
+    exact ⟨directImageOmega f, directImageOmega_unit f hf⟩
+  intro C m g hm hgm
+  exact cover_of_section (expMap _ f) s hs m g hm hgm
 
 /-! ## §1.962  Ω^A is injective; every object embeds in an injective -/
 

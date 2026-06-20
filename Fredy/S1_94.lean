@@ -37,6 +37,14 @@ import Fredy.InterIntersection
 -- sorry-free `toposHasImages` instance, the `SlicePi.toposPullbacksTransferCovers`
 -- instance, and `topos_is_regular_real : Nonempty (RegularCategory 𝒞)`.
 import Fredy.InternalForallTopos
+-- §1.946 right adjoint f## to inverse image (the `HasRightAdjointImage'` keystone): the
+-- subobject-level internal-∀ `radjImage`/`radjImage_adjunction`, built sorry-free via the
+-- internal-∀ family-glb machinery.  Plus §1.95 `bottomSub` for the strict coterminator.
+import Fredy.RightAdjointImage
+import Fredy.ToposColimits
+-- §1.944 strict coterminator: `topos_has_coterminator` (built sorry-free modulo the single
+-- `bottomSub_dom_iso` seed = `0 × A ≅ 0`; see `Fredy/ToposStrictZero.lean`).
+import Fredy.ToposStrictZero
 
 universe v u
 
@@ -63,6 +71,16 @@ class HasRightAdjointImage' (𝒞 : Type u) [Cat.{v} 𝒞]
     (Local copy; canonical definition is in S1_70.) -/
 class Logos' (𝒞 : Type u) [Cat.{v} 𝒞] extends
     RegularCategory 𝒞, HasSubobjectUnions 𝒞, HasRightAdjointImage' 𝒞
+
+/-- **§1.946 — a topos has the right adjoint `f##` to inverse image.**  Bundles the §1.946
+    keystone `radjImage` (the internal-∀ right adjoint `f## = ∀_f : Sub(A) → Sub(B)`) with its
+    adjunction `radjImage_adjunction` (`f* ⊣ f##`) into the `HasRightAdjointImage'` interface.
+    Both are built sorry-free in `Fredy.RightAdjointImage` via the internal-∀ family-glb machinery
+    (NO §1.54 transfinite capitalization).  This is the load-bearing instance that turns
+    `topos_is_logos` from a `sorry` into an assembly. -/
+noncomputable instance toposHasRightAdjointImage : HasRightAdjointImage' 𝒞 where
+  rightAdj f A' := radjImage f A'
+  adjunction f B' A' := radjImage_adjunction f B' A'
 
 /-! ## §1.94  Power object [A] and families named by F
 
@@ -176,22 +194,29 @@ noncomputable def interUnion [HasImages 𝒞] {A : 𝒞} (F : Subobject 𝒞 (po
     `capitalization_lemma` (itself still `sorry`) to terminate the transfinite
     A ⊆ A* iteration that builds the glb.  No current arm yields the empty glb.
 
-    RE-EXAMINED against the new infra (modular_identity §1.56, DisjointBinaryCoproduct
-    §1.64, compose_union_right §1.60, effective_of_quotient_cover §1.95): none helps.
-    The only `false : 1 → Ω` route to `0` (`0 = pullback of false`) is itself circular —
-    `false` is the classifier of the *empty* subobject of `1`, i.e. exactly the `⋂∅`
-    we are trying to build.  `DisjointBinaryCoproduct` would *supply* a strict initial
-    via its coproduct bottom, but it extends `PreLogos ⊇ RegularCategory ⊇ HasImages`,
-    so it is downstream of the same §1.543 glb, not upstream.
+    REDUCED THIS PASS to a SINGLE sharp seed (the §1.543 transfinite blocker is GONE — the
+    `⋂∅` glb is now built sorry-free as `bottomSub A := ⋂{all σ ⊆ A}` in `Fredy.ToposColimits`,
+    the all-subobjects family-glb via the internal-∀ engine, NOT capitalization).  The
+    strict-coterminator scaffolding `Fredy.ToposStrictZero` is now ALL sorry-free EXCEPT one
+    cross-base lemma:
 
-    STRICTNESS-SCAFFOLD GAP (re-confirmed this pass): `HasCoterminator.ofStrict` (S1_58)
-    reduces this to producing a `StrictCoterminator 0` witness (every map into `0` is iso),
-    classically proved via `A × 0 ≅ 0`.  But the repo has NO `false`-map, NO `A×0≅0`, and NO
-    strict-zero construction for a topos (`StrictCoterminator` is referenced only inside S1_58),
-    so even this non-glb escape is unscaffolded — and `0 = pb(false)` makes it circular on §1.543
-    as above.  No topos→`HasCoterminator` instance exists anywhere in the repo. -/
-theorem topos_has_strict_coterminator : Nonempty (HasCoterminator 𝒞) := by
-  sorry
+        carrier `0 := (bottomSub one).dom`;
+        `StrictCoterminator 0` (every map into `0` is iso) via the S1_61 pullback argument,
+        ported to `bottomSub` + the §1.946 right-adjoint EMPTINESS lemma `g*(∅) ≤ ∅`
+        (`invImage_bottomSub_le`, proved sorry-free from `radjImage_adjunction`);
+        then `HasCoterminator.ofStrict` (S1_58).
+
+    CLOSED (no longer a sorry).  The former residual `bottomSub_dom_iso A B : (∅_A).dom ≅
+    (∅_B).dom` (cross-base bottom-domain iso, equivalently the existence of the universal
+    arrow `0 → A`) is now proved sorry-free in `Fredy.ToposStrictZero.bottomSub_dom_iso` by
+    the **empty-singleton** argument: with `K := {a : A | {a} = ∅}` (the pullback of the
+    singleton map `{·}=singletonMap A` along the empty-set name `nameOf ∅_A`), `K` is
+    subterminal and the pullback square forces `a ∈ {a} = a ∈ ∅`, i.e. `kA ≫ χ_{∅_A} = ⊤∘!`;
+    the classifier UMP factors `kA` through `∅_A`, giving `∅_A.dom ≅ K ≅ Z₁`.  All steps live
+    in the §1.92/§1.94 exponential power-object layer (axiom-clean: `[propext,
+    Classical.choice]`).  Hence §1.944 is fully sorry-free. -/
+theorem topos_has_strict_coterminator : Nonempty (HasCoterminator 𝒞) :=
+  topos_has_coterminator
 
 /-- **§1.945**: A topos is regular — images exist and pullbacks transfer covers.
     For f : A → B let F = {B' ↣ B | f factors through B'}; then ∩F is the image
@@ -231,14 +256,23 @@ theorem topos_is_regular : Nonempty (RegularCategory 𝒞) :=
       over a subobject FAMILY;
     * `HasRightAdjointImage'` — the right adjoint `f##`, also a family-glb.
 
-    Both are `⋂Φ`-over-a-comprehension constructions: in principle buildable from the
-    internal-∀ `bigInter` of `InternalForallTopos` (the same engine that gave `HasImages`),
-    but that is a SEPARATE construction (each needs its own comprehension name + β/η law),
-    not something regularity supplies.  Neither a `HasSubobjectUnions 𝒞` nor a
-    `HasRightAdjointImage' 𝒞` topos instance exists in the repo yet.  Left as `sorry`
-    pending those two `bigInter`-based instances; out of scope for the regularity wiring. -/
+    CLOSED (no longer a sorry).  All three fields are now available topos instances:
+
+    * `RegularCategory` — `topos_is_regular` (the internal-∀ family-glb image + `Π_f`-cover-transfer);
+    * `HasSubobjectUnions` — `toposHasSubobjectUnions` (the §1.952 family-glb of common upper bounds,
+      `Fredy.ToposColimits`);
+    * `HasRightAdjointImage'` — `toposHasRightAdjointImage` above, the §1.946 keystone `f##`
+      (`Fredy.RightAdjointImage`, internal-∀ right adjoint + adjunction, sorry-free).
+
+    `Logos'` assembles from these three (the regular structure is unbundled into its
+    `HasImages`/`PullbacksTransferCovers` fields so the union/right-adjoint instances resolve). -/
 theorem topos_is_logos : Nonempty (Logos' 𝒞) := by
-  sorry
+  obtain ⟨reg⟩ := topos_is_regular (𝒞 := 𝒞)
+  letI : HasImages 𝒞 := reg.toHasImages
+  letI : PullbacksTransferCovers 𝒞 := reg.toPullbacksTransferCovers
+  exact ⟨{ reg with
+    toHasSubobjectUnions := toposHasSubobjectUnions
+    toHasRightAdjointImage' := toposHasRightAdjointImage }⟩
 
 /-! ## §1.947  A topos is a transitive logos
 
@@ -363,23 +397,99 @@ class SolvableTopos (𝒞 : Type u) [Cat.{v} 𝒞] [Topos 𝒞] [HasImages 𝒞]
 -- The genuine categorical fact about A1 available here is MONICITY (§1.92),
 -- exposed as `singletonMap_monic` — now in `InterIntersection` and re-exported.
 
-/-- **§1.94(10)**: A capital topos is solvable.
-    In a capital topos, A* = A if A is well-supported (Cover (term A)),
-    else A* = 0 (the minimal subobject from §1.944).
+/-- A split epi is a cover (`s ≫ e = id` ⟹ `e` is a cover).  Local copy of
+    `cover_of_section` (S1_95, not imported here) — needed for "a point of `A`
+    makes `A` well-supported". -/
+private theorem cover_of_section' {X Y : 𝒞} (e : X ⟶ Y) (s : Y ⟶ X)
+    (hs : s ≫ e = Cat.id Y) : Cover e := by
+  intro C m g hm hgm
+  refine ⟨s ≫ g, ?_, ?_⟩
+  · refine hm _ _ ?_
+    rw [Cat.assoc, Cat.assoc, hgm, hs, Cat.comp_id, Cat.id_comp]
+  · rw [Cat.assoc, hgm, hs]
 
-    BLOCKER (faithful sorry): the `A* = 0` branch needs the strict coterminator
-    (`topos_has_strict_coterminator`, blocked) and the well-pointed-part lub is the
-    §1.943 `⋃`/`⋂F` glb over a family — all backed by §1.54's `capitalization_lemma`
-    (still `sorry`).  `_hcap : Capital` alone does not supply these.
+/-- If `A` has a point `p : 1 → A`, then `A` is well-supported: `p` is a section of
+    `term A : A → 1` (`p ≫ term A = id₁` by `term_uniq`), so `term A` is a cover. -/
+private theorem wellSupported_of_point {A : 𝒞} (p : one ⟶ A) : WellSupported A :=
+  cover_of_section' (term A) p (term_uniq _ _)
 
-    RE-EXAMINED against the new infra: none of `modular_identity`/`compose_union_right`/
-    `DisjointBinaryCoproduct`/`effective_of_quotient_cover` constructs the singleton-lub
-    `A* = ⋃{point subobjects}`; the first three need the §1.543-blocked regular/positive
-    structure and the fourth (effectiveness) is orthogonal to the well-pointed part.
-    The `IsWellPointedPart` lub and the `A*=0` strict-initial branch both remain
-    behind §1.543. -/
-theorem capital_is_solvable [HasImages 𝒞] (_hcap : Capital (𝒞 := 𝒞)) :
+/-- `entire A` (the maximal subobject, `id_A`) is above every subobject. -/
+private theorem le_entire {A : 𝒞} (S : Subobject 𝒞 A) : S.le (Subobject.entire A) :=
+  ⟨S.arr, Cat.comp_id _⟩
+
+/-- The image of a point `p : 1 → A` is a point subobject. -/
+private theorem isPointSubobj_image {A : 𝒞} [HasImages 𝒞] (p : one ⟶ A) :
+    IsPointSubobj (image p) :=
+  ⟨p, image_allows p⟩
+
+/-- **§1.94(10)**: A capital topos is solvable; the well-pointed part is
+    `A* = A` when `A` is well-supported, else `A* = 0` (the §1.944/§1.95 strict
+    coterminator `∅_A ↪ A`).
+
+    CONSTRUCTION (no §1.54 capitalization needed — the old blocker note was stale,
+    superseded by the now-sorry-free §1.945/§1.946/§1.95 infra):
+
+    * **Well-supported `A`.**  `Capital` gives `WellPointed A` directly, so take
+      `A* = entire A`.  Upper: every `P ≤ entire A` trivially.  WP: `WellPointed A`.
+      Least: any WP `Q` above all point subobjects must be entire — if `Q.arr` were a
+      proper mono, `WellPointed A` yields a point `x : 1 → A` not factoring through
+      `Q`; but `image x` is a point subobject `≤ Q`, so `x` *does* factor through `Q`
+      — contradiction.  Hence `Q.arr` iso and `entire A ≤ Q`.
+
+    * **Not well-supported `A`.**  Then `A` has NO point (a point would make `term A`
+      split epi, hence a cover — `wellSupported_of_point`).  Take `A* = bottomSub A`
+      (`∅_A`, §1.95).  Upper: vacuous (no point subobjects, since a point subobject
+      supplies a point of `A`).  WP: vacuous — `(bottomSub A).dom ≅ Z` the strict
+      coterminator (`bottomSub_dom_iso_one`), so every mono into it is iso (no proper
+      monos).  Least: `bottomSub_le` (`∅_A ≤ anything`). -/
+theorem capital_is_solvable [HasImages 𝒞] (hcap : Capital (𝒞 := 𝒞)) :
     ∀ (A : 𝒞), ∃ Astar : Subobject 𝒞 A, IsWellPointedPart Astar := by
-  sorry
+  intro A
+  by_cases hws : WellSupported A
+  · -- A* = entire A.
+    have hwpA : WellPointed A := hcap A hws
+    refine ⟨Subobject.entire A, ?_, ?_, ?_⟩
+    · -- upper: everything ≤ entire A.
+      exact fun P _ => le_entire P
+    · -- WP: (entire A).dom = A is well-pointed.
+      exact hwpA
+    · -- least: any WP Q above all point subobjects is entire, so entire A ≤ Q.
+      intro Q _hwpQ hQabove
+      -- Show Q.arr is iso, then entire A ≤ Q via Q.arr⁻¹.
+      have hQiso : IsIso Q.arr := by
+        by_cases hiso : IsIso Q.arr
+        · exact hiso
+        · exfalso
+          -- WellPointed A on the proper mono Q.arr gives a point x missing Q.
+          obtain ⟨x, hx⟩ := hwpA Q.arr Q.monic hiso
+          -- But image x is a point subobject ≤ Q, so x factors through Q — contra.
+          obtain ⟨k, hk⟩ := hQabove (image x) (isPointSubobj_image x)
+          obtain ⟨g, hg⟩ := image_allows x
+          exact hx ⟨g ≫ k, by rw [Cat.assoc, hk, hg]⟩
+      obtain ⟨inv, _, hinv2⟩ := hQiso
+      -- entire A ≤ Q : inv ≫ Q.arr = id_A = (entire A).arr.
+      exact ⟨inv, by simpa [Subobject.entire] using hinv2⟩
+  · -- A* = bottomSub A (∅_A).  No points of A, so no point subobjects.
+    have hno_point : ∀ p : one ⟶ A, False := fun p => hws (wellSupported_of_point p)
+    -- (bottomSub A).dom ≅ Z (strict coterminator): every mono into it is iso.
+    obtain ⟨φ, hφ⟩ := bottomSub_dom_iso_one A
+    refine ⟨bottomSub A, ?_, ?_, ?_⟩
+    · -- upper: no point subobjects (a point subobject yields a point of A).
+      intro P hP
+      obtain ⟨p, _⟩ := hP
+      exact (hno_point p).elim
+    · -- WP: vacuous — every mono m into (bottomSub A).dom IS iso, contradicting the
+      -- supplied `¬IsIso m`.  (m ≫ φ : D → Z is iso by strictness; φ iso ⟹ m iso.)
+      intro D m _hm hnotiso
+      exfalso; apply hnotiso
+      have hmφ : IsIso (m ≫ φ) := strict_coterminator_bottomSub_one (m ≫ φ)
+      obtain ⟨φ', hφ1, hφ2⟩ := hφ
+      have hm_eq : m = (m ≫ φ) ≫ φ' := by
+        rw [Cat.assoc, hφ1, Cat.comp_id]
+      rw [hm_eq]
+      exact isIso_comp hmφ ⟨φ, hφ2, hφ1⟩
+    · -- least: ∅_A ≤ anything.
+      intro Q _ _
+      exact bottomSub_le Q
 
 end Freyd
