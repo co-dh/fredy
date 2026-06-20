@@ -624,23 +624,24 @@ private theorem image_pair_le_recip_comp [PreToposDisjoint 𝒞] {A M N : 𝒞}
 private theorem comp_recip_self_le_diag [PreToposDisjoint 𝒞] {Bj N M : 𝒞}
     (s : Bj ⟶ M) (t : Bj ⟶ N) (ht : Mono t) :
     RelLe (((graph s)° ⊚ graph t) ⊚ ((graph s)° ⊚ graph t)°) (graph (Cat.id M)) := by
-  let P := (graph s)° ⊚ graph t
-  have hP : RelLe (P°) ((graph t)° ⊚ graph s) := by
-    have h := reciprocal_comp_le ((graph s)°) (graph t)
+  -- Book (maps as relations via `↑`):  PP° = (s°t)(s°t)° = (s°t)(t°s) ⊆ s°(tt°)s
+  --   ⊆ s°·1·s = s°s ⊆ 1, the bracket using t monic (tt° ⊆ 1).
+  let sr : BinRel 𝒞 Bj M := s          -- ↑s
+  let tr : BinRel 𝒞 Bj N := t          -- ↑t
+  let P := sr° ⊚ tr
+  have hP : RelLe (P°) (tr° ⊚ sr) := by
+    have h := reciprocal_comp_le (sr°) tr
     rw [reciprocal_invol] at h; exact h
-  have h1 : RelLe (P ⊚ P°) (P ⊚ ((graph t)° ⊚ graph s)) := compose_le (rel_le_refl _) hP
-  have h2 : RelLe (P ⊚ ((graph t)° ⊚ graph s))
-      ((graph s)° ⊚ (graph t ⊚ ((graph t)° ⊚ graph s))) :=
-    (compose_assoc_of_regular ((graph s)°) (graph t) ((graph t)° ⊚ graph s)).1
-  have h3 : RelLe (graph t ⊚ ((graph t)° ⊚ graph s)) ((graph t ⊚ (graph t)°) ⊚ graph s) :=
-    (compose_assoc_of_regular (graph t) ((graph t)°) (graph s)).2
-  have h4 : RelLe ((graph t ⊚ (graph t)°) ⊚ graph s) (graph (Cat.id Bj) ⊚ graph s) :=
-    compose_le (graph_comp_recip_le_one_of_mono t ht) (rel_le_refl _)
-  have h345 : RelLe (graph t ⊚ ((graph t)° ⊚ graph s)) (graph s) :=
-    rel_le_trans h3 (rel_le_trans h4 (graph_id_comp (graph s)))
-  have h6 : RelLe ((graph s)° ⊚ (graph t ⊚ ((graph t)° ⊚ graph s))) ((graph s)° ⊚ graph s) :=
-    compose_le (rel_le_refl _) h345
-  exact rel_le_trans h1 (rel_le_trans h2 (rel_le_trans h6 (reciprocal_comp_self_le_one s)))
+  -- inner bracket  t(t°s) ⊆ (tt°)s ⊆ 1·s = s, using t monic.
+  have htts : RelLe (tr ⊚ (tr° ⊚ sr)) sr :=
+    rel_le_trans (compose_assoc_of_regular tr (tr°) sr).2
+      (rel_le_trans (compose_le (graph_comp_recip_le_one_of_mono t ht) (rel_le_refl _))
+        (graph_id_comp sr))
+  calc P ⊚ P°
+      ⊂ P ⊚ (tr° ⊚ sr) := compose_le (rel_le_refl _) hP
+    _ ⊂ sr° ⊚ (tr ⊚ (tr° ⊚ sr)) := (compose_assoc_of_regular (sr°) tr (tr° ⊚ sr)).1
+    _ ⊂ sr° ⊚ sr := compose_le (rel_le_refl _) htts
+    _ ⊂ graph (Cat.id M) := reciprocal_comp_self_le_one s
 
 /-- The generated relation `F = 1 ∪ R₀ ∪ R₀°` is an equivalence relation, given the four
     cross-composite bounds (`R₀R₀°, R₀°R₀ ⊂ 1` from partial-bijectivity; `R₀R₀, R₀°R₀° ⊂ 1`

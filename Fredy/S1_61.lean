@@ -625,64 +625,65 @@ theorem hxyg_lemma {A₁ A₂ Q I : 𝒞} (f : A₁ ⟶ Q) (g : A₂ ⟶ Q)
     (hinter : RelLe xrel ((graph π₁)° ⊚ graph π₂))
     (hcocone : π₁ ≫ f = π₂ ≫ g) :
     RelLe (xrel ⊚ graph g) (graph f) := by
-  have h1 : RelLe (xrel ⊚ graph g) (((graph π₁)° ⊚ graph π₂) ⊚ graph g) :=
-    compose_le hinter (rel_le_refl _)
-  have h2 : RelLe (((graph π₁)° ⊚ graph π₂) ⊚ graph g) ((graph π₁)° ⊚ (graph π₂ ⊚ graph g)) :=
-    (compose_assoc_of_regular ((graph π₁)°) (graph π₂) (graph g)).1
-  have h3 : RelLe ((graph π₁)° ⊚ (graph π₂ ⊚ graph g)) ((graph π₁)° ⊚ graph (π₂ ≫ g)) :=
-    compose_le (rel_le_refl _) (comp_graph π₂ g)
-  have h4 : RelLe ((graph π₁)° ⊚ graph (π₂ ≫ g)) ((graph π₁)° ⊚ graph (π₁ ≫ f)) := by
-    rw [hcocone]
-  have h5 : RelLe ((graph π₁)° ⊚ graph (π₁ ≫ f)) ((graph π₁)° ⊚ (graph π₁ ⊚ graph f)) :=
-    compose_le (rel_le_refl _) (graph_comp π₁ f)
-  have h6 : RelLe ((graph π₁)° ⊚ (graph π₁ ⊚ graph f)) (((graph π₁)° ⊚ graph π₁) ⊚ graph f) :=
-    (compose_assoc_of_regular ((graph π₁)°) (graph π₁) (graph f)).2
-  have h7 : RelLe (((graph π₁)° ⊚ graph π₁) ⊚ graph f) (graph (Cat.id A₁) ⊚ graph f) :=
-    compose_le (reciprocal_comp_self_le_one π₁) (rel_le_refl _)
-  have h8 : RelLe (graph (Cat.id A₁) ⊚ graph f) (graph f) := graph_id_comp (graph f)
-  exact rel_le_trans h1 (rel_le_trans h2 (rel_le_trans h3 (rel_le_trans h4
-    (rel_le_trans h5 (rel_le_trans h6 (rel_le_trans h7 h8))))))
+  -- Book §1.62, in Freyd's notation (a map IS its graph relation, via the `↑`
+  -- coercion):  xrel·g ⊆ π₁°π₂·g = π₁°(π₂g) = π₁°(π₁f) = (π₁°π₁)f ⊆ 1·f = f,
+  -- using the cocone equation π₁f = π₂g and π₁ monic (π₁°π₁ ⊆ 1).
+  let p₁ : BinRel 𝒞 I A₁ := π₁          -- ↑π₁
+  let p₂ : BinRel 𝒞 I A₂ := π₂          -- ↑π₂
+  let fr : BinRel 𝒞 A₁ Q := f           -- ↑f
+  let gr : BinRel 𝒞 A₂ Q := g           -- ↑g
+  calc xrel ⊚ gr
+      ⊂ (p₁° ⊚ p₂) ⊚ gr := compose_le hinter (rel_le_refl _)
+    _ ⊂ p₁° ⊚ (p₂ ⊚ gr) := (compose_assoc_of_regular (p₁°) p₂ gr).1
+    _ ⊂ p₁° ⊚ graph (π₂ ≫ g) := compose_le (rel_le_refl _) (comp_graph π₂ g)
+    _ ⊂ p₁° ⊚ graph (π₁ ≫ f) := hcocone ▸ rel_le_refl _
+    _ ⊂ p₁° ⊚ (p₁ ⊚ fr) := compose_le (rel_le_refl _) (graph_comp π₁ f)
+    _ ⊂ (p₁° ⊚ p₁) ⊚ fr := (compose_assoc_of_regular (p₁°) p₁ fr).2
+    _ ⊂ graph (Cat.id A₁) ⊚ fr := compose_le (reciprocal_comp_self_le_one π₁) (rel_le_refl _)
+    _ ⊂ fr := graph_id_comp fr
 
 /-- Diagonal term (copy of `S1_62.diag_le_one`). -/
 theorem diag_le_one {A₁ U Q : 𝒞} (x : A₁ ⟶ U) (f : A₁ ⟶ Q) (hx : Mono x) :
     RelLe (((graph x)° ⊚ graph f)° ⊚ ((graph x)° ⊚ graph f)) (graph (Cat.id Q)) := by
-  have hPr : RelLe (((graph x)° ⊚ graph f)°) ((graph f)° ⊚ graph x) := by
-    have h := reciprocal_comp_le ((graph x)°) (graph f)
+  -- Book §1.62 (maps as relations via `↑`):  P°P = (x°f)°(x°f) ⊆ f°x·x°f
+  --   = f°(xx°)f ⊆ f°·1·f = f°f ⊆ 1, the middle step using x monic (xx° ⊆ 1).
+  let xr : BinRel 𝒞 A₁ U := x          -- ↑x
+  let fr : BinRel 𝒞 A₁ Q := f          -- ↑f
+  have hPr : RelLe ((xr° ⊚ fr)°) (fr° ⊚ xr) := by
+    have h := reciprocal_comp_le (xr°) fr
     rw [reciprocal_invol] at h; exact h
-  let Pr := (graph x)° ⊚ graph f
-  have h1 : RelLe (Pr° ⊚ Pr) (((graph f)° ⊚ graph x) ⊚ Pr) := compose_le hPr (rel_le_refl _)
-  have h2 : RelLe (((graph f)° ⊚ graph x) ⊚ Pr) ((graph f)° ⊚ (graph x ⊚ Pr)) :=
-    (compose_assoc_of_regular ((graph f)°) (graph x) Pr).1
-  have h3 : RelLe ((graph f)° ⊚ (graph x ⊚ Pr))
-                  ((graph f)° ⊚ ((graph x ⊚ (graph x)°) ⊚ graph f)) :=
-    compose_le (rel_le_refl _) (compose_assoc_of_regular (graph x) ((graph x)°) (graph f)).2
-  have h4 : RelLe ((graph f)° ⊚ ((graph x ⊚ (graph x)°) ⊚ graph f))
-                  ((graph f)° ⊚ (graph (Cat.id A₁) ⊚ graph f)) :=
-    compose_le (rel_le_refl _) (compose_le (graph_comp_recip_le_one_of_mono x hx) (rel_le_refl _))
-  have h5 : RelLe ((graph f)° ⊚ (graph (Cat.id A₁) ⊚ graph f)) ((graph f)° ⊚ graph f) :=
-    compose_le (rel_le_refl _) (graph_id_comp (graph f))
-  have h6 : RelLe ((graph f)° ⊚ graph f) (graph (Cat.id Q)) := reciprocal_comp_self_le_one f
-  exact rel_le_trans h1 (rel_le_trans h2 (rel_le_trans h3 (rel_le_trans h4 (rel_le_trans h5 h6))))
+  let Pr := xr° ⊚ fr
+  calc Pr° ⊚ Pr
+      ⊂ (fr° ⊚ xr) ⊚ Pr := compose_le hPr (rel_le_refl _)
+    _ ⊂ fr° ⊚ (xr ⊚ Pr) := (compose_assoc_of_regular (fr°) xr Pr).1
+    _ ⊂ fr° ⊚ ((xr ⊚ xr°) ⊚ fr) :=
+          compose_le (rel_le_refl _) (compose_assoc_of_regular xr (xr°) fr).2
+    _ ⊂ fr° ⊚ (graph (Cat.id A₁) ⊚ fr) :=
+          compose_le (rel_le_refl _) (compose_le (graph_comp_recip_le_one_of_mono x hx) (rel_le_refl _))
+    _ ⊂ fr° ⊚ fr := compose_le (rel_le_refl _) (graph_id_comp fr)
+    _ ⊂ graph (Cat.id Q) := reciprocal_comp_self_le_one f
 
 /-- Cross term (copy of `S1_62.cross_le_one`). -/
 theorem cross_le_one {A₁ A₂ U Q : 𝒞} (x : A₁ ⟶ U) (y : A₂ ⟶ U) (f : A₁ ⟶ Q) (g : A₂ ⟶ Q)
     (hxyg : RelLe ((graph x ⊚ (graph y)°) ⊚ graph g) (graph f)) :
     RelLe (((graph x)° ⊚ graph f)° ⊚ ((graph y)° ⊚ graph g)) (graph (Cat.id Q)) := by
-  have hPr : RelLe (((graph x)° ⊚ graph f)°) ((graph f)° ⊚ graph x) := by
-    have h := reciprocal_comp_le ((graph x)°) (graph f)
+  -- Book §1.62 (maps as relations via `↑`):  P°Q = (x°f)°(y°g) ⊆ f°x·y°g
+  --   = f°(xy°g) ⊆ f°f ⊆ 1, where the bracket xy°g ⊆ f is exactly `hxyg`.
+  let xr : BinRel 𝒞 A₁ U := x          -- ↑x
+  let yr : BinRel 𝒞 A₂ U := y          -- ↑y
+  let fr : BinRel 𝒞 A₁ Q := f          -- ↑f
+  let gr : BinRel 𝒞 A₂ Q := g          -- ↑g
+  have hPr : RelLe ((xr° ⊚ fr)°) (fr° ⊚ xr) := by
+    have h := reciprocal_comp_le (xr°) fr
     rw [reciprocal_invol] at h; exact h
-  let Qr := (graph y)° ⊚ graph g
-  have h1 : RelLe ((((graph x)° ⊚ graph f)°) ⊚ Qr) (((graph f)° ⊚ graph x) ⊚ Qr) :=
-    compose_le hPr (rel_le_refl _)
-  have h2 : RelLe (((graph f)° ⊚ graph x) ⊚ Qr) ((graph f)° ⊚ (graph x ⊚ Qr)) :=
-    (compose_assoc_of_regular ((graph f)°) (graph x) Qr).1
-  have h3 : RelLe ((graph f)° ⊚ (graph x ⊚ Qr))
-                  ((graph f)° ⊚ ((graph x ⊚ (graph y)°) ⊚ graph g)) :=
-    compose_le (rel_le_refl _) (compose_assoc_of_regular (graph x) ((graph y)°) (graph g)).2
-  have h4 : RelLe ((graph f)° ⊚ ((graph x ⊚ (graph y)°) ⊚ graph g)) ((graph f)° ⊚ graph f) :=
-    compose_le (rel_le_refl _) hxyg
-  have h5 : RelLe ((graph f)° ⊚ graph f) (graph (Cat.id Q)) := reciprocal_comp_self_le_one f
-  exact rel_le_trans h1 (rel_le_trans h2 (rel_le_trans h3 (rel_le_trans h4 h5)))
+  let Qr := yr° ⊚ gr
+  calc (xr° ⊚ fr)° ⊚ Qr
+      ⊂ (fr° ⊚ xr) ⊚ Qr := compose_le hPr (rel_le_refl _)
+    _ ⊂ fr° ⊚ (xr ⊚ Qr) := (compose_assoc_of_regular (fr°) xr Qr).1
+    _ ⊂ fr° ⊚ ((xr ⊚ yr°) ⊚ gr) :=
+          compose_le (rel_le_refl _) (compose_assoc_of_regular xr (yr°) gr).2
+    _ ⊂ fr° ⊚ fr := compose_le (rel_le_refl _) hxyg
+    _ ⊂ graph (Cat.id Q) := reciprocal_comp_self_le_one f
 
 /-- Simplicity of the descent relation `R = relUnionSub P Q` from the four atomic bounds
     (coproduct-free port of `S1_62.simple_R`). -/
@@ -717,26 +718,25 @@ theorem simple_relUnionSub {U Q : 𝒞} (P Qr : BinRel 𝒞 U Q)
 theorem xx_le_RRrecip {A₁ U Q : 𝒞} (x : A₁ ⟶ U) (f : A₁ ⟶ Q)
     (R : BinRel 𝒞 U Q) (hPR : RelLe ((graph x)° ⊚ graph f) R) :
     RelLe ((graph x)° ⊚ graph x) (R ⊚ R°) := by
-  have hEntf : RelLe (graph (Cat.id A₁)) (graph f ⊚ (graph f)°) := (graph_is_map f).1
-  have hA : RelLe (graph x) ((graph f ⊚ (graph f)°) ⊚ graph x) :=
-    rel_le_trans (comp_graph_id_left (graph x)) (compose_le hEntf (rel_le_refl _))
-  have h1 : RelLe ((graph x)° ⊚ graph x) ((graph x)° ⊚ ((graph f ⊚ (graph f)°) ⊚ graph x)) :=
-    compose_le (rel_le_refl _) hA
-  have h2 : RelLe ((graph x)° ⊚ ((graph f ⊚ (graph f)°) ⊚ graph x))
-                  ((graph x)° ⊚ (graph f ⊚ ((graph f)° ⊚ graph x))) :=
-    compose_le (rel_le_refl _) (compose_assoc_of_regular (graph f) ((graph f)°) (graph x)).1
-  have h3 : RelLe ((graph x)° ⊚ (graph f ⊚ ((graph f)° ⊚ graph x)))
-                  (((graph x)° ⊚ graph f) ⊚ ((graph f)° ⊚ graph x)) :=
-    (compose_assoc_of_regular ((graph x)°) (graph f) ((graph f)° ⊚ graph x)).2
-  have hPrecip : RelLe ((graph f)° ⊚ graph x) (R°) := by
-    have hPrec : RelLe (((graph x)° ⊚ graph f)°) (R°) := reciprocal_mono hPR
-    have hsub : RelLe ((graph f)° ⊚ graph x) (((graph x)° ⊚ graph f)°) := by
-      have h := (reciprocal_comp ((graph x)°) (graph f)).2
+  -- Book §1.62 entire step (maps as relations via `↑`):  x°x ⊆ x°(ff°)x = (x°f)(f°x)
+  --   = P·(f°x) ⊆ R·R°, since f is entire (1 ⊆ ff°) and f°x ⊆ (x°f)° = P° ⊆ R°.
+  let xr : BinRel 𝒞 A₁ U := x          -- ↑x
+  let fr : BinRel 𝒞 A₁ Q := f          -- ↑f
+  have hEntf : RelLe (graph (Cat.id A₁)) (fr ⊚ fr°) := (graph_is_map f).1
+  have hA : RelLe xr ((fr ⊚ fr°) ⊚ xr) :=
+    rel_le_trans (comp_graph_id_left xr) (compose_le hEntf (rel_le_refl _))
+  have hPrecip : RelLe (fr° ⊚ xr) (R°) := by
+    have hsub : RelLe (fr° ⊚ xr) ((xr° ⊚ fr)°) := by
+      have h := (reciprocal_comp (xr°) fr).2
       rw [reciprocal_invol] at h; exact h
-    exact rel_le_trans hsub hPrec
-  have h4 : RelLe (((graph x)° ⊚ graph f) ⊚ ((graph f)° ⊚ graph x)) (R ⊚ R°) :=
-    compose_le hPR hPrecip
-  exact rel_le_trans h1 (rel_le_trans h2 (rel_le_trans h3 h4))
+    exact rel_le_trans hsub (reciprocal_mono hPR)
+  calc xr° ⊚ xr
+      ⊂ xr° ⊚ ((fr ⊚ fr°) ⊚ xr) := compose_le (rel_le_refl _) hA
+    _ ⊂ xr° ⊚ (fr ⊚ (fr° ⊚ xr)) :=
+          compose_le (rel_le_refl _) (compose_assoc_of_regular fr (fr°) xr).1
+    _ ⊂ (xr° ⊚ fr) ⊚ (fr° ⊚ xr) :=
+          (compose_assoc_of_regular (xr°) fr (fr° ⊚ xr)).2
+    _ ⊂ R ⊚ R° := compose_le hPR hPrecip
 
 /-- For a subobject `S ↣ A`, the diagonal push `⟨S.dom, S.arr ≫ diag A⟩` factors through
     `relSub (S.arr° ⊚ S.arr)`.  Coproduct-free witness via `pairxx_factor`. -/
