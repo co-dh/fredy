@@ -165,30 +165,95 @@ def IsSpecial.toSpecial [hcc : CartesianCategory 𝒞] (h : IsSpecial 𝒞) :
   Hence in any special Cartesian category, the terminal object has at most two values
   (i.e. at most one proper subobject up to isomorphism). -/
 
+/-- For a SUBTERMINATOR `V` (`Mono (term V)`), the second projection `snd : V×V → V` is an
+    isomorphism, with inverse the diagonal `diag V`.  `diag V ≫ snd = id_V` is `diag_snd`;
+    `snd ≫ diag V = id_{V×V}` holds because both sides agree after `fst` and after `snd`
+    (the `snd`-components by `diag_snd`/`snd_pair`, the `fst`-components because every pair of
+    maps into the subterminal `V` is equal: `term V` is monic and all maps to `one` coincide). -/
+theorem snd_self_iso_of_subterminal [CartesianCategory 𝒞] {V : 𝒞} (hV : Mono (term V)) :
+    IsIso (snd (A := V) (B := V)) := by
+  refine ⟨diag V, ?_, diag_snd V⟩
+  -- `snd ≫ diag V = id_{V×V}` via the two jointly-monic projections.
+  refine fst_snd_jointly_monic _ _ ?_ ?_
+  · -- fst-component: `(snd ≫ diag V) ≫ fst = id ≫ fst`.  Both are maps `V×V → V`; since `V` is a
+    -- subterminal, all parallel maps into `V` are equal (post-compose monic `term V`).
+    exact hV _ _ (term_uniq _ _)
+  · rw [Cat.assoc, diag_snd, Cat.comp_id, Cat.id_comp]
+
+/-- **Key specialness consequence**: in a special Cartesian category, a PROPER subterminator
+    `V` (`ProperMono (term V)`) has NO proper subobject — every mono `n : B' → V` is an iso.
+
+    Proof: apply specialness to `m := term V : V → 1` (proper) and the supposed proper
+    `n : B' → V`.  The §1.47 condition makes `pair (fst ≫ term V) snd : V×V → 1×V` a *proper*
+    (non-iso) mono.  But that map, post-composed with the iso `snd : 1×V ≅ V` (`prod_one_iso_left`),
+    is exactly `snd : V×V → V`, which IS an iso for the subterminal `V`
+    (`snd_self_iso_of_subterminal`).  An iso conjugate of an iso is an iso, contradicting
+    properness.  Hence no proper `n` exists. -/
+theorem subterminal_no_proper_sub [SpecialCartesianCategory 𝒞] {V : 𝒞}
+    (hV : ProperMono (term V)) {B' : 𝒞} (n : B' ⟶ V) (hn : ProperMono n) : False := by
+  -- specialness on `(term V, n)`: the product map `q : V×V → 1×V` is a proper mono.
+  -- Phrase `q` with the ambient `pair`/`fst`/`snd` (definitionally the bundled form).
+  have hsp : ProperMono
+      (pair (fst (A := V) (B := V) ≫ term V) (snd (A := V) (B := V))) :=
+    SpecialCartesianCategory.special (term V) n hV hn
+  -- post-composing the iso `snd : 1×V ≅ V` turns `q` into `snd : V×V → V`.
+  have hqsnd : pair (fst (A := V) (B := V) ≫ term V) (snd (A := V) (B := V))
+      ≫ (snd (A := one) (B := V)) = snd (A := V) (B := V) := snd_pair _ _
+  -- `snd : V×V → V` is iso (V subterminal), so `q` is iso — contradicting `hsp.2`.
+  have hsndV : IsIso (snd (A := V) (B := V)) := snd_self_iso_of_subterminal hV.1
+  obtain ⟨t, ht1, ht2⟩ : IsIso (snd (A := one) (B := V)) := prod_one_iso_left
+  -- `q = snd_{V×V} ≫ (snd_{1×V})⁻¹` is a composite of isos.
+  have hq_iso : IsIso (pair (fst (A := V) (B := V) ≫ term V) (snd (A := V) (B := V))) := by
+    -- `q = (q ≫ snd_{1×V}) ≫ t = snd_{V×V} ≫ t`, a composite of isos.
+    have hqeq : pair (fst (A := V) (B := V) ≫ term V) (snd (A := V) (B := V))
+        = snd (A := V) (B := V) ≫ t := by
+      calc pair (fst (A := V) (B := V) ≫ term V) (snd (A := V) (B := V))
+          = pair (fst (A := V) (B := V) ≫ term V) (snd (A := V) (B := V))
+              ≫ (snd (A := one) (B := V) ≫ t) := by rw [ht1, Cat.comp_id]
+        _ = (pair (fst (A := V) (B := V) ≫ term V) (snd (A := V) (B := V))
+              ≫ snd (A := one) (B := V)) ≫ t := (Cat.assoc _ _ _).symm
+        _ = snd (A := V) (B := V) ≫ t := by rw [hqsnd]
+    rw [hqeq]; exact isIso_comp hsndV ⟨snd, ht2, ht1⟩
+  exact hsp.2 hq_iso
+
 /-- **§1.471**: In a special Cartesian category any two proper subobjects of `one` are
-    isomorphic to each other.
+    isomorphic to each other.  Witness `W := V₁ × V₂`, with `i₁ := fst`, `i₂ := snd` BOTH isos.
 
-    Proof sketch (Freyd §1.471): In Set, for any two proper subobjects V₁, V₂ ↪ 1,
-    either V₁ ↪ V₂ or V₂ ↪ 1 is an isomorphism; hence both are isomorphic to V₁ ∩ V₂.
-    Transferring this universally-quantified statement to A via specialness gives the result.
-
-    RESIDUAL (honest `sorry`, re-confirmed): this is a genuine §1.646 gap, NOT closable from
-    the elementary §1.472 product condition `IsSpecial`.  Freyd's argument (§1.471) is "given
-    `V₁ → V₂ → 1` in Set, either `V₁ → V₂` or `V₂ → 1` is iso; hence both `V₁, V₂` are iso to
-    `V₁ ∩ V₂`" — a *universal* Cartesian sentence transferred to `A` through the §1.646
-    faithful properness-preserving representation `A → Set`, which this repo does not yet build.
-    There is no canonical map between two arbitrary proper subobjects `V₁, V₂` of `one` without
-    such a representation, so no elementary route exists.  The obvious witness `W := V₁ × V₂`,
-    `i₁ := fst`, `i₂ := snd` has the WRONG polarity: `special (term V₁) (term V₂)` makes the
-    projections `fst : V₁×V₂ → V₁`, `snd : V₁×V₂ → V₂` *proper* (non-iso), the opposite of the
-    conclusion.  Unlike the §1.474 `hstrict` gap (closed via the strict-coterminator field of
-    `TwoValued`, faithful per §1.58), §1.471 quantifies over *all* `SpecialCartesianCategory`
-    with no distinguished `0`, so no field can supply the missing map.  Do not weaken the
-    statement; close only once §1.646 is available. -/
+    ELEMENTARY PROOF (no §1.646 representation needed).  The earlier "wrong polarity" worry was
+    a mis-reading of `IsSpecial`'s second factor.  `IsSpecial (term V) (n)` makes
+    `pair (fst ≫ term V) snd : V×V → 1×V` proper *only when `n` is a proper subobject of the
+    second factor* `V`.  Reading that contrapositively (`subterminal_no_proper_sub`): since
+    `snd : V×V → V` is an iso for any subterminal `V` (`snd_self_iso_of_subterminal`, inverse
+    `diag V`), the produced map can never be proper, so **a proper subterminal `V` admits NO
+    proper subobject** — every mono into it is an iso.  Now `fst : V₁×V₂ → V₁` is monic (`V₂` is a
+    subterminal); were it proper it would be a proper subobject of `V₁`, impossible — so `fst` is
+    an iso, and symmetrically `snd : V₁×V₂ → V₂`.  Both projections of
+    `V₁×V₂` are isos, exactly the claim.  (The polarity is genuinely the *opposite* of the old
+    note: properness of the §1.47 product map forces `V₂` to have no proper subobject, which is
+    precisely what makes the projection — a map *into* such a `V` — invertible.) -/
 theorem special_atMostTwoValues [SpecialCartesianCategory 𝒞]
     {V₁ V₂ : 𝒞} (hV₁ : ProperMono (term V₁)) (hV₂ : ProperMono (term V₂)) :
     ∃ (W : 𝒞) (i₁ : W ⟶ V₁) (i₂ : W ⟶ V₂), IsIso i₁ ∧ IsIso i₂ := by
-  sorry
+  -- `W := V₁ × V₂`.  Both projections are monic (the other factor is a subterminal).
+  refine ⟨prod V₁ V₂, fst, snd, ?_, ?_⟩
+  · -- `fst : V₁×V₂ → V₁` is monic (`V₂` subterminal: the snd-components of any two agreeing-after-
+    -- fst maps coincide); if `fst` were proper it would be a proper subobject of the proper
+    -- subterminal `V₁`, which has none (`subterminal_no_proper_sub`).
+    have hmono : Mono (fst (A := V₁) (B := V₂)) := by
+      intro W u v huv
+      have hsnd : u ≫ snd (A := V₁) (B := V₂) = v ≫ snd := hV₂.1 _ _ (term_uniq _ _)
+      exact fst_snd_jointly_monic u v huv hsnd
+    rcases Classical.em (IsIso (fst (A := V₁) (B := V₂))) with h | hni
+    · exact h
+    · exact (subterminal_no_proper_sub hV₁ (fst (A := V₁) (B := V₂)) ⟨hmono, hni⟩).elim
+  · -- symmetric: `snd : V₁×V₂ → V₂` monic via `V₁` subterminal (swap factors).
+    have hmono : Mono (snd (A := V₁) (B := V₂)) := by
+      intro W u v huv
+      have hfst : u ≫ fst (A := V₁) (B := V₂) = v ≫ fst := hV₁.1 _ _ (term_uniq _ _)
+      exact fst_snd_jointly_monic u v hfst huv
+    rcases Classical.em (IsIso (snd (A := V₁) (B := V₂))) with h | hni
+    · exact h
+    · exact (subterminal_no_proper_sub hV₂ (snd (A := V₁) (B := V₂)) ⟨hmono, hni⟩).elim
 
 /-! ## §1.472  Characterisation via proper subobjects and via B×- faithful
 
