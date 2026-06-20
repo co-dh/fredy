@@ -19,6 +19,7 @@ import Fredy.S1_51
 import Fredy.S1_58
 import Fredy.S1_42
 import Fredy.S1_91
+import Fredy.Baseable923
 
 
 universe v u
@@ -99,8 +100,15 @@ noncomputable def exponentials_of_all_baseable
 -- `sorryAx`.  We deprioritise it here AND, in the direct-image section below, locally make
 -- the genuine `Topos.toHasBinaryProducts` win outright (see the `attribute [local instance]`
 -- there) so the §1.92 power maps stay axiom-honest.
-instance (priority := 50) topos_has_exponentials : HasExponentials 𝒞 := by
-  sorry
+noncomputable instance (priority := 50) topos_has_exponentials : HasExponentials 𝒞 :=
+  exponentials_of_all_baseable power_objects_imply_all_baseable
+
+-- `topos_has_exponentials` is now genuinely proved (hence `noncomputable`, depending on
+-- `Classical.choice`).  `HasExponentials extends HasBinaryProducts`, so instance search could
+-- route a `HasBinaryProducts 𝒞` goal through it and make otherwise-computable downstream defs
+-- (`graphMono`, `omegaPowContra`, …) fail the IR check.  Make the genuine `Topos.toHasBinaryProducts`
+-- win outright for the whole §1.92 section so those products resolve computably and axiom-cleanly.
+attribute [local instance 10000] Topos.toHasBinaryProducts
 
 -- All subsequent decls require [HasExponentials 𝒞] via topos_has_exponentials.
 -- exp B Ω = Ω^B = [B] the power object of B.
@@ -118,7 +126,7 @@ instance (priority := 50) topos_has_exponentials : HasExponentials 𝒞 := by
   Equivalently, Ω^g = curry(pair (fst ≫ g) snd ≫ eval). -/
 
 /-- **§1.922**: The power-object functor Ω^(−) is CONTRAVARIANT. -/
-instance omegaPowContra :
+noncomputable instance omegaPowContra :
     ContraFunctor (fun B : 𝒞 => exp B (HasSubobjectClassifier.omega (𝒞 := 𝒞))) where
   map {B₁ B₂} g :=
     -- Ω^g : exp B₂ Ω → exp B₁ Ω
@@ -963,17 +971,12 @@ def stLe (Z V : SubTerminal 𝒞) : Prop := stMeet Z V = Z
     is the substantive content of §1.926 (NOT the tautology `∃W, W = U⇒V`).
 
     **Faithful sorry.**  Both directions reduce to the curry/eval (β/η) laws of
-    the exponential `Ω^U` together with the pullback property of `omegaMeet`.  In
-    this repo `heytingImpl` is assembled from `omegaPowContra` and `eval_exp`,
-    whose computation rests on `topos_has_exponentials` — itself an unfilled
-    `sorry`.  Its sharpened blocker (see that instance) is now a SINGLE step:
-    power-object representability `∀ B, Baseable B`, i.e. every object's
-    `(A × −, B)` is representable.  The other two legs are discharged — topos
-    equalizers (`topos_has_equalizers`) and the baseable-equalizer CLOSURE
-    (`baseable_equalizer_is_baseable`, S1_85, now proved sorry-free; the earlier
-    weak tautological form was replaced).  Until exponentials are concretely
-    constructed, the adjunction cannot be evaluated, so the honest record is the
-    TRUE adjunction with a `sorry`. -/
+    the exponential `Ω^U` together with the pullback property of `omegaMeet`.
+    `topos_has_exponentials` is now concretely constructed (§1.923, sorry-free),
+    so `Ω^U`/`eval_exp` ARE available; what remains is the (substantial) bookkeeping
+    relating `heytingImpl = omegaPowContra`-implication to `omegaMeet` via those
+    β/η laws.  Left as an honest sorry: it is independent §1.926 content, not the
+    exponentials keystone. -/
 theorem subTerminal_heyting :
     ∀ (Z U V : SubTerminal 𝒞),
       stLe (stMeet Z U) V ↔ stLe Z (heytingImpl U V) := by
