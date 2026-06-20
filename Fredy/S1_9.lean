@@ -155,11 +155,27 @@ class HasSubobjectClassifier (𝒞 : Type u) [Cat.{v} 𝒞] extends HasTerminal 
     (hsq : m ≫ χ = term A' ≫ true),
     Cone.IsPullback (⟨A', m, term A', hsq⟩ : Cone χ true) → χ = classify m hm
 
-/-- A TOPOS (§1.9): Cartesian category in which each object has a power-object.
-    Equivalently (§1.912): Cartesian + subobject classifier.
-    We take the subobject-classifier presentation. -/
+/-- A TOPOS (§1.9, book p.9091): Cartesian category in which each object has a
+    power-object.  Freyd's primary definition is the power-object one; the
+    subobject classifier `Ω = [1]` is then a derived consequence (§1.912).  We
+    bundle BOTH: the classifier presentation (`HasSubobjectClassifier`, the
+    working interface for §1.91's Heyting layer) AND the power objects
+    (`has_pow`), since recovering power objects from the bare classifier is
+    Paré's theorem, which Freyd does not prove and this development does not need.
+    Bundling `has_pow` is faithful to the book definition and supplies the
+    `∀ C, HasPowerObject C` that §1.92's exponentials (`topos_has_exponentials`,
+    §1.923) and §1.95's quotient covers rest on. -/
 class Topos (𝒞 : Type u) [Cat.{v} 𝒞] extends
-    HasTerminal 𝒞, HasBinaryProducts 𝒞, HasSubobjectClassifier 𝒞
+    HasTerminal 𝒞, HasBinaryProducts 𝒞, HasSubobjectClassifier 𝒞 where
+  /-- §1.9: every object `C` has a power-object `[C]` with universal `∈_C`. -/
+  has_pow : ∀ C : 𝒞, HasPowerObject C
+
+/-- §1.9: expose a topos's power objects to instance search, so the established
+    `[∀ C, HasPowerObject C]` hypotheses (S1_91/S1_92) are auto-satisfied under
+    `[Topos 𝒞]`.  Low priority to avoid pre-empting any locally-supplied power
+    object. -/
+instance (priority := 100) Topos.hasPowerObject {𝒞 : Type u} [Cat.{v} 𝒞]
+    [Topos 𝒞] (C : 𝒞) : HasPowerObject C := Topos.has_pow C
 
 /-! ## §1.912  Derived facts -/
 
