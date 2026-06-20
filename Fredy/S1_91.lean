@@ -537,6 +537,109 @@ theorem heytingDoubleArrow_classifies_eq {A E : 𝒞} (χ₁ χ₂ : A ⟶ HasSu
   intro v hv₁ _
   exact huu v hv₁
 
+/-- **§1.914 (pointwise double-arrow)**: the classifying map `⟨χ₁,χ₂⟩ ≫ ⇒` is
+    constantly-true along `k` exactly where `χ₁` and `χ₂` agree along `k`.  This is
+    the membership form of `heytingDoubleArrow_classifies_eq` (it avoids naming an
+    equalizer subobject); it is the order-form UMP feeding the Heyting laws below. -/
+theorem heyting_true_iff_eq {A W : 𝒞}
+    (χ₁ χ₂ : A ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞)) (k : W ⟶ A) :
+    k ≫ (pair χ₁ χ₂ ≫ heytingDoubleArrow) = term W ≫ HasSubobjectClassifier.true
+      ↔ k ≫ χ₁ = k ≫ χ₂ := by
+  have sqD : diag (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ≫ heytingDoubleArrow
+      = term (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ≫ HasSubobjectClassifier.true :=
+    HasSubobjectClassifier.classify_sq _ (diag_mono _)
+  constructor
+  · intro hk
+    -- (k ≫ ⟨χ₁,χ₂⟩) ≫ ⇒ = term ≫ true, so it factors through diag's classifier pullback.
+    have hk' : (k ≫ pair χ₁ χ₂) ≫ heytingDoubleArrow = term W ≫ HasSubobjectClassifier.true := by
+      rw [Cat.assoc]; exact hk
+    obtain ⟨w, ⟨hw₁, _⟩, _⟩ :=
+      HasSubobjectClassifier.classify_pullback
+        (diag (HasSubobjectClassifier.omega (𝒞 := 𝒞))) (diag_mono _)
+        ⟨W, k ≫ pair χ₁ χ₂, term W, hk'⟩
+    -- hw₁ : w ≫ diag = k ≫ pair χ₁ χ₂.  Read off both components.
+    have e1 := congrArg (· ≫ fst) hw₁
+    have e2 := congrArg (· ≫ snd) hw₁
+    simp only [Cat.assoc, diag_fst, diag_snd, fst_pair, snd_pair, Cat.comp_id] at e1 e2
+    rw [← e1, ← e2]
+  · intro heq
+    -- k ≫ ⟨χ₁,χ₂⟩ = (k ≫ χ₁) ≫ diag, so postcomposing ⇒ collapses to term ≫ true.
+    have hpair : k ≫ pair χ₁ χ₂ = (k ≫ χ₁) ≫ diag (HasSubobjectClassifier.omega (𝒞 := 𝒞)) := by
+      have hL : k ≫ pair χ₁ χ₂ = pair (k ≫ χ₁) (k ≫ χ₂) :=
+        pair_uniq (k ≫ χ₁) (k ≫ χ₂) (k ≫ pair χ₁ χ₂)
+          (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])
+      have hR : (k ≫ χ₁) ≫ diag (HasSubobjectClassifier.omega (𝒞 := 𝒞))
+          = pair (k ≫ χ₁) (k ≫ χ₂) :=
+        pair_uniq (k ≫ χ₁) (k ≫ χ₂) _
+          (by rw [Cat.assoc, diag_fst, Cat.comp_id])
+          (by rw [Cat.assoc, diag_snd, Cat.comp_id, heq])
+      rw [hL, hR]
+    calc k ≫ (pair χ₁ χ₂ ≫ heytingDoubleArrow)
+        = (k ≫ pair χ₁ χ₂) ≫ heytingDoubleArrow := (Cat.assoc _ _ _).symm
+      _ = ((k ≫ χ₁) ≫ diag (HasSubobjectClassifier.omega (𝒞 := 𝒞))) ≫ heytingDoubleArrow := by
+            rw [hpair]
+      _ = (k ≫ χ₁) ≫ (diag (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ≫ heytingDoubleArrow) :=
+            Cat.assoc _ _ _
+      _ = (k ≫ χ₁) ≫ (term (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ≫ HasSubobjectClassifier.true) := by
+            rw [sqD]
+      _ = ((k ≫ χ₁) ≫ term (HasSubobjectClassifier.omega (𝒞 := 𝒞))) ≫ HasSubobjectClassifier.true :=
+            (Cat.assoc _ _ _).symm
+      _ = term W ≫ HasSubobjectClassifier.true := by
+            rw [term_uniq ((k ≫ χ₁) ≫ term _) (term W)]
+
+/-- **§1.914 (pointwise meet)**: the classifying map `⟨χ₁,χ₂⟩ ≫ ∧` is constantly
+    true along `k` exactly where BOTH `χ₁` and `χ₂` are.  Membership form of
+    `omegaMeet_classifies_inter`, proved directly from the `(t,t)` classifier
+    pullback (so it needs no `HasPullback S.arr T.arr` hypothesis). -/
+theorem meet_true_iff_and {A W : 𝒞}
+    (χ₁ χ₂ : A ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞)) (k : W ⟶ A) :
+    k ≫ (pair χ₁ χ₂ ≫ omegaMeet) = term W ≫ HasSubobjectClassifier.true
+      ↔ k ≫ χ₁ = term W ≫ HasSubobjectClassifier.true
+        ∧ k ≫ χ₂ = term W ≫ HasSubobjectClassifier.true := by
+  have sqM : pair HasSubobjectClassifier.true HasSubobjectClassifier.true ≫ omegaMeet
+      = term (HasTerminal.one (𝒞 := 𝒞)) ≫ HasSubobjectClassifier.true :=
+    HasSubobjectClassifier.classify_sq
+      (pair HasSubobjectClassifier.true HasSubobjectClassifier.true)
+      (fun f g _ => HasTerminal.uniq f g)
+  constructor
+  · intro hk
+    have hk' : (k ≫ pair χ₁ χ₂) ≫ omegaMeet = term W ≫ HasSubobjectClassifier.true := by
+      rw [Cat.assoc]; exact hk
+    obtain ⟨w, ⟨hw₁, _⟩, _⟩ :=
+      HasSubobjectClassifier.classify_pullback
+        (pair HasSubobjectClassifier.true HasSubobjectClassifier.true)
+        (fun f g _ => HasTerminal.uniq f g)
+        ⟨W, k ≫ pair χ₁ χ₂, term W, hk'⟩
+    -- hw₁ : w ≫ (t,t) = k ≫ ⟨χ₁,χ₂⟩.  Both components equal w ≫ t = term ≫ t.
+    have e1 := congrArg (· ≫ fst) hw₁
+    have e2 := congrArg (· ≫ snd) hw₁
+    simp only [Cat.assoc, fst_pair, snd_pair] at e1 e2
+    refine ⟨?_, ?_⟩
+    · rw [← e1, term_uniq w (term W)]
+    · rw [← e2, term_uniq w (term W)]
+  · rintro ⟨h₁, h₂⟩
+    -- k ≫ ⟨χ₁,χ₂⟩ = term ≫ (t,t), and (t,t) ≫ ∧ = term ≫ t.
+    have hpair : k ≫ pair χ₁ χ₂
+        = term W ≫ pair HasSubobjectClassifier.true HasSubobjectClassifier.true := by
+      have hL : k ≫ pair χ₁ χ₂
+          = pair (term W ≫ HasSubobjectClassifier.true) (term W ≫ HasSubobjectClassifier.true) :=
+        pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]; exact h₁)
+          (by rw [Cat.assoc, snd_pair]; exact h₂)
+      have hR : term W ≫ pair HasSubobjectClassifier.true HasSubobjectClassifier.true
+          = pair (term W ≫ HasSubobjectClassifier.true) (term W ≫ HasSubobjectClassifier.true) :=
+        pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])
+      rw [hL, hR]
+    calc k ≫ (pair χ₁ χ₂ ≫ omegaMeet)
+        = (k ≫ pair χ₁ χ₂) ≫ omegaMeet := (Cat.assoc _ _ _).symm
+      _ = (term W ≫ pair HasSubobjectClassifier.true HasSubobjectClassifier.true) ≫ omegaMeet := by
+            rw [hpair]
+      _ = term W ≫ (pair HasSubobjectClassifier.true HasSubobjectClassifier.true ≫ omegaMeet) :=
+            Cat.assoc _ _ _
+      _ = term W ≫ (term HasTerminal.one ≫ HasSubobjectClassifier.true) := by rw [sqM]
+      _ = (term W ≫ term HasTerminal.one) ≫ HasSubobjectClassifier.true := (Cat.assoc _ _ _).symm
+      _ = term W ≫ HasSubobjectClassifier.true := by
+            rw [term_uniq (term W ≫ term HasTerminal.one) (term W)]
+
 /-- **§1.919 (reduction)**: an endomorphism `h : Ω → Ω` equals the identity as
     soon as `t : 1 → Ω` is a pullback of `t` along `h` — i.e. `Ω` is "`h`-large in
     itself" (`h` classifies the maximal subobject `t : 1 → Ω`).
