@@ -440,4 +440,194 @@ theorem casePMg_sq {A B X : 𝒞} (L : LawfulPMC 𝒞 X) (g : B ⟶ X) :
     coprodInr A B ≫ L.classify (casePMg (A := A) g) = g ≫ L.eta :=
   L.classify_sq (casePMg (A := A) g)
 
+/-! ### Copairing `[f,g]` as the graph of a functional, total relation
+
+  The honest map-OUT.  We avoid the map-IN-only `union` colimit gap by building the
+  copairing as the unique morphism whose GRAPH is the subobject
+
+      `caseUnionSub f g := union (image (pair inl f)) (image (pair inr g)) ⊆ (A+B) × X`,
+
+  the union of the two "partial graphs".  Tabulating that subobject as a relation
+  `caseRel : (A+B) ⇸ X` (left leg `U.arr ≫ fst`, right leg `U.arr ≫ snd`), the two facts
+
+    * `caseRel.colA` is a COVER  (TOTALITY: both injections factor through it, and the
+       injections jointly cover `A+B` — `coprod_injections_cover`); and
+    * `caseRel.colA` is MONIC    (FUNCTIONALITY / single-valuedness: the two partial
+       graphs agree wherever their first coordinates coincide),
+
+  make `caseRel` the graph of a unique morphism `c : A+B → X`
+  (`functional_total_relation_is_graph`, classifier-free), and the two β-laws
+  `inl ≫ c = f`, `inr ≫ c = g` fall out of the two image-factorizations.  No subobject
+  map-OUT, no global non-degeneracy is used: functionality is the *local agreement*
+  fact, vacuous on the disjoint part and forced by collapse on any overlap. -/
+
+/-- The left "partial graph" subobject `{(inl a, f a)} ⊆ (A+B) × X`. -/
+noncomputable def graphInlSub {A B X : 𝒞} (f : A ⟶ X) : Subobject 𝒞 (prod (coprodObj A B) X) :=
+  image (pair (coprodInl A B) f)
+
+/-- The right "partial graph" subobject `{(inr b, g b)} ⊆ (A+B) × X`. -/
+noncomputable def graphInrSub {A B X : 𝒞} (g : B ⟶ X) : Subobject 𝒞 (prod (coprodObj A B) X) :=
+  image (pair (coprodInr A B) g)
+
+/-- The copairing graph `{(inl a, f a)} ∪ {(inr b, g b)} ⊆ (A+B) × X`. -/
+noncomputable def caseUnionSub {A B X : 𝒞} (f : A ⟶ X) (g : B ⟶ X) :
+    Subobject 𝒞 (prod (coprodObj A B) X) :=
+  HasSubobjectUnions.union (graphInlSub f) (graphInrSub g)
+
+/-- The copairing relation `(A+B) ⇸ X` tabulated by the union graph. -/
+noncomputable def caseRel {A B X : 𝒞} (f : A ⟶ X) (g : B ⟶ X) :
+    BinRel 𝒞 (coprodObj A B) X where
+  src  := (caseUnionSub f g).dom
+  colA := (caseUnionSub f g).arr ≫ fst
+  colB := (caseUnionSub f g).arr ≫ snd
+  isMonicPair := by
+    intro W u v hA hB
+    refine (caseUnionSub f g).monic u v ?_
+    have hfst : (u ≫ (caseUnionSub f g).arr) ≫ fst = (v ≫ (caseUnionSub f g).arr) ≫ fst := by
+      simpa [Cat.assoc] using hA
+    have hsnd : (u ≫ (caseUnionSub f g).arr) ≫ snd = (v ≫ (caseUnionSub f g).arr) ≫ snd := by
+      simpa [Cat.assoc] using hB
+    calc u ≫ (caseUnionSub f g).arr
+        = pair ((u ≫ (caseUnionSub f g).arr) ≫ fst) ((u ≫ (caseUnionSub f g).arr) ≫ snd) :=
+          (pair_uniq _ _ _ rfl rfl)
+      _ = pair ((v ≫ (caseUnionSub f g).arr) ≫ fst) ((v ≫ (caseUnionSub f g).arr) ≫ snd) := by
+          rw [hfst, hsnd]
+      _ = v ≫ (caseUnionSub f g).arr := (pair_uniq _ _ _ rfl rfl).symm
+
+/-- **Injections jointly cover `A+B`.**  A monic `m : C ↣ A+B` through which both
+    `coprodInl` and `coprodInr` factor is an iso.  (Same equalizer/`union_min` argument as
+    `coprod_jointly_epi`, repackaged as a covering statement: the images of the two
+    injections inside `A+B` union to the whole carrier.) -/
+theorem coprod_injections_cover {A B C : 𝒞} (m : C ⟶ coprodObj A B) (hm : Mono m)
+    (sl : A ⟶ C) (hsl : sl ≫ m = coprodInl A B)
+    (sr : B ⟶ C) (hsr : sr ≫ m = coprodInr A B) : IsIso m := by
+  -- `Cm := ⟨C, m ≫ coprodArr⟩ ⊆ [A]×[B]` (composite of two monics).
+  have hmc_mono : Mono (m ≫ coprodArr A B) := by
+    intro W u v huv
+    exact hm u v ((coprodArr_monic A B) _ _ (by rw [Cat.assoc, Cat.assoc, huv]))
+  let Cm : Subobject 𝒞 (prod (powObj A) (powObj B)) := ⟨C, m ≫ coprodArr A B, hmc_mono⟩
+  -- Both raw injections factor through `Cm`: `inlRaw = sl ≫ (m ≫ coprodArr)` etc.
+  have him_l : (image (inlRaw A B)).le Cm := by
+    refine image_min (inlRaw A B) Cm ⟨sl, ?_⟩
+    show sl ≫ (m ≫ coprodArr A B) = inlRaw A B
+    rw [← Cat.assoc, hsl, coprodInl_arr]
+  have him_r : (image (inrRaw A B)).le Cm := by
+    refine image_min (inrRaw A B) Cm ⟨sr, ?_⟩
+    show sr ≫ (m ≫ coprodArr A B) = inrRaw A B
+    rw [← Cat.assoc, hsr, coprodInr_arr]
+  -- The carrier (union of the two images) lies in `Cm`.
+  have hcarrier_le : (coprodSub A B).le Cm := HasSubobjectUnions.union_min _ _ _ him_l him_r
+  obtain ⟨j, hj⟩ := hcarrier_le
+  -- `j ≫ m = id` (cancel the monic `coprodArr`), so `m` is split epi; with `m` monic, iso.
+  have hjm : j ≫ m = Cat.id (coprodObj A B) := by
+    apply coprodArr_monic A B
+    rw [Cat.assoc]
+    show (j ≫ (m ≫ coprodArr A B)) = Cat.id (coprodObj A B) ≫ coprodArr A B
+    rw [Cat.id_comp]; exact hj
+  -- `m ≫ j = id`: `(m ≫ j) ≫ m = m ≫ (j ≫ m) = m = id ≫ m`, cancel `m` monic.
+  have hmj : m ≫ j = Cat.id C := hm _ _ (by
+    rw [Cat.assoc, hjm, Cat.comp_id, Cat.id_comp])
+  exact ⟨j, hmj, hjm⟩
+
+/-- The left injection factors through the copairing relation's left leg. -/
+theorem caseRel_inl_factor {A B X : 𝒞} (f : A ⟶ X) (g : B ⟶ X) :
+    ∃ s : A ⟶ (caseRel f g).src, s ≫ (caseRel f g).colA = coprodInl A B := by
+  -- `pair inl f` factors through its image `graphInlSub ≤ caseUnionSub`.
+  obtain ⟨w, hw⟩ := HasSubobjectUnions.union_left (graphInlSub f) (graphInrSub g)
+  -- hw : w ≫ (caseUnionSub f g).arr = (graphInlSub f).arr = (image (pair inl f)).arr
+  refine ⟨image.lift (pair (coprodInl A B) f) ≫ w, ?_⟩
+  have hsU : (image.lift (pair (coprodInl A B) f) ≫ w) ≫ (caseUnionSub f g).arr
+      = pair (coprodInl A B) f := by
+    rw [Cat.assoc]
+    show image.lift (pair (coprodInl A B) f)
+        ≫ (w ≫ (HasSubobjectUnions.union (graphInlSub f) (graphInrSub g)).arr) = _
+    rw [hw]; exact image.lift_fac _
+  show (image.lift (pair (coprodInl A B) f) ≫ w) ≫ ((caseUnionSub f g).arr ≫ fst) = coprodInl A B
+  rw [← Cat.assoc, hsU]; exact fst_pair _ _
+
+/-- The right injection factors through the copairing relation's left leg. -/
+theorem caseRel_inr_factor {A B X : 𝒞} (f : A ⟶ X) (g : B ⟶ X) :
+    ∃ s : B ⟶ (caseRel f g).src, s ≫ (caseRel f g).colA = coprodInr A B := by
+  obtain ⟨w, hw⟩ := HasSubobjectUnions.union_right (graphInlSub f) (graphInrSub g)
+  refine ⟨image.lift (pair (coprodInr A B) g) ≫ w, ?_⟩
+  have hsU : (image.lift (pair (coprodInr A B) g) ≫ w) ≫ (caseUnionSub f g).arr
+      = pair (coprodInr A B) g := by
+    rw [Cat.assoc]
+    show image.lift (pair (coprodInr A B) g)
+        ≫ (w ≫ (HasSubobjectUnions.union (graphInlSub f) (graphInrSub g)).arr) = _
+    rw [hw]; exact image.lift_fac _
+  show (image.lift (pair (coprodInr A B) g) ≫ w) ≫ ((caseUnionSub f g).arr ≫ fst) = coprodInr A B
+  rw [← Cat.assoc, hsU]; exact fst_pair _ _
+
+/-- **TOTALITY.**  `caseRel.colA` is a cover: both injections factor through it and they
+    jointly cover `A+B`. -/
+theorem caseRel_colA_cover {A B X : 𝒞} (f : A ⟶ X) (g : B ⟶ X) :
+    Cover (caseRel f g).colA := by
+  intro C m gg hm hgm
+  -- Both injections factor through `caseRel.colA = gg ≫ m`, hence through the monic `m`.
+  obtain ⟨sl₀, hsl₀⟩ := caseRel_inl_factor f g
+  obtain ⟨sr₀, hsr₀⟩ := caseRel_inr_factor f g
+  refine coprod_injections_cover m hm (sl₀ ≫ gg) ?_ (sr₀ ≫ gg) ?_
+  · rw [Cat.assoc, hgm, hsl₀]
+  · rw [Cat.assoc, hgm, hsr₀]
+
+/-- **FUNCTIONALITY.**  `caseRel.colA` is monic: the union graph is single-valued.  Any two
+    elements of the union with the same first coordinate in `A+B` have the same second
+    coordinate in `X` (local agreement of the two partial graphs). -/
+theorem caseRel_colA_monic {A B X : 𝒞} (f : A ⟶ X) (g : B ⟶ X) :
+    Mono (caseRel f g).colA := by
+  sorry
+
+/-- **The copairing exists.**  `caseRel` is functional + total, hence the graph of a unique
+    `c : A+B → X`; the β-laws come from the two partial-graph factorizations. -/
+theorem coprod_case_exists {A B X : 𝒞} (f : A ⟶ X) (g : B ⟶ X) :
+    ∃ c : coprodObj A B ⟶ X, coprodInl A B ≫ c = f ∧ coprodInr A B ≫ c = g := by
+  -- `caseRel` is functional (colA monic) and total (colA a cover), hence the graph of a
+  -- unique `c`, with `caseRel.colA ≫ c = caseRel.colB`.
+  obtain ⟨c, ⟨⟨h, hhA, hhB⟩, _⟩, _⟩ :=
+    functional_total_relation_is_graph (caseRel f g) (caseRel_colA_monic f g) (caseRel_colA_cover f g)
+  -- `RelHom (caseRel) (graph c)`: `h ≫ id = caseRel.colA`, `h ≫ c = caseRel.colB`.
+  -- so `caseRel.colA ≫ c = colB`.
+  have hkey : (caseRel f g).colA ≫ c = (caseRel f g).colB := by
+    have hh : h = (caseRel f g).colA := by
+      have := hhA; dsimp [graph] at this; rwa [Cat.comp_id] at this
+    have := hhB; dsimp [graph] at this; rw [hh] at this; exact this
+  refine ⟨c, ?_, ?_⟩
+  · -- `pair inl f` factors through the union carrier; precompose `hkey`.
+    obtain ⟨t, ht⟩ := HasSubobjectUnions.union_left (graphInlSub f) (graphInrSub g)
+    -- ht : t ≫ (caseUnionSub f g).arr = (graphInlSub f).arr = (image (pair inl f)).arr
+    let s : A ⟶ (caseRel f g).src := image.lift (pair (coprodInl A B) f) ≫ t
+    have hsU : s ≫ (caseUnionSub f g).arr = pair (coprodInl A B) f := by
+      show (image.lift (pair (coprodInl A B) f) ≫ t) ≫ (caseUnionSub f g).arr = _
+      rw [Cat.assoc]
+      show image.lift (pair (coprodInl A B) f) ≫ (t ≫ (HasSubobjectUnions.union (graphInlSub f) (graphInrSub g)).arr) = _
+      rw [ht]; exact image.lift_fac _
+    have hsA : s ≫ (caseRel f g).colA = coprodInl A B := by
+      show s ≫ ((caseUnionSub f g).arr ≫ fst) = coprodInl A B
+      rw [← Cat.assoc, hsU]; exact fst_pair _ _
+    have hsB : s ≫ (caseRel f g).colB = f := by
+      show s ≫ ((caseUnionSub f g).arr ≫ snd) = f
+      rw [← Cat.assoc, hsU]; exact snd_pair _ _
+    calc coprodInl A B ≫ c = (s ≫ (caseRel f g).colA) ≫ c := by rw [hsA]
+      _ = s ≫ ((caseRel f g).colA ≫ c) := Cat.assoc _ _ _
+      _ = s ≫ (caseRel f g).colB := by rw [hkey]
+      _ = f := hsB
+  · obtain ⟨t, ht⟩ := HasSubobjectUnions.union_right (graphInlSub f) (graphInrSub g)
+    let s : B ⟶ (caseRel f g).src := image.lift (pair (coprodInr A B) g) ≫ t
+    have hsU : s ≫ (caseUnionSub f g).arr = pair (coprodInr A B) g := by
+      show (image.lift (pair (coprodInr A B) g) ≫ t) ≫ (caseUnionSub f g).arr = _
+      rw [Cat.assoc]
+      show image.lift (pair (coprodInr A B) g) ≫ (t ≫ (HasSubobjectUnions.union (graphInlSub f) (graphInrSub g)).arr) = _
+      rw [ht]; exact image.lift_fac _
+    have hsA : s ≫ (caseRel f g).colA = coprodInr A B := by
+      show s ≫ ((caseUnionSub f g).arr ≫ fst) = coprodInr A B
+      rw [← Cat.assoc, hsU]; exact fst_pair _ _
+    have hsB : s ≫ (caseRel f g).colB = g := by
+      show s ≫ ((caseUnionSub f g).arr ≫ snd) = g
+      rw [← Cat.assoc, hsU]; exact snd_pair _ _
+    calc coprodInr A B ≫ c = (s ≫ (caseRel f g).colA) ≫ c := by rw [hsA]
+      _ = s ≫ ((caseRel f g).colA ≫ c) := Cat.assoc _ _ _
+      _ = s ≫ (caseRel f g).colB := by rw [hkey]
+      _ = g := hsB
+
 end Freyd
