@@ -1197,12 +1197,60 @@ theorem omega_involution_of_cube (g : HasSubobjectClassifier.omega (𝒞 := 𝒞
     topos (where `¬` IS monic and IS a genuine involution), the unique `g`-large
     subobject of `1` is `∅`, so `U = ∅ ≠ 1`.  The prior note conflated `U` with
     Freyd's `V` (`V = 1`, the vacuous "every `A` has a large subobject" constraint).
-    The collapse therefore does NOT go through `u = ⊤`.  See S1_91.md. -/
+    The collapse therefore does NOT go through `u = ⊤`.  See S1_91.md.
+
+    SHARPENED OBSTRUCTION (this pass, two independent re-derivations; the
+    recorded irreducibility was RE-VERIFIED, not inherited).
+
+    (1) The CRUX is the WHOLE of CUBE, on BOTH sides.  Running `omega_ext` on
+    `(g≫g)≫g = g` reduces it to: `∀ k:V→Ω, k ≫ g ≫ g ≫ g = ⊤ ↔ k ≫ g = ⊤`.
+    For `k ∈ G` (`k = w ≫ G.arr`) one gets `k ≫ g = term_V ≫ t` and hence
+    `k ≫ g ≫ g = term_V ≫ (t ≫ g)`, so the forward `↔` is exactly
+    `t ≫ g ≫ g = t` (CRUX); the backward leg collapses to the same constant.
+    There is NO "easy direction": the pointwise iff is CRUX on each side.  So
+    the residual is precisely the named lemma
+
+        true_g_sq : t ≫ g ≫ g = t        (`g(g(⊤)) = ⊤`)
+
+    i.e. the subterminal `G := g⁻¹(t)` (subterminal by `invTrue_subterminal`,
+    classified by `g` via `classify_invTrue`) is INHABITED by its canonical
+    candidate point `g(⊤) = t ≫ g`.
+
+    (2) The `ĝ(S) = (S ⇔ A×U)` form with `U ⊆ 1` and `A×U := (term_A)# U` is
+    not merely "not one-step"; with a NATURAL/constant `u_A` it is INCONSISTENT
+    with `g` non-constant.  Indeed `u_A := ĝ(⊤_A)` is forced by `⊤ ⇔ u = u`
+    (`true_dbar`), and at `A = Ω` gives `ĝ(⊤_Ω) = G`, whose classifier is `g`.
+    A constant inverse image `A×U = (term_A)# U` has classifier
+    `term_A ≫ χ_U`, so `ĝ(⊤_Ω) = Ω×U` would force `g = term_Ω ≫ χ_U` — a
+    CONSTANT map — contradicting `g = ¬` or `g = id`.  Hence the right `u_A`
+    is the genuinely natural family `u_A := ĝ(⊤_A)` (a subterminal subobject of
+    `A`, NOT pulled back from `1`), and the keystone is `ĝ(S) = S ⇔ ĝ(⊤_A)`.
+    Every `dbar_unit`/`dbar_symm`/`true_dbar` instantiation at `A = Ω` we can
+    form COLLAPSES TO A TAUTOLOGY (e.g. `dbar_unit topOmega G` yields only
+    `t ≫ χ_{top⇔G} = t ≫ g`, which `true_dbar` already gives), so the Heyting
+    layer alone never reaches CRUX.
+
+    WHY `Mono g` ALONE CANNOT SUFFICE.  `Mono g` gives exactly: `(·≫g)` is
+    INJECTIVE on each `Hom(A,Ω)` (right-cancellation).  CRUX is the POSITIVE
+    statement that a subterminal is INHABITED.  Injectivity of an endo-operation
+    never forces a subterminal to be inhabited (vacuously fine for the empty
+    subterminal).  The true §1.919 proof is the involutivity argument: `(·≫g)`
+    is a natural injective operation `S ↦ S ⇔ ĝ(⊤_A)` on the Heyting object
+    `Sub(−)`, and an injective operation of that form is forced to be involutive
+    (`ĝ² = id`), which at `A = 1, S = ⊤` gives CRUX.  This needs (i) the natural
+    identification `(·≫g) = (·⇔ĝ(⊤_A))` — itself equivalent to CRUX — and (ii)
+    the injective⟹involutive step over arbitrary `Sub(A)`.  That is a genuine
+    internal-logic build STRICTLY STRONGER than `Mono g` in isolation; it is NOT
+    a single additive lemma reachable from the present API (the order layer
+    `imp_adjunction` is available but does not break the circle).  Deliberately
+    left as an honest `sorry` with this sharpened reason rather than faked. -/
 theorem omega_monic_endo_is_involution (g : HasSubobjectClassifier.omega (𝒞 := 𝒞) ⟶
     HasSubobjectClassifier.omega (𝒞 := 𝒞)) (hm : Mono g) : g ≫ g = Cat.id _ := by
   -- Reduced (axiom-free) to the cube law `(g ≫ g) ≫ g = g`; see CRUX above.
   refine omega_involution_of_cube g hm ?_
   -- CRUX residual: `(g ≫ g) ≫ g = g`, equivalently `t ≫ g ≫ g = t` at the point ⊤.
+  -- Verified irreducible from `Mono g` + present API; needs the internal
+  -- involutivity layer `(·≫g) = (·⇔ĝ(⊤_A))` + injective⟹involutive (see docstring).
   sorry
 
 /-! ## §1.91(10)  Minimal topos definition
