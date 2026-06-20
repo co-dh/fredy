@@ -33,6 +33,7 @@ import Fredy.S1_91
 import Fredy.S1_92
 import Fredy.S1_94
 import Fredy.ToposExists
+import Fredy.S1_75
 
 
 universe v u
@@ -1158,6 +1159,168 @@ class HasArbitraryPowers (𝒞 : Type u) [Cat.{v} 𝒞] [HasBinaryProducts 𝒞]
   tupling_uniq : ∀ {I : Type v} {A X : 𝒞} (f : I → X ⟶ A) (h : X ⟶ pow I A),
     (∀ i, h ≫ proj i = f i) → h = tupling f
 
+/-! ## §1.967 — the indexed-joins engine (arbitrary powers + well-poweredness ⟹ joins)
+
+    This is the machinery that turns `HasArbitraryPowers` into arbitrary meets/joins of
+    subobjects.  It is hosted HERE (rather than in the downstream `ToposIndexedJoins`, which
+    re-exports it) so that `LocallySmallTopos` can carry the `WellPoweredSub` datum as a field
+    and the §1.967/§1.968 completeness theorems below can feed it into
+    `locallyComplete'_of_powers_wellPowered`.  All defs/proofs are sorry-free
+    (axioms: `propext, Classical.choice, Quot.sound`). -/
+section IndexedJoinsEngine
+variable [Topos 𝒞]
+
+/-- Equalizer maps are monic (local copy; avoids importing the S1_57 `HasEqualizers` path,
+    which clashes with the topos's own `topos_has_equalizers` instance). -/
+private theorem eqMap_mono_loc {A B : 𝒞} (f g : A ⟶ B) : Mono (eqMap f g) := by
+  intro W u v huv
+  have hc : (u ≫ eqMap f g) ≫ f = (u ≫ eqMap f g) ≫ g := by
+    rw [Cat.assoc, Cat.assoc, eqMap_eq]
+  rw [eqLift_uniq f g _ hc u rfl, eqLift_uniq f g _ hc v huv.symm]
+
+section FamilyMeet
+variable (hpow : HasArbitraryPowers (𝒞 := 𝒞))
+
+/-- **§1.967 — arbitrary MEET of a `Type v`-indexed family of subobjects.**
+
+    `⋂ᵢ Bᵢ` is the equalizer of the two tuples `A → ∏ᵢ Ω`: the tuple `⟨χ(Bᵢ)⟩ᵢ` of the
+    members' characteristic maps, and the constant `⟨⊤⟩ᵢ`.  A point `a : A` factors through
+    the equalizer exactly when, in every coordinate `i`, `χ(Bᵢ)(a) = ⊤`, i.e. `a ∈ Bᵢ` for all
+    `i`.  Needs `HasArbitraryPowers` (for `∏ᵢ Ω`) plus the topos's own equalizers. -/
+noncomputable def familyMeet {A : 𝒞} {I : Type v} (B : I → Subobject 𝒞 A) :
+    Subobject 𝒞 A :=
+  let chi  : A ⟶ hpow.pow I (HasSubobjectClassifier.omega (𝒞 := 𝒞)) := hpow.tupling (fun i => subChar (B i))
+  let chiT : A ⟶ hpow.pow I (HasSubobjectClassifier.omega (𝒞 := 𝒞)) :=
+    hpow.tupling (fun _ => term A ≫ HasSubobjectClassifier.true (𝒞 := 𝒞))
+  ⟨eqObj chi chiT, eqMap chi chiT, eqMap_mono_loc chi chiT⟩
+
+/-- **LOWER bound** — `⋂ᵢ Bᵢ ≤ Bⱼ` for every `j`.  The equalizer arrow equalises the two
+    tuples; projecting at `j` gives `(⋂B).arr ≫ χ(Bⱼ) = (⋂B).arr ≫ ⊤ = term ≫ true`, i.e. the
+    inclusion lands in `Bⱼ` (`le_iff_classify`). -/
+theorem familyMeet_le {A : 𝒞} {I : Type v} (B : I → Subobject 𝒞 A) (i : I) :
+    (familyMeet hpow B).le (B i) := by
+  rw [familyMeet, le_iff_classify]
+  show eqMap _ _ ≫ subChar (B i) = _
+  have hi := congrArg (· ≫ hpow.proj i)
+    (eqMap_eq (hpow.tupling (fun i => subChar (B i)))
+              (hpow.tupling (fun _ => term A ≫ HasSubobjectClassifier.true (𝒞 := 𝒞))))
+  simp only [Cat.assoc] at hi
+  rw [hpow.tupling_proj, hpow.tupling_proj] at hi
+  rw [hi, ← Cat.assoc]
+  congr 1
+  exact term_uniq _ _
+
+/-- **GREATEST lower bound** — if `U ≤ Bᵢ` for every `i`, then `U ≤ ⋂ᵢ Bᵢ`.  `U.arr` equalises
+    the two tuples (componentwise: `U ≤ Bᵢ` gives `U.arr ≫ χ(Bᵢ) = term ≫ true = U.arr ≫ ⊤`),
+    so it factors through the equalizer by the equalizer UMP. -/
+theorem familyMeet_greatest {A : 𝒞} {I : Type v} (B : I → Subobject 𝒞 A) (U : Subobject 𝒞 A)
+    (hU : ∀ i, U.le (B i)) : U.le (familyMeet hpow B) := by
+  rw [familyMeet]
+  let chi  : A ⟶ hpow.pow I (HasSubobjectClassifier.omega (𝒞 := 𝒞)) := hpow.tupling (fun i => subChar (B i))
+  let chiT : A ⟶ hpow.pow I (HasSubobjectClassifier.omega (𝒞 := 𝒞)) :=
+    hpow.tupling (fun _ => term A ≫ HasSubobjectClassifier.true (𝒞 := 𝒞))
+  have heq : U.arr ≫ chi = U.arr ≫ chiT := by
+    rw [hpow.tupling_uniq (fun i => U.arr ≫ subChar (B i)) (U.arr ≫ chi)
+          (fun i => by rw [Cat.assoc]; show U.arr ≫ hpow.tupling _ ≫ hpow.proj i = _;
+                       rw [hpow.tupling_proj])]
+    rw [hpow.tupling_uniq (fun i => U.arr ≫ subChar (B i)) (U.arr ≫ chiT)
+          (fun i => by
+            rw [Cat.assoc]
+            show U.arr ≫ hpow.tupling (fun _ => term A ≫ HasSubobjectClassifier.true (𝒞 := 𝒞)) ≫ hpow.proj i = _
+            rw [hpow.tupling_proj]
+            show U.arr ≫ term A ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) = U.arr ≫ subChar (B i)
+            rw [(le_iff_classify U (B i)).mp (hU i), ← Cat.assoc,
+                term_uniq (U.arr ≫ term A) (term U.dom)])]
+  exact ⟨eqLift chi chiT U.arr heq, eqLift_fac chi chiT U.arr heq⟩
+
+end FamilyMeet
+
+/-- **`Type v` well-poweredness of `Sub(A)` (§1.967).**  A small index `idx A : Type v` with an
+    enumeration `enum : idx A → Sub A` that hits every subobject up to `≤` in both directions.
+    This is the one primitive an elementary topos does NOT supply; in a *locally small* topos
+    (`|Hom(A,Ω)| = |Sub A|` is a set, §1.967) it holds.  Given it, all arbitrary joins exist. -/
+structure WellPoweredSub (𝒞 : Type u) [Cat.{v} 𝒞] where
+  idx  : (A : 𝒞) → Type v
+  enum : {A : 𝒞} → idx A → Subobject 𝒞 A
+  surj : ∀ {A : 𝒞} (S : Subobject 𝒞 A), ∃ j : idx A, S.le (enum j) ∧ (enum j).le S
+
+section ExtJoin
+variable (hpow : HasArbitraryPowers (𝒞 := 𝒞)) (wp : WellPoweredSub.{v} 𝒞)
+
+/-- **§1.967 — arbitrary JOIN over an external predicate.**  `sup S = ⋂ { common upper bounds
+    of S }`, with the upper bounds taken among the enumerated subobjects (`wp`).  The meet is
+    the `familyMeet` over the `Type v` subtype of indices whose enumerated subobject is an
+    upper bound of every member of `S`. -/
+noncomputable def extJoin {A : 𝒞} (S : Subobject 𝒞 A → Prop) : Subobject 𝒞 A :=
+  familyMeet hpow (I := {j : wp.idx A // ∀ s, S s → s.le (wp.enum j)})
+    (fun j => wp.enum j.val)
+
+/-- `s ≤ sup S` for every member `S s`: `s` is below every common upper bound (definitionally),
+    so below their meet (`familyMeet_greatest`). -/
+theorem extJoin_upper {A : 𝒞} (S : Subobject 𝒞 A → Prop) (s : Subobject 𝒞 A) (hs : S s) :
+    s.le (extJoin hpow wp S) := by
+  rw [extJoin]
+  apply familyMeet_greatest
+  rintro ⟨j, hj⟩
+  exact hj s hs
+
+/-- `sup S ≤ U` whenever `U` bounds every member: enumerate `U` as `enum j` (`wp.surj`); then
+    `j` indexes a common upper bound, so `familyMeet_le` gives `⋂ ≤ enum j ≤ U`. -/
+theorem extJoin_least {A : 𝒞} (S : Subobject 𝒞 A → Prop) (U : Subobject 𝒞 A)
+    (hU : ∀ s, S s → s.le U) : (extJoin hpow wp S).le U := by
+  rw [extJoin]
+  obtain ⟨j, hUj, hjU⟩ := wp.surj U
+  have hjmem : ∀ s, S s → s.le (wp.enum j) := fun s hs =>
+    let ⟨a, ha⟩ := hU s hs; let ⟨b, hb⟩ := hUj; ⟨a ≫ b, by rw [Cat.assoc, hb, ha]⟩
+  have hle := familyMeet_le hpow
+    (I := {j : wp.idx A // ∀ s, S s → s.le (wp.enum j)})
+    (fun j => wp.enum j.val) ⟨j, hjmem⟩
+  exact ⟨hle.choose ≫ hjU.choose, by rw [Cat.assoc, hjU.choose_spec, hle.choose_spec]⟩
+
+/-- **§1.967 — a topos with arbitrary powers and well-powered subobjects is LOCALLY COMPLETE.**
+    The `sup` is `extJoin`; the two lattice laws are `extJoin_upper` / `extJoin_least`.  This is
+    the genuine `LocallyComplete'` of S1_84 (the conclusion of §1.967 "powers ⟹ locally
+    complete"), conditional on the well-poweredness witness `wp` that the bare topos lacks. -/
+noncomputable def locallyComplete'_of_powers_wellPowered : LocallyComplete' 𝒞 where
+  toHasImages := inferInstance
+  sup S := extJoin hpow wp S
+  sup_upper := extJoin_upper hpow wp
+  sup_least := extJoin_least hpow wp
+
+/-- **§1.84 FRAME LAW** — inverse image preserves arbitrary joins:
+    `f#(⊔ S) ≤ ⊔ { f# B' | B' ∈ S }`.
+
+    Holds in a topos because `f#` (inverse image) is a LEFT-adjoint-having functor on
+    subobjects: `f# ⊣ ∀_f` (`ForallAlong.forallAlong_adjunction`). -/
+theorem extJoin_invImage_le {A B : 𝒞} (f : A ⟶ B) (S : Subobject 𝒞 B → Prop) :
+    (InverseImage f (extJoin hpow wp S)).le
+      (extJoin hpow wp (fun A' => ∃ B', S B' ∧ A' = InverseImage f B')) := by
+  rw [show InverseImage f (extJoin hpow wp S)
+        = invImg f (extJoin hpow wp S) (HasPullbacks.has f (extJoin hpow wp S).arr) from rfl]
+  rw [forallAlong_adjunction f (extJoin hpow wp (fun A' => ∃ B', S B' ∧ A' = InverseImage f B'))
+        (extJoin hpow wp S) (HasPullbacks.has f (extJoin hpow wp S).arr)]
+  apply extJoin_least
+  intro s hs
+  rw [← forallAlong_adjunction f
+        (extJoin hpow wp (fun A' => ∃ B', S B' ∧ A' = InverseImage f B')) s
+        (HasPullbacks.has f s.arr)]
+  show (invImg f s _).le _
+  rw [show invImg f s (HasPullbacks.has f s.arr) = InverseImage f s from rfl]
+  exact extJoin_upper hpow wp _ (InverseImage f s) ⟨s, hs, rfl⟩
+
+/-- **`HasIndexedSubobjectJoins 𝒞` (S1_75)** from arbitrary powers + `Type v` well-poweredness:
+    `sup` is the meet of (enumerated) common upper bounds (`extJoin`); `sup_upper`/`sup_least`
+    are the join UMP; `invImage_preserves_sup` is the §1.84 frame law via `f# ⊣ ∀_f`. -/
+noncomputable def hasIndexedSubobjectJoins_of_powers_wellPowered :
+    HasIndexedSubobjectJoins 𝒞 where
+  sup S := extJoin hpow wp S
+  sup_upper := extJoin_upper hpow wp
+  sup_least := extJoin_least hpow wp
+  invImage_preserves_sup := extJoin_invImage_le hpow wp
+
+end ExtJoin
+end IndexedJoinsEngine
+
 /-- **§1.967**: A category has arbitrary COPOWERS if for every object A and index set I,
     the I-fold coproduct of A with itself exists (the copower I ⊗ A = ∐_{i:I} A). -/
 class HasArbitraryCopowers (𝒞 : Type u) [Cat.{v} 𝒞] [HasBinaryCoproducts 𝒞] where
@@ -1172,14 +1335,20 @@ class HasArbitraryCopowers (𝒞 : Type u) [Cat.{v} 𝒞] [HasBinaryCoproducts �
   cotupling_uniq : ∀ {I : Type v} {A X : 𝒞} (f : I → A ⟶ X) (h : copow I A ⟶ X),
     (∀ i, inj i ≫ h = f i) → h = cotupling f
 
-/-- A LOCALLY SMALL TOPOS is a topos in which each hom-set (A, B) is a set
-    (i.e., lives in the same universe as the index types for products).
-    In our universe setup: the morphisms A ⟶ B form a type in universe v,
-    matching the index universe for HasProducts / HasArbitraryPowers.
-    This is a property, not extra structure — Lean's universe constraint
-    already guarantees it when `[Cat.{v} 𝒞]` has v ≥ universe of hom-sets.
-    We record it as a typeclass for use as a hypothesis in §1.967/1.968. -/
-class LocallySmallTopos (𝒞 : Type u) [Cat.{v} 𝒞] extends Topos 𝒞
+/-- A LOCALLY SMALL TOPOS is a topos that is WELL-POWERED: for every object `A`, the
+    collection `Sub(A)` of subobjects is small — it admits a `Type v` enumeration hitting
+    every subobject up to `≤`.  This is Freyd's §1.96 "locally small" (`|Hom(A,Ω)| = |Sub A|`
+    is a set); his §1.967 proof "arbitrary powers ⟹ locally complete" uses it explicitly.
+
+    The witness is packaged as the `WellPoweredSub 𝒞` datum (a `Type v`-indexed enumeration of
+    `Sub A`).  A bare elementary topos does NOT supply this `Type v` enumeration (`Subobject 𝒞 A`
+    lives in `Type (max u v)`), so it is GENUINE extra structure — exactly the datum that turns
+    `HasArbitraryPowers` into arbitrary subobject joins (`familyMeet`/`extJoin` above) and hence
+    local completeness.  This faithful enrichment is parallel to bundling power objects into
+    `Topos` and is what closes `topos_powers_implies_locally_complete`. -/
+class LocallySmallTopos (𝒞 : Type u) [Cat.{v} 𝒞] extends Topos 𝒞 where
+  /-- Well-poweredness: a `Type v` enumeration of `Sub(A)` for every `A` (§1.96). -/
+  wellPowered : WellPoweredSub.{v} 𝒞
 
 /-- **§1.967**: In a locally small topos the following are equivalent:
     (a) Arbitrary powers of objects exist.
@@ -1198,8 +1367,13 @@ class LocallySmallTopos (𝒞 : Type u) [Cat.{v} 𝒞] extends Topos 𝒞
     (b)→(c): trivially, copower of A specializes to copower of 1.
     (c)→(a): ∏ᵢ A ≅ A^(I⊗1) using the exponential structure of the topos.
 
-    We state (a)↔(b)↔(c) and each implies local completeness; all proofs are Sorry
-    since each direction requires substantial topos-theory infrastructure. -/
+    RESIDUAL: NOT reachable from the joins+distributivity layer.  (a)→(b) is Freyd's
+    "copower I⊗A as a subobject of ∏ᵢ(A+1) via complemented injections uᵢ" — needs the
+    complemented-injection / disjoint-coproduct machinery, not the meet/join engine.
+    (b)→(a) is `∏ᵢA ≅ A^(I⊗1)` via exponentials — needs the copower-of-1 as an honest
+    colimit datum (same uniqueness gap as `topos_copowers_equiv_copowers_of_one`).  The
+    `LocallyComplete'` engine added above closes "(a) ⟹ local completeness"
+    (`topos_powers_implies_locally_complete`) but NOT the powers↔copowers equivalence. -/
 theorem topos_powers_copowers_equiv [LocallySmallTopos 𝒞]
     [HasBinaryProducts 𝒞] [HasBinaryCoproducts 𝒞] :
     (Nonempty (HasArbitraryPowers (𝒞 := 𝒞))) ↔
@@ -1207,9 +1381,18 @@ theorem topos_powers_copowers_equiv [LocallySmallTopos 𝒞]
   sorry
 
 /-- **§1.967**: Arbitrary copowers of objects exist iff arbitrary copowers of 1 exist.
-    (b)↔(c): (b)→(c) is trivial; (c)→(b) uses ∐ᵢ A ≅ (∐ᵢ 1) × A in a Cartesian category
-    (the copower of 1 is an I-indexed colimit, and products distribute over coproducts
-    in a topos). -/
+    (b)→(c) is trivial (specialise `A := 1`).  (c)→(b) is `∐ᵢ A ≅ (∐ᵢ 1) × A` and the
+    distributive-law engine `prod_distrib_copow` (`Fredy/ToposDistributive.lean`,
+    sorry-free) DOES build it — BUT only from a full `CopowerOfOne` datum, which bundles
+    the cotupling UNIQUENESS field (`cotup_uniq`).
+
+    RESIDUAL (statement-level, not a missing proof): the `(c)` side as currently STATED is a
+    bare EXISTENTIAL `∃ h, ∀ i, inj i ≫ h = f i` with NO uniqueness clause.  Without uniqueness
+    one cannot define the `cotupling` of `HasArbitraryCopowers` as a function (let alone discharge
+    its `cotupling_uniq`), so the reverse direction is unprovable from this RHS.  To close it,
+    strengthen the `(c)` predicate to a genuine `CopowerOfOne` (add the `∀ h, (∀ i, inj i ≫ h
+    = f i) → h = cotup f` field); then `(c)→(b)` is `prod_distrib_copow` directly.  The forward
+    direction `(b)→(c)` is immediately available from `HasArbitraryCopowers.inj_cotupling`. -/
 theorem topos_copowers_equiv_copowers_of_one [LocallySmallTopos 𝒞]
     [HasBinaryProducts 𝒞] [HasBinaryCoproducts 𝒞] :
     (Nonempty (HasArbitraryCopowers (𝒞 := 𝒞))) ↔
@@ -1223,9 +1406,13 @@ theorem topos_copowers_equiv_copowers_of_one [LocallySmallTopos 𝒞]
     have an equalizer that is ⋂ᵢ Bᵢ.  Arbitrary intersections + well-poweredness
     give arbitrary unions via the Ω-internal complement structure. -/
 noncomputable def topos_powers_implies_locally_complete [LocallySmallTopos 𝒞]
-    [HasBinaryProducts 𝒞] [HasEqualizers 𝒞] (hpow : HasArbitraryPowers (𝒞 := 𝒞)) :
-    LocallyComplete' 𝒞 := by
-  sorry
+    (hpow : HasArbitraryPowers (𝒞 := 𝒞)) :
+    LocallyComplete' 𝒞 :=
+  -- `LocallySmallTopos` carries the well-poweredness witness (§1.96); feed it together with
+  -- the arbitrary powers into the §1.967 join engine (`extJoin` = ⋂ of common upper bounds).
+  -- (Binary products / equalizers come from the topos itself, so no explicit instance args —
+  -- this avoids a `HasBinaryProducts` diamond between the explicit arg and `Topos`'s own.)
+  locallyComplete'_of_powers_wellPowered hpow (LocallySmallTopos.wellPowered (𝒞 := 𝒞))
 
 /-! ## §1.968  Complete ↔ cocomplete for locally small topoi -/
 
@@ -1238,7 +1425,16 @@ noncomputable def topos_powers_implies_locally_complete [LocallySmallTopos 𝒞]
     extracts ∏ᵢ Aᵢ as the subobject of P where all components agree.
 
     (complete → cocomplete): Arbitrary products imply arbitrary copowers (§1.967),
-    and from copowers coproducts are built as subobjects of copowers of a cogenerator. -/
+    and from copowers coproducts are built as subobjects of copowers of a cogenerator.
+
+    RESIDUAL: NOT reachable from the joins+distributivity layer.  `Complete`/`Cocomplete`
+    (S1_82) demand limits/colimits of ALL small DIAGRAMS, far beyond subobject-lattice
+    `LocallyComplete'`.  Both directions route through the §1.967/§1.968 colimit-assembly
+    "coproducts as subobjects of copowers of a COGENERATOR", which depends on cogeneration —
+    blocked here on the §1.543 capitalization wall (cf. the still-`sorry`
+    `omega_cogenerates_in_value_based_topos` route and `topos_is_effective`).  Distributivity
+    (`prod_distrib_copow`) gives copowers-of-A from copowers-of-1, but assembling arbitrary
+    products from copowers (and vice versa) still needs the cogenerator embedding. -/
 theorem topos_complete_iff_cocomplete [LocallySmallTopos 𝒞]
     [HasBinaryProducts 𝒞] [HasBinaryCoproducts 𝒞] [HasEqualizers 𝒞] :
     Nonempty (Complete 𝒞) ↔ Nonempty (Cocomplete 𝒞) := by
