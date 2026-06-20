@@ -42,7 +42,13 @@
 -/
 
 import Fredy.S1_51
-import Fredy.S1_94
+-- NOTE: `Topos` lives in S1_9 (S1_51 does not transitively import it).  We used to
+-- reach it via `import Fredy.S1_94`, but that created the cycle
+-- S1_94 → InternalForall → InternalForallTopos → S1_94, which blocked S1_94 from
+-- importing the (sorry-free) topos-regularity infrastructure in InternalForallTopos.
+-- InternalForall uses NO symbol declared in S1_94 (only `Topos`/`Allows`/`Subobject`),
+-- so we import S1_9 directly and break the cycle.
+import Fredy.S1_9
 
 universe v u
 

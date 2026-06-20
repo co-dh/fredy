@@ -135,37 +135,37 @@ end Effective
     (kernel pair) is exactly `E`.  Granting that quotient cover,
     `effective_of_quotient_cover` discharges effectiveness completely.
 
-    **Sharpened blocker (faithful Sorry).**  Building the `EffectiveRegular`
-    instance from bare `[Topos 𝒞]` needs THREE ingredients, of which the
-    quotient-cover machinery is now within reach but the regular core is not:
+    **Sharpened blocker (faithful Sorry — (1)+(2) now CLOSED, (3) remains).**
+    Building the `EffectiveRegular` instance from bare `[Topos 𝒞]` needs THREE
+    ingredients.  As of the regularity-refactor, the regular core (1)+(2) is DONE; the
+    irreducible residual is the per-relation quotient cover (3):
 
-      (1) `HasImages 𝒞` — NOT yet derivable from `Topos` in this repo.  The only
-          topos construction of `image f` is `⋂{B' ↣ B | f factors through B'}`
-          (§1.943), the glb over a subobject *family*.  Note §1.54's
-          `capitalization_lemma` is itself PROVEN Sorry-free
-          (`CapDataWiring.lean`, axioms `[propext, Classical.choice, Quot.sound]`);
-          but it represents a SMALL pre-regular category into a capital one, and
-          wiring that into `HasImages` for an arbitrary topos is NOT done — that
-          connection (`topos_is_regular`, S1_94:346) is the still-`Sorry` step.
+      (1) `HasImages 𝒞` — NOW AVAILABLE (`InternalForallTopos.toposHasImages`):
+          `image f = ⋂{B' ↣ B | f factors through B'}` built via the internal-∀
+          family-glb `bigInter`, bypassing the §1.54 capitalization route entirely.
 
-      (2) `PullbacksTransferCovers 𝒞` — topos exactness; bundled with (1) inside
-          `RegularCategory` (S1_52:39), and blocked at the same wiring step.
+      (2) `PullbacksTransferCovers 𝒞` — NOW AVAILABLE
+          (`SlicePi.toposPullbacksTransferCovers`, from the §1.931 dependent-product
+          right adjoint).  With (1)+(2), `RegularCategory 𝒞` assembles
+          (`topos_is_regular`, S1_94, now Sorry-free).
 
       (3) THE QUOTIENT COVER — for each equivalence relation `E`, a cover
-          `q : A ↠ A/E` with `level q ≅ E`.  This is Freyd's power-object
-          construction `A → [A]`.  Power objects `[A] = HasPowerObject.powerObj A`
-          are now BUNDLED in `Topos` (`Topos.has_pow`, S1_9), so the
-          singleton/membership data is available; but extracting the cover `q` as
-          the image of the classifying map still needs `HasImages` (1).
+          `q : A ↠ A/E` with `level q ≅ E`.  This is Freyd's power-object construction
+          `A → [A]`: `q` is the IMAGE of the classifying map and one must prove its
+          level (kernel pair) is exactly `E`.  Power objects are bundled in `Topos`
+          and `HasImages` is now present, so `q` can be FORMED — but proving
+          `level q ≅ E` (the `(hElx, hlxE)` containments) is a SEPARATE relation-algebra
+          construction (the tabulation/quotient argument of §1.951), NOT supplied by
+          regularity.  No such per-relation witness exists in the repo yet.
 
-    `EffectiveRegular extends RegularCategory`, so the instance cannot even be
-    started without (1)+(2); the residual is the §1.54→`HasImages` wiring, NOT a
-    power-object gap.  Once (1)–(3) are available, this instance is
-    `⟨…, fun E hE => effective_of_quotient_cover E hE q hq hElq hlqE⟩`
-    with `(q, hq, hElq, hlqE)` the quotient cover from (3).  The recovery half (the
-    relation-algebra identity `E ≅ level q ≅ (graph q)⊚(graph q)°`) is now PROVED
-    above (`effective_of_quotient_cover`), so the residual gap is exactly the
-    quotient-cover existence (3) on top of the §1.54-blocked (1)–(2). -/
+    `EffectiveRegular extends RegularCategory`; that super-field is now discharged, but
+    the `effective` field still needs (3) for every `E`.  Once (3) is built, this is
+    `⟨…, fun E hE => effective_of_quotient_cover E hE q hq hElq hlqE⟩` with
+    `(q, hq, hElq, hlqE)` the quotient cover.  The recovery half (the relation-algebra
+    identity `E ≅ level q ≅ (graph q)⊚(graph q)°`) is PROVED above
+    (`effective_of_quotient_cover`); the residual gap is exactly the quotient-cover
+    existence (3), now the SOLE blocker (the §1.54-blocked (1)–(2) are gone).  Out of
+    scope for the regularity wiring. -/
 instance topos_is_effective [Topos 𝒞] : EffectiveRegular 𝒞 := by
   sorry
 

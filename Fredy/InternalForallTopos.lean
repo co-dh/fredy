@@ -31,7 +31,12 @@
   *  `HasImages 𝒞`  (every `f : A → B` has an image), hence `topos_is_regular`.
 -/
 
-import Fredy.S1_94
+-- NOTE: we import `InterIntersection` (the relocated §1.94 power-object / name /
+-- `interIntersection` cluster) instead of `S1_94`.  `S1_94` is DOWNSTREAM of this file
+-- (it imports `InternalForallTopos` to obtain the regularity instances), so importing it
+-- here would create a cycle.  This file only ever used the `interIntersection` cluster
+-- from `S1_94`, which now lives in `InterIntersection`.
+import Fredy.InterIntersection
 import Fredy.InternalForall
 import Fredy.SlicePi
 
