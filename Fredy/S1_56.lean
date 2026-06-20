@@ -192,6 +192,7 @@ def intersect {A B : 𝒞} (R S : BinRel 𝒞 A B) : BinRel 𝒞 A B :=
 infixl:70 " ⊓ " => intersect
 
 /-- Reflexivity of relational containment. -/
+@[refl]
 theorem rel_le_refl {A B : 𝒞} (R : BinRel 𝒞 A B) : RelLe R R :=
   ⟨⟨Cat.id R.src, Cat.id_comp _, Cat.id_comp _⟩⟩
 
@@ -207,6 +208,13 @@ theorem rel_le_trans {A B : 𝒞} {R S T : BinRel 𝒞 A B} (hRS : RelLe R S) (h
   · calc (f ≫ g) ≫ T.colB = f ≫ (g ≫ T.colB) := by rw [Cat.assoc]
     _ = f ≫ S.colB := by rw [hgB]
     _ = R.colB := hfB
+
+/-- `Trans` instance for relational containment `⊂`, so the book's pointfree proofs can
+    be written as `calc R ⊂ … ⊂ … ⊂ S` chains (Freyd's calculus-of-relations style)
+    instead of nested `rel_le_trans`.  Pure Ch1 — no allegory axiom. -/
+instance relLeTrans {𝒟 : Type u} [Cat.{v} 𝒟] [HasBinaryProducts 𝒟] [HasPullbacks 𝒟] {A B : 𝒟} :
+    Trans (@RelLe 𝒟 _ A B) (@RelLe 𝒟 _ A B) (@RelLe 𝒟 _ A B) :=
+  ⟨rel_le_trans⟩
 
 /-- R ⊓ S ≤ R (projection via π₁). -/
 theorem intersect_le_left {A B : 𝒞} (R S : BinRel 𝒞 A B) : RelLe (R ⊓ S) R := by
