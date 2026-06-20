@@ -397,23 +397,99 @@ class SolvableTopos (𝒞 : Type u) [Cat.{v} 𝒞] [Topos 𝒞] [HasImages 𝒞]
 -- The genuine categorical fact about A1 available here is MONICITY (§1.92),
 -- exposed as `singletonMap_monic` — now in `InterIntersection` and re-exported.
 
-/-- **§1.94(10)**: A capital topos is solvable.
-    In a capital topos, A* = A if A is well-supported (Cover (term A)),
-    else A* = 0 (the minimal subobject from §1.944).
+/-- A split epi is a cover (`s ≫ e = id` ⟹ `e` is a cover).  Local copy of
+    `cover_of_section` (S1_95, not imported here) — needed for "a point of `A`
+    makes `A` well-supported". -/
+private theorem cover_of_section' {X Y : 𝒞} (e : X ⟶ Y) (s : Y ⟶ X)
+    (hs : s ≫ e = Cat.id Y) : Cover e := by
+  intro C m g hm hgm
+  refine ⟨s ≫ g, ?_, ?_⟩
+  · refine hm _ _ ?_
+    rw [Cat.assoc, Cat.assoc, hgm, hs, Cat.comp_id, Cat.id_comp]
+  · rw [Cat.assoc, hgm, hs]
 
-    BLOCKER (faithful sorry): the `A* = 0` branch needs the strict coterminator
-    (`topos_has_strict_coterminator`, blocked) and the well-pointed-part lub is the
-    §1.943 `⋃`/`⋂F` glb over a family — all backed by §1.54's `capitalization_lemma`
-    (still `sorry`).  `_hcap : Capital` alone does not supply these.
+/-- If `A` has a point `p : 1 → A`, then `A` is well-supported: `p` is a section of
+    `term A : A → 1` (`p ≫ term A = id₁` by `term_uniq`), so `term A` is a cover. -/
+private theorem wellSupported_of_point {A : 𝒞} (p : one ⟶ A) : WellSupported A :=
+  cover_of_section' (term A) p (term_uniq _ _)
 
-    RE-EXAMINED against the new infra: none of `modular_identity`/`compose_union_right`/
-    `DisjointBinaryCoproduct`/`effective_of_quotient_cover` constructs the singleton-lub
-    `A* = ⋃{point subobjects}`; the first three need the §1.543-blocked regular/positive
-    structure and the fourth (effectiveness) is orthogonal to the well-pointed part.
-    The `IsWellPointedPart` lub and the `A*=0` strict-initial branch both remain
-    behind §1.543. -/
-theorem capital_is_solvable [HasImages 𝒞] (_hcap : Capital (𝒞 := 𝒞)) :
+/-- `entire A` (the maximal subobject, `id_A`) is above every subobject. -/
+private theorem le_entire {A : 𝒞} (S : Subobject 𝒞 A) : S.le (Subobject.entire A) :=
+  ⟨S.arr, Cat.comp_id _⟩
+
+/-- The image of a point `p : 1 → A` is a point subobject. -/
+private theorem isPointSubobj_image {A : 𝒞} [HasImages 𝒞] (p : one ⟶ A) :
+    IsPointSubobj (image p) :=
+  ⟨p, image_allows p⟩
+
+/-- **§1.94(10)**: A capital topos is solvable; the well-pointed part is
+    `A* = A` when `A` is well-supported, else `A* = 0` (the §1.944/§1.95 strict
+    coterminator `∅_A ↪ A`).
+
+    CONSTRUCTION (no §1.54 capitalization needed — the old blocker note was stale,
+    superseded by the now-sorry-free §1.945/§1.946/§1.95 infra):
+
+    * **Well-supported `A`.**  `Capital` gives `WellPointed A` directly, so take
+      `A* = entire A`.  Upper: every `P ≤ entire A` trivially.  WP: `WellPointed A`.
+      Least: any WP `Q` above all point subobjects must be entire — if `Q.arr` were a
+      proper mono, `WellPointed A` yields a point `x : 1 → A` not factoring through
+      `Q`; but `image x` is a point subobject `≤ Q`, so `x` *does* factor through `Q`
+      — contradiction.  Hence `Q.arr` iso and `entire A ≤ Q`.
+
+    * **Not well-supported `A`.**  Then `A` has NO point (a point would make `term A`
+      split epi, hence a cover — `wellSupported_of_point`).  Take `A* = bottomSub A`
+      (`∅_A`, §1.95).  Upper: vacuous (no point subobjects, since a point subobject
+      supplies a point of `A`).  WP: vacuous — `(bottomSub A).dom ≅ Z` the strict
+      coterminator (`bottomSub_dom_iso_one`), so every mono into it is iso (no proper
+      monos).  Least: `bottomSub_le` (`∅_A ≤ anything`). -/
+theorem capital_is_solvable [HasImages 𝒞] (hcap : Capital (𝒞 := 𝒞)) :
     ∀ (A : 𝒞), ∃ Astar : Subobject 𝒞 A, IsWellPointedPart Astar := by
-  sorry
+  intro A
+  by_cases hws : WellSupported A
+  · -- A* = entire A.
+    have hwpA : WellPointed A := hcap A hws
+    refine ⟨Subobject.entire A, ?_, ?_, ?_⟩
+    · -- upper: everything ≤ entire A.
+      exact fun P _ => le_entire P
+    · -- WP: (entire A).dom = A is well-pointed.
+      exact hwpA
+    · -- least: any WP Q above all point subobjects is entire, so entire A ≤ Q.
+      intro Q _hwpQ hQabove
+      -- Show Q.arr is iso, then entire A ≤ Q via Q.arr⁻¹.
+      have hQiso : IsIso Q.arr := by
+        by_cases hiso : IsIso Q.arr
+        · exact hiso
+        · exfalso
+          -- WellPointed A on the proper mono Q.arr gives a point x missing Q.
+          obtain ⟨x, hx⟩ := hwpA Q.arr Q.monic hiso
+          -- But image x is a point subobject ≤ Q, so x factors through Q — contra.
+          obtain ⟨k, hk⟩ := hQabove (image x) (isPointSubobj_image x)
+          obtain ⟨g, hg⟩ := image_allows x
+          exact hx ⟨g ≫ k, by rw [Cat.assoc, hk, hg]⟩
+      obtain ⟨inv, _, hinv2⟩ := hQiso
+      -- entire A ≤ Q : inv ≫ Q.arr = id_A = (entire A).arr.
+      exact ⟨inv, by simpa [Subobject.entire] using hinv2⟩
+  · -- A* = bottomSub A (∅_A).  No points of A, so no point subobjects.
+    have hno_point : ∀ p : one ⟶ A, False := fun p => hws (wellSupported_of_point p)
+    -- (bottomSub A).dom ≅ Z (strict coterminator): every mono into it is iso.
+    obtain ⟨φ, hφ⟩ := bottomSub_dom_iso_one A
+    refine ⟨bottomSub A, ?_, ?_, ?_⟩
+    · -- upper: no point subobjects (a point subobject yields a point of A).
+      intro P hP
+      obtain ⟨p, _⟩ := hP
+      exact (hno_point p).elim
+    · -- WP: vacuous — every mono m into (bottomSub A).dom IS iso, contradicting the
+      -- supplied `¬IsIso m`.  (m ≫ φ : D → Z is iso by strictness; φ iso ⟹ m iso.)
+      intro D m _hm hnotiso
+      exfalso; apply hnotiso
+      have hmφ : IsIso (m ≫ φ) := strict_coterminator_bottomSub_one (m ≫ φ)
+      obtain ⟨φ', hφ1, hφ2⟩ := hφ
+      have hm_eq : m = (m ≫ φ) ≫ φ' := by
+        rw [Cat.assoc, hφ1, Cat.comp_id]
+      rw [hm_eq]
+      exact isIso_comp hmφ ⟨φ, hφ2, hφ1⟩
+    · -- least: ∅_A ≤ anything.
+      intro Q _ _
+      exact bottomSub_le Q
 
 end Freyd
