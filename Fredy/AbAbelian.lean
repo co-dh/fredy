@@ -181,4 +181,94 @@ noncomputable instance instHasBinaryProductsAb : HasBinaryProducts (AbelianGroup
   pair_uniq f g h h₁ h₂ :=
     Subtype.ext (pair_uniq f.val g.val h.val (congrArg Subtype.val h₁) (congrArg Subtype.val h₂))
 
+/-! ### A homomorphism preserves group sums of generalized elements
+
+  This is the engine of the coproduct universal property: a hom `h : P → X` carries the
+  `P`-sum of any two elements `u,w : T → P.car` to the `X`-sum of `u≫h, w≫h`. -/
+
+/-- For a homomorphism `h : P → X` and any `u w : T → P.carrier`,
+    `(⟨u,w⟩ ≫ P.add) ≫ h = ⟨u≫h, w≫h⟩ ≫ X.add`.  (Precompose the hom square `P.add≫h =
+    (h×h)≫X.add` with `⟨u,w⟩` and distribute.) -/
+theorem hom_preserves_add {T : 𝒞} {P X : AbelianGroupObject 𝒞}
+    {h : P.carrier ⟶ X.carrier} (hh : IsHomAbelianGroupObject P X h)
+    (u w : T ⟶ P.carrier) :
+    (pair u w ≫ P.add) ≫ h = pair (u ≫ h) (w ≫ h) ≫ X.add := by
+  rw [Cat.assoc, hh, ← Cat.assoc, aa_pair_precomp]
+  simp only [← Cat.assoc, fst_pair, snd_pair]
+
+/-- An idempotent generalized element is zero: if `e ⊕ e = e` then `e = O`.
+    (Cancel `e`: `e = e ⊕ O = e ⊕ (e ⊕ ⊖e) = (e ⊕ e) ⊕ ⊖e = e ⊕ ⊖e = O`.) -/
+theorem GElt.idem_zero {T : 𝒞} (P : AbelianGroupObject 𝒞) {e : T ⟶ P.carrier}
+    (he : pair e e ≫ P.add = e) : e = term T ≫ P.zero :=
+  calc e = pair e (term T ≫ P.zero) ≫ P.add := (GElt.add_zero P e).symm
+    _ = pair e (pair e (e ≫ P.neg) ≫ P.add) ≫ P.add := by rw [GElt.add_neg P e]
+    _ = pair (pair e e ≫ P.add) (e ≫ P.neg) ≫ P.add := (GElt.add_assoc P e e (e ≫ P.neg)).symm
+    _ = pair e (e ≫ P.neg) ≫ P.add := by rw [he]
+    _ = term T ≫ P.zero := GElt.add_neg P e
+
+/-- A homomorphism preserves zero: `(t ≫ P.zero) ≫ h = t ≫ X.zero` for any `t : T → 1`.
+    (`P.zero≫h` is idempotent because `O ⊕ O = O` and `h` preserves `⊕`, so it is `O_X`.) -/
+theorem hom_preserves_zero {T : 𝒞} {P X : AbelianGroupObject 𝒞}
+    {h : P.carrier ⟶ X.carrier} (hh : IsHomAbelianGroupObject P X h) (t : T ⟶ one) :
+    (t ≫ P.zero) ≫ h = t ≫ X.zero := by
+  rw [term_uniq t (term T)]
+  have idem : pair ((term T ≫ P.zero) ≫ h) ((term T ≫ P.zero) ≫ h) ≫ X.add
+            = (term T ≫ P.zero) ≫ h := by
+    rw [← hom_preserves_add hh (term T ≫ P.zero) (term T ≫ P.zero), GElt.zero_add_zero P]
+  exact GElt.idem_zero X idem
+
+namespace AbCoprod
+
+variable {A B X : AbelianGroupObject 𝒞}
+
+/-- Carrier-level copairing `[f,g] = (π₁≫f) + (π₂≫g) : prodGObj A B → X`. -/
+private def caseCar (f : A.carrier ⟶ X.carrier) (g : B.carrier ⟶ X.carrier) :
+    prod A.carrier B.carrier ⟶ X.carrier :=
+  pair (fst ≫ f) (snd ≫ g) ≫ X.add
+
+/-- Coproduct injection `inl = ⟨id, 0⟩ : A → prodGObj A B` (a homomorphism). -/
+theorem isHom_inl (A B : AbelianGroupObject 𝒞) :
+    IsHomAbelianGroupObject A (prodGObj A B) (pair (Cat.id A.carrier) (HomAb.zeroCar A B)) :=
+  isHom_prodPair (isHom_id A) (HomAb.isHom_zeroCar A B)
+
+/-- Coproduct injection `inr = ⟨0, id⟩ : B → prodGObj A B` (a homomorphism). -/
+theorem isHom_inr (A B : AbelianGroupObject 𝒞) :
+    IsHomAbelianGroupObject B (prodGObj A B) (pair (HomAb.zeroCar B A) (Cat.id B.carrier)) :=
+  isHom_prodPair (HomAb.isHom_zeroCar B A) (isHom_id B)
+
+/-- The copairing `[f,g]` is a homomorphism: it is the hom-set sum of the two homs
+    `π₁≫f` and `π₂≫g`. -/
+theorem isHom_caseCar {f : A.carrier ⟶ X.carrier} {g : B.carrier ⟶ X.carrier}
+    (hf : IsHomAbelianGroupObject A X f) (hg : IsHomAbelianGroupObject B X g) :
+    IsHomAbelianGroupObject (prodGObj A B) X (caseCar f g) := by
+  -- caseCar f g = addCar ⟨π₁≫f⟩ ⟨π₂≫g⟩ where π₁,π₂ are homs prodGObj→A, prodGObj→B.
+  have h1 : IsHomAbelianGroupObject (prodGObj A B) X (fst ≫ f) :=
+    isHom_comp (isHom_prodFst A B) hf
+  have h2 : IsHomAbelianGroupObject (prodGObj A B) X (snd ≫ g) :=
+    isHom_comp (isHom_prodSnd A B) hg
+  exact HomAb.isHom_addCar (A := prodGObj A B) (B := X) ⟨fst ≫ f, h1⟩ ⟨snd ≫ g, h2⟩
+
+/-- `inl ≫ [f,g] = f`, for a homomorphism `g` (`g` sends `0` to `0`).  `f` arbitrary. -/
+theorem caseCar_inl (f : A.carrier ⟶ X.carrier) {g : B.carrier ⟶ X.carrier}
+    (hg : IsHomAbelianGroupObject B X g) :
+    pair (Cat.id A.carrier) (HomAb.zeroCar A B) ≫ caseCar f g = f := by
+  unfold caseCar HomAb.zeroCar
+  -- ⟨id,0⟩ ≫ (⟨π₁≫f,π₂≫g⟩≫X.add) = ⟨f, (term≫B.zero)≫g⟩ ≫ X.add = ⟨f, term≫X.zero⟩ ≫ X.add = f.
+  rw [← Cat.assoc, aa_pair_precomp, ← Cat.assoc, ← Cat.assoc, fst_pair, snd_pair,
+      Cat.id_comp, Cat.assoc, ← Cat.assoc (term A.carrier) B.zero g,
+      hom_preserves_zero hg (term A.carrier)]
+  exact GElt.add_zero X f
+
+/-- `inr ≫ [f,g] = g`, for a homomorphism `f`.  `g` arbitrary. -/
+theorem caseCar_inr {f : A.carrier ⟶ X.carrier} (g : B.carrier ⟶ X.carrier)
+    (hf : IsHomAbelianGroupObject A X f) :
+    pair (HomAb.zeroCar B A) (Cat.id B.carrier) ≫ caseCar f g = g := by
+  unfold caseCar HomAb.zeroCar
+  rw [← Cat.assoc, aa_pair_precomp, ← Cat.assoc, ← Cat.assoc, fst_pair, snd_pair,
+      Cat.id_comp, Cat.assoc, ← Cat.assoc (term B.carrier) A.zero f,
+      hom_preserves_zero hf (term B.carrier)]
+  exact GElt.zero_add X g
+
+end AbCoprod
+
 end Freyd
