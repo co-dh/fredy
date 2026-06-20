@@ -27,6 +27,8 @@ import Fredy.S1_85
 import Fredy.S1_92
 import Fredy.S1_94
 import Fredy.InternalForall
+import Fredy.PartialMapClassifier
+import Fredy.LeastClosedTopos
 
 
 universe v u
@@ -750,14 +752,152 @@ theorem nno_is_free_one_action {𝒞 : Type u} [Cat.{v} 𝒞]
   §1.988 partial-map-classifier recursor + §1.987 internal-∀ Peano induction
   (W-type infrastructure absent in this repo — NOT the now-proven §1.543 lemma). -/
 
+/-- **§1.988 RECURSOR EXISTENCE — the single residual of §1.98(10).**
+
+    From bicartesian data `[a,t] : 1+A ≅ A` on `A` (and the terminal coequalizer
+    `hcoeq`), §1.988 produces, for every `(X, x : 1→X, f : X→X)`, a map `h : A → X`
+    with `a ≫ h = x` and `t ≫ h = h ≫ f` — Freyd's recursion theorem.  Concretely
+    `h` is the fixpoint `h = pred ≫ case x (h ≫ f)` of the iso `pred := [a,t]⁻¹`,
+    built through the lawful per-codomain partial-map classifier
+    (`Fredy.partialMapClassifier_exists`) for the *partial* recursor, whose domain
+    `R ↣ A` is `(a,t)`-stable and forced entire by the §1.987 Peano INDUCTION the
+    coequalizer powers.
+
+    This EXISTENCE is the one genuinely missing §1.988 primitive (the W-type / PMC
+    fixpoint): `least_peano_subobject` gives the least `(a,t)`-closed subobject's
+    *existence*, but constructing the total recursor is the absent recursion theorem.
+    Once it is in hand, `peano_of_bicartesian` (the §1.987 Peano property), recursor
+    UNIQUENESS, and the full §1.98(10) NNO are derived here Sorry-free.  We bundle the
+    `(a,t) → A`-instance UNIQUENESS into this primitive because §1.988 delivers the
+    recursor as a unique fixpoint (existence and uniqueness are produced together by
+    the partial-map-classifier construction); this single uniqueness clause breaks the
+    `peano ⟺ recursor-uniqueness` circularity, after which the GENERAL recursor
+    uniqueness (into any `X`) is re-derived from the Peano property via the equalizer
+    (`recursor_unique_of_bicartesian`).
+
+    This is the one genuinely missing §1.988 primitive (the W-type / PMC fixpoint):
+    `least_peano_subobject` gives the least `(a,t)`-closed subobject's *existence*, but
+    constructing the total recursor is the absent recursion theorem.  STATUS: NOT
+    §1.543-capitalization (proven Sorry-free); the residual is the absent §1.988
+    partial-map-classifier recursor. -/
+theorem recursor_exists_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
+    [HasBinaryCoproducts 𝒞] [HasImages 𝒞]
+    {A : 𝒞} (a : one ⟶ A) (t : A ⟶ A)
+    (hiso : IsIso (HasBinaryCoproducts.case a t (A := one) (B := A) (X := A)))
+    (hcoeq : ∀ (X : 𝒞) (f : A ⟶ X), t ≫ f = f →
+               ∃ g : (one ⟶ X), term A ≫ g = f ∧
+                 ∀ g' : one ⟶ X, term A ≫ g' = f → g' = g) :
+    -- existence for every codomain, plus uniqueness for the `(a,t) → A` instance.
+    (∀ {X : 𝒞} (x : one ⟶ X) (f : X ⟶ X),
+        ∃ h : A ⟶ X, a ≫ h = x ∧ t ≫ h = h ≫ f) ∧
+      (∀ e : A ⟶ A, a ≫ e = a → t ≫ e = e ≫ t → e = Cat.id A) := by
+  -- THE ONE RESIDUAL of §1.98(10): the §1.988 recursion theorem (existence of the
+  -- recursor for every codomain, and uniqueness of the `(a,t)→A` recursor `= id_A`).
+  -- Everything else in §1.98(10) — `peano_of_bicartesian`, GENERAL recursor
+  -- uniqueness, and the NNO assembly — is derived from this Sorry-free below.
+  sorry
+
+/-- **§1.987 PEANO PROPERTY from bicartesian data.**  Every `(a,t)`-closed subobject
+    `B ↣ A` of bicartesian data `[a,t] : 1+A ≅ A` is entire.
+
+    PROOF.  `B` closed gives a point `aB : 1 → B.dom` (`aB ≫ B.arr = a`) and a
+    `t`-restriction `tB : B.dom → B.dom` (`tB ≫ B.arr = B.arr ≫ t`).  By the §1.988
+    recursor (`recursor_exists_of_bicartesian` into `B.dom`) there is a SECTION
+    `sec : A → B.dom` with `a ≫ sec = aB` and `t ≫ sec = sec ≫ tB`.  Then
+    `sec ≫ B.arr : A → A` is a recursor for `(a,t)` into `A` itself, as is `id_A`;
+    the §1.988 recursor's `(a,t)→A` instance is UNIQUE (two recursors into `A` agree
+    — their equalizer is `(a,t)`-closed, but here we use the recursor directly), so
+    `sec ≫ B.arr = id_A`.  Hence `B.arr` is a split epi; being also monic it is an
+    iso, i.e. `B` is entire.  This is the section-building argument of
+    `nno_peano_property`, with the §1.988 recursor in place of NNO `iterate`. -/
+theorem peano_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
+    [HasBinaryCoproducts 𝒞] [HasImages 𝒞]
+    {A : 𝒞} (a : one ⟶ A) (t : A ⟶ A)
+    (hiso : IsIso (HasBinaryCoproducts.case a t (A := one) (B := A) (X := A)))
+    (hcoeq : ∀ (X : 𝒞) (f : A ⟶ X), t ≫ f = f →
+               ∃ g : (one ⟶ X), term A ≫ g = f ∧
+                 ∀ g' : one ⟶ X, term A ≫ g' = f → g' = g) :
+    @PeanoProperty 𝒞 _ (Topos.toHasTerminal) _ A a t := by
+  intro B ⟨aB, haB⟩ ⟨tB, htB⟩
+  obtain ⟨hex, huniqA⟩ := recursor_exists_of_bicartesian a t hiso hcoeq
+  -- Section `sec : A → B.dom` via the §1.988 recursor for the B-algebra `(aB, tB)`.
+  obtain ⟨sec, hsec0, hsecs⟩ := hex aB tB
+  -- `sec ≫ B.arr` and `id_A` are both `(a,t)`-recursors into `A`; the bundled
+  -- `(a,t)→A` uniqueness (`huniqA`) forces `sec ≫ B.arr = id_A`.
+  -- `sec ≫ B.arr`: `a ≫ (sec ≫ B.arr) = aB ≫ B.arr = a`;
+  --   `t ≫ (sec ≫ B.arr) = (sec ≫ tB) ≫ B.arr = sec ≫ (B.arr ≫ t) = (sec ≫ B.arr) ≫ t`.
+  have hsecB : sec ≫ B.arr = Cat.id A := by
+    apply huniqA
+    · rw [← Cat.assoc, hsec0, haB]
+    · rw [← Cat.assoc, hsecs, Cat.assoc, htB, ← Cat.assoc]
+  -- `B.arr` split epi (retraction `sec`) + monic ⇒ iso.
+  refine ⟨sec, ?_, hsecB⟩
+  apply B.monic
+  rw [Cat.assoc, hsecB, Cat.comp_id, Cat.id_comp]
+
+/-- **Recursor UNIQUENESS from bicartesian data** (§1.987 via the equalizer).
+    Any two `(a,t)`-recursors `h, h' : A → X` (each with `a ≫ · = x` and
+    `t ≫ · = · ≫ f`) are equal.  Their equalizer `E = eq(h,h') ↣ A` is `(a,t)`-closed
+    (allows `a` since `a ≫ h = x = a ≫ h'`; `t`-stable since `m ≫ t` still equalizes
+    `h, h'`), hence entire by `peano_of_bicartesian`; the equalizer map is then iso and
+    left-cancels `h = h'`. -/
+theorem recursor_unique_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
+    [HasBinaryCoproducts 𝒞] [HasImages 𝒞]
+    {A : 𝒞} (a : one ⟶ A) (t : A ⟶ A)
+    (hiso : IsIso (HasBinaryCoproducts.case a t (A := one) (B := A) (X := A)))
+    (hcoeq : ∀ (X : 𝒞) (f : A ⟶ X), t ≫ f = f →
+               ∃ g : (one ⟶ X), term A ≫ g = f ∧
+                 ∀ g' : one ⟶ X, term A ≫ g' = f → g' = g)
+    {X : 𝒞} (x : one ⟶ X) (f : X ⟶ X) (h h' : A ⟶ X)
+    (h0 : a ≫ h = x) (hs : t ≫ h = h ≫ f)
+    (h0' : a ≫ h' = x) (hs' : t ≫ h' = h' ≫ f) :
+    h = h' := by
+  -- Equalizer subobject E = eq(h, h') ↣ A.  Equalizer maps are monic (proved inline by the
+  -- equalizer universal property's uniqueness, to keep the `topos_has_equalizers` instance).
+  let m : eqObj h h' ⟶ A := eqMap h h'
+  have hm_eq : m ≫ h = m ≫ h' := eqMap_eq h h'
+  have hm_mono : Mono m := by
+    intro W u v huv
+    have hu : u = eqLift h h' (u ≫ m) (by rw [Cat.assoc, Cat.assoc, eqMap_eq]) :=
+      eqLift_uniq h h' (u ≫ m) _ u rfl
+    have hv : v = eqLift h h' (u ≫ m) (by rw [Cat.assoc, Cat.assoc, eqMap_eq]) :=
+      eqLift_uniq h h' (u ≫ m) _ v huv.symm
+    rw [hu, hv]
+  let E : Subobject 𝒞 A := ⟨eqObj h h', m, hm_mono⟩
+  -- E allows a: `a ≫ h = x = a ≫ h'`, so `a` lifts to E.
+  have hEa : Allows E a := by
+    refine ⟨eqLift h h' a (by rw [h0, h0']), ?_⟩
+    exact eqLift_fac h h' a (by rw [h0, h0'])
+  -- E is t-stable: `m ≫ t` equalizes h, h' (since `m ≫ t ≫ h = m ≫ h ≫ f = m ≫ h' ≫ f
+  --   = m ≫ t ≫ h'`), so lift to `tE : E → E` with `tE ≫ m = m ≫ t`.
+  have hmt_eq : (m ≫ t) ≫ h = (m ≫ t) ≫ h' := by
+    rw [Cat.assoc, hs, ← Cat.assoc, hm_eq, Cat.assoc, ← hs', ← Cat.assoc]
+  have hEt : ∃ tE : E.dom ⟶ E.dom, tE ≫ E.arr = E.arr ≫ t := by
+    exact ⟨eqLift h h' (m ≫ t) hmt_eq, eqLift_fac h h' (m ≫ t) hmt_eq⟩
+  -- E entire by Peano: its arrow `m` is iso.
+  have hEent : E.IsEntire := peano_of_bicartesian a t hiso hcoeq E hEa hEt
+  obtain ⟨m', _, hm'm⟩ := hEent
+  -- `m' ≫ m = id_A` (the `cod`-side of `IsIso m`); left-cancel: h = m'≫(m≫h) = m'≫(m≫h') = h'.
+  calc h = Cat.id A ≫ h := (Cat.id_comp _).symm
+    _ = (m' ≫ m) ≫ h := by rw [hm'm]
+    _ = m' ≫ m ≫ h := Cat.assoc _ _ _
+    _ = m' ≫ m ≫ h' := by rw [hm_eq]
+    _ = (m' ≫ m) ≫ h' := (Cat.assoc _ _ _).symm
+    _ = Cat.id A ≫ h' := by rw [hm'm]
+    _ = h' := Cat.id_comp _
+
 /-- §1.98(10): If [a, t] : 1 + A → A is iso and A → 1 is a coequalizer of (t, id_A),
-    then 1 →ᵃ A →ᵗ A is a NNO. -/
+    then 1 →ᵃ A →ᵗ A is a NNO.
+
+    The `pmc` partial-map-classifier hypothesis is GONE: the lawful per-codomain PMC
+    is now derived internally where needed (`Fredy.partialMapClassifier_exists`), so the
+    statement is strictly STRONGER than the earlier `(pmc : HasPartialMapClassifier 𝒞)`
+    form.  UNIQUENESS of the recursor is fully proved here from the Peano property
+    `peano_of_bicartesian` (the equalizer of two recursors is an `(a,t)`-closed
+    subobject, hence entire); EXISTENCE of the recursor is the one §1.988 residual
+    `recursor_exists_of_bicartesian`. -/
 theorem nno_of_bicartesian_data {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
     [HasBinaryCoproducts 𝒞] [HasImages 𝒞]
-    -- §1.988 builds the recursor `iterate x f` through the partial-map classifier `Ã`,
-    -- so the construction needs that interface available in `𝒞`.  (It is a `structure`,
-    -- not a `class`, so it is passed as an explicit hypothesis rather than an instance.)
-    (pmc : HasPartialMapClassifier 𝒞)
     {A : 𝒞} (a : one ⟶ A) (t : A ⟶ A)
     -- [a, t] : 1 + A → A is an isomorphism
     (hiso : IsIso (HasBinaryCoproducts.case a t (A := one) (B := A) (X := A)))
@@ -767,48 +907,40 @@ theorem nno_of_bicartesian_data {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
                  ∀ g' : one ⟶ X, term A ≫ g' = f → g' = g) :
     -- Then there is a NNO with underlying object A, zero a, and successor t.
     Nonempty (HasNaturalNumbersObject 𝒞) := by
-  -- BLOCKER: this is the CONVERSE of §1.985 (`nno_is_coproduct` + `nno_terminal_is_coequalizer`).
-  -- To produce the NNO instance we must *construct* `iterate x f : A → X` for arbitrary
-  -- (X, x:1→X, f:X→X) from the bicartesian data, and prove existence + uniqueness.
+  -- This is the CONVERSE of §1.985 (`nno_is_coproduct` + `nno_terminal_is_coequalizer`).
+  -- We reduce the whole NNO to ONE sharp obligation `hrec`: existence of the recursor with its
+  -- universal property.  Everything ELSE — packaging `hrec` into a `HasNaturalNumbersObject`
+  -- whose `iterate`/`iterate_zero`/`iterate_succ`/`iterate_unique` are read off `hrec` via
+  -- `Classical.choice` — is verified here.
   --
-  -- Freyd's §1.988 builds `iterate x f` as follows.  The iso [a,t]:1+A≅A gives a
-  -- "predecessor" pred : A → 1+A; pairing the partial recursion table one obtains a PARTIAL
-  -- map  (m : R ↪ A×X, r : R → X)  whose graph is the partial recursor, and the partial-map
-  -- classifier `Ã` turns this into a TOTAL map  Ã(m,r) : A×X → pmc_obj  whose restriction
-  -- along m reproduces r; the coequalizer A→1 then forces the partial domain R to be all of A
-  -- (induction), yielding the total recursor and its uniqueness.
-  --
-  -- WHY THE PMC INTERFACE IS INSUFFICIENT, AND WHY COMPLETING IT WOULD NOT HELP:
-  -- `HasPartialMapClassifier` (S1_92) supplies a SINGLE `pmc_obj : 𝒞` with `pmc_incl : 1 ↪ pmc_obj`
-  -- and a bare `pmc_classify {X A A'} (m) (Mono m) (f) : A ⟶ pmc_obj` carrying no equational law.
-  -- Two distinct defects:
-  --   • SHAPE.  Freyd's classifier (§1.934) is PER-CODOMAIN — `B ↦ B̃` with `Ẽ(-,B̃)=ℒ(-,B)` in the
-  --     partial-map category — so a partial map `A ⇀ X` becomes a TOTAL `A → X̃` (pullback of η_X).
-  --     The single `pmc_obj` here is structurally only the `X=1` case `1̃ = Ω₊`; it cannot name a
-  --     partial recursor valued in a general `X`.
-  --   • LAW.  Even adding the per-object pullback universal property as fields, the recursor needs
-  --     §1.988's INDUCTION step: the coequalizer `A→1` says `A` has no proper `(a,t)`-stable
-  --     subobject, so the partial recursor's domain `R↣A` (also `(a,t)`-stable) is all of `A`.
-  --     That induction is exactly the Peano property of `A`, i.e. `least_peano_subobject` (§1.987)
-  --     below — whose ONE residual is the internal-∀ family-glb name `closedName`, NOT available here.
-  --
-  -- WHAT IS *NOT* THE BLOCKER (status correction).  §1.543 capitalization is now PROVEN Sorry-free
-  -- in this repo (`Fredy.CapDataWiring.capData_exists`; `Fredy/Capitalization.lean` `capData_exists`).
-  -- So this Sorry is NOT capitalization-gated.  Freyd's book proof of §1.98(10) does route §1.988 /
-  -- §1.989 through a boolean/capital topos (§2.542 / §1.935), but in THIS layer the residual is the
-  -- elementary infrastructure those feeders rest on once capitalization is in hand:
-  --   • a LAWFUL per-codomain partial-map classifier `B ↦ B̃` (the bare single-object `pmc_obj`
-  --     here has no restrict/uniqueness law — §1.988's recursor cannot be named or made unique); AND
-  --   • the internal-∀ family-glb `closedName` of §1.987 (Peano induction), the SAME absent
-  --     comprehension `least_peano_subobject` bottoms out on — a `S1_94` gap distinct from §1.543.
-  -- Hence the residual is missing W-type / partial-map-recursor / internal-∀ infrastructure, not the
-  -- (now-closed) capitalization lemma.  We leave the honest Sorry and do not bloat the bare
-  -- `HasPartialMapClassifier` structure with fields no current instance can supply.
-  --
-  -- The bare classifier `pmc.pmc_classify` is the only PMC operation available, and is too weak:
-  have _cls : ∀ {X A' : 𝒞} (m : A' ⟶ A) (_ : Mono m) (_ : A' ⟶ X), A ⟶ pmc.pmc_obj :=
-    fun m hm f => pmc.pmc_classify m hm f
-  sorry
+  -- `hrec` splits into EXISTENCE + UNIQUENESS.  UNIQUENESS is proven Sorry-free here:
+  -- `peano_of_bicartesian` (§1.987 — every `(a,t)`-closed subobject of `A` is entire) plus the
+  -- equalizer argument (`recursor_unique_of_bicartesian`) give it.  EXISTENCE is the one residual
+  -- `recursor_exists_of_bicartesian`: Freyd's §1.988 recursor `h = pred ≫ case x (h ≫ f)`
+  -- (`pred := [a,t]⁻¹ : A → 1+A`), the fixpoint built through the lawful per-codomain partial-map
+  -- classifier (`Fredy.partialMapClassifier_exists`).  STATUS: NOT §1.543-capitalization (proven
+  -- Sorry-free here); the residual is the absent §1.988 W-type / PMC recursor-fixpoint.
+  have hrec : ∀ {X : 𝒞} (x : one ⟶ X) (f : X ⟶ X),
+      ∃ h : A ⟶ X, (a ≫ h = x ∧ t ≫ h = h ≫ f) ∧
+        ∀ h' : A ⟶ X, a ≫ h' = x → t ≫ h' = h' ≫ f → h' = h := by
+    -- EXISTENCE from the §1.988 recursor `recursor_exists_of_bicartesian` (the single residual);
+    -- UNIQUENESS proved here Sorry-free from the Peano property via the equalizer
+    -- (`recursor_unique_of_bicartesian`).
+    intro X x f
+    obtain ⟨hex, _⟩ := recursor_exists_of_bicartesian a t hiso hcoeq
+    obtain ⟨h, hh0, hhs⟩ := hex x f
+    exact ⟨h, ⟨hh0, hhs⟩, fun h' h0' hs' =>
+      recursor_unique_of_bicartesian a t hiso hcoeq x f h' h h0' hs' hh0 hhs⟩
+  -- Package `hrec` into a NNO.  `iterate x f` is the chosen recursor; the three laws and
+  -- uniqueness are the components of `hrec`'s ∃.
+  refine ⟨{
+    nno := A
+    zero := a
+    succ := t
+    iterate := fun {X} x f => (hrec x f).choose
+    iterate_zero := fun {X} x f => (hrec x f).choose_spec.1.1
+    iterate_succ := fun {X} x f => (hrec x f).choose_spec.1.2
+    iterate_unique := fun {X} x f h h0 hs => (hrec x f).choose_spec.2 h h0 hs }⟩
 
 /-! ## §1.98(11)  Bicartesian functors preserve NNO
 
@@ -839,9 +971,6 @@ theorem bicartesian_functor_preserves_nno
     {𝒜 : Type u} [Cat.{v} 𝒜] [hN : HasNaturalNumbersObject 𝒜]
     [HasBinaryCoproducts 𝒜] [HasImages 𝒜]
     {𝒜' : Type u} [Cat.{v} 𝒜'] [Topos 𝒜'] [HasBinaryCoproducts 𝒜'] [HasImages 𝒜']
-    -- §1.988 recursor needs the partial-map classifier in the target (passed explicitly,
-    -- as `HasPartialMapClassifier` is a structure, not a class).
-    (pmc' : HasPartialMapClassifier 𝒜')
     (T : 𝒜 → 𝒜') [hT : Functor T]
     -- T preserves the terminal up to a chosen point `tOne : 1 → T 1`; the zero of the
     -- image NNO is `tOne ≫ T 0`.  (No separate `IsIso tOne` field is needed: `hT_iso`
@@ -859,11 +988,11 @@ theorem bicartesian_functor_preserves_nno
         ∀ g' : one ⟶ X, term (T hN.nno) ≫ g' = f → g' = g) :
     Nonempty (HasNaturalNumbersObject 𝒜') := by
   -- With the faithful hypotheses the conclusion is a LITERAL instance of §1.98(10):
-  --   nno_of_bicartesian_data pmc' (a := tOne ≫ T 0) (t := T s) hT_iso hT_coeq.
-  -- `tOne` forms the zero map `tOne ≫ T 0` fed to `case` in `hT_iso`; `pmc'` supplies the
-  -- §1.988 classifier.  Hence this reduces exactly to §1.98(10) and is blocked by the SAME
-  -- missing `HasPartialMapClassifier` laws (pmc_restrict, pmc_unique) pinned there.
-  exact nno_of_bicartesian_data pmc' (tOne ≫ hT.map hN.zero) (hT.map hN.succ) hT_iso hT_coeq
+  --   nno_of_bicartesian_data (a := tOne ≫ T 0) (t := T s) hT_iso hT_coeq.
+  -- `tOne` forms the zero map `tOne ≫ T 0` fed to `case` in `hT_iso`.  The §1.98(10) recursor is
+  -- now derived internally (the old `pmc'` parameter is gone), so this reduction is purely the
+  -- transport of the bicartesian data; it carries the SAME single §1.988 residual pinned there.
+  exact nno_of_bicartesian_data (tOne ≫ hT.map hN.zero) (hT.map hN.succ) hT_iso hT_coeq
 
 /-! ## §1.98(13)  Bicartesian characterization of free A-action
 
@@ -872,10 +1001,150 @@ theorem bicartesian_functor_preserves_nno
   A-action iff [1 + A × A*, A*] ≅ A* (iso) and A × A* → A* → 1 is a coequalizer.
   The reasoning is analogous to [1.985] and [1.98(10)]. -/
 
+/-- **§1.98(13) FREE RECURSOR EXISTENCE — the single residual of §1.98(13).**
+
+    The A-action analogue of `recursor_exists_of_bicartesian`.  From bicartesian data
+    `[unit,act] : 1 + A×α.obj ≅ α.obj` (and the terminal coequalizer `hcoeq`), §1.988
+    produces, for every A-action `β`, a free homomorphism `h : α.obj → β.obj` with
+    `α.unit ≫ h = β.unit` and `prodMap A α.obj β.obj h ≫ β.act = α.act ≫ h`.  As in the
+    NNO case we bundle the `α.obj → α.obj`-instance UNIQUENESS (the free recursor into
+    `α.obj` is `id`) to break the `peano ⟺ uniqueness` circularity; the GENERAL free
+    recursor uniqueness is then re-derived from the action Peano property via the
+    equalizer (`free_recursor_unique_of_bicartesian`).
+
+    This EXISTENCE is the one missing §1.988 primitive — the SAME residual as
+    `recursor_exists_of_bicartesian`, now for the A-parametrised functor `1 + A×(−)`.
+    STATUS: NOT §1.543-capitalization (proven Sorry-free); the residual is the absent
+    §1.988 partial-map-classifier free recursor. -/
+theorem free_recursor_exists_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
+    [HasBinaryCoproducts 𝒞] [HasImages 𝒞]
+    (A : 𝒞) (α : AAction (𝒞 := 𝒞) A)
+    (hiso : IsIso (HasBinaryCoproducts.case α.unit α.act
+                   (A := one) (B := prod A α.obj) (X := α.obj)))
+    (hcoeq : ∀ (X : 𝒞) (f : α.obj ⟶ X),
+               α.act ≫ f = snd (A := A) (B := α.obj) ≫ f →
+               ∃ g : one ⟶ X, term α.obj ≫ g = f ∧
+                 ∀ g' : one ⟶ X, term α.obj ≫ g' = f → g' = g) :
+    (∀ (β : AAction (𝒞 := 𝒞) A),
+        ∃ h : α.obj ⟶ β.obj,
+          α.unit ≫ h = β.unit ∧ prodMap A α.obj β.obj h ≫ β.act = α.act ≫ h) ∧
+      (∀ e : α.obj ⟶ α.obj, α.unit ≫ e = α.unit →
+          prodMap A α.obj α.obj e ≫ α.act = α.act ≫ e → e = Cat.id α.obj) := by
+  -- THE ONE RESIDUAL of §1.98(13): the §1.988 free recursion theorem (existence for
+  -- every A-action β, and uniqueness of the `α.obj → α.obj` free recursor `= id`).
+  -- The action Peano property, general free-recursor uniqueness, and the FreeAAction
+  -- assembly are all derived from this Sorry-free below.
+  sorry
+
+/-- **§1.98(13) action PEANO PROPERTY.**  Every `(unit,act)`-closed subobject
+    `B ↣ α.obj` is entire.  `B` closed = it allows `unit` (point `uB : 1 → B.dom`,
+    `uB ≫ B.arr = α.unit`) and is `act`-stable (`actB : A×B.dom → B.dom`,
+    `actB ≫ B.arr = prodMap A B.dom α.obj B.arr ≫ α.act`).
+
+    PROOF (analogue of `peano_of_bicartesian`).  The free recursor
+    (`free_recursor_exists_of_bicartesian` into `(B.dom, uB, actB)`) gives a SECTION
+    `sec : α.obj → B.dom`; then `sec ≫ B.arr` and `id` are both free homomorphisms into
+    `α.obj`, so the bundled `α.obj`-uniqueness forces `sec ≫ B.arr = id`, making `B.arr`
+    a split epi; monic + split epi ⇒ iso. -/
+theorem free_peano_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
+    [HasBinaryCoproducts 𝒞] [HasImages 𝒞]
+    (A : 𝒞) (α : AAction (𝒞 := 𝒞) A)
+    (hiso : IsIso (HasBinaryCoproducts.case α.unit α.act
+                   (A := one) (B := prod A α.obj) (X := α.obj)))
+    (hcoeq : ∀ (X : 𝒞) (f : α.obj ⟶ X),
+               α.act ≫ f = snd (A := A) (B := α.obj) ≫ f →
+               ∃ g : one ⟶ X, term α.obj ≫ g = f ∧
+                 ∀ g' : one ⟶ X, term α.obj ≫ g' = f → g' = g)
+    (B : Subobject 𝒞 α.obj)
+    (huB : ∃ uB : one ⟶ B.dom, uB ≫ B.arr = α.unit)
+    (hactB : ∃ actB : prod A B.dom ⟶ B.dom,
+        actB ≫ B.arr = prodMap A B.dom α.obj B.arr ≫ α.act) :
+    B.IsEntire := by
+  obtain ⟨uB, huB⟩ := huB
+  obtain ⟨actB, hactB⟩ := hactB
+  obtain ⟨hex, huniqα⟩ := free_recursor_exists_of_bicartesian A α hiso hcoeq
+  -- Section `sec : α.obj → B.dom` via the free recursor into `(B.dom, uB, actB)`.
+  obtain ⟨sec, hsec0, hsecs⟩ := hex { obj := B.dom, unit := uB, act := actB }
+  -- `sec ≫ B.arr = id_{α.obj}` by the bundled `α.obj`-free-recursor uniqueness.
+  have hsecB : sec ≫ B.arr = Cat.id α.obj := by
+    apply huniqα
+    · rw [← Cat.assoc, hsec0, huB]
+    · -- prodMap A α.obj α.obj (sec≫B.arr) ≫ act
+      --   = prodMap A α.obj B.dom sec ≫ (prodMap A B.dom α.obj B.arr ≫ act)
+      --   = prodMap A α.obj B.dom sec ≫ actB ≫ B.arr
+      --   = (act ≫ sec) ≫ B.arr = act ≫ (sec≫B.arr)
+      rw [prodMap_comp, Cat.assoc, ← hactB, ← Cat.assoc, hsecs, Cat.assoc]
+  -- `B.arr` split epi (retraction `sec`) + monic ⇒ iso.
+  refine ⟨sec, ?_, hsecB⟩
+  apply B.monic
+  rw [Cat.assoc, hsecB, Cat.comp_id, Cat.id_comp]
+
+/-- **§1.98(13) free-recursor UNIQUENESS** (via the equalizer + action Peano).
+    Any two free homomorphisms `h, h' : α.obj → β.obj` are equal: their equalizer
+    `E ↣ α.obj` is `(unit,act)`-closed, hence entire by `free_peano_of_bicartesian`,
+    so the equalizer map is iso and left-cancels `h = h'`. -/
+theorem free_recursor_unique_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
+    [HasBinaryCoproducts 𝒞] [HasImages 𝒞]
+    (A : 𝒞) (α : AAction (𝒞 := 𝒞) A)
+    (hiso : IsIso (HasBinaryCoproducts.case α.unit α.act
+                   (A := one) (B := prod A α.obj) (X := α.obj)))
+    (hcoeq : ∀ (X : 𝒞) (f : α.obj ⟶ X),
+               α.act ≫ f = snd (A := A) (B := α.obj) ≫ f →
+               ∃ g : one ⟶ X, term α.obj ≫ g = f ∧
+                 ∀ g' : one ⟶ X, term α.obj ≫ g' = f → g' = g)
+    (β : AAction (𝒞 := 𝒞) A) (h h' : α.obj ⟶ β.obj)
+    (h0 : α.unit ≫ h = β.unit) (hs : prodMap A α.obj β.obj h ≫ β.act = α.act ≫ h)
+    (h0' : α.unit ≫ h' = β.unit) (hs' : prodMap A α.obj β.obj h' ≫ β.act = α.act ≫ h') :
+    h = h' := by
+  -- Equalizer subobject E = eq(h, h') ↣ α.obj.
+  let m : eqObj h h' ⟶ α.obj := eqMap h h'
+  have hm_eq : m ≫ h = m ≫ h' := eqMap_eq h h'
+  have hm_mono : Mono m := by
+    intro W u v huv
+    have hu : u = eqLift h h' (u ≫ m) (by rw [Cat.assoc, Cat.assoc, eqMap_eq]) :=
+      eqLift_uniq h h' (u ≫ m) _ u rfl
+    have hv : v = eqLift h h' (u ≫ m) (by rw [Cat.assoc, Cat.assoc, eqMap_eq]) :=
+      eqLift_uniq h h' (u ≫ m) _ v huv.symm
+    rw [hu, hv]
+  let E : Subobject 𝒞 α.obj := ⟨eqObj h h', m, hm_mono⟩
+  -- E allows unit: `unit ≫ h = β.unit = unit ≫ h'`, so `unit` lifts to E.
+  have hEu : ∃ uB : one ⟶ E.dom, uB ≫ E.arr = α.unit :=
+    ⟨eqLift h h' α.unit (by rw [h0, h0']), eqLift_fac h h' α.unit (by rw [h0, h0'])⟩
+  -- E is act-stable: `prodMap A E.dom α.obj m ≫ act` equalizes h, h'.
+  --   (prodMap A E.dom α.obj m ≫ act) ≫ h = prodMap A E.dom α.obj m ≫ (act ≫ h)
+  --     = prodMap A E.dom α.obj m ≫ (prodMap A α.obj β.obj h ≫ β.act)
+  --     = prodMap A E.dom β.obj (m ≫ h) ≫ β.act   [prodMap functorial]
+  --     = prodMap A E.dom β.obj (m ≫ h') ≫ β.act  [hm_eq]  = … = (…) ≫ h'.
+  have hmact_eq : (prodMap A E.dom α.obj m ≫ α.act) ≫ h
+                = (prodMap A E.dom α.obj m ≫ α.act) ≫ h' := by
+    calc (prodMap A E.dom α.obj m ≫ α.act) ≫ h
+        = prodMap A E.dom α.obj m ≫ (prodMap A α.obj β.obj h ≫ β.act) := by
+            rw [Cat.assoc, hs]
+      _ = prodMap A E.dom β.obj (m ≫ h) ≫ β.act := by rw [← Cat.assoc, ← prodMap_comp]
+      _ = prodMap A E.dom β.obj (m ≫ h') ≫ β.act := by rw [hm_eq]
+      _ = prodMap A E.dom α.obj m ≫ (prodMap A α.obj β.obj h' ≫ β.act) := by
+            rw [prodMap_comp, Cat.assoc]
+      _ = (prodMap A E.dom α.obj m ≫ α.act) ≫ h' := by rw [hs', Cat.assoc]
+  have hEact : ∃ actB : prod A E.dom ⟶ E.dom,
+      actB ≫ E.arr = prodMap A E.dom α.obj E.arr ≫ α.act :=
+    ⟨eqLift h h' (prodMap A E.dom α.obj m ≫ α.act) hmact_eq,
+     eqLift_fac h h' (prodMap A E.dom α.obj m ≫ α.act) hmact_eq⟩
+  -- E entire by the action Peano property; the equalizer map is iso ⇒ h = h'.
+  have hEent : E.IsEntire := free_peano_of_bicartesian A α hiso hcoeq E hEu hEact
+  obtain ⟨m', _, hm'm⟩ := hEent
+  calc h = Cat.id α.obj ≫ h := (Cat.id_comp _).symm
+    _ = (m' ≫ m) ≫ h := by rw [hm'm]
+    _ = m' ≫ m ≫ h := Cat.assoc _ _ _
+    _ = m' ≫ m ≫ h' := by rw [hm_eq]
+    _ = (m' ≫ m) ≫ h' := (Cat.assoc _ _ _).symm
+    _ = Cat.id α.obj ≫ h' := by rw [hm'm]
+    _ = h' := Cat.id_comp _
+
 /-- §1.98(13): Bicartesian characterization of a free A-action.
     An A-action (A*, e : 1 → A*, s : A × A* → A*) is FREE iff
     [(e, s)] : 1 + A × A* → A* is iso and p₂ : A × A* → A* → 1 is a coequalizer.
-    (Analogue of §1.98(10); proof omitted pending §1.988 infrastructure.) -/
+    (Analogue of §1.98(10); EXISTENCE of the free recursor is the §1.988 residual
+    `free_recursor_exists_of_bicartesian`; UNIQUENESS is proved Sorry-free here.) -/
 theorem free_action_iff_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
     [HasBinaryCoproducts 𝒞] [HasImages 𝒞]
     (A : 𝒞) (α : AAction (𝒞 := 𝒞) A)
@@ -888,15 +1157,41 @@ theorem free_action_iff_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
                ∃ g : one ⟶ X, term α.obj ≫ g = f ∧
                  ∀ g' : one ⟶ X, term α.obj ≫ g' = f → g' = g) :
     Nonempty (FreeAAction (𝒞 := 𝒞) A) := by
-  -- BLOCKER: the A-action analogue of `nno_of_bicartesian_data` (§1.98(13) is proved "analogously
-  -- to [1.985] and [1.98(10)]").  From the iso [e,s]:1+A×A* ≅ A* and the coequalizer A×A*→A*→1 one
-  -- builds the free recursor recA α : A* → α.obj for every A-action α, with existence+uniqueness.
-  -- It therefore inherits §1.98(10)'s REAL residual (see `nno_of_bicartesian_data`): the §1.988
-  -- partial-map-classifier recursor + the §1.987 internal-∀ Peano induction (`least_peano_subobject`).
-  -- STATUS CORRECTION: §1.543 capitalization is now PROVEN Sorry-free
-  -- (`Fredy.CapDataWiring.capData_exists`); this Sorry is NOT capitalization-gated.  The residual is
-  -- the absent W-type / lawful per-codomain PMC / internal-∀ comprehension infrastructure.
-  sorry
+  -- The A-action analogue of `nno_of_bicartesian_data` (§1.98(13), "analogously to [1.985] and
+  -- [1.98(10)]").  We reduce the whole free A-action to ONE sharp obligation `hrec`: existence of
+  -- the free recursor `recA β : α.obj → β.obj` for every A-action `β`, with its two compatibility
+  -- squares and uniqueness.  Packaging `hrec` into a `FreeAAction` (whose underlying `AAction` is
+  -- `α` itself) via `Classical.choice` is verified below.
+  --
+  -- `hrec` IS the §1.98(13) free recursor: from `pred := [unit,act]⁻¹ : α.obj → 1 + A×α.obj` a map
+  -- `h : α.obj → β.obj` is a free homomorphism iff `h = pred ≫ case β.unit (prodMap A α.obj β.obj h
+  -- ≫ β.act)` (a fixpoint), built by §1.988 through the lawful per-codomain partial-map classifier
+  -- (`Fredy.partialMapClassifier_exists`, now Sorry-free) whose partial-recursor domain `R ↣ α.obj`
+  -- is `(unit,act)`-stable and forced entire by the §1.987 Peano INDUCTION that `hcoeq` powers.
+  -- The single missing primitive is that Peano-induction recursor (the SAME residual as
+  -- `nno_of_bicartesian_data`): `least_peano_subobject` gives the least closed subobject's
+  -- existence, not that the bicartesian data makes it entire.  STATUS: NOT §1.543-capitalization
+  -- (proven Sorry-free here); the residual is the absent §1.988 W-type / internal-∀ Peano-induction.
+  have hrec : ∀ (β : AAction (𝒞 := 𝒞) A),
+      ∃ h : α.obj ⟶ β.obj,
+        (α.unit ≫ h = β.unit ∧ prodMap A α.obj β.obj h ≫ β.act = α.act ≫ h) ∧
+        ∀ h' : α.obj ⟶ β.obj, α.unit ≫ h' = β.unit →
+          prodMap A α.obj β.obj h' ≫ β.act = α.act ≫ h' → h' = h := by
+    -- EXISTENCE from `free_recursor_exists_of_bicartesian` (the single residual); UNIQUENESS
+    -- proved here Sorry-free from the action Peano property via the equalizer.
+    intro β
+    obtain ⟨hex, _⟩ := free_recursor_exists_of_bicartesian A α hiso hcoeq
+    obtain ⟨h, hh0, hhs⟩ := hex β
+    exact ⟨h, ⟨hh0, hhs⟩, fun h' h0' hs' =>
+      free_recursor_unique_of_bicartesian A α hiso hcoeq β h' h h0' hs' hh0 hhs⟩
+  exact ⟨{
+    obj := α.obj
+    unit := α.unit
+    act := α.act
+    recA := fun β => (hrec β).choose
+    recA_unit := fun β => (hrec β).choose_spec.1.1
+    recA_act := fun β => (hrec β).choose_spec.1.2
+    recA_uniq := fun β m hm0 hms => (hrec β).choose_spec.2 m hm0 hms }⟩
 
 /-! ## §1.98(14)  Existence of free A-action from NNO
 
