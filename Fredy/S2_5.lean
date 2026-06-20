@@ -524,8 +524,8 @@ end AmenableOrder
 
   Working in an amenable quotient of an allegory.
   An object A is SEPARATED if 1_A = 1_A⁺.
-  A relation R : A → B is DENSE if R is congruent to the maximal relation
-  (i.e., R⁺ is entire) (§2.563). -/
+  A relation R : A → B is DENSE if it is congruent to the maximal relation from
+  A to B (§2.563). -/
 
 section SeparatedDense
 
@@ -536,13 +536,58 @@ variable {𝒜 : Type u} [DistributiveAllegory 𝒜]
 def Separated (amen : AmenableCongruence 𝒜) (A : 𝒜) : Prop :=
   amen.largest (Cat.id A) = Cat.id A
 
-/-- A relation R : A → B is DENSE (§2.563) if it is congruent to the maximal
-    relation from A to B, i.e., R⁺ is an entire morphism in the original allegory
-    (its domain is 1_A). -/
-def Dense (amen : AmenableCongruence 𝒜) {A B : 𝒜} (R : A ⟶ B) : Prop :=
-  Entire (amen.largest R)
-
 end SeparatedDense
+
+/-! ### Dense relations need a maximal (top) relation
+
+  Book §2.563 defines `R : A → B` to be DENSE iff it is *congruent to the maximal
+  relation* from A to B.  The "maximal relation" `⊤ : A → B` is the top of the
+  hom-lattice — but a bare `DistributiveAllegory` has NO top element, so the
+  faithful condition is not even *stateable* there (this was an audit defect: the
+  old `Dense := Entire (largest R)`, i.e. `dom R⁺ = 1`, is a genuinely *different,
+  weaker* condition).  §2.563 itself works in an effective *tabular unitary
+  division* allegory, and §2.55 runs amenable quotients of *locally complete*
+  allegories — exactly the setting where the maximal relation exists as
+  `Sup (fun _ => True)`.  We therefore state `Dense` in a
+  `LocallyCompleteDistributiveAllegory`, where the top relation is available. -/
+
+section Dense
+
+open LocallyCompleteDistributiveAllegory
+
+variable {𝒜 : Type u} [LocallyCompleteDistributiveAllegory 𝒜]
+
+/-- The MAXIMAL relation from `a` to `b`: the supremum of all relations, i.e. the
+    top of the hom-lattice `(a, b)`.  Stateable only because the allegory is
+    locally complete (§2.22). -/
+def topRel (a b : 𝒜) : a ⟶ b := Sup (fun _ : a ⟶ b => True)
+
+/-- `topRel` is the greatest relation: every `R : a ⟶ b` is below it. -/
+theorem le_topRel {a b : 𝒜} (R : a ⟶ b) : R ⊑ topRel a b :=
+  le_Sup (P := fun _ : a ⟶ b => True) trivial
+
+/-- A relation `R : A → B` is DENSE (§2.563) iff it is CONGRUENT to the maximal
+    relation `⊤ : A → B`.  This is the faithful book condition (`R ≡ ⊤`), now
+    stateable because the locally complete allegory has a top relation `topRel`. -/
+def Dense (amen : AmenableCongruence 𝒜) {A B : 𝒜} (R : A ⟶ B) : Prop :=
+  amen.cong.rel R (topRel A B)
+
+/-- §2.533-style characterization: `R` is dense iff `R⁺ = ⊤`.  (Congruence classes
+    are detected by their largest element: `R ≡ S ↔ R⁺ = S⁺`, and `⊤⁺ = ⊤` since
+    `⊤` is already maximal.)  This connects `Dense` to the largest-element calculus
+    used throughout §2.53. -/
+theorem dense_iff_largest_eq_top (amen : AmenableCongruence 𝒜) {A B : 𝒜}
+    (R : A ⟶ B) : Dense amen R ↔ amen.largest R = topRel A B := by
+  constructor
+  · -- R ≡ ⊤  ⟹  ⊤ ⊑ R⁺  (by largest_max), and R⁺ ⊑ ⊤  (top), so R⁺ = ⊤.
+    intro hR
+    exact le_antisymm (le_topRel _) (amen.largest_max hR)
+  · -- R⁺ = ⊤  ⟹  R ≡ R⁺ = ⊤.
+    intro hRplus
+    have hRrel : amen.cong.rel R (amen.largest R) := amen.largest_rel R
+    rwa [hRplus] at hRrel
+
+end Dense
 
 /-! ## §2.542  Every topos admits a faithful bicartesian
     representation to a boolean topos (§2.542).
