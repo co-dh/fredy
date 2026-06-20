@@ -258,6 +258,19 @@ theorem bigInter_carrier_true {A : 𝒞} (Fname : one ⟶ powObj (powObj A)) :
   congr 1
   exact term_uniq _ _
 
+/-- **Body-at-a-point.**  The membership map of the name `a ≫ curry h` (the `[A]`-indexed
+    subobject `{σ | h(σ,a)}`) is `⟨id, term ≫ a⟩ ≫ h`, i.e. `h` with its `A`-slot fixed to `a`.
+    Infrastructure for the (still-open) `bigInter` UPPER bound via `imp_adjunction`. -/
+theorem membershipMap_curry_point {A : 𝒞} (h : prod (powObj A) A ⟶ omega (𝒞 := 𝒞))
+    (a : one ⟶ A) :
+    membershipMap (a ≫ curry h)
+      = pair (Cat.id (powObj A)) (term (powObj A) ≫ a) ≫ h := by
+  show pair (Cat.id (powObj A)) (term (powObj A) ≫ a ≫ curry h)
+      ≫ eval_exp (powObj A) (omega (𝒞 := 𝒞)) = _
+  rw [← eval_curry_point h (Cat.id (powObj A)) (term (powObj A) ≫ a)]
+  congr 1
+  rw [Cat.assoc]
+
 /-- **§1.94 — `⋂F` is a lower bound (∀-elimination).**  For any `B ↣ A` whose name
     `'B' = nameOf B.arr` is a MEMBER of the family (`'B' ≫ χ_F = ⊤∘!`, i.e. `'B' ∈ F`),
     the big-intersection `⋂F` lies below `B`.
