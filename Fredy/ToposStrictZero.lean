@@ -11,6 +11,12 @@
   `PreLogos.bottom` field — which a topos does NOT carry (that route is circular
   on §1.543) — by `bottomSub` plus the §1.946 right-adjoint EMPTINESS lemma
   `g*(∅) ≤ ∅` (`invImage_bottomSub_le`), proved from `radjImage_adjunction`.
+
+  The one cross-base seed `∅_A.dom ≅ ∅_B.dom` (`bottomSub_dom_iso`, ⇔ existence of
+  `0 → A`) is closed sorry-free by the EMPTY-SINGLETON argument (`bottomSub_dom_iso_one`):
+  `K := {a | {a} = ∅}` (pullback of `singletonMap A` along `nameOf ∅_A`) is subterminal,
+  and the pullback square forces `a ∈ {a} = a ∈ ∅`, so the classifier UMP factors `K`
+  through `∅_A`, yielding `∅_A.dom ≅ K ≅ Z₁`.  Axioms: `[propext, Classical.choice]`.
 -/
 
 import Fredy.RightAdjointImage
@@ -64,47 +70,130 @@ theorem Isomorphic.trans' {X Y Z : 𝒞} (h : Isomorphic X Y) (h' : Isomorphic Y
 
 end IsoHelpers
 
-/-- **Cross-base bottom-domain iso** — the ONE remaining gap.
-    `∅_A.dom ≅ ∅_B.dom` for all `A B`.
+/-! ### The empty-singleton contradiction: closing the seed `∅_A.dom ≅ Z₁`
 
-    It SUFFICES to prove `bottomSub_dom_iso A one` (then symm/trans via
-    `Isomorphic.symm'`/`Isomorphic.trans'`).  This is EQUIVALENT to strict-initiality of
-    `∅_1.dom` (`Z₁`), i.e. to the seed `Z₁ × A ≅ Z₁` (`0 × A ≅ 0`).  The natural reduction:
-    `invImage_bottomSub_dom_iso (term A) : (InverseImage (term A) ∅_1).dom ≅ ∅_A.dom` (sorry-free),
-    and `(InverseImage (term A) ∅_1).dom ≅ prod A Z₁` (pullback over `1` = product), so
-    `∅_A.dom ≅ prod A Z₁`; the residual is exactly `prod A Z₁ ≅ Z₁`.
+  The seed reduces (via `Isomorphic.symm'`/`trans'`) to `bottomSub_dom_iso A one`, i.e.
+  `∅_A.dom ≅ Z₁` where `Z₁ := (bottomSub one).dom`.  The previous obstruction was the
+  EXISTENCE of `0 ⟶ A`.  We close it by the **empty-singleton** argument, entirely inside
+  the §1.92/§1.94 exponential power-object framework (`singletonMap`, `membershipMap`,
+  `diag_classify_iff`), all sorry-free:
 
-    PROVEN SORRY-FREE (so this is genuinely ONLY the seed):
-    * `Z₁` is SUBTERMINAL: any `u v : W ⟶ Z₁` satisfy `u = v` by `(bottomSub one).monic _ _ (term_uniq …)`.
-    * maps OUT of `∅_A.dom` are UNIQUE once `(bottomSub (∅_A.dom))` is entire (equalizer +
-      `bottomSub_le` makes the equalizer of any two parallel maps iso).
-    The MISSING half is EXISTENCE of `Z₁ ⟶ A` (the universal arrow `0 → A`).
+  Let `K := pullback of {·}=singletonMap A : A → [A] along the empty-set name
+  u := nameOf ∅_A : 1 → [A]` — i.e. `K = {a : A | {a} = ∅}`.  Then:
+  * `K` is SUBTERMINAL (`k1 : K ↪ 1` is the pullback of the monic `singletonMap A`), so every
+    map out of `K` is forced-unique; in particular `kA : K → A` is monic.
+  * On `K` the pullback square `kA ≫ {·} = k1 ≫ u` makes `a ∈ {a}` equal to `a ∈ ∅`.  But
+    `a ∈ {a} = ⊤` (`mem_singleton_self`, from `diag_classify_iff`) while `a ∈ ∅ = χ_{∅_A}` at
+    `a`, so `kA ≫ χ_{∅_A} = ⊤∘!`; the classifier UMP (`classify_pullback`) factors `kA`
+    through `∅_A`, giving `K ≤ ∅_A`.  With `bottomSub_le` (`∅_A ≤ K`) this is `∅_A.dom ≅ K`.
+  * `K ↪ 1` gives `Z₁ ≤ K` (`bottomSub_le`); and `∅_A.dom ≅ K` composed with the canonical
+    `∅_A.dom → Z₁` (the pullback leg `π₂` of `invImage_bottomSub_dom_iso (term A)`) gives
+    `K ≤ Z₁`.  Hence `K ≅ Z₁`, so `∅_A.dom ≅ Z₁`. -/
 
-    WHY THE AVAILABLE ADJOINTS DO NOT CLOSE IT (verified obstructions):
-    * The LEFT adjoint route (`existsAlong (term A) ⊣ (term A)*`, `existsAlong_le_iff`) is
-      UNAVAILABLE for a bare topos: `existsAlong`/`existsAlong_le_iff` live inside
-      `S1_60 :: section BinRelDistributive`, which carries `variable [PreLogos 𝒞]`; a topos is
-      NOT a `PreLogos` (that is precisely why `bottomSub` replaces `PreLogos.bottom` here).
-    * The sorry-free RIGHT adjoint `radjImage` (`f* ⊣ f##`) gives only EMPTINESS
-      `f*(⊥) ≅ ⊥` (`invImage_bottomSub_dom_iso`), used above — NOT the product seed.
-    * Cartesian-closedness (`S1_92.topos_has_exponentials`, now genuinely proved via
-      `power_objects_imply_all_baseable`) and the per-codomain partial-map classifier
-      (`partialMapClassifier_exists B : Nonempty (LawfulPMC 𝒞 B)`, sorry-free in
-      `Fredy/PartialMapClassifier.lean`) are AVAILABLE sorry-free, but neither yields `0 → A`
-      directly: the generic "CCC ⟹ strict initial" argument presupposes `0` is ALREADY a
-      colimit, and the PMC route needs the "undefined point" `1 ⟶ Ã` = name of the EMPTY
-      subsingleton subobject of `A` (a genuine development inside the `pmcObj`/`pmRel`
-      internals, not yet present).  In this repo finite cocompleteness
-      (`topos_is_bicartesian`, `topos_has_coequalizers`) is itself still `sorry`.
+/-- `a ∈ {a} = ⊤`: the singleton of a (generalized) point contains that point.  The membership
+    test `⟨a, a ≫ {·}⟩ ≫ eval` of `a` in `{a} = a ≫ singletonMap A` is `⊤∘!`, since
+    `singletonMap A = curry χ_Δ` and `χ_Δ ⟨a,a⟩ = ⊤` (`diag_classify_iff`, reflexivity). -/
+theorem mem_singleton_self {X A : 𝒞} (a : X ⟶ A) :
+    pair a (a ≫ singletonMap A) ≫ eval_exp A (omega (𝒞 := 𝒞))
+      = term X ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
+  -- singletonMap A = curry χ_Δ;  ⟨a, a ≫ curry χ_Δ⟩ = ⟨a,a⟩ ≫ ⟨fst, snd ≫ curry χ_Δ⟩
+  -- and (A × curry χ_Δ) ≫ eval = χ_Δ, so the whole composite is ⟨a,a⟩ ≫ χ_Δ = ⊤∘! (a = a).
+  have hev : pair a (a ≫ singletonMap A) ≫ eval_exp A (omega (𝒞 := 𝒞))
+      = pair a a ≫ HasSubobjectClassifier.classify (diag A) (diag_mono A) := by
+    rw [singletonMap, singletonMapCat]
+    have hp : pair a (a ≫ curry (HasSubobjectClassifier.classify (diag A) (diag_mono A)))
+        = pair a a ≫ prodMap A A (omega (𝒞 := 𝒞) ^^ A)
+            (curry (HasSubobjectClassifier.classify (diag A) (diag_mono A))) :=
+      (pair_uniq _ _ _
+        (by rw [Cat.assoc, prodMap_fst, fst_pair])
+        (by rw [Cat.assoc, prodMap_snd, ← Cat.assoc, snd_pair])).symm
+    rw [hp, Cat.assoc, curry_eval_eq]
+  rw [hev]
+  exact (diag_classify_iff a a).2 rfl
 
-    MISSING-LEMMA SIGNATURE (the precise irreducible obstruction):
-      `(A : 𝒞) → ∃ f : (bottomSub (one : 𝒞)).dom ⟶ A, True`   (existence of `0 → A`),
-    equivalently `(A : 𝒞) → IsIso (snd : prod A (bottomSub (one:𝒞)).dom ⟶ (bottomSub (one:𝒞)).dom)`.
-    Hence left as a single, clearly-marked faithful `sorry`; every OTHER ingredient of §1.944 is
-    closed sorry-free. -/
+/-- **Cross-base bottom-domain iso** (§1.944) — CLOSED.  `∅_A.dom ≅ ∅_B.dom` for all `A B`,
+    via `bottomSub_dom_iso_one` and `Isomorphic.symm'`/`trans'`. -/
+theorem bottomSub_dom_iso_one (A : 𝒞) :
+    Isomorphic (bottomSub A).dom (bottomSub (one : 𝒞)).dom := by
+  -- u : 1 → [A] is the name of the empty subobject ∅_A.  membershipMap u = χ_{∅_A}.
+  let u : one ⟶ powObj A := nameOf (bottomSub A).arr (bottomSub A).monic
+  have hmem : membershipMap u = HasSubobjectClassifier.classify (bottomSub A).arr (bottomSub A).monic :=
+    membershipMap_nameOf _ _
+  -- K := pullback of {·} = singletonMap A along u.
+  let pb := HasPullbacks.has u (singletonMap A)
+  let K : 𝒞 := pb.cone.pt
+  let k1 : K ⟶ one := pb.cone.π₁
+  let kA : K ⟶ A := pb.cone.π₂
+  -- pullback square: kA ≫ {·} = k1 ≫ u.
+  have hsq : kA ≫ singletonMap A = k1 ≫ u := pb.cone.w.symm
+  -- k1 is monic (pullback of the monic singletonMap A), hence K is SUBTERMINAL.
+  have hk1_mono : Mono k1 := by
+    intro W g h hgh
+    -- agree on the {·}-leg via the pullback square + singletonMap A monic
+    have hleg : (g ≫ kA) ≫ singletonMap A = (h ≫ kA) ≫ singletonMap A := by
+      rw [Cat.assoc, Cat.assoc, hsq, ← Cat.assoc, ← Cat.assoc, hgh]
+    have hkA : g ≫ kA = h ≫ kA := singletonMap_monic A _ _ hleg
+    -- pullback uniqueness from agreement on both legs (π₁ via hgh, π₂ via hkA)
+    have hw : (g ≫ k1) ≫ u = (g ≫ kA) ≫ singletonMap A := by
+      rw [Cat.assoc, Cat.assoc, ← hsq]
+    exact (pb.lift_uniq ⟨W, g ≫ k1, g ≫ kA, hw⟩ g rfl rfl).trans
+      (pb.lift_uniq ⟨W, g ≫ k1, g ≫ kA, hw⟩ h hgh.symm hkA.symm).symm
+  -- k1 = term K (the only map K → 1).
+  have hk1_term : k1 = term K := term_uniq _ _
+  -- On K, "a ∈ {a}" = "a ∈ ∅", so kA ≫ χ_{∅_A} = ⊤∘!.
+  have hkA_class : kA ≫ HasSubobjectClassifier.classify (bottomSub A).arr (bottomSub A).monic
+      = term K ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
+    -- kA ≫ χ_{∅_A} = kA ≫ membershipMap u = ⟨kA, term K ≫ u⟩ ≫ eval
+    have h1 : kA ≫ HasSubobjectClassifier.classify (bottomSub A).arr (bottomSub A).monic
+        = pair kA (term K ≫ u) ≫ eval_exp A (omega (𝒞 := 𝒞)) := by
+      rw [← hmem, membershipMap, ← Cat.assoc]
+      congr 1
+      exact pair_uniq _ _ _
+        (by rw [Cat.assoc, fst_pair, Cat.comp_id])
+        (by rw [Cat.assoc, snd_pair, ← Cat.assoc, term_uniq (kA ≫ term A) (term K)])
+    -- term K ≫ u = k1 ≫ u = kA ≫ {·}, so the eval = ⟨kA, kA ≫ {·}⟩ ≫ eval = ⊤∘! (mem_singleton_self)
+    have hsub : term K ≫ u = kA ≫ singletonMap A := by rw [← hk1_term, hsq]
+    rw [h1, hsub, mem_singleton_self]
+  -- classifier UMP: kA factors through ∅_A.arr — gives K ≤ ∅_A (as subobjects of A via kA).
+  have hkA_mono : Mono kA := by
+    -- K is subterminal (k1 monic), so any two maps W → K agree (via term-uniqueness on the k1-leg).
+    intro W g h _; exact hk1_mono g h (term_uniq (g ≫ k1) (h ≫ k1))
+  -- the classifying pullback of ∅_A lifts ⟨K, kA, term K⟩.
+  obtain ⟨w, ⟨hw_arr, _⟩, _⟩ :=
+    HasSubobjectClassifier.classify_pullback (bottomSub A).arr (bottomSub A).monic
+      ⟨K, kA, term K, hkA_class⟩
+  -- K ≤ ∅_A : the lift w : K → ∅_A.dom with w ≫ ∅_A.arr = kA.
+  have hKsubA : (⟨K, kA, hkA_mono⟩ : Subobject 𝒞 A).le (bottomSub A) := ⟨w, hw_arr⟩
+  -- ∅_A ≤ K : bottomSub is least.
+  have hAsubK : (bottomSub A).le (⟨K, kA, hkA_mono⟩ : Subobject 𝒞 A) := bottomSub_le _
+  -- hence ∅_A.dom ≅ K.
+  have hiso_AK : Isomorphic (bottomSub A).dom K := le_le_dom_iso (bottomSub A) ⟨K, kA, hkA_mono⟩ hAsubK hKsubA
+  -- Now view K and Z₁ as subobjects of 1 (both subterminal) and show K ≅ Z₁.
+  -- Z₁ ≤ K : bottomSub one is least among subobjects of 1.
+  have hZsubK : (bottomSub (one : 𝒞)).le (⟨K, k1, hk1_mono⟩ : Subobject 𝒞 one) := bottomSub_le _
+  -- K ≤ Z₁ : compose ∅_A.dom ≅ K with the canonical ∅_A.dom → Z₁ (pullback π₂ leg of invImage).
+  -- The InverseImage pullback `ipb` of (term A) and ∅_1.arr; its π₂ leg lands in Z₁,
+  -- and `ipb.cone.pt` is DEFEQ to (InverseImage (term A) ∅_1).dom.
+  let ipb := HasPullbacks.has (term A) (bottomSub (one : 𝒞)).arr
+  have hinv : Isomorphic (InverseImage (term A) (bottomSub one)).dom (bottomSub A).dom :=
+    invImage_bottomSub_dom_iso (term A)
+  obtain ⟨ψ, _hφψ, _hψφ⟩ := hinv.choose_spec
+  -- q : ∅_A.dom → Z₁  via ψ : ∅_A.dom → ipb.pt then the π₂ leg ipb.cone.π₂ : ipb.pt → Z₁.
+  let q : (bottomSub A).dom ⟶ (bottomSub (one : 𝒞)).dom := ψ ≫ ipb.cone.π₂
+  -- w : K → ∅_A.dom (the lift from hKsubA); then w ≫ q : K → Z₁ witnesses K ≤ Z₁.
+  have hKsubZ : (⟨K, k1, hk1_mono⟩ : Subobject 𝒞 one).le (bottomSub (one : 𝒞)) := by
+    refine ⟨w ≫ q, ?_⟩
+    -- (w ≫ q) ≫ ∅_1.arr = k1 : both are maps K → 1, equal by terminal-uniqueness.
+    exact term_uniq ((w ≫ q) ≫ (bottomSub (one : 𝒞)).arr) k1
+  -- K ≅ Z₁, then ∅_A.dom ≅ K ≅ Z₁.
+  have hiso_KZ : Isomorphic K (bottomSub (one : 𝒞)).dom :=
+    le_le_dom_iso (⟨K, k1, hk1_mono⟩ : Subobject 𝒞 one) (bottomSub one) hKsubZ hZsubK
+  exact Isomorphic.trans' hiso_AK hiso_KZ
+
+/-- **Cross-base bottom-domain iso** (§1.944) — CLOSED.  `∅_A.dom ≅ ∅_B.dom` for all `A B`. -/
 theorem bottomSub_dom_iso (A B : 𝒞) :
-    Isomorphic (bottomSub A).dom (bottomSub B).dom := by
-  sorry
+    Isomorphic (bottomSub A).dom (bottomSub B).dom :=
+  Isomorphic.trans' (bottomSub_dom_iso_one A) (Isomorphic.symm' (bottomSub_dom_iso_one B))
 
 /-- **§1.944 strictness.** Every map into `Z := ∅_1.dom` is an isomorphism.
     Mirror of `any_map_to_zero_is_iso` (S1_61), with `bottomSub` for `PreLogos.bottom`,
@@ -157,8 +246,8 @@ theorem strict_coterminator_bottomSub_one :
 
 /-- **§1.944** — a topos has a (strict) coterminator `Z := ∅_1.dom`.  Assembled from
     the strict-coterminator witness via `HasCoterminator.ofStrict` (S1_58), using the
-    `[Topos 𝒞]`-supplied `HasBinaryProducts`.  (Modulo the single `bottomSub_dom_iso`
-    seed above; every other step is sorry-free.) -/
+    `[Topos 𝒞]`-supplied `HasBinaryProducts`.  Fully sorry-free: the former seed
+    `bottomSub_dom_iso` is now closed by the empty-singleton argument above. -/
 theorem topos_has_coterminator : Nonempty (HasCoterminator 𝒞) :=
   ⟨HasCoterminator.ofStrict strict_coterminator_bottomSub_one⟩
 
