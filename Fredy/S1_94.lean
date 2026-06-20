@@ -61,7 +61,7 @@ class Logos' (𝒞 : Type u) [Cat.{v} 𝒞] extends
   `true : 1 → Ω` along the membership evaluation map (§1.94). -/
 
 /-- The POWER OBJECT [A] = Ω^A (§1.92). -/
-abbrev powObj (A : 𝒞) : 𝒞 := omega (𝒞 := 𝒞) ^^ A
+noncomputable abbrev powObj (A : 𝒞) : 𝒞 := omega (𝒞 := 𝒞) ^^ A
 
 /-! ## §1.941  Representational invariance of ∩F
 
