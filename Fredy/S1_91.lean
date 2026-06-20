@@ -990,6 +990,74 @@ theorem dbar_unit {A : 𝒞} (S u : Subobject 𝒞 A) : S.le (Sub.dbar (Sub.dbar
           rw [hSt]
     _ = S.arr ≫ subChar u := true_dbar (S.arr ≫ subChar u)
 
+/-- **§1.914 (Ω-extensionality)**: two maps `χ₁ χ₂ : W → Ω` are equal iff they have
+    the same `⊤`-pattern at every stage: `∀ V (k : V → W), k ≫ χ₁ = ⊤ ↔ k ≫ χ₂ = ⊤`.
+    (This is the subobject-classifier `Sub(−) ≅ Hom(−,Ω)` bijection, made into a
+    pointwise extensionality principle.)  It lets us prove map equalities in `Ω` by
+    comparing membership predicates — the engine for the Heyting laws. -/
+theorem omega_ext {W : 𝒞} (χ₁ χ₂ : W ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞))
+    (h : ∀ {V : 𝒞} (k : V ⟶ W),
+      k ≫ χ₁ = term V ≫ HasSubobjectClassifier.true
+        ↔ k ≫ χ₂ = term V ≫ HasSubobjectClassifier.true) :
+    χ₁ = χ₂ := by
+  obtain ⟨P₁, m₁, hm₁, h₁⟩ := classify_surjective χ₁
+  obtain ⟨P₂, m₂, hm₂, h₂⟩ := classify_surjective χ₂
+  -- The two monics have the same points, so each ≤ the other; equal classifiers.
+  have hsq₁ : m₁ ≫ χ₁ = term P₁ ≫ HasSubobjectClassifier.true := by
+    rw [← h₁]; exact HasSubobjectClassifier.classify_sq m₁ hm₁
+  have hsq₂ : m₂ ≫ χ₂ = term P₂ ≫ HasSubobjectClassifier.true := by
+    rw [← h₂]; exact HasSubobjectClassifier.classify_sq m₂ hm₂
+  let S₁ : Subobject 𝒞 W := ⟨P₁, m₁, hm₁⟩
+  let S₂ : Subobject 𝒞 W := ⟨P₂, m₂, hm₂⟩
+  have h12 : S₁.le S₂ := (allows_iff_classify S₂ m₁).2 (by
+    rw [show HasSubobjectClassifier.classify S₂.arr S₂.monic = χ₂ from h₂]
+    exact (h m₁).1 hsq₁)
+  have h21 : S₂.le S₁ := (allows_iff_classify S₁ m₂).2 (by
+    rw [show HasSubobjectClassifier.classify S₁.arr S₁.monic = χ₁ from h₁]
+    exact (h m₂).2 hsq₂)
+  have := classify_eq_of_le_le h12 h21
+  -- subChar S₁ = χ₁, subChar S₂ = χ₂.
+  rw [show subChar S₁ = χ₁ from h₁, show subChar S₂ = χ₂ from h₂] at this
+  exact this
+
+/-- **§1.914 (`c ⇔ c = ⊤`)**: `⟨c,c⟩ ≫ ⇔ = term ≫ true` — the double-arrow of a map
+    with itself is constantly true (everything agrees with itself).  Immediate from
+    `heyting_true_iff_eq` (the agreement `id ≫ c = id ≫ c` is trivial) and
+    classifier injectivity via `omega_ext`. -/
+theorem dbar_refl_top {W : 𝒞} (c : W ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞)) :
+    pair c c ≫ heytingDoubleArrow = term W ≫ HasSubobjectClassifier.true := by
+  refine omega_ext _ _ (fun {V} k => ?_)
+  rw [show k ≫ (pair c c ≫ heytingDoubleArrow)
+        = k ≫ (pair c c ≫ heytingDoubleArrow) from rfl]
+  constructor
+  · intro _; rw [← Cat.assoc, term_uniq (k ≫ term W) (term V)]
+  · intro _; exact (heyting_true_iff_eq c c k).2 rfl
+
+/-- Precomposition distributes over the double-arrow: `k ≫ (⟨x,y⟩ ≫ ⇔)
+    = ⟨k≫x, k≫y⟩ ≫ ⇔`.  (Naturality of the binary operation in the stage.) -/
+theorem comp_dbar {V W : 𝒞} (k : V ⟶ W)
+    (x y : W ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞)) :
+    k ≫ (pair x y ≫ heytingDoubleArrow)
+      = pair (k ≫ x) (k ≫ y) ≫ heytingDoubleArrow := by
+  rw [← Cat.assoc,
+    pair_uniq (k ≫ x) (k ≫ y) (k ≫ pair x y)
+      (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])]
+
+-- NOTE (§1.914, `φ³ = φ` residual).  The Heyting cube law
+--   `Sub.equiv (Sub.dbar (Sub.dbar (Sub.dbar S u) u) u) (Sub.dbar S u)`
+-- (with `φ S := S ⇔ u`) is the algebraic heart of §1.919.  Its EASY half
+-- `φ S ≤ φ³ S` is exactly `dbar_unit (Sub.dbar S u) u` (proven).  The hard half
+-- `φ³ S ≤ φ S` reduces, via `mem_dbar_iff` + `comp_dbar` on `e := (φ³S).arr` and the
+-- single self-agreement `e ≫ χ_{φ²S} = e ≫ χu`, to the propositional implication
+--   `((c ⇔ b) ⇔ b = b) → c = b`   (c := e≫χS, b := e≫χu).
+-- That single self-agreement is NOT sufficient (in the 3-element Heyting chain with
+-- `b = m` it admits `c = ⊤ ≠ b`); the genuine proof needs the FULL universal property
+-- of `e` (largest subobject where `χ_{φ²S}=χu`) — equivalently the closure-operator
+-- structure of `φ² = (·⇔u)⇔u` — which routes through the `⇒`-laws derived from
+-- `imp_adjunction`.  Deliberately left unfinished rather than faked; the reusable
+-- infra (`true_dbar`, `dbar_refl_top`, `dbar_unit`, `dbar_symm`, `omega_ext`,
+-- `comp_dbar`, the ⇒-adjunction) is all sorry-free above.
+
 /-- **§1.919 (reduction)**: an endomorphism `h : Ω → Ω` equals the identity as
     soon as `t : 1 → Ω` is a pullback of `t` along `h` — i.e. `Ω` is "`h`-large in
     itself" (`h` classifies the maximal subobject `t : 1 → Ω`).
