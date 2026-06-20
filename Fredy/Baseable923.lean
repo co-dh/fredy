@@ -167,6 +167,48 @@ theorem relUncurry_curry {A X B : 𝒞} (S : BinRel 𝒞 X (prod A B)) :
   · show pair ((pair (S.colB ≫ fst) S.colA) ≫ fst) (S.colB ≫ snd) = S.colB
     rw [fst_pair]; exact (pair_eta S.colB).symm
 
+/-! ## Step A — image-free "functional-total relation is a graph"
+
+  A relation `R ⊆ Y × B` whose left leg `R.colA : R.src → Y` is BOTH monic and a
+  cover is (single-valued + total =) a MAP, hence the graph of a unique morphism
+  `m := R.colA⁻¹ ≫ R.colB`.  This is `tabulated_left_iso_eq_graph` (S1_56:647),
+  but reproved INLINE here so as to avoid that lemma's enclosing `[HasImages 𝒞]`
+  section.  No images are used: just `monic_cover_iso` (S1_51:70) to split the leg
+  and product/graph rewrites. -/
+
+/-- **Step A**: a functional-total relation `R` (left leg monic + cover) is the
+    graph of a unique morphism `m : Y ⟶ B`, with mutual `RelHom`s `R ↔ graph m`. -/
+theorem functional_total_relation_is_graph {Y B : 𝒞} (R : BinRel 𝒞 Y B)
+    (hmono : Mono R.colA) (hcover : Cover R.colA) :
+    ∃ m : Y ⟶ B, (RelHom R (graph m) ∧ RelHom (graph m) R) ∧
+      ∀ m' : Y ⟶ B, (RelHom R (graph m') ∧ RelHom (graph m') R) → m' = m := by
+  -- The left leg is iso since it is a monic cover.
+  obtain ⟨ainv, ha_ainv, hainv_a⟩ := monic_cover_iso R.colA hcover hmono
+  refine ⟨ainv ≫ R.colB, ⟨?_, ?_⟩, ?_⟩
+  · -- RelHom R (graph (ainv ≫ R.colB)): witness R.colA.
+    refine ⟨R.colA, ?_, ?_⟩
+    · dsimp [graph]; rw [Cat.comp_id]
+    · dsimp [graph]
+      calc R.colA ≫ (ainv ≫ R.colB) = (R.colA ≫ ainv) ≫ R.colB := (Cat.assoc _ _ _).symm
+        _ = Cat.id _ ≫ R.colB := by rw [ha_ainv]
+        _ = R.colB := Cat.id_comp _
+  · -- RelHom (graph (ainv ≫ R.colB)) R: witness ainv.
+    refine ⟨ainv, ?_, ?_⟩
+    · dsimp [graph]; rw [hainv_a]
+    · rfl
+  · -- Uniqueness: any m' with RelHom (graph m') R gives a section of R.colA = ainv.
+    rintro m' ⟨_, ⟨w, hwA, hwB⟩⟩
+    -- hwA : w ≫ R.colA = (graph m').colA = id Y ; hwB : w ≫ R.colB = m'
+    dsimp [graph] at hwA hwB
+    -- w is a section of R.colA, which is iso, so w = ainv.
+    have hw_eq : w = ainv := by
+      calc w = w ≫ Cat.id _ := (Cat.comp_id _).symm
+        _ = w ≫ (R.colA ≫ ainv) := by rw [ha_ainv]
+        _ = (w ≫ R.colA) ≫ ainv := (Cat.assoc _ _ _).symm
+        _ = Cat.id _ ≫ ainv := by rw [hwA]
+        _ = ainv := Cat.id_comp _
+    rw [← hwB, hw_eq]
+
 /-! ## §1.923 missing dominoes (honest sorries, pinned signatures) -/
 
 /-- **(D1)** §1.912: a power object for the terminal object is a subobject
