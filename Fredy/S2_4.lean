@@ -1139,11 +1139,29 @@ theorem pre_positive_straight_simple_factor {𝒜 : Type u} [PrePositivePowerAll
     Hence the FORWARD direction (metonymy ⟹ every morphism semi-simple) is fully proven.
 
     CONVERSE (every morphism semi-simple ⟹ metonymy): residual sorry.  The §2.443 calculus
-    (`semiSimple_of_le_powerOrder`, the *unconditional* `f°g ⊑ 2 ⟹ f°g ⊑ bigInter° ≫ bigUnion`)
-    is built, but assembling `2 = ⋃ {f°g ⊑ 2}` from it needs (i) an arbitrary hom-`Sup` (local
-    completeness) and (ii) effectiveness (to realize each semi-simple `F°G ⊑ 2` as a *map*-pair
-    `f°g`), neither present in `PrePositivePowerAllegory`.  See the inline comment for the precise
-    blocker.
+    (`semiSimple_of_le_powerOrder`) is built, but it produces — for *maps* `f, g : c → [a]` with
+    `g∋ ⊑ f∋` — the bound `f°g ⊑ bigUnion° ≫ bigInter` (the RECIPROCAL order; see that lemma's
+    `calc`, last line `_ = bigUnion° ≫ bigInter`), whereas `MetonymyLaw` is defined as the
+    order-level `2 ⊑ bigInter° ≫ bigUnion`.  Three independent obstacles, all absent from
+    `PrePositivePowerAllegory`; verified against §2.443 (`categories-allegories.txt` 14133–14213):
+
+      (i)  LOCAL COMPLETENESS (§2.225) — assembling `2 = ⋃ {f°g ⊑ 2}` needs an arbitrary hom-`Sup`
+           (`LocallyCompleteDistributiveAllegory.Sup`); the book's hypothesis is literally "`2` is
+           the union of the semi-simple morphisms it contains".
+      (ii) MAP REALIZATION — `_hSS` only delivers `2 = F°≫G` with `F, G` SIMPLE (partial maps),
+           but the payload needs *maps*.  The book performs this in `Rel(E)` of a CAPITAL TOPOS
+           (14133–14139 "specialize to the allegory of relations of a capital topos"); abstractly
+           it needs effectiveness/tabularity (`TabularAllegory` + `coreflexive_splits`, §2.16) to
+           split each simple factor's `dom`.  Plus the missing bridge `f°g ⊑ 2 ⟹ g∋ ⊑ f∋`
+           (book 14151–14152), the hypothesis `semiSimple_of_le_powerOrder` actually consumes.
+      (iii)ORDER MISMATCH — even with (i)+(ii) the calculus yields `2 ⊑ bigUnion° ≫ bigInter`, the
+           reciprocal of the stated `bigInter° ≫ bigUnion`.  `2 = ∋/∋` is an antisymmetric partial
+           order (NOT symmetric, `2° ≠ 2`), and the union/intersection roles are forced by the
+           inclusion direction (`f` = larger/⋃, `g` = smaller/⋂, `g∋ ⊑ f∋`), so the reciprocal
+           pair `g°f` is not `⊑ 2` and realization cannot re-derive the other handedness.
+           Reconciling the two would require either reciprocating the whole bound through a
+           `2° = 2` (false) or re-stating `MetonymyLaw` with swapped operands (a statement change,
+           header-fenced).  This obstacle is genuine and was understated in earlier notes.
 
     The statement is the book's genuine biconditional (not vacuous): LHS quantifies semi-simplicity
     of every morphism, RHS is the order-level metonymy law `2 ⊑ bigInter° ≫ bigUnion` per object. -/
@@ -1151,20 +1169,19 @@ theorem pre_positive_semi_simple_iff_metonymic {𝒜 : Type u} [PrePositivePower
     (∀ (a b : 𝒜) (R : a ⟶ b), SemiSimple R) ↔ MetonymyLaw 𝒜 := by
   refine ⟨fun _hSS => ?_, fun hMet a b R => ?_⟩
   · -- CONVERSE (semi-simple ⟹ metonymy `2 ⊑ bigInter° ≫ bigUnion`).
-    -- The §2.443 calculus payload `semiSimple_of_le_powerOrder` is built and gives, for *maps*
-    -- `f, g : c → [a]` with `g∋ ⊑ f∋` (i.e. `f°g ⊑ 2`), `f°g ⊑ bigInter° ≫ bigUnion`.  Freyd's
-    -- converse then writes `2 = ⋃ {f°g ⊑ 2}` and concludes `2 ⊑ bigInter° ≫ bigUnion`.
-    --
-    -- BLOCKER (precise, two missing structures absent from `PrePositivePowerAllegory`):
-    --  (i) LOCAL COMPLETENESS — forming `2 = ⋃ {f°g : f°g ⊑ 2}` needs an arbitrary hom-set `Sup`
-    --      (`LocallyCompleteDistributiveAllegory.Sup`); the book's hypothesis is exactly "`2` is
-    --      the union of the semi-simple morphisms it contains".
-    --  (ii) EFFECTIVENESS — the payload needs the factors to be *maps* (`Map f`, `Map g`), but
-    --      `_hSS` only delivers `2 = F°≫G` with `F, G` SIMPLE (partial maps).  Turning a simple
-    --      factor into a map requires splitting the coreflexive `dom` (effective/tabular allegory,
-    --      §2.16); in `Rel` this is automatic, abstractly it is not.
-    -- Both are header-fenced statement/class additions (`[LocallyCompleteDistributiveAllegory]` +
-    -- effectiveness), so this branch is a precise documented residual rather than a forced proof.
+    -- The §2.443 calculus payload `semiSimple_of_le_powerOrder` is built but yields the RECIPROCAL
+    -- bound `f°g ⊑ bigUnion° ≫ bigInter` (not `bigInter° ≫ bigUnion`).  THREE obstacles, all
+    -- absent from `PrePositivePowerAllegory` (see the docstring for the §2.443 citations):
+    --  (i)   LOCAL COMPLETENESS (§2.225): forming `2 = ⋃ {f°g ⊑ 2}` needs an arbitrary hom `Sup`
+    --        (`LocallyCompleteDistributiveAllegory.Sup`).
+    --  (ii)  MAP REALIZATION (effective/tabular, §2.16): `_hSS` gives `2 = F°≫G` with `F,G` SIMPLE,
+    --        but the payload needs *maps*; the book does this in `Rel(E)` of a capital topos
+    --        (14133–14139).  Plus the missing bridge `f°g ⊑ 2 ⟹ g∋ ⊑ f∋` (14151).
+    --  (iii) ORDER MISMATCH: the calculus produces `bigUnion° ≫ bigInter`, the reciprocal of the
+    --        defined law `bigInter° ≫ bigUnion`; `2° ≠ 2` (antisymmetric order) so it does not
+    --        reconcile.  Closing it would re-state `MetonymyLaw` with swapped operands.
+    -- Hence a precise documented residual, not a forced proof (no `[LocallyComplete]`/`[Tabular]`
+    -- binder alone suffices — obstacle (iii) needs a statement change).
     sorry
   · -- FORWARD: consume the §2.441 (1)⟹(4) factorization (diamond now gone via the combined class).
     -- `semiSimple_of_straight_simple_factor` (PROVEN above) then finishes: metonymy ⟹ `∋`
