@@ -269,6 +269,48 @@ theorem caseCar_inr {f : A.carrier ⟶ X.carrier} (g : B.carrier ⟶ X.carrier)
       hom_preserves_zero hf (term B.carrier)]
   exact GElt.zero_add X g
 
+/-- **Biproduct splitting of the identity.**  On the shared carrier `A.c×B.c`,
+    `id = (π₁≫inl) ⊕ (π₂≫inr)` where `inl=⟨id,0⟩`, `inr=⟨0,id⟩`.  This is the algebraic
+    fact behind the product/coproduct coincidence: every element splits as its `inl`-part
+    plus its `inr`-part. -/
+theorem splitId (A B : AbelianGroupObject 𝒞) :
+    pair (fst ≫ pair (Cat.id A.carrier) (HomAb.zeroCar A B))
+         (snd ≫ pair (HomAb.zeroCar B A) (Cat.id B.carrier)) ≫ (prodGObj A B).add
+      = Cat.id (prod A.carrier B.carrier) := by
+  unfold HomAb.zeroCar
+  rw [prodGObj_add]
+  refine fst_snd_jointly_monic _ _ ?_ ?_
+  · rw [prodAdd_proj_fst, Cat.id_comp]
+    -- first comp: (fst≫⟨id,..⟩)≫fst = fst;  second comp: (snd≫⟨term≫Az,id⟩)≫fst = snd≫term≫Az.
+    rw [Cat.assoc, fst_pair, Cat.comp_id, Cat.assoc, fst_pair, ← Cat.assoc,
+        term_uniq (snd ≫ term B.carrier) (term _)]
+    exact GElt.add_zero A fst
+  · rw [prodAdd_proj_snd, Cat.id_comp]
+    -- first comp: (fst≫⟨id,term≫Bz⟩)≫snd = fst≫term≫Bz = term≫Bz;  second: snd.
+    rw [Cat.assoc, snd_pair, ← Cat.assoc, term_uniq (fst ≫ term A.carrier) (term _),
+        Cat.assoc snd, snd_pair, Cat.comp_id]
+    exact GElt.zero_add B snd
+
+/-- **Coproduct universal property (uniqueness).**  Any homomorphism `h : prodGObj A B → X`
+    with `inl≫h = f`, `inr≫h = g` equals the copairing `[f,g]`.  Split `id` via `splitId`,
+    push `h` through with `hom_preserves_add`, and substitute `inl≫h=f`, `inr≫h=g`. -/
+theorem caseCar_uniq {f : A.carrier ⟶ X.carrier} {g : B.carrier ⟶ X.carrier}
+    {h : prod A.carrier B.carrier ⟶ X.carrier}
+    (hh : IsHomAbelianGroupObject (prodGObj A B) X h)
+    (h₁ : pair (Cat.id A.carrier) (HomAb.zeroCar A B) ≫ h = f)
+    (h₂ : pair (HomAb.zeroCar B A) (Cat.id B.carrier) ≫ h = g) :
+    h = caseCar f g := by
+  unfold caseCar
+  calc h = Cat.id (prod A.carrier B.carrier) ≫ h := (Cat.id_comp h).symm
+    _ = (pair (fst ≫ pair (Cat.id A.carrier) (HomAb.zeroCar A B))
+              (snd ≫ pair (HomAb.zeroCar B A) (Cat.id B.carrier)) ≫ (prodGObj A B).add) ≫ h := by
+          rw [← splitId A B]
+    _ = pair ((fst ≫ pair (Cat.id A.carrier) (HomAb.zeroCar A B)) ≫ h)
+             ((snd ≫ pair (HomAb.zeroCar B A) (Cat.id B.carrier)) ≫ h) ≫ X.add :=
+          hom_preserves_add hh _ _
+    _ = pair (fst ≫ f) (snd ≫ g) ≫ X.add := by
+          rw [Cat.assoc, h₁, Cat.assoc, h₂]
+
 end AbCoprod
 
 end Freyd
