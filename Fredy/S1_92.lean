@@ -931,22 +931,29 @@ theorem expSubobj (A B : 𝒞) :
 def SubTerminal (𝒞 : Type u) [Cat.{v} 𝒞] [Topos 𝒞] : Type v :=
   @one 𝒞 _ _ ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞)
 
-/-- The HEYTING IMPLICATION on SubTerminal: U ⇒ V is computed via the
-    contravariant Ω-functor as Ω^U(V) : 1 → Ω.
-    More precisely: 1 →(V) Ω^Ω →(Ω^U) Ω^1 ≅ Ω.
-    (Here Ω^U uses ContraFunctor.map U and the canonical iso Ω^1 ≅ Ω.) -/
+/-- The HEYTING IMPLICATION on SubTerminal, à la Freyd §1.926:
+    `U ⇒ V := U ⇔ (U ∧ V)`, i.e. `⟨U, ⟨U,V⟩ ≫ ∧⟩ ≫ ⇔`.
+
+    This is exactly the `impChar`/`Sub.imp` pattern of §1.914 (`S1_91.impChar`),
+    transported to subterminators `1 → Ω` (which ARE their own characteristic
+    maps).  Because every `SubTerminal` is the classifier of a subobject of `1`,
+    `heytingImpl U V = subChar (Sub.imp U# V#)` for the corresponding subobjects,
+    which is what makes `subTerminal_heyting` provable from `imp_adjunction`.
+
+    **Why the old definition was wrong.**  The previous def `curry (snd ≫ V) ≫
+    (Ω^U) ≫ …` named `snd ≫ V` — the CONSTANT function `x ↦ V` — so the
+    contravariant `Ω^U` followed by `eval` reduced to `heytingImpl U V = V`,
+    independent of `U`.  That made the forward direction of `subTerminal_heyting`
+    false (e.g. `U = ⊥`: `⊥ ∧ Z = ⊥ ≤ V` always, but `Z ≤ V` is not).  The
+    `impChar` form below is the genuine relative pseudocomplement. -/
 noncomputable def heytingImpl (U V : SubTerminal 𝒞) : SubTerminal 𝒞 :=
-  -- W = (Ω^U)(V_hat) ∘ (Ω^1 ≅ Ω), the book's exponential implication on Sub(1).
-  -- Step 1: "name" V as a constant element of Ω^Ω via curry(snd ≫ V).
-  --   snd : prod Ω one → one,  so  snd ≫ V : prod Ω one → Ω,
-  --   curry(snd ≫ V) : one → Ω^^Ω = exp Ω Ω.
-  -- Step 2: apply the contravariant power Ω^U : Ω^Ω → Ω^1 (= Ω^^one).
-  -- Step 3: compose with the left-unit iso Ω^1 ≅ Ω:
-  --   prodOneLeftInv (Ω^^one) : Ω^^one → prod one (Ω^^one),
-  --   eval_exp one Ω         : prod one (Ω^^one) → Ω.
-  let Ω := HasSubobjectClassifier.omega (𝒞 := 𝒞)
-  curry (snd ≫ V) ≫ (omegaPowContra (𝒞 := 𝒞)).map U ≫
-    prodOneLeftInv (Ω ^^ one) ≫ eval_exp one Ω
+  -- `omegaMeet`/`heytingDoubleArrow` live over the Topos product instance; pin
+  -- `pair` to the same one to avoid the `HasBinaryProducts`/`HasExponentials`
+  -- diamond with `Topos` (cf. `stMeet`), which would otherwise inject a silent
+  -- `sorryAx` through a mismatched product structure.
+  @pair _ _ (Topos.toHasBinaryProducts) _ _ _ U
+    (@pair _ _ (Topos.toHasBinaryProducts) _ _ _ U V ≫ omegaMeet (𝒞 := 𝒞)) ≫
+    heytingDoubleArrow (𝒞 := 𝒞)
 
 /-- The MEET of two sub-terminators, `U ∧ V := ⟨U, V⟩ ≫ ∧`, using the internal
     conjunction `omegaMeet : Ω × Ω → Ω` (the classifying map of `⟨true,true⟩`,
@@ -960,26 +967,119 @@ noncomputable def stMeet (U V : SubTerminal 𝒞) : SubTerminal 𝒞 :=
     meet-semilattice order; `≤` agreeing with the subobject order on Sub(1)). -/
 def stLe (Z V : SubTerminal 𝒞) : Prop := stMeet Z V = Z
 
+/-- **Order bridge for subterminators.**  Pick, for each subterminator `W : 1 → Ω`,
+    a subobject `W# ⊆ 1` it classifies (`subChar W# = W`, via `classify_surjective`).
+    Then the meet-absorption order `stLe Z W` (i.e. `Z ∧ W = Z`) coincides with the
+    subobject order `Z# ≤ W#`.
+
+    Forward post-composes `stLe`'s equation with `Z#.arr` and reads off the right
+    conjunct of `meet_true_iff_and` (the membership form: `Z#.arr ≫ W = ⊤`).
+    Backward is the glb: `Z# ≤ Z# ∩ W#` and `Z# ∩ W# ≤ Z#` give equal classifiers
+    (`classify_eq_of_le_le`), and `omegaMeet_classifies_inter` rewrites `stMeet Z W`
+    as `χ_{Z#∩W#}`, collapsing `stLe Z W` to `Z`. -/
+theorem stLe_iff_le {Z W : SubTerminal 𝒞}
+    (Zs Ws : Subobject 𝒞 (one (𝒞 := 𝒞)))
+    (hZ : subChar Zs = Z) (hW : subChar Ws = W) :
+    stLe Z W ↔ Zs.le Ws := by
+  -- `stMeet Z W` classifies `Zs ∩ Ws` (omegaMeet_classifies_inter), since Z = χ_Zs.
+  let hp : HasPullback Zs.arr Ws.arr := HasPullbacks.has _ _
+  have hmeet : stMeet Z W = subChar (Sub.inter Zs Ws hp) := by
+    show (@pair _ _ Topos.toHasBinaryProducts _ _ _ Z W) ≫ omegaMeet (𝒞 := 𝒞)
+        = subChar (Sub.inter Zs Ws hp)
+    rw [← hZ, ← hW]
+    exact omegaMeet_classifies_inter Zs Ws hp
+  constructor
+  · -- FORWARD: stLe Z W → Zs ≤ Ws.
+    intro hst
+    -- hst : stMeet Z W = Z, i.e. χ_{Zs∩Ws} = Z = χ_Zs.
+    -- Post-compose with Zs.arr and use meet_true_iff_and to extract Zs.arr ≫ W = ⊤.
+    have hZarr : Zs.arr ≫ Z = term Zs.dom ≫ HasSubobjectClassifier.true := by
+      rw [← hZ]; exact HasSubobjectClassifier.classify_sq Zs.arr Zs.monic
+    have hmeetTrue : Zs.arr ≫ (@pair _ _ Topos.toHasBinaryProducts _ _ _ Z W ≫ omegaMeet (𝒞 := 𝒞))
+        = term Zs.dom ≫ HasSubobjectClassifier.true := by
+      have : Zs.arr ≫ stMeet Z W = Zs.arr ≫ Z := by rw [hst]
+      rw [hZarr] at this
+      exact this
+    have hand := (meet_true_iff_and Z W Zs.arr).1 hmeetTrue
+    -- right conjunct: Zs.arr ≫ W = ⊤, i.e. Zs ≤ Ws.
+    rw [le_iff_classify]
+    show Zs.arr ≫ subChar Ws = term Zs.dom ≫ HasSubobjectClassifier.true
+    rw [hW]
+    exact hand.2
+  · -- BACKWARD: Zs ≤ Ws → stLe Z W.
+    intro hle
+    -- Zs ≤ Zs∩Ws and Zs∩Ws ≤ Zs give χ_{Zs∩Ws} = χ_Zs = Z.
+    have h1 : (Sub.inter Zs Ws hp).le Zs := Sub.inter_le_left Zs Ws hp
+    have h2 : Zs.le (Sub.inter Zs Ws hp) := Sub.inter_glb Zs Ws Zs hp (Sub.le_refl Zs) hle
+    have : subChar (Sub.inter Zs Ws hp) = subChar Zs := classify_eq_of_le_le h1 h2
+    show stMeet Z W = Z
+    rw [hmeet, this, hZ]
+
 /-- **§1.926 — the Heyting adjunction on Sub(1)**.  In a topos the exponential
     structure restricts to a Heyting algebra on `Sub(1) = Hom(1, Ω)`: for every
     `Z U V`, the relative-pseudocomplement / exponential adjunction
 
         Z ∧ U ≤ V   ↔   Z ≤ (U ⇒ V)
 
-    holds, where `∧ = stMeet`, `≤ = stLe`, and `U ⇒ V = heytingImpl U V` is the
-    implication computed via the contravariant power `Ω^U` (defined above).  This
-    is the substantive content of §1.926 (NOT the tautology `∃W, W = U⇒V`).
+    holds, where `∧ = stMeet`, `≤ = stLe`, and `U ⇒ V = heytingImpl U V` is Freyd's
+    implication `U ⇔ (U ∧ V)` (`impChar` shape, §1.926).  This is the substantive
+    content of §1.926 (NOT the tautology `∃W, W = U⇒V`).
 
-    **Faithful sorry.**  Both directions reduce to the curry/eval (β/η) laws of
-    the exponential `Ω^U` together with the pullback property of `omegaMeet`.
-    `topos_has_exponentials` is now concretely constructed (§1.923, sorry-free),
-    so `Ω^U`/`eval_exp` ARE available; what remains is the (substantial) bookkeeping
-    relating `heytingImpl = omegaPowContra`-implication to `omegaMeet` via those
-    β/η laws.  Left as an honest sorry: it is independent §1.926 content, not the
-    exponentials keystone. -/
+    Proof via the classifier bridge to §1.914's `imp_adjunction`.  Every
+    subterminator is a characteristic map (`classify_surjective`), so pick
+    subobjects `Z#, U#, V# ⊆ 1` classifying `Z, U, V`.  Then `heytingImpl U V`
+    is `impChar`-shaped on `subChar`s, hence `= χ_{U# ⇒ V#}` (`classify_imp`),
+    `stMeet Z U` classifies `Z# ∩ U#`, and `stLe`/`≤` agree (`stLe_iff_le`).  The
+    goal reduces to `(U# ∩ Z#) ≤ V# ↔ Z# ≤ (U# ⇒ V#)`, which is `imp_adjunction`
+    (modulo `∩`-commutativity, supplied by `inter_glb`/`inter_le`). -/
 theorem subTerminal_heyting :
     ∀ (Z U V : SubTerminal 𝒞),
       stLe (stMeet Z U) V ↔ stLe Z (heytingImpl U V) := by
-  sorry
+  intro Z U V
+  -- Pick subobjects of 1 classifying Z, U, V.
+  obtain ⟨Zd, Zm, Zmono, hZ⟩ := classify_surjective Z
+  obtain ⟨Ud, Um, Umono, hU⟩ := classify_surjective U
+  obtain ⟨Vd, Vm, Vmono, hV⟩ := classify_surjective V
+  let Zs : Subobject 𝒞 (one (𝒞 := 𝒞)) := ⟨Zd, Zm, Zmono⟩
+  let Us : Subobject 𝒞 (one (𝒞 := 𝒞)) := ⟨Ud, Um, Umono⟩
+  let Vs : Subobject 𝒞 (one (𝒞 := 𝒞)) := ⟨Vd, Vm, Vmono⟩
+  have hZs : subChar Zs = Z := hZ
+  have hUs : subChar Us = U := hU
+  have hVs : subChar Vs = V := hV
+  -- `heytingImpl U V = χ_{U# ⇒ V#}`: definitionally `impChar Us Vs`, then `classify_imp`.
+  have himpl : heytingImpl U V = subChar (Sub.imp Us Vs) := by
+    rw [classify_imp]
+    show (@pair _ _ Topos.toHasBinaryProducts _ _ _ U
+            (@pair _ _ Topos.toHasBinaryProducts _ _ _ U V ≫ omegaMeet (𝒞 := 𝒞)) ≫
+            heytingDoubleArrow (𝒞 := 𝒞))
+        = impChar Us Vs
+    rw [impChar, ← hUs, ← hVs]
+  -- `stMeet Z U` classifies `Z# ∩ U#`.
+  let hpZU : HasPullback Zs.arr Us.arr := HasPullbacks.has _ _
+  have hmeetZU : stMeet Z U = subChar (Sub.inter Zs Us hpZU) := by
+    show (@pair _ _ Topos.toHasBinaryProducts _ _ _ Z U) ≫ omegaMeet (𝒞 := 𝒞)
+        = subChar (Sub.inter Zs Us hpZU)
+    rw [← hZs, ← hUs]
+    exact omegaMeet_classifies_inter Zs Us hpZU
+  -- LHS: stLe (stMeet Z U) V ↔ (Z# ∩ U#) ≤ V#.
+  rw [stLe_iff_le (Sub.inter Zs Us hpZU) Vs hmeetZU.symm hVs]
+  -- RHS: stLe Z (heytingImpl U V) ↔ Z# ≤ (U# ⇒ V#).
+  rw [stLe_iff_le Zs (Sub.imp Us Vs) hZs himpl.symm]
+  -- Now: (Z# ∩ U#) ≤ V# ↔ Z# ≤ (U# ⇒ V#).
+  -- imp_adjunction Us Vs Zs : Zs ≤ (Us ⇒ Vs) ↔ (Us ∩ Zs) ≤ Vs.  Bridge ∩-commutativity.
+  let hpUZ : HasPullback Us.arr Zs.arr := HasPullbacks.has _ _
+  have hcomm : ∀ {T : Subobject 𝒞 (one (𝒞 := 𝒞))},
+      (Sub.inter Zs Us hpZU).le T ↔ (Sub.inter Us Zs hpUZ).le T := by
+    intro T
+    -- The two intersections are mutually ≤ (both glbs of {Zs,Us}), so they share lower-sets.
+    have e1 : (Sub.inter Zs Us hpZU).le (Sub.inter Us Zs hpUZ) :=
+      Sub.inter_glb Us Zs (Sub.inter Zs Us hpZU) hpUZ
+        (Sub.inter_le_right Zs Us hpZU) (Sub.inter_le_left Zs Us hpZU)
+    have e2 : (Sub.inter Us Zs hpUZ).le (Sub.inter Zs Us hpZU) :=
+      Sub.inter_glb Zs Us (Sub.inter Us Zs hpUZ) hpZU
+        (Sub.inter_le_right Us Zs hpUZ) (Sub.inter_le_left Us Zs hpUZ)
+    exact ⟨fun h => Sub.le_trans e2 h, fun h => Sub.le_trans e1 h⟩
+  rw [hcomm]
+  exact (imp_adjunction Us Vs Zs hpUZ).symm
 
 end Freyd
