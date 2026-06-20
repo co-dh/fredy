@@ -134,4 +134,51 @@ noncomputable def prodGObj (A B : AbelianGroupObject 𝒞) : AbelianGroupObject 
     · rw [prodAdd_proj_snd, prodAddCar_snd]
       exact GElt.add_comm B (snd ≫ snd) (fst ≫ snd)
 
+/-! ### Products in `Ab(𝒞)`
+
+  The projections `π₁ : prodGObj A B → A`, `π₂ : prodGObj A B → B` and the pairing
+  `⟨f,g⟩` are group-object homomorphisms, giving the universal property of the product
+  *in `Ab(𝒞)`*.  `prodGObj` is therefore the binary product. -/
+
+/-- `carrier`-`add` of `prodGObj` is literally `prodAddCar`. -/
+@[simp] private theorem prodGObj_add (A B : AbelianGroupObject 𝒞) :
+    (prodGObj A B).add = prodAddCar A B := rfl
+@[simp] private theorem prodGObj_carrier (A B : AbelianGroupObject 𝒞) :
+    (prodGObj A B).carrier = prod A.carrier B.carrier := rfl
+
+/-- The first projection `π₁ : prodGObj A B → A` is a homomorphism (it is exactly the
+    statement `prodAddCar≫fst = ⟨π₁fst,π₂fst⟩≫A.add`). -/
+theorem isHom_prodFst (A B : AbelianGroupObject 𝒞) :
+    IsHomAbelianGroupObject (prodGObj A B) A fst :=
+  prodAddCar_fst A B
+
+theorem isHom_prodSnd (A B : AbelianGroupObject 𝒞) :
+    IsHomAbelianGroupObject (prodGObj A B) B snd :=
+  prodAddCar_snd A B
+
+/-- The pairing `⟨f,g⟩` of two homomorphisms is a homomorphism into `prodGObj A B`. -/
+theorem isHom_prodPair {X A B : AbelianGroupObject 𝒞}
+    {f : X.carrier ⟶ A.carrier} {g : X.carrier ⟶ B.carrier}
+    (hf : IsHomAbelianGroupObject X A f) (hg : IsHomAbelianGroupObject X B g) :
+    IsHomAbelianGroupObject X (prodGObj A B) (pair f g) := by
+  unfold IsHomAbelianGroupObject at *
+  -- Goal: X.add ≫ ⟨f,g⟩ = ⟨π₁≫⟨f,g⟩, π₂≫⟨f,g⟩⟩ ≫ prodAddCar.  Joint monicity on fst/snd.
+  refine fst_snd_jointly_monic _ _ ?_ ?_
+  · rw [Cat.assoc, fst_pair, hf, prodGObj_add, prodAdd_proj_fst]
+    simp only [Cat.assoc, fst_pair]
+  · rw [Cat.assoc, snd_pair, hg, prodGObj_add, prodAdd_proj_snd]
+    simp only [Cat.assoc, snd_pair]
+
+/-- §1.595: `Ab(𝒞)` has binary products — the product is the product group object,
+    with the underlying-`𝒞` projections and pairing (all homomorphisms). -/
+noncomputable instance instHasBinaryProductsAb : HasBinaryProducts (AbelianGroupObject 𝒞) where
+  prod A B := prodGObj A B
+  fst := ⟨fst, isHom_prodFst _ _⟩
+  snd := ⟨snd, isHom_prodSnd _ _⟩
+  pair f g := ⟨pair f.val g.val, isHom_prodPair f.property g.property⟩
+  fst_pair f g := Subtype.ext (fst_pair f.val g.val)
+  snd_pair f g := Subtype.ext (snd_pair f.val g.val)
+  pair_uniq f g h h₁ h₂ :=
+    Subtype.ext (pair_uniq f.val g.val h.val (congrArg Subtype.val h₁) (congrArg Subtype.val h₂))
+
 end Freyd
