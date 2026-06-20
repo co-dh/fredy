@@ -124,7 +124,51 @@ theorem effective_of_quotient_cover {A Q : 𝒞} (E : BinRel 𝒞 A A)
     rel_le_trans hElx (level_le_graphComp x),
     rel_le_trans (graphComp_le_level x) hlxE⟩
 
+/-- **Kernel pair is invariant under post-composition with a monic.**  If `m` is
+    monic then `q` and `q ≫ m` have isomorphic kernel pairs as relations: the
+    defining equation `a ≫ q = a' ≫ q` is equivalent to `a ≫ (q ≫ m) = a' ≫ (q ≫ m)`
+    (monic `m` cancels), so the two kernel-pair lifts are mutually-inverse `RelHom`s.
+    This is the bridge from `kernelPairRel (image.lift Λ)` (the quotient cover) to
+    `kernelPairRel Λ` (the classifying map), since `Λ = image.lift Λ ≫ (image Λ).arr`
+    with `(image Λ).arr` monic. -/
+theorem kernelPairRel_postmono {A C D : 𝒞} (q : A ⟶ C) (m : C ⟶ D) (hm : Mono m) :
+    RelLe (kernelPairRel q) (kernelPairRel (q ≫ m)) ∧
+    RelLe (kernelPairRel (q ≫ m)) (kernelPairRel q) := by
+  -- `kp₁(q) ≫ q = kp₂(q) ≫ q` ⟹ `kp₁(q) ≫ (q≫m) = kp₂(q) ≫ (q≫m)`.
+  have hfwd : kp₁ (f := q) ≫ (q ≫ m) = kp₂ (f := q) ≫ (q ≫ m) := by
+    rw [← Cat.assoc, ← Cat.assoc, kp_sq]
+  -- Conversely, `kp₁(q≫m) ≫ q = kp₂(q≫m) ≫ q` via `m` monic.
+  have hbwd : kp₁ (f := q ≫ m) ≫ q = kp₂ (f := q ≫ m) ≫ q :=
+    hm _ _ (by rw [Cat.assoc, Cat.assoc]; exact kp_sq)
+  constructor
+  · -- E := kernelPairRel q ⊑ kernelPairRel (q≫m): lift `(kp₁ q, kp₂ q)` into kernelPair (q≫m).
+    refine ⟨⟨(HasPullbacks.has (q ≫ m) (q ≫ m)).lift ⟨_, kp₁ (f := q), kp₂ (f := q), hfwd⟩, ?_, ?_⟩⟩
+    · exact kp_lift_p₁ _ _ hfwd
+    · exact kp_lift_p₂ _ _ hfwd
+  · refine ⟨⟨(HasPullbacks.has q q).lift ⟨_, kp₁ (f := q ≫ m), kp₂ (f := q ≫ m), hbwd⟩, ?_, ?_⟩⟩
+    · exact kp_lift_p₁ _ _ hbwd
+    · exact kp_lift_p₂ _ _ hbwd
+
 end Effective
+
+/-- **§1.951 core (the tabulation identity)**: the classifying map `Λ = powerClassify E`
+    of an equivalence relation `E ⊆ A×A` against the universal membership `∈_A` has
+    KERNEL PAIR exactly `E`.
+
+    `Λ a = Λ a' ⟺ {x | a E x} = {x | a' E x} ⟺ a E a'` (the last `⟺` uses E's
+    reflexivity for `⟸`-class-membership and symmetry+transitivity for the `⟹` collapse).
+    Relationally: `E ≅ relPullback Λ ∈_A` (`powerClassify_pullback_iso`), and equality of
+    classifying maps is governed by `powerClassify_unique`.
+
+    This is the SOLE remaining hole of `topos_is_effective`; everything else
+    (`kernelPairRel_postmono`, `image_lift_cover`, `effective_of_quotient_cover`,
+    `topos_is_regular`) is sorry-free.  See `Fredy/EffectiveCore.lean` for the in-progress
+    relation-algebra proof. -/
+theorem kernelPairRel_powerClassify_iso [Topos 𝒞] {A : 𝒞}
+    (E : BinRel 𝒞 A A) (hE : EquivalenceRelation E) :
+    RelLe E (kernelPairRel (powerClassify E)) ∧
+    RelLe (kernelPairRel (powerClassify E)) E := by
+  sorry
 
 /-- **§1.951**: A topos is effective: every equivalence relation on any object is
     the level of some cover (i.e., is effective in the sense of §1.568).
@@ -166,9 +210,35 @@ end Effective
     identity `E ≅ level q ≅ (graph q)⊚(graph q)°`) is PROVED above
     (`effective_of_quotient_cover`); the residual gap is exactly the quotient-cover
     existence (3), now the SOLE blocker (the §1.54-blocked (1)–(2) are gone).  Out of
-    scope for the regularity wiring. -/
-instance topos_is_effective [Topos 𝒞] : EffectiveRegular 𝒞 := by
-  sorry
+    scope for the regularity wiring.
+
+    **(3) NOW CONSTRUCTED.**  The quotient cover is
+    `q := image.lift (powerClassify E) : A ↠ (image (powerClassify E)).dom = A/E`,
+    a cover by `image_lift_cover`.  Its level is `E` because
+    `kernelPairRel q ≅ kernelPairRel (powerClassify E)` (`kernelPairRel_postmono`,
+    `(image Λ).arr` monic) and `kernelPairRel (powerClassify E) ≅ E`
+    (`kernelPairRel_powerClassify_iso`: classifying map of an equivalence relation has
+    kernel pair = the relation, via reflexivity for one direction and
+    symmetry+transitivity for the other).  Then `effective_of_quotient_cover` finishes. -/
+noncomputable instance topos_is_effective [Topos 𝒞] : EffectiveRegular 𝒞 := by
+  classical
+  -- Build `RegularCategory` directly from the ambient topos instances (`toposHasImages`,
+  -- `SlicePi.toposPullbacksTransferCovers`, …) rather than `Classical.choice (topos_is_regular)`,
+  -- so its product/pullback/image fields stay SYNTACTICALLY the topos instances — otherwise the
+  -- `effective` field's `EquivalenceRelation E` (stated via `toRegularCategory`) and the topos
+  -- `powerClassify`/`kernelPairRel` below resolve different-but-defeq instances (a diamond).
+  refine { (inferInstance : RegularCategory 𝒞) with effective := ?_ }
+  intro A E hE
+  -- The quotient cover: image factorization of the classifying map `Λ = powerClassify E`.
+  let Λ := powerClassify E
+  let q := image.lift Λ
+  have hqcov : Cover q := image_lift_cover Λ
+  have hpm := kernelPairRel_postmono q (image Λ).arr (image Λ).monic
+  have hfac : q ≫ (image Λ).arr = Λ := image.lift_fac Λ
+  rw [hfac] at hpm
+  obtain ⟨hΛE_le, hEΛ_le⟩ := kernelPairRel_powerClassify_iso (𝒞 := 𝒞) E hE
+  exact effective_of_quotient_cover E hE q hqcov
+    (rel_le_trans hΛE_le hpm.2) (rel_le_trans hpm.1 hEΛ_le)
 
 /-! ## §1.952  A topos is positive -/
 
@@ -257,32 +327,40 @@ noncomputable def preTopos_rtc_has_coequalizers [inst : PreTopos 𝒞]
     `(R ∪ R° ∪ 1)*` (now constructive via `rtc`) plus §1.657/§1.951 yield
     coequalizers.
 
-    **Sharpened blocker (faithful Sorry).**  Synthesising the instance from bare
-    `[Topos 𝒞]` needs two things this repo cannot yet provide from `Topos`:
+    **Sharpened blocker (faithful Sorry — effectiveness now CLOSED).**  Of the two
+    ingredients `preTopos_rtc_has_coequalizers` needs, (1) is now DONE and only (2) remains:
 
-      (1) `PreTopos 𝒞` — in particular `EffectiveRegular 𝒞` (and the underlying
-          `RegularCategory`/`HasImages`/`PullbacksTransferCovers`).  This is
-          `topos_is_effective` (above), still a `Sorry`.  Note `capitalization_lemma`
-          itself is PROVEN Sorry-free (`CapDataWiring.lean`); the open step is
-          wiring it into `HasImages` for an arbitrary topos (`topos_is_regular`,
-          S1_94:346), so the topos image `⋂{B' ↣ B | f ↦ B'}` is constructed.
+      (1) `PreTopos 𝒞` = `EffectiveRegular 𝒞` + `PositivePreLogos 𝒞` — NOW AVAILABLE.
+          `topos_is_effective` (above) is sorry-free modulo the single tabulation lemma
+          `kernelPairRel_powerClassify_iso`; `PositivePreLogos` = `PreLogos` (`toposPreLogos`)
+          + `HasBinaryCoproducts` (`topos_is_positive`, sorry-free).  So `PreTopos 𝒞`
+          assembles.
 
-      (2) `HasReflTransClosure 𝒞` — there is NO `topos_has_rtc` instance: a topos's
-          reflexive-transitive closures are obtained via the same image/closure
-          machinery, blocked at the same `HasImages` wiring as (1).
+      (2) `HasReflTransClosure 𝒞` — STILL the sole blocker.  There is no `topos_has_rtc`
+          instance: a topos's reflexive-transitive closures `R*` are the §1.943 family-glb
+          `⋂{S | S reflexive-transitive, R ⊑ S}` over a subobject family of `[B×B]`, whose
+          EXISTENCE rests on §1.54's `capitalization_lemma` glb-construction (the genuine
+          §1.543 residual; see `topos_has_rtc` in S1_94 which carries it as a hypothesis).
+          The closure-ASSEMBLY (`rtc`/`rtc_reflexive`/`rtc_transitive`/`rtc_minimal`) is
+          sorry-free; only the glb *instance* for a bare topos is missing.
 
-    `rtc` being now available means the *equivalence-closure* sub-problem is no
-    longer the gap: the residual blocker is exactly the existence of `rtc`
-    *instances* on a topos (2) on top of the `HasImages`-blocked effectiveness (1).
-    With both, this instance is literally `preTopos_rtc_has_coequalizers`. -/
+    With a `HasReflTransClosure 𝒞` instance, this is literally
+    `preTopos_rtc_has_coequalizers`.  The effectiveness half of the §1.951↔§1.954 bridge
+    is no longer the gap. -/
 instance topos_has_coequalizers [Topos 𝒞] : HasCoequalizers 𝒞 := by
   sorry
 
 /-! ## §1.955  A topos is bicartesian -/
 
-/-- **§1.955**: A topos is bicartesian: it has terminal, coterminator, binary products,
-    and binary coproducts.  Follows from: topos has coequalizers [1.954], a coterminator
-    [1.944], and binary coproducts [1.952, 1.946]. -/
+/-- **§1.955**: A topos is bicartesian: `CartesianCategory` + `HasCoterminator` +
+    `HasBinaryCoproducts` + `HasCoequalizers`.
+
+    Three of the four parents are sorry-free under `[Topos 𝒞]`: Cartesian (terminal +
+    products, native), `HasCoterminator` (`topos_has_strict_coterminator`, §1.944), and
+    `HasBinaryCoproducts` (`topos_is_positive`, §1.952).  The SOLE residual is
+    `HasCoequalizers 𝒞` (`topos_has_coequalizers` above), itself blocked only on the
+    `HasReflTransClosure 𝒞` glb-existence instance (§1.54).  Once that lands, this is
+    `{ (inferInstance : CartesianCategory 𝒞), … with }`. -/
 instance topos_is_bicartesian [Topos 𝒞] : BicartesianCategory 𝒞 := by
   sorry
 
