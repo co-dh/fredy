@@ -194,6 +194,16 @@ theorem forall_elim {X C : 𝒞} (g : X ⟶ powObj C) (hg : g = term X ≫ topNa
 noncomputable def impΩ : prod (omega (𝒞 := 𝒞)) (omega (𝒞 := 𝒞)) ⟶ omega (𝒞 := 𝒞) :=
   pair fst (pair fst snd ≫ omegaMeet) ≫ heytingDoubleArrow
 
+/-- `⟨χ₁,χ₂⟩ ≫ impΩ = ⟨χ₁, χ₁∧χ₂⟩ ≫ ⇔` — the `impΩ` recipe spelled out (matches `impChar`). -/
+theorem pair_impΩ {X : 𝒞} (χ₁ χ₂ : X ⟶ omega (𝒞 := 𝒞)) :
+    pair χ₁ χ₂ ≫ impΩ
+      = pair χ₁ (pair χ₁ χ₂ ≫ omegaMeet) ≫ heytingDoubleArrow := by
+  rw [impΩ, ← Cat.assoc]
+  congr 1
+  apply pair_uniq
+  · rw [Cat.assoc, fst_pair, fst_pair]
+  · rw [Cat.assoc, snd_pair, ← Cat.assoc, pair_fst_snd, Cat.comp_id]
+
 /-- **impΩ forward (modus ponens).**  If `⟨χ₁,χ₂⟩ ≫ impΩ` is true along `k` and `χ₁`
     is true along `k`, then `χ₂` is true along `k`.  (Only the forward/MP half of `⇒`
     is a clean pointwise fact; the converse needs Ω-extensionality.) -/
@@ -202,14 +212,7 @@ theorem impΩ_forward {X W : 𝒞} (χ₁ χ₂ : X ⟶ omega (𝒞 := 𝒞)) (k
     (h1 : k ≫ χ₁ = term W ≫ HasSubobjectClassifier.true (𝒞 := 𝒞)) :
     k ≫ χ₂ = term W ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
   -- impΩ = ⟨π₁, π₁∧π₂⟩ ≫ ⇔; along k this is ⟨χ₁, χ₁∧χ₂⟩ ≫ ⇔ = ⊤, so χ₁ = χ₁∧χ₂ along k.
-  have hsimp : pair χ₁ χ₂ ≫ impΩ
-      = pair χ₁ (pair χ₁ χ₂ ≫ omegaMeet) ≫ heytingDoubleArrow := by
-    rw [impΩ, ← Cat.assoc]
-    congr 1
-    apply pair_uniq
-    · rw [Cat.assoc, fst_pair, fst_pair]
-    · rw [Cat.assoc, snd_pair, ← Cat.assoc, pair_fst_snd, Cat.comp_id]
-  rw [hsimp] at himp
+  rw [pair_impΩ] at himp
   -- heyting_true_iff_eq: along k, χ₁ = (χ₁∧χ₂).
   have heq := (heyting_true_iff_eq χ₁ (pair χ₁ χ₂ ≫ omegaMeet) k).mp himp
   -- so k ≫ (χ₁∧χ₂) = k ≫ χ₁ = ⊤, then meet_true_iff_and gives k ≫ χ₂ = ⊤.
@@ -247,6 +250,34 @@ theorem eval_curry_point {E A K : 𝒞} (h : prod E A ⟶ omega (𝒞 := 𝒞))
     by `Fname : 1 → [[A]]`.  It is the pullback of `true` along `bigInterChar Fname`. -/
 noncomputable def bigInter {A : 𝒞} (Fname : one ⟶ powObj (powObj A)) : Subobject 𝒞 A :=
   InverseImage (bigInterChar Fname) ⟨one, true (𝒞 := 𝒞), true_monic⟩
+
+/-- **`InverseImage χ {true}` is classified by `χ`.**  General form of
+    `classify_interIntersection`: the pullback of `true` along any `χ : A → Ω` has `χ`
+    as its characteristic map. -/
+theorem classify_invImage_true {A : 𝒞} (χ : A ⟶ omega (𝒞 := 𝒞)) :
+    HasSubobjectClassifier.classify
+        (InverseImage χ ⟨one, true (𝒞 := 𝒞), true_monic⟩).arr
+        (InverseImage χ ⟨one, true (𝒞 := 𝒞), true_monic⟩).monic = χ := by
+  symm
+  let pb := HasPullbacks.has χ (HasSubobjectClassifier.true (𝒞 := 𝒞))
+  have hsq : (InverseImage χ ⟨one, true (𝒞 := 𝒞), true_monic⟩).arr ≫ χ
+      = term (InverseImage χ ⟨one, true (𝒞 := 𝒞), true_monic⟩).dom
+        ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
+    show pb.cone.π₁ ≫ χ = _
+    rw [pb.cone.w]; congr 1; exact term_uniq _ _
+  apply classify_eq_of_pullback _ _ χ hsq
+  intro d
+  obtain ⟨u, ⟨hu₁, _⟩, huniq⟩ := pb.cone_isPullback d
+  exact ⟨u, ⟨hu₁, term_uniq _ _⟩, fun v hv₁ _ => huniq v hv₁ (term_uniq _ _)⟩
+
+/-- `Allows (bigInter F) a ↔ a ≫ bigInterChar F = ⊤∘!`.  (`bigInter` is the pullback of
+    `true` along `bigInterChar`, classified by it; then `allows_iff_classify`.) -/
+theorem allows_bigInter_iff {A : 𝒞} (Fname : one ⟶ powObj (powObj A)) (a : one ⟶ A) :
+    Allows (bigInter Fname) a
+      ↔ a ≫ bigInterChar Fname = term one ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
+  rw [allows_iff_classify (bigInter Fname) a]
+  rw [show HasSubobjectClassifier.classify (bigInter Fname).arr (bigInter Fname).monic
+        = bigInterChar Fname from classify_invImage_true (bigInterChar Fname)]
 
 /-- The carrier of `⋂F` satisfies its characteristic map: `(⋂F).arr ≫ bigInterChar F = ⊤∘!`. -/
 theorem bigInter_carrier_true {A : 𝒞} (Fname : one ⟶ powObj (powObj A)) :
@@ -349,5 +380,84 @@ theorem bigInter_le_named {A : 𝒞} (Fname : one ⟶ powObj (powObj A))
   obtain ⟨u, ⟨hu₁, _⟩, _⟩ := HasSubobjectClassifier.classify_pullback B.arr B.monic
     ⟨K, c, term K, hcInτ⟩
   exact ⟨u, hu₁⟩
+
+/-! ## §1.94  `⋂F` is the GREATEST lower bound — the upper-bound half via `imp_adjunction` -/
+
+/-- The "membership at a point" map `[A] → Ω`, `σ ↦ a ∈ σ`, for a point `a : 1 → A`. -/
+noncomputable def memAtPoint {A : 𝒞} (a : one ⟶ A) : powObj A ⟶ omega (𝒞 := 𝒞) :=
+  pair (term (powObj A) ≫ a) (Cat.id (powObj A)) ≫ eval_exp A (omega (𝒞 := 𝒞))
+
+/-- **The body of `⋂F` at a point `a` is the Heyting implication `(membershipMap Fname) ⇒ memAtPoint a`.**
+    `⟨id,term≫a⟩ ≫ body = ⟨χ_F, a∈σ⟩ ≫ impΩ`, where `χ_F = membershipMap Fname` and
+    `a∈σ = memAtPoint a`. -/
+theorem bigInterBody_at_point {A : 𝒞} (Fname : one ⟶ powObj (powObj A)) (a : one ⟶ A) :
+    pair (Cat.id (powObj A)) (term (powObj A) ≫ a) ≫ bigInterBody Fname
+      = pair (membershipMap Fname) (memAtPoint a) ≫ impΩ := by
+  rw [bigInterBody, ← Cat.assoc]
+  congr 1
+  apply pair_uniq
+  · -- first component: ⟨id, term≫a⟩ ≫ (fst ≫ memF) = memF
+    rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair, Cat.id_comp]
+  · -- second: ⟨id, term≫a⟩ ≫ (⟨snd,fst⟩ ≫ eval) = ⟨term≫a, id⟩ ≫ eval = memAtPoint a
+    rw [Cat.assoc, snd_pair, ← Cat.assoc, memAtPoint]
+    congr 1
+    apply pair_uniq
+    · rw [Cat.assoc, fst_pair, snd_pair]
+    · rw [Cat.assoc, snd_pair, fst_pair]
+
+/-- **§1.94 — `⋂F` is a GREATEST lower bound (∀-introduction via `imp_adjunction`).**
+
+    Let `F0 ↣ [A]` be the family as a subobject of `[A]` (`subChar F0 = membershipMap Fname`),
+    and `Ga ↣ [A]` the subobject `{σ | a ∈ σ}` (`subChar Ga = memAtPoint a`).  If every member
+    of the family contains `a` — i.e. `F0 ≤ Ga` — then `a` lies in `⋂F`.
+
+    This is the genuine topos content (greatest-lower-bound / ∀-introduction).  It avoids
+    Ω-extensionality by routing the internal `∀σ. (σ∈F)⇒(a∈σ)` through the §1.91 Heyting
+    `imp_adjunction`: the comprehension `{σ | (σ∈F)⇒(a∈σ)} = Sub.imp F0 Ga`, which is entire
+    iff `entire ≤ (F0 ⇒ Ga)` iff `F0 ∩ entire ≤ Ga` iff `F0 ≤ Ga`. -/
+theorem bigInter_ge {A : 𝒞} (Fname : one ⟶ powObj (powObj A)) (a : one ⟶ A)
+    (F0 Ga : Subobject 𝒞 (powObj A))
+    (hF0 : subChar F0 = membershipMap Fname)
+    (hGa : subChar Ga = memAtPoint a)
+    (hle : F0.le Ga) :
+    Allows (bigInter Fname) a := by
+  rw [allows_bigInter_iff]
+  -- a ≫ bigInterChar = ⊤  ↔  a ≫ curry body = topName [A]  (forall_beta, term one = id)
+  rw [bigInterChar, ← Cat.assoc]
+  rw [forall_beta (powObj A) (a ≫ curry (bigInterBody Fname))]
+  -- Goal: a ≫ curry body = term one ≫ topName [A].  membershipMap is injective ⟹ compare memMaps.
+  have hinj : ∀ (G H : one ⟶ powObj (powObj A)),
+      membershipMap G = membershipMap H → G = H := by
+    intro G H hGH
+    rw [← curry_fst_membershipMap G, ← curry_fst_membershipMap H, hGH]
+  apply hinj
+  -- LHS memMap = bodyAt_a (membershipMap_curry_point); RHS memMap = χ_entire (topName).
+  rw [membershipMap_curry_point]
+  -- term one = id, so RHS = topName [A]; its memMap = classify (entire [A]).arr = χ_entire.
+  rw [show term one ≫ topName (powObj A) = topName (powObj A) by
+        rw [term_uniq (term one) (Cat.id one), Cat.id_comp]]
+  rw [membershipMap_topName, classify_entire]
+  -- Goal now: ⟨id, term≫a⟩ ≫ body = term [A] ≫ true.  Rewrite body-at-a = impChar; use entire-ness.
+  rw [bigInterBody_at_point, ← hF0, ← hGa, pair_impΩ]
+  -- LHS = impChar F0 Ga = subChar (Sub.imp F0 Ga); goal: that subobject is entire.
+  rw [show pair (subChar F0) (pair (subChar F0) (subChar Ga) ≫ omegaMeet) ≫ heytingDoubleArrow
+        = subChar (Sub.imp F0 Ga) from (classify_imp F0 Ga).symm]
+  -- entire ≤ (F0 ⇒ Ga): by imp_adjunction, since F0 ∩ entire ≤ F0 ≤ Ga.
+  have hp : HasPullback F0.arr (Subobject.entire (powObj A)).arr := HasPullbacks.has _ _
+  have hentireLe : (Subobject.entire (powObj A)).le (Sub.imp F0 Ga) := by
+    rw [imp_adjunction F0 Ga (Subobject.entire (powObj A)) hp]
+    -- F0 ∩ entire ≤ F0 ≤ Ga, composed manually.
+    obtain ⟨h₁, e₁⟩ := Sub.inter_le_left F0 (Subobject.entire (powObj A)) hp
+    obtain ⟨h₂, e₂⟩ := hle
+    exact ⟨h₁ ≫ h₂, by rw [Cat.assoc, e₂, e₁]⟩
+  -- entire ≤ S, entire.arr = id ⟹ subChar S = term ≫ true.
+  have hcl := (le_iff_classify (Subobject.entire (powObj A)) (Sub.imp F0 Ga)).mp hentireLe
+  -- hcl : entire.arr ≫ subChar(Sub.imp F0 Ga) = term entire.dom ≫ true; entire.arr = id, dom = [A].
+  show subChar (Sub.imp F0 Ga) = term (powObj A) ≫ HasSubobjectClassifier.true (𝒞 := 𝒞)
+  have he : (Subobject.entire (powObj A)).arr ≫ subChar (Sub.imp F0 Ga)
+      = subChar (Sub.imp F0 Ga) := Cat.id_comp _
+  rw [he] at hcl
+  rw [hcl]
+  congr 1
 
 end Freyd
