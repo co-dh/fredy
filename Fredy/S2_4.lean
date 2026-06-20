@@ -668,6 +668,17 @@ theorem straight_factor_map_monic {𝒜 : Type u} [DivisionAllegory 𝒜] {x c a
       (`split_symmetric_idempotent`); it cannot join two morphisms with distinct sources
       (`c` and `p`) into one cotuple.
 
+      The §2.16(10) split-symmetric-idempotent *systemic completion* trick that closed
+      `S2_22.srcTabulation_exists` does NOT apply here.  That trick builds, from a single
+      morphism `U`, a source-apex span by splitting the symmetric idempotent
+      `F₀F₀° ∩ G₀G₀°` *on one object* (`srcTabulation_of_semiSimple_split`); and the
+      `Spl 𝒜` completion (`S2_22b`, §2.164) only ever adds objects `(a, e)` that are
+      RETRACTS (subobjects, carved by a coreflexive/idempotent `e`) of pre-existing
+      objects `a`.  A coproduct `c ⊕ p` is a colimit joining two DISTINCT sources, not a
+      retract of any single object, so no idempotent splitting and no `Spl`-style
+      completion can synthesise it.  Hence the wall here is genuinely different in kind
+      from the S2_22 "needs an object" wall, which `Spl`/split-idempotent did break.
+
     • Step 3's maximality is only HALF free.  `h` map ⟹ `h° ≫ h ⊑ 1` (simple), and
       `(h h°) h ⊑ h` with `h h°` symmetric ⟹ `h h° ⊑ 1` (`§2.355` + `straight_cancel`,
       both already in this repo), giving `h h° ⊑ 1`.  But the iso also needs `1 ⊑ h° ≫ h`
