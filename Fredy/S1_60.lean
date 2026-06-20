@@ -471,7 +471,13 @@ end BinRelLattice
 
 section BinRelDistributive
 
-variable [HasBinaryCoproducts 𝒞] [PreLogos 𝒞]
+-- The bridge `relSub` and the existential-image / inverse-image calculus below are
+-- COPRODUCT-FREE (pure PreLogos: pullbacks, images, `existsAlong`, inverse image).  Only the
+-- four `∪ᵣ`/`relUnion`-based lemmas (`relSub_union_le/ge`, `rel_inter_union_le`,
+-- `compose_union_right`) need `[HasBinaryCoproducts 𝒞]` — `relUnion` is defined as the image of a
+-- copairing — so those carry the instance as an explicit binder.  Keeping it off the section
+-- variable lets bare `[PreLogos 𝒞]` consumers (e.g. §1.621 in S1_61) reuse the bridge.
+variable [PreLogos 𝒞]
 
 /-- The subobject of `A×B` represented by a relation `R : A → B`: its monic pairing. -/
 def relSub {A B : 𝒞} (R : BinRel 𝒞 A B) : Subobject 𝒞 (prod A B) :=
@@ -506,7 +512,7 @@ theorem subLe_of_relLe {A B : 𝒞} {R S : BinRel 𝒞 A B}
 /-- `relSub (R ∪ᵣ S) ≤ union (relSub R) (relSub S)`.  `relUnion` is the image of
     `m = case (pairR) (pairS)`; both pieces sit below the union, so `case l₁ l₂` factors
     `m` through the union's monic, and image-minimality descends. -/
-theorem relSub_union_le {A B : 𝒞} (R S : BinRel 𝒞 A B) :
+theorem relSub_union_le [HasBinaryCoproducts 𝒞] {A B : 𝒞} (R S : BinRel 𝒞 A B) :
     (relSub (R ∪ᵣ S)).le (HasSubobjectUnions.union (relSub R) (relSub S)) := by
   let m : HasBinaryCoproducts.coprod R.src S.src ⟶ prod A B :=
     HasBinaryCoproducts.case (pair R.colA R.colB) (pair S.colA S.colB)
@@ -530,7 +536,7 @@ theorem relSub_union_le {A B : 𝒞} (R S : BinRel 𝒞 A B) :
 /-- `union (relSub R) (relSub S) ≤ relSub (R ∪ᵣ S)`.  `relSub R ≤ relSub(R∪S)` and
     `relSub S ≤ relSub(R∪S)` (from `relUnion_le_left/right` through the bridge), so the union's
     minimality (`union_min`) gives the containment. -/
-theorem relSub_union_ge {A B : 𝒞} (R S : BinRel 𝒞 A B) :
+theorem relSub_union_ge [HasBinaryCoproducts 𝒞] {A B : 𝒞} (R S : BinRel 𝒞 A B) :
     (HasSubobjectUnions.union (relSub R) (relSub S)).le (relSub (R ∪ᵣ S)) :=
   HasSubobjectUnions.union_min _ _ _
     (subLe_of_relLe (relUnion_le_left R S))
@@ -640,7 +646,7 @@ theorem invImage_mono_local {A B : 𝒞} (f : A ⟶ B) {S T : Subobject 𝒞 B} 
     `R ⊓ (S ∪ T) ≤ (R ⊓ S) ∪ (R ⊓ T)`.  Transported across `relSub` from the pre-logos fact
     that inverse images preserve unions (`PreLogos.invImage_preserves_union`) plus monotonicity
     of `pushMono`/`InverseImage` and the union laws. -/
-theorem rel_inter_union_le {A B : 𝒞} (R S T : BinRel 𝒞 A B) :
+theorem rel_inter_union_le [HasBinaryCoproducts 𝒞] {A B : 𝒞} (R S T : BinRel 𝒞 A B) :
     RelLe (R ⊓ (S ∪ᵣ T)) ((R ⊓ S) ∪ᵣ (R ⊓ T)) := by
   apply relLe_of_subLe
   let pR := pair R.colA R.colB
@@ -762,11 +768,11 @@ theorem existsAlong_union_le {X Y : 𝒞} (g : X ⟶ Y) (P Q : Subobject 𝒞 X)
   extensivity, no new hypothesis. -/
 
 /-- The "B-side reindexing" `θ_R := pair (fst ≫ R.colB) snd : R.src × C ⟶ B × C`. -/
-private def thetaR {A B : 𝒞} (R : BinRel 𝒞 A B) (C : 𝒞) : prod R.src C ⟶ prod B C :=
+def thetaR {A B : 𝒞} (R : BinRel 𝒞 A B) (C : 𝒞) : prod R.src C ⟶ prod B C :=
   pair (fst ≫ R.colB) snd
 
 /-- The "A-side reindexing" `ω_R := pair (fst ≫ R.colA) snd : R.src × C ⟶ A × C`. -/
-private def omegaR {A B : 𝒞} (R : BinRel 𝒞 A B) (C : 𝒞) : prod R.src C ⟶ prod A C :=
+def omegaR {A B : 𝒞} (R : BinRel 𝒞 A B) (C : 𝒞) : prod R.src C ⟶ prod A C :=
   pair (fst ≫ R.colA) snd
 
 /-- **Geometric identity (coproduct-free)** §1.616: `relSub (R ⊚ X) = ∃_{ω_R}(θ_R# (relSub X))`.
@@ -776,7 +782,7 @@ private def omegaR {A B : 𝒞} (R : BinRel 𝒞 A B) (C : 𝒞) : prod R.src C 
     objects map to each other (`α : pbX → pbI`, `β : pbI → pbX`) compatibly with the spans
     (`s = α ≫ (pbI.π₁ ≫ ω_R)` and `pbI.π₁ ≫ ω_R = β ≫ s`), so the two images coincide.  We return
     both `Subobject.le` directions. -/
-private theorem relSub_compose_eq {A B C : 𝒞} (R : BinRel 𝒞 A B) (X : BinRel 𝒞 B C) :
+theorem relSub_compose_eq {A B C : 𝒞} (R : BinRel 𝒞 A B) (X : BinRel 𝒞 B C) :
     (relSub (R ⊚ X)).le (existsAlong (omegaR R C) (InverseImage (thetaR R C) (relSub X)))
     ∧ (existsAlong (omegaR R C) (InverseImage (thetaR R C) (relSub X))).le (relSub (R ⊚ X)) := by
   let pbX := HasPullbacks.has R.colB X.colA
@@ -872,7 +878,7 @@ private theorem relSub_compose_eq {A B C : 𝒞} (R : BinRel 𝒞 A B) (X : BinR
     `relSub(R⊚X) = ∃_{ω_R}(θ_R# (relSub X))` (`relSub_compose_eq`): both `θ_R#`
     (`PreLogos.invImage_preserves_union`) and `∃_{ω_R}` (`existsAlong_union_le`) preserve unions,
     so the join descends with no extensivity. -/
-theorem compose_union_right {A B C : 𝒞} (R : BinRel 𝒞 A B) (S T : BinRel 𝒞 B C) :
+theorem compose_union_right [HasBinaryCoproducts 𝒞] {A B C : 𝒞} (R : BinRel 𝒞 A B) (S T : BinRel 𝒞 B C) :
     RelLe (R ⊚ (S ∪ᵣ T)) ((R ⊚ S) ∪ᵣ (R ⊚ T)) := by
   apply relLe_of_subLe
   -- LHS  =  ∃_ω (θ# relSub(S∪T)).

@@ -417,6 +417,445 @@ theorem union_via_coproduct_image [HasImages 𝒞] [HasSubobjectUnions 𝒞] [Ha
   axiom is the *abstraction* of it, not its proof.  (Still open: the LEFT form
   `(S ∪ T) ⊚ R = S⊚R ∪ T⊚R`, awaiting reciprocation-of-composition `(R⊚S)° = S°⊚R°`.) -/
 
+/-! ## §1.621 — coproduct-free relational gluing
+
+  The §1.62 Pasting Lemma builds, for any cocone `(Q,f,g)` over the intersection of two
+  subobjects, the descent map by forming the relation `R = x°⊚f ∪ y°⊚g`, showing it is a MAP
+  (entire + simple), and reading off the morphism.  In `S1_62` that proof carries
+  `[HasBinaryCoproducts 𝒞]` because the *relational union* `∪ᵣ` is presented as the image of a
+  copairing.  Here we redo the union COPRODUCT-FREE via the subobject-union bridge `relSub`
+  (now usable from bare `[PreLogos 𝒞]`, see §1.616 refactor in `S1_60`), so the whole
+  construction lives in a bare pre-logos.  This closes §1.621 directly, with no coproduct and no
+  appeal to the downstream §1.62/§1.64 layers. -/
+
+namespace DisjointGluing
+
+variable [PreLogos 𝒞]
+
+/-- A subobject of `A×B` read back as a relation `A → B` (inverse of `relSub`). -/
+def subRel {A B : 𝒞} (S : Subobject 𝒞 (prod A B)) : BinRel 𝒞 A B where
+  src := S.dom
+  colA := S.arr ≫ fst
+  colB := S.arr ≫ snd
+  isMonicPair := by
+    intro W u v hA hB
+    apply S.monic
+    apply (fst_snd_jointly_monic) (u ≫ S.arr) (v ≫ S.arr)
+    · rw [Cat.assoc, Cat.assoc]; exact hA
+    · rw [Cat.assoc, Cat.assoc]; exact hB
+
+/-- `relSub (subRel S) = S` up to the identification `pair (S.arr≫fst) (S.arr≫snd) = S.arr`. -/
+theorem relSub_subRel_arr {A B : 𝒞} (S : Subobject 𝒞 (prod A B)) :
+    (relSub (subRel S)).arr = S.arr := by
+  show pair (S.arr ≫ fst) (S.arr ≫ snd) = S.arr
+  exact (pair_uniq _ _ _ rfl rfl).symm
+
+/-- COPRODUCT-FREE relational union: read back the subobject union of the two relation tables. -/
+def relUnionSub {A B : 𝒞} (R S : BinRel 𝒞 A B) : BinRel 𝒞 A B :=
+  subRel (HasSubobjectUnions.union (relSub R) (relSub S))
+
+/-- `relSub (relUnionSub R S) ≤ union (relSub R) (relSub S)` (in fact `=`, via `relSub_subRel_arr`). -/
+theorem relSub_relUnionSub_le {A B : 𝒞} (R S : BinRel 𝒞 A B) :
+    (relSub (relUnionSub R S)).le (HasSubobjectUnions.union (relSub R) (relSub S)) :=
+  ⟨Cat.id _, by rw [Cat.id_comp]; exact (relSub_subRel_arr _).symm⟩
+
+theorem relSub_relUnionSub_ge {A B : 𝒞} (R S : BinRel 𝒞 A B) :
+    (HasSubobjectUnions.union (relSub R) (relSub S)).le (relSub (relUnionSub R S)) :=
+  ⟨Cat.id _, by rw [Cat.id_comp]; exact relSub_subRel_arr _⟩
+
+/-- `R ≤ relUnionSub R S`. -/
+theorem relUnionSub_le_left {A B : 𝒞} (R S : BinRel 𝒞 A B) : RelLe R (relUnionSub R S) :=
+  relLe_of_subLe (subLe_trans (HasSubobjectUnions.union_left (relSub R) (relSub S))
+    (relSub_relUnionSub_ge R S))
+
+/-- `S ≤ relUnionSub R S`. -/
+theorem relUnionSub_le_right {A B : 𝒞} (R S : BinRel 𝒞 A B) : RelLe S (relUnionSub R S) :=
+  relLe_of_subLe (subLe_trans (HasSubobjectUnions.union_right (relSub R) (relSub S))
+    (relSub_relUnionSub_ge R S))
+
+/-- Universal property: `R ≤ U → S ≤ U → relUnionSub R S ≤ U`. -/
+theorem le_relUnionSub {A B : 𝒞} {R S U : BinRel 𝒞 A B}
+    (hR : RelLe R U) (hS : RelLe S U) : RelLe (relUnionSub R S) U :=
+  relLe_of_subLe (subLe_trans (relSub_relUnionSub_le R S)
+    (HasSubobjectUnions.union_min _ _ _ (subLe_of_relLe hR) (subLe_of_relLe hS)))
+
+/-- COPRODUCT-FREE distributivity §1.616: `R ⊚ (relUnionSub S T) ≤ relUnionSub (R⊚S) (R⊚T)`.
+    Mirrors `compose_union_right` (S1_60) with the `relUnionSub` bridge in place of `∪ᵣ`. -/
+theorem compose_relUnionSub_right {A B C : 𝒞} (R : BinRel 𝒞 A B) (S T : BinRel 𝒞 B C) :
+    RelLe (R ⊚ (relUnionSub S T)) (relUnionSub (R ⊚ S) (R ⊚ T)) := by
+  apply relLe_of_subLe
+  have hL := (relSub_compose_eq R (relUnionSub S T)).1
+  have h1 := invImage_mono_local (thetaR R C) (relSub_relUnionSub_le S T)
+  have h2 := (PreLogos.invImage_preserves_union (thetaR R C) (relSub S) (relSub T)).1
+  have h3 := existsAlong_union_le (omegaR R C)
+              (InverseImage (thetaR R C) (relSub S)) (InverseImage (thetaR R C) (relSub T))
+  have hS := (relSub_compose_eq R S).2
+  have hT := (relSub_compose_eq R T).2
+  have hpieces : (HasSubobjectUnions.union
+        (existsAlong (omegaR R C) (InverseImage (thetaR R C) (relSub S)))
+        (existsAlong (omegaR R C) (InverseImage (thetaR R C) (relSub T)))).le
+      (HasSubobjectUnions.union (relSub (R ⊚ S)) (relSub (R ⊚ T))) :=
+    HasSubobjectUnions.union_min _ _ _
+      (subLe_trans hS (HasSubobjectUnions.union_left _ _))
+      (subLe_trans hT (HasSubobjectUnions.union_right _ _))
+  have hfinal := relSub_relUnionSub_ge (R ⊚ S) (R ⊚ T)
+  exact subLe_trans hL (subLe_trans (existsAlong_mono (omegaR R C) (subLe_trans h1 h2))
+    (subLe_trans h3 (subLe_trans hpieces hfinal)))
+
+/-! ### Ported relational helpers (coproduct-free; verbatim from §1.62 except the union
+    layer which now uses `relUnionSub`). -/
+
+/-- Any MAP relation is the graph of a morphism (copy of `S1_62.map_to_graph`). -/
+theorem map_to_graph {A B : 𝒞} (R : BinRel 𝒞 A B) (hR : Map R) :
+    ∃ q : A ⟶ B, RelLe R (graph q) ∧ RelLe (graph q) R := by
+  have heq : R = BinRel.mk R.src R.colA R.colB R.isMonicPair := rfl
+  rw [heq] at hR
+  have hiso : IsIso R.colA := (tabulated_is_map_iff_left_iso R.colA R.colB R.isMonicPair).mp hR
+  obtain ⟨ainv, ha_ainv, hainv_a⟩ := hiso
+  refine ⟨ainv ≫ R.colB, ?_, ?_⟩
+  · have h := (tabulated_left_iso_eq_graph R.colA R.colB R.isMonicPair ainv ha_ainv hainv_a).1
+    rw [← heq] at h; exact h
+  · have h := (tabulated_left_iso_eq_graph R.colA R.colB R.isMonicPair ainv ha_ainv hainv_a).2
+    rw [← heq] at h; exact h
+
+/-- `pair x x` factors through `x° ⊚ x` (copy of `S1_62.pairxx_factor`). -/
+theorem pairxx_factor {C₁ U : 𝒞} (x : C₁ ⟶ U) :
+    ∃ α : C₁ ⟶ ((graph x)° ⊚ (graph x)).src,
+      α ≫ ((graph x)° ⊚ (graph x)).colA = x ∧ α ≫ ((graph x)° ⊚ (graph x)).colB = x := by
+  let pbx := HasPullbacks.has ((graph x)°).colB ((graph x)).colA
+  have hcw : (Cat.id C₁) ≫ ((graph x)°).colB = (Cat.id C₁) ≫ (graph x).colA := by
+    simp [graph, reciprocal]
+  let c : Cone ((graph x)°).colB ((graph x)).colA := ⟨C₁, Cat.id C₁, Cat.id C₁, hcw⟩
+  let u := pbx.lift c
+  have hu₁ : u ≫ pbx.cone.π₁ = Cat.id C₁ := pbx.lift_fst c
+  have hu₂ : u ≫ pbx.cone.π₂ = Cat.id C₁ := pbx.lift_snd c
+  let spanx : pbx.cone.pt ⟶ prod U U :=
+    pair (pbx.cone.π₁ ≫ ((graph x)°).colA) (pbx.cone.π₂ ≫ (graph x).colB)
+  refine ⟨u ≫ image.lift spanx, ?_, ?_⟩
+  · show (u ≫ image.lift spanx) ≫ ((image spanx).arr ≫ fst) = x
+    rw [Cat.assoc, ← Cat.assoc (image.lift spanx), image.lift_fac]
+    show u ≫ spanx ≫ fst = x
+    rw [show spanx ≫ fst = pbx.cone.π₁ ≫ ((graph x)°).colA from fst_pair _ _,
+        ← Cat.assoc, hu₁, show ((graph x)°).colA = x from rfl, Cat.id_comp]
+  · show (u ≫ image.lift spanx) ≫ ((image spanx).arr ≫ snd) = x
+    rw [Cat.assoc, ← Cat.assoc (image.lift spanx), image.lift_fac]
+    show u ≫ spanx ≫ snd = x
+    rw [show spanx ≫ snd = pbx.cone.π₂ ≫ (graph x).colB from snd_pair _ _,
+        ← Cat.assoc, hu₂, show (graph x).colB = x from rfl, Cat.id_comp]
+
+/-- `graph x ⊚ (graph x)° ⊆ 1` when `x` is monic (copy of `S1_62.graph_comp_recip_le_one_of_mono`). -/
+theorem graph_comp_recip_le_one_of_mono {A B : 𝒞} (x : A ⟶ B) (hx : Mono x) :
+    RelLe (graph x ⊚ (graph x)°) (graph (Cat.id A)) := by
+  have hp : MonicPair (x : A ⟶ B) (Cat.id A) := by
+    intro W f g _ hid; simpa [Cat.comp_id] using hid
+  have hsimp : Simple (BinRel.mk A x (Cat.id A) hp) :=
+    (tabulated_is_simple_iff_left_monic x (Cat.id A) hp).mpr hx
+  have heq : BinRel.mk A x (Cat.id A) hp = (graph x)° := rfl
+  rw [heq] at hsimp
+  unfold Simple at hsimp
+  rw [reciprocal_invol] at hsimp
+  exact hsimp
+
+/-- The intersection relation (copy of `S1_62.inter_lemma`). -/
+theorem inter_lemma {A₁ A₂ U A : 𝒞} (x : A₁ ⟶ U) (y : A₂ ⟶ U) (uarr : U ⟶ A)
+    (a1 : A₁ ⟶ A) (a2 : A₂ ⟶ A)
+    (hx : x ≫ uarr = a1) (hy : y ≫ uarr = a2) :
+    RelLe (graph x ⊚ (graph y)°)
+      ((graph (HasPullbacks.has a1 a2).cone.π₁)° ⊚ (graph (HasPullbacks.has a1 a2).cone.π₂)) := by
+  let pxy := HasPullbacks.has ((graph x).colB) (((graph y)°).colA)
+  have hwxy : pxy.cone.π₁ ≫ x = pxy.cone.π₂ ≫ y := pxy.cone.w
+  let pI := HasPullbacks.has a1 a2
+  have hconeI : pxy.cone.π₁ ≫ a1 = pxy.cone.π₂ ≫ a2 := by
+    rw [← hx, ← hy, ← Cat.assoc, ← Cat.assoc, hwxy]
+  let cI : Cone a1 a2 := ⟨pxy.cone.pt, pxy.cone.π₁, pxy.cone.π₂, hconeI⟩
+  let m := pI.lift cI
+  have hm1 : m ≫ pI.cone.π₁ = pxy.cone.π₁ := pI.lift_fst cI
+  have hm2 : m ≫ pI.cone.π₂ = pxy.cone.π₂ := pI.lift_snd cI
+  let RHS := (graph pI.cone.π₁)° ⊚ (graph pI.cone.π₂)
+  let pR : RHS.src ⟶ prod A₁ A₂ := pair RHS.colA RHS.colB
+  have hpR_mono : Mono pR := monic_pair_of_monicPair RHS.colA RHS.colB RHS.isMonicPair
+  let pbR := HasPullbacks.has (((graph pI.cone.π₁)°).colB) ((graph pI.cone.π₂).colA)
+  have hcwR : (Cat.id pI.cone.pt) ≫ (((graph pI.cone.π₁)°).colB) =
+      (Cat.id pI.cone.pt) ≫ ((graph pI.cone.π₂).colA) := by simp [graph, reciprocal]
+  let cR : Cone (((graph pI.cone.π₁)°).colB) ((graph pI.cone.π₂).colA) :=
+    ⟨pI.cone.pt, Cat.id pI.cone.pt, Cat.id pI.cone.pt, hcwR⟩
+  let uR := pbR.lift cR
+  have huR1 : uR ≫ pbR.cone.π₁ = Cat.id pI.cone.pt := pbR.lift_fst cR
+  have huR2 : uR ≫ pbR.cone.π₂ = Cat.id pI.cone.pt := pbR.lift_snd cR
+  let spanR : pbR.cone.pt ⟶ prod A₁ A₂ :=
+    pair (pbR.cone.π₁ ≫ (((graph pI.cone.π₁)°).colA)) (pbR.cone.π₂ ≫ ((graph pI.cone.π₂).colB))
+  let αR : pI.cone.pt ⟶ RHS.src := uR ≫ image.lift spanR
+  have hαR : αR ≫ pR = pair pI.cone.π₁ pI.cone.π₂ := by
+    show (uR ≫ image.lift spanR) ≫ pair RHS.colA RHS.colB = pair pI.cone.π₁ pI.cone.π₂
+    apply pair_uniq
+    · rw [Cat.assoc, fst_pair]
+      show (uR ≫ image.lift spanR) ≫ ((image spanR).arr ≫ fst) = pI.cone.π₁
+      rw [Cat.assoc, ← Cat.assoc (image.lift spanR), image.lift_fac]
+      rw [show spanR ≫ fst = pbR.cone.π₁ ≫ (((graph pI.cone.π₁)°).colA) from fst_pair _ _,
+          ← Cat.assoc, huR1, Cat.id_comp, show (((graph pI.cone.π₁)°).colA) = pI.cone.π₁ from rfl]
+    · rw [Cat.assoc, snd_pair]
+      show (uR ≫ image.lift spanR) ≫ ((image spanR).arr ≫ snd) = pI.cone.π₂
+      rw [Cat.assoc, ← Cat.assoc (image.lift spanR), image.lift_fac]
+      rw [show spanR ≫ snd = pbR.cone.π₂ ≫ ((graph pI.cone.π₂).colB) from snd_pair _ _,
+          ← Cat.assoc, huR2, Cat.id_comp, show ((graph pI.cone.π₂).colB) = pI.cone.π₂ from rfl]
+  let spanL : pxy.cone.pt ⟶ prod A₁ A₂ :=
+    pair (pxy.cone.π₁ ≫ (graph x).colA) (pxy.cone.π₂ ≫ ((graph y)°).colB)
+  have hspanL_eq : spanL = (m ≫ αR) ≫ pR := by
+    rw [Cat.assoc, hαR]
+    show pair (pxy.cone.π₁ ≫ (graph x).colA) (pxy.cone.π₂ ≫ ((graph y)°).colB)
+      = m ≫ pair pI.cone.π₁ pI.cone.π₂
+    refine (pair_uniq (pxy.cone.π₁ ≫ (graph x).colA) (pxy.cone.π₂ ≫ ((graph y)°).colB)
+      (m ≫ pair pI.cone.π₁ pI.cone.π₂) ?_ ?_).symm
+    · rw [Cat.assoc, fst_pair, hm1, show (graph x).colA = Cat.id A₁ from rfl]; exact (Cat.comp_id _).symm
+    · rw [Cat.assoc, snd_pair, hm2, show ((graph y)°).colB = Cat.id A₂ from rfl]; exact (Cat.comp_id _).symm
+  let RHSsub : Subobject 𝒞 (prod A₁ A₂) := ⟨RHS.src, pR, hpR_mono⟩
+  have hallows : Allows RHSsub spanL := ⟨m ≫ αR, hspanL_eq.symm⟩
+  obtain ⟨w, hw⟩ := image_min spanL RHSsub hallows
+  refine ⟨⟨w, ?_, ?_⟩⟩
+  · show w ≫ RHS.colA = (image spanL).arr ≫ fst
+    calc w ≫ RHS.colA = (w ≫ pR) ≫ fst := by rw [Cat.assoc, fst_pair]
+      _ = (image spanL).arr ≫ fst := by rw [hw]
+  · show w ≫ RHS.colB = (image spanL).arr ≫ snd
+    calc w ≫ RHS.colB = (w ≫ pR) ≫ snd := by rw [Cat.assoc, snd_pair]
+      _ = (image spanL).arr ≫ snd := by rw [hw]
+
+/-- Compatibility consequence (copy of `S1_62.hxyg_lemma`). -/
+theorem hxyg_lemma {A₁ A₂ Q I : 𝒞} (f : A₁ ⟶ Q) (g : A₂ ⟶ Q)
+    (π₁ : I ⟶ A₁) (π₂ : I ⟶ A₂) (xrel : BinRel 𝒞 A₁ A₂)
+    (hinter : RelLe xrel ((graph π₁)° ⊚ graph π₂))
+    (hcocone : π₁ ≫ f = π₂ ≫ g) :
+    RelLe (xrel ⊚ graph g) (graph f) := by
+  have h1 : RelLe (xrel ⊚ graph g) (((graph π₁)° ⊚ graph π₂) ⊚ graph g) :=
+    compose_le hinter (rel_le_refl _)
+  have h2 : RelLe (((graph π₁)° ⊚ graph π₂) ⊚ graph g) ((graph π₁)° ⊚ (graph π₂ ⊚ graph g)) :=
+    (compose_assoc_of_regular ((graph π₁)°) (graph π₂) (graph g)).1
+  have h3 : RelLe ((graph π₁)° ⊚ (graph π₂ ⊚ graph g)) ((graph π₁)° ⊚ graph (π₂ ≫ g)) :=
+    compose_le (rel_le_refl _) (comp_graph π₂ g)
+  have h4 : RelLe ((graph π₁)° ⊚ graph (π₂ ≫ g)) ((graph π₁)° ⊚ graph (π₁ ≫ f)) := by
+    rw [hcocone]; exact rel_le_refl _
+  have h5 : RelLe ((graph π₁)° ⊚ graph (π₁ ≫ f)) ((graph π₁)° ⊚ (graph π₁ ⊚ graph f)) :=
+    compose_le (rel_le_refl _) (graph_comp π₁ f)
+  have h6 : RelLe ((graph π₁)° ⊚ (graph π₁ ⊚ graph f)) (((graph π₁)° ⊚ graph π₁) ⊚ graph f) :=
+    (compose_assoc_of_regular ((graph π₁)°) (graph π₁) (graph f)).2
+  have h7 : RelLe (((graph π₁)° ⊚ graph π₁) ⊚ graph f) (graph (Cat.id A₁) ⊚ graph f) :=
+    compose_le (reciprocal_comp_self_le_one π₁) (rel_le_refl _)
+  have h8 : RelLe (graph (Cat.id A₁) ⊚ graph f) (graph f) := graph_id_comp (graph f)
+  exact rel_le_trans h1 (rel_le_trans h2 (rel_le_trans h3 (rel_le_trans h4
+    (rel_le_trans h5 (rel_le_trans h6 (rel_le_trans h7 h8))))))
+
+/-- Diagonal term (copy of `S1_62.diag_le_one`). -/
+theorem diag_le_one {A₁ U Q : 𝒞} (x : A₁ ⟶ U) (f : A₁ ⟶ Q) (hx : Mono x) :
+    RelLe (((graph x)° ⊚ graph f)° ⊚ ((graph x)° ⊚ graph f)) (graph (Cat.id Q)) := by
+  have hPr : RelLe (((graph x)° ⊚ graph f)°) ((graph f)° ⊚ graph x) := by
+    have h := reciprocal_comp_le ((graph x)°) (graph f)
+    rw [reciprocal_invol] at h; exact h
+  let Pr := (graph x)° ⊚ graph f
+  have h1 : RelLe (Pr° ⊚ Pr) (((graph f)° ⊚ graph x) ⊚ Pr) := compose_le hPr (rel_le_refl _)
+  have h2 : RelLe (((graph f)° ⊚ graph x) ⊚ Pr) ((graph f)° ⊚ (graph x ⊚ Pr)) :=
+    (compose_assoc_of_regular ((graph f)°) (graph x) Pr).1
+  have h3 : RelLe ((graph f)° ⊚ (graph x ⊚ Pr))
+                  ((graph f)° ⊚ ((graph x ⊚ (graph x)°) ⊚ graph f)) :=
+    compose_le (rel_le_refl _) (compose_assoc_of_regular (graph x) ((graph x)°) (graph f)).2
+  have h4 : RelLe ((graph f)° ⊚ ((graph x ⊚ (graph x)°) ⊚ graph f))
+                  ((graph f)° ⊚ (graph (Cat.id A₁) ⊚ graph f)) :=
+    compose_le (rel_le_refl _) (compose_le (graph_comp_recip_le_one_of_mono x hx) (rel_le_refl _))
+  have h5 : RelLe ((graph f)° ⊚ (graph (Cat.id A₁) ⊚ graph f)) ((graph f)° ⊚ graph f) :=
+    compose_le (rel_le_refl _) (graph_id_comp (graph f))
+  have h6 : RelLe ((graph f)° ⊚ graph f) (graph (Cat.id Q)) := reciprocal_comp_self_le_one f
+  exact rel_le_trans h1 (rel_le_trans h2 (rel_le_trans h3 (rel_le_trans h4 (rel_le_trans h5 h6))))
+
+/-- Cross term (copy of `S1_62.cross_le_one`). -/
+theorem cross_le_one {A₁ A₂ U Q : 𝒞} (x : A₁ ⟶ U) (y : A₂ ⟶ U) (f : A₁ ⟶ Q) (g : A₂ ⟶ Q)
+    (hxyg : RelLe ((graph x ⊚ (graph y)°) ⊚ graph g) (graph f)) :
+    RelLe (((graph x)° ⊚ graph f)° ⊚ ((graph y)° ⊚ graph g)) (graph (Cat.id Q)) := by
+  have hPr : RelLe (((graph x)° ⊚ graph f)°) ((graph f)° ⊚ graph x) := by
+    have h := reciprocal_comp_le ((graph x)°) (graph f)
+    rw [reciprocal_invol] at h; exact h
+  let Qr := (graph y)° ⊚ graph g
+  have h1 : RelLe ((((graph x)° ⊚ graph f)°) ⊚ Qr) (((graph f)° ⊚ graph x) ⊚ Qr) :=
+    compose_le hPr (rel_le_refl _)
+  have h2 : RelLe (((graph f)° ⊚ graph x) ⊚ Qr) ((graph f)° ⊚ (graph x ⊚ Qr)) :=
+    (compose_assoc_of_regular ((graph f)°) (graph x) Qr).1
+  have h3 : RelLe ((graph f)° ⊚ (graph x ⊚ Qr))
+                  ((graph f)° ⊚ ((graph x ⊚ (graph y)°) ⊚ graph g)) :=
+    compose_le (rel_le_refl _) (compose_assoc_of_regular (graph x) ((graph y)°) (graph g)).2
+  have h4 : RelLe ((graph f)° ⊚ ((graph x ⊚ (graph y)°) ⊚ graph g)) ((graph f)° ⊚ graph f) :=
+    compose_le (rel_le_refl _) hxyg
+  have h5 : RelLe ((graph f)° ⊚ graph f) (graph (Cat.id Q)) := reciprocal_comp_self_le_one f
+  exact rel_le_trans h1 (rel_le_trans h2 (rel_le_trans h3 (rel_le_trans h4 h5)))
+
+/-- Simplicity of the descent relation `R = relUnionSub P Q` from the four atomic bounds
+    (coproduct-free port of `S1_62.simple_R`). -/
+theorem simple_relUnionSub {U Q : 𝒞} (P Qr : BinRel 𝒞 U Q)
+    (hPP : RelLe (P° ⊚ P) (graph (Cat.id Q)))
+    (hQQ : RelLe (Qr° ⊚ Qr) (graph (Cat.id Q)))
+    (hPQ : RelLe (P° ⊚ Qr) (graph (Cat.id Q)))
+    (hQP : RelLe (Qr° ⊚ P) (graph (Cat.id Q))) :
+    RelLe ((relUnionSub P Qr)° ⊚ (relUnionSub P Qr)) (graph (Cat.id Q)) := by
+  have step1 : RelLe ((relUnionSub P Qr)° ⊚ (relUnionSub P Qr))
+      (relUnionSub ((relUnionSub P Qr)° ⊚ P) ((relUnionSub P Qr)° ⊚ Qr)) :=
+    compose_relUnionSub_right ((relUnionSub P Qr)°) P Qr
+  refine rel_le_trans step1 (le_relUnionSub ?_ ?_)
+  · have hP_R : RelLe (P° ⊚ (relUnionSub P Qr)) (graph (Cat.id Q)) :=
+      rel_le_trans (compose_relUnionSub_right (P°) P Qr) (le_relUnionSub hPP hPQ)
+    have hrecip : RelLe ((relUnionSub P Qr)° ⊚ P) ((P° ⊚ (relUnionSub P Qr))°) := by
+      have h := (reciprocal_comp (P°) (relUnionSub P Qr)).2
+      rw [reciprocal_invol] at h; exact h
+    refine rel_le_trans hrecip ?_
+    have h := reciprocal_mono hP_R
+    rwa [show (graph (Cat.id Q))° = graph (Cat.id Q) from rfl] at h
+  · have hQ_R : RelLe (Qr° ⊚ (relUnionSub P Qr)) (graph (Cat.id Q)) :=
+      rel_le_trans (compose_relUnionSub_right (Qr°) P Qr) (le_relUnionSub hQP hQQ)
+    have hrecip : RelLe ((relUnionSub P Qr)° ⊚ Qr) ((Qr° ⊚ (relUnionSub P Qr))°) := by
+      have h := (reciprocal_comp (Qr°) (relUnionSub P Qr)).2
+      rw [reciprocal_invol] at h; exact h
+    refine rel_le_trans hrecip ?_
+    have h := reciprocal_mono hQ_R
+    rwa [show (graph (Cat.id Q))° = graph (Cat.id Q) from rfl] at h
+
+/-- Entirety ingredient (copy of `S1_62.xx_le_RRrecip`). -/
+theorem xx_le_RRrecip {A₁ U Q : 𝒞} (x : A₁ ⟶ U) (f : A₁ ⟶ Q)
+    (R : BinRel 𝒞 U Q) (hPR : RelLe ((graph x)° ⊚ graph f) R) :
+    RelLe ((graph x)° ⊚ graph x) (R ⊚ R°) := by
+  have hEntf : RelLe (graph (Cat.id A₁)) (graph f ⊚ (graph f)°) := (graph_is_map f).1
+  have hA : RelLe (graph x) ((graph f ⊚ (graph f)°) ⊚ graph x) :=
+    rel_le_trans (comp_graph_id_left (graph x)) (compose_le hEntf (rel_le_refl _))
+  have h1 : RelLe ((graph x)° ⊚ graph x) ((graph x)° ⊚ ((graph f ⊚ (graph f)°) ⊚ graph x)) :=
+    compose_le (rel_le_refl _) hA
+  have h2 : RelLe ((graph x)° ⊚ ((graph f ⊚ (graph f)°) ⊚ graph x))
+                  ((graph x)° ⊚ (graph f ⊚ ((graph f)° ⊚ graph x))) :=
+    compose_le (rel_le_refl _) (compose_assoc_of_regular (graph f) ((graph f)°) (graph x)).1
+  have h3 : RelLe ((graph x)° ⊚ (graph f ⊚ ((graph f)° ⊚ graph x)))
+                  (((graph x)° ⊚ graph f) ⊚ ((graph f)° ⊚ graph x)) :=
+    (compose_assoc_of_regular ((graph x)°) (graph f) ((graph f)° ⊚ graph x)).2
+  have hPrecip : RelLe ((graph f)° ⊚ graph x) (R°) := by
+    have hPrec : RelLe (((graph x)° ⊚ graph f)°) (R°) := reciprocal_mono hPR
+    have hsub : RelLe ((graph f)° ⊚ graph x) (((graph x)° ⊚ graph f)°) := by
+      have h := (reciprocal_comp ((graph x)°) (graph f)).2
+      rw [reciprocal_invol] at h; exact h
+    exact rel_le_trans hsub hPrec
+  have h4 : RelLe (((graph x)° ⊚ graph f) ⊚ ((graph f)° ⊚ graph x)) (R ⊚ R°) :=
+    compose_le hPR hPrecip
+  exact rel_le_trans h1 (rel_le_trans h2 (rel_le_trans h3 h4))
+
+/-- For a subobject `S ↣ A`, the diagonal push `⟨S.dom, S.arr ≫ diag A⟩` factors through
+    `relSub (S.arr° ⊚ S.arr)`.  Coproduct-free witness via `pairxx_factor`. -/
+theorem diagSub_le_relSub_xx {A : 𝒞} (S : Subobject 𝒞 A) :
+    (pushMono (diag A) (diag_mono A) S).le (relSub ((graph S.arr)° ⊚ graph S.arr)) := by
+  obtain ⟨α, hα1, hα2⟩ := pairxx_factor S.arr
+  refine ⟨α, ?_⟩
+  show α ≫ pair ((graph S.arr)° ⊚ graph S.arr).colA ((graph S.arr)° ⊚ graph S.arr).colB
+      = S.arr ≫ diag A
+  rw [show S.arr ≫ diag A = pair S.arr S.arr from (pair_diag_eq S.arr).symm]
+  exact pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair, hα1]) (by rw [Cat.assoc, snd_pair, hα2])
+
+/-- **Joint cover** (coproduct-free): when `A₁ ∪ A₂` is entire (`hCover`), the two inclusions
+    jointly cover `A`: `1_A ⊆ A₁.arr° ⊚ A₁.arr ∪ᵣ A₂.arr° ⊚ A₂.arr` (with `relUnionSub`).
+    Proof: the diagonal `Δ_A` is the push of `union A₁ A₂` (entire, so `≅ A`) along `diag A`;
+    `pushMono_union_le` splits it into the two diagonal pieces, each below `relSub (Aᵢ.arr°Aᵢ.arr)`
+    via `diagSub_le_relSub_xx`. -/
+theorem union_joint_cover_sub {A : 𝒞} (A₁ A₂ : Subobject 𝒞 A)
+    (hCover : (HasSubobjectUnions.union A₁ A₂).IsEntire) :
+    RelLe (graph (Cat.id A))
+      (relUnionSub ((graph A₁.arr)° ⊚ graph A₁.arr) ((graph A₂.arr)° ⊚ graph A₂.arr)) := by
+  let R₁ := (graph A₁.arr)° ⊚ graph A₁.arr
+  let R₂ := (graph A₂.arr)° ⊚ graph A₂.arr
+  let U := HasSubobjectUnions.union A₁ A₂
+  apply relLe_of_subLe
+  -- Δ_A ≤ pushMono diag U ≤ union(pushMono diag A₁)(pushMono diag A₂)
+  --       ≤ union(relSub R₁)(relSub R₂) ≤ relSub (relUnionSub R₁ R₂)
+  -- step 0: relSub (graph (id A)) = ⟨A, diag A⟩ = pushMono diag ⟨A, id A⟩  (the entire subobject)
+  obtain ⟨Uinv, hUinv1, hUinv2⟩ := hCover
+  have hΔ : (relSub (graph (Cat.id A))).le (pushMono (diag A) (diag_mono A) U) := by
+    refine ⟨Uinv, ?_⟩
+    show Uinv ≫ (U.arr ≫ diag A) = pair (Cat.id A) (Cat.id A)
+    rw [← Cat.assoc, hUinv2, Cat.id_comp]
+    exact (pair_uniq _ _ _ (diag_fst A) (diag_snd A)).symm
+  have hsplit : (pushMono (diag A) (diag_mono A) U).le
+      (HasSubobjectUnions.union (pushMono (diag A) (diag_mono A) A₁)
+        (pushMono (diag A) (diag_mono A) A₂)) := pushMono_union_le (diag A) (diag_mono A) A₁ A₂
+  have hpieces : (HasSubobjectUnions.union (pushMono (diag A) (diag_mono A) A₁)
+        (pushMono (diag A) (diag_mono A) A₂)).le
+      (HasSubobjectUnions.union (relSub R₁) (relSub R₂)) :=
+    HasSubobjectUnions.union_min _ _ _
+      (subLe_trans (diagSub_le_relSub_xx A₁) (HasSubobjectUnions.union_left _ _))
+      (subLe_trans (diagSub_le_relSub_xx A₂) (HasSubobjectUnions.union_right _ _))
+  exact subLe_trans hΔ (subLe_trans hsplit
+    (subLe_trans hpieces (relSub_relUnionSub_ge R₁ R₂)))
+
+/-- **Joint epi** (coproduct-free): when `A₁ ∪ A₂` is entire, the inclusions `A₁.arr, A₂.arr`
+    are jointly epimorphic on `A`.  Mirrors `union_inclusions_cover`, replacing the generic monic
+    by the equalizer of the two competing composites. -/
+theorem jointly_epi {A : 𝒞} (A₁ A₂ : Subobject 𝒞 A)
+    (hCover : (HasSubobjectUnions.union A₁ A₂).IsEntire)
+    {Z : 𝒞} {p q : A ⟶ Z}
+    (h1 : A₁.arr ≫ p = A₁.arr ≫ q) (h2 : A₂.arr ≫ p = A₂.arr ≫ q) : p = q := by
+  let U := HasSubobjectUnions.union A₁ A₂
+  obtain ⟨Uinv, hUinv1, hUinv2⟩ := hCover
+  -- it suffices to show U.arr ≫ p = U.arr ≫ q  (cancel the iso U.arr on the left)
+  suffices hUp : U.arr ≫ p = U.arr ≫ q by
+    calc p = (Uinv ≫ U.arr) ≫ p := by rw [hUinv2, Cat.id_comp]
+      _ = Uinv ≫ (U.arr ≫ p) := Cat.assoc _ _ _
+      _ = Uinv ≫ (U.arr ≫ q) := by rw [hUp]
+      _ = (Uinv ≫ U.arr) ≫ q := (Cat.assoc _ _ _).symm
+      _ = q := by rw [hUinv2, Cat.id_comp]
+  -- equalizer e of (U.arr ≫ p) and (U.arr ≫ q); show e is split epi hence iso, so equal holds
+  letI : HasEqualizers 𝒞 := products_pullbacks_implies_equalizers
+  let eq := HasEqualizers.eq U.dom Z (U.arr ≫ p) (U.arr ≫ q)
+  let e : eq.cone.dom ⟶ U.dom := eq.cone.map
+  have he_eq : e ≫ (U.arr ≫ p) = e ≫ (U.arr ≫ q) := eq.cone.eq
+  -- get inclusions l₁, l₂ of A₁, A₂ into U.dom
+  obtain ⟨l₁, hl₁⟩ := HasSubobjectUnions.union_left A₁ A₂
+  obtain ⟨l₂, hl₂⟩ := HasSubobjectUnions.union_right A₁ A₂
+  -- e is monic (equalizer leg), so M := ⟨eq.dom, e ≫ U.arr⟩ is a subobject of A
+  have he_mono : Mono e := by
+    intro W u v huv
+    let ec : EqualizerCone (U.arr ≫ p) (U.arr ≫ q) := ⟨W, u ≫ e, by
+      calc (u ≫ e) ≫ (U.arr ≫ p) = u ≫ (e ≫ (U.arr ≫ p)) := Cat.assoc _ _ _
+        _ = u ≫ (e ≫ (U.arr ≫ q)) := by rw [he_eq]
+        _ = (u ≫ e) ≫ (U.arr ≫ q) := (Cat.assoc _ _ _).symm⟩
+    rw [eq.uniq ec u rfl, eq.uniq ec v (by dsimp only [ec]; rw [huv])]
+  have heU_mono : Mono (e ≫ U.arr) := by
+    intro W u v huv
+    apply he_mono u v
+    apply U.monic (u ≫ e) (v ≫ e)
+    rw [Cat.assoc, Cat.assoc]; exact huv
+  let M : Subobject 𝒞 A := ⟨eq.cone.dom, e ≫ U.arr, heU_mono⟩
+  -- A₁ ≤ M and A₂ ≤ M:  Aᵢ.arr factors through e ≫ U.arr.  Need lᵢ to land in eq.dom.
+  -- lᵢ ≫ U.arr = Aᵢ.arr, and lᵢ equalizes U.arr≫p, U.arr≫q (since Aᵢ.arr ≫ p = Aᵢ.arr ≫ q).
+  have hl₁eq : l₁ ≫ (U.arr ≫ p) = l₁ ≫ (U.arr ≫ q) := by
+    rw [← Cat.assoc, ← Cat.assoc, hl₁]; exact h1
+  have hl₂eq : l₂ ≫ (U.arr ≫ p) = l₂ ≫ (U.arr ≫ q) := by
+    rw [← Cat.assoc, ← Cat.assoc, hl₂]; exact h2
+  let c₁ : EqualizerCone (U.arr ≫ p) (U.arr ≫ q) := ⟨A₁.dom, l₁, hl₁eq⟩
+  let c₂ : EqualizerCone (U.arr ≫ p) (U.arr ≫ q) := ⟨A₂.dom, l₂, hl₂eq⟩
+  have hj₁ : eq.lift c₁ ≫ e = l₁ := eq.fac c₁
+  have hj₂ : eq.lift c₂ ≫ e = l₂ := eq.fac c₂
+  have hA₁M : A₁.le M := ⟨eq.lift c₁, by
+    show eq.lift c₁ ≫ (e ≫ U.arr) = A₁.arr
+    rw [← Cat.assoc, hj₁, hl₁]⟩
+  have hA₂M : A₂.le M := ⟨eq.lift c₂, by
+    show eq.lift c₂ ≫ (e ≫ U.arr) = A₂.arr
+    rw [← Cat.assoc, hj₂, hl₂]⟩
+  -- so U ≤ M; the factorization j retracts e, making e a split epi (and monic) ⇒ iso.
+  obtain ⟨j, hj⟩ := HasSubobjectUnions.union_min A₁ A₂ M hA₁M hA₂M
+  have hje : j ≫ e = Cat.id U.dom := by
+    apply U.monic
+    rw [Cat.assoc]; show j ≫ (e ≫ U.arr) = Cat.id U.dom ≫ U.arr
+    rw [hj, Cat.id_comp]
+  -- finally:  U.arr ≫ p = (j ≫ e) ≫ U.arr ≫ p = j ≫ (e ≫ (U.arr ≫ p)) = … = U.arr ≫ q
+  calc U.arr ≫ p = (Cat.id U.dom ≫ U.arr) ≫ p := by rw [Cat.id_comp]
+    _ = ((j ≫ e) ≫ U.arr) ≫ p := by rw [hje]
+    _ = j ≫ (e ≫ (U.arr ≫ p)) := by rw [Cat.assoc, Cat.assoc]
+    _ = j ≫ (e ≫ (U.arr ≫ q)) := by rw [he_eq]
+    _ = ((j ≫ e) ≫ U.arr) ≫ q := by rw [Cat.assoc, Cat.assoc]
+    _ = (Cat.id U.dom ≫ U.arr) ≫ q := by rw [hje]
+    _ = U.arr ≫ q := by rw [Cat.id_comp]
+
+end DisjointGluing
+
+open DisjointGluing
+
 /-- **§1.621**: If A₁ ∩ A₂ = 0 and A₁ ∪ A₂ = A (as subobjects of A in a pre-logos)
     then A is the binary coproduct of A₁.dom and A₂.dom via the inclusions A₁.arr, A₂.arr.
     Here A₁ ∩ A₂ is the subobject represented by the pullback of A₁.arr along A₂.arr;
@@ -430,33 +869,89 @@ theorem disjoint_cover_is_coproduct [PreLogos 𝒞]
     ∀ {X : 𝒞} (f₁ : A₁.dom ⟶ X) (f₂ : A₂.dom ⟶ X),
       ∃ h : A ⟶ X, A₁.arr ≫ h = f₁ ∧ A₂.arr ≫ h = f₂ ∧
         ∀ h' : A ⟶ X, A₁.arr ≫ h' = f₁ → A₂.arr ≫ h' = f₂ → h' = h := by
-  -- BLOCKER: §1.621 is the disjoint specialization of the §1.62 PASTING LEMMA
-  -- (`Fredy.pasting_lemma` in `S1_62`, itself still `sorry`).  Both the existence of `h`
-  -- and its uniqueness rest on Freyd's relational identities: with R = x°f ∪ y°g one shows
-  -- 1 ⊆ RR° and R°R ⊆ 1 (so R is a map), xR = f, yR = g, and "x,y cover ⟹ R unique".
-  -- Those `x°x ∪ y°y = 1` / composition-distributes-over-union facts are Chapter-2 allegory
-  -- material (`S2_*`), not yet available to a bare `PreLogos`.  Equivalently, via §1.615 the
-  -- union A₁∪A₂ is the image of `case A₁.arr A₂.arr : A₁.dom + A₂.dom → A`, so disjointness
-  -- turns that cover into an iso and A becomes the coproduct — but this route needs binary
-  -- COPRODUCTS, which a general pre-logos lacks (they exist only in a POSITIVE pre-logos,
-  -- §1.623).
-  --
-  -- Re-checked against `S1_64`'s new `DisjointBinaryCoproduct` class (which DOES bundle the
-  -- §1.621 disjointness/cover data — `inl_inter_inr_le_bottom`, `inl_union_inr_entire`): it
-  -- still does not unlock THIS statement, for three independent reasons.
-  --   (1) `DisjointBinaryCoproduct` *assumes* `HasBinaryCoproducts`; here `A₁,A₂` are
-  --       ARBITRARY subobjects of `A`, and we must CONSTRUCT the coproduct, not consume one.
-  --   (2) Even granting coproducts, `Mono (case A₁.arr A₂.arr)` does not follow from
-  --       `hDisjoint`+`hCover`: `case_inl/inr/uniq` constrain maps OUT of `A₁+A₂`, giving no
-  --       decomposition of an incoming pair `u,v : W ⟶ A₁+A₂`.  Splitting them needs
-  --       EXTENSIVITY (universal+disjoint coproducts) — exactly the extra axioms `S1_64`'s
-  --       `DisjointBinaryCoproduct` adds, and which a bare (positive) pre-logos lacks.  Freyd
-  --       (quoted at S1_64 §1.626) makes the same point: a distributive lattice is a pre-logos
-  --       with coproducts whose injections are NOT jointly monic.
-  --   (3) `PositivePreLogos`/`DisjointBinaryCoproduct` live in `S1_62`/`S1_64`, which import
-  --       `S1_61` — so they cannot even be NAMED here without a cyclic import.
-  -- The faithful home for the §1.621 coproduct construction is therefore S1_64 (on a
-  -- `DisjointBinaryCoproduct`), not this bare-`PreLogos` layer; left as a faithful sorry.
-  sorry
+  -- §1.621 is the DISJOINT specialization of the §1.62 pasting lemma, done here COPRODUCT-FREE
+  -- in a bare pre-logos via the `relUnionSub` bridge.  The descent relation is R = x°f₁ ∪ y°f₂
+  -- (`relUnionSub`); we show R is a MAP (entire + simple), read off `h`, and use joint-epi for
+  -- uniqueness.  hDisjoint is used ONLY to supply the cocone equation `π₁ ≫ f₁ = π₂ ≫ f₂`,
+  -- which holds because the intersection apex is the coterminator (§1.61).
+  classical
+  intro X f₁ f₂
+  let x := A₁.arr
+  let y := A₂.arr
+  let pb := HasPullbacks.has A₁.arr A₂.arr
+  -- COCONE COMPATIBILITY: any two maps out of the (coterminator-like) intersection agree.
+  have hmaps : ∀ (u v : pb.cone.pt ⟶ X), u = v := by
+    let ct := minimal_subobject_of_one_is_coterminator (inferInstance : PreLogos 𝒞)
+    -- pb.cone.pt ≅ (bottom A).dom ≅ ct.zero; assemble g : pb.cone.pt → ct.zero with inverse ginv.
+    obtain ⟨e, einv, he1, _⟩ := hDisjoint
+    obtain ⟨φ, φinv, hφ1, _⟩ :=
+      PreLogos.bottom_dom_iso A (inferInstance : PreLogos 𝒞).toHasTerminal.one
+    let g : pb.cone.pt ⟶ ct.zero := e ≫ φ
+    let ginv : ct.zero ⟶ pb.cone.pt := φinv ≫ einv
+    have hg_ginv : g ≫ ginv = Cat.id pb.cone.pt := by
+      show (e ≫ φ) ≫ (φinv ≫ einv) = Cat.id pb.cone.pt
+      rw [Cat.assoc e φ (φinv ≫ einv), ← Cat.assoc φ φinv einv, hφ1, Cat.id_comp, he1]
+    intro u v
+    calc u = (g ≫ ginv) ≫ u := by rw [hg_ginv, Cat.id_comp]
+      _ = g ≫ (ginv ≫ u) := Cat.assoc _ _ _
+      _ = g ≫ (ginv ≫ v) := by rw [ct.init_uniq (ginv ≫ u) (ginv ≫ v)]
+      _ = (g ≫ ginv) ≫ v := (Cat.assoc _ _ _).symm
+      _ = v := by rw [hg_ginv, Cat.id_comp]
+  -- The cocone equation needed for `hxyg_lemma`.
+  have hw : pb.cone.π₁ ≫ f₁ = pb.cone.π₂ ≫ f₂ := hmaps _ _
+  -- Build the descent relation R = x°⊚f₁ ∪ y°⊚f₂ (coproduct-free union).
+  let P : BinRel 𝒞 A X := (graph x)° ⊚ graph f₁
+  let Q : BinRel 𝒞 A X := (graph y)° ⊚ graph f₂
+  let R : BinRel 𝒞 A X := relUnionSub P Q
+  have hxmono : Mono x := A₁.monic
+  have hymono : Mono y := A₂.monic
+  -- intersection relation + compatibility consequence
+  have hinter : RelLe (graph x ⊚ (graph y)°)
+      ((graph pb.cone.π₁)° ⊚ graph pb.cone.π₂) :=
+    inter_lemma x y (Cat.id A) A₁.arr A₂.arr (Cat.comp_id _) (Cat.comp_id _)
+  have hxyg : RelLe ((graph x ⊚ (graph y)°) ⊚ graph f₂) (graph f₁) :=
+    hxyg_lemma f₁ f₂ pb.cone.π₁ pb.cone.π₂ (graph x ⊚ (graph y)°) hinter hw
+  -- four atomic bounds for simplicity
+  have hPP : RelLe (P° ⊚ P) (graph (Cat.id X)) := diag_le_one x f₁ hxmono
+  have hQQ : RelLe (Q° ⊚ Q) (graph (Cat.id X)) := diag_le_one y f₂ hymono
+  have hPQ : RelLe (P° ⊚ Q) (graph (Cat.id X)) := cross_le_one x y f₁ f₂ hxyg
+  have hQP : RelLe (Q° ⊚ P) (graph (Cat.id X)) := by
+    have hsub : RelLe (Q° ⊚ P) ((P° ⊚ Q)°) := by
+      have h := (reciprocal_comp (P°) Q).2
+      rw [reciprocal_invol] at h; exact h
+    refine rel_le_trans hsub ?_
+    have h := reciprocal_mono hPQ
+    rwa [show (graph (Cat.id X))° = graph (Cat.id X) from rfl] at h
+  have hSimple : Simple R := simple_relUnionSub P Q hPP hQQ hPQ hQP
+  -- entirety from the joint cover (hCover) via xx_le_RRrecip
+  have hEntire : Entire R := by
+    have hjoint : RelLe (graph (Cat.id A))
+        (relUnionSub ((graph x)° ⊚ graph x) ((graph y)° ⊚ graph y)) :=
+      union_joint_cover_sub A₁ A₂ hCover
+    refine rel_le_trans hjoint (le_relUnionSub ?_ ?_)
+    · exact xx_le_RRrecip x f₁ R (relUnionSub_le_left P Q)
+    · exact xx_le_RRrecip y f₂ R (relUnionSub_le_right P Q)
+  -- extract the descent morphism h
+  obtain ⟨h, hRh, _⟩ := map_to_graph R ⟨hEntire, hSimple⟩
+  -- factorizations  x ≫ h = f₁  and  y ≫ h = f₂  (the hfac_gen pattern, coproduct-free)
+  have hfac_gen : ∀ {C : 𝒞} (z : C ⟶ A) (k : C ⟶ X),
+      RelLe ((graph z)° ⊚ graph k) R → z ≫ h = k := by
+    intro C z k hpiece
+    have step1 : RelLe (graph k) ((graph (Cat.id C)) ⊚ graph k) := comp_graph_id_left (graph k)
+    have step2 : RelLe ((graph (Cat.id C)) ⊚ graph k) ((graph z ⊚ (graph z)°) ⊚ graph k) :=
+      compose_le (graph_is_map z).1 (rel_le_refl _)
+    have step3 : RelLe ((graph z ⊚ (graph z)°) ⊚ graph k) (graph z ⊚ ((graph z)° ⊚ graph k)) :=
+      (compose_assoc_of_regular (graph z) ((graph z)°) (graph k)).1
+    have step4 : RelLe (graph z ⊚ ((graph z)° ⊚ graph k)) (graph z ⊚ graph h) :=
+      compose_le (rel_le_refl _) (rel_le_trans hpiece hRh)
+    have step5 : RelLe (graph z ⊚ graph h) (graph (z ≫ h)) := comp_graph z h
+    exact (graph_faithful (rel_le_trans step1 (rel_le_trans step2
+      (rel_le_trans step3 (rel_le_trans step4 step5))))).symm
+  have hfac1 : x ≫ h = f₁ := hfac_gen x f₁ (relUnionSub_le_left P Q)
+  have hfac2 : y ≫ h = f₂ := hfac_gen y f₂ (relUnionSub_le_right P Q)
+  refine ⟨h, hfac1, hfac2, ?_⟩
+  -- uniqueness via joint epi (hCover)
+  intro h' hh'1 hh'2
+  exact jointly_epi A₁ A₂ hCover (by rw [hh'1, hfac1]) (by rw [hh'2, hfac2])
 
 end Freyd
