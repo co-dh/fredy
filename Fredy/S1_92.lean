@@ -966,12 +966,14 @@ def stLe (Z V : SubTerminal 𝒞) : Prop := stMeet Z V = Z
     the exponential `Ω^U` together with the pullback property of `omegaMeet`.  In
     this repo `heytingImpl` is assembled from `omegaPowContra` and `eval_exp`,
     whose computation rests on `topos_has_exponentials` — itself an unfilled
-    `sorry`.  Its sharpened blocker (see that instance) is the triad: power-object
-    representability `[B]^A ≅ [A×B]`, topos equalizers, and the still-missing
-    baseable-equalizer CLOSURE (§1.859's `baseable_inclusion_preserves_equalizers`
-    in S1_85 is only the weak tautological form, not the closure §1.92 needs).
-    Until exponentials are concretely constructed, the adjunction cannot be
-    evaluated, so the honest record is the TRUE adjunction with a `sorry`. -/
+    `sorry`.  Its sharpened blocker (see that instance) is now a SINGLE step:
+    power-object representability `∀ B, Baseable B`, i.e. every object's
+    `(A × −, B)` is representable.  The other two legs are discharged — topos
+    equalizers (`topos_has_equalizers`) and the baseable-equalizer CLOSURE
+    (`baseable_equalizer_is_baseable`, S1_85, now proved sorry-free; the earlier
+    weak tautological form was replaced).  Until exponentials are concretely
+    constructed, the adjunction cannot be evaluated, so the honest record is the
+    TRUE adjunction with a `sorry`. -/
 theorem subTerminal_heyting :
     ∀ (Z U V : SubTerminal 𝒞),
       stLe (stMeet Z U) V ↔ stLe Z (heytingImpl U V) := by
