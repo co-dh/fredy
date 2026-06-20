@@ -18,15 +18,25 @@
   columns respect the structure maps to `B` lifts back into the slice.  Under this
   correspondence the SLICE membership relation is the Σ-transport of the BASE
   membership `∈_{Σ C}` of the base power object `[Σ C]`, placed on the slice object
-  `Δ([Σ C]) = ⟨[Σ C] × B, snd⟩`, and slice universality transports to base
-  universality of `∈_{Σ C}`.
+  `Δ([Σ C]) = ⟨[Σ C] × B, snd⟩`.
 
-  ADDITIVE: a new file built only from base power objects + Σ-transport; NO new
-  axioms, NO Chapter-2 allegory axioms.
+  The first object `Δ[Σ C]` is only WEAKLY universal — classifiers EXIST but are not
+  unique (a name's cross-fibre membership is invisible to a tight slice relation).
+  Freyd's §1.93 fix (this file): pass to the idempotent-split sub-object
+  `[C] = slicePowObj' B C ⊆ Δ[Σ C]`, the equalizer of `1` and the fibre-restriction
+  idempotent `e = pair ρ snd` (`ρ = Λ(∈ ∩ same-fibre)`).  Cross-fibre names are exactly
+  those `e` kills, so on `[C]` classifiers ARE unique: `sliceMem' = ι*(sliceMem)` is
+  genuinely universal (`is_universal_sliceMem'`).  Both halves reduce to BASE
+  universality of `∈_{Σ C}` (the only place uniqueness genuinely holds), via the
+  e-fixedness lemma `baseRho_fixes_tight` and `sigmaRel (sliceMem) ≅ baseRestrict`.
+
+  ADDITIVE: a new file built only from base power objects + Σ-transport + the §1.429
+  idempotent-split (equalizers); NO new axioms, NO Chapter-2 allegory axioms.
 -/
 
 import Fredy.S1_9
 import Fredy.S1_44
+import Fredy.S1_92
 import Fredy.SliceRegular
 import Fredy.SliceTopos
 
@@ -37,6 +47,15 @@ namespace Freyd
 variable {𝒞 : Type u} [Cat.{v} 𝒞]
 
 open HasSubobjectClassifier
+
+/-- **Generic `RelHom` transitivity** over ANY category `𝒟` (no `Topos`/products
+    needed).  Used for `Over B` relations while building `Topos (Over B)` (the library
+    `RelHom_trans` bakes in `[Topos 𝒞]`, which would be circular here). -/
+theorem relHom_trans_gen {𝒟 : Type u} [Cat.{v} 𝒟] {X Y : 𝒟} {R S T : BinRel 𝒟 X Y}
+    (h₁ : RelHom R S) (h₂ : RelHom S T) : RelHom R T := by
+  obtain ⟨a, haA, haB⟩ := h₁
+  obtain ⟨b, hbA, hbB⟩ := h₂
+  exact ⟨a ≫ b, by rw [Cat.assoc, hbA, haA], by rw [Cat.assoc, hbB, haB]⟩
 
 /-! ## Σ-transport of binary relations
 
@@ -313,106 +332,601 @@ theorem sliceRelHom_of_baseRelHom {B : 𝒞} {A C : Over B}
     show (jw ≫ pbg.cone.π₂) ≫ (baseMem B C).colB = R.colB.f
     rw [Cat.assoc]; exact hjB'
 
-/-- **§1.93 universality of the slice membership (RESIDUAL).**
+/-! ## §1.93 universality — existence against the weak `Δ[ΣC]`
 
-  The slice membership relation `∈_C^{Over B} = sliceMem B C` is universal targeted
-  at `C`.  By the Δ–Σ adjunction a slice classifier `f : A ⟶ Δ[Σ C]` is exactly
-  `⟨pair g A.hom, …⟩` for a unique base map `g = f.f ≫ fst : A.dom ⟶ [Σ C]`, and
-  `sigmaRel (relPullback f (sliceMem)) = relPullback f.f (sigmaRel (sliceMem))` holds
-  on the nose (`sigmaRel_relPullback`).  Universality then reduces to BASE
-  universality of `baseMem` (`Topos.has_pow`, via `powerClassify`).
+  The weak slice membership `sliceMem B C` on `Δ[ΣC]` is universal for EXISTENCE but
+  NOT uniqueness (uniqueness is genuinely FALSE for a general `C`: a name's
+  cross-fibre membership is invisible to a tight slice relation, so two names agreeing
+  on the same-fibre part but differing cross-fibre classify the same `R`).  Freyd's
+  fix (§1.93) restricts to the idempotent-split subobject `[C] ⊆ Δ[ΣC]`; we build that
+  below (`slicePowObj'`/`sliceMem'`/`is_universal_sliceMem'`) and wire `Topos (Over B)`
+  to it.  The weak `sliceMem` survives only as the reusable existence engine
+  `sliceMem_classify_of`. -/
 
-  STATUS:
-  • `classify_exists` is CLOSED sorry-free.  Construction: take the base classifier
-    `g := powerClassify (sigmaRel R)`; the slice classifier is `sliceClassifyOf A C g
-    = ⟨pair g A.hom, …⟩`.  The forward slice `RelHom R ⟶ relPullback f (sliceMem)`
-    is `sliceRelHom_of_baseRelHom` (the §1.93 lift: the B-leg constraint
-    `aleg ≫ A.hom = mleg ≫ mem.colB ≫ C.hom` is automatic by `sigmaRel_struct`,
-    i.e. `R`'s over-hom column laws — this IS the second iso `Σ(−×ΔA) ≃ Σ(−)×A`).
-    The reverse uses Σ-fullness on relations (`sliceRelHom_of_sigmaRel`) after the
-    easy forgetful bridge `relHom_baseMem_of_sigmaRel_sliceMem` composed with the
-    base reverse.
+/-- **Reusable existence half (against `Δ[ΣC]`).**  For any base map
+    `g : A.dom ⟶ [ΣC]` whose membership-pullback `relPullback g (baseMem)`
+    re-presents `sigmaRel R`, the slice classifier `sliceClassifyOf A C g`
+    presents `R` against the weak slice membership `sliceMem`. -/
+theorem sliceMem_classify_of {B : 𝒞} {A C : Over B} (R : BinRel (Over B) A C)
+    (g : A.dom ⟶ slicePowBase B C)
+    (hgf : RelHom (sigmaRel R) (relPullback g (baseMem B C)))
+    (hgr : RelHom (relPullback g (baseMem B C)) (sigmaRel R)) :
+    RelHom R (relPullback (sliceClassifyOf A C g) (sliceMem B C)) ∧
+    RelHom (relPullback (sliceClassifyOf A C g) (sliceMem B C)) R := by
+  refine ⟨sliceRelHom_of_baseRelHom R g hgf, ?_⟩
+  apply sliceRelHom_of_sigmaRel
+  have hgr' : RelHom (relPullback ((sliceClassifyOf A C g).f ≫ fst) (baseMem B C))
+      (sigmaRel R) := by rw [sliceClassifyOf_fst]; exact hgr
+  exact relHom_trans' (relHom_baseMem_of_sigmaRel_sliceMem (sliceClassifyOf A C g)) hgr'
 
-  • `classify_unique` is the SINGLE RESIDUAL (one `sorry`).  Reduction (done in
-    code): by Σ-faithfulness + `pair`-eta on `Δ[Σ C]`, `f = g` ⟺ `f.f ≫ fst =
-    g.f ≫ fst`.
+/-! ## §1.93  The genuine slice power object via idempotent split -/
 
-    *** DIAGNOSIS (2026-06-20): the residual is NOT merely hard — `classify_unique`
-    is FALSE for the present power object `slicePowObj B C = Δ[Σ C]` whenever `C`
-    is a PROPER subobject of `Δ(Σ C)` (i.e. for a general `C : Over B`).  Freyd's
-    first construction `Δ[A]` is a power object only for objects of the form
-    `Δ(A)` (book §1.93: "`Δ[A]` is a power-object for `Δ(A)`").  For a general `C`
-    one must FURTHER restrict `[Σ C]` to the idempotent-split subobject; this file
-    skips that step, so `Δ[Σ C]` is only WEAKLY universal (classifiers exist —
-    `classify_exists` is genuinely closed — but they are NOT unique). ***
+variable {B : 𝒞}
 
-    Why uniqueness fails.  A slice classifier `f : A ⟶ Δ[Σ C]` is `pair (f.f≫fst)
-    A.hom` (snd-leg forced to `A.hom`), so only `f.f≫fst : A.dom ⟶ [Σ C]` is free.
-    Its Σ-image relation `relPullback f.f (sigmaRel sliceMem)` is, componentwise on
-    `[Σ C]×B`, the conjunction
-      (I)  `a ≫ (f.f≫fst) = m ≫ mem.colA`      (membership in `[Σ C]`), and
-      (II) `a ≫ A.hom     = m ≫ mem.colB ≫ C.hom`   (same B-fibre / slice-compat).
-    `R` (hence `sigmaRel R`) only constrains the part of `f.f≫fst` visible THROUGH
-    (II) — the same-fibre membership.  The CROSS-FIBRE membership of `f.f≫fst`
-    (does `a` "contain" a `C`-element living over a DIFFERENT point of `B`?) is
-    invisible to the tight relation, hence unconstrained.  So two names that agree
-    on the same-fibre part but differ cross-fibre give the SAME `R` yet differ as
-    maps `A.dom ⟶ [Σ C]`.
+/-- The "membership" base relation `fst*(∈_{ΣC}) : ([ΣC]×B) → C.dom`:
+    `((P,b),c)` with `(P,c) ∈ ∈_{ΣC}` (ignoring `b`). -/
+noncomputable def baseMemPB (B : 𝒞) (C : Over B) :
+    BinRel 𝒞 (prod (slicePowBase B C) B) C.dom :=
+  relPullback (fst : prod (slicePowBase B C) B ⟶ slicePowBase B C) (baseMem B C)
 
-    Concrete Set counterexample.  `B = {0,1}`, `C.dom = {p,q}` with `p↦0, q↦1`
-    (`Σ C` meets both fibres), `A = ⟨{a}, a↦0⟩`.  Then `[Σ C] = 𝒫{p,q}` (4 names).
-    The relation `R = {a∼p}` (forced: `a` is over `0`, so it can only relate to the
-    fibre-0 element `p`) is classified by BOTH `f.f≫fst = {p}` and `g.f≫fst =
-    {p,q}` — both restrict to `{p}` on the fibre-0 part `(II)`.  Hence two distinct
-    slice classifiers of the same `R`: `classify_unique` is refuted.
+/-- The "same-fibre" base relation `R_fib : ([ΣC]×B) → C.dom`: `((P,b),c)` with
+    `b = C.hom c`.  Tabulated by the pullback of `snd` and `C.hom`; its projection
+    legs are jointly monic (pullback uniqueness). -/
+noncomputable def baseFib (B : 𝒞) (C : Over B) :
+    BinRel 𝒞 (prod (slicePowBase B C) B) C.dom where
+  src  := (HasPullbacks.has (snd : prod (slicePowBase B C) B ⟶ B) C.hom).cone.pt
+  colA := (HasPullbacks.has (snd : prod (slicePowBase B C) B ⟶ B) C.hom).cone.π₁
+  colB := (HasPullbacks.has (snd : prod (slicePowBase B C) B ⟶ B) C.hom).cone.π₂
+  isMonicPair := by
+    intro W f g hA hB
+    let pb := HasPullbacks.has (snd : prod (slicePowBase B C) B ⟶ B) C.hom
+    have hw : (f ≫ pb.cone.π₁) ≫ snd = (f ≫ pb.cone.π₂) ≫ C.hom := by
+      rw [Cat.assoc, Cat.assoc, pb.cone.w]
+    have h1 : f = pb.lift ⟨W, f ≫ pb.cone.π₁, f ≫ pb.cone.π₂, hw⟩ :=
+      pb.lift_uniq ⟨W, f ≫ pb.cone.π₁, f ≫ pb.cone.π₂, hw⟩ f rfl rfl
+    have h2 : g = pb.lift ⟨W, f ≫ pb.cone.π₁, f ≫ pb.cone.π₂, hw⟩ :=
+      pb.lift_uniq ⟨W, f ≫ pb.cone.π₁, f ≫ pb.cone.π₂, hw⟩ g hA.symm hB.symm
+    rw [h1, h2]
 
-    CORRECT FIX (Freyd §1.93, the part this file omits): the slice power object is
-    NOT `Δ[Σ C]` but the idempotent-split subobject `[C] ⊆ Δ[Σ C]`.  Let
-    `e := powerClassify (sliceMem B (Δ(Σ C)) ∩ (Δ[Σ C] × C)) : Δ[Σ C] ⟶ Δ[Σ C]`
-    (Freyd's `e = Λ(∈ ∩ ([A]×A'))`, here `A = Δ(Σ C)`, `A' = C`); `e` is an
-    idempotent (book §1.93), and `[C] := equalizer 1 e` (equalizers exist:
-    `topos_has_equalizers`).  Re-running existence + uniqueness against `[C]`'s
-    membership gives genuine universality, because cross-fibre names are exactly
-    those `e` kills, so on `[C]` names ARE unique.  This requires NEW machinery
-    (relation intersection `∩` as a `BinRel` constructor, the slice membership of
-    `Δ(Σ C)` itself, `e`-idempotence, and the equalizer-as-sub-power-object
-    universality lift).  PRECISE NEXT SUB-LEMMAS:
-      `sliceRelMeet : BinRel (Over B) P C → BinRel (Over B) P C → BinRel (Over B) P C`
-      `sliceCrossIdem (C : Over B) : let e := powerClassify (sliceMem B (Δ(Σ C)) ∩ …);
-          (e ≫ e = e)`    -- e is idempotent
-      `slicePowObj' B C := equalizer (id (Δ[Σ C])) e`   -- the genuine [C]
-      `is_universal_sliceMem' : IsUniversalRel (mem on slicePowObj')`  -- both ways.
-    Until that rebuild lands, the residual below is NOT closable by any transport
-    on `Δ[Σ C]` (the goal is literally false there). -/
-theorem is_universal_sliceMem (B : 𝒞) (C : Over B) :
-    IsUniversalRel (sliceMem B C) := by
-  -- base universality of `∈_{Σ C}` (the base power object of `C.dom`).
-  have hbase : IsUniversalRel (baseMem B C) :=
-    (HasPowerObject.is_universal (C := C.dom))
+/-- Base-level "restricted membership": `((P,b),c)` with `(P,c) ∈ ∈_{ΣC}` AND
+    `b = C.hom c` (same B-fibre).  `= fst*(∈_{ΣC}) ⊓ R_fib`. -/
+noncomputable def baseRestrict (B : 𝒞) (C : Over B) :
+    BinRel 𝒞 (prod (slicePowBase B C) B) C.dom :=
+  baseMemPB B C ⊓ baseFib B C
+
+/-- Base universality of `∈_{ΣC}`. -/
+noncomputable def hbase (B : 𝒞) (C : Over B) : IsUniversalRel (baseMem B C) :=
+  HasPowerObject.is_universal (C := C.dom)
+
+/-- The fibre-restriction map `ρ : [ΣC]×B → [ΣC]`: classifies `baseRestrict`. -/
+noncomputable def baseRho (B : 𝒞) (C : Over B) :
+    prod (slicePowBase B C) B ⟶ slicePowBase B C :=
+  univClassify (hbase B C) (baseRestrict B C)
+
+/-- The base idempotent `ē = pair ρ snd : [ΣC]×B → [ΣC]×B`. -/
+noncomputable def baseIdem (B : 𝒞) (C : Over B) :
+    prod (slicePowBase B C) B ⟶ prod (slicePowBase B C) B :=
+  pair (baseRho B C) snd
+
+@[simp] theorem baseIdem_fst (B : 𝒞) (C : Over B) :
+    baseIdem B C ≫ fst = baseRho B C := fst_pair _ _
+
+@[simp] theorem baseIdem_snd (B : 𝒞) (C : Over B) :
+    baseIdem B C ≫ snd = snd := snd_pair _ _
+
+/-- `baseRestrict ≅ relPullback ρ (baseMem)` (the defining universal property of ρ). -/
+theorem baseRestrict_iso_pullback (B : 𝒞) (C : Over B) :
+    RelHom (baseRestrict B C) (relPullback (baseRho B C) (baseMem B C)) ∧
+    RelHom (relPullback (baseRho B C) (baseMem B C)) (baseRestrict B C) :=
+  univClassify_spec (hbase B C) (baseRestrict B C)
+
+/-- Universal property of `relPullback` over `⊓`: if `T` lands in both `f*R` and
+    `f*S` then it lands in `f*(R ⊓ S)`. -/
+theorem le_relPullback_intersect {X A C : 𝒞} (f : X ⟶ A) {R S : BinRel 𝒞 A C}
+    {T : BinRel 𝒞 X C}
+    (hR : RelHom T (relPullback f R)) (hS : RelHom T (relPullback f S)) :
+    RelHom T (relPullback f (R ⊓ S)) := by
+  obtain ⟨wR, hwRA, hwRB⟩ := hR
+  obtain ⟨wS, hwSA, hwSB⟩ := hS
+  let PR := HasPullbacks.has f R.colA
+  let PS := HasPullbacks.has f S.colA
+  let PI := HasPullbacks.has (pair R.colA R.colB) (pair S.colA S.colB)
+  let PRS := HasPullbacks.has f (R ⊓ S).colA
+  -- wR : T.src → PR.pt with wR≫π₁ = T.colA, wR≫(π₂≫R.colB) = T.colB.
+  have hwRA' : wR ≫ PR.cone.π₁ = T.colA := hwRA
+  have hwRB' : wR ≫ (PR.cone.π₂ ≫ R.colB) = T.colB := hwRB
+  have hwSA' : wS ≫ PS.cone.π₁ = T.colA := hwSA
+  have hwSB' : wS ≫ (PS.cone.π₂ ≫ S.colB) = T.colB := hwSB
+  -- Build a cone into the meet table PI: legs (wR≫π₂ : T.src→R.src, wS≫π₂ : T.src→S.src).
+  -- It is a valid cone over (pair R.colA R.colB, pair S.colA S.colB) because both encode
+  -- the same (T.colA-image, T.colB) point.
+  have hmeet : (wR ≫ PR.cone.π₂) ≫ pair R.colA R.colB
+             = (wS ≫ PS.cone.π₂) ≫ pair S.colA S.colB := by
+    -- both equal pair (wR≫π₁≫f) T.colB  via the cone squares and R,S.colA legs.
+    have hRcolA : (wR ≫ PR.cone.π₂) ≫ R.colA = (wS ≫ PS.cone.π₂) ≫ S.colA := by
+      -- = wR≫π₁≫f and wS≫π₁≫f, both = T.colA ≫ f.
+      have e1 : (wR ≫ PR.cone.π₂) ≫ R.colA = wR ≫ PR.cone.π₁ ≫ f := by
+        rw [Cat.assoc, ← PR.cone.w, ← Cat.assoc]
+      have e2 : (wS ≫ PS.cone.π₂) ≫ S.colA = wS ≫ PS.cone.π₁ ≫ f := by
+        rw [Cat.assoc, ← PS.cone.w, ← Cat.assoc]
+      rw [e1, e2, ← Cat.assoc, ← Cat.assoc, hwRA', hwSA']
+    have hRcolB : (wR ≫ PR.cone.π₂) ≫ R.colB = (wS ≫ PS.cone.π₂) ≫ S.colB := by
+      rw [Cat.assoc, Cat.assoc, hwRB', hwSB']
+    calc (wR ≫ PR.cone.π₂) ≫ pair R.colA R.colB
+        = pair ((wR ≫ PR.cone.π₂) ≫ R.colA) ((wR ≫ PR.cone.π₂) ≫ R.colB) :=
+          pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])
+      _ = pair ((wS ≫ PS.cone.π₂) ≫ S.colA) ((wS ≫ PS.cone.π₂) ≫ S.colB) := by
+          rw [hRcolA, hRcolB]
+      _ = (wS ≫ PS.cone.π₂) ≫ pair S.colA S.colB :=
+          (pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])).symm
+  let cI : Cone (pair R.colA R.colB) (pair S.colA S.colB) :=
+    ⟨T.src, wR ≫ PR.cone.π₂, wS ≫ PS.cone.π₂, hmeet⟩
+  let m : T.src ⟶ PI.cone.pt := PI.lift cI
+  -- m ≫ π₁ = wR≫π₂.  (R⊓S).colA = π₁ ≫ R.colA, .colB = π₁ ≫ R.colB.
+  have hm1 : m ≫ PI.cone.π₁ = wR ≫ PR.cone.π₂ := PI.lift_fst cI
+  -- Now build a cone over (f, (R⊓S).colA) with apex T.src: legs (T.colA, m).
+  have hconeW : T.colA ≫ f = m ≫ (R ⊓ S).colA := by
+    -- (R⊓S).colA = PI.π₁ ≫ R.colA.  m ≫ PI.π₁ ≫ R.colA = (wR≫π₂)≫R.colA = wR≫π₁≫f = T.colA≫f.
+    show T.colA ≫ f = m ≫ (PI.cone.π₁ ≫ R.colA)
+    rw [← Cat.assoc, hm1, Cat.assoc, ← PR.cone.w, ← Cat.assoc, hwRA']
+  let cRS : Cone f (R ⊓ S).colA := ⟨T.src, T.colA, m, hconeW⟩
+  refine ⟨PRS.lift cRS, PRS.lift_fst cRS, ?_⟩
+  -- colB: lift ≫ (π₂ ≫ (R⊓S).colB) = T.colB.  (R⊓S).colB = PI.π₁ ≫ R.colB.
+  show PRS.lift cRS ≫ (PRS.cone.π₂ ≫ (R ⊓ S).colB) = T.colB
+  rw [← Cat.assoc, PRS.lift_snd cRS]
+  show m ≫ (PI.cone.π₁ ≫ R.colB) = T.colB
+  rw [← Cat.assoc, hm1, Cat.assoc, hwRB']
+
+/-- `relPullback ē (fst*∈) ≅ baseRestrict` (both directions): pulling membership back
+    along `ē = pair ρ snd` re-classifies it as `relPullback ρ ∈ ≅ baseRestrict`. -/
+theorem relPullback_idem_memPB (B : 𝒞) (C : Over B) :
+    RelHom (relPullback (baseIdem B C) (baseMemPB B C)) (baseRestrict B C) ∧
+    RelHom (baseRestrict B C) (relPullback (baseIdem B C) (baseMemPB B C)) := by
+  -- relPullback ē (relPullback fst baseMem) ≅ relPullback (ē ≫ fst) baseMem.
+  obtain ⟨hc1, hc2⟩ := relPullback_comp (baseIdem B C)
+    (fst : prod (slicePowBase B C) B ⟶ slicePowBase B C) (baseMem B C)
+  -- ē ≫ fst = ρ, so relPullback (ē≫fst) baseMem = relPullback ρ baseMem.
+  rw [baseIdem_fst] at hc1 hc2
+  obtain ⟨hs1, hs2⟩ := baseRestrict_iso_pullback B C
+  exact ⟨RelHom_trans hc1 hs2, RelHom_trans hs1 hc2⟩
+
+/-- The fibre square of `R_fib`: `colA ≫ snd = colB ≫ C.hom`. -/
+theorem baseFib_sq (B : 𝒞) (C : Over B) :
+    (baseFib B C).colA ≫ snd = (baseFib B C).colB ≫ C.hom :=
+  (HasPullbacks.has (snd : prod (slicePowBase B C) B ⟶ B) C.hom).cone.w
+
+/-- Lift any cone `(a : T → [ΣC]×B, b : T → C.dom)` with `a ≫ snd = b ≫ C.hom`
+    into `R_fib.src`. -/
+noncomputable def baseFibLift {B : 𝒞} {C : Over B} {T : 𝒞}
+    (a : T ⟶ prod (slicePowBase B C) B) (b : T ⟶ C.dom) (h : a ≫ snd = b ≫ C.hom) :
+    T ⟶ (baseFib B C).src :=
+  (HasPullbacks.has (snd : prod (slicePowBase B C) B ⟶ B) C.hom).lift ⟨T, a, b, h⟩
+
+theorem baseFibLift_A {B : 𝒞} {C : Over B} {T : 𝒞}
+    (a : T ⟶ prod (slicePowBase B C) B) (b : T ⟶ C.dom) (h : a ≫ snd = b ≫ C.hom) :
+    baseFibLift a b h ≫ (baseFib B C).colA = a :=
+  (HasPullbacks.has (snd : prod (slicePowBase B C) B ⟶ B) C.hom).lift_fst _
+
+theorem baseFibLift_B {B : 𝒞} {C : Over B} {T : 𝒞}
+    (a : T ⟶ prod (slicePowBase B C) B) (b : T ⟶ C.dom) (h : a ≫ snd = b ≫ C.hom) :
+    baseFibLift a b h ≫ (baseFib B C).colB = b :=
+  (HasPullbacks.has (snd : prod (slicePowBase B C) B ⟶ B) C.hom).lift_snd _
+
+/-- `baseRestrict ⊂ relPullback ē (R_fib)`: the fibre constraint survives pullback
+    along `ē` because `ē ≫ snd = snd` keeps the B-coordinate. -/
+theorem baseRestrict_le_idem_fib (B : 𝒞) (C : Over B) :
+    RelHom (baseRestrict B C) (relPullback (baseIdem B C) (baseFib B C)) := by
+  -- baseRestrict ⊂ baseFib gives k with k≫colA = colA_R, k≫colB = colB_R.
+  obtain ⟨⟨k, hkA, hkB⟩⟩ := intersect_le_right (baseMemPB B C) (baseFib B C)
+  have hkA' : k ≫ (baseFib B C).colA = (baseRestrict B C).colA := hkA
+  have hkB' : k ≫ (baseFib B C).colB = (baseRestrict B C).colB := hkB
+  let P := HasPullbacks.has (baseIdem B C) (baseFib B C).colA
+  -- the fibre point at the ē-image: (baseRestrict.colA ≫ ē, baseRestrict.colB).
+  -- fibre square: (colA_R ≫ ē) ≫ snd = colA_R ≫ snd = colB_R ≫ C.hom.
+  have hcfib : ((baseRestrict B C).colA ≫ baseIdem B C) ≫ snd
+             = (baseRestrict B C).colB ≫ C.hom := by
+    have h1 : (baseRestrict B C).colA ≫ snd = (baseRestrict B C).colB ≫ C.hom := by
+      rw [← hkA', Cat.assoc, baseFib_sq, ← Cat.assoc, hkB']
+    rw [Cat.assoc, baseIdem_snd]; exact h1
+  let kfib := baseFibLift ((baseRestrict B C).colA ≫ baseIdem B C) (baseRestrict B C).colB hcfib
+  have hkfibA : kfib ≫ (baseFib B C).colA = (baseRestrict B C).colA ≫ baseIdem B C :=
+    baseFibLift_A _ _ _
+  have hkfibB : kfib ≫ (baseFib B C).colB = (baseRestrict B C).colB :=
+    baseFibLift_B _ _ _
+  have hPw : (baseRestrict B C).colA ≫ baseIdem B C = kfib ≫ (baseFib B C).colA :=
+    hkfibA.symm
+  refine ⟨P.lift ⟨(baseRestrict B C).src, (baseRestrict B C).colA, kfib, hPw⟩,
+    P.lift_fst _, ?_⟩
+  show P.lift ⟨(baseRestrict B C).src, (baseRestrict B C).colA, kfib, hPw⟩
+      ≫ (P.cone.π₂ ≫ (baseFib B C).colB) = (baseRestrict B C).colB
+  rw [← Cat.assoc, P.lift_snd, hkfibB]
+
+/-- **§1.93 idempotence**: `relPullback ē (baseRestrict) ≅ baseRestrict`. -/
+theorem baseRestrict_idem_iso (B : 𝒞) (C : Over B) :
+    RelHom (relPullback (baseIdem B C) (baseRestrict B C)) (baseRestrict B C) ∧
+    RelHom (baseRestrict B C) (relPullback (baseIdem B C) (baseRestrict B C)) := by
   constructor
-  · intro A R
-    -- classify the Σ-image relation in the base.
-    obtain ⟨g, hgf, hgr⟩ := hbase.classify_exists A.dom (sigmaRel R)
-    -- rewrite g as (sliceClassifyOf A C g).f ≫ fst so the easy bridge target matches.
-    have hgeq : g = (sliceClassifyOf A C g).f ≫ fst := (sliceClassifyOf_fst A C g).symm
-    refine ⟨sliceClassifyOf A C g, ?_, ?_⟩
-    · -- forward slice RelHom R ⟶ relPullback (sliceClassifyOf A C g) (sliceMem).
-      exact sliceRelHom_of_baseRelHom R g hgf
-    · -- reverse: relPullback f (sliceMem) ⟶ R, via Σ-fullness + easy bridge + base reverse.
-      apply sliceRelHom_of_sigmaRel
-      -- base RelHom  sigmaRel (relPullback f sliceMem) ⟶ sigmaRel R.
-      have hgr' : RelHom (relPullback ((sliceClassifyOf A C g).f ≫ fst) (baseMem B C))
-          (sigmaRel R) := by rw [sliceClassifyOf_fst]; exact hgr
-      exact relHom_trans' (relHom_baseMem_of_sigmaRel_sliceMem (sliceClassifyOf A C g)) hgr'
-  · intro A R f g hf hg
-    -- RESIDUAL: see `classify_unique` note below.
-    sorry
+  · -- relPullback ē baseRestrict ⊂ relPullback ē baseMemPB ≅ baseRestrict.
+    obtain ⟨hle⟩ := intersect_le_left (baseMemPB B C) (baseFib B C)
+    have hmono : RelHom (relPullback (baseIdem B C) (baseRestrict B C))
+        (relPullback (baseIdem B C) (baseMemPB B C)) :=
+      relHom_pullback923 (baseIdem B C) hle
+    exact RelHom_trans hmono (relPullback_idem_memPB B C).1
+  · -- baseRestrict ⊂ relPullback ē baseMemPB  AND  ⊂ relPullback ē baseFib; combine.
+    exact le_relPullback_intersect (baseIdem B C)
+      (relPullback_idem_memPB B C).2 (baseRestrict_le_idem_fib B C)
+
+/-- The base idempotent is idempotent: `ē ≫ ē = ē` (equivalently `ē ≫ ρ = ρ`). -/
+theorem baseIdem_idem (B : 𝒞) (C : Over B) :
+    baseIdem B C ≫ baseIdem B C = baseIdem B C := by
+  -- ē ≫ ē = pair (ē ≫ ρ) (ē ≫ snd) = pair (ē ≫ ρ) snd; need ē ≫ ρ = ρ.
+  have hρ : baseIdem B C ≫ baseRho B C = baseRho B C := by
+    -- ē ≫ ρ = univClassify (relPullback ē baseRestrict) = univClassify baseRestrict = ρ.
+    have hnat : univClassify (hbase B C) (relPullback (baseIdem B C) (baseRestrict B C))
+              = baseIdem B C ≫ baseRho B C :=
+      univClassify_natural (hbase B C) (baseRestrict B C) (baseIdem B C)
+    have hsame : univClassify (hbase B C) (relPullback (baseIdem B C) (baseRestrict B C))
+               = univClassify (hbase B C) (baseRestrict B C) :=
+      (hbase B C).classify_unique _ _ _ _
+        (univClassify_spec (hbase B C) _)
+        ⟨RelHom_trans (baseRestrict_idem_iso B C).1 (univClassify_spec (hbase B C) (baseRestrict B C)).1,
+         RelHom_trans (univClassify_spec (hbase B C) (baseRestrict B C)).2 (baseRestrict_idem_iso B C).2⟩
+    rw [← hnat, hsame]; rfl
+  -- conclude via pair calculus.
+  show pair (baseRho B C) snd ≫ pair (baseRho B C) snd = pair (baseRho B C) snd
+  rw [pair_eta (pair (baseRho B C) snd ≫ pair (baseRho B C) snd)]
+  congr 1
+  · rw [Cat.assoc, fst_pair]; exact hρ
+  · rw [Cat.assoc, snd_pair, snd_pair]
+
+/-- The slice idempotent `e = ⟨ē, …⟩ : slicePowObj ⟶ slicePowObj` in `Over B`
+    (`ē` preserves the structure map `snd`). -/
+noncomputable def sliceIdem (B : 𝒞) (C : Over B) :
+    slicePowObj B C ⟶ slicePowObj B C :=
+  ⟨baseIdem B C, by show baseIdem B C ≫ snd = snd; exact baseIdem_snd B C⟩
+
+theorem sliceIdem_idem (B : 𝒞) (C : Over B) :
+    sliceIdem B C ≫ sliceIdem B C = sliceIdem B C :=
+  OverHom.ext (baseIdem_idem B C)
+
+/-! ## §1.93  The genuine slice power object `[C] = split(e) ⊆ Δ[ΣC]` -/
+
+/-- The genuine slice power object `[C]`: the equalizer of `e` and `id` in `Over B`
+    (the split image of the idempotent `e`). -/
+noncomputable def slicePowObj' (B : 𝒞) (C : Over B) : Over B :=
+  eqObj (sliceIdem B C) (Cat.id (slicePowObj B C))
+
+/-- The mono `ι : [C] ⟶ Δ[ΣC]` (the equalizer map / idempotent section). -/
+noncomputable def sliceIota (B : 𝒞) (C : Over B) : slicePowObj' B C ⟶ slicePowObj B C :=
+  eqMap (sliceIdem B C) (Cat.id (slicePowObj B C))
+
+/-- `ι ≫ e = ι` (the equalizer equation, since `ι` equalizes `e` and `id`). -/
+theorem sliceIota_idem (B : 𝒞) (C : Over B) :
+    sliceIota B C ≫ sliceIdem B C = sliceIota B C := by
+  have h : sliceIota B C ≫ sliceIdem B C = sliceIota B C ≫ Cat.id (slicePowObj B C) :=
+    eqMap_eq (sliceIdem B C) (Cat.id (slicePowObj B C))
+  rw [h, Cat.comp_id]
+
+/-- The retraction `r : Δ[ΣC] ⟶ [C]` (the idempotent factorization). -/
+noncomputable def sliceRetr (B : 𝒞) (C : Over B) : slicePowObj B C ⟶ slicePowObj' B C :=
+  eqLift (sliceIdem B C) (Cat.id (slicePowObj B C)) (sliceIdem B C)
+    (by rw [Cat.comp_id]; exact sliceIdem_idem B C)
+
+/-- `r ≫ ι = e`. -/
+theorem sliceRetr_iota (B : 𝒞) (C : Over B) :
+    sliceRetr B C ≫ sliceIota B C = sliceIdem B C :=
+  eqLift_fac (sliceIdem B C) (Cat.id (slicePowObj B C)) (sliceIdem B C)
+    (by rw [Cat.comp_id]; exact sliceIdem_idem B C)
+
+/-- `ι ≫ r = id_{[C]}` (the split: `ι` is a section of `r`). -/
+theorem sliceIota_retr (B : 𝒞) (C : Over B) :
+    sliceIota B C ≫ sliceRetr B C = Cat.id (slicePowObj' B C) := by
+  -- both (ι≫r) and id satisfy `? ≫ ι = ι`, by equalizer uniqueness.
+  have hy : sliceIota B C ≫ sliceIdem B C = sliceIota B C ≫ Cat.id (slicePowObj B C) :=
+    eqMap_eq (sliceIdem B C) (Cat.id (slicePowObj B C))
+  have hfac : (sliceIota B C ≫ sliceRetr B C) ≫ sliceIota B C = sliceIota B C := by
+    rw [Cat.assoc, sliceRetr_iota, sliceIota_idem]
+  have hid : Cat.id (slicePowObj' B C) ≫ sliceIota B C = sliceIota B C := Cat.id_comp _
+  have h1 : sliceIota B C ≫ sliceRetr B C
+      = eqLift (sliceIdem B C) (Cat.id (slicePowObj B C)) (sliceIota B C) hy :=
+    eqLift_uniq _ _ _ hy _ hfac
+  have h2 : Cat.id (slicePowObj' B C)
+      = eqLift (sliceIdem B C) (Cat.id (slicePowObj B C)) (sliceIota B C) hy :=
+    eqLift_uniq _ _ _ hy _ hid
+  rw [h1, ← h2]
+
+/-- The genuine slice membership relation `∈_C^{[C]} = ι*(sliceMem) : BinRel [C] C`. -/
+noncomputable def sliceMem' (B : 𝒞) (C : Over B) : BinRel (Over B) (slicePowObj' B C) C :=
+  relPullback (sliceIota B C) (sliceMem B C)
+
+/-! ## §1.93  e-fixedness of tight classifiers (the key to existence against `[C]`) -/
+
+/-- `sigmaRel R ⊂ relPullback (pair g A.hom) (R_fib)` for any `g`: a fibre-compatible
+    base relation `sigmaRel R` lands in the fibre constraint at structure map `A.hom`,
+    because `R.colA.f ≫ A.hom = R.colB.f ≫ C.hom` (`sigmaRel_struct`). -/
+theorem sigmaRel_le_pullback_fib {A C : Over B} (R : BinRel (Over B) A C)
+    (g : A.dom ⟶ slicePowBase B C) :
+    RelHom (sigmaRel R) (relPullback (pair g A.hom) (baseFib B C)) := by
+  let P := HasPullbacks.has (pair g A.hom) (baseFib B C).colA
+  -- fibre point: cone over (snd, C.hom) with apex R.src.dom, legs
+  --   (R.colA.f ≫ pair g A.hom, R.colB.f), square = sigmaRel_struct.
+  have hsq : (R.colA.f ≫ pair g A.hom) ≫ snd = R.colB.f ≫ C.hom := by
+    rw [Cat.assoc, snd_pair]; exact sigmaRel_struct R
+  let kfib := baseFibLift (R.colA.f ≫ pair g A.hom) R.colB.f hsq
+  -- cone over (pair g A.hom, baseFib.colA): legs (R.colA.f, kfib).
+  have hPw : (sigmaRel R).colA ≫ pair g A.hom = kfib ≫ (baseFib B C).colA :=
+    (baseFibLift_A _ _ _).symm
+  refine ⟨P.lift ⟨(sigmaRel R).src, (sigmaRel R).colA, kfib, hPw⟩, P.lift_fst _, ?_⟩
+  show P.lift ⟨(sigmaRel R).src, (sigmaRel R).colA, kfib, hPw⟩
+      ≫ (P.cone.π₂ ≫ (baseFib B C).colB) = (sigmaRel R).colB
+  rw [← Cat.assoc, P.lift_snd]
+  exact baseFibLift_B _ _ _
+
+/-- `relPullback (pair g h) (fst*∈) ≅ relPullback g (∈)`: the `B`-coordinate `h` is
+    irrelevant to membership, which only reads the `[ΣC]`-coordinate `g`. -/
+theorem relPullback_pair_memPB (C : Over B) {A : 𝒞} (g : A ⟶ slicePowBase B C) (h : A ⟶ B) :
+    RelHom (relPullback (pair g h) (baseMemPB B C)) (relPullback g (baseMem B C)) ∧
+    RelHom (relPullback g (baseMem B C)) (relPullback (pair g h) (baseMemPB B C)) := by
+  obtain ⟨hc1, hc2⟩ := relPullback_comp (pair g h)
+    (fst : prod (slicePowBase B C) B ⟶ slicePowBase B C) (baseMem B C)
+  rw [fst_pair] at hc1 hc2
+  exact ⟨hc1, hc2⟩
+
+/-- **Tight classifiers are e-fixed.**  For `g = Λ(sigmaRel R)` the base map
+    `pair g A.hom ≫ ē = pair g A.hom`, i.e. the slice classifier of a tight relation
+    already lands in `[C]`.  (Restricting a fibre-compatible name to its own fibre
+    is a no-op.) -/
+theorem baseRho_fixes_tight {A C : Over B} (R : BinRel (Over B) A C) :
+    pair (univClassify (hbase B C) (sigmaRel R)) A.hom ≫ baseIdem B C
+      = pair (univClassify (hbase B C) (sigmaRel R)) A.hom := by
+  let g := univClassify (hbase B C) (sigmaRel R)
+  -- suffices: pair g A.hom ≫ ρ = g  (then pair-eta gives the result).
+  have hρ : pair g A.hom ≫ baseRho B C = g := by
+    -- pair g A.hom ≫ ρ = Λ(relPullback (pair g A.hom) baseRestrict);
+    -- g = Λ(sigmaRel R); classify_unique after the iso.
+    have hnat : univClassify (hbase B C) (relPullback (pair g A.hom) (baseRestrict B C))
+              = pair g A.hom ≫ baseRho B C :=
+      univClassify_natural (hbase B C) (baseRestrict B C) (pair g A.hom)
+    -- the iso  relPullback (pair g A.hom) baseRestrict ≅ sigmaRel R.
+    have hgspec := univClassify_spec (hbase B C) (sigmaRel R)  -- sigmaRel R ≅ relPullback g baseMem
+    obtain ⟨hmemF, hmemB⟩ := relPullback_pair_memPB C g A.hom
+    -- forward: sigmaRel R ⊂ relPullback (pair g A.hom) baseRestrict.
+    have hfwd : RelHom (sigmaRel R) (relPullback (pair g A.hom) (baseRestrict B C)) := by
+      apply le_relPullback_intersect
+      · exact RelHom_trans hgspec.1 hmemB
+      · exact sigmaRel_le_pullback_fib R g
+    -- reverse: relPullback (pair g A.hom) baseRestrict ⊂ sigmaRel R.
+    have hrev : RelHom (relPullback (pair g A.hom) (baseRestrict B C)) (sigmaRel R) := by
+      obtain ⟨hle⟩ := intersect_le_left (baseMemPB B C) (baseFib B C)
+      exact RelHom_trans (RelHom_trans (relHom_pullback923 (pair g A.hom) hle) hmemF) hgspec.2
+    have hsame : univClassify (hbase B C) (relPullback (pair g A.hom) (baseRestrict B C))
+               = univClassify (hbase B C) (sigmaRel R) :=
+      (hbase B C).classify_unique _ (relPullback (pair g A.hom) (baseRestrict B C)) _ _
+        (univClassify_spec (hbase B C) _)
+        ⟨RelHom_trans hrev hgspec.1, RelHom_trans hgspec.2 hfwd⟩
+    rw [← hnat, hsame]
+  -- pair g A.hom ≫ ē = pair (pair g A.hom ≫ ρ) (pair g A.hom ≫ snd) = pair g A.hom.
+  show pair g A.hom ≫ pair (baseRho B C) snd = pair g A.hom
+  rw [pair_eta (pair g A.hom ≫ pair (baseRho B C) snd)]
+  congr 1
+  · rw [Cat.assoc, fst_pair]; exact hρ
+  · rw [Cat.assoc, snd_pair, snd_pair]
+
+/-- **e-fixed names re-present base membership.**  If `pair k A.hom ≫ ρ = k`
+    (the name `k` is fixed by the fibre-restriction), then `relPullback k (∈_{ΣC})`
+    coincides with `relPullback (pair k A.hom) (baseRestrict)`: an e-fixed name has no
+    cross-fibre slack, so its membership IS its fibre-restricted membership. -/
+theorem efixed_restrict_iso {A : 𝒞} (C : Over B) (k : A ⟶ slicePowBase B C) (h : A ⟶ B)
+    (hk : pair k h ≫ baseRho B C = k) :
+    RelHom (relPullback (pair k h) (baseRestrict B C)) (relPullback k (baseMem B C)) ∧
+    RelHom (relPullback k (baseMem B C)) (relPullback (pair k h) (baseRestrict B C)) := by
+  have hnat : univClassify (hbase B C) (relPullback (pair k h) (baseRestrict B C))
+            = pair k h ≫ baseRho B C :=
+    univClassify_natural (hbase B C) (baseRestrict B C) (pair k h)
+  rw [hk] at hnat
+  -- relPullback (pair k h) baseRestrict ≅ relPullback (univClassify …) baseMem = relPullback k baseMem.
+  have hspec := univClassify_spec (hbase B C) (relPullback (pair k h) (baseRestrict B C))
+  rw [hnat] at hspec
+  exact ⟨hspec.1, hspec.2⟩
+
+/-! ## §1.93 universality of `sliceMem'` -/
+
+/-- The structure map of `Δ[ΣC]` is `snd`, so any slice map into it has
+    `f.f = pair (f.f ≫ fst) A.hom`. -/
+theorem slicePow_overhom_eta {A : Over B} {C : Over B} (f : A ⟶ slicePowObj B C) :
+    f.f = pair (f.f ≫ fst) A.hom :=
+  pair_uniq (f.f ≫ fst) A.hom f.f rfl f.w
+
+/-- e-fixedness of any slice map factoring through `[C]`: `(f' ≫ ι) ≫ e = f' ≫ ι`. -/
+theorem comp_iota_efixed {A : Over B} {C : Over B} (f' : A ⟶ slicePowObj' B C) :
+    (f' ≫ sliceIota B C) ≫ sliceIdem B C = f' ≫ sliceIota B C := by
+  rw [Cat.assoc, sliceIota_idem]
+
+/-- **Existence for `[C]`.**  `Λ'(R) := Λ(R) ≫ r` classifies `R` against
+    `sliceMem' = ι*(sliceMem)`.  Uses `f ≫ e = f` (`baseRho_fixes_tight`) so that
+    `(f ≫ r) ≫ ι = f ≫ e = f`. -/
+theorem sliceMem'_classify_exists {A C : Over B} (R : BinRel (Over B) A C) :
+    ∃ f' : A ⟶ slicePowObj' B C,
+      RelHom R (relPullback f' (sliceMem' B C)) ∧ RelHom (relPullback f' (sliceMem' B C)) R := by
+  -- weak classifier f against sliceMem.
+  let g := univClassify (hbase B C) (sigmaRel R)
+  have hgspec := univClassify_spec (hbase B C) (sigmaRel R)
+  let f := sliceClassifyOf A C g
+  obtain ⟨hRf, hfR⟩ := sliceMem_classify_of R g hgspec.1 hgspec.2
+  -- f ≫ e = f, hence (f ≫ r) ≫ ι = f.
+  have hfe : f ≫ sliceIdem B C = f := by
+    apply OverHom.ext
+    show f.f ≫ baseIdem B C = f.f
+    show pair g A.hom ≫ baseIdem B C = pair g A.hom
+    exact baseRho_fixes_tight R
+  have hfri : (f ≫ sliceRetr B C) ≫ sliceIota B C = f := by
+    rw [Cat.assoc, sliceRetr_iota, hfe]
+  -- relPullback (f ≫ r) sliceMem' ≅ relPullback ((f≫r)≫ι) sliceMem = relPullback f sliceMem ≅ R.
+  obtain ⟨hc1, hc2⟩ := relPullback_comp (f ≫ sliceRetr B C) (sliceIota B C) (sliceMem B C)
+  rw [hfri] at hc1 hc2
+  refine ⟨f ≫ sliceRetr B C, ?_, ?_⟩
+  · exact relHom_trans_gen hRf hc2
+  · exact relHom_trans_gen hc1 hfR
+
+/-- `sigmaRel (sliceMem) ≅ baseRestrict`: the Σ-image of the slice membership IS the
+    fibre-restricted base membership (both tabulate `{((P,b),c) : (P,c)∈∈, b=C.hom c}`). -/
+theorem sigmaRel_sliceMem_iso_baseRestrict (C : Over B) :
+    RelHom (sigmaRel (sliceMem B C)) (baseRestrict B C) ∧
+    RelHom (baseRestrict B C) (sigmaRel (sliceMem B C)) := by
+  -- abbreviations for the two source pullbacks.
+  let PM := HasPullbacks.has (fst : prod (slicePowBase B C) B ⟶ slicePowBase B C) (baseMem B C).colA
+  let PF := HasPullbacks.has (snd : prod (slicePowBase B C) B ⟶ B) C.hom
+  -- sigmaRel sliceMem : src = baseMem.src, colA = pair mem.colA (mem.colB≫hom), colB = mem.colB.
+  have hσA : (sigmaRel (sliceMem B C)).colA
+      = pair (baseMem B C).colA ((baseMem B C).colB ≫ C.hom) := rfl
+  have hσB : (sigmaRel (sliceMem B C)).colB = (baseMem B C).colB := rfl
+  constructor
+  · -- forward: sigmaRel sliceMem ⊂ baseMemPB  and  ⊂ baseFib, then le_intersect's witness.
+    have hmem : RelHom (sigmaRel (sliceMem B C)) (baseMemPB B C) := by
+      -- witness into PM: cone over (fst, mem.colA) with legs
+      --   (pair mem.colA (mem.colB≫hom) : → [ΣC]×B,  mem.src-id : → mem.src).
+      have hw : (sigmaRel (sliceMem B C)).colA ≫ fst = (baseMem B C).colA := by
+        rw [hσA, fst_pair]
+      have hcw : (sigmaRel (sliceMem B C)).colA ≫ fst
+          = Cat.id (baseMem B C).src ≫ (baseMem B C).colA := by rw [hw, Cat.id_comp]
+      let cM : Cone (fst : prod (slicePowBase B C) B ⟶ slicePowBase B C) (baseMem B C).colA :=
+        ⟨(sigmaRel (sliceMem B C)).src, (sigmaRel (sliceMem B C)).colA,
+          Cat.id (baseMem B C).src, hcw⟩
+      refine ⟨PM.lift cM, PM.lift_fst cM, ?_⟩
+      show PM.lift cM ≫ (PM.cone.π₂ ≫ (baseMem B C).colB) = (sigmaRel (sliceMem B C)).colB
+      rw [← Cat.assoc, PM.lift_snd cM]
+      show Cat.id (baseMem B C).src ≫ (baseMem B C).colB = (sigmaRel (sliceMem B C)).colB
+      rw [Cat.id_comp, hσB]
+    have hfib : RelHom (sigmaRel (sliceMem B C)) (baseFib B C) := by
+      -- witness into PF: cone over (snd, C.hom) with legs (colA, colB).
+      have hw : (sigmaRel (sliceMem B C)).colA ≫ snd = (sigmaRel (sliceMem B C)).colB ≫ C.hom := by
+        rw [hσA, hσB, snd_pair]
+      let cF : Cone (snd : prod (slicePowBase B C) B ⟶ B) C.hom :=
+        ⟨(sigmaRel (sliceMem B C)).src, (sigmaRel (sliceMem B C)).colA,
+          (sigmaRel (sliceMem B C)).colB, hw⟩
+      exact ⟨PF.lift cF, PF.lift_fst cF, PF.lift_snd cF⟩
+    obtain ⟨w⟩ := le_intersect ⟨hmem⟩ ⟨hfib⟩
+    exact w
+  · -- reverse: baseRestrict ⊂ sigmaRel sliceMem.  Witness: k ≫ PM.π₂ : baseRestrict.src → mem.src.
+    obtain ⟨⟨k, hkA, hkB⟩⟩ := intersect_le_left (baseMemPB B C) (baseFib B C)
+    have hkA' : k ≫ PM.cone.π₁ = (baseRestrict B C).colA := hkA
+    have hkB' : k ≫ (PM.cone.π₂ ≫ (baseMem B C).colB) = (baseRestrict B C).colB := hkB
+    -- fibre square at baseRestrict: colA ≫ snd = colB ≫ C.hom.
+    have hfibsq : (baseRestrict B C).colA ≫ snd = (baseRestrict B C).colB ≫ C.hom := by
+      obtain ⟨⟨kf, hkfA, hkfB⟩⟩ := intersect_le_right (baseMemPB B C) (baseFib B C)
+      have hkfA' : kf ≫ (baseFib B C).colA = (baseRestrict B C).colA := hkfA
+      have hkfB' : kf ≫ (baseFib B C).colB = (baseRestrict B C).colB := hkfB
+      rw [← hkfA', ← hkfB', Cat.assoc, Cat.assoc, baseFib_sq]
+    refine ⟨k ≫ PM.cone.π₂, ?_, ?_⟩
+    · -- (k ≫ PM.π₂) ≫ (sigmaRel sliceMem).colA = baseRestrict.colA, via fst/snd joint monicity.
+      rw [hσA]
+      apply fst_snd_jointly_monic
+      · -- ≫ fst : (k≫PM.π₂)≫pair … ≫fst = (k≫PM.π₂)≫mem.colA = k≫PM.π₁≫fst = baseRestrict.colA≫fst.
+        rw [Cat.assoc, fst_pair, Cat.assoc, ← PM.cone.w, ← Cat.assoc, hkA']
+      · -- ≫ snd : (k≫PM.π₂)≫pair … ≫snd = (k≫PM.π₂)≫(mem.colB≫hom) = baseRestrict.colB≫hom
+        --        = baseRestrict.colA≫snd  (fibre square).
+        rw [Cat.assoc, snd_pair, ← Cat.assoc, Cat.assoc k, hkB', ← hfibsq]
+    · -- (k ≫ PM.π₂) ≫ (sigmaRel sliceMem).colB = baseRestrict.colB.
+      rw [hσB, Cat.assoc]; exact hkB'
+
+/-- **Base bridge for e-fixed slice classifiers.**  If `h : A ⟶ Δ[ΣC]` is e-fixed
+    (`h ≫ e = h`) and `relPullback h sliceMem ≅ R`, then the base name `h.f ≫ fst`
+    classifies `sigmaRel R`: `relPullback (h.f ≫ fst) baseMem ≅ sigmaRel R`. -/
+theorem efixed_base_classifies {A C : Over B} (R : BinRel (Over B) A C)
+    (h : A ⟶ slicePowObj B C) (hfix : h ≫ sliceIdem B C = h)
+    (hhR : RelHom R (relPullback h (sliceMem B C)))
+    (hRh : RelHom (relPullback h (sliceMem B C)) R) :
+    RelHom (sigmaRel R) (relPullback (h.f ≫ fst) (baseMem B C)) ∧
+    RelHom (relPullback (h.f ≫ fst) (baseMem B C)) (sigmaRel R) := by
+  -- base name k := h.f ≫ fst, fibre-fixed because h is e-fixed.
+  have hkfix : pair (h.f ≫ fst) A.hom ≫ baseRho B C = h.f ≫ fst := by
+    -- h.f ≫ baseIdem = h.f  (from hfix);  h.f = pair (h.f≫fst) A.hom (eta).
+    have hbase_fix : h.f ≫ baseIdem B C = h.f := congrArg OverHom.f hfix
+    have heta : h.f = pair (h.f ≫ fst) A.hom := slicePow_overhom_eta h
+    -- (pair k A.hom) ≫ ρ = (pair k A.hom) ≫ baseIdem ≫ fst = h.f ≫ baseIdem ≫ fst = h.f ≫ fst = k.
+    calc pair (h.f ≫ fst) A.hom ≫ baseRho B C
+        = pair (h.f ≫ fst) A.hom ≫ (baseIdem B C ≫ fst) := by rw [baseIdem_fst]
+      _ = (pair (h.f ≫ fst) A.hom ≫ baseIdem B C) ≫ fst := (Cat.assoc _ _ _).symm
+      _ = (h.f ≫ baseIdem B C) ≫ fst := by rw [← heta]
+      _ = h.f ≫ fst := by rw [hbase_fix]
+  -- iso: relPullback (pair k A.hom) baseRestrict ≅ relPullback k baseMem.
+  obtain ⟨_, hrI2⟩ := efixed_restrict_iso C (h.f ≫ fst) A.hom hkfix
+  -- Σ-image of  relPullback h sliceMem ≅ R.
+  have hσR : RelHom (sigmaRel (relPullback h (sliceMem B C))) (sigmaRel R) := sigmaRel_relHom hRh
+  have hRσ : RelHom (sigmaRel R) (sigmaRel (relPullback h (sliceMem B C))) := sigmaRel_relHom hhR
+  -- easy forgetful bridge:  sigmaRel(relPullback h sliceMem) ⊂ relPullback (h.f≫fst) baseMem.
+  have hbridge : RelHom (sigmaRel (relPullback h (sliceMem B C)))
+      (relPullback (h.f ≫ fst) (baseMem B C)) := relHom_baseMem_of_sigmaRel_sliceMem h
+  constructor
+  · -- forward: sigmaRel R ⊂ sigmaRel(relPullback h sliceMem) ⊂ relPullback k baseMem.
+    exact RelHom_trans hRσ hbridge
+  · -- reverse: relPullback k baseMem ⊂ relPullback (pair k A.hom) baseRestrict (hrI2)
+    --   = relPullback h.f baseRestrict ⊂ relPullback h.f (sigmaRel sliceMem)
+    --   = sigmaRel(relPullback h sliceMem) ⊂ sigmaRel R.
+    have hk_eq : pair (h.f ≫ fst) A.hom = h.f := (slicePow_overhom_eta h).symm
+    -- baseRestrict ⊂ sigmaRel sliceMem (iso reverse), monotone along h.f.
+    obtain ⟨_, hbr⟩ := sigmaRel_sliceMem_iso_baseRestrict C
+    have hmono : RelHom (relPullback h.f (baseRestrict B C))
+        (relPullback h.f (sigmaRel (sliceMem B C))) := relHom_pullback923 h.f hbr
+    -- relPullback (pair k A.hom) baseRestrict = relPullback h.f baseRestrict (rewrite pair k A.hom = h.f).
+    have hrI2' : RelHom (relPullback (h.f ≫ fst) (baseMem B C))
+        (relPullback h.f (baseRestrict B C)) := by
+      have := hrI2; rw [hk_eq] at this; exact this
+    -- sigmaRel(relPullback h sliceMem) = relPullback h.f (sigmaRel sliceMem)  (rfl).
+    have hrfl : RelHom (relPullback h.f (sigmaRel (sliceMem B C)))
+        (sigmaRel (relPullback h (sliceMem B C))) := by
+      rw [sigmaRel_relPullback]; exact ⟨Cat.id _, by rw [Cat.id_comp], by rw [Cat.id_comp]⟩
+    exact RelHom_trans (RelHom_trans (RelHom_trans hrI2' hmono) hrfl) hσR
+
+/-! ## §1.93  Universality of `sliceMem'` and `Topos (Over B)` -/
+
+/-- **§1.93 universality of `[C]`.**  The genuine slice membership `sliceMem' B C` on
+    the idempotent-split sub-object `[C]` is universal targeted at `C`. -/
+theorem is_universal_sliceMem' (B : 𝒞) (C : Over B) :
+    IsUniversalRel (sliceMem' B C) := by
+  constructor
+  · exact fun A R => sliceMem'_classify_exists R
+  · -- UNIQUENESS.  Two classifiers f₁' f₂' : A ⟶ [C].  Post-compose ι; both are
+    -- e-fixed (factor through [C]) and classify R against sliceMem, so their base
+    -- names agree by base classify_unique; ι split-mono ⇒ f₁' = f₂'.
+    intro A R f₁ f₂ hf₁ hf₂
+    -- iso  relPullback fᵢ sliceMem' ≅ relPullback (fᵢ≫ι) sliceMem  (relPullback_comp).
+    have hcomp : ∀ f : A ⟶ slicePowObj' B C,
+        RelHom (relPullback (f ≫ sliceIota B C) (sliceMem B C)) (relPullback f (sliceMem' B C)) ∧
+        RelHom (relPullback f (sliceMem' B C)) (relPullback (f ≫ sliceIota B C) (sliceMem B C)) := by
+      intro f
+      obtain ⟨hc1, hc2⟩ := relPullback_comp f (sliceIota B C) (sliceMem B C)
+      exact ⟨hc2, hc1⟩
+    -- each fᵢ≫ι classifies R against sliceMem; and is e-fixed.
+    have hclassify : ∀ f : A ⟶ slicePowObj' B C,
+        (RelHom R (relPullback f (sliceMem' B C)) ∧ RelHom (relPullback f (sliceMem' B C)) R) →
+        (RelHom (sigmaRel R) (relPullback ((f ≫ sliceIota B C).f ≫ fst) (baseMem B C)) ∧
+         RelHom (relPullback ((f ≫ sliceIota B C).f ≫ fst) (baseMem B C)) (sigmaRel R)) := by
+      intro f hf
+      have hhR : RelHom R (relPullback (f ≫ sliceIota B C) (sliceMem B C)) :=
+        relHom_trans_gen hf.1 (hcomp f).2
+      have hRh : RelHom (relPullback (f ≫ sliceIota B C) (sliceMem B C)) R :=
+        relHom_trans_gen (hcomp f).1 hf.2
+      exact efixed_base_classifies R (f ≫ sliceIota B C) (comp_iota_efixed f) hhR hRh
+    -- base names agree by base classify_unique.
+    have hbn : ((f₁ ≫ sliceIota B C).f ≫ fst) = ((f₂ ≫ sliceIota B C).f ≫ fst) :=
+      (hbase B C).classify_unique A.dom (sigmaRel R) _ _
+        (hclassify f₁ hf₁) (hclassify f₂ hf₂)
+    -- reconstruct fᵢ≫ι via pair-eta (snd-leg = A.hom), so (f₁≫ι).f = (f₂≫ι).f.
+    have hfι : (f₁ ≫ sliceIota B C).f = (f₂ ≫ sliceIota B C).f := by
+      rw [slicePow_overhom_eta (f₁ ≫ sliceIota B C), slicePow_overhom_eta (f₂ ≫ sliceIota B C), hbn]
+    have hfιeq : f₁ ≫ sliceIota B C = f₂ ≫ sliceIota B C := OverHom.ext hfι
+    -- ι is split mono (ι ≫ r = id), so cancel ι.
+    have : (f₁ ≫ sliceIota B C) ≫ sliceRetr B C = (f₂ ≫ sliceIota B C) ≫ sliceRetr B C := by
+      rw [hfιeq]
+    rw [Cat.assoc, Cat.assoc, sliceIota_retr, Cat.comp_id, Cat.comp_id] at this
+    exact this
 
 noncomputable instance overHasPowerObject (B : 𝒞) (C : Over B) :
     HasPowerObject C where
-  powerObj := slicePowObj B C
-  mem := sliceMem B C
-  is_universal := is_universal_sliceMem B C
+  powerObj := slicePowObj' B C
+  mem := sliceMem' B C
+  is_universal := is_universal_sliceMem' B C
 
 /-! ## §1.93  `Topos (Over B)` -/
 
