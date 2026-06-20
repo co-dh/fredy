@@ -33,6 +33,7 @@
 
 import Fredy.S1_94
 import Fredy.InternalForall
+import Fredy.SlicePi
 
 universe v u
 
@@ -789,27 +790,12 @@ theorem topos_is_regular_of_transfer [PullbacksTransferCovers 𝒞] :
     Nonempty (RegularCategory 𝒞) :=
   ⟨{ }⟩
 
-/-- **§1.945 — a topos is REGULAR.**  `HasImages` is now genuinely available (`toposHasImages`,
-    via the internal-∀ family-glb), so the ONLY residual is the exactness mixin
-    `PullbacksTransferCovers 𝒞` (pullback-of-cover-is-cover).
-
-    HONEST SORRY (precise residual): the missing piece is exactly the instance
-    `PullbacksTransferCovers 𝒞` for a topos — the topos-exactness fact that pullbacks of covers
-    are covers (equivalently, image factorizations are pullback-stable; cf. the still-`sorry`
-    `topos_is_effective` in S1_95).  It is NOT derivable from the internal-∀ image construction
-    in this file and is left as the single outstanding lemma; once it is an instance,
-    `topos_is_regular_of_transfer` discharges this with no sorry. -/
-theorem topos_is_regular_real : Nonempty (RegularCategory 𝒞) := by
-  have htc : PullbacksTransferCovers 𝒞 := by
-    -- residual: pullback-of-cover-is-cover in a topos (topos exactness, cf. S1_95).
-    -- HALF of Beck–Chevalley is now available: `classify_InverseImage` gives
-    -- `χ_{g# (image f)} = g ≫ χ_{image f}`, so `f` cover (⟹ `χ_{image f} = ⊤`) makes
-    -- `g# (image f)` entire, and the EASY inclusion `image c.π₂ ≤ g# (image f)` holds.
-    -- The OUTSTANDING piece is the REVERSE inclusion `g# (image f) ≤ image c.π₂`, i.e. that
-    -- the pullback of the image is CONTAINED in the image of the pullback leg.  That is the
-    -- direct-image / effective-epi descent (`∃_{c.π₂}`), which is NOT constructible from the
-    -- ∀-based image-as-intersection + inverse-image API in this file (no internal `∃` here).
-    sorry
-  exact topos_is_regular_of_transfer
+/-- **§1.945 — a topos is REGULAR.**  `HasImages` is genuinely available (`toposHasImages`,
+    via the internal-∀ family-glb), and the exactness mixin `PullbacksTransferCovers 𝒞`
+    (pullback-of-cover-is-cover) is now an INSTANCE — `SlicePi.toposPullbacksTransferCovers`,
+    proved non-circularly from the §1.931 dependent-product right adjoint `Π_f` (which preserves
+    epics, hence covers are pullback-stable).  So regularity is immediate with no residual. -/
+theorem topos_is_regular_real : Nonempty (RegularCategory 𝒞) :=
+  topos_is_regular_of_transfer
 
 end Freyd
