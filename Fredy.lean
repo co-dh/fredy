@@ -50,6 +50,7 @@ import Fredy.S1_77
 import Fredy.S1_82
 import Fredy.S1_84
 import Fredy.S1_95
+import Fredy.ToposRTC
 import Fredy.ToposColimits
 import Fredy.ToposIndexedJoins
 import Fredy.ToposExists

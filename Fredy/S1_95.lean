@@ -35,6 +35,7 @@ import Fredy.S1_94
 import Fredy.ToposExists
 import Fredy.S1_75
 import Fredy.ToposDistributive
+import Fredy.ToposRTC
 
 
 universe v u
@@ -483,8 +484,16 @@ noncomputable def preTopos_rtc_has_coequalizers [inst : PreTopos 𝒞]
     With a `HasReflTransClosure 𝒞` instance, this is literally
     `preTopos_rtc_has_coequalizers`.  The effectiveness half of the §1.951↔§1.954 bridge
     is no longer the gap. -/
-instance topos_has_coequalizers [Topos 𝒞] : HasCoequalizers 𝒞 := by
-  sorry
+noncomputable instance topos_has_coequalizers [Topos 𝒞] : HasCoequalizers 𝒞 := by
+  -- Assemble `PreTopos 𝒞` from the (now all sorry-free) topos exactness instances, then
+  -- apply `preTopos_rtc_has_coequalizers` with the `toposHasReflTransClosure` instance
+  -- (Fredy.ToposRTC) supplying the reflexive-transitive closures.
+  letI hER : EffectiveRegular 𝒞 := topos_is_effective
+  letI hPL : PreLogos 𝒞 := toposPreLogos
+  letI hBC : HasBinaryCoproducts 𝒞 := topos_is_positive
+  letI hPPL : PositivePreLogos 𝒞 := { }
+  letI hPT : PreTopos 𝒞 := { }
+  exact preTopos_rtc_has_coequalizers
 
 /-! ## §1.955  A topos is bicartesian -/
 
@@ -497,8 +506,13 @@ instance topos_has_coequalizers [Topos 𝒞] : HasCoequalizers 𝒞 := by
     `HasCoequalizers 𝒞` (`topos_has_coequalizers` above), itself blocked only on the
     `HasReflTransClosure 𝒞` glb-existence instance (§1.54).  Once that lands, this is
     `{ (inferInstance : CartesianCategory 𝒞), … with }`. -/
-instance topos_is_bicartesian [Topos 𝒞] : BicartesianCategory 𝒞 := by
-  sorry
+noncomputable instance topos_is_bicartesian [Topos 𝒞] : BicartesianCategory 𝒞 := by
+  letI hCot : HasCoterminator 𝒞 := Classical.choice topos_has_strict_coterminator
+  letI hEq : HasEqualizers 𝒞 := products_pullbacks_implies_equalizers
+  letI hCart : CartesianCategory 𝒞 := { }
+  exact { hCart, hCot,
+          (topos_is_positive : HasBinaryCoproducts 𝒞),
+          (topos_has_coequalizers : HasCoequalizers 𝒞) with }
 
 /-! ## §1.961  Injective objects -/
 
