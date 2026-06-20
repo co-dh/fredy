@@ -480,4 +480,132 @@ theorem bigInter_glb {A : 𝒞} (Fname : one ⟶ powObj (powObj A)) :
   ⟨fun B hB => bigInter_le_named Fname B hB,
    fun a F0 Ga hF0 hGa hle => bigInter_ge Fname a F0 Ga hF0 hGa hle⟩
 
+/-! ## §1.945  Images in a topos via the family big-intersection `⋂F`
+
+  For `f : A → B` the image is `⋂{B' ↣ B | f factors through B'}`.  We name this
+  family by a global element `imageFamily f : 1 → [[B]]` of `[[B]]`, classified by the
+  predicate `predF f : [B] → Ω`, `σ ↦ ∀a:A. f(a) ∈ σ` (the same fibered-∀ trick as
+  `bigInterChar`).  Then `image f := bigInter (imageFamily f)`, and:
+
+  *  MINIMALITY follows from `bigInter_le_named` + the membership characterization
+     `'B'' ∈ F_f ↔ Allows B' f`;
+  *  `Allows (image f) f` follows from a generalized-point upper bound
+     (`allows_bigInter_iff_gen` + `bigInter_ge_gen`), the family `F_f` itself being the
+     `{σ | f ∈ σ}` test, so its `F0 ≤ Ga` hypothesis is REFLEXIVITY. -/
+
+/-- **General membership computation for `curry(fst ≫ χ)`.**  `membershipMap (curry (fst ≫ χ)) = χ`
+    for any `χ : A → Ω`.  This is `membershipMap_nameOf` with the classifier `χ_m` replaced by an
+    arbitrary `χ` (the proof never uses that `χ` is a classifier). -/
+theorem membershipMap_curry_fst {A : 𝒞} (χ : A ⟶ omega (𝒞 := 𝒞)) :
+    membershipMap (curry (fst (A := A) (B := one) ≫ χ)) = χ := by
+  show pair (Cat.id A) (term A ≫ curry (fst (A := A) (B := one) ≫ χ))
+      ≫ eval_exp A (omega (𝒞 := 𝒞)) = χ
+  have hfactor : pair (Cat.id A) (term A ≫ curry (fst (A := A) (B := one) ≫ χ))
+      = pair (Cat.id A) (term A)
+          ≫ prodMap A one (omega (𝒞 := 𝒞) ^^ A) (curry (fst (A := A) (B := one) ≫ χ)) :=
+    (pair_uniq _ _ _
+      (by rw [Cat.assoc, prodMap_fst, fst_pair])
+      (by rw [Cat.assoc, prodMap_snd, ← Cat.assoc, snd_pair])).symm
+  rw [hfactor, Cat.assoc, curry_eval_eq, ← Cat.assoc, fst_pair, Cat.id_comp]
+
+/-- The predicate `predF f : [B] → Ω`, `σ ↦ ∀a:A. f(a) ∈ σ`.  Built with the fibered-∀
+    trick: `bodyf : prod A [B] → Ω` sends `(a,σ) ↦ f(a) ∈ σ = ⟨f∘fst, snd⟩ ≫ eval`; then
+    `predF f := curry bodyf ≫ forallC A` quantifies over `a : A`. -/
+noncomputable def predF {A B : 𝒞} (f : A ⟶ B) : powObj B ⟶ omega (𝒞 := 𝒞) :=
+  curry (pair (fst ≫ f) snd ≫ eval_exp B (omega (𝒞 := 𝒞))) ≫ forallC A
+
+/-- The family name `imageFamily f : 1 → [[B]]` of `F_f = {σ : [B] | ∀a:A. f(a) ∈ σ}`. -/
+noncomputable def imageFamily {A B : 𝒞} (f : A ⟶ B) : one ⟶ powObj (powObj B) :=
+  curry (fst ≫ predF f)
+
+/-- **§1.945 STEP 1 — KEY LEMMA.**  `membershipMap (imageFamily f) = predF f`.  Mirrors
+    `curry_fst_membershipMap`, via the general `membershipMap_curry_fst`. -/
+theorem membershipMap_imageFamily {A B : 𝒞} (f : A ⟶ B) :
+    membershipMap (imageFamily f) = predF f := by
+  rw [imageFamily, membershipMap_curry_fst]
+
+/-- The `predF`-body `bodyf : prod A [B] → Ω`, `(a,σ) ↦ f(a) ∈ σ`. -/
+private noncomputable def imageBody {A B : 𝒞} (f : A ⟶ B) : prod A (powObj B) ⟶ omega (𝒞 := 𝒞) :=
+  pair (fst ≫ f) snd ≫ eval_exp B (omega (𝒞 := 𝒞))
+
+private theorem predF_eq {A B : 𝒞} (f : A ⟶ B) :
+    predF f = curry (imageBody f) ≫ forallC A := rfl
+
+/-- **§1.945 STEP 2 helper — body at the name `'B''`.**  Fixing the `σ`-slot of `imageBody f`
+    at `nameOf B'.arr` gives `f ≫ classify B'.arr` (the predicate "`f(a) ∈ B'`" = "`f(a)` is in `B'`",
+    as a map `A → Ω`). -/
+private theorem imageBody_at_name {A B : 𝒞} (f : A ⟶ B) (B' : Subobject 𝒞 B) :
+    pair (Cat.id A) (term A ≫ nameOf B'.arr B'.monic) ≫ imageBody f
+      = f ≫ HasSubobjectClassifier.classify B'.arr B'.monic := by
+  rw [imageBody, ← Cat.assoc]
+  have h1 : pair (Cat.id A) (term A ≫ nameOf B'.arr B'.monic) ≫ pair (fst ≫ f) snd
+      = pair f (term A ≫ nameOf B'.arr B'.monic) := by
+    apply pair_uniq
+    · rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair, Cat.id_comp]
+    · rw [Cat.assoc, snd_pair, snd_pair]
+  rw [h1]
+  -- pair f (term A ≫ 'B'') ≫ eval = f ≫ membershipMap('B'') = f ≫ classify B'.arr
+  rw [← membershipMap_nameOf B'.arr B'.monic, membershipMap, ← Cat.assoc]
+  congr 1
+  symm
+  apply pair_uniq
+  · rw [Cat.assoc, fst_pair, Cat.comp_id]
+  · rw [Cat.assoc, snd_pair, ← Cat.assoc]
+    congr 1
+    exact term_uniq _ _
+
+/-- The membership map of the name `'B'' ≫ curry body` (the `A`-indexed subobject "fix σ = 'B''")
+    equals `f ≫ classify B'.arr`.  Combines `membershipMap_curry_point` with `imageBody_at_name`. -/
+private theorem membLHS_eq {A B : 𝒞} (f : A ⟶ B) (B' : Subobject 𝒞 B) :
+    membershipMap (nameOf B'.arr B'.monic ≫ curry (imageBody f))
+      = f ≫ HasSubobjectClassifier.classify B'.arr B'.monic := by
+  show pair (Cat.id A) (term A ≫ (nameOf B'.arr B'.monic ≫ curry (imageBody f)))
+      ≫ eval_exp A (omega (𝒞 := 𝒞)) = _
+  rw [show term A ≫ (nameOf B'.arr B'.monic ≫ curry (imageBody f))
+        = (term A ≫ nameOf B'.arr B'.monic) ≫ curry (imageBody f) from (Cat.assoc _ _ _).symm]
+  rw [eval_curry_point (imageBody f) (Cat.id A) (term A ≫ nameOf B'.arr B'.monic),
+    imageBody_at_name]
+
+/-- **§1.945 STEP 2 — membership characterization.**  `'B'' ∈ F_f ↔ Allows B' f`, i.e. the name
+    of `B' ↣ B` is a member of the image family iff `f` factors through `B'`.  Both directions. -/
+theorem name_mem_imageFamily_iff {A B : 𝒞} (f : A ⟶ B) (B' : Subobject 𝒞 B) :
+    nameOf B'.arr B'.monic ≫ membershipMap (imageFamily f)
+        = term one ≫ HasSubobjectClassifier.true (𝒞 := 𝒞)
+      ↔ Allows B' f := by
+  rw [membershipMap_imageFamily, predF_eq, ← Cat.assoc]
+  -- forall_beta: (('B'' ≫ curry body) ≫ forallC A) = ⊤ ↔ 'B'' ≫ curry body = term 1 ≫ topName A
+  rw [forall_beta A (nameOf B'.arr B'.monic ≫ curry (imageBody f))]
+  -- membershipMap is injective on names 1 → [[A]]... here names 1 → [A]; compare membership maps.
+  have hinj : ∀ (G H : one ⟶ powObj A),
+      membershipMap G = membershipMap H → G = H := fun G H hGH => by
+    rw [← curry_fst_membershipMap G, ← curry_fst_membershipMap H, hGH]
+  constructor
+  · intro h
+    -- membershipMap of LHS = f ≫ classify B'.arr; of RHS = classify (entire A) = ⊤∘!
+    have hmem := congrArg membershipMap h
+    rw [show term one ≫ topName A = topName A by
+          rw [term_uniq (term one) (Cat.id one), Cat.id_comp]] at hmem
+    rw [membershipMap_topName, classify_entire] at hmem
+    -- LHS membership map = f ≫ classify B'.arr (via eval_curry_point + imageBody_at_name)
+    rw [membLHS_eq f B'] at hmem
+    -- hmem : f ≫ classify B'.arr = term A ≫ true ; allows_iff_classify
+    exact (allows_iff_classify B' f).2 hmem
+  · intro hAllows
+    apply hinj
+    rw [show term one ≫ topName A = topName A by
+          rw [term_uniq (term one) (Cat.id one), Cat.id_comp]]
+    rw [membershipMap_topName, classify_entire, membLHS_eq f B']
+    exact (allows_iff_classify B' f).1 hAllows
+
+/-- **§1.945 STEP 3 — the image of `f`** as the family big-intersection `⋂F_f`. -/
+noncomputable def imageF {A B : 𝒞} (f : A ⟶ B) : Subobject 𝒞 B :=
+  bigInter (imageFamily f)
+
+/-- **§1.945 STEP 3a — MINIMALITY.**  Any subobject `S ↣ B` that allows `f` lies above the
+    image `⋂F_f`.  From the membership characterization (Step 2, `Allows S f ⟹ 'S' ∈ F_f`) plus
+    `bigInter_le_named`. -/
+theorem imageF_le_of_allows {A B : 𝒞} (f : A ⟶ B) (S : Subobject 𝒞 B) (hS : Allows S f) :
+    (imageF f).le S :=
+  bigInter_le_named (imageFamily f) S ((name_mem_imageFamily_iff f S).2 hS)
+
 end Freyd
