@@ -33,6 +33,7 @@ import Fredy.S1_36
 import Fredy.S1_54
 import Fredy.S1_58
 import Fredy.S1_59
+import Fredy.ExactRepresentation
 import Fredy.S1_60
 import Fredy.S1_70
 import Fredy.S1_56
