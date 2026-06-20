@@ -317,31 +317,30 @@ noncomputable def powerMapCov {A B : 𝒞} (f : A ⟶ B) :
     exp B (HasSubobjectClassifier.omega (𝒞 := 𝒞)) :=
   -- [f](S) = ∃-image of S along f, i.e. `Λ(∃-classifier of image f(S))`.
   --
-  -- ASSESSED BLOCKER (after S1_91 added the full Ω-classifier bijection
-  -- `classify_surjective`/`classify_unique`):  `powerMapCov` is STILL NOT definable,
-  -- and the reason is sharper than "image not packaged".  Two distinct universal
-  -- properties are needed and BOTH are absent for `exp A Ω`:
+  -- BLOCKER (re-assessed; the earlier note here was STALE — corrected below).  The two
+  -- obstacles it cited are NOW BOTH RESOLVED in this repo:
+  --   (a) `Topos 𝒞` DOES bundle `∀ C, HasPowerObject C` (`Topos.has_pow`, instance
+  --       `Topos.toHasPowerObject`, S1_9), so every object has a power object `[C]`.
+  --   (b) `topos_has_exponentials` is now SORRY-FREE (`power_objects_imply_all_baseable`,
+  --       `Baseable923`), so `exp A Ω` is uncontaminated, and the comparison iso
+  --       `Ω^A ≅ [A]` is PROVED sorry-free above as `powExpHom_iso`/`expPowInv`
+  --       (via `evalRel_universal` + `universalRel_unique`).
   --
-  --  (1) The classifier bijection now in S1_91 is `Sub(A) ≅ Hom(A, Ω)` — it classifies
-  --      subobjects of an object `A` by maps `A → Ω = [1]`.  Defining `[f]` needs the
-  --      ONE-TRANSPOSE-HIGHER bijection `Sub(A × X) ≅ Hom(X, Ω^A)`, i.e. the universal
-  --      MEMBERSHIP relation `∈_A ⊆ Ω^A × A` and its `Λ : BinRel(X,A) → (X ⟶ Ω^A)`.
-  --      That is exactly `HasPowerObject A` (S1_9: `mem`, `classifyRel`), NOT the bare
-  --      `Ω`-classifier.  S1_91's bijection does not lift to it.
+  -- The genuine direct image already exists sorry-free on power objects:
+  -- `powerMapCovP f : [A] → [B] = powerClassify (∈_A ⊚ graph f)` (the §1.56 ∃-image,
+  -- `PowerObjectDirectImage` section).  Transporting it to this `exp`-level signature is
+  -- `expPowInv A ≫ powerMapCovP f ≫ powExpHom B`.
   --
-  --  (2) Even granting `HasPowerObject A`, its carrier `HasPowerObject.powerObj A` is a
-  --      DIFFERENT object from `exp A Ω` (no `powerObj A ≅ exp A Ω` is available), and
-  --      `Topos 𝒞` does NOT bundle `∀ C, HasPowerObject C` — every power-object result
-  --      in the repo (e.g. S1_91 `minimal_topos_has_terminator`) takes it as an explicit
-  --      `[∀ C, HasPowerObject C]` hypothesis.  The required output type is `exp A Ω`
-  --      (forced by `expMap Ω`/`omega_is_internally_injective`), which only carries the
-  --      curry/eval adjoint transpose from `HasExponentials` — and that itself is opaque
-  --      because `topos_has_exponentials` is a `sorry` (blocked on §1.543).
-  --
-  -- §1.56's image factorization (cover–mono factor, `HasImages`) IS available and would
-  -- supply the ∃-image of the subobject once a membership relation existed to push along
-  -- `f`; the gap is precisely the missing power-object structure on `exp A Ω`, not the
-  -- image.  FAITHFUL SORRY pinning (1)+(2).
+  -- SHARP RESIDUAL (the one true blocker): `powerMapCovP`/`directImageRel` require
+  -- `[HasImages 𝒞]` (the existential image is §1.56 cover–mono factorization).  A topos
+  -- HAS images (`toposHasImages`, `InternalForallTopos`), but that instance is NOT
+  -- importable here: `InterIntersection` imports `S1_92`, and the image stack
+  -- (`InternalForall`/`InterIntersection`/`InternalForallTopos`) sits ABOVE `S1_92`, so
+  -- importing `toposHasImages` would create a cycle.  Hence within `S1_92` no
+  -- `HasImages 𝒞` instance is in scope, and closing this `def` requires either adding a
+  -- `[HasImages 𝒞]` hypothesis to the signature (a statement change — header-fenced) or
+  -- relocating it below the image layer.  The reusable identification it needs
+  -- (`powExpHom`/`expPowInv`) is supplied sorry-free above.
   sorry
 
 /-- **§1.92**: NATURALITY of the singleton map: f ≫ Δ₁(B) = Δ₁(A) ≫ [f].
@@ -350,10 +349,24 @@ noncomputable def powerMapCov {A B : 𝒞} (f : A ⟶ B) :
 theorem singletonMapCat_natural {A B : 𝒞} (f : A ⟶ B) :
     f ≫ singletonMapCat B =
       singletonMapCat A ≫ powerMapCov f := by
-  -- BLOCKER: this is the book's f(Δ₁) = Δf, but it is stated against `powerMapCov f`
-  -- which is itself an unfilled `sorry` (the direct-image action [f]).  Until [f] is
-  -- defined via image factorization (see `powerMapCov`), the equation has no provable
-  -- content — its truth is precisely the defining property of [f].
+  -- BLOCKER (corrected).  This is the book's f(Δ₁) = Δf.  It is coupled to `powerMapCov f`
+  -- (still an honest `sorry`, blocked on `[HasImages 𝒞]` — see `powerMapCov`), so it cannot
+  -- be discharged while that is open.  Even WITH `powerMapCov f` defined as
+  -- `expPowInv A ≫ powerMapCovP f ≫ powExpHom B` and `singletonMapCat B` identified with
+  -- `singletonMap923 B ≫ powExpHom B` (provable across the `powExpHom_iso` iso), the
+  -- equation reduces to the POWER-OBJECT singleton naturality
+  --     `f ≫ singletonMap923 B = singletonMap923 A ≫ powerMapCovP f`
+  -- i.e. `Λ(graph f) = Λ(relPullback (singletonMap923 A) (∈_A ⊚ graph f))`
+  -- (using `singletonMapNaming923` + `powerClassify_natural923`).  That in turn needs the
+  -- relation identity `graph f ≅ relPullback (singletonMap923 A) (∈_A ⊚ graph f)`, whose
+  -- proof requires a `relPullback`-over-`⊚` DISTRIBUTION lemma
+  --     `relPullback g (R ⊚ S) ≅ (relPullback g R) ⊚ S`
+  -- combined with the singleton's defining iso `relPullback (singletonMap923 A) ∈_A ≅
+  -- graph (𝟙 A)` and `graph (𝟙 A) ⊚ graph f ≅ graph f` (`graph_id_comp`).  The
+  -- `relPullback`-over-`⊚` distribution is NOT in the repo (it rests on §1.56 image
+  -- factorization of the composite relation), and is itself `[HasImages 𝒞]`-gated.  So
+  -- the precise missing lemma is that distribution; the `Ω^A ≅ [A]` identification it
+  -- would be composed with is already supplied (`powExpHom_iso`).
   sorry
 
 /-! ## §1.92  Direct-image power map on GENUINE power objects (faithful version)
@@ -728,6 +741,254 @@ theorem classRel_classify {A Y : 𝒞} (χ : prod A Y ⟶ HasSubobjectClassifier
   exact pb.lift_uniq ⟨d.pt, d.π₁, d.π₂, d.w⟩ v hv₁ (term_uniq _ _)
 
 end EvalUniversal
+
+/-! ## §1.92  `eval` IS a universal relation, hence `Ω^A ≅ [A]` (the power-object iso)
+
+  This section discharges Freyd's §1.92 identification of the exponential `Ω^A = exp A Ω`
+  with the power object `[A] = HasPowerObject.powerObj A`.  We run everything through the
+  AMBIENT `topos_has_exponentials` instance (whose `toHasBinaryProducts` IS
+  `Topos.toHasBinaryProducts`, line ~51) so the `prod` of `eval_exp` and the `prod` of the
+  classifier coincide — the `EvalUniversal` section above used a *separate*
+  `[HasExponentials 𝒞]` variable, which would reintroduce the `HasBinaryProducts` diamond. -/
+
+section EvalUniversalAmbient
+-- Pin the genuine `Topos` product instance, matching the pins elsewhere in this file, so the
+-- two `prod` presentations agree definitionally and no `sorry`/diamond contaminates `evalRel`.
+attribute [local instance 10000] Topos.toHasBinaryProducts
+
+/-- The universal MEMBERSHIP relation on `exp A Ω = Ω^A`, targeted at `A`.  It is the
+    subobject `{(S, a) | eval(a, S) = ⊤}` of `(exp A Ω) × A` cut out by `eval` and
+    classified by the subobject classifier (columns swapped to `(Ω^A, A)`). -/
+noncomputable def evalRel (A : 𝒞) :
+    BinRel 𝒞 (exp A (HasSubobjectClassifier.omega (𝒞 := 𝒞))) A :=
+  classRel (eval_exp A (HasSubobjectClassifier.omega (𝒞 := 𝒞)))
+
+/-- The product-monic `⟨colB, colA⟩ : R.src ↪ A × X` of a relation `R : BinRel X A`
+    (the subobject of `A × X` it names). -/
+noncomputable def relMonic {X A : 𝒞} (R : BinRel 𝒞 X A) : R.src ⟶ prod A X :=
+  pair R.colB R.colA
+
+theorem relMonic_mono {X A : 𝒞} (R : BinRel 𝒞 X A) : Mono (relMonic R) :=
+  monic_pair_of_monicPair R.colB R.colA (fun f g h1 h2 => R.isMonicPair f g h2 h1)
+
+/-- Round-trip: any `R : BinRel X A` is the relation cut out by the classifier of its
+    own product-monic, i.e. `R ≅ classRel (χ_R)` with `χ_R = classify ⟨R.colB, R.colA⟩`. -/
+theorem classRel_roundtrip {X A : 𝒞} (R : BinRel 𝒞 X A) :
+    RelHom R (classRel (HasSubobjectClassifier.classify (relMonic R) (relMonic_mono R))) ∧
+    RelHom (classRel (HasSubobjectClassifier.classify (relMonic R) (relMonic_mono R))) R := by
+  have hmono : Mono (relMonic R) := relMonic_mono R
+  let mR := relMonic R
+  let χ := HasSubobjectClassifier.classify mR hmono
+  let pb := HasPullbacks.has χ HasSubobjectClassifier.true
+  have hcpb := HasSubobjectClassifier.classify_pullback mR hmono
+  have hsq : mR ≫ χ = term R.src ≫ HasSubobjectClassifier.true :=
+    HasSubobjectClassifier.classify_sq mR hmono
+  have hmRfst : mR ≫ fst = R.colB := fst_pair _ _
+  have hmRsnd : mR ≫ snd = R.colA := snd_pair _ _
+  constructor
+  · let c : Cone χ HasSubobjectClassifier.true := ⟨R.src, mR, term R.src, hsq⟩
+    refine ⟨pb.lift c, ?_, ?_⟩
+    · show pb.lift c ≫ (pb.cone.π₁ ≫ snd) = R.colA
+      rw [← Cat.assoc, pb.lift_fst]; exact hmRsnd
+    · show pb.lift c ≫ (pb.cone.π₁ ≫ fst) = R.colB
+      rw [← Cat.assoc, pb.lift_fst]; exact hmRfst
+  · have hPsq : pb.cone.π₁ ≫ χ = term pb.cone.pt ≫ HasSubobjectClassifier.true := by
+      rw [pb.cone.w, term_uniq pb.cone.π₂ (term pb.cone.pt)]
+    obtain ⟨u, ⟨hu1, _⟩, _⟩ := hcpb ⟨pb.cone.pt, pb.cone.π₁, term pb.cone.pt, hPsq⟩
+    refine ⟨u, ?_, ?_⟩
+    · show u ≫ R.colA = pb.cone.π₁ ≫ snd
+      calc u ≫ R.colA = u ≫ (mR ≫ snd) := by rw [hmRsnd]
+        _ = (u ≫ mR) ≫ snd := (Cat.assoc _ _ _).symm
+        _ = pb.cone.π₁ ≫ snd := by rw [hu1]
+    · show u ≫ R.colB = pb.cone.π₁ ≫ fst
+      calc u ≫ R.colB = u ≫ (mR ≫ fst) := by rw [hmRfst]
+        _ = (u ≫ mR) ≫ fst := (Cat.assoc _ _ _).symm
+        _ = pb.cone.π₁ ≫ fst := by rw [hu1]
+
+/-- β-law bridge (forward): the relation cut out by `χ` is the pullback of the universal
+    `evalRel A` along `curry χ`.  Uses the exponential β-law `prodMap(curry χ) ≫ eval = χ`. -/
+theorem evalRel_pull_fwd {A X : 𝒞}
+    (χ : prod A X ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞)) :
+    RelHom (classRel χ) (relPullback (curry χ) (evalRel A)) := by
+  let Ω := HasSubobjectClassifier.omega (𝒞 := 𝒞)
+  let ev := eval_exp A Ω
+  let pbχ := HasPullbacks.has χ HasSubobjectClassifier.true
+  let pbe := HasPullbacks.has ev HasSubobjectClassifier.true
+  let Q := HasPullbacks.has (curry χ) ((evalRel A).colA)
+  have hβ : prodMap A X (exp A Ω) (curry χ) ≫ ev = χ := curry_eval_eq χ
+  let m₁ : pbχ.cone.pt ⟶ prod A (exp A Ω) := pbχ.cone.π₁ ≫ prodMap A X (exp A Ω) (curry χ)
+  have hm₁ev : m₁ ≫ ev = term pbχ.cone.pt ≫ HasSubobjectClassifier.true := by
+    show (pbχ.cone.π₁ ≫ prodMap A X (exp A Ω) (curry χ)) ≫ ev = _
+    rw [Cat.assoc, hβ, pbχ.cone.w, term_uniq pbχ.cone.π₂ (term pbχ.cone.pt)]
+  let e₁ : pbχ.cone.pt ⟶ pbe.cone.pt := pbe.lift ⟨pbχ.cone.pt, m₁, term pbχ.cone.pt, hm₁ev⟩
+  have he₁ : e₁ ≫ pbe.cone.π₁ = m₁ := pbe.lift_fst _
+  have hm₁snd : m₁ ≫ snd = (pbχ.cone.π₁ ≫ snd) ≫ curry χ := by
+    show (pbχ.cone.π₁ ≫ prodMap A X (exp A Ω) (curry χ)) ≫ snd = _
+    rw [Cat.assoc, prodMap_snd, ← Cat.assoc]
+  have hm₁fst : m₁ ≫ fst = pbχ.cone.π₁ ≫ fst := by
+    show (pbχ.cone.π₁ ≫ prodMap A X (exp A Ω) (curry χ)) ≫ fst = _
+    rw [Cat.assoc, prodMap_fst]
+  have hQw : (pbχ.cone.π₁ ≫ snd) ≫ curry χ = e₁ ≫ ((evalRel A).colA) := by
+    show (pbχ.cone.π₁ ≫ snd) ≫ curry χ = e₁ ≫ (pbe.cone.π₁ ≫ snd)
+    rw [← Cat.assoc, he₁, hm₁snd]
+  let qlift : pbχ.cone.pt ⟶ Q.cone.pt :=
+    Q.lift ⟨pbχ.cone.pt, pbχ.cone.π₁ ≫ snd, e₁, hQw⟩
+  refine ⟨qlift, ?_, ?_⟩
+  · show qlift ≫ Q.cone.π₁ = pbχ.cone.π₁ ≫ snd
+    exact Q.lift_fst _
+  · show qlift ≫ (Q.cone.π₂ ≫ (evalRel A).colB) = pbχ.cone.π₁ ≫ fst
+    rw [← Cat.assoc, Q.lift_snd]
+    show e₁ ≫ (pbe.cone.π₁ ≫ fst) = pbχ.cone.π₁ ≫ fst
+    rw [← Cat.assoc, he₁, hm₁fst]
+
+/-- β-law bridge (backward): the pullback of the universal `evalRel A` along `curry χ`
+    is the relation cut out by `χ`. -/
+theorem evalRel_pull_bwd {A X : 𝒞}
+    (χ : prod A X ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞)) :
+    RelHom (relPullback (curry χ) (evalRel A)) (classRel χ) := by
+  let Ω := HasSubobjectClassifier.omega (𝒞 := 𝒞)
+  let ev := eval_exp A Ω
+  let pbχ := HasPullbacks.has χ HasSubobjectClassifier.true
+  let pbe := HasPullbacks.has ev HasSubobjectClassifier.true
+  let Q := HasPullbacks.has (curry χ) ((evalRel A).colA)
+  have hβ : prodMap A X (exp A Ω) (curry χ) ≫ ev = χ := curry_eval_eq χ
+  have hQw : Q.cone.π₁ ≫ curry χ = Q.cone.π₂ ≫ (pbe.cone.π₁ ≫ snd) := Q.cone.w
+  have hpbe : pbe.cone.π₁ ≫ ev = term pbe.cone.pt ≫ HasSubobjectClassifier.true := by
+    rw [pbe.cone.w, term_uniq pbe.cone.π₂ (term pbe.cone.pt)]
+  let n : Q.cone.pt ⟶ prod A X := pair (Q.cone.π₂ ≫ pbe.cone.π₁ ≫ fst) (Q.cone.π₁)
+  have hnfst : n ≫ fst = Q.cone.π₂ ≫ pbe.cone.π₁ ≫ fst := fst_pair _ _
+  have hnsnd : n ≫ snd = Q.cone.π₁ := snd_pair _ _
+  have hnpm : n ≫ prodMap A X (exp A Ω) (curry χ) = Q.cone.π₂ ≫ pbe.cone.π₁ := by
+    have e1 : (n ≫ prodMap A X (exp A Ω) (curry χ)) ≫ fst
+            = (Q.cone.π₂ ≫ pbe.cone.π₁) ≫ fst := by
+      rw [Cat.assoc, prodMap_fst, hnfst, Cat.assoc]
+    have e2 : (n ≫ prodMap A X (exp A Ω) (curry χ)) ≫ snd
+            = (Q.cone.π₂ ≫ pbe.cone.π₁) ≫ snd := by
+      rw [Cat.assoc, prodMap_snd, ← Cat.assoc, hnsnd, hQw, Cat.assoc]
+    exact (pair_uniq _ _ _ e1 e2).trans (pair_uniq _ _ _ rfl rfl).symm
+  have hnχ : n ≫ χ = term Q.cone.pt ≫ HasSubobjectClassifier.true := by
+    calc n ≫ χ = n ≫ (prodMap A X (exp A Ω) (curry χ) ≫ ev) := by rw [hβ]
+      _ = (n ≫ prodMap A X (exp A Ω) (curry χ)) ≫ ev := (Cat.assoc _ _ _).symm
+      _ = (Q.cone.π₂ ≫ pbe.cone.π₁) ≫ ev := by rw [hnpm]
+      _ = Q.cone.π₂ ≫ (pbe.cone.π₁ ≫ ev) := Cat.assoc _ _ _
+      _ = Q.cone.π₂ ≫ (term pbe.cone.pt ≫ HasSubobjectClassifier.true) := by rw [hpbe]
+      _ = term Q.cone.pt ≫ HasSubobjectClassifier.true := by
+          rw [← Cat.assoc, term_uniq (Q.cone.π₂ ≫ term pbe.cone.pt) (term Q.cone.pt)]
+  let nlift : Q.cone.pt ⟶ pbχ.cone.pt := pbχ.lift ⟨Q.cone.pt, n, term Q.cone.pt, hnχ⟩
+  have hnl : nlift ≫ pbχ.cone.π₁ = n := pbχ.lift_fst _
+  refine ⟨nlift, ?_, ?_⟩
+  · show nlift ≫ (pbχ.cone.π₁ ≫ snd) = Q.cone.π₁
+    rw [← Cat.assoc, hnl, hnsnd]
+  · show nlift ≫ (pbχ.cone.π₁ ≫ fst) = Q.cone.π₂ ≫ (evalRel A).colB
+    rw [← Cat.assoc, hnl, hnfst]; rfl
+
+/-- Iso relations name the same subobject: equal classifier of their product-monics. -/
+theorem classify_relMonic_eq {X A : 𝒞} {R S : BinRel 𝒞 X A}
+    (h : RelHom R S ∧ RelHom S R) :
+    HasSubobjectClassifier.classify (relMonic R) (relMonic_mono R)
+      = HasSubobjectClassifier.classify (relMonic S) (relMonic_mono S) := by
+  obtain ⟨⟨w, hwA, hwB⟩, ⟨v, hvA, hvB⟩⟩ := h
+  have hwm : w ≫ relMonic S = relMonic R := by
+    apply pair_uniq
+    · rw [Cat.assoc]; show w ≫ (pair S.colB S.colA ≫ fst) = R.colB; rw [fst_pair, hwB]
+    · rw [Cat.assoc]; show w ≫ (pair S.colB S.colA ≫ snd) = R.colA; rw [snd_pair, hwA]
+  have hvm : v ≫ relMonic R = relMonic S := by
+    apply pair_uniq
+    · rw [Cat.assoc]; show v ≫ (pair R.colB R.colA ≫ fst) = S.colB; rw [fst_pair, hvB]
+    · rw [Cat.assoc]; show v ≫ (pair R.colB R.colA ≫ snd) = S.colA; rw [snd_pair, hvA]
+  have hsq : relMonic R ≫ HasSubobjectClassifier.classify (relMonic S) (relMonic_mono S)
+           = term R.src ≫ HasSubobjectClassifier.true := by
+    rw [← hwm, Cat.assoc, HasSubobjectClassifier.classify_sq, ← Cat.assoc,
+        term_uniq (w ≫ term S.src) (term R.src)]
+  refine (classify_eq_of_pullback (relMonic R) (relMonic_mono R)
+    (HasSubobjectClassifier.classify (relMonic S) (relMonic_mono S)) hsq ?_).symm
+  intro d
+  have hSpb := HasSubobjectClassifier.classify_pullback (relMonic S) (relMonic_mono S)
+  obtain ⟨ℓ, ⟨hℓ1, _⟩, _⟩ := hSpb d
+  refine ⟨ℓ ≫ v, ⟨?_, term_uniq _ _⟩, ?_⟩
+  · show (ℓ ≫ v) ≫ relMonic R = d.π₁
+    rw [Cat.assoc, hvm]; exact hℓ1
+  · intro y hy1 _
+    apply relMonic_mono R
+    show y ≫ relMonic R = (ℓ ≫ v) ≫ relMonic R
+    rw [hy1, Cat.assoc, hvm]; exact hℓ1.symm
+
+/-- The classifier of `classRel χ`'s product-monic recovers `χ`. -/
+theorem classify_relMonic_classRel {A X : 𝒞}
+    (χ : prod A X ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞)) :
+    HasSubobjectClassifier.classify (relMonic (classRel χ)) (relMonic_mono (classRel χ)) = χ := by
+  let pbχ := HasPullbacks.has χ HasSubobjectClassifier.true
+  have hrm : relMonic (classRel χ) = pbχ.cone.π₁ := (pair_uniq _ _ _ rfl rfl).symm
+  have hsq : relMonic (classRel χ) ≫ χ = term (classRel χ).src ≫ HasSubobjectClassifier.true := by
+    rw [hrm, pbχ.cone.w]; exact congrArg (· ≫ HasSubobjectClassifier.true) (term_uniq _ _)
+  symm
+  refine classify_eq_of_pullback (relMonic (classRel χ)) (relMonic_mono (classRel χ)) χ hsq ?_
+  intro d
+  obtain ⟨u, ⟨hu1, _⟩, huq⟩ := pbχ.cone_isPullback d
+  refine ⟨u, ⟨by show u ≫ relMonic (classRel χ) = d.π₁; rw [hrm]; exact hu1, term_uniq _ _⟩, ?_⟩
+  intro y hy1 _
+  refine huq y ?_ (term_uniq _ _)
+  show y ≫ pbχ.cone.π₁ = d.π₁
+  rw [← hrm]; exact hy1
+
+/-- **§1.92 — `eval` makes `Ω^A` universal targeted at `A`.**  The membership relation
+    `evalRel A` is a UNIVERSAL relation: every `R : BinRel X A` is uniquely the pullback of
+    `evalRel A` along a classifying map `curry(χ_R) : X → Ω^A`.  This is the curry/eval
+    transpose of the subobject-classifier bijection `Sub(A × X) ≅ Hom(A × X, Ω)`, NO internal
+    `∃` (image factorization) required — it is the contravariant/representing half. -/
+theorem evalRel_universal (A : 𝒞) : IsUniversalRel (evalRel A) := by
+  constructor
+  · intro X R
+    refine ⟨curry (HasSubobjectClassifier.classify (relMonic R) (relMonic_mono R)), ?_, ?_⟩
+    · exact RelHom_trans (classRel_roundtrip R).1 (evalRel_pull_fwd _)
+    · exact RelHom_trans (evalRel_pull_bwd _) (classRel_roundtrip R).2
+  · intro X R f g hf hg
+    let Ω := HasSubobjectClassifier.omega (𝒞 := 𝒞)
+    have hf_eq : f = curry (prodMap A X (exp A Ω) f ≫ eval_exp A Ω) := curry_unique_eq rfl
+    have hg_eq : g = curry (prodMap A X (exp A Ω) g ≫ eval_exp A Ω) := curry_unique_eq rfl
+    let χf := prodMap A X (exp A Ω) f ≫ eval_exp A Ω
+    let χg := prodMap A X (exp A Ω) g ≫ eval_exp A Ω
+    have hRf : RelHom R (classRel χf) ∧ RelHom (classRel χf) R := by
+      have e1 : RelHom (relPullback f (evalRel A)) (classRel χf) := by
+        rw [hf_eq]; exact evalRel_pull_bwd χf
+      have e2 : RelHom (classRel χf) (relPullback f (evalRel A)) := by
+        rw [hf_eq]; exact evalRel_pull_fwd χf
+      exact ⟨RelHom_trans hf.1 e1, RelHom_trans e2 hf.2⟩
+    have hRg : RelHom R (classRel χg) ∧ RelHom (classRel χg) R := by
+      have e1 : RelHom (relPullback g (evalRel A)) (classRel χg) := by
+        rw [hg_eq]; exact evalRel_pull_bwd χg
+      have e2 : RelHom (classRel χg) (relPullback g (evalRel A)) := by
+        rw [hg_eq]; exact evalRel_pull_fwd χg
+      exact ⟨RelHom_trans hg.1 e1, RelHom_trans e2 hg.2⟩
+    have hiso : RelHom (classRel χf) (classRel χg) ∧ RelHom (classRel χg) (classRel χf) :=
+      ⟨RelHom_trans hRf.2 hRg.1, RelHom_trans hRg.2 hRf.1⟩
+    have hχ : χf = χg := by
+      have := classify_relMonic_eq hiso
+      rwa [classify_relMonic_classRel, classify_relMonic_classRel] at this
+    rw [hf_eq, hg_eq]; exact congrArg curry hχ
+
+/-- **§1.92 — the power-object comparison `[A] → Ω^A`.**  `Λ_{evalRel}(∈_A)`, the
+    classifier of the genuine membership `∈_A : BinRel [A] A` against the universal
+    `evalRel A` on `Ω^A`. -/
+noncomputable def powExpHom (A : 𝒞) :
+    HasPowerObject.powerObj (C := A) ⟶ exp A (HasSubobjectClassifier.omega (𝒞 := 𝒞)) :=
+  univClassify (evalRel_universal A) HasPowerObject.mem
+
+/-- **§1.92 — `Ω^A ≅ [A]`.**  Two universal relations targeted at `A` have isomorphic
+    carriers (`universalRel_unique`), so the comparison `powExpHom A : [A] → Ω^A` is an
+    iso.  This is the identification of the exponential `Ω^A` with the power object `[A]`,
+    sorry-free.  (Downstream, `S1_95 :: omega_is_internally_injective` waits on exactly
+    this iso to transport the genuine direct image `powerMapCovP` to the `exp`-level
+    `expMap Ω` — see the residual blocker note on `powerMapCov` below.) -/
+theorem powExpHom_iso (A : 𝒞) : IsIso (powExpHom A) :=
+  universalRel_unique HasPowerObject.is_universal (evalRel_universal A)
+
+/-- The inverse `Ω^A → [A]` of the power-object comparison iso. -/
+noncomputable def expPowInv (A : 𝒞) :
+    exp A (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ⟶ HasPowerObject.powerObj (C := A) :=
+  (powExpHom_iso A).choose
+
+end EvalUniversalAmbient
 
 /-! ## §1.921  Lawvere's original definition of elementary topos
 
