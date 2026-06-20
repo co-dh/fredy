@@ -25,6 +25,9 @@ import Fredy.InternalForallTopos
 import Fredy.ToposColimits
 import Fredy.ForallAlong
 import Fredy.S1_56
+import Fredy.S1_61
+import Fredy.S1_94
+import Fredy.ToposStrictZero
 import Fredy.PartialMapClassifier
 
 universe v u
@@ -34,6 +37,59 @@ namespace Freyd
 open HasSubobjectClassifier
 
 variable {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
+
+/-! ## A topos is a pre-logos
+
+  The §1.6 `PreLogos` structure (regular + subobject lattices + inverse image preserves
+  finite unions and the empty join) is assembled here from the now-available topos primitives:
+    * `RegularCategory` — `topos_is_regular_real` (`InternalForallTopos`/`S1_94`);
+    * `HasSubobjectUnions` — `ToposColimits.toposHasSubobjectUnions`;
+    * bottom `∅_A := bottomSub A` with `bottomSub_le` and the cross-base iso
+      `bottomSub_dom_iso` (§1.944, `ToposStrictZero`);
+    * `f#(S∪T) = f#S ∪ f#T` — the FRAME LAW `ForallAlong.invImage_preserves_union`
+      (forward) and `invImage_mono_local` (reverse);
+    * `f#(∅_B) ≅ ∅_A` — `invImage_bottomSub_dom_iso` (§1.946, `ToposStrictZero`).
+  This is the `PreLogos 𝒞` instance the rest of the file (and the §1.621 disjoint-gluing
+  copairing) needs, previously the missing link flagged in the residual note below. -/
+/-- The frame law in the `inverseImage_preserves_unions` (PreLogos-field) shape, proved with
+    the canonical topos instances OUTSIDE the structure builder to avoid the
+    `PreLogos`-self-reference diamond.  FORWARD = `ForallAlong.invImage_preserves_union`
+    (`f#` is a left adjoint), REVERSE = monotonicity (`invImage_mono_local`). -/
+theorem topos_invImage_preserves_unions {A B : 𝒞} (f : A ⟶ B) :
+    inverseImage_preserves_unions f := by
+  intro S T
+  refine And.intro ?_ ?_
+  · exact invImage_preserves_union f S T
+      (HasPullbacks.has f _) (HasPullbacks.has f _) (HasPullbacks.has f _)
+  · -- `invImg_le` (PreLogos-free; `InverseImage f X = invImg f X (HasPullbacks.has ..)` defeq).
+    exact HasSubobjectUnions.union_min _ _ _
+      (invImg_le f S (HasSubobjectUnions.union S T) (HasPullbacks.has f _) (HasPullbacks.has f _)
+        (HasSubobjectUnions.union_left S T))
+      (invImg_le f T (HasSubobjectUnions.union S T) (HasPullbacks.has f _) (HasPullbacks.has f _)
+        (HasSubobjectUnions.union_right S T))
+
+noncomputable def toposPreLogos : PreLogos 𝒞 :=
+  -- Build `RegularCategory` from the CANONICAL topos instances (`{ }` — all super-classes
+  -- `HasImages`/`PullbacksTransferCovers`/… are already instances), so the resulting
+  -- `PreLogos.toHasPullbacks`/`toHasImages` coincide with the topos's and there is no
+  -- instance-diamond against `InverseImage`/`invImg`.  Bind `hReg`/`hUni` first so the
+  -- forward field references during structure elaboration do not trigger a `PreLogos` search.
+  let hReg : RegularCategory 𝒞 := { }
+  letI hUni : HasSubobjectUnions 𝒞 := toposHasSubobjectUnions
+  { hReg with
+    union       := HasSubobjectUnions.union
+    union_left  := HasSubobjectUnions.union_left
+    union_right := HasSubobjectUnions.union_right
+    union_min   := HasSubobjectUnions.union_min
+    bottom         := bottomSub (𝒞 := 𝒞)
+    bottom_min     := @bottomSub_le 𝒞 _ _
+    bottom_dom_iso := @bottomSub_dom_iso 𝒞 _ _
+    invImage_preserves_union  := @topos_invImage_preserves_unions 𝒞 _ _
+    invImage_preserves_bottom := @invImage_bottomSub_dom_iso 𝒞 _ _ }
+
+/-- Make `toposPreLogos` available to instance search (so the §1.61 `DisjointGluing`
+    relational layer and `disjoint_cover_is_coproduct` resolve under `[Topos 𝒞]`). -/
+noncomputable instance : PreLogos 𝒞 := toposPreLogos
 
 /-- Transitivity of the subobject order (local `private` copy; avoids importing the heavy
     `Complement` tower, and avoids a name clash with `Complement.subLe_transTE`). -/
@@ -571,12 +627,128 @@ theorem caseRel_colA_cover {A B X : 𝒞} (f : A ⟶ X) (g : B ⟶ X) :
   · rw [Cat.assoc, hgm, hsl₀]
   · rw [Cat.assoc, hgm, hsr₀]
 
-/-- **FUNCTIONALITY.**  `caseRel.colA` is monic: the union graph is single-valued.  Any two
-    elements of the union with the same first coordinate in `A+B` have the same second
-    coordinate in `X` (local agreement of the two partial graphs). -/
+/-! ### Disjointness of the two injections
+
+  The §1.621 disjointness `image inl ⊓ image inr = ⊥`, in the form the pasting lemma
+  `DisjointGluing.disjoint_cover_is_coproduct` wants: the pullback of `coprodInl`, `coprodInr`
+  has apex `≅ (bottom (A+B)).dom = 0`.  PROVEN from the EMPTY-SINGLETON non-degeneracy, with
+  NO `DisjointBinaryCoproduct` class assumption: a common point `(a,b)` with `inl a = inr b`
+  forces (post-`coprodArr`, take `fst`) `{a} = ∅` in `[A]`; but `a ∈ {a} = ⊤` (`mem_singleton_self`)
+  while `a ∈ ∅ = ⊥`, so the apex maps to `0`, hence is `≅ 0` by strict-initiality. -/
+theorem coprodInjections_disjoint (A B : 𝒞) :
+    Isomorphic (HasPullbacks.has (coprodInl A B) (coprodInr A B)).cone.pt
+      (bottomSub (coprodObj A B)).dom := by
+  let pb := HasPullbacks.has (coprodInl A B) (coprodInr A B)
+  let I : 𝒞 := pb.cone.pt
+  let p₁ : I ⟶ A := pb.cone.π₁
+  let p₂ : I ⟶ B := pb.cone.π₂
+  have hsq : p₁ ≫ coprodInl A B = p₂ ≫ coprodInr A B := pb.cone.w
+  -- post-compose the monic `coprodArr`:  p₁ ≫ inlRaw = p₂ ≫ inrRaw.
+  have hraw : p₁ ≫ inlRaw A B = p₂ ≫ inrRaw A B := by
+    rw [← coprodInl_arr, ← coprodInr_arr, ← Cat.assoc, ← Cat.assoc, hsq]
+  -- take `fst`:  p₁ ≫ {·}_A = (p₂ ≫ term) ≫ emptyName A = term I ≫ emptyName A  (= "{p₁} = ∅_A").
+  have hfst : p₁ ≫ singletonMap A = term I ≫ emptyName A := by
+    have h : (p₁ ≫ inlRaw A B) ≫ fst = (p₂ ≫ inrRaw A B) ≫ fst := by rw [hraw]
+    rw [Cat.assoc, Cat.assoc, inlRaw, inrRaw, fst_pair, fst_pair] at h
+    rw [h, ← Cat.assoc]; congr 1; exact term_uniq (p₂ ≫ term B) (term I)
+  -- "p₁ ∈ ∅_A = ⊤":  p₁ ≫ χ_{∅_A} = ⊤∘! .  (membershipMap (emptyName A) = χ_{∅_A}; then
+  --   p₁ ≫ χ_{∅_A} = ⟨p₁, term ≫ emptyName A⟩ ≫ eval = ⟨p₁, p₁ ≫ {·}⟩ ≫ eval = ⊤∘! by mem_singleton_self.)
+  have hmem : membershipMap (emptyName A) =
+      HasSubobjectClassifier.classify (bottomSub A).arr (bottomSub A).monic :=
+    membershipMap_nameOf _ _
+  have hp₁_class : p₁ ≫ HasSubobjectClassifier.classify (bottomSub A).arr (bottomSub A).monic
+      = term I ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
+    have h1 : p₁ ≫ HasSubobjectClassifier.classify (bottomSub A).arr (bottomSub A).monic
+        = pair p₁ (term I ≫ emptyName A) ≫ eval_exp A (omega (𝒞 := 𝒞)) := by
+      rw [← hmem, membershipMap, ← Cat.assoc]
+      congr 1
+      exact pair_uniq _ _ _
+        (by rw [Cat.assoc, fst_pair, Cat.comp_id])
+        (by rw [Cat.assoc, snd_pair, ← Cat.assoc, term_uniq (p₁ ≫ term A) (term I)])
+    rw [h1, ← hfst, mem_singleton_self]
+  -- classifier UMP lifts `p₁` through `∅_A`:  e : I → (bottomSub A).dom.
+  obtain ⟨e, ⟨he_arr, _⟩, _⟩ :=
+    HasSubobjectClassifier.classify_pullback (bottomSub A).arr (bottomSub A).monic
+      ⟨I, p₁, term I, hp₁_class⟩
+  -- e : I → ∅_A.dom ≅ ∅_1.dom = 0;  strict-initiality ⇒ I ≅ 0 ≅ ∅_{A+B}.dom.
+  obtain ⟨θ, hθ⟩ := bottomSub_dom_iso A (one : 𝒞)
+  let z : I ⟶ (bottomSub (one : 𝒞)).dom := e ≫ θ
+  have hz_iso : IsIso z := any_map_to_zero_is_iso (inferInstance : PreLogos 𝒞) z
+  have hI_iso_Z : Isomorphic I (bottomSub (one : 𝒞)).dom := ⟨z, hz_iso⟩
+  exact Isomorphic.trans' hI_iso_Z (bottomSub_dom_iso (one : 𝒞) (coprodObj A B))
+
+/-- The two injections as SUBOBJECTS of `A+B` (monic). -/
+noncomputable def inlSubobj (A B : 𝒞) : Subobject 𝒞 (coprodObj A B) :=
+  ⟨A, coprodInl A B, coprodInl_monic A B⟩
+noncomputable def inrSubobj (A B : 𝒞) : Subobject 𝒞 (coprodObj A B) :=
+  ⟨B, coprodInr A B, coprodInr_monic A B⟩
+
+/-- **§1.621 cover**: `image inl ∪ image inr = A+B` — the union of the two injection
+    subobjects is ENTIRE (its inclusion is iso), since both injections factor through it and
+    they jointly cover the carrier (`coprod_injections_cover`). -/
+theorem coprodInjections_union_entire (A B : 𝒞) :
+    (HasSubobjectUnions.union (inlSubobj A B) (inrSubobj A B)).IsEntire := by
+  obtain ⟨l₁, hl₁⟩ := HasSubobjectUnions.union_left (inlSubobj A B) (inrSubobj A B)
+  obtain ⟨l₂, hl₂⟩ := HasSubobjectUnions.union_right (inlSubobj A B) (inrSubobj A B)
+  exact coprod_injections_cover _ (HasSubobjectUnions.union (inlSubobj A B) (inrSubobj A B)).monic
+    l₁ hl₁ l₂ hl₂
+
+/-- **The copairing `c : A+B → X`** with `inl ≫ c = f`, `inr ≫ c = g`, plus uniqueness.
+    Freyd's §1.621 disjoint-complemented-union pasting (`disjoint_cover_is_coproduct`),
+    instantiated at the two injection subobjects with disjointness `coprodInjections_disjoint`
+    and joint cover `coprodInjections_union_entire`. -/
+theorem case_morphism_exists {A B X : 𝒞} (f : A ⟶ X) (g : B ⟶ X) :
+    ∃ c : coprodObj A B ⟶ X, coprodInl A B ≫ c = f ∧ coprodInr A B ≫ c = g :=
+  let ⟨c, h1, h2, _⟩ :=
+    disjoint_cover_is_coproduct (inlSubobj A B) (inrSubobj A B)
+      (coprodInjections_disjoint A B) (coprodInjections_union_entire A B) f g
+  ⟨c, h1, h2⟩
+
+/-- **FUNCTIONALITY.**  `caseRel.colA` is monic: the union graph is single-valued.  The two
+    partial graphs agree wherever their first coordinates coincide — and that agreement is
+    realized by the honest copairing `c` (`case_morphism_exists`, from §1.621 disjoint gluing):
+    `caseRel ⊆ graph c`, and a graph is simple, so `caseRel` is simple, i.e. `colA` is monic. -/
 theorem caseRel_colA_monic {A B X : 𝒞} (f : A ⟶ X) (g : B ⟶ X) :
     Mono (caseRel f g).colA := by
-  sorry
+  obtain ⟨c, hcl, hcr⟩ := case_morphism_exists f g
+  -- The graph subobject `G = {(p, p ≫ c)} ⊆ (A+B)×X`, carried by the monic `pair id c`.
+  have hG_mono : Mono (pair (Cat.id (coprodObj A B)) c) := by
+    intro W u v huv
+    have h : (u ≫ pair (Cat.id (coprodObj A B)) c) ≫ fst
+        = (v ≫ pair (Cat.id (coprodObj A B)) c) ≫ fst := by rw [huv]
+    rwa [Cat.assoc, Cat.assoc, fst_pair, Cat.comp_id, Cat.comp_id] at h
+  let G : Subobject 𝒞 (prod (coprodObj A B) X) := ⟨coprodObj A B, pair (Cat.id _) c, hG_mono⟩
+  -- Both partial graphs factor through `G` (via `inl`/`inr`), since `inl ≫ c = f`, `inr ≫ c = g`.
+  have hInl_G : (graphInlSub f).le G :=
+    image_min (pair (coprodInl A B) f) G ⟨coprodInl A B,
+      pair_uniq (coprodInl A B) f (coprodInl A B ≫ G.arr)
+        (by show (coprodInl A B ≫ pair (Cat.id _) c) ≫ fst = coprodInl A B
+            rw [Cat.assoc, fst_pair, Cat.comp_id])
+        (by show (coprodInl A B ≫ pair (Cat.id _) c) ≫ snd = f
+            rw [Cat.assoc, snd_pair, hcl])⟩
+  have hInr_G : (graphInrSub g).le G :=
+    image_min (pair (coprodInr A B) g) G ⟨coprodInr A B,
+      pair_uniq (coprodInr A B) g (coprodInr A B ≫ G.arr)
+        (by show (coprodInr A B ≫ pair (Cat.id _) c) ≫ fst = coprodInr A B
+            rw [Cat.assoc, fst_pair, Cat.comp_id])
+        (by show (coprodInr A B ≫ pair (Cat.id _) c) ≫ snd = g
+            rw [Cat.assoc, snd_pair, hcr])⟩
+  -- so the union `caseUnionSub = U` factors through `G`:  j with `j ≫ G.arr = U.arr`.
+  obtain ⟨j, hj⟩ := HasSubobjectUnions.union_min (graphInlSub f) (graphInrSub g) G hInl_G hInr_G
+  -- KEY: `caseRel.colA ≫ c = caseRel.colB`, i.e. `U.arr ≫ fst ≫ c = U.arr ≫ snd`.
+  have hkey : (caseRel f g).colA ≫ c = (caseRel f g).colB := by
+    show (((HasSubobjectUnions.union (graphInlSub f) (graphInrSub g)).arr) ≫ fst) ≫ c
+        = (HasSubobjectUnions.union (graphInlSub f) (graphInrSub g)).arr ≫ snd
+    rw [← hj, Cat.assoc, Cat.assoc, Cat.assoc]
+    -- `G.arr ≫ fst ≫ c = pair id c ≫ fst ≫ c = c` and `G.arr ≫ snd = pair id c ≫ snd = c`.
+    show j ≫ (pair (Cat.id _) c ≫ (fst ≫ c)) = j ≫ (pair (Cat.id _) c ≫ snd)
+    rw [← Cat.assoc (pair (Cat.id _) c) fst c, fst_pair, Cat.id_comp, snd_pair]
+  -- `caseRel ≤ graph c` (witness `colA`), and graphs are simple ⟹ caseRel simple ⟹ colA monic.
+  rw [← tabulated_is_simple_iff_left_monic (caseRel f g).colA (caseRel f g).colB
+    (caseRel f g).isMonicPair]
+  have hle : RelLe (caseRel f g) (graph c) :=
+    ⟨⟨(caseRel f g).colA, Cat.comp_id _, hkey⟩⟩
+  exact rel_le_trans (compose_le (reciprocal_mono hle) hle) (graph_is_map c).2
 
 /-- **The copairing exists.**  `caseRel` is functional + total, hence the graph of a unique
     `c : A+B → X`; the β-laws come from the two partial-graph factorizations. -/
@@ -629,5 +801,21 @@ theorem coprod_case_exists {A B X : 𝒞} (f : A ⟶ X) (g : B ⟶ X) :
       _ = s ≫ ((caseRel f g).colA ≫ c) := Cat.assoc _ _ _
       _ = s ≫ (caseRel f g).colB := by rw [hkey]
       _ = g := hsB
+
+/-! ## GOAL 3 (assembled) — a topos has binary coproducts
+
+  The carrier `A+B = coprodObj A B`, injections `coprodInl`/`coprodInr`, copairing
+  `case f g := (coprod_case_exists f g).choose` with its two β-laws (`.choose_spec`) and
+  uniqueness `coprod_jointly_epi`.  Sorry-free; axioms `[propext, Classical.choice]`. -/
+noncomputable instance toposHasBinaryCoproducts : HasBinaryCoproducts 𝒞 where
+  coprod   := coprodObj
+  inl      := coprodInl _ _
+  inr      := coprodInr _ _
+  case f g := (coprod_case_exists f g).choose
+  case_inl f g := (coprod_case_exists f g).choose_spec.1
+  case_inr f g := (coprod_case_exists f g).choose_spec.2
+  case_uniq f g h hl hr := coprod_jointly_epi h ((coprod_case_exists f g).choose)
+    (by rw [hl, (coprod_case_exists f g).choose_spec.1])
+    (by rw [hr, (coprod_case_exists f g).choose_spec.2])
 
 end Freyd

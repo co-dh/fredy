@@ -32,6 +32,7 @@ import Fredy.S1_85
 import Fredy.S1_91
 import Fredy.S1_92
 import Fredy.S1_94
+import Fredy.ToposExists
 
 
 universe v u
@@ -205,8 +206,8 @@ instance topos_is_effective [Topos 𝒞] : EffectiveRegular 𝒞 := by
     `case_uniq := coprod_jointly_epi`, assembling
     `toposHasBinaryCoproducts : HasBinaryCoproducts 𝒞`, after which this becomes
     `exact toposHasBinaryCoproducts`. -/
-instance topos_is_positive [Topos 𝒞] : HasBinaryCoproducts 𝒞 := by
-  sorry
+noncomputable instance topos_is_positive [Topos 𝒞] : HasBinaryCoproducts 𝒞 :=
+  toposHasBinaryCoproducts
 
 /-! ## §1.954  A topos has coequalizers -/
 
