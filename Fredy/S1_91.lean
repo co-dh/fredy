@@ -537,6 +537,527 @@ theorem heytingDoubleArrow_classifies_eq {A E : 𝒞} (χ₁ χ₂ : A ⟶ HasSu
   intro v hv₁ _
   exact huu v hv₁
 
+/-- **§1.914 (pointwise double-arrow)**: the classifying map `⟨χ₁,χ₂⟩ ≫ ⇒` is
+    constantly-true along `k` exactly where `χ₁` and `χ₂` agree along `k`.  This is
+    the membership form of `heytingDoubleArrow_classifies_eq` (it avoids naming an
+    equalizer subobject); it is the order-form UMP feeding the Heyting laws below. -/
+theorem heyting_true_iff_eq {A W : 𝒞}
+    (χ₁ χ₂ : A ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞)) (k : W ⟶ A) :
+    k ≫ (pair χ₁ χ₂ ≫ heytingDoubleArrow) = term W ≫ HasSubobjectClassifier.true
+      ↔ k ≫ χ₁ = k ≫ χ₂ := by
+  have sqD : diag (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ≫ heytingDoubleArrow
+      = term (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ≫ HasSubobjectClassifier.true :=
+    HasSubobjectClassifier.classify_sq _ (diag_mono _)
+  constructor
+  · intro hk
+    -- (k ≫ ⟨χ₁,χ₂⟩) ≫ ⇒ = term ≫ true, so it factors through diag's classifier pullback.
+    have hk' : (k ≫ pair χ₁ χ₂) ≫ heytingDoubleArrow = term W ≫ HasSubobjectClassifier.true := by
+      rw [Cat.assoc]; exact hk
+    obtain ⟨w, ⟨hw₁, _⟩, _⟩ :=
+      HasSubobjectClassifier.classify_pullback
+        (diag (HasSubobjectClassifier.omega (𝒞 := 𝒞))) (diag_mono _)
+        ⟨W, k ≫ pair χ₁ χ₂, term W, hk'⟩
+    -- hw₁ : w ≫ diag = k ≫ pair χ₁ χ₂.  Read off both components.
+    have e1 := congrArg (· ≫ fst) hw₁
+    have e2 := congrArg (· ≫ snd) hw₁
+    simp only [Cat.assoc, diag_fst, diag_snd, fst_pair, snd_pair, Cat.comp_id] at e1 e2
+    rw [← e1, ← e2]
+  · intro heq
+    -- k ≫ ⟨χ₁,χ₂⟩ = (k ≫ χ₁) ≫ diag, so postcomposing ⇒ collapses to term ≫ true.
+    have hpair : k ≫ pair χ₁ χ₂ = (k ≫ χ₁) ≫ diag (HasSubobjectClassifier.omega (𝒞 := 𝒞)) := by
+      have hL : k ≫ pair χ₁ χ₂ = pair (k ≫ χ₁) (k ≫ χ₂) :=
+        pair_uniq (k ≫ χ₁) (k ≫ χ₂) (k ≫ pair χ₁ χ₂)
+          (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])
+      have hR : (k ≫ χ₁) ≫ diag (HasSubobjectClassifier.omega (𝒞 := 𝒞))
+          = pair (k ≫ χ₁) (k ≫ χ₂) :=
+        pair_uniq (k ≫ χ₁) (k ≫ χ₂) _
+          (by rw [Cat.assoc, diag_fst, Cat.comp_id])
+          (by rw [Cat.assoc, diag_snd, Cat.comp_id, heq])
+      rw [hL, hR]
+    calc k ≫ (pair χ₁ χ₂ ≫ heytingDoubleArrow)
+        = (k ≫ pair χ₁ χ₂) ≫ heytingDoubleArrow := (Cat.assoc _ _ _).symm
+      _ = ((k ≫ χ₁) ≫ diag (HasSubobjectClassifier.omega (𝒞 := 𝒞))) ≫ heytingDoubleArrow := by
+            rw [hpair]
+      _ = (k ≫ χ₁) ≫ (diag (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ≫ heytingDoubleArrow) :=
+            Cat.assoc _ _ _
+      _ = (k ≫ χ₁) ≫ (term (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ≫ HasSubobjectClassifier.true) := by
+            rw [sqD]
+      _ = ((k ≫ χ₁) ≫ term (HasSubobjectClassifier.omega (𝒞 := 𝒞))) ≫ HasSubobjectClassifier.true :=
+            (Cat.assoc _ _ _).symm
+      _ = term W ≫ HasSubobjectClassifier.true := by
+            rw [term_uniq ((k ≫ χ₁) ≫ term _) (term W)]
+
+/-- **§1.914 (pointwise meet)**: the classifying map `⟨χ₁,χ₂⟩ ≫ ∧` is constantly
+    true along `k` exactly where BOTH `χ₁` and `χ₂` are.  Membership form of
+    `omegaMeet_classifies_inter`, proved directly from the `(t,t)` classifier
+    pullback (so it needs no `HasPullback S.arr T.arr` hypothesis). -/
+theorem meet_true_iff_and {A W : 𝒞}
+    (χ₁ χ₂ : A ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞)) (k : W ⟶ A) :
+    k ≫ (pair χ₁ χ₂ ≫ omegaMeet) = term W ≫ HasSubobjectClassifier.true
+      ↔ k ≫ χ₁ = term W ≫ HasSubobjectClassifier.true
+        ∧ k ≫ χ₂ = term W ≫ HasSubobjectClassifier.true := by
+  have sqM : pair HasSubobjectClassifier.true HasSubobjectClassifier.true ≫ omegaMeet
+      = term (HasTerminal.one (𝒞 := 𝒞)) ≫ HasSubobjectClassifier.true :=
+    HasSubobjectClassifier.classify_sq
+      (pair HasSubobjectClassifier.true HasSubobjectClassifier.true)
+      (fun f g _ => HasTerminal.uniq f g)
+  constructor
+  · intro hk
+    have hk' : (k ≫ pair χ₁ χ₂) ≫ omegaMeet = term W ≫ HasSubobjectClassifier.true := by
+      rw [Cat.assoc]; exact hk
+    obtain ⟨w, ⟨hw₁, _⟩, _⟩ :=
+      HasSubobjectClassifier.classify_pullback
+        (pair HasSubobjectClassifier.true HasSubobjectClassifier.true)
+        (fun f g _ => HasTerminal.uniq f g)
+        ⟨W, k ≫ pair χ₁ χ₂, term W, hk'⟩
+    -- hw₁ : w ≫ (t,t) = k ≫ ⟨χ₁,χ₂⟩.  Both components equal w ≫ t = term ≫ t.
+    have e1 := congrArg (· ≫ fst) hw₁
+    have e2 := congrArg (· ≫ snd) hw₁
+    simp only [Cat.assoc, fst_pair, snd_pair] at e1 e2
+    refine ⟨?_, ?_⟩
+    · rw [← e1, term_uniq w (term W)]
+    · rw [← e2, term_uniq w (term W)]
+  · rintro ⟨h₁, h₂⟩
+    -- k ≫ ⟨χ₁,χ₂⟩ = term ≫ (t,t), and (t,t) ≫ ∧ = term ≫ t.
+    have hpair : k ≫ pair χ₁ χ₂
+        = term W ≫ pair HasSubobjectClassifier.true HasSubobjectClassifier.true := by
+      have hL : k ≫ pair χ₁ χ₂
+          = pair (term W ≫ HasSubobjectClassifier.true) (term W ≫ HasSubobjectClassifier.true) :=
+        pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]; exact h₁)
+          (by rw [Cat.assoc, snd_pair]; exact h₂)
+      have hR : term W ≫ pair HasSubobjectClassifier.true HasSubobjectClassifier.true
+          = pair (term W ≫ HasSubobjectClassifier.true) (term W ≫ HasSubobjectClassifier.true) :=
+        pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])
+      rw [hL, hR]
+    calc k ≫ (pair χ₁ χ₂ ≫ omegaMeet)
+        = (k ≫ pair χ₁ χ₂) ≫ omegaMeet := (Cat.assoc _ _ _).symm
+      _ = (term W ≫ pair HasSubobjectClassifier.true HasSubobjectClassifier.true) ≫ omegaMeet := by
+            rw [hpair]
+      _ = term W ≫ (pair HasSubobjectClassifier.true HasSubobjectClassifier.true ≫ omegaMeet) :=
+            Cat.assoc _ _ _
+      _ = term W ≫ (term HasTerminal.one ≫ HasSubobjectClassifier.true) := by rw [sqM]
+      _ = (term W ≫ term HasTerminal.one) ≫ HasSubobjectClassifier.true := (Cat.assoc _ _ _).symm
+      _ = term W ≫ HasSubobjectClassifier.true := by
+            rw [term_uniq (term W ≫ term HasTerminal.one) (term W)]
+
+/-! ### §1.914  Membership/order bridge `Sub(−) ≅ Hom(−,Ω)`
+
+  The classifier bijection turns the subobject order into classifier equations.
+  These are the workhorses for the internal Heyting-algebra laws below. -/
+
+/-- **Membership bridge**: a map `k : W → A` factors through the subobject `S`
+    (`Allows S k`) iff its composite with the classifier `χ_S` is constantly true.
+    This is the pointwise form of `Sub(−) ≅ Hom(−,Ω)`. -/
+theorem allows_iff_classify {A W : 𝒞} (S : Subobject 𝒞 A) (k : W ⟶ A) :
+    Allows S k ↔ k ≫ HasSubobjectClassifier.classify S.arr S.monic
+      = term W ≫ HasSubobjectClassifier.true := by
+  constructor
+  · rintro ⟨u, hu⟩
+    have sqS : S.arr ≫ HasSubobjectClassifier.classify S.arr S.monic
+        = term S.dom ≫ HasSubobjectClassifier.true :=
+      HasSubobjectClassifier.classify_sq S.arr S.monic
+    calc k ≫ HasSubobjectClassifier.classify S.arr S.monic
+        = (u ≫ S.arr) ≫ HasSubobjectClassifier.classify S.arr S.monic := by rw [hu]
+      _ = u ≫ (S.arr ≫ HasSubobjectClassifier.classify S.arr S.monic) := Cat.assoc _ _ _
+      _ = u ≫ (term S.dom ≫ HasSubobjectClassifier.true) := by rw [sqS]
+      _ = (u ≫ term S.dom) ≫ HasSubobjectClassifier.true := (Cat.assoc _ _ _).symm
+      _ = term W ≫ HasSubobjectClassifier.true := by
+            rw [term_uniq (u ≫ term S.dom) (term W)]
+  · intro hk
+    obtain ⟨u, ⟨hu, _⟩, _⟩ :=
+      HasSubobjectClassifier.classify_pullback S.arr S.monic ⟨W, k, term W, hk⟩
+    exact ⟨u, hu⟩
+
+/-- **Order bridge**: `S ≤ T` in `Sub(A)` iff the inclusion `S.arr` lands in `T`,
+    iff `S.arr ≫ χ_T = term ≫ true`.  (Specializes `allows_iff_classify` at
+    `k = S.arr`, since `Allows T S.arr` is exactly `S.le T`.) -/
+theorem le_iff_classify {A : 𝒞} (S T : Subobject 𝒞 A) :
+    S.le T ↔ S.arr ≫ HasSubobjectClassifier.classify T.arr T.monic
+      = term S.dom ≫ HasSubobjectClassifier.true :=
+  allows_iff_classify T S.arr
+
+/-! ### §1.914  Heyting implication on `Sub(A)` and its adjunction -/
+
+/-- The characteristic map `χ_S : A → Ω` of a subobject `S ⊆ A`. -/
+noncomputable abbrev subChar {A : 𝒞} (S : Subobject 𝒞 A) :
+    A ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞) :=
+  HasSubobjectClassifier.classify S.arr S.monic
+
+/-- The characteristic map of the Heyting implication `S ⇒ T`, à la Freyd
+    (`S ⇒ T := S ⇔ (S ∧ T)`): `⟨χ_S, ⟨χ_S,χ_T⟩ ≫ ∧⟩ ≫ ⇔`. -/
+noncomputable def impChar {A : 𝒞} (S T : Subobject 𝒞 A) :
+    A ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞) :=
+  pair (subChar S) (pair (subChar S) (subChar T) ≫ omegaMeet) ≫ heytingDoubleArrow
+
+/-- The Heyting implication `S ⇒ T` as a subobject of `A`: the monic classified by
+    `impChar S T` (existence via `classify_surjective`). -/
+noncomputable def Sub.imp {A : 𝒞} (S T : Subobject 𝒞 A) : Subobject 𝒞 A :=
+  ⟨(classify_surjective (impChar S T)).choose,
+   (classify_surjective (impChar S T)).choose_spec.choose,
+   (classify_surjective (impChar S T)).choose_spec.choose_spec.choose⟩
+
+/-- `χ_{S⇒T} = impChar S T`: the implication subobject is classified by `impChar`. -/
+theorem classify_imp {A : 𝒞} (S T : Subobject 𝒞 A) :
+    subChar (Sub.imp S T) = impChar S T :=
+  (classify_surjective (impChar S T)).choose_spec.choose_spec.choose_spec
+
+/-- **§1.914 (⇒-adjunction, membership form)**: for every `k : W → A`,
+    `k` lands in `S ⇒ T` iff `k ≫ χ_S = k ≫ (⟨χ_S,χ_T⟩ ≫ ∧)`, i.e. along `k` the
+    truth of `S` coincides with the truth of `S ∧ T`.  Immediate from `classify_imp`
+    and the pointwise double-arrow UMP `heyting_true_iff_eq`. -/
+theorem mem_imp_iff {A W : 𝒞} (S T : Subobject 𝒞 A) (k : W ⟶ A) :
+    k ≫ subChar (Sub.imp S T) = term W ≫ HasSubobjectClassifier.true
+      ↔ k ≫ subChar S = k ≫ (pair (subChar S) (subChar T) ≫ omegaMeet) := by
+  rw [classify_imp, impChar]
+  exact heyting_true_iff_eq _ _ k
+
+/-- **Membership is monotone**: if `S ≤ T` and `k` lands in `S`, then `k` lands in
+    `T`.  (`Allows` composed with `Subobject.le`.) -/
+theorem allows_mono {A W : 𝒞} {S T : Subobject 𝒞 A} (hle : S.le T) {k : W ⟶ A}
+    (hk : Allows S k) : Allows T k := by
+  obtain ⟨h, hh⟩ := hle; obtain ⟨u, hu⟩ := hk
+  exact ⟨u ≫ h, by rw [Cat.assoc, hh, hu]⟩
+
+/-- **Isomorphic subobjects have equal classifiers**: if `S ≤ T` and `T ≤ S` then
+    `χ_S = χ_T`.  (The classifier bijection `Sub(−) ≅ Hom(−,Ω)` is well-defined on
+    isomorphism classes.)  Proof: the comparison `h : S.dom → T.dom` (`h ≫ T.arr =
+    S.arr`) transports `T`'s classifier pullback to a classifier pullback for `S`,
+    so `classify_unique` forces `χ_T = χ_S`. -/
+theorem classify_eq_of_le_le {A : 𝒞} {S T : Subobject 𝒞 A}
+    (hST : S.le T) (hTS : T.le S) : subChar S = subChar T := by
+  obtain ⟨h, hh⟩ := hST       -- h ≫ T.arr = S.arr
+  obtain ⟨k, hk⟩ := hTS       -- k ≫ S.arr = T.arr
+  -- h, k are mutually inverse (monic cancellation).
+  have hkh : k ≫ h = Cat.id T.dom :=
+    T.monic _ _ (by rw [Cat.assoc, hh, hk, Cat.id_comp])
+  have hhk : h ≫ k = Cat.id S.dom :=
+    S.monic _ _ (by rw [Cat.assoc, hk, hh, Cat.id_comp])
+  -- χ_S classifies T.arr: exhibit T.arr as pullback of t along χ_S.
+  refine HasSubobjectClassifier.classify_unique T.arr T.monic (subChar S) ?_ ?_
+  · -- T.arr ≫ χ_S = (k ≫ S.arr) ≫ χ_S = k ≫ (term ≫ true) = term ≫ true.
+    have sqS : S.arr ≫ subChar S = term S.dom ≫ HasSubobjectClassifier.true :=
+      HasSubobjectClassifier.classify_sq S.arr S.monic
+    calc T.arr ≫ subChar S = (k ≫ S.arr) ≫ subChar S := by rw [hk]
+      _ = k ≫ (S.arr ≫ subChar S) := Cat.assoc _ _ _
+      _ = k ≫ (term S.dom ≫ HasSubobjectClassifier.true) := by rw [sqS]
+      _ = (k ≫ term S.dom) ≫ HasSubobjectClassifier.true := (Cat.assoc _ _ _).symm
+      _ = term T.dom ≫ HasSubobjectClassifier.true := by
+            rw [term_uniq (k ≫ term S.dom) (term T.dom)]
+  · -- pullback: transport S's classifier pullback along the iso h.
+    intro d
+    obtain ⟨u, ⟨hu₁, hu₂⟩, huu⟩ :=
+      HasSubobjectClassifier.classify_pullback S.arr S.monic d
+    -- u : d.pt → S.dom with u ≫ S.arr = d.π₁.  Then u ≫ k? no — map into T.dom via u ≫ h...
+    -- wait: classify_pullback for S gives cone over (χ_S, true); d is such a cone. u≫S.arr=d.π₁.
+    refine ⟨u ≫ h, ⟨?_, ?_⟩, ?_⟩
+    · rw [Cat.assoc, hh]; exact hu₁
+    · exact term_uniq _ _
+    · intro v hv₁ _
+      -- v ≫ T.arr = d.π₁ ⟹ (v ≫ k) ≫ S.arr = d.π₁, so v ≫ k = u, so v = u ≫ h.
+      have hvkS : (v ≫ k) ≫ S.arr = d.π₁ := by
+        calc (v ≫ k) ≫ S.arr = v ≫ (k ≫ S.arr) := Cat.assoc _ _ _
+          _ = v ≫ T.arr := congrArg (v ≫ ·) hk
+          _ = d.π₁ := hv₁
+      have hvk : v ≫ k = u := huu (v ≫ k) hvkS (term_uniq _ _)
+      calc v = v ≫ Cat.id T.dom := (Cat.comp_id v).symm
+        _ = v ≫ (k ≫ h) := by rw [hkh]
+        _ = (v ≫ k) ≫ h := (Cat.assoc _ _ _).symm
+        _ = u ≫ h := by rw [hvk]
+
+/-- **§1.914 (⇒-ADJUNCTION, the keystone)**: the Heyting implication is the relative
+    pseudocomplement — `X ≤ (S ⇒ T)` iff `S ∩ X ≤ T`, for all `X ⊆ A`.
+
+    Both directions reduce, via the membership/order bridges, to the pointwise
+    double-arrow UMP (`mem_imp_iff`: `X ≤ S⇒T` ⟺ `χ_S` and `χ_S∧χ_T` agree along
+    `X.arr`) and the meet UMP (`meet_true_iff_and`).  Forward transports the
+    agreement along the inclusion `S ∩ X → A`; backward classifies the two sides
+    over `X.dom` as `X#S` and `X#S ∩ X#T` and uses that `S∩X ≤ T` makes the
+    canonical point of `X#S` land in `T` (hence in `X#T`). -/
+theorem imp_adjunction {A : 𝒞} (S T X : Subobject 𝒞 A)
+    (hp : HasPullback S.arr X.arr) :
+    X.le (Sub.imp S T) ↔ (Sub.inter S X hp).le T := by
+  -- Abbreviations (mathlib-free: plain `let` + `rfl` equalities).
+  let χS := subChar S
+  let χT := subChar T
+  let M : A ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞) := pair χS χT ≫ omegaMeet
+  have hχS : χS = subChar S := rfl
+  have hχT : χT = subChar T := rfl
+  have hM : M = pair χS χT ≫ omegaMeet := rfl
+  -- LHS via the order bridge + mem_imp_iff: X.arr ≫ χS = X.arr ≫ M.
+  have hLHS : X.le (Sub.imp S T) ↔ X.arr ≫ χS = X.arr ≫ M := by
+    rw [le_iff_classify]
+    exact mem_imp_iff S T X.arr
+  rw [hLHS]
+  -- `c := (S∩X).arr`, with the two factorings c = π₁≫S.arr = π₂≫X.arr.
+  let c := (Sub.inter S X hp).arr
+  have hcS : c = hp.cone.π₁ ≫ S.arr := rfl
+  have hcX : c = hp.cone.π₂ ≫ X.arr := hp.cone.w
+  -- membership facts about c.
+  have hcInS : c ≫ χS = term (Sub.inter S X hp).dom ≫ HasSubobjectClassifier.true :=
+    (allows_iff_classify S c).1 ⟨hp.cone.π₁, hcS.symm⟩
+  have hcInX : c ≫ subChar X = term (Sub.inter S X hp).dom ≫ HasSubobjectClassifier.true :=
+    (allows_iff_classify X c).1 ⟨hp.cone.π₂, hcX.symm⟩
+  constructor
+  · -- FORWARD: X.arr ≫ χS = X.arr ≫ M ⟹ (S∩X) ≤ T.
+    intro hagree
+    rw [le_iff_classify]
+    -- c ≫ M = c ≫ χS (transport hagree along π₂) = term ≫ true.
+    have hcM : c ≫ M = term (Sub.inter S X hp).dom ≫ HasSubobjectClassifier.true := by
+      calc c ≫ M = (hp.cone.π₂ ≫ X.arr) ≫ M := by rw [hcX]
+        _ = hp.cone.π₂ ≫ (X.arr ≫ M) := Cat.assoc _ _ _
+        _ = hp.cone.π₂ ≫ (X.arr ≫ χS) := by rw [hagree]
+        _ = (hp.cone.π₂ ≫ X.arr) ≫ χS := (Cat.assoc _ _ _).symm
+        _ = c ≫ χS := by rw [hcX]
+        _ = term (Sub.inter S X hp).dom ≫ HasSubobjectClassifier.true := hcInS
+    -- meet UMP: c ≫ M = term ≫ true gives c ≫ χT = term ≫ true.
+    exact ((meet_true_iff_and χS χT c).1 hcM).2
+  · -- BACKWARD: (S∩X) ≤ T ⟹ X.arr ≫ χS = X.arr ≫ M.
+    intro hle
+    -- Classify both sides over X.dom; show they classify X#S as a subobject.
+    -- ρ := pullback (X.arr, S.arr); X#S has arr = ρ.π₁ : ρ.pt → X.dom.
+    let ρ := HasPullbacks.has X.arr S.arr
+    let XS : Subobject 𝒞 X.dom := invImg X.arr S ρ
+    have hXSarr : XS.arr = ρ.cone.π₁ := rfl
+    -- χ_{X#S} = X.arr ≫ χS  (classify_invImg).
+    have hχXS : subChar XS = X.arr ≫ χS := classify_invImg X.arr S ρ
+    -- The canonical point `p := XS.arr ≫ X.arr : XS.dom → A` lands in S∩X.
+    -- p = ρ.π₁ ≫ X.arr = ρ.π₂ ≫ S.arr (ρ.cone.w), so it factors through both.
+    have hwρ : ρ.cone.π₂ ≫ S.arr = ρ.cone.π₁ ≫ X.arr := ρ.cone.w.symm
+    have hpt : Allows (Sub.inter S X hp) (XS.arr ≫ X.arr) := by
+      refine ⟨hp.lift ⟨ρ.cone.pt, ρ.cone.π₂, ρ.cone.π₁, hwρ⟩, ?_⟩
+      -- (S∩X).arr = hp.π₁ ≫ S.arr;  lift ≫ hp.π₁ = ρ.π₂.
+      show hp.lift ⟨ρ.cone.pt, ρ.cone.π₂, ρ.cone.π₁, hwρ⟩ ≫ (hp.cone.π₁ ≫ S.arr)
+          = XS.arr ≫ X.arr
+      calc hp.lift ⟨ρ.cone.pt, ρ.cone.π₂, ρ.cone.π₁, hwρ⟩ ≫ (hp.cone.π₁ ≫ S.arr)
+          = (hp.lift ⟨ρ.cone.pt, ρ.cone.π₂, ρ.cone.π₁, hwρ⟩ ≫ hp.cone.π₁) ≫ S.arr :=
+            (Cat.assoc _ _ _).symm
+        _ = ρ.cone.π₂ ≫ S.arr := by rw [hp.lift_fst]
+        _ = ρ.cone.π₁ ≫ X.arr := hwρ
+        _ = XS.arr ≫ X.arr := by rw [hXSarr]
+    -- hle transports p into T, so XS ≤ X#T over X.dom.
+    have hptT : Allows T (XS.arr ≫ X.arr) := allows_mono hle hpt
+    -- Repackage: XS.arr ≫ (X.arr ≫ χT) = term ≫ true, i.e. `XS ≤ X#T`.
+    have hXSinXT : XS.arr ≫ (X.arr ≫ χT) = term XS.dom ≫ HasSubobjectClassifier.true := by
+      obtain ⟨u, hu⟩ := hptT
+      have sqT : T.arr ≫ χT = term T.dom ≫ HasSubobjectClassifier.true :=
+        HasSubobjectClassifier.classify_sq T.arr T.monic
+      calc XS.arr ≫ (X.arr ≫ χT) = (XS.arr ≫ X.arr) ≫ χT := (Cat.assoc _ _ _).symm
+        _ = (u ≫ T.arr) ≫ χT := by rw [hu]
+        _ = u ≫ (T.arr ≫ χT) := Cat.assoc _ _ _
+        _ = u ≫ (term T.dom ≫ HasSubobjectClassifier.true) := by rw [sqT]
+        _ = (u ≫ term T.dom) ≫ HasSubobjectClassifier.true := (Cat.assoc _ _ _).symm
+        _ = term XS.dom ≫ HasSubobjectClassifier.true := by
+              rw [term_uniq (u ≫ term T.dom) (term XS.dom)]
+    -- Goal: X.arr ≫ χS = X.arr ≫ M.  Both classify XS over X.dom; collapse via le_le.
+    -- M-side over X.dom: X.arr ≫ M = pair (X.arr≫χS) (X.arr≫χT) ≫ ∧ = χ_{XS ∩ X#T}.
+    let XT : Subobject 𝒞 X.dom := invImg X.arr T (HasPullbacks.has X.arr T.arr)
+    have hχXT : subChar XT = X.arr ≫ χT := classify_invImg X.arr T _
+    -- XS ≤ X#T (from hXSinXT) and X#T ≤ ... ; we only need XS ≤ XS∩XT and back.
+    have hXS_le_XT : XS.le XT := by
+      rw [le_iff_classify]
+      show XS.arr ≫ subChar XT = term XS.dom ≫ HasSubobjectClassifier.true
+      rw [hχXT]; exact hXSinXT
+    -- Hence XS ∩ XT ≅ XS (glb + inter_le_left).
+    let hpXT := HasPullbacks.has XS.arr XT.arr
+    have hInterEq : (Sub.inter XS XT hpXT).le XS ∧ XS.le (Sub.inter XS XT hpXT) :=
+      ⟨Sub.inter_le_left XS XT hpXT,
+       Sub.inter_glb XS XT XS hpXT ⟨Cat.id XS.dom, Cat.id_comp _⟩ hXS_le_XT⟩
+    have hcharInter : subChar (Sub.inter XS XT hpXT) = subChar XS :=
+      classify_eq_of_le_le hInterEq.1 hInterEq.2
+    -- Now: X.arr ≫ M = pair (χ_XS) (χ_XT) ≫ ∧ = χ_{XS ∩ XT} = χ_XS = X.arr ≫ χS.
+    have hMpb : X.arr ≫ M = pair (subChar XS) (subChar XT) ≫ omegaMeet := by
+      rw [hM]
+      calc X.arr ≫ (pair χS χT ≫ omegaMeet)
+          = (X.arr ≫ pair χS χT) ≫ omegaMeet := (Cat.assoc _ _ _).symm
+        _ = pair (X.arr ≫ χS) (X.arr ≫ χT) ≫ omegaMeet := by
+              rw [pair_uniq (X.arr ≫ χS) (X.arr ≫ χT) (X.arr ≫ pair χS χT)
+                    (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])]
+        _ = pair (subChar XS) (subChar XT) ≫ omegaMeet := by rw [hχXS, hχXT]
+    calc X.arr ≫ χS
+        = subChar XS := hχXS.symm
+      _ = subChar (Sub.inter XS XT hpXT) := hcharInter.symm
+      _ = pair (subChar XS) (subChar XT) ≫ omegaMeet :=
+            (omegaMeet_classifies_inter XS XT hpXT).symm
+      _ = X.arr ≫ M := hMpb.symm
+
+/-! ### §1.914  The Heyting double-arrow `S ⇔ u` on `Sub(A)` and `φ³ = φ` -/
+
+/-- **Subobject equality** = mutual `≤`.  `Sub(A)` is a preorder; this is the
+    induced equivalence (anti-symmetry up to isomorphism). -/
+def Sub.equiv {A : 𝒞} (S T : Subobject 𝒞 A) : Prop := S.le T ∧ T.le S
+
+/-- `Sub.le` is reflexive. -/
+theorem Sub.le_refl {A : 𝒞} (S : Subobject 𝒞 A) : S.le S := ⟨Cat.id S.dom, Cat.id_comp _⟩
+
+/-- `Sub.le` is transitive. -/
+theorem Sub.le_trans {A : 𝒞} {S T U : Subobject 𝒞 A} (h₁ : S.le T) (h₂ : T.le U) : S.le U := by
+  obtain ⟨a, ha⟩ := h₁; obtain ⟨b, hb⟩ := h₂
+  exact ⟨a ≫ b, by rw [Cat.assoc, hb, ha]⟩
+
+/-- **Leibniz characterization of subobject equality**: `S ≃ T` iff they have the
+    same lower set (same predecessors).  This reduces equalities of Heyting terms to
+    equivalences of their membership predicates `· ≤ S ↔ · ≤ T`. -/
+theorem Sub.equiv_iff_forall_le {A : 𝒞} (S T : Subobject 𝒞 A) :
+    Sub.equiv S T ↔ ∀ X : Subobject 𝒞 A, X.le S ↔ X.le T := by
+  constructor
+  · rintro ⟨hST, hTS⟩ X
+    exact ⟨fun h => Sub.le_trans h hST, fun h => Sub.le_trans h hTS⟩
+  · intro h
+    exact ⟨(h S).1 (Sub.le_refl S), (h T).2 (Sub.le_refl T)⟩
+
+/-- The Heyting double-arrow `S ⇔ u` as a subobject of `A`: the monic classified by
+    `⟨χ_S, χ_u⟩ ≫ heytingDoubleArrow` (the largest subobject where `χ_S = χ_u`). -/
+noncomputable def Sub.dbar {A : 𝒞} (S u : Subobject 𝒞 A) : Subobject 𝒞 A :=
+  ⟨(classify_surjective (pair (subChar S) (subChar u) ≫ heytingDoubleArrow)).choose,
+   (classify_surjective (pair (subChar S) (subChar u) ≫ heytingDoubleArrow)).choose_spec.choose,
+   (classify_surjective (pair (subChar S) (subChar u) ≫ heytingDoubleArrow)).choose_spec.choose_spec.choose⟩
+
+/-- `χ_{S⇔u} = ⟨χ_S,χ_u⟩ ≫ ⇔`. -/
+theorem classify_dbar {A : 𝒞} (S u : Subobject 𝒞 A) :
+    subChar (Sub.dbar S u) = pair (subChar S) (subChar u) ≫ heytingDoubleArrow :=
+  (classify_surjective (pair (subChar S) (subChar u) ≫ heytingDoubleArrow)).choose_spec.choose_spec.choose_spec
+
+/-- **§1.914 (double-arrow membership UMP)**: `X ≤ (S ⇔ u)` iff `χ_S` and `χ_u` agree
+    along `X.arr`.  Immediate from `classify_dbar`, the order bridge, and the
+    pointwise double-arrow UMP `heyting_true_iff_eq`. -/
+theorem mem_dbar_iff {A : 𝒞} (S u X : Subobject 𝒞 A) :
+    X.le (Sub.dbar S u) ↔ X.arr ≫ subChar S = X.arr ≫ subChar u := by
+  rw [le_iff_classify]
+  show X.arr ≫ subChar (Sub.dbar S u) = term X.dom ≫ HasSubobjectClassifier.true
+    ↔ X.arr ≫ subChar S = X.arr ≫ subChar u
+  rw [classify_dbar]
+  exact heyting_true_iff_eq _ _ X.arr
+
+/-- **§1.914 (⇔ is symmetric)**: `(S ⇔ u) ≃ (u ⇔ S)` as subobjects.  Their
+    membership predicates `χ_S = χ_u` and `χ_u = χ_S` along `X.arr` coincide. -/
+theorem dbar_symm {A : 𝒞} (S u : Subobject 𝒞 A) : Sub.equiv (Sub.dbar S u) (Sub.dbar u S) := by
+  rw [Sub.equiv_iff_forall_le]
+  intro X
+  rw [mem_dbar_iff, mem_dbar_iff]
+  exact ⟨Eq.symm, Eq.symm⟩
+
+/-- **§1.914 (Heyting law `⊤ ⇔ c = c`)**: for any `c : W → Ω`,
+    `⟨term ≫ true, c⟩ ≫ ⇔ = c`.  The double-arrow with a constantly-true first
+    component is the identity.  Proof: pick a monic `m` with `c = χ_m`
+    (`classify_surjective`); both `⟨t∘!,c⟩ ≫ ⇔` and `c` make `m` a pullback of `t`
+    (the agreement `m≫(t∘!)=m≫c` holds because both equal `term ≫ true`), so
+    `classify_unique` forces them equal. -/
+theorem true_dbar {W : 𝒞} (c : W ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞)) :
+    pair (term W ≫ HasSubobjectClassifier.true) c ≫ heytingDoubleArrow = c := by
+  obtain ⟨P, m, hm, hmc⟩ := classify_surjective c
+  -- c = χ_m;  show ⟨t∘!,c⟩ ≫ ⇔ = χ_m too, via classify_unique.
+  rw [← hmc]
+  -- abbreviations
+  let χ := HasSubobjectClassifier.classify m hm
+  -- the square: m ≫ (⟨t∘!,χ⟩ ≫ ⇔) = term P ≫ true  (heyting: m≫(t∘!)=m≫χ).
+  have hagm : m ≫ (term W ≫ HasSubobjectClassifier.true) = m ≫ χ := by
+    have sqm : m ≫ χ = term P ≫ HasSubobjectClassifier.true :=
+      HasSubobjectClassifier.classify_sq m hm
+    rw [sqm, ← Cat.assoc, term_uniq (m ≫ term W) (term P)]
+  have hsq : m ≫ (pair (term W ≫ HasSubobjectClassifier.true) χ ≫ heytingDoubleArrow)
+      = term P ≫ HasSubobjectClassifier.true :=
+    (heyting_true_iff_eq (term W ≫ HasSubobjectClassifier.true) χ m).2 hagm
+  refine HasSubobjectClassifier.classify_unique m hm _ hsq ?_
+  intro d
+  -- d.π₁ ≫ (⟨t∘!,χ⟩≫⇔) = term ≫ true  ⟹ (heyting) d.π₁≫(t∘!)=d.π₁≫χ ⟹ d.π₁≫χ=term≫true.
+  have hd : d.π₁ ≫ (pair (term W ≫ HasSubobjectClassifier.true) χ ≫ heytingDoubleArrow)
+      = term d.pt ≫ HasSubobjectClassifier.true := by
+    rw [d.w, term_uniq d.π₂ (term d.pt)]
+  have hag : d.π₁ ≫ (term W ≫ HasSubobjectClassifier.true) = d.π₁ ≫ χ :=
+    (heyting_true_iff_eq (term W ≫ HasSubobjectClassifier.true) χ d.π₁).1 hd
+  have hdχ : d.π₁ ≫ χ = term d.pt ≫ HasSubobjectClassifier.true := by
+    rw [← hag, ← Cat.assoc, term_uniq (d.π₁ ≫ term W) (term d.pt)]
+  obtain ⟨e, ⟨he₁, _⟩, heu⟩ :=
+    HasSubobjectClassifier.classify_pullback m hm ⟨d.pt, d.π₁, term d.pt, hdχ⟩
+  exact ⟨e, ⟨he₁, term_uniq _ _⟩, fun v hv₁ _ => heu v hv₁ (term_uniq _ _)⟩
+
+/-- **§1.914 (⇔ unit)**: `S ≤ ((S ⇔ u) ⇔ u)` — `s ≤ (s⇔u)⇔u`.  Along `S.arr`, `χ_S`
+    is constantly true, so `S⇔u` reduces to `u` (`true_dbar`); hence `χ_{S⇔u}` and
+    `χ_u` agree along `S.arr`, which is exactly `S ≤ (S⇔u)⇔u` by `mem_dbar_iff`. -/
+theorem dbar_unit {A : 𝒞} (S u : Subobject 𝒞 A) : S.le (Sub.dbar (Sub.dbar S u) u) := by
+  rw [mem_dbar_iff]
+  -- Goal: S.arr ≫ χ_{S⇔u} = S.arr ≫ χ_u.
+  rw [classify_dbar]
+  -- S.arr ≫ (⟨χS,χu⟩ ≫ ⇔) = ⟨S.arr≫χS, S.arr≫χu⟩ ≫ ⇔ = ⟨term≫true, S.arr≫χu⟩ ≫ ⇔ = S.arr≫χu.
+  have hSt : S.arr ≫ subChar S = term S.dom ≫ HasSubobjectClassifier.true :=
+    HasSubobjectClassifier.classify_sq S.arr S.monic
+  calc S.arr ≫ (pair (subChar S) (subChar u) ≫ heytingDoubleArrow)
+      = (S.arr ≫ pair (subChar S) (subChar u)) ≫ heytingDoubleArrow := (Cat.assoc _ _ _).symm
+    _ = pair (S.arr ≫ subChar S) (S.arr ≫ subChar u) ≫ heytingDoubleArrow := by
+          rw [pair_uniq (S.arr ≫ subChar S) (S.arr ≫ subChar u) (S.arr ≫ pair (subChar S) (subChar u))
+                (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])]
+    _ = pair (term S.dom ≫ HasSubobjectClassifier.true) (S.arr ≫ subChar u) ≫ heytingDoubleArrow := by
+          rw [hSt]
+    _ = S.arr ≫ subChar u := true_dbar (S.arr ≫ subChar u)
+
+/-- **§1.914 (Ω-extensionality)**: two maps `χ₁ χ₂ : W → Ω` are equal iff they have
+    the same `⊤`-pattern at every stage: `∀ V (k : V → W), k ≫ χ₁ = ⊤ ↔ k ≫ χ₂ = ⊤`.
+    (This is the subobject-classifier `Sub(−) ≅ Hom(−,Ω)` bijection, made into a
+    pointwise extensionality principle.)  It lets us prove map equalities in `Ω` by
+    comparing membership predicates — the engine for the Heyting laws. -/
+theorem omega_ext {W : 𝒞} (χ₁ χ₂ : W ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞))
+    (h : ∀ {V : 𝒞} (k : V ⟶ W),
+      k ≫ χ₁ = term V ≫ HasSubobjectClassifier.true
+        ↔ k ≫ χ₂ = term V ≫ HasSubobjectClassifier.true) :
+    χ₁ = χ₂ := by
+  obtain ⟨P₁, m₁, hm₁, h₁⟩ := classify_surjective χ₁
+  obtain ⟨P₂, m₂, hm₂, h₂⟩ := classify_surjective χ₂
+  -- The two monics have the same points, so each ≤ the other; equal classifiers.
+  have hsq₁ : m₁ ≫ χ₁ = term P₁ ≫ HasSubobjectClassifier.true := by
+    rw [← h₁]; exact HasSubobjectClassifier.classify_sq m₁ hm₁
+  have hsq₂ : m₂ ≫ χ₂ = term P₂ ≫ HasSubobjectClassifier.true := by
+    rw [← h₂]; exact HasSubobjectClassifier.classify_sq m₂ hm₂
+  let S₁ : Subobject 𝒞 W := ⟨P₁, m₁, hm₁⟩
+  let S₂ : Subobject 𝒞 W := ⟨P₂, m₂, hm₂⟩
+  have h12 : S₁.le S₂ := (allows_iff_classify S₂ m₁).2 (by
+    rw [show HasSubobjectClassifier.classify S₂.arr S₂.monic = χ₂ from h₂]
+    exact (h m₁).1 hsq₁)
+  have h21 : S₂.le S₁ := (allows_iff_classify S₁ m₂).2 (by
+    rw [show HasSubobjectClassifier.classify S₁.arr S₁.monic = χ₁ from h₁]
+    exact (h m₂).2 hsq₂)
+  have := classify_eq_of_le_le h12 h21
+  -- subChar S₁ = χ₁, subChar S₂ = χ₂.
+  rw [show subChar S₁ = χ₁ from h₁, show subChar S₂ = χ₂ from h₂] at this
+  exact this
+
+/-- **§1.914 (`c ⇔ c = ⊤`)**: `⟨c,c⟩ ≫ ⇔ = term ≫ true` — the double-arrow of a map
+    with itself is constantly true (everything agrees with itself).  Immediate from
+    `heyting_true_iff_eq` (the agreement `id ≫ c = id ≫ c` is trivial) and
+    classifier injectivity via `omega_ext`. -/
+theorem dbar_refl_top {W : 𝒞} (c : W ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞)) :
+    pair c c ≫ heytingDoubleArrow = term W ≫ HasSubobjectClassifier.true := by
+  refine omega_ext _ _ (fun {V} k => ?_)
+  rw [show k ≫ (pair c c ≫ heytingDoubleArrow)
+        = k ≫ (pair c c ≫ heytingDoubleArrow) from rfl]
+  constructor
+  · intro _; rw [← Cat.assoc, term_uniq (k ≫ term W) (term V)]
+  · intro _; exact (heyting_true_iff_eq c c k).2 rfl
+
+/-- Precomposition distributes over the double-arrow: `k ≫ (⟨x,y⟩ ≫ ⇔)
+    = ⟨k≫x, k≫y⟩ ≫ ⇔`.  (Naturality of the binary operation in the stage.) -/
+theorem comp_dbar {V W : 𝒞} (k : V ⟶ W)
+    (x y : W ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞)) :
+    k ≫ (pair x y ≫ heytingDoubleArrow)
+      = pair (k ≫ x) (k ≫ y) ≫ heytingDoubleArrow := by
+  rw [← Cat.assoc,
+    pair_uniq (k ≫ x) (k ≫ y) (k ≫ pair x y)
+      (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])]
+
+-- NOTE (§1.914, `φ³ = φ` residual).  The Heyting cube law
+--   `Sub.equiv (Sub.dbar (Sub.dbar (Sub.dbar S u) u) u) (Sub.dbar S u)`
+-- (with `φ S := S ⇔ u`) is the algebraic heart of §1.919.  Its EASY half
+-- `φ S ≤ φ³ S` is exactly `dbar_unit (Sub.dbar S u) u` (proven).  The hard half
+-- `φ³ S ≤ φ S` reduces, via `mem_dbar_iff` + `comp_dbar` on `e := (φ³S).arr` and the
+-- single self-agreement `e ≫ χ_{φ²S} = e ≫ χu`, to the propositional implication
+--   `((c ⇔ b) ⇔ b = b) → c = b`   (c := e≫χS, b := e≫χu).
+-- That single self-agreement is NOT sufficient (in the 3-element Heyting chain with
+-- `b = m` it admits `c = ⊤ ≠ b`); the genuine proof needs the FULL universal property
+-- of `e` (largest subobject where `χ_{φ²S}=χu`) — equivalently the closure-operator
+-- structure of `φ² = (·⇔u)⇔u` — which routes through the `⇒`-laws derived from
+-- `imp_adjunction`.  Deliberately left unfinished rather than faked; the reusable
+-- infra (`true_dbar`, `dbar_refl_top`, `dbar_unit`, `dbar_symm`, `omega_ext`,
+-- `comp_dbar`, the ⇒-adjunction) is all sorry-free above.
+
 /-- **§1.919 (reduction)**: an endomorphism `h : Ω → Ω` equals the identity as
     soon as `t : 1 → Ω` is a pullback of `t` along `h` — i.e. `Ω` is "`h`-large in
     itself" (`h` classifies the maximal subobject `t : 1 → Ω`).
