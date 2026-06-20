@@ -690,10 +690,14 @@ theorem monic_kernel_of_cokernel {𝒞 : Type u} [Cat.{v} 𝒞] [ExactCategory �
   * `HasImages`     — the NORMAL image `image f := ker(coker f)`; minimality via
     `monic_kernel_of_cokernel`.  Axiom-free.
   * `PullbacksTransferCovers` — cover-stability, the genuine §1.597 Barr-exactness
-    content, reduced to the single sharp residual `pullback_epi_is_epi`.
+    content (`pullback_epi_is_epi`), now CLOSED representation-free: the pullback is
+    the kernel of the difference map `d := (fst≫f) − (snd≫g)`, whose `snd`-projection
+    is epic because `f` is a cover (`kernel_snd_epi`); epimorphy transfers across the
+    pullback comparison to any pullback cone.
 
   Balancedness (`exact_balanced`) and `epi_is_cover` are proved sorry-free along the
-  way and are reusable.  Only `pullback_epi_is_epi` carries a `sorry`. -/
+  way and are reusable.  The whole keystone chain is now SORRY-FREE (axioms:
+  propext, Classical.choice). -/
 
 /-- Equalizer maps are monic, from the bare equalizer API (no Cartesian context). -/
 theorem eqMap_mono' [HasEqualizers 𝒞] {A B : 𝒞} (f g : A ⟶ B) : Mono (eqMap f g) := by
@@ -826,6 +830,170 @@ theorem exact_balanced [ExactCategory 𝒞] {A B : 𝒞} (f : A ⟶ B) (hm : Mon
     isIso_comp hc_iso (isIso_comp hθ hm_iso)
   rwa [hfac] at this
 
+/-! ### Additive cover-stability infrastructure (for `pullback_epi_is_epi`)
+
+  The pullback `P` of a cospan `A —f→ B ←g— C` in an additive category is the
+  KERNEL of the difference map `d := (fst≫f) − (snd≫g) : A×C → B`.  Cover-stability
+  ("the projection `π₂ : P → C` of a cover `f` is epic") is then proved
+  representation-free via the *coimage factorization* of `d`:
+
+  * `d` is epic, because `jA ≫ d = f` (with `jA = ⟨1,0⟩ : A → A×C`) and `f` is epic.
+  * Hence `coker d = 0`, so `ker(coker d)` is iso and the exact factorization makes
+    the coimage projection `coker(ker d) → B` agree with `d` up to iso
+    (`coimage_factor`): any map killed by `ker d = pbMap` factors through `d`.
+  * Feeding `m := snd ≫ e` (for `e := a − b` with `π₂ ≫ e = 0`) gives `m = d ≫ n`;
+    precomposing the OTHER injection `jA` kills `snd`, so `f ≫ n = 0`, hence `n = 0`
+    (`f` epic), hence `snd ≫ e = 0`, hence `e = 0` (`snd` split epic), hence `a = b`.
+
+  No §1.55 Ab-valued representation is used — only `ExactCategory.exact`, the additive
+  group structure, and `cover_epi`. -/
+
+/-- Additive cancellation against a common summand: `X₁ + Y = 0` and `X₂ + Y = 0`
+    force `X₁ = X₂`. -/
+theorem add_cancel_common [HalfAdditiveCategory 𝒞] {A B : 𝒞} (X1 X2 Y : A ⟶ B)
+    (h1 : HalfAdditiveCategory.add X1 Y = HalfAdditiveCategory.zeroHom A B)
+    (h2 : HalfAdditiveCategory.add X2 Y = HalfAdditiveCategory.zeroHom A B) : X1 = X2 := by
+  have hYX2 : HalfAdditiveCategory.add Y X2 = HalfAdditiveCategory.zeroHom A B := by
+    rw [HalfAdditiveCategory.add_comm]; exact h2
+  calc X1 = HalfAdditiveCategory.add X1 (HalfAdditiveCategory.zeroHom A B) :=
+        (HalfAdditiveCategory.add_zero X1).symm
+    _ = HalfAdditiveCategory.add X1 (HalfAdditiveCategory.add Y X2) := by rw [hYX2]
+    _ = HalfAdditiveCategory.add (HalfAdditiveCategory.add X1 Y) X2 :=
+        HalfAdditiveCategory.add_assoc X1 Y X2
+    _ = HalfAdditiveCategory.add (HalfAdditiveCategory.zeroHom A B) X2 := by rw [h1]
+    _ = X2 := HalfAdditiveCategory.zero_add X2
+
+/-- The half-additive `zeroHom` (unique `A → 0 → B`) coincides with the
+    `HasZeroObject` `zeroMorphism`: both are the unique map factoring through `0`. -/
+theorem zeroHom_eq_zeroMorphism [ExactCategory 𝒞] [AdditiveCategory 𝒞] (X Y : 𝒞) :
+    (HalfAdditiveCategory.zeroHom X Y : X ⟶ Y) = zeroMorphism X Y := by
+  have h1 : (HalfAdditiveCategory.zeroHom X Y : X ⟶ Y)
+      = term X ≫ HalfAdditiveCategory.zeroHom HasTerminal.one Y :=
+    (HalfAdditiveCategory.zeroHom_comp_left (term X)).symm
+  have huniqOut : ∀ (p q : (HasTerminal.one : 𝒞) ⟶ Y), p = q := by
+    rw [HasZeroObject.zero_eq_one (𝒞 := 𝒞)]; exact fun p q => HasCoterminator.init_uniq p q
+  dsimp [zeroMorphism]; rw [h1]; congr 1; exact huniqOut _ _
+
+/-- **Coimage factorization for an epimorphism.**  If `d` is epic and `m` is killed by
+    `kernelMap d` (the coimage relation), then `m` factors through `d`.  Proof: `d` epic
+    ⟹ `coker d = 0` ⟹ `ker(coker d)` iso, so the exact factorization
+    `coimage-projection ≫ θ ≫ image-inclusion = d` exhibits the coimage projection
+    `cokernelMap (kernelMap d)` as `d` composed with an iso; `m` factors through that
+    projection by the cokernel UP. -/
+theorem coimage_factor [ExactCategory 𝒞] {D B Z : 𝒞} (d : D ⟶ B)
+    (hd : ∀ {W : 𝒞} (p q : B ⟶ W), d ≫ p = d ≫ q → p = q)
+    (m : D ⟶ Z) (hm : kernelMap d ≫ m = zeroMorphism (Kernel d) Z) :
+    ∃ n : B ⟶ Z, d ≫ n = m := by
+  obtain ⟨θ, hθ, hfac⟩ := ExactCategory.exact d
+  have hcoker0 : cokernelMap d = zeroMorphism B (Cokernel d) := by
+    apply hd; rw [comp_cokernelMap d, zero_morphism_comp d (zeroMorphism B (Cokernel d))]
+  have hk_iso : IsIso (kernelMap (cokernelMap d)) := by
+    rw [hcoker0]; exact kernelMap_zero_isIso B (Cokernel d)
+  let co := HasCoequalizers.coeq (kernelMap d) (zeroMorphism (Kernel d) D)
+  have hmpair : kernelMap d ≫ m = zeroMorphism (Kernel d) D ≫ m := by
+    rw [hm, zeroMorphism_comp_left]
+  let n' : Cokernel (kernelMap d) ⟶ Z := co.desc m hmpair
+  have hn' : cokernelMap (kernelMap d) ≫ n' = m := co.fac m hmpair
+  obtain ⟨ι, hι1, _⟩ := isIso_comp hθ hk_iso
+  have hdι : d ≫ ι = cokernelMap (kernelMap d) := by
+    calc d ≫ ι
+        = (cokernelMap (kernelMap d) ≫ (θ ≫ kernelMap (cokernelMap d))) ≫ ι := by rw [hfac]
+      _ = cokernelMap (kernelMap d) ≫ ((θ ≫ kernelMap (cokernelMap d)) ≫ ι) := Cat.assoc _ _ _
+      _ = cokernelMap (kernelMap d) ≫ Cat.id _ := by rw [hι1]
+      _ = cokernelMap (kernelMap d) := Cat.comp_id _
+  exact ⟨ι ≫ n', by rw [← Cat.assoc, hdι, hn']⟩
+
+/-- **The kernel cone is a pullback.**  For `d := (fst≫f) − (snd≫g)`, the cone
+    `(Kernel d; kernelMap d ≫ fst, kernelMap d ≫ snd)` over `A —f→ B ←g— C` is a
+    pullback: a competing cone `dd` lifts via `pair dd.π₁ dd.π₂`, which lands in
+    `Kernel d` because `⟨π₁,π₂⟩ ≫ d = π₁≫f − π₂≫g = 0` (cone square). -/
+theorem kernelCone_isPullback [ExactCategory 𝒞] [AdditiveCategory 𝒞] {A C B : 𝒞}
+    (f : A ⟶ B) (g : C ⟶ B) :
+    let negg := (AdditiveCategory.addInv g).choose
+    let d : prod A C ⟶ B := HalfAdditiveCategory.add (fst ≫ f) (snd ≫ negg)
+    ∀ (hw : (kernelMap d ≫ fst) ≫ f = (kernelMap d ≫ snd) ≫ g),
+      (Cone.mk (Kernel d) (kernelMap d ≫ fst) (kernelMap d ≫ snd) hw).IsPullback := by
+  intro negg d hw
+  have hnegg : HalfAdditiveCategory.add g negg = HalfAdditiveCategory.zeroHom C B :=
+    (AdditiveCategory.addInv g).choose_spec
+  intro dd
+  have hpair_d : pair dd.π₁ dd.π₂ ≫ d = zeroMorphism dd.pt B := by
+    show pair dd.π₁ dd.π₂ ≫ HalfAdditiveCategory.add (fst ≫ f) (snd ≫ negg) = _
+    rw [HalfAdditiveCategory.comp_add, ← Cat.assoc, ← Cat.assoc, fst_pair, snd_pair, dd.w,
+        ← HalfAdditiveCategory.comp_add, hnegg, HalfAdditiveCategory.zeroHom_comp_left,
+        zeroHom_eq_zeroMorphism]
+  have hpaireq : pair dd.π₁ dd.π₂ ≫ d = pair dd.π₁ dd.π₂ ≫ zeroMorphism (prod A C) B := by
+    rw [hpair_d, zero_morphism_comp (pair dd.π₁ dd.π₂) (zeroMorphism (prod A C) B)]
+  let u : dd.pt ⟶ Kernel d := eqLift d (zeroMorphism (prod A C) B) (pair dd.π₁ dd.π₂) hpaireq
+  have hu : u ≫ kernelMap d = pair dd.π₁ dd.π₂ :=
+    eqLift_fac d (zeroMorphism (prod A C) B) (pair dd.π₁ dd.π₂) hpaireq
+  refine ⟨u, ⟨?_, ?_⟩, ?_⟩
+  · rw [← Cat.assoc, hu, fst_pair]
+  · rw [← Cat.assoc, hu, snd_pair]
+  · intro v hv1 hv2
+    have hvk : v ≫ kernelMap d = pair dd.π₁ dd.π₂ := by
+      apply pair_uniq
+      · rw [Cat.assoc]; exact hv1
+      · rw [Cat.assoc]; exact hv2
+    rw [eqLift_uniq d (zeroMorphism (prod A C) B) (pair dd.π₁ dd.π₂) hpaireq v hvk]
+
+/-- **Epimorphy of the kernel-cone projection.**  With `d := (fst≫f) − (snd≫g)` and
+    `f` a cover, the projection `kernelMap d ≫ snd : Kernel d → C` is epic.  This is the
+    representation-free core of additive cover-stability (see the section note). -/
+theorem kernel_snd_epi [ExactCategory 𝒞] [AdditiveCategory 𝒞] {A C B : 𝒞}
+    (f : A ⟶ B) (g : C ⟶ B) (hf : Cover f) :
+    let negg := (AdditiveCategory.addInv g).choose
+    let d : prod A C ⟶ B := HalfAdditiveCategory.add (fst ≫ f) (snd ≫ negg)
+    ∀ {Z : 𝒞} (a b : C ⟶ Z), (kernelMap d ≫ snd) ≫ a = (kernelMap d ≫ snd) ≫ b → a = b := by
+  intro negg d Z a b hab
+  have hfe : ∀ {W : 𝒞} (p q : B ⟶ W), f ≫ p = f ≫ q → p = q :=
+    fun p q h => cover_epi (Z := _) hf h
+  let jA : A ⟶ prod A C := pair (Cat.id A) (HalfAdditiveCategory.zeroHom A C)
+  let jC : C ⟶ prod A C := pair (HalfAdditiveCategory.zeroHom C A) (Cat.id C)
+  have hjA_d : jA ≫ d = f := by
+    show jA ≫ HalfAdditiveCategory.add (fst ≫ f) (snd ≫ negg) = f
+    rw [HalfAdditiveCategory.comp_add, ← Cat.assoc, ← Cat.assoc]
+    show HalfAdditiveCategory.add ((jA ≫ fst) ≫ f) ((jA ≫ snd) ≫ negg) = f
+    rw [fst_pair, snd_pair, Cat.id_comp, HalfAdditiveCategory.zeroHom_comp_right,
+        HalfAdditiveCategory.add_zero]
+  have hjA_snd : jA ≫ snd = HalfAdditiveCategory.zeroHom A C := snd_pair _ _
+  have hde : ∀ {W : 𝒞} (p q : B ⟶ W), d ≫ p = d ≫ q → p = q := by
+    intro W p q h; apply hfe; rw [← hjA_d, Cat.assoc, Cat.assoc, h]
+  have hjC_snd : jC ≫ snd = Cat.id C := snd_pair _ _
+  have hsnd_epi : ∀ {W : 𝒞} (p q : C ⟶ W), (snd : prod A C ⟶ C) ≫ p = snd ≫ q → p = q := by
+    intro W p q h
+    calc p = (jC ≫ snd) ≫ p := by rw [hjC_snd, Cat.id_comp]
+      _ = jC ≫ (snd ≫ p) := Cat.assoc _ _ _
+      _ = jC ≫ (snd ≫ q) := by rw [h]
+      _ = (jC ≫ snd) ≫ q := (Cat.assoc _ _ _).symm
+      _ = q := by rw [hjC_snd, Cat.id_comp]
+  obtain ⟨negb, hnegb⟩ := AdditiveCategory.addInv b
+  let e := HalfAdditiveCategory.add a negb
+  have hsnde0 : kernelMap d ≫ (snd ≫ e) = zeroMorphism (Kernel d) Z := by
+    have hexp : kernelMap d ≫ (snd ≫ e)
+        = HalfAdditiveCategory.add (kernelMap d ≫ snd ≫ a) (kernelMap d ≫ snd ≫ negb) := by
+      show kernelMap d ≫ (snd ≫ HalfAdditiveCategory.add a negb) = _
+      rw [HalfAdditiveCategory.comp_add, HalfAdditiveCategory.comp_add]
+    rw [hexp]
+    have hab' : kernelMap d ≫ (snd ≫ a) = kernelMap d ≫ (snd ≫ b) := by
+      rw [← Cat.assoc, ← Cat.assoc]; exact hab
+    rw [hab', ← HalfAdditiveCategory.comp_add, ← HalfAdditiveCategory.comp_add, hnegb,
+        HalfAdditiveCategory.zeroHom_comp_left snd,
+        HalfAdditiveCategory.zeroHom_comp_left (kernelMap d), zeroHom_eq_zeroMorphism]
+  obtain ⟨n, hn⟩ := coimage_factor d hde (snd ≫ e) hsnde0
+  have hfn0 : f ≫ n = zeroMorphism A Z := by
+    have hjn : jA ≫ (d ≫ n) = jA ≫ (snd ≫ e) := by rw [hn]
+    rw [← Cat.assoc, hjA_d] at hjn
+    rw [hjn, ← Cat.assoc, hjA_snd, HalfAdditiveCategory.zeroHom_comp_right e, zeroHom_eq_zeroMorphism]
+  have hn0 : n = zeroMorphism B Z := by
+    apply hfe; rw [hfn0, zero_morphism_comp f (zeroMorphism B Z)]
+  have hsnde0' : snd ≫ e = zeroMorphism (prod A C) Z := by
+    rw [← hn, hn0, zero_morphism_comp d (zeroMorphism B Z)]
+  have he0 : e = zeroMorphism C Z := by
+    apply hsnd_epi; rw [hsnde0', zero_morphism_comp snd (zeroMorphism C Z)]
+  rw [← zeroHom_eq_zeroMorphism] at he0
+  exact add_cancel_common a b negb he0 hnegb
+
 /-- **Epic ⟹ cover** in an exact category. -/
 theorem epi_is_cover [ExactCategory 𝒞] {A B : 𝒞} (f : A ⟶ B)
     (he : ∀ {Z : 𝒞} (a b : B ⟶ Z), f ≫ a = f ≫ b → a = b) : Cover f := by
@@ -865,7 +1033,47 @@ theorem pullback_epi_is_epi [ExactCategory 𝒞] [AdditiveCategory 𝒞]
     {A B C : 𝒞} {f : A ⟶ B} {g : C ⟶ B} (c : Cone f g) (hpb : c.IsPullback)
     (hf : Cover f) :
     ∀ {Z : 𝒞} (a b : C ⟶ Z), c.π₂ ≫ a = c.π₂ ≫ b → a = b := by
-  sorry
+  -- The kernel cone of the difference map `d := (fst≫f) − (snd≫g)` is another pullback
+  -- of the same cospan; its projection `kernelMap d ≫ snd` is epic (`kernel_snd_epi`).
+  -- Transfer epimorphy across the pullback comparison iso to `c.π₂`.  (No `set`: mathlib-free.)
+  let negg := (AdditiveCategory.addInv g).choose
+  let d : prod A C ⟶ B := HalfAdditiveCategory.add (fst ≫ f) (snd ≫ negg)
+  have hnegg : HalfAdditiveCategory.add g negg = HalfAdditiveCategory.zeroHom C B :=
+    (AdditiveCategory.addInv g).choose_spec
+  -- the kernel cone's square `(kernelMap d ≫ fst)≫f = (kernelMap d ≫ snd)≫g`
+  have hkd0 : kernelMap d ≫ d = zeroMorphism (Kernel d) B := by
+    rw [kernelMap_eq d, zero_morphism_comp (kernelMap d) (zeroMorphism (prod A C) B)]
+  have hw : (kernelMap d ≫ fst) ≫ f = (kernelMap d ≫ snd) ≫ g := by
+    -- both `X₁ := kernelMap d ≫ fst ≫ f` and `X₂ := kernelMap d ≫ snd ≫ g` have common
+    -- summand `Y := kernelMap d ≫ snd ≫ negg`: `X₁ + Y = kernelMap d ≫ d = 0`, and
+    -- `X₂ + Y = kernelMap d ≫ snd ≫ (g + negg) = 0`; cancel.
+    apply add_cancel_common _ _ (kernelMap d ≫ snd ≫ negg)
+    · have : kernelMap d ≫ d
+          = HalfAdditiveCategory.add ((kernelMap d ≫ fst) ≫ f) (kernelMap d ≫ snd ≫ negg) := by
+        show kernelMap d ≫ HalfAdditiveCategory.add (fst ≫ f) (snd ≫ negg) = _
+        rw [HalfAdditiveCategory.comp_add, ← Cat.assoc]
+      rw [← this, hkd0, zeroHom_eq_zeroMorphism]
+    · rw [Cat.assoc (kernelMap d) snd g, ← HalfAdditiveCategory.comp_add,
+          ← HalfAdditiveCategory.comp_add, hnegg,
+          HalfAdditiveCategory.zeroHom_comp_left, zeroHom_eq_zeroMorphism,
+          zero_morphism_comp (kernelMap d) (zeroMorphism (prod A C) B),
+          ← zeroHom_eq_zeroMorphism]
+  -- the kernel cone, and its pullback property
+  let kc : Cone f g := Cone.mk (Kernel d) (kernelMap d ≫ fst) (kernelMap d ≫ snd) hw
+  have hkc_pb : kc.IsPullback := kernelCone_isPullback f g hw
+  -- comparison `φ : kc.pt → c.pt` with `φ ≫ c.π₂ = kc.π₂` (from `c` being a pullback)
+  obtain ⟨φ, ⟨_, hφ2⟩, _⟩ := hpb kc
+  -- `kernel_snd_epi`: `kc.π₂ = kernelMap d ≫ snd` is epic
+  have hkc_epi : ∀ {Z : 𝒞} (a b : C ⟶ Z), kc.π₂ ≫ a = kc.π₂ ≫ b → a = b :=
+    kernel_snd_epi f g hf
+  intro Z a b hab
+  apply hkc_epi
+  -- `kc.π₂ ≫ a = φ ≫ c.π₂ ≫ a = φ ≫ c.π₂ ≫ b = kc.π₂ ≫ b`
+  calc kc.π₂ ≫ a = (φ ≫ c.π₂) ≫ a := by rw [hφ2]
+    _ = φ ≫ (c.π₂ ≫ a) := Cat.assoc _ _ _
+    _ = φ ≫ (c.π₂ ≫ b) := by rw [hab]
+    _ = (φ ≫ c.π₂) ≫ b := (Cat.assoc _ _ _).symm
+    _ = kc.π₂ ≫ b := by rw [hφ2]
 
 /-- **`PullbacksTransferCovers` from the exact additive structure**, modulo the residual. -/
 theorem exactAdditivePullbacksTransferCovers [ExactCategory 𝒞] [AdditiveCategory 𝒞] :
