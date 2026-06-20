@@ -397,4 +397,103 @@ noncomputable instance instHasBinaryCoproductsAb : HasBinaryCoproducts (AbelianG
   case_uniq f g hm h₁ h₂ :=
     Subtype.ext (caseCar_uniq hm.property (congrArg Subtype.val h₁) (congrArg Subtype.val h₂))
 
+/-! ### §1.595 The product/coproduct coincidence — `Ab(𝒞)` is half-additive
+
+  The coproduct and product of `A,B` are the SAME object `prodGObj A B`.  The canonical
+  matrix map `case ⟨id,0⟩ ⟨0,id⟩ : A⊕B → A×B` is, by construction, the copairing of the
+  coproduct injections `inl,inr` — hence the IDENTITY (by the coproduct UMP).  So it is an
+  isomorphism, and the half-additive `add` is the pointwise hom-set sum. -/
+
+/-- The Ab-level zero morphism `A → 0 → B` is the pointwise zero hom `HomAb.zero A B`. -/
+noncomputable def abZeroHom (A B : AbelianGroupObject 𝒞) : A ⟶ B := HomAb.zero A B
+
+/-- The canonical injections `pair ⟨id,0⟩` resp. `pair ⟨0,id⟩` of the product structure are
+    exactly the coproduct injections `inl`, `inr`. -/
+theorem ab_pairIdZero_eq_inl (A B : AbelianGroupObject 𝒞) :
+    pair (Cat.id A) (abZeroHom A B) = (HasBinaryCoproducts.inl : A ⟶ HasBinaryCoproducts.coprod A B) :=
+  rfl
+
+theorem ab_pairZeroId_eq_inr (A B : AbelianGroupObject 𝒞) :
+    pair (abZeroHom B A) (Cat.id B) = (HasBinaryCoproducts.inr : B ⟶ HasBinaryCoproducts.coprod A B) :=
+  rfl
+
+/-- **§1.595 coincidence.**  The matrix map `case ⟨id,0⟩ ⟨0,id⟩ : A⊕B → A×B` equals the
+    identity of the shared carrier `prodGObj A B` — it is the copairing `case inl inr`, which
+    the coproduct UMP forces to be `id`. -/
+theorem ab_coincidence_eq_id (A B : AbelianGroupObject 𝒞) :
+    (HasBinaryCoproducts.case (pair (Cat.id A) (abZeroHom A B)) (pair (abZeroHom B A) (Cat.id B)) :
+        HasBinaryCoproducts.coprod A B ⟶ prod A B)
+      = Cat.id (HasBinaryCoproducts.coprod A B) := by
+  rw [ab_pairIdZero_eq_inl, ab_pairZeroId_eq_inr]
+  -- case inl inr = id, by the coproduct uniqueness applied to `id` (inl≫id=inl, inr≫id=inr).
+  exact (HasBinaryCoproducts.case_uniq HasBinaryCoproducts.inl HasBinaryCoproducts.inr
+    (Cat.id _) (Cat.comp_id _) (Cat.comp_id _)).symm
+
+/-- The coincidence map is an isomorphism (it is the identity). -/
+theorem ab_coincidence_isIso (A B : AbelianGroupObject 𝒞) :
+    IsIso (HasBinaryCoproducts.case (pair (Cat.id A) (abZeroHom A B)) (pair (abZeroHom B A) (Cat.id B)) :
+        HasBinaryCoproducts.coprod A B ⟶ prod A B) := by
+  rw [ab_coincidence_eq_id]
+  exact ⟨Cat.id _, Cat.id_comp _, Cat.id_comp _⟩
+
+/-- Generic: a chosen inverse `Φ⁻¹` of an endomorphism that *is* the identity is itself the
+    identity (so `Φ⁻¹ = id`).  We never rewrite `m` (that would be a dependent-motive error,
+    since `hiso.choose` depends on `m`); instead `choose = choose ≫ id = choose ≫ m = id`,
+    rewriting only the safe `id` factor and then applying `choose_spec`. -/
+private theorem choose_eq_id_of_eq_id {X : 𝒞} {m : X ⟶ X} (hiso : IsIso m)
+    (hm : m = Cat.id X) : hiso.choose = Cat.id X := by
+  -- Over a PLAIN morphism `c` (no dependence on `m`): `m ≫ c = id ∧ m = id ⟹ c = id`.
+  have gen : ∀ c : X ⟶ X, m ≫ c = Cat.id X → c = Cat.id X := fun c hc => by
+    rw [hm, Cat.id_comp] at hc; exact hc
+  exact gen hiso.choose hiso.choose_spec.1
+
+theorem ab_choose_eq_id (A B : AbelianGroupObject 𝒞) :
+    (ab_coincidence_isIso A B).choose = Cat.id (HasBinaryCoproducts.coprod A B) :=
+  choose_eq_id_of_eq_id (ab_coincidence_isIso A B) (ab_coincidence_eq_id A B)
+
+/-- `HomAb.add x y` is the codiagonal route `diag ≫ case x y` (eq. 1.1 with `Φ⁻¹ = id`). -/
+theorem ab_add_eq_diag_case {A B : AbelianGroupObject 𝒞} (x y : A ⟶ B) :
+    HomAb.add x y = diag A ≫ HasBinaryCoproducts.case x y := by
+  apply Subtype.ext
+  -- carrier: ⟨x,y⟩ ≫ B.add  =  diag.val ≫ caseCar x.val y.val.
+  show pair x.val y.val ≫ B.add
+      = (pair (Cat.id A.carrier) (Cat.id A.carrier)) ≫ AbCoprod.caseCar x.val y.val
+  unfold AbCoprod.caseCar
+  rw [← Cat.assoc, aa_pair_precomp]
+  simp only [← Cat.assoc, fst_pair, snd_pair, Cat.id_comp]
+
+/-- `HomAb.add x y` is the diagonal route `pair x y ≫ ∇` (eq. 1.1' with `Φ⁻¹ = id`),
+    where `∇ = case id id`. -/
+theorem ab_add_eq_pair_codiag {A B : AbelianGroupObject 𝒞} (x y : A ⟶ B) :
+    HomAb.add x y = pair x y ≫ HasBinaryCoproducts.case (Cat.id B) (Cat.id B) := by
+  apply Subtype.ext
+  show pair x.val y.val ≫ B.add
+      = (pair x.val y.val) ≫ AbCoprod.caseCar (Cat.id B.carrier) (Cat.id B.carrier)
+  unfold AbCoprod.caseCar
+  rw [← Cat.assoc, aa_pair_precomp]
+  simp only [← Cat.assoc, fst_pair, snd_pair, Cat.comp_id]
+
+/-- **§1.595 KEYSTONE.**  `Ab(𝒞)` is a half-additive category: finite products and
+    coproducts coincide (biproducts), and the induced hom-set addition is the pointwise
+    abelian-group sum `HomAb.add`.  All fields are genuine — `prod_coprod_coincide` is the
+    identity-iso `ab_coincidence_isIso`, and `add_eq_addL/addR` hold because the coincidence
+    inverse `Φ⁻¹` is the identity (`ab_choose_eq_id`). -/
+noncomputable instance instHalfAdditiveAb : HalfAdditiveCategory (AbelianGroupObject 𝒞) where
+  zeroHom := abZeroHom
+  zeroHom_comp_left f := Subtype.ext (by
+    show f.val ≫ (term _ ≫ _) = term _ ≫ _
+    rw [← Cat.assoc, term_uniq (f.val ≫ term _) (term _)])
+  zeroHom_comp_right g := Subtype.ext (by
+    show (term _ ≫ _) ≫ g.val = term _ ≫ _
+    rw [hom_preserves_zero g.property (term _)])
+  prod_coprod_coincide := ab_coincidence_isIso
+  add := HomAb.add
+  add_eq_addL := fun {A B} x y => by
+    rw [ab_add_eq_diag_case, ab_choose_eq_id]
+    rw [Cat.id_comp (HasBinaryCoproducts.case x y)]
+  add_eq_addR := fun {A B} x y => by
+    rw [ab_add_eq_pair_codiag, ab_choose_eq_id,
+        Cat.id_comp (HasBinaryCoproducts.case (Cat.id B) (Cat.id B))]
+    rfl
+
 end Freyd
