@@ -160,15 +160,148 @@ end Effective
     Relationally: `E ≅ relPullback Λ ∈_A` (`powerClassify_pullback_iso`), and equality of
     classifying maps is governed by `powerClassify_unique`.
 
-    This is the SOLE remaining hole of `topos_is_effective`; everything else
-    (`kernelPairRel_postmono`, `image_lift_cover`, `effective_of_quotient_cover`,
-    `topos_is_regular`) is sorry-free.  See `Fredy/EffectiveCore.lean` for the in-progress
-    relation-algebra proof. -/
-theorem kernelPairRel_powerClassify_iso [Topos 𝒞] {A : 𝒞}
-    (E : BinRel 𝒞 A A) (hE : EquivalenceRelation E) :
+    The proof factors through four steps (below): `classify_eq_of_relPullback_iso`
+    (`relPullback a E ≅ relPullback a' E ⟹ a≫Λ = a'≫Λ`, via `powerClassify_natural`
+    + `classify_unique`), `composePoint` (a point of `E⊚E` from two consecutive E-points),
+    `relPullback_relHom_of_rel` (`a E a' ⟹ {x|aEx} ⊆ {x|a'Ex}` using symmetry+transitivity),
+    and `relPullback_iso_of_classify_eq` (the converse bridge).  Direction `E ⊑ level Λ`
+    shows `E.colA≫Λ = E.colB≫Λ` then lifts; direction `level Λ ⊑ E` transports the
+    reflexivity point `(kp₂,kp₂)` across the `relPullback` iso to `(kp₁,kp₂)`. -/
+private theorem classify_eq_of_relPullback_iso [Topos 𝒞] [HasPullbacks 𝒞]
+    [∀ C : 𝒞, HasPowerObject C]
+    {A W : 𝒞} (E : BinRel 𝒞 A A) {a a' : W ⟶ A}
+    (h₁ : RelHom (relPullback a E) (relPullback a' E))
+    (h₂ : RelHom (relPullback a' E) (relPullback a E)) :
+    a ≫ powerClassify E = a' ≫ powerClassify E := by
+  rw [← powerClassify_natural E a, ← powerClassify_natural E a']
+  exact HasPowerObject.is_universal.classify_unique W (relPullback a E) _ _
+    (powerClassify_spec (relPullback a E))
+    ⟨relHom_trans h₁ (powerClassify_spec (relPullback a' E)).1,
+     relHom_trans (powerClassify_spec (relPullback a' E)).2 h₂⟩
+
+/-- A point of `E ⊚ E` over `(x, z)` from witnesses `x E y` and `y E z`. -/
+private theorem composePoint [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
+    {A W : 𝒞} {E : BinRel 𝒞 A A} {x y z : W ⟶ A}
+    (u : W ⟶ E.src) (huA : u ≫ E.colA = x) (huB : u ≫ E.colB = y)
+    (v : W ⟶ E.src) (hvA : v ≫ E.colA = y) (hvB : v ≫ E.colB = z) :
+    ∃ p : W ⟶ (E ⊚ E).src, p ≫ (E ⊚ E).colA = x ∧ p ≫ (E ⊚ E).colB = z := by
+  let pb := HasPullbacks.has E.colB E.colA
+  have hmid : u ≫ E.colB = v ≫ E.colA := by rw [huB, hvA]
+  let q : W ⟶ pb.cone.pt := pb.lift ⟨W, u, v, hmid⟩
+  have hq1 : q ≫ pb.cone.π₁ = u := pb.lift_fst _
+  have hq2 : q ≫ pb.cone.π₂ = v := pb.lift_snd _
+  let sp := pair (pb.cone.π₁ ≫ E.colA) (pb.cone.π₂ ≫ E.colB)
+  refine ⟨q ≫ image.lift sp, ?_, ?_⟩
+  · show (q ≫ image.lift sp) ≫ ((image sp).arr ≫ fst) = x
+    rw [Cat.assoc, ← Cat.assoc (image.lift sp), image.lift_fac]
+    show q ≫ pair (pb.cone.π₁ ≫ E.colA) (pb.cone.π₂ ≫ E.colB) ≫ fst = x
+    rw [fst_pair, ← Cat.assoc, hq1, huA]
+  · show (q ≫ image.lift sp) ≫ ((image sp).arr ≫ snd) = z
+    rw [Cat.assoc, ← Cat.assoc (image.lift sp), image.lift_fac]
+    show q ≫ pair (pb.cone.π₁ ≫ E.colA) (pb.cone.π₂ ≫ E.colB) ≫ snd = z
+    rw [snd_pair, ← Cat.assoc, hq2, hvB]
+
+/-- From `a E a'` and symmetry + transitivity of `E`, `{x | a E x} ⊆ {x | a' E x}`
+    (`a' E a E x ⟹ a' E x`). -/
+private theorem relPullback_relHom_of_rel [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
+    [HasImages 𝒞] {A W : 𝒞} {E : BinRel 𝒞 A A}
+    (hsym : RelHom E (reciprocal E)) (htrans : RelHom (E ⊚ E) E)
+    {a a' : W ⟶ A} (t : W ⟶ E.src) (htA : t ≫ E.colA = a) (htB : t ≫ E.colB = a') :
+    RelHom (relPullback a E) (relPullback a' E) := by
+  obtain ⟨s, hsA, hsB⟩ := hsym
+  simp only [reciprocal] at hsA hsB
+  obtain ⟨τ, hτA, hτB⟩ := htrans
+  let P := HasPullbacks.has a E.colA
+  let P' := HasPullbacks.has a' E.colA
+  let u : P.cone.pt ⟶ E.src := P.cone.π₁ ≫ t ≫ s
+  have huA : u ≫ E.colA = P.cone.π₁ ≫ a' := by
+    show (P.cone.π₁ ≫ t ≫ s) ≫ E.colA = P.cone.π₁ ≫ a'
+    rw [Cat.assoc, Cat.assoc, hsB, htB]
+  have huB : u ≫ E.colB = P.cone.π₁ ≫ a := by
+    show (P.cone.π₁ ≫ t ≫ s) ≫ E.colB = P.cone.π₁ ≫ a
+    rw [Cat.assoc, Cat.assoc, hsA, htA]
+  have hvA : P.cone.π₂ ≫ E.colA = P.cone.π₁ ≫ a := P.cone.w.symm
+  obtain ⟨p, hpA, hpB⟩ := composePoint (E := E)
+    u huA huB P.cone.π₂ hvA rfl
+  let e' : P.cone.pt ⟶ E.src := p ≫ τ
+  have he'A : e' ≫ E.colA = P.cone.π₁ ≫ a' := by
+    show (p ≫ τ) ≫ E.colA = P.cone.π₁ ≫ a'
+    rw [Cat.assoc, hτA, hpA]
+  have he'B : e' ≫ E.colB = P.cone.π₂ ≫ E.colB := by
+    show (p ≫ τ) ≫ E.colB = P.cone.π₂ ≫ E.colB
+    rw [Cat.assoc, hτB, hpB]
+  have hsq : P.cone.π₁ ≫ a' = e' ≫ E.colA := he'A.symm
+  refine ⟨P'.lift ⟨P.cone.pt, P.cone.π₁, e', hsq⟩, P'.lift_fst _, ?_⟩
+  have : P'.lift ⟨P.cone.pt, P.cone.π₁, e', hsq⟩ ≫ P'.cone.π₂ = e' := P'.lift_snd _
+  calc P'.lift ⟨P.cone.pt, P.cone.π₁, e', hsq⟩ ≫ (P'.cone.π₂ ≫ E.colB)
+      = (P'.lift ⟨P.cone.pt, P.cone.π₁, e', hsq⟩ ≫ P'.cone.π₂) ≫ E.colB := (Cat.assoc _ _ _).symm
+    _ = e' ≫ E.colB := by rw [this]
+    _ = P.cone.π₂ ≫ E.colB := he'B
+
+/-- Converse bridge: `a ≫ Λ(E) = a' ≫ Λ(E) ⟹ relPullback a E ≅ relPullback a' E`. -/
+private theorem relPullback_iso_of_classify_eq [Topos 𝒞] [HasPullbacks 𝒞]
+    [∀ C : 𝒞, HasPowerObject C]
+    {A W : 𝒞} (E : BinRel 𝒞 A A) {a a' : W ⟶ A}
+    (heq : a ≫ powerClassify E = a' ≫ powerClassify E) :
+    RelHom (relPullback a E) (relPullback a' E) := by
+  have ea : powerClassify (relPullback a E) = a ≫ powerClassify E := powerClassify_natural E a
+  have ea' : powerClassify (relPullback a' E) = a' ≫ powerClassify E := powerClassify_natural E a'
+  have h1 : RelHom (relPullback a E)
+      (relPullback (powerClassify (relPullback a E)) HasPowerObject.mem) :=
+    (powerClassify_spec (relPullback a E)).1
+  have h2 : RelHom (relPullback (powerClassify (relPullback a' E)) HasPowerObject.mem)
+      (relPullback a' E) := (powerClassify_spec (relPullback a' E)).2
+  rw [ea] at h1; rw [ea', ← heq] at h2
+  exact relHom_trans h1 h2
+
+theorem kernelPairRel_powerClassify_iso [Topos 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
+    [∀ C : 𝒞, HasPowerObject C]
+    {A : 𝒞} (E : BinRel 𝒞 A A) (hE : EquivalenceRelation E) :
     RelLe E (kernelPairRel (powerClassify E)) ∧
     RelLe (kernelPairRel (powerClassify E)) E := by
-  sorry
+  obtain ⟨⟨r, hrA, hrB⟩, ⟨hsym⟩, ⟨htrans⟩⟩ := hE
+  let Λ := powerClassify E
+  obtain ⟨s, hsA0, hsB0⟩ := id hsym
+  simp only [reciprocal] at hsA0 hsB0
+  refine ⟨?_, ?_⟩
+  · have hfwd : RelHom (relPullback E.colA E) (relPullback E.colB E) :=
+      relPullback_relHom_of_rel hsym htrans (Cat.id E.src)
+        (by rw [Cat.id_comp]) (by rw [Cat.id_comp])
+    have hbwd : RelHom (relPullback E.colB E) (relPullback E.colA E) :=
+      relPullback_relHom_of_rel hsym htrans s hsB0 hsA0
+    have hΛeq : E.colA ≫ Λ = E.colB ≫ Λ :=
+      classify_eq_of_relPullback_iso E hfwd hbwd
+    refine ⟨⟨(HasPullbacks.has Λ Λ).lift ⟨E.src, E.colA, E.colB, hΛeq⟩, ?_, ?_⟩⟩
+    · exact (HasPullbacks.has Λ Λ).lift_fst _
+    · exact (HasPullbacks.has Λ Λ).lift_snd _
+  · have hkp : kp₁ (f := Λ) ≫ Λ = kp₂ (f := Λ) ≫ Λ := kp_sq
+    have hiso : RelHom (relPullback (kp₂ (f := Λ)) E) (relPullback (kp₁ (f := Λ)) E) :=
+      relPullback_iso_of_classify_eq E hkp.symm
+    obtain ⟨φ, hφA, hφB⟩ := hiso
+    let P₂ := HasPullbacks.has (kp₂ (f := Λ)) E.colA
+    let P₁ := HasPullbacks.has (kp₁ (f := Λ)) E.colA
+    have hd_sq : Cat.id (kernelPair Λ) ≫ kp₂ (f := Λ) = (kp₂ (f := Λ) ≫ r) ≫ E.colA := by
+      rw [Cat.id_comp, Cat.assoc, hrA, Cat.comp_id]
+    let d : kernelPair Λ ⟶ P₂.cone.pt :=
+      P₂.lift ⟨kernelPair Λ, Cat.id (kernelPair Λ), kp₂ (f := Λ) ≫ r, hd_sq⟩
+    have hd1 : d ≫ P₂.cone.π₁ = Cat.id (kernelPair Λ) := P₂.lift_fst _
+    have hd2 : d ≫ P₂.cone.π₂ = kp₂ (f := Λ) ≫ r := P₂.lift_snd _
+    let g : kernelPair Λ ⟶ P₁.cone.pt := d ≫ φ
+    have hg1 : g ≫ P₁.cone.π₁ = Cat.id (kernelPair Λ) := by
+      show (d ≫ φ) ≫ P₁.cone.π₁ = Cat.id (kernelPair Λ)
+      rw [Cat.assoc]; rw [show φ ≫ P₁.cone.π₁ = P₂.cone.π₁ from hφA, hd1]
+    have hgB : g ≫ (P₁.cone.π₂ ≫ E.colB) = kp₂ (f := Λ) := by
+      show (d ≫ φ) ≫ (P₁.cone.π₂ ≫ E.colB) = kp₂ (f := Λ)
+      rw [Cat.assoc, show φ ≫ (P₁.cone.π₂ ≫ E.colB) = P₂.cone.π₂ ≫ E.colB from hφB,
+          ← Cat.assoc, hd2, Cat.assoc, hrB, Cat.comp_id]
+    refine ⟨⟨g ≫ P₁.cone.π₂, ?_, ?_⟩⟩
+    · show (g ≫ P₁.cone.π₂) ≫ E.colA = kp₁ (f := Λ)
+      calc (g ≫ P₁.cone.π₂) ≫ E.colA = g ≫ (P₁.cone.π₂ ≫ E.colA) := Cat.assoc _ _ _
+        _ = g ≫ (P₁.cone.π₁ ≫ kp₁ (f := Λ)) := by rw [P₁.cone.w]
+        _ = (g ≫ P₁.cone.π₁) ≫ kp₁ (f := Λ) := (Cat.assoc _ _ _).symm
+        _ = kp₁ (f := Λ) := by rw [hg1, Cat.id_comp]
+    · show (g ≫ P₁.cone.π₂) ≫ E.colB = kp₂ (f := Λ)
+      rw [Cat.assoc]; exact hgB
 
 /-- **§1.951**: A topos is effective: every equivalence relation on any object is
     the level of some cover (i.e., is effective in the sense of §1.568).
@@ -330,11 +463,12 @@ noncomputable def preTopos_rtc_has_coequalizers [inst : PreTopos 𝒞]
     **Sharpened blocker (faithful Sorry — effectiveness now CLOSED).**  Of the two
     ingredients `preTopos_rtc_has_coequalizers` needs, (1) is now DONE and only (2) remains:
 
-      (1) `PreTopos 𝒞` = `EffectiveRegular 𝒞` + `PositivePreLogos 𝒞` — NOW AVAILABLE.
-          `topos_is_effective` (above) is sorry-free modulo the single tabulation lemma
-          `kernelPairRel_powerClassify_iso`; `PositivePreLogos` = `PreLogos` (`toposPreLogos`)
-          + `HasBinaryCoproducts` (`topos_is_positive`, sorry-free).  So `PreTopos 𝒞`
-          assembles.
+      (1) `PreTopos 𝒞` = `EffectiveRegular 𝒞` + `PositivePreLogos 𝒞` — NOW ASSEMBLABLE.
+          `topos_is_effective` (above) is SORRY-FREE (axioms `[propext, Classical.choice]`);
+          its `EffectiveRegular 𝒞` resolves by `inferInstance`.  `PositivePreLogos` =
+          `PreLogos` (`toposPreLogos`) + `HasBinaryCoproducts` (`topos_is_positive`,
+          sorry-free), both in scope.  (Not registered as a global `PreTopos 𝒞` instance
+          here to avoid the documented `PreLogos`/`PreTopos` instance diamond, S1_64.)
 
       (2) `HasReflTransClosure 𝒞` — STILL the sole blocker.  There is no `topos_has_rtc`
           instance: a topos's reflexive-transitive closures `R*` are the §1.943 family-glb
