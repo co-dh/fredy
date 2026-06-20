@@ -63,17 +63,32 @@ theorem le_div_iff {a b c : 𝒜} (T : a ⟶ b) (R : a ⟶ c) (S : b ⟶ c) :
 theorem div_comp_eq_le {a b c : 𝒜} (R : a ⟶ c) (S : b ⟶ c) : (R / S) ≫ S ⊑ R :=
   DivisionAllegory.div_comp_le R S
 
-/-- (R ∩ R')/S ⊑ (R/S) ∩ (R'/S) (§2.31). -/
+/-- (R ∩ R')/S = (R/S) ∩ (R'/S) (§2.31, full equality).
+
+    Book §2.31: "The first containment may be replaced with an equality:
+    (R₁/S ∩ R₂/S) ⊑ (R₁∩R₂)/S because (R₁/S ∩ R₂/S)S ⊑ (R₁/S)S ∩ (R₂/S)S ⊑ (R₁∩R₂)." -/
+theorem div_inter_eq {a b c : 𝒜} (R R' : a ⟶ c) (S : b ⟶ c) :
+    (R ∩ R') / S = (R / S) ∩ (R' / S) := by
+  apply le_antisymm
+  · -- ⊑ : (R∩R')/S ⊑ R/S and ⊑ R'/S
+    apply le_inter
+    · apply (le_div_iff _ _ _).mpr
+      -- ((R ∩ R') / S) ≫ S ⊑ R ∩ R' ⊑ R
+      apply le_trans (div_comp_eq_le _ _)
+      exact inter_lb_left _ _
+    · apply (le_div_iff _ _ _).mpr
+      apply le_trans (div_comp_eq_le _ _)
+      exact inter_lb_right _ _
+  · -- ⊒ : (R/S ∩ R'/S) ⊑ (R∩R')/S, since (R/S ∩ R'/S)S ⊑ (R/S)S ∩ (R'/S)S ⊑ R∩R'
+    apply (le_div_iff _ _ _).mpr
+    apply le_inter
+    · exact le_trans (comp_mono_right (inter_lb_left _ _) S) (div_comp_eq_le R S)
+    · exact le_trans (comp_mono_right (inter_lb_right _ _) S) (div_comp_eq_le R' S)
+
+/-- (R ∩ R')/S ⊑ (R/S) ∩ (R'/S) (§2.31, the ⊑ direction of `div_inter_eq`). -/
 theorem div_inter_le {a b c : 𝒜} (R R' : a ⟶ c) (S : b ⟶ c) :
     (R ∩ R') / S ⊑ (R / S) ∩ (R' / S) := by
-  apply le_inter
-  · apply (le_div_iff _ _ _).mpr
-    -- ((R ∩ R') / S) ≫ S ⊑ R ∩ R' ⊑ R
-    apply le_trans (div_comp_eq_le _ _)
-    exact inter_lb_left _ _
-  · apply (le_div_iff _ _ _).mpr
-    apply le_trans (div_comp_eq_le _ _)
-    exact inter_lb_right _ _
+  rw [div_inter_eq]; exact le_refl _
 
 /-- R/1 = R (§2.314). -/
 theorem div_one {a b : 𝒜} (R : a ⟶ b) : R / Cat.id b = R := by
