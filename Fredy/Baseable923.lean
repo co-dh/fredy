@@ -101,6 +101,72 @@ theorem powerObj_hom_ext {C Z : 𝒞} (f g : Z ⟶ HasPowerObject.powerObj (C :=
      ⟨Cat.id _, by rw [Cat.id_comp], by rw [Cat.id_comp]⟩⟩
     ⟨h.1, h.2⟩
 
+/-! ## Relation reindexing `BinRel(A×X, B) ≅ BinRel(X, A×B)` (curry on relations)
+
+  The exponential `B^A` from a power object rests on the "uncurry" bijection on
+  RELATIONS: a relation `R ⊆ (A×X) × B` (= a possibly-partial multivalued map
+  `A×X ⇀ B`) is the same data as a relation `R̂ ⊆ X × (A×B)` (the A-index folded
+  into the target).  This is a pure product-rearrangement of the jointly-monic
+  span and is `RelHom`-iso, axiom-clean.  It is the load-bearing isomorphism that
+  feeds the power object `[A×B]`: `Hom(X,[A×B]) ≅ BinRel(X,A×B) ≅ BinRel(A×X,B)`. -/
+
+/-- Fold the `A`-index of a relation `R ⊆ (A×X) × B` into its target:
+    `R̂ ⊆ X × (A×B)`, with `colA := R.colA ≫ snd : src → X` and
+    `colB := ⟨R.colA ≫ fst, R.colB⟩ : src → A×B`. -/
+def relUncurry {A X B : 𝒞} (R : BinRel 𝒞 (prod A X) B) : BinRel 𝒞 X (prod A B) where
+  src  := R.src
+  colA := R.colA ≫ snd
+  colB := pair (R.colA ≫ fst) R.colB
+  isMonicPair := by
+    intro W f g hX hAB
+    -- agreement on X (hX) and on A×B (hAB) ⟹ agreement on the original (A×X, B) legs.
+    apply R.isMonicPair f g
+    · -- f ≫ R.colA = g ≫ R.colA : agree after fst (from hAB) and after snd (from hX).
+      apply fst_snd_jointly_monic (f ≫ R.colA) (g ≫ R.colA)
+      · have := congrArg (· ≫ fst) hAB
+        simpa only [Cat.assoc, fst_pair] using this
+      · rw [Cat.assoc, Cat.assoc]; exact hX
+    · -- f ≫ R.colB = g ≫ R.colB : agree after snd of the A×B leg.
+      have := congrArg (· ≫ snd) hAB
+      simpa only [Cat.assoc, snd_pair] using this
+
+/-- Inverse: unfold a relation `S ⊆ X × (A×B)` to `Š ⊆ (A×X) × B`, with
+    `colA := ⟨S.colB ≫ fst, S.colA⟩ : src → A×X` and `colB := S.colB ≫ snd`. -/
+def relCurry {A X B : 𝒞} (S : BinRel 𝒞 X (prod A B)) : BinRel 𝒞 (prod A X) B where
+  src  := S.src
+  colA := pair (S.colB ≫ fst) S.colA
+  colB := S.colB ≫ snd
+  isMonicPair := by
+    intro W f g hAX hB
+    apply S.isMonicPair f g
+    · -- f ≫ S.colA = g ≫ S.colA : the X-coordinate of the A×X leg (snd).
+      have := congrArg (· ≫ snd) hAX
+      simpa only [Cat.assoc, snd_pair] using this
+    · -- f ≫ S.colB = g ≫ S.colB : agree after fst (from hAX) and snd (from hB).
+      apply fst_snd_jointly_monic (f ≫ S.colB) (g ≫ S.colB)
+      · have := congrArg (· ≫ fst) hAX
+        simpa only [Cat.assoc, fst_pair] using this
+      · rw [Cat.assoc, Cat.assoc]; exact hB
+
+/-- `relCurry` and `relUncurry` are mutually inverse on the nose (same `src`,
+    legs equal by product-eta).  Stated as the two round-trip equalities of the
+    *spans* (`colA`,`colB`), which is what the `RelHom` bijection needs. -/
+theorem relCurry_uncurry {A X B : 𝒞} (R : BinRel 𝒞 (prod A X) B) :
+    (relCurry (relUncurry R)).colA = R.colA ∧ (relCurry (relUncurry R)).colB = R.colB := by
+  refine ⟨?_, ?_⟩
+  · show pair ((pair (R.colA ≫ fst) R.colB) ≫ fst) (R.colA ≫ snd) = R.colA
+    rw [fst_pair]; exact (pair_eta R.colA).symm
+  · show (pair (R.colA ≫ fst) R.colB) ≫ snd = R.colB
+    rw [snd_pair]
+
+theorem relUncurry_curry {A X B : 𝒞} (S : BinRel 𝒞 X (prod A B)) :
+    (relUncurry (relCurry S)).colA = S.colA ∧ (relUncurry (relCurry S)).colB = S.colB := by
+  refine ⟨?_, ?_⟩
+  · show (pair (S.colB ≫ fst) S.colA) ≫ snd = S.colA
+    rw [snd_pair]
+  · show pair ((pair (S.colB ≫ fst) S.colA) ≫ fst) (S.colB ≫ snd) = S.colB
+    rw [fst_pair]; exact (pair_eta S.colB).symm
+
 /-! ## §1.923 missing dominoes (honest sorries, pinned signatures) -/
 
 /-- **(D1)** §1.912: a power object for the terminal object is a subobject
@@ -119,10 +185,36 @@ theorem power_object_gives_subobject_classifier :
     object `E`, evaluation `ev : A × E → B`, and the curry/eval bijection that is
     exactly `Baseable B` at `A`.
 
-    The §1.923 pullback `E → [A×B] ⇉ [A]` (functionality = "domain is all of A");
-    the repo realizes it in `S1_92 :: expSubobj` / `graph_classifies`, but only
-    over the sorry-contaminated `exp` instance.  Reproving it on the power-object
-    `E` with no `exp` dependency is the remaining work. -/
+    BANKED INFRASTRUCTURE (this file, axiom-clean):
+    *  `relUncurry`/`relCurry` + `relCurry_uncurry`/`relUncurry_curry` — the
+       relation transpose `BinRel(A×X, B) ≅ BinRel(X, A×B)`.
+    *  `powerClassify` / `powerObj_hom_ext` / `powerClassify_pullback_iso` — the
+       power-object bijection `Hom(X,[A×B]) ≅ BinRel(X, A×B)`.
+    Chaining these gives, for free, the half-bijection
+       `Hom(X, [A×B]) ≅ BinRel(A×X, B)`  ( ≅ "multivalued partial maps A×X ⇀ B" ).
+
+    REMAINING RESIDUAL (the genuine §1.923 content still missing from the repo).
+    The carrier is `E := the subobject of [A×B]` of those relations that are
+    `relUncurry`-images of GRAPHS of maps `A×X → B` — i.e. FUNCTIONAL (single
+    valued) and TOTAL in the `A×X` direction.  `ev : A×E → B` is then the unique
+    map whose graph is `relUncurry⁻¹ (relPullback ι mem)` (ι : E ↣ [A×B]).
+    Extracting that `ev`, and proving the β/η bijection, factors through ONE sharp
+    topos lemma absent from this repo:
+
+      `functional_total_relation_is_graph` :
+        ∀ {Y B} (R : BinRel 𝒞 Y B),
+          (single-valued R) → (total R) → ∃! m : Y ⟶ B, RelHom R (graph m) ∧ RelHom (graph m) R
+
+    (Freyd §1.912/§1.252: a relation is a map iff it is everywhere-defined and
+    single-valued.)  Proving it needs the classifier-only DESCRIPTION operator
+    (the singleton map `{·} : B ↣ [B]` and "a total single-valued relation factors
+    through `{·}`"), which the repo currently builds only via the `exp`-dependent
+    `singletonMapCat` (S1_92).  A classifier-only `singletonMap` + its equalizer
+    presentation of `B` is the NEXT DOMINO; with it, D2 (and the keystone) close.
+
+    The repo realizes the eval/curry bookkeeping in `S1_92 :: expSubobj` /
+    `graph_classifies`, but only over the sorry-contaminated `exp` instance;
+    reproving on the power object `E` is blocked solely on the lemma above. -/
 theorem functional_subobject_is_exponential
     (_hΩ : HasSubobjectClassifier 𝒞) (B A : 𝒞) :
     ∃ (E : 𝒞) (ev : prod A E ⟶ B),
