@@ -167,6 +167,52 @@ theorem relUncurry_curry {A X B : 𝒞} (S : BinRel 𝒞 X (prod A B)) :
   · show pair ((pair (S.colB ≫ fst) S.colA) ≫ fst) (S.colB ≫ snd) = S.colB
     rw [fst_pair]; exact (pair_eta S.colB).symm
 
+/-! ## Local `RelHom` plumbing (clean under bare power-object hypotheses)
+
+  The S1_91 lemmas `relHom_trans`/`relHom_pullback`/`powerClassify_natural` live
+  AFTER a file-level `variable [Topos 𝒞]`, so they silently require a full topos;
+  under our bare `[∀ C, HasPowerObject C]` they are not applicable.  We re-bank the
+  three we need here (the proofs use only products/pullbacks, no classifier). -/
+
+/-- Transitivity of `RelHom` (local, classifier-free). -/
+theorem relHom_trans923 {A C : 𝒞} {R S T : BinRel 𝒞 A C}
+    (h₁ : RelHom R S) (h₂ : RelHom S T) : RelHom R T := by
+  obtain ⟨h, hA, hB⟩ := h₁; obtain ⟨k, kA, kB⟩ := h₂
+  exact ⟨h ≫ k, by rw [Cat.assoc, kA, hA], by rw [Cat.assoc, kB, hB]⟩
+
+/-- `RelHom` is preserved by pulling back along a fixed `g` (local copy). -/
+theorem relHom_pullback923 {A C X : 𝒞} (g : X ⟶ A) {R S : BinRel 𝒞 A C}
+    (h : RelHom R S) : RelHom (relPullback g R) (relPullback g S) := by
+  obtain ⟨w, hwA, hwB⟩ := h
+  let P  := HasPullbacks.has g R.colA
+  let P' := HasPullbacks.has g S.colA
+  have hsq : P.cone.π₁ ≫ g = (P.cone.π₂ ≫ w) ≫ S.colA :=
+    calc P.cone.π₁ ≫ g = P.cone.π₂ ≫ R.colA := P.cone.w
+      _ = P.cone.π₂ ≫ (w ≫ S.colA) := congrArg (P.cone.π₂ ≫ ·) hwA.symm
+      _ = (P.cone.π₂ ≫ w) ≫ S.colA := (Cat.assoc P.cone.π₂ w S.colA).symm
+  let c : Cone g S.colA := ⟨P.cone.pt, P.cone.π₁, P.cone.π₂ ≫ w, hsq⟩
+  refine ⟨P'.lift c, P'.lift_fst c, ?_⟩
+  show P'.lift c ≫ (P'.cone.π₂ ≫ S.colB) = P.cone.π₂ ≫ R.colB
+  calc P'.lift c ≫ (P'.cone.π₂ ≫ S.colB)
+      = (P'.lift c ≫ P'.cone.π₂) ≫ S.colB := (Cat.assoc _ _ _).symm
+    _ = (P.cone.π₂ ≫ w) ≫ S.colB := congrArg (· ≫ S.colB) (P'.lift_snd c)
+    _ = P.cone.π₂ ≫ (w ≫ S.colB) := Cat.assoc _ _ _
+    _ = P.cone.π₂ ≫ R.colB := congrArg (P.cone.π₂ ≫ ·) hwB
+
+/-- **Naturality of `Λ`** (local, classifier-free): `Λ(relPullback g R) = g ≫ Λ(R)`. -/
+theorem powerClassify_natural923 {C A X : 𝒞} (R : BinRel 𝒞 A C) (g : X ⟶ A) :
+    powerClassify (relPullback g R) = g ≫ powerClassify R := by
+  have hR := powerClassify_pullback_iso R
+  obtain ⟨hc1, hc2⟩ := relPullback_comp g (powerClassify R) HasPowerObject.mem
+  have hf : RelHom (relPullback g R)
+              (relPullback (g ≫ powerClassify R) HasPowerObject.mem) ∧
+            RelHom (relPullback (g ≫ powerClassify R) HasPowerObject.mem)
+              (relPullback g R) :=
+    ⟨relHom_trans923 (relHom_pullback923 g hR.1) hc1,
+     relHom_trans923 hc2 (relHom_pullback923 g hR.2)⟩
+  exact HasPowerObject.is_universal.classify_unique X (relPullback g R) _ _
+    (powerClassify_pullback_iso (relPullback g R)) hf
+
 /-! ## Step A — image-free "functional-total relation is a graph"
 
   A relation `R ⊆ Y × B` whose left leg `R.colA : R.src → Y` is BOTH monic and a
@@ -208,6 +254,82 @@ theorem functional_total_relation_is_graph {Y B : 𝒞} (R : BinRel 𝒞 Y B)
         _ = Cat.id _ ≫ ainv := by rw [hwA]
         _ = ainv := Cat.id_comp _
     rw [← hwB, hw_eq]
+
+/-! ## Step B — the singleton map `{·} : B ↣ [B]` (classifier-free)
+
+  `singletonMap B := Λ(graph (id B)) : B ⟶ [B]` names the diagonal relation
+  `Δ_B = graph(id B) ⊆ B × B`.  Built purely from power objects (no classifier,
+  no `exp`/`curry`), it is the power-object analogue of `singletonMapCat`
+  (S1_92), and is MONIC: precomposing it with `h, k : X ⟶ B` names the graphs of
+  `h, k` (via `powerClassify_natural` + `relPullback h (graph id) ≅ graph h`), so
+  equal names force `h = k`. -/
+
+/-- The singleton (description) map `{·} : B ⟶ [B]`, naming the diagonal. -/
+noncomputable def singletonMap (B : 𝒞) : B ⟶ HasPowerObject.powerObj (C := B) :=
+  powerClassify (graph (Cat.id B))
+
+/-- Pulling the diagonal `graph (id B)` back along `h : X ⟶ B` gives `graph h`
+    (up to relation iso, both directions).  The pullback of `Δ_B` along `h` is
+    `{(x) | (h x, x)} = graph h`; concretely the pullback span has a section. -/
+theorem relPullback_graph_id {X B : 𝒞} (h : X ⟶ B) :
+    RelHom (graph h) (relPullback h (graph (Cat.id B))) ∧
+    RelHom (relPullback h (graph (Cat.id B))) (graph h) := by
+  -- graph h : src=X, colA=id X, colB=h.  relPullback h (graph id): pullback of
+  -- (h : X→B) and (graph id).colA = id B; its apex ≅ X with π₁ a section.
+  have hsq : (Cat.id X) ≫ h = h ≫ (graph (Cat.id B)).colA := by
+    dsimp [graph]; rw [Cat.id_comp, Cat.comp_id]
+  constructor
+  · -- graph h ⊂ relPullback: witness `s := lift ⟨X, id X, h, hsq⟩ : X → pb.pt`.
+    refine ⟨(HasPullbacks.has h (graph (Cat.id B)).colA).lift ⟨X, Cat.id X, h, hsq⟩, ?_, ?_⟩
+    · -- s ≫ colA = s ≫ π₁ = id X = (graph h).colA
+      dsimp [relPullback, graph]
+      exact (HasPullbacks.has h (Cat.id B)).lift_fst _
+    · -- s ≫ colB = s ≫ (π₂ ≫ id) = (s ≫ π₂) = h = (graph h).colB
+      dsimp [relPullback, graph]
+      rw [Cat.comp_id]
+      exact (HasPullbacks.has h (Cat.id B)).lift_snd ⟨X, Cat.id X, h, hsq⟩
+  · -- relPullback ⊂ graph h: witness π₁ : pb.pt → X.
+    refine ⟨(HasPullbacks.has h (graph (Cat.id B)).colA).cone.π₁, ?_, ?_⟩
+    · -- π₁ ≫ (graph h).colA = π₁ ≫ id X = π₁ = colA
+      dsimp [relPullback, graph]; rw [Cat.comp_id]
+    · -- π₁ ≫ (graph h).colB = π₁ ≫ h = π₂ ≫ id = colB
+      have hw := (HasPullbacks.has h (graph (Cat.id B)).colA).cone.w
+      dsimp [relPullback, graph] at hw ⊢
+      rw [Cat.comp_id, hw, Cat.comp_id]
+
+/-- Naming a graph: `h ≫ singletonMap B = Λ(graph h)`. -/
+theorem singletonMap_naming {X B : 𝒞} (h : X ⟶ B) :
+    h ≫ singletonMap B = powerClassify (graph h) := by
+  rw [singletonMap, ← powerClassify_natural923 (graph (Cat.id B)) h]
+  -- Goal: Λ(relPullback h (graph id)) = Λ(graph h).  Both classify the relation
+  -- `relPullback h (graph id)` (the RHS via the iso to `graph h`); classify_unique.
+  obtain ⟨hf, hg⟩ := relPullback_graph_id h  -- graph h ↔ relPullback h (graph id)
+  apply HasPowerObject.is_universal.classify_unique X (relPullback h (graph (Cat.id B)))
+  · exact powerClassify_pullback_iso _
+  · -- relPullback h (graph id) ↔ relPullback (Λ(graph h)) ∈, via graph h.
+    exact ⟨relHom_trans923 hg (powerClassify_pullback_iso (graph h)).1,
+           relHom_trans923 (powerClassify_pullback_iso (graph h)).2 hf⟩
+
+/-- **Step B**: the singleton map `{·} : B ↣ [B]` is MONIC.  If `h, k : X ⟶ B`
+    have `h ≫ {·} = k ≫ {·}`, both name `graph h` resp. `graph k`; the names being
+    equal makes `graph h ≅ graph k`, whose right legs are `h, k`, forcing `h = k`. -/
+theorem singletonMap_monic (B : 𝒞) : Mono (singletonMap (𝒞 := 𝒞) B) := by
+  intro X h k hΔ
+  -- Λ(graph h) = Λ(graph k).
+  have hΛ : powerClassify (graph h) = powerClassify (graph k) := by
+    rw [← singletonMap_naming, ← singletonMap_naming]; exact hΔ
+  -- Hence graph h ≅ graph k (both classify the same name).
+  have hiso : RelHom (graph h) (graph k) := by
+    have h1 := (powerClassify_pullback_iso (graph h)).1   -- graph h ⊂ relPullback Λ(graph h) mem
+    have h2 := (powerClassify_pullback_iso (graph k)).2   -- relPullback Λ(graph k) mem ⊂ graph k
+    rw [hΛ] at h1
+    exact relHom_trans923 h1 h2
+  -- A RelHom graph h → graph k gives a witness w with w ≫ id = id (so w = id) and w ≫ k = h.
+  obtain ⟨w, hwA, hwB⟩ := hiso
+  dsimp [graph] at hwA hwB
+  -- hwA : w ≫ id X = id X  ⟹ w = id X ; hwB : w ≫ k = h.
+  have hw : w = Cat.id X := by rw [← Cat.comp_id w]; exact hwA
+  rw [← hwB, hw, Cat.id_comp]
 
 /-! ## §1.923 missing dominoes (honest sorries, pinned signatures) -/
 
