@@ -308,66 +308,13 @@ theorem singletonMapCat_monic (B : 𝒞) :
     _ = graphMono k ≫ fst := by rw [heq]
     _ = k := graphMono_fst k
 
-/-- The COVARIANT power-map action [f] : [A] → [B] for f : A → B (§1.922).
-    [f] : exp A Ω → exp B Ω is the direct-image (existential) action:
-    [f](S) = {b ∈ B | ∃ a ∈ S, f(a) = b}.
-    Construction via the image factorization and subobject classifier. -/
-noncomputable def powerMapCov {A B : 𝒞} (f : A ⟶ B) :
-    exp A (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ⟶
-    exp B (HasSubobjectClassifier.omega (𝒞 := 𝒞)) :=
-  -- [f](S) = ∃-image of S along f, i.e. `Λ(∃-classifier of image f(S))`.
-  --
-  -- BLOCKER (re-assessed; the earlier note here was STALE — corrected below).  The two
-  -- obstacles it cited are NOW BOTH RESOLVED in this repo:
-  --   (a) `Topos 𝒞` DOES bundle `∀ C, HasPowerObject C` (`Topos.has_pow`, instance
-  --       `Topos.toHasPowerObject`, S1_9), so every object has a power object `[C]`.
-  --   (b) `topos_has_exponentials` is now SORRY-FREE (`power_objects_imply_all_baseable`,
-  --       `Baseable923`), so `exp A Ω` is uncontaminated, and the comparison iso
-  --       `Ω^A ≅ [A]` is PROVED sorry-free above as `powExpHom_iso`/`expPowInv`
-  --       (via `evalRel_universal` + `universalRel_unique`).
-  --
-  -- The genuine direct image already exists sorry-free on power objects:
-  -- `powerMapCovP f : [A] → [B] = powerClassify (∈_A ⊚ graph f)` (the §1.56 ∃-image,
-  -- `PowerObjectDirectImage` section).  Transporting it to this `exp`-level signature is
-  -- `expPowInv A ≫ powerMapCovP f ≫ powExpHom B`.
-  --
-  -- SHARP RESIDUAL (the one true blocker): `powerMapCovP`/`directImageRel` require
-  -- `[HasImages 𝒞]` (the existential image is §1.56 cover–mono factorization).  A topos
-  -- HAS images (`toposHasImages`, `InternalForallTopos`), but that instance is NOT
-  -- importable here: `InterIntersection` imports `S1_92`, and the image stack
-  -- (`InternalForall`/`InterIntersection`/`InternalForallTopos`) sits ABOVE `S1_92`, so
-  -- importing `toposHasImages` would create a cycle.  Hence within `S1_92` no
-  -- `HasImages 𝒞` instance is in scope, and closing this `def` requires either adding a
-  -- `[HasImages 𝒞]` hypothesis to the signature (a statement change — header-fenced) or
-  -- relocating it below the image layer.  The reusable identification it needs
-  -- (`powExpHom`/`expPowInv`) is supplied sorry-free above.
-  sorry
-
-/-- **§1.92**: NATURALITY of the singleton map: f ≫ Δ₁(B) = Δ₁(A) ≫ [f].
-    Here [f] = powerMapCov f : [A] → [B] is the covariant direct-image action.
-    In Freyd's notation: f(Δ₁) = Δf (§1.92). -/
-theorem singletonMapCat_natural {A B : 𝒞} (f : A ⟶ B) :
-    f ≫ singletonMapCat B =
-      singletonMapCat A ≫ powerMapCov f := by
-  -- BLOCKER (corrected).  This is the book's f(Δ₁) = Δf.  It is coupled to `powerMapCov f`
-  -- (still an honest `sorry`, blocked on `[HasImages 𝒞]` — see `powerMapCov`), so it cannot
-  -- be discharged while that is open.  Even WITH `powerMapCov f` defined as
-  -- `expPowInv A ≫ powerMapCovP f ≫ powExpHom B` and `singletonMapCat B` identified with
-  -- `singletonMap923 B ≫ powExpHom B` (provable across the `powExpHom_iso` iso), the
-  -- equation reduces to the POWER-OBJECT singleton naturality
-  --     `f ≫ singletonMap923 B = singletonMap923 A ≫ powerMapCovP f`
-  -- i.e. `Λ(graph f) = Λ(relPullback (singletonMap923 A) (∈_A ⊚ graph f))`
-  -- (using `singletonMapNaming923` + `powerClassify_natural923`).  That in turn needs the
-  -- relation identity `graph f ≅ relPullback (singletonMap923 A) (∈_A ⊚ graph f)`, whose
-  -- proof requires a `relPullback`-over-`⊚` DISTRIBUTION lemma
-  --     `relPullback g (R ⊚ S) ≅ (relPullback g R) ⊚ S`
-  -- combined with the singleton's defining iso `relPullback (singletonMap923 A) ∈_A ≅
-  -- graph (𝟙 A)` and `graph (𝟙 A) ⊚ graph f ≅ graph f` (`graph_id_comp`).  The
-  -- `relPullback`-over-`⊚` distribution is NOT in the repo (it rests on §1.56 image
-  -- factorization of the composite relation), and is itself `[HasImages 𝒞]`-gated.  So
-  -- the precise missing lemma is that distribution; the `Ω^A ≅ [A]` identification it
-  -- would be composed with is already supplied (`powExpHom_iso`).
-  sorry
+-- The COVARIANT power-map `[f] : Ω^A → Ω^B` (§1.922) and its naturality `f(Δ₁) = Δf`
+-- are defined and proved LOWER IN THIS FILE, after the `Ω^A ≅ [A]` identification
+-- (`powExpHom`/`expPowInv`, `end EvalUniversalAmbient`) and the relation infrastructure
+-- they need.  They take an explicit `[HasImages 𝒞] [PullbacksTransferCovers 𝒞]` hypothesis
+-- (faithful: a topos has both, `toposHasImages`/`toposPullbacksTransferCovers`, which are
+-- NOT importable here without a cycle — `InternalForallTopos` sits above `S1_92`).  See
+-- `powerMapCov` / `singletonMapCat_natural` below.
 
 /-! ## §1.92  Direct-image power map on GENUINE power objects (faithful version)
 
@@ -989,6 +936,323 @@ noncomputable def expPowInv (A : 𝒞) :
   (powExpHom_iso A).choose
 
 end EvalUniversalAmbient
+
+/-! ## §1.92  The COVARIANT power-map `[f] : Ω^A → Ω^B` and its naturality `f(Δ₁) = Δf`
+
+  Freyd §1.922 defines the direct-image action `[f] : [A] → [B]` for `f : A → B`,
+  `[f](S) = { b | ∃ a ∈ S, f a = b }`.  On genuine power objects this is
+  `powerMapCovP f = Λ(∈_A ⊚ graph f)` (`directImageRel`), already built sorry-free
+  above.  We now (a) prove its NATURALITY against the singleton map (the book's
+  `f(Δ₁) = Δf`), and (b) transport it across the iso `Ω^A ≅ [A]`
+  (`powExpHom`/`expPowInv`) to the opaque exponential `exp A Ω`, giving the
+  `exp`-level `powerMapCov` and its naturality `singletonMapCat_natural`.
+
+  Both require the §1.56 existential image (`⊚` is image-gated), so we take
+  `[HasImages 𝒞] [PullbacksTransferCovers 𝒞]` as explicit, FAITHFUL hypotheses: a
+  topos has both (`toposHasImages`, `toposPullbacksTransferCovers`, via §1.94
+  `topos_is_regular`), but those instances live ABOVE `S1_92` (`InternalForallTopos`
+  imports `S1_92`), so they cannot be in scope here without an import cycle. -/
+
+section CovariantPowerMap
+variable [HasImages 𝒞] [PullbacksTransferCovers 𝒞]
+
+attribute [local instance 10000] Topos.toHasBinaryProducts
+
+/-- **§1.92 — pullback distributes over composition.**  For `g : X → A`,
+    `R : BinRel A B`, `S : BinRel B C`:
+    `relPullback g (R ⊚ S) ≅ (relPullback g R) ⊚ S`  (mutual `RelHom`).
+
+    The crux of the covariant power-map naturality.  `R ⊚ S` is the §1.56 image of the
+    span over `pullback(R.colB, S.colA)`; pulling that back along `g` is the image of the
+    span over `pullback(g, R.colA) ×_? S`.  Each direction is a `relLe_of_cover_factor`
+    descent: pull the relevant image-cover (`image.lift`) back along the appropriate
+    `relPullback`/composite leg (`cover_pullback`, needing `PullbacksTransferCovers`),
+    obtaining a common cover on which the coherent `(relPullback g R)`/`S` data assembles. -/
+theorem relPullback_compose_dist {X A B C : 𝒞} (g : X ⟶ A)
+    (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) :
+    RelHom (relPullback g (R ⊚ S)) ((relPullback g R) ⊚ S) ∧
+    RelHom ((relPullback g R) ⊚ S) (relPullback g (R ⊚ S)) := by
+  -- data of `R ⊚ S`: image of `spanRS` over `pbRS = pullback(R.colB, S.colA)`.
+  let pbRS := HasPullbacks.has R.colB S.colA
+  let spanRS : pbRS.cone.pt ⟶ prod A C :=
+    pair (pbRS.cone.π₁ ≫ R.colA) (pbRS.cone.π₂ ≫ S.colB)
+  let eRS : pbRS.cone.pt ⟶ (R ⊚ S).src := image.lift spanRS
+  have heRSa : eRS ≫ (R ⊚ S).colA = pbRS.cone.π₁ ≫ R.colA := by
+    show eRS ≫ ((image spanRS).arr ≫ fst) = _
+    rw [← Cat.assoc, image.lift_fac, fst_pair]
+  have heRSb : eRS ≫ (R ⊚ S).colB = pbRS.cone.π₂ ≫ S.colB := by
+    show eRS ≫ ((image spanRS).arr ≫ snd) = _
+    rw [← Cat.assoc, image.lift_fac, snd_pair]
+  have heRS_cover : Cover eRS := image_lift_cover spanRS
+  -- data of `relPullback g R`: pullback of `g` and `R.colA`.
+  let rgR := relPullback g R
+  have hrgRa : rgR.colA = (HasPullbacks.has g R.colA).cone.π₁ := rfl
+  have hrgRb : rgR.colB = (HasPullbacks.has g R.colA).cone.π₂ ≫ R.colB := rfl
+  -- data of `(relPullback g R) ⊚ S`: image of `span'` over `pb' = pullback(rgR.colB, S.colA)`.
+  let pb' := HasPullbacks.has rgR.colB S.colA
+  let span' : pb'.cone.pt ⟶ prod X C :=
+    pair (pb'.cone.π₁ ≫ rgR.colA) (pb'.cone.π₂ ≫ S.colB)
+  let e' : pb'.cone.pt ⟶ ((relPullback g R) ⊚ S).src := image.lift span'
+  have he'a : e' ≫ ((relPullback g R) ⊚ S).colA = pb'.cone.π₁ ≫ rgR.colA := by
+    show e' ≫ ((image span').arr ≫ fst) = _
+    rw [← Cat.assoc, image.lift_fac, fst_pair]
+  have he'b : e' ≫ ((relPullback g R) ⊚ S).colB = pb'.cone.π₂ ≫ S.colB := by
+    show e' ≫ ((image span').arr ≫ snd) = _
+    rw [← Cat.assoc, image.lift_fac, snd_pair]
+  have he'_cover : Cover e' := image_lift_cover span'
+  constructor
+  · -- FORWARD: relPullback g (R⊚S) ⊂ (relPullback g R) ⊚ S.
+    -- X-relation `Pg := pullback(g, (R⊚S).colA)`; pull the cover `eRS` back along `Pg.π₂`.
+    let Pg := HasPullbacks.has g (R ⊚ S).colA
+    -- cover `c : P ↠ Pg.pt` and `q : P → pbRS.pt` with `q ≫ eRS = c ≫ Pg.π₂`.
+    let Pc := HasPullbacks.has eRS Pg.cone.π₂
+    let c : Pc.cone.pt ⟶ Pg.cone.pt := Pc.cone.π₂
+    let q : Pc.cone.pt ⟶ pbRS.cone.pt := Pc.cone.π₁
+    have hcq : q ≫ eRS = c ≫ Pg.cone.π₂ := Pc.cone.w
+    have hc_cover : Cover c := cover_pullback (𝒞 := 𝒞) (f := eRS) Pg.cone.π₂ heRS_cover
+    -- coherent legs on `P = Pc.pt`:
+    --   c ≫ Pg.π₁ : P → X ;  q ≫ pbRS.π₁ : P → R.src ;  q ≫ pbRS.π₂ : P → S.src
+    -- agreement (X→A vs R.src→A): (c≫Pg.π₁)≫g = (q≫pbRS.π₁)≫R.colA.
+    have hgR : (c ≫ Pg.cone.π₁) ≫ g = (q ≫ pbRS.cone.π₁) ≫ R.colA := by
+      calc (c ≫ Pg.cone.π₁) ≫ g
+          = c ≫ (Pg.cone.π₁ ≫ g) := Cat.assoc _ _ _
+        _ = c ≫ (Pg.cone.π₂ ≫ (R ⊚ S).colA) := by rw [Pg.cone.w]
+        _ = (c ≫ Pg.cone.π₂) ≫ (R ⊚ S).colA := (Cat.assoc _ _ _).symm
+        _ = (q ≫ eRS) ≫ (R ⊚ S).colA := by rw [hcq]
+        _ = q ≫ (eRS ≫ (R ⊚ S).colA) := Cat.assoc _ _ _
+        _ = q ≫ (pbRS.cone.π₁ ≫ R.colA) := by rw [heRSa]
+        _ = (q ≫ pbRS.cone.π₁) ≫ R.colA := (Cat.assoc _ _ _).symm
+    -- lift into `rgR.src = pullback(g, R.colA)`: `m : P → rgR.src`.
+    let PgR := HasPullbacks.has g R.colA
+    let m : Pc.cone.pt ⟶ rgR.src :=
+      PgR.lift ⟨Pc.cone.pt, c ≫ Pg.cone.π₁, q ≫ pbRS.cone.π₁, hgR⟩
+    have hm₁ : m ≫ PgR.cone.π₁ = c ≫ Pg.cone.π₁ := PgR.lift_fst _
+    have hm₂ : m ≫ PgR.cone.π₂ = q ≫ pbRS.cone.π₁ := PgR.lift_snd _
+    -- agreement (rgR.colB vs S.colA) to lift into `pb' = pullback(rgR.colB, S.colA)`.
+    have hrgRS : m ≫ rgR.colB = (q ≫ pbRS.cone.π₂) ≫ S.colA := by
+      calc m ≫ rgR.colB
+          = m ≫ (PgR.cone.π₂ ≫ R.colB) := by rw [hrgRb]
+        _ = (m ≫ PgR.cone.π₂) ≫ R.colB := (Cat.assoc _ _ _).symm
+        _ = (q ≫ pbRS.cone.π₁) ≫ R.colB := by rw [hm₂]
+        _ = q ≫ (pbRS.cone.π₁ ≫ R.colB) := Cat.assoc _ _ _
+        _ = q ≫ (pbRS.cone.π₂ ≫ S.colA) := by rw [pbRS.cone.w]
+        _ = (q ≫ pbRS.cone.π₂) ≫ S.colA := (Cat.assoc _ _ _).symm
+    let n : Pc.cone.pt ⟶ pb'.cone.pt :=
+      pb'.lift ⟨Pc.cone.pt, m, q ≫ pbRS.cone.π₂, hrgRS⟩
+    have hn₁ : n ≫ pb'.cone.π₁ = m := pb'.lift_fst _
+    have hn₂ : n ≫ pb'.cone.π₂ = q ≫ pbRS.cone.π₂ := pb'.lift_snd _
+    -- `φ := n ≫ e' : P → ((relPullback g R) ⊚ S).src`.
+    have hYA : (n ≫ e') ≫ ((relPullback g R) ⊚ S).colA
+             = c ≫ (relPullback g (R ⊚ S)).colA := by
+      calc (n ≫ e') ≫ ((relPullback g R) ⊚ S).colA
+          = n ≫ (e' ≫ ((relPullback g R) ⊚ S).colA) := Cat.assoc _ _ _
+        _ = n ≫ (pb'.cone.π₁ ≫ rgR.colA) := by rw [he'a]
+        _ = (n ≫ pb'.cone.π₁) ≫ rgR.colA := (Cat.assoc _ _ _).symm
+        _ = m ≫ rgR.colA := by rw [hn₁]
+        _ = m ≫ PgR.cone.π₁ := by rw [hrgRa]
+        _ = c ≫ Pg.cone.π₁ := hm₁
+        _ = c ≫ (relPullback g (R ⊚ S)).colA := rfl
+    have hYB : (n ≫ e') ≫ ((relPullback g R) ⊚ S).colB
+             = c ≫ (relPullback g (R ⊚ S)).colB := by
+      calc (n ≫ e') ≫ ((relPullback g R) ⊚ S).colB
+          = n ≫ (e' ≫ ((relPullback g R) ⊚ S).colB) := Cat.assoc _ _ _
+        _ = n ≫ (pb'.cone.π₂ ≫ S.colB) := by rw [he'b]
+        _ = (n ≫ pb'.cone.π₂) ≫ S.colB := (Cat.assoc _ _ _).symm
+        _ = (q ≫ pbRS.cone.π₂) ≫ S.colB := by rw [hn₂]
+        _ = q ≫ (pbRS.cone.π₂ ≫ S.colB) := Cat.assoc _ _ _
+        _ = q ≫ (eRS ≫ (R ⊚ S).colB) := by rw [heRSb]
+        _ = (q ≫ eRS) ≫ (R ⊚ S).colB := (Cat.assoc _ _ _).symm
+        _ = (c ≫ Pg.cone.π₂) ≫ (R ⊚ S).colB := by rw [hcq]
+        _ = c ≫ (Pg.cone.π₂ ≫ (R ⊚ S).colB) := Cat.assoc _ _ _
+        _ = c ≫ (relPullback g (R ⊚ S)).colB := rfl
+    obtain ⟨hrel⟩ := relLe_of_cover_factor (X := relPullback g (R ⊚ S))
+      (Y := (relPullback g R) ⊚ S) c hc_cover (n ≫ e') hYA hYB
+    exact hrel
+  · -- BACKWARD: (relPullback g R) ⊚ S ⊂ relPullback g (R⊚S).
+    -- X-relation = `((relPullback g R) ⊚ S).src = image(span').dom`; its cover is `e'`.
+    let Pg := HasPullbacks.has g (R ⊚ S).colA
+    let PgR := HasPullbacks.has g R.colA
+    -- point of `pbRS = pullback(R.colB, S.colA)` from `pb'.pt`.
+    have hrw : (pb'.cone.π₁ ≫ PgR.cone.π₂) ≫ R.colB = pb'.cone.π₂ ≫ S.colA := by
+      -- `rgR.colB` is DEFINITIONALLY `PgR.cone.π₂ ≫ R.colB` (both pull back `g`,`R.colA`).
+      have hpbw : pb'.cone.π₁ ≫ rgR.colB = pb'.cone.π₂ ≫ S.colA := pb'.cone.w
+      calc (pb'.cone.π₁ ≫ PgR.cone.π₂) ≫ R.colB
+          = pb'.cone.π₁ ≫ (PgR.cone.π₂ ≫ R.colB) := Cat.assoc _ _ _
+        _ = pb'.cone.π₂ ≫ S.colA := hpbw
+    let r : pb'.cone.pt ⟶ pbRS.cone.pt :=
+      pbRS.lift ⟨pb'.cone.pt, pb'.cone.π₁ ≫ PgR.cone.π₂, pb'.cone.π₂, hrw⟩
+    have hr₁ : r ≫ pbRS.cone.π₁ = pb'.cone.π₁ ≫ PgR.cone.π₂ := pbRS.lift_fst _
+    have hr₂ : r ≫ pbRS.cone.π₂ = pb'.cone.π₂ := pbRS.lift_snd _
+    -- agreement to lift into `Pg = pullback(g, (R⊚S).colA)`.
+    have hag : (pb'.cone.π₁ ≫ PgR.cone.π₁) ≫ g = (r ≫ eRS) ≫ (R ⊚ S).colA := by
+      calc (pb'.cone.π₁ ≫ PgR.cone.π₁) ≫ g
+          = pb'.cone.π₁ ≫ (PgR.cone.π₁ ≫ g) := Cat.assoc _ _ _
+        _ = pb'.cone.π₁ ≫ (PgR.cone.π₂ ≫ R.colA) := by rw [PgR.cone.w]
+        _ = (pb'.cone.π₁ ≫ PgR.cone.π₂) ≫ R.colA := (Cat.assoc _ _ _).symm
+        _ = (r ≫ pbRS.cone.π₁) ≫ R.colA := by rw [hr₁]
+        _ = r ≫ (pbRS.cone.π₁ ≫ R.colA) := Cat.assoc _ _ _
+        _ = r ≫ (eRS ≫ (R ⊚ S).colA) := by rw [heRSa]
+        _ = (r ≫ eRS) ≫ (R ⊚ S).colA := (Cat.assoc _ _ _).symm
+    let φ : pb'.cone.pt ⟶ Pg.cone.pt :=
+      Pg.lift ⟨pb'.cone.pt, pb'.cone.π₁ ≫ PgR.cone.π₁, r ≫ eRS, hag⟩
+    have hφ₁ : φ ≫ Pg.cone.π₁ = pb'.cone.π₁ ≫ PgR.cone.π₁ := Pg.lift_fst _
+    have hφ₂ : φ ≫ Pg.cone.π₂ = r ≫ eRS := Pg.lift_snd _
+    have hXA : φ ≫ (relPullback g (R ⊚ S)).colA
+             = e' ≫ ((relPullback g R) ⊚ S).colA := by
+      calc φ ≫ (relPullback g (R ⊚ S)).colA
+          = φ ≫ Pg.cone.π₁ := rfl
+        _ = pb'.cone.π₁ ≫ PgR.cone.π₁ := hφ₁
+        _ = pb'.cone.π₁ ≫ rgR.colA := by rw [hrgRa]
+        _ = e' ≫ ((relPullback g R) ⊚ S).colA := he'a.symm
+    have hXB : φ ≫ (relPullback g (R ⊚ S)).colB
+             = e' ≫ ((relPullback g R) ⊚ S).colB := by
+      calc φ ≫ (relPullback g (R ⊚ S)).colB
+          = φ ≫ (Pg.cone.π₂ ≫ (R ⊚ S).colB) := rfl
+        _ = (φ ≫ Pg.cone.π₂) ≫ (R ⊚ S).colB := (Cat.assoc _ _ _).symm
+        _ = (r ≫ eRS) ≫ (R ⊚ S).colB := by rw [hφ₂]
+        _ = r ≫ (eRS ≫ (R ⊚ S).colB) := Cat.assoc _ _ _
+        _ = r ≫ (pbRS.cone.π₂ ≫ S.colB) := by rw [heRSb]
+        _ = (r ≫ pbRS.cone.π₂) ≫ S.colB := (Cat.assoc _ _ _).symm
+        _ = pb'.cone.π₂ ≫ S.colB := by rw [hr₂]
+        _ = e' ≫ ((relPullback g R) ⊚ S).colB := he'b.symm
+    obtain ⟨hrel⟩ := relLe_of_cover_factor (X := (relPullback g R) ⊚ S)
+      (Y := relPullback g (R ⊚ S)) e' he'_cover φ hXA hXB
+    exact hrel
+
+/-- **§1.92 (faithful) — naturality of the singleton map on power objects** (Freyd's
+    `f(Δ₁) = Δf`).  For `f : A → B`:  `f ≫ {·}_B = {·}_A ≫ [f]`, i.e.
+    `f ≫ singletonMap923 B = singletonMap923 A ≫ powerMapCovP f`.
+
+    Both sides name a relation `X → [B]` against the universal `∈_B`; by `classify_unique`
+    it suffices that the two named relations are iso.  LHS names `graph f`
+    (`singletonMapNaming923`).  RHS, via `powerClassify_natural923`, names
+    `relPullback (singletonMap923 A) (∈_A ⊚ graph f)`, which the distribution lemma plus
+    `relPullback (singletonMap923 A) ∈_A ≅ graph(1_A)` (`powerClassify_pullback_iso`) and
+    `graph(1_A) ⊚ graph f ≅ graph f` (`graph_id_comp`) identifies with `graph f`. -/
+theorem powerMapCovP_natural {A B : 𝒞} (f : A ⟶ B) :
+    f ≫ singletonMap923 B = singletonMap923 A ≫ powerMapCovP f := by
+  -- Rewrite both sides as `powerClassify` of a relation.
+  rw [singletonMapNaming923 f, powerMapCovP, ← powerClassify_natural923]
+  -- Goal: powerClassify (graph f) = powerClassify (relPullback (singletonMap923 A) (∈_A ⊚ graph f)).
+  let memA : BinRel 𝒞 (HasPowerObject.powerObj (C := A)) A := HasPowerObject.mem (C := A)
+  -- `graph f ≅ relPullback (singletonMap923 A) (memA ⊚ graph f)`.
+  -- Step 1: distribution.
+  obtain ⟨hd1, hd2⟩ := relPullback_compose_dist (singletonMap923 A) memA (graph f)
+  -- Step 2: `relPullback (singletonMap923 A) memA ≅ graph (1_A)`
+  --   (singletonMap923 A = powerClassify (graph (1_A))).
+  have hsm : relPullback (singletonMap923 A) memA
+           = relPullback (powerClassify (graph (Cat.id A))) HasPowerObject.mem := rfl
+  obtain ⟨hp1, hp2⟩ := powerClassify_pullback_iso (graph (Cat.id A))
+  -- hp1 : graph(1_A) ⊂ relPullback (singletonMap923 A) memA ; hp2 the reverse.
+  -- Step 3: lift step-2 iso into the composite and absorb the identity graph.
+  -- (relPullback (singletonMap923 A) memA) ⊚ graph f ≅ graph(1_A) ⊚ graph f ≅ graph f.
+  have hcomp_fwd : RelLe ((relPullback (singletonMap923 A) memA) ⊚ graph f) (graph f) :=
+    rel_le_trans
+      (compose_le ⟨by rw [hsm]; exact hp2⟩ (rel_le_refl (graph f)))
+      (graph_id_comp (graph f))
+  have hcomp_bwd : RelLe (graph f) ((relPullback (singletonMap923 A) memA) ⊚ graph f) :=
+    rel_le_trans
+      (comp_graph_id_left (graph f))
+      (compose_le ⟨by rw [hsm]; exact hp1⟩ (rel_le_refl (graph f)))
+  -- Assemble: relPullback (singletonMap923 A) (memA ⊚ graph f) ≅ graph f.
+  have hfwd : RelLe (relPullback (singletonMap923 A) (memA ⊚ graph f)) (graph f) :=
+    rel_le_trans ⟨hd1⟩ hcomp_fwd
+  have hbwd : RelLe (graph f) (relPullback (singletonMap923 A) (memA ⊚ graph f)) :=
+    rel_le_trans hcomp_bwd ⟨hd2⟩
+  obtain ⟨hF⟩ := hfwd; obtain ⟨hB⟩ := hbwd
+  -- Conclude by classify_unique against `∈_B`.
+  refine HasPowerObject.is_universal.classify_unique _ (graph f)
+    (powerClassify (graph f))
+    (powerClassify (relPullback (singletonMap923 A) (memA ⊚ graph f)))
+    (powerClassify_pullback_iso (graph f)) ?_
+  -- Need: graph f ↔ relPullback (Λ(relPullback (singletonMap923 A) (memA ⊚ graph f))) ∈.
+  obtain ⟨hq1, hq2⟩ := powerClassify_pullback_iso (relPullback (singletonMap923 A) (memA ⊚ graph f))
+  exact ⟨relHom_trans923 hB hq1, relHom_trans923 hq2 hF⟩
+
+/-- **§1.92 — the singleton maps agree across `Ω^B ≅ [B]`.**  The `exp`-level singleton
+    `Δ₁ = singletonMapCat B : B → Ω^B` equals the power-object singleton `{·}_B`
+    composed with the comparison `powExpHom B : [B] → Ω^B`:
+    `singletonMapCat B = singletonMap923 B ≫ powExpHom B`.
+
+    Both name the diagonal relation `graph(1_B)` against the universal `evalRel B`
+    (`Sub(B×−) ≅ Hom(B×−,Ω)`), so `evalRel`-uniqueness forces them equal.  LHS:
+    `singletonMapCat B = curry(χ_Δ)` pulls `evalRel B` back to `classRel χ_Δ ≅ graph(1_B)`
+    (`evalRel_pull_*`, `classRel_roundtrip`, `relMonic(graph 1) = diag`).  RHS:
+    `relPullback (powExpHom B) (evalRel B) ≅ ∈_B` (`univClassify_spec`) and then
+    `relPullback {·}_B ∈_B ≅ graph(1_B)` (`powerClassify_pullback_iso`). -/
+theorem singletonMapCat_eq_powExp (B : 𝒞) :
+    singletonMapCat B = singletonMap923 B ≫ powExpHom B := by
+  -- Both classify `graph (1_B)` against `evalRel B`; apply `classify_unique`.
+  let χΔ := HasSubobjectClassifier.classify (diag B) (diag_mono B)
+  -- `relMonic (graph 1_B) = diag B` DEFINITIONALLY, so `classify (relMonic (graph 1_B)) = χΔ`
+  -- and `classRel (classify (relMonic (graph 1_B))) = classRel χΔ` by `rfl`.
+  -- LHS pulls back to `graph (1_B)`.
+  have hLHS : RelHom (graph (Cat.id B)) (relPullback (singletonMapCat B) (evalRel B)) ∧
+              RelHom (relPullback (singletonMapCat B) (evalRel B)) (graph (Cat.id B)) := by
+    -- classRel χΔ ≅ relPullback (curry χΔ) (evalRel B) = relPullback (singletonMapCat B) (evalRel B);
+    -- `classRel_roundtrip (graph 1_B)` is exactly `graph 1_B ↔ classRel χΔ` (up to defeq).
+    have hcr : RelHom (graph (Cat.id B)) (classRel χΔ) ∧ RelHom (classRel χΔ) (graph (Cat.id B)) :=
+      classRel_roundtrip (graph (Cat.id B))
+    refine ⟨RelHom_trans hcr.1 (evalRel_pull_fwd χΔ),
+            RelHom_trans (evalRel_pull_bwd χΔ) hcr.2⟩
+  -- RHS pulls back to `graph (1_B)`.
+  have hRHS : RelHom (graph (Cat.id B))
+                (relPullback (singletonMap923 B ≫ powExpHom B) (evalRel B)) ∧
+              RelHom (relPullback (singletonMap923 B ≫ powExpHom B) (evalRel B))
+                (graph (Cat.id B)) := by
+    -- relPullback (η ≫ φ) eval ≅ relPullback η (relPullback φ eval) ≅ relPullback η ∈_B ≅ graph 1.
+    obtain ⟨hc1, hc2⟩ := relPullback_comp (singletonMap923 B) (powExpHom B) (evalRel B)
+    -- relPullback (powExpHom B) (evalRel B) ≅ ∈_B.
+    obtain ⟨hu1, hu2⟩ := univClassify_spec (evalRel_universal B) (HasPowerObject.mem (C := B))
+    -- hu1 : ∈_B ↔ relPullback (powExpHom B) (evalRel B) (powExpHom B = univClassify ... ∈_B).
+    -- relPullback (η_B) ∈_B ≅ graph 1_B  (η_B = singletonMap923 B = powerClassify (graph 1)).
+    obtain ⟨hg1, hg2⟩ := powerClassify_pullback_iso (graph (Cat.id B))
+    -- Chain.  relPullback η (relPullback φ eval) ≅ relPullback η ∈_B  via hu (pulled back along η).
+    have hmid1 : RelHom (relPullback (singletonMap923 B) HasPowerObject.mem)
+                   (relPullback (singletonMap923 B) (relPullback (powExpHom B) (evalRel B))) :=
+      relHom_pullback923 (singletonMap923 B) hu1
+    have hmid2 : RelHom (relPullback (singletonMap923 B) (relPullback (powExpHom B) (evalRel B)))
+                   (relPullback (singletonMap923 B) HasPowerObject.mem) :=
+      relHom_pullback923 (singletonMap923 B) hu2
+    -- graph 1_B ↔ relPullback (singletonMap923 B) ∈_B  is hg1/hg2.
+    refine ⟨?_, ?_⟩
+    · exact RelHom_trans hg1 (RelHom_trans hmid1 hc1)
+    · exact RelHom_trans hc2 (RelHom_trans hmid2 hg2)
+  -- Both classify `graph 1_B` against `evalRel B`; uniqueness gives equality.
+  exact (evalRel_universal B).classify_unique B (graph (Cat.id B))
+    (singletonMapCat B) (singletonMap923 B ≫ powExpHom B) hLHS hRHS
+
+/-- **§1.922 — the COVARIANT power-map `[f] : Ω^A → Ω^B` for `f : A → B`** (Freyd §1.922).
+    `[f](S) = { b | ∃ a ∈ S, f a = b }`, transported from the genuine power-object
+    direct image `powerMapCovP f : [A] → [B]` (`Λ(∈_A ⊚ graph f)`) across the iso
+    `Ω^A ≅ [A]` (`expPowInv`/`powExpHom`):  `[f] = (Ω^A → [A]) ≫ f" ≫ ([B] → Ω^B)`. -/
+noncomputable def powerMapCov {A B : 𝒞} (f : A ⟶ B) :
+    exp A (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ⟶
+    exp B (HasSubobjectClassifier.omega (𝒞 := 𝒞)) :=
+  expPowInv A ≫ powerMapCovP f ≫ powExpHom B
+
+/-- **§1.92 — NATURALITY of the singleton map** (Freyd's `f(Δ₁) = Δf`):
+    `f ≫ Δ₁(B) = Δ₁(A) ≫ [f]`, i.e. `f ≫ singletonMapCat B = singletonMapCat A ≫ powerMapCov f`.
+
+    Transport the power-object naturality `powerMapCovP_natural` across `Ω^A ≅ [A]`.  Using
+    the bridge `singletonMapCat = singletonMap923 ≫ powExpHom` and `expPowInv ≫ powExpHom = 1`
+    (the comparison-iso section laws), the equation reduces to
+    `f ≫ singletonMap923 B = singletonMap923 A ≫ powerMapCovP f`. -/
+theorem singletonMapCat_natural {A B : 𝒞} (f : A ⟶ B) :
+    f ≫ singletonMapCat B =
+      singletonMapCat A ≫ powerMapCov f := by
+  -- `powExpHom A ≫ expPowInv A = 1`  (powExpHom is the iso; expPowInv := its `.choose` inverse).
+  have hinvA1 : powExpHom A ≫ expPowInv A = Cat.id _ := (powExpHom_iso A).choose_spec.1
+  rw [powerMapCov, singletonMapCat_eq_powExp A, singletonMapCat_eq_powExp B]
+  -- Goal: f ≫ (η_B ≫ φ_B) = (η_A ≫ φ_A) ≫ (expPowInv A ≫ powerMapCovP f ≫ powExpHom B).
+  -- Reduce the RHS: (η_A ≫ φ_A) ≫ (φ_A⁻¹ ≫ p ≫ φ_B) = η_A ≫ p ≫ φ_B  (using φ_A ≫ φ_A⁻¹ = 1).
+  have hRHS : (singletonMap923 A ≫ powExpHom A)
+                ≫ (expPowInv A ≫ powerMapCovP f ≫ powExpHom B)
+            = singletonMap923 A ≫ (powerMapCovP f ≫ powExpHom B) := by
+    rw [Cat.assoc, ← Cat.assoc (powExpHom A), hinvA1, Cat.id_comp]
+  rw [hRHS, ← Cat.assoc, powerMapCovP_natural f, Cat.assoc]
+
+end CovariantPowerMap
 
 /-! ## §1.921  Lawvere's original definition of elementary topos
 
