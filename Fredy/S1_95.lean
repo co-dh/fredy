@@ -136,25 +136,31 @@ end Effective
     `effective_of_quotient_cover` discharges effectiveness completely.
 
     **Sharpened blocker (faithful sorry).**  Building the `EffectiveRegular`
-    instance from bare `[Topos 𝒞]` needs THREE ingredients, of which only the
-    last is genuinely absent here:
+    instance from bare `[Topos 𝒞]` needs THREE ingredients, of which the
+    quotient-cover machinery is now within reach but the regular core is not:
 
-      (1) `HasImages 𝒞` — NOT derivable from `Topos` in this repo.  The only topos
-          construction of `image f` is `⋂{B' ↣ B | f factors through B'}`
-          (§1.943), the glb over a subobject *family*, which rests on §1.54's
-          `capitalization_lemma` (still `sorry`; see `topos_is_regular`,
-          S1_94:321).
+      (1) `HasImages 𝒞` — NOT yet derivable from `Topos` in this repo.  The only
+          topos construction of `image f` is `⋂{B' ↣ B | f factors through B'}`
+          (§1.943), the glb over a subobject *family*.  Note §1.54's
+          `capitalization_lemma` is itself PROVEN sorry-free
+          (`CapDataWiring.lean`, axioms `[propext, Classical.choice, Quot.sound]`);
+          but it represents a SMALL pre-regular category into a capital one, and
+          wiring that into `HasImages` for an arbitrary topos is NOT done — that
+          connection (`topos_is_regular`, S1_94:346) is the still-`sorry` step.
 
-      (2) `PullbacksTransferCovers 𝒞` — topos exactness; likewise reducible to the
-          §1.54 / image machinery (cf. `regular_of_compose_assoc`, S1_56:1255).
+      (2) `PullbacksTransferCovers 𝒞` — topos exactness; bundled with (1) inside
+          `RegularCategory` (S1_52:39), and blocked at the same wiring step.
 
       (3) THE QUOTIENT COVER — for each equivalence relation `E`, a cover
           `q : A ↠ A/E` with `level q ≅ E`.  This is Freyd's power-object
-          construction `A → Ω^A` and needs the power object `Ω^A = exp A Ω`,
-          which is opaque here because `topos_has_exponentials` (S1_92) is itself
-          an unfilled `sorry` (blocked on §1.543 capitalization).
+          construction `A → [A]`.  Power objects `[A] = HasPowerObject.powerObj A`
+          are now BUNDLED in `Topos` (`Topos.has_pow`, S1_9), so the
+          singleton/membership data is available; but extracting the cover `q` as
+          the image of the classifying map still needs `HasImages` (1).
 
-    Once (1)–(3) are available, this instance is
+    `EffectiveRegular extends RegularCategory`, so the instance cannot even be
+    started without (1)+(2); the residual is the §1.54→`HasImages` wiring, NOT a
+    power-object gap.  Once (1)–(3) are available, this instance is
     `⟨…, fun E hE => effective_of_quotient_cover E hE q hq hElq hlqE⟩`
     with `(q, hq, hElq, hlqE)` the quotient cover from (3).  The recovery half (the
     relation-algebra identity `E ≅ level q ≅ (graph q)⊚(graph q)°`) is now PROVED
@@ -170,44 +176,40 @@ instance topos_is_effective [Topos 𝒞] : EffectiveRegular 𝒞 := by
     and through Δ0 iff R = 0.  So A + 1 exists.  Then A + B is constructed
     as a subobject of [A] × [B] = [A + B].
 
-    BLOCKER (faithful sorry) — a POWER-OBJECT/PARTIAL-MAP gap, NOT the §1.543
-    capitalization gap that blocks the regular arms (`topos_is_effective`,
-    `topos_is_regular`, `topos_has_coequalizers`, S1_94 `topos_is_regular`/
-    `topos_is_logos`).  This arm never touches the §1.543 transfinite
-    image/family-glb (`capitalization_lemma`); the residual is a different,
-    lower-down power-object obstruction.  Concretely, Freyd's singleton-map
-    construction `A + B ↪ [A] × [B]` needs:
+    BLOCKER (faithful sorry) — a SUBOBJECT-UNION / PARTIAL-MAP gap.  The §1.54
+    `capitalization_lemma` is PROVEN sorry-free (`CapDataWiring.lean`), and power
+    objects `[A] = HasPowerObject.powerObj A` plus the singleton map `A ↣ [A]` are
+    now BUNDLED in `Topos` (`Topos.has_pow`, S1_9) and PROVEN axiom-clean
+    (`Baseable923 :: singletonMap`/`singletonMap_monic`).  So ingredient (S) below
+    is now AVAILABLE; the two genuine residuals are the carrier's *subobject union*
+    and the coproduct UMP's *partial-map classifier*:
 
-      (S) the power objects `[A] = Ω^A`, `[B] = Ω^B` and the singleton maps
-          `A → [A]`, `B → [B]`.  These are `powObj` / `singletonMap` (S1_94, via
-          `singletonMapCat`, S1_92), but `powObj A := Ω ^^ A = exp A Ω` rests on
-          `topos_has_exponentials` (S1_92:96), which is itself a `sorry`: its
-          residual is `∀ B, Baseable B` — "every power object `[B]` is baseable"
-          (the §1.859 representability of `(A × −, [B])`).  This is the
-          POWER-OBJECT gap: the subobject-classifier presentation of `Topos`
-          (Cartesian + `HasSubobjectClassifier`, S1_9:161) only supplies
-          `Ω = [1]`, NOT `HasPowerObject C` / exponentials for general `C`.
-          (Construction of the carrier `A + B ↪ [A] × [B]` itself, as the union of
-          the two classifier-cut subobjects `{(s,∅) | s singleton}` and
-          `{(∅,t) | t singleton}`, needs ONLY `HasSubobjectClassifier` — the
-          internal `∨` on `Ω` — so it is NOT a §1.543 family-glb.)
+      (S) [AVAILABLE]  the power objects `[A]`, `[B]` and singleton maps
+          `A → [A]`, `B → [B]` — `HasPowerObject.powerObj` / `Baseable923.singletonMap`,
+          both sorry-free under `[Topos 𝒞]`.
 
-      (P) the COPRODUCT UNIVERSAL PROPERTY (`case`/`inl`/`inr` + uniqueness):
-          building `[f,g] : A + B → X` from `f : A → X`, `g : B → X` is exactly
-          factoring a partial map out of the singleton-or-empty subobject, i.e.
-          the universal property of the PARTIAL-MAP CLASSIFIER `Ω₊ = Ã`
-          (`HasPartialMapClassifier`, S1_92:339).  That structure exists in the
-          repo only as a field-stub (its `pmc_classify` carries no laws) and is
-          NOT derived from `Topos`; `LawvereTopos` (S1_92:350) *bundles*
-          `has_coproducts`, so it cannot be used to derive this instance without
+      (U) [BLOCKED on `HasImages`]  the CARRIER `A + B ↪ [A] × [B]` is the union of
+          the two singleton-image subobjects `{(s,∅)}` and `{(∅,t)}` of `[A]×[B]`.
+          Forming a subobject UNION needs `HasSubobjectUnions` (S1_60:42), which
+          `extends HasImages`; and there is NO internal disjunction `∨ : Ω×Ω → Ω`
+          in the topos layer (S1_91 supplies internal `∧`/`⇒` only — `∨` is itself
+          an image/`∃` construction).  Either route bottoms out on `HasImages`, the
+          same regular-core gap as `topos_is_effective` (the §1.54→`HasImages`
+          wiring, `topos_is_regular`).  So the carrier is NOT classifier-only here.
+
+      (P) [BLOCKED on `Ω₊`]  the COPRODUCT UNIVERSAL PROPERTY (`case`/`inl`/`inr` +
+          uniqueness): building `[f,g] : A + B → X` is factoring a partial map out
+          of the singleton-or-empty subobject — the universal property of the
+          PARTIAL-MAP CLASSIFIER `Ω₊ = Ã` (`HasPartialMapClassifier`, S1_92:751).
+          That structure exists in the repo only as a field-stub (`pmc_classify`
+          carries no laws) and is NOT derived from `Topos`; `LawvereTopos`
+          (S1_92:762) *bundles* coproducts, so it cannot be used here without
           circularity.
 
-    So the precise residual is the pair {(S) `∀ B, Baseable B` = the
-    power-object/exponential representability behind `topos_has_exponentials`;
-    (P) the lawful partial-map-classifier universal property `Ω₊` derived from
-    `Topos`}.  Both are power-object–level facts, distinct from and strictly
-    below the §1.543 transfinite-colimit (`capitalization_lemma`) blocker of the
-    regular/effective arms. -/
+    Because `HasBinaryCoproducts` is an all-or-nothing class (carrier + lawful
+    `case`/`case_uniq`), no partial instance can be supplied without faking the UMP
+    fields.  The precise residual is the pair {(U) `HasImages`/subobject-union for
+    the carrier; (P) the lawful partial-map-classifier `Ω₊`}. -/
 instance topos_is_positive [Topos 𝒞] : HasBinaryCoproducts 𝒞 := by
   sorry
 
@@ -264,18 +266,19 @@ noncomputable def preTopos_rtc_has_coequalizers [inst : PreTopos 𝒞]
 
       (1) `PreTopos 𝒞` — in particular `EffectiveRegular 𝒞` (and the underlying
           `RegularCategory`/`HasImages`/`PullbacksTransferCovers`).  This is
-          `topos_is_effective` (line 161), still a `sorry` blocked on the §1.54
-          capitalization lemma (the topos image construction
-          `⋂{B' ↣ B | f ↦ B'}` rests on `capitalization_lemma`, S1_94:321).
+          `topos_is_effective` (above), still a `sorry`.  Note `capitalization_lemma`
+          itself is PROVEN sorry-free (`CapDataWiring.lean`); the open step is
+          wiring it into `HasImages` for an arbitrary topos (`topos_is_regular`,
+          S1_94:346), so the topos image `⋂{B' ↣ B | f ↦ B'}` is constructed.
 
       (2) `HasReflTransClosure 𝒞` — there is NO `topos_has_rtc` instance: a topos's
-          reflexive-transitive closures are themselves obtained by the §1.543
-          transfinite (capitalization) colimit, the same blocker as (1).
+          reflexive-transitive closures are obtained via the same image/closure
+          machinery, blocked at the same `HasImages` wiring as (1).
 
     `rtc` being now available means the *equivalence-closure* sub-problem is no
     longer the gap: the residual blocker is exactly the existence of `rtc`
-    *instances* on a topos (2) on top of the §1.54-blocked effectiveness (1).  With
-    both, this instance is literally `preTopos_rtc_has_coequalizers`. -/
+    *instances* on a topos (2) on top of the `HasImages`-blocked effectiveness (1).
+    With both, this instance is literally `preTopos_rtc_has_coequalizers`. -/
 instance topos_has_coequalizers [Topos 𝒞] : HasCoequalizers 𝒞 := by
   sorry
 
@@ -418,11 +421,16 @@ theorem expMap_omega_eq_omegaPow [Topos 𝒞] {A B : 𝒞} (f : A ⟶ B) :
     [1_A] = 1_{[A]}`).  Two gaps remain before `powerMapCovP f` can be USED as `s` here,
     and they are exactly what the sorry pins:
 
-    1. **`exp A Ω ≅ [A]` identification.**  `expMap Ω f` is typed against the OPAQUE
+    1. **`exp A Ω ≅ [A]` identification.**  `expMap Ω f` is typed against the
        exponential `exp A Ω = Ω^^A`, whereas `powerMapCovP f` is typed against the power
-       object `[A] = HasPowerObject.powerObj A`.  No iso `exp A Ω ≅ [A]` is available
-       (the repo's `Topos` does not bundle `∀ C, HasPowerObject C`, and `exp` is opaque),
-       so `powerMapCovP f` cannot even be *named* at the type `Ω^^A → Ω^^B` required for `s`.
+       object `[A] = HasPowerObject.powerObj A`.  `Topos` now BUNDLES
+       `∀ C, HasPowerObject C` (`Topos.has_pow`, S1_9), and `universalRel_unique`
+       (S1_92:614, PROVEN sorry-free) gives `exp A Ω ≅ [A]` *as soon as* `evalRel A`
+       is a universal relation — but that universality rests on honest
+       `[HasExponentials 𝒞]`, supplied here only via the `sorry` instance
+       `topos_has_exponentials` (S1_92:102, residual `∀ B, Baseable B`).  So `exp` is
+       still sorry-contaminated and `powerMapCovP f` cannot be *named* at the type
+       `Ω^^A → Ω^^B` required for `s`.
 
     2. **The GENERAL unit `f"f = 1` for monic `f`.**  `powerMapCovP_id` settles the unit
        only at `f = 1`.  The cover step needs the section identity at every monic `f`,
