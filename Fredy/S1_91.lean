@@ -580,6 +580,42 @@ theorem classify_invTrue (g : HasSubobjectClassifier.omega (𝒞 := 𝒞) ⟶
             HasSubobjectClassifier.true_monic from rfl,
       classify_true_eq_id, Cat.comp_id]
 
+/-! ### §1.914  Membership/order bridge `Sub(−) ≅ Hom(−,Ω)`
+
+  The classifier bijection turns the subobject order into classifier equations.
+  These are the workhorses for the internal Heyting-algebra laws below. -/
+
+/-- **Membership bridge**: a map `k : W → A` factors through the subobject `S`
+    (`Allows S k`) iff its composite with the classifier `χ_S` is constantly true.
+    This is the pointwise form of `Sub(−) ≅ Hom(−,Ω)`. -/
+theorem allows_iff_classify {A W : 𝒞} (S : Subobject 𝒞 A) (k : W ⟶ A) :
+    Allows S k ↔ k ≫ HasSubobjectClassifier.classify S.arr S.monic
+      = term W ≫ HasSubobjectClassifier.true := by
+  constructor
+  · rintro ⟨u, hu⟩
+    have sqS : S.arr ≫ HasSubobjectClassifier.classify S.arr S.monic
+        = term S.dom ≫ HasSubobjectClassifier.true :=
+      HasSubobjectClassifier.classify_sq S.arr S.monic
+    calc k ≫ HasSubobjectClassifier.classify S.arr S.monic
+        = (u ≫ S.arr) ≫ HasSubobjectClassifier.classify S.arr S.monic := by rw [hu]
+      _ = u ≫ (S.arr ≫ HasSubobjectClassifier.classify S.arr S.monic) := Cat.assoc _ _ _
+      _ = u ≫ (term S.dom ≫ HasSubobjectClassifier.true) := by rw [sqS]
+      _ = (u ≫ term S.dom) ≫ HasSubobjectClassifier.true := (Cat.assoc _ _ _).symm
+      _ = term W ≫ HasSubobjectClassifier.true := by
+            rw [term_uniq (u ≫ term S.dom) (term W)]
+  · intro hk
+    obtain ⟨u, ⟨hu, _⟩, _⟩ :=
+      HasSubobjectClassifier.classify_pullback S.arr S.monic ⟨W, k, term W, hk⟩
+    exact ⟨u, hu⟩
+
+/-- **Order bridge**: `S ≤ T` in `Sub(A)` iff the inclusion `S.arr` lands in `T`,
+    iff `S.arr ≫ χ_T = term ≫ true`.  (Specializes `allows_iff_classify` at
+    `k = S.arr`, since `Allows T S.arr` is exactly `S.le T`.) -/
+theorem le_iff_classify {A : 𝒞} (S T : Subobject 𝒞 A) :
+    S.le T ↔ S.arr ≫ HasSubobjectClassifier.classify T.arr T.monic
+      = term S.dom ≫ HasSubobjectClassifier.true :=
+  allows_iff_classify T S.arr
+
 /-- **§1.919 (key monicity lemma)**: when `g` is monic, `G = g⁻¹(t)` is SUBTERMINAL
     — its domain has at most one map from any object.  Reason: for `a, b : W → G.dom`,
     both `a ≫ G.arr` and `b ≫ G.arr` compose with `g` to the constant `term ≫ true`
