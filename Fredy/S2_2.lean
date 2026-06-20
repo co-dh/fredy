@@ -384,7 +384,11 @@ class PositiveAllegory (𝒜 : Type u) extends DistributiveAllegory 𝒜 where
 
 /-- A LOCALLY COMPLETE distributive allegory (§2.22).
     Uses a predicate-based encoding of arbitrary suprema
-    (avoids `Set` dependency). -/
+    (avoids `Set` dependency).
+
+    Book §2.22: each hom-set is a complete lattice AND composition and finite
+    intersection distribute over arbitrary unions, i.e. `R(∪Sᵢ) = ∪ RSᵢ`
+    (with the empty-`I` case `R0 = 0`). -/
 class LocallyCompleteDistributiveAllegory (𝒜 : Type u) extends DistributiveAllegory 𝒜 where
   /-- Supremum of a predicate P on the hom-set. -/
   Sup {a b : 𝒜} (P : (a ⟶ b) → Prop) : a ⟶ b
@@ -392,6 +396,15 @@ class LocallyCompleteDistributiveAllegory (𝒜 : Type u) extends DistributiveAl
   le_Sup {a b : 𝒜} {P : (a ⟶ b) → Prop} {R : a ⟶ b} (h : P R) : R ⊑ Sup P
   /-- Sup is least upper bound. -/
   Sup_le {a b : 𝒜} {P : (a ⟶ b) → Prop} {T : a ⟶ b} (h : ∀ R, P R → R ⊑ T) : Sup P ⊑ T
+  /-- §2.22 distributive law: composition distributes over arbitrary unions on the right,
+      `R(∪Sᵢ) = ∪ RSᵢ`.  `Sup_comp` is the indexed family `{RSᵢ}`, given as the image
+      predicate `T = R ≫ S` for some `S` with `P S`.  (The empty-`I` case is `R0 = 0`.) -/
+  comp_Sup_distrib {a b c : 𝒜} (R : a ⟶ b) (P : (b ⟶ c) → Prop) :
+    R ≫ Sup P = Sup (fun T => ∃ S, P S ∧ T = R ≫ S)
+  /-- §2.22 distributive law: finite intersection distributes over arbitrary unions,
+      `R ∩ (∪Sᵢ) = ∪ (R ∩ Sᵢ)`. -/
+  inter_Sup_distrib {a b : 𝒜} (R : a ⟶ b) (P : (a ⟶ b) → Prop) :
+    R ∩ Sup P = Sup (fun T => ∃ S, P S ∧ T = R ∩ S)
 
 /-! ## §2.223  Globally complete allegory -/
 
@@ -402,6 +415,11 @@ class GloballyCompleteAllegory (𝒜 : Type u) extends LocallyCompleteDistributi
   inject {I : Type u} {a : I → 𝒜} (i : I) : a i ⟶ disjointUnion a
   inject_self_comp_recip {I : Type u} {a : I → 𝒜} (i : I) :
     inject i ≫ (inject i)° = Cat.id (a i)
+  -- §2.223 disjointness `UᵢUⱼ° = Uᵢ°Uⱼ = 0` (i ≠ j).  The book's two products read,
+  -- in diagrammatic order, as `inject i ≫ (inject j)°` (αᵢ→αⱼ) and `inject j ≫ (inject i)°`
+  -- (αⱼ→αᵢ); these are the SAME family indexed over ordered pairs of distinct indices, so the
+  -- single field below (quantified over all `i ≠ j`) supplies both.  A literal `(inject i)° ≫
+  -- inject j` does not typecheck (codomains αᵢ, αⱼ differ), confirming there is no extra law.
   inject_comp_recip_ne {I : Type u} {a : I → 𝒜} {i j : I} (h : i ≠ j) :
     inject i ≫ (inject j)° = (𝟘 : a i ⟶ a j)
   complete {I : Type u} {a : I → 𝒜} :
