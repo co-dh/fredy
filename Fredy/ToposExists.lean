@@ -87,6 +87,40 @@ noncomputable def trueSnd : Subobject 𝒞 (prod (omega (𝒞 := 𝒞)) (omega (
 noncomputable def orChar : prod (omega (𝒞 := 𝒞)) (omega (𝒞 := 𝒞)) ⟶ omega (𝒞 := 𝒞) :=
   subChar (HasSubobjectUnions.union (trueFst (𝒞 := 𝒞)) (trueSnd (𝒞 := 𝒞)))
 
+/-- **`orChar` UMP, forward half (sorry-free).**  `pair χ_S χ_T ≫ orChar` classifies a
+    subobject of `A` that *contains* `S ∪ T`: i.e. `S ∪ T ≤ (pair χ_S χ_T)# (trueFst ∪ trueSnd)`,
+    the subobject named by `⟨χ_S, χ_T⟩ ≫ orChar`.
+
+    This is one half of `χ_{S∪T} = ⟨χ_S,χ_T⟩ ≫ orChar`.  The other half (`≤` the union)
+    is exactly inverse-image-preserving-unions along `pair χ_S χ_T`, which is the frame /
+    join-distributivity law `f#(X∪Y) ≤ f#X ∪ f#Y` — NOT a consequence of the bare join
+    lattice laws, and not available at this layer (no `PreLogos 𝒞` instance for a topos yet;
+    see residual note at end of file).  We therefore record the provable half here and the
+    full equation as a precise residual rather than fake it. -/
+theorem orChar_classifies_ge {A : 𝒞} (S T : Subobject 𝒞 A)
+    (hpU : HasPullback (pair (subChar S) (subChar T))
+      (HasSubobjectUnions.union (trueFst (𝒞 := 𝒞)) trueSnd).arr)
+    (hpF : HasPullback (pair (subChar S) (subChar T)) (trueFst (𝒞 := 𝒞)).arr)
+    (hpS : HasPullback (pair (subChar S) (subChar T)) (trueSnd (𝒞 := 𝒞)).arr) :
+    (HasSubobjectUnions.union S T).le
+      (invImg (pair (subChar S) (subChar T))
+        (HasSubobjectUnions.union (trueFst (𝒞 := 𝒞)) trueSnd) hpU) := by
+  -- S ≅ P# trueFst  and  T ≅ P# trueSnd  (same classifier).  P := pair χ_S χ_T.
+  let P := pair (subChar S) (subChar T)
+  have hSchar : subChar (invImg P trueFst hpF) = subChar S := by
+    have h1 : subChar (invImg P trueFst hpF) = P ≫ subChar trueFst := classify_invImg P trueFst hpF
+    rw [h1, subChar_trueFst]; exact fst_pair (subChar S) (subChar T)
+  have hTchar : subChar (invImg P trueSnd hpS) = subChar T := by
+    have h1 : subChar (invImg P trueSnd hpS) = P ≫ subChar trueSnd := classify_invImg P trueSnd hpS
+    rw [h1, subChar_trueSnd]; exact snd_pair (subChar S) (subChar T)
+  have hS_le : S.le (invImg P trueFst hpF) := (le_le_of_subChar_eq hSchar.symm).1
+  have hT_le : T.le (invImg P trueSnd hpS) := (le_le_of_subChar_eq hTchar.symm).1
+  have hF_le := invImg_le P trueFst (HasSubobjectUnions.union trueFst trueSnd) hpF hpU
+    (HasSubobjectUnions.union_left trueFst trueSnd)
+  have hG_le := invImg_le P trueSnd (HasSubobjectUnions.union trueFst trueSnd) hpS hpU
+    (HasSubobjectUnions.union_right trueFst trueSnd)
+  exact HasSubobjectUnions.union_min S T _ (subLe_trans' hS_le hF_le) (subLe_trans' hT_le hG_le)
+
 /-! ## GOAL 2 — Direct image `∃_f` and the adjunction `∃_f ⊣ f#` -/
 
 /-- **Direct image** `∃_f S ⊆ B` of a subobject `S ⊆ A` along `f : A → B`: the image of the
