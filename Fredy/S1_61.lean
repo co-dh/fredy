@@ -632,7 +632,7 @@ theorem hxyg_lemma {A₁ A₂ Q I : 𝒞} (f : A₁ ⟶ Q) (g : A₂ ⟶ Q)
   have h3 : RelLe ((graph π₁)° ⊚ (graph π₂ ⊚ graph g)) ((graph π₁)° ⊚ graph (π₂ ≫ g)) :=
     compose_le (rel_le_refl _) (comp_graph π₂ g)
   have h4 : RelLe ((graph π₁)° ⊚ graph (π₂ ≫ g)) ((graph π₁)° ⊚ graph (π₁ ≫ f)) := by
-    rw [hcocone]; exact rel_le_refl _
+    rw [hcocone]
   have h5 : RelLe ((graph π₁)° ⊚ graph (π₁ ≫ f)) ((graph π₁)° ⊚ (graph π₁ ⊚ graph f)) :=
     compose_le (rel_le_refl _) (graph_comp π₁ f)
   have h6 : RelLe ((graph π₁)° ⊚ (graph π₁ ⊚ graph f)) (((graph π₁)° ⊚ graph π₁) ⊚ graph f) :=
