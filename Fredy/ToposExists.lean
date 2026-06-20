@@ -23,6 +23,7 @@ import Fredy.S1_60
 import Fredy.InterIntersection
 import Fredy.InternalForallTopos
 import Fredy.ToposColimits
+import Fredy.ForallAlong
 
 universe v u
 
@@ -120,6 +121,55 @@ theorem orChar_classifies_ge {A : 𝒞} (S T : Subobject 𝒞 A)
   have hG_le := invImg_le P trueSnd (HasSubobjectUnions.union trueFst trueSnd) hpS hpU
     (HasSubobjectUnions.union_right trueFst trueSnd)
   exact HasSubobjectUnions.union_min S T _ (subLe_transTE hS_le hF_le) (subLe_transTE hT_le hG_le)
+
+/-- **`orChar` UMP, reverse half (now sorry-free via the frame law).**  `(pair χ_S χ_T)#(trueFst∪trueSnd)
+    ≤ S ∪ T`: inverse image preserves unions (`ForallAlong.invImage_preserves_union`), and each
+    `(pair χ_S χ_T)# trueFst ≅ S`, `(pair χ_S χ_T)# trueSnd ≅ T`. -/
+theorem orChar_classifies_le {A : 𝒞} (S T : Subobject 𝒞 A)
+    (hpU : HasPullback (pair (subChar S) (subChar T))
+      (HasSubobjectUnions.union (trueFst (𝒞 := 𝒞)) trueSnd).arr)
+    (hpF : HasPullback (pair (subChar S) (subChar T)) (trueFst (𝒞 := 𝒞)).arr)
+    (hpS : HasPullback (pair (subChar S) (subChar T)) (trueSnd (𝒞 := 𝒞)).arr) :
+    (invImg (pair (subChar S) (subChar T))
+        (HasSubobjectUnions.union (trueFst (𝒞 := 𝒞)) trueSnd) hpU).le
+      (HasSubobjectUnions.union S T) := by
+  let P := pair (subChar S) (subChar T)
+  -- frame law: P#(trueFst∪trueSnd) ≤ P#trueFst ∪ P#trueSnd.
+  have hframe := invImage_preserves_union P trueFst trueSnd hpU hpF hpS
+  -- P#trueFst ≅ S, P#trueSnd ≅ T  (same classifier, as in orChar_classifies_ge).
+  have hSchar : subChar (invImg P trueFst hpF) = subChar S := by
+    have h1 : subChar (invImg P trueFst hpF) = P ≫ subChar trueFst := classify_invImg P trueFst hpF
+    rw [h1, subChar_trueFst]; exact fst_pair (subChar S) (subChar T)
+  have hTchar : subChar (invImg P trueSnd hpS) = subChar T := by
+    have h1 : subChar (invImg P trueSnd hpS) = P ≫ subChar trueSnd := classify_invImg P trueSnd hpS
+    rw [h1, subChar_trueSnd]; exact snd_pair (subChar S) (subChar T)
+  have hFS : (invImg P trueFst hpF).le S := (le_le_of_subChar_eq hSchar).1
+  have hGT : (invImg P trueSnd hpS).le T := (le_le_of_subChar_eq hTchar).1
+  -- P#trueFst ∪ P#trueSnd ≤ S ∪ T  (union_min + union_left/right).
+  have hunion_le : (HasSubobjectUnions.union (invImg P trueFst hpF) (invImg P trueSnd hpS)).le
+      (HasSubobjectUnions.union S T) :=
+    HasSubobjectUnions.union_min _ _ _
+      (subLe_transTE hFS (HasSubobjectUnions.union_left S T))
+      (subLe_transTE hGT (HasSubobjectUnions.union_right S T))
+  exact subLe_transTE hframe hunion_le
+
+/-- **`orChar` UMP (full, sorry-free).**  `χ_{S∪T} = ⟨χ_S, χ_T⟩ ≫ orChar`: the internal
+    disjunction `orChar` correctly classifies the union of any two subobjects via their
+    classifiers.  Combines `orChar_classifies_ge` (≥) and `orChar_classifies_le` (≤). -/
+theorem orChar_ump {A : 𝒞} (S T : Subobject 𝒞 A)
+    (hpU : HasPullback (pair (subChar S) (subChar T))
+      (HasSubobjectUnions.union (trueFst (𝒞 := 𝒞)) trueSnd).arr)
+    (hpF : HasPullback (pair (subChar S) (subChar T)) (trueFst (𝒞 := 𝒞)).arr)
+    (hpS : HasPullback (pair (subChar S) (subChar T)) (trueSnd (𝒞 := 𝒞)).arr) :
+    subChar (HasSubobjectUnions.union S T)
+      = pair (subChar S) (subChar T) ≫ orChar (𝒞 := 𝒞) := by
+  -- orChar = subChar(trueFst∪trueSnd); ⟨χ_S,χ_T⟩ ≫ orChar = subChar (P#(trueFst∪trueSnd)).
+  rw [orChar, ← classify_invImg (pair (subChar S) (subChar T))
+    (HasSubobjectUnions.union trueFst trueSnd) hpU]
+  -- χ_{S∪T} = χ_{P#(trueFst∪trueSnd)} by mutual ≤ (the two UMP halves).
+  exact classify_eq_of_le_le
+    (orChar_classifies_ge S T hpU hpF hpS)
+    (orChar_classifies_le S T hpU hpF hpS)
 
 /-! ## GOAL 2 — Direct image `∃_f` and the adjunction `∃_f ⊣ f#` -/
 
