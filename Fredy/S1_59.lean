@@ -2239,20 +2239,43 @@ theorem five_lemma [AbelianCategory 𝒞]
   bare iso is the wrong encoding).  This is a strengthening of both hypothesis and conclusion to
   the faithful definition of exactness.
 
-  RESIDUAL BLOCKER (honest `sorry` retained — names the precise missing infra).  Even with
-  `RelExact` and the now-available additive inverses, the connecting morphism `δ : ker γ → coker α`
-  is, in Freyd's own construction (§1.599), built "as a relation": the composite
-  `ker γ → C ⤳ B ⤳ B' ⤳ coker α` of a reciprocal, a vertical, and another reciprocal, shown
-  single-valued and total only via the CALCULUS OF RELATIONS in the §1.55 Ab-representation +
-  §1.56 reciprocation.  The MISSING LEMMA is precisely: a constructive, representation-free
-  definition of `δ` together with `δ`'s well-definedness — concretely, a pullback `P = B ×_C ker γ`
-  of `g` along `ker γ ↪ C`, a section's image in `coker α` independent of the chosen lift, which in
-  this hand-built framework needs the relational-composite single-valuedness lemma
-  (`relComp_singleValued` over §1.56), not yet available here.  Without `δ`, the existential cannot
-  be honestly witnessed (a `sorry`-d `δ` inside the `∃` is no more honest than the whole-statement
-  `sorry`).  The induced maps `κ_f, κ_g, π_f, π_g` and their exactness DO follow from `RelExact` +
-  the kernel/cokernel universal properties; the sole gap is `δ` and the two exactness claims that
-  mention it.  Faithful `sorry` retained. -/
+  RESIDUAL (honest `sorry` retained — the STATEMENT IS FALSE as written; the `sorry` is now a
+  marker for a needed hypothesis fix, not a missing proof).  The two hypotheses `RelExact f g`
+  and `RelExact f' g'` assert exactness only at the INTERIOR nodes `B` and `B'`.  Under interior
+  exactness alone, the connecting map `δ : ker γ → coker α` is genuinely only a RELATION, not a
+  morphism, and the existential conjunction is REFUTABLE.  Explicit counterexample in `Ab`:
+
+      A=0 ─0→ B=0 ─0→ C=ℤ            (top row, f=0, g=0)
+      |α=0    |β=0    |γ=0
+      A'=ℤ ─id→ B'=ℤ ─0→ C'=0        (bottom row, f'=id, g'=0)
+
+  Hypotheses hold: `RelExact f g` — over `B=0` the only subobject is 0, so `im f = ker g = 0` ✓;
+  `RelExact f' g'` — `im(id)=ℤ = ker(0:ℤ→0)=ℤ` ✓; both squares commute (every composite is the
+  zero map `0→ℤ` / `0→0`) ✓.  Now compute the nodes:
+    ker α = ker β = 0,  ker γ = ℤ,  coker α = coker β = ℤ,  coker γ = 0,
+  forcing  κ_g : 0→ℤ  (so `im κ_g = 0`),  π_g : ℤ→0  (so `ker π_g = ℤ`).  The conjunction then
+  pins `δ : ℤ → ℤ` by:
+    • `RelExact κ_g δ` ⟹ `ker δ = im κ_g = 0` ⟹ δ MONIC;
+    • `RelExact π_f π_g` ⟹ `im π_f = ker π_g = ℤ` ⟹ π_f EPI ⟹ `ker π_f ≅ ℤ` only via n=±1, so
+    • `RelExact δ π_f` ⟹ `im δ = ker π_f` ⟹ together with δ monic forces δ ISO, hence `im δ = ℤ`,
+      hence `ker π_f = ℤ`, hence π_f = 0 — CONTRADICTING `im π_f = ℤ` above.
+  No `(κ_g, π_f, δ)` satisfies all four `RelExact`.  So the theorem is FALSE with only interior
+  exactness; it is NOT a missing-lemma or relational-calculus gap (the §1.55/§1.56 diagnosis in the
+  prior residual was incorrect — δ as a relation simply has no single-valued total morphism here).
+
+  THE FIX (do NOT silently weaken the conclusion; STRENGTHEN the hypotheses to the genuine snake
+  hypotheses).  δ exists as a morphism and the 6-term sequence is exact exactly when the rows are
+  exact at the OUTER nodes too: `g` a COVER (epi — top row exact at C: `A→B→C→0`) and `f'` MONIC
+  (bottom row exact at A': `0→A'→B'→C'`).  With `(hg_epi : Cover g)` and `(hf'_mono : Mono f')`
+  added, the element-free construction goes through: pull `g` back along `kernelMap γ` (`g` epi ⟹
+  the projection `p_K : P → ker γ` is a COVER by `cover_pullback`), push `β∘p_B` through `ker g' =
+  im f'` (`relexact_cover_factor hf'g'`) and (f' monic ⟹ uniquely) into `A'`, then into `coker α`;
+  `e` coequalizes the kernel pair of `p_K` (the difference lands in `f'(im α)`, killed in coker α,
+  via the subtraction algebra), so `cover_is_coequalizer_of_level` descends it to `δ`.  That
+  hypothesis-corrected theorem is the next step; the present (interior-only) statement is retained
+  here, refuted above, with a faithful `sorry` flagging the required hypothesis fix rather than a
+  false proof.  An honest unrefuted-but-unweakened `sorry` is mandated by the integrity rules over
+  any contortion that would weaken or fake-close. -/
 theorem snake_lemma [AbelianCategory 𝒞]
     {A B C A' B' C' : 𝒞}
     {f : A ⟶ B} {g : B ⟶ C} {α : A ⟶ A'} {β : B ⟶ B'} {γ : C ⟶ C'}
