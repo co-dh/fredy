@@ -1607,7 +1607,7 @@ private theorem powProj_precomp {I : Type v} (P : CopowerOfOne I 𝒞) {A X : �
 
 /-- **§1.967 (c)→(a)**: a `Type v`-indexed family of copowers-of-1 yields arbitrary powers
     (built over the topos's own products; transported to a caller's products instance below). -/
-private noncomputable def powersOfCopowersOfOne
+noncomputable def powersOfCopowersOfOne
     (P : (I : Type v) → CopowerOfOne I 𝒞) : HasArbitraryPowers (𝒞 := 𝒞) where
   pow I A := A ^^ (P I).obj
   proj {I A} i := powProj (P I) A i
@@ -1684,74 +1684,11 @@ theorem topos_copowers_equiv_copowers_of_one [LocallySmallTopos 𝒞]
       cotupling_uniq := fun {I A X} f h hh =>
         (prod_distrib_copow (Classical.choice (hc I)) A).cotup_uniq f h hh }⟩
 
-/-- **§1.967**: In a locally small topos the following are equivalent:
-    (a) Arbitrary powers of objects exist.
-    (b) Arbitrary copowers of objects exist.
-    (c) Arbitrary copowers of 1 exist (i.e., 1 has an I-fold copower for every I).
-
-    Each condition implies local completeness.
-
-    Proof sketch (Freyd):
-    (a)→local completeness: given {Bᵢ} ⊆ B, let f : B → ∏ᵢ Ω be the map with
-      i-th component χ(Bᵢ), let g have i-th component χ(B); the equalizer is ⋂Bᵢ.
-      Since the topos is well-powered (|(−,Ω)| = |Sub(−)|), arbitrary intersections
-      imply arbitrary unions.
-    (a)→(b): construct the copower I ⊗ A as a subobject of ∏ᵢ (A+1) using the
-      complemented injections uᵢ (where uᵢuᵢ° = 1, uᵢuⱼ° = 0 for i ≠ j).
-    (b)→(c): trivially, copower of A specializes to copower of 1.
-    (c)→(a): ∏ᵢ A ≅ A^(I⊗1) using the exponential structure of the topos.
-
-    STATUS (this file):
-    * **(b)→(a) CLOSED, sorry-free** — `powersOfCopowersOfOne` above.  Reduce copowers to
-      copowers-of-1 via the closed sibling `topos_copowers_equiv_copowers_of_one`, then set
-      `∏ᵢ A := A^(∐ᵢ1)`; the power UP is the exponential law `Hom(X, A^cI) ≅ Hom(cI×X, A) ≅
-      ∏ᵢ Hom(X,A)`, the middle iso being the copower UP distributed across `X × −`
-      (`prod_distrib_copow`).  Used as the (b)→(a) branch of the iff below.
-    * **(a)→(b) the SOLE residual `sorry`.**  It suffices (sibling iff) to build the
-      copower-of-1 datum `CopowerOfOne I 𝒞 = ∐ᵢ1` from arbitrary powers.  Freyd carves it as
-      the "exactly-one-true-coordinate" SUBOBJECT of `∏ᵢ(1+1)` (which exists by (a) since
-      `1+1` exists by `[HasBinaryCoproducts]`):  `inj i : 1 → ∐ᵢ1` is the tuple that is `inr`
-      (true) at `i` and `inl` (false) elsewhere.
-
-      The disjointness inputs the carving needs ARE available sorry-free for a bare topos —
-      `coprodInjections_disjoint` (`Fredy/ToposExists.lean`: pullback of `inl`,`inr` ≅ `0`)
-      and the arbitrary subobject joins `extJoin`/`familyMeet`
-      (`locallyComplete'_of_powers_wellPowered`, with `LocallySmallTopos.wellPowered`).
-
-      BLOCKED STEP — `CopowerOfOne.cotup_uniq`.  Defining the subobject and its `inj i` is
-      bookkeeping over the joins; the genuine gap is the COLIMIT (map-OUT) universal property
-      `cotup_uniq`: two maps `∐ᵢ1 → X` agreeing on every `inj i` must be equal.  The
-      subobject is built from a subobject JOIN, which supplies only a map-IN UP
-      (`extJoin_upper`/`extJoin_least`), never a map-OUT one; deriving cotupling-uniqueness is
-      exactly the infinitary analogue of the binary `coprod_case_exists` amalgamation
-      (`Fredy/ToposExists.lean`, ~250 lines) — it needs the jointly-epic / cover-by-injections
-      fact for the `I`-indexed carving (an `I`-fold `coprod_jointly_epi`), which is NOT
-      reducible to the meet/join lattice and is not yet built.
-
-      MISSING LEMMA (precise):  `copowerOfOne_jointly_epi : ∀ {X} (h k : (∐ᵢ1) ⟶ X),
-      (∀ i, inj i ≫ h = inj i ≫ k) → h = k` for the exactly-one-coordinate subobject of
-      `∏ᵢ(1+1)` — the infinitary jointly-epic injections fact.  With it, `cotup` is the join
-      amalgamation and `cotup_uniq` is immediate, closing (a)→(b) and the whole iff. -/
-theorem topos_powers_copowers_equiv [LocallySmallTopos 𝒞]
-    [HasBinaryProducts 𝒞] [HasBinaryCoproducts 𝒞] :
-    (Nonempty (HasArbitraryPowers (𝒞 := 𝒞))) ↔
-    (Nonempty (HasArbitraryCopowers (𝒞 := 𝒞))) := by
-  constructor
-  · -- (a)→(b): SOLE residual — the exactly-one-coordinate carving of `∐ᵢ1 ⊂ ∏ᵢ(1+1)`; the
-    -- `cotup_uniq` colimit UP (infinitary jointly-epic injections) is not yet built.  See the
-    -- doc comment above for the precise missing lemma `copowerOfOne_jointly_epi`.
-    sorry
-  · -- (b)→(a): CLOSED, sorry-free.  Reduce to copowers-of-1 (sibling iff), then `A^(∐ᵢ1)`.
-    rintro hcop
-    have hone : ∀ (I : Type v), Nonempty (CopowerOfOne I 𝒞) :=
-      (topos_copowers_equiv_copowers_of_one).mp hcop
-    -- `powersOfCopowersOfOne` builds the powers over the topos's own products; rebundle the
-    -- (products-instance-independent) fields against this theorem's explicit `[HasBinaryProducts]`
-    -- to cross the documented `topos_has_exponentials`/explicit-arg products diamond.
-    let pw := powersOfCopowersOfOne (fun I => Classical.choice (hone I))
-    exact ⟨{ pow := pw.pow, proj := fun {I A} => pw.proj, tupling := fun {I A X} => pw.tupling,
-             tupling_proj := fun {I A X} => pw.tupling_proj,
-             tupling_uniq := fun {I A X} => pw.tupling_uniq }⟩
+-- **§1.967 powers↔copowers** (`topos_powers_copowers_equiv`) is now CLOSED sorry-free in
+-- `Fredy/ToposCopowers.lean`: its only residual was the (a)→(b) carving `∐ᵢ1 ⊂ ∏ᵢ(1+1)`
+-- (`toposCopowerOfOne`), whose map-OUT universal property needs the infinitary disjoint
+-- gluing built there (composition-over-arbitrary-join distributivity).  Relocated downstream
+-- because `ToposCopowers` imports this file (it needs `HasArbitraryPowers`/`LocallySmallTopos`).
 
 /-- **§1.967**: Arbitrary powers imply local completeness in a locally small topos.
     Proof: let {Bᵢ ↣ B} be a family of subobjects.  Since the topos is locally small,
@@ -1767,64 +1704,11 @@ noncomputable def topos_powers_implies_locally_complete [LocallySmallTopos 𝒞]
   -- this avoids a `HasBinaryProducts` diamond between the explicit arg and `Topos`'s own.)
   locallyComplete'_of_powers_wellPowered hpow (LocallySmallTopos.wellPowered (𝒞 := 𝒞))
 
-/-! ## §1.968  Complete ↔ cocomplete for locally small topoi -/
-
-/-- **§1.968**: A locally small topos is complete iff it is cocomplete.
-
-    (cocomplete → complete): If arbitrary coproducts exist, embed each Aᵢ into
-    S = ∐ᵢ Aᵢ.  By §1.967 arbitrary powers exist (via copowers).  For each i,
-    the arrow Aᵢ → S witnesses Aᵢ as a subobject of S.  Set P = ∏ᵢ S.
-    The product of the embeddings Aᵢ ↣ S (pulling back via the projections)
-    extracts ∏ᵢ Aᵢ as the subobject of P where all components agree.
-
-    (complete → cocomplete): Arbitrary products imply arbitrary copowers (§1.967),
-    and from copowers coproducts are built as subobjects of copowers of a cogenerator.
-
-    RESIDUAL: NOT reachable from the joins+distributivity layer.  `Complete`/`Cocomplete`
-    (S1_82) demand limits/colimits of ALL small DIAGRAMS, far beyond subobject-lattice
-    `LocallyComplete'`.  Both directions route through the §1.967/§1.968 colimit-assembly
-    "coproducts as subobjects of copowers of a COGENERATOR", which depends on cogeneration —
-    blocked here on the §1.543 capitalization wall (cf. the still-`sorry`
-    `omega_cogenerates_in_value_based_topos` route and `topos_is_effective`).  Distributivity
-    (`prod_distrib_copow`) gives copowers-of-A from copowers-of-1, but assembling arbitrary
-    products from copowers (and vice versa) still needs the cogenerator embedding. -/
-theorem topos_complete_iff_cocomplete [LocallySmallTopos 𝒞]
-    [HasBinaryProducts 𝒞] [HasBinaryCoproducts 𝒞] [HasEqualizers 𝒞] :
-    Nonempty (Complete 𝒞) ↔ Nonempty (Cocomplete 𝒞) := by
-  sorry
-
-/-! ## §1.969  Lawvere and Tierney definitions of a Grothendieck topos -/
-
-/-- **§1.969**: The LAWVERE DEFINITION of a Grothendieck topos:
-    a cocomplete topos with a generating set.
-    (By §1.967 copowers of 1 give all copowers, hence all coproducts,
-     so with a generating set one recovers the Giraud axioms.) -/
-class LawvereGrothendieckTopos (𝒞 : Type u) [Cat.{v} 𝒞] extends Topos 𝒞 where
-  /-- Arbitrary coproducts exist. -/
-  cocomplete : Cocomplete 𝒞
-  /-- A small generating set. -/
-  gen_set : 𝒞 → Prop
-  has_gen_set : IsGeneratingSet gen_set
-
-/-- **§1.969**: The TIERNEY DEFINITION of a Grothendieck topos:
-    a topos with a progenitor and arbitrary copowers of 1.
-    (The copowers-of-1 condition is equivalent to having a geometric morphism to Set.) -/
-class TierneyGrothendieckTopos (𝒞 : Type u) [Cat.{v} 𝒞] extends Topos 𝒞,
-    HasBinaryCoproducts 𝒞 where
-  /-- A progenitor exists. -/
-  progenitor : 𝒞
-  is_progenitor : IsProgenitor progenitor
-  /-- Arbitrary copowers of 1 exist. -/
-  copow_one : (I : Type v) → ∃ (cI : 𝒞) (inj : I → one ⟶ cI),
-    ∀ {X : 𝒞} (f : I → one ⟶ X), ∃ (h : cI ⟶ X), (∀ i, inj i ≫ h = f i)
-
-/-- **§1.969**: The Lawvere and Tierney definitions yield the same notion.
-    Given the Tierney definition, use §1.966 to get Ω^G as cogenerator,
-    then §1.967 (c)→(a) to get arbitrary powers, then the coproduct construction
-    in the proof of §1.968. -/
-theorem lawvere_eq_tierney (𝒞 : Type u) [Cat.{v} 𝒞] [HasBinaryProducts 𝒞] [HasBinaryCoproducts 𝒞]
-    [HasEqualizers 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] :
-    Nonempty (LawvereGrothendieckTopos 𝒞) ↔ Nonempty (TierneyGrothendieckTopos 𝒞) := by
-  sorry
+-- **§1.968 complete↔cocomplete** (`topos_complete_iff_cocomplete`) and **§1.969 Lawvere↔Tierney**
+-- (`lawvere_eq_tierney`, with the `LawvereGrothendieckTopos`/`TierneyGrothendieckTopos` classes)
+-- are relocated to `Fredy/ToposCopowers.lean`.  They are NOT reachable from this joins layer
+-- (they need limits/colimits of all small diagrams and the cogenerator embedding, blocked on the
+-- §1.543 capitalization wall), so they remain honest `sorry`s downstream — but hosting them next
+-- to the now-closed `toposCopowerOfOne` keeps the powers↔copowers cascade in one place.
 
 end Freyd

@@ -57,6 +57,7 @@ import Fredy.ToposRTC
 import Fredy.ToposColimits
 import Fredy.ToposIndexedJoins
 import Fredy.ToposExists
+import Fredy.ToposCopowers
 import Fredy.DirectedColimit
 import Fredy.WellOrdering
 import Fredy.CatColimit

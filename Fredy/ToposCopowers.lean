@@ -7,26 +7,28 @@
   injections `cand i : 1 → ∏ᵢ(1+1)` — the tuple that is `inr` (true) at coordinate `i` and `inl`
   (false) elsewhere.  The `imᵢ` are pairwise disjoint (`1+1` disjointness), each `≅ 1`.
 
-  STATUS:
-  * `inj`, `inj_cotup`, **`cotup_uniq`** — built SORRY-FREE.  `cotup_uniq` (the map-OUT
-    uniqueness / jointly-epic injections) is the infinitary analogue of `coprod_jointly_epi`
-    with `extJoin_least` (S1_95) in place of the binary `union_min`: form the equalizer
-    `E = {h=k}`, show each `imᵢ ≤ E`, then `extJoin_least` forces `obj ≤ E`.  Banked as
-    `copowerImages_jointly_epi`.
-  * `cotup` (map-OUT EXISTENCE) — the SOLE residual `sorry`.  See the doc on
-    `toposCopowerOfOne`: the infinitary disjoint GLUING.  The binary copairing
-    `coprod_case_exists` (ToposExists) builds the map out of a union of TWO partial graphs and
-    proves single-valuedness (functionality) from the §1.621 binary disjoint gluing
-    `disjoint_cover_is_coproduct`.  The infinitary analogue needs FUNCTIONALITY of the
-    `I`-indexed union of partial graphs `⋁ᵢ image⟨inj i, f i⟩ ⊆ obj × X`, which requires an
-    infinitary `relUnionSub`-simplicity (pairwise-disjoint relational union over an arbitrary
-    index) that is NOT built — `HasSubobjectUnions`/`relUnionSub` are binary.  TOTALITY (the
-    injections jointly cover `obj`) IS available — same `extJoin_least` argument as `cotup_uniq`
-    — and is banked as `copowerInj_jointly_cover`.
+  STATUS: SORRY-FREE.  `inj`, `inj_cotup`, `cotup_uniq`, AND `cotup` (map-OUT existence) are all
+  built without `sorry` (`#print axioms Freyd.toposCopowerOfOne = [propext, Classical.choice,
+  Quot.sound]`).
 
-  Because `cotup` is the only hole and it is confined to THIS new def, the file is NOT wired into
-  `Fredy.lean` (master sorry count unchanged); the bankable pieces above are sorry-free and
-  reusable.
+  * `cotup_uniq` (map-OUT uniqueness / jointly-epic injections) is the infinitary analogue of
+    `coprod_jointly_epi` with `extJoin_least` (S1_95) for the binary `union_min`: form the
+    equalizer `E = {h=k}`, show each `imᵢ ≤ E`, then `extJoin_least` forces `obj ≤ E`.  Banked as
+    `copowerImages_jointly_epi`.
+  * `cotup` (map-OUT EXISTENCE) is the infinitary disjoint GLUING, done honestly (no circular
+    bootstrap through the binary `disjoint_cover_is_coproduct`).  The copairing is the map whose
+    GRAPH is the join `G := ⋁ᵢ relSub P_i ⊆ obj × X` of the partial graphs
+    `P_i := (graph (inj i))° ⊚ graph (f i)`, tabulated as a relation `obj ⇸ X`, shown TOTAL
+    (`copowUnion_total`, via `copowInj_jointly_cover`) and SIMPLE (`copowUnion_simple`).
+    FUNCTIONALITY is the genuine infinitary content: the §1.616 composition-over-join
+    distributivity `compose_extJoin_right` (built here from STEP 1 `existsAlong_extJoin_le` +
+    the §1.84 frame law `extJoin_invImage_le`) distributes `G° ⊚ G` over the join into
+    `⋁ᵢⱼ (P_i° ⊚ P_j)`; the diagonal/off-diagonal bounds `P_i° ⊚ P_j ≤ 1`
+    (`copowPartial_pair_le`, from `diag_le_one`/`cross_le_one` with `1+1` disjointness
+    `copowInj_disjoint_maps_agree`) collapse the join into `graph (id X)`.
+
+  Reusable lemmas banked here: `existsAlong_extJoin_le` (∃ preserves joins), `compose_extJoin_right`
+  (composition distributes over arbitrary joins), `binRelSub` (subobject-as-relation).
 -/
 import Fredy.S1_95
 import Fredy.ToposExists
@@ -170,46 +172,403 @@ theorem copowInj_jointly_cover {C : 𝒞} (m : C ⟶ copowObj hpow I) (hm : Mono
     hm _ _ (by rw [Cat.assoc, hwm, Cat.comp_id, Cat.id_comp])
   exact ⟨w, hmw, hwm⟩
 
-/-! ### The map-OUT (cotupling) residual
+/-! ### STEP 1 — direct image preserves arbitrary joins
 
-  Building `cotup f : obj → X` for a family `f : I → (1 ⟶ X)` is the infinitary DISJOINT
-  GLUING.  Mirroring the binary `coprod_case_exists` (ToposExists): the copairing is the unique
-  map whose GRAPH is the union of the `I` partial graphs
+  `∃_g (⋁ S) ≤ ⋁ (∃_g '' S)`.  The infinitary analogue of `existsAlong_union_le` (S1_60),
+  proven via the `∃_g ⊣ g#` Galois connection (`existsAlong_le_iff`, S1_60) with
+  `extJoin_upper`/`extJoin_least` (S1_95) in place of the binary union laws. -/
+theorem existsAlong_extJoin_le {A B : 𝒞} (g : A ⟶ B) (S : Subobject 𝒞 A → Prop) :
+    (existsAlong g (extJoin hpow LocallySmallTopos.wellPowered S)).le
+      (extJoin hpow LocallySmallTopos.wellPowered
+        (fun V => ∃ s, S s ∧ V = existsAlong g s)) := by
+  let V := extJoin hpow LocallySmallTopos.wellPowered (fun V => ∃ s, S s ∧ V = existsAlong g s)
+  -- By the adjunction: suffices  extJoin S ≤ g# V.
+  refine (existsAlong_le_iff g (extJoin hpow LocallySmallTopos.wellPowered S) V).2 ?_
+  -- `extJoin_least`: each member `s` of `S` lies below `g# V`.
+  refine extJoin_least hpow LocallySmallTopos.wellPowered S _ (fun s hs => ?_)
+  -- s ≤ g# V  ↔  ∃_g s ≤ V; and ∃_g s IS a member of the image-predicate, so `extJoin_upper`.
+  exact (existsAlong_le_iff g s V).1
+    (extJoin_upper hpow LocallySmallTopos.wellPowered _ (existsAlong g s) ⟨s, hs, rfl⟩)
 
-      `unionGraph f := ⋁ᵢ image⟨inj i ≫ obj.arr restricted, f i⟩ ⊆ obj × X`,
+/-- A subobject of `A × B` viewed as a relation `A ⇸ B` (legs = `arr ≫ fst`, `arr ≫ snd`). -/
+noncomputable def binRelSub {A B : 𝒞} (W : Subobject 𝒞 (prod A B)) : BinRel 𝒞 A B where
+  src  := W.dom
+  colA := W.arr ≫ fst
+  colB := W.arr ≫ snd
+  isMonicPair := by
+    intro Z u v hA hB
+    refine W.monic u v ?_
+    have hfst : (u ≫ W.arr) ≫ fst = (v ≫ W.arr) ≫ fst := by simpa [Cat.assoc] using hA
+    have hsnd : (u ≫ W.arr) ≫ snd = (v ≫ W.arr) ≫ snd := by simpa [Cat.assoc] using hB
+    calc u ≫ W.arr
+        = pair ((u ≫ W.arr) ≫ fst) ((u ≫ W.arr) ≫ snd) := pair_uniq _ _ _ rfl rfl
+      _ = pair ((v ≫ W.arr) ≫ fst) ((v ≫ W.arr) ≫ snd) := by rw [hfst, hsnd]
+      _ = v ≫ W.arr := (pair_uniq _ _ _ rfl rfl).symm
 
-  tabulated as a relation `obj ⇸ X` whose left leg must be a COVER (totality — available via
-  `copowInj_jointly_cover`) and MONIC (functionality / single-valuedness).
+/-- `relSub (binRelSub W) = W` as subobjects (the pair of `W.arr`'s projections is `W.arr`). -/
+theorem relSub_binRelSub_arr {A B : 𝒞} (W : Subobject 𝒞 (prod A B)) :
+    (relSub (binRelSub W)).arr = W.arr := by
+  show pair (W.arr ≫ fst) (W.arr ≫ snd) = W.arr
+  exact (pair_uniq _ _ W.arr rfl rfl).symm
 
-  FUNCTIONALITY is the wall.  In the binary case `caseRel_colA_monic` proves single-valuedness
-  by exhibiting `caseRel ⊆ graph c` where `c` comes from the §1.621 BINARY disjoint gluing
-  `disjoint_cover_is_coproduct` — a bootstrap that is itself binary and circular here.  The
-  honest infinitary route needs:
+theorem relSub_binRelSub_le {A B : 𝒞} (W : Subobject 𝒞 (prod A B)) :
+    (relSub (binRelSub W)).le W :=
+  ⟨Cat.id _, by rw [Cat.id_comp, relSub_binRelSub_arr]⟩
 
-    MISSING LEMMA — `relUnion_least_simple` (infinitary `relUnionSub`-simplicity):
-      given an `I`-indexed family of partial graphs that are pairwise DISJOINT in their first
-      coordinate (here from `1+1` disjointness `coprodInjections_disjoint`, lifted to the
-      coordinates of `∏ᵢ(1+1)`), their `extJoin` union relation is SIMPLE (left leg monic).
+theorem binRelSub_relSub_le {A B : 𝒞} (W : Subobject 𝒞 (prod A B)) :
+    W.le (relSub (binRelSub W)) :=
+  ⟨Cat.id _, by rw [Cat.id_comp, relSub_binRelSub_arr]⟩
 
-  This is NOT reducible to the meet/join lattice (`extJoin_upper`/`extJoin_least` give only
-  map-IN bounds, never single-valuedness of a tabulated union) and the relational union
-  `relUnionSub` (S1_61) is binary.  It is the genuine, precisely-located gap.  Until it is
-  built, `cotup` (and hence the full `CopowerOfOne` datum) is the sole `sorry`. -/
+/-- **Monotone in the predicate** for `extJoin`: if every member of `P` lies below some member of
+    `Q`, then `extJoin P ≤ extJoin Q`. -/
+theorem extJoin_mono_pred {A : 𝒞} {P Q : Subobject 𝒞 A → Prop}
+    (h : ∀ s, P s → ∃ t, Q t ∧ s.le t) :
+    (extJoin hpow LocallySmallTopos.wellPowered P).le
+      (extJoin hpow LocallySmallTopos.wellPowered Q) := by
+  refine extJoin_least hpow LocallySmallTopos.wellPowered P _ (fun s hs => ?_)
+  obtain ⟨t, hQt, hst⟩ := h s hs
+  exact subLe_trans hst (extJoin_upper hpow LocallySmallTopos.wellPowered Q t hQt)
 
-/-- The map-OUT (cotupling) — the SOLE residual `sorry` (infinitary disjoint gluing; see doc
-    above).  Stated as a standalone existential so that `cotup_uniq` is provable sorry-free from
-    `copowerImages_jointly_epi` given the β-law, isolating the hole to this one statement. -/
+/-! ### STEP 2 — composition distributes over arbitrary joins (right)
+
+  `R ⊚ (⋁ᵢ Wᵢ) ≤ ⋁ᵢ (R ⊚ Wᵢ)` at the subobject level, where `Wᵢ ⊆ B × C` range over the
+  predicate `S`, `extJoin S ⊆ B × C` is their join, and a subobject of a product is read as a
+  relation via `binRelSub`.  The infinitary analogue of `compose_union_right` (S1_60): both
+  factors of `compose = ∃_ω ∘ θ#` (`relSub_compose_eq`) preserve arbitrary joins —
+  `θ#` by the §1.84 frame law `extJoin_invImage_le` (S1_95), `∃_ω` by STEP 1. -/
+theorem compose_extJoin_right {A B C : 𝒞} (R : BinRel 𝒞 A B)
+    (S : Subobject 𝒞 (prod B C) → Prop) :
+    (relSub (R ⊚ binRelSub (extJoin hpow LocallySmallTopos.wellPowered S))).le
+      (extJoin hpow LocallySmallTopos.wellPowered
+        (fun U => ∃ W, S W ∧ U = relSub (R ⊚ binRelSub W))) := by
+  let wp := LocallySmallTopos.wellPowered (𝒞 := 𝒞)
+  -- LHS = ∃_ω (θ# relSub(binRelSub (extJoin S))) = ∃_ω (θ# (extJoin S)).
+  have hL := (relSub_compose_eq R (binRelSub (extJoin hpow wp S))).1
+  -- relSub(binRelSub (extJoin S)) ≤ extJoin S, so θ# of it ≤ θ#(extJoin S), and ∃_ω monotone.
+  have hstep : (existsAlong (omegaR R C)
+        (InverseImage (thetaR R C) (relSub (binRelSub (extJoin hpow wp S))))).le
+      (existsAlong (omegaR R C)
+        (InverseImage (thetaR R C) (extJoin hpow wp S))) :=
+    existsAlong_mono (omegaR R C)
+      (invImage_mono_local (thetaR R C) (relSub_binRelSub_le (extJoin hpow wp S)))
+  -- θ#(extJoin S) ≤ extJoin {θ# W}.
+  have hframe := extJoin_invImage_le hpow wp (thetaR R C) S
+  have h2 : (existsAlong (omegaR R C) (InverseImage (thetaR R C) (extJoin hpow wp S))).le
+      (existsAlong (omegaR R C)
+        (extJoin hpow wp
+          (fun A' => ∃ W, S W ∧ A' = InverseImage (thetaR R C) (relSub (binRelSub W))))) := by
+    refine existsAlong_mono (omegaR R C) (subLe_trans hframe ?_)
+    -- rewrite the inner predicate (θ# W vs θ#(relSub(binRelSub W))) — they coincide since
+    -- relSub(binRelSub W) = W as subobjects.  Use `extJoin_mono_pred`.
+    refine extJoin_mono_pred hpow (fun s ⟨W, hSW, hs⟩ => ?_)
+    exact ⟨_, ⟨W, hSW, rfl⟩,
+      hs ▸ invImage_mono_local (thetaR R C) (binRelSub_relSub_le W)⟩
+  -- ∃_ω (extJoin {θ#(relSub(binRelSub W))}) ≤ extJoin {∃_ω (θ#(relSub(binRelSub W)))}.
+  have h3 := existsAlong_extJoin_le hpow (omegaR R C)
+    (fun A' => ∃ W, S W ∧ A' = InverseImage (thetaR R C) (relSub (binRelSub W)))
+  -- each ∃_ω (θ#(relSub(binRelSub W))) = relSub(R ⊚ binRelSub W)  (reverse `relSub_compose_eq`).
+  have h4 : (extJoin hpow wp
+        (fun V => ∃ s,
+          (∃ W, S W ∧ s = InverseImage (thetaR R C) (relSub (binRelSub W)))
+          ∧ V = existsAlong (omegaR R C) s)).le
+      (extJoin hpow wp (fun U => ∃ W, S W ∧ U = relSub (R ⊚ binRelSub W))) := by
+    refine extJoin_mono_pred hpow (fun V ⟨s, ⟨W, hSW, hsW⟩, hV⟩ => ?_)
+    refine ⟨relSub (R ⊚ binRelSub W), ⟨W, hSW, rfl⟩, ?_⟩
+    -- V = ∃_ω s = ∃_ω(θ#(relSub(binRelSub W))) ≤ relSub(R ⊚ binRelSub W) by reverse compose_eq.
+    rw [hV, hsW]
+    exact (relSub_compose_eq R (binRelSub W)).2
+  exact subLe_trans hL (subLe_trans hstep (subLe_trans h2 (subLe_trans h3 h4)))
+
+/-- `binRelSub (relSub R)` is relationally equal to `R` (round-trip). -/
+theorem binRelSub_relSub_relLe {A B : 𝒞} (R : BinRel 𝒞 A B) :
+    RelLe (binRelSub (relSub R)) R ∧ RelLe R (binRelSub (relSub R)) :=
+  ⟨relLe_of_subLe (relSub_binRelSub_le (relSub R)),
+   relLe_of_subLe (binRelSub_relSub_le (relSub R))⟩
+
+/-! ### STEP 3 — disjointness of distinct injection-images
+
+  For `i ≠ j` the candidate points `cand i`, `cand j` differ at coordinate `i` (`inr` vs `inl`),
+  so a common point of `inj i`, `inj j` maps to the pullback of `coprodInl`/`coprodInr` at that
+  coordinate — which is `≅ 0` (`coprodInjections_disjoint`).  Hence the apex of the pullback of
+  `(inj i, inj j)` admits a map to `0`, so it is `≅ 0`, so any two maps out of it agree.  This
+  supplies the cocone equation `π₁ ≫ f i = π₂ ≫ f j` that the cross-term `cross_le_one` needs. -/
+
+/-- A common point of `inj i`, `inj j` (`i ≠ j`) yields a map from the pullback apex to the
+    `(coprodInl, coprodInr)` pullback apex: at coordinate `i`, `cand i` is `inr` and `cand j` is
+    `inl`. -/
+theorem copowInj_disjoint_apex_map {i j : I} (hij : i ≠ j) :
+    ∃ _ : (HasPullbacks.has (copowInj hpow I i) (copowInj hpow I j)).cone.pt ⟶
+        (HasPullbacks.has (coprodInl (one : 𝒞) (one : 𝒞))
+          (coprodInr (one : 𝒞) (one : 𝒞))).cone.pt, True := by
+  let pb := HasPullbacks.has (copowInj hpow I i) (copowInj hpow I j)
+  let P := pb.cone.pt
+  -- π₁ ≫ inj i = π₂ ≫ inj j, post-compose obj.arr ⟹ π₁ ≫ cand i = π₂ ≫ cand j.
+  have hsq : pb.cone.π₁ ≫ copowInj hpow I i = pb.cone.π₂ ≫ copowInj hpow I j := pb.cone.w
+  have hcand : pb.cone.π₁ ≫ copowCand hpow I i = pb.cone.π₂ ≫ copowCand hpow I j := by
+    rw [← copowInj_arr hpow I i, ← copowInj_arr hpow I j, ← Cat.assoc, ← Cat.assoc, hsq]
+  -- project to coordinate i.
+  have hproj : (pb.cone.π₁ ≫ term (one : 𝒞)) ≫ coprodInr (one : 𝒞) (one : 𝒞)
+      = (pb.cone.π₂ ≫ term (one : 𝒞)) ≫ coprodInl (one : 𝒞) (one : 𝒞) := by
+    have h := congrArg (· ≫ hpow.proj i) hcand
+    simp only at h
+    rw [Cat.assoc, Cat.assoc, copowCand, copowCand, hpow.tupling_proj, hpow.tupling_proj] at h
+    simp only [if_neg hij] at h
+    -- h : π₁ ≫ (term ≫ inr) = π₂ ≫ (term ≫ inl)
+    rw [← Cat.assoc, ← Cat.assoc] at h
+    exact h
+  -- term P collapses both prefactors; produce a cone over (inl, inr).
+  have hcollapse : term P ≫ coprodInr (one : 𝒞) (one : 𝒞)
+      = term P ≫ coprodInl (one : 𝒞) (one : 𝒞) := by
+    rw [show (term P : P ⟶ (one : 𝒞)) = pb.cone.π₁ ≫ term (one : 𝒞) from term_uniq _ _] at *
+    rw [show (pb.cone.π₂ ≫ term (one : 𝒞) : P ⟶ (one : 𝒞)) = pb.cone.π₁ ≫ term (one : 𝒞)
+        from term_uniq _ _] at hproj
+    exact hproj
+  let pbC := HasPullbacks.has (coprodInl (one : 𝒞) (one : 𝒞)) (coprodInr (one : 𝒞) (one : 𝒞))
+  let c : Cone (coprodInl (one : 𝒞) (one : 𝒞)) (coprodInr (one : 𝒞) (one : 𝒞)) :=
+    ⟨P, term P, term P, hcollapse.symm⟩
+  exact ⟨pbC.lift c, trivial⟩
+
+/-- For `i ≠ j`, any two maps out of the `(inj i, inj j)` pullback apex agree (the apex is `≅ 0`
+    via `coprodInjections_disjoint` + `any_map_to_zero_is_iso`). -/
+theorem copowInj_disjoint_maps_agree {i j : I} (hij : i ≠ j) {Z : 𝒞}
+    (u v : (HasPullbacks.has (copowInj hpow I i) (copowInj hpow I j)).cone.pt ⟶ Z) : u = v := by
+  obtain ⟨δ, _⟩ := copowInj_disjoint_apex_map hpow I hij
+  -- apex of (inl, inr) pullback ≅ bottomSub(coprodObj 1 1).dom ≅ 0; compose δ to land in 0.
+  obtain ⟨e, he_iso⟩ := coprodInjections_disjoint (one : 𝒞) (one : 𝒞)
+  -- e : pbC.apex → (bottomSub (coprodObj 1 1)).dom ;  then to (bottomSub 1).dom via dom-iso.
+  obtain ⟨θ, hθ⟩ := bottomSub_dom_iso (coprodObj (one : 𝒞) (one : 𝒞)) (one : 𝒞)
+  let z : (HasPullbacks.has (copowInj hpow I i) (copowInj hpow I j)).cone.pt
+      ⟶ (bottomSub (one : 𝒞)).dom := δ ≫ e ≫ θ
+  -- (bottomSub 1).dom = (PreLogos.bottom 1).dom = coterminator zero;  any map to 0 is iso.
+  have hz_iso : IsIso z := any_map_to_zero_is_iso (inferInstance : PreLogos 𝒞) z
+  -- z iso ⟹ apex ≅ 0 ⟹ any two maps out agree (precompose z⁻¹ and use init_uniq).
+  obtain ⟨zinv, hzz, hzinv⟩ := hz_iso
+  let ct := minimal_subobject_of_one_is_coterminator (inferInstance : PreLogos 𝒞)
+  calc u = (z ≫ zinv) ≫ u := by rw [hzz, Cat.id_comp]
+    _ = z ≫ (zinv ≫ u) := Cat.assoc _ _ _
+    _ = z ≫ (zinv ≫ v) := by rw [ct.init_uniq (zinv ≫ u) (zinv ≫ v)]
+    _ = (z ≫ zinv) ≫ v := (Cat.assoc _ _ _).symm
+    _ = v := by rw [hzz, Cat.id_comp]
+
+/-! ### STEP 4 — the map-OUT (cotupling) via the infinitary disjoint gluing
+
+  `cotup f : obj → X` is built as the unique map whose GRAPH is the join of the `I` partial
+  graphs.  Each partial graph is the relation `P_i := (graph (inj i))° ⊚ graph (f i) : obj ⇸ X`
+  (the graph of "defined on `imᵢ`, value `f i`").  The relation `G := binRelSub (⋁ᵢ relSub P_i)`
+  tabulated by their join is shown TOTAL (left leg a cover — `copowInj_jointly_cover`) and SIMPLE
+  (left leg monic — functionality).
+
+  Functionality is the honest infinitary content: `compose_extJoin_right` (STEP 2) distributes
+  `G° ⊚ G` over the join into `⋁ⱼ (G° ⊚ P_j)`, and a second distribution reduces each
+  `G° ⊚ P_j` to `⋁ᵢ (P_i° ⊚ P_j)` (via reciprocals); the diagonal terms `P_i° ⊚ P_i ≤ 1`
+  (`diag_le_one`, `inj i` monic) and the off-diagonal `P_i° ⊚ P_j ≤ 1` (`cross_le_one`, from
+  `1+1` disjointness `copowInj_disjoint_maps_agree`) collapse the join into `graph (id X)`. -/
+
+/-- The `i`-th partial-graph relation `obj ⇸ X`: graph of "defined on `imᵢ`, value `f i`". -/
+noncomputable def copowPartial {X : 𝒞} (f : I → ((one : 𝒞) ⟶ X)) (i : I) :
+    BinRel 𝒞 (copowObj hpow I) X :=
+  (graph (copowInj hpow I i))° ⊚ graph (f i)
+
+/-- Any map from terminal is monic. -/
+private theorem mono_from_one {A : 𝒞} (g : (one : 𝒞) ⟶ A) : Mono g :=
+  fun u v _ => term_uniq u v
+
+/-- **The canonical point** of the partial graph `P_i = (graph (inj i))° ⊚ graph (f i)`:
+    the pullback over `(id_1, id_1)` has the obvious point `id_1`, whose span value is
+    `pair (inj i) (f i)`.  Gives `q : 1 → P_i.src` with `q ≫ pair P_i.colA P_i.colB
+    = pair (inj i) (f i)` (so `P_i` "contains" the point `(inj i, f i)`). -/
+theorem copowPartial_point {X : 𝒞} (f : I → ((one : 𝒞) ⟶ X)) (i : I) :
+    ∃ q : (one : 𝒞) ⟶ (copowPartial hpow I f i).src,
+      q ≫ (copowPartial hpow I f i).colA = copowInj hpow I i ∧
+      q ≫ (copowPartial hpow I f i).colB = f i := by
+  -- unfold the composition `(graph (inj i))° ⊚ graph (f i)`.
+  let xr : BinRel 𝒞 (copowObj hpow I) (one : 𝒞) := (graph (copowInj hpow I i))°
+  let yr : BinRel 𝒞 (one : 𝒞) X := graph (f i)
+  -- pb = pullback (xr.colB, yr.colA) = pullback (id_1, id_1).
+  let pb := HasPullbacks.has xr.colB yr.colA
+  have hcw : (Cat.id (one : 𝒞)) ≫ xr.colB = (Cat.id (one : 𝒞)) ≫ yr.colA := by
+    show (Cat.id (one : 𝒞)) ≫ Cat.id (one : 𝒞) = (Cat.id (one : 𝒞)) ≫ Cat.id (one : 𝒞); rfl
+  let c : Cone xr.colB yr.colA := ⟨(one : 𝒞), Cat.id (one : 𝒞), Cat.id (one : 𝒞), hcw⟩
+  let u : (one : 𝒞) ⟶ pb.cone.pt := pb.lift c
+  have hu₁ : u ≫ pb.cone.π₁ = Cat.id (one : 𝒞) := pb.lift_fst c
+  have hu₂ : u ≫ pb.cone.π₂ = Cat.id (one : 𝒞) := pb.lift_snd c
+  let span : pb.cone.pt ⟶ prod (copowObj hpow I) X :=
+    pair (pb.cone.π₁ ≫ xr.colA) (pb.cone.π₂ ≫ yr.colB)
+  refine ⟨u ≫ image.lift span, ?_, ?_⟩
+  · -- (u ≫ lift) ≫ (P_i.colA = (image span).arr ≫ fst) = u ≫ span ≫ fst = u ≫ π₁ ≫ inj i = inj i.
+    show (u ≫ image.lift span) ≫ ((image span).arr ≫ fst) = copowInj hpow I i
+    have hfac : (u ≫ image.lift span) ≫ ((image span).arr ≫ fst) = u ≫ (span ≫ fst) := by
+      rw [← Cat.assoc, Cat.assoc u, image.lift_fac, Cat.assoc]
+    rw [hfac, show span ≫ fst = pb.cone.π₁ ≫ xr.colA from fst_pair _ _, ← Cat.assoc, hu₁,
+      Cat.id_comp]
+    rfl
+  · show (u ≫ image.lift span) ≫ ((image span).arr ≫ snd) = f i
+    have hfac : (u ≫ image.lift span) ≫ ((image span).arr ≫ snd) = u ≫ (span ≫ snd) := by
+      rw [← Cat.assoc, Cat.assoc u, image.lift_fac, Cat.assoc]
+    rw [hfac, show span ≫ snd = pb.cone.π₂ ≫ yr.colB from snd_pair _ _, ← Cat.assoc, hu₂,
+      Cat.id_comp]
+    rfl
+
+/-- **Per-pair atomic bound.**  `P_i° ⊚ P_j ≤ graph (id X)` for all `i, j` — single-valuedness of
+    the union of partial graphs.  Diagonal: `diag_le_one`.  Off-diagonal: `cross_le_one` with the
+    cocone equation from disjointness (`copowInj_disjoint_maps_agree`). -/
+theorem copowPartial_pair_le {X : 𝒞} (f : I → ((one : 𝒞) ⟶ X)) (i j : I) :
+    RelLe ((copowPartial hpow I f i)° ⊚ (copowPartial hpow I f j)) (graph (Cat.id X)) := by
+  by_cases hij : i = j
+  · subst hij
+    -- diagonal: P_i° ⊚ P_i ≤ 1  with  P_i = (inj i)° ⊚ (f i).
+    exact diag_le_one (copowInj hpow I i) (f i) (mono_from_one (copowInj hpow I i))
+  · -- cross term: needs `hxyg : (inj i ⊚ (inj j)°) ⊚ (f j) ≤ (f i)` from disjointness.
+    let pb := HasPullbacks.has (copowInj hpow I i) (copowInj hpow I j)
+    have hinter : RelLe (graph (copowInj hpow I i) ⊚ (graph (copowInj hpow I j))°)
+        ((graph pb.cone.π₁)° ⊚ graph pb.cone.π₂) :=
+      inter_lemma (copowInj hpow I i) (copowInj hpow I j) (Cat.id (copowObj hpow I))
+        (copowInj hpow I i) (copowInj hpow I j) (Cat.comp_id _) (Cat.comp_id _)
+    have hw : pb.cone.π₁ ≫ f i = pb.cone.π₂ ≫ f j :=
+      copowInj_disjoint_maps_agree hpow I hij _ _
+    have hxyg : RelLe ((graph (copowInj hpow I i) ⊚ (graph (copowInj hpow I j))°) ⊚ graph (f j))
+        (graph (f i)) :=
+      hxyg_lemma (f i) (f j) pb.cone.π₁ pb.cone.π₂
+        (graph (copowInj hpow I i) ⊚ (graph (copowInj hpow I j))°) hinter hw
+    exact cross_le_one (copowInj hpow I i) (copowInj hpow I j) (f i) (f j) hxyg
+
+/-- **FUNCTIONALITY (simplicity).**  The union relation `G = binRelSub (⋁ᵢ relSub P_i)` is simple:
+    `G° ⊚ G ≤ graph (id X)`.  Distribute the join twice (STEP 2 `compose_extJoin_right`), collapse
+    each `P_i° ⊚ P_j` by `copowPartial_pair_le`. -/
+theorem copowUnion_simple {X : 𝒞} (f : I → ((one : 𝒞) ⟶ X)) :
+    Simple (binRelSub (extJoin hpow LocallySmallTopos.wellPowered
+      (fun U => ∃ i, U = relSub (copowPartial hpow I f i)))) := by
+  let wp := LocallySmallTopos.wellPowered (𝒞 := 𝒞)
+  let S : Subobject 𝒞 (prod (copowObj hpow I) X) → Prop :=
+    fun U => ∃ i, U = relSub (copowPartial hpow I f i)
+  let G : BinRel 𝒞 (copowObj hpow I) X := binRelSub (extJoin hpow wp S)
+  -- A reusable bound: `T ⊚ binRelSub W ≤ graph id` whenever each `T ⊚ P_i ≤ graph id` and W∈S.
+  -- We need: for each W with S W, `G° ⊚ binRelSub W ≤ graph (id X)`.
+  -- Reduce via reciprocal to `(binRelSub W)° ⊚ G ≤ graph id`, then distribute G's join.
+  have key : ∀ (T : BinRel 𝒞 X (copowObj hpow I)),
+      (∀ i, RelLe (T ⊚ binRelSub (relSub (copowPartial hpow I f i)))
+        (graph (Cat.id X))) →
+      RelLe (T ⊚ G) (graph (Cat.id X)) := by
+    intro T hpieces
+    -- T ⊚ G = T ⊚ binRelSub(extJoin S) ≤ ⋁ {relSub (T ⊚ binRelSub W) | S W}  (STEP 2).
+    have hdist := compose_extJoin_right hpow T S
+    -- the join ≤ relSub(graph id), since each member ≤ relSub(graph id).
+    have hbound : (extJoin hpow wp
+          (fun U => ∃ W, S W ∧ U = relSub (T ⊚ binRelSub W))).le
+        (relSub (graph (Cat.id X))) := by
+      refine extJoin_least hpow wp _ (relSub (graph (Cat.id X))) (fun U hmem => ?_)
+      obtain ⟨W, ⟨i, hWi⟩, hU⟩ := hmem
+      rw [hU, hWi]
+      exact subLe_of_relLe (hpieces i)
+    exact relLe_of_subLe (subLe_trans hdist hbound)
+  -- Now Simple G : G° ⊚ G ≤ graph (id X).  Apply `key` with T := G°.
+  show RelLe (G° ⊚ G) (graph (Cat.id X))
+  refine key (G°) (fun i => ?_)
+  -- G° ⊚ binRelSub(relSub P_i) ≤ graph id  via reciprocal + a second distribution.
+  -- reciprocal: (G° ⊚ binRelSub(relSub P_i))° = (binRelSub(relSub P_i))° ⊚ G.
+  have hrecip : RelLe ((G° ⊚ binRelSub (relSub (copowPartial hpow I f i)))°)
+      ((binRelSub (relSub (copowPartial hpow I f i)))° ⊚ G) := by
+    have h := (reciprocal_comp (G°) (binRelSub (relSub (copowPartial hpow I f i)))).1
+    rwa [reciprocal_invol] at h
+  -- (binRelSub(relSub P_i))° ⊚ G ≤ graph id  via `key` with T := (binRelSub(relSub P_i))°.
+  have hPiG : RelLe ((binRelSub (relSub (copowPartial hpow I f i)))° ⊚ G)
+      (graph (Cat.id X)) := by
+    refine key ((binRelSub (relSub (copowPartial hpow I f i)))°) (fun j => ?_)
+    -- (binRelSub(relSub P_i))° ⊚ binRelSub(relSub P_j) ≤ P_i° ⊚ P_j ≤ graph id.
+    refine rel_le_trans (compose_le (reciprocal_mono (binRelSub_relSub_relLe _).1)
+      (binRelSub_relSub_relLe _).1) ?_
+    exact copowPartial_pair_le hpow I f i j
+  -- so (G° ⊚ binRelSub(relSub P_i))° ≤ graph id; take reciprocal, (graph id)° = graph id.
+  have hco : RelLe ((G° ⊚ binRelSub (relSub (copowPartial hpow I f i)))°)
+      (graph (Cat.id X)) := rel_le_trans hrecip hPiG
+  have h2 := reciprocal_mono hco
+  rwa [reciprocal_invol, show (graph (Cat.id X))° = graph (Cat.id X) from rfl] at h2
+
+/-- **TOTALITY.**  The left leg of `G` is a cover: each `inj i` factors through it (`P_i`'s
+    first leg lifts into the join), and `copowInj_jointly_cover` forces iso. -/
+theorem copowUnion_total {X : 𝒞} (f : I → ((one : 𝒞) ⟶ X)) :
+    Cover (binRelSub (extJoin hpow LocallySmallTopos.wellPowered
+      (fun U => ∃ i, U = relSub (copowPartial hpow I f i)))).colA := by
+  let wp := LocallySmallTopos.wellPowered (𝒞 := 𝒞)
+  let S : Subobject 𝒞 (prod (copowObj hpow I) X) → Prop :=
+    fun U => ∃ i, U = relSub (copowPartial hpow I f i)
+  let G : BinRel 𝒞 (copowObj hpow I) X := binRelSub (extJoin hpow wp S)
+  -- factor each `inj i` through `G.colA`.  P_i = (inj i)° ⊚ (f i): its image contains the point
+  -- (inj i, f i); so `pair (inj i) (f i)` factors through relSub P_i ≤ extJoin S = G.src, and
+  -- the first leg recovers `inj i`.
+  -- A direct factorization: `s i : 1 → G.src` with `s i ≫ G.colA = inj i`.
+  have hfactor : ∀ i, ∃ s : (one : 𝒞) ⟶ G.src, s ≫ G.colA = copowInj hpow I i := by
+    intro i
+    -- the canonical point of P_i, with `q ≫ P_i.colA = inj i`, `q ≫ P_i.colB = f i`.
+    obtain ⟨q, hqA, hqB⟩ := copowPartial_point hpow I f i
+    have hq : q ≫ (relSub (copowPartial hpow I f i)).arr = pair (copowInj hpow I i) (f i) := by
+      show q ≫ pair (copowPartial hpow I f i).colA (copowPartial hpow I f i).colB = _
+      exact pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]; exact hqA)
+        (by rw [Cat.assoc, snd_pair]; exact hqB)
+    -- relSub P_i ≤ extJoin S, giving l with l ≫ (extJoin S).arr = (relSub P_i).arr.
+    obtain ⟨l, hl⟩ := extJoin_upper hpow wp S (relSub (copowPartial hpow I f i)) ⟨i, rfl⟩
+    refine ⟨q ≫ l, ?_⟩
+    show (q ≫ l) ≫ ((extJoin hpow wp S).arr ≫ fst) = copowInj hpow I i
+    have hpt : (q ≫ l) ≫ (extJoin hpow wp S).arr = pair (copowInj hpow I i) (f i) := by
+      rw [Cat.assoc, hl]; exact hq
+    rw [← Cat.assoc, hpt, fst_pair]
+  -- now run the cover criterion through `copowInj_jointly_cover`.
+  intro C m gg hm hgm
+  refine copowInj_jointly_cover hpow I m hm (fun i => (hfactor i).choose ≫ gg) (fun i => ?_)
+  rw [Cat.assoc, hgm, (hfactor i).choose_spec]
+
+/-- The map-OUT (cotupling) — built sorry-free as the unique morphism whose graph is the join of
+    the partial graphs `P_i`, shown TOTAL + SIMPLE, hence a map by
+    `functional_total_relation_is_graph`; the β-law `inj i ≫ c = f i` from `relSub P_i ≤ join`. -/
 theorem copowCotup_exists {X : 𝒞} (f : I → ((one : 𝒞) ⟶ X)) :
     ∃ c : copowObj hpow I ⟶ X, ∀ i, copowInj hpow I i ≫ c = f i := by
-  sorry
+  let wp := LocallySmallTopos.wellPowered (𝒞 := 𝒞)
+  let S : Subobject 𝒞 (prod (copowObj hpow I) X) → Prop :=
+    fun U => ∃ i, U = relSub (copowPartial hpow I f i)
+  let G : BinRel 𝒞 (copowObj hpow I) X := binRelSub (extJoin hpow wp S)
+  have hsimple : Mono G.colA :=
+    (tabulated_is_simple_iff_left_monic G.colA G.colB G.isMonicPair).1 (copowUnion_simple hpow I f)
+  have htotal : Cover G.colA := copowUnion_total hpow I f
+  obtain ⟨c, ⟨⟨h, hhA, hhB⟩, _⟩, _⟩ :=
+    functional_total_relation_is_graph G hsimple htotal
+  -- key: G.colA ≫ c = G.colB.
+  have hkey : G.colA ≫ c = G.colB := by
+    have hh : h = G.colA := by
+      have := hhA; dsimp [graph] at this; rwa [Cat.comp_id] at this
+    have := hhB; dsimp [graph] at this; rw [hh] at this; exact this
+  refine ⟨c, fun i => ?_⟩
+  -- inj i factors through G.colA (totality factorization), and G.colA ≫ c = G.colB, so
+  -- inj i ≫ c = (s ≫ G.colA) ≫ c = s ≫ G.colB = f i.
+  obtain ⟨q, hq⟩ : ∃ q : (one : 𝒞) ⟶ G.src,
+      q ≫ (extJoin hpow wp S).arr = pair (copowInj hpow I i) (f i) := by
+    -- the canonical point of P_i (same as in `copowUnion_total`).
+    obtain ⟨qp, hqA, hqB⟩ := copowPartial_point hpow I f i
+    have hqp : qp ≫ pair (copowPartial hpow I f i).colA (copowPartial hpow I f i).colB
+        = pair (copowInj hpow I i) (f i) :=
+      pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]; exact hqA)
+        (by rw [Cat.assoc, snd_pair]; exact hqB)
+    obtain ⟨l, hl⟩ := extJoin_upper hpow wp S (relSub (copowPartial hpow I f i)) ⟨i, rfl⟩
+    refine ⟨qp ≫ l, ?_⟩
+    rw [Cat.assoc, hl]
+    show qp ≫ pair (copowPartial hpow I f i).colA (copowPartial hpow I f i).colB = _
+    exact hqp
+  have hA : q ≫ G.colA = copowInj hpow I i := by
+    show q ≫ ((extJoin hpow wp S).arr ≫ fst) = copowInj hpow I i
+    rw [← Cat.assoc, hq, fst_pair]
+  have hB : q ≫ G.colB = f i := by
+    show q ≫ ((extJoin hpow wp S).arr ≫ snd) = f i
+    rw [← Cat.assoc, hq, snd_pair]
+  calc copowInj hpow I i ≫ c = (q ≫ G.colA) ≫ c := by rw [hA]
+    _ = q ≫ (G.colA ≫ c) := Cat.assoc _ _ _
+    _ = q ≫ G.colB := by rw [hkey]
+    _ = f i := hB
 
 /-- **Copower-of-1 from arbitrary powers** — the effective-disjoint-union carving of `∐ᵢ1` as a
-    subobject of `∏ᵢ(1+1)`.  `obj`, `inj`, `inj_cotup`, and `cotup_uniq` are sorry-free; the
-    LATTER uses the BANKED jointly-epic fact `copowerImages_jointly_epi`.  The SOLE residual
-    `sorry` is `copowCotup_exists` (map-OUT existence): the infinitary disjoint gluing, blocked
-    on the FUNCTIONALITY of the `I`-indexed union of partial graphs (`relUnion_least_simple`,
-    the infinitary `relUnionSub`-simplicity — `relUnionSub` is binary; `extJoin` supplies only
-    map-IN bounds).  See the doc above. -/
+    subobject of `∏ᵢ(1+1)`.  Fully SORRY-FREE: `obj`, `inj`, `inj_cotup`, `cotup_uniq`, and
+    `cotup` (map-OUT existence, `copowCotup_exists`) are all built; the latter via the honest
+    infinitary disjoint gluing (TOTAL + SIMPLE union-of-partial-graphs, functionality from the
+    §1.616/§1.84 composition-over-join distributivity).  Axioms `[propext, Classical.choice,
+    Quot.sound]`.  See the module doc above. -/
 noncomputable def toposCopowerOfOne (hpow : HasArbitraryPowers (𝒞 := 𝒞)) (I : Type v) :
     CopowerOfOne I 𝒞 where
   obj := copowObj hpow I
@@ -221,5 +580,89 @@ noncomputable def toposCopowerOfOne (hpow : HasArbitraryPowers (𝒞 := 𝒞)) (
       (fun i => by rw [hh i, (copowCotup_exists hpow I f).choose_spec i])
 
 end CopowerBuild
+
+/-! ## §1.967 powers ↔ copowers, §1.968 complete ↔ cocomplete, §1.969 Lawvere = Tierney
+
+  Relocated here from `Fredy/S1_95.lean` (which this file imports): the powers↔copowers
+  equivalence is now CLOSED sorry-free because its sole residual — the (a)→(b) carving
+  `∐ᵢ1 ⊂ ∏ᵢ(1+1)` (`toposCopowerOfOne`) — is built above.  §1.968/§1.969 remain honest
+  `sorry`s (they need limits/colimits of all small diagrams + the cogenerator embedding,
+  blocked on the §1.543 capitalization wall). -/
+
+-- Make the GENUINE `Topos.toHasBinaryProducts` win instance search for `HasBinaryProducts 𝒞`
+-- (the §1.92 `topos_has_exponentials.toHasBinaryProducts` is deprioritised but could still be
+-- picked, routing a products goal through `sorry`-derived structure).  Keeps these theorems
+-- axiom-honest, mirroring the §1.92 `attribute [local instance]` pattern.
+attribute [local instance 10000] Topos.toHasBinaryProducts
+
+/-- **§1.967**: In a locally small topos, arbitrary powers exist iff arbitrary copowers exist.
+
+    * **(a)→(b)** CLOSED sorry-free.  Build a copower-of-1 datum `CopowerOfOne I 𝒞` for every `I`
+      via `toposCopowerOfOne` (the effective-disjoint-union carving `∐ᵢ1 ⊂ ∏ᵢ(1+1)`, with the
+      map-OUT universal property supplied by the infinitary disjoint gluing above), then
+      `topos_copowers_equiv_copowers_of_one` assembles `HasArbitraryCopowers`.
+    * **(b)→(a)** CLOSED sorry-free.  Reduce to copowers-of-1 (sibling iff), then set
+      `∏ᵢ A := A^(∐ᵢ1)` (`powersOfCopowersOfOne`); the power UP is the exponential law
+      `Hom(X, A^cI) ≅ Hom(cI×X, A) ≅ ∏ᵢ Hom(X,A)` (`prod_distrib_copow`). -/
+theorem topos_powers_copowers_equiv [LocallySmallTopos 𝒞] [HasBinaryCoproducts 𝒞] :
+    (Nonempty (@HasArbitraryPowers 𝒞 _ Topos.toHasBinaryProducts)) ↔
+    (Nonempty (HasArbitraryCopowers (𝒞 := 𝒞))) :=
+  -- TERM MODE (not `by constructor`): the tactic `constructor` re-synthesizes the iff's
+  -- `HasBinaryProducts` per goal, which can route the type through the §1.92
+  -- `topos_has_exponentials.toHasBinaryProducts` and pick up `sorryAx`; the explicit
+  -- `⟨forward, backward⟩` shares ONE elaboration of the statement, staying axiom-honest.
+  ⟨fun ⟨hpow⟩ =>
+      -- (a)→(b): every `I` has a copower-of-1 (`toposCopowerOfOne`), so the sibling iff yields
+      -- `HasArbitraryCopowers`.
+      (topos_copowers_equiv_copowers_of_one).mpr (fun I => ⟨toposCopowerOfOne hpow I⟩),
+   fun hcop =>
+      -- (b)→(a): reduce to copowers-of-1 (sibling iff), then `A^(∐ᵢ1)`.
+      let hone : ∀ (I : Type v), Nonempty (CopowerOfOne I 𝒞) :=
+        (topos_copowers_equiv_copowers_of_one).mp hcop
+      let pw := powersOfCopowersOfOne (fun I => Classical.choice (hone I))
+      ⟨{ pow := pw.pow, proj := fun {I A} => pw.proj, tupling := fun {I A X} => pw.tupling,
+         tupling_proj := fun {I A X} => pw.tupling_proj,
+         tupling_uniq := fun {I A X} => pw.tupling_uniq }⟩⟩
+
+/-- **§1.968**: A locally small topos is complete iff it is cocomplete.
+
+    RESIDUAL: NOT reachable from the joins+distributivity layer.  `Complete`/`Cocomplete`
+    (S1_82) demand limits/colimits of ALL small DIAGRAMS, far beyond the subobject-lattice
+    `LocallyComplete'` that powers↔copowers delivers.  Both directions route through the
+    §1.967/§1.968 colimit-assembly "coproducts as subobjects of copowers of a COGENERATOR",
+    which depends on cogeneration — blocked on the §1.543 capitalization wall.  Honest `sorry`. -/
+theorem topos_complete_iff_cocomplete [LocallySmallTopos 𝒞]
+    [HasBinaryProducts 𝒞] [HasBinaryCoproducts 𝒞] [HasEqualizers 𝒞] :
+    Nonempty (Complete 𝒞) ↔ Nonempty (Cocomplete 𝒞) := by
+  sorry
+
+/-- **§1.969**: The LAWVERE DEFINITION of a Grothendieck topos: a cocomplete topos with a
+    generating set. -/
+class LawvereGrothendieckTopos (𝒞 : Type u) [Cat.{v} 𝒞] extends Topos 𝒞 where
+  /-- Arbitrary coproducts exist. -/
+  cocomplete : Cocomplete 𝒞
+  /-- A small generating set. -/
+  gen_set : 𝒞 → Prop
+  has_gen_set : IsGeneratingSet gen_set
+
+/-- **§1.969**: The TIERNEY DEFINITION of a Grothendieck topos: a topos with a progenitor and
+    arbitrary copowers of 1. -/
+class TierneyGrothendieckTopos (𝒞 : Type u) [Cat.{v} 𝒞] extends Topos 𝒞,
+    HasBinaryCoproducts 𝒞 where
+  /-- A progenitor exists. -/
+  progenitor : 𝒞
+  is_progenitor : IsProgenitor progenitor
+  /-- Arbitrary copowers of 1 exist. -/
+  copow_one : (I : Type v) → ∃ (cI : 𝒞) (inj : I → one ⟶ cI),
+    ∀ {X : 𝒞} (f : I → one ⟶ X), ∃ (h : cI ⟶ X), (∀ i, inj i ≫ h = f i)
+
+/-- **§1.969**: The Lawvere and Tierney definitions yield the same notion.
+    RESIDUAL: routes through §1.966 (Ω^G cogenerator), §1.967 (c)→(a) for powers, and the
+    §1.968 coproduct construction — the latter blocked on the cogenerator embedding (§1.543
+    capitalization wall).  Honest `sorry`. -/
+theorem lawvere_eq_tierney (𝒞 : Type u) [Cat.{v} 𝒞] [HasBinaryProducts 𝒞] [HasBinaryCoproducts 𝒞]
+    [HasEqualizers 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] :
+    Nonempty (LawvereGrothendieckTopos 𝒞) ↔ Nonempty (TierneyGrothendieckTopos 𝒞) := by
+  sorry
 
 end Freyd
