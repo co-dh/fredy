@@ -920,35 +920,31 @@ end sliceChoice
      `1_𝒮 + 1_𝒮` decidable ⟹ `P` decidable ⟹ `Δ` complemented) needs **slice choice of the
      codiagonal `1_𝒮 + 1_𝒮`**.
 
-     WALL ANALYSIS (refined; a tempting "pinning" shortcut was investigated and REJECTED — record
-     so it is not re-attempted).  `slice_choice_of_dom_choice` reduces slice choice of `1_𝒮+1_𝒮` to
-     base `Choice ((A×A)+(A×A))`.  That object distributes: `(A×A)+(A×A) ≅ (1+1)×(A×A)`
-     (`coprodProdDistrib one one (A×A)`), under which `∇` becomes `pr₂`.  It is TEMPTING to think a
-     slice map `X → 1_𝒮+1_𝒮` is "just" a base decision `d : X.dom → 1+1` with the `pr₂`-coordinate
-     FORCED to `X.hom`, so that base `Choice (1+1)` alone (extract `d`, pin the `C`-coordinate to
-     `X.hom`) would suffice — replacing the `prod_choice_is_choice` second extraction `Choice (C)` by
-     a pin.  **This FAILS at witness-recovery.**  `Choice (T)` produces a *section into the relation's
-     source* `h : X.dom → R.src` only when applied to a relation TARGETED at `T`.  `R.forgetSlice`
-     targets `C+C`, not `1+1`; to retarget it to `1+1` one composes with `δ := case (term C ≫ inl)
-     (term C ≫ inr) : C+C → 1+1`, but `δ` is not monic, so `R.forgetSlice ⊚ graph δ` has source
-     `image(…)` — a QUOTIENT of `R.forgetSlice.src`.  `Choice (1+1)` then yields a section into that
-     image, from which NO map back into `R.forgetSlice.src` exists (the image collapses the witness).
-     Pinning the `C`-coordinate removes exactly the `Choice (C)` that, in `prod_choice_is_choice`,
-     SUPPLIED the section `w`.  Hence base `Choice (1+1)` genuinely cannot section a relation targeted
-     at `C+C`: slice-choice of `1_𝒮+1_𝒮` really does need `Choice ((A×A)+(A×A))`, NOT available.
-     (Scaffolding `entire_comp_graph`/`entire_refine`/`comp_recip_pin` were un-privatised in S1_64
-     during this investigation; they remain useful general-purpose relational lemmas.)
+     KEYSTONE (the pinning route, FORMERLY thought a blind alley, is now UNBLOCKED).  Slice choice of
+     `1_𝒮+1_𝒮` from base `Choice (1+1)` IS provable.  The slice coproduct `1_𝒮+1_𝒮` over `B := A×A`
+     is `(B+B, ∇)`.  A slice entire relation `R : X → 1_𝒮+1_𝒮` forgets to a base entire
+     `R̄ : X.dom → B+B`.  Retarget `R̄` to `prod (1+1) B` by post-composing its `colB` with the
+     EXPLICIT distributivity ISO `distOPO B : B+B ≅ (1+1)×B`,
+     `distOPO B = case (pair (term≫inl) id) (pair (term≫inr) id)`, which satisfies
+     `distOPO B ≫ snd = ∇` (`distOPO_snd`).  Because `distOPO B` is an ISO (monic), the retarget
+     preserves the monic pair — NO non-monic `δ : B+B → 1+1`, hence NO image-quotient that collapses
+     the witness (this was the old note's mistake: it retargeted via the non-monic codiagonal-decision
+     instead of the monic distributivity iso).  Under the retarget the `B`-coordinate (`snd`) equals
+     `R̄.colB ≫ ∇ = R̄.src.hom = R̄.colA ≫ X.hom`, i.e. it is PINNED to `p := X.hom`.  Then
+     `Freyd.choice_prod_pinned` (S1_64, proved this pass: with the `C`-coordinate pinned to a map,
+     base `Choice T` ALONE sections a relation targeted at `prod T C`, no `Choice C`) with
+     `T := 1+1`, `C := B`, `p := X.hom` produces the base section; lift it back to the slice.
 
-     CONSEQUENCE.  Freyd's pushout argument must NOT be run inside the slice (it would need this
-     unavailable slice-choice).  His "(2a) inherited by slices ⟹ suffices `Sub(1)` boolean" is a
-     pure LATTICE transport: the pushout/choice step is done ONCE in the BASE (`Sub(1)` boolean from
-     `Choice (1+1)`), and the slice versions of `Sub(1)` boolean come from (2a) transported along the
-     choice-free `forgetSlice`/`liftSlice` lattice iso.  The genuinely open residual is therefore the
-     lattice implication **(2a)-in-slice ⟹ `Sub_𝒮(1_𝒮)` boolean** WITHOUT re-deriving the pushout —
-     i.e. transporting "`Sub(1)` complemented" from base to every slice using only (2a) and the
-     subobject lattice iso.  Note (2a) ALONE does not complement a subobject (taking the cover
-     `(U, ⊤)` only yields `U' ⊊ U`); the transport must additionally use that the base `Sub(1)` is
-     already boolean.  Pinning down this lattice transport is the true remaining mathematical step of
-     `one_one_choice_to_boolean`; the slice-choice and base-change routes are both blind alleys. -/
+     REMAINING ASSEMBLY (the honestly-open work; none of it is a wall, all of it is routine but
+     sizeable, hence not yet discharged).  (i) `IsIso (distOPO B)` — the explicit distributivity iso
+     (the `Isomorphic`-valued `coprodProdDistrib one one B` hides the injection behaviour, so the
+     inverse must be built directly: `distOPO B` is monic + a cover in the pre-topos, hence iso).
+     (ii) `slice_choice_codiag : Choice (1_𝒮 + 1_𝒮)` packaging forget→retarget→pin→`choice_prod_pinned`
+     →lift.  (iii) slice DECIDABILITY of `1_𝒮 + 1_𝒮` (`DecidableObject` in `Over B` of the slice
+     codiagonal — no lemma yet).  (iv) the slice→base COMPLEMENT TRANSPORT via the choice-free
+     `forgetSlice`/`liftSlice` lattice iso (`Subobject.forgetSlice_mono`/`reflects`): the slice-Δ over
+     `1_𝒮 = (B, id)` forgets to the BASE diagonal subobject `(A, diag A) ⊆ A×A`, so "Δ complemented in
+     the slice" transports to `DecidableObject A`.  With (i)–(iv) Freyd's pushout argument runs inside
+     `𝒮(A×A)` and `one_one_choice_to_boolean` closes via `preTopos_boolean_iff_all_decidable.mpr`. -/
 
 end Freyd

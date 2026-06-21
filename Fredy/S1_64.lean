@@ -2629,6 +2629,47 @@ theorem prod_choice_is_choice [PullbacksTransferCovers 𝒞] {B₁ B₂ : 𝒞}
       _ = w ≫ R'.colB := by rw [hkB]
       _ = pair f₁ f₂ := hwBfull
 
+/-- **Pinned-coordinate choice** (§1.661, the engine behind Diaconescu's slice step).
+    Let `R : X → T×C` be entire whose `C`-coordinate is *pinned* to a map `p : X → C`:
+    `R.colB ≫ snd = R.colA ≫ p`.  Then `Choice T` ALONE supplies a map `f : X → T×C`
+    contained in `R` — no `Choice C`.  The pin forces the `C`-coordinate, so the relation
+    `R₁ := ⟨R.colA, R.colB ≫ fst⟩ : X → T` (jointly monic precisely BECAUSE the `snd`-leg
+    is determined by `colA ≫ p`) is entire, and `Choice T`'s single witness `w : X → R.src`
+    already pairs the forced `snd`-coordinate into a full section.  This is exactly the
+    coordinate at which `prod_choice_is_choice` used a second `Choice C` extraction; pinning
+    replaces it. -/
+theorem choice_prod_pinned [PullbacksTransferCovers 𝒞] {T C X : 𝒞}
+    (hT : Choice T) (R : BinRel 𝒞 X (prod T C)) (hent : Entire R)
+    (p : X ⟶ C) (hpin : R.colB ≫ snd = R.colA ≫ p) :
+    ∃ (f : X ⟶ prod T C) (w : X ⟶ R.src),
+      w ≫ R.colA = Cat.id X ∧ w ≫ R.colB = f := by
+  -- R₁ := ⟨R.colA, R.colB ≫ fst⟩ : X → T.  Jointly monic: the fst-leg + the pinned snd-leg
+  -- recover the full colB, then R.isMonicPair cancels.
+  have hp₁ : MonicPair R.colA (R.colB ≫ fst) := by
+    intro W u v hua hub
+    have hsnd : (u ≫ R.colB) ≫ snd = (v ≫ R.colB) ≫ snd := by
+      calc (u ≫ R.colB) ≫ snd = u ≫ (R.colB ≫ snd) := Cat.assoc _ _ _
+        _ = u ≫ (R.colA ≫ p) := by rw [hpin]
+        _ = (u ≫ R.colA) ≫ p := (Cat.assoc _ _ _).symm
+        _ = (v ≫ R.colA) ≫ p := by rw [hua]
+        _ = v ≫ (R.colA ≫ p) := Cat.assoc _ _ _
+        _ = v ≫ (R.colB ≫ snd) := by rw [hpin]
+        _ = (v ≫ R.colB) ≫ snd := (Cat.assoc _ _ _).symm
+    have hfst : (u ≫ R.colB) ≫ fst = (v ≫ R.colB) ≫ fst := by
+      rw [Cat.assoc, Cat.assoc]; exact hub
+    have hcolB : u ≫ R.colB = v ≫ R.colB := by
+      rw [pair_eta (u ≫ R.colB), pair_eta (v ≫ R.colB), hfst, hsnd]
+    exact R.isMonicPair u v hua hcolB
+  have hR_cov : Cover R.colA :=
+    (tabulated_is_entire_iff_left_cover R.colA R.colB R.isMonicPair).mp hent
+  let R₁ : BinRel 𝒞 X T := BinRel.mk R.src R.colA (R.colB ≫ fst) hp₁
+  have hentR₁ : Entire R₁ :=
+    (tabulated_is_entire_iff_left_cover R.colA (R.colB ≫ fst) hp₁).mpr hR_cov
+  -- Choice T gives a single witness w : X → R.src with w ≫ R.colA = id and w ≫ R.colB ≫ fst = f₁.
+  obtain ⟨_f₁, w, hwA, hwB⟩ := hT R₁ hentR₁
+  -- The full map is f := w ≫ R.colB; its snd-coordinate is forced by the pin, fst by hwB.
+  exact ⟨w ≫ R.colB, w, hwA, rfl⟩
+
 end Choice661
 
 /-! ## §1.662 Diaconescu's theorem in a pre-topos
@@ -2665,12 +2706,27 @@ theorem coprod_choice_to_one_one_choice
     "every subobject is complemented PROVIDED every object is decidable", so once `∀ A,
     DecidableObject A` is in hand, `preTopos_boolean_iff_all_decidable` finishes `BooleanPreLogos`.
     The SOLE remaining gap is (a): deriving `∀ A, DecidableObject A` from `Choice (1+1)`.  Freyd
-    routes this through slices — condition (2a) (every cover `X∪Y=B` refines to a partition) is a
-    restatement of `Choice (1+1)`, is inherited by every slice `𝒮(B)`, and decidability of `A`
-    is (2a) in the slice over `A` applied to the diagonal cover.  That slice-transport layer
-    (`(2a)` pulled back along `𝒮(B)→𝒮(1)`) does not yet exist at §1.64: the amalgamation pushout
-    only realizes subobjects of `1` (via `1 +_U 1`), not the diagonal `A ↣ A×A` of an arbitrary
-    `A`.  Faithful statement; residual = the slice transport of (2a), NOT the pushout UMP. -/
+    routes this through the slice `𝒮(A×A)`: the diagonal `Δ_A : A ↣ A×A` is a SUBTERMINAL there,
+    and running his `U ⊆ 1` argument (form `P = 1_𝒮 +_Δ 1_𝒮`, a quotient of `1_𝒮 + 1_𝒮`; choice
+    splits the cover so `P ⊆ 1_𝒮 + 1_𝒮`; `1_𝒮 + 1_𝒮` decidable ⟹ `P` decidable ⟹ `Δ`
+    complemented) complements `Δ`, giving `DecidableObject A`.  This needs the slice pre-topos
+    instances (`overEffectiveRegular`/`overDisjointBinaryCoproduct`/`overHasReflTransClosure`),
+    which live in `Fredy.SlicePreTopos` and IMPORT this file — so the proof CANNOT live here.
+
+    KEYSTONE UNBLOCKED (this pass).  The argument needs **slice choice of the codiagonal
+    `1_𝒮 + 1_𝒮`** from base `Choice (1+1)`.  An earlier note (SlicePreTopos residual) declared this
+    a blind alley.  It is NOT: `choice_prod_pinned` (above) proves that with the `A×A`-coordinate
+    PINNED to the structure map, base `Choice (1+1)` alone sections a relation targeted at
+    `prod (1+1) (A×A)`.  The forgotten base relation retargets to `prod (1+1) (A×A)` by an ISO
+    (`(A×A)+(A×A) ≅ (1+1)×(A×A)`, `snd = ∇`), NOT by the non-monic `δ : C+C → 1+1` the old note
+    feared, so no image-quotient collapses the witness.  Residual is now ASSEMBLY in SlicePreTopos:
+    (i) the explicit distributivity iso `(A×A)+(A×A) ≅ (1+1)×(A×A)`; (ii) `slice_choice_codiag`
+    (forget→pin→`choice_prod_pinned`→lift); (iii) slice DECIDABILITY of `1_𝒮 + 1_𝒮`; (iv) the
+    slice→base complement transport via the `forgetSlice`/`liftSlice` lattice iso.
+
+    §1.662 (2)→(3) is proved in `Fredy.SlicePreTopos` (`one_one_choice_to_boolean`) once (i)–(iv)
+    above are discharged; it needs the slice pre-topos instances, which import S1_64, so it cannot
+    live here. -/
 theorem one_one_choice_to_boolean [HasBinaryProducts 𝒞]
     (h : Choice (HasBinaryCoproducts.coprod (one : 𝒞) one)) :
     Nonempty (BooleanPreLogos 𝒞) := by
