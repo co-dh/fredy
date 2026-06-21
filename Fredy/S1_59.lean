@@ -796,6 +796,219 @@ theorem abelian_iff_regular_additive_all_normal
 class EffectiveRegular (𝒞 : Type u) [Cat.{v} 𝒞] extends RegularCategory 𝒞 where
   effective : ∀ {A : 𝒞} (E : BinRel 𝒞 A A), EquivalenceRelation E → IsEffective E
 
+/-! ### §1.594 additive helper layer: negation and subtraction
+
+  In an additive category each hom has a (unique) additive inverse `neg f`,
+  giving genuine subtraction.  These are the algebraic facts that make the
+  Mal'cev term `x − y + z` available — the representation-free route to
+  "reflexive endo-relation ⟹ equivalence relation". -/
+
+open HalfAdditiveCategory in
+/-- The additive inverse `neg f = −f` (chosen via `addInv`). -/
+noncomputable def neg [AdditiveCategory 𝒞] {A B : 𝒞} (f : A ⟶ B) : A ⟶ B :=
+  (AdditiveCategory.addInv f).choose
+
+open HalfAdditiveCategory in
+theorem add_neg [AdditiveCategory 𝒞] {A B : 𝒞} (f : A ⟶ B) :
+    add f (neg f) = zeroHom A B :=
+  (AdditiveCategory.addInv f).choose_spec
+
+open HalfAdditiveCategory in
+theorem neg_add [AdditiveCategory 𝒞] {A B : 𝒞} (f : A ⟶ B) :
+    add (neg f) f = zeroHom A B := by rw [add_comm]; exact add_neg f
+
+open HalfAdditiveCategory in
+/-- Additive inverses are unique: if `add f g = 0` then `g = neg f`. -/
+theorem neg_unique [AdditiveCategory 𝒞] {A B : 𝒞} {f g : A ⟶ B}
+    (h : add f g = zeroHom A B) : g = neg f := by
+  -- g = 0 + g = (neg f + f) + g = neg f + (f + g) = neg f + 0 = neg f
+  calc g = add (zeroHom A B) g := (zero_add g).symm
+    _ = add (add (neg f) f) g := by rw [neg_add]
+    _ = add (neg f) (add f g) := (add_assoc _ _ _).symm
+    _ = add (neg f) (zeroHom A B) := by rw [h]
+    _ = neg f := add_zero _
+
+open HalfAdditiveCategory in
+/-- `g ≫ neg f = neg (g ≫ f)`: negation commutes with precomposition. -/
+theorem comp_neg [AdditiveCategory 𝒞] {W A B : 𝒞} (g : W ⟶ A) (f : A ⟶ B) :
+    g ≫ neg f = neg (g ≫ f) :=
+  neg_unique (by rw [← comp_add, add_neg, zeroHom_comp_left])
+
+open HalfAdditiveCategory in
+/-- `(neg g) ≫ f = neg (g ≫ f)`: negation commutes with postcomposition. -/
+theorem neg_comp [AdditiveCategory 𝒞] {W A B : 𝒞} (g : W ⟶ A) (f : A ⟶ B) :
+    (neg g) ≫ f = neg (g ≫ f) := by
+  apply neg_unique
+  rw [← add_comp g (neg g) f, add_neg, zeroHom_comp_right]
+
+open HalfAdditiveCategory in
+/-- Double negation: `neg (neg f) = f`. -/
+theorem neg_neg [AdditiveCategory 𝒞] {A B : 𝒞} (f : A ⟶ B) : neg (neg f) = f :=
+  (neg_unique (neg_add f)).symm
+
+open HalfAdditiveCategory in
+/-- Right cancellation in the hom-group: `add X Y = add Z Y → X = Z`. -/
+theorem add_right_cancel [AdditiveCategory 𝒞] {A B : 𝒞} {X Z Y : A ⟶ B}
+    (h : add X Y = add Z Y) : X = Z := by
+  calc X = add X (zeroHom A B) := (add_zero X).symm
+    _ = add X (add Y (neg Y)) := by rw [add_neg]
+    _ = add (add X Y) (neg Y) := add_assoc _ _ _
+    _ = add (add Z Y) (neg Y) := by rw [h]
+    _ = add Z (add Y (neg Y)) := (add_assoc _ _ _).symm
+    _ = add Z (zeroHom A B) := by rw [add_neg]
+    _ = Z := add_zero Z
+
+open HalfAdditiveCategory in
+/-- `neg` is monic when `f` is: `g ≫ neg f = h ≫ neg f` forces the additive
+    inverses of `g ≫ f` and `h ≫ f` to agree, hence `g ≫ f = h ≫ f`. -/
+theorem neg_mono [AdditiveCategory 𝒞] {A B : 𝒞} {f : A ⟶ B} (hf : Mono f) :
+    Mono (neg f) := by
+  intro W g h hgh
+  apply hf
+  -- g ≫ f and h ≫ f have the SAME additive inverse g ≫ neg f = h ≫ neg f.
+  have hg : add (g ≫ f) (g ≫ neg f) = zeroHom W B := by
+    rw [← comp_add, add_neg, zeroHom_comp_left]
+  have hh : add (h ≫ f) (h ≫ neg f) = zeroHom W B := by
+    rw [← comp_add, add_neg, zeroHom_comp_left]
+  rw [hgh] at hg
+  exact add_cancel_common _ _ _ hg hh
+
+open HalfAdditiveCategory in
+/-- **§1.594 relation** for a monic `m : A ↣ B`: the relation on `B` whose
+    tabulation is Freyd's monic pair `⟨(0 1), (−m 1)⟩ : A⊕B ⇉ B`.  Table object
+    `prod A B`; left leg `snd` (= `0·a + b = b`), right leg `(fst≫neg m) + snd`
+    (= `−m·a + b`).  So it relates `b ~ b'` iff `b − b' ∈ im m`.  The pair is
+    jointly monic because `neg m` is monic (`neg_mono`). -/
+noncomputable def malRel [AdditiveCategory 𝒞] [HasPullbacks 𝒞] {A B : 𝒞}
+    (m : A ⟶ B) (hm : Mono m) : BinRel 𝒞 B B where
+  src := prod A B
+  colA := snd
+  colB := add (fst ≫ neg m) snd
+  isMonicPair := by
+    intro W f g hA hB
+    -- hA : f ≫ snd = g ≫ snd ;  hB : f ≫ (−m·fst + snd) = g ≫ (−m·fst + snd)
+    -- Expand hB:  (f≫fst)≫neg m + f≫snd = (g≫fst)≫neg m + g≫snd.
+    have e1 : f ≫ (add (fst ≫ neg m) snd) = add ((f ≫ fst) ≫ neg m) (f ≫ snd) := by
+      rw [comp_add, ← Cat.assoc]
+    have e2 : g ≫ (add (fst ≫ neg m) snd) = add ((g ≫ fst) ≫ neg m) (g ≫ snd) := by
+      rw [comp_add, ← Cat.assoc]
+    rw [e1, e2, hA] at hB
+    -- Right-cancel the common summand `g ≫ snd`: (f≫fst)≫neg m = (g≫fst)≫neg m.
+    have hcancel : (f ≫ fst) ≫ neg m = (g ≫ fst) ≫ neg m := add_right_cancel hB
+    -- so f≫fst = g≫fst by neg m monic.
+    have hfst : f ≫ fst = g ≫ fst := neg_mono hm _ _ hcancel
+    -- f, g agree on both projections of prod A B ⟹ f = g.
+    calc f = f ≫ pair (fst : prod A B ⟶ A) snd := by rw [pair_fst_snd, Cat.comp_id]
+      _ = pair (f ≫ fst) (f ≫ snd) := by rw [comp_pair]
+      _ = pair (g ≫ fst) (g ≫ snd) := by rw [hfst, hA]
+      _ = g ≫ pair fst snd := by rw [comp_pair]
+      _ = g := by rw [pair_fst_snd, Cat.comp_id]
+
+open HalfAdditiveCategory in
+/-- **§1.594 Mal'cev step (reflexivity).** `1 ⊂ malRel m`: the diagonal `b ~ b`
+    is witnessed by `a = 0`. Witness map `⟨0, id⟩ : B → A⊕B`. -/
+theorem malRel_refl [AdditiveCategory 𝒞] [HasPullbacks 𝒞] {A B : 𝒞}
+    (m : A ⟶ B) (hm : Mono m) :
+    ∃ (h : B ⟶ (malRel m hm).src),
+      h ≫ (malRel m hm).colA = Cat.id B ∧ h ≫ (malRel m hm).colB = Cat.id B := by
+  refine ⟨pair (zeroHom B A) (Cat.id B), ?_, ?_⟩
+  · show pair (zeroHom B A) (Cat.id B) ≫ snd = Cat.id B
+    rw [snd_pair]
+  · show pair (zeroHom B A) (Cat.id B) ≫ add (fst ≫ neg m) snd = Cat.id B
+    rw [comp_add, ← Cat.assoc, fst_pair, snd_pair, zeroHom_comp_right, zero_add]
+
+open HalfAdditiveCategory in
+/-- **§1.594 Mal'cev step (symmetry).** `malRel m ⊂ (malRel m)°`.  If `b ~ b'` via
+    `a` (so `b' = −m·a + b`) then `b' ~ b` via `−a`: the witness map negates the
+    `A`-coordinate, `s = ⟨−fst, colB⟩`. This is the Mal'cev term at work. -/
+theorem malRel_symm [AdditiveCategory 𝒞] [HasPullbacks 𝒞] {A B : 𝒞}
+    (m : A ⟶ B) (hm : Mono m) :
+    RelLe (malRel m hm) (reciprocal (malRel m hm)) := by
+  refine ⟨⟨pair (neg (fst : prod A B ⟶ A)) (add (fst ≫ neg m) snd), ?_, ?_⟩⟩
+  · -- s ≫ (malRel)°.colA = (malRel)°.colA is malRel.colB = add (fst≫neg m) snd; need = malRel.colA = snd
+    show pair (neg (fst : prod A B ⟶ A)) (add (fst ≫ neg m) snd) ≫ add (fst ≫ neg m) snd = snd
+    rw [comp_add, ← Cat.assoc, fst_pair, snd_pair]
+    -- (neg fst)≫neg m = neg (fst≫neg m) = neg (neg (fst≫m)) = fst≫m
+    rw [neg_comp, comp_neg, neg_neg, add_assoc]
+    -- now: add (add (fst≫m) (neg (fst≫m))) snd  →  add 0 snd = snd
+    rw [show add (fst ≫ m) (neg (fst ≫ m)) = zeroHom (prod A B) B from add_neg _, zero_add]
+  · show pair (neg (fst : prod A B ⟶ A)) (add (fst ≫ neg m) snd) ≫ snd = add (fst ≫ neg m) snd
+    rw [snd_pair]
+
+open HalfAdditiveCategory in
+/-- **§1.594 Mal'cev step (transitivity).** `malRel m ⊚ malRel m ⊂ malRel m`.
+    If `b−b' ∈ im m` and `b'−b'' ∈ im m` then `b−b'' = (b−b') + (b'−b'') ∈ im m`
+    — pure additivity.  The witness `A`-coordinate is the SUM of the two witnessing
+    elements; `image_min` turns the lift into the required `RelHom`. -/
+theorem malRel_trans [AdditiveCategory 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] {A B : 𝒞}
+    (m : A ⟶ B) (hm : Mono m) :
+    RelLe (malRel m hm ⊚ malRel m hm) (malRel m hm) := by
+  let E := malRel m hm
+  -- Pullback of the middle legs:  E.colB (of the first copy) over E.colA (of the second).
+  let pb := HasPullbacks.has E.colB E.colA
+  -- The composite span into B×B (per `compose`):  (π₁ ≫ E.colA, π₂ ≫ E.colB).
+  let span := pair (pb.cone.π₁ ≫ E.colA) (pb.cone.π₂ ≫ E.colB)
+  -- The subobject of B×B tabulated by E.
+  let S : Subobject 𝒞 (prod B B) :=
+    ⟨E.src, pair E.colA E.colB, monic_pair_of_monicPair _ _ E.isMonicPair⟩
+  -- Matching condition from the pullback square.
+  have hmatch : pb.cone.π₁ ≫ E.colB = pb.cone.π₂ ≫ E.colA := pb.cone.w
+  -- The additive witness lifting the span into E's table:  A-coord = sum of both a's.
+  let w : pb.cone.pt ⟶ prod A B :=
+    pair (add (pb.cone.π₁ ≫ fst) (pb.cone.π₂ ≫ fst)) (pb.cone.π₁ ≫ snd)
+  -- w ≫ pair E.colA E.colB = span : both legs match.
+  have hspan : w ≫ pair E.colA E.colB = span := by
+    apply pair_uniq
+    · -- w ≫ E.colA = w ≫ snd = π₁ ≫ snd = π₁ ≫ E.colA = span ≫ fst
+      rw [Cat.assoc, fst_pair]
+      show w ≫ snd = pb.cone.π₁ ≫ E.colA
+      rw [show w ≫ snd = pb.cone.π₁ ≫ snd from by rw [snd_pair]]
+      rfl
+    · -- w ≫ E.colB = span ≫ snd = π₂ ≫ E.colB
+      rw [Cat.assoc, snd_pair]
+      show w ≫ add (fst ≫ neg m) snd = pb.cone.π₂ ≫ E.colB
+      rw [comp_add, ← Cat.assoc]
+      show add ((w ≫ fst) ≫ neg m) (w ≫ snd) = pb.cone.π₂ ≫ add (fst ≫ neg m) snd
+      rw [show w ≫ fst = add (pb.cone.π₁ ≫ fst) (pb.cone.π₂ ≫ fst) from fst_pair _ _,
+          show w ≫ snd = pb.cone.π₁ ≫ snd from snd_pair _ _,
+          add_comp, comp_add, ← Cat.assoc]
+      -- LHS: ((π₁≫fst)≫neg m + (π₂≫fst)≫neg m) + π₁≫snd
+      -- RHS: (π₂≫fst)≫neg m + π₂≫snd, and π₂≫snd = π₂≫E.colA = π₁≫E.colB = (π₁≫fst)≫neg m + π₁≫snd
+      have hms : pb.cone.π₂ ≫ snd =
+          add ((pb.cone.π₁ ≫ fst) ≫ neg m) (pb.cone.π₁ ≫ snd) := by
+        have h := hmatch
+        -- π₂ ≫ E.colA = π₂ ≫ snd ; π₁ ≫ E.colB = (π₁≫fst)≫neg m + π₁≫snd
+        calc pb.cone.π₂ ≫ snd = pb.cone.π₂ ≫ E.colA := rfl
+          _ = pb.cone.π₁ ≫ E.colB := h.symm
+          _ = pb.cone.π₁ ≫ add (fst ≫ neg m) snd := rfl
+          _ = add ((pb.cone.π₁ ≫ fst) ≫ neg m) (pb.cone.π₁ ≫ snd) := by
+                rw [comp_add, ← Cat.assoc]
+      rw [hms]
+      -- ((π₁f)nm + (π₂f)nm) + π₁s  =  (π₂f)nm + ((π₁f)nm + π₁s)
+      rw [← add_assoc, add_assoc ((pb.cone.π₁ ≫ fst) ≫ neg m) ((pb.cone.π₂ ≫ fst) ≫ neg m),
+          add_comm ((pb.cone.π₁ ≫ fst) ≫ neg m) ((pb.cone.π₂ ≫ fst) ≫ neg m), ← add_assoc]
+  -- The composite relation's source is the image of `span`; lift through S via image_min.
+  obtain ⟨k, hk⟩ := image_min span S ⟨w, hspan⟩
+  refine ⟨⟨k, ?_, ?_⟩⟩
+  · -- k ≫ E.colA = (malRel⊚malRel).colA
+    show k ≫ E.colA = (image span).arr ≫ fst
+    calc k ≫ E.colA = (k ≫ pair E.colA E.colB) ≫ fst := by rw [Cat.assoc, fst_pair]
+      _ = (image span).arr ≫ fst := by rw [hk]
+  · show k ≫ E.colB = (image span).arr ≫ snd
+    calc k ≫ E.colB = (k ≫ pair E.colA E.colB) ≫ snd := by rw [Cat.assoc, snd_pair]
+      _ = (image span).arr ≫ snd := by rw [hk]
+
+open HalfAdditiveCategory in
+/-- **§1.594 Mal'cev keystone.** In an additive category, the §1.594 relation
+    `malRel m` is an equivalence relation — reflexive, symmetric, transitive —
+    proved representation-free via the additive (Mal'cev) structure. -/
+theorem malRel_equivalence [AdditiveCategory 𝒞] [HasPullbacks 𝒞]
+    [HasImages 𝒞] {A B : 𝒞} (m : A ⟶ B) (hm : Mono m) :
+    EquivalenceRelation (malRel m hm) := by
+  refine ⟨malRel_refl m hm, ?_, ?_⟩
+  · exact malRel_symm m hm
+  · exact malRel_trans m hm
+
 /-! §1.594: A is abelian iff it is an effective regular additive category.
   Direction proved here: effective regular additive ⟹ every mono is a kernel
   (i.e. every subobject is normal), so the category is abelian.
@@ -812,13 +1025,229 @@ class EffectiveRegular (𝒞 : Type u) [Cat.{v} 𝒞] extends RegularCategory �
   (⟹) Any abelian category is effective regular (§1.582–1.583 combined with
   the bicartesian structure).
 
-  Full formalization deferred: requires formalizing the Ab-calculus (§1.55)
-  and the inverse-image lemma from §1.582. -/
+  The (⟸) direction is now CLOSED sorry-free below (`effective_regular_additive_is_abelian`),
+  representation-free: the Mal'cev relation `malRel m` (table `⟨snd, −m·fst + snd⟩`) is the
+  equivalence relation; effectiveness gives a quotient cover `q`, and `m` is shown to be the
+  kernel of `q` via additive (subtraction) algebra plus the relation calculus.  The two helper
+  lemmas `compose_prods_indep` and `level_legs_comp` bridge the `AdditiveCategory ↔ RegularCategory`
+  products diamond and collapse the level-relation legs along the cover. -/
+/-- **Composition is independent of the chosen products instance (up to `⊂`).**
+    Two `HasBinaryProducts` instances `hp₁, hp₂` give composites `R ⊚₁ S` and `R ⊚₂ S`
+    that share the SAME pullback (`compose` pulls back along the B-legs, never the
+    products) and SAME span-legs `π₁ ≫ R.colA`, `π₂ ≫ S.colB`; only the chosen image
+    target `prod A C` differs.  Mapping each image-cover `image.lift span_i` across via
+    `relLe_of_cover_factor` (the span-legs agree) yields `R ⊚₁ S ⊂ R ⊚₂ S`.  This bridges
+    the `AdditiveCategory`↔`RegularCategory` products diamond in §1.594. -/
+theorem compose_prods_indep {A B C : 𝒞}
+    (hp₁ hp₂ : HasBinaryProducts 𝒞) [HasPullbacks 𝒞] [HasImages 𝒞]
+    (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) :
+    RelLe (@compose 𝒞 _ hp₁ _ _ A B C R S) (@compose 𝒞 _ hp₂ _ _ A B C R S) := by
+  -- Both composites pull back the B-legs identically; build the span/cover for `hp₁`.
+  let pb := HasPullbacks.has R.colB S.colA
+  let span₁ : pb.cone.pt ⟶ @prod 𝒞 _ hp₁ A C :=
+    @pair 𝒞 _ hp₁ _ _ _ (pb.cone.π₁ ≫ R.colA) (pb.cone.π₂ ≫ S.colB)
+  have hcov : Cover (@image.lift 𝒞 _ _ _ _ span₁) := image_lift_cover span₁
+  refine relLe_of_cover_factor (@image.lift 𝒞 _ _ _ _ span₁) hcov
+    (@image.lift 𝒞 _ _ _ _ (@pair 𝒞 _ hp₂ _ _ _ (pb.cone.π₁ ≫ R.colA) (pb.cone.π₂ ≫ S.colB)))
+    ?_ ?_
+  · -- both `colA` legs reduce to `pb.π₁ ≫ R.colA`.
+    show @image.lift 𝒞 _ _ _ _ _ ≫ ((@image 𝒞 _ _ _ _ _).arr ≫ @fst 𝒞 _ hp₂ _ _)
+       = @image.lift 𝒞 _ _ _ _ span₁ ≫ ((@image 𝒞 _ _ _ _ span₁).arr ≫ @fst 𝒞 _ hp₁ _ _)
+    rw [← Cat.assoc, ← Cat.assoc, image.lift_fac, image.lift_fac,
+        @fst_pair 𝒞 _ hp₂, @fst_pair 𝒞 _ hp₁]
+  · show @image.lift 𝒞 _ _ _ _ _ ≫ ((@image 𝒞 _ _ _ _ _).arr ≫ @snd 𝒞 _ hp₂ _ _)
+       = @image.lift 𝒞 _ _ _ _ span₁ ≫ ((@image 𝒞 _ _ _ _ span₁).arr ≫ @snd 𝒞 _ hp₁ _ _)
+    rw [← Cat.assoc, ← Cat.assoc, image.lift_fac, image.lift_fac,
+        @snd_pair 𝒞 _ hp₂, @snd_pair 𝒞 _ hp₁]
+
+/-- **§1.594 bridge (level legs collapse the cover).**  For any morphism `q : B ⟶ Q`,
+    the two legs of the level relation `graph q ⊚ (graph q)°` become equal after
+    post-composing with `q`.  Reason: that composite is the image of the span
+    `pair π₁ π₂` from the pullback of `q` over `q`, on which `π₁ ≫ q = π₂ ≫ q`
+    (pullback square); the image-lift is a cover, so cancelling it (`cover_epi`)
+    propagates the equality to the two image legs.  This lets a `RelHom` into the
+    level relation transport `R.colA ≫ q = R.colB ≫ q` (Mal'cev step 2). -/
+theorem level_legs_comp [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
+    {B Q : 𝒞} (q : B ⟶ Q) :
+    (graph q ⊚ (graph q)°).colA ≫ q = (graph q ⊚ (graph q)°).colB ≫ q := by
+  -- Unfold the composite's data: pullback of `(graph q).colB = q` over `(graph q)°.colA = q`.
+  let pb := HasPullbacks.has (graph q).colB ((graph q)°).colA
+  let span : pb.cone.pt ⟶ prod B B :=
+    pair (pb.cone.π₁ ≫ (graph q).colA) (pb.cone.π₂ ≫ ((graph q)°).colB)
+  -- Cover: the image-lift of the span.
+  have hcov : Cover (image.lift span) := image_lift_cover span
+  -- The pullback square: π₁ ≫ q = π₂ ≫ q.
+  have hpbw : pb.cone.π₁ ≫ q = pb.cone.π₂ ≫ q := pb.cone.w
+  -- LHS leg: image.lift span ≫ ((image span).arr ≫ fst) ≫ q = span ≫ fst ≫ q = π₁ ≫ q.
+  have hA : image.lift span ≫ ((graph q ⊚ (graph q)°).colA ≫ q) = pb.cone.π₁ ≫ q := by
+    show image.lift span ≫ (((image span).arr ≫ fst) ≫ q) = _
+    rw [show ((image span).arr ≫ fst) ≫ q = (image span).arr ≫ (fst ≫ q) from Cat.assoc _ _ _,
+        ← Cat.assoc, image.lift_fac]
+    show (pair (pb.cone.π₁ ≫ (graph q).colA) (pb.cone.π₂ ≫ ((graph q)°).colB)) ≫ (fst ≫ q)
+       = pb.cone.π₁ ≫ q
+    rw [← Cat.assoc, fst_pair]
+    exact congrArg (· ≫ q) (Cat.comp_id pb.cone.π₁)
+  -- RHS leg.
+  have hB : image.lift span ≫ ((graph q ⊚ (graph q)°).colB ≫ q) = pb.cone.π₂ ≫ q := by
+    show image.lift span ≫ (((image span).arr ≫ snd) ≫ q) = _
+    rw [show ((image span).arr ≫ snd) ≫ q = (image span).arr ≫ (snd ≫ q) from Cat.assoc _ _ _,
+        ← Cat.assoc, image.lift_fac]
+    show (pair (pb.cone.π₁ ≫ (graph q).colA) (pb.cone.π₂ ≫ ((graph q)°).colB)) ≫ (snd ≫ q)
+       = pb.cone.π₂ ≫ q
+    rw [← Cat.assoc, snd_pair]
+    exact congrArg (· ≫ q) (Cat.comp_id pb.cone.π₂)
+  exact cover_epi hcov (by rw [hA, hB, hpbw])
+
+open HalfAdditiveCategory in
 theorem effective_regular_additive_is_abelian
     (𝒞 : Type u) [Cat.{v} 𝒞]
     [EffectiveRegular 𝒞] [AdditiveCategory 𝒞] [HasZeroObject 𝒞] [HasEqualizers 𝒞] :
     ∀ {A B : 𝒞} (m : A ⟶ B) (hm : Mono m), IsNormalSubobject m hm := by
-  sorry
+  intro A B m hm
+  -- Ambient products stay the ADDITIVE ones throughout (the table `A⊕B`, `add`/`neg`, every
+  -- `fst/snd/pair` below).  The `EffectiveRegular.effective` field is stated with the REGULAR
+  -- products, so we bridge its `EquivalenceRelation` input and its `graph q ⊚ (graph q)°` output
+  -- across the products diamond with `compose_prods_indep`.
+  letI hpA : HasBinaryProducts 𝒞 := inferInstance
+  -- STEP 1: build the regular-products `EquivalenceRelation (malRel m)` and apply effectiveness.
+  have hequiv : @EquivalenceRelation 𝒞 _ EffectiveRegular.toRegularCategory.toHasBinaryProducts
+      _ _ B (malRel m hm) := by
+    -- Reflexivity and symmetry are products-agnostic (no `⊚`), reused verbatim.  Transitivity
+    -- needs the *regular*-products composite; bridge it to the additive `malRel_trans`.
+    refine ⟨malRel_refl m hm, malRel_symm m hm,
+      rel_le_trans (compose_prods_indep _ hpA (malRel m hm) (malRel m hm)) (malRel_trans m hm)⟩
+  obtain ⟨_, Q, q, hqcov, hEqq, hqqE⟩ :=
+    EffectiveRegular.effective (malRel m hm) hequiv
+  -- Bridge the regular-products level relation back to the additive one (`Lq := qq°` additive).
+  have hEqq' : RelLe (malRel m hm) (graph q ⊚ (graph q)°) :=
+    rel_le_trans hEqq (compose_prods_indep _ hpA (graph q) (graph q)°)
+  have hqqE' : RelLe (graph q ⊚ (graph q)°) (malRel m hm) :=
+    rel_le_trans (compose_prods_indep hpA _ (graph q) (graph q)°) hqqE
+  -- STEP 2: both legs of `E` agree after `≫ q` (`level_legs_comp` + the `E ⊂ qq°` RelHom).
+  obtain ⟨he, heA, heB⟩ := hEqq'
+  have hlegs : (malRel m hm).colA ≫ q = (malRel m hm).colB ≫ q := by
+    have key : he ≫ ((graph q ⊚ (graph q)°).colA ≫ q)
+             = he ≫ ((graph q ⊚ (graph q)°).colB ≫ q) := by rw [level_legs_comp q]
+    calc (malRel m hm).colA ≫ q
+        = (he ≫ (graph q ⊚ (graph q)°).colA) ≫ q := by rw [heA]
+      _ = he ≫ ((graph q ⊚ (graph q)°).colA ≫ q) := Cat.assoc _ _ _
+      _ = he ≫ ((graph q ⊚ (graph q)°).colB ≫ q) := key
+      _ = (he ≫ (graph q ⊚ (graph q)°).colB) ≫ q := (Cat.assoc _ _ _).symm
+      _ = (malRel m hm).colB ≫ q := by rw [heB]
+  -- STEP 3: `m ≫ q = 0`.  `(malRel).colA = snd`, `(malRel).colB = add (fst ≫ neg m) snd`.
+  -- Cancel the common `snd ≫ q`, get `(fst ≫ neg m) ≫ q = 0`; section `fst` to drop `fst`,
+  -- then `neg m ≫ q = neg (m ≫ q) = 0` gives `m ≫ q = 0`.
+  have hmq : m ≫ q = zeroMorphism A Q := by
+    -- `hlegs` in explicit additive-leg form.
+    have h1 : (snd : prod A B ⟶ B) ≫ q
+        = add (((fst : prod A B ⟶ A) ≫ neg m) ≫ q) ((snd : prod A B ⟶ B) ≫ q) := by
+      have h0 : (snd : prod A B ⟶ B) ≫ q
+          = (add ((fst : prod A B ⟶ A) ≫ neg m) snd) ≫ q := hlegs
+      rwa [add_comp] at h0
+    -- cancel `snd ≫ q`: `(fst ≫ neg m) ≫ q = 0`.
+    have h2 : ((fst : prod A B ⟶ A) ≫ neg m) ≫ q = zeroHom (prod A B) Q := by
+      apply add_right_cancel (Y := (snd : prod A B ⟶ B) ≫ q)
+      rw [zero_add]
+      exact h1.symm
+    -- precompose by the section `s = ⟨id, 0⟩ : A → A⊕B` (so `s ≫ fst = id`).
+    have hsfst : (pair (Cat.id A) (zeroHom A B) : A ⟶ prod A B) ≫ fst = Cat.id A := fst_pair _ _
+    have h3 : neg m ≫ q = zeroHom A Q := by
+      calc neg m ≫ q
+          = (Cat.id A ≫ neg m) ≫ q := by rw [Cat.id_comp]
+        _ = (((pair (Cat.id A) (zeroHom A B) : A ⟶ prod A B) ≫ fst) ≫ neg m) ≫ q := by rw [hsfst]
+        _ = (pair (Cat.id A) (zeroHom A B) : A ⟶ prod A B)
+              ≫ (((fst : prod A B ⟶ A) ≫ neg m) ≫ q) := by
+              rw [← Cat.assoc, ← Cat.assoc]
+        _ = (pair (Cat.id A) (zeroHom A B) : A ⟶ prod A B) ≫ zeroHom (prod A B) Q := by rw [h2]
+        _ = zeroHom A Q := zeroHom_comp_left _
+    -- `neg m ≫ q = neg (m ≫ q)`, and `neg X = 0 → X = 0` (apply `neg`, use `neg_neg`, `neg 0 = 0`).
+    have h4 : neg (m ≫ q) = zeroHom A Q := by rw [← neg_comp]; exact h3
+    have hneg0 : neg (zeroHom A Q) = zeroHom A Q :=
+      (neg_unique (by rw [add_zero])).symm
+    have h5 : m ≫ q = zeroHom A Q := by
+      rw [← neg_neg (m ≫ q), h4, hneg0]
+    rw [h5, zeroHom_eq_zeroMorphism']
+  -- STEP 4: `m` is the kernel of `q`.  Build `h : A → Kernel q` (UMP of the equalizer), then show
+  -- it is iso by exhibiting an inverse `r : Kernel q → A` with `r ≫ m = kernelMap q`, obtained by
+  -- transporting the kernel-pair element `(kernelMap q, 0) ∈ qq°` into `malRel`'s table via `hqqE`.
+  -- `h : A → Kernel q`.
+  have hmzero : m ≫ q = m ≫ zeroMorphism B Q := by
+    rw [hmq, zero_morphism_comp m (zeroMorphism B Q)]
+  let h : A ⟶ Kernel q := eqLift q (zeroMorphism B Q) m hmzero
+  have hhfac : h ≫ kernelMap q = m := eqLift_fac q (zeroMorphism B Q) m hmzero
+  -- The kernel-pair element `(kernelMap q, 0)` lives in `graph q ⊚ (graph q)°`.
+  have hkq0 : kernelMap q ≫ q = zeroMorphism (Kernel q) B ≫ q := by
+    rw [zeroMorphism_comp_left (A := Kernel q) q]
+    calc kernelMap q ≫ q = kernelMap q ≫ zeroMorphism B Q := kernelMap_eq q
+      _ = zeroMorphism (Kernel q) Q := zero_morphism_comp (kernelMap q) q
+  -- Pullback point of `(graph q).colB = q` over `((graph q)°).colA = q`.
+  let pbq := HasPullbacks.has (graph q).colB ((graph q)°).colA
+  let cpt : Kernel q ⟶ pbq.cone.pt :=
+    pbq.lift ⟨Kernel q, kernelMap q, zeroMorphism (Kernel q) B, hkq0⟩
+  have hcpt1 : cpt ≫ pbq.cone.π₁ = kernelMap q := pbq.lift_fst _
+  have hcpt2 : cpt ≫ pbq.cone.π₂ = zeroMorphism (Kernel q) B := pbq.lift_snd _
+  -- Transport into `malRel`'s table via `hqqE`.
+  obtain ⟨hk, hkA, hkB⟩ := hqqE'
+  let spanq : pbq.cone.pt ⟶ prod B B :=
+    pair (pbq.cone.π₁ ≫ (graph q).colA) (pbq.cone.π₂ ≫ ((graph q)°).colB)
+  let t : Kernel q ⟶ prod A B := cpt ≫ image.lift spanq ≫ hk
+  -- `t ≫ colA = kernelMap q`,  `t ≫ colB = 0`.
+  have htA : t ≫ (malRel m hm).colA = kernelMap q := by
+    show (cpt ≫ image.lift spanq ≫ hk) ≫ (malRel m hm).colA = kernelMap q
+    rw [Cat.assoc, Cat.assoc, hkA]
+    show cpt ≫ (image.lift spanq ≫ (graph q ⊚ (graph q)°).colA) = kernelMap q
+    show cpt ≫ (image.lift spanq ≫ ((image spanq).arr ≫ fst)) = kernelMap q
+    rw [show image.lift spanq ≫ ((image spanq).arr ≫ fst)
+          = (image.lift spanq ≫ (image spanq).arr) ≫ fst from (Cat.assoc _ _ _).symm,
+        image.lift_fac]
+    show cpt ≫ (spanq ≫ fst) = kernelMap q
+    rw [show spanq ≫ fst = pbq.cone.π₁ ≫ (graph q).colA from fst_pair _ _]
+    show cpt ≫ pbq.cone.π₁ ≫ Cat.id B = kernelMap q
+    exact (congrArg (cpt ≫ ·) (Cat.comp_id pbq.cone.π₁)).trans hcpt1
+  have htB : t ≫ (malRel m hm).colB = zeroMorphism (Kernel q) B := by
+    show (cpt ≫ image.lift spanq ≫ hk) ≫ (malRel m hm).colB = _
+    rw [Cat.assoc, Cat.assoc, hkB]
+    show cpt ≫ (image.lift spanq ≫ ((image spanq).arr ≫ snd)) = _
+    rw [show image.lift spanq ≫ ((image spanq).arr ≫ snd)
+          = (image.lift spanq ≫ (image spanq).arr) ≫ snd from (Cat.assoc _ _ _).symm,
+        image.lift_fac]
+    show cpt ≫ (spanq ≫ snd) = _
+    rw [show spanq ≫ snd = pbq.cone.π₂ ≫ ((graph q)°).colB from snd_pair _ _]
+    show cpt ≫ pbq.cone.π₂ ≫ Cat.id B = _
+    exact (congrArg (cpt ≫ ·) (Cat.comp_id pbq.cone.π₂)).trans hcpt2
+  -- `r := t ≫ fst` factors `kernelMap q` through `m`:  `r ≫ m = kernelMap q`.
+  let r : Kernel q ⟶ A := t ≫ fst
+  have hrm : r ≫ m = kernelMap q := by
+    -- `(malRel).colA = snd`, `(malRel).colB = add (fst≫neg m) snd`.
+    -- `t ≫ snd = kernelMap q`  and  `add ((t≫fst)≫neg m) (t≫snd) = 0`.
+    have hts : t ≫ (snd : prod A B ⟶ B) = kernelMap q := htA
+    have htb : add ((t ≫ (fst : prod A B ⟶ A)) ≫ neg m) (t ≫ (snd : prod A B ⟶ B))
+        = zeroMorphism (Kernel q) B := by
+      have : t ≫ add ((fst : prod A B ⟶ A) ≫ neg m) snd = zeroMorphism (Kernel q) B := htB
+      rwa [comp_add, ← Cat.assoc] at this
+    -- from `add X (kernelMap q) = 0` get `kernelMap q = neg X`, with `X = (t≫fst)≫neg m`.
+    rw [hts] at htb
+    -- `kernelMap q = neg ((t≫fst)≫neg m) = (t≫fst)≫m`.
+    have hknX : kernelMap q = neg ((t ≫ (fst : prod A B ⟶ A)) ≫ neg m) := by
+      have hu := neg_unique (f := (t ≫ (fst : prod A B ⟶ A)) ≫ neg m)
+        (g := kernelMap q)
+        (by rw [htb, zeroHom_eq_zeroMorphism'])
+      exact hu
+    rw [hknX, comp_neg, neg_neg]
+  -- `IsIso h` with inverse `r`.
+  refine ⟨Q, q, h, ⟨r, ?_, ?_⟩, hhfac⟩
+  · -- `h ≫ r = id A`:  `(h ≫ r) ≫ m = h ≫ (r ≫ m) = h ≫ kernelMap q = m = id ≫ m`, `m` monic.
+    apply hm
+    calc (h ≫ r) ≫ m = h ≫ (r ≫ m) := Cat.assoc _ _ _
+      _ = h ≫ kernelMap q := by rw [hrm]
+      _ = m := hhfac
+      _ = Cat.id A ≫ m := (Cat.id_comp m).symm
+  · -- `r ≫ h = id (Kernel q)`:  `(r ≫ h) ≫ kernelMap q = r ≫ m = kernelMap q`, `kernelMap q` monic.
+    apply eqMap_mono' q (zeroMorphism B Q)
+    calc (r ≫ h) ≫ kernelMap q = r ≫ (h ≫ kernelMap q) := Cat.assoc _ _ _
+      _ = r ≫ m := by rw [hhfac]
+      _ = kernelMap q := hrm
+      _ = Cat.id (Kernel q) ≫ kernelMap q := (Cat.id_comp _).symm
 
 
 /-! ## §1.595 Abelian group objects
