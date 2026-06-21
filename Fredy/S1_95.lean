@@ -1124,11 +1124,104 @@ theorem cogenerator_internally_cogenerates [HasExponentials 𝒞] [HasTerminal �
     simp only [← Cat.assoc, prodOneRightInv_fst, Cat.id_comp] at this
     exact this)
 
-/-- **§1.965**: In a topos, Ω internally cogenerates.
-    Proof: suppose Ω^f = Ω^g.  Embed the small subtopos containing f,g faithfully
-    into a capital (value-based) topos; there Ω cogenerates [1.964], so f = g. -/
+/-- **The inverse-image relation `expMap Ω f` cuts out is `evalRel B ⊚ (graph f)°`.**
+    Pulling the universal membership `evalRel A` (on `Ω^A`) back along the contravariant
+    `expMap Ω f = curry χ` (`χ = (f×1) ≫ eval_B`) gives `classRel χ ≅ evalRel B ⊚ (graph f)°`
+    (`evalRel_pull_*` + `classRel_eq_recip_graph`).  This is the `exp`-level "inverse image
+    detects membership of `f a`" identity, both `RelHom` directions. -/
+theorem relPullback_expMap_eq_recip_graph [Topos 𝒞] {A B : 𝒞} (f : A ⟶ B) :
+    RelHom (relPullback (expMap (HasSubobjectClassifier.omega (𝒞 := 𝒞)) f) (evalRel A))
+           (evalRel B ⊚ (graph f)°) ∧
+    RelHom (evalRel B ⊚ (graph f)°)
+           (relPullback (expMap (HasSubobjectClassifier.omega (𝒞 := 𝒞)) f) (evalRel A)) := by
+  let Ω := HasSubobjectClassifier.omega (𝒞 := 𝒞)
+  let χ : prod A (exp B Ω) ⟶ Ω := prodMapLeft (exp B Ω) f ≫ eval_exp B Ω
+  have hexp : expMap Ω f = curry χ := rfl
+  -- `relPullback (curry χ) (evalRel A) ≅ classRel χ ≅ evalRel B ⊚ (graph f)°`.
+  have h2 : RelHom (relPullback (expMap Ω f) (evalRel A)) (classRel χ) ∧
+            RelHom (classRel χ) (relPullback (expMap Ω f) (evalRel A)) := by
+    rw [hexp]; exact ⟨evalRel_pull_bwd χ, evalRel_pull_fwd χ⟩
+  have h3 := classRel_eq_recip_graph f
+  exact ⟨RelHom_trans h2.1 h3.1, RelHom_trans h3.2 h2.2⟩
+
+/-- **Membership pulled back along the singleton is the diagonal.**  Pulling the
+    universal membership `evalRel B` (on `Ω^B`) back along the singleton `Δ₁ = singletonMapCat B`
+    gives the diagonal `graph(1_B)`: `{(b,b') | b' ∈ {b}} = {(b,b') | b' = b}`.  This is the
+    `hLHS` content of `singletonMapCat_eq_powExp`, isolated as a reusable lemma. -/
+theorem relPullback_singleton_evalRel [Topos 𝒞] (B : 𝒞) :
+    RelHom (graph (Cat.id B)) (relPullback (singletonMapCat B) (evalRel B)) ∧
+    RelHom (relPullback (singletonMapCat B) (evalRel B)) (graph (Cat.id B)) := by
+  let χΔ := HasSubobjectClassifier.classify (diag B) (diag_mono B)
+  -- `relMonic (graph 1_B) = diag B` defeq, so `classRel (classify (relMonic (graph 1_B))) = classRel χΔ`.
+  have hcr : RelHom (graph (Cat.id B)) (classRel χΔ) ∧ RelHom (classRel χΔ) (graph (Cat.id B)) :=
+    classRel_roundtrip (graph (Cat.id B))
+  -- `singletonMapCat B = curry χΔ` defeq, so `relPullback (singletonMapCat B) (evalRel B)
+  --   = relPullback (curry χΔ) (evalRel B) ≅ classRel χΔ`.
+  exact ⟨RelHom_trans hcr.1 (evalRel_pull_fwd χΔ),
+         RelHom_trans (evalRel_pull_bwd χΔ) hcr.2⟩
+
+/-- **§1.965**: In a topos, Ω internally cogenerates — `Ω^(−)` is a FAITHFUL contravariant
+    functor.  (NOTE: Ω is *not* a cogenerator in a general topos; internal cogeneration is
+    strictly weaker and holds directly, with no §1.543 capitalization.)
+
+    Proof (membership calculus, sorry-free on master infra).  Set `φ_f := Δ₁ ≫ Ω^f : B → Ω^A`
+    (`Δ₁ = singletonMapCat B`).  We compute `relPullback φ_f (evalRel A) ≅ (graph f)°`, naming
+    `(graph f)°` against the universal `evalRel A`:
+      `relPullback φ_f (evalRel A)`
+        `≅ relPullback Δ₁ (relPullback (Ω^f) (evalRel A))`   (`relPullback_comp`)
+        `≅ relPullback Δ₁ (evalRel B ⊚ (graph f)°)`          (`relPullback_expMap_eq_recip_graph`)
+        `≅ (relPullback Δ₁ (evalRel B)) ⊚ (graph f)°`        (`relPullback_compose_dist`)
+        `≅ graph(1_B) ⊚ (graph f)°`                          (`relPullback_singleton_evalRel`)
+        `≅ (graph f)°`.                                       (`graph_id_comp`/`comp_graph_id_left`)
+    Now `Ω^f = Ω^g ⟹ φ_f = φ_g ⟹ relPullback φ_f (evalRel A) = relPullback φ_g (evalRel A)`
+    (`congrArg`), so `(graph f)° ≅ (graph g)°`; a `RelHom (graph f)° → (graph g)°` gives a
+    witness `w` with `w ≫ id = id` and `w ≫ g = f`, hence `w = id` and `f = g`. -/
 theorem omega_internally_cogenerates [Topos 𝒞] : InternallyCogenerates (𝒞 := 𝒞) (HasSubobjectClassifier.omega (𝒞 := 𝒞)) := by
-  sorry
+  classical
+  letI : RegularCategory 𝒞 := Classical.choice (topos_is_regular (𝒞 := 𝒞))
+  intro A B f g heq
+  let Ω := HasSubobjectClassifier.omega (𝒞 := 𝒞)
+  -- `φ_h := Δ₁(B) ≫ Ω^h : B → Ω^A`, and the relation it names is `(graph h)°`.
+  have hnames : ∀ h : A ⟶ B,
+      RelHom (relPullback (singletonMapCat B ≫ expMap Ω h) (evalRel A)) ((graph h)°) ∧
+      RelHom ((graph h)°) (relPullback (singletonMapCat B ≫ expMap Ω h) (evalRel A)) := by
+    intro h
+    -- (1) split `relPullback (Δ₁ ≫ Ω^h) (evalRel A)`.
+    obtain ⟨hc1, hc2⟩ := relPullback_comp (singletonMapCat B) (expMap Ω h) (evalRel A)
+    -- (2) `relPullback (Ω^h) (evalRel A) ≅ evalRel B ⊚ (graph h)°`, pulled back along Δ₁.
+    have h23 := relPullback_relHom (singletonMapCat B) (relPullback_expMap_eq_recip_graph h)
+    -- (3) distribute the pullback over the composite.
+    have hdist := relPullback_compose_dist (singletonMapCat B) (evalRel B) ((graph h)°)
+    -- (4) `relPullback Δ₁ (evalRel B) ≅ graph(1_B)`, monotone in the left ⊚-arg.
+    have hsing := relPullback_singleton_evalRel B
+    have h4 : RelHom ((relPullback (singletonMapCat B) (evalRel B)) ⊚ ((graph h)°))
+                (graph (Cat.id B) ⊚ ((graph h)°)) ∧
+              RelHom (graph (Cat.id B) ⊚ ((graph h)°))
+                ((relPullback (singletonMapCat B) (evalRel B)) ⊚ ((graph h)°)) :=
+      ⟨(compose_le ⟨hsing.2⟩ (rel_le_refl _)).toHom,
+       (compose_le ⟨hsing.1⟩ (rel_le_refl _)).toHom⟩
+    -- (5) `graph(1_B) ⊚ (graph h)° ≅ (graph h)°`.
+    have h5 : RelHom (graph (Cat.id B) ⊚ ((graph h)°)) ((graph h)°) ∧
+              RelHom ((graph h)°) (graph (Cat.id B) ⊚ ((graph h)°)) :=
+      ⟨(graph_id_comp ((graph h)°)).toHom, (comp_graph_id_left ((graph h)°)).toHom⟩
+    refine ⟨?_, ?_⟩
+    · exact RelHom_trans hc2 (RelHom_trans h23.1 (RelHom_trans hdist.1
+        (RelHom_trans h4.1 h5.1)))
+    · exact RelHom_trans h5.2 (RelHom_trans h4.2 (RelHom_trans hdist.2
+        (RelHom_trans h23.2 hc1)))
+  -- `Ω^f = Ω^g ⟹ φ f = φ g ⟹ relPullback (φ f) = relPullback (φ g)` (congrArg).
+  have hφ : singletonMapCat B ≫ expMap Ω f = singletonMapCat B ≫ expMap Ω g :=
+    congrArg (singletonMapCat B ≫ ·) heq
+  -- `(graph f)° ≅ relPullback (φ f) = relPullback (φ g) ≅ (graph g)°`.
+  have hrel : RelHom ((graph f)°) ((graph g)°) :=
+    RelHom_trans (hnames f).2 (hφ.symm ▸ (hnames g).1)
+  -- A `RelHom (graph f)° → (graph g)°` gives `w` with `w ≫ g = f` and `w ≫ id = id`, so `f = g`.
+  obtain ⟨w, hwA, hwB⟩ := hrel
+  -- `(graph f)°.colA = f`, `.colB = id`; `(graph g)°.colA = g`, `.colB = id`.
+  simp only [reciprocal, graph] at hwA hwB
+  -- hwA : w ≫ g = f ; hwB : w ≫ id = id ⟹ w = id ⟹ f = g.
+  have hw : w = Cat.id _ := by rw [← Cat.comp_id w]; exact hwB
+  rw [← hwA, hw]; exact Cat.id_comp g
 
 /-! ## §1.966  Progenitor -/
 
