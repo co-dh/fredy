@@ -1072,6 +1072,206 @@ theorem adiag_mono : Mono (adiag (𝒞 := 𝒞)) := by
     (case_uniq inl inr (Cat.id _) (Cat.comp_id _) (Cat.comp_id _)).symm
   rw [hid1, Cat.comp_id, Cat.comp_id] at hf; exact hf
 
+/-- `case inr inl` (the swap on `1+1`) precomposed with `inl` is `inr`, and with `inr` is `inl`. -/
+theorem inl_swap : (inl : (one : 𝒞) ⟶ coprod one one) ≫ case inr inl = inr := case_inl _ _
+theorem inr_swap : (inr : (one : 𝒞) ⟶ coprod one one) ≫ case inr inl = inl := case_inr _ _
+
+/-- A subobject `Z ⊆ X` whose domain receives ANY map `e : Z.dom → (⊥ C).dom` (to the bottom of
+    SOME object `C`) is `≤ ⊥ X`.  `(⊥ C).dom ≅ 0` (initial), so `Z.dom → 0` makes `Z.dom` iso to
+    `0` (`any_map_to_zero_is_iso`), hence `Z.dom ≅ (⊥ X).dom`, and `le_bottom_of_dom_iso` finishes. -/
+theorem le_bottom_of_map_to_bottom {X C : 𝒞} (Z : Subobject 𝒞 X)
+    (e : Z.dom ⟶ (PreLogos.bottom C).dom) : Z.le (PreLogos.bottom X) := by
+  letI hPL : PreLogos 𝒞 := ‹PreToposDisjoint 𝒞›.toPositivePreLogos.toPreLogos
+  let zeroObj := (minimal_subobject_of_one_is_coterminator hPL).zero
+  obtain ⟨ζ, hζ⟩ := hPL.bottom_dom_iso C hPL.toHasTerminal.one  -- ζ : (⊥C).dom → zeroObj iso
+  have hiso0 : IsIso (e ≫ ζ) := any_map_to_zero_is_iso hPL (e ≫ ζ)
+  have hZ0 : Isomorphic Z.dom zeroObj := ⟨e ≫ ζ, hiso0⟩
+  have hbX0 : Isomorphic (PreLogos.bottom X).dom zeroObj := hPL.bottom_dom_iso X hPL.toHasTerminal.one
+  exact le_bottom_of_dom_iso Z (isomorphic_trans hZ0 (isomorphic_symm hbX0))
+
+/-- A generalized element `g : X → 1+1` FIXED by the swap (`g ≫ case inr inl = g`) has an
+    INITIAL domain: on the `inl`-part of `X` the swap turns `inl` into `inr`, an `inl/inr` clash,
+    so that part is `≤ ⊥`; likewise the `inr`-part; the two cover `X`, so `X` itself is `≤ ⊥`.
+    Returns `entire X ≤ ⊥ X` (i.e. `id_X` factors through `⊥`, so `X` is initial). -/
+theorem swap_fixed_le_bottom {X : 𝒞} (g : X ⟶ coprod (one : 𝒞) one)
+    (hg : g ≫ case inr inl = g) :
+    (Subobject.entire X).le (PreLogos.bottom X) := by
+  let C := coprod (one : 𝒞) one
+  let Inl := inlSub (𝒞 := 𝒞) (A := (one : 𝒞)) (B := one) inl_mono
+  let Inr := inrSub (𝒞 := 𝒞) (A := (one : 𝒞)) (B := one) inr_mono
+  let A₁ : Subobject 𝒞 X := InverseImage g Inl
+  let A₂ : Subobject 𝒞 X := InverseImage g Inr
+  let pbL := HasPullbacks.has g Inl.arr
+  let pbR := HasPullbacks.has g Inr.arr
+  -- pullback legs:  A₁.arr ≫ g = f₁ ≫ inl,   A₂.arr ≫ g = f₂ ≫ inr.
+  have hfac₁ : A₁.arr ≫ g = pbL.cone.π₂ ≫ inl := by
+    show pbL.cone.π₁ ≫ g = pbL.cone.π₂ ≫ Inl.arr; exact pbL.cone.w
+  have hfac₂ : A₂.arr ≫ g = pbR.cone.π₂ ≫ inr := by
+    show pbR.cone.π₁ ≫ g = pbR.cone.π₂ ≫ Inr.arr; exact pbR.cone.w
+  -- on A₁: A₁.arr ≫ g = f₁ ≫ inl, and = A₁.arr ≫ (g ≫ swap) = (f₁ ≫ inl) ≫ swap = f₁ ≫ inr ⟹ clash.
+  have hclash₁ : pbL.cone.π₂ ≫ inl = pbL.cone.π₂ ≫ inr := by
+    calc pbL.cone.π₂ ≫ inl = A₁.arr ≫ g := hfac₁.symm
+      _ = A₁.arr ≫ (g ≫ case inr inl) := by rw [hg]
+      _ = (A₁.arr ≫ g) ≫ case inr inl := (Cat.assoc _ _ _).symm
+      _ = (pbL.cone.π₂ ≫ inl) ≫ case inr inl := by rw [hfac₁]
+      _ = pbL.cone.π₂ ≫ (inl ≫ case inr inl) := Cat.assoc _ _ _
+      _ = pbL.cone.π₂ ≫ inr := by rw [inl_swap]
+  have hclash₂ : pbR.cone.π₂ ≫ inl = pbR.cone.π₂ ≫ inr := by
+    calc pbR.cone.π₂ ≫ inl
+        = pbR.cone.π₂ ≫ (inr ≫ case inr inl) := by rw [inr_swap]
+      _ = (pbR.cone.π₂ ≫ inr) ≫ case inr inl := (Cat.assoc _ _ _).symm
+      _ = (A₂.arr ≫ g) ≫ case inr inl := by rw [hfac₂]
+      _ = A₂.arr ≫ (g ≫ case inr inl) := Cat.assoc _ _ _
+      _ = A₂.arr ≫ g := by rw [hg]
+      _ = pbR.cone.π₂ ≫ inr := hfac₂
+  -- clash ⟹ each Aᵢ.dom maps to ⊥ C ⟹ Aᵢ ≤ ⊥ X.
+  have hA₁bot : A₁.le (PreLogos.bottom X) := by
+    obtain ⟨e₁, _⟩ := coprod_inl_inr_disjoint_elt pbL.cone.π₂ pbL.cone.π₂ hclash₁
+    exact le_bottom_of_map_to_bottom A₁ e₁
+  have hA₂bot : A₂.le (PreLogos.bottom X) := by
+    obtain ⟨e₂, _⟩ := coprod_inl_inr_disjoint_elt pbR.cone.π₂ pbR.cone.π₂ hclash₂
+    exact le_bottom_of_map_to_bottom A₂ e₂
+  -- entire X ≤ g#(entire C) ≤ g#(Inl ∪ Inr) ≤ g#Inl ∪ g#Inr = A₁ ∪ A₂ ≤ ⊥ X.
+  have hentU : (Subobject.entire X).le (HasSubobjectUnions.union A₁ A₂) := by
+    have ha : (Subobject.entire X).le (InverseImage g (Subobject.entire C)) :=
+      entire_le_invImage_entire g
+    have hbu : (Subobject.entire C).le (HasSubobjectUnions.union Inl Inr) :=
+      inl_union_inr_entire (𝒟 := 𝒞) (A := (one : 𝒞)) (B := one)
+    have hb : (InverseImage g (Subobject.entire C)).le
+        (InverseImage g (HasSubobjectUnions.union Inl Inr)) := invImage_mono_local g hbu
+    have hc : (InverseImage g (HasSubobjectUnions.union Inl Inr)).le
+        (HasSubobjectUnions.union A₁ A₂) := (PreLogos.invImage_preserves_union g Inl Inr).1
+    exact subLe_trans ha (subLe_trans hb hc)
+  exact subLe_trans hentU (HasSubobjectUnions.union_min A₁ A₂ _ hA₁bot hA₂bot)
+
+/-- The diagonal subobject `Δ_{1+1}` of `(1+1)×(1+1)`. -/
+noncomputable def diagSub11 : Subobject 𝒞 (prod (coprod (one : 𝒞) one) (coprod one one)) :=
+  diagSub (coprod (one : 𝒞) one)
+
+/-- The antidiagonal subobject `Δᶜ_{1+1}` of `(1+1)×(1+1)`, candidate complement of `Δ`. -/
+noncomputable def adiagSub : Subobject 𝒞 (prod (coprod (one : 𝒞) one) (coprod one one)) :=
+  ⟨coprod (one : 𝒞) one, adiag, adiag_mono⟩
+
+/-- `case inl inr = id` on `1+1` (the `fst` leg of `adiag`). -/
+theorem case_inl_inr_id : case (inl : (one : 𝒞) ⟶ _) inr = Cat.id (coprod one one) :=
+  (case_uniq inl inr (Cat.id _) (Cat.comp_id _) (Cat.comp_id _)).symm
+
+/-- The diagonal corners `inl ≫ Δ = pair inl inl`, `inr ≫ Δ = pair inr inr`. -/
+theorem inl_diag11 : (inl : (one : 𝒞) ⟶ _) ≫ diag (coprod one one) = pair inl inl := by
+  apply fst_snd_jointly_monic
+  · rw [Cat.assoc, diag_fst, Cat.comp_id, fst_pair]
+  · rw [Cat.assoc, diag_snd, Cat.comp_id, snd_pair]
+theorem inr_diag11 : (inr : (one : 𝒞) ⟶ _) ≫ diag (coprod one one) = pair inr inr := by
+  apply fst_snd_jointly_monic
+  · rw [Cat.assoc, diag_fst, Cat.comp_id, fst_pair]
+  · rw [Cat.assoc, diag_snd, Cat.comp_id, snd_pair]
+/-- The antidiagonal corners `inl ≫ adiag = pair inl inr`, `inr ≫ adiag = pair inr inl`. -/
+theorem inl_adiag : (inl : (one : 𝒞) ⟶ _) ≫ adiag = pair inl inr := by rw [adiag, case_inl]
+theorem inr_adiag : (inr : (one : 𝒞) ⟶ _) ≫ adiag = pair inr inl := by rw [adiag, case_inr]
+
+/-- The four `distOPO`-corner identities: `inl ≫ term ≫ inl = inl`, etc. (`term` collapses `1+1`
+    to `1`, then `inl`/`inr` re-injects), used to compute `distOPO`'s summand legs. -/
+theorem term_inl_self (x : (one : 𝒞) ⟶ coprod one one) :
+    x ≫ term (coprod one one) ≫ (inl : (one : 𝒞) ⟶ coprod one one) = inl := by
+  rw [← Cat.assoc, show x ≫ term (coprod one one) = Cat.id one from term_uniq _ _, Cat.id_comp]
+theorem term_inr_self (x : (one : 𝒞) ⟶ coprod one one) :
+    x ≫ term (coprod one one) ≫ (inr : (one : 𝒞) ⟶ coprod one one) = inr := by
+  rw [← Cat.assoc, show x ≫ term (coprod one one) = Cat.id one from term_uniq _ _, Cat.id_comp]
+
+/-- The two summand legs of `distOPO (1+1)`:
+    `inl ≫ distOPO = case (pair inl inl) (pair inl inr)` (`= case Δ-corner adiag-corner`) and
+    `inr ≫ distOPO = case (pair inr inl) (pair inr inr)`. -/
+theorem inl_distOPO :
+    (inl : coprod (one : 𝒞) one ⟶ _) ≫ distOPO (coprod one one)
+      = case (pair inl inl) (pair inl inr) := by
+  rw [distOPO, case_inl]
+  refine case_uniq _ _ _ ?_ ?_
+  · apply fst_snd_jointly_monic
+    · rw [Cat.assoc, fst_pair, fst_pair]; exact term_inl_self _
+    · rw [Cat.assoc, snd_pair, Cat.comp_id, snd_pair]
+  · apply fst_snd_jointly_monic
+    · rw [Cat.assoc, fst_pair, fst_pair]; exact term_inl_self _
+    · rw [Cat.assoc, snd_pair, Cat.comp_id, snd_pair]
+theorem inr_distOPO :
+    (inr : coprod (one : 𝒞) one ⟶ _) ≫ distOPO (coprod one one)
+      = case (pair inr inl) (pair inr inr) := by
+  rw [distOPO, case_inr]
+  refine case_uniq _ _ _ ?_ ?_
+  · apply fst_snd_jointly_monic
+    · rw [Cat.assoc, fst_pair, fst_pair]; exact term_inr_self _
+    · rw [Cat.assoc, snd_pair, Cat.comp_id, snd_pair]
+  · apply fst_snd_jointly_monic
+    · rw [Cat.assoc, fst_pair, fst_pair]; exact term_inr_self _
+    · rw [Cat.assoc, snd_pair, Cat.comp_id, snd_pair]
+
+/-- **PIECE A**: `DecidableObject (1+1)` — the diagonal `Δ_{1+1}` is complemented, with complement
+    the antidiagonal `adiag`.  DISJOINTNESS: a common lower bound's witness `r : · → 1+1` is fixed
+    by the swap (`r ≫ case inr inl = r`, since `Δ` forces both coords equal and `Δᶜ` swaps them), so
+    its domain is initial (`swap_fixed_le_bottom`).  ENTIRE: the distributivity iso
+    `distOPO (1+1) : (1+1)+(1+1) ≅ (1+1)²` is a cover that factors through `Δ ∪ Δᶜ` (its four corners
+    are the four points, two on `Δ`, two on `Δᶜ`), so its image — entire — is `≤ Δ ∪ Δᶜ`. -/
+theorem one_one_decidable : DecidableObject (HasBinaryCoproducts.coprod (one : 𝒞) one) := by
+  classical
+  refine ⟨adiagSub, ?_, ?_⟩
+  · -- DISJOINTNESS (universal form): any S ≤ Δ and S ≤ adiag has S ≤ ⊥.
+    intro S hSd hSa
+    obtain ⟨r, hr⟩ := hSa     -- r ≫ adiag = S.arr
+    obtain ⟨d, hd⟩ := hSd     -- d ≫ Δ = S.arr  (so the two coords of S.arr agree)
+    simp only [adiagSub] at hr
+    have hd' : d ≫ diag (coprod (one : 𝒞) one) = S.arr := hd
+    have hdiageq : S.arr ≫ fst = S.arr ≫ snd := by
+      rw [← hd', Cat.assoc, Cat.assoc, diag_fst, diag_snd]
+    have hrfst : r = S.arr ≫ fst := by
+      rw [← hr, Cat.assoc, adiag_fst, case_inl_inr_id, Cat.comp_id]
+    have hrswap : r ≫ case inr inl = S.arr ≫ snd := by rw [← hr, Cat.assoc, adiag_snd]
+    have hfix : r ≫ case inr inl = r := by rw [hrswap, ← hdiageq, ← hrfst]
+    obtain ⟨k, _⟩ := swap_fixed_le_bottom r hfix
+    exact le_bottom_of_map_to_bottom S k
+  · -- ENTIRE: entire ≤ Δ ∪ adiag, via the cover `distOPO (1+1)` factoring through the union.
+    show (Subobject.entire _).le (HasSubobjectUnions.union (diagSub11 (𝒞 := 𝒞)) adiagSub)
+    let B := coprod (one : 𝒞) one
+    let U := HasSubobjectUnions.union (diagSub11 (𝒞 := 𝒞)) adiagSub
+    -- the four corners land in Δ or adiag, hence in U.
+    obtain ⟨lΔ, hlΔ⟩ := HasSubobjectUnions.union_left (diagSub11 (𝒞 := 𝒞)) adiagSub
+    obtain ⟨lA, hlA⟩ := HasSubobjectUnions.union_right (diagSub11 (𝒞 := 𝒞)) adiagSub
+    -- corner lifts cLL,cRR ↦ via lΔ;  cLR,cRL ↦ via lA.
+    let wLL : (one : 𝒞) ⟶ U.dom := inl ≫ lΔ      -- pair inl inl
+    let wRR : (one : 𝒞) ⟶ U.dom := inr ≫ lΔ      -- pair inr inr
+    let wLR : (one : 𝒞) ⟶ U.dom := inl ≫ lA      -- pair inl inr
+    let wRL : (one : 𝒞) ⟶ U.dom := inr ≫ lA      -- pair inr inl
+    have ecLL : wLL ≫ U.arr = pair inl inl := by rw [Cat.assoc, hlΔ]; exact inl_diag11
+    have ecRR : wRR ≫ U.arr = pair inr inr := by rw [Cat.assoc, hlΔ]; exact inr_diag11
+    have ecLR : wLR ≫ U.arr = pair inl inr := by rw [Cat.assoc, hlA]; exact inl_adiag
+    have ecRL : wRL ≫ U.arr = pair inr inl := by rw [Cat.assoc, hlA]; exact inr_adiag
+    -- assemble w : (1+1)+(1+1) → U.dom with w ≫ U.arr = distOPO B.
+    let w : coprod B B ⟶ U.dom := case (case wLL wLR) (case wRL wRR)
+    -- the two summand legs of `w ≫ U.arr` equal those of `distOPO B`.
+    have hL : inl ≫ (w ≫ U.arr) = inl ≫ distOPO B := by
+      rw [← Cat.assoc]
+      show (inl ≫ case (case wLL wLR) (case wRL wRR)) ≫ U.arr = inl ≫ distOPO B
+      rw [case_inl, inl_distOPO]
+      refine case_uniq _ _ _ ?_ ?_
+      · rw [← Cat.assoc, case_inl]; exact ecLL
+      · rw [← Cat.assoc, case_inr]; exact ecLR
+    have hR : inr ≫ (w ≫ U.arr) = inr ≫ distOPO B := by
+      rw [← Cat.assoc]
+      show (inr ≫ case (case wLL wLR) (case wRL wRR)) ≫ U.arr = inr ≫ distOPO B
+      rw [case_inr, inr_distOPO]
+      refine case_uniq _ _ _ ?_ ?_
+      · rw [← Cat.assoc, case_inl]; exact ecRL
+      · rw [← Cat.assoc, case_inr]; exact ecRR
+    have hw : w ≫ U.arr = distOPO B := by
+      rw [case_uniq (inl ≫ (w ≫ U.arr)) (inr ≫ (w ≫ U.arr)) (w ≫ U.arr) rfl rfl, hL, hR,
+        ← case_uniq (inl ≫ distOPO B) (inr ≫ distOPO B) (distOPO B) rfl rfl]
+    -- distOPO is a cover ⟹ its image is entire and ≤ U.
+    have hcov : Cover (distOPO B) := iso_cover _ (distOPO_iso B)
+    have himg_entire : Subobject.IsEntire (image (distOPO B)) :=
+      (cover_iff_image_entire (distOPO B)).1 hcov
+    have himg_le : (image (distOPO B)).le U := image_min (distOPO B) U ⟨w, hw⟩
+    obtain ⟨inv, _, h2⟩ := himg_entire
+    obtain ⟨t, ht⟩ := himg_le
+    exact ⟨inv ≫ t, by rw [Cat.assoc, ht]; exact h2⟩
+
 end Diaconescu
 
 /-! ## Residual: completing the slice pre-topos tower (toward §1.662 Diaconescu)
