@@ -43,6 +43,51 @@ variable {𝒞 : Type u} [Cat.{v} 𝒞] [LocallySmallTopos 𝒞]
 
 open Classical
 
+/-! ## §1.843 — `WellPoweredSub` from the subobject classifier
+
+  Freyd §1.843: a topos is well-powered.  The cleanest elementary route does NOT need a
+  progenitor or copowers: the subobject classifier gives `Sub(A) ↪ Hom(A, Ω)` directly, since
+  `χ : Sub(A) → Hom(A,Ω)` is injective up to subobject-equality (`subChar S = subChar T ⟹ S ≅ T`
+  via `le_iff_classify` both ways).  `Hom(A,Ω) : Type v`, so it is a `Type v` enumeration.
+
+  This BANKS `wellPoweredSub_of_topos : WellPoweredSub 𝒞` for any `[Topos 𝒞]`, hence the
+  `LocallySmallTopos.wellPowered` datum from bare Tierney data — making every copower lemma here
+  (which assumes `[LocallySmallTopos 𝒞]`) applicable from just `Topos`.  Axioms:
+  `[propext, Classical.choice, Quot.sound]`. -/
+section WellPoweredFromClassifier
+variable (𝒟 : Type u) [Cat.{v} 𝒟] [Topos 𝒟]
+
+/-- A subobject is detected by its characteristic map: equal `χ` forces `≤` in both directions.
+    `S.arr ≫ χ_S = term ≫ true` always (`le_iff_classify` at `S ≤ S`); substituting `χ_S = χ_T`
+    gives `S.arr ≫ χ_T = term ≫ true`, i.e. `S ≤ T`. -/
+theorem le_of_subChar_eq {A : 𝒟} {S T : Subobject 𝒟 A} (h : subChar S = subChar T) :
+    S.le T := by
+  have hSS : S.arr ≫ subChar S = term S.dom ≫ HasSubobjectClassifier.true :=
+    (le_iff_classify S S).mp (Sub.le_refl S)
+  rw [h] at hSS
+  exact (le_iff_classify S T).mpr hSS
+
+/-- **§1.843**: every topos is well-powered.  Index `Sub(A)` by `Hom(A, Ω) : Type v`; enumerate a
+    characteristic map `c` by SOME subobject with `χ = c` (if any), else the entire subobject.
+    `surj S` uses `c := subChar S`, and `le_of_subChar_eq` (both ways) makes the chosen
+    representative `≤`-equal to `S`. -/
+noncomputable def wellPoweredSub_of_topos : WellPoweredSub.{v} 𝒟 where
+  idx A := A ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒟)
+  enum {A} c := if h : ∃ S : Subobject 𝒟 A, subChar S = c then h.choose else Subobject.entire A
+  surj {A} S := by
+    refine ⟨subChar S, ?_, ?_⟩
+    · -- S ≤ enum (χ_S): the chosen rep S' has χ_S' = χ_S, so S ≤ S' by `le_of_subChar_eq`.
+      have hex : ∃ S' : Subobject 𝒟 A, subChar S' = subChar S := ⟨S, rfl⟩
+      show S.le (if h : ∃ S' : Subobject 𝒟 A, subChar S' = subChar S then h.choose else _)
+      rw [dif_pos hex]
+      exact le_of_subChar_eq 𝒟 hex.choose_spec.symm
+    · have hex : ∃ S' : Subobject 𝒟 A, subChar S' = subChar S := ⟨S, rfl⟩
+      show (if h : ∃ S' : Subobject 𝒟 A, subChar S' = subChar S then h.choose else _).le S
+      rw [dif_pos hex]
+      exact le_of_subChar_eq 𝒟 hex.choose_spec
+
+end WellPoweredFromClassifier
+
 section CopowerBuild
 
 variable (hpow : HasArbitraryPowers (𝒞 := 𝒞)) (I : Type v)
@@ -581,6 +626,75 @@ noncomputable def toposCopowerOfOne (hpow : HasArbitraryPowers (𝒞 := 𝒞)) (
 
 end CopowerBuild
 
+/-! ## §1.968 — `Cocomplete` from general coproducts + coequalizers
+
+  The colimit-dual of `eq_prod_complete` (S1_82:291).  Every small colimit is the COEQUALIZER of
+  two maps between coproducts: `colim D = coeq( ∐_{arrows a} D(src a) ⇉ ∐_{objects i} D i )`, where
+  the two maps send the `a`-injection to `D(arr a) ≫ inj(tgt a)` and `inj(src a)` respectively.
+  Reuses the EXISTING general-family `Coproduct`/`HasAllCoproducts` (S1_84) and `HasCoequalizer`
+  (S1_58).  Banked as `cocomplete_of_coproducts_coequalizers` — reusable infra (S1_97's ∐ₙAⁿ).
+  Axioms: `[propext, Classical.choice, Quot.sound]` (inherited from its inputs only). -/
+section CocompleteFromCoprodCoeq
+variable {ℬ : Type u} [Cat.{v} ℬ]
+
+/-- **§1.968**: general coproducts + coequalizers ⟹ cocomplete (dual of `eq_prod_complete`). -/
+noncomputable def cocomplete_of_coproducts_coequalizers
+    (hcp : HasAllCoproducts ℬ) (hce : HasCoequalizers ℬ) : Cocomplete ℬ where
+  hasColimit {𝒟} _ D hD := by
+    classical
+    -- Σ of arrows in 𝒟; coproduct of sources over arrows, and of objects.
+    let Arr := Σ (i : 𝒟) (j : 𝒟), (i ⟶ j)
+    let srcOf : Arr → 𝒟 := fun a => a.fst
+    let tgtOf : Arr → 𝒟 := fun a => a.snd.fst
+    let arrOf : (a : Arr) → srcOf a ⟶ tgtOf a := fun a => a.snd.snd
+    let P := hcp.coprod D                                  -- ∐_objects D
+    let Q := hcp.coprod (fun a : Arr => D (srcOf a))       -- ∐_arrows D(src)
+    -- mapF's a-leg = D(arr a) ≫ inj(tgt a); mapG's = inj(src a).
+    let mapF : Q.obj ⟶ P.obj := Q.desc (fun a => hD.map (arrOf a) ≫ P.inj (tgtOf a))
+    let mapG : Q.obj ⟶ P.obj := Q.desc (fun a => P.inj (srcOf a))
+    let ce := hce.coeq mapF mapG
+    let ιi : (i : 𝒟) → D i ⟶ ce.obj := fun i => P.inj i ≫ ce.map
+    -- Cocone naturality: D(x) ≫ ιj = ιi.  From `inj(src⟨i,j,x⟩) ≫ map = D(x) ≫ inj(tgt) ≫ map`
+    -- (the a=⟨i,j,x⟩ component of `mapG ≫ ce.map = mapF ≫ ce.map`).
+    have nat_pf : ∀ {i j : 𝒟} (x : i ⟶ j), hD.map x ≫ ιi j = ιi i := by
+      intro i j x
+      let a : Arr := ⟨i, j, x⟩
+      have hFG : mapF ≫ ce.map = mapG ≫ ce.map := by
+        rw [ce.eq]
+      -- a-leg of both sides of hFG.
+      have hstep := congrArg (fun t => Q.inj a ≫ t) hFG
+      simp only [mapF, mapG] at hstep
+      rw [← Cat.assoc, ← Cat.assoc, Q.fac, Q.fac] at hstep
+      -- hstep : (D(arr a) ≫ inj(tgt a)) ≫ map = inj(src a) ≫ map
+      show hD.map x ≫ P.inj j ≫ ce.map = P.inj i ≫ ce.map
+      calc hD.map x ≫ P.inj j ≫ ce.map
+          = (hD.map (arrOf a) ≫ P.inj (tgtOf a)) ≫ ce.map := by rw [Cat.assoc]
+        _ = P.inj (srcOf a) ≫ ce.map := hstep
+        _ = P.inj i ≫ ce.map := rfl
+    -- Given a cocone c, `P.desc c.ι` coequalizes mapF and mapG.
+    have desc_eq : ∀ (c : DiagCocone D), mapF ≫ P.desc c.ι = mapG ≫ P.desc c.ι := by
+      intro c
+      have hF : mapF ≫ P.desc c.ι = Q.desc (fun a => hD.map (arrOf a) ≫ c.ι (tgtOf a)) := by
+        apply Q.uniq; intro a
+        rw [← Cat.assoc, Q.fac, Cat.assoc, P.fac]
+      have hG : mapG ≫ P.desc c.ι = Q.desc (fun a => c.ι (srcOf a)) := by
+        apply Q.uniq; intro a
+        rw [← Cat.assoc, Q.fac, P.fac]
+      rw [hF, hG]; congr 1; funext a; exact c.nat (arrOf a)
+    exact
+      { cocone := { nadir := ce.obj, ι := ιi, nat := nat_pf }
+        lift := fun c => ce.desc (P.desc c.ι) (desc_eq c)
+        fac := fun c i => by
+          show (P.inj i ≫ ce.map) ≫ ce.desc (P.desc c.ι) (desc_eq c) = c.ι i
+          rw [Cat.assoc, ce.fac, P.fac]
+        uniq := fun c u hu => by
+          apply ce.uniq
+          apply P.uniq
+          intro i
+          rw [← Cat.assoc]; exact hu i }
+
+end CocompleteFromCoprodCoeq
+
 /-! ## §1.967 powers ↔ copowers, §1.968 complete ↔ cocomplete, §1.969 Lawvere = Tierney
 
   Relocated here from `Fredy/S1_95.lean` (which this file imports): the powers↔copowers
@@ -673,9 +787,13 @@ class TierneyGrothendieckTopos (𝒞 : Type u) [Cat.{v} 𝒞] extends Topos 𝒞
   /-- A progenitor exists. -/
   progenitor : 𝒞
   is_progenitor : IsProgenitor progenitor
-  /-- Arbitrary copowers of 1 exist. -/
-  copow_one : (I : Type v) → ∃ (cI : 𝒞) (inj : I → one ⟶ cI),
-    ∀ {X : 𝒞} (f : I → one ⟶ X), ∃ (h : cI ⟶ X), (∀ i, inj i ≫ h = f i)
+  /-- Arbitrary copowers of 1 exist.  FIDELITY (§1.969): a copower IS a colimit and carries the
+      FULL universal property — existence AND uniqueness of the cotupling.  The earlier bare
+      `∃ h, ∀ i, inj i ≫ h = f i` dropped uniqueness, under-specifying "copower"; a genuine
+      `CopowerOfOne I 𝒞` (with `cotup_uniq`, i.e. the injections jointly epic) is what
+      "arbitrary copowers of 1" means and what `powersOfCopowersOfOne` (hence the cogenerator
+      route) consumes. -/
+  copow_one : (I : Type v) → CopowerOfOne I 𝒞
 
 /-- **§1.969**: The Lawvere and Tierney definitions yield the same notion.
 
