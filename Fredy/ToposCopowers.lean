@@ -395,6 +395,44 @@ theorem copowInj_disjoint_maps_agree {i j : I} (hij : i ≠ j) {Z : 𝒞}
     _ = (z ≫ zinv) ≫ v := (Cat.assoc _ _ _).symm
     _ = v := by rw [hzz, Cat.id_comp]
 
+/-- **Generic collapse.**  An object `P` whose terminal map collapses the distinct copower
+    injections (`term P ≫ inj i = term P ≫ inj j`, `i ≠ j`) is zero-like: any two maps out of `P`
+    agree.  The apex-of-pullback case (`copowInj_disjoint_maps_agree`) is the instance
+    `P = pullback(inj i, inj j).pt`.  Used to transport copower disjointness to ambient products in
+    the general-coproduct carving. -/
+theorem copowInj_collapse_maps_agree {i j : I} (hij : i ≠ j) {P : 𝒞}
+    (hcol : term P ≫ copowInj hpow I i = term P ≫ copowInj hpow I j) {Z : 𝒞}
+    (u v : P ⟶ Z) : u = v := by
+  -- project the collapse to coordinate i: term P ≫ inr = term P ≫ inl in `1+1`.
+  have hcand : term P ≫ copowCand hpow I i = term P ≫ copowCand hpow I j := by
+    rw [← copowInj_arr hpow I i, ← copowInj_arr hpow I j, ← Cat.assoc, ← Cat.assoc, hcol]
+  have hproj : (term P ≫ term (one : 𝒞)) ≫ coprodInr (one : 𝒞) (one : 𝒞)
+      = (term P ≫ term (one : 𝒞)) ≫ coprodInl (one : 𝒞) (one : 𝒞) := by
+    have h := congrArg (· ≫ hpow.proj i) hcand
+    simp only at h
+    rw [Cat.assoc, Cat.assoc, copowCand, copowCand, hpow.tupling_proj, hpow.tupling_proj] at h
+    simp only [if_neg hij] at h
+    rw [← Cat.assoc, ← Cat.assoc] at h
+    exact h
+  have hcollapse : term P ≫ coprodInr (one : 𝒞) (one : 𝒞)
+      = term P ≫ coprodInl (one : 𝒞) (one : 𝒞) := by
+    rw [show (term P ≫ term (one : 𝒞) : P ⟶ (one : 𝒞)) = term P from term_uniq _ _] at hproj
+    exact hproj
+  let pbC := HasPullbacks.has (coprodInl (one : 𝒞) (one : 𝒞)) (coprodInr (one : 𝒞) (one : 𝒞))
+  let c : Cone (coprodInl (one : 𝒞) (one : 𝒞)) (coprodInr (one : 𝒞) (one : 𝒞)) :=
+    ⟨P, term P, term P, hcollapse.symm⟩
+  let δ : P ⟶ pbC.cone.pt := pbC.lift c
+  obtain ⟨e, _⟩ := coprodInjections_disjoint (one : 𝒞) (one : 𝒞)
+  obtain ⟨θ, _⟩ := bottomSub_dom_iso (coprodObj (one : 𝒞) (one : 𝒞)) (one : 𝒞)
+  let z : P ⟶ (bottomSub (one : 𝒞)).dom := δ ≫ e ≫ θ
+  obtain ⟨zinv, hzz, _⟩ := any_map_to_zero_is_iso (inferInstance : PreLogos 𝒞) z
+  let ct := minimal_subobject_of_one_is_coterminator (inferInstance : PreLogos 𝒞)
+  calc u = (z ≫ zinv) ≫ u := by rw [hzz, Cat.id_comp]
+    _ = z ≫ (zinv ≫ u) := Cat.assoc _ _ _
+    _ = z ≫ (zinv ≫ v) := by rw [ct.init_uniq (zinv ≫ u) (zinv ≫ v)]
+    _ = (z ≫ zinv) ≫ v := (Cat.assoc _ _ _).symm
+    _ = v := by rw [hzz, Cat.id_comp]
+
 /-! ### STEP 4 — the map-OUT (cotupling) via the infinitary disjoint gluing
 
   `cotup f : obj → X` is built as the unique map whose GRAPH is the join of the `I` partial
@@ -626,6 +664,343 @@ noncomputable def toposCopowerOfOne (hpow : HasArbitraryPowers (𝒞 := 𝒞)) (
 
 end CopowerBuild
 
+/-! ## §1.968 — general-family coproducts by carving inside an ambient
+
+  The GENERIC effective-disjoint-union carving.  Given a family `A : I → 𝒞`, an ambient object
+  `B`, and monic candidate embeddings `cand i : A i ↣ B` whose distinct images are DISJOINT (any
+  two maps out of the `(cand i, cand j)` pullback agree, `i ≠ j`), the coproduct `∐ᵢAᵢ` is carved
+  as the subobject `obj := ⋁ᵢ image(cand i) ⊆ B` (the `extJoin`), with injections, cotupling and
+  its uniqueness all built sorry-free — the same TOTAL+SIMPLE union-of-partial-graphs gluing as the
+  copower-of-1 build (`CopowerBuild`), but with `A i`/`B` in place of `1`/`∏ᵢ(1+1)` and the abstract
+  disjointness hypothesis in place of `1+1` separation.  The copower-of-1 build IS the special case
+  `A i = 1`, `B = ∏ᵢ(1+1)`, `cand = copowCand`. -/
+section GenCoprodBuild
+
+variable (hpow : HasArbitraryPowers (𝒞 := 𝒞)) {I : Type v} {A : I → 𝒞} {B : 𝒞}
+  (cand : ∀ i, A i ⟶ B) (hcandMono : ∀ i, Mono (cand i))
+
+/-- The `i`-th candidate image `imᵢ ⊆ B`. -/
+noncomputable def gcoImg (i : I) : Subobject 𝒞 B := image (cand i)
+
+/-- "is one of the candidate images `imᵢ`". -/
+def gcoImgPred (S : Subobject 𝒞 B) : Prop := ∃ i, S = gcoImg cand i
+
+/-- The coproduct object `obj := ⋁ᵢ imᵢ ⊆ B`. -/
+noncomputable def gcoSub : Subobject 𝒞 B :=
+  extJoin hpow LocallySmallTopos.wellPowered (gcoImgPred cand)
+
+noncomputable def gcoObj : 𝒞 := (gcoSub hpow cand).dom
+
+theorem gcoImg_le (i : I) : (gcoImg cand i).le (gcoSub hpow cand) :=
+  extJoin_upper hpow LocallySmallTopos.wellPowered _ _ ⟨i, rfl⟩
+
+/-- The `i`-th injection `A i ⟶ obj`. -/
+noncomputable def gcoInj (i : I) : A i ⟶ gcoObj hpow cand :=
+  image.lift (cand i) ≫ (gcoImg_le hpow cand i).choose
+
+theorem gcoInj_arr (i : I) : gcoInj hpow cand i ≫ (gcoSub hpow cand).arr = cand i := by
+  unfold gcoInj
+  rw [Cat.assoc, (gcoImg_le hpow cand i).choose_spec]
+  exact image.lift_fac (cand i)
+
+include hcandMono in
+/-- Each injection is monic: `inj i ≫ obj.arr = cand i` is monic, so `inj i` is. -/
+theorem gcoInj_monic (i : I) : Mono (gcoInj hpow cand i) := by
+  intro W u v huv
+  refine (hcandMono i) u v ?_
+  rw [← gcoInj_arr hpow cand i, ← Cat.assoc, ← Cat.assoc, huv]
+
+/-- **`cotup_uniq` (jointly-epic injections).**  Mirrors `copowerImages_jointly_epi`. -/
+theorem gcoImages_jointly_epi {X : 𝒞} (h k : gcoObj hpow cand ⟶ X)
+    (hagree : ∀ i, gcoInj hpow cand i ≫ h = gcoInj hpow cand i ≫ k) : h = k := by
+  have heM : Mono (eqMap h k) := by
+    intro W u v huv
+    have hc : (u ≫ eqMap h k) ≫ h = (u ≫ eqMap h k) ≫ k := by
+      rw [Cat.assoc, Cat.assoc, eqMap_eq]
+    rw [eqLift_uniq h k _ hc u rfl, eqLift_uniq h k _ hc v huv.symm]
+  have hEPm : Mono (eqMap h k ≫ (gcoSub hpow cand).arr) := by
+    intro W u v huv
+    refine heM u v ((gcoSub hpow cand).monic _ _ ?_)
+    rw [Cat.assoc, Cat.assoc, huv]
+  let EP : Subobject 𝒞 B := ⟨eqObj h k, eqMap h k ≫ (gcoSub hpow cand).arr, hEPm⟩
+  have himg_le : ∀ i, (gcoImg cand i).le EP := by
+    intro i
+    let li : A i ⟶ eqObj h k := eqLift h k (gcoInj hpow cand i) (hagree i)
+    have hli : li ≫ eqMap h k = gcoInj hpow cand i := eqLift_fac h k _ (hagree i)
+    refine image_min (cand i) EP ⟨li, ?_⟩
+    show li ≫ (eqMap h k ≫ (gcoSub hpow cand).arr) = cand i
+    rw [← Cat.assoc, hli, gcoInj_arr]
+  have hobj_le : (gcoSub hpow cand).le EP :=
+    extJoin_least hpow LocallySmallTopos.wellPowered _ EP
+      (fun s ⟨i, hsi⟩ => hsi ▸ himg_le i)
+  obtain ⟨w, hw⟩ := hobj_le
+  have hwe : w ≫ eqMap h k = Cat.id (gcoObj hpow cand) := by
+    apply (gcoSub hpow cand).monic
+    rw [Cat.assoc]
+    show w ≫ (eqMap h k ≫ (gcoSub hpow cand).arr) = Cat.id (gcoObj hpow cand) ≫ (gcoSub hpow cand).arr
+    rw [Cat.id_comp]; exact hw
+  have heq_hk : eqMap h k ≫ h = eqMap h k ≫ k := eqMap_eq h k
+  calc h = (w ≫ eqMap h k) ≫ h := by rw [hwe]; exact (Cat.id_comp h).symm
+    _ = w ≫ (eqMap h k ≫ h) := Cat.assoc _ _ _
+    _ = w ≫ (eqMap h k ≫ k) := by rw [heq_hk]
+    _ = (w ≫ eqMap h k) ≫ k := (Cat.assoc _ _ _).symm
+    _ = k := by rw [hwe]; exact Cat.id_comp k
+
+/-- **TOTALITY criterion** — a monic `m : C ↣ obj` through which every `inj i` factors is iso.
+    Mirrors `copowInj_jointly_cover`. -/
+theorem gcoInj_jointly_cover {C : 𝒞} (m : C ⟶ gcoObj hpow cand) (hm : Mono m)
+    (s : ∀ i, A i ⟶ C) (hs : ∀ i, s i ≫ m = gcoInj hpow cand i) : IsIso m := by
+  have hMPm : Mono (m ≫ (gcoSub hpow cand).arr) := by
+    intro W u v huv
+    refine hm u v ((gcoSub hpow cand).monic _ _ ?_)
+    rw [Cat.assoc, Cat.assoc, huv]
+  let MP : Subobject 𝒞 B := ⟨C, m ≫ (gcoSub hpow cand).arr, hMPm⟩
+  have himg_le : ∀ i, (gcoImg cand i).le MP := by
+    intro i
+    refine image_min (cand i) MP ⟨s i, ?_⟩
+    show s i ≫ (m ≫ (gcoSub hpow cand).arr) = cand i
+    rw [← Cat.assoc, hs i, gcoInj_arr]
+  have hobj_le : (gcoSub hpow cand).le MP :=
+    extJoin_least hpow LocallySmallTopos.wellPowered _ MP
+      (fun t ⟨i, hti⟩ => hti ▸ himg_le i)
+  obtain ⟨w, hw⟩ := hobj_le
+  have hwm : w ≫ m = Cat.id (gcoObj hpow cand) := by
+    apply (gcoSub hpow cand).monic
+    rw [Cat.assoc]
+    show w ≫ (m ≫ (gcoSub hpow cand).arr) = Cat.id (gcoObj hpow cand) ≫ (gcoSub hpow cand).arr
+    rw [Cat.id_comp]; exact hw
+  have hmw : m ≫ w = Cat.id C :=
+    hm _ _ (by rw [Cat.assoc, hwm, Cat.comp_id, Cat.id_comp])
+  exact ⟨w, hmw, hwm⟩
+
+/-! ### map-OUT (cotupling) via the infinitary disjoint gluing — generic.
+
+  Reuses the GENERIC relational engine of `CopowerBuild` (`compose_extJoin_right`,
+  `existsAlong_extJoin_le`, `binRelSub`) which are family-agnostic.  The partial graphs are
+  `P_i := (graph (inj i))° ⊚ graph (f i)` with `f i : A i ⟶ X`; the per-pair bound
+  `P_i° ⊚ P_j ≤ 1` is `diag_le_one` (diagonal, `inj i` monic) / `cross_le_one` (off-diagonal, the
+  abstract disjointness `hcandDisj`). -/
+
+variable (hcandDisj : ∀ i j, i ≠ j →
+  ∀ {Z : 𝒞} (u v : (HasPullbacks.has (cand i) (cand j)).cone.pt ⟶ Z), u = v)
+
+/-- The `i`-th partial-graph relation `obj ⇸ X`. -/
+noncomputable def gcoPartial {X : 𝒞} (f : ∀ i, A i ⟶ X) (i : I) :
+    BinRel 𝒞 (gcoObj hpow cand) X :=
+  (graph (gcoInj hpow cand i))° ⊚ graph (f i)
+
+/-- **The canonical sub-relation point** of `P_i`: a map `A i → P_i.src` whose span value is
+    `pair (inj i) (f i)`, i.e. `P_i` "contains" the graph of `(inj i, f i)`. -/
+theorem gcoPartial_point {X : 𝒞} (f : ∀ i, A i ⟶ X) (i : I) :
+    ∃ q : A i ⟶ (gcoPartial hpow cand f i).src,
+      q ≫ (gcoPartial hpow cand f i).colA = gcoInj hpow cand i ∧
+      q ≫ (gcoPartial hpow cand f i).colB = f i := by
+  let xr : BinRel 𝒞 (gcoObj hpow cand) (A i) := (graph (gcoInj hpow cand i))°
+  let yr : BinRel 𝒞 (A i) X := graph (f i)
+  let pb := HasPullbacks.has xr.colB yr.colA
+  have hcw : (Cat.id (A i)) ≫ xr.colB = (Cat.id (A i)) ≫ yr.colA := by
+    show (Cat.id (A i)) ≫ Cat.id (A i) = (Cat.id (A i)) ≫ Cat.id (A i); rfl
+  let c : Cone xr.colB yr.colA := ⟨A i, Cat.id (A i), Cat.id (A i), hcw⟩
+  let u : A i ⟶ pb.cone.pt := pb.lift c
+  have hu₁ : u ≫ pb.cone.π₁ = Cat.id (A i) := pb.lift_fst c
+  have hu₂ : u ≫ pb.cone.π₂ = Cat.id (A i) := pb.lift_snd c
+  let span : pb.cone.pt ⟶ prod (gcoObj hpow cand) X :=
+    pair (pb.cone.π₁ ≫ xr.colA) (pb.cone.π₂ ≫ yr.colB)
+  refine ⟨u ≫ image.lift span, ?_, ?_⟩
+  · show (u ≫ image.lift span) ≫ ((image span).arr ≫ fst) = gcoInj hpow cand i
+    have hfac : (u ≫ image.lift span) ≫ ((image span).arr ≫ fst) = u ≫ (span ≫ fst) := by
+      rw [← Cat.assoc, Cat.assoc u, image.lift_fac, Cat.assoc]
+    rw [hfac, show span ≫ fst = pb.cone.π₁ ≫ xr.colA from fst_pair _ _, ← Cat.assoc, hu₁,
+      Cat.id_comp]
+    rfl
+  · show (u ≫ image.lift span) ≫ ((image span).arr ≫ snd) = f i
+    have hfac : (u ≫ image.lift span) ≫ ((image span).arr ≫ snd) = u ≫ (span ≫ snd) := by
+      rw [← Cat.assoc, Cat.assoc u, image.lift_fac, Cat.assoc]
+    rw [hfac, show span ≫ snd = pb.cone.π₂ ≫ yr.colB from snd_pair _ _, ← Cat.assoc, hu₂,
+      Cat.id_comp]
+    rfl
+
+include hcandMono hcandDisj in
+/-- **Per-pair atomic bound.**  `P_i° ⊚ P_j ≤ graph (id X)`.  Diagonal `diag_le_one` (inj i monic),
+    off-diagonal `cross_le_one` with the cocone equation from `hcandDisj`. -/
+theorem gcoPartial_pair_le {X : 𝒞} (f : ∀ i, A i ⟶ X) (i j : I) :
+    RelLe ((gcoPartial hpow cand f i)° ⊚ (gcoPartial hpow cand f j)) (graph (Cat.id X)) := by
+  by_cases hij : i = j
+  · subst hij
+    exact diag_le_one (gcoInj hpow cand i) (f i) (gcoInj_monic hpow cand hcandMono i)
+  · -- the disjointness cocone `π₁ ≫ f i = π₂ ≫ f j` comes from `hcandDisj` on the `(cand i,cand j)`
+    -- pullback; transport it to the `(inj i, inj j)` pullback via `obj.arr`.
+    let pbI := HasPullbacks.has (gcoInj hpow cand i) (gcoInj hpow cand j)
+    have hinter : RelLe (graph (gcoInj hpow cand i) ⊚ (graph (gcoInj hpow cand j))°)
+        ((graph pbI.cone.π₁)° ⊚ graph pbI.cone.π₂) :=
+      inter_lemma (gcoInj hpow cand i) (gcoInj hpow cand j) (Cat.id (gcoObj hpow cand))
+        (gcoInj hpow cand i) (gcoInj hpow cand j) (Cat.comp_id _) (Cat.comp_id _)
+    -- the `(inj i, inj j)` pullback cone is a cone of `(cand i, cand j)` (post-compose obj.arr),
+    -- so `hcandDisj` collapses any two maps out of `pbI.cone.pt`.
+    have hagreeI : ∀ {Z : 𝒞} (u v : pbI.cone.pt ⟶ Z), u = v := by
+      intro Z u v
+      -- The `(inj i,inj j)` and `(cand i,cand j)` pullbacks coincide because `obj.arr` is monic:
+      -- `inj i a = inj j a' ⟺ cand i a = cand j a'`.  Build maps both ways.
+      let pbC := HasPullbacks.has (cand i) (cand j)
+      -- δ : pbI.pt → pbC.pt  (the `(inj i,inj j)` cone is a `(cand i,cand j)` cone, post obj.arr).
+      have hconeC : pbI.cone.π₁ ≫ cand i = pbI.cone.π₂ ≫ cand j := by
+        rw [← gcoInj_arr hpow cand i, ← gcoInj_arr hpow cand j, ← Cat.assoc, ← Cat.assoc, pbI.cone.w]
+      let cC : Cone (cand i) (cand j) := ⟨pbI.cone.pt, pbI.cone.π₁, pbI.cone.π₂, hconeC⟩
+      let δ : pbI.cone.pt ⟶ pbC.cone.pt := pbC.lift cC
+      -- ε : pbC.pt → pbI.pt  (the `(cand i,cand j)` cone is a `(inj i,inj j)` cone, cancel monic arr).
+      have hconeI : pbC.cone.π₁ ≫ gcoInj hpow cand i = pbC.cone.π₂ ≫ gcoInj hpow cand j := by
+        apply (gcoSub hpow cand).monic
+        rw [Cat.assoc, Cat.assoc, gcoInj_arr, gcoInj_arr]; exact pbC.cone.w
+      let cI : Cone (gcoInj hpow cand i) (gcoInj hpow cand j) :=
+        ⟨pbC.cone.pt, pbC.cone.π₁, pbC.cone.π₂, hconeI⟩
+      let ε : pbC.cone.pt ⟶ pbI.cone.pt := pbI.lift cI
+      -- δ ≫ ε = id pbI.pt: both agree with `id` on the (inj i,inj j) projections.
+      have hε₁ : ε ≫ pbI.cone.π₁ = pbC.cone.π₁ := pbI.lift_fst cI
+      have hε₂ : ε ≫ pbI.cone.π₂ = pbC.cone.π₂ := pbI.lift_snd cI
+      have hδ₁ : δ ≫ pbC.cone.π₁ = pbI.cone.π₁ := pbC.lift_fst cC
+      have hδ₂ : δ ≫ pbC.cone.π₂ = pbI.cone.π₂ := pbC.lift_snd cC
+      have hδε : δ ≫ ε = Cat.id pbI.cone.pt := by
+        refine (pbI.lift_uniq ⟨pbI.cone.pt, pbI.cone.π₁, pbI.cone.π₂, pbI.cone.w⟩ (δ ≫ ε) ?_ ?_).trans
+          (pbI.lift_uniq ⟨pbI.cone.pt, pbI.cone.π₁, pbI.cone.π₂, pbI.cone.w⟩
+            (Cat.id pbI.cone.pt) (Cat.id_comp _) (Cat.id_comp _)).symm
+        · rw [Cat.assoc, hε₁, hδ₁]
+        · rw [Cat.assoc, hε₂, hδ₂]
+      -- u = (δ≫ε)≫u = δ≫(ε≫u) = δ≫(ε≫v) = v, using hcandDisj on (ε≫u), (ε≫v) out of pbC.pt.
+      calc u = (δ ≫ ε) ≫ u := by rw [hδε, Cat.id_comp]
+        _ = δ ≫ (ε ≫ u) := Cat.assoc _ _ _
+        _ = δ ≫ (ε ≫ v) := by rw [hcandDisj i j hij (ε ≫ u) (ε ≫ v)]
+        _ = (δ ≫ ε) ≫ v := (Cat.assoc _ _ _).symm
+        _ = v := by rw [hδε, Cat.id_comp]
+    have hw : pbI.cone.π₁ ≫ f i = pbI.cone.π₂ ≫ f j := hagreeI _ _
+    have hxyg : RelLe ((graph (gcoInj hpow cand i) ⊚ (graph (gcoInj hpow cand j))°) ⊚ graph (f j))
+        (graph (f i)) :=
+      hxyg_lemma (f i) (f j) pbI.cone.π₁ pbI.cone.π₂
+        (graph (gcoInj hpow cand i) ⊚ (graph (gcoInj hpow cand j))°) hinter hw
+    exact cross_le_one (gcoInj hpow cand i) (gcoInj hpow cand j) (f i) (f j) hxyg
+
+include hcandMono hcandDisj in
+/-- **FUNCTIONALITY (simplicity).**  Mirrors `copowUnion_simple`. -/
+theorem gcoUnion_simple {X : 𝒞} (f : ∀ i, A i ⟶ X) :
+    Simple (binRelSub (extJoin hpow LocallySmallTopos.wellPowered
+      (fun U => ∃ i, U = relSub (gcoPartial hpow cand f i)))) := by
+  let wp := LocallySmallTopos.wellPowered (𝒞 := 𝒞)
+  let S : Subobject 𝒞 (prod (gcoObj hpow cand) X) → Prop :=
+    fun U => ∃ i, U = relSub (gcoPartial hpow cand f i)
+  let G : BinRel 𝒞 (gcoObj hpow cand) X := binRelSub (extJoin hpow wp S)
+  have key : ∀ (T : BinRel 𝒞 X (gcoObj hpow cand)),
+      (∀ i, RelLe (T ⊚ binRelSub (relSub (gcoPartial hpow cand f i)))
+        (graph (Cat.id X))) →
+      RelLe (T ⊚ G) (graph (Cat.id X)) := by
+    intro T hpieces
+    have hdist := compose_extJoin_right hpow T S
+    have hbound : (extJoin hpow wp
+          (fun U => ∃ W, S W ∧ U = relSub (T ⊚ binRelSub W))).le
+        (relSub (graph (Cat.id X))) := by
+      refine extJoin_least hpow wp _ (relSub (graph (Cat.id X))) (fun U hmem => ?_)
+      obtain ⟨W, ⟨i, hWi⟩, hU⟩ := hmem
+      rw [hU, hWi]
+      exact subLe_of_relLe (hpieces i)
+    exact relLe_of_subLe (subLe_trans hdist hbound)
+  show RelLe (G° ⊚ G) (graph (Cat.id X))
+  refine key (G°) (fun i => ?_)
+  have hrecip : RelLe ((G° ⊚ binRelSub (relSub (gcoPartial hpow cand f i)))°)
+      ((binRelSub (relSub (gcoPartial hpow cand f i)))° ⊚ G) := by
+    have h := (reciprocal_comp (G°) (binRelSub (relSub (gcoPartial hpow cand f i)))).1
+    rwa [reciprocal_invol] at h
+  have hPiG : RelLe ((binRelSub (relSub (gcoPartial hpow cand f i)))° ⊚ G)
+      (graph (Cat.id X)) := by
+    refine key ((binRelSub (relSub (gcoPartial hpow cand f i)))°) (fun j => ?_)
+    refine rel_le_trans (compose_le (reciprocal_mono (binRelSub_relSub_relLe _).1)
+      (binRelSub_relSub_relLe _).1) ?_
+    exact gcoPartial_pair_le hpow cand hcandMono hcandDisj f i j
+  have hco : RelLe ((G° ⊚ binRelSub (relSub (gcoPartial hpow cand f i)))°)
+      (graph (Cat.id X)) := rel_le_trans hrecip hPiG
+  have h2 := reciprocal_mono hco
+  rwa [reciprocal_invol, show (graph (Cat.id X))° = graph (Cat.id X) from rfl] at h2
+
+/-- **TOTALITY.**  Mirrors `copowUnion_total`. -/
+theorem gcoUnion_total {X : 𝒞} (f : ∀ i, A i ⟶ X) :
+    Cover (binRelSub (extJoin hpow LocallySmallTopos.wellPowered
+      (fun U => ∃ i, U = relSub (gcoPartial hpow cand f i)))).colA := by
+  let wp := LocallySmallTopos.wellPowered (𝒞 := 𝒞)
+  let S : Subobject 𝒞 (prod (gcoObj hpow cand) X) → Prop :=
+    fun U => ∃ i, U = relSub (gcoPartial hpow cand f i)
+  let G : BinRel 𝒞 (gcoObj hpow cand) X := binRelSub (extJoin hpow wp S)
+  have hfactor : ∀ i, ∃ s : A i ⟶ G.src, s ≫ G.colA = gcoInj hpow cand i := by
+    intro i
+    obtain ⟨q, hqA, hqB⟩ := gcoPartial_point hpow cand f i
+    have hq : q ≫ (relSub (gcoPartial hpow cand f i)).arr = pair (gcoInj hpow cand i) (f i) := by
+      show q ≫ pair (gcoPartial hpow cand f i).colA (gcoPartial hpow cand f i).colB = _
+      exact pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]; exact hqA)
+        (by rw [Cat.assoc, snd_pair]; exact hqB)
+    obtain ⟨l, hl⟩ := extJoin_upper hpow wp S (relSub (gcoPartial hpow cand f i)) ⟨i, rfl⟩
+    refine ⟨q ≫ l, ?_⟩
+    show (q ≫ l) ≫ ((extJoin hpow wp S).arr ≫ fst) = gcoInj hpow cand i
+    have hpt : (q ≫ l) ≫ (extJoin hpow wp S).arr = pair (gcoInj hpow cand i) (f i) := by
+      rw [Cat.assoc, hl]; exact hq
+    rw [← Cat.assoc, hpt, fst_pair]
+  intro C m gg hm hgm
+  refine gcoInj_jointly_cover hpow cand m hm (fun i => (hfactor i).choose ≫ gg) (fun i => ?_)
+  rw [Cat.assoc, hgm, (hfactor i).choose_spec]
+
+include hcandMono hcandDisj in
+/-- The map-OUT (cotupling) — mirrors `copowCotup_exists`. -/
+theorem gcoCotup_exists {X : 𝒞} (f : ∀ i, A i ⟶ X) :
+    ∃ c : gcoObj hpow cand ⟶ X, ∀ i, gcoInj hpow cand i ≫ c = f i := by
+  let wp := LocallySmallTopos.wellPowered (𝒞 := 𝒞)
+  let S : Subobject 𝒞 (prod (gcoObj hpow cand) X) → Prop :=
+    fun U => ∃ i, U = relSub (gcoPartial hpow cand f i)
+  let G : BinRel 𝒞 (gcoObj hpow cand) X := binRelSub (extJoin hpow wp S)
+  have hsimple : Mono G.colA :=
+    (tabulated_is_simple_iff_left_monic G.colA G.colB G.isMonicPair).1
+      (gcoUnion_simple hpow cand hcandMono hcandDisj f)
+  have htotal : Cover G.colA := gcoUnion_total hpow cand f
+  obtain ⟨c, ⟨⟨h, hhA, hhB⟩, _⟩, _⟩ :=
+    functional_total_relation_is_graph G hsimple htotal
+  have hkey : G.colA ≫ c = G.colB := by
+    have hh : h = G.colA := by
+      have := hhA; dsimp [graph] at this; rwa [Cat.comp_id] at this
+    have := hhB; dsimp [graph] at this; rw [hh] at this; exact this
+  refine ⟨c, fun i => ?_⟩
+  obtain ⟨q, hq⟩ : ∃ q : A i ⟶ G.src,
+      q ≫ (extJoin hpow wp S).arr = pair (gcoInj hpow cand i) (f i) := by
+    obtain ⟨qp, hqA, hqB⟩ := gcoPartial_point hpow cand f i
+    have hqp : qp ≫ pair (gcoPartial hpow cand f i).colA (gcoPartial hpow cand f i).colB
+        = pair (gcoInj hpow cand i) (f i) :=
+      pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]; exact hqA)
+        (by rw [Cat.assoc, snd_pair]; exact hqB)
+    obtain ⟨l, hl⟩ := extJoin_upper hpow wp S (relSub (gcoPartial hpow cand f i)) ⟨i, rfl⟩
+    refine ⟨qp ≫ l, ?_⟩
+    rw [Cat.assoc, hl]
+    show qp ≫ pair (gcoPartial hpow cand f i).colA (gcoPartial hpow cand f i).colB = _
+    exact hqp
+  have hA : q ≫ G.colA = gcoInj hpow cand i := by
+    show q ≫ ((extJoin hpow wp S).arr ≫ fst) = gcoInj hpow cand i
+    rw [← Cat.assoc, hq, fst_pair]
+  have hB : q ≫ G.colB = f i := by
+    show q ≫ ((extJoin hpow wp S).arr ≫ snd) = f i
+    rw [← Cat.assoc, hq, snd_pair]
+  calc gcoInj hpow cand i ≫ c = (q ≫ G.colA) ≫ c := by rw [hA]
+    _ = q ≫ (G.colA ≫ c) := Cat.assoc _ _ _
+    _ = q ≫ G.colB := by rw [hkey]
+    _ = f i := hB
+
+include hcandMono hcandDisj in
+/-- **The general-family coproduct datum** `∐ᵢAᵢ`, carved as `⋁ᵢ image(cand i) ⊆ B` with the
+    map-OUT universal property from the infinitary disjoint gluing.  Sorry-free given monic +
+    pairwise-disjoint candidate embeddings. -/
+noncomputable def gcoCoproduct : Coproduct A :=
+  { obj := gcoObj hpow cand
+    inj := gcoInj hpow cand
+    desc := fun {X} f => (gcoCotup_exists hpow cand hcandMono hcandDisj f).choose
+    fac := fun {X} f i => (gcoCotup_exists hpow cand hcandMono hcandDisj f).choose_spec i
+    uniq := fun {X} f h hh =>
+      gcoImages_jointly_epi hpow cand h
+        (gcoCotup_exists hpow cand hcandMono hcandDisj f).choose
+        (fun i => by rw [hh i, (gcoCotup_exists hpow cand hcandMono hcandDisj f).choose_spec i]) }
+
+end GenCoprodBuild
+
 /-! ## §1.968 — `Cocomplete` from general coproducts + coequalizers
 
   The colimit-dual of `eq_prod_complete` (S1_82:291).  Every small colimit is the COEQUALIZER of
@@ -773,35 +1148,105 @@ theorem topos_powers_copowers_equiv [LocallySmallTopos 𝒞] [HasBinaryCoproduct
          tupling_proj := fun {I A X} => pw.tupling_proj,
          tupling_uniq := fun {I A X} => pw.tupling_uniq }⟩⟩
 
+/-! ## §1.968 — `HasAllCoproducts` by the cogenerator carving
+
+  Given a progenitor `G` (so `C := Ω^G` cogenerates, `progenitor_omega_exp_cogenerates`) and
+  arbitrary powers `hpow` (from copowers-of-1), every family `A : I → 𝒞` has a coproduct.  Ambient
+  `B := C^K × cI.obj` where `K := Σ i, (A i ⟶ C)` (a `Type v` index) and `cI := toposCopowerOfOne`
+  is the copower-of-1 supplying DISJOINT injections.  Embed
+  `cand i := pair (jᵢ) (term ≫ cI.inj i)` where `jᵢ : A i ↣ C^K` is the cogenerator-evaluation
+  tuple (monic by cogeneration) — so `cand i` is monic (its `C^K` leg is) and the images are
+  pairwise disjoint (the `cI`-leg separates by `copowInj_collapse_maps_agree`).  Then `gcoCoproduct`
+  carves `∐ᵢAᵢ = ⋁ᵢ image(cand i) ⊆ B`. -/
+section CogeneratorCarving
+
+variable [LocallySmallTopos 𝒞] (G : 𝒞) (hG : IsProgenitor G)
+
+local notation "Cg" => HasSubobjectClassifier.omega (𝒞 := 𝒞) ^^ G
+
+/-- A default map `A ⟶ Cg` (the cogenerator has a point: `curry (term ≫ true)`), so `Hom(A, Cg)` is
+    always nonempty — needed to fill the off-diagonal coordinates of the evaluation tuple. -/
+noncomputable def cogenDefault (A : 𝒞) : A ⟶ Cg :=
+  curry (term (prod G A) ≫ HasSubobjectClassifier.true)
+
+/-- The cogenerator-evaluation tuple `jᵢ : A i ↣ C^K`, `K := Σ i, (A i ⟶ Cg)`.  Coordinate
+    `⟨i', φ⟩` is `φ` when `i' = i`, else the default.  Monic by cogeneration. -/
+noncomputable def cogenEmbed (hpow : HasArbitraryPowers (𝒞 := 𝒞)) {I : Type v} (A : I → 𝒞)
+    (i : I) : A i ⟶ hpow.pow (Σ i : I, (A i ⟶ Cg)) Cg :=
+  hpow.tupling (fun k : Σ i : I, (A i ⟶ Cg) =>
+    if h : k.1 = i then (h ▸ k.2 : A i ⟶ Cg) else cogenDefault G (A i))
+
+include hG in
+/-- `cogenEmbed` is monic: `u ≫ j = v ≫ j` projects (at coordinate `⟨i, φ⟩`) to `u ≫ φ = v ≫ φ` for
+    every `φ : A i ⟶ Cg`, so `u = v` by cogeneration (separation by `Cg = Ω^G`). -/
+theorem cogenEmbed_monic (hpow : HasArbitraryPowers (𝒞 := 𝒞)) {I : Type v} (A : I → 𝒞) (i : I) :
+    Mono (cogenEmbed G hpow A i) := by
+  intro W u v huv
+  refine Classical.byContradiction (fun hne => ?_)
+  -- cogeneration: u ≠ v ⟹ ∃ φ : A i → Cg with u ≫ φ ≠ v ≫ φ.
+  obtain ⟨φ, hφ⟩ := progenitor_omega_exp_cogenerates G hG u v hne
+  -- project both sides at coordinate ⟨i, φ⟩ — the tuple value there is `φ`.
+  refine hφ ?_
+  have hk : (⟨i, φ⟩ : Σ i : I, (A i ⟶ Cg)).1 = i := rfl
+  have hpr := congrArg (· ≫ hpow.proj (⟨i, φ⟩ : Σ i : I, (A i ⟶ Cg))) huv
+  simp only [cogenEmbed, Cat.assoc, hpow.tupling_proj] at hpr
+  simpa [dif_pos hk] using hpr
+
+include hG in
+/-- **§1.968: general-family coproducts.**  From a progenitor `G` and arbitrary powers `hpow`
+    (e.g. from copowers-of-1), every `Type v`-indexed family has a coproduct. -/
+noncomputable def hasAllCoproducts_of_progenitor (hpow : HasArbitraryPowers (𝒞 := 𝒞)) :
+    HasAllCoproducts 𝒞 where
+  coprod {I} A := by
+    classical
+    let cI := toposCopowerOfOne hpow I
+    let K := Σ i : I, (A i ⟶ Cg)
+    let Bamb := prod (hpow.pow K Cg) cI.obj
+    -- candidate embedding: pair (cogenerator tuple) (copower coordinate).
+    let cand : ∀ i, A i ⟶ Bamb :=
+      fun i => pair (cogenEmbed G hpow A i) (term (A i) ≫ cI.inj i)
+    -- monicity: the `C^K` leg `cogenEmbed` is monic, so the pair is.
+    have hcandMono : ∀ i, Mono (cand i) := by
+      intro i
+      intro W u v huv
+      refine (cogenEmbed_monic G hG hpow A i) u v ?_
+      have hf := congrArg (· ≫ fst) huv
+      simp only [cand, Cat.assoc, fst_pair] at hf
+      exact hf
+    -- disjointness: the `cI`-coordinate separates distinct injections via the copower collapse.
+    have hcandDisj : ∀ i j, i ≠ j →
+        ∀ {Z : 𝒞} (u v : (HasPullbacks.has (cand i) (cand j)).cone.pt ⟶ Z), u = v := by
+      intro i j hij Z u v
+      let pb := HasPullbacks.has (cand i) (cand j)
+      -- project the pullback square to the `cI` coordinate: term ≫ inj i = term ≫ inj j on the apex.
+      have hsnd : pb.cone.π₁ ≫ (cand i ≫ snd) = pb.cone.π₂ ≫ (cand j ≫ snd) := by
+        rw [← Cat.assoc, ← Cat.assoc, pb.cone.w]
+      have hcol : term pb.cone.pt ≫ cI.inj i = term pb.cone.pt ≫ cI.inj j := by
+        have h := hsnd
+        rw [show cand i ≫ snd = term (A i) ≫ cI.inj i from snd_pair _ _,
+            show cand j ≫ snd = term (A j) ≫ cI.inj j from snd_pair _ _] at h
+        rw [← Cat.assoc, ← Cat.assoc] at h
+        rw [show (pb.cone.π₁ ≫ term (A i) : pb.cone.pt ⟶ (one : 𝒞)) = term pb.cone.pt
+              from term_uniq _ _,
+            show (pb.cone.π₂ ≫ term (A j) : pb.cone.pt ⟶ (one : 𝒞)) = term pb.cone.pt
+              from term_uniq _ _] at h
+        exact h
+      exact copowInj_collapse_maps_agree hpow I hij hcol u v
+    exact gcoCoproduct hpow cand hcandMono hcandDisj
+
+end CogeneratorCarving
+
 /-- **§1.968**: A locally small topos is complete iff it is cocomplete.
 
-    RESIDUAL (honest `sorry`).  The two §1.96x results that just closed
-    (`progenitor_omega_exp_cogenerates`, `toposCopowerOfOne`/`topos_powers_copowers_equiv`)
-    do NOT reach this; the blocker is no longer the §1.543 capitalization wall but THREE
-    genuinely-unbuilt elementary constructions, listed in precise dependency order:
-
-    1. **`HasProducts`/`HasCoproducts` (general, distinct-object families)** — the entire
-       copower/power layer here (`HasArbitraryPowers`, `HasArbitraryCopowers`, `CopowerOfOne`)
-       handles only the CONSTANT family `∏ᵢA` / `∐ᵢA`.  `Complete`/`Cocomplete` (S1_82) and the
-       GAFT-dual engine `cocomplete_of_complete_precocomplete` consume the general-family
-       `HasProducts` (S1_82:133); no general `HasCoproducts` class even exists yet.
-
-    2. **Cogenerator-carving of general coproducts** (Freyd §1.968/§1.969): given `{Aᵢ}` and the
-       cogenerator `C := Ω^G`, embed each `Aᵢ ↣ B := ∏_{(Aᵢ,C)} C` and carve `∐ᵢAᵢ` as a
-       subobject of the COPOWER `∐ᵢB` (= `extJoin` of the injection images).  The dual carves
-       `∏ᵢAᵢ` from copowers.  This needs item 1 PLUS the §1.84 well-poweredness `extJoin`
-       already available here — but NOT yet assembled into a coproduct/product object.
-
-    3. **`coeq + general coproducts ⟹ Cocomplete`** — NOW BANKED as
-       `cocomplete_of_coproducts_coequalizers` (above), the colimit-dual of `eq_prod_complete`
-       (S1_82:291); `topos_has_coequalizers` supplies the coequalizers.  So `Cocomplete` reduces
-       cleanly to item 1 (general `HasAllCoproducts`) once that lands.
-
-    None of these is the cogenerator EXISTENCE (that is now supplied by
-    `progenitor_omega_exp_cogenerates`) — but THIS theorem has NO progenitor hypothesis, so even
-    a cogenerator is not in hand here (a bare complete locally-small topos need not be
-    value-based).  Closing requires either a derived cogenerator or the three constructions
-    above; left `sorry`. -/
+    RESIDUAL (honest `sorry`).  The general-coproduct carving and the
+    `coeq + coproducts ⟹ Cocomplete` step are NOW BANKED (`hasAllCoproducts_of_progenitor`,
+    `cocomplete_of_coproducts_coequalizers`).  But those need a COGENERATOR (a progenitor), and
+    THIS theorem has NO progenitor hypothesis: a bare complete locally-small topos need not be
+    value-based, so neither the cogenerator-carving of coproducts NOR its dual (carving general
+    `∏ᵢAᵢ` from copowers, for the cocomplete→complete direction) is in hand.  Closing this `↔`
+    requires deriving a cogenerator from completeness alone (or the dual product-carving), which is
+    a separate development; left `sorry`.  Contrast `lawvere_eq_tierney` below, which HAS a
+    progenitor and so reaches the banked carving. -/
 theorem topos_complete_iff_cocomplete [LocallySmallTopos 𝒞]
     [HasBinaryProducts 𝒞] [HasBinaryCoproducts 𝒞] [HasEqualizers 𝒞] :
     Nonempty (Complete 𝒞) ↔ Nonempty (Cocomplete 𝒞) := by
@@ -812,9 +1257,21 @@ theorem topos_complete_iff_cocomplete [LocallySmallTopos 𝒞]
 class LawvereGrothendieckTopos (𝒞 : Type u) [Cat.{v} 𝒞] extends Topos 𝒞 where
   /-- Arbitrary coproducts exist. -/
   cocomplete : Cocomplete 𝒞
-  /-- A small generating set. -/
-  gen_set : 𝒞 → Prop
-  has_gen_set : IsGeneratingSet gen_set
+  /-- A SMALL generating set (§1.84, §1.632, §1.969), presented as a `Type v`-indexed family
+      `gen_obj : gen_idx → 𝒞` — exactly the Giraud/`GrothendieckTopos` (S1_84) presentation.
+      FIDELITY (§1.969): "a generating SET" is SMALL by definition (an index in universe `v`); the
+      earlier bare `gen_set : 𝒞 → Prop` dropped that smallness, so `∐(gen set)` — hence a single
+      progenitor `G := ∐(gen set)` (the Lawvere→Tierney bridge) — could not even be FORMED
+      (`cocomplete_hasAllCoproducts` needs a `Type v` index).  Carrying the small index is the
+      faithful presentation, parallel to the `copow_one` fidelity fix below. -/
+  gen_idx : Type v
+  gen_obj : gen_idx → 𝒞
+  has_gen_set : IsGeneratingSet (fun X => ∃ k, gen_obj k = X)
+
+/-- The underlying predicate of the Lawvere generating set: `X` is a generator iff it is
+    `gen_obj k` for some index `k`. -/
+def LawvereGrothendieckTopos.gen_set (𝒞 : Type u) [Cat.{v} 𝒞] [LawvereGrothendieckTopos 𝒞] :
+    𝒞 → Prop := fun X => ∃ k, LawvereGrothendieckTopos.gen_obj (𝒞 := 𝒞) k = X
 
 /-- **§1.969**: The TIERNEY DEFINITION of a Grothendieck topos: a topos with a progenitor and
     arbitrary copowers of 1. -/
@@ -853,27 +1310,99 @@ class TierneyGrothendieckTopos (𝒞 : Type u) [Cat.{v} 𝒞] extends Topos 𝒞
       definitionally.  Lawvere→Tierney `copow_one`: `∐ᵢ1` is the `cocomplete_hasAllCoproducts`
       coproduct of the constant-`one` family, which IS a `CopowerOfOne` (`cotup_uniq` = `Coproduct.uniq`).
 
-    TWO REMAINING BLOCKERS (genuinely unbuilt; statement may NOT be weakened):
-    1. **Tierney→Lawvere `Cocomplete`** needs `HasAllCoproducts 𝒞` — general-family `∐ᵢAᵢ`
-       (DISTINCT objects), Freyd §1.968 cogenerator-carving.  With `C := Ω^G`
-       (`progenitor_omega_exp_cogenerates`), `K := ∏ᵢ[Aᵢ,C]` (`Type v` by
-       `wellPoweredSub_of_topos`/local smallness), each `Aᵢ ↣ B := C^K` monically via the
-       family-evaluation tuple; carve `∐ᵢAᵢ := ⋁ᵢ image(jᵢ) ⊆ B` (`extJoin`), map-OUT UP by the
-       infinitary disjoint gluing of `CopowerBuild` — BUT that gluing (TOTAL+SIMPLE
-       union-of-partial-graphs, functionality from `compose_extJoin_right`) was specialised to
-       `Aᵢ = 1` / ambient `∏ᵢ(1+1)` with `1+1`-disjointness.  Re-running it for general `Aᵢ` with
-       cogenerator-separation disjointness is the missing ~400-line development.  (Once it lands,
-       Tierney→Lawvere = `cocomplete_of_coproducts_coequalizers` + the progenitor's gen set.)
-    2. **Lawvere→Tierney `progenitor`** needs a SINGLE progenitor `G` from the generating set, e.g.
-       `G := ∐(gen set)`.  But `LawvereGrothendieckTopos.gen_set : 𝒞 → Prop` carries NO `Type v`
-       smallness index, so `{X // gen_set X}` lives in `Type u`; `cocomplete_hasAllCoproducts`
-       needs a `Type v` index.  Freyd's generating set is small; this class under-specifies it (a
-       fidelity gap parallel to the old `copow_one`).  Forming the coproduct of the gen set — hence
-       the progenitor — is blocked without that small index, and the statement may not be changed.
-    Left `sorry`; the remaining work is the general-coproduct carving (1), not a wall. -/
-theorem lawvere_eq_tierney (𝒞 : Type u) [Cat.{v} 𝒞] [HasBinaryProducts 𝒞] [HasBinaryCoproducts 𝒞]
-    [HasEqualizers 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] :
+    (HISTORICAL — the two blockers below are now mostly resolved; see UPDATE.)  The former
+    blockers were (1) the general-family cogenerator-carving `∐ᵢAᵢ ⊆ C^K`, and (2) the
+    Lawvere→Tierney progenitor (then blocked on `gen_set`'s missing `Type v` smallness index).
+
+    UPDATE — general-coproduct carving (1) NOW BANKED (`hasAllCoproducts_of_progenitor`); the
+    `gen_set` smallness index (2) is now a class field (the permitted fidelity fix).
+    Tierney→Lawvere CLOSES sorry-free (general coproducts + coequalizers ⟹ cocomplete; the
+    progenitor's well-powered subobject family is the small generating set).  Lawvere→Tierney's
+    `copow_one` also closes (constant-`one` coproduct).  The SOLE residual is Lawvere→Tierney's
+    PROGENITOR: turning a small generating SET into a single progenitor `G := ∐(gen set)` needs the
+    coproduct injections `gen_obj k ↣ ∐` to be MONIC (so each generator is a SUBOBJECT of `G`, as
+    `IsProgenitor` demands).  "General coproduct injections are monic in a topos" (topos coproducts
+    are disjoint, §1.845) is genuinely-unbuilt infra here (only the BINARY case
+    `coprodInl/r_monic` and the gated S1_61 `DisjointGluing` exist), so this one step is left
+    `sorry`. -/
+theorem lawvere_eq_tierney (𝒞 : Type u) [Cat.{v} 𝒞] :
     Nonempty (LawvereGrothendieckTopos 𝒞) ↔ Nonempty (TierneyGrothendieckTopos 𝒞) := by
-  sorry
+  constructor
+  · -- Lawvere → Tierney.
+    rintro ⟨L⟩
+    letI : Topos 𝒞 := L.toTopos
+    letI lst : LocallySmallTopos 𝒞 := { toTopos := L.toTopos, wellPowered := wellPoweredSub_of_topos 𝒞 }
+    -- `Cocomplete ⟹ HasAllCoproducts ⟹ copowers-of-1`.
+    let hca : HasAllCoproducts 𝒞 := cocomplete_hasAllCoproducts L.cocomplete
+    refine ⟨{
+      toTopos := L.toTopos
+      toHasBinaryCoproducts := inferInstance
+      -- copow_one I: the constant-`one`-family coproduct IS a copower-of-1.
+      copow_one := fun I =>
+        { obj := (hca.coprod (fun _ : I => (one : 𝒞))).obj
+          inj := fun i => (hca.coprod (fun _ : I => (one : 𝒞))).inj i
+          cotup := fun {X} f => (hca.coprod (fun _ : I => (one : 𝒞))).desc f
+          inj_cotup := fun {X} f i => (hca.coprod (fun _ : I => (one : 𝒞))).fac f i
+          cotup_uniq := fun {X} f h hh => (hca.coprod (fun _ : I => (one : 𝒞))).uniq f h hh }
+      -- progenitor: G := ∐(gen set).  RESIDUAL (the SOLE sorry in this theorem):
+      -- `IsProgenitor (∐ gen_obj)` = subobjects of `∐ gen_obj` generate.  The family `gen_obj`
+      -- generates (`has_gen_set`), and each generator would be a SUBOBJECT of `∐ gen_obj` via its
+      -- injection — PROVIDED `inj k : gen_obj k ↣ ∐ gen_obj` is MONIC.  "General coproduct
+      -- injections are monic in a topos" (topos coproducts are disjoint, §1.845) is genuinely
+      -- UNBUILT here: only the BINARY case (`coprodInl_monic`/`coprodInr_monic`, ToposExists) and
+      -- the gated/​un-imported S1_61 `DisjointGluing` exist; no `HasAllCoproducts ⟹ ∀i, Mono (inj i)`
+      -- lemma is available.  Once that single lemma lands, `is_progenitor` closes:
+      --   `T.is_progenitor`-style: given `f≠g`, `has_gen_set` gives a generator `gen_obj k` and a
+      --   distinguishing `h : gen_obj k → A`; the monic `inj k` makes `gen_obj k` a subobject of
+      --   `∐ gen_obj`, so the progenitor's subobjects generate.  (All other pieces are sorry-free.)
+      progenitor := (hca.coprod L.gen_obj).obj
+      is_progenitor := by sorry }⟩
+  · -- Tierney → Lawvere.
+    rintro ⟨T⟩
+    letI : Topos 𝒞 := T.toTopos
+    letI lst : LocallySmallTopos 𝒞 := { toTopos := T.toTopos, wellPowered := wellPoweredSub_of_topos 𝒞 }
+    letI : HasBinaryCoproducts 𝒞 := T.toHasBinaryCoproducts
+    -- arbitrary powers from copowers-of-1; re-wrap the fields inline so the products instance is
+    -- unified to whatever `hasAllCoproducts_of_progenitor` expects (mirrors `topos_powers_copowers_equiv`).
+    let pw := powersOfCopowersOfOne T.copow_one
+    let hca : HasAllCoproducts 𝒞 := hasAllCoproducts_of_progenitor T.progenitor T.is_progenitor
+      { pow := pw.pow, proj := fun {I A} => pw.proj, tupling := fun {I A X} => pw.tupling,
+        tupling_proj := fun {I A X} => pw.tupling_proj,
+        tupling_uniq := fun {I A X} => pw.tupling_uniq }
+    let hce : HasCoequalizers 𝒞 := topos_has_coequalizers
+    -- small generating set = the well-powered enumeration of `Sub(progenitor)`.
+    let wp := wellPoweredSub_of_topos 𝒞
+    refine ⟨{
+      toTopos := T.toTopos
+      cocomplete := cocomplete_of_coproducts_coequalizers hca hce
+      gen_idx := wp.idx T.progenitor
+      gen_obj := fun k => (wp.enum k).dom
+      has_gen_set := by
+        -- `is_progenitor` = subobjects of `G` generate; the small family enumerates
+        -- representatives of all of `Sub(G)`, so it generates (transport across the
+        -- subobject iso `enum k ≅ ⟨X,m⟩`).
+        intro X Y f g hsep
+        refine T.is_progenitor f g (fun X' ⟨m, hm⟩ h => ?_)
+        -- `⟨X', m, hm⟩ : Sub(G)`; `wp.surj` gives `k` with `enum k ≅ ⟨X',m⟩`.
+        obtain ⟨k, hle, hge⟩ := wp.surj ⟨X', m, hm⟩
+        -- iso of domains: `w : X' → dom(enum k)`, `w' : dom(enum k) → X'`, mutually inverse.
+        obtain ⟨w, hw⟩ := hle    -- w ≫ (enum k).arr = m
+        obtain ⟨w', hw'⟩ := hge  -- w' ≫ m = (enum k).arr
+        -- w' is iso (w'≫w = id, w≫w' = id via cancelling the monics m, (enum k).arr).
+        have hwid : w ≫ w' = Cat.id X' :=
+          hm _ _ (by rw [Cat.assoc, hw', hw, Cat.id_comp])
+        have hwid' : w' ≫ w = Cat.id (wp.enum k).dom :=
+          (wp.enum k).monic _ _ (by rw [Cat.assoc, hw, hw', Cat.id_comp])
+        -- the gen family contains `dom(enum k)`; the hypothesis gives `(w'≫h)≫f = (w'≫h)≫g`.
+        have hwh := hsep (wp.enum k).dom ⟨k, rfl⟩ (w' ≫ h)
+        -- precompose by `w` (w≫w'=id) to recover `h≫f = h≫g`.
+        have key : w ≫ ((w' ≫ h) ≫ f) = w ≫ ((w' ≫ h) ≫ g) := by rw [hwh]
+        calc h ≫ f = (Cat.id X' ≫ h) ≫ f := by rw [Cat.id_comp]
+          _ = ((w ≫ w') ≫ h) ≫ f := by rw [hwid]
+          _ = w ≫ ((w' ≫ h) ≫ f) := by simp only [Cat.assoc]
+          _ = w ≫ ((w' ≫ h) ≫ g) := key
+          _ = ((w ≫ w') ≫ h) ≫ g := by simp only [Cat.assoc]
+          _ = (Cat.id X' ≫ h) ≫ g := by rw [hwid]
+          _ = h ≫ g := by rw [Cat.id_comp] }⟩
 
 end Freyd
