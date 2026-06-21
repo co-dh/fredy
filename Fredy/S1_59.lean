@@ -482,6 +482,23 @@ theorem eqMap_mono' [HasEqualizers 𝒞] {A B : 𝒞} (f g : A ⟶ B) : Mono (eq
   have hv : v = eqLift f g k hk := eqLift_uniq f g k hk v (by dsimp [k]; rw [← h])
   rw [hu, hv]
 
+/-- Universal property of the cokernel: a map `h : B ⟶ X` with `f ≫ h = 0` descends uniquely
+    through `cokernelMap f`.  (The cokernel is the coequalizer of `(f, 0)`; `f ≫ h = 0` is the
+    `f ≫ h = 0 ≫ h` coequalizing condition.) -/
+def cokernelDesc [HasZeroObject 𝒞] [HasCoequalizers 𝒞] {A B X : 𝒞} (f : A ⟶ B) (h : B ⟶ X)
+    (hh : f ≫ h = zeroMorphism A X) : Cokernel f ⟶ X :=
+  (HasCoequalizers.coeq f (zeroMorphism A B)).desc h (by
+    rw [hh, zeroMorphism_comp_left h])
+
+theorem cokernelDesc_fac [HasZeroObject 𝒞] [HasCoequalizers 𝒞] {A B X : 𝒞} (f : A ⟶ B) (h : B ⟶ X)
+    (hh : f ≫ h = zeroMorphism A X) : cokernelMap f ≫ cokernelDesc f h hh = h :=
+  (HasCoequalizers.coeq f (zeroMorphism A B)).fac h _
+
+/-- `cokernelMap f` is a cover (it is a coequalizer map). -/
+theorem cokernelMap_cover [HasZeroObject 𝒞] [HasCoequalizers 𝒞] {A B : 𝒞} (f : A ⟶ B) :
+    Cover (cokernelMap f) :=
+  coeq_map_is_cover (HasCoequalizers.coeq f (zeroMorphism A B))
+
 /-- The cokernel kills its own morphism: `f ≫ cokernelMap f = 0`. -/
 theorem comp_cokernelMap [HasZeroObject 𝒞] [HasCoequalizers 𝒞] {A B : 𝒞} (f : A ⟶ B) :
     f ≫ cokernelMap f = zeroMorphism A (Cokernel f) := by
@@ -845,6 +862,12 @@ open HalfAdditiveCategory in
 /-- Double negation: `neg (neg f) = f`. -/
 theorem neg_neg [AdditiveCategory 𝒞] {A B : 𝒞} (f : A ⟶ B) : neg (neg f) = f :=
   (neg_unique (neg_add f)).symm
+
+open HalfAdditiveCategory in
+/-- `neg 0 = 0`. -/
+theorem neg_zero [AdditiveCategory 𝒞] (A B : 𝒞) :
+    neg (zeroHom A B) = zeroHom A B :=
+  (neg_unique (add_zero (zeroHom A B))).symm
 
 open HalfAdditiveCategory in
 /-- Right cancellation in the hom-group: `add X Y = add Z Y → X = Z`. -/
@@ -2004,6 +2027,135 @@ theorem relexact_cover_factor [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasImag
     _ = pb.cone.π₁ ≫ (image.lift f ≫ (image f).arr) := by rw [Cat.assoc]
     _ = pb.cone.π₁ ≫ f := by rw [image.lift_fac]
 
+/-- The image inclusion is killed by `g` when `f` is: `f ≫ g = 0 ⟹ (image f).arr ≫ g = 0`.
+    `image.lift f` is a cover (epic), so cancel it from `f ≫ g = image.lift f ≫ ((image f).arr ≫ g)`. -/
+theorem imageArr_comp_zero [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasImages 𝒞]
+    [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
+    {A B C : 𝒞} {f : A ⟶ B} {g : B ⟶ C} (h : f ≫ g = zeroMorphism A C) :
+    (image f).arr ≫ g = zeroMorphism (image f).dom C := by
+  apply cover_epi (image_lift_cover f)
+  rw [← Cat.assoc, image.lift_fac, h,
+      zero_morphism_comp (image.lift f) (zeroMorphism (image f).dom C)]
+
+/-- **`RelExact` constructor.**  To exhibit `RelExact f g` (im f = ker g as subobjects of `B`) it
+    suffices to give `f ≫ g = 0` together with a back-map `c : Kernel g ⟶ (image f).dom` over `B`
+    (`c ≫ (image f).arr = kernelMap g`, i.e. ker g ⊆ im f).  The forward lift
+    `φ := kernelLift g (image f).arr _` (im f ⊆ ker g, from `imageArr_comp_zero`) and `c` are
+    mutually inverse (each cancels against the monos `(image f).arr` / `kernelMap g`), so `φ` is
+    iso.  This packages the two containments into the single bundled iso `RelExact` demands. -/
+theorem relExact_intro [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasImages 𝒞]
+    [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
+    {A B C : 𝒞} {f : A ⟶ B} {g : B ⟶ C} (hfg0 : f ≫ g = zeroMorphism A C)
+    (c : Kernel g ⟶ (image f).dom) (hc : c ≫ (image f).arr = kernelMap g) :
+    RelExact f g := by
+  have harr0 : (image f).arr ≫ g = zeroMorphism (image f).dom C := imageArr_comp_zero hfg0
+  let φ : (image f).dom ⟶ Kernel g := kernelLift g (image f).arr harr0
+  have hφ : φ ≫ kernelMap g = (image f).arr := kernelLift_fac g (image f).arr harr0
+  -- φ and c are mutually inverse.
+  have hφc : φ ≫ c = Cat.id (image f).dom := by
+    apply (image f).monic
+    rw [Cat.assoc, hc, hφ, Cat.id_comp]
+  have hcφ : c ≫ φ = Cat.id (Kernel g) := by
+    apply kernelMap_mono g
+    rw [Cat.assoc, hφ, hc, Cat.id_comp]
+  exact ⟨φ, ⟨c, hφc, hcφ⟩, hφ⟩
+
+/-- **Mono factors through an image, by cover-descent.**  If a mono `m : S ↣ T` becomes, after a
+    cover `cov : P → S`, a composite through `κ : A₀ → T` (`cov ≫ m = x ≫ κ`), then `m` factors
+    through `(image κ).arr` (so `⟨S,m⟩ ≤ image κ` as subobjects of `T`).  This is the reusable
+    "ker ⊆ im" step of every snake/five exactness claim: descend `x ≫ image.lift κ` along the
+    cover `cov` (well-defined since `(image κ).arr` is mono and `cov ≫ m` agrees on the kernel
+    pair), then cancel the cover `cov`. -/
+theorem mono_factors_image [HasImages 𝒞] [RegularCategory 𝒞]
+    {S T A₀ P : 𝒞} {m : S ⟶ T} (hm : Mono m) {κ : A₀ ⟶ T}
+    {cov : P ⟶ S} (hcov : Cover cov) {x : P ⟶ A₀} (hcomm : cov ≫ m = x ≫ κ) :
+    ∃ c : S ⟶ (image κ).dom, c ≫ (image κ).arr = m := by
+  -- `x ≫ image.lift κ : P → (image κ).dom`; descend it along `cov`.
+  let p : P ⟶ (image κ).dom := x ≫ image.lift κ
+  have hp_arr : p ≫ (image κ).arr = cov ≫ m := by
+    show (x ≫ image.lift κ) ≫ (image κ).arr = _
+    rw [Cat.assoc, image.lift_fac, ← hcomm]
+  -- well-defined: `p` agrees on the kernel pair of `cov` (cancel the mono `(image κ).arr`).
+  have hpke : kp₁ (f := cov) ≫ p = kp₂ (f := cov) ≫ p := by
+    apply (image κ).monic
+    calc (kp₁ (f := cov) ≫ p) ≫ (image κ).arr
+        = kp₁ (f := cov) ≫ (p ≫ (image κ).arr) := Cat.assoc _ _ _
+      _ = kp₁ (f := cov) ≫ (cov ≫ m) := by rw [hp_arr]
+      _ = (kp₁ (f := cov) ≫ cov) ≫ m := (Cat.assoc _ _ _).symm
+      _ = (kp₂ (f := cov) ≫ cov) ≫ m := by rw [kp_sq]
+      _ = kp₂ (f := cov) ≫ (cov ≫ m) := Cat.assoc _ _ _
+      _ = kp₂ (f := cov) ≫ (p ≫ (image κ).arr) := by rw [hp_arr]
+      _ = (kp₂ (f := cov) ≫ p) ≫ (image κ).arr := (Cat.assoc _ _ _).symm
+  obtain ⟨c, hcov_c, _⟩ := cover_is_coequalizer_of_level cov hcov p hpke
+  -- hcov_c : cov ≫ c = p ;  show c ≫ (image κ).arr = m by cancelling the cover `cov`.
+  refine ⟨c, ?_⟩
+  apply cover_epi hcov
+  rw [← Cat.assoc, hcov_c, hp_arr]
+
+/-- **Self-cokernel exactness** `RelExact x (cokernelMap x)`: in an abelian category the image of
+    `x` equals the kernel of its cokernel, AS A SUBOBJECT of the codomain.  This is the cokernel-side
+    "ker(coker x) ⊆ im x" containment every cokernel-node exactness claim needs.  Proof: `⟨ker(coker
+    x), kernelMap(coker x)⟩` allows `x` (via the kernel UP on `x ≫ coker x = 0`) and is MINIMAL —
+    any subobject `S` allowing `x` contains it, because `S` is normal (`all_normal`, the kernel of
+    its own cokernel) and `x`'s cokernel descends to `coker S.arr`.  Hence it is the image of `x`;
+    `image_comparison_iso` gives the bundled iso `RelExact` demands. -/
+theorem relExact_self_cokernel [AbelianCategory 𝒞] {A B : 𝒞} (x : A ⟶ B) :
+    RelExact x (cokernelMap x) := by
+  let i : Kernel (cokernelMap x) ⟶ B := kernelMap (cokernelMap x)
+  have hi_mono : Mono i := eqMap_mono' (cokernelMap x) (zeroMorphism B (Cokernel x))
+  -- `xbar : A → ker(coker x)` with `xbar ≫ i = x`.
+  have hx_kc : x ≫ cokernelMap x = x ≫ zeroMorphism B (Cokernel x) := by
+    rw [comp_cokernelMap x, zero_morphism_comp x (zeroMorphism B (Cokernel x))]
+  let xbar : A ⟶ Kernel (cokernelMap x) :=
+    eqLift (cokernelMap x) (zeroMorphism B (Cokernel x)) x hx_kc
+  have hxbar : xbar ≫ i = x :=
+    eqLift_fac (cokernelMap x) (zeroMorphism B (Cokernel x)) x hx_kc
+  let Im : Subobject 𝒞 B := ⟨Kernel (cokernelMap x), i, hi_mono⟩
+  have hIm_allows : Allows Im x := ⟨xbar, hxbar⟩
+  -- `⟨ker(coker x), i⟩` is an IMAGE of `x` (minimality via all-normal).
+  have hIm_isImage : IsImage x Im := by
+    refine ⟨hIm_allows, ?_⟩
+    intro S hS
+    obtain ⟨gg, hg⟩ := hS
+    have hx_killed : x ≫ cokernelMap S.arr = zeroMorphism A (Cokernel S.arr) := by
+      calc x ≫ cokernelMap S.arr
+          = (gg ≫ S.arr) ≫ cokernelMap S.arr := by rw [hg]
+        _ = gg ≫ (S.arr ≫ cokernelMap S.arr) := Cat.assoc _ _ _
+        _ = gg ≫ zeroMorphism S.dom (Cokernel S.arr) := by rw [comp_cokernelMap]
+        _ = zeroMorphism A (Cokernel S.arr) :=
+              zero_morphism_comp gg (zeroMorphism S.dom (Cokernel S.arr))
+    have hx_pair : x ≫ cokernelMap S.arr = zeroMorphism A B ≫ cokernelMap S.arr := by
+      rw [hx_killed, zeroMorphism_comp_left]
+    let t : Cokernel x ⟶ Cokernel S.arr :=
+      (HasCoequalizers.coeq x (zeroMorphism A B)).desc (cokernelMap S.arr) hx_pair
+    have ht : cokernelMap x ≫ t = cokernelMap S.arr :=
+      (HasCoequalizers.coeq x (zeroMorphism A B)).fac (cokernelMap S.arr) hx_pair
+    have hi_killed : i ≫ cokernelMap S.arr = i ≫ zeroMorphism B (Cokernel S.arr) := by
+      have hk0 : i ≫ cokernelMap x = i ≫ zeroMorphism B (Cokernel x) := kernelMap_eq _
+      calc i ≫ cokernelMap S.arr
+          = i ≫ (cokernelMap x ≫ t) := by rw [ht]
+        _ = (i ≫ cokernelMap x) ≫ t := (Cat.assoc _ _ _).symm
+        _ = (i ≫ zeroMorphism B (Cokernel x)) ≫ t := by rw [hk0]
+        _ = i ≫ (zeroMorphism B (Cokernel x) ≫ t) := Cat.assoc _ _ _
+        _ = i ≫ zeroMorphism B (Cokernel S.arr) := by rw [zeroMorphism_comp_left]
+    let lift_k : Kernel (cokernelMap x) ⟶ Kernel (cokernelMap S.arr) :=
+      eqLift (cokernelMap S.arr) (zeroMorphism B (Cokernel S.arr)) i hi_killed
+    have hlift_k : lift_k ≫ kernelMap (cokernelMap S.arr) = i :=
+      eqLift_fac (cokernelMap S.arr) (zeroMorphism B (Cokernel S.arr)) i hi_killed
+    obtain ⟨h, hh_iso, hh_fac⟩ :=
+      monic_kernel_of_cokernel' S.arr S.monic (AbelianCategory.all_normal S.arr S.monic)
+    obtain ⟨hinv, _, hinv2⟩ := hh_iso
+    exact ⟨lift_k ≫ hinv, by
+      calc (lift_k ≫ hinv) ≫ S.arr
+          = (lift_k ≫ hinv) ≫ (h ≫ kernelMap (cokernelMap S.arr)) := by rw [hh_fac]
+        _ = lift_k ≫ (hinv ≫ h) ≫ kernelMap (cokernelMap S.arr) := by rw [Cat.assoc, Cat.assoc]
+        _ = lift_k ≫ kernelMap (cokernelMap S.arr) := by rw [hinv2, Cat.id_comp]
+        _ = i := hlift_k⟩
+  -- comparison `c : (image x).dom ≅ ker(coker x)` with `c ≫ i = (image x).arr`.
+  obtain ⟨c, hc⟩ := image_min x Im hIm_allows
+  have hc_iso : IsIso c := image_comparison_iso (HasImages.isImage x) hIm_isImage c hc
+  exact ⟨c, hc_iso, hc⟩
+
 /-! §1.599 FIVE LEMMA: In an abelian category, given a commutative diagram
 
       A₁ → A₂ → A₃ → A₄ → A₅
@@ -2222,28 +2374,23 @@ theorem five_lemma [AbelianCategory 𝒞]
     π_g : coker(β) → coker(γ)  (cokernel-functoriality of g')
   These are defined by universal properties; we state their existence.
 
-  BLOCKER (sharpened): the connecting morphism δ is, in Freyd's own words (§1.599), built
-  "as a relation" — the composite ker(γ)→C ⤳ B ⤳ B' ⤳ coker(α) of a reciprocal, a vertical,
-  and another reciprocal — and shown single-valued/total only via the calculus of relations
-  in the Ab-representation (§1.55 + §1.56 reciprocation).  That δ-as-relation machinery, and
-  the proof that the resulting 6-term sequence is exact, both reduce to Ab by the §1.543
-  capitalization metatheorem (concurrent agent, not yet importable).  The kernel/cokernel
-  functoriality maps κ_*, π_* DO follow from the present universal properties, but the
-  conjunction's hard core (existence of δ + four exactness isos) cannot be discharged without
-  the relational calculus; a partial proof would leave δ a `Sorry` inside the existential and
-  is no more honest than the whole-statement Sorry.  Faithful Sorry retained.
-
   STATEMENT FIX (faithful): row exactness is now `RelExact f g` / `RelExact f' g'`, and the four
   output exactness claims are `RelExact` too — the ≫-compatible (subobject-equal) form, NOT the
   too-weak bare object iso (see the `RelExact` definition and the `five_lemma` note for why the
   bare iso is the wrong encoding).  This is a strengthening of both hypothesis and conclusion to
   the faithful definition of exactness.
 
-  RESIDUAL (honest `sorry` retained — the STATEMENT IS FALSE as written; the `sorry` is now a
-  marker for a needed hypothesis fix, not a missing proof).  The two hypotheses `RelExact f g`
-  and `RelExact f' g'` assert exactness only at the INTERIOR nodes `B` and `B'`.  Under interior
-  exactness alone, the connecting map `δ : ker γ → coker α` is genuinely only a RELATION, not a
-  morphism, and the existential conjunction is REFUTABLE.  Explicit counterexample in `Ab`:
+  END-EXACTNESS HYPOTHESES (REQUIRED — the interior-only statement is FALSE).  The interior
+  hypotheses `RelExact f g` / `RelExact f' g'` assert exactness only at the INTERIOR nodes `B`
+  and `B'`.  Under interior exactness alone, the connecting map `δ : ker γ → coker α` is
+  genuinely only a RELATION, not a morphism, and the existential conjunction is REFUTABLE — see
+  the counterexample below.  The genuine snake lemma (Freyd §1.599) additionally requires the
+  rows to be exact at the OUTER nodes: `g` a COVER (top row exact at `C`: `A→B→C→0`) and `f'`
+  MONIC (bottom row exact at `A'`: `0→A'→B'→C'`).  These are added as `(hg : Cover g)` and
+  `(hf' : Mono f')`; with them the element-free construction below goes through and the theorem
+  is TRUE and PROVEN.  This is a FIDELITY FIX restoring the genuine theorem, not a weakening.
+
+  WHY THE END HYPOTHESES ARE NEEDED (counterexample for interior-only).  Explicit `Ab`-witness:
 
       A=0 ─0→ B=0 ─0→ C=ℤ            (top row, f=0, g=0)
       |α=0    |β=0    |γ=0
@@ -2260,28 +2407,29 @@ theorem five_lemma [AbelianCategory 𝒞]
     • `RelExact δ π_f` ⟹ `im δ = ker π_f` ⟹ together with δ monic forces δ ISO, hence `im δ = ℤ`,
       hence `ker π_f = ℤ`, hence π_f = 0 — CONTRADICTING `im π_f = ℤ` above.
   No `(κ_g, π_f, δ)` satisfies all four `RelExact`.  So the theorem is FALSE with only interior
-  exactness; it is NOT a missing-lemma or relational-calculus gap (the §1.55/§1.56 diagnosis in the
-  prior residual was incorrect — δ as a relation simply has no single-valued total morphism here).
+  exactness; it is NOT a missing-lemma or relational-calculus gap (δ as a relation simply has no
+  single-valued total morphism here).  This justifies the end-exactness hypotheses `hg`, `hf'`.
 
-  THE FIX (do NOT silently weaken the conclusion; STRENGTHEN the hypotheses to the genuine snake
-  hypotheses).  δ exists as a morphism and the 6-term sequence is exact exactly when the rows are
-  exact at the OUTER nodes too: `g` a COVER (epi — top row exact at C: `A→B→C→0`) and `f'` MONIC
-  (bottom row exact at A': `0→A'→B'→C'`).  With `(hg_epi : Cover g)` and `(hf'_mono : Mono f')`
-  added, the element-free construction goes through: pull `g` back along `kernelMap γ` (`g` epi ⟹
-  the projection `p_K : P → ker γ` is a COVER by `cover_pullback`), push `β∘p_B` through `ker g' =
-  im f'` (`relexact_cover_factor hf'g'`) and (f' monic ⟹ uniquely) into `A'`, then into `coker α`;
-  `e` coequalizes the kernel pair of `p_K` (the difference lands in `f'(im α)`, killed in coker α,
-  via the subtraction algebra), so `cover_is_coequalizer_of_level` descends it to `δ`.  That
-  hypothesis-corrected theorem is the next step; the present (interior-only) statement is retained
-  here, refuted above, with a faithful `sorry` flagging the required hypothesis fix rather than a
-  false proof.  An honest unrefuted-but-unweakened `sorry` is mandated by the integrity rules over
-  any contortion that would weaken or fake-close. -/
+  CONSTRUCTION OF δ (now PROVEN, with `hg : Cover g`, `hf' : Mono f'`).  Pull `g` back along
+  `kernelMap γ : Kernel γ ↪ C`; since `g` is a cover, the projection `p_K : P → Kernel γ` is a
+  cover (`cover_pullback`), with `p_B : P → B` the other leg and `p_B ≫ g = p_K ≫ kernelMap γ`.
+  On `P`, `g(p_B) ∈ ker γ` so `g'(β p_B) = γ(g p_B) = 0`; push `p_B ≫ β` through `ker g' = im f'`
+  (`relexact_cover_factor hf'g'`) after a further cover `q : Q → P`, giving `a' : Q → A'` with
+  `(q ≫ p_B) ≫ β = a' ≫ f'`; map `a'` into `coker α` via `cokernelMap α` to get
+  `e := a' ≫ cokernelMap α : Q → coker α`.  `e` coequalizes the kernel pair of the cover
+  `q ≫ p_K` — two lifts differ by something in `f'(im α)`, killed in `coker α` (subtraction
+  algebra + `f'` monic), so `cover_is_coequalizer_of_level` descends `e` uniquely to
+  `δ : Kernel γ → Cokernel α` with `(q ≫ p_K) ≫ δ = e`.  The four `RelExact` claims follow from
+  the kernel/cokernel/image universal properties together with the now end-exactness. -/
 theorem snake_lemma [AbelianCategory 𝒞]
     {A B C A' B' C' : 𝒞}
     {f : A ⟶ B} {g : B ⟶ C} {α : A ⟶ A'} {β : B ⟶ B'} {γ : C ⟶ C'}
     {f' : A' ⟶ B'} {g' : B' ⟶ C'}
     -- rows exact (image = kernel at each interior node, as subobjects)
     (hfg : RelExact f g) (hf'g' : RelExact f' g')
+    -- rows exact at the END nodes too (top at C: g epi; bottom at A': f' mono) — REQUIRED
+    -- (the interior-only statement is FALSE; see the counterexample in the doc comment above)
+    (hg : Cover g) (hf' : Mono f')
     -- squares commute
     (hαβ : f ≫ β = α ≫ f') (hβγ : g ≫ γ = β ≫ g') :
     -- induced kernel maps (by universal property: ker(α) ≫ f ≫ β = 0, lifts to ker(β))
@@ -2290,6 +2438,540 @@ theorem snake_lemma [AbelianCategory 𝒞]
       (δ : Kernel γ ⟶ Cokernel α),
       -- The induced sequence ker(α)→ker(β)→ker(γ)→coker(α)→coker(β) is exact at each node:
       RelExact κ_f κ_g ∧ RelExact κ_g δ ∧ RelExact δ π_f ∧ RelExact π_f π_g := by
-  sorry
+  -- ====================== basic facts: both rows compose to zero ======================
+  have hfg0 : f ≫ g = zeroMorphism A C := relexact_comp_zero hfg
+  have hf'g'0 : f' ≫ g' = zeroMorphism A' C' := relexact_comp_zero hf'g'
+  -- ====================== the four induced maps κ_f, κ_g, π_f, π_g ======================
+  -- κ_f : Kernel α → Kernel β,  κ_f ≫ kernelMap β = kernelMap α ≫ f
+  have hκf0 : (kernelMap α ≫ f) ≫ β = zeroMorphism (Kernel α) B' := by
+    calc (kernelMap α ≫ f) ≫ β = kernelMap α ≫ (f ≫ β) := Cat.assoc _ _ _
+      _ = kernelMap α ≫ (α ≫ f') := by rw [hαβ]
+      _ = (kernelMap α ≫ α) ≫ f' := (Cat.assoc _ _ _).symm
+      _ = zeroMorphism (Kernel α) A' ≫ f' := by rw [kernelMap_comp α]
+      _ = zeroMorphism (Kernel α) B' := zeroMorphism_comp_left f'
+  let κ_f : Kernel α ⟶ Kernel β := kernelLift β (kernelMap α ≫ f) hκf0
+  have hκf : κ_f ≫ kernelMap β = kernelMap α ≫ f := kernelLift_fac β (kernelMap α ≫ f) hκf0
+  -- κ_g : Kernel β → Kernel γ,  κ_g ≫ kernelMap γ = kernelMap β ≫ g
+  have hκg0 : (kernelMap β ≫ g) ≫ γ = zeroMorphism (Kernel β) C' := by
+    calc (kernelMap β ≫ g) ≫ γ = kernelMap β ≫ (g ≫ γ) := Cat.assoc _ _ _
+      _ = kernelMap β ≫ (β ≫ g') := by rw [hβγ]
+      _ = (kernelMap β ≫ β) ≫ g' := (Cat.assoc _ _ _).symm
+      _ = zeroMorphism (Kernel β) B' ≫ g' := by rw [kernelMap_comp β]
+      _ = zeroMorphism (Kernel β) C' := zeroMorphism_comp_left g'
+  let κ_g : Kernel β ⟶ Kernel γ := kernelLift γ (kernelMap β ≫ g) hκg0
+  have hκg : κ_g ≫ kernelMap γ = kernelMap β ≫ g := kernelLift_fac γ (kernelMap β ≫ g) hκg0
+  -- π_f : Cokernel α → Cokernel β,  cokernelMap α ≫ π_f = f' ≫ cokernelMap β
+  have hπf0 : α ≫ (f' ≫ cokernelMap β) = zeroMorphism A (Cokernel β) := by
+    calc α ≫ (f' ≫ cokernelMap β) = (α ≫ f') ≫ cokernelMap β := (Cat.assoc _ _ _).symm
+      _ = (f ≫ β) ≫ cokernelMap β := by rw [hαβ]
+      _ = f ≫ (β ≫ cokernelMap β) := Cat.assoc _ _ _
+      _ = f ≫ zeroMorphism B (Cokernel β) := by rw [comp_cokernelMap β]
+      _ = zeroMorphism A (Cokernel β) := zero_morphism_comp f (zeroMorphism B (Cokernel β))
+  let π_f : Cokernel α ⟶ Cokernel β := cokernelDesc α (f' ≫ cokernelMap β) hπf0
+  have hπf : cokernelMap α ≫ π_f = f' ≫ cokernelMap β := cokernelDesc_fac α (f' ≫ cokernelMap β) hπf0
+  -- π_g : Cokernel β → Cokernel γ,  cokernelMap β ≫ π_g = g' ≫ cokernelMap γ
+  have hπg0 : β ≫ (g' ≫ cokernelMap γ) = zeroMorphism B (Cokernel γ) := by
+    calc β ≫ (g' ≫ cokernelMap γ) = (β ≫ g') ≫ cokernelMap γ := (Cat.assoc _ _ _).symm
+      _ = (g ≫ γ) ≫ cokernelMap γ := by rw [hβγ]
+      _ = g ≫ (γ ≫ cokernelMap γ) := Cat.assoc _ _ _
+      _ = g ≫ zeroMorphism C (Cokernel γ) := by rw [comp_cokernelMap γ]
+      _ = zeroMorphism B (Cokernel γ) := zero_morphism_comp g (zeroMorphism C (Cokernel γ))
+  let π_g : Cokernel β ⟶ Cokernel γ := cokernelDesc β (g' ≫ cokernelMap γ) hπg0
+  have hπg : cokernelMap β ≫ π_g = g' ≫ cokernelMap γ := cokernelDesc_fac β (g' ≫ cokernelMap γ) hπg0
+  -- ====================== the connecting morphism δ ======================
+  -- Pull `g` back along `kernelMap γ`.  `p_B`/`p_K` are the legs; `p_K` is a cover (g epi).
+  let pb := HasPullbacks.has g (kernelMap γ)
+  let p_B : pb.cone.pt ⟶ B := pb.cone.π₁
+  let p_K : pb.cone.pt ⟶ Kernel γ := pb.cone.π₂
+  have hpbw : p_B ≫ g = p_K ≫ kernelMap γ := pb.cone.w
+  have hpK_cover : Cover p_K := cover_pullback (kernelMap γ) hg
+  -- `p_B ≫ β` is killed by `g'`:  (p_B β) g' = p_B (β g') = p_B (g γ) = (p_K kγ) γ = p_K·0 = 0.
+  have hpBβ_g' : (p_B ≫ β) ≫ g' = zeroMorphism pb.cone.pt C' := by
+    calc (p_B ≫ β) ≫ g' = p_B ≫ (β ≫ g') := Cat.assoc _ _ _
+      _ = p_B ≫ (g ≫ γ) := by rw [hβγ]
+      _ = (p_B ≫ g) ≫ γ := (Cat.assoc _ _ _).symm
+      _ = (p_K ≫ kernelMap γ) ≫ γ := by rw [hpbw]
+      _ = p_K ≫ (kernelMap γ ≫ γ) := Cat.assoc _ _ _
+      _ = p_K ≫ zeroMorphism (Kernel γ) C' := by rw [kernelMap_comp γ]
+      _ = zeroMorphism pb.cone.pt C' := zero_morphism_comp p_K (zeroMorphism (Kernel γ) C')
+  -- push `p_B ≫ β` through `ker g' = im f'`:  cover `q : Q → P`, `a' : Q → A'`,
+  --   q ≫ (p_B ≫ β) = a' ≫ f'.
+  obtain ⟨Q, q, a', hq_cover, hqa'⟩ := relexact_cover_factor hf'g' (p_B ≫ β) hpBβ_g'
+  -- e := a' ≫ cokernelMap α : Q → Cokernel α ; the cover c := q ≫ p_K : Q → Kernel γ.
+  let e : Q ⟶ Cokernel α := a' ≫ cokernelMap α
+  let c : Q ⟶ Kernel γ := q ≫ p_K
+  have hc_cover : Cover c := cover_comp hq_cover hpK_cover
+  -- WELL-DEFINEDNESS: e coequalizes the kernel pair of c.  The kernel pair is taken w.r.t. the
+  -- `RegularCategory.toHasPullbacks` instance (the one `cover_is_coequalizer_of_level` reads),
+  -- not the ambient `exactPullbacks`, to avoid the `HasPullbacks` instance diamond.
+  have he_coeq : kp₁ (hpull := RegularCategory.toHasPullbacks) (f := c) ≫ e
+      = kp₂ (hpull := RegularCategory.toHasPullbacks) (f := c) ≫ e := by
+    let KP := @kernelPair 𝒞 _ RegularCategory.toHasPullbacks Q (Kernel γ) c
+    let u₁ : KP ⟶ Q := kp₁ (hpull := RegularCategory.toHasPullbacks) (f := c)
+    let u₂ : KP ⟶ Q := kp₂ (hpull := RegularCategory.toHasPullbacks) (f := c)
+    have hu_c : u₁ ≫ c = u₂ ≫ c := kp_sq (hpull := RegularCategory.toHasPullbacks) (f := c)
+    -- w := (u₁ ≫ q ≫ p_B) − (u₂ ≫ q ≫ p_B) : KP → B is killed by g.
+    let w : KP ⟶ B :=
+      HalfAdditiveCategory.add (u₁ ≫ q ≫ p_B) (neg (u₂ ≫ q ≫ p_B))
+    have hw_g : w ≫ g = zeroMorphism KP C := by
+      have key : (u₁ ≫ q ≫ p_B) ≫ g = (u₂ ≫ q ≫ p_B) ≫ g := by
+        calc (u₁ ≫ q ≫ p_B) ≫ g = u₁ ≫ q ≫ (p_B ≫ g) := by simp only [Cat.assoc]
+          _ = u₁ ≫ q ≫ (p_K ≫ kernelMap γ) := by rw [hpbw]
+          _ = (u₁ ≫ (q ≫ p_K)) ≫ kernelMap γ := by simp only [Cat.assoc]
+          _ = (u₂ ≫ (q ≫ p_K)) ≫ kernelMap γ := by rw [hu_c]
+          _ = u₂ ≫ q ≫ (p_K ≫ kernelMap γ) := by simp only [Cat.assoc]
+          _ = u₂ ≫ q ≫ (p_B ≫ g) := by rw [hpbw]
+          _ = (u₂ ≫ q ≫ p_B) ≫ g := by simp only [Cat.assoc]
+      show HalfAdditiveCategory.add (u₁ ≫ q ≫ p_B) (neg (u₂ ≫ q ≫ p_B)) ≫ g = _
+      rw [HalfAdditiveCategory.add_comp, neg_comp, key, add_neg,
+          zeroHom_eq_zeroMorphism' KP C]
+    -- cover r : R → KP, b : R → A with r ≫ w = b ≫ f.
+    obtain ⟨R, r, b, hr_cover, hrb⟩ := relexact_cover_factor hfg w hw_g
+    -- d := (u₁ ≫ a') − (u₂ ≫ a') : KP → A'.  Then r ≫ d = b ≫ α (f' mono).
+    let d : KP ⟶ A' :=
+      HalfAdditiveCategory.add (u₁ ≫ a') (neg (u₂ ≫ a'))
+    have hrd : r ≫ d = b ≫ α := by
+      apply hf'
+      -- (r ≫ d) ≫ f' = r ≫ (d ≫ f') = r ≫ (w ≫ β) = (r ≫ w) ≫ β = (b ≫ f) ≫ β = (b ≫ α) ≫ f'
+      have hdf' : d ≫ f' = w ≫ β := by
+        show HalfAdditiveCategory.add (u₁ ≫ a') (neg (u₂ ≫ a')) ≫ f' = _
+        rw [HalfAdditiveCategory.add_comp, neg_comp]
+        -- (u₁ a') f' = u₁ (a' f') = u₁ (q (p_B β)) ; similarly u₂.
+        have e₁ : (u₁ ≫ a') ≫ f' = u₁ ≫ q ≫ (p_B ≫ β) := by rw [Cat.assoc, hqa']
+        have e₂ : (u₂ ≫ a') ≫ f' = u₂ ≫ q ≫ (p_B ≫ β) := by rw [Cat.assoc, hqa']
+        rw [e₁, e₂]
+        show HalfAdditiveCategory.add (u₁ ≫ q ≫ (p_B ≫ β)) (neg (u₂ ≫ q ≫ (p_B ≫ β)))
+            = HalfAdditiveCategory.add (u₁ ≫ q ≫ p_B) (neg (u₂ ≫ q ≫ p_B)) ≫ β
+        rw [HalfAdditiveCategory.add_comp, neg_comp]
+        simp only [Cat.assoc]
+      calc (r ≫ d) ≫ f' = r ≫ (d ≫ f') := Cat.assoc _ _ _
+        _ = r ≫ (w ≫ β) := by rw [hdf']
+        _ = (r ≫ w) ≫ β := (Cat.assoc _ _ _).symm
+        _ = (b ≫ f) ≫ β := by rw [hrb]
+        _ = b ≫ (f ≫ β) := Cat.assoc _ _ _
+        _ = b ≫ (α ≫ f') := by rw [hαβ]
+        _ = (b ≫ α) ≫ f' := (Cat.assoc _ _ _).symm
+    -- d ≫ cokernelMap α = 0 (cancel the cover r: r ≫ d ≫ cokα = (b α) cokα = b·0 = 0).
+    have hd_cok : d ≫ cokernelMap α = zeroMorphism KP (Cokernel α) := by
+      apply cover_epi hr_cover
+      calc r ≫ (d ≫ cokernelMap α) = (r ≫ d) ≫ cokernelMap α := (Cat.assoc _ _ _).symm
+        _ = (b ≫ α) ≫ cokernelMap α := by rw [hrd]
+        _ = b ≫ (α ≫ cokernelMap α) := Cat.assoc _ _ _
+        _ = b ≫ zeroMorphism A (Cokernel α) := by rw [comp_cokernelMap α]
+        _ = zeroMorphism R (Cokernel α) := zero_morphism_comp b (zeroMorphism A (Cokernel α))
+        _ = r ≫ zeroMorphism KP (Cokernel α) :=
+            (zero_morphism_comp r (zeroMorphism KP (Cokernel α))).symm
+    -- conclude u₁ ≫ e = u₂ ≫ e from d ≫ cokα = 0.
+    show u₁ ≫ e = u₂ ≫ e
+    -- d ≫ cokα distributes to  add ((u₁≫a')≫cokα) (neg ((u₂≫a')≫cokα)) = 0, i.e.
+    -- add (u₁≫e) (neg (u₂≫e)) = 0.  Then add_right_cancel against `add_neg (u₂≫e)`.
+    have hsub : HalfAdditiveCategory.add (u₁ ≫ e) (neg (u₂ ≫ e))
+        = HalfAdditiveCategory.zeroHom KP (Cokernel α) := by
+      have hdist : d ≫ cokernelMap α
+          = HalfAdditiveCategory.add (u₁ ≫ e) (neg (u₂ ≫ e)) := by
+        show HalfAdditiveCategory.add (u₁ ≫ a') (neg (u₂ ≫ a')) ≫ cokernelMap α
+            = HalfAdditiveCategory.add (u₁ ≫ (a' ≫ cokernelMap α)) (neg (u₂ ≫ (a' ≫ cokernelMap α)))
+        rw [HalfAdditiveCategory.add_comp, neg_comp]
+        simp only [Cat.assoc]
+      rw [← hdist, hd_cok, ← zeroHom_eq_zeroMorphism' KP (Cokernel α)]
+    refine add_right_cancel (Y := neg (u₂ ≫ e)) ?_
+    rw [hsub, add_neg]
+  -- δ is the unique descent of e along the cover c.
+  obtain ⟨δ, hcδ, hδ_uniq⟩ := cover_is_coequalizer_of_level c hc_cover e he_coeq
+  -- hcδ : c ≫ δ = e
+  refine ⟨κ_f, κ_g, π_f, π_g, δ, ?_, ?_, ?_, ?_⟩
+  · -- ====================== RelExact κ_f κ_g (exact at Kernel β) ======================
+    -- κ_f ≫ κ_g = 0  (cancel the mono kernelMap γ).
+    have hκfκg0 : κ_f ≫ κ_g = zeroMorphism (Kernel α) (Kernel γ) := by
+      apply kernelMap_mono γ
+      rw [zeroMorphism_comp_left (kernelMap γ)]
+      calc (κ_f ≫ κ_g) ≫ kernelMap γ = κ_f ≫ (κ_g ≫ kernelMap γ) := Cat.assoc _ _ _
+        _ = κ_f ≫ (kernelMap β ≫ g) := by rw [hκg]
+        _ = (κ_f ≫ kernelMap β) ≫ g := (Cat.assoc _ _ _).symm
+        _ = (kernelMap α ≫ f) ≫ g := by rw [hκf]
+        _ = kernelMap α ≫ (f ≫ g) := Cat.assoc _ _ _
+        _ = kernelMap α ≫ zeroMorphism A C := by rw [hfg0]
+        _ = zeroMorphism (Kernel α) C := zero_morphism_comp (kernelMap α) (zeroMorphism A C)
+    -- kernelMap κ_g ≫ kernelMap β : Kernel κ_g → B is killed by g.
+    have hkg_g : (kernelMap κ_g ≫ kernelMap β) ≫ g = zeroMorphism (Kernel κ_g) C := by
+      calc (kernelMap κ_g ≫ kernelMap β) ≫ g = kernelMap κ_g ≫ (kernelMap β ≫ g) := Cat.assoc _ _ _
+        _ = kernelMap κ_g ≫ (κ_g ≫ kernelMap γ) := by rw [hκg]
+        _ = (kernelMap κ_g ≫ κ_g) ≫ kernelMap γ := (Cat.assoc _ _ _).symm
+        _ = zeroMorphism (Kernel κ_g) (Kernel γ) ≫ kernelMap γ := by rw [kernelMap_comp κ_g]
+        _ = zeroMorphism (Kernel κ_g) C := zeroMorphism_comp_left (kernelMap γ)
+    obtain ⟨P₁, cov₁, xA, hcov₁, hxA⟩ :=
+      relexact_cover_factor hfg (kernelMap κ_g ≫ kernelMap β) hkg_g
+    -- xA ≫ α = 0  (f' mono, from xA ≫ f ≫ β = cov₁ ≫ (kernelMap κ_g ≫ kernelMap β) ≫ β = 0).
+    have hxAα : xA ≫ α = zeroMorphism P₁ A' := by
+      apply hf'
+      rw [zeroMorphism_comp_left f']
+      calc (xA ≫ α) ≫ f' = xA ≫ (α ≫ f') := Cat.assoc _ _ _
+        _ = xA ≫ (f ≫ β) := by rw [hαβ]
+        _ = (xA ≫ f) ≫ β := (Cat.assoc _ _ _).symm
+        _ = (cov₁ ≫ (kernelMap κ_g ≫ kernelMap β)) ≫ β := by rw [hxA]
+        _ = cov₁ ≫ kernelMap κ_g ≫ (kernelMap β ≫ β) := by simp only [Cat.assoc]
+        _ = cov₁ ≫ kernelMap κ_g ≫ zeroMorphism (Kernel β) B' := by rw [kernelMap_comp β]
+        _ = zeroMorphism P₁ B' := by
+            rw [zero_morphism_comp (kernelMap κ_g) (zeroMorphism (Kernel β) B'),
+                zero_morphism_comp cov₁ (zeroMorphism (Kernel κ_g) B')]
+    let x₁ : P₁ ⟶ Kernel α := kernelLift α xA hxAα
+    have hx₁ : x₁ ≫ kernelMap α = xA := kernelLift_fac α xA hxAα
+    -- cov₁ ≫ kernelMap κ_g = x₁ ≫ κ_f  (cancel mono kernelMap β).
+    have hcomm₁ : cov₁ ≫ kernelMap κ_g = x₁ ≫ κ_f := by
+      apply kernelMap_mono β
+      calc (cov₁ ≫ kernelMap κ_g) ≫ kernelMap β = cov₁ ≫ (kernelMap κ_g ≫ kernelMap β) := Cat.assoc _ _ _
+        _ = xA ≫ f := hxA
+        _ = (x₁ ≫ kernelMap α) ≫ f := by rw [hx₁]
+        _ = x₁ ≫ (kernelMap α ≫ f) := Cat.assoc _ _ _
+        _ = x₁ ≫ (κ_f ≫ kernelMap β) := by rw [hκf]
+        _ = (x₁ ≫ κ_f) ≫ kernelMap β := (Cat.assoc _ _ _).symm
+    obtain ⟨cc, hcc⟩ := mono_factors_image (kernelMap_mono κ_g) hcov₁ hcomm₁
+    exact relExact_intro hκfκg0 cc hcc
+  · -- ====================== RelExact κ_g δ (exact at Kernel γ) ======================
+    -- κ_g ≫ δ = 0.  Cover Kernel β by pulling the cover q back along the lift `lp` of
+    -- ⟨kernelMap β, κ_g⟩ into the pullback `pb`, then use `c ≫ δ = e` and `f'` mono.
+    have hκgδ0 : κ_g ≫ δ = zeroMorphism (Kernel β) (Cokernel α) := by
+      -- lp : Kernel β → pb.pt with lp ≫ p_B = kernelMap β, lp ≫ p_K = κ_g.
+      have hlp_sq : kernelMap β ≫ g = κ_g ≫ kernelMap γ := by rw [hκg]
+      let lp : Kernel β ⟶ pb.cone.pt := pb.lift ⟨Kernel β, kernelMap β, κ_g, hlp_sq⟩
+      have hlp_B : lp ≫ p_B = kernelMap β := pb.lift_fst _
+      have hlp_K : lp ≫ p_K = κ_g := pb.lift_snd _
+      -- pull cover q back along lp.
+      let pq := HasPullbacks.has q lp
+      let cov_q : pq.cone.pt ⟶ Kernel β := pq.cone.π₂
+      let lq : pq.cone.pt ⟶ Q := pq.cone.π₁
+      have hcov_q : Cover cov_q := cover_pullback lp hq_cover
+      have hlqq : lq ≫ q = cov_q ≫ lp := pq.cone.w
+      -- lq ≫ a' = 0  (f' mono: (lq≫a')≫f' = cov_q ≫ (kernelMap β ≫ β) = 0).
+      have hlqa' : lq ≫ a' = zeroMorphism pq.cone.pt A' := by
+        apply hf'
+        rw [zeroMorphism_comp_left f']
+        calc (lq ≫ a') ≫ f' = lq ≫ (a' ≫ f') := Cat.assoc _ _ _
+          _ = lq ≫ (q ≫ p_B ≫ β) := by rw [hqa']
+          _ = (lq ≫ q) ≫ (p_B ≫ β) := by simp only [Cat.assoc]
+          _ = (cov_q ≫ lp) ≫ (p_B ≫ β) := by rw [hlqq]
+          _ = cov_q ≫ (lp ≫ p_B) ≫ β := by simp only [Cat.assoc]
+          _ = cov_q ≫ (kernelMap β ≫ β) := by rw [hlp_B]
+          _ = cov_q ≫ zeroMorphism (Kernel β) B' := by rw [kernelMap_comp β]
+          _ = zeroMorphism pq.cone.pt B' := zero_morphism_comp cov_q (zeroMorphism (Kernel β) B')
+      -- cov_q ≫ κ_g = lq ≫ c.
+      have hcovq_κg : cov_q ≫ κ_g = lq ≫ c := by
+        calc cov_q ≫ κ_g = cov_q ≫ (lp ≫ p_K) := by rw [hlp_K]
+          _ = (cov_q ≫ lp) ≫ p_K := (Cat.assoc _ _ _).symm
+          _ = (lq ≫ q) ≫ p_K := by rw [← hlqq]
+          _ = lq ≫ (q ≫ p_K) := Cat.assoc _ _ _
+          _ = lq ≫ c := rfl
+      -- cov_q ≫ (κ_g ≫ δ) = lq ≫ a' ≫ cokernelMap α = 0.
+      apply cover_epi hcov_q
+      rw [zero_morphism_comp cov_q (zeroMorphism (Kernel β) (Cokernel α))]
+      calc cov_q ≫ (κ_g ≫ δ) = (cov_q ≫ κ_g) ≫ δ := (Cat.assoc _ _ _).symm
+        _ = (lq ≫ c) ≫ δ := by rw [hcovq_κg]
+        _ = lq ≫ (c ≫ δ) := Cat.assoc _ _ _
+        _ = lq ≫ e := by rw [hcδ]
+        _ = (lq ≫ a') ≫ cokernelMap α := by show lq ≫ (a' ≫ cokernelMap α) = _; rw [Cat.assoc]
+        _ = zeroMorphism pq.cone.pt A' ≫ cokernelMap α := by rw [hlqa']
+        _ = zeroMorphism pq.cone.pt (Cokernel α) := zeroMorphism_comp_left (cokernelMap α)
+    -- back-map: ker δ ⊆ im κ_g.  Pull cover c back along kernelMap δ.
+    let pcδ := HasPullbacks.has c (kernelMap δ)
+    let cov₂ : pcδ.cone.pt ⟶ Kernel δ := pcδ.cone.π₂
+    let lQ : pcδ.cone.pt ⟶ Q := pcδ.cone.π₁
+    have hcov₂ : Cover cov₂ := cover_pullback (kernelMap δ) hc_cover
+    have hcδw : lQ ≫ c = cov₂ ≫ kernelMap δ := pcδ.cone.w
+    -- lQ ≫ a' is killed by cokernelMap α  (since (cov₂ ≫ kernelMap δ) ≫ δ = 0 = lQ ≫ e).
+    have hlQa'cok : (lQ ≫ a') ≫ cokernelMap α = zeroMorphism pcδ.cone.pt (Cokernel α) := by
+      calc (lQ ≫ a') ≫ cokernelMap α = lQ ≫ (a' ≫ cokernelMap α) := Cat.assoc _ _ _
+        _ = lQ ≫ e := rfl
+        _ = lQ ≫ (c ≫ δ) := by rw [hcδ]
+        _ = (lQ ≫ c) ≫ δ := (Cat.assoc _ _ _).symm
+        _ = (cov₂ ≫ kernelMap δ) ≫ δ := by rw [hcδw]
+        _ = cov₂ ≫ (kernelMap δ ≫ δ) := Cat.assoc _ _ _
+        _ = cov₂ ≫ zeroMorphism (Kernel δ) (Cokernel α) := by rw [kernelMap_comp δ]
+        _ = zeroMorphism pcδ.cone.pt (Cokernel α) :=
+            zero_morphism_comp cov₂ (zeroMorphism (Kernel δ) (Cokernel α))
+    -- factor lQ ≫ a' through α (after cover), via self-cokernel exactness of α.
+    obtain ⟨P₂, cov₃, aa, hcov₃, haa⟩ :=
+      relexact_cover_factor (relExact_self_cokernel α) (lQ ≫ a') hlQa'cok
+    -- bk := (cov₃ ≫ lQ ≫ q ≫ p_B) − (aa ≫ f) : P₂ → B is killed by β.
+    let bk : P₂ ⟶ B := HalfAdditiveCategory.add (cov₃ ≫ lQ ≫ q ≫ p_B) (neg (aa ≫ f))
+    have hbkβ : bk ≫ β = zeroMorphism P₂ B' := by
+      have key : (cov₃ ≫ lQ ≫ q ≫ p_B) ≫ β = (aa ≫ f) ≫ β := by
+        calc (cov₃ ≫ lQ ≫ q ≫ p_B) ≫ β = cov₃ ≫ lQ ≫ (q ≫ p_B ≫ β) := by simp only [Cat.assoc]
+          _ = cov₃ ≫ lQ ≫ (a' ≫ f') := by rw [hqa']
+          _ = (cov₃ ≫ (lQ ≫ a')) ≫ f' := by simp only [Cat.assoc]
+          _ = (aa ≫ α) ≫ f' := by rw [haa]
+          _ = aa ≫ (α ≫ f') := Cat.assoc _ _ _
+          _ = aa ≫ (f ≫ β) := by rw [hαβ]
+          _ = (aa ≫ f) ≫ β := (Cat.assoc _ _ _).symm
+      show HalfAdditiveCategory.add (cov₃ ≫ lQ ≫ q ≫ p_B) (neg (aa ≫ f)) ≫ β = _
+      rw [HalfAdditiveCategory.add_comp, neg_comp, key, add_neg,
+          zeroHom_eq_zeroMorphism' P₂ B']
+    let xk : P₂ ⟶ Kernel β := kernelLift β bk hbkβ
+    have hxk : xk ≫ kernelMap β = bk := kernelLift_fac β bk hbkβ
+    -- total cover and commutation  (cov₃ ≫ cov₂) ≫ kernelMap δ = xk ≫ κ_g  (cancel mono kernelMap γ).
+    let covT : P₂ ⟶ Kernel δ := cov₃ ≫ cov₂
+    have hcovT : Cover covT := cover_comp hcov₃ hcov₂
+    -- bk ≫ g = (cov₃ ≫ lQ ≫ q ≫ p_B) ≫ g  (the aa ≫ f summand dies: f ≫ g = 0).
+    have hbkg : bk ≫ g = (cov₃ ≫ lQ ≫ q ≫ p_B) ≫ g := by
+      show HalfAdditiveCategory.add (cov₃ ≫ lQ ≫ q ≫ p_B) (neg (aa ≫ f)) ≫ g = _
+      rw [HalfAdditiveCategory.add_comp, neg_comp]
+      have haafg : (aa ≫ f) ≫ g = HalfAdditiveCategory.zeroHom P₂ C := by
+        rw [Cat.assoc, hfg0, zero_morphism_comp aa (zeroMorphism A C),
+            ← zeroHom_eq_zeroMorphism' P₂ C]
+      rw [haafg, neg_zero P₂ C, HalfAdditiveCategory.add_zero]
+    -- covT ≫ kernelMap δ ≫ kernelMap γ = (cov₃ ≫ lQ ≫ q ≫ p_B) ≫ g.
+    have hLHSγ : (covT ≫ kernelMap δ) ≫ kernelMap γ = (cov₃ ≫ lQ ≫ q ≫ p_B) ≫ g := by
+      have hcc : covT ≫ kernelMap δ = cov₃ ≫ lQ ≫ q ≫ p_K := by
+        show (cov₃ ≫ cov₂) ≫ kernelMap δ = _
+        have hcq : cov₂ ≫ kernelMap δ = lQ ≫ q ≫ p_K := by
+          rw [← hcδw]
+        rw [Cat.assoc, hcq]
+      rw [hcc]
+      calc (cov₃ ≫ lQ ≫ q ≫ p_K) ≫ kernelMap γ
+          = cov₃ ≫ lQ ≫ q ≫ (p_K ≫ kernelMap γ) := by simp only [Cat.assoc]
+        _ = cov₃ ≫ lQ ≫ q ≫ (p_B ≫ g) := by rw [← hpbw]
+        _ = (cov₃ ≫ lQ ≫ q ≫ p_B) ≫ g := by simp only [Cat.assoc]
+    have hcomm₂ : covT ≫ kernelMap δ = xk ≫ κ_g := by
+      apply kernelMap_mono γ
+      calc (covT ≫ kernelMap δ) ≫ kernelMap γ
+          = (cov₃ ≫ lQ ≫ q ≫ p_B) ≫ g := hLHSγ
+        _ = bk ≫ g := hbkg.symm
+        _ = (xk ≫ kernelMap β) ≫ g := by rw [hxk]
+        _ = xk ≫ (kernelMap β ≫ g) := Cat.assoc _ _ _
+        _ = xk ≫ (κ_g ≫ kernelMap γ) := by rw [hκg]
+        _ = (xk ≫ κ_g) ≫ kernelMap γ := (Cat.assoc _ _ _).symm
+    obtain ⟨cc, hcc⟩ := mono_factors_image (kernelMap_mono δ) hcovT hcomm₂
+    exact relExact_intro hκgδ0 cc hcc
+  · -- ====================== RelExact δ π_f (exact at Cokernel α) ======================
+    -- δ ≫ π_f = 0  (cancel the cover c on the left; c ≫ δ = e, e ≫ π_f = (a'≫f')≫cokβ = 0).
+    have hδπf0 : δ ≫ π_f = zeroMorphism (Kernel γ) (Cokernel β) := by
+      apply cover_epi hc_cover
+      rw [zero_morphism_comp c (zeroMorphism (Kernel γ) (Cokernel β))]
+      calc c ≫ (δ ≫ π_f) = (c ≫ δ) ≫ π_f := (Cat.assoc _ _ _).symm
+        _ = e ≫ π_f := by rw [hcδ]
+        _ = a' ≫ (cokernelMap α ≫ π_f) := by show (a' ≫ cokernelMap α) ≫ π_f = _; rw [Cat.assoc]
+        _ = a' ≫ (f' ≫ cokernelMap β) := by rw [hπf]
+        _ = (a' ≫ f') ≫ cokernelMap β := (Cat.assoc _ _ _).symm
+        _ = (q ≫ p_B ≫ β) ≫ cokernelMap β := by rw [hqa']
+        _ = q ≫ p_B ≫ (β ≫ cokernelMap β) := by simp only [Cat.assoc]
+        _ = q ≫ p_B ≫ zeroMorphism B (Cokernel β) := by rw [comp_cokernelMap β]
+        _ = zeroMorphism Q (Cokernel β) := by
+            rw [zero_morphism_comp p_B (zeroMorphism B (Cokernel β)),
+                zero_morphism_comp q (zeroMorphism (HasPullback.cone (f := g) (g := kernelMap γ)).pt (Cokernel β))]
+    -- back-map: ker π_f ⊆ im δ.  Pull cover cokernelMap α back along kernelMap π_f.
+    let pcα := HasPullbacks.has (cokernelMap α) (kernelMap π_f)
+    let cov₂ : pcα.cone.pt ⟶ Kernel π_f := pcα.cone.π₂
+    let pA' : pcα.cone.pt ⟶ A' := pcα.cone.π₁
+    have hcov₂ : Cover cov₂ := cover_pullback (kernelMap π_f) (cokernelMap_cover α)
+    have hpcαw : pA' ≫ cokernelMap α = cov₂ ≫ kernelMap π_f := pcα.cone.w
+    -- pA' ≫ f' killed by cokernelMap β.
+    have hpA'f' : (pA' ≫ f') ≫ cokernelMap β = zeroMorphism pcα.cone.pt (Cokernel β) := by
+      calc (pA' ≫ f') ≫ cokernelMap β = pA' ≫ (f' ≫ cokernelMap β) := Cat.assoc _ _ _
+        _ = pA' ≫ (cokernelMap α ≫ π_f) := by rw [hπf]
+        _ = (pA' ≫ cokernelMap α) ≫ π_f := (Cat.assoc _ _ _).symm
+        _ = (cov₂ ≫ kernelMap π_f) ≫ π_f := by rw [hpcαw]
+        _ = cov₂ ≫ (kernelMap π_f ≫ π_f) := Cat.assoc _ _ _
+        _ = cov₂ ≫ zeroMorphism (Kernel π_f) (Cokernel β) := by rw [kernelMap_comp π_f]
+        _ = zeroMorphism pcα.cone.pt (Cokernel β) :=
+            zero_morphism_comp cov₂ (zeroMorphism (Kernel π_f) (Cokernel β))
+    -- factor pA' ≫ f' through β (after cover), via self-cokernel exactness of β.
+    obtain ⟨P₃, cov₃, bb, hcov₃, hbb⟩ :=
+      relexact_cover_factor (relExact_self_cokernel β) (pA' ≫ f') hpA'f'
+    -- bb ≫ g killed by γ, so lifts to Kernel γ.
+    have hbbgγ : (bb ≫ g) ≫ γ = zeroMorphism P₃ C' := by
+      calc (bb ≫ g) ≫ γ = bb ≫ (g ≫ γ) := Cat.assoc _ _ _
+        _ = bb ≫ (β ≫ g') := by rw [hβγ]
+        _ = (bb ≫ β) ≫ g' := (Cat.assoc _ _ _).symm
+        _ = (cov₃ ≫ (pA' ≫ f')) ≫ g' := by rw [hbb]
+        _ = cov₃ ≫ pA' ≫ (f' ≫ g') := by simp only [Cat.assoc]
+        _ = cov₃ ≫ pA' ≫ zeroMorphism A' C' := by rw [hf'g'0]
+        _ = zeroMorphism P₃ C' := by
+            rw [zero_morphism_comp pA' (zeroMorphism A' C'),
+                zero_morphism_comp cov₃ (zeroMorphism pcα.cone.pt C')]
+    let xk : P₃ ⟶ Kernel γ := kernelLift γ (bb ≫ g) hbbgγ
+    have hxk : xk ≫ kernelMap γ = bb ≫ g := kernelLift_fac γ (bb ≫ g) hbbgγ
+    -- pull cover c back along xk.
+    let pcx := HasPullbacks.has c xk
+    let cov₄ : pcx.cone.pt ⟶ P₃ := pcx.cone.π₂
+    let lQ : pcx.cone.pt ⟶ Q := pcx.cone.π₁
+    have hcov₄ : Cover cov₄ := cover_pullback xk hc_cover
+    have hcxw : lQ ≫ c = cov₄ ≫ xk := pcx.cone.w
+    -- dA' := (cov₄ ≫ cov₃ ≫ pA') − (lQ ≫ a') : pcx.pt → A'.
+    let dA' : pcx.cone.pt ⟶ A' :=
+      HalfAdditiveCategory.add (cov₄ ≫ cov₃ ≫ pA') (neg (lQ ≫ a'))
+    -- wB := (cov₄ ≫ bb) − (lQ ≫ q ≫ p_B) : pcx.pt → B is killed by g.
+    let wB : pcx.cone.pt ⟶ B :=
+      HalfAdditiveCategory.add (cov₄ ≫ bb) (neg (lQ ≫ q ≫ p_B))
+    have hwBg : wB ≫ g = zeroMorphism pcx.cone.pt C := by
+      have hc_kγ : c ≫ kernelMap γ = q ≫ p_B ≫ g := by
+        show (q ≫ p_K) ≫ kernelMap γ = _
+        rw [Cat.assoc, ← hpbw]
+      have key : (cov₄ ≫ bb) ≫ g = (lQ ≫ q ≫ p_B) ≫ g := by
+        calc (cov₄ ≫ bb) ≫ g = cov₄ ≫ (bb ≫ g) := Cat.assoc _ _ _
+          _ = cov₄ ≫ (xk ≫ kernelMap γ) := by rw [hxk]
+          _ = (cov₄ ≫ xk) ≫ kernelMap γ := (Cat.assoc _ _ _).symm
+          _ = (lQ ≫ c) ≫ kernelMap γ := by rw [← hcxw]
+          _ = lQ ≫ (c ≫ kernelMap γ) := Cat.assoc _ _ _
+          _ = lQ ≫ (q ≫ p_B ≫ g) := by rw [hc_kγ]
+          _ = (lQ ≫ q ≫ p_B) ≫ g := by simp only [Cat.assoc]
+      show HalfAdditiveCategory.add (cov₄ ≫ bb) (neg (lQ ≫ q ≫ p_B)) ≫ g = _
+      rw [HalfAdditiveCategory.add_comp, neg_comp, key, add_neg,
+          zeroHom_eq_zeroMorphism' pcx.cone.pt C]
+    -- factor wB through f (after cover).
+    obtain ⟨P₅, cov₅, aB, hcov₅, haB⟩ := relexact_cover_factor hfg wB hwBg
+    -- cov₅ ≫ dA' = aB ≫ α  (f' mono).
+    have hcov₅dA' : cov₅ ≫ dA' = aB ≫ α := by
+      apply hf'
+      have hdA'f' : dA' ≫ f' = wB ≫ β := by
+        show HalfAdditiveCategory.add (cov₄ ≫ cov₃ ≫ pA') (neg (lQ ≫ a')) ≫ f' = _
+        rw [HalfAdditiveCategory.add_comp, neg_comp]
+        have e₁ : (cov₄ ≫ cov₃ ≫ pA') ≫ f' = (cov₄ ≫ bb) ≫ β := by
+          calc (cov₄ ≫ cov₃ ≫ pA') ≫ f' = cov₄ ≫ (cov₃ ≫ (pA' ≫ f')) := by simp only [Cat.assoc]
+            _ = cov₄ ≫ (bb ≫ β) := by rw [hbb]
+            _ = (cov₄ ≫ bb) ≫ β := (Cat.assoc _ _ _).symm
+        have e₂ : (lQ ≫ a') ≫ f' = (lQ ≫ q ≫ p_B) ≫ β := by
+          calc (lQ ≫ a') ≫ f' = lQ ≫ (a' ≫ f') := Cat.assoc _ _ _
+            _ = lQ ≫ (q ≫ p_B ≫ β) := by rw [hqa']
+            _ = (lQ ≫ q ≫ p_B) ≫ β := by simp only [Cat.assoc]
+        rw [e₁, e₂]
+        show HalfAdditiveCategory.add ((cov₄ ≫ bb) ≫ β) (neg ((lQ ≫ q ≫ p_B) ≫ β))
+            = HalfAdditiveCategory.add (cov₄ ≫ bb) (neg (lQ ≫ q ≫ p_B)) ≫ β
+        rw [HalfAdditiveCategory.add_comp, neg_comp]
+      calc (cov₅ ≫ dA') ≫ f' = cov₅ ≫ (dA' ≫ f') := Cat.assoc _ _ _
+        _ = cov₅ ≫ (wB ≫ β) := by rw [hdA'f']
+        _ = (cov₅ ≫ wB) ≫ β := (Cat.assoc _ _ _).symm
+        _ = (aB ≫ f) ≫ β := by rw [haB]
+        _ = aB ≫ (f ≫ β) := Cat.assoc _ _ _
+        _ = aB ≫ (α ≫ f') := by rw [hαβ]
+        _ = (aB ≫ α) ≫ f' := (Cat.assoc _ _ _).symm
+    -- dA' ≫ cokernelMap α = 0  (cancel cover cov₅).
+    have hdA'cok : dA' ≫ cokernelMap α = zeroMorphism pcx.cone.pt (Cokernel α) := by
+      apply cover_epi hcov₅
+      calc cov₅ ≫ (dA' ≫ cokernelMap α) = (cov₅ ≫ dA') ≫ cokernelMap α := (Cat.assoc _ _ _).symm
+        _ = (aB ≫ α) ≫ cokernelMap α := by rw [hcov₅dA']
+        _ = aB ≫ (α ≫ cokernelMap α) := Cat.assoc _ _ _
+        _ = aB ≫ zeroMorphism A (Cokernel α) := by rw [comp_cokernelMap α]
+        _ = zeroMorphism P₅ (Cokernel α) := zero_morphism_comp aB (zeroMorphism A (Cokernel α))
+        _ = cov₅ ≫ zeroMorphism pcx.cone.pt (Cokernel α) :=
+            (zero_morphism_comp cov₅ (zeroMorphism pcx.cone.pt (Cokernel α))).symm
+    -- so (cov₄≫cov₃≫pA')≫cokα = (lQ≫a')≫cokα, both equal lQ≫e along the descent.
+    have hbridge : (cov₄ ≫ cov₃ ≫ pA') ≫ cokernelMap α = (lQ ≫ a') ≫ cokernelMap α := by
+      have hdist : dA' ≫ cokernelMap α
+          = HalfAdditiveCategory.add ((cov₄ ≫ cov₃ ≫ pA') ≫ cokernelMap α)
+              (neg ((lQ ≫ a') ≫ cokernelMap α)) := by
+        show HalfAdditiveCategory.add (cov₄ ≫ cov₃ ≫ pA') (neg (lQ ≫ a')) ≫ cokernelMap α = _
+        rw [HalfAdditiveCategory.add_comp, neg_comp]
+      have hzero : HalfAdditiveCategory.add ((cov₄ ≫ cov₃ ≫ pA') ≫ cokernelMap α)
+          (neg ((lQ ≫ a') ≫ cokernelMap α)) = HalfAdditiveCategory.zeroHom pcx.cone.pt (Cokernel α) := by
+        rw [← hdist, hdA'cok, ← zeroHom_eq_zeroMorphism' pcx.cone.pt (Cokernel α)]
+      refine add_right_cancel (Y := neg ((lQ ≫ a') ≫ cokernelMap α)) ?_
+      rw [hzero, add_neg]
+    -- total cover and commutation  (cov₄ ≫ cov₃ ≫ cov₂) ≫ kernelMap π_f = xk ≫ δ.
+    let covT : pcx.cone.pt ⟶ Kernel π_f := cov₄ ≫ cov₃ ≫ cov₂
+    have hcovT : Cover covT := cover_comp hcov₄ (cover_comp hcov₃ hcov₂)
+    -- xk ≫ δ : need (cov₄) ≫ (xk ≫ δ) related — descend via lQ ≫ c = cov₄ ≫ xk.
+    have hcomm₃ : covT ≫ kernelMap π_f = (cov₄ ≫ xk) ≫ δ := by
+      -- LHS = (cov₄ ≫ cov₃ ≫ pA') ≫ cokernelMap α  ;  RHS = lQ ≫ e = (lQ ≫ a') ≫ cokernelMap α.
+      have hL : covT ≫ kernelMap π_f = (cov₄ ≫ cov₃ ≫ pA') ≫ cokernelMap α := by
+        show (cov₄ ≫ cov₃ ≫ cov₂) ≫ kernelMap π_f = _
+        calc (cov₄ ≫ cov₃ ≫ cov₂) ≫ kernelMap π_f
+            = cov₄ ≫ cov₃ ≫ (cov₂ ≫ kernelMap π_f) := by simp only [Cat.assoc]
+          _ = cov₄ ≫ cov₃ ≫ (pA' ≫ cokernelMap α) := by rw [← hpcαw]
+          _ = (cov₄ ≫ cov₃ ≫ pA') ≫ cokernelMap α := by simp only [Cat.assoc]
+      have hR : (cov₄ ≫ xk) ≫ δ = (lQ ≫ a') ≫ cokernelMap α := by
+        calc (cov₄ ≫ xk) ≫ δ = (lQ ≫ c) ≫ δ := by rw [← hcxw]
+          _ = lQ ≫ (c ≫ δ) := Cat.assoc _ _ _
+          _ = lQ ≫ e := by rw [hcδ]
+          _ = (lQ ≫ a') ≫ cokernelMap α := by show lQ ≫ (a' ≫ cokernelMap α) = _; rw [Cat.assoc]
+      rw [hL, hR, hbridge]
+    obtain ⟨cc, hcc⟩ := mono_factors_image (kernelMap_mono π_f) hcovT
+      (show covT ≫ kernelMap π_f = (cov₄ ≫ xk) ≫ δ from hcomm₃)
+    exact relExact_intro hδπf0 cc hcc
+  · -- ====================== RelExact π_f π_g (exact at Cokernel β) ======================
+    -- π_f ≫ π_g = 0  (cancel the cover cokernelMap α on the left).
+    have hπfπg0 : π_f ≫ π_g = zeroMorphism (Cokernel α) (Cokernel γ) := by
+      apply cover_epi (cokernelMap_cover α)
+      rw [zero_morphism_comp (cokernelMap α) (zeroMorphism (Cokernel α) (Cokernel γ))]
+      calc cokernelMap α ≫ (π_f ≫ π_g) = (cokernelMap α ≫ π_f) ≫ π_g := (Cat.assoc _ _ _).symm
+        _ = (f' ≫ cokernelMap β) ≫ π_g := by rw [hπf]
+        _ = f' ≫ (cokernelMap β ≫ π_g) := Cat.assoc _ _ _
+        _ = f' ≫ (g' ≫ cokernelMap γ) := by rw [hπg]
+        _ = (f' ≫ g') ≫ cokernelMap γ := (Cat.assoc _ _ _).symm
+        _ = zeroMorphism A' C' ≫ cokernelMap γ := by rw [hf'g'0]
+        _ = zeroMorphism A' (Cokernel γ) := zeroMorphism_comp_left (cokernelMap γ)
+    -- back-map: factor kernelMap π_g through π_f.  Pull kernelMap π_g back along cover cokernelMap β.
+    let pbβ := HasPullbacks.has (cokernelMap β) (kernelMap π_g)
+    let cov₄ : pbβ.cone.pt ⟶ Kernel π_g := pbβ.cone.π₂
+    let pB' : pbβ.cone.pt ⟶ B' := pbβ.cone.π₁
+    have hcov₄ : Cover cov₄ := cover_pullback (kernelMap π_g) (cokernelMap_cover β)
+    have hpbβw : pB' ≫ cokernelMap β = cov₄ ≫ kernelMap π_g := pbβ.cone.w
+    -- pB' ≫ g' is killed by cokernelMap γ.
+    have hpB'g' : (pB' ≫ g') ≫ cokernelMap γ = zeroMorphism pbβ.cone.pt (Cokernel γ) := by
+      calc (pB' ≫ g') ≫ cokernelMap γ = pB' ≫ (g' ≫ cokernelMap γ) := Cat.assoc _ _ _
+        _ = pB' ≫ (cokernelMap β ≫ π_g) := by rw [hπg]
+        _ = (pB' ≫ cokernelMap β) ≫ π_g := (Cat.assoc _ _ _).symm
+        _ = (cov₄ ≫ kernelMap π_g) ≫ π_g := by rw [hpbβw]
+        _ = cov₄ ≫ (kernelMap π_g ≫ π_g) := Cat.assoc _ _ _
+        _ = cov₄ ≫ zeroMorphism (Kernel π_g) (Cokernel γ) := by rw [kernelMap_comp π_g]
+        _ = zeroMorphism pbβ.cone.pt (Cokernel γ) :=
+            zero_morphism_comp cov₄ (zeroMorphism (Kernel π_g) (Cokernel γ))
+    -- factor pB' ≫ g' through γ (after cover), via self-cokernel exactness of γ.
+    obtain ⟨P₂, e₂, zc, he₂, hzc⟩ :=
+      relexact_cover_factor (relExact_self_cokernel γ) (pB' ≫ g') hpB'g'
+    -- pull g back along zc (g cover): bB : P₃ → B with e₃ ≫ zc = bB ≫ g.
+    let pbg := HasPullbacks.has g zc
+    let e₃ : pbg.cone.pt ⟶ P₂ := pbg.cone.π₂
+    let bB : pbg.cone.pt ⟶ B := pbg.cone.π₁
+    have he₃ : Cover e₃ := cover_pullback zc hg
+    have hbBg : bB ≫ g = e₃ ≫ zc := pbg.cone.w
+    -- w := (e₃ ≫ e₂ ≫ pB') − (bB ≫ β) : P₃ → B' is killed by g'.
+    let w₄ : pbg.cone.pt ⟶ B' :=
+      HalfAdditiveCategory.add (e₃ ≫ e₂ ≫ pB') (neg (bB ≫ β))
+    have hw₄g' : w₄ ≫ g' = zeroMorphism pbg.cone.pt C' := by
+      have key : (e₃ ≫ e₂ ≫ pB') ≫ g' = (bB ≫ β) ≫ g' := by
+        calc (e₃ ≫ e₂ ≫ pB') ≫ g' = e₃ ≫ (e₂ ≫ (pB' ≫ g')) := by simp only [Cat.assoc]
+          _ = e₃ ≫ (zc ≫ γ) := by rw [hzc]
+          _ = (e₃ ≫ zc) ≫ γ := (Cat.assoc _ _ _).symm
+          _ = (bB ≫ g) ≫ γ := by rw [hbBg]
+          _ = bB ≫ (g ≫ γ) := Cat.assoc _ _ _
+          _ = bB ≫ (β ≫ g') := by rw [hβγ]
+          _ = (bB ≫ β) ≫ g' := (Cat.assoc _ _ _).symm
+      show HalfAdditiveCategory.add (e₃ ≫ e₂ ≫ pB') (neg (bB ≫ β)) ≫ g' = _
+      rw [HalfAdditiveCategory.add_comp, neg_comp, key, add_neg,
+          zeroHom_eq_zeroMorphism' pbg.cone.pt C']
+    -- factor w₄ through f' (after cover), via bottom interior exactness.
+    obtain ⟨P₄, e₄, a', he₄, ha'⟩ := relexact_cover_factor hf'g' w₄ hw₄g'
+    -- total cover and the candidate map into Cokernel α.
+    let covT : P₄ ⟶ Kernel π_g := e₄ ≫ e₃ ≫ e₂ ≫ cov₄
+    have hcovT : Cover covT :=
+      cover_comp he₄ (cover_comp he₃ (cover_comp he₂ hcov₄))
+    let xCok : P₄ ⟶ Cokernel α := a' ≫ cokernelMap α
+    -- covT ≫ kernelMap π_g = xCok ≫ π_f.
+    have hcomm₄ : covT ≫ kernelMap π_g = xCok ≫ π_f := by
+      -- LHS = e₄ ≫ e₃ ≫ e₂ ≫ (pB' ≫ cokernelMap β)
+      have hL : covT ≫ kernelMap π_g = e₄ ≫ e₃ ≫ e₂ ≫ (pB' ≫ cokernelMap β) := by
+        show (e₄ ≫ e₃ ≫ e₂ ≫ cov₄) ≫ kernelMap π_g = _
+        simp only [Cat.assoc]; rw [← hpbβw]
+      -- w₄ ≫ cokernelMap β = (e₃ ≫ e₂ ≫ pB') ≫ cokernelMap β  (the bB≫β summand dies).
+      have hwcok : w₄ ≫ cokernelMap β = (e₃ ≫ e₂ ≫ pB') ≫ cokernelMap β := by
+        show HalfAdditiveCategory.add (e₃ ≫ e₂ ≫ pB') (neg (bB ≫ β)) ≫ cokernelMap β = _
+        rw [HalfAdditiveCategory.add_comp, neg_comp]
+        have hbBβcok : (bB ≫ β) ≫ cokernelMap β
+            = HalfAdditiveCategory.zeroHom pbg.cone.pt (Cokernel β) := by
+          rw [Cat.assoc, comp_cokernelMap β,
+              zero_morphism_comp bB (zeroMorphism B (Cokernel β)),
+              ← zeroHom_eq_zeroMorphism' pbg.cone.pt (Cokernel β)]
+        rw [hbBβcok, neg_zero pbg.cone.pt (Cokernel β), HalfAdditiveCategory.add_zero]
+      -- xCok ≫ π_f = e₄ ≫ (e₃ ≫ e₂ ≫ pB') ≫ cokβ = RHS.
+      have hR : xCok ≫ π_f = e₄ ≫ e₃ ≫ e₂ ≫ (pB' ≫ cokernelMap β) := by
+        calc xCok ≫ π_f = a' ≫ (cokernelMap α ≫ π_f) := Cat.assoc _ _ _
+          _ = a' ≫ (f' ≫ cokernelMap β) := by rw [hπf]
+          _ = (a' ≫ f') ≫ cokernelMap β := (Cat.assoc _ _ _).symm
+          _ = (e₄ ≫ w₄) ≫ cokernelMap β := by rw [ha']
+          _ = e₄ ≫ (w₄ ≫ cokernelMap β) := Cat.assoc _ _ _
+          _ = e₄ ≫ ((e₃ ≫ e₂ ≫ pB') ≫ cokernelMap β) := by rw [hwcok]
+          _ = e₄ ≫ e₃ ≫ e₂ ≫ (pB' ≫ cokernelMap β) := by simp only [Cat.assoc]
+      rw [hL, hR]
+    obtain ⟨cc, hcc⟩ := mono_factors_image (kernelMap_mono π_g) hcovT hcomm₄
+    exact relExact_intro hπfπg0 cc hcc
 
 end Freyd
