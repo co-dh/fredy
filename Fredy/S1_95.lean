@@ -1238,15 +1238,115 @@ theorem topos_value_based_iff_terminal_progenitor [Topos 𝒞] :
   -- both sides unfold to `IsGeneratingSet (fun X => ∃ m : X ⟶ one, Mono m)`
   Iff.rfl
 
+/-- The swap-transpose `Φ : (G ⟶ Ω^B) → (B ⟶ Ω^G)`: uncurry `k` (exponent base `B`),
+    swap the product factors, then curry (exponent base `G`).  This realises the natural
+    bijection `Hom(G, Ω^B) ≅ Hom(prod B G, Ω) ≅ Hom(prod G B, Ω) ≅ Hom(B, Ω^G)`. -/
+private noncomputable def swapTranspose [Topos 𝒞] {G B : 𝒞}
+    (k : G ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞) ^^ B) :
+    B ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞) ^^ G :=
+  curry (prodSwap G B ≫ prodMap B G (HasSubobjectClassifier.omega ^^ B) k ≫
+    eval_exp B (HasSubobjectClassifier.omega (𝒞 := 𝒞)))
+
+/-- **`swapTranspose` is injective.**  It is a curry of a precomposition by the iso
+    `prodSwap`, so injective. -/
+private theorem swapTranspose_inj [Topos 𝒞] {G B : 𝒞}
+    {k k' : G ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞) ^^ B}
+    (h : swapTranspose k = swapTranspose k') : k = k' := by
+  let Ω := HasSubobjectClassifier.omega (𝒞 := 𝒞)
+  -- curry_inj then strip the prodSwap iso, then curry-cancel the uncurry.
+  have h1 : prodSwap G B ≫ prodMap B G (Ω ^^ B) k ≫ eval_exp B Ω =
+            prodSwap G B ≫ prodMap B G (Ω ^^ B) k' ≫ eval_exp B Ω := curry_inj h
+  have h2 : prodMap B G (Ω ^^ B) k ≫ eval_exp B Ω =
+            prodMap B G (Ω ^^ B) k' ≫ eval_exp B Ω := by
+    have := congrArg (prodSwap B G ≫ ·) h1
+    simpa only [← Cat.assoc, prodSwap_prodSwap, Cat.id_comp] using this
+  -- k = curry (uncurry k) = curry (uncurry k') = k'
+  have hk : k = curry (prodMap B G (Ω ^^ B) k ≫ eval_exp B Ω) := curry_unique_eq rfl
+  have hk' : k' = curry (prodMap B G (Ω ^^ B) k' ≫ eval_exp B Ω) := curry_unique_eq rfl
+  rw [hk, hk', h2]
+
+/-- **Naturality of `swapTranspose` in the contravariant slot.**
+    `f ≫ swapTranspose k = swapTranspose (k ≫ expMap Ω f)`.  This is the exponential
+    bifunctor naturality square that turns "`Ω^f` is distinguished by `k`" into
+    "`f` is distinguished by `swapTranspose k`". -/
+private theorem swapTranspose_natural [Topos 𝒞] {G A B : 𝒞}
+    (f : A ⟶ B) (k : G ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞) ^^ B) :
+    f ≫ swapTranspose k = swapTranspose (k ≫ expMap (HasSubobjectClassifier.omega (𝒞 := 𝒞)) f) := by
+  let Ω := HasSubobjectClassifier.omega (𝒞 := 𝒞)
+  -- LHS = curry (prodMap G A B f ≫ swapBody k)   (curry_precomp_exp)
+  -- RHS = curry (swapBody (k ≫ Ω^f))
+  -- suffices: the two uncurried bodies agree on prod G A.
+  rw [swapTranspose, swapTranspose, curry_precomp_exp]
+  congr 1
+  -- prodMap G A B f ≫ prodSwap G B ≫ prodMap B G (Ω^B) k ≫ eval_B
+  --   = prodSwap G A ≫ prodMap A G (Ω^A) (k ≫ Ω^f) ≫ eval_A
+  -- Expand (k ≫ Ω^f) via prodMap_comp; β-law of Ω^f = curry(prodMapLeft f ≫ eval_B).
+  have hβ : prodMap A (Ω ^^ B) (Ω ^^ A) (expMap Ω f) ≫ eval_exp A Ω =
+            prodMapLeft (Ω ^^ B) f ≫ eval_exp B Ω := by
+    rw [expMap]; exact curry_eval_eq _
+  -- RHS rewrite: prodMap A G (Ω^A) (k ≫ Ω^f) = prodMap A G (Ω^B) k ≫ prodMap A (Ω^B) (Ω^A) (Ω^f)
+  rw [prodMap_comp, Cat.assoc, hβ]
+  -- Both sides are `front ≫ eval_exp B Ω`; the two fronts (`prod G A ⟶ prod B (Ω^B)`)
+  -- collapse to the same normal form `nf := pair (snd≫f) (fst≫k)`.
+  simp only [prodMap, prodMapLeft, prodSwap]
+  have hL : (pair (fst : prod G A ⟶ G) (snd ≫ f) ≫ pair snd fst ≫ pair fst (snd ≫ k) :
+        prod G A ⟶ prod B (Ω ^^ B)) = pair (snd ≫ f) (fst ≫ k) :=
+    pair_uniq _ _ _
+      (by rw [Cat.assoc, Cat.assoc, fst_pair, fst_pair, snd_pair])
+      (by rw [Cat.assoc, Cat.assoc, snd_pair, ← Cat.assoc (pair snd fst), snd_pair,
+              ← Cat.assoc, fst_pair])
+  have hR : (pair (snd : prod G A ⟶ A) fst ≫ pair fst (snd ≫ k) ≫ pair (fst ≫ f) snd :
+        prod G A ⟶ prod B (Ω ^^ B)) = pair (snd ≫ f) (fst ≫ k) :=
+    pair_uniq _ _ _
+      (by rw [Cat.assoc, Cat.assoc, fst_pair, ← Cat.assoc (pair fst (snd ≫ k)), fst_pair,
+              ← Cat.assoc, fst_pair])
+      (by rw [Cat.assoc, Cat.assoc, snd_pair, snd_pair, ← Cat.assoc, snd_pair])
+  -- Group off the common `eval_exp B Ω` tail, rewrite both fronts to `nf`, regroup.
+  calc pair (fst : prod G A ⟶ G) (snd ≫ f) ≫ pair snd fst ≫ pair fst (snd ≫ k) ≫ eval_exp B Ω
+      = (pair (fst : prod G A ⟶ G) (snd ≫ f) ≫ pair snd fst ≫ pair fst (snd ≫ k)) ≫ eval_exp B Ω :=
+        by rw [Cat.assoc, Cat.assoc]
+    _ = pair (snd ≫ f) (fst ≫ k) ≫ eval_exp B Ω := by rw [hL]
+    _ = (pair (snd : prod G A ⟶ A) fst ≫ pair fst (snd ≫ k) ≫ pair (fst ≫ f) snd) ≫ eval_exp B Ω :=
+        by rw [hR]
+    _ = pair (snd : prod G A ⟶ A) fst ≫ pair fst (snd ≫ k) ≫ pair (fst ≫ f) snd ≫ eval_exp B Ω :=
+        by rw [Cat.assoc, Cat.assoc]
+
 /-- **§1.966**: If G is a progenitor for a topos, then Ω^G is a cogenerator:
     given f ≠ g : A → B there exists h : B → Ω^G with f ≫ h ≠ g ≫ h.
-    Proof: (−, Ω^G) and (G, Ω^(−)) are naturally equivalent (exponential adjunction),
-    so Ω^G cogenerates iff (G, Ω^(−)) is an embedding; use that Ω^f ≠ Ω^g
-    (Ω internally cogenerates [1.965]) and G generates to find the witness. -/
+
+    Proof.  `Ω` internally cogenerates (§1.965), so `f ≠ g ⟹ Ω^f ≠ Ω^g : Ω^B → Ω^A`.
+    `G` is a progenitor, so its subobjects generate: there is a subobject `m : G' ↣ G`
+    and `k : G' → Ω^B` with `k ≫ Ω^f ≠ k ≫ Ω^g`.  `Ω^B` is injective (`exp` of the
+    injective `Ω`), so `k` extends along `m` to `k̄ : G → Ω^B` with `m ≫ k̄ = k`; then
+    `k̄ ≫ Ω^f ≠ k̄ ≫ Ω^g` (precomposition by `m` can't equalise them).  Finally
+    `h := swapTranspose k̄ : B → Ω^G`; naturality `f ≫ h = swapTranspose (k̄ ≫ Ω^f)`
+    and injectivity of `swapTranspose` give `f ≫ h ≠ g ≫ h`. -/
 theorem progenitor_omega_exp_cogenerates [Topos 𝒞] (G : 𝒞) (hG : IsProgenitor G) :
     ∀ {A B : 𝒞} (f g : A ⟶ B), f ≠ g →
       ∃ (h : B ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞) ^^ G), f ≫ h ≠ g ≫ h := by
-  sorry
+  intro A B f g hfg
+  let Ω := HasSubobjectClassifier.omega (𝒞 := 𝒞)
+  -- (1) Ω internally cogenerates ⟹ Ω^f ≠ Ω^g.
+  have hexp : expMap Ω f ≠ expMap Ω g := fun h => hfg (omega_internally_cogenerates f g h)
+  -- (2) G is a progenitor: subobjects of G generate.  Contrapositive of IsGeneratingSet
+  -- applied to the distinct maps Ω^f, Ω^g : Ω^B → Ω^A.
+  have hgen := hG (expMap Ω f) (expMap Ω g)
+  obtain ⟨G', ⟨m, hm⟩, k, hk⟩ : ∃ G' : 𝒞, (∃ m : G' ⟶ G, Mono m) ∧
+      ∃ k : G' ⟶ Ω ^^ B, k ≫ expMap Ω f ≠ k ≫ expMap Ω g :=
+    -- Contrapositive of `IsGeneratingSet`: ¬(Ω^f = Ω^g) gives a distinguishing subobject map.
+    Classical.byContradiction fun hcon => hexp <| hgen fun G' hG' k =>
+      Classical.byContradiction fun hne => hcon ⟨G', hG', k, hne⟩
+  -- (3) Ω^B is injective; extend k along the mono m to k̄ : G → Ω^B with m ≫ k̄ = k.
+  have hinj : IsInjective (Ω ^^ B) := exp_of_injective_is_injective omega_is_injective B
+  obtain ⟨kbar, hkbar⟩ := hinj m hm k
+  -- (4) k̄ ≫ Ω^f ≠ k̄ ≫ Ω^g (precompose with m can't equalise; m ≫ k̄ = k).
+  have hkbar_ne : kbar ≫ expMap Ω f ≠ kbar ≫ expMap Ω g := by
+    intro hbad
+    exact hk (by rw [← hkbar, Cat.assoc, Cat.assoc, hbad])
+  -- (5) h := swapTranspose k̄; naturality + injectivity give f ≫ h ≠ g ≫ h.
+  refine ⟨swapTranspose kbar, ?_⟩
+  rw [swapTranspose_natural f kbar, swapTranspose_natural g kbar]
+  exact fun heq => hkbar_ne (swapTranspose_inj heq)
 
 /-! ## §1.967  Arbitrary powers ↔ arbitrary copowers ↔ arbitrary copowers of 1 -/
 
