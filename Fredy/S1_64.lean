@@ -2737,7 +2737,7 @@ theorem one_one_choice_to_boolean [HasBinaryProducts 𝒞]
     `ψ : U.dom + U₂.dom ≅ A` with `inl ≫ ψ = U.arr` and `inr ≫ ψ = U₂.arr`.  This is
     `complementedSub_iso_coproduct` refined to expose the legs (needed so a copairing
     `case s₁ s₂` post-composed with `ψ⁻¹` restricts each section to its half of `A`). -/
-private theorem complemented_legs_iso [HasBinaryProducts 𝒞] {A : 𝒞} (U U₂ : Subobject 𝒞 A)
+theorem complemented_legs_iso [HasBinaryProducts 𝒞] {A : 𝒞} (U U₂ : Subobject 𝒞 A)
     (hdisj : Subobject.le (Subobject.inter U U₂) (PreLogos.bottom A))
     (hentire : Subobject.le (Subobject.entire A) (HasSubobjectUnions.union U U₂)) :
     ∃ (ψ : HasBinaryCoproducts.coprod U.dom U₂.dom ⟶ A)

@@ -890,6 +890,190 @@ theorem slice_choice_of_dom_choice (Y : Over B) (hY : Choice Y.dom) : Choice Y :
 
 end sliceChoice
 
+/-! ## §1.662 Diaconescu (2)→(3): `Choice (1+1) ⟹ Boolean`
+
+  Freyd's route, run inside the slice `𝒮(A×A) = Over (prod A A)` (a `PreToposDisjoint` +
+  `HasReflTransClosure` via the slice instances above).  The diagonal `Δ_A : A ↣ A×A` is a
+  subterminal `U ⊆ 1_𝒮` in the slice; complementing `U` there transports down to
+  `DecidableObject A`, and `preTopos_boolean_iff_all_decidable.mpr` finishes.
+
+  PIECE B (here): the explicit distributivity ISO `distOPO B : (B+B) ≅ (1+1)×B` with
+  `distOPO B ≫ snd = ∇`.  It pins the `B`-coordinate of a retargeted relation, feeding
+  `choice_prod_pinned`. -/
+
+section Diaconescu
+open HasBinaryCoproducts
+
+variable [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞]
+
+/-- The explicit distributivity comparison `(B+B) → (1+1)×B`,
+    `case (pair (term≫inl) id) (pair (term≫inr) id)`.  An ISO (`distOPO_iso`); its `snd`
+    component is the codiagonal `∇ = case id id` (`distOPO_snd`), which is the pin used by
+    `choice_prod_pinned`. -/
+noncomputable def distOPO (B : 𝒞) :
+    coprod B B ⟶ prod (coprod (one : 𝒞) one) B :=
+  case (pair (term B ≫ inl) (Cat.id B)) (pair (term B ≫ inr) (Cat.id B))
+
+/-- The distributivity comparison's middle leg `(1×B)+(1×B) → (1+1)×B` (an iso by
+    `complemented_legs_iso` for the distributivity-summand complemented pair). -/
+noncomputable def distComp (B : 𝒞) :
+    coprod (prod (one : 𝒞) B) (prod (one : 𝒞) B) ⟶ prod (coprod (one : 𝒞) one) B :=
+  case (prodCoprodInl one one B) (prodCoprodInr one one B)
+
+/-- The distributivity comparison's prefix `(B+B) → (1×B)+(1×B)` (coproduct of the
+    `B ≅ 1×B` iso, hence iso). -/
+noncomputable def distPre (B : 𝒞) :
+    coprod B B ⟶ coprod (prod (one : 𝒞) B) (prod (one : 𝒞) B) :=
+  case (prodOneLeftInv B ≫ inl) (prodOneLeftInv B ≫ inr)
+
+/-- `distComp B` is iso: its two legs are exactly the distributivity-summand inclusions
+    `prodCoprodInl/Inr`, a complemented pair (`prodCoprod_inter_le_bottom` /
+    `prodCoprod_entire_le_union`), so `complemented_legs_iso` gives the inverse. -/
+theorem distComp_iso (B : 𝒞) : IsIso (distComp B) := by
+  obtain ⟨ψ, ψinv, hψψ, hψinvψ, hl, hr⟩ :=
+    complemented_legs_iso (prodCoprodInlSub one one B) (prodCoprodInrSub one one B)
+      (prodCoprod_inter_le_bottom one one B) (prodCoprod_entire_le_union one one B)
+  have hd : distComp B = ψ := (case_uniq _ _ ψ hl hr).symm
+  rw [hd]; exact ⟨ψinv, hψψ, hψinvψ⟩
+
+/-- `distPre B` is iso (coproduct of the `prodOneLeftInv`/`snd` iso pair). -/
+theorem distPre_iso (B : 𝒞) : IsIso (distPre B) := by
+  refine ⟨case ((snd : prod (one : 𝒞) B ⟶ B) ≫ inl) ((snd : prod (one : 𝒞) B ⟶ B) ≫ inr),
+    ?_, ?_⟩
+  · refine (case_uniq _ _ _ ?_ ?_).trans
+      (case_uniq inl inr (Cat.id _) (Cat.comp_id _) (Cat.comp_id _)).symm
+    · rw [← Cat.assoc, distPre, case_inl, Cat.assoc, case_inl, ← Cat.assoc, prodOneLeftInv_snd,
+        Cat.id_comp]
+    · rw [← Cat.assoc, distPre, case_inr, Cat.assoc, case_inr, ← Cat.assoc, prodOneLeftInv_snd,
+        Cat.id_comp]
+  · refine (case_uniq _ _ _ ?_ ?_).trans
+      (case_uniq inl inr (Cat.id _) (Cat.comp_id _) (Cat.comp_id _)).symm
+    · rw [← Cat.assoc, case_inl, Cat.assoc, distPre, case_inl, ← Cat.assoc, snd_prodOneLeftInv,
+        Cat.id_comp]
+    · rw [← Cat.assoc, case_inr, Cat.assoc, distPre, case_inr, ← Cat.assoc, snd_prodOneLeftInv,
+        Cat.id_comp]
+
+/-- `distOPO = distPre ≫ distComp` (both factor legs agree after `fst`/`snd`). -/
+theorem distOPO_factor (B : 𝒞) : distOPO B = distPre B ≫ distComp B := by
+  refine (case_uniq (A := B) (B := B) (pair (term B ≫ inl) (Cat.id B))
+    (pair (term B ≫ inr) (Cat.id B)) (distPre B ≫ distComp B) ?_ ?_).symm
+  · rw [← Cat.assoc, distPre, case_inl, Cat.assoc, distComp, case_inl]
+    apply fst_snd_jointly_monic
+    · rw [fst_pair, Cat.assoc, prodCoprodInl, fst_pair, ← Cat.assoc]
+      show (prodOneLeftInv B ≫ fst) ≫ inl = term B ≫ inl
+      congr 1; exact term_uniq _ _
+    · rw [snd_pair, Cat.assoc, prodCoprodInl, snd_pair, prodOneLeftInv_snd]
+  · rw [← Cat.assoc, distPre, case_inr, Cat.assoc, distComp, case_inr]
+    apply fst_snd_jointly_monic
+    · rw [fst_pair, Cat.assoc, prodCoprodInr, fst_pair, ← Cat.assoc]
+      show (prodOneLeftInv B ≫ fst) ≫ inr = term B ≫ inr
+      congr 1; exact term_uniq _ _
+    · rw [snd_pair, Cat.assoc, prodCoprodInr, snd_pair, prodOneLeftInv_snd]
+
+/-- **PIECE B**: the distributivity comparison `(B+B) → (1+1)×B` is an ISO. -/
+theorem distOPO_iso (B : 𝒞) : IsIso (distOPO B) := by
+  rw [distOPO_factor]
+  obtain ⟨pinv, hp1, hp2⟩ := distPre_iso B
+  obtain ⟨cinv, hc1, hc2⟩ := distComp_iso B
+  exact ⟨cinv ≫ pinv, by rw [Cat.assoc, ← Cat.assoc (distComp B), hc1, Cat.id_comp, hp1],
+    by rw [Cat.assoc, ← Cat.assoc pinv, hp2, Cat.id_comp, hc2]⟩
+
+/-- `distOPO B` is monic (it is an iso). -/
+theorem distOPO_mono (B : 𝒞) : Mono (distOPO B) := by
+  obtain ⟨g, hfg, _⟩ := distOPO_iso B
+  intro W u v huv
+  have := congrArg (· ≫ g) huv
+  simpa only [Cat.assoc, hfg, Cat.comp_id] using this
+
+/-- The pin: `distOPO B ≫ snd = ∇ = case id id` (the codiagonal on `B`). -/
+theorem distOPO_snd (B : 𝒞) :
+    distOPO B ≫ snd = case (Cat.id B) (Cat.id B) := by
+  refine case_uniq _ _ _ ?_ ?_
+  · rw [← Cat.assoc]; show (inl ≫ distOPO B) ≫ snd = _; rw [distOPO, case_inl, snd_pair]
+  · rw [← Cat.assoc]; show (inr ≫ distOPO B) ≫ snd = _; rw [distOPO, case_inr, snd_pair]
+
+/-- **PIECE C — slice choice of the codiagonal**.  From base `Choice (1+1)` alone, the slice
+    coproduct `1_𝒮 + 1_𝒮 = (B+B, ∇)` over `B := A×A` is `Choice` in `Over B`.
+
+    A slice entire relation `R : X → 1_𝒮+1_𝒮` forgets to a base entire `R̄ : X.dom → B+B`.
+    Retarget `R̄`'s `colB` by the monic ISO `distOPO B : B+B ↣ (1+1)×B` to a base relation
+    `R' : X.dom → (1+1)×B` (the monic pair survives because `distOPO` is monic).  The `B`-coordinate
+    is PINNED: `R'.colB ≫ snd = R̄.colB ≫ ∇ = R.src.hom = R̄.colA ≫ X.hom` (`R.colB.w`, `R.colA.w`).
+    `choice_prod_pinned` (`T := 1+1`, `C := B`, `p := X.hom`) sections `R'` from `Choice (1+1)`
+    alone, giving a witness `w : X.dom → R.src.dom`.  The slice value `w ≫ R̄.colB : X.dom → B+B`
+    and `w` are *automatically* slice arrows (their composites with the structure maps collapse
+    via `R`'s legs), exactly as in `slice_choice_of_dom_choice`. -/
+theorem slice_choice_codiag (A : 𝒞)
+    (hch : Choice (coprod (one : 𝒞) one)) :
+    Choice (coprod (HasTerminal.one : Over (prod A A)) HasTerminal.one) := by
+  intro X R hent
+  let B := prod A A
+  have hcov : Cover R.colA :=
+    (tabulated_is_entire_iff_left_cover R.colA R.colB R.isMonicPair).mp hent
+  have hcovf : Cover R.colA.f := cover_f_of_cover R.colA hcov
+  -- structure map of the slice coproduct is `∇ = case (id B) (id B)`.
+  have hnabla : R.colB.f ≫ case (Cat.id B) (Cat.id B) = R.src.hom := R.colB.w
+  -- retargeted base relation with `colB := R̄.colB ≫ distOPO B`.
+  have hp' : MonicPair R.colA.f (R.colB.f ≫ distOPO B) := by
+    intro W u v hua hub
+    apply R.forgetSlice.isMonicPair u v hua
+    apply distOPO_mono B
+    calc (u ≫ R.colB.f) ≫ distOPO B = u ≫ (R.colB.f ≫ distOPO B) := Cat.assoc _ _ _
+      _ = v ≫ (R.colB.f ≫ distOPO B) := hub
+      _ = (v ≫ R.colB.f) ≫ distOPO B := (Cat.assoc _ _ _).symm
+  let R' : BinRel 𝒞 X.dom (prod (coprod (one : 𝒞) one) B) :=
+    BinRel.mk R.src.dom R.colA.f (R.colB.f ≫ distOPO B) hp'
+  have hentR' : Entire R' :=
+    (tabulated_is_entire_iff_left_cover R.colA.f (R.colB.f ≫ distOPO B) hp').mpr hcovf
+  have hpin : R'.colB ≫ snd = R'.colA ≫ X.hom := by
+    show (R.colB.f ≫ distOPO B) ≫ snd = R.colA.f ≫ X.hom
+    rw [Cat.assoc, distOPO_snd, hnabla]; exact (R.colA.w).symm
+  obtain ⟨f, w, hwA, hwB⟩ := choice_prod_pinned hch R' hentR' X.hom hpin
+  have hwA' : w ≫ R.colA.f = Cat.id X.dom := hwA
+  have hsecw : w ≫ R.src.hom = X.hom := by
+    have e2 : w ≫ (R.colA.f ≫ X.hom) = w ≫ R.src.hom := by rw [R.colA.w]
+    rw [← Cat.assoc, hwA', Cat.id_comp] at e2; rw [← e2]
+  have hgw : (w ≫ R.colB.f) ≫ case (Cat.id B) (Cat.id B) = X.hom := by
+    rw [Cat.assoc, hnabla, hsecw]
+  refine ⟨⟨w ≫ R.colB.f, hgw⟩, ⟨w, hsecw⟩, ?_, ?_⟩
+  · apply OverHom.ext; show w ≫ R.colA.f = Cat.id X.dom; exact hwA'
+  · apply OverHom.ext; show w ≫ R.colB.f = w ≫ R.colB.f; rfl
+
+/-! ### PIECE A scaffolding — the antidiagonal of `1+1`
+
+  Toward `DecidableObject (1+1)` (the single remaining base fact, see the residual note below):
+  the diagonal `Δ_{1+1} = diag (1+1)` and its candidate complement `adiag` are both clean monos
+  out of `1+1` into `(1+1)×(1+1)`.  `adiag` is the "swap" point map `case (pair inl inr)
+  (pair inr inl)`.  The two `IsComplementedSub` clauses for `(Δ, adiag)` are what remain, and
+  they reduce to coproduct extensivity (not yet available at this layer). -/
+
+/-- The antidiagonal `(1+1) ↣ (1+1)×(1+1)`, `case (pair inl inr) (pair inr inl)` — the candidate
+    complement of the diagonal `Δ_{1+1}`. -/
+noncomputable def adiag :
+    coprod (one : 𝒞) one ⟶ prod (coprod (one : 𝒞) one) (coprod (one : 𝒞) one) :=
+  case (pair (inl : (one : 𝒞) ⟶ _) inr) (pair (inr : (one : 𝒞) ⟶ _) inl)
+
+theorem adiag_fst : adiag (𝒞 := 𝒞) ≫ fst = case inl inr := by
+  refine case_uniq _ _ _ ?_ ?_
+  · rw [← Cat.assoc]; show (inl ≫ adiag) ≫ fst = _; rw [adiag, case_inl, fst_pair]
+  · rw [← Cat.assoc]; show (inr ≫ adiag) ≫ fst = _; rw [adiag, case_inr, fst_pair]
+
+theorem adiag_snd : adiag (𝒞 := 𝒞) ≫ snd = case inr inl := by
+  refine case_uniq _ _ _ ?_ ?_
+  · rw [← Cat.assoc]; show (inl ≫ adiag) ≫ snd = _; rw [adiag, case_inl, snd_pair]
+  · rw [← Cat.assoc]; show (inr ≫ adiag) ≫ snd = _; rw [adiag, case_inr, snd_pair]
+
+/-- `adiag` is monic: post-`fst` gives `case inl inr = id`, which already cancels. -/
+theorem adiag_mono : Mono (adiag (𝒞 := 𝒞)) := by
+  intro W u v huv
+  have hf : u ≫ case inl inr = v ≫ case inl inr := by
+    have := congrArg (· ≫ fst) huv; simpa only [Cat.assoc, adiag_fst] using this
+  have hid1 : case (inl : (one : 𝒞) ⟶ _) inr = Cat.id (coprod one one) :=
+    (case_uniq inl inr (Cat.id _) (Cat.comp_id _) (Cat.comp_id _)).symm
+  rw [hid1, Cat.comp_id, Cat.comp_id] at hf; exact hf
+
+end Diaconescu
+
 /-! ## Residual: completing the slice pre-topos tower (toward §1.662 Diaconescu)
 
   Rungs 1, 2, 3, 4 are now DONE Sorry-free above:
@@ -935,16 +1119,33 @@ end sliceChoice
      base `Choice T` ALONE sections a relation targeted at `prod T C`, no `Choice C`) with
      `T := 1+1`, `C := B`, `p := X.hom` produces the base section; lift it back to the slice.
 
-     REMAINING ASSEMBLY (the honestly-open work; none of it is a wall, all of it is routine but
-     sizeable, hence not yet discharged).  (i) `IsIso (distOPO B)` — the explicit distributivity iso
-     (the `Isomorphic`-valued `coprodProdDistrib one one B` hides the injection behaviour, so the
-     inverse must be built directly: `distOPO B` is monic + a cover in the pre-topos, hence iso).
-     (ii) `slice_choice_codiag : Choice (1_𝒮 + 1_𝒮)` packaging forget→retarget→pin→`choice_prod_pinned`
-     →lift.  (iii) slice DECIDABILITY of `1_𝒮 + 1_𝒮` (`DecidableObject` in `Over B` of the slice
-     codiagonal — no lemma yet).  (iv) the slice→base COMPLEMENT TRANSPORT via the choice-free
-     `forgetSlice`/`liftSlice` lattice iso (`Subobject.forgetSlice_mono`/`reflects`): the slice-Δ over
-     `1_𝒮 = (B, id)` forgets to the BASE diagonal subobject `(A, diag A) ⊆ A×A`, so "Δ complemented in
-     the slice" transports to `DecidableObject A`.  With (i)–(iv) Freyd's pushout argument runs inside
-     `𝒮(A×A)` and `one_one_choice_to_boolean` closes via `preTopos_boolean_iff_all_decidable.mpr`. -/
+     ASSEMBLY STATUS.
+       (i) ✅ `distOPO_iso : IsIso (distOPO B)` — built ABOVE, but NOT via the suggested
+           monic+cover route (which itself needs `1+1` decidable, circular).  Instead
+           `distOPO = distPre ≫ distComp` where `distComp = case (prodCoprodInl) (prodCoprodInr)`
+           is iso by `complemented_legs_iso` on the §1.626 distributivity-summand complemented
+           pair (`prodCoprod_inter_le_bottom`/`prodCoprod_entire_le_union`), and `distPre` is a
+           coproduct of the `B ≅ 1×B` iso.  `distOPO_snd : distOPO B ≫ snd = ∇`.
+       (ii) ✅ `slice_choice_codiag : Choice (1_𝒮 + 1_𝒮)` — built ABOVE
+           (forget→retarget by `distOPO`→pin→`choice_prod_pinned`→slice lift).  Axiom-clean.
+       (iii) ⛔ slice DECIDABILITY of `1_𝒮 + 1_𝒮`, which Freyd's argument reduces to BASE
+           decidability of `1+1` (the `B` factor rides along the fibered product `(B+B)×_B(B+B)`).
+           BASE `DecidableObject (1+1)` = the diagonal `Δ_{1+1} : (1+1) ↣ (1+1)×(1+1)` complemented.
+           Its complement is `adiagSub := ⟨1+1, adiag, adiag_mono⟩` with
+           `adiag = case (pair inl inr) (pair inr inl)` (both `Δ`, `Δᶜ` are clean monos from `1+1`;
+           `adiag_mono` is provable since `case inl inr = id`).  The two `IsComplementedSub` clauses
+           — `Δ ∩ Δᶜ ≤ ⊥` and `⊤ ≤ Δ ∪ Δᶜ` — both reduce to COPRODUCT EXTENSIVITY (pullback-stable
+           case analysis on `1+1`: e.g. disjointness needs `q = q ≫ swap ⟹ apex initial`, which is
+           the `inl/inr` clash only after splitting `q : apex → 1+1` along the coproduct).  Bare
+           `PreToposDisjoint` supplies `coprod_inl_inr_disjoint_elt` (clash of LITERAL `inl`/`inr`)
+           but NOT the pullback-stable decomposition of an arbitrary `q`.  The §1.61 `DisjointGluing`
+           / `disjoint_cover_is_coproduct` extensivity layer is gated on `[Topos 𝒞]`, not available
+           here.  THIS is the precise remaining wall.
+       (iv) (slice→base complement transport via `forgetSlice_mono`/`reflects`) and the §1.651
+           pushout completion (`amalgamation_is_pullback` + `quotient_of_choice_is_choice` +
+           subobject-of-decidable-is-decidable) are unblocked once (iii) lands.
+
+     So `one_one_choice_to_boolean` is reduced to a SINGLE base fact: `DecidableObject (1+1)`
+     (PIECE A), whose elementary proof needs coproduct extensivity not yet available at this layer. -/
 
 end Freyd
