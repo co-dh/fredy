@@ -1328,24 +1328,29 @@ end Diaconescu
            coproduct of the `B ≅ 1×B` iso.  `distOPO_snd : distOPO B ≫ snd = ∇`.
        (ii) ✅ `slice_choice_codiag : Choice (1_𝒮 + 1_𝒮)` — built ABOVE
            (forget→retarget by `distOPO`→pin→`choice_prod_pinned`→slice lift).  Axiom-clean.
-       (iii) ⛔ slice DECIDABILITY of `1_𝒮 + 1_𝒮`, which Freyd's argument reduces to BASE
-           decidability of `1+1` (the `B` factor rides along the fibered product `(B+B)×_B(B+B)`).
-           BASE `DecidableObject (1+1)` = the diagonal `Δ_{1+1} : (1+1) ↣ (1+1)×(1+1)` complemented.
-           Its complement is `adiagSub := ⟨1+1, adiag, adiag_mono⟩` with
-           `adiag = case (pair inl inr) (pair inr inl)` (both `Δ`, `Δᶜ` are clean monos from `1+1`;
-           `adiag_mono` is provable since `case inl inr = id`).  The two `IsComplementedSub` clauses
-           — `Δ ∩ Δᶜ ≤ ⊥` and `⊤ ≤ Δ ∪ Δᶜ` — both reduce to COPRODUCT EXTENSIVITY (pullback-stable
-           case analysis on `1+1`: e.g. disjointness needs `q = q ≫ swap ⟹ apex initial`, which is
-           the `inl/inr` clash only after splitting `q : apex → 1+1` along the coproduct).  Bare
-           `PreToposDisjoint` supplies `coprod_inl_inr_disjoint_elt` (clash of LITERAL `inl`/`inr`)
-           but NOT the pullback-stable decomposition of an arbitrary `q`.  The §1.61 `DisjointGluing`
-           / `disjoint_cover_is_coproduct` extensivity layer is gated on `[Topos 𝒞]`, not available
-           here.  THIS is the precise remaining wall.
+       (iii-base) ✅ BASE `DecidableObject (1+1)` (`one_one_decidable`, ABOVE).  The prior note
+           WRONGLY declared this gated on `[Topos 𝒞]` extensivity.  It is NOT: the extensivity
+           needed (decompose any `q : X → 1+1` into its `q#inl`/`q#inr` parts, each a `inl/inr`
+           clash) is AVAILABLE at the `[DisjointBinaryCoproduct 𝒞]` layer that `PreToposDisjoint`
+           provides — `decompose_via_coproduct` (S1_62) / `coprod_inl_inr_disjoint_elt` on each
+           inverse-image part.  Disjointness: a common lower bound's witness `r : · → 1+1` is
+           swap-fixed (`r ≫ case inr inl = r`), hence its domain is initial (`swap_fixed_le_bottom`).
+           Entire: the `distOPO (1+1)` cover factors through `Δ ∪ adiag` (its four corners are the
+           four points, two on `Δ`, two on `adiag`), so its entire image is `≤ Δ ∪ adiag`.
+           Axiom-clean (`[propext, Classical.choice]`).
+       (iii-slice) ⛔ slice DECIDABILITY of `1_𝒮 + 1_𝒮` — the REMAINING gap.  The slice diagonal
+           `Δ_{1_𝒮+1_𝒮}` lives over the slice product = base FIBERED product `(B+B) ×_B (B+B)`
+           (`B := A×A`), which under `distOPO B` is `≅ (1+1)×(1+1)×B` with `Δ_slice ≅ Δ_{1+1} × id_B`.
+           The reusable transport `decidableSub_of_iso`/`decidableSub_of_mono` (`Complement.lean`,
+           this pass) carries decidability across the iso, BUT the cross-category step (relating the
+           SLICE diagonal `Sub(Over B)` to the BASE `(1+1)²×B` diagonal `Sub 𝒞`, plus the
+           `· × id_B` factor) is the heavy fibered-product chase still to be built.
        (iv) (slice→base complement transport via `forgetSlice_mono`/`reflects`) and the §1.651
            pushout completion (`amalgamation_is_pullback` + `quotient_of_choice_is_choice` +
-           subobject-of-decidable-is-decidable) are unblocked once (iii) lands.
+           subobject-of-decidable-is-decidable) are unblocked once (iii-slice) lands.
 
-     So `one_one_choice_to_boolean` is reduced to a SINGLE base fact: `DecidableObject (1+1)`
-     (PIECE A), whose elementary proof needs coproduct extensivity not yet available at this layer. -/
+     So `one_one_choice_to_boolean` is reduced to the SLICE-DECIDABILITY fibered-product chase
+     (iii-slice): the base fact `one_one_decidable` (PIECE A) is now CLOSED, and the decidability
+     transport `decidableSub_of_iso` is in hand. -/
 
 end Freyd
