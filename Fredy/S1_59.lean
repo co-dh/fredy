@@ -1873,17 +1873,81 @@ def IsNormalCategory (𝒞 : Type u) [Cat.{v} 𝒞] [HasZeroObject 𝒞]
     [HasEqualizers 𝒞] [HasCoequalizers 𝒞] : Prop :=
   IsLeftNormal 𝒞 ∧ IsRightNormal 𝒞
 
+/-! ### §1.598 development: balance and the difference operation from normality
+
+  The genuine content of §1.598 is to MANUFACTURE the additive structure from the
+  bare normal-category data (zero, products, kernels, cokernels, every monic a
+  kernel, every cover a cokernel).  We isolate the steps. -/
+
+/-- **A left-normal category-with-zero is balanced**: a monic that is also epic is iso.
+    Uses only `IsLeftNormal` (every monic is a kernel) + the kernel/cokernel API.
+
+    A monic `m` that is epic has zero cokernel (`m` epic cancels `cokernelMap m = 0`),
+    so `m ≅ ker(coker m) = ker(0) = ` whole object.  `monic_kernel_of_cokernel'`
+    re-derives `m = ker(coker m)` from normality (no exactness needed), and the
+    kernel of a zero morphism is an iso (`kernelMap_zero_isIso`). -/
+theorem normal_balanced [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoequalizers 𝒞]
+    (hLN : IsLeftNormal 𝒞) {A B : 𝒞} (m : A ⟶ B) (hm : Mono m)
+    (he : ∀ {Z : 𝒞} (a b : B ⟶ Z), m ≫ a = m ≫ b → a = b) : IsIso m := by
+  -- `coker m = 0`: `m ≫ cokernelMap m = 0 = m ≫ 0`, cancel the epic `m`.
+  have hcoker0 : cokernelMap m = zeroMorphism B (Cokernel m) := by
+    apply he
+    rw [comp_cokernelMap m, zero_morphism_comp m (zeroMorphism B (Cokernel m))]
+  -- `m ≅ ker(coker m)` via normality.
+  obtain ⟨h, hh_iso, hh_fac⟩ := monic_kernel_of_cokernel' m hm (hLN m hm)
+  -- `ker(coker m) = ker 0` is iso (its inclusion is iso).
+  have hk_iso : IsIso (kernelMap (cokernelMap m)) := by
+    rw [hcoker0]; exact kernelMap_zero_isIso B (Cokernel m)
+  -- `m = h ≫ kernelMap(coker m)` is a composite of isos.
+  rw [← hh_fac]; exact isIso_comp hh_iso hk_iso
+
 /-! §1.598: A is abelian iff it is a normal category with kernels, cokernels and
   either binary products or binary coproducts.
 
-  PROOF (sketch, Freyd):
-  Given a normal category with kernels, cokernels, and binary products:
-  — Construct pullbacks of pairs of monics from kernel + product (§1.434-style).
-  — Every cover is epic (from the pullback of a mono via a cover).
-  — For x:A→B, the normal closure ker(coker(x)) is the image of x (since every
-    subobject is normal = kernel, so the minimal normal subobject allowing x is
-    the image).  Factor x as A ↠ C ↣ B where A↠C is a cover (epic = cokernel).
-  — A is exact.  Then apply §1.597. -/
+  STATUS: OPEN.  Sharpened residual below.  The downstream half is fully built:
+  once an `AdditiveCategory 𝒞` (and hence `RegularCategory 𝒞`) is in hand,
+  `abelian_iff_regular_additive_all_normal` (→) turns "every monic normal"
+  (= `IsLeftNormal`) into `IsExactStructure 𝒞`, and `abelianOfExactAdditive`
+  assembles the `AbelianCategory`.  The whole difficulty is the FORWARD synthesis of
+  the **additive structure** (equivalently, a hom-set SUBTRACTION) from the bare
+  normal-category data `[HasZeroObject] [HasEqualizers] [HasCoequalizers]
+  [HasBinaryProducts]` + `IsNormalCategory`.
+
+  PRECISE OBSTRUCTION (step 1/2 of the prompt's route — "products are biproducts").
+  `HalfAdditiveCategory` (the base of `AdditiveCategory`) bundles `HasBinaryCoproducts`
+  and `prod_coprod_coincide` (the δ-matrix `A+B → A×B` is iso).  The natural candidate
+  takes `A+B := A×B` with injections `δ = ⟨1,0⟩`, `δ' = ⟨0,1⟩`; the coincidence iso then
+  REQUIRES `δ, δ'` to be JOINTLY EPIC (two maps out of `A×B` agreeing after `δ` and after
+  `δ'` must be equal — this is exactly the coproduct universal property).  But
+  `δ, δ'` jointly epic is LOGICALLY EQUIVALENT to `A×B` already being the coproduct, i.e.
+  to the very coincidence we are trying to prove — it cannot be bootstrapped.
+
+  Concretely: let `Δ = ⟨1,1⟩ : A → A×A`, `q := coker Δ` (a cover, `cokernelMap_cover`,
+  with `q ∘ Δ = 0`).  Freyd's subtraction would identify `Cokernel Δ ≅ A` by proving
+  `δ ≫ q : A → Cokernel Δ` is iso.  By `normal_balanced` (proved below) it suffices to
+  show `δ ≫ q` is monic AND epic.  Its EPI-ness unfolds to: `q ∘ a = q ∘ b` whenever
+  `q ∘ δ ∘ a = q ∘ δ ∘ b` — and since `q` is epic this reduces to "`δ` (with `δ'`)
+  jointly epic", the coproduct property again.  No lemma in the imported infra
+  (`S1_1, S1_34, S1_41, S1_42, S1_43, S1_51, S1_52, S1_56, S1_58`) supplies joint-epi /
+  subtraction from products + normality: the only joint-epi fact in the repo is the
+  topos-disjoint-coproduct `DisjointGluing.jointly_epi` (§1.61, NOT imported and gated on
+  power objects + disjointness), and there is no general `HasBinaryProducts +
+  HasCoequalizers + HasZeroObject ⟹ HasBinaryCoproducts` construction.
+
+  This matches Freyd's actual development: the half-additive structure of §1.591 is
+  obtained for ABELIAN categories via the Horn-sentence / §1.55 Ab-representation (which
+  supplies subtraction); §1.598's "products OR coproducts" then recovers the missing one
+  GIVEN the additive structure.  Starting from a bare normal category with ONLY products,
+  the bridge to addition is the §1.55 Ab-calculus, not yet importable here.  This is the
+  SAME `(A)` blocker recorded for §1.594/§1.597 in S1_59.md, now localized to the single
+  missing lemma:
+
+    `normal_subtraction : [HasZeroObject][HasEqualizers][HasCoequalizers][HasBinaryProducts]
+        → IsNormalCategory 𝒞 → ∀ A, IsIso (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A))`
+
+  i.e. that the diagonal's cokernel collapses `A×A` back onto `A` along the first
+  injection.  Everything else (balance `normal_balanced`, exact→abelian, additive→regular,
+  all-normal→exact) is in hand and sorry-free. -/
 theorem abelian_iff_normal_kernels_cokernels
     {𝒞 : Type u} [Cat.{v} 𝒞]
     [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoequalizers 𝒞] [HasBinaryProducts 𝒞] :
