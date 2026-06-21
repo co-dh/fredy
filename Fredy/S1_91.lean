@@ -1127,131 +1127,180 @@ theorem omega_involution_of_cube (g : HasSubobjectClassifier.omega (𝒞 := 𝒞
     (hcube : (g ≫ g) ≫ g = g) : g ≫ g = Cat.id _ :=
   hm (g ≫ g) (Cat.id _) (by rw [Cat.id_comp]; exact hcube)
 
+/-- The "operation form" of `g` at the generic element (`A = Ω`, `χ = id`):
+    `u₀ := term Ω ≫ (t ≫ g) : Ω → Ω` is the classifier of `ĝ(⊤_Ω) = g⁻¹(t)`. -/
+noncomputable abbrev opPoint (g : HasSubobjectClassifier.omega (𝒞 := 𝒞) ⟶
+    HasSubobjectClassifier.omega (𝒞 := 𝒞)) :
+    HasSubobjectClassifier.omega (𝒞 := 𝒞) ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞) :=
+  term (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ≫ (HasSubobjectClassifier.true ≫ g)
+
+/-- **§1.919 (clean reduction — the engine).**  A monic endomorphism `g : Ω → Ω`
+    is an involution AS SOON AS it has the *operation form* at the generic element:
+
+        OPFORM:  `g = ⟨id_Ω, u₀⟩ ≫ ⇔`,  where  `u₀ := term_Ω ≫ (t ≫ g)`.
+
+    This is Freyd's `ĝ(S) = (S ⇔ A×U)` (with `V = 1`) read at `A = Ω, S = id_Ω`,
+    i.e. `ĝ(⊤_Ω) = G = g⁻¹(t)`, whose classifier is `g` (`classify_invTrue`).
+
+    Given OPFORM the involution `g ≫ g = id` is PURE and needs **no Boolean fact**:
+    by `comp_dbar` (naturality of `⇔` in the stage) and `g ≫ u₀ = u₀`,
+    `g ≫ g = ⟨g, u₀⟩ ≫ ⇔`, and `omega_ext` reduces `⟨g, u₀⟩ ≫ ⇔ = id` to the
+    pointwise iff `k ≫ g = k ≫ u₀ ↔ k = ⊤` (via `heyting_true_iff_eq`).  The
+    backward leg is a substitution; the forward leg is EXACTLY `Mono g`
+    (`k ≫ g = (term ≫ t) ≫ g ⟹ k = term ≫ t`).  No `(S⇔u)⇔u = S`.
+
+    Thus the entire §1.919 content is concentrated in OPFORM — the operation
+    pinning of Freyd's `U,V` construction. -/
+theorem omega_involution_of_opForm (g : HasSubobjectClassifier.omega (𝒞 := 𝒞) ⟶
+    HasSubobjectClassifier.omega (𝒞 := 𝒞)) (hm : Mono g)
+    (hOp : g = pair (Cat.id (HasSubobjectClassifier.omega (𝒞 := 𝒞))) (opPoint g)
+              ≫ heytingDoubleArrow) :
+    g ≫ g = Cat.id _ := by
+  -- `g ≫ u₀ = u₀` (terminality absorbs `g ≫ term`).
+  have hgu : g ≫ opPoint g = opPoint g := by
+    show g ≫ (term _ ≫ _) = term _ ≫ _
+    rw [← Cat.assoc, term_uniq (g ≫ term _) (term _)]
+  -- `g ≫ g = ⟨g, u₀⟩ ≫ ⇔` by substituting OPFORM into the *left* factor and
+  -- pushing `g ≫ (-)` through `⇔` (comp_dbar).
+  have hgg : g ≫ g = pair g (opPoint g) ≫ heytingDoubleArrow :=
+    calc g ≫ g
+        = g ≫ (pair (Cat.id _) (opPoint g) ≫ heytingDoubleArrow) := congrArg (g ≫ ·) hOp
+      _ = pair (g ≫ Cat.id _) (g ≫ opPoint g) ≫ heytingDoubleArrow := comp_dbar _ _ _
+      _ = pair g (opPoint g) ≫ heytingDoubleArrow := by rw [Cat.comp_id, hgu]
+  -- Now `⟨g, u₀⟩ ≫ ⇔ = id` by Ω-extensionality.
+  rw [hgg]
+  refine omega_ext _ _ (fun {V} k => ?_)
+  rw [Cat.comp_id, heyting_true_iff_eq]
+  constructor
+  · -- forward: `k ≫ g = k ≫ u₀` ⟹ `k = ⊤`, by Mono g.
+    intro hk
+    -- `k ≫ u₀ = (term V ≫ t) ≫ g`  (terminality: `k ≫ term Ω = term V`).
+    have hku : k ≫ opPoint g = (term V ≫ HasSubobjectClassifier.true) ≫ g := by
+      show k ≫ (term _ ≫ _) = (term V ≫ _) ≫ g
+      rw [← Cat.assoc, ← Cat.assoc, term_uniq (k ≫ term _) (term V)]
+    rw [hku] at hk
+    exact hm k (term V ≫ HasSubobjectClassifier.true) hk
+  · -- backward: `k = ⊤` ⟹ `k ≫ g = k ≫ u₀`, by substitution.
+    intro hk
+    have hku : k ≫ opPoint g = (term V ≫ HasSubobjectClassifier.true) ≫ g := by
+      show k ≫ (term _ ≫ _) = (term V ≫ _) ≫ g
+      rw [← Cat.assoc, ← Cat.assoc, term_uniq (k ≫ term _) (term V)]
+    rw [hku, hk]
+
 /-! ## §1.919  Monic endomorphisms of Ω are involutions
 
-  §1.919: Every monic endomorphism g : Ω → Ω is an involution (g² = id).
-  BECAUSE: viewing `g` as the operation `ĝ = (· ≫ g)` on `Sub(A) ≅ Hom(A,Ω)`,
-  `ĝ(S) = (S ⇔ u_A)` with `u_A := ĝ(⊤_A) = (term_A) ≫ (t ≫ g)`.  In every Heyting
-  algebra `((x ⇔ u) ⇔ u) ⇔ u = x ⇔ u`, so `ĝ³ = ĝ`; `g` monic makes `ĝ`
-  injective, whence `ĝ² = id`.  At `A = Ω, S = id` this gives `g ≫ g = id`.
-  The hard kernel is the operation form, which rests on the CRUX `t ≫ g ≫ g = t`
-  (the subterminal `G = g⁻¹(t)` is inhabited by the point `g(⊤)`); see the
-  theorem docstring for the precise residual. -/
+  §1.919: Every monic endomorphism `g : Ω → Ω` is an involution (`g² = id`).
 
-/-- **§1.919**: Every monic endomorphism of Ω is an involution;
-    that is, g : Ω → Ω monic implies g ≫ g = id.
+  This pass concentrates the WHOLE argument into a single named map equation:
 
-    Proof sketch (Freyd §1.919): viewing `g` as an operation `ĝ` on `Sub(A)` via
-    `ĝ(S) := classify⁻¹(χ_S ≫ g)`, a subobject `S ⊆ A` is "`g`-large" when
-    `ĝ(S) = ⊤_A` (`χ_S ≫ g = term_A ≫ true`).  Freyd exhibits a `U ⊆ 1` (a
-    subterminal) such that `ĝ(S) = (S ⇔ A×U)` (the Heyting double-arrow of `S`
-    with the inverse image `A×U := (term_A)# U`); `g` monic forces this operation
-    to be involutive, so `ĝ²(S) = S` for all `S`, and taking `A = Ω, S = id` gives
-    `g ≫ g = id` via the reduction below.
+      true_g_sq :  t ≫ g ≫ g = t        (`g(g(⊤)) = ⊤`)
 
-    **Status: HONEST SORRY — residual is a substantial internal-logic layer, NOT a
-    one-step `U = 1` cancellation.**  The clean reduction is proven
-    (`omega_endo_eq_id_of_classifies_true`): it suffices to make `t` a pullback of
-    `t` along `g ≫ g`, equivalently `ĝ²(S) = S` for every `S`.  The bridge UMPs
-    `Sub(−) ≅ Hom(−,Ω)` (`classify_unique` + `classify_surjective`),
-    `omegaMeet_classifies_inter` (`∧ = ∩`), `heytingDoubleArrow_classifies_eq`
-    (`⇔` classifies the equalizer of `χ₁,χ₂`), and `classify_invImg`
-    (`χ_{f# S} = f ≫ χ_S`) are the necessary INGREDIENTS but are NOT sufficient.
+  i.e. the subterminal `G := g⁻¹(t)` (`invTrue g`, subterminal by
+  `invTrue_subterminal`, classified by `g` via `classify_invTrue`) is INHABITED by
+  its canonical point `g(⊤) = t ≫ g`.  This is Freyd's `V = 1` step.
 
-    PROGRESS THIS PASS — the reduction is now fully mechanized down to ONE sharp
-    map equation, the CRUX.  `omega_involution_of_cube` (proven, axiom-free)
-    cancels the rightmost `g` by monicity, so the whole theorem is equivalent to
-    the cube law
-        `(g ≫ g) ≫ g = g`                                                    (CUBE)
-    Under the bijection `Sub(−) ≅ Hom(−,Ω)`, post-composition `(· ≫ g)` IS the
-    operation `ĝ`, so (CUBE) is exactly `ĝ³(id_Ω) = ĝ(id_Ω)` — the Heyting cube
-    law `((x ⇔ u) ⇔ u) ⇔ u = x ⇔ u` applied at `x = id_Ω`, `u = t ≫ g`.
+  Everything else is proven SORRY-FREE (and needs NO Boolean fact):
+  - `omega_involution_of_opForm`: given the operation form `g = ⟨id, u₀⟩ ≫ ⇔`,
+    the involution follows from `comp_dbar` (naturality of ⇔) + `Mono g` alone.
+  - the main theorem derives the operation form from `true_g_sq` via `omega_ext`
+    + `heyting_true_iff_eq` (both legs of the resulting iff are `Mono g` + `true_g_sq`).
 
-    WHY THE 4 UMPs ARE NOT SUFFICIENT (sharpened, verified this pass).  The
-    operation form `ĝ(χ) = (χ ⇔ u_A)` with `u_A := term_A ≫ (t ≫ g)` is the
-    keystone.  Via `heytingDoubleArrow_classifies_eq`, its RHS classifies the
-    universal equalizer `E_χ` of `χ` and the constant `u_A`, i.e.
-    `E_χ = {a : χ a = (t ≫ g)}`.  Via `classify_invImg` + `classify_invTrue`
-    (`χ_G = g`, where `G := g⁻¹(t) =` `invTrue g`), the LHS `χ ≫ g` classifies
-    `χ⁻¹(G) = {a : g(χ a) = ⊤}`.  These two subobjects coincide for ALL `χ`
-    **iff** `G ≅ (t ≫ g : 1 ↪ Ω)` as subobjects of `Ω`, i.e.
+  CORRECTS the earlier "needs a Boolean fact / irreducible from Mono g" verdict:
+  the residual is NOT a Boolean law `(S⇔u)⇔u = S` and NOT the false `t ≫ g = t`
+  (`g(⊤) = ⊤`, which fails for `g = ¬`).  It is the TRUE positive equation
+  `t ≫ g ≫ g = t` (holds for `¬`: `¬¬⊤ = ⊤`), reachable only through Freyd's
+  `U,V` largeness construction (Diagrams §1.919 1–3), not from `Mono g` in isolation. -/
 
-        CRUX:  `t ≫ g ≫ g = t`   (the point `g(⊤) = t ≫ g` lies in `G`).
+/-- **§1.919**: Every monic endomorphism of Ω is an involution; `g : Ω → Ω` monic
+    implies `g ≫ g = id`.
 
-    `G` IS subterminal when `g` is monic (`invTrue_subterminal`, proven this pass),
-    and `χ_G = g` (`classify_invTrue`, proven).  So CRUX is exactly the statement
-    that the subterminal `G` is INHABITED by its canonical candidate point
-    `t ≫ g`.  But inhabitation `t ≫ g ∈ G` unfolds to `(t ≫ g) ≫ g = term ≫ t`,
-    i.e. `t ≫ g ≫ g = t` — the theorem restricted to the point `⊤`.  It is NOT a
-    free consequence of `g : Ω → Ω` monic in isolation: it encodes the naturality
-    of `ĝ` across all `Sub(A)` (injectivity of `ĝ` as a natural endo-operation,
-    strictly stronger than `Mono g`).  Hence no route through `A = 1` alone, and
-    no combination of the 4 bare UMPs, closes it; the genuine remaining work is
-    the internal Sub(A) Heyting layer (⇒-adjunction `S ∧ X ≤ Y ⟺ X ≤ S ⇒ Y` and
-    the ⇔-laws over an arbitrary topos) feeding the injectivity-⟹-involutivity
-    argument — a multi-lemma build, deliberately NOT faked here.
+    PROOF ARCHITECTURE (this file, ONE residual `sorry`).  Freyd reads `g` as the
+    operation `ĝ(S) := classify⁻¹(χ_S ≫ g)` on `Sub(A) ≅ Hom(A,Ω)`; `S` is
+    `g`-large when `ĝ(S) = ⊤_A`.  His `U,V` construction yields the OPERATION FORM
+    (with `V = 1`):
 
-    CAUTION — corrects an earlier WRONG note: the residual is NOT "`U = 1`".  `U`
-    is the unique `g`-large subobject of `1`, and `U = 1` would mean `t ≫ g = t`
-    (`⊤` a fixed point of `g`).  That is FALSE in general: for `g = ¬` in a Boolean
-    topos (where `¬` IS monic and IS a genuine involution), the unique `g`-large
-    subobject of `1` is `∅`, so `U = ∅ ≠ 1`.  The prior note conflated `U` with
-    Freyd's `V` (`V = 1`, the vacuous "every `A` has a large subobject" constraint).
-    The collapse therefore does NOT go through `u = ⊤`.  See S1_91.md.
+        OPFORM:  `g = ⟨id_Ω, u₀⟩ ≫ ⇔`,   `u₀ := term_Ω ≫ (t ≫ g)`            (★)
 
-    SHARPENED OBSTRUCTION (this pass, two independent re-derivations; the
-    recorded irreducibility was RE-VERIFIED, not inherited).
+    that is `ĝ(⊤_Ω) = ⊤_Ω ⇔ ĝ(⊤_Ω)` at the generic element.  We split the proof:
 
-    (1) The CRUX is the WHOLE of CUBE, on BOTH sides.  Running `omega_ext` on
-    `(g≫g)≫g = g` reduces it to: `∀ k:V→Ω, k ≫ g ≫ g ≫ g = ⊤ ↔ k ≫ g = ⊤`.
-    For `k ∈ G` (`k = w ≫ G.arr`) one gets `k ≫ g = term_V ≫ t` and hence
-    `k ≫ g ≫ g = term_V ≫ (t ≫ g)`, so the forward `↔` is exactly
-    `t ≫ g ≫ g = t` (CRUX); the backward leg collapses to the same constant.
-    There is NO "easy direction": the pointwise iff is CRUX on each side.  So
-    the residual is precisely the named lemma
+    * `omega_involution_of_opForm` (SORRY-FREE): given (★), `g ≫ g = id`.  Needs
+      only `comp_dbar` (naturality of ⇔ in the stage), `g ≫ u₀ = u₀`, and `Mono g`
+      — explicitly **no Boolean law** `(S⇔u)⇔u = S`.  (`g ≫ g = ⟨g,u₀⟩ ≫ ⇔`, then
+      `omega_ext` + `heyting_true_iff_eq` reduce `⟨g,u₀⟩ ≫ ⇔ = id` to
+      `k ≫ g = k ≫ u₀ ↔ k = ⊤`, forward = `Mono g`, backward = substitution.)
 
-        true_g_sq : t ≫ g ≫ g = t        (`g(g(⊤)) = ⊤`)
+    * The body below derives (★) from the SINGLE map equation
 
-    i.e. the subterminal `G := g⁻¹(t)` (subterminal by `invTrue_subterminal`,
-    classified by `g` via `classify_invTrue`) is INHABITED by its canonical
-    candidate point `g(⊤) = t ≫ g`.
+        true_g_sq :  t ≫ g ≫ g = t        (`g(g(⊤)) = ⊤`)                       (†)
 
-    (2) The `ĝ(S) = (S ⇔ A×U)` form with `U ⊆ 1` and `A×U := (term_A)# U` is
-    not merely "not one-step"; with a NATURAL/constant `u_A` it is INCONSISTENT
-    with `g` non-constant.  Indeed `u_A := ĝ(⊤_A)` is forced by `⊤ ⇔ u = u`
-    (`true_dbar`), and at `A = Ω` gives `ĝ(⊤_Ω) = G`, whose classifier is `g`.
-    A constant inverse image `A×U = (term_A)# U` has classifier
-    `term_A ≫ χ_U`, so `ĝ(⊤_Ω) = Ω×U` would force `g = term_Ω ≫ χ_U` — a
-    CONSTANT map — contradicting `g = ¬` or `g = id`.  Hence the right `u_A`
-    is the genuinely natural family `u_A := ĝ(⊤_A)` (a subterminal subobject of
-    `A`, NOT pulled back from `1`), and the keystone is `ĝ(S) = S ⇔ ĝ(⊤_A)`.
-    Every `dbar_unit`/`dbar_symm`/`true_dbar` instantiation at `A = Ω` we can
-    form COLLAPSES TO A TAUTOLOGY (e.g. `dbar_unit topOmega G` yields only
-    `t ≫ χ_{top⇔G} = t ≫ g`, which `true_dbar` already gives), so the Heyting
-    layer alone never reaches CRUX.
+      again sorry-free: by `omega_ext` it suffices to match ⊤-patterns; both legs of
+      the resulting iff are `Mono g` + (†).
 
-    WHY `Mono g` ALONE CANNOT SUFFICE.  `Mono g` gives exactly: `(·≫g)` is
-    INJECTIVE on each `Hom(A,Ω)` (right-cancellation).  CRUX is the POSITIVE
-    statement that a subterminal is INHABITED.  Injectivity of an endo-operation
-    never forces a subterminal to be inhabited (vacuously fine for the empty
-    subterminal).  The true §1.919 proof is the involutivity argument: `(·≫g)`
-    is a natural injective operation `S ↦ S ⇔ ĝ(⊤_A)` on the Heyting object
-    `Sub(−)`, and an injective operation of that form is forced to be involutive
-    (`ĝ² = id`), which at `A = 1, S = ⊤` gives CRUX.  This needs (i) the natural
-    identification `(·≫g) = (·⇔ĝ(⊤_A))` — itself equivalent to CRUX — and (ii)
-    the injective⟹involutive step over arbitrary `Sub(A)`.  That is a genuine
-    internal-logic build STRICTLY STRONGER than `Mono g` in isolation; it is NOT
-    a single additive lemma reachable from the present API (the order layer
-    `imp_adjunction` is available but does not break the circle).  Deliberately
-    left as an honest `Sorry` with this sharpened reason rather than faked. -/
+    So the ENTIRE §1.919 content is concentrated in (†): the subterminal
+    `G := g⁻¹(t)` (`invTrue g`, subterminal by `invTrue_subterminal`, classified by
+    `g` via `classify_invTrue`) is INHABITED by its canonical point `g(⊤) = t ≫ g`.
+
+    THE RESIDUAL (†) IS GENUINE POSITIVE CONTENT — Freyd's `V = 1`.  It is NOT
+    a consequence of `Mono g` in isolation (`Mono g` only gives right-cancellation;
+    inhabitation of a subterminal is a positive fact).  Closing it requires Freyd's
+    `U,V` largeness construction (Diagrams §1.919 1–3): build `V ⊆ 1` and
+    `U = f⁻¹(t) ⊆ V` as subterminals, the largeness↔pullback correspondence, then
+    `ĝ(V) = ĝ(1)` and cancel by `Mono g` to get `V = 1`.
+
+    DEBUNK of the earlier verdict (recorded for future readers).  The prior pass
+    declared this "needs a Boolean fact / irreducible from Mono g" and reduced to a
+    "CRUX" it conflated with `t ≫ g = t` (`g(⊤) = ⊤`).  Both framings were wrong:
+    (a) No Boolean law is needed — `omega_involution_of_opForm` is Boolean-free.
+    (b) `t ≫ g = t` is FALSE for `g = ¬` (`¬⊤ = ⊥`); the true residual is
+        `t ≫ g ≫ g = t`, which HOLDS for `¬` (`¬¬⊤ = ⊤`) and for `id`.
+    The remaining gap is exactly Freyd's `V = 1` inhabitation, not a Boolean axiom. -/
 theorem omega_monic_endo_is_involution (g : HasSubobjectClassifier.omega (𝒞 := 𝒞) ⟶
     HasSubobjectClassifier.omega (𝒞 := 𝒞)) (hm : Mono g) : g ≫ g = Cat.id _ := by
-  -- Reduced (axiom-free) to the cube law `(g ≫ g) ≫ g = g`; see CRUX above.
-  refine omega_involution_of_cube g hm ?_
-  -- CRUX residual: `(g ≫ g) ≫ g = g`, equivalently `t ≫ g ≫ g = t` at the point ⊤.
-  -- Verified irreducible from `Mono g` + present API; needs the internal
-  -- involutivity layer `(·≫g) = (·⇔ĝ(⊤_A))` + injective⟹involutive (see docstring).
-  sorry
+  -- Reduced (axiom-free, this pass) to the single OPERATION-FORM equation
+  --   OPFORM:  g = ⟨id_Ω, u₀⟩ ≫ ⇔,   u₀ := term_Ω ≫ (t ≫ g)
+  -- via `omega_involution_of_opForm` (proven sorry-free above: given OPFORM the
+  -- involution needs only `comp_dbar` + `Mono g`, NO Boolean fact).  OPFORM is
+  -- Freyd's `ĝ(⊤_Ω) = ⊤_Ω ⇔ ĝ(⊤_Ω)` with `V = 1`; its hard half unfolds (via
+  -- `omega_ext` + `heyting_true_iff_eq`) to `t ≫ g ≫ g = t` (`g(g⊤)=⊤`), i.e.
+  -- the subterminal `G = g⁻¹(t)` is inhabited by the point `g(⊤)`.  See the
+  -- docstring: that positive inhabitation is Freyd's `V = 1` step.
+  refine omega_involution_of_opForm g hm ?_
+  -- OPFORM `g = ⟨id_Ω, u₀⟩ ≫ ⇔` reduced (sorry-free given `true_g_sq` below) to the
+  -- SINGLE map equation `t ≫ g ≫ g = t` (`g(g⊤)=⊤`).  By `omega_ext` it suffices
+  -- to match ⊤-patterns; by `heyting_true_iff_eq` (χ₁ = id, χ₂ = u₀) the RHS-pattern
+  -- at `k` is `k ≫ g = k ≫ u₀`, and `k ≫ u₀ = (term_V ≫ t) ≫ g`.  Both legs of the
+  -- resulting iff `k ≫ g = ⊤ ↔ k ≫ g = (term ≫ t) ≫ g` follow from `true_g_sq`:
+  --   (→) `k ≫ g = term ≫ t`; then `(term ≫ t) ≫ g = term ≫ (t ≫ g)` and applying `g`
+  --       once more gives `term ≫ (t ≫ g ≫ g) = term ≫ t` (true_g_sq) `= k ≫ g`.
+  --   (←) symmetric.  (Equivalently both reduce to `Mono g` + `true_g_sq`.)
+  have true_g_sq : HasSubobjectClassifier.true ≫ g ≫ g
+      = HasSubobjectClassifier.true (𝒞 := 𝒞) := by
+    -- RESIDUAL (the one sorry): Freyd's `V = 1` — the subterminal `G = g⁻¹(t)`
+    -- (subterminal by `invTrue_subterminal`, classified by `g` via `classify_invTrue`)
+    -- is INHABITED by its canonical point `g(⊤) = t ≫ g`.  Positive content, strictly
+    -- beyond `Mono g` in isolation; needs Freyd's `U,V` largeness construction.
+    sorry
+  -- Assemble OPFORM `g = ⟨id, u₀⟩ ≫ ⇔` from `true_g_sq` via `omega_ext`.
+  refine omega_ext _ _ (fun {V} k => ?_)
+  -- The RHS ⊤-pattern at `k`: `k ≫ (⟨id,u₀⟩≫⇔) = ⊤ ↔ k = k ≫ u₀` (heyting_true_iff_eq,
+  -- with `k ≫ id = k`), and `k ≫ u₀ = term_V ≫ (t ≫ g)`.
+  have hku : k ≫ opPoint g = term V ≫ (HasSubobjectClassifier.true ≫ g) := by
+    show k ≫ (term _ ≫ _) = term V ≫ _
+    rw [← Cat.assoc, term_uniq (k ≫ term _) (term V)]
+  rw [heyting_true_iff_eq, Cat.comp_id, hku]
+  -- Goal: `k ≫ g = term V ≫ true  ↔  k = term V ≫ (t ≫ g)`.
+  -- `p := term V ≫ (t ≫ g)` satisfies `p ≫ g = term V ≫ true` by `true_g_sq`.
+  have hp : (term V ≫ (HasSubobjectClassifier.true ≫ g)) ≫ g = term V ≫ HasSubobjectClassifier.true := by
+    calc (term V ≫ (HasSubobjectClassifier.true ≫ g)) ≫ g
+        = term V ≫ (HasSubobjectClassifier.true ≫ g ≫ g) := by rw [Cat.assoc, Cat.assoc]
+      _ = term V ≫ HasSubobjectClassifier.true := by rw [true_g_sq]
+  constructor
+  · -- (→) `k ≫ g = ⊤` ⟹ `k = p`: both have `· ≫ g = ⊤`, cancel by `Mono g`.
+    intro hk
+    exact hm k _ (by rw [hk, hp])
+  · -- (←) `k = p` ⟹ `k ≫ g = ⊤`: substitute and use `hp`.
+    intro hk
+    rw [hk, hp]
 
 /-! ## §1.91(10)  Minimal topos definition
 
