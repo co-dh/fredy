@@ -163,7 +163,7 @@ theorem preTopos_functor_preserves_monic_pullbacks (hptf : PreToposFunctor F)
   have hFπ₁ : Mono (hF.map pb.cone.π₁) := hptf.pres_mono hπ₁
   have hFπ₂ : Mono (hF.map pb.cone.π₂) := hptf.pres_mono hπ₂
   -- §1.651 amalgamation of the monic span `(Fπ₁, Fπ₂)`: pullback over `(u,v)` + pushout UMP.
-  obtain ⟨D, u, v, hsqD, hpbD, hUMPD⟩ :=
+  obtain ⟨D, u, v, hsqD, hpbD, hUMPD, _⟩ :=
     amalgamation_is_pullback (hF.map pb.cone.π₁) hFπ₁ (hF.map pb.cone.π₂) hFπ₂
   -- §1.62 union pushout in 𝒜: `U = A₁∪A₂` is the pushout of the intersection projections.
   let S₁ : Subobject 𝒜 A := ⟨A₁, m, hm⟩

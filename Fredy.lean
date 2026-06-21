@@ -45,6 +45,7 @@ import Fredy.S1_57
 import Fredy.S1_62
 import Fredy.S1_64
 import Fredy.S1_65
+import Fredy.Diaconescu
 import Fredy.S1_72
 import Fredy.S1_14
 import Fredy.S1_74
