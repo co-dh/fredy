@@ -1441,6 +1441,34 @@ theorem familyMeet_greatest {A : 𝒞} {I : Type v} (B : I → Subobject 𝒞 A)
                 term_uniq (U.arr ≫ term A) (term U.dom)])]
   exact ⟨eqLift chi chiT U.arr heq, eqLift_fac chi chiT U.arr heq⟩
 
+/-- **POINT/MAP into the meet (§1.968).**  An arbitrary map `t : X ⟶ A` that factors through
+    *every* member `B i` factors through `⋂ᵢ Bᵢ`.  (`familyMeet_greatest` is the SUBOBJECT
+    version; this is the map version needed to build the product universal property in §1.968:
+    the candidate map into the ambient power, factoring through each pullback `Pᵢ`, descends to
+    the intersection.)  `familyMeet` is the equalizer of `⟨χ(Bᵢ)⟩ᵢ` and `⟨⊤⟩ᵢ`; `t` factors
+    through each `Bᵢ.arr`, so in every coordinate `t ≫ χ(Bᵢ) = term ≫ true` (`allows_iff_classify`),
+    i.e. `t` equalises the two tuples and `eqLift` produces the factorization. -/
+theorem familyMeet_lift {A X : 𝒞} {I : Type v} (B : I → Subobject 𝒞 A)
+    (t : X ⟶ A) (ht : ∀ i, ∃ l, l ≫ (B i).arr = t) :
+    ∃ tup : X ⟶ (familyMeet hpow B).dom, tup ≫ (familyMeet hpow B).arr = t := by
+  let chi  : A ⟶ hpow.pow I (HasSubobjectClassifier.omega (𝒞 := 𝒞)) :=
+    hpow.tupling (fun i => subChar (B i))
+  let chiT : A ⟶ hpow.pow I (HasSubobjectClassifier.omega (𝒞 := 𝒞)) :=
+    hpow.tupling (fun _ => term A ≫ HasSubobjectClassifier.true (𝒞 := 𝒞))
+  -- `t` equalises the two tuples: componentwise `t ≫ χ(Bᵢ) = term ≫ true = t ≫ (term ≫ true)`.
+  have heq : t ≫ chi = t ≫ chiT := by
+    rw [hpow.tupling_uniq (fun i => t ≫ subChar (B i)) (t ≫ chi)
+          (fun i => by rw [Cat.assoc]; show t ≫ hpow.tupling _ ≫ hpow.proj i = _;
+                       rw [hpow.tupling_proj])]
+    refine (hpow.tupling_uniq (fun i => t ≫ subChar (B i)) (t ≫ chiT) (fun i => ?_)).symm
+    rw [Cat.assoc]
+    show t ≫ hpow.tupling (fun _ => term A ≫ HasSubobjectClassifier.true (𝒞 := 𝒞)) ≫ hpow.proj i = _
+    rw [hpow.tupling_proj]
+    show t ≫ term A ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) = t ≫ subChar (B i)
+    rw [← Cat.assoc, term_uniq (t ≫ term A) (term X),
+        (allows_iff_classify (B i) t).mp (ht i)]
+  exact ⟨eqLift chi chiT t heq, eqLift_fac chi chiT t heq⟩
+
 end FamilyMeet
 
 /-- **`Type v` well-poweredness of `Sub(A)` (§1.967).**  A small index `idx A : Type v` with an
