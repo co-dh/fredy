@@ -693,6 +693,37 @@ noncomputable def cocomplete_of_coproducts_coequalizers
           intro i
           rw [← Cat.assoc]; exact hu i }
 
+/-- The DISCRETE CATEGORY on `I` (local copy; the S1_82 `discCat82` is private). -/
+private instance discCatTC {I : Type v} : Cat.{v} I where
+  Hom i j     := ULift.{v} (PLift (i = j))
+  id _        := ⟨⟨rfl⟩⟩
+  comp f g    := ⟨⟨f.down.down.trans g.down.down⟩⟩
+  id_comp _   := rfl
+  comp_id _   := rfl
+  assoc _ _ _ := rfl
+
+/-- Every `A : I → ℬ` is a functor on the discrete category (local copy). -/
+private instance discFunTC {I : Type v} (A : I → ℬ) : @Functor I discCatTC ℬ _ A where
+  map {i j} h  := h.down.down ▸ Cat.id (A i)
+  map_id _     := rfl
+  map_comp f g := by
+    obtain ⟨⟨hij⟩⟩ := f; obtain ⟨⟨hjk⟩⟩ := g; subst hij; subst hjk; exact (Cat.id_comp _).symm
+
+/-- **Cocomplete ⟹ all coproducts** (colimit-dual of `complete_hasProducts`).  A coproduct is the
+    colimit of the discrete diagram; reusable infra (e.g. Lawvere→Tierney's `∐(gen set)`). -/
+noncomputable def cocompleteCoconeOf {I : Type v} (A : I → ℬ) (X : ℬ) (f : ∀ i, A i ⟶ X) :
+    @DiagCocone I discCatTC ℬ _ A (discFunTC A) :=
+  { nadir := X, ι := f,
+    nat := by intro i j x; obtain ⟨⟨hij⟩⟩ := x; subst hij; simp [Functor.map, Cat.id_comp] }
+
+noncomputable def cocomplete_hasAllCoproducts (hc : Cocomplete ℬ) : HasAllCoproducts ℬ where
+  coprod {I} A :=
+    { obj  := (@hc.hasColimit I discCatTC A (discFunTC A)).cocone.nadir
+      inj  := (@hc.hasColimit I discCatTC A (discFunTC A)).cocone.ι
+      desc := fun {X} f => (@hc.hasColimit I discCatTC A (discFunTC A)).lift (cocompleteCoconeOf A X f)
+      fac  := fun {X} f i => (@hc.hasColimit I discCatTC A (discFunTC A)).fac (cocompleteCoconeOf A X f) i
+      uniq := fun {X} f h hh => (@hc.hasColimit I discCatTC A (discFunTC A)).uniq (cocompleteCoconeOf A X f) h hh }
+
 end CocompleteFromCoprodCoeq
 
 /-! ## §1.967 powers ↔ copowers, §1.968 complete ↔ cocomplete, §1.969 Lawvere = Tierney
@@ -700,8 +731,12 @@ end CocompleteFromCoprodCoeq
   Relocated here from `Fredy/S1_95.lean` (which this file imports): the powers↔copowers
   equivalence is now CLOSED sorry-free because its sole residual — the (a)→(b) carving
   `∐ᵢ1 ⊂ ∏ᵢ(1+1)` (`toposCopowerOfOne`) — is built above.  §1.968/§1.969 remain honest
-  `sorry`s (they need limits/colimits of all small diagrams + the cogenerator embedding,
-  blocked on the §1.543 capitalization wall). -/
+  `sorry`s, but the gap is now PRECISELY ISOLATED to general-family coproducts: BANKED sorry-free
+  here are `wellPoweredSub_of_topos` (§1.843 well-poweredness from the classifier),
+  `cocomplete_of_coproducts_coequalizers` (Cocomplete from coproducts+coeq) and
+  `cocomplete_hasAllCoproducts` (the discrete-colimit coproduct).  The single missing construction
+  is `HasAllCoproducts` via the §1.968 cogenerator-carving of `∐ᵢAᵢ` ⊆ `C^K`; see the sharpened
+  residual on `lawvere_eq_tierney`. -/
 
 -- Make the GENUINE `Topos.toHasBinaryProducts` win instance search for `HasBinaryProducts 𝒞`
 -- (the §1.92 `topos_has_exponentials.toHasBinaryProducts` is deprioritised but could still be
@@ -757,9 +792,10 @@ theorem topos_powers_copowers_equiv [LocallySmallTopos 𝒞] [HasBinaryCoproduct
        `∏ᵢAᵢ` from copowers.  This needs item 1 PLUS the §1.84 well-poweredness `extJoin`
        already available here — but NOT yet assembled into a coproduct/product object.
 
-    3. **`coeq + general coproducts ⟹ Cocomplete`** — the colimit-dual of `eq_prod_complete`
-       (S1_82:291) is unbuilt; `topos_has_coequalizers` supplies the coequalizers, but the
-       "every colimit = coeq of two maps between coproducts" assembly is missing.
+    3. **`coeq + general coproducts ⟹ Cocomplete`** — NOW BANKED as
+       `cocomplete_of_coproducts_coequalizers` (above), the colimit-dual of `eq_prod_complete`
+       (S1_82:291); `topos_has_coequalizers` supplies the coequalizers.  So `Cocomplete` reduces
+       cleanly to item 1 (general `HasAllCoproducts`) once that lands.
 
     None of these is the cogenerator EXISTENCE (that is now supplied by
     `progenitor_omega_exp_cogenerates`) — but THIS theorem has NO progenitor hypothesis, so even
@@ -797,33 +833,44 @@ class TierneyGrothendieckTopos (𝒞 : Type u) [Cat.{v} 𝒞] extends Topos 𝒞
 
 /-- **§1.969**: The Lawvere and Tierney definitions yield the same notion.
 
-    RESIDUAL (honest `sorry`).  The §1.543 reference in the old note was STALE, but the gap is
-    real and multi-part; the two newly-closed §1.96x results do NOT suffice.  Reachable now:
-    * **Tierney → Lawvere, generating set**: `IsProgenitor G` IS
-      `IsGeneratingSet (fun X => ∃ m : X ⟶ G, Mono m)` definitionally, so `gen_set`/`has_gen_set`
-      are `T.is_progenitor` directly.  (Verified.)
-    * **Lawvere → Tierney, `copow_one`**: the copower `∐ᵢ1` is the colimit of the discrete
-      `I`-diagram constantly `one`, supplied by `LawvereGrothendieckTopos.cocomplete.hasColimit`.
+    RESIDUAL (honest `sorry`), SHARPENED.  Of the §1.968/§1.969 coproduct-assembly development,
+    THREE of the four prerequisite pieces are now BANKED sorry-free in this file; the SOLE
+    remaining blocker is general-family coproducts (`HasAllCoproducts`).
 
-    BLOCKERS (each genuinely unbuilt; statement may NOT be weakened or get extra hypotheses):
-    1. **`copow_one` carries no uniqueness** — the field is a bare `Prop`-existential
-       `∃ h, ∀ i, inj i ≫ h = f i`, so it does NOT yield a `CopowerOfOne I 𝒞` (whose
-       `cotup_uniq` needs the injections jointly epic).  Recovering uniqueness — hence
-       `HasArbitraryPowers` via `powersOfCopowersOfOne`, hence the cogenerator route — is a
-       prerequisite construction (joint-epicness of the copower-of-1 injections).
-    2. **No `LocallySmallTopos`/`WellPoweredSub` in scope** — this theorem assumes only `Topos`
-       + finite-limit/image instances.  EVERY copower lemma here (`toposCopowerOfOne`,
-       `topos_powers_copowers_equiv`, `topos_copowers_equiv_copowers_of_one`) requires
-       `[LocallySmallTopos 𝒞]`, and the bare topos provably lacks the `Type v` subobject
-       enumeration (S1_95 `topos_powers_implies_locally_complete` note).  Deriving
-       well-poweredness from the Tierney/Lawvere data (Freyd §1.843: a generating set is a basis
-       ⟹ well-powered) is itself unbuilt.
-    3. **`Cocomplete` (Tierney → Lawvere)** — same three constructions as
-       `topos_complete_iff_cocomplete` above: general-family `HasProducts`/`HasCoproducts`,
-       cogenerator-carving of `∐ᵢAᵢ` ⊂ `∐ᵢB`, and the `coeq + coproducts ⟹ Cocomplete` dual of
-       `eq_prod_complete`.  `progenitor_omega_exp_cogenerates` supplies the cogenerator C = Ω^G,
-       but the coproduct ASSEMBLY around it is not yet built.
-    Left `sorry`; closing it is the §1.968/§1.969 coproduct-assembly development, not a wall. -/
+    BANKED (reusable, sorry-free):
+    * **`wellPoweredSub_of_topos`** (§1.843, above) — `WellPoweredSub 𝒞` from the classifier alone,
+      so `LocallySmallTopos.wellPowered` (hence every copower lemma here) is available from bare
+      Tierney/Lawvere data.  (Old blocker 2 CLOSED.)
+    * **`copow_one`** now delivers a genuine `CopowerOfOne I 𝒞` (with `cotup_uniq`), so the
+      copower-of-1 → `HasArbitraryPowers` (`powersOfCopowersOfOne`) → cogenerator route is
+      unobstructed.  (Old blocker 1 CLOSED, by the fidelity strengthening of the class field.)
+    * **`cocomplete_of_coproducts_coequalizers`** (§1.968, above) — `Cocomplete` reduces to
+      `HasAllCoproducts` + `HasCoequalizers`; the topos supplies `topos_has_coequalizers`.  (The
+      `coeq + coproducts ⟹ Cocomplete` part of old blocker 3 CLOSED.)
+    * **`cocomplete_hasAllCoproducts`** (above) — `Cocomplete ⟹ HasAllCoproducts` (discrete-diagram
+      colimit), so the Lawvere side's bundled `cocomplete` field DOES give all coproducts directly.
+    * Tierney→Lawvere generating set: `IsProgenitor G` IS `IsGeneratingSet (fun X => ∃ m:X⟶G, Mono m)`
+      definitionally.  Lawvere→Tierney `copow_one`: `∐ᵢ1` is the `cocomplete_hasAllCoproducts`
+      coproduct of the constant-`one` family, which IS a `CopowerOfOne` (`cotup_uniq` = `Coproduct.uniq`).
+
+    TWO REMAINING BLOCKERS (genuinely unbuilt; statement may NOT be weakened):
+    1. **Tierney→Lawvere `Cocomplete`** needs `HasAllCoproducts 𝒞` — general-family `∐ᵢAᵢ`
+       (DISTINCT objects), Freyd §1.968 cogenerator-carving.  With `C := Ω^G`
+       (`progenitor_omega_exp_cogenerates`), `K := ∏ᵢ[Aᵢ,C]` (`Type v` by
+       `wellPoweredSub_of_topos`/local smallness), each `Aᵢ ↣ B := C^K` monically via the
+       family-evaluation tuple; carve `∐ᵢAᵢ := ⋁ᵢ image(jᵢ) ⊆ B` (`extJoin`), map-OUT UP by the
+       infinitary disjoint gluing of `CopowerBuild` — BUT that gluing (TOTAL+SIMPLE
+       union-of-partial-graphs, functionality from `compose_extJoin_right`) was specialised to
+       `Aᵢ = 1` / ambient `∏ᵢ(1+1)` with `1+1`-disjointness.  Re-running it for general `Aᵢ` with
+       cogenerator-separation disjointness is the missing ~400-line development.  (Once it lands,
+       Tierney→Lawvere = `cocomplete_of_coproducts_coequalizers` + the progenitor's gen set.)
+    2. **Lawvere→Tierney `progenitor`** needs a SINGLE progenitor `G` from the generating set, e.g.
+       `G := ∐(gen set)`.  But `LawvereGrothendieckTopos.gen_set : 𝒞 → Prop` carries NO `Type v`
+       smallness index, so `{X // gen_set X}` lives in `Type u`; `cocomplete_hasAllCoproducts`
+       needs a `Type v` index.  Freyd's generating set is small; this class under-specifies it (a
+       fidelity gap parallel to the old `copow_one`).  Forming the coproduct of the gen set — hence
+       the progenitor — is blocked without that small index, and the statement may not be changed.
+    Left `sorry`; the remaining work is the general-coproduct carving (1), not a wall. -/
 theorem lawvere_eq_tierney (𝒞 : Type u) [Cat.{v} 𝒞] [HasBinaryProducts 𝒞] [HasBinaryCoproducts 𝒞]
     [HasEqualizers 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] :
     Nonempty (LawvereGrothendieckTopos 𝒞) ↔ Nonempty (TierneyGrothendieckTopos 𝒞) := by
