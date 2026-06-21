@@ -410,10 +410,18 @@ def IsNormalSubobject [HasZeroObject 𝒞] [HasEqualizers 𝒞] {A B : 𝒞}
     (m : A ⟶ B) (hm : Mono m) : Prop :=
   ∃ (C : 𝒞) (f : B ⟶ C) (h : A ⟶ Kernel f), IsIso h ∧ h ≫ kernelMap f = m
 
-/-- An ABELIAN CATEGORY: regular, additive, every subobject is normal (§1.593).
-  Includes cokernels (§1.592: an abelian category has kernels and cokernels). -/
+/-- An ABELIAN CATEGORY: regular, ADDITIVE (abelian-GROUP homs, not just monoid),
+  every subobject is normal (§1.593).  Includes cokernels (§1.592: an abelian
+  category has kernels and cokernels).
+
+  FAITHFULNESS (Freyd §1.598): a genuine abelian category has abelian-GROUP
+  hom-sets.  Extending `HalfAdditiveCategory` (commutative MONOID homs) is too
+  weak — the five/snake lemmas are FALSE without additive inverses (witness:
+  pointed sets form a half-additive non-additive category violating them).  We
+  therefore extend `AdditiveCategory` (= `HalfAdditiveCategory` + `addInv`), so
+  every `f : A ⟶ B` has a `g` with `add f g = zeroHom A B`. -/
 class AbelianCategory (𝒞 : Type u) [Cat.{v} 𝒞]
-    extends RegularCategory 𝒞, HalfAdditiveCategory 𝒞, HasZeroObject 𝒞,
+    extends RegularCategory 𝒞, AdditiveCategory 𝒞, HasZeroObject 𝒞,
             HasEqualizers 𝒞, HasCoequalizers 𝒞 where
   all_normal : ∀ {A B : 𝒞} (m : A ⟶ B) (hm : Mono m), IsNormalSubobject m hm
 
@@ -1345,18 +1353,20 @@ theorem all_normal_of_exact [ExactCategory 𝒞] {A B : 𝒞} (m : A ⟶ B) (hm 
 noncomputable def abelianOfExactAdditive [ExactCategory 𝒞] [AdditiveCategory 𝒞] :
     AbelianCategory 𝒞 :=
   letI hreg : RegularCategory 𝒞 := exact_additive_is_regular
-  letI hha : HalfAdditiveCategory 𝒞 := inferInstance
+  letI hadd : AdditiveCategory 𝒞 := inferInstance
   letI hz : HasZeroObject 𝒞 := inferInstance
   { toRegularCategory := hreg
     toHasEqualizers := (inferInstance : HasEqualizers 𝒞)
     toHasCoequalizers := (inferInstance : HasCoequalizers 𝒞)
-    zeroHom := hha.zeroHom
-    zeroHom_comp_left := hha.zeroHom_comp_left
-    zeroHom_comp_right := hha.zeroHom_comp_right
-    prod_coprod_coincide := hha.prod_coprod_coincide
-    add := hha.add
-    add_eq_addL := hha.add_eq_addL
-    add_eq_addR := hha.add_eq_addR
+    zeroHom := hadd.zeroHom
+    zeroHom_comp_left := hadd.zeroHom_comp_left
+    zeroHom_comp_right := hadd.zeroHom_comp_right
+    prod_coprod_coincide := hadd.prod_coprod_coincide
+    add := hadd.add
+    add_eq_addL := hadd.add_eq_addL
+    add_eq_addR := hadd.add_eq_addR
+    -- abelian-GROUP homs: additive inverses, from the ambient `[AdditiveCategory]`.
+    addInv := hadd.addInv
     zero_eq_one := hz.zero_eq_one
     all_normal := fun m hm => all_normal_of_exact m hm }
 
@@ -1456,14 +1466,23 @@ theorem abelian_iff_normal_kernels_cokernels
   (easy diagram chase); the definition of exact category is self-dual, so zero
   cokernel as well; hence it is an isomorphism.
 
-  BLOCKER (sharpened): the Horn-sentence reduction "holds in 𝒞 ⟺ holds in Ab" is the
-  metatheorem of §1.543 (capitalization / the faithful embedding into a functor category
-  that reflects bicartesian Horn sentences).  That chain is owned by a concurrent agent
-  and is not yet importable.  The *element-level* alternative (a direct categorical diagram
-  chase) needs the Ab-valued representation of §1.55 (subobject lattices + element chasing),
-  which is also absent.  No shortcut exists from the present `AbelianCategory` / `ExactCategory`
-  fields alone: the goal is bare `IsIso v₃` with only the six exactness isos and four square
-  commutativities, and `IsIso` is not recoverable without constructing ker(v₃)=0 ∧ coker(v₃)=0.
+  BLOCKER (sharpened — negatives are now available but DO NOT unblock this).  The class is
+  now FAITHFUL (`AbelianCategory extends AdditiveCategory`, so `[AbelianCategory 𝒞]` supplies
+  additive inverses; the subtraction `c − v₂(…)` steps of the chase are now expressible).  Yet
+  the proof still cannot start, for a reason UPSTREAM of negatives: the exactness hypotheses are
+  encoded as a *bare object iso* `Isomorphic (image aₙ).dom (Kernel aₙ₊₁)` (= `∃ φ, IsIso φ`,
+  S1_34).  That carries ZERO information about how `(image aₙ).dom` and `Kernel aₙ₊₁` sit inside
+  Aₙ₊₁: the chase needs the *subobject-compatible* form `φ ≫ kernelMap aₙ₊₁ = (image aₙ).arr`
+  (so "`x ≫ aₙ₊₁ = 0`" can be turned into "`x` factors through `image aₙ`"), which is STRICTLY
+  MORE than the bare iso and is NOT derivable from it (the upgrade lemma `Isomorphic (image f).dom
+  (Kernel g) → ∃ φ, IsIso φ ∧ φ ≫ kernelMap g = (image f).arr` is FALSE in general).  Honest
+  closure therefore needs the exactness hypotheses REDRAFTED to the ≫-compatible predicate
+  (`RelExact`), which is a statement change.  The Horn-sentence reduction "holds in 𝒞 ⟺ holds in
+  Ab" (the §1.543 capitalization metatheorem) and the §1.55 Ab-representation (subobject lattices
+  + element chasing) remain the only other routes, and both are still non-importable.  Faithful
+  Sorry retained.  The goal is bare `IsIso v₃` with only the six (bare-iso) exactness hypotheses
+  and four square commutativities; `IsIso` is not recoverable without constructing
+  ker(v₃)=0 ∧ coker(v₃)=0, and even those need the compatible exactness encoding to begin.
   Faithful Sorry retained (statement is Freyd §1.599, verified true and non-vacuous). -/
 theorem five_lemma [AbelianCategory 𝒞]
     {A₁ A₂ A₃ A₄ A₅ B₁ B₂ B₃ B₄ B₅ : 𝒞}
@@ -1515,7 +1534,14 @@ theorem five_lemma [AbelianCategory 𝒞]
   functoriality maps κ_*, π_* DO follow from the present universal properties, but the
   conjunction's hard core (existence of δ + four exactness isos) cannot be discharged without
   the relational calculus; a partial proof would leave δ a `Sorry` inside the existential and
-  is no more honest than the whole-statement Sorry.  Faithful Sorry retained. -/
+  is no more honest than the whole-statement Sorry.  Faithful Sorry retained.
+
+  NEGATIVES NOW AVAILABLE (still insufficient): `[AbelianCategory 𝒞]` now supplies additive
+  inverses (class extends `AdditiveCategory`).  This is necessary for the chase but does NOT
+  reach snake: in addition to the δ-as-relation machinery above, the row-exactness hypotheses
+  `Isomorphic (image f).dom (Kernel g)` are bare object isos (no subobject-inclusion data — see
+  the `five_lemma` blocker note), so even the induced kernel/cokernel maps' exactness cannot be
+  expressed.  Close `five_lemma` first (same upstream encoding obstacle). -/
 theorem snake_lemma [AbelianCategory 𝒞]
     {A B C A' B' C' : 𝒞}
     {f : A ⟶ B} {g : B ⟶ C} {α : A ⟶ A'} {β : B ⟶ B'} {γ : C ⟶ C'}
