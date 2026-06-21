@@ -1288,11 +1288,42 @@ class TierneyGrothendieckTopos (𝒞 : Type u) [Cat.{v} 𝒞] extends Topos 𝒞
       route) consumes. -/
   copow_one : (I : Type v) → CopowerOfOne I 𝒞
 
+/-- **§1.845: general coproduct injections are monic in a topos.**  Given a coproduct `cop` of a
+    `Type v`-indexed family `A` and any index `k`, the injection `cop.inj k : A k ⟶ ∐ᵢ Aᵢ` is monic.
+
+    PROOF (binary regrouping).  Let `R := ∐_{i≠k} Aᵢ` (from `HasAllCoproducts`) and form the binary
+    coproduct `A k ⊔ R` (the topos has binary coproducts, with monic left injection `coprodInl`).
+    The cocone sending `inj k ↦ inl` and `inj i ↦ R.inj⟨i,_⟩ ≫ inr` (`i≠k`) descends to a map
+    `Φ : cop.obj ⟶ A k ⊔ R` with `cop.inj k ≫ Φ = inl`.  As `inl` is monic and factors through
+    `cop.inj k`, the injection is monic. -/
+theorem coproduct_inj_monic [Topos 𝒞] (hca : HasAllCoproducts 𝒞) {I : Type v} {A : I → 𝒞}
+    (cop : Coproduct A) (k : I) : Mono (cop.inj k) := by
+  classical
+  -- `R := ∐_{i≠k} Aᵢ`; binary coproduct `A k ⊔ R` with monic left injection.
+  let R : Coproduct (fun j : {i : I // i ≠ k} => A j.1) := hca.coprod _
+  let cR : 𝒞 := HasBinaryCoproducts.coprod (A k) R.obj
+  let inl : A k ⟶ cR := HasBinaryCoproducts.inl
+  let inr : R.obj ⟶ cR := HasBinaryCoproducts.inr
+  have hinl_monic : Mono inl := coprodInl_monic (A k) R.obj
+  -- the cocone `{f i}` over the full family `A`, valued in `A k ⊔ R`.
+  let f : ∀ i, A i ⟶ cR := fun i =>
+    if h : i = k then (h ▸ inl : A i ⟶ cR) else R.inj ⟨i, h⟩ ≫ inr
+  let Φ : cop.obj ⟶ cR := cop.desc f
+  -- `cop.inj k ≫ Φ = f k = inl` (the `dite` at `k` is the diagonal branch).
+  have hk : cop.inj k ≫ Φ = inl := by
+    rw [cop.fac f k]; show (if h : k = k then (h ▸ inl : A k ⟶ cR) else _) = inl
+    rw [dif_pos rfl]
+  -- monic `inl` factoring through `cop.inj k` ⟹ `cop.inj k` monic.
+  intro W u v huv
+  refine hinl_monic u v ?_
+  rw [← hk, ← Cat.assoc, ← Cat.assoc, huv]
+
 /-- **§1.969**: The Lawvere and Tierney definitions yield the same notion.
 
-    RESIDUAL (honest `sorry`), SHARPENED.  Of the §1.968/§1.969 coproduct-assembly development,
-    THREE of the four prerequisite pieces are now BANKED sorry-free in this file; the SOLE
-    remaining blocker is general-family coproducts (`HasAllCoproducts`).
+    CLOSED sorry-free (axioms `[propext, Classical.choice, Quot.sound]`).  Both directions go
+    through the banked coproduct-assembly infra below; the last residual — Lawvere→Tierney's
+    progenitor needing each general coproduct injection `gen_obj k ↣ ∐ gen_obj` MONIC — is now
+    discharged by `coproduct_inj_monic` (§1.845, binary regrouping; see its docstring).
 
     BANKED (reusable, sorry-free):
     * **`wellPoweredSub_of_topos`** (§1.843, above) — `WellPoweredSub 𝒞` from the classifier alone,
@@ -1318,13 +1349,10 @@ class TierneyGrothendieckTopos (𝒞 : Type u) [Cat.{v} 𝒞] extends Topos 𝒞
     `gen_set` smallness index (2) is now a class field (the permitted fidelity fix).
     Tierney→Lawvere CLOSES sorry-free (general coproducts + coequalizers ⟹ cocomplete; the
     progenitor's well-powered subobject family is the small generating set).  Lawvere→Tierney's
-    `copow_one` also closes (constant-`one` coproduct).  The SOLE residual is Lawvere→Tierney's
-    PROGENITOR: turning a small generating SET into a single progenitor `G := ∐(gen set)` needs the
-    coproduct injections `gen_obj k ↣ ∐` to be MONIC (so each generator is a SUBOBJECT of `G`, as
-    `IsProgenitor` demands).  "General coproduct injections are monic in a topos" (topos coproducts
-    are disjoint, §1.845) is genuinely-unbuilt infra here (only the BINARY case
-    `coprodInl/r_monic` and the gated S1_61 `DisjointGluing` exist), so this one step is left
-    `sorry`. -/
+    `copow_one` also closes (constant-`one` coproduct), and its PROGENITOR `G := ∐(gen set)` closes
+    via `coproduct_inj_monic`: each general coproduct injection `gen_obj k ↣ ∐` is MONIC (§1.845
+    binary regrouping `gen_obj k ⊔ ∐_{i≠k}` + `coprodInl_monic`), so each generator is a SUBOBJECT
+    of `G`, as `IsProgenitor` demands. -/
 theorem lawvere_eq_tierney (𝒞 : Type u) [Cat.{v} 𝒞] :
     Nonempty (LawvereGrothendieckTopos 𝒞) ↔ Nonempty (TierneyGrothendieckTopos 𝒞) := by
   constructor
@@ -1344,19 +1372,21 @@ theorem lawvere_eq_tierney (𝒞 : Type u) [Cat.{v} 𝒞] :
           cotup := fun {X} f => (hca.coprod (fun _ : I => (one : 𝒞))).desc f
           inj_cotup := fun {X} f i => (hca.coprod (fun _ : I => (one : 𝒞))).fac f i
           cotup_uniq := fun {X} f h hh => (hca.coprod (fun _ : I => (one : 𝒞))).uniq f h hh }
-      -- progenitor: G := ∐(gen set).  RESIDUAL (the SOLE sorry in this theorem):
-      -- `IsProgenitor (∐ gen_obj)` = subobjects of `∐ gen_obj` generate.  The family `gen_obj`
-      -- generates (`has_gen_set`), and each generator would be a SUBOBJECT of `∐ gen_obj` via its
-      -- injection — PROVIDED `inj k : gen_obj k ↣ ∐ gen_obj` is MONIC.  "General coproduct
-      -- injections are monic in a topos" (topos coproducts are disjoint, §1.845) is genuinely
-      -- UNBUILT here: only the BINARY case (`coprodInl_monic`/`coprodInr_monic`, ToposExists) and
-      -- the gated/​un-imported S1_61 `DisjointGluing` exist; no `HasAllCoproducts ⟹ ∀i, Mono (inj i)`
-      -- lemma is available.  Once that single lemma lands, `is_progenitor` closes:
-      --   `T.is_progenitor`-style: given `f≠g`, `has_gen_set` gives a generator `gen_obj k` and a
-      --   distinguishing `h : gen_obj k → A`; the monic `inj k` makes `gen_obj k` a subobject of
-      --   `∐ gen_obj`, so the progenitor's subobjects generate.  (All other pieces are sorry-free.)
+      -- progenitor: G := ∐(gen set).  CLOSED: `IsProgenitor (∐ gen_obj)` = subobjects of
+      -- `∐ gen_obj` generate.  The family `gen_obj` generates (`has_gen_set`), and each generator
+      -- `gen_obj k` is a SUBOBJECT of `∐ gen_obj` via its injection `inj k`, which is MONIC by
+      -- `coproduct_inj_monic` (§1.845, binary regrouping `gen_obj k ⊔ ∐_{i≠k}` + `coprodInl_monic`).
       progenitor := (hca.coprod L.gen_obj).obj
-      is_progenitor := by sorry }⟩
+      is_progenitor := by
+        -- `IsProgenitor G` = `IsGeneratingSet (fun X => ∃ m : X ⟶ G, Mono m)`.  The family
+        -- `gen_obj` generates (`has_gen_set`); each `gen_obj k` is a SUBOBJECT of `G := ∐ gen_obj`
+        -- via the monic injection `inj k` (`coproduct_inj_monic`), so the progenitor's subobjects
+        -- generate too: relay the separation hypothesis from subobjects to generators.
+        intro A B f g hsep
+        refine L.has_gen_set f g (fun X ⟨k, hk⟩ h => ?_)
+        -- `X = gen_obj k`; its injection `inj k : gen_obj k ↣ G` is monic, so `X ∈ Sub(G)`.
+        subst hk
+        exact hsep _ ⟨(hca.coprod L.gen_obj).inj k, coproduct_inj_monic hca (hca.coprod L.gen_obj) k⟩ h }⟩
   · -- Tierney → Lawvere.
     rintro ⟨T⟩
     letI : Topos 𝒞 := T.toTopos
