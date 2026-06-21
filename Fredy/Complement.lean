@@ -269,3 +269,61 @@ theorem diagonal_classifies {A B : 𝒞} (hA : DecidableObjectSub A)
     (hS₂ : (InverseImage c (diagSub A)).le S) :
     IsComplementedSub S :=
   IsComplementedSub_congr hS₁ hS₂ (invImage_diagSub_complementedSub hA c)
+
+/-- The product map `φ × φ : X×X → Y×Y` for `φ : X → Y`, as `pair (fst≫φ) (snd≫φ)`. -/
+def prodSelfMap {X Y : 𝒞} (φ : X ⟶ Y) : prod X X ⟶ prod Y Y := pair (fst ≫ φ) (snd ≫ φ)
+
+theorem prodSelfMap_fst {X Y : 𝒞} (φ : X ⟶ Y) : prodSelfMap φ ≫ fst = fst ≫ φ := fst_pair _ _
+theorem prodSelfMap_snd {X Y : 𝒞} (φ : X ⟶ Y) : prodSelfMap φ ≫ snd = snd ≫ φ := snd_pair _ _
+
+/-- `diag X ≫ (φ × φ) = φ ≫ diag Y`: the diagonal is natural in `φ`. -/
+theorem diag_prodSelfMap {X Y : 𝒞} (φ : X ⟶ Y) :
+    diag X ≫ prodSelfMap φ = φ ≫ diag Y := by
+  apply fst_snd_jointly_monic
+  · rw [Cat.assoc, prodSelfMap_fst, ← Cat.assoc, diag_fst, Cat.id_comp,
+        Cat.assoc, diag_fst, Cat.comp_id]
+  · rw [Cat.assoc, prodSelfMap_snd, ← Cat.assoc, diag_snd, Cat.id_comp,
+        Cat.assoc, diag_snd, Cat.comp_id]
+
+/-- **Decidability transports along isos**: if `X ≅ Y` (witnessed by a MONO `φ`, e.g. an iso)
+    and `Y` is decidable, so is `X`.  The diagonal `Δ_X` coincides with `(φ×φ)# Δ_Y`
+    (`φ` mono ⟹ `φ(x₁)=φ(x₂) ↔ x₁=x₂`), and inverse images of complemented subobjects are
+    complemented (`diagonal_classifies`). -/
+theorem decidableSub_of_mono {X Y : 𝒞} (φ : X ⟶ Y) (hφ : Mono φ)
+    (hY : DecidableObjectSub Y) : DecidableObjectSub X := by
+  let pbeq := HasPullbacks.has (prodSelfMap φ) (diagSub Y).arr
+  refine diagonal_classifies hY (prodSelfMap φ) ?_ ?_
+  · -- diagSub X ≤ c#(diagSub Y) : the cone ⟨X, diag X, φ, diag_prodSelfMap⟩ lifts.
+    have hw : diag X ≫ prodSelfMap φ = φ ≫ (diagSub Y).arr := diag_prodSelfMap φ
+    exact ⟨pbeq.lift ⟨X, diag X, φ, hw⟩, pbeq.lift_fst ⟨X, diag X, φ, hw⟩⟩
+  · -- c#(diagSub Y) ≤ diagSub X : π₁ factors through diag X since its two coords agree.
+    have hw : pbeq.cone.π₁ ≫ prodSelfMap φ = pbeq.cone.π₂ ≫ diag Y := pbeq.cone.w
+    have hcoord : pbeq.cone.π₁ ≫ fst = pbeq.cone.π₁ ≫ snd := by
+      apply hφ
+      -- (π₁≫fst)≫φ = (π₁≫c)≫fst = (π₂≫diagY)≫fst = (π₂≫diagY)≫snd = (π₁≫c)≫snd = (π₁≫snd)≫φ
+      have hdd : diag Y ≫ fst = diag Y ≫ snd := by rw [diag_fst, diag_snd]
+      calc (pbeq.cone.π₁ ≫ fst) ≫ φ
+          = (pbeq.cone.π₁ ≫ prodSelfMap φ) ≫ fst := by
+            rw [Cat.assoc, Cat.assoc, prodSelfMap_fst]
+        _ = (pbeq.cone.π₂ ≫ diag Y) ≫ fst := by rw [hw]
+        _ = pbeq.cone.π₂ ≫ (diag Y ≫ fst) := Cat.assoc _ _ _
+        _ = pbeq.cone.π₂ ≫ (diag Y ≫ snd) := by rw [hdd]
+        _ = (pbeq.cone.π₂ ≫ diag Y) ≫ snd := (Cat.assoc _ _ _).symm
+        _ = (pbeq.cone.π₁ ≫ prodSelfMap φ) ≫ snd := by rw [hw]
+        _ = (pbeq.cone.π₁ ≫ snd) ≫ φ := by rw [Cat.assoc, Cat.assoc, prodSelfMap_snd]
+    -- π₁ = pair (π₁≫fst) (π₁≫snd) = (π₁≫fst) ≫ diag X.
+    refine ⟨pbeq.cone.π₁ ≫ fst, ?_⟩
+    show (pbeq.cone.π₁ ≫ fst) ≫ diag X = pbeq.cone.π₁
+    apply fst_snd_jointly_monic
+    · rw [Cat.assoc, diag_fst, Cat.comp_id]
+    · rw [Cat.assoc, diag_snd, Cat.comp_id, hcoord]
+
+/-- `DecidableObjectSub` transports across an isomorphism `X ≅ Y`. -/
+theorem decidableSub_of_iso {X Y : 𝒞} (h : Isomorphic X Y) (hY : DecidableObjectSub Y) :
+    DecidableObjectSub X := by
+  obtain ⟨φ, φinv, hfg, _⟩ := h
+  have hmono : Mono φ := by
+    intro W u v huv
+    have := congrArg (· ≫ φinv) huv
+    simpa only [Cat.assoc, hfg, Cat.comp_id] using this
+  exact decidableSub_of_mono φ hmono hY
