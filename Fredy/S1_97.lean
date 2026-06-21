@@ -795,6 +795,33 @@ theorem recursor_exists_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos �
   -- recursor for every codomain, and uniqueness of the `(a,t)→A` recursor `= id_A`).
   -- Everything else in §1.98(10) — `peano_of_bicartesian`, GENERAL recursor
   -- uniqueness, and the NNO assembly — is derived from this Sorry-free below.
+  --
+  -- SHARPENED RESIDUAL (feasibility analysis 2026-06-21, work/recursor2).
+  -- Both conjuncts reduce to ONE missing primitive, the §1.988 PEANO PROPERTY:
+  --   (P) every `(a,t)`-CLOSED subobject `S ↣ A` of bicartesian `[a,t]:1+A≅A` is ENTIRE.
+  -- Given (P): EXISTENCE — build the graph `G ↣ A×X` as `least_peano_subobject (A×X)
+  --   (pair a x) (prodMap t f)`; its projection `G ↣ A×X → A` is `(a,t)`-closed in `A`,
+  --   so by (P) entire ⇒ single-valued+total ⇒ `h := proj⁻¹ ≫ G.arr ≫ snd`.  UNIQUENESS —
+  --   the equalizer `eq(e,id_A) ↣ A` is `(a,t)`-closed, so (P) makes it entire ⇒ `e=id`.
+  -- The block is (P) ITSELF, and it is a GENUINE wall here, not a missing tactic:
+  --   • Freyd's ACTUAL §1.988 proof proves (P) ONLY in a BOOLEAN topos: take `A''` =
+  --     COMPLEMENT of the least closed `A'`, split `A = A' + A''`, and use `hcoeq` to get
+  --     `C' + C'' = 1`, forcing `C''=0`, `A''=0` (§1.658 complement + §1.635/§1.641/§1.944).
+  --     A general `Topos 𝒞` is NOT boolean — the subobject `A'` need not be COMPLEMENTED
+  --     (`IsComplementedSub`, Fredy/Complement.lean), so this route is unavailable.
+  --   • The "remove boolean" device (§2.542: faithful bicartesian embedding into a boolean
+  --     topos) is ABSENT from the repo — it cannot even be STATED yet (Fredy/S2_5.lean:592).
+  --   • The prompt's PMC-W-type alternative (partial recursor `R ↣ A×X` classified via
+  --     `partialMapClassifier_exists`, domain forced entire) is CIRCULAR: forcing `dom R`
+  --     entire — equivalently single-valuedness/totality of `R` — IS exactly (P) again.
+  --   • `least_peano_subobject` (sorry-free, available here) supplies the EXISTENCE of the
+  --     least closed subobject, never its ENTIRETY; `hcoeq` alone (maps killing `t` are
+  --     constant) cannot split `A` along a non-complemented closed `S`.
+  -- MISSING LEMMA, named precisely:  `peano_property_of_bicartesian`:
+  --     `IsIso (case a t) → (terminal coeq of (t,id)) → ∀ S closed, S.IsEntire`
+  --   provable EITHER from a `[BooleanTopos 𝒞]`/`IsComplementedSub (least closed)` hypothesis
+  --   (Freyd's §1.988, complement route) OR from the §2.542 boolean-embedding theorem — both
+  --   absent.  This is the absent §1.988 Peano primitive, NOT §1.543-capitalization (proven).
   sorry
 
 /-- **§1.987 PEANO PROPERTY from bicartesian data.**  Every `(a,t)`-closed subobject
