@@ -1448,9 +1448,132 @@ theorem abelian_iff_normal_kernels_cokernels
   The FIVE LEMMA and SNAKE LEMMA are the two key diagram lemmas. -/
 
 /-! EXACT at B (§1.599): a composable pair f : A → B, g : B → C is exact at B
-  when the image of f is isomorphic to the kernel of g.
-  Note: `ExactAt` is defined in `S1_39.lean`; this comment documents it here per §1.599.
-  We use `Isomorphic (image f).dom (Kernel g)` inline in statements below. -/
+  when the image of f *equals the kernel of g AS A SUBOBJECT of B*.
+
+  WHY NOT the bare object iso `Isomorphic (image f).dom (Kernel g)`.  A bare object iso
+  `∃ φ, IsIso φ` (S1_34) only says the two domains are abstractly isomorphic; it records NOTHING
+  about how `(image f).dom` and `Kernel g` sit inside `B`.  But "exact at B" is a statement about
+  SUBOBJECTS of `B` (im f = ker g as subobjects), so the faithful encoding must bundle the iso
+  with the compatibility `φ ≫ kernelMap g = (image f).arr` (the two inclusions into `B` agree).
+  The bare-iso form is STRICTLY WEAKER and is the wrong encoding: the upgrade
+  `Isomorphic (image f).dom (Kernel g) → ∃ φ, IsIso φ ∧ φ ≫ kernelMap g = (image f).arr`
+  is FALSE in general.  `RelExact` below is the correct (stronger, faithful) predicate, and it is
+  what every diagram chase actually uses: it lets one turn "`x ≫ g = 0`" into "`x` factors through
+  `image f`" (via `kernelMap`'s universal property + `φ⁻¹`). -/
+
+/-- **§1.599 exactness at B, ≫-compatible (faithful).**  The image of `f` equals the kernel
+  of `g` AS A SUBOBJECT of `B`: an iso `φ : (image f).dom ≅ Kernel g` commuting with both
+  inclusions into `B` (`φ ≫ kernelMap g = (image f).arr`).  Bundling the inclusion compatibility
+  (not just the bare object iso) is what makes the chases go through. -/
+def RelExact [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasImages 𝒞]
+    {A B C : 𝒞} (f : A ⟶ B) (g : B ⟶ C) : Prop :=
+  ∃ φ : (image f).dom ⟶ Kernel g, IsIso φ ∧ φ ≫ kernelMap g = (image f).arr
+
+/-- A map killed by `x` lifts (uniquely) through the kernel of `x`.  This is the kernel's
+  universal property specialized to the `(x, 0)` equalizer: if `k ≫ x = 0` then `k` factors as
+  `(kernelLift) ≫ kernelMap x`. -/
+def kernelLift [HasZeroObject 𝒞] [HasEqualizers 𝒞] {A B X : 𝒞} (x : A ⟶ B) (k : X ⟶ A)
+    (h : k ≫ x = zeroMorphism X B) : X ⟶ Kernel x :=
+  eqLift x (zeroMorphism A B) k (by
+    rw [h, zero_morphism_comp k (zeroMorphism A B)])
+
+theorem kernelLift_fac [HasZeroObject 𝒞] [HasEqualizers 𝒞] {A B X : 𝒞} (x : A ⟶ B) (k : X ⟶ A)
+    (h : k ≫ x = zeroMorphism X B) : kernelLift x k h ≫ kernelMap x = k :=
+  eqLift_fac x (zeroMorphism A B) k _
+
+/-- `kernelMap x` is monic (it is an equalizer map). -/
+theorem kernelMap_mono [HasZeroObject 𝒞] [HasEqualizers 𝒞] {A B : 𝒞} (x : A ⟶ B) :
+    Mono (kernelMap x) := eqMap_mono' x (zeroMorphism A B)
+
+/-- `kernelMap x ≫ x = 0`: the kernel is killed by `x`. -/
+theorem kernelMap_comp [HasZeroObject 𝒞] [HasEqualizers 𝒞] {A B : 𝒞} (x : A ⟶ B) :
+    kernelMap x ≫ x = zeroMorphism (Kernel x) B := by
+  rw [kernelMap_eq, zero_morphism_comp (kernelMap x) (zeroMorphism A B)]
+
+/-! ### §1.599 Diagram-chase infrastructure for the five lemma
+
+  Three reusable facts, all valid in any additive category with zero / equalizers /
+  images (no `ExactCategory` instance needed):
+
+  * `comp_zero_of_mono` / `mono_of_comp_zero`: in an ADDITIVE category, a map `m` is monic
+    iff its "kernel is zero" — `∀ t, t ≫ m = 0 → t = 0`.  Forward needs only the zero ideal;
+    backward needs additive inverses (`addInv` + `add_cancel_common`).
+  * `relexact_comp_zero`: `RelExact f g ⟹ f ≫ g = 0` (the two halves of an exact sequence
+    compose to zero).
+  * `relexact_cover_factor`: the element-free "preimage" step.  If `RelExact f g` and
+    `t ≫ g = 0`, then after covering the source of `t` by a cover `e`, the pullback `e ≫ t`
+    factors as `x ≫ f`.  This packages "`t` lands in `im f = ker g`, then lift through the
+    image-cover by a pullback". -/
+
+/-- Forward (additive): a monic `m` has zero kernel — `t ≫ m = 0 ⟹ t = 0`. -/
+theorem comp_zero_of_mono [HasZeroObject 𝒞] {A B : 𝒞} {m : A ⟶ B} (hm : Mono m)
+    {T : 𝒞} (t : T ⟶ A) (h : t ≫ m = zeroMorphism T B) : t = zeroMorphism T A := by
+  apply hm t (zeroMorphism T A)
+  rw [h, zeroMorphism_comp_left m]
+
+/-- Backward (additive, needs inverses): if `m` has zero kernel (`t ≫ m = 0 ⟹ t = 0`) then
+    `m` is monic.  Given `u ≫ m = w ≫ m`, form `d = u + (−w)`; then `d ≫ m = 0`, so `d = 0`,
+    and `add u (−w) = 0 = add w (−w)` forces `u = w` (`add_cancel_common`). -/
+theorem mono_of_comp_zero [AdditiveCategory 𝒞] [HasZeroObject 𝒞] {A B : 𝒞} {m : A ⟶ B}
+    (h : ∀ {T : 𝒞} (t : T ⟶ A), t ≫ m = zeroMorphism T B → t = zeroMorphism T A) : Mono m := by
+  intro W u w huw
+  obtain ⟨g, hg⟩ := AdditiveCategory.addInv w
+  have hd : HalfAdditiveCategory.add u g ≫ m = zeroMorphism W B := by
+    rw [HalfAdditiveCategory.add_comp, huw, ← HalfAdditiveCategory.add_comp, hg,
+        zeroHom_eq_zeroMorphism' W A, zeroMorphism_comp_left m]
+  have hd0 : HalfAdditiveCategory.add u g = zeroMorphism W A := h _ hd
+  refine add_cancel_common u w g ?_ hg
+  rw [hd0, zeroHom_eq_zeroMorphism' W A]
+
+/-- `RelExact f g ⟹ f ≫ g = 0`: the image of `f` is the kernel of `g`, and the kernel is
+    killed by `g`. -/
+theorem relexact_comp_zero [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasImages 𝒞]
+    {A B C : 𝒞} {f : A ⟶ B} {g : B ⟶ C} (hfg : RelExact f g) :
+    f ≫ g = zeroMorphism A C := by
+  obtain ⟨φ, _, hφ⟩ := hfg
+  have hkey : f ≫ g = image.lift f ≫ φ ≫ kernelMap g ≫ g :=
+    calc f ≫ g = (image.lift f ≫ (image f).arr) ≫ g := by rw [image.lift_fac]
+      _ = (image.lift f ≫ (φ ≫ kernelMap g)) ≫ g := by rw [hφ]
+      _ = image.lift f ≫ φ ≫ kernelMap g ≫ g := by simp only [Cat.assoc]
+  rw [hkey, kernelMap_comp g, zero_morphism_comp φ (zeroMorphism (Kernel g) C),
+      zero_morphism_comp (image.lift f) (zeroMorphism (image f).dom C)]
+
+/-- A map `t : T → B` killed by `g` factors through `image f`, given `RelExact f g`
+    (`im f = ker g`).  `t ≫ g = 0` lifts `t` through `ker g` (`kernelLift`); the iso `φ`
+    transports that into a factor through `(image f).arr`. -/
+theorem relexact_factor [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasImages 𝒞]
+    {A B C : 𝒞} {f : A ⟶ B} {g : B ⟶ C} (hfg : RelExact f g)
+    {T : 𝒞} (t : T ⟶ B) (h : t ≫ g = zeroMorphism T C) :
+    ∃ s : T ⟶ (image f).dom, s ≫ (image f).arr = t := by
+  obtain ⟨φ, ⟨φinv, hφ1, hφ2⟩, hφ⟩ := hfg
+  refine ⟨kernelLift g t h ≫ φinv, ?_⟩
+  calc (kernelLift g t h ≫ φinv) ≫ (image f).arr
+      = (kernelLift g t h ≫ φinv) ≫ (φ ≫ kernelMap g) := by rw [hφ]
+    _ = kernelLift g t h ≫ (φinv ≫ φ) ≫ kernelMap g := by simp only [Cat.assoc]
+    _ = kernelLift g t h ≫ kernelMap g := by rw [hφ2, Cat.id_comp]
+    _ = t := kernelLift_fac g t h
+
+/-- **Element-free "preimage" step.**  Given `RelExact f g` and `t : T → B` with `t ≫ g = 0`,
+    there is a COVER `e : P → T` and a map `x : P → A` with `e ≫ t = x ≫ f`.  Construction:
+    `t` factors through `image f` (`relexact_factor`); pull the image-cover `image.lift f`
+    back along that factor — the other projection `e` is a cover (`cover_pullback`), and the
+    pullback square gives `e ≫ t = x ≫ f`. -/
+theorem relexact_cover_factor [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasImages 𝒞]
+    [HasPullbacks 𝒞] [PullbacksTransferCovers 𝒞]
+    {A B C : 𝒞} {f : A ⟶ B} {g : B ⟶ C} (hfg : RelExact f g)
+    {T : 𝒞} (t : T ⟶ B) (h : t ≫ g = zeroMorphism T C) :
+    ∃ (P : 𝒞) (e : P ⟶ T) (x : P ⟶ A), Cover e ∧ e ≫ t = x ≫ f := by
+  obtain ⟨s, hs⟩ := relexact_factor hfg t h
+  -- pull back the cover `image.lift f : A → (image f).dom` along `s : T → (image f).dom`
+  let pb := HasPullbacks.has (image.lift f) s
+  have he_cover : Cover pb.cone.π₂ := cover_pullback s (image_lift_cover f)
+  refine ⟨pb.cone.pt, pb.cone.π₂, pb.cone.π₁, he_cover, ?_⟩
+  -- pb.cone.w : π₁ ≫ image.lift f = π₂ ≫ s
+  calc pb.cone.π₂ ≫ t = pb.cone.π₂ ≫ (s ≫ (image f).arr) := by rw [hs]
+    _ = (pb.cone.π₂ ≫ s) ≫ (image f).arr := by rw [Cat.assoc]
+    _ = (pb.cone.π₁ ≫ image.lift f) ≫ (image f).arr := by rw [pb.cone.w]
+    _ = pb.cone.π₁ ≫ (image.lift f ≫ (image f).arr) := by rw [Cat.assoc]
+    _ = pb.cone.π₁ ≫ f := by rw [image.lift_fac]
 
 /-! §1.599 FIVE LEMMA: In an abelian category, given a commutative diagram
 
@@ -1466,43 +1589,188 @@ theorem abelian_iff_normal_kernels_cokernels
   (easy diagram chase); the definition of exact category is self-dual, so zero
   cokernel as well; hence it is an isomorphism.
 
-  BLOCKER (sharpened — negatives are now available but DO NOT unblock this).  The class is
-  now FAITHFUL (`AbelianCategory extends AdditiveCategory`, so `[AbelianCategory 𝒞]` supplies
-  additive inverses; the subtraction `c − v₂(…)` steps of the chase are now expressible).  Yet
-  the proof still cannot start, for a reason UPSTREAM of negatives: the exactness hypotheses are
-  encoded as a *bare object iso* `Isomorphic (image aₙ).dom (Kernel aₙ₊₁)` (= `∃ φ, IsIso φ`,
-  S1_34).  That carries ZERO information about how `(image aₙ).dom` and `Kernel aₙ₊₁` sit inside
-  Aₙ₊₁: the chase needs the *subobject-compatible* form `φ ≫ kernelMap aₙ₊₁ = (image aₙ).arr`
-  (so "`x ≫ aₙ₊₁ = 0`" can be turned into "`x` factors through `image aₙ`"), which is STRICTLY
-  MORE than the bare iso and is NOT derivable from it (the upgrade lemma `Isomorphic (image f).dom
-  (Kernel g) → ∃ φ, IsIso φ ∧ φ ≫ kernelMap g = (image f).arr` is FALSE in general).  Honest
-  closure therefore needs the exactness hypotheses REDRAFTED to the ≫-compatible predicate
-  (`RelExact`), which is a statement change.  The Horn-sentence reduction "holds in 𝒞 ⟺ holds in
-  Ab" (the §1.543 capitalization metatheorem) and the §1.55 Ab-representation (subobject lattices
-  + element chasing) remain the only other routes, and both are still non-importable.  Faithful
-  Sorry retained.  The goal is bare `IsIso v₃` with only the six (bare-iso) exactness hypotheses
-  and four square commutativities; `IsIso` is not recoverable without constructing
-  ker(v₃)=0 ∧ coker(v₃)=0, and even those need the compatible exactness encoding to begin.
-  Faithful Sorry retained (statement is Freyd §1.599, verified true and non-vacuous). -/
+  STATEMENT FIX (faithful, NOT a weakening).  The exactness hypotheses are now the ≫-compatible
+  `RelExact aₙ aₙ₊₁` (im aₙ = ker aₙ₊₁ as SUBOBJECTS of Aₙ₊₁), replacing the prior *bare object
+  iso* `Isomorphic (image aₙ).dom (Kernel aₙ₊₁)` (= `∃ φ, IsIso φ`).  The bare iso was the WRONG,
+  too-weak encoding: it records nothing about how `(image aₙ).dom` and `Kernel aₙ₊₁` include into
+  Aₙ₊₁, and the chase genuinely needs `φ ≫ kernelMap aₙ₊₁ = (image aₙ).arr` to turn
+  "`x ≫ aₙ₊₁ = 0`" into "`x` factors through `image aₙ`".  `RelExact` is STRICTLY STRONGER than
+  the bare iso (and is the faithful definition of an exact sequence), so this is a strengthening of
+  the hypothesis = a more honest statement, not a weakening of the theorem.  The class is also now
+  FAITHFUL (`AbelianCategory extends AdditiveCategory`), supplying the additive inverses the
+  subtraction steps of the chase need. -/
 theorem five_lemma [AbelianCategory 𝒞]
     {A₁ A₂ A₃ A₄ A₅ B₁ B₂ B₃ B₄ B₅ : 𝒞}
     {a₁ : A₁ ⟶ A₂} {a₂ : A₂ ⟶ A₃} {a₃ : A₃ ⟶ A₄} {a₄ : A₄ ⟶ A₅}
     {b₁ : B₁ ⟶ B₂} {b₂ : B₂ ⟶ B₃} {b₃ : B₃ ⟶ B₄} {b₄ : B₄ ⟶ B₅}
     {v₁ : A₁ ⟶ B₁} {v₂ : A₂ ⟶ B₂} {v₃ : A₃ ⟶ B₃} {v₄ : A₄ ⟶ B₄} {v₅ : A₅ ⟶ B₅}
-    -- rows are exact (image of aₙ ≅ kernel of aₙ₊₁)
-    (hA₁₂ : Isomorphic (image a₁).dom (Kernel a₂))
-    (hA₂₃ : Isomorphic (image a₂).dom (Kernel a₃))
-    (hA₃₄ : Isomorphic (image a₃).dom (Kernel a₄))
-    (hB₁₂ : Isomorphic (image b₁).dom (Kernel b₂))
-    (hB₂₃ : Isomorphic (image b₂).dom (Kernel b₃))
-    (hB₃₄ : Isomorphic (image b₃).dom (Kernel b₄))
+    -- rows are exact (image of aₙ = kernel of aₙ₊₁ as subobjects)
+    (hA₁₂ : RelExact a₁ a₂) (hA₂₃ : RelExact a₂ a₃) (hA₃₄ : RelExact a₃ a₄)
+    (hB₁₂ : RelExact b₁ b₂) (hB₂₃ : RelExact b₂ b₃) (hB₃₄ : RelExact b₃ b₄)
     -- squares commute
     (sq₁ : a₁ ≫ v₂ = v₁ ≫ b₁) (sq₂ : a₂ ≫ v₃ = v₂ ≫ b₂)
     (sq₃ : a₃ ≫ v₄ = v₃ ≫ b₃) (sq₄ : a₄ ≫ v₅ = v₄ ≫ b₄)
     -- outer four verticals are isos
     (h₁ : IsIso v₁) (h₂ : IsIso v₂) (h₄ : IsIso v₄) (h₅ : IsIso v₅) :
     IsIso v₃ := by
-  sorry
+  -- inverses of the four outer verticals
+  obtain ⟨v₁i, hv₁1, hv₁2⟩ := h₁
+  obtain ⟨v₂i, hv₂1, hv₂2⟩ := h₂
+  obtain ⟨v₄i, hv₄1, hv₄2⟩ := h₄
+  obtain ⟨v₅i, hv₅1, hv₅2⟩ := h₅
+  have hv₂mono : Mono v₂ := mono_of_retraction v₂ v₂i hv₂1
+  have hv₄mono : Mono v₄ := mono_of_retraction v₄ v₄i hv₄1
+  have hv₅mono : Mono v₅ := mono_of_retraction v₅ v₅i hv₅1
+  -- the two rows compose to zero at the relevant spots
+  have ha₁a₂ : a₁ ≫ a₂ = zeroMorphism A₁ A₃ := relexact_comp_zero hA₁₂
+  have hb₃b₄ : b₃ ≫ b₄ = zeroMorphism B₃ B₅ := relexact_comp_zero hB₃₄
+  -- ===================================================================== MONO half
+  have hmono : Mono v₃ := by
+    refine mono_of_comp_zero (fun {T} t ht => ?_)
+    -- t ≫ a₃ = 0  (push through sq₃, kill by v₄ iso)
+    have hta₃ : t ≫ a₃ = zeroMorphism T A₄ := by
+      apply comp_zero_of_mono hv₄mono
+      calc (t ≫ a₃) ≫ v₄ = t ≫ (a₃ ≫ v₄) := Cat.assoc _ _ _
+        _ = t ≫ (v₃ ≫ b₃) := by rw [sq₃]
+        _ = (t ≫ v₃) ≫ b₃ := (Cat.assoc _ _ _).symm
+        _ = zeroMorphism T B₃ ≫ b₃ := by rw [ht]
+        _ = zeroMorphism T B₄ := zeroMorphism_comp_left b₃
+    -- cover P of T with x : P → A₂, e ≫ t = x ≫ a₂
+    obtain ⟨P, e, x, he_cover, hex⟩ := relexact_cover_factor hA₂₃ t hta₃
+    -- (x ≫ v₂) ≫ b₂ = 0
+    have hxb₂ : (x ≫ v₂) ≫ b₂ = zeroMorphism P B₃ := by
+      calc (x ≫ v₂) ≫ b₂ = x ≫ (v₂ ≫ b₂) := Cat.assoc _ _ _
+        _ = x ≫ (a₂ ≫ v₃) := by rw [sq₂]
+        _ = (x ≫ a₂) ≫ v₃ := (Cat.assoc _ _ _).symm
+        _ = (e ≫ t) ≫ v₃ := by rw [hex]
+        _ = e ≫ (t ≫ v₃) := Cat.assoc _ _ _
+        _ = e ≫ zeroMorphism T B₃ := by rw [ht]
+        _ = zeroMorphism P B₃ := zero_morphism_comp e (zeroMorphism T B₃)
+    -- cover Q of P with y : Q → B₁, ρ ≫ (x ≫ v₂) = y ≫ b₁
+    obtain ⟨Q, ρ, y, hρ_cover, hρy⟩ := relexact_cover_factor hB₁₂ (x ≫ v₂) hxb₂
+    -- preimage w = y ≫ v₁⁻¹ : Q → A₁,  w ≫ a₁ = ρ ≫ x  (cancel v₂ mono)
+    have hwa₁ : (y ≫ v₁i) ≫ a₁ = ρ ≫ x := by
+      apply hv₂mono
+      calc ((y ≫ v₁i) ≫ a₁) ≫ v₂ = (y ≫ v₁i) ≫ (a₁ ≫ v₂) := Cat.assoc _ _ _
+        _ = (y ≫ v₁i) ≫ (v₁ ≫ b₁) := by rw [sq₁]
+        _ = y ≫ (v₁i ≫ v₁) ≫ b₁ := by simp only [Cat.assoc]
+        _ = y ≫ b₁ := by rw [hv₁2, Cat.id_comp]
+        _ = ρ ≫ (x ≫ v₂) := hρy.symm
+        _ = (ρ ≫ x) ≫ v₂ := (Cat.assoc _ _ _).symm
+    -- ρ ≫ e ≫ t = (w ≫ a₁) ≫ a₂ = 0, then cancel the two covers
+    have hcancel : (ρ ≫ e) ≫ t = zeroMorphism Q A₃ := by
+      calc (ρ ≫ e) ≫ t = ρ ≫ (e ≫ t) := Cat.assoc _ _ _
+        _ = ρ ≫ (x ≫ a₂) := by rw [hex]
+        _ = (ρ ≫ x) ≫ a₂ := (Cat.assoc _ _ _).symm
+        _ = ((y ≫ v₁i) ≫ a₁) ≫ a₂ := by rw [hwa₁]
+        _ = (y ≫ v₁i) ≫ (a₁ ≫ a₂) := Cat.assoc _ _ _
+        _ = (y ≫ v₁i) ≫ zeroMorphism A₁ A₃ := by rw [ha₁a₂]
+        _ = zeroMorphism Q A₃ := zero_morphism_comp (y ≫ v₁i) (zeroMorphism A₁ A₃)
+    -- ρ ≫ e is a cover (composite), hence epic; cancel against `t = 0`-target
+    have hρe_cover : Cover (ρ ≫ e) := cover_comp hρ_cover he_cover
+    apply cover_epi hρe_cover
+    rw [hcancel, zero_morphism_comp (ρ ≫ e) (zeroMorphism T A₃)]
+  -- ===================================================================== COVER half
+  -- It suffices that `j := (image v₃).arr` is iso (`cover_iff_image_entire`); we show `j`
+  -- is split epi (a right inverse from `cover_mono_diagonal` with `β = id`), and `j` is
+  -- monic, so `j` is iso.
+  have hcover : Cover v₃ := by
+    rw [cover_iff_image_entire]
+    -- run the dual chase on the generalized element `β = id_{B₃} : B₃ → B₃`
+    let β : B₃ ⟶ B₃ := Cat.id B₃
+    have hβ : β = Cat.id B₃ := rfl
+    -- z : B₃ → A₄ with z ≫ v₄ = β ≫ b₃
+    let z : B₃ ⟶ A₄ := β ≫ b₃ ≫ v₄i
+    have hz : z = β ≫ b₃ ≫ v₄i := rfl
+    have hzv₄ : z ≫ v₄ = β ≫ b₃ := by
+      rw [hz, Cat.assoc, Cat.assoc, hv₄2, Cat.comp_id]
+    -- z ≫ a₄ = 0 (kill by v₅ mono, b₃≫b₄ = 0)
+    have hza₄ : z ≫ a₄ = zeroMorphism B₃ A₅ := by
+      apply comp_zero_of_mono hv₅mono
+      calc (z ≫ a₄) ≫ v₅ = z ≫ (a₄ ≫ v₅) := Cat.assoc _ _ _
+        _ = z ≫ (v₄ ≫ b₄) := by rw [sq₄]
+        _ = (z ≫ v₄) ≫ b₄ := (Cat.assoc _ _ _).symm
+        _ = (β ≫ b₃) ≫ b₄ := by rw [hzv₄]
+        _ = β ≫ (b₃ ≫ b₄) := Cat.assoc _ _ _
+        _ = β ≫ zeroMorphism B₃ B₅ := by rw [hb₃b₄]
+        _ = zeroMorphism B₃ B₅ := by rw [zero_morphism_comp β (zeroMorphism B₃ B₅)]
+    -- cover P of B₃ with x̃ : P → A₃, π ≫ z = x̃ ≫ a₃
+    obtain ⟨P, π, xt, hπ_cover, hπx⟩ := relexact_cover_factor hA₃₄ z hza₄
+    -- additive inverse of x̃ ≫ v₃
+    obtain ⟨neg, hneg⟩ := AdditiveCategory.addInv (xt ≫ v₃)
+    let d : P ⟶ B₃ := HalfAdditiveCategory.add (π ≫ β) neg
+    have hd : d = HalfAdditiveCategory.add (π ≫ β) neg := rfl
+    -- d ≫ b₃ = 0
+    have hxv₃b₃ : (xt ≫ v₃) ≫ b₃ = (π ≫ β) ≫ b₃ := by
+      calc (xt ≫ v₃) ≫ b₃ = xt ≫ (v₃ ≫ b₃) := Cat.assoc _ _ _
+        _ = xt ≫ (a₃ ≫ v₄) := by rw [sq₃]
+        _ = (xt ≫ a₃) ≫ v₄ := (Cat.assoc _ _ _).symm
+        _ = (π ≫ z) ≫ v₄ := by rw [hπx]
+        _ = π ≫ (z ≫ v₄) := Cat.assoc _ _ _
+        _ = π ≫ (β ≫ b₃) := by rw [hzv₄]
+        _ = (π ≫ β) ≫ b₃ := (Cat.assoc _ _ _).symm
+    have hdb₃ : d ≫ b₃ = zeroMorphism P B₄ := by
+      rw [hd, HalfAdditiveCategory.add_comp, ← hxv₃b₃, ← HalfAdditiveCategory.add_comp,
+          hneg, zeroHom_eq_zeroMorphism' P B₃, zeroMorphism_comp_left b₃]
+    -- cover Q of P with ỹ : Q → B₂, ρ ≫ d = ỹ ≫ b₂
+    obtain ⟨Q, ρ, yt, hρ_cover, hρy⟩ := relexact_cover_factor hB₂₃ d hdb₃
+    -- u := ỹ ≫ v₂⁻¹ : Q → A₂,  u ≫ v₂ = ỹ
+    let u : Q ⟶ A₂ := yt ≫ v₂i
+    have hu : u = yt ≫ v₂i := rfl
+    have huv₂ : u ≫ v₂ = yt := by rw [hu, Cat.assoc, hv₂2, Cat.comp_id]
+    -- (B):  add ((ρ≫xt)≫v₃) (ρ≫neg) = zeroHom
+    have hBeq : HalfAdditiveCategory.add ((ρ ≫ xt) ≫ v₃) (ρ ≫ neg)
+        = HalfAdditiveCategory.zeroHom Q B₃ := by
+      have h0 : ρ ≫ HalfAdditiveCategory.add (xt ≫ v₃) neg = ρ ≫ HalfAdditiveCategory.zeroHom P B₃ := by
+        rw [hneg]
+      rw [HalfAdditiveCategory.comp_add, ← Cat.assoc,
+          HalfAdditiveCategory.zeroHom_comp_left ρ] at h0
+      exact h0
+    -- (A):  u ≫ (a₂ ≫ v₃) = add (ρ ≫ (π ≫ β)) (ρ ≫ neg)
+    have hAeq : u ≫ (a₂ ≫ v₃)
+        = HalfAdditiveCategory.add (ρ ≫ (π ≫ β)) (ρ ≫ neg) := by
+      calc u ≫ (a₂ ≫ v₃) = u ≫ (v₂ ≫ b₂) := by rw [sq₂]
+        _ = (u ≫ v₂) ≫ b₂ := (Cat.assoc _ _ _).symm
+        _ = yt ≫ b₂ := by rw [huv₂]
+        _ = ρ ≫ d := hρy.symm
+        _ = ρ ≫ HalfAdditiveCategory.add (π ≫ β) neg := by rw [hd]
+        _ = HalfAdditiveCategory.add (ρ ≫ (π ≫ β)) (ρ ≫ neg) :=
+            HalfAdditiveCategory.comp_add ρ (π ≫ β) neg
+    -- χ := (u ≫ a₂) + (ρ ≫ xt) : Q → A₃ ;  show (ρ ≫ π) ≫ β = χ ≫ v₃.
+    let χ : Q ⟶ A₃ := HalfAdditiveCategory.add (u ≫ a₂) (ρ ≫ xt)
+    have hχ : χ = HalfAdditiveCategory.add (u ≫ a₂) (ρ ≫ xt) := rfl
+    have hχv₃ : (ρ ≫ π) ≫ β = χ ≫ v₃ := by
+      have hcompχ : χ ≫ v₃
+          = HalfAdditiveCategory.add (u ≫ (a₂ ≫ v₃)) ((ρ ≫ xt) ≫ v₃) := by
+        rw [hχ, HalfAdditiveCategory.add_comp, Cat.assoc]
+      calc (ρ ≫ π) ≫ β
+          = ρ ≫ (π ≫ β) := Cat.assoc _ _ _
+        _ = HalfAdditiveCategory.add (ρ ≫ (π ≫ β)) (HalfAdditiveCategory.zeroHom Q B₃) :=
+            (HalfAdditiveCategory.add_zero _).symm
+        _ = HalfAdditiveCategory.add (ρ ≫ (π ≫ β))
+              (HalfAdditiveCategory.add ((ρ ≫ xt) ≫ v₃) (ρ ≫ neg)) := by rw [hBeq]
+        _ = HalfAdditiveCategory.add (ρ ≫ (π ≫ β))
+              (HalfAdditiveCategory.add (ρ ≫ neg) ((ρ ≫ xt) ≫ v₃)) := by
+            rw [HalfAdditiveCategory.add_comm ((ρ ≫ xt) ≫ v₃) (ρ ≫ neg)]
+        _ = HalfAdditiveCategory.add
+              (HalfAdditiveCategory.add (ρ ≫ (π ≫ β)) (ρ ≫ neg)) ((ρ ≫ xt) ≫ v₃) :=
+            HalfAdditiveCategory.add_assoc _ _ _
+        _ = HalfAdditiveCategory.add (u ≫ (a₂ ≫ v₃)) ((ρ ≫ xt) ≫ v₃) := by rw [hAeq]
+        _ = χ ≫ v₃ := hcompχ.symm
+    -- `(ρ ≫ π) ≫ β` factors through `image v₃`; `cover_mono_diagonal` (cover ⊥ mono) descends
+    -- a right inverse of `j := (image v₃).arr`, which is monic, hence iso.
+    have hρπ_cover : Cover (ρ ≫ π) := cover_comp hρ_cover hπ_cover
+    have hsq : (ρ ≫ π) ≫ β = (χ ≫ image.lift v₃) ≫ (image v₃).arr := by
+      rw [hχv₃, Cat.assoc, image.lift_fac]
+    obtain ⟨g, _, hg⟩ := cover_mono_diagonal hρπ_cover (image v₃).monic hsq
+    -- hg : g ≫ (image v₃).arr = β = id_{B₃}, so (image v₃).arr is split epi; it is monic ⟹ iso
+    have hsplit : g ≫ (image v₃).arr = Cat.id B₃ := by rw [hg, hβ]
+    have hother : (image v₃).arr ≫ g = Cat.id (image v₃).dom :=
+      (image v₃).monic ((image v₃).arr ≫ g) (Cat.id _) (by
+        rw [Cat.assoc, hsplit, Cat.comp_id, Cat.id_comp])
+    show IsIso (image v₃).arr
+    exact ⟨g, hother, hsplit⟩
+  exact monic_cover_iso v₃ hcover hmono
 
 /-! §1.599 SNAKE LEMMA: In an abelian category, given a commutative diagram
 
@@ -1536,19 +1804,32 @@ theorem five_lemma [AbelianCategory 𝒞]
   the relational calculus; a partial proof would leave δ a `Sorry` inside the existential and
   is no more honest than the whole-statement Sorry.  Faithful Sorry retained.
 
-  NEGATIVES NOW AVAILABLE (still insufficient): `[AbelianCategory 𝒞]` now supplies additive
-  inverses (class extends `AdditiveCategory`).  This is necessary for the chase but does NOT
-  reach snake: in addition to the δ-as-relation machinery above, the row-exactness hypotheses
-  `Isomorphic (image f).dom (Kernel g)` are bare object isos (no subobject-inclusion data — see
-  the `five_lemma` blocker note), so even the induced kernel/cokernel maps' exactness cannot be
-  expressed.  Close `five_lemma` first (same upstream encoding obstacle). -/
+  STATEMENT FIX (faithful): row exactness is now `RelExact f g` / `RelExact f' g'`, and the four
+  output exactness claims are `RelExact` too — the ≫-compatible (subobject-equal) form, NOT the
+  too-weak bare object iso (see the `RelExact` definition and the `five_lemma` note for why the
+  bare iso is the wrong encoding).  This is a strengthening of both hypothesis and conclusion to
+  the faithful definition of exactness.
+
+  RESIDUAL BLOCKER (honest `sorry` retained — names the precise missing infra).  Even with
+  `RelExact` and the now-available additive inverses, the connecting morphism `δ : ker γ → coker α`
+  is, in Freyd's own construction (§1.599), built "as a relation": the composite
+  `ker γ → C ⤳ B ⤳ B' ⤳ coker α` of a reciprocal, a vertical, and another reciprocal, shown
+  single-valued and total only via the CALCULUS OF RELATIONS in the §1.55 Ab-representation +
+  §1.56 reciprocation.  The MISSING LEMMA is precisely: a constructive, representation-free
+  definition of `δ` together with `δ`'s well-definedness — concretely, a pullback `P = B ×_C ker γ`
+  of `g` along `ker γ ↪ C`, a section's image in `coker α` independent of the chosen lift, which in
+  this hand-built framework needs the relational-composite single-valuedness lemma
+  (`relComp_singleValued` over §1.56), not yet available here.  Without `δ`, the existential cannot
+  be honestly witnessed (a `sorry`-d `δ` inside the `∃` is no more honest than the whole-statement
+  `sorry`).  The induced maps `κ_f, κ_g, π_f, π_g` and their exactness DO follow from `RelExact` +
+  the kernel/cokernel universal properties; the sole gap is `δ` and the two exactness claims that
+  mention it.  Faithful `sorry` retained. -/
 theorem snake_lemma [AbelianCategory 𝒞]
     {A B C A' B' C' : 𝒞}
     {f : A ⟶ B} {g : B ⟶ C} {α : A ⟶ A'} {β : B ⟶ B'} {γ : C ⟶ C'}
     {f' : A' ⟶ B'} {g' : B' ⟶ C'}
-    -- rows exact (image ≅ kernel at each interior node)
-    (hfg : Isomorphic (image f).dom (Kernel g))
-    (hf'g' : Isomorphic (image f').dom (Kernel g'))
+    -- rows exact (image = kernel at each interior node, as subobjects)
+    (hfg : RelExact f g) (hf'g' : RelExact f' g')
     -- squares commute
     (hαβ : f ≫ β = α ≫ f') (hβγ : g ≫ γ = β ≫ g') :
     -- induced kernel maps (by universal property: ker(α) ≫ f ≫ β = 0, lifts to ker(β))
@@ -1556,10 +1837,7 @@ theorem snake_lemma [AbelianCategory 𝒞]
       (π_f : Cokernel α ⟶ Cokernel β) (π_g : Cokernel β ⟶ Cokernel γ)
       (δ : Kernel γ ⟶ Cokernel α),
       -- The induced sequence ker(α)→ker(β)→ker(γ)→coker(α)→coker(β) is exact at each node:
-      Isomorphic (image κ_f).dom (Kernel κ_g) ∧
-      Isomorphic (image κ_g).dom (Kernel δ) ∧
-      Isomorphic (image δ).dom (Kernel π_f) ∧
-      Isomorphic (image π_f).dom (Kernel π_g) := by
+      RelExact κ_f κ_g ∧ RelExact κ_g δ ∧ RelExact δ π_f ∧ RelExact π_f π_g := by
   sorry
 
 end Freyd
