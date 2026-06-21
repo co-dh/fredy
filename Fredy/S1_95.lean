@@ -1558,35 +1558,87 @@ class LocallySmallTopos (𝒞 : Type u) [Cat.{v} 𝒞] extends Topos 𝒞 where
   /-- Well-poweredness: a `Type v` enumeration of `Sub(A)` for every `A` (§1.96). -/
   wellPowered : WellPoweredSub.{v} 𝒞
 
-/-- **§1.967**: In a locally small topos the following are equivalent:
-    (a) Arbitrary powers of objects exist.
-    (b) Arbitrary copowers of objects exist.
-    (c) Arbitrary copowers of 1 exist (i.e., 1 has an I-fold copower for every I).
+/-! ### §1.967 (c)→(a): arbitrary copowers-of-1 build arbitrary powers via exponentials
 
-    Each condition implies local completeness.
+    Given a copower-of-1 `cI = ∐_I 1` for every index `I`, set `pow I A := A ^^ cI`.  The
+    power universal property is the exponential law "exp of a coproduct is a product of
+    exps": `Hom(X, A^cI) ≅ Hom(cI × X, A) ≅ ∏_I Hom(X, A)`, where the middle iso is the
+    copower UP of `cI` distributed across `X × −` (`prod_distrib_copow`).  Concretely the
+    `I`-fold copower of `X` is `prod X cI` (object of `prod_distrib_copow P X`), and a map
+    `prod cI X ⟶ A` curries to `X ⟶ A^cI`. -/
+section PowersOfCopowersOfOne
+variable [Topos 𝒞]
 
-    Proof sketch (Freyd):
-    (a)→local completeness: given {Bᵢ} ⊆ B, let f : B → ∏ᵢ Ω be the map with
-      i-th component χ(Bᵢ), let g have i-th component χ(B); the equalizer is ⋂Bᵢ.
-      Since the topos is well-powered (|(−,Ω)| = |Sub(−)|), arbitrary intersections
-      imply arbitrary unions.
-    (a)→(b): construct the copower I ⊗ A as a subobject of ∏ᵢ (A+1) using the
-      complemented injections uᵢ (where uᵢuᵢ° = 1, uᵢuⱼ° = 0 for i ≠ j).
-    (b)→(c): trivially, copower of A specializes to copower of 1.
-    (c)→(a): ∏ᵢ A ≅ A^(I⊗1) using the exponential structure of the topos.
+/-- `proj i : A^cI ⟶ A` — evaluate the exponential at the `i`-th injection `inj i : 1 → cI`:
+    `pair (term ≫ inj i) id ≫ eval`. -/
+private noncomputable def powProj {I : Type v} (P : CopowerOfOne I 𝒞) (A : 𝒞) (i : I) :
+    (A ^^ P.obj) ⟶ A :=
+  pair (term (A ^^ P.obj) ≫ P.inj i) (Cat.id (A ^^ P.obj)) ≫ eval_exp P.obj A
 
-    RESIDUAL: NOT reachable from the joins+distributivity layer.  (a)→(b) is Freyd's
-    "copower I⊗A as a subobject of ∏ᵢ(A+1) via complemented injections uᵢ" — needs the
-    complemented-injection / disjoint-coproduct machinery, not the meet/join engine.
-    (b)→(a) is `∏ᵢA ≅ A^(I⊗1)` via exponentials — needs the copower-of-1 as an honest
-    colimit datum (same uniqueness gap as `topos_copowers_equiv_copowers_of_one`).  The
-    `LocallyComplete'` engine added above closes "(a) ⟹ local completeness"
-    (`topos_powers_implies_locally_complete`) but NOT the powers↔copowers equivalence. -/
-theorem topos_powers_copowers_equiv [LocallySmallTopos 𝒞]
-    [HasBinaryProducts 𝒞] [HasBinaryCoproducts 𝒞] :
-    (Nonempty (HasArbitraryPowers (𝒞 := 𝒞))) ↔
-    (Nonempty (HasArbitraryCopowers (𝒞 := 𝒞))) := by
-  sorry
+/-- `tupling f : X ⟶ A^cI` — cotuple `f` over the copower `prod X cI`, swap to `prod cI X`,
+    then curry. -/
+private noncomputable def powTup {I : Type v} (P : CopowerOfOne I 𝒞) {A X : 𝒞}
+    (f : I → X ⟶ A) : X ⟶ (A ^^ P.obj) :=
+  curry (prodSwap P.obj X ≫ (prod_distrib_copow P X).cotup f)
+
+/-- Key reduction: precomposing `proj i` by any `k : X ⟶ A^cI` plugs `k` into evaluation at
+    coordinate `i`, i.e. `k ≫ proj i = copInj P X i ≫ prodSwap X cI ≫ uncurry k`.
+    (`copInj P X i = pair id (term ≫ inj i)`, the `i`-th copower injection of `X`.) -/
+private theorem powProj_precomp {I : Type v} (P : CopowerOfOne I 𝒞) {A X : 𝒞}
+    (k : X ⟶ (A ^^ P.obj)) (i : I) :
+    k ≫ powProj P A i = copInj P X i ≫ prodSwap X P.obj ≫ uncurry k := by
+  unfold powProj uncurry copInj
+  -- LHS: k ≫ (pair (term ≫ inj i) id ≫ eval) = pair (term X ≫ inj i) k ≫ eval
+  have hL : k ≫ pair (term (A ^^ P.obj) ≫ P.inj i) (Cat.id (A ^^ P.obj)) =
+      pair (term X ≫ P.inj i) k := by
+    apply pair_uniq
+    · rw [Cat.assoc, fst_pair, ← Cat.assoc, term_uniq (k ≫ term (A ^^ P.obj)) (term X)]
+    · rw [Cat.assoc, snd_pair, Cat.comp_id]
+  -- RHS: (pair id (term≫inj i) ≫ prodSwap) ≫ (X×k) = pair (term X≫inj i) k
+  have hR : (pair (Cat.id X) (term X ≫ P.inj i) ≫ prodSwap X P.obj) ≫
+      prodMap P.obj X (A ^^ P.obj) k = pair (term X ≫ P.inj i) k := by
+    apply pair_uniq
+    · rw [Cat.assoc, prodMap_fst, Cat.assoc, prodSwap_fst, snd_pair]
+    · rw [Cat.assoc, prodMap_snd, Cat.assoc, ← Cat.assoc (prodSwap X P.obj), prodSwap_snd,
+          ← Cat.assoc, fst_pair, Cat.id_comp]
+  rw [← Cat.assoc, hL]
+  simp only [← Cat.assoc]
+  rw [hR]
+
+/-- **§1.967 (c)→(a)**: a `Type v`-indexed family of copowers-of-1 yields arbitrary powers
+    (built over the topos's own products; transported to a caller's products instance below). -/
+private noncomputable def powersOfCopowersOfOne
+    (P : (I : Type v) → CopowerOfOne I 𝒞) : HasArbitraryPowers (𝒞 := 𝒞) where
+  pow I A := A ^^ (P I).obj
+  proj {I A} i := powProj (P I) A i
+  tupling {I A X} f := powTup (P I) f
+  tupling_proj {I A X} f i := by
+    rw [powTup, powProj_precomp]
+    -- copInj ≫ prodSwap ≫ uncurry (curry g) = copInj ≫ prodSwap ≫ g  with g = swap ≫ cotup f
+    rw [uncurry_curry, ← Cat.assoc (prodSwap X (P I).obj), prodSwap_prodSwap, Cat.id_comp]
+    -- copInj P X i = (prod_distrib_copow P X).inj i ; inj_cotup
+    show (prod_distrib_copow (P I) X).inj i ≫ (prod_distrib_copow (P I) X).cotup f = f i
+    rw [(prod_distrib_copow (P I) X).inj_cotup]
+  tupling_uniq {I A X} f h hh := by
+    -- show h = curry (prodSwap ≫ cotup f); use uncurry injectivity then cotup_uniq.
+    rw [powTup, ← curry_uncurry h]
+    apply congrArg curry
+    -- goal: uncurry h = prodSwap P.obj X ≫ cotup f
+    -- precompose by prodSwap X P.obj (iso) and use cotup_uniq
+    have hswap : prodSwap X (P I).obj ≫ uncurry h = (prod_distrib_copow (P I) X).cotup f := by
+      apply (prod_distrib_copow (P I) X).cotup_uniq
+      intro i
+      -- inj i ≫ prodSwap ≫ uncurry h = f i, via powProj_precomp on h
+      show copInj (P I) X i ≫ prodSwap X (P I).obj ≫ uncurry h = f i
+      rw [← powProj_precomp]
+      exact hh i
+    calc uncurry h = Cat.id _ ≫ uncurry h := (Cat.id_comp _).symm
+      _ = (prodSwap (P I).obj X ≫ prodSwap X (P I).obj) ≫ uncurry h := by
+            rw [prodSwap_prodSwap]
+      _ = prodSwap (P I).obj X ≫ (prodSwap X (P I).obj ≫ uncurry h) := by rw [Cat.assoc]
+      _ = prodSwap (P I).obj X ≫ (prod_distrib_copow (P I) X).cotup f := by rw [hswap]
+
+end PowersOfCopowersOfOne
 
 /-- **§1.967**: Arbitrary copowers of objects exist iff arbitrary copowers of 1 exist.
     (b)→(c) is trivial (specialise `A := 1`).  (c)→(b) is `∐ᵢ A ≅ (∐ᵢ 1) × A` via the
@@ -1623,9 +1675,6 @@ theorem topos_copowers_equiv_copowers_of_one [LocallySmallTopos 𝒞]
   · -- (c)→(b): assemble `HasArbitraryCopowers` from the per-index `CopowerOf I A` built by
     -- `prod_distrib_copow` from the chosen `CopowerOfOne`.  `Classical.choice` picks the datum.
     intro hc
-    -- `P I := Classical.choice (hc I)` is the chosen copower-of-1 for index `I`; written out
-    -- identically in every field, so the structure is coherent.  `Classical.choice` selects the
-    -- datum (this category's `Nonempty` is the prop-truncation without a `.some` projection).
     exact ⟨{
       copow := fun I A => (prod_distrib_copow (Classical.choice (hc I)) A).obj
       inj := fun {I A} i => (prod_distrib_copow (Classical.choice (hc I)) A).inj i
@@ -1634,6 +1683,75 @@ theorem topos_copowers_equiv_copowers_of_one [LocallySmallTopos 𝒞]
         (prod_distrib_copow (Classical.choice (hc I)) A).inj_cotup f i
       cotupling_uniq := fun {I A X} f h hh =>
         (prod_distrib_copow (Classical.choice (hc I)) A).cotup_uniq f h hh }⟩
+
+/-- **§1.967**: In a locally small topos the following are equivalent:
+    (a) Arbitrary powers of objects exist.
+    (b) Arbitrary copowers of objects exist.
+    (c) Arbitrary copowers of 1 exist (i.e., 1 has an I-fold copower for every I).
+
+    Each condition implies local completeness.
+
+    Proof sketch (Freyd):
+    (a)→local completeness: given {Bᵢ} ⊆ B, let f : B → ∏ᵢ Ω be the map with
+      i-th component χ(Bᵢ), let g have i-th component χ(B); the equalizer is ⋂Bᵢ.
+      Since the topos is well-powered (|(−,Ω)| = |Sub(−)|), arbitrary intersections
+      imply arbitrary unions.
+    (a)→(b): construct the copower I ⊗ A as a subobject of ∏ᵢ (A+1) using the
+      complemented injections uᵢ (where uᵢuᵢ° = 1, uᵢuⱼ° = 0 for i ≠ j).
+    (b)→(c): trivially, copower of A specializes to copower of 1.
+    (c)→(a): ∏ᵢ A ≅ A^(I⊗1) using the exponential structure of the topos.
+
+    STATUS (this file):
+    * **(b)→(a) CLOSED, sorry-free** — `powersOfCopowersOfOne` above.  Reduce copowers to
+      copowers-of-1 via the closed sibling `topos_copowers_equiv_copowers_of_one`, then set
+      `∏ᵢ A := A^(∐ᵢ1)`; the power UP is the exponential law `Hom(X, A^cI) ≅ Hom(cI×X, A) ≅
+      ∏ᵢ Hom(X,A)`, the middle iso being the copower UP distributed across `X × −`
+      (`prod_distrib_copow`).  Used as the (b)→(a) branch of the iff below.
+    * **(a)→(b) the SOLE residual `sorry`.**  It suffices (sibling iff) to build the
+      copower-of-1 datum `CopowerOfOne I 𝒞 = ∐ᵢ1` from arbitrary powers.  Freyd carves it as
+      the "exactly-one-true-coordinate" SUBOBJECT of `∏ᵢ(1+1)` (which exists by (a) since
+      `1+1` exists by `[HasBinaryCoproducts]`):  `inj i : 1 → ∐ᵢ1` is the tuple that is `inr`
+      (true) at `i` and `inl` (false) elsewhere.
+
+      The disjointness inputs the carving needs ARE available sorry-free for a bare topos —
+      `coprodInjections_disjoint` (`Fredy/ToposExists.lean`: pullback of `inl`,`inr` ≅ `0`)
+      and the arbitrary subobject joins `extJoin`/`familyMeet`
+      (`locallyComplete'_of_powers_wellPowered`, with `LocallySmallTopos.wellPowered`).
+
+      BLOCKED STEP — `CopowerOfOne.cotup_uniq`.  Defining the subobject and its `inj i` is
+      bookkeeping over the joins; the genuine gap is the COLIMIT (map-OUT) universal property
+      `cotup_uniq`: two maps `∐ᵢ1 → X` agreeing on every `inj i` must be equal.  The
+      subobject is built from a subobject JOIN, which supplies only a map-IN UP
+      (`extJoin_upper`/`extJoin_least`), never a map-OUT one; deriving cotupling-uniqueness is
+      exactly the infinitary analogue of the binary `coprod_case_exists` amalgamation
+      (`Fredy/ToposExists.lean`, ~250 lines) — it needs the jointly-epic / cover-by-injections
+      fact for the `I`-indexed carving (an `I`-fold `coprod_jointly_epi`), which is NOT
+      reducible to the meet/join lattice and is not yet built.
+
+      MISSING LEMMA (precise):  `copowerOfOne_jointly_epi : ∀ {X} (h k : (∐ᵢ1) ⟶ X),
+      (∀ i, inj i ≫ h = inj i ≫ k) → h = k` for the exactly-one-coordinate subobject of
+      `∏ᵢ(1+1)` — the infinitary jointly-epic injections fact.  With it, `cotup` is the join
+      amalgamation and `cotup_uniq` is immediate, closing (a)→(b) and the whole iff. -/
+theorem topos_powers_copowers_equiv [LocallySmallTopos 𝒞]
+    [HasBinaryProducts 𝒞] [HasBinaryCoproducts 𝒞] :
+    (Nonempty (HasArbitraryPowers (𝒞 := 𝒞))) ↔
+    (Nonempty (HasArbitraryCopowers (𝒞 := 𝒞))) := by
+  constructor
+  · -- (a)→(b): SOLE residual — the exactly-one-coordinate carving of `∐ᵢ1 ⊂ ∏ᵢ(1+1)`; the
+    -- `cotup_uniq` colimit UP (infinitary jointly-epic injections) is not yet built.  See the
+    -- doc comment above for the precise missing lemma `copowerOfOne_jointly_epi`.
+    sorry
+  · -- (b)→(a): CLOSED, sorry-free.  Reduce to copowers-of-1 (sibling iff), then `A^(∐ᵢ1)`.
+    rintro hcop
+    have hone : ∀ (I : Type v), Nonempty (CopowerOfOne I 𝒞) :=
+      (topos_copowers_equiv_copowers_of_one).mp hcop
+    -- `powersOfCopowersOfOne` builds the powers over the topos's own products; rebundle the
+    -- (products-instance-independent) fields against this theorem's explicit `[HasBinaryProducts]`
+    -- to cross the documented `topos_has_exponentials`/explicit-arg products diamond.
+    let pw := powersOfCopowersOfOne (fun I => Classical.choice (hone I))
+    exact ⟨{ pow := pw.pow, proj := fun {I A} => pw.proj, tupling := fun {I A X} => pw.tupling,
+             tupling_proj := fun {I A X} => pw.tupling_proj,
+             tupling_uniq := fun {I A X} => pw.tupling_uniq }⟩
 
 /-- **§1.967**: Arbitrary powers imply local completeness in a locally small topos.
     Proof: let {Bᵢ ↣ B} be a family of subobjects.  Since the topos is locally small,
