@@ -437,4 +437,312 @@ noncomputable instance toposHasLeastClosedSubobject : HasLeastClosedSubobject �
   least_isClosed a t := least_isClosed_closed a t
   least_le a t B hB := least_le_closed a t B hB
 
+/-! ## §1.988  PARAMETRISED least `(a, r∘proj)`-closed subobject (for `1 + A×(−)`)
+
+  The endo development above closes a subobject `σ ⊆ [M]` under a SINGLE endo `t : M → M`.
+  Freyd's free-A-action Peano property (§1.98(13)) needs closure under an ACTION
+  `act : A × M → M` — equivalently, under the GENERALISED "endo" given by two maps out of a
+  PARAMETER object `P`: a `proj : P → M` (the membership probe) and an `r : P → M` (the result).
+  `σ` is `(r,proj)`-stable when `∀p:P. (proj(p)∈σ) ⇒ (r(p)∈σ)`.  Taking `P := A×M`,
+  `proj := snd`, `r := act` recovers free-A-action closure; `P=M, proj=id, r=t` recovers the endo
+  case.  We rebuild `tStable`/`closedChar`/`least`'s STABILITY half generalised over `(P,proj,r)`;
+  the ALLOWS half and `least_le`/`bigInter_*` are object-only and reused verbatim. -/
+
+/-- Generalised stability body `prod P [M] → Ω`, `(p,σ) ↦ (proj(p)∈σ) ⇒ (r(p)∈σ)`. -/
+noncomputable def genStableBody {M P : 𝒞} (r proj : P ⟶ M) :
+    prod P (powObj M) ⟶ omega (𝒞 := 𝒞) :=
+  pair
+    (pair (fst ≫ proj) snd ≫ eval_exp M (omega (𝒞 := 𝒞)))
+    (pair (fst ≫ r) snd ≫ eval_exp M (omega (𝒞 := 𝒞)))
+  ≫ impΩ
+
+/-- Generalised stability test `genStable r proj : [M] → Ω`,
+    `σ ↦ ∀p:P. proj(p)∈σ ⇒ r(p)∈σ`. -/
+noncomputable def genStable {M P : 𝒞} (r proj : P ⟶ M) : powObj M ⟶ omega (𝒞 := 𝒞) :=
+  curry (genStableBody r proj) ≫ forallC P
+
+/-- Membership-map of a `genStable` name (mirrors `membershipMap_tStable_name`). -/
+theorem membershipMap_genStable_name {M P : 𝒞} (r proj : P ⟶ M) (σ : one ⟶ powObj M) :
+    membershipMap (σ ≫ curry (genStableBody r proj))
+      = pair (proj ≫ membershipMap σ) (r ≫ membershipMap σ) ≫ impΩ := by
+  show pair (Cat.id P) (term P ≫ (σ ≫ curry (genStableBody r proj)))
+      ≫ eval_exp P (omega (𝒞 := 𝒞)) = _
+  rw [show term P ≫ (σ ≫ curry (genStableBody r proj))
+        = (term P ≫ σ) ≫ curry (genStableBody r proj) from (Cat.assoc _ _ _).symm]
+  rw [eval_curry_point (genStableBody r proj) (Cat.id P) (term P ≫ σ)]
+  rw [genStableBody, ← Cat.assoc]
+  congr 1
+  apply pair_uniq
+  · -- first: ⟨id, term≫σ⟩ ≫ (⟨fst≫proj,snd⟩ ≫ eval) = proj ≫ membershipMap σ
+    rw [Cat.assoc, fst_pair, ← Cat.assoc, membershipMap, ← Cat.assoc]
+    congr 1
+    have hL : pair (Cat.id P) (term P ≫ σ) ≫ pair (fst ≫ proj) snd
+        = pair proj (term P ≫ σ) := by
+      apply pair_uniq
+      · rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair, Cat.id_comp]
+      · rw [Cat.assoc, snd_pair, snd_pair]
+    have hR : proj ≫ pair (Cat.id M) (term M ≫ σ) = pair proj (term P ≫ σ) := by
+      apply pair_uniq
+      · rw [Cat.assoc, fst_pair, Cat.comp_id]
+      · rw [Cat.assoc, snd_pair, ← Cat.assoc, term_uniq (proj ≫ term M) (term P)]
+    rw [hL, hR]
+  · -- second: ⟨id, term≫σ⟩ ≫ (⟨fst≫r,snd⟩ ≫ eval) = r ≫ membershipMap σ
+    rw [Cat.assoc, snd_pair, ← Cat.assoc, membershipMap, ← Cat.assoc]
+    congr 1
+    have hL : pair (Cat.id P) (term P ≫ σ) ≫ pair (fst ≫ r) snd = pair r (term P ≫ σ) := by
+      apply pair_uniq
+      · rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair, Cat.id_comp]
+      · rw [Cat.assoc, snd_pair, snd_pair]
+    have hR : r ≫ pair (Cat.id M) (term M ≫ σ) = pair r (term P ≫ σ) := by
+      apply pair_uniq
+      · rw [Cat.assoc, fst_pair, Cat.comp_id]
+      · rw [Cat.assoc, snd_pair, ← Cat.assoc, term_uniq (r ≫ term M) (term P)]
+    rw [hL, hR]
+
+/-- A `(r,proj)`-stable subobject `B ↣ M` passes `genStable`.  `B` is `(r,proj)`-STABLE exactly
+    when its `proj`-preimage lies in its `r`-preimage (`proj(p)∈B ⟹ r(p)∈B`); then
+    `'B' ≫ genStable r proj = ⊤`.  Mirrors `tStable_name_true` (the endo case `proj=id,r=t`,
+    where `B ≤ InverseImage t B` is exactly that). -/
+theorem genStable_name_true {M P : 𝒞} (r proj : P ⟶ M) (B : Subobject 𝒞 M)
+    (hstab : (InverseImage proj B).le (InverseImage r B)) :
+    nameOf B.arr B.monic ≫ genStable r proj
+      = term one ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
+  rw [genStable, ← Cat.assoc]
+  rw [forall_beta P (nameOf B.arr B.monic ≫ curry (genStableBody r proj))]
+  have hinj : ∀ (G H : one ⟶ powObj P), membershipMap G = membershipMap H → G = H :=
+    fun G H hGH => by rw [← curry_fst_membershipMap G, ← curry_fst_membershipMap H, hGH]
+  apply hinj
+  rw [show term one ≫ topName P = topName P by
+        rw [term_uniq (term one) (Cat.id one), Cat.id_comp]]
+  rw [membershipMap_topName, classify_entire]
+  rw [membershipMap_genStable_name, membershipMap_nameOf]
+  -- Goal: ⟨proj ≫ χ_B, r ≫ χ_B⟩ ≫ impΩ = ⊤.  Realize proj ≫ χ_B = χ_{proj#B}, r ≫ χ_B = χ_{r#B}.
+  rw [show proj ≫ HasSubobjectClassifier.classify B.arr B.monic
+        = subChar (InverseImage proj B) from (classify_InverseImage proj B).symm]
+  rw [show r ≫ HasSubobjectClassifier.classify B.arr B.monic
+        = subChar (InverseImage r B) from (classify_InverseImage r B).symm]
+  exact impΩ_entire_of_le (InverseImage proj B) (InverseImage r B) hstab
+
+/-- Generalised `genStable_gen` (∀-elimination + MP).  If `k : K → [M]` passes `genStable r proj`
+    and a generalised point `proj(p) : K → M` lies in `k` (via `p : K → P`), then `r(p)` lies in
+    `k` too.  Mirrors `tStable_gen`. -/
+theorem genStable_gen {M P K : 𝒞} (r proj : P ⟶ M) (k : K ⟶ powObj M) (p : K ⟶ P)
+    (hk : k ≫ genStable r proj = term K ≫ HasSubobjectClassifier.true (𝒞 := 𝒞))
+    (hx : pair (p ≫ proj) k ≫ eval_exp M (omega (𝒞 := 𝒞))
+        = term K ≫ HasSubobjectClassifier.true (𝒞 := 𝒞)) :
+    pair (p ≫ r) k ≫ eval_exp M (omega (𝒞 := 𝒞))
+      = term K ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
+  rw [genStable, ← Cat.assoc] at hk
+  have hentire : k ≫ curry (genStableBody r proj) = term K ≫ topName P :=
+    (forall_beta P (k ≫ curry (genStableBody r proj))).mp hk
+  have helim := forall_elim (k ≫ curry (genStableBody r proj)) hentire p
+  rw [eval_curry_point (genStableBody r proj) p k] at helim
+  rw [genStableBody, ← Cat.assoc] at helim
+  have hsplit : pair p k ≫ pair
+        (pair (fst ≫ proj) snd ≫ eval_exp M (omega (𝒞 := 𝒞)))
+        (pair (fst ≫ r) snd ≫ eval_exp M (omega (𝒞 := 𝒞)))
+      = pair (pair (p ≫ proj) k ≫ eval_exp M (omega (𝒞 := 𝒞)))
+          (pair (p ≫ r) k ≫ eval_exp M (omega (𝒞 := 𝒞))) := by
+    apply pair_uniq
+    · rw [Cat.assoc, fst_pair, ← Cat.assoc]
+      congr 1
+      apply pair_uniq
+      · rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair]
+      · rw [Cat.assoc, snd_pair, snd_pair]
+    · rw [Cat.assoc, snd_pair, ← Cat.assoc]
+      congr 1
+      apply pair_uniq
+      · rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair]
+      · rw [Cat.assoc, snd_pair, snd_pair]
+  rw [hsplit] at helim
+  have := impΩ_forward _ _ (Cat.id K)
+    (by rw [Cat.id_comp]; exact helim)
+    (by rw [Cat.id_comp]; exact hx)
+  rwa [Cat.id_comp] at this
+
+/-! ## §1.988  The parametrised closedness comprehension and its least subobject -/
+
+/-- Parametrised closedness characteristic `actClosedChar a r proj : [M] → Ω`,
+    `σ ↦ (a∈σ) ∧ ∀p:P. proj(p)∈σ ⇒ r(p)∈σ`. -/
+noncomputable def actClosedChar {M P : 𝒞} (a : one ⟶ M) (r proj : P ⟶ M) :
+    powObj M ⟶ omega (𝒞 := 𝒞) :=
+  pair (memAtPoint a) (genStable r proj) ≫ omegaMeet
+
+/-- Family name of `{σ : [M] | actClosedChar a r proj}`. -/
+noncomputable def actClosedFamily {M P : 𝒞} (a : one ⟶ M) (r proj : P ⟶ M) :
+    one ⟶ powObj (powObj M) :=
+  curry (fst ≫ actClosedChar a r proj)
+
+theorem membershipMap_actClosedFamily {M P : 𝒞} (a : one ⟶ M) (r proj : P ⟶ M) :
+    membershipMap (actClosedFamily a r proj) = actClosedChar a r proj := by
+  rw [actClosedFamily, membershipMap_curry_fst]
+
+/-- The parametrised least `(a, r, proj)`-closed subobject `actLeast a r proj ⊆ M`. -/
+noncomputable def actLeast {M P : 𝒞} (a : one ⟶ M) (r proj : P ⟶ M) : Subobject 𝒞 M :=
+  bigInter (actClosedFamily a r proj)
+
+/-- **ALLOWS `a`** (mirrors `least_allows`). -/
+theorem actLeast_allows {M P : 𝒞} (a : one ⟶ M) (r proj : P ⟶ M) :
+    Allows (actLeast a r proj) a := by
+  obtain ⟨_, mF, hmF, hSF⟩ := classify_surjective (actClosedChar a r proj)
+  obtain ⟨_, mG, hmG, hSG⟩ := classify_surjective (memAtPoint a)
+  let F0 : Subobject 𝒞 (powObj M) := ⟨_, mF, hmF⟩
+  let Ga : Subobject 𝒞 (powObj M) := ⟨_, mG, hmG⟩
+  have hcF : subChar F0 = actClosedChar a r proj := hSF
+  have hcG : subChar Ga = memAtPoint a := hSG
+  refine bigInter_ge (actClosedFamily a r proj) a F0 Ga ?_ hcG ?_
+  · rw [hcF, membershipMap_actClosedFamily]
+  · apply (le_iff_classify F0 Ga).2
+    rw [show HasSubobjectClassifier.classify Ga.arr Ga.monic = memAtPoint a from hcG]
+    have hcar : F0.arr ≫ actClosedChar a r proj
+        = term F0.dom ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
+      rw [show actClosedChar a r proj = subChar F0 from hcF.symm]
+      exact HasSubobjectClassifier.classify_sq F0.arr F0.monic
+    rw [actClosedChar] at hcar
+    exact ((meet_true_iff_and (memAtPoint a) (genStable r proj) F0.arr).1 hcar).1
+
+/-- **`actLeast ≤ B`** for every `(a, r, proj)`-closed `B` (mirrors `least_le_closed`). -/
+theorem actLeast_le {M P : 𝒞} (a : one ⟶ M) (r proj : P ⟶ M) (B : Subobject 𝒞 M)
+    (hAllows : Allows B a) (hstab : (InverseImage proj B).le (InverseImage r B)) :
+    (actLeast a r proj).le B := by
+  refine bigInter_le_named (actClosedFamily a r proj) B ?_
+  rw [membershipMap_actClosedFamily, actClosedChar]
+  apply (meet_true_iff_and (memAtPoint a) (genStable r proj) (nameOf B.arr B.monic)).2
+  exact ⟨(memAtPoint_name_true_iff a B).2 hAllows, genStable_name_true r proj B hstab⟩
+
+/-- **`actLeast` is `(r,proj)`-STABLE** (mirrors `least_tStable`).  Its `proj`-preimage lies in its
+    `r`-preimage: `proj(p) ∈ actLeast ⟹ r(p) ∈ actLeast`. -/
+theorem actLeast_stable {M P : 𝒞} (a : one ⟶ M) (r proj : P ⟶ M) :
+    (InverseImage proj (actLeast a r proj)).le (InverseImage r (actLeast a r proj)) := by
+  let Fname : one ⟶ powObj (powObj M) := actClosedFamily a r proj
+  show (InverseImage proj (bigInter Fname)).le (InverseImage r (bigInter Fname))
+  let L : Subobject 𝒞 M := bigInter Fname
+  -- `subChar L = bigInterChar Fname` (L is a pullback of `true` along `bigInterChar`).
+  have hsubL : subChar L = bigInterChar Fname := classify_invImage_true (bigInterChar Fname)
+  -- Reduce `proj#L ≤ r#L` to `(proj#L).arr ≫ r ≫ χ_L = ⊤`, i.e. `r(probe) ∈ ⋂F`.
+  apply (le_iff_classify (InverseImage proj L) (InverseImage r L)).2
+  rw [classify_InverseImage r L]
+  let q : (InverseImage proj L).dom ⟶ P := (InverseImage proj L).arr
+  -- `q ≫ proj ∈ ⋂F`:  classify(proj#L) carrier = ⊤  ⟹  (q ≫ proj) ≫ bigInterChar = ⊤.
+  have hprobeIn : (q ≫ proj) ≫ bigInterChar Fname
+      = term (InverseImage proj L).dom ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
+    have hcar := HasSubobjectClassifier.classify_sq
+      (InverseImage proj L).arr (InverseImage proj L).monic
+    -- classify (proj#L).arr = proj ≫ classify L.arr, and classify L.arr = bigInterChar Fname.
+    rw [classify_InverseImage proj L] at hcar
+    rw [show (classify L.arr (bigInter Fname).monic : M ⟶ _) = bigInterChar Fname from hsubL] at hcar
+    rw [← Cat.assoc] at hcar
+    exact hcar
+  -- Goal: `q ≫ r ≫ χ_L = ⊤`.  Unfold χ_L = bigInterChar Fname; forall over members via S_F ≤ S_In.
+  show q ≫ r ≫ subChar L = term (InverseImage proj L).dom ≫ HasSubobjectClassifier.true (𝒞 := 𝒞)
+  rw [hsubL, bigInterChar, ← Cat.assoc, ← Cat.assoc]
+  rw [forall_beta (powObj M) ((q ≫ r) ≫ curry (bigInterBody Fname))]
+  rw [curry_precomp]
+  rw [show topName (powObj M)
+        = curry (fst ≫ HasSubobjectClassifier.classify (Subobject.entire (powObj M)).arr
+            (Subobject.entire (powObj M)).monic) from rfl]
+  rw [curry_precomp]
+  apply congrArg curry
+  rw [← Cat.assoc, prodMap_fst, classify_entire, ← Cat.assoc,
+    term_uniq (fst ≫ term (powObj M)) (term (prod (powObj M) (InverseImage proj L).dom))]
+  -- Goal: prodMap [M] D' M (q≫r) ≫ bigInterBody F = term ≫ true.  Split into impΩ.
+  let D' := (InverseImage proj L).dom
+  let chiF : prod (powObj M) D' ⟶ omega (𝒞 := 𝒞) :=
+    fst ≫ membershipMap Fname
+  let chiIn : prod (powObj M) D' ⟶ omega (𝒞 := 𝒞) :=
+    pair (snd ≫ q ≫ r) fst ≫ eval_exp M (omega (𝒞 := 𝒞))
+  have hsplit : prodMap (powObj M) D' M (q ≫ r) ≫ bigInterBody Fname
+      = pair chiF chiIn ≫ impΩ := by
+    rw [bigInterBody, ← Cat.assoc]
+    congr 1
+    apply pair_uniq
+    · show _ = chiF
+      rw [Cat.assoc, fst_pair, ← Cat.assoc]
+      congr 1
+      rw [prodMap_fst]
+    · show _ = chiIn
+      rw [Cat.assoc, snd_pair, ← Cat.assoc]
+      congr 1
+      apply pair_uniq
+      · rw [Cat.assoc, fst_pair, prodMap_snd, ← Cat.assoc]
+      · rw [Cat.assoc, snd_pair, prodMap_fst]
+  rw [hsplit, pair_impΩ]
+  obtain ⟨_, mF, hmF, hSF⟩ := classify_surjective chiF
+  obtain ⟨_, mIn, hmIn, hSIn⟩ := classify_surjective chiIn
+  let S_F : Subobject 𝒞 (prod (powObj M) D') := ⟨_, mF, hmF⟩
+  let S_In : Subobject 𝒞 (prod (powObj M) D') := ⟨_, mIn, hmIn⟩
+  have hcF : subChar S_F = chiF := hSF
+  have hcIn : subChar S_In = chiIn := hSIn
+  rw [show pair chiF (pair chiF chiIn ≫ omegaMeet) ≫ heytingDoubleArrow
+        = subChar (Sub.imp S_F S_In) by rw [classify_imp, impChar, hcF, hcIn]]
+  have hp : HasPullback S_F.arr (Subobject.entire (prod (powObj M) D')).arr :=
+    HasPullbacks.has _ _
+  -- pointwise S_F ≤ S_In: a member σ (= k≫fst) containing the probe `proj(q(d))` also contains `r(q(d))`.
+  have hSFle : S_F.le S_In := by
+    apply (allows_iff_classify S_In S_F.arr).2
+    rw [show HasSubobjectClassifier.classify S_In.arr S_In.monic = chiIn from hcIn]
+    have hcarF : S_F.arr ≫ chiF = term S_F.dom ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
+      rw [show chiF = HasSubobjectClassifier.classify S_F.arr S_F.monic from hcF.symm]
+      exact HasSubobjectClassifier.classify_sq S_F.arr S_F.monic
+    -- σ := (k≫fst) is a member of F.
+    have hσmem : (S_F.arr ≫ fst) ≫ membershipMap Fname
+        = term S_F.dom ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
+      rw [Cat.assoc]; exact hcarF
+    -- σ is `(r,proj)`-stable: σ ≫ genStable = ⊤ (second conjunct of actClosedChar at σ).
+    have hσclosed : (S_F.arr ≫ fst) ≫ actClosedChar a r proj
+        = term S_F.dom ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
+      rw [show actClosedChar a r proj = membershipMap Fname from
+            (membershipMap_actClosedFamily a r proj).symm]
+      exact hσmem
+    rw [actClosedChar] at hσclosed
+    have hσgen : (S_F.arr ≫ fst) ≫ genStable r proj
+        = term S_F.dom ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) :=
+      ((meet_true_iff_and (memAtPoint a) (genStable r proj) (S_F.arr ≫ fst)).1 hσclosed).2
+    -- the probe `proj(q(d)) ∈ σ`:  `bigInter_point_in_member` at `pt := (k≫snd)≫q`.
+    have hpInter : (((S_F.arr ≫ snd) ≫ q) ≫ proj) ≫ bigInterChar Fname
+        = term S_F.dom ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
+      rw [Cat.assoc, Cat.assoc, ← Cat.assoc q proj (bigInterChar Fname), hprobeIn, ← Cat.assoc,
+        term_uniq ((S_F.arr ≫ snd) ≫ term D') (term S_F.dom)]
+    have hprobeInσ := bigInter_point_in_member Fname
+      (((S_F.arr ≫ snd) ≫ q) ≫ proj) (S_F.arr ≫ fst) hpInter hσmem
+    -- pivot to `eval` form: `proj(q(d)) ∈ σ`.
+    have hxIn : pair (((S_F.arr ≫ snd) ≫ q) ≫ proj) (S_F.arr ≫ fst) ≫ eval_exp M (omega (𝒞 := 𝒞))
+        = term S_F.dom ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
+      rw [← hprobeInσ, ← Cat.assoc]
+      congr 1
+      symm
+      apply pair_uniq
+      · rw [Cat.assoc, fst_pair, snd_pair]
+      · rw [Cat.assoc, snd_pair, fst_pair]
+    -- genStable_gen at the point `pt := (k≫snd)≫q : S_F.dom → P`.
+    have hrIn := genStable_gen r proj (S_F.arr ≫ fst) ((S_F.arr ≫ snd) ≫ q)
+      hσgen hxIn
+    -- Conclude S_F.arr ≫ chiIn = ⊤ (= `r(q(d)) ∈ σ`).
+    have hchiIn : S_F.arr ≫ chiIn
+        = pair (((S_F.arr ≫ snd) ≫ q) ≫ r) (S_F.arr ≫ fst) ≫ eval_exp M (omega (𝒞 := 𝒞)) := by
+      show S_F.arr ≫ (pair (snd ≫ q ≫ r) fst ≫ eval_exp M (omega (𝒞 := 𝒞))) = _
+      rw [← Cat.assoc]
+      congr 1
+      apply pair_uniq
+      · rw [Cat.assoc, fst_pair]
+        rw [show snd ≫ q ≫ r = (snd ≫ q) ≫ r from (Cat.assoc _ _ _).symm]
+        rw [show ((S_F.arr ≫ snd) ≫ q) ≫ r = S_F.arr ≫ ((snd ≫ q) ≫ r) from by
+          rw [Cat.assoc, Cat.assoc, Cat.assoc]]
+      · rw [Cat.assoc, snd_pair]
+    show S_F.arr ≫ chiIn = _
+    rw [hchiIn]
+    exact hrIn
+  have hentireLe : (Subobject.entire (prod (powObj M) D')).le (Sub.imp S_F S_In) := by
+    rw [imp_adjunction S_F S_In (Subobject.entire (prod (powObj M) D')) hp]
+    obtain ⟨h₁, e₁⟩ := Sub.inter_le_left S_F (Subobject.entire (prod (powObj M) D')) hp
+    obtain ⟨h₂, e₂⟩ := hSFle
+    exact ⟨h₁ ≫ h₂, by rw [Cat.assoc, e₂, e₁]⟩
+  have hcl := (le_iff_classify (Subobject.entire (prod (powObj M) D'))
+    (Sub.imp S_F S_In)).mp hentireLe
+  show subChar (Sub.imp S_F S_In) = term (prod (powObj M) D') ≫ HasSubobjectClassifier.true (𝒞 := 𝒞)
+  rw [show (Subobject.entire (prod (powObj M) D')).arr ≫ subChar (Sub.imp S_F S_In)
+        = subChar (Sub.imp S_F S_In) from Cat.id_comp _] at hcl
+  rw [hcl]
+  congr 1
+
 end Freyd
