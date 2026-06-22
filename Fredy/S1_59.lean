@@ -2666,6 +2666,102 @@ theorem subL_sub_right [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞
   show subL (subL a b) (zeroMorphism W A) = subL a b
   rw [subL_zero]
 
+/-- `0 − (a − b) = b − a`  (special case `c := a` of `subL_sub_right`). -/
+theorem neg_subL [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞} (a b : W ⟶ A) :
+    subL (zeroMorphism W A) (subL a b) = subL b a := by
+  have h := subL_sub_right b a b
+  rwa [subL_self] at h
+
+/-- **Addition** `x + y := x − (0 − y)`. -/
+noncomputable def homAddL [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞} (x y : W ⟶ A) :
+    W ⟶ A := subL x (subL (zeroMorphism W A) y)
+
+/-- `(a − c) + c = a` (special case `b := 0` of `subL_sub_right`, using `a − 0 = a`). -/
+theorem subL_add_cancel [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞} (a c : W ⟶ A) :
+    homAddL (subL a c) c = a := by
+  show subL (subL a c) (subL (zeroMorphism W A) c) = a
+  rw [subL_sub_right a (zeroMorphism W A) c, subL_zero]
+
+/-- `x + 0 = x`. -/
+theorem homAddL_zero [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞} (x : W ⟶ A) :
+    homAddL x (zeroMorphism W A) = x := by
+  show subL x (subL (zeroMorphism W A) (zeroMorphism W A)) = x
+  rw [subL_self, subL_zero]
+
+/-- `0 + x = x`. -/
+theorem zero_homAddL [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞} (x : W ⟶ A) :
+    homAddL (zeroMorphism W A) x = x := by
+  show subL (zeroMorphism W A) (subL (zeroMorphism W A) x) = x
+  rw [neg_subL, subL_zero]
+
+/-- Double negation `0 − (0 − x) = x`. -/
+theorem neg_neg' [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞} (x : W ⟶ A) :
+    subL (zeroMorphism W A) (subL (zeroMorphism W A) x) = x := by
+  rw [neg_subL, subL_zero]
+
+/-- `homAddL x (0 − y) = x − y` (adding the negation is subtraction). -/
+theorem homAddL_neg [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞} (x y : W ⟶ A) :
+    homAddL x (subL (zeroMorphism W A) y) = subL x y := by
+  show subL x (subL (zeroMorphism W A) (subL (zeroMorphism W A) y)) = subL x y
+  rw [neg_neg']
+
+/-- **Left-translation**: `(a − p) − (a − q) = q − p` (mirror of `subL_sub_right`, with the first
+    coordinate constant `a` and via `neg_subL`). -/
+theorem subL_sub_left [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞} (a p q : W ⟶ A) :
+    subL (subL a p) (subL a q) = subL q p := by
+  have hpac : pair (pair a a) (pair p q) ≫ prodMap (fst : prod A A ⟶ A) = pair a p := by
+    apply pair_uniq a p (pair (pair a a) (pair p q) ≫ prodMap fst)
+    · rw [Cat.assoc, prodMap_fst, ← Cat.assoc, fst_pair, fst_pair]
+    · rw [Cat.assoc, prodMap_snd, ← Cat.assoc, snd_pair, fst_pair]
+  have hpbc : pair (pair a a) (pair p q) ≫ prodMap (snd : prod A A ⟶ A) = pair a q := by
+    apply pair_uniq a q (pair (pair a a) (pair p q) ≫ prodMap snd)
+    · rw [Cat.assoc, prodMap_fst, ← Cat.assoc, fst_pair, snd_pair]
+    · rw [Cat.assoc, prodMap_snd, ← Cat.assoc, snd_pair, snd_pair]
+  have hcoord : pair (subL a p) (subL a q) = subL (pair a a) (pair p q) :=
+    (pair_uniq (subL a p) (subL a q) (subL (pair a a) (pair p q))
+      (by show (pair (pair a a) (pair p q) ≫ subMap (prod A A)) ≫ fst = subL a p
+          rw [Cat.assoc, subMap_natural, ← Cat.assoc, hpac]; rfl)
+      (by show (pair (pair a a) (pair p q) ≫ subMap (prod A A)) ≫ snd = subL a q
+          rw [Cat.assoc, subMap_natural, ← Cat.assoc, hpbc]; rfl)).symm
+  show pair (subL a p) (subL a q) ≫ subMap A = subL q p
+  rw [hcoord]
+  show subL (pair a a) (pair p q) ≫ subMap A = subL q p
+  rw [subL_comp]
+  -- first coord `pair a a ≫ subMap = a − a = 0`; reduces to `0 − (p−q) = q − p`.
+  have haa : pair a a ≫ subMap A = zeroMorphism W A := by
+    have : pair a a = a ≫ diag A :=
+      (pair_uniq a a (a ≫ diag A) (by rw [Cat.assoc, diag_fst, Cat.comp_id])
+        (by rw [Cat.assoc, diag_snd, Cat.comp_id])).symm
+    rw [this, Cat.assoc, subMap_diag, zero_morphism_comp a (zeroMorphism A A)]
+  show subL (pair a a ≫ subMap A) (pair p q ≫ subMap A) = subL q p
+  rw [haa]
+  show subL (zeroMorphism W A) (subL p q) = subL q p
+  exact neg_subL p q
+
+/-- The **cross relation**: `subL a b = subL c d → subL a c = subL b d`. -/
+theorem subL_swap [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞} {a b c d : W ⟶ A}
+    (h : subL a b = subL c d) : subL a c = subL b d := by
+  -- `subL a c = (a−d)−(c−d)` and substitute `c−d = a−b`, then `(a−d)−(a−b) = b−d`.
+  calc subL a c
+      = subL (subL a d) (subL c d) := (subL_sub_right a c d).symm
+    _ = subL (subL a d) (subL a b) := by rw [h]
+    _ = subL b d := subL_sub_left a d b
+
+/-- `(homAddL a b) − b = a` (subtracting `b` undoes adding `b`). -/
+theorem subL_homAddL [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞} (a b : W ⟶ A) :
+    subL (homAddL a b) b = a := by
+  show subL (subL a (subL (zeroMorphism W A) b)) b = a
+  have h := subL_sub_right a (zeroMorphism W A) (subL (zeroMorphism W A) b)
+  rw [neg_neg'] at h
+  exact h.trans (subL_zero a)
+
+/-- Commutativity of `homAddL`: from `subL_swap` applied to `subL x y = (0−y)−(0−x)`
+    (`subL_sub_left`), giving `x − (0−y) = y − (0−x)`. -/
+theorem homAddL_comm [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞} (x y : W ⟶ A) :
+    homAddL x y = homAddL y x :=
+  subL_swap (a := x) (b := y) (c := subL (zeroMorphism W A) y) (d := subL (zeroMorphism W A) x)
+    (subL_sub_left (zeroMorphism W A) y x).symm
+
 theorem abelian_iff_normal_kernels_cokernels
     {𝒞 : Type u} [Cat.{v} 𝒞]
     [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoequalizers 𝒞] [HasBinaryProducts 𝒞] :
