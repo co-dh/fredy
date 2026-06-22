@@ -20,6 +20,7 @@
 import Fredy.S1_1
 import Fredy.S1_9
 import Fredy.S1_42
+import Fredy.S1_47
 import Fredy.S1_51
 import Fredy.S1_57
 import Fredy.S1_58
@@ -39,6 +40,16 @@ universe v u
 namespace Freyd
 
 variable {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
+
+/-- A topos is a cartesian category: `HasTerminal`+`HasBinaryProducts` come from `Topos`,
+    `HasEqualizers` from `topos_has_equalizers` (§1.92).  Built *from the ambient instances*
+    (no new product/terminal structure), so `term`/`prod`/`eq` agree definitionally with the
+    Topos ones.  Low priority so it never pre-empts a locally-supplied cartesian structure.
+    Needed to state `TwoValued (𝒞 := 𝒞)` (§1.989 single-valuedness, S1_47). -/
+noncomputable instance (priority := 100) Topos.toCartesianCategory : CartesianCategory 𝒞 :=
+  { toHasTerminal := inferInstance
+    toHasBinaryProducts := inferInstance
+    toHasEqualizers := inferInstance }
 
 /-! ## §1.97  Boolean topos
 
@@ -1277,7 +1288,11 @@ theorem peano_property_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞
     IN-CHAPTER FORM (statement fidelity).  Freyd's §1.988/§1.989 are stated for a BOOLEAN topos
     (`hbool`), and the existence step opens "We may assume the topos is capital [1.935]" — i.e.
     CAPITAL (`hcap : Capital 𝒞`).  We carry both as explicit hypotheses, exactly matching the
-    book.  The unconditional "any topos" form (§1.98(10) verbatim) follows from the §1.935
+    book.  Freyd's capital topos is moreover WELL-POINTED AS A TOPOS, i.e. TWO-VALUED (`Sub(1)`
+    has exactly the two elements `0 ↣ 1` and `1 = 1`): §1.989's "no global point ⟹ the subobject
+    is `⊥`" step uses precisely this.  Capital alone (well-supported ⟹ well-pointed) yields only
+    "a proper subobject of 1 has a missing point", not "= ⊥"; so we add `htv : TwoValued 𝒞`,
+    which is part of Freyd's capital/well-pointed-topos package (faithful, not an extra weakening).  The unconditional "any topos" form (§1.98(10) verbatim) follows from the §1.935
     reduction + the §2.542 boolean-and-capital embedding, both in Chapter 2; per the project rule
     "Chapter 1 must not depend on Chapter 2" the faithful in-chapter theorem is the BOOLEAN +
     CAPITAL one stated here.
@@ -1302,7 +1317,7 @@ theorem peano_property_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞
     after which GENERAL recursor uniqueness is `recursor_unique_of_bicartesian`. -/
 theorem recursor_exists_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
     [HasBinaryCoproducts 𝒞] [HasImages 𝒞]
-    (hbool : BooleanSub 𝒞) (hcap : Capital (𝒞 := 𝒞))
+    (hbool : BooleanSub 𝒞) (hcap : Capital (𝒞 := 𝒞)) (htv : TwoValued (𝒞 := 𝒞))
     {A : 𝒞} (a : one ⟶ A) (t : A ⟶ A)
     (hiso : IsIso (HasBinaryCoproducts.case a t (A := one) (B := A) (X := A)))
     (hcoeq : ∀ (X : 𝒞) (f : A ⟶ X), t ≫ f = f →
@@ -1680,7 +1695,7 @@ theorem recursor_unique_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos �
     `recursor_exists_of_bicartesian`, whose own residual is the §1.989 single-valuedness step. -/
 theorem nno_of_bicartesian_data {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
     [HasBinaryCoproducts 𝒞] [HasImages 𝒞]
-    (hbool : BooleanSub 𝒞) (hcap : Capital (𝒞 := 𝒞))
+    (hbool : BooleanSub 𝒞) (hcap : Capital (𝒞 := 𝒞)) (htv : TwoValued (𝒞 := 𝒞))
     {A : 𝒞} (a : one ⟶ A) (t : A ⟶ A)
     -- [a, t] : 1 + A → A is an isomorphism
     (hiso : IsIso (HasBinaryCoproducts.case a t (A := one) (B := A) (X := A)))
@@ -1710,7 +1725,7 @@ theorem nno_of_bicartesian_data {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
     -- UNIQUENESS proved here Sorry-free from the Peano property via the equalizer
     -- (`recursor_unique_of_bicartesian`).
     intro X x f
-    obtain ⟨hex, _⟩ := recursor_exists_of_bicartesian hbool hcap a t hiso hcoeq
+    obtain ⟨hex, _⟩ := recursor_exists_of_bicartesian hbool hcap htv a t hiso hcoeq
     obtain ⟨h, hh0, hhs⟩ := hex x f
     exact ⟨h, ⟨hh0, hhs⟩, fun h' h0' hs' =>
       recursor_unique_of_bicartesian hbool a t hiso hcoeq x f h' h h0' hs' hh0 hhs⟩
@@ -1754,7 +1769,7 @@ theorem bicartesian_functor_preserves_nno
     {𝒜 : Type u} [Cat.{v} 𝒜] [hN : HasNaturalNumbersObject 𝒜]
     [HasBinaryCoproducts 𝒜] [HasImages 𝒜]
     {𝒜' : Type u} [Cat.{v} 𝒜'] [Topos 𝒜'] [HasBinaryCoproducts 𝒜'] [HasImages 𝒜']
-    (hbool : BooleanSub 𝒜') (hcap : Capital (𝒞 := 𝒜'))
+    (hbool : BooleanSub 𝒜') (hcap : Capital (𝒞 := 𝒜')) (htv : TwoValued (𝒞 := 𝒜'))
     (T : 𝒜 → 𝒜') [hT : Functor T]
     -- T preserves the terminal up to a chosen point `tOne : 1 → T 1`; the zero of the
     -- image NNO is `tOne ≫ T 0`.  (No separate `IsIso tOne` field is needed: `hT_iso`
@@ -1776,7 +1791,7 @@ theorem bicartesian_functor_preserves_nno
   -- `tOne` forms the zero map `tOne ≫ T 0` fed to `case` in `hT_iso`.  The §1.98(10) recursor is
   -- now derived internally (the old `pmc'` parameter is gone), so this reduction is purely the
   -- transport of the bicartesian data; it carries the SAME single §1.988 residual pinned there.
-  exact nno_of_bicartesian_data hbool hcap (tOne ≫ hT.map hN.zero) (hT.map hN.succ) hT_iso hT_coeq
+  exact nno_of_bicartesian_data hbool hcap htv (tOne ≫ hT.map hN.zero) (hT.map hN.succ) hT_iso hT_coeq
 
 /-! ## §1.98(13)  Bicartesian characterization of free A-action
 
@@ -1917,7 +1932,7 @@ theorem free_recursor_unique_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topo
     EXISTENCE is the SAME mechanical functional-graph residual as the NNO recursor. -/
 theorem free_recursor_exists_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
     [HasBinaryCoproducts 𝒞] [HasImages 𝒞]
-    (hbool : BooleanSub 𝒞) (hcap : Capital (𝒞 := 𝒞))
+    (hbool : BooleanSub 𝒞) (hcap : Capital (𝒞 := 𝒞)) (htv : TwoValued (𝒞 := 𝒞))
     (A : 𝒞) (α : AAction (𝒞 := 𝒞) A)
     (hiso : IsIso (HasBinaryCoproducts.case α.unit α.act
                    (A := one) (B := prod A α.obj) (X := α.obj)))
@@ -1962,7 +1977,7 @@ theorem free_recursor_exists_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topo
     `free_recursor_exists_of_bicartesian`; UNIQUENESS is proved Sorry-free here.) -/
 theorem free_action_iff_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
     [HasBinaryCoproducts 𝒞] [HasImages 𝒞]
-    (hbool : BooleanSub 𝒞) (hcap : Capital (𝒞 := 𝒞))
+    (hbool : BooleanSub 𝒞) (hcap : Capital (𝒞 := 𝒞)) (htv : TwoValued (𝒞 := 𝒞))
     (A : 𝒞) (α : AAction (𝒞 := 𝒞) A)
     -- [unit, act] : 1 + A × α.obj → α.obj is iso
     (hiso : IsIso (HasBinaryCoproducts.case α.unit α.act
@@ -1996,7 +2011,7 @@ theorem free_action_iff_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
     -- EXISTENCE from `free_recursor_exists_of_bicartesian` (the single residual); UNIQUENESS
     -- proved here Sorry-free from the action Peano property via the equalizer.
     intro β
-    obtain ⟨hex, _⟩ := free_recursor_exists_of_bicartesian hbool hcap A α hiso hcoeq
+    obtain ⟨hex, _⟩ := free_recursor_exists_of_bicartesian hbool hcap htv A α hiso hcoeq
     obtain ⟨h, hh0, hhs⟩ := hex β
     exact ⟨h, ⟨hh0, hhs⟩, fun h' h0' hs' =>
       free_recursor_unique_of_bicartesian hbool A α hiso hcoeq β h' h h0' hs' hh0 hhs⟩
