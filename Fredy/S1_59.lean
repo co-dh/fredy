@@ -2904,11 +2904,24 @@ noncomputable def exactHalfAdditive [ExactCategory 𝒞] [HasBinaryProducts 𝒞
       rw [Cat.id_comp, comp_homAddL, ← Cat.assoc, ← Cat.assoc, fst_pair, snd_pair,
           Cat.comp_id, Cat.comp_id] }
 
+/-- **§1.597 STEP 2: an exact category with products is additive.**  Additive inverses are the
+    negations `0 − f` (`homAddL_neg_self`). -/
+noncomputable def exactAdditive [ExactCategory 𝒞] [HasBinaryProducts 𝒞] : AdditiveCategory 𝒞 :=
+  { exactHalfAdditive with
+    addInv := fun {A B} f => ⟨subL (zeroMorphism A B) f, homAddL_neg_self f⟩ }
+
+/-- **§1.598.**  A normal category with kernels, cokernels and binary products is abelian.
+    Freyd's three-step route: (1) right-normality makes it EXACT (`exactOfNormal`); (2) exact +
+    products gives the ADDITIVE structure via the diagonal-cokernel subtraction (`exactAdditive`);
+    (3) exact + additive ⟹ abelian (`abelianOfExactAdditive`). -/
 theorem abelian_iff_normal_kernels_cokernels
     {𝒞 : Type u} [Cat.{v} 𝒞]
     [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoequalizers 𝒞] [HasBinaryProducts 𝒞] :
     IsNormalCategory 𝒞 → Nonempty (AbelianCategory 𝒞) := by
-  sorry
+  intro hN
+  letI hex : ExactCategory 𝒞 := exactOfNormal hN
+  letI hadd : AdditiveCategory 𝒞 := exactAdditive
+  exact ⟨abelianOfExactAdditive⟩
 
 
 /-! ## §1.599 Exact sequences and diagram lemmas
