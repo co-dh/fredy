@@ -2477,6 +2477,117 @@ theorem thetaA_iso [ExactCategory 𝒞] [HasBinaryProducts 𝒞] (A : 𝒞) :
   exact_iso_of_ker_cok_zero (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A))
     (thetaA_kernel_zero A) (thetaA_cokernel_zero A)
 
+/-- The **subtraction section** `s_A : A×A → A := coker(diag A) ≫ θ_A⁻¹`.  Then `⟨a,b⟩ ≫ s_A`
+    is the difference `a − b`.  Its two defining identities are `⟨1,0⟩ ≫ s_A = id` and
+    `diag ≫ s_A = 0` (i.e. `a − 0 = a` and `a − a = 0`). -/
+noncomputable def subMap [ExactCategory 𝒞] [HasBinaryProducts 𝒞] (A : 𝒞) : prod A A ⟶ A :=
+  cokernelMap (diag A) ≫ (thetaA_iso A).choose
+
+/-- `⟨1,0⟩ ≫ s_A = id_A` (`a − 0 = a`). -/
+theorem subMap_j [ExactCategory 𝒞] [HasBinaryProducts 𝒞] (A : 𝒞) :
+    pair (Cat.id A) (zeroMorphism A A) ≫ subMap A = Cat.id A := by
+  show pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A) ≫ (thetaA_iso A).choose = _
+  rw [← Cat.assoc]; exact (thetaA_iso A).choose_spec.1
+
+/-- `diag A ≫ s_A = 0` (`a − a = 0`). -/
+theorem subMap_diag [ExactCategory 𝒞] [HasBinaryProducts 𝒞] (A : 𝒞) :
+    diag A ≫ subMap A = zeroMorphism A A := by
+  show diag A ≫ cokernelMap (diag A) ≫ (thetaA_iso A).choose = _
+  rw [← Cat.assoc, comp_cokernelMap (diag A), zeroMorphism_comp_left]
+
+/-- `k × k : A×A → B×B`, the product functor on `k`. -/
+noncomputable def prodMap {A B : 𝒞} [HasBinaryProducts 𝒞] (k : A ⟶ B) : prod A A ⟶ prod B B :=
+  pair (fst ≫ k) (snd ≫ k)
+
+theorem prodMap_fst {A B : 𝒞} [HasBinaryProducts 𝒞] (k : A ⟶ B) :
+    prodMap k ≫ fst = fst ≫ k := fst_pair _ _
+
+theorem prodMap_snd {A B : 𝒞} [HasBinaryProducts 𝒞] (k : A ⟶ B) :
+    prodMap k ≫ snd = snd ≫ k := snd_pair _ _
+
+/-- `diag` is natural: `diag A ≫ (k×k) = k ≫ diag B`. -/
+theorem diag_prodMap [HasBinaryProducts 𝒞] {A B : 𝒞} (k : A ⟶ B) :
+    diag A ≫ prodMap k = k ≫ diag B := by
+  have hL : diag A ≫ prodMap k = pair k k :=
+    pair_uniq k k (diag A ≫ prodMap k)
+      (by rw [Cat.assoc, prodMap_fst, ← Cat.assoc, diag_fst, Cat.id_comp])
+      (by rw [Cat.assoc, prodMap_snd, ← Cat.assoc, diag_snd, Cat.id_comp])
+  have hR : k ≫ diag B = pair k k :=
+    pair_uniq k k (k ≫ diag B)
+      (by rw [Cat.assoc, diag_fst, Cat.comp_id]) (by rw [Cat.assoc, diag_snd, Cat.comp_id])
+  rw [hL, hR]
+
+/-- `⟨1,0⟩` is natural: `⟨1,0⟩_A ≫ (k×k) = k ≫ ⟨1,0⟩_B`. -/
+theorem j_prodMap [HasZeroObject 𝒞] [HasBinaryProducts 𝒞] {A B : 𝒞} (k : A ⟶ B) :
+    pair (Cat.id A) (zeroMorphism A A) ≫ prodMap k = k ≫ pair (Cat.id B) (zeroMorphism B B) := by
+  have hL : pair (Cat.id A) (zeroMorphism A A) ≫ prodMap k = pair k (zeroMorphism A B) :=
+    pair_uniq k (zeroMorphism A B) (pair (Cat.id A) (zeroMorphism A A) ≫ prodMap k)
+      (by rw [Cat.assoc, prodMap_fst, ← Cat.assoc, fst_pair, Cat.id_comp])
+      (by rw [Cat.assoc, prodMap_snd, ← Cat.assoc, snd_pair, zeroMorphism_comp_left])
+  have hR : k ≫ pair (Cat.id B) (zeroMorphism B B) = pair k (zeroMorphism A B) :=
+    pair_uniq k (zeroMorphism A B) (k ≫ pair (Cat.id B) (zeroMorphism B B))
+      (by rw [Cat.assoc, fst_pair, Cat.comp_id])
+      (by rw [Cat.assoc, snd_pair, zero_morphism_comp k (zeroMorphism B B)])
+  rw [hL, hR]
+
+/-- **Naturality of the subtraction section**: `subMap A ≫ k = (k×k) ≫ subMap B`.  This is what
+    makes subtraction (hence addition) compatible with post-composition.  Proof: `(k×k)` descends
+    through `coker(diag A)` to `kbar` (since `diag A ≫ (k×k) = k ≫ diag B` is killed by
+    `coker(diag B)`), and `θ_A ≫ kbar = k ≫ θ_B` (using `⟨1,0⟩` naturality), so
+    `θ_A⁻¹ ≫ k = kbar ≫ θ_B⁻¹`; precomposing `coker(diag A)` gives the claim. -/
+theorem subMap_natural [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {A B : 𝒞} (k : A ⟶ B) :
+    subMap A ≫ k = prodMap k ≫ subMap B := by
+  -- `kbar` : descent of `(k×k) ≫ coker(diag B)` through `coker(diag A)`.
+  have hkill : diag A ≫ (prodMap k ≫ cokernelMap (diag B))
+      = zeroMorphism A (Cokernel (diag B)) := by
+    rw [← Cat.assoc, diag_prodMap, Cat.assoc, comp_cokernelMap (diag B),
+        zero_morphism_comp k (zeroMorphism B (Cokernel (diag B)))]
+  let kbar : Cokernel (diag A) ⟶ Cokernel (diag B) :=
+    cokernelDesc (diag A) (prodMap k ≫ cokernelMap (diag B)) hkill
+  have hkbar : cokernelMap (diag A) ≫ kbar = prodMap k ≫ cokernelMap (diag B) :=
+    cokernelDesc_fac (diag A) (prodMap k ≫ cokernelMap (diag B)) hkill
+  -- `θ`-inverses via `subMap`'s defining choice.
+  have hθA1 := (thetaA_iso A).choose_spec.1
+  have hθA2 := (thetaA_iso A).choose_spec.2
+  have hθB1 := (thetaA_iso B).choose_spec.1
+  -- `θ_A ≫ kbar = k ≫ θ_B`.
+  have hθkbar : (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A)) ≫ kbar
+      = k ≫ (pair (Cat.id B) (zeroMorphism B B) ≫ cokernelMap (diag B)) := by
+    calc (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A)) ≫ kbar
+        = pair (Cat.id A) (zeroMorphism A A) ≫ (cokernelMap (diag A) ≫ kbar) := Cat.assoc _ _ _
+      _ = pair (Cat.id A) (zeroMorphism A A) ≫ (prodMap k ≫ cokernelMap (diag B)) := by rw [hkbar]
+      _ = (pair (Cat.id A) (zeroMorphism A A) ≫ prodMap k) ≫ cokernelMap (diag B) :=
+            (Cat.assoc _ _ _).symm
+      _ = (k ≫ pair (Cat.id B) (zeroMorphism B B)) ≫ cokernelMap (diag B) := by rw [j_prodMap]
+      _ = k ≫ (pair (Cat.id B) (zeroMorphism B B) ≫ cokernelMap (diag B)) := Cat.assoc _ _ _
+  -- `θ_A⁻¹ ≫ k = kbar ≫ θ_B⁻¹`.
+  have hinvk : (thetaA_iso A).choose ≫ k = kbar ≫ (thetaA_iso B).choose := by
+    have h1 : (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A))
+          ≫ ((thetaA_iso A).choose ≫ k)
+        = (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A))
+          ≫ (kbar ≫ (thetaA_iso B).choose) := by
+      calc (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A))
+            ≫ ((thetaA_iso A).choose ≫ k)
+          = ((pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A))
+              ≫ (thetaA_iso A).choose) ≫ k := (Cat.assoc _ _ _).symm
+        _ = Cat.id A ≫ k := by rw [hθA1]
+        _ = k := Cat.id_comp k
+        _ = k ≫ Cat.id B := (Cat.comp_id k).symm
+        _ = k ≫ ((pair (Cat.id B) (zeroMorphism B B) ≫ cokernelMap (diag B))
+              ≫ (thetaA_iso B).choose) := by rw [hθB1]
+        _ = (k ≫ (pair (Cat.id B) (zeroMorphism B B) ≫ cokernelMap (diag B)))
+              ≫ (thetaA_iso B).choose := (Cat.assoc _ _ _).symm
+        _ = ((pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A)) ≫ kbar)
+              ≫ (thetaA_iso B).choose := by rw [hθkbar]
+        _ = (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A))
+              ≫ (kbar ≫ (thetaA_iso B).choose) := Cat.assoc _ _ _
+    have hθA_cover : Cover (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A)) :=
+      iso_cover _ (thetaA_iso A)
+    exact cover_epi hθA_cover h1
+  -- assemble.
+  simp only [subMap]
+  rw [Cat.assoc, hinvk, ← Cat.assoc, hkbar, Cat.assoc]
+
 theorem abelian_iff_normal_kernels_cokernels
     {𝒞 : Type u} [Cat.{v} 𝒞]
     [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoequalizers 𝒞] [HasBinaryProducts 𝒞] :
