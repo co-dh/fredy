@@ -3929,6 +3929,59 @@ theorem listCons_arr :
       = prodMap A (listCarrier A).dom (wordObj A) (listCarrier A).arr ≫ consMor A := by
   rw [listCons, Cat.assoc, (listConsLe A).choose_spec, image.lift_fac]
 
+/-- **List induction / extensionality.**  Any two `F`-algebra homomorphisms out of the list
+    object `A* = (listCarrier A)` into the same algebra `(B, e, c)` are equal.  Proof: the
+    equalizer `E ↪ A*` of `m, m'`, pushed into `W`, contains `nilMor` and is `(consMor,snd)`-
+    stable (using the two algebra squares + the equalizer agreement), so `actLeast_le` forces
+    `A* ≤ E`, i.e. `eqMap` is split epi (hence iso), i.e. `m = m'`. -/
+theorem listObject_ext {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B)
+    (m m' : (listCarrier A).dom ⟶ B)
+    (hm0 : listNil A ≫ m = e) (hm0' : listNil A ≫ m' = e)
+    (hmc : prodMap A (listCarrier A).dom B m ≫ c = listCons A ≫ m)
+    (hmc' : prodMap A (listCarrier A).dom B m' ≫ c = listCons A ≫ m') :
+    m = m' := by
+  have hEm : eqMap m m' ≫ m = eqMap m m' ≫ m' := eqMap_eq m m'
+  -- The subobject `S = (E ↪ L.dom ↪ W)`, `E := eqObj m m'`.
+  have hSmono : Mono (eqMap m m' ≫ (listCarrier A).arr) :=
+    mono_comp'' (eqMap_mono m m') (listCarrier A).monic
+  let S : Subobject 𝒞 (wordObj A) := ⟨eqObj m m', eqMap m m' ≫ (listCarrier A).arr, hSmono⟩
+  -- (1) `S` allows `nilMor`: `listNil` factors through `E` (both legs equal `e`).
+  have hnilE : listNil A ≫ m = listNil A ≫ m' := by rw [hm0, hm0']
+  have hSallows : Allows S (nilMor A) := by
+    refine ⟨eqLift m m' (listNil A) hnilE, ?_⟩
+    show eqLift m m' (listNil A) hnilE ≫ (eqMap m m' ≫ (listCarrier A).arr) = nilMor A
+    rw [← Cat.assoc, eqLift_fac, listNil_arr]
+  -- (2) `S` is `(consMor, snd)`-stable.  Build the restriction `consS : A × E → E`.
+  -- `cons` on `E`: take the pair into `L.dom`, then `listCons`; it stays in `E` by the squares.
+  have hagree : (prodMap A (eqObj m m') (listCarrier A).dom (eqMap m m') ≫ listCons A) ≫ m
+      = (prodMap A (eqObj m m') (listCarrier A).dom (eqMap m m') ≫ listCons A) ≫ m' := by
+    rw [Cat.assoc, Cat.assoc, ← hmc, ← hmc', ← Cat.assoc, ← Cat.assoc,
+        ← prodMap_comp, ← prodMap_comp, hEm]
+  let consS : prod A (eqObj m m') ⟶ eqObj m m' :=
+    eqLift m m' (prodMap A (eqObj m m') (listCarrier A).dom (eqMap m m') ≫ listCons A) hagree
+  have hconsS : consS ≫ eqMap m m'
+      = prodMap A (eqObj m m') (listCarrier A).dom (eqMap m m') ≫ listCons A := eqLift_fac _ _ _ _
+  have hSstab : (InverseImage (snd (A := A) (B := wordObj A)) S).le (InverseImage (consMor A) S) := by
+    refine actStable_of_restrict (consMor A) S consS ?_
+    show consS ≫ (eqMap m m' ≫ (listCarrier A).arr)
+        = prodMap A (eqObj m m') (wordObj A) (eqMap m m' ≫ (listCarrier A).arr) ≫ consMor A
+    rw [← Cat.assoc, hconsS, Cat.assoc, listCons_arr, ← Cat.assoc, ← prodMap_comp, prodMap_comp,
+        Cat.assoc]
+  -- (3) leastness: `L ≤ S`, so `L.arr` factors through `S.arr = eqMap ≫ L.arr`.
+  obtain ⟨k, hk⟩ := actLeast_le (nilMor A) (consMor A) snd S hSallows hSstab
+  -- `k : L.dom → E` with `k ≫ (eqMap ≫ L.arr) = L.arr`.  Since `L.arr` mono, `k ≫ eqMap = id`.
+  have hkeq : k ≫ eqMap m m' = Cat.id (listCarrier A).dom := by
+    apply (listCarrier A).monic
+    rw [Cat.assoc]
+    rw [show k ≫ eqMap m m' ≫ (listCarrier A).arr = (listCarrier A).arr from hk]
+    exact (Cat.id_comp _).symm
+  -- `m = (k ≫ eqMap) ≫ m = k ≫ (eqMap ≫ m) = k ≫ (eqMap ≫ m') = (k ≫ eqMap) ≫ m' = m'`.
+  calc m = (k ≫ eqMap m m') ≫ m := by rw [hkeq]; exact (Cat.id_comp _).symm
+    _ = k ≫ (eqMap m m' ≫ m) := by rw [Cat.assoc]
+    _ = k ≫ (eqMap m m' ≫ m') := by rw [hEm]
+    _ = (k ≫ eqMap m m') ≫ m' := by rw [Cat.assoc]
+    _ = m' := by rw [hkeq]; exact Cat.id_comp _
+
 end ListObjectAssembly
 
 /-- §1.98(14): In a topos with a NNO, every object A has a free A-action.
