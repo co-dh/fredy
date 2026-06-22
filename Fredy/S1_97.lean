@@ -2356,6 +2356,30 @@ theorem bicartesian_functor_preserves_nno
   A-action iff [1 + A × A*, A*] ≅ A* (iso) and A × A* → A* → 1 is a coequalizer.
   The reasoning is analogous to [1.985] and [1.98(10)]. -/
 
+/-- **Bridge: action-restriction ⟺ `InverseImage`-`≤` stability.**  For maps `r, proj : P → M`
+    and `B ↣ M`, the `InverseImage`-form stability `(proj#B) ≤ (r#B)` used by `actLeast` is
+    EQUIVALENT to the existence of a restriction `rB` of `r` along the `proj`-fibre of `B`
+    (`rB ≫ B.arr = (proj#B).arr ≫ r`).  Both say "`proj(p)∈B ⟹ r(p)∈B`".  No products needed. -/
+theorem invImage_le_iff_restrict {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
+    {M P : 𝒞} (r proj : P ⟶ M) (B : Subobject 𝒞 M) :
+    (InverseImage proj B).le (InverseImage r B)
+      ↔ ∃ rB : (InverseImage proj B).dom ⟶ B.dom,
+          rB ≫ B.arr = (InverseImage proj B).arr ≫ r := by
+  constructor
+  · rintro ⟨k, hk⟩
+    -- `k ≫ (r#B).arr = (proj#B).arr`; `(r#B).arr ≫ r = (r#B).π₂ ≫ B.arr`.
+    refine ⟨k ≫ (HasPullbacks.has r B.arr).cone.π₂, ?_⟩
+    have hw := (HasPullbacks.has r B.arr).cone.w
+    show (k ≫ (HasPullbacks.has r B.arr).cone.π₂) ≫ B.arr = _
+    rw [Cat.assoc, ← hw, ← Cat.assoc]
+    show (k ≫ (InverseImage r B).arr) ≫ r = _
+    rw [hk]
+  · rintro ⟨rB, hrB⟩
+    -- factor `(proj#B).arr` through `(r#B)`: lift the cone `⟨(proj#B).arr, rB⟩`.
+    have hcone : (InverseImage proj B).arr ≫ r = rB ≫ B.arr := hrB.symm
+    refine ⟨(HasPullbacks.has r B.arr).lift ⟨_, (InverseImage proj B).arr, rB, hcone⟩, ?_⟩
+    exact (HasPullbacks.has r B.arr).lift_fst _
+
 /-- **§1.98(13) action PEANO PROPERTY in a BOOLEAN topos (the §1.988 free content).**
     Every `(unit,act)`-closed subobject `B ↣ α.obj` is entire.  `B` closed = it allows
     `unit` (point `uB : 1 → B.dom`, `uB ≫ B.arr = α.unit`) and is `act`-stable
