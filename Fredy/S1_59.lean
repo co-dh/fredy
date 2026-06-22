@@ -2629,6 +2629,43 @@ theorem subL_comp [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A B : 𝒞} (
         (by rw [Cat.assoc, prodMap_fst, ← Cat.assoc, fst_pair])
         (by rw [Cat.assoc, prodMap_snd, ← Cat.assoc, snd_pair])]
 
+/-- **Translation invariance**: `(a − c) − (b − c) = a − b`.  The single algebraic fact (besides
+    `x−0=x`, `x−x=0` and bilinearity) needed to upgrade subtraction to an abelian group.
+    Proof: `pair (a−c) (b−c) = ⟨a,b⟩ −_{A×A} ⟨c,c⟩` (difference on `A×A`, computed coordinatewise
+    by `subMap_natural`), so `((a−c)−(b−c)) = (⟨a,b⟩ −_{A×A} ⟨c,c⟩) ≫ s_A = (a−b) − (⟨c,c⟩ ≫ s_A)`
+    by `subL_comp`, and `⟨c,c⟩ ≫ s_A = c ≫ (diag ≫ s_A) = 0`. -/
+theorem subL_sub_right [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞} (a b c : W ⟶ A) :
+    subL (subL a c) (subL b c) = subL a b := by
+  -- `pair (a−c) (b−c) = ⟨a,b⟩ −_{A×A} ⟨c,c⟩` (difference on `A×A`, coordinatewise via naturality).
+  have hpac : pair (pair a b) (pair c c) ≫ prodMap (fst : prod A A ⟶ A) = pair a c := by
+    apply pair_uniq a c (pair (pair a b) (pair c c) ≫ prodMap fst)
+    · rw [Cat.assoc, prodMap_fst, ← Cat.assoc, fst_pair, fst_pair]
+    · rw [Cat.assoc, prodMap_snd, ← Cat.assoc, snd_pair, fst_pair]
+  have hpbc : pair (pair a b) (pair c c) ≫ prodMap (snd : prod A A ⟶ A) = pair b c := by
+    apply pair_uniq b c (pair (pair a b) (pair c c) ≫ prodMap snd)
+    · rw [Cat.assoc, prodMap_fst, ← Cat.assoc, fst_pair, snd_pair]
+    · rw [Cat.assoc, prodMap_snd, ← Cat.assoc, snd_pair, snd_pair]
+  have hcoord : pair (subL a c) (subL b c) = subL (pair a b) (pair c c) :=
+    (pair_uniq (subL a c) (subL b c) (subL (pair a b) (pair c c))
+      (by show (pair (pair a b) (pair c c) ≫ subMap (prod A A)) ≫ fst = subL a c
+          rw [Cat.assoc, subMap_natural, ← Cat.assoc, hpac]; rfl)
+      (by show (pair (pair a b) (pair c c) ≫ subMap (prod A A)) ≫ snd = subL b c
+          rw [Cat.assoc, subMap_natural, ← Cat.assoc, hpbc]; rfl)).symm
+  show pair (subL a c) (subL b c) ≫ subMap A = subL a b
+  rw [hcoord]
+  show subL (pair a b) (pair c c) ≫ subMap A = subL a b
+  rw [subL_comp]
+  -- `⟨c,c⟩ ≫ s_A = c ≫ (diag ≫ s_A) = 0`.
+  have hcc : pair c c ≫ subMap A = zeroMorphism W A := by
+    have hccd : pair c c = c ≫ diag A :=
+      (pair_uniq c c (c ≫ diag A) (by rw [Cat.assoc, diag_fst, Cat.comp_id])
+        (by rw [Cat.assoc, diag_snd, Cat.comp_id])).symm
+    rw [hccd, Cat.assoc, subMap_diag, zero_morphism_comp c (zeroMorphism A A)]
+  show subL (pair a b ≫ subMap A) (pair c c ≫ subMap A) = subL a b
+  rw [hcc]
+  show subL (subL a b) (zeroMorphism W A) = subL a b
+  rw [subL_zero]
+
 theorem abelian_iff_normal_kernels_cokernels
     {𝒞 : Type u} [Cat.{v} 𝒞]
     [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoequalizers 𝒞] [HasBinaryProducts 𝒞] :
