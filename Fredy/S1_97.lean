@@ -33,6 +33,7 @@ import Fredy.PartialMapClassifier
 import Fredy.LeastClosedTopos
 import Fredy.Complement
 import Fredy.ToposExists
+import Fredy.ToposDistributive
 
 
 universe v u
@@ -2391,6 +2392,39 @@ theorem invImage_le_iff_restrict {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
 section ActImageCalculus
 variable {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
 
+-- Make the genuine `Topos` products win all `HasBinaryProducts` goals (the
+-- `topos_has_exponentials.toHasBinaryProducts` route is a `sorry`-derived diamond branch);
+-- this keeps `prodMap`/`distCase` products coherent across this section.  Same guard as
+-- `Fredy/ToposCopowers.lean`.
+attribute [local instance 10000] Topos.toHasBinaryProducts
+
+/-- `prod A (−)` carries covers to covers (right-factor product map).  `prod A X` with
+    `(prodMap A X Y c, snd)` is the pullback of `c : X → Y` along `snd : prod A Y → Y`
+    (`prodMap_snd` is the square), and pullbacks transfer the cover `c` to the opposite
+    leg `prodMap A X Y c`. -/
+theorem prodMap_cover (A : 𝒞) {X Y : 𝒞} {c : X ⟶ Y} (hc : Cover c) :
+    Cover (prodMap A X Y c) := by
+  -- Cone over cospan `(c : X → Y, snd : prod A Y → Y)`: `π₁ = snd`, `π₂ = prodMap A X Y c`.
+  have hpb : (⟨prod A X, snd, prodMap A X Y c, (prodMap_snd A X Y c).symm⟩ :
+      Cone c (snd (A := A) (B := Y))).IsPullback := by
+    intro d
+    -- `d.π₁ : d.pt → X`, `d.π₂ : d.pt → prod A Y`, `d.w : d.π₁ ≫ c = d.π₂ ≫ snd`.
+    refine ⟨pair (d.π₂ ≫ fst) d.π₁, ⟨snd_pair _ _, ?_⟩, ?_⟩
+    · -- `u ≫ prodMap.. = d.π₂` by joint monicity (`snd` uses `d.w`).
+      show pair (d.π₂ ≫ fst) d.π₁ ≫ prodMap A X Y c = d.π₂
+      apply fst_snd_jointly_monic
+      · rw [Cat.assoc, prodMap_fst, fst_pair]
+      · rw [Cat.assoc, prodMap_snd, ← Cat.assoc, snd_pair]; exact d.w
+    · intro v hv₁ hv₂
+      -- `hv₁ : v ≫ snd = d.π₁`, `hv₂ : v ≫ prodMap.. = d.π₂`.
+      apply pair_uniq
+      · show v ≫ fst = d.π₂ ≫ fst
+        rw [← prodMap_fst A X Y c, ← Cat.assoc]
+        show (v ≫ prodMap A X Y c) ≫ fst = _; rw [hv₂]
+      · exact hv₁
+  intro D m g hm hgm
+  exact PullbacksTransferCovers.pullbacks_transfer_covers _ hpb hc m g hm hgm
+
 /-- `prod A (−)` carries monics to monics (right-factor product map). -/
 theorem prodMap_mono' (A : 𝒞) {X Y : 𝒞} {f : X ⟶ Y} (hf : Mono f) :
     Mono (prodMap A X Y f) := by
@@ -2435,6 +2469,89 @@ theorem actImg_le_of_actStable {A M : 𝒞} (act : prod A M ⟶ M) (S : Subobjec
   refine image_min _ _ ⟨j ≫ actS, ?_⟩
   rw [Cat.assoc, hactS, ← Cat.assoc, hj]
 
+/-- **act-stability from a restriction** (reverse of `actImg_le_of_actStable`).  Given a
+    restriction `actS : prod A S.dom → S.dom` of `act` along `S` (`actS ≫ S.arr = prodMap.. ≫
+    act`), `S` is `(act,snd)`-stable: `(snd#S) ≤ (act#S)`.  Re-pairs `(snd#S).arr` into
+    `prod A S.dom` (legs `fst`, `π₂`) to feed `actS`.  Factored out of the `hBstab` step. -/
+theorem actStable_of_restrict {A M : 𝒞} (act : prod A M ⟶ M) (S : Subobject 𝒞 M)
+    (actS : prod A S.dom ⟶ S.dom)
+    (hactS : actS ≫ S.arr = prodMap A S.dom M S.arr ≫ act) :
+    (InverseImage (snd (A := A) (B := M)) S).le (InverseImage act S) := by
+  rw [invImage_le_iff_restrict]
+  let pb := HasPullbacks.has (snd (A := A) (B := M)) S.arr
+  let w : (InverseImage (snd (A := A) (B := M)) S).dom ⟶ prod A S.dom :=
+    pair ((InverseImage (snd (A := A) (B := M)) S).arr ≫ fst) pb.cone.π₂
+  have hw : w ≫ prodMap A S.dom M S.arr = (InverseImage (snd (A := A) (B := M)) S).arr := by
+    have hfstleg : (w ≫ prodMap A S.dom M S.arr) ≫ fst
+        = (InverseImage (snd (A := A) (B := M)) S).arr ≫ fst := by
+      rw [Cat.assoc, prodMap_fst]; show (pair _ pb.cone.π₂ ≫ fst) = _; rw [fst_pair]
+    have hsndleg : (w ≫ prodMap A S.dom M S.arr) ≫ snd
+        = (InverseImage (snd (A := A) (B := M)) S).arr ≫ snd := by
+      rw [Cat.assoc, prodMap_snd, ← Cat.assoc]
+      show (pair _ pb.cone.π₂ ≫ snd) ≫ S.arr = _
+      rw [snd_pair]; exact pb.cone.w.symm
+    rw [pair_uniq _ _ (w ≫ prodMap A S.dom M S.arr) hfstleg hsndleg,
+        ← pair_uniq _ _ ((InverseImage (snd (A := A) (B := M)) S).arr) rfl rfl]
+  exact ⟨w ≫ actS, by rw [Cat.assoc, hactS, ← Cat.assoc, hw]⟩
+
+/-- **act-image of a union** (free analogue of the endo `himg_le` decomposition).
+    `act(S ∪ T) ≤ act(S) ∪ act(T)`.  The union cover `case l₁ l₂ : S.dom + T.dom ↠ (S∪T).dom`
+    is carried to a cover of `prod A (S∪T).dom` by `prodMap_cover`; the composite act-map
+    rewrites (via `prodMap` functoriality + `distCase_uniq`) to `distCase` of the two legs,
+    whose image copairs through `act(S) ∪ act(T)`. -/
+theorem image_act_union_le [HasBinaryCoproducts 𝒞]
+    {A M : 𝒞} (act : prod A M ⟶ M) (S T : Subobject 𝒞 M) :
+    (image (prodMap A (HasSubobjectUnions.union S T).dom M
+              (HasSubobjectUnions.union S T).arr ≫ act)).le
+      (HasSubobjectUnions.union (image (prodMap A S.dom M S.arr ≫ act))
+                                (image (prodMap A T.dom M T.arr ≫ act))) := by
+  obtain ⟨l₁, hl₁⟩ := HasSubobjectUnions.union_left S T
+  obtain ⟨l₂, hl₂⟩ := HasSubobjectUnions.union_right S T
+  let U : Subobject 𝒞 M := HasSubobjectUnions.union S T
+  let cov : HasBinaryCoproducts.coprod S.dom T.dom ⟶ U.dom :=
+    HasBinaryCoproducts.case l₁ l₂
+  have hcov : Cover cov := union_case_cover S T hl₁ hl₂
+  -- the cover on `prod A U.dom`.
+  have hPcov : Cover (prodMap A (HasBinaryCoproducts.coprod S.dom T.dom) U.dom cov) :=
+    prodMap_cover A hcov
+  -- `image(prodMap U.arr ≫ act) = image(prodMap cov ≫ (prodMap U.arr ≫ act))`.
+  have h1 : (image (prodMap A U.dom M U.arr ≫ act)).le
+      (image (prodMap A (HasBinaryCoproducts.coprod S.dom T.dom) U.dom cov
+                ≫ (prodMap A U.dom M U.arr ≫ act))) :=
+    (image_cover_comp (prodMap A (HasBinaryCoproducts.coprod S.dom T.dom) U.dom cov)
+      (prodMap A U.dom M U.arr ≫ act) hPcov).2
+  -- the composite = `distCase (prodMap.. S.arr ≫ act) (prodMap.. T.arr ≫ act)`.
+  let F : prod A S.dom ⟶ M := prodMap A S.dom M S.arr ≫ act
+  let G : prod A T.dom ⟶ M := prodMap A T.dom M T.arr ≫ act
+  have hcomp : prodMap A (HasBinaryCoproducts.coprod S.dom T.dom) U.dom cov
+      ≫ (prodMap A U.dom M U.arr ≫ act) = distCase F G := by
+    rw [← Cat.assoc, ← prodMap_comp]
+    -- `cov ≫ U.arr = case S.arr T.arr` (legs `l₁≫U.arr=S.arr`, `l₂≫U.arr=T.arr`).
+    have hcovU : cov ≫ U.arr = HasBinaryCoproducts.case S.arr T.arr := by
+      show HasBinaryCoproducts.case l₁ l₂ ≫ U.arr = _
+      rw [case_comp, hl₁, hl₂]
+    rw [hcovU]
+    -- `prodMap (case S.arr T.arr) ≫ act = distCase F G` by `distCase_uniq` on the two inj.
+    refine distCase_uniq F G _ ?_ ?_
+    · show distInl A S.dom T.dom ≫ (prodMap A _ M (HasBinaryCoproducts.case S.arr T.arr) ≫ act) = F
+      show prodMap A S.dom _ HasBinaryCoproducts.inl
+            ≫ (prodMap A _ M (HasBinaryCoproducts.case S.arr T.arr) ≫ act) = F
+      rw [← Cat.assoc, ← prodMap_comp, HasBinaryCoproducts.case_inl]
+    · show distInr A S.dom T.dom ≫ (prodMap A _ M (HasBinaryCoproducts.case S.arr T.arr) ≫ act) = G
+      show prodMap A T.dom _ HasBinaryCoproducts.inr
+            ≫ (prodMap A _ M (HasBinaryCoproducts.case S.arr T.arr) ≫ act) = G
+      rw [← Cat.assoc, ← prodMap_comp, HasBinaryCoproducts.case_inr]
+  rw [hcomp] at h1
+  -- `image(distCase F G) ≤ act(S) ∪ act(T)` via `image_min` + `distCase`-copairing of lifts.
+  refine subLe_trans' h1 ?_
+  obtain ⟨jL, hjL⟩ := HasSubobjectUnions.union_left (image F) (image G)
+  obtain ⟨jR, hjR⟩ := HasSubobjectUnions.union_right (image F) (image G)
+  refine image_min _ _ ⟨distCase (image.lift F ≫ jL) (image.lift G ≫ jR), ?_⟩
+  -- the factoring `distCase(...) ≫ union.arr = distCase F G` by `distCase_uniq`.
+  refine distCase_uniq F G _ ?_ ?_
+  · rw [← Cat.assoc, distCase_inl, Cat.assoc, hjL, image.lift_fac]
+  · rw [← Cat.assoc, distCase_inr, Cat.assoc, hjR, image.lift_fac]
+
 end ActImageCalculus
 
 /-- **§1.98(13) action PEANO PROPERTY in a BOOLEAN topos (the §1.988 free content).**
@@ -2478,26 +2595,8 @@ theorem free_peano_property_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos
   obtain ⟨uB, huB'⟩ := huB
   have hBallows : Allows B α.unit := ⟨uB, huB'⟩
   have hBstab : (InverseImage (snd (A := A) (B := α.obj)) B).le (InverseImage α.act B) := by
-    rw [invImage_le_iff_restrict]
     obtain ⟨actB, hactB'⟩ := hactB
-    -- re-pair `(snd#B).arr` through `prod A B.dom`:  w ≫ prodMap.. = (snd#B).arr.
-    let pb := HasPullbacks.has (snd (A := A) (B := α.obj)) B.arr
-    let w : (InverseImage (snd (A := A) (B := α.obj)) B).dom ⟶ prod A B.dom :=
-      pair ((InverseImage (snd (A := A) (B := α.obj)) B).arr ≫ fst) pb.cone.π₂
-    have hw : w ≫ prodMap A B.dom α.obj B.arr
-        = (InverseImage (snd (A := A) (B := α.obj)) B).arr := by
-      -- both legs (≫fst, ≫snd) agree with `(snd#B).arr`, then `pair`-uniqueness.
-      have hfstleg : (w ≫ prodMap A B.dom α.obj B.arr) ≫ fst
-          = (InverseImage (snd (A := A) (B := α.obj)) B).arr ≫ fst := by
-        rw [Cat.assoc, prodMap_fst]; show (pair _ pb.cone.π₂ ≫ fst) = _; rw [fst_pair]
-      have hsndleg : (w ≫ prodMap A B.dom α.obj B.arr) ≫ snd
-          = (InverseImage (snd (A := A) (B := α.obj)) B).arr ≫ snd := by
-        rw [Cat.assoc, prodMap_snd, ← Cat.assoc]
-        show (pair _ pb.cone.π₂ ≫ snd) ≫ B.arr = _
-        rw [snd_pair]; exact pb.cone.w.symm
-      rw [pair_uniq _ _ (w ≫ prodMap A B.dom α.obj B.arr) hfstleg hsndleg,
-          ← pair_uniq _ _ ((InverseImage (snd (A := A) (B := α.obj)) B).arr) rfl rfl]
-    exact ⟨w ≫ actB, by rw [Cat.assoc, hactB', ← Cat.assoc, hw]⟩
+    exact actStable_of_restrict α.act B actB hactB'
   -- REDUCTION:  `A'` entire ⟹ `B` entire.
   suffices hA'entire : A'.IsEntire by
     obtain ⟨ai, _hai1, hai2⟩ := hA'entire
