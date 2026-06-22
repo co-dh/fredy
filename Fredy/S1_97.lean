@@ -4026,6 +4026,51 @@ theorem nil_cons_disjoint {X : 𝒞} (t : X ⟶ one) (q : X ⟶ prod A (wordObj 
   intro Y a b
   exact coprod_inj_disjoint_elt (term X) (q ≫ fst) hcollide a b
 
+/-- **CONS INJECTIVITY.**  `consMor : A × W ⟶ W` is monic: `cons(a,w) = cons(a',w')` forces
+    `(a,w) = (a',w')`.  Proof: read at index `0` recovers the head `a` (`consBody_zero`, `inr`
+    monic); read at every `succ m` recovers the tail word `w` (`consBody_succ` exposes `w` at `m`,
+    so the uncurried generic-index reads of `w, w'` agree and `prodMap_eval_inj` gives `w = w'`).
+    This is the `cons`-step injectivity used to recover the predecessor in single-valuedness. -/
+theorem consMor_mono : Mono (consMor A) := by
+  intro Z g h hgh
+  -- head leg: `g ≫ fst = h ≫ fst` from index-0 read.  Transport the `inr`-collision to the
+  -- canonical `coprodInr` (monic) via `φ = case coprodInl coprodInr`.
+  have hhead : g ≫ fst = h ≫ fst := by
+    let φ : letterObj A ⟶ coprodObj one A :=
+      HasBinaryCoproducts.case (coprodInl one A) (coprodInr one A)
+    have hφr : (inr : A ⟶ letterObj A) ≫ φ = coprodInr one A := HasBinaryCoproducts.case_inr _ _
+    have hr : ∀ k : Z ⟶ prod A (wordObj A),
+        pair (term Z ≫ hN.zero) (k ≫ consMor A) ≫ eval_exp hN.nno (letterObj A)
+          = k ≫ fst ≫ (inr : A ⟶ letterObj A) := fun k => by
+      rw [consMor_read A (term Z ≫ hN.zero) k, consBody_zero A (term Z) k]
+    have hinr : (g ≫ fst) ≫ (inr : A ⟶ letterObj A) = (h ≫ fst) ≫ (inr : A ⟶ letterObj A) := by
+      rw [Cat.assoc, Cat.assoc, ← hr g, ← hr h, hgh]
+    apply (coprodInr_monic one A)
+    rw [← hφr, ← Cat.assoc, ← Cat.assoc, hinr, Cat.assoc, Cat.assoc]
+  -- tail leg: `g ≫ snd = h ≫ snd` from succ-index reads (`prodMap_eval_inj`).
+  have htail : g ≫ snd = h ≫ snd := by
+    apply prodMap_eval_inj (A := hN.nno) (B := letterObj A)
+    -- generic-index β-law: read of `k≫snd` at `fst` = read of `k≫consMor` at `succ∘fst`.
+    have hgen : ∀ k : Z ⟶ prod A (wordObj A),
+        prodMap hN.nno Z (wordObj A) (k ≫ snd) ≫ eval_exp hN.nno (letterObj A)
+          = pair (fst (A := hN.nno) (B := Z) ≫ hN.succ) (snd ≫ k ≫ consMor A)
+              ≫ eval_exp hN.nno (letterObj A) := by
+      intro k
+      have hpm : prodMap hN.nno Z (wordObj A) (k ≫ snd)
+          = pair (fst (A := hN.nno) (B := Z)) (snd ≫ k ≫ snd) := by
+        show pair fst (snd ≫ k ≫ snd) = _; rfl
+      rw [hpm]
+      have h1 := consMor_read A (fst (A := hN.nno) (B := Z) ≫ hN.succ) (snd ≫ k)
+      have h2 := consBody_succ A (fst (A := hN.nno) (B := Z)) (snd ≫ k)
+      -- h1 : pair (fst≫succ) ((snd≫k)≫consMor) ≫ eval = pair (fst≫succ) (snd≫k) ≫ consBody
+      -- h2 : pair (fst≫succ) (snd≫k) ≫ consBody = pair fst ((snd≫k)≫snd) ≫ eval
+      rw [Cat.assoc] at h1
+      rw [h1, h2, ← Cat.assoc]
+    rw [hgen g, hgen h, hgh]
+  -- combine into `g = h` via `pair_uniq`.
+  rw [show g = pair (g ≫ fst) (g ≫ snd) from (pair_uniq _ _ _ rfl rfl),
+      show h = pair (h ≫ fst) (h ≫ snd) from (pair_uniq _ _ _ rfl rfl), hhead, htail]
+
 /-! #### `fold` existence — the functional graph over `prod W B`.
 
   For an algebra `(B, e, c)`, the graph `G ⊆ prod W B` is the least subobject closed under the
