@@ -3136,9 +3136,468 @@ theorem free_recursor_exists_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topo
     -- map).  The kernel-pair / off-diagonal-complement assembly is verbatim the NNO `hpmono`
     -- EXCEPT the keystone reachability now tracks the A-parameter: a preimage of `S(a,−)` is an
     -- `actG`-image of a preimage, where the `inr`-point of `1 + prod A G.dom` carries the A-leg.
+    -- KEYSTONE (§1.989 graph reachability, A-parametrised): the structure map
+    -- `cg := [g₀, actG] : 1 + prod A G.dom → G.dom` of the graph algebra `G` is a COVER.
+    -- `R' := image (cg ≫ G.arr) ⊆ prod α.obj β.obj` is `(unitPt, Sgraph, snd)`-act-closed
+    -- (allows `unitPt` via `inl`; act-stable via `prodMap.. cg ≫ actG = (prodMap.. cg ≫ inr) ≫ cg`,
+    -- landing back in `image (cg ≫ G.arr)`), so `G ≤ R'` (`actLeast_le`) and `R' ≤ G` (`image_min`),
+    -- forcing `image cg` entire.
+    let cg : HasBinaryCoproducts.coprod (one : 𝒞) (prod A G.dom) ⟶ G.dom :=
+      HasBinaryCoproducts.case g₀ actG
+    have hcg : Cover cg := by
+      let cgG : HasBinaryCoproducts.coprod (one : 𝒞) (prod A G.dom) ⟶ prod α.obj β.obj :=
+        cg ≫ G.arr
+      let R' : Subobject 𝒞 (prod α.obj β.obj) := image cgG
+      -- `R'` is `(unitPt, Sgraph, snd)`-act-closed.
+      have hR'G : R'.le G := image_min cgG G ⟨cg, rfl⟩
+      have hGR' : G.le R' := by
+        refine actLeast_le unitPt Sgraph (snd (A := A) (B := prod α.obj β.obj)) R' ?_ ?_
+        · -- allows `unitPt`: `(inl ≫ image.lift cgG) ≫ R'.arr = inl ≫ cg ≫ G.arr = g₀ ≫ G.arr = unitPt`.
+          refine ⟨HasBinaryCoproducts.inl ≫ image.lift cgG, ?_⟩
+          show (HasBinaryCoproducts.inl ≫ image.lift cgG) ≫ (image cgG).arr = unitPt
+          rw [Cat.assoc, image.lift_fac]
+          show HasBinaryCoproducts.inl ≫ cg ≫ G.arr = unitPt
+          rw [← Cat.assoc, HasBinaryCoproducts.case_inl, hg₀]
+        · -- act-stable: `(snd # R') ≤ (Sgraph # R')` via a restriction `actR' : prod A R'.dom → R'.dom`.
+          -- `act(R') ≤ act-image ≤ R'`: build `actR'` from the descent below, then `actStable_of_restrict`.
+          have himg_le : (image (prodMap A R'.dom (prod α.obj β.obj) R'.arr ≫ Sgraph)).le R' := by
+            -- cover `prodMap.. (image.lift cgG)`; precompose to get `prodMap.. cgG ≫ Sgraph`.
+            have hcov' : Cover (prodMap A (HasBinaryCoproducts.coprod (one : 𝒞) (prod A G.dom))
+                R'.dom (image.lift cgG)) := prodMap_cover A (image_lift_cover cgG)
+            have hcomp : prodMap A (HasBinaryCoproducts.coprod (one : 𝒞) (prod A G.dom)) R'.dom
+                  (image.lift cgG) ≫ (prodMap A R'.dom (prod α.obj β.obj) R'.arr ≫ Sgraph)
+                = prodMap A (HasBinaryCoproducts.coprod (one : 𝒞) (prod A G.dom))
+                    (prod α.obj β.obj) cgG ≫ Sgraph := by
+              rw [← Cat.assoc, ← prodMap_comp, image.lift_fac]
+            have hle1 : (image (prodMap A R'.dom (prod α.obj β.obj) R'.arr ≫ Sgraph)).le
+                (image (prodMap A (HasBinaryCoproducts.coprod (one : 𝒞) (prod A G.dom))
+                    (prod α.obj β.obj) cgG ≫ Sgraph)) := by
+              have := (image_cover_comp (prodMap A (HasBinaryCoproducts.coprod (one : 𝒞)
+                (prod A G.dom)) R'.dom (image.lift cgG))
+                (prodMap A R'.dom (prod α.obj β.obj) R'.arr ≫ Sgraph) hcov').2
+              rwa [hcomp] at this
+            -- `prodMap.. cgG ≫ Sgraph = (prodMap.. cg ≫ inr) ≫ (cg ≫ G.arr)`, so ≤ R'.
+            have hfact : prodMap A (HasBinaryCoproducts.coprod (one : 𝒞) (prod A G.dom))
+                  (prod α.obj β.obj) cgG ≫ Sgraph
+                = (prodMap A (HasBinaryCoproducts.coprod (one : 𝒞) (prod A G.dom)) G.dom cg
+                    ≫ HasBinaryCoproducts.inr) ≫ cgG := by
+              show prodMap A _ (prod α.obj β.obj) (cg ≫ G.arr) ≫ Sgraph
+                = (prodMap A _ G.dom cg ≫ HasBinaryCoproducts.inr) ≫ (cg ≫ G.arr)
+              calc prodMap A _ (prod α.obj β.obj) (cg ≫ G.arr) ≫ Sgraph
+                  = (prodMap A _ G.dom cg ≫ prodMap A G.dom (prod α.obj β.obj) G.arr) ≫ Sgraph := by
+                    rw [prodMap_comp]
+                _ = prodMap A _ G.dom cg
+                      ≫ (prodMap A G.dom (prod α.obj β.obj) G.arr ≫ Sgraph) := Cat.assoc _ _ _
+                _ = prodMap A _ G.dom cg ≫ (actG ≫ G.arr) := by rw [hactG]
+                _ = prodMap A _ G.dom cg ≫ ((HasBinaryCoproducts.inr ≫ cg) ≫ G.arr) := by
+                    rw [HasBinaryCoproducts.case_inr]
+                _ = (prodMap A _ G.dom cg ≫ HasBinaryCoproducts.inr) ≫ (cg ≫ G.arr) := by
+                    rw [Cat.assoc, Cat.assoc]
+            have hle2 : (image (prodMap A (HasBinaryCoproducts.coprod (one : 𝒞) (prod A G.dom))
+                (prod α.obj β.obj) cgG ≫ Sgraph)).le R' :=
+              image_min _ R' ⟨(prodMap A (HasBinaryCoproducts.coprod (one : 𝒞) (prod A G.dom)) G.dom cg
+                  ≫ HasBinaryCoproducts.inr) ≫ image.lift cgG, by
+                rw [Cat.assoc, image.lift_fac, hfact]⟩
+            exact subLe_trans' hle1 hle2
+          obtain ⟨k, hk⟩ := himg_le
+          exact actStable_of_restrict Sgraph R'
+            (image.lift (prodMap A R'.dom (prod α.obj β.obj) R'.arr ≫ Sgraph) ≫ k)
+            (by rw [Cat.assoc, hk, image.lift_fac])
+      -- mutual `≤` ⟹ `cg` cover (cover ∘ iso through the image factor).
+      obtain ⟨c, hc⟩ := hR'G
+      have hciso : IsIso c := by
+        obtain ⟨d, hd⟩ := hGR'
+        refine ⟨d, ?_, ?_⟩
+        · exact R'.monic (c ≫ d) (Cat.id _) (by rw [Cat.assoc, hd, hc, Cat.id_comp])
+        · exact G.monic (d ≫ c) (Cat.id _) (by rw [Cat.assoc, hc, hd, Cat.id_comp])
+      have hcgeq : image.lift cgG ≫ c = cg :=
+        G.monic _ _ (by rw [Cat.assoc, hc, image.lift_fac])
+      have hcc : Cover (image.lift cgG ≫ c) :=
+        cover_comp (image_lift_cover cgG) (iso_cover c hciso)
+      rwa [hcgeq] at hcc
     -- RESIDUAL (the SINGLE remaining hole of §1.98(13)): this `prod A G.dom`-keystone single-valuedness.
     have hpmono : Mono p := by
-      sorry
+      -- §1.989 single-valuedness (Freyd p.186), A-parametrised.  `K := kernelPair p`, diagonal
+      -- `Δ := image kp_diag`; boolean complement `K'` of `Δ`; `A₁ := image(K'.arr ≫ kp₁ ≫ p)` its
+      -- α.obj-image; `A₂ := complement`.  `A₂` is `(unit,act)`-closed (free fiber-singleton via the
+      -- keystone cover `cg`), so ENTIRE by `free_peano_of_bicartesian` — forcing `A₁ ≤ ⊥`, `K' ≤ ⊥`,
+      -- `Δ` entire, `kp_diag` cover; split mono ⟹ iso; `monic_iff_kp_diag_iso` gives `Mono p`.
+      rw [monic_iff_kp_diag_iso]
+      let Δ : Subobject 𝒞 (kernelPair p) := image (kp_diag (f := p))
+      obtain ⟨K', hΔdisj, hΔunion⟩ := hbool Δ
+      let q : K'.dom ⟶ α.obj := K'.arr ≫ kp₁ (f := p) ≫ p
+      let A₁ : Subobject 𝒞 α.obj := image q
+      obtain ⟨A₂, hA₁disj, hA₁union⟩ := hbool A₁
+      have ha_mono : Mono α.unit := mono_from_one α.unit
+      let aSub : Subobject 𝒞 α.obj := Subobject.mk one α.unit ha_mono
+      -- `[unit, act] : 1 + prod A α.obj → α.obj` is iso, hence monic (non-destructive copy of `hiso`).
+      have hcase_mono : Mono (HasBinaryCoproducts.case α.unit α.act
+          (A := (one : 𝒞)) (B := prod A α.obj) (X := α.obj)) := by
+        obtain ⟨caseInv, hcaseInv, _⟩ := id hiso
+        exact mono_of_retraction _ caseInv hcaseInv
+      -- A point of `K'` (the OFF-diagonal complement) whose two legs AGREE lies on `Δ`, absurd.
+      have kpPointAbsurd : ∀ k : (one : 𝒞) ⟶ K'.dom,
+          k ≫ K'.arr ≫ kp₁ (f := p) = k ≫ K'.arr ≫ kp₂ (f := p) → False := by
+        intro k hlegs
+        let v : (one : 𝒞) ⟶ G.dom := k ≫ K'.arr ≫ kp₁ (f := p)
+        have hkdiag : k ≫ K'.arr = v ≫ kp_diag (f := p) := by
+          have e₁ := kp_lift_uniq (f := p) v v rfl (k ≫ K'.arr)
+            (by rw [Cat.assoc])
+            (by rw [Cat.assoc]; exact hlegs.symm)
+          have e₂ := kp_lift_uniq (f := p) v v rfl (v ≫ kp_diag (f := p))
+            (by rw [Cat.assoc, kp_diag_p₁, Cat.comp_id])
+            (by rw [Cat.assoc, kp_diag_p₂, Cat.comp_id])
+          rw [e₁, e₂]
+        let dΔ : (one : 𝒞) ⟶ Δ.dom := v ≫ image.lift (kp_diag (f := p))
+        have hdΔ : dΔ ≫ Δ.arr = k ≫ K'.arr := by
+          show (v ≫ image.lift (kp_diag (f := p))) ≫ (image (kp_diag (f := p))).arr = k ≫ K'.arr
+          rw [Cat.assoc, image.lift_fac, hkdiag]
+        let pt : Subobject 𝒞 (kernelPair p) :=
+          Subobject.mk one (k ≫ K'.arr) (mono_from_one _)
+        have hptΔ : pt.le Δ := ⟨dΔ, hdΔ⟩
+        have hptK' : pt.le K' := ⟨k, rfl⟩
+        have hptbot : pt.le (PreLogos.bottom (kernelPair p)) :=
+          subLe_trans' (Subobject.le_inter hptΔ hptK') hΔdisj
+        obtain ⟨m, _⟩ := hptbot
+        exact point_bottom_absurd htv m
+      -- FREE FIBER-SINGLETON: the `p`-fiber over `unit` is the singleton `{g₀}`.  `1` projective,
+      -- so a point `z` lifts along the keystone cover `cg` to `w`; `coprod_point_split` makes `w`
+      -- an `inl`-point (⟹ `z = g₀`) or an `inr`-point `w' : 1 → prod A G.dom` (⟹ `z = w' ≫ actG`,
+      -- so `z ≫ p = (prodMap.. w' ≫ act-leg) ∈ image act`, contradicting `unit`-disjointness).
+      have hfibSingle : ∀ z : (one : 𝒞) ⟶ G.dom, z ≫ p = α.unit → z = g₀ := by
+        intro z hz
+        obtain ⟨w, hw⟩ := pts_covers_of_capital hcap hcg z
+        rcases coprod_point_split hcap htv w with ⟨u, hu⟩ | ⟨w', hw'⟩
+        · -- `inl`: `z = u ≫ inl ≫ cg = u ≫ g₀ = g₀`.
+          have hinlcg : HasBinaryCoproducts.inl (A := (one : 𝒞)) (B := prod A G.dom) ≫ cg = g₀ :=
+            HasBinaryCoproducts.case_inl _ _
+          calc z = w ≫ cg := hw.symm
+            _ = (u ≫ HasBinaryCoproducts.inl) ≫ cg := by rw [hu]
+            _ = u ≫ (HasBinaryCoproducts.inl ≫ cg) := Cat.assoc _ _ _
+            _ = u ≫ g₀ := by rw [hinlcg]
+            _ = g₀ := by rw [term_uniq u (Cat.id one), Cat.id_comp]
+        · -- `inr`: `z = w' ≫ actG`; `unit = z≫p = (prodMap A 1 G.dom w' ≫ (prodMap.. p ≫ act))≫fst`
+          -- collapses to `unit = (w'≫p-leg) ≫ act`, an `inr`-point of `[unit,act]` = `inl`-point — absurd.
+          exfalso
+          have hinrcg : HasBinaryCoproducts.inr (A := (one : 𝒞)) (B := prod A G.dom) ≫ cg = actG :=
+            HasBinaryCoproducts.case_inr _ _
+          have hzact : z = w' ≫ actG := by
+            calc z = w ≫ cg := hw.symm
+              _ = (w' ≫ HasBinaryCoproducts.inr) ≫ cg := by rw [hw']
+              _ = w' ≫ (HasBinaryCoproducts.inr ≫ cg) := Cat.assoc _ _ _
+              _ = w' ≫ actG := by rw [hinrcg]
+          -- `unit = z≫p = w'≫actG≫p = w'≫(prodMap.. p ≫ act)` (using `hpt`), a `t`-image of `prod A G.dom`.
+          -- write the source point `s := prodMap A one G.dom w' ≫ pair fst snd`-form; pin its `act`-value.
+          have hat : α.unit = (w' ≫ prodMap A G.dom α.obj p) ≫ α.act := by
+            calc α.unit = z ≫ p := hz.symm
+              _ = (w' ≫ actG) ≫ p := by rw [hzact]
+              _ = w' ≫ (actG ≫ p) := Cat.assoc _ _ _
+              _ = w' ≫ (prodMap A G.dom α.obj p ≫ α.act) := by rw [← hpt]
+              _ = (w' ≫ prodMap A G.dom α.obj p) ≫ α.act := (Cat.assoc _ _ _).symm
+          -- `unit` (`inl`-point) = `act`-value (`inr`-point): collapse injections of the iso `[unit,act]`.
+          refine coprod_inj_disjoint_pt htv (Cat.id one) (w' ≫ prodMap A G.dom α.obj p) ?_
+          apply hcase_mono
+          rw [Cat.assoc, Cat.assoc, HasBinaryCoproducts.case_inl,
+              HasBinaryCoproducts.case_inr, Cat.id_comp, ← hat]
+      -- THE FIBER FACT: `A₁ ∩ {unit} ≤ ⊥`.  A point gives an off-diagonal kernel-pair point over
+      -- `unit`, whose two legs are both `g₀` (`hfibSingle`), hence equal — `kpPointAbsurd`.
+      have hfiber : (Subobject.inter A₁ aSub).le (PreLogos.bottom α.obj) := by
+        refine noPoint_le_bottom hcap htv _ ?_
+        rintro _ ⟨y, _⟩
+        obtain ⟨kL, hkL⟩ := Subobject.inter_le_left A₁ aSub
+        obtain ⟨kR, hkR⟩ := Subobject.inter_le_right A₁ aSub
+        have hval : (y ≫ kL) ≫ A₁.arr = α.unit := by
+          have heq : (y ≫ kR) ≫ aSub.arr = (y ≫ kL) ≫ A₁.arr := by
+            rw [Cat.assoc, Cat.assoc, hkR, hkL]
+          rw [← heq, term_uniq (y ≫ kR) (Cat.id one), Cat.id_comp]
+        obtain ⟨k₀, hk₀⟩ := pts_covers_of_capital hcap (image_lift_cover q) (y ≫ kL)
+        have hk₀q : k₀ ≫ q = α.unit := by
+          have : k₀ ≫ q = (y ≫ kL) ≫ A₁.arr := by
+            show k₀ ≫ K'.arr ≫ kp₁ (f := p) ≫ p = (y ≫ kL) ≫ (image q).arr
+            rw [← hk₀, Cat.assoc, image.lift_fac]
+          rw [this, hval]
+        apply kpPointAbsurd k₀
+        have hg₁ : (k₀ ≫ K'.arr ≫ kp₁ (f := p)) ≫ p = α.unit := by
+          rw [Cat.assoc, Cat.assoc]; exact hk₀q
+        have hg₂ : (k₀ ≫ K'.arr ≫ kp₂ (f := p)) ≫ p = α.unit := by
+          calc (k₀ ≫ K'.arr ≫ kp₂ (f := p)) ≫ p
+              = k₀ ≫ K'.arr ≫ (kp₂ (f := p) ≫ p) := by rw [Cat.assoc, Cat.assoc]
+            _ = k₀ ≫ K'.arr ≫ (kp₁ (f := p) ≫ p) := by rw [← kp_sq]
+            _ = (k₀ ≫ K'.arr ≫ kp₁ (f := p)) ≫ p := by rw [Cat.assoc, Cat.assoc]
+            _ = α.unit := hg₁
+        rw [hfibSingle _ hg₁, hfibSingle _ hg₂]
+      -- `A₂` is `(unit,act)`-closed.  ALLOWS `unit` from `complement_le_other'`.
+      have hA₂a : Allows A₂ α.unit := by
+        obtain ⟨g, hg⟩ := complement_le_other' A₁ A₂ aSub hfiber hA₁union
+        exact ⟨g, by simpa using hg⟩
+      -- `act`-STABLE: `act(A₂) ≤ A₂` via `complement_le_other'` from `A₁ ∩ act(A₂) ≤ ⊥`.
+      have hA₂t : ∃ tA₂ : prod A A₂.dom ⟶ A₂.dom,
+          tA₂ ≫ A₂.arr = prodMap A A₂.dom α.obj A₂.arr ≫ α.act := by
+        -- `act`-shifted free fiber-singleton: fiber over `act(a, b≫A₂.arr)` of a single-valued
+        -- `b ∈ A₂` is again a singleton (keystone reachability propagated through `actG`).
+        -- `act` is MONIC (`[unit,act]` iso) — used to descend the `inr` case.
+        have ht_mono : Mono α.act := by
+          -- `inr` (hypothesis coproduct) is monic via the canonical-coproduct comparison `φ`
+          -- (`coprodInr_monic`); then `act = inr ≫ case`, `case` iso.
+          have hinr_mono : Mono (HasBinaryCoproducts.inr (A := (one : 𝒞)) (B := prod A α.obj)) := by
+            intro W g h hgh
+            let φ : HasBinaryCoproducts.coprod (one : 𝒞) (prod A α.obj)
+                ⟶ coprodObj (one : 𝒞) (prod A α.obj) :=
+              HasBinaryCoproducts.case (coprodInl (one : 𝒞) (prod A α.obj))
+                (coprodInr (one : 𝒞) (prod A α.obj))
+            have hr : HasBinaryCoproducts.inr ≫ φ = coprodInr (one : 𝒞) (prod A α.obj) :=
+              HasBinaryCoproducts.case_inr _ _
+            apply coprodInr_monic (one : 𝒞) (prod A α.obj)
+            rw [← hr, ← Cat.assoc, ← Cat.assoc, hgh]
+          have hcr : HasBinaryCoproducts.inr (A := (one : 𝒞)) (B := prod A α.obj)
+              ≫ HasBinaryCoproducts.case α.unit α.act = α.act := HasBinaryCoproducts.case_inr _ _
+          obtain ⟨ci, hci1, _⟩ := id hiso
+          intro W g h hgh
+          apply hinr_mono
+          have e : (g ≫ HasBinaryCoproducts.inr) ≫ HasBinaryCoproducts.case α.unit α.act
+              = (h ≫ HasBinaryCoproducts.inr) ≫ HasBinaryCoproducts.case α.unit α.act := by
+            rw [Cat.assoc, Cat.assoc, hcr, hgh]
+          have := congrArg (· ≫ ci) e
+          simpa only [Cat.assoc, hci1, Cat.comp_id] using this
+        -- the `act`-shifted source point `c b := prodMap A α.obj... b ≫ act` for `b : 1 → prod A A₂.dom`.
+        -- single-valuedness of `p` over any value `cv : 1 → α.obj` that is a `t`-image of a `A₂`-value.
+        have hfibSingleT : ∀ (b : (one : 𝒞) ⟶ prod A A₂.dom)
+            (g₁ g₂ : (one : 𝒞) ⟶ G.dom),
+            g₁ ≫ p = b ≫ (prodMap A A₂.dom α.obj A₂.arr ≫ α.act) →
+            g₂ ≫ p = b ≫ (prodMap A A₂.dom α.obj A₂.arr ≫ α.act) → g₁ = g₂ := by
+          intro b g₁ g₂ hg₁ hg₂
+          -- the common value `cv := b ≫ (prodMap.. A₂.arr ≫ act)`.
+          let cv : (one : 𝒞) ⟶ α.obj := b ≫ (prodMap A A₂.dom α.obj A₂.arr ≫ α.act)
+          -- reduce each preimage `g` of `cv` to an `actG`-image of a preimage of the SOURCE `prod A G`-pt.
+          have reduce : ∀ g : (one : 𝒞) ⟶ G.dom, g ≫ p = cv →
+              ∃ w' : (one : 𝒞) ⟶ prod A G.dom, g = w' ≫ actG ∧
+                (w' ≫ prodMap A G.dom α.obj p) ≫ α.act = cv := by
+            intro g hg
+            obtain ⟨wn, hwn⟩ := pts_covers_of_capital hcap hcg g
+            rcases coprod_point_split hcap htv wn with ⟨u, hu⟩ | ⟨w', hw'⟩
+            · -- `inl`: `g = g₀`, `cv = g≫p = unit` — `unit` a `t`-image, absurd by `[unit,act]`-disjointness.
+              exfalso
+              have hinlcg : HasBinaryCoproducts.inl (A := (one : 𝒞)) (B := prod A G.dom) ≫ cg = g₀ :=
+                HasBinaryCoproducts.case_inl _ _
+              have hgg₀ : g = g₀ := by
+                calc g = wn ≫ cg := hwn.symm
+                  _ = (u ≫ HasBinaryCoproducts.inl) ≫ cg := by rw [hu]
+                  _ = u ≫ (HasBinaryCoproducts.inl ≫ cg) := Cat.assoc _ _ _
+                  _ = u ≫ g₀ := by rw [hinlcg]
+                  _ = g₀ := by rw [term_uniq u (Cat.id one), Cat.id_comp]
+              have hg₀p : g₀ ≫ p = α.unit := by
+                show g₀ ≫ G.arr ≫ fst = α.unit
+                rw [← Cat.assoc, hg₀]; exact fst_pair _ _
+              have hac : α.unit = (b ≫ prodMap A A₂.dom α.obj A₂.arr) ≫ α.act := by
+                rw [Cat.assoc]
+                show α.unit = b ≫ (prodMap A A₂.dom α.obj A₂.arr ≫ α.act)
+                rw [← hg₀p, ← hgg₀]; exact hg
+              refine coprod_inj_disjoint_pt htv (Cat.id one) (b ≫ prodMap A A₂.dom α.obj A₂.arr) ?_
+              apply hcase_mono
+              rw [Cat.assoc, Cat.assoc, HasBinaryCoproducts.case_inl,
+                  HasBinaryCoproducts.case_inr, Cat.id_comp, ← hac]
+            · -- `inr`: `g = w' ≫ actG`; `(w'≫prodMap.. p)≫act = g≫p = cv`, descend.
+              have hinrcg : HasBinaryCoproducts.inr (A := (one : 𝒞)) (B := prod A G.dom) ≫ cg = actG :=
+                HasBinaryCoproducts.case_inr _ _
+              have hgtG : g = w' ≫ actG := by
+                calc g = wn ≫ cg := hwn.symm
+                  _ = (w' ≫ HasBinaryCoproducts.inr) ≫ cg := by rw [hw']
+                  _ = w' ≫ (HasBinaryCoproducts.inr ≫ cg) := Cat.assoc _ _ _
+                  _ = w' ≫ actG := by rw [hinrcg]
+              refine ⟨w', hgtG, ?_⟩
+              calc (w' ≫ prodMap A G.dom α.obj p) ≫ α.act
+                  = w' ≫ (prodMap A G.dom α.obj p ≫ α.act) := Cat.assoc _ _ _
+                _ = w' ≫ (actG ≫ p) := by rw [hpt]
+                _ = (w' ≫ actG) ≫ p := (Cat.assoc _ _ _).symm
+                _ = g ≫ p := by rw [← hgtG]
+                _ = cv := hg
+          have hg₁cv : g₁ ≫ p = cv := hg₁
+          have hg₂cv : g₂ ≫ p = cv := hg₂
+          obtain ⟨w₁, hw₁eq, hw₁p⟩ := reduce g₁ hg₁cv
+          obtain ⟨w₂, hw₂eq, hw₂p⟩ := reduce g₂ hg₂cv
+          -- `(w₁≫prodMap.. p)≫act = (w₂≫prodMap.. p)≫act = cv`; `act` monic gives the two
+          -- `prod A G.dom`-source points equal AFTER the `p`-leg, hence `w₁≫prodMap.. p = w₂≫prodMap.. p`.
+          have hsrc : w₁ ≫ prodMap A G.dom α.obj p = w₂ ≫ prodMap A G.dom α.obj p :=
+            ht_mono _ _ (by rw [hw₁p, hw₂p])
+          -- `w₁ ≫ p = w₂ ≫ p` (the second `prodMap` leg is `p`): off-diagonal kernel-pair point ⟹ K'.
+          have hw₁₂p : w₁ ≫ (prodMap A G.dom α.obj p ≫ snd) = w₂ ≫ (prodMap A G.dom α.obj p ≫ snd) := by
+            rw [← Cat.assoc, ← Cat.assoc, hsrc]
+          have hlegs : (w₁ ≫ snd (A := A) (B := G.dom)) ≫ p
+              = (w₂ ≫ snd (A := A) (B := G.dom)) ≫ p := by
+            have hpm : prodMap A G.dom α.obj p ≫ snd = snd ≫ p := prodMap_snd A G.dom α.obj p
+            rw [hpm] at hw₁₂p
+            rw [Cat.assoc, Cat.assoc]; exact hw₁₂p
+          -- single-valuedness over the `A₂`-value forces `w₁≫snd = w₂≫snd`.
+          have hsnd_eq : w₁ ≫ snd (A := A) (B := G.dom) = w₂ ≫ snd (A := A) (B := G.dom) := by
+            classical
+            by_cases hne : w₁ ≫ snd (A := A) (B := G.dom) = w₂ ≫ snd (A := A) (B := G.dom)
+            · exact hne
+            exfalso
+            let z₁ : (one : 𝒞) ⟶ G.dom := w₁ ≫ snd (A := A) (B := G.dom)
+            let z₂ : (one : 𝒞) ⟶ G.dom := w₂ ≫ snd (A := A) (B := G.dom)
+            let κ : (one : 𝒞) ⟶ kernelPair p :=
+              (HasPullbacks.has p p).lift ⟨one, z₁, z₂, hlegs⟩
+            have hκ₁ : κ ≫ kp₁ (f := p) = z₁ := kp_lift_p₁ z₁ z₂ hlegs
+            have hκ₂ : κ ≫ kp₂ (f := p) = z₂ := kp_lift_p₂ z₁ z₂ hlegs
+            have hκent : (Subobject.mk one κ (mono_from_one _)).le
+                (Subobject.entire (kernelPair p)) := ⟨κ, Cat.comp_id _⟩
+            have hκtop := subLe_trans' hκent hΔunion
+            obtain ⟨e, he⟩ := hκtop
+            rcases union_point_split hcap htv Δ K' e with ⟨d, hd⟩ | ⟨k, hk⟩
+            · -- `κ ∈ Δ`: legs agree, so `z₁ = z₂` — contradicts `hne`.
+              apply hne
+              have hdΔ : d ≫ Δ.arr = κ := by rw [hd]; exact he
+              have hΔlegs : Δ.arr ≫ kp₁ (f := p) = Δ.arr ≫ kp₂ (f := p) := by
+                refine cover_epi (image_lift_cover (kp_diag (f := p))) ?_
+                calc image.lift (kp_diag (f := p)) ≫ (Δ.arr ≫ kp₁ (f := p))
+                    = (image.lift (kp_diag (f := p)) ≫ Δ.arr) ≫ kp₁ (f := p) := (Cat.assoc _ _ _).symm
+                  _ = kp_diag (f := p) ≫ kp₁ (f := p) := by rw [image.lift_fac]
+                  _ = kp_diag (f := p) ≫ kp₂ (f := p) := by rw [kp_diag_p₁, kp_diag_p₂]
+                  _ = (image.lift (kp_diag (f := p)) ≫ Δ.arr) ≫ kp₂ (f := p) := by rw [image.lift_fac]
+                  _ = image.lift (kp_diag (f := p)) ≫ (Δ.arr ≫ kp₂ (f := p)) := Cat.assoc _ _ _
+              show z₁ = z₂
+              calc z₁ = κ ≫ kp₁ (f := p) := hκ₁.symm
+                _ = (d ≫ Δ.arr) ≫ kp₁ (f := p) := by rw [hdΔ]
+                _ = d ≫ (Δ.arr ≫ kp₁ (f := p)) := Cat.assoc _ _ _
+                _ = d ≫ (Δ.arr ≫ kp₂ (f := p)) := by rw [hΔlegs]
+                _ = (d ≫ Δ.arr) ≫ kp₂ (f := p) := (Cat.assoc _ _ _).symm
+                _ = κ ≫ kp₂ (f := p) := by rw [hdΔ]
+                _ = z₂ := hκ₂
+            · -- `κ ∈ K'`: the common `p`-value `z₁≫p` factors through `A₁`; but it also `= cv`'s source
+              -- value `(b's A₂)`, so `∈ A₁ ∩ A₂ ≤ ⊥` — absurd.  `z₁ ≫ p = (w₁≫snd)≫p = w₁≫(snd≫p)`.
+              exfalso
+              have hκK' : k ≫ K'.arr = κ := by rw [hk]; exact he
+              -- the A₂-value `bv := b ≫ (prodMap A A₂.dom α.obj A₂.arr)` (the `act`-source's α.obj-leg).
+              let bv : (one : 𝒞) ⟶ α.obj := b ≫ (prodMap A A₂.dom α.obj A₂.arr ≫ snd)
+              have hbv_A₂ : bv = (b ≫ snd (A := A) (B := A₂.dom)) ≫ A₂.arr := by
+                show b ≫ (prodMap A A₂.dom α.obj A₂.arr ≫ snd) = (b ≫ snd) ≫ A₂.arr
+                rw [prodMap_snd, ← Cat.assoc]
+              -- `z₁ ≫ p = bv`: `z₁≫p = (w₁≫snd)≫p = w₁≫(snd≫p) = w₁≫(prodMap.. p ≫ snd)` and the
+              -- α.obj-leg of `w₁≫prodMap.. p` equals `bv` (single-valued act-source).
+              have hz₁p : z₁ ≫ p = bv := by
+                have hpm : prodMap A G.dom α.obj p ≫ snd = snd ≫ p := prodMap_snd A G.dom α.obj p
+                -- `bv = (w₁ ≫ prodMap.. p) ≫ snd` because `act` is injective on the source legs?
+                -- Direct: `w₁ ≫ prodMap.. p` and `b ≫ prodMap.. A₂.arr` have equal `act`-value (`hw₁p`),
+                -- and equal A-leg... we only need the α.obj-leg (snd) equality, obtained from `act` monic.
+                -- `hsrc'`: the `act`-source `w₁≫prodMap.. p = b ≫ prodMap.. A₂.arr` (both → prod A α.obj).
+                have hsrc' : w₁ ≫ prodMap A G.dom α.obj p = b ≫ prodMap A A₂.dom α.obj A₂.arr :=
+                  ht_mono _ _ (by
+                    calc (w₁ ≫ prodMap A G.dom α.obj p) ≫ α.act = cv := hw₁p
+                      _ = b ≫ (prodMap A A₂.dom α.obj A₂.arr ≫ α.act) := rfl
+                      _ = (b ≫ prodMap A A₂.dom α.obj A₂.arr) ≫ α.act := (Cat.assoc _ _ _).symm)
+                calc z₁ ≫ p = (w₁ ≫ snd (A := A) (B := G.dom)) ≫ p := rfl
+                  _ = w₁ ≫ (snd (A := A) (B := G.dom) ≫ p) := Cat.assoc _ _ _
+                  _ = w₁ ≫ (prodMap A G.dom α.obj p ≫ snd) := by rw [hpm]
+                  _ = (w₁ ≫ prodMap A G.dom α.obj p) ≫ snd := (Cat.assoc _ _ _).symm
+                  _ = (b ≫ prodMap A A₂.dom α.obj A₂.arr) ≫ snd := by rw [hsrc']
+                  _ = b ≫ (prodMap A A₂.dom α.obj A₂.arr ≫ snd) := Cat.assoc _ _ _
+                  _ = bv := rfl
+              -- `bv` factors through `A₁ = image q` (off-diagonal leg) and through `A₂` (definition).
+              have hvalA₁ : (k ≫ image.lift q) ≫ A₁.arr = bv := by
+                show (k ≫ image.lift q) ≫ (image q).arr = bv
+                rw [Cat.assoc, image.lift_fac]
+                show k ≫ K'.arr ≫ kp₁ (f := p) ≫ p = bv
+                calc k ≫ K'.arr ≫ kp₁ (f := p) ≫ p
+                    = (k ≫ K'.arr) ≫ kp₁ (f := p) ≫ p := (Cat.assoc _ _ _).symm
+                  _ = κ ≫ kp₁ (f := p) ≫ p := by rw [hκK']
+                  _ = (κ ≫ kp₁ (f := p)) ≫ p := (Cat.assoc _ _ _).symm
+                  _ = z₁ ≫ p := by rw [hκ₁]
+                  _ = bv := hz₁p
+              have hptbot : (Subobject.mk one bv (mono_from_one _)).le
+                  (PreLogos.bottom α.obj) :=
+                subLe_trans'
+                  (Subobject.le_inter (S := A₁) (T := A₂)
+                    ⟨k ≫ image.lift q, hvalA₁⟩
+                    ⟨b ≫ snd (A := A) (B := A₂.dom), hbv_A₂.symm⟩)
+                  hA₁disj
+              obtain ⟨m, _⟩ := hptbot
+              exact point_bottom_absurd htv (Cat.id one ≫ m)
+          -- `w₁ ≫ snd = w₂ ≫ snd` AND `w₁ ≫ prodMap.. p = w₂ ≫ prodMap.. p` (i.e. the A-legs and
+          -- α.obj-legs agree)... but we only need `g₁ = g₂`, and `gᵢ = wᵢ ≫ actG`; here `actG` only
+          -- sees the source point `wᵢ` through `prodMap.. G.arr ≫ Sgraph`.  Use that `actG` factors
+          -- the source: `gᵢ = wᵢ ≫ actG`, and the two sources `wᵢ` agree on BOTH legs
+          -- (`A`-leg: hsrc's `fst`; `snd`-leg: `hsnd_eq`), so `w₁ = w₂` by product extensionality.
+          have hfst_eq : w₁ ≫ fst (A := A) (B := G.dom) = w₂ ≫ fst (A := A) (B := G.dom) := by
+            have hpmf : prodMap A G.dom α.obj p ≫ fst = fst := prodMap_fst A G.dom α.obj p
+            have := hsrc
+            calc w₁ ≫ fst (A := A) (B := G.dom)
+                = w₁ ≫ (prodMap A G.dom α.obj p ≫ fst) := by rw [hpmf]
+              _ = (w₁ ≫ prodMap A G.dom α.obj p) ≫ fst := (Cat.assoc _ _ _).symm
+              _ = (w₂ ≫ prodMap A G.dom α.obj p) ≫ fst := by rw [hsrc]
+              _ = w₂ ≫ (prodMap A G.dom α.obj p ≫ fst) := Cat.assoc _ _ _
+              _ = w₂ ≫ fst (A := A) (B := G.dom) := by rw [hpmf]
+          have hw₁w₂ : w₁ = w₂ := by
+            rw [pair_eta w₁, pair_eta w₂, hfst_eq, hsnd_eq]
+          rw [hw₁eq, hw₂eq, hw₁w₂]
+        -- `A₁ ∩ act(A₂) ≤ ⊥`: a point of `act(A₂)` is `act(b)` with `b` an `A₂`-source point;
+        -- `hfibSingleT` makes both off-diagonal legs over it equal, contradiction via `kpPointAbsurd`.
+        have hdisj_t : (Subobject.inter A₁ (image (prodMap A A₂.dom α.obj A₂.arr ≫ α.act))).le
+            (PreLogos.bottom α.obj) := by
+          refine noPoint_le_bottom hcap htv _ ?_
+          rintro _ ⟨y, _⟩
+          obtain ⟨kL, hkL⟩ := Subobject.inter_le_left A₁
+            (image (prodMap A A₂.dom α.obj A₂.arr ≫ α.act))
+          obtain ⟨kR, hkR⟩ := Subobject.inter_le_right A₁
+            (image (prodMap A A₂.dom α.obj A₂.arr ≫ α.act))
+          obtain ⟨b, hb⟩ := pts_covers_of_capital hcap
+            (image_lift_cover (prodMap A A₂.dom α.obj A₂.arr ≫ α.act)) (y ≫ kR)
+          have hbval : (y ≫ kR) ≫ (image (prodMap A A₂.dom α.obj A₂.arr ≫ α.act)).arr
+              = b ≫ (prodMap A A₂.dom α.obj A₂.arr ≫ α.act) := by
+            show (y ≫ kR) ≫ (image (prodMap A A₂.dom α.obj A₂.arr ≫ α.act)).arr
+                = b ≫ (prodMap A A₂.dom α.obj A₂.arr ≫ α.act)
+            rw [← hb, Cat.assoc, image.lift_fac]
+          obtain ⟨k₀, hk₀⟩ := pts_covers_of_capital hcap (image_lift_cover q) (y ≫ kL)
+          have hcommon : (y ≫ kL) ≫ A₁.arr = b ≫ (prodMap A A₂.dom α.obj A₂.arr ≫ α.act) := by
+            have : (y ≫ kL) ≫ A₁.arr
+                = (y ≫ kR) ≫ (image (prodMap A A₂.dom α.obj A₂.arr ≫ α.act)).arr := by
+              rw [Cat.assoc, Cat.assoc, hkL, hkR]
+            rw [this, hbval]
+          have hk₀q : k₀ ≫ q = b ≫ (prodMap A A₂.dom α.obj A₂.arr ≫ α.act) := by
+            have : k₀ ≫ q = (y ≫ kL) ≫ A₁.arr := by
+              show k₀ ≫ K'.arr ≫ kp₁ (f := p) ≫ p = (y ≫ kL) ≫ (image q).arr
+              rw [← hk₀, Cat.assoc, image.lift_fac]
+            rw [this, hcommon]
+          apply kpPointAbsurd k₀
+          have hg₁ : (k₀ ≫ K'.arr ≫ kp₁ (f := p)) ≫ p
+              = b ≫ (prodMap A A₂.dom α.obj A₂.arr ≫ α.act) := by
+            rw [Cat.assoc, Cat.assoc]; exact hk₀q
+          have hg₂ : (k₀ ≫ K'.arr ≫ kp₂ (f := p)) ≫ p
+              = b ≫ (prodMap A A₂.dom α.obj A₂.arr ≫ α.act) := by
+            calc (k₀ ≫ K'.arr ≫ kp₂ (f := p)) ≫ p
+                = k₀ ≫ K'.arr ≫ (kp₂ (f := p) ≫ p) := by rw [Cat.assoc, Cat.assoc]
+              _ = k₀ ≫ K'.arr ≫ (kp₁ (f := p) ≫ p) := by rw [← kp_sq]
+              _ = (k₀ ≫ K'.arr ≫ kp₁ (f := p)) ≫ p := by rw [Cat.assoc, Cat.assoc]
+              _ = b ≫ (prodMap A A₂.dom α.obj A₂.arr ≫ α.act) := hg₁
+          rw [hfibSingleT b _ _ hg₁ hg₂]
+        have hle : (image (prodMap A A₂.dom α.obj A₂.arr ≫ α.act)).le A₂ :=
+          complement_le_other' A₁ A₂ (image (prodMap A A₂.dom α.obj A₂.arr ≫ α.act))
+            hdisj_t hA₁union
+        obtain ⟨k, hk⟩ := hle
+        exact ⟨image.lift (prodMap A A₂.dom α.obj A₂.arr ≫ α.act) ≫ k, by
+          rw [Cat.assoc, hk, image.lift_fac]⟩
+      -- `A₂` ENTIRE by the free Peano property.
+      have hA₂entire : A₂.IsEntire :=
+        free_peano_of_bicartesian hbool A α hiso hcoeq A₂ hA₂a hA₂t
+      -- `A₂` entire ⟹ `A₁ ≤ ⊥`.
+      have hA₁bot : A₁.le (PreLogos.bottom α.obj) := by
+        refine subLe_trans' ?_ hA₁disj
+        refine Subobject.le_inter ⟨Cat.id _, Cat.id_comp _⟩ ?_
+        obtain ⟨inv, _, hinv2⟩ := hA₂entire
+        exact ⟨A₁.arr ≫ inv, by rw [Cat.assoc, hinv2, Cat.comp_id]⟩
+      -- `A₁ ≤ ⊥ ⟹ K' ≤ ⊥`.
+      have hK'bot : K'.le (PreLogos.bottom (kernelPair p)) := by
+        obtain ⟨m, _hm⟩ := hA₁bot
+        exact peano_le_bottom_of_map K' (image.lift q ≫ m)
+      -- `K' ≤ ⊥ ⟹ Δ entire`.
+      have hΔentire : Δ.IsEntire :=
+        entire_of_entire_le (subLe_trans' hΔunion
+          (HasSubobjectUnions.union_min Δ K' Δ ⟨Cat.id _, Cat.id_comp _⟩
+            (subLe_trans' hK'bot (PreLogos.bottom_min Δ))))
+      -- `Δ` entire ⟹ `kp_diag` cover ⟹ iso.
+      have hdiagcover : Cover (kp_diag (f := p)) :=
+        (cover_iff_image_entire (kp_diag (f := p))).2 hΔentire
+      exact monic_cover_iso (kp_diag (f := p)) hdiagcover
+        (mono_of_retraction _ (kp₁ (f := p)) kp_diag_p₁)
     have hpiso : IsIso p := monic_cover_iso p hpcover hpmono
     obtain ⟨pinv, hpinv1, hpinv2⟩ := hpiso
     -- `h := p⁻¹ ≫ G.arr ≫ snd`.  `unit ≫ h = β.unit` and the action square follow from the graph laws.
