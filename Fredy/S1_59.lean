@@ -1947,7 +1947,78 @@ theorem normal_balanced [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoequalize
 
   i.e. that the diagonal's cokernel collapses `A×A` back onto `A` along the first
   injection.  Everything else (balance `normal_balanced`, exact→abelian, additive→regular,
-  all-normal→exact) is in hand and sorry-free. -/
+  all-normal→exact) is in hand and sorry-free.
+
+  VERIFIED LOCALIZATION (this pass).  The obstruction is pinned to the implication
+  "**trivial kernel ⟹ monic**" (and its dual "trivial cokernel ⟹ epic").  Set
+  `θ_A := ⟨1,0⟩ ≫ coker(diag A)`.  The lemma `diag_cokernel_kernel_zero` below proves,
+  SORRY-FREE from `IsLeftNormal` + products, that `Ker θ_A = 0` (every `x` with
+  `x ≫ θ_A = 0` is itself `0`): `diag A` is monic, so by left-normality `diag A = ker(coker
+  (diag A))`; a map killed by `coker(diag A)` factors through `diag A`, and reading off the
+  two projections (`diag≫fst = id`, `diag≫snd = id`, `⟨1,0⟩≫fst = id`, `⟨1,0⟩≫snd = 0`)
+  forces `x = 0`.  So θ_A has trivial kernel and (dually, by `IsRightNormal`) trivial
+  cokernel.  What remains UNREACHABLE is upgrading `Ker θ_A = 0` to `Mono θ_A`: monicity is
+  controlled by the kernel PAIR, not the zero-kernel, and the upgrade is equivalent to a
+  hom-set subtraction (the complementary idempotent `1 − fst≫diag` of the idempotent
+  `fst≫diag : A×A → A×A`).  Three independent elementary routes were tried and all bottom
+  out at this same point: (i) `normal_balanced` needs `Mono θ ∧ epic θ`; (ii) a direct
+  inverse `coker(diag A) → A` as a cokernel-descent needs a retraction of `⟨1,0⟩` killing
+  `diag A` (= `fst − snd`); (iii) idempotent splitting (`equalizers_split_idempotents`)
+  splits `fst≫diag` but the COMPLEMENTARY idempotent needed to split off `Cokernel(diag A)`
+  again requires subtraction.  Hence the precise minimal missing lemma is
+  `mono_of_kernel_zero` in a left-normal category-with-products (equivalently, the
+  subtraction / joint-epi of the two product injections), which the imported modules
+  (`S1_1, S1_34, S1_41, S1_42, S1_43, S1_51, S1_52, S1_56, S1_58`) do not supply. -/
+
+/-- **Verified half of the §1.598 subtraction bootstrap** (sorry-free, `IsLeftNormal` +
+    binary products only).  For `θ_A := ⟨1,0⟩ ≫ coker(diag A)`, the kernel of `θ_A` is
+    trivial: any `x : W ⟶ A` with `x ≫ θ_A = 0` is the zero morphism.
+
+    Proof: `diag A` is monic (`diag_mono`), so by left-normality it is the kernel of its
+    own cokernel (`monic_kernel_of_cokernel'`).  Since `x ≫ ⟨1,0⟩` is killed by
+    `coker(diag A)`, it factors through `ker(coker(diag A)) = diag A` via some `x'`.
+    Post-composing the factorization `x' ≫ diag A = x ≫ ⟨1,0⟩` with `fst` gives `x' = x`
+    (both diagonals/injections have `≫fst = id`); with `snd` gives `x' = 0`
+    (`diag≫snd = id` but `⟨1,0⟩≫snd = 0`).  Hence `x = x' = 0`.
+
+    This isolates the §1.598 wall to "trivial kernel ⟹ monic" (see the note above): the
+    kernel is provably trivial, but upgrading to monicity needs the as-yet-unavailable
+    hom-set subtraction. -/
+theorem diag_cokernel_kernel_zero
+    {𝒞 : Type u} [Cat.{v} 𝒞] [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoequalizers 𝒞]
+    [HasBinaryProducts 𝒞] (hLN : IsLeftNormal 𝒞) (A : 𝒞) {W : 𝒞} (x : W ⟶ A)
+    (hx : x ≫ (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A))
+            = zeroMorphism W (Cokernel (diag A))) :
+    x = zeroMorphism W A := by
+  have hdm : Mono (diag A) := diag_mono A
+  obtain ⟨h, hiso, hfac⟩ := monic_kernel_of_cokernel' (diag A) hdm (hLN (diag A) hdm)
+  have hfacKer : (x ≫ pair (Cat.id A) (zeroMorphism A A)) ≫ cokernelMap (diag A)
+      = (x ≫ pair (Cat.id A) (zeroMorphism A A))
+          ≫ zeroMorphism (prod A A) (Cokernel (diag A)) := by
+    rw [Cat.assoc, hx]
+    exact (zero_morphism_comp (x ≫ pair (Cat.id A) (zeroMorphism A A))
+            (cokernelMap (diag A))).symm
+  let x'k : W ⟶ Kernel (cokernelMap (diag A)) :=
+    eqLift (cokernelMap (diag A)) (zeroMorphism (prod A A) (Cokernel (diag A)))
+      (x ≫ pair (Cat.id A) (zeroMorphism A A)) hfacKer
+  have hx'k : x'k ≫ kernelMap (cokernelMap (diag A))
+      = x ≫ pair (Cat.id A) (zeroMorphism A A) := eqLift_fac _ _ _ hfacKer
+  obtain ⟨hinv, _, hinv2⟩ := hiso
+  have hx' : (x'k ≫ hinv) ≫ diag A = x ≫ pair (Cat.id A) (zeroMorphism A A) := by
+    calc (x'k ≫ hinv) ≫ diag A
+        = (x'k ≫ hinv) ≫ (h ≫ kernelMap (cokernelMap (diag A))) := by rw [hfac]
+      _ = x'k ≫ (hinv ≫ h) ≫ kernelMap (cokernelMap (diag A)) := by rw [Cat.assoc, Cat.assoc]
+      _ = x'k ≫ kernelMap (cokernelMap (diag A)) := by rw [hinv2, Cat.id_comp]
+      _ = x ≫ pair (Cat.id A) (zeroMorphism A A) := hx'k
+  have hfstA : (x'k ≫ hinv) = x := by
+    have h1 := congrArg (· ≫ (fst : prod A A ⟶ A)) hx'
+    simp only [Cat.assoc, diag_fst, fst_pair, Cat.comp_id] at h1; exact h1
+  have hsndA : (x'k ≫ hinv) = zeroMorphism W A := by
+    have h2 := congrArg (· ≫ (snd : prod A A ⟶ A)) hx'
+    simp only [Cat.assoc, diag_snd, snd_pair, Cat.comp_id] at h2
+    rw [zero_morphism_comp x (zeroMorphism A A)] at h2
+    exact h2
+  rw [← hfstA, hsndA]
 theorem abelian_iff_normal_kernels_cokernels
     {𝒞 : Type u} [Cat.{v} 𝒞]
     [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoequalizers 𝒞] [HasBinaryProducts 𝒞] :
