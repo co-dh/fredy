@@ -2554,6 +2554,11 @@ theorem image_act_union_le [HasBinaryCoproducts 𝒞]
 
 end ActImageCalculus
 
+-- The free §1.98(13) chases use `prodMap`/`distCase`; make the genuine `Topos` products win
+-- all `HasBinaryProducts` goals (avoids the `topos_has_exponentials.toHasBinaryProducts`
+-- `sorry`-derived diamond branch), keeping every `prod`/`image` term coherent (cf. `ToposCopowers`).
+attribute [local instance 10000] Topos.toHasBinaryProducts
+
 /-- **§1.98(13) action PEANO PROPERTY in a BOOLEAN topos (the §1.988 free content).**
     Every `(unit,act)`-closed subobject `B ↣ α.obj` is entire.  `B` closed = it allows
     `unit` (point `uB : 1 → B.dom`, `uB ≫ B.arr = α.unit`) and is `act`-stable
@@ -2564,7 +2569,7 @@ end ActImageCalculus
     coequalizer `α.act = snd ≫ f` collapse to force `α'' = 0`.  Same complement structure as
     the NNO case for the functor `1 + A×(−)`. -/
 theorem free_peano_property_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
-    [HasBinaryCoproducts 𝒞] [HasImages 𝒞]
+    [HasBinaryCoproducts 𝒞]
     (hbool : BooleanSub 𝒞)
     (A : 𝒞) (α : AAction (𝒞 := 𝒞) A)
     (hiso : IsIso (HasBinaryCoproducts.case α.unit α.act
@@ -2605,13 +2610,319 @@ theorem free_peano_property_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos
     · apply B.monic
       rw [Cat.assoc, Cat.assoc, hk, hai2, Cat.id_comp, Cat.comp_id]
     · rw [Cat.assoc, hk, hai2]
-  -- `A'` ENTIRE — the §1.988 BOOLEAN complement chase, A-parametrised.  RESIDUAL: the product-indexed
-  -- port of `peano_property_of_bicartesian`'s `t_stable_complement` + `Two`-valued collapse with
-  -- `act : A×α.obj → α.obj` (monic, since `[unit,act]` iso) replacing the endo `t`.  All closure
-  -- facts it needs are now available (`actLeast_allows`/`actLeast_stable`/`actLeast_le` + the
-  -- `invImage_le_iff_restrict` bridge); what remains is the image-over-`prod A (−)` calculus
-  -- (`prodMap`-cover/-distribute lemmas) of the complement decomposition `unit(1) ∪ act(A×A')`.
-  sorry
+  -- `A'` ENTIRE — the §1.988 BOOLEAN complement chase, A-parametrised over `prod A (−)`.
+  -- A-action analogue of `peano_property_of_bicartesian`: `act : prod A α.obj → α.obj` (monic,
+  -- since `[unit,act]` iso) replaces the endo `t`; `act(S) := image(prodMap A S.dom α.obj S.arr
+  -- ≫ act)` replaces `t(S)`.  The `ActImageCalculus` lemmas re-establish every image fact.
+  obtain ⟨A'', hdisj, hentire⟩ := hbool A'
+  obtain ⟨ψ, ψinv, hψ1, hψ2, hψinl, hψinr⟩ := complementedSub_legs_iso A' A'' hdisj hentire
+  -- `A'` is `(unit,act,snd)`-closed:  allows `unit` (`actLeast_allows`) and act-stable
+  -- (`actLeast_stable` → image form via `actImg_le_of_actStable`).
+  obtain ⟨a₀, ha₀⟩ := actLeast_allows α.unit α.act (snd (A := A) (B := α.obj))
+  -- `act` restricts to `A'` in image form: `act(A') ≤ A'`.
+  have hA'act : (image (prodMap A A'.dom α.obj A'.arr ≫ α.act)).le A' :=
+    actImg_le_of_actStable α.act A' (actLeast_stable α.unit α.act (snd (A := A) (B := α.obj)))
+  -- β-laws and inverse of the iso `case unit act`.
+  have hcl : HasBinaryCoproducts.inl ≫ HasBinaryCoproducts.case α.unit α.act = α.unit :=
+    HasBinaryCoproducts.case_inl α.unit α.act
+  have hcr : HasBinaryCoproducts.inr ≫ HasBinaryCoproducts.case α.unit α.act = α.act :=
+    HasBinaryCoproducts.case_inr α.unit α.act
+  obtain ⟨ci, hci1, hci2⟩ := hiso
+  -- `inr` (hypothesis coproduct) is monic.  No point of `prod A α.obj` to retract with (the endo
+  -- trick), so transport through the comparison `φ` to the CANONICAL coproduct, whose `coprodInr`
+  -- is monic (`coprodInr_monic`):  `inr ≫ φ = coprodInr`.
+  have hinr_mono : Mono (HasBinaryCoproducts.inr (A := one) (B := prod A α.obj)) := by
+    intro W g h hgh
+    let φ : HasBinaryCoproducts.coprod (one : 𝒞) (prod A α.obj)
+        ⟶ coprodObj (one : 𝒞) (prod A α.obj) :=
+      HasBinaryCoproducts.case (coprodInl (one : 𝒞) (prod A α.obj))
+        (coprodInr (one : 𝒞) (prod A α.obj))
+    have hr : HasBinaryCoproducts.inr ≫ φ = coprodInr (one : 𝒞) (prod A α.obj) :=
+      HasBinaryCoproducts.case_inr _ _
+    apply coprodInr_monic (one : 𝒞) (prod A α.obj)
+    rw [← hr, ← Cat.assoc, ← Cat.assoc, hgh]
+  -- `act` monic: `act = inr ≫ case`, `inr` monic, `case` iso.
+  have hactmono : Mono α.act := by
+    intro W g h hgh
+    apply hinr_mono
+    have e : (g ≫ HasBinaryCoproducts.inr) ≫ HasBinaryCoproducts.case α.unit α.act
+        = (h ≫ HasBinaryCoproducts.inr) ≫ HasBinaryCoproducts.case α.unit α.act := by
+      rw [Cat.assoc, Cat.assoc, hcr, hgh]
+    have := congrArg (· ≫ ci) e
+    simpa only [Cat.assoc, hci1, Cat.comp_id] using this
+  -- `≤ ⊥` from a HYPOTHESIS-coproduct common point (`u ≫ inl = v ≫ inr`), via canonical injections.
+  have hbot_hyp : ∀ (Z : Subobject 𝒞 α.obj) (u : Z.dom ⟶ one) (v : Z.dom ⟶ prod A α.obj),
+      u ≫ HasBinaryCoproducts.inl = v ≫ HasBinaryCoproducts.inr →
+      Z.le (PreLogos.bottom α.obj) := by
+    intro Z u v huv
+    let φ : HasBinaryCoproducts.coprod (one : 𝒞) (prod A α.obj)
+        ⟶ coprodObj (one : 𝒞) (prod A α.obj) :=
+      HasBinaryCoproducts.case (coprodInl (one : 𝒞) (prod A α.obj))
+        (coprodInr (one : 𝒞) (prod A α.obj))
+    have hcommon : u ≫ coprodInl (one : 𝒞) (prod A α.obj)
+        = v ≫ coprodInr (one : 𝒞) (prod A α.obj) := by
+      have hl : HasBinaryCoproducts.inl ≫ φ = coprodInl (one : 𝒞) (prod A α.obj) :=
+        HasBinaryCoproducts.case_inl _ _
+      have hr : HasBinaryCoproducts.inr ≫ φ = coprodInr (one : 𝒞) (prod A α.obj) :=
+        HasBinaryCoproducts.case_inr _ _
+      calc u ≫ coprodInl (one : 𝒞) (prod A α.obj)
+          = u ≫ HasBinaryCoproducts.inl ≫ φ := by rw [hl]
+        _ = (u ≫ HasBinaryCoproducts.inl) ≫ φ := (Cat.assoc _ _ _).symm
+        _ = (v ≫ HasBinaryCoproducts.inr) ≫ φ := by rw [huv]
+        _ = v ≫ HasBinaryCoproducts.inr ≫ φ := Cat.assoc _ _ _
+        _ = v ≫ coprodInr (one : 𝒞) (prod A α.obj) := by rw [hr]
+    exact le_bottom_of_canonical_common Z u v hcommon
+  -- ── THE CLAIM (Freyd §1.988 / §1.635, §1.641): `act` restricts to the complement `A''`.
+  have hclaim : ∃ act'' : prod A A''.dom ⟶ A''.dom,
+      act'' ≫ A''.arr = prodMap A A''.dom α.obj A''.arr ≫ α.act := by
+    -- the three monic subobjects.  `unit`, `prodMap A'.arr ≫ act`, `prodMap A''.arr ≫ act` monic.
+    have hu_mono : Mono α.unit := mono_from_one α.unit
+    let aSub : Subobject 𝒞 α.obj := Subobject.mk one α.unit hu_mono
+    let actA' : Subobject 𝒞 α.obj := Subobject.mk (prod A A'.dom)
+      (prodMap A A'.dom α.obj A'.arr ≫ α.act) (mono_comp'' (prodMap_mono' A A'.monic) hactmono)
+    let actA'' : Subobject 𝒞 α.obj := Subobject.mk (prod A A''.dom)
+      (prodMap A A''.dom α.obj A''.arr ≫ α.act) (mono_comp'' (prodMap_mono' A A''.monic) hactmono)
+    -- ── basic `≤`-facts.
+    have haSub_le : aSub.le A' := ⟨a₀, ha₀⟩
+    -- `actA' = act(A')` as a monic subobject; `actA' ≤ image(..) ≤ A'`.
+    have hactA'_eq : (image (prodMap A A'.dom α.obj A'.arr ≫ α.act)).le actA' ∧
+        actA'.le (image (prodMap A A'.dom α.obj A'.arr ≫ α.act)) :=
+      image_mono_eq (prodMap A A'.dom α.obj A'.arr ≫ α.act)
+        (mono_comp'' (prodMap_mono' A A'.monic) hactmono)
+    have hactA'_le : actA'.le A' := subLe_trans' hactA'_eq.2 hA'act
+    -- the union `U := unit(1) ∪ act(A×A')`.
+    let U : Subobject 𝒞 α.obj := HasSubobjectUnions.union aSub actA'
+    have hactA'_U : actA'.le U := HasSubobjectUnions.union_right aSub actA'
+    have haSub_U : aSub.le U := HasSubobjectUnions.union_left aSub actA'
+    -- ── `A' ≤ U`: `U` is `(unit,act,snd)`-closed, leastness gives it.
+    have hA'U : A'.le U := by
+      refine actLeast_le α.unit α.act (snd (A := A) (B := α.obj)) U ?_ ?_
+      · -- `U` allows `unit`: `unit = aSub.arr` factors through `aSub ≤ U`.
+        obtain ⟨l, hl⟩ := haSub_U
+        exact ⟨l, by show l ≫ U.arr = α.unit; rw [hl]⟩
+      · -- `U` is act-stable: `act(U) ≤ U` (image form) then `actStable_of_restrict`.
+        have himg_le : (image (prodMap A U.dom α.obj U.arr ≫ α.act)).le U := by
+          -- `act(U) ≤ act(aSub) ∪ act(actA')` (`image_act_union_le`), each leg ≤ U DIRECTLY
+          -- (NOT via `A' ≤ U`, which is what we are proving — that would be circular).
+          refine subLe_trans' (image_act_union_le α.act aSub actA') ?_
+          refine HasSubobjectUnions.union_min _ _ _ ?_ ?_
+          · -- `act(aSub) ≤ actA' ≤ U`: `unit≫act = a₀≫(A'.arr)≫act = prodMap a₀ ≫ actA'.arr`.
+            refine subLe_trans' (image_min _ actA' ⟨prodMap A one A'.dom a₀, ?_⟩) hactA'_U
+            show prodMap A one A'.dom a₀ ≫ (prodMap A A'.dom α.obj A'.arr ≫ α.act)
+                = prodMap A one α.obj α.unit ≫ α.act
+            rw [← Cat.assoc, ← prodMap_comp, ha₀]
+          · -- `act(actA') ≤ act(A') ≤ actA' ≤ U`  (`image_act_mono` with actA' ≤ A').
+            refine subLe_trans' (image_act_mono α.act hactA'_le) ?_
+            exact subLe_trans' hactA'_eq.1 hactA'_U
+        obtain ⟨k, hk⟩ := himg_le
+        exact actStable_of_restrict α.act U (image.lift (prodMap A U.dom α.obj U.arr ≫ α.act) ≫ k)
+          (by rw [Cat.assoc, hk, image.lift_fac])
+    have hUA' : U.le A' := HasSubobjectUnions.union_min _ _ _ haSub_le hactA'_le
+    -- ── `act(A'') ∩ A' ≤ 0`, via `A' ≤ U = unit(1) ∪ act(A×A')` and distributivity.
+    have hdisj' : (Subobject.inter A'
+        (image (prodMap A A''.dom α.obj A''.arr ≫ α.act))).le (PreLogos.bottom α.obj) := by
+      -- `image(prodMap A''.. ≫ act) = actA''` (image of monic).
+      have heq : (image (prodMap A A''.dom α.obj A''.arr ≫ α.act)).le actA'' :=
+        (image_mono_eq (prodMap A A''.dom α.obj A''.arr ≫ α.act)
+          (mono_comp'' (prodMap_mono' A A''.monic) hactmono)).1
+      have hmono_inter : (Subobject.inter A'
+          (image (prodMap A A''.dom α.obj A''.arr ≫ α.act))).le (Subobject.inter actA'' U) :=
+        subLe_trans' (Subobject.inter_mono hA'U heq) (inter_comm_le U actA'')
+      -- distribute `inter actA'' U = inter actA'' (aSub ∪ actA') ≤ (actA''∩aSub) ∪ (actA''∩actA')`.
+      have hdist : (Subobject.inter actA'' U).le
+          (HasSubobjectUnions.union (Subobject.inter actA'' aSub)
+            (Subobject.inter actA'' actA')) := by
+        have e1 : Subobject.inter actA'' U
+            = pushMono actA''.arr actA''.monic (InverseImage actA''.arr U) := rfl
+        have e2 : Subobject.inter actA'' aSub
+            = pushMono actA''.arr actA''.monic (InverseImage actA''.arr aSub) := rfl
+        have e3 : Subobject.inter actA'' actA'
+            = pushMono actA''.arr actA''.monic (InverseImage actA''.arr actA') := rfl
+        rw [e1, e2, e3]
+        have hpre : (InverseImage actA''.arr U).le
+            (HasSubobjectUnions.union (InverseImage actA''.arr aSub)
+              (InverseImage actA''.arr actA')) :=
+          (PreLogos.invImage_preserves_union actA''.arr aSub actA').1
+        exact subLe_trans' (pushMono_mono actA''.arr actA''.monic hpre)
+          (pushMono_union_le actA''.arr actA''.monic _ _)
+      -- `actA'' ∩ aSub ≤ 0`  (act(A'') ∩ unit(1): hypothesis-coproduct disjointness).
+      have hbot1 : (Subobject.inter actA'' aSub).le (PreLogos.bottom α.obj) := by
+        let pb := HasPullbacks.has actA''.arr aSub.arr
+        have hsq : pb.cone.π₁ ≫ actA''.arr = pb.cone.π₂ ≫ aSub.arr := pb.cone.w
+        -- `act = inr≫case`, `unit = inl≫case` ⟹ `π₂≫inl = (π₁≫prodMap A''.arr)≫inr`.
+        have hcancel : pb.cone.π₂ ≫ HasBinaryCoproducts.inl
+            = (pb.cone.π₁ ≫ prodMap A A''.dom α.obj A''.arr) ≫ HasBinaryCoproducts.inr := by
+          have hsq' : pb.cone.π₂ ≫ α.unit
+              = (pb.cone.π₁ ≫ prodMap A A''.dom α.obj A''.arr) ≫ α.act := by
+            rw [Cat.assoc]; exact hsq.symm
+          have hc : (pb.cone.π₂ ≫ HasBinaryCoproducts.inl)
+                ≫ HasBinaryCoproducts.case α.unit α.act
+              = ((pb.cone.π₁ ≫ prodMap A A''.dom α.obj A''.arr) ≫ HasBinaryCoproducts.inr)
+                ≫ HasBinaryCoproducts.case α.unit α.act := by
+            rw [Cat.assoc, Cat.assoc, hcl, hcr]; exact hsq'
+          calc pb.cone.π₂ ≫ HasBinaryCoproducts.inl
+              = ((pb.cone.π₂ ≫ HasBinaryCoproducts.inl)
+                  ≫ HasBinaryCoproducts.case α.unit α.act) ≫ ci := by
+                rw [Cat.assoc, hci1, Cat.comp_id]
+            _ = (((pb.cone.π₁ ≫ prodMap A A''.dom α.obj A''.arr) ≫ HasBinaryCoproducts.inr)
+                  ≫ HasBinaryCoproducts.case α.unit α.act) ≫ ci := by rw [hc]
+            _ = (pb.cone.π₁ ≫ prodMap A A''.dom α.obj A''.arr) ≫ HasBinaryCoproducts.inr := by
+                rw [Cat.assoc, hci1, Cat.comp_id]
+        exact hbot_hyp (Subobject.inter actA'' aSub) pb.cone.π₂
+          (pb.cone.π₁ ≫ prodMap A A''.dom α.obj A''.arr) hcancel
+      -- `actA'' ∩ actA' ≤ 0`  (act(A'') ∩ act(A'): `act` monic + `snd` descends to A'∩A'' ≤ 0).
+      have hbot2 : (Subobject.inter actA'' actA').le (PreLogos.bottom α.obj) := by
+        let pb := HasPullbacks.has actA''.arr actA'.arr
+        have hsq : pb.cone.π₁ ≫ actA''.arr = pb.cone.π₂ ≫ actA'.arr := pb.cone.w
+        -- `(π₁≫prodMap A''..)≫act = (π₂≫prodMap A'..)≫act ⟹ (act monic) the prodMaps agree`.
+        have hprod : pb.cone.π₁ ≫ prodMap A A''.dom α.obj A''.arr
+            = pb.cone.π₂ ≫ prodMap A A'.dom α.obj A'.arr := by
+          apply hactmono
+          rw [Cat.assoc, Cat.assoc]; exact hsq
+        -- post-compose `snd`: gives a common point of A', A'' in `α.obj`.
+        have hcommon : (pb.cone.π₂ ≫ snd) ≫ A'.arr = (pb.cone.π₁ ≫ snd) ≫ A''.arr := by
+          have hL : pb.cone.π₁ ≫ snd ≫ A''.arr = pb.cone.π₂ ≫ snd ≫ A'.arr := by
+            calc pb.cone.π₁ ≫ snd ≫ A''.arr
+                = pb.cone.π₁ ≫ (prodMap A A''.dom α.obj A''.arr ≫ snd) := by rw [prodMap_snd]
+              _ = (pb.cone.π₁ ≫ prodMap A A''.dom α.obj A''.arr) ≫ snd := (Cat.assoc _ _ _).symm
+              _ = (pb.cone.π₂ ≫ prodMap A A'.dom α.obj A'.arr) ≫ snd := by rw [hprod]
+              _ = pb.cone.π₂ ≫ (prodMap A A'.dom α.obj A'.arr ≫ snd) := Cat.assoc _ _ _
+              _ = pb.cone.π₂ ≫ snd ≫ A'.arr := by rw [prodMap_snd]
+          rw [Cat.assoc, Cat.assoc]; exact hL.symm
+        -- lift into `inter A' A''`; `hdisj` maps it to ⊥.
+        let pbAA := HasPullbacks.has A'.arr A''.arr
+        let w : (Subobject.inter actA'' actA').dom ⟶ (Subobject.inter A' A'').dom :=
+          pbAA.lift ⟨_, pb.cone.π₂ ≫ snd, pb.cone.π₁ ≫ snd, hcommon⟩
+        obtain ⟨m, _⟩ := hdisj
+        exact peano_le_bottom_of_map (Subobject.inter actA'' actA') (w ≫ m)
+      exact subLe_trans' hmono_inter (subLe_trans' hdist
+        (HasSubobjectUnions.union_min _ _ _ hbot1 hbot2))
+    -- `complement_le_other'` gives `act(A'') ≤ A''`; descend to the restriction `act''`.
+    have htle : (image (prodMap A A''.dom α.obj A''.arr ≫ α.act)).le A'' :=
+      complement_le_other' A' A'' (image (prodMap A A''.dom α.obj A''.arr ≫ α.act))
+        hdisj' hentire
+    obtain ⟨k, hk⟩ := htle
+    exact ⟨image.lift (prodMap A A''.dom α.obj A''.arr ≫ α.act) ≫ k, by
+      rw [Cat.assoc, hk, image.lift_fac]⟩
+  obtain ⟨act'', hact''⟩ := hclaim
+  -- ── Characteristic map `e : α.obj → Two`:  `A'` ↦ inl, `A''` ↦ inr.
+  let Two : 𝒞 := coprodObj one one
+  let inlT : (one : 𝒞) ⟶ Two := coprodInl one one
+  let inrT : (one : 𝒞) ⟶ Two := coprodInr one one
+  let e : α.obj ⟶ Two :=
+    ψinv ≫ HasBinaryCoproducts.case (term A'.dom ≫ inlT) (term A''.dom ≫ inrT)
+  have heA' : A'.arr ≫ e = term A'.dom ≫ inlT := by
+    show A'.arr ≫ ψinv ≫ _ = _
+    rw [← hψinl, Cat.assoc, ← Cat.assoc ψ ψinv, hψ1, Cat.id_comp,
+        HasBinaryCoproducts.case_inl]
+  have heA'' : A''.arr ≫ e = term A''.dom ≫ inrT := by
+    show A''.arr ≫ ψinv ≫ _ = _
+    rw [← hψinr, Cat.assoc, ← Cat.assoc ψ ψinv, hψ1, Cat.id_comp,
+        HasBinaryCoproducts.case_inr]
+  -- ── `act ≫ e = snd ≫ e` (act-invariance of `e`).  Both maps `prod A α.obj → Two`; precompose
+  -- the iso `prodMap A (A'+A'') α.obj ψ` (epi) and check on the two distributed summands.
+  have hte : α.act ≫ e = snd (A := A) (B := α.obj) ≫ e := by
+    -- restriction of `act` to `prod A A'.dom` lands in `A'` (act-stable): `wA' ≫ A'.arr = prodMap..≫act`.
+    obtain ⟨rA', hrA'⟩ := hA'act
+    let wA' : prod A A'.dom ⟶ A'.dom :=
+      image.lift (prodMap A A'.dom α.obj A'.arr ≫ α.act) ≫ rA'
+    have hwA' : wA' ≫ A'.arr = prodMap A A'.dom α.obj A'.arr ≫ α.act := by
+      show (image.lift _ ≫ rA') ≫ A'.arr = _
+      rw [Cat.assoc, hrA', image.lift_fac]
+    -- the iso `Ψ := prodMap A (A'.dom+A''.dom) α.obj ψ` is split epi (retraction `prodMap.. ψinv`).
+    let Ψ : prod A (HasBinaryCoproducts.coprod A'.dom A''.dom) ⟶ prod A α.obj :=
+      prodMap A (HasBinaryCoproducts.coprod A'.dom A''.dom) α.obj ψ
+    have hΨepi : ∀ {Z : 𝒞} (p q : prod A α.obj ⟶ Z), Ψ ≫ p = Ψ ≫ q → p = q := by
+      intro Z p q h
+      have hsec : prodMap A α.obj (HasBinaryCoproducts.coprod A'.dom A''.dom) ψinv ≫ Ψ
+          = Cat.id (prod A α.obj) := by
+        show _ ≫ prodMap A _ α.obj ψ = _
+        rw [← prodMap_comp, hψ2, prodMap_id]
+      have := congrArg (prodMap A α.obj (HasBinaryCoproducts.coprod A'.dom A''.dom) ψinv ≫ ·) h
+      simpa only [← Cat.assoc, hsec, Cat.id_comp] using this
+    apply hΨepi
+    -- `distInl`/`distInr` are jointly epi (`distCase_uniq`): suffices both legs agree.
+    have hjoint : ∀ {Z : 𝒞} (X Y : prod A (HasBinaryCoproducts.coprod A'.dom A''.dom) ⟶ Z),
+        distInl A A'.dom A''.dom ≫ X = distInl A A'.dom A''.dom ≫ Y →
+        distInr A A'.dom A''.dom ≫ X = distInr A A'.dom A''.dom ≫ Y → X = Y := by
+      intro Z X Y hl hr
+      rw [distCase_uniq (distInl A A'.dom A''.dom ≫ X) (distInr A A'.dom A''.dom ≫ X) X rfl rfl,
+          distCase_uniq (distInl A A'.dom A''.dom ≫ X) (distInr A A'.dom A''.dom ≫ X) Y
+            hl.symm hr.symm]
+    apply hjoint
+    · -- inl-leg.  `distInl ≫ Ψ = prodMap A A'.dom α.obj A'.arr` (since `inl ≫ ψ = A'.arr`).
+      have hΨl : distInl A A'.dom A''.dom ≫ Ψ = prodMap A A'.dom α.obj A'.arr := by
+        show prodMap A A'.dom _ HasBinaryCoproducts.inl ≫ prodMap A _ α.obj ψ = _
+        rw [← prodMap_comp, hψinl]
+      calc distInl A A'.dom A''.dom ≫ (Ψ ≫ (α.act ≫ e))
+          = (distInl A A'.dom A''.dom ≫ Ψ) ≫ α.act ≫ e := (Cat.assoc _ _ _).symm
+        _ = prodMap A A'.dom α.obj A'.arr ≫ α.act ≫ e := by rw [hΨl]
+        _ = (prodMap A A'.dom α.obj A'.arr ≫ α.act) ≫ e := (Cat.assoc _ _ _).symm
+        _ = (wA' ≫ A'.arr) ≫ e := by rw [hwA']
+        _ = wA' ≫ (A'.arr ≫ e) := Cat.assoc _ _ _
+        _ = wA' ≫ (term A'.dom ≫ inlT) := by rw [heA']
+        _ = (wA' ≫ term A'.dom) ≫ inlT := (Cat.assoc _ _ _).symm
+        _ = term (prod A A'.dom) ≫ inlT := by rw [term_uniq (wA' ≫ term A'.dom) (term _)]
+        _ = (snd ≫ term A'.dom) ≫ inlT := by rw [term_uniq (snd ≫ term A'.dom) (term _)]
+        _ = snd ≫ (A'.arr ≫ e) := by rw [Cat.assoc, ← heA']
+        _ = (snd ≫ A'.arr) ≫ e := (Cat.assoc _ _ _).symm
+        _ = (prodMap A A'.dom α.obj A'.arr ≫ snd) ≫ e := by rw [prodMap_snd]
+        _ = (distInl A A'.dom A''.dom ≫ Ψ) ≫ snd ≫ e := by rw [hΨl, Cat.assoc]
+        _ = distInl A A'.dom A''.dom ≫ (Ψ ≫ (snd ≫ e)) := Cat.assoc _ _ _
+    · -- inr-leg.  `distInr ≫ Ψ = prodMap A A''.dom α.obj A''.arr` (since `inr ≫ ψ = A''.arr`).
+      have hΨr : distInr A A'.dom A''.dom ≫ Ψ = prodMap A A''.dom α.obj A''.arr := by
+        show prodMap A A''.dom _ HasBinaryCoproducts.inr ≫ prodMap A _ α.obj ψ = _
+        rw [← prodMap_comp, hψinr]
+      calc distInr A A'.dom A''.dom ≫ (Ψ ≫ (α.act ≫ e))
+          = (distInr A A'.dom A''.dom ≫ Ψ) ≫ α.act ≫ e := (Cat.assoc _ _ _).symm
+        _ = prodMap A A''.dom α.obj A''.arr ≫ α.act ≫ e := by rw [hΨr]
+        _ = (prodMap A A''.dom α.obj A''.arr ≫ α.act) ≫ e := (Cat.assoc _ _ _).symm
+        _ = (act'' ≫ A''.arr) ≫ e := by rw [hact'']
+        _ = act'' ≫ (A''.arr ≫ e) := Cat.assoc _ _ _
+        _ = act'' ≫ (term A''.dom ≫ inrT) := by rw [heA'']
+        _ = (act'' ≫ term A''.dom) ≫ inrT := (Cat.assoc _ _ _).symm
+        _ = term (prod A A''.dom) ≫ inrT := by rw [term_uniq (act'' ≫ term A''.dom) (term _)]
+        _ = (snd ≫ term A''.dom) ≫ inrT := by rw [term_uniq (snd ≫ term A''.dom) (term _)]
+        _ = snd ≫ (A''.arr ≫ e) := by rw [Cat.assoc, ← heA'']
+        _ = (snd ≫ A''.arr) ≫ e := (Cat.assoc _ _ _).symm
+        _ = (prodMap A A''.dom α.obj A''.arr ≫ snd) ≫ e := by rw [prodMap_snd]
+        _ = (distInr A A'.dom A''.dom ≫ Ψ) ≫ snd ≫ e := by rw [hΨr, Cat.assoc]
+        _ = distInr A A'.dom A''.dom ≫ (Ψ ≫ (snd ≫ e)) := Cat.assoc _ _ _
+  -- ── Coequalizer: `e` factors `e = term α.obj ≫ g` for a unique `g : 1 → Two`.
+  obtain ⟨g, hg, _hguniq⟩ := hcoeq Two e hte
+  -- `g = inlT` (the `A'`-value), because `A'` allows `unit`.
+  have hg_inl : g = inlT := by
+    have htid : term (one : 𝒞) = Cat.id one := term_uniq _ _
+    have h1 : α.unit ≫ e = inlT := by
+      rw [← ha₀, Cat.assoc, heA', ← Cat.assoc,
+          term_uniq (a₀ ≫ term A'.dom) (term one), htid, Cat.id_comp]
+    have h2 : α.unit ≫ e = g := by
+      rw [← hg, ← Cat.assoc, term_uniq (α.unit ≫ term α.obj) (term one), htid, Cat.id_comp]
+    rw [← h2, h1]
+  -- ── `A''.dom` initial:  `A''.arr ≫ e = term ≫ inrT = term ≫ g = term ≫ inlT`.
+  have hcommon : term A''.dom ≫ inlT = term A''.dom ≫ inrT := by
+    have hgInr : A''.arr ≫ e = term A''.dom ≫ g := by
+      rw [← hg, ← Cat.assoc, term_uniq (A''.arr ≫ term α.obj) (term A''.dom)]
+    rw [hg_inl] at hgInr
+    rw [← hgInr, heA'']
+  have hcommon' : term A''.dom ≫ coprodInl (one : 𝒞) one
+      = term A''.dom ≫ coprodInr (one : 𝒞) one := hcommon
+  have hAinit : ∀ {Y : 𝒞} (u v : A''.dom ⟶ Y), u = v :=
+    coprodInjections_disjoint_elt (term A''.dom) (term A''.dom) hcommon'
+  -- ── `A''.dom` initial ⟹ `inl : A'.dom → A'.dom+A''.dom` iso ⟹ `A'.arr = inl ≫ ψ` iso.
+  show IsIso A'.arr
+  have hinl_iso : IsIso (HasBinaryCoproducts.inl (A := A'.dom) (B := A''.dom)) := by
+    refine ⟨HasBinaryCoproducts.case (Cat.id A'.dom) (term A''.dom ≫ a₀), ?_, ?_⟩
+    · exact HasBinaryCoproducts.case_inl _ _
+    · -- `case id k ≫ inl = id`: both sides `case inl inr` (the coproduct identity).
+      have hid : Cat.id (HasBinaryCoproducts.coprod A'.dom A''.dom)
+          = HasBinaryCoproducts.case HasBinaryCoproducts.inl HasBinaryCoproducts.inr :=
+        HasBinaryCoproducts.case_uniq _ _ _ (Cat.comp_id _) (Cat.comp_id _)
+      rw [hid]
+      apply HasBinaryCoproducts.case_uniq
+      · rw [← Cat.assoc, HasBinaryCoproducts.case_inl, Cat.id_comp]
+      · rw [← Cat.assoc]; exact hAinit _ _
+  rw [← hψinl]; exact isIso_comp hinl_iso ⟨ψinv, hψ1, hψ2⟩
 
 /-- **§1.98(13) action PEANO PROPERTY** (boolean) — `free_peano_property_of_bicartesian`
     packaged with the same argument bundle the equalizer chases use. -/
