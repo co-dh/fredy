@@ -4457,6 +4457,24 @@ theorem foldExists {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B) :
         σ₁ = σ₂ := by
       intro X σ₁ σ₂ h
       rw [curry_unique_eq h, ← curry_unique_eq (f := prodMap B X (Ω ^^ B) σ₂ ≫ eval_exp B Ω) rfl]
+    -- **Singleton ⟹ membership.**  If `valG w = {b₀}` then `(w,b₀) ∈ G` (the singleton's element
+    -- is in the fiber): `pair w b₀ ≫ χG = pair b₀ (w≫valG) ≫ eval = pair b₀ b₀ ≫ χ_Δ = ⊤` (refl).
+    have hMemOfSing : ∀ {X : 𝒞} (w : X ⟶ wordObj A) (b₀ : X ⟶ B),
+        w ≫ valG = b₀ ≫ singletonMapCat B →
+        pair w b₀ ≫ χG = term X ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
+      intro X w b₀ hsing
+      rw [← hvalGβ w b₀, hsing, hSingEval b₀ b₀, (diag_classify_iff b₀ b₀).2 rfl]
+    -- **Membership ⟹ G-point.**  `(w,b₀) ∈ G` lifts to an actual `G`-point `gp : X → G.dom`
+    -- with `gp ≫ p = w` and `gp ≫ (G.arr ≫ snd) = b₀` (classifier pullback of `G.arr`).
+    have hGpointOfMem : ∀ {X : 𝒞} (w : X ⟶ wordObj A) (b₀ : X ⟶ B),
+        pair w b₀ ≫ χG = term X ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) →
+        ∃ gp : X ⟶ G.dom, gp ≫ p = w ∧ gp ≫ (G.arr ≫ snd) = b₀ := by
+      intro X w b₀ hmem
+      obtain ⟨gp, ⟨hgp₁, _⟩, _⟩ :=
+        HasSubobjectClassifier.classify_pullback G.arr G.monic ⟨X, pair w b₀, term X, hmem⟩
+      refine ⟨gp, ?_, ?_⟩
+      · show gp ≫ G.arr ≫ fst = w; rw [← Cat.assoc, hgp₁, fst_pair]
+      · rw [← Cat.assoc, hgp₁, snd_pair]
     -- **Fiber-singleton criterion.**  If `(w,b₀)∈G` and the `w`-fiber of `G` is single-valued
     -- (every `G`-point over `w` has value `b₀`), then `valG w = {b₀}`, i.e. `w ≫ valG` factors
     -- through the singleton map at `b₀`.  Proof: `hExpExt` reduces to a classifier equation on
@@ -4622,7 +4640,19 @@ theorem foldExists {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B) :
           -- (the IH `hbSing`), hence value `= c(a, b') = bc`.  Needs `actLeast_le` on `G` (no junk).
           sorry
         · -- `(cons(a,w), c(a,b)) ∈ G`: `foldStep` applied to a `G`-point over `(w, bSing)`.
-          sorry
+          -- `(Sing.arr, bSing) ∈ G` (singleton fiber inhabited), lift to a `G`-point `gp`, then
+          -- `actG` it: `gstep := (id_A × gp) ≫ actG` has word `wc`, value `bc` (via `hpt`/`hpsnd`).
+          obtain ⟨gp, hgpw, hgpv⟩ := hGpointOfMem Sing.arr bSing (hMemOfSing Sing.arr bSing hbSing)
+          let gstep : prod A Sing.dom ⟶ G.dom := prodMap A Sing.dom G.dom gp ≫ actG
+          have hgstepw : gstep ≫ p = wc := by
+            show (prodMap A Sing.dom G.dom gp ≫ actG) ≫ p = wc
+            rw [Cat.assoc, ← hpt, ← Cat.assoc, ← prodMap_comp, hgpw]
+          have hgstepv : gstep ≫ (G.arr ≫ snd) = bc := by
+            show (prodMap A Sing.dom G.dom gp ≫ actG) ≫ (G.arr ≫ snd) = bc
+            rw [Cat.assoc, ← hpsnd, ← Cat.assoc, ← prodMap_comp, hgpv]
+          have := hGmem gstep
+          rw [hgstepw, hgstepv] at this
+          exact this
       -- assemble the restriction map `consSing : prod A Sing.dom → Sing.dom` via the pullback lift.
       refine actStable_of_restrict (consMor A) Sing
         (pbS.lift ⟨prod A Sing.dom, wc, bc, hwcSing⟩) ?_
