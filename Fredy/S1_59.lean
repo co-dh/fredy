@@ -2194,6 +2194,21 @@ theorem exact_iso_of_ker_cok_zero [ExactCategory 𝒞] {A B : 𝒞} (f : A ⟶ B
     isIso_comp hc_iso (isIso_comp hθ hm_iso)
   rwa [hfac] at this
 
+/-- **In an exact category, an epic map is the cokernel of its own kernel** (dual of
+    `monic_kernel_of_cokernel`).  From `cokernelMap e = 0` (e epic) the image inclusion
+    `kernelMap (cokernelMap e)` is iso, so the exact factorization makes `e` agree with
+    `cokernelMap (kernelMap e)` up to iso. -/
+theorem epi_cokernel_of_kernel_exact [ExactCategory 𝒞] {A B : 𝒞} (e : A ⟶ B)
+    (he : ∀ {Z : 𝒞} (a b : B ⟶ Z), e ≫ a = e ≫ b → a = b) :
+    ∃ h : Cokernel (kernelMap e) ⟶ B, IsIso h ∧ cokernelMap (kernelMap e) ≫ h = e := by
+  obtain ⟨θ, hθ, hfac⟩ := ExactCategory.exact e
+  have hcoker0 : cokernelMap e = zeroMorphism B (Cokernel e) := by
+    apply he
+    rw [comp_cokernelMap e, zero_morphism_comp e (zeroMorphism B (Cokernel e))]
+  have hm_iso : IsIso (kernelMap (cokernelMap e)) := by
+    rw [hcoker0]; exact kernelMap_zero_isIso B (Cokernel e)
+  exact ⟨θ ≫ kernelMap (cokernelMap e), isIso_comp hθ hm_iso, hfac⟩
+
 /-- **§1.598 STEP 1: a normal category is exact.**  For each `x : A → B`, the coimage→image
     comparison `θ : Coker(ker x) → Ker(coker x)` is an iso.  `θ` is a COVER (the normal image
     `Ker(coker x)` is the minimal subobject allowing `x`, so `θ` compares two images of `x`);
