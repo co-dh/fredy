@@ -4216,7 +4216,46 @@ theorem foldExists {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B) :
   -- ─────────────────────────────────────────────────────────────────────────────
   -- (II) SINGLE-VALUEDNESS: `p` is MONIC (§1.98(14), non-boolean).
   have hpmono : Mono p := by
-    sorry
+    -- `q := G.arr ≫ snd : G.dom → B`, the value-leg of the graph.  `Mono p` is reduced (below,
+    -- sorry-free) to this CORE §1.989 single-valuedness equation: the two kernel-pair legs of `p`
+    -- agree after `q`, i.e. the graph `G` is FUNCTIONAL over `A*` (same word ⟹ same value).
+    --
+    -- RESIDUAL (the one genuine hole of §1.98(14), non-boolean).  This is word-induction on `A*`:
+    -- "for all `G`-points `g₁,g₂` over the same word, `q g₁ = q g₂`" holds at `nilMor` and is
+    -- preserved by `consMor` (via `hpt`/`hpsnd`).  The kernel pair `K := kernelPair p` carries an
+    -- algebra (`unitK := g₀ ≫ kp_diag`, `actK` lifting `(prodMap.. kp₁ ≫ actG, prodMap.. kp₂ ≫ actG)`
+    -- through `hpt`+`kp_sq`), with `kp₁,kp₂,δ := kp₁≫p` algebra homs and both `kp₁≫q, kp₂≫q`
+    -- `(e,c)`-algebra homs (via `hpsnd`).  But `listObject_ext`'s induction (`actLeast_le` on a
+    -- subobject of `W`) proves uniqueness of maps OUT of `A*`; single-valuedness is a RELATIONAL
+    -- induction over the FIBERS of `A*`.  Pushing the equalizer `eqObj (kp₁≫q) (kp₂≫q) ⊆ K` into
+    -- `W` along `δ` does NOT form a subobject (`eqMap ≫ δ` is not mono — distinct `G`-pairs share a
+    -- word), so `actLeast_le` does not apply.  The boolean recursor closes this pointwise via
+    -- `hbool`/`htv`/`hcap` (`free_recursor_exists_of_bicartesian`), unavailable here.
+    -- MISSING PRIMITIVE: the "functional-graph / single-valued-graph" relation-induction lemma
+    -- (a.k.a. `relToMap`) — `A*` as an INITIAL `(nil,cons)`-algebra, not merely a least-closed
+    -- subobject of `W` — absent from S1_9/S1_56/S1_59 (kernel-pair-coequalizer descent of `q` along
+    -- the cover `pCov` needs exactly this same equation, so is circular).  See §1.989 notes above.
+    have hcore : kp₁ (f := p) ≫ (G.arr ≫ snd) = kp₂ (f := p) ≫ (G.arr ≫ snd) := by
+      sorry
+    -- The fst-legs of `kp₁≫G.arr`, `kp₂≫G.arr` agree (kp_sq, `p = G.arr≫fst`); the snd-legs
+    -- agree by `hcore`.  `pair_uniq` then forces `kp₁≫G.arr = kp₂≫G.arr`; `G.arr` mono ⟹ equal legs.
+    have hkparr : kp₁ (f := p) ≫ G.arr = kp₂ (f := p) ≫ G.arr := by
+      have h1 : kp₁ (f := p) ≫ G.arr = pair (kp₁ (f := p) ≫ p) (kp₁ (f := p) ≫ (G.arr ≫ snd)) := by
+        refine pair_uniq _ _ _ ?_ (Cat.assoc _ _ _)
+        show (kp₁ (f := p) ≫ G.arr) ≫ fst = kp₁ (f := p) ≫ p
+        rw [Cat.assoc]; rfl
+      have h2 : kp₂ (f := p) ≫ G.arr = pair (kp₂ (f := p) ≫ p) (kp₂ (f := p) ≫ (G.arr ≫ snd)) := by
+        refine pair_uniq _ _ _ ?_ (Cat.assoc _ _ _)
+        show (kp₂ (f := p) ≫ G.arr) ≫ fst = kp₂ (f := p) ≫ p
+        rw [Cat.assoc]; rfl
+      rw [h1, h2, kp_sq, hcore]
+    have hkpeq : kp₁ (f := p) = kp₂ (f := p) := G.monic _ _ hkparr
+    -- `Mono p` from `kp₁ = kp₂`.
+    intro Z u v huv
+    let w : Z ⟶ kernelPair p := (HasPullbacks.has p p).lift ⟨Z, u, v, huv⟩
+    calc u = w ≫ kp₁ (f := p) := (kp_lift_p₁ u v huv).symm
+      _ = w ≫ kp₂ (f := p) := by rw [hkpeq]
+      _ = v := kp_lift_p₂ u v huv
   have hpCovMono : Mono pCov := by
     intro Z u v huv
     apply hpmono
