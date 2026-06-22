@@ -2380,6 +2380,63 @@ theorem invImage_le_iff_restrict {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
     refine ⟨(HasPullbacks.has r B.arr).lift ⟨_, (InverseImage proj B).arr, rB, hcone⟩, ?_⟩
     exact (HasPullbacks.has r B.arr).lift_fst _
 
+/-! ### §1.98(13) `prod A (−)` image calculus for the free complement chase
+
+  The free Peano chase replaces the endo direct image `t(S) = image(S.arr ≫ t)` with the
+  **act-image** `act(S) = image(prodMap A S.dom α.obj S.arr ≫ act)`.  These three lemmas
+  re-establish, for that operator, the exact facts the endo proof draws from `image_post_mono`
+  and `actLeast_stable`/`actLeast_le`.  `act` here is an arbitrary `prod A M → M`; in the chase
+  it is `α.act` (monic, since `[unit,act]` is iso). -/
+
+section ActImageCalculus
+variable {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
+
+/-- `prod A (−)` carries monics to monics (right-factor product map). -/
+theorem prodMap_mono' (A : 𝒞) {X Y : 𝒞} {f : X ⟶ Y} (hf : Mono f) :
+    Mono (prodMap A X Y f) := by
+  intro W u v huv
+  have hfst : u ≫ fst = v ≫ fst := by
+    have := congrArg (· ≫ fst (A := A) (B := Y)) huv
+    simpa only [Cat.assoc, prodMap_fst] using this
+  have hsnd : u ≫ snd = v ≫ snd := by
+    apply hf
+    have := congrArg (· ≫ snd (A := A) (B := Y)) huv
+    simpa only [Cat.assoc, prodMap_snd] using this
+  calc u = pair (u ≫ fst) (u ≫ snd) := pair_uniq _ _ u rfl rfl
+    _ = pair (v ≫ fst) (v ≫ snd) := by rw [hfst, hsnd]
+    _ = v := (pair_uniq _ _ v rfl rfl).symm
+
+/-- **act-image monotonicity** (free `image_post_mono`).  If `S ≤ T` then
+    `act(S) := image(prodMap A S.dom α.obj S.arr ≫ act) ≤ act(T)`.  The witness `h : h ≫ T.arr =
+    S.arr` lifts to `prodMap A S.dom T.dom h` via `prodMap`-functoriality:
+    `prodMap A S.dom α.obj S.arr = prodMap A S.dom T.dom h ≫ prodMap A T.dom α.obj T.arr`. -/
+theorem image_act_mono {A M : 𝒞} (act : prod A M ⟶ M) {S T : Subobject 𝒞 M} (hST : S.le T) :
+    (image (prodMap A S.dom M S.arr ≫ act)).le (image (prodMap A T.dom M T.arr ≫ act)) := by
+  obtain ⟨h, hh⟩ := hST
+  refine image_min _ _ ⟨prodMap A S.dom T.dom h ≫ image.lift (prodMap A T.dom M T.arr ≫ act), ?_⟩
+  rw [Cat.assoc, image.lift_fac, ← Cat.assoc, ← prodMap_comp, hh]
+
+/-- **act-stability in image form** (free `actLeast`-consumer).  `S ↣ M` is `(act,snd)`-stable
+    (`(snd#S) ≤ (act#S)`) iff its act-image lands in it: `act(S) ≤ S`.  The `prod A S.dom`
+    cone `(prodMap.., snd)` over `(snd, S.arr)` lifts into the `snd#S` pullback, transporting
+    the restriction back to the act-image factorisation. -/
+theorem actImg_le_of_actStable {A M : 𝒞} (act : prod A M ⟶ M) (S : Subobject 𝒞 M)
+    (hstab : (InverseImage (snd (A := A) (B := M)) S).le (InverseImage act S)) :
+    (image (prodMap A S.dom M S.arr ≫ act)).le S := by
+  obtain ⟨actS, hactS⟩ := (invImage_le_iff_restrict act (snd (A := A) (B := M)) S).1 hstab
+  -- lift `prod A S.dom → (snd#S).dom` via the pullback of `(snd, S.arr)`.
+  let pb := HasPullbacks.has (snd (A := A) (B := M)) S.arr
+  have hsq : prodMap A S.dom M S.arr ≫ snd = snd ≫ S.arr := prodMap_snd A S.dom M S.arr
+  let j : prod A S.dom ⟶ (InverseImage (snd (A := A) (B := M)) S).dom :=
+    pb.lift ⟨prod A S.dom, prodMap A S.dom M S.arr, snd, hsq⟩
+  have hj : j ≫ (InverseImage (snd (A := A) (B := M)) S).arr = prodMap A S.dom M S.arr :=
+    pb.lift_fst _
+  -- `prodMap.. ≫ act = j ≫ (snd#S).arr ≫ act = j ≫ actS ≫ S.arr = (j ≫ actS) ≫ S.arr`.
+  refine image_min _ _ ⟨j ≫ actS, ?_⟩
+  rw [Cat.assoc, hactS, ← Cat.assoc, hj]
+
+end ActImageCalculus
+
 /-- **§1.98(13) action PEANO PROPERTY in a BOOLEAN topos (the §1.988 free content).**
     Every `(unit,act)`-closed subobject `B ↣ α.obj` is entire.  `B` closed = it allows
     `unit` (point `uB : 1 → B.dom`, `uB ≫ B.arr = α.unit`) and is `act`-stable
