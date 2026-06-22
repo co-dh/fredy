@@ -1338,6 +1338,84 @@ theorem point_bottom_absurd {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞] [HasImag
   exact htv.zero_proper.2
     ⟨p0, strictCoterminator_hom_unique hstrict _ _, term_uniq _ _⟩
 
+/-- **A subobject of `1` either HAS a global point or is `≤ ⊥`** (the `Sub(1)` two-valued
+    dichotomy, from CAPITAL + TWO-VALUED).  Over `1` a point `s : 1 → U.dom` automatically
+    splits `U.arr` (`s ≫ U.arr = id` by `term_uniq`), so "has a point" is the positive case;
+    `noPoint_le_bottom` supplies the negative `≤ ⊥` case. -/
+theorem sub_one_point_or_bot {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
+    (hcap : Capital (𝒞 := 𝒞)) (htv : TwoValued (𝒞 := 𝒞)) (U : Subobject 𝒞 (one : 𝒞)) :
+    Nonempty ((one : 𝒞) ⟶ U.dom) ∨ U.le (PreLogos.bottom one) := by
+  classical
+  by_cases h : Nonempty ((one : 𝒞) ⟶ U.dom)
+  · exact Or.inl h
+  · refine Or.inr (noPoint_le_bottom hcap htv U ?_)
+    intro x ⟨y, _⟩; exact h ⟨y⟩
+
+/-- **COPRODUCT POINT-DECOMPOSITION (canonical coproduct).**  In a CAPITAL + TWO-VALUED topos,
+    any global point `x : 1 → A+B` of the canonical coproduct factors through `coprodInl` or
+    through `coprodInr`.  Proof: the inverse images `U := x#(image inl)` and `V := x#(image inr)`
+    are subobjects of `1` whose union is ENTIRE (`coprodInjections_union_entire` pulled back, via
+    `entire_le_invImage_entire` + `invImage_preserves_union`).  By `sub_one_point_or_bot` each is
+    point-or-`⊥`; if both were `≤ ⊥` their union would be `≤ ⊥`, forcing a point of `(⊥ 1).dom`
+    (`point_bottom_absurd`).  So one has a point, and a point of an inverse image lifts `x`
+    through that injection. -/
+theorem coprod_point_split_canonical {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
+    (hcap : Capital (𝒞 := 𝒞)) (htv : TwoValued (𝒞 := 𝒞)) {A B : 𝒞}
+    (x : (one : 𝒞) ⟶ coprodObj A B) :
+    (∃ u : (one : 𝒞) ⟶ A, x = u ≫ coprodInl A B) ∨
+      (∃ v : (one : 𝒞) ⟶ B, x = v ≫ coprodInr A B) := by
+  classical
+  let U : Subobject 𝒞 (one : 𝒞) := InverseImage x (inlSubobj A B)
+  let V : Subobject 𝒞 (one : 𝒞) := InverseImage x (inrSubobj A B)
+  -- `entire 1 ≤ U ∪ V` (pull the entire union `inlSub ∪ inrSub = ⊤` back along `x`).
+  have hUVtop : (Subobject.entire (one : 𝒞)).le (HasSubobjectUnions.union U V) := by
+    have hunion_top : (Subobject.entire (coprodObj A B)).le
+        (HasSubobjectUnions.union (inlSubobj A B) (inrSubobj A B)) := by
+      obtain ⟨ι, _, hι⟩ := coprodInjections_union_entire A B
+      exact ⟨ι, by simpa using hι⟩
+    have h1 : (Subobject.entire (one : 𝒞)).le
+        (InverseImage x (Subobject.entire (coprodObj A B))) := entire_le_invImage_entire x
+    have h2 : (InverseImage x (Subobject.entire (coprodObj A B))).le
+        (InverseImage x (HasSubobjectUnions.union (inlSubobj A B) (inrSubobj A B))) :=
+      inverseImage_mono x hunion_top
+    have h3 : (InverseImage x (HasSubobjectUnions.union (inlSubobj A B) (inrSubobj A B))).le
+        (HasSubobjectUnions.union U V) :=
+      (PreLogos.invImage_preserves_union x (inlSubobj A B) (inrSubobj A B)).1
+    exact subLe_trans' h1 (subLe_trans' h2 h3)
+  -- a point of `U` lifts `x` through `coprodInl` (the pullback square `π₁ ≫ x = π₂ ≫ inl`).
+  rcases sub_one_point_or_bot hcap htv U with hUpt | hUbot
+  · obtain ⟨s⟩ := hUpt
+    refine Or.inl ⟨s ≫ (HasPullbacks.has x (inlSubobj A B).arr).cone.π₂, ?_⟩
+    have hsq := (HasPullbacks.has x (inlSubobj A B).arr).cone.w
+    have hsU : s ≫ (HasPullbacks.has x (inlSubobj A B).arr).cone.π₁ = Cat.id one :=
+      term_uniq _ _
+    calc x = Cat.id one ≫ x := (Cat.id_comp _).symm
+      _ = (s ≫ (HasPullbacks.has x (inlSubobj A B).arr).cone.π₁) ≫ x := by rw [hsU]
+      _ = s ≫ ((HasPullbacks.has x (inlSubobj A B).arr).cone.π₁ ≫ x) := Cat.assoc _ _ _
+      _ = s ≫ ((HasPullbacks.has x (inlSubobj A B).arr).cone.π₂ ≫ (inlSubobj A B).arr) := by
+            rw [hsq]
+      _ = (s ≫ (HasPullbacks.has x (inlSubobj A B).arr).cone.π₂) ≫ coprodInl A B :=
+            (Cat.assoc _ _ _).symm
+  rcases sub_one_point_or_bot hcap htv V with hVpt | hVbot
+  · obtain ⟨s⟩ := hVpt
+    refine Or.inr ⟨s ≫ (HasPullbacks.has x (inrSubobj A B).arr).cone.π₂, ?_⟩
+    have hsq := (HasPullbacks.has x (inrSubobj A B).arr).cone.w
+    have hsV : s ≫ (HasPullbacks.has x (inrSubobj A B).arr).cone.π₁ = Cat.id one :=
+      term_uniq _ _
+    calc x = Cat.id one ≫ x := (Cat.id_comp _).symm
+      _ = (s ≫ (HasPullbacks.has x (inrSubobj A B).arr).cone.π₁) ≫ x := by rw [hsV]
+      _ = s ≫ ((HasPullbacks.has x (inrSubobj A B).arr).cone.π₁ ≫ x) := Cat.assoc _ _ _
+      _ = s ≫ ((HasPullbacks.has x (inrSubobj A B).arr).cone.π₂ ≫ (inrSubobj A B).arr) := by
+            rw [hsq]
+      _ = (s ≫ (HasPullbacks.has x (inrSubobj A B).arr).cone.π₂) ≫ coprodInr A B :=
+            (Cat.assoc _ _ _).symm
+  -- both `≤ ⊥`: their union is `≤ ⊥`, so `entire 1 ≤ ⊥`, giving a point of `(⊥ 1).dom` — absurd.
+  exfalso
+  have hunion_bot : (HasSubobjectUnions.union U V).le (PreLogos.bottom one) :=
+    HasSubobjectUnions.union_min _ _ _ hUbot hVbot
+  obtain ⟨z, _⟩ := subLe_trans' hUVtop hunion_bot
+  exact point_bottom_absurd htv (Cat.id one ≫ z)
+
 /-- **§1.988 RECURSOR EXISTENCE — in a BOOLEAN + CAPITAL topos (Freyd's actual hypotheses).**
 
     From bicartesian data `[a,t] : 1+A ≅ A` on `A` (and the terminal coequalizer `hcoeq`),
