@@ -3718,6 +3718,54 @@ theorem free_action_iff_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
   The construction uses primRec (or iteratePair) applied to A: the free A-action
   A* is the A-fold "list" object built from the NNO universal property. -/
 
+/-! ### §1.98(14) construction — the exponential carrier `W = (1+A)^N`
+
+  A word in `A` is a map `N → 1+A` that is `inr a` on a prefix `{0,…,len-1}` and `inl ⋆`
+  afterwards (a "stream eventually constant `⋆`").  The ambient object is the exponential
+  `W := (1+A)^N`; the element-reader is exponential evaluation; `cons` prepends a letter by
+  the NNO case-split `1+N ≅ N` on the index.  The list object `A*` is then the least
+  `(nil, cons)`-closed subobject of `W` (`actLeast`). -/
+
+section ListObjectConstruction
+variable {𝒞 : Type u} [Cat.{v} 𝒞] [hN : HasNaturalNumbersObject 𝒞] [HasExponentials 𝒞]
+variable (A : 𝒞)
+
+open HasBinaryCoproducts
+
+-- The exponential struct-maps (`curry`/`eval_exp`/`distCase`) are hardwired to
+-- `HasExponentials.toHasBinaryProducts`; force that single products instance to win every
+-- `prod`/`pair`/`fst`/`snd`/`term` so the whole construction stays diamond-coherent.
+attribute [local instance 20000] HasExponentials.toHasBinaryProducts
+
+/-- The letter object `E = 1 + A` (a letter is either the "blank" `⋆ : 1` or `a : A`). -/
+noncomputable abbrev letterObj : 𝒞 := coprod one A
+
+/-- The word carrier `W = (1+A)^N` (a word is a stream of letters, eventually blank). -/
+noncomputable abbrev wordObj : 𝒞 := exp hN.nno (letterObj A)
+
+/-- The empty word `[] : 1 → W` — the constant stream `inl ⋆` (blank everywhere). -/
+noncomputable def nilMor : one ⟶ wordObj A :=
+  curry (A := hN.nno) (B := letterObj A) (X := one) (term _ ≫ inl)
+
+/-- The body of `cons`: `prod N (prod A W) ⟶ 1+A`.  Reads index `n`; via `1+N≅N` it is
+    either the new head `inr a` (when `n = 0`) or the shifted lookup `eval(w, m)` (when
+    `n = succ m`).  Reindex `n` through `(1+N≅N)⁻¹`, braid the letter-pair to the front,
+    then `distCase`. -/
+noncomputable def consBody : prod hN.nno (prod A (wordObj A)) ⟶ letterObj A :=
+  let cInv : hN.nno ⟶ coprod one hN.nno := (nno_is_coproduct (𝒞 := 𝒞)).choose
+  -- shift leg: from `prod (prod A W) N`, output `eval (w, m)`.
+  let legShift : prod (prod A (wordObj A)) hN.nno ⟶ letterObj A :=
+    pair snd (fst ≫ snd) ≫ eval_exp hN.nno (letterObj A)
+  -- new-head leg: from `prod (prod A W) 1`, output `inr (the letter a)`.
+  let legNil : prod (prod A (wordObj A)) one ⟶ letterObj A := fst ≫ fst ≫ inr
+  pair snd (fst ≫ cInv) ≫ distCase legNil legShift
+
+/-- Prepend `cons : A × W ⟶ W`, the transpose of `consBody`. -/
+noncomputable def consMor : prod A (wordObj A) ⟶ wordObj A :=
+  curry (consBody A)
+
+end ListObjectConstruction
+
 /-- §1.98(14): The LIST OBJECT `A*` of `A` — the initial algebra of the polynomial
     functor `F X = 1 + A × X`, packaged as `nil`/`cons` plus a `fold` recursor.
 
