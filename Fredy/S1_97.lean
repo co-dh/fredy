@@ -1586,7 +1586,44 @@ theorem recursor_exists_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos �
       -- (`Sub(1)` two-valued / coproduct-point decidability) absent from the imported scope: the
       -- generalized element `(A₁ ∩ {a}).dom → A₁.dom` cannot be lifted along the cover `image.lift q`
       -- without `(A₁ ∩ {a}).dom` projective, and `pts_covers_of_capital` only lifts points of `1`.
-      have hfiber : (Subobject.inter A₁ aSub).le (PreLogos.bottom A) := by sorry
+      -- ── THE FIBER-SINGLETON FACT (§1.989 graph reachability): the `p`-fiber over `a` is `{a₀}`.
+      -- Every point `z : 1 → G.dom` with `z ≫ p = a` is `a₀`.  `a₀` is the `inl` of the structure
+      -- map `cg = [a₀,tG]`; `hiso` makes `a` (= `inl` of `[a,t]`) disjoint from every `t`-successor,
+      -- and the keystone `hcg` (`cg` a cover) reaches every point of `G.dom` from `a₀`, so the only
+      -- point landing on `a` is `a₀` itself.
+      have hfibSingle : ∀ z : (one : 𝒞) ⟶ G.dom, z ≫ p = a → z = a₀ := by sorry
+      -- ── THE FIBER FACT: the `a`-fiber of `p` is the singleton `{a₀}`, i.e. `A₁ ∩ {a} ≤ ⊥`.
+      -- `A₁ ∩ {a}` has NO point: a point gives an off-diagonal kernel-pair point over `a`, whose two
+      -- legs are both `a₀` (`hfibSingle`), hence equal — `kpPointAbsurd`.  Then `noPoint_le_bottom`.
+      have hfiber : (Subobject.inter A₁ aSub).le (PreLogos.bottom A) := by
+        refine noPoint_le_bottom hcap htv _ ?_
+        rintro _ ⟨y, _⟩
+        -- the point factors through both `A₁` (left leg) and `aSub` (right leg, forcing value `a`).
+        obtain ⟨kL, hkL⟩ := Subobject.inter_le_left A₁ aSub
+        obtain ⟨kR, hkR⟩ := Subobject.inter_le_right A₁ aSub
+        -- value over `a`: `(y ≫ kL) ≫ A₁.arr = (y ≫ kR) ≫ aSub.arr = a` (`y ≫ kR : 1 → 1 = id`).
+        have hval : (y ≫ kL) ≫ A₁.arr = a := by
+          have heq : (y ≫ kR) ≫ aSub.arr = (y ≫ kL) ≫ A₁.arr := by
+            rw [Cat.assoc, Cat.assoc, hkR, hkL]
+          rw [← heq, term_uniq (y ≫ kR) (Cat.id one), Cat.id_comp]
+        -- 1 projective: lift the point of `A₁ = image q` along the cover to a point of `K'`.
+        obtain ⟨k₀, hk₀⟩ := pts_covers_of_capital hcap (image_lift_cover q) (y ≫ kL)
+        have hk₀q : k₀ ≫ q = a := by
+          have : k₀ ≫ q = (y ≫ kL) ≫ A₁.arr := by
+            show k₀ ≫ K'.arr ≫ kp₁ (f := p) ≫ p = (y ≫ kL) ≫ (image q).arr
+            rw [← hk₀, Cat.assoc, image.lift_fac]
+          rw [this, hval]
+        -- legs `g₁ = k₀≫K'.arr≫kp₁`, `g₂ = k₀≫K'.arr≫kp₂` both land on `a`, so both `= a₀`.
+        apply kpPointAbsurd k₀
+        have hg₁ : (k₀ ≫ K'.arr ≫ kp₁ (f := p)) ≫ p = a := by
+          rw [Cat.assoc, Cat.assoc]; exact hk₀q
+        have hg₂ : (k₀ ≫ K'.arr ≫ kp₂ (f := p)) ≫ p = a := by
+          calc (k₀ ≫ K'.arr ≫ kp₂ (f := p)) ≫ p
+              = k₀ ≫ K'.arr ≫ (kp₂ (f := p) ≫ p) := by rw [Cat.assoc, Cat.assoc]
+            _ = k₀ ≫ K'.arr ≫ (kp₁ (f := p) ≫ p) := by rw [← kp_sq]
+            _ = (k₀ ≫ K'.arr ≫ kp₁ (f := p)) ≫ p := by rw [Cat.assoc, Cat.assoc]
+            _ = a := hg₁
+        rw [hfibSingle _ hg₁, hfibSingle _ hg₂]
       -- ── `A₂` is `(a,t)`-closed.
       -- ALLOWS `a`: `{a} ≤ A₂` by `complement_le_other'` from `A₁ ∩ {a} ≤ ⊥` and `⊤ ≤ A₁ ∪ A₂`.
       have hA₂a : Allows A₂ a := by
