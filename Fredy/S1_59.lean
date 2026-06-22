@@ -2350,6 +2350,64 @@ noncomputable def exactOfNormal {𝒞 : Type u} [Cat.{v} 𝒞] [HasZeroObject �
       _ = xbar ≫ Cat.id (Kernel (cokernelMap x)) := (Cat.comp_id xbar).symm
   exact ⟨θ, ⟨θinv, hθθinv, hθinvθ⟩, hfac⟩
 
+/-! ### §1.597 STEP 2: subtraction in an exact category with products.
+
+  With `[ExactCategory]` (from STEP 1) and `[HasBinaryProducts]`, Freyd manufactures a hom-set
+  SUBTRACTION.  The section is `s_A := y_A ≫ θ_A⁻¹ : A×A → A`, where `y_A := coker(diag A)` and
+  `θ_A := ⟨1,0⟩ ≫ y_A : A → Coker(diag A)`.  The key is that `θ_A` is an iso: `Ker θ_A = 0`
+  (`diag_cokernel_kernel_zero`) and `Cok θ_A = 0`, so `exact_iso_of_ker_cok_zero` applies. -/
+
+/-- `θ_A := ⟨1,0⟩ ≫ coker(diag A)` has zero kernel inclusion (`diag_cokernel_kernel_zero` in
+    equational form). -/
+theorem thetaA_kernel_zero [ExactCategory 𝒞] [HasBinaryProducts 𝒞] (A : 𝒞) :
+    kernelMap (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A))
+      = zeroMorphism (Kernel (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A))) A := by
+  have hLN : IsLeftNormal 𝒞 := fun m hm => all_normal_of_exact m hm
+  let θA := pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A)
+  apply diag_cokernel_kernel_zero hLN A (kernelMap θA)
+  calc kernelMap θA ≫ θA
+      = kernelMap θA ≫ zeroMorphism A (Cokernel (diag A)) := kernelMap_eq θA
+    _ = zeroMorphism (Kernel θA) (Cokernel (diag A)) :=
+          zero_morphism_comp (kernelMap θA) (zeroMorphism A (Cokernel (diag A)))
+
+/-- `snd : A×A → A` is a split epi (section `⟨0,1⟩ = pair 0 id`), hence epic. -/
+theorem snd_epi [HasBinaryProducts 𝒞] {A : 𝒞} [HasZeroObject 𝒞] {Z : 𝒞}
+    (a b : A ⟶ Z) (h : (snd : prod A A ⟶ A) ≫ a = (snd : prod A A ⟶ A) ≫ b) : a = b := by
+  have hsec : (pair (zeroMorphism A A) (Cat.id A) : A ⟶ prod A A) ≫ snd = Cat.id A := snd_pair _ _
+  calc a = Cat.id A ≫ a := (Cat.id_comp a).symm
+    _ = (pair (zeroMorphism A A) (Cat.id A) ≫ snd) ≫ a := by rw [hsec]
+    _ = pair (zeroMorphism A A) (Cat.id A) ≫ (snd ≫ a) := Cat.assoc _ _ _
+    _ = pair (zeroMorphism A A) (Cat.id A) ≫ (snd ≫ b) := by rw [h]
+    _ = (pair (zeroMorphism A A) (Cat.id A) ≫ snd) ≫ b := (Cat.assoc _ _ _).symm
+    _ = Cat.id A ≫ b := by rw [hsec]
+    _ = b := Cat.id_comp b
+
+/-- The kernel inclusion of `snd : A×A → A` factors through `j := ⟨1,0⟩`: any map killed by
+    `snd` is `pair g 0 = g ≫ j`.  (`kernelMap snd ≫ snd = 0`, so its `snd`-coordinate is `0`.) -/
+theorem kernelMap_snd_factors [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasBinaryProducts 𝒞] (A : 𝒞) :
+    (kernelMap (snd : prod A A ⟶ A))
+      = ((kernelMap (snd : prod A A ⟶ A)) ≫ fst) ≫ pair (Cat.id A) (zeroMorphism A A) := by
+  have hks : kernelMap (snd : prod A A ⟶ A) ≫ snd
+      = zeroMorphism (Kernel (snd : prod A A ⟶ A)) A := by
+    calc kernelMap (snd : prod A A ⟶ A) ≫ snd
+        = kernelMap (snd : prod A A ⟶ A) ≫ zeroMorphism (prod A A) A := kernelMap_eq snd
+      _ = zeroMorphism (Kernel (snd : prod A A ⟶ A)) A :=
+            zero_morphism_comp _ (zeroMorphism (prod A A) A)
+  -- both sides have the same `fst`/`snd` coordinates, so equal by product extensionality.
+  have hrfst : (((kernelMap (snd : prod A A ⟶ A)) ≫ fst) ≫ pair (Cat.id A) (zeroMorphism A A)) ≫ fst
+      = kernelMap (snd : prod A A ⟶ A) ≫ fst := by rw [Cat.assoc, fst_pair, Cat.comp_id]
+  have hrsnd : (((kernelMap (snd : prod A A ⟶ A)) ≫ fst) ≫ pair (Cat.id A) (zeroMorphism A A)) ≫ snd
+      = kernelMap (snd : prod A A ⟶ A) ≫ snd := by
+    rw [Cat.assoc, snd_pair,
+        zero_morphism_comp (kernelMap (snd : prod A A ⟶ A) ≫ fst) (zeroMorphism A A), hks]
+  calc kernelMap (snd : prod A A ⟶ A)
+      = pair (kernelMap (snd : prod A A ⟶ A) ≫ fst) (kernelMap (snd : prod A A ⟶ A) ≫ snd) :=
+        pair_eta (kernelMap (snd : prod A A ⟶ A))
+    _ = ((kernelMap (snd : prod A A ⟶ A)) ≫ fst) ≫ pair (Cat.id A) (zeroMorphism A A) :=
+        (pair_uniq (kernelMap (snd : prod A A ⟶ A) ≫ fst) (kernelMap (snd : prod A A ⟶ A) ≫ snd)
+          (((kernelMap (snd : prod A A ⟶ A)) ≫ fst) ≫ pair (Cat.id A) (zeroMorphism A A))
+          hrfst hrsnd).symm
+
 theorem abelian_iff_normal_kernels_cokernels
     {𝒞 : Type u} [Cat.{v} 𝒞]
     [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoequalizers 𝒞] [HasBinaryProducts 𝒞] :
