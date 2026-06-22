@@ -2506,4 +2506,248 @@ theorem constant_image_subterminator [PullbacksTransferCovers 𝒞]
 
 end
 
+/-! ## Relation pullback (`relPullback`) and its functoriality
+
+  Relocated here from §1.9/§1.91/§1.92 (they were stranded across those topos files
+  while being pure relation×pullback machinery, needing only `BinRel`/`RelHom` and
+  `HasPullbacks`).  `relPullback f U` pulls a relation `U : BinRel P C` back along
+  `f : A → P` to a relation `BinRel A C`; `relPullback_comp` is its contravariant
+  functoriality (pullback pasting); `relPullback_compose_dist` is its distribution
+  over relation composition `⊚`. -/
+
+/-- §1.9: The pullback of a relation `U : BinRel 𝒞 P C` along a map `f : A → P`
+    gives a relation from A to C (when pullbacks exist).  Its source is the
+    pullback of `f : A → P` and `U.colA : U.src → P`.  -/
+noncomputable def relPullback [HasPullbacks 𝒞] {P C A : 𝒞}
+    (f : A ⟶ P) (U : BinRel 𝒞 P C) : BinRel 𝒞 A C :=
+  let pb := HasPullbacks.has f U.colA   -- HasPullback f U.colA
+  { src  := pb.cone.pt
+    colA := pb.cone.π₁         -- pb.pt → A
+    colB := pb.cone.π₂ ≫ U.colB  -- pb.pt → U.src → C
+    isMonicPair := by
+      -- jointly-monic: if h₁, h₂ : W → pb.pt agree on both legs,
+      -- they agree on π₁ and π₂ ≫ U.colA (via the pullback), so h₁ = h₂.
+      intro W g h hA hB
+      have hB' : (g ≫ pb.cone.π₂) ≫ U.colB = (h ≫ pb.cone.π₂) ≫ U.colB := by
+        rw [Cat.assoc, Cat.assoc]; exact hB
+      have hA' : (g ≫ pb.cone.π₂) ≫ U.colA = (h ≫ pb.cone.π₂) ≫ U.colA := by
+        have sq := pb.cone.w  -- π₁ ≫ f = π₂ ≫ U.colA
+        have hg : (g ≫ pb.cone.π₁) ≫ f = (g ≫ pb.cone.π₂) ≫ U.colA := by
+          rw [Cat.assoc, Cat.assoc, sq]
+        have hh : (h ≫ pb.cone.π₁) ≫ f = (h ≫ pb.cone.π₂) ≫ U.colA := by
+          rw [Cat.assoc, Cat.assoc, sq]
+        rw [← hg, ← hh, hA]
+      have hπ₂ : g ≫ pb.cone.π₂ = h ≫ pb.cone.π₂ := U.isMonicPair _ _ hA' hB'
+      have hw : (g ≫ pb.cone.π₁) ≫ f = (g ≫ pb.cone.π₂) ≫ U.colA := by
+        rw [Cat.assoc, Cat.assoc, pb.cone.w]
+      exact (pb.lift_uniq ⟨W, g ≫ pb.cone.π₁, g ≫ pb.cone.π₂, hw⟩ g rfl rfl).trans
+        (pb.lift_uniq ⟨W, g ≫ pb.cone.π₁, g ≫ pb.cone.π₂, hw⟩ h hA.symm hπ₂.symm).symm }
+
+/-- **§1.911**: The relation pullback is contravariantly functorial:
+    `relPullback f (relPullback g R) ≅ relPullback (f ≫ g) R`
+    (as `RelHom` in both directions), where f : A'' → A', g : A' → A.
+
+    Proved by hand from the pullback universal properties (pasting): the
+    composite of the two pullback squares — one for `(g, R.colA)` and one for
+    `(f, (relPullback g R).colA)` — is a pullback square for `(f ≫ g, R.colA)`.
+    Each direction is a `HasPullback.lift` of the cone induced by the other
+    side, with the colB legs matching by associativity. -/
+theorem relPullback_comp [HasPullbacks 𝒞] {A A' A'' B : 𝒞}
+    (f : A'' ⟶ A') (g : A' ⟶ A) (R : BinRel 𝒞 A B) :
+    RelHom (relPullback f (relPullback g R)) (relPullback (f ≫ g) R) ∧
+    RelHom (relPullback (f ≫ g) R) (relPullback f (relPullback g R)) := by
+  -- Pullback pasting, done by hand from the universal properties.
+  let Pg := HasPullbacks.has g R.colA
+  let Pf := HasPullbacks.has f Pg.cone.π₁
+  let Q  := HasPullbacks.has (f ≫ g) R.colA
+  have wPg : Pg.cone.π₁ ≫ g = Pg.cone.π₂ ≫ R.colA := Pg.cone.w
+  have wPf : Pf.cone.π₁ ≫ f = Pf.cone.π₂ ≫ Pg.cone.π₁ := Pf.cone.w
+  have wQ  : Q.cone.π₁ ≫ (f ≫ g) = Q.cone.π₂ ≫ R.colA := Q.cone.w
+  show RelHom (relPullback f (relPullback g R)) (relPullback (f ≫ g) R) ∧
+    RelHom (relPullback (f ≫ g) R) (relPullback f (relPullback g R))
+  constructor
+  · -- forward: h := Q.lift of the Pf-induced cone over (f≫g, R.colA)
+    refine ⟨Q.lift ⟨Pf.cone.pt, Pf.cone.π₁, Pf.cone.π₂ ≫ Pg.cone.π₂, ?_⟩, ?_, ?_⟩
+    · calc Pf.cone.π₁ ≫ (f ≫ g)
+            = (Pf.cone.π₁ ≫ f) ≫ g := by rw [Cat.assoc]
+        _ = (Pf.cone.π₂ ≫ Pg.cone.π₁) ≫ g := by rw [wPf]
+        _ = Pf.cone.π₂ ≫ (Pg.cone.π₁ ≫ g) := by rw [Cat.assoc]
+        _ = Pf.cone.π₂ ≫ (Pg.cone.π₂ ≫ R.colA) := by rw [wPg]
+        _ = (Pf.cone.π₂ ≫ Pg.cone.π₂) ≫ R.colA := by rw [Cat.assoc]
+    · exact Q.lift_fst _
+    · change _ ≫ (Q.cone.π₂ ≫ R.colB)
+            = Pf.cone.π₂ ≫ (Pg.cone.π₂ ≫ R.colB)
+      rw [← Cat.assoc, Q.lift_snd, Cat.assoc]
+  · -- backward: k := Pf.lift of the Q-induced cone over (f, Pg.π₁)
+    let m := Pg.lift ⟨Q.cone.pt, Q.cone.π₁ ≫ f, Q.cone.π₂, by
+      calc (Q.cone.π₁ ≫ f) ≫ g = Q.cone.π₁ ≫ (f ≫ g) := by rw [Cat.assoc]
+        _ = Q.cone.π₂ ≫ R.colA := wQ⟩
+    have hm1 : m ≫ Pg.cone.π₁ = Q.cone.π₁ ≫ f := Pg.lift_fst _
+    have hm2 : m ≫ Pg.cone.π₂ = Q.cone.π₂ := Pg.lift_snd _
+    let k := Pf.lift ⟨Q.cone.pt, Q.cone.π₁, m, by rw [hm1]⟩
+    have hk1 : k ≫ Pf.cone.π₁ = Q.cone.π₁ := Pf.lift_fst _
+    have hk2 : k ≫ Pf.cone.π₂ = m := Pf.lift_snd _
+    refine ⟨k, ?_, ?_⟩
+    · exact hk1
+    · change k ≫ Pf.cone.π₂ ≫ Pg.cone.π₂ ≫ R.colB = Q.cone.π₂ ≫ R.colB
+      calc k ≫ Pf.cone.π₂ ≫ Pg.cone.π₂ ≫ R.colB
+            = (k ≫ Pf.cone.π₂) ≫ (Pg.cone.π₂ ≫ R.colB) := (Cat.assoc _ _ _).symm
+        _ = m ≫ (Pg.cone.π₂ ≫ R.colB) := by rw [hk2]
+        _ = (m ≫ Pg.cone.π₂) ≫ R.colB := (Cat.assoc _ _ _).symm
+        _ = Q.cone.π₂ ≫ R.colB := by rw [hm2]
+
+section RelPullbackDist
+variable [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] [PullbacksTransferCovers 𝒞]
+
+/-- **§1.92 — pullback distributes over composition.**  For `g : X → A`,
+    `R : BinRel A B`, `S : BinRel B C`:
+    `relPullback g (R ⊚ S) ≅ (relPullback g R) ⊚ S`  (mutual `RelHom`).
+
+    The crux of the covariant power-map naturality.  `R ⊚ S` is the §1.56 image of the
+    span over `pullback(R.colB, S.colA)`; pulling that back along `g` is the image of the
+    span over `pullback(g, R.colA) ×_? S`.  Each direction is a `relLe_of_cover_factor`
+    descent: pull the relevant image-cover (`image.lift`) back along the appropriate
+    `relPullback`/composite leg (`cover_pullback`, needing `PullbacksTransferCovers`),
+    obtaining a common cover on which the coherent `(relPullback g R)`/`S` data assembles. -/
+theorem relPullback_compose_dist {X A B C : 𝒞} (g : X ⟶ A)
+    (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) :
+    RelHom (relPullback g (R ⊚ S)) ((relPullback g R) ⊚ S) ∧
+    RelHom ((relPullback g R) ⊚ S) (relPullback g (R ⊚ S)) := by
+  -- data of `R ⊚ S`: image of `spanRS` over `pbRS = pullback(R.colB, S.colA)`.
+  let pbRS := HasPullbacks.has R.colB S.colA
+  let spanRS : pbRS.cone.pt ⟶ prod A C :=
+    pair (pbRS.cone.π₁ ≫ R.colA) (pbRS.cone.π₂ ≫ S.colB)
+  let eRS : pbRS.cone.pt ⟶ (R ⊚ S).src := image.lift spanRS
+  have heRSa : eRS ≫ (R ⊚ S).colA = pbRS.cone.π₁ ≫ R.colA := by
+    show eRS ≫ ((image spanRS).arr ≫ fst) = _
+    rw [← Cat.assoc, image.lift_fac, fst_pair]
+  have heRSb : eRS ≫ (R ⊚ S).colB = pbRS.cone.π₂ ≫ S.colB := by
+    show eRS ≫ ((image spanRS).arr ≫ snd) = _
+    rw [← Cat.assoc, image.lift_fac, snd_pair]
+  have heRS_cover : Cover eRS := image_lift_cover spanRS
+  -- data of `relPullback g R`: pullback of `g` and `R.colA`.
+  let rgR := relPullback g R
+  have hrgRa : rgR.colA = (HasPullbacks.has g R.colA).cone.π₁ := rfl
+  have hrgRb : rgR.colB = (HasPullbacks.has g R.colA).cone.π₂ ≫ R.colB := rfl
+  -- data of `(relPullback g R) ⊚ S`: image of `span'` over `pb' = pullback(rgR.colB, S.colA)`.
+  let pb' := HasPullbacks.has rgR.colB S.colA
+  let span' : pb'.cone.pt ⟶ prod X C :=
+    pair (pb'.cone.π₁ ≫ rgR.colA) (pb'.cone.π₂ ≫ S.colB)
+  let e' : pb'.cone.pt ⟶ ((relPullback g R) ⊚ S).src := image.lift span'
+  have he'a : e' ≫ ((relPullback g R) ⊚ S).colA = pb'.cone.π₁ ≫ rgR.colA := by
+    show e' ≫ ((image span').arr ≫ fst) = _
+    rw [← Cat.assoc, image.lift_fac, fst_pair]
+  have he'b : e' ≫ ((relPullback g R) ⊚ S).colB = pb'.cone.π₂ ≫ S.colB := by
+    show e' ≫ ((image span').arr ≫ snd) = _
+    rw [← Cat.assoc, image.lift_fac, snd_pair]
+  have he'_cover : Cover e' := image_lift_cover span'
+  constructor
+  · -- FORWARD: relPullback g (R⊚S) ⊂ (relPullback g R) ⊚ S.
+    let Pg := HasPullbacks.has g (R ⊚ S).colA
+    let Pc := HasPullbacks.has eRS Pg.cone.π₂
+    let c : Pc.cone.pt ⟶ Pg.cone.pt := Pc.cone.π₂
+    let q : Pc.cone.pt ⟶ pbRS.cone.pt := Pc.cone.π₁
+    have hcq : q ≫ eRS = c ≫ Pg.cone.π₂ := Pc.cone.w
+    have hc_cover : Cover c := cover_pullback (𝒞 := 𝒞) (f := eRS) Pg.cone.π₂ heRS_cover
+    have hgR : (c ≫ Pg.cone.π₁) ≫ g = (q ≫ pbRS.cone.π₁) ≫ R.colA := by
+      calc (c ≫ Pg.cone.π₁) ≫ g
+          = c ≫ (Pg.cone.π₁ ≫ g) := Cat.assoc _ _ _
+        _ = c ≫ (Pg.cone.π₂ ≫ (R ⊚ S).colA) := by rw [Pg.cone.w]
+        _ = (c ≫ Pg.cone.π₂) ≫ (R ⊚ S).colA := (Cat.assoc _ _ _).symm
+        _ = (q ≫ eRS) ≫ (R ⊚ S).colA := by rw [hcq]
+        _ = q ≫ (eRS ≫ (R ⊚ S).colA) := Cat.assoc _ _ _
+        _ = q ≫ (pbRS.cone.π₁ ≫ R.colA) := by rw [heRSa]
+        _ = (q ≫ pbRS.cone.π₁) ≫ R.colA := (Cat.assoc _ _ _).symm
+    let PgR := HasPullbacks.has g R.colA
+    let m : Pc.cone.pt ⟶ rgR.src :=
+      PgR.lift ⟨Pc.cone.pt, c ≫ Pg.cone.π₁, q ≫ pbRS.cone.π₁, hgR⟩
+    have hm₁ : m ≫ PgR.cone.π₁ = c ≫ Pg.cone.π₁ := PgR.lift_fst _
+    have hm₂ : m ≫ PgR.cone.π₂ = q ≫ pbRS.cone.π₁ := PgR.lift_snd _
+    have hrgRS : m ≫ rgR.colB = (q ≫ pbRS.cone.π₂) ≫ S.colA := by
+      calc m ≫ rgR.colB
+          = m ≫ (PgR.cone.π₂ ≫ R.colB) := by rw [hrgRb]
+        _ = (m ≫ PgR.cone.π₂) ≫ R.colB := (Cat.assoc _ _ _).symm
+        _ = (q ≫ pbRS.cone.π₁) ≫ R.colB := by rw [hm₂]
+        _ = q ≫ (pbRS.cone.π₁ ≫ R.colB) := Cat.assoc _ _ _
+        _ = q ≫ (pbRS.cone.π₂ ≫ S.colA) := by rw [pbRS.cone.w]
+        _ = (q ≫ pbRS.cone.π₂) ≫ S.colA := (Cat.assoc _ _ _).symm
+    let n : Pc.cone.pt ⟶ pb'.cone.pt :=
+      pb'.lift ⟨Pc.cone.pt, m, q ≫ pbRS.cone.π₂, hrgRS⟩
+    have hn₁ : n ≫ pb'.cone.π₁ = m := pb'.lift_fst _
+    have hn₂ : n ≫ pb'.cone.π₂ = q ≫ pbRS.cone.π₂ := pb'.lift_snd _
+    have hYA : (n ≫ e') ≫ ((relPullback g R) ⊚ S).colA
+             = c ≫ (relPullback g (R ⊚ S)).colA := by
+      calc (n ≫ e') ≫ ((relPullback g R) ⊚ S).colA
+          = n ≫ (e' ≫ ((relPullback g R) ⊚ S).colA) := Cat.assoc _ _ _
+        _ = n ≫ (pb'.cone.π₁ ≫ rgR.colA) := by rw [he'a]
+        _ = (n ≫ pb'.cone.π₁) ≫ rgR.colA := (Cat.assoc _ _ _).symm
+        _ = m ≫ rgR.colA := by rw [hn₁]
+        _ = m ≫ PgR.cone.π₁ := by rw [hrgRa]
+        _ = c ≫ Pg.cone.π₁ := hm₁
+        _ = c ≫ (relPullback g (R ⊚ S)).colA := rfl
+    have hYB : (n ≫ e') ≫ ((relPullback g R) ⊚ S).colB
+             = c ≫ (relPullback g (R ⊚ S)).colB := by
+      calc (n ≫ e') ≫ ((relPullback g R) ⊚ S).colB
+          = n ≫ (e' ≫ ((relPullback g R) ⊚ S).colB) := Cat.assoc _ _ _
+        _ = n ≫ (pb'.cone.π₂ ≫ S.colB) := by rw [he'b]
+        _ = (n ≫ pb'.cone.π₂) ≫ S.colB := (Cat.assoc _ _ _).symm
+        _ = (q ≫ pbRS.cone.π₂) ≫ S.colB := by rw [hn₂]
+        _ = q ≫ (pbRS.cone.π₂ ≫ S.colB) := Cat.assoc _ _ _
+        _ = q ≫ (eRS ≫ (R ⊚ S).colB) := by rw [heRSb]
+        _ = (q ≫ eRS) ≫ (R ⊚ S).colB := (Cat.assoc _ _ _).symm
+        _ = (c ≫ Pg.cone.π₂) ≫ (R ⊚ S).colB := by rw [hcq]
+        _ = c ≫ (Pg.cone.π₂ ≫ (R ⊚ S).colB) := Cat.assoc _ _ _
+        _ = c ≫ (relPullback g (R ⊚ S)).colB := rfl
+    obtain ⟨hrel⟩ := relLe_of_cover_factor (X := relPullback g (R ⊚ S))
+      (Y := (relPullback g R) ⊚ S) c hc_cover (n ≫ e') hYA hYB
+    exact hrel
+  · -- BACKWARD: (relPullback g R) ⊚ S ⊂ relPullback g (R⊚S).
+    let Pg := HasPullbacks.has g (R ⊚ S).colA
+    let PgR := HasPullbacks.has g R.colA
+    have hrw : (pb'.cone.π₁ ≫ PgR.cone.π₂) ≫ R.colB = pb'.cone.π₂ ≫ S.colA := by
+      have hpbw : pb'.cone.π₁ ≫ rgR.colB = pb'.cone.π₂ ≫ S.colA := pb'.cone.w
+      calc (pb'.cone.π₁ ≫ PgR.cone.π₂) ≫ R.colB
+          = pb'.cone.π₁ ≫ (PgR.cone.π₂ ≫ R.colB) := Cat.assoc _ _ _
+        _ = pb'.cone.π₂ ≫ S.colA := hpbw
+    let r : pb'.cone.pt ⟶ pbRS.cone.pt :=
+      pbRS.lift ⟨pb'.cone.pt, pb'.cone.π₁ ≫ PgR.cone.π₂, pb'.cone.π₂, hrw⟩
+    have hr₁ : r ≫ pbRS.cone.π₁ = pb'.cone.π₁ ≫ PgR.cone.π₂ := pbRS.lift_fst _
+    have hr₂ : r ≫ pbRS.cone.π₂ = pb'.cone.π₂ := pbRS.lift_snd _
+    have hag : (pb'.cone.π₁ ≫ PgR.cone.π₁) ≫ g = (r ≫ eRS) ≫ (R ⊚ S).colA := by
+      calc (pb'.cone.π₁ ≫ PgR.cone.π₁) ≫ g
+          = pb'.cone.π₁ ≫ (PgR.cone.π₁ ≫ g) := Cat.assoc _ _ _
+        _ = pb'.cone.π₁ ≫ (PgR.cone.π₂ ≫ R.colA) := by rw [PgR.cone.w]
+        _ = (pb'.cone.π₁ ≫ PgR.cone.π₂) ≫ R.colA := (Cat.assoc _ _ _).symm
+        _ = (r ≫ pbRS.cone.π₁) ≫ R.colA := by rw [hr₁]
+        _ = r ≫ (pbRS.cone.π₁ ≫ R.colA) := Cat.assoc _ _ _
+        _ = r ≫ (eRS ≫ (R ⊚ S).colA) := by rw [heRSa]
+        _ = (r ≫ eRS) ≫ (R ⊚ S).colA := (Cat.assoc _ _ _).symm
+    let φ : pb'.cone.pt ⟶ Pg.cone.pt :=
+      Pg.lift ⟨pb'.cone.pt, pb'.cone.π₁ ≫ PgR.cone.π₁, r ≫ eRS, hag⟩
+    have hφ₁ : φ ≫ Pg.cone.π₁ = pb'.cone.π₁ ≫ PgR.cone.π₁ := Pg.lift_fst _
+    have hφ₂ : φ ≫ Pg.cone.π₂ = r ≫ eRS := Pg.lift_snd _
+    have hXA : φ ≫ (relPullback g (R ⊚ S)).colA
+             = e' ≫ ((relPullback g R) ⊚ S).colA := by
+      calc φ ≫ (relPullback g (R ⊚ S)).colA
+          = φ ≫ Pg.cone.π₁ := rfl
+        _ = pb'.cone.π₁ ≫ PgR.cone.π₁ := hφ₁
+        _ = pb'.cone.π₁ ≫ rgR.colA := by rw [hrgRa]
+        _ = e' ≫ ((relPullback g R) ⊚ S).colA := he'a.symm
+    have hXB : φ ≫ (relPullback g (R ⊚ S)).colB
+             = e' ≫ ((relPullback g R) ⊚ S).colB := by
+      calc φ ≫ (relPullback g (R ⊚ S)).colB
+          = φ ≫ (Pg.cone.π₂ ≫ (R ⊚ S).colB) := rfl
+        _ = (φ ≫ Pg.cone.π₂) ≫ (R ⊚ S).colB := (Cat.assoc _ _ _).symm
+        _ = (r ≫ eRS) ≫ (R ⊚ S).colB := by rw [hφ₂]
+        _ = r ≫ (eRS ≫ (R ⊚ S).colB) := Cat.assoc _ _ _
+        _ = r ≫ (pbRS.cone.π₂ ≫ S.colB) := by rw [heRSb]
+        _ = (r ≫ pbRS.cone.π₂) ≫ S.colB := (Cat.assoc _ _ _).symm
+        _ = pb'.cone.π₂ ≫ S.colB := by rw [hr₂]
+        _ = e' ≫ ((relPullback g R) ⊚ S).colB := he'b.symm
+    obtain ⟨hrel⟩ := relLe_of_cover_factor (X := (relPullback g R) ⊚ S)
+      (Y := relPullback g (R ⊚ S)) e' he'_cover φ hXA hXB
+    exact hrel
+
+end RelPullbackDist
+
 end Freyd
