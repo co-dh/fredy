@@ -1315,6 +1315,23 @@ theorem dom_initial_of_le_bottom {A : 𝒞} {S : Subobject 𝒞 A}
   rw [key u, key v,
       (minimal_subobject_of_one_is_coterminator hPL).init_uniq (zinv ≫ u) (zinv ≫ v)]
 
+/-- An object that admits ANY map into a bottom domain `(⊥ Z).dom` is **initial**: any two
+    maps out of it agree.  Generalises `dom_initial_of_le_bottom` (which assumes the map lands
+    in `(⊥ A).dom` for the *same* ambient `A`); since all bottoms are cross-base isomorphic
+    (`bottom_dom_iso`), a map to any `(⊥ Z).dom` suffices.  Used to collapse the complement
+    `A''` once it is shown to map into a disjoint two-point object. -/
+theorem dom_initial_of_map_to_bottom {X Z : 𝒞} (g : X ⟶ (PreLogos.bottom Z).dom) :
+    ∀ {Y : 𝒞} (u v : X ⟶ Y), u = v := by
+  letI hPL : PreLogos 𝒞 := ‹PreLogos 𝒞›
+  obtain ⟨ζ, hζ⟩ := hPL.bottom_dom_iso Z hPL.toHasTerminal.one  -- ζ : (⊥ Z).dom → 0
+  have hiso : IsIso (g ≫ ζ) := any_map_to_zero_is_iso hPL (g ≫ ζ)
+  obtain ⟨zinv, hz, _hzinv⟩ := hiso
+  intro Y u v
+  have key : ∀ (w : X ⟶ Y), w = (g ≫ ζ) ≫ (zinv ≫ w) := by
+    intro w; rw [← Cat.assoc, hz, Cat.id_comp]
+  rw [key u, key v,
+      (minimal_subobject_of_one_is_coterminator hPL).init_uniq (zinv ≫ u) (zinv ≫ v)]
+
 /-- §1.62/§1.631: a complemented pair `(U, U₂)` of `A` realises `A` as the coproduct of the
     two subobject domains.  Hypotheses are exactly the two clauses of `IsComplementedSub`. -/
 theorem complementedSub_iso_coproduct [HasBinaryCoproducts 𝒞] {A : 𝒞}
@@ -1335,6 +1352,69 @@ theorem complementedSub_iso_coproduct [HasBinaryCoproducts 𝒞] {A : 𝒞}
     obtain ⟨arrinv, h1, h2⟩ := hUnion_entire
     exact ⟨arrinv, (HasSubobjectUnions.union U U₂).arr, h2, h1⟩
   exact isomorphic_trans hA_union hpoiso
+
+/-- §1.62/§1.631, **leg-exposing** form of `complementedSub_iso_coproduct`: a complemented
+    pair `(U, U₂)` of `A` realises `A` as `U.dom + U₂.dom` with an iso `ψ` whose legs match
+    the subobject inclusions (`inl ≫ ψ = U.arr`, `inr ≫ ψ = U₂.arr`), together with a
+    two-sided inverse.  Same pasting-lemma kernel as `complementedSub_iso_coproduct`, but the
+    explicit copairing comparison is needed so a `case s₁ s₂` post-composed with `ψ⁻¹`
+    restricts each section to its half of `A`.  Lives here (not the §1.662 Diaconescu section
+    of `S1_64`) so it resolves over the CANONICAL topos `PreLogos`/`HasSubobjectUnions`
+    instances — avoiding the `PreToposDisjoint` instance diamond. -/
+theorem complementedSub_legs_iso [HasBinaryCoproducts 𝒞] {A : 𝒞} (U U₂ : Subobject 𝒞 A)
+    (hdisj : Subobject.le (Subobject.inter U U₂) (PreLogos.bottom A))
+    (hentire : Subobject.le (Subobject.entire A) (HasSubobjectUnions.union U U₂)) :
+    ∃ (ψ : HasBinaryCoproducts.coprod U.dom U₂.dom ⟶ A)
+      (ψinv : A ⟶ HasBinaryCoproducts.coprod U.dom U₂.dom),
+      ψ ≫ ψinv = Cat.id _ ∧ ψinv ≫ ψ = Cat.id _ ∧
+      HasBinaryCoproducts.inl ≫ ψ = U.arr ∧ HasBinaryCoproducts.inr ≫ ψ = U₂.arr := by
+  classical
+  have hCinit : ∀ {X : 𝒞} (u v : (HasPullbacks.has U.arr U₂.arr).cone.pt ⟶ X), u = v :=
+    dom_initial_of_le_bottom (S := Subobject.inter U U₂) hdisj
+  let po := pasting_lemma U U₂
+  let Un := HasSubobjectUnions.union U U₂
+  have hx : po.cocone.ι₁ ≫ Un.arr = U.arr := (HasSubobjectUnions.union_left U U₂).choose_spec
+  have hy : po.cocone.ι₂ ≫ Un.arr = U₂.arr := (HasSubobjectUnions.union_right U U₂).choose_spec
+  let coCoc : PushoutCocone (HasPullbacks.has U.arr U₂.arr).cone.π₁
+      (HasPullbacks.has U.arr U₂.arr).cone.π₂ :=
+    ⟨HasBinaryCoproducts.coprod U.dom U₂.dom, HasBinaryCoproducts.inl, HasBinaryCoproducts.inr,
+     hCinit _ _⟩
+  let φ : po.cocone.pt ⟶ HasBinaryCoproducts.coprod U.dom U₂.dom := po.desc coCoc
+  have hφ₁ : po.cocone.ι₁ ≫ φ = HasBinaryCoproducts.inl := po.fac₁ coCoc
+  have hφ₂ : po.cocone.ι₂ ≫ φ = HasBinaryCoproducts.inr := po.fac₂ coCoc
+  let χ : HasBinaryCoproducts.coprod U.dom U₂.dom ⟶ po.cocone.pt :=
+    HasBinaryCoproducts.case po.cocone.ι₁ po.cocone.ι₂
+  have hχ₁ : HasBinaryCoproducts.inl ≫ χ = po.cocone.ι₁ := HasBinaryCoproducts.case_inl _ _
+  have hχ₂ : HasBinaryCoproducts.inr ≫ χ = po.cocone.ι₂ := HasBinaryCoproducts.case_inr _ _
+  have hφχ : φ ≫ χ = Cat.id _ := by
+    have h1 : po.cocone.ι₁ ≫ (φ ≫ χ) = po.cocone.ι₁ := by rw [← Cat.assoc, hφ₁, hχ₁]
+    have h2 : po.cocone.ι₂ ≫ (φ ≫ χ) = po.cocone.ι₂ := by rw [← Cat.assoc, hφ₂, hχ₂]
+    rw [po.uniq po.cocone (φ ≫ χ) h1 h2,
+        po.uniq po.cocone (Cat.id _) (Cat.comp_id _) (Cat.comp_id _)]
+  have hχφ : χ ≫ φ = Cat.id _ := by
+    have h1 : HasBinaryCoproducts.inl ≫ (χ ≫ φ) = HasBinaryCoproducts.inl := by
+      rw [← Cat.assoc, hχ₁, hφ₁]
+    have h2 : HasBinaryCoproducts.inr ≫ (χ ≫ φ) = HasBinaryCoproducts.inr := by
+      rw [← Cat.assoc, hχ₂, hφ₂]
+    rw [HasBinaryCoproducts.case_uniq _ _ (χ ≫ φ) h1 h2,
+        HasBinaryCoproducts.case_uniq _ _ (Cat.id _) (Cat.comp_id _) (Cat.comp_id _)]
+  obtain ⟨arrinv, h1, h2⟩ := entire_of_entire_le hentire
+  refine ⟨χ ≫ Un.arr, arrinv ≫ φ, ?_, ?_, ?_, ?_⟩
+  · have e1 : (χ ≫ Un.arr) ≫ (arrinv ≫ φ) = χ ≫ ((Un.arr ≫ arrinv) ≫ φ) := by
+      simp only [Cat.assoc]
+    rw [e1, h1, show (Cat.id Un.dom ≫ φ) = φ from Cat.id_comp φ]; exact hχφ
+  · have e2 : (arrinv ≫ φ) ≫ (χ ≫ Un.arr) = arrinv ≫ ((φ ≫ χ) ≫ Un.arr) := by
+      simp only [Cat.assoc]
+    rw [e2, hφχ, show (Cat.id po.cocone.pt ≫ Un.arr) = Un.arr from Cat.id_comp Un.arr]
+    exact h2
+  · calc HasBinaryCoproducts.inl ≫ (χ ≫ Un.arr)
+        = (HasBinaryCoproducts.inl ≫ χ) ≫ Un.arr := (Cat.assoc _ _ _).symm
+      _ = po.cocone.ι₁ ≫ Un.arr := by rw [hχ₁]
+      _ = U.arr := hx
+  · calc HasBinaryCoproducts.inr ≫ (χ ≫ Un.arr)
+        = (HasBinaryCoproducts.inr ≫ χ) ≫ Un.arr := (Cat.assoc _ _ _).symm
+      _ = po.cocone.ι₂ ≫ Un.arr := by rw [hχ₂]
+      _ = U₂.arr := hy
 
 /-- Intersection of subobjects is symmetric up to `≤`: swapping the pullback legs gives
     `inter S T ≤ inter T S`.  Both intersections are pullbacks of the same cospan in the two

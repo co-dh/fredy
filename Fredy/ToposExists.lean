@@ -677,6 +677,28 @@ theorem coprodInjections_disjoint (A B : 𝒞) :
   have hI_iso_Z : Isomorphic I (bottomSub (one : 𝒞)).dom := ⟨z, hz_iso⟩
   exact Isomorphic.trans' hI_iso_Z (bottomSub_dom_iso (one : 𝒞) (coprodObj A B))
 
+/-- **§1.621 disjointness, elementwise (topos form).**  If two generalized elements are
+    identified across the two injections (`p ≫ coprodInl = q ≫ coprodInr`), their common
+    domain `X` is INITIAL: any two maps out of `X` agree.  Lifts `(p, q)` into the pullback
+    of `(coprodInl, coprodInr)` — which `coprodInjections_disjoint` shows is `≅ 0` — then
+    `(bottomSub one).dom`'s strict-coterminator uniqueness collapses maps out of `X`.  Keeps
+    the pullback/instance plumbing INSIDE the topos layer, so callers never compose across
+    two `HasPullbacks` instances. -/
+theorem coprodInjections_disjoint_elt {A B X : 𝒞} (p : X ⟶ A) (q : X ⟶ B)
+    (hpq : p ≫ coprodInl A B = q ≫ coprodInr A B) :
+    ∀ {Y : 𝒞} (u v : X ⟶ Y), u = v := by
+  let pb := HasPullbacks.has (coprodInl A B) (coprodInr A B)
+  let w : X ⟶ pb.cone.pt := pb.lift ⟨X, p, q, hpq⟩
+  obtain ⟨f0, _⟩ := coprodInjections_disjoint A B
+  obtain ⟨θ, _⟩ := bottomSub_dom_iso (coprodObj A B) (one : 𝒞)
+  let m' : X ⟶ (bottomSub (one : 𝒞)).dom := (w ≫ f0) ≫ θ
+  obtain ⟨mi, hm1, _hm2⟩ := strict_coterminator_bottomSub_one m'
+  intro Y u v
+  have key : ∀ z : X ⟶ Y, z = m' ≫ (mi ≫ z) := by
+    intro z; rw [← Cat.assoc, hm1, Cat.id_comp]
+  rw [key u, key v,
+      strictCoterminator_hom_unique strict_coterminator_bottomSub_one (mi ≫ u) (mi ≫ v)]
+
 /-- The two injections as SUBOBJECTS of `A+B` (monic). -/
 noncomputable def inlSubobj (A B : 𝒞) : Subobject 𝒞 (coprodObj A B) :=
   ⟨A, coprodInl A B, coprodInl_monic A B⟩

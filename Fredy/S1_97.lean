@@ -29,6 +29,8 @@ import Fredy.S1_94
 import Fredy.InternalForall
 import Fredy.PartialMapClassifier
 import Fredy.LeastClosedTopos
+import Fredy.Complement
+import Fredy.ToposExists
 
 
 universe v u
@@ -752,36 +754,550 @@ theorem nno_is_free_one_action {𝒞 : Type u} [Cat.{v} 𝒞]
   §1.988 partial-map-classifier recursor + §1.987 internal-∀ Peano induction
   (W-type infrastructure absent in this repo — NOT the now-proven §1.543 lemma). -/
 
-/-- **§1.988 RECURSOR EXISTENCE — the single residual of §1.98(10).**
+/-! ### §1.988 BOOLEAN hypothesis (statement-fidelity fix)
 
-    From bicartesian data `[a,t] : 1+A ≅ A` on `A` (and the terminal coequalizer
-    `hcoeq`), §1.988 produces, for every `(X, x : 1→X, f : X→X)`, a map `h : A → X`
-    with `a ≫ h = x` and `t ≫ h = h ≫ f` — Freyd's recursion theorem.  Concretely
-    `h` is the fixpoint `h = pred ≫ case x (h ≫ f)` of the iso `pred := [a,t]⁻¹`,
-    built through the lawful per-codomain partial-map classifier
-    (`Fredy.partialMapClassifier_exists`) for the *partial* recursor, whose domain
-    `R ↣ A` is `(a,t)`-stable and forced entire by the §1.987 Peano INDUCTION the
-    coequalizer powers.
+  Freyd's §1.988 Peano theorem is stated **for a BOOLEAN topos**, and its proof uses
+  booleanness essentially: it takes the COMPLEMENT `A''` of the least `(a,t)`-closed
+  subobject `A'` and shows `A'' = 0`.  A general topos is not boolean, so the
+  complement need not exist; the general-topos statement is an OVER-REACH that, in
+  Freyd's development, silently requires the Chapter-2 boolean embedding §2.542.  The
+  faithful **Chapter-1** statement carries the boolean hypothesis, which §1.919/§1.988
+  forward-reference to §2.542 as later removable ("Therefore the word 'boolean' will
+  be removable from …").  We thread it as `BooleanSub` below — exactly Freyd's §1.97
+  definition of a boolean topos: *every subobject is complemented*.
 
-    This EXISTENCE is the one genuinely missing §1.988 primitive (the W-type / PMC
-    fixpoint): `least_peano_subobject` gives the least `(a,t)`-closed subobject's
-    *existence*, but constructing the total recursor is the absent recursion theorem.
-    Once it is in hand, `peano_of_bicartesian` (the §1.987 Peano property), recursor
-    UNIQUENESS, and the full §1.98(10) NNO are derived here Sorry-free.  We bundle the
-    `(a,t) → A`-instance UNIQUENESS into this primitive because §1.988 delivers the
-    recursor as a unique fixpoint (existence and uniqueness are produced together by
-    the partial-map-classifier construction); this single uniqueness clause breaks the
-    `peano ⟺ recursor-uniqueness` circularity, after which the GENERAL recursor
-    uniqueness (into any `X`) is re-derived from the Peano property via the equalizer
-    (`recursor_unique_of_bicartesian`).
+  `BooleanSub` is stated over the CANONICAL `PreLogos 𝒞` instance a topos carries
+  (`Fredy.ToposExists`), so `IsComplementedSub` (`Fredy/Complement.lean`, `S1_62`) is
+  available with the topos's own products/pullbacks and there is no instance diamond
+  (the diamond that a bare `[BooleanPreLogos 𝒞]` super-class would create). -/
 
-    This is the one genuinely missing §1.988 primitive (the W-type / PMC fixpoint):
-    `least_peano_subobject` gives the least `(a,t)`-closed subobject's *existence*, but
-    constructing the total recursor is the absent recursion theorem.  STATUS: NOT
-    §1.543-capitalization (proven Sorry-free); the residual is the absent §1.988
-    partial-map-classifier recursor. -/
+/-- §1.97 BOOLEAN topos as a hypothesis: every subobject of every object is
+    complemented (`IsComplementedSub`).  This is Freyd's exact definition of "boolean"
+    and the hypothesis his §1.988 Peano proof actually uses. -/
+def BooleanSub (𝒞 : Type u) [Cat.{v} 𝒞] [Topos 𝒞] : Prop :=
+  ∀ {Z : 𝒞} (S : Subobject 𝒞 Z), IsComplementedSub S
+
+/-! ### §1.635/§1.641 regular-image calculus for the `t_stable_complement` claim
+
+  These Chapter-1 facts (direct-image monotonicity, image of a `case` over a union, and
+  the complement-meet lemma) assemble Freyd's "claim" that the complement of the least
+  closed subobject is `t`-stable.  They sit at the `S1_62` subobject level (images, unions,
+  intersections, complements) and use NO Chapter-2 machinery. -/
+
+section RegularImageCalculus
+variable {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
+
+/-- **Direct-image monotonicity.**  If `S ≤ T` then `t(S) := image (S.arr ≫ t) ≤ t(T)`:
+    `S.arr ≫ t` factors through `image (T.arr ≫ t)` (via the `≤`-witness and the image
+    lift), so image-minimality gives the containment. -/
+theorem image_post_mono {A : 𝒞} (t : A ⟶ A) {S T : Subobject 𝒞 A} (hST : S.le T) :
+    (image (S.arr ≫ t)).le (image (T.arr ≫ t)) := by
+  obtain ⟨h, hh⟩ := hST
+  refine image_min _ _ ⟨h ≫ image.lift (T.arr ≫ t), ?_⟩
+  rw [Cat.assoc, image.lift_fac, ← Cat.assoc, hh]
+
+/-- A map out of the terminal object is monic (`f ≫ a = g ≫ a ⟹ f = g`, since `f, g : X → 1`
+    are forced equal by `term_uniq`). -/
+theorem mono_from_one {A : 𝒞} (a : one ⟶ A) : Mono a := by
+  intro X f g _; exact term_uniq f g
+
+/-- Composite of monics is monic. -/
+theorem mono_comp'' {X Y Z : 𝒞} {m : X ⟶ Y} {n : Y ⟶ Z} (hm : Mono m) (hn : Mono n) :
+    Mono (m ≫ n) := by
+  intro W f g h
+  apply hm; apply hn
+  rw [← Cat.assoc, ← Cat.assoc] at h; exact h
+
+/-- The monic subobject `⟨X, m⟩` is its own image: `image m ≤ ⟨X,m⟩` (minimality, `m` allows
+    itself) and `⟨X,m⟩ ≤ image m` (image allows `m`, and `m` monic descends). -/
+theorem image_mono_eq {A X : 𝒞} (m : X ⟶ A) (hm : Mono m) :
+    (image m).le (Subobject.mk X m hm) ∧ (Subobject.mk X m hm).le (image m) :=
+  ⟨image_min m (Subobject.mk X m hm) ⟨Cat.id X, Cat.id_comp m⟩, image_allows m⟩
+
+/-- Post-composition distributes over a copairing: `case f g ≫ h = case (f≫h) (g≫h)`. -/
+theorem case_comp [HasBinaryCoproducts 𝒞] {X Y A B : 𝒞}
+    (f : A ⟶ X) (g : B ⟶ X) (h : X ⟶ Y) :
+    HasBinaryCoproducts.case f g ≫ h
+      = HasBinaryCoproducts.case (f ≫ h) (g ≫ h) := by
+  refine HasBinaryCoproducts.case_uniq (f ≫ h) (g ≫ h) _ ?_ ?_
+  · rw [← Cat.assoc, HasBinaryCoproducts.case_inl]
+  · rw [← Cat.assoc, HasBinaryCoproducts.case_inr]
+
+/-- **Disjointness ⟹ `≤ ⊥`** (§1.621 / §1.944).  If a subobject `Z ↣ A` carries two
+    generalized elements identified across the CANONICAL disjoint injections
+    (`u ≫ coprodInl P Q = v ≫ coprodInr P Q`), then `Z ≤ ⊥`.  Lift `(u,v)` into the
+    pullback of `(coprodInl, coprodInr)` — which `coprodInjections_disjoint` shows is `≅ 0` —
+    so `Z.dom` maps to the strict-initial `0`, hence is `≅ 0 ≅ (⊥A).dom`. -/
+theorem le_bottom_of_canonical_common {A : 𝒞} (Z : Subobject 𝒞 A) {P Q : 𝒞}
+    (u : Z.dom ⟶ P) (v : Z.dom ⟶ Q)
+    (huv : u ≫ coprodInl P Q = v ≫ coprodInr P Q) :
+    Z.le (PreLogos.bottom A) := by
+  -- lift `(u,v)` into the canonical pullback of `(coprodInl, coprodInr)`.
+  let pb := HasPullbacks.has (coprodInl P Q) (coprodInr P Q)
+  let w : Z.dom ⟶ pb.cone.pt := pb.lift ⟨Z.dom, u, v, huv⟩
+  -- the pullback apex is `≅ 0`; postcompose `w` to map `Z.dom → 0`, iso by strictness.
+  obtain ⟨f0, _⟩ := coprodInjections_disjoint P Q
+  let z : Z.dom ⟶ (bottomSub (one : 𝒞)).dom :=
+    (w ≫ f0) ≫ (bottomSub_dom_iso (coprodObj P Q) (one : 𝒞)).choose
+  have hz_iso : IsIso z := any_map_to_zero_is_iso (inferInstance : PreLogos 𝒞) z
+  have hZ0 : Isomorphic Z.dom (PreLogos.bottom A).dom :=
+    Isomorphic.trans' ⟨z, hz_iso⟩ (bottomSub_dom_iso (one : 𝒞) A)
+  exact le_bottom_of_dom_iso Z hZ0
+
+/-- **A map into a `⊥`-domain forces `≤ ⊥`** (strict initiality).  `⊥.dom ≅ 0` is strict-initial,
+    so any `m : Z.dom → (⊥W).dom` makes `Z.dom ≅ 0 ≅ (⊥A).dom`. -/
+theorem peano_le_bottom_of_map {A W : 𝒞} (Z : Subobject 𝒞 A)
+    (m : Z.dom ⟶ (PreLogos.bottom W).dom) : Z.le (PreLogos.bottom A) := by
+  let z : Z.dom ⟶ (bottomSub (one : 𝒞)).dom :=
+    m ≫ (bottomSub_dom_iso W (one : 𝒞)).choose
+  have hz_iso : IsIso z := any_map_to_zero_is_iso (inferInstance : PreLogos 𝒞) z
+  exact le_bottom_of_dom_iso Z (Isomorphic.trans' ⟨z, hz_iso⟩ (bottomSub_dom_iso (one : 𝒞) A))
+
+/-- **The complement is `≤` the other half of any cover** (boolean meet–join lemma,
+    §1.658 / [1.635]).  A verbatim public copy of the `S1_64` private `complement_le_other`,
+    relocated here so it is reachable without importing `S1_64`: if `D₁ ∩ Dc ≤ ⊥` and
+    `⊤ ≤ D₁ ∪ D₂` then `Dc ≤ D₂`.  Proof = meet-over-join distributivity. -/
+theorem complement_le_other' [HasBinaryCoproducts 𝒞] {A : 𝒞}
+    (D₁ D₂ Dc : Subobject 𝒞 A)
+    (hdisj : Subobject.le (Subobject.inter D₁ Dc) (PreLogos.bottom A))
+    (hcov  : Subobject.le (Subobject.entire A) (HasSubobjectUnions.union D₁ D₂)) :
+    Dc.le D₂ := by
+  have hA : Dc.le (Subobject.inter Dc (HasSubobjectUnions.union D₁ D₂)) :=
+    Subobject.le_inter ⟨Cat.id _, Cat.id_comp _⟩
+      (subLe_trans' (Y := Subobject.entire A) ⟨Dc.arr, Cat.comp_id _⟩ hcov)
+  have hdist : (Subobject.inter Dc (HasSubobjectUnions.union D₁ D₂)).le
+      (HasSubobjectUnions.union (Subobject.inter Dc D₁) (Subobject.inter Dc D₂)) := by
+    have e1 : Subobject.inter Dc (HasSubobjectUnions.union D₁ D₂)
+        = pushMono Dc.arr Dc.monic (InverseImage Dc.arr (HasSubobjectUnions.union D₁ D₂)) := rfl
+    have e2 : Subobject.inter Dc D₁ = pushMono Dc.arr Dc.monic (InverseImage Dc.arr D₁) := rfl
+    have e3 : Subobject.inter Dc D₂ = pushMono Dc.arr Dc.monic (InverseImage Dc.arr D₂) := rfl
+    rw [e1, e2, e3]
+    have hpre : (InverseImage Dc.arr (HasSubobjectUnions.union D₁ D₂)).le
+        (HasSubobjectUnions.union (InverseImage Dc.arr D₁) (InverseImage Dc.arr D₂)) :=
+      (PreLogos.invImage_preserves_union Dc.arr D₁ D₂).1
+    exact subLe_trans' (pushMono_mono Dc.arr Dc.monic hpre)
+      (pushMono_union_le Dc.arr Dc.monic _ _)
+  have hbot : (Subobject.inter Dc D₁).le (PreLogos.bottom A) :=
+    subLe_trans' (inter_comm_le Dc D₁) hdisj
+  have hfin : (HasSubobjectUnions.union (Subobject.inter Dc D₁) (Subobject.inter Dc D₂)).le D₂ :=
+    HasSubobjectUnions.union_min _ _ _
+      (subLe_trans' hbot (PreLogos.bottom_min D₂)) (Subobject.inter_le_right _ _)
+  exact subLe_trans' hA (subLe_trans' hdist hfin)
+
+end RegularImageCalculus
+
+/-- **§1.988 PEANO PROPERTY in a BOOLEAN topos.**  If `[a,t] : 1+A ≅ A` is iso and
+    `A →ᵗ A → 1` is a coequalizer of `(t, id_A)`, then in a BOOLEAN topos every
+    `(a,t)`-closed subobject `B ↣ A` is entire.
+
+    PROOF (Freyd §1.988).  Take `A'` = the least `(a,t)`-closed subobject
+    (`least_peano_subobject`); it suffices to show `A'` is entire (any closed `B ⊇ A'`
+    is then entire too).  Booleanness gives the complement `A''` of `A'`, so
+    `A ≅ A' + A''` (`complementedSub_legs_iso`).  Because `[a,t]` is iso, `A = a(1) ⊔ t(A)`
+    disjointly and `t` is monic; since `A' = a(1) ⊔ t(A')` (least closed), the complement
+    is `t`-stable (`t` restricts to `A''`, Freyd's §1.635/§1.641 claim), so `t = t' + t''`
+    is block-diagonal.  The coequalizer `A →ᵗ A → 1` then splits as `C' + C'' = 1` with
+    `C'`, `C''` the terminal coequalizers of `(t',id)`, `(t'',id)`; `A'` allows `a` gives
+    a point `1 → C'`, forcing `C' = 1`, `C'' = 0`, hence `A'' = 0` (§1.944).  So `A'` is
+    entire and `(a,t)` has the Peano property. -/
+theorem peano_property_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
+    [HasBinaryCoproducts 𝒞] [HasLeastClosedSubobject 𝒞]
+    (hbool : BooleanSub 𝒞)
+    {A : 𝒞} (a : one ⟶ A) (t : A ⟶ A)
+    (hiso : IsIso (HasBinaryCoproducts.case a t (A := one) (B := A) (X := A)))
+    (hcoeq : ∀ (X : 𝒞) (f : A ⟶ X), t ≫ f = f →
+               ∃ g : (one ⟶ X), term A ≫ g = f ∧
+                 ∀ g' : one ⟶ X, term A ≫ g' = f → g' = g)
+    (B : Subobject 𝒞 A) (hBa : Allows B a)
+    (hBt : ∃ tB : B.dom ⟶ B.dom, tB ≫ B.arr = B.arr ≫ t) :
+    B.IsEntire := by
+  classical
+  -- A' := the least `(a,t)`-closed subobject.
+  let A' : Subobject 𝒞 A := HasLeastClosedSubobject.least a t
+  have hA'closed : IsClosedSub A' a t := HasLeastClosedSubobject.least_isClosed a t
+  -- REDUCTION (no booleanness):  `A'` entire  ⟹  `B` entire.
+  -- Leastness: `A' ≤ B`, so `B.arr` is split epi (via `A'.arr`'s inverse); `B.monic` ⟹ iso.
+  suffices hA'entire : A'.IsEntire by
+    obtain ⟨ai, _hai1, hai2⟩ := hA'entire
+    -- `hai2 : ai ≫ A'.arr = id A`
+    obtain ⟨k, hk⟩ := HasLeastClosedSubobject.least_le a t B ⟨hBa, hBt⟩
+    -- `hk : k ≫ B.arr = A'.arr`
+    refine ⟨ai ≫ k, ?_, ?_⟩
+    · -- B.arr ≫ (ai ≫ k) = id : use mono of B.arr.
+      apply B.monic
+      rw [Cat.assoc, Cat.assoc, hk, hai2, Cat.id_comp, Cat.comp_id]
+    · -- (ai ≫ k) ≫ B.arr = id_A
+      rw [Cat.assoc, hk, hai2]
+  -- Now prove `A'.IsEntire`.
+  -- Booleanness: complement `A''` of `A'`, with `A' ∩ A'' ≤ 0` and `A ≤ A' ∪ A''`.
+  obtain ⟨A'', hdisj, hentire⟩ := hbool A'
+  -- `complementedSub_legs_iso` realises `A ≅ A'.dom + A''.dom` matching the inclusions.
+  obtain ⟨ψ, ψinv, hψ1, hψ2, hψinl, hψinr⟩ := complementedSub_legs_iso A' A'' hdisj hentire
+  -- `t'` : `A'` is t-stable (it is `(a,t)`-closed).
+  obtain ⟨t', ht'⟩ := hA'closed.2
+  -- A' allows `a` : `a = a₀ ≫ A'.arr`.
+  obtain ⟨a₀, ha₀⟩ := hA'closed.1
+  -- ── THE CLAIM (Freyd §1.988 / §1.635, §1.641): `t` restricts to the complement `A''`.
+  -- Since `[a,t]` iso ⟹ `t` monic and `A = a(1) ⊔ t(A)` disjointly, and `A' = a(1) ⊔ t(A')`
+  -- (least closed), a point of `A''` (∉ A', hence ∉ a(1) ⊆ A', hence ∈ t(A)) whose `t`-image
+  -- lay in `A'` would lie in `t(A')` (disjoint from a(1)), so (t monic) be in `A'` — absurd.
+  -- Thus `t(A'') ⊆ A''`: there is `t'' : A''.dom → A''.dom` with `t'' ≫ A''.arr = A''.arr ≫ t`.
+  -- ── Foundational facts for the CLAIM (block-diagonality of `t`).
+  -- β-laws and inverse of the iso `case a t`.
+  have hcl : HasBinaryCoproducts.inl ≫ HasBinaryCoproducts.case a t = a :=
+    HasBinaryCoproducts.case_inl a t
+  have hcr : HasBinaryCoproducts.inr ≫ HasBinaryCoproducts.case a t = t :=
+    HasBinaryCoproducts.case_inr a t
+  obtain ⟨ci, hci1, hci2⟩ := hiso  -- case≫ci = id, ci≫case = id
+  -- `inr` (hypothesis coproduct) is split mono (retraction `case a (id A)`), hence monic.
+  have hinr_mono : Mono (HasBinaryCoproducts.inr (A := one) (B := A)) :=
+    mono_of_retraction _ (HasBinaryCoproducts.case a (Cat.id A))
+      (HasBinaryCoproducts.case_inr a (Cat.id A))
+  -- `t` monic: `t = inr ≫ case`, `inr` monic, `case` iso.
+  have htmono : Mono t := by
+    intro W g h hgh
+    apply hinr_mono
+    -- g ≫ inr = h ≫ inr from g ≫ t = h ≫ t by post-composing `ci`.
+    have e : (g ≫ HasBinaryCoproducts.inr) ≫ HasBinaryCoproducts.case a t
+        = (h ≫ HasBinaryCoproducts.inr) ≫ HasBinaryCoproducts.case a t := by
+      rw [Cat.assoc, Cat.assoc, hcr, hgh]
+    have := congrArg (· ≫ ci) e
+    simpa only [Cat.assoc, hci1, Cat.comp_id] using this
+  -- Disjointness of the HYPOTHESIS coproduct `1+A` via the comparison map to the canonical one.
+  have hdisj_hyp : ∀ {Z : 𝒞} (u : Z ⟶ one) (v : Z ⟶ A),
+      u ≫ HasBinaryCoproducts.inl = v ≫ HasBinaryCoproducts.inr →
+      ∀ {Y : 𝒞} (p q : Z ⟶ Y), p = q := by
+    intro Z u v huv Y p q
+    let φ : HasBinaryCoproducts.coprod (one : 𝒞) A ⟶ coprodObj (one : 𝒞) A :=
+      HasBinaryCoproducts.case (coprodInl (one : 𝒞) A) (coprodInr (one : 𝒞) A)
+    have hcommon : u ≫ coprodInl (one : 𝒞) A = v ≫ coprodInr (one : 𝒞) A := by
+      have hl : HasBinaryCoproducts.inl ≫ φ = coprodInl (one : 𝒞) A :=
+        HasBinaryCoproducts.case_inl _ _
+      have hr : HasBinaryCoproducts.inr ≫ φ = coprodInr (one : 𝒞) A :=
+        HasBinaryCoproducts.case_inr _ _
+      calc u ≫ coprodInl (one : 𝒞) A = u ≫ HasBinaryCoproducts.inl ≫ φ := by rw [hl]
+        _ = (u ≫ HasBinaryCoproducts.inl) ≫ φ := (Cat.assoc _ _ _).symm
+        _ = (v ≫ HasBinaryCoproducts.inr) ≫ φ := by rw [huv]
+        _ = v ≫ HasBinaryCoproducts.inr ≫ φ := Cat.assoc _ _ _
+        _ = v ≫ coprodInr (one : 𝒞) A := by rw [hr]
+    exact coprodInjections_disjoint_elt u v hcommon p q
+  -- `≤ ⊥` from a HYPOTHESIS-coproduct common point: convert `u≫inl = v≫inr` to the canonical
+  -- injections (comparison map `φ`), then `le_bottom_of_canonical_common`.
+  have hbot_hyp : ∀ (Z : Subobject 𝒞 A) (u : Z.dom ⟶ one) (v : Z.dom ⟶ A),
+      u ≫ HasBinaryCoproducts.inl = v ≫ HasBinaryCoproducts.inr →
+      Z.le (PreLogos.bottom A) := by
+    intro Z u v huv
+    let φ : HasBinaryCoproducts.coprod (one : 𝒞) A ⟶ coprodObj (one : 𝒞) A :=
+      HasBinaryCoproducts.case (coprodInl (one : 𝒞) A) (coprodInr (one : 𝒞) A)
+    have hcommon : u ≫ coprodInl (one : 𝒞) A = v ≫ coprodInr (one : 𝒞) A := by
+      have hl : HasBinaryCoproducts.inl ≫ φ = coprodInl (one : 𝒞) A :=
+        HasBinaryCoproducts.case_inl _ _
+      have hr : HasBinaryCoproducts.inr ≫ φ = coprodInr (one : 𝒞) A :=
+        HasBinaryCoproducts.case_inr _ _
+      calc u ≫ coprodInl (one : 𝒞) A = u ≫ HasBinaryCoproducts.inl ≫ φ := by rw [hl]
+        _ = (u ≫ HasBinaryCoproducts.inl) ≫ φ := (Cat.assoc _ _ _).symm
+        _ = (v ≫ HasBinaryCoproducts.inr) ≫ φ := by rw [huv]
+        _ = v ≫ HasBinaryCoproducts.inr ≫ φ := Cat.assoc _ _ _
+        _ = v ≫ coprodInr (one : 𝒞) A := by rw [hr]
+    exact le_bottom_of_canonical_common Z u v hcommon
+  have hclaim : ∃ t'' : A''.dom ⟶ A''.dom, t'' ≫ A''.arr = A''.arr ≫ t := by
+    -- `t_stable_complement` (Freyd's §1.988 "claim", p.185, [1.635]/[1.641]) — NOW PROVEN.
+    -- In the BOOLEAN topos the complement `A''` of the least `(a,t)`-closed `A'` is itself
+    -- `t`-stable, so `t = t'+t''` is block-diagonal w.r.t. `A ≅ A'.dom + A''.dom`.  Everything
+    -- else of §1.988 is assembled BELOW from this fact (`t`-invariance of `e : A → 1+1`, the
+    -- coequalizer point `g = inl`, `A'' = 0`, `A'` entire ⟹ `B` entire).
+    --
+    -- THE `t_stable_complement` PROOF (Chapter-1 regular-image calculus, [1.635]/[1.641]):
+    --   `A' = a(1) ∪ t(A')` (closedness of `a(1)∪t(A')` + leastness), where — crucially — `a`
+    --   and `t` are MONIC (`mono_from_one`, `htmono`), so `a(1)`, `t(A')`, `t(A'')` are honest
+    --   monic subobjects (`image_mono_eq`), NOT proper images.  Hence `t(A'') ∩ A' ≤ 0` splits
+    --   into `a(1)∩t(A'') ≤ 0` and `t(A')∩t(A'') ≤ 0`, both pure disjointness facts:
+    --   the first uses the hypothesis coproduct disjointness `[a,t]` (a common point gives
+    --   `·≫inl = ·≫inr`), the second uses `t` monic + `A'∩A'' ≤ 0`.  Then
+    --   `complement_le_other' A' A'' (t(A''))` gives `t(A'') ≤ A''`, the wanted restriction.
+    -- ── the three monic subobjects.  a, t monic ⟹ a, A'.arr≫t, A''.arr≫t monic.
+    have ha_mono : Mono a := mono_from_one a
+    let aSub : Subobject 𝒞 A := Subobject.mk one a ha_mono
+    let tA' : Subobject 𝒞 A := Subobject.mk A'.dom (A'.arr ≫ t) (mono_comp'' A'.monic htmono)
+    let tA'' : Subobject 𝒞 A := Subobject.mk A''.dom (A''.arr ≫ t) (mono_comp'' A''.monic htmono)
+    -- ── basic `≤`-facts.
+    have haSub_le : aSub.le A' := ⟨a₀, ha₀⟩
+    have htA'_le : tA'.le A' := ⟨t', ht'⟩
+    -- the union `U := a(1) ∪ t(A')`.
+    let U : Subobject 𝒞 A := HasSubobjectUnions.union aSub tA'
+    -- ── `U ≤ A'` (both summands ≤ A').
+    have hUA' : U.le A' := HasSubobjectUnions.union_min _ _ _ haSub_le htA'_le
+    -- ── `A' ≤ U`: `U` is `(a,t)`-closed, leastness gives it.
+    have hA'U : A'.le U := by
+      refine HasLeastClosedSubobject.least_le a t U ⟨?_, ?_⟩
+      · -- `U` allows `a`: `a = aSub.arr` factors through `aSub ≤ U`.
+        obtain ⟨l, hl⟩ := HasSubobjectUnions.union_left aSub tA'
+        exact ⟨l, by show l ≫ U.arr = a; rw [hl]⟩
+      · -- `U` is t-stable: `image (U.arr ≫ t) ≤ U`, then descend to a restriction.
+        -- cover `c : coprod aSub.dom tA'.dom → U.dom`, `c ≫ U.arr = case aSub.arr tA'.arr`.
+        obtain ⟨l₁, hl₁⟩ := HasSubobjectUnions.union_left aSub tA'
+        obtain ⟨l₂, hl₂⟩ := HasSubobjectUnions.union_right aSub tA'
+        have hUimg : IsImage (HasBinaryCoproducts.case aSub.arr tA'.arr) U := union_is_image aSub tA'
+        obtain ⟨c, hc⟩ := hUimg.1
+        have hcov : Cover (HasBinaryCoproducts.case l₁ l₂) := union_case_cover aSub tA' hl₁ hl₂
+        -- `case l₁ l₂ ≫ U.arr = case aSub.arr tA'.arr` (both legs match), so `c = case l₁ l₂`-cover.
+        have hcU : HasBinaryCoproducts.case l₁ l₂ ≫ U.arr
+            = HasBinaryCoproducts.case aSub.arr tA'.arr := by
+          rw [case_comp, hl₁, hl₂]
+        -- `image (U.arr ≫ t) ≤ image (case aSub.arr tA'.arr ≫ t)` via the cover `case l₁ l₂`.
+        -- `(case l₁ l₂) ≫ (U.arr ≫ t) = (case aSub.arr tA'.arr) ≫ t = case (aSub.arr≫t)(tA'.arr≫t)`.
+        have hcomp : HasBinaryCoproducts.case l₁ l₂ ≫ (U.arr ≫ t)
+            = HasBinaryCoproducts.case (aSub.arr ≫ t) (tA'.arr ≫ t) := by
+          rw [← Cat.assoc, hcU, case_comp]
+        have himg_le : (image (U.arr ≫ t)).le U := by
+          -- `image(U.arr≫t) = image(case l₁ l₂ ≫ (U.arr≫t))` (cover-precompose) ≤ union of legs ≤ U.
+          have h1 : (image (U.arr ≫ t)).le
+              (image (HasBinaryCoproducts.case l₁ l₂ ≫ (U.arr ≫ t))) :=
+            (image_cover_comp (HasBinaryCoproducts.case l₁ l₂) (U.arr ≫ t) hcov).2
+          rw [hcomp] at h1
+          -- `image (case (aSub.arr≫t)(tA'.arr≫t)) ≤ (image (aSub.arr≫t)) ∪ (image (tA'.arr≫t))`:
+          -- each leg factors through its own image ≤ the union, copair to factor `case`.
+          have h2 : (image (HasBinaryCoproducts.case (aSub.arr ≫ t) (tA'.arr ≫ t))).le
+              (HasSubobjectUnions.union (image (aSub.arr ≫ t)) (image (tA'.arr ≫ t))) := by
+            obtain ⟨jL, hjL⟩ := HasSubobjectUnions.union_left
+              (image (aSub.arr ≫ t)) (image (tA'.arr ≫ t))
+            obtain ⟨jR, hjR⟩ := HasSubobjectUnions.union_right
+              (image (aSub.arr ≫ t)) (image (tA'.arr ≫ t))
+            refine image_min _ _ ⟨HasBinaryCoproducts.case
+              (image.lift (aSub.arr ≫ t) ≫ jL) (image.lift (tA'.arr ≫ t) ≫ jR), ?_⟩
+            have egL : (image.lift (aSub.arr ≫ t) ≫ jL)
+                ≫ (HasSubobjectUnions.union (image (aSub.arr ≫ t)) (image (tA'.arr ≫ t))).arr
+                = aSub.arr ≫ t := by rw [Cat.assoc, hjL, image.lift_fac]
+            have egR : (image.lift (tA'.arr ≫ t) ≫ jR)
+                ≫ (HasSubobjectUnions.union (image (aSub.arr ≫ t)) (image (tA'.arr ≫ t))).arr
+                = tA'.arr ≫ t := by rw [Cat.assoc, hjR, image.lift_fac]
+            rw [case_comp, egL, egR]
+          -- each leg-image ≤ U.  `tA' ≤ U` is `union_right` (NOT via `A' ≤ U`, which is circular).
+          have htA'_U : tA'.le U := HasSubobjectUnions.union_right aSub tA'
+          have h3 : (image (aSub.arr ≫ t)).le U := by
+            -- a(1)≫t = a₀ ≫ (A'.arr≫t) = a₀ ≫ tA'.arr, so image ≤ tA' ≤ U.
+            refine subLe_trans' (image_min (aSub.arr ≫ t) tA' ⟨a₀, ?_⟩) htA'_U
+            show a₀ ≫ (A'.arr ≫ t) = a ≫ t
+            rw [← Cat.assoc, ha₀]
+          have h4 : (image (tA'.arr ≫ t)).le U := by
+            -- t(A')≫t ⊆ t(A') since tA' ≤ A' (image_post_mono) and image(A'.arr≫t)=tA'.
+            refine subLe_trans' (image_post_mono t htA'_le) ?_
+            exact subLe_trans' (image_mono_eq (A'.arr ≫ t) (mono_comp'' A'.monic htmono)).1
+              htA'_U
+          exact subLe_trans' h1 (subLe_trans' h2
+            (HasSubobjectUnions.union_min _ _ _ h3 h4))
+        -- descend `image(U.arr≫t) ≤ U` to a restriction `tU : U.dom → U.dom`.
+        obtain ⟨k, hk⟩ := himg_le
+        exact ⟨image.lift (U.arr ≫ t) ≫ k, by
+          rw [Cat.assoc, hk, image.lift_fac]⟩
+    -- ── `t(A'') ∩ A' ≤ 0`, via `A' ≤ U = a(1) ∪ t(A')` and distributivity.
+    have hdisj' : (Subobject.inter A' (image (A''.arr ≫ t))).le (PreLogos.bottom A) := by
+      -- `image(A''.arr≫t) = tA''` (image of monic), so it suffices on `tA''`.
+      have heq : (image (A''.arr ≫ t)).le tA'' :=
+        (image_mono_eq (A''.arr ≫ t) (mono_comp'' A''.monic htmono)).1
+      -- `inter A' (image ..) ≤ inter U tA'' ≤ inter tA'' U` (monotone + commute).
+      have hmono_inter : (Subobject.inter A' (image (A''.arr ≫ t))).le
+          (Subobject.inter tA'' U) :=
+        subLe_trans' (Subobject.inter_mono hA'U heq) (inter_comm_le U tA'')
+      -- distribute `inter tA'' U = inter tA'' (aSub ∪ tA') ≤ (tA'' ∩ aSub) ∪ (tA'' ∩ tA')`.
+      have hdist : (Subobject.inter tA'' U).le
+          (HasSubobjectUnions.union (Subobject.inter tA'' aSub) (Subobject.inter tA'' tA')) := by
+        have e1 : Subobject.inter tA'' U
+            = pushMono tA''.arr tA''.monic (InverseImage tA''.arr U) := rfl
+        have e2 : Subobject.inter tA'' aSub
+            = pushMono tA''.arr tA''.monic (InverseImage tA''.arr aSub) := rfl
+        have e3 : Subobject.inter tA'' tA'
+            = pushMono tA''.arr tA''.monic (InverseImage tA''.arr tA') := rfl
+        rw [e1, e2, e3]
+        have hpre : (InverseImage tA''.arr U).le
+            (HasSubobjectUnions.union (InverseImage tA''.arr aSub) (InverseImage tA''.arr tA')) :=
+          (PreLogos.invImage_preserves_union tA''.arr aSub tA').1
+        exact subLe_trans' (pushMono_mono tA''.arr tA''.monic hpre)
+          (pushMono_union_le tA''.arr tA''.monic _ _)
+      -- `tA'' ∩ aSub ≤ 0`  (t(A'') ∩ a(1): hypothesis-coproduct disjointness).
+      have hbot1 : (Subobject.inter tA'' aSub).le (PreLogos.bottom A) := by
+        -- projections π₁ : pt → A''.dom, π₂ : pt → one with π₁≫(A''.arr≫t) = π₂≫a.
+        let pb := HasPullbacks.has tA''.arr aSub.arr
+        have hsq : pb.cone.π₁ ≫ tA''.arr = pb.cone.π₂ ≫ aSub.arr := pb.cone.w
+        -- t = inr≫case, a = inl≫case ⟹ (π₁≫A''.arr)≫inr = π₂≫inl, cancel case (iso).
+        have hcancel : pb.cone.π₂ ≫ HasBinaryCoproducts.inl
+            = (pb.cone.π₁ ≫ A''.arr) ≫ HasBinaryCoproducts.inr := by
+          -- π₂≫a = π₁≫(A''.arr≫t)  (the pullback square, `aSub.arr=a`, `tA''.arr=A''.arr≫t`).
+          have hsq' : pb.cone.π₂ ≫ a = (pb.cone.π₁ ≫ A''.arr) ≫ t := by
+            rw [Cat.assoc]; exact hsq.symm
+          -- post-compose both `·≫case a t` agree, then cancel `case` (iso) by `·≫ci`.
+          have hc : (pb.cone.π₂ ≫ HasBinaryCoproducts.inl) ≫ HasBinaryCoproducts.case a t
+              = ((pb.cone.π₁ ≫ A''.arr) ≫ HasBinaryCoproducts.inr) ≫ HasBinaryCoproducts.case a t
+              := by rw [Cat.assoc, Cat.assoc, hcl, hcr]; exact hsq'
+          -- cancel the iso `case a t` on the right via `· ≫ ci`.
+          calc pb.cone.π₂ ≫ HasBinaryCoproducts.inl
+              = ((pb.cone.π₂ ≫ HasBinaryCoproducts.inl) ≫ HasBinaryCoproducts.case a t) ≫ ci := by
+                rw [Cat.assoc, hci1, Cat.comp_id]
+            _ = (((pb.cone.π₁ ≫ A''.arr) ≫ HasBinaryCoproducts.inr)
+                  ≫ HasBinaryCoproducts.case a t) ≫ ci := by rw [hc]
+            _ = (pb.cone.π₁ ≫ A''.arr) ≫ HasBinaryCoproducts.inr := by
+                rw [Cat.assoc, hci1, Cat.comp_id]
+        exact hbot_hyp (Subobject.inter tA'' aSub) pb.cone.π₂ (pb.cone.π₁ ≫ A''.arr) hcancel
+      -- `tA'' ∩ tA' ≤ 0`  (t(A'') ∩ t(A'): `t` monic descends to `A' ∩ A'' ≤ 0`).
+      have hbot2 : (Subobject.inter tA'' tA').le (PreLogos.bottom A) := by
+        let pb := HasPullbacks.has tA''.arr tA'.arr
+        have hsq : pb.cone.π₁ ≫ tA''.arr = pb.cone.π₂ ≫ tA'.arr := pb.cone.w
+        -- (π₁≫A''.arr)≫t = (π₂≫A'.arr)≫t ⟹ (t monic) π₁≫A''.arr = π₂≫A'.arr : common pt of A'',A'.
+        have hcommon : pb.cone.π₂ ≫ A'.arr = pb.cone.π₁ ≫ A''.arr := by
+          apply htmono
+          show (pb.cone.π₂ ≫ A'.arr) ≫ t = (pb.cone.π₁ ≫ A''.arr) ≫ t
+          rw [Cat.assoc, Cat.assoc]; exact hsq.symm
+        -- lift into `inter A' A''`; `hdisj` maps it to ⊥; `peano_le_bottom_of_map`.
+        let pbAA := HasPullbacks.has A'.arr A''.arr
+        let w : (Subobject.inter tA'' tA').dom ⟶ (Subobject.inter A' A'').dom :=
+          pbAA.lift ⟨_, pb.cone.π₂, pb.cone.π₁, hcommon⟩
+        obtain ⟨m, _⟩ := hdisj
+        exact peano_le_bottom_of_map (Subobject.inter tA'' tA') (w ≫ m)
+      -- assemble: `inter A' (image..) ≤ inter tA'' U ≤ union(...) ≤ ⊥`.
+      exact subLe_trans' hmono_inter (subLe_trans' hdist
+        (HasSubobjectUnions.union_min _ _ _ hbot1 hbot2))
+    -- `complement_le_other'` gives `t(A'') ≤ A''`; descend to the restriction `t''`.
+    have htle : (image (A''.arr ≫ t)).le A'' :=
+      complement_le_other' A' A'' (image (A''.arr ≫ t)) hdisj' hentire
+    obtain ⟨k, hk⟩ := htle
+    exact ⟨image.lift (A''.arr ≫ t) ≫ k, by rw [Cat.assoc, hk, image.lift_fac]⟩
+  obtain ⟨t'', ht''⟩ := hclaim
+  -- ── Characteristic map `e : A → Two` (Two = 1+1, canonical disjoint topos coproduct):
+  -- `A'` ↦ inl, `A''` ↦ inr.  Built through `ψ⁻¹` and the hypothesis-coproduct copairing.
+  let Two : 𝒞 := coprodObj one one
+  let inlT : (one : 𝒞) ⟶ Two := coprodInl one one
+  let inrT : (one : 𝒞) ⟶ Two := coprodInr one one
+  let e : A ⟶ Two :=
+    ψinv ≫ HasBinaryCoproducts.case (term A'.dom ≫ inlT) (term A''.dom ≫ inrT)
+  -- `A'.arr ≫ e = term ≫ inlT`,  `A''.arr ≫ e = term ≫ inrT`.
+  have heA' : A'.arr ≫ e = term A'.dom ≫ inlT := by
+    show A'.arr ≫ ψinv ≫ _ = _
+    rw [← hψinl, Cat.assoc, ← Cat.assoc ψ ψinv, hψ1, Cat.id_comp,
+        HasBinaryCoproducts.case_inl]
+  have heA'' : A''.arr ≫ e = term A''.dom ≫ inrT := by
+    show A''.arr ≫ ψinv ≫ _ = _
+    rw [← hψinr, Cat.assoc, ← Cat.assoc ψ ψinv, hψ1, Cat.id_comp,
+        HasBinaryCoproducts.case_inr]
+  -- ── `t`-invariance of `e`:  `t ≫ e = e`.  Check on the two summands via `ψ` (epi).
+  have hte : t ≫ e = e := by
+    -- It suffices to show `ψ ≫ (t ≫ e) = ψ ≫ e`, since `ψ` is (split) epi via `ψinv ≫ ψ = id`.
+    have hcancel : ψ ≫ (t ≫ e) = ψ ≫ e → t ≫ e = e := by
+      intro h
+      have := congrArg (ψinv ≫ ·) h
+      simpa only [← Cat.assoc, hψ2, Cat.id_comp] using this
+    apply hcancel
+    -- `ψ ≫ _` is determined by its `inl`/`inr` legs (joint epi of the coproduct injections).
+    have hext : ∀ (X Y : HasBinaryCoproducts.coprod A'.dom A''.dom ⟶ Two),
+        HasBinaryCoproducts.inl ≫ X = HasBinaryCoproducts.inl ≫ Y →
+        HasBinaryCoproducts.inr ≫ X = HasBinaryCoproducts.inr ≫ Y → X = Y := by
+      intro X Y hl hr
+      rw [HasBinaryCoproducts.case_uniq (HasBinaryCoproducts.inl ≫ X)
+            (HasBinaryCoproducts.inr ≫ X) X rfl rfl,
+          HasBinaryCoproducts.case_uniq (HasBinaryCoproducts.inl ≫ X)
+            (HasBinaryCoproducts.inr ≫ X) Y hl.symm hr.symm]
+    apply hext
+    · -- inl: (inl≫ψ)≫t≫e = A'.arr≫t≫e = (t'≫A'.arr)≫e = term≫inlT = A'.arr≫e = (inl≫ψ)≫e.
+      calc HasBinaryCoproducts.inl ≫ ψ ≫ (t ≫ e)
+          = (HasBinaryCoproducts.inl ≫ ψ) ≫ (t ≫ e) := (Cat.assoc _ _ _).symm
+        _ = A'.arr ≫ t ≫ e := by rw [hψinl]
+        _ = (A'.arr ≫ t) ≫ e := (Cat.assoc _ _ _).symm
+        _ = (t' ≫ A'.arr) ≫ e := by rw [ht']
+        _ = t' ≫ (A'.arr ≫ e) := Cat.assoc _ _ _
+        _ = t' ≫ (term A'.dom ≫ inlT) := by rw [heA']
+        _ = (t' ≫ term A'.dom) ≫ inlT := (Cat.assoc _ _ _).symm
+        _ = term A'.dom ≫ inlT := by rw [term_uniq (t' ≫ term A'.dom) (term A'.dom)]
+        _ = A'.arr ≫ e := heA'.symm
+        _ = (HasBinaryCoproducts.inl ≫ ψ) ≫ e := by rw [hψinl]
+        _ = HasBinaryCoproducts.inl ≫ ψ ≫ e := Cat.assoc _ _ _
+    · -- inr: (inr≫ψ)≫t≫e = A''.arr≫t≫e = (t''≫A''.arr)≫e = term≫inrT = A''.arr≫e = (inr≫ψ)≫e.
+      calc HasBinaryCoproducts.inr ≫ ψ ≫ (t ≫ e)
+          = (HasBinaryCoproducts.inr ≫ ψ) ≫ (t ≫ e) := (Cat.assoc _ _ _).symm
+        _ = A''.arr ≫ t ≫ e := by rw [hψinr]
+        _ = (A''.arr ≫ t) ≫ e := (Cat.assoc _ _ _).symm
+        _ = (t'' ≫ A''.arr) ≫ e := by rw [ht'']
+        _ = t'' ≫ (A''.arr ≫ e) := Cat.assoc _ _ _
+        _ = t'' ≫ (term A''.dom ≫ inrT) := by rw [heA'']
+        _ = (t'' ≫ term A''.dom) ≫ inrT := (Cat.assoc _ _ _).symm
+        _ = term A''.dom ≫ inrT := by rw [term_uniq (t'' ≫ term A''.dom) (term A''.dom)]
+        _ = A''.arr ≫ e := heA''.symm
+        _ = (HasBinaryCoproducts.inr ≫ ψ) ≫ e := by rw [hψinr]
+        _ = HasBinaryCoproducts.inr ≫ ψ ≫ e := Cat.assoc _ _ _
+  -- ── Coequalizer: `e` is `t`-invariant, so factors `e = term A ≫ g` for a unique `g : 1 → Two`.
+  obtain ⟨g, hg, _hguniq⟩ := hcoeq Two e hte
+  -- `g = inlT` (the `A'`-value), because `A'` allows `a`.
+  have hg_inl : g = inlT := by
+    -- a ≫ e = a₀ ≫ A'.arr ≫ e = a₀ ≫ term A'.dom ≫ inlT = term one ≫ inlT = inlT
+    -- a ≫ e = a ≫ term A ≫ g = term one ≫ g = g.  (term one = id one.)
+    have htid : term (one : 𝒞) = Cat.id one := term_uniq _ _
+    have h1 : a ≫ e = inlT := by
+      rw [← ha₀, Cat.assoc, heA', ← Cat.assoc,
+          term_uniq (a₀ ≫ term A'.dom) (term one), htid, Cat.id_comp]
+    have h2 : a ≫ e = g := by
+      rw [← hg, ← Cat.assoc, term_uniq (a ≫ term A) (term one), htid, Cat.id_comp]
+    rw [← h2, h1]
+  -- ── `A''.arr ≫ e = term A''.dom ≫ inrT`, but also `= term A''.dom ≫ g = term A''.dom ≫ inlT`.
+  -- So `term A''.dom ≫ inlT = term A''.dom ≫ inrT` : a common point of inlT, inrT — `A''.dom` initial.
+  have hcommon : term A''.dom ≫ inlT = term A''.dom ≫ inrT := by
+    have hgInr : A''.arr ≫ e = term A''.dom ≫ g := by
+      rw [← hg, ← Cat.assoc, term_uniq (A''.arr ≫ term A) (term A''.dom)]
+    rw [hg_inl] at hgInr
+    rw [← hgInr, heA'']
+  -- `inlT`, `inrT` are the disjoint canonical injections: a common point makes `A''.dom → 0`.
+  -- A common point of the disjoint canonical injections `inlT, inrT` makes `A''.dom` initial.
+  have hcommon' : term A''.dom ≫ coprodInl (one : 𝒞) one
+      = term A''.dom ≫ coprodInr (one : 𝒞) one := hcommon
+  have hAinit : ∀ {Y : 𝒞} (u v : A''.dom ⟶ Y), u = v :=
+    coprodInjections_disjoint_elt (term A''.dom) (term A''.dom) hcommon'
+  -- ── `A''.dom` initial ⟹ `inl : A'.dom → A'.dom+A''.dom` is iso ⟹ `A'.arr = inl ≫ ψ` is iso.
+  -- Inverse of `inl` is `case (id A'.dom) k` for ANY `k : A''.dom → A'.dom` (here `term ≫ a₀`):
+  -- `inl ≫ case id k = id`; and `case id k ≫ inl = id` checking legs (the `inr`-leg uses that
+  -- `A''.dom` is initial, so `k ≫ inl = inr`).
+  show IsIso A'.arr
+  have hinl_iso : IsIso (HasBinaryCoproducts.inl (A := A'.dom) (B := A''.dom)) := by
+    refine ⟨HasBinaryCoproducts.case (Cat.id A'.dom) (term A''.dom ≫ a₀), ?_, ?_⟩
+    · exact HasBinaryCoproducts.case_inl _ _
+    · -- `case id k ≫ inl = id`: both sides equal `case inl inr` (the coproduct identity).
+      have hid : Cat.id (HasBinaryCoproducts.coprod A'.dom A''.dom)
+          = HasBinaryCoproducts.case HasBinaryCoproducts.inl HasBinaryCoproducts.inr :=
+        HasBinaryCoproducts.case_uniq _ _ _ (Cat.comp_id _) (Cat.comp_id _)
+      rw [hid]
+      apply HasBinaryCoproducts.case_uniq
+      · rw [← Cat.assoc, HasBinaryCoproducts.case_inl, Cat.id_comp]
+      · rw [← Cat.assoc]; exact hAinit _ _
+  -- `A'.arr = inl ≫ ψ`; both iso, so `A'.arr` iso.
+  rw [← hψinl]; exact isIso_comp hinl_iso ⟨ψinv, hψ1, hψ2⟩
+
+/-- **§1.988 RECURSOR EXISTENCE — in a BOOLEAN + CAPITAL topos (Freyd's actual hypotheses).**
+
+    From bicartesian data `[a,t] : 1+A ≅ A` on `A` (and the terminal coequalizer `hcoeq`),
+    §1.988 produces, for every `(X, x : 1→X, f : X→X)`, a map `h : A → X` with `a ≫ h = x` and
+    `t ≫ h = h ≫ f` — Freyd's recursion theorem.
+
+    IN-CHAPTER FORM (statement fidelity).  Freyd's §1.988/§1.989 are stated for a BOOLEAN topos
+    (`hbool`), and the existence step opens "We may assume the topos is capital [1.935]" — i.e.
+    CAPITAL (`hcap : Capital 𝒞`).  We carry both as explicit hypotheses, exactly matching the
+    book.  The unconditional "any topos" form (§1.98(10) verbatim) follows from the §1.935
+    reduction + the §2.542 boolean-and-capital embedding, both in Chapter 2; per the project rule
+    "Chapter 1 must not depend on Chapter 2" the faithful in-chapter theorem is the BOOLEAN +
+    CAPITAL one stated here.
+
+    PROOF.  EXISTENCE is the functional graph `G ↣ A×X := least (⟨a,x⟩, pair (fst≫t) (snd≫f))`
+    (the least closed subobject of `A×X`).  Its projection `p := G.arr ≫ fst` has `image p`
+    `(a,t)`-closed, hence ENTIRE by the now Sorry-free `peano_property_of_bicartesian`, so `p` is
+    TOTAL (a cover) — this half is proved Sorry-free below, and the recursor `h := p⁻¹ ≫ G.arr ≫
+    snd` with its two laws `a≫h=x`, `t≫h=h≫f` is then assembled Sorry-free.  SINGLE-VALUEDNESS
+    (`p` monic) is Freyd's §1.989: with `hcap` (well-pointed) and `pts_covers_of_capital hcap`
+    (1 projective) in scope, the level-of-`p` / complement-of-diagonal agreement subobject `A₂`
+    is `(a,t)`-closed and entire by Peano.  That last agreement-subobject assembly is the SINGLE
+    residual `sorry` (`hpmono`); no `relToMap`/single-valued-graph primitive exists yet in
+    S1_9/S1_56/S1_59 to package it.
+
+    We bundle the `(a,t) → A`-instance UNIQUENESS clause here (proved Sorry-free from the Peano
+    property via the equalizer); it breaks the old `peano ⟺ recursor-uniqueness` circularity,
+    after which GENERAL recursor uniqueness is `recursor_unique_of_bicartesian`. -/
 theorem recursor_exists_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
     [HasBinaryCoproducts 𝒞] [HasImages 𝒞]
+    (hbool : BooleanSub 𝒞) (hcap : Capital (𝒞 := 𝒞))
     {A : 𝒞} (a : one ⟶ A) (t : A ⟶ A)
     (hiso : IsIso (HasBinaryCoproducts.case a t (A := one) (B := A) (X := A)))
     (hcoeq : ∀ (X : 𝒞) (f : A ⟶ X), t ≫ f = f →
@@ -791,76 +1307,180 @@ theorem recursor_exists_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos �
     (∀ {X : 𝒞} (x : one ⟶ X) (f : X ⟶ X),
         ∃ h : A ⟶ X, a ≫ h = x ∧ t ≫ h = h ≫ f) ∧
       (∀ e : A ⟶ A, a ≫ e = a → t ≫ e = e ≫ t → e = Cat.id A) := by
-  -- THE ONE RESIDUAL of §1.98(10): the §1.988 recursion theorem (existence of the
-  -- recursor for every codomain, and uniqueness of the `(a,t)→A` recursor `= id_A`).
-  -- Everything else in §1.98(10) — `peano_of_bicartesian`, GENERAL recursor
-  -- uniqueness, and the NNO assembly — is derived from this Sorry-free below.
-  --
-  -- SHARPENED RESIDUAL (feasibility analysis 2026-06-21, work/recursor2).
-  -- Both conjuncts reduce to ONE missing primitive, the §1.988 PEANO PROPERTY:
-  --   (P) every `(a,t)`-CLOSED subobject `S ↣ A` of bicartesian `[a,t]:1+A≅A` is ENTIRE.
-  -- Given (P): EXISTENCE — build the graph `G ↣ A×X` as `least_peano_subobject (A×X)
-  --   (pair a x) (prodMap t f)`; its projection `G ↣ A×X → A` is `(a,t)`-closed in `A`,
-  --   so by (P) entire ⇒ single-valued+total ⇒ `h := proj⁻¹ ≫ G.arr ≫ snd`.  UNIQUENESS —
-  --   the equalizer `eq(e,id_A) ↣ A` is `(a,t)`-closed, so (P) makes it entire ⇒ `e=id`.
-  -- The block is (P) ITSELF, and it is a GENUINE wall here, not a missing tactic:
-  --   • Freyd's ACTUAL §1.988 proof proves (P) ONLY in a BOOLEAN topos: take `A''` =
-  --     COMPLEMENT of the least closed `A'`, split `A = A' + A''`, and use `hcoeq` to get
-  --     `C' + C'' = 1`, forcing `C''=0`, `A''=0` (§1.658 complement + §1.635/§1.641/§1.944).
-  --     A general `Topos 𝒞` is NOT boolean — the subobject `A'` need not be COMPLEMENTED
-  --     (`IsComplementedSub`, Fredy/Complement.lean), so this route is unavailable.
-  --   • The "remove boolean" device (§2.542: faithful bicartesian embedding into a boolean
-  --     topos) is ABSENT from the repo — it cannot even be STATED yet (Fredy/S2_5.lean:592).
-  --   • The prompt's PMC-W-type alternative (partial recursor `R ↣ A×X` classified via
-  --     `partialMapClassifier_exists`, domain forced entire) is CIRCULAR: forcing `dom R`
-  --     entire — equivalently single-valuedness/totality of `R` — IS exactly (P) again.
-  --   • `least_peano_subobject` (sorry-free, available here) supplies the EXISTENCE of the
-  --     least closed subobject, never its ENTIRETY; `hcoeq` alone (maps killing `t` are
-  --     constant) cannot split `A` along a non-complemented closed `S`.
-  -- MISSING LEMMA, named precisely:  `peano_property_of_bicartesian`:
-  --     `IsIso (case a t) → (terminal coeq of (t,id)) → ∀ S closed, S.IsEntire`
-  --   provable EITHER from a `[BooleanTopos 𝒞]`/`IsComplementedSub (least closed)` hypothesis
-  --   (Freyd's §1.988, complement route) OR from the §2.542 boolean-embedding theorem — both
-  --   absent.  This is the absent §1.988 Peano primitive, NOT §1.543-capitalization (proven).
-  sorry
+  -- §1.98(10) recursor, FAITHFULLY in a BOOLEAN topos (`hbool`), as Freyd's §1.988 requires.
+  -- The §1.988 PEANO PROPERTY is now an available lemma `peano_property_of_bicartesian`
+  -- (every `(a,t)`-closed subobject of `A` is entire), proved from `hbool` by Freyd's
+  -- complement argument.  From it both conjuncts follow:
+  --   UNIQUENESS — the equalizer `E = eq(e,id_A) ↣ A` of an endo-recursor `e` is `(a,t)`-closed
+  --     (allows `a`: `a≫e=a=a≫id`; `t`-stable: `m≫t` still equalizes `e,id`), hence ENTIRE by the
+  --     Peano property, so `e = id_A`.  (Same equalizer chase as `recursor_unique_of_bicartesian`.)
+  --   EXISTENCE — the graph `G ↣ A×X` (least `(pair a x, prodMap t f)`-closed subobject of `A×X`)
+  --     projects to a `(a,t)`-closed subobject of `A`, entire by Peano, giving the functional
+  --     `h := proj⁻¹ ≫ G.arr ≫ snd`.
+  classical
+  refine ⟨?_, ?_⟩
+  · -- EXISTENCE residual, FAITHFULLY in a BOOLEAN + CAPITAL topos (Freyd's §1.988/§1.989 actual
+    -- hypotheses, now threaded as `hbool`/`hcap`).  The §1.988 recursion theorem via the functional
+    -- graph `G ↣ A×X := HasLeastClosedSubobject.least (pair a x) (pair (fst≫t) (snd≫f))` — the least
+    -- `(⟨a,x⟩, t×f)`-closed subobject (the `[HasLeastClosedSubobject 𝒞]` instance is the GLOBAL
+    -- `Freyd.toposHasLeastClosedSubobject`).  Its `A`-projection `p := G.arr ≫ fst` has `image p`
+    -- `(a,t)`-closed in `A` (allows `a`: `⟨a,x⟩≫fst = a`; `t`-stable: `(t×f)≫fst = fst≫t`), hence
+    -- ENTIRE by the now SORRY-FREE `peano_property_of_bicartesian` — so `p` is TOTAL (a cover).
+    --
+    -- The remaining step is SINGLE-VALUEDNESS: `p` MONIC, so `p` iso [1.512] and `h := p⁻¹≫G.arr≫snd`.
+    -- This is Freyd's §1.989, whose two hypotheses are EXACTLY the ones now in scope:
+    --   (1) 1 is PROJECTIVE — available as `pts_covers_of_capital hcap` (lift the point `p:1→A` back
+    --       along the cover, `x = y≫u`);
+    --   (2) the topos is CAPITAL / 1 generates (well-pointedness) — `hcap` itself, used to conclude
+    --       `image(t↾A₂)` is well-pointed and so honestly `t`-stable.
+    --   §1.989 (book p.186): "We may assume the topos is capital [1.935].  Let K ⊂ C×C be the level
+    --   of f, K' the complement of the diagonal in K, and A₁ ⊂ A the image of K' ⊂ K → C → A.  Let
+    --   A₂ = complement of A₁.  It is enough to show A₂ = A … entire by the Peano property [1.988].
+    --   Because 1 is projective [1.525], A₂ allows p:1→A iff there is a unique x:1→C with x≫f=p …
+    --   the image of t↾A₂ is well-pointed because it allows 1→A and the topos is capital."
+    --
+    -- RESIDUAL (the SINGLE remaining hole): the level-of-`p` / complement-of-diagonal "agreement
+    -- subobject" assembly that turns the total relation `G` into a single-valued map.  It is now a
+    -- pure Chapter-1 construction (no Ch.2, no §1.543), bottoming out on building `A₁ = image(K'→A)`
+    -- for the level `K ⊂ A×A` of `p` and showing its complement `A₂` is `(a,t)`-closed using
+    -- `hcap`/`pts_covers_of_capital hcap` pointwise.  No `relToMap`/single-valued-graph primitive
+    -- exists yet in S1_9/S1_56/S1_59 to package this; it is the absent §1.989 functional-graph lemma.
+    intro X x f
+    -- Graph `G ↣ A×X` := least `(⟨a,x⟩, S)`-closed subobject, `S := pair (fst≫t) (snd≫f)`.
+    let S : prod A X ⟶ prod A X := pair (fst ≫ t) (snd ≫ f)
+    let pax : one ⟶ prod A X := pair a x
+    let G : Subobject 𝒞 (prod A X) := HasLeastClosedSubobject.least pax S
+    have hGclosed : IsClosedSub G pax S := HasLeastClosedSubobject.least_isClosed pax S
+    obtain ⟨a₀, ha₀⟩ := hGclosed.1            -- a₀ ≫ G.arr = pax
+    obtain ⟨tG, htG⟩ := hGclosed.2            -- tG ≫ G.arr = G.arr ≫ S
+    let p : G.dom ⟶ A := G.arr ≫ fst
+    -- `S ≫ fst = fst ≫ t`, hence `p ≫ t = tG ≫ p`.
+    have hSfst : S ≫ fst = fst ≫ t := fst_pair _ _
+    have hpt : p ≫ t = tG ≫ p := by
+      show (G.arr ≫ fst) ≫ t = tG ≫ G.arr ≫ fst
+      rw [Cat.assoc, ← hSfst, ← Cat.assoc, ← htG, Cat.assoc]
+    -- TOTALITY: `image p` is `(a,t)`-closed, hence entire by the Peano property, so `p` is a cover.
+    have hpcover : Cover p := by
+      have hImgClosed : IsClosedSub (image p) a t := by
+        refine ⟨⟨a₀ ≫ image.lift p, ?_⟩, ?_⟩
+        · -- `a` factors through `image p`: `(a₀ ≫ image.lift p) ≫ (image p).arr = a₀ ≫ p = a`.
+          rw [Cat.assoc, image.lift_fac]
+          show a₀ ≫ G.arr ≫ fst = a
+          rw [← Cat.assoc, ha₀]; exact fst_pair _ _
+        · -- `t`-stability: `image((image p).arr ≫ t) ≤ image(p ≫ t) ≤ image p`, then descend.
+          have hcov : Cover (image.lift p) := image_lift_cover p
+          have hle1 : (image ((image p).arr ≫ t)).le (image (p ≫ t)) := by
+            have hrw : image.lift p ≫ ((image p).arr ≫ t) = p ≫ t := by
+              rw [← Cat.assoc, image.lift_fac]
+            have := (image_cover_comp (image.lift p) ((image p).arr ≫ t) hcov).2
+            rwa [hrw] at this
+          have hle2 : (image (p ≫ t)).le (image p) :=
+            image_min (p ≫ t) (image p) ⟨tG ≫ image.lift p, by
+              rw [Cat.assoc, image.lift_fac, hpt]⟩
+          obtain ⟨k, hk⟩ := subLe_trans' hle1 hle2
+          exact ⟨image.lift ((image p).arr ≫ t) ≫ k, by rw [Cat.assoc, hk, image.lift_fac]⟩
+      have hEnt : (image p).IsEntire :=
+        peano_property_of_bicartesian hbool a t hiso hcoeq (image p) hImgClosed.1 hImgClosed.2
+      -- `p = image.lift p ≫ (image p).arr` is `cover ≫ iso`, hence a cover.
+      have hc : Cover (image.lift p ≫ (image p).arr) :=
+        cover_comp (image_lift_cover p) (iso_cover (image p).arr hEnt)
+      rwa [image.lift_fac] at hc
+    -- SINGLE-VALUEDNESS (§1.989): `p` MONIC.  The one step using CAPITAL — `hcap` supplies both
+    -- well-pointedness and (via `pts_covers_of_capital hcap`) "1 is projective".  RESIDUAL: the
+    -- level-of-`p` / complement-of-diagonal agreement-subobject assembly (Freyd §1.989, book p.186)
+    -- turning the total relation `G` into a single-valued map.  No `relToMap` primitive packages it
+    -- yet in S1_9/S1_56/S1_59; this is the SINGLE remaining §1.989 functional-graph hole.
+    -- `hcap` (capital / well-pointed) and `pts_covers_of_capital hcap` (1 projective, lifting points
+    -- along the cover `p`) are the §1.989 inputs; the agreement-subobject assembly remains the hole.
+    have hpmono : Mono p := by sorry
+    have hpiso : IsIso p := monic_cover_iso p hpcover hpmono
+    obtain ⟨pinv, hpinv1, hpinv2⟩ := hpiso
+    -- `h := p⁻¹ ≫ G.arr ≫ snd`.  `a ≫ h = x` and `t ≫ h = h ≫ f` follow from the graph laws.
+    refine ⟨pinv ≫ G.arr ≫ snd, ?_, ?_⟩
+    · -- `a ≫ (pinv ≫ G.arr ≫ snd) = x`.  `a = a₀ ≫ p` and `a₀ ≫ p ≫ pinv = a₀`, so reduces to
+      -- `a₀ ≫ G.arr ≫ snd = pax ≫ snd = x`.
+      have hap : a = a₀ ≫ p := by rw [← Cat.assoc, ha₀]; exact (fst_pair _ _).symm
+      have hcollapse : a ≫ pinv = a₀ := by
+        rw [hap, Cat.assoc, hpinv1, Cat.comp_id]
+      calc a ≫ pinv ≫ G.arr ≫ snd = (a ≫ pinv) ≫ G.arr ≫ snd := (Cat.assoc _ _ _).symm
+        _ = a₀ ≫ G.arr ≫ snd := by rw [hcollapse]
+        _ = (a₀ ≫ G.arr) ≫ snd := (Cat.assoc _ _ _).symm
+        _ = pax ≫ snd := by rw [ha₀]
+        _ = x := snd_pair _ _
+    · -- `t ≫ h = h ≫ f`.  Both sides chase through the graph: `t` lifts via `tG` on `G.dom`,
+      -- `S ≫ snd = snd ≫ f`, and `t ≫ pinv = pinv ≫ tG` from `p ≫ t = tG ≫ p`.
+      have hSsnd : S ≫ snd = snd ≫ f := snd_pair _ _
+      have htpinv : t ≫ pinv = pinv ≫ tG := by
+        have h1 : pinv ≫ (tG ≫ p) = t := by
+          rw [← hpt, ← Cat.assoc, hpinv2, Cat.id_comp]
+        calc t ≫ pinv = (pinv ≫ (tG ≫ p)) ≫ pinv := by rw [h1]
+          _ = pinv ≫ tG ≫ (p ≫ pinv) := by rw [Cat.assoc, Cat.assoc]
+          _ = pinv ≫ tG := by rw [hpinv1, Cat.comp_id]
+      -- `t ≫ h = (t ≫ pinv) ≫ G.arr ≫ snd = (pinv ≫ tG) ≫ G.arr ≫ snd
+      --        = pinv ≫ (G.arr ≫ S) ≫ snd = pinv ≫ G.arr ≫ (snd ≫ f) = h ≫ f`.
+      have step : (t ≫ pinv) ≫ G.arr ≫ snd = pinv ≫ G.arr ≫ S ≫ snd := by
+        rw [htpinv, Cat.assoc, ← Cat.assoc tG G.arr snd, htG, Cat.assoc]
+      calc t ≫ pinv ≫ G.arr ≫ snd
+          = (t ≫ pinv) ≫ G.arr ≫ snd := by rw [Cat.assoc]
+        _ = pinv ≫ G.arr ≫ S ≫ snd := step
+        _ = pinv ≫ G.arr ≫ snd ≫ f := by rw [hSsnd]
+        _ = (pinv ≫ G.arr ≫ snd) ≫ f := by rw [Cat.assoc, Cat.assoc]
+  · -- UNIQUENESS via the equalizer + the §1.988 Peano property (`peano_property_of_bicartesian`).
+    intro e he0 hes
+    -- Equalizer subobject `E = eq(e, id_A) ↣ A`; its map `m` is monic.
+    let m : eqObj e (Cat.id A) ⟶ A := eqMap e (Cat.id A)
+    have hm_eq : m ≫ e = m ≫ Cat.id A := eqMap_eq e (Cat.id A)
+    have hm_mono : Mono m := by
+      intro W u v huv
+      have hu : u = eqLift e (Cat.id A) (u ≫ m) (by rw [Cat.assoc, Cat.assoc, eqMap_eq]) :=
+        eqLift_uniq e (Cat.id A) (u ≫ m) _ u rfl
+      have hv : v = eqLift e (Cat.id A) (u ≫ m) (by rw [Cat.assoc, Cat.assoc, eqMap_eq]) :=
+        eqLift_uniq e (Cat.id A) (u ≫ m) _ v huv.symm
+      rw [hu, hv]
+    let E : Subobject 𝒞 A := ⟨eqObj e (Cat.id A), m, hm_mono⟩
+    -- `E` allows `a`: `a ≫ e = a = a ≫ id_A`, so `a` lifts to `E`.
+    have hEa : Allows E a :=
+      ⟨eqLift e (Cat.id A) a (by rw [he0, Cat.comp_id]),
+       eqLift_fac e (Cat.id A) a (by rw [he0, Cat.comp_id])⟩
+    -- `E` is `t`-stable: `m ≫ t` still equalizes `e, id_A`
+    --   (`m≫t≫e = m≫e≫t = m≫id≫t = m≫t≫id`, using `t≫e=e≫t` and `m≫e=m≫id`).
+    have hmt_eq : (m ≫ t) ≫ e = (m ≫ t) ≫ Cat.id A := by
+      calc (m ≫ t) ≫ e = m ≫ t ≫ e := Cat.assoc _ _ _
+        _ = m ≫ e ≫ t := by rw [hes]
+        _ = (m ≫ e) ≫ t := (Cat.assoc _ _ _).symm
+        _ = (m ≫ Cat.id A) ≫ t := by rw [hm_eq]
+        _ = m ≫ t := by rw [Cat.comp_id]
+        _ = (m ≫ t) ≫ Cat.id A := (Cat.comp_id _).symm
+    have hEt : ∃ tE : E.dom ⟶ E.dom, tE ≫ E.arr = E.arr ≫ t :=
+      ⟨eqLift e (Cat.id A) (m ≫ t) hmt_eq, eqLift_fac e (Cat.id A) (m ≫ t) hmt_eq⟩
+    -- `E` entire by the §1.988 Peano property; its map `m` is iso, left-cancelling `e = id_A`.
+    have hEent : E.IsEntire := peano_property_of_bicartesian hbool a t hiso hcoeq E hEa hEt
+    obtain ⟨m', _, hm'm⟩ := hEent
+    calc e = Cat.id A ≫ e := (Cat.id_comp _).symm
+      _ = (m' ≫ m) ≫ e := by rw [hm'm]
+      _ = m' ≫ m ≫ e := Cat.assoc _ _ _
+      _ = m' ≫ m ≫ Cat.id A := by rw [hm_eq]
+      _ = (m' ≫ m) ≫ Cat.id A := (Cat.assoc _ _ _).symm
+      _ = Cat.id A ≫ Cat.id A := by rw [hm'm]
+      _ = Cat.id A := Cat.id_comp _
 
-/-- **§1.987 PEANO PROPERTY from bicartesian data.**  Every `(a,t)`-closed subobject
-    `B ↣ A` of bicartesian data `[a,t] : 1+A ≅ A` is entire.
+/-- **§1.987 PEANO PROPERTY from bicartesian data (BOOLEAN).**  In a BOOLEAN topos
+    (`hbool`), every `(a,t)`-closed subobject `B ↣ A` of bicartesian data
+    `[a,t] : 1+A ≅ A` is entire.
 
-    PROOF.  `B` closed gives a point `aB : 1 → B.dom` (`aB ≫ B.arr = a`) and a
-    `t`-restriction `tB : B.dom → B.dom` (`tB ≫ B.arr = B.arr ≫ t`).  By the §1.988
-    recursor (`recursor_exists_of_bicartesian` into `B.dom`) there is a SECTION
-    `sec : A → B.dom` with `a ≫ sec = aB` and `t ≫ sec = sec ≫ tB`.  Then
-    `sec ≫ B.arr : A → A` is a recursor for `(a,t)` into `A` itself, as is `id_A`;
-    the §1.988 recursor's `(a,t)→A` instance is UNIQUE (two recursors into `A` agree
-    — their equalizer is `(a,t)`-closed, but here we use the recursor directly), so
-    `sec ≫ B.arr = id_A`.  Hence `B.arr` is a split epi; being also monic it is an
-    iso, i.e. `B` is entire.  This is the section-building argument of
-    `nno_peano_property`, with the §1.988 recursor in place of NNO `iterate`. -/
+    This is just `PeanoProperty a t` packaged, delivered directly by Freyd's §1.988
+    complement argument (`peano_property_of_bicartesian`) — no longer routed through the
+    recursor (which removes the old `peano ⟺ recursor` circularity). -/
 theorem peano_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
     [HasBinaryCoproducts 𝒞] [HasImages 𝒞]
+    (hbool : BooleanSub 𝒞)
     {A : 𝒞} (a : one ⟶ A) (t : A ⟶ A)
     (hiso : IsIso (HasBinaryCoproducts.case a t (A := one) (B := A) (X := A)))
     (hcoeq : ∀ (X : 𝒞) (f : A ⟶ X), t ≫ f = f →
                ∃ g : (one ⟶ X), term A ≫ g = f ∧
                  ∀ g' : one ⟶ X, term A ≫ g' = f → g' = g) :
-    @PeanoProperty 𝒞 _ (Topos.toHasTerminal) _ A a t := by
-  intro B ⟨aB, haB⟩ ⟨tB, htB⟩
-  obtain ⟨hex, huniqA⟩ := recursor_exists_of_bicartesian a t hiso hcoeq
-  -- Section `sec : A → B.dom` via the §1.988 recursor for the B-algebra `(aB, tB)`.
-  obtain ⟨sec, hsec0, hsecs⟩ := hex aB tB
-  -- `sec ≫ B.arr` and `id_A` are both `(a,t)`-recursors into `A`; the bundled
-  -- `(a,t)→A` uniqueness (`huniqA`) forces `sec ≫ B.arr = id_A`.
-  -- `sec ≫ B.arr`: `a ≫ (sec ≫ B.arr) = aB ≫ B.arr = a`;
-  --   `t ≫ (sec ≫ B.arr) = (sec ≫ tB) ≫ B.arr = sec ≫ (B.arr ≫ t) = (sec ≫ B.arr) ≫ t`.
-  have hsecB : sec ≫ B.arr = Cat.id A := by
-    apply huniqA
-    · rw [← Cat.assoc, hsec0, haB]
-    · rw [← Cat.assoc, hsecs, Cat.assoc, htB, ← Cat.assoc]
-  -- `B.arr` split epi (retraction `sec`) + monic ⇒ iso.
-  refine ⟨sec, ?_, hsecB⟩
-  apply B.monic
-  rw [Cat.assoc, hsecB, Cat.comp_id, Cat.id_comp]
+    @PeanoProperty 𝒞 _ (Topos.toHasTerminal) _ A a t :=
+  fun B hBa hBt => peano_property_of_bicartesian hbool a t hiso hcoeq B hBa hBt
 
 /-- **Recursor UNIQUENESS from bicartesian data** (§1.987 via the equalizer).
     Any two `(a,t)`-recursors `h, h' : A → X` (each with `a ≫ · = x` and
@@ -870,6 +1490,7 @@ theorem peano_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
     left-cancels `h = h'`. -/
 theorem recursor_unique_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
     [HasBinaryCoproducts 𝒞] [HasImages 𝒞]
+    (hbool : BooleanSub 𝒞)
     {A : 𝒞} (a : one ⟶ A) (t : A ⟶ A)
     (hiso : IsIso (HasBinaryCoproducts.case a t (A := one) (B := A) (X := A)))
     (hcoeq : ∀ (X : 𝒞) (f : A ⟶ X), t ≫ f = f →
@@ -902,7 +1523,7 @@ theorem recursor_unique_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos �
   have hEt : ∃ tE : E.dom ⟶ E.dom, tE ≫ E.arr = E.arr ≫ t := by
     exact ⟨eqLift h h' (m ≫ t) hmt_eq, eqLift_fac h h' (m ≫ t) hmt_eq⟩
   -- E entire by Peano: its arrow `m` is iso.
-  have hEent : E.IsEntire := peano_of_bicartesian a t hiso hcoeq E hEa hEt
+  have hEent : E.IsEntire := peano_of_bicartesian hbool a t hiso hcoeq E hEa hEt
   obtain ⟨m', _, hm'm⟩ := hEent
   -- `m' ≫ m = id_A` (the `cod`-side of `IsIso m`); left-cancel: h = m'≫(m≫h) = m'≫(m≫h') = h'.
   calc h = Cat.id A ≫ h := (Cat.id_comp _).symm
@@ -914,17 +1535,20 @@ theorem recursor_unique_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos �
     _ = h' := Cat.id_comp _
 
 /-- §1.98(10): If [a, t] : 1 + A → A is iso and A → 1 is a coequalizer of (t, id_A),
-    then 1 →ᵃ A →ᵗ A is a NNO.
+    then 1 →ᵃ A →ᵗ A is a NNO — in a BOOLEAN + CAPITAL topos (`hbool`/`hcap`).
 
-    The `pmc` partial-map-classifier hypothesis is GONE: the lawful per-codomain PMC
-    is now derived internally where needed (`Fredy.partialMapClassifier_exists`), so the
-    statement is strictly STRONGER than the earlier `(pmc : HasPartialMapClassifier 𝒞)`
-    form.  UNIQUENESS of the recursor is fully proved here from the Peano property
-    `peano_of_bicartesian` (the equalizer of two recursors is an `(a,t)`-closed
-    subobject, hence entire); EXISTENCE of the recursor is the one §1.988 residual
-    `recursor_exists_of_bicartesian`. -/
+    IN-CHAPTER FORM.  §1.98(10)'s existence step routes through §1.988/§1.989, which Freyd proves
+    for a BOOLEAN (`hbool`) topos, "assuming the topos is capital [1.935]" (`hcap`).  We carry
+    both hypotheses, matching the book.  The unconditional "any topos" §1.98(10) follows from the
+    §1.935 reduction + the §2.542 boolean-and-capital embedding (Chapter 2); the project rule
+    forbids importing Chapter 2 into Chapter 1, so the faithful in-chapter NNO is this one.
+
+    UNIQUENESS of the recursor is fully proved here from the Peano property `peano_of_bicartesian`
+    (the equalizer of two recursors is `(a,t)`-closed, hence entire); EXISTENCE is the §1.988
+    `recursor_exists_of_bicartesian`, whose own residual is the §1.989 single-valuedness step. -/
 theorem nno_of_bicartesian_data {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
     [HasBinaryCoproducts 𝒞] [HasImages 𝒞]
+    (hbool : BooleanSub 𝒞) (hcap : Capital (𝒞 := 𝒞))
     {A : 𝒞} (a : one ⟶ A) (t : A ⟶ A)
     -- [a, t] : 1 + A → A is an isomorphism
     (hiso : IsIso (HasBinaryCoproducts.case a t (A := one) (B := A) (X := A)))
@@ -954,10 +1578,10 @@ theorem nno_of_bicartesian_data {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
     -- UNIQUENESS proved here Sorry-free from the Peano property via the equalizer
     -- (`recursor_unique_of_bicartesian`).
     intro X x f
-    obtain ⟨hex, _⟩ := recursor_exists_of_bicartesian a t hiso hcoeq
+    obtain ⟨hex, _⟩ := recursor_exists_of_bicartesian hbool hcap a t hiso hcoeq
     obtain ⟨h, hh0, hhs⟩ := hex x f
     exact ⟨h, ⟨hh0, hhs⟩, fun h' h0' hs' =>
-      recursor_unique_of_bicartesian a t hiso hcoeq x f h' h h0' hs' hh0 hhs⟩
+      recursor_unique_of_bicartesian hbool a t hiso hcoeq x f h' h h0' hs' hh0 hhs⟩
   -- Package `hrec` into a NNO.  `iterate x f` is the chosen recursor; the three laws and
   -- uniqueness are the components of `hrec`'s ∃.
   refine ⟨{
@@ -998,6 +1622,7 @@ theorem bicartesian_functor_preserves_nno
     {𝒜 : Type u} [Cat.{v} 𝒜] [hN : HasNaturalNumbersObject 𝒜]
     [HasBinaryCoproducts 𝒜] [HasImages 𝒜]
     {𝒜' : Type u} [Cat.{v} 𝒜'] [Topos 𝒜'] [HasBinaryCoproducts 𝒜'] [HasImages 𝒜']
+    (hbool : BooleanSub 𝒜') (hcap : Capital (𝒞 := 𝒜'))
     (T : 𝒜 → 𝒜') [hT : Functor T]
     -- T preserves the terminal up to a chosen point `tOne : 1 → T 1`; the zero of the
     -- image NNO is `tOne ≫ T 0`.  (No separate `IsIso tOne` field is needed: `hT_iso`
@@ -1019,7 +1644,7 @@ theorem bicartesian_functor_preserves_nno
   -- `tOne` forms the zero map `tOne ≫ T 0` fed to `case` in `hT_iso`.  The §1.98(10) recursor is
   -- now derived internally (the old `pmc'` parameter is gone), so this reduction is purely the
   -- transport of the bicartesian data; it carries the SAME single §1.988 residual pinned there.
-  exact nno_of_bicartesian_data (tOne ≫ hT.map hN.zero) (hT.map hN.succ) hT_iso hT_coeq
+  exact nno_of_bicartesian_data hbool hcap (tOne ≫ hT.map hN.zero) (hT.map hN.succ) hT_iso hT_coeq
 
 /-! ## §1.98(13)  Bicartesian characterization of free A-action
 
@@ -1028,53 +1653,18 @@ theorem bicartesian_functor_preserves_nno
   A-action iff [1 + A × A*, A*] ≅ A* (iso) and A × A* → A* → 1 is a coequalizer.
   The reasoning is analogous to [1.985] and [1.98(10)]. -/
 
-/-- **§1.98(13) FREE RECURSOR EXISTENCE — the single residual of §1.98(13).**
+/-- **§1.98(13) action PEANO PROPERTY in a BOOLEAN topos (the §1.988 free content).**
+    Every `(unit,act)`-closed subobject `B ↣ α.obj` is entire.  `B` closed = it allows
+    `unit` (point `uB : 1 → B.dom`, `uB ≫ B.arr = α.unit`) and is `act`-stable
+    (`actB : A×B.dom → B.dom`, `actB ≫ B.arr = prodMap A B.dom α.obj B.arr ≫ α.act`).
 
-    The A-action analogue of `recursor_exists_of_bicartesian`.  From bicartesian data
-    `[unit,act] : 1 + A×α.obj ≅ α.obj` (and the terminal coequalizer `hcoeq`), §1.988
-    produces, for every A-action `β`, a free homomorphism `h : α.obj → β.obj` with
-    `α.unit ≫ h = β.unit` and `prodMap A α.obj β.obj h ≫ β.act = α.act ≫ h`.  As in the
-    NNO case we bundle the `α.obj → α.obj`-instance UNIQUENESS (the free recursor into
-    `α.obj` is `id`) to break the `peano ⟺ uniqueness` circularity; the GENERAL free
-    recursor uniqueness is then re-derived from the action Peano property via the
-    equalizer (`free_recursor_unique_of_bicartesian`).
-
-    This EXISTENCE is the one missing §1.988 primitive — the SAME residual as
-    `recursor_exists_of_bicartesian`, now for the A-parametrised functor `1 + A×(−)`.
-    STATUS: NOT §1.543-capitalization (proven Sorry-free); the residual is the absent
-    §1.988 partial-map-classifier free recursor. -/
-theorem free_recursor_exists_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
+    PROOF.  The A-parametrised analogue of `peano_property_of_bicartesian`: take the least
+    `(unit,act)`-closed subobject `α'`, complement it (`hbool`) to `α' + α''`, and use the
+    coequalizer `α.act = snd ≫ f` collapse to force `α'' = 0`.  Same complement structure as
+    the NNO case for the functor `1 + A×(−)`. -/
+theorem free_peano_property_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
     [HasBinaryCoproducts 𝒞] [HasImages 𝒞]
-    (A : 𝒞) (α : AAction (𝒞 := 𝒞) A)
-    (hiso : IsIso (HasBinaryCoproducts.case α.unit α.act
-                   (A := one) (B := prod A α.obj) (X := α.obj)))
-    (hcoeq : ∀ (X : 𝒞) (f : α.obj ⟶ X),
-               α.act ≫ f = snd (A := A) (B := α.obj) ≫ f →
-               ∃ g : one ⟶ X, term α.obj ≫ g = f ∧
-                 ∀ g' : one ⟶ X, term α.obj ≫ g' = f → g' = g) :
-    (∀ (β : AAction (𝒞 := 𝒞) A),
-        ∃ h : α.obj ⟶ β.obj,
-          α.unit ≫ h = β.unit ∧ prodMap A α.obj β.obj h ≫ β.act = α.act ≫ h) ∧
-      (∀ e : α.obj ⟶ α.obj, α.unit ≫ e = α.unit →
-          prodMap A α.obj α.obj e ≫ α.act = α.act ≫ e → e = Cat.id α.obj) := by
-  -- THE ONE RESIDUAL of §1.98(13): the §1.988 free recursion theorem (existence for
-  -- every A-action β, and uniqueness of the `α.obj → α.obj` free recursor `= id`).
-  -- The action Peano property, general free-recursor uniqueness, and the FreeAAction
-  -- assembly are all derived from this Sorry-free below.
-  sorry
-
-/-- **§1.98(13) action PEANO PROPERTY.**  Every `(unit,act)`-closed subobject
-    `B ↣ α.obj` is entire.  `B` closed = it allows `unit` (point `uB : 1 → B.dom`,
-    `uB ≫ B.arr = α.unit`) and is `act`-stable (`actB : A×B.dom → B.dom`,
-    `actB ≫ B.arr = prodMap A B.dom α.obj B.arr ≫ α.act`).
-
-    PROOF (analogue of `peano_of_bicartesian`).  The free recursor
-    (`free_recursor_exists_of_bicartesian` into `(B.dom, uB, actB)`) gives a SECTION
-    `sec : α.obj → B.dom`; then `sec ≫ B.arr` and `id` are both free homomorphisms into
-    `α.obj`, so the bundled `α.obj`-uniqueness forces `sec ≫ B.arr = id`, making `B.arr`
-    a split epi; monic + split epi ⇒ iso. -/
-theorem free_peano_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
-    [HasBinaryCoproducts 𝒞] [HasImages 𝒞]
+    (hbool : BooleanSub 𝒞)
     (A : 𝒞) (α : AAction (𝒞 := 𝒞) A)
     (hiso : IsIso (HasBinaryCoproducts.case α.unit α.act
                    (A := one) (B := prod A α.obj) (X := α.obj)))
@@ -1087,24 +1677,40 @@ theorem free_peano_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
     (hactB : ∃ actB : prod A B.dom ⟶ B.dom,
         actB ≫ B.arr = prodMap A B.dom α.obj B.arr ≫ α.act) :
     B.IsEntire := by
-  obtain ⟨uB, huB⟩ := huB
-  obtain ⟨actB, hactB⟩ := hactB
-  obtain ⟨hex, huniqα⟩ := free_recursor_exists_of_bicartesian A α hiso hcoeq
-  -- Section `sec : α.obj → B.dom` via the free recursor into `(B.dom, uB, actB)`.
-  obtain ⟨sec, hsec0, hsecs⟩ := hex { obj := B.dom, unit := uB, act := actB }
-  -- `sec ≫ B.arr = id_{α.obj}` by the bundled `α.obj`-free-recursor uniqueness.
-  have hsecB : sec ≫ B.arr = Cat.id α.obj := by
-    apply huniqα
-    · rw [← Cat.assoc, hsec0, huB]
-    · -- prodMap A α.obj α.obj (sec≫B.arr) ≫ act
-      --   = prodMap A α.obj B.dom sec ≫ (prodMap A B.dom α.obj B.arr ≫ act)
-      --   = prodMap A α.obj B.dom sec ≫ actB ≫ B.arr
-      --   = (act ≫ sec) ≫ B.arr = act ≫ (sec≫B.arr)
-      rw [prodMap_comp, Cat.assoc, ← hactB, ← Cat.assoc, hsecs, Cat.assoc]
-  -- `B.arr` split epi (retraction `sec`) + monic ⇒ iso.
-  refine ⟨sec, ?_, hsecB⟩
-  apply B.monic
-  rw [Cat.assoc, hsecB, Cat.comp_id, Cat.id_comp]
+  -- Freyd's §1.988 complement argument for the A-parametrised functor `1 + A×(−)` (boolean).
+  -- DIRECT ANALOGUE of the now-CLOSED `peano_property_of_bicartesian`: replay `t_stable_complement`
+  -- with `act : A×α.obj → α.obj` as the "successor".  MISSING PRIMITIVE: a least `(unit,act)`-closed
+  -- subobject of `α.obj` for the parametrised functor `1+A×(−)`.  The endo-only API in this layer —
+  -- `Freyd.IsClosedSub`/`HasLeastClosedSubobject` (`InternalForall.lean`) and its discharge
+  -- `Freyd.toposHasLeastClosedSubobject` (`LeastClosedTopos.lean`, whose `tStableBody`/`tStable`/
+  -- `closedFamily` are built for an ENDO `t : A→A` via `prod A (powObj A)`) — does NOT apply: closure
+  -- here is `image(prodMap A B.dom α.obj B.arr ≫ act) ≤ B`, where `act` consumes the `A`-factor, so
+  -- the family-glb `bigInter (closedFamily …)` must be REBUILT with the parametrised closedness
+  -- predicate `{σ : [α.obj] | unit∈σ ∧ ∀(a,x). x∈σ ⇒ act(a,x)∈σ}` on `[α.obj]`.  Once that
+  -- parametrised `least (unit,act)` is in hand, the complement chase (`hbool` ⟹ `α'+α''`, monic
+  -- decomposition `unit(1)∪act(A×α')`, `complement_le_other'`, coequalizer collapse `α''=0`) ports
+  -- verbatim.  STATUS: blocked on the parametrised least-closed-subobject primitive, NOT on §1.988
+  -- complement (closed for the endo case) and NOT on §1.543-capitalization.
+  sorry
+
+/-- **§1.98(13) action PEANO PROPERTY** (boolean) — `free_peano_property_of_bicartesian`
+    packaged with the same argument bundle the equalizer chases use. -/
+theorem free_peano_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
+    [HasBinaryCoproducts 𝒞] [HasImages 𝒞]
+    (hbool : BooleanSub 𝒞)
+    (A : 𝒞) (α : AAction (𝒞 := 𝒞) A)
+    (hiso : IsIso (HasBinaryCoproducts.case α.unit α.act
+                   (A := one) (B := prod A α.obj) (X := α.obj)))
+    (hcoeq : ∀ (X : 𝒞) (f : α.obj ⟶ X),
+               α.act ≫ f = snd (A := A) (B := α.obj) ≫ f →
+               ∃ g : one ⟶ X, term α.obj ≫ g = f ∧
+                 ∀ g' : one ⟶ X, term α.obj ≫ g' = f → g' = g)
+    (B : Subobject 𝒞 α.obj)
+    (huB : ∃ uB : one ⟶ B.dom, uB ≫ B.arr = α.unit)
+    (hactB : ∃ actB : prod A B.dom ⟶ B.dom,
+        actB ≫ B.arr = prodMap A B.dom α.obj B.arr ≫ α.act) :
+    B.IsEntire :=
+  free_peano_property_of_bicartesian hbool A α hiso hcoeq B huB hactB
 
 /-- **§1.98(13) free-recursor UNIQUENESS** (via the equalizer + action Peano).
     Any two free homomorphisms `h, h' : α.obj → β.obj` are equal: their equalizer
@@ -1112,6 +1718,7 @@ theorem free_peano_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
     so the equalizer map is iso and left-cancels `h = h'`. -/
 theorem free_recursor_unique_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
     [HasBinaryCoproducts 𝒞] [HasImages 𝒞]
+    (hbool : BooleanSub 𝒞)
     (A : 𝒞) (α : AAction (𝒞 := 𝒞) A)
     (hiso : IsIso (HasBinaryCoproducts.case α.unit α.act
                    (A := one) (B := prod A α.obj) (X := α.obj)))
@@ -1157,7 +1764,7 @@ theorem free_recursor_unique_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topo
     ⟨eqLift h h' (prodMap A E.dom α.obj m ≫ α.act) hmact_eq,
      eqLift_fac h h' (prodMap A E.dom α.obj m ≫ α.act) hmact_eq⟩
   -- E entire by the action Peano property; the equalizer map is iso ⇒ h = h'.
-  have hEent : E.IsEntire := free_peano_of_bicartesian A α hiso hcoeq E hEu hEact
+  have hEent : E.IsEntire := free_peano_of_bicartesian hbool A α hiso hcoeq E hEu hEact
   obtain ⟨m', _, hm'm⟩ := hEent
   calc h = Cat.id α.obj ≫ h := (Cat.id_comp _).symm
     _ = (m' ≫ m) ≫ h := by rw [hm'm]
@@ -1167,6 +1774,55 @@ theorem free_recursor_unique_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topo
     _ = Cat.id α.obj ≫ h' := by rw [hm'm]
     _ = h' := Cat.id_comp _
 
+/-- **§1.98(13) FREE RECURSOR EXISTENCE — the single residual of §1.98(13).**
+
+    The A-action analogue of `recursor_exists_of_bicartesian`, FAITHFULLY in a BOOLEAN
+    topos (`hbool`).  From bicartesian data `[unit,act] : 1 + A×α.obj ≅ α.obj` (and the
+    terminal coequalizer `hcoeq`), §1.988 produces, for every A-action `β`, a free
+    homomorphism `h : α.obj → β.obj` with `α.unit ≫ h = β.unit` and
+    `prodMap A α.obj β.obj h ≫ β.act = α.act ≫ h`.  We bundle the `α.obj → α.obj`-instance
+    UNIQUENESS (proved here from the free Peano property via the free equalizer at `β := α`);
+    EXISTENCE is the SAME mechanical functional-graph residual as the NNO recursor. -/
+theorem free_recursor_exists_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
+    [HasBinaryCoproducts 𝒞] [HasImages 𝒞]
+    (hbool : BooleanSub 𝒞) (hcap : Capital (𝒞 := 𝒞))
+    (A : 𝒞) (α : AAction (𝒞 := 𝒞) A)
+    (hiso : IsIso (HasBinaryCoproducts.case α.unit α.act
+                   (A := one) (B := prod A α.obj) (X := α.obj)))
+    (hcoeq : ∀ (X : 𝒞) (f : α.obj ⟶ X),
+               α.act ≫ f = snd (A := A) (B := α.obj) ≫ f →
+               ∃ g : one ⟶ X, term α.obj ≫ g = f ∧
+                 ∀ g' : one ⟶ X, term α.obj ≫ g' = f → g' = g) :
+    (∀ (β : AAction (𝒞 := 𝒞) A),
+        ∃ h : α.obj ⟶ β.obj,
+          α.unit ≫ h = β.unit ∧ prodMap A α.obj β.obj h ≫ β.act = α.act ≫ h) ∧
+      (∀ e : α.obj ⟶ α.obj, α.unit ≫ e = α.unit →
+          prodMap A α.obj α.obj e ≫ α.act = α.act ≫ e → e = Cat.id α.obj) := by
+  -- §1.98(13) free recursor in a BOOLEAN + CAPITAL topos.  The free action PEANO PROPERTY
+  -- (`free_peano_property_of_bicartesian`) is Freyd's §1.988 complement argument for the
+  -- A-parametrised functor `1 + A×(−)`; from it:
+  --   UNIQUENESS — the free equalizer of an endo-free-homomorphism `e` is `(unit,act)`-closed,
+  --     hence entire by the free Peano property, forcing `e = id` (free-equalizer chase at `β:=α`).
+  --   EXISTENCE — functional-graph extraction from the free Peano property (the SAME mechanical
+  --     residual as the NNO `recursor_exists_of_bicartesian` existence conjunct).
+  refine ⟨?_, ?_⟩
+  · -- EXISTENCE residual: the A-parametrised §1.988 recursion theorem, FAITHFULLY in a BOOLEAN +
+    -- CAPITAL topos (Freyd's §1.98(13) is proved "analogously to §1.98(10)", i.e. with the same
+    -- BOOLEAN+CAPITAL hypotheses).  With `hcap` now in scope the §1.989 SINGLE-VALUEDNESS half is
+    -- in principle available (`pts_covers_of_capital hcap` = 1 projective; `hcap` = well-pointed).
+    -- The remaining hole is gap (i): TOTALITY needs `free_peano_property_of_bicartesian` (below),
+    -- itself blocked on the PARAMETRISED least `(unit,act)`-closed subobject primitive for the
+    -- A-parametrised functor `1+A×(−)` — which the endo-only `HasLeastClosedSubobject` does NOT
+    -- supply (its `closedFamily` is built for an ENDO `t:A→A`, not a `act:A×(−)→(−)`).  That
+    -- parametrised-least-closed primitive is the genuine residual here; it is NOT supplied by
+    -- `hcap` and is NOT a §1.543-capitalization gap (the §1.989 single-valued half is).
+    sorry
+  · -- UNIQUENESS via the free equalizer + the action Peano property.
+    intro e he0 hes
+    exact free_recursor_unique_of_bicartesian hbool A α hiso hcoeq α e (Cat.id α.obj)
+      he0 hes (by rw [Cat.comp_id]) (by
+        rw [Cat.comp_id, prodMap_id, Cat.id_comp])
+
 /-- §1.98(13): Bicartesian characterization of a free A-action.
     An A-action (A*, e : 1 → A*, s : A × A* → A*) is FREE iff
     [(e, s)] : 1 + A × A* → A* is iso and p₂ : A × A* → A* → 1 is a coequalizer.
@@ -1174,6 +1830,7 @@ theorem free_recursor_unique_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topo
     `free_recursor_exists_of_bicartesian`; UNIQUENESS is proved Sorry-free here.) -/
 theorem free_action_iff_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
     [HasBinaryCoproducts 𝒞] [HasImages 𝒞]
+    (hbool : BooleanSub 𝒞) (hcap : Capital (𝒞 := 𝒞))
     (A : 𝒞) (α : AAction (𝒞 := 𝒞) A)
     -- [unit, act] : 1 + A × α.obj → α.obj is iso
     (hiso : IsIso (HasBinaryCoproducts.case α.unit α.act
@@ -1207,10 +1864,10 @@ theorem free_action_iff_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
     -- EXISTENCE from `free_recursor_exists_of_bicartesian` (the single residual); UNIQUENESS
     -- proved here Sorry-free from the action Peano property via the equalizer.
     intro β
-    obtain ⟨hex, _⟩ := free_recursor_exists_of_bicartesian A α hiso hcoeq
+    obtain ⟨hex, _⟩ := free_recursor_exists_of_bicartesian hbool hcap A α hiso hcoeq
     obtain ⟨h, hh0, hhs⟩ := hex β
     exact ⟨h, ⟨hh0, hhs⟩, fun h' h0' hs' =>
-      free_recursor_unique_of_bicartesian A α hiso hcoeq β h' h h0' hs' hh0 hhs⟩
+      free_recursor_unique_of_bicartesian hbool A α hiso hcoeq β h' h h0' hs' hh0 hhs⟩
   exact ⟨{
     obj := α.obj
     unit := α.unit
@@ -1267,7 +1924,16 @@ def freeAAction_of_listObject {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞] {A : �
   recA_act  := fun α => LD.fold_cons α.unit α.act
   recA_uniq := fun α m hm0 hms => LD.fold_uniq α.unit α.act m hm0 hms
 
-/-- §1.98(14): In a topos with a NNO, every object A has a free A-action. -/
+/-- §1.98(14): In a topos with a NNO, every object A has a free A-action.
+
+    STATEMENT FIDELITY (no boolean hypothesis here, deliberately).  Unlike §1.988 / §1.98(10)
+    / §1.98(13) — whose Peano property Freyd proves only in a BOOLEAN topos (hence
+    `recursor_exists_of_bicartesian` / `free_recursor_exists_of_bicartesian` carry `BooleanSub`) —
+    Freyd's §1.98(14) is stated and proved in ANY topos with a NNO: the free A-action is the LIST
+    OBJECT `A* = Σₙ Aⁿ`, built from the NNO by primitive recursion, with NO booleanness used.  So
+    adding `BooleanSub` here would be UNfaithful (an unused hypothesis).  Its residual is the
+    genuinely Chapter-1 list-object / N-indexed-coproduct infrastructure gap below, NOT a §1.988
+    Peano (boolean) gap. -/
 theorem free_action_exists {𝒞 : Type u} [Cat.{v} 𝒞]
     [hN : HasNaturalNumbersObject 𝒞] [HasExponentials 𝒞]
     (A : 𝒞) : Nonempty (FreeAAction (𝒞 := 𝒞) A) := by
