@@ -4090,7 +4090,189 @@ theorem foldExists {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B) :
     ∃ f : (listCarrier A).dom ⟶ B,
       listNil A ≫ f = e ∧
       prodMap A (listCarrier A).dom B f ≫ c = listCons A ≫ f := by
-  sorry
+  classical
+  -- Abbreviations matching `foldProj_total`'s local context.
+  let G : Subobject 𝒞 (prod (wordObj A) B) := foldGraph A e c
+  let p : G.dom ⟶ wordObj A := foldProj A e c
+  -- The graph algebra structure: unit `g₀` and act `actG`, with `g₀ ≫ G.arr = foldUnit` and
+  -- `actG ≫ G.arr = prodMap.. G.arr ≫ foldStep`.  Same as in `foldProj_total`.
+  obtain ⟨g₀, hg₀⟩ := actLeast_allows (foldUnit A e) (foldStep A c)
+    (snd (A := A) (B := prod (wordObj A) B))
+  have hGact : (image (prodMap A G.dom (prod (wordObj A) B) G.arr ≫ foldStep A c)).le G :=
+    actImg_le_of_actStable (foldStep A c) G
+      (actLeast_stable (foldUnit A e) (foldStep A c) (snd (A := A) (B := prod (wordObj A) B)))
+  obtain ⟨rG, hrG⟩ := hGact
+  let actG : prod A G.dom ⟶ G.dom :=
+    image.lift (prodMap A G.dom (prod (wordObj A) B) G.arr ≫ foldStep A c) ≫ rG
+  have hactG : actG ≫ G.arr = prodMap A G.dom (prod (wordObj A) B) G.arr ≫ foldStep A c := by
+    show (image.lift _ ≫ rG) ≫ G.arr = _
+    rw [Cat.assoc, hrG, image.lift_fac]
+  -- The `(foldUnit, foldStep)` β-facts on the two legs.
+  have hSgFst : foldStep A c ≫ fst = pair fst (snd ≫ fst) ≫ consMor A := fst_pair _ _
+  have hSgSnd : foldStep A c ≫ snd = pair fst (snd ≫ snd) ≫ c := snd_pair _ _
+  have hg₀arr : g₀ ≫ G.arr = pair (nilMor A) e := hg₀
+  -- α-leg law `prodMap.. p ≫ consMor = actG ≫ p` (identical to `foldProj_total`'s `hpt`).
+  have hpt : prodMap A G.dom (wordObj A) p ≫ consMor A = actG ≫ p := by
+    have hR : actG ≫ p
+        = prodMap A G.dom (prod (wordObj A) B) G.arr ≫ (pair fst (snd ≫ fst) ≫ consMor A) := by
+      show actG ≫ G.arr ≫ fst = _
+      rw [← Cat.assoc, hactG, Cat.assoc, hSgFst]
+    have hpm : prodMap A (prod (wordObj A) B) (wordObj A) fst = pair fst (snd ≫ fst) := rfl
+    rw [hR]
+    show prodMap A G.dom (wordObj A) (G.arr ≫ fst) ≫ consMor A = _
+    rw [prodMap_comp, hpm, Cat.assoc]
+  -- B-leg law `prodMap.. (G.arr ≫ snd) ≫ c = actG ≫ (G.arr ≫ snd)`.
+  have hpsnd : prodMap A G.dom B (G.arr ≫ snd) ≫ c = actG ≫ (G.arr ≫ snd) := by
+    have hR : actG ≫ (G.arr ≫ snd)
+        = prodMap A G.dom (prod (wordObj A) B) G.arr ≫ (pair fst (snd ≫ snd) ≫ c) := by
+      rw [← Cat.assoc, hactG, Cat.assoc, hSgSnd]
+    have hpm : prodMap A (prod (wordObj A) B) B snd = pair fst (snd ≫ snd) := rfl
+    rw [hR, prodMap_comp, hpm, Cat.assoc]
+  -- ─────────────────────────────────────────────────────────────────────────────
+  -- (I) `image p = A*`.  `A* ≤ image p` is `foldProj_total`; the reverse `image p ≤ A*` comes
+  --     from `G ≤ fst#A*` (the graph lives over `A*` since `foldUnit`/`foldStep` keep the word in
+  --     `A*`), via `actLeast_le`.  Together they give the cover `pCov : G.dom ↠ A*.dom`.
+  have hListLeImg : (listCarrier A).le (image p) := foldProj_total A e c
+  -- `B₀ := fst # A*`, the words-with-any-value subobject of `W × B`.
+  let B₀ : Subobject 𝒞 (prod (wordObj A) B) := InverseImage (fst (A := wordObj A) (B := B)) (listCarrier A)
+  have hGleB₀ : G.le B₀ := by
+    refine actLeast_le (foldUnit A e) (foldStep A c) (snd (A := A) (B := prod (wordObj A) B)) B₀ ?_ ?_
+    · -- allows `foldUnit`: `foldUnit ≫ fst = nilMor` factors through `A*.arr` (= listNil).
+      let pb := HasPullbacks.has (fst (A := wordObj A) (B := B)) (listCarrier A).arr
+      have hsq : foldUnit A e ≫ fst (A := wordObj A) (B := B) = listNil A ≫ (listCarrier A).arr := by
+        show pair (nilMor A) e ≫ fst = _; rw [fst_pair, listNil_arr]
+      refine ⟨pb.lift ⟨one, foldUnit A e, listNil A, hsq⟩, ?_⟩
+      show pb.lift ⟨one, foldUnit A e, listNil A, hsq⟩ ≫ pb.cone.π₁ = foldUnit A e
+      exact pb.lift_fst _
+    · -- `(foldStep, snd)`-stable: restriction `B₀ → B₀` via `consMor` on the word-leg.
+      let pb := HasPullbacks.has (fst (A := wordObj A) (B := B)) (listCarrier A).arr
+      -- `consMor`-restriction on the underlying `A*`: `listCons : A × A* → A*`.
+      -- Build `actB₀ : prod A B₀.dom → B₀.dom` landing back in `fst#A*`.
+      -- Its word-leg value is `pair fst (snd≫fst) ≫ consMor` applied through `B₀.arr`, which lies
+      -- in `A*` because `(snd≫fst)` of the `B₀`-points lands in `A*` (= `pb.π₂`).
+      let wleg : prod A B₀.dom ⟶ wordObj A :=
+        prodMap A B₀.dom (wordObj A) (B₀.arr ≫ fst) ≫ consMor A
+      let aleg : prod A B₀.dom ⟶ (listCarrier A).dom :=
+        prodMap A B₀.dom (listCarrier A).dom pb.cone.π₂ ≫ listCons A
+      have hπ : pb.cone.π₂ ≫ (listCarrier A).arr = B₀.arr ≫ fst := pb.cone.w.symm
+      have haleg_arr : aleg ≫ (listCarrier A).arr = wleg := by
+        show (prodMap A B₀.dom (listCarrier A).dom pb.cone.π₂ ≫ listCons A)
+            ≫ (listCarrier A).arr = wleg
+        rw [Cat.assoc, listCons_arr, ← Cat.assoc, ← prodMap_comp, hπ]
+      -- the value-leg: `c` on `(fst, snd≫B₀.arr≫snd)`.
+      let bleg : prod A B₀.dom ⟶ B := prodMap A B₀.dom B (B₀.arr ≫ snd) ≫ c
+      -- `pair wleg bleg = prodMap.. B₀.arr ≫ foldStep`.
+      have hpairStep : pair wleg bleg
+          = prodMap A B₀.dom (prod (wordObj A) B) B₀.arr ≫ foldStep A c := by
+        refine (pair_uniq wleg bleg _ ?_ ?_).symm
+        · -- `(prodMap.. ≫ foldStep) ≫ fst = prodMap.. B₀.arr ≫ (foldStep ≫ fst) = wleg`.
+          rw [Cat.assoc, hSgFst]
+          show prodMap A B₀.dom (prod (wordObj A) B) B₀.arr
+              ≫ (pair fst (snd ≫ fst) ≫ consMor A) = wleg
+          rw [← Cat.assoc]
+          show (prodMap A B₀.dom (prod (wordObj A) B) B₀.arr
+              ≫ prodMap A (prod (wordObj A) B) (wordObj A) fst) ≫ consMor A = wleg
+          rw [← prodMap_comp]
+        · rw [Cat.assoc, hSgSnd]
+          show prodMap A B₀.dom (prod (wordObj A) B) B₀.arr
+              ≫ (pair fst (snd ≫ snd) ≫ c) = bleg
+          rw [← Cat.assoc]
+          show (prodMap A B₀.dom (prod (wordObj A) B) B₀.arr
+              ≫ prodMap A (prod (wordObj A) B) B snd) ≫ c = bleg
+          rw [← prodMap_comp]
+      have hcone : (pair wleg bleg) ≫ fst (A := wordObj A) (B := B)
+          = aleg ≫ (listCarrier A).arr := by rw [fst_pair, haleg_arr]
+      let actB₀ : prod A B₀.dom ⟶ B₀.dom :=
+        pb.lift ⟨prod A B₀.dom, pair wleg bleg, aleg, hcone⟩
+      have hactB₀ : actB₀ ≫ B₀.arr = prodMap A B₀.dom (prod (wordObj A) B) B₀.arr ≫ foldStep A c := by
+        show actB₀ ≫ pb.cone.π₁ = _
+        rw [pb.lift_fst]; exact hpairStep
+      exact actStable_of_restrict (foldStep A c) B₀ actB₀ hactB₀
+  -- `G ≤ B₀` gives `p = G.arr ≫ fst` factoring through `A*.arr`, so `image p ≤ A*`.
+  have hImgLeList : (image p).le (listCarrier A) := by
+    obtain ⟨k, hk⟩ := hGleB₀
+    let pb := HasPullbacks.has (fst (A := wordObj A) (B := B)) (listCarrier A).arr
+    refine image_min p (listCarrier A) ⟨k ≫ pb.cone.π₂, ?_⟩
+    have hw : pb.cone.π₂ ≫ (listCarrier A).arr = B₀.arr ≫ fst := pb.cone.w.symm
+    calc (k ≫ pb.cone.π₂) ≫ (listCarrier A).arr
+        = k ≫ (pb.cone.π₂ ≫ (listCarrier A).arr) := Cat.assoc _ _ _
+      _ = k ≫ (B₀.arr ≫ fst) := by rw [hw]
+      _ = (k ≫ B₀.arr) ≫ fst := (Cat.assoc _ _ _).symm
+      _ = G.arr ≫ fst := by rw [hk]
+      _ = p := rfl
+  -- Equal subobjects ⟹ the comparison `j : (image p).dom → A*.dom` is iso.
+  obtain ⟨j, hj⟩ := hImgLeList
+  obtain ⟨j', hj'⟩ := hListLeImg
+  have hjiso : IsIso j := by
+    refine ⟨j', ?_, ?_⟩
+    · exact (image p).monic (j ≫ j') (Cat.id _) (by rw [Cat.assoc, hj', hj, Cat.id_comp])
+    · exact (listCarrier A).monic (j' ≫ j) (Cat.id _) (by rw [Cat.assoc, hj, hj', Cat.id_comp])
+  -- The corestricted projection `pCov : G.dom ↠ A*.dom`, a cover with `pCov ≫ A*.arr = p`.
+  let pCov : G.dom ⟶ (listCarrier A).dom := image.lift p ≫ j
+  have hpCov : pCov ≫ (listCarrier A).arr = p := by
+    show (image.lift p ≫ j) ≫ (listCarrier A).arr = p
+    rw [Cat.assoc, hj, image.lift_fac]
+  have hpCovCover : Cover pCov := cover_comp (image_lift_cover p) (iso_cover j hjiso)
+  -- ─────────────────────────────────────────────────────────────────────────────
+  -- (II) SINGLE-VALUEDNESS: `p` is MONIC (§1.98(14), non-boolean).
+  have hpmono : Mono p := by
+    sorry
+  have hpCovMono : Mono pCov := by
+    intro Z u v huv
+    apply hpmono
+    calc u ≫ p = u ≫ pCov ≫ (listCarrier A).arr := by rw [hpCov]
+      _ = (u ≫ pCov) ≫ (listCarrier A).arr := (Cat.assoc _ _ _).symm
+      _ = (v ≫ pCov) ≫ (listCarrier A).arr := by rw [huv]
+      _ = v ≫ pCov ≫ (listCarrier A).arr := Cat.assoc _ _ _
+      _ = v ≫ p := by rw [hpCov]
+  -- `pCov` monic + cover ⟹ iso; `f := pCov⁻¹ ≫ G.arr ≫ snd`.
+  obtain ⟨pinv, hpinv1, hpinv2⟩ := monic_cover_iso pCov hpCovCover hpCovMono
+  refine ⟨pinv ≫ G.arr ≫ snd, ?_, ?_⟩
+  · -- `listNil ≫ f = e`.  `listNil ≫ pCov⁻¹ = g₀` since both project to `nilMor` and `pCov` mono.
+    -- `g₀ ≫ p = nilMor = listNil ≫ A*.arr = listNil ≫ pCov ≫ A*.arr ≫ ... ` — use `pCov` iso.
+    have hg₀p : g₀ ≫ p = nilMor A := by
+      show g₀ ≫ G.arr ≫ fst = nilMor A
+      rw [← Cat.assoc, hg₀arr, fst_pair]
+    -- `listNil = g₀ ≫ pCov`: both compose with `A*.arr` to `nilMor`, and `A*.arr` mono.
+    have hnilpCov : listNil A = g₀ ≫ pCov := by
+      apply (listCarrier A).monic
+      rw [listNil_arr, Cat.assoc, hpCov, hg₀p]
+    have hcollapse : listNil A ≫ pinv = g₀ := by
+      rw [hnilpCov, Cat.assoc, hpinv1]; exact Cat.comp_id _
+    calc listNil A ≫ pinv ≫ G.arr ≫ snd
+        = (listNil A ≫ pinv) ≫ G.arr ≫ snd := (Cat.assoc _ _ _).symm
+      _ = g₀ ≫ G.arr ≫ snd := by rw [hcollapse]
+      _ = (g₀ ≫ G.arr) ≫ snd := (Cat.assoc _ _ _).symm
+      _ = pair (nilMor A) e ≫ snd := by rw [hg₀arr]
+      _ = e := snd_pair _ _
+  · -- `prodMap.. f ≫ c = listCons ≫ f`.  Chase through the graph: `listCons ≫ pCov⁻¹ = actG ↾`.
+    let f : (listCarrier A).dom ⟶ B := pinv ≫ G.arr ≫ snd
+    show prodMap A (listCarrier A).dom B f ≫ c = listCons A ≫ f
+    -- `listCons ≫ pinv = prodMap A A*.dom G.dom pinv ≫ actG`:  both compose with `pCov` to agree,
+    -- using `pCov ≫ A*.arr = p`, `hpt`, and `listCons_arr`.
+    have htpinv : listCons A ≫ pinv
+        = prodMap A (listCarrier A).dom G.dom pinv ≫ actG := by
+      apply hpCovMono
+      -- LHS ≫ pCov = listCons ≫ (pinv ≫ pCov) = listCons.
+      have hL : (listCons A ≫ pinv) ≫ pCov = listCons A := by
+        rw [Cat.assoc, hpinv2, Cat.comp_id]
+      -- RHS ≫ pCov, then ≫ A*.arr, equals listCons ≫ A*.arr; cancel mono A*.arr.
+      apply (listCarrier A).monic
+      rw [hL, listCons_arr, Cat.assoc, hpCov]
+      -- `prodMap.. A*.arr ≫ consMor = (prodMap.. pinv ≫ actG) ≫ p`.
+      have hpinvp : pinv ≫ p = (listCarrier A).arr := by
+        rw [← hpCov, ← Cat.assoc, hpinv2, Cat.id_comp]
+      rw [Cat.assoc, ← hpt, ← Cat.assoc, ← prodMap_comp, hpinvp]
+    -- Now: `prodMap.. f ≫ c = prodMap.. (pinv ≫ G.arr ≫ snd) ≫ c`.
+    calc prodMap A (listCarrier A).dom B f ≫ c
+        = prodMap A (listCarrier A).dom G.dom pinv
+            ≫ (prodMap A G.dom B (G.arr ≫ snd) ≫ c) := by
+          show prodMap A (listCarrier A).dom B (pinv ≫ G.arr ≫ snd) ≫ c = _
+          rw [prodMap_comp, prodMap_comp, Cat.assoc]
+      _ = prodMap A (listCarrier A).dom G.dom pinv ≫ (actG ≫ (G.arr ≫ snd)) := by rw [hpsnd]
+      _ = (prodMap A (listCarrier A).dom G.dom pinv ≫ actG) ≫ (G.arr ≫ snd) := (Cat.assoc _ _ _).symm
+      _ = (listCons A ≫ pinv) ≫ (G.arr ≫ snd) := by rw [htpinv]
+      _ = listCons A ≫ f := by rw [Cat.assoc]
 
 end ListObjectAssembly
 
