@@ -4798,25 +4798,188 @@ theorem foldExists {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B) :
       -- `cons(a,w) ≫ valG = c(a,b) ≫ singletonMapCat B`: the cons-fiber is the singleton `{c(a,b)}`.
       have hwcSing : wc ≫ valG = bc ≫ singletonMapCat B := by
         refine hFiberSingleton wc bc ?_ ?_
-        · -- cons-fiber single-valuedness (uses `consMor_mono` predecessor + `w ∈ Sing` IH `hbSing`).
+        · -- cons-fiber single-valuedness via NO-JUNK ACT DECOMPOSITION (no `vw`/equalizer needed).
+          -- The arbitrary `G`-point `g` over a cons word `yy ≫ wc = cons(a, Sing.arr s)` factors
+          -- through `image actG` (every point over a cons word is an act — `hConsImg` below, the
+          -- `imp`-engine with VACUOUS nil-overlap).  Pull back the cover `image.lift actG` to recover a
+          -- genuine source point `s : P → prod A G.dom` (over a cover `π₂ : P ↠ Y`) with `s ≫ actG =
+          -- π₂ ≫ g`.  Then `g`'s value `= c(a, predecessor.value)` (`hpsnd`), the predecessor lies over
+          -- the `Sing` tail (`consMor_mono`), so its value is pinned to `bSing` (singleton fiber), giving
+          -- `c(a, bSing s) = yy ≫ bc`; cancel the cover `π₂` (`cover_epi`).
           intro Y g yy hgw
-          -- RESIDUAL (cons step, §1.989) — the LAST hole.  Goal `g ≫ q = yy ≫ bc` for a `G`-point `g`
-          -- over the cons word `yy ≫ wc = cons(a, Sing.arr s)`.  The no-junk engine `hAntToVal2`
-          -- (act-preimage closure, built+committed above) decomposes the arbitrary `g` as a `foldStep`
-          -- of a predecessor; the predecessor's tail lies in `Sing`, so the IH `hbSing` pins its value
-          -- to `bSing`, giving `c(a, bSing s) = bc`.  The MISSING piece is a GLOBAL determined-value
-          -- map `Ce ⊆ G.dom` for `hAntToVal2`'s consequent: `Ce` must (i) contain `g₀` and (ii) on
-          -- cons-Sing-word points force value `c(head, bSing tail)`.  A value-equalizer needs the
-          -- value as a TOTAL map `G.dom → B`, which here is the fold itself (circular at this layer).
-          -- Closing it needs the determined-value extractor (essentially `vrec : G.dom → B` agreeing
-          -- with `gstep` on cons-Sing words and `e` on nil) — the one primitive `hAntToVal2`/`hGind`
-          -- cannot themselves supply.  `gstep` (the matching `foldStep` point with the same word and
-          -- value `yy ≫ bc`) is available verbatim as in the cons-membership branch below.
-          -- CONCRETE ROUTE (not yet built): `singletonMapCat B : B ↣ Ω^B` is monic, so its PARTIAL
-          -- inverse `Ω^B ⇀ B` (via the imported `PartialMapClassifier`) composed with `valG` gives a
-          -- total-on-`Sing` value map `vw : W ⇀ B`; `Ce := equalizer q (p ≫ vw)` is then global with
-          -- `g₀ ∈ Ce` (nil-fiber `{e}` ⟹ `vw(nil)=e`), and `hAntToVal2 Acons2 Ce` closes the step.
-          sorry
+          let q : G.dom ⟶ B := G.arr ≫ snd
+          -- `ConsW ⊆ W` = cons words; `Acons ⊆ G.dom` = points over a cons word.
+          let ConsW : Subobject 𝒞 (wordObj A) := ⟨prod A (wordObj A), consMor A, consMor_mono A⟩
+          let Acons : Subobject 𝒞 G.dom := InverseImage p ConsW
+          -- **NO-JUNK**: `Acons ≤ image actG` — every `G`-point over a cons word is an act.  Proof: the
+          -- `imp`-engine `Good := (Acons ⇒ image actG)` (`hGind`): `g₀ ∈ Good` is VACUOUS (`g₀` over a
+          -- NIL word, `nil_cons_disjoint`); `Good` is `actG`-closed (`image actG ≤ Good`, `actG` an act);
+          -- so `Acons ≤ Good`, whence `Acons ⊓ Acons ≤ image actG` (`imp_adjunction`).
+          have hConsImg : Acons.le (image actG) := by
+            let Good : Subobject 𝒞 G.dom := Sub.imp Acons (image actG)
+            -- `g₀ ∈ Good`: `Acons ⊓ ⟨g₀⟩ ≤ image actG` vacuously (g₀ over nil, `nil_cons_disjoint`).
+            have hUnitGood : Allows Good g₀ := by
+              -- the singleton subobject of `g₀` (monic via `term_uniq`).
+              have hg₀mono : Mono g₀ := by intro Z u v _; exact term_uniq u v
+              let G0 : Subobject 𝒞 G.dom := ⟨one, g₀, hg₀mono⟩
+              -- `g₀ ∈ G0` and `G0 ≤ Good` ⟹ `g₀ ∈ Good`.
+              refine allows_mono ?_ (⟨Cat.id one, Cat.id_comp _⟩ : Allows G0 g₀)
+              -- `G0 ≤ Good` via `imp_adjunction`: `Acons ⊓ G0 ≤ image actG`, vacuous.
+              refine (imp_adjunction Acons (image actG) G0
+                (HasPullbacks.has Acons.arr G0.arr)).2 ?_
+              let I := Sub.inter Acons G0 (HasPullbacks.has Acons.arr G0.arr)
+              -- `I.arr` factors through `Acons` (cons word via `pCons`) and through `G0` (= `g₀`, nil).
+              let pCons : Acons.dom ⟶ prod A (wordObj A) := (HasPullbacks.has p ConsW.arr).cone.π₂
+              have hpCons : Acons.arr ≫ p = pCons ≫ consMor A := (HasPullbacks.has p ConsW.arr).cone.w
+              obtain ⟨kC, hkC⟩ := Sub.inter_le_left Acons G0 _
+              obtain ⟨kU, hkU⟩ := Sub.inter_le_right Acons G0 _
+              -- `I.arr ≫ p = (kC ≫ pCons) ≫ consMor` (cons) and `= kU ≫ nilMor` (nil, `kU : I.dom → one`).
+              have hcons : I.arr ≫ p = (kC ≫ pCons) ≫ consMor A := by
+                rw [← hkC, Cat.assoc, Cat.assoc, hpCons]
+              have hnil : I.arr ≫ p = kU ≫ nilMor A := by
+                have hg₀p : g₀ ≫ p = nilMor A := by
+                  show g₀ ≫ G.arr ≫ fst = nilMor A; rw [← Cat.assoc, hg₀arr, fst_pair]
+                show I.arr ≫ p = kU ≫ nilMor A
+                rw [← hkU]
+                show (kU ≫ g₀) ≫ p = kU ≫ nilMor A
+                rw [Cat.assoc, hg₀p]
+              -- vacuous: build SOME map `I.dom → (image actG).dom`, then `nil_cons_disjoint` collapses.
+              let mapToImg : I.dom ⟶ (image actG).dom :=
+                pair ((kC ≫ pCons) ≫ fst) I.arr ≫ image.lift actG
+              exact ⟨mapToImg,
+                nil_cons_disjoint A kU (kC ≫ pCons)
+                  (by rw [← hnil, hcons]) (mapToImg ≫ (image actG).arr) I.arr⟩
+            -- `Good` is `actG`-closed: `Allows Good actG` (`actG ∈ image actG ≤ Good`), then restrict.
+            have hActGood : Allows Good actG :=
+              allows_mono
+                ((imp_adjunction Acons (image actG) (image actG)
+                  (HasPullbacks.has Acons.arr (image actG).arr)).2
+                  (Sub.inter_le_right Acons (image actG) _))
+                ⟨image.lift actG, image.lift_fac actG⟩
+            have hClosedGood : (InverseImage (snd (A := A) (B := G.dom)) Good).le
+                (InverseImage actG Good) := by
+              rw [invImage_le_iff_restrict]
+              obtain ⟨s, hs⟩ := hActGood
+              exact ⟨(InverseImage (snd (A := A) (B := G.dom)) Good).arr ≫ s,
+                by rw [Cat.assoc, hs]⟩
+            have hAconsGood : Acons.le Good := hGind Good hUnitGood hClosedGood Acons.arr
+            -- `Acons ≤ Good = (Acons ⇒ image actG)` ⟹ `Acons ⊓ Acons ≤ image actG` ⟹ `Acons ≤ image actG`.
+            have hInter : (Sub.inter Acons Acons (HasPullbacks.has Acons.arr Acons.arr)).le
+                (image actG) :=
+              (imp_adjunction Acons (image actG) Acons
+                (HasPullbacks.has Acons.arr Acons.arr)).1 hAconsGood
+            have hrefl : Acons.le Acons := ⟨Cat.id Acons.dom, Cat.id_comp _⟩
+            exact subLe_trans
+              (Sub.inter_glb Acons Acons Acons (HasPullbacks.has Acons.arr Acons.arr) hrefl hrefl)
+              hInter
+          -- `g ∈ Acons`: `g ≫ p = yy ≫ wc = (yy ≫ prodMap.. Sing.arr) ≫ consMor` is a cons word.
+          have hgAcons : Allows Acons g := by
+            let pbC := HasPullbacks.has p ConsW.arr
+            have hsq : g ≫ p = (yy ≫ prodMap A Sing.dom (wordObj A) Sing.arr) ≫ ConsW.arr := by
+              show g ≫ p = (yy ≫ prodMap A Sing.dom (wordObj A) Sing.arr) ≫ consMor A
+              rw [hgw, Cat.assoc]
+            exact ⟨pbC.lift ⟨Y, g, _, hsq⟩, pbC.lift_fst _⟩
+          -- `g ∈ image actG`: factor `g` through `(image actG).arr`.
+          obtain ⟨k, hk⟩ := allows_mono hConsImg hgAcons
+          -- COVER PULLBACK: pull `image.lift actG : prod A G.dom ↠ (image actG).dom` back along `k`.
+          let pbI := HasPullbacks.has (image.lift actG) k
+          let s : pbI.cone.pt ⟶ prod A G.dom := pbI.cone.π₁
+          let π : pbI.cone.pt ⟶ Y := pbI.cone.π₂
+          have hπcover : Cover π := cover_pullback k (image_lift_cover actG)
+          -- `s ≫ actG = π ≫ g`.
+          have hsg : s ≫ actG = π ≫ g := by
+            show pbI.cone.π₁ ≫ actG = pbI.cone.π₂ ≫ g
+            calc pbI.cone.π₁ ≫ actG
+                = pbI.cone.π₁ ≫ (image.lift actG ≫ (image actG).arr) := by rw [image.lift_fac]
+              _ = (pbI.cone.π₁ ≫ image.lift actG) ≫ (image actG).arr := (Cat.assoc _ _ _).symm
+              _ = (pbI.cone.π₂ ≫ k) ≫ (image actG).arr := by rw [pbI.cone.w]
+              _ = pbI.cone.π₂ ≫ (k ≫ (image actG).arr) := Cat.assoc _ _ _
+              _ = pbI.cone.π₂ ≫ g := by rw [hk]
+          -- The source's head `a := s ≫ fst` and predecessor `gp := s ≫ snd : P → G.dom`.
+          let a : pbI.cone.pt ⟶ A := s ≫ fst
+          let gp : pbI.cone.pt ⟶ G.dom := s ≫ snd
+          -- predecessor word `wgp := gp ≫ p`; `s ≫ actG ≫ p = cons(a, wgp)` (`hpt`).
+          have hword : s ≫ actG ≫ p = pair a (gp ≫ p) ≫ consMor A := by
+            calc s ≫ actG ≫ p
+                = s ≫ (prodMap A G.dom (wordObj A) p ≫ consMor A) := by rw [← hpt]
+              _ = (s ≫ prodMap A G.dom (wordObj A) p) ≫ consMor A := (Cat.assoc _ _ _).symm
+              _ = pair a (gp ≫ p) ≫ consMor A := by
+                  congr 1
+                  refine pair_uniq a (gp ≫ p) _ ?_ ?_
+                  · show (s ≫ prodMap A G.dom (wordObj A) p) ≫ fst = s ≫ fst
+                    rw [Cat.assoc, prodMap_fst]
+                  · show (s ≫ prodMap A G.dom (wordObj A) p) ≫ snd = gp ≫ p
+                    rw [Cat.assoc, prodMap_snd]; exact (Cat.assoc _ _ _).symm
+          -- `g`'s word along `π` is `cons(π≫yy≫fst, (π≫yy≫snd)≫Sing.arr)`; match via `consMor_mono`.
+          have hgword : π ≫ g ≫ p
+              = pair ((π ≫ yy) ≫ fst) (((π ≫ yy) ≫ snd) ≫ Sing.arr) ≫ consMor A := by
+            calc π ≫ g ≫ p
+                = (π ≫ yy ≫ prodMap A Sing.dom (wordObj A) Sing.arr) ≫ consMor A := by
+                  rw [hgw]; show π ≫ yy ≫ (prodMap A Sing.dom (wordObj A) Sing.arr ≫ consMor A) = _
+                  rw [Cat.assoc, Cat.assoc]
+              _ = pair ((π ≫ yy) ≫ fst) (((π ≫ yy) ≫ snd) ≫ Sing.arr) ≫ consMor A := by
+                  congr 1
+                  refine pair_uniq _ _ _ ?_ ?_
+                  · simp only [Cat.assoc, prodMap_fst]
+                  · simp only [Cat.assoc, prodMap_snd]
+          -- consMor monic: `a` and predecessor word match the cons data of `g`'s word along `π`.
+          have hmatch : pair a (gp ≫ p)
+              = pair ((π ≫ yy) ≫ fst) (((π ≫ yy) ≫ snd) ≫ Sing.arr) := by
+            refine consMor_mono A _ _ ?_
+            calc pair a (gp ≫ p) ≫ consMor A
+                = s ≫ actG ≫ p := hword.symm
+              _ = (s ≫ actG) ≫ p := (Cat.assoc _ _ _).symm
+              _ = (π ≫ g) ≫ p := by rw [hsg]
+              _ = π ≫ g ≫ p := Cat.assoc _ _ _
+              _ = pair ((π ≫ yy) ≫ fst) (((π ≫ yy) ≫ snd) ≫ Sing.arr) ≫ consMor A := hgword
+          have hgpw : gp ≫ p = ((π ≫ yy) ≫ snd) ≫ Sing.arr := by
+            have := congrArg (· ≫ snd) hmatch
+            simpa only [snd_pair] using this
+          have ha : a = (π ≫ yy) ≫ fst := by
+            have := congrArg (· ≫ fst) hmatch
+            simpa only [fst_pair] using this
+          -- predecessor over a `Sing` word ⟹ its value is `bSing` (singleton fiber, `diag_classify_iff`).
+          have hgpv : gp ≫ q = ((π ≫ yy) ≫ snd) ≫ bSing := by
+            -- `(π≫yy≫snd) ≫ (Sing.arr ≫ valG) = (π≫yy≫snd) ≫ bSing ≫ singletonMapCat` (IH `hbSing`).
+            have hfib : (gp ≫ p) ≫ valG = (((π ≫ yy) ≫ snd) ≫ bSing) ≫ singletonMapCat B := by
+              rw [hgpw, Cat.assoc, hbSing, ← Cat.assoc]
+            -- `(wgp, gp≫q) ∈ G` (`hGmem`) and fiber is `{bSing}` ⟹ `gp≫q = bSing` (`diag_classify_iff`).
+            have h1 : pair (gp ≫ q) ((gp ≫ p) ≫ valG) ≫ eval_exp B Ω
+                = term pbI.cone.pt ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
+              rw [hvalGβ (gp ≫ p) (gp ≫ q)]
+              show pair (gp ≫ p) (gp ≫ G.arr ≫ snd) ≫ χG = _
+              exact hGmem gp
+            rw [hfib, hSingEval (gp ≫ q) (((π ≫ yy) ≫ snd) ≫ bSing)] at h1
+            exact (diag_classify_iff (gp ≫ q) (((π ≫ yy) ≫ snd) ≫ bSing)).1 h1
+          -- VALUE OF `g` ALONG `π`: `c(a, gp≫q)` (`hpsnd`) `= c(π≫yy≫fst, (π≫yy≫snd)≫bSing) = π≫yy≫bc`.
+          have hπval : π ≫ g ≫ q = π ≫ yy ≫ bc := by
+            have hstep : π ≫ g ≫ q = pair a (gp ≫ q) ≫ c := by
+              calc π ≫ g ≫ q
+                  = (π ≫ g) ≫ (G.arr ≫ snd) := (Cat.assoc _ _ _).symm
+                _ = (s ≫ actG) ≫ (G.arr ≫ snd) := by rw [hsg]
+                _ = s ≫ (prodMap A G.dom B (G.arr ≫ snd) ≫ c) := by
+                    rw [Cat.assoc, ← hpsnd]
+                _ = (s ≫ prodMap A G.dom B (G.arr ≫ snd)) ≫ c := (Cat.assoc _ _ _).symm
+                _ = pair a (gp ≫ q) ≫ c := by
+                    congr 1
+                    refine pair_uniq a (gp ≫ q) _ ?_ ?_
+                    · show (s ≫ prodMap A G.dom B (G.arr ≫ snd)) ≫ fst = s ≫ fst
+                      rw [Cat.assoc, prodMap_fst]
+                    · show (s ≫ prodMap A G.dom B (G.arr ≫ snd)) ≫ snd = gp ≫ q
+                      rw [Cat.assoc, prodMap_snd]; exact (Cat.assoc _ _ _).symm
+            rw [hstep, ha, hgpv]
+            show pair ((π ≫ yy) ≫ fst) (((π ≫ yy) ≫ snd) ≫ bSing) ≫ c
+                = π ≫ yy ≫ (prodMap A Sing.dom B bSing ≫ c)
+            rw [← Cat.assoc, ← Cat.assoc]
+            congr 1
+            refine (pair_uniq _ _ _ ?_ ?_).symm
+            · simp only [Cat.assoc, prodMap_fst]
+            · simp only [Cat.assoc, prodMap_snd]
+          -- cancel the cover `π` (`cover_epi`): `g ≫ q = yy ≫ bc`.
+          show g ≫ G.arr ≫ snd = yy ≫ bc
+          exact cover_epi hπcover (by
+            show π ≫ g ≫ G.arr ≫ snd = π ≫ yy ≫ bc
+            exact hπval)
         · -- `(cons(a,w), c(a,b)) ∈ G`: `foldStep` applied to a `G`-point over `(w, bSing)`.
           -- `(Sing.arr, bSing) ∈ G` (singleton fiber inhabited), lift to a `G`-point `gp`, then
           -- `actG` it: `gstep := (id_A × gp) ≫ actG` has word `wc`, value `bc` (via `hpt`/`hpsnd`).
