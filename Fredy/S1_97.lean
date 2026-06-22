@@ -4414,6 +4414,137 @@ theorem foldExists {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B) :
       refine ⟨pbS.lift ⟨X, f, b', hb'⟩, ?_⟩
       show pbS.lift ⟨X, f, b', hb'⟩ ≫ pbS.cone.π₁ = f
       exact pbS.lift_fst _
+    -- Exponential extensionality: two `X → Ω^B` agree iff they agree after `prodMap.. ≫ eval`.
+    have hExpExt : ∀ {X : 𝒞} (σ₁ σ₂ : X ⟶ Ω ^^ B),
+        prodMap B X (Ω ^^ B) σ₁ ≫ eval_exp B Ω = prodMap B X (Ω ^^ B) σ₂ ≫ eval_exp B Ω →
+        σ₁ = σ₂ := by
+      intro X σ₁ σ₂ h
+      rw [curry_unique_eq h, ← curry_unique_eq (f := prodMap B X (Ω ^^ B) σ₂ ≫ eval_exp B Ω) rfl]
+    -- **Fiber-singleton criterion.**  If `(w,b₀)∈G` and the `w`-fiber of `G` is single-valued
+    -- (every `G`-point over `w` has value `b₀`), then `valG w = {b₀}`, i.e. `w ≫ valG` factors
+    -- through the singleton map at `b₀`.  Proof: `hExpExt` reduces to a classifier equation on
+    -- `prod B X → Ω`; both sides classify the GRAPH `γ = ⟨b₀,id⟩` of `b₀`, via `classify_unique`.
+    have hFiberSingleton : ∀ {X : 𝒞} (w : X ⟶ wordObj A) (b₀ : X ⟶ B),
+        (∀ {Y : 𝒞} (g : Y ⟶ G.dom) (y : Y ⟶ X), g ≫ p = y ≫ w → g ≫ (G.arr ≫ snd) = y ≫ b₀) →
+        pair w b₀ ≫ χG = term X ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) →
+        w ≫ valG = b₀ ≫ singletonMapCat B := by
+      intro X w b₀ hSV hmem
+      -- graph mono `γ = ⟨b₀, id⟩ : X → B × X` (monic; `γ ≫ snd = id`).
+      let γ : X ⟶ prod B X := pair b₀ (Cat.id X)
+      have hγsnd : γ ≫ snd = Cat.id X := snd_pair _ _
+      have hγfst : γ ≫ fst = b₀ := fst_pair _ _
+      have hγmono : Mono γ := mono_of_retraction γ snd hγsnd
+      -- `M₁ := ⟨snd≫w, fst⟩ ≫ χG`  and  `M₂ := prodMap B X B b₀ ≫ χ_Δ`, both `prod B X → Ω`.
+      let M₁ : prod B X ⟶ Ω := pair (snd ≫ w) fst ≫ χG
+      let M₂ : prod B X ⟶ Ω :=
+        prodMap B X B b₀ ≫ HasSubobjectClassifier.classify (diag B) (diag_mono B)
+      -- `γ ≫ M₁ = term ≫ true` (the point `(b₀ x, x)` maps to `(w x, b₀ x) ∈ G`).
+      have hγpair : γ ≫ pair (snd ≫ w) (fst (A := B) (B := X)) = pair w b₀ := by
+        refine pair_uniq w b₀ (γ ≫ pair (snd ≫ w) (fst (A := B) (B := X))) ?_ ?_
+        · rw [Cat.assoc, fst_pair, ← Cat.assoc, hγsnd, Cat.id_comp]
+        · rw [Cat.assoc, snd_pair, hγfst]
+      have hsq₁ : γ ≫ M₁ = term X ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
+        show γ ≫ pair (snd ≫ w) fst ≫ χG = _
+        rw [← Cat.assoc, hγpair, hmem]
+      -- `γ ≫ M₂ = term ≫ true` (diagonal: `b₀ = b₀`).
+      have hsq₂ : γ ≫ M₂ = term X ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
+        show γ ≫ prodMap B X B b₀ ≫ HasSubobjectClassifier.classify (diag B) (diag_mono B) = _
+        have hγpm : γ ≫ prodMap B X B b₀ = b₀ ≫ diag B := by
+          have hlhs : γ ≫ prodMap B X B b₀ = pair b₀ b₀ := by
+            refine pair_uniq b₀ b₀ (γ ≫ prodMap B X B b₀) ?_ ?_
+            · rw [Cat.assoc, prodMap_fst, hγfst]
+            · rw [Cat.assoc, prodMap_snd, ← Cat.assoc, hγsnd, Cat.id_comp]
+          have hrhs : b₀ ≫ diag B = pair b₀ b₀ := by
+            refine pair_uniq b₀ b₀ (b₀ ≫ diag B) ?_ ?_
+            · rw [Cat.assoc, diag_fst, Cat.comp_id]
+            · rw [Cat.assoc, diag_snd, Cat.comp_id]
+          rw [hlhs, hrhs]
+        rw [← Cat.assoc, hγpm, Cat.assoc, HasSubobjectClassifier.classify_sq, ← Cat.assoc]
+        congr 1; exact term_uniq _ _
+      -- `M₁` makes `γ` the pullback of `true`: universality uses single-valuedness `hSV`.
+      have hPB₁ : (Cone.mk (f := M₁) (g := HasSubobjectClassifier.true (𝒞 := 𝒞))
+          (pt := X) (π₁ := γ) (π₂ := term X) (w := hsq₁)).IsPullback := by
+        intro d
+        let db : d.pt ⟶ B := d.π₁ ≫ fst
+        let dx : d.pt ⟶ X := d.π₁ ≫ snd
+        -- the test cone says `(dx ≫ w, db) ∈ G`.
+        have hdmem : pair (dx ≫ w) db ≫ χG = term d.pt ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
+          have hd : d.π₁ ≫ pair (snd ≫ w) (fst (A := B) (B := X)) = pair (dx ≫ w) db := by
+            refine pair_uniq (dx ≫ w) db (d.π₁ ≫ pair (snd ≫ w) (fst (A := B) (B := X))) ?_ ?_
+            · rw [Cat.assoc, fst_pair, Cat.assoc]
+            · rw [Cat.assoc, snd_pair]
+          have hdw : d.π₁ ≫ M₁ = term d.pt ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
+            rw [d.w]; congr 1; exact term_uniq _ _
+          calc pair (dx ≫ w) db ≫ χG
+              = (d.π₁ ≫ pair (snd ≫ w) fst) ≫ χG := by rw [hd]
+            _ = d.π₁ ≫ M₁ := by rw [Cat.assoc]
+            _ = term d.pt ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := hdw
+        -- lift `(dx ≫ w, db)` through `G.arr` (pullback of `true` along `χG = classify G.arr`).
+        obtain ⟨gp, ⟨hgp₁, _⟩, _⟩ :=
+          HasSubobjectClassifier.classify_pullback G.arr G.monic
+            ⟨d.pt, pair (dx ≫ w) db, term d.pt, hdmem⟩
+        -- single-valuedness: `gp`'s value is `dx ≫ b₀`, hence `db = dx ≫ b₀`.
+        have hgpp : gp ≫ p = dx ≫ w := by
+          show gp ≫ G.arr ≫ fst = dx ≫ w
+          rw [← Cat.assoc, hgp₁, fst_pair]
+        have hgpv : gp ≫ (G.arr ≫ snd) = db := by
+          rw [← Cat.assoc, hgp₁, snd_pair]
+        have hdb : db = dx ≫ b₀ := by rw [← hgpv]; exact hSV gp dx hgpp
+        -- the lift into `X` is `dx`; `dx ≫ γ = d.π₁` since `db = dx ≫ b₀`.
+        refine ⟨dx, ⟨?_, term_uniq _ _⟩, ?_⟩
+        · show dx ≫ γ = d.π₁
+          refine (pair_uniq (d.π₁ ≫ fst) (d.π₁ ≫ snd) _ ?_ ?_).trans
+            (pair_uniq (d.π₁ ≫ fst) (d.π₁ ≫ snd) d.π₁ rfl rfl).symm
+          · rw [Cat.assoc, hγfst]; exact hdb.symm
+          · rw [Cat.assoc, hγsnd, Cat.comp_id]
+        · intro v hv₁ _
+          have : v ≫ γ ≫ snd = d.π₁ ≫ snd := by rw [← Cat.assoc, hv₁]
+          rw [hγsnd, Cat.comp_id] at this; exact this
+      -- `M₂` makes `γ` the pullback of `true`: paste `prodMap`-square with the diagonal classifier.
+      have hPB₂ : (Cone.mk (f := M₂) (g := HasSubobjectClassifier.true (𝒞 := 𝒞))
+          (pt := X) (π₁ := γ) (π₂ := term X) (w := hsq₂)).IsPullback := by
+        intro d
+        have hsqd : (d.π₁ ≫ prodMap B X B b₀)
+            ≫ HasSubobjectClassifier.classify (diag B) (diag_mono B) = d.π₂ ≫ HasSubobjectClassifier.true := by
+          rw [Cat.assoc]; exact d.w
+        obtain ⟨ℓ, ⟨hℓ₁, _⟩, _⟩ :=
+          HasSubobjectClassifier.classify_pullback (diag B) (diag_mono B)
+            ⟨d.pt, d.π₁ ≫ prodMap B X B b₀, d.π₂, hsqd⟩
+        have hfst : d.π₁ ≫ fst = ℓ := by
+          have := congrArg (· ≫ fst) hℓ₁
+          simp only [Cat.assoc, diag_fst, Cat.comp_id, prodMap_fst] at this; exact this.symm
+        have hsnd : d.π₁ ≫ snd ≫ b₀ = ℓ := by
+          have := congrArg (· ≫ snd) hℓ₁
+          simp only [Cat.assoc, diag_snd, Cat.comp_id, prodMap_snd] at this; exact this.symm
+        have hkey : d.π₁ ≫ snd ≫ b₀ = d.π₁ ≫ fst := by rw [hsnd, hfst]
+        refine ⟨d.π₁ ≫ snd, ⟨?_, term_uniq _ _⟩, ?_⟩
+        · have hA : ((d.π₁ ≫ snd) ≫ γ) ≫ fst = d.π₁ ≫ fst := by
+            rw [Cat.assoc, hγfst, Cat.assoc, hkey]
+          have hB : ((d.π₁ ≫ snd) ≫ γ) ≫ snd = d.π₁ ≫ snd := by
+            rw [Cat.assoc, hγsnd, Cat.comp_id]
+          exact (pair_uniq (d.π₁ ≫ fst) (d.π₁ ≫ snd) _ hA hB).trans
+            (pair_uniq (d.π₁ ≫ fst) (d.π₁ ≫ snd) d.π₁ rfl rfl).symm
+        · intro v hv₁ _
+          have hvs : v ≫ γ ≫ snd = v := by rw [hγsnd]; exact Cat.comp_id v
+          have hproj : (v ≫ γ) ≫ snd = d.π₁ ≫ snd := congrArg (· ≫ snd) hv₁
+          exact hvs.symm.trans ((Cat.assoc v γ snd).symm.trans hproj)
+      -- both classify `γ`, hence `M₁ = M₂`; `hExpExt` lifts to `w ≫ valG = b₀ ≫ singletonMapCat`.
+      have hM : M₁ = M₂ := by
+        rw [HasSubobjectClassifier.classify_unique γ hγmono M₁ hsq₁ hPB₁,
+            HasSubobjectClassifier.classify_unique γ hγmono M₂ hsq₂ hPB₂]
+      apply hExpExt
+      -- `prodMap B X (Ω^B) (w ≫ valG) ≫ eval = M₁ = M₂ = prodMap B X (Ω^B) (b₀ ≫ sing) ≫ eval`.
+      have hL : prodMap B X (Ω ^^ B) (w ≫ valG) ≫ eval_exp B Ω = M₁ := by
+        show pair fst (snd ≫ w ≫ valG) ≫ eval_exp B Ω = M₁
+        have := hvalGβ (snd ≫ w) (fst (A := B) (B := X))
+        rw [Cat.assoc] at this
+        rw [this]
+      have hR : prodMap B X (Ω ^^ B) (b₀ ≫ singletonMapCat B) ≫ eval_exp B Ω = M₂ := by
+        show pair fst (snd ≫ b₀ ≫ singletonMapCat B) ≫ eval_exp B Ω = M₂
+        have := hSingEval (fst (A := B) (B := X)) (snd ≫ b₀)
+        rw [Cat.assoc] at this
+        rw [this]; rfl
+      rw [hL, hR, hM]
     -- (A) `nilMor ∈ Sing`: the fiber over `nil` is `{e}` (any `(nil,b)∈G` forces `b=e`).
     have hNilSing : Allows Sing (nilMor A) := by
       sorry
