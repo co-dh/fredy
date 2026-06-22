@@ -120,7 +120,7 @@ class HasSubobjectClassifier (𝒞 : Type u) [Cat.{v} 𝒞] extends HasTerminal 
     `∀ C, HasPowerObject C` that §1.92's exponentials (`topos_has_exponentials`,
     §1.923) and §1.95's quotient covers rest on. -/
 class Topos (𝒞 : Type u) [Cat.{v} 𝒞] extends
-    HasTerminal 𝒞, HasBinaryProducts 𝒞, HasSubobjectClassifier 𝒞 where
+    HasBinaryProducts 𝒞, HasSubobjectClassifier 𝒞 where
   /-- §1.9: every object `C` has a power-object `[C]` with universal `∈_C`. -/
   has_pow : ∀ C : 𝒞, HasPowerObject C
 

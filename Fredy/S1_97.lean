@@ -2183,7 +2183,7 @@ theorem peano_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
     (hcoeq : ∀ (X : 𝒞) (f : A ⟶ X), t ≫ f = f →
                ∃ g : (one ⟶ X), term A ≫ g = f ∧
                  ∀ g' : one ⟶ X, term A ≫ g' = f → g' = g) :
-    @PeanoProperty 𝒞 _ (Topos.toHasTerminal) _ A a t :=
+    @PeanoProperty 𝒞 _ (Topos.toHasSubobjectClassifier.toHasTerminal) _ A a t :=
   fun B hBa hBt => peano_property_of_bicartesian hbool a t hiso hcoeq B hBa hBt
 
 /-- **Recursor UNIQUENESS from bicartesian data** (§1.987 via the equalizer).
