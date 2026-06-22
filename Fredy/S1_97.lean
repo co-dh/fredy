@@ -3902,6 +3902,31 @@ open HasBinaryCoproducts
 -- products; forcing the exponential products here makes `isDefEq` diverge reconciling the two.
 -- `nilMor`/`consMor` already have fixed (Topos-products) types from their section.
 
+/-- **NON-BOOLEAN injection-disjointness elimination** for `HasBinaryCoproducts.coprod`.  If two
+    maps `u, v : X ⟶ −` collide across the two injections (`u ≫ inl = v ≫ inr`), then `X` is
+    "empty": ANY two maps out of `X` are equal.  Proof: transport along `φ = case coprodInl
+    coprodInr : coprod A B → A+B` to the ambient-topos coproduct, where `coprodInjections_disjoint_elt`
+    (strict-initial pullback of `coprodInl, coprodInr`) is non-boolean.  Unlike `coprod_inj_disjoint_pt`
+    this needs NO `TwoValued`/boolean hypothesis. -/
+theorem coprod_inj_disjoint_elt {P Q X : 𝒞} (u : X ⟶ P) (v : X ⟶ Q)
+    (huv : u ≫ HasBinaryCoproducts.inl (A := P) (B := Q)
+         = v ≫ HasBinaryCoproducts.inr (A := P) (B := Q)) :
+    ∀ {Y : 𝒞} (a b : X ⟶ Y), a = b := by
+  let φ : HasBinaryCoproducts.coprod P Q ⟶ coprodObj P Q :=
+    HasBinaryCoproducts.case (coprodInl P Q) (coprodInr P Q)
+  have hφl : HasBinaryCoproducts.inl (A := P) (B := Q) ≫ φ = coprodInl P Q :=
+    HasBinaryCoproducts.case_inl _ _
+  have hφr : HasBinaryCoproducts.inr (A := P) (B := Q) ≫ φ = coprodInr P Q :=
+    HasBinaryCoproducts.case_inr _ _
+  have hraw : u ≫ coprodInl P Q = v ≫ coprodInr P Q :=
+    calc u ≫ coprodInl P Q = u ≫ (HasBinaryCoproducts.inl ≫ φ) := by rw [hφl]
+      _ = (u ≫ HasBinaryCoproducts.inl) ≫ φ := (Cat.assoc _ _ _).symm
+      _ = (v ≫ HasBinaryCoproducts.inr) ≫ φ := by rw [huv]
+      _ = v ≫ (HasBinaryCoproducts.inr ≫ φ) := Cat.assoc _ _ _
+      _ = v ≫ coprodInr P Q := by rw [hφr]
+  intro Y a b
+  exact coprodInjections_disjoint_elt u v hraw a b
+
 /-- The list object `A* ⊆ W` — least `(nilMor, consMor, snd)`-closed subobject of `W`. -/
 noncomputable def listCarrier : Subobject 𝒞 (wordObj A) :=
   actLeast (nilMor A) (consMor A) snd
