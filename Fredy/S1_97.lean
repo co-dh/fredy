@@ -4312,44 +4312,32 @@ theorem foldExists {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B) :
     -- sorry-free) to this CORE §1.989 single-valuedness equation: the two kernel-pair legs of `p`
     -- agree after `q`, i.e. the graph `G` is FUNCTIONAL over `A*` (same word ⟹ same value).
     --
-    -- RESIDUAL (the one genuine hole of §1.98(14), non-boolean).  This is word-induction on `A*`:
-    -- "for all `G`-points `g₁,g₂` over the same word, `q g₁ = q g₂`" holds at `nilMor` and is
-    -- preserved by `consMor` (via `hpt`/`hpsnd`).  The kernel pair `K := kernelPair p` carries an
-    -- algebra (`unitK := g₀ ≫ kp_diag`, `actK` lifting `(prodMap.. kp₁ ≫ actG, prodMap.. kp₂ ≫ actG)`
-    -- through `hpt`+`kp_sq`), with `kp₁,kp₂,δ := kp₁≫p` algebra homs and both `kp₁≫q, kp₂≫q`
-    -- `(e,c)`-algebra homs (via `hpsnd`).  But `listObject_ext`'s induction (`actLeast_le` on a
-    -- subobject of `W`) proves uniqueness of maps OUT of `A*`; single-valuedness is a RELATIONAL
-    -- induction over the FIBERS of `A*`.  Pushing the equalizer `eqObj (kp₁≫q) (kp₂≫q) ⊆ K` into
-    -- `W` along `δ` does NOT form a subobject (`eqMap ≫ δ` is not mono — distinct `G`-pairs share a
-    -- word), so `actLeast_le` does not apply.  The boolean recursor closes this pointwise via
-    -- `hbool`/`htv`/`hcap` (`free_recursor_exists_of_bicartesian`), unavailable here.
-    -- MISSING PRIMITIVE: the "functional-graph / single-valued-graph" relation-induction lemma
-    -- (a.k.a. `relToMap`) — `A*` as an INITIAL `(nil,cons)`-algebra, not merely a least-closed
-    -- subobject of `W` — absent from S1_9/S1_56/S1_59 (kernel-pair-coequalizer descent of `q` along
-    -- the cover `pCov` needs exactly this same equation, so is circular).  See §1.989 notes above.
+    -- POWER-OBJECT SINGLETON INDUCTION — NOW WIRED (non-boolean, §1.989).  The whole `Mono p`
+    -- reduction below is sorry-free EXCEPT three precisely-scoped graph "no-junk" holes (see them
+    -- inside `hNilSing`/`hConsSing`).  Built here SORRY-FREE:
+    --   • `valG : W → Ω^B` (= `curry (swap ≫ χ_G)`), the FIBER map `w ↦ {b | (w,b)∈G}`, with the
+    --     β-laws `hvalGβ` (eval of `valG`), `hGmem` (a `G`-point is in `G`), `hSingEval` (eval of a
+    --     singleton name);  `hExpExt` (exponential extensionality of `W → Ω^B`).
+    --   • `hFiberSingleton`: if `(w,b₀)∈G` and the `w`-fiber is single-valued, then `valG w = {b₀}`
+    --     (proved by `classify_unique`: both `M₁,M₂ : B×X → Ω` classify the graph `⟨b₀,id⟩` of `b₀`).
+    --   • `Sing := InverseImage valG {singletons}` with the pullback factor lemmas `hSingWit`/`hSingFac`.
+    --   • `hNilSing`/`hConsSing` reduce `nil∈Sing` / `cons`-closure to `hFiberSingleton` (the cons
+    --     restriction map is assembled via `actStable_of_restrict` + the pullback lift);  `(nil,e)∈G`
+    --     is discharged via `g₀`.  `actLeast_le` then gives `A* ≤ Sing` (`hListLeSing`).
+    --   • the `hcore` extraction:  `δ := kp₁≫p` factors through `A*` (via `pCov`), hence `Sing`, so
+    --     `valG δ = {b'}`;  both kernel-pair value-legs `q_i` satisfy `eval(q_i, valG δ) = ⊤` so equal
+    --     `b'` by `diag_classify_iff` — single-valuedness, i.e. `Mono p`.
     --
-    -- ALTERNATE ROUTE TRIED (also bottoms out here): the "product-graph" induction on `W×B×B` — let
-    -- `R := G ×_W G ⊆ W×B×B` and `D := {(w,b,b)}` the value-diagonal; `D` allows `(nilMor,e,e)` and is
-    -- `(stepR(a,(w,b₁,b₂)) = (cons a w, c(a,b₁), c(a,b₂)), snd)`-stable, so `actLeast unitR stepR snd ≤ D`.
-    -- This DOES form genuine subobjects (the `listObject_ext` pattern, on `W×B×B`).  But it needs
-    -- `R ≤ actLeast unitR stepR snd` (every fiber-pair is reachable = "least-closed-of-fiber-product =
-    -- fiber-product-of-least-closed"), which is `actLeast_le` in the WRONG direction — the same doubled
-    -- reachability / functional-graph primitive.  So both routes reduce to the identical missing lemma.
-    --
-    -- VIABLE ROUTE (power-object singleton induction, non-boolean — NOT yet wired).  Classify
-    -- `G ⊆ W×B` to `χ_G : W×B → Ω`, curry to `valG : W → Ω^B = powObj B` (`w ↦ {b | (w,b)∈G}`,
-    -- the FIBER).  The subobject `Sing ⊆ A*` of words whose fiber is a singleton (`valG` factors
-    -- through `singletonMap B : B → Ω^B`, monic — `singletonMap_monic`) is `(nil,cons)`-closed:
-    --   * `nil ∈ Sing`: `nil_cons_disjoint` (below, sorry-free) forces any `(nil,b)∈G` to come from
-    --     `foldUnit`, so the fiber is `{e}`.
-    --   * `cons`-closed: `nil_cons_disjoint` rules out `foldUnit`; `consMor_mono` (below, sorry-free)
-    --     recovers the unique predecessor `(w,b)` from a cons-point, so `valG (cons a w) = {c(a,b)}`.
-    -- Then `actLeast_le (nilMor) (consMor) snd Sing … : A* ≤ Sing`, i.e. every word in `A*` has a
-    -- singleton fiber, i.e. `p` is monic over `A*`.  The remaining work is the `valG`/`Sing`
-    -- construction in the `InternalForallTopos`/`InterIntersection` power-object API (`subChar`,
-    -- `curry`, `singletonMap`, `memAtPoint`) — the genuine §1.989 content, the one residual hole.
-    -- The two NON-BOOLEAN sub-lemmas it needs (`nil_cons_disjoint`, `consMor_mono`, both built
-    -- above sorry-free, plus `coprod_inj_disjoint_elt`) are DONE.
+    -- THE THREE RESIDUAL HOLES (all the SAME missing primitive: case-split a `G`-point into a
+    -- `foldUnit` point or a `foldStep` point — `actLeast`'s "no junk").  Each is a single-valuedness
+    -- of one fiber:  (nil) every `G`-point over a nil word has value `e` (rule out `foldStep` via
+    -- `nil_cons_disjoint`);  (cons-sv) every `G`-point over `cons(a,w)` has value `c(a, b)` where `b`
+    -- is the IH fiber-value of `w` (recover the predecessor via `consMor_mono`);  (cons-mem) the
+    -- cons-fiber is inhabited (`foldStep` of a `G`-point over `(w,b)`).  Closing them needs an
+    -- `actLeast_le`-on-`G` induction targeting a COPRODUCT subobject of `W×B` ("blank-head ⟹ value e",
+    -- glued by `distCase`), whose monicity (coproduct of disjoint monos) is the one piece of topos
+    -- infrastructure absent from S1_9/S1_60/ToposDistributive.  The two NON-BOOLEAN sub-lemmas this
+    -- route consumes (`nil_cons_disjoint`, `consMor_mono`, plus `coprod_inj_disjoint_elt`) are DONE.
     -- POWER-OBJECT SINGLETON INDUCTION (non-boolean, §1.989).  Classify `G ⊆ W×B`, curry over `B`
     -- to `valG : W → [B]` (the FIBER map `w ↦ {b | (w,b)∈G}`), and show the subobject `Sing ⊆ W` of
     -- words with SINGLETON fiber contains `nilMor` and is `(consMor,snd)`-closed; `actLeast_le` then
