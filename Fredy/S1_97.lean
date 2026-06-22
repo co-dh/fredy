@@ -3788,20 +3788,41 @@ theorem free_action_exists {𝒞 : Type u} [Cat.{v} 𝒞]
   --       `least_peano_subobject` (above) and `S1_94` both bottom out on (the internal-∀ /
   --       family-glb that `S1_94` never constructs — NOT the now-proven §1.543 lemma);
   --   (c) the PARTIAL-MAP CLASSIFIER recursor `B̃` of §1.988/§1.934 — Freyd builds `B̃ = Π_t(B/0)`
-  --       in a CAPITAL topos (§1.935); §1.543 capitalization is now PROVEN Sorry-free here, so the
-  --       residual is the absent LAWFUL per-codomain PMC interface (`S1_92` has only a bare
-  --       single-object `pmc_obj`, no restrict/uniqueness law), the same gap hit by
-  --       `nno_of_bicartesian_data`.  The available `iteratePair`/`primRec` (§1.981/§1.983)
-  --       iterate a FIXED fibre `B`, not the growing power `Aⁿ`, so they cannot define `fold`.
+  --       in a CAPITAL topos (§1.935).  STATUS UPDATE (this session): the LAWFUL per-codomain PMC
+  --       interface IS now BUILT and SORRY-FREE — `Fredy.partialMapClassifier_exists (B : 𝒞) :
+  --       Nonempty (LawfulPMC 𝒞 B)` in `Fredy/PartialMapClassifier.lean` carries `carrier = B̃`,
+  --       the generic mono `η_B : B ↪ B̃`, and the full classify/restrict (`classify_sq`)/
+  --       domain-recovery-pullback (`classify_pb`)/uniqueness (`classify_uniq`) laws.  Axiom check:
+  --       `[Classical.choice]` only.  So the OLD claim here ("`S1_92` has only a bare single-object
+  --       `pmc_obj`, no restrict/uniqueness law") is STALE and has been corrected.
+  --       BUT the PMC alone still does NOT close §1.98(14): defining `fold`/`cons` by recursion on
+  --       the growing power `Aⁿ` requires expressing the TOTALITY/graph predicate of the recursion as
+  --       an internal comprehension on the partial function `N ⇀ A*`, and that comprehension is again
+  --       the internal-∀ of (b).  `iteratePair`/`primRec` (§1.981/§1.983) iterate only a FIXED fibre
+  --       `B`, not `Aⁿ`, so they cannot define `fold`; the PMC supplies `B̃` but not the recursion's
+  --       totality predicate.
+  --
+  -- THE GENUINE REMAINING PRIMITIVE = route (b)'s internal-∀ (a.k.a. `HasLeastClosedSubobject` /
+  -- the §1.94 family-glb).  It is exposed in `Fredy/InternalForall.lean` as a HYPOTHESIS CLASS, NOT
+  -- an instance: it is unbuildable from the currently-proven primitives because it needs the CONCRETE
+  -- power-object exponential adjunction `[B]^A ≅ [A×B]` (β/η-computing), which the `[HasExponentials]`
+  -- HYPOTHESIS does NOT give (that hypothesis yields exponentials `B^^A`, not power-object
+  -- representability), and which `S1_92.topos_has_exponentials` only supplies via its own `sorry`.
+  -- S1_91's `imp_adjunction`/`omega_ext`/`comp_dbar` live at the SUBOBJECT `Sub(A)` level, not the
+  -- representable `Ω^A` level, so they do not yield the internal-∀ either.  §1.98(14) carries NO
+  -- `HasLeastClosedSubobject` hypothesis (and adding one, or `BooleanSub`, would be unfaithful to
+  -- Freyd's "any topos with NNO"), so this is the load-bearing gap.
   --
   -- Residual = the SINGLE, sharply named gap `ListObjectData A` (= §1.98(14) list object
   -- existence), with its lawful consumer `freeAAction_of_listObject` already proved Sorry-free.
   obtain ⟨LD⟩ : Nonempty (ListObjectData (𝒞 := 𝒞) A) := by
     -- MISSING PRIMITIVE: existence of the list object `A* = Σₙ Aⁿ` (initial `1 + A×(−)`-algebra).
-    -- Not constructible from `HasNaturalNumbersObject` + `HasExponentials` + binary coproducts
-    -- alone; requires (a)/(b)/(c) above.  STATUS: NOT §1.543-capitalization (now proven Sorry-free,
-    -- `Fredy.CapDataWiring.capData_exists`); the residual is the absent N-indexed coproduct /
-    -- internal-∀ comprehension / lawful per-codomain partial-map-classifier infrastructure.
+    -- Not constructible from `HasNaturalNumbersObject` + `HasExponentials` + binary coproducts +
+    -- the now-sorry-free per-codomain PMC (`partialMapClassifier_exists`) alone.  The load-bearing
+    -- gap is route (b)'s internal-∀ / family-glb (`HasLeastClosedSubobject`, only a hypothesis
+    -- class), needed for the bounded-length comprehension cutting `A*` out of `(1+A)^N`.
+    -- STATUS: NOT §1.543-capitalization (proven Sorry-free), NOT the PMC interface (now proven
+    -- Sorry-free this session); the residual is the absent internal-∀ comprehension primitive.
     sorry
   exact ⟨freeAAction_of_listObject LD⟩
 
