@@ -4081,11 +4081,14 @@ theorem foldProj_total {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B) :
   exact actLeast_le (nilMor A) (consMor A) snd (image (foldProj A e c)) hImgNil hImgStab
 
 /-- Existence of the fold/recursor `A* → B` into any `1+A×(−)`-algebra `(B,e,c)`, with its two
-    algebra-square laws.  TOTALITY (`foldProj_total`) is sorry-free; the SINGLE residual is the
-    functional-graph EXTRACTION: single-valuedness `Mono (foldProj A e c)` (provable by
-    `listObject_ext` induction on the "unique-value" subobject of `A*`) corestricts `p` to an iso
-    `A* ≅ G.dom`, whence `fold := iso⁻¹ ≫ G.arr ≫ snd` and the two laws follow from the graph's
-    `(foldUnit, foldStep)`-closure. -/
+    algebra-square laws.  The full assembly is sorry-free EXCEPT one isolated §1.989 hole:
+    the cover `pCov : G.dom ↠ A*` (`image (foldProj) = A*`, both inclusions sorry-free) is
+    corestricted to an iso `A* ≅ G.dom` ONCE `Mono (foldProj A e c)` holds, whence
+    `fold := iso⁻¹ ≫ G.arr ≫ snd` and the two laws follow from the graph's `(foldUnit, foldStep)`-
+    closure (`hpt`/`hpsnd`).  The SINGLE residual `hcore` is non-boolean single-valuedness — the
+    graph is FUNCTIONAL over `A*` — which needs the absent functional-graph relation-induction
+    primitive (see the comment at `hpmono`); the boolean recursors discharge it via
+    `hbool`/`hcap`/`htv`, deliberately absent here. -/
 theorem foldExists {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B) :
     ∃ f : (listCarrier A).dom ⟶ B,
       listNil A ≫ f = e ∧
@@ -4235,6 +4238,14 @@ theorem foldExists {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B) :
     -- (a.k.a. `relToMap`) — `A*` as an INITIAL `(nil,cons)`-algebra, not merely a least-closed
     -- subobject of `W` — absent from S1_9/S1_56/S1_59 (kernel-pair-coequalizer descent of `q` along
     -- the cover `pCov` needs exactly this same equation, so is circular).  See §1.989 notes above.
+    --
+    -- ALTERNATE ROUTE TRIED (also bottoms out here): the "product-graph" induction on `W×B×B` — let
+    -- `R := G ×_W G ⊆ W×B×B` and `D := {(w,b,b)}` the value-diagonal; `D` allows `(nilMor,e,e)` and is
+    -- `(stepR(a,(w,b₁,b₂)) = (cons a w, c(a,b₁), c(a,b₂)), snd)`-stable, so `actLeast unitR stepR snd ≤ D`.
+    -- This DOES form genuine subobjects (the `listObject_ext` pattern, on `W×B×B`).  But it needs
+    -- `R ≤ actLeast unitR stepR snd` (every fiber-pair is reachable = "least-closed-of-fiber-product =
+    -- fiber-product-of-least-closed"), which is `actLeast_le` in the WRONG direction — the same doubled
+    -- reachability / functional-graph primitive.  So both routes reduce to the identical missing lemma.
     have hcore : kp₁ (f := p) ≫ (G.arr ≫ snd) = kp₂ (f := p) ≫ (G.arr ≫ snd) := by
       sorry
     -- The fst-legs of `kp₁≫G.arr`, `kp₂≫G.arr` agree (kp_sq, `p = G.arr≫fst`); the snd-legs
@@ -4346,9 +4357,10 @@ theorem free_action_exists {𝒞 : Type u} [Cat.{v} 𝒞]
   -- `foldProj_total` are ALL sorry-free.
   --
   -- THE SINGLE RESIDUAL is `foldExists` (used below for `fold`/`fold_nil`/`fold_cons`): the
-  -- functional-graph EXTRACTION of `fold : A* → B` from the totality-proved graph `foldGraph`,
-  -- whose only open content is single-valuedness `Mono (foldProj A e c)` + corestricting the
-  -- (total) W-projection to an iso `A* ≅ G.dom`.  See `foldExists`'s docstring.
+  -- functional-graph EXTRACTION of `fold : A* → B` from the totality-proved graph `foldGraph`.
+  -- The corestriction `pCov : G.dom ↠ A*` (via `image (foldProj) = A*`) and the iso assembly are
+  -- now sorry-free; the only open content is single-valuedness `Mono (foldProj A e c)` (`hcore`,
+  -- non-boolean §1.989).  See `foldExists`'s docstring.
   -- ASSEMBLY (this session): the list object `A* = (listCarrier A).dom ⊆ W = (1+A)^N` is built
   -- sorry-free (`listCarrier`/`listNil`/`listCons` from `actLeast`); `nil`/`cons` and their arr-laws
   -- are proved; `fold` comes from the functional graph `foldExists`; `fold_uniq` is `listObject_ext`
