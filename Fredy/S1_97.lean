@@ -1473,6 +1473,41 @@ theorem coprod_point_split {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞] [HasBinar
       _ = v ≫ (coprodInr A B ≫ ψ) := Cat.assoc _ _ _
       _ = v ≫ HasBinaryCoproducts.inr := by rw [hψr]
 
+/-- **§1.621 injection-disjointness at points (canonical coproduct), TWO-VALUED form.**
+    Two global points identified across the injections (`u ≫ coprodInl = v ≫ coprodInr`) are
+    absurd: lifting `(u,v)` into the pullback of `(coprodInl, coprodInr)` — which
+    `coprodInjections_disjoint` shows is `≅ (bottomSub …).dom = (⊥ …).dom` — gives a global point
+    of `(⊥ (A+B)).dom`, impossible by `point_bottom_absurd`. -/
+theorem coprod_inj_disjoint_canonical_pt {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
+    (htv : TwoValued (𝒞 := 𝒞)) {A B : 𝒞} (u : (one : 𝒞) ⟶ A) (v : (one : 𝒞) ⟶ B)
+    (huv : u ≫ coprodInl A B = v ≫ coprodInr A B) : False := by
+  let pb := HasPullbacks.has (coprodInl A B) (coprodInr A B)
+  let w : (one : 𝒞) ⟶ pb.cone.pt := pb.lift ⟨one, u, v, huv⟩
+  obtain ⟨f0, _⟩ := coprodInjections_disjoint A B
+  -- `w ≫ f0 : 1 → (bottomSub (A+B)).dom = (⊥ (A+B)).dom`.
+  exact point_bottom_absurd htv (B := coprodObj A B) (w ≫ f0)
+
+/-- **§1.621 injection-disjointness at points (abstract `HasBinaryCoproducts`).**  Transport of
+    `coprod_inj_disjoint_canonical_pt` along `φ := case coprodInl coprodInr`: postcomposing
+    `u ≫ inl = v ≫ inr` with `φ` (which sends `inl ↦ coprodInl`, `inr ↦ coprodInr`) yields the
+    canonical identification, hence `False`. -/
+theorem coprod_inj_disjoint_pt {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞] [HasBinaryCoproducts 𝒞]
+    (htv : TwoValued (𝒞 := 𝒞)) {A B : 𝒞} (u : (one : 𝒞) ⟶ A) (v : (one : 𝒞) ⟶ B)
+    (huv : u ≫ HasBinaryCoproducts.inl (A := A) (B := B)
+         = v ≫ HasBinaryCoproducts.inr (A := A) (B := B)) : False := by
+  let φ : HasBinaryCoproducts.coprod A B ⟶ coprodObj A B :=
+    HasBinaryCoproducts.case (coprodInl A B) (coprodInr A B)
+  have hφl : HasBinaryCoproducts.inl (A := A) (B := B) ≫ φ = coprodInl A B :=
+    HasBinaryCoproducts.case_inl _ _
+  have hφr : HasBinaryCoproducts.inr (A := A) (B := B) ≫ φ = coprodInr A B :=
+    HasBinaryCoproducts.case_inr _ _
+  refine coprod_inj_disjoint_canonical_pt htv u v ?_
+  calc u ≫ coprodInl A B = u ≫ (HasBinaryCoproducts.inl ≫ φ) := by rw [hφl]
+    _ = (u ≫ HasBinaryCoproducts.inl) ≫ φ := (Cat.assoc _ _ _).symm
+    _ = (v ≫ HasBinaryCoproducts.inr) ≫ φ := by rw [huv]
+    _ = v ≫ (HasBinaryCoproducts.inr ≫ φ) := Cat.assoc _ _ _
+    _ = v ≫ coprodInr A B := by rw [hφr]
+
 /-- **§1.988 RECURSOR EXISTENCE — in a BOOLEAN + CAPITAL topos (Freyd's actual hypotheses).**
 
     From bicartesian data `[a,t] : 1+A ≅ A` on `A` (and the terminal coequalizer `hcoeq`),
