@@ -4812,6 +4812,10 @@ theorem foldExists {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B) :
           -- with `gstep` on cons-Sing words and `e` on nil) — the one primitive `hAntToVal2`/`hGind`
           -- cannot themselves supply.  `gstep` (the matching `foldStep` point with the same word and
           -- value `yy ≫ bc`) is available verbatim as in the cons-membership branch below.
+          -- CONCRETE ROUTE (not yet built): `singletonMapCat B : B ↣ Ω^B` is monic, so its PARTIAL
+          -- inverse `Ω^B ⇀ B` (via the imported `PartialMapClassifier`) composed with `valG` gives a
+          -- total-on-`Sing` value map `vw : W ⇀ B`; `Ce := equalizer q (p ≫ vw)` is then global with
+          -- `g₀ ∈ Ce` (nil-fiber `{e}` ⟹ `vw(nil)=e`), and `hAntToVal2 Acons2 Ce` closes the step.
           sorry
         · -- `(cons(a,w), c(a,b)) ∈ G`: `foldStep` applied to a `G`-point over `(w, bSing)`.
           -- `(Sing.arr, bSing) ∈ G` (singleton fiber inhabited), lift to a `G`-point `gp`, then
