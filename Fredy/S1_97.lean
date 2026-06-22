@@ -1635,7 +1635,42 @@ theorem recursor_exists_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos �
       -- so single-valuedness propagates and `t(a') ∉ A₁`.  Same capital "no point ⟹ ⊥" gap as
       -- `hfiber` (PLUS the keystone reachability step); left as the second residual.
       have hA₂t : ∃ tA₂ : A₂.dom ⟶ A₂.dom, tA₂ ≫ A₂.arr = A₂.arr ≫ t := by
-        have hdisj_t : (Subobject.inter A₁ (image (A₂.arr ≫ t))).le (PreLogos.bottom A) := by sorry
+        -- `t`-shifted fiber-singleton: the fiber of `p` over a `t`-image `b≫A₂.arr≫t` of a
+        -- single-valued point `b ∈ A₂` is again a singleton.  Same keystone reachability as
+        -- `hfibSingle`, propagated through `tG` (`hpt : p ≫ t = tG ≫ p`).
+        have hfibSingleT : ∀ (b : (one : 𝒞) ⟶ A₂.dom) (g₁ g₂ : (one : 𝒞) ⟶ G.dom),
+            g₁ ≫ p = (b ≫ A₂.arr) ≫ t → g₂ ≫ p = (b ≫ A₂.arr) ≫ t → g₁ = g₂ := by sorry
+        have hdisj_t : (Subobject.inter A₁ (image (A₂.arr ≫ t))).le (PreLogos.bottom A) := by
+          refine noPoint_le_bottom hcap htv _ ?_
+          rintro _ ⟨y, _⟩
+          obtain ⟨kL, hkL⟩ := Subobject.inter_le_left A₁ (image (A₂.arr ≫ t))
+          obtain ⟨kR, hkR⟩ := Subobject.inter_le_right A₁ (image (A₂.arr ≫ t))
+          -- value over `b ≫ A₂.arr ≫ t`: lift the right point along `image.lift (A₂.arr ≫ t)`.
+          obtain ⟨b, hb⟩ := pts_covers_of_capital hcap (image_lift_cover (A₂.arr ≫ t)) (y ≫ kR)
+          have hbval : (y ≫ kR) ≫ (image (A₂.arr ≫ t)).arr = (b ≫ A₂.arr) ≫ t := by
+            rw [← hb, Cat.assoc, image.lift_fac, ← Cat.assoc]
+          -- value over `A₁`: lift the left point along `image.lift q`.
+          obtain ⟨k₀, hk₀⟩ := pts_covers_of_capital hcap (image_lift_cover q) (y ≫ kL)
+          -- the common value `v := (y ≫ kL) ≫ A₁.arr = (y ≫ kR) ≫ (t(A₂)).arr = (b≫A₂.arr)≫t`.
+          have hcommon : (y ≫ kL) ≫ A₁.arr = (b ≫ A₂.arr) ≫ t := by
+            have : (y ≫ kL) ≫ A₁.arr = (y ≫ kR) ≫ (image (A₂.arr ≫ t)).arr := by
+              rw [Cat.assoc, Cat.assoc, hkL, hkR]
+            rw [this, hbval]
+          have hk₀q : k₀ ≫ q = (b ≫ A₂.arr) ≫ t := by
+            have : k₀ ≫ q = (y ≫ kL) ≫ A₁.arr := by
+              show k₀ ≫ K'.arr ≫ kp₁ (f := p) ≫ p = (y ≫ kL) ≫ (image q).arr
+              rw [← hk₀, Cat.assoc, image.lift_fac]
+            rw [this, hcommon]
+          apply kpPointAbsurd k₀
+          have hg₁ : (k₀ ≫ K'.arr ≫ kp₁ (f := p)) ≫ p = (b ≫ A₂.arr) ≫ t := by
+            rw [Cat.assoc, Cat.assoc]; exact hk₀q
+          have hg₂ : (k₀ ≫ K'.arr ≫ kp₂ (f := p)) ≫ p = (b ≫ A₂.arr) ≫ t := by
+            calc (k₀ ≫ K'.arr ≫ kp₂ (f := p)) ≫ p
+                = k₀ ≫ K'.arr ≫ (kp₂ (f := p) ≫ p) := by rw [Cat.assoc, Cat.assoc]
+              _ = k₀ ≫ K'.arr ≫ (kp₁ (f := p) ≫ p) := by rw [← kp_sq]
+              _ = (k₀ ≫ K'.arr ≫ kp₁ (f := p)) ≫ p := by rw [Cat.assoc, Cat.assoc]
+              _ = (b ≫ A₂.arr) ≫ t := hg₁
+          rw [hfibSingleT b _ _ hg₁ hg₂]
         have hle : (image (A₂.arr ≫ t)).le A₂ :=
           complement_le_other' A₁ A₂ (image (A₂.arr ≫ t)) hdisj_t hA₁union
         obtain ⟨k, hk⟩ := hle
