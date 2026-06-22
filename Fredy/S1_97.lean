@@ -1548,6 +1548,36 @@ theorem recursor_exists_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos �
       -- the singleton point subobject `aSub := {a₀} ↣ A` (`a` monic from `1`).
       have ha_mono : Mono a := mono_from_one a
       let aSub : Subobject 𝒞 A := Subobject.mk one a ha_mono
+      -- ── A point of `K'` (the OFF-diagonal complement) whose two legs AGREE lies on the
+      -- diagonal `Δ`, hence in `Δ ∩ K' ≤ ⊥` — absurd (`point_bottom_absurd`).
+      have kpPointAbsurd : ∀ k : (one : 𝒞) ⟶ K'.dom,
+          k ≫ K'.arr ≫ kp₁ (f := p) = k ≫ K'.arr ≫ kp₂ (f := p) → False := by
+        intro k hlegs
+        -- `v := k ≫ K'.arr ≫ kp₁`; `k ≫ K'.arr = v ≫ kp_diag` (lift uniqueness, equal legs).
+        let v : (one : 𝒞) ⟶ G.dom := k ≫ K'.arr ≫ kp₁ (f := p)
+        have hkdiag : k ≫ K'.arr = v ≫ kp_diag (f := p) := by
+          -- both `k ≫ K'.arr` and `v ≫ kp_diag` are the kernel-pair lift of legs `(v, v)`.
+          have e₁ := kp_lift_uniq (f := p) v v rfl (k ≫ K'.arr)
+            (by rw [Cat.assoc])
+            (by rw [Cat.assoc]; exact hlegs.symm)
+          have e₂ := kp_lift_uniq (f := p) v v rfl (v ≫ kp_diag (f := p))
+            (by rw [Cat.assoc, kp_diag_p₁, Cat.comp_id])
+            (by rw [Cat.assoc, kp_diag_p₂, Cat.comp_id])
+          rw [e₁, e₂]
+        -- `k ≫ K'.arr` factors through `Δ.arr` (`Δ = image kp_diag`).
+        let dΔ : (one : 𝒞) ⟶ Δ.dom := v ≫ image.lift (kp_diag (f := p))
+        have hdΔ : dΔ ≫ Δ.arr = k ≫ K'.arr := by
+          show (v ≫ image.lift (kp_diag (f := p))) ≫ (image (kp_diag (f := p))).arr = k ≫ K'.arr
+          rw [Cat.assoc, image.lift_fac, hkdiag]
+        -- the point subobject `{k ≫ K'.arr} ≤ Δ ∩ K' ≤ ⊥`, yielding a point of `(⊥ K).dom`.
+        let pt : Subobject 𝒞 (kernelPair p) :=
+          Subobject.mk one (k ≫ K'.arr) (mono_from_one _)
+        have hptΔ : pt.le Δ := ⟨dΔ, hdΔ⟩
+        have hptK' : pt.le K' := ⟨k, rfl⟩
+        have hptbot : pt.le (PreLogos.bottom (kernelPair p)) :=
+          subLe_trans' (Subobject.le_inter hptΔ hptK') hΔdisj
+        obtain ⟨m, _⟩ := hptbot
+        exact point_bottom_absurd htv m
       -- ── THE OPEN FIBER FACT: the `a`-fiber of `p` is the singleton `{a₀}`, i.e. `A₁ ∩ {a} ≤ ⊥`.
       -- The `p`-fiber over `a` is `{a₀}` (keystone `hcg`: every point of `G.dom` is reached from `a₀`
       -- via `cg = [a₀,tG]`, and `a ∉ image t` so the value over `a` is uniquely `a₀`).  Hence an
