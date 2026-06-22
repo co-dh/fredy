@@ -2588,6 +2588,47 @@ theorem subMap_natural [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {A B : 𝒞
   simp only [subMap]
   rw [Cat.assoc, hinvk, ← Cat.assoc, hkbar, Cat.assoc]
 
+/-! ### §1.597 STEP 2: the difference operation and its algebra. -/
+
+/-- The **difference** `x − y := ⟨x,y⟩ ≫ s_A`. -/
+noncomputable def subL [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞} (x y : W ⟶ A) : W ⟶ A :=
+  pair x y ≫ subMap A
+
+/-- `x − 0 = x`. -/
+theorem subL_zero [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞} (x : W ⟶ A) :
+    subL x (zeroMorphism W A) = x := by
+  show pair x (zeroMorphism W A) ≫ subMap A = x
+  have hpx : pair x (zeroMorphism W A) = x ≫ pair (Cat.id A) (zeroMorphism A A) :=
+    (pair_uniq x (zeroMorphism W A) (x ≫ pair (Cat.id A) (zeroMorphism A A))
+      (by rw [Cat.assoc, fst_pair, Cat.comp_id])
+      (by rw [Cat.assoc, snd_pair, zero_morphism_comp x (zeroMorphism A A)])).symm
+  rw [hpx, Cat.assoc, subMap_j, Cat.comp_id]
+
+/-- `x − x = 0`. -/
+theorem subL_self [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞} (x : W ⟶ A) :
+    subL x x = zeroMorphism W A := by
+  show pair x x ≫ subMap A = zeroMorphism W A
+  have hpx : pair x x = x ≫ diag A :=
+    (pair_uniq x x (x ≫ diag A) (by rw [Cat.assoc, diag_fst, Cat.comp_id])
+      (by rw [Cat.assoc, diag_snd, Cat.comp_id])).symm
+  rw [hpx, Cat.assoc, subMap_diag, zero_morphism_comp x (zeroMorphism A A)]
+
+/-- Left distributivity (pre-composition): `h ≫ (x − y) = (h≫x) − (h≫y)`. -/
+theorem comp_subL [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {V W A : 𝒞} (h : V ⟶ W) (x y : W ⟶ A) :
+    h ≫ subL x y = subL (h ≫ x) (h ≫ y) := by
+  show h ≫ pair x y ≫ subMap A = pair (h ≫ x) (h ≫ y) ≫ subMap A
+  rw [← Cat.assoc, pair_uniq (h ≫ x) (h ≫ y) (h ≫ pair x y)
+        (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])]
+
+/-- Right distributivity (post-composition, via `subMap_natural`): `(x − y) ≫ k = (x≫k) − (y≫k)`. -/
+theorem subL_comp [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A B : 𝒞} (x y : W ⟶ A) (k : A ⟶ B) :
+    subL x y ≫ k = subL (x ≫ k) (y ≫ k) := by
+  show (pair x y ≫ subMap A) ≫ k = pair (x ≫ k) (y ≫ k) ≫ subMap B
+  rw [Cat.assoc, subMap_natural, ← Cat.assoc,
+      pair_uniq (x ≫ k) (y ≫ k) (pair x y ≫ prodMap k)
+        (by rw [Cat.assoc, prodMap_fst, ← Cat.assoc, fst_pair])
+        (by rw [Cat.assoc, prodMap_snd, ← Cat.assoc, snd_pair])]
+
 theorem abelian_iff_normal_kernels_cokernels
     {𝒞 : Type u} [Cat.{v} 𝒞]
     [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoequalizers 𝒞] [HasBinaryProducts 𝒞] :
