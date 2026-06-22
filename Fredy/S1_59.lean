@@ -2857,6 +2857,53 @@ noncomputable def exactCoproducts [ExactCategory 𝒞] [HasBinaryProducts 𝒞] 
       _ = homAddL (fst ≫ x) (snd ≫ y) := by
             rw [Cat.assoc, Cat.assoc, hl, hr]
 
+/-- If `IsIso f` and `f = id`, the chosen inverse is `id`. -/
+theorem isIso_choose_eq_id {X : 𝒞} {f : X ⟶ X} (h : IsIso f) (hf : f = Cat.id X) :
+    h.choose = Cat.id X :=
+  calc h.choose = Cat.id X ≫ h.choose := (Cat.id_comp _).symm
+    _ = f ≫ h.choose := congrArg (· ≫ h.choose) hf.symm
+    _ = Cat.id X := h.choose_spec.1
+
+/-- **§1.597 STEP 2: an exact category with products is half-additive.**  `add := homAddL`,
+    `coprod := prod`, and the δ-matrix coincidence is the identity (`biproduct_id`). -/
+noncomputable def exactHalfAdditive [ExactCategory 𝒞] [HasBinaryProducts 𝒞] :
+    HalfAdditiveCategory 𝒞 :=
+  letI hcop : HasBinaryCoproducts 𝒞 := exactCoproducts
+  { toHasTerminal := inferInstance
+    toHasBinaryProducts := inferInstance
+    toHasCoterminator := inferInstance
+    toHasBinaryCoproducts := hcop
+    zeroHom := fun A B => zeroMorphism A B
+    zeroHom_comp_left := fun f => zero_morphism_comp f (zeroMorphism _ _)
+    zeroHom_comp_right := fun g => zeroMorphism_comp_left g
+    -- The δ-matrix `case ⟨1,0⟩ ⟨0,1⟩` IS `id` (`biproduct_id`); we supply `Cat.id` as the explicit
+    -- inverse so that `Φ⁻¹ = (prod_coprod_coincide).choose` reduces *definitionally* to `Cat.id`.
+    prod_coprod_coincide := fun A B =>
+      ⟨Cat.id (prod A B),
+       by show (homAddL (fst ≫ pair (Cat.id A) (zeroMorphism A B))
+              (snd ≫ pair (zeroMorphism B A) (Cat.id B))) ≫ Cat.id (prod A B) = Cat.id (prod A B)
+          rw [biproduct_id A B, Cat.comp_id],
+       by show Cat.id (prod A B) ≫ (homAddL (fst ≫ pair (Cat.id A) (zeroMorphism A B))
+              (snd ≫ pair (zeroMorphism B A) (Cat.id B))) = Cat.id (prod A B)
+          rw [biproduct_id A B, Cat.id_comp]⟩
+    add := fun x y => homAddL x y
+    add_eq_addL := fun {A B} x y => by
+      rw [isIso_choose_eq_id _
+            (show (homAddL (fst ≫ pair (Cat.id A) (zeroMorphism A A))
+                (snd ≫ pair (zeroMorphism A A) (Cat.id A)) : prod A A ⟶ prod A A)
+              = Cat.id (prod A A) from biproduct_id A A)]
+      show homAddL x y = diag A ≫ Cat.id (prod A A) ≫ homAddL (fst ≫ x) (snd ≫ y)
+      rw [Cat.id_comp, comp_homAddL, ← Cat.assoc, ← Cat.assoc, diag_fst, diag_snd,
+          Cat.id_comp, Cat.id_comp]
+    add_eq_addR := fun {A B} x y => by
+      rw [isIso_choose_eq_id _
+            (show (homAddL (fst ≫ pair (Cat.id B) (zeroMorphism B B))
+                (snd ≫ pair (zeroMorphism B B) (Cat.id B)) : prod B B ⟶ prod B B)
+              = Cat.id (prod B B) from biproduct_id B B)]
+      show homAddL x y = pair x y ≫ Cat.id (prod B B) ≫ homAddL (fst ≫ Cat.id B) (snd ≫ Cat.id B)
+      rw [Cat.id_comp, comp_homAddL, ← Cat.assoc, ← Cat.assoc, fst_pair, snd_pair,
+          Cat.comp_id, Cat.comp_id] }
+
 theorem abelian_iff_normal_kernels_cokernels
     {𝒞 : Type u} [Cat.{v} 𝒞]
     [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoequalizers 𝒞] [HasBinaryProducts 𝒞] :
