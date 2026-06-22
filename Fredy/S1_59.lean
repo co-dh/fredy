@@ -2496,34 +2496,34 @@ theorem subMap_diag [ExactCategory 𝒞] [HasBinaryProducts 𝒞] (A : 𝒞) :
   rw [← Cat.assoc, comp_cokernelMap (diag A), zeroMorphism_comp_left]
 
 /-- `k × k : A×A → B×B`, the product functor on `k`. -/
-noncomputable def prodMap {A B : 𝒞} [HasBinaryProducts 𝒞] (k : A ⟶ B) : prod A A ⟶ prod B B :=
+noncomputable def sqMap {A B : 𝒞} [HasBinaryProducts 𝒞] (k : A ⟶ B) : prod A A ⟶ prod B B :=
   pair (fst ≫ k) (snd ≫ k)
 
-theorem prodMap_fst {A B : 𝒞} [HasBinaryProducts 𝒞] (k : A ⟶ B) :
-    prodMap k ≫ fst = fst ≫ k := fst_pair _ _
+theorem sqMap_fst {A B : 𝒞} [HasBinaryProducts 𝒞] (k : A ⟶ B) :
+    sqMap k ≫ fst = fst ≫ k := fst_pair _ _
 
-theorem prodMap_snd {A B : 𝒞} [HasBinaryProducts 𝒞] (k : A ⟶ B) :
-    prodMap k ≫ snd = snd ≫ k := snd_pair _ _
+theorem sqMap_snd {A B : 𝒞} [HasBinaryProducts 𝒞] (k : A ⟶ B) :
+    sqMap k ≫ snd = snd ≫ k := snd_pair _ _
 
 /-- `diag` is natural: `diag A ≫ (k×k) = k ≫ diag B`. -/
-theorem diag_prodMap [HasBinaryProducts 𝒞] {A B : 𝒞} (k : A ⟶ B) :
-    diag A ≫ prodMap k = k ≫ diag B := by
-  have hL : diag A ≫ prodMap k = pair k k :=
-    pair_uniq k k (diag A ≫ prodMap k)
-      (by rw [Cat.assoc, prodMap_fst, ← Cat.assoc, diag_fst, Cat.id_comp])
-      (by rw [Cat.assoc, prodMap_snd, ← Cat.assoc, diag_snd, Cat.id_comp])
+theorem diag_sqMap [HasBinaryProducts 𝒞] {A B : 𝒞} (k : A ⟶ B) :
+    diag A ≫ sqMap k = k ≫ diag B := by
+  have hL : diag A ≫ sqMap k = pair k k :=
+    pair_uniq k k (diag A ≫ sqMap k)
+      (by rw [Cat.assoc, sqMap_fst, ← Cat.assoc, diag_fst, Cat.id_comp])
+      (by rw [Cat.assoc, sqMap_snd, ← Cat.assoc, diag_snd, Cat.id_comp])
   have hR : k ≫ diag B = pair k k :=
     pair_uniq k k (k ≫ diag B)
       (by rw [Cat.assoc, diag_fst, Cat.comp_id]) (by rw [Cat.assoc, diag_snd, Cat.comp_id])
   rw [hL, hR]
 
 /-- `⟨1,0⟩` is natural: `⟨1,0⟩_A ≫ (k×k) = k ≫ ⟨1,0⟩_B`. -/
-theorem j_prodMap [HasZeroObject 𝒞] [HasBinaryProducts 𝒞] {A B : 𝒞} (k : A ⟶ B) :
-    pair (Cat.id A) (zeroMorphism A A) ≫ prodMap k = k ≫ pair (Cat.id B) (zeroMorphism B B) := by
-  have hL : pair (Cat.id A) (zeroMorphism A A) ≫ prodMap k = pair k (zeroMorphism A B) :=
-    pair_uniq k (zeroMorphism A B) (pair (Cat.id A) (zeroMorphism A A) ≫ prodMap k)
-      (by rw [Cat.assoc, prodMap_fst, ← Cat.assoc, fst_pair, Cat.id_comp])
-      (by rw [Cat.assoc, prodMap_snd, ← Cat.assoc, snd_pair, zeroMorphism_comp_left])
+theorem j_sqMap [HasZeroObject 𝒞] [HasBinaryProducts 𝒞] {A B : 𝒞} (k : A ⟶ B) :
+    pair (Cat.id A) (zeroMorphism A A) ≫ sqMap k = k ≫ pair (Cat.id B) (zeroMorphism B B) := by
+  have hL : pair (Cat.id A) (zeroMorphism A A) ≫ sqMap k = pair k (zeroMorphism A B) :=
+    pair_uniq k (zeroMorphism A B) (pair (Cat.id A) (zeroMorphism A A) ≫ sqMap k)
+      (by rw [Cat.assoc, sqMap_fst, ← Cat.assoc, fst_pair, Cat.id_comp])
+      (by rw [Cat.assoc, sqMap_snd, ← Cat.assoc, snd_pair, zeroMorphism_comp_left])
   have hR : k ≫ pair (Cat.id B) (zeroMorphism B B) = pair k (zeroMorphism A B) :=
     pair_uniq k (zeroMorphism A B) (k ≫ pair (Cat.id B) (zeroMorphism B B))
       (by rw [Cat.assoc, fst_pair, Cat.comp_id])
@@ -2536,16 +2536,16 @@ theorem j_prodMap [HasZeroObject 𝒞] [HasBinaryProducts 𝒞] {A B : 𝒞} (k 
     `coker(diag B)`), and `θ_A ≫ kbar = k ≫ θ_B` (using `⟨1,0⟩` naturality), so
     `θ_A⁻¹ ≫ k = kbar ≫ θ_B⁻¹`; precomposing `coker(diag A)` gives the claim. -/
 theorem subMap_natural [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {A B : 𝒞} (k : A ⟶ B) :
-    subMap A ≫ k = prodMap k ≫ subMap B := by
+    subMap A ≫ k = sqMap k ≫ subMap B := by
   -- `kbar` : descent of `(k×k) ≫ coker(diag B)` through `coker(diag A)`.
-  have hkill : diag A ≫ (prodMap k ≫ cokernelMap (diag B))
+  have hkill : diag A ≫ (sqMap k ≫ cokernelMap (diag B))
       = zeroMorphism A (Cokernel (diag B)) := by
-    rw [← Cat.assoc, diag_prodMap, Cat.assoc, comp_cokernelMap (diag B),
+    rw [← Cat.assoc, diag_sqMap, Cat.assoc, comp_cokernelMap (diag B),
         zero_morphism_comp k (zeroMorphism B (Cokernel (diag B)))]
   let kbar : Cokernel (diag A) ⟶ Cokernel (diag B) :=
-    cokernelDesc (diag A) (prodMap k ≫ cokernelMap (diag B)) hkill
-  have hkbar : cokernelMap (diag A) ≫ kbar = prodMap k ≫ cokernelMap (diag B) :=
-    cokernelDesc_fac (diag A) (prodMap k ≫ cokernelMap (diag B)) hkill
+    cokernelDesc (diag A) (sqMap k ≫ cokernelMap (diag B)) hkill
+  have hkbar : cokernelMap (diag A) ≫ kbar = sqMap k ≫ cokernelMap (diag B) :=
+    cokernelDesc_fac (diag A) (sqMap k ≫ cokernelMap (diag B)) hkill
   -- `θ`-inverses via `subMap`'s defining choice.
   have hθA1 := (thetaA_iso A).choose_spec.1
   have hθA2 := (thetaA_iso A).choose_spec.2
@@ -2555,10 +2555,10 @@ theorem subMap_natural [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {A B : 𝒞
       = k ≫ (pair (Cat.id B) (zeroMorphism B B) ≫ cokernelMap (diag B)) := by
     calc (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A)) ≫ kbar
         = pair (Cat.id A) (zeroMorphism A A) ≫ (cokernelMap (diag A) ≫ kbar) := Cat.assoc _ _ _
-      _ = pair (Cat.id A) (zeroMorphism A A) ≫ (prodMap k ≫ cokernelMap (diag B)) := by rw [hkbar]
-      _ = (pair (Cat.id A) (zeroMorphism A A) ≫ prodMap k) ≫ cokernelMap (diag B) :=
+      _ = pair (Cat.id A) (zeroMorphism A A) ≫ (sqMap k ≫ cokernelMap (diag B)) := by rw [hkbar]
+      _ = (pair (Cat.id A) (zeroMorphism A A) ≫ sqMap k) ≫ cokernelMap (diag B) :=
             (Cat.assoc _ _ _).symm
-      _ = (k ≫ pair (Cat.id B) (zeroMorphism B B)) ≫ cokernelMap (diag B) := by rw [j_prodMap]
+      _ = (k ≫ pair (Cat.id B) (zeroMorphism B B)) ≫ cokernelMap (diag B) := by rw [j_sqMap]
       _ = k ≫ (pair (Cat.id B) (zeroMorphism B B) ≫ cokernelMap (diag B)) := Cat.assoc _ _ _
   -- `θ_A⁻¹ ≫ k = kbar ≫ θ_B⁻¹`.
   have hinvk : (thetaA_iso A).choose ≫ k = kbar ≫ (thetaA_iso B).choose := by
@@ -2625,9 +2625,9 @@ theorem subL_comp [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A B : 𝒞} (
     subL x y ≫ k = subL (x ≫ k) (y ≫ k) := by
   show (pair x y ≫ subMap A) ≫ k = pair (x ≫ k) (y ≫ k) ≫ subMap B
   rw [Cat.assoc, subMap_natural, ← Cat.assoc,
-      pair_uniq (x ≫ k) (y ≫ k) (pair x y ≫ prodMap k)
-        (by rw [Cat.assoc, prodMap_fst, ← Cat.assoc, fst_pair])
-        (by rw [Cat.assoc, prodMap_snd, ← Cat.assoc, snd_pair])]
+      pair_uniq (x ≫ k) (y ≫ k) (pair x y ≫ sqMap k)
+        (by rw [Cat.assoc, sqMap_fst, ← Cat.assoc, fst_pair])
+        (by rw [Cat.assoc, sqMap_snd, ← Cat.assoc, snd_pair])]
 
 /-- **Translation invariance**: `(a − c) − (b − c) = a − b`.  The single algebraic fact (besides
     `x−0=x`, `x−x=0` and bilinearity) needed to upgrade subtraction to an abelian group.
@@ -2637,14 +2637,14 @@ theorem subL_comp [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A B : 𝒞} (
 theorem subL_sub_right [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞} (a b c : W ⟶ A) :
     subL (subL a c) (subL b c) = subL a b := by
   -- `pair (a−c) (b−c) = ⟨a,b⟩ −_{A×A} ⟨c,c⟩` (difference on `A×A`, coordinatewise via naturality).
-  have hpac : pair (pair a b) (pair c c) ≫ prodMap (fst : prod A A ⟶ A) = pair a c := by
-    apply pair_uniq a c (pair (pair a b) (pair c c) ≫ prodMap fst)
-    · rw [Cat.assoc, prodMap_fst, ← Cat.assoc, fst_pair, fst_pair]
-    · rw [Cat.assoc, prodMap_snd, ← Cat.assoc, snd_pair, fst_pair]
-  have hpbc : pair (pair a b) (pair c c) ≫ prodMap (snd : prod A A ⟶ A) = pair b c := by
-    apply pair_uniq b c (pair (pair a b) (pair c c) ≫ prodMap snd)
-    · rw [Cat.assoc, prodMap_fst, ← Cat.assoc, fst_pair, snd_pair]
-    · rw [Cat.assoc, prodMap_snd, ← Cat.assoc, snd_pair, snd_pair]
+  have hpac : pair (pair a b) (pair c c) ≫ sqMap (fst : prod A A ⟶ A) = pair a c := by
+    apply pair_uniq a c (pair (pair a b) (pair c c) ≫ sqMap fst)
+    · rw [Cat.assoc, sqMap_fst, ← Cat.assoc, fst_pair, fst_pair]
+    · rw [Cat.assoc, sqMap_snd, ← Cat.assoc, snd_pair, fst_pair]
+  have hpbc : pair (pair a b) (pair c c) ≫ sqMap (snd : prod A A ⟶ A) = pair b c := by
+    apply pair_uniq b c (pair (pair a b) (pair c c) ≫ sqMap snd)
+    · rw [Cat.assoc, sqMap_fst, ← Cat.assoc, fst_pair, snd_pair]
+    · rw [Cat.assoc, sqMap_snd, ← Cat.assoc, snd_pair, snd_pair]
   have hcoord : pair (subL a c) (subL b c) = subL (pair a b) (pair c c) :=
     (pair_uniq (subL a c) (subL b c) (subL (pair a b) (pair c c))
       (by show (pair (pair a b) (pair c c) ≫ subMap (prod A A)) ≫ fst = subL a c
@@ -2709,14 +2709,14 @@ theorem homAddL_neg [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞} (
     coordinate constant `a` and via `neg_subL`). -/
 theorem subL_sub_left [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞} (a p q : W ⟶ A) :
     subL (subL a p) (subL a q) = subL q p := by
-  have hpac : pair (pair a a) (pair p q) ≫ prodMap (fst : prod A A ⟶ A) = pair a p := by
-    apply pair_uniq a p (pair (pair a a) (pair p q) ≫ prodMap fst)
-    · rw [Cat.assoc, prodMap_fst, ← Cat.assoc, fst_pair, fst_pair]
-    · rw [Cat.assoc, prodMap_snd, ← Cat.assoc, snd_pair, fst_pair]
-  have hpbc : pair (pair a a) (pair p q) ≫ prodMap (snd : prod A A ⟶ A) = pair a q := by
-    apply pair_uniq a q (pair (pair a a) (pair p q) ≫ prodMap snd)
-    · rw [Cat.assoc, prodMap_fst, ← Cat.assoc, fst_pair, snd_pair]
-    · rw [Cat.assoc, prodMap_snd, ← Cat.assoc, snd_pair, snd_pair]
+  have hpac : pair (pair a a) (pair p q) ≫ sqMap (fst : prod A A ⟶ A) = pair a p := by
+    apply pair_uniq a p (pair (pair a a) (pair p q) ≫ sqMap fst)
+    · rw [Cat.assoc, sqMap_fst, ← Cat.assoc, fst_pair, fst_pair]
+    · rw [Cat.assoc, sqMap_snd, ← Cat.assoc, snd_pair, fst_pair]
+  have hpbc : pair (pair a a) (pair p q) ≫ sqMap (snd : prod A A ⟶ A) = pair a q := by
+    apply pair_uniq a q (pair (pair a a) (pair p q) ≫ sqMap snd)
+    · rw [Cat.assoc, sqMap_fst, ← Cat.assoc, fst_pair, snd_pair]
+    · rw [Cat.assoc, sqMap_snd, ← Cat.assoc, snd_pair, snd_pair]
   have hcoord : pair (subL a p) (subL a q) = subL (pair a a) (pair p q) :=
     (pair_uniq (subL a p) (subL a q) (subL (pair a a) (pair p q))
       (by show (pair (pair a a) (pair p q) ≫ subMap (prod A A)) ≫ fst = subL a p
