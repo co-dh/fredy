@@ -898,6 +898,15 @@ theorem complement_le_other' [HasBinaryCoproducts 𝒞] {A : 𝒞}
 
 end RegularImageCalculus
 
+section PeanoRecursor
+-- The `sorry`-stub instance `topos_has_exponentials` (S1_92, priority 50) extends
+-- `HasBinaryProducts`; instance search can route a `HasBinaryProducts 𝒞` goal through it and
+-- inject `sorryAx` into otherwise axiom-clean theorems.  The §1.988/§1.989 Peano/recursor
+-- theorems below use NO exponentials, so we make the genuine `Topos.toHasBinaryProducts` win
+-- outright for this section (same workaround S1_92 applies to its §1.92 section); without it
+-- `recursor_exists_of_bicartesian` etc. spuriously pick up `sorryAx`.
+attribute [local instance 10000] Topos.toHasBinaryProducts
+
 /-- **§1.988 PEANO PROPERTY in a BOOLEAN topos.**  If `[a,t] : 1+A ≅ A` is iso and
     `A →ᵗ A → 1` is a coequalizer of `(t, id_A)`, then in a BOOLEAN topos every
     `(a,t)`-closed subobject `B ↣ A` is entire.
@@ -2348,6 +2357,8 @@ theorem bicartesian_functor_preserves_nno
   -- now derived internally (the old `pmc'` parameter is gone), so this reduction is purely the
   -- transport of the bicartesian data; it carries the SAME single §1.988 residual pinned there.
   exact nno_of_bicartesian_data hbool hcap htv (tOne ≫ hT.map hN.zero) (hT.map hN.succ) hT_iso hT_coeq
+
+end PeanoRecursor
 
 /-! ## §1.98(13)  Bicartesian characterization of free A-action
 
