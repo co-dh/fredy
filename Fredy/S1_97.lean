@@ -4475,6 +4475,43 @@ theorem foldExists {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B) :
       refine ⟨gp, ?_, ?_⟩
       · show gp ≫ G.arr ≫ fst = w; rw [← Cat.assoc, hgp₁, fst_pair]
       · rw [← Cat.assoc, hgp₁, snd_pair]
+    -- **Antecedent ⟹ consequent (via G-point induction + Heyting ⇒-adjunction).**  For subobjects
+    -- `Anil, Ce ⊆ G.dom`, if the unit point `g₀ ∈ Ce` and the act-image overlap `Anil ⊓ image(actG)`
+    -- already lies in `Ce`, then `Anil ≤ Ce`.  Proof: `Det := (Anil ⇒ Ce)` contains `g₀` (since
+    -- `Ce ≤ Det`) and is `actG`-closed (since `image(actG) ≤ Det` by `imp_adjunction` on the overlap
+    -- hypothesis), so `hGind` makes `Det` swallow every `G`-point — in particular `Anil ≤ Det`,
+    -- whence `Anil ≤ Ce` by `imp_adjunction` (X = Anil).  This is the no-junk single-valuedness engine.
+    have hAntToVal : ∀ (Anil Ce : Subobject 𝒞 G.dom)
+        (hp : HasPullback Anil.arr (image actG).arr),
+        Allows Ce g₀ → (Sub.inter Anil (image actG) hp).le Ce → Anil.le Ce := by
+      intro Anil Ce hp hUnitCe hOverlap
+      let Det : Subobject 𝒞 G.dom := Sub.imp Anil Ce
+      -- `Ce ≤ Det`  (`T ≤ (S ⇒ T)`, via `imp_adjunction`: `S ⊓ Ce ≤ Ce`).
+      have hCeDet : Ce.le Det :=
+        (imp_adjunction Anil Ce Ce (HasPullbacks.has Anil.arr Ce.arr)).2
+          (Sub.inter_le_right Anil Ce _)
+      -- `image(actG) ≤ Det`  (`imp_adjunction`: `Anil ⊓ image(actG) ≤ Ce`).
+      have hImgActDet : (image actG).le Det :=
+        (imp_adjunction Anil Ce (image actG) hp).2 hOverlap
+      -- `g₀ ∈ Det`  (via `Ce ≤ Det`).
+      have hUnitDet : Allows Det g₀ := allows_mono hCeDet hUnitCe
+      -- `actG` factors through `Det`  (`image(actG)` allows `actG`, composed with `image(actG) ≤ Det`).
+      have hActDet : Allows Det actG :=
+        allows_mono hImgActDet ⟨image.lift actG, image.lift_fac actG⟩
+      -- `actG`-closure of `Det`:  `(snd # Det) ≤ (actG # Det)` via the restriction `(snd#Det).arr ≫ s`.
+      have hClosedDet : (InverseImage (snd (A := A) (B := G.dom)) Det).le (InverseImage actG Det) := by
+        rw [invImage_le_iff_restrict]
+        obtain ⟨s, hs⟩ := hActDet
+        exact ⟨(InverseImage (snd (A := A) (B := G.dom)) Det).arr ≫ s, by rw [Cat.assoc, hs]⟩
+      -- `Det` swallows the `Anil`-inclusion ⟹ `Anil ≤ Det`.
+      have hAnilDet : Anil.le Det := hGind Det hUnitDet hClosedDet Anil.arr
+      -- `Anil ≤ Det = (Anil ⇒ Ce)` ⟹ `Anil ⊓ Anil ≤ Ce` (imp_adjunction) ⟹ `Anil ≤ Ce`.
+      have hInterCe : (Sub.inter Anil Anil (HasPullbacks.has Anil.arr Anil.arr)).le Ce :=
+        (imp_adjunction Anil Ce Anil (HasPullbacks.has Anil.arr Anil.arr)).1 hAnilDet
+      have hrefl : Anil.le Anil := ⟨Cat.id Anil.dom, Cat.id_comp _⟩
+      exact subLe_trans
+        (Sub.inter_glb Anil Anil Anil (HasPullbacks.has Anil.arr Anil.arr) hrefl hrefl)
+        hInterCe
     -- **Fiber-singleton criterion.**  If `(w,b₀)∈G` and the `w`-fiber of `G` is single-valued
     -- (every `G`-point over `w` has value `b₀`), then `valG w = {b₀}`, i.e. `w ≫ valG` factors
     -- through the singleton map at `b₀`.  Proof: `hExpExt` reduces to a classifier equation on
