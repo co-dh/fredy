@@ -1974,40 +1974,42 @@ theorem recursor_exists_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos �
           obtain ⟨w₂, hw₂eq, hw₂p⟩ := reduce g₂ hg₂
           -- `w₁ ≫ p = w₂ ≫ p = b≫A₂.arr`; single-valuedness over the `A₂`-point `b` forces `w₁=w₂`.
           have hw₁w₂ : w₁ = w₂ := by
-            by_contra hne
+            classical
+            by_cases hne : w₁ = w₂
+            · exact hne
+            exfalso
             -- off-diagonal kernel-pair point over `b≫A₂.arr`; lands in `K'`, projecting to `A₁`.
             have hlegs : w₁ ≫ p = w₂ ≫ p := by rw [hw₁p, hw₂p]
-            let κ : (one : 𝒞) ⟶ kernelPair p := (hpull.has p p).lift ⟨one, w₁, w₂, hlegs⟩
+            let κ : (one : 𝒞) ⟶ kernelPair p :=
+      (HasPullbacks.has p p).lift ⟨one, w₁, w₂, hlegs⟩
             have hκ₁ : κ ≫ kp₁ (f := p) = w₁ := kp_lift_p₁ w₁ w₂ hlegs
             have hκ₂ : κ ≫ kp₂ (f := p) = w₂ := kp_lift_p₂ w₁ w₂ hlegs
             -- `κ` lifts to `Δ` or `K'` (boolean: `⊤ ≤ Δ ∪ K'`).
-            have hκtop : (Subobject.mk one κ (mono_from_one _)).le
-                (HasSubobjectUnions.union Δ K') :=
-              subLe_trans' ⟨κ, Cat.comp_id _⟩
-                (subLe_trans' ⟨(Subobject.mk one κ (mono_from_one _)).arr, Cat.comp_id _⟩ hΔunion)
+            have hκent : (Subobject.mk one κ (mono_from_one _)).le
+                (Subobject.entire (kernelPair p)) := ⟨κ, Cat.comp_id _⟩
+            have hκtop := subLe_trans' hκent hΔunion
             obtain ⟨e, he⟩ := hκtop
             -- split the point of `Δ ∪ K'` along the cover into `Δ` or `K'`.
             rcases union_point_split hcap htv Δ K' e with ⟨d, hd⟩ | ⟨k, hk⟩
-            · -- `κ ∈ Δ`: diagonal, so `w₁ = w₂` — contradicts `hne`.
+            · -- `κ ∈ Δ`: diagonal, so its two legs agree (every point of `image kp_diag` is on the
+              -- diagonal), forcing `w₁ = w₂` — contradicts `hne`.
               apply hne
-              -- `κ = (d ≫ Δ-lift) ≫ kp_diag`; both legs of `κ` then agree.
-              have hκdiag : κ = (d ≫ image.lift (kp_diag (f := p))) ≫ kp_diag (f := p) := by
-                have hdΔ : d ≫ Δ.arr = κ := by rw [hd]; exact he
-                calc κ = d ≫ Δ.arr := hdΔ.symm
-                  _ = d ≫ (image (kp_diag (f := p))).arr := rfl
-                  _ = d ≫ (image.lift (kp_diag (f := p)) ≫ kp_diag (f := p)) := by
-                        rw [image.lift_fac]
-                  _ = (d ≫ image.lift (kp_diag (f := p))) ≫ kp_diag (f := p) := (Cat.assoc _ _ _).symm
+              have hdΔ : d ≫ Δ.arr = κ := by rw [hd]; exact he
+              -- `Δ.arr ≫ kp₁ = Δ.arr ≫ kp₂` (cancel the cover `image.lift kp_diag`).
+              have hΔlegs : Δ.arr ≫ kp₁ (f := p) = Δ.arr ≫ kp₂ (f := p) := by
+                refine cover_epi (image_lift_cover (kp_diag (f := p))) ?_
+                calc image.lift (kp_diag (f := p)) ≫ (Δ.arr ≫ kp₁ (f := p))
+                    = (image.lift (kp_diag (f := p)) ≫ Δ.arr) ≫ kp₁ (f := p) := (Cat.assoc _ _ _).symm
+                  _ = kp_diag (f := p) ≫ kp₁ (f := p) := by rw [image.lift_fac]
+                  _ = kp_diag (f := p) ≫ kp₂ (f := p) := by rw [kp_diag_p₁, kp_diag_p₂]
+                  _ = (image.lift (kp_diag (f := p)) ≫ Δ.arr) ≫ kp₂ (f := p) := by rw [image.lift_fac]
+                  _ = image.lift (kp_diag (f := p)) ≫ (Δ.arr ≫ kp₂ (f := p)) := Cat.assoc _ _ _
               calc w₁ = κ ≫ kp₁ (f := p) := hκ₁.symm
-                _ = ((d ≫ image.lift (kp_diag (f := p))) ≫ kp_diag (f := p)) ≫ kp₁ (f := p) := by
-                      rw [hκdiag]
-                _ = (d ≫ image.lift (kp_diag (f := p))) ≫ (kp_diag (f := p) ≫ kp₁ (f := p)) :=
-                      Cat.assoc _ _ _
-                _ = (d ≫ image.lift (kp_diag (f := p))) ≫ (kp_diag (f := p) ≫ kp₂ (f := p)) := by
-                      rw [kp_diag_p₁, kp_diag_p₂]
-                _ = ((d ≫ image.lift (kp_diag (f := p))) ≫ kp_diag (f := p)) ≫ kp₂ (f := p) :=
-                      (Cat.assoc _ _ _).symm
-                _ = κ ≫ kp₂ (f := p) := by rw [← hκdiag]
+                _ = (d ≫ Δ.arr) ≫ kp₁ (f := p) := by rw [hdΔ]
+                _ = d ≫ (Δ.arr ≫ kp₁ (f := p)) := Cat.assoc _ _ _
+                _ = d ≫ (Δ.arr ≫ kp₂ (f := p)) := by rw [hΔlegs]
+                _ = (d ≫ Δ.arr) ≫ kp₂ (f := p) := (Cat.assoc _ _ _).symm
+                _ = κ ≫ kp₂ (f := p) := by rw [hdΔ]
                 _ = w₂ := hκ₂
             · -- `κ ∈ K'`: `b≫A₂.arr = w₁≫p` factors through `A₁ = image q`, so `∈ A₁ ∩ A₂ ≤ ⊥` — absurd.
               exfalso
