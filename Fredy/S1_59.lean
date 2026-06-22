@@ -2168,6 +2168,32 @@ theorem cover_kernel_zero_iso [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoeq
     rw [hf0]; exact cokernelMap_zero_isIso W A
   rw [← hfac]; exact isIso_comp hck_iso hi_iso
 
+/-- **In an exact category, a map with zero kernel AND zero cokernel inclusion is an iso.**
+    Generalises `exact_balanced` to take the kernel/cokernel-zero facts DIRECTLY (instead of
+    deriving them from Mono + epic).  Used in §1.597 STEP 2 to make the subtraction section
+    `θ_A` an iso from `Ker θ_A = 0` and `Cok θ_A = 0`. -/
+theorem exact_iso_of_ker_cok_zero [ExactCategory 𝒞] {A B : 𝒞} (f : A ⟶ B)
+    (hk0 : kernelMap f = zeroMorphism (Kernel f) A)
+    (hcoker0 : cokernelMap f = zeroMorphism B (Cokernel f)) : IsIso f := by
+  have hcofac : kernelMap f ≫ Cat.id A = zeroMorphism (Kernel f) A ≫ Cat.id A := by rw [hk0]
+  let co := HasCoequalizers.coeq (kernelMap f) (zeroMorphism (Kernel f) A)
+  let r : Cokernel (kernelMap f) ⟶ A := co.desc (Cat.id A) hcofac
+  have hmr : cokernelMap (kernelMap f) ≫ r = Cat.id A := co.fac (Cat.id A) hcofac
+  have hrm : r ≫ cokernelMap (kernelMap f) = Cat.id (Cokernel (kernelMap f)) := by
+    have key : ∀ m : Cokernel (kernelMap f) ⟶ Cokernel (kernelMap f),
+        cokernelMap (kernelMap f) ≫ m = cokernelMap (kernelMap f) →
+        m = co.desc (cokernelMap (kernelMap f)) co.eq :=
+      fun m hmm => co.uniq (cokernelMap (kernelMap f)) co.eq m hmm
+    rw [key (r ≫ cokernelMap (kernelMap f)) (by rw [← Cat.assoc, hmr, Cat.id_comp]),
+        key (Cat.id _) (by rw [Cat.comp_id])]
+  have hc_iso : IsIso (cokernelMap (kernelMap f)) := ⟨r, hmr, hrm⟩
+  obtain ⟨θ, hθ, hfac⟩ := ExactCategory.exact f
+  have hm_iso : IsIso (kernelMap (cokernelMap f)) := by
+    rw [hcoker0]; exact kernelMap_zero_isIso B (Cokernel f)
+  have : IsIso (cokernelMap (kernelMap f) ≫ θ ≫ kernelMap (cokernelMap f)) :=
+    isIso_comp hc_iso (isIso_comp hθ hm_iso)
+  rwa [hfac] at this
+
 /-- **§1.598 STEP 1: a normal category is exact.**  For each `x : A → B`, the coimage→image
     comparison `θ : Coker(ker x) → Ker(coker x)` is an iso.  `θ` is a COVER (the normal image
     `Ker(coker x)` is the minimal subobject allowing `x`, so `θ` compares two images of `x`);
