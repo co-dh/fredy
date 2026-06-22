@@ -4643,11 +4643,84 @@ theorem foldExists {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B) :
       refine hSingFac (nilMor A) e (hFiberSingleton (nilMor A) e ?_ ?_)
       · -- nil-fiber single-valuedness: any `G`-point over a nil word has value `e`.
         intro Y g y hgw
-        -- RESIDUAL (nil base, §1.989).  `g`'s word is `y ≫ nilMor`.  A `G`-point is a `foldUnit`
-        -- point (value `e`) or a `foldStep` point (a `cons` word); `nil_cons_disjoint` rules out the
-        -- latter over a nil word, forcing value `e`.  Needs `actLeast_le` on `G` (no junk) targeting
-        -- a coproduct subobject of `prod W B` (blank-head ⇒ value `e`); see `hConsSing` residual.
-        sorry
+        -- `Anil ⊆ G.dom` = points whose word is a nil word (`p` ∈ `image nilMor`);
+        -- `Ce ⊆ G.dom` = points whose value is `e` (equalizer of `q` and `term ≫ e`).
+        let q : G.dom ⟶ B := G.arr ≫ snd
+        -- `nilMor` is monic (any two maps to terminal `one` agree), so `NilW := ⟨one, nilMor⟩`
+        -- has LITERAL `t ≫ nilMor` points (no image-cover lift needed).
+        have hNilMono : Mono (nilMor A) := by
+          intro Z u v _; exact term_uniq u v
+        let NilW : Subobject 𝒞 (wordObj A) := ⟨one, nilMor A, hNilMono⟩
+        let Anil : Subobject 𝒞 G.dom := InverseImage p NilW
+        -- the `Anil` pullback square: `Anil.arr ≫ p = pNil ≫ nilMor` (`pNil : Anil.dom → one`).
+        let pNil : Anil.dom ⟶ one := (HasPullbacks.has p NilW.arr).cone.π₂
+        have hpNil : Anil.arr ≫ p = pNil ≫ nilMor A := (HasPullbacks.has p NilW.arr).cone.w
+        have hCe_mono : Mono (eqMap q (term G.dom ≫ e)) := eqMap_mono q (term G.dom ≫ e)
+        let Ce : Subobject 𝒞 G.dom := ⟨eqObj q (term G.dom ≫ e), eqMap q (term G.dom ≫ e), hCe_mono⟩
+        -- membership-in-`Ce` criterion:  `f` allows `Ce` iff `f ≫ q = f ≫ term ≫ e`.
+        have hCeFac : ∀ {Z : 𝒞} (f : Z ⟶ G.dom), f ≫ q = (f ≫ term G.dom) ≫ e → Allows Ce f := by
+          intro Z f hf
+          have hf' : f ≫ q = f ≫ (term G.dom ≫ e) := by rw [hf, Cat.assoc]
+          exact ⟨eqLift q (term G.dom ≫ e) f hf', eqLift_fac q (term G.dom ≫ e) f hf'⟩
+        -- `(nil, e) ∈ Ce`: the unit point `g₀` has value `e`.
+        have hUnitCe : Allows Ce g₀ := by
+          refine hCeFac g₀ ?_
+          show g₀ ≫ (G.arr ≫ snd) = (g₀ ≫ term G.dom) ≫ e
+          rw [← Cat.assoc, hg₀arr, snd_pair,
+              term_uniq (g₀ ≫ term G.dom) (Cat.id one), Cat.id_comp]
+        -- overlap `Anil ⊓ image(actG) ≤ Ce`:  an act-point over a nil word is impossible
+        -- (`nil_cons_disjoint`), so the apex collapses and the `Ce`-equation holds vacuously.
+        -- `Acons ⊆ G.dom` = points whose word is a cons word (`consMor` monic; `actG ≫ p` is a cons).
+        let ConsW : Subobject 𝒞 (wordObj A) := ⟨prod A (wordObj A), consMor A, consMor_mono A⟩
+        let Acons : Subobject 𝒞 G.dom := InverseImage p ConsW
+        let pCons : Acons.dom ⟶ prod A (wordObj A) := (HasPullbacks.has p ConsW.arr).cone.π₂
+        have hpCons : Acons.arr ≫ p = pCons ≫ consMor A := (HasPullbacks.has p ConsW.arr).cone.w
+        have hActCons : Allows Acons actG := by
+          let pbC := HasPullbacks.has p ConsW.arr
+          have hsq : actG ≫ p = (prodMap A G.dom (wordObj A) p) ≫ ConsW.arr := by
+            rw [← hpt]
+          exact ⟨pbC.lift ⟨_, actG, prodMap A G.dom (wordObj A) p, hsq⟩, pbC.lift_fst _⟩
+        have hImgActCons : (image actG).le Acons := image_min actG Acons hActCons
+        have hOverlap : (Sub.inter Anil (image actG)
+            (HasPullbacks.has Anil.arr (image actG).arr)).le Ce := by
+          let I := Sub.inter Anil (image actG) (HasPullbacks.has Anil.arr (image actG).arr)
+          refine hCeFac I.arr ?_
+          -- `I.arr` factors through `Anil` (nil word) and through `Acons` (cons word, via `image actG`).
+          obtain ⟨kA, hkA⟩ := Sub.inter_le_left Anil (image actG) _
+          obtain ⟨kC, hkC⟩ := subLe_trans (Sub.inter_le_right Anil (image actG) _) hImgActCons
+          -- nil word `tN : I.dom → one`, cons predecessor `qC : I.dom → prod A W`.
+          let tN : I.dom ⟶ one := kA ≫ pNil
+          let qC : I.dom ⟶ prod A (wordObj A) := kC ≫ pCons
+          have hnil : I.arr ≫ p = tN ≫ nilMor A := by
+            show I.arr ≫ p = (kA ≫ pNil) ≫ nilMor A
+            rw [← hkA, Cat.assoc, Cat.assoc, hpNil]
+          have hcons : I.arr ≫ p = qC ≫ consMor A := by
+            show I.arr ≫ p = (kC ≫ pCons) ≫ consMor A
+            rw [← hkC, Cat.assoc, Cat.assoc, hpCons]
+          exact nil_cons_disjoint A tN qC (by rw [← hnil, hcons])
+            (I.arr ≫ q) ((I.arr ≫ term G.dom) ≫ e)
+        -- `Anil ≤ Ce`, then specialize to `g` (its word `= y ≫ nilMor` is a nil word).
+        have hAnilCe : Anil.le Ce := hAntToVal Anil Ce _ hUnitCe hOverlap
+        -- `g ∈ Anil`:  `g ≫ p = y ≫ nilMor = y ≫ NilW.arr`.
+        have hgAnil : Allows Anil g := by
+          let pbN := HasPullbacks.has p NilW.arr
+          have hsq : g ≫ p = y ≫ NilW.arr := hgw
+          exact ⟨pbN.lift ⟨Y, g, y, hsq⟩, pbN.lift_fst _⟩
+        -- `g ∈ Ce`:  value `= (g ≫ term) ≫ e = y ≫ e`.
+        obtain ⟨gc, hgc⟩ := allows_mono hAnilCe hgAnil
+        -- `hgc : gc ≫ eqMap q (term≫e) = g`.  `eqMap_eq` gives `g ≫ q = g ≫ (term≫e)`.
+        have hval : g ≫ q = g ≫ (term G.dom ≫ e) := by
+          calc g ≫ q = (gc ≫ eqMap q (term G.dom ≫ e)) ≫ q := by rw [hgc]
+            _ = gc ≫ (eqMap q (term G.dom ≫ e) ≫ q) := Cat.assoc _ _ _
+            _ = gc ≫ (eqMap q (term G.dom ≫ e) ≫ (term G.dom ≫ e)) := by
+                  rw [eqMap_eq q (term G.dom ≫ e)]
+            _ = (gc ≫ eqMap q (term G.dom ≫ e)) ≫ (term G.dom ≫ e) := (Cat.assoc _ _ _).symm
+            _ = g ≫ (term G.dom ≫ e) := by rw [hgc]
+        show g ≫ (G.arr ≫ snd) = y ≫ e
+        calc g ≫ (G.arr ≫ snd) = g ≫ q := rfl
+          _ = g ≫ (term G.dom ≫ e) := hval
+          _ = (g ≫ term G.dom) ≫ e := (Cat.assoc _ _ _).symm
+          _ = y ≫ e := by rw [term_uniq (g ≫ term G.dom) y]
       · -- `(nil, e) ∈ G`: witnessed by the unit point `g₀` (`g₀ ≫ G.arr = pair nilMor e`).
         have hg₀p : g₀ ≫ p = nilMor A := by
           show g₀ ≫ G.arr ≫ fst = nilMor A; rw [← Cat.assoc, hg₀arr, fst_pair]
