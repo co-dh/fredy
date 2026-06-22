@@ -1402,7 +1402,9 @@ theorem recursor_exists_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos �
         kp_lift_p₁ u v huv
       have hw2 : ((HasPullbacks.has p p).lift ⟨W, u, v, huv⟩) ≫ kp₂ (f := p) = v :=
         kp_lift_p₂ u v huv
-      rw [← hw1, ← hw2, hkp]
+      calc u = ((HasPullbacks.has p p).lift ⟨W, u, v, huv⟩) ≫ kp₁ (f := p) := hw1.symm
+        _ = ((HasPullbacks.has p p).lift ⟨W, u, v, huv⟩) ≫ kp₂ (f := p) := by rw [hkp]
+        _ = v := hw2
     have hpiso : IsIso p := monic_cover_iso p hpcover hpmono
     obtain ⟨pinv, hpinv1, hpinv2⟩ := hpiso
     -- `h := p⁻¹ ≫ G.arr ≫ snd`.  `a ≫ h = x` and `t ≫ h = h ≫ f` follow from the graph laws.
