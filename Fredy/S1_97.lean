@@ -1318,6 +1318,26 @@ theorem noPoint_le_bottom {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞] [HasImages
     exact peano_le_bottom_of_map (W := one) S
       ((image.lift (term S.dom) ≫ e) ≫ hCot0.init (PreLogos.bottom one).dom)
 
+/-- **A `⊥`-domain has NO global point** (NON-degeneracy from TWO-VALUEDNESS).  A point
+    `1 → (⊥ B).dom` would make `(⊥ B).dom ≅ 0 ≅ 1` (the bottom dom is strict-initial), i.e.
+    the category degenerate — contradicting `htv.zero_proper` (`0 ↣ 1` is a PROPER mono, so
+    `0 ≇ 1`).  This is the "no point ⟹ ⊥" half's dual: a point of `⊥` is absurd. -/
+theorem point_bottom_absurd {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞] [HasImages 𝒞]
+    (htv : TwoValued (𝒞 := 𝒞)) {B : 𝒞} (z : (one : 𝒞) ⟶ (PreLogos.bottom B).dom) : False := by
+  -- `(⊥ B).dom` is initial; map it into the strict coterminator `htv.zeroObj`.
+  letI hCotB := minimal_subobject_of_one_is_coterminator (inferInstance : PreLogos 𝒞)
+  -- `(⊥ B).dom ≅ (⊥ one).dom = hCotB.zero`; postcompose the initial map to `htv.zeroObj`.
+  have hbot0 : Isomorphic (PreLogos.bottom B).dom hCotB.zero :=
+    PreLogos.bottom_dom_iso B (HasTerminal.one)
+  obtain ⟨φ, _⟩ := hbot0
+  -- point of `htv.zeroObj`: `1 → (⊥B).dom → hCotB.zero → htv.zeroObj`.
+  let p0 : (one : 𝒞) ⟶ htv.zeroObj := z ≫ φ ≫ hCotB.init htv.zeroObj
+  -- `p0 : 1 → htv.zeroObj` is a SECTION of `term htv.zeroObj`, and `term ≫ p0 = id` since
+  -- `htv.zeroObj` is initial (`strictCoterminator_hom_unique`).  So `term htv.zeroObj` is iso.
+  have hstrict : StrictCoterminator htv.zeroObj := fun {X} f => htv.zero_strict f
+  exact htv.zero_proper.2
+    ⟨p0, strictCoterminator_hom_unique hstrict _ _, term_uniq _ _⟩
+
 /-- **§1.988 RECURSOR EXISTENCE — in a BOOLEAN + CAPITAL topos (Freyd's actual hypotheses).**
 
     From bicartesian data `[a,t] : 1+A ≅ A` on `A` (and the terminal coequalizer `hcoeq`),
