@@ -4007,6 +4007,25 @@ theorem listObject_ext {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B)
     _ = (k ≫ eqMap m m') ≫ m' := by rw [Cat.assoc]
     _ = m' := by rw [hkeq]; exact Cat.id_comp _
 
+/-- **NON-BOOLEAN nil/cons disjointness.**  If a word `x : X ⟶ W` is SIMULTANEOUSLY empty
+    (`x = t ≫ nilMor`) and a cons (`x = q ≫ consMor`), then `X` is "empty" (any two maps out of
+    `X` agree).  Proof: read both at index `0`.  `nilMor` reads `inl ⋆` (the blank) and
+    `cons(a,w)` reads `inr a` (the new head), so the two injections collide over `X`; apply the
+    non-boolean `coprod_inj_disjoint_elt`.  This is the `nil ∈ S` base case of single-valuedness. -/
+theorem nil_cons_disjoint {X : 𝒞} (t : X ⟶ one) (q : X ⟶ prod A (wordObj A))
+    (hx : t ≫ nilMor A = q ≫ consMor A) :
+    ∀ {Y : 𝒞} (a b : X ⟶ Y), a = b := by
+  -- read both sides at index `0`
+  have hnil : pair (term X ≫ hN.zero) (t ≫ nilMor A) ≫ eval_exp hN.nno (letterObj A)
+      = term X ≫ (inl : one ⟶ letterObj A) := nilMor_read A (term X ≫ hN.zero) t
+  have hcons : pair (term X ≫ hN.zero) (q ≫ consMor A) ≫ eval_exp hN.nno (letterObj A)
+      = q ≫ fst ≫ (inr : A ⟶ letterObj A) := by
+    rw [consMor_read A (term X ≫ hN.zero) q, consBody_zero A (term X) q]
+  have hcollide : term X ≫ (inl : one ⟶ letterObj A) = (q ≫ fst) ≫ (inr : A ⟶ letterObj A) := by
+    rw [← hnil, hx, hcons, Cat.assoc]
+  intro Y a b
+  exact coprod_inj_disjoint_elt (term X) (q ≫ fst) hcollide a b
+
 /-! #### `fold` existence — the functional graph over `prod W B`.
 
   For an algebra `(B, e, c)`, the graph `G ⊆ prod W B` is the least subobject closed under the
