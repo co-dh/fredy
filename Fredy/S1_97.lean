@@ -4350,6 +4350,51 @@ theorem foldExists {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B) :
     -- `curry`, `singletonMap`, `memAtPoint`) — the genuine §1.989 content, the one residual hole.
     -- The two NON-BOOLEAN sub-lemmas it needs (`nil_cons_disjoint`, `consMor_mono`, both built
     -- above sorry-free, plus `coprod_inj_disjoint_elt`) are DONE.
+    -- POWER-OBJECT SINGLETON INDUCTION (non-boolean, §1.989).  Classify `G ⊆ W×B`, curry over `B`
+    -- to `valG : W → [B]` (the FIBER map `w ↦ {b | (w,b)∈G}`), and show the subobject `Sing ⊆ W` of
+    -- words with SINGLETON fiber contains `nilMor` and is `(consMor,snd)`-closed; `actLeast_le` then
+    -- gives `A* ≤ Sing`, so the fiber over any word of `A*` is a singleton, forcing single-valuedness.
+    let Ω : 𝒞 := HasSubobjectClassifier.omega (𝒞 := 𝒞)
+    let χG : prod (wordObj A) B ⟶ Ω := HasSubobjectClassifier.classify G.arr G.monic
+    -- `valG := curry (swap ≫ χG) : W → Ω^B`, currying `χG` over the `B`-slot.
+    let valG : wordObj A ⟶ Ω ^^ B := curry (prodSwap B (wordObj A) ≫ χG)
+    -- β-law: evaluating `valG` at a generalized point.  `pair b (w ≫ valG) ≫ eval = pair w b ≫ χG`.
+    have hvalGβ : ∀ {X : 𝒞} (w : X ⟶ wordObj A) (b : X ⟶ B),
+        pair b (w ≫ valG) ≫ eval_exp B Ω = pair w b ≫ χG := by
+      intro X w b
+      have hfac : pair b (w ≫ valG) = pair b w ≫ prodMap B (wordObj A) (Ω ^^ B) valG := by
+        refine (pair_uniq _ _ _ ?_ ?_).symm
+        · rw [Cat.assoc, prodMap_fst, fst_pair]
+        · rw [Cat.assoc, prodMap_snd, ← Cat.assoc, snd_pair]
+      rw [hfac, Cat.assoc, curry_eval_eq, ← Cat.assoc]
+      have hswap : pair b w ≫ prodSwap B (wordObj A) = pair w b := by
+        refine pair_uniq w b (pair b w ≫ prodSwap B (wordObj A)) ?_ ?_
+        · rw [Cat.assoc, prodSwap_fst, snd_pair]
+        · rw [Cat.assoc, prodSwap_snd, fst_pair]
+      rw [hswap]
+    -- For a `G`-point `g`, its (word,value) lies in `G`, so the membership test is `⊤∘!`.
+    have hGmem : ∀ {X : 𝒞} (g : X ⟶ G.dom),
+        pair (g ≫ p) (g ≫ (G.arr ≫ snd)) ≫ χG = term X ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
+      intro X g
+      have hpair : pair (g ≫ p) (g ≫ (G.arr ≫ snd)) = g ≫ G.arr := by
+        refine (pair_uniq _ _ _ ?_ ?_).symm
+        · show (g ≫ G.arr) ≫ fst = g ≫ p; rw [Cat.assoc]; rfl
+        · rw [Cat.assoc]
+      rw [hpair, Cat.assoc, HasSubobjectClassifier.classify_sq, ← Cat.assoc]
+      congr 1; exact term_uniq _ _
+    -- Singleton eval β-law: if `σ = b' ≫ singletonMapCat B`, then `eval(b, σ) = ⊤∘!` iff `b = b'`.
+    have hSingEval : ∀ {X : 𝒞} (b b' : X ⟶ B),
+        pair b (b' ≫ singletonMapCat B) ≫ eval_exp B Ω
+          = pair b b' ≫ HasSubobjectClassifier.classify (diag B) (diag_mono B) := by
+      intro X b b'
+      have hfac : pair b (b' ≫ singletonMapCat B)
+          = pair b b' ≫ prodMap B B (Ω ^^ B) (singletonMapCat B) := by
+        refine (pair_uniq _ _ _ ?_ ?_).symm
+        · rw [Cat.assoc, prodMap_fst, fst_pair]
+        · rw [Cat.assoc, prodMap_snd, ← Cat.assoc, snd_pair]
+      rw [hfac, Cat.assoc]
+      show pair b b' ≫ (prodMap B B (Ω ^^ B) (curry _) ≫ eval_exp B Ω) = _
+      rw [curry_eval_eq]
     have hcore : kp₁ (f := p) ≫ (G.arr ≫ snd) = kp₂ (f := p) ≫ (G.arr ≫ snd) := by
       sorry
     -- The fst-legs of `kp₁≫G.arr`, `kp₂≫G.arr` agree (kp_sq, `p = G.arr≫fst`); the snd-legs
