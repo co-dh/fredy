@@ -4395,8 +4395,56 @@ theorem foldExists {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B) :
       rw [hfac, Cat.assoc]
       show pair b b' ≫ (prodMap B B (Ω ^^ B) (curry _) ≫ eval_exp B Ω) = _
       rw [curry_eval_eq]
-    have hcore : kp₁ (f := p) ≫ (G.arr ≫ snd) = kp₂ (f := p) ≫ (G.arr ≫ snd) := by
+    -- `Sg = {singletons} ⊆ Ω^B`, the image of the (monic) singleton map.
+    let Sg : Subobject 𝒞 (Ω ^^ B) := ⟨B, singletonMapCat B, singletonMapCat_monic B⟩
+    -- `Sing ⊆ W` = words whose fiber `valG w` is a singleton (pullback of `Sg` along `valG`).
+    let Sing : Subobject 𝒞 (wordObj A) := InverseImage valG Sg
+    let pbS := HasPullbacks.has valG Sg.arr
+    -- factor → witness: if `f : X → W` factors through `Sing`, its fiber is `b' ≫ singletonMapCat B`.
+    have hSingWit : ∀ {X : 𝒞} (f : X ⟶ wordObj A), Allows Sing f →
+        ∃ b' : X ⟶ B, f ≫ valG = b' ≫ singletonMapCat B := by
+      rintro X f ⟨g, hg⟩
+      refine ⟨g ≫ pbS.cone.π₂, ?_⟩
+      have hsq : Sing.arr ≫ valG = pbS.cone.π₂ ≫ singletonMapCat B := pbS.cone.w
+      rw [← hg, Cat.assoc, hsq, ← Cat.assoc]
+    -- witness → factor: a fiber of singleton form gives a lift into `Sing`.
+    have hSingFac : ∀ {X : 𝒞} (f : X ⟶ wordObj A) (b' : X ⟶ B),
+        f ≫ valG = b' ≫ singletonMapCat B → Allows Sing f := by
+      intro X f b' hb'
+      refine ⟨pbS.lift ⟨X, f, b', hb'⟩, ?_⟩
+      show pbS.lift ⟨X, f, b', hb'⟩ ≫ pbS.cone.π₁ = f
+      exact pbS.lift_fst _
+    -- (A) `nilMor ∈ Sing`: the fiber over `nil` is `{e}` (any `(nil,b)∈G` forces `b=e`).
+    have hNilSing : Allows Sing (nilMor A) := by
       sorry
+    -- (B) `Sing` is `(consMor,snd)`-closed: the fiber over `cons(a,w)` is `{c(a,b)}`.
+    have hConsSing : (InverseImage (snd (A := A) (B := wordObj A)) Sing).le
+        (InverseImage (consMor A) Sing) := by
+      sorry
+    -- (C) Leastness: `A* ≤ Sing` — every word of `A*` has a singleton fiber.
+    have hListLeSing : (listCarrier A).le Sing :=
+      actLeast_le (nilMor A) (consMor A) snd Sing hNilSing hConsSing
+    have hcore : kp₁ (f := p) ≫ (G.arr ≫ snd) = kp₂ (f := p) ≫ (G.arr ≫ snd) := by
+      -- `δ := kp₁ ≫ p = kp₂ ≫ p`, a word that factors through `A*` (via `pCov`), hence `Sing`.
+      obtain ⟨s, hs⟩ := hListLeSing
+      have hδSing : Allows Sing (kp₁ (f := p) ≫ p) :=
+        ⟨kp₁ (f := p) ≫ pCov ≫ s, by
+          calc (kp₁ (f := p) ≫ pCov ≫ s) ≫ Sing.arr
+              = kp₁ (f := p) ≫ pCov ≫ (s ≫ Sing.arr) := by
+                rw [Cat.assoc, Cat.assoc]
+            _ = kp₁ (f := p) ≫ pCov ≫ (listCarrier A).arr := by rw [hs]
+            _ = kp₁ (f := p) ≫ p := by rw [hpCov]⟩
+      obtain ⟨b', hb'⟩ := hSingWit (kp₁ (f := p) ≫ p) hδSing
+      -- Both kernel-pair value-legs equal `b'` (singleton fiber over the common word `δ`).
+      have hval : ∀ (g : kernelPair p ⟶ G.dom), g ≫ p = kp₁ (f := p) ≫ p →
+          g ≫ (G.arr ≫ snd) = b' := by
+        intro g hgw
+        have h1 : pair (g ≫ (G.arr ≫ snd)) ((kp₁ (f := p) ≫ p) ≫ valG) ≫ eval_exp B Ω
+            = term (kernelPair p) ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
+          rw [← hgw, hvalGβ (g ≫ p) (g ≫ (G.arr ≫ snd)), hGmem g]
+        rw [hb', hSingEval (g ≫ (G.arr ≫ snd)) b'] at h1
+        exact (diag_classify_iff (g ≫ (G.arr ≫ snd)) b').1 h1
+      rw [hval (kp₁ (f := p)) rfl, hval (kp₂ (f := p)) kp_sq.symm]
     -- The fst-legs of `kp₁≫G.arr`, `kp₂≫G.arr` agree (kp_sq, `p = G.arr≫fst`); the snd-legs
     -- agree by `hcore`.  `pair_uniq` then forces `kp₁≫G.arr = kp₂≫G.arr`; `G.arr` mono ⟹ equal legs.
     have hkparr : kp₁ (f := p) ≫ G.arr = kp₂ (f := p) ≫ G.arr := by
