@@ -2408,6 +2408,75 @@ theorem kernelMap_snd_factors [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasBina
           (((kernelMap (snd : prod A A ⟶ A)) ≫ fst) ≫ pair (Cat.id A) (zeroMorphism A A))
           hrfst hrsnd).symm
 
+/-- `θ_A := ⟨1,0⟩ ≫ coker(diag A)` has zero cokernel inclusion.  Set `c := coker θ_A`; then
+    `z := coker(diag) ≫ c` is killed by `⟨1,0⟩` (= `θ_A ≫ c = 0`).  Since `⟨1,0⟩ = ker(snd)` and
+    `snd` is the cokernel of its kernel (exact, `snd` split epi), `z` descends through `snd`:
+    `snd ≫ z' = z`.  Then `z' = (diag ≫ snd) ≫ z' = diag ≫ z = (diag ≫ coker(diag)) ≫ c = 0`,
+    so `z = snd ≫ z' = 0`; `coker(diag)` is epic, hence `c = 0`. -/
+theorem thetaA_cokernel_zero [ExactCategory 𝒞] [HasBinaryProducts 𝒞] (A : 𝒞) :
+    cokernelMap (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A))
+      = zeroMorphism (Cokernel (diag A))
+          (Cokernel (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A))) := by
+  let j : A ⟶ prod A A := pair (Cat.id A) (zeroMorphism A A)
+  let y : prod A A ⟶ Cokernel (diag A) := cokernelMap (diag A)
+  let θA : A ⟶ Cokernel (diag A) := j ≫ y
+  let c : Cokernel (diag A) ⟶ Cokernel θA := cokernelMap θA
+  let z : prod A A ⟶ Cokernel θA := y ≫ c
+  -- `j ≫ z = θA ≫ c = 0`.
+  have hjz : j ≫ z = zeroMorphism A (Cokernel θA) := by
+    show j ≫ (y ≫ c) = _
+    rw [← Cat.assoc]; exact comp_cokernelMap θA
+  -- `snd` is epic (split) and the cokernel of its kernel.
+  have hsnd_epi : ∀ {Z : 𝒞} (a b : A ⟶ Z),
+      (snd : prod A A ⟶ A) ≫ a = (snd : prod A A ⟶ A) ≫ b → a = b := fun a b h => snd_epi a b h
+  obtain ⟨hh, hh_iso, hh_fac⟩ := epi_cokernel_of_kernel_exact (snd : prod A A ⟶ A) hsnd_epi
+  -- `kernelMap snd ≫ z = 0` (via `kernelMap_snd_factors`: `kernelMap snd = (· ≫ fst) ≫ j`).
+  have hkz : kernelMap (snd : prod A A ⟶ A) ≫ z
+      = zeroMorphism (Kernel (snd : prod A A ⟶ A)) (Cokernel θA) := by
+    calc kernelMap (snd : prod A A ⟶ A) ≫ z
+        = (((kernelMap (snd : prod A A ⟶ A)) ≫ fst) ≫ j) ≫ z := by rw [← kernelMap_snd_factors]
+      _ = ((kernelMap (snd : prod A A ⟶ A)) ≫ fst) ≫ (j ≫ z) := by rw [Cat.assoc]
+      _ = ((kernelMap (snd : prod A A ⟶ A)) ≫ fst) ≫ zeroMorphism A (Cokernel θA) := by rw [hjz]
+      _ = zeroMorphism (Kernel (snd : prod A A ⟶ A)) (Cokernel θA) :=
+            zero_morphism_comp _ (zeroMorphism A (Cokernel θA))
+  -- `z` descends through `cokernelMap (kernelMap snd)`, then transport along `hh⁻¹` to `snd`.
+  let z₀ : Cokernel (kernelMap (snd : prod A A ⟶ A)) ⟶ Cokernel θA :=
+    cokernelDesc (kernelMap (snd : prod A A ⟶ A)) z hkz
+  have hz₀ : cokernelMap (kernelMap (snd : prod A A ⟶ A)) ≫ z₀ = z :=
+    cokernelDesc_fac (kernelMap (snd : prod A A ⟶ A)) z hkz
+  obtain ⟨hhinv, hhinv1, _⟩ := hh_iso
+  let z' : A ⟶ Cokernel θA := hhinv ≫ z₀
+  have hsnd_z' : (snd : prod A A ⟶ A) ≫ z' = z := by
+    calc (snd : prod A A ⟶ A) ≫ z'
+        = (cokernelMap (kernelMap (snd : prod A A ⟶ A)) ≫ hh) ≫ (hhinv ≫ z₀) := by rw [hh_fac]
+      _ = cokernelMap (kernelMap (snd : prod A A ⟶ A)) ≫ (hh ≫ hhinv) ≫ z₀ := by
+            rw [Cat.assoc, Cat.assoc]
+      _ = cokernelMap (kernelMap (snd : prod A A ⟶ A)) ≫ z₀ := by rw [hhinv1, Cat.id_comp]
+      _ = z := hz₀
+  -- `z' = diag ≫ z = 0`.
+  have hdiag_z : diag A ≫ z = zeroMorphism A (Cokernel θA) := by
+    show diag A ≫ (y ≫ c) = _
+    rw [← Cat.assoc, comp_cokernelMap (diag A), zeroMorphism_comp_left]
+  have hz'0 : z' = zeroMorphism A (Cokernel θA) := by
+    calc z' = (diag A ≫ snd) ≫ z' := by rw [diag_snd, Cat.id_comp]
+      _ = diag A ≫ (snd ≫ z') := Cat.assoc _ _ _
+      _ = diag A ≫ z := by rw [hsnd_z']
+      _ = zeroMorphism A (Cokernel θA) := hdiag_z
+  -- `z = snd ≫ z' = 0`.
+  have hz0 : z = zeroMorphism (prod A A) (Cokernel θA) := by
+    rw [← hsnd_z', hz'0, zero_morphism_comp (snd : prod A A ⟶ A) (zeroMorphism A (Cokernel θA))]
+  -- `y` epic (cover) ⟹ `c = 0`.
+  apply cover_epi (cokernelMap_cover (diag A))
+  show y ≫ c = y ≫ zeroMorphism (Cokernel (diag A)) (Cokernel θA)
+  rw [show y ≫ c = z from rfl, hz0,
+      zero_morphism_comp y (zeroMorphism (Cokernel (diag A)) (Cokernel θA))]
+
+/-- **`θ_A` is an iso** (`Ker θ_A = 0` ∧ `Cok θ_A = 0`, in an exact category). -/
+theorem thetaA_iso [ExactCategory 𝒞] [HasBinaryProducts 𝒞] (A : 𝒞) :
+    IsIso (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A)) :=
+  exact_iso_of_ker_cok_zero (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A))
+    (thetaA_kernel_zero A) (thetaA_cokernel_zero A)
+
 theorem abelian_iff_normal_kernels_cokernels
     {𝒞 : Type u} [Cat.{v} 𝒞]
     [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoequalizers 𝒞] [HasBinaryProducts 𝒞] :
