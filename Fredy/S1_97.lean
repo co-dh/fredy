@@ -1416,6 +1416,63 @@ theorem coprod_point_split_canonical {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
   obtain ⟨z, _⟩ := subLe_trans' hUVtop hunion_bot
   exact point_bottom_absurd htv (Cat.id one ≫ z)
 
+/-- **COPRODUCT POINT-DECOMPOSITION (abstract `HasBinaryCoproducts`).**  Transport of
+    `coprod_point_split_canonical` to ANY `[HasBinaryCoproducts 𝒞]` instance via the coproduct
+    UNIQUENESS iso `φ := case coprodInl coprodInr : abstract.coprod A B → A+B(canonical)` (with
+    inverse the canonical copairing of the abstract injections, `case_morphism_exists`).  Since
+    `φ` commutes with the injections (`inl ≫ φ = coprodInl`, etc.), a point `w` of the abstract
+    coproduct maps to the canonical point `w ≫ φ`, which splits; pulling the factorization back
+    through `φ⁻¹` (which sends `coprodInl ↦ inl`) splits `w`. -/
+theorem coprod_point_split {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞] [HasBinaryCoproducts 𝒞]
+    (hcap : Capital (𝒞 := 𝒞)) (htv : TwoValued (𝒞 := 𝒞)) {A B : 𝒞}
+    (w : (one : 𝒞) ⟶ HasBinaryCoproducts.coprod A B) :
+    (∃ u : (one : 𝒞) ⟶ A, w = u ≫ HasBinaryCoproducts.inl) ∨
+      (∃ v : (one : 𝒞) ⟶ B, w = v ≫ HasBinaryCoproducts.inr) := by
+  classical
+  -- `φ : abstract.coprod A B → A+B(canonical)`; `ψ : A+B(canonical) → abstract.coprod A B`.
+  let φ : HasBinaryCoproducts.coprod A B ⟶ coprodObj A B :=
+    HasBinaryCoproducts.case (coprodInl A B) (coprodInr A B)
+  obtain ⟨ψ, hψl, hψr⟩ := case_morphism_exists
+    (HasBinaryCoproducts.inl (A := A) (B := B)) (HasBinaryCoproducts.inr (A := A) (B := B))
+  -- `φ` commutes with injections.
+  have hφl : HasBinaryCoproducts.inl (A := A) (B := B) ≫ φ = coprodInl A B :=
+    HasBinaryCoproducts.case_inl _ _
+  have hφr : HasBinaryCoproducts.inr (A := A) (B := B) ≫ φ = coprodInr A B :=
+    HasBinaryCoproducts.case_inr _ _
+  -- `coprodInl ≫ ψ = inl` (and `inr` analogue), the inverse legs.
+  -- `φ⁻¹` carries each canonical injection back: `coprodInl ≫ ψ = inl`.
+  -- `w` maps to the canonical point `w ≫ φ`; split it.
+  rcases coprod_point_split_canonical hcap htv (w ≫ φ) with ⟨u, hu⟩ | ⟨v, hv⟩
+  · -- `w = w ≫ φ ≫ ψ = u ≫ coprodInl ≫ ψ = u ≫ inl`.  Need `w ≫ φ ≫ ψ = w`.
+    refine Or.inl ⟨u, ?_⟩
+    have hround : φ ≫ ψ = Cat.id (HasBinaryCoproducts.coprod A B) := by
+      rw [HasBinaryCoproducts.case_uniq (HasBinaryCoproducts.inl (A := A) (B := B))
+            (HasBinaryCoproducts.inr (A := A) (B := B)) (φ ≫ ψ)
+            (by rw [← Cat.assoc, hφl, hψl]) (by rw [← Cat.assoc, hφr, hψr]),
+          ← HasBinaryCoproducts.case_uniq (HasBinaryCoproducts.inl (A := A) (B := B))
+            (HasBinaryCoproducts.inr (A := A) (B := B)) (Cat.id _)
+            (Cat.comp_id _) (Cat.comp_id _)]
+    calc w = w ≫ Cat.id _ := (Cat.comp_id _).symm
+      _ = w ≫ (φ ≫ ψ) := by rw [hround]
+      _ = (w ≫ φ) ≫ ψ := (Cat.assoc _ _ _).symm
+      _ = (u ≫ coprodInl A B) ≫ ψ := by rw [hu]
+      _ = u ≫ (coprodInl A B ≫ ψ) := Cat.assoc _ _ _
+      _ = u ≫ HasBinaryCoproducts.inl := by rw [hψl]
+  · refine Or.inr ⟨v, ?_⟩
+    have hround : φ ≫ ψ = Cat.id (HasBinaryCoproducts.coprod A B) := by
+      rw [HasBinaryCoproducts.case_uniq (HasBinaryCoproducts.inl (A := A) (B := B))
+            (HasBinaryCoproducts.inr (A := A) (B := B)) (φ ≫ ψ)
+            (by rw [← Cat.assoc, hφl, hψl]) (by rw [← Cat.assoc, hφr, hψr]),
+          ← HasBinaryCoproducts.case_uniq (HasBinaryCoproducts.inl (A := A) (B := B))
+            (HasBinaryCoproducts.inr (A := A) (B := B)) (Cat.id _)
+            (Cat.comp_id _) (Cat.comp_id _)]
+    calc w = w ≫ Cat.id _ := (Cat.comp_id _).symm
+      _ = w ≫ (φ ≫ ψ) := by rw [hround]
+      _ = (w ≫ φ) ≫ ψ := (Cat.assoc _ _ _).symm
+      _ = (v ≫ coprodInr A B) ≫ ψ := by rw [hv]
+      _ = v ≫ (coprodInr A B ≫ ψ) := Cat.assoc _ _ _
+      _ = v ≫ HasBinaryCoproducts.inr := by rw [hψr]
+
 /-- **§1.988 RECURSOR EXISTENCE — in a BOOLEAN + CAPITAL topos (Freyd's actual hypotheses).**
 
     From bicartesian data `[a,t] : 1+A ≅ A` on `A` (and the terminal coequalizer `hcoeq`),
