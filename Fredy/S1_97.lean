@@ -4547,11 +4547,51 @@ theorem foldExists {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B) :
       rw [hL, hR, hM]
     -- (A) `nilMor ∈ Sing`: the fiber over `nil` is `{e}` (any `(nil,b)∈G` forces `b=e`).
     have hNilSing : Allows Sing (nilMor A) := by
-      sorry
+      -- the nil-fiber is `{e}`: `(nil,e)∈G` via `g₀`, single-valued via `nil_cons_disjoint`.
+      refine hSingFac (nilMor A) e (hFiberSingleton (nilMor A) e ?_ ?_)
+      · -- nil-fiber single-valuedness: any `G`-point over a nil word has value `e`.
+        intro Y g y hgw
+        -- RESIDUAL (nil base, §1.989).  `g`'s word is `y ≫ nilMor`.  A `G`-point is a `foldUnit`
+        -- point (value `e`) or a `foldStep` point (a `cons` word); `nil_cons_disjoint` rules out the
+        -- latter over a nil word, forcing value `e`.  Needs `actLeast_le` on `G` (no junk) targeting
+        -- a coproduct subobject of `prod W B` (blank-head ⇒ value `e`); see `hConsSing` residual.
+        sorry
+      · -- `(nil, e) ∈ G`: witnessed by the unit point `g₀` (`g₀ ≫ G.arr = pair nilMor e`).
+        have hg₀p : g₀ ≫ p = nilMor A := by
+          show g₀ ≫ G.arr ≫ fst = nilMor A; rw [← Cat.assoc, hg₀arr, fst_pair]
+        have hg₀v : g₀ ≫ (G.arr ≫ snd) = e := by rw [← Cat.assoc, hg₀arr, snd_pair]
+        have hm := hGmem g₀
+        rw [hg₀p, hg₀v] at hm
+        exact hm
     -- (B) `Sing` is `(consMor,snd)`-closed: the fiber over `cons(a,w)` is `{c(a,b)}`.
     have hConsSing : (InverseImage (snd (A := A) (B := wordObj A)) Sing).le
         (InverseImage (consMor A) Sing) := by
-      sorry
+      -- the fiber value over `Sing` is `bSing := pbS.cone.π₂ : Sing.dom → B` (`Sing.arr ≫ valG =
+      -- bSing ≫ singletonMapCat`).  The cons-word `consMor(a, Sing.arr s)` has fiber `{c(a, bSing s)}`.
+      let bSing : Sing.dom ⟶ B := pbS.cone.π₂
+      have hbSing : Sing.arr ≫ valG = bSing ≫ singletonMapCat B := pbS.cone.w
+      -- cons-word and its candidate value as maps out of `prod A Sing.dom`.
+      let wc : prod A Sing.dom ⟶ wordObj A :=
+        prodMap A Sing.dom (wordObj A) Sing.arr ≫ consMor A
+      let bc : prod A Sing.dom ⟶ B := prodMap A Sing.dom B bSing ≫ c
+      -- `cons(a,w) ≫ valG = c(a,b) ≫ singletonMapCat B`: the cons-fiber is the singleton `{c(a,b)}`.
+      have hwcSing : wc ≫ valG = bc ≫ singletonMapCat B := by
+        refine hFiberSingleton wc bc ?_ ?_
+        · -- cons-fiber single-valuedness (uses `consMor_mono` predecessor + `w ∈ Sing` IH `hbSing`).
+          intro Y g yy hgw
+          -- RESIDUAL (cons step, §1.989).  `g`'s word is `yy ≫ wc = cons(a-leg, w-leg)`.  By
+          -- `consMor_mono` recover the unique predecessor `(a, w')`; a `G`-point over the cons must
+          -- come from `foldStep` of a `G`-point over `(w', b')`, with `w' ∈ Sing` forcing `b' = bSing`
+          -- (the IH `hbSing`), hence value `= c(a, b') = bc`.  Needs `actLeast_le` on `G` (no junk).
+          sorry
+        · -- `(cons(a,w), c(a,b)) ∈ G`: `foldStep` applied to a `G`-point over `(w, bSing)`.
+          sorry
+      -- assemble the restriction map `consSing : prod A Sing.dom → Sing.dom` via the pullback lift.
+      refine actStable_of_restrict (consMor A) Sing
+        (pbS.lift ⟨prod A Sing.dom, wc, bc, hwcSing⟩) ?_
+      show pbS.lift ⟨prod A Sing.dom, wc, bc, hwcSing⟩ ≫ pbS.cone.π₁
+          = prodMap A Sing.dom (wordObj A) Sing.arr ≫ consMor A
+      exact pbS.lift_fst _
     -- (C) Leastness: `A* ≤ Sing` — every word of `A*` has a singleton fiber.
     have hListLeSing : (listCarrier A).le Sing :=
       actLeast_le (nilMor A) (consMor A) snd Sing hNilSing hConsSing
