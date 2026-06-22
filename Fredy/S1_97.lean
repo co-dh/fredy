@@ -4221,6 +4221,55 @@ theorem foldExists {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B) :
     have hpm : prodMap A (prod (wordObj A) B) B snd = pair fst (snd ≫ snd) := rfl
     rw [hR, prodMap_comp, hpm, Cat.assoc]
   -- ─────────────────────────────────────────────────────────────────────────────
+  -- (0) **G-POINT INDUCTION** ("no junk" for `actLeast`).  Any subobject `Good ⊆ G.dom` that
+  --   contains the unit point `g₀` and is `actG`-closed (its `snd`-preimage ≤ its `actG`-preimage)
+  --   is ENTIRE.  Proof: push `Good` to `prod W B` as the composite mono `GoodInW = Good.arr ≫ G.arr`;
+  --   it allows `foldUnit` (via `g₀`) and is `(foldStep,snd)`-stable (via `actG`-closure + `hactG`),
+  --   so `G ≤ GoodInW` by `actLeast_le`; with `GoodInW ≤ G` trivially, the comparison `G.dom → Good.dom`
+  --   inverts `Good.arr`.  This is the elementwise route around the boolean point-split: it forces
+  --   every `G`-point to factor through `Good`.  (Avoids `coprod_point_split`/`hcap`/`htv`.)
+  have hGind : ∀ (Good : Subobject 𝒞 G.dom), Allows Good g₀ →
+      (InverseImage (snd (A := A) (B := G.dom)) Good).le (InverseImage actG Good) →
+      ∀ {Y : 𝒞} (g : Y ⟶ G.dom), Allows Good g := by
+    intro Good hUnit hClosed Y g
+    -- `GoodInW = Good.arr ≫ G.arr : Good.dom ↣ prod W B` (composite of two monics).
+    have hGIWmono : Mono (Good.arr ≫ G.arr) := by
+      intro Z u v huv
+      exact Good.monic u v (G.monic _ _ (by rw [Cat.assoc, Cat.assoc, huv]))
+    let GoodInW : Subobject 𝒞 (prod (wordObj A) B) := ⟨Good.dom, Good.arr ≫ G.arr, hGIWmono⟩
+    -- the `actG`-restriction of `Good`: `actGood : prod A Good.dom → Good.dom`.
+    have hImgGood : (image (prodMap A Good.dom G.dom Good.arr ≫ actG)).le Good :=
+      actImg_le_of_actStable actG Good hClosed
+    obtain ⟨rGood, hrGood⟩ := hImgGood
+    let actGood : prod A Good.dom ⟶ Good.dom :=
+      image.lift (prodMap A Good.dom G.dom Good.arr ≫ actG) ≫ rGood
+    have hactGood : actGood ≫ Good.arr = prodMap A Good.dom G.dom Good.arr ≫ actG := by
+      show (image.lift _ ≫ rGood) ≫ Good.arr = _
+      rw [Cat.assoc, hrGood, image.lift_fac]
+    -- `G ≤ GoodInW`: leastness, since `GoodInW` allows `foldUnit` and is `(foldStep,snd)`-stable.
+    have hGleGIW : G.le GoodInW := by
+      refine actLeast_le (foldUnit A e) (foldStep A c)
+        (snd (A := A) (B := prod (wordObj A) B)) GoodInW ?_ ?_
+      · -- `foldUnit = g₀ ≫ G.arr = (u ≫ Good.arr) ≫ G.arr` factors through `GoodInW`.
+        obtain ⟨u, hu⟩ := hUnit
+        refine ⟨u, ?_⟩
+        show u ≫ (Good.arr ≫ G.arr) = foldUnit A e
+        rw [← Cat.assoc, hu, hg₀arr]; rfl
+      · -- `(foldStep,snd)`-stable via the restriction `actGood`.
+        refine actStable_of_restrict (foldStep A c) GoodInW actGood ?_
+        show actGood ≫ (Good.arr ≫ G.arr)
+            = prodMap A Good.dom (prod (wordObj A) B) (Good.arr ≫ G.arr) ≫ foldStep A c
+        rw [← Cat.assoc, hactGood, Cat.assoc, hactG, ← Cat.assoc, ← prodMap_comp]
+    -- `GoodInW ≤ G` (it factors through `G.arr` by construction): comparison inverts `Good.arr`.
+    obtain ⟨k, hk⟩ := hGleGIW
+    -- `k : G.dom → Good.dom` with `k ≫ (Good.arr ≫ G.arr) = G.arr`, so `(k ≫ Good.arr) ≫ G.arr = G.arr`.
+    have hkGood : k ≫ Good.arr = Cat.id G.dom := by
+      refine G.monic (k ≫ Good.arr) (Cat.id G.dom) ?_
+      rw [Cat.assoc]; show k ≫ (Good.arr ≫ G.arr) = Cat.id G.dom ≫ G.arr
+      rw [hk, Cat.id_comp]
+    -- every `G`-point `g` factors through `Good` via `g ≫ k`.
+    exact ⟨g ≫ k, by rw [Cat.assoc, hkGood, Cat.comp_id]⟩
+  -- ─────────────────────────────────────────────────────────────────────────────
   -- (I) `image p = A*`.  `A* ≤ image p` is `foldProj_total`; the reverse `image p ≤ A*` comes
   --     from `G ≤ fst#A*` (the graph lives over `A*` since `foldUnit`/`foldStep` keep the word in
   --     `A*`), via `actLeast_le`.  Together they give the cover `pCov : G.dom ↠ A*.dom`.
