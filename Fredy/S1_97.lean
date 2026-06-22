@@ -1365,11 +1365,16 @@ theorem point_bottom_absurd {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞] [HasImag
     complement `K'` (off-diagonal kernel pair), `A₁ = image(K'.arr ≫ kp₁ ≫ p)`, and `A₂ = complement
     A₁` are all assembled Sorry-free, AS IS the whole collapse `A₂ entire (Peano) ⟹ A₁ ≤ ⊥ ⟹ K' ≤ ⊥
     ⟹ Δ entire ⟹ kp_diag cover (split mono via kp_diag_p₁) ⟹ iso ⟹ Mono p`.  The KEYSTONE
-    `cg = [a₀,tG] : 1+G.dom → G.dom` is a cover (graph reachability) is also Sorry-free.  TWO residual
-    holes remain, both the SAME capital "no point ⟹ ⊥" gap: `A₁ ∩ {a} ≤ ⊥` (the `a`-fiber of `p` is
-    `{a₀}`) and `A₁ ∩ t(A₂) ≤ ⊥` (single-valuedness propagates along `t` via the keystone).  Both
-    need a `Sub(1)`-two-valued / coproduct-point-decidability primitive (capital+boolean) absent from
-    the imported scope — `pts_covers_of_capital` lifts only points of `1`, not the intersection apex.
+    `cg = [a₀,tG] : 1+G.dom → G.dom` is a cover (graph reachability) is also Sorry-free.  The whole
+    SUBOBJECT-LEVEL collapse is now closed: `noPoint_le_bottom` (a no-global-point subobject is `⊥`,
+    from CAPITAL + TWO-VALUED `htv`), `point_bottom_absurd` (a `⊥`-domain has no point), and
+    `kpPointAbsurd` (an off-diagonal `K'`-point with equal legs lands in `Δ∩K'≤⊥`) reduce both
+    `A₁ ∩ {a} ≤ ⊥` and `A₁ ∩ t(A₂) ≤ ⊥` to two PURE POINT facts: the `p`-fiber over `a` is `{a₀}`
+    (`hfibSingle`) and over a `t`-image of `A₂` is a singleton (`hfibSingleT`).  TWO residual holes
+    remain, both the SAME §1.989 graph-reachability content: those two fiber-singleton facts.  Each
+    needs COPRODUCT POINT-DECOMPOSITION for the abstract `1+G.dom` (a point lifts along the keystone
+    cover `cg` and splits as `inl`=`a₀` or `inr`=`tG`-successor, the latter forcing the value into
+    `image t`, disjoint from `a` via `[a,t]` iso) — the one primitive not yet available as a lemma.
 
     We bundle the `(a,t) → A`-instance UNIQUENESS clause here (proved Sorry-free from the Peano
     property via the equalizer); it breaks the old `peano ⟺ recursor-uniqueness` circularity,
@@ -1578,19 +1583,16 @@ theorem recursor_exists_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos �
           subLe_trans' (Subobject.le_inter hptΔ hptK') hΔdisj
         obtain ⟨m, _⟩ := hptbot
         exact point_bottom_absurd htv m
-      -- ── THE OPEN FIBER FACT: the `a`-fiber of `p` is the singleton `{a₀}`, i.e. `A₁ ∩ {a} ≤ ⊥`.
-      -- The `p`-fiber over `a` is `{a₀}` (keystone `hcg`: every point of `G.dom` is reached from `a₀`
-      -- via `cg = [a₀,tG]`, and `a ∉ image t` so the value over `a` is uniquely `a₀`).  Hence an
-      -- off-diagonal kernel-pair point (`A₁`) cannot lie over `a` — `A₁ ∩ {a}` has NO point.
-      -- OPEN: lifting "no point" to the subobject-level `≤ ⊥` needs a capital+boolean primitive
-      -- (`Sub(1)` two-valued / coproduct-point decidability) absent from the imported scope: the
-      -- generalized element `(A₁ ∩ {a}).dom → A₁.dom` cannot be lifted along the cover `image.lift q`
-      -- without `(A₁ ∩ {a}).dom` projective, and `pts_covers_of_capital` only lifts points of `1`.
-      -- ── THE FIBER-SINGLETON FACT (§1.989 graph reachability): the `p`-fiber over `a` is `{a₀}`.
-      -- Every point `z : 1 → G.dom` with `z ≫ p = a` is `a₀`.  `a₀` is the `inl` of the structure
-      -- map `cg = [a₀,tG]`; `hiso` makes `a` (= `inl` of `[a,t]`) disjoint from every `t`-successor,
-      -- and the keystone `hcg` (`cg` a cover) reaches every point of `G.dom` from `a₀`, so the only
-      -- point landing on `a` is `a₀` itself.
+      -- ── THE FIBER-SINGLETON FACT (§1.989 graph reachability) — the SOLE remaining hole.
+      -- The whole subobject-level `A₁ ∩ {a} ≤ ⊥` is now CLOSED (`noPoint_le_bottom` + the
+      -- `kpPointAbsurd` off-diagonal contradiction below); it is reduced to this pure POINT fact:
+      -- the `p`-fiber over `a` is the singleton `{a₀}`.  Proof (Freyd p.186): `1` is projective
+      -- (`pts_covers_of_capital hcap`), so a point `z` lifts along the keystone cover
+      -- `cg = [a₀,tG] : 1+G.dom ↠ G.dom` (`hcg`) to `w : 1 → 1+G.dom`; coproduct point-decomposition
+      -- (extensivity of the abstract `HasBinaryCoproducts` coproduct `1+G.dom`, the one piece NOT
+      -- yet available as a lemma) makes `w` an `inl`-point (⟹ `z = a₀`) or an `inr`-point
+      -- (⟹ `z = w'≫tG`, so `z≫p = w'≫p≫t ∈ image t`, contradicting `a`'s disjointness from `image t`
+      -- via the iso `[a,t]`).  RESIDUAL: that coproduct point-decomposition for `1+G.dom`.
       have hfibSingle : ∀ z : (one : 𝒞) ⟶ G.dom, z ≫ p = a → z = a₀ := by sorry
       -- ── THE FIBER FACT: the `a`-fiber of `p` is the singleton `{a₀}`, i.e. `A₁ ∩ {a} ≤ ⊥`.
       -- `A₁ ∩ {a}` has NO point: a point gives an off-diagonal kernel-pair point over `a`, whose two
