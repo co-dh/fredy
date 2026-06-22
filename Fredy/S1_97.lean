@@ -1279,6 +1279,45 @@ theorem peano_property_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞
   -- `A'.arr = inl ≫ ψ`; both iso, so `A'.arr` iso.
   rw [← hψinl]; exact isIso_comp hinl_iso ⟨ψinv, hψ1, hψ2⟩
 
+/-- **§1.989 helper — a subobject with no global point is `⊥`** (needs CAPITAL + TWO-VALUED).
+    If `S ↣ A` admits no point `1 → A` factoring through it, then `S ≤ ⊥ A`.
+
+    Proof by two-valuedness of `Sub(1)`: case on whether `Support S.dom = image(S.dom → 1) ⊆ 1`
+    is entire (`wellSupported_iff_support_entire`).
+    * ENTIRE ⟹ `WellSupported S.dom`, i.e. `term S.dom : S.dom ↠ 1` is a cover.  In a CAPITAL
+      category 1 is projective (`capital_one_projective`), so that cover splits: a point
+      `s : 1 → S.dom`.  Then `s ≫ S.arr : 1 → A` is a global point through `S` — contradicting
+      the no-point hypothesis.  (Vacuously closes the goal.)
+    * NOT entire ⟹ `Support S.dom ↣ 1` is a PROPER mono.  TWO-VALUEDNESS (`htv.zero_uniq`)
+      forces `Support S.dom ≅ htv.zeroObj`.  The image cover `S.dom ↠ Support S.dom` composed
+      into `htv.zeroObj` is a map *into* the strict coterminator `htv.zeroObj` (`htv.zero_strict`),
+      hence iso ⟹ `S.dom ≅ htv.zeroObj ≅ (⊥ A).dom` ⟹ `S ≤ ⊥ A` (`le_bottom_of_dom_iso`). -/
+theorem noPoint_le_bottom {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞] [HasImages 𝒞]
+    (hcap : Capital (𝒞 := 𝒞)) (htv : TwoValued (𝒞 := 𝒞))
+    {A : 𝒞} (S : Subobject 𝒞 A)
+    (hnp : ∀ x : one ⟶ A, ¬ ∃ y : one ⟶ S.dom, y ≫ S.arr = x) :
+    S.le (PreLogos.bottom A) := by
+  classical
+  by_cases hent : Subobject.IsEntire (Support S.dom)
+  · -- ENTIRE: `S.dom` is well-supported, so `term S.dom` is a cover; capital splits it.
+    have hws : WellSupported S.dom := (wellSupported_iff_support_entire S.dom).2 hent
+    obtain ⟨s, _⟩ := capital_one_projective hcap hws
+    -- `s : 1 → S.dom`; `s ≫ S.arr` is a global point through `S` — contradiction.
+    exact absurd ⟨s, rfl⟩ (hnp (s ≫ S.arr))
+  · -- NOT entire: `Support S.dom ↣ 1` is a PROPER mono ⟹ (two-valued) `≅ htv.zeroObj`.
+    -- `(Support S.dom).arr` and `term (Support S.dom).dom` are the same map (both `→ 1`).
+    have hproper : ProperMono (term (Support S.dom).dom) := by
+      have harr : (Support S.dom).arr = term (Support S.dom).dom := term_uniq _ _
+      rw [← harr]; exact ⟨(Support S.dom).monic, hent⟩
+    obtain ⟨e, _⟩ := htv.zero_uniq (Support S.dom).dom hproper
+    -- `S.dom ↠ Support S.dom → htv.zeroObj`: a map INTO the strict coterminator, hence iso.
+    have hSiso : IsIso (image.lift (term S.dom) ≫ e) := htv.zero_strict _
+    -- `htv.zeroObj` is a strict coterminator (`htv.zero_strict`), hence initial: a map
+    -- `htv.zeroObj → (⊥ one).dom`.  Compose `S.dom ≅ htv.zeroObj → (⊥ one).dom`, then `≤ ⊥`.
+    letI hCot0 : HasCoterminator 𝒞 := HasCoterminator.ofStrict (fun {X} f => htv.zero_strict f)
+    exact peano_le_bottom_of_map (W := one) S
+      ((image.lift (term S.dom) ≫ e) ≫ hCot0.init (PreLogos.bottom one).dom)
+
 /-- **§1.988 RECURSOR EXISTENCE — in a BOOLEAN + CAPITAL topos (Freyd's actual hypotheses).**
 
     From bicartesian data `[a,t] : 1+A ≅ A` on `A` (and the terminal coequalizer `hcoeq`),
