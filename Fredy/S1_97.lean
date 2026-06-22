@@ -1473,6 +1473,61 @@ theorem coprod_point_split {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞] [HasBinar
       _ = v ≫ (coprodInr A B ≫ ψ) := Cat.assoc _ _ _
       _ = v ≫ HasBinaryCoproducts.inr := by rw [hψr]
 
+/-- **UNION POINT-DECOMPOSITION.**  In a CAPITAL + TWO-VALUED topos, a global point `y` of a
+    binary union `S ∪ T ↣ A` factors (after `(S∪T).arr`) through `S` or through `T`.  Same Sub(1)
+    two-valued split as `coprod_point_split_canonical`: with `x := y ≫ (S∪T).arr`, the inverse
+    images `x#S`, `x#T ⊆ 1` have entire union (`x` factors through `S∪T`, and `x#(S∪T) ≤ x#S ∪
+    x#T`); `sub_one_point_or_bot` picks the non-`⊥` side, whose point lifts `x` into `S` or `T`. -/
+theorem union_point_split {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
+    (hcap : Capital (𝒞 := 𝒞)) (htv : TwoValued (𝒞 := 𝒞)) {A : 𝒞} (S T : Subobject 𝒞 A)
+    (y : (one : 𝒞) ⟶ (HasSubobjectUnions.union S T).dom) :
+    (∃ d : (one : 𝒞) ⟶ S.dom, d ≫ S.arr = y ≫ (HasSubobjectUnions.union S T).arr) ∨
+      (∃ k : (one : 𝒞) ⟶ T.dom, k ≫ T.arr = y ≫ (HasSubobjectUnions.union S T).arr) := by
+  classical
+  let x : (one : 𝒞) ⟶ A := y ≫ (HasSubobjectUnions.union S T).arr
+  let U : Subobject 𝒞 (one : 𝒞) := InverseImage x S
+  let V : Subobject 𝒞 (one : 𝒞) := InverseImage x T
+  -- `entire 1 ≤ x#(S∪T) ≤ U ∪ V` (`x` factors through `S∪T` via `y`).
+  have hUVtop : (Subobject.entire (one : 𝒞)).le (HasSubobjectUnions.union U V) := by
+    have hxfac : (Subobject.entire (one : 𝒞)).le
+        (InverseImage x (HasSubobjectUnions.union S T)) := by
+      refine ⟨(HasPullbacks.has x (HasSubobjectUnions.union S T).arr).lift
+        ⟨one, Cat.id one, y, by rw [Cat.id_comp]⟩, ?_⟩
+      show _ ≫ (InverseImage x (HasSubobjectUnions.union S T)).arr = (Subobject.entire one).arr
+      rw [show (Subobject.entire (one : 𝒞)).arr = Cat.id one from rfl]
+      exact (HasPullbacks.has x (HasSubobjectUnions.union S T).arr).lift_fst _
+    have h3 : (InverseImage x (HasSubobjectUnions.union S T)).le
+        (HasSubobjectUnions.union U V) :=
+      (PreLogos.invImage_preserves_union x S T).1
+    exact subLe_trans' hxfac h3
+  rcases sub_one_point_or_bot hcap htv U with hUpt | hUbot
+  · obtain ⟨s⟩ := hUpt
+    refine Or.inl ⟨s ≫ (HasPullbacks.has x S.arr).cone.π₂, ?_⟩
+    have hsq := (HasPullbacks.has x S.arr).cone.w
+    have hsU : s ≫ (HasPullbacks.has x S.arr).cone.π₁ = Cat.id one := term_uniq _ _
+    calc (s ≫ (HasPullbacks.has x S.arr).cone.π₂) ≫ S.arr
+        = s ≫ ((HasPullbacks.has x S.arr).cone.π₂ ≫ S.arr) := Cat.assoc _ _ _
+      _ = s ≫ ((HasPullbacks.has x S.arr).cone.π₁ ≫ x) := by rw [hsq]
+      _ = (s ≫ (HasPullbacks.has x S.arr).cone.π₁) ≫ x := (Cat.assoc _ _ _).symm
+      _ = Cat.id one ≫ x := by rw [hsU]
+      _ = x := Cat.id_comp _
+  rcases sub_one_point_or_bot hcap htv V with hVpt | hVbot
+  · obtain ⟨s⟩ := hVpt
+    refine Or.inr ⟨s ≫ (HasPullbacks.has x T.arr).cone.π₂, ?_⟩
+    have hsq := (HasPullbacks.has x T.arr).cone.w
+    have hsV : s ≫ (HasPullbacks.has x T.arr).cone.π₁ = Cat.id one := term_uniq _ _
+    calc (s ≫ (HasPullbacks.has x T.arr).cone.π₂) ≫ T.arr
+        = s ≫ ((HasPullbacks.has x T.arr).cone.π₂ ≫ T.arr) := Cat.assoc _ _ _
+      _ = s ≫ ((HasPullbacks.has x T.arr).cone.π₁ ≫ x) := by rw [hsq]
+      _ = (s ≫ (HasPullbacks.has x T.arr).cone.π₁) ≫ x := (Cat.assoc _ _ _).symm
+      _ = Cat.id one ≫ x := by rw [hsV]
+      _ = x := Cat.id_comp _
+  exfalso
+  have hunion_bot : (HasSubobjectUnions.union U V).le (PreLogos.bottom one) :=
+    HasSubobjectUnions.union_min _ _ _ hUbot hVbot
+  obtain ⟨z, _⟩ := subLe_trans' hUVtop hunion_bot
+  exact point_bottom_absurd htv (Cat.id one ≫ z)
+
 /-- **§1.621 injection-disjointness at points (canonical coproduct), TWO-VALUED form.**
     Two global points identified across the injections (`u ≫ coprodInl = v ≫ coprodInr`) are
     absurd: lifting `(u,v)` into the pullback of `(coprodInl, coprodInr)` — which
@@ -1848,7 +1903,136 @@ theorem recursor_exists_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos �
         -- single-valued point `b ∈ A₂` is again a singleton.  Same keystone reachability as
         -- `hfibSingle`, propagated through `tG` (`hpt : p ≫ t = tG ≫ p`).
         have hfibSingleT : ∀ (b : (one : 𝒞) ⟶ A₂.dom) (g₁ g₂ : (one : 𝒞) ⟶ G.dom),
-            g₁ ≫ p = (b ≫ A₂.arr) ≫ t → g₂ ≫ p = (b ≫ A₂.arr) ≫ t → g₁ = g₂ := by sorry
+            g₁ ≫ p = (b ≫ A₂.arr) ≫ t → g₂ ≫ p = (b ≫ A₂.arr) ≫ t → g₁ = g₂ := by
+          intro b g₁ g₂ hg₁ hg₂
+          -- `t` is MONIC: `inr ≫ case a (id) = id` splits `inr`, so `t = inr ≫ [a,t]` is monic.
+          have ht_mono : Mono t := by
+            obtain ⟨caseInv, hcaseInv, _⟩ := hiso
+            have hcase_mono : Mono (HasBinaryCoproducts.case a t (A := (one : 𝒞)) (B := A) (X := A)) :=
+              mono_of_retraction _ caseInv hcaseInv
+            have hinr_split : HasBinaryCoproducts.inr (A := (one : 𝒞)) (B := A)
+                ≫ HasBinaryCoproducts.case a (Cat.id A) = Cat.id A :=
+              HasBinaryCoproducts.case_inr _ _
+            have hinr_mono : Mono (HasBinaryCoproducts.inr (A := (one : 𝒞)) (B := A)) :=
+              mono_of_retraction _ _ hinr_split
+            have ht_eq : HasBinaryCoproducts.inr (A := (one : 𝒞)) (B := A)
+                ≫ HasBinaryCoproducts.case a t = t := HasBinaryCoproducts.case_inr _ _
+            intro W u v huv
+            apply hinr_mono
+            apply hcase_mono
+            rw [Cat.assoc, Cat.assoc, ht_eq, huv]
+          -- reduce a preimage `g` of `c := (b≫A₂.arr)≫t` to a `tG`-image of a preimage of `b≫A₂.arr`.
+          have reduce : ∀ g : (one : 𝒞) ⟶ G.dom, g ≫ p = (b ≫ A₂.arr) ≫ t →
+              ∃ w' : (one : 𝒞) ⟶ G.dom, g = w' ≫ tG ∧ w' ≫ p = b ≫ A₂.arr := by
+            intro g hg
+            obtain ⟨wn, hwn⟩ := pts_covers_of_capital hcap hcg g
+            rcases coprod_point_split hcap htv wn with ⟨u, hu⟩ | ⟨w', hw'⟩
+            · -- `inl`: `g = a₀`, so `c = g≫p = a` is a `t`-image — absurd by `[a,t]`-disjointness.
+              exfalso
+              have hinlcg : HasBinaryCoproducts.inl (A := (one : 𝒞)) (B := G.dom) ≫ cg = a₀ :=
+                HasBinaryCoproducts.case_inl _ _
+              have hga₀ : g = a₀ := by
+                calc g = wn ≫ cg := hwn.symm
+                  _ = (u ≫ HasBinaryCoproducts.inl) ≫ cg := by rw [hu]
+                  _ = u ≫ (HasBinaryCoproducts.inl ≫ cg) := Cat.assoc _ _ _
+                  _ = u ≫ a₀ := by rw [hinlcg]
+                  _ = a₀ := by rw [term_uniq u (Cat.id one), Cat.id_comp]
+              -- `a₀ ≫ p = a` (`a₀ ≫ G.arr = pair a x`, `p = G.arr ≫ fst`).
+              have ha₀p : a₀ ≫ p = a := by
+                show a₀ ≫ G.arr ≫ fst = a
+                rw [← Cat.assoc, ha₀]; exact fst_pair _ _
+              have hac : a = (b ≫ A₂.arr) ≫ t := by rw [← ha₀p, ← hga₀]; exact hg
+              obtain ⟨caseInv, hcaseInv, _⟩ := hiso
+              have hcase_mono : Mono (HasBinaryCoproducts.case a t
+                  (A := (one : 𝒞)) (B := A) (X := A)) := mono_of_retraction _ caseInv hcaseInv
+              refine coprod_inj_disjoint_pt htv (Cat.id one) (b ≫ A₂.arr) ?_
+              apply hcase_mono
+              rw [Cat.assoc, Cat.assoc, HasBinaryCoproducts.case_inl,
+                  HasBinaryCoproducts.case_inr, Cat.id_comp, ← hac]
+            · -- `inr`: `g = w' ≫ tG`; `(w'≫p)≫t = g≫p = c`, descend by `t` monic.
+              refine ⟨w', ?_, ?_⟩
+              · have hinrcg : HasBinaryCoproducts.inr (A := (one : 𝒞)) (B := G.dom) ≫ cg = tG :=
+                  HasBinaryCoproducts.case_inr _ _
+                calc g = wn ≫ cg := hwn.symm
+                  _ = (w' ≫ HasBinaryCoproducts.inr) ≫ cg := by rw [hw']
+                  _ = w' ≫ (HasBinaryCoproducts.inr ≫ cg) := Cat.assoc _ _ _
+                  _ = w' ≫ tG := by rw [hinrcg]
+              · apply ht_mono
+                have hinrcg : HasBinaryCoproducts.inr (A := (one : 𝒞)) (B := G.dom) ≫ cg = tG :=
+                  HasBinaryCoproducts.case_inr _ _
+                have hgtG : g = w' ≫ tG := by
+                  calc g = wn ≫ cg := hwn.symm
+                    _ = (w' ≫ HasBinaryCoproducts.inr) ≫ cg := by rw [hw']
+                    _ = w' ≫ (HasBinaryCoproducts.inr ≫ cg) := Cat.assoc _ _ _
+                    _ = w' ≫ tG := by rw [hinrcg]
+                calc (w' ≫ p) ≫ t = w' ≫ (p ≫ t) := Cat.assoc _ _ _
+                  _ = w' ≫ (tG ≫ p) := by rw [hpt]
+                  _ = (w' ≫ tG) ≫ p := (Cat.assoc _ _ _).symm
+                  _ = g ≫ p := by rw [← hgtG]
+                  _ = (b ≫ A₂.arr) ≫ t := hg
+          obtain ⟨w₁, hw₁eq, hw₁p⟩ := reduce g₁ hg₁
+          obtain ⟨w₂, hw₂eq, hw₂p⟩ := reduce g₂ hg₂
+          -- `w₁ ≫ p = w₂ ≫ p = b≫A₂.arr`; single-valuedness over the `A₂`-point `b` forces `w₁=w₂`.
+          have hw₁w₂ : w₁ = w₂ := by
+            by_contra hne
+            -- off-diagonal kernel-pair point over `b≫A₂.arr`; lands in `K'`, projecting to `A₁`.
+            have hlegs : w₁ ≫ p = w₂ ≫ p := by rw [hw₁p, hw₂p]
+            let κ : (one : 𝒞) ⟶ kernelPair p := (hpull.has p p).lift ⟨one, w₁, w₂, hlegs⟩
+            have hκ₁ : κ ≫ kp₁ (f := p) = w₁ := kp_lift_p₁ w₁ w₂ hlegs
+            have hκ₂ : κ ≫ kp₂ (f := p) = w₂ := kp_lift_p₂ w₁ w₂ hlegs
+            -- `κ` lifts to `Δ` or `K'` (boolean: `⊤ ≤ Δ ∪ K'`).
+            have hκtop : (Subobject.mk one κ (mono_from_one _)).le
+                (HasSubobjectUnions.union Δ K') :=
+              subLe_trans' ⟨κ, Cat.comp_id _⟩
+                (subLe_trans' ⟨(Subobject.mk one κ (mono_from_one _)).arr, Cat.comp_id _⟩ hΔunion)
+            obtain ⟨e, he⟩ := hκtop
+            -- split the point of `Δ ∪ K'` along the cover into `Δ` or `K'`.
+            rcases union_point_split hcap htv Δ K' e with ⟨d, hd⟩ | ⟨k, hk⟩
+            · -- `κ ∈ Δ`: diagonal, so `w₁ = w₂` — contradicts `hne`.
+              apply hne
+              -- `κ = (d ≫ Δ-lift) ≫ kp_diag`; both legs of `κ` then agree.
+              have hκdiag : κ = (d ≫ image.lift (kp_diag (f := p))) ≫ kp_diag (f := p) := by
+                have hdΔ : d ≫ Δ.arr = κ := by rw [hd]; exact he
+                calc κ = d ≫ Δ.arr := hdΔ.symm
+                  _ = d ≫ (image (kp_diag (f := p))).arr := rfl
+                  _ = d ≫ (image.lift (kp_diag (f := p)) ≫ kp_diag (f := p)) := by
+                        rw [image.lift_fac]
+                  _ = (d ≫ image.lift (kp_diag (f := p))) ≫ kp_diag (f := p) := (Cat.assoc _ _ _).symm
+              calc w₁ = κ ≫ kp₁ (f := p) := hκ₁.symm
+                _ = ((d ≫ image.lift (kp_diag (f := p))) ≫ kp_diag (f := p)) ≫ kp₁ (f := p) := by
+                      rw [hκdiag]
+                _ = (d ≫ image.lift (kp_diag (f := p))) ≫ (kp_diag (f := p) ≫ kp₁ (f := p)) :=
+                      Cat.assoc _ _ _
+                _ = (d ≫ image.lift (kp_diag (f := p))) ≫ (kp_diag (f := p) ≫ kp₂ (f := p)) := by
+                      rw [kp_diag_p₁, kp_diag_p₂]
+                _ = ((d ≫ image.lift (kp_diag (f := p))) ≫ kp_diag (f := p)) ≫ kp₂ (f := p) :=
+                      (Cat.assoc _ _ _).symm
+                _ = κ ≫ kp₂ (f := p) := by rw [← hκdiag]
+                _ = w₂ := hκ₂
+            · -- `κ ∈ K'`: `b≫A₂.arr = w₁≫p` factors through `A₁ = image q`, so `∈ A₁ ∩ A₂ ≤ ⊥` — absurd.
+              exfalso
+              have hκK' : k ≫ K'.arr = κ := by rw [hk]; exact he
+              -- `b≫A₂.arr = w₁≫p = κ≫kp₁≫p = (k ≫ K'.arr ≫ kp₁) ≫ p = k ≫ q`.
+              have hvalA₁ : (k ≫ image.lift q) ≫ A₁.arr = b ≫ A₂.arr := by
+                show (k ≫ image.lift q) ≫ (image q).arr = b ≫ A₂.arr
+                rw [Cat.assoc, image.lift_fac]
+                show k ≫ K'.arr ≫ kp₁ (f := p) ≫ p = b ≫ A₂.arr
+                calc k ≫ K'.arr ≫ kp₁ (f := p) ≫ p
+                    = (k ≫ K'.arr) ≫ kp₁ (f := p) ≫ p := (Cat.assoc _ _ _).symm
+                  _ = κ ≫ kp₁ (f := p) ≫ p := by rw [hκK']
+                  _ = (κ ≫ kp₁ (f := p)) ≫ p := (Cat.assoc _ _ _).symm
+                  _ = w₁ ≫ p := by rw [hκ₁]
+                  _ = b ≫ A₂.arr := hw₁p
+              -- point of `A₁ ∩ A₂` (left = `k ≫ image.lift q`, right = `b`) — `≤ ⊥`, absurd.
+              have hptbot : (Subobject.mk one (b ≫ A₂.arr) (mono_from_one _)).le
+                  (PreLogos.bottom A) :=
+                subLe_trans'
+                  (Subobject.le_inter (S := A₁) (T := A₂)
+                    ⟨k ≫ image.lift q, hvalA₁⟩ ⟨b, rfl⟩)
+                  hA₁disj
+              obtain ⟨m, _⟩ := hptbot
+              exact point_bottom_absurd htv (Cat.id one ≫ m)
+          rw [hw₁eq, hw₂eq, hw₁w₂]
         have hdisj_t : (Subobject.inter A₁ (image (A₂.arr ≫ t))).le (PreLogos.bottom A) := by
           refine noPoint_le_bottom hcap htv _ ?_
           rintro _ ⟨y, _⟩
