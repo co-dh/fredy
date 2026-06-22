@@ -4335,6 +4335,21 @@ theorem foldExists {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B) :
     -- `R ≤ actLeast unitR stepR snd` (every fiber-pair is reachable = "least-closed-of-fiber-product =
     -- fiber-product-of-least-closed"), which is `actLeast_le` in the WRONG direction — the same doubled
     -- reachability / functional-graph primitive.  So both routes reduce to the identical missing lemma.
+    --
+    -- VIABLE ROUTE (power-object singleton induction, non-boolean — NOT yet wired).  Classify
+    -- `G ⊆ W×B` to `χ_G : W×B → Ω`, curry to `valG : W → Ω^B = powObj B` (`w ↦ {b | (w,b)∈G}`,
+    -- the FIBER).  The subobject `Sing ⊆ A*` of words whose fiber is a singleton (`valG` factors
+    -- through `singletonMap B : B → Ω^B`, monic — `singletonMap_monic`) is `(nil,cons)`-closed:
+    --   * `nil ∈ Sing`: `nil_cons_disjoint` (below, sorry-free) forces any `(nil,b)∈G` to come from
+    --     `foldUnit`, so the fiber is `{e}`.
+    --   * `cons`-closed: `nil_cons_disjoint` rules out `foldUnit`; `consMor_mono` (below, sorry-free)
+    --     recovers the unique predecessor `(w,b)` from a cons-point, so `valG (cons a w) = {c(a,b)}`.
+    -- Then `actLeast_le (nilMor) (consMor) snd Sing … : A* ≤ Sing`, i.e. every word in `A*` has a
+    -- singleton fiber, i.e. `p` is monic over `A*`.  The remaining work is the `valG`/`Sing`
+    -- construction in the `InternalForallTopos`/`InterIntersection` power-object API (`subChar`,
+    -- `curry`, `singletonMap`, `memAtPoint`) — the genuine §1.989 content, the one residual hole.
+    -- The two NON-BOOLEAN sub-lemmas it needs (`nil_cons_disjoint`, `consMor_mono`, both built
+    -- above sorry-free, plus `coprod_inj_disjoint_elt`) are DONE.
     have hcore : kp₁ (f := p) ≫ (G.arr ≫ snd) = kp₂ (f := p) ≫ (G.arr ≫ snd) := by
       sorry
     -- The fst-legs of `kp₁≫G.arr`, `kp₂≫G.arr` agree (kp_sq, `p = G.arr≫fst`); the snd-legs
