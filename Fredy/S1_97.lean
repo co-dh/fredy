@@ -3015,7 +3015,7 @@ theorem free_recursor_unique_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topo
     UNIQUENESS (proved here from the free Peano property via the free equalizer at `β := α`);
     EXISTENCE is the SAME mechanical functional-graph residual as the NNO recursor. -/
 theorem free_recursor_exists_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
-    [HasBinaryCoproducts 𝒞] [HasImages 𝒞]
+    [HasBinaryCoproducts 𝒞]
     (hbool : BooleanSub 𝒞) (hcap : Capital (𝒞 := 𝒞)) (htv : TwoValued (𝒞 := 𝒞))
     (A : 𝒞) (α : AAction (𝒞 := 𝒞) A)
     (hiso : IsIso (HasBinaryCoproducts.case α.unit α.act
@@ -3046,14 +3046,153 @@ theorem free_recursor_exists_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topo
     -- SINGLE-VALUED by §1.989 (`pts_covers_of_capital hcap` + `coprod_point_split` + disjointness),
     -- giving `h := proj⁻¹ ≫ G.arr ≫ snd`.
     --
-    -- STATUS: the PARAMETRISED least-closed primitive that blocked this is now BUILT Sorry-free
-    -- (`Freyd.actLeast` + `actLeast_allows`/`actLeast_stable`/`actLeast_le` in `LeastClosedTopos`,
-    -- with the `invImage_le_iff_restrict` bridge above), and the REDUCTION/free-Peano statement
-    -- (`free_peano_of_bicartesian`) is in scope.  The remaining hole is the mechanical graph-trick
-    -- port (the same ~480-line construction as the NNO `recursor_exists_of_bicartesian` existence
-    -- conjunct, re-indexed over the parametrised graph), PLUS its dependence on the still-open
-    -- free-Peano BOOLEAN complement chase (the residual in `free_peano_property_of_bicartesian`).
-    sorry
+    -- STATUS: the PARAMETRISED least-closed primitive is BUILT Sorry-free (`Freyd.actLeast` +
+    -- `actLeast_allows`/`actLeast_stable`/`actLeast_le`), the free-Peano property is now CLOSED
+    -- (`free_peano_of_bicartesian`), and the act-image calculus (`image_act_mono`/`actStable_of_restrict`)
+    -- is in scope.  We build the functional graph and prove TOTALITY here Sorry-free; the SINGLE
+    -- residual is the §1.989 single-valuedness (`Mono p`), re-indexed over the keystone cover
+    -- `1 + prod A G.dom ↠ G.dom` (the A-parametrised analogue of the NNO `hpmono`).
+    classical
+    intro β
+    -- The graph `G ↣ prod α.obj β.obj` := least `(⟨unit, β.unit⟩, Sgraph, snd)`-closed subobject.
+    -- `Sgraph (a, (x,y)) = (act(a,x), β.act(a,y))` — the action on both legs simultaneously.
+    let actOnFst : prod A (prod α.obj β.obj) ⟶ α.obj :=
+      pair fst (snd ≫ fst) ≫ α.act
+    let actOnSnd : prod A (prod α.obj β.obj) ⟶ β.obj :=
+      pair fst (snd ≫ snd) ≫ β.act
+    let Sgraph : prod A (prod α.obj β.obj) ⟶ prod α.obj β.obj := pair actOnFst actOnSnd
+    let unitPt : one ⟶ prod α.obj β.obj := pair α.unit β.unit
+    let G : Subobject 𝒞 (prod α.obj β.obj) :=
+      actLeast unitPt Sgraph (snd (A := A) (B := prod α.obj β.obj))
+    -- closure of `G`: allows `unitPt`, and act-stable.
+    obtain ⟨g₀, hg₀⟩ := actLeast_allows unitPt Sgraph (snd (A := A) (B := prod α.obj β.obj))
+    -- the act-restriction `actG : prod A G.dom → G.dom` from `actLeast_stable` (image form).
+    have hGact : (image (prodMap A G.dom (prod α.obj β.obj) G.arr ≫ Sgraph)).le G :=
+      actImg_le_of_actStable Sgraph G
+        (actLeast_stable unitPt Sgraph (snd (A := A) (B := prod α.obj β.obj)))
+    obtain ⟨rG, hrG⟩ := hGact
+    let actG : prod A G.dom ⟶ G.dom :=
+      image.lift (prodMap A G.dom (prod α.obj β.obj) G.arr ≫ Sgraph) ≫ rG
+    have hactG : actG ≫ G.arr = prodMap A G.dom (prod α.obj β.obj) G.arr ≫ Sgraph := by
+      show (image.lift _ ≫ rG) ≫ G.arr = _
+      rw [Cat.assoc, hrG, image.lift_fac]
+    let p : G.dom ⟶ α.obj := G.arr ≫ fst
+    -- the α-leg law: `prodMap A G.dom α.obj p ≫ α.act = actG ≫ p`.
+    have hSgFst : Sgraph ≫ fst = pair fst (snd ≫ fst) ≫ α.act := fst_pair _ _
+    have hpt : prodMap A G.dom α.obj p ≫ α.act = actG ≫ p := by
+      -- RHS: `actG ≫ p = prodMap.. G.arr ≫ (Sgraph ≫ fst) = prodMap.. G.arr ≫ pair fst (snd≫fst) ≫ act`.
+      have hR : actG ≫ p
+          = prodMap A G.dom (prod α.obj β.obj) G.arr ≫ (pair fst (snd ≫ fst) ≫ α.act) := by
+        show actG ≫ G.arr ≫ fst = _
+        rw [← Cat.assoc, hactG, Cat.assoc, hSgFst]
+      -- LHS: `prodMap A G.dom α.obj (G.arr≫fst) = prodMap.. G.arr ≫ prodMap (prod α β) α fst`,
+      -- and `prodMap A (prod α β) α fst = pair fst (snd≫fst)`.
+      have hpm : prodMap A (prod α.obj β.obj) α.obj fst = pair fst (snd ≫ fst) := rfl
+      rw [hR]
+      show prodMap A G.dom α.obj (G.arr ≫ fst) ≫ α.act = _
+      rw [prodMap_comp, hpm, Cat.assoc]
+    -- TOTALITY: `image p` is `(unit,act)`-closed (`p`-fiber of `unit` via `g₀`; act-stable via `hpt`),
+    -- hence entire by the free Peano property, so `p` is a cover.
+    have hpcover : Cover p := by
+      have hImgU : ∃ uB : one ⟶ (image p).dom, uB ≫ (image p).arr = α.unit := by
+        refine ⟨g₀ ≫ image.lift p, ?_⟩
+        rw [Cat.assoc, image.lift_fac]
+        show g₀ ≫ G.arr ≫ fst = α.unit
+        rw [← Cat.assoc, hg₀]; exact fst_pair _ _
+      have hImgAct : ∃ actB : prod A (image p).dom ⟶ (image p).dom,
+          actB ≫ (image p).arr
+            = prodMap A (image p).dom α.obj (image p).arr ≫ α.act := by
+        -- `act(image p) ≤ act(p) ≤ image p` (`image_act_mono` + `hpt` + descend via the graph).
+        have hcov : Cover (image.lift p) := image_lift_cover p
+        -- `image(prodMap A (image p).dom α.obj (image p).arr ≫ act) ≤ image(prodMap A G.dom α.obj p ≫ act)`.
+        have hle1 : (image (prodMap A (image p).dom α.obj (image p).arr ≫ α.act)).le
+            (image (prodMap A G.dom α.obj p ≫ α.act)) := by
+          -- `prodMap A G.dom (image p).dom (image.lift p)` is a cover (`prodMap_cover`); precomposing
+          -- it onto `prodMap A (image p).dom α.obj (image p).arr ≫ act` gives `prodMap.. p ≫ act`.
+          have hcov' : Cover (prodMap A G.dom (image p).dom (image.lift p)) :=
+            prodMap_cover A (image_lift_cover p)
+          have hcomp : prodMap A G.dom (image p).dom (image.lift p)
+              ≫ (prodMap A (image p).dom α.obj (image p).arr ≫ α.act)
+              = prodMap A G.dom α.obj p ≫ α.act := by
+            rw [← Cat.assoc, ← prodMap_comp, image.lift_fac]
+          have := (image_cover_comp (prodMap A G.dom (image p).dom (image.lift p))
+            (prodMap A (image p).dom α.obj (image p).arr ≫ α.act) hcov').2
+          rwa [hcomp] at this
+        -- `image(prodMap A G.dom α.obj p ≫ act) = image(actG ≫ p) ≤ image p` (`hpt`, then `actG` factor).
+        have hle2 : (image (prodMap A G.dom α.obj p ≫ α.act)).le (image p) := by
+          rw [hpt]
+          exact image_min (actG ≫ p) (image p)
+            ⟨actG ≫ image.lift p, by rw [Cat.assoc, image.lift_fac]⟩
+        obtain ⟨k, hk⟩ := subLe_trans' hle1 hle2
+        exact ⟨image.lift (prodMap A (image p).dom α.obj (image p).arr ≫ α.act) ≫ k, by
+          rw [Cat.assoc, hk, image.lift_fac]⟩
+      have hEnt : (image p).IsEntire :=
+        free_peano_of_bicartesian hbool A α hiso hcoeq (image p) hImgU hImgAct
+      have hc : Cover (image.lift p ≫ (image p).arr) :=
+        cover_comp (image_lift_cover p) (iso_cover (image p).arr hEnt)
+      rwa [image.lift_fac] at hc
+    -- SINGLE-VALUEDNESS (§1.989): `p` MONIC.  Re-indexed over the keystone cover
+    -- `cg = [g₀, actG] : 1 + prod A G.dom ↠ G.dom` (the A-parametrised graph algebra structure
+    -- map).  The kernel-pair / off-diagonal-complement assembly is verbatim the NNO `hpmono`
+    -- EXCEPT the keystone reachability now tracks the A-parameter: a preimage of `S(a,−)` is an
+    -- `actG`-image of a preimage, where the `inr`-point of `1 + prod A G.dom` carries the A-leg.
+    -- RESIDUAL (the SINGLE remaining hole of §1.98(13)): this `prod A G.dom`-keystone single-valuedness.
+    have hpmono : Mono p := by
+      sorry
+    have hpiso : IsIso p := monic_cover_iso p hpcover hpmono
+    obtain ⟨pinv, hpinv1, hpinv2⟩ := hpiso
+    -- `h := p⁻¹ ≫ G.arr ≫ snd`.  `unit ≫ h = β.unit` and the action square follow from the graph laws.
+    refine ⟨pinv ≫ G.arr ≫ snd, ?_, ?_⟩
+    · -- `unit ≫ h = β.unit`.  `unit = g₀ ≫ p`, `g₀ ≫ p ≫ pinv = g₀`, reduce to `g₀≫G.arr≫snd = β.unit`.
+      have hap : α.unit = g₀ ≫ p := by
+        show α.unit = g₀ ≫ G.arr ≫ fst
+        rw [← Cat.assoc, hg₀]; exact (fst_pair _ _).symm
+      have hcollapse : α.unit ≫ pinv = g₀ := by rw [hap, Cat.assoc, hpinv1, Cat.comp_id]
+      calc α.unit ≫ pinv ≫ G.arr ≫ snd = (α.unit ≫ pinv) ≫ G.arr ≫ snd := (Cat.assoc _ _ _).symm
+        _ = g₀ ≫ G.arr ≫ snd := by rw [hcollapse]
+        _ = (g₀ ≫ G.arr) ≫ snd := (Cat.assoc _ _ _).symm
+        _ = unitPt ≫ snd := by rw [hg₀]
+        _ = β.unit := snd_pair _ _
+    · -- `prodMap A α.obj β.obj h ≫ β.act = α.act ≫ h`.  Both chase through the graph's β-leg law
+      -- `Sgraph ≫ snd = actOnSnd` and the α-leg iso (`prodMap.. pinv ≫ actG = act ≫ pinv`).
+      have hSgSnd : Sgraph ≫ snd = pair fst (snd ≫ snd) ≫ β.act := snd_pair _ _
+      -- `prodMap A α.obj G.dom pinv ≫ actG = α.act ≫ pinv` (both `≫ p` give `α.act`, `p` monic).
+      have htpinv : prodMap A α.obj G.dom pinv ≫ actG = α.act ≫ pinv := by
+        apply hpmono
+        calc (prodMap A α.obj G.dom pinv ≫ actG) ≫ p
+            = prodMap A α.obj G.dom pinv ≫ (actG ≫ p) := Cat.assoc _ _ _
+          _ = prodMap A α.obj G.dom pinv ≫ (prodMap A G.dom α.obj p ≫ α.act) := by rw [hpt]
+          _ = (prodMap A α.obj G.dom pinv ≫ prodMap A G.dom α.obj p) ≫ α.act := (Cat.assoc _ _ _).symm
+          _ = prodMap A α.obj α.obj (pinv ≫ p) ≫ α.act := by rw [← prodMap_comp]
+          _ = prodMap A α.obj α.obj (Cat.id α.obj) ≫ α.act := by rw [hpinv2]
+          _ = α.act := by rw [prodMap_id, Cat.id_comp]
+          _ = (α.act ≫ pinv) ≫ p := by rw [Cat.assoc, hpinv2, Cat.comp_id]
+      -- `h = pinv ≫ G.arr ≫ snd`;  `prodMap A α.obj β.obj h = pair fst (snd ≫ h)`.
+      have hprodh : prodMap A α.obj (prod α.obj β.obj) (pinv ≫ G.arr)
+          ≫ pair (fst (A := A) (B := prod α.obj β.obj)) (snd ≫ snd)
+          = prodMap A α.obj β.obj (pinv ≫ G.arr ≫ snd) := by
+        apply pair_uniq
+        · -- `≫ fst`: both `= fst`.
+          simp only [Cat.assoc, fst_pair, prodMap_fst]
+        · -- `≫ snd`:  `(snd ≫ (pinv≫G.arr)) ≫ snd = snd ≫ pinv ≫ G.arr ≫ snd`.
+          rw [Cat.assoc, snd_pair, ← Cat.assoc, prodMap_snd, Cat.assoc, Cat.assoc]
+      calc prodMap A α.obj β.obj (pinv ≫ G.arr ≫ snd) ≫ β.act
+          = (prodMap A α.obj (prod α.obj β.obj) (pinv ≫ G.arr)
+              ≫ pair fst (snd ≫ snd)) ≫ β.act := by rw [hprodh]
+        _ = prodMap A α.obj (prod α.obj β.obj) (pinv ≫ G.arr) ≫ (pair fst (snd ≫ snd) ≫ β.act) :=
+            Cat.assoc _ _ _
+        _ = prodMap A α.obj (prod α.obj β.obj) (pinv ≫ G.arr) ≫ (Sgraph ≫ snd) := by rw [hSgSnd]
+        _ = (prodMap A α.obj G.dom pinv ≫ prodMap A G.dom (prod α.obj β.obj) G.arr)
+              ≫ (Sgraph ≫ snd) := by rw [prodMap_comp]
+        _ = prodMap A α.obj G.dom pinv
+              ≫ (prodMap A G.dom (prod α.obj β.obj) G.arr ≫ Sgraph) ≫ snd := by
+            rw [Cat.assoc, Cat.assoc]
+        _ = prodMap A α.obj G.dom pinv ≫ (actG ≫ G.arr) ≫ snd := by rw [hactG]
+        _ = (prodMap A α.obj G.dom pinv ≫ actG) ≫ G.arr ≫ snd := by
+            rw [Cat.assoc (prodMap A α.obj G.dom pinv) actG (G.arr ≫ snd),
+                ← Cat.assoc actG G.arr snd]
+        _ = (α.act ≫ pinv) ≫ G.arr ≫ snd := by rw [htpinv]
+        _ = α.act ≫ pinv ≫ G.arr ≫ snd := Cat.assoc _ _ _
   · -- UNIQUENESS via the free equalizer + the action Peano property.
     intro e he0 hes
     exact free_recursor_unique_of_bicartesian hbool A α hiso hcoeq α e (Cat.id α.obj)
