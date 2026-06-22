@@ -3764,6 +3764,84 @@ noncomputable def consBody : prod hN.nno (prod A (wordObj A)) ⟶ letterObj A :=
 noncomputable def consMor : prod A (wordObj A) ⟶ wordObj A :=
   curry (consBody A)
 
+/-! #### β-laws for reading words (`eval`) at an index.
+  `readAt n w := pair n w ≫ eval` reads the word `w : X → W` at index `n : X → N`. -/
+
+/-- Reading the empty word `nilMor` at any index gives the blank letter `inl ⋆`. -/
+theorem nilMor_read {X : 𝒞} (n : X ⟶ hN.nno) (t : X ⟶ one) :
+    pair n (t ≫ nilMor A) ≫ eval_exp hN.nno (letterObj A)
+      = term X ≫ (inl : one ⟶ letterObj A) := by
+  rw [show pair n (t ≫ nilMor A) = pair n t ≫ prodMap hN.nno one (wordObj A) (nilMor A) from
+        (pair_prodMap n t (nilMor A)).symm, Cat.assoc]
+  show pair n t ≫ prodMap hN.nno one (wordObj A) (curry _) ≫ eval_exp hN.nno (letterObj A) = _
+  rw [curry_eval_eq, ← Cat.assoc, term_uniq (pair n t ≫ term _) (term X)]
+
+/-- Reading `consMor (a, w)` at index `n` equals `consBody` applied to `⟨n, a, w⟩`. -/
+theorem consMor_read {X : 𝒞} (n : X ⟶ hN.nno) (p : X ⟶ prod A (wordObj A)) :
+    pair n (p ≫ consMor A) ≫ eval_exp hN.nno (letterObj A)
+      = pair n p ≫ consBody A := by
+  rw [show pair n (p ≫ consMor A) = pair n p ≫ prodMap hN.nno (prod A (wordObj A)) (wordObj A)
+        (consMor A) from (pair_prodMap n p (consMor A)).symm, Cat.assoc]
+  show pair n p ≫ prodMap hN.nno _ (wordObj A) (curry (consBody A)) ≫ eval_exp hN.nno (letterObj A)
+      = _
+  rw [curry_eval_eq]
+
+/-- `cInv := (1+N≅N)⁻¹`, the inverse of `[0,s] : 1+N → N`. -/
+noncomputable def nnoCoUninv : hN.nno ⟶ coprod one hN.nno :=
+  (nno_is_coproduct (𝒞 := 𝒞)).choose
+
+theorem nnoCoUninv_spec : case hN.zero hN.succ ≫ nnoCoUninv (𝒞 := 𝒞) = Cat.id _ :=
+  (nno_is_coproduct (𝒞 := 𝒞)).choose_spec.1
+
+/-- `0 ≫ cInv = inl`. -/
+theorem zero_nnoCoUninv : hN.zero ≫ nnoCoUninv (𝒞 := 𝒞) = inl := by
+  have h : (inl : one ⟶ coprod one hN.nno) ≫ case hN.zero hN.succ = hN.zero := case_inl _ _
+  rw [← h, Cat.assoc, nnoCoUninv_spec]; exact Cat.comp_id _
+
+/-- `s ≫ cInv = inr`. -/
+theorem succ_nnoCoUninv : hN.succ ≫ nnoCoUninv (𝒞 := 𝒞) = inr := by
+  have h : (inr : hN.nno ⟶ coprod one hN.nno) ≫ case hN.zero hN.succ = hN.succ := case_inr _ _
+  rw [← h, Cat.assoc, nnoCoUninv_spec]; exact Cat.comp_id _
+
+/-- The `consBody` definition restated with the named inverse `nnoCoUninv`. -/
+theorem consBody_eq :
+    consBody A = pair snd (fst ≫ nnoCoUninv) ≫
+      distCase (fst ≫ fst ≫ inr)
+        (pair snd (fst ≫ snd) ≫ eval_exp hN.nno (letterObj A)) := rfl
+
+/-- Index-0 β-law: reading `cons(a,w)` at `0` gives the new head `inr a`. -/
+theorem consBody_zero {X : 𝒞} (t : X ⟶ one) (p : X ⟶ prod A (wordObj A)) :
+    pair (t ≫ hN.zero) p ≫ consBody A = p ≫ fst ≫ (inr : A ⟶ letterObj A) := by
+  rw [consBody_eq, ← Cat.assoc]
+  -- `pair (t≫0) p ≫ pair snd (fst≫cInv) = pair p (t ≫ inl)`
+  have hre : pair (t ≫ hN.zero) p ≫ pair snd (fst ≫ nnoCoUninv)
+      = pair p (t ≫ (inl : one ⟶ coprod one hN.nno)) := by
+    apply pair_uniq
+    · rw [Cat.assoc, fst_pair, snd_pair]
+    · rw [Cat.assoc, snd_pair, ← Cat.assoc, fst_pair, Cat.assoc, zero_nnoCoUninv]
+  rw [hre, show pair p (t ≫ (inl : one ⟶ coprod one hN.nno))
+        = pair p t ≫ distInl (prod A (wordObj A)) one hN.nno by
+      unfold distInl; rw [pair_prodMap], Cat.assoc, distCase_inl, ← Cat.assoc, fst_pair]
+
+/-- Index-succ β-law: reading `cons(a,w)` at `succ m` equals reading `w` at `m`. -/
+theorem consBody_succ {X : 𝒞} (m : X ⟶ hN.nno) (p : X ⟶ prod A (wordObj A)) :
+    pair (m ≫ hN.succ) p ≫ consBody A
+      = pair m (p ≫ snd) ≫ eval_exp hN.nno (letterObj A) := by
+  rw [consBody_eq, ← Cat.assoc]
+  have hre : pair (m ≫ hN.succ) p ≫ pair snd (fst ≫ nnoCoUninv)
+      = pair p (m ≫ (inr : hN.nno ⟶ coprod one hN.nno)) := by
+    apply pair_uniq
+    · rw [Cat.assoc, fst_pair, snd_pair]
+    · rw [Cat.assoc, snd_pair, ← Cat.assoc, fst_pair, Cat.assoc, succ_nnoCoUninv]
+  rw [hre, show pair p (m ≫ (inr : hN.nno ⟶ coprod one hN.nno))
+        = pair p m ≫ distInr (prod A (wordObj A)) one hN.nno by
+      unfold distInr; rw [pair_prodMap], Cat.assoc, distCase_inr, ← Cat.assoc]
+  -- `pair p m ≫ (pair snd (fst≫snd) ≫ eval) = pair m (p≫snd) ≫ eval`
+  congr 1
+  apply pair_uniq
+  · rw [Cat.assoc, fst_pair, snd_pair]
+  · rw [Cat.assoc, snd_pair, ← Cat.assoc, fst_pair]
+
 end ListObjectConstruction
 
 /-- §1.98(14): The LIST OBJECT `A*` of `A` — the initial algebra of the polynomial
