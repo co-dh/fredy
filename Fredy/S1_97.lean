@@ -4143,12 +4143,22 @@ theorem free_action_exists {𝒞 : Type u} [Cat.{v} 𝒞]
   --   (3) UNIQUENESS (`fold_uniq`) = induction on `A*`, i.e. `actLeast`'s leastness: the equalizer
   --       of two algebra maps is an `(nilM, consM)`-closed subobject, so `actLeast_le` forces it to
   --       be all of `A*`.
-  obtain ⟨LD⟩ : Nonempty (ListObjectData (𝒞 := 𝒞) A) := by
-    -- REMAINING GAP (NOT the internal-∀ / `HasLeastClosedSubobject`, which `toposHasLeastClosedSubobject`
-    -- now discharges sorry-free; see above): the elementary construction of the ambient `1+A×(−)`-algebra
-    -- `consM` (NNO index-shift on `powObj(N×A)` graphs) plus `fold` by NNO recursion and `fold_uniq` by
-    -- `actLeast_le` induction.  `actLeast nilM consM snd` is the carrier and supplies `nil`/`cons`.
-    sorry
+  -- ASSEMBLY (this session): the list object `A* = (listCarrier A).dom ⊆ W = (1+A)^N` is built
+  -- sorry-free (`listCarrier`/`listNil`/`listCons` from `actLeast`); `nil`/`cons` and their arr-laws
+  -- are proved; `fold` comes from the functional graph `foldExists`; `fold_uniq` is `listObject_ext`
+  -- (the `actLeast_le` induction), sorry-free.  The SINGLE residual is `foldExists` (graph
+  -- extraction + single-valuedness) — see its docstring.
+  obtain ⟨LD⟩ : Nonempty (ListObjectData (𝒞 := 𝒞) A) :=
+    ⟨{ L         := (listCarrier A).dom
+       nil       := listNil A
+       cons      := listCons A
+       fold      := fun {B} e c => (foldExists A e c).choose
+       fold_nil  := fun {B} e c => (foldExists A e c).choose_spec.1
+       fold_cons := fun {B} e c => (foldExists A e c).choose_spec.2
+       fold_uniq := fun {B} e c m hm0 hmc =>
+         listObject_ext A e c m ((foldExists A e c).choose)
+           hm0 (foldExists A e c).choose_spec.1
+           hmc (foldExists A e c).choose_spec.2 }⟩
   exact ⟨freeAAction_of_listObject LD⟩
 
 end Freyd
