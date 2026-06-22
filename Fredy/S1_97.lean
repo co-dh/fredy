@@ -4512,6 +4512,62 @@ theorem foldExists {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B) :
       exact subLe_trans
         (Sub.inter_glb Anil Anil Anil (HasPullbacks.has Anil.arr Anil.arr) hrefl hrefl)
         hInterCe
+    -- **act-preimage variant of the single-valuedness engine.**  Same conclusion `Anil ≤ Ce`, but
+    -- the closure obligation is phrased over `prod A G.dom` as `(actG # Anil) ≤ (actG # Ce)` — i.e.
+    -- act-points (foldStep) over the antecedent already satisfy the consequent.  This admits the
+    -- predecessor recovery (`consMor_mono` + IH) that the cons step needs, which the `image actG`
+    -- overlap cannot express.  `Allows Det actG` is obtained via the classifier bridge: `actG ≫ χ_{S⇒T}`
+    -- reduces (`mem_imp_iff`) to `χ_{actG#Anil} = χ_{actG#Anil ⊓ actG#Ce}`, which holds since
+    -- `actG#Anil ≤ actG#Ce` (`classify_eq_of_le_le` + `omegaMeet_classifies_inter`).
+    have hAntToVal2 : ∀ (Anil Ce : Subobject 𝒞 G.dom),
+        Allows Ce g₀ →
+        (InverseImage actG Anil).le (InverseImage actG Ce) → Anil.le Ce := by
+      intro Anil Ce hUnitCe hClosurePre
+      let Det : Subobject 𝒞 G.dom := Sub.imp Anil Ce
+      have hCeDet : Ce.le Det :=
+        (imp_adjunction Anil Ce Ce (HasPullbacks.has Anil.arr Ce.arr)).2
+          (Sub.inter_le_right Anil Ce _)
+      have hUnitDet : Allows Det g₀ := allows_mono hCeDet hUnitCe
+      -- `Allows Det actG` via the classifier bridge.
+      have hActDet : Allows Det actG := by
+        rw [allows_iff_classify]
+        -- `subChar(Sub.imp Anil Ce) = classify (Sub.imp..).arr (..).monic` (defeq of `subChar`).
+        rw [show HasSubobjectClassifier.classify Det.arr Det.monic = subChar (Sub.imp Anil Ce) from rfl,
+            mem_imp_iff Anil Ce actG]
+        -- goal: `actG ≫ χ_Anil = actG ≫ (⟨χ_Anil,χ_Ce⟩ ≫ omegaMeet)`.
+        let SA := InverseImage actG Anil
+        let SC := InverseImage actG Ce
+        let hpAC : HasPullback SA.arr SC.arr := HasPullbacks.has SA.arr SC.arr
+        -- `actG ≫ χ_Anil = χ_{SA}`, `actG ≫ χ_Ce = χ_{SC}` (classify_InverseImage).
+        have hA : actG ≫ subChar Anil = subChar SA := (classify_InverseImage actG Anil).symm
+        have hC : actG ≫ subChar Ce = subChar SC := (classify_InverseImage actG Ce).symm
+        -- `actG ≫ (⟨χ_Anil,χ_Ce⟩∧) = ⟨χ_{SA},χ_{SC}⟩∧ = χ_{SA ⊓ SC}`.
+        have hMeet : actG ≫ (pair (subChar Anil) (subChar Ce) ≫ omegaMeet)
+            = subChar (Sub.inter SA SC hpAC) := by
+          rw [← Cat.assoc]
+          have hp2 : actG ≫ pair (subChar Anil) (subChar Ce)
+              = pair (subChar SA) (subChar SC) := by
+            refine pair_uniq _ _ _ ?_ ?_
+            · rw [Cat.assoc, fst_pair, hA]
+            · rw [Cat.assoc, snd_pair, hC]
+          rw [hp2]; exact omegaMeet_classifies_inter SA SC hpAC
+        -- `SA ≤ SC` ⟹ `SA = SA ⊓ SC` ⟹ classifiers agree.
+        have hSAeq : subChar SA = subChar (Sub.inter SA SC hpAC) := by
+          refine classify_eq_of_le_le ?_ (Sub.inter_le_left SA SC hpAC)
+          have hreflA : SA.le SA := ⟨Cat.id SA.dom, Cat.id_comp _⟩
+          exact Sub.inter_glb SA SC SA hpAC hreflA hClosurePre
+        rw [hA, hMeet, hSAeq]
+      have hClosedDet : (InverseImage (snd (A := A) (B := G.dom)) Det).le (InverseImage actG Det) := by
+        rw [invImage_le_iff_restrict]
+        obtain ⟨s, hs⟩ := hActDet
+        exact ⟨(InverseImage (snd (A := A) (B := G.dom)) Det).arr ≫ s, by rw [Cat.assoc, hs]⟩
+      have hAnilDet : Anil.le Det := hGind Det hUnitDet hClosedDet Anil.arr
+      have hInterCe : (Sub.inter Anil Anil (HasPullbacks.has Anil.arr Anil.arr)).le Ce :=
+        (imp_adjunction Anil Ce Anil (HasPullbacks.has Anil.arr Anil.arr)).1 hAnilDet
+      have hrefl : Anil.le Anil := ⟨Cat.id Anil.dom, Cat.id_comp _⟩
+      exact subLe_trans
+        (Sub.inter_glb Anil Anil Anil (HasPullbacks.has Anil.arr Anil.arr) hrefl hrefl)
+        hInterCe
     -- **Fiber-singleton criterion.**  If `(w,b₀)∈G` and the `w`-fiber of `G` is single-valued
     -- (every `G`-point over `w` has value `b₀`), then `valG w = {b₀}`, i.e. `w ≫ valG` factors
     -- through the singleton map at `b₀`.  Proof: `hExpExt` reduces to a classifier equation on
