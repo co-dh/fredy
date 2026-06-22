@@ -2404,20 +2404,57 @@ theorem free_peano_property_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos
     (hactB : ∃ actB : prod A B.dom ⟶ B.dom,
         actB ≫ B.arr = prodMap A B.dom α.obj B.arr ≫ α.act) :
     B.IsEntire := by
-  -- Freyd's §1.988 complement argument for the A-parametrised functor `1 + A×(−)` (boolean).
-  -- DIRECT ANALOGUE of the now-CLOSED `peano_property_of_bicartesian`: replay `t_stable_complement`
-  -- with `act : A×α.obj → α.obj` as the "successor".  MISSING PRIMITIVE: a least `(unit,act)`-closed
-  -- subobject of `α.obj` for the parametrised functor `1+A×(−)`.  The endo-only API in this layer —
-  -- `Freyd.IsClosedSub`/`HasLeastClosedSubobject` (`InternalForall.lean`) and its discharge
-  -- `Freyd.toposHasLeastClosedSubobject` (`LeastClosedTopos.lean`, whose `tStableBody`/`tStable`/
-  -- `closedFamily` are built for an ENDO `t : A→A` via `prod A (powObj A)`) — does NOT apply: closure
-  -- here is `image(prodMap A B.dom α.obj B.arr ≫ act) ≤ B`, where `act` consumes the `A`-factor, so
-  -- the family-glb `bigInter (closedFamily …)` must be REBUILT with the parametrised closedness
-  -- predicate `{σ : [α.obj] | unit∈σ ∧ ∀(a,x). x∈σ ⇒ act(a,x)∈σ}` on `[α.obj]`.  Once that
-  -- parametrised `least (unit,act)` is in hand, the complement chase (`hbool` ⟹ `α'+α''`, monic
-  -- decomposition `unit(1)∪act(A×α')`, `complement_le_other'`, coequalizer collapse `α''=0`) ports
-  -- verbatim.  STATUS: blocked on the parametrised least-closed-subobject primitive, NOT on §1.988
-  -- complement (closed for the endo case) and NOT on §1.543-capitalization.
+  classical
+  -- §1.988 free Peano property.  The PARAMETRISED least `(unit, act, snd)`-closed subobject
+  -- `A' := actLeast unit act snd` (built Sorry-free in `LeastClosedTopos.lean`) is the A-action
+  -- analogue of `HasLeastClosedSubobject.least`.  `actLeast_allows`/`actLeast_stable` make it
+  -- `(unit,act)`-closed; `actLeast_le` makes it ≤ every closed `B`.  With these in hand the proof
+  -- splits exactly like `peano_property_of_bicartesian`:
+  --   REDUCTION (no booleanness):  `A' ≤ B` (leastness) + `A'` entire ⟹ `B.arr` split epi + monic
+  --     ⟹ iso ⟹ `B` entire.  [CLOSED below.]
+  --   `A'` ENTIRE:  Freyd's §1.988 BOOLEAN complement chase — complement `A''` of `A'`, show `A''`
+  --     is `act`-stable (so `[unit,act]` is block-diagonal), build `e : α.obj → 1+1` with
+  --     `act ≫ e = snd ≫ e`, apply `hcoeq` to collapse `e` to constant `inl`, forcing `A'' = 0`.
+  --     [the one residual `sorry` — the product-indexed port of the endo chase.]
+  let A' : Subobject 𝒞 α.obj := actLeast α.unit α.act (snd (A := A) (B := α.obj))
+  -- B is `(unit,act,snd)`-closed: allows `unit` (`huB`), and `(snd#B) ≤ (act#B)` via the bridge.
+  obtain ⟨uB, huB'⟩ := huB
+  have hBallows : Allows B α.unit := ⟨uB, huB'⟩
+  have hBstab : (InverseImage (snd (A := A) (B := α.obj)) B).le (InverseImage α.act B) := by
+    rw [invImage_le_iff_restrict]
+    obtain ⟨actB, hactB'⟩ := hactB
+    -- re-pair `(snd#B).arr` through `prod A B.dom`:  w ≫ prodMap.. = (snd#B).arr.
+    let pb := HasPullbacks.has (snd (A := A) (B := α.obj)) B.arr
+    let w : (InverseImage (snd (A := A) (B := α.obj)) B).dom ⟶ prod A B.dom :=
+      pair ((InverseImage (snd (A := A) (B := α.obj)) B).arr ≫ fst) pb.cone.π₂
+    have hw : w ≫ prodMap A B.dom α.obj B.arr
+        = (InverseImage (snd (A := A) (B := α.obj)) B).arr := by
+      -- both legs (≫fst, ≫snd) agree with `(snd#B).arr`, then `pair`-uniqueness.
+      have hfstleg : (w ≫ prodMap A B.dom α.obj B.arr) ≫ fst
+          = (InverseImage (snd (A := A) (B := α.obj)) B).arr ≫ fst := by
+        rw [Cat.assoc, prodMap_fst]; show (pair _ pb.cone.π₂ ≫ fst) = _; rw [fst_pair]
+      have hsndleg : (w ≫ prodMap A B.dom α.obj B.arr) ≫ snd
+          = (InverseImage (snd (A := A) (B := α.obj)) B).arr ≫ snd := by
+        rw [Cat.assoc, prodMap_snd, ← Cat.assoc]
+        show (pair _ pb.cone.π₂ ≫ snd) ≫ B.arr = _
+        rw [snd_pair]; exact pb.cone.w.symm
+      rw [pair_uniq _ _ (w ≫ prodMap A B.dom α.obj B.arr) hfstleg hsndleg,
+          ← pair_uniq _ _ ((InverseImage (snd (A := A) (B := α.obj)) B).arr) rfl rfl]
+    exact ⟨w ≫ actB, by rw [Cat.assoc, hactB', ← Cat.assoc, hw]⟩
+  -- REDUCTION:  `A'` entire ⟹ `B` entire.
+  suffices hA'entire : A'.IsEntire by
+    obtain ⟨ai, _hai1, hai2⟩ := hA'entire
+    obtain ⟨k, hk⟩ := actLeast_le α.unit α.act snd B hBallows hBstab
+    refine ⟨ai ≫ k, ?_, ?_⟩
+    · apply B.monic
+      rw [Cat.assoc, Cat.assoc, hk, hai2, Cat.id_comp, Cat.comp_id]
+    · rw [Cat.assoc, hk, hai2]
+  -- `A'` ENTIRE — the §1.988 BOOLEAN complement chase, A-parametrised.  RESIDUAL: the product-indexed
+  -- port of `peano_property_of_bicartesian`'s `t_stable_complement` + `Two`-valued collapse with
+  -- `act : A×α.obj → α.obj` (monic, since `[unit,act]` iso) replacing the endo `t`.  All closure
+  -- facts it needs are now available (`actLeast_allows`/`actLeast_stable`/`actLeast_le` + the
+  -- `invImage_le_iff_restrict` bridge); what remains is the image-over-`prod A (−)` calculus
+  -- (`prodMap`-cover/-distribute lemmas) of the complement decomposition `unit(1) ∪ act(A×A')`.
   sorry
 
 /-- **§1.98(13) action PEANO PROPERTY** (boolean) — `free_peano_property_of_bicartesian`
