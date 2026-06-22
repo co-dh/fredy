@@ -2762,6 +2762,52 @@ theorem homAddL_comm [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞} 
   subL_swap (a := x) (b := y) (c := subL (zeroMorphism W A) y) (d := subL (zeroMorphism W A) x)
     (subL_sub_left (zeroMorphism W A) y x).symm
 
+/-- Left distributivity of addition: `h ≫ (x + y) = (h≫x) + (h≫y)`. -/
+theorem comp_homAddL [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {V W A : 𝒞}
+    (h : V ⟶ W) (x y : W ⟶ A) : h ≫ homAddL x y = homAddL (h ≫ x) (h ≫ y) := by
+  show h ≫ subL x (subL (zeroMorphism W A) y) = subL (h ≫ x) (subL (zeroMorphism V A) (h ≫ y))
+  rw [comp_subL, comp_subL, zero_morphism_comp h (zeroMorphism W A)]
+
+/-- Right distributivity of addition: `(x + y) ≫ k = (x≫k) + (y≫k)`. -/
+theorem homAddL_comp [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A B : 𝒞}
+    (x y : W ⟶ A) (k : A ⟶ B) : homAddL x y ≫ k = homAddL (x ≫ k) (y ≫ k) := by
+  show subL x (subL (zeroMorphism W A) y) ≫ k = subL (x ≫ k) (subL (zeroMorphism W B) (y ≫ k))
+  rw [subL_comp, subL_comp, zeroMorphism_comp_left k]
+
+/-- Additive inverse: `x + (0 − x) = 0` (`neg x := 0 − x`). -/
+theorem homAddL_neg_self [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞} (x : W ⟶ A) :
+    homAddL x (subL (zeroMorphism W A) x) = zeroMorphism W A := by
+  show subL x (subL (zeroMorphism W A) (subL (zeroMorphism W A) x)) = zeroMorphism W A
+  rw [neg_neg', subL_self]
+
+/-- `(a + b) − c = a + (b − c)`.  `subL_sub_right (a+b) c b` gives
+    `((a+b)−c) − ((a+b)−b) = c... ` rearranged via `subL (a+b) b = a` (`subL_homAddL`). -/
+theorem homAddL_subL [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞} (a b c : W ⟶ A) :
+    subL (homAddL a b) c = homAddL a (subL b c) := by
+  -- LHS = (a−c') where we re-thread `c` via subtrahend `b`.
+  have h1 : subL (homAddL a b) c
+      = subL (subL (homAddL a b) b) (subL c b) := (subL_sub_right (homAddL a b) c b).symm
+  rw [subL_homAddL] at h1
+  -- now `subL (homAddL a b) c = subL a (subL c b)`; and `homAddL a (subL b c) = subL a (subL c b)`.
+  rw [h1]
+  show subL a (subL c b) = subL a (subL (zeroMorphism W A) (subL b c))
+  rw [neg_subL]
+
+/-- Associativity of `homAddL`.  Subtract `z` from both sides (injective via `subL_homAddL`):
+    LHS−z = x+y (`subL_homAddL`), RHS−z = x+(y+z−z) = x+y (`homAddL_subL` + `subL_homAddL`). -/
+theorem homAddL_assoc [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞} (x y z : W ⟶ A) :
+    homAddL (homAddL x y) z = homAddL x (homAddL y z) := by
+  -- apply `subL · z` then add back; use that `homAddL · z` is injective via its inverse `subL · z`.
+  have hL : subL (homAddL (homAddL x y) z) z = homAddL x y := subL_homAddL (homAddL x y) z
+  have hR : subL (homAddL x (homAddL y z)) z = homAddL x y := by
+    rw [homAddL_subL x (homAddL y z) z, subL_homAddL]
+  -- both have the same `(· − z)`; recover via `homAddL · z`.
+  calc homAddL (homAddL x y) z
+      = homAddL (subL (homAddL (homAddL x y) z) z) z := (subL_add_cancel _ z).symm
+    _ = homAddL (homAddL x y) z := by rw [hL]
+    _ = homAddL (subL (homAddL x (homAddL y z)) z) z := by rw [hR]
+    _ = homAddL x (homAddL y z) := subL_add_cancel _ z
+
 theorem abelian_iff_normal_kernels_cokernels
     {𝒞 : Type u} [Cat.{v} 𝒞]
     [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoequalizers 𝒞] [HasBinaryProducts 𝒞] :
