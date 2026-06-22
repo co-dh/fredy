@@ -2570,16 +2570,22 @@ theorem free_recursor_exists_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topo
   --   EXISTENCE — functional-graph extraction from the free Peano property (the SAME mechanical
   --     residual as the NNO `recursor_exists_of_bicartesian` existence conjunct).
   refine ⟨?_, ?_⟩
-  · -- EXISTENCE residual: the A-parametrised §1.988 recursion theorem, FAITHFULLY in a BOOLEAN +
-    -- CAPITAL topos (Freyd's §1.98(13) is proved "analogously to §1.98(10)", i.e. with the same
-    -- BOOLEAN+CAPITAL hypotheses).  With `hcap` now in scope the §1.989 SINGLE-VALUEDNESS half is
-    -- in principle available (`pts_covers_of_capital hcap` = 1 projective; `hcap` = well-pointed).
-    -- The remaining hole is gap (i): TOTALITY needs `free_peano_property_of_bicartesian` (below),
-    -- itself blocked on the PARAMETRISED least `(unit,act)`-closed subobject primitive for the
-    -- A-parametrised functor `1+A×(−)` — which the endo-only `HasLeastClosedSubobject` does NOT
-    -- supply (its `closedFamily` is built for an ENDO `t:A→A`, not a `act:A×(−)→(−)`).  That
-    -- parametrised-least-closed primitive is the genuine residual here; it is NOT supplied by
-    -- `hcap` and is NOT a §1.543-capitalization gap (the §1.989 single-valued half is).
+  · -- EXISTENCE residual: the A-parametrised §1.988 recursion theorem (graph trick), FAITHFULLY in
+    -- a BOOLEAN + CAPITAL topos (Freyd's §1.98(13) is "analogous to §1.98(10)").  Mirror of
+    -- `recursor_exists_of_bicartesian`'s existence half: for an A-action `β`, build the functional
+    -- graph `G ↣ prod α.obj β.obj` as the least `(pair unit β.unit, S, snd)`-closed subobject for
+    -- the parametrised "successor" `S` acting by `act` on the α-leg and `β.act` on the β-leg; its
+    -- α-projection is TOTAL by the free Peano property (`free_peano_of_bicartesian`) and
+    -- SINGLE-VALUED by §1.989 (`pts_covers_of_capital hcap` + `coprod_point_split` + disjointness),
+    -- giving `h := proj⁻¹ ≫ G.arr ≫ snd`.
+    --
+    -- STATUS: the PARAMETRISED least-closed primitive that blocked this is now BUILT Sorry-free
+    -- (`Freyd.actLeast` + `actLeast_allows`/`actLeast_stable`/`actLeast_le` in `LeastClosedTopos`,
+    -- with the `invImage_le_iff_restrict` bridge above), and the REDUCTION/free-Peano statement
+    -- (`free_peano_of_bicartesian`) is in scope.  The remaining hole is the mechanical graph-trick
+    -- port (the same ~480-line construction as the NNO `recursor_exists_of_bicartesian` existence
+    -- conjunct, re-indexed over the parametrised graph), PLUS its dependence on the still-open
+    -- free-Peano BOOLEAN complement chase (the residual in `free_peano_property_of_bicartesian`).
     sorry
   · -- UNIQUENESS via the free equalizer + the action Peano property.
     intro e he0 hes
