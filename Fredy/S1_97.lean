@@ -3777,52 +3777,42 @@ theorem free_action_exists {𝒞 : Type u} [Cat.{v} 𝒞]
   -- §1.98(14) is now isolated in the SINGLE primitive `ListObjectData A` — the initial algebra
   -- of `F X = 1 + A × X`, i.e. `A* = Σₙ Aⁿ` ("finite words in A").
   --
-  -- WHY THE NNO ALONE CANNOT BUILD `A*` IN THIS LAYER.  The NNO is the initial algebra of the
-  -- 1-parameter functor `X ↦ 1 + X` (`iterate`, §1.98).  The list object is the initial algebra
-  -- of the A-PARAMETRISED functor `X ↦ 1 + A × X`; classically `A* ≅ ∐ₙ Aⁿ`.  Passing from the
-  -- former to the latter needs ONE of:
-  --   (a) the N-INDEXED COPRODUCT `∐ₙ Aⁿ` — but the repo has only BINARY `HasBinaryCoproducts`
-  --       (S1_58); no countable/NNO-indexed coproduct exists, and binary ⊔ + NNO do not yield it;
-  --   (b) the LIST OBJECT as a definable subobject of `(1+A)^N` cut out by a "bounded-length"
-  --       predicate — but that comprehension is the internal-∀ / family-glb on `Ω^…` that
-  --       `least_peano_subobject` (above) and `S1_94` both bottom out on (the internal-∀ /
-  --       family-glb that `S1_94` never constructs — NOT the now-proven §1.543 lemma);
-  --   (c) the PARTIAL-MAP CLASSIFIER recursor `B̃` of §1.988/§1.934 — Freyd builds `B̃ = Π_t(B/0)`
-  --       in a CAPITAL topos (§1.935).  STATUS UPDATE (this session): the LAWFUL per-codomain PMC
-  --       interface IS now BUILT and SORRY-FREE — `Fredy.partialMapClassifier_exists (B : 𝒞) :
-  --       Nonempty (LawfulPMC 𝒞 B)` in `Fredy/PartialMapClassifier.lean` carries `carrier = B̃`,
-  --       the generic mono `η_B : B ↪ B̃`, and the full classify/restrict (`classify_sq`)/
-  --       domain-recovery-pullback (`classify_pb`)/uniqueness (`classify_uniq`) laws.  Axiom check:
-  --       `[Classical.choice]` only.  So the OLD claim here ("`S1_92` has only a bare single-object
-  --       `pmc_obj`, no restrict/uniqueness law") is STALE and has been corrected.
-  --       BUT the PMC alone still does NOT close §1.98(14): defining `fold`/`cons` by recursion on
-  --       the growing power `Aⁿ` requires expressing the TOTALITY/graph predicate of the recursion as
-  --       an internal comprehension on the partial function `N ⇀ A*`, and that comprehension is again
-  --       the internal-∀ of (b).  `iteratePair`/`primRec` (§1.981/§1.983) iterate only a FIXED fibre
-  --       `B`, not `Aⁿ`, so they cannot define `fold`; the PMC supplies `B̃` but not the recursion's
-  --       totality predicate.
+  -- STATUS (this session) — THE LOAD-BEARING INTERNAL-∀ INFRA IS NOW AVAILABLE SORRY-FREE.
+  -- The earlier diagnosis here claimed the §1.94 family-glb / `HasLeastClosedSubobject` was an
+  -- UNASSUMABLE hypothesis class (needing a power-object exponential adjunction the repo lacks).
+  -- THAT IS NOW FALSE: `Fredy/LeastClosedTopos.lean` PROVES, for every topos, the sorry-free
+  --   `instance toposHasLeastClosedSubobject : HasLeastClosedSubobject 𝒞`   (`[propext, Classical.choice]`)
+  -- via the internal-∀ quantifier `forallC`/`bigInter` of `Fredy/InternalForallTopos.lean`.  It
+  -- ALSO proves the A-PARAMETRISED closure operator that the list object's `cons` needs:
+  --   `actLeast a r proj : Subobject M` — the LEAST subobject of `M` that allows the point
+  --   `a : 1 → M` and is closed under the action `(r, proj : P → M)` (take `P := A×M`,
+  --   `proj := snd`, `r := consM` to get closure under `cons`) — together with
+  --   `actLeast_allows` (contains `a`), `actLeast_le` (least), `actLeast_stable` (closed),
+  --   all sorry-free `[propext, Classical.choice]`.  So route (b)'s internal-∀ comprehension is
+  --   DISCHARGED; it is no longer the blocker.
   --
-  -- THE GENUINE REMAINING PRIMITIVE = route (b)'s internal-∀ (a.k.a. `HasLeastClosedSubobject` /
-  -- the §1.94 family-glb).  It is exposed in `Fredy/InternalForall.lean` as a HYPOTHESIS CLASS, NOT
-  -- an instance: it is unbuildable from the currently-proven primitives because it needs the CONCRETE
-  -- power-object exponential adjunction `[B]^A ≅ [A×B]` (β/η-computing), which the `[HasExponentials]`
-  -- HYPOTHESIS does NOT give (that hypothesis yields exponentials `B^^A`, not power-object
-  -- representability), and which `S1_92.topos_has_exponentials` only supplies via its own `sorry`.
-  -- S1_91's `imp_adjunction`/`omega_ext`/`comp_dbar` live at the SUBOBJECT `Sub(A)` level, not the
-  -- representable `Ω^A` level, so they do not yield the internal-∀ either.  §1.98(14) carries NO
-  -- `HasLeastClosedSubobject` hypothesis (and adding one, or `BooleanSub`, would be unfaithful to
-  -- Freyd's "any topos with NNO"), so this is the load-bearing gap.
-  --
-  -- Residual = the SINGLE, sharply named gap `ListObjectData A` (= §1.98(14) list object
-  -- existence), with its lawful consumer `freeAAction_of_listObject` already proved Sorry-free.
+  -- WHAT GENUINELY REMAINS to produce `ListObjectData A`.  With `actLeast` in hand the list object
+  -- is `A* := (actLeast nilM consM snd).dom ⊆ M` for a suitable ambient `1 + A×(−)`-pre-algebra
+  -- `(M, nilM : 1→M, consM : A×M→M)`; `nil`/`cons` come from `actLeast_allows`/`actLeast_stable`.
+  -- The remaining elementary-but-substantial work, none of it the old internal-∀ obstacle:
+  --   (1) CONSTRUCT THE AMBIENT ALGEBRA.  No coproducts are available (`Topos` gives only terminal,
+  --       binary products, Ω, power objects; this theorem adds only `HasExponentials`), so `M` must
+  --       be power-object/NNO-internal.  The canonical choice is `M := powObj (prod hN.nno A)` — a
+  --       list as its GRAPH, a relation `R ⊆ N×A` that is functional with down-closed domain
+  --       `{0,…,len−1}`.  `nilM` = (the name of) the empty graph; `consM a R` = shift every index
+  --       of `R` up by one (NNO successor reindexing on the power object) and insert `(0,a)`.
+  --       Defining `consM` as an actual morphism `A × powObj(N×A) → powObj(N×A)` is the main piece.
+  --   (2) FOLD.  For any `1+A×B`-algebra `(B, e, c)` define `fold e c : A* → B` by NNO recursion
+  --       (`primRec`/`iteratePair`, §1.981/§1.983) reading the graph length-first, and prove
+  --       `fold_nil`/`fold_cons` (the algebra square).
+  --   (3) UNIQUENESS (`fold_uniq`) = induction on `A*`, i.e. `actLeast`'s leastness: the equalizer
+  --       of two algebra maps is an `(nilM, consM)`-closed subobject, so `actLeast_le` forces it to
+  --       be all of `A*`.
   obtain ⟨LD⟩ : Nonempty (ListObjectData (𝒞 := 𝒞) A) := by
-    -- MISSING PRIMITIVE: existence of the list object `A* = Σₙ Aⁿ` (initial `1 + A×(−)`-algebra).
-    -- Not constructible from `HasNaturalNumbersObject` + `HasExponentials` + binary coproducts +
-    -- the now-sorry-free per-codomain PMC (`partialMapClassifier_exists`) alone.  The load-bearing
-    -- gap is route (b)'s internal-∀ / family-glb (`HasLeastClosedSubobject`, only a hypothesis
-    -- class), needed for the bounded-length comprehension cutting `A*` out of `(1+A)^N`.
-    -- STATUS: NOT §1.543-capitalization (proven Sorry-free), NOT the PMC interface (now proven
-    -- Sorry-free this session); the residual is the absent internal-∀ comprehension primitive.
+    -- REMAINING GAP (NOT the internal-∀ / `HasLeastClosedSubobject`, which `toposHasLeastClosedSubobject`
+    -- now discharges sorry-free; see above): the elementary construction of the ambient `1+A×(−)`-algebra
+    -- `consM` (NNO index-shift on `powObj(N×A)` graphs) plus `fold` by NNO recursion and `fold_uniq` by
+    -- `actLeast_le` induction.  `actLeast nilM consM snd` is the carrier and supplies `nil`/`cons`.
     sorry
   exact ⟨freeAAction_of_listObject LD⟩
 
