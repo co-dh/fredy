@@ -4800,10 +4800,18 @@ theorem foldExists {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B) :
         refine hFiberSingleton wc bc ?_ ?_
         · -- cons-fiber single-valuedness (uses `consMor_mono` predecessor + `w ∈ Sing` IH `hbSing`).
           intro Y g yy hgw
-          -- RESIDUAL (cons step, §1.989).  `g`'s word is `yy ≫ wc = cons(a-leg, w-leg)`.  By
-          -- `consMor_mono` recover the unique predecessor `(a, w')`; a `G`-point over the cons must
-          -- come from `foldStep` of a `G`-point over `(w', b')`, with `w' ∈ Sing` forcing `b' = bSing`
-          -- (the IH `hbSing`), hence value `= c(a, b') = bc`.  Needs `actLeast_le` on `G` (no junk).
+          -- RESIDUAL (cons step, §1.989) — the LAST hole.  Goal `g ≫ q = yy ≫ bc` for a `G`-point `g`
+          -- over the cons word `yy ≫ wc = cons(a, Sing.arr s)`.  The no-junk engine `hAntToVal2`
+          -- (act-preimage closure, built+committed above) decomposes the arbitrary `g` as a `foldStep`
+          -- of a predecessor; the predecessor's tail lies in `Sing`, so the IH `hbSing` pins its value
+          -- to `bSing`, giving `c(a, bSing s) = bc`.  The MISSING piece is a GLOBAL determined-value
+          -- map `Ce ⊆ G.dom` for `hAntToVal2`'s consequent: `Ce` must (i) contain `g₀` and (ii) on
+          -- cons-Sing-word points force value `c(head, bSing tail)`.  A value-equalizer needs the
+          -- value as a TOTAL map `G.dom → B`, which here is the fold itself (circular at this layer).
+          -- Closing it needs the determined-value extractor (essentially `vrec : G.dom → B` agreeing
+          -- with `gstep` on cons-Sing words and `e` on nil) — the one primitive `hAntToVal2`/`hGind`
+          -- cannot themselves supply.  `gstep` (the matching `foldStep` point with the same word and
+          -- value `yy ≫ bc`) is available verbatim as in the cons-membership branch below.
           sorry
         · -- `(cons(a,w), c(a,b)) ∈ G`: `foldStep` applied to a `G`-point over `(w, bSing)`.
           -- `(Sing.arr, bSing) ∈ G` (singleton fiber inhabited), lift to a `G`-point `gp`, then
