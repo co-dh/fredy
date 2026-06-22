@@ -3982,6 +3982,116 @@ theorem listObject_ext {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B)
     _ = (k ≫ eqMap m m') ≫ m' := by rw [Cat.assoc]
     _ = m' := by rw [hkeq]; exact Cat.id_comp _
 
+/-! #### `fold` existence — the functional graph over `prod W B`.
+
+  For an algebra `(B, e, c)`, the graph `G ⊆ prod W B` is the least subobject closed under the
+  combined step `foldStep (a,(w,b)) = (consMor(a,w), c(a,b))` and containing `(nilMor, e)`.  Its
+  `W`-projection `p := foldProj = G.arr ≫ fst` is TOTAL over `A* = listCarrier A`
+  (`foldProj_total`, sorry-free) and SINGLE-VALUED; the functional graph then yields
+  `fold := s ≫ G.arr ≫ snd` with its two algebra-square laws (`foldExists`). -/
+
+open HasBinaryCoproducts in
+/-- The graph step on `prod W B`: `cons` on the word leg, `c` on the value leg. -/
+noncomputable def foldStep {B : 𝒞} (c : prod A B ⟶ B) :
+    prod A (prod (wordObj A) B) ⟶ prod (wordObj A) B :=
+  pair (pair fst (snd ≫ fst) ≫ consMor A) (pair fst (snd ≫ snd) ≫ c)
+
+/-- The graph unit on `prod W B`: `(nilMor, e)`. -/
+noncomputable def foldUnit {B : 𝒞} (e : one ⟶ B) : one ⟶ prod (wordObj A) B :=
+  pair (nilMor A) e
+
+/-- The functional graph `G ⊆ prod W B` for the fold into `(B,e,c)`. -/
+noncomputable def foldGraph {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B) :
+    Subobject 𝒞 (prod (wordObj A) B) :=
+  actLeast (foldUnit A e) (foldStep A c) (snd (A := A) (B := prod (wordObj A) B))
+
+/-- The graph's W-projection `p = G.arr ≫ fst : G.dom ⟶ W`. -/
+noncomputable def foldProj {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B) :
+    (foldGraph A e c).dom ⟶ wordObj A :=
+  (foldGraph A e c).arr ≫ fst
+
+/-- **TOTALITY of the graph projection**: `image p` allows `nilMor` and is `(consMor,snd)`-stable,
+    so `A* ≤ image p` by `actLeast_le`.  Hence a value `b` exists for every word in `A*`.
+    Sorry-free; mirrors the boolean recursor's totality half. -/
+theorem foldProj_total {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B) :
+    (listCarrier A).le (image (foldProj A e c)) := by
+  classical
+  obtain ⟨g₀, hg₀⟩ := actLeast_allows (foldUnit A e) (foldStep A c)
+    (snd (A := A) (B := prod (wordObj A) B))
+  have hGact : (image (prodMap A (foldGraph A e c).dom (prod (wordObj A) B)
+      (foldGraph A e c).arr ≫ foldStep A c)).le (foldGraph A e c) :=
+    actImg_le_of_actStable (foldStep A c) (foldGraph A e c)
+      (actLeast_stable (foldUnit A e) (foldStep A c) (snd (A := A) (B := prod (wordObj A) B)))
+  obtain ⟨rG, hrG⟩ := hGact
+  let actG : prod A (foldGraph A e c).dom ⟶ (foldGraph A e c).dom :=
+    image.lift (prodMap A (foldGraph A e c).dom (prod (wordObj A) B)
+      (foldGraph A e c).arr ≫ foldStep A c) ≫ rG
+  have hactG : actG ≫ (foldGraph A e c).arr
+      = prodMap A (foldGraph A e c).dom (prod (wordObj A) B) (foldGraph A e c).arr
+          ≫ foldStep A c := by
+    show (image.lift _ ≫ rG) ≫ (foldGraph A e c).arr = _
+    rw [Cat.assoc, hrG, image.lift_fac]
+  have hSgFst : foldStep A c ≫ fst = pair fst (snd ≫ fst) ≫ consMor A := fst_pair _ _
+  have hpt : prodMap A (foldGraph A e c).dom (wordObj A) (foldProj A e c) ≫ consMor A
+      = actG ≫ foldProj A e c := by
+    have hR : actG ≫ foldProj A e c
+        = prodMap A (foldGraph A e c).dom (prod (wordObj A) B) (foldGraph A e c).arr
+            ≫ (pair fst (snd ≫ fst) ≫ consMor A) := by
+      show actG ≫ (foldGraph A e c).arr ≫ fst = _
+      rw [← Cat.assoc, hactG, Cat.assoc, hSgFst]
+    have hpm : prodMap A (prod (wordObj A) B) (wordObj A) fst = pair fst (snd ≫ fst) := rfl
+    rw [hR]
+    show prodMap A (foldGraph A e c).dom (wordObj A) ((foldGraph A e c).arr ≫ fst) ≫ consMor A = _
+    rw [prodMap_comp, hpm, Cat.assoc]
+  have hg₀' : g₀ ≫ (foldGraph A e c).arr = foldUnit A e := hg₀
+  have hImgNil : ∃ uB : one ⟶ (image (foldProj A e c)).dom,
+      uB ≫ (image (foldProj A e c)).arr = nilMor A := by
+    refine ⟨g₀ ≫ image.lift (foldProj A e c), ?_⟩
+    rw [Cat.assoc, image.lift_fac]
+    show g₀ ≫ (foldGraph A e c).arr ≫ fst = nilMor A
+    rw [← Cat.assoc, hg₀']; show pair (nilMor A) e ≫ fst = nilMor A; exact fst_pair _ _
+  have hImgStab : (InverseImage (snd (A := A) (B := wordObj A)) (image (foldProj A e c))).le
+      (InverseImage (consMor A) (image (foldProj A e c))) := by
+    have hcov' : Cover (prodMap A (foldGraph A e c).dom (image (foldProj A e c)).dom
+        (image.lift (foldProj A e c))) := prodMap_cover A (image_lift_cover (foldProj A e c))
+    have hcomp : prodMap A (foldGraph A e c).dom (image (foldProj A e c)).dom
+          (image.lift (foldProj A e c))
+        ≫ (prodMap A (image (foldProj A e c)).dom (wordObj A) (image (foldProj A e c)).arr
+            ≫ consMor A)
+        = prodMap A (foldGraph A e c).dom (wordObj A) (foldProj A e c) ≫ consMor A := by
+      rw [← Cat.assoc, ← prodMap_comp, image.lift_fac]
+    have hle1 : (image (prodMap A (image (foldProj A e c)).dom (wordObj A)
+          (image (foldProj A e c)).arr ≫ consMor A)).le
+        (image (prodMap A (foldGraph A e c).dom (wordObj A) (foldProj A e c) ≫ consMor A)) := by
+      have := (image_cover_comp (prodMap A (foldGraph A e c).dom (image (foldProj A e c)).dom
+        (image.lift (foldProj A e c)))
+        (prodMap A (image (foldProj A e c)).dom (wordObj A) (image (foldProj A e c)).arr
+          ≫ consMor A) hcov').2
+      rwa [hcomp] at this
+    have hle2 : (image (prodMap A (foldGraph A e c).dom (wordObj A) (foldProj A e c)
+        ≫ consMor A)).le (image (foldProj A e c)) := by
+      rw [hpt]
+      exact image_min (actG ≫ foldProj A e c) (image (foldProj A e c))
+        ⟨actG ≫ image.lift (foldProj A e c), by rw [Cat.assoc, image.lift_fac]⟩
+    obtain ⟨k, hk⟩ := subLe_trans' hle1 hle2
+    exact actStable_of_restrict (consMor A) (image (foldProj A e c))
+      (image.lift (prodMap A (image (foldProj A e c)).dom (wordObj A) (image (foldProj A e c)).arr
+        ≫ consMor A) ≫ k)
+      (by rw [Cat.assoc, hk, image.lift_fac])
+  exact actLeast_le (nilMor A) (consMor A) snd (image (foldProj A e c)) hImgNil hImgStab
+
+/-- Existence of the fold/recursor `A* → B` into any `1+A×(−)`-algebra `(B,e,c)`, with its two
+    algebra-square laws.  TOTALITY (`foldProj_total`) is sorry-free; the SINGLE residual is the
+    functional-graph EXTRACTION: single-valuedness `Mono (foldProj A e c)` (provable by
+    `listObject_ext` induction on the "unique-value" subobject of `A*`) corestricts `p` to an iso
+    `A* ≅ G.dom`, whence `fold := iso⁻¹ ≫ G.arr ≫ snd` and the two laws follow from the graph's
+    `(foldUnit, foldStep)`-closure. -/
+theorem foldExists {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B) :
+    ∃ f : (listCarrier A).dom ⟶ B,
+      listNil A ≫ f = e ∧
+      prodMap A (listCarrier A).dom B f ≫ c = listCons A ≫ f := by
+  sorry
+
 end ListObjectAssembly
 
 /-- §1.98(14): In a topos with a NNO, every object A has a free A-action.
