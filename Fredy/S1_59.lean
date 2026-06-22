@@ -2808,6 +2808,55 @@ theorem homAddL_assoc [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞}
     _ = homAddL (subL (homAddL x (homAddL y z)) z) z := by rw [hR]
     _ = homAddL x (homAddL y z) := subL_add_cancel _ z
 
+/-! ### §1.597 STEP 2: assembling the additive structure (products are biproducts). -/
+
+/-- The two product injections `inl = ⟨1,0⟩`, `inr = ⟨0,1⟩` are **jointly epic**, witnessed by the
+    biproduct identity `id_{A×B} = (fst ≫ inl) + (snd ≫ inr)`.  This is the key fact that addition
+    (subtraction) makes `A×B` a coproduct. -/
+theorem biproduct_id [ExactCategory 𝒞] [HasBinaryProducts 𝒞] (A B : 𝒞) :
+    homAddL (fst ≫ pair (Cat.id A) (zeroMorphism A B))
+            (snd ≫ pair (zeroMorphism B A) (Cat.id B))
+      = Cat.id (prod A B) := by
+  have hf : homAddL (fst ≫ pair (Cat.id A) (zeroMorphism A B))
+              (snd ≫ pair (zeroMorphism B A) (Cat.id B)) ≫ fst = fst := by
+    rw [homAddL_comp, Cat.assoc, fst_pair, Cat.comp_id, Cat.assoc, fst_pair,
+        zero_morphism_comp snd (zeroMorphism B A), homAddL_zero]
+  have hs : homAddL (fst ≫ pair (Cat.id A) (zeroMorphism A B))
+              (snd ≫ pair (zeroMorphism B A) (Cat.id B)) ≫ snd = snd := by
+    rw [homAddL_comp, Cat.assoc, snd_pair, zero_morphism_comp fst (zeroMorphism A B),
+        Cat.assoc, snd_pair, Cat.comp_id, zero_homAddL]
+  calc homAddL (fst ≫ pair (Cat.id A) (zeroMorphism A B))
+              (snd ≫ pair (zeroMorphism B A) (Cat.id B))
+      = pair (homAddL (fst ≫ pair (Cat.id A) (zeroMorphism A B))
+                (snd ≫ pair (zeroMorphism B A) (Cat.id B)) ≫ fst)
+             (homAddL (fst ≫ pair (Cat.id A) (zeroMorphism A B))
+                (snd ≫ pair (zeroMorphism B A) (Cat.id B)) ≫ snd) := pair_eta _
+    _ = pair (fst : prod A B ⟶ A) snd := by rw [hf, hs]
+    _ = Cat.id (prod A B) := pair_fst_snd
+
+/-- **Binary coproducts from products + addition** (`coprod := prod`, `inl/inr` the injections,
+    `case x y := (fst≫x) + (snd≫y)`).  `case_uniq` is the joint-epi `biproduct_id`. -/
+noncomputable def exactCoproducts [ExactCategory 𝒞] [HasBinaryProducts 𝒞] :
+    HasBinaryCoproducts 𝒞 where
+  coprod A B := prod A B
+  inl := pair (Cat.id _) (zeroMorphism _ _)
+  inr := pair (zeroMorphism _ _) (Cat.id _)
+  case x y := homAddL (fst ≫ x) (snd ≫ y)
+  case_inl x y := by
+    rw [comp_homAddL, ← Cat.assoc, ← Cat.assoc, fst_pair, snd_pair, Cat.id_comp,
+        zeroMorphism_comp_left y, homAddL_zero]
+  case_inr x y := by
+    rw [comp_homAddL, ← Cat.assoc, ← Cat.assoc, fst_pair, snd_pair, Cat.id_comp,
+        zeroMorphism_comp_left x, zero_homAddL]
+  case_uniq x y h hl hr := by
+    calc h = Cat.id (prod _ _) ≫ h := (Cat.id_comp h).symm
+      _ = homAddL (fst ≫ pair (Cat.id _) (zeroMorphism _ _))
+            (snd ≫ pair (zeroMorphism _ _) (Cat.id _)) ≫ h := by rw [biproduct_id]
+      _ = homAddL ((fst ≫ pair (Cat.id _) (zeroMorphism _ _)) ≫ h)
+            ((snd ≫ pair (zeroMorphism _ _) (Cat.id _)) ≫ h) := homAddL_comp _ _ h
+      _ = homAddL (fst ≫ x) (snd ≫ y) := by
+            rw [Cat.assoc, Cat.assoc, hl, hr]
+
 theorem abelian_iff_normal_kernels_cokernels
     {𝒞 : Type u} [Cat.{v} 𝒞]
     [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoequalizers 𝒞] [HasBinaryProducts 𝒞] :
