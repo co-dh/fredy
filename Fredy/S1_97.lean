@@ -4109,40 +4109,25 @@ theorem free_action_exists {𝒞 : Type u} [Cat.{v} 𝒞]
     (A : 𝒞) : Nonempty (FreeAAction (𝒞 := 𝒞) A) := by
   -- The free A-action IS a list object `A*` (`freeAAction_of_listObject` above discharges the
   -- whole universal property Sorry-free once `A*` is in hand).  So the entire content of
-  -- §1.98(14) is now isolated in the SINGLE primitive `ListObjectData A` — the initial algebra
-  -- of `F X = 1 + A × X`, i.e. `A* = Σₙ Aⁿ` ("finite words in A").
+  -- §1.98(14) is isolated in the SINGLE primitive `ListObjectData A` — the initial algebra of
+  -- `F X = 1 + A × X`, i.e. `A* = Σₙ Aⁿ` ("finite words in A").
   --
-  -- STATUS (this session) — THE LOAD-BEARING INTERNAL-∀ INFRA IS NOW AVAILABLE SORRY-FREE.
-  -- The earlier diagnosis here claimed the §1.94 family-glb / `HasLeastClosedSubobject` was an
-  -- UNASSUMABLE hypothesis class (needing a power-object exponential adjunction the repo lacks).
-  -- THAT IS NOW FALSE: `Fredy/LeastClosedTopos.lean` PROVES, for every topos, the sorry-free
-  --   `instance toposHasLeastClosedSubobject : HasLeastClosedSubobject 𝒞`   (`[propext, Classical.choice]`)
-  -- via the internal-∀ quantifier `forallC`/`bigInter` of `Fredy/InternalForallTopos.lean`.  It
-  -- ALSO proves the A-PARAMETRISED closure operator that the list object's `cons` needs:
-  --   `actLeast a r proj : Subobject M` — the LEAST subobject of `M` that allows the point
-  --   `a : 1 → M` and is closed under the action `(r, proj : P → M)` (take `P := A×M`,
-  --   `proj := snd`, `r := consM` to get closure under `cons`) — together with
-  --   `actLeast_allows` (contains `a`), `actLeast_le` (least), `actLeast_stable` (closed),
-  --   all sorry-free `[propext, Classical.choice]`.  So route (b)'s internal-∀ comprehension is
-  --   DISCHARGED; it is no longer the blocker.
+  -- REALIZED CONSTRUCTION (this session) — the AMBIENT ALGEBRA is the EXPONENTIAL carrier, NOT the
+  -- old `powObj(N×A)` graph (which hit a hard relational `consM`).  Concretely:
+  --   * `W := (1+A)^N = wordObj A` (a word = a stream of letters, eventually the blank `inl ⋆`).
+  --   * `nilMor : 1 → W` = constant blank; `consMor : A×W → W` = prepend, via the NNO `1+N ≅ N`
+  --     index case-split (`nnoCoUninv`) + exponential `eval`.  Element-reader is FREE (eval).
+  --   * `A* := listCarrier A = (actLeast nilMor consMor snd) ⊆ W`; `listNil`/`listCons` from
+  --     `actLeast_allows`/`actLeast_stable` (`listNil_arr`/`listCons_arr`).
+  -- ALL of the above is sorry-free `[propext, Classical.choice]`.  The β-laws `nilMor_read`/
+  -- `consMor_read`/`consBody_zero`/`consBody_succ`, the list-induction `listObject_ext`
+  -- (`fold_uniq`, via the equalizer-on-W + `actLeast_le`), and the fold-graph TOTALITY
+  -- `foldProj_total` are ALL sorry-free.
   --
-  -- WHAT GENUINELY REMAINS to produce `ListObjectData A`.  With `actLeast` in hand the list object
-  -- is `A* := (actLeast nilM consM snd).dom ⊆ M` for a suitable ambient `1 + A×(−)`-pre-algebra
-  -- `(M, nilM : 1→M, consM : A×M→M)`; `nil`/`cons` come from `actLeast_allows`/`actLeast_stable`.
-  -- The remaining elementary-but-substantial work, none of it the old internal-∀ obstacle:
-  --   (1) CONSTRUCT THE AMBIENT ALGEBRA.  No coproducts are available (`Topos` gives only terminal,
-  --       binary products, Ω, power objects; this theorem adds only `HasExponentials`), so `M` must
-  --       be power-object/NNO-internal.  The canonical choice is `M := powObj (prod hN.nno A)` — a
-  --       list as its GRAPH, a relation `R ⊆ N×A` that is functional with down-closed domain
-  --       `{0,…,len−1}`.  `nilM` = (the name of) the empty graph; `consM a R` = shift every index
-  --       of `R` up by one (NNO successor reindexing on the power object) and insert `(0,a)`.
-  --       Defining `consM` as an actual morphism `A × powObj(N×A) → powObj(N×A)` is the main piece.
-  --   (2) FOLD.  For any `1+A×B`-algebra `(B, e, c)` define `fold e c : A* → B` by NNO recursion
-  --       (`primRec`/`iteratePair`, §1.981/§1.983) reading the graph length-first, and prove
-  --       `fold_nil`/`fold_cons` (the algebra square).
-  --   (3) UNIQUENESS (`fold_uniq`) = induction on `A*`, i.e. `actLeast`'s leastness: the equalizer
-  --       of two algebra maps is an `(nilM, consM)`-closed subobject, so `actLeast_le` forces it to
-  --       be all of `A*`.
+  -- THE SINGLE RESIDUAL is `foldExists` (used below for `fold`/`fold_nil`/`fold_cons`): the
+  -- functional-graph EXTRACTION of `fold : A* → B` from the totality-proved graph `foldGraph`,
+  -- whose only open content is single-valuedness `Mono (foldProj A e c)` + corestricting the
+  -- (total) W-projection to an iso `A* ≅ G.dom`.  See `foldExists`'s docstring.
   -- ASSEMBLY (this session): the list object `A* = (listCarrier A).dom ⊆ W = (1+A)^N` is built
   -- sorry-free (`listCarrier`/`listNil`/`listCons` from `actLeast`); `nil`/`cons` and their arr-laws
   -- are proved; `fold` comes from the functional graph `foldExists`; `fold_uniq` is `listObject_ext`
