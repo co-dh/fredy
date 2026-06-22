@@ -23,6 +23,7 @@ import Fredy.S1_42
 import Fredy.S1_51
 import Fredy.S1_57
 import Fredy.S1_58
+import Fredy.S1_64
 import Fredy.S1_85
 import Fredy.S1_92
 import Fredy.S1_94
@@ -1392,7 +1393,16 @@ theorem recursor_exists_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos �
     -- yet in S1_9/S1_56/S1_59; this is the SINGLE remaining §1.989 functional-graph hole.
     -- `hcap` (capital / well-pointed) and `pts_covers_of_capital hcap` (1 projective, lifting points
     -- along the cover `p`) are the §1.989 inputs; the agreement-subobject assembly remains the hole.
-    have hpmono : Mono p := by sorry
+    have hpmono : Mono p := by
+      -- §1.989 single-valuedness reduces to the kernel-pair legs of `p` coinciding:
+      -- `Mono p ⟺ kp₁ = kp₂`.  Given `u ≫ p = v ≫ p`, lift to the kernel pair and collapse.
+      have hkp : kp₁ (f := p) = kp₂ (f := p) := by sorry
+      intro W u v huv
+      have hw1 : ((HasPullbacks.has p p).lift ⟨W, u, v, huv⟩) ≫ kp₁ (f := p) = u :=
+        kp_lift_p₁ u v huv
+      have hw2 : ((HasPullbacks.has p p).lift ⟨W, u, v, huv⟩) ≫ kp₂ (f := p) = v :=
+        kp_lift_p₂ u v huv
+      rw [← hw1, ← hw2, hkp]
     have hpiso : IsIso p := monic_cover_iso p hpcover hpmono
     obtain ⟨pinv, hpinv1, hpinv2⟩ := hpiso
     -- `h := p⁻¹ ≫ G.arr ≫ snd`.  `a ≫ h = x` and `t ≫ h = h ≫ f` follow from the graph laws.

@@ -380,7 +380,7 @@ theorem minEquiv_of_rtc {𝒞 : Type u} [Cat.{v} 𝒞]
   graph inl ⊚ (graph inl)°` is `⊂ 1_B` since `inl` is monic. -/
 
 /-- `f : A → B` is monic if its level (kernel pair) lies inside the diagonal. -/
-private theorem mono_of_kernelPairRel_le_diag [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
+theorem mono_of_kernelPairRel_le_diag [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
     [HasPullbacks 𝒞] {A B : 𝒞} (f : A ⟶ B)
     (h : RelLe (kernelPairRel f) (graph (Cat.id A))) : Mono f := by
   intro W u v huv
