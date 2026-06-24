@@ -11,7 +11,7 @@ variable {𝒞 : Type u} [Cat.{v} 𝒞]
 
 namespace Freyd
 
-def Mono {X Y : 𝒞} (m : X ⟶ Y) : Prop :=
+def Monic {X Y : 𝒞} (m : X ⟶ Y) : Prop :=
   ∀ {W : 𝒞} (g h : W ⟶ X), g ≫ m = h ≫ m → g = h
 
 /-- A MONIC PAIR x: T→A, y: T→B: jointly left-cancellable (§1.41). -/
@@ -36,7 +36,7 @@ theorem isIso_comp {X Y Z : 𝒞} {f : X ⟶ Y} {g : Y ⟶ Z} (hf : IsIso f) (hg
 
 /-- A split mono is monic: a map with a retraction is left-cancellable. -/
 theorem mono_of_retraction {X Y : 𝒞} (m : X ⟶ Y) (r : Y ⟶ X)
-    (hr : m ≫ r = Cat.id X) : Mono m := by
+    (hr : m ≫ r = Cat.id X) : Monic m := by
   intro W g h hgh
   calc g = g ≫ m ≫ r   := by rw [hr, Cat.comp_id]
     _    = (g ≫ m) ≫ r := (Cat.assoc _ _ _).symm
@@ -71,7 +71,7 @@ theorem tableContained_unique {I : Type} {feet : I → 𝒞}
 theorem tableContained_mono {I : Type} {feet : I → 𝒞}
     {T : 𝒞}  (cols  : (i : I) → T  ⟶ feet i) (hm  : MonicFamily feet cols)
     {T' : 𝒞} (cols' : (i : I) → T' ⟶ feet i) (_hm' : MonicFamily feet cols')
-    (z : T ⟶ T') (hz : ∀ i, z ≫ cols' i = cols i) : Mono z :=
+    (z : T ⟶ T') (hz : ∀ i, z ≫ cols' i = cols i) : Monic z :=
   fun {W} f g hfg => hm f g (fun i => by
     calc f ≫ cols i = f ≫ z ≫ cols' i := by rw [hz i]
       _              = g ≫ z ≫ cols' i := by rw [← Cat.assoc, hfg, Cat.assoc]
@@ -125,7 +125,7 @@ def MonoInSlice {A B : 𝒞} (f : A ⟶ B) : Prop :=
   ∀ {W : 𝒞} (h : W ⟶ B) (u v : W ⟶ A), u ≫ f = h → v ≫ f = h → u = v
 
 /-- §1.414: f : A → B is monic iff it is a subterminator in the slice A/B. -/
-theorem mono_iff_monoInSlice {A B : 𝒞} (f : A ⟶ B) : Mono f ↔ MonoInSlice f := by
+theorem mono_iff_monoInSlice {A B : 𝒞} (f : A ⟶ B) : Monic f ↔ MonoInSlice f := by
   constructor
   · intro hm W h u v hu hv
     exact hm u v (by rw [hu, hv])

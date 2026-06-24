@@ -134,7 +134,7 @@ theorem sliceClassify_pullback {B : 𝒞} {A A' : Over B} (m : OverHom A' A) (hm
   -- cospan into `Ω×B` decomposes via product projections: `fst` recovers the base
   -- classifier square, `snd` forces the B-leg `q = p ≫ A.hom`.  So a test cone over
   -- the `Ω×B`-cospan is exactly a test cone over `(χ, true)` (B-leg redundant).
-  have hmf : Mono m.f := sigma_preserves_mono m hm
+  have hmf : Monic m.f := sigma_preserves_mono m hm
   let χ : A.dom ⟶ omega := baseClassify m hm
   have hbasePB := HasSubobjectClassifier.classify_pullback m.f hmf
   -- hbasePB : (⟨A'.dom, m.f, term A'.dom, classify_sq⟩ : Cone χ true).IsPullback
@@ -173,7 +173,7 @@ theorem sliceClassify_unique {B : 𝒞} {A A' : Over B} (m : OverHom A' A) (hm :
     (χ : OverHom A (sliceOmega B)) (hsq : m ⊚ χ = term A' ⊚ sliceTrue B)
     (hpb : (⟨A', m, term A', hsq⟩ : Cone χ (sliceTrue B)).IsPullback) :
     χ = sliceClassify m hm := by
-  have hmf : Mono m.f := sigma_preserves_mono m hm
+  have hmf : Monic m.f := sigma_preserves_mono m hm
   -- χ is an over-hom into ⟨Ω×B, snd⟩, so χ.f ≫ snd = A.hom; set χ_base := χ.f ≫ fst.
   have hχsnd : χ.f ≫ snd = A.hom := χ.w
   let χb : A.dom ⟶ omega := χ.f ≫ fst

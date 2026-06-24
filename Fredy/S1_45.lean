@@ -92,7 +92,7 @@ theorem kp_lift_uniq (x₁ x₂ : X ⟶ A) (h : x₁ ≫ f = x₂ ≫ f)
     g = (hpull.has f f).lift ⟨_, x₁, x₂, h⟩ := (hpull.has f f).lift_uniq ⟨_, x₁, x₂, h⟩ g h₁ h₂
 
 /-- Lemma from §1.453: f is monic iff the diagonal into its kernel pair is iso. -/
-theorem monic_iff_kp_diag_iso : Mono f ↔ IsIso (kp_diag (f:=f)) := by
+theorem monic_iff_kp_diag_iso : Monic f ↔ IsIso (kp_diag (f:=f)) := by
   constructor
   · intro hm
     have h_eq : kp₁ (f:=f) = kp₂ (f:=f) := hm _ _ kp_sq
@@ -135,8 +135,8 @@ end
 /-- §1.45: The pullback of a monic along any map is monic.
     Given the cospan `A —f→ C ←m— B` with `m` monic and `hp : HasPullback f m`,
     the first projection `hp.cone.π₁ : hp.cone.pt → A` is monic. -/
-theorem mono_pullback {A B C : 𝒞} (f : A ⟶ C) (m : B ⟶ C) (hm : Mono m)
-    (hp : HasPullback f m) : Mono hp.cone.π₁ := by
+theorem mono_pullback {A B C : 𝒞} (f : A ⟶ C) (m : B ⟶ C) (hm : Monic m)
+    (hp : HasPullback f m) : Monic hp.cone.π₁ := by
   intro W g h heq
   -- Derive g ≫ π₂ = h ≫ π₂ using m monic and the cone square π₁ ≫ f = π₂ ≫ m
   have hm2 : g ≫ hp.cone.π₂ = h ≫ hp.cone.π₂ := hm _ _ (by
@@ -388,7 +388,7 @@ omit ht hp hpull in
     is an isomorphism.  Abstracted away from `HasPullbacks` so it can be reused
     in any target category for the image of a level. -/
 theorem mono_iff_level_diag_iso {A B : 𝒞} {f : A ⟶ B} (L : Level f) :
-    Mono f ↔ IsIso L.δ := by
+    Monic f ↔ IsIso L.δ := by
   obtain ⟨c, hpb, δ, δ₁, δ₂⟩ := L
   constructor
   · intro hm
@@ -438,7 +438,7 @@ def PreservesPullbacks {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
 /-- T PRESERVES PROPERNESS: a non-iso monic maps to a non-iso monic (§1.453). -/
 def PreservesProperness {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
     (T : 𝒜 → ℬ) [hT : Functor T] : Prop :=
-  ∀ {A' A : 𝒜} (m : A' ⟶ A), Mono m → ¬IsIso m → ¬IsIso (hT.map m)
+  ∀ {A' A : 𝒜} (m : A' ⟶ A), Monic m → ¬IsIso m → ¬IsIso (hT.map m)
 
 /-- T PRESERVES PRODUCT-MONICITY: the image projections `T fst, T snd` remain a
     monic pair (jointly left-cancellable), so a map into `T(A×B)` is determined by
@@ -463,7 +463,7 @@ noncomputable def canonicalLevel {A B : 𝒞} (f : A ⟶ B) : Level f where
 
 omit ht hp hpull in
 /-- The diagonal of a level is a split mono (`δ ≫ π₁ = id`), hence monic. -/
-theorem Level.diag_mono {A B : 𝒞} {f : A ⟶ B} (L : Level f) : Mono L.δ := by
+theorem Level.diag_mono {A B : 𝒞} {f : A ⟶ B} (L : Level f) : Monic L.δ := by
   intro W g h heq
   have heq2 : g ≫ Cat.id A = h ≫ Cat.id A := by
     rw [← L.δ₁, ← Cat.assoc, ← Cat.assoc, heq]
@@ -491,11 +491,11 @@ noncomputable def Level.map {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
 theorem reflectsMono {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
     [HasTerminal 𝒜] [HasBinaryProducts 𝒜] [HasPullbacks 𝒜]
     (T : 𝒜 → ℬ) [hT : Functor T] (hpb : PreservesPullbacks T)
-    (hprop : PreservesProperness T) {A B : 𝒜} (f : A ⟶ B) (hm : Mono (hT.map f)) :
-    Mono f := by
+    (hprop : PreservesProperness T) {A B : 𝒜} (f : A ⟶ B) (hm : Monic (hT.map f)) :
+    Monic f := by
   -- Classical contrapositive: if f not monic, the level diagonal δ is a non-iso mono,
   -- so T δ is non-iso (properness), so T f is not monic — contradiction.
-  by_cases hnm : Mono f
+  by_cases hnm : Monic f
   · exact hnm
   · exfalso
     let L := canonicalLevel f
@@ -539,8 +539,8 @@ theorem pullback_faithful_iff_preserves_properness
     -- Reflecting isos first: it is reused inside the embedding step.
     have hRefl : ∀ {A B : 𝒜} (f : A ⟶ B), IsIso (hT.map f) → IsIso f := by
       intro A B f hiso
-      -- IsIso (T f) ⇒ Mono (T f) ⇒ Mono f (reflectsMono).
-      have hmono : Mono f :=
+      -- IsIso (T f) ⇒ Monic (T f) ⇒ Monic f (reflectsMono).
+      have hmono : Monic f :=
         reflectsMono T hpb hprop f
           (by obtain ⟨i, h1, _⟩ := hiso; intro W p q hpq;
               have := congrArg (· ≫ i) hpq; simp only [Cat.assoc, h1, Cat.comp_id] at this;
@@ -577,7 +577,7 @@ theorem pullback_faithful_iff_preserves_properness
     -- u is split mono (`u ≫ fst = 1`).
     have hu_split : u ≫ fst = Cat.id A := fst_pair _ _
     -- e is monic: both pullback projections coincide, and a cone is determined by its lift.
-    have he_mono : Mono e := by
+    have he_mono : Monic e := by
       intro W p q hpq
       -- hpq : p ≫ e = q ≫ e, i.e. p ≫ π₁ = q ≫ π₁; since π₂ = π₁ also p ≫ π₂ = q ≫ π₂.
       have hpq1 : p ≫ P.cone.π₁ = q ≫ P.cone.π₁ := hpq
@@ -604,7 +604,7 @@ theorem pullback_faithful_iff_preserves_properness
     -- Build that level by transporting along `hTuv`.
     have hTu_split : hT.map u ≫ hT.map (fst (A := A) (B := B)) = Cat.id (T A) := by
       rw [← hT.map_comp, hu_split, hT.map_id]
-    have hTu_mono : Mono (hT.map u) := mono_of_retraction _ _ hTu_split
+    have hTu_mono : Monic (hT.map u) := mono_of_retraction _ _ hTu_split
     -- The level of `T u`: cone (T pt, T π₁, T π₂) over (T u, T u), pullback, diagonal 1_{TA}.
     -- The image of P's cone is a pullback over the cospan (T u, T v).
     have himg : (Cone.mk (T P.cone.pt) (hT.map P.cone.π₁) (hT.map P.cone.π₂)

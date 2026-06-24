@@ -228,7 +228,7 @@ theorem le_relUnion {A B : 𝒞} {R S U : BinRel 𝒞 A B}
           (by rw [Cat.assoc, fst_pair, hSA])
           (by rw [Cat.assoc, snd_pair, hSB])]
   -- pU is monic (U.isMonicPair)
-  have hpU_mono : Mono pU := monic_pair_of_monicPair U.colA U.colB U.isMonicPair
+  have hpU_mono : Monic pU := monic_pair_of_monicPair U.colA U.colB U.isMonicPair
   -- Allows (image m as subobject via pU) m is given by kU
   -- We need to build a Subobject out of pU
   let U_sub : Subobject 𝒞 (prod A B) := Subobject.mk U.src pU hpU_mono
@@ -549,19 +549,19 @@ theorem subLe_trans {W : 𝒞} {X Y Z : Subobject 𝒞 W} (h₁ : X.le Y) (h₂ 
 
 /-- Post-composition with a fixed mono `m : Z ↣ W` carries `Sub Z` into `Sub W`
     order-preservingly: `push m P := ⟨P.dom, P.arr ≫ m⟩`. -/
-def pushMono {Z W : 𝒞} (m : Z ⟶ W) (hm : Mono m) (P : Subobject 𝒞 Z) : Subobject 𝒞 W :=
+def pushMono {Z W : 𝒞} (m : Z ⟶ W) (hm : Monic m) (P : Subobject 𝒞 Z) : Subobject 𝒞 W :=
   ⟨P.dom, P.arr ≫ m, by
     intro X u v huv
     refine P.monic u v (hm _ _ ?_)
     rw [Cat.assoc, Cat.assoc]; exact huv⟩
 
-theorem pushMono_mono {Z W : 𝒞} (m : Z ⟶ W) (hm : Mono m) {P Q : Subobject 𝒞 Z}
+theorem pushMono_mono {Z W : 𝒞} (m : Z ⟶ W) (hm : Monic m) {P Q : Subobject 𝒞 Z}
     (hle : P.le Q) : (pushMono m hm P).le (pushMono m hm Q) := by
   obtain ⟨f, hf⟩ := hle
   exact ⟨f, by show f ≫ (Q.arr ≫ m) = P.arr ≫ m; rw [← Cat.assoc, hf]⟩
 
 /-- `pushMono` reflects `≤`: a factorization through `m` descends because `m` is monic. -/
-theorem pushMono_reflects {Z W : 𝒞} (m : Z ⟶ W) (hm : Mono m) {P Q : Subobject 𝒞 Z}
+theorem pushMono_reflects {Z W : 𝒞} (m : Z ⟶ W) (hm : Monic m) {P Q : Subobject 𝒞 Z}
     (hle : (pushMono m hm P).le (pushMono m hm Q)) : P.le Q := by
   obtain ⟨f, hf⟩ := hle
   exact ⟨f, hm _ _ (by show (f ≫ Q.arr) ≫ m = P.arr ≫ m; rw [Cat.assoc]; exact hf)⟩
@@ -570,7 +570,7 @@ theorem pushMono_reflects {Z W : 𝒞} (m : Z ⟶ W) (hm : Mono m) {P Q : Subobj
     pushed pieces factors through `m` (both pieces do, so `union_min`), giving a subobject `Pre`
     of `Z` with `pushMono Pre = union(push P)(push Q)`; `P,Q ≤ Pre` (by `pushMono_reflects`), so
     `union P Q ≤ Pre` (`union_min`), and `pushMono` is monotone. -/
-theorem pushMono_union_le {Z W : 𝒞} (m : Z ⟶ W) (hm : Mono m) (P Q : Subobject 𝒞 Z) :
+theorem pushMono_union_le {Z W : 𝒞} (m : Z ⟶ W) (hm : Monic m) (P Q : Subobject 𝒞 Z) :
     (pushMono m hm (HasSubobjectUnions.union P Q)).le
       (HasSubobjectUnions.union (pushMono m hm P) (pushMono m hm Q)) := by
   let UP := HasSubobjectUnions.union (pushMono m hm P) (pushMono m hm Q)
@@ -579,7 +579,7 @@ theorem pushMono_union_le {Z W : 𝒞} (m : Z ⟶ W) (hm : Mono m) (P Q : Subobj
     HasSubobjectUnions.union_min _ _ _ ⟨P.arr, rfl⟩ ⟨Q.arr, rfl⟩
   obtain ⟨pre, hpre⟩ := hsubZ
   -- pre : UP.dom → Z with pre ≫ m = UP.arr.  `Pre := ⟨UP.dom, pre⟩` is a subobject of Z.
-  have hpre_mono : Mono pre := by
+  have hpre_mono : Monic pre := by
     intro X u v huv
     exact UP.monic u v (by rw [← hpre, ← Cat.assoc, ← Cat.assoc, huv])
   let Pre : Subobject 𝒞 Z := ⟨UP.dom, pre, hpre_mono⟩
@@ -650,7 +650,7 @@ theorem rel_inter_union_le [HasBinaryCoproducts 𝒞] {A B : 𝒞} (R S T : BinR
     RelLe (R ⊓ (S ∪ᵣ T)) ((R ⊓ S) ∪ᵣ (R ⊓ T)) := by
   apply relLe_of_subLe
   let pR := pair R.colA R.colB
-  let hpR : Mono pR := monic_pair_of_monicPair R.colA R.colB R.isMonicPair
+  let hpR : Monic pR := monic_pair_of_monicPair R.colA R.colB R.isMonicPair
   -- LHS = relSub(R ⊓ (S∪T)) ≤ pushMono pR (InverseImage pR (relSub (S∪T)))
   have hL : (relSub (R ⊓ (S ∪ᵣ T))).le
               (pushMono pR hpR (InverseImage pR (relSub (S ∪ᵣ T)))) := relSub_inter_le R (S ∪ᵣ T)

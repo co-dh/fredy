@@ -142,7 +142,7 @@ set_option maxHeartbeats 1000000 in
       `(u≫δ, v≫δ) = (F m, F n)` — exactly the goal.  (Step (ii) equalizers is already wired
       to this and now closes automatically.) -/
 theorem preTopos_functor_preserves_monic_pullbacks (hptf : PreToposFunctor F)
-    {A₁ A₂ A : 𝒜} (m : A₁ ⟶ A) (hm : Mono m) (n : A₂ ⟶ A) (hn : Mono n)
+    {A₁ A₂ A : 𝒜} (m : A₁ ⟶ A) (hm : Monic m) (n : A₂ ⟶ A) (hn : Monic n)
     (pb : HasPullback m n) :
     -- F maps the pullback of the two monics to a pullback in ℬ:
     ∀ (c : Cone (hF.map m) (hF.map n)),
@@ -152,16 +152,16 @@ theorem preTopos_functor_preserves_monic_pullbacks (hptf : PreToposFunctor F)
             v ≫ hF.map pb.cone.π₁ = c.π₁ → v ≫ hF.map pb.cone.π₂ = c.π₂ → v = u := by
   intro c
   -- `π₁, π₂` monic (pullback of a monic); build the swapped pullback for `π₂`.
-  have hπ₁ : Mono pb.cone.π₁ := mono_pullback m n hn pb
+  have hπ₁ : Monic pb.cone.π₁ := mono_pullback m n hn pb
   let pbS : HasPullback n m :=
     { cone := ⟨pb.cone.pt, pb.cone.π₂, pb.cone.π₁, pb.cone.w.symm⟩
       lift := fun d => pb.lift ⟨d.pt, d.π₂, d.π₁, d.w.symm⟩
       lift_fst := fun d => pb.lift_snd ⟨d.pt, d.π₂, d.π₁, d.w.symm⟩
       lift_snd := fun d => pb.lift_fst ⟨d.pt, d.π₂, d.π₁, d.w.symm⟩
       lift_uniq := fun d w h₁ h₂ => pb.lift_uniq ⟨d.pt, d.π₂, d.π₁, d.w.symm⟩ w h₂ h₁ }
-  have hπ₂ : Mono pb.cone.π₂ := mono_pullback n m hm pbS
-  have hFπ₁ : Mono (hF.map pb.cone.π₁) := hptf.pres_mono hπ₁
-  have hFπ₂ : Mono (hF.map pb.cone.π₂) := hptf.pres_mono hπ₂
+  have hπ₂ : Monic pb.cone.π₂ := mono_pullback n m hm pbS
+  have hFπ₁ : Monic (hF.map pb.cone.π₁) := hptf.pres_mono hπ₁
+  have hFπ₂ : Monic (hF.map pb.cone.π₂) := hptf.pres_mono hπ₂
   -- §1.651 amalgamation of the monic span `(Fπ₁, Fπ₂)`: pullback over `(u,v)` + pushout UMP.
   obtain ⟨D, u, v, hsqD, hpbD, hUMPD, _⟩ :=
     amalgamation_is_pullback (hF.map pb.cone.π₁) hFπ₁ (hF.map pb.cone.π₂) hFπ₂
@@ -215,8 +215,8 @@ theorem preTopos_functor_preserves_monic_pullbacks (hptf : PreToposFunctor F)
       = hF.map pb.cone.π₂ ≫ hF.map po.cocone.ι₂ := by
     rw [← hF.map_comp, ← hF.map_comp]; congr 1
     apply U.monic; rw [Cat.assoc, Cat.assoc, hx, hy]; exact pb.cone.w
-  have hFUmono : Mono (hF.map U.arr) := hptf.pres_mono U.monic
-  have hδmono : Mono δ :=
+  have hFUmono : Monic (hF.map U.arr) := hptf.pres_mono U.monic
+  have hδmono : Monic δ :=
     pushout_descent_mono hsqD hUMPD hsqW hUMPW hFUmono
       (by rw [hδu, ← hF.map_comp, hx]) (by rw [hδv, ← hF.map_comp, hy])
   -- descend the pullback over `(u,v)` to a pullback over `(u≫δ, v≫δ) = (F m, F n)`.
@@ -255,8 +255,8 @@ theorem preTopos_functor_preserves_equalizers (hptf : PreToposFunctor F)
   -- Graph maps `u = ⟨1,f⟩`, `v = ⟨1,g⟩ : A → A×B`; both split monic (retraction `fst`).
   let u : A ⟶ prod A B := pair (Cat.id A) f
   let v : A ⟶ prod A B := pair (Cat.id A) g
-  have humono : Mono u := mono_of_retraction u fst (fst_pair _ _)
-  have hvmono : Mono v := mono_of_retraction v fst (fst_pair _ _)
+  have humono : Monic u := mono_of_retraction u fst (fst_pair _ _)
+  have hvmono : Monic v := mono_of_retraction v fst (fst_pair _ _)
   -- The equalizer cone `(E, m, m)` is a pullback of `(u, v)` in 𝒜 (§1.434).
   have hwUV : m ≫ u = m ≫ v := by
     show m ≫ pair (Cat.id A) f = m ≫ pair (Cat.id A) g

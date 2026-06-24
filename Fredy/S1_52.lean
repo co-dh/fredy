@@ -65,7 +65,7 @@ theorem cover_epi [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
   let g₂ : Y ⟶ prod Y Z := pair (Cat.id Y) b
   have hg₁fst : g₁ ≫ fst = Cat.id Y := fst_pair _ _
   have hg₂fst : g₂ ≫ fst = Cat.id Y := fst_pair _ _
-  have hg₂mono : Mono g₂ := mono_of_retraction g₂ fst hg₂fst
+  have hg₂mono : Monic g₂ := mono_of_retraction g₂ fst hg₂fst
   have pb : HasPullback g₁ g₂ := HasPullbacks.has g₁ g₂
   have hw : pb.cone.π₁ ≫ g₁ = pb.cone.π₂ ≫ g₂ := pb.cone.w
   -- the two projections coincide (both legs are graphs, so `≫ fst = id`)
@@ -84,7 +84,7 @@ theorem cover_epi [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
       _ = pb.cone.π₂ ≫ b := by rw [show g₂ ≫ snd = b from snd_pair _ _]
       _ = pb.cone.π₁ ≫ b := by rw [hee₂]
   -- `e := π₁` is monic (pullback of the monic `g₂`)
-  have he_mono : Mono pb.cone.π₁ := by
+  have he_mono : Monic pb.cone.π₁ := by
     intro W p q hpq
     have hpq2 : p ≫ pb.cone.π₂ = q ≫ pb.cone.π₂ := by
       apply hg₂mono
@@ -150,7 +150,7 @@ theorem wellSupported_iff_support_entire [HasImages 𝒞] (A : 𝒞) :
 /-- A is WELL-POINTED (§1.523): the collection 1 → A jointly covers A.
     Every proper monic into A misses some point 1 → A. -/
 def WellPointed (A : 𝒞) : Prop :=
-  ∀ {D : 𝒞} (m : D ⟶ A), Mono m → ¬ IsIso m → ∃ (x : one ⟶ A), ¬ ∃ (y : one ⟶ D), y ≫ m = x
+  ∀ {D : 𝒞} (m : D ⟶ A), Monic m → ¬ IsIso m → ∃ (x : one ⟶ A), ¬ ∃ (y : one ⟶ D), y ≫ m = x
 
 /-- Capital (§1.525): every well-supported object is well-pointed. -/
 def Capital : Prop := ∀ (A : 𝒞), WellSupported A → WellPointed A
@@ -234,7 +234,7 @@ theorem capital_implies_one_projective
   · obtain ⟨inv, _, _⟩ := hiso
     exact Nonempty.intro inv
   · -- 2. A → 1 is a cover but not iso.  By monic-cover-iso (1.512), it is not monic.
-    have h_not_monic : ¬ Mono (term A) := by
+    have h_not_monic : ¬ Monic (term A) := by
       intro hm
       apply hiso
       exact monic_cover_iso (term A) hws hm
@@ -248,7 +248,7 @@ theorem capital_implies_one_projective
         rw [← kp_diag_prod A, Cat.assoc, kpProdIso_inv A, Cat.comp_id]
       rw [hkp]
       exact isIso_comp hiso_diag (kpProdInv_isIso A)
-    have hm_diag : Mono (diag A) := diag_mono A
+    have hm_diag : Monic (diag A) := diag_mono A
     -- 4. A×A is well-supported — via the diagonal, no pullbacks needed.
     have hwsAA : WellSupported (prod A A) := wellSupported_prod_self A hws
     -- 5. By capital, A×A is well-pointed.

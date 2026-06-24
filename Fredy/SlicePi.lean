@@ -602,7 +602,7 @@ theorem cover_postcomp_iso {X Y Y' : 𝒞} {h : X ⟶ Y} (hc : Cover h) {i : Y �
   -- `c ≫ m = h ≫ i`, so `(c ≫ (i' ≫ m … )) ` -- factor `h` through `m`? No: through a NEW monic.
   -- Instead push `i'` in: `h = (h ≫ i) ≫ i' = (c ≫ m) ≫ i' = c ≫ (m ≫ i')`.
   -- `m ≫ i'` is monic (m monic, i' iso ⇒ monic); `h`-cover forces it iso ⇒ `m` iso.
-  have hmi'_mono : Mono (m ≫ i') := by
+  have hmi'_mono : Monic (m ≫ i') := by
     intro W a b hab
     apply hm
     -- a ≫ m = b ≫ m from a ≫ (m ≫ i') = b ≫ (m ≫ i') and i iso.

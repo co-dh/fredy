@@ -662,7 +662,7 @@ instance inflHasPullbacks [HasEqualizers 𝒞] : HasPullbacks (Infl 𝒞) where
     `A`-object `W` is `∏[W] = W×1` up to the unitor `fst`, so left-cancellability against all `∏W`
     upgrades to all `W` (precompose with the iso `prodOneRightInv W`, cancel the iso `fst`). -/
 theorem inflMono_to_mono {C t : Infl 𝒞} {m : listProd (𝒞 := 𝒞) C ⟶ listProd t}
-    (hm : Mono (𝒞 := Infl 𝒞) m) : Mono (𝒞 := 𝒞) m := by
+    (hm : Monic (𝒞 := Infl 𝒞) m) : Monic (𝒞 := 𝒞) m := by
   -- `A′`-mono restated on `A`-arrows: cancellable against every product `∏V` (Infl test objects).
   have hm' : ∀ {V : Infl 𝒞} (g h : listProd (𝒞 := 𝒞) V ⟶ listProd C),
       g ≫ m = h ≫ m → g = h := fun {V} g h => hm (W := V) g h
@@ -679,7 +679,7 @@ theorem inflMono_to_mono {C t : Infl 𝒞} {m : listProd (𝒞 := 𝒞) C ⟶ li
 /-- An `A`-mono `m : ∏C ⟶ ∏t` is an `A′`-mono (`A′`'s test objects are a subset of `A`'s — every
     `A′`-test `∏V` is an `A`-object).  The easy direction of the mono correspondence. -/
 theorem mono_to_inflMono {C t : Infl 𝒞} {m : listProd (𝒞 := 𝒞) C ⟶ listProd t}
-    (hm : Mono (𝒞 := 𝒞) m) : Mono (𝒞 := Infl 𝒞) m :=
+    (hm : Monic (𝒞 := 𝒞) m) : Monic (𝒞 := Infl 𝒞) m :=
   fun {V} p q hpq => hm (W := listProd (𝒞 := 𝒞) V) p q hpq
 
 /-- `Cover` carries from `A′` to `A` (same underlying arrow `∏s ⟶ ∏t`).  An `A`-mono `m : C ⟶ ∏t`
@@ -689,8 +689,8 @@ theorem mono_to_inflMono {C t : Infl 𝒞} {m : listProd (𝒞 := 𝒞) C ⟶ li
 theorem inflCover_to_cover {s t : Infl 𝒞} {f : listProd (𝒞 := 𝒞) s ⟶ listProd t}
     (hf : Cover (𝒞 := Infl 𝒞) f) : Cover (𝒞 := 𝒞) f := by
   intro C m g hm hgm
-  -- the `A′`-mono `fst ≫ m : [C] ⟶ t` (underlying `C×1 ⟶ ∏t`).  Mono in `A` (cancel the iso `fst`).
-  have hm𝒞 : Mono (𝒞 := 𝒞) ((fst : prod C one ⟶ C) ≫ m) := by
+  -- the `A′`-mono `fst ≫ m : [C] ⟶ t` (underlying `C×1 ⟶ ∏t`).  Monic in `A` (cancel the iso `fst`).
+  have hm𝒞 : Monic (𝒞 := 𝒞) ((fst : prod C one ⟶ C) ≫ m) := by
     intro W p q hpq
     have h1 : (p ≫ (fst : prod C one ⟶ C)) ≫ m = (q ≫ (fst : prod C one ⟶ C)) ≫ m := by
       rw [Cat.assoc, Cat.assoc]; exact hpq
@@ -700,7 +700,7 @@ theorem inflCover_to_cover {s t : Infl 𝒞} {f : listProd (𝒞 := 𝒞) s ⟶ 
   -- `[C] : Infl`, `∏[C] = C×1`; bind the underlying `A`-arrow `M := fst ≫ m : C×1 ⟶ ∏t`, which IS
   -- the `A′`-arrow `[C] ⟶ t` (defeq).  Stating the `A′`-mono over `M` avoids the `A′`-vs-`A` `≫` clash.
   let M : listProd (𝒞 := 𝒞) ([C] : List 𝒞) ⟶ listProd t := (fst : prod C one ⟶ C) ≫ m
-  have hmInfl : Mono (𝒞 := Infl 𝒞) (X := ([C] : List 𝒞)) (Y := t) M :=
+  have hmInfl : Monic (𝒞 := Infl 𝒞) (X := ([C] : List 𝒞)) (Y := t) M :=
     mono_to_inflMono (C := ([C] : List 𝒞)) (t := t) (m := M) hm𝒞
   -- `g' := g ≫ prodOneRightInv C : s ⟶ [C]` factors `f` through it.
   let g' : listProd (𝒞 := 𝒞) s ⟶ listProd ([C] : List 𝒞) := g ≫ prodOneRightInv C
@@ -723,7 +723,7 @@ theorem coverC_to_inflCover {s t : Infl 𝒞} {f : listProd (𝒞 := 𝒞) s ⟶
     (hf : Cover (𝒞 := 𝒞) f) : Cover (𝒞 := Infl 𝒞) f := by
   intro C m g hm hgm
   -- `m : C ⟶ t` in `A′` IS `M : ∏C ⟶ ∏t` in `A`, mono by `inflMono_to_mono`.
-  have hm𝒞 : Mono (𝒞 := 𝒞) (m : listProd (𝒞 := 𝒞) C ⟶ listProd t) := inflMono_to_mono hm
+  have hm𝒞 : Monic (𝒞 := 𝒞) (m : listProd (𝒞 := 𝒞) C ⟶ listProd t) := inflMono_to_mono hm
   have hiso𝒞 : IsIso (𝒞 := 𝒞) (m : listProd (𝒞 := 𝒞) C ⟶ listProd t) :=
     hf (C := listProd (𝒞 := 𝒞) C) m g hm𝒞 hgm
   exact hiso𝒞
@@ -920,12 +920,12 @@ theorem catMap_cover [HasEqualizers 𝒞] [PullbacksTransferCovers 𝒞] {s t : 
     (catMap_isPullback d f) hf
 
 /-- **The §1.547 inner transition preserves monos**: `catMap d` carries an `A′`-mono to an `A′`-mono.
-    Forgetting to `A` (`inflMono_to_mono`), `cat_jointly_monic s d` reduces `Mono (catMap d m)` to
+    Forgetting to `A` (`inflMono_to_mono`), `cat_jointly_monic s d` reduces `Monic (catMap d m)` to
     cancelling `m` on the `catForget t d`-part (via `catMap_forget`) and the trivial `catTail` part. -/
 theorem catMap_mono {s t : List 𝒞} (d : List 𝒞) {m : listProd (𝒞 := 𝒞) s ⟶ listProd t}
-    (hm : Mono (𝒞 := Infl 𝒞) m) : Mono (𝒞 := Infl 𝒞) (catMap d m) := by
+    (hm : Monic (𝒞 := Infl 𝒞) m) : Monic (𝒞 := Infl 𝒞) (catMap d m) := by
   -- work entirely in `A`: forget the `A′`-mono to an `A`-mono (`inflMono_to_mono`).
-  have hm𝒞 : Mono (𝒞 := 𝒞) m := inflMono_to_mono hm
+  have hm𝒞 : Monic (𝒞 := 𝒞) m := inflMono_to_mono hm
   intro W p0 q0 hpq
   -- bind the legs as `A`-arrows so all compositions read in `A` (avoid the `A′`/`A` `≫` clash).
   let p : listProd (𝒞 := 𝒞) W ⟶ listProd (s ++ d) := p0
@@ -1976,7 +1976,7 @@ theorem sliceCatObj_mono [HasEqualizers 𝒞] (d : List 𝒞) {V : Infl 𝒞} {X
     OverMono (B := (V ++ d : List 𝒞)) (sliceCatMap d φ) := by
   letI : HasPullbacks (Infl 𝒞) := inflHasPullbacks
   -- underlying mono of `catMap d φ.f` (`catMap_mono` + `sigma_preserves_mono`), then reflect to the slice.
-  have hf : Mono (𝒞 := Infl 𝒞) (catMap d φ.f) := catMap_mono d (sigma_preserves_mono φ hφ)
+  have hf : Monic (𝒞 := Infl 𝒞) (catMap d φ.f) := catMap_mono d (sigma_preserves_mono φ hφ)
   -- `(sliceCatMap d φ).f = catMap d φ.f`, so a slice mono follows from `sigma_reflects_mono`.
   intro W g h hgh
   exact sigma_reflects_mono (𝒞 := Infl 𝒞) (B := V ++ d) (sliceCatMap d φ) hf g h hgh
@@ -2090,8 +2090,8 @@ theorem catMap_conservative {d : List 𝒞} (hws : WellSupported (listProd (𝒞
   -- agree under `catMap d φ` (forget-parts `fst≫u≫φ = fst≫v≫φ`, tails `snd`), so `catMap d φ`-mono
   -- pins them equal; their forget-parts give `fst≫u = fst≫v`, and `fst : Z×∏d → Z` is a cover (`∏d`
   -- well-supported), hence epic, so `u = v`.  (No point on `∏d` is needed — only `fst` epic.)
-  have hφmono : Mono φ := by
-    have hcfMono : Mono (catMap d φ) := mono_of_retraction (catMap d φ) inv hinv1
+  have hφmono : Monic φ := by
+    have hcfMono : Monic (catMap d φ) := mono_of_retraction (catMap d φ) inv hinv1
     intro Z u v huv
     let p : prod Z (listProd (𝒞 := 𝒞) d) ⟶ listProd (s ++ d) := catArrange s d (fst ≫ u) snd
     let q : prod Z (listProd (𝒞 := 𝒞) d) ⟶ listProd (s ++ d) := catArrange s d (fst ≫ v) snd
@@ -2272,8 +2272,8 @@ theorem ordChainHcovpres {i j : ι} (hij : D.le i j) {x y : (ordChainSliceSystem
 /-- **GENERIC** mono-preservation (`hmono`) — the inner transition sends monos to monos, lifting
     `sliceCatObj_mono` through the base-transport, any index. -/
 theorem ordChainHmono {i j : ι} (hij : D.le i j) {x y : (ordChainSliceSystem O).A i}
-    (φ : x ⟶ y) (hφ : Mono (𝒞 := (ordChainSliceSystem O).A i) φ) :
-    Mono (𝒞 := (ordChainSliceSystem O).A j) ((ordChainSliceFunctor O hij).map φ) := by
+    (φ : x ⟶ y) (hφ : Monic (𝒞 := (ordChainSliceSystem O).A i) φ) :
+    Monic (𝒞 := (ordChainSliceSystem O).A j) ((ordChainSliceFunctor O hij).map φ) := by
   revert hφ
   unfold ordChainSliceFunctor
   have gen : ∀ (d : List 𝒞) (W : Infl 𝒞) (e : (O.chain i : List 𝒞) ++ d = W),

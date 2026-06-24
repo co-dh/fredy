@@ -1022,7 +1022,7 @@ def IsCoGeneratingSet {ℬ : Type u₁} [Cat.{v} ℬ] {I : Type v} (C : I → �
     `(i,h)`-projection), so by collective faithfulness `u = v`.  No choice, no completeness. -/
 theorem cogenerating_embeds_in_product {ℬ : Type u₁} [Cat.{v} ℬ] (hp : HasProducts ℬ)
     {I : Type v} {C : I → ℬ} (hcogen : IsCoGeneratingSet C) (B : ℬ) :
-    Mono (hp.tupling (F := fun j : Σ i : I, (B ⟶ C i) => C j.1)
+    Monic (hp.tupling (F := fun j : Σ i : I, (B ⟶ C i) => C j.1)
                      (fun j => j.2)) := by
   classical
   let eB := hp.tupling (F := fun j : Σ i : I, (B ⟶ C i) => C j.1) (fun j => j.2)
@@ -1117,7 +1117,7 @@ private instance cospanDiagFunctor {ℬ : Type u₁} [Cat.{v} ℬ] {L B M : ℬ}
     `θ : A ⟶ G S` with `θ ≫ G πL = η` and `θ ≫ G πB = f`. -/
 private noncomputable def gPullbackFactor {𝒜 : Type u} [Cat.{v} 𝒜] {ℬ : Type u₁} [Cat.{v} ℬ]
     {G : ℬ → 𝒜} [hG : Functor G] [hc : Complete ℬ] (hcont : IsContinuous G)
-    {A : 𝒜} {L B M : ℬ} (w : L ⟶ M) (eB : B ⟶ M) (heB : Mono eB)
+    {A : 𝒜} {L B M : ℬ} (w : L ⟶ M) (eB : B ⟶ M) (heB : Monic eB)
     (η : A ⟶ G L) (f : A ⟶ G B) (hsq : η ≫ hG.map w = f ≫ hG.map eB) :
     Σ' (S : ℬ) (πL : S ⟶ L) (πB : S ⟶ B),
       (∀ {W : ℬ} (s t : W ⟶ S), s ≫ πL = t ≫ πL → s = t) ×'
@@ -1263,7 +1263,7 @@ private noncomputable def saft_preadjoint
     -- embed B into the product Q B of cogenerators over all maps B → Cᵢ
     let eB : B ⟶ hp.prodObj (fun j' : Σ i : I, (B ⟶ C i) => C j'.1) :=
       hp.tupling (fun j' => j'.2)
-    have heB : Mono eB := cogenerating_embeds_in_product hp hcogen B
+    have heB : Monic eB := cogenerating_embeds_in_product hp hcogen B
     -- comparison map w : PA ⟶ Q B, w ≫ projQ (i,h) = projPA ⟨i, f ≫ G h⟩
     let w : PA ⟶ hp.prodObj (fun j' : Σ i : I, (B ⟶ C i) => C j'.1) :=
       hp.tupling (fun j' => projPA ⟨j'.1, f ≫ hG.map j'.2⟩)

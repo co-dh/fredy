@@ -133,7 +133,7 @@ theorem mapTo_botDom_iso [hPL : PreLogos 𝒞] {Z P : 𝒞} (j : Z ⟶ (PreLogos
   obtain ⟨θ, θinv, hθ1, hθ2⟩ := hPL.bottom_dom_iso P (hPL.toHasTerminal.one)
   have hjθ : IsIso (j ≫ θ) := any_map_to_zero_is_iso hPL (j ≫ θ)
   obtain ⟨w, hw1, hw2⟩ := hjθ
-  have hθmono : Mono θ := fun {W} g h hgh => by
+  have hθmono : Monic θ := fun {W} g h hgh => by
     calc g = g ≫ (θ ≫ θinv) := by rw [hθ1, Cat.comp_id]
       _ = (g ≫ θ) ≫ θinv := (Cat.assoc _ _ _).symm
       _ = (h ≫ θ) ≫ θinv := by rw [hgh]

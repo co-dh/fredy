@@ -98,7 +98,7 @@ structure CofinalCapStep where
 def StageRelCap {ι : Type u} {D : Colim.Directed ι} (C : Colim.CatSystem.{u, u} ι D)
     (ht : ∀ i, HasTerminal (C.A i)) (i : ι) (A₀ : C.A i) : Prop :=
   ∀ {j} (hij : D.le i j) {E' : C.A j} (m' : E' ⟶ C.F hij A₀),
-    @Mono (C.A j) (C.catA j) _ _ m' → ¬ @IsIso (C.A j) (C.catA j) _ _ m' →
+    @Monic (C.A j) (C.catA j) _ _ m' → ¬ @IsIso (C.A j) (C.catA j) _ _ m' →
     ∃ (k : ι) (hjk : D.le j k)
       (pt : @HasTerminal.one (C.A k) (C.catA k) (ht k) ⟶ C.F hjk (C.F hij A₀)),
       ¬ ∃ y, y ≫ (C.functF hjk).map m' = pt
@@ -112,7 +112,7 @@ def StageRelCap {ι : Type u} {D : Colim.Directed ι} (C : Colim.CatSystem.{u, u
     `f` mono forces `c.π₂` mono (pullback of a mono is mono), a split-mono section makes `c.π₂` iso.
     Backward: `y := c.π₂⁻¹ ≫ c.π₁` factors `g` (using the square `c.w` and `π₂⁻¹ ≫ π₂ = 1`). -/
 theorem factor_iff_pullback_π₂_iso {𝒞 : Type u} [Cat.{u} 𝒞] {A B C : 𝒞}
-    {f : A ⟶ C} {g : B ⟶ C} (hf : Mono f) (c : Cone f g) (hpb : c.IsPullback) :
+    {f : A ⟶ C} {g : B ⟶ C} (hf : Monic f) (c : Cone f g) (hpb : c.IsPullback) :
     (∃ y : B ⟶ A, y ≫ f = g) ↔ IsIso c.π₂ := by
   constructor
   · rintro ⟨y, hy⟩
@@ -120,7 +120,7 @@ theorem factor_iff_pullback_π₂_iso {𝒞 : Type u} [Cat.{u} 𝒞] {A B C : �
     obtain ⟨s, ⟨hs₁, hs₂⟩, _⟩ := hpb ⟨B, y, Cat.id B, by rw [hy, Cat.id_comp]⟩
     -- `c.π₂` is monic: pullback of the mono `f`.  `u ≫ π₂ = v ≫ π₂` and the square give
     -- `u ≫ π₁ = v ≫ π₁` (cancel `f`), so `u = v` by the pullback's uniqueness.
-    have hπ₂mono : Mono c.π₂ := by
+    have hπ₂mono : Monic c.π₂ := by
       intro W u v huv
       have h₁ : u ≫ c.π₁ = v ≫ c.π₁ := by
         apply hf
@@ -167,8 +167,8 @@ theorem homInclObj_mono_reflects (C : CatSystem.{u, u} ι D) (hC : C.Coherent) [
     (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
         IsIso ((C.functF hij).map φ) → IsIso φ)
     {K : ι} {x y : C.A K} (g : x ⟶ y)
-    (hm : @Mono C.Obj (colimitCat C hC) (C.objIncl K x) (C.objIncl K y) (homInclObj C hC g)) :
-    @Mono (C.A K) (C.catA K) x y g := by
+    (hm : @Monic C.Obj (colimitCat C hC) (C.objIncl K x) (C.objIncl K y) (homInclObj C hC g)) :
+    @Monic (C.A K) (C.catA K) x y g := by
   letI : Cat C.Obj := colimitCat C hC
   letI : HasTerminal (C.A K) := ht K
   letI : HasBinaryProducts (C.A K) := hp K
@@ -288,17 +288,17 @@ theorem wellPointed_of_stage
   have hcodXA : C.objIncl K (C.F hNK xA) = C.objIncl i A₀ := (C.objIncl_compat hNK xA).trans eA
   have hmeq : castHom hcodXE hcodXA (homInclObj C hC mNK) = m :=
     castHom_of_heq hcodXE hcodXA ((homInclObj_push_heq C hC hNK mN).trans hHEq)
-  -- `homInclObj mNK` inherits `Mono` and `¬IsIso` from `m` (cast along the object equalities)
+  -- `homInclObj mNK` inherits `Monic` and `¬IsIso` from `m` (cast along the object equalities)
   have hmNK_eq : homInclObj C hC mNK = castHom hcodXE.symm hcodXA.symm m := by
     rw [← hmeq, castHom_castHom, castHom_rfl]
-  have hm' : @Mono C.Obj (colimitCat C hC) (C.objIncl K (C.F hNK xE)) (C.objIncl K (C.F hNK xA))
+  have hm' : @Monic C.Obj (colimitCat C hC) (C.objIncl K (C.F hNK xE)) (C.objIncl K (C.F hNK xA))
       (homInclObj C hC mNK) := by
     rw [hmNK_eq]; exact mono_castHom hcodXE.symm hcodXA.symm m hm
   have hniso' : ¬ @IsIso C.Obj (colimitCat C hC) (C.objIncl K (C.F hNK xE)) (C.objIncl K (C.F hNK xA))
       (homInclObj C hC mNK) := by
     rw [hmNK_eq]; exact fun h => hniso (isIso_of_castHom hcodXE.symm hcodXA.symm m h)
-  -- reflect `Mono`/`¬IsIso` to the stage germ `mNK`
-  have hmNK_mono : @Mono (C.A K) (C.catA K) (C.F hNK xE) (C.F hNK xA) mNK :=
+  -- reflect `Monic`/`¬IsIso` to the stage germ `mNK`
+  have hmNK_mono : @Monic (C.A K) (C.catA K) (C.F hNK xE) (C.F hNK xA) mNK :=
     homInclObj_mono_reflects C hC ht htpres hp hppres hppres_pair he hepres hepres_lift hcons
       (K := K) (x := C.F hNK xE) (y := C.F hNK xA) mNK hm'
   have hmNK_niso : ¬ @IsIso (C.A K) (C.catA K) _ _ mNK := fun h => by
@@ -334,13 +334,13 @@ theorem wellPointed_of_stage
           (homInclObj C hC mNK) :=
     (castHom_of_heq (C.objIncl_compat hKk (C.F hNK xE)).symm (C.objIncl_compat hKk (C.F hNK xA)).symm
       ((homInclObj_push_heq C hC hKk mNK).symm)).symm
-  have hmk' : @Mono C.Obj (colimitCat C hC) (C.objIncl k (C.F hKk (C.F hNK xE)))
+  have hmk' : @Monic C.Obj (colimitCat C hC) (C.objIncl k (C.F hKk (C.F hNK xE)))
       (C.objIncl k (C.F hKk (C.F hNK xA))) (homInclObj C hC mNk) := by
     rw [hmNk_push]
     exact mono_castHom (C.objIncl_compat hKk (C.F hNK xE)).symm
       (C.objIncl_compat hKk (C.F hNK xA)).symm (homInclObj C hC mNK) hm'
-  -- reflect `Mono` to the stage germ `mNk`
-  have hmNk_mono : @Mono (C.A k) (C.catA k) (C.F hKk (C.F hNK xE)) (C.F hKk (C.F hNK xA)) mNk :=
+  -- reflect `Monic` to the stage germ `mNk`
+  have hmNk_mono : @Monic (C.A k) (C.catA k) (C.F hKk (C.F hNK xE)) (C.F hKk (C.F hNK xA)) mNk :=
     homInclObj_mono_reflects C hC ht htpres hp hppres hppres_pair he hepres hepres_lift hcons
       (K := k) (x := C.F hKk (C.F hNK xE)) (y := C.F hKk (C.F hNK xA)) mNk hmk'
   -- the colimit terminal `one` is `objIncl k (ht k).one` (`objIncl_terminal_eq`)
@@ -510,7 +510,7 @@ theorem capital_of_cofinalSystem {ι : Type u} {D : Colim.Directed ι}
     -- `_hmono` (stage push of monos) is part of the cofinal-system reflection package a caller
     -- supplies; the weakened `wellPointed_of_stage` no longer needs it (monos reflect from the colimit).
     (_hmono : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
-        Mono φ → Mono ((C.functF hij).map φ))
+        Monic φ → Monic ((C.functF hij).map φ))
     (hstage : ∀ (X : C.Obj),
         letI : Cat C.Obj := colimitCat C hC
         letI : PreRegularCategory C.Obj :=
@@ -542,7 +542,7 @@ theorem capData_of_cofinalSystem (A : Type u) [Cat.{u} A] [PreRegularCategory A]
     (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
         IsIso ((C.functF hij).map φ) → IsIso φ)
     (hmono : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
-        Mono φ → Mono ((C.functF hij).map φ))
+        Monic φ → Monic ((C.functF hij).map φ))
     (ht : ∀ i, HasTerminal (C.A i))
     (htpres : ∀ {i j} (hij : D.le i j), C.F hij (ht i).one = (ht j).one)
     (hp : ∀ i, HasBinaryProducts (C.A i))

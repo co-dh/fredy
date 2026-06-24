@@ -25,7 +25,7 @@ namespace Freyd
 structure Subobject (𝒞 : Type u) [Cat.{v} 𝒞] (B : 𝒞) where
   dom   : 𝒞
   arr   : dom ⟶ B
-  monic : Mono arr
+  monic : Monic arr
 
 /-- Order on subobjects: S ≤ T if S factors through T. -/
 def Subobject.le {B : 𝒞} (S T : Subobject 𝒞 B) : Prop :=
@@ -65,9 +65,9 @@ class HasImages (𝒞 : Type u) [Cat.{v} 𝒞] where
   "its image is entire" (proved below). -/
 
 def Cover {X Y : 𝒞} (f : X ⟶ Y) : Prop :=
-  ∀ {C : 𝒞} (m : C ⟶ Y) (g : X ⟶ C), Mono m → g ≫ m = f → IsIso m
+  ∀ {C : 𝒞} (m : C ⟶ Y) (g : X ⟶ C), Monic m → g ≫ m = f → IsIso m
 
-theorem monic_cover_iso {X Y : 𝒞} (f : X ⟶ Y) (hc : Cover f) (hm : Mono f) : IsIso f :=
+theorem monic_cover_iso {X Y : 𝒞} (f : X ⟶ Y) (hc : Cover f) (hm : Monic f) : IsIso f :=
   hc f (Cat.id X) hm (Cat.id_comp f)
 
 /-- Pre-composing a cover with an isomorphism is still a cover: any monic `m`

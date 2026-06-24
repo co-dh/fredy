@@ -66,7 +66,7 @@ theorem RelHom_unique {A B : 𝒞} {R S : BinRel 𝒞 A B}
 /-- **§1.413**: The witnessing morphism is monic.
     If z : R.src → S.src witnesses R ⊂ S, then z is monic. -/
 theorem RelHom_monic {A B : 𝒞} {R S : BinRel 𝒞 A B}
-    (z : R.src ⟶ S.src) (hA : z ≫ S.colA = R.colA) (hB : z ≫ S.colB = R.colB) : Mono z := by
+    (z : R.src ⟶ S.src) (hA : z ≫ S.colA = R.colA) (hB : z ≫ S.colB = R.colB) : Monic z := by
   intro W f g heq
   have hcolA_eq : f ≫ R.colA = g ≫ R.colA := by
     calc
@@ -126,7 +126,7 @@ variable [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
 
 /-- A monic into the product gives a jointly-monic pair (via fst, snd). -/
 theorem monicPair_of_monic_pair {T A B : 𝒞} (a : T ⟶ A) (b : T ⟶ B)
-    (h : Mono (pair a b)) : MonicPair a b := by
+    (h : Monic (pair a b)) : MonicPair a b := by
   intro W f g ha hb
   apply h f g
   have hf : f ≫ pair a b = pair (f ≫ a) (f ≫ b) :=
@@ -141,7 +141,7 @@ theorem monicPair_of_monic_pair {T A B : 𝒞} (a : T ⟶ A) (b : T ⟶ B)
 
 /-- A jointly-monic pair gives a monic into the product. -/
 theorem monic_pair_of_monicPair {T A B : 𝒞} (a : T ⟶ A) (b : T ⟶ B) (hp : MonicPair a b) :
-    Mono (pair a b) := by
+    Monic (pair a b) := by
   intro W f g h
   apply hp f g
   · calc f ≫ a = (f ≫ pair a b) ≫ fst := by rw [Cat.assoc, fst_pair a b]
@@ -168,7 +168,7 @@ def intersect {A B : 𝒞} (R S : BinRel 𝒞 A B) : BinRel 𝒞 A B :=
         R.isMonicPair (f ≫ pb.cone.π₁) (g ≫ pb.cone.π₁) h_colA h_colB
       let eR := pair R.colA R.colB
       let eS := pair S.colA S.colB
-      have hmono_eS : Mono eS := monic_pair_of_monicPair S.colA S.colB S.isMonicPair
+      have hmono_eS : Monic eS := monic_pair_of_monicPair S.colA S.colB S.isMonicPair
       have h_p2 : f ≫ pb.cone.π₂ = g ≫ pb.cone.π₂ := by
         apply hmono_eS (f ≫ pb.cone.π₂) (g ≫ pb.cone.π₂)
         calc
@@ -418,7 +418,7 @@ theorem tabulated_is_entire_iff_left_cover {A B T : 𝒞} (x : T ⟶ A) (y : T �
     let mm : prod C C ⟶ prod A A := pair (fst ≫ m) (snd ≫ m)
     have hmm₁ : mm ≫ fst = fst ≫ m := fst_pair _ _
     have hmm₂ : mm ≫ snd = snd ≫ m := snd_pair _ _
-    have hmm : Mono mm := by
+    have hmm : Monic mm := by
       intro W u v huv
       have hufst : u ≫ fst = v ≫ fst := hm _ _ (by
         calc (u ≫ fst) ≫ m = u ≫ (mm ≫ fst) := by rw [hmm₁, Cat.assoc]
@@ -504,7 +504,7 @@ theorem tabulated_is_entire_iff_left_cover {A B T : 𝒞} (x : T ⟶ A) (y : T �
     let k : pbJ.cone.pt ⟶ A := pbJ.cone.π₁
     let j : pbJ.cone.pt ⟶ I.dom := pbJ.cone.π₂
     have hkj : k ≫ diag A = j ≫ i := pbJ.cone.w
-    have hk : Mono k := by
+    have hk : Monic k := by
       intro W f g hfg
       have hj : f ≫ j = g ≫ j := by
         refine I.monic _ _ ?_
@@ -563,14 +563,14 @@ theorem iso_cover {X Y : 𝒞} (f : X ⟶ Y) (hf : IsIso f) : Cover f := by
     With `tabulated_is_entire_iff_left_cover`, this yields: a tabulated relation
     is a MAP iff its left leg is an isomorphism. -/
 theorem tabulated_is_simple_iff_left_monic {A B T : 𝒞} (a : T ⟶ A) (b : T ⟶ B)
-    (hp : MonicPair a b) : Simple (BinRel.mk T a b hp) ↔ Mono a := by
+    (hp : MonicPair a b) : Simple (BinRel.mk T a b hp) ↔ Monic a := by
   -- shared pullback data for both directions
   let pbA := HasPullbacks.has a a
   let l := pbA.cone.π₁
   let r := pbA.cone.π₂
   let sp := pair (l ≫ b) (r ≫ b)
   constructor
-  · /- Simple → Mono a.
+  · /- Simple → Monic a.
       Given f ≫ a = g ≫ a, pull them back to the pullback of (a, a), then
       Simplicity (the composed relation has equal fst/snd legs) forces
       f ≫ b = g ≫ b; MonicPair a b then gives f = g. -/
@@ -611,7 +611,7 @@ theorem tabulated_is_simple_iff_left_monic {A B T : 𝒞} (a : T ⟶ A) (b : T �
         _ = (u ≫ r) ≫ b := (Cat.assoc _ _ _).symm
         _ = g ≫ b := by rw [hu2]
     exact hp f g hfa h_fb
-  · /- Mono a → Simple.
+  · /- Monic a → Simple.
       Since a is monic, l = r in the pullback of (a, a), so the span
       ⟨l≫b, r≫b⟩ = ⟨l≫b, l≫b⟩ factors through diag B.  Hence the image
       embeds into the diagonal: its fst/snd legs are equal. -/
@@ -978,7 +978,7 @@ theorem pullback_of_surjective_is_pushout_Set {A B C P : Type u}
 theorem image_lift_cover {A B : 𝒞} (f : A ⟶ B) [HasImages 𝒞] : Cover (image.lift f) := by
   intro D m g hm hfac
   -- hfac: g ≫ m = image.lift f, so f = g ≫ (m ≫ (image f).arr)
-  have hmono_comp : Mono (m ≫ (image f).arr) := by
+  have hmono_comp : Monic (m ≫ (image f).arr) := by
     intro W u v huv
     have h1 : u ≫ m = v ≫ m := (image f).monic _ _ (by
       simpa [Cat.assoc] using huv)
@@ -1034,7 +1034,7 @@ theorem cover_is_coequalizer_of_level {A B : 𝒞} (x : A ⟶ B) [RegularCategor
   -- They agree after `x` (hyp on first leg), so land in the kernel pair, whence
   -- `au≫g = av≫g` (the equalizing hypothesis `hg`); cancelling the cover `c`
   -- gives agreement after the second leg, and `I.arr` monic finishes.
-  have hp_mono : Mono (I.arr ≫ fst) := by
+  have hp_mono : Monic (I.arr ≫ fst) := by
     intro W u v huv
     have he_cover : Cover (image.lift xg) := image_lift_cover xg
     let pb1 := HasPullbacks.has (image.lift xg) u
@@ -1371,9 +1371,9 @@ theorem cover_iff_reciprocal_comp_self_eq_one {A B : 𝒞} (x : A ⟶ B) :
 /-- The cover-leg `image.lift f` is an ISO whenever `f` is monic.  `image.lift f`
     is always a cover (`image_lift_cover`); a monic `f = image.lift f ≫ (image f).arr`
     forces its left factor `image.lift f` to be monic; a monic cover is iso. -/
-theorem image_lift_iso_of_mono {A B : 𝒞} (f : A ⟶ B) (hf : Mono f) :
+theorem image_lift_iso_of_mono {A B : 𝒞} (f : A ⟶ B) (hf : Monic f) :
     IsIso (image.lift f) := by
-  have hmono : Mono (image.lift f) := by
+  have hmono : Monic (image.lift f) := by
     intro W u v huv
     apply hf
     calc u ≫ f = u ≫ (image.lift f ≫ (image f).arr) := by rw [image.lift_fac]
@@ -1408,7 +1408,7 @@ variable [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
     with the right projection.  Image minimality yields the RelHom. -/
 theorem graph_id_comp {A B : 𝒞} (R : BinRel 𝒞 A B) : RelLe ((graph (Cat.id A)) ⊚ R) R := by
   let T := R.src; let a := R.colA; let b := R.colB
-  have h_monic : Mono (pair a b) := monic_pair_of_monicPair a b R.isMonicPair
+  have h_monic : Monic (pair a b) := monic_pair_of_monicPair a b R.isMonicPair
   -- Pullback of id_A and a over A
   let pb := HasPullbacks.has (Cat.id A) a
   -- Pullback square: pb.cone.w : pb.cone.π₁ ≫ id_A = pb.cone.π₂ ≫ a
@@ -1471,7 +1471,7 @@ theorem comp_graph_id_left {A B : 𝒞} (R : BinRel 𝒞 A B) : RelLe R ((graph 
     pullback of R.colB and id_B is trivial; image minimality yields the RelHom. -/
 theorem comp_graph_id {A B : 𝒞} (R : BinRel 𝒞 A B) : RelLe (R ⊚ (graph (Cat.id B))) R := by
   let T := R.src; let a := R.colA; let b := R.colB
-  have h_monic : Mono (pair a b) := monic_pair_of_monicPair a b R.isMonicPair
+  have h_monic : Monic (pair a b) := monic_pair_of_monicPair a b R.isMonicPair
   -- Pullback of R.colB and id_B over B
   let pb := HasPullbacks.has b (Cat.id B)
   -- pb.cone.w : pb.cone.π₁ ≫ b = pb.cone.π₂ ≫ id_B
@@ -1528,8 +1528,8 @@ theorem comp_graph_id_right {A B : 𝒞} (R : BinRel 𝒞 A B) : RelLe R (R ⊚ 
 
 /-- Pullback of a mono is a mono: in `pb = pullback(f, m)` with `m` monic,
     the leg `π₁` (the pullback of `m` along `f`) is monic. -/
-theorem pullback_fst_mono {B I D : 𝒞} (f : B ⟶ D) (m : I ⟶ D) (hm : Mono m) :
-    Mono (HasPullbacks.has f m).cone.π₁ := by
+theorem pullback_fst_mono {B I D : 𝒞} (f : B ⟶ D) (m : I ⟶ D) (hm : Monic m) :
+    Monic (HasPullbacks.has f m).cone.π₁ := by
   intro W p q hpq
   let pb := HasPullbacks.has f m
   change p ≫ pb.cone.π₁ = q ≫ pb.cone.π₁ at hpq
@@ -1553,10 +1553,10 @@ theorem pullback_fst_mono {B I D : 𝒞} (f : B ⟶ D) (m : I ⟶ D) (hm : Mono 
     factors through the monic pullback-leg `π₁`, forcing `π₁` to be iso
     (`Cover`), and the diagonal is `π₁⁻¹ ≫ π₂`. -/
 theorem cover_mono_diagonal {A B I D : 𝒞} {c : A ⟶ B} {f : B ⟶ D} {m : I ⟶ D} {d : A ⟶ I}
-    (hc : Cover c) (hm : Mono m) (hsq : c ≫ f = d ≫ m) :
+    (hc : Cover c) (hm : Monic m) (hsq : c ≫ f = d ≫ m) :
     ∃ g : B ⟶ I, c ≫ g = d ∧ g ≫ m = f := by
   let pb := HasPullbacks.has f m
-  have hπmono : Mono pb.cone.π₁ := pullback_fst_mono f m hm
+  have hπmono : Monic pb.cone.π₁ := pullback_fst_mono f m hm
   let cn : Cone f m := ⟨A, c, d, hsq⟩
   let u := pb.lift cn
   have hu₁ : u ≫ pb.cone.π₁ = c := pb.lift_fst cn
@@ -1632,7 +1632,7 @@ theorem compose_le {A B C : 𝒞} {R R' : BinRel 𝒞 A B} {S S' : BinRel 𝒞 B
 theorem relLe_of_cover_factor {A B : 𝒞} {X Y : BinRel 𝒞 A B} {P : 𝒞}
     (c : P ⟶ X.src) (hc : Cover c) (φ : P ⟶ Y.src)
     (hA : φ ≫ Y.colA = c ≫ X.colA) (hB : φ ≫ Y.colB = c ≫ X.colB) : X ⊂ Y := by
-  have hmY : Mono (pair Y.colA Y.colB) := monic_pair_of_monicPair Y.colA Y.colB Y.isMonicPair
+  have hmY : Monic (pair Y.colA Y.colB) := monic_pair_of_monicPair Y.colA Y.colB Y.isMonicPair
   have hsq : c ≫ pair X.colA X.colB = φ ≫ pair Y.colA Y.colB := by
     have e1 : c ≫ pair X.colA X.colB = pair (c ≫ X.colA) (c ≫ X.colB) :=
       pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])
@@ -1915,7 +1915,7 @@ theorem pullback_leg_cover_of_assoc
   let spanM : pbM.cone.pt ⟶ prod B A := pair (pbM.cone.π₁ ≫ (graph g).colA) (pbM.cone.π₂ ≫ ((graph f)°).colB)
   have hspanM_eq : spanM = pair pbM.cone.π₁ pbM.cone.π₂ := by
     dsimp [spanM, graph, reciprocal]; rw [Cat.comp_id, Cat.comp_id]
-  have hspanM_mono : Mono spanM := by
+  have hspanM_mono : Monic spanM := by
     rw [hspanM_eq]
     have hmp : MonicPair pbM.cone.π₁ pbM.cone.π₂ := by
       intro W u v hu hv
@@ -2203,7 +2203,7 @@ theorem comp_graph {A B C : 𝒞} (f : A ⟶ B) (g : B ⟶ C) : RelLe (graph f �
     rw [Cat.comp_id, ← h_simp]
     rw [Cat.assoc]
     exact h_pair_eq.symm
-  have h_monic : Mono (pair (Cat.id A) (f ≫ g)) :=
+  have h_monic : Monic (pair (Cat.id A) (f ≫ g)) :=
     monic_pair_of_monicPair (Cat.id A) (f ≫ g) (graph (f ≫ g)).isMonicPair
   let S : Subobject 𝒞 (prod A C) := ⟨A, pair (Cat.id A) (f ≫ g), h_monic⟩
   have h_allows : Allows S span := ⟨pb.cone.π₁, h_span_eq.symm⟩
@@ -2297,7 +2297,7 @@ theorem reciprocal_comp_le {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞
       rw [Cat.assoc, prodSwap_snd, fst_pair]
     rw [pair_eta (φ ≫ sp'), pair_eta (sp ≫ prodSwap A C), hcfst, hcsnd]
   -- the subobject I'.arr ≫ prodSwap C A : I'.dom → A×C (mono since prodSwap iso)
-  have hswapInv_mono : Mono (prodSwap C A) := by
+  have hswapInv_mono : Monic (prodSwap C A) := by
     intro W u v huv
     have := congrArg (· ≫ prodSwap A C) huv
     simpa [Cat.assoc, prodSwap_prodSwap, Cat.comp_id] using this

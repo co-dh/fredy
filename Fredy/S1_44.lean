@@ -138,8 +138,8 @@ theorem sigma_faithful {B : 𝒞} {X Y : Over B} (f g : OverHom X Y)
 /-! ## §1.531  Σ as a `Functor`; preservation / reflection of monos
 
   `Σ : A/B → A` is genuinely cross-universe (`Over B : Type (max u v)`,
-  `A : Type u`), so it uses the `Mono`-specific `PreservesMono`/`ReflectsMono`
-  (where `Mono` is applied directly, hence universe-clean) rather than the generic
+  `A : Type u`), so it uses the `Monic`-specific `PreservesMono`/`ReflectsMono`
+  (where `Monic` is applied directly, hence universe-clean) rather than the generic
   single-universe `Preserves`/`Reflects`. -/
 
 /-- Σ : A/B → A is a functor; its action on arrows is the underlying arrow `.f`. -/
@@ -151,7 +151,7 @@ instance sliceForgetFunctor (B : 𝒞) : Functor (SliceForget B) where
 /-- **§1.531**: Σ preserves monos.  If `m` is mono in A/B then `m.f` (= Σ m) is mono in A.
     This is the non-trivial direction of the Slice Lemma. -/
 theorem sigma_preserves_mono {B : 𝒞} {Z Y : Over B} (m : OverHom Z Y)
-    (hm : OverMono m) : Mono m.f := by
+    (hm : OverMono m) : Monic m.f := by
   intro D p q hpq
   have wq : q ≫ Z.hom = p ≫ Z.hom := by
     rw [← m.w, ← Cat.assoc, ← Cat.assoc, hpq]
@@ -164,7 +164,7 @@ theorem sigma_preserves_mono {B : 𝒞} {Z Y : Over B} (m : OverHom Z Y)
 /-- **§1.531**: Σ reflects monos.  If `m.f` is mono in A then `m` is mono in A/B.
     This direction follows from the definition. -/
 theorem sigma_reflects_mono {B : 𝒞} {Z Y : Over B} (m : OverHom Z Y)
-    (hmMono : Mono m.f) : OverMono m := by
+    (hmMono : Monic m.f) : OverMono m := by
   intro W g h h_eq
   apply OverHom.ext
   apply hmMono

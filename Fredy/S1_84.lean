@@ -75,7 +75,7 @@ structure DisjointCoproduct {𝒞 : Type u} [Cat.{v} 𝒞]
     [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
     {I : Type v} {A : I → 𝒞} (cp : Coproduct A) : Prop where
   /-- Each injection is monic (expresses uᵢ uᵢ° = 1 as a map). -/
-  inj_monic    : ∀ i, Mono (cp.inj i)
+  inj_monic    : ∀ i, Monic (cp.inj i)
   /-- The injections are jointly a cover of the coproduct object. -/
   inj_cover    : Cover (cp.desc (fun i => cp.inj i))
   /-- Disjointness: the pullback of uᵢ and uⱼ (i ≠ j) is the zero subobject,
@@ -99,10 +99,10 @@ def PullbacksPreserveArbitraryUnions (𝒞 : Type u) [Cat.{v} 𝒞]
     [HasPullbacks 𝒞] [HasImages 𝒞] : Prop :=
   ∀ {A B : 𝒞} (f : A ⟶ B) (S : (Subobject 𝒞 B) → Prop),
     -- hypothesis: the family S covers B (its upper bound is B)
-    (∀ {X : 𝒞} (m : X ⟶ B) (hm : Mono m),
+    (∀ {X : 𝒞} (m : X ⟶ B) (hm : Monic m),
        (∀ s, S s → Subobject.le s ⟨X, m, hm⟩) → IsIso m) →
     -- conclusion: the inverse images f#(S) cover A
-    (∀ {X : 𝒞} (m : X ⟶ A) (hm : Mono m),
+    (∀ {X : 𝒞} (m : X ⟶ A) (hm : Monic m),
        (∀ s, S s → Subobject.le (InverseImage f s) ⟨X, m, hm⟩) → IsIso m)
 
 /-- THE GIRAUD DEFINITION (§1.84):
@@ -194,7 +194,7 @@ theorem le_of_subTrace_le [GrothendieckTopos E] {B : E} {S T : Subobject E B}
     (h : ∀ i x, subTrace S i x → subTrace T i x) : Subobject.le S T := by
   -- Pullback of S.arr and T.arr; π₁ : P → S.dom is monic (pullback of monic T.arr).
   let pb := HasPullbacks.has S.arr T.arr
-  have hπ₁mono : Mono pb.cone.π₁ := mono_pullback S.arr T.arr T.monic pb
+  have hπ₁mono : Monic pb.cone.π₁ := mono_pullback S.arr T.arr T.monic pb
   -- Claim: π₁ is iso.  Suppose not; the basis gives a witness contradicting `h`.
   have hiso : IsIso pb.cone.π₁ := Classical.byContradiction fun hni => by
     obtain ⟨G, ⟨i, hGi⟩, x, hx⟩ :=
@@ -394,7 +394,7 @@ instance grothendieck_topos_locally_complete [GrothendieckTopos E] :
 structure ExtensiveCoproduct {𝒞 : Type u} [Cat.{v} 𝒞] [HasImages 𝒞]
     {I : Type v} {A : I → 𝒞} (cp : Coproduct A) : Prop where
   /-- Each injection `uⱼ` is monic — the diagonal half of "disjoint coproduct". -/
-  inj_monic : ∀ j, Mono (cp.inj j)
+  inj_monic : ∀ j, Monic (cp.inj j)
   /-- Summand support (the off-diagonal-vanishing / pullback-stability half): a generalized
       element `g : T → ΣSⱼ` whose `Σf`-image lands in the `j₀`-th injection is, after a cover
       `c : T' ↠ T`, supported on the `j₀`-th summand `Sⱼ₀`. -/
@@ -410,7 +410,7 @@ structure ExtensiveCoproduct {𝒞 : Type u} [Cat.{v} 𝒞] [HasImages 𝒞]
     the required RelHom k with k ≫ diag A = image(span).arr. -/
 private theorem graph_comp_recip_le_one_monic {𝒞 : Type u} [Cat.{v} 𝒞]
     [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
-    {A S : 𝒞} (u : A ⟶ S) (hu : Mono u) :
+    {A S : 𝒞} (u : A ⟶ S) (hu : Monic u) :
     RelLe (graph u ⊚ (graph u)°) (graph (Cat.id A)) := by
   -- compose (graph u) (graph u)° picks pb = HasPullbacks.has u u
   -- (graph u).colB = u,  (graph u)°.colA = u
@@ -454,7 +454,7 @@ private theorem graph_comp_recip_le_one_monic {𝒞 : Type u} [Cat.{v} 𝒞]
     then d ≫ image.lift s : A → (image s).dom is the required RelHom. -/
 private theorem one_le_graph_comp_recip_monic {𝒞 : Type u} [Cat.{v} 𝒞]
     [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
-    {A S : 𝒞} (u : A ⟶ S) (hu : Mono u) :
+    {A S : 𝒞} (u : A ⟶ S) (hu : Monic u) :
     RelLe (graph (Cat.id A)) (graph u ⊚ (graph u)°) := by
   -- Same internal pullback as graph_comp_recip_le_one_monic
   let pb := HasPullbacks.has u u
@@ -582,7 +582,7 @@ theorem coproduct_is_coproduct_in_Rel
     -- The descent `φ : T' → (R i).src`.  Match the two legs.
     -- `φ ≫ cpR.inj i = c ≫ q`, hence `φ ≫ (R i).colA ≫ uᵢ = c ≫ q ≫ colA_big`,
     -- and `uᵢ` monic gives `φ ≫ (R i).colA = cov ≫ (graph uᵢ ⊚ U).colA`.
-    have huᵢ_mono : Mono uᵢ := hext.inj_monic i
+    have huᵢ_mono : Monic uᵢ := hext.inj_monic i
     -- The two leg-values of the composite cover `cov` (factor `eW`'s leg identities through `c ≫ pb1.π₂`).
     have hcov_colA : cov ≫ (graph uᵢ ⊚ U).colA = (c ≫ pb1.cone.π₂) ≫ pb_c.cone.π₁ := by
       show (c ≫ pb1.cone.π₂ ≫ eW) ≫ (graph uᵢ ⊚ U).colA = _

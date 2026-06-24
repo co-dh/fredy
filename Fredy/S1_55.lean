@@ -119,7 +119,7 @@ theorem homRep_preserves_mono (𝒞 : Type u) [Cat.{u} 𝒞] : PreservesMono (ho
   funext i a
   exact hf (p i a) (q i a) (congrFun (congrFun h i) a)
 
-/-- **Exactness, limit side (ii):** `homRep` REFLECTS monos.  Probe `Mono (T f)`
+/-- **Exactness, limit side (ii):** `homRep` REFLECTS monos.  Probe `Monic (T f)`
     with the representable at `W`: `k ↦ k ≫ g` and `k ↦ k ≫ h` agree after `T f`
     when `g ≫ f = h ≫ f`, so they are equal; evaluating at `id_W` gives `g = h`. -/
 theorem homRep_reflects_mono (𝒞 : Type u) [Cat.{u} 𝒞] : ReflectsMono (homRep 𝒞) := by

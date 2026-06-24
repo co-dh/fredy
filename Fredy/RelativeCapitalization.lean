@@ -200,9 +200,9 @@ theorem sliceEmbedFaithful (B : 𝒞) [PullbacksTransferCovers 𝒞] (hws : Well
   rw [sliceEmbedFunctor_map_f] at hfBiso
   -- `f×B` mono (from its inverse as a retraction)
   obtain ⟨inv, hinv1, _hinv2⟩ := hfBiso
-  have hfBmono : Mono ((prodRightFunctor B).map f) := mono_of_retraction _ inv hinv1
+  have hfBmono : Monic ((prodRightFunctor B).map f) := mono_of_retraction _ inv hinv1
   -- `f` mono: descend monicity through the embedding functor.
-  have hfmono : Mono f := by
+  have hfmono : Monic f := by
     intro Z u v huv
     -- functoriality: `(u≫f)×B = (v≫f)×B`, i.e. `(u×B)≫(f×B) = (v×B)≫(f×B)`
     have h1 : (prodRightFunctor B).map (u ≫ f) = (prodRightFunctor B).map (v ≫ f) := by
@@ -416,7 +416,7 @@ theorem baseChange_freshFactor_missed {P A : 𝒞} {D : Over P}
         (by rw [Cat.assoc, Cat.assoc]; exact hPleg)
     rw [hpair, pair_fst_snd]
   -- `m.f` is split-epi (right inverse `s ≫ cnD.π₁`), hence a cover; monic ⟹ iso ⟹ `m` slice-iso.
-  have hfmono : Mono m.f := sigma_preserves_mono m hmono
+  have hfmono : Monic m.f := sigma_preserves_mono m hmono
   have hcover : Cover m.f := by
     intro K n h hn hfac
     -- `n` mono, `h ≫ n = m.f`; the right inverse of `n` is `(s ≫ cnD.π₁) ≫ h`.

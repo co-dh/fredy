@@ -36,7 +36,7 @@ def term (X : 𝒞) : X ⟶ one := ht.trm X
 theorem term_uniq {X : 𝒞} (f g : X ⟶ one) : f = g := ht.uniq f g
 
 /-- A SUBTERMINATOR is an object T such that T→1 is monic (§1.412). -/
-def Subterminator (T : 𝒞) : Prop := Mono (term T)
+def Subterminator (T : 𝒞) : Prop := Monic (term T)
 
 /-- A VALUE is a subterminator (§1.412). -/
 def Value : 𝒞 → Prop := Subterminator
@@ -94,7 +94,7 @@ def diag (A : 𝒞) : A ⟶ prod A A := pair (Cat.id A) (Cat.id A)
 theorem diag_fst (A : 𝒞) : diag A ≫ fst = Cat.id A := fst_pair _ _
 theorem diag_snd (A : 𝒞) : diag A ≫ snd = Cat.id A := snd_pair _ _
 
-theorem diag_mono (A : 𝒞) : Mono (diag A) :=
+theorem diag_mono (A : 𝒞) : Monic (diag A) :=
   mono_of_retraction (diag A) fst (diag_fst A)
 
 /-! ### §1.423 Product corollaries -/
@@ -139,24 +139,70 @@ theorem product_unique_iso {A B : 𝒞} [hp2 : HasBinaryProducts 𝒞]
 
 /-! ### §1.426 Monic and monic into product -/
 
-/-- b is monic → ⟨f, b⟩ : T → A×B is monic (§1.426, one direction).
-    The full statement: b is monic iff (x,y): T→A×B is monic for every x with MonicPair x y.
-    This direction is clean and useful. -/
-theorem mono_pair_of_mono {T A B : 𝒞} (f : T ⟶ A) (b : T ⟶ B) (hb : Mono b) :
-    Mono (pair f b) := by
-  intro W g h heq
-  apply hb
-  calc g ≫ b = (g ≫ pair f b) ≫ snd := by rw [Cat.assoc, snd_pair]
-    _ = (h ≫ pair f b) ≫ snd := by rw [heq]
-    _ = h ≫ b := by rw [Cat.assoc, snd_pair]
+/-- §1.426: `x : T → A`, `y : T → B` is a monic pair iff `⟨x,y⟩ : T → A×B` is monic.
+    This is the correspondence underlying `Rel(A,B) ≅ Sub(A×B)`. -/
+theorem monicPair_iff_monic_pair {T A B : 𝒞} (x : T ⟶ A) (y : T ⟶ B) :
+    MonicPair x y ↔ Monic (pair x y) := by
+  -- `by` switches to tactic mode: we manipulate the goal step by step instead of
+  -- writing the proof term directly. The goal is the `↔` (iff).
+  -- `constructor` splits `P ↔ Q` into its two halves: prove `P → Q`, then `Q → P`.
+  -- Each `·` below is a "bullet" that focuses on one of those two halves in turn.
+  constructor
+  -- ── Forward: assuming the pair is jointly monic, show ⟨x,y⟩ is monic. ──
+  -- `Monic (pair x y)` unfolds to: for all g, h with g≫⟨x,y⟩ = h≫⟨x,y⟩, we get g = h.
+  -- `intro` names the things we're given: the witness object W, the two maps g h,
+  -- and the hypothesis `heq : g ≫ pair x y = h ≫ pair x y`. Goal becomes `g = h`.
+  · intro hp W g h heq
+    -- `hp : MonicPair x y` says: if `g≫x = h≫x` AND `g≫y = h≫y`, then `g = h`.
+    -- `apply hp g h` makes `g = h` follow from hp, leaving its two premises as new goals.
+    apply hp g h
+    -- Premise 1: `g ≫ x = h ≫ x`. Prove it by a chain of equalities (`calc`).
+    -- `rw` rewrites the goal using known equations: `Cat.assoc` reassociates
+    -- `(g ≫ p) ≫ fst` into `g ≫ (p ≫ fst)`, and `fst_pair` says `⟨x,y⟩ ≫ fst = x`.
+    · calc g ≫ x = (g ≫ pair x y) ≫ fst := by rw [Cat.assoc, fst_pair]
+        -- swap g≫⟨x,y⟩ for h≫⟨x,y⟩ using our hypothesis `heq`
+        _ = (h ≫ pair x y) ≫ fst := by rw [heq]
+        -- collapse back the same way: `(h ≫ ⟨x,y⟩) ≫ fst = h ≫ x`
+        _ = h ≫ x := by rw [Cat.assoc, fst_pair]
+    -- Premise 2: identical argument on the second coordinate, using `snd` / `snd_pair`.
+    · calc g ≫ y = (g ≫ pair x y) ≫ snd := by rw [Cat.assoc, snd_pair]
+        _ = (h ≫ pair x y) ≫ snd := by rw [heq]
+        _ = h ≫ y := by rw [Cat.assoc, snd_pair]
+  -- ── Backward: assuming ⟨x,y⟩ is monic, show the pair is jointly monic. ──
+  -- `MonicPair x y` unfolds to: given f, g with `f≫x = g≫x` (hx) and `f≫y = g≫y` (hy),
+  -- conclude `f = g`. `intro` names all of these; goal becomes `f = g`.
+  · intro hm W f g hx hy
+    -- `hm : Monic (pair x y)` says `f ≫ ⟨x,y⟩ = g ≫ ⟨x,y⟩` is enough to force `f = g`.
+    -- `apply hm f g` reduces the goal `f = g` to proving that single equation.
+    apply hm f g
+    -- `have` proves a small intermediate fact and names it (`e₁`, `e₂`).
+    -- `pair_uniq` is the universal property: any map into A×B equals `⟨its fst part, its snd part⟩`.
+    -- The two `(by …)` arguments discharge its side conditions:
+    --   `(f ≫ ⟨x,y⟩) ≫ fst = f ≫ x` and `(f ≫ ⟨x,y⟩) ≫ snd = f ≫ y`.
+    -- So e₁ rewrites `f ≫ ⟨x,y⟩` into the explicit pair `⟨f≫x, f≫y⟩`.
+    have e₁ : f ≫ pair x y = pair (f ≫ x) (f ≫ y) :=
+      pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])
+    -- e₂: the same for g, giving `g ≫ ⟨x,y⟩ = ⟨g≫x, g≫y⟩`.
+    have e₂ : g ≫ pair x y = pair (g ≫ x) (g ≫ y) :=
+      pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])
+    -- Goal `f ≫ ⟨x,y⟩ = g ≫ ⟨x,y⟩`. Rewrite both sides via e₁,e₂ to get
+    -- `⟨f≫x, f≫y⟩ = ⟨g≫x, g≫y⟩`, then `hx : f≫x = g≫x` and `hy : f≫y = g≫y`
+    -- make the two pairs literally identical, closing the goal.
+    rw [e₁, e₂, hx, hy]
+
+/-- If `y` is monic then `⟨x,y⟩ : T → A×B` is monic — the clean special case of §1.426
+    (a single monic column already makes the pair monic). Used downstream in §1.64. -/
+theorem monic_pair_of_monic {T A B : 𝒞} (x : T ⟶ A) (y : T ⟶ B) (hy : Monic y) :
+    Monic (pair x y) :=
+  (monicPair_iff_monic_pair x y).mp (fun f g _ hyy => hy f g hyy)
 
 /-- §1.426: A monic b : A → B gives a correspondence Sub(A,B) ≅ Sub(A×B).
     The element in Sub(A×B) corresponding to b ∈ Sub(A,B) is pair(id_A, b) : A → A×B.
-    Note: this map is monic when b is monic (use `mono_pair_of_mono`).
+    Note: this map is monic when b is monic (use `monic_pair_of_monic`).
     The full §1.426 isomorphism of posets is formalized via the monic/subobject infrastructure
     in §1.56; here we record the key arrow: b monic → pair(id,b) monic. -/
-theorem mono_id_pair_of_mono {A B : 𝒞} (b : A ⟶ B) (hb : Mono b) :
-    Mono (pair (Cat.id A) b) := mono_pair_of_mono _ b hb
+theorem monic_id_pair_of_monic {A B : 𝒞} (b : A ⟶ B) (hb : Monic b) :
+    Monic (pair (Cat.id A) b) := monic_pair_of_monic _ b hb
 
 /-! ### Product commutativity (§1.42)  A×B ≅ B×A -/
 

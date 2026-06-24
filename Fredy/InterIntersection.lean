@@ -52,7 +52,7 @@ noncomputable abbrev powObj (A : 𝒞) : 𝒞 := omega (𝒞 := 𝒞) ^^ A
 
 /-- The NAME 'A'' : 1 → [A] of the monic m : A' → A (§1.942).
     curry(fst ≫ χ_m) : one → Ω^A, where fst : prod A one → A. -/
-noncomputable def nameOf {A A' : 𝒞} (m : A' ⟶ A) (hm : Mono m) : one ⟶ powObj A :=
+noncomputable def nameOf {A A' : 𝒞} (m : A' ⟶ A) (hm : Monic m) : one ⟶ powObj A :=
   curry (fst ≫ classify m hm)
 
 /-- A' is NAMED BY F ⊆ [A] if 'A'' ∈ F, i.e. 'A'' factors through F (§1.942). -/
@@ -90,7 +90,7 @@ noncomputable def interIntersection {A : 𝒞} (F_name : one ⟶ powObj A) : Sub
     Proof: `nameOf m hm = curry(fst ≫ χ_m)`; the membership map factors as
     `pair id (term) ≫ prodMap (curry …) ≫ eval`, and `curry_eval` collapses the
     `prodMap … ≫ eval` to `fst ≫ χ_m`, then `fst (pair id term) = id`. -/
-theorem membershipMap_nameOf {A A' : 𝒞} (m : A' ⟶ A) (hm : Mono m) :
+theorem membershipMap_nameOf {A A' : 𝒞} (m : A' ⟶ A) (hm : Monic m) :
     membershipMap (nameOf m hm) = HasSubobjectClassifier.classify m hm := by
   show pair (Cat.id A) (term A ≫ nameOf m hm) ≫ eval_exp A (omega (𝒞 := 𝒞))
       = HasSubobjectClassifier.classify m hm
@@ -224,7 +224,7 @@ noncomputable def singletonMap (A : 𝒞) : A ⟶ powObj A :=
   singletonMapCat (𝒞 := 𝒞) A
 
 /-- **§1.94(10)**: the singleton map is monic (§1.92, reuse of `singletonMapCat_monic`). -/
-theorem singletonMap_monic (A : 𝒞) : Mono (singletonMap A) :=
+theorem singletonMap_monic (A : 𝒞) : Monic (singletonMap A) :=
   singletonMapCat_monic (𝒞 := 𝒞) A
 
 end Freyd

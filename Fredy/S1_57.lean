@@ -74,7 +74,7 @@ class ACRegularCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
     split epi (cover with section) and m is monic. -/
 theorem ac_factorization [ACRegularCategory 𝒞] {A B : 𝒞} (f : A ⟶ B) :
     ∃ (C : 𝒞) (p : A ⟶ C) (m : C ⟶ B),
-      (∃ (s : C ⟶ A), s ≫ p = Cat.id C) ∧ Mono m ∧ p ≫ m = f := by
+      (∃ (s : C ⟶ A), s ≫ p = Cat.id C) ∧ Monic m ∧ p ≫ m = f := by
   -- Resolve instance diamond: the variable line supplies HasImages etc.,
   -- and ACRegularCategory supplies them again.  Use letI to pick one.
   letI : HasBinaryProducts 𝒞 := ACRegularCategory.toHasBinaryProducts
@@ -99,7 +99,7 @@ theorem ac_factorization [ACRegularCategory 𝒞] {A B : 𝒞} (f : A ⟶ B) :
     intro D m g hm hfac
     -- hfac: g ≫ m = image.lift f, so f = g ≫ (m ≫ I.arr)
     -- The subobject S with arr = m ≫ I.arr allows f via g.
-    have hmono_comp : Mono (m ≫ I.arr) := by
+    have hmono_comp : Monic (m ≫ I.arr) := by
       intro W u v huv
       have h1 : u ≫ m = v ≫ m := I.monic _ _ (by
         simpa [Cat.assoc] using huv)
@@ -157,7 +157,7 @@ section S1_571
 variable [CartesianCategory 𝒞]
 
 /-- Equalizer maps are monic. -/
-theorem eqMap_mono {A B : 𝒞} (f g : A ⟶ B) : Mono (eqMap f g) := by
+theorem eqMap_mono {A B : 𝒞} (f g : A ⟶ B) : Monic (eqMap f g) := by
   intro W u v h
   let k := u ≫ eqMap f g
   have hk : k ≫ f = k ≫ g := by
@@ -190,7 +190,7 @@ theorem ac_factorization_via_idempotent
       e ≫ e = e ∧ e ≫ x = x ∧
       (kernelPairRel e) ⊂ (kernelPairRel x) ∧ (kernelPairRel x) ⊂ (kernelPairRel e))
     {A B : 𝒞} (x : A ⟶ B) : ∃ (C : 𝒞) (p : A ⟶ C) (n : C ⟶ B),
-      (∃ (s : C ⟶ A), s ≫ p = Cat.id C) ∧ Mono n ∧ p ≫ n = x := by
+      (∃ (s : C ⟶ A), s ≫ p = Cat.id C) ∧ Monic n ∧ p ≫ n = x := by
   -- The outer variable [HasPullbacks 𝒞] (from line 27) provides the pullback
   -- instance; we use it directly for kernelPair, kp₁, etc.
   rcases h_exists x with ⟨e, hee, hex, _hle1, hle2⟩
@@ -204,7 +204,7 @@ theorem ac_factorization_via_idempotent
   have hm_e : m ≫ e = m := by
     simpa [Cat.comp_id] using hm_eq.symm
   -- m is monic (equalizer maps are monic)
-  have hm_mono : Mono m := eqMap_mono (Cat.id A) e
+  have hm_mono : Monic m := eqMap_mono (Cat.id A) e
   -- p has left inverse m (since m ≫ e = m, split the idempotent e)
   have hm_p : m ≫ p = Cat.id (eqObj (Cat.id A) e) := by
     apply hm_mono
@@ -223,7 +223,7 @@ theorem ac_factorization_via_idempotent
       _ = e ≫ x := by rw [hp_fac]
       _ = x := hex
   -- n is monic: proof uses level(x) ⊂ level(e) (hle2)
-  have hn_mono : Mono n := by
+  have hn_mono : Monic n := by
     intro W u v h
     have h_mx_eq : (u ≫ m) ≫ x = (v ≫ m) ≫ x := by
       dsimp [n] at h; simpa [Cat.assoc] using h

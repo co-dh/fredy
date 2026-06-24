@@ -46,7 +46,7 @@ theorem cover_comp_iso {X Y Z : 𝒞} (f : X ⟶ Y) (g : Y ⟶ Z) (hf : Cover f)
     Cover (f ≫ g) := by
   obtain ⟨g_inv, hgg_inv, hg_inv_g⟩ := hg
   intro C m h hm heq
-  have hm_ginv_mono : Mono (m ≫ g_inv) := by
+  have hm_ginv_mono : Monic (m ≫ g_inv) := by
     intro W u v huv
     apply hm u v
     have : (u ≫ m ≫ g_inv) ≫ g = (v ≫ m ≫ g_inv) ≫ g := by rw [huv]
@@ -140,7 +140,7 @@ theorem map_to_graph {A B : 𝒞} (R : BinRel 𝒞 A B) (hR : Map R) :
 theorem cover_of_image_factor {A B : 𝒞} {g : A ⟶ B} {I : Subobject 𝒞 B}
     (hI : IsImage g I) {e : A ⟶ I.dom} (he : e ≫ I.arr = g) : Cover e := by
   intro D m gg hm hfac
-  have hmono_comp : Mono (m ≫ I.arr) := by
+  have hmono_comp : Monic (m ≫ I.arr) := by
     intro W u v huv
     exact hm _ _ (I.monic _ _ (by simpa [Cat.assoc] using huv))
   have h_allows : Allows ⟨D, m ≫ I.arr, hmono_comp⟩ g := by
@@ -226,7 +226,7 @@ theorem jcc_le [HasBinaryCoproducts 𝒞] {C₁ C₂ U : 𝒞} (x : C₁ ⟶ U) 
     pair (pb.cone.π₁ ≫ ((graph j)°).colA) (pb.cone.π₂ ≫ (graph j).colB)
   let Uu : BinRel 𝒞 U U := (graph x)° ⊚ (graph x) ∪ᵣ (graph y)° ⊚ (graph y)
   let pU : Uu.src ⟶ prod U U := pair Uu.colA Uu.colB
-  have hpU_mono : Mono pU := monic_pair_of_monicPair Uu.colA Uu.colB Uu.isMonicPair
+  have hpU_mono : Monic pU := monic_pair_of_monicPair Uu.colA Uu.colB Uu.isMonicPair
   obtain ⟨αx, hαx1, hαx2⟩ := pairxx_factor x
   obtain ⟨lx, hlxA, hlxB⟩ := relUnion_le_left ((graph x)° ⊚ (graph x)) ((graph y)° ⊚ (graph y))
   let α' : C₁ ⟶ Uu.src := αx ≫ lx
@@ -284,7 +284,7 @@ theorem union_joint_cover [HasBinaryCoproducts 𝒞] {A : 𝒞} (A₁ A₂ : Sub
 
 /-- `graph x ⊚ (graph x)° ⊆ 1` when `x` is monic — the reciprocal self-composite of a
     monic graph is contained in the identity (`Simple` of `(graph x)°`). -/
-theorem graph_comp_recip_le_one_of_mono {A B : 𝒞} (x : A ⟶ B) (hx : Mono x) :
+theorem graph_comp_recip_le_one_of_mono {A B : 𝒞} (x : A ⟶ B) (hx : Monic x) :
     RelLe (graph x ⊚ (graph x)°) (graph (Cat.id A)) := by
   have hp : MonicPair (x : A ⟶ B) (Cat.id A) := by
     intro W f g _ hid; simpa [Cat.comp_id] using hid
@@ -315,7 +315,7 @@ theorem inter_lemma {A₁ A₂ U A : 𝒞} (x : A₁ ⟶ U) (y : A₂ ⟶ U) (ua
   have hm2 : m ≫ pI.cone.π₂ = pxy.cone.π₂ := pI.lift_snd cI
   let RHS := (graph pI.cone.π₁)° ⊚ (graph pI.cone.π₂)
   let pR : RHS.src ⟶ prod A₁ A₂ := pair RHS.colA RHS.colB
-  have hpR_mono : Mono pR := monic_pair_of_monicPair RHS.colA RHS.colB RHS.isMonicPair
+  have hpR_mono : Monic pR := monic_pair_of_monicPair RHS.colA RHS.colB RHS.isMonicPair
   let pbR := HasPullbacks.has (((graph pI.cone.π₁)°).colB) ((graph pI.cone.π₂).colA)
   have hcwR : (Cat.id pI.cone.pt) ≫ (((graph pI.cone.π₁)°).colB) =
       (Cat.id pI.cone.pt) ≫ ((graph pI.cone.π₂).colA) := by simp [graph, reciprocal]
@@ -386,7 +386,7 @@ theorem hxyg_lemma {A₁ A₂ Q I : 𝒞} (f : A₁ ⟶ Q) (g : A₂ ⟶ Q)
     _ ⊂ fr := graph_id_comp fr
 
 /-- Diagonal term: `P° ⊚ P ⊆ 1_Q` where `P = (graph x)° ⊚ graph f` and `x` is monic. -/
-theorem diag_le_one {A₁ U Q : 𝒞} (x : A₁ ⟶ U) (f : A₁ ⟶ Q) (hx : Mono x) :
+theorem diag_le_one {A₁ U Q : 𝒞} (x : A₁ ⟶ U) (f : A₁ ⟶ Q) (hx : Monic x) :
     RelLe (((graph x)° ⊚ graph f)° ⊚ ((graph x)° ⊚ graph f)) (graph (Cat.id Q)) := by
   -- Book §1.62 (maps as relations via `↑`):  P°P = (x°f)°(x°f) ⊆ f°x·x°f
   --   = f°(xx°)f ⊆ f°·1·f = f°f ⊆ 1, the middle step using x monic (xx° ⊆ 1).
@@ -511,10 +511,10 @@ noncomputable def pasting_lemma [HasBinaryCoproducts 𝒞] {A : 𝒞} (A₁ A₂
       _ = pb.cone.π₂ ≫ (y ≫ U.arr) := by rw [hy]
       _ = (pb.cone.π₂ ≫ y) ≫ U.arr := (Cat.assoc _ _ _).symm
   -- Descent: for every cocone c there is a unique q with x ≫ q = c.ι₁, y ≫ q = c.ι₂.
-  have hxmono : Mono x := by
+  have hxmono : Monic x := by
     intro W u v huv; apply A₁.monic
     rw [← hx, ← Cat.assoc, ← Cat.assoc, huv]
-  have hymono : Mono y := by
+  have hymono : Monic y := by
     intro W u v huv; apply A₂.monic
     rw [← hy, ← Cat.assoc, ← Cat.assoc, huv]
   have hjcov : Cover (HasBinaryCoproducts.case x y) := union_case_cover A₁ A₂ hx hy
@@ -651,12 +651,12 @@ class PositivePreLogos (𝒞 : Type u) [Cat.{v} 𝒞] extends PreLogos 𝒞, Has
 /-- The left injection `inl : A ⟶ A+B` packaged as a subobject of `A+B`, given that
     it is monic.  Used to phrase §1.621 disjointness `inl ∩ inr ≤ 0` via the existing
     `Subobject.inter`. -/
-def inlSub [HasBinaryCoproducts 𝒞] {A B : 𝒞} (h : Mono (HasBinaryCoproducts.inl (A := A) (B := B))) :
+def inlSub [HasBinaryCoproducts 𝒞] {A B : 𝒞} (h : Monic (HasBinaryCoproducts.inl (A := A) (B := B))) :
     Subobject 𝒞 (HasBinaryCoproducts.coprod A B) :=
   ⟨A, HasBinaryCoproducts.inl, h⟩
 
 /-- The right injection `inr : B ⟶ A+B` packaged as a subobject of `A+B`. -/
-def inrSub [HasBinaryCoproducts 𝒞] {A B : 𝒞} (h : Mono (HasBinaryCoproducts.inr (A := A) (B := B))) :
+def inrSub [HasBinaryCoproducts 𝒞] {A B : 𝒞} (h : Monic (HasBinaryCoproducts.inr (A := A) (B := B))) :
     Subobject 𝒞 (HasBinaryCoproducts.coprod A B) :=
   ⟨B, HasBinaryCoproducts.inr, h⟩
 
@@ -666,9 +666,9 @@ def inrSub [HasBinaryCoproducts 𝒞] {A B : 𝒞} (h : Mono (HasBinaryCoproduct
     balancedness (§1.652), and Diaconescu's theorem (§1.662) all rest on. -/
 class DisjointBinaryCoproduct (𝒞 : Type u) [Cat.{v} 𝒞] extends PositivePreLogos 𝒞 where
   /-- The left injection is monic (it is a subobject inclusion). -/
-  inl_monic : ∀ {A B : 𝒞}, Mono (HasBinaryCoproducts.inl (A := A) (B := B))
+  inl_monic : ∀ {A B : 𝒞}, Monic (HasBinaryCoproducts.inl (A := A) (B := B))
   /-- The right injection is monic. -/
-  inr_monic : ∀ {A B : 𝒞}, Mono (HasBinaryCoproducts.inr (A := A) (B := B))
+  inr_monic : ∀ {A B : 𝒞}, Monic (HasBinaryCoproducts.inr (A := A) (B := B))
   /-- §1.621 disjointness: `inl ∩ inr = 0` (their intersection is the bottom subobject).
       The intersection is the pullback of `inl` and `inr`, here `≤ PreLogos.bottom`. -/
   inl_inter_inr : ∀ {A B : 𝒞},
@@ -689,12 +689,12 @@ class DisjointBinaryCoproduct (𝒞 : Type u) [Cat.{v} 𝒞] extends PositivePre
 
 /-- **§1.621**: in a positive (disjoint) coproduct the left injection is monic. -/
 theorem inl_mono [DisjointBinaryCoproduct 𝒞] {A B : 𝒞} :
-    Mono (HasBinaryCoproducts.inl (A := A) (B := B)) :=
+    Monic (HasBinaryCoproducts.inl (A := A) (B := B)) :=
   DisjointBinaryCoproduct.inl_monic
 
 /-- **§1.621**: in a positive (disjoint) coproduct the right injection is monic. -/
 theorem inr_mono [DisjointBinaryCoproduct 𝒞] {A B : 𝒞} :
-    Mono (HasBinaryCoproducts.inr (A := A) (B := B)) :=
+    Monic (HasBinaryCoproducts.inr (A := A) (B := B)) :=
   DisjointBinaryCoproduct.inr_monic
 
 -- These three projection lemmas use a FRESH type variable `𝒟` (not the file-level `𝒞`)
@@ -949,7 +949,7 @@ def IsGeneratingSet (ℱ : 𝒞 → Prop) : Prop :=
     and G→A not factoring through A'. -/
 def IsBasis [HasPullbacks 𝒞] (ℱ : 𝒞 → Prop) : Prop :=
   IsGeneratingSet ℱ ∧
-  ∀ {A' A : 𝒞} (m : A' ⟶ A), Mono m → ¬ IsIso m →
+  ∀ {A' A : 𝒞} (m : A' ⟶ A), Monic m → ¬ IsIso m →
     ∃ G : 𝒞, ℱ G ∧ ∃ (x : G ⟶ A), ¬ ∃ (y : G ⟶ A'), y ≫ m = x
 
 /-! ## §1.634 Pre-filter
@@ -1035,7 +1035,7 @@ theorem complemented_of_projective_is_projective [DisjointBinaryCoproduct 𝒞]
   obtain ⟨φ, φ_inv, hφφ_inv, hφ_inv_φ⟩ := hiso
   -- φ : Q → P+P', φ_inv : P+P' → Q, φ ≫ φ_inv = id_Q, φ_inv ≫ φ = id_{P+P'}.
   -- φ_inv is monic (retraction φ gives left inverse).
-  have hφ_inv_mono : Mono φ_inv :=
+  have hφ_inv_mono : Monic φ_inv :=
     mono_of_retraction φ_inv φ hφ_inv_φ
   -- Form h := case(y ≫ inl, inr) : B+P' → P+P'.
   -- Key equations: inl_B ≫ h = y ≫ inl_P (by case_inl) and inr_P' ≫ h = inr_P' (by case_inr).
@@ -1585,7 +1585,7 @@ def coprodMapOne [DisjointBinaryCoproduct 𝒞] {A' A : 𝒞} (m : A' ⟶ A) :
 variable [DisjointBinaryCoproduct 𝒞]
 
 /-- The post-composition subobject `T ≫ i` of a subobject `T ↣ A` along a mono `i : A ↣ B`. -/
-def postcompSub {A B : 𝒞} (T : Subobject 𝒞 A) {i : A ⟶ B} (hi : Mono i) : Subobject 𝒞 B :=
+def postcompSub {A B : 𝒞} (T : Subobject 𝒞 A) {i : A ⟶ B} (hi : Monic i) : Subobject 𝒞 B :=
   ⟨T.dom, T.arr ≫ i, by
     intro W u v huv
     refine T.monic _ _ (hi _ _ ?_)
@@ -1594,7 +1594,7 @@ def postcompSub {A B : 𝒞} (T : Subobject 𝒞 A) {i : A ⟶ B} (hi : Mono i) 
 /-- Pulling a post-composed subobject back along the SAME mono recovers (at most) the original:
     `i⁻¹(T ≫ i) ≤ T` for `i` monic.  The pullback's `π₂` leg is the witness: `π₁ ≫ i = π₂ ≫ (T.arr ≫ i)`
     and `i` monic gives `π₁ = π₂ ≫ T.arr`, exactly `(i⁻¹(T≫i)).arr = π₂ ≫ T.arr`. -/
-theorem invImage_postcompSub_le {A B : 𝒞} (T : Subobject 𝒞 A) {i : A ⟶ B} (hi : Mono i) :
+theorem invImage_postcompSub_le {A B : 𝒞} (T : Subobject 𝒞 A) {i : A ⟶ B} (hi : Monic i) :
     (InverseImage i (postcompSub T hi)).le T := by
   let pb := HasPullbacks.has i (postcompSub T hi).arr
   refine ⟨pb.cone.π₂, ?_⟩
@@ -1647,7 +1647,7 @@ theorem invImage_inl_inrSub_le_any {A B : 𝒞} (T : Subobject 𝒞 A) :
     The `image (m≫inl)` summand pulls back `≤ image m` (`invImage_postcompSub_le`, image-min).  So if the
     union were entire, `image m` would be entire — i.e. `m` a cover — and a monic cover is iso. -/
 theorem coprodMapOne_image_proper {A' A : 𝒞} (m : A' ⟶ A)
-    (hm : Mono m) (hmiso : ¬ IsIso m) : ¬ (image (coprodMapOne m)).IsEntire := by
+    (hm : Monic m) (hmiso : ¬ IsIso m) : ¬ (image (coprodMapOne m)).IsEntire := by
   intro hEntire
   apply hmiso
   -- `m` is iso: it is a monic cover, since `image m` is entire.
@@ -1737,7 +1737,7 @@ noncomputable def prodCoprodInr (A B C : 𝒞) : prod B C ⟶ prod (coprod A B) 
   pair (fst ≫ HasBinaryCoproducts.inr) snd
 
 /-- `inl × id_C` is monic (`inl` monic + projections jointly monic). -/
-theorem prodCoprodInl_mono (A B C : 𝒞) : Mono (prodCoprodInl (𝒞 := 𝒞) A B C) := by
+theorem prodCoprodInl_mono (A B C : 𝒞) : Monic (prodCoprodInl (𝒞 := 𝒞) A B C) := by
   intro W u v huv
   have h1 : (u ≫ fst) ≫ (HasBinaryCoproducts.inl (A := A) (B := B)) = (v ≫ fst) ≫ HasBinaryCoproducts.inl := by
     have := congrArg (· ≫ fst) huv
@@ -1748,7 +1748,7 @@ theorem prodCoprodInl_mono (A B C : 𝒞) : Mono (prodCoprodInl (𝒞 := 𝒞) A
   exact fst_snd_jointly_monic u v (inl_mono _ _ h1) h2
 
 /-- `inr × id_C` is monic. -/
-theorem prodCoprodInr_mono (A B C : 𝒞) : Mono (prodCoprodInr (𝒞 := 𝒞) A B C) := by
+theorem prodCoprodInr_mono (A B C : 𝒞) : Monic (prodCoprodInr (𝒞 := 𝒞) A B C) := by
   intro W u v huv
   have h1 : (u ≫ fst) ≫ (HasBinaryCoproducts.inr (A := A) (B := B)) = (v ≫ fst) ≫ HasBinaryCoproducts.inr := by
     have := congrArg (· ≫ fst) huv
@@ -1900,7 +1900,7 @@ theorem capital_iff_complemented_subterminators :
     intro hcap
     -- PROPER-MONIC clause first (it powers the generating clause): for a proper mono `m : A' ↣ A`,
     -- find a complemented subterminator `G` and `x : G → A` not factoring through `m`.
-    have hpm : ∀ {A' A : 𝒞} (m : A' ⟶ A), Mono m → ¬ IsIso m →
+    have hpm : ∀ {A' A : 𝒞} (m : A' ⟶ A), Monic m → ¬ IsIso m →
         ∃ G, (∃ U : Subobject 𝒞 one, IsComplementedSub U ∧ Isomorphic G U.dom) ∧
           ∃ x : G ⟶ A, ¬ ∃ y, y ≫ m = x := by
       intro A' A m hm hmiso
@@ -1983,7 +1983,7 @@ theorem capital_iff_complemented_subterminators :
       let pb := HasPullbacks.has (pair f g) (diag B)
       let e : pb.cone.pt ⟶ A := pb.cone.π₁
       -- `diag` is monic (retraction `fst`), so `e = π₁` (pullback of `diag`) is monic.
-      have hemono : Mono e := pullback_fst_mono (pair f g) (diag B) (diag_mono B)
+      have hemono : Monic e := pullback_fst_mono (pair f g) (diag B) (diag_mono B)
       -- `e ≫ f = e ≫ g`:  `e ≫ pair f g = π₂ ≫ diag`, post-compose `fst`/`snd`.
       have hef : e ≫ f = e ≫ g := by
         have hw : e ≫ pair f g = pb.cone.π₂ ≫ diag B := pb.cone.w

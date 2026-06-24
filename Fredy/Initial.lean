@@ -117,7 +117,7 @@ theorem IsStrictInitial.strict {o : 𝒞} (h : IsStrictInitial o) : StrictCoterm
     subobjects: every monic into it is an iso.  (Immediate: *every* map into it is an
     iso.)  Reuses the §1.58 fact `strictCoterminator_subobject_improper`. -/
 theorem IsStrictInitial.subobject_improper {o : 𝒞} (h : IsStrictInitial o)
-    {S : 𝒞} (m : S ⟶ o) (hm : Mono m) : IsIso m :=
+    {S : 𝒞} (m : S ⟶ o) (hm : Monic m) : IsIso m :=
   strictCoterminator_subobject_improper h.2 m hm
 
 /-- **Strictness, hypothesis-free.**  Every equalizer targeted at a strict initial

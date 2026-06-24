@@ -370,7 +370,7 @@ theorem minEquiv_of_rtc {𝒞 : Type u} [Cat.{v} 𝒞]
 
 /-! ### Relation-algebra infrastructure for amalgamation leg-monicity (§1.651)
 
-  The leg-monicity `Mono (inl ≫ q)` reduces to a relation containment
+  The leg-monicity `Monic (inl ≫ q)` reduces to a relation containment
   `graph inl ⊚ E ⊚ (graph inl)° ⊂ 1_B`.  Distributing `E ⊂ F = 1 ∪ R₀ ∪ R₀°`
   (minimality of `E`), the cross terms `R₀, R₀°` vanish because `R₀` only relates
   `inl(B)` to `inr(C)`: composing them against `graph inl` hits the disjoint
@@ -382,7 +382,7 @@ theorem minEquiv_of_rtc {𝒞 : Type u} [Cat.{v} 𝒞]
 /-- `f : A → B` is monic if its level (kernel pair) lies inside the diagonal. -/
 theorem mono_of_kernelPairRel_le_diag [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
     [HasPullbacks 𝒞] {A B : 𝒞} (f : A ⟶ B)
-    (h : RelLe (kernelPairRel f) (graph (Cat.id A))) : Mono f := by
+    (h : RelLe (kernelPairRel f) (graph (Cat.id A))) : Monic f := by
   intro W u v huv
   have hw1 : ((HasPullbacks.has f f).lift ⟨W, u, v, huv⟩) ≫ kp₁ (f := f) = u :=
     kp_lift_p₁ u v huv
@@ -538,13 +538,13 @@ private theorem relSub_comp_le_bottom_left [PreToposDisjoint 𝒞]
     monic injection `j` (positivity), the level of `j ≫ q` is contained in the diagonal, so
     `j ≫ q` is monic.  Both legs (`inl`, `inr`) of §1.651 are instances of this. -/
 private theorem amalgamation_leg_mono [PreToposDisjoint 𝒞]
-    {Bj M D : 𝒞} (j : Bj ⟶ M) (hj : Mono j) (q : M ⟶ D)
+    {Bj M D : 𝒞} (j : Bj ⟶ M) (hj : Monic j) (q : M ⟶ D)
     (R₀ : BinRel 𝒞 M M)
     (hLELE : RelLe (kernelPairRel (j ≫ q)) (graph j ⊚ ((graph q ⊚ (graph q)°) ⊚ (graph j)°)))
     (hLEF : RelLe (graph q ⊚ (graph q)°) ((graph (Cat.id M) ∪ᵣ R₀) ∪ᵣ R₀°))
     (hc1 : RelLe (graph j ⊚ (R₀ ⊚ (graph j)°)) (graph (Cat.id Bj)))
     (hc2 : RelLe (graph j ⊚ (R₀° ⊚ (graph j)°)) (graph (Cat.id Bj))) :
-    Mono (j ≫ q) := by
+    Monic (j ≫ q) := by
   apply mono_of_kernelPairRel_le_diag
   -- bound graph j ⊚ ((graph q ⊚ (graph q)°) ⊚ (graph j)°) ⊂ 1_Bj
   let Δ : BinRel 𝒞 M M := graph (Cat.id M)
@@ -622,7 +622,7 @@ private theorem image_pair_le_recip_comp [PreToposDisjoint 𝒞] {A M N : 𝒞}
     morphism `t` is monic.  (Companion to the §1.62 `diag_le_one`, which gives `P° ⊚ P ⊂ 1`
     for `s` monic.)  Both feed the transitivity of the generated equivalence `F`. -/
 private theorem comp_recip_self_le_diag [PreToposDisjoint 𝒞] {Bj N M : 𝒞}
-    (s : Bj ⟶ M) (t : Bj ⟶ N) (ht : Mono t) :
+    (s : Bj ⟶ M) (t : Bj ⟶ N) (ht : Monic t) :
     RelLe (((graph s)° ⊚ graph t) ⊚ ((graph s)° ⊚ graph t)°) (graph (Cat.id M)) := by
   -- Book (maps as relations via `↑`):  PP° = (s°t)(s°t)° = (s°t)(t°s) ⊆ s°(tt°)s
   --   ⊆ s°·1·s = s°s ⊆ 1, the bracket using t monic (tt° ⊆ 1).
@@ -720,9 +720,9 @@ private theorem compose_point_allows [PreLogos 𝒞] [HasBinaryCoproducts 𝒞]
     span relation `(m, n)` (a monic pair when `n` is monic).  This is the read-off lemma that
     turns a point of `(graph m)° ⊚ graph n` into a genuine pullback factor through `A`. -/
 private theorem recipGraph_comp_graph_le_span [PreLogos 𝒞] [HasBinaryCoproducts 𝒞]
-    {A B C : 𝒞} (m : A ⟶ B) (n : A ⟶ C) (hn : Mono n) :
+    {A B C : 𝒞} (m : A ⟶ B) (n : A ⟶ C) (hn : Monic n) :
     RelLe ((graph m)° ⊚ graph n)
-      (⟨A, m, n, monicPair_of_monic_pair m n (mono_pair_of_mono m n hn)⟩ : BinRel 𝒞 B C) := by
+      (⟨A, m, n, monicPair_of_monic_pair m n (monic_pair_of_monic m n hn)⟩ : BinRel 𝒞 B C) := by
   let pb := HasPullbacks.has ((graph m)°).colB ((graph n).colA)
   let span : pb.cone.pt ⟶ prod B C :=
     pair (pb.cone.π₁ ≫ ((graph m)°).colA) (pb.cone.π₂ ≫ (graph n).colB)
@@ -730,7 +730,7 @@ private theorem recipGraph_comp_graph_le_span [PreLogos 𝒞] [HasBinaryCoproduc
     have h := pb.cone.w; show pb.cone.π₁ = pb.cone.π₂
     simpa [reciprocal, graph, Cat.comp_id] using h
   let I := image span
-  let S : Subobject 𝒞 (prod B C) := ⟨A, pair m n, mono_pair_of_mono m n hn⟩
+  let S : Subobject 𝒞 (prod B C) := ⟨A, pair m n, monic_pair_of_monic m n hn⟩
   have h_span_eq : span = pb.cone.π₁ ≫ pair m n := by
     show pair (pb.cone.π₁ ≫ m) (pb.cone.π₂ ≫ n) = pb.cone.π₁ ≫ pair m n
     refine (pair_uniq _ _ _ ?_ ?_).symm
@@ -767,7 +767,7 @@ set_option maxHeartbeats 1000000 in
     discharged Sorry-free: `R₀ ⊑ E ⊑ level q`, and `R₀`'s two columns are exactly `x≫inl`,
     `y≫inr`, so they agree after `q`.
 
-    SHARPENED RESIDUAL (the `Sorry`s below): leg-monicity `Mono u`, `Mono v` — that the level of
+    SHARPENED RESIDUAL (the `Sorry`s below): leg-monicity `Monic u`, `Monic v` — that the level of
     `q` (= `E`, the generated equivalence relation) restricts to the *diagonal* on `inl(B)` (resp.
     `inr(C)`).  Disjointness (`inl_inter_inr_le_bottom`, `coprod_inl_inr_disjoint_elt`) and
     `inl/inr_mono` are necessary, but the proof additionally needs a zigzag/path-length induction
@@ -779,8 +779,8 @@ set_option maxHeartbeats 1000000 in
     now real and routed through Freyd's generated-equivalence-relation construction. -/
 theorem amalgamation_lemma [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞]
     {A B C : 𝒞}
-    (x : A ⟶ B) (hx : Mono x) (y : A ⟶ C) (hy : Mono y) :
-    ∃ (D : 𝒞) (u : B ⟶ D) (v : C ⟶ D), Mono u ∧ Mono v ∧ x ≫ u = y ≫ v := by
+    (x : A ⟶ B) (hx : Monic x) (y : A ⟶ C) (hy : Monic y) :
+    ∃ (D : 𝒞) (u : B ⟶ D) (v : C ⟶ D), Monic u ∧ Monic v ∧ x ≫ u = y ≫ v := by
   -- `PreTopos` supplies the coproduct (via `PositivePreLogos`) and the full regular structure on a
   -- single coherent path; we take *only* `[PreTopos 𝒞]` (plus `[HasReflTransClosure 𝒞]`) so that
   -- the `EquivalenceRelation E` proof from `minEquiv_of_rtc`, the `HasReflTransClosure` binder, and
@@ -807,12 +807,12 @@ theorem amalgamation_lemma [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞]
   obtain ⟨_, D, q, _hqcov, hEle, _hleE⟩ := EffectiveRegular.effective E hEeq
   -- ===== Shared leg-monicity infrastructure (used for both `u` and `v`) =====
   -- `xi`, `yi` are monic (composites of monics with the monic injections).
-  have hxi : Mono xi := by
+  have hxi : Monic xi := by
     intro W f g h
     apply hx; apply inl_mono (A := B) (B := C)
     show (f ≫ x) ≫ HasBinaryCoproducts.inl = (g ≫ x) ≫ HasBinaryCoproducts.inl
     simpa [xi, Cat.assoc] using h
-  have hyi : Mono yi := by
+  have hyi : Monic yi := by
     intro W f g h
     apply hy; apply inr_mono (A := B) (B := C)
     show (f ≫ y) ≫ HasBinaryCoproducts.inr = (g ≫ y) ≫ HasBinaryCoproducts.inr
@@ -871,7 +871,7 @@ theorem amalgamation_lemma [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞]
         (graph j ⊚ ((graph q ⊚ (graph q)°) ⊚ (graph j)°)) := compose_le (rel_le_refl _) s5
     exact rel_le_trans s0 (rel_le_trans s3 (rel_le_trans s4 s6))
   refine ⟨D, HasBinaryCoproducts.inl ≫ q, HasBinaryCoproducts.inr ≫ q, ?_, ?_, ?_⟩
-  · -- Mono u = Mono (inl ≫ q): minimality-descent leg-monicity (§1.651, positivity).
+  · -- Monic u = Monic (inl ≫ q): minimality-descent leg-monicity (§1.651, positivity).
     refine amalgamation_leg_mono HasBinaryCoproducts.inl inl_mono q R₀ (hLELE _) hLEF ?_ ?_
     · -- graph inl ⊚ (R₀ ⊚ (graph inl)°) ⊂ 1_B
       refine relLe_of_relSub_le_bottom
@@ -885,7 +885,7 @@ theorem amalgamation_lemma [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞]
       refine relLe_of_relSub_le_bottom (relSub_comp_le_bottom_left _ ((graph HasBinaryCoproducts.inl)°) ?_)
       refine relSub_comp_le_bottom (graph HasBinaryCoproducts.inl) (R₀°) (Cat.id B) ?_ tB htB
       exact Cat.id_comp _
-  · -- Mono v = Mono (inr ≫ q): symmetric (swap inl↔inr, R₀↔R₀° at the junctions).
+  · -- Monic v = Monic (inr ≫ q): symmetric (swap inl↔inr, R₀↔R₀° at the junctions).
     refine amalgamation_leg_mono HasBinaryCoproducts.inr inr_mono q R₀ (hLELE _) hLEF ?_ ?_
     · -- graph inr ⊚ (R₀ ⊚ (graph inr)°) ⊂ 1_C  (reassociate, vanish at graph inr / R₀)
       refine rel_le_trans (compose_assoc_of_regular (graph HasBinaryCoproducts.inr) R₀
@@ -936,7 +936,7 @@ set_option maxHeartbeats 1000000 in
     point factors through `relSub(m° ⊚ n) = image(pair m n)`, giving `a : pt → A` with
     `a≫m = b`, `a≫n = c`; uniqueness from `m` monic. -/
 theorem amalgamation_is_pullback [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞]
-    {A B C : 𝒞} (m : A ⟶ B) (hm : Mono m) (n : A ⟶ C) (hn : Mono n) :
+    {A B C : 𝒞} (m : A ⟶ B) (hm : Monic m) (n : A ⟶ C) (hn : Monic n) :
     ∃ (D : 𝒞) (u : B ⟶ D) (v : C ⟶ D) (hsq : m ≫ u = n ≫ v),
       (Cone.mk (f := u) (g := v) A m n hsq).IsPullback ∧
       (∀ (Q : 𝒞) (uQ : B ⟶ Q) (vQ : C ⟶ Q), m ≫ uQ = n ≫ vQ →
@@ -960,13 +960,13 @@ theorem amalgamation_is_pullback [PreToposDisjoint 𝒞] [HasReflTransClosure �
   obtain ⟨_, D, q, hqcov, _hEle, hleE⟩ := EffectiveRegular.effective E hEeq
   let inl' := HasBinaryCoproducts.inl (A := B) (B := C)
   let inr' := HasBinaryCoproducts.inr (A := B) (B := C)
-  have hinl : Mono inl' := inl_mono
-  have hinr : Mono inr' := inr_mono
+  have hinl : Monic inl' := inl_mono
+  have hinr : Monic inr' := inr_mono
   -- `xi`, `yi` monic; `R₀`'s columns factor through the injections (cover⊥mono descent).
-  have hxi : Mono xi := by
+  have hxi : Monic xi := by
     intro W f g h; apply hm; apply hinl
     show (f ≫ m) ≫ inl' = (g ≫ m) ≫ inl'; simpa [xi, Cat.assoc] using h
-  have hyi : Mono yi := by
+  have hyi : Monic yi := by
     intro W f g h; apply hn; apply hinr
     show (f ≫ n) ≫ inr' = (g ≫ n) ≫ inr'; simpa [yi, Cat.assoc] using h
   obtain ⟨tA, htA⟩ : ∃ t : R₀.src ⟶ B, t ≫ inl' = R₀.colA := by
@@ -1086,7 +1086,7 @@ theorem amalgamation_is_pullback [PreToposDisjoint 𝒞] [HasReflTransClosure �
   -- ===== (1) PULLBACK property. =====
   -- `(graph m)° ⊚ graph n ≤ mn := ⟨A, m, n⟩` (pair m n monic, n monic): the cross point
   -- descends through `A`.  relSub(mn).arr = pair m n.
-  let mn : BinRel 𝒞 B C := ⟨A, m, n, monicPair_of_monic_pair m n (mono_pair_of_mono m n hn)⟩
+  let mn : BinRel 𝒞 B C := ⟨A, m, n, monicPair_of_monic_pair m n (monic_pair_of_monic m n hn)⟩
   have hmnSub : (relSub ((graph m)° ⊚ graph n)).le (relSub mn) :=
     subLe_of_relLe (recipGraph_comp_graph_le_span m n hn)
   have hmnarr : (relSub mn).arr = pair m n := rfl
@@ -1283,7 +1283,7 @@ theorem amalgamation_is_pushout [PreToposDisjoint 𝒞] [HasReflTransClosure �
     pullback square with a trivial monic square.)  Used to descend the §1.651 pullback over
     the union legs to a pullback over the original monic cospan. -/
 theorem isPullback_postcomp_mono {A B C' D : 𝒞} {f : A ⟶ C'} {g : B ⟶ C'}
-    {c : Cone f g} (hc : c.IsPullback) {w : C' ⟶ D} (hw : Mono w) :
+    {c : Cone f g} (hc : c.IsPullback) {w : C' ⟶ D} (hw : Monic w) :
     (Cone.mk (f := f ≫ w) (g := g ≫ w) c.pt c.π₁ c.π₂
       (by rw [← Cat.assoc, ← Cat.assoc, c.w])).IsPullback := by
   intro d
@@ -1307,9 +1307,9 @@ theorem pushout_descent_mono {A B C D W AA : 𝒞} {f : A ⟶ B} {g : A ⟶ C}
     (hUMPW : ∀ (Q : 𝒞) (uQ : B ⟶ Q) (vQ : C ⟶ Q), f ≫ uQ = g ≫ vQ →
         ∃ dd : W ⟶ Q, ι₁ ≫ dd = uQ ∧ ι₂ ≫ dd = vQ ∧
           ∀ d' : W ⟶ Q, ι₁ ≫ d' = uQ → ι₂ ≫ d' = vQ → d' = dd)
-    {w : W ⟶ AA} (hw : Mono w) {δ : D ⟶ AA}
+    {w : W ⟶ AA} (hw : Monic w) {δ : D ⟶ AA}
     (hδ₁ : u ≫ δ = ι₁ ≫ w) (hδ₂ : v ≫ δ = ι₂ ≫ w) :
-    Mono δ := by
+    Monic δ := by
   obtain ⟨θ, hθ₁, hθ₂, _⟩ := hUMPD W ι₁ ι₂ hsqW
   obtain ⟨θ', hθ'₁, hθ'₂, _⟩ := hUMPW D u v hsqD
   obtain ⟨_, _, _, huniqD⟩ := hUMPD D u v hsqD
@@ -1322,7 +1322,7 @@ theorem pushout_descent_mono {A B C D W AA : 𝒞} {f : A ⟶ B} {g : A ⟶ C}
         ← huniqDA (θ ≫ w) (by rw [← Cat.assoc, hθ₁]) (by rw [← Cat.assoc, hθ₂])]
   rw [hδ_eq]
   intro X p₁ p₂ hp
-  apply (show Mono θ from by
+  apply (show Monic θ from by
     intro Y a b hab
     have : a ≫ (θ ≫ θ') = b ≫ (θ ≫ θ') := by rw [← Cat.assoc, ← Cat.assoc, hab]
     rwa [hθθ', Cat.comp_id, Cat.comp_id] at this)
@@ -1495,7 +1495,7 @@ theorem cokernelPair_m_factors_eq [PreTopos 𝒞] [HasCoequalizers 𝒞] [HasEqu
     (`cover_iff_one_le_reciprocal_comp_self`).  No path-length / `relPow` induction is needed: the
     cross-vanishing is the same `relSub_*_le_bottom` positivity used for leg-monicity. -/
 theorem monic_epic_is_cover [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞] {A B : 𝒞}
-    (m : A ⟶ B) (hm : Mono m)
+    (m : A ⟶ B) (hm : Monic m)
     (hepi : ∀ {C : 𝒞} (g h : B ⟶ C), m ≫ g = m ≫ h → g = h) : Cover m := by
   -- ===== Reconstruct the amalgamation relational scaffold for x = y = m (DRY with §1.651). =====
   let xi : A ⟶ HasBinaryCoproducts.coprod B B := m ≫ HasBinaryCoproducts.inl
@@ -1510,8 +1510,8 @@ theorem monic_epic_is_cover [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞] {
   obtain ⟨E, hEeq, hR₀E, _hEmin⟩ := minEquiv_of_rtc (HasBinaryCoproducts.coprod B B) R₀
   obtain ⟨_, D, q, _hqcov, _hEle, hleE⟩ := EffectiveRegular.effective E hEeq
   -- `inl`, `inr` are monic (§1.62 positivity).
-  have hinl : Mono (HasBinaryCoproducts.inl (A := B) (B := B)) := inl_mono
-  have hinr : Mono (HasBinaryCoproducts.inr (A := B) (B := B)) := inr_mono
+  have hinl : Monic (HasBinaryCoproducts.inl (A := B) (B := B)) := inl_mono
+  have hinr : Monic (HasBinaryCoproducts.inr (A := B) (B := B)) := inr_mono
   -- The cokernel-pair square `m ≫ (inl≫q) = m ≫ (inr≫q)`, from R₀ ⊑ E ⊑ level q.
   have hR₀kp : RelLe R₀ (kernelPairRel q) :=
     rel_le_trans (rel_le_trans hR₀E _hEle) (graphComp_le_kernelPairRel q)
@@ -1574,12 +1574,12 @@ theorem monic_epic_is_cover [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞] {
   let Δ : BinRel 𝒞 (HasBinaryCoproducts.coprod B B) (HasBinaryCoproducts.coprod B B) :=
     graph (Cat.id (HasBinaryCoproducts.coprod B B))
   -- the four cross-composite bounds (reused exactly as in §1.651, for the F-equivalence).
-  have hxi : Mono xi := by
+  have hxi : Monic xi := by
     intro W f g h
     apply hm; apply hinl
     show (f ≫ m) ≫ HasBinaryCoproducts.inl = (g ≫ m) ≫ HasBinaryCoproducts.inl
     simpa [xi, Cat.assoc] using h
-  have hyi : Mono yi := by
+  have hyi : Monic yi := by
     intro W f g h
     apply hm; apply hinr
     show (f ≫ m) ≫ HasBinaryCoproducts.inr = (g ≫ m) ≫ HasBinaryCoproducts.inr
@@ -1684,7 +1684,7 @@ theorem monic_epic_is_cover [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞] {
     isomorphism.  Now Sorry-free: monic + epic ⟹ cover (`monic_epic_is_cover`, the reverse
     F-analysis), and monic + cover ⟹ iso (`monic_cover_iso`). -/
 theorem pretopos_balanced [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞] {A B : 𝒞}
-    (m : A ⟶ B) (hm : Mono m)
+    (m : A ⟶ B) (hm : Monic m)
     (hepi : ∀ {C : 𝒞} (g h : B ⟶ C), m ≫ g = m ≫ h → g = h) : IsIso m :=
   monic_cover_iso m (monic_epic_is_cover m hm hepi) hm
 
@@ -1730,7 +1730,7 @@ theorem cover_eq_epic_preTopos [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞
     pre-topos data §1.651 uses for the amalgamation pullback. -/
 theorem monic_eq_cocover_preTopos [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞] {A B : 𝒞}
     (f : A ⟶ B) :
-    Mono f ↔ ∃ (C : 𝒞) (p q : B ⟶ C) (h : f ≫ p = f ≫ q),
+    Monic f ↔ ∃ (C : 𝒞) (p q : B ⟶ C) (h : f ≫ p = f ≫ q),
       (EqualizerCone.mk A f h).IsEqualizer := by
   constructor
   · -- FORWARD: a monic is the equalizer of its cokernel pair (§1.651 makes the square a pullback).
@@ -1795,8 +1795,8 @@ private theorem pair_mem_compose [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [H
     level (y ≫ c')`, so `y ≫ c'` coequalizes the kernel pair of `e` (gives `y'`), and
     `y'` is monic because `level (y ≫ c') ⊂ Δ_I`. -/
 private theorem cover_transport_mono [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞]
-    {A I C : 𝒞} (e : A ⟶ I) (he : Cover e) (y : A ⟶ C) (hy : Mono y) :
-    ∃ (C' : 𝒞) (y' : I ⟶ C') (c' : C ⟶ C'), Mono y' ∧ e ≫ y' = y ≫ c' := by
+    {A I C : 𝒞} (e : A ⟶ I) (he : Cover e) (y : A ⟶ C) (hy : Monic y) :
+    ∃ (C' : 𝒞) (y' : I ⟶ C') (c' : C ⟶ C'), Monic y' ∧ e ≫ y' = y ≫ c' := by
   -- E = level e = graph e ⊚ (graph e)° on A; R₀ = (graph y)° ⊚ E ⊚ graph y on C.
   let E : BinRel 𝒞 A A := graph e ⊚ (graph e)°
   let R₀ : BinRel 𝒞 C C := ((graph y)° ⊚ E) ⊚ graph y
@@ -1996,8 +1996,8 @@ private theorem cover_transport_mono [PreToposDisjoint 𝒞] [HasReflTransClosur
   have hkp_le : RelLe (kernelPairRel (y ≫ c')) (kernelPairRel e) :=
     rel_le_trans (kernelPairRel_le_graphComp (y ≫ c'))
       (rel_le_trans hge2 (graphComp_le_kernelPairRel e))
-  -- Mono y':  pull the cover `e` back along any pair `u,v : W → I` with `u≫y' = v≫y'`.
-  have hy'mono : Mono y' := by
+  -- Monic y':  pull the cover `e` back along any pair `u,v : W → I` with `u≫y' = v≫y'`.
+  have hy'mono : Monic y' := by
     intro W u v huv
     -- pull cover e back along u, then along (that pullback ≫ v).
     let pb1 := HasPullbacks.has e u
@@ -2064,13 +2064,13 @@ private theorem cover_transport_mono [PreToposDisjoint 𝒞] [HasReflTransClosur
     `(u, c' ≫ w)`: `f ≫ u = e ≫ i ≫ u = e ≫ y' ≫ w = y ≫ c' ≫ w`. -/
 theorem pushout_monic_in_pretopos [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞]
     {A B C : 𝒞}
-    (f : A ⟶ B) (y : A ⟶ C) (hy : Mono y) :
-    ∃ (D : 𝒞) (u : B ⟶ D) (v : C ⟶ D), Mono u ∧ f ≫ u = y ≫ v := by
+    (f : A ⟶ B) (y : A ⟶ C) (hy : Monic y) :
+    ∃ (D : 𝒞) (u : B ⟶ D) (v : C ⟶ D), Monic u ∧ f ≫ u = y ≫ v := by
   -- Image factorization of f:  e : A ↠ I (cover),  i : I ↣ B (monic),  e ≫ i = f.
   let e : A ⟶ (image f).dom := image.lift f
   let i : (image f).dom ⟶ B := (image f).arr
   have he : Cover e := image_lift_cover f
-  have hi : Mono i := (image f).monic
+  have hi : Monic i := (image f).monic
   have hei : e ≫ i = f := image.lift_fac f
   -- Transport y along the cover e to a monic y' : I ↣ C', with comparison cover c'.
   obtain ⟨C', y', c', hy', hsq⟩ := cover_transport_mono e he y hy
@@ -2262,7 +2262,7 @@ variable [RegularCategory 𝒞]
     Because C is choice, m ≫ R contains a map f: X → C.
     Since m is monic, f factors uniquely through A: the factorization gives
     the required map in R. (Requires: entire relations compose with maps.) -/
-theorem subobject_of_choice_is_choice {A C : 𝒞} (m : A ⟶ C) (hm : Mono m)
+theorem subobject_of_choice_is_choice {A C : 𝒞} (m : A ⟶ C) (hm : Monic m)
     (hC : Choice C) : Choice A := by
   intro X R hent
   -- Post-compose R : X → A with the monic m to get R' : X → C, same left leg.
@@ -2799,7 +2799,7 @@ private theorem complement_le_other {A : 𝒞} (D₁ D₂ Dc : Subobject 𝒞 A)
     pullback has cover left leg, so is entire; `Choice B'` extracts a map `f : D → B'` together
     with a section `s : D → R.src` of `R` over `D` whose `B`-value is `f ≫ inj`. -/
 private theorem restrict_to_summand [HasBinaryProducts 𝒞] {A B B' : 𝒞} (R : BinRel 𝒞 A B)
-    (inj : B' ⟶ B) (hinj : Mono inj) (hch : Choice B') :
+    (inj : B' ⟶ B) (hinj : Monic inj) (hch : Choice B') :
     ∃ (f : (existsAlong R.colA (InverseImage R.colB ⟨B', inj, hinj⟩)).dom ⟶ B')
       (s : (existsAlong R.colA (InverseImage R.colB ⟨B', inj, hinj⟩)).dom ⟶ R.src),
       s ≫ R.colA = (existsAlong R.colA (InverseImage R.colB ⟨B', inj, hinj⟩)).arr

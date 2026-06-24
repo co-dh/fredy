@@ -90,7 +90,7 @@ theorem U_reflectsIso {A B : AbelianGroupObject 𝒞} (f : A ⟶ B)
 
 /-! ### §1.595 `U` reflects monos
 
-  An `Ab(𝒞)`-mono is exactly a carrier-mono.  REFLECTION (`Mono (U f) → Mono f`) is the
+  An `Ab(𝒞)`-mono is exactly a carrier-mono.  REFLECTION (`Monic (U f) → Monic f`) is the
   immediate half: jointly cancelling carriers cancels homs.  This is what the §1.55
   representation uses to test monicity of group homs in `𝒞`. -/
 

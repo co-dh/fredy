@@ -407,7 +407,7 @@ def cokernelMap [HasZeroObject 𝒞] [HasCoequalizers 𝒞] {A B : 𝒞} (x : A 
 /-! A subobject m : A ↣ B is NORMAL (§1.593) if m is the kernel of some f : B → C,
   i.e. there is a morphism h : A → Kernel f that is an iso with h ≫ kernelMap f = m. -/
 def IsNormalSubobject [HasZeroObject 𝒞] [HasEqualizers 𝒞] {A B : 𝒞}
-    (m : A ⟶ B) (hm : Mono m) : Prop :=
+    (m : A ⟶ B) (hm : Monic m) : Prop :=
   ∃ (C : 𝒞) (f : B ⟶ C) (h : A ⟶ Kernel f), IsIso h ∧ h ≫ kernelMap f = m
 
 /-- An ABELIAN CATEGORY: regular, ADDITIVE (abelian-GROUP homs, not just monoid),
@@ -423,7 +423,7 @@ def IsNormalSubobject [HasZeroObject 𝒞] [HasEqualizers 𝒞] {A B : 𝒞}
 class AbelianCategory (𝒞 : Type u) [Cat.{v} 𝒞]
     extends RegularCategory 𝒞, AdditiveCategory 𝒞, HasZeroObject 𝒞,
             HasEqualizers 𝒞, HasCoequalizers 𝒞 where
-  all_normal : ∀ {A B : 𝒞} (m : A ⟶ B) (hm : Mono m), IsNormalSubobject m hm
+  all_normal : ∀ {A B : 𝒞} (m : A ⟶ B) (hm : Monic m), IsNormalSubobject m hm
 
 /-- **Exactness, as a predicate on a FIXED zero/equalizer/coequalizer structure** (§1.597).
   This is the body of `ExactCategory.exact`, but stated as a `Prop` that reads the *ambient*
@@ -474,7 +474,7 @@ def IsExactStructure (𝒞 : Type u) [Cat.{v} 𝒞]
   the ambient zero/eq/coeq instances). -/
 
 /-- Equalizer maps are monic, from the bare equalizer API (no Cartesian context). -/
-theorem eqMap_mono' [HasEqualizers 𝒞] {A B : 𝒞} (f g : A ⟶ B) : Mono (eqMap f g) := by
+theorem eqMap_mono' [HasEqualizers 𝒞] {A B : 𝒞} (f g : A ⟶ B) : Monic (eqMap f g) := by
   intro W u v h
   let k := u ≫ eqMap f g
   have hk : k ≫ f = k ≫ g := by dsimp [k]; rw [Cat.assoc, Cat.assoc, eqMap_eq]
@@ -539,7 +539,7 @@ theorem zeroHom_eq_zeroMorphism' [HalfAdditiveCategory 𝒞] [HasZeroObject 𝒞
     (the "all monics normal" hypothesis) WITHOUT `[ExactCategory]`.  If `m` is the kernel of
     *some* `f`, then `m` and `kernelMap (cokernelMap m)` are the same subobject of `B`. -/
 theorem monic_kernel_of_cokernel' [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoequalizers 𝒞]
-    {A B : 𝒞} (m : A ⟶ B) (hm : Mono m) (hnorm : IsNormalSubobject m hm) :
+    {A B : 𝒞} (m : A ⟶ B) (hm : Monic m) (hnorm : IsNormalSubobject m hm) :
     ∃ h : A ⟶ Kernel (cokernelMap m), IsIso h ∧ h ≫ kernelMap (cokernelMap m) = m := by
   obtain ⟨C, f, h0, hh0iso, hh0fac⟩ := hnorm
   -- `m` is killed by its cokernel, so it factors through `ker(coker m)` via `w`.
@@ -587,7 +587,7 @@ theorem monic_kernel_of_cokernel' [HasZeroObject 𝒞] [HasEqualizers 𝒞] [Has
       _ = lift_f ≫ kernelMap f := by rw [hh0inv2, Cat.id_comp]
       _ = kernelMap (cokernelMap m) := hlift_f
   -- `w` and `v` are mutually inverse (both legs cancel against the monos `m`, `kernelMap`).
-  have hmono_k : Mono (kernelMap (cokernelMap m)) :=
+  have hmono_k : Monic (kernelMap (cokernelMap m)) :=
     eqMap_mono' (cokernelMap m) (zeroMorphism B (Cokernel m))
   have hwv : w ≫ v = Cat.id A := by
     apply hm; rw [Cat.assoc, hv, hw, Cat.id_comp]
@@ -599,7 +599,7 @@ theorem abelian_iff_regular_additive_all_normal
     (𝒞 : Type u) [Cat.{v} 𝒞]
     [RegularCategory 𝒞] [AdditiveCategory 𝒞] [HasZeroObject 𝒞]
     [HasEqualizers 𝒞] [HasCoequalizers 𝒞] :
-    (∀ {A B : 𝒞} (m : A ⟶ B) (hm : Mono m), IsNormalSubobject m hm) ↔
+    (∀ {A B : 𝒞} (m : A ⟶ B) (hm : Monic m), IsNormalSubobject m hm) ↔
     IsExactStructure 𝒞 := by
   constructor
   · -- (→) all monics normal ⟹ IsExactStructure.  CLOSED representation-free: the coimage→image
@@ -609,7 +609,7 @@ theorem abelian_iff_regular_additive_all_normal
     -- coimage projection `p := coker(ker x)` and image inclusion `i := ker(coker x)`.
     let p : A ⟶ Cokernel (kernelMap x) := cokernelMap (kernelMap x)
     let i : Kernel (cokernelMap x) ⟶ B := kernelMap (cokernelMap x)
-    have hi_mono : Mono i := eqMap_mono' (cokernelMap x) (zeroMorphism B (Cokernel x))
+    have hi_mono : Monic i := eqMap_mono' (cokernelMap x) (zeroMorphism B (Cokernel x))
     -- STEP 1: `xbar : A → Im` with `xbar ≫ i = x`.
     have hx_kc : x ≫ cokernelMap x = x ≫ zeroMorphism B (Cokernel x) := by
       rw [comp_cokernelMap x, zero_morphism_comp x (zeroMorphism B (Cokernel x))]
@@ -742,7 +742,7 @@ theorem abelian_iff_regular_additive_all_normal
       apply cover_epi hπ₂_cover
       rw [hπ₂kt0, zero_morphism_comp pb.cone.π₂ (zeroMorphism (Kernel θ) (Cokernel (kernelMap x)))]
     -- `kt = 0` ⟹ θ MONIC (additive: `a≫θ=b≫θ` ⟹ `(a−b)≫θ=0` ⟹ `a−b` factors through `ker θ = 0`).
-    have hθ_mono : Mono θ := by
+    have hθ_mono : Monic θ := by
       intro W a b hab
       obtain ⟨negb, hnegb⟩ := AdditiveCategory.addInv b
       let e := HalfAdditiveCategory.add a negb
@@ -884,8 +884,8 @@ theorem add_right_cancel [AdditiveCategory 𝒞] {A B : 𝒞} {X Z Y : A ⟶ B}
 open HalfAdditiveCategory in
 /-- `neg` is monic when `f` is: `g ≫ neg f = h ≫ neg f` forces the additive
     inverses of `g ≫ f` and `h ≫ f` to agree, hence `g ≫ f = h ≫ f`. -/
-theorem neg_mono [AdditiveCategory 𝒞] {A B : 𝒞} {f : A ⟶ B} (hf : Mono f) :
-    Mono (neg f) := by
+theorem neg_mono [AdditiveCategory 𝒞] {A B : 𝒞} {f : A ⟶ B} (hf : Monic f) :
+    Monic (neg f) := by
   intro W g h hgh
   apply hf
   -- g ≫ f and h ≫ f have the SAME additive inverse g ≫ neg f = h ≫ neg f.
@@ -903,7 +903,7 @@ open HalfAdditiveCategory in
     (= `−m·a + b`).  So it relates `b ~ b'` iff `b − b' ∈ im m`.  The pair is
     jointly monic because `neg m` is monic (`neg_mono`). -/
 noncomputable def malRel [AdditiveCategory 𝒞] [HasPullbacks 𝒞] {A B : 𝒞}
-    (m : A ⟶ B) (hm : Mono m) : BinRel 𝒞 B B where
+    (m : A ⟶ B) (hm : Monic m) : BinRel 𝒞 B B where
   src := prod A B
   colA := snd
   colB := add (fst ≫ neg m) snd
@@ -931,7 +931,7 @@ open HalfAdditiveCategory in
 /-- **§1.594 Mal'cev step (reflexivity).** `1 ⊂ malRel m`: the diagonal `b ~ b`
     is witnessed by `a = 0`. Witness map `⟨0, id⟩ : B → A⊕B`. -/
 theorem malRel_refl [AdditiveCategory 𝒞] [HasPullbacks 𝒞] {A B : 𝒞}
-    (m : A ⟶ B) (hm : Mono m) :
+    (m : A ⟶ B) (hm : Monic m) :
     ∃ (h : B ⟶ (malRel m hm).src),
       h ≫ (malRel m hm).colA = Cat.id B ∧ h ≫ (malRel m hm).colB = Cat.id B := by
   refine ⟨pair (zeroHom B A) (Cat.id B), ?_, ?_⟩
@@ -945,7 +945,7 @@ open HalfAdditiveCategory in
     `a` (so `b' = −m·a + b`) then `b' ~ b` via `−a`: the witness map negates the
     `A`-coordinate, `s = ⟨−fst, colB⟩`. This is the Mal'cev term at work. -/
 theorem malRel_symm [AdditiveCategory 𝒞] [HasPullbacks 𝒞] {A B : 𝒞}
-    (m : A ⟶ B) (hm : Mono m) :
+    (m : A ⟶ B) (hm : Monic m) :
     RelLe (malRel m hm) (reciprocal (malRel m hm)) := by
   refine ⟨⟨pair (neg (fst : prod A B ⟶ A)) (add (fst ≫ neg m) snd), ?_, ?_⟩⟩
   · -- s ≫ (malRel)°.colA = (malRel)°.colA is malRel.colB = add (fst≫neg m) snd; need = malRel.colA = snd
@@ -964,7 +964,7 @@ open HalfAdditiveCategory in
     — pure additivity.  The witness `A`-coordinate is the SUM of the two witnessing
     elements; `image_min` turns the lift into the required `RelHom`. -/
 theorem malRel_trans [AdditiveCategory 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] {A B : 𝒞}
-    (m : A ⟶ B) (hm : Mono m) :
+    (m : A ⟶ B) (hm : Monic m) :
     RelLe (malRel m hm ⊚ malRel m hm) (malRel m hm) := by
   let E := malRel m hm
   -- Pullback of the middle legs:  E.colB (of the first copy) over E.colA (of the second).
@@ -1026,7 +1026,7 @@ open HalfAdditiveCategory in
     `malRel m` is an equivalence relation — reflexive, symmetric, transitive —
     proved representation-free via the additive (Mal'cev) structure. -/
 theorem malRel_equivalence [AdditiveCategory 𝒞] [HasPullbacks 𝒞]
-    [HasImages 𝒞] {A B : 𝒞} (m : A ⟶ B) (hm : Mono m) :
+    [HasImages 𝒞] {A B : 𝒞} (m : A ⟶ B) (hm : Monic m) :
     EquivalenceRelation (malRel m hm) := by
   refine ⟨malRel_refl m hm, ?_, ?_⟩
   · exact malRel_symm m hm
@@ -1125,7 +1125,7 @@ open HalfAdditiveCategory in
 theorem effective_regular_additive_is_abelian
     (𝒞 : Type u) [Cat.{v} 𝒞]
     [EffectiveRegular 𝒞] [AdditiveCategory 𝒞] [HasZeroObject 𝒞] [HasEqualizers 𝒞] :
-    ∀ {A B : 𝒞} (m : A ⟶ B) (hm : Mono m), IsNormalSubobject m hm := by
+    ∀ {A B : 𝒞} (m : A ⟶ B) (hm : Monic m), IsNormalSubobject m hm := by
   intro A B m hm
   -- Ambient products stay the ADDITIVE ones throughout (the table `A⊕B`, `add`/`neg`, every
   -- `fst/snd/pair` below).  The `EffectiveRegular.effective` field is stated with the REGULAR
@@ -1380,7 +1380,7 @@ class ExactCategory (𝒞 : Type u) [Cat.{v} 𝒞]
 /-! §1.597 key lemma: if A ↣ B is monic and q : B → Q is its cokernel, then A is
   the kernel of q.  (Follows from the exact factorization.) -/
 theorem monic_kernel_of_cokernel {𝒞 : Type u} [Cat.{v} 𝒞] [ExactCategory 𝒞] {A B : 𝒞}
-    (x : A ⟶ B) (hx : Mono x) :
+    (x : A ⟶ B) (hx : Monic x) :
     let Q := Cokernel x
     let q := cokernelMap x
     ∃ (h : A ⟶ Kernel q), IsIso h ∧ h ≫ kernelMap q = x := by
@@ -1523,7 +1523,7 @@ theorem kernelMap_zero_isIso [HasZeroObject 𝒞] [HasEqualizers 𝒞] (B C : �
   exact ⟨s, hother, hs⟩
 
 /-- **An exact category is balanced**: monic ∧ epic ⟹ iso.  `Epi` inline. -/
-theorem exact_balanced [ExactCategory 𝒞] {A B : 𝒞} (f : A ⟶ B) (hm : Mono f)
+theorem exact_balanced [ExactCategory 𝒞] {A B : 𝒞} (f : A ⟶ B) (hm : Monic f)
     (he : ∀ {Z : 𝒞} (a b : B ⟶ Z), f ≫ a = f ≫ b → a = b) : IsIso f := by
   have hk0 : kernelMap f = zeroMorphism (Kernel f) A :=
     hm (kernelMap f) (zeroMorphism (Kernel f) A) <| by
@@ -1705,7 +1705,7 @@ theorem kernel_snd_epi [ExactCategory 𝒞] [AdditiveCategory 𝒞] {A C B : �
 /-- **Epic ⟹ cover** in an exact category. -/
 theorem epi_is_cover [ExactCategory 𝒞] {A B : 𝒞} (f : A ⟶ B)
     (he : ∀ {Z : 𝒞} (a b : B ⟶ Z), f ≫ a = f ≫ b → a = b) : Cover f := by
-  have hm_mono : Mono (kernelMap (cokernelMap f)) :=
+  have hm_mono : Monic (kernelMap (cokernelMap f)) :=
     eqMap_mono' (cokernelMap f) (zeroMorphism B (Cokernel f))
   have heqf : f ≫ cokernelMap f = f ≫ zeroMorphism B (Cokernel f) := by
     rw [comp_cokernelMap f, zero_morphism_comp f (zeroMorphism B (Cokernel f))]
@@ -1796,7 +1796,7 @@ noncomputable def exact_additive_is_regular [ExactCategory 𝒞] [AdditiveCatego
   exact_additive_is_regular_of_transfer
 
 /-- Every monic is normal in an exact category (`monic_kernel_of_cokernel`). -/
-theorem all_normal_of_exact [ExactCategory 𝒞] {A B : 𝒞} (m : A ⟶ B) (hm : Mono m) :
+theorem all_normal_of_exact [ExactCategory 𝒞] {A B : 𝒞} (m : A ⟶ B) (hm : Monic m) :
     IsNormalSubobject m hm := by
   obtain ⟨h, hiso, hfac⟩ := monic_kernel_of_cokernel m hm
   exact ⟨Cokernel m, cokernelMap m, h, hiso, hfac⟩
@@ -1857,7 +1857,7 @@ theorem abelian_iff_exact_additive
 
 /-- LEFT-NORMAL: every subobject is normal (= kernel of some morphism). -/
 def IsLeftNormal (𝒞 : Type u) [Cat.{v} 𝒞] [HasZeroObject 𝒞] [HasEqualizers 𝒞] : Prop :=
-  ∀ {A B : 𝒞} (m : A ⟶ B) (hm : Mono m), IsNormalSubobject m hm
+  ∀ {A B : 𝒞} (m : A ⟶ B) (hm : Monic m), IsNormalSubobject m hm
 
 /-- RIGHT-NORMAL: every cover (Cover e) is a cokernel of some morphism,
   i.e. e = cokernelMap f for some f (up to the cokernel object being B).
@@ -1887,7 +1887,7 @@ def IsNormalCategory (𝒞 : Type u) [Cat.{v} 𝒞] [HasZeroObject 𝒞]
     re-derives `m = ker(coker m)` from normality (no exactness needed), and the
     kernel of a zero morphism is an iso (`kernelMap_zero_isIso`). -/
 theorem normal_balanced [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoequalizers 𝒞]
-    (hLN : IsLeftNormal 𝒞) {A B : 𝒞} (m : A ⟶ B) (hm : Mono m)
+    (hLN : IsLeftNormal 𝒞) {A B : 𝒞} (m : A ⟶ B) (hm : Monic m)
     (he : ∀ {Z : 𝒞} (a b : B ⟶ Z), m ≫ a = m ≫ b → a = b) : IsIso m := by
   -- `coker m = 0`: `m ≫ cokernelMap m = 0 = m ≫ 0`, cancel the epic `m`.
   have hcoker0 : cokernelMap m = zeroMorphism B (Cokernel m) := by
@@ -1957,11 +1957,11 @@ theorem normal_balanced [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoequalize
   (diag A))`; a map killed by `coker(diag A)` factors through `diag A`, and reading off the
   two projections (`diag≫fst = id`, `diag≫snd = id`, `⟨1,0⟩≫fst = id`, `⟨1,0⟩≫snd = 0`)
   forces `x = 0`.  So θ_A has trivial kernel and (dually, by `IsRightNormal`) trivial
-  cokernel.  What remains UNREACHABLE is upgrading `Ker θ_A = 0` to `Mono θ_A`: monicity is
+  cokernel.  What remains UNREACHABLE is upgrading `Ker θ_A = 0` to `Monic θ_A`: monicity is
   controlled by the kernel PAIR, not the zero-kernel, and the upgrade is equivalent to a
   hom-set subtraction (the complementary idempotent `1 − fst≫diag` of the idempotent
   `fst≫diag : A×A → A×A`).  Three independent elementary routes were tried and all bottom
-  out at this same point: (i) `normal_balanced` needs `Mono θ ∧ epic θ`; (ii) a direct
+  out at this same point: (i) `normal_balanced` needs `Monic θ ∧ epic θ`; (ii) a direct
   inverse `coker(diag A) → A` as a cokernel-descent needs a retraction of `⟨1,0⟩` killing
   `diag A` (= `fst − snd`); (iii) idempotent splitting (`equalizers_split_idempotents`)
   splits `fst≫diag` but the COMPLEMENTARY idempotent needed to split off `Cokernel(diag A)`
@@ -1990,7 +1990,7 @@ theorem diag_cokernel_kernel_zero
     (hx : x ≫ (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A))
             = zeroMorphism W (Cokernel (diag A))) :
     x = zeroMorphism W A := by
-  have hdm : Mono (diag A) := diag_mono A
+  have hdm : Monic (diag A) := diag_mono A
   obtain ⟨h, hiso, hfac⟩ := monic_kernel_of_cokernel' (diag A) hdm (hLN (diag A) hdm)
   have hfacKer : (x ≫ pair (Cat.id A) (zeroMorphism A A)) ≫ cokernelMap (diag A)
       = (x ≫ pair (Cat.id A) (zeroMorphism A A))
@@ -2170,7 +2170,7 @@ theorem cover_kernel_zero_iso [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoeq
 
 /-- **In an exact category, a map with zero kernel AND zero cokernel inclusion is an iso.**
     Generalises `exact_balanced` to take the kernel/cokernel-zero facts DIRECTLY (instead of
-    deriving them from Mono + epic).  Used in §1.597 STEP 2 to make the subtraction section
+    deriving them from Monic + epic).  Used in §1.597 STEP 2 to make the subtraction section
     `θ_A` an iso from `Ker θ_A = 0` and `Cok θ_A = 0`. -/
 theorem exact_iso_of_ker_cok_zero [ExactCategory 𝒞] {A B : 𝒞} (f : A ⟶ B)
     (hk0 : kernelMap f = zeroMorphism (Kernel f) A)
@@ -2226,7 +2226,7 @@ noncomputable def exactOfNormal {𝒞 : Type u} [Cat.{v} 𝒞] [HasZeroObject �
   intro A B x
   let p : A ⟶ Cokernel (kernelMap x) := cokernelMap (kernelMap x)
   let i : Kernel (cokernelMap x) ⟶ B := kernelMap (cokernelMap x)
-  have hi_mono : Mono i := eqMap_mono' (cokernelMap x) (zeroMorphism B (Cokernel x))
+  have hi_mono : Monic i := eqMap_mono' (cokernelMap x) (zeroMorphism B (Cokernel x))
   have hx_kc : x ≫ cokernelMap x = x ≫ zeroMorphism B (Cokernel x) := by
     rw [comp_cokernelMap x, zero_morphism_comp x (zeroMorphism B (Cokernel x))]
   let xbar : A ⟶ Kernel (cokernelMap x) :=
@@ -2968,7 +2968,7 @@ theorem kernelLift_fac [HasZeroObject 𝒞] [HasEqualizers 𝒞] {A B X : 𝒞} 
 
 /-- `kernelMap x` is monic (it is an equalizer map). -/
 theorem kernelMap_mono [HasZeroObject 𝒞] [HasEqualizers 𝒞] {A B : 𝒞} (x : A ⟶ B) :
-    Mono (kernelMap x) := eqMap_mono' x (zeroMorphism A B)
+    Monic (kernelMap x) := eqMap_mono' x (zeroMorphism A B)
 
 /-- `kernelMap x ≫ x = 0`: the kernel is killed by `x`. -/
 theorem kernelMap_comp [HasZeroObject 𝒞] [HasEqualizers 𝒞] {A B : 𝒞} (x : A ⟶ B) :
@@ -2991,7 +2991,7 @@ theorem kernelMap_comp [HasZeroObject 𝒞] [HasEqualizers 𝒞] {A B : 𝒞} (x
     image-cover by a pullback". -/
 
 /-- Forward (additive): a monic `m` has zero kernel — `t ≫ m = 0 ⟹ t = 0`. -/
-theorem comp_zero_of_mono [HasZeroObject 𝒞] {A B : 𝒞} {m : A ⟶ B} (hm : Mono m)
+theorem comp_zero_of_mono [HasZeroObject 𝒞] {A B : 𝒞} {m : A ⟶ B} (hm : Monic m)
     {T : 𝒞} (t : T ⟶ A) (h : t ≫ m = zeroMorphism T B) : t = zeroMorphism T A := by
   apply hm t (zeroMorphism T A)
   rw [h, zeroMorphism_comp_left m]
@@ -3000,7 +3000,7 @@ theorem comp_zero_of_mono [HasZeroObject 𝒞] {A B : 𝒞} {m : A ⟶ B} (hm : 
     `m` is monic.  Given `u ≫ m = w ≫ m`, form `d = u + (−w)`; then `d ≫ m = 0`, so `d = 0`,
     and `add u (−w) = 0 = add w (−w)` forces `u = w` (`add_cancel_common`). -/
 theorem mono_of_comp_zero [AdditiveCategory 𝒞] [HasZeroObject 𝒞] {A B : 𝒞} {m : A ⟶ B}
-    (h : ∀ {T : 𝒞} (t : T ⟶ A), t ≫ m = zeroMorphism T B → t = zeroMorphism T A) : Mono m := by
+    (h : ∀ {T : 𝒞} (t : T ⟶ A), t ≫ m = zeroMorphism T B → t = zeroMorphism T A) : Monic m := by
   intro W u w huw
   obtain ⟨g, hg⟩ := AdditiveCategory.addInv w
   have hd : HalfAdditiveCategory.add u g ≫ m = zeroMorphism W B := by
@@ -3093,14 +3093,14 @@ theorem relExact_intro [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasImages 𝒞
     rw [Cat.assoc, hφ, hc, Cat.id_comp]
   exact ⟨φ, ⟨c, hφc, hcφ⟩, hφ⟩
 
-/-- **Mono factors through an image, by cover-descent.**  If a mono `m : S ↣ T` becomes, after a
+/-- **Monic factors through an image, by cover-descent.**  If a mono `m : S ↣ T` becomes, after a
     cover `cov : P → S`, a composite through `κ : A₀ → T` (`cov ≫ m = x ≫ κ`), then `m` factors
     through `(image κ).arr` (so `⟨S,m⟩ ≤ image κ` as subobjects of `T`).  This is the reusable
     "ker ⊆ im" step of every snake/five exactness claim: descend `x ≫ image.lift κ` along the
     cover `cov` (well-defined since `(image κ).arr` is mono and `cov ≫ m` agrees on the kernel
     pair), then cancel the cover `cov`. -/
 theorem mono_factors_image [HasImages 𝒞] [RegularCategory 𝒞]
-    {S T A₀ P : 𝒞} {m : S ⟶ T} (hm : Mono m) {κ : A₀ ⟶ T}
+    {S T A₀ P : 𝒞} {m : S ⟶ T} (hm : Monic m) {κ : A₀ ⟶ T}
     {cov : P ⟶ S} (hcov : Cover cov) {x : P ⟶ A₀} (hcomm : cov ≫ m = x ≫ κ) :
     ∃ c : S ⟶ (image κ).dom, c ≫ (image κ).arr = m := by
   -- `x ≫ image.lift κ : P → (image κ).dom`; descend it along `cov`.
@@ -3135,7 +3135,7 @@ theorem mono_factors_image [HasImages 𝒞] [RegularCategory 𝒞]
 theorem relExact_self_cokernel [AbelianCategory 𝒞] {A B : 𝒞} (x : A ⟶ B) :
     RelExact x (cokernelMap x) := by
   let i : Kernel (cokernelMap x) ⟶ B := kernelMap (cokernelMap x)
-  have hi_mono : Mono i := eqMap_mono' (cokernelMap x) (zeroMorphism B (Cokernel x))
+  have hi_mono : Monic i := eqMap_mono' (cokernelMap x) (zeroMorphism B (Cokernel x))
   -- `xbar : A → ker(coker x)` with `xbar ≫ i = x`.
   have hx_kc : x ≫ cokernelMap x = x ≫ zeroMorphism B (Cokernel x) := by
     rw [comp_cokernelMap x, zero_morphism_comp x (zeroMorphism B (Cokernel x))]
@@ -3232,14 +3232,14 @@ theorem five_lemma [AbelianCategory 𝒞]
   obtain ⟨v₂i, hv₂1, hv₂2⟩ := h₂
   obtain ⟨v₄i, hv₄1, hv₄2⟩ := h₄
   obtain ⟨v₅i, hv₅1, hv₅2⟩ := h₅
-  have hv₂mono : Mono v₂ := mono_of_retraction v₂ v₂i hv₂1
-  have hv₄mono : Mono v₄ := mono_of_retraction v₄ v₄i hv₄1
-  have hv₅mono : Mono v₅ := mono_of_retraction v₅ v₅i hv₅1
+  have hv₂mono : Monic v₂ := mono_of_retraction v₂ v₂i hv₂1
+  have hv₄mono : Monic v₄ := mono_of_retraction v₄ v₄i hv₄1
+  have hv₅mono : Monic v₅ := mono_of_retraction v₅ v₅i hv₅1
   -- the two rows compose to zero at the relevant spots
   have ha₁a₂ : a₁ ≫ a₂ = zeroMorphism A₁ A₃ := relexact_comp_zero hA₁₂
   have hb₃b₄ : b₃ ≫ b₄ = zeroMorphism B₃ B₅ := relexact_comp_zero hB₃₄
   -- ===================================================================== MONO half
-  have hmono : Mono v₃ := by
+  have hmono : Monic v₃ := by
     refine mono_of_comp_zero (fun {T} t ht => ?_)
     -- t ≫ a₃ = 0  (push through sq₃, kill by v₄ iso)
     have hta₃ : t ≫ a₃ = zeroMorphism T A₄ := by
@@ -3420,7 +3420,7 @@ theorem five_lemma [AbelianCategory 𝒞]
   the counterexample below.  The genuine snake lemma (Freyd §1.599) additionally requires the
   rows to be exact at the OUTER nodes: `g` a COVER (top row exact at `C`: `A→B→C→0`) and `f'`
   MONIC (bottom row exact at `A'`: `0→A'→B'→C'`).  These are added as `(hg : Cover g)` and
-  `(hf' : Mono f')`; with them the element-free construction below goes through and the theorem
+  `(hf' : Monic f')`; with them the element-free construction below goes through and the theorem
   is TRUE and PROVEN.  This is a FIDELITY FIX restoring the genuine theorem, not a weakening.
 
   WHY THE END HYPOTHESES ARE NEEDED (counterexample for interior-only).  Explicit `Ab`-witness:
@@ -3443,7 +3443,7 @@ theorem five_lemma [AbelianCategory 𝒞]
   exactness; it is NOT a missing-lemma or relational-calculus gap (δ as a relation simply has no
   single-valued total morphism here).  This justifies the end-exactness hypotheses `hg`, `hf'`.
 
-  CONSTRUCTION OF δ (now PROVEN, with `hg : Cover g`, `hf' : Mono f'`).  Pull `g` back along
+  CONSTRUCTION OF δ (now PROVEN, with `hg : Cover g`, `hf' : Monic f'`).  Pull `g` back along
   `kernelMap γ : Kernel γ ↪ C`; since `g` is a cover, the projection `p_K : P → Kernel γ` is a
   cover (`cover_pullback`), with `p_B : P → B` the other leg and `p_B ≫ g = p_K ≫ kernelMap γ`.
   On `P`, `g(p_B) ∈ ker γ` so `g'(β p_B) = γ(g p_B) = 0`; push `p_B ≫ β` through `ker g' = im f'`
@@ -3462,7 +3462,7 @@ theorem snake_lemma [AbelianCategory 𝒞]
     (hfg : RelExact f g) (hf'g' : RelExact f' g')
     -- rows exact at the END nodes too (top at C: g epi; bottom at A': f' mono) — REQUIRED
     -- (the interior-only statement is FALSE; see the counterexample in the doc comment above)
-    (hg : Cover g) (hf' : Mono f')
+    (hg : Cover g) (hf' : Monic f')
     -- squares commute
     (hαβ : f ≫ β = α ≫ f') (hβγ : g ≫ γ = β ≫ g') :
     -- induced kernel maps (by universal property: ker(α) ≫ f ≫ β = 0, lifts to ker(β))

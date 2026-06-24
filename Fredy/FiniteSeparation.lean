@@ -91,7 +91,7 @@ theorem homRep_reflects_iso (𝒞 : Type u) [Cat.{u} 𝒞]
     and `homRep` is cross-universe (see file header). -/
 theorem homRep_preserves_properMono (𝒞 : Type u) [Cat.{u} 𝒞]
     {A' A : 𝒞} {m : A' ⟶ A} (hm : ProperMono m) :
-    Mono ((homRepFunctor 𝒞).map m) ∧ ¬ IsIso ((homRepFunctor 𝒞).map m) := by
+    Monic ((homRepFunctor 𝒞).map m) ∧ ¬ IsIso ((homRepFunctor 𝒞).map m) := by
   obtain ⟨hmono, hniso⟩ := hm
   exact ⟨homRep_preserves_mono 𝒞 hmono, fun hiso => hniso (homRep_reflects_iso 𝒞 m hiso)⟩
 
@@ -129,7 +129,7 @@ theorem finite_separation (𝒞 : Type u) [Cat.{u} 𝒞] [PreRegularCategory �
     (S : List (ProperSub 𝒞)) :
     ∃ (T : 𝒞 → (𝒞 → Type u)) (hT : Functor T),
       SeparatesMaps T ∧
-      ∀ s ∈ S, Mono (hT.map s.mono) ∧ ¬ IsIso (hT.map s.mono) := by
+      ∀ s ∈ S, Monic (hT.map s.mono) ∧ ¬ IsIso (hT.map s.mono) := by
   refine ⟨homRep 𝒞, homRepFunctor 𝒞, homRep_separates 𝒞, ?_⟩
   intro s _
   exact homRep_preserves_properMono 𝒞 s.proper
@@ -143,7 +143,7 @@ theorem finite_separation (𝒞 : Type u) [Cat.{u} 𝒞] [PreRegularCategory �
   * `I := { S : List (ProperSub 𝒞) }` is the index set of finite sets of proper
     subobjects.  `finite_separation` supplies, for every `S ∈ I`, a representation
     `T_S = homRep 𝒞 : 𝒞 → 𝒮^|𝒞|` and, for each `s ∈ S`, the witness
-    `Mono (T_S s.mono) ∧ ¬ IsIso (T_S s.mono)` (properness survives).
+    `Monic (T_S s.mono) ∧ ¬ IsIso (T_S s.mono)` (properness survives).
 
   * Collapse `𝒮^|𝒞|` to `𝒮` per `S`: choosing a coordinate (or, faithfully,
     keeping the power) gives Freyd's `T_S : A → 𝒮` with `(T_S A'ᵢ ⊂ T_S Aᵢ) = 1`
@@ -166,7 +166,7 @@ theorem FiniteSeparation.handoff (𝒞 : Type u) [Cat.{u} 𝒞] [PreRegularCateg
     (S : List (ProperSub 𝒞)) :
     ∃ (T : 𝒞 → (𝒞 → Type u)) (hT : Functor T),
       SeparatesMaps T ∧
-      ∀ s ∈ S, Mono (hT.map s.mono) ∧ ¬ IsIso (hT.map s.mono) :=
+      ∀ s ∈ S, Monic (hT.map s.mono) ∧ ¬ IsIso (hT.map s.mono) :=
   finite_separation 𝒞 S
 
 end Freyd

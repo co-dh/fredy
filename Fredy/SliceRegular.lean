@@ -141,7 +141,7 @@ theorem cover_of_cover_f {B : 𝒞} {X Y : Over B} (m : OverHom X Y)
     (hm : Cover m.f) : Cover (𝒞 := Over B) m := by
   intro Z n g hn hgn
   -- `n` monic in A/B; `n.f` monic in A (Σ preserves monos); `g.f ≫ n.f = m.f`.
-  have hnf : Mono n.f := sigma_preserves_mono n hn
+  have hnf : Monic n.f := sigma_preserves_mono n hn
   have hgnf : g.f ≫ n.f = m.f := congrArg OverHom.f hgn
   -- `m.f` cover ⇒ `n.f` iso in A ⇒ `n` iso in A/B.
   exact overIso_of_underlying n (hm n.f g.f hnf hgnf)

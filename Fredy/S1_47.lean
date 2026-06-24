@@ -116,7 +116,7 @@ theorem representables_collectively_faithful [CartesianCategory 𝒞]
   Equivalently: B × - is faithful for every B with a proper subobject. -/
 
 /-- A monic `m : A' → A` is PROPER if it is not an isomorphism (§1.472). -/
-def ProperMono {A' A : 𝒞} (m : A' ⟶ A) : Prop := Mono m ∧ ¬ IsIso m
+def ProperMono {A' A : 𝒞} (m : A' ⟶ A) : Prop := Monic m ∧ ¬ IsIso m
 
 /-- **§1.47 SPECIAL CARTESIAN CATEGORY** (faithful definition via §1.472).
 
@@ -165,12 +165,12 @@ def IsSpecial.toSpecial [hcc : CartesianCategory 𝒞] (h : IsSpecial 𝒞) :
   Hence in any special Cartesian category, the terminal object has at most two values
   (i.e. at most one proper subobject up to isomorphism). -/
 
-/-- For a SUBTERMINATOR `V` (`Mono (term V)`), the second projection `snd : V×V → V` is an
+/-- For a SUBTERMINATOR `V` (`Monic (term V)`), the second projection `snd : V×V → V` is an
     isomorphism, with inverse the diagonal `diag V`.  `diag V ≫ snd = id_V` is `diag_snd`;
     `snd ≫ diag V = id_{V×V}` holds because both sides agree after `fst` and after `snd`
     (the `snd`-components by `diag_snd`/`snd_pair`, the `fst`-components because every pair of
     maps into the subterminal `V` is equal: `term V` is monic and all maps to `one` coincide). -/
-theorem snd_self_iso_of_subterminal [CartesianCategory 𝒞] {V : 𝒞} (hV : Mono (term V)) :
+theorem snd_self_iso_of_subterminal [CartesianCategory 𝒞] {V : 𝒞} (hV : Monic (term V)) :
     IsIso (snd (A := V) (B := V)) := by
   refine ⟨diag V, ?_, diag_snd V⟩
   -- `snd ≫ diag V = id_{V×V}` via the two jointly-monic projections.
@@ -239,7 +239,7 @@ theorem special_atMostTwoValues [SpecialCartesianCategory 𝒞]
   · -- `fst : V₁×V₂ → V₁` is monic (`V₂` subterminal: the snd-components of any two agreeing-after-
     -- fst maps coincide); if `fst` were proper it would be a proper subobject of the proper
     -- subterminal `V₁`, which has none (`subterminal_no_proper_sub`).
-    have hmono : Mono (fst (A := V₁) (B := V₂)) := by
+    have hmono : Monic (fst (A := V₁) (B := V₂)) := by
       intro W u v huv
       have hsnd : u ≫ snd (A := V₁) (B := V₂) = v ≫ snd := hV₂.1 _ _ (term_uniq _ _)
       exact fst_snd_jointly_monic u v huv hsnd
@@ -247,7 +247,7 @@ theorem special_atMostTwoValues [SpecialCartesianCategory 𝒞]
     · exact h
     · exact (subterminal_no_proper_sub hV₁ (fst (A := V₁) (B := V₂)) ⟨hmono, hni⟩).elim
   · -- symmetric: `snd : V₁×V₂ → V₂` monic via `V₁` subterminal (swap factors).
-    have hmono : Mono (snd (A := V₁) (B := V₂)) := by
+    have hmono : Monic (snd (A := V₁) (B := V₂)) := by
       intro W u v huv
       have hfst : u ≫ fst (A := V₁) (B := V₂) = v ≫ fst := hV₁.1 _ _ (term_uniq _ _)
       exact fst_snd_jointly_monic u v hfst huv
@@ -315,7 +315,7 @@ theorem prodEndo_embedding_iff_snd_epi [HasBinaryProducts 𝒞] (B : 𝒞) :
     are jointly monic.  This is exactly why §1.472's substantive condition is *properness*
     (non-iso) of `m × id_B`, not mere monicity. -/
 theorem product_mono_of_mono [HasBinaryProducts 𝒞] (B : 𝒞) {A' A : 𝒞} (m : A' ⟶ A)
-    (hm : Mono m) : Mono (pair (fst (A := A') (B := B) ≫ m) (snd (A := A') (B := B))) := by
+    (hm : Monic m) : Monic (pair (fst (A := A') (B := B) ≫ m) (snd (A := A') (B := B))) := by
   intro W u v huv
   have h1 : (u ≫ fst) ≫ m = (v ≫ fst) ≫ m := by
     have := congrArg (· ≫ fst) huv
@@ -458,8 +458,8 @@ theorem prodEndo_preservesProductMonic [HasBinaryProducts 𝒞] (B : 𝒞) :
     `m : A'↪A` the map `pair(fst≫m, snd) : A'×B → A×B` is again a **proper** mono.
 
     NB: the book (§1.472) requires `A'×B` to be a *proper* subobject of `A×B`, i.e.
-    `ProperMono`, not merely `Mono`.  `Mono (m × id_B)` follows from `Mono m` alone
-    (`product_mono_of_mono`), so phrasing the right side with `Mono` would make it a
+    `ProperMono`, not merely `Monic`.  `Monic (m × id_B)` follows from `Monic m` alone
+    (`product_mono_of_mono`), so phrasing the right side with `Monic` would make it a
     tautology and the equivalence false (the left side fails in, e.g., §1.475's Z-sets).
     The non-iso half is the substantive §1.472 content.
 
@@ -681,7 +681,7 @@ theorem fst_iso_of_term_iso [HasTerminal 𝒞] [HasBinaryProducts 𝒞] {B : �
     -- both sides are maps `A×B → B`; postcompose `term B` (iso, hence mono) and use `term_uniq`.
     have heq : (fst (A := A) (B := B) ≫ term A ≫ tb) ≫ term B = snd ≫ term B :=
       term_uniq _ _
-    have hmonoB : Mono (term B) := mono_of_retraction _ tb htb1
+    have hmonoB : Monic (term B) := mono_of_retraction _ tb htb1
     exact hmonoB _ _ heq
 
 /-- **§1.473 (⇒)**: In a one-valued special Cartesian category, B×- is faithful for all B.
@@ -785,8 +785,8 @@ structure TwoValued [CartesianCategory 𝒞] where
 /-- `fst : B×0 → B` is monic when `0 := zeroObj` is a subterminator (its `term` is monic):
     two maps into `B×0` agreeing after `fst` also agree after `snd` (both land in `0`,
     whose hom-sets are subsingletons), so they are equal. -/
-theorem fst_prodZero_mono [CartesianCategory 𝒞] {Z : 𝒞} (hZ : Mono (term Z)) (B : 𝒞) :
-    Mono (fst (A := B) (B := Z)) := by
+theorem fst_prodZero_mono [CartesianCategory 𝒞] {Z : 𝒞} (hZ : Monic (term Z)) (B : 𝒞) :
+    Monic (fst (A := B) (B := Z)) := by
   intro W u v huv
   -- snd-components agree since `Z` is a subterminator.
   have hsnd : u ≫ snd (A := B) (B := Z) = v ≫ snd :=
@@ -808,7 +808,7 @@ theorem twoValued_special_prodEndo_faithful [CartesianCategory 𝒞] (hSp : IsSp
     (hB : ¬ ∃ (e : B ⟶ h2v.zeroObj), IsIso e) :
     Faithful (prodEndo B) := by
   -- `fst : B×0 → B` is a monic; it is the candidate proper subobject of `B`.
-  have hmono : Mono (fst (A := B) (B := h2v.zeroObj)) :=
+  have hmono : Monic (fst (A := B) (B := h2v.zeroObj)) :=
     fst_prodZero_mono h2v.zero_proper.1 B
   -- Properness of `fst : B×0 → B` (i.e. it is not iso), the §1.474 content.  See docstring;
   -- it consumes `hB` (B ≇ 0) and the special dichotomy `B×0 ≅ 0`.
@@ -847,14 +847,14 @@ theorem twoValued_special_iff [CartesianCategory 𝒞] (h2v : TwoValued (𝒞 :=
       -- with `zero_uniq` this forces `n` to be iso, contradicting `hn.2`.
       exfalso
       -- `term zeroObj` is monic, so every hom into `zeroObj` is a subsingleton.
-      have hzmono : Mono (term h2v.zeroObj) := h2v.zero_proper.1
+      have hzmono : Monic (term h2v.zeroObj) := h2v.zero_proper.1
       have hz_subsingleton : ∀ {W : 𝒞} (u v : W ⟶ h2v.zeroObj), u = v := fun u v =>
         hzmono u v (term_uniq _ _)
       obtain ⟨e_inv, he1, he2⟩ := _he   -- _e ≫ e_inv = id_B, e_inv ≫ _e = id_zeroObj
       -- `m := n ≫ _e : B' → zeroObj` is monic (n monic; _e iso ⇒ monic).
-      have he_mono : Mono _e := mono_of_retraction _ e_inv he1
+      have he_mono : Monic _e := mono_of_retraction _ e_inv he1
       -- `m := n ≫ _e : B' → zeroObj` is monic (n monic; _e iso ⇒ monic).
-      have hm_mono : Mono (n ≫ _e) := by
+      have hm_mono : Monic (n ≫ _e) := by
         intro W u v huv
         exact hn.1 u v (he_mono (u ≫ n) (v ≫ n)
           (by simpa only [Cat.assoc] using huv))
@@ -862,7 +862,7 @@ theorem twoValued_special_iff [CartesianCategory 𝒞] (h2v : TwoValued (𝒞 :=
       have hB'_subsingleton : ∀ {W : 𝒞} (u v : W ⟶ B'), u = v := fun u v =>
         hm_mono u v (hz_subsingleton _ _)
       -- `term B'` is monic.
-      have hB'_term_mono : Mono (term B') := fun u v _ => hB'_subsingleton u v
+      have hB'_term_mono : Monic (term B') := fun u v _ => hB'_subsingleton u v
       -- Case on whether `term B'` is iso.
       rcases Classical.em (IsIso (term B')) with h_iso1 | h_not_iso1
       · -- B' ≅ 1: get a section of `term zeroObj`, forcing it iso — contradiction.
@@ -911,7 +911,7 @@ structure DenseClass (𝒞 : Type u) [Cat.{v} 𝒞] [HasPullbacks 𝒞] where
                  mem f → mem ((HasPullbacks.has g f).cone.π₁)
 
 /-- **§1.48 DENSE MONIC**: `f : A → B` belongs to a dense class `G`. -/
-def DenseMonic [HasPullbacks 𝒞] {A B : 𝒞} (f : A ⟶ B) (_hm : Mono f)
+def DenseMonic [HasPullbacks 𝒞] {A B : 𝒞} (f : A ⟶ B) (_hm : Monic f)
     (G : DenseClass 𝒞) : Prop := G.mem f
 
 /-! ### Fraction spans: the morphisms of A[G⁻¹] -/

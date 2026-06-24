@@ -807,12 +807,12 @@ instance overPositivePreLogos (B : 𝒞) : PositivePreLogos (Over B) where
 
 /-- The slice left injection `inl : X ⟶ X+Y` is monic (`Σ_B` reflects monos). -/
 theorem over_inl_monic {X Y : Over B} :
-    Mono (HasBinaryCoproducts.inl (𝒞 := Over B) (A := X) (B := Y)) :=
+    Monic (HasBinaryCoproducts.inl (𝒞 := Over B) (A := X) (B := Y)) :=
   sigma_reflects_mono (HasBinaryCoproducts.inl (𝒞 := Over B)) DisjointBinaryCoproduct.inl_monic
 
 /-- The slice right injection `inr : Y ⟶ X+Y` is monic. -/
 theorem over_inr_monic {X Y : Over B} :
-    Mono (HasBinaryCoproducts.inr (𝒞 := Over B) (A := X) (B := Y)) :=
+    Monic (HasBinaryCoproducts.inr (𝒞 := Over B) (A := X) (B := Y)) :=
   sigma_reflects_mono (HasBinaryCoproducts.inr (𝒞 := Over B)) DisjointBinaryCoproduct.inr_monic
 
 /-- The forgotten slice intersection is below the `𝒞`-intersection of the forgotten subobjects
@@ -1000,7 +1000,7 @@ theorem distOPO_iso (B : 𝒞) : IsIso (distOPO B) := by
     by rw [Cat.assoc, ← Cat.assoc pinv, hp2, Cat.id_comp, hc2]⟩
 
 /-- `distOPO B` is monic (it is an iso). -/
-theorem distOPO_mono (B : 𝒞) : Mono (distOPO B) := by
+theorem distOPO_mono (B : 𝒞) : Monic (distOPO B) := by
   obtain ⟨g, hfg, _⟩ := distOPO_iso B
   intro W u v huv
   have := congrArg (· ≫ g) huv
@@ -1085,7 +1085,7 @@ theorem adiag_snd : adiag (𝒞 := 𝒞) ≫ snd = case inr inl := by
   · rw [← Cat.assoc]; show (inr ≫ adiag) ≫ snd = _; rw [adiag, case_inr, snd_pair]
 
 /-- `adiag` is monic: post-`fst` gives `case inl inr = id`, which already cancels. -/
-theorem adiag_mono : Mono (adiag (𝒞 := 𝒞)) := by
+theorem adiag_mono : Monic (adiag (𝒞 := 𝒞)) := by
   intro W u v huv
   have hf : u ≫ case inl inr = v ≫ case inl inr := by
     have := congrArg (· ≫ fst) huv; simpa only [Cat.assoc, adiag_fst] using this
@@ -1317,7 +1317,7 @@ theorem cover_splits_of_dom_choice {𝒟 : Type u} [Cat.{v} 𝒟] [RegularCatego
 
 /-- A split mono is monic. -/
 theorem mono_of_split {𝒟 : Type u} [Cat.{v} 𝒟] {X Y : 𝒟} (s : Y ⟶ X) (r : X ⟶ Y)
-    (h : s ≫ r = Cat.id Y) : Mono s := by
+    (h : s ≫ r = Cat.id Y) : Monic s := by
   intro W u v huv
   have := congrArg (· ≫ r) huv
   simpa only [Cat.assoc, h, Cat.comp_id] using this

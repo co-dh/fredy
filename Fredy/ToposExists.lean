@@ -351,7 +351,7 @@ noncomputable def coprodObj (A B : 𝒞) : 𝒞 := (coprodSub A B).dom
 noncomputable def coprodArr (A B : 𝒞) : coprodObj A B ⟶ prod (powObj A) (powObj B) :=
   (coprodSub A B).arr
 
-theorem coprodArr_monic (A B : 𝒞) : Mono (coprodArr A B) := (coprodSub A B).monic
+theorem coprodArr_monic (A B : 𝒞) : Monic (coprodArr A B) := (coprodSub A B).monic
 
 /-- The chosen factorization `image (inlRaw) ≤ coprodSub` (from `union_left`). -/
 noncomputable def imLeftToCarrier (A B : 𝒞) : (image (inlRaw A B)).dom ⟶ coprodObj A B :=
@@ -386,33 +386,33 @@ theorem coprodInr_arr (A B : 𝒞) : coprodInr A B ≫ coprodArr A B = inrRaw A 
   rw [coprodInr, Cat.assoc, imRightToCarrier_fac, image.lift_fac]
 
 /-- `inlRaw` is monic: `inlRaw ≫ fst = singletonMap A`, which is monic. -/
-theorem inlRaw_monic (A B : 𝒞) : Mono (inlRaw A B) := by
+theorem inlRaw_monic (A B : 𝒞) : Monic (inlRaw A B) := by
   intro W u v huv
   refine singletonMap_monic A u v ?_
   have : (u ≫ inlRaw A B) ≫ fst = (v ≫ inlRaw A B) ≫ fst := by rw [huv]
   rwa [Cat.assoc, Cat.assoc, inlRaw, fst_pair] at this
 
 /-- `inrRaw` is monic: `inrRaw ≫ snd = singletonMap B`, which is monic. -/
-theorem inrRaw_monic (A B : 𝒞) : Mono (inrRaw A B) := by
+theorem inrRaw_monic (A B : 𝒞) : Monic (inrRaw A B) := by
   intro W u v huv
   refine singletonMap_monic B u v ?_
   have : (u ≫ inrRaw A B) ≫ snd = (v ≫ inrRaw A B) ≫ snd := by rw [huv]
   rwa [Cat.assoc, Cat.assoc, inrRaw, snd_pair] at this
 
 /-- **`inl` is monic.**  `coprodInl ≫ coprodArr = inlRaw` is monic, so `coprodInl` is. -/
-theorem coprodInl_monic (A B : 𝒞) : Mono (coprodInl A B) := by
+theorem coprodInl_monic (A B : 𝒞) : Monic (coprodInl A B) := by
   intro W u v huv
   refine inlRaw_monic A B u v ?_
   rw [← coprodInl_arr, ← Cat.assoc, ← Cat.assoc, huv]
 
 /-- **`inr` is monic.** -/
-theorem coprodInr_monic (A B : 𝒞) : Mono (coprodInr A B) := by
+theorem coprodInr_monic (A B : 𝒞) : Monic (coprodInr A B) := by
   intro W u v huv
   refine inrRaw_monic A B u v ?_
   rw [← coprodInr_arr, ← Cat.assoc, ← Cat.assoc, huv]
 
 /-- Equalizer maps are monic (local copy; `S1_57.eqMap_mono` is not imported here). -/
-private theorem eqMap_mono_local {A B : 𝒞} (f g : A ⟶ B) : Mono (eqMap f g) := by
+private theorem eqMap_mono_local {A B : 𝒞} (f g : A ⟶ B) : Monic (eqMap f g) := by
   intro W u v huv
   -- c := u ≫ eqMap equalizes f, g; both u and v are its (unique) lift.
   have hc : (u ≫ eqMap f g) ≫ f = (u ≫ eqMap f g) ≫ g := by
@@ -431,7 +431,7 @@ theorem coprod_jointly_epi {A B X : 𝒞} (h k : coprodObj A B ⟶ X)
     (hr : coprodInr A B ≫ h = coprodInr A B ≫ k) : h = k := by
   -- E = equalizer of h, k, with monic inclusion e : E ↪ A+B.
   let e : eqObj h k ⟶ coprodObj A B := eqMap h k
-  have he_mono : Mono e := eqMap_mono_local h k
+  have he_mono : Monic e := eqMap_mono_local h k
   let E : Subobject 𝒞 (coprodObj A B) := ⟨eqObj h k, e, he_mono⟩
   -- both injections factor through E.
   let l₁ : A ⟶ eqObj h k := eqLift h k (coprodInl A B) hl
@@ -439,7 +439,7 @@ theorem coprod_jointly_epi {A B X : 𝒞} (h k : coprodObj A B ⟶ X)
   let l₂ : B ⟶ eqObj h k := eqLift h k (coprodInr A B) hr
   have hl₂ : l₂ ≫ e = coprodInr A B := eqLift_fac h k _ hr
   -- ⟨E, e ≫ coprodArr⟩ : a subobject of [A]×[B] (e and coprodArr both monic).
-  have hec_mono : Mono (e ≫ coprodArr A B) := by
+  have hec_mono : Monic (e ≫ coprodArr A B) := by
     intro W u v huv
     exact he_mono u v ((coprodArr_monic A B) _ _ (by rw [Cat.assoc, Cat.assoc, huv]))
   let Ec : Subobject 𝒞 (prod (powObj A) (powObj B)) := ⟨eqObj h k, e ≫ coprodArr A B, hec_mono⟩
@@ -554,11 +554,11 @@ noncomputable def caseRel {A B X : 𝒞} (f : A ⟶ X) (g : B ⟶ X) :
     `coprodInl` and `coprodInr` factor is an iso.  (Same equalizer/`union_min` argument as
     `coprod_jointly_epi`, repackaged as a covering statement: the images of the two
     injections inside `A+B` union to the whole carrier.) -/
-theorem coprod_injections_cover {A B C : 𝒞} (m : C ⟶ coprodObj A B) (hm : Mono m)
+theorem coprod_injections_cover {A B C : 𝒞} (m : C ⟶ coprodObj A B) (hm : Monic m)
     (sl : A ⟶ C) (hsl : sl ≫ m = coprodInl A B)
     (sr : B ⟶ C) (hsr : sr ≫ m = coprodInr A B) : IsIso m := by
   -- `Cm := ⟨C, m ≫ coprodArr⟩ ⊆ [A]×[B]` (composite of two monics).
-  have hmc_mono : Mono (m ≫ coprodArr A B) := by
+  have hmc_mono : Monic (m ≫ coprodArr A B) := by
     intro W u v huv
     exact hm u v ((coprodArr_monic A B) _ _ (by rw [Cat.assoc, Cat.assoc, huv]))
   let Cm : Subobject 𝒞 (prod (powObj A) (powObj B)) := ⟨C, m ≫ coprodArr A B, hmc_mono⟩
@@ -731,10 +731,10 @@ theorem case_morphism_exists {A B X : 𝒞} (f : A ⟶ X) (g : B ⟶ X) :
     realized by the honest copairing `c` (`case_morphism_exists`, from §1.621 disjoint gluing):
     `caseRel ⊆ graph c`, and a graph is simple, so `caseRel` is simple, i.e. `colA` is monic. -/
 theorem caseRel_colA_monic {A B X : 𝒞} (f : A ⟶ X) (g : B ⟶ X) :
-    Mono (caseRel f g).colA := by
+    Monic (caseRel f g).colA := by
   obtain ⟨c, hcl, hcr⟩ := case_morphism_exists f g
   -- The graph subobject `G = {(p, p ≫ c)} ⊆ (A+B)×X`, carried by the monic `pair id c`.
-  have hG_mono : Mono (pair (Cat.id (coprodObj A B)) c) := by
+  have hG_mono : Monic (pair (Cat.id (coprodObj A B)) c) := by
     intro W u v huv
     have h : (u ≫ pair (Cat.id (coprodObj A B)) c) ≫ fst
         = (v ≫ pair (Cat.id (coprodObj A B)) c) ≫ fst := by rw [huv]

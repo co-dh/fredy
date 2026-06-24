@@ -1211,7 +1211,7 @@ theorem baseable_equalizer_is_baseable [HasEqualizers 𝒜]
     Baseable (eqObj f g) := by
   -- E := eqObj f g, with q₀ := eqMap f g : E → B₂ monic, q₀≫f = q₀≫g.
   -- `eqMap f g` is monic (one-liner from eqLift uniqueness; no HasImages needed).
-  have hq₀mono : Mono (eqMap f g) := by
+  have hq₀mono : Monic (eqMap f g) := by
     intro W u v huv
     rw [eqLift_uniq f g (u ≫ eqMap f g) (by rw [Cat.assoc, Cat.assoc, eqMap_eq]) u rfl,
         eqLift_uniq f g (u ≫ eqMap f g) (by rw [Cat.assoc, Cat.assoc, eqMap_eq]) v huv.symm]
@@ -1251,7 +1251,7 @@ theorem baseable_equalizer_is_baseable [HasEqualizers 𝒜]
     · -- Uniqueness of h.
       intro h' hh'
       -- Composing hh' with q₀ and ev₂ pins down h' ≫ q via hu₂; then q monic ⟹ h'.
-      have hq'mono : Mono (eqMap fA gA) := by
+      have hq'mono : Monic (eqMap fA gA) := by
         intro W u v huv
         rw [eqLift_uniq fA gA (u ≫ eqMap fA gA) (by rw [Cat.assoc, Cat.assoc, eqMap_eq]) u rfl,
             eqLift_uniq fA gA (u ≫ eqMap fA gA) (by rw [Cat.assoc, Cat.assoc, eqMap_eq]) v huv.symm]

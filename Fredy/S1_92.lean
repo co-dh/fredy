@@ -199,7 +199,7 @@ private theorem graphMono_snd {B X' : 𝒞} (h : X' ⟶ B) :
 private theorem graphMono_fst {B X' : 𝒞} (h : X' ⟶ B) :
     graphMono h ≫ fst = h := fst_pair _ _
 
-private theorem graphMono_mono {B X' : 𝒞} (h : X' ⟶ B) : Mono (graphMono h) :=
+private theorem graphMono_mono {B X' : 𝒞} (h : X' ⟶ B) : Monic (graphMono h) :=
   mono_of_retraction _ snd (graphMono_snd h)
 
 /-- The composite `γ_h ≫ (B × h) = h ≫ Δ` lands the graph on the diagonal:
@@ -275,7 +275,7 @@ private theorem graph_classifies {B X' : 𝒞} (h : X' ⟶ B) :
     lift `u` satisfies `u ≫ γ_h = γ_k`, hence (projecting to X') `u = 1` and
     `γ_h = γ_k`, whence `h = k`. -/
 theorem singletonMapCat_monic (B : 𝒞) :
-    Mono (singletonMapCat (𝒞 := 𝒞) B) := by
+    Monic (singletonMapCat (𝒞 := 𝒞) B) := by
   intro X' h k hΔ
   -- From h ≫ curry(χ_Δ) = k ≫ curry(χ_Δ): the precomposed char maps agree.
   have hχ : prodMap B X' B h ≫
@@ -404,7 +404,7 @@ theorem compose_graph_id {A B : 𝒞} (R : BinRel 𝒞 A B) :
       simp only [graph, Cat.comp_id]
   -- `pair R.colA R.colB` is monic (jointly-monic pair), so it equals its own image up
   -- to iso.  We build the two `RelHom`s through `image.lift sp` and `image_min`.
-  have hRmono : Mono (pair R.colA R.colB) := monic_pair_of_monicPair _ _ R.isMonicPair
+  have hRmono : Monic (pair R.colA R.colB) := monic_pair_of_monicPair _ _ R.isMonicPair
   -- `sp` factors through the monic `pair R.colA R.colB` via `π₁`:
   --   π₁ ≫ pair R.colA R.colB = pair (π₁≫R.colA) (π₁≫R.colB) = pair (π₁≫R.colA) π₂ = sp.
   have hπsp : pb.cone.π₁ ≫ pair R.colA R.colB = sp := by
@@ -655,7 +655,7 @@ noncomputable def classRel {A Y : 𝒞} (χ : prod A Y ⟶ HasSubobjectClassifie
     colB := pb.cone.π₁ ≫ fst
     isMonicPair := by
       -- jointly monic: `pair colB colA = pb.π₁` (a monic, being a pullback of the monic `true`).
-      have hmono : Mono pb.cone.π₁ :=
+      have hmono : Monic pb.cone.π₁ :=
         mono_pullback χ HasSubobjectClassifier.true HasSubobjectClassifier.true_monic pb
       intro W f g hA hB
       apply hmono
@@ -715,7 +715,7 @@ noncomputable def evalRel (A : 𝒞) :
 noncomputable def relMonic {X A : 𝒞} (R : BinRel 𝒞 X A) : R.src ⟶ prod A X :=
   pair R.colB R.colA
 
-theorem relMonic_mono {X A : 𝒞} (R : BinRel 𝒞 X A) : Mono (relMonic R) :=
+theorem relMonic_mono {X A : 𝒞} (R : BinRel 𝒞 X A) : Monic (relMonic R) :=
   monic_pair_of_monicPair R.colB R.colA (fun f g h1 h2 => R.isMonicPair f g h2 h1)
 
 /-- Round-trip: any `R : BinRel X A` is the relation cut out by the classifier of its
@@ -723,7 +723,7 @@ theorem relMonic_mono {X A : 𝒞} (R : BinRel 𝒞 X A) : Mono (relMonic R) :=
 theorem classRel_roundtrip {X A : 𝒞} (R : BinRel 𝒞 X A) :
     RelHom R (classRel (HasSubobjectClassifier.classify (relMonic R) (relMonic_mono R))) ∧
     RelHom (classRel (HasSubobjectClassifier.classify (relMonic R) (relMonic_mono R))) R := by
-  have hmono : Mono (relMonic R) := relMonic_mono R
+  have hmono : Monic (relMonic R) := relMonic_mono R
   let mR := relMonic R
   let χ := HasSubobjectClassifier.classify mR hmono
   let pb := HasPullbacks.has χ HasSubobjectClassifier.true
@@ -1126,8 +1126,8 @@ end CovariantPowerMap
 structure HasPartialMapClassifier (𝒞 : Type u) [Cat.{v} 𝒞] extends HasTerminal 𝒞, HasPullbacks 𝒞 where
   pmc_obj   : 𝒞
   pmc_incl  : one ⟶ pmc_obj
-  pmc_incl_monic : Mono pmc_incl
-  pmc_classify {X A A' : 𝒞} (m : A' ⟶ A) (_ : Mono m) (f : A' ⟶ X) : A ⟶ pmc_obj
+  pmc_incl_monic : Monic pmc_incl
+  pmc_classify {X A A' : 𝒞} (m : A' ⟶ A) (_ : Monic m) (f : A' ⟶ X) : A ⟶ pmc_obj
 
 /-- **§1.921**: LAWVERE TOPOS — a category that is:
     (1) bicartesian (finite products + finite coproducts)
@@ -1161,7 +1161,7 @@ class LawvereTopos (𝒞 : Type u) [Cat.{v} 𝒞] extends HasExponentials 𝒞 w
     curry is injective (curry_inj). -/
 theorem expSubobj (A B : 𝒞) :
     ∃ (ι : exp A B ⟶ exp (prod A B) (HasSubobjectClassifier.omega (𝒞 := 𝒞))),
-      Mono ι := by
+      Monic ι := by
   -- `exp A B = B ^^ A` is now the CONCRETE representing object supplied by
   -- `topos_has_exponentials` (no longer opaque), so we exhibit ι EXPLICITLY as the §1.923
   -- GRAPH map  ι : B^A → Ω^{A×B},  f ↦ {(a,b) | eval(a,f) = b} :

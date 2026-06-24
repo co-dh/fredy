@@ -2,7 +2,7 @@
   Freyd & Scedrov, *Categories and Allegories* §1.53  The SLICE LEMMA.
 
   §1.531  Σ : A/B → A preserves and reflects monos and covers.
-          Mono preservation/reflection (and Σ as a `Functor`) are in `S1_44`,
+          Monic preservation/reflection (and Σ as a `Functor`) are in `S1_44`,
           packaged as `slice_preservesMono` / `slice_reflectsMono` via
           `PreservesMono` / `ReflectsMono`.  Cover reflection is here (needs §1.51).
   §1.532  The pullback square for B×A₁ → B×A₂ over A₁→A₂.
@@ -38,7 +38,7 @@ variable [ht : HasTerminal 𝒞] [hp : HasBinaryProducts 𝒞] [hpull : HasPullb
 theorem sigma_reflects_cover {B : 𝒞} {X Y Z : Over B} (u : OverHom X Y) (m : OverHom Z Y)
     (g : OverHom X Z) (hu : Cover u.f) (hmMono : OverMono m) (hgm : g ⊚ m = u) : IsIso m.f := by
   have hgmA : g.f ≫ m.f = u.f := congrArg OverHom.f hgm
-  have hmA : Mono m.f := sigma_preserves_mono m hmMono
+  have hmA : Monic m.f := sigma_preserves_mono m hmMono
   exact hu m.f g.f hmA hgmA
 
 /-! ## §1.532  The pullback square for Δ -/

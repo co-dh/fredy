@@ -40,7 +40,7 @@ open HasSubobjectClassifier
     `m ≫ χ_m = m ≫ (term Y ≫ true)`; `m` epic cancels it to `χ_m = term Y ≫ true`.  Then
     `id_Y` together with `term Y` is a cone over `(χ_m, true)`, so the pullback UMP yields a
     section `r : Y → C` with `r ≫ m = id_Y`.  `m` monic upgrades this to a two-sided inverse. -/
-theorem epi_mono_is_iso [HasSubobjectClassifier 𝒞] {C Y : 𝒞} (m : C ⟶ Y) (hm : Mono m)
+theorem epi_mono_is_iso [HasSubobjectClassifier 𝒞] {C Y : 𝒞} (m : C ⟶ Y) (hm : Monic m)
     (hepi : ∀ {Z : 𝒞} (a b : Y ⟶ Z), m ≫ a = m ≫ b → a = b) : IsIso m := by
   -- classifier data: χ_m and the pullback square `m ≫ χ_m = term C ≫ true`.
   let χ : Y ⟶ omega (𝒞 := 𝒞) := classify m hm

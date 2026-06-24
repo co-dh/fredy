@@ -96,16 +96,16 @@ noncomputable def powerClassify [HasPullbacks 𝒞] {C : 𝒞} [HasPowerObject C
 class HasSubobjectClassifier (𝒞 : Type u) [Cat.{v} 𝒞] extends HasTerminal 𝒞, HasPullbacks 𝒞 where
   omega      : 𝒞
   true       : one ⟶ omega
-  true_monic : Mono true
+  true_monic : Monic true
   /-- The characteristic map of a monic m : A' → A. -/
-  classify {A A' : 𝒞} (m : A' ⟶ A) : Mono m → (A ⟶ omega)
+  classify {A A' : 𝒞} (m : A' ⟶ A) : Monic m → (A ⟶ omega)
   /-- The classifying square commutes: `m ≫ χ_m = (A'→1) ≫ t`. -/
-  classify_sq : ∀ {A A' : 𝒞} (m : A' ⟶ A) (hm : Mono m), m ≫ classify m hm = term A' ≫ true
+  classify_sq : ∀ {A A' : 𝒞} (m : A' ⟶ A) (hm : Monic m), m ≫ classify m hm = term A' ≫ true
   /-- **Universal property**: `m` is the pullback of `t` along `χ_m`. -/
-  classify_pullback : ∀ {A A' : 𝒞} (m : A' ⟶ A) (hm : Mono m),
+  classify_pullback : ∀ {A A' : 𝒞} (m : A' ⟶ A) (hm : Monic m),
     Cone.IsPullback (⟨A', m, term A', classify_sq m hm⟩ : Cone (classify m hm) true)
   /-- `χ_m` is the UNIQUE map making `m` the pullback of `t`. -/
-  classify_unique : ∀ {A A' : 𝒞} (m : A' ⟶ A) (hm : Mono m) (χ : A ⟶ omega)
+  classify_unique : ∀ {A A' : 𝒞} (m : A' ⟶ A) (hm : Monic m) (χ : A ⟶ omega)
     (hsq : m ≫ χ = term A' ≫ true),
     Cone.IsPullback (⟨A', m, term A', hsq⟩ : Cone χ true) → χ = classify m hm
 
@@ -135,13 +135,13 @@ instance (priority := 100) Topos.hasPowerObject {𝒞 : Type u} [Cat.{v} 𝒞]
 
 /-- §1.912: The universal subobject t : 1 → Ω is monic. -/
 theorem true_monic [HasSubobjectClassifier 𝒞] :
-    Mono (HasSubobjectClassifier.true (𝒞 := 𝒞)) :=
+    Monic (HasSubobjectClassifier.true (𝒞 := 𝒞)) :=
   HasSubobjectClassifier.true_monic
 
 /-- §1.912: The characteristic map is unique: if χ makes the pullback square,
     then χ = classify m hm.  This follows directly from `classify_unique`. -/
 theorem classify_eq_of_pullback [HasSubobjectClassifier 𝒞]
-    {A A' : 𝒞} (m : A' ⟶ A) (hm : Mono m)
+    {A A' : 𝒞} (m : A' ⟶ A) (hm : Monic m)
     (χ : A ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞))
     (sq : m ≫ χ = term A' ≫ HasSubobjectClassifier.true)
     (pb : (Cone.mk (f := χ) (g := HasSubobjectClassifier.true)
@@ -151,7 +151,7 @@ theorem classify_eq_of_pullback [HasSubobjectClassifier 𝒞]
 
 /-- §1.912: The characteristic map does not depend on the proof of monicity. -/
 theorem classify_congr [HasSubobjectClassifier 𝒞]
-    {A A' : 𝒞} (m : A' ⟶ A) (hm hm' : Mono m) :
+    {A A' : 𝒞} (m : A' ⟶ A) (hm hm' : Monic m) :
     HasSubobjectClassifier.classify m hm = HasSubobjectClassifier.classify m hm' :=
   HasSubobjectClassifier.classify_unique m hm _
     (HasSubobjectClassifier.classify_sq m hm')

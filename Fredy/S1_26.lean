@@ -52,9 +52,9 @@ instance overCat (B : 𝒞) : Cat.{v} (Over B) where
   comp_id f := OverHom.ext (Cat.comp_id f.f)
   assoc f g h := OverHom.ext (Cat.assoc f.f g.f h.f)
 
-/-- Mono in A/B (via the Over category's `Cat` instance).  `OverMono m` iff
+/-- Monic in A/B (via the Over category's `Cat` instance).  `OverMono m` iff
     `m` is monic in the slice category. -/
-abbrev OverMono {B : 𝒞} {Z Y : Over B} (m : OverHom Z Y) : Prop := @Mono (Over B) _ Z Y m
+abbrev OverMono {B : 𝒞} {Z Y : Over B} (m : OverHom Z Y) : Prop := @Monic (Over B) _ Z Y m
 
 /-- Iso in A/B: `OverIso m` iff `m` is an isomorphism in the slice category. -/
 abbrev OverIso {B : 𝒞} {X Y : Over B} (m : OverHom X Y) : Prop := @IsIso (Over B) _ X Y m
@@ -116,7 +116,7 @@ instance underCat (B : 𝒞) : Cat.{v} (Under B) where
   comp_id f := UnderHom.ext (Cat.comp_id f.f)
   assoc f g h := UnderHom.ext (Cat.assoc f.f g.f h.f)
 
-/-- Mono in B\A. -/
-abbrev UnderMono {B : 𝒞} {Z Y : Under B} (m : UnderHom Z Y) : Prop := @Mono (Under B) _ Z Y m
+/-- Monic in B\A. -/
+abbrev UnderMono {B : 𝒞} {Z Y : Under B} (m : UnderHom Z Y) : Prop := @Monic (Under B) _ Z Y m
 
 end Freyd

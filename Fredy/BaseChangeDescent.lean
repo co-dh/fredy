@@ -79,7 +79,7 @@ theorem isIso_of_baseChange_isIso_of_cover {C D : 𝒞} [HasPullbacks 𝒞]
   -- It suffices to show the underlying arrow `m.f` is iso (`overIso_of_underlying`).
   refine overIso_of_underlying m ?_
   -- `m.f` is mono in `𝒞` (Σ preserves monos).
-  have hmf : Mono m.f := sigma_preserves_mono m hm
+  have hmf : Monic m.f := sigma_preserves_mono m hm
   -- The chosen base-change pullbacks for `X` and `Y` along `g` (kept as `let` so the
   -- `baseChangeMap`/`baseChangeObj` defs unfold to them definitionally).
   let PX := HasPullbacks.has X.hom g

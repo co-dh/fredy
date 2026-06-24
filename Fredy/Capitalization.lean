@@ -408,7 +408,7 @@ theorem colimitCanonicalCover (C : CatSystem.{u, u} ι D) (hC : C.Coherent) [hne
     (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
         IsIso ((C.functF hij).map φ) → IsIso φ)
     (hmono : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
-        Mono φ → Mono ((C.functF hij).map φ))
+        Monic φ → Monic ((C.functF hij).map φ))
     -- per-stage `PullbacksTransferCovers` (the stages are pre-regular)
     (hstagePTC : ∀ (i : ι), letI : HasTerminal (C.A i) := ht i;
         letI : HasBinaryProducts (C.A i) := hp i; letI : HasEqualizers (C.A i) := he i;
@@ -761,7 +761,7 @@ structure CapStep (S : Type u) [Cat.{u} S] [PreRegularCategory S] where
         (@PreRegularCategory.toHasBinaryProducts T catT preT)
         (@PreRegularCategory.toHasPullbacks T catT preT))
   /-- the step preserves monos (`hmono`, for the canonical-cover bridge). -/
-  stepMono : ∀ {x y : S} (φ : x ⟶ y), Mono φ → @Mono T catT _ _ (stepFun.map φ)
+  stepMono : ∀ {x y : S} (φ : x ⟶ y), Monic φ → @Monic T catT _ _ (stepFun.map φ)
   /-- the step preserves covers (`hcovpres`, for the canonical-cover bridge). -/
   stepCover : ∀ {x y : S} (φ : x ⟶ y), Cover φ → @Cover T catT _ _ (stepFun.map φ)
 
@@ -1187,7 +1187,7 @@ noncomputable def capStepHasTerminal {S : Type u} [Cat.{u} S] [PreRegularCategor
   refine @HasTerminal.mk s.T s.catT (s.step htS.one) (fun X => s.stepTerminalArrow X ≫ inv) ?_
   -- uniqueness into `step htS.one`: post-compose with the mono `cmp`, reducing to `stepTerminal`.
   intro X f g
-  have hmono : @Mono _ s.catT _ _ cmp := mono_of_retraction _ inv hinv₁
+  have hmono : @Monic _ s.catT _ _ cmp := mono_of_retraction _ inv hinv₁
   exact hmono f g (s.stepTerminal X (f ≫ cmp) (g ≫ cmp))
 
 /-! ### The tower's strict per-stage terminal and on-the-nose `htpres`
@@ -1348,8 +1348,8 @@ theorem transN_preservesEqualizers (nextStep : ∀ (S : PreRegBundle.{u}), CapSt
     rungs (`CapStep.stepMono`). -/
 theorem transN_preservesMono (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier) (n : Nat) :
     ∀ (d : Nat) {x y : (stageBundle nextStep b n).carrier} (φ : x ⟶ y),
-      @Mono _ (stageBundle nextStep b n).cat _ _ φ →
-      @Mono _ (stageBundle nextStep b (n+d)).cat _ _ ((transNFun nextStep b n d).map φ)
+      @Monic _ (stageBundle nextStep b n).cat _ _ φ →
+      @Monic _ (stageBundle nextStep b (n+d)).cat _ _ ((transNFun nextStep b n d).map φ)
   | 0, _, _, _, hφ => hφ
   | (d+1), _, _, φ, hφ =>
     (nextStep (stageBundle nextStep b (n+d))).stepMono _
@@ -1428,7 +1428,7 @@ theorem towerF_preservesEqualizers (nextStep : ∀ (S : PreRegBundle.{u}), CapSt
 
   Convert `towerF_preserves{BinaryProducts,Equalizers}` to the exact destructured hypotheses the
   `colimitPreRegular`/`capData_of_tower` package consumes (`hppres`/`hppres_pair`/`hepres`/
-  `hepres_lift`), and lift `transN_preserves{Mono,Cover}` across the cast for the canonical-cover
+  `hepres_lift`), and lift `transN_preserves{Monic,Cover}` across the cast for the canonical-cover
   bridge (`hmono`/`hcovpres`). -/
 
 /-- The tower's per-stage binary products (the bundled pre-regular's). -/
@@ -1503,8 +1503,8 @@ theorem towerHepresLift (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrie
 /-- The cast `stageCastHom h` preserves monos (it is `Eq.rec`, an iso). -/
 theorem stageCastHom_preservesMono (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier)
     {m n : Nat} (h : m = n) {x y : (stageBundle nextStep b m).carrier} (φ : x ⟶ y)
-    (hφ : @Mono _ (stageBundle nextStep b m).cat _ _ φ) :
-    @Mono _ (stageBundle nextStep b n).cat _ _ (stageCastHom b nextStep h φ) := by
+    (hφ : @Monic _ (stageBundle nextStep b m).cat _ _ φ) :
+    @Monic _ (stageBundle nextStep b n).cat _ _ (stageCastHom b nextStep h φ) := by
   subst h; exact hφ
 
 /-- The cast `stageCastHom h` preserves covers. -/
@@ -1519,8 +1519,8 @@ theorem stageCastHom_preservesCover (nextStep : ∀ (S : PreRegBundle.{u}), CapS
 theorem towerHmono (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier)
     {i j : ULift.{u} Nat} (hij : uliftNatDirected.le i j)
     {x y : (towerSystem b nextStep).A i} (φ : x ⟶ y)
-    (hφ : @Mono _ ((towerSystem b nextStep).catA i) _ _ φ) :
-    @Mono _ ((towerSystem b nextStep).catA j) _ _ (((towerSystem b nextStep).functF hij).map φ) :=
+    (hφ : @Monic _ ((towerSystem b nextStep).catA i) _ _ φ) :
+    @Monic _ ((towerSystem b nextStep).catA j) _ _ (((towerSystem b nextStep).functF hij).map φ) :=
   stageCastHom_preservesMono b nextStep (Nat.add_sub_cancel' (show i.down ≤ j.down from hij))
     ((transNFun nextStep b i.down (j.down - i.down)).map φ)
     (transN_preservesMono b nextStep i.down (j.down - i.down) φ hφ)
@@ -1674,7 +1674,7 @@ theorem cover_comp' {X Y Z : 𝒞} {f : X ⟶ Y} {g : Y ⟶ Z} (hf : Cover f) (h
   -- diagonal fill: `f ≫ g = h ≫ m`, pullback of `g, m`, `π₁` mono (pullback of mono `m`).
   let pb := HasPullbacks.has g m
   -- `π₁` is mono (pullback of the mono `m`), inlined (`pullback_fst_mono` needs `HasImages`):
-  have hπmono : Mono pb.cone.π₁ := by
+  have hπmono : Monic pb.cone.π₁ := by
     intro W p q hpq
     have hpq2 : p ≫ pb.cone.π₂ = q ≫ pb.cone.π₂ := by
       apply hm
@@ -1760,9 +1760,9 @@ theorem infl_separates {X Y : 𝒞} (f g : X ⟶ Y)
 theorem inflMap_reflects_iso {C D : 𝒞} (f : C ⟶ D)
     (hiso : IsIso (pair ((fst : prod C HasTerminal.one ⟶ C) ≫ f) snd)) : IsIso f := by
   obtain ⟨inv, hinv1, _hinv2⟩ := hiso
-  have hfBmono : Mono (pair ((fst : prod C HasTerminal.one ⟶ C) ≫ f) snd) :=
+  have hfBmono : Monic (pair ((fst : prod C HasTerminal.one ⟶ C) ≫ f) snd) :=
     mono_of_retraction _ inv hinv1
-  have hfmono : Mono f := by
+  have hfmono : Monic f := by
     intro Z u v huv
     refine infl_separates u v (hfBmono _ _ ?_)
     have e : (inflFunctor.map (u ≫ f) : (infl Z : Infl 𝒞) ⟶ infl D)
@@ -1940,9 +1940,9 @@ theorem preservesTerminal_uniq_comp {𝒜 ℬ ℰ : Type u} [Cat.{u} 𝒜] [Cat.
     PreservesTerminal (G ∘ F) := by
   intro X f g
   -- `t := term (F one) : F one ⟶ one_ℬ` is monic (maps into `F one` are unique, `hpF`).
-  have htmono : Mono (term (F (one : 𝒜))) := by
+  have htmono : Monic (term (F (one : 𝒜))) := by
     intro Y p q _; exact hpF Y p q
-  have hGtmono : Mono (hG.map (term (F (one : 𝒜)))) := hGmono htmono
+  have hGtmono : Monic (hG.map (term (F (one : 𝒜)))) := hGmono htmono
   -- post-compose with the mono `G t`; the two composites land in `G one_ℬ`, equal by `hpG`.
   apply hGtmono
   exact hpG X (f ≫ hG.map (term (F (one : 𝒜)))) (g ≫ hG.map (term (F (one : 𝒜))))
@@ -1953,7 +1953,7 @@ theorem preservesTerminal_uniq_comp {𝒜 ℬ ℰ : Type u} [Cat.{u} 𝒜] [Cat.
 theorem objIncl_preservesMono {ι : Type u} {D : Colim.Directed ι}
     (C : Colim.CatSystem.{u, u} ι D) (hC : C.Coherent)
     (hmono : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
-        Mono φ → Mono ((C.functF hij).map φ))
+        Monic φ → Monic ((C.functF hij).map φ))
     (i : ι) :
     letI : Cat C.Obj := Colim.colimitCat C hC
     @PreservesMono (C.A i) (C.catA i) C.Obj (Colim.colimitCat C hC) (C.objIncl i)
@@ -2213,7 +2213,7 @@ noncomputable def nextStepOfEnum {S : Type u} [Cat.{u} S] [hpre : PreRegularCate
         intro A' B' f g
         exact preservesEqualizers_target_irrel
           ((chainSliceSystem P).objIncl i0 ∘ baseSliceObj) heCol _ hcomp f g
-      -- stepMono: `Mono (homInclObj i0 (baseSliceMap φ))` from `Mono φ`.  `baseSliceObj` preserves
+      -- stepMono: `Monic (homInclObj i0 (baseSliceMap φ))` from `Monic φ`.  `baseSliceObj` preserves
       -- monos (pullback-preserving, `preservesPullbacks_preservesMono`+`baseSlice_preservesPullbacks`);
       -- `objIncl i0` lifts the stage mono to a colimit mono (`objIncl_preservesMono`+`ordChainHmono`).
       stepMono := fun {x y} φ hφ =>

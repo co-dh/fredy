@@ -720,7 +720,7 @@ theorem homIncl_injective (C : CatSystem ι D) (hC : C.Coherent)
   rw [castHom_castHom, castHom_castHom] at hstrip
   exact hfaith hik g g' hstrip
 
-/-- **Mono preservation:** a colimit morphism with representative `f₀` is monic in
+/-- **Monic preservation:** a colimit morphism with representative `f₀` is monic in
     `colimitCat` provided `f₀` stays left-cancellable under all transitions
     (`hcancel`).  Reflect `p ≫ f = q ≫ f` to a common stage `L`, where it becomes
     `· ≫ (functF haL).map f₀ = · ≫ (functF haL).map f₀`; `hcancel` then cancels. -/
@@ -730,7 +730,7 @@ theorem colimHom_mono_of_rep (C : CatSystem ι D) (hC : C.Coherent) {A B : C.Obj
     (hcancel : ∀ {j : ι} (hjk : D.le a.1 j) (z : C.A j)
         (u v : z ⟶ C.F hjk (C.F a.2.1 (colimOut C A).2)),
         u ≫ (C.functF hjk).map f₀ = v ≫ (C.functF hjk).map f₀ → u = v) :
-    @Mono C.Obj (colimitCat C hC) A B
+    @Monic C.Obj (colimitCat C hC) A B
       (homIncl C hC (colimOut C A).2 (colimOut C B).2 a f₀) := by
   letI : Cat C.Obj := colimitCat C hC
   let xA := (colimOut C A).2; let xB := (colimOut C B).2
@@ -790,7 +790,7 @@ theorem castHom_injective {𝒜 : Type w} [Cat.{w} 𝒜] {X Y X' Y' : 𝒜}
     (h : castHom hX hY a = castHom hX hY b) : a = b := by
   subst hX; subst hY; exact h
 
-/-- **Mono reflection** (converse of `colimHom_mono_of_rep`): if `homIncl a f₀` is
+/-- **Monic reflection** (converse of `colimHom_mono_of_rep`): if `homIncl a f₀` is
     monic in `colimitCat` (and transitions are faithful), then its stage germ `f₀`
     is left-cancellable under all transitions.  Given stage maps `u, v` with
     `u ≫ functF.map f₀ = v ≫ functF.map f₀` at a stage `j ≥ a.1`, include them as
@@ -805,7 +805,7 @@ theorem colimHom_mono_reflects (C : CatSystem ι D) (hC : C.Coherent)
     {A B : C.Obj}
     (a : UpperBound D (colimOut C A).1 (colimOut C B).1)
     (f₀ : C.F a.2.1 (colimOut C A).2 ⟶ C.F a.2.2 (colimOut C B).2)
-    (hmono : @Mono C.Obj (colimitCat C hC) A B
+    (hmono : @Monic C.Obj (colimitCat C hC) A B
       (homIncl C hC (colimOut C A).2 (colimOut C B).2 a f₀))
     {j : ι} (hjk : D.le a.1 j) (z : C.A j)
     (u v : z ⟶ C.F hjk (C.F a.2.1 (colimOut C A).2))
@@ -961,7 +961,7 @@ theorem colimHom_isIso_reflects (C : CatSystem ι D) (hC : C.Coherent) {A B : C.
 
 /-- `castHom` carries monos to monos (transport along object equalities). -/
 theorem mono_castHom {𝒜 : Type w} [Cat.{w} 𝒜] {X Y X' Y' : 𝒜}
-    (hX : X = X') (hY : Y = Y') (m : X ⟶ Y) (h : Mono m) : Mono (castHom hX hY m) := by
+    (hX : X = X') (hY : Y = Y') (m : X ⟶ Y) (h : Monic m) : Monic (castHom hX hY m) := by
   subst hX; subst hY; exact h
 
 /-- `castHom` carries covers to covers (transport along object equalities). -/
@@ -997,9 +997,9 @@ theorem colimHom_cover_of_rep (C : CatSystem ι D) (hC : C.Coherent)
   have hgm' : homCompRaw C hC xA xC xB bg g₀ bm m₀ = homIncl C hC xA xB a f₀ := hgm
   obtain ⟨N, hgN, hmN, hfN, eqN⟩ := homCompRaw_eq_stage C hC xA xC xB bg g₀ bm m₀ a f₀ hgm'
   -- `m₀` is monic at `N` (mono reflection); `f₀` is a cover at `N` (`hcov`)
-  have hm_map : Mono ((C.functF hmN).map m₀) :=
+  have hm_map : Monic ((C.functF hmN).map m₀) :=
     fun {W} u v huv => colimHom_mono_reflects C hC hfaith bm m₀ hm hmN W u v huv
-  have hm_N : Mono (homTr C xC xB bm ⟨N, D.trans bm.2.1 hmN, D.trans bm.2.2 hmN⟩ hmN m₀) :=
+  have hm_N : Monic (homTr C xC xB bm ⟨N, D.trans bm.2.1 hmN, D.trans bm.2.2 hmN⟩ hmN m₀) :=
     mono_castHom _ _ _ hm_map
   have hcov_N : Cover (homTr C xA xB a ⟨N, D.trans a.2.1 hfN, D.trans a.2.2 hfN⟩ hfN f₀) :=
     cover_castHom _ _ _ (hcov N hfN)
@@ -1167,7 +1167,7 @@ theorem homInclObj_injective (C : CatSystem ι D) (hC : C.Coherent)
   have hc := homIncl_injective C hC hfaith _ _ _ _ _ h
   exact hfaith _ _ _ (castHom_injective _ _ hc)
 
-/-- **Mono preservation for the stage inclusion.**  If `g : x ⟶ y` is left-cancellable
+/-- **Monic preservation for the stage inclusion.**  If `g : x ⟶ y` is left-cancellable
     under every transition from `i` (`hcancel`), then `homInclObj g` is monic in
     `colimitCat`.  Apply `colimHom_mono_of_rep` to the chosen-witness germ; the germ is
     `castHom ∘ functF.map g`, so cast-slides (`cR`/`cT`) reduce its cancellation back to
@@ -1176,7 +1176,7 @@ theorem homInclObj_mono_of_stage (C : CatSystem ι D) (hC : C.Coherent)
     {i : ι} {x y : C.A i} (g : x ⟶ y)
     (hcancel : ∀ {j : ι} (hij : D.le i j) (z : C.A j) (u v : z ⟶ C.F hij x),
         u ≫ (C.functF hij).map g = v ≫ (C.functF hij).map g → u = v) :
-    @Mono C.Obj (colimitCat C hC) (C.objIncl i x) (C.objIncl i y) (homInclObj C hC g) := by
+    @Monic C.Obj (colimitCat C hC) (C.objIncl i x) (C.objIncl i y) (homInclObj C hC g) := by
   let w := hioWitness C hC x y
   have hcancel' : ∀ {j : ι} (hjk : D.le w.K j) (z : C.A j)
       (u v : z ⟶ C.F hjk (C.F w.hpx (colimOut C (C.objIncl i x)).2)),
@@ -1306,13 +1306,13 @@ theorem homInclObj_cover_reflects (C : CatSystem ι D) (hC : C.Coherent)
     (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
         IsIso ((C.functF hij).map φ) → IsIso φ)
     (hmono : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
-        Mono φ → Mono ((C.functF hij).map φ))
+        Monic φ → Monic ((C.functF hij).map φ))
     {i : ι} {x y : C.A i} (g : x ⟶ y)
     (hcov : @Cover C.Obj (colimitCat C hC) (C.objIncl i x) (C.objIncl i y) (homInclObj C hC g)) :
     Cover g := by
   intro C'' m' g' hm' hgm'
   -- include the stage mono/factor; preservation makes the inclusion a colimit mono
-  have hM_mono : @Mono C.Obj (colimitCat C hC) (C.objIncl i C'') (C.objIncl i y)
+  have hM_mono : @Monic C.Obj (colimitCat C hC) (C.objIncl i C'') (C.objIncl i y)
       (homInclObj C hC m') :=
     homInclObj_mono_of_stage C hC m' (fun {j} hij z u v huv => hmono hij m' hm' u v huv)
   have hfac : colimComp C hC (homInclObj C hC g') (homInclObj C hC m') = homInclObj C hC g := by
@@ -1333,7 +1333,7 @@ theorem colimHom_cover_reflects (C : CatSystem ι D) (hC : C.Coherent)
     (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
         IsIso ((C.functF hij).map φ) → IsIso φ)
     (hmono : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
-        Mono φ → Mono ((C.functF hij).map φ))
+        Monic φ → Monic ((C.functF hij).map φ))
     {A B : C.Obj}
     (a : UpperBound D (colimOut C A).1 (colimOut C B).1)
     (f₀ : C.F a.2.1 (colimOut C A).2 ⟶ C.F a.2.2 (colimOut C B).2)
@@ -1357,7 +1357,7 @@ theorem colimHom_cover_reflects (C : CatSystem ι D) (hC : C.Coherent)
   let G : A ⟶ T := homIncl C hC xA rep_t ⟨s, D.trans a.2.1 h_ts, h_pt⟩ germ_G
   let M : T ⟶ B := homIncl C hC rep_t xB ⟨s, h_pt, D.trans a.2.2 h_ts⟩ germ_M
   -- M is a colimit mono (mono preservation of the germ, from `m'` mono via `hmono`)
-  have hM_mono : @Mono C.Obj (colimitCat C hC) T B M := by
+  have hM_mono : @Monic C.Obj (colimitCat C hC) T B M := by
     have hcancel : ∀ {j : ι} (hj : D.le s j) (z : C.A j) (u v : z ⟶ C.F hj (C.F h_pt rep_t)),
         u ≫ (C.functF hj).map germ_M = v ≫ (C.functF hj).map germ_M → u = v := by
       intro j hj z u v huv
@@ -1757,7 +1757,7 @@ theorem objIncl_preserves_equalizers (C : CatSystem ι D) (hC : C.Coherent)
   let Eobj : C.A i := eqObj f g
   let eS : Eobj ⟶ a := eqMap f g
   -- uniqueness: `homInclObj eS` is monic (`eqMap` is jointly cancellable via `hepres`)
-  have hmono : @Mono C.Obj (colimitCat C hC) (C.objIncl i Eobj) (C.objIncl i a)
+  have hmono : @Monic C.Obj (colimitCat C hC) (C.objIncl i Eobj) (C.objIncl i a)
       (homInclObj C hC eS) :=
     homInclObj_mono_of_stage C hC eS
       (fun {j} hij z u v huv => hepres hij f g z u v huv)
@@ -2529,7 +2529,7 @@ theorem preservesBinaryProducts_jointly_monic [HasBinaryProducts 𝒜] [HasBinar
   -- `φ ≫ snd = F snd`, so two maps agreeing after both `F`-projections agree after `φ`.
   let φ : F (prod A B) ⟶ prod (F A) (F B) := pair (hF.map (fst (A := A) (B := B))) (hF.map snd)
   obtain ⟨φ', hφφ', _⟩ := (hpp (A := A) (B := B) : IsIso φ)
-  have hφmono : Mono φ := mono_of_retraction φ φ' hφφ'
+  have hφmono : Monic φ := mono_of_retraction φ φ' hφφ'
   intro W u v hu hv
   apply hφmono
   -- `u ≫ φ = v ≫ φ` from joint agreement after `fst`/`snd` (φ's legs are `F fst`, `F snd`).
@@ -2561,7 +2561,7 @@ theorem preservesBinaryProducts_pair [HasBinaryProducts 𝒜] [HasBinaryProducts
     (`u ≫ F (eqMap f g) = v ≫ F (eqMap f g) → u = v`). -/
 theorem preservesEqualizers_mono [HasEqualizers 𝒜] [HasEqualizers ℬ]
     (F : 𝒜 → ℬ) [hF : Functor F] (hpe : PreservesEqualizers F) {A B : 𝒜} (f g : A ⟶ B) :
-    Mono (hF.map (eqMap f g)) := by
+    Monic (hF.map (eqMap f g)) := by
   -- comparison `k : F(eqObj f g) → eqObj (Ff)(Fg)` is iso; `eqMap (Ff)(Fg)` is monic; and
   -- `k ≫ eqMap(Ff)(Fg) = F (eqMap f g)`, so `F (eqMap f g)` is `iso ≫ mono`, hence mono.
   let cD := HasEqualizers.eq (F A) (F B) (hF.map f) (hF.map g)
@@ -2572,7 +2572,7 @@ theorem preservesEqualizers_mono [HasEqualizers 𝒜] [HasEqualizers ℬ]
   have hk_fac : k ≫ cD.cone.map = hF.map (eqMap f g) := cD.fac hcone
   obtain ⟨k', hkk', _⟩ := (hpe f g : IsIso k)
   -- `cD.cone.map = eqMap (F f)(F g)` is monic (two maps agreeing after it lift the same cone).
-  have hEqMono : Mono cD.cone.map := by
+  have hEqMono : Monic cD.cone.map := by
     intro W p q hpq
     have hc : (p ≫ cD.cone.map) ≫ hF.map f = (p ≫ cD.cone.map) ≫ hF.map g := by
       rw [Cat.assoc, Cat.assoc, cD.cone.eq]

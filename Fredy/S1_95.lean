@@ -134,7 +134,7 @@ theorem effective_of_quotient_cover {A Q : 𝒞} (E : BinRel 𝒞 A A)
     This is the bridge from `kernelPairRel (image.lift Λ)` (the quotient cover) to
     `kernelPairRel Λ` (the classifying map), since `Λ = image.lift Λ ≫ (image Λ).arr`
     with `(image Λ).arr` monic. -/
-theorem kernelPairRel_postmono {A C D : 𝒞} (q : A ⟶ C) (m : C ⟶ D) (hm : Mono m) :
+theorem kernelPairRel_postmono {A C D : 𝒞} (q : A ⟶ C) (m : C ⟶ D) (hm : Monic m) :
     RelLe (kernelPairRel q) (kernelPairRel (q ≫ m)) ∧
     RelLe (kernelPairRel (q ≫ m)) (kernelPairRel q) := by
   -- `kp₁(q) ≫ q = kp₂(q) ≫ q` ⟹ `kp₁(q) ≫ (q≫m) = kp₂(q) ≫ (q≫m)`.
@@ -520,12 +520,12 @@ noncomputable instance topos_is_bicartesian [Topos 𝒞] : BicartesianCategory �
     Elementary version (in a pre-topos, pushouts of monics are monic):
     E is injective iff every monic E ↣ A has a right-inverse. -/
 def IsInjective [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] (E : 𝒞) : Prop :=
-  ∀ {A B : 𝒞} (f : A ⟶ B), Mono f →
+  ∀ {A B : 𝒞} (f : A ⟶ B), Monic f →
     ∀ (g : A ⟶ E), ∃ (h : B ⟶ E), f ≫ h = g
 
 /-- The composite of two monics is monic (§1.41). -/
 private theorem mono_comp {X Y Z : 𝒞} {m : X ⟶ Y} {n : Y ⟶ Z}
-    (hm : Mono m) (hn : Mono n) : Mono (m ≫ n) := by
+    (hm : Monic m) (hn : Monic n) : Monic (m ≫ n) := by
   intro W u v huv
   exact hm _ _ (hn _ _ (by simpa [Cat.assoc] using huv))
 
@@ -541,7 +541,7 @@ theorem omega_is_injective [Topos 𝒞] :
   -- m : S ↣ A is the subobject named by g (pullback of `true` along g).
   let cone := (HasPullbacks.has g (HasSubobjectClassifier.true (𝒞 := 𝒞))).cone
   let m : cone.pt ⟶ A := cone.π₁
-  have hm : Mono m := by
+  have hm : Monic m := by
     -- m is monic: it is the pullback of the monic `true` along g.  The other leg
     -- `cone.π₂` lands in the terminal `one`, so cones over (g, true) are determined
     -- by their first leg; joint pullback uniqueness then forces u = v.
@@ -599,7 +599,7 @@ def expMap [HasExponentials 𝒞] {A B : 𝒞} (E : 𝒞) (f : A ⟶ B) : E ^^ B
     E^(−) carries monics to epics: for every monic f : A ↣ B,
     the induced map E^f : E^^B → E^^A is a cover (= epic in a regular category). -/
 def IsInternallyInjective [HasExponentials 𝒞] (E : 𝒞) : Prop :=
-  ∀ {A B : 𝒞} (f : A ⟶ B), Mono f → Cover (expMap E f)
+  ∀ {A B : 𝒞} (f : A ⟶ B), Monic f → Cover (expMap E f)
 
 /-- A SPLIT EPI (a map with a section) is a COVER.  If `s ≫ e = 1_Y`, then any
     monic `m` that `e` factors through (`g ≫ m = e`) is split epi (`(g ≫ s) ≫ m`…)
@@ -667,7 +667,7 @@ theorem RelLe.toHom {A B : 𝒞} {R S : BinRel 𝒞 A B} (h : RelLe R S) : RelHo
     (Local copy of `S1_62.graph_comp_recip_le_one_of_mono`, whose only obstacle is the
     stale file-level `variable [PreLogos 𝒞]`; the proof needs only `Simple` of `(graph x)°`,
     i.e. `tabulated_is_simple_iff_left_monic`, and a topos has `[HasImages]`.) -/
-theorem graph_recip_collapse_mono {A B : 𝒞} (x : A ⟶ B) (hx : Mono x) :
+theorem graph_recip_collapse_mono {A B : 𝒞} (x : A ⟶ B) (hx : Monic x) :
     RelLe (graph x ⊚ (graph x)°) (graph (Cat.id A)) := by
   have hp : MonicPair (x : A ⟶ B) (Cat.id A) := by
     intro W u v _ hid; simpa [Cat.comp_id] using hid
@@ -810,7 +810,7 @@ theorem classRel_eq_recip_graph {A B : 𝒞} (f : A ⟶ B) :
       `≅ evalRel A ⊚ (graph f ⊚ (graph f)°)`           (`compose_assoc`)
       `≅ evalRel A ⊚ graph 1_A ≅ evalRel A`.            (`f` monic ⟹ kernel pair collapses)
     By `evalRel`-universality (`classify_unique`), `f" ≫ f* = 1`. -/
-theorem directImageOmega_unit {A B : 𝒞} (f : A ⟶ B) (hf : Mono f) :
+theorem directImageOmega_unit {A B : 𝒞} (f : A ⟶ B) (hf : Monic f) :
     directImageOmega f ≫ expMap _ f = Cat.id _ := by
   classical
   letI : RegularCategory 𝒞 := Classical.choice (topos_is_regular (𝒞 := 𝒞))
@@ -941,7 +941,7 @@ theorem omega_is_internally_injective [Topos 𝒞] :
 /-- The right-factor product map `A × f : A × X → A × Y` is monic when `f` is.
     (Joint cancellation on `fst`/`snd`; `f` monic kills the `snd` component.) -/
 private theorem prodMap_mono [HasBinaryProducts 𝒞] (A : 𝒞) {X Y : 𝒞} {f : X ⟶ Y}
-    (hf : Mono f) : Mono (prodMap A X Y f) := by
+    (hf : Monic f) : Monic (prodMap A X Y f) := by
   intro W u v huv
   -- u ≫ fst = v ≫ fst (from prodMap_fst) and u ≫ snd = v ≫ snd (f monic via prodMap_snd).
   have hfst : u ≫ fst = v ≫ fst := by
@@ -987,7 +987,7 @@ theorem exp_of_injective_is_injective [HasExponentials 𝒞] [HasPullbacks 𝒞]
     Since the singleton map embeds A into Ω^A, every object appears as a subobject
     of an injective. -/
 theorem topos_every_object_embeds_in_injective [Topos 𝒞] (A : 𝒞) :
-    ∃ (I : 𝒞) (m : A ⟶ I), Mono m ∧ IsInjective (𝒞 := 𝒞) I :=
+    ∃ (I : 𝒞) (m : A ⟶ I), Monic m ∧ IsInjective (𝒞 := 𝒞) I :=
   -- I = Ω^A = [A]; the singleton map Δ₁ : A ↣ [A] is monic (§1.92); [A] is injective
   -- because Ω is injective (`omega_is_injective`) and exponentials of injectives are
   -- injective (`exp_of_injective_is_injective`).
@@ -1002,7 +1002,7 @@ theorem topos_every_object_embeds_in_injective [Topos 𝒞] (A : 𝒞) :
     in the sense that the representable functors {(U, −)} for subterminators U are
     collectively faithful. -/
 def IsValueBased [HasTerminal 𝒞] : Prop :=
-  IsGeneratingSet (𝒞 := 𝒞) (fun G => ∃ (m : G ⟶ one), Mono m)
+  IsGeneratingSet (𝒞 := 𝒞) (fun G => ∃ (m : G ⟶ one), Monic m)
 
 /-- **§1.964**: In a value-based topos, Ω is a cogenerator: for any f ≠ g : A → B,
     there exists h : B → Ω such that f ≫ h ≠ g ≫ h.
@@ -1013,7 +1013,7 @@ def IsValueBased [HasTerminal 𝒞] : Prop :=
     §1.54 capitalization lemma; cf. `topos_is_effective`).  We give an equivalent
     proof needing only the classifier:
 
-    A value `x : U → A` out of a subterminator `U` (`Mono (term U)`) makes ANY map out
+    A value `x : U → A` out of a subterminator `U` (`Monic (term U)`) makes ANY map out
     of `U` monic — any two maps INTO `U` agree (`term`-uniqueness + `term U` monic).  So
     `x ≫ f : U ↣ B` is itself monic; take `h := χ(x ≫ f)`.  Then `(x≫f)≫h = term≫true`,
     and the no-separation hypothesis forces `(x≫g)≫h = term≫true` too.  `monic_is_equalizer`
@@ -1038,7 +1038,7 @@ theorem omega_cogenerates_in_value_based_topos [Topos 𝒞] (hVB : IsValueBased 
   -- (their composites with `term U` agree by terminal uniqueness, and `term U` is
   -- monic), so `x ≫ f` is monic with subterminal domain.
   have hsub : ∀ {Z : 𝒞} (a b : Z ⟶ U), a = b := fun a b => hmU a b (term_uniq _ _)
-  have hm : Mono (x ≫ f) := fun a b _ => hsub a b
+  have hm : Monic (x ≫ f) := fun a b _ => hsub a b
   -- Take `h := χ(x ≫ f)` (the classifier of the monic `x ≫ f : U ↣ B`).
   let h : B ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞) := HasSubobjectClassifier.classify (x ≫ f) hm
   -- `x ≫ f` factors through itself, so `(x ≫ f) ≫ h = term U ≫ true`.
@@ -1229,13 +1229,13 @@ theorem omega_internally_cogenerates [Topos 𝒞] : InternallyCogenerates (𝒞 
     for any monic m : A' ↣ A that is not an iso, there exists a subobject G' ≤ G
     and a map G' → A that does not factor through A'. -/
 def IsProgenitor (G : 𝒞) : Prop :=
-  IsGeneratingSet (𝒞 := 𝒞) (fun X => ∃ (m : X ⟶ G), Mono m)
+  IsGeneratingSet (𝒞 := 𝒞) (fun X => ∃ (m : X ⟶ G), Monic m)
 
 /-- **§1.966**: A topos is value-based iff its terminator 1 is a progenitor.
     Any Grothendieck topos has a progenitor (disjoint union of a generating set). -/
 theorem topos_value_based_iff_terminal_progenitor [Topos 𝒞] :
     IsValueBased (𝒞 := 𝒞) ↔ IsProgenitor (𝒞 := 𝒞) one :=
-  -- both sides unfold to `IsGeneratingSet (fun X => ∃ m : X ⟶ one, Mono m)`
+  -- both sides unfold to `IsGeneratingSet (fun X => ∃ m : X ⟶ one, Monic m)`
   Iff.rfl
 
 /-- The swap-transpose `Φ : (G ⟶ Ω^B) → (B ⟶ Ω^G)`: uncurry `k` (exponent base `B`),
@@ -1331,7 +1331,7 @@ theorem progenitor_omega_exp_cogenerates [Topos 𝒞] (G : 𝒞) (hG : IsProgeni
   -- (2) G is a progenitor: subobjects of G generate.  Contrapositive of IsGeneratingSet
   -- applied to the distinct maps Ω^f, Ω^g : Ω^B → Ω^A.
   have hgen := hG (expMap Ω f) (expMap Ω g)
-  obtain ⟨G', ⟨m, hm⟩, k, hk⟩ : ∃ G' : 𝒞, (∃ m : G' ⟶ G, Mono m) ∧
+  obtain ⟨G', ⟨m, hm⟩, k, hk⟩ : ∃ G' : 𝒞, (∃ m : G' ⟶ G, Monic m) ∧
       ∃ k : G' ⟶ Ω ^^ B, k ≫ expMap Ω f ≠ k ≫ expMap Ω g :=
     -- Contrapositive of `IsGeneratingSet`: ¬(Ω^f = Ω^g) gives a distinguishing subobject map.
     Classical.byContradiction fun hcon => hexp <| hgen fun G' hG' k =>
@@ -1380,7 +1380,7 @@ variable [Topos 𝒞]
 
 /-- Equalizer maps are monic (local copy; avoids importing the S1_57 `HasEqualizers` path,
     which clashes with the topos's own `topos_has_equalizers` instance). -/
-private theorem eqMap_mono_loc {A B : 𝒞} (f g : A ⟶ B) : Mono (eqMap f g) := by
+private theorem eqMap_mono_loc {A B : 𝒞} (f g : A ⟶ B) : Monic (eqMap f g) := by
   intro W u v huv
   have hc : (u ≫ eqMap f g) ≫ f = (u ≫ eqMap f g) ≫ g := by
     rw [Cat.assoc, Cat.assoc, eqMap_eq]

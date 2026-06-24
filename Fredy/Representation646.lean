@@ -167,7 +167,7 @@ hence non-iso. -/
 
 /-- A mono with a section is an iso: if `r ≫ m = id` and `m` is monic then `m` is iso.
     (`m ≫ r ≫ m = m = id ≫ m`, so monic gives `m ≫ r = id`.) -/
-theorem isIso_of_section_of_mono {A' A : 𝒞} {m : A' ⟶ A} (hm : Mono m) {r : A ⟶ A'}
+theorem isIso_of_section_of_mono {A' A : 𝒞} {m : A' ⟶ A} (hm : Monic m) {r : A ⟶ A'}
     (hr : r ≫ m = Cat.id A) : IsIso m := by
   refine ⟨r, ?_, hr⟩
   apply hm (m ≫ r) (Cat.id A')
@@ -175,7 +175,7 @@ theorem isIso_of_section_of_mono {A' A : 𝒞} {m : A' ⟶ A} (hm : Mono m) {r :
 
 /-- Each `T_S m` is injective when `m` is monic (postcomposition by a mono, lifted to
     `Option`). -/
-theorem tsmap_injective_of_mono {A' A : 𝒞} {m : A' ⟶ A} (hm : Mono m) (S : List 𝒞) :
+theorem tsmap_injective_of_mono {A' A : 𝒞} {m : A' ⟶ A} (hm : Monic m) (S : List 𝒞) :
     Function.Injective (TSmap S m) := by
   intro x y hxy
   funext i
@@ -193,7 +193,7 @@ theorem tsmap_injective_of_mono {A' A : 𝒞} {m : A' ⟶ A} (hm : Mono m) (S : 
       exact congrArg some (hm hx' hy' hi)
 
 /-- **`T m` is a mono** (injective) for monic `m`: each `T_S m` is injective, `U`-largely. -/
-theorem trep_map_injective {A' A : 𝒞} {m : A' ⟶ A} (hm : Mono m) :
+theorem trep_map_injective {A' A : 𝒞} {m : A' ⟶ A} (hm : Monic m) :
     Function.Injective (TrepMap m) := by
   refine Ultraproduct.map_injective (fun S => TSmap S m) (U 𝒞) ?_
   exact (U 𝒞).toFilter.up_closed (U 𝒞).toFilter.univ_mem
@@ -201,7 +201,7 @@ theorem trep_map_injective {A' A : 𝒞} {m : A' ⟶ A} (hm : Mono m) :
 
 /-- **`T m` is not surjective** for a PROPER mono `m`: the identity section `idSec A` is
     missed on the `U`-large coideal `{S | A ∈ S}`. -/
-theorem trep_map_not_surjective {A' A : 𝒞} {m : A' ⟶ A} (hm : Mono m) (hniso : ¬ IsIso m) :
+theorem trep_map_not_surjective {A' A : 𝒞} {m : A' ⟶ A} (hm : Monic m) (hniso : ¬ IsIso m) :
     ¬ ∃ q, TrepMap m q = Ultraproduct.mk (U 𝒞) (idSec A) := by
   refine Ultraproduct.map_not_surjective (fun S => TSmap S m) (U 𝒞) (idSec A) ?_
   -- on `{S | A ∈ S}` no section maps to `idSec A S` (it would split `m`).
@@ -219,10 +219,10 @@ theorem trep_map_not_surjective {A' A : 𝒞} {m : A' ⟶ A} (hm : Mono m) (hnis
     exact hniso (isIso_of_section_of_mono hm hcomp)
 
 /-- **Properness preserved.**  A proper mono `m : A' ↪ A` (monic, non-iso) maps under `T` to
-    a monic, non-iso map of sets (`Mono (T m) ∧ ¬ IsIso (T m)`) — the §1.453
+    a monic, non-iso map of sets (`Monic (T m) ∧ ¬ IsIso (T m)`) — the §1.453
     `PreservesProperness` conclusion, in its cross-universe form. -/
 theorem trep_preserves_properMono {A' A : 𝒞} {m : A' ⟶ A} (hm : ProperMono m) :
-    Mono (trepFunctor.map m) ∧ ¬ IsIso (trepFunctor.map m) := by
+    Monic (trepFunctor.map m) ∧ ¬ IsIso (trepFunctor.map m) := by
   obtain ⟨hmono, hniso⟩ := hm
   refine ⟨?_, ?_⟩
   · -- mono in `setCat` is injectivity.
@@ -247,14 +247,14 @@ theorem trep_preserves_properMono {A' A : 𝒞} {m : A' ⟶ A} (hm : ProperMono 
     The representation is `T A = Ultraproduct (S ↦ ∀ i ∈ S, Hom(i, A)₊) U` over the index
     `List 𝒞`, with `U` an ultrafilter containing every principal coideal `{S | A ∈ S}`
     (Phase A), and `T φ` postcomposition collapsed through `Ultraproduct.map` (Phase B).  The
-    properness conclusion is stated as `Mono (T m) ∧ ¬ IsIso (T m)` (the §1.453
+    properness conclusion is stated as `Monic (T m) ∧ ¬ IsIso (T m)` (the §1.453
     `PreservesProperness` conclusion) in its cross-universe form, since `T : 𝒞 → Type u`
     lands one universe up from `𝒞`. -/
 theorem representation646 (𝒞 : Type u) [Cat.{u} 𝒞] :
     ∃ (T : 𝒞 → Type u) (hT : Functor T),
       SeparatesMaps T ∧
       ∀ {A' A : 𝒞} {m : A' ⟶ A}, ProperMono m →
-        Mono (hT.map m) ∧ ¬ IsIso (hT.map m) :=
+        Monic (hT.map m) ∧ ¬ IsIso (hT.map m) :=
   ⟨Trep 𝒞, trepFunctor, trep_separatesMaps, fun hm => trep_preserves_properMono hm⟩
 
 end Rep646

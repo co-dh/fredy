@@ -127,7 +127,7 @@ theorem bottomSub_dom_iso_one (A : 𝒞) :
   -- pullback square: kA ≫ {·} = k1 ≫ u.
   have hsq : kA ≫ singletonMap A = k1 ≫ u := pb.cone.w.symm
   -- k1 is monic (pullback of the monic singletonMap A), hence K is SUBTERMINAL.
-  have hk1_mono : Mono k1 := by
+  have hk1_mono : Monic k1 := by
     intro W g h hgh
     -- agree on the {·}-leg via the pullback square + singletonMap A monic
     have hleg : (g ≫ kA) ≫ singletonMap A = (h ≫ kA) ≫ singletonMap A := by
@@ -155,7 +155,7 @@ theorem bottomSub_dom_iso_one (A : 𝒞) :
     have hsub : term K ≫ u = kA ≫ singletonMap A := by rw [← hk1_term, hsq]
     rw [h1, hsub, mem_singleton_self]
   -- classifier UMP: kA factors through ∅_A.arr — gives K ≤ ∅_A (as subobjects of A via kA).
-  have hkA_mono : Mono kA := by
+  have hkA_mono : Monic kA := by
     -- K is subterminal (k1 monic), so any two maps W → K agree (via term-uniqueness on the k1-leg).
     intro W g h _; exact hk1_mono g h (term_uniq (g ≫ k1) (h ≫ k1))
   -- the classifying pullback of ∅_A lifts ⟨K, kA, term K⟩.
@@ -202,7 +202,7 @@ theorem bottomSub_dom_iso (A B : 𝒞) :
 theorem strict_coterminator_bottomSub_one :
     StrictCoterminator (bottomSub (one : 𝒞)).dom := by
   intro X f
-  have hzeroMonic_mono : Mono (bottomSub (one : 𝒞)).arr := (bottomSub one).monic
+  have hzeroMonic_mono : Monic (bottomSub (one : 𝒞)).arr := (bottomSub one).monic
   let p : X ⟶ one := term X
   -- f·∅₁.arr = p (both the unique map X → 1)
   have hp_eq : f ≫ (bottomSub (one : 𝒞)).arr = p := term_uniq _ _
@@ -214,7 +214,7 @@ theorem strict_coterminator_bottomSub_one :
   have hu₁ : u ≫ pb.cone.π₁ = Cat.id X := pb.lift_fst c
   have hu₂ : u ≫ pb.cone.π₂ = f := pb.lift_snd c
   -- π₁ is monic (pullback of monic) = the inverse-image arr
-  have hπ₁_mono : Mono pb.cone.π₁ := (InverseImage p (bottomSub one)).monic
+  have hπ₁_mono : Monic pb.cone.π₁ := (InverseImage p (bottomSub one)).monic
   have hπ₁_iso : IsIso pb.cone.π₁ :=
     ⟨u, hπ₁_mono (pb.cone.π₁ ≫ u) (Cat.id pb.cone.pt) (by
       calc (pb.cone.π₁ ≫ u) ≫ pb.cone.π₁ = pb.cone.π₁ ≫ (u ≫ pb.cone.π₁) := Cat.assoc _ _ _

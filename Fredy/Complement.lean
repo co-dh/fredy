@@ -289,7 +289,7 @@ theorem diag_prodSelfMap {X Y : 𝒞} (φ : X ⟶ Y) :
     and `Y` is decidable, so is `X`.  The diagonal `Δ_X` coincides with `(φ×φ)# Δ_Y`
     (`φ` mono ⟹ `φ(x₁)=φ(x₂) ↔ x₁=x₂`), and inverse images of complemented subobjects are
     complemented (`diagonal_classifies`). -/
-theorem decidableSub_of_mono {X Y : 𝒞} (φ : X ⟶ Y) (hφ : Mono φ)
+theorem decidableSub_of_mono {X Y : 𝒞} (φ : X ⟶ Y) (hφ : Monic φ)
     (hY : DecidableObjectSub Y) : DecidableObjectSub X := by
   let pbeq := HasPullbacks.has (prodSelfMap φ) (diagSub Y).arr
   refine diagonal_classifies hY (prodSelfMap φ) ?_ ?_
@@ -322,7 +322,7 @@ theorem decidableSub_of_mono {X Y : 𝒞} (φ : X ⟶ Y) (hφ : Mono φ)
 theorem decidableSub_of_iso {X Y : 𝒞} (h : Isomorphic X Y) (hY : DecidableObjectSub Y) :
     DecidableObjectSub X := by
   obtain ⟨φ, φinv, hfg, _⟩ := h
-  have hmono : Mono φ := by
+  have hmono : Monic φ := by
     intro W u v huv
     have := congrArg (· ≫ φinv) huv
     simpa only [Cat.assoc, hfg, Cat.comp_id] using this

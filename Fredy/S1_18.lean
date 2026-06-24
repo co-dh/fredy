@@ -77,7 +77,7 @@ instance compFunctor {ℰ : Type _} [Cat.{v} ℰ] {F : 𝒞 → 𝒟} {G : 𝒟 
 
 /-! ## §1.181 as a general concept: preservation / reflection of a morphism-property -/
 
-/-- A property of morphisms, uniform across all categories (e.g. `@Mono`, `@IsIso`, `@Cover`). -/
+/-- A property of morphisms, uniform across all categories (e.g. `@Monic`, `@IsIso`, `@Cover`). -/
 abbrev MorphProp := ∀ {𝒜 : Type u} [Cat.{v} 𝒜] {X Y : 𝒜}, (X ⟶ Y) → Prop
 
 /-- `F` PRESERVES `P` if it carries `P`-arrows to `P`-arrows. -/
@@ -88,26 +88,26 @@ def Preserves {ℰ ℱ : Type u} [Cat.{v} ℰ] [Cat.{v} ℱ] (F : ℰ → ℱ) [
 def Reflects {ℰ ℱ : Type u} [Cat.{v} ℰ] [Cat.{v} ℱ] (F : ℰ → ℱ) [hF : Functor F] (P : MorphProp.{v,u}) : Prop :=
   ∀ {X Y : ℰ} {f : X ⟶ Y}, P (hF.map f) → P f
 
-/-! ### Cross-universe preservation/reflection of `Mono`
+/-! ### Cross-universe preservation/reflection of `Monic`
 
   The generic `Preserves`/`Reflects` above take the property as a `MorphProp`
   *parameter*, which fixes one object universe — so they only apply to functors
   whose source and target live in the same universe (e.g. endofunctors).  The
   slice forgetful functor `Σ : A/B → A` is genuinely cross-universe
-  (`Over B : Type (max u v)` vs `A : Type u`), so we give `Mono`-specific
-  versions: because `Mono` is applied *directly* (not through a parameter) and is
+  (`Over B : Type (max u v)` vs `A : Type u`), so we give `Monic`-specific
+  versions: because `Monic` is applied *directly* (not through a parameter) and is
   itself universe-polymorphic, these work for `Functor`s between categories in
   different universes. -/
 
 /-- `F` PRESERVES monos: it carries monos to monos. -/
 def PreservesMono {C : Type u₁} [Cat.{v} C] {D : Type u₂} [Cat.{v} D]
     (F : C → D) [hF : Functor F] : Prop :=
-  ∀ {X Y : C} {f : X ⟶ Y}, Mono f → Mono (hF.map f)
+  ∀ {X Y : C} {f : X ⟶ Y}, Monic f → Monic (hF.map f)
 
 /-- `F` REFLECTS monos: a mono image forces a mono. -/
 def ReflectsMono {C : Type u₁} [Cat.{v} C] {D : Type u₂} [Cat.{v} D]
     (F : C → D) [hF : Functor F] : Prop :=
-  ∀ {X Y : C} {f : X ⟶ Y}, Mono (hF.map f) → Mono f
+  ∀ {X Y : C} {f : X ⟶ Y}, Monic (hF.map f) → Monic f
 
 /-- A morphism has a right inverse: there exists `g` such that `f ≫ g = id`. -/
 def HasRightInv : MorphProp.{v,u} := λ {_} _ {X Y} f => ∃ (g : Y ⟶ X), f ≫ g = Cat.id X
@@ -116,7 +116,7 @@ def HasRightInv : MorphProp.{v,u} := λ {_} _ {X Y} f => ∃ (g : Y ⟶ X), f �
 def HasLeftInv : MorphProp.{v,u} := λ {_} _ {X Y} f => ∃ (g : Y ⟶ X), g ≫ f = Cat.id Y
 
 /-- **§1.181 restated**: every functor preserves isomorphisms.  This is the one
-    morphism-property preserved by *all* functors; preservation of `@Mono`, `@Cover`, … are
+    morphism-property preserved by *all* functors; preservation of `@Monic`, `@Cover`, … are
     separate statements that need hypotheses on `F`. -/
 theorem preserves_iso (F : 𝒞 → 𝒟) [hF : Functor F] : Preserves F @IsIso := by
   intro X Y f hf

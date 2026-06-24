@@ -199,7 +199,7 @@ theorem powerClassify_natural923 {C A X : 𝒞} (R : BinRel 𝒞 A C) (g : X ⟶
 /-- **Step A**: a functional-total relation `R` (left leg monic + cover) is the
     graph of a unique morphism `m : Y ⟶ B`, with mutual `RelHom`s `R ↔ graph m`. -/
 theorem functional_total_relation_is_graph {Y B : 𝒞} (R : BinRel 𝒞 Y B)
-    (hmono : Mono R.colA) (hcover : Cover R.colA) :
+    (hmono : Monic R.colA) (hcover : Cover R.colA) :
     ∃ m : Y ⟶ B, (RelHom R (graph m) ∧ RelHom (graph m) R) ∧
       ∀ m' : Y ⟶ B, (RelHom R (graph m') ∧ RelHom (graph m') R) → m' = m := by
   -- The left leg is iso since it is a monic cover.
@@ -287,7 +287,7 @@ theorem singletonMapNaming923 {X B : 𝒞} (h : X ⟶ B) :
 /-- **Step B**: the singleton map `{·} : B ↣ [B]` is MONIC.  If `h, k : X ⟶ B`
     have `h ≫ {·} = k ≫ {·}`, both name `graph h` resp. `graph k`; the names being
     equal makes `graph h ≅ graph k`, whose right legs are `h, k`, forcing `h = k`. -/
-theorem singletonMapMonic923 (B : 𝒞) : Mono (singletonMap923 (𝒞 := 𝒞) B) := by
+theorem singletonMapMonic923 (B : 𝒞) : Monic (singletonMap923 (𝒞 := 𝒞) B) := by
   intro X h k hΔ
   -- Λ(graph h) = Λ(graph k).
   have hΛ : powerClassify (graph h) = powerClassify (graph k) := by
@@ -604,7 +604,7 @@ theorem termΩ_uniq {X : 𝒞} (f g : X ⟶ oneΩ) : f = g :=
   @term_uniq 𝒞 _ HasSubobjectClassifier.toHasTerminal X f g
 
 /-- A relation targeted at `1` (the classifier's terminal) has a monic left leg. -/
-theorem relTo1_colA_mono {Z : 𝒞} (R : BinRel 𝒞 Z oneΩ) : Mono R.colA := by
+theorem relTo1_colA_mono {Z : 𝒞} (R : BinRel 𝒞 Z oneΩ) : Monic R.colA := by
   intro W u v huv
   exact R.isMonicPair u v huv (termΩ_uniq _ _)
 
@@ -614,7 +614,7 @@ theorem trueRel_universal : IsUniversalRel (trueRel (𝒞 := 𝒞)) := by
   constructor
   · -- classify_exists.
     intro Z R
-    have hmono : Mono R.colA := relTo1_colA_mono R
+    have hmono : Monic R.colA := relTo1_colA_mono R
     refine ⟨HasSubobjectClassifier.classify R.colA hmono, ?_⟩
     -- relPullback χ trueRel ≅ R.  Both directions from the classifying pullback.
     -- The classifying square: R.colA is the pullback of t along χ; trueRel.colA = t.
@@ -646,7 +646,7 @@ theorem trueRel_universal : IsUniversalRel (trueRel (𝒞 := 𝒞)) := by
   · -- classify_unique: two classifying maps of R agree.  Reduce to classify_unique
     -- of the subobject classifier for the monic leg R.colA.
     intro Z R f g hf hg
-    have hmono : Mono R.colA := relTo1_colA_mono R
+    have hmono : Monic R.colA := relTo1_colA_mono R
     -- f classifies R.colA: R.colA is the pullback of t along f.  Use hsc.classify_unique.
     -- Show f = classify R.colA and g = classify R.colA.
     have key : ∀ (h : Z ⟶ HasSubobjectClassifier.omega),
@@ -698,7 +698,7 @@ theorem baseable_omega : Baseable (HasSubobjectClassifier.omega (𝒞 := 𝒞)) 
 theorem all_baseable (B : 𝒞) : Baseable B := by
   -- χ classifies the singleton mono; t∘! the constant ⊤.
   let m  := singletonMap923 B
-  have hm : Mono m := singletonMapMonic923 B
+  have hm : Monic m := singletonMapMonic923 B
   let χ  := HasSubobjectClassifier.classify m hm
   let c  := termΩ (HasPowerObject.powerObj (C := B)) ≫ HasSubobjectClassifier.true
   -- E := eqObj χ c is baseable by §1.859 (both [B] and Ω baseable).
@@ -725,7 +725,7 @@ theorem all_baseable (B : 𝒞) : Baseable B := by
     rw [Cat.assoc, he'm]; show e ≫ eqMap χ c = Cat.id B ≫ m
     rw [Cat.id_comp]; exact eqLift_fac χ c m hmeq
   · -- e' ≫ e = id (eqObj).  Cancel the monic eqMap: (e'≫e)≫eqMap = e'≫(e≫eqMap) = e'≫m = eqMap.
-    have hqmono : Mono (eqMap χ c) := by
+    have hqmono : Monic (eqMap χ c) := by
       intro W u v huv
       rw [eqLift_uniq χ c (u ≫ eqMap χ c) (by rw [Cat.assoc, Cat.assoc, eqMap_eq]) u rfl,
           eqLift_uniq χ c (u ≫ eqMap χ c) (by rw [Cat.assoc, Cat.assoc, eqMap_eq]) v huv.symm]

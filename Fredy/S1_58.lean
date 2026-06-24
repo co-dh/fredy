@@ -90,7 +90,7 @@ noncomputable def HasCoterminator.ofStrict [HasBinaryProducts 𝒞] {Z : 𝒞}
     subobjects**: every monic into `Z` is an isomorphism.  (Immediate — *every*
     morphism into `Z` is an iso; the mono is just the subobject case.) -/
 theorem strictCoterminator_subobject_improper {Z : 𝒞} (hZ : StrictCoterminator Z)
-    {S : 𝒞} (m : S ⟶ Z) (_hm : Mono m) : IsIso m := hZ m
+    {S : 𝒞} (m : S ⟶ Z) (_hm : Monic m) : IsIso m := hZ m
 
 /-- **§1.58 ¶2 (strictness).**  Hence every equalizer targeted at a strict
     coterminator is **entire**: the inclusion `E ↣ Z` of the equalizer of any
@@ -239,7 +239,7 @@ theorem bicart_repr_preserves_covers
       _ = hF.map hce.map ≫ (hF.map e₁ ≫ e₁inv) := Cat.assoc _ _ _
       _ = hF.map hce.map := by rw [he₁inv_left, Cat.comp_id]
   -- m' is monic: m is mono, e₁inv is iso hence mono (has right inverse F e₁).
-  have hm'_mono : Mono m' := by
+  have hm'_mono : Monic m' := by
     intro W a b hab
     -- hab : a ≫ m' = b ≫ m', i.e. a ≫ m ≫ e₁inv = b ≫ m ≫ e₁inv.
     -- (a ≫ m) ≫ e₁inv = (b ≫ m) ≫ e₁inv (by assoc)
@@ -299,12 +299,12 @@ theorem bicart_repr_preserves_covers
 theorem image_via_coeq [BicartesianCategory 𝒞] [RegularCategory 𝒞]
     {A B : 𝒞} (x : A ⟶ B) :
     let hcoeq := (HasCoequalizers.coeq (kp₁ (f := x)) (kp₂ (f := x)))
-    Mono (hcoeq.desc x kp_sq) := by
+    Monic (hcoeq.desc x kp_sq) := by
   intro hcoeq
   -- q : A → C is the coeq map, m : C → B the unique factorization.
   have hq : Cover hcoeq.map := coeq_map_is_cover hcoeq
   -- Image factorization of x: e cover, I.arr monic.
-  have hi_mono : Mono (image x).arr := (image x).monic
+  have hi_mono : Monic (image x).arr := (image x).monic
   have he_cover : Cover (image.lift x) := image_lift_cover x
   -- kp₁(x) ≫ e = kp₂(x) ≫ e: kp_sq gives kp₁ ≫ x = kp₂ ≫ x; I.arr monic cancels.
   have hkp_e : kp₁ (f := x) ≫ image.lift x = kp₂ (f := x) ≫ image.lift x :=
@@ -354,7 +354,7 @@ theorem image_via_coeq [BicartesianCategory 𝒞] [RegularCategory 𝒞]
   -- φ ≫ ψ = id_C (cover_epi hq) and ψ ≫ φ = id (cover_epi he_cover).
   have hφψ : hcoeq.desc (image.lift x) hkp_e ≫ ψ = Cat.id hcoeq.obj :=
     cover_epi hq (by rw [← Cat.assoc, hqφ, heψ, Cat.comp_id])
-  -- Mono m: given u ≫ m = v ≫ m, rewrite via hm_eq to use φ,I.arr.
+  -- Monic m: given u ≫ m = v ≫ m, rewrite via hm_eq to use φ,I.arr.
   intro W u v huv
   -- First get u ≫ φ ≫ I.arr = v ≫ φ ≫ I.arr from huv via hm_eq.
   have huv' : u ≫ hcoeq.desc (image.lift x) hkp_e ≫ (image x).arr =

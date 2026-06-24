@@ -69,7 +69,7 @@ structure PartialMap (𝒞 : Type u) [Cat.{v} 𝒞] (A B : 𝒞) where
   /-- The monic inclusion `m : D ↪ A` carving out where the map is defined. -/
   incl   : dom ⟶ A
   /-- `incl` is monic (a genuine subobject of `A`). -/
-  monic  : Mono incl
+  monic  : Monic incl
   /-- The value `f : D → B` on the domain of definition. -/
   val    : dom ⟶ B
 
@@ -111,7 +111,7 @@ structure LawfulPMC (𝒞 : Type u) [Cat.{v} 𝒞] (B : 𝒞) where
   /-- The generic mono `η_B : B ↪ B̃` ("defined" point). -/
   eta          : B ⟶ carrier
   /-- `η_B` is monic. -/
-  eta_monic    : Mono eta
+  eta_monic    : Monic eta
   /-- CLASSIFY: every partial map `A ⇀ B` gets a total `χ : A → B̃`. -/
   classify     : ∀ {A : 𝒞} (_ : PartialMap 𝒞 A B), A ⟶ carrier
   /-- RESTRICTION (square commutes): `m ≫ χ = f ≫ η`. -/
@@ -299,7 +299,7 @@ theorem funcMem_le_mem (B : 𝒞) : RelHom (funcMem B) (HasPowerObject.mem (C :=
 /-- Pulling a relation `R` back along its own monic left leg yields `graph R.colB`:
     the kernel pair of a mono is the diagonal, so `relPullback R.colA R ≅ graph R.colB`.
     This is the functional content `b ∈ R(a) ⟹ R(a) = {b}`. -/
-theorem relPullback_selfLeg_monic {A B : 𝒞} (R : BinRel 𝒞 A B) (hmono : Mono R.colA) :
+theorem relPullback_selfLeg_monic {A B : 𝒞} (R : BinRel 𝒞 A B) (hmono : Monic R.colA) :
     RelHom (relPullback R.colA R) (graph R.colB) ∧
     RelHom (graph R.colB) (relPullback R.colA R) := by
   let P := HasPullbacks.has R.colA R.colA
@@ -314,7 +314,7 @@ theorem relPullback_selfLeg_monic {A B : 𝒞} (R : BinRel 𝒞 A B) (hmono : Mo
 /-- **Naming identity** for a functional relation: `R.colA ≫ Λ(R) = R.colB ≫ {·}`,
     i.e. each point `(a,b)` of `R` has `R(a) = {b}` (so `Λ(R)(a)` is the singleton
     `{R(a)}`).  Proven from `relPullback_selfLeg_monic` via `classify_unique`. -/
-theorem naming_eq {A B : 𝒞} (R : BinRel 𝒞 A B) (hmono : Mono R.colA) :
+theorem naming_eq {A B : 𝒞} (R : BinRel 𝒞 A B) (hmono : Monic R.colA) :
     R.colA ≫ powerClassify R = R.colB ≫ singletonMap923 B := by
   rw [← powerClassify_natural923 R R.colA, singletonMapNaming923]
   obtain ⟨hf, hg⟩ := relPullback_selfLeg_monic R hmono
@@ -327,7 +327,7 @@ theorem naming_eq {A B : 𝒞} (R : BinRel 𝒞 A B) (hmono : Mono R.colA) :
     `relPullback (Λ R) funcMem ≅ R`: the functionalized membership and true
     membership agree at the name of a functional relation.  This is the §1.935
     heart (`B̃ = subsingletons`). -/
-theorem funcMem_pullback_iso {A B : 𝒞} (R : BinRel 𝒞 A B) (hmono : Mono R.colA) :
+theorem funcMem_pullback_iso {A B : 𝒞} (R : BinRel 𝒞 A B) (hmono : Monic R.colA) :
     RelHom (relPullback (powerClassify R) (funcMem B)) R ∧
     RelHom R (relPullback (powerClassify R) (funcMem B)) := by
   refine ⟨relHom_trans923 (relHom_pullback923 (powerClassify R) (funcMem_le_mem B))
@@ -347,7 +347,7 @@ noncomputable def funcIdem (B : 𝒞) :
 
 /-- **`e`-fixedness of functional names**: `Λ(R) ≫ e = Λ(R)` for functional `R`.
     `Λ(R) ≫ e = Λ(relPullback (Λ R) funcMem) = Λ(R)` since `relPullback (Λ R) funcMem ≅ R`. -/
-theorem efixed_of_functional {A B : 𝒞} (R : BinRel 𝒞 A B) (hmono : Mono R.colA) :
+theorem efixed_of_functional {A B : 𝒞} (R : BinRel 𝒞 A B) (hmono : Monic R.colA) :
     powerClassify R ≫ funcIdem B = powerClassify R := by
   rw [funcIdem, ← powerClassify_natural923 (funcMem B) (powerClassify R)]
   obtain ⟨h1, h2⟩ := funcMem_pullback_iso R hmono
@@ -377,7 +377,7 @@ theorem funcIdem_idem (B : 𝒞) : funcIdem B ≫ funcIdem B = funcIdem B :=
   efixed_of_functional (funcMem B) (singletonMapMonic923 B)
 
 /-- The identity is monic. -/
-theorem id_mono (X : 𝒞) : Mono (Cat.id X) := fun u v h => by
+theorem id_mono (X : 𝒞) : Monic (Cat.id X) := fun u v h => by
   rw [Cat.comp_id u, Cat.comp_id v] at h; exact h
 
 /-- `{·}` is `e`-fixed: `{·} ≫ e = {·}`.  (`{·} = Λ(graph id)`, and `graph id` is
@@ -416,7 +416,7 @@ theorem pmcIota_retr (B : 𝒞) : pmcIota B ≫ pmcRetr B = Cat.id (pmcObj B) :=
 /-- **Post-compose-mono pullback equivalence.**  For a mono `ι : K ↪ L`,
     `relPullback χ ((graph η)°) ≅ relPullback (χ ≫ ι) ((graph (η ≫ ι))°)`:
     cones over `(χ, η)` are exactly cones over `(χ≫ι, η≫ι)` since `ι` is monic. -/
-theorem pullback_postcomp_mono {A B K L : 𝒞} (ι : K ⟶ L) (hι : Mono ι)
+theorem pullback_postcomp_mono {A B K L : 𝒞} (ι : K ⟶ L) (hι : Monic ι)
     (χ : A ⟶ K) (η : B ⟶ K) :
     RelHom (relPullback χ ((graph η)°)) (relPullback (χ ≫ ι) ((graph (η ≫ ι))°)) ∧
     RelHom (relPullback (χ ≫ ι) ((graph (η ≫ ι))°)) (relPullback χ ((graph η)°)) := by
@@ -469,7 +469,7 @@ theorem partialMapClassifier_exists (B : 𝒞) : Nonempty (LawfulPMC 𝒞 B) := 
   -- `classify P = Λ(pmRel P) ≫ r`.  The four laws come from the relation universal
   -- property of `∈_B` bridged to the PMC pullback square, using e-fixedness of
   -- functional names through the idempotent split `ι ⊣ r`.
-  have hιmono : Mono (pmcIota B) := by
+  have hιmono : Monic (pmcIota B) := by
     -- ι split mono (ι ≫ r = id).
     intro W u v h
     have : (u ≫ pmcIota B) ≫ pmcRetr B = (v ≫ pmcIota B) ≫ pmcRetr B := by rw [h]
