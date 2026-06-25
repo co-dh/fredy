@@ -5,8 +5,10 @@
   Builds the pre-tabular / tabular / effective / semi-simple theory for the splitting
   completion `Spl 𝒜 = SplObj 𝒜` (constructed in `S2_21.lean`):
 
-    §2.165   PreTabularAllegory (SplObj 𝒜) when 𝒜 is pre-tabular.   [TODO: Dom-apex]
-    §2.166   TabularAllegory (SplObj 𝒜) when 𝒜 is pre-tabular.      [TODO: Dom-apex]
+    §2.165   PreTabularAllegory (SplObj 𝒜) when 𝒜 is pre-tabular.
+             [TODO: source-apex legs require coreflexive E.e; blocked for full SplObj]
+    §2.166   TabularAllegory (SplObj 𝒜) when 𝒜 is pre-tabular.
+             [TODO: relies on §2.165]
     §2.167   The embedding 𝒜 ↪ SplObj 𝒜 is faithful.                [PROVED]
     §2.169   SplObj 𝒜 is effective.                                  [PROVED; re-export]
     §2.16(10) SplObj 𝒜 is tabular ↔ 𝒜 is semi-simple.
@@ -18,23 +20,26 @@
 
   ---
 
-  WHY §2.165/§2.166 are TODO:
+  WHY §2.165/§2.166 are TODO — DESIGN SCOPE MISMATCH:
 
-  For `R : E ⟶ F` in `SplObj 𝒜` (with `E = ⟨a, e⟩`, `F = ⟨b, f⟩`), the natural
-  candidate legs `P := ⟨e ≫ p, ...⟩ : E ⟶ embObj c` and `Q := ⟨f ≫ q, ...⟩ : F ⟶ embObj c`
-  (built from a tabulation `(p, q)` of `S ⊒ R.R` in `𝒜`) satisfy:
-    • `Entire P` ✓ (from `Map p` and `e ≤ 1_a ≤ pp°`)
-    • `Simple P` ✓ (from `Simple p` and `e ≫ e = e`)
-    • `P ≫ Q° = splRestrict E F S` ✓ (by definition)
-  but the apex condition `P°P ∩ Q°Q = 1_c` FAILS:
-    `P°P = q°·e·p` and the lower bound `1_c ≤ p°·e·p` requires `e ≥ 1_a`, which is
-    false for proper symmetric idempotents.
+  `SplObj 𝒜` splits ALL symmetric idempotents `e : a → a` (SymIdem: `e° = e`, `ee = e`).
+  This combines Freyd's TWO-STEP process:
+    §2.167  PM(Corefl 𝒜): split coreflexive SymIdem only (`e ⊑ id_a`).
+    §2.169  PM(ER 𝒜):     split equivalence-relation SymIdem only (`id_a ⊑ e`).
+  The repo's `SplObj 𝒜` is the COMBINED completion. §2.165/§2.166 apply to the
+  COREFLEXIVE sub-completion only.
 
-  Freyd §2.165 uses the DOM-APEX `C = Dom(p°e) ∩ Dom(q°f)` on `c` (coreflexive), which
-  the repo's infrastructure does not yet assemble into a ready-to-apply lemma.  The
-  ingredients are available (`dom`, `coreflexive_symmetric_idempotent`, `spl_coreflexive_splits`)
-  but combining them into the four tabulation checks requires ≈ 100 lines of
-  modular-law bookkeeping not yet present as lemmas in the repo.
+  For `R : E ⟶ F` in `SplObj 𝒜` (with `E = ⟨a, E.e⟩`, `F = ⟨b, F.e⟩`), the source-apex
+  tabulation route requires — after extracting legs `(P : t → a, Q : t → b)` from a
+  pre-tabulation of `R.R` in `𝒜` — that the legs into `SplObj 𝒜` are MAPS (Simple).
+  For the leg `legA : (t, id_t) ⟶ E` with `legA.R = P ≫ E.e`, Simple(legA) reduces to
+  `P° ≫ E.e ≫ P ⊑ id_t`.  This holds when `E.e ⊑ id_a` (coreflexive), but FAILS when
+  `id_a ⊑ E.e` (equivalence relation): `P° E.e P ≥ P°P = id_t` gives equality, not `⊑`.
+
+  Fix: restrict §2.165/§2.166 to `CoreflSplObj 𝒜` (splitting only coreflexive SymIdem),
+  or show that every morphism in `SplObj 𝒜` has a tabulation using a coreflexive apex
+  `(t, id_t)` with legs satisfying the stronger hypothesis that `E.e ⊑ P ≫ P°` (which
+  is NOT the same as coreflexive E.e).  Neither construction is yet in the repo.
 
   WHY §2.16(10) forward is TODO:
 
@@ -69,18 +74,18 @@ open Cat
 
 /-! ## §2.165 / §2.166  Pre-tabular and tabular completion
 
-  Both results are TODO pending Dom-apex infrastructure; see file header for the precise gap. -/
+  Both results are TODO; see file header for the design-scope analysis. -/
 
 -- BOOK §2.165: If 𝒜 is pre-tabular then SplObj 𝒜 is pre-tabular.
--- TODO §2.165: Needs Dom-apex `C = Dom(p°e) ∩ Dom(q°f)` construction.  The legs
---   `P := ⟨e ≫ p, ...⟩` and `Q := ⟨f ≫ q, ...⟩` (from a tabulation `(p,q)` of S ⊒ R.R
---   in 𝒜`) satisfy Entire, Simple, and P≫Q° = splRestrict E F S, but the apex lower
---   bound `1_c ≤ P°P ∩ Q°Q` requires `e ≥ 1_a`, which fails for proper symmetric
---   idempotents.  Replace P, Q by Dom-apex-restricted legs once the infra exists.
+-- TODO §2.165: Source-apex route (Freyd §2.165): take legs `(P : t → a, Q : t → b)` from
+--   a pre-tabulation of `R.R` in 𝒜, then form `legA : (t, id_t) ⟶ E` with `legA.R = P ≫ E.e`.
+--   Simple(legA) requires `P° ≫ E.e ≫ P ⊑ id_t`.  This holds when E.e coreflexive
+--   (`E.e ⊑ id_a`), but FAILS for ER objects (`id_a ⊑ E.e`): `P°EP ≥ P°P = id_t`.
+--   Blocked for full `SplObj 𝒜`.  Fix: restrict to coreflexive sub-completion.
 
 -- BOOK §2.166: 𝒜 pre-tabular → SplObj 𝒜 tabular (§2.166: tabular ↔ pre-tabular + coref split).
 -- TODO §2.166: Relies on §2.165.  The coreflexive-splitting half is available
---   (`spl_coreflexive_splits`) but the pre-tabular instance (§2.165) is blocked.
+--   (`spl_coreflexive_splits`, `tabulation_of_split_apex`) but §2.165 is blocked.
 
 /-! ## §2.167  The embedding `𝒜 ↪ SplObj 𝒜` and the tabular reflection -/
 
