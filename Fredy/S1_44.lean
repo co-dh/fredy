@@ -14,6 +14,9 @@ import Fredy.S1_18
 import Fredy.S1_26
 import Fredy.S1_42
 import Fredy.S1_45
+import Fredy.S1_27
+import Fredy.Horn
+import Fredy.FunctorCategory
 
 
 universe v u
@@ -258,28 +261,133 @@ theorem sliceLift_unique {𝒜 : Type u} [Cat.{v} 𝒜] {B : 𝒜}
   cartesian predicates.
 
   The embedding `YonedaEmbedding B : 𝒞 → Type v := fun A => A ⟶ B` is defined
-  in S1_47.lean.  A full Yoneda-into-functor-category statement requires:
-  (a) `setCat : Cat (Type v)` — in Horn.lean (not imported here);
-  (b) `FunctorCategory.lean` for the functor-category structure on `𝒮^(A°)`.
+  in S1_47.lean.  Here we realise the full functor-category statement, using
+  `setCat : Cat (Type w)` (Horn.lean) and the functor category `𝒮^(A°)` from
+  S1_27 / `FunctorCategory.lean`.  The section below shows:
+    `yonedaObj`            — `H_B` is a presheaf `(OppCat 𝒞) → Type w`;
+    `yonedaMap`            — `H_f` is the induced natural transformation;
+    `yoneda_faithful`      — `H` is faithful (`H_f = H_g ⟹ f = g`);
+    `yonedaMap_id/_comp`   — `H` is functorial;
+    `yoneda_reflects_mono` — `H` reflects monics;
+    `yoneda_preserves_term`— `H` carries the terminator to a terminal presheaf;
+    `yonedaProd_*`         — `H` preserves binary products (pointwise iso). -/
 
-  We state the key content that is accessible from the current imports:
-  the Yoneda embedding sends TERMINATORS, PRODUCTS, and PULLBACKS to the
-  corresponding structures in the hom-set sense.
+/-! We realise the Yoneda representation `H : A → 𝒮^(A°)` concretely.
 
-  The full functor-category statement is a TODO pending `setCat` import. -/
+    Universe note: `FunctorObj 𝒜 𝒟` forces `𝒜` and `𝒟` at the *same* universe.
+    For the presheaf category `FunctorObj (OppCat 𝒞) (Type u)` to typecheck we need
+    `OppCat 𝒞 : Type (u+1)` and `Type u : Type (u+1)` to agree, i.e. `𝒞 : Type (u+1)`
+    with `Cat.{u} 𝒞`.  Hence this section runs in a fresh universe `w` with
+    `𝒞 : Type (w+1)`; the hom-type category `setCat : Cat.{w} (Type w)` (Horn.lean)
+    supplies the codomain. -/
 
--- BOOK §1.464: TODO — full Yoneda-embedding statement:
---   H : 𝒞 → FunctorObj (OppCat 𝒞) (Type v) (B ↦ H_B = fun A => A ⟶ B)
---   is a full embedding that preserves and reflects cartesian predicates.
---   Proof sketch:
---   (i)  H_B is a functor (OppCat 𝒞 → Type v): it maps f : X ←ᵒᵖ Y (= f : Y → X in 𝒞)
---        to (f ≫ -) : (Y ⟶ B) → (X ⟶ B) (precomposition).
---   (ii) H is faithful: H_B ≅ H_C (nat. iso.) ⟹ B ≅ C  (Yoneda lemma: take A=B, track id_B).
---   (iii) H preserves terminators: H_1(A) = (A ⟶ 1) is a singleton (term_uniq).
---   (iv)  H preserves products: H_{B×C}(A) ≅ H_B(A) × H_C(A)  (universal property of ×).
---   (v)   H preserves pullbacks: H_P(A) ≅ pullback of H_f(A) and H_g(A)  (U.P. of pb).
---   Infrastructure needed: Cat (Type v) (setCat in Horn.lean, not imported here).
--- END TODO
+section Yoneda464
+
+universe w
+variable {𝒞 : Type (w+1)} [inst : Cat.{w} 𝒞]
+
+-- The hom-type category `Cat.{w} (Type w)` is the codomain of every presheaf here.
+attribute [local instance] Freyd.Horn.setCat
+
+/-- Precomposition action of `H_B`: an `OppCat 𝒞`-hom `f : X ⟶ Y` (i.e. a `𝒞`-hom
+    `Y ⟶ X`) sends `h : X ⟶ B` to `f ≫ h : Y ⟶ B`.  Stated with explicit `@`-comp
+    in `𝒞` because `OppCat 𝒞` and `𝒞` are the *same* type, so the `≫` notation cannot
+    pick the intended instance on its own. -/
+def preComp (B : 𝒞) {X Y : OppCat 𝒞} (f : X ⟶ Y) (h : @Cat.Hom 𝒞 inst X B) :
+    @Cat.Hom 𝒞 inst Y B :=
+  @Cat.comp 𝒞 inst Y X B f h
+
+/-- §1.464: The presheaf `H_B : (OppCat 𝒞) → Type w`, `X ↦ (X ⟶ B)`.
+    The contravariant hom-functor `(-, B)`: morphisms act by precomposition. -/
+def yonedaObj (B : 𝒞) : FunctorObj (OppCat 𝒞) (Type w) where
+  obj X := @Cat.Hom 𝒞 inst X B
+  isFunctor :=
+    { map := fun {X Y} f => preComp B f
+      map_id := fun X => by funext h; exact @Cat.id_comp 𝒞 inst X B h
+      -- `f ≫_opp g = g ≫_𝒞 f`, so `map (f≫g) h = (g≫f)≫h = g≫(f≫h)` (assoc).
+      map_comp := fun {X Y Z} f g => by funext h; exact @Cat.assoc 𝒞 inst Z Y X B g f h }
+
+/-- §1.464: The natural transformation `H_f : H_B ⟹ H_C` induced by `f : B ⟶ C`,
+    `app X : (X ⟶ B) → (X ⟶ C)`, `h ↦ h ≫ f` (postcomposition). -/
+def yonedaMap {B C : 𝒞} (f : B ⟶ C) : FunctorHom (yonedaObj B) (yonedaObj C) where
+  app X h := @Cat.comp 𝒞 inst X B C h f
+  -- naturality at `g : X ⟶ Y` of `OppCat 𝒞` (= `g : Y ⟶ X` in `𝒞`):
+  -- `(g ≫ h) ≫ f = g ≫ (h ≫ f)` by associativity.
+  naturality {X Y} g := by funext h; exact @Cat.assoc 𝒞 inst Y X B C g h f
+
+/-- §1.464: `H` is FAITHFUL: `H_f = H_g ⟹ f = g`.  Evaluate the components at `B`
+    on `id_B`: `(H_f)_B (id_B) = id_B ≫ f = f`. -/
+theorem yoneda_faithful {B C : 𝒞} (f g : B ⟶ C)
+    (h : yonedaMap f = yonedaMap g) : f = g := by
+  have hc := congrFun (congrFun (congrArg NaturalTransformation.app h) B) (Cat.id B)
+  simpa only [yonedaMap, Cat.id_comp] using hc
+
+/-- §1.464: `H` preserves identities: `H_{id_B} = id_{H_B}`. -/
+theorem yonedaMap_id (B : 𝒞) :
+    yonedaMap (Cat.id B) = natTrans_id (yonedaObj B) :=
+  NaturalTransformation.ext' fun _ => funext fun h => Cat.comp_id h
+
+/-- §1.464: `H` preserves composition: `H_{f ≫ g} = H_f ≫ H_g`. -/
+theorem yonedaMap_comp {A B C : 𝒞} (f : A ⟶ B) (g : B ⟶ C) :
+    yonedaMap (f ≫ g) = natTrans_comp (yonedaMap f) (yonedaMap g) :=
+  NaturalTransformation.ext' fun _ => funext fun h => (Cat.assoc h f g).symm
+
+/-- §1.464: `H` REFLECTS MONICS.  If `H_m` is monic in the presheaf category then
+    `m` is monic in `𝒞`.  (Together with fullness this gives reflection of the
+    cartesian predicates; here we record the morphism-level statement.) -/
+theorem yoneda_reflects_mono {B C : 𝒞} (m : B ⟶ C)
+    (hm : Monic (𝒞 := FunctorObj (OppCat 𝒞) (Type w)) (yonedaMap m)) : Monic m := by
+  intro W f g hfg
+  have hNT : natTrans_comp (yonedaMap f) (yonedaMap m)
+           = natTrans_comp (yonedaMap g) (yonedaMap m) := by
+    rw [← yonedaMap_comp, ← yonedaMap_comp, hfg]
+  exact yoneda_faithful f g (hm (yonedaMap f) (yonedaMap g) hNT)
+
+/-- §1.464: `H` PRESERVES TERMINATORS.  When `𝒞` has a terminator `1`, the presheaf
+    `H_1 = (-, 1)` is terminal in `𝒮^(A°)`: every hom-set `X ⟶ 1` is a singleton, so
+    there is a unique NT into `H_1` (`app X := fun _ => term X`) and any two agree. -/
+instance yoneda_preserves_term [hT : HasTerminal 𝒞] :
+    HasTerminal (FunctorObj (OppCat 𝒞) (Type w)) where
+  one := yonedaObj one
+  trm _ :=
+    { app := fun X _ => @term 𝒞 inst hT X
+      naturality := fun {_ Y} _ => funext fun _ => @term_uniq 𝒞 inst hT Y _ _ }
+  uniq {_} _ _ := NaturalTransformation.ext' fun X => funext fun _ => @term_uniq 𝒞 inst hT X _ _
+
+/-! ### §1.464  `H` preserves binary products
+
+  `H_{B×C}(X) ≅ H_B(X) × H_C(X)`, naturally in `X`.  We give the bijection and its
+  inverse pointwise (avoiding the triple instance ambiguity that `OppCat 𝒞 = 𝒞`
+  induces between products in `𝒞`, in `Type w`, and in the presheaf category). -/
+
+variable [HasBinaryProducts 𝒞]
+
+/-- Forward leg of `H_{B×C}(X) ≅ H_B(X) × H_C(X)`: `h ↦ (h ≫ fst, h ≫ snd)`. -/
+def yonedaProdFwd (B C X : 𝒞) (h : X ⟶ prod B C) : (X ⟶ B) × (X ⟶ C) :=
+  (h ≫ fst, h ≫ snd)
+
+/-- Backward leg: `(u, v) ↦ ⟨u, v⟩ = pair u v`. -/
+def yonedaProdBwd (B C X : 𝒞) (p : (X ⟶ B) × (X ⟶ C)) : X ⟶ prod B C :=
+  pair p.1 p.2
+
+/-- §1.464: forward∘backward = id (`fst_pair`/`snd_pair`). -/
+theorem yonedaProd_fwd_bwd (B C X : 𝒞) (p : (X ⟶ B) × (X ⟶ C)) :
+    yonedaProdFwd B C X (yonedaProdBwd B C X p) = p :=
+  Prod.ext (fst_pair _ _) (snd_pair _ _)
+
+/-- §1.464: backward∘forward = id (`pair_uniq`).  Hence `H_{B×C}(X) ≅ H_B(X) × H_C(X)`. -/
+theorem yonedaProd_bwd_fwd (B C X : 𝒞) (h : X ⟶ prod B C) :
+    yonedaProdBwd B C X (yonedaProdFwd B C X h) = h :=
+  (pair_uniq _ _ h rfl rfl).symm
+
+/-- §1.464: the product iso is NATURAL in `X`: precomposition by `g : Y ⟶ X`
+    commutes with the bijection. -/
+theorem yonedaProd_fwd_nat (B C : 𝒞) {X Y : 𝒞} (g : Y ⟶ X) (h : X ⟶ prod B C) :
+    yonedaProdFwd B C Y (g ≫ h)
+      = (g ≫ (yonedaProdFwd B C X h).1, g ≫ (yonedaProdFwd B C X h).2) := by
+  simp only [yonedaProdFwd]; rw [Cat.assoc, Cat.assoc]
+
+end Yoneda464
 
 /-! ## §1.531  Σ as a `Functor`; preservation / reflection of monos
 

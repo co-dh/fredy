@@ -27,11 +27,25 @@
   For the equalizer splitting e of dom(f∩g): e≫e°=dom(f∩g)⊑id_a and e°≫e=id_p,
   so Map(e°) holds (Entire: e°≫e=id_p; Simple: e≫e°⊑id_a from dom_coreflexive).
 
-  **BOOK §2.148 TODO**: 𝒜 ≅ Rel(Map 𝒜) for tabular 𝒜.  Needs a functor
-  Map(𝒜) → 𝒜 sending (x : a → b in Map(𝒜)) to x (as a relation), and the
-  inverse sending R : a → b to the tabulation — which requires constructing
-  objects of Map(𝒜) from the tabulation apex.  Deferred: needs a universe-level
-  packaging of `MapObj` as a category with the tabulation functor.
+  **§2.148** (partial — sorry-free building blocks):
+  (J) `tab_round_trip_rel`: Ψ∘Φ = id — from a tabulation (f,g) of R, f≫g° = R.
+  (K) `span_self_tabulates`: a jointly-monic span (f,g) in Map(𝒜) self-tabulates.
+  (L) `tab_iso_unique_exists`: two tabulations of R are related by a UNIQUE iso in
+      Map(𝒜), given that all four recip-legs are maps.  Packages existence
+      (`tabulation_UP_forward`) + uniqueness (`tabulation_UP_unique`).
+
+  **§2.148 BOOK TODO** (allegory-equivalence packaging):
+  The full 𝒜 ≅ Rel(Map 𝒜) equivalence requires:
+    1. Building `Rel(Map 𝒜)` as an `Allegory` instance (spans with the §2.111
+       allegory structure: composition via pullback + image; intersection;
+       reciprocation by swapping legs).
+    2. Showing Map(f°) holds for every tabulation leg f (so the §2.144 iso
+       exists unconditionally).  In our common-TARGET convention this reduces to
+       showing f≫f° ⊑ id — which holds when f is a SPLIT MONIC (f°≫f=id and
+       ff° splits as a coreflexive).  A tabulation leg f satisfies f°≫f=id
+       (from tab_fof), so f is a section; but ff° ⊑ id is NOT automatic.
+    3. Packaging the comparison functors as genuine allegory functors.
+  Deferred; the round-trip equations (J)–(L) are the algebraic core.
 -/
 
 import Fredy.S2_1
@@ -393,5 +407,94 @@ theorem tab_equalizer_UMP {a b p q : 𝒜} {f g : a ⟶ b}
       (tabulation_UP_unique htab_e hk_map hk'_map hke hk'e).symm⟩
 
 end TabularLimits
+
+/-! ## §2.148  𝒜 ≅ Rel(Map 𝒜) for tabular 𝒜
+
+  In Freyd's §2.148, a tabular allegory 𝒜 is isomorphic to Rel(Map 𝒜) — the
+  allegory of relations in its own category of maps.  The comparison functors are:
+
+    Φ : 𝒜 → Rel(Map 𝒜),  R ↦ [tabulation span of R] = [(f, g) with Tabulates f g R]
+    Ψ : Rel(Map 𝒜) → 𝒜,  [(f : a→c, g : b→c)] ↦ f ≫ g°
+
+  In the common-TARGET tabulation convention of this file (f : a→c, g : b→c,
+  R = f≫g°, f°≫f ∩ g°≫g = id_c), the key facts are:
+
+    (i)  Ψ∘Φ = id: from Tabulates f g R one has f ≫ g° = R   [see tab_round_trip_rel]
+    (ii) Φ∘Ψ on standard spans: (f,g) with f°≫f ∩ g°≫g = id_c self-tabulates
+         f≫g°                                                    [see span_self_tabulates]
+    (iii) Any two tabulations of the same R are related by a UNIQUE iso h : c'→c
+         in Map(𝒜), provided all four recip-legs Map(f°)/Map(g°)/Map(f'°)/Map(g'°)
+         hold.                                              [see tab_iso_unique_exists]
+
+  A "jointly-monic span in Map(𝒜)" (an object of Rel(Map 𝒜)(a,b)) is exactly a
+  `Tabulates`-triple (f,g,R) — the tabulation condition f°≫f ∩ g°≫g = id_c IS the
+  jointly-monic condition of §2.141 for the pair (f, g) of maps with common target c.
+
+  Note on Map(f°): The full unconditional iso in (iii) requires Map(f°) for every
+  tabulation leg f (§2.144).  Since f°≫f = id_c (from tab_fof), Entire(f°) is free;
+  the gap is Simple(f°) : f≫f° ⊑ id_a.  This is NOT automatic from Tabulates alone
+  (see the "Note on Map(π₁°)" in the file header); it requires f to be a split monic
+  (equivalently, an isomorphism between its source and the apex).  The TODO below is
+  to lift this to an unconditional statement via an alternative representation. -/
+
+section Rel148
+
+variable {𝒜 : Type u} [TabularAllegory 𝒜]
+
+/-- **§2.148 (J) — forward round-trip** (Ψ∘Φ = id): from a tabulation (f,g) of R,
+    applying the backward functor Ψ recovers R.
+    This is the trivial direction: Ψ(Φ(R)) = f ≫ g° = R. -/
+theorem tab_round_trip_rel {a b c : 𝒜} {f : a ⟶ c} {g : b ⟶ c} {R : a ⟶ b}
+    (ht : Tabulates f g R) : f ≫ g° = R :=
+  ht.2.2.1.symm
+
+/-- **§2.148 (K) — backward round-trip** (Φ∘Ψ identifies spans with tabulations):
+    a pair (f : a→c, g : b→c) of maps satisfying the jointly-monic condition
+    f°≫f ∩ g°≫g = id_c is itself a tabulation of f≫g°.
+
+    Structurally: the objects of Rel(Map 𝒜)(a,b) are exactly the `Tabulates`-triples
+    (f,g,R) — the jointly-monic condition f°≫f ∩ g°≫g = id_c (the tabulation
+    condition in our common-TARGET convention) is the §2.141 jointly-monic condition
+    for the span (f, g) in Map(𝒜). -/
+theorem span_self_tabulates {a b c : 𝒜} {f : a ⟶ c} {g : b ⟶ c}
+    (hf : Map f) (hg : Map g) (hjoint : f° ≫ f ∩ g° ≫ g = Cat.id c) :
+    Tabulates f g (f ≫ g°) :=
+  ⟨hf, hg, rfl, hjoint⟩
+
+/-- **§2.148 (L) — unique iso between tabulations** (§2.144 with Map(f°) hypothesis):
+    given two tabulations (f,g) and (f',g') of the same relation R, if all four
+    recip-legs Map(f°), Map(g°), Map(f'°), Map(g'°) hold, there exists a UNIQUE map
+    h : c' → c in Map(𝒜) with h ≫ f° = f'° and h ≫ g° = g'°.
+
+    Existence: `tabulation_UP_forward` (§2.143) applied with x = f'°, y = g'° and
+    the fact x°≫y = f'°° ≫ g'° = f'≫g'° = R ⊑ R.
+    Uniqueness: `tabulation_UP_unique` (§2.143). -/
+theorem tab_iso_unique_exists {a b c c' : 𝒜}
+    {f : a ⟶ c} {g : b ⟶ c} {f' : a ⟶ c'} {g' : b ⟶ c'} {R : a ⟶ b}
+    (ht : Tabulates f g R) (ht' : Tabulates f' g' R)
+    (hfr : Map f°) (hgr : Map g°) (hf'r : Map f'°) (hg'r : Map g'°) :
+    ∃ (h : c' ⟶ c), Map h ∧ h ≫ f° = f'° ∧ h ≫ g° = g'° ∧
+      ∀ h' : c' ⟶ c, Map h' → h' ≫ f° = f'° → h' = h := by
+  -- Key: x = f'° : c'→a, y = g'° : c'→b, x°≫y = f'≫g'° = R
+  have hxy : f'°° ≫ g'° ⊑ R := by
+    rw [Allegory.recip_recip, ht'.2.2.1.symm]; exact le_refl _
+  obtain ⟨h, hh, hhf, hhg⟩ := tabulation_UP_forward ht hfr hgr hf'r hg'r hxy
+  exact ⟨h, hh, hhf, hhg,
+    fun h' hh' hf'eq => (tabulation_UP_unique ht hh hh' hhf hf'eq).symm⟩
+
+-- BOOK §2.148 TODO: package as a full allegory-equivalence 𝒜 ≅ Rel(Map 𝒜).
+-- Blocked on:
+--   (1) Building `Rel(Map 𝒜)` as an Allegory instance (§2.111 construction applied
+--       to the base category Map(𝒜) with its finite limits from §2.147).
+--   (2) Dropping the four Map(f°) hypotheses in `tab_iso_unique_exists`: requires
+--       either (a) a different tabulation convention where f°≫f=id gives both legs
+--       of the iso, or (b) showing every tabulation leg f satisfies f≫f° ⊑ id_a
+--       (= Simple(f°)) — equivalent to f being a split monic with retract f°.
+--       In the current convention f°≫f=id_c (tab_fof) but f≫f° ⊑ id_a is not
+--       provable without the additional `Map(f°)` hypothesis (see §2.143 note).
+--   (3) Verifying the comparison Φ: 𝒜 → Rel(Map 𝒜) is an allegory functor
+--       (preserves reciprocation, intersection, composition).
+
+end Rel148
 
 end Freyd.Alg
