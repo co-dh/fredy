@@ -518,7 +518,25 @@ theorem quotient_universal_property (K : EquivalenceKernel 𝒞)
     ∃ (G : QuotientByKernel.Obj K → 𝒟),
       (∃ (_ : Functor G), ∀ X : 𝒞, G (QuotientByKernel.Q K X) = F X) ∧
       (∀ G' : QuotientByKernel.Obj K → 𝒟,
-        (∃ (_ : Functor G'), ∀ X : 𝒞, G' (QuotientByKernel.Q K X) = F X) → G' = G) := sorry
+        (∃ (_ : Functor G'), ∀ X : 𝒞, G' (QuotientByKernel.Q K X) = F X) → G' = G) := by
+  -- The induced functor sends each class d to F of its chosen representative.
+  refine ⟨fun d => F (QuotientByKernel.rep K d), ?_, ?_⟩
+  · -- Existence: G is a functor and G ∘ Q = F on objects.
+    -- G.map (h : rep d ⟶ rep e) := hF.map h; axioms inherited from F.
+    refine ⟨⟨fun h => hF.map h, fun d => hF.map_id _, fun f g => hF.map_comp f g⟩, fun X => ?_⟩
+    -- G (Q K X) = F (rep K (Q K X)); need F (rep K (Q K X)) = F X.
+    -- hFK on the K-iso κ X : X ⟶ rep K (Q K X) gives F X = F (rep K (Q K X)).
+    obtain ⟨e, _⟩ := hFK (QuotientByKernel.kappa K X) (QuotientByKernel.kappa_mem K X)
+    exact e.symm
+  · -- Uniqueness: any G' with G' (Q K X) = F X equals G.
+    intro G' ⟨_, hG'⟩
+    funext d
+    -- d = Q K (rep K d) by rep_spec, so G' d = G' (Q K (rep K d)) = F (rep K d) = G d.
+    have hd : QuotientByKernel.Q K (QuotientByKernel.rep K d) = d :=
+      QuotientByKernel.rep_spec K d
+    calc G' d
+        = G' (QuotientByKernel.Q K (QuotientByKernel.rep K d)) := by rw [hd]
+      _ = F (QuotientByKernel.rep K d) := hG' _
 
 /-! ## §1.367 Factorization of equivalence functors via equivalence kernel
 
