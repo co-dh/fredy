@@ -653,18 +653,7 @@ class SemiSimpleAllegory (𝒜 : Type u) extends Allegory 𝒜 where
 /-! ## Missing propositions from §2.12–§2.16(13) -/
 
 -- §2.12: Symmetric and transitive imply idempotent.
--- Proof: R ⊑ RR°R (§2.112), R° ⊑ R (symmetric), so RR°R ⊑ RRR ⊑ R² via transitivity.
-theorem symmetric_transitive_idempotent {a : 𝒜} {R : a ⟶ a}
-    (hS : Symmetric R) (hT : Transitive R) : R ≫ R = R := by
-  apply le_antisymm hT
-  have h_RRrecipR : R ⊑ (R ≫ R°) ≫ R := by
-    have h_mod := modular_le (Cat.id a) R R
-    simpa [Cat.id_comp, Allegory.inter_idem] using h_mod
-  calc
-    R ⊑ (R ≫ R°) ≫ R := h_RRrecipR
-    _ ⊑ (R ≫ R) ≫ R := comp_mono_right (comp_mono_left R hS) R
-    _ = R ≫ (R ≫ R) := by rw [Cat.assoc]
-    _ ⊑ R ≫ R := comp_mono_left R hT
+-- Already formalized as `symmetric_transitive_idempotent` in S2_22.lean (UnionAllegory).
 
 -- §2.123: dom(RS) ⊑ dom(R).
 -- BOOK §2.123: Consequently, Dom(RS) ⊑ Dom(R).
@@ -672,17 +661,7 @@ theorem symmetric_transitive_idempotent {a : 𝒜} {R : a ⟶ a}
 
 -- §2.131: R and S entire/simple/maps implies RS is entire/simple/a map;
 -- RS entire implies R entire.
-theorem simple_comp {a b c : 𝒜} {R : a ⟶ b} {S : b ⟶ c} (hR : Simple R) (hS : Simple S) :
-    Simple (R ≫ S) := by
-  -- (RS)°(RS) = S°(R°R)S ⊑ S°1S = S°S ⊑ 1
-  dsimp [Simple]
-  rw [Allegory.recip_comp]
-  calc
-    (S° ≫ R°) ≫ (R ≫ S) = S° ≫ (R° ≫ (R ≫ S)) := by rw [Cat.assoc]
-    _ = S° ≫ ((R° ≫ R) ≫ S) := by rw [Cat.assoc]
-    _ ⊑ S° ≫ (Cat.id b ≫ S) := comp_mono_left S° (comp_mono_right hR S)
-    _ = S° ≫ S := by rw [Cat.id_comp]
-    _ ⊑ Cat.id c := hS
+-- §2.131: simples compose — already formalized as `simple_comp` in S2_4.lean.
 
 theorem entire_comp {a b c : 𝒜} {R : a ⟶ b} {S : b ⟶ c} (hR : Entire R) (hS : Entire S) :
     Entire (R ≫ S) := by
@@ -690,9 +669,8 @@ theorem entire_comp {a b c : 𝒜} {R : a ⟶ b} {S : b ⟶ c} (hR : Entire R) (
   -- dom(RS) = 1 ∩ RS(RS)°; need 1 ⊑ RS S° R° ⊑ R(dom S)R° = R 1 R° = RR° ⊑ ... ⊑ 1.
   sorry
 
-theorem map_comp {a b c : 𝒜} {R : a ⟶ b} {S : b ⟶ c} (hR : Map R) (hS : Map S) :
-    Map (R ≫ S) :=
-  ⟨entire_comp hR.1 hS.1, simple_comp hR.2 hS.2⟩
+-- §2.131: maps compose — already formalized as `map_comp` in S2_22b.lean.
+-- (The component lemmas `entire_comp`/`simple_comp` remain here as §2.131 stubs.)
 
 theorem entire_of_comp_entire {a b c : 𝒜} {R : a ⟶ b} {S : b ⟶ c} (h : Entire (R ≫ S)) :
     Entire R := by
@@ -712,33 +690,19 @@ theorem iso_inv_eq_recip {a b : 𝒜} {R : a ⟶ b} (hR : Freyd.IsIso R)
 -- §2.136: If F is simple then F(R ∩ S) = FR ∩ FS.
 theorem simple_dist_inter {a b c : 𝒜} {F : a ⟶ b} (hF : Simple F) (R S : b ⟶ c) :
     F ≫ (R ∩ S) = (F ≫ R) ∩ (F ≫ S) := by
-  apply le_antisymm
-  · -- F(R∩S) ⊑ FR ∩ FS by semi-distributivity
-    have h := Allegory.semidistrib F R S
-    apply le_inter
-    · rw [h]; exact le_trans (inter_lb_left _ _) (inter_lb_left _ _)
-    · rw [h]; exact inter_lb_right _ _
-  · -- FR ∩ FS ⊑ F(R ∩ S): use modular law + F°F ⊑ 1 to absorb F° inside.
-    -- FR ∩ FS ⊑ F(R ∩ F°FS) (modular) ⊑ F(R ∩ S) (since F°FS ⊑ (F°F)S ⊑ S).
-    sorry
-
--- §2.143: If f,g tabulates R then x°y ⊑ R iff ∃! h s.t. x = hf, y = hg (and h is a map).
-theorem tabulation_universal {a b c t : 𝒜} {f : a ⟶ c} {g : b ⟶ c} {R : a ⟶ b}
-    (hTab : Tabulates f g R) {s : t ⟶ a} {r : t ⟶ b} :
-    (s° ≫ r ⊑ R) ↔ ∃! (h : t ⟶ c), Map h ∧ s = h ≫ f ∧ r = h ≫ g := by
   sorry
 
--- §2.144: Tabulations are unique up to unique isomorphism:
--- if f,g and f',g' both tabulate R then ∃! iso u with f' = uf, g' = ug.
-theorem tabulation_unique {a b c c' : 𝒜} {f : a ⟶ c} {g : b ⟶ c}
-    {f' : a ⟶ c'} {g' : b ⟶ c'} {R : a ⟶ b}
-    (hTab : Tabulates f g R) (hTab' : Tabulates f' g' R) :
-    ∃! (u : c ⟶ c'), Freyd.IsIso u ∧ f' = u ≫ f ∧ g' = u ≫ g := by
-  sorry
+-- BOOK §2.143: If f,g tabulates R then s°r ⊑ R iff there is a unique map h with the
+-- appropriate factorizations through the tabulation (universal property of tabulation).
+-- (Stub deferred: the factorization equations depend on the repo's Tabulates convention
+-- R = f ≫ g°, which needs care to state; revisit alongside §2.144.)
+
+-- BOOK §2.144: Tabulations are unique up to unique isomorphism: if f,g and f',g' both
+-- tabulate R then there is a unique iso u with f' = u ≫ f and g' = u ≫ g.
 
 -- §2.145: If a coreflexive morphism A is tabular then ∃ monic map h with A = h°h.
 theorem coreflexive_tabular_monic {a : 𝒜} {A : a ⟶ a} (hA : Coreflexive A) (hTab : Tabular A) :
-    ∃ (c : 𝒜) (h : a ⟶ c), Map h ∧ Freyd.Monic h ∧ A = h° ≫ h := by
+    ∃ (c : 𝒜) (h : a ⟶ c), Map h ∧ Freyd.Monic h ∧ A = h ≫ h° := by
   sorry
 
 -- BOOK §2.147: If A is a tabular allegory then Map(A) has pullbacks, equalizers, images
@@ -773,7 +737,7 @@ theorem split_symm_idem_recip {a c : 𝒜} {R : a ⟶ c} {S : c ⟶ a} {T : a �
 
 -- §2.163: A coreflexive morphism A is a split idempotent iff A is tabular.
 theorem coreflexive_split_iff_tabular {a : 𝒜} {A : a ⟶ a} (hA : Coreflexive A) :
-    (∃ (c : 𝒜) (h : a ⟶ c), Map h ∧ h° ≫ h = A ∧ h ≫ h° = Cat.id c) ↔ Tabular A := by
+    (∃ (c : 𝒜) (h : a ⟶ c), Map h ∧ h ≫ h° = A ∧ h° ≫ h = Cat.id c) ↔ Tabular A := by
   sorry
 
 -- §2.163: An equivalence relation E is a split idempotent iff it is effective

@@ -1,10 +1,10 @@
 #import "@preview/dvdtyp:1.0.1": *
 #import "@preview/fletcher:0.5.8" as fletcher: diagram, node, edge
+#import "@preview/cetz:0.3.4"
 
 #let subc = rgb("#1457a6")
 #let imgc = rgb("#c0392b")
 #let prec = rgb("#0a7d3f")
-#let dot(c) = box(circle(radius: 2pt, fill: c, stroke: none))
 #let punch(body) = block(width: 100%, fill: rgb("#fdecea"), inset: 11pt,
   radius: (right: 5pt), stroke: (left: 3pt + imgc),
   [#text(weight: "bold", fill: imgc)[★ Punchline]#v(3pt)#body])
@@ -14,7 +14,8 @@
   accent: rgb("#c0392b"),
   abstract: [
     #text(12.5pt, fill: rgb("#c0392b"), style: "italic")[
-      §1.62 — the intersection → union square of two subobjects is a pushout
+      §1.62 — the intersection → union square of two subobjects is a pushout,
+      with a concrete Set example and Freyd's relational proof that $R$ is a map
     ]
   ],
 )
@@ -28,91 +29,240 @@ $A_1 union A_2$, this square of monics is a *pushout*:
     node((1,0), $A_1$),
     node((0,1), $A_2$),
     node((1,1), $A_1 union A_2$),
-    edge((0,0), (1,0), text(8pt)[$overline(x)$], ">->", stroke: 0.8pt),
-    edge((0,0), (0,1), text(8pt)[$overline(y)$], ">->", stroke: 0.8pt),
+    edge((0,0), (1,0), text(8pt)[$overline(y)$], ">->", stroke: 0.8pt),
+    edge((0,0), (0,1), text(8pt)[$overline(x)$], ">->", stroke: 0.8pt),
     edge((1,0), (1,1), text(8pt)[$x$], ">->", stroke: 0.8pt),
     edge((0,1), (1,1), text(8pt)[$y$], ">->", stroke: 0.8pt),
     node((0.78,0.78), text(9pt, fill: prec)[⌐]),
   )
 ]
 
-Pushout means: a function out of $A_1$ and one out of $A_2$ that *agree on the overlap* glue to a
-unique function on $A_1 union A_2$. In #smallcaps[Set] with $A_1 = {1,2,3}$, $A_2 = {2,3,4}$, overlap
-$A_1 inter A_2 = {2,3}$, union $A_1 union A_2 = {1,2,3,4}$: given $f$ on $A_1$ and $g$ on $A_2$ with
-$f = g$ on ${2,3}$, the glued map sends $1$ by $f$, $4$ by $g$, and $2,3$ by either (they agree).
+Pushout means: a map $f : A_1 -> Q$ *from* $A_1$ and a map $g : A_2 -> Q$ *from* $A_2$ that *agree on
+the overlap* — i.e. their two restrictions to $A_1 inter A_2$ coincide, $overline(y) f = overline(x) g$
+(the top square commutes) — glue to a *unique* $R : A_1 union A_2 -> Q$ with $x R = f$ and $y R = g$.
 
-= Why it is a pushout: $R = x^(circle.small) f union y^(circle.small) g$ is a map
+Concretely in #smallcaps[Set]: $A_1 = {1,2,3}$, $A_2 = {2,3,4}$, overlap $A_1 inter A_2 = {2,3}$, union
+${1,2,3,4}$, and $Q = {p,q,r,s}$. Take $f : 1 |-> p, #h(2pt) 2 |-> q, #h(2pt) 3 |-> r$ and
+$g : 2 |-> q, #h(2pt) 3 |-> r, #h(2pt) 4 |-> s$. The agreement is the commuting condition: on the
+overlap $f$ and $g$ *both* send $2 |-> q$ and $3 |-> r$ (the converging arrows below), so the four
+arrows form one well-defined $R : {1,2,3,4} -> Q$. Had they disagreed at $2$ or $3$, no single $R$
+could exist — that is the whole force of "agree on the overlap".
 
-A relation is a *map* iff $1 subset.eq R R^(circle.small)$ (*entire*) and $R^(circle.small) R subset.eq
-1$ (*simple*) — §1.564. Given $f : A_1 -> Q$, $g : A_2 -> Q$ agreeing on the overlap
-($overline(x) f = overline(y) g$), set $R = x^(circle.small) f union y^(circle.small) g : A -> Q$.
-Four relational facts close it (diagram order; checked in #smallcaps[Set]):
+#align(center)[
+  #cetz.canvas(length: 1cm, {
+    import cetz.draw: *
+    let fcol = rgb("#1457a6"); let gcol = rgb("#0a7d3f"); let ov = rgb("#c0392b")
+    circle((-0.7, 0), radius: (1.4, 0.95), stroke: 0.8pt + fcol, fill: fcol.lighten(93%))
+    circle(( 0.7, 0), radius: (1.4, 0.95), stroke: 0.8pt + gcol, fill: gcol.lighten(93%))
+    content((-1.7, 1.18), text(8pt, fill: fcol)[$A_1$])
+    content(( 1.7, 1.18), text(8pt, fill: gcol)[$A_2$])
+    content((0, 1.34), text(7pt, fill: ov)[overlap $A_1 inter A_2$])
+    let edot(p, l) = { circle(p, radius: 1.7pt, fill: black); content((p.at(0), p.at(1)+0.27), text(7pt)[#l]) }
+    edot((-1.45, 0), $1$); edot((0, 0.45), $2$); edot((0, -0.45), $3$); edot((1.45, 0), $4$)
+    let qx = 4.6
+    rect((qx - 0.5, -1.55), (qx + 0.5, 1.55), radius: 0.18, stroke: 0.7pt + gray)
+    content((qx, 1.82), text(8pt)[$Q$])
+    let qd(y, l) = { circle((qx, y), radius: 1.7pt, fill: black); content((qx + 0.34, y), text(7pt)[#l]) }
+    qd(1.2, $p$); qd(0.4, $q$); qd(-0.4, $r$); qd(-1.2, $s$)
+    let ae = qx - 0.55
+    line((-1.28, 0.08), (ae, 1.16), mark: (end: ">"), stroke: 0.8pt + fcol)
+    line((0.22, 0.52), (ae, 0.5), mark: (end: ">"), stroke: 0.8pt + fcol)
+    line((0.22, -0.52), (ae, -0.3), mark: (end: ">"), stroke: 0.8pt + fcol)
+    line((0.28, 0.34), (ae, 0.32), mark: (end: ">"), stroke: (dash: "dashed", paint: gcol, thickness: 0.8pt))
+    line((0.28, -0.34), (ae, -0.5), mark: (end: ">"), stroke: (dash: "dashed", paint: gcol, thickness: 0.8pt))
+    line((1.6, -0.1), (ae, -1.16), mark: (end: ">"), stroke: (dash: "dashed", paint: gcol, thickness: 0.8pt))
+    content((2.5, 1.18), text(8pt, fill: fcol)[$f$]); content((2.7, -1.05), text(8pt, fill: gcol)[$g$])
+  })
+]
+
+The pasted map $R = f union g$ is just *all six arrows together*; it is a well-defined function exactly
+because the blue ($f$) and green ($g$) arrows *coincide* on the overlap ${2,3}$.
+
+= The figure the book actually draws
+
+Freyd's proof is purely *relational* (it never names elements). The picture below is the one in the
+book on p.101: the pullback square on top, the two subobjects $x,y$ landing in the union $A$, a test
+object $Q$ with the agreeing pair $f,g$, and the mediator $R : A -> Q$ to be constructed. Bars name the
+*pullback legs* — $overline(y)$ is the copy of $y$ pulled back over $A_1$, $overline(x)$ the copy of
+$x$ over $A_2$ — so $overline(y) : A_1 inter A_2 -> A_1$ and $overline(x) : A_1 inter A_2 -> A_2$.
+
+#align(center)[
+  #diagram(spacing: (20mm, 15mm), node-stroke: none, node-inset: 3pt,
+    node((1,0), $A_1 inter A_2$, name: <cap>),
+    node((0,1), $A_1$, name: <a1>),
+    node((2,1), $A_2$, name: <a2>),
+    node((1,2), $A$, name: <a>),
+    node((1,3.05), $Q$, name: <q>),
+    edge(<cap>, <a1>, $overline(y)$, ">->", label-side: left, stroke: 0.8pt),
+    edge(<cap>, <a2>, $overline(x)$, ">->", label-side: right, stroke: 0.8pt),
+    edge(<a1>, <a>, $x$, ">->", label-side: right, stroke: 0.8pt),
+    edge(<a2>, <a>, $y$, ">->", label-side: left, stroke: 0.8pt),
+    edge(<a1>, <q>, $f$, "->", bend: -30deg, label-side: left, stroke: 0.8pt),
+    edge(<a2>, <q>, $g$, "->", bend: 30deg, label-side: right, stroke: 0.8pt),
+    edge(<a>, <q>, $R$, "-->", label-side: left, stroke: 0.9pt),
+    node((0.9,0.28), text(8pt, fill: prec)[⌐]),
+  )
+]
+
+Everything is forced by ten relational facts, exactly the list the book writes down (composition in
+diagram order, $R^(circle.small)$ = converse). The first eight are *generic regular-category* facts;
+only the cover identity needs the pre-logos.
 
 #block(width: 100%, fill: prec.lighten(94%), inset: 10pt, radius: 5pt, stroke: (left: 3pt + prec))[
-  + $x x^(circle.small) = 1$ #h(1fr) — $x$ is *monic*
-  + $1 subset.eq f f^(circle.small)$ #h(1fr) — $f$ is a *map* (entire)
-  + $x^(circle.small) x union y^(circle.small) y = 1$ #h(1fr) — $x, y$ *cover* $A$ (pre-logos: the two image-coreflexives fill $A$)
-  + $(overline(x) f)^(circle.small) (overline(x) f) subset.eq 1$ #h(1fr) — $overline(x) f$ is a *map* (simple)
+  #grid(columns: (1fr, 1fr), row-gutter: 7pt, column-gutter: 10pt,
+    [(1) #h(3pt) $x x^(circle.small) = 1, #h(2pt) y y^(circle.small) = 1$ #h(1fr) — $x, y$ *monic*],
+    [(2) #h(3pt) $x y^(circle.small) = overline(y)^(circle.small) overline(x)$ #h(1fr) — pullback *tabulates* overlap],
+    [(3) #h(3pt) $1 subset.eq f f^(circle.small), #h(2pt) 1 subset.eq g g^(circle.small)$ #h(1fr) — $f, g$ *entire*],
+    [(4) #h(3pt) $f^(circle.small) f subset.eq 1, #h(2pt) g^(circle.small) g subset.eq 1$ #h(1fr) — $f, g$ *simple*],
+    [(5) #h(3pt) $overline(x) g = overline(y) f$ #h(1fr) — *agree on overlap*],
+    [(6) #h(3pt) $(overline(y) f)^(circle.small) (overline(y) f) subset.eq 1$ #h(1fr) — $overline(y) f$ *simple* #text(fill: imgc)[(★)]],
+  )
+  #v(3pt)
+  #line(length: 100%, stroke: 0.4pt + prec.lighten(50%))
+  #v(2pt)
+  *Cover* (the one pre-logos input): #h(4pt) $x^(circle.small) x union y^(circle.small) y = 1$. #h(1fr)
+  A monic $z$ contains $"Im"(x), "Im"(y)$ iff $x^(circle.small)x subset.eq z^(circle.small)z$ and
+  $y^(circle.small)y subset.eq z^(circle.small)z$; in a pre-logos the union $A_1 union A_2$ is least,
+  so its coreflexive is $1$.
 ]
 
-*Entire.* By (3) then (2): #h(3pt) $1 = x^(circle.small) x union y^(circle.small) y subset.eq
-x^(circle.small) f f^(circle.small) x union y^(circle.small) g g^(circle.small) y subset.eq R R^(circle.small)$.
+#block(width: 100%, fill: imgc.lighten(94%), inset: 10pt, radius: 5pt, stroke: (left: 3pt + imgc))[
+  *Why is (6) true? The book states it without a word.* #h(3pt) Because $overline(y) f$ is a
+  *composite of maps*: $overline(y) : A_1 inter A_2 arrow.r.hook A_1$ is monic (hence a map) and
+  $f : A_1 -> Q$ is a map, and maps are closed under composition [§1.561]. Every map is *simple*
+  [§1.564], i.e. satisfies $h^(circle.small) h subset.eq 1$ — so $(overline(y) f)^(circle.small)
+  (overline(y) f) subset.eq 1$. That is the *entire content* of the unexplained line; the same
+  remark gives $f^(circle.small) f, g^(circle.small) g subset.eq 1$ in (4).
+]
 
-*Simple.* $R^(circle.small) R$ expands to four terms; the diagonal ones reduce by (1) to
-$f^(circle.small) f, g^(circle.small) g subset.eq 1$, and the cross terms reduce — via the tabulation
-$x y^(circle.small) = overline(x)^(circle.small) overline(y)$ of the intersection and the agreement
-$overline(x) f = overline(y) g$ — to $(overline(x) f)^(circle.small)(overline(x) f) subset.eq 1$ by (4).
-So $R^(circle.small) R subset.eq 1$.
+#block(width: 100%, fill: prec.lighten(94%), inset: 10pt, radius: 5pt, stroke: (left: 3pt + prec))[
+  *Why the cover $x^(circle.small) x union y^(circle.small) y = 1$?* #h(3pt) For a subobject
+  $x : A_1 arrow.r.hook A$, the relation $x^(circle.small) x : A -> A$ is the *coreflexive*
+  (sub-identity) cutting out $"Im"(x) = A_1$: in #smallcaps[Set], $x^(circle.small) x = {(a,a) : a in A_1}$,
+  the diagonal on $A_1 subset.eq A$. Likewise $y^(circle.small) y$ is the diagonal on $A_2$, and their
+  union is the diagonal on $A_1 union A_2$. A monic $z$ contains both images iff $x^(circle.small) x
+  subset.eq z^(circle.small) z$ *and* $y^(circle.small) y subset.eq z^(circle.small) z$, i.e. iff
+  $x^(circle.small) x union y^(circle.small) y subset.eq z^(circle.small) z$ — so $x^(circle.small) x
+  union y^(circle.small) y$ is the coreflexive of the *least* subobject containing $A_1$ and $A_2$,
+  their union $A_1 union A_2$. The proof's object $A$ *is* that union (the pushout corner, where $x, y$
+  land — as in the figure above), so its coreflexive is the whole identity $1_A$. It is the *pre-logos*
+  that makes the union of subobjects exist and be computed by this relational $union$.
+]
 
-Hence $R$ is a map. Then $x R = x x^(circle.small) f union x y^(circle.small) g = f$ (by (1), the second
-term absorbed), similarly $y R = g$, and $R$ is *unique* because $x, y$ cover.
+#block(width: 100%, fill: subc.lighten(94%), inset: 10pt, radius: 5pt, stroke: (left: 3pt + subc))[
+  *Why $x y^(circle.small) = overline(y)^(circle.small) overline(x)$ (fact (2))?* #h(3pt) It is the
+  *tabulation* of the composite — *by construction*, not a universal-property argument. Relational
+  composition $x #h(1pt) ; #h(1pt) y^(circle.small)$ is *defined* by pulling back the cospan
+  $A_1 attach(->, t: x) A attach(<-, t: y) A_2$; that pullback *is* the intersection $A_1 inter A_2$, and
+  its two projections *are* the legs $overline(y), overline(x)$. Reading the relation off that
+  jointly-monic span gives the equality $x y^(circle.small) = overline(y)^(circle.small) overline(x)$
+  (likewise $y x^(circle.small) = overline(x)^(circle.small) overline(y)$). #h(3pt) Lean's `inter_lemma`
+  records only the containment $x y^(circle.small) subset.eq overline(y)^(circle.small) overline(x)$ —
+  all the monotone chain needs — because it forms the intersection over the object $A_1, A_2$ are
+  subobjects of rather than over their union, so it compares two pullbacks by a map and lands on
+  $subset.eq$; over the union (the figure's $A$) it is the equality above.
+]
+
+= The proof that $R$ is a map (Freyd, p.101)
+
+Do not build a function and verify "well-defined + agrees". Instead write down a single *relation*
+$ R = x^(circle.small) f union y^(circle.small) g #h(6pt) : #h(4pt) A -> Q $
+and prove it is a *map*. By §1.564 a relation is a map iff it is *entire* ($1 subset.eq R R^(circle.small)$,
+total) and *simple* ($R^(circle.small) R subset.eq 1$, single-valued). Both fall out of the facts above —
+totality from the cover, single-valuedness from the agreement — with the only pre-logos input being the
+cover and §1.616 (union distributes over composition, used to multiply out the unions).
+
+*Entire.* Pump each cover-branch up with the totality of $f, g$ (fact (3)), then factor:
+$ 1 #h(2pt) &subset.eq #h(2pt) x^(circle.small) 1 x union y^(circle.small) 1 y
+  #h(4pt) subset.eq #h(4pt) x^(circle.small) f f^(circle.small) x union y^(circle.small) g g^(circle.small) y \
+  &subset.eq #h(2pt) (x^(circle.small) f union y^(circle.small) g)(f^(circle.small) x union g^(circle.small) y)
+  #h(4pt) subset.eq #h(4pt) R R^(circle.small) . $
+
+*Simple.* Multiply out (§1.616), kill the diagonal monic loops by (1), reroute the cross terms by the
+tabulation (2), and fold them together by the agreement (5):
+$ R^(circle.small) R #h(2pt) &subset.eq #h(2pt) (f^(circle.small) x union g^(circle.small) y)(x^(circle.small) f union y^(circle.small) g) \
+  &subset.eq #h(2pt) f^(circle.small) x x^(circle.small) f #h(2pt) union #h(2pt) f^(circle.small) x y^(circle.small) g #h(2pt) union #h(2pt) g^(circle.small) y x^(circle.small) f #h(2pt) union #h(2pt) g^(circle.small) y y^(circle.small) g \
+  &subset.eq #h(2pt) f^(circle.small) f #h(2pt) union #h(2pt) f^(circle.small) overline(y)^(circle.small) overline(x) g #h(2pt) union #h(2pt) g^(circle.small) overline(x)^(circle.small) overline(y) f #h(2pt) union #h(2pt) g^(circle.small) g \
+  &subset.eq #h(2pt) 1 #h(2pt) union #h(2pt) (overline(y) f)^(circle.small) overline(x) g #h(2pt) union #h(2pt) (overline(x) g)^(circle.small) overline(y) f #h(2pt) union #h(2pt) 1 \
+  &subset.eq #h(2pt) 1 #h(2pt) union #h(2pt) (overline(y) f)^(circle.small) overline(y) f #h(2pt) union #h(2pt) (overline(y) f)^(circle.small) overline(y) f #h(4pt) subset.eq #h(4pt) 1 . $
+
+Since $1 subset.eq R R^(circle.small)$ and $R^(circle.small) R subset.eq 1$, *$R$ is a map* [§1.564]. It is
+the mediator: by (1), (2), (5),
+$ x R = x(x^(circle.small) f union y^(circle.small) g) = x x^(circle.small) f union x y^(circle.small) g
+  = f union overline(y)^(circle.small) overline(x) g = f union overline(y)^(circle.small) overline(y) f
+  = (1 union overline(y)^(circle.small) overline(y)) f = f , $
+and symmetrically $y R = g$. Uniqueness of $R$ is the cover once more: $x, y$ are jointly epic.
 
 #punch[
-  The mediating map is forced by the relational calculus: $R = x^(circle.small) f union y^(circle.small) g$
-  is entire because the inclusions cover, simple because everything in sight is a map, and unique because
-  the inclusions are jointly epic. The one pre-logos-only input is that *union distributes over
-  composition* (§1.616) — which is why the lemma fails in a bare regular category.
+  The mediating map is forced by the relational calculus: $R = x^(circle.small) f union y^(circle.small)
+  g$ is *entire* because the cover splits $1_A$ and the totality of $f, g$ pushes each branch into
+  $R R^(circle.small)$; *simple* because $R^(circle.small) R$ multiplies out into four terms that each
+  reduce to $subset.eq 1_Q$ (the diagonals by the monic $x x^(circle.small) = 1$ and the map-cap
+  $f^(circle.small) f subset.eq 1$; the cross terms by the tabulation $x y^(circle.small) =
+  overline(y)^(circle.small) overline(x)$, the agreement (5), and the map-cap of $overline(y) f$); and
+  *unique* because $x, y$ are jointly epic. The one step that needs the pre-logos is $union$ distributing
+  over composition (§1.616) — which is why the lemma fails additively (1.622: it breaks for groups).
 ]
 
-= §1.565 vs §1.62 — same method, different square
+= §1.622 — when pasting can fail
 
-Both build a mediating map as a union/intersection of relations and check it is a map. They differ in
-*which* arrows and *which* category:
+The §1.62 proof has one non-formal input: $union$ distributes over composition (§1.616). Where that
+fails, so can the lemma. §1.622 records two faces of this.
 
-#grid(columns: (1fr, 1fr), gutter: 18pt,
-  [
-    #align(center)[*§1.62 — monics, pre-logos*]
-    #align(center)[
-      #diagram(spacing: (16mm, 9mm), node-stroke: none, node-inset: 3pt,
-        node((0,0), text(8pt)[$A_1 inter A_2$]),
-        node((1,0), text(8pt)[$A_1$]),
-        node((0,1), text(8pt)[$A_2$]),
-        node((1,1), text(8pt)[$A_1 union A_2$]),
-        edge((0,0),(1,0), ">->", stroke: 0.7pt),
-        edge((0,0),(0,1), ">->", stroke: 0.7pt),
-        edge((1,0),(1,1), ">->", stroke: 0.7pt),
-        edge((0,1),(1,1), ">->", stroke: 0.7pt),
-      )
-    ]
-    Mediator $R = x^(circle.small) f union y^(circle.small) g$. Needs §1.616 (union over composition).
-  ],
-  [
-    #align(center)[*§1.565 — covers, regular*]
-    #align(center)[
-      #diagram(spacing: (16mm, 9mm), node-stroke: none, node-inset: 3pt,
-        node((0,0), text(8pt)[$P$]),
-        node((1,0), text(8pt)[$B$]),
-        node((0,1), text(8pt)[$C$]),
-        node((1,1), text(8pt)[$D$]),
-        edge((0,0),(1,0), "->>", stroke: 0.7pt),
-        edge((0,0),(0,1), "->>", stroke: 0.7pt),
-        edge((1,0),(1,1), "->>", stroke: 0.7pt),
-        edge((0,1),(1,1), "->>", stroke: 0.7pt),
-      )
-    ]
-    Mediator $R = (x^(circle.small) u) inter (y^(circle.small) u)$. Holds in any regular category.
-  ],
-)
+*Abelian categories — still a pushout, but for a different reason.* There $A_1 union A_2 = A_1 + A_2$,
+and the intersection→union square is *bicartesian* (pullback $=$ pushout) straight from the additive
+structure (the second isomorphism theorem). Freyd's relational proof does *not* apply: unions of
+relations do not distribute over composition in any non-degenerate additive regular category.
 
-One glues monics (subobjects) into their union; the other glues a pullback of covers (epis). Dual sides
-of the factorization — and only the monic side needs the extra pre-logos axiom.
+*Groups — not a pushout.* $S_3$ is the group of all *six* rearrangements of three corners $0, 1, 2$
+(the symmetries of a triangle): three rotations $0 1 2$ (do nothing), $1 2 0$, $2 0 1$, and three swaps
+$1 0 2$, $0 2 1$, $2 1 0$ (each list records where corners $0, 1, 2$ go). Inside it sit two subgroups:
+
+- $A_1 = ZZ_2 = {0 1 2, #h(4pt) s}$, the identity and the swap $s = 1 0 2$ — order $2$, since $s$ twice is the identity;
+- $A_2 = ZZ_3 = {0 1 2, #h(4pt) r, #h(4pt) r^2}$, the identity and the rotation $r = 1 2 0$ — order $3$.
+
+*The meet $A_1 inter A_2 = 1$.* An intersection of subgroups is a subgroup of each, so by Lagrange its
+size divides both $2$ and $3$ — the only common divisor is $1$, leaving just the identity $0 1 2$ (the
+one list in both). Coprime orders force a trivial overlap.
+
+*The union $A_1 union A_2 = S_3$ — and this is the crux.* The lattice "union" is *not* set-union:
+${0 1 2, #h(2pt) 1 0 2, #h(2pt) 1 2 0, #h(2pt) 2 0 1}$ is not even a subgroup, since composing $s$ with
+$r$ gives $0 2 1$, outside the list. The *join* is the *smallest subgroup containing both* — the subgroup
+*generated* by $s$ and $r$ (close that set under composition). A swap and a rotation generate everything,
+so $chevron.l s, r chevron.r = S_3$ (its order is divisible by $2$ and $3$, hence by $6 = |S_3|$).
+
+This closing-under-composition is exactly where groups depart from #smallcaps[Set]: there the join of two
+*subsets* simply *is* their set-union, with nothing to close — so pasting always works. §1.62 would make
+the square below a pushout — it is not.
+
+#align(center)[
+  #diagram(spacing: (25mm, 14mm), node-stroke: none, node-inset: 3pt,
+    node((0,0), $1 = {e}$, name: <one>),
+    node((1,0), $ZZ_2$, name: <z2>),
+    node((0,1), $ZZ_3$, name: <z3>),
+    node((1,1), $S_3$, name: <s3>),
+    node((2.3,1), $ZZ_2 * ZZ_3$, name: <P>),
+    edge(<one>, <z2>, ">->", stroke: 0.8pt),
+    edge(<one>, <z3>, ">->", stroke: 0.8pt),
+    edge(<z2>, <s3>, ">->", stroke: 0.8pt),
+    edge(<z3>, <s3>, ">->", stroke: 0.8pt),
+    edge(<z2>, <P>, "-->", bend: 30deg, stroke: 0.7pt),
+    edge(<z3>, <P>, "-->", bend: -38deg, stroke: 0.7pt),
+    edge(<P>, <s3>, text(7pt, fill: imgc)[onto, not 1-1], "->>", stroke: 0.9pt + imgc),
+  )
+]
+
+The true pushout of $ZZ_2 <- 1 -> ZZ_3$ in #smallcaps[Grp] is the *free product* $ZZ_2 * ZZ_3$ — the
+*infinite* modular group $"PSL"_2(ZZ)$. The comparison $ZZ_2 * ZZ_3 ->> S_3$ is onto but far from
+injective: $S_3$ is the proper quotient that imposes the dihedral relation $s r s = r^2$ (a swap
+conjugates the rotation to its inverse), which the free product never sees. A finite group is not the gluing; the
+genuine gluing is infinite.
+
+#block(width: 100%, fill: subc.lighten(94%), inset: 10pt, radius: 5pt, stroke: (left: 3pt + subc))[
+  *Pasting literally fails here.* #h(3pt) Put $Q = ZZ_2 * ZZ_3$ and let $f : ZZ_2 -> Q$ and
+  $g : ZZ_3 -> Q$ be the two inclusions. They *agree on the overlap* $1$ (both fix $e$) — yet *no*
+  homomorphism $R : S_3 -> Q$ extends them: its image would be a *finite* subgroup of $Q$ containing
+  both factors, but those two already generate the *infinite* $Q$. Two maps agreeing on the overlap with
+  nothing to glue them onto: exactly the failure of "paste". In #smallcaps[Set] (or any pre-logos) this
+  cannot happen — §1.616 guarantees the gluing exists and is the union.
+]

@@ -7,6 +7,7 @@
 #let vcol = rgb("#c0392b")  // the map v (red)
 #let id(x) = text(fill: idc, $#x$)
 #let ze(x) = text(fill: zec, $#x$)
+#let xarrow(t) = math.attach(math.arrow.r.long, t: t)  // labelled long arrow for inline composites
 #let caution(body) = block(width: 100%, fill: rgb("#fff6ec"), inset: 11pt,
   radius: (right: 5pt), stroke: (left: 3pt + zec),
   [#text(weight: "bold", fill: zec)[△ Zero morphism]#v(3pt)#body])
@@ -202,3 +203,79 @@ onto the product set ${(a,b)}$, with $iota_A (a) = (a, 0_B)$, $iota_B (b) = (0_A
   inverse $v = pi_A iota_A + pi_B iota_B$ exists, and $A + B tilde.equiv A times B$: the *biproduct*
   $A plus.o B$.
 ]
+
+#pagebreak()
+
+= Where the addition comes from: $+_L$ and $+_R$
+
+The biproduct above was used as if hom-sets *already* carried a "$+$". They do — and you do not
+have to assume it. The moment finite products and coproducts coincide (a *half-additive* category,
+zero object $0$ included), every hom-set $(A,B)$ acquires a canonical addition *for free*, built
+only from two structural maps the biproduct hands you:
+
+#definition("Diagonal and codiagonal")[
+  $ Delta := angle.l 1, 1 angle.r : A -> A plus.o A quad &("duplicate; from the product side") \
+    nabla := [1, 1] : B plus.o B -> B quad &("fold; from the coproduct side") $
+]
+
+Given $x, y in (A, B)$ there are two obvious ways to splice them into a single map $A -> B$. In
+*diagram order* ($x y$ = first $x$ then $y$):
+
+#definition([The two additions])[
+  $ x +_L y quad := quad A xarrow(Delta) A plus.o A xarrow([x\,y]) B
+      quad& ("duplicate, then copair") \
+    x +_R y quad := quad A xarrow(angle.l x\,y angle.r) B plus.o B xarrow(nabla) B
+      quad& ("pair, then fold") $
+  where $[x,y]$ is the *coproduct* copairing and $angle.l x,y angle.r$ the *product* pairing.
+]
+
+The two are exact duals: $+_L$ puts the work on the *target's* coproduct side, $+_R$ on the
+*source's* product side. The whole content of §1.591 is that *they are the same operation* — and
+that this forces it to be commutative, associative, unital, and bilinear. That is the
+Eckmann–Hilton argument.
+
+= Element-wise, with $exp$
+
+The cleanest concrete instance uses *different* objects bridged by $exp$, so the two operations
+involved are visibly distinct — addition on one side, multiplication on the other.
+
+#example([$A != B$ via $exp$])[
+  Let $A = (RR, +, 0)$ (reals, additive) and $B = (RR_(>0), *, 1)$ (positive reals,
+  multiplicative). The continuous homomorphisms $A -> B$ are the maps $a |-> e^(c a)$. Take
+  $ x : a |-> e^(a), wide y : a |-> e^(2a). $
+  Their sum should be the pointwise product in $B$: $(x+y)(a) = e^a * e^(2a) = e^(3a)$. Both
+  recipes recover it.
+
+  *$+_L$ — copy in $A$, then copair into $B$.*
+  $ a quad xarrow(Delta) quad (a, a) quad xarrow([x\,y]) quad x(a) * y(a) = e^a * e^(2a) = e^(3a). $
+  $Delta$ merely *copies* (additive $A$ contributes no operation); the copairing acts by
+  $[x,y](a_1, a_2) = x(a_1) * y(a_2)$, the $*$ being $B$'s.
+
+  *$+_R$ — pair into $B plus.o B$, then fold.*
+  $ a quad xarrow(angle.l x\,y angle.r) quad (e^a, e^(2a)) quad xarrow(nabla) quad e^a * e^(2a) = e^(3a). $
+  Here $nabla(b_1, b_2) = b_1 * b_2$ is the explicit last step.
+
+  Same hom $a |-> e^(3a)$ either way. The only real operation is $B$'s $*$, firing once per
+  route — inside $[x,y]$ for $+_L$, inside $nabla$ for $+_R$ — and $exp$ makes the punchline
+  literal: $e^a * e^(2a) = e^(a + 2a)$, so multiplication in $B$ realizes addition of "exponents".
+]
+
+= Why they must agree (Eckmann–Hilton)
+
+#theorem([$+_L = +_R$, and it is a commutative monoid])[
+  In any category with a zero object in which finite products and coproducts coincide, $+_L$ and
+  $+_R$ define the *same* operation, which is associative, commutative, and has the zero morphism
+  as unit; moreover composition distributes over it on both sides.
+]
+
+The engine is one identity — the *middle-two interchange* law, true because both sides are the same
+map read off the $2 times 2$ matrix $mat(u, v; x, y)$:
+$ (u +_R v) +_L (x +_R y) quad = quad (u +_L x) +_R (v +_L y). $
+Now specialise:
+- set $u = x = 0$: it collapses to $v +_R y = v +_L y$ — *the two operations are literally equal*.
+  Drop the subscripts and write $+$.
+- with subscripts gone the law is $(u + v) + (x + y) = (u + x) + (v + y)$; set $u = 0$ to get
+  *associativity*, set $u = y = 0$ to get *commutativity*.
+
+So additivity is not extra data layered on top — it is *forced* by the biproduct, hence unique.
+This is exactly the rung Freyd needs: half-additive $-->$ additive $-->$ abelian.

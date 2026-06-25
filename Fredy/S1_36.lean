@@ -515,8 +515,10 @@ theorem quotient_universal_property (K : EquivalenceKernel 𝒞)
     (F : 𝒞 → 𝒟) [hF : Functor F]
     (hFK : ∀ {X Y : 𝒞} (f : X ⟶ Y), K.mem f →
         ∃ _ : F X = F Y, HEq (hF.map f) (Cat.id (F X))) :
-    ∃! (G : QuotientByKernel.Obj K → 𝒟),
-      ∃ (_ : Functor G), ∀ X : 𝒞, G (QuotientByKernel.Q K X) = F X := sorry
+    ∃ (G : QuotientByKernel.Obj K → 𝒟),
+      (∃ (_ : Functor G), ∀ X : 𝒞, G (QuotientByKernel.Q K X) = F X) ∧
+      (∀ G' : QuotientByKernel.Obj K → 𝒟,
+        (∃ (_ : Functor G'), ∀ X : 𝒞, G' (QuotientByKernel.Q K X) = F X) → G' = G) := sorry
 
 /-! ## §1.367 Factorization of equivalence functors via equivalence kernel
 

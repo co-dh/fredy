@@ -141,7 +141,7 @@ def killedValues {𝒟 : Type u} [Cat.{v} 𝒟] [PreLogos 𝒞] [PreLogos 𝒟]
   The book gives an elementary internal characterization at §1.637 and
   studies S^A and LH(Y) at §1.638. -/
 
-/-- A pre-logos is SPECIAL if for every pair of proper subobjects A'⊂A, B'⊂B,
+/-! A pre-logos is SPECIAL if for every pair of proper subobjects A'⊂A, B'⊂B,
     the subobject (A'×B)∪(A×B') is proper in A×B.
     §1.637: this is the elementary internal characterization of special pre-logoi. -/
 -- BOOK §1.637: A pre-logos is special iff for every pair of proper subobjects

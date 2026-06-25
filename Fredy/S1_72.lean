@@ -588,7 +588,7 @@ class FocalLogos (𝒞 : Type u) [Cat.{v} 𝒞] extends Logos 𝒞 where
 theorem focal_iff_connected_projective
     [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
     [PreLogos 𝒞] :
-    FocalLogos 𝒞 ↔ (Connected (𝒞 := 𝒞) one ∧ Projective (𝒞 := 𝒞) one) := by
+    Nonempty (FocalLogos 𝒞) ↔ (Connected (𝒞 := 𝒞) one ∧ Projective (𝒞 := 𝒞) one) := by
   sorry
 
 -- §1.734 FOCAL REPRESENTATION THEOREM (every small logos has a collectively faithful

@@ -1359,7 +1359,7 @@ theorem pre_positive_semi_simple_iff_metonymic {𝒜 : Type u} [PrePositivePower
 -- BOOK §2.422: Let A be a power allegory. Then Spl(Cor(A)) is an effective power allegory.
 -- (Needs: algebraic proof that E = ff° using symm_div_eq_A_comp; map f from eps_thick.)
 
-/-- §2.422: in a power allegory, every equivalence relation E has the form f ≫ f°
+/-! §2.422: in a power allegory, every equivalence relation E has the form f ≫ f°
     for some map f.  Book: "E = E/E" (division allegory) + power allegory ⟹ E = ff°
     via `symm_div_eq_A_comp`: E = A(E) ≫ (A E)° with A(E) a map. -/
 -- §2.422: every_equiv_rel_is_map_comp_recip
@@ -1369,7 +1369,7 @@ theorem pre_positive_semi_simple_iff_metonymic {𝒜 : Type u} [PrePositivePower
 
 /-! ## §2.423  Connected power allegory has a unit -/
 
-/-- §2.423: If A is a connected power allegory in which coreflexives split then it has a unit.
+/-! §2.423: If A is a connected power allegory in which coreflexives split then it has a unit.
     Book: define M = 1_α / 0_α (maximal endomorphism on α); split M = ff°, f°f = 1;
     target of f is a partial unit.  Connectivity gives map from any power object α to the partial
     unit, making it a unit. -/

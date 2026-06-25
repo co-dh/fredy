@@ -52,6 +52,23 @@ theorem monic_of_monicPair [HasBinaryProducts 𝒞] {T A B : 𝒞}
       _ = (b ≫ pair x y) ≫ snd := by rw [hab]
       _ = b ≫ y := by rw [Cat.assoc, snd_pair]
 
+/-- §1.426 (other direction), the DUAL chase: if the pairing `⟨x,y⟩ : T → A×B` is monic then
+    `x, y` is a monic pair.  Where `monic_of_monicPair` *projects out* (post-compose `fst,snd`),
+    this one *pairs in*: the parallel pair `a, b : W ⇉ T` with `a≫x=b≫x`, `a≫y=b≫y` is glued by
+    the product's universal property into a single equation `a≫⟨x,y⟩ = b≫⟨x,y⟩` — because a map
+    into `A×B` is the UNIQUE one with its two components (`pair_uniq`), and `a,b` share both
+    components — and then `⟨x,y⟩` monic removes the cross. -/
+theorem monicPair_of_monic [HasBinaryProducts 𝒞] {T A B : 𝒞}
+    (x : T ⟶ A) (y : T ⟶ B) (hm : Monic (pair x y)) : MonicPair x y := by
+  intro W a b hx hy
+  apply hm a b
+  -- glue: a≫⟨x,y⟩ is the unique map with components a≫x, a≫y; same for b; components agree
+  calc a ≫ pair x y = pair (a ≫ x) (a ≫ y) :=
+        pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])
+    _ = pair (b ≫ x) (b ≫ y) := by rw [hx, hy]
+    _ = b ≫ pair x y :=
+        (pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])).symm
+
 /-! ## Part 2 — the §1.395 satisfaction of the monic Q-sequence (∀/∃ puncture form) -/
 
 /-- §1.395 satisfaction of the two-bar MONIC Q-sequence for `m : T ⟶ P` (the §1.41 second

@@ -43,7 +43,7 @@ def EquivalentCategories (𝒜 ℬ : Type u) [Cat.{v} 𝒜] [Cat.{v} ℬ] : Prop
   F₂' a θ'-conjugate of the identity.  Apply §1.396 reflection (inflation forgetful
   maps have the diagonal fill property). -/
 
-/-- §1.399: A diagrammatic property `P` of functors is CONJUGATION-INVARIANT if
+/-! §1.399: A diagrammatic property `P` of functors is CONJUGATION-INVARIANT if
     whenever F₁ and F₂ are conjugate (NatIso) and P is preserved and reflected by
     equivalence functors, P holds for F₁ iff it holds for F₂.
     Formulated as: an iso component at any object shows F₁ and F₂ have the same

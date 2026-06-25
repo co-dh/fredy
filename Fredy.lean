@@ -79,3 +79,5 @@ import Fredy.S2_5
 import Fredy.S1_38b
 import Fredy.FiniteSeparation
 import Fredy.Representation646
+import Fredy.S1_13
+import Fredy.S1_10
