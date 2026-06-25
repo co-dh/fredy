@@ -382,11 +382,15 @@ theorem splitting_recip {a b : 𝒜} {R : a ⟶ b} {S : b ⟶ a}
   "If A is a tabular unitary distributive allegory, then Mon_U(A) is a pre-logos."
   [§2.212, proof: §2.154 gives regular; subobjects = coreflexives; finite unions exist.]
 
-  Requires: (1) a construction mapping a `DistributiveAllegory` to its category of maps
-  Mon_U(A) typed as `[PreLogos 𝒞]` (cross-chapter bridge Ch2→Ch1); (2) the §2.154
-  result that maps form a regular category.  Neither is constructed in the repo yet. -/
+  Partial progress in `Fredy/MapCat.lean`:
+  - `mapHasTerminal` PROVED: unit object is terminal in Map(A).
+  - Remaining (HasImages, HasPullbacks, HasBinaryProducts, PullbacksTransferCovers,
+    HasSubobjectUnions, PreLogos) are TODO comments in MapCat.lean.
+  - BLOCKER: `Tabulates` uses common-TARGET convention; `Map(π₁°)` not derivable from
+    `Map(π₁)` alone; fix = extend Tabulates to record Map of reciprocal legs. -/
 
 -- BOOK §2.212: If A is a tabular unitary distributive allegory, then Mon_U(A) is a pre-logos.
+-- Partial: mapHasTerminal proved in Fredy/MapCat.lean; rest TODO (see BLOCKER above).
 
 /-! ## §2.214  Pre-logos positive iff Rel(C) has finite coproducts
 

@@ -50,6 +50,7 @@
 
 import Fredy.S2_1
 import Fredy.S2_22b
+import Fredy.S1_60
 
 universe v u
 
@@ -717,5 +718,70 @@ def relMap_allegoryEquiv : AllegoryEquiv (RelMapObj 𝒜) 𝒜 where
   right_inv_map := relMap_PsiPhi_map      -- HEq (toFun.map (invFun.map R)) R
 
 end RelMapEquiv
+
+
+/-! ## §2.212  Map(𝒜) is a pre-logos for tabular unitary distributive 𝒜
+
+    "§2.212: If 𝒜 is a tabular unitary distributive allegory, then Map(𝒜) is a pre-logos."
+
+    PROVED: (1) HasTerminal.
+    TODO: (2) HasImages minimality, (3) HasPullbacks, (4) HasBinaryProducts,
+              (5) PullbacksTransferCovers, (6) HasSubobjectUnions, (7) PreLogos.
+    BLOCKER for (2)–(7): `Tabulates` uses common-TARGET convention (legs π₁ : a→p go
+    INTO the apex), so `Map(π₁ : a→p)` holds but `Map(π₁° : p→a)` is not derivable.
+    The book's §2.147 works because its tabulation has maps FROM the apex (common-source).
+    Fix needed: extend `Tabulates`/`TabularAllegory` to record `Map(π₁°)` alongside `Map(π₁)`. -/
+
+section MapPreLogos
+
+variable {A : Type u} [TabularAllegory A] [UnitaryAllegory A]
+
+
+-- Subtype equality helper for mapCat homs
+private theorem mapHom_ext {a b : MapObj A}
+    {f g : @Cat.Hom _ (mapCat (𝒜 := A)) a b}
+    (h : f.val = g.val) : f = g := Subtype.ext h
+
+/-- Any two maps from a to unit_obj agree (allegory-level). -/
+private theorem map_to_unit_unique_alg {a : A}
+    {f g : a ⟶ UnitaryAllegory.unit_obj (𝒜 := A)}
+    (hf : Map f) (hg : Map g) : f = g := by
+  apply map_order_discrete hf hg
+  obtain ⟨hPU, _⟩ := UnitaryAllegory.unit_prop (𝒜 := A)
+  have hEntG : Cat.id a ⊑ g ≫ g° := by
+    have := hg.1; rw [Entire, dom] at this; exact this ▸ inter_lb_right _ _
+  have h1 : f ⊑ (g ≫ g°) ≫ f := by
+    have := comp_mono_right hEntG f; rwa [Cat.id_comp] at this
+  have h2 : (g ≫ g°) ≫ f = g ≫ g° ≫ f := Cat.assoc g g° f
+  have h3 : g ≫ g° ≫ f ⊑ g ≫ Cat.id (UnitaryAllegory.unit_obj (𝒜 := A)) :=
+    comp_mono_left g (hPU (g° ≫ f))
+  rw [Cat.comp_id] at h3
+  exact le_trans h1 (h2 ▸ h3)
+
+/-- §2.152: The unit object of 𝒜 is terminal in Map(𝒜). -/
+noncomputable def mapHasTerminal : @HasTerminal (MapObj A) (mapCat (𝒜 := A)) :=
+  @HasTerminal.mk (MapObj A) (mapCat (𝒜 := A))
+    UnitaryAllegory.unit_obj
+    (fun a =>
+      let h := unit_proj_is_map (𝒜 := A) a
+      (⟨h.choose, h.choose_spec⟩ :
+        @Cat.Hom (MapObj A) (mapCat (𝒜 := A)) a (UnitaryAllegory.unit_obj (𝒜 := A))))
+    (fun {a} f g =>
+      mapHom_ext (map_to_unit_unique_alg f.property g.property))
+
+-- BOOK §2.212 TODO: HasImages (MapObj A) — splitting dom(f°) gives the image.
+-- The Allows direction (f = (f≫e)≫e° via simple_dist_inter) is provable.
+-- The minimality direction (image ≤ S when S allows f) needs Map(S.arr.val°) which
+-- requires Simple(S.arr.val°) = S.arr.val≫S.arr.val° ⊑ id; not derivable from Map(S.arr.val)
+-- in our common-TARGET convention.
+
+-- BOOK §2.212 TODO: HasPullbacks (MapObj A) — tabulation of f≫g° gives the pullback.
+-- Blocked: the pullback projections are π₁° : p→a; Map(π₁°) requires π₁≫π₁° ⊑ id_a
+-- (Simple of π₁°) which is NOT provable from Map(π₁ : a→p) alone in our convention.
+
+-- BOOK §2.212 TODO: HasBinaryProducts, PullbacksTransferCovers, RegularCategory,
+-- HasSubobjectUnions, PreLogos — all depend on HasPullbacks above.
+
+end MapPreLogos
 
 end Freyd.Alg
