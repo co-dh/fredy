@@ -83,3 +83,4 @@ import Fredy.S1_13
 import Fredy.S1_10
 import Fredy.FunctorCategory
 import Fredy.MapCat
+import Fredy.Spl
