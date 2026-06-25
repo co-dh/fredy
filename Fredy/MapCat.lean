@@ -590,32 +590,132 @@ theorem relMap_Phi_recip {a b : 𝒜} (R : a ⟶ b) :
 theorem relMap_Phi_inter {a b : 𝒜} (R S : a ⟶ b) :
     (relMap_Phi (R ∩ S)).val = (relMap_Phi R).val ∩ (relMap_Phi S).val := rfl
 
-/-! ### Summary: what §2.148 asserts and what is proved
-
-  PROVED (sorry-free):
-  (J) `tab_round_trip_rel`     — Ψ∘Φ = id on 𝒜 homs (algebraic core).
-  (K) `span_self_tabulates`    — Φ∘Ψ identifies canonical spans with tabulations.
-  (L) `tab_iso_unique_exists`  — any two tabulations are related by a unique iso
-                                 (with `Map(f°)/Map(g°)` hypotheses).
-  (M) `relMapAllegory`         — `RelMap 𝒜` is an `Allegory` instance.
-  (N) `relMap_Phi_*`           — Φ is an allegory functor (preserves id, ≫, °, ∩).
-  (O) `relMap_Phi_Psi`, `relMap_Psi_Phi`  — Φ and Ψ are mutually inverse.
-
-  BOOK §2.148 TODO — allegory isomorphism packaging:
-  The full `𝒜 ≅ RelMap 𝒜` as an ALLEGORY ISOMORPHISM (a pair of allegory functors
-  whose composites equal the identity functors) requires:
-    (1) A formal `AllegoryFunctor` typeclass or bundled record type capturing the
-        functor laws for composition/identity/reciprocation/intersection.  The repo
-        does not yet have this abstraction.
-    (2) Lifting `Map(f°)` for tabulation legs (see §2.144 gap in `tab_iso_unique_exists`).
-        Every tabulation leg `f : a ⟶ c` satisfies `f°≫f = id_c` (`tab_fof`), making
-        `f` a section and `Entire(f°)` automatic; the gap is `Simple(f°): f≫f° ⊑ id_a`.
-        This holds when `f` is a SPLIT MONIC (= an isomorphism between `a` and `c`),
-        which is the case in an EFFECTIVE allegory (`EffectiveAllegory`): splitting the
-        coreflexive `f≫f°` produces a canonical representative for which `Simple(f°)`
-        holds.  Under `[EffectiveAllegory 𝒜]` the iso is unconditional.
-  Deferred pending an `AllegoryFunctor` abstraction and the effective-allegory route. -/
-
 end Rel148
+
+/-! ## §2.148  AllegoryFunctor and AllegoryEquiv
+
+  An allegory functor F : 𝒜 → ℬ is a functor on the underlying categories that also
+  preserves reciprocation and intersection.  An allegory equivalence is a pair of
+  allegory functors mutually inverse on objects and homs. -/
+
+section AllegoryFunctorDef
+
+/-- A functor between allegories preserving `≫`, `id`, `°`, `∩`. -/
+structure AllegoryFunctor (𝒜 ℬ : Type u) [Allegory.{v} 𝒜] [Allegory.{v} ℬ] where
+  /-- Object map. -/
+  obj  : 𝒜 → ℬ
+  /-- Hom map. -/
+  map  : {a b : 𝒜} → (a ⟶ b) → (obj a ⟶ obj b)
+  map_id   : ∀ (a : 𝒜), map (Cat.id a) = Cat.id (obj a)
+  map_comp : ∀ {a b c : 𝒜} (R : a ⟶ b) (S : b ⟶ c), map (R ≫ S) = map R ≫ map S
+  map_recip : ∀ {a b : 𝒜} (R : a ⟶ b), map R° = (map R)°
+  map_inter : ∀ {a b : 𝒜} (R S : a ⟶ b), map (R ∩ S) = map R ∩ map S
+
+/-- A pair of allegory functors mutually inverse on objects and homs (using `HEq`
+    for the hom round-trip conditions, since the hom-types differ by the object round-trip). -/
+structure AllegoryEquiv (𝒜 ℬ : Type u) [Allegory.{v} 𝒜] [Allegory.{v} ℬ] where
+  toFun   : AllegoryFunctor 𝒜 ℬ
+  invFun  : AllegoryFunctor ℬ 𝒜
+  left_inv_obj  : ∀ (a : 𝒜), invFun.obj (toFun.obj a) = a
+  right_inv_obj : ∀ (b : ℬ), toFun.obj (invFun.obj b) = b
+  /-- Round-trip on homs: `invFun.map (toFun.map R) ≅ R` (heterogeneously). -/
+  left_inv_map  : ∀ {a b : 𝒜} (R : a ⟶ b),
+    HEq (invFun.map (toFun.map R)) R
+  /-- Round-trip on homs: `toFun.map (invFun.map S) ≅ S` (heterogeneously). -/
+  right_inv_map : ∀ {a b : ℬ} (S : a ⟶ b),
+    HEq (toFun.map (invFun.map S)) S
+
+end AllegoryFunctorDef
+
+/-! ## §2.148  The equivalence Rel(Map 𝒜) ≅ 𝒜
+
+  We now package the comparison maps Φ, Ψ as an `AllegoryEquiv (RelMapObj 𝒜) 𝒜`. -/
+
+section RelMapEquiv
+
+variable {𝒜 : Type u} [TabularAllegory 𝒜]
+
+/-! ### Allegory functor Ψ : RelMap 𝒜 → 𝒜 -/
+
+/-- The hom-map of Ψ: forget the tabularity certificate, reindexed by `obj`-projections. -/
+private def relMap_Psi_map {A B : RelMapObj 𝒜}
+    (R : @Cat.Hom _ relMapAllegory.toCat A B) : A.obj ⟶ B.obj := R.val
+
+/-- **§2.148 — Ψ is an allegory functor** RelMap 𝒜 → 𝒜. -/
+def relMap_Psi_functor : AllegoryFunctor (RelMapObj 𝒜) 𝒜 where
+  obj   := RelMapObj.obj
+  map   := relMap_Psi_map
+  map_id   A     := rfl
+  map_comp R S   := rfl
+  map_recip R    := rfl
+  map_inter R S  := rfl
+
+/-! ### Allegory functor Φ : 𝒜 → RelMap 𝒜 -/
+
+/-- The hom-map of Φ: wrap with tabularity certificate. -/
+private def relMap_Phi_map {a b : 𝒜} (R : a ⟶ b) :
+    @Cat.Hom _ relMapAllegory.toCat ⟨a⟩ ⟨b⟩ :=
+  ⟨R, TabularAllegory.tabular R⟩
+
+/-- Φ preserves `≫` at the Subtype level. -/
+private theorem relMap_Phi_map_comp {a b c : 𝒜} (R : a ⟶ b) (S : b ⟶ c) :
+    relMap_Phi_map (R ≫ S) = relMap_Phi_map R ≫ relMap_Phi_map S :=
+  Subtype.ext rfl
+
+/-- Φ preserves `°` at the Subtype level. -/
+private theorem relMap_Phi_map_recip {a b : 𝒜} (R : a ⟶ b) :
+    relMap_Phi_map R° = (relMap_Phi_map R)° :=
+  Subtype.ext rfl
+
+/-- Φ preserves `∩` at the Subtype level. -/
+private theorem relMap_Phi_map_inter {a b : 𝒜} (R S : a ⟶ b) :
+    relMap_Phi_map (R ∩ S) = relMap_Phi_map R ∩ relMap_Phi_map S :=
+  Subtype.ext rfl
+
+/-- **§2.148 — Φ is an allegory functor** 𝒜 → RelMap 𝒜. -/
+def relMap_Phi_functor : AllegoryFunctor 𝒜 (RelMapObj 𝒜) where
+  obj   := fun a => ⟨a⟩
+  map   := relMap_Phi_map
+  map_id   a     := Subtype.ext rfl
+  map_comp R S   := relMap_Phi_map_comp R S
+  map_recip R    := relMap_Phi_map_recip R
+  map_inter R S  := relMap_Phi_map_inter R S
+
+/-! ### Mutual-inverse conditions -/
+
+-- In the equivalence below: toFun = Ψ (RelMapObj 𝒜 → 𝒜), invFun = Φ (𝒜 → RelMapObj 𝒜).
+-- left_inv_obj requires invFun.obj (toFun.obj A) = A, i.e. Φ(Ψ(A)) = A.
+-- right_inv_obj requires toFun.obj (invFun.obj a) = a, i.e. Ψ(Φ(a)) = a.
+
+/-- Φ∘Ψ = id on objects: `⟨A.obj⟩ = A`. -/
+private theorem relMap_PhiPsi_obj (A : RelMapObj 𝒜) :
+    relMap_Phi_functor.obj (relMap_Psi_functor.obj A) = A := by cases A; rfl
+
+/-- Ψ∘Φ = id on objects: `⟨a⟩.obj = a`. -/
+private theorem relMap_PsiPhi_obj (a : 𝒜) :
+    relMap_Psi_functor.obj (relMap_Phi_functor.obj a) = a := rfl
+
+/-- Φ∘Ψ = id on homs (HEq): `Φ(Ψ(S)) ≅ S`. -/
+private theorem relMap_PhiPsi_map {A B : RelMapObj 𝒜}
+    (S : @Cat.Hom _ relMapAllegory.toCat A B) :
+    HEq (relMap_Phi_functor.map (relMap_Psi_functor.map S)) S := by
+  cases A; cases B; cases S; exact HEq.refl _
+
+/-- Ψ∘Φ = id on homs (HEq): `Ψ(Φ(R)) ≅ R`. -/
+private theorem relMap_PsiPhi_map {a b : 𝒜} (R : a ⟶ b) :
+    HEq (relMap_Psi_functor.map (relMap_Phi_functor.map R)) R :=
+  HEq.refl _
+
+/-- **§2.148** — the allegory equivalence `RelMap 𝒜 ≅ 𝒜`.
+    Ψ : RelMap 𝒜 → 𝒜 and Φ : 𝒜 → RelMap 𝒜 are mutually inverse allegory functors. -/
+def relMap_allegoryEquiv : AllegoryEquiv (RelMapObj 𝒜) 𝒜 where
+  toFun         := relMap_Psi_functor
+  invFun        := relMap_Phi_functor
+  left_inv_obj  := relMap_PhiPsi_obj      -- invFun.obj (toFun.obj A) = A
+  right_inv_obj := relMap_PsiPhi_obj      -- toFun.obj (invFun.obj a) = a
+  left_inv_map  := relMap_PhiPsi_map      -- HEq (invFun.map (toFun.map S)) S
+  right_inv_map := relMap_PsiPhi_map      -- HEq (toFun.map (invFun.map R)) R
+
+end RelMapEquiv
 
 end Freyd.Alg
