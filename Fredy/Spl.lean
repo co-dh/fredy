@@ -167,32 +167,17 @@ theorem spl_effective {𝒜 : Type u} [Allegory 𝒜] {E : SplObj 𝒜} (Φ : E 
 
   This section:
     §2.165  `Allegory (SplCorObj 𝒜)`          [PROVED: Cat + Allegory instances]
-            `PreTabularAllegory (SplCorObj 𝒜)` [TODO: needs source-apex pre-tabulations]
-    §2.166  `TabularAllegory (SplCorObj 𝒜)`    [TODO: relies on §2.165]
+            `PreTabularAllegory (SplCorObj 𝒜)` [PROVED via §2.166]
+    §2.166  `TabularAllegory (SplCorObj 𝒜)`    [PROVED]
 
-  WHY §2.165 (pre-tabulation) is TODO
-  ─────────────────────────────────────
-  Freyd's proof (book §2.165, "because" paragraph) takes a SOURCE-APEX tabulation of U ≥ R.R
-  in 𝒜: `P : t ⟶ a`, `Q : t ⟶ b` (legs FROM the apex t TO the objects), `Map P`, `Map Q`,
-  `R.R ≤ P°≫Q`, `PP°∩QQ° = id_t`. It then defines:
-
-    C  =  Dom(P≫ee) ∩ Dom(Q≫fe)  =  P≫ee≫P° ∩ Q≫fe≫Q°  :  t ⟶ t
-
-  and shows C is coreflexive (using P,Q jointly monic: `PP°∩QQ° = id_t` forces C ≤ id_t),
-  then exhibits source-apex legs `CfA : (t,C) ⟶ (a,ee)` with `CfA.R = C≫P≫ee`:
-    • Entire CfA: `id_{(t,C)} = C ≤ C≫(P≫ee≫P°)≫C = C` — trivially C ≤ C. ✓
-    • Simple CfA: `CfA°≫CfA = ee≫P°≫C≫P≫ee ≤ ee≫P°P≫ee ≤ ee`     (P simple) ✓
-
-  The repo's `PreTabularAllegory` provides TARGET-APEX legs `f : a ⟶ t, g : b ⟶ t`
-  (not source-apex). Converting via `P = f°` gives Entire P but NOT Simple P in source-apex
-  (since `PP° = f°f ≤ id_t` holds but `P°P = ff° ≥ id_a` is reflexive, not coreflexive).
-  And without `PP°∩QQ° = id_t` (the joint-monicity condition missing from pre-tabulations),
-  C = P≫ee≫P° ∩ Q≫fe≫Q° is NOT coreflexive.
-
-  The fix is to assume the repo's pre-tabulation gives JOINTLY-MONIC source-apex pairs, i.e.,
-  `PreTabularAllegory` in Freyd's original sense (every morphism is contained in a TABULAR
-  one). The repo's class is strictly weaker (no joint-monicity condition), so §2.165 requires
-  a stronger hypothesis here. -/
+  Construction (source-apex convention `Tabulates p q R := R = p°≫q ∧ p≫p° ∩ q≫q° = id`):
+  given a tabulation `(f, g)` of `Ψ.R` in `𝒜` (`Ψ.R = f°≫g`, `f≫f° ∩ g≫g° = id_c`), the
+  object idempotents `E.e`, `F.e` (coreflexive) are absorbed into the legs `p = f≫E.e`,
+  `q = g≫F.e`.  These only PRE-tabulate `Ψ.R`, so the apex is the coreflexive
+  `D = 1 ∩ p≫p° ∩ q≫q° = 1 ∩ f≫E.e≫f° ∩ g≫F.e≫g°` on `c`, split in `SplCorObj 𝒜` as
+  `C = ⟨c, D⟩`.  The source-apex legs are `legA = D≫p : C ⟶ E`, `legB = D≫q : C ⟶ F`.
+  Map/joint laws follow from `D ⊑ id`, `D ⊑ p≫p°`, `D ⊑ q≫q°`, and `f≫f° ∩ g≫g° = id`;
+  the relation law `Ψ = legA°≫legB` is the factoring `p°≫q ⊑ p°≫D≫q` (`splCor_factor`). -/
 
 /-- The COREFLEXIVE splitting completion of `𝒜`: restrict `SplObj 𝒜` to objects whose
     symmetric idempotent `E.idem.e` is coreflexive (`E.idem.e ⊑ Cat.id E.carrier`).
@@ -234,105 +219,267 @@ end SplCorObj
   With a full tabular allegory we can build tabulations directly, bypassing the source-apex
   issue that blocks the pre-tabular version. -/
 
-private theorem splCor_tab_entire {𝒜 : Type u} [Allegory 𝒜] {a c : 𝒜} {ee : a ⟶ a} (f : a ⟶ c)
-    (hEntire : Cat.id a ⊑ f ≫ f°) (hIdem : ee ≫ ee = ee) : ee ⊑ (ee ≫ f) ≫ (f° ≫ ee) := by
-  have h1 : ee ⊑ ee ≫ (f ≫ f°) := by
-    have := comp_mono_left ee hEntire; rwa [Cat.comp_id] at this
-  have h2 : ee ≫ ee ⊑ (ee ≫ (f ≫ f°)) ≫ ee := comp_mono_right h1 ee
-  rw [hIdem, Cat.assoc ee (f ≫ f°) ee, Cat.assoc f f° ee, ← Cat.assoc ee f (f° ≫ ee)] at h2
-  exact h2
-
-private theorem splCor_tab_simple {𝒜 : Type u} [Allegory 𝒜] {a c : 𝒜} {ee : a ⟶ a} (f : a ⟶ c)
-    (hfl : f° ≫ ee ≫ f = Cat.id c) (hIdem : ee ≫ ee = ee) : (f° ≫ ee) ≫ (ee ≫ f) ⊑ Cat.id c := by
-  have : (f° ≫ ee) ≫ (ee ≫ f) = Cat.id c := by
-    rw [Cat.assoc f° ee (ee ≫ f), ← Cat.assoc ee ee f, hIdem, hfl]
-  rw [this]; exact le_refl _
+-- §2.136 dual: for a SYMMETRIC SIMPLE `A`, `(R ∩ S) ≫ A = R≫A ∩ S≫A`.
+-- (Reciprocate `simple_dist_inter` applied to `A°` and use `A° = A`.)
+private theorem splCor_dist_inter_right {𝒜 : Type u} [Allegory 𝒜] {a b : 𝒜} {A : b ⟶ b}
+    (hAsym : A° = A) (hsimpleA : Simple A) (R S : a ⟶ b) :
+    (R ∩ S) ≫ A = (R ≫ A) ∩ (S ≫ A) := by
+  -- ((R∩S)≫A)° = A≫(R∩S)° = A≫(R°∩S°) = A≫R° ∩ A≫S° = (R≫A)° ∩ (S≫A)°
+  have key : ((R ∩ S) ≫ A)° = ((R ≫ A) ∩ (S ≫ A))° := by
+    rw [Allegory.recip_comp, Allegory.recip_inter, hAsym, simple_dist_inter hsimpleA R° S°,
+        Allegory.recip_inter, Allegory.recip_comp, Allegory.recip_comp, hAsym]
+  have := congrArg (·°) key
+  simpa only [Allegory.recip_recip] using this
 
 private theorem splCor_entire_to_le {𝒜 : Type u} [Allegory 𝒜] {a b : 𝒜} {f : a ⟶ b}
     (h : Entire f) : Cat.id a ⊑ f ≫ f° := by
   unfold Entire dom at h; exact h ▸ inter_lb_right _ _
 
+-- `R ⊑ dom R ≫ R` (= `R ⊑ (1 ∩ R≫R°) ≫ R`); §2.122 helper (re-derived; the S2_1 one is private).
+private theorem le_dom_comp' {𝒜 : Type u} [Allegory 𝒜] {a b : 𝒜} (R : a ⟶ b) :
+    R ⊑ (Cat.id a ∩ R ≫ R°) ≫ R := by
+  have h := modular_le (Cat.id a) R R
+  simp only [Cat.id_comp, Allegory.inter_idem] at h
+  exact h
+
+-- `cod` factoring (dual): `R ⊑ R ≫ (1 ∩ R°≫R)`.
+private theorem le_comp_cod {𝒜 : Type u} [Allegory 𝒜] {a b : 𝒜} (R : a ⟶ b) :
+    R ⊑ R ≫ (Cat.id b ∩ R° ≫ R) := by
+  have h := recip_mono (le_dom_comp' R°)
+  -- le_dom_comp' R° : R° ⊑ (1 ∩ R°≫R°°)≫R°;  reciprocate.
+  rw [Allegory.recip_comp, Allegory.recip_inter, recip_id, Allegory.recip_comp,
+      Allegory.recip_recip] at h
+  exact h
+
+-- §2.166 factoring: `p°≫q` factors through the coreflexive `1 ∩ p≫p° ∩ q≫q°`.
+-- (Insert `cod p° = 1∩p≫p°` after `p°`, then `dom q = 1∩q≫q°` before `q`; the two coreflexives
+--  compose to their intersection by `coreflexive_comp_eq_inter`.)
+private theorem splCor_factor {𝒜 : Type u} [Allegory 𝒜] {c x y : 𝒜} (p : c ⟶ x) (q : c ⟶ y) :
+    p° ≫ q ⊑ p° ≫ (Cat.id c ∩ p ≫ p° ∩ q ≫ q°) ≫ q := by
+  have hcodp : p° ⊑ p° ≫ (Cat.id c ∩ p ≫ p°) := by
+    have := le_comp_cod p°
+    rwa [Allegory.recip_recip] at this
+  have hdomq : q ⊑ (Cat.id c ∩ q ≫ q°) ≫ q := le_dom_comp' q
+  have hcorL : Coreflexive (Cat.id c ∩ p ≫ p°) := inter_lb_left _ _
+  have hcorR : Coreflexive (Cat.id c ∩ q ≫ q°) := inter_lb_left _ _
+  -- p°≫q ⊑ (p°≫(1∩pp°))≫q ⊑ (p°≫(1∩pp°))≫((1∩qq°)≫q)
+  have h1 : p° ≫ q ⊑ p° ≫ (Cat.id c ∩ p ≫ p°) ≫ q := by
+    rw [← Cat.assoc]; exact comp_mono_right hcodp q
+  have h2 : p° ≫ (Cat.id c ∩ p ≫ p°) ≫ q
+      ⊑ p° ≫ (Cat.id c ∩ p ≫ p°) ≫ (Cat.id c ∩ q ≫ q°) ≫ q :=
+    comp_mono_left p° (comp_mono_left _ hdomq)
+  refine le_trans h1 (le_trans h2 ?_)
+  -- merge the two coreflexives:  (1∩pp°)≫(1∩qq°) = (1∩pp°) ∩ (1∩qq°) = 1∩pp°∩qq°.
+  rw [← Cat.assoc (Cat.id c ∩ p ≫ p°) (Cat.id c ∩ q ≫ q°) q,
+      coreflexive_comp_eq_inter hcorL hcorR]
+  refine comp_mono_left p° (comp_mono_right ?_ q)
+  -- (1∩pp°) ∩ (1∩qq°) = 1∩pp°∩qq°  (drop the redundant second `1`); show ⊑.
+  refine le_inter (le_inter ?_ ?_) ?_
+  · exact le_trans (inter_lb_left _ _) (inter_lb_left _ _)
+  · exact le_trans (inter_lb_left _ _) (inter_lb_right _ _)
+  · exact le_trans (inter_lb_right _ _) (inter_lb_right _ _)
+
 /-- **§2.166**: If `𝒜` is a tabular allegory then `SplCorObj 𝒜` is a tabular allegory.
 
-    Given `Ψ : E ⟶ F` in `SplCorObj 𝒜`, extract a tabulation `(f, g)` of `Ψ.R` in `𝒜`, then
-    use `Ψ.fixed_left/right` to prove `f°≫E.e≫f = id` and `g°≫F.e≫g = id`.  The apex is
-    `(embObj c, id_c)` (trivially coreflexive) with legs `E.e≫f : E ⟶ C` and `F.e≫g : F ⟶ C`. -/
+    Source-apex convention (`Tabulates p q R := … ∧ R = p°≫q ∧ p≫p° ∩ q≫q° = id`).
+    Given `Ψ : E ⟶ F` in `SplCorObj 𝒜`, extract a tabulation `(f, g)` of `Ψ.R` in `𝒜`
+    (`Ψ.R = f°≫g`, `f≫f° ∩ g≫g° = id_c`).  Freyd §2.166: the coreflexive
+    `A = 1 ∩ f≫Ψ.R≫g°` on `c` is a symmetric idempotent; in `SplCorObj 𝒜` it splits as
+    the apex object `C = ⟨c, A⟩`.  The source-apex legs are `legA = A≫f : C ⟶ E` and
+    `legB = A≫g : C ⟶ F` (each `A`-fixed on the left and `E.e/F.e`-fixed on the right).
+    The three tabulation laws are Freyd's two displayed computations:
+    `f°≫A≫g = Ψ.R` (sandwich, since `Ψ.R = f°≫g`) and
+    `legA≫legA° ∩ legB≫legB° = A≫(f≫f° ∩ g≫g°)≫A = A≫A = A = id_C`. -/
 instance SplCorObj.instTabularAllegorySplCor {𝒜 : Type u} [TabularAllegory 𝒜] :
     TabularAllegory (SplCorObj 𝒜) :=
   { SplCorObj.instAllegorySplCor with
     tabular := fun {E F} Ψ => by
       obtain ⟨c, f, g, hMapf, hMapg, hRfg, htab⟩ := TabularAllegory.tabular Ψ.R
-      have hlinv : f° ≫ f = Cat.id c := le_antisymm hMapf.2 (htab ▸ inter_lb_left _ _)
-      have hrinv : g° ≫ g = Cat.id c := le_antisymm hMapg.2 (htab ▸ inter_lb_right _ _)
-      -- f°≫E.e≫f = id: from E.e≫(f≫g°) = f≫g° (fixed_left + hRfg), cancel g°≫g = id
-      have hfl : f° ≫ E.1.idem.e ≫ f = Cat.id c := by
-        have h1 : E.1.idem.e ≫ f ≫ g° = f ≫ g° := by
-          have hfixL : E.1.idem.e ≫ Ψ.R = Ψ.R := Ψ.fixed_left
-          rwa [hRfg] at hfixL
-        have h2 : (f° ≫ E.1.idem.e ≫ f) ≫ g° = g° := by
-          rw [Cat.assoc, Cat.assoc E.1.idem.e f g°, h1, ← Cat.assoc, hlinv, Cat.id_comp]
-        have h3 : (f° ≫ E.1.idem.e ≫ f) ≫ g° ≫ g = g° ≫ g := by rw [← Cat.assoc, h2]
-        rw [hrinv] at h3; simpa [Cat.comp_id] using h3
-      -- g°≫F.e≫g = id: symmetric, from (f≫g°)≫F.e = f≫g° (fixed_right + hRfg), cancel f°≫f = id
-      have hfr : g° ≫ F.1.idem.e ≫ g = Cat.id c := by
-        have h1 : f ≫ g° ≫ F.1.idem.e = f ≫ g° := by
-          have step : (f ≫ g°) ≫ F.1.idem.e = f ≫ g° := hRfg ▸ Ψ.fixed_right
-          rwa [Cat.assoc f g° F.1.idem.e] at step
-        have h2 : f ≫ g° ≫ F.1.idem.e ≫ g = f := by
-          rw [(Cat.assoc g° F.1.idem.e g).symm, ← Cat.assoc f (g° ≫ F.1.idem.e) g, h1,
-              Cat.assoc f g° g, hrinv, Cat.comp_id]
-        have h3 : (f° ≫ f) ≫ g° ≫ F.1.idem.e ≫ g = f° ≫ f := by rw [Cat.assoc, h2]
-        rw [hlinv, Cat.id_comp] at h3; exact h3
-      let C : SplCorObj 𝒜 := ⟨embObj c, le_refl _⟩
-      let legA : E ⟶ C := ⟨E.1.idem.e ≫ f,
-            by show E.1.idem.e ≫ (E.1.idem.e ≫ f) ≫ (embObj c).idem.e = E.1.idem.e ≫ f
-               simp only [embObj, idSymIdem]; rw [Cat.comp_id, ← Cat.assoc, E.1.idem.idem]⟩
-      let legB : F ⟶ C := ⟨F.1.idem.e ≫ g,
-            by show F.1.idem.e ≫ (F.1.idem.e ≫ g) ≫ (embObj c).idem.e = F.1.idem.e ≫ g
-               simp only [embObj, idSymIdem]; rw [Cat.comp_id, ← Cat.assoc, F.1.idem.idem]⟩
+      -- Entireness of the two legs, read off the joint-monicity `htab`.
+      have hfent : Cat.id c ⊑ f ≫ f° := htab ▸ inter_lb_left (f ≫ f°) (g ≫ g°)
+      have hgent : Cat.id c ⊑ g ≫ g° := htab ▸ inter_lb_right (f ≫ f°) (g ≫ g°)
+      -- Object idempotents (E.e on E.carrier, F.e on F.carrier), symmetric idempotent + coreflexive.
+      have hEcor : E.1.idem.e ⊑ Cat.id E.1.carrier := E.2
+      have hFcor : F.1.idem.e ⊑ Cat.id F.1.carrier := F.2
+      have hEsym : E.1.idem.e° = E.1.idem.e := E.1.idem.sym
+      have hFsym : F.1.idem.e° = F.1.idem.e := F.1.idem.sym
+      have hEidem : E.1.idem.e ≫ E.1.idem.e = E.1.idem.e := E.1.idem.idem
+      have hFidem : F.1.idem.e ≫ F.1.idem.e = F.1.idem.e := F.1.idem.idem
+      -- The two *absorbed* legs `f≫E.e`, `g≫F.e` only pre-tabulate Ψ.R; the apex idempotent is
+      -- the coreflexive `D = 1 ∩ (f≫E.e≫f° ∩ g≫F.e≫g°)` on c (the domain of the absorbed pair).
+      -- `legX≫legX° = (·≫E.e)≫(·≫E.e)° = ·≫E.e≫·°` (E.e sym+idem).
+      let M : c ⟶ c := f ≫ E.1.idem.e ≫ f° ∩ g ≫ F.1.idem.e ≫ g°
+      let D : c ⟶ c := Cat.id c ∩ M
+      have hDcor : Coreflexive D := inter_lb_left _ _
+      have hDsym : D° = D := symmetric_eq (coreflexive_symmetric_idempotent hDcor).1
+      have hDidem : D ≫ D = D := (coreflexive_symmetric_idempotent hDcor).2
+      have hDsimple : Simple D := by dsimp [Simple]; rw [hDsym, hDidem]; exact hDcor
+      have hDle : D ⊑ Cat.id c := hDcor
+      have hDM1 : D ⊑ f ≫ E.1.idem.e ≫ f° :=
+        le_trans (inter_lb_right (Cat.id c) M) (inter_lb_left _ _)
+      have hDM2 : D ⊑ g ≫ F.1.idem.e ≫ g° :=
+        le_trans (inter_lb_right (Cat.id c) M) (inter_lb_right _ _)
+      -- `legA≫legA° = D≫(f≫E.e≫f°)≫D`  (E.e sym+idem, D sym).
+      have hLA : (D ≫ f ≫ E.1.idem.e) ≫ (D ≫ f ≫ E.1.idem.e)° = D ≫ (f ≫ E.1.idem.e ≫ f°) ≫ D := by
+        simp only [Allegory.recip_comp, hDsym, hEsym, Cat.assoc]
+        rw [← Cat.assoc E.1.idem.e E.1.idem.e (f° ≫ D), hEidem]
+      have hLB : (D ≫ g ≫ F.1.idem.e) ≫ (D ≫ g ≫ F.1.idem.e)° = D ≫ (g ≫ F.1.idem.e ≫ g°) ≫ D := by
+        simp only [Allegory.recip_comp, hDsym, hFsym, Cat.assoc]
+        rw [← Cat.assoc F.1.idem.e F.1.idem.e (g° ≫ D), hFidem]
+      -- `D ⊑ legA≫legA°`  (and `D ⊑ legB≫legB°`):  D = D≫D≫D ⊑ D≫(f≫E.e≫f°)≫D.
+      have hEntA : D ⊑ (D ≫ f ≫ E.1.idem.e) ≫ (D ≫ f ≫ E.1.idem.e)° := by
+        rw [hLA]
+        calc D = D ≫ D ≫ D := by rw [hDidem, hDidem]
+          _ ⊑ D ≫ (f ≫ E.1.idem.e ≫ f°) ≫ D := comp_mono_left D (comp_mono_right hDM1 D)
+      have hEntB : D ⊑ (D ≫ g ≫ F.1.idem.e) ≫ (D ≫ g ≫ F.1.idem.e)° := by
+        rw [hLB]
+        calc D = D ≫ D ≫ D := by rw [hDidem, hDidem]
+          _ ⊑ D ≫ (g ≫ F.1.idem.e ≫ g°) ≫ D := comp_mono_left D (comp_mono_right hDM2 D)
+      -- `legA≫legA° ⊑ f≫f°`  (D ⊑ id both ends, E.e ⊑ id):  for joint `⊑ id_c`.
+      -- `D≫X≫D ⊑ X` (both ends D ⊑ id):
+      have hsandwich : ∀ {X : c ⟶ c}, D ≫ X ≫ D ⊑ X := by
+        intro X
+        have h1 : D ≫ X ≫ D ⊑ Cat.id c ≫ X ≫ Cat.id c := by
+          refine le_trans (comp_mono_right hDle (X ≫ D)) ?_
+          rw [Cat.id_comp, Cat.id_comp]
+          exact comp_mono_left X hDle
+        rwa [Cat.id_comp, Cat.comp_id] at h1
+      have hLAf : (D ≫ f ≫ E.1.idem.e) ≫ (D ≫ f ≫ E.1.idem.e)° ⊑ f ≫ f° := by
+        rw [hLA]
+        refine le_trans hsandwich ?_
+        calc f ≫ E.1.idem.e ≫ f° ⊑ f ≫ Cat.id E.1.carrier ≫ f° :=
+              comp_mono_left f (comp_mono_right hEcor f°)
+          _ = f ≫ f° := by rw [Cat.id_comp]
+      have hLBg : (D ≫ g ≫ F.1.idem.e) ≫ (D ≫ g ≫ F.1.idem.e)° ⊑ g ≫ g° := by
+        rw [hLB]
+        refine le_trans hsandwich ?_
+        calc g ≫ F.1.idem.e ≫ g° ⊑ g ≫ Cat.id F.1.carrier ≫ g° :=
+              comp_mono_left g (comp_mono_right hFcor g°)
+          _ = g ≫ g° := by rw [Cat.id_comp]
+      -- Apex object `C = ⟨c, D⟩` in SplCorObj (D is its identity, splitting the coreflexive D).
+      let C : SplCorObj 𝒜 := ⟨⟨c, ⟨D, hDsym, hDidem⟩⟩, hDcor⟩
+      -- Legs `D≫f≫E.e : C ⟶ E`, `D≫g≫F.e : C ⟶ F` (D-fixed left, E.e/F.e-fixed right).
+      let legA : C ⟶ E := ⟨D ≫ f ≫ E.1.idem.e, by
+            show D ≫ (D ≫ f ≫ E.1.idem.e) ≫ E.1.idem.e = D ≫ f ≫ E.1.idem.e
+            simp only [Cat.assoc]; rw [hEidem, ← Cat.assoc D D (f ≫ E.1.idem.e), hDidem]⟩
+      let legB : C ⟶ F := ⟨D ≫ g ≫ F.1.idem.e, by
+            show D ≫ (D ≫ g ≫ F.1.idem.e) ≫ F.1.idem.e = D ≫ g ≫ F.1.idem.e
+            simp only [Cat.assoc]; rw [hFidem, ← Cat.assoc D D (g ≫ F.1.idem.e), hDidem]⟩
+      -- `legA≫legA° ⊑ f≫E.e≫f°` and `legB≫legB° ⊑ g≫F.e≫g°` (both ends D ⊑ id):
+      have hLAM : (D ≫ f ≫ E.1.idem.e) ≫ (D ≫ f ≫ E.1.idem.e)° ⊑ f ≫ E.1.idem.e ≫ f° := by
+        rw [hLA]; exact hsandwich
+      have hLBM : (D ≫ g ≫ F.1.idem.e) ≫ (D ≫ g ≫ F.1.idem.e)° ⊑ g ≫ F.1.idem.e ≫ g° := by
+        rw [hLB]; exact hsandwich
       refine ⟨C, legA, legB, ⟨?_, ?_⟩, ⟨?_, ?_⟩, ?_, ?_⟩
-      -- Map legA: Entire (E.e ∩ (E.e≫f)≫(f°≫E.e) = E.e by splCor_tab_entire)
+      -- Map legA: Entire — id_C = D ⊑ legA≫legA° = D≫(f≫E.e≫f°)≫D.
       · unfold Entire dom; apply SplHom.ext
-        show E.1.idem.e ∩ (E.1.idem.e ≫ f) ≫ (E.1.idem.e ≫ f)° = E.1.idem.e
-        rw [Allegory.recip_comp, E.1.idem.sym]
-        exact le_antisymm (inter_lb_left _ _)
-              (le_inter (le_refl _)
-               (splCor_tab_entire f (splCor_entire_to_le hMapf.1) E.1.idem.idem))
-      -- Map legA: Simple ((f°≫E.e)≫(E.e≫f) ⊑ id_c by splCor_tab_simple)
+        show D ∩ (D ≫ f ≫ E.1.idem.e) ≫ (D ≫ f ≫ E.1.idem.e)° = D
+        exact le_antisymm (inter_lb_left _ _) (le_inter (le_refl _) hEntA)
+      -- Map legA: Simple — legA°≫legA = E.e≫f°≫D≫f≫E.e ⊑ id_E = E.e.
       · unfold Simple; apply SplHom.ext
-        show (E.1.idem.e ≫ f)° ≫ (E.1.idem.e ≫ f) ⊑ (embObj c).idem.e
-        simp only [embObj, idSymIdem]
-        rw [Allegory.recip_comp, E.1.idem.sym]
-        exact splCor_tab_simple f hfl E.1.idem.idem
-      -- Map legB: Entire (symmetric to legA)
+        show (D ≫ f ≫ E.1.idem.e)° ≫ (D ≫ f ≫ E.1.idem.e) ⊑ E.1.idem.e
+        -- normalise to `E.e≫f°≫D≫D≫f≫E.e`, collapse `D≫D=D`, bound `f°≫D≫f ⊑ f°≫f ⊑ id`.
+        rw [Allegory.recip_comp, Allegory.recip_comp, hDsym, hEsym]
+        simp only [Cat.assoc]
+        rw [← Cat.assoc D D (f ≫ E.1.idem.e), hDidem]
+        -- goal: E.e≫f°≫D≫f≫E.e ⊑ E.e
+        have key : E.1.idem.e ≫ f° ≫ D ≫ f ≫ E.1.idem.e ⊑ E.1.idem.e ≫ (f° ≫ f) ≫ E.1.idem.e := by
+          have hDf : f° ≫ D ≫ f ⊑ f° ≫ f := by
+            refine comp_mono_left f° ?_
+            have h := comp_mono_right hDle f; rwa [Cat.id_comp] at h
+          have := comp_mono_left E.1.idem.e (comp_mono_right hDf E.1.idem.e)
+          simpa only [Cat.assoc] using this
+        refine le_trans key ?_
+        have hsf : f° ≫ f ⊑ Cat.id E.1.carrier := hMapf.2
+        calc E.1.idem.e ≫ (f° ≫ f) ≫ E.1.idem.e
+            ⊑ E.1.idem.e ≫ Cat.id E.1.carrier ≫ E.1.idem.e :=
+              comp_mono_left _ (comp_mono_right hsf _)
+          _ = E.1.idem.e := by rw [Cat.id_comp, hEidem]
+      -- Map legB: Entire.
       · unfold Entire dom; apply SplHom.ext
-        show F.1.idem.e ∩ (F.1.idem.e ≫ g) ≫ (F.1.idem.e ≫ g)° = F.1.idem.e
-        rw [Allegory.recip_comp, F.1.idem.sym]
-        exact le_antisymm (inter_lb_left _ _)
-              (le_inter (le_refl _)
-               (splCor_tab_entire g (splCor_entire_to_le hMapg.1) F.1.idem.idem))
-      -- Map legB: Simple (symmetric to legA)
+        show D ∩ (D ≫ g ≫ F.1.idem.e) ≫ (D ≫ g ≫ F.1.idem.e)° = D
+        exact le_antisymm (inter_lb_left _ _) (le_inter (le_refl _) hEntB)
+      -- Map legB: Simple.
       · unfold Simple; apply SplHom.ext
-        show (F.1.idem.e ≫ g)° ≫ (F.1.idem.e ≫ g) ⊑ (embObj c).idem.e
-        simp only [embObj, idSymIdem]
-        rw [Allegory.recip_comp, F.1.idem.sym]
-        exact splCor_tab_simple g hfr F.1.idem.idem
-      -- Ψ = legA ≫ legB°: Ψ.R = E.e≫f≫g°≫F.e = E.e≫Ψ.R≫F.e (by fixed, via hRfg)
+        show (D ≫ g ≫ F.1.idem.e)° ≫ (D ≫ g ≫ F.1.idem.e) ⊑ F.1.idem.e
+        rw [Allegory.recip_comp, Allegory.recip_comp, hDsym, hFsym]
+        simp only [Cat.assoc]
+        rw [← Cat.assoc D D (g ≫ F.1.idem.e), hDidem]
+        have key : F.1.idem.e ≫ g° ≫ D ≫ g ≫ F.1.idem.e ⊑ F.1.idem.e ≫ (g° ≫ g) ≫ F.1.idem.e := by
+          have hDg : g° ≫ D ≫ g ⊑ g° ≫ g := by
+            refine comp_mono_left g° ?_
+            have h := comp_mono_right hDle g; rwa [Cat.id_comp] at h
+          have := comp_mono_left F.1.idem.e (comp_mono_right hDg F.1.idem.e)
+          simpa only [Cat.assoc] using this
+        refine le_trans key ?_
+        have hsg : g° ≫ g ⊑ Cat.id F.1.carrier := hMapg.2
+        calc F.1.idem.e ≫ (g° ≫ g) ≫ F.1.idem.e
+            ⊑ F.1.idem.e ≫ Cat.id F.1.carrier ≫ F.1.idem.e :=
+              comp_mono_left _ (comp_mono_right hsg _)
+          _ = F.1.idem.e := by rw [Cat.id_comp, hFidem]
+      -- Ψ = legA° ≫ legB:  Ψ.R = E.e≫f°≫D≫g≫F.e.  The `⊒` step is the §2.166 factoring
+      -- `(f≫E.e)°≫(g≫F.e) ⊑ (f≫E.e)°≫D≫(g≫F.e)`; `⊑` is `D ⊑ id`.
       · apply SplHom.ext
-        show Ψ.R = (E.1.idem.e ≫ f) ≫ (F.1.idem.e ≫ g)°
-        rw [Allegory.recip_comp, F.1.idem.sym, Cat.assoc E.1.idem.e f (g° ≫ F.1.idem.e),
-            ← Ψ.fixed, hRfg, Cat.assoc f g° F.1.idem.e]
-      -- Joint: (f°≫E.e)≫(E.e≫f) ∩ (g°≫F.e)≫(F.e≫g) = id by hfl, hfr, inter_idem
+        show Ψ.R = (D ≫ f ≫ E.1.idem.e)° ≫ (D ≫ g ≫ F.1.idem.e)
+        -- abbreviations p = f≫E.e, q = g≫F.e
+        have hpp : (f ≫ E.1.idem.e) ≫ (f ≫ E.1.idem.e)° = f ≫ E.1.idem.e ≫ f° := by
+          rw [Allegory.recip_comp, hEsym]; simp only [Cat.assoc]
+          rw [← Cat.assoc E.1.idem.e E.1.idem.e f°, hEidem]
+        have hqq : (g ≫ F.1.idem.e) ≫ (g ≫ F.1.idem.e)° = g ≫ F.1.idem.e ≫ g° := by
+          rw [Allegory.recip_comp, hFsym]; simp only [Cat.assoc]
+          rw [← Cat.assoc F.1.idem.e F.1.idem.e g°, hFidem]
+        -- D' (the factoring's coreflexive) equals D.
+        have hD' : Cat.id c ∩ (f ≫ E.1.idem.e) ≫ (f ≫ E.1.idem.e)°
+                       ∩ (g ≫ F.1.idem.e) ≫ (g ≫ F.1.idem.e)° = D := by
+          show Cat.id c ∩ (f ≫ E.1.idem.e) ≫ (f ≫ E.1.idem.e)°
+                 ∩ (g ≫ F.1.idem.e) ≫ (g ≫ F.1.idem.e)° = Cat.id c ∩ M
+          rw [hpp, hqq, Allegory.inter_assoc]
+        -- the factoring, with D' rewritten to D.
+        have hfac : (f ≫ E.1.idem.e)° ≫ (g ≫ F.1.idem.e)
+            ⊑ (f ≫ E.1.idem.e)° ≫ D ≫ (g ≫ F.1.idem.e) := by
+          have := splCor_factor (f ≫ E.1.idem.e) (g ≫ F.1.idem.e)
+          rwa [hD'] at this
+        -- expand both sides to E.e≫f°≫…  and prove equality by `le_antisymm`.
+        have hL : (f ≫ E.1.idem.e)° ≫ (g ≫ F.1.idem.e) = E.1.idem.e ≫ f° ≫ g ≫ F.1.idem.e := by
+          rw [Allegory.recip_comp, hEsym]; simp only [Cat.assoc]
+        have hR : (D ≫ f ≫ E.1.idem.e)° ≫ (D ≫ g ≫ F.1.idem.e)
+            = E.1.idem.e ≫ f° ≫ D ≫ g ≫ F.1.idem.e := by
+          rw [Allegory.recip_comp, Allegory.recip_comp, hDsym, hEsym]; simp only [Cat.assoc]
+          rw [← Cat.assoc D D (g ≫ F.1.idem.e), hDidem]
+        rw [hR]
+        -- Ψ.R = E.e≫f°≫g≫F.e (Ψ.R = f°≫g, Ψ E.e/F.e-fixed);  then sandwich-insert D.
+        have hΨ : Ψ.R = E.1.idem.e ≫ f° ≫ g ≫ F.1.idem.e := by
+          have hfix : E.1.idem.e ≫ Ψ.R ≫ F.1.idem.e = Ψ.R := Ψ.fixed
+          rw [hRfg] at hfix ⊢; rw [← hfix]; simp only [Cat.assoc]
+        rw [hΨ]
+        apply le_antisymm
+        · -- E.e≫f°≫g≫F.e ⊑ E.e≫f°≫D≫g≫F.e  (factoring; via hL, hfac)
+          have := hfac; rw [hL] at this
+          -- this : E.e≫f°≫g≫F.e ⊑ (f≫E.e)°≫D≫(g≫F.e); rewrite RHS
+          have hRHS : (f ≫ E.1.idem.e)° ≫ D ≫ (g ≫ F.1.idem.e)
+              = E.1.idem.e ≫ f° ≫ D ≫ g ≫ F.1.idem.e := by
+            rw [Allegory.recip_comp, hEsym]; simp only [Cat.assoc]
+          rwa [hRHS] at this
+        · -- E.e≫f°≫D≫g≫F.e ⊑ E.e≫f°≫g≫F.e  (D ⊑ id)
+          refine comp_mono_left E.1.idem.e (comp_mono_left f° ?_)
+          have hDg : D ≫ g ≫ F.1.idem.e ⊑ g ≫ F.1.idem.e := by
+            have h := comp_mono_right hDle (g ≫ F.1.idem.e); rwa [Cat.id_comp] at h
+          simpa only [Cat.assoc] using hDg
+      -- Joint: legA≫legA° ∩ legB≫legB° = D = id_C.
       · apply SplHom.ext
-        show (E.1.idem.e ≫ f)° ≫ (E.1.idem.e ≫ f) ∩ (F.1.idem.e ≫ g)° ≫ (F.1.idem.e ≫ g) =
-             (embObj c).idem.e
-        simp only [embObj, idSymIdem]
-        rw [Allegory.recip_comp, E.1.idem.sym, Allegory.recip_comp, F.1.idem.sym]
-        rw [Cat.assoc f° E.1.idem.e _, ← Cat.assoc E.1.idem.e E.1.idem.e f,
-            E.1.idem.idem, hfl]
-        rw [Cat.assoc g° F.1.idem.e _, ← Cat.assoc F.1.idem.e F.1.idem.e g,
-            F.1.idem.idem, hfr]
-        exact Allegory.inter_idem _
+        show (D ≫ f ≫ E.1.idem.e) ≫ (D ≫ f ≫ E.1.idem.e)° ∩
+             (D ≫ g ≫ F.1.idem.e) ≫ (D ≫ g ≫ F.1.idem.e)° = D
+        apply le_antisymm
+        · -- joint ⊑ D = id_c ∩ M
+          apply le_inter
+          · -- ⊑ id_c : joint ⊑ f≫f° ∩ g≫g° = id_c
+            refine le_trans (le_inter (le_trans (inter_lb_left _ _) hLAf)
+              (le_trans (inter_lb_right _ _) hLBg)) ?_
+            rw [htab]; exact le_refl _
+          · -- ⊑ M : joint ⊑ f≫E.e≫f° ∩ g≫F.e≫g°
+            exact le_inter (le_trans (inter_lb_left _ _) hLAM)
+              (le_trans (inter_lb_right _ _) hLBM)
+        · exact le_inter hEntA hEntB
   }
 
 /-- **§2.165**: If `𝒜` is a tabular allegory then `SplCorObj 𝒜` is pre-tabular.

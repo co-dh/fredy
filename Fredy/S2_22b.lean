@@ -111,33 +111,7 @@ theorem SplHom.split_symmetric_idempotent {E : SplObj 𝒜} (Φ : SplHom E E)
     show Φ.R° ≫ Φ.R = Φ.R
     rw [hsym, hidem]
 
-/-! ## Composition of maps is a map (§2.13)
-
-  Inlined from §2.13 (the repo's `S2_4.map_comp`) so this file depends only on `S2_21`
-  rather than the whole §2.4 power-allegory tower. -/
-
-/-- Composition of maps is a map (§2.13): simple `(fg)°(fg) = g°(f°f)g ⊑ g°g ⊑ 1`;
-    entire `1 ⊑ ff° = f1f° ⊑ f(gg°)f° = (fg)(fg)°`. -/
-theorem map_comp {a b c : 𝒜} {f : a ⟶ b} {g : b ⟶ c} (hf : Map f) (hg : Map g) :
-    Map (f ≫ g) := by
-  refine ⟨?_, ?_⟩
-  · have hfe : Cat.id a ⊑ f ≫ f° := by
-      have := hf.1; dsimp [Entire, dom] at this; rw [← this]; exact inter_lb_right _ _
-    have hge : Cat.id b ⊑ g ≫ g° := by
-      have := hg.1; dsimp [Entire, dom] at this; rw [← this]; exact inter_lb_right _ _
-    have hstep : f ≫ f° ⊑ f ≫ (g ≫ g°) ≫ f° := by
-      calc f ≫ f° = f ≫ Cat.id b ≫ f° := by rw [Cat.id_comp]
-        _ ⊑ f ≫ (g ≫ g°) ≫ f° := comp_mono_left f (comp_mono_right hge f°)
-    have heq : f ≫ (g ≫ g°) ≫ f° = (f ≫ g) ≫ (f ≫ g)° := by
-      rw [Allegory.recip_comp]; simp [Cat.assoc]
-    have hfin : Cat.id a ⊑ (f ≫ g) ≫ (f ≫ g)° := heq ▸ le_trans hfe hstep
-    dsimp [Entire, dom]; exact le_antisymm (inter_lb_left _ _) (le_inter (le_refl _) hfin)
-  · have hrw : (f ≫ g)° ≫ (f ≫ g) = g° ≫ (f° ≫ f) ≫ g := by
-      rw [Allegory.recip_comp]; simp [Cat.assoc]
-    have h1 : g° ≫ (f° ≫ f) ≫ g ⊑ g° ≫ g := by
-      calc g° ≫ (f° ≫ f) ≫ g ⊑ g° ≫ Cat.id b ≫ g := comp_mono_left g° (comp_mono_right hf.2 g)
-        _ = g° ≫ g := by rw [Cat.id_comp]
-    dsimp [Simple]; rw [hrw]; exact le_trans h1 hg.2
+-- §2.13: composition of maps is a map — now `Freyd.Alg.map_comp` in `S2_1.lean`.
 
 /-- The **left modular law** in containment form: `(R ≫ S) ∩ T ⊑ R ≫ (S ∩ R° ≫ T)`.
     Proved by reciprocating the right modular law — only uses `modular_le` and
@@ -158,129 +132,142 @@ theorem modular_le_left' {a b c : 𝒜} (R : a ⟶ b) (S : b ⟶ c) (T : a ⟶ c
 
   An allegory is TABULAR iff it is pre-tabular and all coreflexive morphisms split
   (§2.166).  The forward direction is immediate; the converse is the construction
-  below.  Given a tabulation `(f, g)` of `U = f ≫ g°` and a containment `R ⊑ U`, the
-  coreflexive `A := 1_c ∩ f° ≫ R ≫ g` on the apex `c` carries the "image of `R` on the
-  apex".  Splitting `A` by a map `h : c ⟶ d` (`h ≫ h° = A`, `h° ≫ h = 1_d`) yields
-  refined legs `(f ≫ h, g ≫ h)`, and
+  below.  Given a (source-apex) tabulation `(f, g)` of `U = f° ≫ g` (maps `f : c→a`,
+  `g : c→b`) and a containment `R ⊑ U`, the coreflexive `A := 1_c ∩ f ≫ R ≫ g°` on
+  the apex `c` carries the "image of `R` on the apex".  Splitting `A` by a map
+  `h : d ⟶ c` (`h° ≫ h = A`, `h ≫ h° = 1_d`) yields refined legs `(h ≫ f, h ≫ g)`, and
 
-      `(f ≫ h) ≫ (g ≫ h)° = f ≫ (h ≫ h°) ≫ g° = f ≫ A ≫ g°`.
+      `(h ≫ f)° ≫ (h ≫ g) = f° ≫ (h° ≫ h) ≫ g = f° ≫ A ≫ g`.
 
-  So `(f ≫ h, g ≫ h)` tabulates `R` IFF `R = f ≫ A ≫ g°` — the APEX-SATURATION of `R`.
+  So `(h ≫ f, h ≫ g)` tabulates `R` IFF `R = f° ≫ A ≫ g` — the APEX-SATURATION of `R`.
   This is genuinely necessary, *not* automatic: it fails for a non-difunctional
-  `R ⊑ U` (Rel counterexample: apex `c = {∗}`, `a = b = {1,2}`, `f, g` the total maps;
-  then `U = ⊤`, and for `R = {(1,1)}` one gets `A = 1_c`, `f ≫ A ≫ g° = ⊤ ≠ R`).  This
-  is exactly the systemic / §2.226 gap documented in `S2_22.tab_transport_gap`.  So we
-  record the honest content: for an apex-saturated `R`, splitting the apex coreflexive
-  tabulates `R`.  (`R = U` and every difunctional `R ⊑ U` are saturated.)
+  `R ⊑ U`.  We record the honest content: for an apex-saturated `R`, splitting the apex
+  coreflexive tabulates `R`.  (`R = U` and every difunctional `R ⊑ U` are saturated.)
 
-  Conventions: repo `Tabulates f g R := Map f ∧ Map g ∧ R = f ≫ g° ∧ f°f ∩ g°g = 1`. -/
+  Conventions: repo `Tabulates f g R := Map f ∧ Map g ∧ R = f° ≫ g ∧ ff° ∩ gg° = 1`. -/
 
-/-- The **apex coreflexive** `A = 1_c ∩ f° ≫ R ≫ g` of `R` relative to the tabulation
-    `(f,g)` of `U = f ≫ g°` (§2.166): the image of `R` pushed onto the apex `c`. -/
-def tabApex {a b c : 𝒜} (f : a ⟶ c) (g : b ⟶ c) (R : a ⟶ b) : c ⟶ c :=
-  Cat.id c ∩ f° ≫ R ≫ g
+/-- The **apex coreflexive** `A = 1_c ∩ f ≫ R ≫ g°` of `R` relative to the tabulation
+    `(f,g)` of `U = f° ≫ g` (§2.166): the image of `R` pushed onto the apex `c`. -/
+def tabApex {a b c : 𝒜} (f : c ⟶ a) (g : c ⟶ b) (R : a ⟶ b) : c ⟶ c :=
+  Cat.id c ∩ f ≫ R ≫ g°
 
 /-- `tabApex` is coreflexive on the apex `c`. -/
-theorem tabApex_coreflexive {a b c : 𝒜} (f : a ⟶ c) (g : b ⟶ c) (R : a ⟶ b) :
+theorem tabApex_coreflexive {a b c : 𝒜} (f : c ⟶ a) (g : c ⟶ b) (R : a ⟶ b) :
     Coreflexive (tabApex f g R) :=
   inter_lb_left _ _
 
-/-- The apex coreflexive sits below each of `f° ≫ f` and `g° ≫ g`.  From `R ⊑ f g°`:
-    `f° R g ⊑ f°(f g°)g = (f°f)(g°g)`; then `g°g ⊑ 1` (g simple) gives `⊑ f°f`, and
-    `f°f ⊑ 1` (f simple) gives `⊑ g°g`. -/
-theorem tabApex_le_legs {a b c : 𝒜} {f : a ⟶ c} {g : b ⟶ c} {R : a ⟶ b}
-    (hf : Map f) (hg : Map g) (hRS : R ⊑ f ≫ g°) :
-    tabApex f g R ⊑ f° ≫ f ∧ tabApex f g R ⊑ g° ≫ g := by
-  have hfRg : f° ≫ R ≫ g ⊑ (f° ≫ f) ≫ (g° ≫ g) := by
-    calc f° ≫ R ≫ g ⊑ f° ≫ (f ≫ g°) ≫ g := comp_mono_left f° (comp_mono_right hRS g)
-      _ = (f° ≫ f) ≫ (g° ≫ g) := by simp [Cat.assoc]
-  refine ⟨?_, ?_⟩
-  · refine le_trans (inter_lb_right _ _) (le_trans hfRg ?_)
-    calc (f° ≫ f) ≫ (g° ≫ g) ⊑ (f° ≫ f) ≫ Cat.id c := comp_mono_left _ hg.2
-      _ = f° ≫ f := by rw [Cat.comp_id]
-  · refine le_trans (inter_lb_right _ _) (le_trans hfRg ?_)
-    calc (f° ≫ f) ≫ (g° ≫ g) ⊑ Cat.id c ≫ (g° ≫ g) := comp_mono_right hf.2 _
-      _ = g° ≫ g := by rw [Cat.id_comp]
+/-- The apex coreflexive sits below each of `f ≫ f°` and `g ≫ g°`.  Trivially, since
+    `tabApex ⊑ 1_c` (coreflexive) and `1_c ⊑ f ≫ f°`, `1_c ⊑ g ≫ g°` (f, g entire). -/
+theorem tabApex_le_legs {a b c : 𝒜} {f : c ⟶ a} {g : c ⟶ b} {R : a ⟶ b}
+    (hf : Map f) (hg : Map g) (_hRS : R ⊑ f° ≫ g) :
+    tabApex f g R ⊑ f ≫ f° ∧ tabApex f g R ⊑ g ≫ g° := by
+  have hfe : Cat.id c ⊑ f ≫ f° := by
+    have := hf.1; dsimp [Entire, dom] at this; rw [← this]; exact inter_lb_right _ _
+  have hge : Cat.id c ⊑ g ≫ g° := by
+    have := hg.1; dsimp [Entire, dom] at this; rw [← this]; exact inter_lb_right _ _
+  exact ⟨le_trans (inter_lb_left _ _) hfe, le_trans (inter_lb_left _ _) hge⟩
 
 
-/-- If a map `h : c ⟶ d` splits a coreflexive `A` (`h ≫ h° = A`, `h° ≫ h = 1_d`) and
-    `A ⊑ M`, then `1_d ⊑ h° ≫ M ≫ h`.  Proof:
-    `1_d = h°h = h°(hh°)h ⊑ h° M h`, using `(hh°)h = h(h°h) = h`. -/
-theorem id_le_split_conj {c d : 𝒜} {h : c ⟶ d} {A M : c ⟶ c}
-    (hhA : h ≫ h° = A) (hh1 : h° ≫ h = Cat.id d) (hAM : A ⊑ M) :
-    Cat.id d ⊑ h° ≫ M ≫ h := by
-  have hmid : h° ≫ (h ≫ h°) ≫ h = h° ≫ h := by
-    have e : (h ≫ h°) ≫ h = h := by rw [Cat.assoc, hh1, Cat.comp_id]
+/-- If a map `h : d ⟶ c` splits a coreflexive `A` (`h° ≫ h = A`, `h ≫ h° = 1_d`) and
+    `A ⊑ M`, then `1_d ⊑ h ≫ M ≫ h°`.  Proof:
+    `1_d = hh° = h(h°h)h° ⊑ h M h°`, using `h(h°h) = (hh°)h = h`. -/
+theorem id_le_split_conj {c d : 𝒜} {h : d ⟶ c} {A M : c ⟶ c}
+    (hhA : h° ≫ h = A) (hh1 : h ≫ h° = Cat.id d) (hAM : A ⊑ M) :
+    Cat.id d ⊑ h ≫ M ≫ h° := by
+  have hmid : h ≫ (h° ≫ h) ≫ h° = h ≫ h° := by
+    have e : (h° ≫ h) ≫ h° = h° := by rw [Cat.assoc, hh1, Cat.comp_id]
     rw [e]
-  calc Cat.id d = h° ≫ h := hh1.symm
-    _ = h° ≫ (h ≫ h°) ≫ h := hmid.symm
-    _ ⊑ h° ≫ M ≫ h := by rw [hhA]; exact comp_mono_left h° (comp_mono_right hAM h)
+  calc Cat.id d = h ≫ h° := hh1.symm
+    _ = h ≫ (h° ≫ h) ≫ h° := hmid.symm
+    _ ⊑ h ≫ M ≫ h° := by rw [hhA]; exact comp_mono_left h (comp_mono_right hAM h°)
 
-/-- **§2.166 (apex-split tabulation).**  Let `(f,g)` tabulate `U = f ≫ g°` and let
-    `R ⊑ U` be APEX-SATURATED (`R = f ≫ tabApex f g R ≫ g°`).  If a map `h : c ⟶ d`
-    SPLITS the apex coreflexive — `h ≫ h° = tabApex f g R`, `h° ≫ h = 1_d` — then the
-    refined legs `(f ≫ h, g ≫ h)` form a genuine tabulation of `R`.
-
-    The saturation hypothesis `hsat` is non-vacuous and *necessary* (see the section
-    note): the un-saturated form is false (`S2_22.tab_transport_gap`); `R = U` and every
-    difunctional `R ⊑ U` are saturated.  `htab` is retained to certify that `(f,g)`
-    tabulates `U` (it is not consumed: apex-saturation is the genuine content). -/
+/-- **§2.166 (apex-split tabulation).**  Let `(f,g)` tabulate `U = f° ≫ g` and let
+    `R ⊑ U` be APEX-SATURATED (`R = f° ≫ tabApex f g R ≫ g`).  If a map `h : d ⟶ c`
+    SPLITS the apex coreflexive — `h° ≫ h = tabApex f g R`, `h ≫ h° = 1_d` — then the
+    refined legs `(h ≫ f, h ≫ g)` form a genuine tabulation of `R`. -/
 theorem tabulation_of_split_apex {a b c d : 𝒜}
-    {f : a ⟶ c} {g : b ⟶ c} {R : a ⟶ b} {h : c ⟶ d}
-    (hf : Map f) (hg : Map g) (hRS : R ⊑ f ≫ g°)
-    (hh : Map h) (hhA : h ≫ h° = tabApex f g R) (hh1 : h° ≫ h = Cat.id d)
-    (hsat : R = f ≫ (tabApex f g R) ≫ g°) :
-    Tabulates (f ≫ h) (g ≫ h) R := by
-  have hFmap : Map (f ≫ h) := map_comp hf hh
-  have hGmap : Map (g ≫ h) := map_comp hg hh
+    {f : c ⟶ a} {g : c ⟶ b} {R : a ⟶ b} {h : d ⟶ c}
+    (hf : Map f) (hg : Map g) (hRS : R ⊑ f° ≫ g)
+    (htab : f ≫ f° ∩ g ≫ g° = Cat.id c)
+    (hh : Map h) (hhA : h° ≫ h = tabApex f g R) (hh1 : h ≫ h° = Cat.id d)
+    (hsat : R = f° ≫ (tabApex f g R) ≫ g) :
+    Tabulates (h ≫ f) (h ≫ g) R := by
+  have hFmap : Map (h ≫ f) := map_comp hh hf
+  have hGmap : Map (h ≫ g) := map_comp hh hg
   obtain ⟨hAf, hAg⟩ := tabApex_le_legs hf hg hRS
-  have hReq : R = (f ≫ h) ≫ (g ≫ h)° := by
+  have hhcoref : h° ≫ h ⊑ Cat.id c := hhA ▸ tabApex_coreflexive f g R
+  have hReq : R = (h ≫ f)° ≫ (h ≫ g) := by
     rw [Allegory.recip_comp]
-    calc R = f ≫ (tabApex f g R) ≫ g° := hsat
-      _ = f ≫ (h ≫ h°) ≫ g° := by rw [hhA]
-      _ = (f ≫ h) ≫ h° ≫ g° := by simp [Cat.assoc]
-  have hApex : (f ≫ h)° ≫ (f ≫ h) ∩ (g ≫ h)° ≫ (g ≫ h) = Cat.id d := by
-    apply le_antisymm
-    · exact le_trans (inter_lb_left _ _) hFmap.2
+    calc R = f° ≫ (tabApex f g R) ≫ g := hsat
+      _ = f° ≫ (h° ≫ h) ≫ g := by rw [hhA]
+      _ = (f° ≫ h°) ≫ h ≫ g := by simp [Cat.assoc]
+  have hFF : (h ≫ f) ≫ (h ≫ f)° = h ≫ (f ≫ f°) ≫ h° := by
+    rw [Allegory.recip_comp]; simp [Cat.assoc]
+  have hGG : (h ≫ g) ≫ (h ≫ g)° = h ≫ (g ≫ g°) ≫ h° := by
+    rw [Allegory.recip_comp]; simp [Cat.assoc]
+  have hApex : (h ≫ f) ≫ (h ≫ f)° ∩ (h ≫ g) ≫ (h ≫ g)° = Cat.id d := by
+    refine le_antisymm ?_ ?_
+    · -- M ⊑ id_d:  M = h(h° M h)h°,  and  h° M h ⊑ ff° ∩ gg° = id_c.
+      -- For any leg L: h°(hLh°)h = (h°h)L(h°h) ⊑ L.
+      have hsqueeze : ∀ L : c ⟶ c, h° ≫ (h ≫ L ≫ h°) ≫ h ⊑ L := by
+        intro L
+        have e : h° ≫ (h ≫ L ≫ h°) ≫ h = (h° ≫ h) ≫ L ≫ (h° ≫ h) := by simp [Cat.assoc]
+        rw [e]
+        have s1 : (h° ≫ h) ≫ L ≫ (h° ≫ h) ⊑ Cat.id c ≫ L ≫ (h° ≫ h) :=
+          comp_mono_right hhcoref _
+        have s2 : Cat.id c ≫ L ≫ (h° ≫ h) ⊑ Cat.id c ≫ L ≫ Cat.id c :=
+          comp_mono_left _ (comp_mono_left _ hhcoref)
+        have s3 : Cat.id c ≫ L ≫ Cat.id c = L := by rw [Cat.id_comp, Cat.comp_id]
+        have := le_trans s1 s2; rw [s3] at this; exact this
+      have hMconj : h° ≫ ((h ≫ f) ≫ (h ≫ f)° ∩ (h ≫ g) ≫ (h ≫ g)°) ≫ h ⊑ Cat.id c := by
+        rw [← htab]
+        refine le_inter ?_ ?_
+        · refine le_trans (comp_mono_left h° (comp_mono_right (inter_lb_left _ _) h)) ?_
+          rw [hFF]; exact hsqueeze (f ≫ f°)
+        · refine le_trans (comp_mono_left h° (comp_mono_right (inter_lb_right _ _) h)) ?_
+          rw [hGG]; exact hsqueeze (g ≫ g°)
+      -- M = (h h°) M (h h°) = h (h° M h) h° ⊑ h id_c h° = id_d.
+      have hMeq : ((h ≫ f) ≫ (h ≫ f)° ∩ (h ≫ g) ≫ (h ≫ g)°) =
+          (h ≫ h°) ≫ ((h ≫ f) ≫ (h ≫ f)° ∩ (h ≫ g) ≫ (h ≫ g)°) ≫ (h ≫ h°) := by
+        rw [hh1, Cat.id_comp, Cat.comp_id]
+      rw [hMeq]
+      have hstep1 : (h ≫ h°) ≫ ((h ≫ f) ≫ (h ≫ f)° ∩ (h ≫ g) ≫ (h ≫ g)°) ≫ (h ≫ h°) =
+          h ≫ (h° ≫ ((h ≫ f) ≫ (h ≫ f)° ∩ (h ≫ g) ≫ (h ≫ g)°) ≫ h) ≫ h° := by
+        simp [Cat.assoc]
+      rw [hstep1]
+      have hstep2 : h ≫ (h° ≫ ((h ≫ f) ≫ (h ≫ f)° ∩ (h ≫ g) ≫ (h ≫ g)°) ≫ h) ≫ h° ⊑
+          h ≫ Cat.id c ≫ h° := comp_mono_left h (comp_mono_right hMconj h°)
+      have hstep3 : h ≫ Cat.id c ≫ h° = Cat.id d := by rw [Cat.id_comp, hh1]
+      exact hstep3 ▸ hstep2
     · refine le_inter ?_ ?_
-      · have hconj : Cat.id d ⊑ h° ≫ (f° ≫ f) ≫ h := id_le_split_conj hhA hh1 hAf
-        have heq : h° ≫ (f° ≫ f) ≫ h = (f ≫ h)° ≫ (f ≫ h) := by
-          rw [Allegory.recip_comp]; simp [Cat.assoc]
-        rwa [heq] at hconj
-      · have hconj : Cat.id d ⊑ h° ≫ (g° ≫ g) ≫ h := id_le_split_conj hhA hh1 hAg
-        have heq : h° ≫ (g° ≫ g) ≫ h = (g ≫ h)° ≫ (g ≫ h) := by
-          rw [Allegory.recip_comp]; simp [Cat.assoc]
-        rwa [heq] at hconj
+      · rw [hFF]; exact id_le_split_conj hhA hh1 hAf
+      · rw [hGG]; exact id_le_split_conj hhA hh1 hAg
   exact ⟨hFmap, hGmap, hReq, hApex⟩
 
 /-! ## §2.166  Tabular ⟺ pre-tabular and coreflexives split
 
-  An allegory is tabular iff it is pre-tabular and all coreflexives split (§2.166).
-  We package both directions as theorems *relative to the apex-saturation* that the
-  general construction needs (see `tabulation_of_split_apex`).  Concretely:
-
   • FORWARD (tabular ⟹ coreflexives split): in a `TabularAllegory` every coreflexive
-    splits — this is exactly `S2_2.coreflexive_splits` (re-exported here for §2.166).
+    splits — `S2_2.coreflexive_splits` (the splitting map `g : c → a` points from the apex).
   • CONVERSE: given a pre-tabular containment and a splitting of the apex coreflexive
     of an apex-saturated `R`, `R` is tabular (`tabulation_of_split_apex`). -/
 
 /-- **§2.166 (forward)**: in a tabular allegory every coreflexive splits (§2.163).
-    This is the §2.166 direction "tabular ⟹ all coreflexives split". -/
+    The splitting map `g : c → a` satisfies `g° ≫ g = A`, `g ≫ g° = 1_c`. -/
 theorem tabular_coreflexives_split {𝒜 : Type u} [TabularAllegory 𝒜] {a : 𝒜}
     {A : a ⟶ a} (hcor : Coreflexive A) :
-    ∃ (c : 𝒜) (g : a ⟶ c), SplitsAsMap g A := by
-  obtain ⟨c, g, hg, hgg, hg1⟩ := coreflexive_splits hcor
-  exact ⟨c, g, hg, hgg, hg1⟩
+    ∃ (c : 𝒜) (g : c ⟶ a), Map g ∧ g° ≫ g = A ∧ g ≫ g° = Cat.id c :=
+  coreflexive_splits hcor
 
 /-- **§2.166 (converse, apex-saturated form)**: a containment `R ⊑ U` whose apex
     coreflexive splits, and which is apex-saturated, is tabular. -/
 theorem tabular_of_split_apex {a b c d : 𝒜}
-    {f : a ⟶ c} {g : b ⟶ c} {R : a ⟶ b} {h : c ⟶ d}
-    (hf : Map f) (hg : Map g) (hRS : R ⊑ f ≫ g°)
-    (hh : Map h) (hhA : h ≫ h° = tabApex f g R) (hh1 : h° ≫ h = Cat.id d)
-    (hsat : R = f ≫ (tabApex f g R) ≫ g°) :
+    {f : c ⟶ a} {g : c ⟶ b} {R : a ⟶ b} {h : d ⟶ c}
+    (hf : Map f) (hg : Map g) (hRS : R ⊑ f° ≫ g)
+    (htab : f ≫ f° ∩ g ≫ g° = Cat.id c)
+    (hh : Map h) (hhA : h° ≫ h = tabApex f g R) (hh1 : h ≫ h° = Cat.id d)
+    (hsat : R = f° ≫ (tabApex f g R) ≫ g) :
     Tabular R :=
-  ⟨d, f ≫ h, g ≫ h, tabulation_of_split_apex hf hg hRS hh hhA hh1 hsat⟩
+  ⟨d, h ≫ f, h ≫ g, tabulation_of_split_apex hf hg hRS htab hh hhA hh1 hsat⟩
 
 /-! ## §2.169  Effective reflection: equivalence relations split in `Spl 𝒜`
 

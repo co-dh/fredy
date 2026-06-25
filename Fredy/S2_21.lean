@@ -385,12 +385,12 @@ theorem splitting_recip {a b : 𝒜} {R : a ⟶ b} {S : b ⟶ a}
   Partial progress in `Fredy/MapCat.lean`:
   - `mapHasTerminal` PROVED: unit object is terminal in Map(A).
   - Remaining (HasImages, HasPullbacks, HasBinaryProducts, PullbacksTransferCovers,
-    HasSubobjectUnions, PreLogos) are TODO comments in MapCat.lean.
-  - BLOCKER: `Tabulates` uses common-TARGET convention; `Map(π₁°)` not derivable from
-    `Map(π₁)` alone; fix = extend Tabulates to record Map of reciprocal legs. -/
+    HasSubobjectUnions, PreLogos) are TODO comments in MapCat.lean.  Their §2.147 UMPs
+    (`tab_pullback_UMP`, `tab_equalizer_UMP`) are now PROVED under the source-apex
+    `Tabulates`; what remains is only the typeclass-instance packaging. -/
 
 -- BOOK §2.212: If A is a tabular unitary distributive allegory, then Mon_U(A) is a pre-logos.
--- Partial: mapHasTerminal proved in Fredy/MapCat.lean; rest TODO (see BLOCKER above).
+-- Partial: mapHasTerminal proved in Fredy/MapCat.lean; rest TODO (UMPs proved, packaging left).
 
 /-! ## §2.214  Pre-logos positive iff Rel(C) has finite coproducts
 

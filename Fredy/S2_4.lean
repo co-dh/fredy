@@ -143,43 +143,7 @@ theorem singletonMap_monic {a : 𝒜} [PowerAllegory 𝒜] :
   exact le_trans (comp_mono_right h1 _)
     (le_trans (comp_mono_left _ h2) (div_comp_eq_le _ _))
 
-/-- Composition of maps is a map (§2.13).
-    Simple: (fg)°(fg) = g°(f°f)g ⊑ g°g ⊑ 1.
-    Entire: 1 ⊑ ff° = f1f° ⊑ f(gg°)f° = (fg)(fg)°, so dom(fg) = 1. -/
-theorem map_comp {𝒜 : Type u} [Allegory 𝒜] {a b c : 𝒜} {f : a ⟶ b} {g : b ⟶ c}
-    (hf : Map f) (hg : Map g) : Map (f ≫ g) := by
-  refine ⟨?_, ?_⟩
-  · -- Entire: 1 ⊑ ff° ⊑ f(gg°)f° = (fg)(fg)°.
-    have hfe : Cat.id a ⊑ f ≫ f° := by
-      have := hf.1; dsimp [Entire, dom] at this; rw [← this]; exact inter_lb_right _ _
-    have hge : Cat.id b ⊑ g ≫ g° := by
-      have := hg.1; dsimp [Entire, dom] at this; rw [← this]; exact inter_lb_right _ _
-    -- ff° = f1f° ⊑ f(gg°)f°
-    have hstep : f ≫ f° ⊑ f ≫ (g ≫ g°) ≫ f° := by
-      calc f ≫ f° = f ≫ Cat.id b ≫ f° := by rw [Cat.id_comp]
-        _ ⊑ f ≫ (g ≫ g°) ≫ f° := comp_mono_left f (comp_mono_right hge f°)
-    have heq : f ≫ (g ≫ g°) ≫ f° = (f ≫ g) ≫ (f ≫ g)° := by
-      rw [Allegory.recip_comp]; simp [Cat.assoc]
-    have hfin : Cat.id a ⊑ (f ≫ g) ≫ (f ≫ g)° := heq ▸ le_trans hfe hstep
-    dsimp [Entire, dom]; exact le_antisymm (inter_lb_left _ _) (le_inter (le_refl _) hfin)
-  · -- Simple: (fg)°(fg) = g°(f°f)g ⊑ g°1g = g°g ⊑ 1.
-    have hrw : (f ≫ g)° ≫ (f ≫ g) = g° ≫ (f° ≫ f) ≫ g := by
-      rw [Allegory.recip_comp]; simp [Cat.assoc]
-    have h1 : g° ≫ (f° ≫ f) ≫ g ⊑ g° ≫ g := by
-      calc g° ≫ (f° ≫ f) ≫ g ⊑ g° ≫ Cat.id b ≫ g := comp_mono_left g° (comp_mono_right hf.2 g)
-        _ = g° ≫ g := by rw [Cat.id_comp]
-    dsimp [Simple]; rw [hrw]; exact le_trans h1 hg.2
-
-/-- Composition of simple morphisms is simple (§2.16): `(fg)°(fg) = g°(f°f)g ⊑ g°g ⊑ 1`.
-    (Simplicity, unlike a full map, needs no entireness — only the simple branch of `map_comp`.) -/
-theorem simple_comp {𝒜 : Type u} [Allegory 𝒜] {a b c : 𝒜} {f : a ⟶ b} {g : b ⟶ c}
-    (hf : Simple f) (hg : Simple g) : Simple (f ≫ g) := by
-  have hrw : (f ≫ g)° ≫ (f ≫ g) = g° ≫ (f° ≫ f) ≫ g := by
-    rw [Allegory.recip_comp]; simp [Cat.assoc]
-  have h1 : g° ≫ (f° ≫ f) ≫ g ⊑ g° ≫ g :=
-    calc g° ≫ (f° ≫ f) ≫ g ⊑ g° ≫ Cat.id b ≫ g := comp_mono_left g° (comp_mono_right hf g)
-      _ = g° ≫ g := by rw [Cat.id_comp]
-  dsimp [Simple]; rw [hrw]; exact le_trans h1 hg
+-- §2.13 `map_comp` and §2.16 `simple_comp` now live in `S2_1.lean` (`Freyd.Alg`).
 
 /-- §2.16(10): a morphism contained in a semi-simple one is itself semi-simple.
     If `R ⊑ F°G` with `F, G` simple, then `R = F°G'` for `G' = (1 ∩ F R G°) ≫ G`
