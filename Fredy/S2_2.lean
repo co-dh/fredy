@@ -582,7 +582,15 @@ theorem lc_embeds_in_globally_complete {𝒜 : Type u} [Allegory 𝒜]
 /-! ## §2.226  Systemic Completion
 
   The SYSTEMIC COMPLETION of an allegory is obtained by splitting the
-  symmetric idempotents of its global completion (§2.226). -/
+  symmetric idempotents of its global completion (§2.226).
+
+  **§2.226 generating-set theorem**: If an allegory A, viewed as a category, has a
+  generating set (e.g. if A is small), then its systemic completion has a unit.
+  [Proof: a generating set remains generating in the completion; one constructs a
+  maximal partial unit from the generating set by the maximality argument in §2.226.]  -/
+
+-- BOOK §2.226: If an allegory A has a generating set (e.g. A is small), then its
+-- systemic completion has a unit.
 
 /-- A split symmetric idempotent in an allegory (§2.226; cf. EffectiveAllegory):
     a symmetric idempotent E on a together with a splitting map f : a → b
@@ -653,5 +661,18 @@ theorem coreflexive_splits {𝒜 : Type u} [TabularAllegory 𝒜] {a : 𝒜} {A 
     ∃ (c : 𝒜) (g : a ⟶ c), Map g ∧ g ≫ g° = A ∧ g° ≫ g = Cat.id c := by
   obtain ⟨c, f, g, hf, hg, hA, htab⟩ := TabularAllegory.tabular A
   exact ⟨c, g, coreflexive_split_of_tabulation hf hg hA htab hcor⟩
+
+/-! ## §2.227  O(Y)-valued sets and sheaves
+
+  "Let Y be a topological space, O(Y) the locale of open subsets thereof.
+  The category of maps of O(Y)-valued sets is equivalent to H(Y)."
+  [§2.227, proof via the bijection: irredundant O(Y)-valued sets ↔ local homeomorphisms
+  over Y (étale spaces); the §2.16(12) construction of O(Y)-valued relations.]
+
+  Requires: types for `Locale`, `O(Y)-valued sets`, `LocalHomeomorphism`/étale spaces,
+  and the category H(Y) of sheaves — none constructed in this repo.  -/
+
+-- BOOK §2.227: Let Y be a topological space, O(Y) the locale of open subsets thereof.
+-- The category of maps of O(Y)-valued sets is equivalent to H(Y).
 
 end Freyd.Alg

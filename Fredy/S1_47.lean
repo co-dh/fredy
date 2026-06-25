@@ -954,6 +954,15 @@ structure RationalCategory [HasPullbacks 𝒞] (G : DenseClass 𝒞) where
                ∃ (F' : Rat → ℬ) (_ : @Functor _ ratCat _ catB F'),
                  ∀ (A : 𝒞), F' (loc A) = F A
 
+/-! ## §1.481  The rational category is cartesian -/
+
+-- BOOK §1.481: Let G be a dense class of monics in a Cartesian category.
+-- Then the rational category A[G⁻¹] is Cartesian and T_G : A → A[G⁻¹] is
+-- a representation of Cartesian categories.
+-- (T_G sends equalizers of u, v to equalizers of T_G(u), T_G(v) via
+-- lifting: if w is the equalizer of u, v in A, then T_G(w) is the
+-- equalizer of x, y in A[G⁻¹]; similarly for products.)
+
 /-! ## Representable functor, Yoneda, fiber, evaluation -/
 
 /-- The YONEDA EMBEDDING: A ↦ Hom(A, -) (§1.464). -/

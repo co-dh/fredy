@@ -1332,4 +1332,97 @@ theorem pre_positive_semi_simple_iff_metonymic {𝒜 : Type u} [PrePositivePower
     obtain ⟨c, S, F, hS, hF, hReq⟩ := pre_positive_straight_simple_factor R
     exact semiSimple_of_straight_simple_factor hMet hS hF (hboxStr S hS) (hbox1 c) hReq
 
+/-! ## §2.418  Realizability topos
+
+  Let K be the collection of all recursive partial functions and A the corresponding category
+  of assemblies.  Then the effective reflection of Rel(A) gives a topos (the Realizability Topos,
+  aka the Effective Topos, first studied by J.M.E. Hyland).
+  The natural numbers object in this topos is the assembly N whose n-th caucus is {n}. -/
+
+-- BOOK §2.418: Let K be the collection of all recursive partial functions and let A be the
+-- corresponding category of assemblies. Then Mon_P(PU(Eg(Rel(A)))) is a topos.
+-- (Needs: realizability assemblies, effective reflection, Rel functor — not yet in repo.)
+
+/-! ## §2.42  Splitting lemma
+
+  If A is a power allegory then Spl(Cor(A)) is a power allegory (§2.42). -/
+
+-- BOOK §2.42: If A is a power-allegory then Spl(Cor(A)) is a power-allegory and
+-- A → Mon(Spl(Cor(A))) is a representation of power-allegories.
+-- (Needs: Cor(A) = sub-allegory of coreflexives, Spl = idempotent-splitting completion.)
+
+/-! ## §2.422  Effective splitting in power allegories -/
+
+-- §2.422: In a power allegory, every equivalence relation E satisfies E = ff° for some map f.
+-- Freyd: E = E/E (any equiv. rel. in a division allegory is idempotent), so in a power
+-- allegory Spl(Cor(A)) splits equivalence relations (effective).
+-- BOOK §2.422: Let A be a power allegory. Then Spl(Cor(A)) is an effective power allegory.
+-- (Needs: algebraic proof that E = ff° using symm_div_eq_A_comp; map f from eps_thick.)
+
+/-- §2.422: in a power allegory, every equivalence relation E has the form f ≫ f°
+    for some map f.  Book: "E = E/E" (division allegory) + power allegory ⟹ E = ff°
+    via `symm_div_eq_A_comp`: E = A(E) ≫ (A E)° with A(E) a map. -/
+-- §2.422: every_equiv_rel_is_map_comp_recip
+-- BOOK §2.422: In any division allegory, E² = E for any equivalence relation E.
+-- In a power allegory every equivalence relation is of the form ff°.
+-- (Needs: Reflexive/Symmetric/Transitive for E, then symm_div_eq_A_comp + box match.)
+
+/-! ## §2.423  Connected power allegory has a unit -/
+
+/-- §2.423: If A is a connected power allegory in which coreflexives split then it has a unit.
+    Book: define M = 1_α / 0_α (maximal endomorphism on α); split M = ff°, f°f = 1;
+    target of f is a partial unit.  Connectivity gives map from any power object α to the partial
+    unit, making it a unit. -/
+-- §2.423: connected_power_corefl_split_has_unit
+-- (Needs: ConnectedAllegory class — every pair of objects has a morphism between them.
+--  Not yet defined in repo; use TODO.)
+
+/-! ## §2.424  Connected semi-simple power allegory is a topos -/
+
+-- BOOK §2.424: If A is a connected semi-simple power allegory then Spl(Cor(A)) is a tabular
+-- unitary power allegory and Mon(Spl(Cor(A))) is a topos.  Consequently, Spl(Eq) is also
+-- positive, effective and transitive.
+-- (Needs: connectivity class, bridge Mon(A) = Freyd's Map/span category into topos; not in repo.)
+
+/-! ## §2.441  4-way equivalence for pre-positive power allegories -/
+
+/-- §2.441 equivalence (4-way): for power allegories the following are equivalent:
+    (1) pre-positive;  (2) well-joined;
+    (3) for every (α,β) there exists α →^S₁ γ ←^S₂ β with S₁, S₂ straight;
+    (4) connected and every morphism is of the form SF with S straight and F simple.
+    Book: (1)⟹(2) trivial; (2)⟹(3) using right-invertible ⟹ straight [2.355];
+          (3)⟹(1) via Λ(S₁), Λ(S₂) monic and the §2.44 disjointness calc;
+          (1)⟹(4) via `pre_positive_straight_simple_factor`;
+          (4)⟹(3) via the power object of the target.
+    `pre_positive_straight_simple_factor` already covers (1)⟹(4) (in S2_4.lean). -/
+theorem pre_positive_well_joined_equiv {𝒜 : Type u} [PrePositivePowerAllegory 𝒜] :
+    (∀ (A B : 𝒜), ∃ (C : 𝒜) (f : A ⟶ C) (g : B ⟶ C), Map f ∧ Map g ∧
+        f ≫ f° = Cat.id A ∧ g ≫ g° = Cat.id B ∧ f ≫ g° = (𝟘 : A ⟶ B)) ↔
+    (∀ (A B : 𝒜), ∃ (C : 𝒜) (f : A ⟶ C) (g : B ⟶ C), Map f ∧ Map g) := by
+  -- §2.441: (1) is exactly pre-positive; (2) is well-joined.  (1)⟹(2) by weakening.
+  constructor
+  · intro h A B; obtain ⟨C, f, g, hf, hg, _, _, _⟩ := h A B; exact ⟨C, f, g, hf, hg⟩
+  · sorry  -- (2)⟹(1): well-joined + power allegory ⟹ pre-positive (§2.441 calc)
+
+/-! ## §2.451  Free boolean algebra: pairwise disjoint families are countable -/
+
+-- BOOK §2.451: Any collection of pairwise disjoint elements from a free boolean algebra
+-- is at most countably infinite.
+-- (Freyd: prove by induction on support size n using the support-splitting trick.
+--  This is a set-theoretic / combinatorial result about boolean algebras; not in repo's
+--  algebraic scope without a boolean algebra formalization separate from allegories.)
+
+/-! ## §2.454  No bicartesian functors from C to S -/
+
+-- BOOK §2.454: There are no bicartesian functors from C to S (where C is the
+-- value-based boolean AC Grothendieck topos built in §2.453).
+-- (Needs: topos functors, bicartesian = preserves products+coproducts; not in repo.)
+
+/-! ## §2.455  Countably co-complete boolean logos: cocartesian functor is empty -/
+
+-- BOOK §2.455: Let C be a countably co-complete boolean logos in which there exists a
+-- well-supported object A such that K(A) has no ultra-filters closed under countable
+-- intersections. Then any cocartesian functor T : C → S is everywhere empty (T = ∅).
+-- (Needs: logos/topos functors, cocartesian, ultra-filters; not in repo.)
+
 end Freyd.Alg

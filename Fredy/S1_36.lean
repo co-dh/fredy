@@ -500,6 +500,43 @@ theorem quotientByKernel_exists (K : EquivalenceKernel 𝒞) :
     intro m hm
     rw [eq_of_heq hm]; exact K.mem_id _
 
+/-! ## §1.366 Universal property of the quotient by an equivalence kernel
+
+  Book §1.366 second emph: if F : A → B is any functor such that F sends every
+  K-map to an identity map, then there exists a unique functor A/K → B making
+  F = A → A/K → B.  This is the universal property of the kernel quotient. -/
+
+/-- §1.366 (universal property): if `F : 𝒞 → 𝒟` collapses all `K`-maps to identities,
+    it factors uniquely through the quotient `Q : 𝒞 → 𝒞/K`.
+    The induced functor sends a class `d = ⟦X⟧` to `F (rep K d)` (the F-image of the
+    chosen representative), and its uniqueness follows from Q being a full embedding. -/
+theorem quotient_universal_property (K : EquivalenceKernel 𝒞)
+    {𝒟 : Type u} [Cat.{v} 𝒟]
+    (F : 𝒞 → 𝒟) [hF : Functor F]
+    (hFK : ∀ {X Y : 𝒞} (f : X ⟶ Y), K.mem f →
+        ∃ _ : F X = F Y, HEq (hF.map f) (Cat.id (F X))) :
+    ∃! (G : QuotientByKernel.Obj K → 𝒟),
+      ∃ (_ : Functor G), ∀ X : 𝒞, G (QuotientByKernel.Q K X) = F X := sorry
+
+/-! ## §1.367 Factorization of equivalence functors via equivalence kernel
+
+  Book §1.367: combining §1.361 and §1.366, any equivalence functor
+  `F : A → B` is the composition of an inflation cross-section, followed
+  by a canonical functor of the form `A → A/K`, followed by an isomorphism.
+
+  That is: there is an equivalence kernel `K ⊆ [T]` (the book's mapping-cylinder
+  kernel) such that the induced quotient functor `[T] → [T]/K` is an isomorphism
+  of categories, and the inflation forgetful map is the identity on the target side.
+  The cleanest statement is that `F` is conjugate to a composition of an inflation
+  cross-section with an onto equivalence functor whose kernel is exactly the book's K. -/
+
+-- BOOK §1.367: Any equivalence functor F : A → B is the composition of
+-- an inflation cross-section, followed by a canonical functor of the form A → A/K
+-- (for some equivalence kernel K of an inflation of A), followed by an isomorphism.
+-- (Combines §1.361 factorization with §1.366 kernel-quotient description.)
+-- TODO: formalize using `factInflation`, `quotientByKernel_exists`, and the
+-- isomorphism `[T] ≅ [T']` from the §1.361 proof.
+
 /-! ## §1.367 Equivalence kernels classify equivalence functors
 
   Combining §1.366 and `equivalenceKernel`: the equivalence kernels of `𝒞` are

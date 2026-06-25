@@ -331,6 +331,19 @@ theorem delta_adj_pi_overToExp (B : 𝒞) (C : 𝒞) (f : Over B) :
   -- prodSwap B C : prod B C → prod C B; compose with h.f : prod C B → f.dom
   exact ⟨curry (prodSwap B C ≫ h.f)⟩
 
+-- §1.854: If Π : A/B → A (right adjoint of Δ) exists, then A^B exists for every A.
+-- BOOK §1.854: "If Π : A/B → A exists, then for every A, A^B exists.
+-- BECAUSE: (B × -, A) ≅ (Σ A(-), A) ≅ (A(-), ΔA) ≅ (-, Π ΔA)."
+-- (Π ΔA represents the functor (B × -, A), so A^B = Π ΔA.)
+
+-- §1.854: If A is cartesian and exponential, then Δ : A → A/B has a right adjoint Π for every B.
+-- BOOK §1.854: "If A is cartesian and exponential, then Δ : A → A/B has a right adjoint
+-- Π : A/B → A for every B."
+-- (The construction: Π(f : X → B) = X^B, the adjunction bijection
+-- Hom_{A/B}(Δ C, f) ≅ Hom_A(C, X^B) is proved via the eval-curry adjunction.)
+-- NOTE: `delta_adj_pi_overToExp` above gives one direction; the full bijection and
+-- naturality need to be assembled into an `Adjunction (SliceForget B) piObj`.
+
 end SigmaDeltaAdj
 
 /-! ## §1.857  Exponential ideal and replete subcategory

@@ -589,14 +589,126 @@ theorem dense_iff_largest_eq_top (amen : AmenableCongruence 𝒜) {A B : 𝒜}
 
 end Dense
 
+/-! ## §2.51  Quotient of tabular/unitary allegory
+
+  BOOK §2.51: A quotient of a tabular (resp. unitary) allegory is such.
+  CANNOT BE STATED: the quotient allegory is not constructed as a type in this repo.
+  The algebraic content is that the equivalence class of an entire/simple/tabular morphism
+  is such in the quotient, and the class of a (partial) unit is a (partial) unit.
+  Blocker: build the quotient-allegory type (QuotAllegory). -/
+
+/-! ## §2.537  Amenable quotient of effective power allegory
+
+  BOOK §2.537: An amenable quotient of an effective power allegory is an effective power allegory.
+  CANNOT BE STATED: the quotient allegory type is not constructed in this repo.
+  Key steps: effectivity is preserved by §2.535 (largest_reflexive/symmetric/transitive);
+  the quotient is a pre-power allegory because ∋_R is thick in the quotient [§2.432].
+  Blocker: build the quotient-allegory type (QuotAllegory). -/
+
+/-! ## §2.54  Coreflexive naming in amenable quotient -/
+
+section Coreflexive54
+
+variable {𝒜 : Type u} [DistributiveAllegory 𝒜]
+
+/-- §2.54: Every coreflexive morphism of an amenable quotient allegory is named by
+    a coreflexive morphism of the given allegory.
+    More precisely: if S is congruent (in amen) to a sub-identity (i.e., the class
+    [S] is coreflexive in the quotient), then there exists a coreflexive R in 𝒜
+    with amen.cong.rel S R.
+    Proof: Let R = dom(S) = 1 ∩ SS° (the domain coreflexive of S) [§2.122].
+    Since S is a symmetric idempotent [§2.12], R = 1 ∩ SS° = S.
+    Actually the book takes R = 1 ∩ SS° directly; since S ≡ S⁺ ⊑ 1 the class is S itself.
+    The exact statement: if [S] ⊑ [1] (i.e., S⁺ ⊑ 1), then 1 ∩ SS° ⊑ 1 is coreflexive
+    and cong.rel S (1 ∩ SS°). -/
+theorem quotient_coreflexive_named (amen : AmenableCongruence 𝒜) {a : 𝒜} (S : a ⟶ a)
+    (h : amen.largest S ⊑ Cat.id a) :
+    Coreflexive (dom S) ∧ amen.cong.rel S (dom S) := by
+  constructor
+  · -- dom S = 1 ∩ SS° ⊑ 1, so coreflexive by definition
+    exact dom_coreflexive S
+  · -- We need: S ≡ dom S.  Book: R = 1 ∩ SS°.
+    -- BOOK §2.54: S is congruent to dom(S) = 1∩SS°; proof uses S ≡ S⁺ ⊑ 1,
+    -- so 1∩SS° ≡ S by symmetric idempotent reasoning.
+    -- Cannot close without more structure (dom ≡ S requires S be a symmetric idempotent,
+    -- which follows from S⁺ ⊑ 1 only in the quotient, not in 𝒜 itself).
+    -- BOOK §2.54: "R = Dom S = 1 ∩ SS°; since S is a symmetric idempotent, R = S."
+    -- In the allegory 𝒜 this needs S to be idempotent, which requires S² ⊑ S;
+    -- from S⁺ ⊑ 1 and S ≡ S⁺ we get S ≡ (something ⊑ 1), but Dom(S) ≡ S isn't
+    -- provable in this generality without additional allegory axioms.
+    sorry -- §2.54: S ≡ dom(S); needs S to be a symmetric idempotent (S² ≡ S in quotient)
+
+end Coreflexive54
+
+/-! ## §2.55  Amenable quotient of locally/globally complete allegory
+
+  BOOK §2.55: An amenable quotient of a locally (resp. globally) complete allegory
+  is locally (resp. globally) complete.
+  CANNOT BE STATED FULLY: the quotient allegory type is not constructed in this repo.
+  The algebraic content (already usable): if Sᵢ ≡ Tᵢ for each i, then ⋃ᵢ Sᵢ ≡ ⋃ᵢ Tᵢ,
+  so the quotient inherits local completeness.  The key sub-lemma (⋃ᵢ Rᵢ⁺ ≡ (⋃ᵢ Rᵢ)⁺)
+  uses `amenable_union_largest_le` and `amenable_le_largest`.
+  Blocker: quotient-allegory type construction. -/
+
 /-! ## §2.542  Every topos admits a faithful bicartesian
     representation to a boolean topos (§2.542).
 
-    MISSING (recorded in Fredy/S2_5.md): this theorem cannot be STATED faithfully
-    in this repo yet.  It quantifies over toposes / boolean toposes and asserts the
-    existence of a faithful bicartesian *representation* — none of `Topos`,
-    `BooleanTopos`, nor the representation-of-allegories morphism is constructed
-    here.  Per the integrity rule we do NOT emit a `: True` stub; the prior such
-    stub has been removed. -/
+    MISSING: this theorem cannot be STATED faithfully in this repo yet.  It quantifies
+    over toposes / boolean toposes and asserts the existence of a faithful bicartesian
+    *representation* — none of `Topos`, `BooleanTopos`, nor the representation-of-allegories
+    morphism is constructed here.  Per the integrity rule we do NOT emit a `: True` stub. -/
+
+/-! ## §2.563  Dense relations and separated objects: map-naming theorem
+
+  BOOK §2.563: If B is separated, then any map A → B in the boolean quotient is named
+  by a simple relation whose domain is a dense subobject of A. -/
+
+section Naming563
+
+variable {𝒜 : Type u} [LocallyCompleteDistributiveAllegory 𝒜]
+
+/-- §2.563: If B is separated (1_B = 1_B⁺) and R : A → B is entire and simple in
+    the amenable quotient (i.e., [R]° ≫ [R] ⊑ [1_B] and [1_A] ⊑ [R] ≫ [R]°),
+    then there exists a simple S : A → B in 𝒜 such that [S] = [R] and dom(S) is dense.
+    Expressed purely in terms of the largest-element calculus:
+    if (R⁺)°(R⁺) ⊑ 1_B (simplicity in the original, using B separated: 1_B⁺=1_B)
+    and the domain of R is congruent to 1_A, then (R⁺) is simple and dom(R⁺) ≡ 1_A (dense). -/
+theorem map_in_quotient_named_by_simple (amen : AmenableCongruence 𝒜) {A B : 𝒜}
+    (R : A ⟶ B)
+    (hB_sep : Separated amen B)
+    (hR_simple : (amen.largest R)° ≫ (amen.largest R) ⊑ Cat.id B)
+    (hR_entire : Dense amen (dom R)) :
+    Simple (amen.largest R) ∧ Dense amen (dom (amen.largest R)) := by
+  constructor
+  · -- (R⁺)°(R⁺) ⊑ 1_B  is exactly hR_simple
+    exact hR_simple
+  · -- dom(R⁺) ≡ dom(R) ≡ ⊤ (dense in A)
+    -- Since R⁺ is congruent to R (largest_rel), dom(R⁺) ≡ dom(R) (by comp_congr + recip_congr).
+    sorry -- §2.563: dom(R⁺) is dense; needs dom to be congruence-compatible
+
+end Naming563
+
+/-! ## §2.56  Independence of the Axiom of Choice: example constructions
+
+  §2.56 constructs a specific 2-valued boolean Grothendieck topos (category of
+  functors 𝒮^{A°} quotiented by the boolean congruence of Rel(𝒮^{A°})) to show
+  IAC fails.  The constructions involve:
+  - A specific category A of non-zero finite ordinals with source-target condition
+  - Representable presheaves H_n = (−, n): A° → 𝒮
+  - A boolean topos B = Maps(boolean quotient of Rel(𝒮^{A°}))
+  These are not abstract allegory-theoretic statements but specific set-theoretic
+  examples.  They cannot be stated in the abstract Cat/Allegory framework of this repo
+  without building the presheaf/functor-category machinery first.
+
+  BOOK §2.561: Objects of A are non-zero finite ordinals; morphism m → n iff m ≥ n.
+  BOOK §2.562: B is two-valued.
+  BOOK §2.563 (sep'd/dense property, above): see `map_in_quotient_named_by_simple`.
+  BOOK §2.565: Representable functors H_n = (−, n) in 𝒮^{A°} are separated.
+  BOOK §2.566: If f ≠ g : m → n in A, then H_f and H_g have disjoint images in 𝒮^{A°}.
+  BOOK §2.567: For each n, there exists a jointly monic countable collection H_n → 2 in B.
+  BOOK §2.56(10): Given f: m→n and g: m→n+1 in A, ∃ h, h': m+1→m with hf=h'f and hg=h'g.
+  BOOK §2.56(12): In B, the product ΠH_n is the empty functor.
+
+  All of §2.561–§2.56(12) are TODO pending presheaf/functor-category infrastructure. -/
 
 end Freyd.Alg

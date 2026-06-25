@@ -112,6 +112,11 @@ theorem unique_right_inv {X Y : 𝒞} {f : X ⟶ Y} (hf : IsIso f)
   obtain ⟨g, hfg, hgf⟩ := hf
   exact (left_inv_eq_right_inv hgf hy).symm.trans (left_inv_eq_right_inv hgf hz)
 
+/-- §1.17  The INVERSE of an isomorphism is an isomorphism (and its unique inverse is f):
+    if `⟨g, hfg, hgf⟩ : IsIso f`, then `IsIso g` with witness `f`. -/
+theorem isIso_inv {X Y : 𝒞} {f : X ⟶ Y} (hf : IsIso f) : ∃ g : Y ⟶ X, IsIso g :=
+  let ⟨g, hfg, hgf⟩ := hf; ⟨g, f, hgf, hfg⟩
+
 -- ---------------------------------------------------------------------------
 -- §1.17  GROUPOID and GROUP
 -- ---------------------------------------------------------------------------

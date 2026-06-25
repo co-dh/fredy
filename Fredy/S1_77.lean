@@ -130,6 +130,39 @@ class OmegaTransitivePreLogos (𝒞 : Type u) [Cat.{v} 𝒞]
     (∀ n : Nat, 1 ≤ n → (InverseImage f (relSub (relPow R n))).le A') →
     (InverseImage f (relSub (transClos R).clos)).le A'
 
+/-! ## §1.776 Representation theorems for σ-transitive categories
+
+  "Every countable positive σ-transitive pre-logos is faithfully representable in a power of S."
+  "Every countable positive σ-transitive logos is faithfully representable in H(X), where X may
+   be taken as either the rationals or the irrationals."
+  "Every countable E-standard bicartesian pre-topos is faithfully representable in a power of S."
+  (Freyd §1.776, proofs in §1.777.)
+
+  These statements require the capitalization lemma (§1.54), atom-splitting, Stone-space
+  machinery, and the full Stone representation theorem (§1.75).  None of that infrastructure
+  is in this file.  See S1_75.lean / S1_77.md for the precise census. -/
+
+-- BOOK §1.776: Every countable positive σ-transitive pre-logos is faithfully representable
+-- in a power of S.
+-- BOOK §1.776: Every countable positive σ-transitive logos is faithfully representable in
+-- H(X), where X may be taken as either the rationals or the irrationals.
+-- BOOK §1.776: Every countable E-standard bicartesian pre-topos is faithfully representable
+-- in a power of S.
+
+/-! ## §1.777 Dense G-delta slice of the Stone space
+
+  "Given a countable atomless positive capital (pre-)logos A and a countable family of stable
+   unions therein, there exists a dense G_δ, Z, in the Stone-space B̂ (B the boolean algebra
+   of complemented subterminators) such that A → H(Z) is faithful and preserves each of the
+   stable unions in the given countable family."
+  (Freyd §1.777; this is the key lemma behind §1.776.)
+
+  Requires Stone-space / G_δ / sheaf-on-X machinery.  Recorded MISSING. -/
+
+-- BOOK §1.777: Given a countable atomless positive capital (pre-)logos A and a countable
+-- family of stable unions therein, there exists a dense G_δ Z in B̂ (B = boolean algebra of
+-- complemented subterminators) such that A → H(Z) is faithful and preserves each stable union.
+
 /-! ## §1.775 Equivalence closure R^E and E-standard pre-logos -/
 
 /-- R is SYMMETRIC if R° ⊑ R. -/
@@ -229,6 +262,18 @@ class EStandardPreLogos (𝒞 : Type u) [Cat.{v} 𝒞]
     RelLe R Rsym → RelLe (graph (Cat.id A)) Rsym → RelLe (Rsym°) Rsym →
     (∀ n : Nat, (InverseImage f (relSub (relPow Rsym n))).le A') →
     (InverseImage f (relSub (equivClos R).clos)).le A'
+
+/-! ## §1.784 In a logos, R/S exists for every pair of relations with a common target
+
+  "In a logos, R/S exists for every pair of relations with a common target."
+  Freyd §1.784: Since every relation S = l° ∘ r, R/S exists iff (Rr°)/l° exists.
+  Specialising to R/f° (f a map): R/f° = (1×f)##(R).  The double-sharp f## exists
+  in any logos, so R/S is constructible in any logos.  Needs `HasRightAdjointImage`
+  (imported via Logos in S1_70); stated here with a sorry pending import of S1_70. -/
+
+-- BOOK §1.784: In a logos, R/S exists for every pair of relations with a common target.
+-- (Proof: reduce to R/f° = (1×f)##(R) via S = l° ∘ r; logos supplies f##.)
+-- TODO: once S1_77 imports S1_70 (Logos), construct this via HasRightAdjointImage.rightAdj.
 
 /-! ## §1.78 Relational quotient R/S -/
 

@@ -135,6 +135,27 @@ theorem sigma_preserves_pullback_π₂ {B : 𝒞} {X Y Z : Over B} (m : OverHom 
 theorem sigma_faithful {B : 𝒞} {X Y : Over B} (f g : OverHom X Y)
     (h : f.f = g.f) : f = g := OverHom.ext h
 
+/-! ## §1.44  Universal property of Σ : A/B → A
+
+  Freyd §1.44: Σ is universal among functors C → A that send the designated
+  terminator of C to B.  Concretely: if C has a designated terminator 1 and
+  T : C → A is a functor with T(1) = B, then there exists a unique functor
+  T' : C → A/B with T'(1_C) = ⟨B, id_B⟩ and T = T' ; Σ.
+
+  A special case: any functor A → A sending each object X to B × X factors
+  as Δ : A → A/B followed by Σ.  Here Δ is the DIAGONAL functor.
+-/
+
+-- BOOK §1.44: Let C be a category with a designated terminator 1, and let
+-- T : C → A be a functor such that T(1) = B.  There exists a unique
+-- T' : C → A/B such that T'(1) = id_B and T = T' ≫ Σ.
+-- (Construct T' by T'(C) = T(C) → T(1) = B via the terminator map.)
+
+/-! ## §1.464  Yoneda representation preserves/reflects cartesian predicates -/
+
+-- BOOK §1.464 (Yoneda): The embedding A → S^{A°} preserves and reflects
+-- the cartesian predicates.
+
 /-! ## §1.531  Σ as a `Functor`; preservation / reflection of monos
 
   `Σ : A/B → A` is genuinely cross-universe (`Over B : Type (max u v)`,

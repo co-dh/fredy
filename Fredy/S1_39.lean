@@ -30,6 +30,34 @@ variable {𝒞 : Type u} [Cat.{v} 𝒞]
 def EquivalentCategories (𝒜 ℬ : Type u) [Cat.{v} 𝒜] [Cat.{v} ℬ] : Prop :=
   ∃ (F : 𝒜 → ℬ) (_ : Functor F), EquivalenceFunctor F
 
+/-! ## §1.399 Conjugation invariance of diagrammatic properties
+
+  Book §1.399: Properties on diagrams preserved and reflected by equivalence
+  functors are invariant under conjugation (natural isomorphism).
+  That is, if F₁ and F₂ : A → B are conjugate (NatIso F₁ F₂), and P is any
+  diagrammatic property preserved and reflected by every equivalence functor,
+  then F₁ satisfies P iff F₂ does.
+
+  Book's proof: factor F₁ as F₁ = F₁' ; forget where F₁' separates objects and
+  F₂ = F₂' ; forget via the mapping-cylinder inflation B' → B; the iso θ' on B makes
+  F₂' a θ'-conjugate of the identity.  Apply §1.396 reflection (inflation forgetful
+  maps have the diagonal fill property). -/
+
+/-- §1.399: A diagrammatic property `P` of functors is CONJUGATION-INVARIANT if
+    whenever F₁ and F₂ are conjugate (NatIso) and P is preserved and reflected by
+    equivalence functors, P holds for F₁ iff it holds for F₂.
+    Formulated as: an iso component at any object shows F₁ and F₂ have the same
+    image up to iso, so any prop stable under post-iso (Thm 1 of §1.395) transfers. -/
+-- §1.399: Properties on diagrams preserved and reflected by equivalence functors are
+-- invariant under conjugation.  That is, if F₁ F₂ : A → B are conjugate then F₁
+-- satisfies the property iff F₂ does.
+-- (Proof in book: construct mapping-cylinder inflation B', factor through B' with
+-- separate-object functors; the iso at each object gives §1.395 Thm 1 applicability.)
+-- BOOK §1.399: if F₁ F₂ : 𝒞 → 𝒟 are conjugate (NatIso F₁ F₂) and P is a
+-- diagrammatic property preserved and reflected by equivalence functors, then
+-- P F₁ ↔ P F₂.
+-- TODO: formalize for `P = Satisfies s` with the Q-sequence framework in S1_38b.lean.
+
 /-- SKELETAL category (§1.364): isomorphic objects are equal. -/
 def IsSkeletal (𝒞 : Type u) [Cat.{v} 𝒞] : Prop :=
   ∀ (A B : 𝒞), Isomorphic A B → A = B

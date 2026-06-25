@@ -363,4 +363,12 @@ theorem atomicallyBased_isComplementedSub [PreLogos 𝒞] [HasIndexedSubobjectJo
   machinery outside this repo's category-theoretic core.
 -/
 
+-- BOOK §1.753: If X ⊂ B̂ is such that T: A → H(X) is faithful, then T is a faithful
+-- representation of logoi.
+-- (Proof: T a pre-logos repr, T faithful + basis property [1.752(2)] ⟹ T preserves
+-- double-sharps, hence a logos representation.)
+
+-- BOOK §1.754: If X = B̂ then T is faithful [1.635] and A → H(B̂) is a representation
+-- of logoi.
+
 end Freyd

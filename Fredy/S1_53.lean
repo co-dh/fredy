@@ -26,6 +26,18 @@ namespace Freyd
 
 variable [ht : HasTerminal 𝒞] [hp : HasBinaryProducts 𝒞] [hpull : HasPullbacks 𝒞]
 
+-- BOOK §1.521: For small A, the functor category S^A is regular and the evaluation
+--   functors form a collectively faithful family of representations of regular categories.
+--   (Blocked: requires functor category machinery not yet available in this repo.)
+
+-- BOOK §1.53 / §1.532: Δ : A → A/B is a representation of pre-regular categories.
+--   (Follows from §1.532: Σ reflects covers + (B×-) preserves covers; formalized in
+--   RelativeCapitalization.lean as `sliceEmbedFunctor` / `overPreRegular`.)
+
+-- BOOK §1.53 / §1.533: Δ is faithful iff B is well-supported.
+--   (⟹ formalized as `slice_embedding_separates` in S1_54.lean;
+--    ⟸ direction in §1.534 shows non-well-supported ⟹ not faithful.)
+
 /-! ## §1.531  Σ reflects covers
 
   Σ-as-a-`Functor` and its mono preservation/reflection live in `S1_44`

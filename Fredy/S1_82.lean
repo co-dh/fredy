@@ -2068,6 +2068,38 @@ private noncomputable def cocomplete_of_complete_precocomplete
         show c.ι i = ιR i ≫ (r ≫ (weakInit c).choose)
         rw [← Cat.assoc, hιR, (weakInit c).choose_spec i] }
 
+-- §1.825 (dual): A category is cocomplete iff it has coequalizers and arbitrary coproducts.
+-- BOOK §1.825: "The last section dualizes to: A category is cocomplete iff it has coequalizers
+-- and arbitrary coproducts."
+-- TODO: requires HasAllCoproducts / HasCoequalizers (from S1_58) analogues.
+-- BOOK §1.825: A category is cocomplete iff it has coequalizers and arbitrary coproducts.
+
+-- §1.825 (cartesian): A category is (co-)cartesian iff every finite diagram has a (co-)limit.
+-- BOOK §1.825: "A category is (co-)cartesian iff every finite diagram has a (co-)limit."
+
+-- §1.834 GENERAL REPRESENTABILITY THEOREM (named theorem stub).
+-- BOOK §1.834: If B is locally small and idempotents split in B then a set-valued functor
+-- T : B → S is representable iff it is a pointwise continuous petty-functor.
+-- (The proof engine is `mgaft_representability`; this would be a named corollary.)
+
+-- §1.835 (named theorem stub).
+-- BOOK §1.835: A locally small category in which idempotents split has a coterminator iff it
+-- has a pre-coterminator and if all small diagrams have lower-bounds.
+
+-- §1.83(10) helper: If T : B → S is continuous and B is complete and well-powered then
+-- El(T) is also complete and well-powered. If {Cᵢ} is a cogenerating set for B then
+-- {⟨x, Cᵢ⟩ | x ∈ T(Cᵢ), i ∈ I} is a cogenerating set for El(T).
+-- BOOK §1.83(10).
+
+-- §1.83(10): A complete well-powered category with a cogenerating set has a coterminator.
+-- BOOK §1.83(10): follows from SAFT applied to the identity functor.
+
+-- §1.83(11): Dual of SAFT.
+-- BOOK §1.83(11): If A is co-complete, well-co-powered and with a generating set, then every
+-- cocontinuous functor from A to a locally small category has a right adjoint and every
+-- contravariant continuous functor (carrying colimits to limits) to a locally small category
+-- has an adjoint on the right.
+
 /-- §1.837: A complete locally small category is cocomplete iff it is pre-cocomplete. -/
 theorem complete_cocomplete_iff_precocomplete
     (ℬ : Type u₁) [Cat.{v} ℬ] [Complete ℬ] :

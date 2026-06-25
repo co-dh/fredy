@@ -38,6 +38,30 @@ variable {𝒞 : Type u} [Cat.{v} 𝒞]
 
 namespace Freyd
 
+/-! ## §1.63 Slice of a (positive) pre-logos is a (positive) pre-logos
+
+  Freyd §1.63: for any pre-logos A and object B, the slice A/B is again a
+  pre-logos, and Σ : A/B → A is an iso on subobject lattices.  The two
+  italic propositions at §1.63 are:
+
+  (1) "If A is a (positive) pre-logos then so is A/B."
+  (2) "Any (positive) pre-logos is faithfully representable in a capital
+      (positive) pre-logos."
+
+  Both require slice/over-category infrastructure (`Over`) + a `PreLogos`
+  instance on `Over A B`.  That infrastructure lives in `SliceRegular.lean`
+  (`PreRegularCategory (Over B)`).  The full `PreLogos (Over B)` instance
+  would also need `HasSubobjectUnions (Over B)`, which is not yet supplied.
+  Propositions recorded as TODO until the `PreLogos (Over B)` instance lands. -/
+
+-- BOOK §1.63: If A is a (positive) pre-logos then so is A/B.
+-- TODO: needs `PreLogos (Over B)` instance (slice inherits unions via Σ iso).
+
+-- BOOK §1.63: Any (positive) pre-logos is faithfully representable in a capital
+-- (positive) pre-logos.
+-- TODO: uses §1.543 capitalization lemma (proven) + slice construction above;
+-- blocked on `PreLogos (Over B)` instance.
+
 /-! ## §1.631 Complemented subobject
 
   A₁ ⊆ A is COMPLEMENTED if ∃ A₂ ⊆ A with A₁∩A₂=0, A₁∪A₂=A. -/
@@ -110,6 +134,24 @@ def killedValues {𝒟 : Type u} [Cat.{v} 𝒟] [PreLogos 𝒞] [PreLogos 𝒟]
     (T : 𝒞 → 𝒟) [Functor T] : (Subobject 𝒞 one) → Prop :=
   λ U => @Isomorphic 𝒟 _ (T U.dom) (PreLogos.bottom (T U.dom)).dom
 
+/-! ## §1.637 Special pre-logos and characterization
+
+  A pre-logos is SPECIAL if it satisfies every universal sentence in the
+  predicates of pre-logoi satisfied by the category of sets.
+  The book gives an elementary internal characterization at §1.637 and
+  studies S^A and LH(Y) at §1.638. -/
+
+/-- A pre-logos is SPECIAL if for every pair of proper subobjects A'⊂A, B'⊂B,
+    the subobject (A'×B)∪(A×B') is proper in A×B.
+    §1.637: this is the elementary internal characterization of special pre-logoi. -/
+-- BOOK §1.637: A pre-logos is special iff for every pair of proper subobjects
+--   A'⊂A, B'⊂B, (A'×B)∪(A×B') is a proper subobject of A×B.
+-- TODO: needs binary-product interaction with `HasSubobjectUnions`; the
+-- properness direction uses `finite_separation` (FiniteSeparation.lean).
+
+-- BOOK §1.642: For A a small category, S^A is a boolean pre-logos iff A is a groupoid.
+-- TODO: needs Set-valued functor category (S^A) infrastructure not in this repo.
+
 /-! ## §1.646 Faithful representability of small special categories
 
   Every small special Cartesian category is faithfully representable in Set.
@@ -123,9 +165,14 @@ def killedValues {𝒟 : Type u} [Cat.{v} 𝒟] [PreLogos 𝒞] [PreLogos 𝒟]
 -- Proof combines §1.472/§1.637 with an ultra-filter diagonal argument.
 -- Requires ultra-filter infrastructure outside this repo's scope.
 
+-- §1.646 (note): Every small special positive pre-logos embeds faithfully in Set.
+-- Same proof as above, additionally using that T_F̂ preserves disjoint unions
+-- (§1.634, for an ultra-filter F̂).  Requires ultra-filter infrastructure.
+
 -- §1.647 (note): A boolean pre-logos is special iff two-valued.
--- Proof: complement of (A₁×B₂)∪(B₁×A₂) in B₁×B₂ is A₁°×A₂°.
--- Requires complement intersection/union infrastructure not yet formalized.
+-- Proof: complement of (A₁×B)∪(A×B₂) in A×B is A₁'×B₂' (§1.647 formula);
+-- two-valued iff every subobject lattice is {0,1} (degenerate or two-element boolean alg).
+-- TODO: needs `complement_product_union` lemma (complement arithmetic in BooleanPreLogos).
 
 -- §1.648 (note): Ultra-power T = Set^I → Set^I/F is bicartesian iff F is
 -- a complete measure (meets every countable partition of I).

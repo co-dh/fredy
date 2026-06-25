@@ -229,4 +229,29 @@ theorem box_guard_fails_at_id_unless_degenerate {a : 𝒜} :
     dsimp [dom]
     rw [Allegory.recip_recip, recip_id, Cat.id_comp, Allegory.inter_idem]
 
+/-! ## §2.433  Pre-power allegory: Spl(Eq) is a power allegory -/
+
+-- BOOK §2.433: If A is a pre-power allegory and E_A is its class of equivalence relations,
+-- then Spl(Eq(A)) is a power allegory.
+-- (Book: Spl(Eq) is effective [2.169]; by §2.432 it suffices to show pre-power.
+--  Given equivalence relation E with thick T (T□ = E□), the morphism TE : E → E is thick
+--  in Spl(Eq) via witness R̂ = E' ≫ (R/ₛT).
+--  Needs: the Spl(Eq) category construction — not yet in repo.)
+
+/-! ## §2.434  Systemic completion is a power allegory -/
+
+-- BOOK §2.434: The systemic completion of a small locally complete distributive allegory
+-- is a power allegory.
+-- (Book: reduce to one-object case, construct thick T via evaluation matrix T_{f,i}=f(i),
+--  witness R̂_{j,f} = 1/0 depending on R_{j,i}=f(i) for all i; then split coreflexives.
+--  Needs: globally complete distributive allegory and systemic completion — not in repo.)
+
+/-! ## §2.435  Connected division allegory with thick endomorphism is trivial -/
+
+-- BOOK §2.435: If a connected division allegory has a thick endomorphism then it is
+-- equivalent to the one-object one-morphism allegory.
+-- (Book: the endomorphism sub-allegory on one object is pre-power; §2.436
+--  `one_object_pre_power_inconsistent` forces 1=𝟘 there; connectivity makes every 0 entire.
+--  Needs: ConnectedAllegory class — not yet in repo.)
+
 end Freyd.Alg

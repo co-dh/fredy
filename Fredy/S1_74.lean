@@ -132,4 +132,47 @@ theorem dominates_trans {E : Type u₃} [Cat.{v} E] {D' : Type u₁} [Cat.{v} D'
       subst hA₁
       simp only [hf₀]
 
+/-! ## §1.744 D' dominates D ⟹ S^D faithfully representable in S^D'
+
+  "If D' dominates D then S^D is faithfully representable in S^D' as a logos."
+  (Freyd §1.744; proof is identity-checking using §1.713's formula for double-sharps
+  in functor categories.)
+
+  Needs: logos structure on functor categories S^D (double-sharps from §1.713 =
+  pointwise formula), plus the functor `F*: S^D → S^D'` given by composition with F.
+  None of this exists in the repo (no concrete model of S^D).  Recorded MISSING. -/
+
+-- BOOK §1.744: If D' dominates D then S^D is faithfully representable in S^D' as a logos.
+
+/-! ## §1.745 Every category dominated by a rooted tree
+
+  "Every category (with a coterminator) is dominated by a (rooted) tree."
+  (Freyd §1.745; by taking P(D) = tree of finite composable paths, ordered by prolongation,
+  with functor P(D) → D sending a path to the target of its last map.)
+
+  Needs: a concrete model of the path-tree P(D) as a category.  Recorded MISSING. -/
+
+-- BOOK §1.745: Every category (with a coterminator) is dominated by a (rooted) tree.
+
+/-! ## §1.746 Every countable category dominated by the binary tree
+
+  "Every countable category with a coterminator is dominated by the binary tree."
+  (Freyd §1.746; by homogenising P(D) to D⁺ (words of morphisms) and then to ℕ*,
+  then dominating ℕ* by the binary tree 2* via the function f with f⁻¹(n) infinite.)
+
+  Needs: concrete models of D⁺, ℕ*, 2*.  Recorded MISSING. -/
+
+-- BOOK §1.746: Every countable category with a coterminator is dominated by the binary tree.
+
+/-! ## §1.748 Open continuous map ⟹ logos representation
+
+  "If g: X → Y is an open continuous map, then g#: H(Y) → H(X) is a representation of logoi."
+  (Freyd §1.748; proof: g open ⟹ g# preserves double-sharps, via the pointwise description
+  of double-sharps in H(X) as unions of open subspaces [§1.713].)
+
+  Purely topological (Lazard sheaves, open maps).  Recorded MISSING. -/
+
+-- BOOK §1.748: If g: X → Y is an open continuous map, then g#: H(Y) → H(X) is a
+-- representation of logoi.
+
 end Freyd

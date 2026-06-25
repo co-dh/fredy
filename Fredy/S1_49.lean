@@ -1360,4 +1360,59 @@ theorem cancellationLemma (τ : TCat 𝒞) (S T : Table 𝒞) (j : Fin S.len)
 
 end TCat
 
+/-! ## §1.498  Canonical Cartesian structure in a τ-category -/
+
+-- BOOK §1.498: A τ-category has a CANONICAL CARTESIAN STRUCTURE.
+-- The canonical product ⟨A × B; p₁, p₂⟩ is defined as the unique τ-table
+-- on the pair (A, B).  The canonical pullback is likewise the unique τ-table
+-- on the pair of projections.
+
+/-! ## §1.49(10)  Lemmas for τ-categories -/
+
+-- BOOK §1.49(10): Canonical products are strictly associative:
+--   (A × B) × C = A × (B × C) with the canonical projections.
+-- The terminator is strictly a two-sided unit: 1 × A = A = A × 1
+-- (not just up to isomorphism: the canonical projections ARE identities).
+-- If each square in a stacked pullback diagram is a canonical pullback,
+-- then so is the rectangle.
+
+/-! ## §1.4(10)1  Free τ-category -/
+
+-- BOOK §1.4(10)1: For every small Cartesian category A there exists a free
+-- τ-category A → A^τ where A → A^τ is an equivalence functor.
+-- (The equivalence-kernel of the functor consists of identity maps and
+-- isomorphisms between subterminators.)
+
+/-! ## §1.4(11)5  Generic point generates A/B -/
+
+-- BOOK §1.4(11)5: Every object and morphism in A/B is obtainable by taking
+-- canonical pullbacks of the generic point ε : 1 → ΔB and morphisms of the
+-- form Δx (for morphisms x in A).
+
+/-! ## §1.4(11)6  Unique τ-functor from a point -/
+
+-- BOOK §1.4(11)6: For any τ-functor F : A → B and point x : 1 → F(B),
+-- there exists a unique τ-functor F_x : A/B → B such that Δ ; F_x = F and
+-- F_x(ε) = x (where ε is the generic point of A/B).
+
+/-! ## §1.4(11)9  Universal property rephrased via Γ -/
+
+-- BOOK §1.4(11)9: Given any τ-functor F : A → B and transformation
+-- η : T(Δ(-)) → T(F(-)) (where T = (1, -) is the global-sections functor),
+-- there exists a unique τ-functor G : A/B → B such that γ_G = η.
+
+/-! ## §1.4(12)1  Metatheorem for τ-categories -/
+
+-- BOOK §1.4(12)1 METATHEOREM: An equation between terms (built from canonical
+-- products, equalizers, pullbacks, resurfacing, and the terminator) is true
+-- for all τ-categories if and only if it is true for P (the τ-category of
+-- von Neumann ordinals less than ω^ω).
+
+/-! ## §1.4(12)2  Key lemma for the metatheorem -/
+
+-- BOOK §1.4(12)2: If A is countable, then for any morphism f ∉ |A^τ| there
+-- exists an ω-ordering of A and an object B ∈ A such that (B, f) ∉ |P|.
+-- (This is the inductive step used to embed the free τ-category of a
+-- countable Cartesian category into P.)
+
 end Freyd

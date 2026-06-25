@@ -13,6 +13,7 @@
 -/
 
 import Fredy.S1_1
+import Fredy.S1_41   -- for Freyd.IsIso, Freyd.Monic (§2.135, §2.144, §2.145)
 
 
 universe v u
@@ -648,5 +649,154 @@ def SemiSimple {a b : 𝒜} (R : a ⟶ b) : Prop :=
 /-- A SEMI-SIMPLE ALLEGORY: every morphism is semi-simple (§2.16(10)). -/
 class SemiSimpleAllegory (𝒜 : Type u) extends Allegory 𝒜 where
   semi_simple {a b : 𝒜} (R : a ⟶ b) : SemiSimple R
+
+/-! ## Missing propositions from §2.12–§2.16(13) -/
+
+-- §2.12: Symmetric and transitive imply idempotent.
+-- Proof: R ⊑ RR°R (§2.112), R° ⊑ R (symmetric), so RR°R ⊑ RRR ⊑ R² via transitivity.
+theorem symmetric_transitive_idempotent {a : 𝒜} {R : a ⟶ a}
+    (hS : Symmetric R) (hT : Transitive R) : R ≫ R = R := by
+  apply le_antisymm hT
+  have h_RRrecipR : R ⊑ (R ≫ R°) ≫ R := by
+    have h_mod := modular_le (Cat.id a) R R
+    simpa [Cat.id_comp, Allegory.inter_idem] using h_mod
+  calc
+    R ⊑ (R ≫ R°) ≫ R := h_RRrecipR
+    _ ⊑ (R ≫ R) ≫ R := comp_mono_right (comp_mono_left R hS) R
+    _ = R ≫ (R ≫ R) := by rw [Cat.assoc]
+    _ ⊑ R ≫ R := comp_mono_left R hT
+
+-- §2.123: dom(RS) ⊑ dom(R).
+-- BOOK §2.123: Consequently, Dom(RS) ⊑ Dom(R).
+-- (Proof uses the domain characterization: A ⊑ dom R iff R ⊑ AR, §2.122.)
+
+-- §2.131: R and S entire/simple/maps implies RS is entire/simple/a map;
+-- RS entire implies R entire.
+theorem simple_comp {a b c : 𝒜} {R : a ⟶ b} {S : b ⟶ c} (hR : Simple R) (hS : Simple S) :
+    Simple (R ≫ S) := by
+  -- (RS)°(RS) = S°(R°R)S ⊑ S°1S = S°S ⊑ 1
+  dsimp [Simple]
+  rw [Allegory.recip_comp]
+  calc
+    (S° ≫ R°) ≫ (R ≫ S) = S° ≫ (R° ≫ (R ≫ S)) := by rw [Cat.assoc]
+    _ = S° ≫ ((R° ≫ R) ≫ S) := by rw [Cat.assoc]
+    _ ⊑ S° ≫ (Cat.id b ≫ S) := comp_mono_left S° (comp_mono_right hR S)
+    _ = S° ≫ S := by rw [Cat.id_comp]
+    _ ⊑ Cat.id c := hS
+
+theorem entire_comp {a b c : 𝒜} {R : a ⟶ b} {S : b ⟶ c} (hR : Entire R) (hS : Entire S) :
+    Entire (R ≫ S) := by
+  -- dom R = 1 ⊑ RR°; dom S = 1 ⊑ SS°.
+  -- dom(RS) = 1 ∩ RS(RS)°; need 1 ⊑ RS S° R° ⊑ R(dom S)R° = R 1 R° = RR° ⊑ ... ⊑ 1.
+  sorry
+
+theorem map_comp {a b c : 𝒜} {R : a ⟶ b} {S : b ⟶ c} (hR : Map R) (hS : Map S) :
+    Map (R ≫ S) :=
+  ⟨entire_comp hR.1 hS.1, simple_comp hR.2 hS.2⟩
+
+theorem entire_of_comp_entire {a b c : 𝒜} {R : a ⟶ b} {S : b ⟶ c} (h : Entire (R ≫ S)) :
+    Entire R := by
+  sorry
+
+-- §2.135: If R is an isomorphism (§1.41 IsIso) then R is a map and R⁻¹ = R°.
+theorem iso_is_map {a b : 𝒜} {R : a ⟶ b} (hR : Freyd.IsIso R) : Map R := by
+  sorry
+
+-- §2.135: The inverse of an iso equals its reciprocal.
+-- If Rinv is the inverse of iso R (i.e. R ≫ Rinv = 1 ∧ Rinv ≫ R = 1), then Rinv = R°.
+theorem iso_inv_eq_recip {a b : 𝒜} {R : a ⟶ b} (hR : Freyd.IsIso R)
+    {Rinv : b ⟶ a} (h1 : R ≫ Rinv = Cat.id a) (h2 : Rinv ≫ R = Cat.id b) :
+    Rinv = R° := by
+  sorry
+
+-- §2.136: If F is simple then F(R ∩ S) = FR ∩ FS.
+theorem simple_dist_inter {a b c : 𝒜} {F : a ⟶ b} (hF : Simple F) (R S : b ⟶ c) :
+    F ≫ (R ∩ S) = (F ≫ R) ∩ (F ≫ S) := by
+  apply le_antisymm
+  · -- F(R∩S) ⊑ FR ∩ FS by semi-distributivity
+    have h := Allegory.semidistrib F R S
+    apply le_inter
+    · rw [h]; exact le_trans (inter_lb_left _ _) (inter_lb_left _ _)
+    · rw [h]; exact inter_lb_right _ _
+  · -- FR ∩ FS ⊑ F(R ∩ S): use modular law + F°F ⊑ 1 to absorb F° inside.
+    -- FR ∩ FS ⊑ F(R ∩ F°FS) (modular) ⊑ F(R ∩ S) (since F°FS ⊑ (F°F)S ⊑ S).
+    sorry
+
+-- §2.143: If f,g tabulates R then x°y ⊑ R iff ∃! h s.t. x = hf, y = hg (and h is a map).
+theorem tabulation_universal {a b c t : 𝒜} {f : a ⟶ c} {g : b ⟶ c} {R : a ⟶ b}
+    (hTab : Tabulates f g R) {s : t ⟶ a} {r : t ⟶ b} :
+    (s° ≫ r ⊑ R) ↔ ∃! (h : t ⟶ c), Map h ∧ s = h ≫ f ∧ r = h ≫ g := by
+  sorry
+
+-- §2.144: Tabulations are unique up to unique isomorphism:
+-- if f,g and f',g' both tabulate R then ∃! iso u with f' = uf, g' = ug.
+theorem tabulation_unique {a b c c' : 𝒜} {f : a ⟶ c} {g : b ⟶ c}
+    {f' : a ⟶ c'} {g' : b ⟶ c'} {R : a ⟶ b}
+    (hTab : Tabulates f g R) (hTab' : Tabulates f' g' R) :
+    ∃! (u : c ⟶ c'), Freyd.IsIso u ∧ f' = u ≫ f ∧ g' = u ≫ g := by
+  sorry
+
+-- §2.145: If a coreflexive morphism A is tabular then ∃ monic map h with A = h°h.
+theorem coreflexive_tabular_monic {a : 𝒜} {A : a ⟶ a} (hA : Coreflexive A) (hTab : Tabular A) :
+    ∃ (c : 𝒜) (h : a ⟶ c), Map h ∧ Freyd.Monic h ∧ A = h° ≫ h := by
+  sorry
+
+-- BOOK §2.147: If A is a tabular allegory then Map(A) has pullbacks, equalizers, images
+-- and pullbacks transfer images.
+-- (Constructive description: pullback of f,g = tabulation of fg°; equalizer of f,g = tabulation
+-- of dom(f∩g); image of f = tabulation of dom(f°); g cover iff g° entire.)
+
+-- BOOK §2.148: If A is a tabular allegory then A ≅ Rel(Map(A)).
+
+-- §2.151: If π is a partial unit then Dom : (α,π) → Cor(α) is an iso of (α,π) onto an ideal.
+-- BOOK §2.151: If π is a partial unit then Dom : (α,π) → Cor(α) is an isomorphism of
+-- the semi-lattice (α,π) onto an ideal of Cor(α).
+
+-- §2.152: The unique entire morphism p_α : α → λ (for unit λ) is a map.
+theorem unit_proj_is_map (a : 𝒜) [UnitaryAllegory 𝒜] :
+    ∃ (p : a ⟶ UnitaryAllegory.unit_obj (𝒜 := 𝒜)), Map p := by
+  sorry
+
+-- BOOK §2.152: If λ is a unit then for any α,β, the morphism p_α(p_β)° is maximum in (α,β).
+
+-- BOOK §2.154: The category of small regular categories is isomorphic to the
+-- category of small unitary tabular allegories.
+
+-- BOOK §2.154: A small unitary tabular allegory may be faithfully represented
+-- in a power of the allegory of sets.
+
+-- §2.162: If R,S splits a symmetric idempotent T (RS = T, SR = 1) then S = R°.
+theorem split_symm_idem_recip {a c : 𝒜} {R : a ⟶ c} {S : c ⟶ a} {T : a ⟶ a}
+    (hRS : R ≫ S = T) (hSR : S ≫ R = Cat.id c) (hSymm : Symmetric T) :
+    S = R° := by
+  sorry
+
+-- §2.163: A coreflexive morphism A is a split idempotent iff A is tabular.
+theorem coreflexive_split_iff_tabular {a : 𝒜} {A : a ⟶ a} (hA : Coreflexive A) :
+    (∃ (c : 𝒜) (h : a ⟶ c), Map h ∧ h° ≫ h = A ∧ h ≫ h° = Cat.id c) ↔ Tabular A := by
+  sorry
+
+-- §2.163: An equivalence relation E is a split idempotent iff it is effective
+-- (∃ map f with ff° = E, f°f = 1).
+def EquivalenceRel {a : 𝒜} (E : a ⟶ a) : Prop :=
+  Reflexive E ∧ Symmetric E ∧ Transitive E
+
+theorem equiv_rel_split_iff_effective {a : 𝒜} {E : a ⟶ a} (hE : EquivalenceRel E) :
+    (∃ (c : 𝒜) (f : a ⟶ c), Map f ∧ f ≫ f° = E ∧ f° ≫ f = Cat.id c) ↔
+    ∃ (c : 𝒜) (R : a ⟶ c) (S : c ⟶ a), R ≫ S = E ∧ S ≫ R = Cat.id c := by
+  sorry
+
+-- BOOK §2.165: If A is pre-tabular then Spl(Cor(A)) remains pre-tabular.
+
+-- BOOK §2.166: An allegory is tabular iff it is pre-tabular and all coreflexive morphisms split.
+
+-- BOOK §2.167: For a pre-tabular allegory A, Spl(Cor(A)) is its tabular reflection.
+
+-- BOOK §2.16(10): Let A be an allegory, SI its class of symmetric idempotents.
+-- Spl(SI) is tabular iff A is semi-simple.
+
+-- BOOK §2.16(13): If C is an AC regular category and Ĉ its effective reflection,
+-- then C is equivalent to the full subcategory of projective objects in Ĉ;
+-- hence if Ĉ is not effective then C is not AC.
 
 end Freyd.Alg

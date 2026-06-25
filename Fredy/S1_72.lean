@@ -559,11 +559,59 @@ class FocalLogos (𝒞 : Type u) [Cat.{v} 𝒞] extends Logos 𝒞 where
   one_coprime    : Coprime (𝒞 := 𝒞) (one)
   one_projective : Projective (𝒞 := 𝒞) (one)
 
+/-! ## §1.722 Poset is a logos iff Heyting algebra
+
+  "A poset, when viewed as a category, is a logos iff it is a Heyting algebra
+  (more precisely, iff it is the poset underlying a [necessarily unique] Heyting algebra)."
+  (Freyd §1.722, combining §1.721 and §1.613.)
+
+  The infrastructure for this requires a concrete model of "poset viewed as a category"
+  (a thin category) together with the identification of its logos structure with a Heyting
+  algebra on the carrier.  That model is not built in this repo (there is no thin-category
+  constructor); the statement is recorded below as a book reference. -/
+
+-- BOOK §1.722: A poset, when viewed as a category, is a logos iff it is a Heyting algebra
+-- (more precisely, iff it is the poset underlying a [necessarily unique] Heyting algebra).
+
+/-! ## §1.733 Positive pre-logos focal iff connected projective terminator
+
+  "A positive pre-logos is focal iff its terminator is a connected projective."
+  (Freyd §1.733; book proof: projective 1 ⟹ 1 is a representation of regular cats,
+  so it preserves unions iff it preserves disjoint unions [1.625]; connected = exactly
+  two complemented subobjects.) -/
+
+/-- §1.733: A positive pre-logos is FOCAL iff its terminator is a CONNECTED PROJECTIVE.
+    (⟹) `FocalLogos` gives `one_coprime` and `one_projective`; coprime + connected follow.
+    (⟸) Connectedness gives coprimeness via §1.625 (projective 1 preserves disjoint unions).
+    Needs `HasDisjointUnions` / §1.625 (projective 1 preserves disjoint ⟹ binary unions)
+    not yet in the repo; stated as a sorry-stub. -/
+theorem focal_iff_connected_projective
+    [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
+    [PreLogos 𝒞] :
+    FocalLogos 𝒞 ↔ (Connected (𝒞 := 𝒞) one ∧ Projective (𝒞 := 𝒞) one) := by
+  sorry
+
 -- §1.734 FOCAL REPRESENTATION THEOREM (every small logos has a collectively faithful
 -- family of focal representations) and §1.74 GEOMETRIC REPRESENTATION THEOREM (countable
 -- logos faithfully represented in a power of sheaves on ℝ) are recorded MISSING in
 -- S1_72.md: stating them faithfully needs the focal-representation / sheaf-on-ℝ
 -- infrastructure not yet in the repo. Per the integrity rule we do NOT emit vacuous
 -- `: True` stubs for them.
+
+-- BOOK §1.734: Any small (positive) logos has a small, collectively faithful family of
+-- focal representations.
+
+-- BOOK §1.734: A logos may be faithfully represented in a single focal logos iff its
+-- terminator is coprime.
+
+-- BOOK §1.735: Any countable (positive) logos has a countable, collectively faithful
+-- family of focal representations.
+
+-- BOOK §1.735: Any countable logos with a coprime terminator may be faithfully
+-- represented in a countable focal logos.
+
+-- BOOK §1.72(10): Every Heyting algebra can be covered by a Heyting algebra for which the
+-- functor T = (1,_) is a representation of bicartesian categories.
+-- (Via the scone construction; §1.72(11): a free Heyting algebra is a retract of its scone.)
 
 end Freyd

@@ -806,5 +806,89 @@ theorem simplePart_largest {a b : 𝒜} (R : a ⟶ b) (A : a ⟶ a)
     exact le_trans (comp_mono_right hA R) (by rw [Cat.id_comp]; exact le_refl R)
   · exact hAR
 
+/-! ## §2.315  Division allegory → locally complete distributive allegory
+
+  Any division allegory is faithfully representable in a locally complete
+  distributive allegory, and thus in a globally complete allegory.
+
+  (Proof sketch: R/S is constructible as ⊔{T | TS ⊑ R} in the local completion;
+  the local-completion embedding A → Â is faithful; and a globally complete
+  allegory subsumes locally complete.) -/
+
+-- §2.315: Any division allegory faithfully represents in a locally complete distributive allegory.
+-- BOOK §2.315: Any division allegory is faithfully representable in a locally complete
+-- distributive allegory, and thus in a globally complete allegory.
+-- (Full proof requires constructing the local-completion functor on DivisionAllegory;
+-- the faithful embedding A → Â via principalDowndeal is available from §2.221.)
+-- BOOK §2.315: (The process of local completion preserves division.)
+
+/-! ## §2.32  Tabular unitary division allegory ↔ Mσn(A) is a logos
+
+  The MAP CATEGORY Mσn(A) of a tabular unitary allegory A has:
+  - objects = objects of A
+  - morphisms = maps (entire + simple morphisms) of A
+  The book's §2.32 states: A is a tabular unitary division allegory iff Mσn(A)
+  is a logos.
+
+  (One direction was shown in §1.784: Rel(C) is a division allegory when C is a
+  logos.  The other direction: construct the right adjoint to f# using f\(-)/f°.) -/
+
+-- BOOK §2.32: A is a tabular unitary division allegory iff Mσn(A) is a logos.
+-- (Requires: defining the map subcategory Mσn(A) as a Cat instance, and showing
+-- it satisfies the Logos typeclass.  The map subcategory exists in this repo for
+-- allegories via Map/Entire/Simple; the logos structure needs the division operation
+-- to construct right adjoints f#.)
+
+/-! ## §2.331  Moerdijk representation theorems
+
+  These results about faithful representation in O(X)-valued sets are classical
+  topology / locale theory results (Ieke Moerdijk).  They require the locale
+  O(X) of open sets of a metrizable space X (without isolated points) and the
+  allegory of O(X)-valued sets [§2.227]. -/
+
+-- BOOK §2.331 (i): Let X be a metrizable space without isolated points, O(X) the locale
+-- of open subsets thereof.  Any countable tabular unitary division allegory may be
+-- faithfully represented in a countable power of the allegory of O(X)-valued sets.
+
+-- BOOK §2.331 (ii): Any countable tabular unitary division allegory may be faithfully
+-- represented in a countable power of the allegory of O(X)-valued sets.
+
+-- BOOK §2.331 (iii): Any countable logos may be faithfully represented in a countable
+-- power of H(X).
+
+-- BOOK §2.331 (iv): Any countable logos with a coprime terminator may be faithfully
+-- represented in H(X).
+
+-- (These require: locale O(X), Heyting algebra H(X), valued-sets allegory §2.227, and
+-- Moerdijk's topological construction of the open-set embedding O(2*) → O(X).
+-- Out of scope for the current axiomatic allegory formalization.)
+
+/-! ## §2.34  Split allegory PRel(E) is a division allegory -/
+
+-- §2.34: Let A be a division allegory, E a class of symmetric idempotents therein.
+-- Then PRel(E) is a division allegory.
+-- If |A| ⊂ E then A → PRel(E) is a faithful representation of division allegories.
+-- BOOK §2.34: [statement as above; division in PRel(E) constructed entrywise from A's division]
+-- (Requires: the split-allegory PRel(E) construction from §2.13; already have SplitSymmIdem.
+-- The division on PRel(E) is: (A→R/S←B) := A →(R/S)← B, where R/S is computed in A.)
+
+/-! ## §2.342  Positive reflection of a division allegory -/
+
+-- §2.342: If A is a division allegory then its positive reflection A⁺ is a division allegory.
+-- BOOK §2.342: (R/S)_{ij} = ⋂_k (R_{ik}) / (S_{jk}) (matrix-wise division).
+-- (Requires: AlgMat composition and the DivisionAllegory instance on A⁺ matrices.)
+-- The AlgMat type is defined in S2_2.lean; the division below uses it.
+
+-- BOOK §2.342: If A is a division allegory then A⁺ (AlgMat) is a division allegory,
+-- with division (R/S)_{ij} = ⋂_k R_{ik}/S_{jk}.
+
+/-! ## §2.343  Every logos faithfully and fully embeds in a positive effective logos -/
+
+-- §2.343: Every logos may be faithfully and fully represented in a positive effective logos.
+-- BOOK §2.343: C → Mσn(H̃(Eq(Rel(C))⁺)) is a reflection of C among positive effective logoi
+-- [using §2.32, §2.216, §2.169].
+-- (Requires: the construction chain Rel(C) → local completion → positive reflection A⁺ →
+-- effective completion; each step is partially available in this repo but the composition
+-- into a full-logos embedding is not yet assembled.)
 
 end Freyd.Alg

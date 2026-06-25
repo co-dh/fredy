@@ -398,6 +398,12 @@ def cokernelMap [HasZeroObject 𝒞] [HasCoequalizers 𝒞] {A B : 𝒞} (x : A 
     B ⟶ Cokernel x :=
   (HasCoequalizers.coeq x (zeroMorphism A B)).map
 
+-- BOOK §1.592: Any small abelian category A may be faithfully represented as a
+-- bicartesian category in the category of abelian groups (Ab).
+-- (Proof: §1.552 gives a faithful representation T : A → S of regular categories;
+-- the abelian-group structure on A induces one on each T(A) making T factor as
+-- A → Ab → S; the cocartesian structure is preserved via cokernel characterization.)
+
 /-! ## §1.593 Normal subobjects
 
   A subobject is NORMAL if it is the kernel of some morphism.
@@ -1340,11 +1346,13 @@ def HomAb {𝒞 : Type u} [Cat.{v} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts �
   forgetful functor Ab(A) → A is a faithful representation of regular categories
   (§1.595).  Consequently, Ab(A) is an abelian category for any effective regular A. -/
 
-/-! §1.595 (consequence): For any effective regular category A, the category Ab(A)
-  is abelian.  Proof: Ab(A) is effective regular (forgetful functor is a faithful
-  representation of regular categories) and additive by construction; abelianness
-  then follows from §1.594.  Formalizing this requires a `Cat` instance for Ab(A),
-  which depends on universe-polymorphic hom-set infrastructure left for future work. -/
+-- BOOK §1.595: If A is effective regular, then so is Ab(A) and the forgetful functor
+--   Ab(A) → A is a faithful representation of regular categories.
+-- (Blocked: needs a `Cat` instance for Ab(A), i.e. universe-polymorphic hom-set infrastructure.)
+
+-- BOOK §1.595: For any effective regular category A, the category Ab(A) is abelian.
+-- (Follows from §1.594 + forgetful faithful representation + Ab(A) additive by construction.
+--  Blocked: same Cat instance for Ab(A).) -/
 
 
 /-! ## §1.597 Exact categories

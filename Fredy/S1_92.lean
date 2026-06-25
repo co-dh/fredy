@@ -1268,6 +1268,18 @@ theorem expSubobj (A B : 𝒞) :
   rw [curry_unique_eq (rfl : prodMap A W (exp A B) h₁ ≫ eval_exp A B = _),
       curry_unique_eq hev.symm]
 
+-- §1.932: The double-sharp axiom holds for topoi.
+-- Freyd's argument: f* : E/B → E/A has right adjoint Π_f (§1.931), so the restriction of Π_f
+-- to Sub(A) is the double-sharp f## (§1.7).  Hence every topos satisfies the double-sharp axiom.
+-- BOOK §1.932: The double-sharp axiom holds for topoi.
+-- (In this repo the double-sharp is realised via SlicePi.piForallObj; the topos instance is
+-- assembled in InternalForallTopos.  A standalone named theorem would need the Logos' typeclass.)
+
+-- §1.935: Every topos may be faithfully represented in a capital topos.
+-- Freyd's argument: topoi are pre-regular (§1.933) and satisfy the slice condition (§1.541),
+-- so the capitalization lemma (§1.54) applies.
+-- BOOK §1.935: Every topos may be faithfully represented in a capital topos.
+
 /-! ## §1.924  FG computed via Yoneda (§1.924)
 
   For F, G : 𝒞^op → Set, the exponential FG(A) can be computed via the

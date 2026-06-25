@@ -690,6 +690,15 @@ theorem graph_is_map {A B : 𝒞} [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [
       (mono_of_retraction (Cat.id A) (Cat.id A) (Cat.comp_id _))
   exact And.intro h_entire h_simple
 
+/-- §1.564: If `R : A ⇸ B` is a relation in a regular category `A` such that for
+    every faithful representation of regular categories `F : A → S`, `F(R)` is a
+    map (entire + simple in S), then `R` itself is a map in `A`.
+
+    (Proved via the Horn-sentence metatheorem §1.563: "R is a map" = "R is entire
+    and R is simple", which is a Horn sentence in the predicates of regular
+    categories, transferred back from S.) -/
+-- BOOK §1.564: given R s.t. for all reps F:A→S, F(R) is a map, then R is a map.
+
 /-! ## §1.56(11) Projective ↔ every entire relation contains a map
 
   In a regular category, an object A is projective (§1.57) iff every

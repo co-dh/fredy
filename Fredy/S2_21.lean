@@ -377,4 +377,66 @@ theorem splitting_recip {a b : 𝒜} {R : a ⟶ b} {S : b ⟶ a}
     have := recip_mono hSrecip_le_R; rwa [Allegory.recip_recip] at this
   exact le_antisymm hS_le_Rrecip hRrecip_le_S
 
+/-! ## §2.212  Maps of a tabular unitary distributive allegory form a pre-logos
+
+  "If A is a tabular unitary distributive allegory, then Mon_U(A) is a pre-logos."
+  [§2.212, proof: §2.154 gives regular; subobjects = coreflexives; finite unions exist.]
+
+  Requires: (1) a construction mapping a `DistributiveAllegory` to its category of maps
+  Mon_U(A) typed as `[PreLogos 𝒞]` (cross-chapter bridge Ch2→Ch1); (2) the §2.154
+  result that maps form a regular category.  Neither is constructed in the repo yet. -/
+
+-- BOOK §2.212: If A is a tabular unitary distributive allegory, then Mon_U(A) is a pre-logos.
+
+/-! ## §2.214  Pre-logos positive iff Rel(C) has finite coproducts
+
+  "A pre-logos C is positive iff Rel(C) has finite coproducts."
+  [§2.214, uses §2.215 duality coproduct ↔ product via reciprocation.]
+
+  Requires: the `Rel(C)` construction sending `[PreLogos 𝒞]` to a `DistributiveAllegory`
+  (Ch1→Ch2 bridge).  The left-to-right direction was proved in the §2.214 text above
+  (coproduct → five equations via `coproduct_five_eqs_to_universal`).  Not yet typed. -/
+
+-- BOOK §2.214: A pre-logos C is positive iff Rel(C) has finite coproducts.
+
+/-! ## §2.217  Faithful representation in a positive pre-logos / pre-topos
+
+  "A pre-logos may be faithfully represented in a positive pre-logos."
+  [§2.217, proof: start with pre-logos C, take maps of the positive reflection
+  of the allegory of relations.  The two §2.217 propositions:
+    (1) every pre-logos embeds faithfully in a positive pre-logos;
+    (2) every pre-logos embeds faithfully in a pre-topos.]
+
+  Both require the Ch1↔Ch2 Rel(-)/Maps(-) adjunction (not constructed).  -/
+
+-- BOOK §2.217 (1): A pre-logos may be faithfully represented in a positive pre-logos.
+-- BOOK §2.217 (2): A pre-logos may be faithfully represented in a pre-topos.
+
+/-! ## §2.218  Faithful representation in a power of the allegory of sets
+
+  "A small pre-tabular or semi-simple unitary distributive allegory may be faithfully
+  represented in a power of the allegory of sets." [§2.218, from §2.167, §2.16(10),
+  §2.213, §2.217, §1.635 — complex cross-chapter assembly.] -/
+
+-- BOOK §2.218: A small pre-tabular or semi-simple unitary distributive allegory may be
+-- faithfully represented in a power of the allegory of sets.
+
+/-! ## §2.219  Semi-simplicity criterion for positive allegories
+
+  "A positive allegory is semi-simple iff for every S such that S° = S and Dom(S) ⊆ S
+  there exists R such that S = R°R."
+
+  Within the allegory world: `PositiveAllegory`, `SemiSimpleAllegory`, `dom`.
+  The book's `Dom(S)` is the *domain* coreflexive, but the §2.219 condition is
+  about `Dom S ⊑ S`, i.e. `1 ∩ SS° ⊑ S`, which for a symmetric morphism means
+  `S ≫ S ⊑ S` (see §2.219 proof sketch: apply to the matrix (1,T;T°,1)).
+
+  The proof of ⇐ constructs `R = (F ∪ G) ≫ Dom(S)` from a semi-simple factoring
+  `S = F°G`; the ⇒ direction uses the matrix argument.  Signature not yet typed
+  because `dom` in this repo is `1 ∩ R ≫ R°` but the §2.219 condition needs careful
+  alignment with the distributive-allegory zero. -/
+
+-- BOOK §2.219: A positive allegory is semi-simple iff for every S with S° = S and
+-- Dom(S) ⊆ S there exists R such that S = R° ≫ R.
+
 end Freyd.Alg

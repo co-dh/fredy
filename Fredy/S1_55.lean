@@ -230,4 +230,23 @@ theorem henkin_lubkin (𝒞 : Type u) [Cat.{u} 𝒞] [PreRegularCategory 𝒞] :
   honest content-bearing faithful version.  Per the integrity rule we do NOT emit a
   vacuous `: True` stub for §1.551 here. -/
 
+/-! ## §1.552 Special pre-regular categories
+
+  A pre-regular category A is SPECIAL if every universally quantified sentence in
+  the relevant predicates true for S is true for A.
+
+  §1.552 gives two characterizations (both are `#emph` in the book). -/
+
+/-- §1.552: A pre-regular category is special iff for every `A → U ↣ 1`,
+    either `A → U` or `U ↣ 1` is an isomorphism.
+
+    (The condition says the capitalization lands directly into S — no room for a
+    proper subobject sitting between the two extremes.) -/
+-- BOOK §1.552: A pre-regular category is special iff A→U↣1 implies A→U or U↣1 is iso
+
+/-- §1.552 (second form): A pre-regular category is special iff it is
+    one-valued (|π₀ A| = 1) or two-valued (|π₀ A| = 2) with every object
+    either well-supported or isomorphic to 0 (the unique proper subterminator). -/
+-- BOOK §1.552: special iff one-valued or (two-valued and every object is well-supported or ≅ 0)
+
 end Freyd

@@ -828,4 +828,10 @@ theorem coequalizer_is_coequalizer_in_Rel
   `special_adjoint_functor_theorem` in S1_82.lean applied to the graphing functor.
 -/
 
+-- §1.844 corollary: composition of relations distributes with arbitrary unions.
+-- BOOK §1.844: "Since inverse images preserve arbitrary unions, we further obtain:
+-- The composition of relations distributes with arbitrary unions."
+-- (Follows from local completeness of a Grothendieck topos and pullbacks preserving
+-- arbitrary unions. Requires BinRel / relCompose infrastructure from S1_56/S1_60.)
+
 end Freyd

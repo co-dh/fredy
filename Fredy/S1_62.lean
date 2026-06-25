@@ -1006,6 +1006,21 @@ theorem prelogos_representation_theorem (A : Type u) [Cat.{u} A] [PositivePreLog
   exact henkin_lubkin A
 
 
+-- BOOK §1.634: If A is a pre-logos then T_ℱ preserves disjoint unions iff
+--   (0 ∉ ℱ) and (U₁+U₂ ∈ ℱ implies U₁ ∈ ℱ or U₂ ∈ ℱ).
+-- TODO: needs positive pre-logos + a formal `preservesDisjointUnions T_ℱ` predicate;
+-- stated informally here pending `PrefilterMap` equivalence-class quotient.
+
+-- BOOK §1.635: If F̂ is an ultra-filter in the boolean algebra of complemented
+-- subterminators, then T_F̂ is a representation of pre-logoi.
+-- TODO: needs ultra-filter (axiom of choice) + `PreLogosFunctor` predicate.
+-- The faithful-representation half is `prelogos_representation_theorem` above.
+
+-- BOOK §1.636: Any Horn sentence in the predicates of pre-logoi that holds for the
+-- category of sets holds for all positive pre-logoi.
+-- TODO: this is a meta-theorem (transfer along §1.635 representation); not directly
+-- formalizable as a single Lean statement without a reflection layer.
+
 /-- FILTER in a subobject lattice: up-closed pre-filter (§1.634). -/
 def IsFilter (ℱ : (Subobject 𝒞 one) → Prop) : Prop :=
   IsPreFilter ℱ ∧ ∀ (U V : Subobject 𝒞 one), ℱ U → Subobject.le U V → ℱ V

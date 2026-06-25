@@ -63,6 +63,52 @@ class BooleanTopos (𝒞 : Type u) [Cat.{v} 𝒞] extends Topos 𝒞 where
   not : HasSubobjectClassifier.omega (𝒞 := 𝒞) ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞)
   double_neg : not ≫ not = Cat.id (HasSubobjectClassifier.omega (𝒞 := 𝒞))
 
+/-! ## §1.971  Small objects in a Grothendieck topos
+
+  §1.971: Given a generating set G in a Grothendieck topos, an object A is SMALL
+  if it appears as a subquotient of a G-object: there exist A ↠ G' ↣ G with G ∈ G. -/
+
+/-- §1.971: An object A is SMALL (relative to generating set G) if it is a subquotient
+    of a G-object: there exist maps A → G' ↣ G ∈ G. -/
+def IsSmall (G : 𝒞 → Prop) (A : 𝒞) : Prop :=
+  ∃ (B C : 𝒞) (q : A ⟶ B) (m : B ⟶ C), Cover q ∧ Monic m ∧ G C
+
+-- §1.971: In a boolean Grothendieck topos every object is a coproduct of small objects.
+-- BOOK §1.971: In a boolean Grothendieck topos every object is a coproduct of small objects.
+-- (Proof: any object is covered by its small subobjects; in a complete boolean algebra every
+--  cover refines to a partition.  Subobjects of small objects are small.)
+
+-- §1.972: In a boolean logos, if 1 is projective, then it is a progenitor.
+-- BOOK §1.972: In a boolean logos, if 1 is projective, then it is a progenitor.
+-- (Proof: if x ≠ y : A → B, the complement E' of the equalizer is nonzero, so its support U
+--  is nonzero; 1 projective gives z : U → E' with the equalizer of zx and zy being zero.)
+
+/-! ## §1.975–§1.979  IAC, boolean, etendue -/
+
+-- §1.975: Slicing by a well-supported C creates a local left inverse for f in E/C.
+-- BOOK §1.975: A left inverse for f exists 'locally' (in E/C for any well-supported C).
+
+-- §1.976: A small topos may be faithfully represented in an AC topos iff it is IAC.
+-- BOOK §1.976: A small topos may be faithfully represented in an AC topos iff it is IAC.
+
+-- §1.977: Any universal sentence in the predicates of topoi that follows from AC also
+--         follows from IAC.  In particular, an IAC topos is boolean.
+-- BOOK §1.977: Any universal sentence in the predicates of topoi which follows from AC
+--              also follows from IAC.
+
+-- §1.977 (corollary): An IAC topos is boolean.
+-- BOOK §1.977: An IAC topos is boolean.
+
+-- §1.978: A Grothendieck topos A is an ETENDUE if there exists a well-supported B
+--         such that A/B is value-based (its terminator is a progenitor).
+-- BOOK §1.978: A Grothendieck topos is a boolean etendue iff it is IAC.
+-- (IsEtendue def deferred: needs WellSupported (S1_52) and IsValueBased (S1_95) in scope.)
+
+-- §1.979: For any topos A there exists a boolean topos B and a faithful bicartesian
+--         representation A → B.  (Proof deferred to §2.542 in Chapter 2.)
+-- BOOK §1.979: For any topos A there exists a boolean topos B and a faithful bicartesian
+--              representation A → B.
+
 /-! ## §1.98  Natural numbers object
 
   A NATURAL NUMBERS OBJECT in a topos is an object N with maps
