@@ -956,12 +956,66 @@ structure RationalCategory [HasPullbacks 𝒞] (G : DenseClass 𝒞) where
 
 /-! ## §1.481  The rational category is cartesian -/
 
--- BOOK §1.481: Let G be a dense class of monics in a Cartesian category.
--- Then the rational category A[G⁻¹] is Cartesian and T_G : A → A[G⁻¹] is
--- a representation of Cartesian categories.
--- (T_G sends equalizers of u, v to equalizers of T_G(u), T_G(v) via
--- lifting: if w is the equalizer of u, v in A, then T_G(w) is the
--- equalizer of x, y in A[G⁻¹]; similarly for products.)
+/-- **§1.481 CARTESIAN RATIONAL CATEGORY**: the structure asserting that A[G⁻¹] is
+    Cartesian and that the localisation functor `T_G = loc` is a representation of
+    Cartesian categories (§1.437).
+
+    Freyd §1.481: "Let G be a dense class of monics in a Cartesian category.  Then the
+    rational category A[G⁻¹] is Cartesian and T_G is a representation of Cartesian
+    categories."  His proof: "Let w be an equalizer of u, v in A.  Then T_G(w) is an
+    equalizer of x, y in the rational category.  The argument for products is similar."
+
+    This structure records the two pieces of data §1.481 produces:
+    (a) a `CartesianCategory` structure on `A[G⁻¹]` (the `Rat` carrier),
+    (b) a `CartesianFunctor` proof for `loc` between the two Cartesian categories.
+
+    Fields (b1)–(b3) spell out `CartesianFunctor loc` explicitly so that they typecheck
+    without requiring a `[CartesianCategory Rat]` instance in the local context.
+
+    -- BOOK §1.481 TODO: construct this structure from the concrete fraction calculus of
+    -- §1.48.  The construction proceeds as follows:
+    --  • Terminator in A[G⁻¹]: the object `loc one`; the unique map `A → one` in A
+    --    yields a fraction `A ←[id]— A → one` representing the unique map `loc A → loc one`
+    --    in A[G⁻¹]; for an arbitrary morphism `f : loc A → loc B` named by `A ←[d]— A' → B`
+    --    the composite `loc A → loc B → loc one` is determined uniquely since `term` is
+    --    natural.  (Uniqueness for ALL objects of A[G⁻¹] = all are of the form `loc A`
+    --    since loc is surjective on objects by construction.)
+    --  • Binary product in A[G⁻¹]: `loc A × loc B := loc(A × B)` with projections
+    --    `loc fst` and `loc snd`; pairing of fractions uses the product in A.
+    --  • Equalizer in A[G⁻¹]: loc(eqObj f g) with map loc(eqMap f g); the equalizer
+    --    UMP in A[G⁻¹] lifts via the dense-monic denominators using the UMP in A.
+    --  Together these give `CartesianCategory Rat` and verify `CartesianFunctor loc`. -/
+structure CartesianRationalCategory [CartesianCategory 𝒞] [HasPullbacks 𝒞]
+    (G : DenseClass 𝒞) extends RationalCategory G where
+  /-- The Cartesian structure on the rational category A[G⁻¹]. -/
+  ratCartesian : CartesianCategory Rat
+  /-- T_G preserves the terminator: `loc one` is terminal in A[G⁻¹]. -/
+  loc_preserves_terminal :
+      @PreservesTerminal 𝒞 Rat _ ratCat loc locFun
+        CartesianCategory.toHasTerminal ratCartesian.toHasTerminal
+  /-- T_G preserves binary products: the canonical map `loc(A×B) → loc A × loc B` is iso. -/
+  loc_preserves_products :
+      @PreservesBinaryProducts 𝒞 Rat _ ratCat loc locFun
+        CartesianCategory.toHasBinaryProducts ratCartesian.toHasBinaryProducts
+  /-- T_G preserves equalizers: `loc(eqObj f g)` is the equalizer of `loc f`, `loc g`. -/
+  loc_preserves_equalizers :
+      @PreservesEqualizers 𝒞 Rat _ ratCat loc locFun
+        CartesianCategory.toHasEqualizers ratCartesian.toHasEqualizers
+
+/-- **§1.481**: Given a `CartesianRationalCategory`, the localisation functor `loc = T_G`
+    is a representation of Cartesian categories (§1.437 `CartesianFunctor`). -/
+theorem loc_is_cartesianFunctor [CartesianCategory 𝒞] [HasPullbacks 𝒞] {G : DenseClass 𝒞}
+    (CRC : CartesianRationalCategory G) :
+    letI : Cat CRC.Rat := CRC.ratCat
+    letI : CartesianCategory CRC.Rat := CRC.ratCartesian
+    letI : Functor CRC.loc := CRC.locFun
+    CartesianFunctor CRC.loc := by
+  letI : Cat CRC.Rat := CRC.ratCat
+  letI : CartesianCategory CRC.Rat := CRC.ratCartesian
+  letI : Functor CRC.loc := CRC.locFun
+  exact { pres_terminal  := CRC.loc_preserves_terminal
+          pres_products  := CRC.loc_preserves_products
+          pres_equalizers := CRC.loc_preserves_equalizers }
 
 /-! ## Representable functor, Yoneda, fiber, evaluation -/
 
