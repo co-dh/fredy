@@ -659,7 +659,7 @@ class SemiSimpleAllegory (𝒜 : Type u) extends Allegory 𝒜 where
 
 /-- §2.122 helper: R ⊑ dom R ≫ R always.
     modular_le 1 R R: (1≫R)∩R ⊑ (1∩RR°)≫R = dom(R)≫R, and LHS = R∩R = R. -/
-theorem le_dom_comp {a b : 𝒜} (R : a ⟶ b) : R ⊑ dom R ≫ R := by
+private theorem le_dom_comp {a b : 𝒜} (R : a ⟶ b) : R ⊑ dom R ≫ R := by
   have h := modular_le (Cat.id a) R R
   simp only [Cat.id_comp, Allegory.inter_idem] at h
   exact h
