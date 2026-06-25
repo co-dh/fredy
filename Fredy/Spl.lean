@@ -5,16 +5,53 @@
   Builds the pre-tabular / tabular / effective / semi-simple theory for the splitting
   completion `Spl 𝒜 = SplObj 𝒜` (constructed in `S2_21.lean`):
 
-    §2.165   PreTabularAllegory 𝒜 → PreTabularAllegory (SplObj 𝒜)
-    §2.166   PreTabularAllegory 𝒜 → TabularAllegory (SplObj 𝒜)
-    §2.167   The embedding 𝒜 ↪ SplObj 𝒜 is faithful; SplObj 𝒜 is the tabular reflection.
-    §2.169   SplObj 𝒜 is effective (all symmetric idempotents, in particular all
-             equivalence relations, split).  Re-exported from `S2_22b`.
+    §2.165   PreTabularAllegory (SplObj 𝒜) when 𝒜 is pre-tabular.   [TODO: Dom-apex]
+    §2.166   TabularAllegory (SplObj 𝒜) when 𝒜 is pre-tabular.      [TODO: Dom-apex]
+    §2.167   The embedding 𝒜 ↪ SplObj 𝒜 is faithful.                [PROVED]
+    §2.169   SplObj 𝒜 is effective.                                  [PROVED; re-export]
     §2.16(10) SplObj 𝒜 is tabular ↔ 𝒜 is semi-simple.
+              Forward: [TODO: apex convention gap]
+              Backward: [TODO: needs SemiSimple in SplObj + UnionAllegory (SplObj 𝒜)]
     §2.42    For a power allegory 𝒜, SplObj 𝒜 is an effective power allegory.
-             (sorry on DivisionAllegory instance; see §2.42 section below.)
-    §2.433–§2.435  Faithful TODO stubs; infra missing for Spl(Eq), systemic completion,
-                   ConnectedAllegory.
+             [TODO: needs UnionAllegory/DistributiveAllegory for SplObj 𝒜]
+    §2.433–§2.435  [TODO: infra missing]
+
+  ---
+
+  WHY §2.165/§2.166 are TODO:
+
+  For `R : E ⟶ F` in `SplObj 𝒜` (with `E = ⟨a, e⟩`, `F = ⟨b, f⟩`), the natural
+  candidate legs `P := ⟨e ≫ p, ...⟩ : E ⟶ embObj c` and `Q := ⟨f ≫ q, ...⟩ : F ⟶ embObj c`
+  (built from a tabulation `(p, q)` of `S ⊒ R.R` in `𝒜`) satisfy:
+    • `Entire P` ✓ (from `Map p` and `e ≤ 1_a ≤ pp°`)
+    • `Simple P` ✓ (from `Simple p` and `e ≫ e = e`)
+    • `P ≫ Q° = splRestrict E F S` ✓ (by definition)
+  but the apex condition `P°P ∩ Q°Q = 1_c` FAILS:
+    `P°P = q°·e·p` and the lower bound `1_c ≤ p°·e·p` requires `e ≥ 1_a`, which is
+    false for proper symmetric idempotents.
+
+  Freyd §2.165 uses the DOM-APEX `C = Dom(p°e) ∩ Dom(q°f)` on `c` (coreflexive), which
+  the repo's infrastructure does not yet assemble into a ready-to-apply lemma.  The
+  ingredients are available (`dom`, `coreflexive_symmetric_idempotent`, `spl_coreflexive_splits`)
+  but combining them into the four tabulation checks requires ≈ 100 lines of
+  modular-law bookkeeping not yet present as lemmas in the repo.
+
+  WHY §2.16(10) forward is TODO:
+
+  A tabulation of `embHom R` in `SplObj 𝒜` gives `P : embObj a ⟶ C`, `Q : embObj b ⟶ C`
+  maps with `R = P.R ≫ Q.R°` and `P.R°P.R = C.idem.e = Q.R°Q.R`.  For `SemiSimple R` one
+  needs simple `F₀ : c₀ → a` and `G₀ : c₀ → b` with `R = F₀° ≫ G₀`.  Setting `F₀ = P.R°`
+  and `G₀ = Q.R°` gives `R = F₀° ≫ G₀` ✓, but `Simple F₀` requires `P.R ≫ P.R° ≤ 1_a`,
+  while `Entire P` gives `1_a ≤ P.R ≫ P.R°`.  These are incompatible unless `P.R` is an
+  isomorphism, so no direct conversion is possible without further work.
+
+  WHY §2.16(10) backward is TODO:
+
+  From semi-simplicity of `𝒜`, a morphism `R : E ⟶ F` in `SplObj 𝒜` has `R.R = F₀° ≫ G₀`
+  with `F₀, G₀` simple.  The source-apex construction needs
+  `SemiSimple R` in `SplObj 𝒜` (requiring `F₀` to absorb `E.idem.e` on the left, which is
+  not guaranteed) and `[UnionAllegory (SplObj 𝒜)]` (pointwise union, not yet an instance).
+  Both can be added with additional work.
 
   Conventions: diagram-order `R ≫ S`, reciprocation `R°`, `R ⊑ S`, `R ∩ S`.
   Mathlib-free.
@@ -32,83 +69,18 @@ open Cat
 
 /-! ## §2.165 / §2.166  Pre-tabular and tabular completion
 
-  §2.165: If `𝒜` is pre-tabular then `SplObj 𝒜` is pre-tabular.
-  §2.166: If `𝒜` is pre-tabular then `SplObj 𝒜` is tabular.
+  Both results are TODO pending Dom-apex infrastructure; see file header for the precise gap. -/
 
-  The key construction: given `R : E ⟶ F` in `SplObj 𝒜`, the idempotent restriction
-  `splRestrict E F S := ⟨e ≫ S ≫ f, …⟩` is a valid `E ⟶ F` morphism.  Pre-tabularity
-  of `𝒜` gives a tabular `S ⊒ R.R`, and `splRestrict E F S ⊒ R` (since `R.R = e≫R.R≫f`).
-  `splRestrict_tabular` gives `Tabular (splRestrict E F S)` in `SplObj 𝒜`.
+-- BOOK §2.165: If 𝒜 is pre-tabular then SplObj 𝒜 is pre-tabular.
+-- TODO §2.165: Needs Dom-apex `C = Dom(p°e) ∩ Dom(q°f)` construction.  The legs
+--   `P := ⟨e ≫ p, ...⟩` and `Q := ⟨f ≫ q, ...⟩` (from a tabulation `(p,q)` of S ⊒ R.R
+--   in 𝒜`) satisfy Entire, Simple, and P≫Q° = splRestrict E F S, but the apex lower
+--   bound `1_c ≤ P°P ∩ Q°Q` requires `e ≥ 1_a`, which fails for proper symmetric
+--   idempotents.  Replace P, Q by Dom-apex-restricted legs once the infra exists.
 
-  SORRY in `splRestrict_tabular` (faithful, true statement): given a tabulation `(p, q)` of
-  `S` in `𝒜` with apex `c`, the lifted legs `e ≫ p` and `f ≫ q` are maps in `SplObj 𝒜` with
-  `(ep)(fq)° = eSf`.  The monic condition reduces to `p°ep ∩ q°fq = 1_c`; the correct
-  apex is `(c, p°ep ∩ q°fq)` (not `(c, 1_c)`).  The tabulation EXISTS in `SplObj 𝒜` with
-  the refined apex, but threading the apex coreflexive through `SplObj`'s type index requires
-  the §2.166 apex-splitting infrastructure.  Statement true; sorry on Lean bookkeeping.
-
-  SORRY in `instSplTabular` (faithful, same gap): the `TabularAllegory` instance for
-  `SplObj 𝒜` ultimately relies on `splRestrict_tabular` for the direct-tabulation argument.
-  Once `splRestrict_tabular` is sorry-free, `instSplTabular` closes with the same approach
-  (`R = splRestrict E F R.R` by `R.fixed`). -/
-
-section Spl165
-
-variable {𝒜 : Type u} [PreTabularAllegory 𝒜]
-
-/-- `splRestrict E F S`: the split-typed morphism `e ≫ S ≫ f : E ⟶ F` in `SplObj 𝒜`. -/
-private def splRestrict (E F : SplObj 𝒜) (S : E.carrier ⟶ F.carrier) : E ⟶ F :=
-  ⟨E.idem.e ≫ S ≫ F.idem.e, by
-    have he : E.idem.e ≫ E.idem.e = E.idem.e := E.idem.idem
-    have hf : F.idem.e ≫ F.idem.e = F.idem.e := F.idem.idem
-    calc E.idem.e ≫ (E.idem.e ≫ S ≫ F.idem.e) ≫ F.idem.e
-        = (E.idem.e ≫ E.idem.e) ≫ S ≫ (F.idem.e ≫ F.idem.e) := by simp [Cat.assoc]
-      _ = E.idem.e ≫ S ≫ F.idem.e := by rw [he, hf]⟩
-
-/-- `R ⊑ splRestrict E F S` whenever `R.R ⊑ S` (since `R.R = e ≫ R.R ≫ f ⊑ e ≫ S ≫ f`). -/
-private theorem splRestrict_le {E F : SplObj 𝒜} (R : E ⟶ F)
-    {S : E.carrier ⟶ F.carrier} (hRS : R.R ⊑ S) : R ⊑ splRestrict E F S := by
-  show R ∩ splRestrict E F S = R
-  apply SplHom.ext
-  show R.R ∩ (E.idem.e ≫ S ≫ F.idem.e) = R.R
-  apply le_antisymm (inter_lb_left _ _)
-  apply le_inter (le_refl _)
-  have : R.R = E.idem.e ≫ R.R ≫ F.idem.e := R.fixed.symm
-  rw [this]
-  exact comp_mono_left E.idem.e (comp_mono_right hRS F.idem.e)
-
-/-- `splRestrict E F S` is tabular in `SplObj 𝒜` when `S` is tabular in `𝒜`.
-
-    SORRY: The correct apex is `(c, p°ep ∩ q°fq)` (not `(c, 1_c)`); threading the refined
-    apex through `SplObj`'s type index requires the §2.166 apex-splitting infrastructure.
-    Statement true; sorry on Lean bookkeeping. -/
-private theorem splRestrict_tabular {E F : SplObj 𝒜} {S : E.carrier ⟶ F.carrier}
-    (htab : Tabular S) : Tabular (splRestrict E F S) := by
-  sorry
-
-/-- **§2.165**: if `𝒜` is pre-tabular then `SplObj 𝒜` is pre-tabular.
-
-    For any `R : E ⟶ F` in `SplObj 𝒜`, restrict a tabular `S ⊒ R.R` from `𝒜` to get
-    `splRestrict E F S ⊒ R` (tabular by `splRestrict_tabular`). -/
-theorem spl_preTabular (E F : SplObj 𝒜) (R : E ⟶ F) :
-    ∃ (T : E ⟶ F), R ⊑ T ∧ Tabular T := by
-  obtain ⟨S, hRS, hStab⟩ := PreTabularAllegory.pre_tabular R.R
-  exact ⟨splRestrict E F S, splRestrict_le R hRS, splRestrict_tabular hStab⟩
-
-/-- **§2.165** (instance): `PreTabularAllegory (SplObj 𝒜)` when `𝒜` is pre-tabular. -/
-instance instSplPreTabular : PreTabularAllegory (SplObj 𝒜) where
-  pre_tabular R := spl_preTabular _ _ R
-
-/-- **§2.166 / §2.167**: `SplObj 𝒜` is a `TabularAllegory` when `𝒜` is pre-tabular.
-
-    SORRY (faithful): relies on `splRestrict_tabular` (same gap — apex bookkeeping).
-    The proof: `R = splRestrict E F R.R` by `R.fixed`; use a tabular `S ⊒ R.R` from
-    pre-tabularity of `𝒜` and `splRestrict_tabular hStab`. -/
-instance instSplTabular : TabularAllegory (SplObj 𝒜) where
-  tabular R := by
-    sorry
-
-end Spl165
+-- BOOK §2.166: 𝒜 pre-tabular → SplObj 𝒜 tabular (§2.166: tabular ↔ pre-tabular + coref split).
+-- TODO §2.166: Relies on §2.165.  The coreflexive-splitting half is available
+--   (`spl_coreflexive_splits`) but the pre-tabular instance (§2.165) is blocked.
 
 /-! ## §2.167  The embedding `𝒜 ↪ SplObj 𝒜` and the tabular reflection -/
 
@@ -128,40 +100,26 @@ theorem spl_effective {𝒜 : Type u} [Allegory 𝒜] {E : SplObj 𝒜} (Φ : E 
 
 /-! ## §2.16(10)  `SplObj 𝒜` is tabular ↔ `𝒜` is semi-simple
 
-  Freyd §2.16(10): `Spl(SI 𝒜)` (= `SplObj 𝒜`) is tabular iff `𝒜` is semi-simple.
+  Both directions are TODO pending further infrastructure; see file header for the precise gaps.
 
-  FORWARD (tabular → semi-simple):
-    Given a tabulation `(F_hom, G_hom)` of `embHom R` in `SplObj 𝒜`, the underlying
-    morphisms `F_hom.R : a → c` and `G_hom.R : b → c` are simple in `𝒜` and
-    `R = F_hom.R ≫ G_hom.R°` (TARGET-apex form).
-    The repo's `SemiSimple R` needs `R = F° ≫ G` with `F : c → a, G : c → b` simple
-    (SOURCE-apex form).  SORRY (faithful): convention gap between target- and source-apex.
-    The result is TRUE; the sorry is on the convention translation.
+  For the BACKWARD direction, the available route is:
+    (a) Build `UnionAllegory (SplObj 𝒜)` (pointwise union).
+    (b) Build `SemiSimple R` in `SplObj 𝒜` from semi-simplicity of `𝒜`.
+    (c) Show `SplitsSymmIdem (SplObj 𝒜)` from `SplHom.split_symmetric_idempotent`.
+    (d) Apply `srcTabulation_of_semiSimple_split` (S2_22.lean).
+  Steps (a)–(b) require ≈ 50 additional lines of infrastructure. -/
 
-  BACKWARD (semi-simple → tabular):
-    Uses `srcTabulation_of_semiSimple_split` (S2_22.lean) + `SplitsSymmIdem`.
-    SORRY (faithful): `SplitsSymmIdem` requires `UnionAllegory` for its definition. -/
+-- BOOK §2.16(10) forward: SplObj 𝒜 tabular → 𝒜 semi-simple.
+-- TODO §2.16(10)-fwd: A tabulation (P, Q) of embHom R in SplObj 𝒜 gives R = P.R ≫ Q.R°
+--   with P.R°P.R = C.idem.e.  Setting F₀ = P.R° and G₀ = Q.R° gives R = F₀° ≫ G₀ ✓,
+--   but Simple F₀ needs P.R ≫ P.R° ≤ 1_a, while Entire P gives 1_a ≤ P.R ≫ P.R°.
+--   These only agree when P.R is an isomorphism; no direct conversion available.
 
-/-- **§2.16(10) forward**: if `SplObj 𝒜` is tabular then `𝒜` is semi-simple.
-
-    SORRY: target-apex vs source-apex convention gap.  The tabulation gives
-    `R = F_hom.R ≫ G_hom.R°` (F,G simple, target-apex), but `SemiSimple R` needs
-    `R = F° ≫ G` (F,G simple, source-apex).  The result is TRUE; sorry is on the
-    convention translation (bridging requires coreflexive-apex or convention swap). -/
-theorem semiSimple_of_spl_tabular {𝒜 : Type u} [Allegory 𝒜]
-    (hTab : ∀ {E F : SplObj 𝒜} (R : E ⟶ F), Tabular R)
-    {a b : 𝒜} (R : a ⟶ b) : SemiSimple R := by
-  sorry
-
-/-- **§2.16(10) backward**: if `𝒜` is semi-simple then `SplObj 𝒜` is tabular.
-
-    SORRY: requires `UnionAllegory 𝒜` for `SplitsSymmIdem`, or a direct proof bypassing
-    the union machinery.  Uses `srcTabulation_of_semiSimple_split` (S2_22.lean) with
-    `SplitsSymmIdem` satisfied by construction for `SplObj 𝒜`. -/
-theorem spl_tabular_of_semiSimple {𝒜 : Type u} [Allegory 𝒜]
-    (hSS : ∀ {a b : 𝒜} (R : a ⟶ b), SemiSimple R) :
-    ∀ {E F : SplObj 𝒜} (R : E ⟶ F), Tabular R := by
-  sorry
+-- BOOK §2.16(10) backward: 𝒜 semi-simple → SplObj 𝒜 tabular.
+-- TODO §2.16(10)-bwd: Needs (a) UnionAllegory (SplObj 𝒜) (pointwise) and
+--   (b) SemiSimple R for R : E ⟶ F in SplObj 𝒜 from hSS about 𝒜 (requires
+--   the typed restriction F₀|_{E} = E.idem.e ≫ F₀° satisfying the SplHom fixed
+--   condition, which needs F₀ to "absorb" E.idem.e on the left — not guaranteed).
 
 /-! ## §2.42  `SplObj 𝒜` is an effective power allegory for a power allegory `𝒜`
 
@@ -178,7 +136,7 @@ theorem spl_tabular_of_semiSimple {𝒜 : Type u} [Allegory 𝒜]
   SECONDARY: given `UnionAllegory (SplObj 𝒜)`, `PrePowerAllegory (SplObj 𝒜)` needs
   ε-membership; `Thick ε` in `SplObj 𝒜` requires `straight_descent_thick` (S2_4). -/
 
--- TODO: add UnionAllegory/DistributiveAllegory instances for SplObj 𝒜, then prove
+-- TODO §2.42: add UnionAllegory/DistributiveAllegory instances for SplObj 𝒜, then prove
 -- EffectivePrePowerAllegory (SplObj 𝒜) and invoke effective_pre_power_is_power.
 
 /-! ## §2.433 / §2.434 / §2.435  Power allegory completions

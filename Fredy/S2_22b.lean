@@ -212,7 +212,6 @@ theorem id_le_split_conj {c d : 𝒜} {h : c ⟶ d} {A M : c ⟶ c}
 theorem tabulation_of_split_apex {a b c d : 𝒜}
     {f : a ⟶ c} {g : b ⟶ c} {R : a ⟶ b} {h : c ⟶ d}
     (hf : Map f) (hg : Map g) (hRS : R ⊑ f ≫ g°)
-    (_htab : f° ≫ f ∩ g° ≫ g = Cat.id c)
     (hh : Map h) (hhA : h ≫ h° = tabApex f g R) (hh1 : h° ≫ h = Cat.id d)
     (hsat : R = f ≫ (tabApex f g R) ≫ g°) :
     Tabulates (f ≫ h) (g ≫ h) R := by
@@ -262,11 +261,10 @@ theorem tabular_coreflexives_split {𝒜 : Type u} [TabularAllegory 𝒜] {a : �
 theorem tabular_of_split_apex {a b c d : 𝒜}
     {f : a ⟶ c} {g : b ⟶ c} {R : a ⟶ b} {h : c ⟶ d}
     (hf : Map f) (hg : Map g) (hRS : R ⊑ f ≫ g°)
-    (htab : f° ≫ f ∩ g° ≫ g = Cat.id c)
     (hh : Map h) (hhA : h ≫ h° = tabApex f g R) (hh1 : h° ≫ h = Cat.id d)
     (hsat : R = f ≫ (tabApex f g R) ≫ g°) :
     Tabular R :=
-  ⟨d, f ≫ h, g ≫ h, tabulation_of_split_apex hf hg hRS htab hh hhA hh1 hsat⟩
+  ⟨d, f ≫ h, g ≫ h, tabulation_of_split_apex hf hg hRS hh hhA hh1 hsat⟩
 
 /-! ## §2.169  Effective reflection: equivalence relations split in `Spl 𝒜`
 
