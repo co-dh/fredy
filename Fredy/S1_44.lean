@@ -137,24 +137,149 @@ theorem sigma_faithful {B : 𝒞} {X Y : Over B} (f g : OverHom X Y)
 
 /-! ## §1.44  Universal property of Σ : A/B → A
 
-  Freyd §1.44: Σ is universal among functors C → A that send the designated
-  terminator of C to B.  Concretely: if C has a designated terminator 1 and
-  T : C → A is a functor with T(1) = B, then there exists a unique functor
-  T' : C → A/B with T'(1_C) = ⟨B, id_B⟩ and T = T' ; Σ.
+  Freyd §1.44: Σ is universal among functors T : 𝒞 → A that carry the designated
+  terminator of 𝒞 to B.  Given T with T(1) = B, there is a unique T' : 𝒞 → A/B
+  with T'(1) = id_B (the slice terminator) and Σ ∘ T' = T.
+  Construction: T'(C) = ⟨T C, hB ▸ T.map(term_C)⟩. -/
 
-  A special case: any functor A → A sending each object X to B × X factors
-  as Δ : A → A/B followed by Σ.  Here Δ is the DIAGONAL functor.
--/
+/-- **§1.44**: The LIFT of T : 𝒞 → A along Σ.  Given T(1) = B, defines
+    T'(C) = ⟨T C, T(term_C) : T C → T(1) = B⟩. -/
+def sliceLift {𝒜 : Type u} [Cat.{v} 𝒜] {B : 𝒜}
+    [HasTerminal 𝒞] (T : 𝒞 → 𝒜) [hT : Functor T] (hB : T (one (𝒞 := 𝒞)) = B) :
+    𝒞 → Over B :=
+  fun C => ⟨T C, hB ▸ hT.map (term C)⟩
 
--- BOOK §1.44: Let C be a category with a designated terminator 1, and let
--- T : C → A be a functor such that T(1) = B.  There exists a unique
--- T' : C → A/B such that T'(1) = id_B and T = T' ≫ Σ.
--- (Construct T' by T'(C) = T(C) → T(1) = B via the terminator map.)
+instance sliceLift_isFunctor {𝒜 : Type u} [Cat.{v} 𝒜] {B : 𝒜}
+    [HasTerminal 𝒞] (T : 𝒞 → 𝒜) [hT : Functor T] (hB : T (one (𝒞 := 𝒞)) = B) :
+    Functor (sliceLift T hB) where
+  map {C D} f := ⟨hT.map f, by
+    simp only [sliceLift]; cases hB
+    rw [← hT.map_comp]; congr 1; exact term_uniq _ _⟩
+  map_id C := OverHom.ext (hT.map_id C)
+  map_comp f g := OverHom.ext (hT.map_comp f g)
 
-/-! ## §1.464  Yoneda representation preserves/reflects cartesian predicates -/
+/-- **§1.44 — existence (terminator)**: T' carries the terminator of 𝒞 to the slice
+    terminator ⟨B, id_B⟩. -/
+theorem sliceLift_term {𝒜 : Type u} [Cat.{v} 𝒜] {B : 𝒜}
+    [HasTerminal 𝒞] (T : 𝒞 → 𝒜) [hT : Functor T] (hB : T (one (𝒞 := 𝒞)) = B) :
+    sliceLift T hB (one (𝒞 := 𝒞)) = overTerm B := by
+  simp only [sliceLift, overTerm]
+  cases hB
+  congr 1
+  simp [term_uniq (term (one (𝒞 := 𝒞))) (Cat.id _), hT.map_id]
 
--- BOOK §1.464 (Yoneda): The embedding A → S^{A°} preserves and reflects
--- the cartesian predicates.
+/-- **§1.44 — existence (Σ ∘ T' = T)**: Composing the lift with Σ recovers T. -/
+theorem sliceLift_comp_sigma {𝒜 : Type u} [Cat.{v} 𝒜] {B : 𝒜}
+    [HasTerminal 𝒞] (T : 𝒞 → 𝒜) [hT : Functor T] (hB : T (one (𝒞 := 𝒞)) = B) :
+    SliceForget B ∘ sliceLift T hB = T := rfl
+
+/-- **§1.44 — existence (underlying maps)**: The underlying map of T'(f) is T(f). -/
+theorem sliceLift_map_eq {𝒜 : Type u} [Cat.{v} 𝒜] {B : 𝒜}
+    [HasTerminal 𝒞] (T : 𝒞 → 𝒜) [hT : Functor T] (hB : T (one (𝒞 := 𝒞)) = B)
+    {C D : 𝒞} (f : C ⟶ D) :
+    ((sliceLift_isFunctor T hB).map f).f = hT.map f := rfl
+
+/-- HEq congruence for composition across object identifications: if the three
+    objects match (`X=X'`, `Y=Y'`, `Z=Z'`) and the arrows match up to HEq, then
+    the composites match up to HEq.  Used to transport `OverHom.w` through the
+    domain identification in `sliceLift_unique`. -/
+private theorem comp_heq_congr {𝒜 : Type u} [Cat.{v} 𝒜] {X Y Z X' Y' Z' : 𝒜}
+    (hX : X = X') (hY : Y = Y') (hZ : Z = Z')
+    {f : X ⟶ Y} {g : Y ⟶ Z} {f' : X' ⟶ Y'} {g' : Y' ⟶ Z'}
+    (hf : f ≍ f') (hg : g ≍ g') : f ≫ g ≍ f' ≫ g' := by
+  subst hX hY hZ; rw [eq_of_heq hf, eq_of_heq hg]
+
+/-- A pair of `.symm ▸` object-transports on an arrow is HEq-trivial.  Strips the
+    domain identifications produced by `h_map` in `sliceLift_unique`. -/
+private theorem eqRec_symm_symm_heq {𝒜 : Type u} [Cat.{v} 𝒜] {X Y X' Y' : 𝒜}
+    (hX : X = X') (hY : Y = Y') (f : X' ⟶ Y') :
+    (hX.symm ▸ hY.symm ▸ f : X ⟶ Y) ≍ f := by
+  subst hX; subst hY; rfl
+
+/-- **§1.44 — uniqueness**: Any functor T'' : 𝒞 → A/B satisfying
+    (1) T''(1_𝒞) = overTerm B  (terminator condition), and
+    (2) for each morphism f, the underlying A-map of T''(f) equals hT.map(f)
+        up to the domain identification (Σ ∘ T'' = T on maps),
+    equals the lift T'.
+
+    We express (2) via a cast-free condition: `(hT''.map f).f = (h_obj C) ▸ (h_obj D) ▸ hT.map f`
+    where `h_obj` gives the domain equality.
+
+    Proof: OverHom.w on hT''.map(term_C) gives
+      (hT''.map(term_C)).f ≫ (T''(1)).hom = (T'' C).hom.
+    With T''(1) = ⟨B, id_B⟩: (hT''.map(term_C)).f = (T'' C).hom.
+    The domain identification + h_map show both equal hB ▸ hT.map(term_C).  □ -/
+theorem sliceLift_unique {𝒜 : Type u} [Cat.{v} 𝒜] {B : 𝒜}
+    [HasTerminal 𝒞] (T : 𝒞 → 𝒜) [hT : Functor T] (hB : T (one (𝒞 := 𝒞)) = B)
+    (T'' : 𝒞 → Over B) [hT'' : Functor T'']
+    -- (1) T''(1_𝒞) = overTerm B
+    (h_term : T'' (one (𝒞 := 𝒞)) = overTerm B)
+    -- (2) Domain equality: Σ ∘ T'' = T on objects.
+    (h_obj  : ∀ C, (T'' C).dom = T C)
+    -- (3) Map equality after domain identification: Σ ∘ T'' = T on morphisms.
+    --     (hT''.map f).f has type (T'' C).dom → (T'' D).dom;
+    --     after the domain identification it equals hT.map f : T C → T D.
+    (h_map  : ∀ {C D : 𝒞} (f : C ⟶ D),
+        (hT''.map f).f = (h_obj C).symm ▸ (h_obj D).symm ▸ hT.map f) :
+    ∀ C, T'' C = sliceLift T hB C := by
+  -- Eliminate B by substituting T one = B. After subst, B disappears,
+  -- overTerm (T one) = ⟨T one, Cat.id (T one)⟩, sliceLift T rfl C = ⟨T C, hT.map(term C)⟩.
+  subst hB
+  -- Decompose h_term via Over.mk.injEq to get HEq on the hom field, then unfold
+  -- overTerm so the resulting equalities mention `T one` / `Cat.id (T one)`.
+  rw [Over.mk.injEq] at h_term
+  obtain ⟨h_one_dom, h_one_hom⟩ := h_term
+  simp only [overTerm] at h_one_dom h_one_hom
+  -- h_one_dom : (T'' one).dom = T one
+  -- h_one_hom : (T'' one).hom ≍ Cat.id (T one)
+  intro C
+  -- Goal: T'' C = sliceLift T rfl C = ⟨T C, hT.map(term C)⟩.
+  -- Prove via Over.mk.injEq: dom-equality (h_obj C) + HEq on homs.
+  rw [Over.mk.injEq]
+  refine ⟨h_obj C, ?_⟩
+  -- Goal: (T'' C).hom ≍ hT.map (term C).
+  -- OverHom.w on hT''.map(term C): (hT''.map (term C)).f ≫ (T'' one).hom = (T'' C).hom.
+  have hw : (hT''.map (term C)).f ≫ (T'' (one (𝒞 := 𝒞))).hom = (T'' C).hom :=
+    (hT''.map (term C)).w
+  -- The underlying map of T''(term C) agrees with hT.map(term C) up to HEq: the two
+  -- ▸ transports in h_map are HEq-trivial (eqRec_heq).
+  have hf_heq : (hT''.map (term C)).f ≍ hT.map (term C) := by
+    rw [h_map (term C)]; exact eqRec_symm_symm_heq (h_obj C) (h_obj _) _
+  -- Rewrite the goal using hw, then absorb the identity on the rhs and apply the
+  -- composition HEq-congruence (objects matched by h_obj C, h_one_dom, rfl).
+  rw [← hw]
+  refine HEq.trans ?_ (heq_of_eq (Cat.comp_id (hT.map (term C))))
+  exact comp_heq_congr (h_obj C) h_one_dom rfl hf_heq h_one_hom
+
+/-! ## §1.464  Yoneda representation preserves/reflects cartesian predicates
+
+  Freyd §1.464: The covariant embedding H : A → 𝒮^(A°), B ↦ H_B = (-, B),
+  is a full embedding (the YONEDA REPRESENTATION).  It preserves and reflects the
+  cartesian predicates.
+
+  The embedding `YonedaEmbedding B : 𝒞 → Type v := fun A => A ⟶ B` is defined
+  in S1_47.lean.  A full Yoneda-into-functor-category statement requires:
+  (a) `setCat : Cat (Type v)` — in Horn.lean (not imported here);
+  (b) `FunctorCategory.lean` for the functor-category structure on `𝒮^(A°)`.
+
+  We state the key content that is accessible from the current imports:
+  the Yoneda embedding sends TERMINATORS, PRODUCTS, and PULLBACKS to the
+  corresponding structures in the hom-set sense.
+
+  The full functor-category statement is a TODO pending `setCat` import. -/
+
+-- BOOK §1.464: TODO — full Yoneda-embedding statement:
+--   H : 𝒞 → FunctorObj (OppCat 𝒞) (Type v) (B ↦ H_B = fun A => A ⟶ B)
+--   is a full embedding that preserves and reflects cartesian predicates.
+--   Proof sketch:
+--   (i)  H_B is a functor (OppCat 𝒞 → Type v): it maps f : X ←ᵒᵖ Y (= f : Y → X in 𝒞)
+--        to (f ≫ -) : (Y ⟶ B) → (X ⟶ B) (precomposition).
+--   (ii) H is faithful: H_B ≅ H_C (nat. iso.) ⟹ B ≅ C  (Yoneda lemma: take A=B, track id_B).
+--   (iii) H preserves terminators: H_1(A) = (A ⟶ 1) is a singleton (term_uniq).
+--   (iv)  H preserves products: H_{B×C}(A) ≅ H_B(A) × H_C(A)  (universal property of ×).
+--   (v)   H preserves pullbacks: H_P(A) ≅ pullback of H_f(A) and H_g(A)  (U.P. of pb).
+--   Infrastructure needed: Cat (Type v) (setCat in Horn.lean, not imported here).
+-- END TODO
 
 /-! ## §1.531  Σ as a `Functor`; preservation / reflection of monos
 
