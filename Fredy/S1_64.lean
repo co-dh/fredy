@@ -25,6 +25,7 @@ import Fredy.S1_58
 import Fredy.S1_59
 import Fredy.S1_60
 import Fredy.S1_57
+import Fredy.S1_47
 import Fredy.S1_62
 import Fredy.S1_77
 import Fredy.Complement
@@ -55,12 +56,15 @@ namespace Freyd
   Propositions recorded as TODO until the `PreLogos (Over B)` instance lands. -/
 
 -- BOOK §1.63: If A is a (positive) pre-logos then so is A/B.
--- TODO: needs `PreLogos (Over B)` instance (slice inherits unions via Σ iso).
+-- The instances `overPreLogos (B : 𝒞) : PreLogos (Over B)` and
+-- `overPositivePreLogos (B : 𝒞) : PositivePreLogos (Over B)` are proven in
+-- `Fredy.SlicePreTopos` (which imports this file, so S1_64 cannot import it back).
+-- §1.63's statement is available as a downstream corollary in `Fredy.SlicePreTopos`.
 
 -- BOOK §1.63: Any (positive) pre-logos is faithfully representable in a capital
 -- (positive) pre-logos.
--- TODO: uses §1.543 capitalization lemma (proven) + slice construction above;
--- blocked on `PreLogos (Over B)` instance.
+-- Follows from §1.543 capitalization lemma (proven) + `overPreLogos`/`overPositivePreLogos`
+-- from `Fredy.SlicePreTopos`.  Recorded as a downstream corollary there.
 
 /-! ## §1.631 Complemented subobject
 
@@ -144,10 +148,74 @@ def killedValues {𝒟 : Type u} [Cat.{v} 𝒟] [PreLogos 𝒞] [PreLogos 𝒟]
 /-! A pre-logos is SPECIAL if for every pair of proper subobjects A'⊂A, B'⊂B,
     the subobject (A'×B)∪(A×B') is proper in A×B.
     §1.637: this is the elementary internal characterization of special pre-logoi. -/
--- BOOK §1.637: A pre-logos is special iff for every pair of proper subobjects
---   A'⊂A, B'⊂B, (A'×B)∪(A×B') is a proper subobject of A×B.
--- TODO: needs binary-product interaction with `HasSubobjectUnions`; the
--- properness direction uses `finite_separation` (FiniteSeparation.lean).
+
+/-- Symmetric counterpart of `product_mono_of_mono` (S1_47): `mB : B' → B` monic implies
+    `pair fst (snd ≫ mB) : A×B' → A×B` is monic.
+    Proof: if `u ≫ pair fst (snd ≫ mB) = v ≫ pair fst (snd ≫ mB)`, post-composing with `fst`
+    gives `u ≫ fst = v ≫ fst`; post-composing with `snd` then using `mB` monic gives
+    `u ≫ snd = v ≫ snd`; then `fst_snd_jointly_monic` closes the goal. -/
+theorem product_mono_of_mono_right [HasBinaryProducts 𝒞] (A : 𝒞) {B' B : 𝒞} (mB : B' ⟶ B)
+    (hmB : Monic mB) : Monic (pair (fst (A := A) (B := B')) (snd (A := A) (B := B') ≫ mB)) := by
+  intro W u v huv
+  have h1 : u ≫ fst = v ≫ fst := by
+    have := congrArg (· ≫ fst) huv; simpa only [Cat.assoc, fst_pair] using this
+  have h2 : u ≫ snd = v ≫ snd := by
+    have h : (u ≫ snd) ≫ mB = (v ≫ snd) ≫ mB := by
+      have := congrArg (· ≫ snd) huv; simpa only [Cat.assoc, snd_pair] using this
+    exact hmB _ _ h
+  exact fst_snd_jointly_monic u v h1 h2
+
+/-- **§1.637 characterization of SPECIAL pre-logos** (internal form).
+    A positive pre-logos is SPECIAL iff for every pair of proper subobjects
+    `mA : A' ↪ A`, `mB : B' ↪ B`, the join subobject `(A'×B) ∪ (A×B')` in `A×B`
+    is PROPER (not an isomorphism on its `.arr`).
+
+    Here `(A'×B)` is the subobject with arrow `pair (fst ≫ mA) snd : A'×B → A×B`
+    (monic by `product_mono_of_mono`) and `(A×B')` is the subobject with arrow
+    `pair fst (snd ≫ mB) : A×B' → A×B` (monic by `product_mono_of_mono_right`).
+    Their join is `HasSubobjectUnions.union S1 S2 : Subobject 𝒞 (prod A B)`.
+
+    The EASY direction `IsSpecialPreLogos → ProperMono` is proven below as
+    `isSpecialPreLogos_implies_properMono`.
+    The HARD direction `IsSpecial ∧ PositivePreLogos → IsSpecialPreLogos` requires the
+    ultra-filter diagonal representation argument (§1.646); left as a TODO comment. -/
+class IsSpecialPreLogos (𝒞 : Type u) [Cat.{v} 𝒞] [PreLogos 𝒞] : Prop where
+  special : ∀ {A' A B' B : 𝒞} (mA : A' ⟶ A) (mB : B' ⟶ B)
+      (hmA : ProperMono mA) (hmB : ProperMono mB),
+    ¬ (HasSubobjectUnions.union
+        ⟨prod A' B, pair (fst ≫ mA) snd, product_mono_of_mono B mA hmA.1⟩
+        ⟨prod A B', pair fst (snd ≫ mB), product_mono_of_mono_right A mB hmB.1⟩
+      ).IsEntire
+
+/-- **§1.637 easy direction**: if `IsSpecialPreLogos 𝒞` and `mA : A' → A`, `mB : B' → B`
+    are proper monos, then `pair (fst ≫ mA) snd : A'×B → A×B` is a proper mono.
+    Monic: by `product_mono_of_mono`.  Non-iso: if iso, then `S1 = A'×B ↪ A×B` is
+    entire; `union_left` gives `entire ≤ S1∪S2`, so `entire_of_entire_le` makes
+    `S1∪S2` entire, contradicting `IsSpecialPreLogos.special`. -/
+theorem isSpecialPreLogos_implies_properMono [PreLogos 𝒞]
+    (h : IsSpecialPreLogos 𝒞) {A' A B' B : 𝒞}
+    {mA : A' ⟶ A} {mB : B' ⟶ B} (hmA : ProperMono mA) (hmB : ProperMono mB) :
+    ProperMono (pair (fst (A := A') (B := B) ≫ mA) (snd (A := A') (B := B))) := by
+  refine ⟨product_mono_of_mono B mA hmA.1, ?_⟩
+  -- Goal: ¬ IsIso (pair (fst ≫ mA) snd)
+  intro hiso
+  let S1 : Subobject 𝒞 (prod A B) :=
+    ⟨prod A' B, pair (fst ≫ mA) snd, product_mono_of_mono B mA hmA.1⟩
+  let S2 : Subobject 𝒞 (prod A B) :=
+    ⟨prod A B', pair fst (snd ≫ mB), product_mono_of_mono_right A mB hmB.1⟩
+  obtain ⟨g, _, hg2⟩ := hiso
+  -- g ≫ S1.arr = Cat.id (prod A B), so entire ≤ S1; S1 ≤ S1∪S2 gives entire ≤ S1∪S2
+  have hentire_le_S1 : (Subobject.entire (prod A B)).le S1 := by
+    exact ⟨g, hg2⟩
+  exact h.special mA mB hmA hmB
+    (entire_of_entire_le (subLe_trans hentire_le_S1 (HasSubobjectUnions.union_left S1 S2)))
+
+-- BOOK §1.637 hard direction (TODO): IsSpecial ∧ PositivePreLogos → IsSpecialPreLogos.
+-- Proof sketch: if (A'×B)∪(A×B') were entire, the diagonal homRep T would give
+-- T(A'×B) ∪ T(A×B') = T(A×B) in Set.  But A'×B ∪ A×B' ≠ A×B for proper A', B' in Set
+-- (take any (a,b) ∉ A'×B ∪ A×B'), so T sends the union to a proper subobject — contradicting
+-- entireness.  Making this precise requires the ultra-filter diagonal representation
+-- from `finite_separation` (FiniteSeparation.lean, §1.646).
 
 -- BOOK §1.642: For A a small category, S^A is a boolean pre-logos iff A is a groupoid.
 -- TODO: needs Set-valued functor category (S^A) infrastructure not in this repo.

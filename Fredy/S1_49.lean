@@ -7,6 +7,8 @@
 import Fredy.S1_1
 import Fredy.S1_41
 import Fredy.S1_42
+import Fredy.S1_18
+import Fredy.S1_26
 
 
 open Freyd
@@ -1362,57 +1364,473 @@ end TCat
 
 /-! ## §1.498  Canonical Cartesian structure in a τ-category -/
 
--- BOOK §1.498: A τ-category has a CANONICAL CARTESIAN STRUCTURE.
--- The canonical product ⟨A × B; p₁, p₂⟩ is defined as the unique τ-table
--- on the pair (A, B).  The canonical pullback is likewise the unique τ-table
--- on the pair of projections.
+section CanonicalCartesian
 
-/-! ## §1.49(10)  Lemmas for τ-categories -/
+variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
 
--- BOOK §1.49(10): Canonical products are strictly associative:
---   (A × B) × C = A × (B × C) with the canonical projections.
--- The terminator is strictly a two-sided unit: 1 × A = A = A × 1
--- (not just up to isomorphism: the canonical projections ARE identities).
--- If each square in a stacked pullback diagram is a canonical pullback,
--- then so is the rectangle.
+/-- §1.498: The canonical 2-column product table `⟨A × B; fst, snd⟩`.
+    The product `A × B` is CANONICAL in the τ-category τ if this table is in τ. -/
+def prodTable2 (A B : 𝒞) : Table 𝒞 :=
+  { src   := prod A B
+    len   := 2
+    codom := fun i => if i.val = 0 then A else B
+    col   := fun i => if h : i.val = 0 then ((if_pos h).symm ▸ (fst : prod A B ⟶ A))
+                      else ((if_neg h).symm ▸ (snd : prod A B ⟶ B))
+    monic := by
+      intro X f g h
+      have hf : f ≫ fst = g ≫ fst := by
+        have h0 := h ⟨0, by omega⟩
+        simp only [show (⟨0, by omega⟩ : Fin 2).val = 0 from rfl, dif_pos] at h0; exact h0
+      have hs : f ≫ snd = g ≫ snd := by
+        have h1 := h ⟨1, by omega⟩
+        simp only [show (⟨1, by omega⟩ : Fin 2).val = 0 ↔ False from by decide,
+                   dif_neg, not_false_eq_true] at h1; exact h1
+      rw [pair_eta f, pair_eta g, hf, hs] }
+
+/-- Column 0 of `prodTable2 A B` is heterogeneously equal to `fst`. -/
+theorem prodTable2_col0 (A B : 𝒞) (i : Fin 2) (hi : i.val = 0) :
+    HEq ((prodTable2 A B).col i) (fst (A := A) (B := B)) := by
+  simp only [prodTable2]; rw [dif_pos hi]; exact eqRec_heq _ _
+
+/-- Column 1 of `prodTable2 A B` is heterogeneously equal to `snd`. -/
+theorem prodTable2_col1 (A B : 𝒞) (i : Fin 2) (hi : i.val = 1) :
+    HEq ((prodTable2 A B).col i) (snd (A := A) (B := B)) := by
+  simp only [prodTable2]; rw [dif_neg (by omega : ¬ i.val = 0)]; exact eqRec_heq _ _
+
+/-- §1.498: In a τ-category, any two tables that are both in τ and iso to the same table
+    are equal (τ-uniqueness).  In particular, the canonical product table is unique. -/
+theorem canonicalProduct_unique (τ : TCat 𝒞) (tab₁ tab₂ : Table 𝒞)
+    (hLen : tab₁.len = tab₂.len)
+    (hSrc : tab₁.src = tab₂.src)
+    (h₁ : τ.mem tab₁) (h₂ : τ.mem tab₂)
+    (hFeet : ∀ i : Fin tab₁.len, tab₁.codom i = tab₂.codom (hLen ▸ i))
+    (hCols : ∀ i : Fin tab₁.len, HEq (tab₁.col i) (tab₂.col (hLen ▸ i))) :
+    tab₁ = tab₂ := by
+  -- Build TableIso tab₁ → tab₂ with f = id_tab₁.src (using hSrc)
+  obtain ⟨s₁, n₁, C₁, c₁, m₁⟩ := tab₁
+  obtain ⟨s₂, n₂, C₂, c₂, m₂⟩ := tab₂
+  simp only [Table.src, Table.len, Table.codom, Table.col] at hLen hSrc hFeet hCols h₁ h₂ ⊢
+  subst hSrc; subst hLen
+  have hIso : Nonempty (TableIso ⟨s₁, n₁, C₁, c₁, m₁⟩ ⟨s₁, n₁, C₂, c₂, m₂⟩) :=
+    ⟨{ hLen        := rfl
+       f           := Cat.id s₁
+       g           := Cat.id s₁
+       f_g         := Cat.id_comp _
+       g_f         := Cat.id_comp _
+       codom_match := fun i => by simp only [Table.codom]; exact (hFeet i).symm
+       col_match   := fun i => by
+         simp only [Table.col]
+         exact (heq_of_eq (Cat.id_comp (c₂ i))).trans (hCols i).symm }⟩
+  exact τ.tau1_unique ⟨s₁, n₁, C₁, c₁, m₁⟩ ⟨s₁, n₁, C₁, c₁, m₁⟩ ⟨s₁, n₁, C₂, c₂, m₂⟩
+    h₁ h₂ ⟨TableIso.refl _⟩ hIso
+
+end CanonicalCartesian
+
+/-! ## §1.49(10)  Canonical products: strict associativity and unit laws -/
+
+section CanonicalProdLaws
+
+variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
+
+/-- The canonical 3-column left-associated product table
+    `⟨(A × B) × C; fst∘fst, fst∘snd, snd⟩`. -/
+def prodTable3 (A B C : 𝒞) : Table 𝒞 :=
+  { src   := prod (prod A B) C
+    len   := 3
+    codom := fun i => match i.val with | 0 => A | 1 => B | _ => C
+    col   := fun i => match i with
+      | ⟨0, _⟩ => show prod (prod A B) C ⟶ match (0:Fin 3).val with | 0 => A | 1 => B | _ => C
+                  from fst ≫ fst
+      | ⟨1, _⟩ => show prod (prod A B) C ⟶ match (1:Fin 3).val with | 0 => A | 1 => B | _ => C
+                  from fst ≫ snd
+      | ⟨2, _⟩ => show prod (prod A B) C ⟶ match (2:Fin 3).val with | 0 => A | 1 => B | _ => C
+                  from snd
+      | ⟨(n+3), h⟩ => absurd h (by omega)
+    monic := by
+      intro X f g h
+      have h0 := h ⟨0, by omega⟩; have h1 := h ⟨1, by omega⟩; have h2 := h ⟨2, by omega⟩
+      simp only [] at h0 h1 h2
+      have hpair : f ≫ fst = g ≫ fst := by
+        rw [pair_eta (f ≫ fst), pair_eta (g ≫ fst)]
+        congr 1
+        · rw [Cat.assoc, Cat.assoc]; exact h0
+        · rw [Cat.assoc, Cat.assoc]; exact h1
+      rw [pair_eta f, pair_eta g, hpair, h2] }
+
+/-- `prodTable3` is exactly the table composition of `prodTable2 (prod A B) C`
+    with `prodTable2 A B` at column 0 (definitional equality mod proof-irrelevance). -/
+theorem tab_l_eq_prodTable3 (A B C : 𝒞) :
+    (prodTable2 (prod A B) C).comp (prodTable2 A B) ⟨0, by simp [prodTable2]⟩ rfl = prodTable3 A B C := by
+  have hlen : ((prodTable2 (prod A B) C).comp (prodTable2 A B) ⟨0, by simp [prodTable2]⟩ rfl).len = 3 := rfl
+  refine Table_eq_of_fields
+      ((prodTable2 (prod A B) C).comp (prodTable2 A B) ⟨0, by simp [prodTable2]⟩ rfl)
+      (prodTable3 A B C) rfl rfl ?_ ?_
+  · apply heq_funext_fin rfl; intro ⟨i, hi⟩; rw [hlen] at hi; rcases i with _ | _ | _ | i
+    all_goals simp only [Table.comp, Table.compCodom, prodTable2, prodTable3]
+    all_goals simp_all; all_goals omega
+  · refine Table.col_heq_funext
+        (A := (prodTable2 (prod A B) C).comp (prodTable2 A B) ⟨0, by simp [prodTable2]⟩ rfl)
+        (B := prodTable3 A B C) rfl rfl ?_ ?_
+    · intro ⟨i, hi⟩; rw [hlen] at hi; rcases i with _ | _ | _ | i
+      all_goals simp only [Table.comp, Table.compCodom, prodTable2, prodTable3]
+      all_goals simp_all; all_goals omega
+    · intro ⟨i, hi⟩; rw [hlen] at hi; rcases i with _ | _ | _ | i
+      all_goals simp only [Table.comp, Table.compColMor, Table.compCodom, prodTable2, prodTable3]
+      all_goals simp_all; all_goals omega
+
+-- Product associator and its inverse (for the iso proof in canon_prod_assoc).
+private def prodAssocHom (A B C : 𝒞) : prod (prod A B) C ⟶ prod A (prod B C) :=
+  pair (fst ≫ fst) (pair (fst ≫ snd) snd)
+
+private def prodAssocInv (A B C : 𝒞) : prod A (prod B C) ⟶ prod (prod A B) C :=
+  pair (pair fst (snd ≫ fst)) (snd ≫ snd)
+
+private theorem prodAssoc_fg (A B C : 𝒞) :
+    prodAssocHom A B C ≫ prodAssocInv A B C = Cat.id _ := by
+  rw [← pair_fst_snd]
+  apply pair_uniq
+  · rw [Cat.assoc, prodAssocInv, fst_pair, pair_eta fst]
+    apply pair_uniq
+    · rw [Cat.assoc, fst_pair, prodAssocHom, fst_pair]
+    · rw [Cat.assoc, snd_pair, ← Cat.assoc, prodAssocHom, snd_pair, fst_pair]
+  · rw [Cat.assoc, prodAssocInv, snd_pair, ← Cat.assoc, prodAssocHom, snd_pair, snd_pair]
+
+private theorem prodAssoc_gf (A B C : 𝒞) :
+    prodAssocInv A B C ≫ prodAssocHom A B C = Cat.id _ := by
+  rw [← pair_fst_snd]
+  apply pair_uniq
+  · rw [Cat.assoc, prodAssocHom, fst_pair, ← Cat.assoc, prodAssocInv, fst_pair, fst_pair]
+  · rw [Cat.assoc, prodAssocHom, snd_pair, pair_eta snd]
+    apply pair_uniq
+    · rw [Cat.assoc, fst_pair, ← Cat.assoc, prodAssocInv, fst_pair, snd_pair]
+    · rw [Cat.assoc, snd_pair, prodAssocInv, snd_pair]
+
+/-- §1.49(10) STRICT ASSOCIATIVITY: If the canonical product tables for `A×B`, `B×C`,
+    `(A×B)×C`, and `A×(B×C)` are all in τ, then the left-associated 3-column table
+    `prodTable3 A B C` equals the right-associated 3-column composition.
+    Hence `prod (prod A B) C = prod A (prod B C)` with matching canonical projections.
+
+    Proof: both 3-column tables are τ-tables (by τ2_comp); they are isomorphic via
+    the product associator iso; τ1-uniqueness forces equality. -/
+theorem canon_prod_assoc (τ : TCat 𝒞) (A B C : 𝒞)
+    (hAB    : τ.mem (prodTable2 A B))
+    (hBC    : τ.mem (prodTable2 B C))
+    (hABC_l : τ.mem (prodTable2 (prod A B) C))
+    (hABC_r : τ.mem (prodTable2 A (prod B C))) :
+    prodTable3 A B C =
+      (prodTable2 A (prod B C)).comp (prodTable2 B C) ⟨1, by simp [prodTable2]⟩ rfl := by
+  let tab_r := (prodTable2 A (prod B C)).comp (prodTable2 B C) ⟨1, by simp [prodTable2]⟩ rfl
+  have hmem_l : τ.mem (prodTable3 A B C) := by
+    rw [← tab_l_eq_prodTable3]; exact τ.tau2_comp _ _ _ rfl hABC_l hAB
+  have hmem_r : τ.mem tab_r := τ.tau2_comp _ _ _ rfl hABC_r hBC
+  -- Columns of tab_r: col 0 = fst, col 1 ≍ snd∘fst, col 2 ≍ snd∘snd (by simp)
+  -- TableIso prodTable3 ≅ tab_r via prodAssocHom / prodAssocInv
+  have hIso : Nonempty (TableIso (prodTable3 A B C) tab_r) := by
+    have hlen3 : (prodTable3 A B C).len = 3 := rfl
+    refine ⟨{
+      hLen        := rfl
+      f           := prodAssocHom A B C
+      g           := prodAssocInv A B C
+      f_g         := prodAssoc_fg A B C
+      g_f         := prodAssoc_gf A B C
+      codom_match := fun i => by
+        obtain ⟨iv, hiv⟩ := i; rw [hlen3] at hiv; rcases iv with _ | _ | _ | iv
+        all_goals simp only [tab_r, Table.comp, Table.compCodom, prodTable2, prodTable3]
+        all_goals simp_all; all_goals omega
+      col_match   := fun i => by
+        obtain ⟨iv, hiv⟩ := i; rw [hlen3] at hiv; rcases iv with _ | _ | _ | iv
+        · -- col 0: prodAssocHom ≫ fst = fst∘fst
+          have hc : (tab_r.col ⟨0, by simp [tab_r, Table.comp, prodTable2]⟩) = (fst : prod A (prod B C) ⟶ A) := by
+            simp [tab_r, Table.comp, Table.compColMor, Table.compCodom, prodTable2]
+          simp only [prodTable3, prodAssocHom]
+          rw [show tab_r.col ⟨0, hiv⟩ = tab_r.col ⟨0, by simp [tab_r, Table.comp, prodTable2]⟩ from rfl, hc]
+          exact heq_of_eq (fst_pair _ _)
+        · -- col 1: prodAssocHom ≫ (snd∘fst) = fst∘snd
+          have hc : HEq (tab_r.col ⟨1, by simp [tab_r, Table.comp, prodTable2]⟩) (snd ≫ fst : prod A (prod B C) ⟶ B) := by
+            simp [tab_r, Table.comp, Table.compColMor, Table.compCodom, prodTable2]
+          simp only [prodTable3, prodAssocHom]
+          exact (comp_heq_left (pair (fst ≫ fst) (pair (fst ≫ snd) snd)) _ (snd ≫ fst) rfl
+            (show HEq (tab_r.col ⟨0 + 1, hiv⟩) (snd ≫ fst) from hc)).trans
+            (heq_of_eq (by rw [← Cat.assoc, snd_pair, fst_pair]))
+        · -- col 2: prodAssocHom ≫ (snd∘snd) = snd
+          have hc : HEq (tab_r.col ⟨2, by simp [tab_r, Table.comp, prodTable2]⟩) (snd ≫ snd : prod A (prod B C) ⟶ C) := by
+            simp [tab_r, Table.comp, Table.compColMor, Table.compCodom, prodTable2]
+          simp only [prodTable3, prodAssocHom]
+          exact (comp_heq_left (pair (fst ≫ fst) (pair (fst ≫ snd) snd)) _ (snd ≫ snd) rfl
+            (show HEq (tab_r.col ⟨0 + 1 + 1, hiv⟩) (snd ≫ snd) from hc)).trans
+            (heq_of_eq (by rw [← Cat.assoc, snd_pair, snd_pair]))
+        · simp_all; omega }⟩
+  exact τ.tau1_unique (prodTable3 A B C) (prodTable3 A B C) tab_r hmem_l hmem_r
+    ⟨TableIso.refl _⟩ hIso
+
+/-- Col 0 of `prodTable2 one B` (which maps to `one`) is short:
+    any two maps to `one` are equal by terminality. -/
+private theorem prodTable2_one_isShort0 (B : 𝒞) :
+    (prodTable2 one B).IsShort ⟨0, by simp [prodTable2]⟩ := by
+  intro X f g _hAgree
+  apply eq_of_heq
+  exact comp_heq_left f _ _ rfl (prodTable2_col0 one B ⟨0, by simp [prodTable2]⟩ rfl) |>.trans
+    (heq_of_eq (term_uniq (f ≫ fst) (g ≫ fst)) |>.trans
+      (comp_heq_left g _ _ rfl (prodTable2_col0 one B ⟨0, by simp [prodTable2]⟩ rfl)).symm)
+
+/-- §1.49(10) STRICT LEFT UNIT: If the canonical product table for `one × B` is in τ,
+    then `prod one B = B` and the second projection `snd` is (HEq to) the identity.
+
+    Proof: column 0 = fst : one×B → one is short (any map to `one` is unique).
+    Pruning gives a 1-column table `(one×B; snd) ∈ τ`.  Since `snd` is an iso
+    (`prod_one_iso_left`) and `idTable B ∈ τ`, τ1-uniqueness forces `one×B = B`
+    and `snd` is the identity up to the equality `prod one B = B`. -/
+theorem canon_prod_unit_left (τ : TCat 𝒞) (B : 𝒞)
+    (hMem : τ.mem (prodTable2 one B)) :
+    prod one B = B ∧ ∃ (h : prod one B = B), HEq (snd (A := one) (B := B)) (Cat.id B) := by
+  have hShort0 := prodTable2_one_isShort0 B
+  have hPruned : τ.mem ((prodTable2 one B).prune ⟨0, by simp [prodTable2]⟩ hShort0) :=
+    TCat.mem_prune hShort0 hMem
+  have hId : τ.mem (idTable B) := τ.tau2_id B
+  have hlenPruned : ((prodTable2 one B).prune ⟨0, by simp [prodTable2]⟩ hShort0).len = 1 := by
+    simp [Table.prune, prodTable2]
+  have hlenId : (idTable B).len = 1 := rfl
+  -- TableIso (idTable B) (pruned table) via snd / prodOneLeftInv
+  have hIso : Nonempty (TableIso (idTable B) ((prodTable2 one B).prune ⟨0, by simp [prodTable2]⟩ hShort0)) :=
+    ⟨{ hLen        := by rw [hlenId, hlenPruned]
+       f           := prodOneLeftInv B
+       g           := snd
+       f_g         := prodOneLeftInv_snd
+       g_f         := snd_prodOneLeftInv
+       codom_match := fun i => by
+         have hiv : i.val = 0 := by have h := i.isLt; simp only [show (idTable _).len = 1 from rfl] at h; omega
+         simp [Table.prune, Fin.skip, idTable]; simp [prodTable2]
+       col_match   := fun i => by
+         have hiv : i.val = 0 := by have h := i.isLt; simp only [show (idTable _).len = 1 from rfl] at h; omega
+         apply HEq.trans (comp_heq_left (prodOneLeftInv B) _ snd rfl ?_) ?_
+         · simp only [Table.prune]
+           exact prodTable2_col1 one B _ (by simp [Fin.skip, hiv])
+         · rw [prodOneLeftInv_snd]; rfl }⟩
+  have hEq : idTable B = (prodTable2 one B).prune ⟨0, by simp [prodTable2]⟩ hShort0 :=
+    τ.tau1_unique (idTable B) _ _ hId hPruned ⟨TableIso.refl _⟩ hIso
+  have hSrc : B = prod one B := congrArg Table.src hEq
+  refine ⟨hSrc.symm, hSrc.symm, ?_⟩
+  -- Extract: snd ≍ (prune).col 0 ≍ (idTable B).col 0 = Cat.id B
+  have hpruneLtOne : 0 < ((prodTable2 one B).prune ⟨0, by simp [prodTable2]⟩ hShort0).len :=
+    hlenPruned.symm ▸ Nat.one_pos
+  have hcol : HEq ((idTable B).col ⟨0, by simp [hlenId]⟩)
+      (((prodTable2 one B).prune ⟨0, by simp [prodTable2]⟩ hShort0).col ⟨0, hpruneLtOne⟩) :=
+    Table.col_heq_of_eq hEq (fin_heq (by rw [hlenId, hlenPruned]) ⟨0, by simp [hlenId]⟩ ⟨0, hpruneLtOne⟩ rfl)
+  have hRHS : HEq (((prodTable2 one B).prune ⟨0, by simp [prodTable2]⟩ hShort0).col ⟨0, hpruneLtOne⟩)
+      (snd : prod one B ⟶ B) := by
+    simp only [Table.prune]
+    exact prodTable2_col1 one B _ (by simp [Fin.skip])
+  exact hRHS.symm.trans (hcol.symm.trans (heq_of_eq rfl))
+
+/-- Col 1 of `prodTable2 A one` (which maps to `one`) is short. -/
+private theorem prodTable2_one_isShort1 (A : 𝒞) :
+    (prodTable2 A one).IsShort ⟨1, by simp [prodTable2]⟩ := by
+  intro X f g _hAgree
+  apply eq_of_heq
+  exact comp_heq_left f _ _ rfl (prodTable2_col1 A one ⟨1, by simp [prodTable2]⟩ rfl) |>.trans
+    (heq_of_eq (term_uniq (f ≫ snd) (g ≫ snd)) |>.trans
+      (comp_heq_left g _ _ rfl (prodTable2_col1 A one ⟨1, by simp [prodTable2]⟩ rfl)).symm)
+
+/-- §1.49(10) STRICT RIGHT UNIT: If the canonical product table for `A × one` is in τ,
+    then `prod A one = A` and the first projection `fst` is (HEq to) the identity.
+
+    Proof: column 1 = snd : A×one → one is short; pruning gives `(A×one; fst) ∈ τ`.
+    Since `fst` is an iso (`prod_one_iso_right`), τ1-uniqueness forces `A×one = A`. -/
+theorem canon_prod_unit_right (τ : TCat 𝒞) (A : 𝒞)
+    (hMem : τ.mem (prodTable2 A one)) :
+    prod A one = A ∧ ∃ (h : prod A one = A), HEq (fst (A := A) (B := one)) (Cat.id A) := by
+  have hShort1 := prodTable2_one_isShort1 A
+  have hPruned : τ.mem ((prodTable2 A one).prune ⟨1, by simp [prodTable2]⟩ hShort1) :=
+    TCat.mem_prune hShort1 hMem
+  have hId : τ.mem (idTable A) := τ.tau2_id A
+  have hlenPruned : ((prodTable2 A one).prune ⟨1, by simp [prodTable2]⟩ hShort1).len = 1 := by
+    simp [Table.prune, prodTable2]
+  have hlenId : (idTable A).len = 1 := rfl
+  have hIso : Nonempty (TableIso (idTable A) ((prodTable2 A one).prune ⟨1, by simp [prodTable2]⟩ hShort1)) :=
+    ⟨{ hLen        := by rw [hlenId, hlenPruned]
+       f           := prodOneRightInv A
+       g           := fst
+       f_g         := by simp [idTable]
+       g_f         := fst_prodOneRightInv
+       codom_match := fun i => by
+         have hiv : i.val = 0 := by have h := i.isLt; simp only [show (idTable _).len = 1 from rfl] at h; omega
+         simp [Table.prune, Fin.skip, idTable]; simp [prodTable2]
+       col_match   := fun i => by
+         have hiv : i.val = 0 := by have h := i.isLt; simp only [show (idTable _).len = 1 from rfl] at h; omega
+         simp only [Table.prune, idTable]
+         exact (comp_heq_left (prodOneRightInv A) _ fst (by simp [prodTable2, Fin.skip])
+           (prodTable2_col0 A one _ (by simp [Fin.skip, hiv]))).trans (heq_of_eq prodOneRightInv_fst) }⟩
+  have hEq : idTable A = (prodTable2 A one).prune ⟨1, by simp [prodTable2]⟩ hShort1 :=
+    τ.tau1_unique (idTable A) _ _ hId hPruned ⟨TableIso.refl _⟩ hIso
+  have hSrc : A = prod A one := congrArg Table.src hEq
+  refine ⟨hSrc.symm, hSrc.symm, ?_⟩
+  -- Extract: fst ≍ (prune).col 0 ≍ (idTable A).col 0 = Cat.id A
+  have hpruneLtOne : 0 < ((prodTable2 A one).prune ⟨1, by simp [prodTable2]⟩ hShort1).len :=
+    hlenPruned.symm ▸ Nat.one_pos
+  have hcol : HEq ((idTable A).col ⟨0, by simp [hlenId]⟩)
+      (((prodTable2 A one).prune ⟨1, by simp [prodTable2]⟩ hShort1).col ⟨0, hpruneLtOne⟩) :=
+    Table.col_heq_of_eq hEq (fin_heq (by rw [hlenId, hlenPruned]) ⟨0, by simp [hlenId]⟩ ⟨0, hpruneLtOne⟩ rfl)
+  have hRHS : HEq (((prodTable2 A one).prune ⟨1, by simp [prodTable2]⟩ hShort1).col ⟨0, hpruneLtOne⟩)
+      (fst : prod A one ⟶ A) := by
+    simp only [Table.prune]
+    exact prodTable2_col0 A one _ (by simp [Fin.skip])
+  exact hRHS.symm.trans (hcol.symm.trans (heq_of_eq rfl))
+
+-- BOOK §1.49(10) PULLBACK PASTING: If each square in a two-square horizontal diagram
+-- is a canonical pullback, then the rectangle is a canonical pullback.
+-- Proof sketch: compose the two 2-column pullback τ-tables into a 4-column table (via tau2_comp);
+-- the middle column (the shared leg) is short since it factors through the shared arrow;
+-- pruning (tau3) gives the 3-column rectangle table, which equals the canonical pullback table
+-- by tau1-uniqueness.
+-- MISSING: requires a notion of "canonical pullback table" (a 2-col τ-table equipped with the
+-- commutative-square equation π₁∘f = π₂∘g) and the slice/Cone infrastructure from S1_45.lean.
+-- Not imported here; left as a precise TODO.
+-- BOOK §1.49(10) pasting: TODO — requires import Fredy.S1_45 for Cone/HasPullback.
+
+end CanonicalProdLaws
+
+/-! ## §1.4(10)  τ-FUNCTOR definition -/
+
+/-- A τ-FUNCTOR `F : 𝒜 → ℬ` between τ-categories `τ_A` and `τ_B` (§1.4(10)):
+    a functor that carries τ-tables to τ-tables.  Precisely, for every τ-table
+    `tab ∈ τ_A` there exists a τ-table `tab' ∈ τ_B` such that:
+    - `tab'.src = F(tab.src)`
+    - `tab'.len = tab.len`
+    - `tab'.col i ≍ F(tab.col i)` for all `i : Fin tab.len`.
+
+    We express the column agreement heterogeneously (via `HEq` and a cast of `i` along
+    the length equality) so that no monicity proof on the image data is required up front.
+
+    NB: The book notes that cartesian functors automatically preserve shortness of columns
+    (§1.4(10)), so every cartesian functor between τ-categories is a τ-functor. -/
+structure TFunctor {𝒜 : Type u} [Cat.{v} 𝒜] {ℬ : Type u} [Cat.{v} ℬ]
+    (τ_A : TCat 𝒜) (τ_B : TCat ℬ) (F : 𝒜 → ℬ) where
+  /-- Underlying functor structure. -/
+  toFunctor : Freyd.Functor F
+  /-- τ-preservation: every τ-table maps to a τ-table with the expected source and columns. -/
+  preservesτ : ∀ tab : Table 𝒜, τ_A.mem tab →
+    ∃ (tab' : Table ℬ) (hLen : tab'.len = tab.len),
+      τ_B.mem tab' ∧ tab'.src = F tab.src ∧
+      ∀ i : Fin tab.len, HEq (tab'.col (hLen ▸ i)) (toFunctor.map (tab.col i))
+
+/-- The IDENTITY τ-functor: the identity functor on any τ-category is a τ-functor. -/
+def TFunctor.id {𝒜 : Type u} [Cat.{v} 𝒜] (τ : TCat 𝒜) : TFunctor τ τ id where
+  toFunctor := Freyd.idFunctor
+  preservesτ := fun tab hmem => ⟨tab, rfl, hmem, rfl, fun _ => HEq.rfl⟩
+
+/-! ## §1.4(11)  Slice τ-structure and Σ -/
+
+/-- The FORGETFUL FUNCTOR `Σ : A/B → A` sending `⟨X, f⟩ ↦ X` and `h ↦ h.f`. -/
+def sigmaFunctor {𝒞 : Type u} [Cat.{v} 𝒞] (B : 𝒞) :
+    Freyd.Functor (fun (X : Over B) => X.dom) where
+  map h := h.f
+  map_id _ := rfl
+  map_comp _ _ := rfl
 
 /-! ## §1.4(10)1  Free τ-category -/
 
--- BOOK §1.4(10)1: For every small Cartesian category A there exists a free
--- τ-category A → A^τ where A → A^τ is an equivalence functor.
--- (The equivalence-kernel of the functor consists of identity maps and
--- isomorphisms between subterminators.)
+-- BOOK §1.4(10)1: For every small Cartesian category A there exists a free τ-category
+--   A --F--> A^τ  where F is an equivalence functor.
+-- The equivalence-kernel of F is the set of identities and isomorphisms between subterminators.
+-- Proof sketch: A^τ = [P], the quotient by the equivalence kernel of the resurfacing-assignment;
+-- objects of [P] are τ-tables, morphisms are maps between their sources.
+-- F is defined by F(X) := (idTable X), F(f) := the unique map between resurfaced sources.
+-- F is an equivalence because τ1-uniqueness makes the functor full and faithful on τ-tables,
+-- and every object of A^τ is (by definition) isomorphic to some F(X).
+-- The universal property: given a cartesian functor G : A → B (B a τ-category), the unique
+-- τ-functor G' : A^τ → B sends (T; x₁,…,xₙ) to the resurfacing of (GT; Gx₁,…,Gxₙ) in τ_B
+-- (well-defined by τ1-uniqueness); G' preserves τ-tables because cartesian functors preserve
+-- shortness (the book's key use of cartesianness, §1.4(10)).
+-- BLOCK: requires building A^τ (the quotient category [P]) from the `TCat.resurfacing`
+-- machinery already in this file, and proving the equivalence via `tau1_unique`.
+-- BOOK §1.4(10)1: TODO — requires `FreeTCategory.obj` quotient construction.
+
+/-! ## §1.4(11)2  Slice τ-structure -/
+
+-- BOOK §1.4(11)2: Given a τ-category A and object B, the slice A/B inherits a τ-structure
+-- τ/B := Σ⁻¹(τ) ∪ {columnless tables}.  Formally, `tab : Table (Over B)` is in τ/B iff
+-- its Σ-image `(tab.src.dom; (tab.col 0).f, …, (tab.col n).f)` is in τ_A.
+-- The five axioms for τ/B:
+--   tau2_id  : idTable ⟨A, f⟩ maps to idTable A.dom under Σ; in τ_A by tau2_id.
+--   tau2_comp: Σ(S.comp T j) = (Σ S).comp (Σ T) j (OverHom.f fields compose); closed by τ_A.
+--   tau3     : Σ(tab.prune j) = (Σ tab).prune j (removing a column commutes with Σ); closed by τ_A.
+--   tau1     : take the τ-representative r of Σ(tab) in A; lift the isomorphism r.iso back
+--              to A/B using that r.iso.f commutes with the B-projection.
+--   tau1_unique: follows from tau1_unique in A applied to the Σ-images.
+-- BLOCK: tau1 iso-lifting requires that the τ-iso φ : r.rep.src → tab.src.dom in A satisfies
+-- `φ ≫ tab.src.hom = tab.src.hom` (since r.rep was built from the Σ-image, not over B).
+-- This requires extending r.rep to an Over B object, which demands an independent argument.
+-- The tau2_id/tau2_comp/tau3 fields are all constructible from the σFunctor lemmas; the
+-- blockage is purely in tau1/tau1_unique.
+-- BOOK §1.4(11)2 (sliceTCat): TODO — tau1 iso-lifting for the slice τ-structure.
+
+/-! ## §1.4(11)3  Σ is a τ-functor -/
+
+-- BOOK §1.4(11)3: The forgetful functor Σ : A/B → A is a τ-functor.
+-- Proof: by definition of τ/B, a τ/B-table has its Σ-image in τ_A.  So
+--   preservesτ tab hmem := ⟨Σ-image of tab, rfl, hmem, rfl, fun i => HEq.rfl⟩
+-- once `sliceTCat` is defined.  The `sigmaFunctor` above is the underlying functor.
+-- Formally:
+--   def sigma_isTFunctor (τ : TCat 𝒞) (B : 𝒞) :
+--       TFunctor (sliceTCat τ B) τ (fun X : Over B => X.dom) :=
+--     { toFunctor := sigmaFunctor B, preservesτ := fun tab hmem => ⟨…, hmem, rfl, …⟩ }
+-- BLOCK: requires sliceTCat.
+-- BOOK §1.4(11)3: TODO — immediate from sliceTCat definition once available.
 
 /-! ## §1.4(11)5  Generic point generates A/B -/
 
--- BOOK §1.4(11)5: Every object and morphism in A/B is obtainable by taking
--- canonical pullbacks of the generic point ε : 1 → ΔB and morphisms of the
--- form Δx (for morphisms x in A).
+-- BOOK §1.4(11)5: Every object and morphism in A/B is obtainable by taking canonical pullbacks
+-- of the generic point ε : 1_{A/B} → Δ(B) and morphisms of the form Δ(x) for x : A → A' in A.
+-- Here Δ : A → A/B sends X to ⟨X×B, snd⟩ and f to (f × id_B) : X×B → X'×B.
+-- The generic point ε in A/B is ⟨B, id_B⟩ (an object of A/B with dom = B).
+-- Generation proof: every auspicious f : X → B equals the pullback of ε along Δ(π_X : X×B → X)
+-- — the pullback square is (X×B --π_X--> X --f--> B  and  X×B --snd--> B --id--> B) which is
+-- indeed a pullback because products are pullbacks over the terminal.
+-- BLOCK: requires the Δ-functor (needs HasBinaryProducts + S1_45 for pullbacks), sliceTCat,
+-- and canonical-pullback τ-tables.
+-- BOOK §1.4(11)5: TODO — requires Δ-functor + canonical-pullback table infrastructure.
 
 /-! ## §1.4(11)6  Unique τ-functor from a point -/
 
--- BOOK §1.4(11)6: For any τ-functor F : A → B and point x : 1 → F(B),
--- there exists a unique τ-functor F_x : A/B → B such that Δ ; F_x = F and
--- F_x(ε) = x (where ε is the generic point of A/B).
+-- BOOK §1.4(11)6: For any τ-functor F : A → B and point x : 1 → F(B), there exists a
+-- UNIQUE τ-functor F_x : A/B → B such that Δ ; F_x = F and F_x(ε) = x.
+-- Existence: F/B : A/B → B/F(B) applies F to morphisms; compose with the base-change
+-- functor x^♯ : B/F(B) → B (pulling back along x).  This composite is F_x.
+-- Uniqueness: by §1.4(11)5 every object is determined by ε and Δ-images; F_x(ε) = x and
+-- F_x(Δ(f)) = F(f) force F_x on all objects.
+-- BLOCK: requires sliceTCat, §1.4(11)5, and base-change f^♯ (import Fredy.S1_44).
+-- BOOK §1.4(11)6: TODO — requires sliceTCat + base-change τ-functor.
 
-/-! ## §1.4(11)9  Universal property rephrased via Γ -/
+/-! ## §1.4(11)9  Universal property via Γ -/
 
--- BOOK §1.4(11)9: Given any τ-functor F : A → B and transformation
--- η : T(Δ(-)) → T(F(-)) (where T = (1, -) is the global-sections functor),
--- there exists a unique τ-functor G : A/B → B such that γ_G = η.
+-- BOOK §1.4(11)9: For any τ-functor F : C → B there is a UNIQUE natural transformation
+--   η_F : Γ(−) → Γ(F(−))   (where Γ(A) = Hom(1, A) = global sections)
+-- defined by η_F(x : 1 → A) := F(x) : 1 → F(A).
+-- Conversely, §1.4(11)6 gives a bijection:
+--   { τ-functors G : A/B → B }  ≅  { (F, x) | F : TFunctor(A,B), x : 1 → F(B) }
+-- via G ↦ (Δ ; G, G(ε)) with inverse (F, x) ↦ F_x.
+-- The natural transformation η from §1.4(11)9 is the counit of this correspondence.
+-- BLOCK: requires §1.4(11)6, HasTerminal, and the Γ-functor.
+-- BOOK §1.4(11)9: TODO — requires §1.4(11)6 + Γ-functor.
 
 /-! ## §1.4(12)1  Metatheorem for τ-categories -/
 
--- BOOK §1.4(12)1 METATHEOREM: An equation between terms (built from canonical
--- products, equalizers, pullbacks, resurfacing, and the terminator) is true
--- for all τ-categories if and only if it is true for P (the τ-category of
--- von Neumann ordinals less than ω^ω).
+-- BOOK §1.4(12)1 METATHEOREM: An equation between τ-category terms is true for all
+-- τ-categories iff it is true for P (the τ-category of von Neumann ordinals < ω^ω).
+-- P: the ordered set {0, 1, …, ω, ω+1, …, ω·2, …} with (n; f₁,…,fₖ) ∈ τ_P iff
+-- the fᵢ are jointly monic order-preserving maps.
+-- Proof: soundness = P is a τ-category (routine from ordinal arithmetic);
+-- completeness = §1.4(12)2 constructs an embedding A^τ → P for every countable A.
+-- BLOCK: requires model P (ordinals + τ-structure) and the §1.4(12)2 embedding.
+-- BOOK §1.4(12)1: TODO — requires model P + embedding infrastructure.
 
 /-! ## §1.4(12)2  Key lemma for the metatheorem -/
 
--- BOOK §1.4(12)2: If A is countable, then for any morphism f ∉ |A^τ| there
--- exists an ω-ordering of A and an object B ∈ A such that (B, f) ∉ |P|.
--- (This is the inductive step used to embed the free τ-category of a
--- countable Cartesian category into P.)
+-- BOOK §1.4(12)2: For countable A, every f ∉ |A^τ| is witnessed by some (B, f) ∉ |P|.
+-- Proof: fix an ω-ordering a₀, a₁, … of A; interpret Hom(aᵢ, aⱼ) as order-preserving
+-- maps [i] → [j] to get a functor A^τ → P; f ∉ |A^τ| means no τ-table of A contains f,
+-- which maps to no τ-table of P containing the image of f.
+-- BLOCK: requires model P and ω-orderings.
+-- BOOK §1.4(12)2: TODO — requires model P + ω-orderings.
 
 end Freyd
