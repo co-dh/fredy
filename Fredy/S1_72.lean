@@ -567,17 +567,169 @@ class FocalLogos (𝒞 : Type u) [Cat.{v} 𝒞] extends Logos 𝒞 where
 
 /-! ## §1.722 Poset is a logos iff Heyting algebra
 
-  "A poset, when viewed as a category, is a logos iff it is a Heyting algebra
-  (more precisely, iff it is the poset underlying a [necessarily unique] Heyting algebra)."
+  "A poset, when viewed as a category, is a logos iff it is a Heyting algebra."
   (Freyd §1.722, combining §1.721 and §1.613.)
 
-  The infrastructure for this requires a concrete model of "poset viewed as a category"
-  (a thin category) together with the identification of its logos structure with a Heyting
-  algebra on the carrier.  That model is not built in this repo (there is no thin-category
-  constructor); the statement is recorded below as a book reference. -/
+  We prove the (⟹) direction: every Heyting algebra, viewed as a thin category
+  via `PLift (le a b)` as hom-sets, is a logos.  The object `a` has `Sub(a) ≅ ↓a`
+  (downward-closed subsets below `a`), and the logos structure corresponds exactly
+  to the Heyting algebra structure on the underlying poset.
 
--- BOOK §1.722: A poset, when viewed as a category, is a logos iff it is a Heyting algebra
--- (more precisely, iff it is the poset underlying a [necessarily unique] Heyting algebra).
+  (⟸) direction (thin logos ⟹ Heyting algebra) is a TODO: it requires inverting the
+  construction, showing that the pullback = meet, cover = iso, and the right-adjoint
+  image gives the implication. -/
+
+/-- A Heyting algebra as a bundled poset: carrier, ordering, lattice ops, implication. -/
+structure HeytingPoset where
+  carrier       : Type
+  le            : carrier → carrier → Prop
+  le_refl       : ∀ a, le a a
+  le_trans      : ∀ {a b c}, le a b → le b c → le a c
+  top           : carrier
+  top_le        : ∀ a, le a top
+  meet          : carrier → carrier → carrier
+  meet_le_left  : ∀ a b, le (meet a b) a
+  meet_le_right : ∀ a b, le (meet a b) b
+  le_meet       : ∀ {a b c}, le c a → le c b → le c (meet a b)
+  join          : carrier → carrier → carrier
+  le_join_left  : ∀ a b, le a (join a b)
+  le_join_right : ∀ a b, le b (join a b)
+  join_le       : ∀ {a b c}, le a c → le b c → le (join a b) c
+  imp           : carrier → carrier → carrier
+  /-- Adjunction: `le c (imp a b) ↔ le (meet a c) b`. -/
+  imp_adj       : ∀ a b c, le c (imp a b) ↔ le (meet a c) b
+  bot           : carrier
+  bot_le        : ∀ a, le bot a
+
+/-- The thin category structure on a Heyting poset: `Hom a b = PLift (le a b)`. -/
+instance heytingPosetCat (P : HeytingPoset) : Cat.{0} P.carrier where
+  Hom x y  := PLift (P.le x y)
+  id x     := ⟨P.le_refl x⟩
+  comp h k := ⟨P.le_trans h.down k.down⟩
+  id_comp _ := rfl; comp_id _ := rfl; assoc _ _ _ := rfl
+
+/-- All parallel morphisms are equal in a Heyting-poset thin category. -/
+theorem hp_thin (P : HeytingPoset) {a b : P.carrier} (f g : a ⟶ b) : f = g := by
+  cases f; cases g; rfl
+
+/-- `f : a → b` is an isomorphism iff `b ≤ a`. -/
+theorem hp_iso_iff (P : HeytingPoset) {a b : P.carrier} (f : a ⟶ b) :
+    IsIso f ↔ P.le b a :=
+  ⟨fun ⟨finv, _, _⟩ => finv.down, fun hba => ⟨⟨hba⟩, hp_thin P _ _, hp_thin P _ _⟩⟩
+
+/-- Every morphism in a Heyting-poset thin category is monic. -/
+theorem hp_monic (P : HeytingPoset) {a b : P.carrier} (f : a ⟶ b) : Monic f :=
+  fun {_W} p q _ => hp_thin P p q
+
+/-- In a Heyting-poset thin category, covers = isos. -/
+theorem hp_cover_iff_iso (P : HeytingPoset) {a b : P.carrier} (f : a ⟶ b) :
+    Cover f ↔ IsIso f :=
+  ⟨fun hcov => hcov f (Cat.id a) (hp_monic P f) (Cat.id_comp f),
+   fun hiso _C m h _hmono _hgm => by
+     rw [hp_iso_iff P]; exact P.le_trans ((hp_iso_iff P f).mp hiso) h.down⟩
+
+/-- Pullbacks in the Heyting-poset thin category are binary meets. -/
+instance hp_hasPullbacks (P : HeytingPoset) : HasPullbacks P.carrier where
+  has := fun {a b _c} _f _g =>
+    { cone :=
+        { pt := P.meet a b
+          π₁ := ⟨P.meet_le_left a b⟩
+          π₂ := ⟨P.meet_le_right a b⟩
+          w := hp_thin P _ _ }
+      lift := fun d => ⟨P.le_meet d.π₁.down d.π₂.down⟩
+      lift_fst := fun _ => hp_thin P _ _
+      lift_snd := fun _ => hp_thin P _ _
+      lift_uniq := fun _c _u _h1 _h2 => hp_thin P _ _ }
+
+/-- Images in the Heyting-poset thin category: image of `f : a → b` is `a` itself
+    (the domain, viewed as a subobject of `b` via `f`). -/
+instance hp_hasImages (P : HeytingPoset) : HasImages P.carrier where
+  image := fun {a _b} f => { dom := a, arr := f, monic := fun p q _ => hp_thin P p q }
+  isImage := fun f => ⟨⟨Cat.id _, Cat.id_comp f⟩, fun _S ⟨g, hg⟩ => ⟨g, hg⟩⟩
+
+/-- §1.722 (⟹): every Heyting algebra, viewed as a thin category, is a logos.
+
+    Construction:
+    - Terminator = top element; binary products = meets; pullbacks = meets.
+    - Images: image of `f : a → b` is `a ↪ b` (domain as subobject).
+    - Covers = isos = equivalences; `PullbacksTransferCovers` follows from
+      the pullback square being an isomorphism whenever one leg is.
+    - Subobject unions = joins; right-adjoint image `f##(A')` has domain `b ∧ (a → A'.dom)`
+      (via the Heyting adjunction `c ≤ a → b ↔ a ∧ c ≤ b`).
+    - Bottom subobject of any `A` is `bot ↪ A`. -/
+noncomputable def heytingPoset_is_logos (P : HeytingPoset) : Logos P.carrier :=
+  letI := hp_hasPullbacks P
+  letI := hp_hasImages P
+  { toRegularCategory := {
+      toHasTerminal := {
+        one := P.top
+        trm x := ⟨P.top_le x⟩
+        uniq f g := hp_thin P f g
+      }
+      toHasBinaryProducts := {
+        prod a b := P.meet a b
+        fst := ⟨P.meet_le_left _ _⟩
+        snd := ⟨P.meet_le_right _ _⟩
+        pair f g := ⟨P.le_meet f.down g.down⟩
+        fst_pair _ _ := hp_thin P _ _
+        snd_pair _ _ := hp_thin P _ _
+        pair_uniq _ _ _ _ _ := hp_thin P _ _
+      }
+      toHasPullbacks := hp_hasPullbacks P
+      toHasImages := hp_hasImages P
+      toPullbacksTransferCovers := {
+        pullbacks_transfer_covers := by
+          intro a b c f g cone hIsPB hCoverF
+          rw [hp_cover_iff_iso P] at hCoverF; rw [hp_cover_iff_iso P]
+          -- f : a → b iso (b ≤ a), g : c → b; want π₂ : cone.pt → c iso.
+          -- Build a cone from c: use g.down ≫ f-iso to get c → a, and id_c.
+          have hca : P.le c a := P.le_trans g.down ((hp_iso_iff P f).mp hCoverF)
+          let cCone : Cone f g := Cone.mk c ⟨hca⟩ (Cat.id c) (hp_thin P _ _)
+          -- The universal property gives a map from c into cone.pt = meet a c.
+          -- Its π₂-component is a left-inverse of cone.π₂, making π₂ iso.
+          exact (hp_iso_iff P cone.π₂).mpr ((hIsPB cCone).choose.down)
+      }
+    }
+    toHasSubobjectUnions := {
+      union := fun {_b} S T =>
+        { dom := P.join S.dom T.dom
+          arr := ⟨P.join_le S.arr.down T.arr.down⟩
+          monic := fun p q _ => hp_thin P p q }
+      union_left := fun {_b} S T => ⟨⟨P.le_join_left S.dom T.dom⟩, hp_thin P _ _⟩
+      union_right := fun {_b} S T => ⟨⟨P.le_join_right S.dom T.dom⟩, hp_thin P _ _⟩
+      union_min := fun {_b} _S _T U hS hT => by
+        obtain ⟨hs, _⟩ := hS; obtain ⟨ht, _⟩ := hT
+        exact ⟨⟨P.join_le hs.down ht.down⟩, hp_thin P _ _⟩
+    }
+    -- f## : Sub(A) → Sub(B) given f : A → B; f##(A') has dom = B ∧ (A → A'.dom).
+    rightAdj := fun {a b} f A' =>
+      { dom := P.meet b (P.imp a A'.dom)
+        arr := ⟨P.meet_le_left b (P.imp a A'.dom)⟩
+        monic := fun p q _ => hp_thin P p q }
+    -- f#(B') ≤ A' ↔ B' ≤ f##(A'): use Heyting adjunction + fact that
+    -- InverseImage f B' has dom = meet a B'.dom (definitionally).
+    adjunction := fun {a b} f B' A' => by
+      simp only [Subobject.le]
+      constructor
+      · intro ⟨h, _⟩
+        -- h.down : P.le (meet a B'.dom) A'.dom
+        exact ⟨⟨P.le_meet B'.arr.down ((P.imp_adj a A'.dom B'.dom).mpr h.down)⟩, hp_thin P _ _⟩
+      · intro ⟨h, _⟩
+        -- h.down : P.le B'.dom (meet b (imp a A'.dom))
+        have hle_imp := P.le_trans h.down (P.meet_le_right b (P.imp a A'.dom))
+        exact ⟨⟨(P.imp_adj a A'.dom B'.dom).mp hle_imp⟩, hp_thin P _ _⟩
+    bottom := fun A =>
+      { dom := P.bot, arr := ⟨P.bot_le A⟩, monic := fun p q _ => hp_thin P p q }
+    bottom_min := fun {_A} S => ⟨⟨P.bot_le S.dom⟩, hp_thin P _ _⟩
+    -- All bottom subobjects have domain P.bot, which is isomorphic to itself.
+    bottom_dom_iso := fun _A _B =>
+      ⟨⟨P.le_refl P.bot⟩, ⟨⟨P.le_refl P.bot⟩, hp_thin P _ _, hp_thin P _ _⟩⟩
+  }
+
+-- BOOK §1.722 (⟸): thin logos ⟹ Heyting algebra.
+-- A thin logos 𝒞 gives a Heyting algebra on its objects:
+-- le a b := Nonempty (a ⟶ b); meet = pullback.pt; imp a b := (rightAdj (trm a) B').dom
+-- where B' = entire subobject of b.  TODO: formalise this direction.
 
 /-! ## §1.733 Positive pre-logos focal iff connected projective terminator
 
