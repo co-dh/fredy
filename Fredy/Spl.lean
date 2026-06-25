@@ -159,4 +159,88 @@ theorem spl_effective {𝒜 : Type u} [Allegory 𝒜] {E : SplObj 𝒜} (Φ : E 
 -- §2.434: TODO — needs systemic completion (out of scope).
 -- §2.435: TODO — needs ConnectedAllegory; see S2_43 for §2.436.
 
+/-! ## §2.165 / §2.166 for `SplCorObj 𝒜`  (coreflexive splitting completion)
+
+  `SplObj 𝒜` splits ALL symmetric idempotents. Freyd's §2.165/§2.166 apply only to the
+  COREFLEXIVE sub-completion `SplCorObj 𝒜 = { E : SplObj 𝒜 // E.idem.e ⊑ 1_{E.carrier} }`,
+  which splits only the coreflexive symmetric idempotents (`e° = e, ee = e, e ⊑ 1`).
+
+  This section:
+    §2.165  `Allegory (SplCorObj 𝒜)`          [PROVED: Cat + Allegory instances]
+            `PreTabularAllegory (SplCorObj 𝒜)` [TODO: needs source-apex pre-tabulations]
+    §2.166  `TabularAllegory (SplCorObj 𝒜)`    [TODO: relies on §2.165]
+
+  WHY §2.165 (pre-tabulation) is TODO
+  ─────────────────────────────────────
+  Freyd's proof (book §2.165, "because" paragraph) takes a SOURCE-APEX tabulation of U ≥ R.R
+  in 𝒜: `P : t ⟶ a`, `Q : t ⟶ b` (legs FROM the apex t TO the objects), `Map P`, `Map Q`,
+  `R.R ≤ P°≫Q`, `PP°∩QQ° = id_t`. It then defines:
+
+    C  =  Dom(P≫ee) ∩ Dom(Q≫fe)  =  P≫ee≫P° ∩ Q≫fe≫Q°  :  t ⟶ t
+
+  and shows C is coreflexive (using P,Q jointly monic: `PP°∩QQ° = id_t` forces C ≤ id_t),
+  then exhibits source-apex legs `CfA : (t,C) ⟶ (a,ee)` with `CfA.R = C≫P≫ee`:
+    • Entire CfA: `id_{(t,C)} = C ≤ C≫(P≫ee≫P°)≫C = C` — trivially C ≤ C. ✓
+    • Simple CfA: `CfA°≫CfA = ee≫P°≫C≫P≫ee ≤ ee≫P°P≫ee ≤ ee`     (P simple) ✓
+
+  The repo's `PreTabularAllegory` provides TARGET-APEX legs `f : a ⟶ t, g : b ⟶ t`
+  (not source-apex). Converting via `P = f°` gives Entire P but NOT Simple P in source-apex
+  (since `PP° = f°f ≤ id_t` holds but `P°P = ff° ≥ id_a` is reflexive, not coreflexive).
+  And without `PP°∩QQ° = id_t` (the joint-monicity condition missing from pre-tabulations),
+  C = P≫ee≫P° ∩ Q≫fe≫Q° is NOT coreflexive.
+
+  The fix is to assume the repo's pre-tabulation gives JOINTLY-MONIC source-apex pairs, i.e.,
+  `PreTabularAllegory` in Freyd's original sense (every morphism is contained in a TABULAR
+  one). The repo's class is strictly weaker (no joint-monicity condition), so §2.165 requires
+  a stronger hypothesis here. -/
+
+/-- The COREFLEXIVE splitting completion of `𝒜`: restrict `SplObj 𝒜` to objects whose
+    symmetric idempotent `E.idem.e` is coreflexive (`E.idem.e ⊑ Cat.id E.carrier`).
+    This is Freyd's `ℬℳ(𝒞𝑜𝓇ℯ𝒻𝓁 𝒜)` (§2.167): split only the coreflexive SymIdem. -/
+def SplCorObj (𝒜 : Type u) [Allegory 𝒜] : Type u :=
+  { E : SplObj 𝒜 // Coreflexive E.idem.e }
+
+namespace SplCorObj
+
+variable {𝒜 : Type u} [Allegory 𝒜]
+
+/-- Category structure on `SplCorObj 𝒜`: homs and composition inherited from `SplObj 𝒜`. -/
+instance instCatSplCor : Cat (SplCorObj 𝒜) where
+  Hom E F     := SplHom E.1 F.1
+  id E        := splId E.1
+  comp R S    := splComp R S
+  id_comp R   := SplHom.ext R.fixed_left
+  comp_id R   := SplHom.ext R.fixed_right
+  assoc R S T := SplHom.ext (Cat.assoc _ _ _)
+
+/-- Allegory structure on `SplCorObj 𝒜`: reciprocation and intersection inherited
+    from `SplObj 𝒜`; all axioms reduce to the underlying `𝒜` axioms via `SplHom.ext`. -/
+instance instAllegorySplCor : Allegory (SplCorObj 𝒜) where
+  recip R             := splRecip R
+  inter R S           := splInter R S
+  recip_recip R       := SplHom.ext (Allegory.recip_recip _)
+  recip_comp R S      := SplHom.ext (Allegory.recip_comp _ _)
+  recip_inter R S     := SplHom.ext (Allegory.recip_inter _ _)
+  inter_idem R        := SplHom.ext (Allegory.inter_idem _)
+  inter_comm R S      := SplHom.ext (Allegory.inter_comm _ _)
+  inter_assoc R S T   := SplHom.ext (Allegory.inter_assoc _ _ _)
+  semidistrib R S T   := SplHom.ext (Allegory.semidistrib _ _ _)
+  modular R S T       := SplHom.ext (Allegory.modular _ _ _)
+
+-- BOOK §2.165: If 𝒜 is pre-tabular then SplCorObj 𝒜 is pre-tabular.
+-- TODO §2.165: Freyd's proof uses a SOURCE-APEX tabulation `P : t ⟶ a, Q : t ⟶ b` with
+--   `Map P, Map Q, R.R ≤ P°≫Q, PP°∩QQ° = id_t`.  The SplCorObj apex is `(t, C)` where
+--   `C = P≫ee≫P° ∩ Q≫fe≫Q°` (coreflexive: follows from `PP°∩QQ° = id_t ≤ PP°∩QQ°`).
+--   Legs: `CfA : (t,C) ⟶ (a,ee)` with `CfA.R = C≫P≫ee`, shown to be Maps.
+--   The repo's `PreTabularAllegory 𝒜` gives TARGET-APEX legs `f : a ⟶ t` (not source-apex
+--   `P : t ⟶ a`), and lacks the joint-monicity `ff°∩gg° = id_t` needed for C coreflexive.
+--   Blocked until the repo has either (a) a source-apex PreTabular class, or (b) a proof
+--   that every target-apex pre-tabulation can be refined to a joint-monic source-apex span.
+
+-- BOOK §2.166: SplCorObj 𝒜 is tabular iff it is pre-tabular and coreflexives split.
+-- TODO §2.166: Relies on §2.165.  Coreflexive splitting is available via
+--   `spl_coreflexive_splits` + `tabulation_of_split_apex`; only §2.165 is blocked.
+
+end SplCorObj
+
 end Freyd.Alg
