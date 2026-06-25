@@ -7,6 +7,8 @@
 import Fredy.S1_1
 import Fredy.S1_41
 import Fredy.S1_42
+import Fredy.S1_18
+import Fredy.S1_26
 
 
 open Freyd
@@ -1687,58 +1689,148 @@ theorem canon_prod_unit_right (τ : TCat 𝒞) (A : 𝒞)
 
 end CanonicalProdLaws
 
+/-! ## §1.4(10)  τ-FUNCTOR definition -/
+
+/-- A τ-FUNCTOR `F : 𝒜 → ℬ` between τ-categories `τ_A` and `τ_B` (§1.4(10)):
+    a functor that carries τ-tables to τ-tables.  Precisely, for every τ-table
+    `tab ∈ τ_A` there exists a τ-table `tab' ∈ τ_B` such that:
+    - `tab'.src = F(tab.src)`
+    - `tab'.len = tab.len`
+    - `tab'.col i ≍ F(tab.col i)` for all `i : Fin tab.len`.
+
+    We express the column agreement heterogeneously (via `HEq` and a cast of `i` along
+    the length equality) so that no monicity proof on the image data is required up front.
+
+    NB: The book notes that cartesian functors automatically preserve shortness of columns
+    (§1.4(10)), so every cartesian functor between τ-categories is a τ-functor. -/
+structure TFunctor {𝒜 : Type u} [Cat.{v} 𝒜] {ℬ : Type u} [Cat.{v} ℬ]
+    (τ_A : TCat 𝒜) (τ_B : TCat ℬ) (F : 𝒜 → ℬ) where
+  /-- Underlying functor structure. -/
+  toFunctor : Freyd.Functor F
+  /-- τ-preservation: every τ-table maps to a τ-table with the expected source and columns. -/
+  preservesτ : ∀ tab : Table 𝒜, τ_A.mem tab →
+    ∃ (tab' : Table ℬ) (hLen : tab'.len = tab.len),
+      τ_B.mem tab' ∧ tab'.src = F tab.src ∧
+      ∀ i : Fin tab.len, HEq (tab'.col (hLen ▸ i)) (toFunctor.map (tab.col i))
+
+/-- The IDENTITY τ-functor: the identity functor on any τ-category is a τ-functor. -/
+def TFunctor.id {𝒜 : Type u} [Cat.{v} 𝒜] (τ : TCat 𝒜) : TFunctor τ τ id where
+  toFunctor := Freyd.idFunctor
+  preservesτ := fun tab hmem => ⟨tab, rfl, hmem, rfl, fun _ => HEq.rfl⟩
+
+/-! ## §1.4(11)  Slice τ-structure and Σ -/
+
+/-- The FORGETFUL FUNCTOR `Σ : A/B → A` sending `⟨X, f⟩ ↦ X` and `h ↦ h.f`. -/
+def sigmaFunctor {𝒞 : Type u} [Cat.{v} 𝒞] (B : 𝒞) :
+    Freyd.Functor (fun (X : Over B) => X.dom) where
+  map h := h.f
+  map_id _ := rfl
+  map_comp _ _ := rfl
+
 /-! ## §1.4(10)1  Free τ-category -/
 
 -- BOOK §1.4(10)1: For every small Cartesian category A there exists a free τ-category
--- A → A^τ where A → A^τ is an equivalence functor.
--- (The equivalence-kernel of F consists of identity maps and isomorphisms between subterminators.)
--- MISSING: requires a full notion of τ-functor and the universal property of the free τ-category.
--- The FreeTCategory class above is the placeholder; the universal property is not yet stated
--- because the book's construction (via well-made tables and the τ-functor concept) has not been
--- formalized. A τ-functor F : A → B for τ-categories A, B preserves the τ-structure:
---   ∀ tab ∈ τ_A,  ⟨F(tab.src); F(col 1), …, F(col n)⟩ ∈ τ_B.
--- BOOK §1.4(10)1: TODO — requires τ-functor formalization.
+--   A --F--> A^τ  where F is an equivalence functor.
+-- The equivalence-kernel of F is the set of identities and isomorphisms between subterminators.
+-- Proof sketch: A^τ = [P], the quotient by the equivalence kernel of the resurfacing-assignment;
+-- objects of [P] are τ-tables, morphisms are maps between their sources.
+-- F is defined by F(X) := (idTable X), F(f) := the unique map between resurfaced sources.
+-- F is an equivalence because τ1-uniqueness makes the functor full and faithful on τ-tables,
+-- and every object of A^τ is (by definition) isomorphic to some F(X).
+-- The universal property: given a cartesian functor G : A → B (B a τ-category), the unique
+-- τ-functor G' : A^τ → B sends (T; x₁,…,xₙ) to the resurfacing of (GT; Gx₁,…,Gxₙ) in τ_B
+-- (well-defined by τ1-uniqueness); G' preserves τ-tables because cartesian functors preserve
+-- shortness (the book's key use of cartesianness, §1.4(10)).
+-- BLOCK: requires building A^τ (the quotient category [P]) from the `TCat.resurfacing`
+-- machinery already in this file, and proving the equivalence via `tau1_unique`.
+-- BOOK §1.4(10)1: TODO — requires `FreeTCategory.obj` quotient construction.
+
+/-! ## §1.4(11)2  Slice τ-structure -/
+
+-- BOOK §1.4(11)2: Given a τ-category A and object B, the slice A/B inherits a τ-structure
+-- τ/B := Σ⁻¹(τ) ∪ {columnless tables}.  Formally, `tab : Table (Over B)` is in τ/B iff
+-- its Σ-image `(tab.src.dom; (tab.col 0).f, …, (tab.col n).f)` is in τ_A.
+-- The five axioms for τ/B:
+--   tau2_id  : idTable ⟨A, f⟩ maps to idTable A.dom under Σ; in τ_A by tau2_id.
+--   tau2_comp: Σ(S.comp T j) = (Σ S).comp (Σ T) j (OverHom.f fields compose); closed by τ_A.
+--   tau3     : Σ(tab.prune j) = (Σ tab).prune j (removing a column commutes with Σ); closed by τ_A.
+--   tau1     : take the τ-representative r of Σ(tab) in A; lift the isomorphism r.iso back
+--              to A/B using that r.iso.f commutes with the B-projection.
+--   tau1_unique: follows from tau1_unique in A applied to the Σ-images.
+-- BLOCK: tau1 iso-lifting requires that the τ-iso φ : r.rep.src → tab.src.dom in A satisfies
+-- `φ ≫ tab.src.hom = tab.src.hom` (since r.rep was built from the Σ-image, not over B).
+-- This requires extending r.rep to an Over B object, which demands an independent argument.
+-- The tau2_id/tau2_comp/tau3 fields are all constructible from the σFunctor lemmas; the
+-- blockage is purely in tau1/tau1_unique.
+-- BOOK §1.4(11)2 (sliceTCat): TODO — tau1 iso-lifting for the slice τ-structure.
+
+/-! ## §1.4(11)3  Σ is a τ-functor -/
+
+-- BOOK §1.4(11)3: The forgetful functor Σ : A/B → A is a τ-functor.
+-- Proof: by definition of τ/B, a τ/B-table has its Σ-image in τ_A.  So
+--   preservesτ tab hmem := ⟨Σ-image of tab, rfl, hmem, rfl, fun i => HEq.rfl⟩
+-- once `sliceTCat` is defined.  The `sigmaFunctor` above is the underlying functor.
+-- Formally:
+--   def sigma_isTFunctor (τ : TCat 𝒞) (B : 𝒞) :
+--       TFunctor (sliceTCat τ B) τ (fun X : Over B => X.dom) :=
+--     { toFunctor := sigmaFunctor B, preservesτ := fun tab hmem => ⟨…, hmem, rfl, …⟩ }
+-- BLOCK: requires sliceTCat.
+-- BOOK §1.4(11)3: TODO — immediate from sliceTCat definition once available.
 
 /-! ## §1.4(11)5  Generic point generates A/B -/
 
 -- BOOK §1.4(11)5: Every object and morphism in A/B is obtainable by taking canonical pullbacks
--- of the generic point ε : 1 → ΔB and morphisms of the form Δx.
--- MISSING: requires the full slice-category τ-structure (τ/B = Σ⁻¹(τ) + columnless tables),
--- the Δ-functor A → A/B, and the generic point ε : 1 → ΔB.
--- The GenericPoint def above (= idTable B) is the placeholder for the object; the generation
--- theorem needs the universal property of canonical pullbacks in the slice.
--- BOOK §1.4(11)5: TODO — requires slice τ-structure formalization.
+-- of the generic point ε : 1_{A/B} → Δ(B) and morphisms of the form Δ(x) for x : A → A' in A.
+-- Here Δ : A → A/B sends X to ⟨X×B, snd⟩ and f to (f × id_B) : X×B → X'×B.
+-- The generic point ε in A/B is ⟨B, id_B⟩ (an object of A/B with dom = B).
+-- Generation proof: every auspicious f : X → B equals the pullback of ε along Δ(π_X : X×B → X)
+-- — the pullback square is (X×B --π_X--> X --f--> B  and  X×B --snd--> B --id--> B) which is
+-- indeed a pullback because products are pullbacks over the terminal.
+-- BLOCK: requires the Δ-functor (needs HasBinaryProducts + S1_45 for pullbacks), sliceTCat,
+-- and canonical-pullback τ-tables.
+-- BOOK §1.4(11)5: TODO — requires Δ-functor + canonical-pullback table infrastructure.
 
 /-! ## §1.4(11)6  Unique τ-functor from a point -/
 
--- BOOK §1.4(11)6: For any τ-functor F : A → B and point x : 1 → F(B),
--- there exists a unique τ-functor F_x : A/B → B with Δ ; F_x = F and F_x(ε) = x.
--- MISSING: requires τ-functor formalization and the slice τ-structure.
--- BOOK §1.4(11)6: TODO — requires τ-functor + slice structure.
+-- BOOK §1.4(11)6: For any τ-functor F : A → B and point x : 1 → F(B), there exists a
+-- UNIQUE τ-functor F_x : A/B → B such that Δ ; F_x = F and F_x(ε) = x.
+-- Existence: F/B : A/B → B/F(B) applies F to morphisms; compose with the base-change
+-- functor x^♯ : B/F(B) → B (pulling back along x).  This composite is F_x.
+-- Uniqueness: by §1.4(11)5 every object is determined by ε and Δ-images; F_x(ε) = x and
+-- F_x(Δ(f)) = F(f) force F_x on all objects.
+-- BLOCK: requires sliceTCat, §1.4(11)5, and base-change f^♯ (import Fredy.S1_44).
+-- BOOK §1.4(11)6: TODO — requires sliceTCat + base-change τ-functor.
 
-/-! ## §1.4(11)9  Universal property rephrased via Γ -/
+/-! ## §1.4(11)9  Universal property via Γ -/
 
--- BOOK §1.4(11)9: Given any τ-functor F : C → B there is a unique natural transformation
--- Γ(−) → Γ(F(−)) (where Γ = T(1, −) is the global-sections functor), sending x : 1 → A
--- to Fx : 1 → FA.  (This is the counit of the F_x adjunction.)
--- MISSING: requires the τ-functor notion and the Γ-functor formalization.
--- BOOK §1.4(11)9: TODO — requires τ-functor + Γ formalization.
+-- BOOK §1.4(11)9: For any τ-functor F : C → B there is a UNIQUE natural transformation
+--   η_F : Γ(−) → Γ(F(−))   (where Γ(A) = Hom(1, A) = global sections)
+-- defined by η_F(x : 1 → A) := F(x) : 1 → F(A).
+-- Conversely, §1.4(11)6 gives a bijection:
+--   { τ-functors G : A/B → B }  ≅  { (F, x) | F : TFunctor(A,B), x : 1 → F(B) }
+-- via G ↦ (Δ ; G, G(ε)) with inverse (F, x) ↦ F_x.
+-- The natural transformation η from §1.4(11)9 is the counit of this correspondence.
+-- BLOCK: requires §1.4(11)6, HasTerminal, and the Γ-functor.
+-- BOOK §1.4(11)9: TODO — requires §1.4(11)6 + Γ-functor.
 
 /-! ## §1.4(12)1  Metatheorem for τ-categories -/
 
 -- BOOK §1.4(12)1 METATHEOREM: An equation between τ-category terms is true for all
 -- τ-categories iff it is true for P (the τ-category of von Neumann ordinals < ω^ω).
--- This is a soundness/completeness result for the τ-calculus.
--- MISSING: requires the definition of the generic model P (von Neumann ordinals with the
--- canonical τ-structure from ordinal arithmetic) and an embedding theorem.
--- BOOK §1.4(12)1: TODO — requires the model P and the embedding/completeness argument.
+-- P: the ordered set {0, 1, …, ω, ω+1, …, ω·2, …} with (n; f₁,…,fₖ) ∈ τ_P iff
+-- the fᵢ are jointly monic order-preserving maps.
+-- Proof: soundness = P is a τ-category (routine from ordinal arithmetic);
+-- completeness = §1.4(12)2 constructs an embedding A^τ → P for every countable A.
+-- BLOCK: requires model P (ordinals + τ-structure) and the §1.4(12)2 embedding.
+-- BOOK §1.4(12)1: TODO — requires model P + embedding infrastructure.
 
 /-! ## §1.4(12)2  Key lemma for the metatheorem -/
 
--- BOOK §1.4(12)2: If A is countable and f ∉ |A^τ|, there exists an ω-ordering of A
--- and an object B ∈ A such that (B, f) ∉ |P|.
--- (This is the inductive step for embedding A^τ into P for countable A.)
--- MISSING: requires the model P, ω-orderings, and the inductive embedding construction.
--- BOOK §1.4(12)2: TODO — requires model P + embedding infrastructure.
+-- BOOK §1.4(12)2: For countable A, every f ∉ |A^τ| is witnessed by some (B, f) ∉ |P|.
+-- Proof: fix an ω-ordering a₀, a₁, … of A; interpret Hom(aᵢ, aⱼ) as order-preserving
+-- maps [i] → [j] to get a functor A^τ → P; f ∉ |A^τ| means no τ-table of A contains f,
+-- which maps to no τ-table of P containing the image of f.
+-- BLOCK: requires model P and ω-orderings.
+-- BOOK §1.4(12)2: TODO — requires model P + ω-orderings.
 
 end Freyd
