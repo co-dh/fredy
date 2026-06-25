@@ -417,7 +417,13 @@ theorem le_matDiv_comp {X Y Z : MatObj 𝒜} (R : X ⟶ Z) (S : Y ⟶ Z) :
     apply finJoin_le; intro j
     exact le_trans (comp_mono_right (finMeet_le _ k) _) (div_comp_eq_le _ _)
 
-/-- §2.342: `Mat 𝒜` is a division allegory when `𝒜` is. -/
+/-- §2.342  POSITIVE REFLECTION THEOREM: the positive reflection A⁺ of a division allegory is
+    a division allegory (Freyd §2.342).
+
+    The positive reflection A⁺ = `MatObj 𝒜` (finite-index-family objects, matrix morphisms).
+    Division is entrywise: `(R/S)_{ij} = ⋀_{k} (R_{ik}/S_{jk})` (finite meet over codomain index k).
+    The adjointness `T ⊑ R/S ↔ T≫S ⊑ R` lifts from the base via `le_div_iff` + `finJoin_le`/`le_finMeet`.
+    The faithful embedding `embed1 : 𝒜 → MatObj 𝒜` (§2.216) preserves ≫, °, ∩, ∪, 𝟘, /. -/
 noncomputable instance instDivisionAllegoryMat : DivisionAllegory (MatObj 𝒜) :=
   { instDistributiveAllegoryMat with
     div         := fun R S => matDiv R S
