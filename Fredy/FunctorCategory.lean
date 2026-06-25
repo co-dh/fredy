@@ -434,37 +434,326 @@ theorem imageLiftNT_fac [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
     natTrans_comp (imageLiftNT α) (imgArrNT α) = α :=
   NaturalTransformation.ext' fun A => image.lift_fac (α.app A)
 
-/-
-  §1.521 HasImages (FunctorObj 𝒜 𝒮): PARTIAL — BLOCKED by §1.462 hard direction.
+/-! ## §1.462 (hard direction) via evaluation functors and pointwise kernel pairs -/
 
-  What is proved above (sorry-free):
-  • imageFunObj α   : FunctorObj 𝒜 𝒮   — the image domain functor (transition maps via pullback)
-  • imgArrNT α      : imageFunObj α ⟶ G  — the inclusion NT (natural by imgTrans_comm)
-  • imgArrNT_monic  : Monic (imgArrNT α)  — pointwise monic → NT monic (§1.462 easy)
-  • imageLiftNT α   : F ⟶ imageFunObj α  — the lift NT
-  • imageLiftNT_fac : imageLiftNT α ≫ imgArrNT α = α  (image factorization)
+/-- §1.462: The evaluation functor `ev_A : 𝒮^𝒜 → 𝒮`, sending `T ↦ T.obj A`
+    and `α ↦ α.app A`. -/
+def evFunctor (A : 𝒜) : FunctorObj 𝒜 𝒮 → 𝒮 := fun T => T.obj A
 
-  What is missing for a full HasImages instance — MINIMALITY:
-  Given S : Subobject (𝒮^A) G allowing α, exhibit h : imageFunObj α ⟶ S.dom (NT) with
-  h ≫ S.arr = imgArrNT α.
-  Component h.app A := (image_min (α.app A) cA hA).choose, requiring Monic (S.arr.app A).
-  Naturality of h follows by post-cancellation with S.arr.app B (monic): both sides equal
-  after ≫ S.arr.app B, using imgTrans_comm + naturality of S.arr.
+/-- The family {ev_A} is jointly faithful: NTs equal iff all components equal. -/
+theorem evFunctor_jointly_faithful {F G : FunctorObj 𝒜 𝒮} {α β : FunctorHom F G}
+    (h : ∀ A : 𝒜, α.app A = β.app A) : α = β :=
+  NaturalTransformation.ext' h
 
-  BLOCKER: Monic (S.arr.app A) for A : 𝒜.
-  S.arr is monic as a NT (Subobject); extracting componentwise monicity is the §1.462
-  HARD DIRECTION: α monic in 𝒮^A → α.app A monic in 𝒮.
-  Standard proof: ev_A(α) = α.app A; ev_A faithful (NTs equal iff components equal) ⟹
-  ev_A reflects monics.  Requires ev_A as a Lean functor with a Faithful instance (S1_274).
+/-- A component of an iso NT is iso: if `α` is iso in `FunctorObj 𝒜 𝒮`, then `α.app A` is iso. -/
+theorem natTrans_iso_component {F G : FunctorObj 𝒜 𝒮} {α : FunctorHom F G}
+    (hiso : IsIso (𝒞 := FunctorObj 𝒜 𝒮) α) (A : 𝒜) : IsIso (α.app A) := by
+  obtain ⟨β, h₁, h₂⟩ := hiso
+  exact ⟨β.app A,
+    congrFun (congrArg NaturalTransformation.app h₁) A,
+    congrFun (congrArg NaturalTransformation.app h₂) A⟩
 
-  §1.521 RegularCategory (FunctorObj 𝒜 𝒮): TODO once §1.462 hard is proved.
-  (1) HasTerminal       ✓  (functorCat_hasTerminal)
-  (2) HasBinaryProducts ✓  (functorCat_hasProducts)
-  (3) HasPullbacks      ✓  (functorCat_hasPullbacks)
-  (4) HasImages         BLOCKED (see above)
-  (5) PullbacksTransferCovers: blocked by the same §1.462 hard issue.
-      Proof sketch: Cover α in 𝒮^A → each α.app A cover in 𝒮 (needs ev_A faithful);
-      pointwise PTC in 𝒮 gives Cover (canonical_π₂.app A); componentwise covers → NT cover.
--/
+/-- The diagonal map for `α` in `𝒮^𝒜` evaluates at `A` to the diagonal for `α.app A`.
+    Both are the unique lift of (id, id) into the pointwise kernel-pair pullback. -/
+private theorem kp_diag_app_eq [HasTerminal 𝒮] [HasBinaryProducts 𝒮] [hpull : HasPullbacks 𝒮]
+    (A : 𝒜) {F G : FunctorObj 𝒜 𝒮} (α : FunctorHom F G) :
+    (kp_diag (f := α) (hpull := functorCat_hasPullbacks)).app A =
+    kp_diag (f := α.app A) (hpull := hpull) := by
+  -- kp_diag(α.app A) = lift of diagCone; kp_diag(α).app A also lifts diagCone.
+  -- By lift_uniq they are equal.
+  -- kp_diag_p₁ for α.app A: kp_diag(α.app A) ≫ π₁ = id = diagCone.π₁.
+  -- kp_diag(α.app A) = lift (diagCone) by definition.
+  -- So it suffices to show kp_diag(α).app A ≫ π₁ = id and ≫ π₂ = id.
+  symm
+  apply (HasPullbacks.has (α.app A) (α.app A)).lift_uniq (diagCone (f := α.app A))
+  · -- kp_diag(α).app A ≫ kp₁(α.app A) = Cat.id (F.obj A)
+    -- kp_diag_p₁ for α in 𝒮^𝒜: kp_diag(α) ≫ kp₁(α) = natTrans_id F
+    -- component at A: (kp_diag(α) ≫ kp₁(α)).app A = (natTrans_id F).app A = Cat.id
+    exact congrFun (congrArg NaturalTransformation.app
+      (kp_diag_p₁ (f := α) (hpull := functorCat_hasPullbacks))) A
+  · -- kp_diag(α).app A ≫ kp₂(α.app A) = Cat.id (F.obj A)
+    exact congrFun (congrArg NaturalTransformation.app
+      (kp_diag_p₂ (f := α) (hpull := functorCat_hasPullbacks))) A
+
+/-- §1.462 (hard direction): NT monic in `𝒮^𝒜` ⟹ each component monic in `𝒮`.
+    Via §1.453 kernel pairs: α monic ↔ kp_diag iso; kp_diag is pointwise; component of iso is iso. -/
+theorem natTrans_monic_components [HasTerminal 𝒮] [HasBinaryProducts 𝒮] [hpull : HasPullbacks 𝒮]
+    {F G : FunctorObj 𝒜 𝒮} (α : FunctorHom F G)
+    (hm : Monic (𝒞 := FunctorObj 𝒜 𝒮) α) (A : 𝒜) : Monic (α.app A) := by
+  -- α monic → kp_diag(α) iso in 𝒮^𝒜 (using 𝒮^𝒜 has Terminal, Products, Pullbacks)
+  have hkp_iso : IsIso (𝒞 := FunctorObj 𝒜 𝒮)
+      (kp_diag (f := α) (hpull := functorCat_hasPullbacks)) :=
+    (monic_iff_kp_diag_iso (hpull := functorCat_hasPullbacks)
+      (hp := functorCat_hasProducts) (ht := functorCat_hasTerminal)).mp hm
+  -- Component at A of an iso is iso
+  have hcomp_iso : IsIso ((kp_diag (f := α) (hpull := functorCat_hasPullbacks)).app A) :=
+    natTrans_iso_component hkp_iso A
+  -- Equate kp_diag(α).app A with kp_diag(α.app A) via pointwise-pullback construction
+  rw [kp_diag_app_eq A α] at hcomp_iso
+  -- kp_diag(α.app A) iso → α.app A monic; unfold Monic to avoid definition barrier
+  exact fun {W} g h heq => (monic_iff_kp_diag_iso (hpull := hpull) (hp := ‹HasBinaryProducts 𝒮›)
+    (ht := ‹HasTerminal 𝒮›)).mpr hcomp_iso g h heq
+
+/-! ## §1.521  HasImages (FunctorObj 𝒜 𝒮) — complete instance -/
+
+-- Helper: extract the component-wise allows data from a functor-cat allows.
+-- Given S : Subobject (𝒮^𝒜) G and hallow : Allows S α, extract at each A:
+--   γ_A : F.obj A ⟶ S.dom.obj A  with  γ_A ≫ S.arr.app A = α.app A.
+private noncomputable def allowsCompAt [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
+    (α : FunctorHom F G) (S : Subobject (FunctorObj 𝒜 𝒮) G)
+    (hallow : Allows S α) (A : 𝒜) : F.obj A ⟶ S.dom.obj A :=
+  hallow.choose.app A
+
+private theorem allowsCompAt_fac [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
+    (α : FunctorHom F G) (S : Subobject (FunctorObj 𝒜 𝒮) G)
+    (hallow : Allows S α) (A : 𝒜) :
+    allowsCompAt α S hallow A ≫ S.arr.app A = α.app A :=
+  congrFun (congrArg NaturalTransformation.app hallow.choose_spec) A
+
+-- The minimality NT component at A: the unique map (image α_A).dom → S.dom.obj A.
+private noncomputable def imageMinComp [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
+    (α : FunctorHom F G) (S : Subobject (FunctorObj 𝒜 𝒮) G)
+    (hallow : Allows S α) (A : 𝒜) : (image (α.app A)).dom ⟶ S.dom.obj A :=
+  (image_min (α.app A) ⟨S.dom.obj A, S.arr.app A,
+    natTrans_monic_components S.arr S.monic A⟩
+    ⟨allowsCompAt α S hallow A, allowsCompAt_fac α S hallow A⟩).choose
+
+private theorem imageMinComp_fac [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
+    (α : FunctorHom F G) (S : Subobject (FunctorObj 𝒜 𝒮) G)
+    (hallow : Allows S α) (A : 𝒜) :
+    imageMinComp α S hallow A ≫ S.arr.app A = (image (α.app A)).arr :=
+  (image_min (α.app A) ⟨S.dom.obj A, S.arr.app A,
+    natTrans_monic_components S.arr S.monic A⟩
+    ⟨allowsCompAt α S hallow A, allowsCompAt_fac α S hallow A⟩).choose_spec
+
+/-- The minimality NT: given `S : Subobject (𝒮^𝒜) G` allowing `α`,
+    build `h : imageFunObj α ⟶ S.dom` with `h ≫ S.arr = imgArrNT α`.
+    Component at A: `imageMinComp α S hallow A` (via image minimality in 𝒮 at each point).
+    Naturality: cancel by the monic `S.arr.app B`, use `imgTrans_comm` + `imageMinComp_fac`. -/
+private noncomputable def imageMinNT [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
+    (α : FunctorHom F G) (S : Subobject (FunctorObj 𝒜 𝒮) G)
+    (hallow : Allows S α) : FunctorHom (imageFunObj α) S.dom where
+  app      := imageMinComp α S hallow
+  naturality {A B} f := by
+    -- Post-cancel with S.arr.app B (monic).
+    apply natTrans_monic_components S.arr S.monic B
+    -- Goal after Monic: LHS ≫ S.arr.app B = RHS ≫ S.arr.app B
+    -- LHS: (imageFunObj α).map f ≫ imageMinComp α S hallow B
+    -- RHS: imageMinComp α S hallow A ≫ S.dom.map f
+    -- Rewrite both sides.
+    -- LHS ≫ S.arr.app B = (imageFunObj α).map f ≫ imageMinComp α S hallow B ≫ S.arr.app B
+    --   = imgTransMap α f ≫ (image (α.app B)).arr      [imageMinComp_fac]
+    --   = (image (α.app A)).arr ≫ G.map f              [imgTrans_comm]
+    -- RHS ≫ S.arr.app B = imageMinComp α S hallow A ≫ S.dom.map f ≫ S.arr.app B
+    --   = imageMinComp α S hallow A ≫ S.arr.app A ≫ G.map f  [S.arr.naturality]
+    --   = (image (α.app A)).arr ≫ G.map f              [imageMinComp_fac]
+    show ((imageFunObj α).isFunctor.map f ≫ imageMinComp α S hallow B) ≫ S.arr.app B =
+         (imageMinComp α S hallow A ≫ S.dom.isFunctor.map f) ≫ S.arr.app B
+    rw [Cat.assoc, imageMinComp_fac,
+        show (imageFunObj α).isFunctor.map f = imgTransMap α f from rfl,
+        imgTrans_comm, Cat.assoc, S.arr.naturality, ← Cat.assoc, imageMinComp_fac]
+
+/-- imageMinNT satisfies: `natTrans_comp (imageMinNT α S hallow) S.arr = imgArrNT α`. -/
+private theorem imageMinNT_fac [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
+    (α : FunctorHom F G) (S : Subobject (FunctorObj 𝒜 𝒮) G) (hallow : Allows S α) :
+    natTrans_comp (imageMinNT α S hallow) S.arr = imgArrNT α :=
+  NaturalTransformation.ext' fun A => imageMinComp_fac α S hallow A
+
+/-- §1.521: `𝒮^𝒜` has images, computed pointwise (given `[RegularCategory 𝒮]`). -/
+noncomputable instance functorCat_hasImages [RegularCategory 𝒮] :
+    HasImages (FunctorObj 𝒜 𝒮) where
+  image   := fun {_ _} α => ⟨imageFunObj α, imgArrNT α, imgArrNT_monic α⟩
+  isImage := fun {_ _} α => ⟨
+    ⟨imageLiftNT α, imageLiftNT_fac α⟩,
+    fun S hallow => ⟨imageMinNT α S hallow, imageMinNT_fac α S hallow⟩⟩
+
+/-! ## §1.521 Cover characterization and PullbacksTransferCovers for `𝒮^𝒜` -/
+
+/-- Cover in `𝒮^𝒜` iff every component is a cover in `𝒮`.
+    Forward via §1.462 hard + image entirety; backward by building the inverse NT. -/
+theorem cover_functorCat_iff [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
+    (α : FunctorHom F G) :
+    Cover (𝒞 := FunctorObj 𝒜 𝒮) α ↔ ∀ A : 𝒜, Cover (α.app A) := by
+  constructor
+  · intro hcov A
+    -- cover_iff_image_entire gives: Subobject.IsEntire (image (𝒞 := 𝒮^𝒜) α) = IsIso (imgArrNT α)
+    have hiso_NT : IsIso (𝒞 := FunctorObj 𝒜 𝒮) (imgArrNT α) :=
+      (cover_iff_image_entire (𝒞 := FunctorObj 𝒜 𝒮) α).mp hcov
+    -- Component at A is iso: IsIso ((imgArrNT α).app A) = IsIso (image (α.app A)).arr
+    have hcomp_iso : IsIso ((imgArrNT α).app A) := natTrans_iso_component hiso_NT A
+    -- Hence image (α.app A) is entire → Cover (α.app A)
+    intro C m g hm hfac
+    exact ((cover_iff_image_entire (α.app A)).mpr hcomp_iso) m g hm hfac
+  · intro hcomps
+    apply (cover_iff_image_entire (𝒞 := FunctorObj 𝒜 𝒮) α).mpr
+    -- Need: IsIso (imgArrNT α) in 𝒮^𝒜.
+    -- Each component (imgArrNT α).app A = (image (α.app A)).arr is iso.
+    -- (imgArrNT α).app A : (image (α.app A)).dom ⟶ G.obj A.
+    -- IsIso f : ∃ g : G.obj A ⟶ (image (α.app A)).dom, f ≫ g = id ∧ g ≫ f = id.
+    have hiso_comp : ∀ A : 𝒜, IsIso ((imgArrNT α).app A) := fun A =>
+      (cover_iff_image_entire (α.app A)).mp (hcomps A)
+    -- inv_app A : G.obj A ⟶ (image (α.app A)).dom = (imageFunObj α).obj A
+    let inv_app : ∀ A : 𝒜, G.obj A ⟶ (imageFunObj α).obj A :=
+      fun A => (hiso_comp A).choose
+    let inv_fwd : ∀ A, (imgArrNT α).app A ≫ inv_app A = Cat.id _ :=
+      fun A => (hiso_comp A).choose_spec.1
+    let inv_bwd : ∀ A, inv_app A ≫ (imgArrNT α).app A = Cat.id _ :=
+      fun A => (hiso_comp A).choose_spec.2
+    -- inv_app is natural: post-cancel with (image (α.app B)).arr (monic)
+    have inv_nat : ∀ {A B : 𝒜} (f : A ⟶ B),
+        G.isFunctor.map f ≫ inv_app B = inv_app A ≫ (imageFunObj α).isFunctor.map f := by
+      intro A B f
+      -- cancel by post-composing with (image (α.app B)).arr using Monic
+      apply (image (α.app B)).monic
+      -- LHS: (G.map f ≫ inv_app B) ≫ arr_B
+      -- = G.map f ≫ (inv_app B ≫ arr_B) = G.map f ≫ id = G.map f  [inv_bwd B]
+      -- RHS: (inv_app A ≫ (imageFunObj α).map f) ≫ arr_B
+      -- = inv_app A ≫ arr_A ≫ G.map f  [imgTrans_comm]
+      -- = id ≫ G.map f = G.map f  [inv_bwd A]
+      have hB : inv_app B ≫ (image (α.app B)).arr = Cat.id _ := inv_bwd B
+      have hA : inv_app A ≫ (image (α.app A)).arr = Cat.id _ := inv_bwd A
+      -- Use cat equations directly
+      show (G.isFunctor.map f ≫ inv_app B) ≫ (image (α.app B)).arr =
+           (inv_app A ≫ (imageFunObj α).isFunctor.map f) ≫ (image (α.app B)).arr
+      calc (G.isFunctor.map f ≫ inv_app B) ≫ (image (α.app B)).arr
+          = G.isFunctor.map f ≫ inv_app B ≫ (image (α.app B)).arr := Cat.assoc _ _ _
+        _ = G.isFunctor.map f ≫ Cat.id _ := congrArg (G.isFunctor.map f ≫ ·) hB
+        _ = G.isFunctor.map f := Cat.comp_id _
+        _ = Cat.id _ ≫ G.isFunctor.map f := (Cat.id_comp _).symm
+        _ = (inv_app A ≫ (image (α.app A)).arr) ≫ G.isFunctor.map f :=
+              congrArg (· ≫ G.isFunctor.map f) hA.symm
+        _ = inv_app A ≫ (image (α.app A)).arr ≫ G.isFunctor.map f := Cat.assoc _ _ _
+        _ = inv_app A ≫ imgTransMap α f ≫ (image (α.app B)).arr := by rw [imgTrans_comm]
+        _ = (inv_app A ≫ (imageFunObj α).isFunctor.map f) ≫ (image (α.app B)).arr :=
+              (Cat.assoc _ _ _).symm
+    exact ⟨⟨inv_app, fun {A B} f => inv_nat f⟩,
+           NaturalTransformation.ext' inv_fwd,
+           NaturalTransformation.ext' inv_bwd⟩
+
+/-- A pullback cone in `𝒮^𝒜` gives a pullback in `𝒮` at each component.
+    Proof: use the canonical pointwise pullback as an isomorphic intermediary. -/
+private theorem functorCat_pb_component [HasPullbacks 𝒮]
+    {F G H : FunctorObj 𝒜 𝒮} {α : FunctorHom F H} {β : FunctorHom G H}
+    (c : Cone (𝒞 := FunctorObj 𝒜 𝒮) α β) (hpb : c.IsPullback) (A : 𝒜) :
+    (⟨c.pt.obj A, c.π₁.app A, c.π₂.app A,
+      congrFun (congrArg NaturalTransformation.app c.w) A⟩ : Cone (α.app A) (β.app A)).IsPullback := by
+  -- canonPB: the chosen pullback of α along β in 𝒮^𝒜 (pointwise by pbFunObj).
+  let canonPB := (functorCat_hasPullbacks (𝒜 := 𝒜) (𝒮 := 𝒮)).has α β
+  -- u : canonPB.cone.pt ⟶ c.pt  (canonical to c, unique factoring)
+  obtain ⟨u, ⟨hu1, hu2⟩, hu_uniq⟩ := hpb canonPB.cone
+  -- v : c.pt ⟶ canonPB.cone.pt  (c to canonical)
+  let v    := canonPB.lift c
+  let hv1  : natTrans_comp v canonPB.cone.π₁ = c.π₁ := canonPB.lift_fst c
+  let hv2  : natTrans_comp v canonPB.cone.π₂ = c.π₂ := canonPB.lift_snd c
+  -- v ≫ u = id_{c.pt}: use IsPullback of c applied to c itself.
+  -- Both id and v ≫ u satisfy (−) ≫ c.π₁ = c.π₁ and (−) ≫ c.π₂ = c.π₂.
+  have hvu : natTrans_comp v u = natTrans_id c.pt := by
+    obtain ⟨uid, ⟨huid1, huid2⟩, huid_uniq⟩ := hpb c
+    -- uid satisfies uid ≫ c.π₁ = c.π₁ and uid ≫ c.π₂ = c.π₂.
+    -- id also satisfies this: id ≫ π = π.
+    have hid_eq : uid = natTrans_id c.pt :=
+      (huid_uniq (natTrans_id c.pt) (Cat.id_comp c.π₁) (Cat.id_comp c.π₂)).symm
+    -- v ≫ u also satisfies this:
+    have hvu1 : natTrans_comp (natTrans_comp v u) c.π₁ = c.π₁ :=
+      NaturalTransformation.ext' fun X =>
+        calc (natTrans_comp (natTrans_comp v u) c.π₁).app X
+            = (v.app X ≫ u.app X) ≫ c.π₁.app X := rfl
+          _ = v.app X ≫ u.app X ≫ c.π₁.app X := Cat.assoc _ _ _
+          _ = v.app X ≫ canonPB.cone.π₁.app X :=
+              congrArg (v.app X ≫ ·)
+                (congrFun (congrArg NaturalTransformation.app hu1) X)
+          _ = c.π₁.app X :=
+              congrFun (congrArg NaturalTransformation.app hv1) X
+    have hvu2 : natTrans_comp (natTrans_comp v u) c.π₂ = c.π₂ :=
+      NaturalTransformation.ext' fun X =>
+        calc (natTrans_comp (natTrans_comp v u) c.π₂).app X
+            = (v.app X ≫ u.app X) ≫ c.π₂.app X := rfl
+          _ = v.app X ≫ u.app X ≫ c.π₂.app X := Cat.assoc _ _ _
+          _ = v.app X ≫ canonPB.cone.π₂.app X :=
+              congrArg (v.app X ≫ ·)
+                (congrFun (congrArg NaturalTransformation.app hu2) X)
+          _ = c.π₂.app X :=
+              congrFun (congrArg NaturalTransformation.app hv2) X
+    exact hid_eq ▸ (huid_uniq (natTrans_comp v u) hvu1 hvu2)
+  -- Component at A: v.app A ≫ u.app A = Cat.id (c.pt.obj A)
+  have hvu_A : v.app A ≫ u.app A = Cat.id (c.pt.obj A) :=
+    congrFun (congrArg NaturalTransformation.app hvu) A
+  -- u.app A ≫ c.π₁.app A = canonPB.cone.π₁.app A  (= (HasPullbacks.has (α.app A) (β.app A)).cone.π₁)
+  have hu1_A : u.app A ≫ c.π₁.app A = canonPB.cone.π₁.app A :=
+    congrFun (congrArg NaturalTransformation.app hu1) A
+  have hu2_A : u.app A ≫ c.π₂.app A = canonPB.cone.π₂.app A :=
+    congrFun (congrArg NaturalTransformation.app hu2) A
+  -- v.app A ≫ canonPB.cone.π₁.app A = c.π₁.app A
+  have hv1_A : v.app A ≫ canonPB.cone.π₁.app A = c.π₁.app A :=
+    congrFun (congrArg NaturalTransformation.app hv1) A
+  have hv2_A : v.app A ≫ canonPB.cone.π₂.app A = c.π₂.app A :=
+    congrFun (congrArg NaturalTransformation.app hv2) A
+  -- canonPB.cone.π₁.app A = (HasPullbacks.has (α.app A) (β.app A)).cone.π₁  (by definition of pbFunObj)
+  let kpA := HasPullbacks.has (α.app A) (β.app A)
+  -- Note: canonPB.cone.π₁.app A = kpA.cone.π₁ definitionally (by pbFunObj definition).
+  -- We record these as equalities to use in rewrites.
+  have hπ₁ : canonPB.cone.π₁.app A = kpA.cone.π₁ := rfl
+  have hπ₂ : canonPB.cone.π₂.app A = kpA.cone.π₂ := rfl
+  -- Given d : Cone (α.app A) (β.app A) in 𝒮, lift via kpA then compose with u.app A.
+  intro d
+  let liftK : d.pt ⟶ kpA.cone.pt := kpA.lift d
+  refine ⟨liftK ≫ u.app A, ⟨?_, ?_⟩, ?_⟩
+  · -- (liftK ≫ u.app A) ≫ c.π₁.app A = d.π₁
+    calc (liftK ≫ u.app A) ≫ c.π₁.app A
+        = liftK ≫ (u.app A ≫ c.π₁.app A) := Cat.assoc _ _ _
+      _ = liftK ≫ kpA.cone.π₁            := by rw [hu1_A, hπ₁]
+      _ = d.π₁                            := kpA.lift_fst d
+  · -- (liftK ≫ u.app A) ≫ c.π₂.app A = d.π₂
+    calc (liftK ≫ u.app A) ≫ c.π₂.app A
+        = liftK ≫ (u.app A ≫ c.π₂.app A) := Cat.assoc _ _ _
+      _ = liftK ≫ kpA.cone.π₂            := by rw [hu2_A, hπ₂]
+      _ = d.π₂                            := kpA.lift_snd d
+  · -- Uniqueness: if w ≫ c.π₁.app A = d.π₁ and w ≫ c.π₂.app A = d.π₂, then w = liftK ≫ u.app A.
+    intro w hw1 hw2
+    -- w ≫ v.app A factors d through kpA
+    have hwv1 : (w ≫ v.app A) ≫ kpA.cone.π₁ = d.π₁ := by
+      rw [Cat.assoc, ← hπ₁, hv1_A]; exact hw1
+    have hwv2 : (w ≫ v.app A) ≫ kpA.cone.π₂ = d.π₂ := by
+      rw [Cat.assoc, ← hπ₂, hv2_A]; exact hw2
+    -- By kpA uniqueness: w ≫ v.app A = liftK
+    have heq : w ≫ v.app A = liftK :=
+      (kpA.lift_uniq d (w ≫ v.app A) hwv1 hwv2).trans
+       (kpA.lift_uniq d liftK (kpA.lift_fst d) (kpA.lift_snd d)).symm
+    -- w = liftK ≫ u.app A
+    calc w = w ≫ Cat.id _         := (Cat.comp_id _).symm
+      _ = w ≫ (v.app A ≫ u.app A) := by rw [hvu_A]
+      _ = (w ≫ v.app A) ≫ u.app A := (Cat.assoc _ _ _).symm
+      _ = liftK ≫ u.app A          := by rw [heq]
+
+/-- §1.521: `PullbacksTransferCovers (𝒮^𝒜)` given `[RegularCategory 𝒮]`.
+    Proof: use `cover_functorCat_iff` to reduce to pointwise, then apply 𝒮-PTC on the
+    pointwise pullback (which is a pullback by `functorCat_pb_component`). -/
+noncomputable instance functorCat_pullbacksTransferCovers [RegularCategory 𝒮] :
+    PullbacksTransferCovers (FunctorObj 𝒜 𝒮) where
+  pullbacks_transfer_covers := fun {_ _ _} {α β} c hpb hcov => by
+    -- Need: Cover c.π₂ in 𝒮^𝒜.  Use cover_functorCat_iff: suffices each (c.π₂).app A is a cover.
+    rw [cover_functorCat_iff]
+    intro A
+    -- Build the pointwise cone at A
+    let cA : Cone (α.app A) (β.app A) :=
+      ⟨c.pt.obj A, c.π₁.app A, c.π₂.app A,
+       congrFun (congrArg NaturalTransformation.app c.w) A⟩
+    -- cA is a pullback in 𝒮 (by functorCat_pb_component)
+    have hpbA : cA.IsPullback := functorCat_pb_component c hpb A
+    -- α.app A is a cover (each component of α is a cover since α is a cover in 𝒮^𝒜)
+    have hcovA : Cover (α.app A) := (cover_functorCat_iff α).mp hcov A
+    -- Apply PTC in 𝒮 to cA
+    intro C m g hm hfac
+    exact PullbacksTransferCovers.pullbacks_transfer_covers cA hpbA hcovA m g hm hfac
+
+/-- §1.521: `RegularCategory (FunctorObj 𝒜 𝒮)` given `[RegularCategory 𝒮]`. -/
+noncomputable instance functorCat_regularCategory [RegularCategory 𝒮] :
+    RegularCategory (FunctorObj 𝒜 𝒮) :=
+  @RegularCategory.mk (FunctorObj 𝒜 𝒮) _
+    (functorCat_hasTerminal (𝒜 := 𝒜) (𝒮 := 𝒮))
+    (functorCat_hasProducts (𝒜 := 𝒜) (𝒮 := 𝒮))
+    (functorCat_hasPullbacks (𝒜 := 𝒜) (𝒮 := 𝒮))
+    (functorCat_hasImages (𝒜 := 𝒜) (𝒮 := 𝒮))
+    (functorCat_pullbacksTransferCovers (𝒜 := 𝒜) (𝒮 := 𝒮))
 
 end Freyd
