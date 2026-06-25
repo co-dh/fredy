@@ -815,12 +815,16 @@ theorem simplePart_largest {a b : 𝒜} (R : a ⟶ b) (A : a ⟶ a)
   the local-completion embedding A → Â is faithful; and a globally complete
   allegory subsumes locally complete.) -/
 
--- §2.315: Any division allegory faithfully represents in a locally complete distributive allegory.
 -- BOOK §2.315: Any division allegory is faithfully representable in a locally complete
 -- distributive allegory, and thus in a globally complete allegory.
--- (Full proof requires constructing the local-completion functor on DivisionAllegory;
--- the faithful embedding A → Â via principalDowndeal is available from §2.221.)
--- BOOK §2.315: (The process of local completion preserves division.)
+-- MISSING INFRASTRUCTURE: needs a `DivisionAllegory` instance on the local-completion Â
+-- whose objects are those of A and whose hom-sets are downdeals (§2.221, `IsDowndeal`).
+-- The faithful embedding A → Â (R ↦ ↓R via `principalDowndeal`) exists in S2_2.lean, but
+-- the Â-composition `(D₁ ≫ D₂) := ↓{T | ∃ R ∈ D₁, S ∈ D₂, T ⊑ RS}` and the division
+-- `D₁/D₂ := ↓{T | T ≫ D₂ ⊑ D₁}` on downdeals have not yet been defined or proved to
+-- satisfy the `DivisionAllegory` axioms.  The `principalIdeal_isIdeal` lemma in S2_2
+-- provides closure under union; the Allegory/Division structure on downdeals is
+-- the remaining gap.
 
 /-! ## §2.32  Tabular unitary division allegory ↔ Mσn(A) is a logos
 
@@ -834,10 +838,14 @@ theorem simplePart_largest {a b : 𝒜} (R : a ⟶ b) (A : a ⟶ a)
   logos.  The other direction: construct the right adjoint to f# using f\(-)/f°.) -/
 
 -- BOOK §2.32: A is a tabular unitary division allegory iff Mσn(A) is a logos.
--- (Requires: defining the map subcategory Mσn(A) as a Cat instance, and showing
--- it satisfies the Logos typeclass.  The map subcategory exists in this repo for
--- allegories via Map/Entire/Simple; the logos structure needs the division operation
--- to construct right adjoints f#.)
+-- MISSING INFRASTRUCTURE: needs a `Logos` (or `PreLogos`) instance on `MapObj 𝒜` whose
+-- carrier type is already `Cat`-structured in Fredy/MapCat.lean.
+-- FORWARD (logos → division allegory): uses §1.784 (Rel(C) is a division allegory).
+-- BACKWARD (division allegory → logos on maps): the right adjoint to `f# : Sub(B) → Sub(A)`
+-- is `f\ := f\(-)/f° = leftDiv f ≫ (-) ≫ f°` via left division from §2.312; this
+-- construction relies on `leftDiv` (already defined above) and the tabulation data
+-- (`TabularAllegory`), but the full logos structure (preservation of covers, equalizers,
+-- and subobject classifier) on `MapObj 𝒜` is not yet assembled in this repo.
 
 /-! ## §2.331  Moerdijk representation theorems
 
@@ -859,36 +867,56 @@ theorem simplePart_largest {a b : 𝒜} (R : a ⟶ b) (A : a ⟶ a)
 -- BOOK §2.331 (iv): Any countable logos with a coprime terminator may be faithfully
 -- represented in H(X).
 
--- (These require: locale O(X), Heyting algebra H(X), valued-sets allegory §2.227, and
--- Moerdijk's topological construction of the open-set embedding O(2*) → O(X).
--- Out of scope for the current axiomatic allegory formalization.)
+-- MISSING INFRASTRUCTURE: requires locale O(X), Heyting algebra H(X), the §2.227
+-- allegory of O(X)-valued sets, and Moerdijk's topological construction embedding
+-- O(2*) into O(X) for metrizable X without isolated points.  None of these locale-
+-- theoretic types exist in this repo.  Out of scope for the current formalization.
 
 /-! ## §2.34  Split allegory PRel(E) is a division allegory -/
 
--- §2.34: Let A be a division allegory, E a class of symmetric idempotents therein.
--- Then PRel(E) is a division allegory.
--- If |A| ⊂ E then A → PRel(E) is a faithful representation of division allegories.
--- BOOK §2.34: [statement as above; division in PRel(E) constructed entrywise from A's division]
--- (Requires: the split-allegory PRel(E) construction from §2.13; already have SplitSymmIdem.
--- The division on PRel(E) is: (A→R/S←B) := A →(R/S)← B, where R/S is computed in A.)
+-- BOOK §2.34: Let A be a division allegory, E a class of symmetric idempotents.
+-- Then PRel(E) (the E-split completion of A) is a division allegory.
+-- If |A| ⊂ E (all objects are in E) then A → PRel(E) is a faithful embedding of
+-- division allegories.
+-- MISSING INFRASTRUCTURE: PRel(E) as an allegory type is not yet defined in this repo.
+-- The split-idempotent completion `Spl 𝒜` (living in S2_21.lean via `SplObj`/`SplHom`)
+-- handles the case E = all symmetric idempotents; a restricted PRel(E) for a
+-- given class E has not been constructed.  The division on PRel(E) would be computed
+-- entrywise from A's division: for `(e₁ : a→a, R : a→b, e₂ : b→b)` in PRel(E),
+-- `(R/S)` is the entrywise `e₁ ≫ (R / S) ≫ e₂`; the key axiom verification reduces
+-- to `le_div_iff` in A, but the ambient category/allegory typeclass instance on PRel(E)
+-- must first be constructed (analogous to `instAllegorySpl` in S2_21.lean).
 
 /-! ## §2.342  Positive reflection of a division allegory -/
 
--- §2.342: If A is a division allegory then its positive reflection A⁺ is a division allegory.
--- BOOK §2.342: (R/S)_{ij} = ⋂_k (R_{ik}) / (S_{jk}) (matrix-wise division).
--- (Requires: AlgMat composition and the DivisionAllegory instance on A⁺ matrices.)
--- The AlgMat type is defined in S2_2.lean; the division below uses it.
-
--- BOOK §2.342: If A is a division allegory then A⁺ (AlgMat) is a division allegory,
--- with division (R/S)_{ij} = ⋂_k R_{ik}/S_{jk}.
+-- BOOK §2.342: If A is a division allegory then its positive reflection A⁺ is a division
+-- allegory, with entrywise division (R/S)_{ij} = ⋂_{k} R_{ik}/S_{jk}.
+-- MISSING INFRASTRUCTURE: `AlgMat` (defined in S2_2.lean) is currently a bare type family
+-- `(i : I) → (j : J) → src i ⟶ tgt j`; it lacks:
+--   (1) a `Cat`/`Allegory` instance: composition `(RS)_{ik} = ⋂_{j} R_{ij} ≫ S_{jk}`
+--       requires finite intersection over the intermediate index j, which in turn requires
+--       either a `[Fintype J]` hypothesis on AlgMat or the `LocallyCompleteDistributiveAllegory`
+--       Sup for the infinite case.  The binary `AlgMat.inter` exists but iterated intersection
+--       over a Fintype index has not been defined.
+--   (2) a `DivisionAllegory` instance on top of (1).
+-- The entrywise division formula `(R/S)_{ij} := ⋂_k R_{ik}/S_{jk}` is correct and uses
+-- only `DivisionAllegory.div` entrywise plus finite intersection; once (1) is available,
+-- the `le_div_iff` adjointness lifts entrywise to matrices.
+-- NOTE: for the SPECIAL CASE of 1×1 matrices (`PUnit` index), A → A⁺ is already faithful
+-- via `positiveReflectionEmbed_injective`; the division on 1×1 matrices is trivially the
+-- same as in A, so `DivisionAllegory` on the 1×1 fragment is immediate.
 
 /-! ## §2.343  Every logos faithfully and fully embeds in a positive effective logos -/
 
--- §2.343: Every logos may be faithfully and fully represented in a positive effective logos.
--- BOOK §2.343: C → Mσn(H̃(Eq(Rel(C))⁺)) is a reflection of C among positive effective logoi
--- [using §2.32, §2.216, §2.169].
--- (Requires: the construction chain Rel(C) → local completion → positive reflection A⁺ →
--- effective completion; each step is partially available in this repo but the composition
--- into a full-logos embedding is not yet assembled.)
+-- BOOK §2.343: Every logos C embeds faithfully and fully in a positive effective logos via
+-- C → Mσn(H̃(Eq(Rel(C))⁺)), using §2.32, §2.216 (A⁺ faithfully embeds A), §2.169 (Spl).
+-- MISSING INFRASTRUCTURE: the full construction chain is:
+--   Rel(C)     — the allegory of relations of C [not yet defined as an allegory instance]
+--   → local completion Â  [§2.315 gap above]
+--   → positive reflection A⁺  [§2.342 gap above]
+--   → effective completion Eq(−) = Spl [available via S2_21/S2_22b.lean]
+--   → Mσn(−) = map category [MapCat.lean provides the Cat instance]
+-- Each individual step is partially available, but the composition and the proof that
+-- the composite embedding is faithful and full is not yet assembled.
 
 end Freyd.Alg
