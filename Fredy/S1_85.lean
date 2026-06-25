@@ -331,18 +331,46 @@ theorem delta_adj_pi_overToExp (B : 𝒞) (C : 𝒞) (f : Over B) :
   -- prodSwap B C : prod B C → prod C B; compose with h.f : prod C B → f.dom
   exact ⟨curry (prodSwap B C ≫ h.f)⟩
 
--- §1.854: If Π : A/B → A (right adjoint of Δ) exists, then A^B exists for every A.
--- BOOK §1.854: "If Π : A/B → A exists, then for every A, A^B exists.
--- BECAUSE: (B × -, A) ≅ (Σ A(-), A) ≅ (A(-), ΔA) ≅ (-, Π ΔA)."
--- (Π ΔA represents the functor (B × -, A), so A^B = Π ΔA.)
+/-- §1.854(a): If for every object `A` the functor `(prod A -)` has a right adjoint `G A`,
+    then the category has exponentials with `B^A := G A B`.
+    BECAUSE (Freyd §1.854): `Hom(A×C, B) ≅ Hom(C, G A B)` witnesses `G A B = B^A`.
+    In the book's language: taking `G A B = Π_A(Δ_A B) = Π_A(⟨B×A, snd⟩)`, the chain
+    `Hom(A×C, B) ≅ OverHom(Δ_A C, Δ_A B) ≅ Hom(C, Π_A(Δ_A B))` gives `B^A = Π_A(Δ_A B)`. -/
+theorem pi_implies_exponentials_854
+    {𝒟 : Type u'} [Cat.{v} 𝒟] [hp : HasBinaryProducts 𝒟]
+    (G : 𝒟 → 𝒟 → 𝒟)
+    [hGF : ∀ (A : 𝒟), @Functor 𝒟 _ 𝒟 _ (G A)]
+    (adj_G : ∀ (A : 𝒟), @Adjunction 𝒟 _ 𝒟 _ (fun X => @prod 𝒟 _ hp A X) (G A)
+                            (by infer_instance) (hGF A)) :
+    Nonempty (HasExponentials 𝒟) :=
+  Nonempty.intro
+    { toHasBinaryProducts := hp
+      exp_obj A B := G A B
+      eval_map {A B} := (adj_G A).ψ (Cat.id (G A B))
+      curry_map {A B X} f := (adj_G A).φ f
+      curry_eval {A B X} f := by
+        have h := ψ_nat_left (adj_G A) ((adj_G A).φ f) (Cat.id (G A B))
+        rw [Cat.comp_id] at h
+        have : @prodMap 𝒟 _ hp A X (G A B) ((adj_G A).φ f) =
+               @Freyd.Functor.map 𝒟 _ 𝒟 _ (fun X => @prod 𝒟 _ hp A X) _ X (G A B) ((adj_G A).φ f) := rfl
+        rw [this, ← h, (adj_G A).ψφ]
+      curry_unique {A B X f g} h := by
+        have hh := ψ_nat_left (adj_G A) g (Cat.id (G A B))
+        rw [Cat.comp_id] at hh
+        have : @prodMap 𝒟 _ hp A X (G A B) g =
+               @Freyd.Functor.map 𝒟 _ 𝒟 _ (fun X => @prod 𝒟 _ hp A X) _ X (G A B) g := rfl
+        rw [this, ← hh] at h; rw [← (adj_G A).φψ g, h] }
 
--- §1.854: If A is cartesian and exponential, then Δ : A → A/B has a right adjoint Π for every B.
--- BOOK §1.854: "If A is cartesian and exponential, then Δ : A → A/B has a right adjoint
--- Π : A/B → A for every B."
--- (The construction: Π(f : X → B) = X^B, the adjunction bijection
--- Hom_{A/B}(Δ C, f) ≅ Hom_A(C, X^B) is proved via the eval-curry adjunction.)
--- NOTE: `delta_adj_pi_overToExp` above gives one direction; the full bijection and
--- naturality need to be assembled into an `Adjunction (SliceForget B) piObj`.
+-- §1.854(b): If the category has exponentials, Δ : 𝒞 → A/B has a right adjoint Π : A/B → 𝒞.
+-- BOOK §1.854: "If A is cartesian and exponential, Δ : A → A/B has a right adjoint Π : A/B → A
+-- for every B. BECAUSE: for f : X→B, Π(f) is constructed as the equalizer of
+--   expCovMap B f.hom : X^B → B^B  and  (term ≫ curry snd) : 1 → B^B
+-- pulled back along the counit of the (prod B -) adjunction."
+-- The one-direction map OverHom(ΔC, f) → Hom(C, f.dom^B) is `delta_adj_pi_overToExp`.
+-- The inverse requires f.dom^B = Π(f) (not f.dom^B in general — see note above):
+-- for general f : Over B, `piObj f = f.dom^^B` is NOT Freyd's Π(f); the correct
+-- Π(f) is the equalizer of (expCovMap B f.hom, term ≫ curry snd), which needs HasEqualizers.
+-- BOOK §1.854(b) therefore requires: HasExponentials + HasEqualizers → full Δ_B ⊣ Π_B.
 
 end SigmaDeltaAdj
 

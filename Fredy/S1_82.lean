@@ -2068,37 +2068,130 @@ private noncomputable def cocomplete_of_complete_precocomplete
         show c.ι i = ιR i ≫ (r ≫ (weakInit c).choose)
         rw [← Cat.assoc, hιR, (weakInit c).choose_spec i] }
 
--- §1.825 (dual): A category is cocomplete iff it has coequalizers and arbitrary coproducts.
--- BOOK §1.825: "The last section dualizes to: A category is cocomplete iff it has coequalizers
--- and arbitrary coproducts."
--- TODO: requires HasAllCoproducts / HasCoequalizers (from S1_58) analogues.
--- BOOK §1.825: A category is cocomplete iff it has coequalizers and arbitrary coproducts.
+-- BOOK §1.825 (dual): A category is cocomplete iff it has coequalizers and arbitrary
+-- coproducts.  Not formalized here: needs `HasCoequalizers` (S1_58) and `HasAllCoproducts`
+-- (S1_84), neither of which is imported into this file.  It is the exact dual of the
+-- `complete_iff_products_equalizers` engine proved above (§1.825).
 
--- §1.825 (cartesian): A category is (co-)cartesian iff every finite diagram has a (co-)limit.
--- BOOK §1.825: "A category is (co-)cartesian iff every finite diagram has a (co-)limit."
+-- BOOK §1.825 (cartesian): A category is (co-)cartesian iff every finite diagram has a
+-- (co-)limit.  Not formalized here: there is no `Cartesian` typeclass nor a `FiniteDiagram`
+-- shape predicate in scope; it is the finite-shape restriction of the same engine.
 
--- §1.834 GENERAL REPRESENTABILITY THEOREM (named theorem stub).
--- BOOK §1.834: If B is locally small and idempotents split in B then a set-valued functor
--- T : B → S is representable iff it is a pointwise continuous petty-functor.
--- (The proof engine is `mgaft_representability`; this would be a named corollary.)
+/-- §1.834 GENERAL REPRESENTABILITY THEOREM (Freyd §1.834): for `ℬ` in which idempotents
+    split and which is pre-complete, the functor `(A, G(-))` is representable for *every* `A`
+    (i.e. `G` is representable in the pointwise sense) iff `G` is *pointwise continuous*
+    (`IsUniformlyContinuous`) and *petty* (`PreAdjointFunctor`, the generating/solution-set
+    condition).  The hard half is `mgaft_representability`; the easy half transports the
+    representations into a left adjoint (`adjunction_of_representability`) whose right adjoint
+    `G` is then uniformly continuous and pre-adjoint. -/
+theorem general_representability_theorem
+    {𝒜 : Type u} [Cat.{v} 𝒜] {ℬ : Type u₁} [Cat.{v} ℬ]
+    (G : ℬ → 𝒜) [hG : Functor G] [PreComplete ℬ] (hsplit : IdempotentsSplit ℬ) :
+    (∀ A : 𝒜, ∃ R : ℬ, Nonempty (RepresentedBy G A R)) ↔
+    (IsUniformlyContinuous G ∧ Nonempty (PreAdjointFunctor G)) := by
+  classical
+  constructor
+  · intro hrep
+    have hrepr : ∀ A : 𝒜, Σ R : ℬ, RepresentedBy G A R :=
+      fun A => ⟨(hrep A).choose, Classical.choice (hrep A).choose_spec⟩
+    obtain ⟨F, hF, adj⟩ := adjunction_of_representability G hrepr
+    exact ⟨isUniformlyContinuous_of_adjunction adj, ⟨preAdjointFunctor_of_adjunction adj⟩⟩
+  · rintro ⟨huc, ⟨pre⟩⟩
+    intro A
+    exact ⟨(mgaft_representability hsplit huc pre A).1, ⟨(mgaft_representability hsplit huc pre A).2⟩⟩
 
--- §1.835 (named theorem stub).
--- BOOK §1.835: A locally small category in which idempotents split has a coterminator iff it
--- has a pre-coterminator and if all small diagrams have lower-bounds.
+/-! ### §1.835 / §1.83(10): the coterminator via the constant functor to the point.
 
--- §1.83(10) helper: If T : B → S is continuous and B is complete and well-powered then
--- El(T) is also complete and well-powered. If {Cᵢ} is a cogenerating set for B then
--- {⟨x, Cᵢ⟩ | x ∈ T(Cᵢ), i ∈ I} is a cogenerating set for El(T).
--- BOOK §1.83(10).
+  A *coterminator* (initial object) `R` is exactly a representing object for the constant
+  functor `! : ℬ → PUnit` at the point: `RepresentedBy ! ⋆ R` gives a bijection
+  `(⋆ ⟶ ⋆) ≅ (R ⟶ B)` for every `B`, and `⋆ ⟶ ⋆` is a one-element set, so every `R ⟶ B`
+  is a singleton — `R` is initial.  We feed this constant functor to the adjoint-functor
+  engines: MGAFT for §1.835, SAFT for §1.83(10). -/
 
--- §1.83(10): A complete well-powered category with a cogenerating set has a coterminator.
--- BOOK §1.83(10): follows from SAFT applied to the identity functor.
+/-- The one-object category (the terminal object of `Cat`). -/
+private instance punitCat : Cat.{v} (PUnit.{v+1}) where
+  Hom _ _ := ULift.{v} PUnit
+  id _ := ⟨PUnit.unit⟩
+  comp _ _ := ⟨PUnit.unit⟩
+  id_comp _ := rfl
+  comp_id _ := rfl
+  assoc _ _ _ := rfl
 
--- §1.83(11): Dual of SAFT.
--- BOOK §1.83(11): If A is co-complete, well-co-powered and with a generating set, then every
--- cocontinuous functor from A to a locally small category has a right adjoint and every
--- contravariant continuous functor (carrying colimits to limits) to a locally small category
--- has an adjoint on the right.
+/-- The constant functor `! : ℬ → PUnit`. -/
+private instance constPUnitFunctor {ℬ : Type u₁} [Cat.{v} ℬ] :
+    Functor (fun _ : ℬ => (PUnit.unit : PUnit.{v+1})) where
+  map _ := ⟨PUnit.unit⟩
+  map_id _ := rfl
+  map_comp _ _ := rfl
+
+/-- `RepresentedBy ! ⋆ R` says exactly that `R` is a coterminator (initial object):
+    every `R ⟶ B` is the unique such map. -/
+private theorem coterminator_of_representedBy {ℬ : Type u₁} [Cat.{v} ℬ] {R : ℬ}
+    (r : RepresentedBy (fun _ : ℬ => (PUnit.unit : PUnit.{v+1})) PUnit.unit R) :
+    ∀ X : ℬ, ∃ f : R ⟶ X, ∀ g : R ⟶ X, g = f := by
+  intro X
+  -- the single point's hom-set `⋆ ⟶ ⋆` is `ULift PUnit`, a subsingleton, so `φ` exhibits
+  -- `R ⟶ X` as a one-element set.
+  refine ⟨r.φ ⟨PUnit.unit⟩, fun g => ?_⟩
+  have hg : g = r.φ (r.ψ g) := (r.φψ g).symm
+  rw [hg]
+  -- both `r.ψ g` and `⟨PUnit.unit⟩` are elements of `⋆ ⟶ ⋆ = ULift PUnit`, a subsingleton
+  congr 1
+
+/-- `!` is uniformly continuous whenever every small diagram has a lower-bound
+    (`WeaklyComplete`): the lower-bound *is* the required ℬ-cone, and the factoring map in
+    `PUnit` is forced (every hom of `PUnit` is the point). -/
+private theorem constPUnit_uniformlyContinuous {ℬ : Type u₁} [Cat.{v} ℬ] [wc : WeaklyComplete ℬ] :
+    IsUniformlyContinuous (fun _ : ℬ => (PUnit.unit : PUnit.{v+1})) := by
+  intro 𝒟 _ D hD A legs hnat
+  let wl := wc.hasWeakLimit D
+  exact ⟨wl.cone.apex, wl.cone.π, wl.cone.nat, ⟨PUnit.unit⟩, fun _ => rfl⟩
+
+/-- `!` is continuous whenever ℬ is complete: the target `PUnit` is a one-object category, so
+    every required mediating map is forced (all of `PUnit`'s homs coincide). -/
+private theorem constPUnit_continuous {ℬ : Type u₁} [Cat.{v} ℬ] :
+    IsContinuous (fun _ : ℬ => (PUnit.unit : PUnit.{v+1})) := by
+  intro 𝒟 _ D hD lim W legs hnat
+  exact ⟨⟨PUnit.unit⟩, fun _ => rfl, fun _ _ => rfl⟩
+
+/-- §1.835 (Freyd): a pre-complete category in which idempotents split, and in which every
+    small diagram has a lower-bound (`WeaklyComplete`), has a coterminator (initial object) as
+    soon as it has a *pre-coterminator* — a solution set `{Cᵢ}` such that every `X` admits a
+    map from some `Cᵢ`, encoded as a pre-adjoint family for the constant functor `! : ℬ → PUnit`.
+    Proved by feeding `!` to `mgaft_representability`. -/
+theorem coterminator_of_precoterminator_lowerbounds
+    {ℬ : Type u₁} [Cat.{v} ℬ] [PreComplete ℬ] [WeaklyComplete ℬ]
+    (hsplit : IdempotentsSplit ℬ)
+    (hpre : PreAdjointFunctor (fun _ : ℬ => (PUnit.unit : PUnit.{v+1}))) :
+    ∃ R : ℬ, ∀ X : ℬ, ∃ f : R ⟶ X, ∀ g : R ⟶ X, g = f := by
+  let rep := mgaft_representability hsplit constPUnit_uniformlyContinuous hpre PUnit.unit
+  exact ⟨rep.1, coterminator_of_representedBy rep.2⟩
+
+-- BOOK §1.83(10) helper: if `T : B → S` is continuous and `B` is complete and well-powered,
+-- then the category of elements `El(T)` is complete and well-powered, and a cogenerating set
+-- `{Cᵢ}` of `B` yields the cogenerating set `{⟨x, Cᵢ⟩ | x ∈ T(Cᵢ)}` of `El(T)`.  Not
+-- formalized here: there is no `El(T)` (category-of-elements) construction in scope; it is the
+-- structural bookkeeping that lets SAFT be applied object-wise.
+
+/-- §1.83(10) (Freyd): a complete, well-powered category with a cogenerating set has a
+    coterminator (initial object).  Proved by feeding the constant functor `! : ℬ → PUnit`
+    (trivially continuous, since `PUnit` is a one-object category) to the
+    `special_adjoint_functor_theorem`: a left adjoint `F` to `!` gives the representing object
+    `F ⋆`, i.e. the coterminator. -/
+theorem coterminator_of_complete_wellPowered_cogenerating
+    {ℬ : Type u₁} [Cat.{v} ℬ] [Complete ℬ] [WellPowered ℬ]
+    {I : Type v} (C : I → ℬ) (hcogen : IsCoGeneratingSet C) :
+    ∃ R : ℬ, ∀ X : ℬ, ∃ f : R ⟶ X, ∀ g : R ⟶ X, g = f := by
+  obtain ⟨F, hF, ⟨adj⟩⟩ :=
+    special_adjoint_functor_theorem (fun _ : ℬ => (PUnit.unit : PUnit.{v+1}))
+      C hcogen constPUnit_continuous
+  exact ⟨F PUnit.unit, coterminator_of_representedBy (repr_of_adj adj PUnit.unit)⟩
+
+-- BOOK §1.83(11) (dual of SAFT): if `𝒜` is cocomplete, well-co-powered and has a generating
+-- set, then every cocontinuous functor `𝒜 → ℬ` (with `ℬ` locally small) has a right adjoint,
+-- and every continuous *contravariant* functor (carrying colimits to limits) has a right
+-- adjoint.  Not formalized here: there is no `WellCoPowered` class nor an `IsGeneratingSet`
+-- predicate in scope; it is the formal dual of `special_adjoint_functor_theorem`.
 
 /-- §1.837: A complete locally small category is cocomplete iff it is pre-cocomplete. -/
 theorem complete_cocomplete_iff_precocomplete
