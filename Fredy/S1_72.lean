@@ -590,6 +590,30 @@ theorem focal_iff_connected_projective
     [PreLogos 𝒞] :
     Nonempty (FocalLogos 𝒞) ↔ (Connected (𝒞 := 𝒞) one ∧ Projective (𝒞 := 𝒞) one) := by
   sorry
+  -- BLOCKER — instance diamond: `Nonempty (FocalLogos 𝒞)` introduces its own
+  -- `HasTerminal`/`HasImages`/`HasSubobjectUnions` chain via `FocalLogos → Logos`,
+  -- conflicting with the theorem's explicit `[HasTerminal 𝒞] [HasImages 𝒞] [PreLogos 𝒞]`.
+  -- Concretely:
+  --   • `hfl.one_coprime U V hcov` expects `U : Subobject 𝒞 (@HasTerminal.one 𝒞 _ hfl.toHasTerminal)`
+  --     but the ambient `one` is `@HasTerminal.one 𝒞 _ inst✝⁴` (a DIFFERENT instance).
+  --   • `hfl.one_projective` has `Cover f → ∃ s, s ≫ f = Cat.id hfl.toHasTerminal.one`
+  --     but the goal's `Projective one` uses the ambient `Cover`.
+  -- Fix: the theorem should drop the explicit `[HasTerminal 𝒞] [HasBinaryProducts 𝒞]
+  -- [HasPullbacks 𝒞] [HasImages 𝒞] [PreLogos 𝒞]` hypotheses entirely and instead
+  -- constrain 𝒞 via `[Logos 𝒞]` (which provides all of them coherently), so the LHS
+  -- `FocalLogos 𝒞` and RHS predicates share the SAME instance chain.
+  --
+  -- Even with that fix, the (⟸) direction needs the book's §1.625 argument:
+  -- "projective 1 preserves disjoint binary unions ⟹ binary unions (coprimeness)",
+  -- which requires `HasDisjointUnions` infrastructure not yet in the repo.
+  --
+  -- Mathematical summary of what IS provable (with coherent instances):
+  --   (⟹): FocalLogos → one_coprime → (coprime ⟹ connected) by: if U complemented
+  --         with complement V, U∪V = entire, coprimeness gives U=entire or V=entire;
+  --         if V=entire then U ≤ ⊥ (via the disjointness clause hdisj U refl hUleV).
+  --         And one_projective is direct.
+  --   (⟸): Needs [Logos 𝒞] (not [PreLogos 𝒞]) to build FocalLogos; then connected
+  --         ⟹ coprime uses §1.625 projective-1-preserves-disjoint-unions (MISSING infra).
 
 -- §1.734 FOCAL REPRESENTATION THEOREM (every small logos has a collectively faithful
 -- family of focal representations) and §1.74 GEOMETRIC REPRESENTATION THEOREM (countable
