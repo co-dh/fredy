@@ -24,6 +24,7 @@ import Fredy.S1_42
 import Fredy.S1_45
 import Fredy.S1_51
 import Fredy.S1_52
+import Fredy.S1_56
 
 open Freyd
 
@@ -129,12 +130,11 @@ theorem natTrans_monic_of_components_monic {F G : FunctorObj 𝒜 𝒮}
   fun {_} β γ hβγ => NaturalTransformation.ext' fun A =>
     h A (β.app A) (γ.app A) (congrFun (congrArg NaturalTransformation.app hβγ) A)
 
--- §1.462 (hard direction, not proved here): if α is monic in `𝒮^A`, every component is monic.
--- The standard proof builds a "spike NT" constFunctor W → F at a fixed object A₀ : 𝒜
--- extending any map g : W → F(A₀) naturally.  Such NTs exist when 𝒜 is DISCRETE
--- (every morphism is an identity) — then naturality is vacuous.  For general 𝒜 the
--- construction requires the Yoneda lemma for 𝒮^A and the evaluation functors §1.274.
--- The easy direction suffices for Freyd's applications in Ch1.
+-- §1.462 (hard direction): if α is monic in `𝒮^A`, every component is monic.
+-- Requires evaluation functors ev_A : 𝒮^A → 𝒮 and their faithfulness.
+-- BOOK §1.462: ev_A is faithful (NTs equal iff all components equal), hence reflects monics.
+-- Formalization requires ev_A as a named functor + Faithful instance (S1_274).
+-- Left as TODO; the easy direction suffices for Freyd's Ch1 applications.
 
 /-! ## §1.521  Pointwise pullbacks in `𝒮^A` -/
 
@@ -259,47 +259,212 @@ instance functorCat_hasPullbacks [HasPullbacks 𝒮] : HasPullbacks (FunctorObj 
         (congrFun (congrArg NaturalTransformation.app h₂) A)
   }
 
-/-! ## §1.521  Pointwise images in `𝒮^A` -/
+/-! ## §1.521  Pointwise images in `𝒮^A` (partial construction) -/
 
--- TODO §1.521 HasImages (FunctorObj 𝒜 𝒮):
--- The pointwise image of α : F → G at A is image(α_A) in 𝒮.
--- Building this into a HasImages instance requires:
--- (a) image(α).dom : FunctorObj 𝒜 𝒮 with transition map f ↦ (the unique map
---     image(α_A).dom → image(α_B).dom making the square commute with image(α_B).arr).
---     The correct transition map uses the factorization:
---       image(α_A).arr ≫ G.map f  is allowed by image(α_B)
---     (via witness F.map f ≫ image.lift(α_B) and α.naturality),
---     giving choose : image(α_A).dom → image(α_B).dom with
---       choose ≫ image(α_B).arr = image(α_A).arr ≫ G.map f.  ← CORRECT NATURALITY
--- (b) image(α).arr : FunctorHom image(α).dom G, component (image α_A).arr.
---     Naturality: choose ≫ image(α_B).arr = image(α_A).arr ≫ G.map f ✓ (from (a))
--- (c) image(α).monic : Monic image(α).arr in FunctorObj 𝒜 𝒮 — pointwise.
--- (d) isImage: image.lift becomes a NT using the same naturality argument.
--- (e) minimality witness naturality: requires uniqueness of containment morphism
---     (image(α_A).arr is monic in 𝒮, so any two witnesses agreeing after it are equal).
--- Left as a precise TODO; not needed for §1.422/§1.424/§1.521(pullbacks).
+/-
+  The transition map for the image domain functor exists by a pullback argument.
+  Given α : FunctorHom F G, f : X ⟶ Y in 𝒜, we want
+    imgTransMap f : (image (α.app X)).dom ⟶ (image (α.app Y)).dom
+  satisfying: imgTransMap f ≫ (image (α.app Y)).arr = (image (α.app X)).arr ≫ G.map f.
 
--- TODO §1.521 RegularCategory:
--- `RegularCategory (FunctorObj 𝒜 𝒮)` when `[RegularCategory 𝒮]` requires:
--- (1) HasTerminal: ✓ (functorCat_hasTerminal)
--- (2) HasBinaryProducts: ✓ (functorCat_hasProducts)
--- (3) HasPullbacks: ✓ (functorCat_hasPullbacks)
--- (4) HasImages: partial (functorCat_hasImages, pending naturality sorry)
--- (5) PullbacksTransferCovers: if α is a cover in 𝒮^A (every α_A is a cover by §1.521)
---     and we pull back along β, then the pullback π₂ is a cover.
---     Pointwise: (pullback α_A β_A).π₂ is a cover by PullbacksTransferCovers in 𝒮.
---     But the cone.IsPullback condition for the NT cone needs verification.
---     This requires showing the pointwise pullback in 𝒮^A is a genuine pullback
---     (which follows from the universal property we proved) and then applying
---     the pointwise cover transfer.  Formal statement:
+  Construction: pull back (image (α.app Y)).arr along (image (α.app X)).arr ≫ G.map f.
+  The cospan is: (image α_X).dom —[arr_X ≫ G.map f]→ G.obj Y ←[arr_Y]— (image α_Y).dom.
+  Pullback P has projections π₁ : P → (image α_X).dom (monic, pullback of mono)
+  and π₂ : P → (image α_Y).dom.
+  Canonical cone from F.obj X: (image.lift(α_X), F.map f ≫ image.lift(α_Y)).
+  This cone maps into P; the first leg image.lift(α_X) factors through the monic π₁.
+  image.lift(α_X) is a cover (image_lift_cover), so π₁ is iso.
+  imgTransMap f := π₁⁻¹ ≫ π₂.
+-/
 
--- instance functorCat_ptc [RegularCategory 𝒮] : PullbacksTransferCovers (FunctorObj 𝒜 𝒮) :=
--- { pullbacks_transfer_covers := fun c hc hf => by
---     -- c is a cone in 𝒮^A; hc : c.IsPullback; hf : Cover c.π₁ (= pointwise covers)
---     -- We need: Cover c.π₂ (= pointwise covers of π₂ components)
---     -- Pointwise: c restricted to each A gives a cone in 𝒮 that is a pullback
---     -- (because c.IsPullback in 𝒮^A implies c_A is a pullback in 𝒮 — formal deduction)
---     -- and cover(c.π₁.app A) → cover(c.π₂.app A) by RegularCategory 𝒮.
---     sorry }
+-- Pullback of (image α_Y).arr along (image α_X).arr ≫ G.map f.
+private noncomputable def imgTransPB [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
+    (α : FunctorHom F G) {X Y : 𝒜} (f : X ⟶ Y) :
+    HasPullback ((image (α.app X)).arr ≫ G.isFunctor.map f) (image (α.app Y)).arr :=
+  HasPullbacks.has _ _
+
+private theorem imgTransPB_π₁_mono [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
+    (α : FunctorHom F G) {X Y : 𝒜} (f : X ⟶ Y) :
+    Monic (imgTransPB α f).cone.π₁ :=
+  mono_pullback ((image (α.app X)).arr ≫ G.isFunctor.map f)
+    (image (α.app Y)).arr (image (α.app Y)).monic (imgTransPB α f)
+
+-- Canonical cone: π₁ := image.lift(α.app X), π₂ := F.map f ≫ image.lift(α.app Y).
+-- Cone equation: lift_X ≫ arr_X ≫ G.map f = α_X ≫ G.map f = F.map f ≫ α_Y
+--              = (F.map f ≫ lift_Y) ≫ arr_Y.
+private noncomputable def imgTransCone [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
+    (α : FunctorHom F G) {X Y : 𝒜} (f : X ⟶ Y) :
+    Cone ((image (α.app X)).arr ≫ G.isFunctor.map f) (image (α.app Y)).arr :=
+  ⟨F.obj X, image.lift (α.app X), F.isFunctor.map f ≫ image.lift (α.app Y), by
+    calc image.lift (α.app X) ≫ (image (α.app X)).arr ≫ G.isFunctor.map f
+        = α.app X ≫ G.isFunctor.map f :=
+            by rw [← Cat.assoc, image.lift_fac]
+      _ = F.isFunctor.map f ≫ α.app Y :=
+            (α.naturality f).symm
+      _ = (F.isFunctor.map f ≫ image.lift (α.app Y)) ≫ (image (α.app Y)).arr :=
+            by rw [Cat.assoc, image.lift_fac]⟩
+
+-- The lift of imgTransCone satisfies: lift ≫ π₁ = image.lift(α.app X).
+-- Since image.lift(α.app X) is a cover (image_lift_cover) and factors through monic π₁,
+-- π₁ is an isomorphism.
+private theorem imgTransPB_π₁_iso [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
+    (α : FunctorHom F G) {X Y : 𝒜} (f : X ⟶ Y) :
+    IsIso (imgTransPB α f).cone.π₁ :=
+  image_lift_cover (α.app X) (imgTransPB α f).cone.π₁
+    ((imgTransPB α f).lift (imgTransCone α f))
+    (imgTransPB_π₁_mono α f)
+    ((imgTransPB α f).lift_fst (imgTransCone α f))
+
+-- Extract the inverse of π₁ using Classical.choose.
+-- IsIso (π₁ : P → D) = ∃ g : D → P, π₁ ≫ g = id ∧ g ≫ π₁ = id, so inverse : D → P.
+-- Here D = (image α_X).dom, P = (imgTransPB α f).cone.pt.
+private noncomputable def imgTransπ₁inv [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
+    (α : FunctorHom F G) {X Y : 𝒜} (f : X ⟶ Y) :
+    (image (α.app X)).dom ⟶ (imgTransPB α f).cone.pt :=
+  Classical.choose (imgTransPB_π₁_iso α f)
+
+-- π₁ ≫ π₁⁻¹ = id  (first component of IsIso spec)
+private theorem imgTransπ₁_comp_inv [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
+    (α : FunctorHom F G) {X Y : 𝒜} (f : X ⟶ Y) :
+    (imgTransPB α f).cone.π₁ ≫ imgTransπ₁inv α f = Cat.id _ :=
+  (Classical.choose_spec (imgTransPB_π₁_iso α f)).1
+
+-- π₁⁻¹ ≫ π₁ = id  (second component of IsIso spec)
+private theorem imgTransπ₁inv_comp [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
+    (α : FunctorHom F G) {X Y : 𝒜} (f : X ⟶ Y) :
+    imgTransπ₁inv α f ≫ (imgTransPB α f).cone.π₁ = Cat.id _ :=
+  (Classical.choose_spec (imgTransPB_π₁_iso α f)).2
+
+/-- The transition map: π₁⁻¹ ≫ π₂ : (image α_X).dom ⟶ (image α_Y).dom.
+    π₁⁻¹ : (image α_X).dom → (imgTransPB α f).cone.pt  (inverse of π₁ : P → (image α_X).dom)
+    π₂   : (imgTransPB α f).cone.pt → (image α_Y).dom. -/
+noncomputable def imgTransMap [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
+    (α : FunctorHom F G) {X Y : 𝒜} (f : X ⟶ Y) :
+    (image (α.app X)).dom ⟶ (image (α.app Y)).dom :=
+  imgTransπ₁inv α f ≫ (imgTransPB α f).cone.π₂
+
+/-- Key equation: imgTransMap f ≫ (image α_Y).arr = (image α_X).arr ≫ G.map f.
+    Proof: unfold imgTransMap = π₁⁻¹ ≫ π₂; use π₂ ≫ arr_Y = π₁ ≫ (arr_X ≫ G.map f) from
+    cone.w; then π₁⁻¹ ≫ π₁ = id gives the result. -/
+theorem imgTrans_comm [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
+    (α : FunctorHom F G) {X Y : 𝒜} (f : X ⟶ Y) :
+    imgTransMap α f ≫ (image (α.app Y)).arr =
+    (image (α.app X)).arr ≫ G.isFunctor.map f := by
+  -- unfold imgTransMap; then use Cat.assoc to group π₁⁻¹ ≫ (π₂ ≫ arr_Y), then cone.w.
+  unfold imgTransMap
+  rw [Cat.assoc (imgTransπ₁inv α f), ← (imgTransPB α f).cone.w,
+      ← Cat.assoc (imgTransπ₁inv α f), imgTransπ₁inv_comp, Cat.id_comp]
+
+private theorem imgTransMap_id [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
+    (α : FunctorHom F G) (X : 𝒜) :
+    imgTransMap α (Cat.id X) = Cat.id (image (α.app X)).dom := by
+  apply (image (α.app X)).monic
+  rw [imgTrans_comm, G.isFunctor.map_id, Cat.comp_id, Cat.id_comp]
+
+private theorem imgTransMap_comp [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
+    (α : FunctorHom F G) {X Y Z : 𝒜} (f : X ⟶ Y) (g : Y ⟶ Z) :
+    imgTransMap α (f ≫ g) = imgTransMap α f ≫ imgTransMap α g := by
+  apply (image (α.app Z)).monic
+  -- Both sides ≫ arr_Z equal arr_X ≫ (G.map f ≫ G.map g) [right-grouped].
+  have h1 : imgTransMap α (f ≫ g) ≫ (image (α.app Z)).arr =
+            (image (α.app X)).arr ≫ (G.isFunctor.map f ≫ G.isFunctor.map g) := by
+    rw [imgTrans_comm, G.isFunctor.map_comp]
+  have h2 : (imgTransMap α f ≫ imgTransMap α g) ≫ (image (α.app Z)).arr =
+            (image (α.app X)).arr ≫ (G.isFunctor.map f ≫ G.isFunctor.map g) :=
+    calc (imgTransMap α f ≫ imgTransMap α g) ≫ (image (α.app Z)).arr
+        = imgTransMap α f ≫ (imgTransMap α g ≫ (image (α.app Z)).arr) :=
+            Cat.assoc _ _ _
+      _ = imgTransMap α f ≫ ((image (α.app Y)).arr ≫ G.isFunctor.map g) :=
+            by rw [imgTrans_comm α g]
+      _ = (imgTransMap α f ≫ (image (α.app Y)).arr) ≫ G.isFunctor.map g :=
+            (Cat.assoc _ _ _).symm
+      _ = ((image (α.app X)).arr ≫ G.isFunctor.map f) ≫ G.isFunctor.map g :=
+            by rw [imgTrans_comm α f]
+      _ = (image (α.app X)).arr ≫ (G.isFunctor.map f ≫ G.isFunctor.map g) :=
+            Cat.assoc _ _ _
+  rw [h1, ← h2]
+
+/-- §1.521: Functor A ↦ (image (α_A)).dom with transition maps imgTransMap. -/
+noncomputable def imageFunObj [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
+    (α : FunctorHom F G) : FunctorObj 𝒜 𝒮 where
+  obj       := fun A => (image (α.app A)).dom
+  isFunctor := {
+    map      := imgTransMap α
+    map_id   := imgTransMap_id α
+    map_comp := fun f g => imgTransMap_comp α f g
+  }
+
+/-- §1.521: NT arr : imageFunObj α ⟶ G, components (image (α_A)).arr, natural by imgTrans_comm. -/
+noncomputable def imgArrNT [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
+    (α : FunctorHom F G) : FunctorHom (imageFunObj α) G where
+  app        := fun A => (image (α.app A)).arr
+  naturality := fun {X Y} f => imgTrans_comm α f
+
+/-- §1.521: imgArrNT α is monic in 𝒮^A (componentwise monic → NT monic, §1.462 easy). -/
+theorem imgArrNT_monic [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
+    (α : FunctorHom F G) : Monic (𝒞 := FunctorObj 𝒜 𝒮) (imgArrNT α) :=
+  natTrans_monic_of_components_monic (imgArrNT α) (fun A => (image (α.app A)).monic)
+
+/-- §1.521: Lift NT imageLiftNT : F ⟶ imageFunObj α, components image.lift (α_A).
+    Naturality: both sides ≫ image(α_B).arr agree, using imgTrans_comm + α.naturality. -/
+noncomputable def imageLiftNT [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
+    (α : FunctorHom F G) : FunctorHom F (imageFunObj α) where
+  app        := fun A => image.lift (α.app A)
+  naturality := fun {X Y} f => by
+    -- Goal: F.map f ≫ image.lift(α.app Y) = image.lift(α.app X) ≫ imgTransMap α f
+    -- Post-compose with the monic arr_Y; both sides equal α.app X ≫ G.map f.
+    apply (image (α.app Y)).monic
+    -- Use show to give explicit types and avoid Cat.assoc misfire on Functor.map.
+    show (F.isFunctor.map f ≫ image.lift (α.app Y)) ≫ (image (α.app Y)).arr =
+         (image.lift (α.app X) ≫ imgTransMap α f) ≫ (image (α.app Y)).arr
+    calc (F.isFunctor.map f ≫ image.lift (α.app Y)) ≫ (image (α.app Y)).arr
+        = F.isFunctor.map f ≫ α.app Y :=
+            by rw [Cat.assoc (F.isFunctor.map f), image.lift_fac]
+      _ = α.app X ≫ G.isFunctor.map f := α.naturality f
+      _ = image.lift (α.app X) ≫ (image (α.app X)).arr ≫ G.isFunctor.map f :=
+            by rw [← Cat.assoc (image.lift (α.app X)), image.lift_fac]
+      _ = image.lift (α.app X) ≫ imgTransMap α f ≫ (image (α.app Y)).arr :=
+            by rw [← imgTrans_comm]
+      _ = (image.lift (α.app X) ≫ imgTransMap α f) ≫ (image (α.app Y)).arr :=
+            (Cat.assoc _ _ _).symm
+
+/-- §1.521: imageLiftNT ≫ imgArrNT = α (the pointwise image factorization). -/
+theorem imageLiftNT_fac [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
+    (α : FunctorHom F G) :
+    natTrans_comp (imageLiftNT α) (imgArrNT α) = α :=
+  NaturalTransformation.ext' fun A => image.lift_fac (α.app A)
+
+/-
+  §1.521 HasImages (FunctorObj 𝒜 𝒮): PARTIAL — BLOCKED by §1.462 hard direction.
+
+  What is proved above (sorry-free):
+  • imageFunObj α   : FunctorObj 𝒜 𝒮   — the image domain functor (transition maps via pullback)
+  • imgArrNT α      : imageFunObj α ⟶ G  — the inclusion NT (natural by imgTrans_comm)
+  • imgArrNT_monic  : Monic (imgArrNT α)  — pointwise monic → NT monic (§1.462 easy)
+  • imageLiftNT α   : F ⟶ imageFunObj α  — the lift NT
+  • imageLiftNT_fac : imageLiftNT α ≫ imgArrNT α = α  (image factorization)
+
+  What is missing for a full HasImages instance — MINIMALITY:
+  Given S : Subobject (𝒮^A) G allowing α, exhibit h : imageFunObj α ⟶ S.dom (NT) with
+  h ≫ S.arr = imgArrNT α.
+  Component h.app A := (image_min (α.app A) cA hA).choose, requiring Monic (S.arr.app A).
+  Naturality of h follows by post-cancellation with S.arr.app B (monic): both sides equal
+  after ≫ S.arr.app B, using imgTrans_comm + naturality of S.arr.
+
+  BLOCKER: Monic (S.arr.app A) for A : 𝒜.
+  S.arr is monic as a NT (Subobject); extracting componentwise monicity is the §1.462
+  HARD DIRECTION: α monic in 𝒮^A → α.app A monic in 𝒮.
+  Standard proof: ev_A(α) = α.app A; ev_A faithful (NTs equal iff components equal) ⟹
+  ev_A reflects monics.  Requires ev_A as a Lean functor with a Faithful instance (S1_274).
+
+  §1.521 RegularCategory (FunctorObj 𝒜 𝒮): TODO once §1.462 hard is proved.
+  (1) HasTerminal       ✓  (functorCat_hasTerminal)
+  (2) HasBinaryProducts ✓  (functorCat_hasProducts)
+  (3) HasPullbacks      ✓  (functorCat_hasPullbacks)
+  (4) HasImages         BLOCKED (see above)
+  (5) PullbacksTransferCovers: blocked by the same §1.462 hard issue.
+      Proof sketch: Cover α in 𝒮^A → each α.app A cover in 𝒮 (needs ev_A faithful);
+      pointwise PTC in 𝒮 gives Cover (canonical_π₂.app A); componentwise covers → NT cover.
+-/
 
 end Freyd
