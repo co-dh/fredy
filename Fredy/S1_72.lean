@@ -548,10 +548,16 @@ def Coprime [HasImages 𝒞] [HasSubobjectUnions 𝒞] (A : 𝒞) : Prop :=
     Subobject.IsEntire U ∨ Subobject.IsEntire V
 
 /-- A is CONNECTED (§1.733): it has exactly two complemented subobjects,
-    i.e. the only complemented subobjects are ⊥ (bottom) and A (entire). -/
+    i.e. the only complemented subobjects are ⊥ (bottom) and A (entire).
+
+    "`U` is the bottom subobject" is rendered as `U ≤ ⊥` (subobject order); the
+    reverse `⊥ ≤ U` is `PreLogos.bottom_min`, so the two together say `U` and `⊥`
+    are the same subobject (mutual `≤`).  We use the order form rather than a raw
+    structural `U = ⊥`, since `Subobject` is a structure and structural equality of
+    its `dom`/`arr` is strictly stronger than "is the minimal subobject". -/
 def Connected [HasImages 𝒞] [PreLogos 𝒞] (A : 𝒞) : Prop :=
   ∀ (U : Subobject 𝒞 A),
-    IsComplemented U → Subobject.IsEntire U ∨ U = PreLogos.bottom A
+    IsComplemented U → Subobject.IsEntire U ∨ Subobject.le U (PreLogos.bottom A)
 
 /-- A FOCAL LOGOS (§1.733): its terminator is a coprime projective.
     Equivalently, r = (1,-) is a representation of pre-logoi. -/
@@ -576,44 +582,144 @@ class FocalLogos (𝒞 : Type u) [Cat.{v} 𝒞] extends Logos 𝒞 where
 /-! ## §1.733 Positive pre-logos focal iff connected projective terminator
 
   "A positive pre-logos is focal iff its terminator is a connected projective."
-  (Freyd §1.733; book proof: projective 1 ⟹ 1 is a representation of regular cats,
-  so it preserves unions iff it preserves disjoint unions [1.625]; connected = exactly
-  two complemented subobjects.) -/
+  (Freyd §1.733.)
 
-/-- §1.733: A positive pre-logos is FOCAL iff its terminator is a CONNECTED PROJECTIVE.
-    (⟹) `FocalLogos` gives `one_coprime` and `one_projective`; coprime + connected follow.
-    (⟸) Connectedness gives coprimeness via §1.625 (projective 1 preserves disjoint unions).
-    Needs `HasDisjointUnions` / §1.625 (projective 1 preserves disjoint ⟹ binary unions)
-    not yet in the repo; stated as a sorry-stub. -/
-theorem focal_iff_connected_projective
-    [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
-    [PreLogos 𝒞] :
-    Nonempty (FocalLogos 𝒞) ↔ (Connected (𝒞 := 𝒞) one ∧ Projective (𝒞 := 𝒞) one) := by
-  sorry
-  -- BLOCKER — instance diamond: `Nonempty (FocalLogos 𝒞)` introduces its own
-  -- `HasTerminal`/`HasImages`/`HasSubobjectUnions` chain via `FocalLogos → Logos`,
-  -- conflicting with the theorem's explicit `[HasTerminal 𝒞] [HasImages 𝒞] [PreLogos 𝒞]`.
-  -- Concretely:
-  --   • `hfl.one_coprime U V hcov` expects `U : Subobject 𝒞 (@HasTerminal.one 𝒞 _ hfl.toHasTerminal)`
-  --     but the ambient `one` is `@HasTerminal.one 𝒞 _ inst✝⁴` (a DIFFERENT instance).
-  --   • `hfl.one_projective` has `Cover f → ∃ s, s ≫ f = Cat.id hfl.toHasTerminal.one`
-  --     but the goal's `Projective one` uses the ambient `Cover`.
-  -- Fix: the theorem should drop the explicit `[HasTerminal 𝒞] [HasBinaryProducts 𝒞]
-  -- [HasPullbacks 𝒞] [HasImages 𝒞] [PreLogos 𝒞]` hypotheses entirely and instead
-  -- constrain 𝒞 via `[Logos 𝒞]` (which provides all of them coherently), so the LHS
-  -- `FocalLogos 𝒞` and RHS predicates share the SAME instance chain.
-  --
-  -- Even with that fix, the (⟸) direction needs the book's §1.625 argument:
-  -- "projective 1 preserves disjoint binary unions ⟹ binary unions (coprimeness)",
-  -- which requires `HasDisjointUnions` infrastructure not yet in the repo.
-  --
-  -- Mathematical summary of what IS provable (with coherent instances):
-  --   (⟹): FocalLogos → one_coprime → (coprime ⟹ connected) by: if U complemented
-  --         with complement V, U∪V = entire, coprimeness gives U=entire or V=entire;
-  --         if V=entire then U ≤ ⊥ (via the disjointness clause hdisj U refl hUleV).
-  --         And one_projective is direct.
-  --   (⟸): Needs [Logos 𝒞] (not [PreLogos 𝒞]) to build FocalLogos; then connected
-  --         ⟹ coprime uses §1.625 projective-1-preserves-disjoint-unions (MISSING infra).
+  STATEMENT CHOICE.  The book's subject is a *positive pre-logos*; the repo's faithful
+  rendering of that is `DisjointBinaryCoproduct` (§1.621/§1.623 — a positive pre-logos
+  whose coproduct injections are a disjoint complemented pair).  "Focal" means the
+  terminator `1` is *coprime* and *projective* — these are exactly the two extra fields
+  `one_coprime`, `one_projective` that `FocalLogos` adds over its `Logos`.  We therefore
+  state §1.733 over `[DisjointBinaryCoproduct 𝒞]` with "focal" rendered as the property
+  `Coprime one ∧ Projective one`, rather than as `Nonempty (FocalLogos 𝒞)`.
+
+  Why not `Nonempty (FocalLogos 𝒞)`?  `FocalLogos extends Logos`, so that phrasing
+  bundles a *fresh* `Logos` instance (hence a fresh `HasTerminal`, fresh `one`, fresh
+  `Cover`) independent of the ambient one — `hfl.one_projective` would then be about
+  `hfl`'s terminator, not the ambient `one`, an instance mismatch that makes the iff
+  unprovable.  Phrasing "focal" as a property of the *ambient* positive pre-logos keeps
+  one coherent instance chain on both sides.  (It is also closer to Freyd: a positive
+  pre-logos needs no right-adjoint `f##` for this statement.) -/
+
+/-- §1.733 (⟹), coprime ⟹ connected.  If `1` is coprime then every complemented
+    subterminator is entire or bottom: a complement pair `U, U₂` with `U ∪ U₂` entire
+    forces (coprimeness) `U` entire or `U₂` entire; in the latter case `U ≤ U₂`, so the
+    disjointness clause gives `U ≤ ⊥`. -/
+theorem coprime_one_implies_connected_one
+    [DisjointBinaryCoproduct 𝒞] (hcop : Coprime (𝒞 := 𝒞) one) :
+    Connected (𝒞 := 𝒞) one := by
+  intro U hU
+  obtain ⟨U₂, hdisj, hcover⟩ := hU
+  rcases hcop U U₂ hcover with hUe | hU₂e
+  · exact Or.inl hUe
+  · right
+    have hUleU₂ : Subobject.le U U₂ :=
+      subobject_le_trans (le_entire U) ((isEntire_iff_entire_le U₂).mp hU₂e)
+    exact hdisj U (subobject_le_refl U) hUleU₂
+
+/-- §1.733 (⟸), connected + projective ⟹ coprime (Freyd's §1.625 argument).
+    Given `U, V ⊆ 1` with `U ∪ V` entire, the copairing `q = case U.arr V.arr :
+    U.dom + V.dom → 1` is a cover (its image is `U ∪ V`, entire).  Projectivity of `1`
+    splits it: `s ≫ q = id`.  The injections `inl, inr` are a *disjoint complemented*
+    pair (positivity), so their inverse images `s#inl, s#inr ⊆ 1` are complemented
+    subterminators covering `1`.  Connectedness sends `s#inl` to entire or bottom:
+    if entire, `s` factors through `inl` and `U` is entire; if bottom, the cover forces
+    `s#inr` entire and `V` is entire. -/
+theorem connected_projective_one_implies_coprime_one
+    [DisjointBinaryCoproduct 𝒞]
+    (hconn : Connected (𝒞 := 𝒞) one) (hproj : Projective (𝒞 := 𝒞) one) :
+    Coprime (𝒞 := 𝒞) one := by
+  intro U V hcov
+  -- q := case U.arr V.arr : U.dom + V.dom → 1 is a cover (image = U ∪ V = entire).
+  let q : HasBinaryCoproducts.coprod U.dom V.dom ⟶ one :=
+    HasBinaryCoproducts.case U.arr V.arr
+  have hq_cover : Cover q := by
+    refine (cover_iff_image_entire q).2 (entire_of_entire_le ?_)
+    have hUle : U.le (image U.arr) := ⟨image.lift U.arr, image.lift_fac U.arr⟩
+    have hVle : V.le (image V.arr) := ⟨image.lift V.arr, image.lift_fac V.arr⟩
+    have hmono : (HasSubobjectUnions.union U V).le
+        (HasSubobjectUnions.union (image U.arr) (image V.arr)) :=
+      HasSubobjectUnions.union_min _ _ _
+        (subobject_le_trans hUle (HasSubobjectUnions.union_left _ _))
+        (subobject_le_trans hVle (HasSubobjectUnions.union_right _ _))
+    have huac : (HasSubobjectUnions.union (image U.arr) (image V.arr)).le (image q) :=
+      (union_via_coproduct_image U.arr V.arr).2 (image q) (image_allows q)
+    exact subobject_le_trans hcov (subobject_le_trans hmono huac)
+  -- projective 1 splits q:  s ≫ q = id.
+  obtain ⟨s, hs⟩ := hproj q hq_cover
+  -- inl, inr are a disjoint complemented pair on U.dom + V.dom (positivity).
+  have hinl_comp : IsComplementedSub (inlSub (𝒞 := 𝒞) (A := U.dom) (B := V.dom) inl_mono) :=
+    ⟨inrSub inr_mono, inl_inter_inr_le_bottom, inl_union_inr_entire⟩
+  have hinr_comp : IsComplementedSub (inrSub (𝒞 := 𝒞) (A := U.dom) (B := V.dom) inr_mono) :=
+    ⟨inlSub inl_mono,
+      subLe_trans (Subobject.le_inter (Subobject.inter_le_right _ _)
+        (Subobject.inter_le_left _ _)) inl_inter_inr_le_bottom,
+      subLe_trans inl_union_inr_entire
+        (HasSubobjectUnions.union_min _ _ _
+          (HasSubobjectUnions.union_right _ _) (HasSubobjectUnions.union_left _ _))⟩
+  -- pull back along s: complemented subterminators of 1.
+  have hPl : IsComplemented (InverseImage s (inlSub (𝒞 := 𝒞) (A := U.dom) (B := V.dom) inl_mono)) :=
+    (isComplemented_iff_sub _).2 (invImage_complementedSub s hinl_comp)
+  -- factorization: if s#⟨w.dom,e⟩ is entire and e ≫ q = w.arr then w is entire (w = U or V).
+  have factor : ∀ (w : Subobject 𝒞 one) (e : w.dom ⟶ HasBinaryCoproducts.coprod U.dom V.dom)
+      (he : Monic e) (heq : e ≫ q = w.arr),
+      Subobject.IsEntire (InverseImage s ⟨w.dom, e, he⟩) → Subobject.IsEntire w := by
+    intro w e he heq hent
+    obtain ⟨g0, hg0⟩ := (isEntire_iff_entire_le _).1 hent
+    let pb := HasPullbacks.has s (⟨w.dom, e, he⟩ : Subobject 𝒞 _).arr
+    have hg0' : g0 ≫ pb.cone.π₁ = Cat.id one := by
+      have : (InverseImage s ⟨w.dom, e, he⟩).arr = pb.cone.π₁ := rfl
+      simpa [Subobject.entire, this] using hg0
+    refine entire_of_entire_le ⟨g0 ≫ pb.cone.π₂, ?_⟩
+    show (g0 ≫ pb.cone.π₂) ≫ w.arr = (Subobject.entire one).arr
+    have hπ₂ : pb.cone.π₂ ≫ w.arr = pb.cone.π₁ ≫ (s ≫ q) := by
+      rw [← heq, ← Cat.assoc, ← pb.cone.w, Cat.assoc]
+    calc (g0 ≫ pb.cone.π₂) ≫ w.arr
+        = g0 ≫ (pb.cone.π₂ ≫ w.arr) := Cat.assoc _ _ _
+      _ = g0 ≫ (pb.cone.π₁ ≫ (s ≫ q)) := by rw [hπ₂]
+      _ = g0 ≫ (pb.cone.π₁ ≫ Cat.id one) := by rw [hs]
+      _ = (g0 ≫ pb.cone.π₁) ≫ Cat.id one := (Cat.assoc _ _ _).symm
+      _ = Cat.id one ≫ Cat.id one := by rw [hg0']
+      _ = (Subobject.entire one).arr := by
+            show Cat.id one ≫ Cat.id one = Cat.id one
+            rw [Cat.id_comp]
+  have hinl_eq : (inlSub (𝒞 := 𝒞) (A := U.dom) (B := V.dom) inl_mono).arr ≫ q = U.arr :=
+    HasBinaryCoproducts.case_inl U.arr V.arr
+  have hinr_eq : (inrSub (𝒞 := 𝒞) (A := U.dom) (B := V.dom) inr_mono).arr ≫ q = V.arr :=
+    HasBinaryCoproducts.case_inr U.arr V.arr
+  rcases hconn _ hPl with hUe | hUbot
+  · exact Or.inl (factor U _ inl_mono hinl_eq hUe)
+  · -- s#inl ≤ ⊥, so the cover gives s#inr entire, hence V entire.
+    right
+    have hcover_lr : (Subobject.entire one).le
+        (HasSubobjectUnions.union
+          (InverseImage s (inlSub (𝒞 := 𝒞) (A := U.dom) (B := V.dom) inl_mono))
+          (InverseImage s (inrSub (𝒞 := 𝒞) (A := U.dom) (B := V.dom) inr_mono))) :=
+      subobject_le_trans (entire_le_invImage_entire s)
+        (subobject_le_trans
+          (invImage_mono s inl_union_inr_entire)
+          (PreLogos.invImage_preserves_union s _ _).1)
+    have hle : (HasSubobjectUnions.union
+          (InverseImage s (inlSub (𝒞 := 𝒞) (A := U.dom) (B := V.dom) inl_mono))
+          (InverseImage s (inrSub (𝒞 := 𝒞) (A := U.dom) (B := V.dom) inr_mono))).le
+        (InverseImage s (inrSub (𝒞 := 𝒞) (A := U.dom) (B := V.dom) inr_mono)) :=
+      HasSubobjectUnions.union_min _ _ _
+        (subobject_le_trans hUbot (PreLogos.bottom_min _))
+        (subobject_le_refl _)
+    have hVe : Subobject.IsEntire
+        (InverseImage s (inrSub (𝒞 := 𝒞) (A := U.dom) (B := V.dom) inr_mono)) :=
+      entire_of_entire_le (subobject_le_trans hcover_lr hle)
+    exact factor V _ inr_mono hinr_eq hVe
+
+/-- **§1.733**: a *positive pre-logos* is FOCAL iff its terminator is a CONNECTED
+    PROJECTIVE.  "Focal" = terminator coprime ∧ projective (the two fields a `FocalLogos`
+    adds over its `Logos`); the iff reduces to `Coprime one ↔ Connected one` since
+    `Projective one` is common to both sides.  Forward: `coprime_one_implies_connected_one`.
+    Backward: `connected_projective_one_implies_coprime_one` (Freyd §1.625). -/
+theorem focal_iff_connected_projective [DisjointBinaryCoproduct 𝒞] :
+    (Coprime (𝒞 := 𝒞) one ∧ Projective (𝒞 := 𝒞) one) ↔
+    (Connected (𝒞 := 𝒞) one ∧ Projective (𝒞 := 𝒞) one) :=
+  ⟨fun ⟨hcop, hproj⟩ => ⟨coprime_one_implies_connected_one hcop, hproj⟩,
+   fun ⟨hconn, hproj⟩ => ⟨connected_projective_one_implies_coprime_one hconn hproj, hproj⟩⟩
 
 -- §1.734 FOCAL REPRESENTATION THEOREM (every small logos has a collectively faithful
 -- family of focal representations) and §1.74 GEOMETRIC REPRESENTATION THEOREM (countable
