@@ -288,17 +288,69 @@ theorem special552_twoValued (𝒞 : Type u) [Cat.{w} 𝒞] [CartesianCategory �
     have hf_eq : f = (f ≫ e) ≫ e_inv := by rw [Cat.assoc, he1, Cat.comp_id]
     exact Or.inl (hf_eq ▸ isIso_comp hfe_iso ⟨e, he2, he1⟩)
 
--- BOOK §1.552: `IsSpecialPreReg 𝒞` iff the category is special (every universally
--- quantified sentence in the pre-regular predicates true for S is true for 𝒞).
--- The (⇒) direction ("subterminator condition implies specialness") uses the
--- capitalization lemma: A → Ā → S is faithful where A → Ā is a capitalization
--- (§1.543, proven sorry-free as `Fredy.capitalization_lemma`); wiring that into
--- universality over pre-regular sentences is TODO.
+/-- **§1.552 (strict coterminator consequence):** in a special pre-regular category, every
+    PROPER subterminator `U` (with `¬ IsIso (term U)`) is a STRICT COTERMINATOR — every map
+    `f : A → U` is an isomorphism.
 
--- BOOK §1.552: In the two-valued case, `IsSpecialPreReg 𝒞` also implies
--- "every object is either well-supported or isomorphic to the unique proper subterminator 0".
--- Proof sketch: the exact representation T : A → S (from capitalization) makes T(A)
--- non-empty for objects not isomorphic to 0, hence they are well-supported.
--- Requires the exact faithful representation into Set: TODO.
+    Proof: `IsSpecialPreReg` gives `IsIso f ∨ IsIso (term U)`; since `term U` is not iso
+    the first disjunct holds.  This is the direction `IsSpecialPreReg ⟹ strict-coterminator`
+    of §1.552, provable directly from the elementary subterminator condition. -/
+theorem special552_proper_subterminator_strict {𝒞 : Type u} [Cat.{w} 𝒞] [HasTerminal 𝒞]
+    (hsp : IsSpecialPreReg 𝒞)
+    {U : 𝒞} (hSub : Subterminator U) (hprop : ¬ IsIso (term U))
+    {A : 𝒞} (f : A ⟶ U) : IsIso f :=
+  (hsp f hSub).resolve_right hprop
+
+/-- **§1.552 (two-valued well-supported-or-zero):** in a two-valued special pre-regular
+    category with images, every object `A` is either WELL-SUPPORTED (`A → 1` is a cover)
+    or isomorphic to `0` (the unique proper subterminator).
+
+    Proof: let `S = image(term A)`, a subterminator.  Apply `IsSpecialPreReg` to
+    `image.lift(term A) : A → S.dom`:
+    • If `IsIso (image.lift (term A))` and `IsIso S.arr`: image of `term A` is entire,
+      so `WellSupported A`.
+    • If `IsIso (image.lift (term A))` and `¬ IsIso S.arr`: `S.arr` is a proper mono
+      (it IS `term S.dom` by `term_uniq`), so `TwoValued.zero_uniq` gives `S.dom ≅ 0`;
+      composing gives `A ≅ 0`.
+    • If `IsIso (term S.dom)` (second disjunct): then `S.arr = term S.dom` is iso, so
+      image of `term A` is entire, i.e., `WellSupported A`.
+
+    Note: `HasImages` is required to factor `term A` through its image.  The full
+    equivalence `IsSpecialPreReg ↔ special (universally-quantified sentences)` uses the
+    capitalization lemma (`Fredy.capitalization_lemma`, §1.543, proven sorry-free) to wire
+    in the (⟹) direction; that syntactic-apparatus wiring is deferred as a
+    -- BOOK §1.552 TODO: wire capitalization into universality over pre-regular sentences. -/
+theorem special552_twoValued_wellSupportedOrZero
+    {𝒞 : Type u} [Cat.{w} 𝒞] [CartesianCategory 𝒞] [HasImages 𝒞]
+    (h2v : TwoValued (𝒞 := 𝒞)) (hsp : IsSpecialPreReg 𝒞)
+    (A : 𝒞) : WellSupported A ∨ ∃ e : A ⟶ h2v.zeroObj, IsIso e := by
+  -- S = image(term A) is a subterminator
+  have hSub : Subterminator (image (term A)).dom := by
+    show Monic (term (image (term A)).dom)
+    rw [term_uniq (term (image (term A)).dom) (image (term A)).arr]
+    exact (image (term A)).monic
+  rcases hsp (image.lift (term A)) hSub with hiso_e | hiso_S
+  · -- hiso_e : IsIso (image.lift (term A))
+    by_cases hwS : IsIso (image (term A)).arr
+    · left; rw [wellSupported_iff_support_entire]; exact hwS
+    · right
+      have hprop : ProperMono (term (image (term A)).dom) := by
+        rw [term_uniq (term (image (term A)).dom) (image (term A)).arr]
+        exact ⟨(image (term A)).monic, hwS⟩
+      obtain ⟨f, hf_iso⟩ := h2v.zero_uniq _ hprop
+      exact ⟨image.lift (term A) ≫ f, isIso_comp hiso_e hf_iso⟩
+  · -- hiso_S : IsIso (term (image (term A)).dom) = IsIso S.arr (by term_uniq)
+    left
+    have hSarr : IsIso (image (term A)).arr := by
+      rwa [show (image (term A)).arr = term (image (term A)).dom from (term_uniq _ _).symm]
+    rw [wellSupported_iff_support_entire]; exact hSarr
+
+-- BOOK §1.552 TODO: `IsSpecialPreReg 𝒞` iff the category is special (every universally
+-- quantified sentence in the pre-regular predicates true for S is true for 𝒞).
+-- The (⟸) directions are proved above (special552_oneValued, special552_twoValued,
+-- special552_proper_subterminator_strict, special552_twoValued_wellSupportedOrZero).
+-- The (⟹) direction uses the capitalization lemma: A → Ā → S faithful (§1.543,
+-- proven sorry-free as `Fredy.capitalization_lemma`); wiring into universality over
+-- pre-regular sentences needs the Horn-sentence machinery in S1_56 (circular here).
 
 end Freyd
