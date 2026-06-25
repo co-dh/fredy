@@ -139,6 +139,21 @@ theorem map_comp {a b c : 𝒜} {f : a ⟶ b} {g : b ⟶ c} (hf : Map f) (hg : M
         _ = g° ≫ g := by rw [Cat.id_comp]
     dsimp [Simple]; rw [hrw]; exact le_trans h1 hg.2
 
+/-- The **left modular law** in containment form: `(R ≫ S) ∩ T ⊑ R ≫ (S ∩ R° ≫ T)`.
+    Proved by reciprocating the right modular law — only uses `modular_le` and
+    `recip_mono`, hence holds in any `Allegory` (no union structure required).
+    Compare `S2_22.modular_le_left` which has a vestigial `[UnionAllegory]` annotation. -/
+theorem modular_le_left' {a b c : 𝒜} (R : a ⟶ b) (S : b ⟶ c) (T : a ⟶ c) :
+    (R ≫ S) ∩ T ⊑ R ≫ (S ∩ R° ≫ T) := by
+  have h := modular_le S° R° T°
+  rw [Allegory.recip_recip] at h
+  have hgoal : ((R ≫ S) ∩ T)° ⊑ (R ≫ (S ∩ R° ≫ T))° := by
+    rw [Allegory.recip_inter, Allegory.recip_comp, Allegory.recip_comp, Allegory.recip_inter,
+        Allegory.recip_comp, Allegory.recip_recip]
+    exact h
+  have := recip_mono hgoal
+  rwa [Allegory.recip_recip, Allegory.recip_recip] at this
+
 /-! ## §2.166  Tabulation by splitting the apex coreflexive
 
   An allegory is TABULAR iff it is pre-tabular and all coreflexive morphisms split
@@ -186,6 +201,7 @@ theorem tabApex_le_legs {a b c : 𝒜} {f : a ⟶ c} {g : b ⟶ c} {R : a ⟶ b}
   · refine le_trans (inter_lb_right _ _) (le_trans hfRg ?_)
     calc (f° ≫ f) ≫ (g° ≫ g) ⊑ Cat.id c ≫ (g° ≫ g) := comp_mono_right hf.2 _
       _ = g° ≫ g := by rw [Cat.id_comp]
+
 
 /-- If a map `h : c ⟶ d` splits a coreflexive `A` (`h ≫ h° = A`, `h° ≫ h = 1_d`) and
     `A ⊑ M`, then `1_d ⊑ h° ≫ M ≫ h`.  Proof:

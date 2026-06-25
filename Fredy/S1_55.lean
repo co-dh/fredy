@@ -30,6 +30,7 @@ import Fredy.S1_18
 import Fredy.S1_27
 import Fredy.S1_31
 import Fredy.S1_42
+import Fredy.S1_47
 import Fredy.S1_52
 
 
@@ -235,17 +236,69 @@ theorem henkin_lubkin (𝒞 : Type u) [Cat.{u} 𝒞] [PreRegularCategory 𝒞] :
   A pre-regular category A is SPECIAL if every universally quantified sentence in
   the relevant predicates true for S is true for A.
 
-  §1.552 gives two characterizations (both are `#emph` in the book). -/
+  §1.552 gives two characterizations (both italic in the book). -/
 
-/-! §1.552: A pre-regular category is special iff for every `A → U ↣ 1`,
-    either `A → U` or `U ↣ 1` is an isomorphism.
-    (The condition says the capitalization lands directly into S — no room for a
-    proper subobject sitting between the two extremes.) -/
--- BOOK §1.552: A pre-regular category is special iff A→U↣1 implies A→U or U↣1 is iso
+/-! §1.552 FIRST CHARACTERIZATION (elementary subterminator condition):
+    A pre-regular category is special iff for every map `f : A → U` into a
+    subterminator `U ↣ 1`, either `f` or `U ↣ 1` is an isomorphism. -/
 
-/-! §1.552 (second form): A pre-regular category is special iff it is
-    one-valued (|π₀ A| = 1) or two-valued (|π₀ A| = 2) with every object
-    either well-supported or isomorphic to 0 (the unique proper subterminator). -/
--- BOOK §1.552: special iff one-valued or (two-valued and every object is well-supported or ≅ 0)
+/-- **§1.552 (Char 1)** ELEMENTARY SUBTERMINATOR CONDITION for a pre-regular category.
+    The category is SPECIAL (§1.552) iff this holds.
+    Equivalence with specialness (the universally-quantified sentences condition) uses
+    the capitalization lemma (§1.543), proven sorry-free as `Fredy.capitalization_lemma`. -/
+def IsSpecialPreReg (𝒞 : Type u) [Cat.{w} 𝒞] [HasTerminal 𝒞] : Prop :=
+  ∀ {A U : 𝒞} (f : A ⟶ U), Subterminator U → IsIso f ∨ IsIso (term U)
+
+/-! §1.552 SECOND CHARACTERIZATION:
+    A pre-regular category is special iff it is
+      • one-valued (|π₀ A| = 1: every subterminator is isomorphic to 1), or
+      • two-valued (|π₀ A| = 2: unique proper subterminator 0) and every object
+        is either well-supported (A → 1 is a cover) or isomorphic to 0. -/
+
+/-- **§1.552 (Char 2 ←, one-valued case)**: a one-valued Cartesian category satisfies
+    the subterminator condition.  Every subterminator `U` already has `IsIso (term U)`
+    by one-valuedness, so the second disjunct fires unconditionally. -/
+theorem special552_oneValued (𝒞 : Type u) [Cat.{w} 𝒞] [CartesianCategory 𝒞]
+    (h1v : OneValued (𝒞 := 𝒞)) : IsSpecialPreReg 𝒞 :=
+  fun _f hU => Or.inr (h1v _ hU)
+
+/-- **§1.552 (Char 2 ←, two-valued case)**: a two-valued Cartesian category satisfies
+    the subterminator condition.
+
+    Proof: given `f : A → U` with `Subterminator U`:
+    • if `IsIso (term U)`, the second disjunct holds;
+    • otherwise `term U` is proper, so `zero_uniq` gives `e : U ≅ zeroObj`;
+      then `f ≫ e : A → zeroObj` is iso by `zero_strict`, and since `e` is iso,
+      `f = (f ≫ e) ≫ e⁻¹` is iso (first disjunct).
+
+    Note: the "every object well-supported or ≅ 0" clause belongs to the CONVERSE
+    direction (that `IsSpecialPreReg` forces the well-supported-or-zero partition in
+    the two-valued case), which requires the exact Henkin-Lubkin representation and
+    is left as a TODO below. -/
+theorem special552_twoValued (𝒞 : Type u) [Cat.{w} 𝒞] [CartesianCategory 𝒞]
+    (h2v : TwoValued (𝒞 := 𝒞)) : IsSpecialPreReg 𝒞 := by
+  intro A U f hU
+  rcases Classical.em (IsIso (term U)) with h | hni
+  · exact Or.inr h
+  · have hprop : ProperMono (term U) := ⟨hU, hni⟩
+    obtain ⟨e, he_iso⟩ := h2v.zero_uniq U hprop
+    have hfe_iso : IsIso (f ≫ e) := h2v.zero_strict (f ≫ e)
+    obtain ⟨e_inv, he1, he2⟩ := he_iso
+    -- f = (f ≫ e) ≫ e⁻¹ is a composite of isos
+    have hf_eq : f = (f ≫ e) ≫ e_inv := by rw [Cat.assoc, he1, Cat.comp_id]
+    exact Or.inl (hf_eq ▸ isIso_comp hfe_iso ⟨e, he2, he1⟩)
+
+-- BOOK §1.552: `IsSpecialPreReg 𝒞` iff the category is special (every universally
+-- quantified sentence in the pre-regular predicates true for S is true for 𝒞).
+-- The (⇒) direction ("subterminator condition implies specialness") uses the
+-- capitalization lemma: A → Ā → S is faithful where A → Ā is a capitalization
+-- (§1.543, proven sorry-free as `Fredy.capitalization_lemma`); wiring that into
+-- universality over pre-regular sentences is TODO.
+
+-- BOOK §1.552: In the two-valued case, `IsSpecialPreReg 𝒞` also implies
+-- "every object is either well-supported or isomorphic to the unique proper subterminator 0".
+-- Proof sketch: the exact representation T : A → S (from capitalization) makes T(A)
+-- non-empty for objects not isomorphic to 0, hence they are well-supported.
+-- Requires the exact faithful representation into Set: TODO.
 
 end Freyd
