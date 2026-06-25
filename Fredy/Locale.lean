@@ -406,13 +406,13 @@ end Topology
   to continuous maps — this is the (contravariant) functor O : Top^op → Frame. -/
 
 /-- Continuity: preimage of every open is open. -/
-def IsContinuous {X Y : Type u} (τX : Topology X) (τY : Topology Y)
+def IsContinuousMap {X Y : Type u} (τX : Topology X) (τY : Topology Y)
     (f : X → Y) : Prop :=
   ∀ V : τY.Opens, τX.IsOpen (fun x => V.val (f x))
 
 /-- Pullback frame hom `f* : O(Y) → O(X)` induced by a continuous map `f : X → Y`. -/
 def continuousMapFrameHom {X Y : Type u} {τX : Topology X} {τY : Topology Y}
-    (f : X → Y) (hf : IsContinuous τX τY f) :
+    (f : X → Y) (hf : IsContinuousMap τX τY f) :
     FrameHom (τY.opensFrame) (τX.opensFrame) where
   map V := ⟨fun x => V.val (f x), hf V⟩
   map_top := by

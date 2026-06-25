@@ -84,3 +84,5 @@ import Fredy.S1_10
 import Fredy.FunctorCategory
 import Fredy.MapCat
 import Fredy.Spl
+import Fredy.MatrixAllegory
+import Fredy.Locale
