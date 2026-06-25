@@ -16,6 +16,8 @@
 
 import Fredy.S1_56
 import Fredy.S1_60
+import Fredy.S1_70
+import Fredy.S1_85
 
 open Freyd
 
@@ -263,18 +265,6 @@ class EStandardPreLogos (𝒞 : Type u) [Cat.{v} 𝒞]
     (∀ n : Nat, (InverseImage f (relSub (relPow Rsym n))).le A') →
     (InverseImage f (relSub (equivClos R).clos)).le A'
 
-/-! ## §1.784 In a logos, R/S exists for every pair of relations with a common target
-
-  "In a logos, R/S exists for every pair of relations with a common target."
-  Freyd §1.784: Since every relation S = l° ∘ r, R/S exists iff (Rr°)/l° exists.
-  Specialising to R/f° (f a map): R/f° = (1×f)##(R).  The double-sharp f## exists
-  in any logos, so R/S is constructible in any logos.  Needs `HasRightAdjointImage`
-  (imported via Logos in S1_70); stated here with a sorry pending import of S1_70. -/
-
--- BOOK §1.784: In a logos, R/S exists for every pair of relations with a common target.
--- (Proof: reduce to R/f° = (1×f)##(R) via S = l° ∘ r; logos supplies f##.)
--- TODO: once S1_77 imports S1_70 (Logos), construct this via HasRightAdjointImage.rightAdj.
-
 /-! ## §1.78 Relational quotient R/S -/
 
 /-- RELATIONAL QUOTIENT R/S (§1.78): given R : A → C and S : B → C,
@@ -352,6 +342,177 @@ theorem relQuot_map_iff [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 
     {A B C : 𝒞} (R : BinRel 𝒞 A C) (f : B ⟶ C) (T : BinRel 𝒞 A B) :
     RelLe T (relQuotByMap R f).quot ↔ RelLe (T ⊚ graph f) R :=
   relQuot_iff (relQuotByMap R f) T
+
+/-! ## §1.784 In a logos, R/S exists for every pair of relations with a common target
+
+  Freyd §1.784: "In a logos, R/S exists for every pair of relations with a common target."
+  Since every relation `S = l° ⊚ r` factors through a span, R/S reduces to a quotient by a
+  *reciprocal of a map*, and that quotient is the **double-sharp** `f##` of the right-adjoint
+  to inverse image: `R/f° = (1 × f)##(R)`.  We construct `R/(graph f)°` directly as the
+  subobject `Q = (prodMap A B C f)##(relSub R)`, read back as a relation `A → C`.
+
+  The construction needs only `HasRightAdjointImage` (the `f##` adjoint, §1.70), not the full
+  `Logos`; together with `PreLogos` for the `relSub`/`relLe_iff_subLe` bridge between relations
+  and subobjects of the product. -/
+
+/-- The §1.784 bridge: for `T : A → C` and a map `f : B → C`, the subobject of `A × B`
+    represented by the relation `T ⊚ (graph f)°` is exactly the inverse image of `relSub T`
+    along `prodMap A B C f : A × B → A × C` (mutual containment).
+    This is the geometric content of `T ⊚ f° = (1 × f)#(T)`. -/
+theorem relSub_compRecip_eq_invImage [PreLogos 𝒞] [HasRightAdjointImage 𝒞]
+    {A B C : 𝒞} (f : B ⟶ C) (T : BinRel 𝒞 A C) :
+    (relSub (T ⊚ (graph f)°)).le (InverseImage (prodMap A B C f) (relSub T)) ∧
+    (InverseImage (prodMap A B C f) (relSub T)).le (relSub (T ⊚ (graph f)°)) := by
+  let pb := HasPullbacks.has T.colB f
+  let span : pb.cone.pt ⟶ prod A B := pair (pb.cone.π₁ ≫ T.colA) (pb.cone.π₂ ≫ Cat.id B)
+  have harr : (relSub (T ⊚ (graph f)°)).arr = (image span).arr := by
+    dsimp [relSub, compose, reciprocal, graph, span]
+    rw [← pair_eta (hp := inferInstance)]
+  let pb3 := HasPullbacks.has (prodMap A B C f) (relSub T).arr
+  refine ⟨?_, ?_⟩
+  · -- relSub(T ⊚ f°) ≤ InverseImage(prodMap)(relSub T)
+    have hle1 : (relSub (T ⊚ (graph f)°)).le (image span) :=
+      ⟨Cat.id _, by rw [Cat.id_comp]; exact harr.symm⟩
+    have hspan : span ≫ prodMap A B C f = pb.cone.π₁ ≫ (relSub T).arr := by
+      apply fst_snd_jointly_monic (span ≫ prodMap A B C f) (pb.cone.π₁ ≫ (relSub T).arr)
+      · rw [Cat.assoc, prodMap_fst]
+        dsimp [span, relSub]; rw [fst_pair, Cat.assoc, fst_pair]
+      · rw [Cat.assoc, prodMap_snd]
+        dsimp [span, relSub]
+        rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair, Cat.comp_id]
+        exact (pb.cone.w).symm
+    let cone3 : Cone (prodMap A B C f) (relSub T).arr := ⟨pb.cone.pt, span, pb.cone.π₁, hspan⟩
+    have hallow : Allows (InverseImage (prodMap A B C f) (relSub T)) span :=
+      ⟨pb3.lift cone3, pb3.lift_fst cone3⟩
+    have hle2 : (image span).le (InverseImage (prodMap A B C f) (relSub T)) :=
+      image_min span _ hallow
+    obtain ⟨h1, hh1⟩ := hle1; obtain ⟨h2, hh2⟩ := hle2
+    exact ⟨h1 ≫ h2, by rw [Cat.assoc, hh2, hh1]⟩
+  · -- InverseImage(prodMap)(relSub T) ≤ relSub(T ⊚ f°)
+    have hle_img : (image span).le (relSub (T ⊚ (graph f)°)) :=
+      ⟨Cat.id _, by rw [Cat.id_comp]; exact harr⟩
+    have hsnd : pb3.cone.π₁ ≫ snd ≫ f = pb3.cone.π₂ ≫ T.colB := by
+      have h2 : (pb3.cone.π₁ ≫ prodMap A B C f) ≫ snd = (pb3.cone.π₂ ≫ (relSub T).arr) ≫ snd :=
+        congrArg (· ≫ snd) pb3.cone.w
+      simp only [Cat.assoc, prodMap_snd] at h2
+      dsimp [relSub] at h2
+      simp only [snd_pair] at h2
+      exact h2
+    have hfst : pb3.cone.π₁ ≫ fst = pb3.cone.π₂ ≫ T.colA := by
+      have h1 : (pb3.cone.π₁ ≫ prodMap A B C f) ≫ fst = (pb3.cone.π₂ ≫ (relSub T).arr) ≫ fst :=
+        congrArg (· ≫ fst) pb3.cone.w
+      simp only [Cat.assoc, prodMap_fst] at h1
+      dsimp [relSub] at h1
+      simp only [fst_pair] at h1
+      exact h1
+    let cone_pb : Cone T.colB f :=
+      ⟨pb3.cone.pt, pb3.cone.π₂, pb3.cone.π₁ ≫ snd, by rw [Cat.assoc]; exact hsnd.symm⟩
+    let lift3 : pb3.cone.pt ⟶ pb.cone.pt := pb.lift cone_pb
+    have hlift : lift3 ≫ span = pb3.cone.π₁ := by
+      apply fst_snd_jointly_monic (lift3 ≫ span) pb3.cone.π₁
+      · dsimp [span]
+        rw [Cat.assoc, fst_pair, ← Cat.assoc]
+        rw [show lift3 ≫ pb.cone.π₁ = pb3.cone.π₂ from pb.lift_fst cone_pb]
+        exact hfst.symm
+      · dsimp [span]
+        rw [Cat.assoc, snd_pair, Cat.comp_id]
+        exact pb.lift_snd cone_pb
+    obtain ⟨img_factor, himg⟩ := image_allows span
+    have hle_inv : (InverseImage (prodMap A B C f) (relSub T)).le (image span) := by
+      refine ⟨lift3 ≫ img_factor, ?_⟩
+      show (lift3 ≫ img_factor) ≫ (image span).arr = pb3.cone.π₁
+      rw [Cat.assoc, himg, hlift]
+    obtain ⟨h1, hh1⟩ := hle_inv; obtain ⟨h2, hh2⟩ := hle_img
+    exact ⟨h1 ≫ h2, by rw [Cat.assoc, hh2, hh1]⟩
+
+/-- `RelLe R S → (relSub R).le (relSub S)`, needing only `PreLogos` (the library's
+    `subLe_of_relLe` lives in a section that spuriously also requires `HasBinaryCoproducts`;
+    the proof itself is pure product algebra).  Re-derived here for §1.784. -/
+theorem subLe_of_relLe_pl [PreLogos 𝒞] {A B : 𝒞} {R S : BinRel 𝒞 A B}
+    (h : RelLe R S) : (relSub R).le (relSub S) := by
+  obtain ⟨⟨g, hA, hB⟩⟩ := h
+  refine ⟨g, ?_⟩
+  show g ≫ pair S.colA S.colB = pair R.colA R.colB
+  exact pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair, hA]) (by rw [Cat.assoc, snd_pair, hB])
+
+/-- `(relSub R).le (relSub S) → RelLe R S`, needing only `PreLogos` (companion of
+    `subLe_of_relLe_pl`).  Re-derived here for §1.784. -/
+theorem relLe_of_subLe_pl [PreLogos 𝒞] {A B : 𝒞} {R S : BinRel 𝒞 A B}
+    (h : (relSub R).le (relSub S)) : RelLe R S := by
+  obtain ⟨g, hh⟩ := h
+  show Nonempty (RelHom R S)
+  refine ⟨⟨g, ?_, ?_⟩⟩
+  · have h2 : (g ≫ pair S.colA S.colB) ≫ fst = pair R.colA R.colB ≫ fst :=
+      congrArg (· ≫ fst) hh
+    rwa [Cat.assoc, fst_pair, fst_pair] at h2
+  · have h2 : (g ≫ pair S.colA S.colB) ≫ snd = pair R.colA R.colB ≫ snd :=
+      congrArg (· ≫ snd) hh
+    rwa [Cat.assoc, snd_pair, snd_pair] at h2
+
+/-- The relation `A → C` underlying `R/(graph f)°` (§1.784): the right-adjoint image
+    `Q = (prodMap A B C f)##(relSub R)`, read back through the projections of `A × C`. -/
+noncomputable def quotRecipRel [PreLogos 𝒞] [HasRightAdjointImage 𝒞]
+    {A B C : 𝒞} (R : BinRel 𝒞 A B) (f : B ⟶ C) : BinRel 𝒞 A C :=
+  let Q := HasRightAdjointImage.rightAdj (prodMap A B C f) (relSub R)
+  { src := Q.dom
+    colA := Q.arr ≫ fst
+    colB := Q.arr ≫ snd
+    isMonicPair := by
+      apply monicPair_of_monic_pair
+      rw [← pair_eta (hp := inferInstance) Q.arr]
+      exact Q.monic }
+
+/-- `relSub (quotRecipRel R f)` is the subobject `Q = (prodMap A B C f)##(relSub R)`:
+    its representing arrow is `pair (Q.arr ≫ fst) (Q.arr ≫ snd) = Q.arr` (`pair_eta`). -/
+theorem relSub_quotRecipRel_arr [PreLogos 𝒞] [HasRightAdjointImage 𝒞]
+    {A B C : 𝒞} (R : BinRel 𝒞 A B) (f : B ⟶ C) :
+    (relSub (quotRecipRel R f)).arr
+      = (HasRightAdjointImage.rightAdj (prodMap A B C f) (relSub R)).arr := by
+  dsimp [relSub, quotRecipRel]
+  rw [← pair_eta (hp := inferInstance)]
+
+/-- §1.784: in a logos (here: a pre-logos with the right-adjoint image `f##`), the relational
+    quotient `R/(graph f)°` exists, for any relation `R : A → B` and map `f : B → C`.
+    It is `(prodMap A B C f)##(relSub R)`, read back as a relation `A → C`. -/
+noncomputable def relQuotByMapRecip [PreLogos 𝒞] [HasRightAdjointImage 𝒞]
+    {A B C : 𝒞} (R : BinRel 𝒞 A B) (f : B ⟶ C) :
+    RelQuot R ((graph f)°) where
+  quot := quotRecipRel R f
+  le := by
+    -- relSub(quot ⊚ f°) ≤ InverseImage(prodMap)(relSub quot) ≤ relSub R.
+    apply relLe_of_subLe_pl
+    have hbridge := (relSub_compRecip_eq_invImage f (quotRecipRel R f)).1
+    -- relSub quot ≤ Q, so by adjunction InverseImage(prodMap)(relSub quot) ≤ relSub R.
+    have hquot_le_Q : (relSub (quotRecipRel R f)).le
+        (HasRightAdjointImage.rightAdj (prodMap A B C f) (relSub R)) :=
+      ⟨Cat.id _, by rw [Cat.id_comp]; exact (relSub_quotRecipRel_arr R f).symm⟩
+    have hinv_le : (InverseImage (prodMap A B C f) (relSub (quotRecipRel R f))).le (relSub R) :=
+      (HasRightAdjointImage.adjunction (prodMap A B C f) _ (relSub R)).2 hquot_le_Q
+    obtain ⟨a, ha⟩ := hbridge; obtain ⟨b, hb⟩ := hinv_le
+    exact ⟨a ≫ b, by rw [Cat.assoc, hb, ha]⟩
+  maximal := by
+    intro T hT
+    -- InverseImage(prodMap)(relSub T) ≤ relSub(T ⊚ f°) ≤ relSub R, so relSub T ≤ Q.
+    apply relLe_of_subLe_pl
+    have hbridge := (relSub_compRecip_eq_invImage f T).2
+    have hTfle : (relSub (T ⊚ (graph f)°)).le (relSub R) := subLe_of_relLe_pl hT
+    have hinv_le_R : (InverseImage (prodMap A B C f) (relSub T)).le (relSub R) := by
+      obtain ⟨a, ha⟩ := hbridge; obtain ⟨b, hb⟩ := hTfle
+      exact ⟨a ≫ b, by rw [Cat.assoc, hb, ha]⟩
+    have hT_le_Q : (relSub T).le (HasRightAdjointImage.rightAdj (prodMap A B C f) (relSub R)) :=
+      (HasRightAdjointImage.adjunction (prodMap A B C f) (relSub T) (relSub R)).1 hinv_le_R
+    -- Q ≤ relSub quot (reverse arr equality), so relSub T ≤ relSub quot.
+    have hQ_le_quot : (HasRightAdjointImage.rightAdj (prodMap A B C f) (relSub R)).le
+        (relSub (quotRecipRel R f)) :=
+      ⟨Cat.id _, by rw [Cat.id_comp]; exact relSub_quotRecipRel_arr R f⟩
+    obtain ⟨a, ha⟩ := hT_le_Q; obtain ⟨b, hb⟩ := hQ_le_quot
+    exact ⟨a ≫ b, by rw [Cat.assoc, hb, ha]⟩
+
+/-- §1.784: T ⊑ R/(graph f)° ↔ T ⊚ (graph f)° ⊑ R, for `R : A → B` and `f : B → C`. -/
+theorem relQuotByMapRecip_iff [PreLogos 𝒞] [HasRightAdjointImage 𝒞]
+    {A B C : 𝒞} (R : BinRel 𝒞 A B) (f : B ⟶ C) (T : BinRel 𝒞 A C) :
+    RelLe T (relQuotByMapRecip R f).quot ↔ RelLe (T ⊚ (graph f)°) R :=
+  relQuot_iff (relQuotByMapRecip R f) T
 
 /-! ## §1.783 (R/S₁)/S₂ = R/(S₂ ⊚ S₁) -/
 
