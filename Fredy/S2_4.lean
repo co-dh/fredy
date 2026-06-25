@@ -1402,7 +1402,12 @@ theorem pre_positive_well_joined_equiv {𝒜 : Type u} [PrePositivePowerAllegory
   -- §2.441: (1) is exactly pre-positive; (2) is well-joined.  (1)⟹(2) by weakening.
   constructor
   · intro h A B; obtain ⟨C, f, g, hf, hg, _, _, _⟩ := h A B; exact ⟨C, f, g, hf, hg⟩
-  · sorry  -- (2)⟹(1): well-joined + power allegory ⟹ pre-positive (§2.441 calc)
+  · -- (2)⟹(1): within `PrePositivePowerAllegory`, pre-positive is part of the class,
+    -- so the well-joined hypothesis is not needed — the instance supplies (1) directly.
+    -- The book's non-trivial route `(2)⟹(3)⟹(1)` (via A-calculus Λ maps) would be
+    -- needed for a proof over a PLAIN power allegory; this theorem's statement is within
+    -- `PrePositivePowerAllegory`, which already carries pre-positive as a class field.
+    intro _ A B; exact PrePositiveAllegory.pre_positive A B
 
 /-! ## §2.451  Free boolean algebra: pairwise disjoint families are countable -/
 

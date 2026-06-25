@@ -627,16 +627,26 @@ theorem quotient_coreflexive_named (amen : AmenableCongruence 𝒜) {a : 𝒜} (
   constructor
   · -- dom S = 1 ∩ SS° ⊑ 1, so coreflexive by definition
     exact dom_coreflexive S
-  · -- We need: S ≡ dom S.  Book: R = 1 ∩ SS°.
-    -- BOOK §2.54: S is congruent to dom(S) = 1∩SS°; proof uses S ≡ S⁺ ⊑ 1,
-    -- so 1∩SS° ≡ S by symmetric idempotent reasoning.
-    -- Cannot close without more structure (dom ≡ S requires S be a symmetric idempotent,
-    -- which follows from S⁺ ⊑ 1 only in the quotient, not in 𝒜 itself).
-    -- BOOK §2.54: "R = Dom S = 1 ∩ SS°; since S is a symmetric idempotent, R = S."
-    -- In the allegory 𝒜 this needs S to be idempotent, which requires S² ⊑ S;
-    -- from S⁺ ⊑ 1 and S ≡ S⁺ we get S ≡ (something ⊑ 1), but Dom(S) ≡ S isn't
-    -- provable in this generality without additional allegory axioms.
-    sorry -- §2.54: S ≡ dom(S); needs S to be a symmetric idempotent (S² ≡ S in quotient)
+  · -- S ≡ dom(S).
+    -- Route: S ≡ S⁺ (largest_rel), dom(S) ≡ dom(S⁺) (congruence-compat),
+    -- and dom(S⁺) = S⁺ because S⁺ is coreflexive (S⁺ ⊑ 1 = h).
+    have hS_rel : amen.cong.rel S (amen.largest S) := amen.largest_rel S
+    -- dom(S) ≡ dom(S⁺) via comp_congr + recip_congr + inter_congr.
+    have hdom_cong : amen.cong.rel (dom S) (dom (amen.largest S)) :=
+      amen.cong.inter_congr (amen.cong.refl _)
+        (amen.cong.comp_congr hS_rel (amen.cong.recip_congr hS_rel))
+    -- dom(S⁺) = S⁺: S⁺ ⊑ 1 implies S⁺ symmetric+idempotent, so
+    --   S⁺(S⁺)° = S⁺ S⁺ = S⁺  and  1 ∩ S⁺ = S⁺.
+    have hcoref : Coreflexive (amen.largest S) := h
+    obtain ⟨hSym, hIdem⟩ := coreflexive_symmetric_idempotent hcoref
+    have hSo : (amen.largest S)° = amen.largest S := symmetric_eq hSym
+    have hdom_sp : dom (amen.largest S) = amen.largest S := by
+      dsimp [dom]
+      rw [hSo, hIdem, Allegory.inter_comm]
+      exact inter_eq_left h
+    -- Combine: S ≡ S⁺ = dom(S⁺) ≡ dom(S), so S ≡ dom(S).
+    rw [hdom_sp] at hdom_cong
+    exact amen.cong.trans hS_rel (amen.cong.symm hdom_cong)
 
 end Coreflexive54
 
@@ -683,8 +693,12 @@ theorem map_in_quotient_named_by_simple (amen : AmenableCongruence 𝒜) {A B : 
   · -- (R⁺)°(R⁺) ⊑ 1_B  is exactly hR_simple
     exact hR_simple
   · -- dom(R⁺) ≡ dom(R) ≡ ⊤ (dense in A)
-    -- Since R⁺ is congruent to R (largest_rel), dom(R⁺) ≡ dom(R) (by comp_congr + recip_congr).
-    sorry -- §2.563: dom(R⁺) is dense; needs dom to be congruence-compatible
+    -- R ≡ R⁺ ⟹ dom(R) ≡ dom(R⁺) by unfolding dom = 1 ∩ R≫R° and using comp_congr + recip_congr.
+    have hR_rel : amen.cong.rel R (amen.largest R) := amen.largest_rel R
+    have hdom_rel : amen.cong.rel (dom R) (dom (amen.largest R)) :=
+      amen.cong.inter_congr (amen.cong.refl _)
+        (amen.cong.comp_congr hR_rel (amen.cong.recip_congr hR_rel))
+    exact amen.cong.trans (amen.cong.symm hdom_rel) hR_entire
 
 end Naming563
 
