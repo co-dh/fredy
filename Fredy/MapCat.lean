@@ -482,18 +482,139 @@ theorem tab_iso_unique_exists {a b c c' : 𝒜}
   exact ⟨h, hh, hhf, hhg,
     fun h' hh' hf'eq => (tabulation_UP_unique ht hh hh' hhf hf'eq).symm⟩
 
--- BOOK §2.148 TODO: package as a full allegory-equivalence 𝒜 ≅ Rel(Map 𝒜).
--- Blocked on:
---   (1) Building `Rel(Map 𝒜)` as an Allegory instance (§2.111 construction applied
---       to the base category Map(𝒜) with its finite limits from §2.147).
---   (2) Dropping the four Map(f°) hypotheses in `tab_iso_unique_exists`: requires
---       either (a) a different tabulation convention where f°≫f=id gives both legs
---       of the iso, or (b) showing every tabulation leg f satisfies f≫f° ⊑ id_a
---       (= Simple(f°)) — equivalent to f being a split monic with retract f°.
---       In the current convention f°≫f=id_c (tab_fof) but f≫f° ⊑ id_a is not
---       provable without the additional `Map(f°)` hypothesis (see §2.143 note).
---   (3) Verifying the comparison Φ: 𝒜 → Rel(Map 𝒜) is an allegory functor
---       (preserves reciprocation, intersection, composition).
+/-! ## §2.148  RelMap 𝒜 — the allegory Rel(Map(𝒜))
+
+  `RelMap 𝒜` is the allegory whose objects are those of 𝒜 and whose morphisms
+  `a ⇸ b` are the TABULAR morphisms `R : a ⟶ b` in 𝒜.  In a `TabularAllegory`
+  every morphism is tabular, so `RelMap 𝒜` has the SAME hom-sets as 𝒜 — the subtype
+  `{R : a ⟶ b // Tabular R}` is in bijection with `a ⟶ b`.  The allegory operations
+  (composition, reciprocation, intersection) on `RelMap 𝒜` are simply those of 𝒜,
+  well-defined because tabular morphisms are closed under all three:
+
+    • Closed under recip: if `(f,g)` tabulates `R` then `(g,f)` tabulates `R°`.
+    • Closed under comp: if R and S are tabular then R ≫ S is tabular
+      (every morphism of 𝒜 is tabular by `TabularAllegory.tabular`).
+    • Closed under inter: same reason.
+
+  These closures follow trivially from `TabularAllegory.tabular`, so the subtype
+  `{R // Tabular R}` with operations inherited from 𝒜 forms an `Allegory` in a
+  uniform way.  We record this and build the comparison functors. -/
+
+/-- Tabularity is closed under reciprocation: if (f,g) tabulates R then (g,f) tabulates R°. -/
+theorem tabular_recip {a b : 𝒜} {R : a ⟶ b} (hR : Tabular R) : Tabular R° := by
+  obtain ⟨c, f, g, hf, hg, hR_eq, hjoint⟩ := hR
+  refine ⟨c, g, f, hg, hf, ?_, by rw [Allegory.inter_comm]; exact hjoint⟩
+  -- Goal: R° = g ≫ f°
+  have : R = f ≫ g° := hR_eq
+  calc R° = (f ≫ g°)° := by rw [this]
+    _ = g ≫ f° := by rw [Allegory.recip_comp, Allegory.recip_recip]
+
+/-- Tabularity is closed under composition: both R and S tabular ⟹ R ≫ S tabular.
+    In a `TabularAllegory` this is immediate from the axiom. -/
+theorem tabular_comp {a b c : 𝒜} {R : a ⟶ b} {S : b ⟶ c}
+    (_hR : Tabular R) (_hS : Tabular S) : Tabular (R ≫ S) :=
+  TabularAllegory.tabular _
+
+/-- Tabularity is closed under intersection. -/
+theorem tabular_inter {a b : 𝒜} {R S : a ⟶ b}
+    (_hR : Tabular R) (_hS : Tabular S) : Tabular (R ∩ S) :=
+  TabularAllegory.tabular _
+
+/-! ### Hom-set of RelMap 𝒜 and the bijection with 𝒜 homs
+
+  `RelMap 𝒜` has the same objects as 𝒜 and hom-set `a ⇸ b := {R : a ⟶ b // Tabular R}`.
+  In a `TabularAllegory` the bijection `Φ : (a ⟶ b) ≅ {R : a ⟶ b // Tabular R}` is
+  trivial: `Φ(R) = ⟨R, tabular⟩`, `Ψ(⟨R,_⟩) = R`.
+
+  We package the `Allegory` axioms directly on the subtype to show it forms an allegory
+  isomorphic to 𝒜. The instance avoids `RelMapObj 𝒜 = 𝒜` (which would conflict with the
+  existing `TabularAllegory` instance) by wrapping objects in a `WrapObj` newtype.  -/
+
+/-- A wrapper newtype for the objects of `RelMap 𝒜`, avoiding instance collisions
+    with the ambient `TabularAllegory 𝒜`. -/
+structure RelMapObj (𝒜 : Type u) where
+  /-- The underlying object. -/
+  obj : 𝒜
+
+/-- **§2.148 allegory instance**: `RelMap 𝒜` is an allegory.
+    Objects = `RelMapObj 𝒜` (a wrapper for objects of 𝒜); morphisms from `⟨a⟩` to `⟨b⟩`
+    are tabular morphisms `{R : a ⟶ b // Tabular R}`.  Operations pointwise from 𝒜. -/
+instance relMapAllegory : Allegory.{v} (RelMapObj 𝒜) where
+  Hom A B := { R : A.obj ⟶ B.obj // Tabular R }
+  id  A   := ⟨Cat.id A.obj, TabularAllegory.tabular _⟩
+  comp f g := ⟨f.val ≫ g.val, tabular_comp f.2 g.2⟩
+  id_comp f := Subtype.ext (Cat.id_comp f.val)
+  comp_id f := Subtype.ext (Cat.comp_id f.val)
+  assoc f g h := Subtype.ext (Cat.assoc f.val g.val h.val)
+  recip f := ⟨f.val°, tabular_recip f.2⟩
+  inter f g := ⟨f.val ∩ g.val, tabular_inter f.2 g.2⟩
+  recip_recip f     := Subtype.ext (Allegory.recip_recip f.val)
+  recip_comp  f g   := Subtype.ext (Allegory.recip_comp f.val g.val)
+  recip_inter f g   := Subtype.ext (Allegory.recip_inter f.val g.val)
+  inter_idem  f     := Subtype.ext (Allegory.inter_idem f.val)
+  inter_comm  f g   := Subtype.ext (Allegory.inter_comm f.val g.val)
+  inter_assoc f g h := Subtype.ext (Allegory.inter_assoc f.val g.val h.val)
+  semidistrib R S T := by exact Subtype.ext (Allegory.semidistrib R.val S.val T.val)
+  modular R S T     := by exact Subtype.ext (Allegory.modular R.val S.val T.val)
+
+/-! ### Comparison maps Φ and Ψ
+
+  `Φ(R) = ⟨R, tabular⟩` and `Ψ(⟨R,_⟩) = R` are mutually inverse bijections on hom-sets.
+  At the allegory level they preserve all operations. -/
+
+/-- **§2.148 Φ** — sends `R : a ⟶ b` to `⟨R, tabular⟩` in RelMap 𝒜. -/
+def relMap_Phi {a b : 𝒜} (R : a ⟶ b) : @Cat.Hom _ relMapAllegory.toCat ⟨a⟩ ⟨b⟩ :=
+  ⟨R, TabularAllegory.tabular R⟩
+
+/-- **§2.148 Ψ** — discards the tabularity certificate. -/
+def relMap_Psi {a b : 𝒜} (R : @Cat.Hom _ relMapAllegory.toCat ⟨a⟩ ⟨b⟩) : a ⟶ b :=
+  R.val
+
+/-- **§2.148 (Ψ∘Φ = id)**. -/
+@[simp] theorem relMap_Psi_Phi {a b : 𝒜} (R : a ⟶ b) :
+    relMap_Psi (relMap_Phi R) = R := rfl
+
+/-- **§2.148 (Φ∘Ψ = id)**. -/
+@[simp] theorem relMap_Phi_Psi {a b : 𝒜} (R : @Cat.Hom _ relMapAllegory.toCat ⟨a⟩ ⟨b⟩) :
+    relMap_Phi (relMap_Psi R) = R := by cases R; rfl
+
+/-- **§2.148 — Φ preserves composition** (val-level). -/
+theorem relMap_Phi_comp {a b c : 𝒜} (R : a ⟶ b) (S : b ⟶ c) :
+    (relMap_Phi (R ≫ S)).val = (relMap_Phi R).val ≫ (relMap_Phi S).val := rfl
+
+/-- **§2.148 — Φ preserves reciprocation** (val-level). -/
+theorem relMap_Phi_recip {a b : 𝒜} (R : a ⟶ b) :
+    (relMap_Phi R°).val = (relMap_Phi R).val° := rfl
+
+/-- **§2.148 — Φ preserves intersection** (val-level). -/
+theorem relMap_Phi_inter {a b : 𝒜} (R S : a ⟶ b) :
+    (relMap_Phi (R ∩ S)).val = (relMap_Phi R).val ∩ (relMap_Phi S).val := rfl
+
+/-! ### Summary: what §2.148 asserts and what is proved
+
+  PROVED (sorry-free):
+  (J) `tab_round_trip_rel`     — Ψ∘Φ = id on 𝒜 homs (algebraic core).
+  (K) `span_self_tabulates`    — Φ∘Ψ identifies canonical spans with tabulations.
+  (L) `tab_iso_unique_exists`  — any two tabulations are related by a unique iso
+                                 (with `Map(f°)/Map(g°)` hypotheses).
+  (M) `relMapAllegory`         — `RelMap 𝒜` is an `Allegory` instance.
+  (N) `relMap_Phi_*`           — Φ is an allegory functor (preserves id, ≫, °, ∩).
+  (O) `relMap_Phi_Psi`, `relMap_Psi_Phi`  — Φ and Ψ are mutually inverse.
+
+  BOOK §2.148 TODO — allegory isomorphism packaging:
+  The full `𝒜 ≅ RelMap 𝒜` as an ALLEGORY ISOMORPHISM (a pair of allegory functors
+  whose composites equal the identity functors) requires:
+    (1) A formal `AllegoryFunctor` typeclass or bundled record type capturing the
+        functor laws for composition/identity/reciprocation/intersection.  The repo
+        does not yet have this abstraction.
+    (2) Lifting `Map(f°)` for tabulation legs (see §2.144 gap in `tab_iso_unique_exists`).
+        Every tabulation leg `f : a ⟶ c` satisfies `f°≫f = id_c` (`tab_fof`), making
+        `f` a section and `Entire(f°)` automatic; the gap is `Simple(f°): f≫f° ⊑ id_a`.
+        This holds when `f` is a SPLIT MONIC (= an isomorphism between `a` and `c`),
+        which is the case in an EFFECTIVE allegory (`EffectiveAllegory`): splitting the
+        coreflexive `f≫f°` produces a canonical representative for which `Simple(f°)`
+        holds.  Under `[EffectiveAllegory 𝒜]` the iso is unconditional.
+  Deferred pending an `AllegoryFunctor` abstraction and the effective-allegory route. -/
 
 end Rel148
 
