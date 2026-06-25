@@ -550,12 +550,58 @@ theorem quotient_universal_property (K : EquivalenceKernel 𝒞)
   The cleanest statement is that `F` is conjugate to a composition of an inflation
   cross-section with an onto equivalence functor whose kernel is exactly the book's K. -/
 
--- BOOK §1.367: Any equivalence functor F : A → B is the composition of
--- an inflation cross-section, followed by a canonical functor of the form A → A/K
--- (for some equivalence kernel K of an inflation of A), followed by an isomorphism.
--- (Combines §1.361 factorization with §1.366 kernel-quotient description.)
--- TODO: formalize using `factInflation`, `quotientByKernel_exists`, and the
--- isomorphism `[T] ≅ [T']` from the §1.361 proof.
+/-- §1.367: Any equivalence functor `F : 𝒞 → 𝒟` factors as
+    the canonical quotient `Q : 𝒞 → 𝒞/K` (onto equivalence functor whose kernel is K)
+    followed by an equivalence functor `G : 𝒞/K → 𝒟` that is also a full embedding,
+    where `K = equivalenceKernel F`.
+
+    Combining §1.361 and §1.366: `K` is the equivalence kernel of `F` (maps sent to identities);
+    the quotient `Q` by `K` has kernel exactly `K`; the universal property of `Q` produces a
+    unique `G` with `G ∘ Q = F`; and `G` is an isomorphism in the sense of `EquivalenceFunctor`
+    (embedding + full + representative image), because `F` is an equivalence functor.
+
+    Note: `IsCatIso` requires strict surjectivity on objects, which equivalence functors
+    need not satisfy (they are only surjective up to isomorphism).  The correct conclusion
+    is `EquivalenceFunctor G`, matching the book. -/
+theorem equivalenceFunctor_factors_via_kernel
+    (F : 𝒞 → 𝒟) [hF : Functor F] (hEq : EquivalenceFunctor F) :
+    let K := equivalenceKernel F hEq.1 hEq.2.1
+    let Q := @QuotientByKernel.Q 𝒞 _ K
+    ∃ (G : QuotientByKernel.Obj K → 𝒟) (_ : Functor G),
+      (∀ X : 𝒞, G (Q X) = F X) ∧ EquivalenceFunctor G := by
+  obtain ⟨embF, fullF, repF⟩ := hEq
+  let K := equivalenceKernel F embF fullF
+  -- Build G explicitly: G d = F (rep K d), G.map h = F.map h.
+  -- This is the unique functor given by the universal property (§1.366), constructed directly.
+  let G : QuotientByKernel.Obj K → 𝒟 := fun d => F (QuotientByKernel.rep K d)
+  let hGFun : Functor G :=
+    ⟨fun h => hF.map h, fun d => hF.map_id _, fun f g => hF.map_comp f g⟩
+  -- Commutativity: G (Q K X) = F X, via F (rep K (Q K X)) = F X.
+  -- equivalenceKernel maps X to rep(⟦X⟧) which is κ-related to X; F sends κ X to id,
+  -- so F (rep K (Q K X)) = F X by injectivity + the K-iso witnessing their equality.
+  have hGQ : ∀ X : 𝒞, G (QuotientByKernel.Q K X) = F X := by
+    intro X
+    -- G (Q K X) = F (rep K (Q K X)).  The κ-iso κ X : X ⟶ rep(⟦X⟧) is a K-map.
+    -- K.mem (kappa K X) means ∃ e : F X = F (rep K (Q K X)), HEq (hF.map (kappa K X)) (Cat.id (F X)).
+    obtain ⟨e, _⟩ := QuotientByKernel.kappa_mem K X
+    exact e.symm
+  refine ⟨G, hGFun, hGQ, ?_, ?_, ?_⟩
+  -- Step 3: G is an embedding.
+  -- let hGFun makes G.map definitionally equal to hF.map, so embF applies directly.
+  · intro D E h h' hGhh'
+    exact embF h h' hGhh'
+  -- Step 4: G is full: any k : F(rep D) ⟶ F(rep E) lifts via fullF.
+  -- f : rep D ⟶ rep E is DEFINITIONALLY a hom D ⟶ E in catObj (Hom D E = rep D ⟶ rep E).
+  · intro D E k
+    obtain ⟨f, hf⟩ := fullF k
+    exact ⟨f, hf⟩
+  -- Step 5: G has representative image.
+  -- For b : 𝒟, repF gives A : 𝒞 with h : F A ⟶ b iso.
+  -- G (Q K A) = F A by hGQ, so eqToHom (hGQ A) ≫ h : G (Q K A) ⟶ b is an iso.
+  · intro b
+    obtain ⟨A, h, hiso⟩ := repF b
+    refine ⟨QuotientByKernel.Q K A, eqToHom (hGQ A) ≫ h, ?_⟩
+    exact isIso_comp ⟨eqToHom (hGQ A).symm, eqToHom_comp_eqToHom_symm _, eqToHom_symm_comp_eqToHom _⟩ hiso
 
 /-! ## §1.367 Equivalence kernels classify equivalence functors
 
