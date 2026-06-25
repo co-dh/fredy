@@ -115,6 +115,16 @@ theorem curry_inj {A B X : 𝒞} {f₁ f₂ : prod A X ⟶ B}
     (h : curry f₁ = curry f₂) : f₁ = f₂ := by
   rw [← curry_eval_eq f₁, ← curry_eval_eq f₂, h]
 
+/-- `curry` commutes with precomposition in the parameter variable. -/
+theorem curry_precomp {A B X Y : 𝒞} (u : X ⟶ Y) (g : prod A Y ⟶ B) :
+    u ≫ curry g = curry (prodMap A X Y u ≫ g) := by
+  apply curry_unique_eq
+  rw [prodMap_comp, Cat.assoc, curry_eval_eq]
+
+/-- The identity on `B^A` is `curry eval`. -/
+theorem id_eq_curry_eval (A B : 𝒞) : Cat.id (B ^^ A) = curry (eval_exp A B) := by
+  apply curry_unique_eq; rw [prodMap_id, Cat.id_comp]
+
 /-! ## §1.853  Covariant exponential map f^A : B^A → C^A
 
   In an exponential category, B^A is a bifunctor: covariant in B and
@@ -361,16 +371,175 @@ theorem pi_implies_exponentials_854
                @Freyd.Functor.map 𝒟 _ 𝒟 _ (fun X => @prod 𝒟 _ hp A X) _ X (G A B) g := rfl
         rw [this, ← hh] at h; rw [← (adj_G A).φψ g, h] }
 
--- §1.854(b): If the category has exponentials, Δ : 𝒞 → A/B has a right adjoint Π : A/B → 𝒞.
--- BOOK §1.854: "If A is cartesian and exponential, Δ : A → A/B has a right adjoint Π : A/B → A
--- for every B. BECAUSE: for f : X→B, Π(f) is constructed as the equalizer of
---   expCovMap B f.hom : X^B → B^B  and  (term ≫ curry snd) : 1 → B^B
--- pulled back along the counit of the (prod B -) adjunction."
--- The one-direction map OverHom(ΔC, f) → Hom(C, f.dom^B) is `delta_adj_pi_overToExp`.
--- The inverse requires f.dom^B = Π(f) (not f.dom^B in general — see note above):
--- for general f : Over B, `piObj f = f.dom^^B` is NOT Freyd's Π(f); the correct
--- Π(f) is the equalizer of (expCovMap B f.hom, term ≫ curry snd), which needs HasEqualizers.
--- BOOK §1.854(b) therefore requires: HasExponentials + HasEqualizers → full Δ_B ⊣ Π_B.
+/-! ### §1.854(b)  The TRUE dependent product Π_B ⊣ Δ_B (needs HasEqualizers)
+
+  `piObj f = f.dom^^B` above is NOT Freyd's right adjoint of Δ for a general
+  `f : Over B`; it only sees the domain, forgetting the structure map `f.hom`.
+  The correct dependent product is
+
+      Π(f) := equalizer of  ( expCovMap B f.hom , curry (fst : B×(f.dom^B) → B) ) : f.dom^B ⇉ B^B.
+
+  Intuitively a "global section" `k : C → f.dom^B` lands in Π(f) exactly when its
+  transpose `B×C → f.dom` is a section of `f.hom` (lands in the fibre), i.e. the
+  square `eval ≫ f.hom = fst` holds — which is what equalizing the two maps says.
+  This requires `HasEqualizers`; with it `Δ_B ⊣ Π_B` is a genuine adjunction. -/
+
+section RealPi
+
+variable [HasEqualizers 𝒞]
+
+/-- §1.854(b): Freyd's dependent product `Π(f)`, the equalizer of `expCovMap B f.hom`
+    and `curry (fst : B×(f.dom^B) → B)`. -/
+def realPiObj {B : 𝒞} (f : Over B) : 𝒞 :=
+  eqObj (expCovMap B f.hom) (curry (fst : prod B (f.dom ^^ B) ⟶ B))
+
+/-- The equalizing condition for the forward transpose:
+    `curry(prodSwap ≫ h.f)` equalizes the two parallel maps because both legs
+    collapse to `curry (fst : B×C → B)` (one via `h.w : h.f ≫ f.hom = snd`). -/
+theorem realPi_phi_cond {B C : 𝒞} (f : Over B) (h : OverHom (deltaObj B C) f) :
+    curry (prodSwap B C ≫ h.f) ≫ expCovMap B f.hom
+      = curry (prodSwap B C ≫ h.f) ≫ curry (fst : prod B (f.dom ^^ B) ⟶ B) := by
+  have hL : curry (prodSwap B C ≫ h.f) ≫ expCovMap B f.hom = curry (fst : prod B C ⟶ B) := by
+    unfold expCovMap
+    rw [curry_precomp]; congr 1
+    rw [← Cat.assoc, curry_eval_eq, Cat.assoc, show h.f ≫ f.hom = snd from h.w, prodSwap_snd]
+  have hR : curry (prodSwap B C ≫ h.f) ≫ curry (fst : prod B (f.dom ^^ B) ⟶ B)
+      = curry (fst : prod B C ⟶ B) := by rw [curry_precomp, prodMap_fst]
+  rw [hL, hR]
+
+/-- Forward transpose `φ : OverHom (Δ_B C) f → (C ⟶ Π(f))`. -/
+def realPhi {B C : 𝒞} (f : Over B) (h : OverHom (deltaObj B C) f) : C ⟶ realPiObj f :=
+  eqLift _ _ (curry (prodSwap B C ≫ h.f)) (realPi_phi_cond f h)
+
+/-- The underlying arrow of the backward transpose is a section of `f.hom`
+    (so it is a legitimate `OverHom` into `f`).  Uses `eqMap_eq` to see that
+    `k ≫ eqMap` lands in the fibre. -/
+theorem realPsi_w {B C : 𝒞} (f : Over B) (k : C ⟶ realPiObj f) :
+    (prodSwap C B ≫ prodMap B C (f.dom ^^ B)
+        (k ≫ eqMap (expCovMap B f.hom) (curry (fst : prod B (f.dom ^^ B) ⟶ B)))
+        ≫ eval_exp B f.dom) ≫ f.hom = (deltaObj B C).hom := by
+  show (prodSwap C B ≫ _) ≫ f.hom = (snd : prod C B ⟶ B)
+  have key : eqMap (expCovMap B f.hom) (curry (fst : prod B (f.dom ^^ B) ⟶ B)) ≫ expCovMap B f.hom
+      = eqMap (expCovMap B f.hom) (curry (fst : prod B (f.dom ^^ B) ⟶ B))
+          ≫ curry (fst : prod B (f.dom ^^ B) ⟶ B) := eqMap_eq _ _
+  have hcomp : prodMap B C (f.dom ^^ B)
+      (k ≫ eqMap (expCovMap B f.hom) (curry (fst : prod B (f.dom ^^ B) ⟶ B)))
+      ≫ eval_exp B f.dom ≫ f.hom = (fst : prod B C ⟶ B) := by
+    apply curry_inj
+    rw [← curry_precomp]
+    show (k ≫ eqMap (expCovMap B f.hom) (curry (fst : prod B (f.dom ^^ B) ⟶ B)))
+        ≫ expCovMap B f.hom = curry (fst : prod B C ⟶ B)
+    rw [Cat.assoc, key, ← Cat.assoc, curry_precomp, prodMap_fst]
+  rw [Cat.assoc, Cat.assoc, hcomp, prodSwap_fst]
+
+/-- Backward transpose `ψ : (C ⟶ Π(f)) → OverHom (Δ_B C) f`. -/
+def realPsi {B C : 𝒞} (f : Over B) (k : C ⟶ realPiObj f) : OverHom (deltaObj B C) f :=
+  ⟨prodSwap C B ≫ prodMap B C (f.dom ^^ B)
+      (k ≫ eqMap (expCovMap B f.hom) (curry (fst : prod B (f.dom ^^ B) ⟶ B)))
+      ≫ eval_exp B f.dom, realPsi_w f k⟩
+
+theorem realPsi_realPhi {B C : 𝒞} (f : Over B) (h : OverHom (deltaObj B C) f) :
+    realPsi f (realPhi f h) = h := by
+  apply OverHom.ext
+  show prodSwap C B ≫ prodMap B C (f.dom ^^ B)
+      (realPhi f h ≫ eqMap (expCovMap B f.hom) (curry (fst : prod B (f.dom ^^ B) ⟶ B)))
+      ≫ eval_exp B f.dom = h.f
+  rw [realPhi, eqLift_fac, curry_eval_eq, ← Cat.assoc, prodSwap_prodSwap, Cat.id_comp]
+
+theorem realPhi_realPsi {B C : 𝒞} (f : Over B) (k : C ⟶ realPiObj f) :
+    realPhi f (realPsi f k) = k := by
+  show eqLift _ _ (curry (prodSwap B C ≫ (realPsi f k).f)) (realPi_phi_cond f (realPsi f k)) = k
+  symm
+  apply eqLift_uniq
+  show k ≫ eqMap (expCovMap B f.hom) (curry (fst : prod B (f.dom ^^ B) ⟶ B))
+      = curry (prodSwap B C ≫ (realPsi f k).f)
+  rw [show (realPsi f k).f = prodSwap C B ≫ prodMap B C (f.dom ^^ B)
+      (k ≫ eqMap (expCovMap B f.hom) (curry (fst : prod B (f.dom ^^ B) ⟶ B)))
+      ≫ eval_exp B f.dom from rfl,
+      ← Cat.assoc, prodSwap_prodSwap, Cat.id_comp]
+  exact curry_unique_eq rfl
+
+/-- The equalizing condition for `Π` on morphisms: `b : f → g` lifts to
+    `eqMap_f ≫ expCovMap B b.f`, which equalizes the `g`-maps because
+    `expCovMap` is functorial and `b.w : b.f ≫ g.hom = f.hom`. -/
+theorem realPiMap_cond {B : 𝒞} {f g : Over B} (b : OverHom f g) :
+    (eqMap (expCovMap B f.hom) (curry (fst : prod B (f.dom ^^ B) ⟶ B)) ≫ expCovMap B b.f)
+        ≫ expCovMap B g.hom
+      = (eqMap (expCovMap B f.hom) (curry (fst : prod B (f.dom ^^ B) ⟶ B)) ≫ expCovMap B b.f)
+          ≫ curry (fst : prod B (g.dom ^^ B) ⟶ B) := by
+  rw [Cat.assoc, ← expCovMap_comp, show b.f ≫ g.hom = f.hom from b.w, eqMap_eq, Cat.assoc]
+  congr 1
+  rw [curry_precomp, prodMap_fst]
+
+/-- `Π` on morphisms: `b : f → g` gives `Π(b) : Π(f) → Π(g)`. -/
+def realPiMap {B : 𝒞} {f g : Over B} (b : OverHom f g) : realPiObj f ⟶ realPiObj g :=
+  eqLift _ _ (eqMap (expCovMap B f.hom) (curry (fst : prod B (f.dom ^^ B) ⟶ B)) ≫ expCovMap B b.f)
+    (realPiMap_cond b)
+
+theorem realPiMap_id {B : 𝒞} (f : Over B) : realPiMap (Cat.id f) = Cat.id (realPiObj f) := by
+  symm; apply eqLift_uniq
+  show Cat.id (realPiObj f) ≫ eqMap _ _ = eqMap _ _ ≫ expCovMap B (Cat.id f.dom)
+  rw [Cat.id_comp, expCovMap_id, Cat.comp_id]
+
+theorem realPiMap_comp {B : 𝒞} {f g h : Over B} (b : OverHom f g) (c : OverHom g h) :
+    realPiMap (b ⊚ c) = realPiMap b ≫ realPiMap c := by
+  symm; apply eqLift_uniq
+  show (realPiMap b ≫ realPiMap c) ≫ eqMap _ _ = eqMap _ _ ≫ expCovMap B (b.f ≫ c.f)
+  simp only [realPiMap]
+  rw [Cat.assoc, eqLift_fac, ← Cat.assoc, eqLift_fac, Cat.assoc, ← expCovMap_comp]
+
+/-- The TRUE dependent-product functor `Π_B : Over B → 𝒞` (§1.854(b)). -/
+instance realPiFunctor (B : 𝒞) : Functor (fun f : Over B => realPiObj f) where
+  map b := realPiMap b
+  map_id f := realPiMap_id f
+  map_comp b c := realPiMap_comp b c
+
+theorem realPhi_nat_left {B C' C : 𝒞} (f : Over B) (a : C' ⟶ C) (h : OverHom (deltaObj B C) f) :
+    realPhi f (deltaMap B a ⊚ h) = a ≫ realPhi f h := by
+  symm
+  show a ≫ realPhi f h = eqLift _ _ (curry (prodSwap B C' ≫ (deltaMap B a ⊚ h).f)) _
+  apply eqLift_uniq
+  rw [Cat.assoc]
+  show a ≫ (realPhi f h ≫ eqMap _ _) = curry (prodSwap B C' ≫ (deltaMap B a ⊚ h).f)
+  rw [realPhi, eqLift_fac, curry_precomp]
+  congr 1
+  show prodMap B C' C a ≫ prodSwap B C ≫ h.f = prodSwap B C' ≫ (pair (fst ≫ a) snd ≫ h.f)
+  rw [← Cat.assoc, ← Cat.assoc]
+  congr 1
+  rw [pair_eta (prodMap B C' C a ≫ prodSwap B C),
+      pair_eta (prodSwap B C' ≫ pair (fst ≫ a) snd)]
+  congr 1
+  · rw [Cat.assoc, prodSwap_fst, prodMap_snd, Cat.assoc, fst_pair, ← Cat.assoc, prodSwap_fst]
+  · rw [Cat.assoc, prodSwap_snd, prodMap_fst, Cat.assoc, snd_pair, prodSwap_snd]
+
+theorem realPhi_nat_right {B C : 𝒞} {f g : Over B}
+    (h : OverHom (deltaObj B C) f) (b : OverHom f g) :
+    realPhi g (h ⊚ b) = realPhi f h ≫ realPiMap b := by
+  symm
+  show realPhi f h ≫ realPiMap b = eqLift _ _ (curry (prodSwap B C ≫ (h ⊚ b).f)) _
+  apply eqLift_uniq
+  rw [Cat.assoc]
+  show realPhi f h ≫ (realPiMap b ≫ eqMap _ _) = curry (prodSwap B C ≫ (h ⊚ b).f)
+  rw [realPiMap, eqLift_fac, ← Cat.assoc, realPhi, eqLift_fac]
+  show curry (prodSwap B C ≫ h.f) ≫ expCovMap B b.f = curry (prodSwap B C ≫ (h.f ≫ b.f))
+  unfold expCovMap
+  rw [curry_precomp, ← Cat.assoc, curry_eval_eq, Cat.assoc]
+
+/-- §1.854(b): When `𝒞` has exponentials and equalizers, the diagonal
+    `Δ_B : 𝒞 → Over B` has a right adjoint `Π_B : Over B → 𝒞`, the genuine
+    dependent-product functor `Π(f) = eqObj (expCovMap B f.hom) (curry fst)`.
+    Adjunction bijection `OverHom (Δ_B C) f ≅ (C ⟶ Π(f))`. -/
+def delta_adj_realPi (B : 𝒞) :
+    @Adjunction 𝒞 _ (Over B) _ (fun C => deltaObj B C) (fun f : Over B => realPiObj f)
+      (deltaFunctor B) (realPiFunctor B) :=
+  { φ  := fun {_C _f} h => realPhi _f h
+    ψ  := fun {_C _f} k => realPsi _f k
+    φψ := fun {_C _f} k => realPhi_realPsi _f k
+    ψφ := fun {_C _f} h => realPsi_realPhi _f h
+    φ_nat_left  := fun {_C' _C _f} a h => realPhi_nat_left _f a h
+    φ_nat_right := fun {_C _f _g} h b => realPhi_nat_right h b }
+
+end RealPi
 
 end SigmaDeltaAdj
 
@@ -652,15 +821,6 @@ theorem unit_precomp_bij
     rw [← φ_eq adj f₁', ← φ_eq adj f₂'] at hf
     rw [φ_inj adj hf]
 
-/-- `curry` commutes with precomposition in the parameter variable. -/
-theorem curry_precomp {A B X Y : 𝒞} (u : X ⟶ Y) (g : prod A Y ⟶ B) :
-    u ≫ curry g = curry (prodMap A X Y u ≫ g) := by
-  apply curry_unique_eq
-  rw [prodMap_comp, Cat.assoc, curry_eval_eq]
-
-/-- The identity on `B^A` is `curry eval`. -/
-theorem id_eq_curry_eval (A B : 𝒞) : Cat.id (B ^^ A) = curry (eval_exp A B) := by
-  apply curry_unique_eq; rw [prodMap_id, Cat.id_comp]
 
 /-- The unit `η_A : A ⟶ I(L A)` of a full-faithful reflection is "left-orthogonal
     to the exponential ideal" even after producting with a fixed object `W`:
