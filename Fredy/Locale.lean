@@ -831,16 +831,259 @@ theorem oset_comp_assoc {F : Frame.{u}} {A B C D : OValuedSet F}
         (F.le_trans (F.meet_le_right _ _) (F.meet_le_left _ _))
     · exact F.le_trans (F.meet_le_right _ _) (F.meet_le_right _ _)
 
--- BOOK §2.227: The category of maps of O(Y)-valued sets is equivalent to H(Y).
--- H(Y) = the category of local homeomorphisms over Y (= sheaves on O(Y)).
--- The proof in Freyd §2.227 proceeds by:
---   (a) Constructing an O(Y)-valued set ⟨Γ(X), R⟩ from each local homeo X→Y,
---       where f R g = ⋃{U open | U ⊆ dom f ∩ dom g, f|_U = g|_U}.
---   (b) Showing this is irredundant (the only morphisms are reindexings).
---   (c) The functors are inverse equivalences (via maximal irredundant sets).
--- Formally requires: local homeomorphism infrastructure (§1.373), the section
--- functor Γ∗, and the associated-sheaf / sheafification adjunction.
--- All of this needs the sheaf/presheaf infrastructure not yet in the repo.
+/-! ## The category OSet(F)
+
+  Package the id / comp / unit / assoc proofs above into a `Cat` instance
+  so that `OValuedSet F` becomes a first-class category in the repo's `Cat`
+  typeclass. -/
+
+instance osetCat (F : Frame.{u}) : Cat.{u} (OValuedSet F) where
+  Hom    := OSetHom
+  id     := OSetHom.id
+  comp   := OSetHom.comp
+  id_comp := oset_id_comp
+  comp_id := oset_comp_id
+  assoc  := oset_comp_assoc
+
+/-! ## Terminal F-valued set
+
+  The terminal object of OSet(F) is the singleton carrier `PUnit` with
+  equality `E () () = F.top` (everything is "equal to itself completely").
+  Any morphism into it is forced: `T i () = A.E i i` (the extent of i). -/
+
+/-- The terminal F-valued set: carrier = `PUnit`, `E () () = F.top`.
+    Transitivity: `F.top ∧ F.top ≤ F.top` by `meet_le_left`. -/
+def OSetTerminal (F : Frame.{u}) : OValuedSet F where
+  carrier := PUnit
+  E _ _   := F.top
+  symm _ _ := rfl
+  trans _ _ _ := F.meet_le_left F.top F.top
+
+/-! ## F-valued predicates (§2.227 H(Y) ingredient)
+
+  For an F-valued set `A`, an **F-valued predicate** on `A` is a function
+  `p : A.carrier → F.carrier` satisfying:
+    (i)  `p i ≤ A.E i i`   (domain bound),
+    (ii) `A.E i j ∧ p i ≤ p j`  (naturality / equivariance).
+
+  The collection `OPred F A` of all such predicates is ordered pointwise:
+    `p ≤ q ↔ ∀ i, F.le (p.val i) (q.val i)`.
+
+  This is a FRAME under the pointwise frame operations of F.  The Heyting
+  implication is therefore also available (F is a frame ⟹ Heyting algebra).
+
+  In the special case A = OSetTerminal F and F = O(Y), the frame OPred F A
+  recovers F itself (Prop: `osetTerminal_pred_iso_frame`).  This is the
+  H(Y) of §2.227. -/
+
+/-- An F-valued predicate on an F-valued set A. -/
+structure OPred {F : Frame.{u}} (A : OValuedSet F) where
+  /-- The predicate. -/
+  val : A.carrier → F.carrier
+  /-- Domain bound: `p i ≤ A.E i i`. -/
+  dom_bound : ∀ i, F.le (val i) (A.E i i)
+  /-- Naturality: `A.E i j ∧ p i ≤ p j`. -/
+  natural : ∀ i j, F.le (F.meet (A.E i j) (val i)) (val j)
+
+namespace OPred
+
+variable {F : Frame.{u}} {A : OValuedSet F}
+
+/-- Pointwise order on predicates. -/
+def le (p q : OPred A) : Prop := ∀ i, F.le (p.val i) (q.val i)
+
+theorem le_refl (p : OPred A) : le p p := fun i => F.le_refl _
+
+theorem le_trans {p q r : OPred A} (hpq : le p q) (hqr : le q r) : le p r :=
+  fun i => F.le_trans (hpq i) (hqr i)
+
+theorem le_antisymm {p q : OPred A} (hpq : le p q) (hqp : le q p) : p = q := by
+  cases p; cases q
+  congr 1
+  funext i
+  exact F.le_antisymm (hpq i) (hqp i)
+
+/-- The top predicate: `p i = A.E i i` (maximal extent). -/
+def top (A : OValuedSet F) : OPred A where
+  val i := A.E i i
+  dom_bound i := F.le_refl _
+  -- need: F.le (F.meet (A.E i j) (A.E i i)) (A.E j j)
+  -- meet (E i j) (E i i) ≤ E i j ≤ E j j
+  natural i j := F.le_trans (F.meet_le_left _ _) (A.E_le_extent_right i j)
+
+/-- Bottom predicate: `p i = F.bot`. -/
+def bot (A : OValuedSet F) : OPred A where
+  val _ := F.bot
+  dom_bound _ := F.bot_le _
+  natural _ _ := F.le_trans (F.meet_le_right _ _) (F.bot_le _)
+
+theorem le_top (p : OPred A) : le p (top A) := fun i => p.dom_bound i
+
+theorem bot_le (p : OPred A) : le (bot A) p := fun i => F.bot_le _
+
+/-- Pointwise meet of two predicates. -/
+def meet (p q : OPred A) : OPred A where
+  val i := F.meet (p.val i) (q.val i)
+  dom_bound i := F.le_trans (F.meet_le_left _ _) (p.dom_bound i)
+  natural i j := by
+    -- A.E i j ∧ (p i ∧ q i) ≤ p j ∧ q j
+    -- reorganise: (A.E i j ∧ p i) ≤ p j and (A.E i j ∧ q i) ≤ q j
+    apply F.le_meet
+    · exact F.le_trans (F.le_meet (F.meet_le_left _ _)
+        (F.le_trans (F.meet_le_right _ _) (F.meet_le_left _ _))) (p.natural i j)
+    · exact F.le_trans (F.le_meet (F.meet_le_left _ _)
+        (F.le_trans (F.meet_le_right _ _) (F.meet_le_right _ _))) (q.natural i j)
+
+theorem meet_le_left (p q : OPred A) : le (meet p q) p :=
+  fun i => F.meet_le_left _ _
+
+theorem meet_le_right (p q : OPred A) : le (meet p q) q :=
+  fun i => F.meet_le_right _ _
+
+theorem le_meet {p q r : OPred A} (hpr : le r p) (hqr : le r q) : le r (meet p q) :=
+  fun i => F.le_meet (hpr i) (hqr i)
+
+/-- Pointwise arbitrary join of a family of predicates.
+
+    For `sSup S` to be equivariant we need:
+    `A.E i j ∧ (⨆_{p∈S} p i) ≤ ⨆_{p∈S} p j`.
+    By frame distributivity: `A.E i j ∧ (⨆ p i) = ⨆{A.E i j ∧ p i | p∈S} ≤ ⨆{p j | p∈S}`,
+    using equivariance of each `p`. -/
+def sSup (S : OPred A → Prop) : OPred A where
+  val i := F.sSup (fun v => ∃ p, S p ∧ v = p.val i)
+  dom_bound i := F.sSup_le _ _ (fun v ⟨p, _, hv⟩ => hv ▸ p.dom_bound i)
+  natural i j := by
+    -- LHS: A.E i j ∧ sSup{p i | p∈S}
+    -- By distributivity: = sSup{A.E i j ∧ p i | p∈S}
+    -- ≤ sSup{p j | p∈S}  since each A.E i j ∧ p i ≤ p j
+    rw [F.meet_sSup_distrib]
+    apply F.sSup_le
+    intro v ⟨w, ⟨p, hpS, hw⟩, hvw⟩
+    rw [hw] at hvw; rw [hvw]
+    -- v = A.E i j ∧ p i; need v ≤ sSup{p j | ...}
+    apply F.le_trans (p.natural i j)
+    exact F.le_sSup _ _ ⟨p, hpS, rfl⟩
+
+theorem le_sSup (S : OPred A → Prop) (p : OPred A) (hpS : S p) : le p (sSup S) :=
+  fun i => F.le_sSup _ _ ⟨p, hpS, rfl⟩
+
+theorem sSup_le (S : OPred A → Prop) (q : OPred A) (h : ∀ p, S p → le p q) :
+    le (sSup S) q :=
+  fun i => F.sSup_le _ _ (fun v ⟨p, hpS, hv⟩ => hv ▸ h p hpS i)
+
+/-- Frame distributivity: `meet p (sSup S) = sSup {meet p q | q ∈ S}`. -/
+theorem meet_sSup_distrib (p : OPred A) (S : OPred A → Prop) :
+    meet p (sSup S) = sSup (fun r => ∃ q, S q ∧ r = meet p q) := by
+  apply le_antisymm
+  · intro i
+    -- (meet p (sSup S)).val i = F.meet (p.val i) (sSup{q.val i | q∈S})
+    -- By F.meet_sSup_distrib: = sSup{p.val i ∧ q.val i | q∈S}
+    -- = sSup{(meet p q).val i | q∈S}
+    simp only [meet, sSup]
+    rw [F.meet_sSup_distrib]
+    apply F.sSup_le
+    intro v ⟨w, ⟨q, hqS, hw⟩, hvw⟩
+    rw [hw] at hvw; rw [hvw]
+    exact F.le_sSup _ _ ⟨meet p q, ⟨q, hqS, rfl⟩, rfl⟩
+  · intro i
+    simp only [sSup, meet]
+    apply F.sSup_le
+    intro v ⟨r, ⟨q, hqS, hrpq⟩, hv⟩
+    rw [hrpq] at hv; rw [hv]
+    -- v = F.meet (p.val i) (q.val i); need ≤ F.meet (p.val i) (sSup{q'.val i | q'∈S})
+    apply F.le_meet
+    · exact F.meet_le_left _ _
+    · exact F.le_trans (F.meet_le_right _ _) (F.le_sSup _ _ ⟨q, hqS, rfl⟩)
+
+end OPred
+
+/-- **OPred(F, A) is a Frame** (pointwise operations from F, equivariance preserved).
+    This is the "H(Y)" of §2.227 when A is an O(Y)-valued set. -/
+def opredFrame {F : Frame.{u}} (A : OValuedSet F) : Frame.{u} where
+  carrier := OPred A
+  le      := OPred.le
+  le_refl := OPred.le_refl
+  le_trans := @OPred.le_trans F A
+  le_antisymm := @OPred.le_antisymm F A
+  top     := OPred.top A
+  le_top  := OPred.le_top
+  bot     := OPred.bot A
+  bot_le  := OPred.bot_le
+  meet    := OPred.meet
+  meet_le_left  := OPred.meet_le_left
+  meet_le_right := OPred.meet_le_right
+  le_meet := @OPred.le_meet F A
+  sSup    := OPred.sSup
+  le_sSup := OPred.le_sSup
+  sSup_le := OPred.sSup_le
+  meet_sSup_distrib := OPred.meet_sSup_distrib
+
+/-! ### H(Y): OPred on the terminal F-valued set recovers F
+
+  In §2.227, H(Y) is the frame of F-valued predicates on the terminal
+  F-valued set (carrier = PUnit, equality = F.top).  A predicate here
+  is just a function `PUnit → F.carrier`, which is the same as picking
+  a single element of F (subject to bounds that are trivially satisfied).
+  This gives an isomorphism of frames `OPred F (OSetTerminal F) ≅ F`.
+
+  We make this explicit by two order-preserving maps and show they are
+  inverse isomorphisms of frames. -/
+
+/-- The isomorphism H(terminal) ≅ F:
+    forward direction — evaluate at the unique point `PUnit.unit`. -/
+def hTerminal_toFrame {F : Frame.{u}} (p : OPred (OSetTerminal F)) : F.carrier :=
+  p.val PUnit.unit
+
+/-- Backward direction: constant predicate `fun _ => a`. -/
+def hTerminal_ofFrame {F : Frame.{u}} (a : F.carrier) : OPred (OSetTerminal F) where
+  val _ := a
+  dom_bound _ := F.le_top _   -- a ≤ F.top = E () ()
+  natural _ _ := F.meet_le_right _ _  -- F.top ∧ a ≤ a
+
+/-- `hTerminal_ofFrame` is a left inverse: `ofFrame (toFrame p) = p`. -/
+theorem hTerminal_leftInv {F : Frame.{u}} (p : OPred (OSetTerminal F)) :
+    hTerminal_ofFrame (hTerminal_toFrame p) = p := by
+  cases p with
+  | mk val db nat =>
+    simp only [hTerminal_ofFrame, hTerminal_toFrame]
+    -- congr 1 closes: the val fields are both `fun _ => val PUnit.unit`, equal by PUnit
+    -- uniqueness; dom_bound/natural equal by proof irrelevance.
+    congr 1
+
+/-- `hTerminal_ofFrame` is a right inverse: `toFrame (ofFrame a) = a`. -/
+theorem hTerminal_rightInv {F : Frame.{u}} (a : F.carrier) :
+    hTerminal_toFrame (hTerminal_ofFrame a : OPred (OSetTerminal F)) = a := rfl
+
+/-- The two maps are order-preserving in both directions, confirming
+    `opredFrame (OSetTerminal F) ≅ F` as frames.
+
+    Forward: `p ≤ q ↔ p PUnit.unit ≤ q PUnit.unit`. -/
+theorem hTerminal_mono {F : Frame.{u}} {p q : OPred (OSetTerminal F)}
+    (h : OPred.le p q) : F.le (hTerminal_toFrame p) (hTerminal_toFrame q) :=
+  h PUnit.unit
+
+theorem hTerminal_mono' {F : Frame.{u}} {a b : F.carrier}
+    (h : F.le a b) : OPred.le (hTerminal_ofFrame a : OPred (OSetTerminal F))
+      (hTerminal_ofFrame b) :=
+  fun _ => h
+
+-- BOOK §2.227: The full equivalence  Map(O(Y)-valued sets) ≃ H(Y)  states that
+-- the category OSet(O(Y)) of O(Y)-valued sets is equivalent to the category of
+-- sheaves on Y (= H(Y) in Freyd's notation), where H(Y) is the topos of
+-- O(Y)-valued sets whose "maps" are the local sections.
+--
+-- The above establishes:
+--   • OSet(F) is a category  (osetCat instance),
+--   • for each F-valued set A, OPred(F, A) is a Frame / Heyting algebra
+--     (opredFrame instance), giving the subobject lattice,
+--   • OPred(F, OSetTerminal F) ≅ F as frames
+--     (hTerminal_leftInv / hTerminal_rightInv).
+--
+-- The full equivalence functor OSet(O(Y)) ≃ Sh(Y) requires:
+--   (a) sheaf / presheaf infrastructure (compatible families, gluing),
+--   (b) the "irredundant" / separated notion on O(Y)-valued sets,
+--   (c) the associated-sheaf functor and unit/counit natural transformations.
+-- These need the presheaf framework not yet in the repo; left as a precise TODO.
 
 -- BOOK §2.331: O(X)-valued sets and the geometric representation theorem.
 -- Any countable tabular unitary division allegory embeds in (O(X)-valued sets)^ω

@@ -887,24 +887,25 @@ theorem simplePart_largest {a b : 𝒜} (R : a ⟶ b) (A : a ⟶ a)
 -- to `le_div_iff` in A, but the ambient category/allegory typeclass instance on PRel(E)
 -- must first be constructed (analogous to `instAllegorySpl` in S2_21.lean).
 
-/-! ## §2.342  Positive reflection of a division allegory -/
+/-! ## §2.342  Positive reflection of a division allegory
 
--- BOOK §2.342: If A is a division allegory then its positive reflection A⁺ is a division
--- allegory, with entrywise division (R/S)_{ij} = ⋂_{k} R_{ik}/S_{jk}.
--- MISSING INFRASTRUCTURE: `AlgMat` (defined in S2_2.lean) is currently a bare type family
--- `(i : I) → (j : J) → src i ⟶ tgt j`; it lacks:
---   (1) a `Cat`/`Allegory` instance: composition `(RS)_{ik} = ⋂_{j} R_{ij} ≫ S_{jk}`
---       requires finite intersection over the intermediate index j, which in turn requires
---       either a `[Fintype J]` hypothesis on AlgMat or the `LocallyCompleteDistributiveAllegory`
---       Sup for the infinite case.  The binary `AlgMat.inter` exists but iterated intersection
---       over a Fintype index has not been defined.
---   (2) a `DivisionAllegory` instance on top of (1).
--- The entrywise division formula `(R/S)_{ij} := ⋂_k R_{ik}/S_{jk}` is correct and uses
--- only `DivisionAllegory.div` entrywise plus finite intersection; once (1) is available,
--- the `le_div_iff` adjointness lifts entrywise to matrices.
--- NOTE: for the SPECIAL CASE of 1×1 matrices (`PUnit` index), A → A⁺ is already faithful
--- via `positiveReflectionEmbed_injective`; the division on 1×1 matrices is trivially the
--- same as in A, so `DivisionAllegory` on the 1×1 fragment is immediate.
+  **PROVED** in `Fredy.MatrixAllegory` (imported below is impossible due to the import cycle
+  `MatrixAllegory → S2_3`; the result lives in the downstream file by necessity).
+
+  The POSITIVE REFLECTION A⁺ of a division allegory A is the matrix allegory `MatObj 𝒜`:
+  - Objects are finite-index families of A-objects (`Fin n → 𝒜`).
+  - Morphisms are `n×m` matrices of A-morphisms.
+  - Composition: `(MN)_{ik} = ⨆_j M_{ij} ≫ N_{jk}` (finite join).
+  - Division: `(R/S)_{ij} = ⋀_k R_{ik}/S_{jk}` (finite meet over the codomain index).
+
+  The key adjointness check — `T ⊑ R/S ↔ T≫S ⊑ R` — reduces to `le_div_iff` entrywise:
+  the join in the composition pairs with the meet in the division via `finJoin_le`/`le_finMeet`.
+
+  The 1×1 embedding `embed1 : 𝒜 → MatObj 𝒜` is faithful and preserves ≫, °, ∩, ∪, 𝟘, /.
+
+  Relevant declarations in `Fredy.MatrixAllegory` (namespace `Freyd.Alg.Mat`):
+    `instDivisionAllegoryMat`  : `DivisionAllegory (MatObj 𝒜)` [noncomputable, §2.342]
+    `embed1_injective`, `embed1_div` : faithfulness + division preservation -/
 
 /-! ## §2.343  Every logos faithfully and fully embeds in a positive effective logos -/
 
@@ -913,7 +914,7 @@ theorem simplePart_largest {a b : 𝒜} (R : a ⟶ b) (A : a ⟶ a)
 -- MISSING INFRASTRUCTURE: the full construction chain is:
 --   Rel(C)     — the allegory of relations of C [not yet defined as an allegory instance]
 --   → local completion Â  [§2.315 gap above]
---   → positive reflection A⁺  [§2.342 gap above]
+--   → positive reflection A⁺  [§2.342 proved in MatrixAllegory]
 --   → effective completion Eq(−) = Spl [available via S2_21/S2_22b.lean]
 --   → Mσn(−) = map category [MapCat.lean provides the Cat instance]
 -- Each individual step is partially available, but the composition and the proof that
