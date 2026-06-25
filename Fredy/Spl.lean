@@ -227,20 +227,121 @@ instance instAllegorySplCor : Allegory (SplCorObj 𝒜) where
   semidistrib R S T   := SplHom.ext (Allegory.semidistrib _ _ _)
   modular R S T       := SplHom.ext (Allegory.modular _ _ _)
 
--- BOOK §2.165: If 𝒜 is pre-tabular then SplCorObj 𝒜 is pre-tabular.
--- TODO §2.165: Freyd's proof uses a SOURCE-APEX tabulation `P : t ⟶ a, Q : t ⟶ b` with
---   `Map P, Map Q, R.R ≤ P°≫Q, PP°∩QQ° = id_t`.  The SplCorObj apex is `(t, C)` where
---   `C = P≫ee≫P° ∩ Q≫fe≫Q°` (coreflexive: follows from `PP°∩QQ° = id_t ≤ PP°∩QQ°`).
---   Legs: `CfA : (t,C) ⟶ (a,ee)` with `CfA.R = C≫P≫ee`, shown to be Maps.
---   The repo's `PreTabularAllegory 𝒜` gives TARGET-APEX legs `f : a ⟶ t` (not source-apex
---   `P : t ⟶ a`), and lacks the joint-monicity `ff°∩gg° = id_t` needed for C coreflexive.
---   Blocked until the repo has either (a) a source-apex PreTabular class, or (b) a proof
---   that every target-apex pre-tabulation can be refined to a joint-monic source-apex span.
-
--- BOOK §2.166: SplCorObj 𝒜 is tabular iff it is pre-tabular and coreflexives split.
--- TODO §2.166: Relies on §2.165.  Coreflexive splitting is available via
---   `spl_coreflexive_splits` + `tabulation_of_split_apex`; only §2.165 is blocked.
-
 end SplCorObj
+
+/-! ## §2.165 / §2.166 for `SplCorObj 𝒜` under `[TabularAllegory 𝒜]`
+
+  With a full tabular allegory we can build tabulations directly, bypassing the source-apex
+  issue that blocks the pre-tabular version. -/
+
+private theorem splCor_tab_entire {𝒜 : Type u} [Allegory 𝒜] {a c : 𝒜} {ee : a ⟶ a} (f : a ⟶ c)
+    (hEntire : Cat.id a ⊑ f ≫ f°) (hIdem : ee ≫ ee = ee) : ee ⊑ (ee ≫ f) ≫ (f° ≫ ee) := by
+  have h1 : ee ⊑ ee ≫ (f ≫ f°) := by
+    have := comp_mono_left ee hEntire; rwa [Cat.comp_id] at this
+  have h2 : ee ≫ ee ⊑ (ee ≫ (f ≫ f°)) ≫ ee := comp_mono_right h1 ee
+  rw [hIdem, Cat.assoc ee (f ≫ f°) ee, Cat.assoc f f° ee, ← Cat.assoc ee f (f° ≫ ee)] at h2
+  exact h2
+
+private theorem splCor_tab_simple {𝒜 : Type u} [Allegory 𝒜] {a c : 𝒜} {ee : a ⟶ a} (f : a ⟶ c)
+    (hfl : f° ≫ ee ≫ f = Cat.id c) (hIdem : ee ≫ ee = ee) : (f° ≫ ee) ≫ (ee ≫ f) ⊑ Cat.id c := by
+  have : (f° ≫ ee) ≫ (ee ≫ f) = Cat.id c := by
+    rw [Cat.assoc f° ee (ee ≫ f), ← Cat.assoc ee ee f, hIdem, hfl]
+  rw [this]; exact le_refl _
+
+private theorem splCor_entire_to_le {𝒜 : Type u} [Allegory 𝒜] {a b : 𝒜} {f : a ⟶ b}
+    (h : Entire f) : Cat.id a ⊑ f ≫ f° := by
+  unfold Entire dom at h; exact h ▸ inter_lb_right _ _
+
+/-- **§2.166**: If `𝒜` is a tabular allegory then `SplCorObj 𝒜` is a tabular allegory.
+
+    Given `Ψ : E ⟶ F` in `SplCorObj 𝒜`, extract a tabulation `(f, g)` of `Ψ.R` in `𝒜`, then
+    use `Ψ.fixed_left/right` to prove `f°≫E.e≫f = id` and `g°≫F.e≫g = id`.  The apex is
+    `(embObj c, id_c)` (trivially coreflexive) with legs `E.e≫f : E ⟶ C` and `F.e≫g : F ⟶ C`. -/
+instance SplCorObj.instTabularAllegorySplCor {𝒜 : Type u} [TabularAllegory 𝒜] :
+    TabularAllegory (SplCorObj 𝒜) :=
+  { SplCorObj.instAllegorySplCor with
+    tabular := fun {E F} Ψ => by
+      obtain ⟨c, f, g, hMapf, hMapg, hRfg, htab⟩ := TabularAllegory.tabular Ψ.R
+      have hlinv : f° ≫ f = Cat.id c := le_antisymm hMapf.2 (htab ▸ inter_lb_left _ _)
+      have hrinv : g° ≫ g = Cat.id c := le_antisymm hMapg.2 (htab ▸ inter_lb_right _ _)
+      -- f°≫E.e≫f = id: from E.e≫(f≫g°) = f≫g° (fixed_left + hRfg), cancel g°≫g = id
+      have hfl : f° ≫ E.1.idem.e ≫ f = Cat.id c := by
+        have h1 : E.1.idem.e ≫ f ≫ g° = f ≫ g° := by
+          have hfixL : E.1.idem.e ≫ Ψ.R = Ψ.R := Ψ.fixed_left
+          rwa [hRfg] at hfixL
+        have h2 : (f° ≫ E.1.idem.e ≫ f) ≫ g° = g° := by
+          rw [Cat.assoc, Cat.assoc E.1.idem.e f g°, h1, ← Cat.assoc, hlinv, Cat.id_comp]
+        have h3 : (f° ≫ E.1.idem.e ≫ f) ≫ g° ≫ g = g° ≫ g := by rw [← Cat.assoc, h2]
+        rw [hrinv] at h3; simpa [Cat.comp_id] using h3
+      -- g°≫F.e≫g = id: symmetric, from (f≫g°)≫F.e = f≫g° (fixed_right + hRfg), cancel f°≫f = id
+      have hfr : g° ≫ F.1.idem.e ≫ g = Cat.id c := by
+        have h1 : f ≫ g° ≫ F.1.idem.e = f ≫ g° := by
+          have step : (f ≫ g°) ≫ F.1.idem.e = f ≫ g° := hRfg ▸ Ψ.fixed_right
+          rwa [Cat.assoc f g° F.1.idem.e] at step
+        have h2 : f ≫ g° ≫ F.1.idem.e ≫ g = f := by
+          rw [(Cat.assoc g° F.1.idem.e g).symm, ← Cat.assoc f (g° ≫ F.1.idem.e) g, h1,
+              Cat.assoc f g° g, hrinv, Cat.comp_id]
+        have h3 : (f° ≫ f) ≫ g° ≫ F.1.idem.e ≫ g = f° ≫ f := by rw [Cat.assoc, h2]
+        rw [hlinv, Cat.id_comp] at h3; exact h3
+      let C : SplCorObj 𝒜 := ⟨embObj c, le_refl _⟩
+      let legA : E ⟶ C := ⟨E.1.idem.e ≫ f,
+            by show E.1.idem.e ≫ (E.1.idem.e ≫ f) ≫ (embObj c).idem.e = E.1.idem.e ≫ f
+               simp only [embObj, idSymIdem]; rw [Cat.comp_id, ← Cat.assoc, E.1.idem.idem]⟩
+      let legB : F ⟶ C := ⟨F.1.idem.e ≫ g,
+            by show F.1.idem.e ≫ (F.1.idem.e ≫ g) ≫ (embObj c).idem.e = F.1.idem.e ≫ g
+               simp only [embObj, idSymIdem]; rw [Cat.comp_id, ← Cat.assoc, F.1.idem.idem]⟩
+      refine ⟨C, legA, legB, ⟨?_, ?_⟩, ⟨?_, ?_⟩, ?_, ?_⟩
+      -- Map legA: Entire (E.e ∩ (E.e≫f)≫(f°≫E.e) = E.e by splCor_tab_entire)
+      · unfold Entire dom; apply SplHom.ext
+        show E.1.idem.e ∩ (E.1.idem.e ≫ f) ≫ (E.1.idem.e ≫ f)° = E.1.idem.e
+        rw [Allegory.recip_comp, E.1.idem.sym]
+        exact le_antisymm (inter_lb_left _ _)
+              (le_inter (le_refl _)
+               (splCor_tab_entire f (splCor_entire_to_le hMapf.1) E.1.idem.idem))
+      -- Map legA: Simple ((f°≫E.e)≫(E.e≫f) ⊑ id_c by splCor_tab_simple)
+      · unfold Simple; apply SplHom.ext
+        show (E.1.idem.e ≫ f)° ≫ (E.1.idem.e ≫ f) ⊑ (embObj c).idem.e
+        simp only [embObj, idSymIdem]
+        rw [Allegory.recip_comp, E.1.idem.sym]
+        exact splCor_tab_simple f hfl E.1.idem.idem
+      -- Map legB: Entire (symmetric to legA)
+      · unfold Entire dom; apply SplHom.ext
+        show F.1.idem.e ∩ (F.1.idem.e ≫ g) ≫ (F.1.idem.e ≫ g)° = F.1.idem.e
+        rw [Allegory.recip_comp, F.1.idem.sym]
+        exact le_antisymm (inter_lb_left _ _)
+              (le_inter (le_refl _)
+               (splCor_tab_entire g (splCor_entire_to_le hMapg.1) F.1.idem.idem))
+      -- Map legB: Simple (symmetric to legA)
+      · unfold Simple; apply SplHom.ext
+        show (F.1.idem.e ≫ g)° ≫ (F.1.idem.e ≫ g) ⊑ (embObj c).idem.e
+        simp only [embObj, idSymIdem]
+        rw [Allegory.recip_comp, F.1.idem.sym]
+        exact splCor_tab_simple g hfr F.1.idem.idem
+      -- Ψ = legA ≫ legB°: Ψ.R = E.e≫f≫g°≫F.e = E.e≫Ψ.R≫F.e (by fixed, via hRfg)
+      · apply SplHom.ext
+        show Ψ.R = (E.1.idem.e ≫ f) ≫ (F.1.idem.e ≫ g)°
+        rw [Allegory.recip_comp, F.1.idem.sym, Cat.assoc E.1.idem.e f (g° ≫ F.1.idem.e),
+            ← Ψ.fixed, hRfg, Cat.assoc f g° F.1.idem.e]
+      -- Joint: (f°≫E.e)≫(E.e≫f) ∩ (g°≫F.e)≫(F.e≫g) = id by hfl, hfr, inter_idem
+      · apply SplHom.ext
+        show (E.1.idem.e ≫ f)° ≫ (E.1.idem.e ≫ f) ∩ (F.1.idem.e ≫ g)° ≫ (F.1.idem.e ≫ g) =
+             (embObj c).idem.e
+        simp only [embObj, idSymIdem]
+        rw [Allegory.recip_comp, E.1.idem.sym, Allegory.recip_comp, F.1.idem.sym]
+        rw [Cat.assoc f° E.1.idem.e _, ← Cat.assoc E.1.idem.e E.1.idem.e f,
+            E.1.idem.idem, hfl]
+        rw [Cat.assoc g° F.1.idem.e _, ← Cat.assoc F.1.idem.e F.1.idem.e g,
+            F.1.idem.idem, hfr]
+        exact Allegory.inter_idem _
+  }
+
+/-- **§2.165**: If `𝒜` is a tabular allegory then `SplCorObj 𝒜` is pre-tabular.
+    (Every morphism is already tabular, witnessed by `instTabularAllegorySplCor`.) -/
+instance SplCorObj.instPreTabularAllegorySplCor {𝒜 : Type u} [TabularAllegory 𝒜] :
+    PreTabularAllegory (SplCorObj 𝒜) :=
+  { SplCorObj.instAllegorySplCor with
+    pre_tabular := fun {E F} R =>
+      ⟨R, le_refl _,
+        @TabularAllegory.tabular (SplCorObj 𝒜) SplCorObj.instTabularAllegorySplCor E F R⟩ }
 
 end Freyd.Alg
