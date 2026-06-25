@@ -24,6 +24,7 @@ import Fredy.S1_57
 import Fredy.S1_60
 import Fredy.S1_64
 import Fredy.S1_70
+import Fredy.S1_85
 
 
 open Freyd
@@ -726,10 +727,114 @@ noncomputable def heytingPoset_is_logos (P : HeytingPoset) : Logos P.carrier :=
       ⟨⟨P.le_refl P.bot⟩, ⟨⟨P.le_refl P.bot⟩, hp_thin P _ _, hp_thin P _ _⟩⟩
   }
 
--- BOOK §1.722 (⟸): thin logos ⟹ Heyting algebra.
--- A thin logos 𝒞 gives a Heyting algebra on its objects:
--- le a b := Nonempty (a ⟶ b); meet = pullback.pt; imp a b := (rightAdj (trm a) B').dom
--- where B' = entire subobject of b.  TODO: formalise this direction.
+/-! ## §1.722 (⟸): thin logos ⟹ Heyting algebra
+
+  **§1.722 (⟸)**:  A thin category that is a Logos carries a Heyting-algebra structure on
+  its object poset: `le a b := Nonempty (a ⟶ b)`, meet = binary product, top = terminator,
+  join = domain of the union of the corresponding subterminators, bot = domain of
+  `Logos.bottom one`, and implication `a → b` = domain of `rightAdj (term a) (f#b)`
+  where `f = term a : a → 1` (Freyd §1.721: `(A₁ → A₂) = f##(A₁ ∩ A₂)` with `f` the
+  inclusion of `A₁`).
+
+  The key adjunction `c ≤ (a → b) ↔ a ∧ c ≤ b` is the logos adjunction
+  `f#(cSub) ≤ f#(bSub) ↔ cSub ≤ rightAdj f (f#(bSub))` under the canonical
+  identification of objects with subterminators of `one`.  -/
+
+/-- §1.722 (⟸): a thin logos (universe 0) induces a Heyting-poset structure on its
+    object type.
+
+    Extraction dictionary:
+    - `le a b`   := `Nonempty (a ⟶ b)` (the hom is a Prop in a thin cat)
+    - `top`      := `one` (terminator)
+    - `meet a b` := `prod a b` (binary product = meet in a thin cat)
+    - `join a b` := domain of `union (thinSub a) (thinSub b)` in `Sub(one)`
+    - `bot`      := domain of `Logos.bottom one`
+    - `imp a b`  := domain of `rightAdj (term a) (f#(thinSub b))`
+                    where `f = term a : a → one`  (§1.721 construction)
+
+    The Heyting adjunction `c ≤ (a → b) ↔ a ∧ c ≤ b` follows from the logos
+    adjunction `f# ⊣ f##` via the pullback = product identification in a thin cat.
+
+    Axioms: `[Classical.choice]` only (no sorry).  -/
+noncomputable def thinLogos_is_heytingPoset
+    {𝒞 : Type} [Cat.{0} 𝒞] [ThinCategory 𝒞] [Logos 𝒞] : HeytingPoset :=
+  -- Every object viewed as a subterminator of `one`
+  let thinSub : 𝒞 → Subobject 𝒞 one := fun a =>
+    ⟨a, term a, fun p q _ => ThinCategory.thin p q⟩
+  { carrier       := 𝒞
+    le            := fun a b => Nonempty (a ⟶ b)
+    le_refl       := fun a   => ⟨Cat.id a⟩
+    le_trans      := fun ⟨f⟩ ⟨g⟩ => ⟨f ≫ g⟩
+    top           := one
+    top_le        := fun a   => ⟨term a⟩
+    meet          := fun a b => prod a b
+    meet_le_left  := fun _a _b => ⟨fst⟩
+    meet_le_right := fun _a _b => ⟨snd⟩
+    le_meet       := fun ⟨f⟩ ⟨g⟩ => ⟨pair f g⟩
+    join          := fun a b => (HasSubobjectUnions.union (thinSub a) (thinSub b)).dom
+    le_join_left  := fun a b =>
+      ⟨(HasSubobjectUnions.union_left (thinSub a) (thinSub b)).choose⟩
+    le_join_right := fun a b =>
+      ⟨(HasSubobjectUnions.union_right (thinSub a) (thinSub b)).choose⟩
+    join_le       := fun {_a _b _c} ⟨ha⟩ ⟨hb⟩ =>
+      have h := HasSubobjectUnions.union_min (thinSub _) (thinSub _) (thinSub _)
+        ⟨ha, ThinCategory.thin _ _⟩ ⟨hb, ThinCategory.thin _ _⟩
+      ⟨h.choose⟩
+    imp           := fun a b =>
+      (Logos.rightAdj (term a) (InverseImage (term a) (thinSub b))).dom
+    imp_adj := fun a b c => by
+      -- Abbreviate R := f##(f#(thinSub b))  (lives in Sub(one))
+      let R := Logos.rightAdj (term a) (InverseImage (term a) (thinSub b))
+      constructor
+      · -- (⟹) Nonempty (c ⟶ R.dom) → Nonempty (prod a c ⟶ b)
+        intro ⟨f⟩
+        -- f promotes to thinSub c ≤ R; logos adjunction gives InvIm(c) ≤ InvIm(b)
+        have hcR : (thinSub c).le R := ⟨f, ThinCategory.thin _ _⟩
+        obtain ⟨h, _⟩ := (Logos.adjunction (term a) (thinSub c)
+          (InverseImage (term a) (thinSub b))).mpr hcR
+        -- h : pb_c.pt → pb_b.pt; bridge via product: prod a c → pb_c.pt → pb_b.pt → b
+        let pb_c := HasPullbacks.has (term a) (thinSub c).arr
+        let pb_b := HasPullbacks.has (term a) (thinSub b).arr
+        exact ⟨pb_c.lift ⟨prod a c, fst, snd, ThinCategory.thin _ _⟩ ≫ h ≫ pb_b.cone.π₂⟩
+      · -- (⟸) Nonempty (prod a c ⟶ b) → Nonempty (c ⟶ R.dom)
+        intro ⟨f⟩
+        -- pb_c.pt maps to prod a c via pair(π₁,π₂); compose with f to reach b
+        let pb_c := HasPullbacks.has (term a) (thinSub c).arr
+        let pb_b := HasPullbacks.has (term a) (thinSub b).arr
+        -- cone: (pb_c.pt, pb_c.π₁, pair(pb_c.π₁,pb_c.π₂) ≫ f) is a cone for f and term b
+        have hle : (InverseImage (term a) (thinSub c)).le (InverseImage (term a) (thinSub b)) :=
+          ⟨pb_b.lift ⟨pb_c.cone.pt, pb_c.cone.π₁,
+              pair pb_c.cone.π₁ pb_c.cone.π₂ ≫ f, ThinCategory.thin _ _⟩,
+           ThinCategory.thin _ _⟩
+        exact ⟨((Logos.adjunction (term a) (thinSub c)
+          (InverseImage (term a) (thinSub b))).mp hle).choose⟩
+    bot           := (Logos.bottom (one : 𝒞)).dom
+    bot_le        := fun a =>
+      ⟨(Logos.bottom_min (thinSub a)).choose⟩ }
+
+/-! ### §1.722 combined: the iff
+
+  **§1.722**: A poset (thin category), when viewed as a category, is a logos iff it is a
+  Heyting algebra.
+
+  Both directions are now proved:
+  - `(⟹)` = `heytingPoset_is_logos`: any `HeytingPoset` gives a `Logos` on its carrier.
+  - `(⟸)` = `thinLogos_is_heytingPoset`: any thin logos (at universe 0) produces a
+    `HeytingPoset` recovering the original poset ordering, product = meet, terminator = top,
+    subobject-union = join, and `f##`-adjunction = Heyting implication.
+
+  These two lemmas state the iff as a round-trip: -/
+
+-- §1.722 forward: every HeytingPoset gives a Logos on its carrier.
+-- This is `heytingPoset_is_logos`; restated here for symmetry.
+noncomputable def section_1722_fwd (P : HeytingPoset) : Logos P.carrier :=
+  heytingPoset_is_logos P
+
+-- §1.722 reverse: every thin logos (universe 0) gives a HeytingPoset.
+-- This is `thinLogos_is_heytingPoset`; restated here for symmetry.
+noncomputable def section_1722_rev
+    {𝒞 : Type} [Cat.{0} 𝒞] [ThinCategory 𝒞] [Logos 𝒞] : HeytingPoset :=
+  @thinLogos_is_heytingPoset 𝒞 _ _ _
 
 /-! ## §1.733 Positive pre-logos focal iff connected projective terminator
 
