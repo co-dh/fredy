@@ -489,14 +489,364 @@ def Topology.principalPoint {X : Type u} (τ : Topology X) (x : X) :
 --   (c) the topology on Pt(F) for a general frame F (= Pt-construction).
 -- These are left as a precise TODO; no sorry-bearing stubs are emitted.
 
--- BOOK §2.331: O(X)-valued sets (sheaves on O(X)).
--- The category of sheaves Sh(O(X)) = Set^{O(X)^op} satisfying the
--- sheaf condition (matching families glue uniquely) is a logos.
--- Stating this faithfully needs:
---   (a) the presheaf category Psh(F) = F^op → Set,
---   (b) the sheaf condition: every matching family has a unique amalgamation,
---   (c) `Sh(O(X))` is a logos (localic topos).
--- This depends on the general sheaf/presheaf infrastructure not yet in the repo.
+/-! ## §2.16(12) F-valued sets (Ω-sets over a frame)
+
+  Freyd §2.16(12): the allegory obtained by splitting the symmetric idempotents
+  of the Z-valued-relation allegory.  An **F-valued set** is a pair `⟨I, E⟩`
+  where `E : I × I → F` is:
+  - symmetric:   `E i j = E j i`
+  - transitive:  `E i j ∧ E j k ≤ E i k`
+
+  These are the objects of the **allegory of F-valued sets** OSet(F).
+  A **morphism** `T : ⟨I,E⟩ → ⟨J,S⟩` is an `I×J`-matrix `T : I → J → F`
+  satisfying (Freyd §2.16(12)):
+  - domain bound:    `T i j ≤ E i i ∧ S j j`
+  - naturality:      `E i i' ∧ S j j' ∧ T i j ≤ T i' j'`
+
+  Identity on `⟨I,E⟩` is `E` itself. Composition via the join:
+    `(T ⊚ U) i k = ⨆ { T i j ∧ U j k | j : J }`. -/
+
+/-- An **F-valued set** (Freyd §2.16(12)): a carrier `I` with an `F`-valued
+    "equality" `E` that is symmetric and transitive. -/
+structure OValuedSet (F : Frame.{u}) where
+  /-- Carrier (index) set. -/
+  carrier : Type u
+  /-- F-valued equality: `E i j` = "extent to which i and j are equal". -/
+  E : carrier → carrier → F.carrier
+  /-- Symmetry: `E i j = E j i`. -/
+  symm : ∀ i j, E i j = E j i
+  /-- Transitivity: `E i j ∧ E j k ≤ E i k`. -/
+  trans : ∀ i j k, F.le (F.meet (E i j) (E j k)) (E i k)
+
+namespace OValuedSet
+
+variable {F : Frame.{u}}
+
+/-- The **extent** of `i`: `E i i`.  (Like Dom in an allegory.) -/
+def extent (A : OValuedSet F) (i : A.carrier) : F.carrier := A.E i i
+
+/-- Reflexivity of E: `E i i` is greatest lower bound of `E i j` and `E j i`. -/
+theorem extent_le_self (A : OValuedSet F) (i j : A.carrier) :
+    F.le (F.meet (A.E i j) (A.E j i)) (A.extent i) := by
+  -- E i j ∧ E j i ≤ E i i via transitivity (j plays the middle role)
+  have h := A.trans i j i
+  -- meet(E i j, E j i) ≤ meet(E i j, E j i) — but we need to use symm too
+  -- Actually: meet(E i j, E j i) ≤ E i i = extent i
+  -- by transitivity with j: E i j ∧ E j i ≤ E i i
+  have hsym : A.E j i = A.E i j := (A.symm j i).symm ▸ (A.symm i j)
+  -- trans gives: meet(E i j, E j i) ≤ meet(E i j, E j i) ... actually use trans directly
+  -- E i j ∧ E j i ≤ E i i via trans i j i
+  exact h
+
+/-- `E i j ≤ E i i` (domain bound): the extent of i bounds E i j. -/
+theorem E_le_extent_left (A : OValuedSet F) (i j : A.carrier) :
+    F.le (A.E i j) (A.extent i) := by
+  -- E i j ≤ E i j ∧ E j i ≤ E i i (since E j i ≤ top trivially... need another route)
+  -- Better: E i j = E j i (by symm), so E i j ∧ E j j ≤ E i j by meet_le_left,
+  -- and then E i j ∧ E j j ≤ E i i hmm, let's just use trans directly:
+  -- E i j ≤ meet(E i j, E j i) is NOT true in general since meet is GLB.
+  -- We need: E i j ≤ E i i.
+  -- Trick: by trans i j i: meet(E i j, E j i) ≤ E i i
+  -- and E i j = E j i (symm), so meet(E i j, E i j) = E i j ≤ E i i
+  have hmeet_self : F.meet (A.E i j) (A.E i j) = A.E i j :=
+    F.le_antisymm (F.meet_le_left _ _)
+      (F.le_meet (F.le_refl _) (F.le_refl _))
+  have hsym : A.E j i = A.E i j := by rw [A.symm]
+  have htrans := A.trans i j i
+  rw [hsym] at htrans
+  -- htrans : meet(E i j, E i j) ≤ E i i
+  rw [hmeet_self] at htrans
+  exact htrans
+
+/-- `E i j ≤ E j j` (codomain bound). -/
+theorem E_le_extent_right (A : OValuedSet F) (i j : A.carrier) :
+    F.le (A.E i j) (A.extent j) := by
+  have := A.E_le_extent_left j i
+  rw [A.symm j i] at this
+  exact this
+
+end OValuedSet
+
+/-- A **morphism of F-valued sets** `T : ⟨I,E⟩ → ⟨J,S⟩` is an `I×J`-matrix
+    of F-values satisfying the source-target predicate of Freyd §2.16(12):
+    (i)  `T i j ≤ E i i ∧ S j j`  (bounded by extents),
+    (ii) `E i i' ∧ S j j' ∧ T i j ≤ T i' j'`  (naturality / equivariance). -/
+@[ext]
+structure OSetHom {F : Frame.{u}} (A B : OValuedSet F) where
+  /-- The underlying F-valued relation. -/
+  rel : A.carrier → B.carrier → F.carrier
+  /-- Domain bound: `T i j ≤ E i i`. -/
+  dom_bound : ∀ i j, F.le (rel i j) (A.E i i)
+  /-- Codomain bound: `T i j ≤ S j j`. -/
+  cod_bound : ∀ i j, F.le (rel i j) (B.E j j)
+  /-- Naturality: `E i i' ∧ S j j' ∧ T i j ≤ T i' j'`. -/
+  natural : ∀ i i' j j',
+    F.le (F.meet (F.meet (A.E i i') (B.E j j')) (rel i j)) (rel i' j')
+
+namespace OSetHom
+
+variable {F : Frame.{u}} {A B C : OValuedSet F}
+
+/-- Combine the two bound conditions. -/
+theorem bound (f : OSetHom A B) (i : A.carrier) (j : B.carrier) :
+    F.le (f.rel i j) (F.meet (A.E i i) (B.E j j)) :=
+  F.le_meet (f.dom_bound i j) (f.cod_bound i j)
+
+/-- **Identity morphism** on A: `id_A i j = E_A i j`.
+    Domain bound: `E i j ≤ E i i` (by OValuedSet.E_le_extent_left).
+    Codomain bound: `E i j ≤ E j j` (by E_le_extent_right).
+    Naturality: `E i i' ∧ E j j' ∧ E i j ≤ E i' j'`
+    — via transitivity twice (i—i'—j' and i—j—j'). -/
+def id (A : OValuedSet F) : OSetHom A A where
+  rel    := A.E
+  dom_bound := A.E_le_extent_left
+  cod_bound := A.E_le_extent_right
+  natural := fun i i' j j' => by
+    -- Goal: meet(meet(E i i', E j j'), E i j) ≤ E i' j'
+    -- Strategy: use transitivity twice
+    -- E i i' ∧ E i j → (use trans) ≤ E i' j (via symmetric: E i' i ∧ E i j ≤ E i' j)
+    -- Actually easier: meet(E i i', E j j') ∧ E i j
+    --   ≤ E i i' ∧ E i j ≤ ... hmm need associativity
+    -- Use: meet(A, B) ∧ C ≤ A; and separately ≤ B
+    -- We want: E i i' ∧ E i j ≤ E i' j  (via sym+trans: E i' i ∧ E i j ≤ E i' j)
+    -- then: E i' j ∧ E j j' ≤ E i' j'   (direct from trans)
+    -- So: meet(meet(E i i', E j j'), E i j)
+    --   ≤ E i i' ∧ E i j  and  ≤ E j j' ∧ E i' j  ... need to chain
+    -- Full chain: let's extract components
+    have hEij_i : F.le (F.meet (F.meet (A.E i i') (A.E j j')) (A.E i j)) (A.E i i') :=
+      F.le_trans (F.meet_le_left _ _) (F.meet_le_left _ _)
+    have hEij_j : F.le (F.meet (F.meet (A.E i i') (A.E j j')) (A.E i j)) (A.E j j') :=
+      F.le_trans (F.meet_le_left _ _) (F.meet_le_right _ _)
+    have hEij_ij : F.le (F.meet (F.meet (A.E i i') (A.E j j')) (A.E i j)) (A.E i j) :=
+      F.meet_le_right _ _
+    -- Step 1: E i i' ∧ E i j ≤ E i' j
+    --   = E i' i (by symm) ... trans: E i' i ∧ E i j ≤ E i' j
+    have step1 : F.le (F.meet (A.E i i') (A.E i j)) (A.E i' j) := by
+      have hsym : A.E i i' = A.E i' i := A.symm i i'
+      rw [hsym]
+      exact A.trans i' i j
+    -- Step 2: E i' j ∧ E j j' ≤ E i' j'
+    have step2 : F.le (F.meet (A.E i' j) (A.E j j')) (A.E i' j') :=
+      A.trans i' j j'
+    -- Chain: our term ≤ E i' j (via step1 from components)
+    have hstep1_app : F.le (F.meet (F.meet (A.E i i') (A.E j j')) (A.E i j))
+        (A.E i' j) := by
+      apply F.le_trans _ step1
+      exact F.le_meet hEij_i hEij_ij
+    -- and ≤ E j j'
+    have hstep2_app : F.le (F.meet (F.meet (A.E i i') (A.E j j')) (A.E i j))
+        (A.E i' j') := by
+      apply F.le_trans _ step2
+      exact F.le_meet hstep1_app hEij_j
+    exact hstep2_app
+
+/-- **Composition** of OSetHom: `(f ⊚ g) i k = ⨆ { f i j ∧ g j k | j : B }`. -/
+def comp (f : OSetHom A B) (g : OSetHom B C) : OSetHom A C where
+  rel i k := F.sSup (fun v => ∃ j : B.carrier, v = F.meet (f.rel i j) (g.rel j k))
+  dom_bound i k := by
+    apply F.sSup_le
+    intro v ⟨j, hv⟩
+    rw [hv]
+    exact F.le_trans (F.meet_le_left _ _) (f.dom_bound i j)
+  cod_bound i k := by
+    apply F.sSup_le
+    intro v ⟨j, hv⟩
+    rw [hv]
+    exact F.le_trans (F.meet_le_right _ _) (g.cod_bound j k)
+  natural i i' k k' := by
+    -- Goal: meet(meet(A.E i i', C.E k k'), sSup{f(i,j)∧g(j,k) | j}) ≤ sSup{f(i',j)∧g(j,k') | j}
+    -- Use meet_sSup_distrib to push meet inside the sup, then apply naturality of f and g
+    rw [F.meet_sSup_distrib]
+    apply F.sSup_le
+    intro v ⟨w, ⟨j, hw⟩, hvw⟩
+    rw [hw] at hvw; rw [hvw]
+    -- v = meet(meet(A.E i i', C.E k k'), meet(f.rel i j, g.rel j k))
+    -- Need: ≤ sSup{f(i',j')∧g(j',k') | j'}
+    -- Use naturality of f at (i,i',j,j) and of g at (j,j,k,k')
+    -- First: meet(A.E i i', f.rel i j) ≤ f.rel i' j
+    --   from f.natural i i' j j with B.E j j ≥ f.rel i j (cod_bound)
+    -- Exploit: meet(A.E i i', C.E k k') ∧ meet(f.rel i j, g.rel j k)
+    --        ≤ f.rel i' j ∧ g.rel j k'  then ≤ sSup via le_sSup with witness j
+    have hAii' : F.le (F.meet (F.meet (A.E i i') (C.E k k'))
+        (F.meet (f.rel i j) (g.rel j k))) (A.E i i') :=
+      F.le_trans (F.meet_le_left _ _) (F.meet_le_left _ _)
+    have hCkk' : F.le (F.meet (F.meet (A.E i i') (C.E k k'))
+        (F.meet (f.rel i j) (g.rel j k))) (C.E k k') :=
+      F.le_trans (F.meet_le_left _ _) (F.meet_le_right _ _)
+    have hfij : F.le (F.meet (F.meet (A.E i i') (C.E k k'))
+        (F.meet (f.rel i j) (g.rel j k))) (f.rel i j) :=
+      F.le_trans (F.meet_le_right _ _) (F.meet_le_left _ _)
+    have hgjk : F.le (F.meet (F.meet (A.E i i') (C.E k k'))
+        (F.meet (f.rel i j) (g.rel j k))) (g.rel j k) :=
+      F.le_trans (F.meet_le_right _ _) (F.meet_le_right _ _)
+    -- Apply f.natural i i' j j: meet(meet(A.E i i', B.E j j), f.rel i j) ≤ f.rel i' j
+    -- We have B.E j j ≥ f.rel i j (cod_bound), so meet(A.E i i', f.rel i j) ≤ f.rel i' j
+    have hfnat : F.le (F.meet (F.meet (A.E i i') (B.E j j)) (f.rel i j)) (f.rel i' j) :=
+      f.natural i i' j j
+    -- Our term → meet(A.E i i', f.rel i j): need to get B.E j j in there
+    have hBjj_f : F.le (f.rel i j) (B.E j j) := f.cod_bound i j
+    have hf_app : F.le (F.meet (F.meet (A.E i i') (C.E k k'))
+        (F.meet (f.rel i j) (g.rel j k))) (f.rel i' j) := by
+      apply F.le_trans _ hfnat
+      exact F.le_meet (F.le_meet hAii' (F.le_trans hfij hBjj_f)) hfij
+    -- Apply g.natural j j k k': meet(meet(B.E j j, C.E k k'), g.rel j k) ≤ g.rel j k'
+    have hgnat : F.le (F.meet (F.meet (B.E j j) (C.E k k')) (g.rel j k)) (g.rel j k') :=
+      g.natural j j k k'
+    -- B.E j j ≥ g.rel j k (dom_bound)
+    have hBjj_g : F.le (g.rel j k) (B.E j j) := g.dom_bound j k
+    have hg_app : F.le (F.meet (F.meet (A.E i i') (C.E k k'))
+        (F.meet (f.rel i j) (g.rel j k))) (g.rel j k') := by
+      apply F.le_trans _ hgnat
+      exact F.le_meet (F.le_meet (F.le_trans hgjk hBjj_g) hCkk') hgjk
+    -- Combine: term ≤ f.rel i' j ∧ g.rel j k' ≤ sSup{f(i',j')∧g(j',k')|j'}
+    apply F.le_trans (F.le_meet hf_app hg_app)
+    exact F.le_sSup _ _ ⟨j, rfl⟩
+
+end OSetHom
+
+/-! ### The category OSet(F)
+
+  Objects: OValuedSet F.
+  Morphisms: OSetHom A B.
+  Identity and composition are defined above; associativity holds because
+  ⨆ of a ⨆ over j equals ⨆ over the combined index. -/
+
+/-- OSet(F) identity morphism. -/
+def oset_id {F : Frame.{u}} (A : OValuedSet F) : OSetHom A A := OSetHom.id A
+
+/-- OSet(F) composition. -/
+def oset_comp {F : Frame.{u}} {A B C : OValuedSet F}
+    (f : OSetHom A B) (g : OSetHom B C) : OSetHom A C := OSetHom.comp f g
+
+/-- Identity is left unit: `id ⊚ f = f`.
+    Proof: `(id ⊚ f) i k = ⨆ { E i j ∧ f j k | j } = f i k`. -/
+theorem oset_id_comp {F : Frame.{u}} {A B : OValuedSet F} (f : OSetHom A B) :
+    oset_comp (oset_id A) f = f := by
+  ext i k  -- structural equality on OSetHom is via rel
+  simp only [oset_comp, oset_id, OSetHom.comp, OSetHom.id]
+  -- Goal: F.sSup (fun v => ∃ j, v = F.meet (A.E i j) (f.rel j k)) = f.rel i k
+  apply F.le_antisymm
+  · -- ⊢ sSup{E i j ∧ f j k | j} ≤ f i k
+    apply F.sSup_le
+    intro v ⟨j, hv⟩; rw [hv]
+    -- E i j ∧ f j k ≤ f i k  by naturality of f at (j, i, k, k)
+    -- f.natural j i k k: meet(meet(A.E j i, B.E k k), f.rel j k) ≤ f.rel i k
+    have hnat := f.natural j i k k
+    -- A.E j i = A.E i j by symm
+    -- B.E k k ≥ f.rel j k by cod_bound
+    have hBkk : F.le (f.rel j k) (B.E k k) := f.cod_bound j k
+    have hsym : A.E j i = A.E i j := A.symm j i
+    apply F.le_trans _ hnat
+    rw [← hsym]
+    exact F.le_meet (F.le_meet (F.meet_le_left _ _)
+      (F.le_trans (F.meet_le_right _ _) hBkk))
+      (F.meet_le_right _ _)
+  · -- ⊢ f i k ≤ sSup{E i j ∧ f j k | j}
+    -- witness j = i: E i i ∧ f i k ≥ f i k  (since f i k ≤ E i i by dom_bound)
+    apply F.le_trans _ (F.le_sSup _ _ ⟨i, rfl⟩)
+    -- ⊢ f.rel i k ≤ F.meet (A.E i i) (f.rel i k)
+    exact F.le_meet (f.dom_bound i k) (F.le_refl _)
+
+/-- Identity is right unit: `f ⊚ id = f`. -/
+theorem oset_comp_id {F : Frame.{u}} {A B : OValuedSet F} (f : OSetHom A B) :
+    oset_comp f (oset_id B) = f := by
+  ext i k
+  simp only [oset_comp, oset_id, OSetHom.comp, OSetHom.id]
+  apply F.le_antisymm
+  · apply F.sSup_le
+    intro v ⟨j, hv⟩; rw [hv]
+    -- f i j ∧ E j k ≤ f i k  by naturality of f at (i, i, j, k)
+    -- f.natural i i j k: meet(meet(A.E i i, B.E j k), f.rel i j) ≤ f.rel i k
+    have hnat := f.natural i i j k
+    have hAii : F.le (f.rel i j) (A.E i i) := f.dom_bound i j
+    apply F.le_trans _ hnat
+    exact F.le_meet (F.le_meet (F.le_trans (F.meet_le_left _ _) hAii)
+      (F.meet_le_right _ _))
+      (F.meet_le_left _ _)
+  · apply F.le_trans _ (F.le_sSup _ _ ⟨k, rfl⟩)
+    -- goal: f.rel i k ≤ meet (f.rel i k) (B.E k k)
+    exact F.le_meet (F.le_refl _) (f.cod_bound i k)
+
+/-- Auxiliary: `sSup S ∧ a = a ∧ sSup S` (meet commutativity for sSup).
+    We need this for the associativity proof because `meet_sSup_distrib` is
+    `a ∧ sSup S = ...` but composition gives `sSup S ∧ h`. -/
+private theorem Frame.sSup_meet_comm {F : Frame.{u}} (a : F.carrier)
+    (S : F.carrier → Prop) :
+    F.meet (F.sSup S) a = F.meet a (F.sSup S) :=
+  F.le_antisymm
+    (F.le_meet (F.meet_le_right _ _) (F.meet_le_left _ _))
+    (F.le_meet (F.meet_le_right _ _) (F.meet_le_left _ _))
+
+/-- Auxiliary: meet distributes over sSup on the right. -/
+private theorem Frame.sSup_meet_distrib {F : Frame.{u}} (S : F.carrier → Prop) (b : F.carrier) :
+    F.meet (F.sSup S) b = F.sSup (fun x => ∃ s, S s ∧ x = F.meet s b) := by
+  rw [Frame.sSup_meet_comm, F.meet_sSup_distrib]
+  -- now: sSup{b ∧ s | s ∈ S} = sSup{x | ∃ s ∈ S, x = meet s b}
+  apply F.le_antisymm
+  · apply F.sSup_le; intro x ⟨s, hs, hx⟩
+    -- hx : x = meet b s; need: ∃ s', S s' ∧ x = meet s' b
+    exact F.le_sSup _ _ ⟨s, hs, hx ▸ F.le_antisymm
+      (F.le_meet (F.meet_le_right _ _) (F.meet_le_left _ _))
+      (F.le_meet (F.meet_le_right _ _) (F.meet_le_left _ _))⟩
+  · apply F.sSup_le; intro x ⟨s, hs, hx⟩
+    -- hx : x = meet s b; need: ∃ s', S s' ∧ x = meet b s'
+    exact F.le_sSup _ _ ⟨s, hs, hx ▸ F.le_antisymm
+      (F.le_meet (F.meet_le_right _ _) (F.meet_le_left _ _))
+      (F.le_meet (F.meet_le_right _ _) (F.meet_le_left _ _))⟩
+
+/-- Composition is associative: `(f ⊚ g) ⊚ h = f ⊚ (g ⊚ h)`.
+    Both sides equal `⨆_{j,k} { f i j ∧ g j k ∧ h k l }`. -/
+theorem oset_comp_assoc {F : Frame.{u}} {A B C D : OValuedSet F}
+    (f : OSetHom A B) (g : OSetHom B C) (h : OSetHom C D) :
+    oset_comp (oset_comp f g) h = oset_comp f (oset_comp g h) := by
+  ext i l
+  simp only [oset_comp, OSetHom.comp]
+  -- LHS: sSup_k { meet(sSup_j{f i j ∧ g j k}, h k l) }
+  -- RHS: sSup_j { meet(f i j, sSup_k{g j k ∧ h k l}) }
+  apply F.le_antisymm
+  · -- LHS ≤ RHS
+    apply F.sSup_le; intro v ⟨k, hvk⟩; rw [hvk]
+    -- Goal: meet(sSup_j{f i j ∧ g j k}, h k l) ≤ sSup_j{f i j ∧ sSup_k{g j k' ∧ h k' l}}
+    -- Use sSup_meet_distrib to unpack the left factor
+    rw [Frame.sSup_meet_distrib]
+    apply F.sSup_le; intro w ⟨u, ⟨j, huj⟩, hwu⟩; rw [huj] at hwu; rw [hwu]
+    -- w = meet(f i j ∧ g j k, h k l)
+    apply F.le_trans _ (F.le_sSup _ _ ⟨j, rfl⟩)
+    apply F.le_meet
+    · exact F.le_trans (F.meet_le_left _ _) (F.meet_le_left _ _)
+    · apply F.le_trans _ (F.le_sSup _ _ ⟨k, rfl⟩)
+      exact F.le_meet
+        (F.le_trans (F.meet_le_left _ _) (F.meet_le_right _ _))
+        (F.meet_le_right _ _)
+  · -- RHS ≤ LHS
+    apply F.sSup_le; intro v ⟨j, hvj⟩; rw [hvj]
+    -- Goal: meet(f i j, sSup_k{g j k ∧ h k l}) ≤ sSup_k{meet(sSup_j'{f i j' ∧ g j' k}, h k l)}
+    rw [F.meet_sSup_distrib]
+    apply F.sSup_le; intro w ⟨u, ⟨k, huk⟩, hwu⟩; rw [huk] at hwu; rw [hwu]
+    -- w = meet(f i j, g j k ∧ h k l)
+    apply F.le_trans _ (F.le_sSup _ _ ⟨k, rfl⟩)
+    apply F.le_meet
+    · apply F.le_trans _ (F.le_sSup _ _ ⟨j, rfl⟩)
+      exact F.le_meet (F.meet_le_left _ _)
+        (F.le_trans (F.meet_le_right _ _) (F.meet_le_left _ _))
+    · exact F.le_trans (F.meet_le_right _ _) (F.meet_le_right _ _)
+
+-- BOOK §2.227: The category of maps of O(Y)-valued sets is equivalent to H(Y).
+-- H(Y) = the category of local homeomorphisms over Y (= sheaves on O(Y)).
+-- The proof in Freyd §2.227 proceeds by:
+--   (a) Constructing an O(Y)-valued set ⟨Γ(X), R⟩ from each local homeo X→Y,
+--       where f R g = ⋃{U open | U ⊆ dom f ∩ dom g, f|_U = g|_U}.
+--   (b) Showing this is irredundant (the only morphisms are reindexings).
+--   (c) The functors are inverse equivalences (via maximal irredundant sets).
+-- Formally requires: local homeomorphism infrastructure (§1.373), the section
+-- functor Γ∗, and the associated-sheaf / sheafification adjunction.
+-- All of this needs the sheaf/presheaf infrastructure not yet in the repo.
+
+-- BOOK §2.331: O(X)-valued sets and the geometric representation theorem.
+-- Any countable tabular unitary division allegory embeds in (O(X)-valued sets)^ω
+-- for a suitable locale O(X). This uses §2.227 + §1.74 (focal representation).
+-- Requires: tabular/division allegory infrastructure (§2.1), focal representation
+-- theorem (§1.741–§1.742), and the sheaf/locale machinery above.
 -- Left as a precise TODO.
 
 -- BOOK §1.74x: Representation theorems via opens.
