@@ -86,3 +86,4 @@ import Fredy.MapCat
 import Fredy.Spl
 import Fredy.MatrixAllegory
 import Fredy.Locale
+import Fredy.RelCat
