@@ -1101,6 +1101,21 @@ theorem embedRel_cat_iso :
      obtain ⟨f, hf⟩ := embedRel_full (a := a) (b := b) R hq
      exact ⟨f, Subtype.ext hf⟩⟩
 
+/-- **A full + faithful identity-on-objects functor reflects monos.**  If `embedRel f` is monic in
+    `Map(Rel C)` then `f` is monic in `C`.  Given `g h : W ⟶ a` with `g ≫ f = h ≫ f`, lift the
+    Map-arrows `embedRel g`, `embedRel h : ⟨W⟩ ⟶ ⟨a⟩` (already in the image of `embedRel`);
+    functoriality (`embedRel_comp`) sends `g ≫ f = h ≫ f` to `embedRel g ≫ embedRel f =
+    embedRel h ≫ embedRel f`, monicity of `embedRel f` gives `embedRel g = embedRel h`, and
+    faithfulness (`embedRel_faithful`) returns `g = h`. -/
+theorem embedRel_reflects_monic {a b : 𝒞} {f : a ⟶ b}
+    (hm : @Monic (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞)) ⟨a⟩ ⟨b⟩ (embedRel f)) :
+    Monic f := by
+  intro W g h hgh
+  apply embedRel_faithful
+  -- map both sides through `embedRel` (functorial), then cancel `embedRel f` (monic).
+  refine hm (embedRel g) (embedRel h) ?_
+  rw [← embedRel_comp, ← embedRel_comp, hgh]
+
 end GraphEmbedding
 
 /-! ### §2.217(1)  A positive pre-logos embeds faithfully in a POSITIVE pre-logos.
@@ -1279,5 +1294,155 @@ theorem s217_faithful_embed_into_positive :
   ⟨⟨s217PreLogos⟩, fun {_ _ _ _} h => embed217_faithful h⟩
 
 end S217
+
+/-! ### §2.214 REVERSE — `Rel(C)` has finite coproducts ⟹ `C` is positive.
+
+  Freyd §2.214: a pre-logos `C` is positive **iff** `Rel(C)` has finite coproducts.  The forward
+  direction (`positive ⟹ coproducts`) is `DisjointGluing.relCoproduct` above.  This is the REVERSE.
+
+  THE DIAMOND DODGE (marker option (b)).  We do NOT take an opaque `[PositiveAllegory (RelObj C)]`
+  hypothesis: that instance would carry its OWN `Allegory (RelObj C)`/`Cat (RelObj C)` not defeq to
+  `relAllegory`, so it could not be merged with `relTabularUnitaryDistributiveAllegory` to feed the
+  `Map`-coproduct machinery.  Instead we hypothesize the positive part as raw coproduct DATA over the
+  EXISTING `relAllegory`: a coterminal `zero`, a binary `coprodObj`, and a §2.2 `Coproduct` record
+  for each pair.  Assembling `{ relTabularUnitaryDistributiveAllegory with … }` keeps the single
+  `relAllegory` grandparent, so `MapCat.mapHasBinaryCoproducts` fires with no diamond.
+
+  TRANSPORT across `C ≅ Map(Rel C)` (`embedRel_cat_iso`, identity-on-objects).  The Map(Rel C)
+  coproduct of `⟨a⟩,⟨b⟩` lives over a `RelObj C` whose `carrier` IS the C-coproduct object; the
+  injections / copairing are Maps of `Rel C`, pulled back to unique `C`-morphisms by fullness
+  (`embedRel_full`), with the universal property transferred by faithfulness + `embedRel_comp/_id`.
+
+  What lands here SORRY-FREE: `relReverseHasBinaryCoproducts` (full `HasBinaryCoproducts C`) and
+  `relReverse_inl_monic`/`relReverse_inr_monic` (injections monic in `C`).  The remaining content of
+  the FULL `DisjointBinaryCoproduct C` is the two §1.621 disjointness inequalities `inl∩inr ≤ 0` and
+  `entire ≤ inl∪inr`, which live in the PRE-LOGOS subobject structure (intersection / union / bottom)
+  and would need `embedRel` to PRESERVE/REFLECT that structure — see the sharpened marker in S2_21. -/
+
+section ReverseCoproduct
+
+variable [PositivePreLogos 𝒞]
+
+/-- Assemble a `TabularUnitaryPositiveAllegory (RelObj C)` from the existing tabular/unitary/
+    distributive structure on `relAllegory` plus supplied positive coproduct DATA.  Because
+    `relTabularUnitaryDistributiveAllegory` is itself `{ relAllegory with … }`, the resulting
+    `toAllegory` grandparent is `relAllegory` — no competing `Allegory (RelObj C)` instance, so the
+    `Map`-coproduct lemmas of `MapCat` apply directly.  This is the marker's option (b). -/
+def relTUPositiveAllegory (zero : RelObj 𝒞)
+    (coprodObj : RelObj 𝒞 → RelObj 𝒞 → RelObj 𝒞)
+    (hcop : ∀ a b : RelObj 𝒞, Freyd.Alg.Coproduct (𝒜 := RelObj 𝒞) (coprodObj a b) a b) :
+    Freyd.Alg.TabularUnitaryPositiveAllegory (RelObj 𝒞) :=
+  { relTabularUnitaryDistributiveAllegory with
+    coterm := zero, coprod := coprodObj, has_coproduct := hcop }
+
+/-- **§2.214 REVERSE (coproduct object + UMP).**  Given finite coproducts of `Rel(C)` (as positive
+    coproduct data over `relAllegory`), `C` has binary coproducts.
+
+    Construction.  The assembled `TabularUnitaryPositiveAllegory (RelObj C)` makes
+    `Map(Rel C) = MapObj (RelObj C)` a category with binary coproducts (`mapHasBinaryCoproducts`),
+    call it `H`.  Since `embedRel` is identity-on-objects, `H.coprod ⟨a⟩ ⟨b⟩ : RelObj C` is `⟨q⟩`
+    with `q := (H.coprod ⟨a⟩ ⟨b⟩).carrier` the C-coproduct.  By fullness (`embedRel_cat_iso.2`)
+    each Map-injection `H.inl`/`H.inr` and each copairing `H.case (embedRel f) (embedRel g)` is the
+    graph of a UNIQUE C-morphism; faithfulness + `embedRel_comp`/`embedRel_id` transport the
+    case-equations and uniqueness back to `C`. -/
+noncomputable def relReverseHasBinaryCoproducts (zero : RelObj 𝒞)
+    (coprodObj : RelObj 𝒞 → RelObj 𝒞 → RelObj 𝒞)
+    (hcop : ∀ a b : RelObj 𝒞, Freyd.Alg.Coproduct (𝒜 := RelObj 𝒞) (coprodObj a b) a b) :
+    HasBinaryCoproducts 𝒞 := by
+  letI tup := relTUPositiveAllegory zero coprodObj hcop
+  letI H : @HasBinaryCoproducts (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞)) :=
+    Freyd.Alg.mapHasBinaryCoproducts (A := RelObj 𝒞)
+  -- Faithfulness, and the fullness lift: every Map(Rel C) morphism between `⟨·⟩` objects is the
+  -- graph of a UNIQUE C-morphism.  `lift m` is that C-morphism; `lift_spec` is `embedRel (lift m) = m`.
+  have hfaithful : ∀ {a b : 𝒞} {f g : a ⟶ b}, embedRel f = embedRel g → f = g :=
+    fun {a b f g} h => (embedRel_cat_iso (𝒞 := 𝒞)).1 h
+  let lift : ∀ {a b : 𝒞}, (@Cat.Hom (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞)) ⟨a⟩ ⟨b⟩) → (a ⟶ b) :=
+    fun {a b} m => ((embedRel_cat_iso (𝒞 := 𝒞)).2 m).choose
+  have lift_spec : ∀ {a b : 𝒞} (m : @Cat.Hom (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞)) ⟨a⟩ ⟨b⟩),
+      embedRel (lift m) = m :=
+    fun {a b} m => (((embedRel_cat_iso (𝒞 := 𝒞)).2 m).choose_spec).symm
+  refine
+    { coprod := fun a b => (H.coprod ⟨a⟩ ⟨b⟩).carrier
+      inl := fun {a b} => lift (b := (H.coprod ⟨a⟩ ⟨b⟩).carrier) H.inl
+      inr := fun {a b} => lift (b := (H.coprod ⟨a⟩ ⟨b⟩).carrier) H.inr
+      case := fun {x a b} f g =>
+        lift (a := (H.coprod ⟨a⟩ ⟨b⟩).carrier) (H.case (embedRel f) (embedRel g))
+      case_inl := ?_
+      case_inr := ?_
+      case_uniq := ?_ }
+  all_goals intro x a b f g
+  · -- inl ≫ case f g = f
+    apply hfaithful
+    rw [embedRel_comp, lift_spec (b := (H.coprod ⟨a⟩ ⟨b⟩).carrier) H.inl,
+        lift_spec (a := (H.coprod ⟨a⟩ ⟨b⟩).carrier) (H.case (embedRel f) (embedRel g)), H.case_inl]
+  · -- inr ≫ case f g = g
+    apply hfaithful
+    rw [embedRel_comp, lift_spec (b := (H.coprod ⟨a⟩ ⟨b⟩).carrier) H.inr,
+        lift_spec (a := (H.coprod ⟨a⟩ ⟨b⟩).carrier) (H.case (embedRel f) (embedRel g)), H.case_inr]
+  · -- uniqueness
+    intro h hl hr
+    -- Push each C-hypothesis through `embedRel` (functorial) to Map(Rel C), using `embedRel_comp`
+    -- forward (so the Map-composition instance is exactly `mapCat`, matching `H.case_uniq`).
+    have hl' : @Cat.comp (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞)) _ _ _
+        H.inl (embedRel h) = embedRel f := by
+      have := congrArg embedRel hl
+      rw [embedRel_comp, lift_spec (b := (H.coprod ⟨a⟩ ⟨b⟩).carrier) H.inl] at this
+      exact this
+    have hr' : @Cat.comp (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞)) _ _ _
+        H.inr (embedRel h) = embedRel g := by
+      have := congrArg embedRel hr
+      rw [embedRel_comp, lift_spec (b := (H.coprod ⟨a⟩ ⟨b⟩).carrier) H.inr] at this
+      exact this
+    have huniq : embedRel h = H.case (embedRel f) (embedRel g) := H.case_uniq _ _ _ hl' hr'
+    -- Goal: `case f g = h`, i.e. `lift (H.case …) = h`.  Apply faithfulness then collapse.
+    apply hfaithful
+    rw [lift_spec (a := (H.coprod ⟨a⟩ ⟨b⟩).carrier) (H.case (embedRel f) (embedRel g)), huniq]
+
+/-- **§2.214 REVERSE (left injection monic).**  Under the coproduct structure of
+    `relReverseHasBinaryCoproducts`, the left injection `inl : a ⟶ a+b` is monic in `C`.  Its
+    `embedRel`-image is `Map(Rel C)`'s `inl`, which is monic there (`DisjointBinaryCoproduct`),
+    and `embedRel_reflects_monic` pulls monicity back to `C`. -/
+theorem relReverse_inl_monic (zero : RelObj 𝒞)
+    (coprodObj : RelObj 𝒞 → RelObj 𝒞 → RelObj 𝒞)
+    (hcop : ∀ a b : RelObj 𝒞, Freyd.Alg.Coproduct (𝒜 := RelObj 𝒞) (coprodObj a b) a b) {a b : 𝒞} :
+    @Monic 𝒞 _ a _
+      (@HasBinaryCoproducts.inl 𝒞 _ (relReverseHasBinaryCoproducts zero coprodObj hcop) a b) := by
+  letI tup := relTUPositiveAllegory zero coprodObj hcop
+  letI H : @HasBinaryCoproducts (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞)) :=
+    Freyd.Alg.mapHasBinaryCoproducts (A := RelObj 𝒞)
+  -- `inl` of the C-structure is `lift H.inl`; its `embedRel`-image is `H.inl`, monic in Map(Rel C).
+  apply embedRel_reflects_monic
+  -- typed `have` so the leading `{a b}` implicits are not eagerly synthesized.
+  have lift_spec : ∀ {a b : 𝒞} (m : @Cat.Hom (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞)) ⟨a⟩ ⟨b⟩),
+      embedRel (((embedRel_cat_iso (𝒞 := 𝒞)).2 m).choose) = m :=
+    fun {a b} m => (((embedRel_cat_iso (𝒞 := 𝒞)).2 m).choose_spec).symm
+  have hsp : embedRel (@HasBinaryCoproducts.inl 𝒞 _ (relReverseHasBinaryCoproducts zero coprodObj hcop) a b)
+      = @HasBinaryCoproducts.inl (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞)) H ⟨a⟩ ⟨b⟩ :=
+    lift_spec (@HasBinaryCoproducts.inl (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞)) H ⟨a⟩ ⟨b⟩)
+  rw [hsp]
+  exact @DisjointBinaryCoproduct.inl_monic (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞))
+    Freyd.Alg.mapDisjointBinaryCoproduct ⟨a⟩ ⟨b⟩
+
+/-- **§2.214 REVERSE (right injection monic).**  Dual of `relReverse_inl_monic`. -/
+theorem relReverse_inr_monic (zero : RelObj 𝒞)
+    (coprodObj : RelObj 𝒞 → RelObj 𝒞 → RelObj 𝒞)
+    (hcop : ∀ a b : RelObj 𝒞, Freyd.Alg.Coproduct (𝒜 := RelObj 𝒞) (coprodObj a b) a b) {a b : 𝒞} :
+    @Monic 𝒞 _ b _
+      (@HasBinaryCoproducts.inr 𝒞 _ (relReverseHasBinaryCoproducts zero coprodObj hcop) a b) := by
+  letI tup := relTUPositiveAllegory zero coprodObj hcop
+  letI H : @HasBinaryCoproducts (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞)) :=
+    Freyd.Alg.mapHasBinaryCoproducts (A := RelObj 𝒞)
+  apply embedRel_reflects_monic
+  have lift_spec : ∀ {a b : 𝒞} (m : @Cat.Hom (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞)) ⟨a⟩ ⟨b⟩),
+      embedRel (((embedRel_cat_iso (𝒞 := 𝒞)).2 m).choose) = m :=
+    fun {a b} m => (((embedRel_cat_iso (𝒞 := 𝒞)).2 m).choose_spec).symm
+  have hsp : embedRel (@HasBinaryCoproducts.inr 𝒞 _ (relReverseHasBinaryCoproducts zero coprodObj hcop) a b)
+      = @HasBinaryCoproducts.inr (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞)) H ⟨a⟩ ⟨b⟩ :=
+    lift_spec (@HasBinaryCoproducts.inr (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞)) H ⟨a⟩ ⟨b⟩)
+  rw [hsp]
+  exact @DisjointBinaryCoproduct.inr_monic (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞))
+    Freyd.Alg.mapDisjointBinaryCoproduct ⟨a⟩ ⟨b⟩
+
+end ReverseCoproduct
 
 end Freyd

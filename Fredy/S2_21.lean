@@ -423,19 +423,37 @@ theorem splitting_recip {a b : 𝒜} {R : a ⟶ b} {S : b ⟶ a}
 --     • FULL (`RelCat.embedRel_full`: every `Map` of `Rel C` is a unique graph — the §2.148 dual,
 --       proved from regular-category balance `monic_cover_iso` via `tabulated_is_map_iff_left_iso`
 --       / `tabulated_left_iso_eq_graph`), bundled as `RelCat.embedRel_cat_iso`.
---   ONE BRICK REMAINS for the reverse instance `[PositiveAllegory (RelObj C)] → DisjointBinaryCoproduct C`:
---   transporting the `DisjointBinaryCoproduct (MapObj (RelObj C))` of `MapCat.mapDisjointBinaryCoproduct`
---   (which fires from a `TabularUnitaryPositiveAllegory (RelObj C)`) back along the iso to a
---   `DisjointBinaryCoproduct C` — i.e. pull `HasBinaryCoproducts`/`PositivePreLogos`/disjointness
---   through `embedRel_cat_iso` (coprod object via id-on-objects; `inl`/`inr` and the case-map via
---   fullness; disjointness `inl∩inr=0`, `inl∪inr=1` reflected by faithfulness).  This transport has
---   NO equivalence-transport infrastructure in the repo and hits a TC DIAMOND: an arbitrary instance
---   `[PositiveAllegory (RelObj C)]` carries its own `Allegory (RelObj C)`/`Cat (RelObj C)` that does
---   NOT defeq-share `relAllegory` (built from `[PositivePreLogos C]`), so `relTabularAllegory`/
---   `relUnitaryAllegory` cannot be merged with the hypothesis to form `TabularUnitaryPositiveAllegory
---   (RelObj C)` without a `Subsingleton`-style coherence of the two allegory structures.  Closing it
---   needs either (a) a generic `DisjointBinaryCoproduct` transport-along-a-category-iso lemma, or
---   (b) stating the reverse with the positive-allegory structure built ON TOP of `relAllegory`.
+--   REVERSE — STATUS (option (b) taken; the TC DIAMOND is DODGED).  `Fredy/RelCat.lean` now states
+--   the reverse with the positive-allegory coproduct DATA built ON TOP of the EXISTING `relAllegory`,
+--   so there is no competing `Allegory (RelObj C)`/`Cat (RelObj C)` instance.  Concretely
+--   (`section ReverseCoproduct`, `variable [PositivePreLogos C]`):
+--     • `relTUPositiveAllegory (zero) (coprodObj) (hcop)` assembles a
+--       `TabularUnitaryPositiveAllegory (RelObj C)` from `relTabularUnitaryDistributiveAllegory` plus
+--       the supplied coterminal / binary-coproduct-object / per-pair `Alg.Coproduct` DATA over
+--       `relAllegory` (hcop : ∀ a b, Coproduct (coprodObj a b) a b) — the marker's option (b).
+--   LANDED SORRY-FREE (axioms [propext, Classical.choice, Quot.sound]):
+--     • `relReverseHasBinaryCoproducts zero coprodObj hcop : HasBinaryCoproducts C` — the FULL binary
+--       coproduct of C: object `= (H.coprod ⟨a⟩ ⟨b⟩).carrier` (id-on-objects), `inl`/`inr`/`case`
+--       pulled back from `MapCat.mapHasBinaryCoproducts` by fullness (`embedRel_cat_iso.2`), with the
+--       three UMP equations (`case_inl`/`case_inr`/`case_uniq`) transferred by faithfulness +
+--       `embedRel_comp`/`embedRel_id` (`H.case_uniq` on the image side).
+--     • `embedRel_reflects_monic` (a full+faithful id-on-objects functor reflects monos), and hence
+--       `relReverse_inl_monic` / `relReverse_inr_monic` — the injections of that coproduct are MONIC
+--       in C (their `embedRel`-images are `Map(Rel C)`'s injections, monic via
+--       `MapCat.mapDisjointBinaryCoproduct`, reflected back).
+--   REMAINING for the FULL `DisjointBinaryCoproduct C`: the two §1.621 disjointness INEQUALITIES
+--     `inl ∩ inr ≤ 0` (`Subobject.inter (inlSub _) (inrSub _) ≤ PreLogos.bottom`) and
+--     `entire ≤ inl ∪ inr` (`Subobject.entire ≤ HasSubobjectUnions.union (inlSub _) (inrSub _)`).
+--   These live in the PRE-LOGOS subobject structure (intersection = pullback, union = image, bottom),
+--   NOT in the bare category, so unlike the coproduct UMP they do NOT transport by fullness alone:
+--   they need `embedRel` to PRESERVE/REFLECT pullbacks (=intersections), images (=unions) and the
+--   bottom subobject between C's `[PositivePreLogos C]` pre-logos and `Map(Rel C)`'s `relMapPreLogos`.
+--   The repo has NO such pre-logos-structure-transport-along-the-iso infrastructure yet; the precise
+--   missing lemma is: `embedRel` (full+faithful, id-on-objects) sends `Subobject C A` ≃ `Subobject
+--   (Map(Rel C)) ⟨A⟩` compatibly with `inter`/`union`/`bottom`/`Subobject.le`, after which
+--   `MapCat.mapInl_inter_inr` / `mapInl_union_inr` (the §2.214-dual disjointness facts, already
+--   proved over the assembled `tup`) transfer verbatim to give the two fields and complete
+--   `DisjointBinaryCoproduct C`.
 
 /-- §2.215 positivity of the matrix allegory: every distributive allegory `𝒜` gives a positive
     allegory `MatObj 𝒜`. The coproduct `X ⊕ Y` is the concatenated index family; the injections
