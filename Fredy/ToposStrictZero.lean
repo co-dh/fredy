@@ -56,23 +56,9 @@ theorem invImage_bottomSub_dom_iso {A B : 𝒞} (g : A ⟶ B) :
     Isomorphic (InverseImage g (bottomSub B)).dom (bottomSub A).dom :=
   le_le_dom_iso _ _ (invImage_bottomSub_le g) (bottomSub_le _)
 
-section IsoHelpers
-omit [Topos 𝒞]
-
-/-- `Isomorphic` is symmetric (inline; `Isomorphic X Y` unfolds to `∃ f, IsIso f`). -/
-theorem Isomorphic.symm' {X Y : 𝒞} (h : Isomorphic X Y) : Isomorphic Y X := by
-  obtain ⟨f, g, hfg, hgf⟩ := h; exact ⟨g, f, hgf, hfg⟩
-
-/-- `Isomorphic` is transitive (the composite iso). -/
-theorem Isomorphic.trans' {X Y Z : 𝒞} (h : Isomorphic X Y) (h' : Isomorphic Y Z) :
-    Isomorphic X Z := by
-  obtain ⟨f, hf⟩ := h; obtain ⟨g, hg⟩ := h'; exact ⟨f ≫ g, isIso_comp hf hg⟩
-
-end IsoHelpers
-
 /-! ### The empty-singleton contradiction: closing the seed `∅_A.dom ≅ Z₁`
 
-  The seed reduces (via `Isomorphic.symm'`/`trans'`) to `bottomSub_dom_iso A one`, i.e.
+  The seed reduces (via `isomorphic_symm`/`isomorphic_trans`) to `bottomSub_dom_iso A one`, i.e.
   `∅_A.dom ≅ Z₁` where `Z₁ := (bottomSub one).dom`.  The previous obstruction was the
   EXISTENCE of `0 ⟶ A`.  We close it by the **empty-singleton** argument, entirely inside
   the §1.92/§1.94 exponential power-object framework (`singletonMap`, `membershipMap`,
@@ -112,7 +98,7 @@ theorem mem_singleton_self {X A : 𝒞} (a : X ⟶ A) :
   exact (diag_classify_iff a a).2 rfl
 
 /-- **Cross-base bottom-domain iso** (§1.944) — CLOSED.  `∅_A.dom ≅ ∅_B.dom` for all `A B`,
-    via `bottomSub_dom_iso_one` and `Isomorphic.symm'`/`trans'`. -/
+    via `bottomSub_dom_iso_one` and `isomorphic_symm`/`isomorphic_trans`. -/
 theorem bottomSub_dom_iso_one (A : 𝒞) :
     Isomorphic (bottomSub A).dom (bottomSub (one : 𝒞)).dom := by
   -- u : 1 → [A] is the name of the empty subobject ∅_A.  membershipMap u = χ_{∅_A}.
@@ -188,12 +174,12 @@ theorem bottomSub_dom_iso_one (A : 𝒞) :
   -- K ≅ Z₁, then ∅_A.dom ≅ K ≅ Z₁.
   have hiso_KZ : Isomorphic K (bottomSub (one : 𝒞)).dom :=
     le_le_dom_iso (⟨K, k1, hk1_mono⟩ : Subobject 𝒞 one) (bottomSub one) hKsubZ hZsubK
-  exact Isomorphic.trans' hiso_AK hiso_KZ
+  exact isomorphic_trans hiso_AK hiso_KZ
 
 /-- **Cross-base bottom-domain iso** (§1.944) — CLOSED.  `∅_A.dom ≅ ∅_B.dom` for all `A B`. -/
 theorem bottomSub_dom_iso (A B : 𝒞) :
     Isomorphic (bottomSub A).dom (bottomSub B).dom :=
-  Isomorphic.trans' (bottomSub_dom_iso_one A) (Isomorphic.symm' (bottomSub_dom_iso_one B))
+  isomorphic_trans (bottomSub_dom_iso_one A) (isomorphic_symm (bottomSub_dom_iso_one B))
 
 /-- **§1.944 strictness.** Every map into `Z := ∅_1.dom` is an isomorphism.
     Mirror of `any_map_to_zero_is_iso` (S1_61), with `bottomSub` for `PreLogos.bottom`,

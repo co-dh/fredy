@@ -53,7 +53,7 @@ theorem le_diag_iff {a : 𝒜} (T : a ⟶ a) (S : a ⟶ a) :
     `div_comp_le` half of §2.31 for `R = 𝟘 / (1 ∩ T)`). -/
 theorem diag_comp_le_zero {a : 𝒜} (T : a ⟶ a) :
     diag T ≫ (Cat.id a ∩ T) ⊑ (𝟘 : a ⟶ a) :=
-  div_comp_eq_le (𝟘 : a ⟶ a) (Cat.id a ∩ T)
+  DivisionAllegory.div_comp_le (𝟘 : a ⟶ a) (Cat.id a ∩ T)
 
 /-- Right-domain factorization `R ⊑ R ≫ (1 ∩ R° R)` — the reciprocal of
     `le_dom_comp` (§2.122).  `dom (R°) = 1 ∩ R° R` is the codomain coreflexive. -/

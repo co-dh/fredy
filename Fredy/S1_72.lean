@@ -70,16 +70,10 @@ section HeytingLaws
 
 variable [HasImages 𝒞] [HeytingAlgebra 𝒞] {A : 𝒞}
 
-/-- z ≤ (x→y) ↔ x∧z ≤ y  (adjunction alias). -/
-theorem heyting_adj (x y z : Subobject 𝒞 A) :
-    Subobject.le z (HeytingAlgebra.imp x y) ↔
-    Subobject.le (HeytingAlgebra.meet x z) y :=
-  HeytingAlgebra.adjunction x y z
-
 /-- Modus ponens: x∧(x→y) ≤ y  (from adjunction, taking z := x→y). -/
 theorem heyting_mp (x y : Subobject 𝒞 A) :
     Subobject.le (HeytingAlgebra.meet x (HeytingAlgebra.imp x y)) y :=
-  (heyting_adj x y (HeytingAlgebra.imp x y)).mp (subobject_le_refl _)
+  (HeytingAlgebra.adjunction x y (HeytingAlgebra.imp x y)).mp (subobject_le_refl _)
 
 /-- meet is monotone in the left argument: w ≤ x → w∧z ≤ x∧z. -/
 theorem meet_mono_left {w x z : Subobject 𝒞 A} (h : Subobject.le w x) :
@@ -98,14 +92,14 @@ theorem meet_comm_le (x y : Subobject 𝒞 A) :
 /-- (§1.726) x→y is covariant in y: y ≤ z → (x→y) ≤ (x→z). -/
 theorem imp_mono_right {x y z : Subobject 𝒞 A} (h : Subobject.le y z) :
     Subobject.le (HeytingAlgebra.imp x y) (HeytingAlgebra.imp x z) := by
-  rw [heyting_adj]
+  rw [HeytingAlgebra.adjunction]
   -- x∧(x→y) ≤ y ≤ z
   exact subobject_le_trans (heyting_mp x y) h
 
 /-- (§1.726) x→y is contravariant in x: w ≤ x → (x→y) ≤ (w→y). -/
 theorem imp_mono_left_contra {x w y : Subobject 𝒞 A} (h : Subobject.le w x) :
     Subobject.le (HeytingAlgebra.imp x y) (HeytingAlgebra.imp w y) := by
-  rw [heyting_adj]
+  rw [HeytingAlgebra.adjunction]
   -- w∧(x→y) ≤ x∧(x→y) ≤ y
   exact subobject_le_trans (meet_mono_left h) (heyting_mp x y)
 
@@ -371,13 +365,6 @@ theorem meet_union_le_distrib [HasImages 𝒞] [HeytingAlgebra 𝒞]
   complement, and since Heyting algebras are distributive lattices, we get
   a Boolean algebra (§1.728).
   Alternatively: x = ¬¬x suffices: x ∨ ¬x = ¬¬(x ∨ ¬x) = ¬(¬x ∧ ¬¬x) = ¬0 = 1. -/
-
-/-- x∧¬x ≤ ⊥ iff (¬x) disjoint from x.
-    Under EM, ¬x is a complement of x (§1.728). -/
-theorem em_disjoint [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos 𝒞]
-    {A : 𝒞} (x : Subobject 𝒞 A) :
-    Subobject.le (HeytingAlgebra.meet x (hneg x)) (PreLogos.bottom A) :=
-  meet_neg_le_bot x
 
 /-- Every subobject is ≤ the entire (top) subobject. -/
 theorem le_entire {A : 𝒞} (S : Subobject 𝒞 A) : Subobject.le S (Subobject.entire A) :=

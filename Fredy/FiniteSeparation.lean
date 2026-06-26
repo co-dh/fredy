@@ -30,7 +30,7 @@
   proper mono cannot become an iso.
 
   HAND-OFF TO THE ULTRAFILTER (Phase A `Ultrafilter.lean`, the §1.646 INFINITE
-  assembly): see `FiniteSeparation.handoff` at the end of this file.  The faithful
+  assembly): see `finite_separation` in this file.  The faithful
   *single-`Set`* representation of §1.646 is NOT built here: over an infinite small
   `𝒞`, a single `Set`-valued functor cannot be faithful (Cayley needs the index
   `i = A` for *every* `A`), which is precisely why §1.646 needs the ultra-product
@@ -162,11 +162,4 @@ theorem finite_separation (𝒞 : Type u) [Cat.{u} 𝒞] [PreRegularCategory �
   The single residual for the full §1.646 theorem is therefore the ultra-filter
   existence/non-killing argument, which lives in Phase A's `Ultrafilter.lean`; this
   file discharges everything up to (and not including) that ultra-product step. -/
-theorem FiniteSeparation.handoff (𝒞 : Type u) [Cat.{u} 𝒞] [PreRegularCategory 𝒞]
-    (S : List (ProperSub 𝒞)) :
-    ∃ (T : 𝒞 → (𝒞 → Type u)) (hT : Functor T),
-      SeparatesMaps T ∧
-      ∀ s ∈ S, Monic (hT.map s.mono) ∧ ¬ IsIso (hT.map s.mono) :=
-  finite_separation 𝒞 S
-
 end Freyd

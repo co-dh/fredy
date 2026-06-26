@@ -307,10 +307,10 @@ theorem directImage_adjunction {A B : 𝒞} (f : A ⟶ B) (S : Subobject 𝒞 A)
 
   PRECISE MISSING-LEMMA SIGNATURE (closes `case`, hence the whole instance):
 
-      theorem coprod_case_exists {A B X : 𝒞} (f : A ⟶ X) (g : B ⟶ X) :
+      theorem case_morphism_exists {A B X : 𝒞} (f : A ⟶ X) (g : B ⟶ X) :
           ∃ c : coprodObj A B ⟶ X, coprodInl A B ≫ c = f ∧ coprodInr A B ≫ c = g
 
-  With `coprod_case_exists` in hand, `case := (coprod_case_exists f g).choose`, the two
+  With `case_morphism_exists` in hand, `case := (case_morphism_exists f g).choose`, the two
   β-laws are its `.choose_spec`, and `case_uniq` is `coprod_jointly_epi`.  That assembles
   `instance toposHasBinaryCoproducts : HasBinaryCoproducts 𝒞`, and then
   `S1_95.topos_is_positive` becomes `exact toposHasBinaryCoproducts` — unblocking §1.954
@@ -674,7 +674,7 @@ theorem coprodInjections_disjoint (A B : 𝒞) :
   let z : I ⟶ (bottomSub (one : 𝒞)).dom := e ≫ θ
   have hz_iso : IsIso z := any_map_to_zero_is_iso (inferInstance : PreLogos 𝒞) z
   have hI_iso_Z : Isomorphic I (bottomSub (one : 𝒞)).dom := ⟨z, hz_iso⟩
-  exact Isomorphic.trans' hI_iso_Z (bottomSub_dom_iso (one : 𝒞) (coprodObj A B))
+  exact isomorphic_trans hI_iso_Z (bottomSub_dom_iso (one : 𝒞) (coprodObj A B))
 
 /-- **§1.621 disjointness, elementwise (topos form).**  If two generalized elements are
     identified across the two injections (`p ≫ coprodInl = q ≫ coprodInr`), their common
@@ -771,72 +771,20 @@ theorem caseRel_colA_monic {A B X : 𝒞} (f : A ⟶ X) (g : B ⟶ X) :
     ⟨⟨(caseRel f g).colA, Cat.comp_id _, hkey⟩⟩
   exact rel_le_trans (compose_le (reciprocal_mono hle) hle) (graph_is_map c).2
 
-/-- **The copairing exists.**  `caseRel` is functional + total, hence the graph of a unique
-    `c : A+B → X`; the β-laws come from the two partial-graph factorizations. -/
-theorem coprod_case_exists {A B X : 𝒞} (f : A ⟶ X) (g : B ⟶ X) :
-    ∃ c : coprodObj A B ⟶ X, coprodInl A B ≫ c = f ∧ coprodInr A B ≫ c = g := by
-  -- `caseRel` is functional (colA monic) and total (colA a cover), hence the graph of a
-  -- unique `c`, with `caseRel.colA ≫ c = caseRel.colB`.
-  obtain ⟨c, ⟨⟨h, hhA, hhB⟩, _⟩, _⟩ :=
-    functional_total_relation_is_graph (caseRel f g) (caseRel_colA_monic f g) (caseRel_colA_cover f g)
-  -- `RelHom (caseRel) (graph c)`: `h ≫ id = caseRel.colA`, `h ≫ c = caseRel.colB`.
-  -- so `caseRel.colA ≫ c = colB`.
-  have hkey : (caseRel f g).colA ≫ c = (caseRel f g).colB := by
-    have hh : h = (caseRel f g).colA := by
-      have := hhA; dsimp [graph] at this; rwa [Cat.comp_id] at this
-    have := hhB; dsimp [graph] at this; rw [hh] at this; exact this
-  refine ⟨c, ?_, ?_⟩
-  · -- `pair inl f` factors through the union carrier; precompose `hkey`.
-    obtain ⟨t, ht⟩ := HasSubobjectUnions.union_left (graphInlSub f) (graphInrSub g)
-    -- ht : t ≫ (caseUnionSub f g).arr = (graphInlSub f).arr = (image (pair inl f)).arr
-    let s : A ⟶ (caseRel f g).src := image.lift (pair (coprodInl A B) f) ≫ t
-    have hsU : s ≫ (caseUnionSub f g).arr = pair (coprodInl A B) f := by
-      show (image.lift (pair (coprodInl A B) f) ≫ t) ≫ (caseUnionSub f g).arr = _
-      rw [Cat.assoc]
-      show image.lift (pair (coprodInl A B) f) ≫ (t ≫ (HasSubobjectUnions.union (graphInlSub f) (graphInrSub g)).arr) = _
-      rw [ht]; exact image.lift_fac _
-    have hsA : s ≫ (caseRel f g).colA = coprodInl A B := by
-      show s ≫ ((caseUnionSub f g).arr ≫ fst) = coprodInl A B
-      rw [← Cat.assoc, hsU]; exact fst_pair _ _
-    have hsB : s ≫ (caseRel f g).colB = f := by
-      show s ≫ ((caseUnionSub f g).arr ≫ snd) = f
-      rw [← Cat.assoc, hsU]; exact snd_pair _ _
-    calc coprodInl A B ≫ c = (s ≫ (caseRel f g).colA) ≫ c := by rw [hsA]
-      _ = s ≫ ((caseRel f g).colA ≫ c) := Cat.assoc _ _ _
-      _ = s ≫ (caseRel f g).colB := by rw [hkey]
-      _ = f := hsB
-  · obtain ⟨t, ht⟩ := HasSubobjectUnions.union_right (graphInlSub f) (graphInrSub g)
-    let s : B ⟶ (caseRel f g).src := image.lift (pair (coprodInr A B) g) ≫ t
-    have hsU : s ≫ (caseUnionSub f g).arr = pair (coprodInr A B) g := by
-      show (image.lift (pair (coprodInr A B) g) ≫ t) ≫ (caseUnionSub f g).arr = _
-      rw [Cat.assoc]
-      show image.lift (pair (coprodInr A B) g) ≫ (t ≫ (HasSubobjectUnions.union (graphInlSub f) (graphInrSub g)).arr) = _
-      rw [ht]; exact image.lift_fac _
-    have hsA : s ≫ (caseRel f g).colA = coprodInr A B := by
-      show s ≫ ((caseUnionSub f g).arr ≫ fst) = coprodInr A B
-      rw [← Cat.assoc, hsU]; exact fst_pair _ _
-    have hsB : s ≫ (caseRel f g).colB = g := by
-      show s ≫ ((caseUnionSub f g).arr ≫ snd) = g
-      rw [← Cat.assoc, hsU]; exact snd_pair _ _
-    calc coprodInr A B ≫ c = (s ≫ (caseRel f g).colA) ≫ c := by rw [hsA]
-      _ = s ≫ ((caseRel f g).colA ≫ c) := Cat.assoc _ _ _
-      _ = s ≫ (caseRel f g).colB := by rw [hkey]
-      _ = g := hsB
-
 /-! ## GOAL 3 (assembled) — a topos has binary coproducts
 
   The carrier `A+B = coprodObj A B`, injections `coprodInl`/`coprodInr`, copairing
-  `case f g := (coprod_case_exists f g).choose` with its two β-laws (`.choose_spec`) and
+  `case f g := (case_morphism_exists f g).choose` with its two β-laws (`.choose_spec`) and
   uniqueness `coprod_jointly_epi`.  Sorry-free; axioms `[propext, Classical.choice]`. -/
 noncomputable instance toposHasBinaryCoproducts : HasBinaryCoproducts 𝒞 where
   coprod   := coprodObj
   inl      := coprodInl _ _
   inr      := coprodInr _ _
-  case f g := (coprod_case_exists f g).choose
-  case_inl f g := (coprod_case_exists f g).choose_spec.1
-  case_inr f g := (coprod_case_exists f g).choose_spec.2
-  case_uniq f g h hl hr := coprod_jointly_epi h ((coprod_case_exists f g).choose)
-    (by rw [hl, (coprod_case_exists f g).choose_spec.1])
-    (by rw [hr, (coprod_case_exists f g).choose_spec.2])
+  case f g := (case_morphism_exists f g).choose
+  case_inl f g := (case_morphism_exists f g).choose_spec.1
+  case_inr f g := (case_morphism_exists f g).choose_spec.2
+  case_uniq f g h hl hr := coprod_jointly_epi h ((case_morphism_exists f g).choose)
+    (by rw [hl, (case_morphism_exists f g).choose_spec.1])
+    (by rw [hr, (case_morphism_exists f g).choose_spec.2])
 
 end Freyd

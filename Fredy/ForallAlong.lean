@@ -53,7 +53,7 @@ noncomputable def forallChar {A B : 𝒞} (f : A ⟶ B) (S : Subobject 𝒞 A) :
 /-- **`∀_f S` — the internal universal image of `S` along `f`.**  Pullback of `true` along
     `forallChar f S` (so it is classified by `forallChar f S`). -/
 noncomputable def forallAlong {A B : 𝒞} (f : A ⟶ B) (S : Subobject 𝒞 A) : Subobject 𝒞 B :=
-  InverseImage (forallChar f S) ⟨one, true (𝒞 := 𝒞), true_monic⟩
+  InverseImage (forallChar f S) ⟨one, true (𝒞 := 𝒞), HasSubobjectClassifier.true_monic⟩
 
 theorem classify_forallAlong {A B : 𝒞} (f : A ⟶ B) (S : Subobject 𝒞 A) :
     HasSubobjectClassifier.classify (forallAlong f S).arr (forallAlong f S).monic

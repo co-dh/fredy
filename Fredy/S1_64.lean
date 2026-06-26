@@ -420,7 +420,7 @@ theorem equivalenceRelation_of_isEquivRel {𝒞 : Type u} [Cat.{v} 𝒞]
     obtain ⟨⟨w, hwA, hwB⟩⟩ := hRefl
     exact ⟨w, by simpa [graph] using hwA, by simpa [graph] using hwB⟩
   · -- symmetry: E° ⊑ E  ⟹  E ⊑ E°  (reciprocate, use involution).
-    have h2 : RelLe (E°°) (E°) := reciprocal_monotone hSym
+    have h2 : RelLe (E°°) (E°) := reciprocal_mono hSym
     rwa [reciprocal_invol] at h2
 
 /-- Reverse bridge: §1.567 `EquivalenceRelation` ⟹ §1.775 `IsEquivRel`. -/
@@ -431,7 +431,7 @@ theorem isEquivRel_of_equivalenceRelation {𝒞 : Type u} [Cat.{v} 𝒞]
   refine ⟨?_, ?_, htrans⟩
   · exact ⟨⟨hsec, by simpa [graph] using hsA, by simpa [graph] using hsB⟩⟩
   · -- field gives E ⊑ E°; reciprocate to E° ⊑ E.
-    have h2 : RelLe (E°) (E°°) := reciprocal_monotone ⟨hsym⟩
+    have h2 : RelLe (E°) (E°°) := reciprocal_mono ⟨hsym⟩
     rwa [reciprocal_invol] at h2
 
 /-- **§1.775/§1.657 (the `HasReflTransClosure` payoff)**: a category with all reflexive-transitive
@@ -461,7 +461,7 @@ theorem minEquiv_of_rtc {𝒞 : Type u} [Cat.{v} 𝒞]
   -- (graph id)° ⊑ Rsym:  (graph id)° ⊑ graph id ⊑ Rsym.
   have hIdop_le_Rsym : RelLe ((graph (Cat.id A))°) Rsym := by
     have h0 : RelLe ((graph (Cat.id A))°) ((graph (Cat.id A))°°) :=
-      reciprocal_monotone graph_id_le_reciprocal
+      reciprocal_mono graph_id_le_reciprocal
     rw [reciprocal_invol] at h0
     exact rel_le_trans h0 hId_le_Rsym
   -- Rsym is symmetric: Rsym° ⊑ Rsym (distribute ° over ∪ᵣ, each piece lands in Rsym).
@@ -534,7 +534,7 @@ private theorem compose_union_left [PreLogos 𝒞] [HasBinaryCoproducts 𝒞]
   have h5 : RelLe (((T ⊚ U)°) ∪ᵣ ((S ⊚ U)°)) (((S ⊚ U) ∪ᵣ (T ⊚ U))°) :=
     relUnion_reciprocal_le (S ⊚ U) (T ⊚ U)
   have hrec := rel_le_trans h1 (rel_le_trans h2 (rel_le_trans h3 (rel_le_trans h4 h5)))
-  have := reciprocal_monotone hrec
+  have := reciprocal_mono hrec
   rwa [reciprocal_invol, reciprocal_invol] at this
 
 /-- DISJOINTNESS VANISHING (§1.62 positivity): if `R`'s right column factors through `inl`
@@ -783,7 +783,7 @@ private theorem amalgamation_F_equiv [PreToposDisjoint 𝒞] {M : 𝒞} (R₀ : 
       · rw [reciprocal_invol]; exact hRF
       · refine rel_le_trans e2 (le_relUnion hRopF ?_)
         refine rel_le_trans ?_ hΔF
-        have h := reciprocal_monotone (graph_id_le_reciprocal (A := M))
+        have h := reciprocal_mono (graph_id_le_reciprocal (A := M))
         rwa [reciprocal_invol] at h
     exact rel_le_trans e1 e3
   · show RelLe (F ⊚ F) F
@@ -945,10 +945,10 @@ theorem amalgamation_lemma [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞]
   have hR₀P : RelLe R₀ ((graph xi)° ⊚ (graph yi)) := image_pair_le_recip_comp xi yi
   -- The four cross-composite bounds for the generated relation `F = 1 ∪ R₀ ∪ R₀°`.
   have hRRop : RelLe (R₀ ⊚ R₀°) (graph (Cat.id (HasBinaryCoproducts.coprod B C))) :=
-    rel_le_trans (compose_le hR₀P (reciprocal_monotone hR₀P))
+    rel_le_trans (compose_le hR₀P (reciprocal_mono hR₀P))
       (comp_recip_self_le_diag xi yi hyi)
   have hRopR : RelLe (R₀° ⊚ R₀) (graph (Cat.id (HasBinaryCoproducts.coprod B C))) :=
-    rel_le_trans (compose_le (reciprocal_monotone hR₀P) hR₀P) (diag_le_one xi yi hxi)
+    rel_le_trans (compose_le (reciprocal_mono hR₀P) hR₀P) (diag_le_one xi yi hxi)
   have hRR : RelLe (R₀ ⊚ R₀) (graph (Cat.id (HasBinaryCoproducts.coprod B C))) :=
     relLe_of_relSub_le_bottom (relSub_comp_le_bottom_mirror R₀ R₀ tB htB tA htA)
   have hRopRop : RelLe (R₀° ⊚ R₀°) (graph (Cat.id (HasBinaryCoproducts.coprod B C))) :=
@@ -973,7 +973,7 @@ theorem amalgamation_lemma [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞]
       kernelPairRel_le_graphComp (j ≫ q)
     have s1 : RelLe (graph (j ≫ q)) (graph j ⊚ graph q) := graph_comp j q
     have s2 : RelLe ((graph (j ≫ q))°) ((graph q)° ⊚ (graph j)°) :=
-      rel_le_trans (reciprocal_monotone s1) (reciprocal_comp_le (graph j) (graph q))
+      rel_le_trans (reciprocal_mono s1) (reciprocal_comp_le (graph j) (graph q))
     have s3 : RelLe (graph (j ≫ q) ⊚ (graph (j ≫ q))°)
         ((graph j ⊚ graph q) ⊚ ((graph q)° ⊚ (graph j)°)) := compose_le s1 s2
     have s4 : RelLe ((graph j ⊚ graph q) ⊚ ((graph q)° ⊚ (graph j)°))
@@ -1095,10 +1095,10 @@ theorem amalgamation_is_pullback [PreToposDisjoint 𝒞] [HasReflTransClosure �
   -- The four cross bounds + F-equivalence + E ⊆ F (verbatim from §1.651).
   have hR₀P : RelLe R₀ ((graph xi)° ⊚ (graph yi)) := image_pair_le_recip_comp xi yi
   have hRRop : RelLe (R₀ ⊚ R₀°) (graph (Cat.id (HasBinaryCoproducts.coprod B C))) :=
-    rel_le_trans (compose_le hR₀P (reciprocal_monotone hR₀P))
+    rel_le_trans (compose_le hR₀P (reciprocal_mono hR₀P))
       (comp_recip_self_le_diag xi yi hyi)
   have hRopR : RelLe (R₀° ⊚ R₀) (graph (Cat.id (HasBinaryCoproducts.coprod B C))) :=
-    rel_le_trans (compose_le (reciprocal_monotone hR₀P) hR₀P) (diag_le_one xi yi hxi)
+    rel_le_trans (compose_le (reciprocal_mono hR₀P) hR₀P) (diag_le_one xi yi hxi)
   have hRR : RelLe (R₀ ⊚ R₀) (graph (Cat.id (HasBinaryCoproducts.coprod B C))) :=
     relLe_of_relSub_le_bottom (relSub_comp_le_bottom_mirror R₀ R₀ tB htB tA htA)
   have hRopRop : RelLe (R₀° ⊚ R₀°) (graph (Cat.id (HasBinaryCoproducts.coprod B C))) :=
@@ -1156,7 +1156,7 @@ theorem amalgamation_is_pullback [PreToposDisjoint 𝒞] [HasReflTransClosure �
     have hL : RelLe (graph inl' ⊚ (graph xi)°) ((graph m)°) := by
       have hxirec : RelLe ((graph xi)°) ((graph inl')° ⊚ (graph m)°) := by
         refine rel_le_trans ?_ (rel_le_trans (reciprocal_comp_le (graph m) (graph inl')) ?_)
-        · exact reciprocal_monotone (show RelLe (graph xi) (graph m ⊚ graph inl') from graph_comp m inl')
+        · exact reciprocal_mono (show RelLe (graph xi) (graph m ⊚ graph inl') from graph_comp m inl')
         · exact rel_le_refl _
       refine rel_le_trans (compose_le (rel_le_refl _) hxirec) ?_
       refine rel_le_trans (compose_assoc_of_regular (graph inl') ((graph inl')°) ((graph m)°)).2 ?_
@@ -1663,7 +1663,7 @@ theorem monic_epic_is_cover [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞] {
     -- u ⊚ u° ≤ (graph inl ⊚ graph q) ⊚ (graph inr ⊚ graph q)°: left factor via graph_comp,
     -- right factor via u = v (u° = v° ≤ (graph inr ⊚ graph q)°).
     have hrecv : RelLe ((graph (inl' ≫ q))°) ((graph inr' ⊚ graph q)°) := by
-      have h := reciprocal_monotone (graph_comp inr' q)  -- (graph(inr≫q))° ≤ (graph inr ⊚ graph q)°
+      have h := reciprocal_mono (graph_comp inr' q)  -- (graph(inr≫q))° ≤ (graph inr ⊚ graph q)°
       rwa [show inr' ≫ q = inl' ≫ q from huv.symm] at h
     have h1 : RelLe (graph (inl' ≫ q) ⊚ (graph (inl' ≫ q))°)
         ((graph inl' ⊚ graph q) ⊚ ((graph inr' ⊚ graph q)°)) :=
@@ -1709,10 +1709,10 @@ theorem monic_epic_is_cover [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞] {
     exact ⟨t, ht⟩
   have hR₀P : RelLe R₀ ((graph xi)° ⊚ (graph yi)) := image_pair_le_recip_comp xi yi
   have hRRop : RelLe (R₀ ⊚ R₀°) (graph (Cat.id (HasBinaryCoproducts.coprod B B))) :=
-    rel_le_trans (compose_le hR₀P (reciprocal_monotone hR₀P))
+    rel_le_trans (compose_le hR₀P (reciprocal_mono hR₀P))
       (comp_recip_self_le_diag xi yi hyi)
   have hRopR : RelLe (R₀° ⊚ R₀) (graph (Cat.id (HasBinaryCoproducts.coprod B B))) :=
-    rel_le_trans (compose_le (reciprocal_monotone hR₀P) hR₀P) (diag_le_one xi yi hxi)
+    rel_le_trans (compose_le (reciprocal_mono hR₀P) hR₀P) (diag_le_one xi yi hxi)
   have hRR : RelLe (R₀ ⊚ R₀) (graph (Cat.id (HasBinaryCoproducts.coprod B B))) :=
     relLe_of_relSub_le_bottom (relSub_comp_le_bottom_mirror R₀ R₀ tB htB tA htA)
   have hRopRop : RelLe (R₀° ⊚ R₀°) (graph (Cat.id (HasBinaryCoproducts.coprod B B))) :=
@@ -1772,9 +1772,9 @@ theorem monic_epic_is_cover [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞] {
     -- inl ⊚ xi° = inl ⊚ (inl° ⊚ m°) ≤ (inl ⊚ inl°) ⊚ m° ≤ m° (inl monic).
     have hL : RelLe (graph inl' ⊚ (graph xi)°) ((graph m)°) := by
       have hxirec : RelLe ((graph xi)°) ((graph inl')° ⊚ (graph m)°) := by
-        have h := reciprocal_monotone (comp_graph m inl')  -- graph m ⊚ graph inl ≤ graph (m≫inl)=graph xi
+        have h := reciprocal_mono (comp_graph m inl')  -- graph m ⊚ graph inl ≤ graph (m≫inl)=graph xi
         refine rel_le_trans ?_ (rel_le_trans (reciprocal_comp_le (graph m) (graph inl')) ?_)
-        · exact reciprocal_monotone (show RelLe (graph xi) (graph m ⊚ graph inl') from graph_comp m inl')
+        · exact reciprocal_mono (show RelLe (graph xi) (graph m ⊚ graph inl') from graph_comp m inl')
         · exact rel_le_refl _
       refine rel_le_trans (compose_le (rel_le_refl _) hxirec) ?_
       refine rel_le_trans (compose_assoc_of_regular (graph inl') ((graph inl')°) ((graph m)°)).2 ?_
@@ -1920,7 +1920,7 @@ private theorem cover_transport_mono [PreToposDisjoint 𝒞] [HasReflTransClosur
     have h1 : RelLe (E°) ((graph e)°° ⊚ (graph e)°) := reciprocal_comp_le (graph e) ((graph e)°)
     rw [reciprocal_invol] at h1; exact h1
   have hEsym' : RelLe E (E°) := by
-    have h2 := reciprocal_monotone hEsym; rwa [reciprocal_invol] at h2
+    have h2 := reciprocal_mono hEsym; rwa [reciprocal_invol] at h2
   have hEtrans : RelLe (E ⊚ E) E := by
     have h1 : RelLe (kernelPairRel e) E := kernelPairRel_le_graphComp e
     have h2 : RelLe E (kernelPairRel e) := graphComp_le_kernelPairRel e
@@ -1987,7 +1987,7 @@ private theorem cover_transport_mono [PreToposDisjoint 𝒞] [HasReflTransClosur
       apply le_relUnion
       · exact rel_le_trans hR₀sym hRE'
       · -- Δ° ⊂ Δ ⊂ E'.
-        have h0 : RelLe (Δ°) (Δ°°) := reciprocal_monotone graph_id_le_reciprocal
+        have h0 : RelLe (Δ°) (Δ°°) := reciprocal_mono graph_id_le_reciprocal
         rw [reciprocal_invol] at h0
         exact rel_le_trans h0 hΔE'
     · -- transitivity: E'⊚E' ⊂ E'  (four pieces ΔΔ, ΔR₀, R₀Δ, R₀R₀).
@@ -2051,7 +2051,7 @@ private theorem cover_transport_mono [PreToposDisjoint 𝒞] [HasReflTransClosur
   have hge2 : RelLe (graph (y ≫ c') ⊚ (graph (y ≫ c'))°) E := by
     have gc : RelLe (graph (y ≫ c')) (graph y ⊚ graph c') := graph_comp y c'
     have gcr : RelLe ((graph (y ≫ c'))°) ((graph c')° ⊚ (graph y)°) :=
-      rel_le_trans (reciprocal_monotone gc) (reciprocal_comp_le (graph y) (graph c'))
+      rel_le_trans (reciprocal_mono gc) (reciprocal_comp_le (graph y) (graph c'))
     have t1 : RelLe (graph (y ≫ c') ⊚ (graph (y ≫ c'))°)
         ((graph y ⊚ graph c') ⊚ ((graph c')° ⊚ (graph y)°)) := compose_le gc gcr
     -- reassociate to graph y ⊚ ((graph c' ⊚ graph c'°) ⊚ graph y°).

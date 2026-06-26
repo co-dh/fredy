@@ -22,7 +22,7 @@
     (4) `[B]` and `Ω` baseable + §1.859 equalizer-closure
         (`baseable_equalizer_is_baseable`) ⟹ `B` baseable.
 
-  ⟹ `power_objects_imply_all_baseable : ∀ B, Baseable B`, which `S1_92` feeds to
+  ⟹ `all_baseable : ∀ B, Baseable B`, which `S1_92` feeds to
   `exponentials_of_all_baseable` to close `topos_has_exponentials`.  Axiom profile
   of the whole line: `Classical.choice` only — NO `SorryAx`.
 -/
@@ -734,16 +734,6 @@ theorem all_baseable (B : 𝒞) : Baseable B := by
     rw [Cat.id_comp, eqLift_fac χ c m hmeq, he'm]
 
 end WithClassifier
-
-/-- **§1.923 (KEYSTONE INPUT)**: in a topos every object is baseable — Freyd's
-    actual Kock-style argument, now SORRY-FREE.  `[B]` and `Ω` are baseable
-    (`baseable_powerObj`, `baseable_omega`), `B` is their equalizer
-    (`all_baseable`), and §1.859 closes the equalizer.  This replaces the earlier
-    D1/D2 stub route (subobject-classifier-from-power-object + functional-relation
-    subobject), which is unnecessary under Kock's simplification. -/
-theorem power_objects_imply_all_baseable [Topos 𝒞] :
-    ∀ B : 𝒞, Baseable B :=
-  all_baseable
 
 end Baseable923
 

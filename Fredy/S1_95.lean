@@ -394,7 +394,7 @@ noncomputable instance topos_is_effective [Topos 𝒞] : EffectiveRegular 𝒞 :
 
     The SINGLE remaining piece is the copairing existence
 
-        coprod_case_exists {A B X} (f : A ⟶ X) (g : B ⟶ X) :
+        case_morphism_exists {A B X} (f : A ⟶ X) (g : B ⟶ X) :
           ∃ c, coprodInl A B ≫ c = f ∧ coprodInr A B ≫ c = g
 
     — Freyd's §1.935 amalgamation: GLUE `f,g` into one map out of `A+B`.  This is NOT
@@ -408,7 +408,7 @@ noncomputable instance topos_is_effective [Topos 𝒞] : EffectiveRegular 𝒞 :
 
     Because `HasBinaryCoproducts` is all-or-nothing (carrier + lawful `case`/`case_uniq`),
     no honest partial instance can be supplied without faking `case`.  Once
-    `coprod_case_exists` lands, `case := …choose`, the β-laws are `…choose_spec`,
+    `case_morphism_exists` lands, `case := …choose`, the β-laws are `…choose_spec`,
     `case_uniq := coprod_jointly_epi`, assembling
     `toposHasBinaryCoproducts : HasBinaryCoproducts 𝒞`, after which this becomes
     `exact toposHasBinaryCoproducts`. -/
@@ -507,7 +507,7 @@ noncomputable instance topos_has_coequalizers [Topos 𝒞] : HasCoequalizers �
     `HasReflTransClosure 𝒞` glb-existence instance (§1.54).  Once that lands, this is
     `{ (inferInstance : CartesianCategory 𝒞), … with }`. -/
 noncomputable instance topos_is_bicartesian [Topos 𝒞] : BicartesianCategory 𝒞 := by
-  letI hCot : HasCoterminator 𝒞 := Classical.choice topos_has_strict_coterminator
+  letI hCot : HasCoterminator 𝒞 := Classical.choice topos_has_coterminator
   letI hEq : HasEqualizers 𝒞 := products_pullbacks_implies_equalizers
   letI hCart : CartesianCategory 𝒞 := { }
   exact { hCart, hCot,
@@ -555,7 +555,7 @@ theorem omega_is_injective [Topos 𝒞] :
   have hsq_m : m ≫ g = term cone.pt ≫ HasSubobjectClassifier.true :=
     cone.w.trans (congrArg (· ≫ HasSubobjectClassifier.true) (term_uniq cone.π₂ (term cone.pt)))
   have hg : g = HasSubobjectClassifier.classify m hm :=
-    classify_eq_of_pullback m hm g hsq_m (by
+    HasSubobjectClassifier.classify_unique m hm g hsq_m (by
       -- the chosen cone is a pullback; replace its π₂ by `term` (terminal uniqueness)
       have hpb := (HasPullbacks.has g (HasSubobjectClassifier.true (𝒞 := 𝒞))).cone_isPullback
       intro d
@@ -569,7 +569,7 @@ theorem omega_is_injective [Topos 𝒞] :
   have hsq_fh : m ≫ (f ≫ HasSubobjectClassifier.classify (m ≫ f) (mono_comp hm hf))
       = term cone.pt ≫ HasSubobjectClassifier.true := by
     rw [← Cat.assoc, HasSubobjectClassifier.classify_sq (m ≫ f) (mono_comp hm hf)]
-  refine classify_eq_of_pullback m hm _ hsq_fh ?_
+  refine HasSubobjectClassifier.classify_unique m hm _ hsq_fh ?_
   -- (S, m, term) is a pullback of (f ≫ classify(m≫f), true)
   · intro d
     -- d.π₁ : d.pt → A with d.π₁ ≫ (f ≫ classify(m≫f)) = d.π₂ ≫ true
@@ -799,7 +799,7 @@ theorem classRel_eq_recip_graph {A B : 𝒞} (f : A ⟶ B) :
 theorem directImageOmega_unit {A B : 𝒞} (f : A ⟶ B) (hf : Monic f) :
     directImageOmega f ≫ expMap _ f = Cat.id _ := by
   classical
-  letI : RegularCategory 𝒞 := Classical.choice (topos_is_regular (𝒞 := 𝒞))
+  letI : RegularCategory 𝒞 := Classical.choice (topos_is_regular_real (𝒞 := 𝒞))
   let Ω := HasSubobjectClassifier.omega (𝒞 := 𝒞)
   let s := directImageOmega f
   -- `χ`: the inverse-image classifier; `expMap Ω f = curry χ` definitionally.
@@ -910,7 +910,7 @@ theorem omega_is_internally_injective [Topos 𝒞] :
     IsInternallyInjective (𝒞 := 𝒞) (HasSubobjectClassifier.omega (𝒞 := 𝒞)) := by
   intro A B f hf
   classical
-  letI : RegularCategory 𝒞 := Classical.choice (topos_is_regular (𝒞 := 𝒞))
+  letI : RegularCategory 𝒞 := Classical.choice (topos_is_regular_real (𝒞 := 𝒞))
   -- Reduce to the genuine residual: a section `s : Ω^A → Ω^B` of the inverse-image map
   -- `Ω^f = expMap Ω f`.  The section is Freyd's direct image `f"`; the cover step then
   -- follows from `cover_of_section`.
@@ -1164,7 +1164,7 @@ theorem relPullback_singleton_evalRel [Topos 𝒞] (B : 𝒞) :
     witness `w` with `w ≫ id = id` and `w ≫ g = f`, hence `w = id` and `f = g`. -/
 theorem omega_internally_cogenerates [Topos 𝒞] : InternallyCogenerates (𝒞 := 𝒞) (HasSubobjectClassifier.omega (𝒞 := 𝒞)) := by
   classical
-  letI : RegularCategory 𝒞 := Classical.choice (topos_is_regular (𝒞 := 𝒞))
+  letI : RegularCategory 𝒞 := Classical.choice (topos_is_regular_real (𝒞 := 𝒞))
   intro A B f g heq
   let Ω := HasSubobjectClassifier.omega (𝒞 := 𝒞)
   -- `φ_h := Δ₁(B) ≫ Ω^h : B → Ω^A`, and the relation it names is `(graph h)°`.

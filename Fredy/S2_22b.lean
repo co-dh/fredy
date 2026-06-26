@@ -251,13 +251,6 @@ theorem tabulation_of_split_apex {a b c d : 𝒜}
   • CONVERSE: given a pre-tabular containment and a splitting of the apex coreflexive
     of an apex-saturated `R`, `R` is tabular (`tabulation_of_split_apex`). -/
 
-/-- **§2.166 (forward)**: in a tabular allegory every coreflexive splits (§2.163).
-    The splitting map `g : c → a` satisfies `g° ≫ g = A`, `g ≫ g° = 1_c`. -/
-theorem tabular_coreflexives_split {𝒜 : Type u} [TabularAllegory 𝒜] {a : 𝒜}
-    {A : a ⟶ a} (hcor : Coreflexive A) :
-    ∃ (c : 𝒜) (g : c ⟶ a), Map g ∧ g° ≫ g = A ∧ g ≫ g° = Cat.id c :=
-  coreflexive_splits hcor
-
 /-- **§2.166 (converse, apex-saturated form)**: a containment `R ⊑ U` whose apex
     coreflexive splits, and which is apex-saturated, is tabular. -/
 theorem tabular_of_split_apex {a b c d : 𝒜}
@@ -321,16 +314,6 @@ theorem spl_equivalence_splits {E : SplObj 𝒜} (Φ : SplHom E E)
     ∃ (G : SplObj 𝒜) (leg : SplHom E G),
       splComp leg (splRecip leg) = Φ ∧ splComp (splRecip leg) leg = splId G :=
   ⟨Φ.splitObj hsym hidem, Φ.splitLeg hsym hidem, Φ.split_symmetric_idempotent hsym hidem⟩
-
-/-- **§2.163 / §2.169**: every coreflexive of `Spl 𝒜` splits (it is a symmetric
-    idempotent), so `Spl 𝒜` is tabular at coreflexives — the §2.166 hypothesis that
-    drives tabularity.  A coreflexive `Φ ⊑ 1_E` of `Spl 𝒜` with `Φ.R° = Φ.R`,
-    `Φ.R ≫ Φ.R = Φ.R` splits. -/
-theorem spl_coreflexive_splits {E : SplObj 𝒜} (Φ : SplHom E E)
-    (hsym : Φ.R° = Φ.R) (hidem : Φ.R ≫ Φ.R = Φ.R) :
-    ∃ (G : SplObj 𝒜) (leg : SplHom E G),
-      splComp leg (splRecip leg) = Φ ∧ splComp (splRecip leg) leg = splId G :=
-  spl_equivalence_splits Φ hsym hidem
 
 /-! ## §2.169  `Spl 𝒜` is effective in the `EffectiveAllegory` shape
 

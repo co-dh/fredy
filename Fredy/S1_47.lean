@@ -530,13 +530,6 @@ theorem special_implies_prodEndo_faithful [SpecialCartesianCategory 𝒞] (B : �
   intro A' A m hm
   exact SpecialCartesianCategory.special m n hm hn
 
-/-- **§1.472 (⟹, ambient-products form)**: `IsSpecial 𝒞` (the §1.47 predicate over the in-scope
-    products) gives B×- faithful for every B with a proper subobject.  Phrased with `IsSpecial`
-    rather than `[SpecialCartesianCategory 𝒞]` so that the single ambient product structure stays
-    in scope — this is what lets the §1.472/§1.473/§1.474 equivalences below go through. -/
-theorem isSpecial_implies_prodEndo_faithful [CartesianCategory 𝒞] (h : IsSpecial 𝒞) (B : 𝒞)
-    (hB : ∃ (B' : 𝒞) (n : B' ⟶ B), ProperMono n) : Faithful (prodEndo B) :=
-  prodEndo_faithful_of_embedding h B hB
 
 /-- **§1.472**: A Cartesian category is special iff for every B with a proper subobject,
     B×- is faithful.  Uses the `IsSpecial` predicate (over the ambient products) on the left;
@@ -548,7 +541,7 @@ theorem special_iff_prodEndo_faithful [CartesianCategory 𝒞] :
       Faithful (prodEndo B)) := by
   constructor
   · intro h B hB
-    exact isSpecial_implies_prodEndo_faithful h B hB
+    exact prodEndo_faithful_of_embedding h B hB
   · intro hF
     intro A' A B' B m n hm hn
     haveI : HasPullbacks 𝒞 := ⟨fun f g => products_equalizers_implies_pullbacks f g⟩
@@ -733,7 +726,7 @@ theorem oneValued_special_prodEndo_faithful [CartesianCategory 𝒞] (hSp : IsSp
       exact h_not_iso (h1v B h_sub)
     -- B×B has proper subobj diag B → special gives `Faithful (prodEndo (B×B))`.
     have hBB_faithful : Faithful (prodEndo (prod B B)) :=
-      isSpecial_implies_prodEndo_faithful hSp (prod B B) ⟨B, diag B, h_diag_proper⟩
+      prodEndo_faithful_of_embedding hSp (prod B B) ⟨B, diag B, h_diag_proper⟩
     exact prodEndo_faithful_of_prodEndoBB_faithful B hBB_faithful
 
 /-- **§1.473**: A one-valued Cartesian category is special iff B×- is faithful for all B.
@@ -802,7 +795,7 @@ theorem fst_prodZero_mono [CartesianCategory 𝒞] {Z : 𝒞} (hZ : Monic (term 
     `B×0 ≅ 0`, i.e. `snd : B×0 → 0` is iso — which is precisely strictness of `0` (every map
     into `0` is iso, §1.58): if `fst : B×0 → B` were iso then `fst⁻¹ ≫ snd : B → 0` would be
     iso, contradicting `hB` (`B ≇ 0`).  Given that proper subobject, §1.472
-    (`isSpecial_implies_prodEndo_faithful`) yields `Faithful (prodEndo B)`. -/
+    (`prodEndo_faithful_of_embedding`) yields `Faithful (prodEndo B)`. -/
 theorem twoValued_special_prodEndo_faithful [CartesianCategory 𝒞] (hSp : IsSpecial 𝒞)
     (h2v : TwoValued (𝒞 := 𝒞)) (B : 𝒞)
     (hB : ¬ ∃ (e : B ⟶ h2v.zeroObj), IsIso e) :
@@ -825,7 +818,7 @@ theorem twoValued_special_prodEndo_faithful [CartesianCategory 𝒞] (hSp : IsSp
     obtain ⟨fi, hfi1, hfi2⟩ := hfst_iso
     -- `fi ≫ snd : B → 0` is iso (composite of the iso `fi` and the iso `snd`).
     exact hB ⟨fi ≫ snd, isIso_comp ⟨fst, hfi2, hfi1⟩ hstrict⟩
-  exact isSpecial_implies_prodEndo_faithful hSp B ⟨_, _, hproper⟩
+  exact prodEndo_faithful_of_embedding hSp B ⟨_, _, hproper⟩
 
 /-- **§1.474**: A two-valued Cartesian category is special iff B×- is faithful for all B
     not isomorphic to the zero object. -/

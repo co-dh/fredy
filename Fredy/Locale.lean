@@ -72,11 +72,6 @@ variable (F : Frame.{u})
 
 /-! ### Basic order facts -/
 
-theorem le_refl' (a : F.carrier) : F.le a a := F.le_refl a
-
-theorem le_antisymm' {a b : F.carrier} (h1 : F.le a b) (h2 : F.le b a) : a = b :=
-  F.le_antisymm h1 h2
-
 /-- `sSup ∅ = bot` (join of empty family = bottom). -/
 theorem sSup_empty : F.sSup (fun _ => False) = F.bot :=
   F.le_antisymm

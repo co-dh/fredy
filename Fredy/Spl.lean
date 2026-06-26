@@ -85,14 +85,10 @@ open Cat
 
 -- BOOK §2.166: 𝒜 pre-tabular → SplObj 𝒜 tabular (§2.166: tabular ↔ pre-tabular + coref split).
 -- TODO §2.166: Relies on §2.165.  The coreflexive-splitting half is available
---   (`spl_coreflexive_splits`, `tabulation_of_split_apex`) but §2.165 is blocked.
+--   (`spl_equivalence_splits`, `tabulation_of_split_apex`) but §2.165 is blocked.
 
-/-! ## §2.167  The embedding `𝒜 ↪ SplObj 𝒜` and the tabular reflection -/
-
-/-- **§2.167**: the embedding `𝒜 ↪ SplObj 𝒜` is faithful. Re-export from `S2_21`. -/
-theorem spl_embedding_faithful {𝒜 : Type u} [Allegory 𝒜] {a b : 𝒜} {R S : a ⟶ b}
-    (h : embHom R = embHom S) : R = S :=
-  embHom_injective h
+/-! ## §2.167  The embedding `𝒜 ↪ SplObj 𝒜` and the tabular reflection
+  Faithfulness: use `embHom_injective` from `S2_21`. -/
 
 /-! ## §2.169 (re-export)  Every equivalence relation of `SplObj 𝒜` splits as a map -/
 

@@ -255,23 +255,23 @@ theorem eval_curry_point {E A K : 𝒞} (h : prod E A ⟶ omega (𝒞 := 𝒞))
 /-- **§1.94 — the internal family big-intersection `⋂F`** for a family `F ↣ [A]` named
     by `Fname : 1 → [[A]]`.  It is the pullback of `true` along `bigInterChar Fname`. -/
 noncomputable def bigInter {A : 𝒞} (Fname : one ⟶ powObj (powObj A)) : Subobject 𝒞 A :=
-  InverseImage (bigInterChar Fname) ⟨one, true (𝒞 := 𝒞), true_monic⟩
+  InverseImage (bigInterChar Fname) ⟨one, true (𝒞 := 𝒞), HasSubobjectClassifier.true_monic⟩
 
 /-- **`InverseImage χ {true}` is classified by `χ`.**  General form of
     `classify_interIntersection`: the pullback of `true` along any `χ : A → Ω` has `χ`
     as its characteristic map. -/
 theorem classify_invImage_true {A : 𝒞} (χ : A ⟶ omega (𝒞 := 𝒞)) :
     HasSubobjectClassifier.classify
-        (InverseImage χ ⟨one, true (𝒞 := 𝒞), true_monic⟩).arr
-        (InverseImage χ ⟨one, true (𝒞 := 𝒞), true_monic⟩).monic = χ := by
+        (InverseImage χ ⟨one, true (𝒞 := 𝒞), HasSubobjectClassifier.true_monic⟩).arr
+        (InverseImage χ ⟨one, true (𝒞 := 𝒞), HasSubobjectClassifier.true_monic⟩).monic = χ := by
   symm
   let pb := HasPullbacks.has χ (HasSubobjectClassifier.true (𝒞 := 𝒞))
-  have hsq : (InverseImage χ ⟨one, true (𝒞 := 𝒞), true_monic⟩).arr ≫ χ
-      = term (InverseImage χ ⟨one, true (𝒞 := 𝒞), true_monic⟩).dom
+  have hsq : (InverseImage χ ⟨one, true (𝒞 := 𝒞), HasSubobjectClassifier.true_monic⟩).arr ≫ χ
+      = term (InverseImage χ ⟨one, true (𝒞 := 𝒞), HasSubobjectClassifier.true_monic⟩).dom
         ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
     show pb.cone.π₁ ≫ χ = _
     rw [pb.cone.w]; congr 1; exact term_uniq _ _
-  apply classify_eq_of_pullback _ _ χ hsq
+  apply HasSubobjectClassifier.classify_unique _ _ χ hsq
   intro d
   obtain ⟨u, ⟨hu₁, _⟩, huniq⟩ := pb.cone_isPullback d
   exact ⟨u, ⟨hu₁, term_uniq _ _⟩, fun v hv₁ _ => huniq v hv₁ (term_uniq _ _)⟩

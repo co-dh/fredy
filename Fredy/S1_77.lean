@@ -184,11 +184,6 @@ structure EquivClos [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞
   isEquiv : IsEquivRel clos
   minimal : ∀ (E : BinRel 𝒞 A A), RelLe R E → IsEquivRel E → RelLe clos E
 
-/-- Reciprocal is monotone: R ⊑ S → R° ⊑ S°.
-    The RelHom witness for R ⊑ S also witnesses R° ⊑ S° with its column equations swapped. -/
-theorem reciprocal_monotone {A B : 𝒞} {R S : BinRel 𝒞 A B} (h : RelLe R S) :
-    RelLe (R°) (S°) := by
-  rcases h with ⟨⟨w, hA, hB⟩⟩; exact ⟨⟨w, hB, hA⟩⟩
 
 /-- The reciprocal of the diagonal is the diagonal: graph(id) ⊑ (graph(id))°.
     Both have colA = colB = id, so the identity RelHom witnesses the containment. -/
@@ -220,13 +215,13 @@ def equivClos_from_symm_transRefClos [HasBinaryProducts 𝒞] [HasPullbacks 𝒞
       apply hr.minimal
       · -- Rsym ⊑ (Rsym*)°:  Rsym° ⊑ Rsym ⊑ Rsym*, reciprocate and use involution.
         have h1 : RelLe (Rsym°) hr.clos := rel_le_trans hSym hr.le
-        have h2 : RelLe (Rsym°°) (hr.clos°) := reciprocal_monotone h1
+        have h2 : RelLe (Rsym°°) (hr.clos°) := reciprocal_mono h1
         rwa [reciprocal_invol] at h2
       · -- (Rsym*)° reflexive:  graph(id) ⊑ (graph(id))° ⊑ (Rsym*)°.
-        exact rel_le_trans graph_id_le_reciprocal (reciprocal_monotone hr.refl)
+        exact rel_le_trans graph_id_le_reciprocal (reciprocal_mono hr.refl)
       · -- (Rsym*)° transitive:  (Rsym*)°(Rsym*)° ⊑ (Rsym* Rsym*)° ⊑ (Rsym*)°.
-        exact rel_le_trans (comp_reciprocal_le hr.clos hr.clos) (reciprocal_monotone hr.trans)
-    have h3 : RelLe (hr.clos°) (hr.clos°°) := reciprocal_monotone hle
+        exact rel_le_trans (comp_reciprocal_le hr.clos hr.clos) (reciprocal_mono hr.trans)
+    have h3 : RelLe (hr.clos°) (hr.clos°°) := reciprocal_mono hle
     rwa [reciprocal_invol] at h3,
    hr.trans⟩
   minimal := by
@@ -236,7 +231,7 @@ def equivClos_from_symm_transRefClos [HasBinaryProducts 𝒞] [HasPullbacks 𝒞
       apply hJoin
       · exact hRE
       · -- R° ⊑ E:  R° ⊑ E° ⊑ E  (E symmetric).
-        exact rel_le_trans (reciprocal_monotone hRE) hEquiv.2.1
+        exact rel_le_trans (reciprocal_mono hRE) hEquiv.2.1
       · exact hEquiv.1
     · exact hEquiv.1
     · exact hEquiv.2.2
@@ -276,12 +271,6 @@ structure RelQuot [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
   le      : RelLe (quot ⊚ S) R
   maximal : ∀ (T : BinRel 𝒞 A B), RelLe (T ⊚ S) R → RelLe T quot
 
-/-- Compose is monotone in the left argument: R ⊑ S → R ⊚ T ⊑ S ⊚ T.
-    This is `compose_le_left` from S1_56. -/
-theorem relLe_comp_right [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
-    {A B C : 𝒞} {R S : BinRel 𝒞 A B} (h : RelLe R S) (T : BinRel 𝒞 B C) :
-    RelLe (R ⊚ T) (S ⊚ T) :=
-  compose_le_left h T
 
 /-- §1.78 universal property: T ⊑ R/S ↔ T ⊚ S ⊑ R. -/
 theorem relQuot_iff [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
@@ -289,7 +278,7 @@ theorem relQuot_iff [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞
     (q : RelQuot R S) (T : BinRel 𝒞 A B) :
     RelLe T q.quot ↔ RelLe (T ⊚ S) R := by
   constructor
-  · intro hT; exact rel_le_trans (relLe_comp_right hT S) q.le
+  · intro hT; exact rel_le_trans (compose_le_left hT S) q.le
   · exact q.maximal T
 
 /-! ## §1.781 Set description
@@ -425,29 +414,6 @@ theorem relSub_compRecip_eq_invImage [PreLogos 𝒞] [HasRightAdjointImage 𝒞]
     obtain ⟨h1, hh1⟩ := hle_inv; obtain ⟨h2, hh2⟩ := hle_img
     exact ⟨h1 ≫ h2, by rw [Cat.assoc, hh2, hh1]⟩
 
-/-- `RelLe R S → (relSub R).le (relSub S)`, needing only `PreLogos` (the library's
-    `subLe_of_relLe` lives in a section that spuriously also requires `HasBinaryCoproducts`;
-    the proof itself is pure product algebra).  Re-derived here for §1.784. -/
-theorem subLe_of_relLe_pl [PreLogos 𝒞] {A B : 𝒞} {R S : BinRel 𝒞 A B}
-    (h : RelLe R S) : (relSub R).le (relSub S) := by
-  obtain ⟨⟨g, hA, hB⟩⟩ := h
-  refine ⟨g, ?_⟩
-  show g ≫ pair S.colA S.colB = pair R.colA R.colB
-  exact pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair, hA]) (by rw [Cat.assoc, snd_pair, hB])
-
-/-- `(relSub R).le (relSub S) → RelLe R S`, needing only `PreLogos` (companion of
-    `subLe_of_relLe_pl`).  Re-derived here for §1.784. -/
-theorem relLe_of_subLe_pl [PreLogos 𝒞] {A B : 𝒞} {R S : BinRel 𝒞 A B}
-    (h : (relSub R).le (relSub S)) : RelLe R S := by
-  obtain ⟨g, hh⟩ := h
-  show Nonempty (RelHom R S)
-  refine ⟨⟨g, ?_, ?_⟩⟩
-  · have h2 : (g ≫ pair S.colA S.colB) ≫ fst = pair R.colA R.colB ≫ fst :=
-      congrArg (· ≫ fst) hh
-    rwa [Cat.assoc, fst_pair, fst_pair] at h2
-  · have h2 : (g ≫ pair S.colA S.colB) ≫ snd = pair R.colA R.colB ≫ snd :=
-      congrArg (· ≫ snd) hh
-    rwa [Cat.assoc, snd_pair, snd_pair] at h2
 
 /-- The relation `A → C` underlying `R/(graph f)°` (§1.784): the right-adjoint image
     `Q = (prodMap A B C f)##(relSub R)`, read back through the projections of `A × C`. -/
@@ -480,7 +446,7 @@ noncomputable def relQuotByMapRecip [PreLogos 𝒞] [HasRightAdjointImage 𝒞]
   quot := quotRecipRel R f
   le := by
     -- relSub(quot ⊚ f°) ≤ InverseImage(prodMap)(relSub quot) ≤ relSub R.
-    apply relLe_of_subLe_pl
+    apply relLe_of_subLe
     have hbridge := (relSub_compRecip_eq_invImage f (quotRecipRel R f)).1
     -- relSub quot ≤ Q, so by adjunction InverseImage(prodMap)(relSub quot) ≤ relSub R.
     have hquot_le_Q : (relSub (quotRecipRel R f)).le
@@ -493,9 +459,9 @@ noncomputable def relQuotByMapRecip [PreLogos 𝒞] [HasRightAdjointImage 𝒞]
   maximal := by
     intro T hT
     -- InverseImage(prodMap)(relSub T) ≤ relSub(T ⊚ f°) ≤ relSub R, so relSub T ≤ Q.
-    apply relLe_of_subLe_pl
+    apply relLe_of_subLe
     have hbridge := (relSub_compRecip_eq_invImage f T).2
-    have hTfle : (relSub (T ⊚ (graph f)°)).le (relSub R) := subLe_of_relLe_pl hT
+    have hTfle : (relSub (T ⊚ (graph f)°)).le (relSub R) := subLe_of_relLe hT
     have hinv_le_R : (InverseImage (prodMap A B C f) (relSub T)).le (relSub R) := by
       obtain ⟨a, ha⟩ := hbridge; obtain ⟨b, hb⟩ := hTfle
       exact ⟨a ≫ b, by rw [Cat.assoc, hb, ha]⟩
@@ -590,7 +556,7 @@ theorem transRefClos_stable [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasIma
     {A : 𝒞} (R : BinRel 𝒞 A A) (hr : TransRefClos R) :
     RelLe (R ⊚ hr.clos) hr.clos :=
   -- R ⊚ R* ⊑ R* ⊚ R* ⊑ R* (using R ⊑ R* and R* transitivity)
-  rel_le_trans (relLe_comp_right hr.le hr.clos) hr.trans
+  rel_le_trans (compose_le_left hr.le hr.clos) hr.trans
 
 /-- §1.787: R̄ ⊑ R* (R* is reflexive and satisfies R ⊚ R* ⊑ R*). -/
 theorem quotClos_le_transRefClos [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]

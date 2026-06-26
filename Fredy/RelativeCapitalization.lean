@@ -740,24 +740,7 @@ variable [PullbacksTransferCovers 𝒞]
   `nextStepOfEnum`/`exists_wellSupported_enum`/`nextStep` itself now live UPSTREAM in
   `Fredy.Capitalization` (after `CapStep`, before `capData_exists`), so `capData_exists`/`hwall_step`
   can NAME the §1.546/§1.547 successor in place.  They are still in scope HERE via the `Capitalization`
-  import (`open Freyd`), used by `baseSlicePreservesTerminal`/`baseSliceCartesianFunctor`/
-  `enumChain_stage_acquires` below.  Pure relocation; no semantics changed. -/
-
-/-- **The base embedding `S → innerSliceObj []` preserves the terminal.**  `baseSliceObj one =
-    ⟨[1], term [1]⟩`; maps into it in `Over []` are determined by their underlying `Infl`-arrow
-    `X.dom ⟶ [1]`, i.e. a `𝒞`-arrow `∏(X.dom) ⟶ ∏[1] = prod 1 1`.  Two such agree because both
-    projections land in the `𝒞`-terminal `1` (`term_uniq`), so they are jointly monic-collapsed. -/
-theorem baseSlicePreservesTerminal :
-    letI : HasTerminal (innerSliceObj (𝒞 := 𝒞) ([] : List 𝒞)) := overHasTerminal _
-    @PreservesTerminal 𝒞 (innerSliceObj (𝒞 := 𝒞) ([] : List 𝒞)) _ _ baseSliceObj baseSliceFunctor
-      _ (overHasTerminal _) := by
-  letI : HasTerminal (innerSliceObj (𝒞 := 𝒞) ([] : List 𝒞)) := overHasTerminal _
-  intro X f g
-  apply OverHom.ext
-  show f.f = g.f
-  have h1 : f.f ≫ (fst : prod HasTerminal.one HasTerminal.one ⟶ _) = g.f ≫ fst := term_uniq _ _
-  have h2 : f.f ≫ (snd : prod HasTerminal.one HasTerminal.one ⟶ _) = g.f ≫ snd := term_uniq _ _
-  exact fst_snd_jointly_monic f.f g.f h1 h2
+  import (`open Freyd`), used by `enumChain_stage_acquires` below.  Pure relocation; no semantics changed. -/
 
 section BaseSliceCartesian
 variable [HasEqualizers 𝒞]
@@ -774,54 +757,6 @@ instance baseCartesian𝒞 : CartesianCategory 𝒞 where
   toHasTerminal := inferInstance
   toHasBinaryProducts := inferInstance
   toHasEqualizers := inferInstance
-
-/-! **REDUCTION of Fact 1 (base-embedding is Cartesian).**  With `baseSlicePreservesTerminal`
-    (above) and the general §1.437 `pullbacks_terminal_implies_cartesianFunctor`, the FULL
-    `CartesianFunctor baseSliceObj` (terminal + products + equalizers) reduces to the single
-    remaining obligation:
-
-      `hpull` : the `baseSliceObj`-image of the §1.432 chosen pullback cone of any cospan `(f,g)`
-                in `𝒞` is a pullback cone in `Over []`.
-
-    `baseSliceObj X = ⟨[X], term [X]⟩` (the cross-section `infl = prodRight 1` into `Infl 𝒞`,
-    embedded into the slice over the inflation terminal `[]`).  Pullbacks in `Over []` are
-    pullbacks in `Infl 𝒞` (over the terminal `Σ` is an equivalence), and `infl = (·)×1` preserves
-    them via `prod_one_iso_right : IsIso (fst : prod X 1 ⟶ X)` (the `×1` unitor).  This is a full
-    pullback universal-property proof in `Over []`; once landed, `CartesianFunctor baseSliceObj`
-    follows by `pullbacks_terminal_implies_cartesianFunctor`, and its three projections feed the
-    tower bridge.
-
-    The `hpull` proof factors through two reusable lemmas:
-      * `infl_preserves_isPullback` (Inflation.lean): `infl : 𝒞 → Infl 𝒞` sends the `𝒞`-pullback `P`
-        to an `Infl 𝒞`-pullback (`inflEmbedCone P.cone`).
-      * `sliceForget_reflects_isPullback_terminal` (SliceRegular.lean): over the terminal `[] = 1`,
-        `Σ : Over [] → Infl 𝒞` reflects pullbacks.
-    The `baseSliceObj`-image cone's `Σ`-forget IS `inflEmbedCone P.cone` (same apex `[P.pt]`, same
-    legs `inflFunctor.map P.cone.π_i`), so the two lemmas compose. -/
-
-/-- **Fact 1, the one missing obligation `hpull`.**  The `baseSliceObj`-image of the §1.432 chosen
-    pullback cone of `(f, g)` is a pullback in `innerSliceObj [] = Over ([] : Infl 𝒞)`. -/
-theorem baseSlice_preserves_pullback {A B C : 𝒞} (f : A ⟶ C) (g : B ⟶ C) :
-    Cone.IsPullback (𝒞 := innerSliceObj (𝒞 := 𝒞) ([] : List 𝒞))
-      { pt := baseSliceObj (products_equalizers_implies_pullbacks f g).cone.pt
-        π₁ := baseSliceFunctor.map (products_equalizers_implies_pullbacks f g).cone.π₁
-        π₂ := baseSliceFunctor.map (products_equalizers_implies_pullbacks f g).cone.π₂
-        w  := by rw [← baseSliceFunctor.map_comp, ← baseSliceFunctor.map_comp,
-                     (products_equalizers_implies_pullbacks f g).cone.w] } := by
-  let P := products_equalizers_implies_pullbacks f g
-  -- `Σ`-forget of the `baseSliceObj`-image cone IS `inflEmbedCone P.cone` (same apex/legs).
-  apply sliceForget_reflects_isPullback_terminal (𝒞 := Infl 𝒞)
-  -- the forgotten cone is an `Infl 𝒞`-pullback: `infl` preserves the `𝒞`-pullback `P.cone`.
-  exact infl_preserves_isPullback P.cone P.cone_isPullback
-
-/-- **§1.543 Fact 1.**  The faithful base embedding `S → innerSliceObj []` is a `CartesianFunctor`.
-    Terminal is `baseSlicePreservesTerminal`; the pullback obligation is `baseSlice_preserves_pullback`;
-    the general §1.437 `pullbacks_terminal_implies_cartesianFunctor` assembles the rest. -/
-theorem baseSliceCartesianFunctor :
-    CartesianFunctor (F := baseSliceObj (𝒞 := 𝒞)) :=
-  pullbacks_terminal_implies_cartesianFunctor
-    (F := baseSliceObj) (fun {A B C} f g => baseSlice_preserves_pullback f g)
-    baseSlicePreservesTerminal
 
 end BaseSliceCartesian
 

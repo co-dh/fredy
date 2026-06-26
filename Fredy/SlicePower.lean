@@ -239,12 +239,6 @@ theorem sigmaRel_struct {B : 𝒞} {A C : Over B} (R : BinRel (Over B) A C) :
     R.colA.f ≫ A.hom = R.colB.f ≫ C.hom := by
   rw [R.colA.w, R.colB.w]
 
-/-- Transitivity of `RelHom` (compose the witnessing column-preserving maps). -/
-theorem relHom_trans' {X Y : 𝒞} {R S T : BinRel 𝒞 X Y}
-    (h₁ : RelHom R S) (h₂ : RelHom S T) : RelHom R T := by
-  obtain ⟨a, haA, haB⟩ := h₁
-  obtain ⟨b, hbA, hbB⟩ := h₂
-  exact ⟨a ≫ b, by rw [Cat.assoc, hbA, haA], by rw [Cat.assoc, hbB, haB]⟩
 
 /-- **Σ is full on relations.**  A base `RelHom (sigmaRel S) (sigmaRel R)` lifts to a
     slice `RelHom S R`: its witness `w` is automatically a slice over-hom because
@@ -357,7 +351,7 @@ theorem sliceMem_classify_of {B : 𝒞} {A C : Over B} (R : BinRel (Over B) A C)
   apply sliceRelHom_of_sigmaRel
   have hgr' : RelHom (relPullback ((sliceClassifyOf A C g).f ≫ fst) (baseMem B C))
       (sigmaRel R) := by rw [sliceClassifyOf_fst]; exact hgr
-  exact relHom_trans' (relHom_baseMem_of_sigmaRel_sliceMem (sliceClassifyOf A C g)) hgr'
+  exact RelHom_trans (relHom_baseMem_of_sigmaRel_sliceMem (sliceClassifyOf A C g)) hgr'
 
 /-! ## §1.93  The genuine slice power object via idempotent split -/
 

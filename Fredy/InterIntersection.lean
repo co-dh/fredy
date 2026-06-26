@@ -79,7 +79,7 @@ noncomputable def membershipMap {A : 𝒞} (F_name : one ⟶ powObj A) : A ⟶ o
 /-- **§1.94**: INTERNALLY DEFINED INTERSECTION ∩F for a global element F_name : 1 → [A].
     Constructed as the pullback of true : 1 → Ω along membershipMap F_name. -/
 noncomputable def interIntersection {A : 𝒞} (F_name : one ⟶ powObj A) : Subobject 𝒞 A :=
-  InverseImage (membershipMap F_name) ⟨one, true (𝒞 := 𝒞), true_monic⟩
+  InverseImage (membershipMap F_name) ⟨one, true (𝒞 := 𝒞), HasSubobjectClassifier.true_monic⟩
 
 /-! ## §1.943  ∩F is a lower bound; glb when F is well-pointed -/
 
@@ -172,7 +172,7 @@ theorem classify_interIntersection {A : 𝒞} (G : one ⟶ powObj A) :
       = term (interIntersection G).dom ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
     show pb.cone.π₁ ≫ membershipMap G = _
     rw [pb.cone.w]; congr 1; exact term_uniq _ _
-  apply classify_eq_of_pullback (interIntersection G).arr (interIntersection G).monic
+  apply HasSubobjectClassifier.classify_unique (interIntersection G).arr (interIntersection G).monic
     (membershipMap G) hsq
   -- the inverse-image pullback cone IS a pullback (over (membershipMap G, true)).
   intro d

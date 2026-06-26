@@ -66,9 +66,6 @@ theorem uncurry_precomp {A Y X X' : 𝒞} (u : X' ⟶ X) (k : X ⟶ Y ^^ A) :
   unfold uncurry
   rw [← Cat.assoc, ← prodMap_comp]
 
-/-- `curry` is injective (restated from S1_85 for local use). -/
-theorem curry_injective {A Y X : 𝒞} {f₁ f₂ : prod A X ⟶ Y}
-    (h : curry f₁ = curry f₂) : f₁ = f₂ := curry_inj h
 
 end Adjunction
 

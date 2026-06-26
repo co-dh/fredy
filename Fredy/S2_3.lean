@@ -59,10 +59,6 @@ theorem le_div_iff {a b c : 𝒜} (T : a ⟶ b) (R : a ⟶ c) (S : b ⟶ c) :
     exact comp_mono_right h S
   · exact DivisionAllegory.le_div T R S
 
-/-- (R/S)S ⊑ R (§2.31). -/
-theorem div_comp_eq_le {a b c : 𝒜} (R : a ⟶ c) (S : b ⟶ c) : (R / S) ≫ S ⊑ R :=
-  DivisionAllegory.div_comp_le R S
-
 /-- (R ∩ R')/S = (R/S) ∩ (R'/S) (§2.31, full equality).
 
     Book §2.31: "The first containment may be replaced with an equality:
@@ -74,16 +70,16 @@ theorem div_inter_eq {a b c : 𝒜} (R R' : a ⟶ c) (S : b ⟶ c) :
     apply le_inter
     · apply (le_div_iff _ _ _).mpr
       -- ((R ∩ R') / S) ≫ S ⊑ R ∩ R' ⊑ R
-      apply le_trans (div_comp_eq_le _ _)
+      apply le_trans (DivisionAllegory.div_comp_le _ _)
       exact inter_lb_left _ _
     · apply (le_div_iff _ _ _).mpr
-      apply le_trans (div_comp_eq_le _ _)
+      apply le_trans (DivisionAllegory.div_comp_le _ _)
       exact inter_lb_right _ _
   · -- ⊒ : (R/S ∩ R'/S) ⊑ (R∩R')/S, since (R/S ∩ R'/S)S ⊑ (R/S)S ∩ (R'/S)S ⊑ R∩R'
     apply (le_div_iff _ _ _).mpr
     apply le_inter
-    · exact le_trans (comp_mono_right (inter_lb_left _ _) S) (div_comp_eq_le R S)
-    · exact le_trans (comp_mono_right (inter_lb_right _ _) S) (div_comp_eq_le R' S)
+    · exact le_trans (comp_mono_right (inter_lb_left _ _) S) (DivisionAllegory.div_comp_le R S)
+    · exact le_trans (comp_mono_right (inter_lb_right _ _) S) (DivisionAllegory.div_comp_le R' S)
 
 /-- (R ∩ R')/S ⊑ (R/S) ∩ (R'/S) (§2.31, the ⊑ direction of `div_inter_eq`). -/
 theorem div_inter_le {a b c : 𝒜} (R R' : a ⟶ c) (S : b ⟶ c) :
@@ -93,8 +89,8 @@ theorem div_inter_le {a b c : 𝒜} (R R' : a ⟶ c) (S : b ⟶ c) :
 /-- R/1 = R (§2.314). -/
 theorem div_one {a b : 𝒜} (R : a ⟶ b) : R / Cat.id b = R := by
   apply le_antisymm
-  · -- (R/1) ⊑ R: div_comp_eq_le gives (R/1)≫1 ⊑ R, and (R/1)≫1 = R/1
-    have h := div_comp_eq_le R (Cat.id b)
+  · -- (R/1) ⊑ R: DivisionAllegory.div_comp_le gives (R/1)≫1 ⊑ R, and (R/1)≫1 = R/1
+    have h := DivisionAllegory.div_comp_le R (Cat.id b)
     simpa [Cat.comp_id] using h
   · -- R ⊑ R/1: by le_div_iff, this is equivalent to R≫1 ⊑ R
     rw [le_div_iff]
@@ -108,15 +104,15 @@ theorem one_le_div_self {a b : 𝒜} (R : a ⟶ b) : Cat.id a ⊑ R / R := by
 
 /-- (R/R)R ⊑ R (§2.314). -/
 theorem div_self_comp_le {a b : 𝒜} (R : a ⟶ b) : (R / R) ≫ R ⊑ R :=
-  div_comp_eq_le R R
+  DivisionAllegory.div_comp_le R R
 
 /-- (R/S)(S/T) ⊑ R/T (§2.314). -/
 theorem div_comp {a b c d : 𝒜} (R : a ⟶ d) (S : b ⟶ d) (T : c ⟶ d) :
     (R / S) ≫ (S / T) ⊑ R / T := by
   apply (le_div_iff _ _ _).mpr
-  apply le_trans ?_ (div_comp_eq_le R S)
+  apply le_trans ?_ (DivisionAllegory.div_comp_le R S)
   rw [Cat.assoc]
-  exact comp_mono_left (R / S) (div_comp_eq_le S T)
+  exact comp_mono_left (R / S) (DivisionAllegory.div_comp_le S T)
 
 /-- R/(S₁∪S₂) = (R/S₁) ∩ (R/S₂) (§2.314). -/
 theorem div_union {a b c : 𝒜} (R : a ⟶ c) (S₁ S₂ : b ⟶ c) :
@@ -125,15 +121,15 @@ theorem div_union {a b c : 𝒜} (R : a ⟶ c) (S₁ S₂ : b ⟶ c) :
   · -- R/(S₁∪S₂) ⊑ R/S₁: by le_div_iff, (R/(S₁∪S₂))(S₁) ⊑ (R/(S₁∪S₂))(S₁∪S₂) ⊑ R
     apply le_inter
     · apply (le_div_iff _ _ _).mpr
-      exact le_trans (comp_mono_left _ (le_union_left S₁ S₂)) (div_comp_eq_le R _)
+      exact le_trans (comp_mono_left _ (le_union_left S₁ S₂)) (DivisionAllegory.div_comp_le R _)
     · apply (le_div_iff _ _ _).mpr
-      exact le_trans (comp_mono_left _ (le_union_right S₁ S₂)) (div_comp_eq_le R _)
+      exact le_trans (comp_mono_left _ (le_union_right S₁ S₂)) (DivisionAllegory.div_comp_le R _)
   · -- R/S₁ ∩ R/S₂ ⊑ R/(S₁∪S₂): need T(S₁∪S₂) ⊑ R whenever TS₁ ⊑ R and TS₂ ⊑ R
     apply (le_div_iff _ _ _).mpr
     rw [DistributiveAllegory.comp_union_distrib]
     exact union_lub
-      (le_trans (comp_mono_right (inter_lb_left _ _) S₁) (div_comp_eq_le R S₁))
-      (le_trans (comp_mono_right (inter_lb_right _ _) S₂) (div_comp_eq_le R S₂))
+      (le_trans (comp_mono_right (inter_lb_left _ _) S₁) (DivisionAllegory.div_comp_le R S₁))
+      (le_trans (comp_mono_right (inter_lb_right _ _) S₂) (DivisionAllegory.div_comp_le R S₂))
 
 /-- R/(S₁≫S₂) = (R/S₂)/S₁ (§2.314). -/
 theorem div_comp_assoc {a b c d : 𝒜} (R : a ⟶ d) (S₁ : b ⟶ c) (S₂ : c ⟶ d) :
@@ -146,14 +142,14 @@ theorem div_comp_assoc {a b c d : 𝒜} (R : a ⟶ d) (S₁ : b ⟶ c) (S₂ : c
     -- ((R/(S₁S₂))S₁)S₂ = (R/(S₁S₂))(S₁S₂) ⊑ R
     have : ((R / (S₁ ≫ S₂)) ≫ S₁) ≫ S₂ = (R / (S₁ ≫ S₂)) ≫ (S₁ ≫ S₂) := by
       rw [Cat.assoc]
-    rw [this]; exact div_comp_eq_le R (S₁ ≫ S₂)
+    rw [this]; exact DivisionAllegory.div_comp_le R (S₁ ≫ S₂)
   · -- (R/S₂)/S₁ ⊑ R/(S₁S₂): need ((R/S₂)/S₁)(S₁S₂) ⊑ R
     apply (le_div_iff _ _ _).mpr
     -- ((R/S₂)/S₁)(S₁S₂) = ((R/S₂)/S₁)S₁ · S₂ ⊑ (R/S₂) · S₂ ⊑ R
     have step1 : ((R / S₂) / S₁) ≫ (S₁ ≫ S₂) = (((R / S₂) / S₁) ≫ S₁) ≫ S₂ := by
       rw [Cat.assoc]
     rw [step1]
-    exact le_trans (comp_mono_right (div_comp_eq_le (R / S₂) S₁) S₂) (div_comp_eq_le R S₂)
+    exact le_trans (comp_mono_right (DivisionAllegory.div_comp_le (R / S₂) S₁) S₂) (DivisionAllegory.div_comp_le R S₂)
 
 /-! ## §2.316  Heyting algebra structure on (a,a)
 
@@ -190,7 +186,7 @@ theorem heyting_adj_coref {a : 𝒜} {A B C : a ⟶ a}
   · intro h
     -- A ≫ C = C ≫ A ⊑ (B/A) ≫ A ⊑ B
     rw [hac_comm]
-    exact le_trans (comp_mono_right (le_trans h (inter_lb_right _ _)) A) (div_comp_eq_le B A)
+    exact le_trans (comp_mono_right (le_trans h (inter_lb_right _ _)) A) (DivisionAllegory.div_comp_le B A)
 
 /-! ## §2.331  Symmetric division
 
@@ -280,7 +276,7 @@ def Straight {a b : 𝒜} (R : a ⟶ b) : Prop := R /ₛ R ⊑ Cat.id a
 
 /-- In a division allegory, (R/R)R = R (§2.314). -/
 theorem div_self_comp {a b : 𝒜} (R : a ⟶ b) : (R / R) ≫ R = R := by
-  apply le_antisymm (div_comp_eq_le R R)
+  apply le_antisymm (DivisionAllegory.div_comp_le R R)
   -- R ⊑ (R/R)R: since 1 ⊑ R/R, we have R = 1R ⊑ (R/R)R
   have h : R ⊑ (R / R) ≫ R := by
     calc
@@ -326,13 +322,13 @@ theorem leftDiv_div {a b c d : 𝒜} (S : a ⟶ b) (R : a ⟶ d) (T : c ⟶ d) :
     apply (le_leftDiv_iff _ S R).mpr
     have h1 : (S ≫ leftDiv S (R / T)) ≫ T ⊑ (R / T) ≫ T :=
       comp_mono_right (leftDiv_comp_le S (R / T)) T
-    have h2 : (R / T) ≫ T ⊑ R := div_comp_eq_le R T
+    have h2 : (R / T) ≫ T ⊑ R := DivisionAllegory.div_comp_le R T
     rw [← Cat.assoc]; exact le_trans h1 h2
   · -- (S\R)/T ⊑ S\(R/T): show (S ≫ (S\R)/T) ≫ T ⊑ R
     apply (le_leftDiv_iff _ S _).mpr
     apply (le_div_iff _ _ _).mpr
     -- goal: (S ≫ (leftDiv S R)/T) ≫ T ⊑ R
-    have step1 : ((leftDiv S R) / T) ≫ T ⊑ leftDiv S R := div_comp_eq_le (leftDiv S R) T
+    have step1 : ((leftDiv S R) / T) ≫ T ⊑ leftDiv S R := DivisionAllegory.div_comp_le (leftDiv S R) T
     have step2 : S ≫ (((leftDiv S R) / T) ≫ T) ⊑ S ≫ leftDiv S R :=
       comp_mono_left S step1
     have step3 : S ≫ leftDiv S R ⊑ R := leftDiv_comp_le S R

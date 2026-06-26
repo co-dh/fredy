@@ -183,64 +183,6 @@ noncomputable def interUnion [HasImages 𝒞] {A : 𝒞} (F : Subobject 𝒞 (po
   into 0 is an isomorphism (§1.58).  In a topos, ∩∅ (the intersection over
   the empty family over 1) is a minimal subobject of 1 and is strict. -/
 
-/-- **§1.944**: A topos has a strict coterminator.
-    The minimal subobject of 1 (= ∩∅) is initial and strict: any B with
-    a map B → ∩∅ has no proper subobjects, hence B ≅ ∩∅.
-
-    BLOCKER (faithful sorry): the initial object is `⋂∅`, the glb of the *empty*
-    family over `1`.  This file only has `interIntersection` for a single global
-    name `1 → [A]` (a singleton family); the `⋂F`-over-a-subobject-family glb that
-    §1.943 actually asserts is not constructed here — it needs §1.54's
-    `capitalization_lemma` (itself still `sorry`) to terminate the transfinite
-    A ⊆ A* iteration that builds the glb.  No current arm yields the empty glb.
-
-    REDUCED THIS PASS to a SINGLE sharp seed (the §1.543 transfinite blocker is GONE — the
-    `⋂∅` glb is now built sorry-free as `bottomSub A := ⋂{all σ ⊆ A}` in `Fredy.ToposColimits`,
-    the all-subobjects family-glb via the internal-∀ engine, NOT capitalization).  The
-    strict-coterminator scaffolding `Fredy.ToposStrictZero` is now ALL sorry-free EXCEPT one
-    cross-base lemma:
-
-        carrier `0 := (bottomSub one).dom`;
-        `StrictCoterminator 0` (every map into `0` is iso) via the S1_61 pullback argument,
-        ported to `bottomSub` + the §1.946 right-adjoint EMPTINESS lemma `g*(∅) ≤ ∅`
-        (`invImage_bottomSub_le`, proved sorry-free from `radjImage_adjunction`);
-        then `HasCoterminator.ofStrict` (S1_58).
-
-    CLOSED (no longer a sorry).  The former residual `bottomSub_dom_iso A B : (∅_A).dom ≅
-    (∅_B).dom` (cross-base bottom-domain iso, equivalently the existence of the universal
-    arrow `0 → A`) is now proved sorry-free in `Fredy.ToposStrictZero.bottomSub_dom_iso` by
-    the **empty-singleton** argument: with `K := {a : A | {a} = ∅}` (the pullback of the
-    singleton map `{·}=singletonMap A` along the empty-set name `nameOf ∅_A`), `K` is
-    subterminal and the pullback square forces `a ∈ {a} = a ∈ ∅`, i.e. `kA ≫ χ_{∅_A} = ⊤∘!`;
-    the classifier UMP factors `kA` through `∅_A`, giving `∅_A.dom ≅ K ≅ Z₁`.  All steps live
-    in the §1.92/§1.94 exponential power-object layer (axiom-clean: `[propext,
-    Classical.choice]`).  Hence §1.944 is fully sorry-free. -/
-theorem topos_has_strict_coterminator : Nonempty (HasCoterminator 𝒞) :=
-  topos_has_coterminator
-
-/-- **§1.945**: A topos is regular — images exist and pullbacks transfer covers.
-    For f : A → B let F = {B' ↣ B | f factors through B'}; then ∩F is the image
-    of f (§1.943 + the internal-∀ family-glb).
-
-    CLOSED (no longer a sorry).  `RegularCategory` bundles
-    `HasTerminal`/`HasBinaryProducts`/`HasPullbacks` (from `Topos` via the classifier),
-    `HasImages`, and `PullbacksTransferCovers`.  The two non-Cartesian fields are now
-    both supplied sorry-free by `InternalForallTopos`:
-
-    * `HasImages` — the `toposHasImages` instance, where `image f = imageF f` is the
-      family big-intersection `⋂{B' | f factors through B'}`, built via the internal-∀
-      family-glb `bigInter` (NOT the §1.54 transfinite capitalization — that route is
-      bypassed entirely).
-    * `PullbacksTransferCovers` — the `SlicePi.toposPullbacksTransferCovers` instance,
-      proved non-circularly from the §1.931 dependent-product right adjoint `Π_f`
-      (which preserves epics, so covers are pullback-stable).
-
-    With both instances in scope, `RegularCategory` assembles immediately; this is
-    exactly the (sorry-free) `topos_is_regular_real` of `InternalForallTopos`.  The
-    historical §1.543-capitalization blocker no longer applies. -/
-theorem topos_is_regular : Nonempty (RegularCategory 𝒞) :=
-  topos_is_regular_real
-
 /-- **§1.946**: A topos is a logos — a regular category in which every inverse-image
     functor f# : 𝒫(B) → 𝒫(A) has a right adjoint f## (§1.946).
     Binary unions: A₁ ∪ A₂ = ∩{B' | A₁ ⊆ B' ∧ A₂ ⊆ B'} via §1.943.
@@ -267,7 +209,7 @@ theorem topos_is_regular : Nonempty (RegularCategory 𝒞) :=
     `Logos'` assembles from these three (the regular structure is unbundled into its
     `HasImages`/`PullbacksTransferCovers` fields so the union/right-adjoint instances resolve). -/
 theorem topos_is_logos : Nonempty (Logos' 𝒞) := by
-  obtain ⟨reg⟩ := topos_is_regular (𝒞 := 𝒞)
+  obtain ⟨reg⟩ := topos_is_regular_real (𝒞 := 𝒞)
   letI : HasImages 𝒞 := reg.toHasImages
   letI : PullbacksTransferCovers 𝒞 := reg.toPullbacksTransferCovers
   exact ⟨{ reg with

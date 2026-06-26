@@ -475,13 +475,6 @@ theorem positiveReflectionEmbed_injective {𝒜 : Type u} [DistributiveAllegory 
     (h : @positiveReflectionEmbed 𝒜 _ a b R = @positiveReflectionEmbed 𝒜 _ a b S) : R = S :=
   congrFun (congrFun h PUnit.unit) PUnit.unit
 
-/-- (§2.216) Any distributive allegory faithfully embeds in a positive allegory A⁺
-    (matrix allegory). -/
-theorem positive_reflection_faithful {𝒜 : Type u} [DistributiveAllegory 𝒜] :
-    ∀ {a b : 𝒜} (R S : a ⟶ b),
-      @positiveReflectionEmbed 𝒜 _ a b R = @positiveReflectionEmbed 𝒜 _ a b S → R = S :=
-  fun _R _S h => positiveReflectionEmbed_injective h
-
 /-! ## §2.221  Local Completion (allegory of downdeals)
 
   Let A be an allegory.  The LOCAL COMPLETION Â is the allegory whose
@@ -508,12 +501,6 @@ theorem principalDowndeal_injective {𝒜 : Type u} [Allegory 𝒜] {a b : 𝒜}
   have hSR : S ⊑ R := by
     have : (principalDowndeal S) S := le_refl S; rw [← h] at this; exact this
   exact le_antisymm hRS hSR
-
-/-- (§2.221) Any allegory faithfully represents in a locally complete
-    distributive allegory. -/
-theorem allegory_embeds_in_locally_complete {𝒜 : Type u} [Allegory 𝒜] {a b : 𝒜}
-    {R S : a ⟶ b} (h : principalDowndeal R = principalDowndeal S) : R = S :=
-  principalDowndeal_injective h
 
 /-! ## §2.222  Ideal completion (distributive allegory case) -/
 
@@ -571,13 +558,6 @@ theorem globalCompletionEmbed_injective {𝒜 : Type u} [Allegory 𝒜]
     {a b : 𝒜} {R S : a ⟶ b}
     (h : globalCompletionEmbed R = globalCompletionEmbed S) : R = S :=
   congrFun (congrFun h PUnit.unit) PUnit.unit
-
-/-- (§2.224) A locally complete distributive allegory faithfully represents in a
-    globally complete allegory via the global completion construction. -/
-theorem lc_embeds_in_globally_complete {𝒜 : Type u} [Allegory 𝒜]
-    {a b : 𝒜} {R S : a ⟶ b}
-    (h : globalCompletionEmbed R = globalCompletionEmbed S) : R = S :=
-  globalCompletionEmbed_injective h
 
 /-! ## §2.226  Systemic Completion
 

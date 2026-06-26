@@ -148,31 +148,6 @@ theorem homInclObj_id (C : CatSystem ι D) (hC : C.Coherent) {i : ι} (x : C.A i
   -- coincide proof-irrelevantly, and the trivial bound `⟨(out).1, refl, refl⟩` is `colimId`.
   exact key
 
-/-- **§1.543 step 5 (faithfulness of a stage inclusion), embedding half.**
-    The stage inclusion `A i → Ā` separates morphisms, provided every transition
-    functor is faithful on morphisms (`hfaith`).  This is exactly
-    `homInclObj_injective` rephrased as `Embedding`-style injectivity on the
-    stage `i`.  (We state it as injectivity of `homInclObj` rather than via the
-    `Embedding` typeclass because the stage-inclusion's object map `objIncl i` and
-    its hom map `homInclObj` are packaged separately in `CatColimitRegular`, not as
-    a single `Functor (objIncl i)` instance.) -/
-theorem stageIncl_separates (C : CatSystem ι D) (hC : C.Coherent)
-    (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (p q : x ⟶ y),
-        (C.functF hij).map p = (C.functF hij).map q → p = q)
-    {i : ι} {x y : C.A i} (g g' : x ⟶ y)
-    (h : homInclObj C hC g = homInclObj C hC g') : g = g' :=
-  homInclObj_injective C hC hfaith g g' h
-
-/-- **§1.543 step 5 (faithfulness of a stage inclusion), reflects-iso half.**
-    If `homInclObj g` is iso in `Ā` then `g` is iso in `A i`, provided transitions
-    are conservative (`hcons`).  This is `homInclObj_isIso_reflects`. -/
-theorem stageIncl_reflectsIso (C : CatSystem ι D) (hC : C.Coherent)
-    (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
-        IsIso ((C.functF hij).map φ) → IsIso φ)
-    {i : ι} {x y : C.A i} (g : x ⟶ y)
-    (hiso : @IsIso C.Obj (colimitCat C hC) (C.objIncl i x) (C.objIncl i y) (homInclObj C hC g)) :
-    IsIso g :=
-  homInclObj_isIso_reflects C hC hcons g hiso
 
 /-- **The stage inclusion `A i → Ā` is an honest `Functor`.**  Object part `objIncl i`,
     morphism part `homInclObj`, identity by `homInclObj_id`, composition by

@@ -101,7 +101,7 @@ noncomputable def exponentials_of_all_baseable
 -- the genuine `Topos.toHasBinaryProducts` win outright (see the `attribute [local instance]`
 -- there) so the §1.92 power maps stay axiom-honest.
 noncomputable instance (priority := 50) topos_has_exponentials : HasExponentials 𝒞 :=
-  exponentials_of_all_baseable power_objects_imply_all_baseable
+  exponentials_of_all_baseable all_baseable
 
 -- `topos_has_exponentials` is now genuinely proved (hence `noncomputable`, depending on
 -- `Classical.choice`).  `HasExponentials extends HasBinaryProducts`, so instance search could
@@ -681,7 +681,7 @@ theorem classRel_classify {A Y : 𝒞} (χ : prod A Y ⟶ HasSubobjectClassifier
   have hsq : pb.cone.π₁ ≫ χ = term pb.cone.pt ≫ HasSubobjectClassifier.true := by
     rw [pb.cone.w, term_uniq pb.cone.π₂ (term pb.cone.pt)]
   symm
-  refine classify_eq_of_pullback pb.cone.π₁ _ χ hsq ?_
+  refine HasSubobjectClassifier.classify_unique pb.cone.π₁ _ χ hsq ?_
   intro d
   refine ⟨pb.lift ⟨d.pt, d.π₁, d.π₂, d.w⟩, ⟨pb.lift_fst _, term_uniq _ _⟩, ?_⟩
   intro v hv₁ _
@@ -847,7 +847,7 @@ theorem classify_relMonic_eq {X A : 𝒞} {R S : BinRel 𝒞 X A}
            = term R.src ≫ HasSubobjectClassifier.true := by
     rw [← hwm, Cat.assoc, HasSubobjectClassifier.classify_sq, ← Cat.assoc,
         term_uniq (w ≫ term S.src) (term R.src)]
-  refine (classify_eq_of_pullback (relMonic R) (relMonic_mono R)
+  refine (HasSubobjectClassifier.classify_unique (relMonic R) (relMonic_mono R)
     (HasSubobjectClassifier.classify (relMonic S) (relMonic_mono S)) hsq ?_).symm
   intro d
   have hSpb := HasSubobjectClassifier.classify_pullback (relMonic S) (relMonic_mono S)
@@ -869,7 +869,7 @@ theorem classify_relMonic_classRel {A X : 𝒞}
   have hsq : relMonic (classRel χ) ≫ χ = term (classRel χ).src ≫ HasSubobjectClassifier.true := by
     rw [hrm, pbχ.cone.w]; exact congrArg (· ≫ HasSubobjectClassifier.true) (term_uniq _ _)
   symm
-  refine classify_eq_of_pullback (relMonic (classRel χ)) (relMonic_mono (classRel χ)) χ hsq ?_
+  refine HasSubobjectClassifier.classify_unique (relMonic (classRel χ)) (relMonic_mono (classRel χ)) χ hsq ?_
   intro d
   obtain ⟨u, ⟨hu1, _⟩, huq⟩ := pbχ.cone_isPullback d
   refine ⟨u, ⟨by show u ≫ relMonic (classRel χ) = d.π₁; rw [hrm]; exact hu1, term_uniq _ _⟩, ?_⟩

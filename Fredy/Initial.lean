@@ -127,12 +127,6 @@ theorem IsStrictInitial.equalizer_entire {o B : 𝒞} (h : IsStrictInitial o)
     {f g : o ⟶ B} (c : EqualizerCone f g) : IsIso c.map :=
   strictCoterminator_equalizer_entire h.2 c
 
-/-- **§1.58¶2 (dual statement).**  In any category with binary products, a strict
-    coterminator admits at most one map to any object — choice-free.  Re-export of
-    `strictCoterminator_hom_unique` phrased for the strict-initial predicate. -/
-theorem StrictCoterminator.hom_unique [HasBinaryProducts 𝒞] {Z : 𝒞}
-    (hZ : StrictCoterminator Z) {A : 𝒞} (f g : Z ⟶ A) : f = g :=
-  strictCoterminator_hom_unique hZ f g
 
 /-- **§1.58¶2.**  In any category with binary products, a strict coterminator is
     initial.  The map out is `fst⁻¹ ≫ snd : Z → A` (with `fst : Z×A → Z` an iso since

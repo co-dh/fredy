@@ -59,7 +59,7 @@ noncomputable def radjChar {A B : 𝒞} (f : A ⟶ B) (A' : Subobject 𝒞 A) :
 /-- **§1.946 — the right adjoint `f## A'`** to inverse image, as the subobject of `B`
     classified by `radjChar f A'` (the pullback of `true` along it). -/
 noncomputable def radjImage {A B : 𝒞} (f : A ⟶ B) (A' : Subobject 𝒞 A) : Subobject 𝒞 B :=
-  InverseImage (radjChar f A') ⟨one, true (𝒞 := 𝒞), true_monic⟩
+  InverseImage (radjChar f A') ⟨one, true (𝒞 := 𝒞), HasSubobjectClassifier.true_monic⟩
 
 /-- `radjImage f A'` is classified by `radjChar f A'`. -/
 theorem classify_radjImage {A B : 𝒞} (f : A ⟶ B) (A' : Subobject 𝒞 A) :

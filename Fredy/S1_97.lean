@@ -900,7 +900,7 @@ theorem le_bottom_of_canonical_common {A : 𝒞} (Z : Subobject 𝒞 A) {P Q : �
     (w ≫ f0) ≫ (bottomSub_dom_iso (coprodObj P Q) (one : 𝒞)).choose
   have hz_iso : IsIso z := any_map_to_zero_is_iso (inferInstance : PreLogos 𝒞) z
   have hZ0 : Isomorphic Z.dom (PreLogos.bottom A).dom :=
-    Isomorphic.trans' ⟨z, hz_iso⟩ (bottomSub_dom_iso (one : 𝒞) A)
+    isomorphic_trans ⟨z, hz_iso⟩ (bottomSub_dom_iso (one : 𝒞) A)
   exact le_bottom_of_dom_iso Z hZ0
 
 /-- **A map into a `⊥`-domain forces `≤ ⊥`** (strict initiality).  `⊥.dom ≅ 0` is strict-initial,
@@ -910,7 +910,7 @@ theorem peano_le_bottom_of_map {A W : 𝒞} (Z : Subobject 𝒞 A)
   let z : Z.dom ⟶ (bottomSub (one : 𝒞)).dom :=
     m ≫ (bottomSub_dom_iso W (one : 𝒞)).choose
   have hz_iso : IsIso z := any_map_to_zero_is_iso (inferInstance : PreLogos 𝒞) z
-  exact le_bottom_of_dom_iso Z (Isomorphic.trans' ⟨z, hz_iso⟩ (bottomSub_dom_iso (one : 𝒞) A))
+  exact le_bottom_of_dom_iso Z (isomorphic_trans ⟨z, hz_iso⟩ (bottomSub_dom_iso (one : 𝒞) A))
 
 /-- **The complement is `≤` the other half of any cover** (boolean meet–join lemma,
     §1.658 / [1.635]).  A verbatim public copy of the `S1_64` private `complement_le_other`,

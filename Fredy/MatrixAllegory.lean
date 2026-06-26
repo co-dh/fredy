@@ -415,7 +415,7 @@ theorem le_matDiv_comp {X Y Z : MatObj 𝒜} (R : X ⟶ Z) (S : Y ⟶ Z) :
   | succ m =>
     simp only
     apply finJoin_le; intro j
-    exact le_trans (comp_mono_right (finMeet_le _ k) _) (div_comp_eq_le _ _)
+    exact le_trans (comp_mono_right (finMeet_le _ k) _) (DivisionAllegory.div_comp_le _ _)
 
 /-- §2.342  POSITIVE REFLECTION THEOREM: the positive reflection A⁺ of a division allegory is
     a division allegory (Freyd §2.342).

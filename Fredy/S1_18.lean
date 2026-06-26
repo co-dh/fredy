@@ -212,9 +212,4 @@ def IdMorphs (C : Type u) [Cat.{v} C] := C
 def functor_on_idMorphs {C : Type u₁} [Cat.{v} C] {D : Type u₂} [Cat.{v} D]
     (F : C → D) [Functor F] : IdMorphs C → IdMorphs D := F
 
-/-- The map `functor_on_idMorphs F` sends `id_X` to `id_{FX}`:
-    `F.map (id_X) = id_{FX}`, i.e. the `map_id` axiom restated for `|𝒞|`. -/
-theorem functor_on_idMorphs_spec {C : Type u₁} [Cat.{v} C] {D : Type u₂} [Cat.{v} D]
-    (F : C → D) [hF : Functor F] (X : C) :
-    hF.map (Cat.id X) = Cat.id (F X) :=
-  hF.map_id X
+

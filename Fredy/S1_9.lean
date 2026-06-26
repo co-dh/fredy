@@ -133,22 +133,6 @@ instance (priority := 100) Topos.hasPowerObject {𝒞 : Type u} [Cat.{v} 𝒞]
 
 /-! ## §1.912  Derived facts -/
 
-/-- §1.912: The universal subobject t : 1 → Ω is monic. -/
-theorem true_monic [HasSubobjectClassifier 𝒞] :
-    Monic (HasSubobjectClassifier.true (𝒞 := 𝒞)) :=
-  HasSubobjectClassifier.true_monic
-
-/-- §1.912: The characteristic map is unique: if χ makes the pullback square,
-    then χ = classify m hm.  This follows directly from `classify_unique`. -/
-theorem classify_eq_of_pullback [HasSubobjectClassifier 𝒞]
-    {A A' : 𝒞} (m : A' ⟶ A) (hm : Monic m)
-    (χ : A ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞))
-    (sq : m ≫ χ = term A' ≫ HasSubobjectClassifier.true)
-    (pb : (Cone.mk (f := χ) (g := HasSubobjectClassifier.true)
-        (pt := A') (π₁ := m) (π₂ := term A') (w := sq)).IsPullback) :
-    χ = HasSubobjectClassifier.classify m hm :=
-  HasSubobjectClassifier.classify_unique m hm χ sq pb
-
 /-- §1.912: The characteristic map does not depend on the proof of monicity. -/
 theorem classify_congr [HasSubobjectClassifier 𝒞]
     {A A' : 𝒞} (m : A' ⟶ A) (hm hm' : Monic m) :
