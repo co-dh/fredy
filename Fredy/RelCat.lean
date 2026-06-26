@@ -37,6 +37,7 @@ import Fredy.S1_62
 import Fredy.S2_1
 import Fredy.S2_2
 import Fredy.MapCat
+import Fredy.MatrixAllegory   -- §2.217(1): the positive reflection Mat(𝒜) (acyclic: Mat imports only S2_*)
 
 open Freyd
 open Freyd.Alg
@@ -1036,5 +1037,182 @@ theorem embedRel_faithful {a b : 𝒞} {f g : a ⟶ b} (h : embedRel f = embedRe
   relClass_graph_inj (a := a) (b := b) (Subtype.ext_iff.mp h)
 
 end GraphEmbedding
+
+/-! ### §2.217(1)  A positive pre-logos embeds faithfully in a POSITIVE pre-logos.
+
+  `relMapPreLogos` above gives only a *pre-logos* `Map(Rel C)`; §2.217(1) wants the target
+  to be *positive* as well.  The positive reflection is Freyd's matrix construction `Mat(-)`:
+  `Map(Mat(Rel C))` is a positive pre-logos, and `C` embeds into it as 1×1 matrices of graphs.
+
+  Assembly:
+    1. `Rel(C)` is a `TabularDistributiveAllegory` and a `UnitaryDistributiveAllegory`
+       (the two local §2.342 hypothesis classes of `MatrixAllegory`).  Both diamonds merge
+       because every parent is built `{ relAllegory with … }`.
+    2. Hence `Mat(Rel C)` is tabular + unitary + distributive + positive
+       (`instTabularAllegoryMat`, `instUnitaryAllegoryMat`, `instDistributiveAllegoryMat`,
+       `instPositiveAllegoryMat`), i.e. a `TabularUnitaryPositiveAllegory`.
+    3. So `Map(Mat(Rel C))` is a POSITIVE pre-logos (`MapCat.mapPositivePreLogos`).
+    4. `C ↪ Map(Mat(Rel C))`, `f ↦ embed1 (embedRel f)` (1×1 matrix of the graph of `f`),
+       is faithful (peel the 1×1 matrix, then `relClass_graph_inj`). -/
+
+section Positivize
+
+open Freyd.DisjointGluing Freyd.Alg.Mat
+
+variable [PositivePreLogos 𝒞]
+
+/-- **§2.217(1) step 1**: `Rel(C)` is a tabular *distributive* allegory — the §2.342 hypothesis
+    class of the matrix construction.  Parents share the SAME `relAllegory` grandparent, so the
+    diamond merges. -/
+instance relTabularDistributiveAllegory :
+    Freyd.Alg.Mat.TabularDistributiveAllegory (RelObj 𝒞) :=
+  { relTabularAllegory, DisjointGluing.relDistributiveAllegory with }
+
+/-- **§2.217(1) step 1**: `Rel(C)` is a unitary *distributive* allegory — the other §2.342
+    matrix hypothesis class. -/
+instance relUnitaryDistributiveAllegory :
+    Freyd.Alg.Mat.UnitaryDistributiveAllegory (RelObj 𝒞) :=
+  { relUnitaryAllegory, DisjointGluing.relDistributiveAllegory with }
+
+/-- **§2.217(1) step 2**: `Mat(Rel C)` is a tabular-unitary-POSITIVE allegory.  Combines the four
+    matrix instances (`instTabularAllegoryMat`, `instUnitaryAllegoryMat`,
+    `instDistributiveAllegoryMat`, `instPositiveAllegoryMat`), all now resolvable from step 1. -/
+noncomputable instance matRelTabularUnitaryPositiveAllegory :
+    Freyd.Alg.TabularUnitaryPositiveAllegory (MatObj (RelObj 𝒞)) :=
+  { (instTabularAllegoryMat : TabularAllegory (MatObj (RelObj 𝒞))),
+    (instUnitaryAllegoryMat  : UnitaryAllegory  (MatObj (RelObj 𝒞))),
+    (instPositiveAllegoryMat : PositiveAllegory (MatObj (RelObj 𝒞))) with }
+
+/-- **§2.217(1) step 3**: `Map(Mat(Rel C))` is a POSITIVE pre-logos — the target object of the
+    embedding.  Immediate from `MapCat.mapPositivePreLogos` over the
+    `TabularUnitaryPositiveAllegory (MatObj (RelObj C))` of step 2.  Stated explicitly so
+    typeclass resolution finds the `MapObj (MatObj (RelObj C))` instance head. -/
+noncomputable instance s217PreLogos :
+    @PositivePreLogos (MapObj (MatObj (RelObj 𝒞))) (mapCat (𝒜 := MatObj (RelObj 𝒞))) :=
+  Freyd.Alg.mapPositivePreLogos (A := MatObj (RelObj 𝒞))
+
+end Positivize
+
+/-! ### §2.217(1)  Faithful embedding `C ↪ Map(Mat(Rel C))`.
+
+  `embed1 : 𝒜 → MatObj 𝒜` (§H) wraps a base morphism as a 1×1 matrix and is a faithful allegory
+  homomorphism (preserves `≫`, `°`, `∩`, `id`).  We show it carries `Map`s to `Map`s, so the
+  graph-map `embedRel f : ⟨a⟩ ⟶ ⟨b⟩` in `Map(Rel C)` lifts to a Map in `Mat(Rel C)`, giving the
+  morphism part of `C → Map(Mat(Rel C))`.  Faithfulness peels the 1×1 matrix back to
+  `embedRel`, then `embedRel_faithful`. -/
+
+section MatEmbedding
+
+open Freyd.Alg.Mat
+
+variable {𝒜 : Type u} [DistributiveAllegory 𝒜]
+
+/-- `embed1` sends the identity to the matrix identity (1×1 case: `matId` of `unitObj a`). -/
+theorem embed1_id {a : 𝒜} : embed1 (Cat.id a) = matId (unitObj a) := by
+  funext i j
+  have hi : i = ⟨0, Nat.zero_lt_one⟩ := Fin.fin_one_eq_zero i
+  have hj : j = ⟨0, Nat.zero_lt_one⟩ := Fin.fin_one_eq_zero j
+  subst hi; subst hj
+  simp only [embed1, matId, unitObj, ↓reduceDIte]
+
+/-- `embed1 R`, retyped as a category morphism `unitObj a ⟶ unitObj b` (defeq to its `MatHom`
+    type, but `⟶`-headed so the allegory operations `⊑`/`°`/`≫`/`dom` elaborate). -/
+def embed1' {a b : 𝒜} (R : a ⟶ b) : (unitObj a) ⟶ (unitObj b) := embed1 R
+
+theorem embed1'_injective {a b : 𝒜} {R S : a ⟶ b} (h : embed1' R = embed1' S) : R = S :=
+  embed1_injective h
+
+/-- `embed1` reflects/preserves the allegory order (1×1 entrywise). -/
+theorem embed1_le_iff {a b : 𝒜} {R S : a ⟶ b} :
+    (embed1' R ⊑ embed1' S) ↔ (R ⊑ S) := by
+  -- `X ⊑ Y` unfolds to `X ∩ Y = X`; `embed1` preserves `∩` and is injective, so the two
+  -- equations `embed1 (R∩S) = embed1 R` and `R∩S = R` are interchangeable.
+  show (Allegory.inter (embed1' R) (embed1' S) = embed1' R) ↔ (R ∩ S = R)
+  rw [show Allegory.inter (embed1' R) (embed1' S) = embed1' (R ∩ S) from (embed1_inter R S).symm]
+  exact ⟨fun h => embed1'_injective h, fun h => congrArg embed1' h⟩
+
+/-- `embed1` commutes with `dom` (`dom = id ∩ R ≫ R°`; all preserved by `embed1`). -/
+theorem embed1_dom {a b : 𝒜} (R : a ⟶ b) : dom (embed1' R) = embed1' (dom R) := by
+  show Allegory.inter (Cat.id (unitObj a)) (matComp (embed1 R) (matRecip (embed1 R)))
+      = embed1 (Cat.id a ∩ R ≫ R°)
+  -- Expand the RHS through `embed1`'s homomorphism laws to match the LHS (all `mat*` primitives).
+  rw [embed1_inter, embed1_comp, embed1_recip, embed1_id]
+  rfl
+
+/-- **§2.217(1) step 4 (preservation)**: `embed1` carries a `Map` of `𝒜` to a `Map` of
+    `Mat 𝒜`.  `Entire`: `dom (embed1 R) = embed1 (dom R) = embed1 id = matId`.
+    `Simple`: `(embed1 R)° ≫ embed1 R = embed1 (R° ≫ R) ⊑ embed1 id = matId`. -/
+theorem embed1_map {a b : 𝒜} {R : a ⟶ b} (hR : Freyd.Alg.Map R) :
+    Freyd.Alg.Map (𝒜 := MatObj 𝒜) (embed1' R) := by
+  obtain ⟨hEnt, hSim⟩ := hR
+  refine ⟨?_, ?_⟩
+  · -- Entire
+    show dom (embed1' R) = Cat.id (unitObj a)
+    rw [embed1_dom, show dom R = Cat.id a from hEnt]
+    show embed1 (Cat.id a) = matId (unitObj a)
+    rw [embed1_id]
+  · -- Simple: `(embed1 R)° ≫ embed1 R = embed1 (R° ≫ R) ⊑ embed1 (id) = id`.
+    have hkey : embed1' (R° ≫ R) ⊑ embed1' (Cat.id b) := embed1_le_iff.mpr hSim
+    show ((embed1' R)° ≫ embed1' R) ⊑ Cat.id (unitObj b)
+    have hlhs : ((embed1' R)° ≫ embed1' R) = embed1' (R° ≫ R) := by
+      show matComp (matRecip (embed1 R)) (embed1 R) = embed1 (R° ≫ R)
+      rw [embed1_comp, embed1_recip]
+    have hrhs : Cat.id (unitObj b) = embed1' (Cat.id b) := by
+      show matId (unitObj b) = embed1 (Cat.id b); rw [embed1_id]
+    rw [hlhs, hrhs]; exact hkey
+
+end MatEmbedding
+
+section GraphMatEmbedding
+
+open Freyd.Alg.Mat
+
+variable [PositivePreLogos 𝒞]
+
+/-- **§2.217(1)**: the object part `C → Map(Mat(Rel C))`: `a ↦ unitObj ⟨a⟩` (the 1×1 matrix on
+    the relation-object `⟨a⟩`). -/
+def embed217Obj (a : 𝒞) : MapObj (MatObj (RelObj 𝒞)) := unitObj (⟨a⟩ : RelObj 𝒞)
+
+/-- **§2.217(1)**: the morphism part `f ↦ embed1 (embedRel f)` — the 1×1 matrix whose single
+    entry is the graph-map `[graph f]` of `Rel(C)`, packaged as a Map of `Mat(Rel C)`. -/
+noncomputable def embed217 {a b : 𝒞} (f : a ⟶ b) :
+    @Cat.Hom (MapObj (MatObj (RelObj 𝒞))) (mapCat (𝒜 := MatObj (RelObj 𝒞)))
+      (embed217Obj a) (embed217Obj b) :=
+  ⟨embed1' (embedRel f).val, embed1_map (embedRel f).property⟩
+
+/-- **§2.217(1)**: the embedding `C ↪ Map(Mat(Rel C))` is FAITHFUL.  Peel the 1×1 matrix
+    (`embed1'_injective`) to recover `embedRel f = embedRel g`, then `embedRel_faithful`. -/
+theorem embed217_faithful {a b : 𝒞} {f g : a ⟶ b} (h : embed217 f = embed217 g) : f = g := by
+  have hval : embed1' (embedRel f).val = embed1' (embedRel g).val := congrArg Subtype.val h
+  exact embedRel_faithful (Subtype.ext (embed1'_injective hval))
+
+end GraphMatEmbedding
+
+/-! ### §2.217(1)  Headline. -/
+
+section S217
+
+open Freyd.Alg.Mat
+
+variable [PositivePreLogos 𝒞]
+
+/-- **§2.217(1)**: *every positive pre-logos `C` embeds faithfully in a positive pre-logos.*
+    Take `D := Map(Mat(Rel C))`; it is a positive pre-logos (`s217PreLogos`) and `embed217` is a
+    faithful functor `C ↪ D` (`embed217_faithful`).  Packaged as: there exist a positive-pre-logos
+    structure on `D` and a per-hom injection of `C` into `D`.
+
+    BOOK §2.217(1) (general): for a NON-positive pre-logos `C` this same construction works, but it
+    needs `relDistributiveAllegory` weakened from `[PositivePreLogos C]` to `[PreLogos C]` — `Rel(C)`
+    is distributive for any pre-logos (positivity of `C` is used ONLY to obtain the disjoint
+    coproducts that make `Rel(C)` distributive *here*; the TARGET's positivity is supplied entirely
+    by `Mat`, not by `C`).  Reproving `DisjointGluing.relDistributiveAllegory` over `[PreLogos C]`
+    (distributivity of `Rel(C)` without disjoint coproducts) discharges the general statement with
+    the identical `Mat`/`Map` assembly below. -/
+theorem s217_faithful_embed_into_positive :
+    Nonempty (@PositivePreLogos (MapObj (MatObj (RelObj 𝒞))) (mapCat (𝒜 := MatObj (RelObj 𝒞)))) ∧
+    ∀ {a b : 𝒞} {f g : a ⟶ b}, embed217 f = embed217 g → f = g :=
+  ⟨⟨s217PreLogos⟩, fun {_ _ _ _} h => embed217_faithful h⟩
+
+end S217
 
 end Freyd
