@@ -1443,6 +1443,134 @@ theorem relReverse_inr_monic (zero : RelObj 𝒞)
   exact @DisjointBinaryCoproduct.inr_monic (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞))
     Freyd.Alg.mapDisjointBinaryCoproduct ⟨a⟩ ⟨b⟩
 
+/-- **§2.214 REVERSE — union inequality `entire ≤ inl ∪ inr` (PURELY in C).**  The union
+    `inlSub ∪ inrSub` is the image of `case inl inr` (`union_is_image`); by the coproduct UMP
+    `case inl inr = id` (uniqueness against the identity), so the union is the image of the identity,
+    which the entire subobject allows.  No transport across `embedRel` is needed for this half. -/
+theorem relReverse_inl_union_inr (zero : RelObj 𝒞)
+    (coprodObj : RelObj 𝒞 → RelObj 𝒞 → RelObj 𝒞)
+    (hcop : ∀ a b : RelObj 𝒞, Freyd.Alg.Coproduct (𝒜 := RelObj 𝒞) (coprodObj a b) a b) {a b : 𝒞} :
+    letI H := relReverseHasBinaryCoproducts zero coprodObj hcop
+    Subobject.le
+      (Subobject.entire (HasBinaryCoproducts.coprod a b))
+      (HasSubobjectUnions.union
+        (inlSub (𝒞 := 𝒞) (A := a) (B := b)
+          (relReverse_inl_monic zero coprodObj hcop))
+        (inrSub (𝒞 := 𝒞) (A := a) (B := b)
+          (relReverse_inr_monic zero coprodObj hcop))) := by
+  letI H := relReverseHasBinaryCoproducts zero coprodObj hcop
+  let Il := inlSub (𝒞 := 𝒞) (A := a) (B := b) (relReverse_inl_monic zero coprodObj hcop)
+  let Ir := inrSub (𝒞 := 𝒞) (A := a) (B := b) (relReverse_inr_monic zero coprodObj hcop)
+  -- `case Il.arr Ir.arr = case inl inr = id` by the coproduct uniqueness UMP.
+  have hcase : HasBinaryCoproducts.case Il.arr Ir.arr
+      = Cat.id (HasBinaryCoproducts.coprod a b) :=
+    (HasBinaryCoproducts.case_uniq Il.arr Ir.arr (Cat.id _)
+      (Cat.comp_id _) (Cat.comp_id _)).symm
+  -- The union is an image of `case Il.arr Ir.arr`, hence allows it; rewriting by `hcase`
+  -- it allows the identity, which is exactly `entire ≤ union`.
+  obtain ⟨l, hl⟩ := (union_is_image Il Ir).1
+  exact ⟨l, by rw [hl, hcase]; rfl⟩
+
+/-- A subobject `Z` of `B` whose domain admits **any** map into a bottom domain is `≤ ⊥ B`.
+    The map makes `Z.dom` initial (`dom_initial_of_map_to_bottom`); transporting along
+    `bottom_dom_iso` yields a map `Z.dom → (⊥ B).dom`, and the factorization
+    `· ≫ (⊥ B).arr = Z.arr` is forced because both sides are maps out of the initial `Z.dom`. -/
+private theorem le_bottom_of_map_to_bottom {B W : 𝒞} (Z : Subobject 𝒞 B)
+    (g : Z.dom ⟶ (PreLogos.bottom W).dom) : Z.le (PreLogos.bottom B) := by
+  -- `Z.dom` is initial: any two maps out agree.
+  have hinit : ∀ {Y : 𝒞} (u v : Z.dom ⟶ Y), u = v := dom_initial_of_map_to_bottom g
+  -- a map `Z.dom → (⊥ B).dom`, via `bottom_dom_iso W B`.
+  obtain ⟨ι, _⟩ := PreLogos.bottom_dom_iso W B
+  refine ⟨g ≫ ι, ?_⟩
+  -- `(g ≫ ι) ≫ (⊥ B).arr` and `Z.arr` are both maps out of the initial `Z.dom`.
+  exact hinit ((g ≫ ι) ≫ (PreLogos.bottom B).arr) Z.arr
+
+/-- **§2.214 REVERSE — disjointness inequality `inl ∩ inr ≤ 0` (TRANSPORTED through `embedRel`).**
+    The intersection's domain `P` is the C-pullback of `(inl, inr)`.  Pushing the pullback square
+    through `embedRel` (functorial, sending `inl ↦ inl_Map`, `inr ↦ inr_Map`) makes `⟨P⟩` a cone over
+    `Map(Rel C)`'s `(inl_Map, inr_Map)`; `Map`'s own disjointness (`coprod_inl_inr_disjoint_elt` via
+    `mapDisjointBinaryCoproduct`) provides a `Map`-map `⟨P⟩ → bottom_Map.dom`, so `⟨P⟩` is initial in
+    `Map(Rel C)` (`dom_initial_of_map_to_bottom`).  Routed through the `Map`-coterminator and lifted
+    back by fullness, that yields a C-map `P → (⊥ _).dom`; `le_bottom_of_map_to_bottom` closes it. -/
+theorem relReverse_inl_inter_inr (zero : RelObj 𝒞)
+    (coprodObj : RelObj 𝒞 → RelObj 𝒞 → RelObj 𝒞)
+    (hcop : ∀ a b : RelObj 𝒞, Freyd.Alg.Coproduct (𝒜 := RelObj 𝒞) (coprodObj a b) a b) {a b : 𝒞} :
+    letI H := relReverseHasBinaryCoproducts zero coprodObj hcop
+    Subobject.le
+      (Subobject.inter
+        (inlSub (𝒞 := 𝒞) (A := a) (B := b) (relReverse_inl_monic zero coprodObj hcop))
+        (inrSub (𝒞 := 𝒞) (A := a) (B := b) (relReverse_inr_monic zero coprodObj hcop)))
+      (PreLogos.bottom (HasBinaryCoproducts.coprod a b)) := by
+  letI H := relReverseHasBinaryCoproducts zero coprodObj hcop
+  let Il := inlSub (𝒞 := 𝒞) (A := a) (B := b) (relReverse_inl_monic zero coprodObj hcop)
+  let Ir := inrSub (𝒞 := 𝒞) (A := a) (B := b) (relReverse_inr_monic zero coprodObj hcop)
+  -- the C-pullback defining the intersection.
+  let pb := HasPullbacks.has Il.arr Ir.arr
+  -- `Map(Rel C)`'s DisjointBinaryCoproduct instance.  The positive-allegory witness `tup` is passed
+  -- EXPLICITLY (not as a `letI` instance) so it does NOT shadow the global `Allegory (RelObj C)`
+  -- (`relAllegory`): `mapCat`/`relMapPreLogos` then resolve along the SAME global chain, and
+  -- `DM.toPreLogos` is defeq `relMapPreLogos`, dissolving the diamond the marker warned about.
+  let DM : @DisjointBinaryCoproduct (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞)) :=
+    @Freyd.Alg.mapDisjointBinaryCoproduct (RelObj 𝒞) (relTUPositiveAllegory zero coprodObj hcop)
+  -- `Map(Rel C)`'s injections, projected from `DM`'s coproduct.
+  let il := @HasBinaryCoproducts.inl (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞))
+    DM.toPositivePreLogos.toHasBinaryCoproducts ⟨a⟩ ⟨b⟩
+  let ir := @HasBinaryCoproducts.inr (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞))
+    DM.toPositivePreLogos.toHasBinaryCoproducts ⟨a⟩ ⟨b⟩
+  -- `embedRel`-images of the two injections are `Map(Rel C)`'s injections.
+  have hinl : embedRel (Il.arr) = il :=
+    (((embedRel_cat_iso (𝒞 := 𝒞)).2 il).choose_spec).symm
+  have hinr : embedRel (Ir.arr) = ir :=
+    (((embedRel_cat_iso (𝒞 := 𝒞)).2 ir).choose_spec).symm
+  -- the pullback square in C, pushed through `embedRel` to a cone over `(inl_Map, inr_Map)`.
+  have hsq : @Cat.comp (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞)) _ _ _ (embedRel pb.cone.π₁) il
+      = @Cat.comp (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞)) _ _ _ (embedRel pb.cone.π₂) ir := by
+    rw [← hinl, ← hinr, ← embedRel_comp, ← embedRel_comp]
+    exact congrArg embedRel pb.cone.w
+  -- `Map`'s disjointness: `⟨P⟩` admits a map into `Map`'s bottom domain (over `DM.toPreLogos`).
+  obtain ⟨e, _he⟩ := @coprod_inl_inr_disjoint_elt (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞)) DM
+    ⟨a⟩ ⟨b⟩ ⟨pb.cone.pt⟩ (embedRel pb.cone.π₁) (embedRel pb.cone.π₂) hsq
+  -- `⟨P⟩` is initial in `Map(Rel C)`; route through the coterminator on `DM`'s own PreLogos
+  -- (= `relMapPreLogos` definitionally, avoids the Cat-instance diamond) and lift back to C.
+  let PLM := DM.toPositivePreLogos.toPreLogos
+  letI ct := @minimal_subobject_of_one_is_coterminator (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞)) PLM
+  have hbotiso := @PreLogos.bottom_dom_iso (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞)) PLM
+    (@HasBinaryCoproducts.coprod (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞))
+      DM.toPositivePreLogos.toHasBinaryCoproducts ⟨a⟩ ⟨b⟩)
+    PLM.toHasTerminal.one
+  obtain ⟨ι, _⟩ := hbotiso
+  -- the `Map`-morphism `⟨P⟩ → ⟨(⊥ A+B in C).dom⟩`.
+  let m₀ : @Cat.Hom (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞)) ⟨pb.cone.pt⟩
+      ⟨(PreLogos.bottom (HasBinaryCoproducts.coprod a b)).dom⟩ :=
+    @Cat.comp (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞)) _ _ _
+      (@Cat.comp (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞)) _ _ _ e ι)
+      (ct.init ⟨(PreLogos.bottom (HasBinaryCoproducts.coprod a b)).dom⟩)
+  -- lift `m₀` through fullness to a C-morphism `P → (⊥ A+B).dom`.
+  obtain ⟨h, _hh⟩ := (embedRel_cat_iso (𝒞 := 𝒞)).2 m₀
+  -- `inter.dom = pb.cone.pt = P`, so `h : inter.dom → (⊥ A+B).dom`; close by the helper.
+  exact le_bottom_of_map_to_bottom _ h
+
+-- **§2.214 REVERSE — all four DisjointBinaryCoproduct fields PROVED; final `.mk` assembly
+--   blocked by a PositivePreLogos instance-coherence diamond.**
+-- From finite coproducts of `Rel(C)` (the positive-allegory coproduct DATA
+-- `zero`/`coprodObj`/`hcop` over `relAllegory`), `C` is a pre-logos with DISJOINT binary
+-- coproducts.  The FOUR §1.621 fields are fully proven, Sorry-free, above:
+--   • `relReverseHasBinaryCoproducts` — `HasBinaryCoproducts C` (object/inl/inr/case + UMP),
+--   • `relReverse_inl_monic` / `relReverse_inr_monic` — injections monic,
+--   • `relReverse_inl_inter_inr` — `inlSub ∩ inrSub ≤ ⊥` (via the `embedRel` Subobject transport
+--     of `MapCat.mapInl_inter_inr`),
+--   • `relReverse_inl_union_inr` — `entire ≤ inlSub ∪ inrSub` (transport of `mapInl_union_inr`).
+-- BOOK §2.214 REVERSE (assembly only): packing these into `DisjointBinaryCoproduct.mk` needs a
+--   `PositivePreLogos 𝒞` instance whose `HasBinaryCoproducts` is `relReverseHasBinaryCoproducts`
+--   (so `inlSub`/`inrSub` match the field lemmas).  Synthesizing `PPL := { prevPL, HBC with }`
+--   and passing it to the field lemmas makes `relAllegory` (and hence the `hcop : ∀ a b,
+--   Coproduct (𝒜 := RelObj 𝒞) …` type) resolve from `PPL` rather than the ambient
+--   `[PositivePreLogos 𝒞]` the lemmas were elaborated against — a non-defeq instance mismatch
+--   (Application type mismatch on `hcop`).  Closing it needs the two `HasBinaryCoproducts 𝒞`
+--   instances (ambient vs `relReverseHasBinaryCoproducts`) made coherent, or `relAllegory`
+--   refactored to not depend on the `PositivePreLogos` packaging.  Pure instance plumbing — the
+--   mathematics (the disjointness transport) is complete.
+
 end ReverseCoproduct
 
 end Freyd
