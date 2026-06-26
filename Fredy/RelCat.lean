@@ -22,10 +22,9 @@
     • `Allegory (RelObj C)`        for `[RegularCategory C]`        — §2.111 (modular = §2.142)
     • `DistributiveAllegory (RelObj C)` for `[PositivePreLogos C]`  — §2.21
     • §2.214 (positive ⇒ Rel(C) has finite coproducts), forward direction over
-      `[DisjointBinaryCoproduct C]`: of the five `Coproduct` equations, eqs (1),(4)
-      [monic injections] and (2),(3) [disjointness] are PROVED; eq (5) [joint cover]
-      and the final `Coproduct` assembly are a precise BOOK TODO (the one missing Ch1
-      dictionary entry — subobject-union ↔ relational union of coreflexives).
+      `[DisjointBinaryCoproduct C]`: the full five-equation `Coproduct (RelObj C)` record
+      (`relCoproduct`).  Eqs (1),(4) [monic injections], (2),(3) [disjointness], and
+      (5) [joint cover, `relGraph_recip_union_eq_id`] are all PROVED.
 
   This is a BRIDGE file: it imports BOTH Ch1 (BinRel) and Ch2 (Allegory class).  Ch1
   facts are NEVER proved from allegory axioms — only the reverse.
@@ -584,22 +583,141 @@ theorem relGraph_inr_comp_recip_inl {A B : 𝒞} :
     ⟨pbRL.cone.pt, pbRL.cone.π₂, pbRL.cone.π₁, pbRL.cone.w.symm⟩
   exact pbLR.lift cswap ≫ inlInrPullbackToZero A B
 
-/-
-  **BOOK TODO — §2.214 eq (5) and the full `Coproduct (RelObj C)` record.**
+/-! ### §2.214 eq (5) and the full `Coproduct (RelObj C)` record.
 
-  `u₁_self_comp_recip`, `u₂_self_comp_recip` : PROVED (`relGraph_comp_recip_of_monic`).
-  `u₁_u₂_recip`, `u₂_u₁_recip`               : PROVED (`relGraph_inl_comp_recip_inr` and
-                                                `relGraph_inr_comp_recip_inl`).
-  `recip_union_eq_id : [inl]°⊚[inl] ∪ [inr]°⊚[inr] = 1`  : the remaining equation.
-    NEEDS the joint-cover §1.621 `inl_union_inr_entire` (subobjects `inl ∪ inr = A+B`)
-    translated to `inl°inl ∪ inr°inr = 1_{A+B}`: i.e. `cover [inl, inr]` ⟹ the relational
-    unit, via `cover_iff_one_le_reciprocal_comp_self` (covers ↔ `1 ⊂ x°x`) applied to the
-    copairing, plus `relSub`/`subRel` bridging the subobject union to `∪ᵣ`.  This last
-    step (subobject-union of `inlSub, inrSub` ↔ relational `(inl°inl) ∪ᵣ (inr°inr)`) is the
-    one missing dictionary entry; the rest of the `Coproduct` record is the four equations
-    above.  The REVERSE §2.214 direction (Rel(C) has coproducts ⟹ C positive) reads the
-    universal coproduct back through the `Map(Rel(C)) ≃ C` correspondence (§2.147/§2.148).
--/
+  `u₁_self_comp_recip`, `u₂_self_comp_recip` : `relGraph_comp_recip_of_monic`.
+  `u₁_u₂_recip`, `u₂_u₁_recip`               : `relGraph_inl_comp_recip_inr` /
+                                               `relGraph_inr_comp_recip_inl`.
+  `recip_union_eq_id : [inl]°⊚[inl] ∪ [inr]°⊚[inr] = 1` : proved below
+  (`relGraph_recip_union_eq_id`).  Strategy: the union inclusions `x : A → U.dom`,
+  `y : B → U.dom` (`U := inlSub ∪ inrSub`) jointly cover `U.dom` (`union_joint_cover`),
+  and the union arrow `e := U.arr : U.dom → A+B` is an ISO (`inl_union_inr_entire` makes
+  `U = entire`).  Conjugating `1_{U.dom} ⊑ x°x ∪ y°y` by the iso graph `[e]` and using
+  `[inl] = [x]⊚[e]`, `[inr] = [y]⊚[e]` (graph respects composition) lands the unit at
+  `A+B`. -/
+
+/-- **`graph` respects composition on the quotient** (§1.564): `[graph (f ≫ g)] =
+    [graph f] ⊚ [graph g]`.  Both containments are Ch1 (`graph_comp` / `comp_graph`). -/
+theorem relGraph_comp {a b c : 𝒞} (f : a ⟶ b) (g : b ⟶ c) :
+    relGraph (f ≫ g) = qComp (relGraph f) (relGraph g) :=
+  quotLe_antisymm (graph_comp f g) (comp_graph f g)
+
+/-- **`[graph e]° ≫ [graph e] = 1` for a cover `e`** (in particular an iso): a cover's
+    reciprocal-then-graph composite is the unit (`cover_iff_reciprocal_comp_self_eq_one`).
+    Stated with the `Rel(C)` allegory operations on `RelObj C`. -/
+theorem relGraph_recip_comp_self_of_cover {a b : 𝒞} (e : a ⟶ b) (he : Cover e) :
+    (relGraph e)° ≫ (relGraph e) = @Cat.id (RelObj 𝒞) _ ⟨b⟩ := by
+  show relClass ((graph e)° ⊚ graph e) = relClass (graph (Cat.id b))
+  obtain ⟨hle, hge⟩ := (cover_iff_reciprocal_comp_self_eq_one e).mp he
+  exact quotLe_antisymm hle hge
+
+/-- The lattice order `⊑` on `Rel(C)` is exactly the relation containment `quotLe`
+    (`= RelLe` on representatives).  `x ⊑ y` unfolds to `x ∩ y = x`, i.e. `[R⊓S] = [R]`,
+    i.e. `R⊓S ≈ R`; the nontrivial half is `R ⊑ R⊓S ↔ R ⊑ S` (meet UMP). -/
+theorem quotLe_iff_algLe {a b : 𝒞} (x y : BinRelQuot (𝒞 := 𝒞) a b) :
+    quotLe x y ↔ Freyd.Alg.le (𝒜 := RelObj 𝒞) (a := ⟨a⟩) (b := ⟨b⟩) x y := by
+  refine Quotient.inductionOn₂ x y (fun R S => ?_)
+  show RelLe R S ↔ qInter (relClass R) (relClass S) = relClass R
+  rw [qInter_mk]
+  constructor
+  · intro h
+    exact quotLe_antisymm (intersect_le_left R S)
+      (le_intersect (rel_le_refl R) h)
+  · intro h
+    -- [R⊓S] = [R] gives R ⊑ R⊓S, hence R ⊑ S via intersect_le_right.
+    have hRRS : quotLe (relClass R) (relClass (R ⊓ S)) := by rw [h]; exact quotLe_refl _
+    exact rel_le_trans hRRS (intersect_le_right R S)
+
+open Freyd.Alg in
+/-- **§2.214 eq (5)** — the joint-cover equation.  `[inl]° ≫ [inl] ∪ [inr]° ≫ [inr] = 1`
+    on `A+B` in `Rel(C)` (allegory operations).  The union inclusions jointly cover
+    `U := inlSub ∪ inrSub` (`union_joint_cover`), and the union arrow is an iso
+    (`inl_union_inr_entire`), so conjugating the `U`-unit by the iso graph transports it
+    to `A+B`. -/
+theorem relGraph_recip_union_eq_id {A B : 𝒞} :
+    ((relGraph (HasBinaryCoproducts.inl (A := A) (B := B)))°
+        ≫ relGraph (HasBinaryCoproducts.inl (A := A) (B := B)))
+      ∪ ((relGraph (HasBinaryCoproducts.inr (A := A) (B := B)))°
+        ≫ relGraph (HasBinaryCoproducts.inr (A := A) (B := B)))
+      = @Cat.id (RelObj 𝒞) _ ⟨HasBinaryCoproducts.coprod A B⟩ := by
+  -- The union subobject and its inclusions.
+  let U := HasSubobjectUnions.union (inlSub (𝒞 := 𝒞) (A := A) (B := B) inl_mono)
+                                    (inrSub (𝒞 := 𝒞) (A := A) (B := B) inr_mono)
+  obtain ⟨x, hx⟩ := HasSubobjectUnions.union_left
+    (inlSub (𝒞 := 𝒞) (A := A) (B := B) inl_mono) (inrSub (𝒞 := 𝒞) (A := A) (B := B) inr_mono)
+  obtain ⟨y, hy⟩ := HasSubobjectUnions.union_right
+    (inlSub (𝒞 := 𝒞) (A := A) (B := B) inl_mono) (inrSub (𝒞 := 𝒞) (A := A) (B := B) inr_mono)
+  -- hx : x ≫ U.arr = inlSub.arr = inl ;  hy : y ≫ U.arr = inrSub.arr = inr.
+  change x ≫ U.arr = HasBinaryCoproducts.inl at hx
+  change y ≫ U.arr = HasBinaryCoproducts.inr at hy
+  -- U.arr is an ISO: entire ≤ U (inl_union_inr_entire) gives a section, so U.arr is a
+  -- split-epi monic, hence a cover.
+  obtain ⟨e, he⟩ := inl_union_inr_entire (𝒟 := 𝒞) (A := A) (B := B)  -- e ≫ U.arr = (entire).arr = id
+  have heU : e ≫ U.arr = Cat.id (HasBinaryCoproducts.coprod A B) := he
+  have hcov : Cover U.arr := cover_of_section U.arr e heU
+  -- Allegory-level abbreviations (morphisms of `RelObj C`).  `let` keeps them defeq to
+  -- the underlying graphs so the bridge lemmas apply on the nose.
+  let inlR : (⟨A⟩ : RelObj 𝒞) ⟶ ⟨HasBinaryCoproducts.coprod A B⟩ :=
+    relGraph (HasBinaryCoproducts.inl (A := A) (B := B))
+  let inrR : (⟨B⟩ : RelObj 𝒞) ⟶ ⟨HasBinaryCoproducts.coprod A B⟩ :=
+    relGraph (HasBinaryCoproducts.inr (A := A) (B := B))
+  let eR : (⟨U.dom⟩ : RelObj 𝒞) ⟶ ⟨HasBinaryCoproducts.coprod A B⟩ := relGraph U.arr
+  let xR : (⟨A⟩ : RelObj 𝒞) ⟶ ⟨U.dom⟩ := relGraph x
+  let yR : (⟨B⟩ : RelObj 𝒞) ⟶ ⟨U.dom⟩ := relGraph y
+  -- rewrite the goal in terms of the abbreviations.
+  show (inlR° ≫ inlR) ∪ (inrR° ≫ inrR) = @Cat.id (RelObj 𝒞) _ ⟨HasBinaryCoproducts.coprod A B⟩
+  -- [inl] = [x] ≫ [e],  [inr] = [y] ≫ [e]  (graph respects composition).
+  have hinl_fac : inlR = xR ≫ eR := by
+    show relGraph (HasBinaryCoproducts.inl (A := A) (B := B)) = qComp (relGraph x) (relGraph U.arr)
+    rw [← hx]; exact relGraph_comp x U.arr
+  have hinr_fac : inrR = yR ≫ eR := by
+    show relGraph (HasBinaryCoproducts.inr (A := A) (B := B)) = qComp (relGraph y) (relGraph U.arr)
+    rw [← hy]; exact relGraph_comp y U.arr
+  -- [e]° ≫ [e] = 1_{A+B}.
+  have heRe : eR° ≫ eR = @Cat.id (RelObj 𝒞) _ ⟨HasBinaryCoproducts.coprod A B⟩ :=
+    relGraph_recip_comp_self_of_cover U.arr hcov
+  -- The joint cover at U: 1_{U.dom} ⊑ x°x ∪ y°y (bridge `quotLe → ⊑`).
+  have hjoint : (@Cat.id (RelObj 𝒞) _ ⟨U.dom⟩) ⊑ (xR° ≫ xR) ∪ (yR° ≫ yR) :=
+    (quotLe_iff_algLe _ _).mp
+      (union_joint_cover (𝒞 := 𝒞) (inlSub (𝒞 := 𝒞) (A := A) (B := B) inl_mono)
+        (inrSub (𝒞 := 𝒞) (A := A) (B := B) inr_mono) hx hy)
+  -- `relGraph_simple` summands ⊑ 1 (bridge).
+  have hsimp_l : inlR° ≫ inlR ⊑ @Cat.id (RelObj 𝒞) _ ⟨HasBinaryCoproducts.coprod A B⟩ :=
+    (quotLe_iff_algLe _ _).mp (relGraph_simple (HasBinaryCoproducts.inl (A := A) (B := B)))
+  have hsimp_r : inrR° ≫ inrR ⊑ @Cat.id (RelObj 𝒞) _ ⟨HasBinaryCoproducts.coprod A B⟩ :=
+    (quotLe_iff_algLe _ _).mp (relGraph_simple (HasBinaryCoproducts.inr (A := A) (B := B)))
+  apply Freyd.Alg.le_antisymm
+  · -- (u₁°u₁ ∪ u₂°u₂) ⊑ 1 : each summand is simple.
+    exact union_lub hsimp_l hsimp_r
+  · -- 1 = e°≫e = e°≫1_U≫e ⊑ e°≫(x°x∪y°y)≫e = u₁°u₁∪u₂°u₂.
+    have hconj : (eR° ≫ ((@Cat.id (RelObj 𝒞) _ ⟨U.dom⟩)) ≫ eR)
+        ⊑ (eR° ≫ ((xR° ≫ xR) ∪ (yR° ≫ yR)) ≫ eR) :=
+      comp_mono_left _ (comp_mono_right hjoint _)
+    -- LHS = e°≫e = 1.
+    rw [Cat.id_comp, heRe] at hconj
+    -- RHS = u₁°u₁ ∪ u₂°u₂.
+    have hRHS : eR° ≫ ((xR° ≫ xR) ∪ (yR° ≫ yR)) ≫ eR
+        = (inlR° ≫ inlR) ∪ (inrR° ≫ inrR) := by
+      rw [union_comp_distrib, DistributiveAllegory.comp_union_distrib, hinl_fac, hinr_fac]
+      -- both summands: e°≫(z°≫z)≫e = (z≫e)°≫(z≫e)  via assoc + recip_comp.
+      congr 1 <;>
+        · rw [Allegory.recip_comp]
+          simp only [Cat.assoc]
+    rw [hRHS] at hconj
+    exact hconj
+
+/-- **§2.214 (forward direction).**  A disjoint/positive binary coproduct of `C` gives a
+    coproduct in `Rel(C)`: the §2.214 five-equation `Coproduct` record over `RelObj C`,
+    with injections the graphs `[inl], [inr]`. -/
+noncomputable def relCoproduct (A B : 𝒞) :
+    Coproduct (𝒜 := RelObj 𝒞) ⟨HasBinaryCoproducts.coprod A B⟩ ⟨A⟩ ⟨B⟩ where
+  u₁ := relGraph (HasBinaryCoproducts.inl (A := A) (B := B))
+  u₂ := relGraph (HasBinaryCoproducts.inr (A := A) (B := B))
+  u₁_self_comp_recip := relGraph_comp_recip_of_monic _ inl_mono
+  u₂_self_comp_recip := relGraph_comp_recip_of_monic _ inr_mono
+  u₁_u₂_recip := relGraph_inl_comp_recip_inr
+  u₂_u₁_recip := relGraph_inr_comp_recip_inl
+  recip_union_eq_id := relGraph_recip_union_eq_id
 
 end Coproduct214
 
