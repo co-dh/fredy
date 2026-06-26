@@ -36,6 +36,7 @@ import Fredy.S1_61
 import Fredy.S1_62
 import Fredy.S2_1
 import Fredy.S2_2
+import Fredy.MapCat
 
 open Freyd
 open Freyd.Alg
@@ -961,5 +962,79 @@ instance (priority := 0) relUnitaryAllegory : UnitaryAllegory (RelObj 𝒞) :=
       fun a => ⟨relClass (graph (Freyd.term a.carrier)), entire_to_one a.carrier⟩⟩ }
 
 end TabularUnitary
+
+/-! ### §2.217  `Rel(C)` is a tabular-unitary-distributive allegory; `Map(Rel C)` is a pre-logos;
+    and `C ↪ Map(Rel C)` is a faithful embedding.
+
+  Assembling `relTabularAllegory`, `relUnitaryAllegory` (§2.14/§2.15) and the positive-pre-logos
+  `relDistributiveAllegory` (§2.21) onto the SINGLE diamond-merged class
+  `TabularUnitaryDistributiveAllegory` lets `MapCat`'s `mapPreLogos` fire, giving a pre-logos
+  `Map(Rel C)`.  The graph functor `C → Map(Rel C)` is faithful because graphs of distinct maps
+  are distinct relations (`relClass_graph_inj`). -/
+
+section MapRel
+
+variable [PositivePreLogos 𝒞]
+
+/-- **§2.217**: for a POSITIVE pre-logos `C`, `Rel(C)` is a tabular-unitary-distributive allegory.
+    All three parents (`relTabularAllegory`, `relUnitaryAllegory`,
+    `DisjointGluing.relDistributiveAllegory`) are built `{ relAllegory with … }`, so their shared
+    `toAllegory` grandparent is the SAME `relAllegory` — the diamond merges cleanly. -/
+instance (priority := 0) relTabularUnitaryDistributiveAllegory :
+    TabularUnitaryDistributiveAllegory (RelObj 𝒞) :=
+  { relTabularAllegory, relUnitaryAllegory, DisjointGluing.relDistributiveAllegory with }
+
+/-- **§2.217**: `Map(Rel C)` is a pre-logos for a positive pre-logos `C` — immediate from
+    `MapCat.mapPreLogos` applied to `relTabularUnitaryDistributiveAllegory`.  Stated explicitly so
+    typeclass resolution finds it (the `MapObj (RelObj C)` instance head). -/
+noncomputable instance relMapPreLogos :
+    @PreLogos (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞)) :=
+  Freyd.Alg.mapPreLogos (A := RelObj 𝒞)
+
+end MapRel
+
+/-! ### §2.217  Faithful graph embedding `C ↪ Map(Rel C)`.
+
+  The crux is `relClass_graph_inj`: graphs of distinct morphisms are distinct relations, so the
+  object-and-graph assignment `f ↦ [graph f]` is injective on hom-sets.  This needs only
+  `[RegularCategory C]` (it is pure §1.413 table algebra), NOT positivity. -/
+
+section GraphEmbedding
+
+variable [RegularCategory 𝒞]
+
+/-- **§2.217 core**: `graph` is injective up to relational equality.  If `[graph f] = [graph g]`
+    as morphisms of `Rel(C)` then `f = g`.  Proof: equality of classes gives `graph f ⊂ graph g`,
+    i.e. a `RelHom` — a map `h : A ⟶ A` with `h ≫ (graph g).colA = (graph f).colA` and
+    `h ≫ (graph g).colB = (graph f).colB`.  Since `(graph _).colA = id A` and `(graph _).colB = _`,
+    the first equation forces `h = id A` and the second then reads `g = id ≫ g = h ≫ g = f`. -/
+theorem relClass_graph_inj {a b : 𝒞} {f g : a ⟶ b}
+    (h : relClass (graph f) = relClass (graph g)) : f = g := by
+  -- [graph f] = [graph g] ⇒ graph f ≈ graph g (mutual RelLe); take the ⊂ direction.
+  have hle : RelLe (graph f) (graph g) := (Quotient.exact h).1
+  obtain ⟨w, hA, hB⟩ := hle
+  -- w : A ⟶ A.  (graph _).colA = id A (defeq), (graph _).colB = f resp g (defeq).
+  -- hA : w ≫ id a = id a  ⇒  w = id a.
+  have hw : w = Cat.id a := by
+    have hA' : w ≫ Cat.id a = Cat.id a := hA
+    exact (Cat.comp_id w).symm.trans hA'
+  -- hB : w ≫ g = f  ⇒  f = id a ≫ g = g.
+  have hB' : w ≫ g = f := hB
+  rw [hw] at hB'
+  exact ((Cat.id_comp g).symm.trans hB').symm
+
+/-- **§2.217**: the graph of `f` is a `Map` in `Rel(C)`, packaged as a `Map(Rel C)` morphism
+    `⟨a⟩ ⟶ ⟨b⟩` (a `mapCat` hom = subtype `{ R // Map R }`).  This is the morphism part of the
+    embedding `C → Map(Rel C)`. -/
+noncomputable def embedRel {a b : 𝒞} (f : a ⟶ b) :
+    @Cat.Hom (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞)) ⟨a⟩ ⟨b⟩ :=
+  ⟨relClass (graph f), relClass_graph_map f⟩
+
+/-- **§2.217**: the graph embedding `C → Map(Rel C)` is FAITHFUL — distinct morphisms have
+    distinct graph-maps.  Reduces (via `Subtype.ext_iff`) to `relClass_graph_inj`. -/
+theorem embedRel_faithful {a b : 𝒞} {f g : a ⟶ b} (h : embedRel f = embedRel g) : f = g :=
+  relClass_graph_inj (a := a) (b := b) (Subtype.ext_iff.mp h)
+
+end GraphEmbedding
 
 end Freyd
