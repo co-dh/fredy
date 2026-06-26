@@ -624,10 +624,10 @@ end RelMapEquiv
 
     "§2.212: If 𝒜 is a tabular unitary distributive allegory, then Map(𝒜) is a pre-logos."
 
-    Proved: HasTerminal, HasPullbacks, HasBinaryProducts, HasEqualizers, HasImages,
-            PullbacksTransferCovers, RegularCategory.
-    HasSubobjectUnions + PreLogos: construction settled (see TODO at end) but blocked on a
-    tabular/distributive `Allegory A` instance diamond — marked BOOK §2.212 TODO. -/
+    PROVED (sorry-free): HasTerminal, HasPullbacks, HasBinaryProducts, HasEqualizers, HasImages,
+            PullbacksTransferCovers, RegularCategory, HasSubobjectUnions, PreLogos.
+    The `Allegory` diamond is resolved by `TabularUnitaryDistributiveAllegory` (single class
+    merging tabular/unitary/distributive parents); `mapPreLogos` assembles the full instance. -/
 
 /-- A TABULAR UNITARY ALLEGORY (§2.212): combines `TabularAllegory` and `UnitaryAllegory`
     in a single class so the `Allegory` diamond is merged.  Having both in scope

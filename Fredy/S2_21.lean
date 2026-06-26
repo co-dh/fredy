@@ -384,15 +384,13 @@ theorem splitting_recip {a b : 𝒜} {R : a ⟶ b} {S : b ⟶ a}
   "If A is a tabular unitary distributive allegory, then Mon_U(A) is a pre-logos."
   [§2.212, proof: §2.154 gives regular; subobjects = coreflexives; finite unions exist.]
 
-  Partial progress in `Fredy/MapCat.lean`:
-  - `mapHasTerminal` PROVED: unit object is terminal in Map(A).
-  - Remaining (HasImages, HasPullbacks, HasBinaryProducts, PullbacksTransferCovers,
-    HasSubobjectUnions, PreLogos) are TODO comments in MapCat.lean.  Their §2.147 UMPs
-    (`tab_pullback_UMP`, `tab_equalizer_UMP`) are now PROVED under the source-apex
-    `Tabulates`; what remains is only the typeclass-instance packaging. -/
+  PROVED in `Fredy/MapCat.lean`: `mapPreLogos` assembles the full `PreLogos (MapObj A)`
+  instance for `[TabularUnitaryDistributiveAllegory A]` — all eight fields discharged:
+  `mapRegularCategory`, `mapHasSubobjectUnions`, `mapBottom`/`mapBottom_min`/`mapBottom_dom_iso`,
+  `mapInvImage_preserves_union`, `mapInvImage_preserves_bottom`.  Sorry-free. -/
 
--- BOOK §2.212: If A is a tabular unitary distributive allegory, then Mon_U(A) is a pre-logos.
--- Partial: mapHasTerminal proved in Fredy/MapCat.lean; rest TODO (UMPs proved, packaging left).
+-- §2.212: If A is a tabular unitary distributive allegory, then Mon_U(A) is a pre-logos.
+-- PROVED: `mapPreLogos` in Fredy/MapCat.lean (TabularUnitaryDistributiveAllegory A).
 
 /-! ## §2.214  Pre-logos positive iff Rel(C) has finite coproducts
 
@@ -487,18 +485,18 @@ example (𝒜 : Type u) [DistributiveAllegory 𝒜] : PositiveAllegory (Mat.MatO
     (1) every pre-logos embeds faithfully in a positive pre-logos;
     (2) every pre-logos embeds faithfully in a pre-topos.]
 
-  CORE NOW BUILT (Fredy/RelCat.lean): (a) `Rel : PreLogos → DistributiveAllegory`
-  (`relDistributiveAllegory`), (b) `Map` via `mapPreLogos` giving
-  `relMapPreLogos : PreLogos (MapObj (RelObj C))`, and the faithful embedding
-  `embedRel : C ↪ Map(Rel C)` (`embedRel_faithful`).  What remains for the FULL §2.217(1)
-  is the POSITIVE target via the matrix step: `Mat(Rel C)` tabular+unitary (§2.342) so
-  `Map(Mat(Rel C))` is a positive pre-logos. -/
+  PROVED (for `[PositivePreLogos C]`) in `Fredy/RelCat.lean`:
+  `s217_faithful_embed_into_positive` — `C ↪ Map(Mat(Rel C))` is a faithful embedding into
+  a positive pre-logos.  Uses `instTabularAllegoryMat`/`instUnitaryAllegoryMat`/
+  `instPositiveAllegoryMat` (MatrixAllegory.lean §2.342/§2.215) and `mapPreLogos` (§2.212).
+  The GENERAL (bare `[PreLogos C]`) statement needs `relDistributiveAllegory` over `[PreLogos C]`
+  (distributivity of `Rel(C)` without coproduct data in `C`) — not yet proved. -/
 
--- BOOK §2.217 (1): A pre-logos may be faithfully represented in a positive pre-logos.
--- CORE DONE (C ↪ Map(Rel C), a pre-logos, in RelCat.lean).  Remaining: positive target
---   via Map(Mat(Rel C)) — needs TabularAllegory/UnitaryAllegory (MatObj 𝒜) (§2.342).
--- BOOK §2.217 (2): A pre-logos may be faithfully represented in a pre-topos.
--- Remaining: pre-topos structure on Map(Mat(Rel(C))).
+-- §2.217 (1): A pre-logos may be faithfully represented in a positive pre-logos.
+-- PROVED (for [PositivePreLogos C]): `s217_faithful_embed_into_positive` in Fredy/RelCat.lean.
+-- General [PreLogos C] case: OPEN — needs relDistributiveAllegory over bare PreLogos.
+-- §2.217 (2): A pre-logos may be faithfully represented in a pre-topos.
+-- OPEN — needs pre-topos structure on Map(Mat(Rel(C))).
 
 /-! ## §2.218  Faithful representation in a power of the allegory of sets
 
