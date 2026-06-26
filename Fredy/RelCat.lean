@@ -1550,26 +1550,41 @@ theorem relReverse_inl_inter_inr (zero : RelObj 𝒞)
   -- `inter.dom = pb.cone.pt = P`, so `h : inter.dom → (⊥ A+B).dom`; close by the helper.
   exact le_bottom_of_map_to_bottom _ h
 
--- **§2.214 REVERSE — all four DisjointBinaryCoproduct fields PROVED; final `.mk` assembly
---   blocked by a PositivePreLogos instance-coherence diamond.**
--- From finite coproducts of `Rel(C)` (the positive-allegory coproduct DATA
--- `zero`/`coprodObj`/`hcop` over `relAllegory`), `C` is a pre-logos with DISJOINT binary
--- coproducts.  The FOUR §1.621 fields are fully proven, Sorry-free, above:
---   • `relReverseHasBinaryCoproducts` — `HasBinaryCoproducts C` (object/inl/inr/case + UMP),
---   • `relReverse_inl_monic` / `relReverse_inr_monic` — injections monic,
---   • `relReverse_inl_inter_inr` — `inlSub ∩ inrSub ≤ ⊥` (via the `embedRel` Subobject transport
---     of `MapCat.mapInl_inter_inr`),
---   • `relReverse_inl_union_inr` — `entire ≤ inlSub ∪ inrSub` (transport of `mapInl_union_inr`).
--- BOOK §2.214 REVERSE (assembly only): packing these into `DisjointBinaryCoproduct.mk` needs a
---   `PositivePreLogos 𝒞` instance whose `HasBinaryCoproducts` is `relReverseHasBinaryCoproducts`
---   (so `inlSub`/`inrSub` match the field lemmas).  Synthesizing `PPL := { prevPL, HBC with }`
---   and passing it to the field lemmas makes `relAllegory` (and hence the `hcop : ∀ a b,
---   Coproduct (𝒜 := RelObj 𝒞) …` type) resolve from `PPL` rather than the ambient
---   `[PositivePreLogos 𝒞]` the lemmas were elaborated against — a non-defeq instance mismatch
---   (Application type mismatch on `hcop`).  Closing it needs the two `HasBinaryCoproducts 𝒞`
---   instances (ambient vs `relReverseHasBinaryCoproducts`) made coherent, or `relAllegory`
---   refactored to not depend on the `PositivePreLogos` packaging.  Pure instance plumbing — the
---   mathematics (the disjointness transport) is complete.
+/-- **§2.214 REVERSE — full assembly.**  From finite coproducts of `Rel(C)` (the
+    positive-allegory coproduct DATA `zero`/`coprodObj`/`hcop`), `C` has disjoint binary
+    coproducts.  The four §1.621 fields are `relReverse_inl_monic`, `relReverse_inr_monic`,
+    `relReverse_inl_inter_inr`, `relReverse_inl_union_inr`.
+
+    Instance plumbing: build `PPL := { inst✝.toPreLogos, HBC with }` where
+    `HBC = relReverseHasBinaryCoproducts[inst✝]`, then pass `PPL` explicitly to all four
+    field lemmas via `@`.  Lean accepts `hcop` at `PPL`-type because
+    `relTabularUnitaryDistributiveAllegory[PPL] = relTabularUnitaryDistributiveAllegory[inst✝]`
+    definitionally (the allegory only uses `PreLogos`, not `HasBinaryCoproducts`). -/
+noncomputable def relReverseDisjointBinaryCoproduct (zero : RelObj 𝒞)
+    (coprodObj : RelObj 𝒞 → RelObj 𝒞 → RelObj 𝒞)
+    (hcop : ∀ a b : RelObj 𝒞, Freyd.Alg.Coproduct (𝒜 := RelObj 𝒞) (coprodObj a b) a b) :
+    DisjointBinaryCoproduct 𝒞 :=
+  -- `PPL` stores the ambient `PreLogos` LITERALLY (`mk … .toPreLogos`, not a `{…with}` rebuild) and
+  -- pins the coproduct to `relReverseHasBinaryCoproducts` over the AMBIENT instance.  The four field
+  -- lemmas are therefore applied at the AMBIENT `[PositivePreLogos 𝒞]` (plain calls): their
+  -- `relReverseHasBinaryCoproducts`/`bottom`/`inter`/`union` then match `PPL`'s projections
+  -- definitionally, so no `relAllegory`/`hcop` re-elaboration diamond arises.
+  @DisjointBinaryCoproduct.mk 𝒞 _
+    (@PositivePreLogos.mk 𝒞 _ (‹PositivePreLogos 𝒞›.toPreLogos)
+      (relReverseHasBinaryCoproducts zero coprodObj hcop))
+    (fun {a b} => relReverse_inl_monic zero coprodObj hcop)
+    (fun {a b} => relReverse_inr_monic zero coprodObj hcop)
+    (fun {a b} => relReverse_inl_inter_inr zero coprodObj hcop)
+    (fun {a b} => relReverse_inl_union_inr zero coprodObj hcop)
+
+/-- **§2.214 (the iff).**  A pre-logos `C` is positive (has disjoint binary coproducts) iff
+    `Rel(C)` has finite coproducts.  Forward: `DisjointGluing.relCoproduct`.
+    Reverse: `relReverseDisjointBinaryCoproduct`. -/
+theorem relReverse_positive_of_relCoproducts (zero : RelObj 𝒞)
+    (coprodObj : RelObj 𝒞 → RelObj 𝒞 → RelObj 𝒞)
+    (hcop : ∀ a b : RelObj 𝒞, Freyd.Alg.Coproduct (𝒜 := RelObj 𝒞) (coprodObj a b) a b) :
+    Nonempty (DisjointBinaryCoproduct 𝒞) :=
+  ⟨relReverseDisjointBinaryCoproduct zero coprodObj hcop⟩
 
 end ReverseCoproduct
 

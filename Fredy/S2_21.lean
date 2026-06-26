@@ -441,19 +441,25 @@ theorem splitting_recip {a b : 𝒜} {R : a ⟶ b} {S : b ⟶ a}
 --       `relReverse_inl_monic` / `relReverse_inr_monic` — the injections of that coproduct are MONIC
 --       in C (their `embedRel`-images are `Map(Rel C)`'s injections, monic via
 --       `MapCat.mapDisjointBinaryCoproduct`, reflected back).
---   REMAINING for the FULL `DisjointBinaryCoproduct C`: the two §1.621 disjointness INEQUALITIES
---     `inl ∩ inr ≤ 0` (`Subobject.inter (inlSub _) (inrSub _) ≤ PreLogos.bottom`) and
---     `entire ≤ inl ∪ inr` (`Subobject.entire ≤ HasSubobjectUnions.union (inlSub _) (inrSub _)`).
---   These live in the PRE-LOGOS subobject structure (intersection = pullback, union = image, bottom),
---   NOT in the bare category, so unlike the coproduct UMP they do NOT transport by fullness alone:
---   they need `embedRel` to PRESERVE/REFLECT pullbacks (=intersections), images (=unions) and the
---   bottom subobject between C's `[PositivePreLogos C]` pre-logos and `Map(Rel C)`'s `relMapPreLogos`.
---   The repo has NO such pre-logos-structure-transport-along-the-iso infrastructure yet; the precise
---   missing lemma is: `embedRel` (full+faithful, id-on-objects) sends `Subobject C A` ≃ `Subobject
---   (Map(Rel C)) ⟨A⟩` compatibly with `inter`/`union`/`bottom`/`Subobject.le`, after which
---   `MapCat.mapInl_inter_inr` / `mapInl_union_inr` (the §2.214-dual disjointness facts, already
---   proved over the assembled `tup`) transfer verbatim to give the two fields and complete
---   `DisjointBinaryCoproduct C`.
+--   PROVED — the two §1.621 disjointness INEQUALITIES, completing the FULL `DisjointBinaryCoproduct C`:
+--     • `relReverse_inl_union_inr` : `entire ≤ inl ∪ inr`.  PURELY in C — the union `inlSub ∪ inrSub`
+--       is the image of `case inl inr` (`union_is_image`), and `case inl inr = id` by the coproduct
+--       UMP (`case_uniq` against the identity), so the union is the image of `id`, which `entire`
+--       allows.  No transport needed for this half.
+--     • `relReverse_inl_inter_inr` : `inl ∩ inr ≤ 0`.  TRANSPORTED through `embedRel`.  The C-pullback
+--       domain `P` of `(inl, inr)`, pushed through the id-on-objects iso (`embedRel inl = inl_Map`,
+--       `embedRel inr = inr_Map` via `embedRel_cat_iso`; square by `embedRel_comp` + `pb.cone.w`),
+--       is a cone over `Map(Rel C)`'s `(inl_Map, inr_Map)`.  `Map`'s own disjointness
+--       (`coprod_inl_inr_disjoint_elt` from `MapCat.mapDisjointBinaryCoproduct`) gives a Map-map
+--       `⟨P⟩ → bottom_Map.dom`, so `⟨P⟩` is initial (`dom_initial_of_map_to_bottom`); routed through
+--       the Map-coterminator and lifted back by fullness yields a C-map `P → (⊥ _).dom`, closed by
+--       the local helper `le_bottom_of_map_to_bottom`.
+--   ASSEMBLED: `relReverseDisjointBinaryCoproduct (zero) (coprodObj) (hcop) : DisjointBinaryCoproduct C`
+--   bundles `relReverseHasBinaryCoproducts` + the four §1.621 fields (the `PositivePreLogos` parent
+--   stores the ambient `PreLogos` LITERALLY via `PositivePreLogos.mk` and pins the coproduct to the
+--   reverse one, so the field lemmas — applied at the ambient instance — match definitionally, no
+--   diamond).  Wrapper: `relReverse_positive_of_relCoproducts : Nonempty (DisjointBinaryCoproduct C)`.
+--   Sorry-free; axioms [propext, Classical.choice, Quot.sound].  This is the §2.214 REVERSE.
 
 /-- §2.215 positivity of the matrix allegory: every distributive allegory `𝒜` gives a positive
     allegory `MatObj 𝒜`. The coproduct `X ⊕ Y` is the concatenated index family; the injections
