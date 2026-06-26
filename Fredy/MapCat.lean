@@ -36,6 +36,7 @@
 import Fredy.S2_1
 import Fredy.S2_22b
 import Fredy.S1_60
+import Fredy.S1_62
 
 universe v u
 
@@ -647,6 +648,15 @@ class TabularUnitaryAllegory (𝒜 : Type u) extends TabularAllegory 𝒜, Unita
     served automatically from this class via the projection instances. -/
 class TabularUnitaryDistributiveAllegory (𝒜 : Type u) extends
     TabularUnitaryAllegory 𝒜, DistributiveAllegory 𝒜
+
+/-- A TABULAR UNITARY POSITIVE allegory: a `TabularUnitaryDistributiveAllegory` that is also
+    POSITIVE (§2.215, has finite coproducts).  Extending both parents directly merges their
+    shared `DistributiveAllegory` (hence `Allegory`) — the same diamond-safe inheritance pattern
+    as `TabularUnitaryDistributiveAllegory` — so `≫`/`°`/`∩`/`∪`/`𝟘` and the coproduct injections
+    all live on ONE `Allegory 𝒜`.  This is the hypothesis under which `Map(𝒜)` is a POSITIVE
+    pre-logos with disjoint binary coproducts (§2.214 dual). -/
+class TabularUnitaryPositiveAllegory (𝒜 : Type u) extends
+    TabularUnitaryDistributiveAllegory 𝒜, PositiveAllegory 𝒜
 
 /-! ### §2.212  Domain algebra: `dom` distributes over union
 
@@ -1688,6 +1698,29 @@ private theorem corOf_mapSubUnion {B : MapObj A}
     corOf (mapSubUnion S T) = corOf S ∪ corOf T :=
   corOf_splitSub _
 
+/-- **§2.212 corOf of an intersection**: `corOf (S ∩ T) = s° ≫ dom(s ≫ t°) ≫ s`, where
+    `s = S.arr.val`, `t = T.arr.val`.  The intersection's arrow is `π₁ ≫ s` for the pullback of
+    `(s, t)`; its leg coreflexive `π₁° ≫ π₁ = dom(s ≫ t°)` is `mapPullback_leg_corOf`. -/
+private theorem corOf_inter {B : MapObj A}
+    (S T : @Subobject (MapObj A) (mapCat (𝒜 := A)) B) :
+    corOf (@Subobject.inter (MapObj A) (mapCat (𝒜 := A)) mapHasPullbacks B S T)
+      = (@Subobject.arr (MapObj A) (mapCat (𝒜 := A)) B S).val° ≫
+          dom ((@Subobject.arr (MapObj A) (mapCat (𝒜 := A)) B S).val ≫
+                (@Subobject.arr (MapObj A) (mapCat (𝒜 := A)) B T).val°) ≫
+          (@Subobject.arr (MapObj A) (mapCat (𝒜 := A)) B S).val := by
+  -- π₁°≫π₁ = dom(S.arr.val ≫ T.arr.val°) for the pullback used by `Subobject.inter`.
+  have hleg := mapPullback_leg_corOf
+      (@Subobject.arr (MapObj A) (mapCat (𝒜 := A)) B S)
+      (@Subobject.arr (MapObj A) (mapCat (𝒜 := A)) B T)
+      (mapHasPullback (@Subobject.arr (MapObj A) (mapCat (𝒜 := A)) B S)
+        (@Subobject.arr (MapObj A) (mapCat (𝒜 := A)) B T))
+  -- Operate on the goal (all `≫`/`°` come from `corOf`'s definition — already the allegory Cat,
+  -- so no mapCat/allegory `≫` ambiguity from re-typed compositions).
+  -- corOf(inter) = (π₁≫S.arr).val° ≫ (π₁≫S.arr).val.  Distribute `.val` (mapCat comp), recip_comp,
+  -- reassoc, then apply `hleg : π₁°≫π₁ = dom(S.arr ≫ T.arr°)`.
+  simp only [corOf, Subobject.inter, mapCat, Allegory.recip_comp, Cat.assoc]
+  rw [← Cat.assoc _ _ (@Subobject.arr (MapObj A) (mapCat (𝒜 := A)) B S).val, hleg]
+
 /-- **§2.212**: subobjects of Map(𝒜) have binary unions. -/
 noncomputable instance mapHasSubobjectUnions :
     @HasSubobjectUnions (MapObj A) (mapCat (𝒜 := A)) mapHasImages :=
@@ -1849,5 +1882,293 @@ noncomputable instance mapPreLogos {A : Type u} [TabularUnitaryDistributiveAlleg
       `dom_eq_dom_comp_recip`.  Union/bottom preservation are mechanical relational algebra from (†)
       (`corOf_mapSubUnion`, `comp_union_distrib`/`union_comp_distrib`, `dom_union`, `dom_zero`),
       read off through the `corOf` correspondence `le_iff_corOf_le` / `corOf_eq_dom_iso`. -/
+
+/-! ## §2.214 (dual)  `Map(positive allegory)` has disjoint binary coproducts
+
+  Freyd §2.214 characterises the coproduct `a ⊕ b` of a distributive allegory by the five
+  equations on its injections `u₁ : a → a⊕b`, `u₂ : b → a⊕b`
+  (`Coproduct`, S2_2).  Those injections are MAPS (entire from `u₁u₁°=1`; simple from
+  `u₁°u₁ ⊑ u₁°u₁ ∪ u₂°u₂ = 1`), so they are morphisms of `Map(𝒜)`, and the allegory coproduct
+  becomes a CATEGORICAL coproduct in `Map(𝒜)` — the reciprocal dual of "Map of a positive
+  allegory is a positive pre-logos".
+
+  Copairing: for maps `f : a → x`, `g : b → x` the mediating map is the relation
+  `case f g := u₁°f ∪ u₂°g : a⊕b → x`.  It is a map (entire via `u₁u₁° = 1` / `f`,`g` entire;
+  simple via the disjointness `u₁u₂° = u₂u₁° = 0` / `f`,`g` simple) and satisfies
+  `u₁ ≫ case = f`, `u₂ ≫ case = g` with uniqueness — exactly Freyd's mediator from
+  `coproduct_five_eqs_to_universal`. -/
+
+section MapCoproduct
+
+variable {A : Type u} [TabularUnitaryPositiveAllegory A]
+
+/-- The chosen allegory coproduct diagram `(a ⊕ b, u₁, u₂)` for `a, b : MapObj A`. -/
+private def mapCoprodDiagram (a b : MapObj A) :
+    Coproduct (PositiveAllegory.coprod a b) a b :=
+  PositiveAllegory.has_coproduct a b
+
+/-- The left injection `u₁ : a → a⊕b` is a MAP (entire from `u₁u₁°=1`; simple from
+    `u₁°u₁ ⊑ u₁°u₁ ∪ u₂°u₂ = 1`). -/
+private theorem mapCoprod_u₁_map (a b : MapObj A) : Map (mapCoprodDiagram a b).u₁ := by
+  refine ⟨?_, ?_⟩
+  · -- Entire: id_a ⊑ u₁ ≫ u₁° (in fact = id_a).
+    rw [Entire, dom]
+    exact le_antisymm (inter_lb_left _ _)
+      (le_inter (le_refl _) ((mapCoprodDiagram a b).u₁_self_comp_recip ▸ le_refl _))
+  · -- Simple: u₁°≫u₁ ⊑ u₁°u₁ ∪ u₂°u₂ = id.
+    have h := le_union_left ((mapCoprodDiagram a b).u₁° ≫ (mapCoprodDiagram a b).u₁)
+                           ((mapCoprodDiagram a b).u₂° ≫ (mapCoprodDiagram a b).u₂)
+    rw [(mapCoprodDiagram a b).recip_union_eq_id] at h
+    exact h
+
+/-- The right injection `u₂ : b → a⊕b` is a MAP. -/
+private theorem mapCoprod_u₂_map (a b : MapObj A) : Map (mapCoprodDiagram a b).u₂ := by
+  refine ⟨?_, ?_⟩
+  · rw [Entire, dom]
+    exact le_antisymm (inter_lb_left _ _)
+      (le_inter (le_refl _) ((mapCoprodDiagram a b).u₂_self_comp_recip ▸ le_refl _))
+  · have h := le_union_right ((mapCoprodDiagram a b).u₁° ≫ (mapCoprodDiagram a b).u₁)
+                            ((mapCoprodDiagram a b).u₂° ≫ (mapCoprodDiagram a b).u₂)
+    rw [(mapCoprodDiagram a b).recip_union_eq_id] at h
+    exact h
+
+/-- The copairing relation `u₁°f ∪ u₂°g : a⊕b → x` of two maps `f : a → x`, `g : b → x`. -/
+private def mapCase {a b x : MapObj A} (f : a ⟶ x) (g : b ⟶ x) :
+    PositiveAllegory.coprod a b ⟶ x :=
+  (mapCoprodDiagram a b).u₁° ≫ f ∪ (mapCoprodDiagram a b).u₂° ≫ g
+
+/-- The copairing `u₁°f ∪ u₂°g` of two MAPS is a MAP.
+    Entire: `id = u₁°u₁ ∪ u₂°u₂ ⊑ u₁°(ff°)u₁ ∪ u₂°(gg°)u₂ ⊑ case ≫ case°`.
+    Simple: cross terms vanish by `u₁u₂° = u₂u₁° = 0`, leaving `f°f ∪ g°g ⊑ id`. -/
+private theorem mapCase_map {a b x : MapObj A} {f : a ⟶ x} {g : b ⟶ x}
+    (hf : Map f) (hg : Map g) : Map (mapCase f g) := by
+  -- `cp` is a `let`-alias for `mapCoprodDiagram a b` (the expression `mapCase` unfolds to), so
+  -- `hunfold` is `rfl` and after `rw [hunfold]` the goal is in `cp.uᵢ` terms — matching the
+  -- structure-projection rewrites `cp.u₁_u₂_recip` etc. syntactically.
+  let cp := mapCoprodDiagram a b
+  -- Entirety facts: id ⊑ ff°, id ⊑ gg°.
+  have hfe : Cat.id a ⊑ f ≫ f° := by
+    have := hf.1; rw [Entire, dom] at this; exact this ▸ inter_lb_right _ _
+  have hge : Cat.id b ⊑ g ≫ g° := by
+    have := hg.1; rw [Entire, dom] at this; exact this ▸ inter_lb_right _ _
+  have hunfold : mapCase f g = cp.u₁° ≫ f ∪ cp.u₂° ≫ g := rfl
+  have hcaseo : (mapCase f g)° = f° ≫ cp.u₁ ∪ g° ≫ cp.u₂ := by
+    rw [hunfold, recip_union, Allegory.recip_comp, Allegory.recip_comp,
+        Allegory.recip_recip, Allegory.recip_recip]
+    exact DistributiveAllegory.union_comm _ _
+  refine ⟨?_, ?_⟩
+  · -- Entire (mapCase): id_{a⊕b} ⊑ case ≫ case°.
+    rw [Entire, dom]
+    refine le_antisymm (inter_lb_left _ _) (le_inter (le_refl _) ?_)
+    show Cat.id (PositiveAllegory.coprod a b) ⊑ mapCase f g ≫ (mapCase f g)°
+    rw [hcaseo]
+    -- id = u₁°u₁ ∪ u₂°u₂ ⊑ u₁°(ff°)u₁ ∪ u₂°(gg°)u₂ ⊑ case≫case°.
+    have hdiag : cp.u₁° ≫ cp.u₁ ∪ cp.u₂° ≫ cp.u₂ ⊑ mapCase f g ≫ (f° ≫ cp.u₁ ∪ g° ≫ cp.u₂) := by
+      have hL : cp.u₁° ≫ cp.u₁ ⊑ mapCase f g ≫ (f° ≫ cp.u₁ ∪ g° ≫ cp.u₂) := by
+        have h1 : cp.u₁° ≫ cp.u₁ ⊑ cp.u₁° ≫ (f ≫ f°) ≫ cp.u₁ := by
+          have := comp_mono_left cp.u₁° (comp_mono_right hfe cp.u₁); rwa [Cat.id_comp] at this
+        have h2 : cp.u₁° ≫ (f ≫ f°) ≫ cp.u₁ = (cp.u₁° ≫ f) ≫ (f° ≫ cp.u₁) := by simp [Cat.assoc]
+        have h3 : (cp.u₁° ≫ f) ≫ (f° ≫ cp.u₁) ⊑ mapCase f g ≫ (f° ≫ cp.u₁ ∪ g° ≫ cp.u₂) := by
+          rw [hunfold]
+          exact le_trans (comp_mono_right (le_union_left _ _) _)
+                         (comp_mono_left _ (le_union_left _ _))
+        exact le_trans h1 (h2 ▸ h3)
+      have hR : cp.u₂° ≫ cp.u₂ ⊑ mapCase f g ≫ (f° ≫ cp.u₁ ∪ g° ≫ cp.u₂) := by
+        have h1 : cp.u₂° ≫ cp.u₂ ⊑ cp.u₂° ≫ (g ≫ g°) ≫ cp.u₂ := by
+          have := comp_mono_left cp.u₂° (comp_mono_right hge cp.u₂); rwa [Cat.id_comp] at this
+        have h2 : cp.u₂° ≫ (g ≫ g°) ≫ cp.u₂ = (cp.u₂° ≫ g) ≫ (g° ≫ cp.u₂) := by simp [Cat.assoc]
+        have h3 : (cp.u₂° ≫ g) ≫ (g° ≫ cp.u₂) ⊑ mapCase f g ≫ (f° ≫ cp.u₁ ∪ g° ≫ cp.u₂) := by
+          rw [hunfold]
+          exact le_trans (comp_mono_right (le_union_right _ _) _)
+                         (comp_mono_left _ (le_union_right _ _))
+        exact le_trans h1 (h2 ▸ h3)
+      exact union_lub hL hR
+    have hid : cp.u₁° ≫ cp.u₁ ∪ cp.u₂° ≫ cp.u₂ = Cat.id (PositiveAllegory.coprod a b) :=
+      cp.recip_union_eq_id
+    rw [hid] at hdiag; exact hdiag
+  · -- Simple (mapCase): case° ≫ case ⊑ id_x.
+    show (mapCase f g)° ≫ mapCase f g ⊑ Cat.id x
+    rw [hcaseo, hunfold]
+    -- Expand the product of unions into four terms.
+    rw [DistributiveAllegory.comp_union_distrib, union_comp_distrib, union_comp_distrib]
+    -- Four terms (in goal order after the two `union_comp_distrib`):
+    --   (f°u₁)(u₁°f), (g°u₂)(u₁°f), (f°u₁)(u₂°g), (g°u₂)(u₂°g).
+    refine union_lub (union_lub ?_ ?_) (union_lub ?_ ?_)
+    · -- f°u₁u₁°f = f°(u₁u₁°)f = f°f ⊑ id.
+      have he : f° ≫ cp.u₁ ≫ cp.u₁° ≫ f = f° ≫ f := by
+        rw [← Cat.assoc cp.u₁ cp.u₁° f, cp.u₁_self_comp_recip, Cat.id_comp]
+      simp only [Cat.assoc]; rw [he]; exact hf.2
+    · -- g°u₂u₁°f = g°(u₂u₁°)f = 0 ⊑ id.
+      have he : g° ≫ cp.u₂ ≫ cp.u₁° ≫ f = (𝟘 : x ⟶ x) := by
+        rw [← Cat.assoc cp.u₂ cp.u₁° f, cp.u₂_u₁_recip, DistributiveAllegory.zero_comp,
+            DistributiveAllegory.comp_zero]
+      simp only [Cat.assoc]; rw [he]; exact zero_le _
+    · -- f°u₁u₂°g = f°(u₁u₂°)g = f°·0·g = 0 ⊑ id.
+      have he : f° ≫ cp.u₁ ≫ cp.u₂° ≫ g = (𝟘 : x ⟶ x) := by
+        rw [← Cat.assoc cp.u₁ cp.u₂° g, cp.u₁_u₂_recip, DistributiveAllegory.zero_comp,
+            DistributiveAllegory.comp_zero]
+      simp only [Cat.assoc]; rw [he]; exact zero_le _
+    · -- g°u₂u₂°g = g°(u₂u₂°)g = g°g ⊑ id.
+      have he : g° ≫ cp.u₂ ≫ cp.u₂° ≫ g = g° ≫ g := by
+        rw [← Cat.assoc cp.u₂ cp.u₂° g, cp.u₂_self_comp_recip, Cat.id_comp]
+      simp only [Cat.assoc]; rw [he]; exact hg.2
+
+/-- `u₁ ≫ case = f` (allegory level): `u₁(u₁°f ∪ u₂°g) = (u₁u₁°)f ∪ (u₁u₂°)g = f ∪ 0 = f`. -/
+private theorem mapCase_u₁ {a b x : MapObj A} (f : a ⟶ x) (g : b ⟶ x) :
+    (mapCoprodDiagram a b).u₁ ≫ mapCase f g = f := by
+  let cp := mapCoprodDiagram a b
+  show cp.u₁ ≫ (cp.u₁° ≫ f ∪ cp.u₂° ≫ g) = f
+  rw [DistributiveAllegory.comp_union_distrib, ← Cat.assoc, ← Cat.assoc,
+      cp.u₁_self_comp_recip, cp.u₁_u₂_recip, Cat.id_comp,
+      DistributiveAllegory.zero_comp, union_zero]
+
+/-- `u₂ ≫ case = g` (allegory level). -/
+private theorem mapCase_u₂ {a b x : MapObj A} (f : a ⟶ x) (g : b ⟶ x) :
+    (mapCoprodDiagram a b).u₂ ≫ mapCase f g = g := by
+  let cp := mapCoprodDiagram a b
+  show cp.u₂ ≫ (cp.u₁° ≫ f ∪ cp.u₂° ≫ g) = g
+  rw [DistributiveAllegory.comp_union_distrib, ← Cat.assoc, ← Cat.assoc,
+      cp.u₂_u₁_recip, cp.u₂_self_comp_recip, Cat.id_comp,
+      DistributiveAllegory.zero_comp, DistributiveAllegory.zero_union]
+
+/-- Uniqueness of the copairing (allegory level): any `h` with `u₁≫h = f`, `u₂≫h = g` equals
+    `mapCase f g`.  This is Freyd's mediator-uniqueness, `1 = u₁°u₁ ∪ u₂°u₂` applied to `h`. -/
+private theorem mapCase_uniq {a b x : MapObj A} (f : a ⟶ x) (g : b ⟶ x)
+    (h : PositiveAllegory.coprod a b ⟶ x)
+    (h₁ : (mapCoprodDiagram a b).u₁ ≫ h = f) (h₂ : (mapCoprodDiagram a b).u₂ ≫ h = g) :
+    h = mapCase f g := by
+  let cp := mapCoprodDiagram a b
+  show h = cp.u₁° ≫ f ∪ cp.u₂° ≫ g
+  calc h = Cat.id (PositiveAllegory.coprod a b) ≫ h := (Cat.id_comp h).symm
+    _ = (cp.u₁° ≫ cp.u₁ ∪ cp.u₂° ≫ cp.u₂) ≫ h := by rw [cp.recip_union_eq_id]
+    _ = cp.u₁° ≫ (cp.u₁ ≫ h) ∪ cp.u₂° ≫ (cp.u₂ ≫ h) := by
+          rw [union_comp_distrib, Cat.assoc, Cat.assoc]
+    _ = cp.u₁° ≫ f ∪ cp.u₂° ≫ g := by rw [h₁, h₂]
+
+/-- **§2.214 (dual)**: `Map(𝒜)` has binary coproducts for a positive allegory `𝒜`.
+    Object `a ⊕ b`, injections the allegory injections `u₁, u₂` (which are maps),
+    copairing `case f g = u₁°f ∪ u₂°g`. -/
+noncomputable instance mapHasBinaryCoproducts :
+    @HasBinaryCoproducts (MapObj A) (mapCat (𝒜 := A)) :=
+  @HasBinaryCoproducts.mk (MapObj A) (mapCat (𝒜 := A))
+    (fun a b => PositiveAllegory.coprod a b)
+    (fun {a b} => ⟨(mapCoprodDiagram a b).u₁, mapCoprod_u₁_map a b⟩)
+    (fun {a b} => ⟨(mapCoprodDiagram a b).u₂, mapCoprod_u₂_map a b⟩)
+    (fun {_x _a _b} f g => ⟨mapCase f.val g.val, mapCase_map f.property g.property⟩)
+    (fun {_x _a _b} f g => mapHom_ext (mapCase_u₁ f.val g.val))
+    (fun {_x _a _b} f g => mapHom_ext (mapCase_u₂ f.val g.val))
+    (fun {_x _a _b} f g h h₁ h₂ =>
+      mapHom_ext (mapCase_uniq f.val g.val h.val
+        (congrArg Subtype.val h₁) (congrArg Subtype.val h₂)))
+
+/-! ### §2.214 (dual)  Positivity / disjointness
+
+  The injections are SUBOBJECT inclusions of `a ⊕ b`: `inl` is monic (it is a retraction
+  `u₁u₁° = 1`, hence `map_retract_monic`), and through the `corOf`-correspondence the
+  disjointness `inl ∩ inr ≤ 0` and the covering `inl ∪ inr = a⊕b` are EXACTLY the allegory
+  equations `u₁u₂° = 0` and `u₁°u₁ ∪ u₂°u₂ = 1`. -/
+
+/-- The coproduct object `a ⊕ b`, named through the `HasBinaryCoproducts` projection so that
+    `inlSub`/`Subobject.inter`/`mapBottom` annotations match `inl`/`inr`'s codomain syntactically. -/
+private noncomputable abbrev mapCoprodObj (a b : MapObj A) : MapObj A :=
+  @HasBinaryCoproducts.coprod (MapObj A) (mapCat (𝒜 := A)) mapHasBinaryCoproducts a b
+
+/-- `inl = u₁` is monic in `Map(𝒜)` (retraction `u₁ ≫ u₁° = id`).  `HasBinaryCoproducts.inl`
+    is definitionally `⟨u₁, _⟩`; `change` exposes that so `map_retract_monic` applies. -/
+private theorem mapInl_monic (a b : MapObj A) :
+    @Monic (MapObj A) (mapCat (𝒜 := A)) a (mapCoprodObj a b)
+      (@HasBinaryCoproducts.inl (MapObj A) (mapCat (𝒜 := A)) mapHasBinaryCoproducts a b) := by
+  change @Monic (MapObj A) (mapCat (𝒜 := A)) a _
+    (⟨(mapCoprodDiagram a b).u₁, mapCoprod_u₁_map a b⟩ :
+      @Cat.Hom _ (mapCat (𝒜 := A)) a (PositiveAllegory.coprod a b))
+  exact map_retract_monic (mapCoprod_u₁_map a b) (mapCoprodDiagram a b).u₁_self_comp_recip
+
+/-- `inr = u₂` is monic in `Map(𝒜)`. -/
+private theorem mapInr_monic (a b : MapObj A) :
+    @Monic (MapObj A) (mapCat (𝒜 := A)) b (mapCoprodObj a b)
+      (@HasBinaryCoproducts.inr (MapObj A) (mapCat (𝒜 := A)) mapHasBinaryCoproducts a b) := by
+  change @Monic (MapObj A) (mapCat (𝒜 := A)) b _
+    (⟨(mapCoprodDiagram a b).u₂, mapCoprod_u₂_map a b⟩ :
+      @Cat.Hom _ (mapCat (𝒜 := A)) b (PositiveAllegory.coprod a b))
+  exact map_retract_monic (mapCoprod_u₂_map a b) (mapCoprodDiagram a b).u₂_self_comp_recip
+
+/-- `corOf (inlSub) = u₁° ≫ u₁` (as an endo on `a⊕b`).  `inlSub.arr.val = inl.val = u₁`. -/
+private theorem corOf_inlSub (a b : MapObj A) :
+    corOf (@inlSub (MapObj A) (mapCat (𝒜 := A)) mapHasBinaryCoproducts a b (mapInl_monic a b))
+      = (@HasBinaryCoproducts.inl (MapObj A) (mapCat (𝒜 := A)) mapHasBinaryCoproducts a b).val° ≫
+        (@HasBinaryCoproducts.inl (MapObj A) (mapCat (𝒜 := A)) mapHasBinaryCoproducts a b).val :=
+  rfl
+
+/-- `corOf (inrSub) = u₂° ≫ u₂`. -/
+private theorem corOf_inrSub (a b : MapObj A) :
+    corOf (@inrSub (MapObj A) (mapCat (𝒜 := A)) mapHasBinaryCoproducts a b (mapInr_monic a b))
+      = (@HasBinaryCoproducts.inr (MapObj A) (mapCat (𝒜 := A)) mapHasBinaryCoproducts a b).val° ≫
+        (@HasBinaryCoproducts.inr (MapObj A) (mapCat (𝒜 := A)) mapHasBinaryCoproducts a b).val :=
+  rfl
+
+/-- `inl.val = u₁` and `inr.val = u₂` (definitional unfolding of the instance fields). -/
+private theorem mapInl_val (a b : MapObj A) :
+    (@HasBinaryCoproducts.inl (MapObj A) (mapCat (𝒜 := A)) mapHasBinaryCoproducts a b).val
+      = (mapCoprodDiagram a b).u₁ := rfl
+private theorem mapInr_val (a b : MapObj A) :
+    (@HasBinaryCoproducts.inr (MapObj A) (mapCat (𝒜 := A)) mapHasBinaryCoproducts a b).val
+      = (mapCoprodDiagram a b).u₂ := rfl
+
+/-- **§2.214 (dual) DISJOINTNESS**: `inl ∩ inr ≤ 0`.  By `corOf_inter` the intersection's
+    coreflexive is `inl° ≫ dom(inl ≫ inr°) ≫ inl = u₁° ≫ dom(u₁ ≫ u₂°) ≫ u₁ = u₁° ≫ dom 𝟘 ≫ u₁
+    = 𝟘` (via `u₁u₂° = 0`), so it is `≤ mapBottom` (whose coreflexive is `𝟘`). -/
+private theorem mapInl_inter_inr (a b : MapObj A) :
+    @Subobject.le (MapObj A) (mapCat (𝒜 := A)) (mapCoprodObj a b)
+      (@Subobject.inter (MapObj A) (mapCat (𝒜 := A)) mapHasPullbacks (mapCoprodObj a b)
+        (@inlSub (MapObj A) (mapCat (𝒜 := A)) mapHasBinaryCoproducts a b (mapInl_monic a b))
+        (@inrSub (MapObj A) (mapCat (𝒜 := A)) mapHasBinaryCoproducts a b (mapInr_monic a b)))
+      (mapBottom (mapCoprodObj a b)) := by
+  apply le_iff_corOf_le.mpr
+  rw [corOf_mapBottom, corOf_inter]
+  -- inl° ≫ dom(inl ≫ inr°) ≫ inl = u₁° ≫ dom(u₁ ≫ u₂°) ≫ u₁ = u₁° ≫ dom 𝟘 ≫ u₁ = 𝟘.
+  -- `(inlSub).arr.val = inl.val = u₁`, `(inrSub).arr.val = inr.val = u₂` (definitional).
+  simp only [inlSub, inrSub, mapInl_val, mapInr_val]
+  rw [(mapCoprodDiagram a b).u₁_u₂_recip, dom_zero,
+      DistributiveAllegory.zero_comp, DistributiveAllegory.comp_zero]
+  exact le_refl _
+
+/-- **§2.214 (dual) COVERING**: `a⊕b ≤ inl ∪ inr`.  Via the `corOf`-correspondence this is
+    `id = corOf(entire) ⊑ corOf(union) = u₁°u₁ ∪ u₂°u₂ = id` (the fifth allegory equation). -/
+private theorem mapInl_union_inr (a b : MapObj A) :
+    @Subobject.le (MapObj A) (mapCat (𝒜 := A)) (mapCoprodObj a b)
+      (@Subobject.entire (MapObj A) (mapCat (𝒜 := A)) (mapCoprodObj a b))
+      (@HasSubobjectUnions.union (MapObj A) (mapCat (𝒜 := A)) mapHasImages mapHasSubobjectUnions
+        (mapCoprodObj a b)
+        (@inlSub (MapObj A) (mapCat (𝒜 := A)) mapHasBinaryCoproducts a b (mapInl_monic a b))
+        (@inrSub (MapObj A) (mapCat (𝒜 := A)) mapHasBinaryCoproducts a b (mapInr_monic a b))) := by
+  apply le_iff_corOf_le.mpr
+  -- corOf(union) = corOf(inlSub) ∪ corOf(inrSub) = u₁°u₁ ∪ u₂°u₂ = id.
+  rw [show (@HasSubobjectUnions.union (MapObj A) (mapCat (𝒜 := A)) mapHasImages mapHasSubobjectUnions
+              (mapCoprodObj a b) _ _)
+        = mapSubUnion _ _ from rfl,
+      corOf_mapSubUnion, corOf_inlSub, corOf_inrSub, mapInl_val, mapInr_val,
+      (mapCoprodDiagram a b).recip_union_eq_id]
+  -- corOf(entire) = id° ≫ id = id ⊑ id.  `Subobject.entire.arr.val = (mapCat id).val = Cat.id`.
+  show (Cat.id (mapCoprodObj a b))° ≫ Cat.id (mapCoprodObj a b) ⊑ Cat.id (mapCoprodObj a b)
+  rw [recip_id, Cat.id_comp]
+  exact le_refl _
+
+/-- **§2.214 (dual)**: `Map(𝒜)` is a POSITIVE pre-logos for a positive allegory `𝒜`. -/
+noncomputable instance mapPositivePreLogos :
+    @PositivePreLogos (MapObj A) (mapCat (𝒜 := A)) :=
+  @PositivePreLogos.mk (MapObj A) (mapCat (𝒜 := A)) mapPreLogos mapHasBinaryCoproducts
+
+/-- **§2.214 (dual) — the missing brick for §2.217(1)**: `Map(𝒜)` has DISJOINT binary
+    coproducts for a tabular unitary positive allegory `𝒜`.  All four disjointness fields are
+    discharged from the five allegory coproduct equations through the `corOf` correspondence. -/
+noncomputable instance mapDisjointBinaryCoproduct :
+    @DisjointBinaryCoproduct (MapObj A) (mapCat (𝒜 := A)) :=
+  @DisjointBinaryCoproduct.mk (MapObj A) (mapCat (𝒜 := A)) mapPositivePreLogos
+    (fun {a b} => mapInl_monic a b)
+    (fun {a b} => mapInr_monic a b)
+    (fun {a b} => mapInl_inter_inr a b)
+    (fun {a b} => mapInl_union_inr a b)
+
+end MapCoproduct
 
 end Freyd.Alg
