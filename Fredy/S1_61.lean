@@ -656,75 +656,39 @@ namespace DisjointGluing
 
 variable [PreLogos 𝒞]
 
-/-- A subobject of `A×B` read back as a relation `A → B` (inverse of `relSub`). -/
-def subRel {A B : 𝒞} (S : Subobject 𝒞 (prod A B)) : BinRel 𝒞 A B where
-  src := S.dom
-  colA := S.arr ≫ fst
-  colB := S.arr ≫ snd
-  isMonicPair := by
-    intro W u v hA hB
-    apply S.monic
-    apply (fst_snd_jointly_monic) (u ≫ S.arr) (v ≫ S.arr)
-    · rw [Cat.assoc, Cat.assoc]; exact hA
-    · rw [Cat.assoc, Cat.assoc]; exact hB
+-- `subRel`, `relSub_subRel_arr`, and the coproduct-free relational union all now live in S1_60
+-- (where `relUnion` was re-based on the subobject-union, so it needs only `[HasSubobjectUnions]`).
+-- `relUnionSub` is therefore DEFINITIONALLY `relUnion`; we keep the name as a thin alias plus
+-- forwarding lemmas so the §1.621 descent proofs below read unchanged.
 
-/-- `relSub (subRel S) = S` up to the identification `pair (S.arr≫fst) (S.arr≫snd) = S.arr`. -/
-theorem relSub_subRel_arr {A B : 𝒞} (S : Subobject 𝒞 (prod A B)) :
-    (relSub (subRel S)).arr = S.arr := by
-  show pair (S.arr ≫ fst) (S.arr ≫ snd) = S.arr
-  exact (pair_uniq _ _ _ rfl rfl).symm
+/-- COPRODUCT-FREE relational union — now an alias of the unified `relUnion` (S1_60 §1.616). -/
+abbrev relUnionSub {A B : 𝒞} (R S : BinRel 𝒞 A B) : BinRel 𝒞 A B := relUnion R S
 
-/-- COPRODUCT-FREE relational union: read back the subobject union of the two relation tables. -/
-def relUnionSub {A B : 𝒞} (R S : BinRel 𝒞 A B) : BinRel 𝒞 A B :=
-  subRel (HasSubobjectUnions.union (relSub R) (relSub S))
-
-/-- `relSub (relUnionSub R S) ≤ union (relSub R) (relSub S)` (in fact `=`, via `relSub_subRel_arr`). -/
 theorem relSub_relUnionSub_le {A B : 𝒞} (R S : BinRel 𝒞 A B) :
     (relSub (relUnionSub R S)).le (HasSubobjectUnions.union (relSub R) (relSub S)) :=
-  ⟨Cat.id _, by rw [Cat.id_comp]; exact (relSub_subRel_arr _).symm⟩
+  relSub_union_le R S
 
 theorem relSub_relUnionSub_ge {A B : 𝒞} (R S : BinRel 𝒞 A B) :
     (HasSubobjectUnions.union (relSub R) (relSub S)).le (relSub (relUnionSub R S)) :=
-  ⟨Cat.id _, by rw [Cat.id_comp]; exact relSub_subRel_arr _⟩
+  relSub_union_ge R S
 
 /-- `R ≤ relUnionSub R S`. -/
 theorem relUnionSub_le_left {A B : 𝒞} (R S : BinRel 𝒞 A B) : RelLe R (relUnionSub R S) :=
-  relLe_of_subLe (Subobject.le_trans (HasSubobjectUnions.union_left (relSub R) (relSub S))
-    (relSub_relUnionSub_ge R S))
+  relUnion_le_left R S
 
 /-- `S ≤ relUnionSub R S`. -/
 theorem relUnionSub_le_right {A B : 𝒞} (R S : BinRel 𝒞 A B) : RelLe S (relUnionSub R S) :=
-  relLe_of_subLe (Subobject.le_trans (HasSubobjectUnions.union_right (relSub R) (relSub S))
-    (relSub_relUnionSub_ge R S))
+  relUnion_le_right R S
 
 /-- Universal property: `R ≤ U → S ≤ U → relUnionSub R S ≤ U`. -/
 theorem le_relUnionSub {A B : 𝒞} {R S U : BinRel 𝒞 A B}
     (hR : RelLe R U) (hS : RelLe S U) : RelLe (relUnionSub R S) U :=
-  relLe_of_subLe (Subobject.le_trans (relSub_relUnionSub_le R S)
-    (HasSubobjectUnions.union_min _ _ _ (subLe_of_relLe hR) (subLe_of_relLe hS)))
+  le_relUnion hR hS
 
-/-- COPRODUCT-FREE distributivity §1.616: `R ⊚ (relUnionSub S T) ≤ relUnionSub (R⊚S) (R⊚T)`.
-    Mirrors `compose_union_right` (S1_60) with the `relUnionSub` bridge in place of `∪ᵣ`. -/
+/-- COPRODUCT-FREE distributivity §1.616: `R ⊚ (relUnionSub S T) ≤ relUnionSub (R⊚S) (R⊚T)`. -/
 theorem compose_relUnionSub_right {A B C : 𝒞} (R : BinRel 𝒞 A B) (S T : BinRel 𝒞 B C) :
-    RelLe (R ⊚ (relUnionSub S T)) (relUnionSub (R ⊚ S) (R ⊚ T)) := by
-  apply relLe_of_subLe
-  have hL := (relSub_compose_eq R (relUnionSub S T)).1
-  have h1 := invImage_mono_local (thetaR R C) (relSub_relUnionSub_le S T)
-  have h2 := (PreLogos.invImage_preserves_union (thetaR R C) (relSub S) (relSub T)).1
-  have h3 := existsAlong_union_le (omegaR R C)
-              (InverseImage (thetaR R C) (relSub S)) (InverseImage (thetaR R C) (relSub T))
-  have hS := (relSub_compose_eq R S).2
-  have hT := (relSub_compose_eq R T).2
-  have hpieces : (HasSubobjectUnions.union
-        (existsAlong (omegaR R C) (InverseImage (thetaR R C) (relSub S)))
-        (existsAlong (omegaR R C) (InverseImage (thetaR R C) (relSub T)))).le
-      (HasSubobjectUnions.union (relSub (R ⊚ S)) (relSub (R ⊚ T))) :=
-    HasSubobjectUnions.union_min _ _ _
-      (Subobject.le_trans hS (HasSubobjectUnions.union_left _ _))
-      (Subobject.le_trans hT (HasSubobjectUnions.union_right _ _))
-  have hfinal := relSub_relUnionSub_ge (R ⊚ S) (R ⊚ T)
-  exact Subobject.le_trans hL (Subobject.le_trans (existsAlong_mono (omegaR R C) (Subobject.le_trans h1 h2))
-    (Subobject.le_trans h3 (Subobject.le_trans hpieces hfinal)))
+    RelLe (R ⊚ (relUnionSub S T)) (relUnionSub (R ⊚ S) (R ⊚ T)) :=
+  compose_union_right R S T
 
 /-- Simplicity of the descent relation `R = relUnionSub P Q` from the four atomic bounds
     (coproduct-free port of `S1_62.simple_R`). -/

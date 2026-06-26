@@ -388,7 +388,7 @@ noncomputable def preTopos_rtc_has_coequalizers [inst : PreTopos 𝒞]
     (@minEquiv_of_rtc 𝒞 _
       PreTopos.toPositivePreLogos.toHasBinaryProducts
       PreTopos.toPositivePreLogos.toHasPullbacks PreTopos.toPositivePreLogos.toHasImages
-      PreTopos.toPositivePreLogos.toHasBinaryCoproducts hRtc))
+      PreTopos.toPositivePreLogos.toPreLogos.toHasSubobjectUnions hRtc))
 
 /-- **§1.954**: A topos has coequalizers.
     Given f, g : A → B, let R = f"g, S = (R ∪ R")* (the equivalence closure).

@@ -687,7 +687,7 @@ theorem coproduct_is_coproduct_in_Rel
           E-standard containment (`h_hh_le_rtc`) are passed as hypotheses — both
           are genuine §1.78/§1.844 facts about any Grothendieck topos. -/
 theorem coequalizer_is_coequalizer_in_Rel
-    [GrothendieckTopos E] [HasReflTransClosure E] [HasBinaryCoproducts E]
+    [GrothendieckTopos E] [HasReflTransClosure E] [HasSubobjectUnions E]
     {A B C : E} (f g : A ⟶ B) (h : B ⟶ C)
     (h_eq   : f ≫ h = g ≫ h)
     (h_univ : ∀ {X : E} (k : B ⟶ X), f ≫ k = g ≫ k →

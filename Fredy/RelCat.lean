@@ -285,10 +285,11 @@ namespace DisjointGluing
 open Freyd.DisjointGluing
 
 section RelDistributive
--- A POSITIVE pre-logos (§1.623): pre-logos + finite coproducts.  The coproducts let us
--- reuse the §1.616 `∪ᵣ` (`relUnion`) distributivity lemmas (compose-over-union,
--- meet-over-union, reciprocal-over-union) already proved in S1_60.
-variable [PositivePreLogos 𝒞]
+-- A BARE pre-logos (§1.6) now suffices.  The §1.616 `∪ᵣ` (`relUnion`) distributivity lemmas
+-- (compose-over-union, meet-over-union, reciprocal-over-union, in S1_60) were re-based on the
+-- SUBOBJECT-union, so they need only `[HasSubobjectUnions]` (supplied by any pre-logos) — no
+-- finite coproducts.  This matches Freyd §2.212: "Rel(C) is distributive for ANY pre-logos."
+variable [PreLogos 𝒞]
 
 /-- The coterminator `0` (initial object) of a pre-logos (§1.61). -/
 private noncomputable def zeroObj : 𝒞 := (minimal_subobject_of_one_is_coterminator (inferInstance)).zero
@@ -975,9 +976,9 @@ end TabularUnitary
 
 section MapRel
 
-variable [PositivePreLogos 𝒞]
+variable [PreLogos 𝒞]
 
-/-- **§2.217**: for a POSITIVE pre-logos `C`, `Rel(C)` is a tabular-unitary-distributive allegory.
+/-- **§2.217**: for a pre-logos `C`, `Rel(C)` is a tabular-unitary-distributive allegory.
     All three parents (`relTabularAllegory`, `relUnitaryAllegory`,
     `DisjointGluing.relDistributiveAllegory`) are built `{ relAllegory with … }`, so their shared
     `toAllegory` grandparent is the SAME `relAllegory` — the diamond merges cleanly. -/
@@ -1321,7 +1322,12 @@ end S217
 
 section ReverseCoproduct
 
-variable [PositivePreLogos 𝒞]
+-- A BARE pre-logos suffices for the REVERSE direction: we CONSTRUCT `C`'s (disjoint) coproducts
+-- from the supplied `Rel(C)`-coproduct DATA (`hcop`), so no ambient positivity is assumed.  This
+-- matches Freyd §2.214 ("`C` positive ⟺ `Rel(C)` has finite coproducts"): the ⟸ direction holds
+-- over any pre-logos.  Everything below uses only `[PreLogos]` (the relaxed `relUnion`,
+-- `relTUPositiveAllegory`, `relMapPreLogos`, and the `PreLogos.bottom` coterminator).
+variable [PreLogos 𝒞]
 
 /-- Assemble a `TabularUnitaryPositiveAllegory (RelObj C)` from the existing tabular/unitary/
     distributive structure on `relAllegory` plus supplied positive coproduct DATA.  Because
@@ -1564,13 +1570,13 @@ noncomputable def relReverseDisjointBinaryCoproduct (zero : RelObj 𝒞)
     (coprodObj : RelObj 𝒞 → RelObj 𝒞 → RelObj 𝒞)
     (hcop : ∀ a b : RelObj 𝒞, Freyd.Alg.Coproduct (𝒜 := RelObj 𝒞) (coprodObj a b) a b) :
     DisjointBinaryCoproduct 𝒞 :=
-  -- `PPL` stores the ambient `PreLogos` LITERALLY (`mk … .toPreLogos`, not a `{…with}` rebuild) and
+  -- `PPL` stores the ambient `PreLogos` LITERALLY (`mk ‹PreLogos 𝒞›`, not a `{…with}` rebuild) and
   -- pins the coproduct to `relReverseHasBinaryCoproducts` over the AMBIENT instance.  The four field
-  -- lemmas are therefore applied at the AMBIENT `[PositivePreLogos 𝒞]` (plain calls): their
+  -- lemmas are therefore applied at the AMBIENT `[PreLogos 𝒞]` (plain calls): their
   -- `relReverseHasBinaryCoproducts`/`bottom`/`inter`/`union` then match `PPL`'s projections
   -- definitionally, so no `relAllegory`/`hcop` re-elaboration diamond arises.
   @DisjointBinaryCoproduct.mk 𝒞 _
-    (@PositivePreLogos.mk 𝒞 _ (‹PositivePreLogos 𝒞›.toPreLogos)
+    (@PositivePreLogos.mk 𝒞 _ (‹PreLogos 𝒞›)
       (relReverseHasBinaryCoproducts zero coprodObj hcop))
     (fun {a b} => relReverse_inl_monic zero coprodObj hcop)
     (fun {a b} => relReverse_inr_monic zero coprodObj hcop)

@@ -130,124 +130,117 @@ theorem poset_prelogos_iff_distributive [PreLogos 𝒞]
 /-! ## §1.616  BinRel(A,B) is a distributive lattice
 
   In a pre-logos, BinRel(A,B) is isomorphic to Sub(A×B), hence a
-  distributive lattice.  We define union directly via image of the
-  copairing and establish the lattice + distributivity laws. -/
+  distributive lattice.  We define union via the SUBOBJECT-union of the two
+  relation tables (no coproducts needed) and establish the lattice +
+  distributivity laws. -/
+
+/-! ### The `relSub` ⟷ `subRel` bridge (pure, COPRODUCT- and union-free)
+
+  `relSub`/`subRel` and the order-translation `relLe_iff_subLe` need only `[HasBinaryProducts]`
+  (the pairing `A×B`).  They are deliberately kept OUT of the union section so that downstream
+  callers with an unrelated `[HasImages]` in scope (e.g. `[HasRightAdjointImage]` in S1_77) do not
+  hit a `HasImages` instance-diamond when synthesizing the bridge's hypotheses. -/
+
+section BinRelSub
+
+-- Only `[HasBinaryProducts]` (the pairing) + `[HasPullbacks]` (for `Subobject.le`/`prod` plumbing).
+-- Deliberately NO `[HasImages]`/`[HasSubobjectUnions]`: that keeps the bridge free of the
+-- `HasImages` instance-diamond that `[HasSubobjectUnions]` (parameterized by `HasImages`) would
+-- introduce when an unrelated `[HasImages]` (e.g. via `[HasRightAdjointImage]`, S1_77) is in scope.
+variable [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
+
+/-- The subobject of `A×B` represented by a relation `R : A → B`: its monic pairing. -/
+def relSub {A B : 𝒞} (R : BinRel 𝒞 A B) : Subobject 𝒞 (prod A B) :=
+  ⟨R.src, pair R.colA R.colB, monic_pair_of_monicPair R.colA R.colB R.isMonicPair⟩
+
+/-- A subobject of `A×B` read back as a relation `A → B` (inverse of `relSub`). -/
+def subRel {A B : 𝒞} (S : Subobject 𝒞 (prod A B)) : BinRel 𝒞 A B where
+  src := S.dom
+  colA := S.arr ≫ fst
+  colB := S.arr ≫ snd
+  isMonicPair := by
+    intro W u v hA hB
+    apply S.monic
+    apply (fst_snd_jointly_monic) (u ≫ S.arr) (v ≫ S.arr)
+    · rw [Cat.assoc, Cat.assoc]; exact hA
+    · rw [Cat.assoc, Cat.assoc]; exact hB
+
+/-- `relSub (subRel S) = S` up to the identification `pair (S.arr≫fst) (S.arr≫snd) = S.arr`. -/
+theorem relSub_subRel_arr {A B : 𝒞} (S : Subobject 𝒞 (prod A B)) :
+    (relSub (subRel S)).arr = S.arr := by
+  show pair (S.arr ≫ fst) (S.arr ≫ snd) = S.arr
+  exact (pair_uniq _ _ _ rfl rfl).symm
+
+/-- `RelLe R S` is exactly `Subobject.le (relSub R) (relSub S)`: a relation homomorphism
+    `h` (commuting with both legs) is the same data as a subobject factorization
+    `h ≫ pair S.colA S.colB = pair R.colA R.colB`. -/
+theorem relLe_iff_subLe {A B : 𝒞} (R S : BinRel 𝒞 A B) :
+    RelLe R S ↔ (relSub R).le (relSub S) := by
+  constructor
+  · rintro ⟨⟨h, hA, hB⟩⟩
+    refine ⟨h, ?_⟩
+    show h ≫ pair S.colA S.colB = pair R.colA R.colB
+    exact pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair, hA]) (by rw [Cat.assoc, snd_pair, hB])
+  · rintro ⟨h, hh⟩
+    simp only [relSub] at hh
+    refine ⟨⟨h, ?_, ?_⟩⟩
+    · have h2 : (h ≫ pair S.colA S.colB) ≫ fst = pair R.colA R.colB ≫ fst :=
+        congrArg (· ≫ fst) hh
+      rwa [Cat.assoc, fst_pair, fst_pair] at h2
+    · have h2 : (h ≫ pair S.colA S.colB) ≫ snd = pair R.colA R.colB ≫ snd :=
+        congrArg (· ≫ snd) hh
+      rwa [Cat.assoc, snd_pair, snd_pair] at h2
+
+theorem relLe_of_subLe {A B : 𝒞} {R S : BinRel 𝒞 A B}
+    (h : (relSub R).le (relSub S)) : RelLe R S := (relLe_iff_subLe R S).2 h
+
+theorem subLe_of_relLe {A B : 𝒞} {R S : BinRel 𝒞 A B}
+    (h : RelLe R S) : (relSub R).le (relSub S) := (relLe_iff_subLe R S).1 h
+
+end BinRelSub
 
 section BinRelLattice
 
-variable [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] [HasBinaryCoproducts 𝒞]
+-- The whole section is COPRODUCT-FREE.  `relUnion` is the subobject-union of the two relation
+-- tables read back as a relation (`subRel (union (relSub R) (relSub S))`), so it works in any
+-- category with `[HasSubobjectUnions]` (in particular any pre-logos), matching Freyd §1.616 /
+-- §2.212 ("Rel(C) is distributive for ANY pre-logos").
+variable [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] [HasSubobjectUnions 𝒞]
 
-/-- Union of two relations R, S : A → B (§1.616).
-    Their coproduct-of-tables maps to A×B; the image is the union. -/
+/-- Union of two relations R, S : A → B (§1.616), COPRODUCT-FREE.
+    Read back the subobject-union of the two relation tables `relSub R`, `relSub S`. -/
 def relUnion {A B : 𝒞} (R S : BinRel 𝒞 A B) : BinRel 𝒞 A B :=
-  let cop := HasBinaryCoproducts.coprod R.src S.src
-  -- copairing of the two embedding maps pair(colA,colB) into A×B
-  let m : cop ⟶ prod A B :=
-    HasBinaryCoproducts.case (pair R.colA R.colB) (pair S.colA S.colB)
-  let I := image m
-  { src  := I.dom
-    colA := I.arr ≫ fst
-    colB := I.arr ≫ snd
-    isMonicPair := by
-      intro W f g hA hB
-      have h_fst : (f ≫ I.arr) ≫ fst = (g ≫ I.arr) ≫ fst := by simpa [Cat.assoc] using hA
-      have h_snd : (f ≫ I.arr) ≫ snd = (g ≫ I.arr) ≫ snd := by simpa [Cat.assoc] using hB
-      have h_prod : f ≫ I.arr = g ≫ I.arr :=
-        pair_uniq _ _ (f ≫ I.arr) rfl rfl |>.trans
-          (pair_uniq _ _ (g ≫ I.arr) h_fst.symm h_snd.symm).symm
-      exact I.monic f g h_prod }
+  subRel (HasSubobjectUnions.union (relSub R) (relSub S))
 
 /-- Notation ∪ for relUnion. -/
 infixl:65 (name := relUnionNotation) " ∪ᵣ " => relUnion
 
+/-- `relSub (R ∪ᵣ S) = union (relSub R) (relSub S)` — both directions.  `R ∪ᵣ S` is by
+    definition `subRel (union …)`, so `relSub (R ∪ᵣ S)` has the same arrow as `union …`
+    (`relSub_subRel_arr`), witnessed by the identity. -/
+theorem relSub_union_le {A B : 𝒞} (R S : BinRel 𝒞 A B) :
+    (relSub (R ∪ᵣ S)).le (HasSubobjectUnions.union (relSub R) (relSub S)) :=
+  ⟨Cat.id _, by rw [Cat.id_comp]; exact (relSub_subRel_arr _).symm⟩
+
+theorem relSub_union_ge {A B : 𝒞} (R S : BinRel 𝒞 A B) :
+    (HasSubobjectUnions.union (relSub R) (relSub S)).le (relSub (R ∪ᵣ S)) :=
+  ⟨Cat.id _, by rw [Cat.id_comp]; exact relSub_subRel_arr _⟩
+
 /-- R ≤ R ∪ S (left inclusion). -/
-theorem relUnion_le_left {A B : 𝒞} (R S : BinRel 𝒞 A B) : RelLe R (R ∪ᵣ S) := by
-  -- witness: image.lift m ∘ inl, where m is the copairing
-  let cop := HasBinaryCoproducts.coprod R.src S.src
-  let m : cop ⟶ prod A B :=
-    HasBinaryCoproducts.case (pair R.colA R.colB) (pair S.colA S.colB)
-  let I := image m
-  -- inl ≫ m = pair R.colA R.colB
-  have h_inl : HasBinaryCoproducts.inl ≫ m = pair R.colA R.colB :=
-    HasBinaryCoproducts.case_inl _ _
-  -- pair R.colA R.colB factors through I.arr
-  have hallow : Allows I (pair R.colA R.colB) :=
-    ⟨HasBinaryCoproducts.inl ≫ image.lift m, by rw [Cat.assoc, image.lift_fac, h_inl]⟩
-  obtain ⟨k, hk⟩ := hallow
-  -- k : R.src → I.dom with k ≫ I.arr = pair R.colA R.colB
-  refine ⟨⟨k, ?_, ?_⟩⟩
-  · calc k ≫ (R ∪ᵣ S).colA = k ≫ I.arr ≫ fst := rfl
-      _ = (k ≫ I.arr) ≫ fst := by rw [Cat.assoc]
-      _ = pair R.colA R.colB ≫ fst := by rw [hk]
-      _ = R.colA := fst_pair R.colA R.colB
-  · calc k ≫ (R ∪ᵣ S).colB = k ≫ I.arr ≫ snd := rfl
-      _ = (k ≫ I.arr) ≫ snd := by rw [Cat.assoc]
-      _ = pair R.colA R.colB ≫ snd := by rw [hk]
-      _ = R.colB := snd_pair R.colA R.colB
+theorem relUnion_le_left {A B : 𝒞} (R S : BinRel 𝒞 A B) : RelLe R (R ∪ᵣ S) :=
+  relLe_of_subLe (Subobject.le_trans (HasSubobjectUnions.union_left (relSub R) (relSub S))
+    (relSub_union_ge R S))
 
 /-- S ≤ R ∪ S (right inclusion). -/
-theorem relUnion_le_right {A B : 𝒞} (R S : BinRel 𝒞 A B) : RelLe S (R ∪ᵣ S) := by
-  let cop := HasBinaryCoproducts.coprod R.src S.src
-  let m : cop ⟶ prod A B :=
-    HasBinaryCoproducts.case (pair R.colA R.colB) (pair S.colA S.colB)
-  let I := image m
-  have h_inr : HasBinaryCoproducts.inr ≫ m = pair S.colA S.colB :=
-    HasBinaryCoproducts.case_inr _ _
-  have hallow : Allows I (pair S.colA S.colB) :=
-    ⟨HasBinaryCoproducts.inr ≫ image.lift m, by rw [Cat.assoc, image.lift_fac, h_inr]⟩
-  obtain ⟨k, hk⟩ := hallow
-  refine ⟨⟨k, ?_, ?_⟩⟩
-  · show k ≫ I.arr ≫ fst = S.colA
-    rw [← Cat.assoc, hk, fst_pair]
-  · show k ≫ I.arr ≫ snd = S.colB
-    rw [← Cat.assoc, hk, snd_pair]
+theorem relUnion_le_right {A B : 𝒞} (R S : BinRel 𝒞 A B) : RelLe S (R ∪ᵣ S) :=
+  relLe_of_subLe (Subobject.le_trans (HasSubobjectUnions.union_right (relSub R) (relSub S))
+    (relSub_union_ge R S))
 
 /-- Universal property of relUnion: R ≤ U → S ≤ U → R ∪ S ≤ U. -/
 theorem le_relUnion {A B : 𝒞} {R S U : BinRel 𝒞 A B}
-    (hRU : RelLe R U) (hSU : RelLe S U) : RelLe (R ∪ᵣ S) U := by
-  obtain ⟨⟨hR, hRA, hRB⟩⟩ := hRU
-  obtain ⟨⟨hS, hSA, hSB⟩⟩ := hSU
-  -- U.arr = pair U.colA U.colB is monic; we need to show (R∪S) ≤ U
-  -- The image (R∪ᵣS) is the image of m = case(pairR, pairS) : coprod → A×B
-  -- We exhibit a map coprod → U.src making the diagram commute, then apply image_min
-  let cop := HasBinaryCoproducts.coprod R.src S.src
-  let m : cop ⟶ prod A B :=
-    HasBinaryCoproducts.case (pair R.colA R.colB) (pair S.colA S.colB)
-  let pU : U.src ⟶ prod A B := pair U.colA U.colB
-  -- Build a map coprod → U.src via the coproduct UMP
-  let kU : cop ⟶ U.src := HasBinaryCoproducts.case hR hS
-  -- kU ≫ pU = m  (both agree on inl and inr)
-  have h_eq : kU ≫ pU = m := by
-    apply HasBinaryCoproducts.case_uniq
-    · rw [← Cat.assoc, HasBinaryCoproducts.case_inl]
-      rw [pair_uniq R.colA R.colB (hR ≫ pU)
-          (by rw [Cat.assoc, fst_pair, hRA])
-          (by rw [Cat.assoc, snd_pair, hRB])]
-    · rw [← Cat.assoc, HasBinaryCoproducts.case_inr]
-      rw [pair_uniq S.colA S.colB (hS ≫ pU)
-          (by rw [Cat.assoc, fst_pair, hSA])
-          (by rw [Cat.assoc, snd_pair, hSB])]
-  -- pU is monic (U.isMonicPair)
-  have hpU_mono : Monic pU := monic_pair_of_monicPair U.colA U.colB U.isMonicPair
-  -- Allows (image m as subobject via pU) m is given by kU
-  -- We need to build a Subobject out of pU
-  let U_sub : Subobject 𝒞 (prod A B) := Subobject.mk U.src pU hpU_mono
-  have hallow_U : Allows U_sub m := ⟨kU, h_eq⟩
-  -- image m ≤ U_sub
-  have hle := image_min m U_sub hallow_U
-  obtain ⟨k, hk⟩ := hle
-  -- k : (R∪ᵣS).src → U.src with k ≫ pU = (image m).arr  (since U_sub.arr = pU)
-  -- (R∪ᵣS).colA = (image m).arr ≫ fst, colB = ... ≫ snd
-  refine ⟨⟨k, ?_, ?_⟩⟩
-  · -- Goal: k ≫ U.colA = (R ∪ᵣ S).colA, i.e. = (image m).arr ≫ fst
-    show k ≫ U.colA = (image m).arr ≫ fst
-    have hkpU : k ≫ pU = (image m).arr := hk
-    calc k ≫ U.colA = (k ≫ pU) ≫ fst := by rw [Cat.assoc, fst_pair]
-      _ = (image m).arr ≫ fst := by rw [hkpU]
-  · show k ≫ U.colB = (image m).arr ≫ snd
-    have hkpU : k ≫ pU = (image m).arr := hk
-    calc k ≫ U.colB = (k ≫ pU) ≫ snd := by rw [Cat.assoc, snd_pair]
-      _ = (image m).arr ≫ snd := by rw [hkpU]
+    (hRU : RelLe R U) (hSU : RelLe S U) : RelLe (R ∪ᵣ S) U :=
+  relLe_of_subLe (Subobject.le_trans (relSub_union_le R S)
+    (HasSubobjectUnions.union_min _ _ _ (subLe_of_relLe hRU) (subLe_of_relLe hSU)))
 
 /-- §1.616: (R ∩ S) ∪ (R ∩ T) ≤ R ∩ (S ∪ T) — the reverse always holds. -/
 theorem rel_union_inter_le {A B : 𝒞} (R S T : BinRel 𝒞 A B) :
@@ -349,115 +342,101 @@ theorem compose_union_right_le {A B C : 𝒞} (R : BinRel 𝒞 A B) (S T : BinRe
     · show wit ≫ IST.arr ≫ snd = IT.arr ≫ snd
       rw [← Cat.assoc, hwit]
 
-/-- Helper: computes the "swap-copairing" equality
-    `case(pairR, pairS) ≫ pair snd fst = case(pair R.colB R.colA, pair S.colB S.colA)`. -/
-private theorem relUnion_swap_eq {A B : 𝒞} (R S : BinRel 𝒞 A B) :
-    HasBinaryCoproducts.case (pair R.colA R.colB) (pair S.colA S.colB) ≫ (pair snd fst : prod A B ⟶ prod B A) =
-    HasBinaryCoproducts.case (HasBinaryCoproducts.inr (A := S.src) (B := R.src))
-                             (HasBinaryCoproducts.inl (A := S.src) (B := R.src)) ≫
-    HasBinaryCoproducts.case (pair S.colB S.colA) (pair R.colB R.colA) := by
-  have hL :
-      HasBinaryCoproducts.case (pair R.colA R.colB) (pair S.colA S.colB) ≫
-        (pair snd fst : prod A B ⟶ prod B A) =
-      HasBinaryCoproducts.case (pair R.colB R.colA) (pair S.colB S.colA) :=
-    HasBinaryCoproducts.case_uniq _ _ _
-      (by rw [← Cat.assoc, HasBinaryCoproducts.case_inl]
-          apply pair_uniq
-          · rw [Cat.assoc, fst_pair, snd_pair]
-          · rw [Cat.assoc, snd_pair, fst_pair])
-      (by rw [← Cat.assoc, HasBinaryCoproducts.case_inr]
-          apply pair_uniq
-          · rw [Cat.assoc, fst_pair, snd_pair]
-          · rw [Cat.assoc, snd_pair, fst_pair])
-  have hR :
-      HasBinaryCoproducts.case (HasBinaryCoproducts.inr (A := S.src) (B := R.src))
-                               (HasBinaryCoproducts.inl (A := S.src) (B := R.src)) ≫
-      HasBinaryCoproducts.case (pair S.colB S.colA) (pair R.colB R.colA) =
-      HasBinaryCoproducts.case (pair R.colB R.colA) (pair S.colB S.colA) :=
-    HasBinaryCoproducts.case_uniq _ _ _
-      (by rw [← Cat.assoc, HasBinaryCoproducts.case_inl, HasBinaryCoproducts.case_inr])
-      (by rw [← Cat.assoc, HasBinaryCoproducts.case_inr, HasBinaryCoproducts.case_inl])
-  exact hL.trans hR.symm
+/-- Pushing a subobject of `A×B` along the iso `prodSwap A B : A×B → B×A` (post-composition,
+    monic because `prodSwap` is iso).  This is the relational reciprocal at the subobject level. -/
+private def pushSwap {A B : 𝒞} (P : Subobject 𝒞 (prod A B)) : Subobject 𝒞 (prod B A) :=
+  ⟨P.dom, P.arr ≫ prodSwap A B, by
+    intro X u v huv
+    refine P.monic u v ?_
+    have := congrArg (· ≫ prodSwap B A) huv
+    simpa [Cat.assoc, prodSwap_prodSwap, Cat.comp_id] using this⟩
 
-/-- §1.616: Reciprocation distributes over union: (R ∪ᵣ S)° ≤ S° ∪ᵣ R°.
-    Proof: the copairing for (R∪S)° lands in B×A via swap_pair = pair snd fst; the
-    copairing for S°∪R° is case(pairS°, pairR°).  cover⊥mono (cover_mono_diagonal)
-    applied to image.lift(m) (a cover) and image(m').arr (monic) yields the factorization. -/
+/-- `pushSwap` is monotone: a factorization `f ≫ Q.arr = P.arr` post-composes with `prodSwap`. -/
+private theorem pushSwap_mono {A B : 𝒞} {P Q : Subobject 𝒞 (prod A B)} (hle : P.le Q) :
+    (pushSwap P).le (pushSwap Q) := by
+  obtain ⟨f, hf⟩ := hle
+  exact ⟨f, by show f ≫ (Q.arr ≫ prodSwap A B) = P.arr ≫ prodSwap A B; rw [← Cat.assoc, hf]⟩
+
+/-- `relSub (R°) = pushSwap (relSub R)`: the reciprocal's table is the swap of `R`'s table. -/
+private theorem relSub_reciprocal_arr {A B : 𝒞} (R : BinRel 𝒞 A B) :
+    (relSub R°).arr = (pushSwap (relSub R)).arr := by
+  show pair R.colB R.colA = pair R.colA R.colB ≫ prodSwap A B
+  exact (pair_uniq _ _ _ (by rw [Cat.assoc, prodSwap_fst, snd_pair])
+    (by rw [Cat.assoc, prodSwap_snd, fst_pair])).symm
+
+private theorem relSub_reciprocal_le {A B : 𝒞} (R : BinRel 𝒞 A B) :
+    (relSub R°).le (pushSwap (relSub R)) :=
+  ⟨Cat.id _, by rw [Cat.id_comp]; exact (relSub_reciprocal_arr R).symm⟩
+
+private theorem relSub_reciprocal_ge {A B : 𝒞} (R : BinRel 𝒞 A B) :
+    (pushSwap (relSub R)).le (relSub R°) :=
+  ⟨Cat.id _, by rw [Cat.id_comp]; exact relSub_reciprocal_arr R⟩
+
+/-- `pushSwap` reflects `≤`: a factorization post-composed with `prodSwap` descends because
+    `prodSwap` is split monic (`prodSwap A B ≫ prodSwap B A = id`). -/
+private theorem pushSwap_reflects {A B : 𝒞} {P Q : Subobject 𝒞 (prod A B)}
+    (hle : (pushSwap P).le (pushSwap Q)) : P.le Q := by
+  obtain ⟨f, hf⟩ := hle
+  refine ⟨f, ?_⟩
+  -- hf : f ≫ (Q.arr ≫ prodSwap A B) = P.arr ≫ prodSwap A B.  Cancel prodSwap on the right.
+  have hf' : f ≫ (Q.arr ≫ prodSwap A B) = P.arr ≫ prodSwap A B := hf
+  have h := congrArg (· ≫ prodSwap B A) hf'
+  simpa [Cat.assoc, prodSwap_prodSwap, Cat.comp_id] using h
+
+/-- `pushSwap` sends a union below the union of the swaps.  Both swapped legs `pushSwap P`,
+    `pushSwap Q` reflect back (via `pushSwap_reflects`) into `pushSwap⁻¹` of the target union,
+    so `union_min` bounds `union P Q`, and monotone `pushSwap` carries it across; the double
+    swap cancels. -/
+private theorem pushSwap_union_le {A B : 𝒞} (P Q : Subobject 𝒞 (prod A B)) :
+    (pushSwap (HasSubobjectUnions.union P Q)).le
+      (HasSubobjectUnions.union (pushSwap P) (pushSwap Q)) := by
+  let U := HasSubobjectUnions.union (pushSwap P) (pushSwap Q)
+  -- P ≤ pushSwap U  and  Q ≤ pushSwap U  (reflect the union inclusions back across the swap).
+  have hP : P.le (pushSwap U) :=
+    pushSwap_reflects (by
+      refine Subobject.le_trans (HasSubobjectUnions.union_left (pushSwap P) (pushSwap Q)) ?_
+      exact ⟨Cat.id _, by
+        show Cat.id _ ≫ (pushSwap (pushSwap U)).arr = U.arr
+        simp only [pushSwap, Cat.id_comp, Cat.assoc, prodSwap_prodSwap, Cat.comp_id]⟩)
+  have hQ : Q.le (pushSwap U) :=
+    pushSwap_reflects (by
+      refine Subobject.le_trans (HasSubobjectUnions.union_right (pushSwap P) (pushSwap Q)) ?_
+      exact ⟨Cat.id _, by
+        show Cat.id _ ≫ (pushSwap (pushSwap U)).arr = U.arr
+        simp only [pushSwap, Cat.id_comp, Cat.assoc, prodSwap_prodSwap, Cat.comp_id]⟩)
+  -- union P Q ≤ pushSwap U, push across, double swap cancels back to U.
+  refine Subobject.le_trans (pushSwap_mono (HasSubobjectUnions.union_min _ _ _ hP hQ)) ?_
+  exact ⟨Cat.id _, by
+    show Cat.id _ ≫ U.arr = (pushSwap (pushSwap U)).arr
+    simp only [pushSwap, Cat.id_comp, Cat.assoc, prodSwap_prodSwap, Cat.comp_id]⟩
+
+/-- §1.616: Reciprocation distributes over union: (R ∪ᵣ S)° ≤ S° ∪ᵣ R°.  COPRODUCT-FREE:
+    `relSub((R∪ᵣS)°) = swap(union(relSub R)(relSub S))`, and the swap of each piece lands below
+    `relSub S°` / `relSub R°` (`relSub_reciprocal`), so `union_min` packages the bound. -/
 theorem relUnion_le_reciprocal {A B : 𝒞} (R S : BinRel 𝒞 A B) :
     RelLe (R ∪ᵣ S)° (S° ∪ᵣ R°) := by
-  let m  : HasBinaryCoproducts.coprod R.src S.src ⟶ prod A B :=
-    HasBinaryCoproducts.case (pair R.colA R.colB) (pair S.colA S.colB)
-  let m' : HasBinaryCoproducts.coprod S.src R.src ⟶ prod B A :=
-    HasBinaryCoproducts.case (pair S.colB S.colA) (pair R.colB R.colA)
-  let swap_pair : prod A B ⟶ prod B A := pair snd fst
-  let swap_cop  : HasBinaryCoproducts.coprod R.src S.src ⟶ HasBinaryCoproducts.coprod S.src R.src :=
-    HasBinaryCoproducts.case HasBinaryCoproducts.inr HasBinaryCoproducts.inl
-  have h_swap : m ≫ swap_pair = swap_cop ≫ m' := relUnion_swap_eq R S
-  -- cover_mono_diagonal needs: c ≫ f = d ≫ m_arg
-  -- c = image.lift m, f = (image m).arr ≫ swap_pair, d = swap_cop ≫ image.lift m', m_arg = (image m').arr
-  have h_sq : image.lift m ≫ ((image m).arr ≫ swap_pair) =
-              (swap_cop ≫ image.lift m') ≫ (image m').arr := by
-    calc image.lift m ≫ ((image m).arr ≫ swap_pair)
-        = (image.lift m ≫ (image m).arr) ≫ swap_pair := by rw [← Cat.assoc]
-      _ = m ≫ swap_pair                               := by rw [image.lift_fac]
-      _ = swap_cop ≫ m'                               := h_swap
-      _ = swap_cop ≫ (image.lift m' ≫ (image m').arr) := by congr 1; exact (image.lift_fac m').symm
-      _ = (swap_cop ≫ image.lift m') ≫ (image m').arr := (Cat.assoc _ _ _).symm
-  obtain ⟨k, _, hk⟩ := cover_mono_diagonal (image_lift_cover m) (image m').monic h_sq
-  -- hk : k ≫ (image m').arr = (image m).arr ≫ swap_pair
-  refine ⟨⟨k, ?_, ?_⟩⟩
-  · show k ≫ (image m').arr ≫ fst = (image m).arr ≫ snd
-    calc k ≫ (image m').arr ≫ fst = (k ≫ (image m').arr) ≫ fst := by rw [Cat.assoc]
-      _ = ((image m).arr ≫ swap_pair) ≫ fst := by rw [hk]
-      _ = (image m).arr ≫ swap_pair ≫ fst   := Cat.assoc _ _ _
-      _ = (image m).arr ≫ snd               := by rw [fst_pair]
-  · show k ≫ (image m').arr ≫ snd = (image m).arr ≫ fst
-    calc k ≫ (image m').arr ≫ snd = (k ≫ (image m').arr) ≫ snd := by rw [Cat.assoc]
-      _ = ((image m).arr ≫ swap_pair) ≫ snd := by rw [hk]
-      _ = (image m).arr ≫ swap_pair ≫ snd   := Cat.assoc _ _ _
-      _ = (image m).arr ≫ fst               := by rw [snd_pair]
+  apply relLe_of_subLe
+  -- relSub((R∪ᵣS)°) ≤ pushSwap(relSub(R∪ᵣS)) ≤ pushSwap(union(relSub R)(relSub S))
+  --   ≤ union(pushSwap(relSub R))(pushSwap(relSub S)) ≤ union(relSub R°)(relSub S°) = relSub(S°∪ᵣR°).
+  refine Subobject.le_trans (relSub_reciprocal_le (R ∪ᵣ S))
+    (Subobject.le_trans (pushSwap_mono (relSub_union_le R S))
+    (Subobject.le_trans (pushSwap_union_le (relSub R) (relSub S)) ?_))
+  refine Subobject.le_trans ?_ (relSub_union_ge S° R°)
+  -- union(pushSwap relSub R)(pushSwap relSub S) ≤ union(relSub S°)(relSub R°)
+  exact HasSubobjectUnions.union_min _ _ _
+    (Subobject.le_trans (relSub_reciprocal_ge R) (HasSubobjectUnions.union_right _ _))
+    (Subobject.le_trans (relSub_reciprocal_ge S) (HasSubobjectUnions.union_left _ _))
 
-/-- §1.616: S° ∪ᵣ R° ≤ (R ∪ᵣ S)° (reverse direction). -/
+/-- §1.616: S° ∪ᵣ R° ≤ (R ∪ᵣ S)° (reverse direction).  Apply `relUnion_le_reciprocal` to the
+    reciprocals and use involutivity `(·°)° = ·`. -/
 theorem relUnion_reciprocal_le {A B : 𝒞} (R S : BinRel 𝒞 A B) :
     RelLe (S° ∪ᵣ R°) (R ∪ᵣ S)° := by
-  -- Mirror image of relUnion_le_reciprocal with R↔S swapped.
-  -- S°∪R° is the union of S° and R° as B→A relations.
-  -- (R∪S)° has colA = (R∪S).colB, colB = (R∪S).colA.
-  -- The copairing for S°∪R° maps case(pairS°, pairR°) = case(pair S.colB S.colA, pair R.colB R.colA).
-  -- The copairing for (R∪S) is m = case(pair R.colA R.colB, pair S.colA S.colB).
-  -- Use relUnion_swap_eq symmetrically.
-  let m  : HasBinaryCoproducts.coprod R.src S.src ⟶ prod A B :=
-    HasBinaryCoproducts.case (pair R.colA R.colB) (pair S.colA S.colB)
-  let m' : HasBinaryCoproducts.coprod S.src R.src ⟶ prod B A :=
-    HasBinaryCoproducts.case (pair S.colB S.colA) (pair R.colB R.colA)
-  let swap_pair' : prod B A ⟶ prod A B := pair snd fst
-  let swap_cop'  : HasBinaryCoproducts.coprod S.src R.src ⟶ HasBinaryCoproducts.coprod R.src S.src :=
-    HasBinaryCoproducts.case HasBinaryCoproducts.inr HasBinaryCoproducts.inl
-  -- h_swap' is exactly relUnion_swap_eq applied to S° and R° (as BinRel 𝒞 B A)
-  have h_swap' : m' ≫ swap_pair' = swap_cop' ≫ m := relUnion_swap_eq S° R°
-  have h_sq' : image.lift m' ≫ ((image m').arr ≫ swap_pair') =
-               (swap_cop' ≫ image.lift m) ≫ (image m).arr := by
-    calc image.lift m' ≫ ((image m').arr ≫ swap_pair')
-        = (image.lift m' ≫ (image m').arr) ≫ swap_pair' := by rw [← Cat.assoc]
-      _ = m' ≫ swap_pair'                                := by rw [image.lift_fac]
-      _ = swap_cop' ≫ m                                  := h_swap'
-      _ = swap_cop' ≫ (image.lift m ≫ (image m).arr)    := by congr 1; exact (image.lift_fac m).symm
-      _ = (swap_cop' ≫ image.lift m) ≫ (image m).arr    := (Cat.assoc _ _ _).symm
-  obtain ⟨k, _, hk⟩ := cover_mono_diagonal (image_lift_cover m') (image m).monic h_sq'
-  -- hk : k ≫ (image m).arr = (image m').arr ≫ swap_pair'
-  -- (R∪S)°.src = (image m).dom, (S°∪R°).src = (image m').dom
-  -- (R∪S)°.colA = (image m).arr ≫ snd, (R∪S)°.colB = (image m).arr ≫ fst
-  refine ⟨⟨k, ?_, ?_⟩⟩
-  · show k ≫ (image m).arr ≫ snd = (image m').arr ≫ fst
-    calc k ≫ (image m).arr ≫ snd = (k ≫ (image m).arr) ≫ snd := by rw [Cat.assoc]
-      _ = ((image m').arr ≫ swap_pair') ≫ snd := by rw [hk]
-      _ = (image m').arr ≫ swap_pair' ≫ snd   := Cat.assoc _ _ _
-      _ = (image m').arr ≫ fst               := by rw [snd_pair]
-  · show k ≫ (image m).arr ≫ fst = (image m').arr ≫ snd
-    calc k ≫ (image m).arr ≫ fst = (k ≫ (image m).arr) ≫ fst := by rw [Cat.assoc]
-      _ = ((image m').arr ≫ swap_pair') ≫ fst := by rw [hk]
-      _ = (image m').arr ≫ swap_pair' ≫ fst   := Cat.assoc _ _ _
-      _ = (image m').arr ≫ snd               := by rw [fst_pair]
+  -- relUnion_le_reciprocal (S°) (R°) : (S° ∪ᵣ R°)° ≤ R°° ∪ᵣ S°° = R ∪ᵣ S.
+  have h := relUnion_le_reciprocal S° R°
+  rw [reciprocal_invol, reciprocal_invol] at h
+  -- h : (S° ∪ᵣ R°)° ≤ R ∪ᵣ S.  Reciprocate both sides (reciprocal is monotone + involutive).
+  have h2 := reciprocal_mono h
+  rwa [reciprocal_invol] at h2
 
 end BinRelLattice
 
@@ -471,77 +450,12 @@ end BinRelLattice
 
 section BinRelDistributive
 
--- The bridge `relSub` and the existential-image / inverse-image calculus below are
--- COPRODUCT-FREE (pure PreLogos: pullbacks, images, `existsAlong`, inverse image).  Only the
--- four `∪ᵣ`/`relUnion`-based lemmas (`relSub_union_le/ge`, `rel_inter_union_le`,
--- `compose_union_right`) need `[HasBinaryCoproducts 𝒞]` — `relUnion` is defined as the image of a
--- copairing — so those carry the instance as an explicit binder.  Keeping it off the section
--- variable lets bare `[PreLogos 𝒞]` consumers (e.g. §1.621 in S1_61) reuse the bridge.
+-- The `relSub` bridge and the lattice laws (`relSub_union_le/ge`, `relLe_iff_subLe`, …) now live
+-- in the COPRODUCT-FREE `BinRelLattice` section above (they need only `[HasSubobjectUnions]`).
+-- This section adds the existential-image / inverse-image calculus (`existsAlong`, `pushMono`,
+-- `InverseImage`) and the SUBSTANTIVE pre-logos distributive laws, which use the defining
+-- pre-logos axiom that inverse images preserve unions.
 variable [PreLogos 𝒞]
-
-/-- The subobject of `A×B` represented by a relation `R : A → B`: its monic pairing. -/
-def relSub {A B : 𝒞} (R : BinRel 𝒞 A B) : Subobject 𝒞 (prod A B) :=
-  ⟨R.src, pair R.colA R.colB, monic_pair_of_monicPair R.colA R.colB R.isMonicPair⟩
-
-/-- `RelLe R S` is exactly `Subobject.le (relSub R) (relSub S)`: a relation homomorphism
-    `h` (commuting with both legs) is the same data as a subobject factorization
-    `h ≫ pair S.colA S.colB = pair R.colA R.colB`. -/
-theorem relLe_iff_subLe {A B : 𝒞} (R S : BinRel 𝒞 A B) :
-    RelLe R S ↔ (relSub R).le (relSub S) := by
-  constructor
-  · rintro ⟨⟨h, hA, hB⟩⟩
-    refine ⟨h, ?_⟩
-    show h ≫ pair S.colA S.colB = pair R.colA R.colB
-    exact pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair, hA]) (by rw [Cat.assoc, snd_pair, hB])
-  · rintro ⟨h, hh⟩
-    simp only [relSub] at hh
-    refine ⟨⟨h, ?_, ?_⟩⟩
-    · have h2 : (h ≫ pair S.colA S.colB) ≫ fst = pair R.colA R.colB ≫ fst :=
-        congrArg (· ≫ fst) hh
-      rwa [Cat.assoc, fst_pair, fst_pair] at h2
-    · have h2 : (h ≫ pair S.colA S.colB) ≫ snd = pair R.colA R.colB ≫ snd :=
-        congrArg (· ≫ snd) hh
-      rwa [Cat.assoc, snd_pair, snd_pair] at h2
-
-theorem relLe_of_subLe {A B : 𝒞} {R S : BinRel 𝒞 A B}
-    (h : (relSub R).le (relSub S)) : RelLe R S := (relLe_iff_subLe R S).2 h
-
-theorem subLe_of_relLe {A B : 𝒞} {R S : BinRel 𝒞 A B}
-    (h : RelLe R S) : (relSub R).le (relSub S) := (relLe_iff_subLe R S).1 h
-
-/-- `relSub (R ∪ᵣ S) ≤ union (relSub R) (relSub S)`.  `relUnion` is the image of
-    `m = case (pairR) (pairS)`; both pieces sit below the union, so `case l₁ l₂` factors
-    `m` through the union's monic, and image-minimality descends. -/
-theorem relSub_union_le [HasBinaryCoproducts 𝒞] {A B : 𝒞} (R S : BinRel 𝒞 A B) :
-    (relSub (R ∪ᵣ S)).le (HasSubobjectUnions.union (relSub R) (relSub S)) := by
-  let m : HasBinaryCoproducts.coprod R.src S.src ⟶ prod A B :=
-    HasBinaryCoproducts.case (pair R.colA R.colB) (pair S.colA S.colB)
-  have harr : (relSub (R ∪ᵣ S)).arr = (image m).arr := by
-    show pair (R ∪ᵣ S).colA (R ∪ᵣ S).colB = (image m).arr
-    exact (pair_uniq (R ∪ᵣ S).colA (R ∪ᵣ S).colB (image m).arr rfl rfl).symm
-  obtain ⟨l₁, hl₁⟩ := HasSubobjectUnions.union_left (relSub R) (relSub S)
-  obtain ⟨l₂, hl₂⟩ := HasSubobjectUnions.union_right (relSub R) (relSub S)
-  let U := HasSubobjectUnions.union (relSub R) (relSub S)
-  have hallow : Allows U m := by
-    refine ⟨HasBinaryCoproducts.case l₁ l₂, ?_⟩
-    show HasBinaryCoproducts.case l₁ l₂ ≫ U.arr = HasBinaryCoproducts.case _ _
-    refine HasBinaryCoproducts.case_uniq _ _ _ ?_ ?_
-    · show HasBinaryCoproducts.inl ≫ (HasBinaryCoproducts.case l₁ l₂ ≫ U.arr) = _
-      rw [← Cat.assoc, HasBinaryCoproducts.case_inl]; exact hl₁
-    · show HasBinaryCoproducts.inr ≫ (HasBinaryCoproducts.case l₁ l₂ ≫ U.arr) = _
-      rw [← Cat.assoc, HasBinaryCoproducts.case_inr]; exact hl₂
-  obtain ⟨k, hk⟩ := image_min m U hallow
-  exact ⟨k, by rw [hk, harr]⟩
-
-/-- `union (relSub R) (relSub S) ≤ relSub (R ∪ᵣ S)`.  `relSub R ≤ relSub(R∪S)` and
-    `relSub S ≤ relSub(R∪S)` (from `relUnion_le_left/right` through the bridge), so the union's
-    minimality (`union_min`) gives the containment. -/
-theorem relSub_union_ge [HasBinaryCoproducts 𝒞] {A B : 𝒞} (R S : BinRel 𝒞 A B) :
-    (HasSubobjectUnions.union (relSub R) (relSub S)).le (relSub (R ∪ᵣ S)) :=
-  HasSubobjectUnions.union_min _ _ _
-    (subLe_of_relLe (relUnion_le_left R S))
-    (subLe_of_relLe (relUnion_le_right R S))
-
 
 /-- Post-composition with a fixed mono `m : Z ↣ W` carries `Sub Z` into `Sub W`
     order-preservingly: `push m P := ⟨P.dom, P.arr ≫ m⟩`. -/
@@ -642,7 +556,7 @@ theorem invImage_mono_local {A B : 𝒞} (f : A ⟶ B) {S T : Subobject 𝒞 B} 
     `R ⊓ (S ∪ T) ≤ (R ⊓ S) ∪ (R ⊓ T)`.  Transported across `relSub` from the pre-logos fact
     that inverse images preserve unions (`PreLogos.invImage_preserves_union`) plus monotonicity
     of `pushMono`/`InverseImage` and the union laws. -/
-theorem rel_inter_union_le [HasBinaryCoproducts 𝒞] {A B : 𝒞} (R S T : BinRel 𝒞 A B) :
+theorem rel_inter_union_le {A B : 𝒞} (R S T : BinRel 𝒞 A B) :
     RelLe (R ⊓ (S ∪ᵣ T)) ((R ⊓ S) ∪ᵣ (R ⊓ T)) := by
   apply relLe_of_subLe
   let pR := pair R.colA R.colB
@@ -874,7 +788,7 @@ theorem relSub_compose_eq {A B C : 𝒞} (R : BinRel 𝒞 A B) (X : BinRel 𝒞 
     `relSub(R⊚X) = ∃_{ω_R}(θ_R# (relSub X))` (`relSub_compose_eq`): both `θ_R#`
     (`PreLogos.invImage_preserves_union`) and `∃_{ω_R}` (`existsAlong_union_le`) preserve unions,
     so the join descends with no extensivity. -/
-theorem compose_union_right [HasBinaryCoproducts 𝒞] {A B C : 𝒞} (R : BinRel 𝒞 A B) (S T : BinRel 𝒞 B C) :
+theorem compose_union_right {A B C : 𝒞} (R : BinRel 𝒞 A B) (S T : BinRel 𝒞 B C) :
     RelLe (R ⊚ (S ∪ᵣ T)) ((R ⊚ S) ∪ᵣ (R ⊚ T)) := by
   apply relLe_of_subLe
   -- LHS  =  ∃_ω (θ# relSub(S∪T)).

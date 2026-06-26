@@ -447,7 +447,7 @@ theorem isEquivRel_of_equivalenceRelation {𝒞 : Type u} [Cat.{v} 𝒞]
     minimal equivalence from coequalizers + effectiveness): here it is built from R* directly. -/
 theorem minEquiv_of_rtc {𝒞 : Type u} [Cat.{v} 𝒞]
     [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
-    [HasBinaryCoproducts 𝒞] [HasReflTransClosure 𝒞] :
+    [HasSubobjectUnions 𝒞] [HasReflTransClosure 𝒞] :
     HasMinEquivContaining 𝒞 := by
   intro A R
   let Rsym : BinRel 𝒞 A A := (R ∪ᵣ R°) ∪ᵣ graph (Cat.id A)

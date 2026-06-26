@@ -399,6 +399,15 @@ theorem splitting_recip {a b : 𝒜} {R : a ⟶ b} {S : b ⟶ a}
   "A pre-logos C is positive iff Rel(C) has finite coproducts."
   [§2.214, uses §2.215 duality coproduct ↔ product via reciprocation.]
 
+  NOTE (§2.212/§2.214 hypothesis-tightening).  Both `DisjointGluing.relDistributiveAllegory`
+  (`Rel(C)` is a DISTRIBUTIVE allegory) and the §2.214 REVERSE
+  (`relReverse_positive_of_relCoproducts`) now hold over a BARE `[PreLogos C]` — NOT
+  `[PositivePreLogos C]`.  This matches Freyd verbatim: §2.212 says "Rel(C) is distributive for
+  ANY pre-logos [1.616]", and §2.214's ⟸ ("Rel(C) coproducts ⟹ C positive") assumes only that
+  `C` is a pre-logos.  The relaxation comes from re-basing §1.616's relational union `relUnion`
+  on the SUBOBJECT-union (`subRel (union (relSub R) (relSub S))`, needs only `[HasSubobjectUnions]`,
+  supplied by every pre-logos) instead of the image of a coproduct copairing.
+
   The ALLEGORY side (§2.215): a POSITIVE ALLEGORY has a zero object and all finite coproducts,
   characterised by five equations for the injections `u₁ : X → X⊕Y` and `u₂ : Y → X⊕Y`:
     u₁u₁° = 1_X,  u₁u₂° = 0,  u₂u₁° = 0,  u₂u₂° = 1_Y,  u₁°u₁ ∪ u₂°u₂ = 1_{X⊕Y}.
@@ -426,7 +435,8 @@ theorem splitting_recip {a b : 𝒜} {R : a ⟶ b} {S : b ⟶ a}
 --   REVERSE — STATUS (option (b) taken; the TC DIAMOND is DODGED).  `Fredy/RelCat.lean` now states
 --   the reverse with the positive-allegory coproduct DATA built ON TOP of the EXISTING `relAllegory`,
 --   so there is no competing `Allegory (RelObj C)`/`Cat (RelObj C)` instance.  Concretely
---   (`section ReverseCoproduct`, `variable [PositivePreLogos C]`):
+--   (`section ReverseCoproduct`, now `variable [PreLogos C]` — see the §2.212/§2.214 note above;
+--    the coproduct DATA `hcop` supplies positivity, so no ambient `[PositivePreLogos C]` is needed):
 --     • `relTUPositiveAllegory (zero) (coprodObj) (hcop)` assembles a
 --       `TabularUnitaryPositiveAllegory (RelObj C)` from `relTabularUnitaryDistributiveAllegory` plus
 --       the supplied coterminal / binary-coproduct-object / per-pair `Alg.Coproduct` DATA over
@@ -455,11 +465,13 @@ theorem splitting_recip {a b : 𝒜} {R : a ⟶ b} {S : b ⟶ a}
 --       the Map-coterminator and lifted back by fullness yields a C-map `P → (⊥ _).dom`, closed by
 --       the local helper `le_bottom_of_map_to_bottom`.
 --   ASSEMBLED: `relReverseDisjointBinaryCoproduct (zero) (coprodObj) (hcop) : DisjointBinaryCoproduct C`
---   bundles `relReverseHasBinaryCoproducts` + the four §1.621 fields (the `PositivePreLogos` parent
---   stores the ambient `PreLogos` LITERALLY via `PositivePreLogos.mk` and pins the coproduct to the
---   reverse one, so the field lemmas — applied at the ambient instance — match definitionally, no
---   diamond).  Wrapper: `relReverse_positive_of_relCoproducts : Nonempty (DisjointBinaryCoproduct C)`.
---   Sorry-free; axioms [propext, Classical.choice, Quot.sound].  This is the §2.214 REVERSE.
+--   bundles `relReverseHasBinaryCoproducts` + the four §1.621 fields (the `PositivePreLogos` it
+--   PRODUCES stores the ambient bare `[PreLogos C]` LITERALLY via `PositivePreLogos.mk ‹PreLogos C›`
+--   and pins the coproduct to the reverse one, so the field lemmas — applied at the ambient instance —
+--   match definitionally, no diamond).  Wrapper:
+--   `relReverse_positive_of_relCoproducts : Nonempty (DisjointBinaryCoproduct C)`.
+--   Holds over a BARE `[PreLogos C]`; sorry-free; axioms [propext, Classical.choice, Quot.sound].
+--   This is the §2.214 REVERSE.
 
 /-- §2.215 positivity of the matrix allegory: every distributive allegory `𝒜` gives a positive
     allegory `MatObj 𝒜`. The coproduct `X ⊕ Y` is the concatenated index family; the injections
