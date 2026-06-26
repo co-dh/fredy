@@ -1250,8 +1250,15 @@ theorem expSubobj (A B : 𝒞) :
 -- Freyd's argument: f* : E/B → E/A has right adjoint Π_f (§1.931), so the restriction of Π_f
 -- to Sub(A) is the double-sharp f## (§1.7).  Hence every topos satisfies the double-sharp axiom.
 -- BOOK §1.932: The double-sharp axiom holds for topoi.
--- (In this repo the double-sharp is realised via SlicePi.piForallObj; the topos instance is
--- assembled in InternalForallTopos.  A standalone named theorem would need the Logos' typeclass.)
+--
+-- DONE — proved as `S1_94.topos_is_logos : Nonempty (Logos' 𝒞)`, which packages:
+--   · `HasRightAdjointImage'` — `toposHasRightAdjointImage` via `radjImage` / `radjImage_adjunction`
+--     (Fredy.RightAdjointImage; the right adjoint f## = ∀_f built from the internal-∀ machinery);
+--   · `HasSubobjectUnions`   — `toposHasSubobjectUnions` (Fredy.ToposColimits);
+--   · `RegularCategory`      — `topos_is_regular_real` (Fredy.InternalForallTopos).
+-- The adjunction f# ⊣ f## (i.e. InverseImage f B' ≤ A' ↔ B' ≤ radjImage f A') is
+-- `radjImage_adjunction` in Fredy.RightAdjointImage, sorry-free.
+-- Cannot name the theorem here: S1_94 imports S1_92 (import cycle prevents the reverse).
 
 -- §1.935: Every topos may be faithfully represented in a capital topos.
 -- Freyd's argument: topoi are pre-regular (§1.933) and satisfy the slice condition (§1.541),
