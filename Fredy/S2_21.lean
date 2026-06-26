@@ -26,6 +26,7 @@
 -/
 
 import Fredy.S2_1
+import Fredy.MatrixAllegory
 
 universe v u
 
@@ -397,11 +398,27 @@ theorem splitting_recip {a b : 𝒜} {R : a ⟶ b} {S : b ⟶ a}
   "A pre-logos C is positive iff Rel(C) has finite coproducts."
   [§2.214, uses §2.215 duality coproduct ↔ product via reciprocation.]
 
-  Requires: the `Rel(C)` construction sending `[PreLogos 𝒞]` to a `DistributiveAllegory`
-  (Ch1→Ch2 bridge).  The left-to-right direction was proved in the §2.214 text above
-  (coproduct → five equations via `coproduct_five_eqs_to_universal`).  Not yet typed. -/
+  The ALLEGORY side (§2.215): a POSITIVE ALLEGORY has a zero object and all finite coproducts,
+  characterised by five equations for the injections `u₁ : X → X⊕Y` and `u₂ : Y → X⊕Y`:
+    u₁u₁° = 1_X,  u₁u₂° = 0,  u₂u₁° = 0,  u₂u₂° = 1_Y,  u₁°u₁ ∪ u₂°u₂ = 1_{X⊕Y}.
+
+  PROVED (§2.215 / §2.216): `MatObj 𝒜` is a positive allegory for any distributive allegory `𝒜`.
+  The coproduct `X ⊕ Y` is the concatenated index family `Fin(m+n) → 𝒜`; the injections
+  `u₁ = mInl`, `u₂ = mInr` are built from the block-diagonal identity matrix and satisfy all
+  five equations.  See `Fredy/MatrixAllegory.lean` §J (`instPositiveAllegoryMat`, `mCoproduct`).
+
+  The FULL §2.214 equivalence (pre-logos positive ↔ Rel(C) has finite coproducts) requires the
+  Rel(C) functor from pre-logos to distributive allegory (Ch1 → Ch2 bridge), not yet built. -/
 
 -- BOOK §2.214: A pre-logos C is positive iff Rel(C) has finite coproducts.
+-- §2.215 PROVED: PositiveAllegory (MatObj 𝒜) — see Fredy.MatrixAllegory.instPositiveAllegoryMat.
+-- Remainder (full §2.214 iff direction) blocked on the Rel(C) construction (Ch1↔Ch2 bridge).
+
+/-- §2.215 positivity of the matrix allegory: every distributive allegory `𝒜` gives a positive
+    allegory `MatObj 𝒜`. The coproduct `X ⊕ Y` is the concatenated index family; the injections
+    satisfy the five §2.214 equations. -/
+example (𝒜 : Type*) [DistributiveAllegory 𝒜] : PositiveAllegory (Mat.MatObj 𝒜) :=
+  Mat.instPositiveAllegoryMat
 
 /-! ## §2.217  Faithful representation in a positive pre-logos / pre-topos
 
@@ -411,10 +428,15 @@ theorem splitting_recip {a b : 𝒜} {R : a ⟶ b} {S : b ⟶ a}
     (1) every pre-logos embeds faithfully in a positive pre-logos;
     (2) every pre-logos embeds faithfully in a pre-topos.]
 
-  Both require the Ch1↔Ch2 Rel(-)/Maps(-) adjunction (not constructed).  -/
+  Both require the Ch1↔Ch2 Rel(-)/Maps(-) adjunction (not constructed).
+  The ingredient `MatObj 𝒜` is now a positive allegory (§2.215 above); what is missing
+  is: (a) the `Rel : PreLogos → DistributiveAllegory` functor, (b) the `Map : DistributiveAllegory
+  → PreLogos` functor, and (c) the faithful embedding `C ↪ Map(Mat(Rel(C)))`. -/
 
 -- BOOK §2.217 (1): A pre-logos may be faithfully represented in a positive pre-logos.
+-- Blocked on Rel(C) construction (Ch1↔Ch2 bridge) and Map(-) functor.
 -- BOOK §2.217 (2): A pre-logos may be faithfully represented in a pre-topos.
+-- Blocked on same infrastructure plus pre-topos structure on Map(Mat(Rel(C))).
 
 /-! ## §2.218  Faithful representation in a power of the allegory of sets
 
