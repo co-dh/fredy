@@ -126,6 +126,29 @@ theorem tab_gog {a b c : 𝒜} {f : c ⟶ a} {g : c ⟶ b} {R : a ⟶ b}
     (ht : Tabulates f g R) : Cat.id c ⊑ g ≫ g° :=
   ht.2.2.2 ▸ inter_lb_right _ _
 
+/-- **§2.147 first-leg coreflexive**: for a tabulation `(f,g)` of `R` (source-apex), the
+    coreflexive `f° ≫ f` equals `dom R`.  (In Rel(Set): `f°≫f` is the diagonal on the domain
+    of `R`.)  Used to compute the coreflexive of a Map(𝒜) pullback/inverse-image projection. -/
+theorem tab_leg_dom {a b c : 𝒜} {f : c ⟶ a} {g : c ⟶ b} {R : a ⟶ b}
+    (ht : Tabulates f g R) : f° ≫ f = dom R := by
+  have hf : Map f := ht.1
+  have hR : f° ≫ g = R := ht.2.2.1.symm
+  apply le_antisymm
+  · -- f°≫f ⊑ dom R = id ∩ R≫R°.  f°≫f ⊑ id (f simple); f°≫f ⊑ R≫R° via id_c ⊑ g≫g°.
+    refine le_inter hf.2 ?_
+    have hRRo : R ≫ R° = f° ≫ (g ≫ g°) ≫ f := by
+      rw [← hR, Allegory.recip_comp, Allegory.recip_recip]; simp [Cat.assoc]
+    rw [hRRo]
+    have h1 : f° ≫ f ⊑ f° ≫ (g ≫ g°) ≫ f :=
+      comp_mono_left f° (by have := comp_mono_right (tab_gog ht) f; rwa [Cat.id_comp] at this)
+    exact h1
+  · -- dom R = dom(f°≫g) ⊑ dom(f°) = f°≫f  (`dom_comp_le` + f simple).
+    have hdomR : dom R ⊑ dom (f°) := hR ▸ dom_comp_le f° g
+    have hdomfo : dom (f°) = f° ≫ f := by
+      rw [dom, Allegory.recip_recip, Allegory.inter_comm]
+      exact hf.2  -- (f°≫f) ∩ id = f°≫f  since f°≫f ⊑ id (f simple)
+    rw [← hdomfo]; exact hdomR
+
 /-! ### §2.147  Pullback cone equation -/
 
 /-- **§2.147 pullback cone**: if (π₁, π₂) tabulate f ≫ g° (source-apex: π₁ : p→a,
@@ -624,9 +647,22 @@ end RelMapEquiv
     A single `TabularUnitaryAllegory` provides exactly one `Allegory A`. -/
 class TabularUnitaryAllegory (𝒜 : Type u) extends TabularAllegory 𝒜, UnitaryAllegory 𝒜
 
+/-- A **TABULAR UNITARY DISTRIBUTIVE ALLEGORY** (§2.212): combines `TabularUnitaryAllegory`
+    (= `TabularAllegory` + `UnitaryAllegory`) with `DistributiveAllegory` in a SINGLE class so
+    the `Allegory` grandparent is merged into one `toAllegory` field.  This is the standard Lean 4
+    diamond-safe structure-inheritance pattern: extending all the parents directly makes Lean
+    merge their shared `Allegory` parent, so `≫`/`°`/`∩` (the tabular/unitary side) and `∪`/`𝟘`
+    (the distributive side) all live on the SAME `Allegory A` instance — no "synthesized instance
+    not definitionally equal" diamond.  (The earlier worry that this "does not help" was mistaken;
+    `TabularUnitaryAllegory.toTabularAllegory.toAllegory = DistributiveAllegory.toAllegory` is
+    `rfl` here.)  Every lemma needing `[TabularUnitaryAllegory A]`/`[DistributiveAllegory A]` is
+    served automatically from this class via the projection instances. -/
+class TabularUnitaryDistributiveAllegory (𝒜 : Type u) extends
+    TabularUnitaryAllegory 𝒜, DistributiveAllegory 𝒜
+
 section MapPreLogos
 
-variable {A : Type u} [TabularUnitaryAllegory A]
+variable {A : Type u} [TabularUnitaryDistributiveAllegory A]
 
 -- mapCat is at priority 0 by default; do NOT raise it higher than Allegory.toCat (~1000)
 -- since that would break the allegory operations (°, ⊑, etc.) which use Allegory.toCat.
@@ -1348,10 +1384,9 @@ noncomputable instance mapRegularCategory :
   @RegularCategory.mk (MapObj A) (mapCat (𝒜 := A))
     mapHasTerminal mapHasBinaryProducts mapHasPullbacks mapHasImages mapPullbacksTransferCovers
 
-/-! ### §2.212  HasSubobjectUnions (MapObj A) — construction + the instance-coherence blocker
+/-! ### §2.212  HasSubobjectUnions (MapObj A)
 
-  The MATHEMATICS is settled (and the key lemma `mapMonic_inj` it needs is proved above):
-  a subobject `S` of `B` in Map(𝒜) is a monic map `s := S.arr : S.dom → B`; its associated
+  A subobject `S` of `B` in Map(𝒜) is a monic map `s := S.arr : S.dom → B`; its associated
   COREFLEXIVE on `B` is `corOf S := s° ≫ s` (coreflexive since `s` is simple).  Subobject
   containment `S ≤ T` corresponds EXACTLY to `corOf S ⊑ corOf T`:
     • `S ≤ T` via `h ≫ t = s` gives `s°≫s = t°(h°h)t ⊑ t°≫t`  (`h` simple);
@@ -1362,29 +1397,261 @@ noncomputable instance mapRegularCategory :
   in a tabular allegory) gives the union subobject, with `union_left`/`union_right`/`union_min`
   read off `le_union_left`/`le_union_right`/`union_lub` through the `corOf` correspondence.
 
-  BOOK §2.212 TODO (instance-coherence blocker, NOT a math gap): the construction needs BOTH
-  `[TabularUnitaryAllegory A]` (for `mapCat`/tabulations) and `[DistributiveAllegory A]` (for
-  `∪`).  As two separate instances they create an `Allegory A` DIAMOND — `≫`/`°` (the mapCat
-  side) and `∪` then live on homs of two non-defeq `Allegory A` instances, so every mixed
-  expression fails with "synthesized instance not definitionally equal".  Merging them into a
-  single class does not help: `extends TabularUnitaryAllegory, DistributiveAllegory` still
-  yields two non-defeq projection paths to `Allegory` (`toTabularUnitaryAllegory.toAllegory`
-  vs `toDistributiveAllegory.toAllegory`), and re-providing one parent as an instance off the
-  other re-introduces the competing `Allegory A` path.  A faithful build needs the base
-  allegory classes themselves declared so their shared `Allegory` parent is one merged field
-  (a repo-wide change to `S2_1`/`S2_2`), or a hand-rolled combined class whose two parent
-  projections are proved defeq — infrastructure not present here. -/
+  With the single `[TabularUnitaryDistributiveAllegory A]` instance (diamond merged) every
+  mixed `≫`/`°`/`∪` expression lives on ONE `Allegory A`, so the construction goes through. -/
+
+/-- The COREFLEXIVE on `B` associated to a subobject `S` of `B` in Map(𝒜): `s° ≫ s` where
+    `s = S.arr.val` is the underlying monic map.  Coreflexive because `s` is simple. -/
+private def corOf {B : MapObj A} (S : @Subobject (MapObj A) (mapCat (𝒜 := A)) B) : B ⟶ B :=
+  (@Subobject.arr (MapObj A) (mapCat (𝒜 := A)) B S).val° ≫
+    (@Subobject.arr (MapObj A) (mapCat (𝒜 := A)) B S).val
+
+/-- The underlying arrow of a subobject is a Map. -/
+private theorem subArr_map {B : MapObj A} (S : @Subobject (MapObj A) (mapCat (𝒜 := A)) B) :
+    Map (@Subobject.arr (MapObj A) (mapCat (𝒜 := A)) B S).val :=
+  (@Subobject.arr (MapObj A) (mapCat (𝒜 := A)) B S).property
+
+/-- A subobject's arrow is a retraction: `s ≫ s° = id` (monic-in-Map ⟹ injective relation,
+    plus entirety). -/
+private theorem subArr_retract {B : MapObj A} (S : @Subobject (MapObj A) (mapCat (𝒜 := A)) B) :
+    let s := (@Subobject.arr (MapObj A) (mapCat (𝒜 := A)) B S).val
+    s ≫ s° = Cat.id (@Subobject.dom (MapObj A) (mapCat (𝒜 := A)) B S) := by
+  intro s
+  exact le_antisymm
+    (mapMonic_inj (subArr_map S) (@Subobject.monic (MapObj A) (mapCat (𝒜 := A)) B S))
+    (map_entire_le (subArr_map S))
+
+/-- `corOf S` is coreflexive. -/
+private theorem corOf_coreflexive {B : MapObj A}
+    (S : @Subobject (MapObj A) (mapCat (𝒜 := A)) B) : Coreflexive (corOf S) :=
+  (subArr_map S).2
+
+/-- `(s, s)` tabulates `corOf S = s°≫s` (using the retraction `s≫s° = id`). -/
+private theorem subArr_tabulates {B : MapObj A}
+    (S : @Subobject (MapObj A) (mapCat (𝒜 := A)) B) :
+    let s := (@Subobject.arr (MapObj A) (mapCat (𝒜 := A)) B S).val
+    Tabulates s s (corOf S) := by
+  intro s
+  exact ⟨subArr_map S, subArr_map S, rfl, by rw [Allegory.inter_idem]; exact subArr_retract S⟩
+
+/-- **§2.212 correspondence (⟸)**: if `corOf S ⊑ corOf T` then `S ≤ T` in Map(𝒜).
+    The map `s` factors through `t` via `tabulation_UP_forward` against the tabulation `(t,t)`
+    of `corOf T`. -/
+private theorem le_of_corOf_le {B : MapObj A}
+    {S T : @Subobject (MapObj A) (mapCat (𝒜 := A)) B}
+    (hle : corOf S ⊑ corOf T) :
+    @Subobject.le (MapObj A) (mapCat (𝒜 := A)) B S T := by
+  let s := (@Subobject.arr (MapObj A) (mapCat (𝒜 := A)) B S).val
+  -- s°≫s ⊑ t°≫t = corOf T, and (t,t) tabulates corOf T; apply forward UP with x = y = s.
+  obtain ⟨h, hh, hht, _⟩ :=
+    tabulation_UP_forward (subArr_tabulates T) (subArr_map S) (subArr_map S) hle
+  -- h : S.dom → T.dom with h ≫ T.arr.val = s, i.e. S ≤ T in mapCat.
+  exact ⟨⟨h, hh⟩, mapHom_ext hht⟩
+
+/-- **§2.212 correspondence (⟹)**: if `S ≤ T` in Map(𝒜) then `corOf S ⊑ corOf T`.
+    From `h ≫ t = s` one gets `s°≫s = t°(h°h)t ⊑ t°≫t` since `h` is simple. -/
+private theorem corOf_le_of_le {B : MapObj A}
+    {S T : @Subobject (MapObj A) (mapCat (𝒜 := A)) B}
+    (hle : @Subobject.le (MapObj A) (mapCat (𝒜 := A)) B S T) :
+    corOf S ⊑ corOf T := by
+  obtain ⟨h, hh_eq⟩ := hle
+  -- h.val ≫ T.arr.val = S.arr.val (allegory level)
+  have heq : h.val ≫ (@Subobject.arr (MapObj A) (mapCat (𝒜 := A)) B T).val =
+      (@Subobject.arr (MapObj A) (mapCat (𝒜 := A)) B S).val := congrArg Subtype.val hh_eq
+  let s := (@Subobject.arr (MapObj A) (mapCat (𝒜 := A)) B S).val
+  let t := (@Subobject.arr (MapObj A) (mapCat (𝒜 := A)) B T).val
+  -- corOf S = s°≫s = (h≫t)°≫(h≫t) = t°≫(h°≫h)≫t ⊑ t°≫t = corOf T (h simple).
+  show s° ≫ s ⊑ t° ≫ t
+  calc s° ≫ s = (h.val ≫ t)° ≫ (h.val ≫ t) := by rw [heq]
+    _ = t° ≫ (h.val° ≫ h.val) ≫ t := by rw [Allegory.recip_comp]; simp [Cat.assoc]
+    _ ⊑ t° ≫ Cat.id _ ≫ t := comp_mono_left t° (comp_mono_right h.property.2 t)
+    _ = t° ≫ t := by rw [Cat.id_comp]
+
+/-- `S ≤ T  ↔  corOf S ⊑ corOf T`. -/
+private theorem le_iff_corOf_le {B : MapObj A}
+    {S T : @Subobject (MapObj A) (mapCat (𝒜 := A)) B} :
+    @Subobject.le (MapObj A) (mapCat (𝒜 := A)) B S T ↔ corOf S ⊑ corOf T :=
+  ⟨corOf_le_of_le, le_of_corOf_le⟩
+
+/-- Subobjects with the SAME associated coreflexive have isomorphic domains in Map(𝒜):
+    `corOf S = corOf T` gives mutual `≤`, whose factoring maps are mutually inverse (each
+    monic arrow is mapCat-monic). -/
+private theorem corOf_eq_dom_iso {B : MapObj A}
+    {S T : @Subobject (MapObj A) (mapCat (𝒜 := A)) B} (hcor : corOf S = corOf T) :
+    @Isomorphic (MapObj A) (mapCat (𝒜 := A))
+      (@Subobject.dom (MapObj A) (mapCat (𝒜 := A)) B S)
+      (@Subobject.dom (MapObj A) (mapCat (𝒜 := A)) B T) := by
+  obtain ⟨h, hh⟩ := le_of_corOf_le (S := S) (T := T) (hcor ▸ le_refl _)
+  obtain ⟨k, hk⟩ := le_of_corOf_le (S := T) (T := S) (hcor ▸ le_refl _)
+  have hhv : h.val ≫ (@Subobject.arr (MapObj A) (mapCat (𝒜 := A)) B T).val =
+      (@Subobject.arr (MapObj A) (mapCat (𝒜 := A)) B S).val := congrArg Subtype.val hh
+  have hkv : k.val ≫ (@Subobject.arr (MapObj A) (mapCat (𝒜 := A)) B S).val =
+      (@Subobject.arr (MapObj A) (mapCat (𝒜 := A)) B T).val := congrArg Subtype.val hk
+  -- h≫t = s, k≫s = t.  (h≫k)≫s = h≫t? no: h≫k : S.dom→S.dom; (h≫k)≫s = h≫(k≫s)=h≫t=s=id≫s.
+  refine ⟨h, ⟨k, ?_, ?_⟩⟩
+  · -- h ≫ k = id_{S.dom}: monic S.arr.  (h≫k)≫s = h≫(k≫s) = h≫t = s = id≫s.
+    exact @Subobject.monic (MapObj A) (mapCat (𝒜 := A)) B S _
+      (@Cat.comp _ (mapCat (𝒜 := A)) _ _ _ h k)
+      (@Cat.id _ (mapCat (𝒜 := A)) _)
+      (mapHom_ext (by
+        show (h.val ≫ k.val) ≫ _ = Cat.id _ ≫ _
+        rw [Cat.assoc, hkv, hhv, Cat.id_comp]))
+  · -- k ≫ h = id_{T.dom}: monic T.arr.
+    exact @Subobject.monic (MapObj A) (mapCat (𝒜 := A)) B T _
+      (@Cat.comp _ (mapCat (𝒜 := A)) _ _ _ k h)
+      (@Cat.id _ (mapCat (𝒜 := A)) _)
+      (mapHom_ext (by
+        show (k.val ≫ h.val) ≫ _ = Cat.id _ ≫ _
+        rw [Cat.assoc, hhv, hkv, Cat.id_comp]))
+
+/-- Extract the splitting of a coreflexive as Type-valued data via `Classical.choice`. -/
+private noncomputable def corSplitData {B : A} {R : B ⟶ B} (hcor : Coreflexive R) :
+    PSigma fun u : A => PSigma fun e : u ⟶ B =>
+        Map e ∧ e° ≫ e = R ∧ e ≫ e° = Cat.id u :=
+  Classical.choice (by
+    obtain ⟨u, e, he, hl, hr⟩ := coreflexive_splits hcor
+    exact ⟨⟨u, e, he, hl, hr⟩⟩)
+
+/-- Build a subobject of `B` from a coreflexive `R` on `B` by splitting it: the splitting map
+    `e : u → B` is monic in Map(𝒜) (a retraction), and `corOf (splitSub R) = R`. -/
+private noncomputable def splitSub {B : MapObj A} {R : B ⟶ B} (hcor : Coreflexive R) :
+    @Subobject (MapObj A) (mapCat (𝒜 := A)) B :=
+  let d := corSplitData hcor
+  @Subobject.mk (MapObj A) (mapCat (𝒜 := A)) B d.1 ⟨d.2.1, d.2.2.1⟩
+    (map_retract_monic d.2.2.1 d.2.2.2.2)
+
+/-- The coreflexive recovered from `splitSub` is the original `R`. -/
+private theorem corOf_splitSub {B : MapObj A} {R : B ⟶ B} (hcor : Coreflexive R) :
+    corOf (splitSub hcor) = R :=
+  (corSplitData hcor).2.2.2.1
+
+/-- **§2.212 union of subobjects**: split the coreflexive `corOf S ∪ corOf T`. -/
+private noncomputable def mapSubUnion {B : MapObj A}
+    (S T : @Subobject (MapObj A) (mapCat (𝒜 := A)) B) :
+    @Subobject (MapObj A) (mapCat (𝒜 := A)) B :=
+  splitSub (R := corOf S ∪ corOf T)
+    (union_lub (corOf_coreflexive S) (corOf_coreflexive T))
+
+private theorem corOf_mapSubUnion {B : MapObj A}
+    (S T : @Subobject (MapObj A) (mapCat (𝒜 := A)) B) :
+    corOf (mapSubUnion S T) = corOf S ∪ corOf T :=
+  corOf_splitSub _
+
+/-- **§2.212**: subobjects of Map(𝒜) have binary unions. -/
+noncomputable instance mapHasSubobjectUnions :
+    @HasSubobjectUnions (MapObj A) (mapCat (𝒜 := A)) mapHasImages :=
+  @HasSubobjectUnions.mk (MapObj A) (mapCat (𝒜 := A)) mapHasImages
+    (fun {_B} S T => mapSubUnion S T)
+    (fun {_B} S T => le_iff_corOf_le.mpr (by
+      rw [corOf_mapSubUnion]; exact le_union_left _ _))
+    (fun {_B} S T => le_iff_corOf_le.mpr (by
+      rw [corOf_mapSubUnion]; exact le_union_right _ _))
+    (fun {_B} S T U hSU hTU => le_iff_corOf_le.mpr (by
+      rw [corOf_mapSubUnion]
+      exact union_lub (le_iff_corOf_le.mp hSU) (le_iff_corOf_le.mp hTU)))
+
+/-! ### §2.212  bottom (empty join) of the Map(𝒜) subobject lattices
+
+  The minimal subobject of `B` is the split of the ZERO coreflexive `𝟘 : B → B`
+  (`𝟘 ⊑ 1_B` by `zero_le`).  It is least (`corOf` of anything is `⊒ 𝟘`), and any two of
+  these (over different objects) have isomorphic domains via `corOf_eq_dom_iso`. -/
+
+/-- The empty-join (minimal) subobject of `B` in Map(𝒜): the split of `𝟘 : B → B`. -/
+private noncomputable def mapBottom (B : MapObj A) :
+    @Subobject (MapObj A) (mapCat (𝒜 := A)) B :=
+  splitSub (R := (𝟘 : B ⟶ B)) (zero_le _)
+
+private theorem corOf_mapBottom (B : MapObj A) : corOf (mapBottom B) = (𝟘 : B ⟶ B) :=
+  corOf_splitSub _
+
+/-- `mapBottom B` is the least subobject of `B`. -/
+private theorem mapBottom_min {B : MapObj A} (S : @Subobject (MapObj A) (mapCat (𝒜 := A)) B) :
+    @Subobject.le (MapObj A) (mapCat (𝒜 := A)) B (mapBottom B) S :=
+  le_iff_corOf_le.mpr (by rw [corOf_mapBottom]; exact zero_le _)
+
+/-- The apex of `mapBottom B` carries `id = 𝟘` at the ALLEGORY level: its splitting arrow `e`
+    satisfies `e = e≫(e°≫e) = e≫𝟘 = 𝟘`, whence `id_u = e≫e° = 𝟘≫𝟘 = 𝟘`. -/
+private theorem mapBottom_id_zero (B : MapObj A) :
+    Cat.id (@Subobject.dom (MapObj A) (mapCat (𝒜 := A)) B (mapBottom B)) =
+      (𝟘 : (@Subobject.dom (MapObj A) (mapCat (𝒜 := A)) B (mapBottom B)) ⟶
+            (@Subobject.dom (MapObj A) (mapCat (𝒜 := A)) B (mapBottom B))) := by
+  let d := corSplitData (R := (𝟘 : B ⟶ B)) (zero_le _)
+  -- e°≫e = 𝟘, e≫e° = id_u.  e = e≫(e°≫e) = e≫𝟘 = 𝟘 ⟹ id_u = e≫e° = 𝟘≫𝟘 = 𝟘.
+  have he_zero : d.2.1 = (𝟘 : d.1 ⟶ B) := by
+    calc d.2.1 = (d.2.1 ≫ d.2.1°) ≫ d.2.1 := by rw [d.2.2.2.2, Cat.id_comp]
+      _ = d.2.1 ≫ (d.2.1° ≫ d.2.1) := Cat.assoc _ _ _
+      _ = d.2.1 ≫ (𝟘 : B ⟶ B) := by rw [d.2.2.2.1]
+      _ = 𝟘 := DistributiveAllegory.comp_zero _
+  show Cat.id d.1 = (𝟘 : d.1 ⟶ d.1)
+  calc Cat.id d.1 = d.2.1 ≫ d.2.1° := d.2.2.2.2.symm
+    _ = (𝟘 : d.1 ⟶ B) ≫ (𝟘 : d.1 ⟶ B)° := by rw [he_zero]
+    _ = (𝟘 : d.1 ⟶ B) ≫ (𝟘 : B ⟶ d.1) := by rw [recip_zero]
+    _ = (𝟘 : d.1 ⟶ d.1) := DistributiveAllegory.comp_zero _
+
+/-- On the apex `u` of `mapBottom X` (where `id_u = 𝟘`), the zero endo/morphisms are maps:
+    Entire since `id_u = 𝟘 ⊑ 𝟘≫𝟘°`, Simple since `𝟘°≫𝟘 = 𝟘 ⊑ id_u`. -/
+private theorem zero_is_map_on_bottom {B C : MapObj A}
+    (hidB : Cat.id (@Subobject.dom (MapObj A) (mapCat (𝒜 := A)) B (mapBottom B)) =
+      (𝟘 : _ ⟶ _)) :
+    Map (𝟘 : (@Subobject.dom (MapObj A) (mapCat (𝒜 := A)) B (mapBottom B)) ⟶
+              (@Subobject.dom (MapObj A) (mapCat (𝒜 := A)) C (mapBottom C))) := by
+  refine ⟨?_, ?_⟩
+  · -- Entire: id ⊑ 𝟘≫𝟘°.  id = 𝟘 (hidB) and 𝟘≫𝟘° = 𝟘, so id ⊑ 𝟘.
+    rw [Entire, dom]; apply le_antisymm (inter_lb_left _ _); apply le_inter (le_refl _)
+    rw [recip_zero, DistributiveAllegory.comp_zero, hidB]; exact le_refl _
+  · -- Simple: 𝟘°≫𝟘 = 𝟘 ⊑ id.
+    rw [Simple, recip_zero, DistributiveAllegory.zero_comp]; exact zero_le _
+
+/-- The minimal subobjects over any two objects have isomorphic domains (both split `𝟘`).
+    The apexes have `id = 𝟘` (`mapBottom_id_zero`); the zero map between them is a map
+    (`zero_is_map_on_bottom`) and is its own two-sided inverse (`𝟘≫𝟘 = 𝟘 = id`). -/
+private theorem mapBottom_dom_iso (B C : MapObj A) :
+    @Isomorphic (MapObj A) (mapCat (𝒜 := A))
+      (@Subobject.dom (MapObj A) (mapCat (𝒜 := A)) B (mapBottom B))
+      (@Subobject.dom (MapObj A) (mapCat (𝒜 := A)) C (mapBottom C)) := by
+  have hidB := mapBottom_id_zero B
+  have hidC := mapBottom_id_zero C
+  refine ⟨⟨(𝟘 : _ ⟶ _), zero_is_map_on_bottom (B := B) (C := C) hidB⟩,
+    ⟨⟨(𝟘 : _ ⟶ _), zero_is_map_on_bottom (B := C) (C := B) hidC⟩, ?_, ?_⟩⟩
+  · -- (𝟘:uB→uC) ≫ (𝟘:uC→uB) = id_uB = 𝟘
+    exact mapHom_ext (by
+      show (𝟘 : _ ⟶ _) ≫ 𝟘 = Cat.id _
+      rw [DistributiveAllegory.comp_zero]; exact hidB.symm)
+  · -- (𝟘:uC→uB) ≫ (𝟘:uB→uC) = id_uC = 𝟘
+    exact mapHom_ext (by
+      show (𝟘 : _ ⟶ _) ≫ 𝟘 = Cat.id _
+      rw [DistributiveAllegory.comp_zero]; exact hidC.symm)
 
 end MapPreLogos
 /-! ### §2.212  PreLogos (MapObj A)
 
-  BOOK §2.212 TODO: PreLogos (MapObj A) from a tabular unitary DISTRIBUTIVE allegory.
-  `PreLogos` extends `RegularCategory` (DONE: `mapRegularCategory`) + `HasSubobjectUnions`
-  (blocked above on the `Allegory A` instance diamond between the tabular and distributive
-  structure) and additionally requires: the empty-join `bottom` (the split of the ZERO
-  coreflexive `𝟘 : B → B`, with `bottom_dom_iso` relating the apexes across objects) and the
-  two inverse-image preservation laws (`invImage_preserves_union`, `invImage_preserves_bottom`),
-  i.e. the §2.212 analysis of how the relational inverse image `f# = pullback` interacts with
-  `∪`/`𝟘` at the coreflexive level.  All of this sits behind the same diamond blocker. -/
+  BOOK §2.212 TODO (one genuine residual: the inverse-image/pullback ↔ coreflexive bridge).
+
+  With the `Allegory` diamond resolved by `TabularUnitaryDistributiveAllegory` (single merged
+  `toAllegory`), `RegularCategory` (`mapRegularCategory`) and `HasSubobjectUnions`
+  (`mapHasSubobjectUnions`) are both DONE sorry-free.  `PreLogos` additionally needs:
+
+    • `bottom`/`bottom_min` — DONE in spirit (`mapBottom`, `mapBottom_min` above);
+    • `bottom_dom_iso` — the CROSS-OBJECT iso of the two `𝟘`-splits.  Within one fibre
+      `corOf_eq_dom_iso` settles "equal coreflexive ⟹ isomorphic domain"; the cross-object case
+      needs `𝟘`'s tabulation apex to be the strict-initial object `0` of Map(𝒜) (§2.21).
+    • `invImage_preserves_union` / `invImage_preserves_bottom` — these reduce, via the
+      `corOf` correspondence (`le_iff_corOf_le`) and `dom`-over-`∪`/`𝟘` distributivity, to the
+      single missing BRIDGE LEMMA
+
+          corOf (InverseImage f T)  =  dom (f.val ≫ corOf T ≫ f.val°)        (†)
+
+      i.e. the coreflexive of a Map(𝒜) inverse-image (= pullback projection) is the relational
+      inverse image of the subobject's coreflexive.  `tab_leg_dom` proves `π₁°≫π₁ = dom R` for
+      THE canonical tabulation `(π₁,π₂)` of `R = f≫t°`; the residual is bridging that to the
+      projection `(InverseImage f T).arr` produced by `mapHasPullback` (whose `Cone.π₁` does not
+      reduce definitionally — it is extracted via `Classical.choice`), which requires the
+      pullback-uniqueness comparison iso + iso-invariance of `corOf`.  Once (†) holds:
+        corOf(f#(S∪T)) = dom(f(corOf S ∪ corOf T)f°) = dom(f corOf S f° ∪ f corOf T f°)
+                       = dom(f corOf S f°) ∪ dom(f corOf T f°) = corOf(f#S) ∪ corOf(f#T)
+      (`comp_union_distrib`, `inter_union_distrib`), giving both inclusions through
+      `le_iff_corOf_le`; and corOf(f#(bottom)) = dom(f 𝟘 f°) = dom 𝟘 = 𝟘 gives
+      `invImage_preserves_bottom` via `corOf_eq_dom_iso`.  This is mechanical relational algebra
+      plus one pullback-uniqueness argument; left as a precise TODO, NOT a falsified instance. -/
 
 end Freyd.Alg
