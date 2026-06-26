@@ -49,68 +49,6 @@ variable {𝒞 : Type u} [Cat.{v} 𝒞]
 section Effective
 variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
 
-/-- `(graph g) ⊚ (graph g)° ⊂ level g`.  A composed point `(a,c)` satisfies
-    `a ≫ g = c ≫ g` (the pullback square forces it), so its span lifts into
-    `kernelPair g`, and image-minimality turns that into the `RelHom`.
-    (Re-proved locally: the S1_64 version is `private`.) -/
-private theorem graphComp_le_level {A Q : 𝒞} (g : A ⟶ Q) :
-    RelLe ((graph g) ⊚ (graph g)°) (kernelPairRel g) := by
-  let pb := HasPullbacks.has (graph g).colB ((graph g)°).colA
-  let a' := pb.cone.π₁ ≫ (graph g).colA
-  let c' := pb.cone.π₂ ≫ ((graph g)°).colB
-  let sp : pb.cone.pt ⟶ prod A A := pair a' c'
-  have hw : a' ≫ g = c' ≫ g := by
-    have := pb.cone.w
-    dsimp [a', c']; simpa [graph, reciprocal, Cat.comp_id] using this
-  let S : Subobject 𝒞 (prod A A) :=
-    ⟨kernelPair g, pair (kp₁ (f := g)) (kp₂ (f := g)),
-      monic_pair_of_monicPair _ _ (kernelPairRel g).isMonicPair⟩
-  let w := (HasPullbacks.has g g).lift ⟨_, a', c', hw⟩
-  have hspan : w ≫ pair (kp₁ (f := g)) (kp₂ (f := g)) = sp := by
-    apply pair_uniq
-    · rw [Cat.assoc, fst_pair]; exact kp_lift_p₁ _ _ hw
-    · rw [Cat.assoc, snd_pair]; exact kp_lift_p₂ _ _ hw
-  obtain ⟨k, hk⟩ := image_min sp S ⟨w, hspan⟩
-  refine ⟨⟨k, ?_, ?_⟩⟩
-  · show k ≫ kp₁ (f := g) = (image sp).arr ≫ fst
-    calc k ≫ kp₁ (f := g) = (k ≫ pair (kp₁ (f := g)) (kp₂ (f := g))) ≫ fst := by
-            rw [Cat.assoc, fst_pair]
-      _ = (image sp).arr ≫ fst := by rw [hk]
-  · show k ≫ kp₂ (f := g) = (image sp).arr ≫ snd
-    calc k ≫ kp₂ (f := g) = (k ≫ pair (kp₁ (f := g)) (kp₂ (f := g))) ≫ snd := by
-            rw [Cat.assoc, snd_pair]
-      _ = (image sp).arr ≫ snd := by rw [hk]
-
-/-- `level g ⊂ (graph g) ⊚ (graph g)°`: the kernel-pair legs `(kp₁, kp₂)` form a
-    cone over `g,g`, hence lift into the composition's pullback, then through
-    `image.lift`.  (Re-proved locally: the S1_64 version is `private`.) -/
-private theorem level_le_graphComp {A Q : 𝒞} (g : A ⟶ Q) :
-    RelLe (kernelPairRel g) ((graph g) ⊚ (graph g)°) := by
-  let pb := HasPullbacks.has (graph g).colB ((graph g)°).colA
-  let a' := pb.cone.π₁ ≫ (graph g).colA
-  let c' := pb.cone.π₂ ≫ ((graph g)°).colB
-  let sp : pb.cone.pt ⟶ prod A A := pair a' c'
-  have hcone : kp₁ (f := g) ≫ (graph g).colB = kp₂ (f := g) ≫ ((graph g)°).colA := by
-    simp only [graph, reciprocal]; exact kp_sq
-  let v := pb.lift ⟨_, kp₁ (f := g), kp₂ (f := g), hcone⟩
-  have hv1 : v ≫ pb.cone.π₁ = kp₁ (f := g) := pb.lift_fst _
-  have hv2 : v ≫ pb.cone.π₂ = kp₂ (f := g) := pb.lift_snd _
-  refine ⟨⟨v ≫ image.lift sp, ?_, ?_⟩⟩
-  · show (v ≫ image.lift sp) ≫ ((image sp).arr ≫ fst) = kp₁ (f := g)
-    calc (v ≫ image.lift sp) ≫ ((image sp).arr ≫ fst)
-        = v ≫ ((image.lift sp ≫ (image sp).arr) ≫ fst) := by simp [Cat.assoc]
-      _ = v ≫ (sp ≫ fst) := by rw [image.lift_fac]
-      _ = v ≫ a' := by rw [fst_pair]
-      _ = (v ≫ pb.cone.π₁) ≫ (graph g).colA := by dsimp [a']; rw [Cat.assoc]
-      _ = kp₁ (f := g) := by rw [hv1]; simp [graph, Cat.comp_id]
-  · show (v ≫ image.lift sp) ≫ ((image sp).arr ≫ snd) = kp₂ (f := g)
-    calc (v ≫ image.lift sp) ≫ ((image sp).arr ≫ snd)
-        = v ≫ ((image.lift sp ≫ (image sp).arr) ≫ snd) := by simp [Cat.assoc]
-      _ = v ≫ (sp ≫ snd) := by rw [image.lift_fac]
-      _ = v ≫ c' := by rw [snd_pair]
-      _ = (v ≫ pb.cone.π₂) ≫ ((graph g)°).colB := by dsimp [c']; rw [Cat.assoc]
-      _ = kp₂ (f := g) := by rw [hv2]; simp [graph, reciprocal, Cat.comp_id]
-
 /-- **§1.951, recovery half (fully proved)**: in a Cartesian category with images,
     if an equivalence relation `E` is the level (kernel pair) of a cover
     `x : A → Q` — i.e. `E ⊂ level x` and `level x ⊂ E` — then `E` is EFFECTIVE.
@@ -124,8 +62,8 @@ theorem effective_of_quotient_cover {A Q : 𝒞} (E : BinRel 𝒞 A A)
     (hElx : RelLe E (kernelPairRel x)) (hlxE : RelLe (kernelPairRel x) E) :
     IsEffective E :=
   ⟨hE, Q, x, hx,
-    rel_le_trans hElx (level_le_graphComp x),
-    rel_le_trans (graphComp_le_level x) hlxE⟩
+    rel_le_trans hElx (kernelPairRel_le_graphComp x),
+    rel_le_trans (graphComp_le_kernelPairRel x) hlxE⟩
 
 /-- **Kernel pair is invariant under post-composition with a monic.**  If `m` is
     monic then `q` and `q ≫ m` have isomorphic kernel pairs as relations: the
@@ -942,15 +880,6 @@ private theorem prodMap_mono [HasBinaryProducts 𝒞] (A : 𝒞) {X Y : 𝒞} {f
     _ = pair (v ≫ fst) (v ≫ snd) := by rw [hfst, hsnd]
     _ = v := (pair_uniq _ _ v rfl rfl).symm
 
-/-- Transpose naturality (in the parameter): `f ≫ curry k = curry (A×f ≫ k)`.
-    Holds in any exponential category (no topos needed); it is the adjoint-transpose
-    naturality of `A × −`.  Proved here from `prodMap_comp` + `curry_eval_eq`. -/
-private theorem curry_precomp_exp [HasExponentials 𝒞] {A E X Y : 𝒞}
-    (f : X ⟶ Y) (k : prod A Y ⟶ E) :
-    f ≫ curry k = curry (prodMap A X Y f ≫ k) := by
-  apply curry_unique_eq
-  rw [prodMap_comp, Cat.assoc, curry_eval_eq]
-
 /-- **§1.962**: If E is injective in an exponential category, then E^A is injective
     for any A.  Proof: (−, E^A) ≅ (− × A, E) and − × A preserves monics in any category.
     Concretely: given a monic `f : X ↣ Y` and `g : X → E^A`, uncurry `g` to
@@ -967,7 +896,7 @@ theorem exp_of_injective_is_injective [HasExponentials 𝒞] [HasPullbacks 𝒞]
   obtain ⟨k, hk⟩ := hE (prodMap A X Y f) (prodMap_mono A hf) ghat
   -- h = curry k.  Then f ≫ h = curry (A×f ≫ k) = curry ĝ = g.
   refine ⟨curry k, ?_⟩
-  rw [curry_precomp_exp, hk, ← hg]
+  rw [curry_precomp, hk, ← hg]
 
 /-- **§1.962**: Consequently, in a topos, Ω^A is injective for all A.
     Since the singleton map embeds A into Ω^A, every object appears as a subobject
@@ -1259,10 +1188,10 @@ private theorem swapTranspose_natural [Topos 𝒞] {G A B : 𝒞}
     (f : A ⟶ B) (k : G ⟶ HasSubobjectClassifier.omega (𝒞 := 𝒞) ^^ B) :
     f ≫ swapTranspose k = swapTranspose (k ≫ expMap (HasSubobjectClassifier.omega (𝒞 := 𝒞)) f) := by
   let Ω := HasSubobjectClassifier.omega (𝒞 := 𝒞)
-  -- LHS = curry (prodMap G A B f ≫ swapBody k)   (curry_precomp_exp)
+  -- LHS = curry (prodMap G A B f ≫ swapBody k)   (curry_precomp)
   -- RHS = curry (swapBody (k ≫ Ω^f))
   -- suffices: the two uncurried bodies agree on prod G A.
-  rw [swapTranspose, swapTranspose, curry_precomp_exp]
+  rw [swapTranspose, swapTranspose, curry_precomp]
   congr 1
   -- prodMap G A B f ≫ prodSwap G B ≫ prodMap B G (Ω^B) k ≫ eval_B
   --   = prodSwap G A ≫ prodMap A G (Ω^A) (k ≫ Ω^f) ≫ eval_A
@@ -1364,14 +1293,6 @@ class HasArbitraryPowers (𝒞 : Type u) [Cat.{v} 𝒞] [HasBinaryProducts 𝒞]
 section IndexedJoinsEngine
 variable [Topos 𝒞]
 
-/-- Equalizer maps are monic (local copy; avoids importing the S1_57 `HasEqualizers` path,
-    which clashes with the topos's own `topos_has_equalizers` instance). -/
-private theorem eqMap_mono_loc {A B : 𝒞} (f g : A ⟶ B) : Monic (eqMap f g) := by
-  intro W u v huv
-  have hc : (u ≫ eqMap f g) ≫ f = (u ≫ eqMap f g) ≫ g := by
-    rw [Cat.assoc, Cat.assoc, eqMap_eq]
-  rw [eqLift_uniq f g _ hc u rfl, eqLift_uniq f g _ hc v huv.symm]
-
 section FamilyMeet
 variable (hpow : HasArbitraryPowers (𝒞 := 𝒞))
 
@@ -1386,7 +1307,7 @@ noncomputable def familyMeet {A : 𝒞} {I : Type v} (B : I → Subobject 𝒞 A
   let chi  : A ⟶ hpow.pow I (HasSubobjectClassifier.omega (𝒞 := 𝒞)) := hpow.tupling (fun i => subChar (B i))
   let chiT : A ⟶ hpow.pow I (HasSubobjectClassifier.omega (𝒞 := 𝒞)) :=
     hpow.tupling (fun _ => term A ≫ HasSubobjectClassifier.true (𝒞 := 𝒞))
-  ⟨eqObj chi chiT, eqMap chi chiT, eqMap_mono_loc chi chiT⟩
+  ⟨eqObj chi chiT, eqMap chi chiT, eqMap_mono_local chi chiT⟩
 
 /-- **LOWER bound** — `⋂ᵢ Bᵢ ≤ Bⱼ` for every `j`.  The equalizer arrow equalises the two
     tuples; projecting at `j` gives `(⋂B).arr ≫ χ(Bⱼ) = (⋂B).arr ≫ ⊤ = term ≫ true`, i.e. the
@@ -1720,9 +1641,8 @@ noncomputable def topos_powers_implies_locally_complete [LocallySmallTopos 𝒞]
 
 -- **§1.968 complete↔cocomplete** (`topos_complete_iff_cocomplete`) and **§1.969 Lawvere↔Tierney**
 -- (`lawvere_eq_tierney`, with the `LawvereGrothendieckTopos`/`TierneyGrothendieckTopos` classes)
--- are relocated to `Fredy/ToposCopowers.lean`.  They are NOT reachable from this joins layer
--- (they need limits/colimits of all small diagrams and the cogenerator embedding, blocked on the
--- §1.543 capitalization wall), so they remain honest `Sorry`s downstream — but hosting them next
--- to the now-closed `toposCopowerOfOne` keeps the powers↔copowers cascade in one place.
+-- are relocated to `Fredy/ToposCopowers.lean`.  Both are now CLOSED (sorry-free,
+-- axioms `[propext, Classical.choice, Quot.sound]`).  Hosting them next to the
+-- `toposCopowerOfOne` keeps the powers↔copowers cascade in one place.
 
 end Freyd

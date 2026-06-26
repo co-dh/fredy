@@ -111,10 +111,6 @@ class HasIndexedSubobjectJoins (𝒞 : Type u) [Cat.{v} 𝒞] [PreLogos 𝒞] wh
 
 open HasIndexedSubobjectJoins
 
-/-- Transitivity of `Subobject.le`. -/
-theorem subLeTrans {B : 𝒞} {X Y Z : Subobject 𝒞 B} (h₁ : X.le Y) (h₂ : Y.le Z) : X.le Z :=
-  Subobject.le_trans h₁ h₂
-
 /-- Maps out of `(bottom X).dom` are unique: it is a zero object (§1.61). -/
 theorem botDom_map_uniq [hPL : PreLogos 𝒞] {X Y : 𝒞}
     (f g : (PreLogos.bottom X).dom ⟶ Y) : f = g := by
@@ -272,7 +268,7 @@ theorem atom_image_disjoint [PreLogos 𝒞] {G A : 𝒞} (hG : IsAtom G)
   let cone_xS : Cone x S.arr := ⟨pb1.cone.pt, pb1.cone.π₁, pb1.cone.π₂ ≫ Npb.cone.π₂, hcone_w⟩
   let j : pb1.cone.pt ⟶ (PreLogos.bottom G).dom := invpb.lift cone_xS ≫ jw
   have hN_le : N.le (PreLogos.bottom (image x).dom) := cover_from_zero_le N pb1.cone.π₂ hcov j
-  exact subLeTrans (inter_le_swap S (image x)) (inter_le_bottom_of_invImage (image x) S hN_le)
+  exact Subobject.le_trans (inter_le_swap S (image x)) (inter_le_bottom_of_invImage (image x) S hN_le)
 
 /-! ## §1.751  Atomically based ⇒ boolean -/
 
@@ -319,7 +315,7 @@ theorem atomicallyBased_isComplementedSub [PreLogos 𝒞] [HasIndexedSubobjectJo
       apply sup_least
       rintro s ⟨M, ⟨G, hG, x, hx, rfl⟩, rfl⟩
       exact invImage_le_bottom_of_inter S (image x) (atom_image_disjoint hG x S hx)
-    exact subLeTrans hframe hbound
+    exact Subobject.le_trans hframe hbound
   · -- (2) A ≤ S ∪ ¬S: a missing atom-element would land in image(x) ≤ ¬S, contradiction.
     let U := HasSubobjectUnions.union S (sup F)
     apply Classical.byContradiction

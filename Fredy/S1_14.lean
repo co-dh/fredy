@@ -146,20 +146,6 @@ def group'ToGroupoid (G : Type u) [gr : Group' G] : Groupoid.{u, 0} PUnit where
 -- §1.182  OPPOSITE CATEGORY and CONTRAVARIANT FUNCTOR
 -- ---------------------------------------------------------------------------
 
-/-- §1.182  The OPPOSITE CATEGORY `Cᵒᵖ`: same objects, reversed morphisms.
-    `Op C` is a type alias for `C` carrying a different `Cat` instance. -/
-def Op (C : Type u) := C
-
-/-- `Cat` instance for `Op C`: morphisms `X ⟶ Y` in `Op C` are `Y ⟶ X` in `C`,
-    composition is reversed. -/
-instance oppCat {C : Type u} [cat : Cat.{v} C] : Cat.{v} (Op C) where
-  Hom (X Y : Op C) := cat.Hom Y X
-  id X              := cat.id X
-  comp              := fun f g => cat.comp g f
-  id_comp           := fun f => cat.comp_id f
-  comp_id           := fun f => cat.id_comp f
-  assoc             := fun f g h => (cat.assoc h g f).symm
-
 /-- §1.182  A CONTRAVARIANT FUNCTOR `F : C → D` reverses direction and swaps
     composition.  Freyd §1.182: `F(xy) = (Fy)(Fx)`. -/
 class ContraFunctor {C : Type u₁} [Cat.{v} C] {D : Type u₂} [Cat.{v} D] (F : C → D) where
@@ -171,16 +157,16 @@ class ContraFunctor {C : Type u₁} [Cat.{v} C] {D : Type u₂} [Cat.{v} D] (F :
 /-- §1.182  A contravariant functor `F : C → D` is the same as a covariant
     functor `Cᵒᵖ → D`.  We give the covariant instance explicitly. -/
 def contraToCovar {C : Type u₁} [cat_C : Cat.{v} C] {D : Type u₂} [Cat.{v} D]
-    (F : C → D) [hF : ContraFunctor F] : @Functor (Op C) oppCat D _ F where
-  map {X Y} (f : @Cat.Hom (Op C) oppCat X Y) := hF.map f
+    (F : C → D) [hF : ContraFunctor F] : @Functor (OppCat C) (oppCatInst C) D _ F where
+  map {X Y} (f : @Cat.Hom (OppCat C) (oppCatInst C) X Y) := hF.map f
   map_id   X  := hF.map_id X
-  map_comp {X Y Z} (f : @Cat.Hom (Op C) oppCat X Y) (g : @Cat.Hom (Op C) oppCat Y Z) :=
-    hF.map_comp g f
+  map_comp {X Y Z} (f : @Cat.Hom (OppCat C) (oppCatInst C) X Y)
+                   (g : @Cat.Hom (OppCat C) (oppCatInst C) Y Z) := hF.map_comp g f
 
 /-- §1.182  The identity `C → Cᵒᵖ` is a contravariant functor. -/
 def toOpContra (C : Type u) [cat : Cat.{v} C] :
-    @ContraFunctor C cat (Op C) oppCat (fun X : C => (X : Op C)) where
-  map {X Y} (f : cat.Hom X Y) : @Cat.Hom (Op C) oppCat Y X := f
+    @ContraFunctor C cat (OppCat C) (oppCatInst C) (fun X : C => (X : OppCat C)) where
+  map {X Y} (f : cat.Hom X Y) : @Cat.Hom (OppCat C) (oppCatInst C) Y X := f
   map_id _ := rfl
   map_comp _ _ := rfl
 

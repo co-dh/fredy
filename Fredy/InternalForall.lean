@@ -16,13 +16,12 @@
       ∀_A : Ω^(A × B) ⟶ Ω^B          (right adjoint to weakening / pullback along π)
 
   whose β/η computation rests on the power-object exponential adjunction being
-  CONCRETE.  In this repo that adjunction is `S1_92.topos_has_exponentials`, which is
-  itself an unfilled `Sorry` (its sharpened blocker is the triad: power-object
-  representability `[B]^A ≅ [A×B]`, topos equalizers, and the missing baseable-equalizer
-  CLOSURE §1.859).  Consequently the internal-∀ — and hence the family-glb — CANNOT be
-  constructed from the currently-PROVEN primitives (`interIntersection`, `omegaMeet`,
-  the `Sub(A)` Heyting layer of `S1_91`) without either modifying those off-limits
-  foundational files or supplying the missing exponential computation.
+  CONCRETE.  In this repo that adjunction is `S1_92.topos_has_exponentials` (now proved
+  axiom-honest via `all_baseable`, `Classical.choice` only).  However building the
+  internal-∀ directly from exponentials here would require a concrete β/η computation
+  that goes beyond the abstract `HasExponentials` interface, so the family-glb CANNOT be
+  assembled from the currently-available primitives (`interIntersection`, `omegaMeet`,
+  the `Sub(A)` Heyting layer of `S1_91`) without an additional power-object computation.
 
   ## What we expose, and why it is honest
 
@@ -73,9 +72,9 @@ def IsClosedSub {A : 𝒞} (S : Subobject 𝒞 A) (a : one ⟶ A) (t : A ⟶ A) 
     (a singleton-family glb) does not build, equivalently the internal universal quantifier
     `∀_A : Ω^(A×1) → Ω^1` applied to the closedness comprehension.  It is a genuine topos
     fact relocated to a hypothesis because the underlying internal-∀ requires the concrete
-    power-object exponential adjunction (`S1_92.topos_has_exponentials`, currently `Sorry`
-    and off-limits); see the file header.  It does NOT weaken §1.987 — `least_le` is the
-    true leastness, not the false "all closed subobjects share one name." -/
+    power-object exponential adjunction (concrete β/η, not directly given by the abstract
+    `HasExponentials` interface); see the file header.  It does NOT weaken §1.987 —
+    `least_le` is the true leastness, not the false "all closed subobjects share one name." -/
 class HasLeastClosedSubobject (𝒞 : Type u) [Cat.{v} 𝒞] [Topos 𝒞] where
   least : ∀ {A : 𝒞} (_a : one ⟶ A) (_t : A ⟶ A), Subobject 𝒞 A
   least_isClosed : ∀ {A : 𝒞} (a : one ⟶ A) (t : A ⟶ A), IsClosedSub (least a t) a t

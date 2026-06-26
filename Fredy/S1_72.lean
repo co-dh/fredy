@@ -73,13 +73,13 @@ variable [HasImages 𝒞] [HeytingAlgebra 𝒞] {A : 𝒞}
 /-- Modus ponens: x∧(x→y) ≤ y  (from adjunction, taking z := x→y). -/
 theorem heyting_mp (x y : Subobject 𝒞 A) :
     Subobject.le (HeytingAlgebra.meet x (HeytingAlgebra.imp x y)) y :=
-  (HeytingAlgebra.adjunction x y (HeytingAlgebra.imp x y)).mp (subobject_le_refl _)
+  (HeytingAlgebra.adjunction x y (HeytingAlgebra.imp x y)).mp (Subobject.le_refl _)
 
 /-- meet is monotone in the left argument: w ≤ x → w∧z ≤ x∧z. -/
 theorem meet_mono_left {w x z : Subobject 𝒞 A} (h : Subobject.le w x) :
     Subobject.le (HeytingAlgebra.meet w z) (HeytingAlgebra.meet x z) :=
   HeytingAlgebra.le_meet _ _ _
-    (subobject_le_trans (HeytingAlgebra.meet_le_left _ _) h)
+    (Subobject.le_trans (HeytingAlgebra.meet_le_left _ _) h)
     (HeytingAlgebra.meet_le_right _ _)
 
 /-- meet is symmetric: x∧y ≤ y∧x. -/
@@ -94,14 +94,14 @@ theorem imp_mono_right {x y z : Subobject 𝒞 A} (h : Subobject.le y z) :
     Subobject.le (HeytingAlgebra.imp x y) (HeytingAlgebra.imp x z) := by
   rw [HeytingAlgebra.adjunction]
   -- x∧(x→y) ≤ y ≤ z
-  exact subobject_le_trans (heyting_mp x y) h
+  exact Subobject.le_trans (heyting_mp x y) h
 
 /-- (§1.726) x→y is contravariant in x: w ≤ x → (x→y) ≤ (w→y). -/
 theorem imp_mono_left_contra {x w y : Subobject 𝒞 A} (h : Subobject.le w x) :
     Subobject.le (HeytingAlgebra.imp x y) (HeytingAlgebra.imp w y) := by
   rw [HeytingAlgebra.adjunction]
   -- w∧(x→y) ≤ x∧(x→y) ≤ y
-  exact subobject_le_trans (meet_mono_left h) (heyting_mp x y)
+  exact Subobject.le_trans (meet_mono_left h) (heyting_mp x y)
 
 end HeytingLaws
 
@@ -156,12 +156,12 @@ noncomputable def locale_is_heyting [HasImages 𝒞] [Locale 𝒞] :
       have h1 : Subobject.le (Locale.meet x z)
                     (Locale.meet x (LocallyComplete.sup fun w => Subobject.le (Locale.meet x w) y)) :=
         Locale.le_meet _ _ _ (Locale.meet_le_left _ _)
-          (subobject_le_trans (Locale.meet_le_right _ _) hz)
+          (Subobject.le_trans (Locale.meet_le_right _ _) hz)
       have h2 := Locale.meet_sup_distrib x (fun w => Subobject.le (Locale.meet x w) y)
       have h3 : Subobject.le
           (LocallyComplete.sup (fun s => ∃ t, Subobject.le (Locale.meet x t) y ∧ s = Locale.meet x t)) y :=
         LocallyComplete.sup_least _ y (fun s ⟨t, ht, hs⟩ => hs ▸ ht)
-      exact subobject_le_trans (h2 ▸ h1) h3
+      exact Subobject.le_trans (h2 ▸ h1) h3
     · -- x∧z ≤ y → z ≤ sup{w | x∧w ≤ y}  (z witnesses itself)
       intro hxz; exact LocallyComplete.sup_upper _ z hxz
 
@@ -201,14 +201,14 @@ theorem meet_hiff_le (x y : Subobject 𝒞 A) :
       (HeytingAlgebra.meet x (HeytingAlgebra.imp x y)) :=
     HeytingAlgebra.le_meet _ _ _
       (HeytingAlgebra.meet_le_left _ _)
-      (subobject_le_trans (HeytingAlgebra.meet_le_right _ _)
+      (Subobject.le_trans (HeytingAlgebra.meet_le_right _ _)
         (HeytingAlgebra.meet_le_left _ _))
   -- x∧(x→y) ≤ y by modus ponens
   have h2 : Subobject.le (HeytingAlgebra.meet x (HeytingAlgebra.imp x y)) y :=
     heyting_mp x y
   exact HeytingAlgebra.le_meet _ _ _
     (HeytingAlgebra.meet_le_left _ _)
-    (subobject_le_trans h1 h2)
+    (Subobject.le_trans h1 h2)
 
 end HiffLaws
 
@@ -243,7 +243,7 @@ theorem le_double_neg [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos 𝒞]
     Subobject.le x (hneg (hneg x)) := by
   rw [hneg_adj]
   -- Need: (¬x)∧x ≤ ⊥.  We have x∧(¬x) ≤ ⊥; use commutativity of meet.
-  exact subobject_le_trans (meet_comm_le (hneg x) x) (meet_neg_le_bot x)
+  exact Subobject.le_trans (meet_comm_le (hneg x) x) (meet_neg_le_bot x)
 
 /-- Negation is contravariant: x ≤ y → ¬y ≤ ¬x  (§1.727).
     Proof: ¬y ≤ ¬x iff x∧¬y ≤ ⊥; since x ≤ y, x∧¬y ≤ y∧¬y ≤ ⊥. -/
@@ -252,7 +252,7 @@ theorem hneg_antitone [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos 𝒞]
     Subobject.le (hneg y) (hneg x) := by
   rw [hneg_adj]
   -- x∧(¬y) ≤ y∧(¬y) ≤ ⊥
-  exact subobject_le_trans (meet_mono_left h) (meet_neg_le_bot y)
+  exact Subobject.le_trans (meet_mono_left h) (meet_neg_le_bot y)
 
 /-- ¬x ≤ ¬¬¬x  (from le_double_neg applied to ¬x). -/
 theorem neg_le_triple_neg [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos 𝒞]
@@ -307,40 +307,40 @@ theorem double_neg_meet_ge [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos 𝒞
   have hA : Subobject.le
       (HeytingAlgebra.meet y (HeytingAlgebra.meet (hneg (HeytingAlgebra.meet x y)) x))
       (PreLogos.bottom A) := by
-    apply subobject_le_trans _ (meet_neg_le_bot (HeytingAlgebra.meet x y))
+    apply Subobject.le_trans _ (meet_neg_le_bot (HeytingAlgebra.meet x y))
     apply HeytingAlgebra.le_meet
-    · apply subobject_le_trans _ (meet_comm_le y x)
+    · apply Subobject.le_trans _ (meet_comm_le y x)
       exact HeytingAlgebra.le_meet _ _ _ (HeytingAlgebra.meet_le_left _ _)
-        (subobject_le_trans (HeytingAlgebra.meet_le_right _ _) (HeytingAlgebra.meet_le_right _ _))
-    · exact subobject_le_trans (HeytingAlgebra.meet_le_right _ _) (HeytingAlgebra.meet_le_left _ _)
+        (Subobject.le_trans (HeytingAlgebra.meet_le_right _ _) (HeytingAlgebra.meet_le_right _ _))
+    · exact Subobject.le_trans (HeytingAlgebra.meet_le_right _ _) (HeytingAlgebra.meet_le_left _ _)
   -- B: ¬(x∧y)∧x ≤ ¬y; D: x∧(¬(x∧y)∧¬¬y) ≤ ⊥; E: ¬(x∧y)∧¬¬y ≤ ¬x; F: ¬¬x ≤ ¬(¬(x∧y)∧¬¬y)
   have hB := (hneg_adj y _).mpr hA
   have hD : Subobject.le
       (HeytingAlgebra.meet x (HeytingAlgebra.meet (hneg (HeytingAlgebra.meet x y)) (hneg (hneg y))))
       (PreLogos.bottom A) := by
-    apply subobject_le_trans _ (meet_neg_le_bot (hneg y))
-    apply subobject_le_trans (HeytingAlgebra.le_meet _ _ _
+    apply Subobject.le_trans _ (meet_neg_le_bot (hneg y))
+    apply Subobject.le_trans (HeytingAlgebra.le_meet _ _ _
       (HeytingAlgebra.le_meet _ _ _
-        (subobject_le_trans (HeytingAlgebra.meet_le_right _ _) (HeytingAlgebra.meet_le_left _ _))
+        (Subobject.le_trans (HeytingAlgebra.meet_le_right _ _) (HeytingAlgebra.meet_le_left _ _))
         (HeytingAlgebra.meet_le_left _ _))
-      (subobject_le_trans (HeytingAlgebra.meet_le_right _ _) (HeytingAlgebra.meet_le_right _ _)))
+      (Subobject.le_trans (HeytingAlgebra.meet_le_right _ _) (HeytingAlgebra.meet_le_right _ _)))
     exact meet_mono_left hB
   have hE := (hneg_adj x _).mpr hD
   have hF := hneg_antitone hE
   -- Conclude: ¬(x∧y) ∧ (¬¬x ∧ ¬¬y) ≤ ⊥, i.e. ¬¬x∧¬¬y ≤ ¬¬(x∧y)
   apply (hneg_adj (hneg (HeytingAlgebra.meet x y)) _).mpr
-  apply subobject_le_trans _ (subobject_le_trans
+  apply Subobject.le_trans _ (Subobject.le_trans
     (meet_comm_le
       (hneg (HeytingAlgebra.meet (hneg (HeytingAlgebra.meet x y)) (hneg (hneg y))))
       (HeytingAlgebra.meet (hneg (HeytingAlgebra.meet x y)) (hneg (hneg y))))
     (meet_neg_le_bot (HeytingAlgebra.meet (hneg (HeytingAlgebra.meet x y)) (hneg (hneg y)))))
   apply HeytingAlgebra.le_meet
-  · exact subobject_le_trans
-      (subobject_le_trans (HeytingAlgebra.meet_le_right _ _) (HeytingAlgebra.meet_le_left _ _))
+  · exact Subobject.le_trans
+      (Subobject.le_trans (HeytingAlgebra.meet_le_right _ _) (HeytingAlgebra.meet_le_left _ _))
       hF
   · exact HeytingAlgebra.le_meet _ _ _
       (HeytingAlgebra.meet_le_left _ _)
-      (subobject_le_trans (HeytingAlgebra.meet_le_right _ _) (HeytingAlgebra.meet_le_right _ _))
+      (Subobject.le_trans (HeytingAlgebra.meet_le_right _ _) (HeytingAlgebra.meet_le_right _ _))
 
 /-- Meet distributes over union: z∧(a∨b) ≤ (z∧a)∨(z∧b)  (§1.726).
     A Heyting algebra is distributive because meet has a right adjoint (imp):
@@ -382,8 +382,8 @@ theorem double_neg_le_of_em [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos �
   -- ¬¬x ≤ ¬¬x ∧ (x∨¬x)
   have step1 : Subobject.le (hneg (hneg x))
       (HeytingAlgebra.meet (hneg (hneg x)) (HasSubobjectUnions.union x (hneg x))) :=
-    HeytingAlgebra.le_meet _ _ _ (subobject_le_refl _)
-      (subobject_le_trans (le_entire _) hem)
+    HeytingAlgebra.le_meet _ _ _ (Subobject.le_refl _)
+      (Subobject.le_trans (le_entire _) hem)
   -- ¬¬x ∧ (x∨¬x) ≤ (¬¬x∧x) ∨ (¬¬x∧¬x)
   have step2 := meet_union_le_distrib (hneg (hneg x)) x (hneg x)
   -- (¬¬x∧x) ∨ (¬¬x∧¬x) ≤ x
@@ -393,9 +393,9 @@ theorem double_neg_le_of_em [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos �
     HasSubobjectUnions.union_min _ _ _
       (HeytingAlgebra.meet_le_right _ _)
       -- ¬¬x∧¬x ≤ ¬x∧¬¬x ≤ ⊥ ≤ x
-      (subobject_le_trans (meet_comm_le _ _)
-        (subobject_le_trans (meet_neg_le_bot (hneg x)) (PreLogos.bottom_min x)))
-  exact subobject_le_trans step1 (subobject_le_trans step2 step3)
+      (Subobject.le_trans (meet_comm_le _ _)
+        (Subobject.le_trans (meet_neg_le_bot (hneg x)) (PreLogos.bottom_min x)))
+  exact Subobject.le_trans step1 (Subobject.le_trans step2 step3)
 
 /-- Excluded middle ⇒ double negation is the identity (§1.728).
     Records both halves: `x ≤ ¬¬x` (always) and `¬¬x ≤ x` (under EM). -/
@@ -419,7 +419,7 @@ theorem em_implies_complemented [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos
       Subobject.le (Subobject.entire A) (HasSubobjectUnions.union x nx) :=
   ⟨hneg x,
     fun S hSx hSnx =>
-      subobject_le_trans
+      Subobject.le_trans
         (HeytingAlgebra.le_meet _ _ _ hSx hSnx)
         (meet_neg_le_bot x),
     hem⟩
@@ -498,10 +498,10 @@ theorem isEntire_rightAdj_term_iff [Logos 𝒞] {A : 𝒞} (A' : Subobject 𝒞 
   constructor
   · -- entire A ≤ pA#(entire 1) ≤ A'
     intro h
-    exact subobject_le_trans (entire_le_inverseImage_entire (term A)) h
+    exact Subobject.le_trans (entire_le_inverseImage_entire (term A)) h
   · -- pA#(entire 1) ≤ entire A ≤ A'
     intro h
-    exact subobject_le_trans (le_entire _) h
+    exact Subobject.le_trans (le_entire _) h
 
 -- §1.73 (MISSING, narrowed): `faithful_iff_trivial_filter`.
 -- With the double-sharp bridge above proven, the only remaining gap is the
@@ -857,8 +857,8 @@ theorem coprime_one_implies_connected_one
   · exact Or.inl hUe
   · right
     have hUleU₂ : Subobject.le U U₂ :=
-      subobject_le_trans (le_entire U) ((isEntire_iff_entire_le U₂).mp hU₂e)
-    exact hdisj U (subobject_le_refl U) hUleU₂
+      Subobject.le_trans (le_entire U) ((isEntire_iff_entire_le U₂).mp hU₂e)
+    exact hdisj U (Subobject.le_refl U) hUleU₂
 
 /-- §1.733 (⟸), connected + projective ⟹ coprime (Freyd's §1.625 argument).
     Given `U, V ⊆ 1` with `U ∪ V` entire, the copairing `q = case U.arr V.arr :
@@ -883,11 +883,11 @@ theorem connected_projective_one_implies_coprime_one
     have hmono : (HasSubobjectUnions.union U V).le
         (HasSubobjectUnions.union (image U.arr) (image V.arr)) :=
       HasSubobjectUnions.union_min _ _ _
-        (subobject_le_trans hUle (HasSubobjectUnions.union_left _ _))
-        (subobject_le_trans hVle (HasSubobjectUnions.union_right _ _))
+        (Subobject.le_trans hUle (HasSubobjectUnions.union_left _ _))
+        (Subobject.le_trans hVle (HasSubobjectUnions.union_right _ _))
     have huac : (HasSubobjectUnions.union (image U.arr) (image V.arr)).le (image q) :=
       (union_via_coproduct_image U.arr V.arr).2 (image q) (image_allows q)
-    exact subobject_le_trans hcov (subobject_le_trans hmono huac)
+    exact Subobject.le_trans hcov (Subobject.le_trans hmono huac)
   -- projective 1 splits q:  s ≫ q = id.
   obtain ⟨s, hs⟩ := hproj q hq_cover
   -- inl, inr are a disjoint complemented pair on U.dom + V.dom (positivity).
@@ -895,9 +895,9 @@ theorem connected_projective_one_implies_coprime_one
     ⟨inrSub inr_mono, inl_inter_inr_le_bottom, inl_union_inr_entire⟩
   have hinr_comp : IsComplementedSub (inrSub (𝒞 := 𝒞) (A := U.dom) (B := V.dom) inr_mono) :=
     ⟨inlSub inl_mono,
-      subLe_trans (Subobject.le_inter (Subobject.inter_le_right _ _)
+      Subobject.le_trans (Subobject.le_inter (Subobject.inter_le_right _ _)
         (Subobject.inter_le_left _ _)) inl_inter_inr_le_bottom,
-      subLe_trans inl_union_inr_entire
+      Subobject.le_trans inl_union_inr_entire
         (HasSubobjectUnions.union_min _ _ _
           (HasSubobjectUnions.union_right _ _) (HasSubobjectUnions.union_left _ _))⟩
   -- pull back along s: complemented subterminators of 1.
@@ -938,8 +938,8 @@ theorem connected_projective_one_implies_coprime_one
         (HasSubobjectUnions.union
           (InverseImage s (inlSub (𝒞 := 𝒞) (A := U.dom) (B := V.dom) inl_mono))
           (InverseImage s (inrSub (𝒞 := 𝒞) (A := U.dom) (B := V.dom) inr_mono))) :=
-      subobject_le_trans (entire_le_invImage_entire s)
-        (subobject_le_trans
+      Subobject.le_trans (entire_le_invImage_entire s)
+        (Subobject.le_trans
           (invImage_mono s inl_union_inr_entire)
           (PreLogos.invImage_preserves_union s _ _).1)
     have hle : (HasSubobjectUnions.union
@@ -947,11 +947,11 @@ theorem connected_projective_one_implies_coprime_one
           (InverseImage s (inrSub (𝒞 := 𝒞) (A := U.dom) (B := V.dom) inr_mono))).le
         (InverseImage s (inrSub (𝒞 := 𝒞) (A := U.dom) (B := V.dom) inr_mono)) :=
       HasSubobjectUnions.union_min _ _ _
-        (subobject_le_trans hUbot (PreLogos.bottom_min _))
-        (subobject_le_refl _)
+        (Subobject.le_trans hUbot (PreLogos.bottom_min _))
+        (Subobject.le_refl _)
     have hVe : Subobject.IsEntire
         (InverseImage s (inrSub (𝒞 := 𝒞) (A := U.dom) (B := V.dom) inr_mono)) :=
-      entire_of_entire_le (subobject_le_trans hcover_lr hle)
+      entire_of_entire_le (Subobject.le_trans hcover_lr hle)
     exact factor V _ inr_mono hinr_eq hVe
 
 /-- **§1.733**: a *positive pre-logos* is FOCAL iff its terminator is a CONNECTED

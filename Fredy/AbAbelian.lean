@@ -38,11 +38,6 @@ variable {𝒞 : Type u} [Cat.{v} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts �
   Carrier `A.carrier × B.carrier`; the operations are the products of `A`'s and `B`'s.
   We reuse `abSq` from `AbCategory` (re-derived locally as `pair (fst≫_) (snd≫_)`). -/
 
-/-- `g ≫ ⟨a, b⟩ = ⟨g ≫ a, g ≫ b⟩` (local copy; same statement as `AbCategory.ab_pair_precomp`). -/
-private theorem aa_pair_precomp {X Y A B : 𝒞} (g : X ⟶ Y) (a : Y ⟶ A) (b : Y ⟶ B) :
-    g ≫ pair a b = pair (g ≫ a) (g ≫ b) :=
-  pair_uniq (g ≫ a) (g ≫ b) (g ≫ pair a b)
-    (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])
 
 /-- Carrier-level `add` of the product group object:
     `(A.c×B.c)×(A.c×B.c) → A.c×B.c`, adding the two factors componentwise. -/
@@ -64,13 +59,13 @@ private def prodAddCar (A B : AbelianGroupObject 𝒞) :
 private theorem prodAdd_proj_fst {S : 𝒞} {A B : AbelianGroupObject 𝒞}
     (u w : S ⟶ prod A.carrier B.carrier) :
     (pair u w ≫ prodAddCar A B) ≫ fst = pair (u ≫ fst) (w ≫ fst) ≫ A.add := by
-  rw [Cat.assoc, prodAddCar_fst, ← Cat.assoc, aa_pair_precomp,
+  rw [Cat.assoc, prodAddCar_fst, ← Cat.assoc, ab_pair_precomp,
       ← Cat.assoc, ← Cat.assoc, fst_pair, snd_pair]
 
 private theorem prodAdd_proj_snd {S : 𝒞} {A B : AbelianGroupObject 𝒞}
     (u w : S ⟶ prod A.carrier B.carrier) :
     (pair u w ≫ prodAddCar A B) ≫ snd = pair (u ≫ snd) (w ≫ snd) ≫ B.add := by
-  rw [Cat.assoc, prodAddCar_snd, ← Cat.assoc, aa_pair_precomp,
+  rw [Cat.assoc, prodAddCar_snd, ← Cat.assoc, ab_pair_precomp,
       ← Cat.assoc, ← Cat.assoc, fst_pair, snd_pair]
 
 /-- **Closed form of the product-group sum.**  For any two elements `u w : S → A.c×B.c`,
@@ -118,11 +113,11 @@ noncomputable def prodGObj (A B : AbelianGroupObject 𝒞) : AbelianGroupObject 
     -- triple of inner projections `(fst≫fst≫π), (fst≫snd≫π), (snd≫π)`.
     refine fst_snd_jointly_monic _ _ ?_ ?_
     · -- LHS-fst: distribute `fst ≫ (prodAddCar≫fst)`; RHS-fst: project the inner `y+z`.
-      rw [prodAdd_proj_fst, Cat.assoc, prodAddCar_fst, ← Cat.assoc, aa_pair_precomp,
+      rw [prodAdd_proj_fst, Cat.assoc, prodAddCar_fst, ← Cat.assoc, ab_pair_precomp,
           prodAdd_proj_fst, prodAdd_proj_fst]
       simp only [Cat.assoc]
       exact GElt.add_assoc A (fst ≫ fst ≫ fst) (fst ≫ snd ≫ fst) (snd ≫ fst)
-    · rw [prodAdd_proj_snd, Cat.assoc, prodAddCar_snd, ← Cat.assoc, aa_pair_precomp,
+    · rw [prodAdd_proj_snd, Cat.assoc, prodAddCar_snd, ← Cat.assoc, ab_pair_precomp,
           prodAdd_proj_snd, prodAdd_proj_snd]
       simp only [Cat.assoc]
       exact GElt.add_assoc B (fst ≫ fst ≫ snd) (fst ≫ snd ≫ snd) (snd ≫ snd)
@@ -195,7 +190,7 @@ theorem hom_fromZero_unique {A : AbelianGroupObject 𝒞} {x : (one : 𝒞) ⟶ 
   rw [← Cat.assoc, term_uniq (diag (one : 𝒞) ≫ (zeroGObj : AbelianGroupObject 𝒞).add)
         (Cat.id one), Cat.id_comp] at key
   have hsplit : diag (one : 𝒞) ≫ pair (fst ≫ x) (snd ≫ x) ≫ A.add = pair x x ≫ A.add := by
-    rw [← Cat.assoc, aa_pair_precomp, ← Cat.assoc, ← Cat.assoc, diag_fst, diag_snd]
+    rw [← Cat.assoc, ab_pair_precomp, ← Cat.assoc, ← Cat.assoc, diag_fst, diag_snd]
     simp only [Cat.id_comp]
   rw [hsplit] at key
   -- key : x = ⟨x, x⟩ ≫ A.add.  Idempotent ⟹ x = term 1 ≫ A.zero = id ≫ A.zero = A.zero.
@@ -268,7 +263,7 @@ theorem hom_preserves_add {T : 𝒞} {P X : AbelianGroupObject 𝒞}
     {h : P.carrier ⟶ X.carrier} (hh : IsHomAbelianGroupObject P X h)
     (u w : T ⟶ P.carrier) :
     (pair u w ≫ P.add) ≫ h = pair (u ≫ h) (w ≫ h) ≫ X.add := by
-  rw [Cat.assoc, hh, ← Cat.assoc, aa_pair_precomp]
+  rw [Cat.assoc, hh, ← Cat.assoc, ab_pair_precomp]
   simp only [← Cat.assoc, fst_pair, snd_pair]
 
 /-- A homomorphism preserves zero: `(t ≫ P.zero) ≫ h = t ≫ X.zero` for any `t : T → 1`.
@@ -319,7 +314,7 @@ theorem caseCar_inl (f : A.carrier ⟶ X.carrier) {g : B.carrier ⟶ X.carrier}
     pair (Cat.id A.carrier) (HomAb.zeroCar A B) ≫ caseCar f g = f := by
   unfold caseCar HomAb.zeroCar
   -- ⟨id,0⟩ ≫ (⟨π₁≫f,π₂≫g⟩≫X.add) = ⟨f, (term≫B.zero)≫g⟩ ≫ X.add = ⟨f, term≫X.zero⟩ ≫ X.add = f.
-  rw [← Cat.assoc, aa_pair_precomp, ← Cat.assoc, ← Cat.assoc, fst_pair, snd_pair,
+  rw [← Cat.assoc, ab_pair_precomp, ← Cat.assoc, ← Cat.assoc, fst_pair, snd_pair,
       Cat.id_comp, Cat.assoc, ← Cat.assoc (term A.carrier) B.zero g,
       hom_preserves_zero hg (term A.carrier)]
   exact GElt.add_zero X f
@@ -329,7 +324,7 @@ theorem caseCar_inr {f : A.carrier ⟶ X.carrier} (g : B.carrier ⟶ X.carrier)
     (hf : IsHomAbelianGroupObject A X f) :
     pair (HomAb.zeroCar B A) (Cat.id B.carrier) ≫ caseCar f g = g := by
   unfold caseCar HomAb.zeroCar
-  rw [← Cat.assoc, aa_pair_precomp, ← Cat.assoc, ← Cat.assoc, fst_pair, snd_pair,
+  rw [← Cat.assoc, ab_pair_precomp, ← Cat.assoc, ← Cat.assoc, fst_pair, snd_pair,
       Cat.id_comp, Cat.assoc, ← Cat.assoc (term B.carrier) A.zero f,
       hom_preserves_zero hf (term B.carrier)]
   exact GElt.zero_add X g
@@ -459,7 +454,7 @@ theorem ab_add_eq_diag_case {A B : AbelianGroupObject 𝒞} (x y : A ⟶ B) :
   show pair x.val y.val ≫ B.add
       = (pair (Cat.id A.carrier) (Cat.id A.carrier)) ≫ AbCoprod.caseCar x.val y.val
   unfold AbCoprod.caseCar
-  rw [← Cat.assoc, aa_pair_precomp]
+  rw [← Cat.assoc, ab_pair_precomp]
   simp only [← Cat.assoc, fst_pair, snd_pair, Cat.id_comp]
 
 /-- `HomAb.add x y` is the diagonal route `pair x y ≫ ∇` (eq. 1.1' with `Φ⁻¹ = id`),
@@ -470,7 +465,7 @@ theorem ab_add_eq_pair_codiag {A B : AbelianGroupObject 𝒞} (x y : A ⟶ B) :
   show pair x.val y.val ≫ B.add
       = (pair x.val y.val) ≫ AbCoprod.caseCar (Cat.id B.carrier) (Cat.id B.carrier)
   unfold AbCoprod.caseCar
-  rw [← Cat.assoc, aa_pair_precomp]
+  rw [← Cat.assoc, ab_pair_precomp]
   simp only [← Cat.assoc, fst_pair, snd_pair, Cat.comp_id]
 
 /-- **§1.595 KEYSTONE.**  `Ab(𝒞)` is a half-additive category: finite products and

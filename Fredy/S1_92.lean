@@ -62,44 +62,22 @@ noncomputable def exponentials_of_all_baseable
     equalizer of the baseable power object `[B]` and `Ω` (`baseable_equalizer_is_baseable`,
     §1.859) — and then `exponentials_of_all_baseable` assembles the exponential structure.
 
-    Two of the three load-bearing steps are now in place in this repo:
+    All three load-bearing steps are now in place in this repo:
 
     *  (b) **Topos equalizers** — `topos_has_equalizers` above (products+pullbacks, §1.434).
-    *  (c) **Baseable-equalizer closure** — `baseable_equalizer_is_baseable` (§1.859, now
-       proved Sorry-free): the equalizer of two baseable objects is baseable.
+    *  (c) **Baseable-equalizer closure** — `baseable_equalizer_is_baseable` (§1.859, axiom-free):
+       the equalizer of two baseable objects is baseable.
+    *  (a) **Every power object `[B]` is baseable** — `all_baseable` (§1.923, `Baseable923.lean`,
+       `Classical.choice`-only): proved via the singleton embedding `Δ₁ : B ↪ [B]`, exhibiting
+       `B` as an equalizer of the baseable power object `[B]` and `Ω`.  All three steps close;
+       `exponentials_of_all_baseable all_baseable` assembles the full `HasExponentials`.
 
-    The remaining gap is exactly step (a):
-
-    *  (a) **Every power object `[B]` is baseable**, i.e. the representability
-       `[B]^A ≅ [A×B]`.  This needs a power object `[B] = HasPowerObject.powerObj`
-       for EVERY object `B` together with the `Λ/∈` classify-bijection at product level.
-       This repo's `Topos` is the *minimal subobject-classifier* presentation: it bundles
-       only `Ω = [1]`, NOT `HasPowerObject C` for general `C`, and there is no construction
-       of general power objects from the bare classifier anywhere in the repo (every
-       power-object result, e.g. S1_91 `minimal_topos_has_terminator`, *assumes*
-       `[∀ C, HasPowerObject C]`).  Without `[B]`, neither the singleton equalizer
-       presentation of `B` nor the representability iso can be formed, so "every object
-       baseable" — the input `hb` to `exponentials_of_all_baseable` — cannot be supplied.
-
-    FAITHFUL SORRY: the residual is precisely `∀ B, Baseable B`, which factors through
-    the missing power-object representability (a).  Everything downstream of it (b, c,
-    and the assembly via `exponentials_of_all_baseable`) is discharged.
-
-    NOTE on the `Sorry` shape: morally this instance is
-    `exponentials_of_all_baseable (fun B => (proof B is baseable))`, with the bracketed
-    proof the only gap.  We keep it as a single opaque `by Sorry` (rather than
-    `exponentials_of_all_baseable (fun _ => Sorry)`) ONLY so the instance retains a
-    computable IR stub: downstream files (`S1_94 powObj`, `S1_95`) build computable
-    definitions on top of `exp`, and routing through the `Classical.choice`-based
-    `exponentials_of_all_baseable` would force them `noncomputable` (those files are
-    out of scope for this edit).  The genuine assembly content lives, fully proved, in
-    `exponentials_of_all_baseable`. -/
--- LOW PRIORITY: `HasExponentials extends HasBinaryProducts`, and this instance is a
--- `Sorry` (its `toHasBinaryProducts` is therefore `Sorry`-derived).  If instance search
--- routes a `HasBinaryProducts 𝒞` goal through it, downstream relation/product terms pick up
--- `sorryAx`.  We deprioritise it here AND, in the direct-image section below, locally make
--- the genuine `Topos.toHasBinaryProducts` win outright (see the `attribute [local instance]`
--- there) so the §1.92 power maps stay axiom-honest.
+    `topos_has_exponentials` is Sorry-free (axioms: `Classical.choice` only). -/
+-- LOW PRIORITY: `HasExponentials extends HasBinaryProducts`, so instance search could route
+-- a `HasBinaryProducts 𝒞` goal through this instance, making otherwise-computable downstream
+-- defs fail the IR check.  We deprioritise it here AND, in the direct-image section below,
+-- locally make the genuine `Topos.toHasBinaryProducts` win outright (see the
+-- `attribute [local instance]` there) so the §1.92 power maps stay computably-typed.
 noncomputable instance (priority := 50) topos_has_exponentials : HasExponentials 𝒞 :=
   exponentials_of_all_baseable all_baseable
 
@@ -346,8 +324,8 @@ variable [HasImages 𝒞]
 
 -- Make the genuine `Topos` product instance WIN instance search for `HasBinaryProducts 𝒞`
 -- throughout this section.  Otherwise `pair`/`fst`/`prod`/`compose` can resolve products
--- via the `Sorry` instance `topos_has_exponentials` (`HasExponentials extends
--- HasBinaryProducts`), silently contaminating every direct-image term with `sorryAx`.
+-- via `topos_has_exponentials` (`HasExponentials extends HasBinaryProducts`, priority 50),
+-- which though axiom-honest would make these defs noncomputable via `Classical.choice`.
 attribute [local instance 10000] Topos.toHasBinaryProducts
 
 /-- The DIRECT-IMAGE RELATION of `∈_A` along `f : A → B`: the §1.56 composite
@@ -1389,7 +1367,7 @@ theorem stLe_iff_le {Z W : SubTerminal 𝒞}
     intro hle
     -- Zs ≤ Zs∩Ws and Zs∩Ws ≤ Zs give χ_{Zs∩Ws} = χ_Zs = Z.
     have h1 : (Sub.inter Zs Ws hp).le Zs := Sub.inter_le_left Zs Ws hp
-    have h2 : Zs.le (Sub.inter Zs Ws hp) := Sub.inter_glb Zs Ws Zs hp (Sub.le_refl Zs) hle
+    have h2 : Zs.le (Sub.inter Zs Ws hp) := Sub.inter_glb Zs Ws Zs hp (Subobject.le_refl Zs) hle
     have : subChar (Sub.inter Zs Ws hp) = subChar Zs := classify_eq_of_le_le h1 h2
     show stMeet Z W = Z
     rw [hmeet, this, hZ]
@@ -1457,7 +1435,7 @@ theorem subTerminal_heyting :
     have e2 : (Sub.inter Us Zs hpUZ).le (Sub.inter Zs Us hpZU) :=
       Sub.inter_glb Zs Us (Sub.inter Us Zs hpUZ) hpZU
         (Sub.inter_le_right Us Zs hpUZ) (Sub.inter_le_left Us Zs hpUZ)
-    exact ⟨fun h => Sub.le_trans e2 h, fun h => Sub.le_trans e1 h⟩
+    exact ⟨fun h => Subobject.le_trans e2 h, fun h => Subobject.le_trans e1 h⟩
   rw [hcomm]
   exact (imp_adjunction Us Vs Zs hpUZ).symm
 

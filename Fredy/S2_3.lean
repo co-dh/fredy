@@ -393,12 +393,6 @@ theorem symmDiv_self_equiv {a b : 𝒜} (R : a ⟶ b) :
 
 /-! ## §2.352  Left cancellation for straight morphisms -/
 
-/-- Reflexive-domain factorization: R ⊑ (dom R) ≫ R (§2.122).
-    From the modular law with R=1, S=R, T=R: R = (1≫R)∩R ⊑ (1 ∩ RR°)R = (dom R)R. -/
-private theorem le_dom_comp {a b : 𝒜} (R : a ⟶ b) : R ⊑ dom R ≫ R := by
-  have hm := modular_le (Cat.id a) R R
-  rwa [Cat.id_comp, Allegory.inter_idem] at hm
-
 /-- If S is straight, F and G are simple with same source, and FS = GS, then (dom F)G = (dom G)F (§2.352). -/
 theorem straight_cancel_simple {a b c : 𝒜} {S : a ⟶ b} (hS : Straight S)
     {F G : c ⟶ a} (hF : Simple F) (hG : Simple G)

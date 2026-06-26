@@ -542,9 +542,6 @@ theorem relSub_union_ge [HasBinaryCoproducts 𝒞] {A B : 𝒞} (R S : BinRel �
     (subLe_of_relLe (relUnion_le_left R S))
     (subLe_of_relLe (relUnion_le_right R S))
 
-/-- Transitivity of `Subobject.le` (compose the two factorizations). -/
-theorem subLe_trans {W : 𝒞} {X Y Z : Subobject 𝒞 W} (h₁ : X.le Y) (h₂ : Y.le Z) : X.le Z :=
-  Subobject.le_trans h₁ h₂
 
 /-- Post-composition with a fixed mono `m : Z ↣ W` carries `Sub Z` into `Sub W`
     order-preservingly: `push m P := ⟨P.dom, P.arr ≫ m⟩`. -/
@@ -586,11 +583,11 @@ theorem pushMono_union_le {Z W : 𝒞} (m : Z ⟶ W) (hm : Monic m) (P Q : Subob
   -- P ≤ Pre and Q ≤ Pre, via pushMono_reflects (push P ≤ UP = push Pre).
   have hP_pre : P.le Pre :=
     pushMono_reflects m hm (P := P) (Q := Pre)
-      (subLe_trans (HasSubobjectUnions.union_left (pushMono m hm P) (pushMono m hm Q))
+      (Subobject.le_trans (HasSubobjectUnions.union_left (pushMono m hm P) (pushMono m hm Q))
         ⟨Cat.id _, by show Cat.id _ ≫ (pre ≫ m) = UP.arr; rw [Cat.id_comp, hpre]⟩)
   have hQ_pre : Q.le Pre :=
     pushMono_reflects m hm (P := Q) (Q := Pre)
-      (subLe_trans (HasSubobjectUnions.union_right (pushMono m hm P) (pushMono m hm Q))
+      (Subobject.le_trans (HasSubobjectUnions.union_right (pushMono m hm P) (pushMono m hm Q))
         ⟨Cat.id _, by show Cat.id _ ≫ (pre ≫ m) = UP.arr; rw [Cat.id_comp, hpre]⟩)
   have hunion_pre : (HasSubobjectUnions.union P Q).le Pre :=
     HasSubobjectUnions.union_min _ _ _ hP_pre hQ_pre
@@ -659,7 +656,7 @@ theorem rel_inter_union_le [HasBinaryCoproducts 𝒞] {A B : 𝒞} (R S T : BinR
     invImage_mono_local pR (relSub_union_le S T)
   -- step 2 (PreLogos): InverseImage pR (union ..) ≤ union (InverseImage pR (relSub S)) (.. T)
   have h2 := (PreLogos.invImage_preserves_union pR (relSub S) (relSub T)).1
-  have h12 := subLe_trans h1 h2
+  have h12 := Subobject.le_trans h1 h2
   have hpush := pushMono_mono pR hpR h12
   -- step 3: pushMono of union ≤ union of pushMono
   have hdist := pushMono_union_le pR hpR (InverseImage pR (relSub S)) (InverseImage pR (relSub T))
@@ -671,12 +668,12 @@ theorem rel_inter_union_le [HasBinaryCoproducts 𝒞] {A B : 𝒞} (R S T : BinR
   have hunion_mono : (HasSubobjectUnions.union pS pT).le
                      (HasSubobjectUnions.union (relSub (R ⊓ S)) (relSub (R ⊓ T))) :=
     HasSubobjectUnions.union_min pS pT _
-      (subLe_trans hSge (HasSubobjectUnions.union_left (relSub (R ⊓ S)) (relSub (R ⊓ T))))
-      (subLe_trans hTge (HasSubobjectUnions.union_right (relSub (R ⊓ S)) (relSub (R ⊓ T))))
+      (Subobject.le_trans hSge (HasSubobjectUnions.union_left (relSub (R ⊓ S)) (relSub (R ⊓ T))))
+      (Subobject.le_trans hTge (HasSubobjectUnions.union_right (relSub (R ⊓ S)) (relSub (R ⊓ T))))
   -- step 5: union (relSub(R⊓S)) (relSub(R⊓T)) ≤ relSub ((R⊓S) ∪ (R⊓T))
   have hfinal := relSub_union_ge (R ⊓ S) (R ⊓ T)
-  exact subLe_trans hL
-    (subLe_trans hpush (subLe_trans hdist (subLe_trans hunion_mono hfinal)))
+  exact Subobject.le_trans hL
+    (Subobject.le_trans hpush (Subobject.le_trans hdist (Subobject.le_trans hunion_mono hfinal)))
 
 /-! ### §1.616  Composition distributes over union (right)
 
@@ -897,11 +894,11 @@ theorem compose_union_right [HasBinaryCoproducts 𝒞] {A B C : 𝒞} (R : BinRe
         (existsAlong (omegaR R C) (InverseImage (thetaR R C) (relSub T)))).le
       (HasSubobjectUnions.union (relSub (R ⊚ S)) (relSub (R ⊚ T))) :=
     HasSubobjectUnions.union_min _ _ _
-      (subLe_trans hS (HasSubobjectUnions.union_left _ _))
-      (subLe_trans hT (HasSubobjectUnions.union_right _ _))
+      (Subobject.le_trans hS (HasSubobjectUnions.union_left _ _))
+      (Subobject.le_trans hT (HasSubobjectUnions.union_right _ _))
   have hfinal := relSub_union_ge (R ⊚ S) (R ⊚ T)
-  exact subLe_trans hL (subLe_trans (existsAlong_mono (omegaR R C) (subLe_trans h1 h2))
-    (subLe_trans h3 (subLe_trans hpieces hfinal)))
+  exact Subobject.le_trans hL (Subobject.le_trans (existsAlong_mono (omegaR R C) (Subobject.le_trans h1 h2))
+    (Subobject.le_trans h3 (Subobject.le_trans hpieces hfinal)))
 
 end BinRelDistributive
 

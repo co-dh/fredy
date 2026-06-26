@@ -91,11 +91,6 @@ noncomputable def toposPreLogos : PreLogos 𝒞 :=
     relational layer and `disjoint_cover_is_coproduct` resolve under `[Topos 𝒞]`). -/
 noncomputable instance : PreLogos 𝒞 := toposPreLogos
 
-/-- Transitivity of the subobject order (private alias; avoids importing the heavy
-    `Complement` tower). -/
-private theorem subLe_transTE {W : 𝒞} {X Y Z : Subobject 𝒞 W}
-    (h₁ : X.le Y) (h₂ : Y.le Z) : X.le Z := Subobject.le_trans h₁ h₂
-
 /-! ## Subobject ↔ classifier glue
 
   Every `χ : A → Ω` is `subChar` of *some* subobject (the pullback of `true` along `χ`).
@@ -177,7 +172,7 @@ theorem orChar_classifies_ge {A : 𝒞} (S T : Subobject 𝒞 A)
     (HasSubobjectUnions.union_left trueFst trueSnd)
   have hG_le := invImg_le P trueSnd (HasSubobjectUnions.union trueFst trueSnd) hpS hpU
     (HasSubobjectUnions.union_right trueFst trueSnd)
-  exact HasSubobjectUnions.union_min S T _ (subLe_transTE hS_le hF_le) (subLe_transTE hT_le hG_le)
+  exact HasSubobjectUnions.union_min S T _ (Subobject.le_trans hS_le hF_le) (Subobject.le_trans hT_le hG_le)
 
 /-- **`orChar` UMP, reverse half (now Sorry-free via the frame law).**  `(pair χ_S χ_T)#(trueFst∪trueSnd)
     ≤ S ∪ T`: inverse image preserves unions (`ForallAlong.invImage_preserves_union`), and each
@@ -206,9 +201,9 @@ theorem orChar_classifies_le {A : 𝒞} (S T : Subobject 𝒞 A)
   have hunion_le : (HasSubobjectUnions.union (invImg P trueFst hpF) (invImg P trueSnd hpS)).le
       (HasSubobjectUnions.union S T) :=
     HasSubobjectUnions.union_min _ _ _
-      (subLe_transTE hFS (HasSubobjectUnions.union_left S T))
-      (subLe_transTE hGT (HasSubobjectUnions.union_right S T))
-  exact subLe_transTE hframe hunion_le
+      (Subobject.le_trans hFS (HasSubobjectUnions.union_left S T))
+      (Subobject.le_trans hGT (HasSubobjectUnions.union_right S T))
+  exact Subobject.le_trans hframe hunion_le
 
 /-- **`orChar` UMP (full, Sorry-free).**  `χ_{S∪T} = ⟨χ_S, χ_T⟩ ≫ orChar`: the internal
     disjunction `orChar` correctly classifies the union of any two subobjects via their
@@ -253,7 +248,7 @@ theorem directImage_adjunction {A B : 𝒞} (f : A ⟶ B) (S : Subobject 𝒞 A)
   · -- ∃_f S ≤ T : compose S ≤ f#(∃_f S) ≤ f# T (inverse image monotone).
     intro hle
     have hpI : HasPullback f (directImage f S).arr := HasPullbacks.has _ _
-    exact subLe_transTE (directImage_unit f S hpI) (invImg_le f (directImage f S) T hpI hp hle)
+    exact Subobject.le_trans (directImage_unit f S hpI) (invImg_le f (directImage f S) T hpI hp hle)
   · -- S ≤ f# T : then S.arr ≫ f factors through T, so T is an upper bound — image is minimal.
     intro hle
     -- f# T allows S.arr (S ≤ f# T), and (f# T).arr ≫ f factors through T via π₂.
@@ -411,7 +406,7 @@ theorem coprodInr_monic (A B : 𝒞) : Monic (coprodInr A B) := by
   rw [← coprodInr_arr, ← Cat.assoc, ← Cat.assoc, huv]
 
 /-- Equalizer maps are monic (local copy; `S1_57.eqMap_mono` is not imported here). -/
-private theorem eqMap_mono_local {A B : 𝒞} (f g : A ⟶ B) : Monic (eqMap f g) := by
+theorem eqMap_mono_local {A B : 𝒞} (f g : A ⟶ B) : Monic (eqMap f g) := by
   intro W u v huv
   -- c := u ≫ eqMap equalizes f, g; both u and v are its (unique) lift.
   have hc : (u ≫ eqMap f g) ≫ f = (u ≫ eqMap f g) ≫ g := by

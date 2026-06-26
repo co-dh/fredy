@@ -264,11 +264,11 @@ theorem diagFill_reflects_satisfies {B B' : 𝒟} {t : B ⟶ B'} (ht : DiagonalF
 
   The genuine §1.397 statement (an EQUIVALENCE FUNCTOR `T : 𝒞 → 𝒟` between DIFFERENT
   categories preserves/reflects via the §1.361 inflation-class factorization) is
-  cross-category: it would re-index the whole telescope along `T`, requiring the
-  §1.361 inflation machinery.  Routing that here is out of scope, so the
-  inflation-class general case is a DOCUMENTED `Sorry` below — the statement is the
-  book's real one (functor `T`, hypothesis `EquivalenceFunctor T`), only the proof
-  is deferred. -/
+  cross-category: it re-indexes the whole telescope along `T`.  The §1.361 inflation
+  machinery is NOT needed: full + faithful already give the cross-category transport
+  directly (induction on the telescope, per step: ∃-step pushes witness forward;
+  ∀-step pulls back via fullness + reflects via faithfulness).
+  `equiv_preserves_satisfies` is proved axiom-free (axioms: propext). -/
 
 /-- §1.397 (iso case, axiom-free): an isomorphism `e : B ⟶ B'` preserves satisfaction.
     Direct corollary of Thm 1. -/

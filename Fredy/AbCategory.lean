@@ -44,7 +44,7 @@ variable {𝒞 : Type u} [Cat.{v} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts �
   We keep them local so this file imports only `S1_59`. -/
 
 /-- `g ≫ ⟨a, b⟩ = ⟨g ≫ a, g ≫ b⟩`. -/
-private theorem ab_pair_precomp {X Y A B : 𝒞} (g : X ⟶ Y) (a : Y ⟶ A) (b : Y ⟶ B) :
+theorem ab_pair_precomp {X Y A B : 𝒞} (g : X ⟶ Y) (a : Y ⟶ A) (b : Y ⟶ B) :
     g ≫ pair a b = pair (g ≫ a) (g ≫ b) :=
   pair_uniq (g ≫ a) (g ≫ b) (g ≫ pair a b)
     (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])

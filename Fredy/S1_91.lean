@@ -822,12 +822,6 @@ theorem imp_adjunction {A : 𝒞} (S T X : Subobject 𝒞 A)
     induced equivalence (anti-symmetry up to isomorphism). -/
 def Sub.equiv {A : 𝒞} (S T : Subobject 𝒞 A) : Prop := S.le T ∧ T.le S
 
-/-- `Sub.le` is reflexive. -/
-theorem Sub.le_refl {A : 𝒞} (S : Subobject 𝒞 A) : S.le S := Subobject.le_refl S
-
-/-- `Sub.le` is transitive. -/
-theorem Sub.le_trans {A : 𝒞} {S T U : Subobject 𝒞 A} (h₁ : S.le T) (h₂ : T.le U) : S.le U :=
-  Subobject.le_trans h₁ h₂
 
 /-- **Leibniz characterization of subobject equality**: `S ≃ T` iff they have the
     same lower set (same predecessors).  This reduces equalities of Heyting terms to
@@ -836,9 +830,9 @@ theorem Sub.equiv_iff_forall_le {A : 𝒞} (S T : Subobject 𝒞 A) :
     Sub.equiv S T ↔ ∀ X : Subobject 𝒞 A, X.le S ↔ X.le T := by
   constructor
   · rintro ⟨hST, hTS⟩ X
-    exact ⟨fun h => Sub.le_trans h hST, fun h => Sub.le_trans h hTS⟩
+    exact ⟨fun h => Subobject.le_trans h hST, fun h => Subobject.le_trans h hTS⟩
   · intro h
-    exact ⟨(h S).1 (Sub.le_refl S), (h T).2 (Sub.le_refl T)⟩
+    exact ⟨(h S).1 (Subobject.le_refl S), (h T).2 (Subobject.le_refl T)⟩
 
 /-- The Heyting double-arrow `S ⇔ u` as a subobject of `A`: the monic classified by
     `⟨χ_S, χ_u⟩ ≫ heytingDoubleArrow` (the largest subobject where `χ_S = χ_u`). -/

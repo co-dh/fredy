@@ -689,18 +689,18 @@ theorem relSub_relUnionSub_ge {A B : 𝒞} (R S : BinRel 𝒞 A B) :
 
 /-- `R ≤ relUnionSub R S`. -/
 theorem relUnionSub_le_left {A B : 𝒞} (R S : BinRel 𝒞 A B) : RelLe R (relUnionSub R S) :=
-  relLe_of_subLe (subLe_trans (HasSubobjectUnions.union_left (relSub R) (relSub S))
+  relLe_of_subLe (Subobject.le_trans (HasSubobjectUnions.union_left (relSub R) (relSub S))
     (relSub_relUnionSub_ge R S))
 
 /-- `S ≤ relUnionSub R S`. -/
 theorem relUnionSub_le_right {A B : 𝒞} (R S : BinRel 𝒞 A B) : RelLe S (relUnionSub R S) :=
-  relLe_of_subLe (subLe_trans (HasSubobjectUnions.union_right (relSub R) (relSub S))
+  relLe_of_subLe (Subobject.le_trans (HasSubobjectUnions.union_right (relSub R) (relSub S))
     (relSub_relUnionSub_ge R S))
 
 /-- Universal property: `R ≤ U → S ≤ U → relUnionSub R S ≤ U`. -/
 theorem le_relUnionSub {A B : 𝒞} {R S U : BinRel 𝒞 A B}
     (hR : RelLe R U) (hS : RelLe S U) : RelLe (relUnionSub R S) U :=
-  relLe_of_subLe (subLe_trans (relSub_relUnionSub_le R S)
+  relLe_of_subLe (Subobject.le_trans (relSub_relUnionSub_le R S)
     (HasSubobjectUnions.union_min _ _ _ (subLe_of_relLe hR) (subLe_of_relLe hS)))
 
 /-- COPRODUCT-FREE distributivity §1.616: `R ⊚ (relUnionSub S T) ≤ relUnionSub (R⊚S) (R⊚T)`.
@@ -720,11 +720,11 @@ theorem compose_relUnionSub_right {A B C : 𝒞} (R : BinRel 𝒞 A B) (S T : Bi
         (existsAlong (omegaR R C) (InverseImage (thetaR R C) (relSub T)))).le
       (HasSubobjectUnions.union (relSub (R ⊚ S)) (relSub (R ⊚ T))) :=
     HasSubobjectUnions.union_min _ _ _
-      (subLe_trans hS (HasSubobjectUnions.union_left _ _))
-      (subLe_trans hT (HasSubobjectUnions.union_right _ _))
+      (Subobject.le_trans hS (HasSubobjectUnions.union_left _ _))
+      (Subobject.le_trans hT (HasSubobjectUnions.union_right _ _))
   have hfinal := relSub_relUnionSub_ge (R ⊚ S) (R ⊚ T)
-  exact subLe_trans hL (subLe_trans (existsAlong_mono (omegaR R C) (subLe_trans h1 h2))
-    (subLe_trans h3 (subLe_trans hpieces hfinal)))
+  exact Subobject.le_trans hL (Subobject.le_trans (existsAlong_mono (omegaR R C) (Subobject.le_trans h1 h2))
+    (Subobject.le_trans h3 (Subobject.le_trans hpieces hfinal)))
 
 /-- Simplicity of the descent relation `R = relUnionSub P Q` from the four atomic bounds
     (coproduct-free port of `S1_62.simple_R`). -/
@@ -795,10 +795,10 @@ theorem union_joint_cover_sub {A : 𝒞} (A₁ A₂ : Subobject 𝒞 A)
         (pushMono (diag A) (diag_mono A) A₂)).le
       (HasSubobjectUnions.union (relSub R₁) (relSub R₂)) :=
     HasSubobjectUnions.union_min _ _ _
-      (subLe_trans (diagSub_le_relSub_xx A₁) (HasSubobjectUnions.union_left _ _))
-      (subLe_trans (diagSub_le_relSub_xx A₂) (HasSubobjectUnions.union_right _ _))
-  exact subLe_trans hΔ (subLe_trans hsplit
-    (subLe_trans hpieces (relSub_relUnionSub_ge R₁ R₂)))
+      (Subobject.le_trans (diagSub_le_relSub_xx A₁) (HasSubobjectUnions.union_left _ _))
+      (Subobject.le_trans (diagSub_le_relSub_xx A₂) (HasSubobjectUnions.union_right _ _))
+  exact Subobject.le_trans hΔ (Subobject.le_trans hsplit
+    (Subobject.le_trans hpieces (relSub_relUnionSub_ge R₁ R₂)))
 
 /-- **Joint epi** (coproduct-free): when `A₁ ∪ A₂` is entire, the inclusions `A₁.arr, A₂.arr`
     are jointly epimorphic on `A`.  Mirrors `union_inclusions_cover`, replacing the generic monic

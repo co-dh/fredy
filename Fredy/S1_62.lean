@@ -646,7 +646,7 @@ theorem decompose_via_coproduct [DisjointBinaryCoproduct 𝒞] {A B₁ B₂ : �
     have hc : (InverseImage f (HasSubobjectUnions.union Inl Inr)).le
         (HasSubobjectUnions.union (InverseImage f Inl) (InverseImage f Inr)) :=
       (PreLogos.invImage_preserves_union f Inl Inr).1
-    exact subLe_trans ha (subLe_trans hb hc)
+    exact Subobject.le_trans ha (Subobject.le_trans hb hc)
   -- ===== (2) The intersection apex pbI.pt is INITIAL =====
   -- Build a map pbI.pt → (Inl ∩ Inr).dom over B; that subobject is ≤ bottom B, and
   -- bottom B's domain ≅ the coterminator 0, so pbI.pt has a map to 0, hence is iso to 0.
@@ -1050,7 +1050,7 @@ theorem complemented_of_projective_is_projective [DisjointBinaryCoproduct 𝒞]
     refine ⟨(e₂ ≫ ζ) ≫ ψ, ?_⟩
     exact hP₂uniq _ _
   -- (3) P₂ ≤ P₁  (through bottom P), hence union P₁ P₂ collapses to P₁.
-  have hP₂_le_P₁ : P₂.le P₁ := subLe_trans hP₂_le_bot (hPL.bottom_min P₁)
+  have hP₂_le_P₁ : P₂.le P₁ := Subobject.le_trans hP₂_le_bot (hPL.bottom_min P₁)
   -- (4) union P₁ P₂ ≤ P₁  and  entire P ≤ union P₁ P₂, so P₁ is ENTIRE.
   have hUnion_le_P₁ : (HasSubobjectUnions.union P₁ P₂).le P₁ :=
     HasSubobjectUnions.union_min P₁ P₂ P₁ ⟨Cat.id _, Cat.id_comp _⟩ hP₂_le_P₁
@@ -1067,9 +1067,9 @@ theorem complemented_of_projective_is_projective [DisjointBinaryCoproduct 𝒞]
     have hc : (InverseImage σ (HasSubobjectUnions.union Inl_B Inr_P')).le
         (HasSubobjectUnions.union (InverseImage σ Inl_B) (InverseImage σ Inr_P')) :=
       (PreLogos.invImage_preserves_union σ Inl_B Inr_P').1
-    exact subLe_trans ha (subLe_trans hb hc)
+    exact Subobject.le_trans ha (Subobject.le_trans hb hc)
   have hP₁_entire : P₁.IsEntire :=
-    entire_of_entire_le (subLe_trans hEntireP_le_union hUnion_le_P₁)
+    entire_of_entire_le (Subobject.le_trans hEntireP_le_union hUnion_le_P₁)
   -- (5) q₁ = P₁.arr is iso; r := q₁⁻¹ ≫ g₁ : P → B  is the section.
   obtain ⟨q₁inv, hq₁q₁inv, hq₁inv_q₁⟩ := hP₁_entire   -- q₁ ≫ q₁inv = id, q₁inv ≫ q₁ = id
   -- q₁ = g₁ ≫ y   (push q₁≫σ=g₁≫inl through h, then inl_P monic).
@@ -1240,7 +1240,7 @@ theorem complementedSub_symm [HasBinaryCoproducts 𝒞] {A : 𝒞} {U U₂ : Sub
     (hdisj : Subobject.le (Subobject.inter U U₂) (PreLogos.bottom A))
     (hentire : Subobject.le (Subobject.entire A) (HasSubobjectUnions.union U U₂)) :
     IsComplementedSub U₂ :=
-  ⟨U, subLe_trans (inter_comm_le U₂ U) hdisj, subLe_trans hentire (union_comm_le U U₂)⟩
+  ⟨U, Subobject.le_trans (inter_comm_le U₂ U) hdisj, Subobject.le_trans hentire (union_comm_le U U₂)⟩
 
 /-! ## §1.633 Characterization of capital positive pre-logoi
 
@@ -1356,7 +1356,7 @@ theorem point_inl_complementedSubterminator [DisjointBinaryCoproduct 𝒞] {B₁
     have hc := (PreLogos.invImage_preserves_union φ
       (inlSub (𝒞 := 𝒞) (A := B₁) (B := B₂) inl_mono)
       (inrSub (𝒞 := 𝒞) (A := B₁) (B := B₂) inr_mono)).1
-    exact subLe_trans ha (subLe_trans hb hc)
+    exact Subobject.le_trans ha (Subobject.le_trans hb hc)
   have hcomp : IsComplementedSub U := ⟨U₂, hdisj, hcover⟩
   exact ⟨U, U₂, pbU.cone.π₂, pbR0.cone.π₂, hcomp, hcover, hrel₁, hrel₂⟩
 
@@ -1454,7 +1454,7 @@ theorem coprodMapOne_image_proper {A' A : 𝒞} (m : A' ⟶ A)
     have him_le : (image (coprodMapOne m)).le (HasSubobjectUnions.union J Kr) :=
       image_min (coprodMapOne m) _ hUimg.1
     obtain ⟨inv, hinv1, hinv2⟩ := hEntire        -- (image …).arr is iso
-    refine subLe_trans (Y := image (coprodMapOne m)) ?_ him_le
+    refine Subobject.le_trans (Y := image (coprodMapOne m)) ?_ him_le
     -- entire (A+1) ≤ image..  via the inverse `inv` of (image..).arr.
     exact ⟨inv, hinv2⟩
   -- The `inl⁻¹` lattice-hom chain: entire A ≤ inl⁻¹(entire) ≤ inl⁻¹(union J Kr)
@@ -1478,16 +1478,16 @@ theorem coprodMapOne_image_proper {A' A : 𝒞} (m : A' ⟶ A)
     show image.lift m ≫ ((image m).arr ≫ HasBinaryCoproducts.inl) = m ≫ HasBinaryCoproducts.inl
     rw [← Cat.assoc, image.lift_fac]
   have hJl : (InverseImage il J).le (image m) :=
-    subLe_trans (invImage_mono_local il hJ_le) (invImage_postcompSub_le (image m) inl_mono)
+    Subobject.le_trans (invImage_mono_local il hJ_le) (invImage_postcompSub_le (image m) inl_mono)
   -- inl⁻¹ Kr ≤ bottom A ≤ image m :  Kr = image inr ≤ inrSub, so inl⁻¹ Kr ≤ inl⁻¹ inrSub = inl ∩ inr ≤ ⊥.
   have hKr_le : Kr.le (inrSub (𝒞 := 𝒞) (A := A) (B := one) inr_mono) :=
     image_min _ _ ⟨Cat.id _, Cat.id_comp _⟩
   have hKl : (InverseImage il Kr).le (image m) :=
     -- inl⁻¹ Kr ≤ inl⁻¹ inrSub ≤ image m  (the latter has an initial domain).
-    subLe_trans (invImage_mono_local il hKr_le)
+    Subobject.le_trans (invImage_mono_local il hKr_le)
       (invImage_inl_inrSub_le_any (A := A) (B := one) (image m))
   -- assemble: entire A ≤ inl⁻¹(entire) ≤ inl⁻¹(union) ≤ union(inl⁻¹J)(inl⁻¹Kr) ≤ image m.
-  exact subLe_trans ha (subLe_trans hb (subLe_trans hc
+  exact Subobject.le_trans ha (Subobject.le_trans hb (Subobject.le_trans hc
     (HasSubobjectUnions.union_min _ _ _ hJl hKl)))
 
 section Distributivity
@@ -1613,9 +1613,9 @@ theorem prodCoprod_entire_le_union (A B C : 𝒞) :
                                       (InverseImage f (inrSub (𝒞 := 𝒞) (A := A) (B := B) inr_mono))).le
       (HasSubobjectUnions.union (prodCoprodInlSub A B C) (prodCoprodInrSub A B C)) :=
     HasSubobjectUnions.union_min _ _ _
-      (subLe_trans (invImg_fst_inl_le A B C) (HasSubobjectUnions.union_left _ _))
-      (subLe_trans (invImg_fst_inr_le A B C) (HasSubobjectUnions.union_right _ _))
-  exact subLe_trans ha (subLe_trans hb (subLe_trans hc hd))
+      (Subobject.le_trans (invImg_fst_inl_le A B C) (HasSubobjectUnions.union_left _ _))
+      (Subobject.le_trans (invImg_fst_inr_le A B C) (HasSubobjectUnions.union_right _ _))
+  exact Subobject.le_trans ha (Subobject.le_trans hb (Subobject.le_trans hc hd))
 
 /-- **Disjointness half**: the two summands are disjoint, `(inl×id) ∩ (inr×id) ≤ ⊥`.
     A point of the intersection (pullback of `inl×id`, `inr×id`) has `fst`-images colliding
@@ -1716,12 +1716,12 @@ theorem capital_iff_complemented_subterminators :
         have hmono : (HasSubobjectUnions.union U U₂).le
             (HasSubobjectUnions.union (image U.arr) (image U₂.arr)) :=
           HasSubobjectUnions.union_min _ _ _
-            (subLe_trans hUle (HasSubobjectUnions.union_left _ _))
-            (subLe_trans hU₂le (HasSubobjectUnions.union_right _ _))
+            (Subobject.le_trans hUle (HasSubobjectUnions.union_left _ _))
+            (Subobject.le_trans hU₂le (HasSubobjectUnions.union_right _ _))
         -- union (image U.arr) (image U₂.arr) ≤ image c  (it is an image of `c`, `image c` minimal-target).
         have huac : (HasSubobjectUnions.union (image U.arr) (image U₂.arr)).le (image c) :=
           (union_via_coproduct_image U.arr U₂.arr).2 (image c) (image_allows c)
-        exact subLe_trans hcover (subLe_trans hmono huac)
+        exact Subobject.le_trans hcover (Subobject.le_trans hmono huac)
       -- `c ≫ p` factors through `coprodMapOne m`:  both `inl`/`inr` legs do.
       let d : HasBinaryCoproducts.coprod U.dom U₂.dom ⟶ HasBinaryCoproducts.coprod A' one :=
         HasBinaryCoproducts.case (y ≫ HasBinaryCoproducts.inl) (f₂ ≫ HasBinaryCoproducts.inr)

@@ -1,9 +1,9 @@
 /-
   Freyd & Scedrov, *Categories and Allegories* §1.658  Complement infrastructure.
 
-  This file builds the reusable §1.658 ("decidable object") infrastructure that the
-  three boolean `Sorry`s of `S1_64` consume, all stated over the CORRECT inter-based
-  complement predicate `IsComplementedSub` (`S1_62`):
+  This file builds the reusable §1.658 ("decidable object") infrastructure consumed
+  by the boolean decidability theorems of `S1_64`, all stated over the CORRECT
+  inter-based complement predicate `IsComplementedSub` (`S1_62`):
 
       A₁ ⊆ A is complemented  ⇔  ∃ A₂, A₁ ∩ A₂ ≤ ⊥  and  ⊤ ≤ A₁ ∪ A₂.
 
@@ -29,10 +29,6 @@ namespace Freyd
 -- `HasImages` (via `RegularCategory`).  Declaring those separately would create an
 -- instance diamond with the `PreLogos`-derived ones, so we take only `[PreLogos 𝒞]`.
 variable [PreLogos 𝒞]
-
-/-- Transitivity of `Subobject.le`. -/
-theorem subLe_trans' {W : 𝒞} {X Y Z : Subobject 𝒞 W} (h₁ : X.le Y) (h₂ : Y.le Z) : X.le Z :=
-  Subobject.le_trans h₁ h₂
 
 /-! ## §1.61 The bottom subobject is least *as a subobject* (not just up to domain iso)
 
@@ -102,8 +98,8 @@ theorem Subobject.le_inter {B : 𝒞} {S T U : Subobject 𝒞 B}
 theorem Subobject.inter_mono {B : 𝒞} {S S' T T' : Subobject 𝒞 B}
     (hS : S.le S') (hT : T.le T') : (Subobject.inter S T).le (Subobject.inter S' T') :=
   Subobject.le_inter
-    (subLe_trans' (Subobject.inter_le_left S T) hS)
-    (subLe_trans' (Subobject.inter_le_right S T) hT)
+    (Subobject.le_trans (Subobject.inter_le_left S T) hS)
+    (Subobject.le_trans (Subobject.inter_le_right S T) hT)
 
 /-! ## §1.452 Inverse image preserves intersection
 
@@ -149,7 +145,7 @@ theorem invImage_complementedSub {B C : 𝒞} (f : B ⟶ C) {K : Subobject 𝒞 
         (InverseImage f (PreLogos.bottom C)) := inverseImage_mono f hdisj
     have h3 : (InverseImage f (PreLogos.bottom C)).le (PreLogos.bottom B) :=
       le_bottom_of_dom_iso _ (PreLogos.invImage_preserves_bottom f)
-    exact subLe_trans' h1 (subLe_trans' h2 h3)
+    exact Subobject.le_trans h1 (Subobject.le_trans h2 h3)
   · -- cover
     have h1 : (Subobject.entire B).le (InverseImage f (Subobject.entire C)) :=
       entire_le_invImage_entire f
@@ -158,7 +154,7 @@ theorem invImage_complementedSub {B C : 𝒞} (f : B ⟶ C) {K : Subobject 𝒞 
     have h3 : (InverseImage f (HasSubobjectUnions.union K K₂)).le
         (HasSubobjectUnions.union (InverseImage f K) (InverseImage f K₂)) :=
       (PreLogos.invImage_preserves_union f K K₂).1
-    exact subLe_trans' h1 (subLe_trans' h2 h3)
+    exact Subobject.le_trans h1 (Subobject.le_trans h2 h3)
 
 /-! ## §1.658 (2) Domain of a relation
 
@@ -231,12 +227,12 @@ def diagSub (A : 𝒞) : Subobject 𝒞 (prod A A) :=
 def DecidableObjectSub (A : 𝒞) : Prop := IsComplementedSub (diagSub A)
 
 /-- Monotonicity of the subobject union, from `union_min` + `union_left/right`. -/
-theorem union_mono' {B : 𝒞} {S S' T T' : Subobject 𝒞 B}
+theorem union_mono {B : 𝒞} {S S' T T' : Subobject 𝒞 B}
     (hS : S.le S') (hT : T.le T') :
     (HasSubobjectUnions.union S T).le (HasSubobjectUnions.union S' T') :=
   HasSubobjectUnions.union_min _ _ _
-    (subLe_trans' hS (HasSubobjectUnions.union_left S' T'))
-    (subLe_trans' hT (HasSubobjectUnions.union_right S' T'))
+    (Subobject.le_trans hS (HasSubobjectUnions.union_left S' T'))
+    (Subobject.le_trans hT (HasSubobjectUnions.union_right S' T'))
 
 /-- `IsComplementedSub` is invariant under subobject equality (mutual `≤`): if `S` and `T`
     are the same subobject and `T` is complemented, then so is `S` (with the same complement).
@@ -245,8 +241,8 @@ theorem IsComplementedSub_congr {A : 𝒞} {S T : Subobject 𝒞 A}
     (hST : S.le T) (hTS : T.le S) (hT : IsComplementedSub T) : IsComplementedSub S := by
   obtain ⟨T₂, hdisj, hcover⟩ := hT
   refine ⟨T₂, ?_, ?_⟩
-  · exact subLe_trans' (Subobject.inter_mono hST (by exact ⟨Cat.id _, Cat.id_comp _⟩)) hdisj
-  · exact subLe_trans' hcover (union_mono' hTS (by exact ⟨Cat.id _, Cat.id_comp _⟩))
+  · exact Subobject.le_trans (Subobject.inter_mono hST (by exact ⟨Cat.id _, Cat.id_comp _⟩)) hdisj
+  · exact Subobject.le_trans hcover (union_mono hTS (by exact ⟨Cat.id _, Cat.id_comp _⟩))
 
 /-- **§1.658 diagonal-classifies**: if `A` is decidable and `c : B → A×A` is a classifying
     map, then the inverse image `c# (Δ A) ⊆ B` is complemented.  This transfers decidability
