@@ -1331,8 +1331,31 @@ theorem pre_positive_semi_simple_iff_metonymic {𝒜 : Type u} [PrePositivePower
 theorem equivRel_idem {𝒜 : Type u} [DivisionAllegory 𝒜] {a : 𝒜} {E : a ⟶ a}
     (hE : EquivalenceRel E) : E ≫ E = E :=
   symmetric_transitive_idempotent hE.2.1 hE.2.2
--- In a power allegory every equivalence relation is of the form ff°.
--- (Needs: Reflexive/Symmetric/Transitive for E, then symm_div_eq_A_comp + box match.)
+
+/-- **§2.422**: In a power allegory, every equivalence relation `E` has the form `f ≫ f°`
+    for a map `f = A(E)`.  Proof: `E = E /ₛ E` (div-allegory idempotence) then
+    `symm_div_eq_A_comp` gives `E /ₛ E = A(E) ≫ (A E)°`. -/
+theorem equivRel_eq_map_comp_recip {𝒜 : Type u} [PowerAllegory 𝒜] {a : 𝒜} (E : a ⟶ a)
+    (hE : EquivalenceRel E) (hbox : codBox E = codBox (∋ a)) :
+    ∃ (f : a ⟶ PowerAllegory.powerObj a), Map f ∧ E = f ≫ f° := by
+  refine ⟨A E, A_is_map E hbox, ?_⟩
+  -- Step 1: E = E /ₛ E  (idempotence in division allegory)
+  have hEidem : E = E /ₛ E := by
+    apply le_antisymm
+    · -- E ⊑ E /ₛ E: by le_symmDiv_iff, need (i) E ≫ E ⊑ E and (ii) E° ≫ E ⊑ E
+      rw [le_symmDiv_iff]
+      refine ⟨hE.2.2, ?_⟩        -- (i) Transitive E
+      -- (ii) E° ≫ E ⊑ E: E° ⊑ E (Symmetric), so E° ≫ E ⊑ E ≫ E ⊑ E
+      exact le_trans (comp_mono_right hE.2.1 E) hE.2.2
+    · -- E /ₛ E ⊑ E: (E /ₛ E) ≫ E ⊑ E from le_symmDiv_iff on ≤-refl;
+      --   then E /ₛ E = (E /ₛ E) ≫ 1 ⊑ (E /ₛ E) ≫ E ⊑ E using Reflexive E
+      have hEE_E : (E /ₛ E) ≫ E ⊑ E := ((le_symmDiv_iff _ _ _).mp (le_refl _)).1
+      have h1 : E /ₛ E ⊑ (E /ₛ E) ≫ E := by
+        have := comp_mono_left (E /ₛ E) hE.1  -- (E /ₛ E) ≫ 1 ⊑ (E /ₛ E) ≫ E
+        rwa [Cat.comp_id] at this
+      exact le_trans h1 hEE_E
+  -- Step 2: E /ₛ E = A(E) ≫ (A E)° by symm_div_eq_A_comp, then chain with hEidem
+  exact hEidem.trans (symm_div_eq_A_comp E E hbox)
 
 /-! ## §2.423  Connected power allegory has a unit -/
 
