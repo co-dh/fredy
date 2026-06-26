@@ -789,18 +789,47 @@ theorem prelogos_representation_theorem (A : Type u) [Cat.{u} A] [PositivePreLog
 
 -- BOOK §1.634: If A is a pre-logos then T_ℱ preserves disjoint unions iff
 --   (0 ∉ ℱ) and (U₁+U₂ ∈ ℱ implies U₁ ∈ ℱ or U₂ ∈ ℱ).
--- TODO: needs positive pre-logos + a formal `preservesDisjointUnions T_ℱ` predicate;
--- stated informally here pending `PrefilterMap` equivalence-class quotient.
+-- INFRA-BLOCKED. Two things are missing:
+--   (1) A quotient type `TF (ℱ : ...) (A : 𝒞) : Type` making `PrefilterMap ℱ A` into the
+--       actual colimit-of-Hom-sets (equivalence classes under `(U,f) ~ (V,g)` when ∃ W ≤ U,V
+--       in ℱ with W→A agreeing).  The current `PrefilterMap` is just the pre-sheaf of
+--       representatives, not the colimit quotient.
+--   (2) A `PreservesDisjointUnions (TF ℱ)` predicate (functor maps disjoint-coproduct
+--       subobjects to disjoint-coproduct subobjects in Set); requires `[DisjointBinaryCoproduct 𝒞]`
+--       and the filter conditions `0 ∉ ℱ` and `(U₁+U₂ ∈ ℱ → U₁ ∈ ℱ ∨ U₂ ∈ ℱ)`.
 
 -- BOOK §1.635: If F̂ is an ultra-filter in the boolean algebra of complemented
--- subterminators, then T_F̂ is a representation of pre-logoi.
--- TODO: needs ultra-filter (axiom of choice) + `PreLogosFunctor` predicate.
--- The faithful-representation half is `prelogos_representation_theorem` above.
+-- subterminators, then T_F̂ is a representation of pre-logoi (union-preserving).
+-- INFRA-BLOCKED. Requires:
+--   (1) `IsUltraFilter (ℱ : Subobject 𝒞 one → Prop)`: an ultra-filter in the Boolean
+--       algebra of complemented subterminators (`IsComplementedSub` lattice) — needs
+--       `Classical.choice` / Zorn's lemma to produce one from a proper filter.
+--   (2) `PreLogosFunctor T`: a Lean predicate asserting T preserves finite products,
+--       equalizers, images, AND disjoint unions (= representation of pre-logoi), not
+--       yet defined anywhere.
+--   (3) The proof that `TF F̂` (with F̂ ultra) satisfies `PreLogosFunctor` — depends
+--       on §1.634's `PreservesDisjointUnions` result (INFRA-BLOCKED above).
+-- The faithful-representation half (`SeparatesMaps`) is `prelogos_representation_theorem`.
 
 -- BOOK §1.636: Any Horn sentence in the predicates of pre-logoi that holds for the
 -- category of sets holds for all positive pre-logoi.
--- TODO: this is a meta-theorem (transfer along §1.635 representation); not directly
--- formalizable as a single Lean statement without a reflection layer.
+-- INFRA-BLOCKED. §1.636 is a DIFFERENT Horn metatheorem from §1.444 (Horn.lean):
+--   - §1.444 Horn.lean covers Cartesian predicates (terminator / product / equalizer).
+--   - §1.636 covers PRE-LOGOS predicates: additionally `image`, `disjoint coproduct`,
+--     `zero object`, `union of subobjects` — none of these appear in `Freyd.Horn.Atom`.
+-- To formalize §1.636 one needs:
+--   (1) An extended `PreLogosAtom` inductive adding `image`, `disjointCoprod`, `zero`,
+--       `union` constructors with well-typed morphism variables.
+--   (2) `HoldsInPreLogos 𝒞 φ` semantics interpreting those atoms via the pre-logos
+--       operations (`HasImages`, `DisjointBinaryCoproduct`, `PreLogos.bottom`, etc.).
+--   (3) Preservation theorems for each new predicate under `T_F̂` — the functional core
+--       of §1.634–1.635 (INFRA-BLOCKED above).
+--   (4) Reflection theorems (collective faithfulness for the extended language via
+--       `prelogos_representation_theorem`).
+-- Transfer route: once (1)–(4) are in place, the proof follows §1.444's pattern:
+-- for each `i`, `pushEnv i ρ` preserves all pre-logos predicates by (3); truth-for-Set
+-- gives the conclusion; reflection (4) pulls it back.  But (1)–(3) are substantial new
+-- infra, not a one-liner extension of `Horn.lean`.
 
 /-- FILTER in a subobject lattice: up-closed pre-filter (§1.634). -/
 def IsFilter (ℱ : (Subobject 𝒞 one) → Prop) : Prop :=
