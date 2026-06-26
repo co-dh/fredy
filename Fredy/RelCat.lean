@@ -1036,6 +1036,71 @@ noncomputable def embedRel {a b : 𝒞} (f : a ⟶ b) :
 theorem embedRel_faithful {a b : 𝒞} {f g : a ⟶ b} (h : embedRel f = embedRel g) : f = g :=
   relClass_graph_inj (a := a) (b := b) (Subtype.ext_iff.mp h)
 
+/-- **§2.148-dual (fullness)**: every `Map` in `Rel(C)` is the graph of a unique `C`-morphism.
+    Given `R : BinRel C a b` whose class is a map (`Alg.Map (relClass R)`), there is `f : a ⟶ b`
+    with `relClass R = relClass (graph f)` — i.e. `f` realises `R` via `embedRel f`.
+
+    Proof: `map_relClass` lowers `Alg.Map (relClass R)` to `Map R` (entire+simple at the BinRel
+    level).  `tabulated_is_map_iff_left_iso` (§1.564) turns that into `IsIso R.colA` — its left
+    leg is a cover (entire) and monic (simple), and a regular category is balanced, so cover+mono
+    ⟹ iso (`monic_cover_iso`).  With the inverse `i := R.colA⁻¹`, set `f := i ≫ R.colB`;
+    `tabulated_left_iso_eq_graph` (§1.564) gives `R ≈ graph f` (mutual `⊂`), collapsed by
+    `quotLe_antisymm`.  (`R` and `BinRel.mk R.src R.colA R.colB R.isMonicPair` are defeq by η.) -/
+theorem embedRel_full {a b : 𝒞} (R : BinRel 𝒞 a b)
+    (M : Freyd.Alg.Map (𝒜 := RelObj 𝒞) (a := ⟨a⟩) (b := ⟨b⟩) (relClass R)) :
+    ∃ f : a ⟶ b, relClass R = relClass (graph f) := by
+  have hmapR : Map R := (map_relClass R).mp M
+  -- left leg is an iso (cover ∧ monic, then balance)
+  have hiso : IsIso R.colA :=
+    (tabulated_is_map_iff_left_iso R.colA R.colB R.isMonicPair).mp hmapR
+  obtain ⟨i, hi₁, hi₂⟩ := hiso  -- i = R.colA⁻¹ : a ⟶ R.src
+  refine ⟨i ≫ R.colB, ?_⟩
+  obtain ⟨hle, hge⟩ :=
+    tabulated_left_iso_eq_graph R.colA R.colB R.isMonicPair i hi₁ hi₂
+  exact quotLe_antisymm (relClass_mono hle) (relClass_mono hge)
+
+/-! ### The functor `embedRel : C → Map(Rel C)` and the category iso `C ≅ Map(Rel C)`.
+
+  `embedRel` is identity-on-objects (`⟨a⟩ = RelObj.mk a`), functorial (`embedRel_id`,
+  `embedRel_comp`), faithful (`embedRel_faithful`) and full (`embedRel_full` — every Map is a
+  graph).  These four facts ARE the iso of categories `C ≅ Map(Rel C)` (§2.148 dual / §2.214). -/
+
+/-- `embedRel` preserves identities: `embedRel (id a) = id ⟨a⟩` in `Map(Rel C)`.  Both sides have
+    `val = relClass (graph (id a)) = relId a` (the `relCat` identity), and `Map`-witnesses are
+    proof-irrelevant, so `Subtype.ext` closes it. -/
+theorem embedRel_id (a : 𝒞) :
+    embedRel (Cat.id a) = @Cat.id (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞)) ⟨a⟩ :=
+  Subtype.ext rfl
+
+/-- `embedRel` preserves composition: `embedRel (f ≫ g) = embedRel f ≫ embedRel g`.  On `val`
+    this is `relClass (graph (f ≫ g)) = qComp (relClass (graph f)) (relClass (graph g))`, the
+    mutual-`⊂` graph-composition law (`graph_comp` / `comp_graph`) collapsed by `quotLe_antisymm`. -/
+theorem embedRel_comp {a b c : 𝒞} (f : a ⟶ b) (g : b ⟶ c) :
+    embedRel (f ≫ g)
+      = @Cat.comp (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞)) ⟨a⟩ ⟨b⟩ ⟨c⟩
+          (embedRel f) (embedRel g) :=
+  Subtype.ext (quotLe_antisymm (graph_comp f g) (comp_graph f g))
+
+/-- **§2.148 dual / §2.214 core — `C ≅ Map(Rel C)`.**  The graph embedding is an isomorphism of
+    categories: identity-on-objects (`⟨·⟩`), functorial (`embedRel_id`/`embedRel_comp`), FAITHFUL
+    (`embedRel_faithful`) and FULL (`embedRel_full`: every Map of `Rel C` is a unique graph).
+    Packaged as the conjunction of the bijection-on-homs facts; downstream transport of structure
+    (limits, coproducts) along this iso uses fullness to lift a `Map`-morphism back to a
+    `C`-morphism. -/
+theorem embedRel_cat_iso :
+    (∀ {a b : 𝒞} {f g : a ⟶ b}, embedRel f = embedRel g → f = g) ∧
+    (∀ {a b : 𝒞} (m : @Cat.Hom (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞)) ⟨a⟩ ⟨b⟩),
+        ∃ f : a ⟶ b, m = embedRel f) :=
+  ⟨fun h => embedRel_faithful h,
+   fun {a b} m => by
+     -- `m.val : BinRelQuot a b` is a quotient class; pick a representative `R` with `[R] = m.val`.
+     refine Quotient.inductionOn (motive := fun q => (hq : Freyd.Alg.Map (𝒜 := RelObj 𝒞) q) →
+        ∃ f : a ⟶ b, (⟨q, hq⟩ : @Cat.Hom (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞)) ⟨a⟩ ⟨b⟩)
+          = embedRel f) m.val ?_ m.property
+     intro R hq
+     obtain ⟨f, hf⟩ := embedRel_full (a := a) (b := b) R hq
+     exact ⟨f, Subtype.ext hf⟩⟩
+
 end GraphEmbedding
 
 /-! ### §2.217(1)  A positive pre-logos embeds faithfully in a POSITIVE pre-logos.

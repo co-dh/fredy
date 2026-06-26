@@ -416,8 +416,26 @@ theorem splitting_recip {a b : 𝒜} {R : a ⟶ b} {S : b ⟶ a}
 -- FORWARD (positive ⟹ Rel(C) coproducts) PROVED: Fredy.DisjointGluing.relCoproduct (RelCat.lean),
 --   all five §2.2 equations incl eq(5) (relGraph_recip_union_eq_id).
 -- BOOK §2.214 REVERSE (Rel(C) coproducts ⟹ C positive): reads the coproduct back through
---   Map(Rel C) ≅ C; needs the FULL equivalence (embedRel is faithful in RelCat.lean; fullness +
---   ess-surj still to package).
+--   Map(Rel C) ≅ C.  The category iso is now FULLY PACKAGED in RelCat.lean:
+--     • identity-on-objects (`⟨·⟩ : C → RelObj C = MapObj (RelObj C)`),
+--     • functorial (`RelCat.embedRel_id`, `RelCat.embedRel_comp`),
+--     • FAITHFUL (`RelCat.embedRel_faithful`),
+--     • FULL (`RelCat.embedRel_full`: every `Map` of `Rel C` is a unique graph — the §2.148 dual,
+--       proved from regular-category balance `monic_cover_iso` via `tabulated_is_map_iff_left_iso`
+--       / `tabulated_left_iso_eq_graph`), bundled as `RelCat.embedRel_cat_iso`.
+--   ONE BRICK REMAINS for the reverse instance `[PositiveAllegory (RelObj C)] → DisjointBinaryCoproduct C`:
+--   transporting the `DisjointBinaryCoproduct (MapObj (RelObj C))` of `MapCat.mapDisjointBinaryCoproduct`
+--   (which fires from a `TabularUnitaryPositiveAllegory (RelObj C)`) back along the iso to a
+--   `DisjointBinaryCoproduct C` — i.e. pull `HasBinaryCoproducts`/`PositivePreLogos`/disjointness
+--   through `embedRel_cat_iso` (coprod object via id-on-objects; `inl`/`inr` and the case-map via
+--   fullness; disjointness `inl∩inr=0`, `inl∪inr=1` reflected by faithfulness).  This transport has
+--   NO equivalence-transport infrastructure in the repo and hits a TC DIAMOND: an arbitrary instance
+--   `[PositiveAllegory (RelObj C)]` carries its own `Allegory (RelObj C)`/`Cat (RelObj C)` that does
+--   NOT defeq-share `relAllegory` (built from `[PositivePreLogos C]`), so `relTabularAllegory`/
+--   `relUnitaryAllegory` cannot be merged with the hypothesis to form `TabularUnitaryPositiveAllegory
+--   (RelObj C)` without a `Subsingleton`-style coherence of the two allegory structures.  Closing it
+--   needs either (a) a generic `DisjointBinaryCoproduct` transport-along-a-category-iso lemma, or
+--   (b) stating the reverse with the positive-allegory structure built ON TOP of `relAllegory`.
 
 /-- §2.215 positivity of the matrix allegory: every distributive allegory `𝒜` gives a positive
     allegory `MatObj 𝒜`. The coproduct `X ⊕ Y` is the concatenated index family; the injections
