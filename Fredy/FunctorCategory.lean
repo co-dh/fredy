@@ -131,10 +131,8 @@ theorem natTrans_monic_of_components_monic {F G : FunctorObj 𝒜 𝒮}
     h A (β.app A) (γ.app A) (congrFun (congrArg NaturalTransformation.app hβγ) A)
 
 -- §1.462 (hard direction): if α is monic in `𝒮^A`, every component is monic.
--- Requires evaluation functors ev_A : 𝒮^A → 𝒮 and their faithfulness.
 -- BOOK §1.462: ev_A is faithful (NTs equal iff all components equal), hence reflects monics.
--- Formalization requires ev_A as a named functor + Faithful instance (S1_274).
--- Left as TODO; the easy direction suffices for Freyd's Ch1 applications.
+-- PROVED: `natTrans_monic_components` below (via kernel-pair diagonal, §1.453).
 
 /-! ## §1.521  Pointwise pullbacks in `𝒮^A` -/
 

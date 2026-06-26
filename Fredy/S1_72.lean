@@ -558,14 +558,10 @@ class FocalLogos (𝒞 : Type u) [Cat.{v} 𝒞] extends Logos 𝒞 where
   "A poset, when viewed as a category, is a logos iff it is a Heyting algebra."
   (Freyd §1.722, combining §1.721 and §1.613.)
 
-  We prove the (⟹) direction: every Heyting algebra, viewed as a thin category
-  via `PLift (le a b)` as hom-sets, is a logos.  The object `a` has `Sub(a) ≅ ↓a`
-  (downward-closed subsets below `a`), and the logos structure corresponds exactly
-  to the Heyting algebra structure on the underlying poset.
-
-  (⟸) direction (thin logos ⟹ Heyting algebra) is a TODO: it requires inverting the
-  construction, showing that the pullback = meet, cover = iso, and the right-adjoint
-  image gives the implication. -/
+  Both directions are proved:
+  - `(⟹)` = `heytingPoset_is_logos`: any `HeytingPoset` gives a `Logos` on its carrier.
+  - `(⟸)` = `thinLogos_is_heytingPoset`: any thin logos (at universe 0) produces a
+    `HeytingPoset`.  PROVED: `thinLogos_is_heytingPoset` in `Fredy/S1_72.lean`. -/
 
 /-- A Heyting algebra as a bundled poset: carrier, ordering, lattice ops, implication. -/
 structure HeytingPoset where

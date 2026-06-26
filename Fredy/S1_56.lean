@@ -697,6 +697,9 @@ theorem graph_is_map {A B : 𝒞} [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [
     and R is simple", which is a Horn sentence in the predicates of regular
     categories, transferred back from S.) -/
 -- BOOK §1.564: given R s.t. for all reps F:A→S, F(R) is a map, then R is a map.
+-- OPEN: no named theorem. Infrastructure exists (`horn_sentence_reflected_by_faithful` in this
+-- file), but the wiring — expressing "R is a map" as a `HornSentence` with a `ReflectedBy`
+-- datum for the representation F — has not been assembled.
 
 /-! ## §1.56(11) Projective ↔ every entire relation contains a map
 

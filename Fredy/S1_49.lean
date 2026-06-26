@@ -1679,14 +1679,11 @@ theorem canon_prod_unit_right (τ : TCat 𝒞) (A : 𝒞)
 
 -- BOOK §1.49(10) PULLBACK PASTING: If each square in a two-square horizontal diagram
 -- is a pullback, then the outer rectangle is a pullback; and conversely (cancel).
--- The ABSTRACT Cone-based form is proved in Fredy.S1_45:
+-- ABSTRACT FORM: PROVED — `Freyd.pullback_paste` and `Freyd.pullback_cancel` in Fredy/S1_45.lean.
 --   `Freyd.pullback_paste`  (S1_45.lean) — both squares pb ⟹ rectangle pb
 --   `Freyd.pullback_cancel` (S1_45.lean) — right square pb + rectangle pb ⟹ left square pb
--- The τ-CATEGORY specialisation (canonical pullback tables strictly paste) follows from
--- tau1-uniqueness: a Cone.IsPullback with the canonical table witness is still canonical.
--- That τ-table form is deferred: it requires identifying canonical pullback tables with
--- 2-column τ-tables satisfying the commutative-square equation π₁ ≫ f = π₂ ≫ g, which in
--- turn needs a bridge between Table.col and Cone.π₁/π₂ (not yet built in this file).
+-- τ-TABLE FORM: OPEN — The specialisation to canonical pullback Tables in a τ-category follows
+-- from tau1-uniqueness, but requires a bridge between Table.col and Cone.π₁/π₂ (not yet built).
 
 end CanonicalProdLaws
 
