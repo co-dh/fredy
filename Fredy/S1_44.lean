@@ -268,6 +268,9 @@ theorem sliceLift_unique {𝒜 : Type u} [Cat.{v} 𝒜] {B : 𝒜}
     `yonedaMap`            — `H_f` is the induced natural transformation;
     `yoneda_faithful`      — `H` is faithful (`H_f = H_g ⟹ f = g`);
     `yonedaMap_id/_comp`   — `H` is functorial;
+    `yoneda_full`          — `H` is FULL (every NT H_B ⟹ H_C is H_f, Yoneda lemma);
+    `yoneda_full_unique`   — the preimage `f` is unique;
+    `yoneda_full_faithful` — packages full+faithful: Nat(H_B, H_C) ≅ Hom(B,C);
     `yoneda_reflects_mono` — `H` reflects monics;
     `yoneda_preserves_term`— `H` carries the terminator to a terminal presheaf;
     `yonedaProd_*`         — `H` preserves binary products (pointwise iso). -/
@@ -386,6 +389,67 @@ theorem yonedaProd_fwd_nat (B C : 𝒞) {X Y : 𝒞} (g : Y ⟶ X) (h : X ⟶ pr
     yonedaProdFwd B C Y (g ≫ h)
       = (g ≫ (yonedaProdFwd B C X h).1, g ≫ (yonedaProdFwd B C X h).2) := by
   simp only [yonedaProdFwd]; rw [Cat.assoc, Cat.assoc]
+
+/-! ### §1.464  FULLNESS: the Yoneda embedding H : A → 𝒮^(A°) is FULL
+
+  The YONEDA LEMMA: `Nat(H_B, H_C) ≅ Hom(B, C)`.  The bijection sends
+  `α : H_B ⟹ H_C` to `α_B(id_B) : B ⟶ C`; its inverse sends `f : B ⟶ C`
+  to `H_f = yonedaMap f`.
+
+  Proof of fullness: given `α : FunctorHom (yonedaObj B) (yonedaObj C)`, set
+  `f := α.app B (Cat.id B)`.  For any `X` and `h : X ⟶ B`, naturality of `α`
+  at `h` (viewed as an OppCat morphism `B ⟶ X`) evaluated at `id_B` gives:
+    α_X(preComp B h id_B) = preComp C h (α_B id_B)
+  i.e. α_X(h ≫ id_B) = h ≫ α_B(id_B), i.e. α_X(h) = h ≫ f = (H_f)_X(h).
+  So α = yonedaMap f.
+
+  Universe note: the cross-universe gap between `Cat.{w} 𝒞` and `Cat.{w+1}`
+  on `FunctorObj (OppCat 𝒞) (Type w)` prevents use of the `Full` typeclass
+  (which requires the same Cat level on source and target).  We therefore state
+  fullness directly as an existence+uniqueness result. -/
+
+/-- §1.464 (Yoneda lemma, key step): `α_X h = h ≫ α_B(id_B)` for every
+    `α : H_B ⟹ H_C` and `h : X ⟶ B`.  Proved by evaluating the naturality
+    square at the OppCat morphism `h : B ⟶ X` at `id_B`. -/
+private theorem yoneda_app_eq {B C X : 𝒞}
+    (α : FunctorHom (yonedaObj B) (yonedaObj C)) (h : @Cat.Hom 𝒞 inst X B) :
+    α.app X h = h ≫ α.app B (Cat.id B) := by
+  have nat := congrFun (α.naturality (f := (show @Cat.Hom (OppCat 𝒞) _ B X from h))) (Cat.id B)
+  simp only [Horn.set_comp] at nat
+  have key_lhs : @Freyd.Functor.map (OppCat 𝒞) _ (Type w) _ (yonedaObj B).obj _ _ _
+      (show @Cat.Hom (OppCat 𝒞) _ B X from h) (Cat.id B) = h :=
+    @Cat.comp_id 𝒞 inst X B h
+  have key_rhs : @Freyd.Functor.map (OppCat 𝒞) _ (Type w) _ (yonedaObj C).obj _ _ _
+      (show @Cat.Hom (OppCat 𝒞) _ B X from h) (α.app B (Cat.id B)) =
+      @Cat.comp 𝒞 inst X B C h (α.app B (Cat.id B)) := rfl
+  rw [key_lhs] at nat; rw [key_rhs] at nat; exact nat
+
+/-- §1.464 FULLNESS (Yoneda lemma): every `α : H_B ⟹ H_C` equals `yonedaMap f` where
+    `f := α_B(id_B) : B ⟶ C`.  The Yoneda bijection `Nat(H_B, H_C) ≅ Hom(B, C)`. -/
+theorem yoneda_full {B C : 𝒞} (α : FunctorHom (yonedaObj B) (yonedaObj C)) :
+    yonedaMap (α.app B (Cat.id B)) = α := by
+  apply NaturalTransformation.ext'; intro X; funext h
+  simp only [yonedaMap]
+  exact (yoneda_app_eq α h).symm
+
+/-- §1.464: the preimage `f` in the Yoneda bijection is unique.
+    If `yonedaMap f = α` then `f = α_B(id_B)`. -/
+theorem yoneda_full_unique {B C : 𝒞} (α : FunctorHom (yonedaObj B) (yonedaObj C))
+    (f : B ⟶ C) (hf : yonedaMap f = α) : f = α.app B (Cat.id B) :=
+  yoneda_faithful f (α.app B (Cat.id B))
+    (hf.trans (yoneda_full α).symm)
+
+/-- §1.464: FULL + FAITHFUL packaging.  The Yoneda embedding `H : A → 𝒮^(A°)`
+    is full and faithful: for every `α : H_B ⟹ H_C` there exists a unique
+    `f : B ⟶ C` with `yonedaMap f = α`.  This is the Yoneda bijection
+    `Nat(H_B, H_C) ≅ Hom(B, C)`.
+
+    Note: `Full` and `Embedding` typeclasses require source and target at the
+    same Cat hom-universe, which fails here (Cat.{w} vs Cat.{w+1} on the presheaf
+    category).  The result is therefore stated as a direct ∃-∀ proposition. -/
+theorem yoneda_full_faithful {B C : 𝒞} (α : FunctorHom (yonedaObj B) (yonedaObj C)) :
+    ∃ f : B ⟶ C, yonedaMap f = α ∧ ∀ g : B ⟶ C, yonedaMap g = α → g = f :=
+  ⟨α.app B (Cat.id B), yoneda_full α, fun g hg => yoneda_full_unique α g hg⟩
 
 end Yoneda464
 
