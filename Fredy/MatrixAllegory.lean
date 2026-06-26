@@ -359,6 +359,19 @@ instance instDistributiveAllegoryMat : DistributiveAllegory (MatObj 𝒜) :=
     zero_union := fun M => by
       funext i j; simp only [matUnion, matZero]; exact DistributiveAllegory.zero_union _ }
 
+/-- `finJoin` of a family supported at a single index `k₀` is its value there. -/
+theorem finJoin_single {a b : 𝒜} {n : Nat} (f : Fin n → (a ⟶ b)) (k₀ : Fin n)
+    (h : ∀ k, k ≠ k₀ → f k = 𝟘) : finJoin f = f k₀ := by
+  apply le_antisymm
+  · apply finJoin_le; intro k
+    by_cases hk : k = k₀
+    · subst hk; exact le_refl _
+    · rw [h k hk]; exact zero_le _
+  · exact le_finJoin f k₀
+
+theorem zero_inter {a b : 𝒜} (R : a ⟶ b) : (𝟘 : a ⟶ b) ∩ R = 𝟘 :=
+  le_antisymm (inter_lb_left _ _) (zero_le _)
+
 end MatDistributive
 
 /-! ## §G  Division allegory instance (§2.342)
@@ -813,11 +826,357 @@ instance instPositiveAllegoryMat : PositiveAllegory (MatObj 𝒜) :=
 
 end MatPositive
 
+/-! ## §K  Tabularity of `Mat 𝒜`  (§2.342)
+
+  If 𝒜 is tabular, so is `Mat 𝒜`.  Given a matrix `M : X ⟶ Y` (entries
+  `M i j : X.objs i ⟶ Y.objs j`), tabulate each entry in 𝒜 — apex `c i j`, map legs
+  `p i j : c i j ⟶ X.objs i`, `q i j : c i j ⟶ Y.objs j` with `M i j = p° ≫ q` and
+  `p p° ∩ q q° = 1`.  The tabulation of `M` in `Mat 𝒜` has apex the coproduct
+  `⊕_{i,j} c i j` (a `MatObj` indexed by `Fin (X.n * Y.n)`), with left leg `f` carrying
+  block `p i j` into row `i` (zero off that row) and right leg `g` carrying `q i j` into
+  column `j`.  The disjointness of the index blocks (off-diagonal terms vanish) reduces all
+  four `Tabulates` conjuncts to the per-entry tabulation data. -/
+
+section MatTabular
+
+variable {𝒜 : Type u}
+
+/-! ### Pairing of two `Fin` indices into one flat index for the apex. -/
+
+def pairIdx {m n : Nat} (i : Fin m) (j : Fin n) : Fin (m * n) :=
+  ⟨i.val * n + j.val, by
+    have hi := i.isLt
+    have h2 : i.val * n + n = (i.val + 1) * n := by rw [Nat.succ_mul]
+    have h3 : (i.val + 1) * n ≤ m * n := Nat.mul_le_mul_right n hi
+    omega⟩
+
+def unpairFst {m n : Nat} (k : Fin (m * n)) : Fin m :=
+  ⟨k.val / n, by
+    have hk := k.isLt
+    have hn : 0 < n := by
+      rcases Nat.eq_zero_or_pos n with h | h
+      · subst h; simp [Nat.mul_zero] at hk
+      · exact h
+    exact Nat.div_lt_of_lt_mul (Nat.mul_comm m n ▸ hk)⟩
+
+def unpairSnd {m n : Nat} (k : Fin (m * n)) : Fin n :=
+  ⟨k.val % n, by
+    have hk := k.isLt
+    have hn : 0 < n := by
+      rcases Nat.eq_zero_or_pos n with h | h
+      · subst h; simp [Nat.mul_zero] at hk
+      · exact h
+    exact Nat.mod_lt _ hn⟩
+
+theorem unpairFst_pairIdx {m n : Nat} (i : Fin m) (j : Fin n) : unpairFst (pairIdx i j) = i := by
+  apply Fin.ext; simp only [unpairFst, pairIdx]
+  rw [Nat.mul_comm, Nat.mul_add_div (Nat.lt_of_le_of_lt (Nat.zero_le _) j.isLt),
+    Nat.div_eq_of_lt j.isLt, Nat.add_zero]
+
+theorem unpairSnd_pairIdx {m n : Nat} (i : Fin m) (j : Fin n) : unpairSnd (pairIdx i j) = j := by
+  apply Fin.ext; simp only [unpairSnd, pairIdx]
+  rw [Nat.mul_comm, Nat.mul_add_mod, Nat.mod_eq_of_lt j.isLt]
+
+theorem pairIdx_unpair {m n : Nat} (k : Fin (m * n)) :
+    pairIdx (unpairFst k) (unpairSnd k) = k := by
+  apply Fin.ext; simp only [pairIdx, unpairFst, unpairSnd]
+  rw [Nat.mul_comm]; exact Nat.div_add_mod k.val n
+
+/-- The flat index `k` is recovered from its two coordinates, hence `(uFst, uSnd)` is injective. -/
+theorem index_unique {m n : Nat} {k k' : Fin (m * n)}
+    (hf : unpairFst k = unpairFst k') (hs : unpairSnd k = unpairSnd k') : k = k' := by
+  rw [← pairIdx_unpair k, ← pairIdx_unpair k', hf, hs]
+
+/-- A combined `Tabular`+`Distributive` allegory: one merged `Allegory` parent (so the matrix
+    construction — which needs `DistributiveAllegory` — and the entry tabulations — which need
+    `TabularAllegory` — share a single `Allegory 𝒜`, avoiding the diamond).  (Mat's own class
+    `MatObj` is built over `DistributiveAllegory`; this is the §2.342 hypothesis for tabularity.
+    Cannot reuse `MapCat.TabularUnitaryDistributiveAllegory`: importing `MapCat` here would cycle
+    `MatrixAllegory → S2_21 → … → MapCat → S2_21`.) -/
+class TabularDistributiveAllegory (𝒜 : Type u) extends TabularAllegory 𝒜, DistributiveAllegory 𝒜
+
+variable [TabularDistributiveAllegory 𝒜]
+
+/-! ### Per-entry tabulation data, chosen by `Classical.choice`. -/
+
+noncomputable def entryTab {X Y : MatObj 𝒜} (M : MatHom X Y) (i : Fin X.n) (j : Fin Y.n) :
+    {c : 𝒜 // ∃ (f : c ⟶ X.objs i) (g : c ⟶ Y.objs j), Tabulates f g (M i j)} :=
+  ⟨(TabularAllegory.tabular (M i j)).choose, (TabularAllegory.tabular (M i j)).choose_spec⟩
+
+/-- Apex object: the family `c (uFst k) (uSnd k)` over `Fin (X.n * Y.n)`. -/
+noncomputable def tabApex {X Y : MatObj 𝒜} (M : MatHom X Y) : MatObj 𝒜 :=
+  { n := X.n * Y.n, objs := fun k => (entryTab M (unpairFst k) (unpairSnd k)).1 }
+
+noncomputable def tabP {X Y : MatObj 𝒜} (M : MatHom X Y) (i : Fin X.n) (j : Fin Y.n) :
+    (entryTab M i j).1 ⟶ X.objs i := (entryTab M i j).2.choose
+noncomputable def tabQ {X Y : MatObj 𝒜} (M : MatHom X Y) (i : Fin X.n) (j : Fin Y.n) :
+    (entryTab M i j).1 ⟶ Y.objs j := (entryTab M i j).2.choose_spec.choose
+
+theorem tab_spec {X Y : MatObj 𝒜} (M : MatHom X Y) (i : Fin X.n) (j : Fin Y.n) :
+    Tabulates (tabP M i j) (tabQ M i j) (M i j) :=
+  (entryTab M i j).2.choose_spec.choose_spec
+
+/-- Left leg `f : tabApex ⟶ X`: block `tabP` on the diagonal row, `0` off-diagonal. -/
+noncomputable def tabF {X Y : MatObj 𝒜} (M : MatHom X Y) : MatHom (tabApex M) X :=
+  fun k i' => if h : unpairFst k = i' then (h ▸ tabP M (unpairFst k) (unpairSnd k)) else 𝟘
+/-- Right leg `g : tabApex ⟶ Y`: block `tabQ` on the diagonal column, `0` off-diagonal. -/
+noncomputable def tabG {X Y : MatObj 𝒜} (M : MatHom X Y) : MatHom (tabApex M) Y :=
+  fun k j' => if h : unpairSnd k = j' then (h ▸ tabQ M (unpairFst k) (unpairSnd k)) else 𝟘
+
+/-! ### Cast pushers for the index-casts in the legs (`hf : i₀ = i` recasts `X.objs i₀`). -/
+
+/-- `(hf ▸ f)° ≫ (hs ▸ g)` where `hf : iF = i`, `hs : iS = j` recast the TARGETS of
+    `f : A ⟶ F iF`, `g : A ⟶ G iS` along families `F`, `G`. -/
+theorem idxCast_recip_comp {ιF ιG : Type} {F : ιF → 𝒜} {G : ιG → 𝒜}
+    {iF i : ιF} {iS j : ιG} (hf : iF = i) (hs : iS = j) {A : 𝒜}
+    (f : A ⟶ F iF) (g : A ⟶ G iS) :
+    (hf ▸ f : A ⟶ F i)° ≫ (hs ▸ g : A ⟶ G j)
+      = (hf ▸ (hs ▸ (f° ≫ g : F iF ⟶ G iS) : F iF ⟶ G j) : F i ⟶ G j) := by
+  cases hf; cases hs; rfl
+
+/-- Collapse the index-casts on a matrix entry: `hf ▸ hs ▸ M iF iS = M i j`. -/
+theorem entry_idxCast {X Y : MatObj 𝒜} (M : MatHom X Y) {iF i : Fin X.n} {iS j : Fin Y.n}
+    (hf : iF = i) (hs : iS = j) :
+    (hf ▸ (hs ▸ (M iF iS : X.objs iF ⟶ Y.objs iS) : X.objs iF ⟶ Y.objs j) : X.objs i ⟶ Y.objs j)
+      = M i j := by cases hf; cases hs; rfl
+
+/-! ### Conjunct 3: `M = f° ≫ g`.  (Only `k = pairIdx i j` survives in the join.) -/
+
+theorem tab_recipF_comp_G {X Y : MatObj 𝒜} (M : MatHom X Y) :
+    matComp (matRecip (tabF M)) (tabG M) = M := by
+  funext i j
+  simp only [matComp, matRecip]
+  rw [finJoin_single _ (pairIdx i j)]
+  · have hf : unpairFst (pairIdx i j) = i := unpairFst_pairIdx i j
+    have hs : unpairSnd (pairIdx i j) = j := unpairSnd_pairIdx i j
+    show (tabF M (pairIdx i j) i)° ≫ tabG M (pairIdx i j) j = M i j
+    simp only [tabF, tabG, dif_pos hf, dif_pos hs]
+    rw [idxCast_recip_comp hf hs,
+      (tab_spec M (unpairFst (pairIdx i j)) (unpairSnd (pairIdx i j))).2.2.1.symm,
+      entry_idxCast M hf hs]
+  · intro k hk
+    by_cases hfi : unpairFst k = i
+    · by_cases hsj : unpairSnd k = j
+      · exact absurd (index_unique (by rw [hfi, unpairFst_pairIdx])
+          (by rw [hsj, unpairSnd_pairIdx])) hk
+      · simp only [tabG, hsj, ↓reduceDIte, DistributiveAllegory.comp_zero]
+    · simp only [tabF, hfi, ↓reduceDIte, recip_zero, DistributiveAllegory.zero_comp]
+
+/-! ### `f ≫ f°` and `g ≫ g°` blocks (off-diagonal vanishing + diagonal value). -/
+
+theorem tabFFr_off {X Y : MatObj 𝒜} (M : MatHom X Y) {k k' : Fin (tabApex M).n}
+    (h : unpairFst k ≠ unpairFst k') :
+    matComp (tabF M) (matRecip (tabF M)) k k' = 𝟘 := by
+  simp only [matComp, matRecip]
+  apply finJoin_zero_all; intro i
+  by_cases hi : unpairFst k = i
+  · have hk' : unpairFst k' ≠ i := fun e => h (hi.trans e.symm)
+    simp only [tabF, dif_neg hk', recip_zero, DistributiveAllegory.comp_zero]
+  · simp only [tabF, dif_neg hi, DistributiveAllegory.zero_comp]
+
+theorem tabGGr_off {X Y : MatObj 𝒜} (M : MatHom X Y) {k k' : Fin (tabApex M).n}
+    (h : unpairSnd k ≠ unpairSnd k') :
+    matComp (tabG M) (matRecip (tabG M)) k k' = 𝟘 := by
+  simp only [matComp, matRecip]
+  apply finJoin_zero_all; intro j
+  by_cases hj : unpairSnd k = j
+  · have hk' : unpairSnd k' ≠ j := fun e => h (hj.trans e.symm)
+    simp only [tabG, dif_neg hk', recip_zero, DistributiveAllegory.comp_zero]
+  · simp only [tabG, dif_neg hj, DistributiveAllegory.zero_comp]
+
+theorem tabFFr_diag {X Y : MatObj 𝒜} (M : MatHom X Y) (k : Fin (tabApex M).n) :
+    matComp (tabF M) (matRecip (tabF M)) k k
+      = (tabP M (unpairFst k) (unpairSnd k)) ≫ (tabP M (unpairFst k) (unpairSnd k))° := by
+  simp only [matComp, matRecip]
+  rw [finJoin_single _ (unpairFst k)]
+  · simp only [tabF, ↓reduceDIte]
+  · intro i hi
+    simp only [tabF, dif_neg (Ne.symm hi), DistributiveAllegory.zero_comp]
+
+theorem tabGGr_diag {X Y : MatObj 𝒜} (M : MatHom X Y) (k : Fin (tabApex M).n) :
+    matComp (tabG M) (matRecip (tabG M)) k k
+      = (tabQ M (unpairFst k) (unpairSnd k)) ≫ (tabQ M (unpairFst k) (unpairSnd k))° := by
+  simp only [matComp, matRecip]
+  rw [finJoin_single _ (unpairSnd k)]
+  · simp only [tabG, ↓reduceDIte]
+  · intro j hj
+    simp only [tabG, dif_neg (Ne.symm hj), DistributiveAllegory.zero_comp]
+
+/-! ### Conjunct 4: `f ≫ f° ∩ g ≫ g° = id`. -/
+
+theorem tab_orthonormal {X Y : MatObj 𝒜} (M : MatHom X Y) :
+    matInter (matComp (tabF M) (matRecip (tabF M)))
+             (matComp (tabG M) (matRecip (tabG M))) = matId (tabApex M) := by
+  funext k k'
+  by_cases hk : k = k'
+  · subst hk
+    simp only [matInter, tabFFr_diag, tabGGr_diag, matId, ↓reduceDIte]
+    exact (tab_spec M (unpairFst k) (unpairSnd k)).2.2.2
+  · simp only [matInter, matId, dif_neg hk]
+    by_cases hf : unpairFst k = unpairFst k'
+    · have hs : unpairSnd k ≠ unpairSnd k' := fun e => hk (index_unique hf e)
+      rw [tabGGr_off M hs]; exact le_antisymm (inter_lb_right _ _) (zero_le _)
+    · rw [tabFFr_off M hf, zero_inter]
+
+/-! ### Conjuncts 1,2: `Map f`, `Map g`. -/
+
+theorem matDom_eq {X Y : MatObj 𝒜} (R : X ⟶ Y) :
+    dom R = matInter (matId X) (matComp R (matRecip R)) := rfl
+
+theorem tabF_entire {X Y : MatObj 𝒜} (M : MatHom X Y) :
+    Entire (𝒜 := MatObj 𝒜) (tabF M) := by
+  rw [Entire, matDom_eq]; show _ = matId (tabApex M); funext k k'
+  by_cases hk : k = k'
+  · subst hk
+    simp only [matInter, tabFFr_diag, matId, ↓reduceDIte]
+    exact (tab_spec M (unpairFst k) (unpairSnd k)).1.1
+  · simp only [matInter, matId, dif_neg hk, zero_inter]
+
+theorem tabG_entire {X Y : MatObj 𝒜} (M : MatHom X Y) :
+    Entire (𝒜 := MatObj 𝒜) (tabG M) := by
+  rw [Entire, matDom_eq]; show _ = matId (tabApex M); funext k k'
+  by_cases hk : k = k'
+  · subst hk
+    simp only [matInter, tabGGr_diag, matId, ↓reduceDIte]
+    exact (tab_spec M (unpairFst k) (unpairSnd k)).2.1.1
+  · simp only [matInter, matId, dif_neg hk, zero_inter]
+
+/-- `(f° ≫ f) i i' = ⨆_k (tabF k i)° ≫ (tabF k i')`: supported where `uFst k = i = i'`;
+    on the diagonal each term is `(tabP)° ≫ (tabP) ⊑ id` (`tabP` simple), so the join is `⊑ id`. -/
+theorem tabFrF_entry_le {X Y : MatObj 𝒜} (M : MatHom X Y) (i i' : Fin X.n) :
+    matComp (matRecip (tabF M)) (tabF M) i i' ⊑ matId X i i' := by
+  simp only [matComp, matRecip]
+  by_cases hii : i = i'
+  · subst hii
+    simp only [matId, ↓reduceDIte]
+    apply finJoin_le; intro k
+    by_cases hi : unpairFst k = i
+    · simp only [tabF, dif_pos hi]
+      rw [idxCast_recip_comp hi hi]
+      have hsim := (tab_spec M (unpairFst k) (unpairSnd k)).1.2
+      generalize tabP M (unpairFst k) (unpairSnd k) = P at *
+      cases hi; simpa using hsim
+    · simp only [tabF, dif_neg hi, recip_zero, DistributiveAllegory.zero_comp]; exact zero_le _
+  · simp only [matId, dif_neg hii]
+    rw [finJoin_zero_all]; · exact zero_le _
+    intro k
+    by_cases hi : unpairFst k = i
+    · have hi' : unpairFst k ≠ i' := fun e => hii (hi.symm.trans e)
+      simp only [tabF, dif_neg hi', DistributiveAllegory.comp_zero]
+    · simp only [tabF, dif_neg hi, recip_zero, DistributiveAllegory.zero_comp]
+
+theorem tabGrG_entry_le {X Y : MatObj 𝒜} (M : MatHom X Y) (i i' : Fin Y.n) :
+    matComp (matRecip (tabG M)) (tabG M) i i' ⊑ matId Y i i' := by
+  simp only [matComp, matRecip]
+  by_cases hii : i = i'
+  · subst hii
+    simp only [matId, ↓reduceDIte]
+    apply finJoin_le; intro k
+    by_cases hi : unpairSnd k = i
+    · simp only [tabG, dif_pos hi]
+      rw [idxCast_recip_comp hi hi]
+      have hsim := (tab_spec M (unpairFst k) (unpairSnd k)).2.1.2
+      generalize tabQ M (unpairFst k) (unpairSnd k) = Q at *
+      cases hi; simpa using hsim
+    · simp only [tabG, dif_neg hi, recip_zero, DistributiveAllegory.zero_comp]; exact zero_le _
+  · simp only [matId, dif_neg hii]
+    rw [finJoin_zero_all]; · exact zero_le _
+    intro k
+    by_cases hi : unpairSnd k = i
+    · have hi' : unpairSnd k ≠ i' := fun e => hii (hi.symm.trans e)
+      simp only [tabG, dif_neg hi', DistributiveAllegory.comp_zero]
+    · simp only [tabG, dif_neg hi, recip_zero, DistributiveAllegory.zero_comp]
+
+theorem tabF_simple {X Y : MatObj 𝒜} (M : MatHom X Y) :
+    Simple (𝒜 := MatObj 𝒜) (tabF M) := by funext i i'; exact tabFrF_entry_le M i i'
+theorem tabG_simple {X Y : MatObj 𝒜} (M : MatHom X Y) :
+    Simple (𝒜 := MatObj 𝒜) (tabG M) := by funext i i'; exact tabGrG_entry_le M i i'
+
+theorem tabF_map {X Y : MatObj 𝒜} (M : MatHom X Y) : Map (𝒜 := MatObj 𝒜) (tabF M) :=
+  ⟨tabF_entire M, tabF_simple M⟩
+theorem tabG_map {X Y : MatObj 𝒜} (M : MatHom X Y) : Map (𝒜 := MatObj 𝒜) (tabG M) :=
+  ⟨tabG_entire M, tabG_simple M⟩
+
+/-- §2.342: every matrix morphism is tabular; apex = `⊕_{i,j} c i j`, legs `tabF`, `tabG`. -/
+theorem mat_tabular {X Y : MatObj 𝒜} (M : MatHom X Y) : Tabular (𝒜 := MatObj 𝒜) M :=
+  ⟨tabApex M, tabF M, tabG M,
+    tabF_map M, tabG_map M, (tab_recipF_comp_G M).symm, tab_orthonormal M⟩
+
+/-- §2.342: `Mat 𝒜` is a tabular allegory when 𝒜 is. -/
+noncomputable instance instTabularAllegoryMat : TabularAllegory (MatObj 𝒜) :=
+  { instAllegoryMat with tabular := fun R => mat_tabular R }
+
+end MatTabular
+
+/-! ## §L  Unitarity of `Mat 𝒜`  (§2.342)
+
+  If 𝒜 is unitary (unit `λ`), so is `Mat 𝒜`: the unit object is the 1×1 matrix `[λ]`.
+  `PartialUnit [λ]` reduces to `PartialUnit λ` (a `[λ]⟶[λ]` matrix is a single `λ⟶λ`).
+  Entire-to-unit: for any `m = (αᵢ)`, the single-column matrix of the entire base morphisms
+  `αᵢ ⟶ λ` is entire. -/
+
+section MatUnitary
+
+/-- A combined `Unitary`+`Distributive` allegory: one merged `Allegory` parent (so the matrix
+    construction over `DistributiveAllegory` and the base unit live on the same `Allegory 𝒜`).
+    This is the §2.342 hypothesis for unitarity of `Mat 𝒜`. -/
+class UnitaryDistributiveAllegory (𝒜 : Type u) extends UnitaryAllegory 𝒜, DistributiveAllegory 𝒜
+
+variable {𝒜 : Type u} [UnitaryDistributiveAllegory 𝒜]
+
+/-- The unit object of `Mat 𝒜`: the 1×1 matrix on the base unit `λ`. -/
+def matUnitObj : MatObj 𝒜 := unitObj (UnitaryAllegory.unit_obj (𝒜 := 𝒜))
+
+theorem matPartialUnit : PartialUnit (𝒜 := MatObj 𝒜) matUnitObj := by
+  intro R
+  obtain ⟨hPU, _⟩ := UnitaryAllegory.unit_prop (𝒜 := 𝒜)
+  funext i j
+  show (matInter R (matId matUnitObj)) i j = R i j
+  have hi : i = ⟨0, Nat.zero_lt_one⟩ := Fin.fin_one_eq_zero i
+  have hj : j = ⟨0, Nat.zero_lt_one⟩ := Fin.fin_one_eq_zero j
+  subst hi; subst hj
+  simp only [matInter, matId, matUnitObj, unitObj, ↓reduceDIte]
+  exact hPU _
+
+/-- For any `Mat 𝒜` object `m`, the single-column matrix of entire base morphisms
+    `m.objs i ⟶ λ` is entire. -/
+theorem matEntireToUnit (m : MatObj 𝒜) :
+    ∃ (R : m ⟶ matUnitObj), Entire (𝒜 := MatObj 𝒜) R := by
+  obtain ⟨_, hEnt⟩ := UnitaryAllegory.unit_prop (𝒜 := 𝒜)
+  let r : (i : Fin m.n) → (m.objs i ⟶ UnitaryAllegory.unit_obj (𝒜 := 𝒜)) :=
+    fun i => (hEnt (m.objs i)).choose
+  have hr : ∀ i, Entire (r i) := fun i => (hEnt (m.objs i)).choose_spec
+  let R : MatHom m matUnitObj := fun i _j => r i
+  refine ⟨R, ?_⟩
+  rw [Entire]; show _ = matId m; funext i i'
+  show (matInter (matId m) (matComp R (matRecip R))) i i' = _
+  by_cases hii : i = i'
+  · subst hii
+    simp only [matInter, matComp, matRecip, matId, ↓reduceDIte, R,
+      finJoin, List.ofFn_succ, List.ofFn_zero, listJoin'_cons, listJoin'_nil, union_zero]
+    exact hr i
+  · simp only [matInter, matId, dif_neg hii, zero_inter]
+
+theorem matIsUnit : IsUnit (𝒜 := MatObj 𝒜) matUnitObj :=
+  ⟨matPartialUnit, fun m => matEntireToUnit m⟩
+
+/-- §2.342: `Mat 𝒜` is a unitary allegory when 𝒜 is. -/
+noncomputable instance instUnitaryAllegoryMat : UnitaryAllegory (MatObj 𝒜) :=
+  { instAllegoryMat with
+    unit_obj := matUnitObj
+    unit_prop := matIsUnit }
+
+end MatUnitary
+
 /-! ## §I  Summary
   §2.216  Allegory (MatObj 𝒜)               : instAllegoryMat             [PROVED]
   §2.216  DistributiveAllegory (MatObj 𝒜)   : instDistributiveAllegoryMat [PROVED]
   §2.342  DivisionAllegory (MatObj 𝒜)       : instDivisionAllegoryMat     [PROVED]
   §2.215  PositiveAllegory (MatObj 𝒜)       : instPositiveAllegoryMat     [PROVED]
+  §2.342  TabularAllegory (MatObj 𝒜)        : instTabularAllegoryMat      [PROVED]
+                                              ([TabularDistributiveAllegory 𝒜])
+  §2.342  UnitaryAllegory (MatObj 𝒜)        : instUnitaryAllegoryMat      [PROVED]
+                                              ([UnitaryDistributiveAllegory 𝒜])
   embed1 : 𝒜 → MatObj 𝒜 : faithful, preserves ≫, °, ∩, ∪, 𝟘, /  [PROVED]
 -/
 
