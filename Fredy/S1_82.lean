@@ -2210,9 +2210,43 @@ theorem cocomplete_iff_coeq_coprod (ℬ : Type u₁) [Cat.{v} ℬ] :
   · intro ⟨⟨hce⟩, ⟨hp⟩⟩
     exact ⟨coeq_coprod_cocomplete hce hp⟩
 
--- BOOK §1.825 (cartesian): A category is (co-)cartesian iff every finite diagram has a
--- (co-)limit.  Not formalized here: there is no `Cartesian` typeclass nor a `FiniteDiagram`
--- shape predicate in scope; it is the finite-shape restriction of the same engine.
+/-! ### §1.825 (cartesian): CartesianCategory ↔ finite products + equalizers
+
+  The book's "a category is cartesian iff every finite diagram has a limit" is formalized
+  at the level this repo expresses: the general finite-limit framework does not exist, but
+  the classical equivalent does.
+
+  Key equivalences (proved in S1_43, reprised here for the §1.825 record):
+
+    CartesianCategory 𝒞 = HasTerminal + HasBinaryProducts + HasEqualizers
+    HasFiniteProducts 𝒞  ↔  HasTerminal 𝒞 + HasBinaryProducts 𝒞   (§1.425)
+    CartesianCategory 𝒞  ↔  HasFiniteProducts + HasEqualizers        (§1.825, below)
+    HasTerminal + CartesianCategory  ↔  HasTerminal + HasPullbacks   (§1.439)
+
+  The third line is the finite-limits content: "cartesian" ↔ "finite products + equalizers"
+  which in the book means "all finite limits". -/
+
+/-- §1.825 (cartesian): A category is cartesian iff it has all finite products and equalizers.
+    Since `CartesianCategory = HasTerminal + HasBinaryProducts + HasEqualizers` and
+    `HasFiniteProducts ↔ HasTerminal + HasBinaryProducts` (§1.425), this is immediate. -/
+theorem cartesian_iff_finProd_eq (𝒞 : Type u) [Cat.{v} 𝒞] :
+    Nonempty (CartesianCategory 𝒞) ↔
+    (Nonempty (HasFiniteProducts 𝒞) ∧ Nonempty (HasEqualizers 𝒞)) := by
+  constructor
+  · intro ⟨hc⟩
+    haveI : HasTerminal 𝒞 := hc.toHasTerminal
+    haveI : HasBinaryProducts 𝒞 := hc.toHasBinaryProducts
+    exact ⟨⟨terminal_binary_implies_finiteProducts⟩, ⟨hc.toHasEqualizers⟩⟩
+  · intro ⟨⟨hfp⟩, ⟨heq⟩⟩
+    haveI ht : HasTerminal 𝒞 := finiteProducts_implies_terminal hfp
+    haveI hp : HasBinaryProducts 𝒞 := finiteProducts_implies_binary hfp
+    exact ⟨{ toHasTerminal := ht, toHasBinaryProducts := hp, toHasEqualizers := heq }⟩
+
+/-- §1.825 / §1.439 (pullbacks): Given a terminator, CartesianCategory ↔ HasPullbacks.
+    Re-stated here from S1_43 for the §1.825 record. -/
+theorem cartesian_iff_pullbacks_with_terminal (𝒞 : Type u) [Cat.{v} 𝒞] [HasTerminal 𝒞] :
+    Nonempty (CartesianCategory 𝒞) ↔ Nonempty (HasPullbacks 𝒞) :=
+  cartesianCategory_iff_pullbacks
 
 /-- §1.834 GENERAL REPRESENTABILITY THEOREM (Freyd §1.834): for `ℬ` in which idempotents
     split and which is pre-complete, the functor `(A, G(-))` is representable for *every* `A`
