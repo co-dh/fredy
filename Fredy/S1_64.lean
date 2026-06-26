@@ -49,21 +49,20 @@ namespace Freyd
   (2) "Any (positive) pre-logos is faithfully representable in a capital
       (positive) pre-logos."
 
-  Both require slice/over-category infrastructure (`Over`) + a `PreLogos`
-  instance on `Over A B`.  That infrastructure lives in `SliceRegular.lean`
-  (`PreRegularCategory (Over B)`).  The full `PreLogos (Over B)` instance
-  would also need `HasSubobjectUnions (Over B)`, which is not yet supplied.
-  Propositions recorded as TODO until the `PreLogos (Over B)` instance lands. -/
+  Both are proven downstream.  The slice infrastructure:
+  - `PreRegularCategory (Over B)` — `SliceRegular.lean`
+  - `HasImages (Over B)`, `HasSubobjectUnions (Over B)` — `SlicePreTopos.lean`
+  - `overPreLogos (B : 𝒞) : PreLogos (Over B)` — `SlicePreTopos.lean` §643–752
+  - `overPositivePreLogos (B : 𝒞) : PositivePreLogos (Over B)` — `SlicePreTopos.lean` §754
 
--- BOOK §1.63: If A is a (positive) pre-logos then so is A/B.
--- The instances `overPreLogos (B : 𝒞) : PreLogos (Over B)` and
--- `overPositivePreLogos (B : 𝒞) : PositivePreLogos (Over B)` are proven in
--- `Fredy.SlicePreTopos` (which imports this file, so S1_64 cannot import it back).
--- §1.63's statement is available as a downstream corollary in `Fredy.SlicePreTopos`.
+  `S1_64` cannot import `SlicePreTopos` because `SlicePreTopos` imports `S1_64`. -/
 
--- BOOK §1.63: Any (positive) pre-logos is faithfully representable in a capital
+-- BOOK §1.63 (1): If A is a (positive) pre-logos then so is A/B.
+-- ✅ DONE: `overPreLogos` and `overPositivePreLogos` in `Fredy.SlicePreTopos`.
+
+-- BOOK §1.63 (2): Any (positive) pre-logos is faithfully representable in a capital
 -- (positive) pre-logos.
--- Follows from §1.543 capitalization lemma (proven) + `overPreLogos`/`overPositivePreLogos`
+-- ✅ DONE: §1.543 capitalization lemma + `overPreLogos`/`overPositivePreLogos`
 -- from `Fredy.SlicePreTopos`.  Recorded as a downstream corollary there.
 
 /-! ## §1.631 Complemented subobject
