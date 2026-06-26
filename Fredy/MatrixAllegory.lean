@@ -487,10 +487,337 @@ theorem embed1_div {a b c : 𝒜} (R : a ⟶ c) (S : b ⟶ c) :
 
 end Embed1Div
 
+/-! ## §J  Positive allegory instance (§2.215)
+
+  `Mat 𝒜` has finite coproducts: `X ⊕ Y` is the concatenation of the two index
+  families (`Fin (X.n + Y.n)`), and its injections are the reciprocals of the two
+  block matrices `mInlR`, `mInrR` selecting the left / right summand.  Verifying the
+  five `Coproduct` equations (§2.214) makes `(MatObj 𝒜)` a `PositiveAllegory`. -/
+
+section MatPositive
+
+variable {𝒜 : Type u} [DistributiveAllegory 𝒜]
+
+/-- The coproduct object `X ⊕ Y`: concatenated index families. -/
+def mCP (X Y : MatObj 𝒜) : MatObj 𝒜 :=
+  { n := X.n + Y.n, objs := Fin.addCases X.objs Y.objs }
+
+theorem mCP_L (X Y : MatObj 𝒜) (i : Fin X.n) :
+    (mCP X Y).objs (Fin.castAdd Y.n i) = X.objs i := by simp [mCP, Fin.addCases_left]
+
+theorem mCP_R (X Y : MatObj 𝒜) (j : Fin Y.n) :
+    (mCP X Y).objs (Fin.natAdd X.n j) = Y.objs j := by simp [mCP, Fin.addCases_right]
+
+/-- The transposed left injection `(X ⊕ Y) → X`: identity on the left block, 0 on the right. -/
+def mInlR (X Y : MatObj 𝒜) : MatHom (mCP X Y) X :=
+  fun k i => Fin.addCases (fun k_l => mCP_L X Y k_l ▸ matId X k_l i) (fun _k_r => 𝟘) k
+
+/-- The transposed right injection `(X ⊕ Y) → Y`: 0 on the left block, identity on the right. -/
+def mInrR (X Y : MatObj 𝒜) : MatHom (mCP X Y) Y :=
+  fun k j => Fin.addCases (fun _k_l => 𝟘) (fun k_r => mCP_R X Y k_r ▸ matId Y k_r j) k
+
+/-- The left injection `X → (X ⊕ Y)` (reciprocal of `mInlR`). -/
+def mInl (X Y : MatObj 𝒜) : MatHom X (mCP X Y) := matRecip (mInlR X Y)
+/-- The right injection `Y → (X ⊕ Y)` (reciprocal of `mInrR`). -/
+def mInr (X Y : MatObj 𝒜) : MatHom Y (mCP X Y) := matRecip (mInrR X Y)
+
+theorem mInl_recip (X Y : MatObj 𝒜) : matRecip (mInl X Y) = mInlR X Y := by
+  funext k i; simp only [mInl, matRecip, Allegory.recip_recip]
+theorem mInr_recip (X Y : MatObj 𝒜) : matRecip (mInr X Y) = mInrR X Y := by
+  funext k i; simp only [mInr, matRecip, Allegory.recip_recip]
+
+/-! ### Transport helpers across the `objs`-equalities `mCP_L`, `mCP_R`. -/
+
+theorem cast_comp_recip {A B C : 𝒜} (h : A = B) (f g : B ⟶ C) :
+    (h ▸ f : A ⟶ C) ≫ (h ▸ g : A ⟶ C)° = h ▸ (f ≫ g°) := by
+  have recip_cast : (h ▸ g : A ⟶ C)° = h ▸ g° := by cases h; rfl
+  rw [recip_cast]; cases h; rfl
+
+theorem cast_recip_comp {A B C D : 𝒜} (h : A = B) (f : B ⟶ C) (g : B ⟶ D) :
+    (h ▸ f : A ⟶ C)° ≫ (h ▸ g : A ⟶ D) = f° ≫ g := by cases h; rfl
+
+theorem finJoin_cast_endo {A B : 𝒜} (h : A = B) {n} (t : Fin n → B ⟶ B) :
+    finJoin (fun i => (h ▸ t i : A ⟶ A)) = h ▸ finJoin t := by cases h; rfl
+
+theorem cast_id_is_id {A B : 𝒜} (h : A = B) : (h ▸ Cat.id B : A ⟶ A) = Cat.id A := by cases h; rfl
+
+theorem cast_zero_src {A B C : 𝒜} (h : A = B) : (h ▸ (𝟘 : B ⟶ C) : A ⟶ C) = 𝟘 := by cases h; rfl
+
+theorem cast_zero_recip {A B C : 𝒜} (h : A = B) : (h ▸ (𝟘 : B ⟶ C) : A ⟶ C)° = 𝟘 := by
+  cases h; simp [recip_zero]
+
+/-! ### `finJoin` helpers: zero family, append split, dependent-codomain vanishing. -/
+
+theorem finJoin_zero_all {a b : 𝒜} {n : Nat} {f : Fin n → (a ⟶ b)}
+    (h : ∀ k, f k = 𝟘) : finJoin f = 𝟘 :=
+  le_antisymm (finJoin_le (fun k => by rw [h k]; exact le_refl _)) (zero_le _)
+
+theorem listJoin'_append {a b : 𝒜} (l₁ l₂ : List (a ⟶ b)) :
+    listJoin' (l₁ ++ l₂) = listJoin' l₁ ∪ listJoin' l₂ := by
+  induction l₁ with
+  | nil => simp only [List.nil_append, listJoin'_nil, DistributiveAllegory.zero_union]
+  | cons x xs ih =>
+    simp only [List.cons_append, listJoin'_cons, ih, DistributiveAllegory.union_assoc]
+
+/-- Split a `finJoin` over `Fin (m + n)` into its left (`castAdd`) and right (`natAdd`) blocks. -/
+theorem finJoin_addCases {a b : 𝒜} {m n : Nat} (f : Fin (m + n) → (a ⟶ b)) :
+    finJoin f = finJoin (fun i => f (Fin.castAdd n i)) ∪ finJoin (fun j => f (Fin.natAdd m j)) := by
+  simp only [finJoin]; rw [List.ofFn_add, listJoin'_append]; rfl
+
+theorem finJoin_first_zero {A C : 𝒜} {n} {B : Fin n → 𝒜}
+    (f : (i : Fin n) → A ⟶ B i) (g : (i : Fin n) → C ⟶ B i) (hf : ∀ i, f i = 𝟘) :
+    finJoin (fun i => f i ≫ (g i)°) = (𝟘 : A ⟶ C) := by
+  apply finJoin_zero_all; intro i; rw [hf i, DistributiveAllegory.zero_comp]
+
+theorem finJoin_second_zero {A C : 𝒜} {n} {B : Fin n → 𝒜}
+    (f : (i : Fin n) → A ⟶ B i) (g : (i : Fin n) → C ⟶ B i) (hg : ∀ i, g i = 𝟘) :
+    finJoin (fun i => f i ≫ (g i)°) = (𝟘 : A ⟶ C) := by
+  apply finJoin_zero_all; intro i; rw [hg i, recip_zero, DistributiveAllegory.comp_zero]
+
+/-! ### `Fin.castAdd` / `Fin.natAdd` injectivity and disjointness. -/
+
+theorem castAdd_inj {m n : Nat} {i j : Fin m} (h : Fin.castAdd n i = Fin.castAdd n j) : i = j := by
+  have : (Fin.castAdd n i).val = (Fin.castAdd n j).val := by rw [h]
+  simp only [Fin.val_castAdd] at this; exact Fin.ext this
+
+theorem natAdd_inj {m n : Nat} {i j : Fin n} (h : Fin.natAdd m i = Fin.natAdd m j) : i = j := by
+  have : (Fin.natAdd m i).val = (Fin.natAdd m j).val := by rw [h]
+  simp only [Fin.val_natAdd] at this; exact Fin.ext (Nat.add_left_cancel this)
+
+theorem castAdd_ne_natAdd {m n : Nat} (i : Fin m) (j : Fin n) :
+    Fin.castAdd n i ≠ Fin.natAdd m j := by
+  intro h; have : (Fin.castAdd n i).val = (Fin.natAdd m j).val := by rw [h]
+  simp only [Fin.val_castAdd, Fin.val_natAdd] at this; omega
+
+/-! ### Orthonormality of the identity "basis" matrix. -/
+
+/-- `∑ⱼ (matId k j)(matId k j)° = id` : the rows of `matId` are orthonormal. -/
+theorem basis_self {X : MatObj 𝒜} (k : Fin X.n) :
+    finJoin (fun i => matId X k i ≫ (matId X k i)°) = Cat.id (X.objs k) := by
+  apply le_antisymm
+  · apply finJoin_le; intro i
+    by_cases h : k = i
+    · subst h; simp only [matId, ↓reduceDIte, Cat.id_comp, recip_id, le_refl]
+    · simp only [matId, h, ↓reduceDIte, DistributiveAllegory.zero_comp]; exact zero_le _
+  · have key := le_finJoin (fun i => matId X k i ≫ (matId X k i)°) k
+    simp only [matId, ↓reduceDIte, Cat.id_comp, recip_id] at key
+    exact key
+
+/-- `∑ⱼ (matId j i)° (matId j k) = matId i k` : the columns of `matId` are orthonormal. -/
+theorem basis_recip_self {X : MatObj 𝒜} (i k : Fin X.n) :
+    finJoin (fun j => (matId X j i)° ≫ matId X j k) = matId X i k := by
+  apply le_antisymm
+  · apply finJoin_le; intro j
+    by_cases hji : j = i
+    · subst hji
+      by_cases hjk : j = k
+      · subst hjk; simp only [matId, ↓reduceDIte, recip_id, Cat.id_comp, le_refl]
+      · simp only [matId, hjk, ↓reduceDIte, recip_id, DistributiveAllegory.comp_zero, le_refl]
+    · simp only [matId, hji, ↓reduceDIte, recip_zero, DistributiveAllegory.zero_comp]
+      exact zero_le _
+  · by_cases hik : i = k
+    · subst hik
+      have key := le_finJoin (fun j => (matId X j i)° ≫ matId X j i) i
+      simp only [matId, ↓reduceDIte, recip_id, Cat.id_comp] at key
+      simpa [matId] using key
+    · simp only [matId, hik, ↓reduceDIte]; exact zero_le _
+
+/-! ### Diagonal / off-diagonal block computations for the injections. -/
+
+theorem finJoin_diag_L (X Y : MatObj 𝒜) (k_l : Fin X.n) :
+    finJoin (fun i => mInlR X Y (Fin.castAdd Y.n k_l) i ≫ (mInlR X Y (Fin.castAdd Y.n k_l) i)°)
+      = Cat.id ((mCP X Y).objs (Fin.castAdd Y.n k_l)) := by
+  have step : (fun i => mInlR X Y (Fin.castAdd Y.n k_l) i ≫ (mInlR X Y (Fin.castAdd Y.n k_l) i)°)
+      = (fun i => (mCP_L X Y k_l ▸ (matId X k_l i ≫ (matId X k_l i)°)
+          : (mCP X Y).objs (Fin.castAdd Y.n k_l) ⟶ (mCP X Y).objs (Fin.castAdd Y.n k_l))) := by
+    funext i; simp only [mInlR, Fin.addCases_left]; exact cast_comp_recip (mCP_L X Y k_l) _ _
+  rw [step, finJoin_cast_endo (mCP_L X Y k_l), basis_self, cast_id_is_id (mCP_L X Y k_l)]
+
+theorem finJoin_cross_LL (X Y : MatObj 𝒜) (k_l k_l' : Fin X.n) (hkk : k_l ≠ k_l') :
+    finJoin (fun i => mInlR X Y (Fin.castAdd Y.n k_l) i ≫ (mInlR X Y (Fin.castAdd Y.n k_l') i)°)
+      = (𝟘 : (mCP X Y).objs (Fin.castAdd Y.n k_l) ⟶ (mCP X Y).objs (Fin.castAdd Y.n k_l')) := by
+  apply finJoin_zero_all; intro i; simp only [mInlR, Fin.addCases_left]
+  by_cases hki : k_l = i
+  · subst hki
+    have hz : matId X k_l' k_l = 𝟘 := by
+      simp only [matId, dite_eq_right_iff]; intro h; exact absurd h hkk.symm
+    rw [hz, cast_zero_recip (mCP_L X Y k_l'), DistributiveAllegory.comp_zero]
+  · have hz : matId X k_l i = 𝟘 := by
+      simp only [matId, dite_eq_right_iff]; intro h; exact absurd h hki
+    rw [hz, cast_zero_src (mCP_L X Y k_l), DistributiveAllegory.zero_comp]
+
+theorem finJoin_diag_R (X Y : MatObj 𝒜) (k_r : Fin Y.n) :
+    finJoin (fun i => mInrR X Y (Fin.natAdd X.n k_r) i ≫ (mInrR X Y (Fin.natAdd X.n k_r) i)°)
+      = Cat.id ((mCP X Y).objs (Fin.natAdd X.n k_r)) := by
+  have step : (fun i => mInrR X Y (Fin.natAdd X.n k_r) i ≫ (mInrR X Y (Fin.natAdd X.n k_r) i)°)
+      = (fun i => (mCP_R X Y k_r ▸ (matId Y k_r i ≫ (matId Y k_r i)°)
+          : (mCP X Y).objs (Fin.natAdd X.n k_r) ⟶ (mCP X Y).objs (Fin.natAdd X.n k_r))) := by
+    funext i; simp only [mInrR, Fin.addCases_right]; exact cast_comp_recip (mCP_R X Y k_r) _ _
+  rw [step, finJoin_cast_endo (mCP_R X Y k_r), basis_self, cast_id_is_id (mCP_R X Y k_r)]
+
+theorem finJoin_cross_RR (X Y : MatObj 𝒜) (k_r k_r' : Fin Y.n) (hkk : k_r ≠ k_r') :
+    finJoin (fun i => mInrR X Y (Fin.natAdd X.n k_r) i ≫ (mInrR X Y (Fin.natAdd X.n k_r') i)°)
+      = (𝟘 : (mCP X Y).objs (Fin.natAdd X.n k_r) ⟶ (mCP X Y).objs (Fin.natAdd X.n k_r')) := by
+  apply finJoin_zero_all; intro i; simp only [mInrR, Fin.addCases_right]
+  by_cases hki : k_r = i
+  · subst hki
+    have hz : matId Y k_r' k_r = 𝟘 := by
+      simp only [matId, dite_eq_right_iff]; intro h; exact absurd h hkk.symm
+    rw [hz, cast_zero_recip (mCP_R X Y k_r'), DistributiveAllegory.comp_zero]
+  · have hz : matId Y k_r i = 𝟘 := by
+      simp only [matId, dite_eq_right_iff]; intro h; exact absurd h hki
+    rw [hz, cast_zero_src (mCP_R X Y k_r), DistributiveAllegory.zero_comp]
+
+theorem mInlR_natAdd (X Y : MatObj 𝒜) (j : Fin Y.n) (i : Fin X.n) :
+    mInlR X Y (Fin.natAdd X.n j) i = 𝟘 := by simp only [mInlR, Fin.addCases_right]
+theorem mInrR_castAdd (X Y : MatObj 𝒜) (j : Fin X.n) (i : Fin Y.n) :
+    mInrR X Y (Fin.castAdd Y.n j) i = 𝟘 := by simp only [mInrR, Fin.addCases_left]
+
+/-! ### `matId` on the coproduct object. -/
+
+theorem matId_mCP_LL_diag (X Y : MatObj 𝒜) (k_l : Fin X.n) :
+    matId (mCP X Y) (Fin.castAdd Y.n k_l) (Fin.castAdd Y.n k_l)
+      = Cat.id ((mCP X Y).objs (Fin.castAdd Y.n k_l)) := by simp only [matId, ↓reduceDIte]
+theorem matId_mCP_LL_off (X Y : MatObj 𝒜) (k_l k_l' : Fin X.n) (h : k_l ≠ k_l') :
+    matId (mCP X Y) (Fin.castAdd Y.n k_l) (Fin.castAdd Y.n k_l') = 𝟘 := by
+  simp only [matId, dite_eq_right_iff]; intro he; exact absurd (castAdd_inj he) h
+theorem matId_mCP_LR (X Y : MatObj 𝒜) (k_l : Fin X.n) (k_r : Fin Y.n) :
+    matId (mCP X Y) (Fin.castAdd Y.n k_l) (Fin.natAdd X.n k_r) = 𝟘 := by
+  simp only [matId, dite_eq_right_iff]; intro he; exact absurd he (castAdd_ne_natAdd k_l k_r)
+theorem matId_mCP_RL (X Y : MatObj 𝒜) (k_r : Fin Y.n) (k_l : Fin X.n) :
+    matId (mCP X Y) (Fin.natAdd X.n k_r) (Fin.castAdd Y.n k_l) = 𝟘 := by
+  simp only [matId, dite_eq_right_iff]; intro he; exact absurd he.symm (castAdd_ne_natAdd k_l k_r)
+theorem matId_mCP_RR_diag (X Y : MatObj 𝒜) (k_r : Fin Y.n) :
+    matId (mCP X Y) (Fin.natAdd X.n k_r) (Fin.natAdd X.n k_r)
+      = Cat.id ((mCP X Y).objs (Fin.natAdd X.n k_r)) := by simp only [matId, ↓reduceDIte]
+theorem matId_mCP_RR_off (X Y : MatObj 𝒜) (k_r k_r' : Fin Y.n) (h : k_r ≠ k_r') :
+    matId (mCP X Y) (Fin.natAdd X.n k_r) (Fin.natAdd X.n k_r') = 𝟘 := by
+  simp only [matId, dite_eq_right_iff]; intro he; exact absurd (natAdd_inj he) h
+
+/-! ### The five `Coproduct` equations (§2.214). -/
+
+/-- §2.214 eq.1: `u₁ ≫ u₁° = id_X`, i.e. `mInl ≫ mInlR = id`. -/
+theorem mCoprod_eq1 (X Y : MatObj 𝒜) : matComp (mInl X Y) (mInlR X Y) = matId X := by
+  funext i k
+  simp only [matComp, mInl, matRecip]
+  rw [finJoin_addCases]
+  have hleft : (fun j => (mInlR X Y (Fin.castAdd Y.n j) i)° ≫ mInlR X Y (Fin.castAdd Y.n j) k)
+      = (fun j => (matId X j i)° ≫ matId X j k) := by
+    funext j; simp only [mInlR, Fin.addCases_left]
+    exact cast_recip_comp (mCP_L X Y j) (matId X j i) (matId X j k)
+  have hright : finJoin
+      (fun j => (mInlR X Y (Fin.natAdd X.n j) i)° ≫ mInlR X Y (Fin.natAdd X.n j) k) = 𝟘 := by
+    apply finJoin_zero_all; intro j
+    simp only [mInlR, Fin.addCases_right, recip_zero, DistributiveAllegory.zero_comp]
+  rw [hleft, basis_recip_self, hright, union_zero]
+
+/-- §2.214 eq.2: `u₁ ≫ u₂° = 0`, i.e. `mInl ≫ mInrR = 0`. -/
+theorem mCoprod_eq2 (X Y : MatObj 𝒜) : matComp (mInl X Y) (mInrR X Y) = matZero := by
+  funext i k
+  simp only [matComp, mInl, matRecip, matZero]
+  rw [finJoin_addCases]
+  have hleft : finJoin
+      (fun j => (mInlR X Y (Fin.castAdd Y.n j) i)° ≫ mInrR X Y (Fin.castAdd Y.n j) k) = 𝟘 := by
+    apply finJoin_zero_all; intro j
+    simp only [mInlR, mInrR, Fin.addCases_left, DistributiveAllegory.comp_zero]
+  have hright : finJoin
+      (fun j => (mInlR X Y (Fin.natAdd X.n j) i)° ≫ mInrR X Y (Fin.natAdd X.n j) k) = 𝟘 := by
+    apply finJoin_zero_all; intro j
+    simp only [mInlR, Fin.addCases_right, recip_zero, DistributiveAllegory.zero_comp]
+  rw [hleft, hright, union_zero]
+
+/-- §2.214 eq.3: `u₂ ≫ u₁° = 0`, i.e. `mInr ≫ mInlR = 0`. -/
+theorem mCoprod_eq3 (X Y : MatObj 𝒜) : matComp (mInr X Y) (mInlR X Y) = matZero := by
+  funext i k
+  simp only [matComp, mInr, matRecip, matZero]
+  rw [finJoin_addCases]
+  have hleft : finJoin
+      (fun j => (mInrR X Y (Fin.castAdd Y.n j) i)° ≫ mInlR X Y (Fin.castAdd Y.n j) k) = 𝟘 := by
+    apply finJoin_zero_all; intro j
+    simp only [mInrR, Fin.addCases_left, recip_zero, DistributiveAllegory.zero_comp]
+  have hright : finJoin
+      (fun j => (mInrR X Y (Fin.natAdd X.n j) i)° ≫ mInlR X Y (Fin.natAdd X.n j) k) = 𝟘 := by
+    apply finJoin_zero_all; intro j
+    simp only [mInrR, mInlR, Fin.addCases_right, DistributiveAllegory.comp_zero]
+  rw [hleft, hright, union_zero]
+
+/-- §2.214 eq.4: `u₂ ≫ u₂° = id_Y`, i.e. `mInr ≫ mInrR = id`. -/
+theorem mCoprod_eq4 (X Y : MatObj 𝒜) : matComp (mInr X Y) (mInrR X Y) = matId Y := by
+  funext i k
+  simp only [matComp, mInr, matRecip]
+  rw [finJoin_addCases]
+  have hleft : finJoin
+      (fun j => (mInrR X Y (Fin.castAdd Y.n j) i)° ≫ mInrR X Y (Fin.castAdd Y.n j) k) = 𝟘 := by
+    apply finJoin_zero_all; intro j
+    simp only [mInrR, Fin.addCases_left, recip_zero, DistributiveAllegory.zero_comp]
+  have hright : (fun j => (mInrR X Y (Fin.natAdd X.n j) i)° ≫ mInrR X Y (Fin.natAdd X.n j) k)
+      = (fun j => (matId Y j i)° ≫ matId Y j k) := by
+    funext j; simp only [mInrR, Fin.addCases_right]
+    exact cast_recip_comp (mCP_R X Y j) (matId Y j i) (matId Y j k)
+  rw [hleft, hright, basis_recip_self, DistributiveAllegory.zero_union]
+
+/-- §2.214 eq.5: `(u₁° ≫ u₁) ∪ (u₂° ≫ u₂) = id_{X⊕Y}`.  Checked over the four index blocks. -/
+theorem mCoprod_eq5 (X Y : MatObj 𝒜) :
+    matUnion (matComp (mInlR X Y) (mInl X Y)) (matComp (mInrR X Y) (mInr X Y))
+      = matId (mCP X Y) := by
+  funext k k'
+  simp only [matUnion, matComp, mInl, mInr, matRecip]
+  refine Fin.addCases (fun k_l => ?_) (fun k_r => ?_) k <;>
+    refine Fin.addCases (fun k_l' => ?_) (fun k_r' => ?_) k'
+  · by_cases hkk : k_l = k_l'
+    · subst hkk
+      rw [finJoin_diag_L, finJoin_first_zero _ _ (fun i => mInrR_castAdd X Y k_l i), union_zero,
+        matId_mCP_LL_diag]
+    · rw [finJoin_cross_LL X Y k_l k_l' hkk,
+        finJoin_first_zero _ _ (fun i => mInrR_castAdd X Y k_l i), union_zero,
+        matId_mCP_LL_off X Y k_l k_l' hkk]
+  · rw [finJoin_second_zero _ _ (fun i => mInlR_natAdd X Y k_r' i),
+      finJoin_first_zero _ _ (fun i => mInrR_castAdd X Y k_l i), union_zero, matId_mCP_LR]
+  · rw [finJoin_first_zero _ _ (fun i => mInlR_natAdd X Y k_r i),
+      finJoin_second_zero _ _ (fun i => mInrR_castAdd X Y k_l' i), union_zero, matId_mCP_RL]
+  · by_cases hkk : k_r = k_r'
+    · subst hkk
+      rw [finJoin_diag_R, finJoin_first_zero _ _ (fun i => mInlR_natAdd X Y k_r i),
+        DistributiveAllegory.zero_union, matId_mCP_RR_diag]
+    · rw [finJoin_cross_RR X Y k_r k_r' hkk,
+        finJoin_first_zero _ _ (fun i => mInlR_natAdd X Y k_r i),
+        DistributiveAllegory.zero_union, matId_mCP_RR_off X Y k_r k_r' hkk]
+
+/-- §2.214: the `Coproduct` diagram `X → (X ⊕ Y) ← Y` built from the five equations. -/
+def mCoproduct (X Y : MatObj 𝒜) : Coproduct (mCP X Y) X Y where
+  u₁ := mInl X Y
+  u₂ := mInr X Y
+  u₁_self_comp_recip :=
+    (by show matComp (mInl X Y) (matRecip (mInl X Y)) = matId X
+        rw [mInl_recip]; exact mCoprod_eq1 X Y)
+  u₁_u₂_recip :=
+    (by show matComp (mInl X Y) (matRecip (mInr X Y)) = matZero
+        rw [mInr_recip]; exact mCoprod_eq2 X Y)
+  u₂_u₁_recip :=
+    (by show matComp (mInr X Y) (matRecip (mInl X Y)) = matZero
+        rw [mInl_recip]; exact mCoprod_eq3 X Y)
+  u₂_self_comp_recip :=
+    (by show matComp (mInr X Y) (matRecip (mInr X Y)) = matId Y
+        rw [mInr_recip]; exact mCoprod_eq4 X Y)
+  recip_union_eq_id :=
+    (by show matUnion (matComp (matRecip (mInl X Y)) (mInl X Y))
+              (matComp (matRecip (mInr X Y)) (mInr X Y)) = matId (mCP X Y)
+        rw [mInl_recip, mInr_recip]; exact mCoprod_eq5 X Y)
+
+/-- §2.215: `Mat 𝒜` is a positive allegory (has finite coproducts). -/
+instance instPositiveAllegoryMat : PositiveAllegory (MatObj 𝒜) :=
+  { instDistributiveAllegoryMat with
+    coterm := { n := 0, objs := Fin.elim0 }
+    coprod := mCP
+    has_coproduct := mCoproduct }
+
+end MatPositive
+
 /-! ## §I  Summary
   §2.216  Allegory (MatObj 𝒜)               : instAllegoryMat             [PROVED]
   §2.216  DistributiveAllegory (MatObj 𝒜)   : instDistributiveAllegoryMat [PROVED]
   §2.342  DivisionAllegory (MatObj 𝒜)       : instDivisionAllegoryMat     [PROVED]
+  §2.215  PositiveAllegory (MatObj 𝒜)       : instPositiveAllegoryMat     [PROVED]
   embed1 : 𝒜 → MatObj 𝒜 : faithful, preserves ≫, °, ∩, ∪, 𝟘, /  [PROVED]
 -/
 
