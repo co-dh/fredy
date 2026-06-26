@@ -133,4 +133,51 @@ def IsRelativeCapitalization [HasTerminal 𝒞] [HasImages 𝒞] (A A_star : �
 -- `Fredy.CapDataWiring.capitalization_lemma`, now PROVEN Sorry-free (axioms
 -- `[propext, Classical.choice, Quot.sound]`).
 
+/-! ## §1.534  Not well-supported ⟹ Δ does not reflect isos (hence not faithful)
+
+  If B is not well-supported, there exists a proper subobject `U ↣ 1` through which
+  `term B : B → 1` factors.  The underlying arrow of `Δ(U.arr) : Δ(U) → Δ(1)` in A/B
+  is `pair (fst ≫ U.arr) snd : prod U.dom B → prod one B`, and this is iso
+  (inverse: `pair (snd ≫ b) snd` where `b : B → U.dom`), while `U.arr` is not iso.
+  Hence Δ = `prodRight B` (as endofunctor of 𝒞) does not reflect isos.
+
+  The key step: `U.arr : U.dom ↣ one` monic + `fst ≫ U.arr = term(U.dom×B)` and
+  `snd ≫ b ≫ U.arr = snd ≫ term B = term(U.dom×B)` force `fst = snd ≫ b` by monicity,
+  which is exactly what makes `pair (snd ≫ b) snd` a right-inverse. -/
+
+/-- **§1.534**: The underlying map `pair (fst ≫ U.arr) snd : prod U.dom B → prod one B`
+    is an isomorphism when `b : B → U.dom` factors `term B` through `U.arr`. -/
+theorem prodRight_map_subterm_iso {B : 𝒞} (U : Subobject 𝒞 (one (𝒞 := 𝒞)))
+    (b : B ⟶ U.dom) (hb : b ≫ U.arr = term B) :
+    IsIso ((prodRightFunctor B).map U.arr) := by
+  -- `(prodRightFunctor B).map U.arr = pair (fst ≫ U.arr) snd : prod U.dom B → prod one B`
+  -- Candidate inverse: `pair (snd ≫ b) snd : prod one B → prod U.dom B`
+  -- Key: `fst = snd ≫ b` as maps `prod U.dom B → U.dom`, by monicity of U.arr
+  have hkey : (fst : prod U.dom B ⟶ U.dom) = snd ≫ b :=
+    U.monic fst (snd ≫ b) (by rw [Cat.assoc, hb]; exact (term_uniq _ _).symm)
+  refine ⟨pair (snd ≫ b) snd, ?_, ?_⟩
+  · -- f ≫ inv = id(prod U.dom B): `pair (fst ≫ U.arr) snd ≫ pair (snd ≫ b) snd = id`
+    show pair (fst ≫ U.arr) snd ≫ pair (snd ≫ b) snd = Cat.id (prod U.dom B)
+    have hid : Cat.id (prod U.dom B) = pair fst snd :=
+      pair_uniq fst snd (Cat.id _) (Cat.id_comp fst) (Cat.id_comp snd)
+    rw [hid, ← pair_uniq fst snd _ _ _]
+    · rw [Cat.assoc, fst_pair, ← Cat.assoc, snd_pair, ← hkey]
+    · rw [Cat.assoc, snd_pair, snd_pair]
+  · -- inv ≫ f = id(prod one B): `pair (snd ≫ b) snd ≫ pair (fst ≫ U.arr) snd = id`
+    show pair (snd ≫ b) snd ≫ pair (fst ≫ U.arr) snd = Cat.id (prod one B)
+    have hid : Cat.id (prod one B) = pair fst snd :=
+      pair_uniq fst snd (Cat.id _) (Cat.id_comp fst) (Cat.id_comp snd)
+    rw [hid, ← pair_uniq fst snd _ _ _]
+    · -- fst: `(pair(snd≫b) snd ≫ pair(fst≫U.arr) snd) ≫ fst = (snd ≫ b) ≫ U.arr = snd ≫ term B = fst`
+      rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair, Cat.assoc, hb]
+      exact term_uniq _ _
+    · rw [Cat.assoc, snd_pair, snd_pair]
+
+/-- **§1.534**: `prodRight B` does not reflect isomorphisms when B is not well-supported.
+    Concretely: `U.arr : U.dom → 1` is monic-not-iso but `(prodRight B).map U.arr` is iso. -/
+theorem prodRight_not_reflects_iso {B : 𝒞} (U : Subobject 𝒞 (one (𝒞 := 𝒞)))
+    (b : B ⟶ U.dom) (hb : b ≫ U.arr = term B) (hU : ¬ Subobject.IsEntire U) :
+    ∃ (X Y : 𝒞) (f : X ⟶ Y), IsIso ((prodRightFunctor B).map f) ∧ ¬ IsIso f :=
+  ⟨U.dom, one, U.arr, prodRight_map_subterm_iso U b hb, hU⟩
+
 end Freyd

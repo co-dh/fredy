@@ -31,12 +31,18 @@ variable [ht : HasTerminal 𝒞] [hp : HasBinaryProducts 𝒞] [hpull : HasPullb
 --   (Blocked: requires functor category machinery not yet available in this repo.)
 
 -- BOOK §1.53 / §1.532: Δ : A → A/B is a representation of pre-regular categories.
---   (Follows from §1.532: Σ reflects covers + (B×-) preserves covers; formalized in
---   RelativeCapitalization.lean as `sliceEmbedFunctor` / `overPreRegular`.)
+--   Pre-regularity of A/B: `overPreRegular` in SliceRegular.lean.
+--   Δ as a functor: `sliceEmbedFunctor` in RelativeCapitalization.lean.
+--   (B×-) preserves covers: the §1.532 pullback `prod_pullback` here + `overPullbacksTransferCovers`
+--   in SliceRegular.lean; together these give §1.532's claim that Δ preserves covers.
 
--- BOOK §1.53 / §1.533: Δ is faithful iff B is well-supported.
---   (⟹ formalized as `slice_embedding_separates` in S1_54.lean;
---    ⟸ direction in §1.534 shows non-well-supported ⟹ not faithful.)
+-- BOOK §1.53 / §1.533–1.534: Δ is faithful iff B is well-supported.
+--   (⟹) B well-supported ⟹ Δ faithful: `sliceEmbedFaithful` in RelativeCapitalization.lean
+--       (relies on `slice_embedding_separates` in S1_54.lean — `fst : C×B → C` is a cover
+--        when B is well-supported, hence epic, so prodRight B is an embedding).
+--   (⟸) B not well-supported ⟹ Δ not faithful: `prodRight_not_reflects_iso` in S1_54.lean
+--       (U.arr : U ↣ 1 proper, b : B → U factors term B; pair(fst≫U.arr,snd) is iso by
+--        two-sided inverse pair(snd≫b,snd) via monicity of U.arr, but U.arr not iso).
 
 /-! ## §1.531  Σ reflects covers
 
