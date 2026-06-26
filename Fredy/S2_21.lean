@@ -538,23 +538,174 @@ theorem semiSimple_sym_dom_to_polar {a : 𝒜} (S : a ⟶ a)
     exact le_trans h1 (le_trans (comp_mono_left _ h2) (comp_mono_left _ h4))
   exact le_antisymm hLB hUB
 
--- §2.219: A positive allegory is semi-simple iff for every `S : a ⟶ a` with `S° = S` and
--- `dom S ⊑ S` there exists `R : c ⟶ a` such that `S = R° ≫ R`.
---
--- (⇒) the polar/forward direction is PROVED as `semiSimple_sym_dom_to_polar` above
---     (axioms [propext]): if S is semi-simple with S°=S and dom S ⊑ S then S = R°≫R
---     with R = (F∪G)≫dom S.  The full iff's `mp` is then immediate
---     (`semiSimple_sym_dom_to_polar S hSym hDom (hSS S)`).
---
--- BOOK §2.219 (⇐) [OPEN]: the reverse direction (polar condition ⟹ every morphism
---   semi-simple) is the matrix argument.  Given T : a ⟶ b, let ab = PositiveAllegory.coprod
---   a b with injections u₁ : a ⟶ ab, u₂ : b ⟶ ab; form the symmetric reflexive
---   S = u₁°u₁ ∪ u₁°Tu₂ ∪ u₂°T°u₁ ∪ u₂°u₂ : ab ⟶ ab; apply the hypothesis to get S = R°R;
---   read off T = u₁≫S≫u₂° = F°≫G with F = R≫u₁°, G = R≫u₂°, giving SemiSimple T.
---   STUCK STEP: distributing u₁≫(four-term union)≫u₁° (and the u₂ blocks) and collapsing the
---   cross-terms to 0 via u₁≫u₂° = 0 — ~30 lines of union/comp/zero rewrites over the
---   PositiveAllegory coproduct equations.  Conceptually complete; left as a follow-up.
-
 end S219
+
+/-! ### §2.219  Reverse direction lives in a `PositiveAllegory`-only context.
+    A separate section with a single allegory instance avoids the `Cat` diamond that
+    would arise from having both `[DistributiveAllegory 𝒜]` (the §2.219⇒ section) and
+    `[PositiveAllegory 𝒜]` in scope simultaneously. -/
+section S219Positive
+
+variable {𝒜 : Type u} [PositiveAllegory 𝒜]
+
+/-- The `(1, T; T°, 1)` matrix on the coproduct `ab = coprod a b`, written in the single
+    hom-set `ab ⟶ ab` via the injections `u₁ = cp.u₁`, `u₂ = cp.u₂` (§2.219 ⇐). -/
+private def matrixS {a b : 𝒜}
+    (cp : Coproduct (PositiveAllegory.coprod a b) a b) (T : a ⟶ b) :
+    (PositiveAllegory.coprod a b) ⟶ (PositiveAllegory.coprod a b) :=
+  ((cp.u₁° ≫ cp.u₁) ∪ (cp.u₁° ≫ (T ≫ cp.u₂))) ∪
+    ((cp.u₂° ≫ (T° ≫ cp.u₁)) ∪ (cp.u₂° ≫ cp.u₂))
+
+/-- Union AC permutation used to reassemble `S°` into `S` (swaps the two outer ends). -/
+private theorem union_four_ac {a b : 𝒜} (w x y z : a ⟶ b) :
+    (w ∪ x) ∪ (y ∪ z) = (z ∪ x) ∪ (y ∪ w) := by
+  apply le_antisymm
+  · exact union_lub
+      (union_lub
+        (le_trans (le_union_right _ _) (le_union_right _ _))
+        (le_trans (le_union_right _ _) (le_union_left _ _)))
+      (union_lub
+        (le_trans (le_union_left _ _) (le_union_right _ _))
+        (le_trans (le_union_left _ _) (le_union_left _ _)))
+  · exact union_lub
+      (union_lub
+        (le_trans (le_union_right _ _) (le_union_right _ _))
+        (le_trans (le_union_right _ _) (le_union_left _ _)))
+      (union_lub
+        (le_trans (le_union_left _ _) (le_union_right _ _))
+        (le_trans (le_union_left _ _) (le_union_left _ _)))
+
+/-! ### §2.219  Reverse direction and full iff (the matrix argument)
+
+  Given `T : a ⟶ b`, work in the coproduct `ab = coprod a b` with injections
+  `u₁ : a ⟶ ab`, `u₂ : b ⟶ ab`.  Form the symmetric, reflexive
+    `S = u₁°u₁ ∪ u₁°Tu₂ ∪ u₂°T°u₁ ∪ u₂°u₂ : ab ⟶ ab`
+  (the "matrix" `(1, T; T°, 1)` written in the single hom-set `ab ⟶ ab`).  The polar
+  hypothesis gives `S = R°≫R`.  Sandwiching with the injections reads off:
+    `u₁≫S≫u₂° = T`,  `u₁≫S≫u₁° = 1`,  `u₂≫S≫u₂° = 1`
+  (all cross terms vanish via `u₁u₂° = 0 = u₂u₁°`).  Hence with `F = R≫u₁°`,
+  `G = R≫u₂°` we get `T = F°≫G`, `F°F = u₁≫S≫u₁° = 1` (so `Simple F`) and likewise
+  `G°G = 1` (so `Simple G`); thus `T` is semi-simple. -/
+
+/-- §2.219: A positive allegory is semi-simple iff for every `S : a ⟶ a` with `S° = S`
+    and `dom S ⊑ S` there is `R : c ⟶ a` with `S = R°≫R`.  (`mp` from
+    `semiSimple_sym_dom_to_polar`; `mpr` is the matrix argument above.) -/
+theorem positive_semiSimple_iff :
+    (∀ {a b : 𝒜} (R : a ⟶ b), SemiSimple R) ↔
+    (∀ {a : 𝒜} (S : a ⟶ a), S° = S → dom S ⊑ S → ∃ (c : 𝒜) (R : c ⟶ a), S = R° ≫ R) := by
+  constructor
+  · intro hSS _ S hSym hDom; exact semiSimple_sym_dom_to_polar S hSym hDom (hSS S)
+  · intro hCond a b T
+    -- the coproduct ab = a ⊕ b with injections u₁ : a ⟶ ab, u₂ : b ⟶ ab
+    let cp := PositiveAllegory.has_coproduct a b
+    let u₁ := cp.u₁
+    let u₂ := cp.u₂
+    -- the matrix S = (1, T; T°, 1)
+    let S := matrixS cp T
+    have hS : S = ((u₁° ≫ u₁) ∪ (u₁° ≫ (T ≫ u₂))) ∪ ((u₂° ≫ (T° ≫ u₁)) ∪ (u₂° ≫ u₂)) := rfl
+    -- the four coproduct equations on the injections
+    have e11 : u₁ ≫ u₁° = Cat.id a := cp.u₁_self_comp_recip
+    have e12 : u₁ ≫ u₂° = (𝟘 : a ⟶ b) := cp.u₁_u₂_recip
+    have e21 : u₂ ≫ u₁° = (𝟘 : b ⟶ a) := cp.u₂_u₁_recip
+    have e22 : u₂ ≫ u₂° = Cat.id b := cp.u₂_self_comp_recip
+    -- `u_i ≫ X ≫ u_j°` reassociated to `(u_i ≫ left) ≫ (right ≫ u_j°)`-free atoms.
+    -- We compute the three sandwiches we need by distributing over the 4-term union.
+    -- Sandwich helper rewrites for the four summands under `u_i ≫ · ≫ u_j°`.
+    -- S° = S : reciprocate the four terms; term1, term4 are self-symmetric, term2 ↔ term3.
+    have hSym : S° = S := by
+      -- reciprocals of the four summands (terms 1,4 self-symmetric; 2 ↔ 3 swap)
+      have rA : (u₁° ≫ u₁)° = u₁° ≫ u₁ := by
+        rw [Allegory.recip_comp, Allegory.recip_recip]
+      have rD : (u₂° ≫ u₂)° = u₂° ≫ u₂ := by
+        rw [Allegory.recip_comp, Allegory.recip_recip]
+      have rB : (u₁° ≫ (T ≫ u₂))° = u₂° ≫ (T° ≫ u₁) := by
+        rw [Allegory.recip_comp, Allegory.recip_comp, Allegory.recip_recip, Cat.assoc]
+      have rC : (u₂° ≫ (T° ≫ u₁))° = u₁° ≫ (T ≫ u₂) := by
+        rw [Allegory.recip_comp, Allegory.recip_comp, Allegory.recip_recip,
+            Allegory.recip_recip, Cat.assoc]
+      rw [hS, recip_union, recip_union, recip_union, rA, rB, rC, rD]
+      -- goal: (D ∪ B) ∪ (C ∪ A) = (A ∪ B) ∪ (C ∪ D), pure union AC.
+      exact union_four_ac (u₂° ≫ u₂) (u₁° ≫ (T ≫ u₂)) (u₂° ≫ (T° ≫ u₁)) (u₁° ≫ u₁)
+    -- id ⊑ S : id = u₁°u₁ ∪ u₂°u₂ ⊑ S (both are among S's summands).
+    have hid_le_S : Cat.id (PositiveAllegory.coprod a b) ⊑ S := by
+      rw [← cp.recip_union_eq_id, hS]
+      exact union_lub
+        (le_trans (le_union_left _ _) (le_union_left _ _))
+        (le_trans (le_union_right _ _) (le_union_right _ _))
+    -- dom S ⊑ S, via dom S ⊑ id ⊑ S
+    have hdom_le_S : dom S ⊑ S := le_trans (dom_coreflexive S) hid_le_S
+    -- apply the polar hypothesis
+    obtain ⟨c, R, hSR⟩ := hCond S hSym hdom_le_S
+    -- Read off the three sandwiches of S.  General term-collapse helpers:
+    -- u_i ≫ (u₁°≫u₁) ≫ u_j° = (u_i≫u₁°) ≫ (u₁≫u_j°)
+    -- Compute u₁ ≫ S ≫ u₂° = T
+    have hT : u₁ ≫ S ≫ u₂° = T := by
+      rw [hS]
+      simp only [DistributiveAllegory.comp_union_distrib, union_comp_distrib]
+      -- four sandwich terms; collapse each via assoc + coproduct eqns
+      have t1 : u₁ ≫ (u₁° ≫ u₁) ≫ u₂° = (𝟘 : a ⟶ b) := by
+        rw [← Cat.assoc, ← Cat.assoc, e11, Cat.id_comp, e12]
+      have t2 : u₁ ≫ (u₁° ≫ T ≫ u₂) ≫ u₂° = T := by
+        rw [← Cat.assoc, ← Cat.assoc, e11, Cat.id_comp, Cat.assoc, e22, Cat.comp_id]
+      have t3 : u₁ ≫ (u₂° ≫ T° ≫ u₁) ≫ u₂° = (𝟘 : a ⟶ b) := by
+        rw [← Cat.assoc, ← Cat.assoc, e12, DistributiveAllegory.zero_comp,
+            DistributiveAllegory.zero_comp]
+      have t4 : u₁ ≫ (u₂° ≫ u₂) ≫ u₂° = (𝟘 : a ⟶ b) := by
+        rw [← Cat.assoc, ← Cat.assoc, e12, DistributiveAllegory.zero_comp,
+            DistributiveAllegory.zero_comp]
+      rw [t1, t2, t3, t4, union_zero, DistributiveAllegory.zero_union, union_zero]
+    -- Compute u₁ ≫ S ≫ u₁° = id_a
+    have hF : u₁ ≫ S ≫ u₁° = Cat.id a := by
+      rw [hS]
+      simp only [DistributiveAllegory.comp_union_distrib, union_comp_distrib]
+      have t1 : u₁ ≫ (u₁° ≫ u₁) ≫ u₁° = Cat.id a := by
+        rw [← Cat.assoc, ← Cat.assoc, e11, Cat.id_comp, e11]
+      have t2 : u₁ ≫ (u₁° ≫ T ≫ u₂) ≫ u₁° = (𝟘 : a ⟶ a) := by
+        rw [← Cat.assoc, ← Cat.assoc, e11, Cat.id_comp, Cat.assoc, e21,
+            DistributiveAllegory.comp_zero]
+      have t3 : u₁ ≫ (u₂° ≫ T° ≫ u₁) ≫ u₁° = (𝟘 : a ⟶ a) := by
+        rw [← Cat.assoc, ← Cat.assoc, e12, DistributiveAllegory.zero_comp,
+            DistributiveAllegory.zero_comp]
+      have t4 : u₁ ≫ (u₂° ≫ u₂) ≫ u₁° = (𝟘 : a ⟶ a) := by
+        rw [← Cat.assoc, ← Cat.assoc, e12, DistributiveAllegory.zero_comp,
+            DistributiveAllegory.zero_comp]
+      rw [t1, t2, t3, t4, union_zero, union_zero, union_zero]
+    -- Compute u₂ ≫ S ≫ u₂° = id_b
+    have hG : u₂ ≫ S ≫ u₂° = Cat.id b := by
+      rw [hS]
+      simp only [DistributiveAllegory.comp_union_distrib, union_comp_distrib]
+      have t1 : u₂ ≫ (u₁° ≫ u₁) ≫ u₂° = (𝟘 : b ⟶ b) := by
+        rw [← Cat.assoc, ← Cat.assoc, e21, DistributiveAllegory.zero_comp,
+            DistributiveAllegory.zero_comp]
+      have t2 : u₂ ≫ (u₁° ≫ T ≫ u₂) ≫ u₂° = (𝟘 : b ⟶ b) := by
+        rw [← Cat.assoc, ← Cat.assoc, e21, DistributiveAllegory.zero_comp,
+            DistributiveAllegory.zero_comp]
+      have t3 : u₂ ≫ (u₂° ≫ T° ≫ u₁) ≫ u₂° = (𝟘 : b ⟶ b) := by
+        rw [← Cat.assoc, ← Cat.assoc, e22, Cat.id_comp, Cat.assoc, e12,
+            DistributiveAllegory.comp_zero]
+      have t4 : u₂ ≫ (u₂° ≫ u₂) ≫ u₂° = Cat.id b := by
+        rw [← Cat.assoc, ← Cat.assoc, e22, Cat.id_comp, e22]
+      rw [t1, t2, t3, t4, DistributiveAllegory.zero_union, DistributiveAllegory.zero_union,
+          DistributiveAllegory.zero_union]
+    -- Read off T = (R≫u₁°)° ≫ (R≫u₂°), and F°F = 1, G°G = 1.
+    refine ⟨c, R ≫ u₁°, R ≫ u₂°, ?_, ?_, ?_⟩
+    · -- Simple (R ≫ u₁°) : (R≫u₁°)° ≫ (R≫u₁°) ⊑ id
+      have : (R ≫ u₁°)° ≫ (R ≫ u₁°) = Cat.id a := by
+        rw [Allegory.recip_comp, Allegory.recip_recip, Cat.assoc, ← Cat.assoc R° R,
+            ← hSR]
+        -- now: u₁ ≫ (S ≫ u₁°)  -- need u₁ ≫ S ≫ u₁°
+        rw [← Cat.assoc] at hF ⊢; exact hF
+      rw [Simple, this]; exact le_refl _
+    · -- Simple (R ≫ u₂°)
+      have : (R ≫ u₂°)° ≫ (R ≫ u₂°) = Cat.id b := by
+        rw [Allegory.recip_comp, Allegory.recip_recip, Cat.assoc, ← Cat.assoc R° R,
+            ← hSR]
+        rw [← Cat.assoc] at hG ⊢; exact hG
+      rw [Simple, this]; exact le_refl _
+    · -- T = (R≫u₁°)° ≫ (R≫u₂°)
+      rw [Allegory.recip_comp, Allegory.recip_recip, Cat.assoc, ← Cat.assoc R° R, ← hSR]
+      rw [← Cat.assoc] at hT ⊢; exact hT.symm
+
+end S219Positive
 
 end Freyd.Alg
