@@ -78,34 +78,34 @@ end Equiv
 
 /-! ## The hom-type and its order
 
-  `RelQuot C a b := Quotient (relSetoid a b)`.  Containment descends to a genuine
+  `BinRelQuot C a b := Quotient (relSetoid a b)`.  Containment descends to a genuine
   partial order on the quotient (antisymmetric by construction). -/
 
 section Quot
 variable [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
 
 /-- A morphism `a ⟶ b` in `Rel(C)`: an `RelLe`-equivalence class of relations. -/
-def RelQuot (a b : 𝒞) : Type _ := Quotient (relSetoid (𝒞 := 𝒞) a b)
+def BinRelQuot (a b : 𝒞) : Type _ := Quotient (relSetoid (𝒞 := 𝒞) a b)
 
 /-- The canonical class of a relation. -/
-def relClass {a b : 𝒞} (R : BinRel 𝒞 a b) : RelQuot a b := Quotient.mk _ R
+def relClass {a b : 𝒞} (R : BinRel 𝒞 a b) : BinRelQuot a b := Quotient.mk _ R
 
 /-- Containment descends to the quotient (well-defined: monotone in both slots). -/
-def quotLe {a b : 𝒞} (x y : RelQuot (𝒞 := 𝒞) a b) : Prop :=
+def quotLe {a b : 𝒞} (x y : BinRelQuot (𝒞 := 𝒞) a b) : Prop :=
   Quotient.liftOn₂ x y (fun R S => RelLe R S)
     (fun _ _ _ _ hR hS => propext
       ⟨fun h => rel_le_trans (rel_le_trans hR.2 h) hS.1,
        fun h => rel_le_trans (rel_le_trans hR.1 h) hS.2⟩)
 
-theorem quotLe_refl {a b : 𝒞} (x : RelQuot (𝒞 := 𝒞) a b) : quotLe x x :=
+theorem quotLe_refl {a b : 𝒞} (x : BinRelQuot (𝒞 := 𝒞) a b) : quotLe x x :=
   Quotient.inductionOn x (fun R => rel_le_refl R)
 
-theorem quotLe_trans {a b : 𝒞} {x y z : RelQuot (𝒞 := 𝒞) a b}
+theorem quotLe_trans {a b : 𝒞} {x y z : BinRelQuot (𝒞 := 𝒞) a b}
     (h₁ : quotLe x y) (h₂ : quotLe y z) : quotLe x z :=
   Quotient.inductionOn₃ x y z (fun _ _ _ h₁ h₂ => rel_le_trans h₁ h₂) h₁ h₂
 
 /-- Antisymmetry: mutual containment IS Lean equality on the quotient. -/
-theorem quotLe_antisymm {a b : 𝒞} {x y : RelQuot (𝒞 := 𝒞) a b}
+theorem quotLe_antisymm {a b : 𝒞} {x y : BinRelQuot (𝒞 := 𝒞) a b}
     (h₁ : quotLe x y) (h₂ : quotLe y x) : x = y :=
   Quotient.inductionOn₂ x y (fun _ _ h₁ h₂ => Quotient.sound ⟨h₁, h₂⟩) h₁ h₂
 
@@ -126,8 +126,8 @@ section RelCat
 variable [RegularCategory 𝒞]
 
 /-- Composition on the quotient: `[R] ⊚ [S] = [R ⊚ S]`, well-defined by `compose_le`. -/
-def qComp {a b c : 𝒞} (x : RelQuot (𝒞 := 𝒞) a b) (y : RelQuot (𝒞 := 𝒞) b c) :
-    RelQuot (𝒞 := 𝒞) a c :=
+def qComp {a b c : 𝒞} (x : BinRelQuot (𝒞 := 𝒞) a b) (y : BinRelQuot (𝒞 := 𝒞) b c) :
+    BinRelQuot (𝒞 := 𝒞) a c :=
   Quotient.liftOn₂ x y (fun R S => relClass (R ⊚ S))
     (fun _ _ _ _ hR hS => Quotient.sound
       ⟨compose_le hR.1 hS.1, compose_le hR.2 hS.2⟩)
@@ -136,11 +136,11 @@ def qComp {a b c : 𝒞} (x : RelQuot (𝒞 := 𝒞) a b) (y : RelQuot (𝒞 := 
     qComp (relClass R) (relClass S) = relClass (R ⊚ S) := rfl
 
 /-- The identity relation `[graph id]`. -/
-def relId (a : 𝒞) : RelQuot (𝒞 := 𝒞) a a := relClass (graph (Cat.id a))
+def relId (a : 𝒞) : BinRelQuot (𝒞 := 𝒞) a a := relClass (graph (Cat.id a))
 
 /-- **§2.111**: `Rel(C)` is a category.  Objects `RelObj C`; homs the `RelLe`-classes. -/
 instance (priority := 0) relCat : Cat.{max u v} (RelObj 𝒞) where
-  Hom A B := RelQuot (𝒞 := 𝒞) A.carrier B.carrier
+  Hom A B := BinRelQuot (𝒞 := 𝒞) A.carrier B.carrier
   id  A   := relId A.carrier
   comp x y := qComp x y
   id_comp {A B} x := by
@@ -168,7 +168,7 @@ section RelAllegory
 variable [RegularCategory 𝒞]
 
 /-- Reciprocal on the quotient: `[R]° = [R°]`, well-defined by `reciprocal_mono`. -/
-def qRecip {a b : 𝒞} (x : RelQuot (𝒞 := 𝒞) a b) : RelQuot (𝒞 := 𝒞) b a :=
+def qRecip {a b : 𝒞} (x : BinRelQuot (𝒞 := 𝒞) a b) : BinRelQuot (𝒞 := 𝒞) b a :=
   Quotient.liftOn x (fun R => relClass R°)
     (fun _ _ h => Quotient.sound ⟨reciprocal_mono h.1, reciprocal_mono h.2⟩)
 
@@ -176,7 +176,7 @@ def qRecip {a b : 𝒞} (x : RelQuot (𝒞 := 𝒞) a b) : RelQuot (𝒞 := 𝒞
     qRecip (relClass R) = relClass R° := rfl
 
 /-- Intersection on the quotient: `[R] ∩ [S] = [R ⊓ S]`, well-defined by the meet UMP. -/
-def qInter {a b : 𝒞} (x y : RelQuot (𝒞 := 𝒞) a b) : RelQuot (𝒞 := 𝒞) a b :=
+def qInter {a b : 𝒞} (x y : BinRelQuot (𝒞 := 𝒞) a b) : BinRelQuot (𝒞 := 𝒞) a b :=
   Quotient.liftOn₂ x y (fun R S => relClass (R ⊓ S))
     (fun _ _ _ _ hR hS => Quotient.sound
       ⟨le_intersect (rel_le_trans (intersect_le_left _ _) hR.1)
@@ -397,7 +397,7 @@ theorem emptyRel_comp_le {a b c : 𝒞} (R : BinRel 𝒞 b c) :
   coproduct-of-tables).  All distributivity laws are reused from S1_60. -/
 
 /-- Union on the quotient: `[R] ∪ [S] = [R ∪ᵣ S]`, well-defined by the union UMP. -/
-def qUnion {a b : 𝒞} (x y : RelQuot (𝒞 := 𝒞) a b) : RelQuot (𝒞 := 𝒞) a b :=
+def qUnion {a b : 𝒞} (x y : BinRelQuot (𝒞 := 𝒞) a b) : BinRelQuot (𝒞 := 𝒞) a b :=
   Quotient.liftOn₂ x y (fun R S => relClass (R ∪ᵣ S))
     (fun _ _ _ _ hR hS => Quotient.sound
       ⟨le_relUnion (rel_le_trans hR.1 (relUnion_le_left _ _))
@@ -497,8 +497,8 @@ section Coproduct214
 -- The §2.214 forward direction lives over a positive (disjoint) coproduct of `C`.
 variable [DisjointBinaryCoproduct 𝒞]
 
-/-- The graph injection `[graph f]` as a `Rel(C)`-morphism (an element of `RelQuot a b`). -/
-def relGraph {a b : 𝒞} (f : a ⟶ b) : RelQuot (𝒞 := 𝒞) a b := relClass (graph f)
+/-- The graph injection `[graph f]` as a `Rel(C)`-morphism (an element of `BinRelQuot a b`). -/
+def relGraph {a b : 𝒞} (f : a ⟶ b) : BinRelQuot (𝒞 := 𝒞) a b := relClass (graph f)
 
 /-- **§2.214 eq (1)/(4) — the monic injection equation.**  For a MONIC `f : a → b`, the
     graph satisfies `[graph f] ≫ [graph f]° = 1` in `Rel(C)`.  (`⊆` from
