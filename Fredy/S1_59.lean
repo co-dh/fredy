@@ -1089,43 +1089,8 @@ theorem compose_prods_indep {A B C : 𝒞}
     rw [← Cat.assoc, ← Cat.assoc, image.lift_fac, image.lift_fac,
         @snd_pair 𝒞 _ hp₂, @snd_pair 𝒞 _ hp₁]
 
-/-- **§1.594 bridge (level legs collapse the cover).**  For any morphism `q : B ⟶ Q`,
-    the two legs of the level relation `graph q ⊚ (graph q)°` become equal after
-    post-composing with `q`.  Reason: that composite is the image of the span
-    `pair π₁ π₂` from the pullback of `q` over `q`, on which `π₁ ≫ q = π₂ ≫ q`
-    (pullback square); the image-lift is a cover, so cancelling it (`cover_epi`)
-    propagates the equality to the two image legs.  This lets a `RelHom` into the
-    level relation transport `R.colA ≫ q = R.colB ≫ q` (Mal'cev step 2). -/
-theorem level_legs_comp [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
-    {B Q : 𝒞} (q : B ⟶ Q) :
-    (graph q ⊚ (graph q)°).colA ≫ q = (graph q ⊚ (graph q)°).colB ≫ q := by
-  -- Unfold the composite's data: pullback of `(graph q).colB = q` over `(graph q)°.colA = q`.
-  let pb := HasPullbacks.has (graph q).colB ((graph q)°).colA
-  let span : pb.cone.pt ⟶ prod B B :=
-    pair (pb.cone.π₁ ≫ (graph q).colA) (pb.cone.π₂ ≫ ((graph q)°).colB)
-  -- Cover: the image-lift of the span.
-  have hcov : Cover (image.lift span) := image_lift_cover span
-  -- The pullback square: π₁ ≫ q = π₂ ≫ q.
-  have hpbw : pb.cone.π₁ ≫ q = pb.cone.π₂ ≫ q := pb.cone.w
-  -- LHS leg: image.lift span ≫ ((image span).arr ≫ fst) ≫ q = span ≫ fst ≫ q = π₁ ≫ q.
-  have hA : image.lift span ≫ ((graph q ⊚ (graph q)°).colA ≫ q) = pb.cone.π₁ ≫ q := by
-    show image.lift span ≫ (((image span).arr ≫ fst) ≫ q) = _
-    rw [show ((image span).arr ≫ fst) ≫ q = (image span).arr ≫ (fst ≫ q) from Cat.assoc _ _ _,
-        ← Cat.assoc, image.lift_fac]
-    show (pair (pb.cone.π₁ ≫ (graph q).colA) (pb.cone.π₂ ≫ ((graph q)°).colB)) ≫ (fst ≫ q)
-       = pb.cone.π₁ ≫ q
-    rw [← Cat.assoc, fst_pair]
-    exact congrArg (· ≫ q) (Cat.comp_id pb.cone.π₁)
-  -- RHS leg.
-  have hB : image.lift span ≫ ((graph q ⊚ (graph q)°).colB ≫ q) = pb.cone.π₂ ≫ q := by
-    show image.lift span ≫ (((image span).arr ≫ snd) ≫ q) = _
-    rw [show ((image span).arr ≫ snd) ≫ q = (image span).arr ≫ (snd ≫ q) from Cat.assoc _ _ _,
-        ← Cat.assoc, image.lift_fac]
-    show (pair (pb.cone.π₁ ≫ (graph q).colA) (pb.cone.π₂ ≫ ((graph q)°).colB)) ≫ (snd ≫ q)
-       = pb.cone.π₂ ≫ q
-    rw [← Cat.assoc, snd_pair]
-    exact congrArg (· ≫ q) (Cat.comp_id pb.cone.π₂)
-  exact cover_epi hcov (by rw [hA, hB, hpbw])
+-- `level_legs_comp` (the level-legs-collapse-the-cover bridge) was relocated to S1_56
+-- (right before `reciprocal_comp_self_le_one`) so both this file and `RelCat` can use it.
 
 open HalfAdditiveCategory in
 theorem effective_regular_additive_is_abelian

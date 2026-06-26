@@ -249,6 +249,23 @@ instance (priority := 0) relAllegory : Allegory.{max u v} (RelObj 𝒞) where
     · -- RHS ⊆ LHS = (R⊚S)⊓T: the first conjunct.
       exact intersect_le_left _ _
 
+/-- The lattice order `⊑` on `Rel(C)` is exactly the relation containment `quotLe`
+    (`= RelLe` on representatives).  `x ⊑ y` unfolds to `x ∩ y = x`, i.e. `[R⊓S] = [R]`,
+    i.e. `R⊓S ≈ R`; the nontrivial half is `R ⊑ R⊓S ↔ R ⊑ S` (meet UMP). -/
+theorem quotLe_iff_algLe {a b : 𝒞} (x y : BinRelQuot (𝒞 := 𝒞) a b) :
+    quotLe x y ↔ Freyd.Alg.le (𝒜 := RelObj 𝒞) (a := ⟨a⟩) (b := ⟨b⟩) x y := by
+  refine Quotient.inductionOn₂ x y (fun R S => ?_)
+  show RelLe R S ↔ qInter (relClass R) (relClass S) = relClass R
+  rw [qInter_mk]
+  constructor
+  · intro h
+    exact quotLe_antisymm (intersect_le_left R S)
+      (le_intersect (rel_le_refl R) h)
+  · intro h
+    -- [R⊓S] = [R] gives R ⊑ R⊓S, hence R ⊑ S via intersect_le_right.
+    have hRRS : quotLe (relClass R) (relClass (R ⊓ S)) := by rw [h]; exact quotLe_refl _
+    exact rel_le_trans hRRS (intersect_le_right R S)
+
 end RelAllegory
 
 /-! ## §2.21  `Rel(C)` is a distributive allegory
@@ -611,23 +628,6 @@ theorem relGraph_recip_comp_self_of_cover {a b : 𝒞} (e : a ⟶ b) (he : Cover
   obtain ⟨hle, hge⟩ := (cover_iff_reciprocal_comp_self_eq_one e).mp he
   exact quotLe_antisymm hle hge
 
-/-- The lattice order `⊑` on `Rel(C)` is exactly the relation containment `quotLe`
-    (`= RelLe` on representatives).  `x ⊑ y` unfolds to `x ∩ y = x`, i.e. `[R⊓S] = [R]`,
-    i.e. `R⊓S ≈ R`; the nontrivial half is `R ⊑ R⊓S ↔ R ⊑ S` (meet UMP). -/
-theorem quotLe_iff_algLe {a b : 𝒞} (x y : BinRelQuot (𝒞 := 𝒞) a b) :
-    quotLe x y ↔ Freyd.Alg.le (𝒜 := RelObj 𝒞) (a := ⟨a⟩) (b := ⟨b⟩) x y := by
-  refine Quotient.inductionOn₂ x y (fun R S => ?_)
-  show RelLe R S ↔ qInter (relClass R) (relClass S) = relClass R
-  rw [qInter_mk]
-  constructor
-  · intro h
-    exact quotLe_antisymm (intersect_le_left R S)
-      (le_intersect (rel_le_refl R) h)
-  · intro h
-    -- [R⊓S] = [R] gives R ⊑ R⊓S, hence R ⊑ S via intersect_le_right.
-    have hRRS : quotLe (relClass R) (relClass (R ⊓ S)) := by rw [h]; exact quotLe_refl _
-    exact rel_le_trans hRRS (intersect_le_right R S)
-
 open Freyd.Alg in
 /-- **§2.214 eq (5)** — the joint-cover equation.  `[inl]° ≫ [inl] ∪ [inr]° ≫ [inr] = 1`
     on `A+B` in `Rel(C)` (allegory operations).  The union inclusions jointly cover
@@ -722,5 +722,244 @@ noncomputable def relCoproduct (A B : 𝒞) :
 end Coproduct214
 
 end DisjointGluing
+
+/-! ## §2.14 / §2.15  `Rel(C)` is a tabular, unitary allegory
+
+  The two structural facts of `Rel(C)` that, with `Map(Rel C)`, make it a pre-logos
+  (the §2.217 faithful-representation route):
+
+    • **Tabular** (§2.14): every relation tabulates.  A relation `R : a → b`, picked as
+      a `BinRel` table `⟨src; colA, colB⟩`, is tabulated by its own legs read as graphs:
+      `f = [graph colA] : ⟨src⟩ → ⟨a⟩`, `g = [graph colB] : ⟨src⟩ → ⟨b⟩`.  These are
+      maps (`graph_is_map`), `R = f° ≫ g` (span reconstitution), and `ff° ∩ gg° = 1`
+      (joint monicity of the tabulating pair).
+
+    • **Unitary** (§2.15): the unit object is `C`'s terminator `1`.  Every relation
+      `T → T` (T := ⟨1⟩) is `⊑ 1` because both legs of any table over `1` are the unique
+      map to the terminator; and every object has an entire relation to `1` (the graph of
+      the terminal map). -/
+
+section TabularUnitary
+variable [RegularCategory 𝒞]
+
+/-! ### BinRel-level reconstitution and joint monicity -/
+
+/-- **Span reconstitution (⊆)**: `(graph R.colA)° ⊚ graph R.colB ⊂ R`.  The composite's
+    pullback is `pullback(id, id)` over `R.src`, on which `π₁ = π₂`, so its span is
+    `π₁ ≫ pair R.colA R.colB`, which `Allows` the subobject `⟨R.src; pair colA colB⟩`;
+    image-minimality gives the `RelHom`. -/
+private theorem reconstitute_le {a b : 𝒞} (R : BinRel 𝒞 a b) :
+    RelLe ((graph R.colA)° ⊚ graph R.colB) R := by
+  let pb := HasPullbacks.has ((graph R.colA)°).colB (graph R.colB).colA
+  -- both pullback maps are id_{R.src}, so π₁ = π₂.
+  have h_pb_w : pb.cone.π₁ = pb.cone.π₂ := by
+    have := pb.cone.w; simpa [graph, reciprocal, Cat.comp_id] using this
+  let span := pair (pb.cone.π₁ ≫ ((graph R.colA)°).colA) (pb.cone.π₂ ≫ (graph R.colB).colB)
+  have h_monic : Monic (pair R.colA R.colB) := monic_pair_of_monicPair R.colA R.colB R.isMonicPair
+  let S : Subobject 𝒞 (prod a b) := ⟨R.src, pair R.colA R.colB, h_monic⟩
+  -- span = π₁ ≫ pair R.colA R.colB.
+  have h_span_eq : pb.cone.π₁ ≫ pair R.colA R.colB = span := by
+    show pb.cone.π₁ ≫ pair R.colA R.colB
+       = pair (pb.cone.π₁ ≫ ((graph R.colA)°).colA) (pb.cone.π₂ ≫ (graph R.colB).colB)
+    rw [← h_pb_w]
+    apply pair_uniq (pb.cone.π₁ ≫ ((graph R.colA)°).colA) (pb.cone.π₁ ≫ (graph R.colB).colB) _
+      (by rw [Cat.assoc, fst_pair]; rfl)
+      (by rw [Cat.assoc, snd_pair]; rfl)
+  have hallows : Allows S span := ⟨pb.cone.π₁, h_span_eq⟩
+  let I := image span
+  rcases image_min span S hallows with ⟨k, hk⟩
+  refine ⟨⟨k, ?_, ?_⟩⟩
+  · show k ≫ R.colA = (I.arr ≫ fst)
+    calc k ≫ R.colA = (k ≫ pair R.colA R.colB) ≫ fst := by rw [Cat.assoc, fst_pair]
+      _ = I.arr ≫ fst := by rw [hk]
+  · show k ≫ R.colB = (I.arr ≫ snd)
+    calc k ≫ R.colB = (k ≫ pair R.colA R.colB) ≫ snd := by rw [Cat.assoc, snd_pair]
+      _ = I.arr ≫ snd := by rw [hk]
+
+/-- **Span reconstitution (⊇)**: `R ⊂ (graph R.colA)° ⊚ graph R.colB`.  Lift `R.src` into
+    the trivial pullback via the cone `⟨id, id⟩`, then `R.src → I.dom` through the image
+    lift; its legs are `R.colA`, `R.colB`. -/
+private theorem le_reconstitute {a b : 𝒞} (R : BinRel 𝒞 a b) :
+    RelLe R ((graph R.colA)° ⊚ graph R.colB) := by
+  let pb := HasPullbacks.has ((graph R.colA)°).colB (graph R.colB).colA
+  -- cone ⟨R.src; id, id⟩ over (id, id).
+  have h_cone_w : (Cat.id R.src) ≫ ((graph R.colA)°).colB
+      = (Cat.id R.src) ≫ (graph R.colB).colA := by
+    show (Cat.id R.src) ≫ (Cat.id R.src) = (Cat.id R.src) ≫ (Cat.id R.src); rfl
+  let c : Cone ((graph R.colA)°).colB (graph R.colB).colA :=
+    ⟨R.src, Cat.id R.src, Cat.id R.src, h_cone_w⟩
+  let u := pb.lift c
+  have hu₁ : u ≫ pb.cone.π₁ = Cat.id R.src := pb.lift_fst c
+  have hu₂ : u ≫ pb.cone.π₂ = Cat.id R.src := pb.lift_snd c
+  let span := pair (pb.cone.π₁ ≫ ((graph R.colA)°).colA) (pb.cone.π₂ ≫ (graph R.colB).colB)
+  let I := image span
+  let h : R.src ⟶ I.dom := u ≫ image.lift span
+  refine ⟨⟨h, ?_, ?_⟩⟩
+  · show h ≫ (I.arr ≫ fst) = R.colA
+    rw [Cat.assoc, ← Cat.assoc (image.lift span), image.lift_fac, fst_pair,
+        ← Cat.assoc u pb.cone.π₁, hu₁, Cat.id_comp]
+    rfl
+  · show h ≫ (I.arr ≫ snd) = R.colB
+    rw [Cat.assoc, ← Cat.assoc (image.lift span), image.lift_fac, snd_pair,
+        ← Cat.assoc u pb.cone.π₂, hu₂, Cat.id_comp]
+    rfl
+
+/-- **Joint monicity (⊆)**: the legs of the meet `P ⊓ Q`, where `P = graph colA ⊚
+    (graph colA)°` and `Q = graph colB ⊚ (graph colB)°` are the levels of the two
+    columns, are equal.  `(P⊓Q).colA = π₁ ≫ P.colA`, `(P⊓Q).colB = π₁ ≫ P.colB`; the two
+    agree under `colA` (`level_legs_comp` for colA, since `P.colA, P.colB` are `P`'s legs)
+    and under `colB` (the pullback identifies `π₁≫P.legs` with `π₂≫Q.legs`, then
+    `level_legs_comp` for colB), so `R.isMonicPair` collapses them — giving
+    `graph colA ⊚ (graph colA)° ∩ graph colB ⊚ (graph colB)° ⊂ graph (id R.src)`. -/
+private theorem jointMonic_le {a b : 𝒞} (R : BinRel 𝒞 a b) :
+    RelLe ((graph R.colA ⊚ (graph R.colA)°) ⊓ (graph R.colB ⊚ (graph R.colB)°))
+          (graph (Cat.id R.src)) := by
+  let P := graph R.colA ⊚ (graph R.colA)°
+  let Q := graph R.colB ⊚ (graph R.colB)°
+  -- the meet is the pullback of eP, eQ into R.src × R.src.
+  let eP := pair P.colA P.colB
+  let eQ := pair Q.colA Q.colB
+  let pb := HasPullbacks.has eP eQ
+  -- `level_legs_comp` for each column (defeq to P, Q).
+  have hlevP : P.colA ≫ R.colA = P.colB ≫ R.colA := level_legs_comp R.colA
+  have hlevQ : Q.colA ≫ R.colB = Q.colB ≫ R.colB := level_legs_comp R.colB
+  -- (P⊓Q).colA = π₁ ≫ P.colA, (P⊓Q).colB = π₁ ≫ P.colB.
+  -- pullback identification: π₁ ≫ eP = π₂ ≫ eQ, projecting to:
+  have hidA : pb.cone.π₁ ≫ P.colA = pb.cone.π₂ ≫ Q.colA := by
+    have hsq := pb.cone.w
+    calc pb.cone.π₁ ≫ P.colA = pb.cone.π₁ ≫ (eP ≫ fst) := by rw [fst_pair]
+      _ = (pb.cone.π₁ ≫ eP) ≫ fst := (Cat.assoc _ _ _).symm
+      _ = (pb.cone.π₂ ≫ eQ) ≫ fst := by rw [hsq]
+      _ = pb.cone.π₂ ≫ (eQ ≫ fst) := Cat.assoc _ _ _
+      _ = pb.cone.π₂ ≫ Q.colA := by rw [fst_pair]
+  have hidB : pb.cone.π₁ ≫ P.colB = pb.cone.π₂ ≫ Q.colB := by
+    have hsq := pb.cone.w
+    calc pb.cone.π₁ ≫ P.colB = pb.cone.π₁ ≫ (eP ≫ snd) := by rw [snd_pair]
+      _ = (pb.cone.π₁ ≫ eP) ≫ snd := (Cat.assoc _ _ _).symm
+      _ = (pb.cone.π₂ ≫ eQ) ≫ snd := by rw [hsq]
+      _ = pb.cone.π₂ ≫ (eQ ≫ snd) := Cat.assoc _ _ _
+      _ = pb.cone.π₂ ≫ Q.colB := by rw [snd_pair]
+  -- legs equal under colA : (π₁≫P.colA)≫colA = (π₁≫P.colB)≫colA  [level of colA].
+  have hcolA : (pb.cone.π₁ ≫ P.colA) ≫ R.colA = (pb.cone.π₁ ≫ P.colB) ≫ R.colA := by
+    calc (pb.cone.π₁ ≫ P.colA) ≫ R.colA = pb.cone.π₁ ≫ (P.colA ≫ R.colA) := Cat.assoc _ _ _
+      _ = pb.cone.π₁ ≫ (P.colB ≫ R.colA) := by rw [hlevP]
+      _ = (pb.cone.π₁ ≫ P.colB) ≫ R.colA := (Cat.assoc _ _ _).symm
+  -- legs equal under colB : (π₁≫P.colA)≫colB = (π₁≫P.colB)≫colB  [via Q, level of colB].
+  have hcolB : (pb.cone.π₁ ≫ P.colA) ≫ R.colB = (pb.cone.π₁ ≫ P.colB) ≫ R.colB := by
+    calc (pb.cone.π₁ ≫ P.colA) ≫ R.colB = (pb.cone.π₂ ≫ Q.colA) ≫ R.colB := by rw [hidA]
+      _ = pb.cone.π₂ ≫ (Q.colA ≫ R.colB) := Cat.assoc _ _ _
+      _ = pb.cone.π₂ ≫ (Q.colB ≫ R.colB) := by rw [hlevQ]
+      _ = (pb.cone.π₂ ≫ Q.colB) ≫ R.colB := (Cat.assoc _ _ _).symm
+      _ = (pb.cone.π₁ ≫ P.colB) ≫ R.colB := by rw [hidB]
+  -- joint monicity collapses the two legs.
+  have hlegs : pb.cone.π₁ ≫ P.colA = pb.cone.π₁ ≫ P.colB :=
+    R.isMonicPair _ _ hcolA hcolB
+  -- the RelHom into graph(id): witness = (P⊓Q).colA; `graph(id).colA = graph(id).colB = id`,
+  -- so both legs reduce to `(P⊓Q).colA` (using `hlegs : (P⊓Q).colA = (P⊓Q).colB`).
+  refine ⟨⟨(P ⊓ Q).colA, ?_, ?_⟩⟩
+  · show (P ⊓ Q).colA ≫ Cat.id R.src = (P ⊓ Q).colA; rw [Cat.comp_id]
+  · show (P ⊓ Q).colA ≫ Cat.id R.src = (P ⊓ Q).colB
+    rw [Cat.comp_id]; exact hlegs
+
+/-! ### Allegory-level bridges: `Map`, `Entire`, `Simple` of a `relClass` -/
+
+/-- The allegory domain `dom` of a `relClass` is the class of `graph id ⊓ R⊚R°`. -/
+private theorem dom_relClass {a b : 𝒞} (R : BinRel 𝒞 a b) :
+    Freyd.Alg.dom (𝒜 := RelObj 𝒞) (a := ⟨a⟩) (b := ⟨b⟩) (relClass R)
+      = relClass (graph (Cat.id a) ⊓ (R ⊚ R°)) := by
+  show qInter (relId a) (qComp (relClass R) (qRecip (relClass R))) = _
+  rw [qRecip_mk, qComp_mk]; rfl
+
+/-- **Entire bridge**: `Alg.Entire (relClass R) ↔ Entire R` (BinRel).  Both say
+    `graph id ⊂ R⊚R°`. -/
+private theorem entire_relClass {a b : 𝒞} (R : BinRel 𝒞 a b) :
+    Freyd.Alg.Entire (𝒜 := RelObj 𝒞) (a := ⟨a⟩) (b := ⟨b⟩) (relClass R) ↔ Freyd.Entire R := by
+  show Freyd.Alg.dom (𝒜 := RelObj 𝒞) (relClass R) = relId a ↔ _
+  rw [dom_relClass]
+  constructor
+  · intro h
+    -- relClass (graph id ⊓ R⊚R°) = relClass (graph id) gives graph id ⊂ R⊚R°.
+    have hqe : quotLe (relClass (graph (Cat.id a))) (relClass (graph (Cat.id a) ⊓ (R ⊚ R°))) := by
+      rw [h]; exact quotLe_refl _
+    exact rel_le_trans hqe (intersect_le_right _ _)
+  · intro h
+    -- graph id ⊂ R⊚R° gives graph id ⊓ R⊚R° ≈ graph id.
+    exact quotLe_antisymm (intersect_le_left _ _) (le_intersect (rel_le_refl _) h)
+
+/-- **Simple bridge**: `Alg.Simple (relClass R) ↔ Simple R` (BinRel).  Both say
+    `R°⊚R ⊂ graph id`. -/
+private theorem simple_relClass {a b : 𝒞} (R : BinRel 𝒞 a b) :
+    Freyd.Alg.Simple (𝒜 := RelObj 𝒞) (a := ⟨a⟩) (b := ⟨b⟩) (relClass R) ↔ Freyd.Simple R := by
+  -- `Alg.Simple (relClass R)` is `Alg.le (relClass (R°⊚R)) (relId b)`; `Simple R` is the
+  -- corresponding `quotLe`, which `quotLe_iff_algLe` identifies.
+  change Freyd.Alg.le (𝒜 := RelObj 𝒞) (relClass (R° ⊚ R)) (relId b) ↔ _
+  exact (quotLe_iff_algLe (relClass (R° ⊚ R)) (relId b)).symm
+
+/-- **Map bridge**: `Alg.Map (relClass R) ↔ Map R`. -/
+private theorem map_relClass {a b : 𝒞} (R : BinRel 𝒞 a b) :
+    Freyd.Alg.Map (𝒜 := RelObj 𝒞) (a := ⟨a⟩) (b := ⟨b⟩) (relClass R) ↔ Freyd.Map R :=
+  and_congr (entire_relClass R) (simple_relClass R)
+
+/-- A graph's class is a `Map` in `Rel(C)` (from `graph_is_map`). -/
+private theorem relClass_graph_map {a b : 𝒞} (f : a ⟶ b) :
+    Freyd.Alg.Map (𝒜 := RelObj 𝒞) (a := ⟨a⟩) (b := ⟨b⟩) (relClass (graph f)) :=
+  (map_relClass (graph f)).mpr (graph_is_map f)
+
+/-! ### §2.14  `Rel(C)` is a tabular allegory -/
+
+/-- **§2.14**: `Rel(C)` is a TABULAR allegory.  A relation `[R]` is tabulated by the
+    graphs of its own legs: apex `⟨R.src⟩`, `f = [graph R.colA]`, `g = [graph R.colB]`.
+    The four conjuncts are: both graphs are maps (`relClass_graph_map`); `[R] = f° ≫ g`
+    (`reconstitute_le`/`le_reconstitute`); `f f° ∩ g g° = 1` (`jointMonic_le` for `⊆`,
+    `relGraph_entire`-style entirety for `⊇`). -/
+instance (priority := 0) relTabularAllegory : TabularAllegory (RelObj 𝒞) :=
+  { relAllegory with
+    tabular := fun {A B} x => by
+      refine Quotient.inductionOn x (fun R => ?_)
+      refine ⟨⟨R.src⟩, relClass (graph R.colA), relClass (graph R.colB),
+        relClass_graph_map R.colA, relClass_graph_map R.colB, ?_, ?_⟩
+      · -- [R] = [graph R.colA]° ≫ [graph R.colB]
+        show relClass R = relClass ((graph R.colA)° ⊚ graph R.colB)
+        exact quotLe_antisymm (le_reconstitute R) (reconstitute_le R)
+      · -- f f° ∩ g g° = 1_{R.src}
+        show qInter (relClass (graph R.colA ⊚ (graph R.colA)°))
+              (relClass (graph R.colB ⊚ (graph R.colB)°)) = relId R.src
+        rw [qInter_mk]
+        -- relClass (graph colA ⊚ (graph colA)° ⊓ graph colB ⊚ (graph colB)°) = relId R.src
+        refine quotLe_antisymm (jointMonic_le R) ?_
+        -- 1 ⊂ ff° ∩ gg° : both columns are entire (graphs are maps).
+        exact le_intersect (graph_is_map R.colA).1 (graph_is_map R.colB).1 }
+
+/-! ### §2.15  `Rel(C)` is a unitary allegory: the unit is `C`'s terminator `1` -/
+
+/-- Every relation over the terminator `T → T` (`T = ⟨1⟩`) is `⊑ 1`: both legs of any
+    table over `1` are the unique map to `1`, so the table is `⊂ graph (id 1)`. -/
+private theorem partialUnit_one : PartialUnit (𝒜 := RelObj 𝒞) ⟨Freyd.one (𝒞 := 𝒞)⟩ := by
+  intro x
+  refine Quotient.inductionOn x (fun R => ?_)
+  rw [← quotLe_iff_algLe]
+  -- RelHom R (graph (id 1)) : witness R.colA; both legs land on the terminator.
+  refine ⟨⟨R.colA, ?_, ?_⟩⟩
+  · show R.colA ≫ Cat.id Freyd.one = R.colA; rw [Cat.comp_id]
+  · -- R.colA ≫ id = R.colB : both R.colA, R.colB : R.src → 1 are the unique terminal map.
+    show R.colA ≫ Cat.id Freyd.one = R.colB
+    rw [Cat.comp_id]; exact Freyd.term_uniq R.colA R.colB
+
+/-- The graph of the terminal map `a → 1` is an entire relation `⟨a⟩ → ⟨1⟩`. -/
+private theorem entire_to_one (a : 𝒞) :
+    Freyd.Alg.Entire (𝒜 := RelObj 𝒞) (a := ⟨a⟩) (b := ⟨Freyd.one (𝒞 := 𝒞)⟩)
+      (relClass (graph (Freyd.term a))) :=
+  (entire_relClass (graph (Freyd.term a))).mpr (graph_is_map (Freyd.term a)).1
+
+/-- **§2.15**: `Rel(C)` is a UNITARY allegory with unit object `⟨1⟩` (`C`'s terminator).
+    Partial-unit: `partialUnit_one`.  Entirety: each object `⟨a⟩` has the entire relation
+    `[graph (a → 1)]` (`entire_to_one`). -/
+instance (priority := 0) relUnitaryAllegory : UnitaryAllegory (RelObj 𝒞) :=
+  { relAllegory with
+    unit_obj := ⟨Freyd.one (𝒞 := 𝒞)⟩
+    unit_prop := ⟨partialUnit_one,
+      fun a => ⟨relClass (graph (Freyd.term a.carrier)), entire_to_one a.carrier⟩⟩ }
+
+end TabularUnitary
 
 end Freyd
