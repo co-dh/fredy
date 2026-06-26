@@ -417,7 +417,7 @@ theorem splitting_recip {a b : 𝒜} {R : a ⟶ b} {S : b ⟶ a}
 /-- §2.215 positivity of the matrix allegory: every distributive allegory `𝒜` gives a positive
     allegory `MatObj 𝒜`. The coproduct `X ⊕ Y` is the concatenated index family; the injections
     satisfy the five §2.214 equations. -/
-example (𝒜 : Type*) [DistributiveAllegory 𝒜] : PositiveAllegory (Mat.MatObj 𝒜) :=
+example (𝒜 : Type u) [DistributiveAllegory 𝒜] : PositiveAllegory (Mat.MatObj 𝒜) :=
   Mat.instPositiveAllegoryMat
 
 /-! ## §2.217  Faithful representation in a positive pre-logos / pre-topos
