@@ -1006,7 +1006,8 @@ theorem unit_proj_max {α β : 𝒜} (p_α : α ⟶ UnitaryAllegory.unit_obj (�
 
 end UnitProj
 
--- BOOK §2.152: If λ is a unit then for any α,β, the morphism p_α(p_β)° is maximum in (α,β).
+-- §2.152: If λ is a unit then for any α,β, the morphism p_α(p_β)° is maximum in (α,β).
+-- PROVED above as `unit_proj_max` (UnitProj section).
 
 -- BOOK §2.154: The category of small regular categories is isomorphic to the
 -- category of small unitary tabular allegories.
