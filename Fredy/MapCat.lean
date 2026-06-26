@@ -660,6 +660,67 @@ class TabularUnitaryAllegory (𝒜 : Type u) extends TabularAllegory 𝒜, Unita
 class TabularUnitaryDistributiveAllegory (𝒜 : Type u) extends
     TabularUnitaryAllegory 𝒜, DistributiveAllegory 𝒜
 
+/-! ### §2.212  Domain algebra: `dom` distributes over union
+
+  Two pure (distributive-)allegory facts used by the inverse-image preservation laws below:
+  `id ∩ R ⊑ dom R` for any `R`, and `dom (P ∪ Q) = dom P ∪ dom Q`. -/
+
+section DomUnion
+
+variable {𝒜 : Type u}
+
+/-- `id ∩ R ⊑ dom R` for any endo `R`.  The coreflexive `C := id ∩ R` is symmetric idempotent
+    (`C = C ≫ C°`) and `C ⊑ R`, `C° ⊑ R°`, whence `C = C≫C° ⊑ R≫R°`; with `C ⊑ id` this gives
+    `C ⊑ id ∩ R≫R° = dom R`. -/
+theorem id_inter_le_dom [Allegory 𝒜] {a : 𝒜} (R : a ⟶ a) :
+    Cat.id a ∩ R ⊑ dom R := by
+  have hcor : Coreflexive (Cat.id a ∩ R) := inter_lb_left _ _
+  have hidem : (Cat.id a ∩ R) ≫ (Cat.id a ∩ R)° = Cat.id a ∩ R := by
+    have h := coreflexive_symmetric_idempotent hcor
+    rw [symmetric_eq h.1]; exact h.2
+  have hle : Cat.id a ∩ R ⊑ R ≫ R° := by
+    have hCR : Cat.id a ∩ R ⊑ R := inter_lb_right _ _
+    have hCRo : (Cat.id a ∩ R)° ⊑ R° := recip_mono hCR
+    calc Cat.id a ∩ R = (Cat.id a ∩ R) ≫ (Cat.id a ∩ R)° := hidem.symm
+      _ ⊑ R ≫ R° := le_trans (comp_mono_right hCR _) (comp_mono_left R hCRo)
+  exact le_inter (inter_lb_left _ _) hle
+
+/-- `dom (P ∪ Q) = dom P ∪ dom Q` in a distributive allegory.  The `⊒` direction is
+    monotonicity; for `⊑`, expand `(P∪Q)(P∪Q)° = PP° ∪ PQ° ∪ QP° ∪ QQ°`, distribute `id ∩ ·`,
+    and absorb the cross terms via `id ∩ PQ° ⊑ dom(PQ°) ⊑ dom P` (`id_inter_le_dom` + `dom_comp_le`). -/
+theorem dom_union [DistributiveAllegory 𝒜] {a b : 𝒜} (P Q : a ⟶ b) :
+    dom (P ∪ Q) = dom P ∪ dom Q := by
+  apply le_antisymm
+  · -- ⊑ : expand and distribute id ∩ (·) over the four-fold union, absorb cross terms.
+    dsimp [dom]
+    rw [recip_union, DistributiveAllegory.comp_union_distrib,
+        union_comp_distrib, union_comp_distrib,
+        DistributiveAllegory.inter_union_distrib, DistributiveAllegory.inter_union_distrib,
+        DistributiveAllegory.inter_union_distrib]
+    -- Goal: a four-fold union of the meets id∩{PQ°,QQ°,PP°,QP°}  ⊑  (id∩PP°) ∪ (id∩QQ°)
+    have hPP : Cat.id a ∩ P ≫ P° ⊑ dom P ∪ dom Q := le_union_left _ _
+    have hQQ : Cat.id a ∩ Q ≫ Q° ⊑ dom P ∪ dom Q := le_union_right _ _
+    have hPQ : Cat.id a ∩ P ≫ Q° ⊑ dom P ∪ dom Q :=
+      le_trans (le_trans (id_inter_le_dom (P ≫ Q°)) (dom_comp_le P Q°)) (le_union_left _ _)
+    have hQP : Cat.id a ∩ Q ≫ P° ⊑ dom P ∪ dom Q :=
+      le_trans (le_trans (id_inter_le_dom (Q ≫ P°)) (dom_comp_le Q P°)) (le_union_right _ _)
+    refine union_lub (union_lub hPQ hQQ) (union_lub hPP hQP)
+  · -- ⊒ : dom P, dom Q ⊑ dom(P∪Q) by monotonicity.
+    exact union_lub (dom_mono_of_le (le_union_left _ _)) (dom_mono_of_le (le_union_right _ _))
+
+/-- `dom R = dom (R ≫ R°)` for any `R`.  `⊑`: `dom R = id ∩ RR° ⊑ dom(RR°)` (`id_inter_le_dom`);
+    `⊒`: `dom(RR°) ⊑ dom R` (`dom_comp_le`). -/
+theorem dom_eq_dom_comp_recip [Allegory 𝒜] {a b : 𝒜} (R : a ⟶ b) :
+    dom R = dom (R ≫ R°) :=
+  le_antisymm (id_inter_le_dom (R ≫ R°)) (dom_comp_le R R°)
+
+/-- `dom 𝟘 = 𝟘`: `dom 𝟘 = id ∩ 𝟘≫𝟘° = id ∩ 𝟘 = 𝟘`. -/
+theorem dom_zero [DistributiveAllegory 𝒜] {a b : 𝒜} : dom (𝟘 : a ⟶ b) = (𝟘 : a ⟶ a) := by
+  dsimp [dom]; rw [recip_zero, DistributiveAllegory.comp_zero]
+  exact le_antisymm (inter_lb_right _ _) (zero_le _)
+
+end DomUnion
+
 section MapPreLogos
 
 variable {A : Type u} [TabularUnitaryDistributiveAllegory A]
@@ -709,6 +770,20 @@ noncomputable def mapHasTerminal : @HasTerminal (MapObj A) (mapCat (𝒜 := A)) 
 private theorem map_entire_le {A : Type u} [Allegory A] {p b : A} {e : p ⟶ b}
     (he : Map e) : Cat.id p ⊑ e ≫ e° := by
   have := he.1; rw [Entire, dom] at this; exact this ▸ inter_lb_right _ _
+
+/-- A map `u` with a map retraction (`w ≫ u = id`, `w` a map) is RELATIONALLY a split mono:
+    `u° ≫ u = id`.  Proof: `w ⊑ u°` (since `u` entire: `w ⊑ w(uu°) = (wu)u° = u°`), so
+    `id = wu ⊑ u°u`; combined with `u°u ⊑ id` (`u` simple). -/
+private theorem map_retr_leg {A : Type u} [Allegory A] {p q : A} {u : p ⟶ q} {w : q ⟶ p}
+    (hu : Map u) (hw : Map w) (hwu : w ≫ u = Cat.id q) : u° ≫ u = Cat.id q := by
+  apply le_antisymm hu.2
+  -- w ⊑ u°  ⟹  id = w≫u ⊑ u°≫u.
+  have hw_le : w ⊑ u° := by
+    have h1 : w ⊑ w ≫ (u ≫ u°) := by
+      have := comp_mono_left w (map_entire_le hu); rwa [Cat.comp_id] at this
+    have h2 : w ≫ (u ≫ u°) = (w ≫ u) ≫ u° := by rw [Cat.assoc]
+    rw [h2, hwu, Cat.id_comp] at h1; exact h1
+  have := comp_mono_right hw_le u; rw [hwu] at this; exact this
 
 /-- Helper for mapHasPullback: extract the mediating map data via Classical.choice,
     taking cone fields as plain allegory homs to avoid Cat synthesis issues. -/
@@ -836,6 +911,66 @@ noncomputable def mapHasPullback
 noncomputable instance mapHasPullbacks :
     @HasPullbacks (MapObj A) (mapCat (𝒜 := A)) :=
   @HasPullbacks.mk (MapObj A) (mapCat (𝒜 := A)) (fun {a b c} f g => mapHasPullback f g)
+
+/-- **§2.212 BRIDGE (pullback leg coreflexive)**: for ANY pullback `pb` of maps `f : a→c`,
+    `g : b→c` in Map(𝒜), the first-leg coreflexive equals the relational `dom (f g°)`:
+
+        `pb.cone.π₁° ≫ pb.cone.π₁ = dom (f.val ≫ g.val°)`.
+
+    The choice-extracted projection of `mapHasPullback` does not reduce definitionally; we
+    bridge it to the canonical tabulation `(π₁,π₂)` of `f g°` via the pullback-UNIQUENESS
+    comparison iso `v : pb.pt → p` (`v ≫ π₁ = pb.π₁`, with map inverse `u`), then transport
+    `tab_leg_dom` across it using `map_retr_leg` (`v°≫v = id`). -/
+theorem mapPullback_leg_corOf {a b c : MapObj A}
+    (f : @Cat.Hom _ (mapCat (𝒜 := A)) a c) (g : @Cat.Hom _ (mapCat (𝒜 := A)) b c)
+    (pb : @HasPullback (MapObj A) (mapCat (𝒜 := A)) a b c f g) :
+    (@Cone.π₁ _ (mapCat (𝒜 := A)) a b c f g
+        (@HasPullback.cone _ (mapCat (𝒜 := A)) a b c f g pb)).val° ≫
+      (@Cone.π₁ _ (mapCat (𝒜 := A)) a b c f g
+        (@HasPullback.cone _ (mapCat (𝒜 := A)) a b c f g pb)).val
+      = dom (f.val ≫ g.val°) := by
+  -- Cone-field accessors (lambda-wrapped to keep the explicit mapCat instance).
+  let C := @HasPullback.cone _ (mapCat (𝒜 := A)) a b c f g pb
+  let cpt : MapObj A := @Cone.pt _ (mapCat (𝒜 := A)) a b c f g C
+  let pbπ₁ : @Cat.Hom _ (mapCat (𝒜 := A)) cpt a := @Cone.π₁ _ (mapCat (𝒜 := A)) a b c f g C
+  let pbπ₂ : @Cat.Hom _ (mapCat (𝒜 := A)) cpt b := @Cone.π₂ _ (mapCat (𝒜 := A)) a b c f g C
+  show pbπ₁.val° ≫ pbπ₁.val = dom (f.val ≫ g.val°)
+  -- Canonical tabulation (p, π₁, π₂) of f g°.
+  have fgR : @Freyd.Alg.Tabular A TabularAllegory.toAllegory _ _ (f.val ≫ g.val°) :=
+    @TabularAllegory.tabular A _ _ _ (f.val ≫ g.val°)
+  have fgR_N : Nonempty (PSigma fun p : A =>
+      PSigma fun π₁ : p ⟶ _ => PSigma fun π₂ : p ⟶ _ =>
+      Tabulates π₁ π₂ (f.val ≫ g.val°)) := by
+    obtain ⟨p, π₁, π₂, ht⟩ := fgR; exact ⟨⟨p, π₁, π₂, ht⟩⟩
+  obtain ⟨p, π₁, π₂, ht⟩ := Classical.choice fgR_N
+  -- v : pb.pt → p from the tabulation UMP, with v.val ≫ π₁ = pbπ₁, v.val ≫ π₂ = pbπ₂.
+  have hcw : pbπ₁.val ≫ f.val = pbπ₂.val ≫ g.val :=
+    congrArg Subtype.val (@Cone.w _ (mapCat (𝒜 := A)) a b c f g C)
+  obtain ⟨hm, hm_map, hm1, hm2, _⟩ :=
+    tab_pullback_UMP f.property g.property ht pbπ₁.property pbπ₂.property hcw
+  -- Cone over (f,g) with apex p (cone eq from tab_pullback_cone'); u := pb.lift of it.
+  let cone0 : @Cone (MapObj A) (mapCat (𝒜 := A)) a b c f g :=
+    @Cone.mk (MapObj A) (mapCat (𝒜 := A)) a b c f g p ⟨π₁, ht.1⟩ ⟨π₂, ht.2.1⟩
+      (mapHom_ext (tab_pullback_cone' f.property g.property ht))
+  let u : @Cat.Hom _ (mapCat (𝒜 := A)) p cpt :=
+    @HasPullback.lift _ (mapCat (𝒜 := A)) a b c f g pb cone0
+  have hu1 : u.val ≫ pbπ₁.val = π₁ :=
+    congrArg Subtype.val (@HasPullback.lift_fst _ (mapCat (𝒜 := A)) a b c f g pb cone0)
+  have hu2 : u.val ≫ pbπ₂.val = π₂ :=
+    congrArg Subtype.val (@HasPullback.lift_snd _ (mapCat (𝒜 := A)) a b c f g pb cone0)
+  -- u ≫ v = id_p, by tabulation joint-monicity (both u≫v and id agree after π₁, π₂).
+  have huv_alg : u.val ≫ hm = Cat.id p := by
+    apply tabulation_UP_unique ht (map_comp u.property hm_map) (id_is_map p)
+    · rw [Cat.assoc, show hm ≫ π₁ = pbπ₁.val from hm1, hu1, Cat.id_comp]
+    · rw [Cat.assoc, show hm ≫ π₂ = pbπ₂.val from hm2, hu2, Cat.id_comp]
+  -- hm°≫hm = id_p via map_retr_leg (retraction u.val ≫ hm = id_p).
+  have hvleg : hm° ≫ hm = Cat.id p := map_retr_leg hm_map u.property huv_alg
+  -- pbπ₁.val = hm ≫ π₁ (hm1); transport tab_leg_dom across hm°≫hm = id.
+  calc pbπ₁.val° ≫ pbπ₁.val = (hm ≫ π₁)° ≫ (hm ≫ π₁) := by rw [show pbπ₁.val = hm ≫ π₁ from hm1.symm]
+    _ = π₁° ≫ (hm° ≫ hm) ≫ π₁ := by rw [Allegory.recip_comp]; simp [Cat.assoc]
+    _ = π₁° ≫ Cat.id p ≫ π₁ := by rw [show hm° ≫ hm = Cat.id p from hvleg]
+    _ = π₁° ≫ π₁ := by rw [Cat.id_comp]
+    _ = dom (f.val ≫ g.val°) := tab_leg_dom ht
 
 /-! ### §2.212  HasBinaryProducts (MapObj A)
 
@@ -1504,6 +1639,34 @@ private theorem corOf_eq_dom_iso {B : MapObj A}
         show (k.val ≫ h.val) ≫ _ = Cat.id _ ≫ _
         rw [Cat.assoc, hhv, hkv, Cat.id_comp]))
 
+/-- **§2.212 BRIDGE (†)**: the coreflexive of an inverse image is the relational inverse image
+    of the subobject's coreflexive:
+
+        `corOf (InverseImage f T) = dom (f.val ≫ corOf T ≫ f.val°)`.
+
+    `InverseImage f T`'s arrow is the first projection of `mapHasPullback f T.arr`, whose leg
+    coreflexive is `dom (f.val ≫ T.arr.val°)` (`mapPullback_leg_corOf`).  Writing
+    `R := f.val ≫ T.arr.val°`, `f.val ≫ corOf T ≫ f.val° = R ≫ R°` and `dom R = dom (R ≫ R°)`
+    (`dom_eq_dom_comp_recip`), giving the stated form. -/
+private theorem corOf_invImage {B C : MapObj A}
+    (f : @Cat.Hom _ (mapCat (𝒜 := A)) B C)
+    (T : @Subobject (MapObj A) (mapCat (𝒜 := A)) C) :
+    corOf (@InverseImage (MapObj A) (mapCat (𝒜 := A)) B C f T mapHasPullbacks)
+      = dom (f.val ≫ corOf T ≫ f.val°) := by
+  -- The InverseImage arrow IS the first leg of mapHasPullback f T.arr.
+  let t : @Cat.Hom _ (mapCat (𝒜 := A)) (@Subobject.dom _ (mapCat (𝒜 := A)) C T) C :=
+    @Subobject.arr (MapObj A) (mapCat (𝒜 := A)) C T
+  have hleg := mapPullback_leg_corOf f t (mapHasPullback f t)
+  -- corOf(InverseImage) = leg° ≫ leg = dom (f.val ≫ t.val°).
+  have hcor : corOf (@InverseImage (MapObj A) (mapCat (𝒜 := A)) B C f T mapHasPullbacks)
+      = dom (f.val ≫ t.val°) := hleg
+  rw [hcor]
+  -- dom (f.val ≫ t.val°) = dom (f.val ≫ corOf T ≫ f.val°), via R≫R° rewrite (R = f.val ≫ t.val°).
+  have hRR : f.val ≫ corOf T ≫ f.val° = (f.val ≫ t.val°) ≫ (f.val ≫ t.val°)° := by
+    show f.val ≫ (t.val° ≫ t.val) ≫ f.val° = (f.val ≫ t.val°) ≫ (f.val ≫ t.val°)°
+    rw [Allegory.recip_comp, Allegory.recip_recip]; simp [Cat.assoc]
+  rw [hRR, ← dom_eq_dom_comp_recip]
+
 /-- Extract the splitting of a coreflexive as Type-valued data via `Classical.choice`. -/
 private noncomputable def corSplitData {B : A} {R : B ⟶ B} (hcor : Coreflexive R) :
     PSigma fun u : A => PSigma fun e : u ⟶ B =>
@@ -1622,36 +1785,81 @@ private theorem mapBottom_dom_iso (B C : MapObj A) :
       show (𝟘 : _ ⟶ _) ≫ 𝟘 = Cat.id _
       rw [DistributiveAllegory.comp_zero]; exact hidC.symm)
 
+/-! ### §2.212  Inverse image preserves unions and the bottom (via the bridge (†)) -/
+
+/-- `corOf (f# (S ∪ T)) = corOf (f# S ∪ f# T)`: pure relational computation from (†)
+    (`corOf_invImage`), `corOf_mapSubUnion`, `comp_union_distrib`, and `dom_union`. -/
+private theorem corOf_invImage_union {B C : MapObj A}
+    (f : @Cat.Hom _ (mapCat (𝒜 := A)) B C)
+    (S T : @Subobject (MapObj A) (mapCat (𝒜 := A)) C) :
+    corOf (@InverseImage (MapObj A) (mapCat (𝒜 := A)) B C f (mapSubUnion S T) mapHasPullbacks)
+      = corOf (mapSubUnion
+          (@InverseImage (MapObj A) (mapCat (𝒜 := A)) B C f S mapHasPullbacks)
+          (@InverseImage (MapObj A) (mapCat (𝒜 := A)) B C f T mapHasPullbacks)) := by
+  rw [corOf_invImage f (mapSubUnion S T), corOf_mapSubUnion,
+      corOf_mapSubUnion, corOf_invImage f S, corOf_invImage f T]
+  -- dom(f (corOf S ∪ corOf T) f°) = dom(f corOf S f° ∪ f corOf T f°) = dom(..) ∪ dom(..).
+  have hdist : f.val ≫ (corOf S ∪ corOf T) ≫ f.val°
+      = (f.val ≫ corOf S ≫ f.val°) ∪ (f.val ≫ corOf T ≫ f.val°) := by
+    rw [union_comp_distrib, DistributiveAllegory.comp_union_distrib]
+  rw [hdist, dom_union]
+
+/-- **§2.212**: `f#` preserves binary unions in Map(𝒜).  Both inclusions follow from the
+    `corOf`-equality `corOf_invImage_union` through `le_iff_corOf_le`. -/
+theorem mapInvImage_preserves_union {B C : MapObj A}
+    (f : @Cat.Hom _ (mapCat (𝒜 := A)) B C) :
+    @inverseImage_preserves_unions (MapObj A) (mapCat (𝒜 := A)) mapHasImages
+      mapHasSubobjectUnions B C f mapHasPullbacks := by
+  intro S T
+  have heq := corOf_invImage_union f S T
+  exact ⟨le_iff_corOf_le.mpr (heq ▸ le_refl _), le_iff_corOf_le.mpr (heq ▸ le_refl _)⟩
+
+/-- **§2.212**: `f#` preserves the bottom (empty join) in Map(𝒜): `corOf (f# ⊥) = 𝟘 = corOf ⊥`,
+    whence isomorphic domains via `corOf_eq_dom_iso`. -/
+theorem mapInvImage_preserves_bottom {B C : MapObj A}
+    (f : @Cat.Hom _ (mapCat (𝒜 := A)) B C) :
+    @Isomorphic (MapObj A) (mapCat (𝒜 := A))
+      (@Subobject.dom (MapObj A) (mapCat (𝒜 := A)) B
+        (@InverseImage (MapObj A) (mapCat (𝒜 := A)) B C f (mapBottom C) mapHasPullbacks))
+      (@Subobject.dom (MapObj A) (mapCat (𝒜 := A)) B (mapBottom B)) := by
+  apply corOf_eq_dom_iso
+  -- corOf(f# ⊥) = dom(f ≫ 𝟘 ≫ f°) = dom 𝟘 = 𝟘 = corOf ⊥.
+  rw [corOf_invImage f (mapBottom C), corOf_mapBottom, corOf_mapBottom]
+  rw [DistributiveAllegory.zero_comp, DistributiveAllegory.comp_zero, dom_zero]
+
 end MapPreLogos
-/-! ### §2.212  PreLogos (MapObj A)
 
-  BOOK §2.212 TODO (one genuine residual: the inverse-image/pullback ↔ coreflexive bridge).
+/-! ### §2.212  PreLogos (MapObj A) — the assembled pre-logos -/
 
-  With the `Allegory` diamond resolved by `TabularUnitaryDistributiveAllegory` (single merged
-  `toAllegory`), `RegularCategory` (`mapRegularCategory`) and `HasSubobjectUnions`
-  (`mapHasSubobjectUnions`) are both DONE sorry-free.  `PreLogos` additionally needs:
+/-- **§2.212**: For a TABULAR UNITARY DISTRIBUTIVE allegory `A`, `Map(A)` is a PRE-LOGOS.
+    Assembled from `mapRegularCategory` (regular), `mapHasSubobjectUnions` (subobject joins),
+    the bottom apparatus (`mapBottom`/`mapBottom_min`/`mapBottom_dom_iso`), and the
+    inverse-image-preservation laws (`mapInvImage_preserves_union`/`_bottom`) built on the
+    bridge (†) (`corOf_invImage`). -/
+noncomputable instance mapPreLogos {A : Type u} [TabularUnitaryDistributiveAllegory A] :
+    @PreLogos (MapObj A) (mapCat (𝒜 := A)) :=
+  @PreLogos.mk (MapObj A) (mapCat (𝒜 := A)) mapRegularCategory mapHasSubobjectUnions
+    mapBottom (fun {_B} S => mapBottom_min S) mapBottom_dom_iso
+    (fun {_B _C} f => mapInvImage_preserves_union f)
+    (fun {_B _C} f => mapInvImage_preserves_bottom f)
 
-    • `bottom`/`bottom_min` — DONE in spirit (`mapBottom`, `mapBottom_min` above);
-    • `bottom_dom_iso` — the CROSS-OBJECT iso of the two `𝟘`-splits.  Within one fibre
-      `corOf_eq_dom_iso` settles "equal coreflexive ⟹ isomorphic domain"; the cross-object case
-      needs `𝟘`'s tabulation apex to be the strict-initial object `0` of Map(𝒜) (§2.21).
-    • `invImage_preserves_union` / `invImage_preserves_bottom` — these reduce, via the
-      `corOf` correspondence (`le_iff_corOf_le`) and `dom`-over-`∪`/`𝟘` distributivity, to the
-      single missing BRIDGE LEMMA
+/-! ### §2.212  PreLogos (MapObj A) — DONE (sorry-free)
 
-          corOf (InverseImage f T)  =  dom (f.val ≫ corOf T ≫ f.val°)        (†)
+  `mapPreLogos` above is a fully PROVED `PreLogos (MapObj A)` instance for a
+  `TabularUnitaryDistributiveAllegory A`.  All eight fields are discharged:
 
-      i.e. the coreflexive of a Map(𝒜) inverse-image (= pullback projection) is the relational
-      inverse image of the subobject's coreflexive.  `tab_leg_dom` proves `π₁°≫π₁ = dom R` for
-      THE canonical tabulation `(π₁,π₂)` of `R = f≫t°`; the residual is bridging that to the
-      projection `(InverseImage f T).arr` produced by `mapHasPullback` (whose `Cone.π₁` does not
-      reduce definitionally — it is extracted via `Classical.choice`), which requires the
-      pullback-uniqueness comparison iso + iso-invariance of `corOf`.  Once (†) holds:
-        corOf(f#(S∪T)) = dom(f(corOf S ∪ corOf T)f°) = dom(f corOf S f° ∪ f corOf T f°)
-                       = dom(f corOf S f°) ∪ dom(f corOf T f°) = corOf(f#S) ∪ corOf(f#T)
-      (`comp_union_distrib`, `inter_union_distrib`), giving both inclusions through
-      `le_iff_corOf_le`; and corOf(f#(bottom)) = dom(f 𝟘 f°) = dom 𝟘 = 𝟘 gives
-      `invImage_preserves_bottom` via `corOf_eq_dom_iso`.  This is mechanical relational algebra
-      plus one pullback-uniqueness argument; left as a precise TODO, NOT a falsified instance. -/
+    • regular + subobject joins:  `mapRegularCategory`, `mapHasSubobjectUnions`;
+    • bottom:  `mapBottom`, `mapBottom_min`, `mapBottom_dom_iso` (cross-object `𝟘`-split iso);
+    • inverse-image preservation:  `mapInvImage_preserves_union` / `mapInvImage_preserves_bottom`,
+      both built on the BRIDGE LEMMA (†)
+
+          corOf (InverseImage f T)  =  dom (f.val ≫ corOf T ≫ f.val°)        (†)   `corOf_invImage`
+
+      The pullback-leg coreflexive `pb.π₁°≫pb.π₁ = dom(f g°)` (`mapPullback_leg_corOf`) is bridged
+      from the choice-extracted projection to the canonical tabulation of `f g°` via the
+      pullback-uniqueness comparison map (`map_retr_leg` + `tab_leg_dom`); (†) then follows with
+      `dom_eq_dom_comp_recip`.  Union/bottom preservation are mechanical relational algebra from (†)
+      (`corOf_mapSubUnion`, `comp_union_distrib`/`union_comp_distrib`, `dom_union`, `dom_zero`),
+      read off through the `corOf` correspondence `le_iff_corOf_le` / `corOf_eq_dom_iso`. -/
 
 end Freyd.Alg
