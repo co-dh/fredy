@@ -407,12 +407,16 @@ theorem splitting_recip {a b : 𝒜} {R : a ⟶ b} {S : b ⟶ a}
   `u₁ = mInl`, `u₂ = mInr` are built from the block-diagonal identity matrix and satisfy all
   five equations.  See `Fredy/MatrixAllegory.lean` §J (`instPositiveAllegoryMat`, `mCoproduct`).
 
-  The FULL §2.214 equivalence (pre-logos positive ↔ Rel(C) has finite coproducts) requires the
-  Rel(C) functor from pre-logos to distributive allegory (Ch1 → Ch2 bridge), not yet built. -/
+  The Rel(C) functor (Ch1 → Ch2 bridge) is now BUILT in `Fredy/RelCat.lean`
+  (`relAllegory`/`relDistributiveAllegory`/`relTabularAllegory`/`relUnitaryAllegory`). -/
 
--- BOOK §2.214: A pre-logos C is positive iff Rel(C) has finite coproducts.
+-- §2.214: A pre-logos C is positive iff Rel(C) has finite coproducts.
 -- §2.215 PROVED: PositiveAllegory (MatObj 𝒜) — see Fredy.MatrixAllegory.instPositiveAllegoryMat.
--- Remainder (full §2.214 iff direction) blocked on the Rel(C) construction (Ch1↔Ch2 bridge).
+-- FORWARD (positive ⟹ Rel(C) coproducts) PROVED: Fredy.DisjointGluing.relCoproduct (RelCat.lean),
+--   all five §2.2 equations incl eq(5) (relGraph_recip_union_eq_id).
+-- BOOK §2.214 REVERSE (Rel(C) coproducts ⟹ C positive): reads the coproduct back through
+--   Map(Rel C) ≅ C; needs the FULL equivalence (embedRel is faithful in RelCat.lean; fullness +
+--   ess-surj still to package).
 
 /-- §2.215 positivity of the matrix allegory: every distributive allegory `𝒜` gives a positive
     allegory `MatObj 𝒜`. The coproduct `X ⊕ Y` is the concatenated index family; the injections
@@ -428,15 +432,18 @@ example (𝒜 : Type u) [DistributiveAllegory 𝒜] : PositiveAllegory (Mat.MatO
     (1) every pre-logos embeds faithfully in a positive pre-logos;
     (2) every pre-logos embeds faithfully in a pre-topos.]
 
-  Both require the Ch1↔Ch2 Rel(-)/Maps(-) adjunction (not constructed).
-  The ingredient `MatObj 𝒜` is now a positive allegory (§2.215 above); what is missing
-  is: (a) the `Rel : PreLogos → DistributiveAllegory` functor, (b) the `Map : DistributiveAllegory
-  → PreLogos` functor, and (c) the faithful embedding `C ↪ Map(Mat(Rel(C)))`. -/
+  CORE NOW BUILT (Fredy/RelCat.lean): (a) `Rel : PreLogos → DistributiveAllegory`
+  (`relDistributiveAllegory`), (b) `Map` via `mapPreLogos` giving
+  `relMapPreLogos : PreLogos (MapObj (RelObj C))`, and the faithful embedding
+  `embedRel : C ↪ Map(Rel C)` (`embedRel_faithful`).  What remains for the FULL §2.217(1)
+  is the POSITIVE target via the matrix step: `Mat(Rel C)` tabular+unitary (§2.342) so
+  `Map(Mat(Rel C))` is a positive pre-logos. -/
 
 -- BOOK §2.217 (1): A pre-logos may be faithfully represented in a positive pre-logos.
--- Blocked on Rel(C) construction (Ch1↔Ch2 bridge) and Map(-) functor.
+-- CORE DONE (C ↪ Map(Rel C), a pre-logos, in RelCat.lean).  Remaining: positive target
+--   via Map(Mat(Rel C)) — needs TabularAllegory/UnitaryAllegory (MatObj 𝒜) (§2.342).
 -- BOOK §2.217 (2): A pre-logos may be faithfully represented in a pre-topos.
--- Blocked on same infrastructure plus pre-topos structure on Map(Mat(Rel(C))).
+-- Remaining: pre-topos structure on Map(Mat(Rel(C))).
 
 /-! ## §2.218  Faithful representation in a power of the allegory of sets
 
