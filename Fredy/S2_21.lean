@@ -485,16 +485,19 @@ example (𝒜 : Type u) [DistributiveAllegory 𝒜] : PositiveAllegory (Mat.MatO
     (1) every pre-logos embeds faithfully in a positive pre-logos;
     (2) every pre-logos embeds faithfully in a pre-topos.]
 
-  PROVED (for `[PositivePreLogos C]`) in `Fredy/RelCat.lean`:
-  `s217_faithful_embed_into_positive` — `C ↪ Map(Mat(Rel C))` is a faithful embedding into
-  a positive pre-logos.  Uses `instTabularAllegoryMat`/`instUnitaryAllegoryMat`/
-  `instPositiveAllegoryMat` (MatrixAllegory.lean §2.342/§2.215) and `mapPreLogos` (§2.212).
-  The GENERAL (bare `[PreLogos C]`) statement needs `relDistributiveAllegory` over `[PreLogos C]`
-  (distributivity of `Rel(C)` without coproduct data in `C`) — not yet proved. -/
+  PROVED IN FULL GENERALITY (bare `[PreLogos C]`, Freyd's headline (1)) in `Fredy/RelCat.lean`:
+  `s217_faithful_embed_into_positive` — for ANY pre-logos `C`, `C ↪ Map(Mat(Rel C))` is a faithful
+  embedding into a positive pre-logos.  Uses `instTabularAllegoryMat`/`instUnitaryAllegoryMat`/
+  `instPositiveAllegoryMat` (MatrixAllegory.lean §2.342/§2.215) and `mapPreLogos` (§2.212);
+  `relDistributiveAllegory` holds over any pre-logos (§1.616/§2.212 relUnion-subobject-union
+  refactor), and `Mat` supplies the target's positivity — so `C` need not be positive.
+  (2) faithful representation in a pre-topos remains OPEN. -/
 
 -- §2.217 (1): A pre-logos may be faithfully represented in a positive pre-logos.
--- PROVED (for [PositivePreLogos C]): `s217_faithful_embed_into_positive` in Fredy/RelCat.lean.
--- General [PreLogos C] case: OPEN — needs relDistributiveAllegory over bare PreLogos.
+-- PROVED IN FULL GENERALITY (bare [PreLogos C], Freyd's headline):
+--   `s217_faithful_embed_into_positive` in Fredy/RelCat.lean. C need NOT be positive —
+--   relDistributiveAllegory now holds over any pre-logos (relUnion-subobject-union refactor),
+--   and Mat supplies the target's positivity.
 -- §2.217 (2): A pre-logos may be faithfully represented in a pre-topos.
 -- OPEN — needs pre-topos structure on Map(Mat(Rel(C))).
 

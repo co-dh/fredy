@@ -1140,7 +1140,7 @@ section Positivize
 
 open Freyd.DisjointGluing Freyd.Alg.Mat
 
-variable [PositivePreLogos 𝒞]
+variable [PreLogos 𝒞]
 
 /-- **§2.217(1) step 1**: `Rel(C)` is a tabular *distributive* allegory — the §2.342 hypothesis
     class of the matrix construction.  Parents share the SAME `relAllegory` grandparent, so the
@@ -1248,7 +1248,7 @@ section GraphMatEmbedding
 
 open Freyd.Alg.Mat
 
-variable [PositivePreLogos 𝒞]
+variable [PreLogos 𝒞]
 
 /-- **§2.217(1)**: the object part `C → Map(Mat(Rel C))`: `a ↦ unitObj ⟨a⟩` (the 1×1 matrix on
     the relation-object `⟨a⟩`). -/
@@ -1275,20 +1275,18 @@ section S217
 
 open Freyd.Alg.Mat
 
-variable [PositivePreLogos 𝒞]
+variable [PreLogos 𝒞]
 
-/-- **§2.217(1)**: *every positive pre-logos `C` embeds faithfully in a positive pre-logos.*
+/-- **§2.217(1)** (GENERAL — Freyd's headline): *every pre-logos `C` embeds faithfully in a
+    positive pre-logos.*  Hypothesis is a BARE `[PreLogos 𝒞]` — `C` need NOT be positive.
     Take `D := Map(Mat(Rel C))`; it is a positive pre-logos (`s217PreLogos`) and `embed217` is a
     faithful functor `C ↪ D` (`embed217_faithful`).  Packaged as: there exist a positive-pre-logos
     structure on `D` and a per-hom injection of `C` into `D`.
 
-    BOOK §2.217(1) (general): for a NON-positive pre-logos `C` this same construction works, but it
-    needs `relDistributiveAllegory` weakened from `[PositivePreLogos C]` to `[PreLogos C]` — `Rel(C)`
-    is distributive for any pre-logos (positivity of `C` is used ONLY to obtain the disjoint
-    coproducts that make `Rel(C)` distributive *here*; the TARGET's positivity is supplied entirely
-    by `Mat`, not by `C`).  Reproving `DisjointGluing.relDistributiveAllegory` over `[PreLogos C]`
-    (distributivity of `Rel(C)` without disjoint coproducts) discharges the general statement with
-    the identical `Mat`/`Map` assembly below. -/
+    This is now fully general because `DisjointGluing.relDistributiveAllegory` holds over any
+    `[PreLogos 𝒞]` (the §1.616/§2.212 `relUnion`-via-subobject-union refactor): `Rel(C)` is
+    distributive without `C` having disjoint coproducts, and the TARGET's positivity is supplied
+    entirely by `Mat`, not by `C`. -/
 theorem s217_faithful_embed_into_positive :
     Nonempty (@PositivePreLogos (MapObj (MatObj (RelObj 𝒞))) (mapCat (𝒜 := MatObj (RelObj 𝒞)))) ∧
     ∀ {a b : 𝒞} {f g : a ⟶ b}, embed217 f = embed217 g → f = g :=
