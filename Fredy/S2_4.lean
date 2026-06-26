@@ -1327,7 +1327,10 @@ theorem pre_positive_semi_simple_iff_metonymic {𝒜 : Type u} [PrePositivePower
     for some map f.  Book: "E = E/E" (division allegory) + power allegory ⟹ E = ff°
     via `symm_div_eq_A_comp`: E = A(E) ≫ (A E)° with A(E) a map. -/
 -- §2.422: every_equiv_rel_is_map_comp_recip
--- BOOK §2.422: In any division allegory, E² = E for any equivalence relation E.
+/-- **§2.422**: In any division allegory, every equivalence relation satisfies `E ≫ E = E`. -/
+theorem equivRel_idem {𝒜 : Type u} [DivisionAllegory 𝒜] {a : 𝒜} {E : a ⟶ a}
+    (hE : EquivalenceRel E) : E ≫ E = E :=
+  symmetric_transitive_idempotent hE.2.1 hE.2.2
 -- In a power allegory every equivalence relation is of the form ff°.
 -- (Needs: Reflexive/Symmetric/Transitive for E, then symm_div_eq_A_comp + box match.)
 
