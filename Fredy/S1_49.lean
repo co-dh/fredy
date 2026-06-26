@@ -9,6 +9,7 @@ import Fredy.S1_41
 import Fredy.S1_42
 import Fredy.S1_18
 import Fredy.S1_26
+import Fredy.S1_45
 
 
 open Freyd
@@ -1677,15 +1678,15 @@ theorem canon_prod_unit_right (τ : TCat 𝒞) (A : 𝒞)
   exact hRHS.symm.trans (hcol.symm.trans (heq_of_eq rfl))
 
 -- BOOK §1.49(10) PULLBACK PASTING: If each square in a two-square horizontal diagram
--- is a canonical pullback, then the rectangle is a canonical pullback.
--- Proof sketch: compose the two 2-column pullback τ-tables into a 4-column table (via tau2_comp);
--- the middle column (the shared leg) is short since it factors through the shared arrow;
--- pruning (tau3) gives the 3-column rectangle table, which equals the canonical pullback table
--- by tau1-uniqueness.
--- MISSING: requires a notion of "canonical pullback table" (a 2-col τ-table equipped with the
--- commutative-square equation π₁∘f = π₂∘g) and the slice/Cone infrastructure from S1_45.lean.
--- Not imported here; left as a precise TODO.
--- BOOK §1.49(10) pasting: TODO — requires import Fredy.S1_45 for Cone/HasPullback.
+-- is a pullback, then the outer rectangle is a pullback; and conversely (cancel).
+-- The ABSTRACT Cone-based form is proved in Fredy.S1_45:
+--   `Freyd.pullback_paste`  (S1_45.lean) — both squares pb ⟹ rectangle pb
+--   `Freyd.pullback_cancel` (S1_45.lean) — right square pb + rectangle pb ⟹ left square pb
+-- The τ-CATEGORY specialisation (canonical pullback tables strictly paste) follows from
+-- tau1-uniqueness: a Cone.IsPullback with the canonical table witness is still canonical.
+-- That τ-table form is deferred: it requires identifying canonical pullback tables with
+-- 2-column τ-tables satisfying the commutative-square equation π₁ ≫ f = π₂ ≫ g, which in
+-- turn needs a bridge between Table.col and Cone.π₁/π₂ (not yet built in this file).
 
 end CanonicalProdLaws
 
