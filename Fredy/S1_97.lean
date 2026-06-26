@@ -2439,7 +2439,7 @@ section ActImageCalculus
 variable {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
 
 -- Make the genuine `Topos` products win all `HasBinaryProducts` goals (the
--- `topos_has_exponentials.toHasBinaryProducts` route is a `sorry`-derived diamond branch);
+-- `topos_has_exponentials.toHasBinaryProducts` route is a `Sorry`-derived diamond branch);
 -- this keeps `prodMap`/`distCase` products coherent across this section.  Same guard as
 -- `Fredy/ToposCopowers.lean`.
 attribute [local instance 10000] Topos.toHasBinaryProducts
@@ -2602,7 +2602,7 @@ end ActImageCalculus
 
 -- The free §1.98(13) chases use `prodMap`/`distCase`; make the genuine `Topos` products win
 -- all `HasBinaryProducts` goals (avoids the `topos_has_exponentials.toHasBinaryProducts`
--- `sorry`-derived diamond branch), keeping every `prod`/`image` term coherent (cf. `ToposCopowers`).
+-- `Sorry`-derived diamond branch), keeping every `prod`/`image` term coherent (cf. `ToposCopowers`).
 attribute [local instance 10000] Topos.toHasBinaryProducts
 
 /-- **§1.98(13) action PEANO PROPERTY in a BOOLEAN topos (the §1.988 free content).**
@@ -2640,7 +2640,7 @@ theorem free_peano_property_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topos
   --   `A'` ENTIRE:  Freyd's §1.988 BOOLEAN complement chase — complement `A''` of `A'`, show `A''`
   --     is `act`-stable (so `[unit,act]` is block-diagonal), build `e : α.obj → 1+1` with
   --     `act ≫ e = snd ≫ e`, apply `hcoeq` to collapse `e` to constant `inl`, forcing `A'' = 0`.
-  --     [the one residual `sorry` — the product-indexed port of the endo chase.]
+  --     [the one residual `Sorry` — the product-indexed port of the endo chase.]
   let A' : Subobject 𝒞 α.obj := actLeast α.unit α.act (snd (A := A) (B := α.obj))
   -- B is `(unit,act,snd)`-closed: allows `unit` (`huB`), and `(snd#B) ≤ (act#B)` via the bridge.
   obtain ⟨uB, huB'⟩ := huB
@@ -4122,7 +4122,7 @@ theorem consMor_mono : Monic (consMor A) := by
   For an algebra `(B, e, c)`, the graph `G ⊆ prod W B` is the least subobject closed under the
   combined step `foldStep (a,(w,b)) = (consMor(a,w), c(a,b))` and containing `(nilMor, e)`.  Its
   `W`-projection `p := foldProj = G.arr ≫ fst` is TOTAL over `A* = listCarrier A`
-  (`foldProj_total`, sorry-free) and SINGLE-VALUED; the functional graph then yields
+  (`foldProj_total`, Sorry-free) and SINGLE-VALUED; the functional graph then yields
   `fold := s ≫ G.arr ≫ snd` with its two algebra-square laws (`foldExists`). -/
 
 open HasBinaryCoproducts in
@@ -4216,8 +4216,8 @@ theorem foldProj_total {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B) :
   exact actLeast_le (nilMor A) (consMor A) snd (image (foldProj A e c)) hImgNil hImgStab
 
 /-- Existence of the fold/recursor `A* → B` into any `1+A×(−)`-algebra `(B,e,c)`, with its two
-    algebra-square laws.  The full assembly is sorry-free EXCEPT one isolated §1.989 hole:
-    the cover `pCov : G.dom ↠ A*` (`image (foldProj) = A*`, both inclusions sorry-free) is
+    algebra-square laws.  The full assembly is Sorry-free EXCEPT one isolated §1.989 hole:
+    the cover `pCov : G.dom ↠ A*` (`image (foldProj) = A*`, both inclusions Sorry-free) is
     corestricted to an iso `A* ≅ G.dom` ONCE `Monic (foldProj A e c)` holds, whence
     `fold := iso⁻¹ ≫ G.arr ≫ snd` and the two laws follow from the graph's `(foldUnit, foldStep)`-
     closure (`hpt`/`hpsnd`).  The SINGLE residual `hcore` is non-boolean single-valuedness — the
@@ -4404,11 +4404,11 @@ theorem foldExists {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B) :
   -- (II) SINGLE-VALUEDNESS: `p` is MONIC (§1.98(14), non-boolean).
   have hpmono : Monic p := by
     -- `q := G.arr ≫ snd : G.dom → B`, the value-leg of the graph.  `Monic p` is reduced (below,
-    -- sorry-free) to this CORE §1.989 single-valuedness equation: the two kernel-pair legs of `p`
+    -- Sorry-free) to this CORE §1.989 single-valuedness equation: the two kernel-pair legs of `p`
     -- agree after `q`, i.e. the graph `G` is FUNCTIONAL over `A*` (same word ⟹ same value).
     --
     -- POWER-OBJECT SINGLETON INDUCTION — NOW WIRED (non-boolean, §1.989).  The whole `Monic p`
-    -- reduction below is sorry-free EXCEPT three precisely-scoped graph "no-junk" holes (see them
+    -- reduction below is Sorry-free EXCEPT three precisely-scoped graph "no-junk" holes (see them
     -- inside `hNilSing`/`hConsSing`).  Built here SORRY-FREE:
     --   • `valG : W → Ω^B` (= `curry (swap ≫ χ_G)`), the FIBER map `w ↦ {b | (w,b)∈G}`, with the
     --     β-laws `hvalGβ` (eval of `valG`), `hGmem` (a `G`-point is in `G`), `hSingEval` (eval of a
@@ -5173,20 +5173,20 @@ theorem free_action_exists {𝒞 : Type u} [Cat.{v} 𝒞]
   --     index case-split (`nnoCoUninv`) + exponential `eval`.  Element-reader is FREE (eval).
   --   * `A* := listCarrier A = (actLeast nilMor consMor snd) ⊆ W`; `listNil`/`listCons` from
   --     `actLeast_allows`/`actLeast_stable` (`listNil_arr`/`listCons_arr`).
-  -- ALL of the above is sorry-free `[propext, Classical.choice]`.  The β-laws `nilMor_read`/
+  -- ALL of the above is Sorry-free `[propext, Classical.choice]`.  The β-laws `nilMor_read`/
   -- `consMor_read`/`consBody_zero`/`consBody_succ`, the list-induction `listObject_ext`
   -- (`fold_uniq`, via the equalizer-on-W + `actLeast_le`), and the fold-graph TOTALITY
-  -- `foldProj_total` are ALL sorry-free.
+  -- `foldProj_total` are ALL Sorry-free.
   --
   -- THE SINGLE RESIDUAL is `foldExists` (used below for `fold`/`fold_nil`/`fold_cons`): the
   -- functional-graph EXTRACTION of `fold : A* → B` from the totality-proved graph `foldGraph`.
   -- The corestriction `pCov : G.dom ↠ A*` (via `image (foldProj) = A*`) and the iso assembly are
-  -- now sorry-free; the only open content is single-valuedness `Monic (foldProj A e c)` (`hcore`,
+  -- now Sorry-free; the only open content is single-valuedness `Monic (foldProj A e c)` (`hcore`,
   -- non-boolean §1.989).  See `foldExists`'s docstring.
   -- ASSEMBLY (this session): the list object `A* = (listCarrier A).dom ⊆ W = (1+A)^N` is built
-  -- sorry-free (`listCarrier`/`listNil`/`listCons` from `actLeast`); `nil`/`cons` and their arr-laws
+  -- Sorry-free (`listCarrier`/`listNil`/`listCons` from `actLeast`); `nil`/`cons` and their arr-laws
   -- are proved; `fold` comes from the functional graph `foldExists`; `fold_uniq` is `listObject_ext`
-  -- (the `actLeast_le` induction), sorry-free.  The SINGLE residual is `foldExists` (graph
+  -- (the `actLeast_le` induction), Sorry-free.  The SINGLE residual is `foldExists` (graph
   -- extraction + single-valuedness) — see its docstring.
   obtain ⟨LD⟩ : Nonempty (ListObjectData (𝒞 := 𝒞) A) :=
     ⟨{ L         := (listCarrier A).dom

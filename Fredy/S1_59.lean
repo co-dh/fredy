@@ -1054,7 +1054,7 @@ theorem malRel_equivalence [AdditiveCategory 𝒞] [HasPullbacks 𝒞]
   (⟹) Any abelian category is effective regular (§1.582–1.583 combined with
   the bicartesian structure).
 
-  The (⟸) direction is now CLOSED sorry-free below (`effective_regular_additive_is_abelian`),
+  The (⟸) direction is now CLOSED Sorry-free below (`effective_regular_additive_is_abelian`),
   representation-free: the Mal'cev relation `malRel m` (table `⟨snd, −m·fst + snd⟩`) is the
   equivalence relation; effectiveness gives a quotient cover `q`, and `m` is shown to be the
   kernel of `q` via additive (subtraction) algebra plus the relation calculus.  The two helper
@@ -1443,7 +1443,7 @@ theorem monic_kernel_of_cokernel {𝒞 : Type u} [Cat.{v} 𝒞] [ExactCategory �
     is epic because `f` is a cover (`kernel_snd_epi`); epimorphy transfers across the
     pullback comparison to any pullback cone.
 
-  Balancedness (`exact_balanced`) and `epi_is_cover` are proved sorry-free along the
+  Balancedness (`exact_balanced`) and `epi_is_cover` are proved Sorry-free along the
   way and are reusable.  The whole keystone chain is now SORRY-FREE (axioms:
   propext, Classical.choice). -/
 
@@ -1796,7 +1796,7 @@ theorem exactAdditivePullbacksTransferCovers [ExactCategory 𝒞] [AdditiveCateg
     PullbacksTransferCovers 𝒞 where
   pullbacks_transfer_covers c hpb hf := epi_is_cover c.π₂ (pullback_epi_is_epi c hpb hf)
 
-/-- **THE KEYSTONE.**  Exact additive ⟹ regular.  All fields sorry-free except
+/-- **THE KEYSTONE.**  Exact additive ⟹ regular.  All fields Sorry-free except
     cover-stability, isolated to `pullback_epi_is_epi`. -/
 noncomputable def exact_additive_is_regular [ExactCategory 𝒞] [AdditiveCategory 𝒞] :
     RegularCategory 𝒞 :=
@@ -1955,7 +1955,7 @@ theorem normal_balanced [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoequalize
 
   i.e. that the diagonal's cokernel collapses `A×A` back onto `A` along the first
   injection.  Everything else (balance `normal_balanced`, exact→abelian, additive→regular,
-  all-normal→exact) is in hand and sorry-free.
+  all-normal→exact) is in hand and Sorry-free.
 
   VERIFIED LOCALIZATION (this pass).  The obstruction is pinned to the implication
   "**trivial kernel ⟹ monic**" (and its dual "trivial cokernel ⟹ epic").  Set
@@ -1978,7 +1978,7 @@ theorem normal_balanced [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoequalize
   subtraction / joint-epi of the two product injections), which the imported modules
   (`S1_1, S1_34, S1_41, S1_42, S1_43, S1_51, S1_52, S1_56, S1_58`) do not supply. -/
 
-/-- **Verified half of the §1.598 subtraction bootstrap** (sorry-free, `IsLeftNormal` +
+/-- **Verified half of the §1.598 subtraction bootstrap** (Sorry-free, `IsLeftNormal` +
     binary products only).  For `θ_A := ⟨1,0⟩ ≫ coker(diag A)`, the kernel of `θ_A` is
     trivial: any `x : W ⟶ A` with `x ≫ θ_A = 0` is the zero morphism.
 

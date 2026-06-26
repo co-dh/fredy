@@ -3,7 +3,7 @@
   COTERMINATOR (initial object `0`).
 
   The carrier is `Z := (bottomSub one).dom`, the domain of the empty/bottom
-  subobject `∅_1 ↪ 1` built (sorry-free) in `Fredy/ToposColimits.lean` as the
+  subobject `∅_1 ↪ 1` built (Sorry-free) in `Fredy/ToposColimits.lean` as the
   family-glb `⋂{all σ ⊆ 1}`.  We show `StrictCoterminator Z`: every `f : X → Z`
   is an isomorphism, hence (via `HasCoterminator.ofStrict`, S1_58) `Z` is initial.
 
@@ -13,7 +13,7 @@
   `g*(∅) ≤ ∅` (`invImage_bottomSub_le`), proved from `radjImage_adjunction`.
 
   The one cross-base seed `∅_A.dom ≅ ∅_B.dom` (`bottomSub_dom_iso`, ⇔ existence of
-  `0 → A`) is closed sorry-free by the EMPTY-SINGLETON argument (`bottomSub_dom_iso_one`):
+  `0 → A`) is closed Sorry-free by the EMPTY-SINGLETON argument (`bottomSub_dom_iso_one`):
   `K := {a | {a} = ∅}` (pullback of `singletonMap A` along `nameOf ∅_A`) is subterminal,
   and the pullback square forces `a ∈ {a} = a ∈ ∅`, so the classifier UMP factors `K`
   through `∅_A`, yielding `∅_A.dom ≅ K ≅ Z₁`.  Axioms: `[propext, Classical.choice]`.
@@ -62,7 +62,7 @@ theorem invImage_bottomSub_dom_iso {A B : 𝒞} (g : A ⟶ B) :
   `∅_A.dom ≅ Z₁` where `Z₁ := (bottomSub one).dom`.  The previous obstruction was the
   EXISTENCE of `0 ⟶ A`.  We close it by the **empty-singleton** argument, entirely inside
   the §1.92/§1.94 exponential power-object framework (`singletonMap`, `membershipMap`,
-  `diag_classify_iff`), all sorry-free:
+  `diag_classify_iff`), all Sorry-free:
 
   Let `K := pullback of {·}=singletonMap A : A → [A] along the empty-set name
   u := nameOf ∅_A : 1 → [A]` — i.e. `K = {a : A | {a} = ∅}`.  Then:
@@ -232,7 +232,7 @@ theorem strict_coterminator_bottomSub_one :
 
 /-- **§1.944** — a topos has a (strict) coterminator `Z := ∅_1.dom`.  Assembled from
     the strict-coterminator witness via `HasCoterminator.ofStrict` (S1_58), using the
-    `[Topos 𝒞]`-supplied `HasBinaryProducts`.  Fully sorry-free: the former seed
+    `[Topos 𝒞]`-supplied `HasBinaryProducts`.  Fully Sorry-free: the former seed
     `bottomSub_dom_iso` is now closed by the empty-singleton argument above. -/
 theorem topos_has_coterminator : Nonempty (HasCoterminator 𝒞) :=
   ⟨HasCoterminator.ofStrict strict_coterminator_bottomSub_one⟩

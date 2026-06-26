@@ -10,7 +10,7 @@
 
   They used to live in `S1_94.lean`, but `S1_94` is also where the §1.94 chapter
   theorems (`topos_is_regular`, `topos_is_logos`, …) are *stated*, and those theorems
-  need the (sorry-free) topos-regularity instances built downstream in
+  need the (Sorry-free) topos-regularity instances built downstream in
   `InternalForallTopos` (`toposHasImages`, `topos_is_regular_real`).  Since
   `InternalForallTopos` itself *consumes* `nameOf`/`membershipMap`/`interIntersection`
   (it builds the internal-∀ `forallC`/`bigInter` from them), keeping the cluster in

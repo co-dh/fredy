@@ -188,7 +188,7 @@ end Terminal
   one genuinely §1.935/§1.963-gated step (see the integrity note in
   `Fredy/S1_92.lean :: HasPartialMapClassifier`).  We isolate it as a SINGLE,
   precisely-named obligation; everything else (`PartialMap`, the laws as fields,
-  the `B = 1` instance) is proved sorry-free above.
+  the `B = 1` instance) is proved Sorry-free above.
 
   Standard construction (the proof obligation below).
   *  Carrier.  In a topos, `B̃` is the subobject of the power object `[B]` (or
@@ -454,7 +454,7 @@ noncomputable def pmRel {A B : 𝒞} (P : PartialMap 𝒞 A B) : BinRel 𝒞 A B
     value object `B̃ = B ⊔ {undefined}` together with its universal property.
     All the *interface* (the `LawfulPMC` laws as a package, the `B = 1` instance
     `pmcAtTerminal` which is the `Ω`-case, and `PartialMap`) is built and verified
-    sorry-free above; only the carrier construction — Freyd's "value object",
+    Sorry-free above; only the carrier construction — Freyd's "value object",
     the subsingleton-subobject of `[B]` — remains.
 
     PROOF OBLIGATION (how to discharge, no axiom beyond the topos data):

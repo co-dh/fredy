@@ -34,15 +34,15 @@ import Fredy.InterIntersection
 -- §1.945 topos-regularity infrastructure.  The cycle that used to block this import
 -- (S1_94 → InternalForall → InternalForallTopos → S1_94) was removed by pointing
 -- InternalForall at S1_9 directly instead of S1_94.  InternalForallTopos provides the
--- sorry-free `toposHasImages` instance, the `SlicePi.toposPullbacksTransferCovers`
+-- Sorry-free `toposHasImages` instance, the `SlicePi.toposPullbacksTransferCovers`
 -- instance, and `topos_is_regular_real : Nonempty (RegularCategory 𝒞)`.
 import Fredy.InternalForallTopos
 -- §1.946 right adjoint f## to inverse image (the `HasRightAdjointImage'` keystone): the
--- subobject-level internal-∀ `radjImage`/`radjImage_adjunction`, built sorry-free via the
+-- subobject-level internal-∀ `radjImage`/`radjImage_adjunction`, built Sorry-free via the
 -- internal-∀ family-glb machinery.  Plus §1.95 `bottomSub` for the strict coterminator.
 import Fredy.RightAdjointImage
 import Fredy.ToposColimits
--- §1.944 strict coterminator: `topos_has_coterminator` (built sorry-free modulo the single
+-- §1.944 strict coterminator: `topos_has_coterminator` (built Sorry-free modulo the single
 -- `bottomSub_dom_iso` seed = `0 × A ≅ 0`; see `Fredy/ToposStrictZero.lean`).
 import Fredy.ToposStrictZero
 
@@ -75,9 +75,9 @@ class Logos' (𝒞 : Type u) [Cat.{v} 𝒞] extends
 /-- **§1.946 — a topos has the right adjoint `f##` to inverse image.**  Bundles the §1.946
     keystone `radjImage` (the internal-∀ right adjoint `f## = ∀_f : Sub(A) → Sub(B)`) with its
     adjunction `radjImage_adjunction` (`f* ⊣ f##`) into the `HasRightAdjointImage'` interface.
-    Both are built sorry-free in `Fredy.RightAdjointImage` via the internal-∀ family-glb machinery
+    Both are built Sorry-free in `Fredy.RightAdjointImage` via the internal-∀ family-glb machinery
     (NO §1.54 transfinite capitalization).  This is the load-bearing instance that turns
-    `topos_is_logos` from a `sorry` into an assembly. -/
+    `topos_is_logos` from a `Sorry` into an assembly. -/
 noncomputable instance toposHasRightAdjointImage : HasRightAdjointImage' 𝒞 where
   rightAdj f A' := radjImage f A'
   adjunction f B' A' := radjImage_adjunction f B' A'
@@ -188,7 +188,7 @@ noncomputable def interUnion [HasImages 𝒞] {A : 𝒞} (F : Subobject 𝒞 (po
     Binary unions: A₁ ∪ A₂ = ∩{B' | A₁ ⊆ B' ∧ A₂ ⊆ B'} via §1.943.
     (Uses local Logos'; canonical Logos is in S1_70 which has a build error.)
 
-    PARTIAL (faithful sorry — the `RegularCategory` field is now AVAILABLE, two fields
+    PARTIAL (faithful Sorry — the `RegularCategory` field is now AVAILABLE, two fields
     remain).  `Logos'` extends `RegularCategory` + `HasSubobjectUnions` + the right
     adjoint `HasRightAdjointImage'` (f##).  The `RegularCategory` sub-goal is NO LONGER a
     blocker — it is exactly `topos_is_regular` (now closed via the internal-∀ family-glb,
@@ -198,13 +198,13 @@ noncomputable def interUnion [HasImages 𝒞] {A : 𝒞} (F : Subobject 𝒞 (po
       over a subobject FAMILY;
     * `HasRightAdjointImage'` — the right adjoint `f##`, also a family-glb.
 
-    CLOSED (no longer a sorry).  All three fields are now available topos instances:
+    CLOSED (no longer a Sorry).  All three fields are now available topos instances:
 
     * `RegularCategory` — `topos_is_regular` (the internal-∀ family-glb image + `Π_f`-cover-transfer);
     * `HasSubobjectUnions` — `toposHasSubobjectUnions` (the §1.952 family-glb of common upper bounds,
       `Fredy.ToposColimits`);
     * `HasRightAdjointImage'` — `toposHasRightAdjointImage` above, the §1.946 keystone `f##`
-      (`Fredy.RightAdjointImage`, internal-∀ right adjoint + adjunction, sorry-free).
+      (`Fredy.RightAdjointImage`, internal-∀ right adjoint + adjunction, Sorry-free).
 
     `Logos'` assembles from these three (the regular structure is unbundled into its
     `HasImages`/`PullbacksTransferCovers` fields so the union/right-adjoint instances resolve). -/
@@ -253,18 +253,18 @@ theorem topos_is_logos : Nonempty (Logos' 𝒞) := by
     this theorem).  The closure-ASSEMBLY (R ⊑ R*, refl, trans, minimal) is now genuinely
     discharged from `rtc`/`le_rtc`/`rtc_reflexive`/`rtc_transitive`/`rtc_minimal`.
 
-    RESIDUAL (pinned by the hypothesis, NOT a sorry): the *existence* of the glb `M = ⋂F`
+    RESIDUAL (pinned by the hypothesis, NOT a Sorry): the *existence* of the glb `M = ⋂F`
     — the §1.943 family-glb over a subobject family of `[B×B]` — still rests on §1.54's
-    `capitalization_lemma` (still `sorry`), which is what would *construct* the
+    `capitalization_lemma` (still `Sorry`), which is what would *construct* the
     `HasReflTransClosure 𝒞` instance for a bare topos.  The §1.945-blocked regular structure
-    `[HasImages 𝒞]`/`[PullbacksTransferCovers 𝒞]` (= `topos_is_regular`, still `sorry`) is
+    `[HasImages 𝒞]`/`[PullbacksTransferCovers 𝒞]` (= `topos_is_regular`, still `Sorry`) is
     likewise carried as an explicit hypothesis.  This theorem isolates precisely the
     *closure-assembly* (now done) from the *glb-existence* (the genuine §1.543 residual).
 
-    AXIOM-HYGIENE NOTE: the *proof body* `⟨rtc R, …⟩` contains no `sorry` — the four §1.77
+    AXIOM-HYGIENE NOTE: the *proof body* `⟨rtc R, …⟩` contains no `Sorry` — the four §1.77
     components (`le_rtc`/`rtc_reflexive`/`rtc_transitive`/`rtc_minimal`) are each `#print
     axioms`-clean.  `#print axioms topos_has_rtc` nonetheless reports `sorryAx`; this is the
-    pre-existing FILE-WIDE leak of S1_92's `topos_has_exponentials` (a `sorry` global instance
+    pre-existing FILE-WIDE leak of S1_92's `topos_has_exponentials` (a `Sorry` global instance
     synthesised from the ambient `[Topos 𝒞]`, which `BinRel`'s `HasPullbacks` resolution routes
     through) and it taints EVERY completed declaration here equally (`inter_le_named`,
     `membershipMap_nameOf`, …) — not anything specific to this discharge.  It is out of scope
@@ -358,7 +358,7 @@ private theorem isPointSubobj_image {A : 𝒞} [HasImages 𝒞] (p : one ⟶ A) 
     coterminator `∅_A ↪ A`).
 
     CONSTRUCTION (no §1.54 capitalization needed — the old blocker note was stale,
-    superseded by the now-sorry-free §1.945/§1.946/§1.95 infra):
+    superseded by the now-Sorry-free §1.945/§1.946/§1.95 infra):
 
     * **Well-supported `A`.**  `Capital` gives `WellPointed A` directly, so take
       `A* = entire A`.  Upper: every `P ≤ entire A` trivially.  WP: `WellPointed A`.

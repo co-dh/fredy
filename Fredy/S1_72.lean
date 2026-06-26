@@ -742,7 +742,7 @@ noncomputable def heytingPoset_is_logos (P : HeytingPoset) : Logos P.carrier :=
     The Heyting adjunction `c ≤ (a → b) ↔ a ∧ c ≤ b` follows from the logos
     adjunction `f# ⊣ f##` via the pullback = product identification in a thin cat.
 
-    Axioms: `[Classical.choice]` only (no sorry).  -/
+    Axioms: `[Classical.choice]` only (no Sorry).  -/
 noncomputable def thinLogos_is_heytingPoset
     {𝒞 : Type} [Cat.{0} 𝒞] [ThinCategory 𝒞] [Logos 𝒞] : HeytingPoset :=
   -- Every object viewed as a subterminator of `one`

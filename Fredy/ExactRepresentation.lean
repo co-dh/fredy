@@ -10,7 +10,7 @@
   and is NOT done here.  What IS done here is the *precise downstream reduction*:
   we state exactly the two properties the rep must supply and prove the
   abelian-cluster consequence (`shear x` is an iso ⟹ additive inverses exist)
-  from them, sorry-free.
+  from them, Sorry-free.
 
   WHY THIS IS NOT VACUOUS.  The interface is satisfied by the identity functor
   (`reflectsAdditively_id`), so it is a genuine constraint, not a trivially-false
@@ -87,7 +87,7 @@ theorem reflectingAdditive_id_of_additive
 
 /-! ## The shear reduction
 
-  These are the two payoff lemmas.  They are FULLY PROVED (sorry-free); the only
+  These are the two payoff lemmas.  They are FULLY PROVED (Sorry-free); the only
   thing assumed is the existence of a reflecting-additive functor, which is the
   honest statement of "exact iso-reflecting representation". -/
 

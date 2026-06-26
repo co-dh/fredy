@@ -9,7 +9,7 @@
             • image of f : a → b         = tabulation of dom (f°)
             • g is a cover iff 1 ⊑ g° ≫ g (i.e. g° is entire)
 
-  **Proved in this file** (all sorry-free):
+  **Proved in this file** (all Sorry-free):
   (A) Cat instance on MapObj 𝒜  (§2.14).
   (B) Helper lemmas: dom R ⊑ dom R ≫ R; dom(f∩g) ≫ f = f ∩ g for Map f.
   (C) Pullback cone equation π₁° ≫ f = π₂° ≫ g  (§2.147).
@@ -25,7 +25,7 @@
   are already maps the right way, and the old `Map(π₁°)` blocker is gone.  The §2.143
   universal property (`tabulation_UP_forward`/`tabulation_UP_unique`) lives in `S2_1.lean`.
 
-  **§2.148** (sorry-free):
+  **§2.148** (Sorry-free):
   (J) `tab_round_trip_rel`: Ψ∘Φ = id — from a tabulation (f,g) of R, f°≫g = R.
   (K) `span_self_tabulates`: a jointly-monic span (f,g) in Map(𝒜) self-tabulates f°≫g.
   (L) `tab_iso_unique_exists`: two tabulations of R are related by a UNIQUE isomorphism
@@ -1843,7 +1843,7 @@ noncomputable instance mapPreLogos {A : Type u} [TabularUnitaryDistributiveAlleg
     (fun {_B _C} f => mapInvImage_preserves_union f)
     (fun {_B _C} f => mapInvImage_preserves_bottom f)
 
-/-! ### §2.212  PreLogos (MapObj A) — DONE (sorry-free)
+/-! ### §2.212  PreLogos (MapObj A) — DONE (Sorry-free)
 
   `mapPreLogos` above is a fully PROVED `PreLogos (MapObj A)` instance for a
   `TabularUnitaryDistributiveAllegory A`.  All eight fields are discharged:

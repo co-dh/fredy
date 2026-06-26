@@ -18,7 +18,7 @@
       `case ⟨id,0⟩ ⟨0,id⟩ : A⊕B → A×B` is literally the IDENTITY of the shared carrier,
       because `inl = ⟨id,0⟩` and `inr = ⟨0,id⟩` are the very injections of the coproduct.
 
-  No `sorry`, no new axiom.  The coincidence is genuine: products and coproducts of
+  No `Sorry`, no new axiom.  The coincidence is genuine: products and coproducts of
   abelian group objects are the *same* object with the *same* projections/injections,
   and the copairing realising the coproduct UMP is the hom-set addition.
 -/

@@ -17,7 +17,7 @@
 
   whose β/η computation rests on the power-object exponential adjunction being
   CONCRETE.  In this repo that adjunction is `S1_92.topos_has_exponentials`, which is
-  itself an unfilled `sorry` (its sharpened blocker is the triad: power-object
+  itself an unfilled `Sorry` (its sharpened blocker is the triad: power-object
   representability `[B]^A ≅ [A×B]`, topos equalizers, and the missing baseable-equalizer
   CLOSURE §1.859).  Consequently the internal-∀ — and hence the family-glb — CANNOT be
   constructed from the currently-PROVEN primitives (`interIntersection`, `omegaMeet`,
@@ -36,7 +36,7 @@
   satisfy `nameOf B.arr = F_name` — forcing all closed subobjects to share one name,
   i.e. forcing them all EQUAL.  That is mathematically FALSE (distinct subobjects have
   distinct names), so that `have` was vacuous/unprovable and could only ever be
-  discharged by `sorry`.  Here the leastness clause is the correct one: `A'.le B` for
+  discharged by `Sorry`.  Here the leastness clause is the correct one: `A'.le B` for
   every closed `B`, exactly §1.987.  No statement is weakened: the downstream theorem
   `least_peano_subobject` keeps its original conclusion verbatim.
 -/
@@ -45,7 +45,7 @@ import Fredy.S1_51
 -- NOTE: `Topos` lives in S1_9 (S1_51 does not transitively import it).  We used to
 -- reach it via `import Fredy.S1_94`, but that created the cycle
 -- S1_94 → InternalForall → InternalForallTopos → S1_94, which blocked S1_94 from
--- importing the (sorry-free) topos-regularity infrastructure in InternalForallTopos.
+-- importing the (Sorry-free) topos-regularity infrastructure in InternalForallTopos.
 -- InternalForall uses NO symbol declared in S1_94 (only `Topos`/`Allows`/`Subobject`),
 -- so we import S1_9 directly and break the cycle.
 import Fredy.S1_9
@@ -73,7 +73,7 @@ def IsClosedSub {A : 𝒞} (S : Subobject 𝒞 A) (a : one ⟶ A) (t : A ⟶ A) 
     (a singleton-family glb) does not build, equivalently the internal universal quantifier
     `∀_A : Ω^(A×1) → Ω^1` applied to the closedness comprehension.  It is a genuine topos
     fact relocated to a hypothesis because the underlying internal-∀ requires the concrete
-    power-object exponential adjunction (`S1_92.topos_has_exponentials`, currently `sorry`
+    power-object exponential adjunction (`S1_92.topos_has_exponentials`, currently `Sorry`
     and off-limits); see the file header.  It does NOT weaken §1.987 — `least_le` is the
     true leastness, not the false "all closed subobjects share one name." -/
 class HasLeastClosedSubobject (𝒞 : Type u) [Cat.{v} 𝒞] [Topos 𝒞] where

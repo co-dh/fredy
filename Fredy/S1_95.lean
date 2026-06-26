@@ -382,7 +382,7 @@ noncomputable instance topos_is_effective [Topos 𝒞] : EffectiveRegular 𝒞 :
     `A + B` is the subobject `union (image inlRaw)(image inrRaw) ⊆ [A] × [B]`, with
     `inlRaw a = ({a},∅)`, `inrRaw b = (∅,{b})`.
 
-    Most of the construction is now DELIVERED sorry-free in `Fredy/ToposExists.lean`
+    Most of the construction is now DELIVERED Sorry-free in `Fredy/ToposExists.lean`
     (GOAL 3), the frame law `invImage_preserves_union` having unblocked the union layer:
       * CARRIER + EMBEDDING       — `coprodSub`, `coprodObj`, `coprodArr` (monic).
       * INJECTIONS                — `coprodInl`, `coprodInr`, with `coprodInl_arr`/
@@ -390,7 +390,7 @@ noncomputable instance topos_is_effective [Topos 𝒞] : EffectiveRegular 𝒞 :
       * `case_uniq` (jointly epi) — `coprod_jointly_epi` (equalizer + `union_min`, FULL).
       * PARTIAL-MAP DATA          — `casePMf`/`casePMg` + their classify β-squares, via the
                                     lawful PMC `partialMapClassifier_exists`
-                                    (`Fredy/PartialMapClassifier.lean`, sorry-free).
+                                    (`Fredy/PartialMapClassifier.lean`, Sorry-free).
 
     The SINGLE remaining piece is the copairing existence
 
@@ -470,7 +470,7 @@ noncomputable def preTopos_rtc_has_coequalizers [inst : PreTopos 𝒞]
           `topos_is_effective` (above) is SORRY-FREE (axioms `[propext, Classical.choice]`);
           its `EffectiveRegular 𝒞` resolves by `inferInstance`.  `PositivePreLogos` =
           `PreLogos` (`toposPreLogos`) + `HasBinaryCoproducts` (`topos_is_positive`,
-          sorry-free), both in scope.  (Not registered as a global `PreTopos 𝒞` instance
+          Sorry-free), both in scope.  (Not registered as a global `PreTopos 𝒞` instance
           here to avoid the documented `PreLogos`/`PreTopos` instance diamond, S1_64.)
 
       (2) `HasReflTransClosure 𝒞` — STILL the sole blocker.  There is no `topos_has_rtc`
@@ -479,13 +479,13 @@ noncomputable def preTopos_rtc_has_coequalizers [inst : PreTopos 𝒞]
           EXISTENCE rests on §1.54's `capitalization_lemma` glb-construction (the genuine
           §1.543 residual; see `topos_has_rtc` in S1_94 which carries it as a hypothesis).
           The closure-ASSEMBLY (`rtc`/`rtc_reflexive`/`rtc_transitive`/`rtc_minimal`) is
-          sorry-free; only the glb *instance* for a bare topos is missing.
+          Sorry-free; only the glb *instance* for a bare topos is missing.
 
     With a `HasReflTransClosure 𝒞` instance, this is literally
     `preTopos_rtc_has_coequalizers`.  The effectiveness half of the §1.951↔§1.954 bridge
     is no longer the gap. -/
 noncomputable instance topos_has_coequalizers [Topos 𝒞] : HasCoequalizers 𝒞 := by
-  -- Assemble `PreTopos 𝒞` from the (now all sorry-free) topos exactness instances, then
+  -- Assemble `PreTopos 𝒞` from the (now all Sorry-free) topos exactness instances, then
   -- apply `preTopos_rtc_has_coequalizers` with the `toposHasReflTransClosure` instance
   -- (Fredy.ToposRTC) supplying the reflexive-transitive closures.
   letI hER : EffectiveRegular 𝒞 := topos_is_effective
@@ -500,7 +500,7 @@ noncomputable instance topos_has_coequalizers [Topos 𝒞] : HasCoequalizers �
 /-- **§1.955**: A topos is bicartesian: `CartesianCategory` + `HasCoterminator` +
     `HasBinaryCoproducts` + `HasCoequalizers`.
 
-    Three of the four parents are sorry-free under `[Topos 𝒞]`: Cartesian (terminal +
+    Three of the four parents are Sorry-free under `[Topos 𝒞]`: Cartesian (terminal +
     products, native), `HasCoterminator` (`topos_has_strict_coterminator`, §1.944), and
     `HasBinaryCoproducts` (`topos_is_positive`, §1.952).  The SOLE residual is
     `HasCoequalizers 𝒞` (`topos_has_coequalizers` above), itself blocked only on the
@@ -874,7 +874,7 @@ theorem directImageOmega_unit {A B : 𝒞} (f : A ⟶ B) (hf : Monic f) :
 
 end OmegaInjective
 
-/-- **§1.961**: In a topos, Ω is internally injective.  CLOSED, sorry-free
+/-- **§1.961**: In a topos, Ω is internally injective.  CLOSED, Sorry-free
     ([propext, Classical.choice]).
 
     Freyd's proof: for monic `f : A ↣ B`, the contravariant action `Ω^f = expMap Ω f`
@@ -889,7 +889,7 @@ end OmegaInjective
     * `directImageOmega f := univClassify (evalRel_universal B) (evalRel A ⊚ graph f)` — the
       direct image, classifying the composite membership relation `{(T,b) | ∃ a∈T, f a = b}`
       against the universal `evalRel B` on `Ω^B`.  (`evalRel A` is the universal membership
-      `BinRel (Ω^A) A`, sorry-free; `exp A Ω ≅ [A]` is no longer needed.)
+      `BinRel (Ω^A) A`, Sorry-free; `exp A Ω ≅ [A]` is no longer needed.)
 
     * `directImageOmega_unit` proves `f" ≫ f* = 1` for monic `f` by `evalRel A`-universality
       (`classify_unique`): it suffices that `relPullback (f" ≫ f*) (evalRel A) ≅ evalRel A`.
@@ -905,7 +905,7 @@ end OmegaInjective
                                                                    `graph_is_map`, `comp_graph_id`)
       Monicity of `f` enters at the single step `graph f ⊚ (graph f)° ≅ graph 1_A` (kernel
       pair of a monic collapses; `graph_recip_collapse_mono` ⊆ and entirety `graph_is_map` ⊇).
-      Everything rests on `relPullback_compose_dist` (S1_92), proven sorry-free on master. -/
+      Everything rests on `relPullback_compose_dist` (S1_92), proven Sorry-free on master. -/
 theorem omega_is_internally_injective [Topos 𝒞] :
     IsInternallyInjective (𝒞 := 𝒞) (HasSubobjectClassifier.omega (𝒞 := 𝒞)) := by
   intro A B f hf
@@ -1150,7 +1150,7 @@ theorem relPullback_singleton_evalRel [Topos 𝒞] (B : 𝒞) :
     functor.  (NOTE: Ω is *not* a cogenerator in a general topos; internal cogeneration is
     strictly weaker and holds directly, with no §1.543 capitalization.)
 
-    Proof (membership calculus, sorry-free on master infra).  Set `φ_f := Δ₁ ≫ Ω^f : B → Ω^A`
+    Proof (membership calculus, Sorry-free on master infra).  Set `φ_f := Δ₁ ≫ Ω^f : B → Ω^A`
     (`Δ₁ = singletonMapCat B`).  We compute `relPullback φ_f (evalRel A) ≅ (graph f)°`, naming
     `(graph f)°` against the universal `evalRel A`:
       `relPullback φ_f (evalRel A)`
@@ -1359,7 +1359,7 @@ class HasArbitraryPowers (𝒞 : Type u) [Cat.{v} 𝒞] [HasBinaryProducts 𝒞]
     subobjects.  It is hosted HERE (rather than in the downstream `ToposIndexedJoins`, which
     re-exports it) so that `LocallySmallTopos` can carry the `WellPoweredSub` datum as a field
     and the §1.967/§1.968 completeness theorems below can feed it into
-    `locallyComplete'_of_powers_wellPowered`.  All defs/proofs are sorry-free
+    `locallyComplete'_of_powers_wellPowered`.  All defs/proofs are Sorry-free
     (axioms: `propext, Classical.choice, Quot.sound`). -/
 section IndexedJoinsEngine
 variable [Topos 𝒞]
@@ -1656,7 +1656,7 @@ end PowersOfCopowersOfOne
 
 /-- **§1.967**: Arbitrary copowers of objects exist iff arbitrary copowers of 1 exist.
     (b)→(c) is trivial (specialise `A := 1`).  (c)→(b) is `∐ᵢ A ≅ (∐ᵢ 1) × A` via the
-    distributive-law engine `prod_distrib_copow` (`Fredy/ToposDistributive.lean`, sorry-free).
+    distributive-law engine `prod_distrib_copow` (`Fredy/ToposDistributive.lean`, Sorry-free).
 
     STATEMENT FIX (faithful to §1.967, NOT a weakening).  The `(c)` side was previously a bare
     EXISTENTIAL `∃ h, ∀ i, inj i ≫ h = f i` with NO uniqueness clause.  A *copower* is a COLIMIT,
@@ -1669,7 +1669,7 @@ end PowersOfCopowersOfOne
     (`Fredy/ToposDistributive.lean`), which bundles `cotup` together with its uniqueness field
     `cotup_uniq` — exactly the colimit universal property.
 
-    Both directions now CLOSE, sorry-free:
+    Both directions now CLOSE, Sorry-free:
     * `(b)→(c)`: specialise the copower of `A := 1`; `cotup`/`inj_cotup`/`cotup_uniq` come straight
       from `HasArbitraryCopowers.{cotupling, inj_cotupling, cotupling_uniq}`.
     * `(c)→(b)`: `prod_distrib_copow` turns each `CopowerOfOne I 𝒞` into a `CopowerOf I A` on
@@ -1698,7 +1698,7 @@ theorem topos_copowers_equiv_copowers_of_one [LocallySmallTopos 𝒞]
       cotupling_uniq := fun {I A X} f h hh =>
         (prod_distrib_copow (Classical.choice (hc I)) A).cotup_uniq f h hh }⟩
 
--- **§1.967 powers↔copowers** (`topos_powers_copowers_equiv`) is now CLOSED sorry-free in
+-- **§1.967 powers↔copowers** (`topos_powers_copowers_equiv`) is now CLOSED Sorry-free in
 -- `Fredy/ToposCopowers.lean`: its only residual was the (a)→(b) carving `∐ᵢ1 ⊂ ∏ᵢ(1+1)`
 -- (`toposCopowerOfOne`), whose map-OUT universal property needs the infinitary disjoint
 -- gluing built there (composition-over-arbitrary-join distributivity).  Relocated downstream
@@ -1722,7 +1722,7 @@ noncomputable def topos_powers_implies_locally_complete [LocallySmallTopos 𝒞]
 -- (`lawvere_eq_tierney`, with the `LawvereGrothendieckTopos`/`TierneyGrothendieckTopos` classes)
 -- are relocated to `Fredy/ToposCopowers.lean`.  They are NOT reachable from this joins layer
 -- (they need limits/colimits of all small diagrams and the cogenerator embedding, blocked on the
--- §1.543 capitalization wall), so they remain honest `sorry`s downstream — but hosting them next
+-- §1.543 capitalization wall), so they remain honest `Sorry`s downstream — but hosting them next
 -- to the now-closed `toposCopowerOfOne` keeps the powers↔copowers cascade in one place.
 
 end Freyd

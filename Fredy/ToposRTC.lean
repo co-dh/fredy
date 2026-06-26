@@ -17,7 +17,7 @@
   relation `S`, which needs a fibered internal relational composition (an internal
   existential `∃b. aSb ∧ bSc` over the variable `S`).  That operation is the genuine
   §1.543/§1.54-class residual; it is not yet available in the repo, and faking any
-  `TransRefClos` field (or registering a `sorry`-backed instance to discharge the
+  `TransRefClos` field (or registering a `Sorry`-backed instance to discharge the
   downstream `topos_has_coequalizers`/`topos_is_bicartesian`) would be a false close.
 -/
 

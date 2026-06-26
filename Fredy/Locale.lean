@@ -482,7 +482,7 @@ def Topology.principalPoint {X : Type u} (τ : Topology X) (x : X) :
 --   (a) a definition of sobriety: every irred. closed set has a generic point,
 --   (b) the bijection Pt(O(X)) → X (uses Classical.choice to pick the point),
 --   (c) the topology on Pt(F) for a general frame F (= Pt-construction).
--- These are left as a precise TODO; no sorry-bearing stubs are emitted.
+-- These are left as a precise TODO; no Sorry-bearing stubs are emitted.
 
 /-! ## §2.16(12) F-valued sets (Ω-sets over a frame)
 

@@ -245,7 +245,7 @@ theorem henkin_lubkin (𝒞 : Type u) [Cat.{u} 𝒞] [PreRegularCategory 𝒞] :
 /-- **§1.552 (Char 1)** ELEMENTARY SUBTERMINATOR CONDITION for a pre-regular category.
     The category is SPECIAL (§1.552) iff this holds.
     Equivalence with specialness (the universally-quantified sentences condition) uses
-    the capitalization lemma (§1.543), proven sorry-free as `Fredy.capitalization_lemma`. -/
+    the capitalization lemma (§1.543), proven Sorry-free as `Fredy.capitalization_lemma`. -/
 def IsSpecialPreReg (𝒞 : Type u) [Cat.{w} 𝒞] [HasTerminal 𝒞] : Prop :=
   ∀ {A U : 𝒞} (f : A ⟶ U), Subterminator U → IsIso f ∨ IsIso (term U)
 
@@ -317,7 +317,7 @@ theorem special552_proper_subterminator_strict {𝒞 : Type u} [Cat.{w} 𝒞] [H
 
     Note: `HasImages` is required to factor `term A` through its image.  The full
     equivalence `IsSpecialPreReg ↔ special (universally-quantified sentences)` uses the
-    capitalization lemma (`Fredy.capitalization_lemma`, §1.543, proven sorry-free) to wire
+    capitalization lemma (`Fredy.capitalization_lemma`, §1.543, proven Sorry-free) to wire
     in the (⟹) direction; that syntactic-apparatus wiring is deferred as a
     -- BOOK §1.552 TODO: wire capitalization into universality over pre-regular sentences. -/
 theorem special552_twoValued_wellSupportedOrZero
@@ -350,7 +350,7 @@ theorem special552_twoValued_wellSupportedOrZero
 -- The (⟸) directions are proved above (special552_oneValued, special552_twoValued,
 -- special552_proper_subterminator_strict, special552_twoValued_wellSupportedOrZero).
 -- The (⟹) direction uses the capitalization lemma: A → Ā → S faithful (§1.543,
--- proven sorry-free as `Fredy.capitalization_lemma`); wiring into universality over
+-- proven Sorry-free as `Fredy.capitalization_lemma`); wiring into universality over
 -- pre-regular sentences needs the Horn-sentence machinery in S1_56 (circular here).
 
 end Freyd

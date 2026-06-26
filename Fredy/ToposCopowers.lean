@@ -8,7 +8,7 @@
   (false) elsewhere.  The `imᵢ` are pairwise disjoint (`1+1` disjointness), each `≅ 1`.
 
   STATUS: SORRY-FREE.  `inj`, `inj_cotup`, `cotup_uniq`, AND `cotup` (map-OUT existence) are all
-  built without `sorry` (`#print axioms Freyd.toposCopowerOfOne = [propext, Classical.choice,
+  built without `Sorry` (`#print axioms Freyd.toposCopowerOfOne = [propext, Classical.choice,
   Quot.sound]`).
 
   * `cotup_uniq` (map-OUT uniqueness / jointly-epic injections) is the infinitary analogue of
@@ -137,7 +137,7 @@ theorem copowInj_arr (i : I) :
     equalizer `E = {h=k} ↪ obj`; each `imᵢ` (as a subobject of the ambient `∏ᵢ(1+1)`) lies in
     the push-forward `EP` of `E` (because `inj i` factors through `E` by agreement); then
     `extJoin_least` forces `obj = ⋁ᵢ imᵢ ≤ EP`, exhibiting `eqMap h k` as split epi — hence an
-    iso (it is monic), so `h = k`.  Bankable, sorry-free. -/
+    iso (it is monic), so `h = k`.  Bankable, Sorry-free. -/
 theorem copowerImages_jointly_epi {X : 𝒞} (h k : copowObj hpow I ⟶ X)
     (hagree : ∀ i, copowInj hpow I i ≫ h = copowInj hpow I i ≫ k) : h = k := by
   -- E = equalizer of h, k, with monic inclusion `eqMap h k : E ↪ obj`.
@@ -186,7 +186,7 @@ theorem copowerImages_jointly_epi {X : 𝒞} (h k : copowObj hpow I ⟶ X)
     every `inj i` factors is an isomorphism.  Same `extJoin_least` argument as
     `copowerImages_jointly_epi`: push `m` forward to the ambient `∏ᵢ(1+1)`, each `imᵢ` lies in
     the push-forward (the lift of `inj i` through `m`), so `extJoin_least` forces `obj ≤`
-    push-forward, exhibiting `m` as split epi — hence iso.  Bankable, sorry-free. -/
+    push-forward, exhibiting `m` as split epi — hence iso.  Bankable, Sorry-free. -/
 theorem copowInj_jointly_cover {C : 𝒞} (m : C ⟶ copowObj hpow I) (hm : Monic m)
     (s : I → ((one : 𝒞) ⟶ C)) (hs : ∀ i, s i ≫ m = copowInj hpow I i) : IsIso m := by
   -- push `m` (subobject of obj) forward to the ambient: MP = ⟨C, m ≫ obj.arr⟩.
@@ -600,7 +600,7 @@ theorem copowUnion_total {X : 𝒞} (f : I → ((one : 𝒞) ⟶ X)) :
   refine copowInj_jointly_cover hpow I m hm (fun i => (hfactor i).choose ≫ gg) (fun i => ?_)
   rw [Cat.assoc, hgm, (hfactor i).choose_spec]
 
-/-- The map-OUT (cotupling) — built sorry-free as the unique morphism whose graph is the join of
+/-- The map-OUT (cotupling) — built Sorry-free as the unique morphism whose graph is the join of
     the partial graphs `P_i`, shown TOTAL + SIMPLE, hence a map by
     `functional_total_relation_is_graph`; the β-law `inj i ≫ c = f i` from `relSub P_i ≤ join`. -/
 theorem copowCotup_exists {X : 𝒞} (f : I → ((one : 𝒞) ⟶ X)) :
@@ -670,7 +670,7 @@ end CopowerBuild
   `B`, and monic candidate embeddings `cand i : A i ↣ B` whose distinct images are DISJOINT (any
   two maps out of the `(cand i, cand j)` pullback agree, `i ≠ j`), the coproduct `∐ᵢAᵢ` is carved
   as the subobject `obj := ⋁ᵢ image(cand i) ⊆ B` (the `extJoin`), with injections, cotupling and
-  its uniqueness all built sorry-free — the same TOTAL+SIMPLE union-of-partial-graphs gluing as the
+  its uniqueness all built Sorry-free — the same TOTAL+SIMPLE union-of-partial-graphs gluing as the
   copower-of-1 build (`CopowerBuild`), but with `A i`/`B` in place of `1`/`∏ᵢ(1+1)` and the abstract
   disjointness hypothesis in place of `1+1` separation.  The copower-of-1 build IS the special case
   `A i = 1`, `B = ∏ᵢ(1+1)`, `cand = copowCand`. -/
@@ -1104,28 +1104,28 @@ end CocompleteFromCoprodCoeq
 /-! ## §1.967 powers ↔ copowers, §1.968 complete ↔ cocomplete, §1.969 Lawvere = Tierney
 
   Relocated here from `Fredy/S1_95.lean` (which this file imports): the powers↔copowers
-  equivalence is CLOSED sorry-free because its sole residual — the (a)→(b) carving
+  equivalence is CLOSED Sorry-free because its sole residual — the (a)→(b) carving
   `∐ᵢ1 ⊂ ∏ᵢ(1+1)` (`toposCopowerOfOne`) — is built above.  §1.968 (`topos_complete_iff_cocomplete`)
-  is now ALSO CLOSED sorry-free and COGENERATOR-FREE (faithful to Freyd's bare statement) via the
+  is now ALSO CLOSED Sorry-free and COGENERATOR-FREE (faithful to Freyd's bare statement) via the
   `CompleteCocompleteFree` section: `hasProducts_of_coproducts` (←, `∏ᵢAᵢ = ⋂ᵢ Pᵢ ⊆ Sᴵ`) and
   `hasAllCoproducts_of_products` (→, `∐ᵢAᵢ ⊆ ∏ⱼ(Aⱼ+1)`).  §1.969 (`lawvere_eq_tierney`) is closed
-  with its progenitor datum.  BANKED sorry-free here: `wellPoweredSub_of_topos` (§1.843),
+  with its progenitor datum.  BANKED Sorry-free here: `wellPoweredSub_of_topos` (§1.843),
   `cocomplete_of_coproducts_coequalizers`, `cocomplete_hasAllCoproducts`, and the §1.967 join
   engine `familyMeet`/`familyMeet_lift` (S1_95). -/
 
 -- Make the GENUINE `Topos.toHasBinaryProducts` win instance search for `HasBinaryProducts 𝒞`
 -- (the §1.92 `topos_has_exponentials.toHasBinaryProducts` is deprioritised but could still be
--- picked, routing a products goal through `sorry`-derived structure).  Keeps these theorems
+-- picked, routing a products goal through `Sorry`-derived structure).  Keeps these theorems
 -- axiom-honest, mirroring the §1.92 `attribute [local instance]` pattern.
 attribute [local instance 10000] Topos.toHasBinaryProducts
 
 /-- **§1.967**: In a locally small topos, arbitrary powers exist iff arbitrary copowers exist.
 
-    * **(a)→(b)** CLOSED sorry-free.  Build a copower-of-1 datum `CopowerOfOne I 𝒞` for every `I`
+    * **(a)→(b)** CLOSED Sorry-free.  Build a copower-of-1 datum `CopowerOfOne I 𝒞` for every `I`
       via `toposCopowerOfOne` (the effective-disjoint-union carving `∐ᵢ1 ⊂ ∏ᵢ(1+1)`, with the
       map-OUT universal property supplied by the infinitary disjoint gluing above), then
       `topos_copowers_equiv_copowers_of_one` assembles `HasArbitraryCopowers`.
-    * **(b)→(a)** CLOSED sorry-free.  Reduce to copowers-of-1 (sibling iff), then set
+    * **(b)→(a)** CLOSED Sorry-free.  Reduce to copowers-of-1 (sibling iff), then set
       `∏ᵢ A := A^(∐ᵢ1)` (`powersOfCopowersOfOne`); the power UP is the exponential law
       `Hom(X, A^cI) ≅ Hom(cI×X, A) ≅ ∏ᵢ Hom(X,A)` (`prod_distrib_copow`). -/
 theorem topos_powers_copowers_equiv [LocallySmallTopos 𝒞] [HasBinaryCoproducts 𝒞] :
@@ -1255,7 +1255,7 @@ end CogeneratorCarving
     `cocomplete_of_coproducts_coequalizers`.
 
   The two embedding-families replace the single cogenerator `Ω^G` of `hasAllCoproducts_of_progenitor`
-  (§1.969, which is for the Grothendieck/Tierney setting).  This section is sorry-free. -/
+  (§1.969, which is for the Grothendieck/Tierney setting).  This section is Sorry-free. -/
 section CompleteCocompleteFree
 
 /-- **§1.845: general coproduct injections are monic in a topos.**  Given a coproduct `cop` of a
@@ -1492,7 +1492,7 @@ end CompleteCocompleteFree
 
 /-- **§1.968** (Freyd, p. 130): *A locally small topos is complete iff it is cocomplete.*
 
-    CLOSED sorry-free, COGENERATOR-FREE, faithful to Freyd's BARE statement (no progenitor
+    CLOSED Sorry-free, COGENERATOR-FREE, faithful to Freyd's BARE statement (no progenitor
     hypothesis) — see the `CompleteCocompleteFree` section header for the route.  Each direction
     builds its embeddings directly:
 
@@ -1569,12 +1569,12 @@ class TierneyGrothendieckTopos (𝒞 : Type u) [Cat.{v} 𝒞] extends Topos 𝒞
 
 /-- **§1.969**: The Lawvere and Tierney definitions yield the same notion.
 
-    CLOSED sorry-free (axioms `[propext, Classical.choice, Quot.sound]`).  Both directions go
+    CLOSED Sorry-free (axioms `[propext, Classical.choice, Quot.sound]`).  Both directions go
     through the banked coproduct-assembly infra below; the last residual — Lawvere→Tierney's
     progenitor needing each general coproduct injection `gen_obj k ↣ ∐ gen_obj` MONIC — is now
     discharged by `coproduct_inj_monic` (§1.845, binary regrouping; see its docstring).
 
-    BANKED (reusable, sorry-free):
+    BANKED (reusable, Sorry-free):
     * **`wellPoweredSub_of_topos`** (§1.843, above) — `WellPoweredSub 𝒞` from the classifier alone,
       so `LocallySmallTopos.wellPowered` (hence every copower lemma here) is available from bare
       Tierney/Lawvere data.  (Old blocker 2 CLOSED.)
@@ -1596,7 +1596,7 @@ class TierneyGrothendieckTopos (𝒞 : Type u) [Cat.{v} 𝒞] extends Topos 𝒞
 
     UPDATE — general-coproduct carving (1) NOW BANKED (`hasAllCoproducts_of_progenitor`); the
     `gen_set` smallness index (2) is now a class field (the permitted fidelity fix).
-    Tierney→Lawvere CLOSES sorry-free (general coproducts + coequalizers ⟹ cocomplete; the
+    Tierney→Lawvere CLOSES Sorry-free (general coproducts + coequalizers ⟹ cocomplete; the
     progenitor's well-powered subobject family is the small generating set).  Lawvere→Tierney's
     `copow_one` also closes (constant-`one` coproduct), and its PROGENITOR `G := ∐(gen set)` closes
     via `coproduct_inj_monic`: each general coproduct injection `gen_obj k ↣ ∐` is MONIC (§1.845

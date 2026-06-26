@@ -66,7 +66,7 @@ noncomputable def exponentials_of_all_baseable
 
     *  (b) **Topos equalizers** — `topos_has_equalizers` above (products+pullbacks, §1.434).
     *  (c) **Baseable-equalizer closure** — `baseable_equalizer_is_baseable` (§1.859, now
-       proved sorry-free): the equalizer of two baseable objects is baseable.
+       proved Sorry-free): the equalizer of two baseable objects is baseable.
 
     The remaining gap is exactly step (a):
 
@@ -85,17 +85,17 @@ noncomputable def exponentials_of_all_baseable
     the missing power-object representability (a).  Everything downstream of it (b, c,
     and the assembly via `exponentials_of_all_baseable`) is discharged.
 
-    NOTE on the `sorry` shape: morally this instance is
+    NOTE on the `Sorry` shape: morally this instance is
     `exponentials_of_all_baseable (fun B => (proof B is baseable))`, with the bracketed
-    proof the only gap.  We keep it as a single opaque `by sorry` (rather than
-    `exponentials_of_all_baseable (fun _ => sorry)`) ONLY so the instance retains a
+    proof the only gap.  We keep it as a single opaque `by Sorry` (rather than
+    `exponentials_of_all_baseable (fun _ => Sorry)`) ONLY so the instance retains a
     computable IR stub: downstream files (`S1_94 powObj`, `S1_95`) build computable
     definitions on top of `exp`, and routing through the `Classical.choice`-based
     `exponentials_of_all_baseable` would force them `noncomputable` (those files are
     out of scope for this edit).  The genuine assembly content lives, fully proved, in
     `exponentials_of_all_baseable`. -/
 -- LOW PRIORITY: `HasExponentials extends HasBinaryProducts`, and this instance is a
--- `sorry` (its `toHasBinaryProducts` is therefore `sorry`-derived).  If instance search
+-- `Sorry` (its `toHasBinaryProducts` is therefore `Sorry`-derived).  If instance search
 -- routes a `HasBinaryProducts 𝒞` goal through it, downstream relation/product terms pick up
 -- `sorryAx`.  We deprioritise it here AND, in the direct-image section below, locally make
 -- the genuine `Topos.toHasBinaryProducts` win outright (see the `attribute [local instance]`
@@ -346,7 +346,7 @@ variable [HasImages 𝒞]
 
 -- Make the genuine `Topos` product instance WIN instance search for `HasBinaryProducts 𝒞`
 -- throughout this section.  Otherwise `pair`/`fst`/`prod`/`compose` can resolve products
--- via the `sorry` instance `topos_has_exponentials` (`HasExponentials extends
+-- via the `Sorry` instance `topos_has_exponentials` (`HasExponentials extends
 -- HasBinaryProducts`), silently contaminating every direct-image term with `sorryAx`.
 attribute [local instance 10000] Topos.toHasBinaryProducts
 
@@ -700,7 +700,7 @@ end EvalUniversal
 
 section EvalUniversalAmbient
 -- Pin the genuine `Topos` product instance, matching the pins elsewhere in this file, so the
--- two `prod` presentations agree definitionally and no `sorry`/diamond contaminates `evalRel`.
+-- two `prod` presentations agree definitionally and no `Sorry`/diamond contaminates `evalRel`.
 attribute [local instance 10000] Topos.toHasBinaryProducts
 
 /-- The universal MEMBERSHIP relation on `exp A Ω = Ω^A`, targeted at `A`.  It is the
@@ -924,7 +924,7 @@ noncomputable def powExpHom (A : 𝒞) :
 /-- **§1.92 — `Ω^A ≅ [A]`.**  Two universal relations targeted at `A` have isomorphic
     carriers (`universalRel_unique`), so the comparison `powExpHom A : [A] → Ω^A` is an
     iso.  This is the identification of the exponential `Ω^A` with the power object `[A]`,
-    sorry-free.  (Downstream, `S1_95 :: omega_is_internally_injective` waits on exactly
+    Sorry-free.  (Downstream, `S1_95 :: omega_is_internally_injective` waits on exactly
     this iso to transport the genuine direct image `powerMapCovP` to the `exp`-level
     `expMap Ω` — see the residual blocker note on `powerMapCov` below.) -/
 theorem powExpHom_iso (A : 𝒞) : IsIso (powExpHom A) :=
@@ -941,7 +941,7 @@ end EvalUniversalAmbient
 
   Freyd §1.922 defines the direct-image action `[f] : [A] → [B]` for `f : A → B`,
   `[f](S) = { b | ∃ a ∈ S, f a = b }`.  On genuine power objects this is
-  `powerMapCovP f = Λ(∈_A ⊚ graph f)` (`directImageRel`), already built sorry-free
+  `powerMapCovP f = Λ(∈_A ⊚ graph f)` (`directImageRel`), already built Sorry-free
   above.  We now (a) prove its NATURALITY against the singleton map (the book's
   `f(Δ₁) = Δf`), and (b) transport it across the iso `Ω^A ≅ [A]`
   (`powExpHom`/`expPowInv`) to the opaque exponential `exp A Ω`, giving the

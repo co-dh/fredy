@@ -12,7 +12,7 @@
   on each hom-set Hom(A,B), which is the genuinely reusable additive content needed by the
   §1.55 / §1.595 exact-representation argument.
 
-  PROVIDED here (all sorry-free):
+  PROVIDED here (all Sorry-free):
     * `instance Cat (AbelianGroupObject 𝒞)`               — identity + composition of group homs;
     * pointwise abelian-group structure on `HomAb A B`     — `add`/`zero`/`neg` via `B.add/zero/neg`,
       with the commutative-monoid + inverse laws and left/right bilinearity of composition.

@@ -1463,7 +1463,7 @@ theorem true_g_sq_of_opForm (g : HasSubobjectClassifier.omega (𝒞 := 𝒞) ⟶
 
         true_g_sq :  t ≫ g ≫ g = t        (`g(g(⊤)) = ⊤`)                       (†)
 
-      again sorry-free: by `omega_ext` it suffices to match ⊤-patterns; both legs of
+      again Sorry-free: by `omega_ext` it suffices to match ⊤-patterns; both legs of
       the resulting iff are `Monic g` + (†).
 
     So the ENTIRE §1.919 content is concentrated in (†): the subterminal
@@ -1491,14 +1491,14 @@ theorem omega_monic_endo_is_involution (g : HasSubobjectClassifier.omega (𝒞 :
     HasSubobjectClassifier.omega (𝒞 := 𝒞)) (hm : Monic g) : g ≫ g = Cat.id _ := by
   -- Reduced (axiom-free, this pass) to the single OPERATION-FORM equation
   --   OPFORM:  g = ⟨id_Ω, u₀⟩ ≫ ⇔,   u₀ := term_Ω ≫ (t ≫ g)
-  -- via `omega_involution_of_opForm` (proven sorry-free above: given OPFORM the
+  -- via `omega_involution_of_opForm` (proven Sorry-free above: given OPFORM the
   -- involution needs only `comp_dbar` + `Monic g`, NO Boolean fact).  OPFORM is
   -- Freyd's `ĝ(⊤_Ω) = ⊤_Ω ⇔ ĝ(⊤_Ω)` with `V = 1`; its hard half unfolds (via
   -- `omega_ext` + `heyting_true_iff_eq`) to `t ≫ g ≫ g = t` (`g(g⊤)=⊤`), i.e.
   -- the subterminal `G = g⁻¹(t)` is inhabited by the point `g(⊤)`.  See the
   -- docstring: that positive inhabitation is Freyd's `V = 1` step.
   refine omega_involution_of_opForm g hm ?_
-  -- OPFORM `g = ⟨id_Ω, u₀⟩ ≫ ⇔` reduced (sorry-free given `true_g_sq` below) to the
+  -- OPFORM `g = ⟨id_Ω, u₀⟩ ≫ ⇔` reduced (Sorry-free given `true_g_sq` below) to the
   -- SINGLE map equation `t ≫ g ≫ g = t` (`g(g⊤)=⊤`).  By `omega_ext` it suffices
   -- to match ⊤-patterns; by `heyting_true_iff_eq` (χ₁ = id, χ₂ = u₀) the RHS-pattern
   -- at `k` is `k ≫ g = k ≫ u₀`, and `k ≫ u₀ = (term_V ≫ t) ≫ g`.  Both legs of the

@@ -17,7 +17,7 @@
   descends to the quotient, and every Ch1 containment lemma becomes the corresponding
   allegory equation via `le_antisymm`.
 
-  **Built (sorry-free):**
+  **Built (Sorry-free):**
     • `Cat (RelObj C)`            for `[RegularCategory C]`        — §2.111
     • `Allegory (RelObj C)`        for `[RegularCategory C]`        — §2.111 (modular = §2.142)
     • `DistributiveAllegory (RelObj C)` for `[PositivePreLogos C]`  — §2.21

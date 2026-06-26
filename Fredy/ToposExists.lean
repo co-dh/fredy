@@ -2,7 +2,7 @@
   Freyd & Scedrov, *Categories and Allegories* — internal disjunction `∨ : Ω×Ω → Ω`,
   the direct image `∃_f`, and (toward) binary coproducts, in a topos.
 
-  Built on top of the now-available sorry-free topos primitives:
+  Built on top of the now-available Sorry-free topos primitives:
     * `HasImages 𝒞`              (`InternalForallTopos.toposHasImages`)
     * `HasSubobjectUnions 𝒞`     (`ToposColimits.toposHasSubobjectUnions`)
     * the subobject classifier `Sub(A) ≅ Hom(A,Ω)` (`S1_91`: `subChar`, `classify_surjective`,
@@ -145,7 +145,7 @@ noncomputable def trueSnd : Subobject 𝒞 (prod (omega (𝒞 := 𝒞)) (omega (
 noncomputable def orChar : prod (omega (𝒞 := 𝒞)) (omega (𝒞 := 𝒞)) ⟶ omega (𝒞 := 𝒞) :=
   subChar (HasSubobjectUnions.union (trueFst (𝒞 := 𝒞)) (trueSnd (𝒞 := 𝒞)))
 
-/-- **`orChar` UMP, forward half (sorry-free).**  `pair χ_S χ_T ≫ orChar` classifies a
+/-- **`orChar` UMP, forward half (Sorry-free).**  `pair χ_S χ_T ≫ orChar` classifies a
     subobject of `A` that *contains* `S ∪ T`: i.e. `S ∪ T ≤ (pair χ_S χ_T)# (trueFst ∪ trueSnd)`,
     the subobject named by `⟨χ_S, χ_T⟩ ≫ orChar`.
 
@@ -179,7 +179,7 @@ theorem orChar_classifies_ge {A : 𝒞} (S T : Subobject 𝒞 A)
     (HasSubobjectUnions.union_right trueFst trueSnd)
   exact HasSubobjectUnions.union_min S T _ (subLe_transTE hS_le hF_le) (subLe_transTE hT_le hG_le)
 
-/-- **`orChar` UMP, reverse half (now sorry-free via the frame law).**  `(pair χ_S χ_T)#(trueFst∪trueSnd)
+/-- **`orChar` UMP, reverse half (now Sorry-free via the frame law).**  `(pair χ_S χ_T)#(trueFst∪trueSnd)
     ≤ S ∪ T`: inverse image preserves unions (`ForallAlong.invImage_preserves_union`), and each
     `(pair χ_S χ_T)# trueFst ≅ S`, `(pair χ_S χ_T)# trueSnd ≅ T`. -/
 theorem orChar_classifies_le {A : 𝒞} (S T : Subobject 𝒞 A)
@@ -210,7 +210,7 @@ theorem orChar_classifies_le {A : 𝒞} (S T : Subobject 𝒞 A)
       (subLe_transTE hGT (HasSubobjectUnions.union_right S T))
   exact subLe_transTE hframe hunion_le
 
-/-- **`orChar` UMP (full, sorry-free).**  `χ_{S∪T} = ⟨χ_S, χ_T⟩ ≫ orChar`: the internal
+/-- **`orChar` UMP (full, Sorry-free).**  `χ_{S∪T} = ⟨χ_S, χ_T⟩ ≫ orChar`: the internal
     disjunction `orChar` correctly classifies the union of any two subobjects via their
     classifiers.  Combines `orChar_classifies_ge` (≥) and `orChar_classifies_le` (≤). -/
 theorem orChar_ump {A : 𝒞} (S T : Subobject 𝒞 A)
@@ -268,13 +268,13 @@ theorem directImage_adjunction {A B : 𝒞} (f : A ⟶ B) (S : Subobject 𝒞 A)
 
 /-! ## RESIDUALS — binary coproducts: what is DONE, and the one remaining piece
 
-  DELIVERED sorry-free (axioms ⊆ {propext, Classical.choice}):
+  DELIVERED Sorry-free (axioms ⊆ {propext, Classical.choice}):
     * `orChar` / `orChar_ump`  — internal disjunction `∨ : Ω×Ω → Ω` with its FULL UMP
       `χ_{S∪T} = ⟨χ_S,χ_T⟩ ≫ orChar` (closed via the now-proven frame law
       `ForallAlong.invImage_preserves_union`).
     * `directImage` / `directImage_unit` / `directImage_adjunction` — `∃_f ⊣ f#` (FULL).
 
-  Binary coproducts `A + B ⊂ [A]×[B]` (GOAL 3 below), DELIVERED sorry-free:
+  Binary coproducts `A + B ⊂ [A]×[B]` (GOAL 3 below), DELIVERED Sorry-free:
     * `coprodSub` / `coprodObj` / `coprodArr`  — the CARRIER `A+B = union (image inlRaw)
       (image inrRaw) ⊆ [A]×[B]` and its monic embedding.
     * `coprodInl` / `coprodInr`  — the two INJECTIONS, with `coprodInl_arr`/`coprodInr_arr`

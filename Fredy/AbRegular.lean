@@ -6,7 +6,7 @@
   half-additive biproduct structure, terminal/products), the structure the §1.55 /
   §1.595 exact-representation argument consumes from the FORGETFUL functor:
 
-    * `U : Ab(𝒞) → 𝒞`,  `A ↦ A.carrier`,  `f ↦ f.val` — a `Functor` (sorry-free).
+    * `U : Ab(𝒞) → 𝒞`,  `A ↦ A.carrier`,  `f ↦ f.val` — a `Functor` (Sorry-free).
     * `U` is FAITHFUL on hom-sets (`SeparatesMaps U`): homs are subtypes of 𝒞-maps,
       so `Subtype.ext` gives injectivity.  Cross-universe — `AbelianGroupObject 𝒞`
       lives in `Type (max u v)`, `𝒞` in `Type u` — so we use the cross-universe
@@ -27,7 +27,7 @@
   + mono/iso reflection, which is exactly the "faithful exact functor that creates finite
   limits" half of the §1.595 representation.  See the residual note at the bottom.
 
-  No `sorry`, no new axiom.
+  No `Sorry`, no new axiom.
 -/
 
 import Fredy.AbAbelian

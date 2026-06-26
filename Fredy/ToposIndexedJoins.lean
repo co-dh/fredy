@@ -15,9 +15,9 @@
   `LocallySmallTopos`), so the engine could not be called from inside `S1_95`.  Hosting the
   engine in `S1_95` lets `LocallySmallTopos` carry the `WellPoweredSub` witness as a field and
   lets `topos_powers_implies_locally_complete` feed it into
-  `locallyComplete'_of_powers_wellPowered` — closing the former `sorry` with no new axioms.
+  `locallyComplete'_of_powers_wellPowered` — closing the former `Sorry` with no new axioms.
 
-  All those defs are sorry-free, axioms `propext, Classical.choice, Quot.sound`.  This file is
+  All those defs are Sorry-free, axioms `propext, Classical.choice, Quot.sound`.  This file is
   kept as a thin re-export so that any downstream `import Fredy.ToposIndexedJoins` keeps working;
   the names are in `namespace Freyd` and resolve from `S1_95`.
 -/
