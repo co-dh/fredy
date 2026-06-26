@@ -909,10 +909,12 @@ theorem coreflexive_tabular_monic {a : 𝒜} {A : a ⟶ a} (hA : Coreflexive A) 
     rw [← hfg, Allegory.inter_idem] at heq; exact heq
   refine ⟨c, f, hf_map, Freyd.mono_of_retraction f f° hff_id, hA_id, hff_id⟩
 
--- BOOK §2.147: If A is a tabular allegory then Map(A) has pullbacks, equalizers, images
--- and pullbacks transfer images.  (Proved in MapCat.lean via the source-apex UMP.)
+-- §2.147: If A is a tabular allegory then Map(A) has pullbacks, equalizers, images
+-- and pullbacks transfer images.  PROVED in MapCat.lean via the source-apex UMP
+-- (mapHasPullbacks / mapHasEqualizers / mapHasImages / mapPullbacksTransferCovers).
 
--- BOOK §2.148: If A is a tabular allegory then A ≅ Rel(Map(A)).  (Proved in MapCat.lean.)
+-- §2.148: If A is a tabular allegory then A ≅ Rel(Map(A)).  PROVED in MapCat.lean
+-- as `relMap_allegoryEquiv` (RelMap 𝒜 ≅ 𝒜).
 
 /-! ## §2.151  Dom isomorphism onto an ideal for partial units -/
 
