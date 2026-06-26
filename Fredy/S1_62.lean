@@ -1494,16 +1494,6 @@ theorem complemented_subterminator_projective [DisjointBinaryCoproduct 𝒞]
   section of `term`), and the coproduct map `A'+1 ↣ A+1` of a proper `A'↣A` stays a proper
   mono.  These three lemmas feed both the forward basis clause and the converse. -/
 
-/-- A map with a section is a cover: if `s ≫ f = id` then every monic `f` factors through
-    is split (by `s ≫ g`) and hence iso. -/
-private theorem cover_of_section {X Y : 𝒞} (f : X ⟶ Y) (s : Y ⟶ X) (hs : s ≫ f = Cat.id Y) :
-    Cover f := by
-  intro C m g hm hgm
-  have hsplit : (s ≫ g) ≫ m = Cat.id Y := by rw [Cat.assoc, hgm, hs]
-  refine ⟨s ≫ g, ?_, hsplit⟩
-  -- `m ≫ (s≫g) = id`: post-compose with the mono `m`, both sides give `m`.
-  exact hm _ _ (by rw [Cat.assoc, hsplit, Cat.id_comp, Cat.comp_id])
-
 /-- `A + 1` is well-supported: `inr : 1 → A+1` is a section of `term (A+1)`
     (both `inr ≫ term` and `id` are maps `1 → 1`, so they agree by `term_uniq`). -/
 theorem wellSupported_coprod_one [DisjointBinaryCoproduct 𝒞] (A : 𝒞) :

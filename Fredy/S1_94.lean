@@ -397,21 +397,10 @@ class SolvableTopos (𝒞 : Type u) [Cat.{v} 𝒞] [Topos 𝒞] [HasImages 𝒞]
 -- The genuine categorical fact about A1 available here is MONICITY (§1.92),
 -- exposed as `singletonMap_monic` — now in `InterIntersection` and re-exported.
 
-/-- A split epi is a cover (`s ≫ e = id` ⟹ `e` is a cover).  Local copy of
-    `cover_of_section` (S1_95, not imported here) — needed for "a point of `A`
-    makes `A` well-supported". -/
-private theorem cover_of_section' {X Y : 𝒞} (e : X ⟶ Y) (s : Y ⟶ X)
-    (hs : s ≫ e = Cat.id Y) : Cover e := by
-  intro C m g hm hgm
-  refine ⟨s ≫ g, ?_, ?_⟩
-  · refine hm _ _ ?_
-    rw [Cat.assoc, Cat.assoc, hgm, hs, Cat.comp_id, Cat.id_comp]
-  · rw [Cat.assoc, hgm, hs]
-
 /-- If `A` has a point `p : 1 → A`, then `A` is well-supported: `p` is a section of
     `term A : A → 1` (`p ≫ term A = id₁` by `term_uniq`), so `term A` is a cover. -/
 private theorem wellSupported_of_point {A : 𝒞} (p : one ⟶ A) : WellSupported A :=
-  cover_of_section' (term A) p (term_uniq _ _)
+  cover_of_section (term A) p (term_uniq _ _)
 
 /-- `entire A` (the maximal subobject, `id_A`) is above every subobject. -/
 private theorem le_entire {A : 𝒞} (S : Subobject 𝒞 A) : S.le (Subobject.entire A) :=

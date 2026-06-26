@@ -31,6 +31,29 @@ structure Subobject (𝒞 : Type u) [Cat.{v} 𝒞] (B : 𝒞) where
 def Subobject.le {B : 𝒞} (S T : Subobject 𝒞 B) : Prop :=
   ∃ h : S.dom ⟶ T.dom, h ≫ T.arr = S.arr
 
+@[refl] theorem Subobject.le_refl {B : 𝒞} (S : Subobject 𝒞 B) : S.le S :=
+  ⟨Cat.id S.dom, Cat.id_comp S.arr⟩
+
+theorem Subobject.le_trans {B : 𝒞} {X Y Z : Subobject 𝒞 B}
+    (h₁ : X.le Y) (h₂ : Y.le Z) : X.le Z :=
+  let ⟨f, hf⟩ := h₁; let ⟨g, hg⟩ := h₂
+  ⟨f ≫ g, by rw [Cat.assoc, hg, hf]⟩
+
+instance {B : 𝒞} : Trans (@Subobject.le 𝒞 _ B) (@Subobject.le 𝒞 _ B) (@Subobject.le 𝒞 _ B) :=
+  ⟨Subobject.le_trans⟩
+
+/-- Mutual ≤ gives an iso witness on domains (antisymmetry up to iso).
+    Both `f ≫ g` and `g ≫ f` are identities by monic cancellation. -/
+theorem Subobject.le_antisymm_iso {B : 𝒞} {S T : Subobject 𝒞 B}
+    (hST : S.le T) (hTS : T.le S) :
+    ∃ e : S.dom ⟶ T.dom, IsIso e ∧ e ≫ T.arr = S.arr := by
+  obtain ⟨f, hf⟩ := hST; obtain ⟨g, hg⟩ := hTS
+  have hfg : f ≫ g = Cat.id S.dom :=
+    S.monic (f ≫ g) (Cat.id S.dom) (by rw [Cat.assoc, hg, hf, Cat.id_comp])
+  have hgf : g ≫ f = Cat.id T.dom :=
+    T.monic (g ≫ f) (Cat.id T.dom) (by rw [Cat.assoc, hf, hg, Cat.id_comp])
+  exact ⟨f, ⟨g, hfg, hgf⟩, hf⟩
+
 /-- The entire (maximal) subobject: represented by id_B. -/
 def Subobject.entire (B : 𝒞) : Subobject 𝒞 B :=
   ⟨B, Cat.id B, by
@@ -69,6 +92,16 @@ def Cover {X Y : 𝒞} (f : X ⟶ Y) : Prop :=
 
 theorem monic_cover_iso {X Y : 𝒞} (f : X ⟶ Y) (hc : Cover f) (hm : Monic f) : IsIso f :=
   hc f (Cat.id X) hm (Cat.id_comp f)
+
+/-- A map with a section is a cover: if `s ≫ e = id` then any monic `m` that `e` factors
+    through is split (by `s ≫ g`) and hence iso. -/
+theorem cover_of_section {X Y : 𝒞} (e : X ⟶ Y) (s : Y ⟶ X) (hs : s ≫ e = Cat.id Y) :
+    Cover e := by
+  intro C m g hm hgm
+  have hsplit : (s ≫ g) ≫ m = Cat.id Y := by rw [Cat.assoc, hgm, hs]
+  refine ⟨s ≫ g, ?_, hsplit⟩
+  -- `m ≫ (s≫g) = id`: post-compose with the mono `m`, both sides give `m`.
+  exact hm _ _ (by rw [Cat.assoc, hsplit, Cat.id_comp, Cat.comp_id])
 
 /-- Pre-composing a cover with an isomorphism is still a cover: any monic `m`
     that `i ≫ h` factors through, `h` also factors through (via `i⁻¹ ≫ g`), so

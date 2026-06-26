@@ -113,7 +113,7 @@ open HasIndexedSubobjectJoins
 
 /-- Transitivity of `Subobject.le`. -/
 theorem subLeTrans {B : 𝒞} {X Y Z : Subobject 𝒞 B} (h₁ : X.le Y) (h₂ : Y.le Z) : X.le Z :=
-  let ⟨a, ha⟩ := h₁; let ⟨b, hb⟩ := h₂; ⟨a ≫ b, by rw [Cat.assoc, hb, ha]⟩
+  Subobject.le_trans h₁ h₂
 
 /-- Maps out of `(bottom X).dom` are unique: it is a zero object (§1.61). -/
 theorem botDom_map_uniq [hPL : PreLogos 𝒞] {X Y : 𝒞}

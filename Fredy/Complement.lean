@@ -30,13 +30,9 @@ namespace Freyd
 -- instance diamond with the `PreLogos`-derived ones, so we take only `[PreLogos 𝒞]`.
 variable [PreLogos 𝒞]
 
-/-- Transitivity of `Subobject.le` (compose the two factorizations).  The `S1_60`
-    `subLe_trans` lives in a section that gratuitously carries `[HasBinaryCoproducts]`;
-    this complement file has no coproducts in scope, so we restate the (coproduct-free)
-    two-line proof here. -/
-theorem subLe_trans' {W : 𝒞} {X Y Z : Subobject 𝒞 W} (h₁ : X.le Y) (h₂ : Y.le Z) : X.le Z := by
-  obtain ⟨f, hf⟩ := h₁; obtain ⟨g, hg⟩ := h₂
-  exact ⟨f ≫ g, by rw [Cat.assoc, hg, hf]⟩
+/-- Transitivity of `Subobject.le`. -/
+theorem subLe_trans' {W : 𝒞} {X Y Z : Subobject 𝒞 W} (h₁ : X.le Y) (h₂ : Y.le Z) : X.le Z :=
+  Subobject.le_trans h₁ h₂
 
 /-! ## §1.61 The bottom subobject is least *as a subobject* (not just up to domain iso)
 

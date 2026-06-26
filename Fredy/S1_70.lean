@@ -41,13 +41,10 @@ theorem subobject_le_antisymm_iso {B : 𝒞} {S T : Subobject 𝒞 B}
 
 /-- Transitivity of Subobject.le. -/
 theorem subobject_le_trans {B : 𝒞} {X Y Z : Subobject 𝒞 B}
-    (hXY : X.le Y) (hYZ : Y.le Z) : X.le Z :=
-  let ⟨h₁, e₁⟩ := hXY; let ⟨h₂, e₂⟩ := hYZ
-  ⟨h₁ ≫ h₂, by rw [Cat.assoc, e₂, e₁]⟩
+    (hXY : X.le Y) (hYZ : Y.le Z) : X.le Z := Subobject.le_trans hXY hYZ
 
 /-- Reflexivity of Subobject.le. -/
-theorem subobject_le_refl {B : 𝒞} (S : Subobject 𝒞 B) : S.le S :=
-  ⟨Cat.id S.dom, Cat.id_comp S.arr⟩
+theorem subobject_le_refl {B : 𝒞} (S : Subobject 𝒞 B) : S.le S := Subobject.le_refl S
 
 /-! ## §1.71 Boolean pre-logos: f## = complement of direct image
 

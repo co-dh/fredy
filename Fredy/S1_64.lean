@@ -2523,20 +2523,6 @@ private theorem choice_factor_through_map {A C D : 𝒞}
   obtain ⟨f, w, hwA, hwB⟩ := hD R_g hent_g
   exact ⟨f, R_g, w, hcov_Rg, hwA, hwB⟩
 
-/-- A morphism with a section is a cover (split epi ⟹ cover):
-    given `s ≫ e = id`, any monic `m` that `e` factors through is split epi
-    (via `s ≫ g`), and a monic split epi is an iso. -/
-private theorem cover_of_split_section {X Y : 𝒞} (e : X ⟶ Y) (s : Y ⟶ X)
-    (hs : s ≫ e = Cat.id Y) : Cover e := by
-  intro C m g hm hgm
-  -- m is split epi: (s ≫ g) ≫ m = s ≫ e = id_Y.
-  have hsplit : (s ≫ g) ≫ m = Cat.id Y := by rw [Cat.assoc, hgm, hs]
-  -- m monic + (s≫g) a section ⟹ m iso.
-  refine ⟨s ≫ g, ?_, hsplit⟩
-  -- m ≫ (s ≫ g) = id_C : m is monic, and m ≫ (s≫g) ≫ m = m ≫ id by hsplit.
-  apply hm
-  rw [Cat.assoc, hsplit, Cat.comp_id, Cat.id_comp]
-
 /-- If a composite `c ≫ g` is a cover then its right factor `g` is a cover:
     any monic `m` that `g` factors through, `c ≫ g` also factors through, so
     `c ≫ g` being a cover forces `m` iso. -/
@@ -2650,7 +2636,7 @@ theorem entire_refine {A B C : 𝒞} [PullbacksTransferCovers 𝒞]
   -- (R'⊚graph p).colA is a cover: graph f ⊂ R'⊚graph p gives a section (graph f has colA = id_A).
   obtain ⟨h, hA, _hB⟩ := hgf
   have hsec : h ≫ (R' ⊚ graph p).colA = Cat.id A := by simpa [graph] using hA
-  have hcov_comp : Cover (R' ⊚ graph p).colA := cover_of_split_section _ h hsec
+  have hcov_comp : Cover (R' ⊚ graph p).colA := cover_of_section _ h hsec
   -- pb.cone.π₁ is iso (pullback against id_B): section s := pb.lift ⟨_, id, R'.colB, _⟩.
   have hsq : Cat.id R'.src ≫ R'.colB = R'.colB ≫ Cat.id B := by rw [Cat.id_comp, Cat.comp_id]
   let s : R'.src ⟶ pb.cone.pt := pb.lift ⟨R'.src, Cat.id R'.src, R'.colB, hsq⟩

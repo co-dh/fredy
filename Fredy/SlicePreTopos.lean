@@ -611,14 +611,12 @@ theorem Subobject.liftSlice_mono {Y : Over B} {S T : Subobject 𝒞 Y.dom}
   show g ≫ (T.arr ≫ Y.hom) = S.arr ≫ Y.hom
   rw [← Cat.assoc, hg]
 
-/-- Mutual `≤` of `𝒞`-subobjects gives a `𝒞`-iso of their domains (subobject antisymmetry):
-    the two factorization maps cancel by monicity of the respective subobject arrows. -/
-theorem Subobject.le_antisymm_iso {W : 𝒞} {S T : Subobject 𝒞 W}
-    (h1 : S.le T) (h2 : T.le S) : Isomorphic S.dom T.dom := by
-  obtain ⟨a, ha⟩ := h1; obtain ⟨c, hc⟩ := h2
-  refine ⟨a, c, ?_, ?_⟩
-  · apply S.monic; rw [Cat.assoc, hc, ha, Cat.id_comp]
-  · apply T.monic; rw [Cat.assoc, ha, hc, Cat.id_comp]
+/-- Mutual `≤` of `𝒞`-subobjects gives a `𝒞`-iso of their domains.
+    Forwarded from `Subobject.le_antisymm_iso` in `S1_51` (which carries the factorization
+    condition); here we only need the domain isomorphism. -/
+theorem subobject_le_antisymm_Iso {W : 𝒞} {S T : Subobject 𝒞 W}
+    (h1 : S.le T) (h2 : T.le S) : Isomorphic S.dom T.dom :=
+  let ⟨e, hiso, _⟩ := Subobject.le_antisymm_iso h1 h2; ⟨e, hiso⟩
 
 /-! ### `Σ_B` transports the inverse image (it preserves pullbacks)
 
@@ -769,7 +767,7 @@ instance overPreLogos (B : 𝒞) : PreLogos (Over B) where
     let S : Subobject (Over B) Y := Subobject.liftSlice Y (PreLogos.bottom Y.dom)
     have hAC : Isomorphic (Subobject.forgetSlice X (InverseImage f S)).dom
                           (InverseImage f.f (PreLogos.bottom Y.dom)).dom :=
-      Subobject.le_antisymm_iso (forgetSlice_invImage_le f S) (le_forgetSlice_invImage f S)
+      subobject_le_antisymm_Iso (forgetSlice_invImage_le f S) (le_forgetSlice_invImage f S)
     have hABD : Isomorphic (Subobject.forgetSlice X (InverseImage f S)).dom
                            (PreLogos.bottom X.dom).dom :=
       isomorphic_trans hAC (PreLogos.invImage_preserves_bottom f.f)

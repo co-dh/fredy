@@ -91,11 +91,10 @@ noncomputable def toposPreLogos : PreLogos 𝒞 :=
     relational layer and `disjoint_cover_is_coproduct` resolve under `[Topos 𝒞]`). -/
 noncomputable instance : PreLogos 𝒞 := toposPreLogos
 
-/-- Transitivity of the subobject order (local `private` copy; avoids importing the heavy
-    `Complement` tower, and avoids a name clash with `Complement.subLe_transTE`). -/
-private theorem subLe_transTE {W : 𝒞} {X Y Z : Subobject 𝒞 W} (h₁ : X.le Y) (h₂ : Y.le Z) : X.le Z := by
-  obtain ⟨f, hf⟩ := h₁; obtain ⟨g, hg⟩ := h₂
-  exact ⟨f ≫ g, by rw [Cat.assoc, hg, hf]⟩
+/-- Transitivity of the subobject order (private alias; avoids importing the heavy
+    `Complement` tower). -/
+private theorem subLe_transTE {W : 𝒞} {X Y Z : Subobject 𝒞 W}
+    (h₁ : X.le Y) (h₂ : Y.le Z) : X.le Z := Subobject.le_trans h₁ h₂
 
 /-! ## Subobject ↔ classifier glue
 

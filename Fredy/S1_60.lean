@@ -543,9 +543,8 @@ theorem relSub_union_ge [HasBinaryCoproducts 𝒞] {A B : 𝒞} (R S : BinRel �
     (subLe_of_relLe (relUnion_le_right R S))
 
 /-- Transitivity of `Subobject.le` (compose the two factorizations). -/
-theorem subLe_trans {W : 𝒞} {X Y Z : Subobject 𝒞 W} (h₁ : X.le Y) (h₂ : Y.le Z) : X.le Z := by
-  obtain ⟨f, hf⟩ := h₁; obtain ⟨g, hg⟩ := h₂
-  exact ⟨f ≫ g, by rw [Cat.assoc, hg, hf]⟩
+theorem subLe_trans {W : 𝒞} {X Y Z : Subobject 𝒞 W} (h₁ : X.le Y) (h₂ : Y.le Z) : X.le Z :=
+  Subobject.le_trans h₁ h₂
 
 /-- Post-composition with a fixed mono `m : Z ↣ W` carries `Sub Z` into `Sub W`
     order-preservingly: `push m P := ⟨P.dom, P.arr ≫ m⟩`. -/

@@ -601,20 +601,6 @@ def expMap [HasExponentials 𝒞] {A B : 𝒞} (E : 𝒞) (f : A ⟶ B) : E ^^ B
 def IsInternallyInjective [HasExponentials 𝒞] (E : 𝒞) : Prop :=
   ∀ {A B : 𝒞} (f : A ⟶ B), Monic f → Cover (expMap E f)
 
-/-- A SPLIT EPI (a map with a section) is a COVER.  If `s ≫ e = 1_Y`, then any
-    monic `m` that `e` factors through (`g ≫ m = e`) is split epi (`(g ≫ s) ≫ m`…)
-    and monic, hence iso.  Generic; used to turn the `Ω^f`-has-section argument of
-    §1.961 into a cover once the section `powerMapCov f` is available. -/
-theorem cover_of_section {X Y : 𝒞} (e : X ⟶ Y) (s : Y ⟶ X) (hs : s ≫ e = Cat.id Y) :
-    Cover e := by
-  intro C m g hm hgm
-  -- m is split epi: `(s ≫ g) ≫ m = s ≫ e = 1_Y`; with m monic this gives iso.
-  refine ⟨s ≫ g, ?_, ?_⟩
-  · -- m ≫ (s ≫ g) = 1_C, by monic cancellation against m.
-    refine hm _ _ ?_
-    rw [Cat.assoc, Cat.assoc, hgm, hs, Cat.comp_id, Cat.id_comp]
-  · -- (s ≫ g) ≫ m = s ≫ e = 1_Y.
-    rw [Cat.assoc, hgm, hs]
 
 /-- **DRY bridge (§1.92 ↔ §1.961)**: the §1.961 contravariant exponential action
     `expMap Ω f` on the classifier coincides with the §1.922 power-functor map

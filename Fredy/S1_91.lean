@@ -823,12 +823,11 @@ theorem imp_adjunction {A : 𝒞} (S T X : Subobject 𝒞 A)
 def Sub.equiv {A : 𝒞} (S T : Subobject 𝒞 A) : Prop := S.le T ∧ T.le S
 
 /-- `Sub.le` is reflexive. -/
-theorem Sub.le_refl {A : 𝒞} (S : Subobject 𝒞 A) : S.le S := ⟨Cat.id S.dom, Cat.id_comp _⟩
+theorem Sub.le_refl {A : 𝒞} (S : Subobject 𝒞 A) : S.le S := Subobject.le_refl S
 
 /-- `Sub.le` is transitive. -/
-theorem Sub.le_trans {A : 𝒞} {S T U : Subobject 𝒞 A} (h₁ : S.le T) (h₂ : T.le U) : S.le U := by
-  obtain ⟨a, ha⟩ := h₁; obtain ⟨b, hb⟩ := h₂
-  exact ⟨a ≫ b, by rw [Cat.assoc, hb, ha]⟩
+theorem Sub.le_trans {A : 𝒞} {S T U : Subobject 𝒞 A} (h₁ : S.le T) (h₂ : T.le U) : S.le U :=
+  Subobject.le_trans h₁ h₂
 
 /-- **Leibniz characterization of subobject equality**: `S ≃ T` iff they have the
     same lower set (same predecessors).  This reduces equalities of Heyting terms to
