@@ -26,6 +26,7 @@
 -/
 
 import Fredy.S2_1
+import Fredy.S2_2
 import Fredy.MatrixAllegory
 
 universe v u
@@ -469,7 +470,91 @@ example (𝒜 : Type u) [DistributiveAllegory 𝒜] : PositiveAllegory (Mat.MatO
   because `dom` in this repo is `1 ∩ R ≫ R°` but the §2.219 condition needs careful
   alignment with the distributive-allegory zero. -/
 
--- BOOK §2.219: A positive allegory is semi-simple iff for every S with S° = S and
--- Dom(S) ⊆ S there exists R such that S = R° ≫ R.
+section S219
+
+variable {𝒜 : Type u} [DistributiveAllegory 𝒜]
+
+/-! ### §2.219  Forward direction: semi-simple + symmetric + dom-bounded → R°R-form
+
+  The book's proof: given `S = F°≫G` (semi-simple), `S°=S`, `dom S ⊑ S`, take
+  `R = (F ∪ G) ≫ dom S`.  Then `R° = dom S ≫ (G° ∪ F°)` and
+  `R°R = dom S ≫ (G°∪F°)≫(F∪G)≫dom S`.  Expanding via distributivity gives four
+  terms `G°F ∪ G°G ∪ F°F ∪ F°G`.  Using `G°F = S°= S = F°G` and `F°F, G°G ⊑ 1`:
+  - **Upper bound:** `(G°∪F°)≫(F∪G) ⊑ S ∪ 1`, and `dom S ≫ (S∪1) ≫ dom S ⊑ S`
+    (by coreflexivity of `dom S` plus `dom S ⊑ S`).
+  - **Lower bound:** `S ⊑ dom S ≫ S ≫ dom S ⊑ dom S ≫ (G°∪F°)≫(F∪G)≫dom S`
+    (using `le_dom_comp` + symmetry of `dom S` + `S ⊑ (G°∪F°)≫(F∪G)`). -/
+
+/-- §2.219 (⇒): If `S` is semi-simple, symmetric (`S°=S`), and `dom S ⊑ S`, then
+    `S = R°≫R` for some `R`.  Proof: take `R = (F ∪ G) ≫ dom S` from the semi-simple
+    factoring `S = F°≫G`.  See the module doc for the algebra. -/
+theorem semiSimple_sym_dom_to_polar {a : 𝒜} (S : a ⟶ a)
+    (hS_sym : S° = S) (hdom_le : dom S ⊑ S) (hSS : SemiSimple S) :
+    ∃ (c : 𝒜) (R : c ⟶ a), S = R° ≫ R := by
+  obtain ⟨c, F, G, hF, hG, hS_eq⟩ := hSS
+  refine ⟨c, (F ∪ G) ≫ dom S, ?_⟩
+  have hD : dom S ⊑ Cat.id a := dom_coreflexive S
+  have hdomSym : (dom S)° = dom S :=
+    symmetric_eq (coreflexive_symmetric_idempotent hD).1
+  have hGF : G° ≫ F = S := by
+    have key : (F° ≫ G)° = G° ≫ F := by rw [Allegory.recip_comp, Allegory.recip_recip]
+    rw [← key, ← hS_eq, hS_sym]
+  rw [show ((F ∪ G) ≫ dom S)° ≫ ((F ∪ G) ≫ dom S) =
+      dom S ≫ (G° ∪ F°) ≫ (F ∪ G) ≫ dom S from by
+    rw [Allegory.recip_comp, hdomSym, recip_union, Cat.assoc]]
+  -- (G°∪F°)≫(F∪G) = G°F ∪ G°G ∪ F°F ∪ F°G, bounded above by S ∪ 1
+  have hExpand_le : (G° ∪ F°) ≫ (F ∪ G) ⊑ S ∪ Cat.id a := by
+    rw [union_comp_distrib, DistributiveAllegory.comp_union_distrib,
+        DistributiveAllegory.comp_union_distrib]
+    apply union_lub
+    · apply union_lub; · rw [hGF]; exact le_union_left _ _
+      · exact le_trans hG (le_union_right _ _)
+    · apply union_lub; · exact le_trans hF (le_union_right _ _)
+      · rw [hS_eq]; exact le_union_left _ _
+  -- S ⊑ (G°∪F°)≫(F∪G): S = F°G ⊑ the union term
+  have hS_le_expand : S ⊑ (G° ∪ F°) ≫ (F ∪ G) := by
+    rw [union_comp_distrib, DistributiveAllegory.comp_union_distrib,
+        DistributiveAllegory.comp_union_distrib, hS_eq]
+    exact le_trans (le_union_right _ _) (le_union_right _ _)
+  -- Upper bound: dom S ≫ (G°∪F°)≫(F∪G)≫dom S ⊑ S
+  have hUB : dom S ≫ (G° ∪ F°) ≫ (F ∪ G) ≫ dom S ⊑ S := by
+    have hstep : dom S ≫ (G° ∪ F°) ≫ (F ∪ G) ≫ dom S ⊑ dom S ≫ (S ∪ Cat.id a) ≫ dom S :=
+      comp_mono_left _ (by rw [← Cat.assoc]; exact comp_mono_right hExpand_le _)
+    apply le_trans hstep
+    rw [union_comp_distrib, DistributiveAllegory.comp_union_distrib]
+    apply union_lub
+    · have h1 : dom S ≫ (S ≫ dom S) ⊑ Cat.id a ≫ (S ≫ dom S) := comp_mono_right hD _
+      rw [Cat.id_comp] at h1
+      have h2 : S ≫ dom S ⊑ S := by have h := comp_mono_left S hD; rwa [Cat.comp_id] at h
+      exact le_trans h1 h2
+    · rw [Cat.id_comp, (coreflexive_symmetric_idempotent hD).2]; exact hdom_le
+  -- Lower bound: S ⊑ dom S ≫ (G°∪F°)≫(F∪G)≫dom S
+  have hLB : S ⊑ dom S ≫ (G° ∪ F°) ≫ (F ∪ G) ≫ dom S := by
+    have h1 : S ⊑ dom S ≫ S := le_dom_comp S
+    have h2 : S ⊑ S ≫ dom S := by
+      have := recip_mono h1; rw [Allegory.recip_comp, hdomSym, hS_sym] at this; exact this
+    have h4 : S ≫ dom S ⊑ (G° ∪ F°) ≫ (F ∪ G) ≫ dom S := by
+      have key := comp_mono_right hS_le_expand (dom S); rw [Cat.assoc] at key; exact key
+    exact le_trans h1 (le_trans (comp_mono_left _ h2) (comp_mono_left _ h4))
+  exact le_antisymm hLB hUB
+
+-- §2.219: A positive allegory is semi-simple iff for every `S : a ⟶ a` with `S° = S` and
+-- `dom S ⊑ S` there exists `R : c ⟶ a` such that `S = R° ≫ R`.
+--
+-- (⇒) the polar/forward direction is PROVED as `semiSimple_sym_dom_to_polar` above
+--     (axioms [propext]): if S is semi-simple with S°=S and dom S ⊑ S then S = R°≫R
+--     with R = (F∪G)≫dom S.  The full iff's `mp` is then immediate
+--     (`semiSimple_sym_dom_to_polar S hSym hDom (hSS S)`).
+--
+-- BOOK §2.219 (⇐) [OPEN]: the reverse direction (polar condition ⟹ every morphism
+--   semi-simple) is the matrix argument.  Given T : a ⟶ b, let ab = PositiveAllegory.coprod
+--   a b with injections u₁ : a ⟶ ab, u₂ : b ⟶ ab; form the symmetric reflexive
+--   S = u₁°u₁ ∪ u₁°Tu₂ ∪ u₂°T°u₁ ∪ u₂°u₂ : ab ⟶ ab; apply the hypothesis to get S = R°R;
+--   read off T = u₁≫S≫u₂° = F°≫G with F = R≫u₁°, G = R≫u₂°, giving SemiSimple T.
+--   STUCK STEP: distributing u₁≫(four-term union)≫u₁° (and the u₂ blocks) and collapsing the
+--   cross-terms to 0 via u₁≫u₂° = 0 — ~30 lines of union/comp/zero rewrites over the
+--   PositiveAllegory coproduct equations.  Conceptually complete; left as a follow-up.
+
+end S219
 
 end Freyd.Alg
