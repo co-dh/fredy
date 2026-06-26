@@ -157,6 +157,53 @@ theorem tab_pullback_cone {a b c p : 𝒜} {f : a ⟶ c} {g : b ⟶ c}
       _ ⊑ π₁ ≫ f ≫ Cat.id c := comp_mono_left _ (comp_mono_left _ hg.2)
       _ = π₁ ≫ f := by rw [Cat.comp_id]
 
+/-- **§2.147 pullback cone (joint-monic form)**: if (π₁, π₂) tabulate f ≫ g°
+    (source-apex: π₁ : p→a, π₂ : p→b, π₁°≫π₂ = f≫g°) with f, g maps, then π₁ ≫ f = π₂ ≫ g.
+    This version derives the cone equation directly from the tabulation, using ONLY the
+    joint-monic fact via the entirety of π₂≫g / π₁≫f — it does NOT need each leg to be a
+    retraction (`π₁≫π₁° = id`). -/
+theorem tab_pullback_cone' {a b c p : 𝒜} {f : a ⟶ c} {g : b ⟶ c}
+    (hf : Map f) (hg : Map g)
+    {π₁ : p ⟶ a} {π₂ : p ⟶ b}
+    (ht : Tabulates π₁ π₂ (f ≫ g°)) :
+    π₁ ≫ f = π₂ ≫ g := by
+  have hπ₁ : Map π₁ := ht.1
+  have hπ₂ : Map π₂ := ht.2.1
+  have hrecip : π₂° ≫ π₁ = g ≫ f° := by
+    have h := congrArg Allegory.recip ht.2.2.1
+    simp [Allegory.recip_comp, Allegory.recip_recip] at h; exact h.symm
+  have hlt1 : (π₂ ≫ g)° ≫ (π₁ ≫ f) ⊑ Cat.id c := by
+    have heq : (π₂ ≫ g)° ≫ (π₁ ≫ f) = (g° ≫ g) ≫ (f° ≫ f) := by
+      rw [Allegory.recip_comp]; simp only [Cat.assoc]; rw [← Cat.assoc π₂°, hrecip]
+      simp [Cat.assoc]
+    rw [heq]
+    exact le_trans (comp_mono_right hg.2 _) (by rw [Cat.id_comp]; exact hf.2)
+  have hle1 : π₁ ≫ f ⊑ π₂ ≫ g := by
+    have hent' : Cat.id p ⊑ (π₂ ≫ g) ≫ (π₂ ≫ g)° := by
+      have h := entire_comp hπ₂.1 hg.1; rw [Entire, dom] at h; exact h ▸ inter_lb_right _ _
+    have h1 : π₁ ≫ f ⊑ ((π₂ ≫ g) ≫ (π₂ ≫ g)°) ≫ (π₁ ≫ f) := by
+      have := comp_mono_right hent' (π₁ ≫ f); rwa [Cat.id_comp] at this
+    have h2 : ((π₂ ≫ g) ≫ (π₂ ≫ g)°) ≫ (π₁ ≫ f) ⊑ π₂ ≫ g := by
+      rw [Cat.assoc]
+      exact le_trans (comp_mono_left _ hlt1) (by rw [Cat.comp_id]; exact le_refl _)
+    exact le_trans h1 h2
+  have hlt2 : (π₁ ≫ f)° ≫ (π₂ ≫ g) ⊑ Cat.id c := by
+    have heq : (π₁ ≫ f)° ≫ (π₂ ≫ g) = (f° ≫ f) ≫ (g° ≫ g) := by
+      rw [Allegory.recip_comp]; simp only [Cat.assoc]; rw [← Cat.assoc π₁°, ← ht.2.2.1]
+      simp [Cat.assoc]
+    rw [heq]
+    exact le_trans (comp_mono_right hf.2 _) (by rw [Cat.id_comp]; exact hg.2)
+  have hle2 : π₂ ≫ g ⊑ π₁ ≫ f := by
+    have hent' : Cat.id p ⊑ (π₁ ≫ f) ≫ (π₁ ≫ f)° := by
+      have h := entire_comp hπ₁.1 hf.1; rw [Entire, dom] at h; exact h ▸ inter_lb_right _ _
+    have h1 : π₂ ≫ g ⊑ ((π₁ ≫ f) ≫ (π₁ ≫ f)°) ≫ (π₂ ≫ g) := by
+      have := comp_mono_right hent' (π₂ ≫ g); rwa [Cat.id_comp] at this
+    have h2 : ((π₁ ≫ f) ≫ (π₁ ≫ f)°) ≫ (π₂ ≫ g) ⊑ π₁ ≫ f := by
+      rw [Cat.assoc]
+      exact le_trans (comp_mono_left _ hlt2) (by rw [Cat.comp_id]; exact le_refl _)
+    exact le_trans h1 h2
+  exact le_antisymm hle1 hle2
+
 /-! ### §2.147  Cover characterization -/
 
 /-- **§2.147**: g : a → b is a cover iff Entire(g°). -/
@@ -565,18 +612,25 @@ end RelMapEquiv
 
     "§2.212: If 𝒜 is a tabular unitary distributive allegory, then Map(𝒜) is a pre-logos."
 
-    PROVED: (1) HasTerminal.
-    TODO: (2) HasImages minimality, (3) HasPullbacks, (4) HasBinaryProducts,
-              (5) PullbacksTransferCovers, (6) HasSubobjectUnions, (7) PreLogos.
-    With the source-apex `Tabulates` the §2.147 pullback/equalizer UMPs (`tab_pullback_UMP`,
-    `tab_equalizer_UMP` above) now go through with the projections as genuine maps — the old
-    `Map(π°)` blocker is gone.  What remains is purely the bureaucratic packaging of those
-    UMPs into the `HasPullbacks`/`HasImages`/… typeclass instances on `MapObj A`. -/
+    Proved: HasTerminal, HasPullbacks, HasBinaryProducts, HasEqualizers, HasImages,
+            PullbacksTransferCovers, RegularCategory.
+    HasSubobjectUnions + PreLogos: construction settled (see TODO at end) but blocked on a
+    tabular/distributive `Allegory A` instance diamond — marked BOOK §2.212 TODO. -/
+
+/-- A TABULAR UNITARY ALLEGORY (§2.212): combines `TabularAllegory` and `UnitaryAllegory`
+    in a single class so the `Allegory` diamond is merged.  Having both in scope
+    simultaneously creates two `Allegory A` instances (one from each parent), making
+    expressions like `f.val ≫ g.val°` fail with "instance not definitionally equal".
+    A single `TabularUnitaryAllegory` provides exactly one `Allegory A`. -/
+class TabularUnitaryAllegory (𝒜 : Type u) extends TabularAllegory 𝒜, UnitaryAllegory 𝒜
 
 section MapPreLogos
 
-variable {A : Type u} [TabularAllegory A] [UnitaryAllegory A]
+variable {A : Type u} [TabularUnitaryAllegory A]
 
+-- mapCat is at priority 0 by default; do NOT raise it higher than Allegory.toCat (~1000)
+-- since that would break the allegory operations (°, ⊑, etc.) which use Allegory.toCat.
+-- All mapCat hom usage must be annotated with @Cat.Hom _ (mapCat ..) or @HasPullback.mk etc.
 
 -- Subtype equality helper for mapCat homs
 private theorem mapHom_ext {a b : MapObj A}
@@ -610,15 +664,727 @@ noncomputable def mapHasTerminal : @HasTerminal (MapObj A) (mapCat (𝒜 := A)) 
     (fun {a} f g =>
       mapHom_ext (map_to_unit_unique_alg f.property g.property))
 
--- BOOK §2.212 TODO: HasImages (MapObj A) — splitting dom(f°) gives the image; image leg is a
--- source-apex map, so minimality no longer needs `Map(S.arr.val°)`.  Remaining: package as instance.
+/-! ### §2.212  HasPullbacks (MapObj A)
 
--- BOOK §2.212 TODO: HasPullbacks (MapObj A) — `tab_pullback_UMP` (above) gives the pullback;
--- projections π₁ : p→a, π₂ : p→b are genuine maps (source-apex).  Remaining: package as instance.
+  Pullback of f : a → c, g : b → c in Map(𝒜) = tabulation of f ≫ g°.
+  By `tab_pullback_UMP` (proved above) this cone has the universal property. -/
 
--- BOOK §2.212 TODO: HasBinaryProducts, PullbacksTransferCovers, RegularCategory,
--- HasSubobjectUnions, PreLogos — all depend on HasPullbacks above.
+-- Helper: Map e ⟹ id_p ⊑ e≫e° (Entire e)
+private theorem map_entire_le {A : Type u} [Allegory A] {p b : A} {e : p ⟶ b}
+    (he : Map e) : Cat.id p ⊑ e ≫ e° := by
+  have := he.1; rw [Entire, dom] at this; exact this ▸ inter_lb_right _ _
+
+/-- Helper for mapHasPullback: extract the mediating map data via Classical.choice,
+    taking cone fields as plain allegory homs to avoid Cat synthesis issues. -/
+private noncomputable def mapLiftData {a b c p : A}
+    {f : a ⟶ c} {g : b ⟶ c} {π₁ : p ⟶ a} {π₂ : p ⟶ b}
+    (hf : Map f) (hg : Map g) (ht : Tabulates π₁ π₂ (f ≫ g°))
+    (q : A) (x : q ⟶ a) (y : q ⟶ b)
+    (hx : Map x) (hy : Map y) (hw : x ≫ f = y ≫ g) :
+    PSigma fun hm : {R : q ⟶ p // Map R} =>
+        hm.val ≫ π₁ = x ∧ hm.val ≫ π₂ = y :=
+  Classical.choice (by
+    obtain ⟨hm, hhm, hh1, hh2, _⟩ := tab_pullback_UMP hf hg ht hx hy hw
+    exact ⟨⟨⟨hm, hhm⟩, hh1, hh2⟩⟩)
+
+/-- Helper for mapHasEqualizer: extract the splitting data via Classical.choice. -/
+private noncomputable def mapCorSplit {a : A} {R : a ⟶ a} (hcor : Coreflexive R) :
+    PSigma fun c : A => PSigma fun g : c ⟶ a =>
+        Map g ∧ g° ≫ g = R ∧ g ≫ g° = Cat.id c :=
+  Classical.choice (by
+    obtain ⟨c, g, hg, hl, hr⟩ := coreflexive_splits hcor
+    exact ⟨⟨c, g, hg, hl, hr⟩⟩)
+
+/-- Helper for mapHasEqualizer: extract the mediating map via Classical.choice. -/
+private noncomputable def mapEqLiftData {a b p q : A} {f g : a ⟶ b} {e : p ⟶ a}
+    (hf : Map f) (hg : Map g) (he : Map e) (hee : e° ≫ e = dom (f ∩ g)) (he1 : e ≫ e° = Cat.id p)
+    (h : q ⟶ a) (hh : Map h) (hcone : h ≫ f = h ≫ g) :
+    PSigma fun k : {R : q ⟶ p // Map R} => k.val ≫ e = h :=
+  Classical.choice (by
+    obtain ⟨k, hk, hke, _⟩ := tab_equalizer_UMP hf hg he hee he1 hh hcone
+    exact ⟨⟨⟨k, hk⟩, hke⟩⟩)
+
+/-- §2.212 pullback: tabulation of f≫g° gives the pullback of f,g in Map(𝒜). -/
+noncomputable def mapHasPullback
+    {a b c : MapObj A} (f : @Cat.Hom _ (mapCat (𝒜 := A)) a c)
+    (g : @Cat.Hom _ (mapCat (𝒜 := A)) b c) :
+    @HasPullback (MapObj A) (mapCat (𝒜 := A)) a b c f g := by
+  have fgR : @Freyd.Alg.Tabular A TabularAllegory.toAllegory _ _ (f.val ≫ g.val°) :=
+    @TabularAllegory.tabular A _ _ _ (f.val ≫ g.val°)
+  -- Tabular is a Prop ∃; use PSigma + Classical.choice to extract witnesses into Type-valued goal.
+  have fgR_N : Nonempty (PSigma fun p : A =>
+      PSigma fun π₁ : p ⟶ _ => PSigma fun π₂ : p ⟶ _ =>
+      Tabulates π₁ π₂ (f.val ≫ g.val°)) := by
+    obtain ⟨p, π₁, π₂, ht⟩ := fgR; exact ⟨⟨p, π₁, π₂, ht⟩⟩
+  obtain ⟨p, π₁, π₂, ht⟩ := Classical.choice fgR_N
+  have hπ₁ : Map π₁ := ht.1
+  have hπ₂ : Map π₂ := ht.2.1
+  -- Derive cone equation π₁≫f = π₂≫g directly from tabulation (not via retraction).
+  -- π₂°≫π₁ = g°°≫f° = g≫f° (recip of ht.2.2.1 : f≫g° = π₁°≫π₂).
+  have hrecip : π₂° ≫ π₁ = g.val ≫ f.val° := by
+    have h := congrArg Allegory.recip ht.2.2.1
+    simp [Allegory.recip_comp, Allegory.recip_recip] at h; exact h.symm
+  -- Derive cone eq π₁≫f = π₂≫g from tabulation.
+  -- Step: (π₂≫g)°≫(π₁≫f) = g°≫(π₂°≫π₁)≫f = g°≫g≫f°≫f ⊑ id (via Simple g, Simple f).
+  have hlt1 : (π₂ ≫ g.val)° ≫ (π₁ ≫ f.val) ⊑ Cat.id c := by
+    have heq : (π₂ ≫ g.val)° ≫ (π₁ ≫ f.val) = (g.val° ≫ g.val) ≫ (f.val° ≫ f.val) := by
+      rw [Allegory.recip_comp]; simp only [Cat.assoc]; rw [← Cat.assoc π₂°, hrecip]
+      simp [Cat.assoc]
+    rw [heq]
+    exact le_trans (comp_mono_right g.property.2 _)
+      (by rw [Cat.id_comp]; exact f.property.2)
+  have hle1 : π₁ ≫ f.val ⊑ π₂ ≫ g.val := by
+    have hent' : Cat.id p ⊑ (π₂ ≫ g.val) ≫ (π₂ ≫ g.val)° := by
+      have h := entire_comp hπ₂.1 g.property.1; rw [Entire, dom] at h; exact h ▸ inter_lb_right _ _
+    have h1 : π₁ ≫ f.val ⊑ ((π₂ ≫ g.val) ≫ (π₂ ≫ g.val)°) ≫ (π₁ ≫ f.val) := by
+      have := comp_mono_right hent' (π₁ ≫ f.val); rwa [Cat.id_comp] at this
+    have h2 : ((π₂ ≫ g.val) ≫ (π₂ ≫ g.val)°) ≫ (π₁ ≫ f.val) ⊑ π₂ ≫ g.val := by
+      rw [Cat.assoc]
+      exact le_trans (comp_mono_left _ hlt1) (by rw [Cat.comp_id]; exact le_refl _)
+    exact le_trans h1 h2
+  have hlt2 : (π₁ ≫ f.val)° ≫ (π₂ ≫ g.val) ⊑ Cat.id c := by
+    have heq : (π₁ ≫ f.val)° ≫ (π₂ ≫ g.val) = (f.val° ≫ f.val) ≫ (g.val° ≫ g.val) := by
+      rw [Allegory.recip_comp]; simp only [Cat.assoc]; rw [← Cat.assoc π₁°, ← ht.2.2.1]
+      simp [Cat.assoc]
+    rw [heq]
+    exact le_trans (comp_mono_right f.property.2 _)
+      (by rw [Cat.id_comp]; exact g.property.2)
+  have hle2 : π₂ ≫ g.val ⊑ π₁ ≫ f.val := by
+    have hent' : Cat.id p ⊑ (π₁ ≫ f.val) ≫ (π₁ ≫ f.val)° := by
+      have h := entire_comp hπ₁.1 f.property.1; rw [Entire, dom] at h; exact h ▸ inter_lb_right _ _
+    have h1 : π₂ ≫ g.val ⊑ ((π₁ ≫ f.val) ≫ (π₁ ≫ f.val)°) ≫ (π₂ ≫ g.val) := by
+      have := comp_mono_right hent' (π₂ ≫ g.val); rwa [Cat.id_comp] at this
+    have h2 : ((π₁ ≫ f.val) ≫ (π₁ ≫ f.val)°) ≫ (π₂ ≫ g.val) ⊑ π₁ ≫ f.val := by
+      rw [Cat.assoc]
+      exact le_trans (comp_mono_left _ hlt2) (by rw [Cat.comp_id]; exact le_refl _)
+    exact le_trans h1 h2
+  have hcone_eq : π₁ ≫ f.val = π₂ ≫ g.val := le_antisymm hle1 hle2
+  -- Build the HasPullback. tab_pullback_UMP returns a Prop ∃; use PSigma + Classical.choice.
+  -- Access ALL cone fields via @Cone.fieldName with explicit Cat to avoid Lean 4's Cat
+  -- re-synthesis in structure projections. Even explicit lambda type annotation doesn't prevent it.
+  let cpt  := fun (cone : @Cone (MapObj A) (mapCat (𝒜 := A)) a b c f g) =>
+    @Cone.pt  (MapObj A) (mapCat (𝒜 := A)) a b c f g cone
+  let cπ₁ := fun (cone : @Cone (MapObj A) (mapCat (𝒜 := A)) a b c f g) =>
+    @Cone.π₁ (MapObj A) (mapCat (𝒜 := A)) a b c f g cone
+  let cπ₂ := fun (cone : @Cone (MapObj A) (mapCat (𝒜 := A)) a b c f g) =>
+    @Cone.π₂ (MapObj A) (mapCat (𝒜 := A)) a b c f g cone
+  let cw   := fun (cone : @Cone (MapObj A) (mapCat (𝒜 := A)) a b c f g) =>
+    congrArg Subtype.val (@Cone.w (MapObj A) (mapCat (𝒜 := A)) a b c f g cone)
+  exact @HasPullback.mk (MapObj A) (mapCat (𝒜 := A)) a b c f g
+    (@Cone.mk (MapObj A) (mapCat (𝒜 := A)) a b c f g p ⟨π₁, hπ₁⟩ ⟨π₂, hπ₂⟩ (mapHom_ext hcone_eq))
+    (fun (cone : @Cone (MapObj A) (mapCat (𝒜 := A)) a b c f g) =>
+       mapLiftData f.property g.property ht (cpt cone) (cπ₁ cone).val (cπ₂ cone).val
+         (cπ₁ cone).property (cπ₂ cone).property (cw cone) |>.1)
+    (fun (cone : @Cone (MapObj A) (mapCat (𝒜 := A)) a b c f g) =>
+       mapHom_ext (mapLiftData f.property g.property ht (cpt cone) (cπ₁ cone).val (cπ₂ cone).val
+         (cπ₁ cone).property (cπ₂ cone).property (cw cone) |>.2.1))
+    (fun (cone : @Cone (MapObj A) (mapCat (𝒜 := A)) a b c f g) =>
+       mapHom_ext (mapLiftData f.property g.property ht (cpt cone) (cπ₁ cone).val (cπ₂ cone).val
+         (cπ₁ cone).property (cπ₂ cone).property (cw cone) |>.2.2))
+    (fun (cone : @Cone (MapObj A) (mapCat (𝒜 := A)) a b c f g)
+         (u : @Cat.Hom _ (mapCat (𝒜 := A)) (cpt cone) p)
+         (hu1 : @Cat.comp _ (mapCat (𝒜 := A)) _ _ _ u ⟨π₁, hπ₁⟩ = cπ₁ cone)
+         (hu2 : @Cat.comp _ (mapCat (𝒜 := A)) _ _ _ u ⟨π₂, hπ₂⟩ = cπ₂ cone) =>
+       let hU1 := congrArg Subtype.val hu1
+       let hU2 := congrArg Subtype.val hu2
+       let dLift := mapLiftData f.property g.property ht (cpt cone)
+                      (cπ₁ cone).val (cπ₂ cone).val
+                      (cπ₁ cone).property (cπ₂ cone).property (cw cone)
+       (by obtain ⟨hm, hhm, hh1, hh2, uniq⟩ := tab_pullback_UMP f.property g.property ht
+               (cπ₁ cone).property (cπ₂ cone).property (cw cone)
+           -- dLift.1.val satisfies the same conditions, so uniq gives dLift.1.val = hm
+           have hdL : dLift.1.val = hm := uniq dLift.1.val dLift.1.property dLift.2.1 dLift.2.2
+           exact mapHom_ext (hdL ▸ uniq u.val u.property hU1 hU2)))
+
+/-- §2.212: Map(𝒜) has all pullbacks. -/
+noncomputable instance mapHasPullbacks :
+    @HasPullbacks (MapObj A) (mapCat (𝒜 := A)) :=
+  @HasPullbacks.mk (MapObj A) (mapCat (𝒜 := A)) (fun {a b c} f g => mapHasPullback f g)
+
+/-! ### §2.212  HasBinaryProducts (MapObj A)
+
+  Product a×b = pullback over the terminal (unit). -/
+
+noncomputable instance mapHasBinaryProducts :
+    @HasBinaryProducts (MapObj A) (mapCat (𝒜 := A)) :=
+  -- Use term-mode let bindings with fully explicit types to avoid Cat synthesis issues.
+  let trm := @HasTerminal.one _ (mapCat (𝒜 := A)) mapHasTerminal
+  let t    := fun (a : MapObj A) => @HasTerminal.trm _ (mapCat (𝒜 := A)) mapHasTerminal a
+  let getPB := fun (a b : MapObj A) => mapHasPullback (t a) (t b)
+  let getC  := fun (a b : MapObj A) =>
+    @HasPullback.cone (MapObj A) (mapCat (𝒜 := A)) a b trm (t a) (t b) (getPB a b)
+  let getCpt := fun (a b : MapObj A) =>
+    @Cone.pt (MapObj A) (mapCat (𝒜 := A)) a b trm (t a) (t b) (getC a b)
+  let getCπ₁ := fun (a b : MapObj A) =>
+    @Cone.π₁ (MapObj A) (mapCat (𝒜 := A)) a b trm (t a) (t b) (getC a b)
+  let getCπ₂ := fun (a b : MapObj A) =>
+    @Cone.π₂ (MapObj A) (mapCat (𝒜 := A)) a b trm (t a) (t b) (getC a b)
+  -- Cone over terminal: f≫t(a) = g≫t(b) holds by terminal uniqueness
+  let mkCone := fun (X a b : MapObj A) (f : @Cat.Hom _ (mapCat (𝒜 := A)) X a)
+                    (g : @Cat.Hom _ (mapCat (𝒜 := A)) X b) =>
+      @Cone.mk (MapObj A) (mapCat (𝒜 := A)) a b trm (t a) (t b) X f g
+        (@HasTerminal.uniq _ (mapCat (𝒜 := A)) mapHasTerminal _ _ _)
+  @HasBinaryProducts.mk (MapObj A) (mapCat (𝒜 := A))
+    (fun a b => getCpt a b)
+    (fun {a b} => getCπ₁ a b)
+    (fun {a b} => getCπ₂ a b)
+    (fun {X a b} f g => @HasPullback.lift _ (mapCat (𝒜 := A)) _ _ _ _ _ (getPB a b) (mkCone X a b f g))
+    (fun {X a b} f g => @HasPullback.lift_fst _ (mapCat (𝒜 := A)) _ _ _ _ _ (getPB a b) (mkCone X a b f g))
+    (fun {X a b} f g => @HasPullback.lift_snd _ (mapCat (𝒜 := A)) _ _ _ _ _ (getPB a b) (mkCone X a b f g))
+    (fun {X a b} f g h hf hg =>
+       @HasPullback.lift_uniq _ (mapCat (𝒜 := A)) _ _ _ _ _ (getPB a b) (mkCone X a b f g) h hf hg)
+
+/-! ### §2.212  HasEqualizers (MapObj A)
+
+  Equalizer of f,g : a→b = splitting of dom(f∩g). -/
+
+noncomputable def mapHasEqualizer
+    {a b : MapObj A} (f g : @Cat.Hom _ (mapCat (𝒜 := A)) a b) :
+    @HasEqualizer (MapObj A) (mapCat (𝒜 := A)) a b f g :=
+  -- Extract splitting data using Classical.choice (Prop ∃ → Type data)
+  let splt   := mapCorSplit (dom_coreflexive (f.val ∩ g.val))
+  let p      := splt.1
+  let e      := splt.2.1
+  let he_map := splt.2.2.1
+  let hee_l  := splt.2.2.2.1
+  let hee_r  := splt.2.2.2.2
+  let hcone_eq : e ≫ f.val = e ≫ g.val := tab_equalizer_cone f.property g.property hee_l hee_r
+  -- Build the equalizer cone in mapCat (explicit Cat everywhere)
+  let eqCone : @EqualizerCone (MapObj A) (mapCat (𝒜 := A)) a b f g :=
+    @EqualizerCone.mk (MapObj A) (mapCat (𝒜 := A)) a b f g p ⟨e, he_map⟩ (mapHom_ext hcone_eq)
+  -- Helper to extract underlying allegory data from a mapCat EqualizerCone
+  let cMap := fun (c : @EqualizerCone (MapObj A) (mapCat (𝒜 := A)) a b f g) =>
+      @EqualizerCone.map (MapObj A) (mapCat (𝒜 := A)) a b f g c
+  let cEq  := fun (c : @EqualizerCone (MapObj A) (mapCat (𝒜 := A)) a b f g) =>
+      @EqualizerCone.eq (MapObj A) (mapCat (𝒜 := A)) a b f g c
+  -- liftFn: for each cone c, use Classical.choice to pick the mediating map
+  let liftFn := fun (c : @EqualizerCone (MapObj A) (mapCat (𝒜 := A)) a b f g) =>
+      mapEqLiftData f.property g.property he_map hee_l hee_r
+        (cMap c).val (cMap c).property (congrArg Subtype.val (cEq c)) |>.1
+  -- fac: (liftFn c) ≫ eqCone.map = c.map as mapCat hom equation
+  let facFn  := fun (c : @EqualizerCone (MapObj A) (mapCat (𝒜 := A)) a b f g) =>
+      mapHom_ext
+        (mapEqLiftData f.property g.property he_map hee_l hee_r
+          (cMap c).val (cMap c).property (congrArg Subtype.val (cEq c)) |>.2)
+  -- uniqFn: m ≫ eqCone.map = c.map → m = liftFn c
+  let uniqFn := fun (c : @EqualizerCone (MapObj A) (mapCat (𝒜 := A)) a b f g)
+      (m : @Cat.Hom _ (mapCat (𝒜 := A))
+             (@EqualizerCone.dom (MapObj A) (mapCat (𝒜 := A)) a b f g c) p)
+      (hm : @Cat.comp (MapObj A) (mapCat (𝒜 := A)) _ _ _
+              m (@EqualizerCone.map (MapObj A) (mapCat (𝒜 := A)) a b f g eqCone) =
+            @EqualizerCone.map (MapObj A) (mapCat (𝒜 := A)) a b f g c) => by
+      obtain ⟨_, _, _, uniq⟩ := tab_equalizer_UMP f.property g.property he_map hee_l hee_r
+        (cMap c).property (congrArg Subtype.val (cEq c))
+      let kd := mapEqLiftData f.property g.property he_map hee_l hee_r
+                  (cMap c).val (cMap c).property (congrArg Subtype.val (cEq c))
+      have hdL : kd.1.val = _ := uniq kd.1.val kd.1.property kd.2
+      exact mapHom_ext (hdL ▸ uniq m.val m.property (congrArg Subtype.val hm))
+  @HasEqualizer.mk (MapObj A) (mapCat (𝒜 := A)) a b f g eqCone liftFn facFn uniqFn
+
+/-- §2.212: Map(𝒜) has all equalizers. -/
+noncomputable instance mapHasEqualizers :
+    @HasEqualizers (MapObj A) (mapCat (𝒜 := A)) :=
+  @HasEqualizers.mk (MapObj A) (mapCat (𝒜 := A))
+    (fun a b f g => mapHasEqualizer f g)
+
+/-! ### §2.212  HasImages (MapObj A)
+
+  image(f : a→b) = splitting of dom(f°) : b→b.
+  Splitting e : p→b satisfies e°≫e = dom(f°), e≫e° = id_p.
+
+  Allows: (e,e) tabulates e°≫e. Apply tab UP with x=y=f (Map a→b):
+    need f°≫f ⊑ e°≫e = dom(f°). Since Simple f: f°≫f ⊑ id_b, and f°≫f ⊑ f°≫f,
+    so f°≫f ⊑ id_b ∩ f°≫f = dom(f°). ✓
+
+  Minimality: if Map m:q→b allows f via Map k:a→q with k≫m=f, then
+    f°≫f = m°≫k°≫k≫m ⊑ m°≫m (k Simple), so e°≫e = dom(f°) ⊑ m°≫m.
+    Define h := e≫m° : p→q.
+    Simple h: m≫e°≫e≫m° ⊑ m≫m°≫m≫m° ⊑ id (Simple m).
+    Entire h: id_p = e≫e° ⊑ e≫m°≫m≫e° (via e°≫e ⊑ m°≫m).
+    h≫m = e≫m°≫m = e (since e = e≫e°≫e ⊑ e≫m°≫m and e≫m°≫m ⊑ e≫id = e). ✓ -/
+
+-- Monic maps in MapCat are retracts: m≫m° = id.
+-- Uses q : A (not MapObj A) to avoid Cat diamond on instance inference.
+private theorem map_monic_retract {q : A} {a : MapObj A}
+    {m : q ⟶ a} (hm : Map m)
+    (hm_monic : @Monic (MapObj A) (mapCat (𝒜 := A)) q a ⟨m, hm⟩)
+    (hss : Map (m ≫ m°)) (hloop : m ≫ m° ≫ m = m) : m ≫ m° = Cat.id q :=
+  congrArg Subtype.val
+    (hm_monic ⟨m ≫ m°, hss⟩ ⟨Cat.id q, id_is_map_local q⟩
+      (mapHom_ext (by simp only [mapCat, Cat.id_comp, Cat.assoc]; exact hloop)))
+
+/-- **§2.142 (forward)**: a map `m : C → a` that is MONIC in Map(𝒜) is INJECTIVE as a
+    relation: `m ≫ m° ⊑ 1_C`.  Constructive kernel-pair argument: tabulate `m ≫ m°` as a
+    span `(s, t)`; by `tab_pullback_cone'` it is the kernel pair of `m` (`s ≫ m = t ≫ m`),
+    so mapCat-monicity of `m` forces `s = t`, whence `m ≫ m° = s° ≫ t = s° ≫ s ⊑ 1_C`
+    (`s` simple).  No retraction or `Map (m≫m°)` assumption is needed (breaks the old circle). -/
+private theorem mapMonic_inj {C : A} {a : MapObj A}
+    {m : C ⟶ a} (hm : Map m)
+    (hm_monic : @Monic (MapObj A) (mapCat (𝒜 := A)) C a ⟨m, hm⟩) :
+    m ≫ m° ⊑ Cat.id C := by
+  obtain ⟨k, s, t, ht⟩ := TabularAllegory.tabular (𝒜 := A) (m ≫ m°)
+  have hs : Map s := ht.1
+  have htt : Map t := ht.2.1
+  -- s ≫ m = t ≫ m  (kernel pair of m), from the tabulation of m ≫ m°° = m ≫ m°.
+  have hcone : s ≫ m = t ≫ m := by
+    have h := tab_pullback_cone' (a := C) (b := C) (c := a) hm hm
+      (π₁ := s) (π₂ := t) (by simpa using ht)
+    simpa using h
+  -- monic m in mapCat ⟹ s = t (allegory level).
+  have hst : s = t := congrArg Subtype.val
+    (hm_monic ⟨s, hs⟩ ⟨t, htt⟩ (mapHom_ext hcone))
+  -- m ≫ m° = s° ≫ t = s° ≫ s ⊑ 1_C  (s simple).
+  calc m ≫ m° = s° ≫ t := ht.2.2.1
+    _ = s° ≫ s := by rw [hst]
+    _ ⊑ Cat.id C := hs.2
+
+private theorem map_retract_monic {a : MapObj A} {p : A}
+    {e : p ⟶ a} (he_map : Map e) (hee_r : e ≫ e° = Cat.id p) :
+    @Monic (MapObj A) (mapCat (𝒜 := A)) p a ⟨e, he_map⟩ := by
+  intro W u v huv
+  apply mapHom_ext
+  -- congrArg Subtype.val gives the underlying allegory equation since mapCat comp is pointwise
+  have heq : u.val ≫ e = v.val ≫ e := congrArg Subtype.val huv
+  calc u.val = u.val ≫ e ≫ e° := by rw [hee_r, Cat.comp_id]
+    _ = (u.val ≫ e) ≫ e° := (Cat.assoc _ _ _).symm
+    _ = (v.val ≫ e) ≫ e° := by rw [heq]
+    _ = v.val := by rw [Cat.assoc, hee_r, Cat.comp_id]
+
+-- Extract the image splitting data via Classical.choice (avoids Prop ∃ in Type goal).
+private noncomputable def mapImageData {a b : A} (f : {R : a ⟶ b // Map R}) :
+    PSigma fun p : A => PSigma fun e : p ⟶ b =>
+        Map e ∧ e° ≫ e = dom (f.val°) ∧ e ≫ e° = Cat.id p :=
+  Classical.choice (by
+    obtain ⟨p, e, he, hl, hr⟩ := coreflexive_splits (dom_coreflexive (f.val°))
+    exact ⟨⟨p, e, he, hl, hr⟩⟩)
+
+-- The image subobject of f in mapCat: splitting of dom(f°) is a monic in Map(𝒜).
+private noncomputable def mapImage {a b : MapObj A}
+    (f : @Cat.Hom _ (mapCat (𝒜 := A)) a b) : @Subobject (MapObj A) (mapCat (𝒜 := A)) b :=
+  let d := mapImageData f
+  @Subobject.mk (MapObj A) (mapCat (𝒜 := A)) b d.1 ⟨d.2.1, d.2.2.1⟩
+    (map_retract_monic d.2.2.1 d.2.2.2.2)
+
+-- Helper for mapIsImage minimality: given S allows f, produce (mapImage f) ≤ S in allegory-land.
+private theorem mapIsImage_min_aux {a b : MapObj A} {p : A} {e : p ⟶ b}
+    (he_map : Map e) (hee_r : e ≫ e° = Cat.id p)
+    (f : @Cat.Hom _ (mapCat (𝒜 := A)) a b)
+    (hee_le_f : e° ≫ e ⊑ f.val° ≫ f.val)  -- e°e ⊑ f°f (image below f)
+    (S : @Subobject (MapObj A) (mapCat (𝒜 := A)) b)
+    (k_S : @Cat.Hom _ (mapCat (𝒜 := A)) a (@Subobject.dom (MapObj A) (mapCat (𝒜 := A)) b S))
+    (hk_S_eq : @Cat.comp (MapObj A) (mapCat (𝒜 := A)) _ _ _ k_S
+        (@Subobject.arr (MapObj A) (mapCat (𝒜 := A)) b S) = f) :
+    @Subobject.le (MapObj A) (mapCat (𝒜 := A)) b
+      (@Subobject.mk (MapObj A) (mapCat (𝒜 := A)) b p ⟨e, he_map⟩ (map_retract_monic he_map hee_r))
+      S := by
+  let sarr        := (@Subobject.arr (MapObj A) (mapCat (𝒜 := A)) b S).val
+  have sarr_map   : Map sarr := (@Subobject.arr (MapObj A) (mapCat (𝒜 := A)) b S).property
+  have sarr_entire : Entire sarr := sarr_map.1
+  have sarr_simple : Simple sarr := sarr_map.2
+  -- sarr ≫ sarr° = id: from Monic S.arr (in MapCat) + Map sarr.
+  -- Take u = sarr≫sarr° and v = Cat.id in MapCat, then u ≫ sarr = sarr (by sarr≫sarr°≫sarr = sarr
+  -- via Simple/Entire) = v ≫ sarr, so u = v.
+  -- Key: sarr ≫ sarr° = Cat.id S.dom. Proof via S.arr.monic in MapCat.
+  -- Step 1: sarr ≫ sarr° ≫ sarr = sarr (via le_dom_comp + Entire/Simple).
+  have sarr_eq_loop : sarr ≫ sarr° ≫ sarr = sarr :=
+    le_antisymm
+      (le_trans (comp_mono_left sarr sarr_simple) (by rw [Cat.comp_id]; exact le_refl _))
+      (le_trans (le_dom_comp sarr)
+        (le_trans (comp_mono_right (inter_lb_right _ _) sarr)
+          (by rw [Cat.assoc]; exact le_refl _)))
+  -- Step 2: sarr≫sarr° is a Map (used below for monicity argument).
+  have sarr_map_ss : Map (sarr ≫ sarr°) :=
+    ⟨by -- Entire (sarr≫sarr°): dom(sarr≫sarr°) = id ∩ (sarr≫sarr°)≫(sarr≫sarr°) = id ∩ sarr≫sarr° = id
+        rw [Entire, dom, Allegory.recip_comp, Allegory.recip_recip]
+        have heq : (sarr ≫ sarr°) ≫ sarr ≫ sarr° = sarr ≫ sarr° := by
+          rw [Cat.assoc, ← Cat.assoc sarr° sarr sarr°, ← Cat.assoc sarr (sarr° ≫ sarr) sarr°,
+              sarr_eq_loop]
+        rw [heq]; exact sarr_entire,
+     by -- Simple (sarr≫sarr°): (sarr≫sarr°)≫(sarr≫sarr°) ⊑ id_S.dom.  Reduces to sarr≫sarr° ⊑ id,
+        -- which is `mapMonic_inj` applied to S.arr (monic in MapCat) — NO logical circle.
+        rw [Simple, Allegory.recip_comp, Allegory.recip_recip]
+        have heq : (sarr ≫ sarr°) ≫ sarr ≫ sarr° = sarr ≫ sarr° := by
+          rw [Cat.assoc, ← Cat.assoc sarr° sarr sarr°, ← Cat.assoc sarr (sarr° ≫ sarr) sarr°,
+              sarr_eq_loop]
+        rw [heq]
+        exact mapMonic_inj sarr_map (@Subobject.monic (MapObj A) (mapCat (𝒜 := A)) b S)⟩
+  -- Step 3: sarr ≫ sarr° = Cat.id S.dom (sarr is a retract).
+  -- Use map_monic_retract: S.dom is a plain A-object in the helper, avoiding Cat diamond.
+  -- No type annotation to avoid the Cat diamond in the type signature.
+  have sarr_retract :=
+    map_monic_retract sarr_map
+      (@Subobject.monic (MapObj A) (mapCat (𝒜 := A)) b S)
+      sarr_map_ss sarr_eq_loop
+  have sarr_eq : k_S.val ≫ sarr = f.val := congrArg Subtype.val hk_S_eq
+  have hfle : f.val° ≫ f.val ⊑ sarr° ≫ sarr := by
+    have hfact : f.val° ≫ f.val = sarr° ≫ k_S.val° ≫ k_S.val ≫ sarr := by
+      have h1 : f.val = k_S.val ≫ sarr := sarr_eq.symm
+      rw [h1, Allegory.recip_comp]; simp [Cat.assoc]
+    rw [hfact]
+    have h1 : k_S.val° ≫ k_S.val ≫ sarr ⊑ Cat.id _ ≫ sarr := by
+      rw [← Cat.assoc]; exact comp_mono_right k_S.property.2 sarr
+    have h2 : sarr° ≫ k_S.val° ≫ k_S.val ≫ sarr ⊑ sarr° ≫ Cat.id _ ≫ sarr :=
+      comp_mono_left sarr° h1
+    exact le_trans h2 (by rw [Cat.id_comp]; exact le_refl _)
+  have hee_sarr : e° ≫ e ⊑ sarr° ≫ sarr := le_trans hee_le_f hfle
+  let h_alg : p ⟶ (@Subobject.dom (MapObj A) (mapCat (𝒜 := A)) b S) := e ≫ sarr°
+  have hh_simple : Simple h_alg := by
+    -- h_alg = e ≫ sarr°; h_alg° = sarr ≫ e°; (h_alg°)≫h_alg = (sarr≫e°)≫(e≫sarr°).
+    -- Use Simple e (e°≫e ⊑ id_b) and sarr_retract (sarr≫sarr° = id_S.dom).
+    rw [Simple, Allegory.recip_comp, Allegory.recip_recip]
+    have hs : (e° ≫ e) ≫ sarr° ⊑ sarr° := by
+      have h := comp_mono_right he_map.2 sarr°; rw [Cat.id_comp] at h; exact h
+    have hchain : (sarr ≫ e°) ≫ h_alg ⊑ sarr ≫ sarr° :=
+      calc (sarr ≫ e°) ≫ h_alg = (sarr ≫ e°) ≫ (e ≫ sarr°) := rfl
+        _ = sarr ≫ (e° ≫ e) ≫ sarr° := by rw [Cat.assoc, ← Cat.assoc e° e sarr°]
+        _ ⊑ sarr ≫ sarr° := comp_mono_left sarr hs
+    rw [sarr_retract] at hchain; exact hchain
+  have hh_entire : Entire h_alg := by
+    -- h_alg = e ≫ sarr°; dom(h_alg) = id ∩ (e≫sarr°)≫(e≫sarr°)°
+    -- (e≫sarr°)≫(e≫sarr°)° = e≫sarr°≫sarr≫e°. Need id_p ⊑ this.
+    rw [Entire, dom]; apply le_antisymm (inter_lb_left _ _); apply le_inter (le_refl _)
+    rw [Allegory.recip_comp, Allegory.recip_recip]
+    -- Goal: Cat.id p ⊑ (e≫sarr°)≫(sarr≫e°) = e≫sarr°≫sarr≫e°
+    have hrw : (e ≫ sarr°) ≫ (sarr ≫ e°) = e ≫ sarr° ≫ sarr ≫ e° := by simp [Cat.assoc]
+    rw [hrw]
+    -- e ≫ sarr° ≫ sarr ≫ e° = e ≫ e° (by sarr°≫sarr = Cat.id b from sarr_retract going right,
+    -- but sarr°≫sarr ⊑ id not =. We use: id_p = e≫e° directly from hee_r!)
+    -- Actually: e≫(sarr°≫sarr)≫e° ⊇ e≫id_b≫e° = e≫e° = id_p.
+    -- Wait we need ⊑, not ⊇. Use: e≫sarr°≫sarr≫e° ⊇ e≫e° = id_p via Entire sarr.
+    -- sarr_ent_eq : id_S.dom ⊑ sarr≫sarr°. So e≫e° = id_p (from hee_r).
+    -- And (e≫sarr°)≫(sarr≫e°) ⊇ e≫e° iff sarr°≫sarr ⊇ id_b.
+    -- sarr_ent_eq says id_S.dom ⊑ sarr≫sarr°, NOT id_b ⊑ sarr°≫sarr.
+    -- Correct path: use hee_r directly.
+    -- id_p = e≫e° (from hee_r). And e≫sarr°≫sarr≫e° ⊇ e≫id_b≫e° = e≫e° = id_p
+    -- via Entire sarr: id_S.dom ⊑ sarr≫sarr°, so ... hmm this is for S.dom not b.
+    -- Better: sarr°≫sarr ⊑ id_b (Simple) but we need ≥. We have sarr_ent_eq : id ⊑ sarr≫sarr°.
+    -- But id_b ⊑ sarr°≫sarr iff sarr°≫sarr = id_b (since ⊑ id too). Actually use:
+    -- sarr_retract : sarr≫sarr° = id_S.dom. So sarr°≫sarr°° = sarr°≫sarr ⊑ id_b (Simple).
+    -- And id_S.dom = sarr≫sarr° ⊑ sarr≫sarr°≫sarr≫sarr° from id ⊑ sarr°≫sarr? NO.
+    -- KEY: e ≫ e° = id_p (hee_r). So we need id_p ⊑ e≫sarr°≫sarr≫e°.
+    -- Use: id_p = e≫e° and id_S.dom ⊑ sarr≫sarr° (sarr_ent_eq).
+    -- Then: e≫sarr°≫sarr≫e° = ??? We need sarr°≫sarr ≥ id... NO Simple says ≤.
+    -- REAL KEY: sarr_retract says sarr≫sarr° = id_S.dom. Then sarr°≫sarr ≥ ???
+    -- Actually sarr is a retraction: sarr≫sarr°=id. So sarr° is a section. sarr°≫sarr ≥ id_b
+    -- because: sarr≫(sarr°≫sarr)≫sarr° = (sarr≫sarr°)≫(sarr≫sarr°) = id≫id = id.
+    -- But (sarr≫sarr°≫sarr)≫sarr° = sarr≫sarr° = id. And sarr°≫sarr ⊑ id. So we need other.
+    -- Actually from sarr_retract: sarr≫sarr° = id_S.dom. Since sarr°≫sarr ⊑ id_b (Simple)
+    -- and sarr≫(sarr°≫sarr) = (sarr≫sarr°)≫sarr = id_S.dom≫sarr = sarr (by sarr_retract).
+    -- Now: sarr°≫sarr ≥ id_b? Apply: sarr° ≫ (sarr ≫ sarr° ≫ sarr) = sarr°≫sarr (by RHS = sarr).
+    -- So sarr°≫(sarr≫sarr°)≫sarr = sarr°≫sarr. And (sarr°≫sarr≫sarr°)≫sarr = sarr°≫sarr.
+    -- But also (sarr°≫sarr≫sarr°)≫sarr = sarr°≫id_S.dom≫sarr = sarr°≫sarr.
+    -- This just gives sarr°≫sarr=sarr°≫sarr. Not helpful.
+    -- CONCLUSION: id_b ⊑ sarr°≫sarr NOT provable in general. But we don't need it!
+    -- We need id_p ⊑ e≫sarr°≫sarr≫e°. Use hee_r: id_p = e≫e°.
+    -- Then: e≫e° ⊑ e≫sarr°≫sarr≫e° via id_b ⊑ sarr°≫sarr? Not available.
+    -- ALTERNATIVE: e≫e° = id_p and we need id_p ⊑ e≫sarr°≫sarr≫e°.
+    -- id_p = e≫e° ⊑ e≫sarr°≫sarr≫e° iff e° ⊑ sarr°≫sarr≫e° which means e°(e°)° ⊑ sarr°≫sarr
+    -- i.e., e°≫e ⊑ sarr°≫sarr. YES that's hee_sarr!
+    -- So: id_p = e≫e° and e° ⊑ sarr°≫sarr≫e° iff e°≫(sarr°≫sarr≫e°)° ... this is Entire of e°.
+    -- Let me just compute directly:
+    -- id_p ⊑ e≫sarr°≫sarr≫e° ← hee_r gives id_p = e≫e°
+    -- Need e≫e° ⊑ e≫sarr°≫sarr≫e°, i.e., e° ⊑ sarr°≫sarr≫e° (comp_mono_left e from left).
+    -- Actually comp_mono_left e does: from e° ⊑ sarr°≫sarr≫e°, get e≫e° ⊑ e≫sarr°≫sarr≫e°.
+    -- But e° ⊑ sarr°≫sarr≫e°? That's: (e°)≫id ⊑ (sarr°≫sarr)≫e°. i.e., comp_mono_right ? e°.
+    -- Need id ⊑ sarr°≫sarr. NOT available from Simple.
+    -- Different: e° ≫ e ⊑ sarr° ≫ sarr (hee_sarr). Multiply by e° on right:
+    -- (e°≫e)≫e° ⊑ (sarr°≫sarr)≫e°. LHS = e°≫(e≫e°) = e°≫id = e°.
+    -- RHS = sarr°≫sarr≫e°. So e° ⊑ sarr°≫sarr≫e°. YES!
+    have hstep : e° ⊑ sarr° ≫ sarr ≫ e° := by
+      have h1 : (e° ≫ e) ≫ e° ⊑ (sarr° ≫ sarr) ≫ e° := comp_mono_right hee_sarr e°
+      simp only [Cat.assoc, hee_r, Cat.comp_id] at h1; exact h1
+    rw [← hee_r]; exact comp_mono_left e hstep
+  have hh_eq : h_alg ≫ sarr = e := by
+    show (e ≫ sarr°) ≫ sarr = e
+    exact le_antisymm
+      (by calc (e ≫ sarr°) ≫ sarr = e ≫ sarr° ≫ sarr := Cat.assoc e sarr° sarr
+               _ ⊑ e ≫ Cat.id b := comp_mono_left e sarr_simple
+               _ = e := Cat.comp_id e)
+      (by calc e = e ≫ (e° ≫ e) := by rw [← Cat.assoc, hee_r, Cat.id_comp]
+               _ ⊑ e ≫ (sarr° ≫ sarr) := comp_mono_left e hee_sarr
+               _ = (e ≫ sarr°) ≫ sarr := (Cat.assoc e sarr° sarr).symm)
+  exact ⟨⟨h_alg, ⟨hh_entire, hh_simple⟩⟩, mapHom_ext hh_eq⟩
+
+-- The image is an image: f allows through it, and it is minimal.
+private theorem mapIsImage {a b : MapObj A} (f : @Cat.Hom _ (mapCat (𝒜 := A)) a b) :
+    @IsImage (MapObj A) (mapCat (𝒜 := A)) a b f (mapImage f) := by
+  let d      := mapImageData f
+  let p      : A := d.1
+  let e      : p ⟶ b := d.2.1
+  let he_map : Map e                   := d.2.2.1
+  let hee_l  : e° ≫ e = dom (f.val°) := d.2.2.2.1
+  let hee_r  : e ≫ e° = Cat.id p     := d.2.2.2.2
+  have htab_e : Tabulates e e (e° ≫ e) :=
+    ⟨he_map, he_map, rfl, by rw [Allegory.inter_idem, hee_r]⟩
+  have hff_le : f.val° ≫ f.val ⊑ e° ≫ e := by
+    rw [hee_l]; exact le_inter f.property.2 (by rw [Allegory.recip_recip]; exact le_refl _)
+  obtain ⟨k, hk, hke, _⟩ := tabulation_UP_forward htab_e f.property f.property hff_le
+  -- hee_le_f : e°≫e ⊑ f°≫f needed for mapIsImage_min_aux
+  have hee_le_f : e° ≫ e ⊑ f.val° ≫ f.val := by
+    simp only [hee_l, dom, Allegory.recip_recip]; exact inter_lb_right _ _
+  refine ⟨⟨⟨k, hk⟩, mapHom_ext hke⟩, fun S hS => ?_⟩
+  obtain ⟨k_S, hk_S_eq⟩ := hS
+  exact mapIsImage_min_aux he_map hee_r f hee_le_f S k_S hk_S_eq
+
+noncomputable instance mapHasImages :
+    @HasImages (MapObj A) (mapCat (𝒜 := A)) :=
+  @HasImages.mk (MapObj A) (mapCat (𝒜 := A))
+    (fun {a b} f => mapImage f) (fun {a b} f => mapIsImage f)
+
+/-! ### §2.212  PullbacksTransferCovers
+
+  Key algebraic fact: if f:a→c is a cover (id_c ⊑ f°≫f) and (π₁:p→a, π₂:p→b)
+  is the tabulation of f≫g°, then π₂ is a cover (id_b ⊑ π₂°≫π₂).
+  Proof: π₂°≫π₁ = g≫f° (recip of π₁°≫π₂=f≫g°). Then:
+    π₂°≫π₂ ⊇ π₂°≫id_p≫π₂  (trivially)
+             = π₂°≫(π₁≫π₁°)≫π₂  (π₁≫π₁°=id_p from Entire π₁)
+             = (π₂°≫π₁)≫(π₁°≫π₂)
+             = (g≫f°)≫(f≫g°)
+             = g≫(f°≫f)≫g°
+             ⊇ g≫id_c≫g°  (using id_c ⊑ f°≫f = cover f)
+             = g≫g°
+             ⊇ id_b  (Entire g, since g is a Map).
+  For an ARBITRARY pullback cone: it is isomorphic to the canonical one via a comparison
+  map u. We show u is iso (using the UMP in both directions), then use cover_precomp_iso. -/
+
+-- Extract id_c ⊑ f°≫f from Cover f in Map(𝒜)
+private theorem mapCover_entire {a c : MapObj A}
+    (f : @Cat.Hom _ (mapCat (𝒜 := A)) a c)
+    (hcov : @Cover (MapObj A) (mapCat (𝒜 := A)) a c f) :
+    Cat.id c ⊑ f.val° ≫ f.val := by
+  haveI : @HasImages (MapObj A) (mapCat (𝒜 := A)) := mapHasImages
+  -- image of f = splitting of dom(f°); the cover forces image iso
+  obtain ⟨p, e, he_map, hee_l, hee_r⟩ := coreflexive_splits (dom_coreflexive (f.val°))
+  have htab_e : Tabulates e e (e° ≫ e) :=
+    ⟨he_map, he_map, rfl, by rw [Allegory.inter_idem, hee_r]⟩
+  have hff_le : f.val° ≫ f.val ⊑ e° ≫ e := by
+    rw [hee_l]; exact le_inter f.property.2 (by rw [Allegory.recip_recip]; exact le_refl _)
+  obtain ⟨k_f, hk_f, hk_f_eq, _⟩ := tabulation_UP_forward htab_e f.property f.property hff_le
+  -- e monic and f factors through e ⟹ e iso (by Cover)
+  have he_iso : @IsIso (MapObj A) (mapCat (𝒜 := A)) p c ⟨e, he_map⟩ :=
+    hcov ⟨e, he_map⟩ ⟨k_f, hk_f⟩ (map_retract_monic he_map hee_r) (mapHom_ext hk_f_eq)
+  obtain ⟨⟨e', he'_map⟩, hee'sub, he'esub⟩ := he_iso
+  have he'e_alg : e' ≫ e = Cat.id c := congrArg Subtype.val he'esub
+  -- id_c ⊑ e°≫e: from e'≫e=id_c ⟹ e°≫(e')°=id_c ⟹ id_c=e°≫(e')°≫e'≫e ⊑ e°≫id_c≫e=e°≫e
+  have hrecip_inv : e° ≫ e'° = Cat.id c := by
+    have := congrArg Allegory.recip he'e_alg
+    simp [Allegory.recip_comp, Allegory.recip_recip, recip_id] at this; exact this
+  have hid_le : Cat.id c ⊑ e° ≫ e :=
+    calc Cat.id c = e° ≫ e'° := hrecip_inv.symm
+      _ = e° ≫ e'° ≫ (e' ≫ e) := by rw [he'e_alg, Cat.comp_id]
+      _ = e° ≫ (e'° ≫ e') ≫ e := by simp [Cat.assoc]
+      _ ⊑ e° ≫ Cat.id p ≫ e := comp_mono_left e° (comp_mono_right he'_map.2 e)
+      _ = e° ≫ e := by rw [Cat.id_comp]
+  have hff_inter : dom (f.val°) ⊑ f.val° ≫ f.val := by
+    simp only [dom, Allegory.recip_recip]; exact inter_lb_right _ _
+  have hid_dom : Cat.id c ⊑ dom (f.val°) := hee_l ▸ hid_le
+  exact le_trans hid_dom hff_inter
+
+/-- §2.212: PullbacksTransferCovers for Map(𝒜). -/
+noncomputable instance mapPullbacksTransferCovers :
+    @PullbacksTransferCovers (MapObj A) (mapCat (𝒜 := A)) :=
+  @PullbacksTransferCovers.mk (MapObj A) (mapCat (𝒜 := A)) (by
+    intro a b c f g cone hpb hcov_f
+    -- Step 1: extract f is cover in the allegory (id_c ⊑ f°≫f)
+    have hf_ent : Cat.id b ⊑ f.val° ≫ f.val := mapCover_entire f hcov_f
+    -- Step 2: id_b ⊑ cone.π₂.val°≫cone.π₂.val for the CANONICAL tabulation pullback.
+    -- First work with the canonical pullback (tabulation of f≫g°).
+    obtain ⟨p, π₁, π₂, ht⟩ := TabularAllegory.tabular (𝒜 := A) (f.val ≫ g.val°)
+    have hπ₁ : Map π₁ := ht.1
+    have hπ₂ : Map π₂ := ht.2.1
+    -- Cone equation for the canonical tabulation, derived directly from the tabulation via the
+    -- joint-monic form (NO `π≫π°=id` retraction — that fact is FALSE for a generic leg).
+    have hcone_can_eq : π₁ ≫ f.val = π₂ ≫ g.val :=
+      tab_pullback_cone' f.property g.property ht
+    let canon_cone : @Cone (MapObj A) (mapCat (𝒜 := A)) a c b f g :=
+      @Cone.mk (MapObj A) (mapCat (𝒜 := A)) a c b f g p ⟨π₁, hπ₁⟩ ⟨π₂, hπ₂⟩ (mapHom_ext hcone_can_eq)
+    -- recip of π₁°≫π₂=f≫g°: π₂°≫π₁ = g≫f°
+    have hrecip_eq : π₂° ≫ π₁ = g.val ≫ f.val° := by
+      have h := congrArg Allegory.recip ht.2.2.1
+      simp [Allegory.recip_comp, Allegory.recip_recip] at h; exact h.symm
+    -- id_b ⊑ π₂°≫π₂ (canonical pullback π₂ is a cover).  BOOK §2.147: f is a cover ⟹ f° is
+    -- entire ⟹ g≫f° is entire (g a map) ⟹ π₂°≫π₁ (= g≫f°) is entire ⟹ π₂° is entire
+    -- (`entire_of_comp_entire`) ⟹ π₂ is a cover.  No retraction is used.
+    have hcan_π₂_cover : Cat.id c ⊑ π₂° ≫ π₂ := by
+      have hfo_ent : Entire f.val° := (cover_iff_recip_entire f.val).mp hf_ent
+      have hgfo_ent : Entire (g.val ≫ f.val°) := entire_comp g.property.1 hfo_ent
+      have hπ₂π₁_ent : Entire (π₂° ≫ π₁) := hrecip_eq ▸ hgfo_ent
+      have hπ₂o_ent : Entire π₂° := entire_of_comp_entire hπ₂π₁_ent
+      exact (cover_iff_recip_entire π₂).mpr hπ₂o_ent
+    -- Extract cone.pt as cpt_cone via explicit @Cone.pt to avoid Cat diamond in type annotations.
+    -- Access cone fields via explicit @Cone.field to avoid Cat re-synthesis (diamond).
+    let cpt_cone := @Cone.pt (MapObj A) (mapCat (𝒜 := A)) a c b f g cone
+    let cπ₁c := @Cone.π₁ (MapObj A) (mapCat (𝒜 := A)) a c b f g cone
+    let cπ₂c := @Cone.π₂ (MapObj A) (mapCat (𝒜 := A)) a c b f g cone
+    let cwc  := congrArg Subtype.val (@Cone.w (MapObj A) (mapCat (𝒜 := A)) a c b f g cone)
+    -- Step 3: the given cone is related to canon_cone by a comparison iso.
+    -- From hpb (given cone IsPullback), apply it to canon_cone to get u: p→cone.pt.
+    obtain ⟨u_sub, ⟨hu1, hu2⟩, hu_uniq⟩ := hpb canon_cone
+    -- u_sub : p → cpt_cone in MapCat; hu1 : u_sub ≫ cπ₁c = ⟨π₁,_⟩; hu2 : u_sub ≫ cπ₂c = ⟨π₂,_⟩
+    -- From tab_pullback_UMP applied to cone as source: v: cpt_cone→p
+    obtain ⟨hv, hv_map, hv1, hv2, hv_uniq⟩ := tab_pullback_UMP f.property g.property ht
+      cπ₁c.property cπ₂c.property cwc
+    -- Name the mapCat morphisms explicitly to avoid Cat diamond in ⟨...⟩ constructor
+    let hv_sub : @Cat.Hom (MapObj A) (mapCat (𝒜 := A)) cpt_cone p :=
+      Subtype.mk hv hv_map
+    let hπ₂_sub : @Cat.Hom (MapObj A) (mapCat (𝒜 := A)) p c :=
+      Subtype.mk π₂ hπ₂
+    let u_sub' : @Cat.Hom (MapObj A) (mapCat (𝒜 := A)) p cpt_cone :=
+      u_sub
+    -- u_sub' ≫ hv_sub = id_p in MapCat: by tab_pullback_UMP uniqueness applied at canon.pt
+    have huv_mapcat : @Cat.comp (MapObj A) (mapCat (𝒜 := A)) _ _ _ u_sub' hv_sub =
+        @Cat.id (MapObj A) (mapCat (𝒜 := A)) p := by
+      have heq1 : (u_sub.val ≫ hv) ≫ π₁ = π₁ := by
+        rw [Cat.assoc, hv1]; exact congrArg Subtype.val hu1
+      have heq2 : (u_sub.val ≫ hv) ≫ π₂ = π₂ := by
+        rw [Cat.assoc, hv2]; exact congrArg Subtype.val hu2
+      exact mapHom_ext (tabulation_UP_unique ht (map_comp u_sub.property hv_map) (id_is_map p)
+        (heq1.trans (Cat.id_comp π₁).symm) (heq2.trans (Cat.id_comp π₂).symm))
+    -- hv_sub ≫ u_sub = id_{cone.pt} in MapCat: from u_sub having right-inverse hv_sub.
+    -- Proof: u_sub.val ≫ hv = Cat.id p (from huv_mapcat) ⟹
+    --   u_sub.val ≫ (hv ≫ u_sub.val) = Cat.id p ≫ u_sub.val = u_sub.val = u_sub.val ≫ Cat.id cone.pt.
+    --   u_sub.val is monic (has retraction hv with u_sub.val ≫ hv = Cat.id p? NO: that's HUV direction).
+    -- Actually: hv has LEFT inverse u_sub.val (u_sub.val ≫ hv = id_p), so hv is monic.
+    --   hv ≫ (u_sub.val ≫ hv) = (hv ≫ u_sub.val) ≫ hv = ??? circular.
+    -- Use: Monic hv (since u_sub.val ≫ hv = id_p makes hv monic).
+    --   hv ≫ (hv ≫ u_sub.val) = (hv ≫ Cat.id p)? NO: u_sub.val ≫ hv = id_p, not hv ≫ u_sub.val.
+    -- hv_sub ≫ u_sub' = id_{cpt_cone}: by uniqueness in hpb applied at cone.
+    -- Underlying allegory: (hv ≫ u_sub.val) ≫ cone.π₁.val = cone.π₁.val (and π₂).
+    -- The unique map cone.pt→cone.pt in hpb cone that satisfies the equations must be id.
+    have hvu_mapcat : @Cat.comp (MapObj A) (mapCat (𝒜 := A)) _ _ _ hv_sub u_sub' =
+        @Cat.id (MapObj A) (mapCat (𝒜 := A)) cpt_cone := by
+      -- Prove via the canonical tabulation uniqueness: in the allegory, both hv≫u_sub.val
+      -- and id_{cone.pt} are maps cone.pt→cone.pt that split the tabulation diagrams.
+      -- We use the map tabulation UMP uniqueness by comparing both against arbitrary X.
+      -- Direct: use hpb uniqueness at mapCat level. We apply hpb with d = the cone formed by:
+      -- d.pt = cpt_cone (= cone.pt), d.π₁ = cπ₁c, d.π₂ = cπ₂c.
+      -- That d IS cone. hpb cone = IsPullback of cone, gives uniqueness for maps cone.pt→cone.pt.
+      -- Extract uniqueness part of hpb cone:
+      obtain ⟨w_self, ⟨hw_self_1, hw_self_2⟩, huniq_self⟩ := hpb cone
+      -- huniq_self : ∀ v : cone.pt → cone.pt in mapCat, v≫cone.π₁=cone.π₁ → v≫cone.π₂=cone.π₂ → v = w_self
+      -- Both hv_sub≫u_sub' and id_{cpt_cone} satisfy this; hence they are equal.
+      let prod := @Cat.comp (MapObj A) (mapCat (𝒜 := A)) cpt_cone p cpt_cone hv_sub u_sub'
+      let idpt := @Cat.id (MapObj A) (mapCat (𝒜 := A)) cpt_cone
+      have hu1v : u_sub.val ≫ cπ₁c.val = π₁ := congrArg Subtype.val hu1
+      have hu2v : u_sub.val ≫ cπ₂c.val = π₂ := congrArg Subtype.val hu2
+      have hcomp_π₁ : @Cat.comp (MapObj A) (mapCat (𝒜 := A)) cpt_cone cpt_cone a prod cπ₁c = cπ₁c :=
+        mapHom_ext (show (hv ≫ u_sub.val) ≫ cπ₁c.val = cπ₁c.val by
+          rw [Cat.assoc, hu1v, hv1])
+      have hcomp_π₂ : @Cat.comp (MapObj A) (mapCat (𝒜 := A)) cpt_cone cpt_cone c prod cπ₂c = cπ₂c :=
+        mapHom_ext (show (hv ≫ u_sub.val) ≫ cπ₂c.val = cπ₂c.val by
+          rw [Cat.assoc, hu2v, hv2])
+      have hid_π₁ : @Cat.comp (MapObj A) (mapCat (𝒜 := A)) cpt_cone cpt_cone a idpt cπ₁c = cπ₁c :=
+        mapHom_ext (Cat.id_comp cπ₁c.val)
+      have hid_π₂ : @Cat.comp (MapObj A) (mapCat (𝒜 := A)) cpt_cone cpt_cone c idpt cπ₂c = cπ₂c :=
+        mapHom_ext (Cat.id_comp cπ₂c.val)
+      exact (huniq_self _ hcomp_π₁ hcomp_π₂).trans (huniq_self _ hid_π₁ hid_π₂).symm
+    -- hv_sub is iso with inverse u_sub'
+    have h_hv_iso : @IsIso (MapObj A) (mapCat (𝒜 := A)) cpt_cone p hv_sub :=
+      ⟨u_sub', hvu_mapcat, huv_mapcat⟩
+    -- cπ₂c = hv_sub ≫ hπ₂_sub (from hv2 : hv ≫ π₂ = cπ₂c.val)
+    have hπ₂_eq : cπ₂c = @Cat.comp (MapObj A) (mapCat (𝒜 := A)) cpt_cone p c hv_sub hπ₂_sub :=
+      (mapHom_ext hv2).symm
+    -- cover_precomp_iso: ⟨π₂, hπ₂⟩ cover and iso ≫ cover ⟹ cone.π₂ cover
+    -- First: ⟨π₂, hπ₂⟩ is a cover in Map(𝒜) (from hcan_π₂_cover via cover_iff_recip_entire)
+    -- π₂ : p ⟶ c (second tabulation leg); Cover in mapCat = every monic factor is iso.
+    have hπ₂_cover : @Cover (MapObj A) (mapCat (𝒜 := A)) p c hπ₂_sub := by
+      intro C m k hm_monic hkm
+      obtain ⟨m, hm_map⟩ := m
+      obtain ⟨k, hk_map⟩ := k
+      -- k≫m = π₂ (allegory). m monic in MapCat.
+      -- hcan_π₂_cover: id_b ⊑ π₂°≫π₂.
+      -- π₂ = k≫m, so π₂°≫π₂ = m°≫k°≫k≫m ⊑ m°≫m. And id_b ⊑ m°≫m.
+      -- m monic in MapCat means: for all u,v maps, u≫m = v≫m ⟹ u = v.
+      -- m simple (Map m): m°≫m ⊑ id_C.
+      -- So id_b ⊑ m°≫m ⊑ id_C?? b=C here (m:C→b), so id_b ⊑ m°≫m ⊑ id_b, hence m°≫m = id_b.
+      -- And m entire (Map m): id_C ⊑ m≫m°.
+      -- m iso: need m≫m°=id_b (above proved m°≫m=id_b? No: m:C→b, m°:b→C, m°≫m:b→b ⊑ id_b... wait.
+      -- m : C → b (as a map in the allegory). m° : b → C. m°≫m : b→b. Simple m: m°≫m ⊑ id_b? NO.
+      -- Simple m for m:C→b means m°≫m ⊑ id_b (source of m° is b, target is C; m°≫m : b→b).
+      -- Actually wait: m:C→b, m°:b→C. Simple m: (m°)°≫m° = m≫m° ⊑ id_C... NO.
+      -- Simple R for R:a→b: R°≫R ⊑ id_b. So Simple m for m:C→b: m°≫m ⊑ id_b. ✓
+      -- id_b ⊑ π₂°≫π₂. π₂ = k≫m: π₂° = m°≫k°. π₂°≫π₂ = m°≫k°≫k≫m ⊑ m°≫id_C≫m = m°≫m ⊑ id_b.
+      -- So m°≫m = id_b. Now m is entire (Map m: id_C ⊑ m≫m°). So m is iso.
+      have hkm_alg : k ≫ m = π₂ := congrArg Subtype.val hkm
+      have hm_sim : m° ≫ m ⊑ Cat.id c := hm_map.2
+      have hm_ent : Cat.id C ⊑ m ≫ m° := map_entire_le hm_map
+      -- id_c ⊑ m°≫m from hcan_π₂_cover and π₂ = k≫m
+      have hid_le_mm : Cat.id c ⊑ m° ≫ m := by
+        have heq : π₂° ≫ π₂ = m° ≫ k° ≫ k ≫ m := by
+          rw [← hkm_alg, Allegory.recip_comp]; simp [Cat.assoc]
+        have hkk_le : (k° ≫ k) ≫ m ⊑ m := by
+          have h := comp_mono_right hk_map.2 m; rwa [Cat.id_comp] at h
+        have hstep : m° ≫ k° ≫ k ≫ m ⊑ m° ≫ m := by
+          apply comp_mono_left m°
+          rw [← Cat.assoc]; exact hkk_le
+        exact le_trans (heq ▸ hcan_π₂_cover) hstep
+      -- m°≫m = id_c (simple + the cover bound) and m≫m° = id_C (Entire m + mapMonic_inj):
+      -- m is iso in Map(𝒜) with inverse m°.
+      have hmm_id : m° ≫ m = Cat.id c := le_antisymm hm_sim hid_le_mm
+      have hmm'_id : m ≫ m° = Cat.id C :=
+        le_antisymm (mapMonic_inj hm_map hm_monic) hm_ent
+      -- m° is itself a map: Entire m° (id_c ⊑ m°≫m°°=m°≫m=id_c) and Simple m° (m≫m° ⊑ id_C).
+      have hmo_map : Map (m°) := by
+        refine ⟨?_, ?_⟩
+        · rw [Entire, dom, Allegory.recip_recip, hmm_id]
+          exact (Allegory.inter_idem _)
+        · rw [Simple, Allegory.recip_recip]; exact hmm'_id ▸ le_refl _
+      exact ⟨⟨m°, hmo_map⟩, mapHom_ext hmm'_id, mapHom_ext hmm_id⟩
+    -- Step 4: cone.π₂ = hv_sub ≫ hπ₂_sub (hπ₂_eq via cπ₂c=cone.π₂) + h_hv_iso ⟹ Cover cone.π₂
+    -- cπ₂c = cone.π₂ by definition; rewrite goal Cover cone.π₂ to Cover (hv_sub ≫ hπ₂_sub)
+    have hπ₂_eq' : @Cone.π₂ (MapObj A) (mapCat (𝒜 := A)) a c b f g cone =
+        @Cat.comp (MapObj A) (mapCat (𝒜 := A)) cpt_cone p c hv_sub hπ₂_sub :=
+      hπ₂_eq
+    have hcov : @Cover (MapObj A) (mapCat (𝒜 := A)) cpt_cone c
+        (@Cat.comp (MapObj A) (mapCat (𝒜 := A)) cpt_cone p c hv_sub hπ₂_sub) :=
+      @cover_precomp_iso (MapObj A) (mapCat (𝒜 := A)) cpt_cone p c hv_sub h_hv_iso hπ₂_sub hπ₂_cover
+    show @Cover (MapObj A) (mapCat (𝒜 := A)) cpt_cone c
+        (@Cone.π₂ (MapObj A) (mapCat (𝒜 := A)) a c b f g cone)
+    rw [hπ₂_eq']; exact hcov)
+
+/-- §2.212: Map(𝒜) is a RegularCategory. -/
+noncomputable instance mapRegularCategory :
+    @RegularCategory (MapObj A) (mapCat (𝒜 := A)) :=
+  @RegularCategory.mk (MapObj A) (mapCat (𝒜 := A))
+    mapHasTerminal mapHasBinaryProducts mapHasPullbacks mapHasImages mapPullbacksTransferCovers
+
+/-! ### §2.212  HasSubobjectUnions (MapObj A) — construction + the instance-coherence blocker
+
+  The MATHEMATICS is settled (and the key lemma `mapMonic_inj` it needs is proved above):
+  a subobject `S` of `B` in Map(𝒜) is a monic map `s := S.arr : S.dom → B`; its associated
+  COREFLEXIVE on `B` is `corOf S := s° ≫ s` (coreflexive since `s` is simple).  Subobject
+  containment `S ≤ T` corresponds EXACTLY to `corOf S ⊑ corOf T`:
+    • `S ≤ T` via `h ≫ t = s` gives `s°≫s = t°(h°h)t ⊑ t°≫t`  (`h` simple);
+    • conversely `s°≫s ⊑ t°≫t` factors `s` through the splitting `t` by `tabulation_UP_forward`
+      (`(t,t)` tabulates `t°≫t` because `t≫t° = 1` via `mapMonic_inj` + Entire).
+  In a DISTRIBUTIVE allegory the join of two coreflexives is `corOf S ∪ corOf T` (still
+  coreflexive by `union_lub`); SPLITTING it (`coreflexive_splits`, every coreflexive splits
+  in a tabular allegory) gives the union subobject, with `union_left`/`union_right`/`union_min`
+  read off `le_union_left`/`le_union_right`/`union_lub` through the `corOf` correspondence.
+
+  BOOK §2.212 TODO (instance-coherence blocker, NOT a math gap): the construction needs BOTH
+  `[TabularUnitaryAllegory A]` (for `mapCat`/tabulations) and `[DistributiveAllegory A]` (for
+  `∪`).  As two separate instances they create an `Allegory A` DIAMOND — `≫`/`°` (the mapCat
+  side) and `∪` then live on homs of two non-defeq `Allegory A` instances, so every mixed
+  expression fails with "synthesized instance not definitionally equal".  Merging them into a
+  single class does not help: `extends TabularUnitaryAllegory, DistributiveAllegory` still
+  yields two non-defeq projection paths to `Allegory` (`toTabularUnitaryAllegory.toAllegory`
+  vs `toDistributiveAllegory.toAllegory`), and re-providing one parent as an instance off the
+  other re-introduces the competing `Allegory A` path.  A faithful build needs the base
+  allegory classes themselves declared so their shared `Allegory` parent is one merged field
+  (a repo-wide change to `S2_1`/`S2_2`), or a hand-rolled combined class whose two parent
+  projections are proved defeq — infrastructure not present here. -/
 
 end MapPreLogos
+/-! ### §2.212  PreLogos (MapObj A)
+
+  BOOK §2.212 TODO: PreLogos (MapObj A) from a tabular unitary DISTRIBUTIVE allegory.
+  `PreLogos` extends `RegularCategory` (DONE: `mapRegularCategory`) + `HasSubobjectUnions`
+  (blocked above on the `Allegory A` instance diamond between the tabular and distributive
+  structure) and additionally requires: the empty-join `bottom` (the split of the ZERO
+  coreflexive `𝟘 : B → B`, with `bottom_dom_iso` relating the apexes across objects) and the
+  two inverse-image preservation laws (`invImage_preserves_union`, `invImage_preserves_bottom`),
+  i.e. the §2.212 analysis of how the relational inverse image `f# = pullback` interacts with
+  `∪`/`𝟘` at the coreflexive level.  All of this sits behind the same diamond blocker. -/
 
 end Freyd.Alg
