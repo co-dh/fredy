@@ -1317,16 +1317,15 @@ theorem pre_positive_semi_simple_iff_metonymic {𝒜 : Type u} [PrePositivePower
 
 /-! ## §2.422  Effective splitting in power allegories -/
 
--- §2.422: In a power allegory, every equivalence relation E satisfies E = ff° for some map f.
--- Freyd: E = E/E (any equiv. rel. in a division allegory is idempotent), so in a power
--- allegory Spl(Cor(A)) splits equivalence relations (effective).
--- BOOK §2.422: Let A be a power allegory. Then Spl(Cor(A)) is an effective power allegory.
--- (Needs: algebraic proof that E = ff° using symm_div_eq_A_comp; map f from eps_thick.)
+-- §2.422 algebraic sub-fact (E = ff°): PROVED — `equivRel_eq_map_comp_recip` below.
+--   E² = E (`equivRel_idem`), then `symm_div_eq_A_comp` gives E = A(E)≫(A E)° with A(E) a map.
+-- §2.422 full statement ("Spl(Cor(A)) is an effective power allegory"): OPEN.
+--   Blocker: the Cor(A) sub-allegory of coreflexives and the Spl idempotent-splitting
+--   completion are not constructed in this repo.
 
 /-! §2.422: in a power allegory, every equivalence relation E has the form f ≫ f°
     for some map f.  Book: "E = E/E" (division allegory) + power allegory ⟹ E = ff°
     via `symm_div_eq_A_comp`: E = A(E) ≫ (A E)° with A(E) a map. -/
--- §2.422: every_equiv_rel_is_map_comp_recip
 /-- **§2.422**: In any division allegory, every equivalence relation satisfies `E ≫ E = E`. -/
 theorem equivRel_idem {𝒜 : Type u} [DivisionAllegory 𝒜] {a : 𝒜} {E : a ⟶ a}
     (hE : EquivalenceRel E) : E ≫ E = E :=

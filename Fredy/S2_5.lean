@@ -670,8 +670,9 @@ end Coreflexive54
 
 /-! ## §2.563  Dense relations and separated objects: map-naming theorem
 
-  BOOK §2.563: If B is separated, then any map A → B in the boolean quotient is named
-  by a simple relation whose domain is a dense subobject of A. -/
+  §2.563: If B is separated, then any map A → B in the boolean quotient is named
+  by a simple relation whose domain is a dense subobject of A.
+  PROVED: `map_in_quotient_named_by_simple` below. -/
 
 section Naming563
 
