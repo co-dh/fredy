@@ -63,7 +63,7 @@ variable (𝒟 : Type u) [Cat.{v} 𝒟] [Topos 𝒟]
 theorem le_of_subChar_eq {A : 𝒟} {S T : Subobject 𝒟 A} (h : subChar S = subChar T) :
     S.le T := by
   have hSS : S.arr ≫ subChar S = term S.dom ≫ HasSubobjectClassifier.true :=
-    (le_iff_classify S S).mp (Sub.le_refl S)
+    (le_iff_classify S S).mp (Subobject.le_refl S)
   rw [h] at hSS
   exact (le_iff_classify S T).mpr hSS
 
@@ -272,7 +272,7 @@ theorem extJoin_mono_pred {A : 𝒞} {P Q : Subobject 𝒞 A → Prop}
       (extJoin hpow LocallySmallTopos.wellPowered Q) := by
   refine extJoin_least hpow LocallySmallTopos.wellPowered P _ (fun s hs => ?_)
   obtain ⟨t, hQt, hst⟩ := h s hs
-  exact subLe_trans hst (extJoin_upper hpow LocallySmallTopos.wellPowered Q t hQt)
+  exact Subobject.le_trans hst (extJoin_upper hpow LocallySmallTopos.wellPowered Q t hQt)
 
 /-! ### STEP 2 — composition distributes over arbitrary joins (right)
 
@@ -302,7 +302,7 @@ theorem compose_extJoin_right {A B C : 𝒞} (R : BinRel 𝒞 A B)
       (existsAlong (omegaR R C)
         (extJoin hpow wp
           (fun A' => ∃ W, S W ∧ A' = InverseImage (thetaR R C) (relSub (binRelSub W))))) := by
-    refine existsAlong_mono (omegaR R C) (subLe_trans hframe ?_)
+    refine existsAlong_mono (omegaR R C) (Subobject.le_trans hframe ?_)
     -- rewrite the inner predicate (θ# W vs θ#(relSub(binRelSub W))) — they coincide since
     -- relSub(binRelSub W) = W as subobjects.  Use `extJoin_mono_pred`.
     refine extJoin_mono_pred hpow (fun s ⟨W, hSW, hs⟩ => ?_)
@@ -322,7 +322,7 @@ theorem compose_extJoin_right {A B C : 𝒞} (R : BinRel 𝒞 A B)
     -- V = ∃_ω s = ∃_ω(θ#(relSub(binRelSub W))) ≤ relSub(R ⊚ binRelSub W) by reverse compose_eq.
     rw [hV, hsW]
     exact (relSub_compose_eq R (binRelSub W)).2
-  exact subLe_trans hL (subLe_trans hstep (subLe_trans h2 (subLe_trans h3 h4)))
+  exact Subobject.le_trans hL (Subobject.le_trans hstep (Subobject.le_trans h2 (Subobject.le_trans h3 h4)))
 
 /-- `binRelSub (relSub R)` is relationally equal to `R` (round-trip). -/
 theorem binRelSub_relSub_relLe {A B : 𝒞} (R : BinRel 𝒞 A B) :
@@ -543,7 +543,7 @@ theorem copowUnion_simple {X : 𝒞} (f : I → ((one : 𝒞) ⟶ X)) :
       obtain ⟨W, ⟨i, hWi⟩, hU⟩ := hmem
       rw [hU, hWi]
       exact subLe_of_relLe (hpieces i)
-    exact relLe_of_subLe (subLe_trans hdist hbound)
+    exact relLe_of_subLe (Subobject.le_trans hdist hbound)
   -- Now Simple G : G° ⊚ G ≤ graph (id X).  Apply `key` with T := G°.
   show RelLe (G° ⊚ G) (graph (Cat.id X))
   refine key (G°) (fun i => ?_)
@@ -900,7 +900,7 @@ theorem gcoUnion_simple {X : 𝒞} (f : ∀ i, A i ⟶ X) :
       obtain ⟨W, ⟨i, hWi⟩, hU⟩ := hmem
       rw [hU, hWi]
       exact subLe_of_relLe (hpieces i)
-    exact relLe_of_subLe (subLe_trans hdist hbound)
+    exact relLe_of_subLe (Subobject.le_trans hdist hbound)
   show RelLe (G° ⊚ G) (graph (Cat.id X))
   refine key (G°) (fun i => ?_)
   have hrecip : RelLe ((G° ⊚ binRelSub (relSub (gcoPartial hpow cand f i)))°)
@@ -1115,8 +1115,8 @@ end CocompleteFromCoprodCoeq
 
 -- Make the GENUINE `Topos.toHasBinaryProducts` win instance search for `HasBinaryProducts 𝒞`
 -- (the §1.92 `topos_has_exponentials.toHasBinaryProducts` is deprioritised but could still be
--- picked, routing a products goal through `Sorry`-derived structure).  Keeps these theorems
--- axiom-honest, mirroring the §1.92 `attribute [local instance]` pattern.
+-- picked, making otherwise-computable defs noncomputable via `Classical.choice`).  Mirroring
+-- the §1.92 `attribute [local instance]` pattern.
 attribute [local instance 10000] Topos.toHasBinaryProducts
 
 /-- **§1.967**: In a locally small topos, arbitrary powers exist iff arbitrary copowers exist.
@@ -1133,8 +1133,8 @@ theorem topos_powers_copowers_equiv [LocallySmallTopos 𝒞] [HasBinaryCoproduct
     (Nonempty (HasArbitraryCopowers (𝒞 := 𝒞))) :=
   -- TERM MODE (not `by constructor`): the tactic `constructor` re-synthesizes the iff's
   -- `HasBinaryProducts` per goal, which can route the type through the §1.92
-  -- `topos_has_exponentials.toHasBinaryProducts` and pick up `sorryAx`; the explicit
-  -- `⟨forward, backward⟩` shares ONE elaboration of the statement, staying axiom-honest.
+  -- `topos_has_exponentials.toHasBinaryProducts` and make the products noncomputable via
+  -- `Classical.choice`; the explicit `⟨forward, backward⟩` shares ONE elaboration.
   ⟨fun ⟨hpow⟩ =>
       -- (a)→(b): every `I` has a copower-of-1 (`toposCopowerOfOne`), so the sibling iff yields
       -- `HasArbitraryCopowers`.

@@ -255,20 +255,19 @@ theorem topos_is_logos : Nonempty (Logos' 𝒞) := by
 
     RESIDUAL (pinned by the hypothesis, NOT a Sorry): the *existence* of the glb `M = ⋂F`
     — the §1.943 family-glb over a subobject family of `[B×B]` — still rests on §1.54's
-    `capitalization_lemma` (still `Sorry`), which is what would *construct* the
-    `HasReflTransClosure 𝒞` instance for a bare topos.  The §1.945-blocked regular structure
-    `[HasImages 𝒞]`/`[PullbacksTransferCovers 𝒞]` (= `topos_is_regular`, still `Sorry`) is
-    likewise carried as an explicit hypothesis.  This theorem isolates precisely the
-    *closure-assembly* (now done) from the *glb-existence* (the genuine §1.543 residual).
+    capitalization route, which is what would *construct* the `HasReflTransClosure 𝒞`
+    instance for a bare topos (taking the `[HasReflTransClosure 𝒞]` hypothesis here rather
+    than building it avoids that dependency).  The regular structure `[HasImages 𝒞]`/
+    `[PullbacksTransferCovers 𝒞]` is likewise carried as an explicit hypothesis (both are now
+    available — `topos_is_regular` is closed — but kept explicit here for clarity).
+    This theorem isolates precisely the *closure-assembly* (done) from the *glb-instance*.
 
-    AXIOM-HYGIENE NOTE: the *proof body* `⟨rtc R, …⟩` contains no `Sorry` — the four §1.77
-    components (`le_rtc`/`rtc_reflexive`/`rtc_transitive`/`rtc_minimal`) are each `#print
-    axioms`-clean.  `#print axioms topos_has_rtc` nonetheless reports `sorryAx`; this is the
-    pre-existing FILE-WIDE leak of S1_92's `topos_has_exponentials` (a `Sorry` global instance
-    synthesised from the ambient `[Topos 𝒞]`, which `BinRel`'s `HasPullbacks` resolution routes
-    through) and it taints EVERY completed declaration here equally (`inter_le_named`,
-    `membershipMap_nameOf`, …) — not anything specific to this discharge.  It is out of scope
-    to fix (S1_92, off-limits). -/
+    AXIOM-HYGIENE NOTE: `#print axioms topos_has_rtc` reports `[propext, Classical.choice]` —
+    the four §1.77 components (`le_rtc`/`rtc_reflexive`/`rtc_transitive`/`rtc_minimal`) and
+    `topos_has_exponentials` (now genuinely proved, axiom `Classical.choice` only) are all
+    axiom-honest.  The local `attribute [local instance 10000] Topos.toHasBinaryProducts`
+    guard is retained so `BinRel`'s `HasPullbacks` resolution always picks the computable
+    product path rather than the `Classical.choice`-heavy exponential one. -/
 theorem topos_has_rtc [HasImages 𝒞] [PullbacksTransferCovers 𝒞] [HasReflTransClosure 𝒞]
     {B : 𝒞} (R : BinRel 𝒞 B B) :
     ∃ Rstar : BinRel 𝒞 B B,

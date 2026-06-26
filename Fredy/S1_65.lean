@@ -88,8 +88,9 @@ proves this in three steps:
   (iii) T preserves covers — covers = coequalizers (§1.652 + §1.566 kernel pair),
         and T preserves pushouts and 0, hence T preserves coequalizers.
 
-Steps (i) and (ii) are CLOSED (via the §1.64 `amalgamation_is_pullback`); step (iii) is
-the sole remaining Sorry, documented with its precise blocker. -/
+All three steps are now CLOSED (axioms `propext, Classical.choice`): (i)+(ii) via the
+§1.64 `amalgamation_is_pullback`; (iii) via `pretopos_balanced` / `cover_eq_epic_preTopos`
+(see the UNBLOCKED note below). -/
 
 section BiCartRepr
 
@@ -344,8 +345,8 @@ theorem preTopos_functor_preserves_equalizers (hptf : PreToposFunctor F)
           verbatim signature lacks `[HasBinaryCoproducts] [HasCoequalizers]`, so
           the cokernel pair `B +_A B` cannot be built here; and
       (2) `cover_eq_epic_preTopos` requires `[HasReflTransClosure ℬ]` (absent
-          from this signature) and internally bottoms out at `pretopos_balanced`,
-          itself `Sorry` on the §1.543 effective-coregularity step.
+          from this signature) and internally bottoms out at `pretopos_balanced`
+          (now closed, axioms `propext, Classical.choice`).
     No shortcut via `PreservesMono` alone (a functor preserving monics need not
     preserve covers).
 

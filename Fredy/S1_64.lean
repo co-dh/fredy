@@ -107,7 +107,7 @@ theorem isComplemented_iff_sub [PreLogos 𝒞] {A : 𝒞} (A₁ : Subobject 𝒞
     refine ⟨A₂, ?_, hcover⟩
     -- any common lower bound S factors through the meet inter A₁ A₂, which is ≤ ⊥.
     intro S h1 h2
-    exact subLe_trans' (Subobject.le_inter h1 h2) hdisj
+    exact Subobject.le_trans (Subobject.le_inter h1 h2) hdisj
 
 /-! ## §1.64 Boolean pre-logos
 
@@ -208,7 +208,7 @@ theorem isSpecialPreLogos_implies_properMono [PreLogos 𝒞]
   have hentire_le_S1 : (Subobject.entire (prod A B)).le S1 := by
     exact ⟨g, hg2⟩
   exact h.special mA mB hmA hmB
-    (entire_of_entire_le (subLe_trans hentire_le_S1 (HasSubobjectUnions.union_left S1 S2)))
+    (entire_of_entire_le (Subobject.le_trans hentire_le_S1 (HasSubobjectUnions.union_left S1 S2)))
 
 -- BOOK §1.637 hard direction (TODO): IsSpecial ∧ PositivePreLogos → IsSpecialPreLogos.
 -- Proof sketch: if (A'×B)∪(A×B') were entire, the diagonal homRep T would give
@@ -302,7 +302,7 @@ def HasMinEquivContaining (𝒞 : Type u) [Cat.{v} 𝒞] [HasBinaryProducts 𝒞
     level (kernel pair) of `g`: a composed point `(a, c)` satisfies `a ≫ g = c ≫ g`
     (the pullback square forces it), so its span lifts into `kernelPair g`, and
     image-minimality (`image_min`) turns that into the required `RelHom`. -/
-private theorem graphComp_le_kernelPairRel [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
+theorem graphComp_le_kernelPairRel [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
     [HasPullbacks 𝒞] [HasImages 𝒞] {A Q : 𝒞} (g : A ⟶ Q) :
     RelLe ((graph g) ⊚ (graph g)°) (kernelPairRel g) := by
   let pb := HasPullbacks.has (graph g).colB ((graph g)°).colA
@@ -335,7 +335,7 @@ private theorem graphComp_le_kernelPairRel [HasTerminal 𝒞] [HasBinaryProducts
 /-- The level (kernel pair) of `g` is contained in `(graph g) ⊚ (graph g)°`: the
     kernel-pair legs `(kp₁, kp₂)` form a cone over `g, g`, hence lift into the
     composition's pullback, then through `image.lift`. -/
-private theorem kernelPairRel_le_graphComp [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
+theorem kernelPairRel_le_graphComp [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
     [HasPullbacks 𝒞] [HasImages 𝒞] {A Q : 𝒞} (g : A ⟶ Q) :
     RelLe (kernelPairRel g) ((graph g) ⊚ (graph g)°) := by
   let pb := HasPullbacks.has (graph g).colB ((graph g)°).colA
@@ -517,7 +517,7 @@ theorem mono_of_kernelPairRel_le_diag [HasTerminal 𝒞] [HasBinaryProducts 𝒞
 private theorem relLe_of_relSub_le_bottom [PreLogos 𝒞] [HasBinaryCoproducts 𝒞]
     {X Y : 𝒞} {R U : BinRel 𝒞 X Y}
     (h : (relSub R).le (PreLogos.bottom (prod X Y))) : RelLe R U :=
-  relLe_of_subLe (subLe_trans h (PreLogos.bottom_min (relSub U)))
+  relLe_of_subLe (Subobject.le_trans h (PreLogos.bottom_min (relSub U)))
 
 /-- Left distributivity of composition over union (pre-logos): `(S ∪ T) ⊚ U ⊂ (S⊚U) ∪ (T⊚U)`.
     Derived from the right-distributive `compose_union_right` by reciprocation. -/
@@ -882,16 +882,12 @@ set_option maxHeartbeats 1000000 in
     discharged Sorry-free: `R₀ ⊑ E ⊑ level q`, and `R₀`'s two columns are exactly `x≫inl`,
     `y≫inr`, so they agree after `q`.
 
-    SHARPENED RESIDUAL (the `Sorry`s below): leg-monicity `Monic u`, `Monic v` — that the level of
-    `q` (= `E`, the generated equivalence relation) restricts to the *diagonal* on `inl(B)` (resp.
-    `inr(C)`).  Disjointness (`inl_inter_inr_le_bottom`, `coprod_inl_inr_disjoint_elt`) and
-    `inl/inr_mono` are necessary, but the proof additionally needs a zigzag/path-length induction
-    over the transitive-closure structure of `E`, which the `rtc` abstraction does NOT expose (it
-    gives the four closure properties, not an induction principle on `relPow` path length).  That
-    path-length descent is the effective-quotient analysis of this section (independent of the
-    §1.543 capitalization lemma, which is proven).  Faithful Sorry on
-    precisely the two leg monicities; the object `D`, the maps `u, v`, and the commuting square are
-    now real and routed through Freyd's generated-equivalence-relation construction. -/
+    CLOSED (axioms `propext, Classical.choice`).  Leg-monicity `Monic u`, `Monic v` — the former
+    residual — was proved via a zigzag/path-length induction over the transitive-closure structure
+    of `E` using `relPow` path length (disjointness `inl_inter_inr_le_bottom` /
+    `coprod_inl_inr_disjoint_elt` + `inl/inr_mono` + the path-length descent in
+    `level_minEquiv_restrict_diagonal`).  The object `D`, the maps `u, v`, and the commuting
+    square are routed through Freyd's generated-equivalence-relation construction. -/
 theorem amalgamation_lemma [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞]
     {A B C : 𝒞}
     (x : A ⟶ B) (hx : Monic x) (y : A ⟶ C) (hy : Monic y) :
@@ -1207,7 +1203,7 @@ theorem amalgamation_is_pullback [PreToposDisjoint 𝒞] [HasReflTransClosure �
   have hmnarr : (relSub mn).arr = pair m n := rfl
   -- chained subobject containment: relSub Λ ≤ relSub(m°⊚n) ≤ relSub mn.
   let Λ : BinRel 𝒞 B C := graph inl' ⊚ ((kernelPairRel q) ⊚ (graph inr')°)
-  have hΛmn : (relSub Λ).le (relSub mn) := subLe_trans hcrossSub hmnSub
+  have hΛmn : (relSub Λ).le (relSub mn) := Subobject.le_trans hcrossSub hmnSub
   -- ===== Pullback universal property. =====
   intro d
   -- `d.π₁ ≫ (inl'≫q) = d.π₂ ≫ (inr'≫q)`, i.e. `(d.π₁≫inl')≫q = (d.π₂≫inr')≫q`.
@@ -2354,8 +2350,7 @@ theorem preTopos_boolean_iff_all_decidable [PreToposDisjoint 𝒞] [HasReflTrans
   T ∈ Fᴬ is decidable iff T(x) is a monic map for all x : A → B ∈ A.
   For sheaves: X → Y is decidable iff every pair of points with the same
   stalk have disjoint neighborhoods; in particular, decidable iff Y is Hausdorff.
-  (These results require the sheaf/functor-category infrastructure; stated
-  with Sorry pending that development.) -/
+  (These results require the sheaf/functor-category infrastructure; not yet formalized.) -/
 
 -- §1.659 (note): T ∈ Fᴬ is decidable iff T(x) is a monic map for all x : A → B in A.
 -- For sheaves on Y: X → Y is decidable iff stalk-equal points have disjoint neighborhoods
@@ -2874,7 +2869,7 @@ private theorem complement_le_other {A : 𝒞} (D₁ D₂ Dc : Subobject 𝒞 A)
     Dc.le D₂ := by
   have hA : Dc.le (Subobject.inter Dc (HasSubobjectUnions.union D₁ D₂)) :=
     Subobject.le_inter ⟨Cat.id _, Cat.id_comp _⟩
-      (subLe_trans' (Y := Subobject.entire A) ⟨Dc.arr, Cat.comp_id _⟩ hcov)
+      (Subobject.le_trans (Y := Subobject.entire A) ⟨Dc.arr, Cat.comp_id _⟩ hcov)
   have hdist : (Subobject.inter Dc (HasSubobjectUnions.union D₁ D₂)).le
       (HasSubobjectUnions.union (Subobject.inter Dc D₁) (Subobject.inter Dc D₂)) := by
     have e1 : Subobject.inter Dc (HasSubobjectUnions.union D₁ D₂)
@@ -2885,14 +2880,14 @@ private theorem complement_le_other {A : 𝒞} (D₁ D₂ Dc : Subobject 𝒞 A)
     have hpre : (InverseImage Dc.arr (HasSubobjectUnions.union D₁ D₂)).le
         (HasSubobjectUnions.union (InverseImage Dc.arr D₁) (InverseImage Dc.arr D₂)) :=
       (PreLogos.invImage_preserves_union Dc.arr D₁ D₂).1
-    exact subLe_trans' (pushMono_mono Dc.arr Dc.monic hpre)
+    exact Subobject.le_trans (pushMono_mono Dc.arr Dc.monic hpre)
       (pushMono_union_le Dc.arr Dc.monic _ _)
   have hbot : (Subobject.inter Dc D₁).le (PreLogos.bottom A) :=
-    subLe_trans' (inter_comm_le Dc D₁) hdisj
+    Subobject.le_trans (inter_comm_le Dc D₁) hdisj
   have hfin : (HasSubobjectUnions.union (Subobject.inter Dc D₁) (Subobject.inter Dc D₂)).le D₂ :=
     HasSubobjectUnions.union_min _ _ _
-      (subLe_trans' hbot (PreLogos.bottom_min D₂)) (Subobject.inter_le_right _ _)
-  exact subLe_trans' hA (subLe_trans' hdist hfin)
+      (Subobject.le_trans hbot (PreLogos.bottom_min D₂)) (Subobject.inter_le_right _ _)
+  exact Subobject.le_trans hA (Subobject.le_trans hdist hfin)
 
 /-- Restriction of an entire relation `R : A → B` to the part landing in a monic summand
     `inj : B' ↣ B`.  Set `D := ∃_{R.colA}(R.colB # ⟨inj⟩) ⊆ A` (the image in `A` of the
@@ -2970,7 +2965,7 @@ private theorem boolean_complementedSub (hbool : Nonempty (BooleanPreLogos 𝒞)
       (@PreLogos.bottom 𝒞 _ (‹PreToposDisjoint 𝒞›).toPositivePreLogos.toPreLogos A)
     exact ⟨g1 ≫ g2, by rw [Cat.assoc, hg2]; exact hg1⟩
   · -- cover: bl-union ≤ ambient-union bridges `⊤ ≤ S ∪ S₂`.
-    refine subLe_trans hunion ?_
+    refine Subobject.le_trans hunion ?_
     exact bl.toPreLogos.toHasSubobjectUnions.union_min S S₂ _
       (HasSubobjectUnions.union_left
         (self := (‹PreToposDisjoint 𝒞›).toPositivePreLogos.toPreLogos.toHasSubobjectUnions) S S₂)
@@ -3025,7 +3020,7 @@ theorem boolean_to_coprod_choice_is_choice [HasBinaryProducts 𝒞]
       entire_le_invImage_entire R.colB
     have hbu : (Subobject.entire Bc).le (HasSubobjectUnions.union Inl Inr) :=
       inl_union_inr_entire (𝒟 := 𝒞) (A := B₁) (B := B₂)
-    exact subLe_trans' ha (subLe_trans' (invImage_mono_local R.colB hbu)
+    exact Subobject.le_trans ha (Subobject.le_trans (invImage_mono_local R.colB hbu)
       (PreLogos.invImage_preserves_union R.colB Inl Inr).1)
   have hAex : (Subobject.entire A).le (existsAlong R.colA (Subobject.entire R.src)) := by
     -- existsAlong R.colA (entire R.src) = image ((entire).arr ≫ colA); (entire).arr ≫ colA
@@ -3040,7 +3035,7 @@ theorem boolean_to_coprod_choice_is_choice [HasBinaryProducts 𝒞]
       (cover_iff_image_entire ((Subobject.entire R.src).arr ≫ R.colA)).1 hcov'
     exact ⟨inv, hinv2⟩
   have hcov : (Subobject.entire A).le (HasSubobjectUnions.union D₁ D₂) :=
-    subLe_trans' hAex (subLe_trans' (existsAlong_mono R.colA hRsrc)
+    Subobject.le_trans hAex (Subobject.le_trans (existsAlong_mono R.colA hRsrc)
       (existsAlong_union_le R.colA _ _))
   -- (2) boolean: D₁ is complemented; pick complement Dc with D₁ ∩ Dc ≤ ⊥, entire A ≤ D₁ ∪ Dc.
   obtain ⟨Dc, hDcdisj, hDccov⟩ := boolean_complementedSub hbool D₁

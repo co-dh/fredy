@@ -181,11 +181,6 @@ variable [HasPullbacks 𝒞]
 
 namespace AbPullback
 
-/-- `g ≫ ⟨a, b⟩ = ⟨g ≫ a, g ≫ b⟩` (local copy; `ab_pair_precomp` of `AbCategory` is private). -/
-private theorem ab_pair_precomp' {X Y P Q : 𝒞} (g : X ⟶ Y) (a : Y ⟶ P) (b : Y ⟶ Q) :
-    g ≫ pair a b = pair (g ≫ a) (g ≫ b) :=
-  pair_uniq (g ≫ a) (g ≫ b) (g ≫ pair a b)
-    (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])
 
 variable {A B C : AbelianGroupObject 𝒞} (f : A ⟶ C) (g : B ⟶ C)
 
@@ -267,12 +262,12 @@ private noncomputable def pbAdd : prod (pbPt f g) (pbPt f g) ⟶ pbPt f g :=
     `(⟨u,w⟩ ≫ pbAdd) ≫ p₁ = ⟨u≫p₁, w≫p₁⟩ ≫ A.add` (and likewise `p₂`/`B`). -/
 private theorem pbAdd_proj_p₁ {S : 𝒞} (u w : S ⟶ pbPt f g) :
     (pair u w ≫ pbAdd f g) ≫ p₁ f g = pair (u ≫ p₁ f g) (w ≫ p₁ f g) ≫ A.add := by
-  rw [Cat.assoc, pbAdd_p₁, ← Cat.assoc, ab_pair_precomp', ← Cat.assoc, ← Cat.assoc,
+  rw [Cat.assoc, pbAdd_p₁, ← Cat.assoc, ab_pair_precomp, ← Cat.assoc, ← Cat.assoc,
       fst_pair, snd_pair]
 
 private theorem pbAdd_proj_p₂ {S : 𝒞} (u w : S ⟶ pbPt f g) :
     (pair u w ≫ pbAdd f g) ≫ p₂ f g = pair (u ≫ p₂ f g) (w ≫ p₂ f g) ≫ B.add := by
-  rw [Cat.assoc, pbAdd_p₂, ← Cat.assoc, ab_pair_precomp', ← Cat.assoc, ← Cat.assoc,
+  rw [Cat.assoc, pbAdd_p₂, ← Cat.assoc, ab_pair_precomp, ← Cat.assoc, ← Cat.assoc,
       fst_pair, snd_pair]
 
 /-- The pullback group object: carrier the 𝒞-pullback point, operations induced by
@@ -303,11 +298,11 @@ noncomputable def pullbackGObj : AbelianGroupObject 𝒞 where
       exact GElt.neg_add B (p₂ f g)
   add_assoc := by
     refine pb_jointly_monic f g _ _ ?_ ?_
-    · rw [pbAdd_proj_p₁, Cat.assoc, pbAdd_p₁, ← Cat.assoc, ab_pair_precomp',
+    · rw [pbAdd_proj_p₁, Cat.assoc, pbAdd_p₁, ← Cat.assoc, ab_pair_precomp,
           pbAdd_proj_p₁, pbAdd_proj_p₁]
       simp only [Cat.assoc]
       exact GElt.add_assoc A (fst ≫ fst ≫ p₁ f g) (fst ≫ snd ≫ p₁ f g) (snd ≫ p₁ f g)
-    · rw [pbAdd_proj_p₂, Cat.assoc, pbAdd_p₂, ← Cat.assoc, ab_pair_precomp',
+    · rw [pbAdd_proj_p₂, Cat.assoc, pbAdd_p₂, ← Cat.assoc, ab_pair_precomp,
           pbAdd_proj_p₂, pbAdd_proj_p₂]
       simp only [Cat.assoc]
       exact GElt.add_assoc B (fst ≫ fst ≫ p₂ f g) (fst ≫ snd ≫ p₂ f g) (snd ≫ p₂ f g)

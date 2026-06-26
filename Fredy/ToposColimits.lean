@@ -149,9 +149,9 @@ private theorem predF_carrier_in_mem {A Df K : 𝒞} (f : Df ⟶ A) (k : K ⟶ p
 /-- **Generalized upper bound.**  `Allows (bigInter Fname) f` whenever the family's
     carrier-in-membership holds: every generalized point `k : K → [A] × Df` whose `[A]`-slot
     is in `Fname` (`k ≫ fst ≫ membershipMap Fname = ⊤`) satisfies `f(k≫snd) ∈ (k≫fst)`.
-    This is exactly `InternalForallTopos.allows_imageF`'s proof with its `private`
-    carrier-in-mem step replaced by the hypothesis `hci`. -/
-private theorem allows_bigInter_of_carrier {A Df : 𝒞} (f : Df ⟶ A)
+    This is the §1.91 `imp_adjunction` greatest-lower-bound reduction, family-generic in the
+    carrier-in-membership hypothesis. -/
+theorem allows_bigInter_of_carrier {A Df : 𝒞} (f : Df ⟶ A)
     (Fname : one ⟶ powObj (powObj A))
     (hci : ∀ {K : 𝒞} (k : K ⟶ prod (powObj A) Df),
       k ≫ (fst ≫ membershipMap Fname) = term K ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) →

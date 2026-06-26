@@ -314,8 +314,7 @@ theorem g_seg (d : α) (b : α) : gChoice d (seg (g := gChoice d) b) = b := by
 /-- `order a b` is exactly `a ∈ seg b`. -/
 theorem order_iff_seg {a b : α} : order (g := g) a b ↔ seg (g := g) b a := Iff.rfl
 
-theorem order_irrefl (a : α) : ¬ order (g := g) a a := by
-  rintro ⟨t, _, hta, hnta⟩; exact hnta hta
+theorem order_irrefl (a : α) : ¬ order (g := g) a a := not_mem_seg a
 
 theorem order_trans {a b c : α} (hab : order (g := g) a b) (hbc : order (g := g) b c) :
     order (g := g) a c := by

@@ -39,12 +39,6 @@ theorem subobject_le_antisymm_iso {B : 𝒞} {S T : Subobject 𝒞 B}
   · exact S.monic (h₁ ≫ h₂) (Cat.id S.dom) (by rw [Cat.assoc, h₂fac, h₁fac, Cat.id_comp])
   · exact T.monic (h₂ ≫ h₁) (Cat.id T.dom) (by rw [Cat.assoc, h₁fac, h₂fac, Cat.id_comp])
 
-/-- Transitivity of Subobject.le. -/
-theorem subobject_le_trans {B : 𝒞} {X Y Z : Subobject 𝒞 B}
-    (hXY : X.le Y) (hYZ : Y.le Z) : X.le Z := Subobject.le_trans hXY hYZ
-
-/-- Reflexivity of Subobject.le. -/
-theorem subobject_le_refl {B : 𝒞} (S : Subobject 𝒞 B) : S.le S := Subobject.le_refl S
 
 /-! ## §1.71 Boolean pre-logos: f## = complement of direct image
 
@@ -206,9 +200,9 @@ theorem boolean_logos_rightAdj_eq_compl_direct_compl
   -- Both `ND` and `RA` are characterised by the same down-set, so each ≤ the other.
   refine ⟨?_, ?_⟩
   · -- RA ≤ ND : take B' = RA; `RA ≤ RA` ⟹ `f#(RA) ≤ A'` ⟹ `RA ≤ ND`.
-    exact (key RA).mpr ((adj RA).mpr (subobject_le_refl RA))
+    exact (key RA).mpr ((adj RA).mpr (Subobject.le_refl RA))
   · -- ND ≤ RA : take B' = ND; `ND ≤ ND` ⟹ `f#(ND) ≤ A'` ⟹ `ND ≤ RA`.
-    exact (adj ND).mp ((key ND).mp (subobject_le_refl ND))
+    exact (adj ND).mp ((key ND).mp (Subobject.le_refl ND))
 
 end BooleanLogos
 
@@ -244,11 +238,11 @@ private theorem logos_invImage_pres_union {A B : 𝒞} (f : A ⟶ B)
   -- Step 1: join ≤ fST  (f#S ∪ f#T ≤ f#(S∪T))
   -- S∪T ≤ f##(fST) from f#(S∪T) ≤ f#(S∪T) [refl] and adj.
   have h_ST_le_ra : ST.le (HasRightAdjointImage.rightAdj f fST) :=
-    (adj ST fST).mp (subobject_le_refl fST)
+    (adj ST fST).mp (Subobject.le_refl fST)
   have hS_le : fS.le fST := (adj S fST).mpr
-    (subobject_le_trans (HasSubobjectUnions.union_left S T) h_ST_le_ra)
+    (Subobject.le_trans (HasSubobjectUnions.union_left S T) h_ST_le_ra)
   have hT_le : fT.le fST := (adj T fST).mpr
-    (subobject_le_trans (HasSubobjectUnions.union_right S T) h_ST_le_ra)
+    (Subobject.le_trans (HasSubobjectUnions.union_right S T) h_ST_le_ra)
   have hle : join.le fST := HasSubobjectUnions.union_min _ _ _ hS_le hT_le
   -- Step 2: fST ≤ join  (f#(S∪T) ≤ f#S ∪ f#T)
   -- S ≤ f##(join) from f#S ≤ join [union_left] and adj; idem T.
@@ -359,7 +353,7 @@ def locallyComplete_with_union_preserving_is_logos
       have hpres := h_preserves f (fun C => (InverseImage f C).le A')
       have himg_le : (LC.sup (fun A'' => ∃ C, (InverseImage f C).le A' ∧ A'' = InverseImage f C)).le A' :=
         LC.sup_least _ A' (fun A'' ⟨_, hC, heq⟩ => heq ▸ hC)
-      exact subobject_le_trans (subobject_le_trans hmono hpres) himg_le
+      exact Subobject.le_trans (Subobject.le_trans hmono hpres) himg_le
 
 end LogosFromLC
 

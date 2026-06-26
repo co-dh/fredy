@@ -547,10 +547,6 @@ variable {I : Type u}
 /-- Membership in an ultrafilter. -/
 def Mem (S : Set I) (U : Ultrafilter I) : Prop := U.toFilter.sets S
 
-/-- Decisiveness, named: `S ∈ U ∨ Sᶜ ∈ U`. -/
-theorem mem_or_compl (U : Ultrafilter I) (S : Set I) :
-    U.toFilter.sets S ∨ U.toFilter.sets Sᶜ := U.decide S
-
 /-- An ultrafilter contains no empty set; in particular not both `S` and `Sᶜ`. -/
 theorem not_mem_and_compl (U : Ultrafilter I) (S : Set I) :
     ¬ (U.toFilter.sets S ∧ U.toFilter.sets Sᶜ) := by

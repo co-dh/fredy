@@ -56,12 +56,6 @@ variable {𝒜 : Type u} [Allegory 𝒜]
 
 /-! ### Helper order lemmas -/
 
-/-- R ⊑ dom R ≫ R  (§2.121). -/
-theorem le_dom_comp {a b : 𝒜} (R : a ⟶ b) : R ⊑ dom R ≫ R := by
-  have h := modular_le (Cat.id a) R R
-  rw [Cat.id_comp, Allegory.inter_idem, ← dom] at h
-  exact h
-
 /-- dom R ≫ R = R. -/
 theorem dom_comp_eq {a b : 𝒜} (R : a ⟶ b) : dom R ≫ R = R :=
   le_antisymm
@@ -91,16 +85,10 @@ theorem dom_inter_comp_right {a b : 𝒜} {f g : a ⟶ b} (hg : Map g) : dom (f 
 
 /-! ### Identity and composition in Map(𝒜) -/
 
-private theorem id_is_map (a : 𝒜) : Map (Cat.id a) :=
-  ⟨show Entire (Cat.id a) from by
-        simp [Entire, dom, recip_id, Cat.comp_id, Allegory.inter_idem],
-   show Simple (Cat.id a) from by
-        simp [Simple, recip_id, Cat.id_comp]; exact le_refl _⟩
-
 /-- **§2.14**: Map(𝒜) is a category. -/
 instance (priority := 0) mapCat : Cat.{v} (MapObj 𝒜) where
   Hom   a b := { R : a ⟶ b // Map R }
-  id    a   := ⟨Cat.id a, id_is_map a⟩
+  id    a   := ⟨Cat.id a, id_is_map_local a⟩
   comp  f g := ⟨f.val ≫ g.val, map_comp f.property g.property⟩
   id_comp f := Subtype.ext (Cat.id_comp f.val)
   comp_id f := Subtype.ext (Cat.comp_id f.val)
@@ -960,7 +948,7 @@ theorem mapPullback_leg_corOf {a b c : MapObj A}
     congrArg Subtype.val (@HasPullback.lift_snd _ (mapCat (𝒜 := A)) a b c f g pb cone0)
   -- u ≫ v = id_p, by tabulation joint-monicity (both u≫v and id agree after π₁, π₂).
   have huv_alg : u.val ≫ hm = Cat.id p := by
-    apply tabulation_UP_unique ht (map_comp u.property hm_map) (id_is_map p)
+    apply tabulation_UP_unique ht (map_comp u.property hm_map) (id_is_map_local p)
     · rw [Cat.assoc, show hm ≫ π₁ = pbπ₁.val from hm1, hu1, Cat.id_comp]
     · rw [Cat.assoc, show hm ≫ π₂ = pbπ₂.val from hm2, hu2, Cat.id_comp]
   -- hm°≫hm = id_p via map_retr_leg (retraction u.val ≫ hm = id_p).
@@ -1409,7 +1397,7 @@ noncomputable instance mapPullbacksTransferCovers :
         rw [Cat.assoc, hv1]; exact congrArg Subtype.val hu1
       have heq2 : (u_sub.val ≫ hv) ≫ π₂ = π₂ := by
         rw [Cat.assoc, hv2]; exact congrArg Subtype.val hu2
-      exact mapHom_ext (tabulation_UP_unique ht (map_comp u_sub.property hv_map) (id_is_map p)
+      exact mapHom_ext (tabulation_UP_unique ht (map_comp u_sub.property hv_map) (id_is_map_local p)
         (heq1.trans (Cat.id_comp π₁).symm) (heq2.trans (Cat.id_comp π₂).symm))
     -- hv_sub ≫ u_sub = id_{cone.pt} in MapCat: from u_sub having right-inverse hv_sub.
     -- Proof: u_sub.val ≫ hv = Cat.id p (from huv_mapcat) ⟹

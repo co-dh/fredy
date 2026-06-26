@@ -789,7 +789,7 @@ theorem classify_InverseImage {A B : 𝒞} (g : A ⟶ B) (S : Subobject 𝒞 B) 
     `PullbacksTransferCovers 𝒞` (pullback-of-a-cover-is-a-cover) — supplied as a hypothesis.
 
     This isolates the genuine remaining topos-exactness content: `PullbacksTransferCovers` is the
-    `topos_is_effective`-flavoured fact (cf. the still-`Sorry` `topos_is_effective` in S1_95) and
+    `topos_is_effective`-flavoured fact (cf. `topos_is_effective` in S1_95, now closed) and
     is NOT derivable from the internal-∀ machinery built here.  With it, regularity is immediate. -/
 theorem topos_is_regular_of_transfer [PullbacksTransferCovers 𝒞] :
     Nonempty (RegularCategory 𝒞) :=

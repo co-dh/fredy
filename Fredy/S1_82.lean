@@ -13,7 +13,7 @@
   §1.827    IsContinuous / IsCocontinuous
   §1.828    HasWeakLimit / WeaklyComplete
             complete_imp_weaklyComplete (PROVED)
-  §1.829    preserves_weaklim_iff_preserves_lim (partial; uniqueness Sorry)
+  §1.829    preserves_weaklim_iff_preserves_lim (fully proved, axiom-free)
   §1.82(10) HasPreLimit / PreComplete
             complete_imp_preComplete (PROVED)
   §1.83     PreAdjointObj / PreAdjointFunctor

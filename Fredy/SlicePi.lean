@@ -148,14 +148,11 @@ end ExpTranspose
 noncomputable section PiForall
 variable {A B : 𝒞} (f : A ⟶ B) [Topos 𝒞]
 
-/-- `Pb X = ⟨X.dom, X.hom ≫ f⟩ : Over B`, the "domain" of `X` pushed into `Over B`. -/
-def PbObj (X : Over A) : Over B := ⟨X.dom, X.hom ≫ f⟩
+/-- The structural arrow `px : f*(X) ⟶ f̂`, underlying `X.hom`. -/
+def pxHom (X : Over A) : (reindexObj f X : Over B) ⟶ fHat f := ⟨X.hom, rfl⟩
 
-/-- The structural arrow `px : Pb X ⟶ f̂`, underlying `X.hom`. -/
-def pxHom (X : Over A) : (PbObj f X : Over B) ⟶ fHat f := ⟨X.hom, rfl⟩
-
-/-- The exponential `Pb ^^ f̂` in `Over B`. -/
-abbrev expPb (X : Over A) : Over B := exp (fHat f) (PbObj f X)
+/-- The exponential `f*(X) ^^ f̂` in `Over B`. -/
+abbrev expPb (X : Over A) : Over B := exp (fHat f) (reindexObj f X)
 
 /-- The exponential `f̂ ^^ f̂` in `Over B`. -/
 abbrev expHatHat : Over B := exp (fHat f) (fHat f)
@@ -177,15 +174,15 @@ def piBeta (X : Over A) : OverHom (expPb f X) (expHatHat f) :=
     of `α` and `β`.  (`@[reducible]` so equalizer lemmas unify against it.) -/
 @[reducible] def piForallObj (X : Over A) : Over B := eqObj (piAlpha f X) (piBeta f X)
 
-/-- `Pb` on morphisms: `m : X ⟶ X'` in `Over A` gives `m.f : Pb X ⟶ Pb X'` in `Over B`
+/-- `reindexObj` on morphisms: `m : X ⟶ X'` in `Over A` gives `m.f : f*(X) ⟶ f*(X')` in `Over B`
     (the same underlying arrow; it commutes since `m.f ≫ X'.hom = X.hom`). -/
-def PbMap {X X' : Over A} (m : X ⟶ X') : (PbObj f X : Over B) ⟶ PbObj f X' :=
+def PbMap {X X' : Over A} (m : X ⟶ X') : (reindexObj f X : Over B) ⟶ reindexObj f X' :=
   ⟨m.f, by show m.f ≫ (X'.hom ≫ f) = X.hom ≫ f; rw [← Cat.assoc, m.w]⟩
 
 @[simp] theorem PbMap_px {X X' : Over A} (m : X ⟶ X') :
     PbMap f m ≫ pxHom f X' = pxHom f X := OverHom.ext (by show m.f ≫ X'.hom = X.hom; exact m.w)
 
-theorem PbMap_id (X : Over A) : PbMap f (Cat.id X) = Cat.id (PbObj f X) := OverHom.ext rfl
+theorem PbMap_id (X : Over A) : PbMap f (Cat.id X) = Cat.id (reindexObj f X) := OverHom.ext rfl
 
 theorem PbMap_comp {X X' X'' : Over A} (m : X ⟶ X') (n : X' ⟶ X'') :
     PbMap f (m ≫ n) = PbMap f m ≫ PbMap f n := OverHom.ext rfl
@@ -301,9 +298,9 @@ private theorem _piPhi_hk {X : Over A} {Y : Over B} (g : OverHom (baseChangeObj 
   have : g.f ≫ X.hom = (_BC f Y).cone.π₂ := g.w
   rw [this, prodToBc_p₂]
 
-/-- The transpose `k : prod f̂ Y ⟶ Pb` underlying `piPhi g`. -/
+/-- The transpose `k : prod f̂ Y ⟶ f*(X)` underlying `piPhi g`. -/
 def piPhiK {X : Over A} {Y : Over B} (g : OverHom (baseChangeObj f Y) X) :
-    prod (fHat f) Y ⟶ PbObj f X :=
+    prod (fHat f) Y ⟶ reindexObj f X :=
   ⟨prodToBc f Y ≫ g.f, by
     show (prodToBc f Y ≫ g.f) ≫ (X.hom ≫ f) = (_PB f Y).cone.π₁ ≫ f
     rw [← Cat.assoc, _piPhi_hk]⟩

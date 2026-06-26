@@ -1401,7 +1401,8 @@ instance : Functor (baseableIncl (𝒜 := 𝒜)) where
 
     Freyd's construction (§1.859): for each `A`, `E := eqObj f g` is the equalizer of the
     exponential transposes `f^A, g^A : B₂^A ⇉ B₃^A`, exhibiting `E^A` and hence `E` as
-    baseable.  FAITHFUL SORRY — the per-`A` representability construction is not yet built.
+    baseable.  CLOSED (axiom-free): the per-`A` representability is built via the power-object
+    classify bijection; `baseable_equalizer_is_baseable` is sorry-free.
 
     NOTE: this replaces an earlier vacuous version that assumed `[HasEqualizers 𝒜]`, ignored
     its cone/lift hypotheses, and merely returned the ambient equalizer (asserting nothing

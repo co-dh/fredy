@@ -349,37 +349,6 @@ section effective
 -- relation predicates and `EffectiveRegular.effective` agree without a diamond.
 variable [EffectiveRegular 𝒞] {X : Over B}
 
-/-- `kernelPairRel g ⊂ (graph g) ⊚ (graph g)°` (re-proved here; the `S1_64` copy is `private`).
-    The kernel-pair legs cone over `g, g`, lift into the composition's pullback, then through
-    `image.lift`. -/
-theorem kernelPairRel_le_graphComp [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
-    [HasImages 𝒞] {A Q : 𝒞} (g : A ⟶ Q) :
-    RelLe (kernelPairRel g) ((graph g) ⊚ (graph g)°) := by
-  let pb := HasPullbacks.has (graph g).colB ((graph g)°).colA
-  let a' := pb.cone.π₁ ≫ (graph g).colA
-  let c' := pb.cone.π₂ ≫ ((graph g)°).colB
-  let sp : pb.cone.pt ⟶ prod A A := pair a' c'
-  have hcone : kp₁ (f := g) ≫ (graph g).colB = kp₂ (f := g) ≫ ((graph g)°).colA := by
-    simp only [graph, reciprocal]; exact kp_sq
-  let v := pb.lift ⟨_, kp₁ (f := g), kp₂ (f := g), hcone⟩
-  have hv1 : v ≫ pb.cone.π₁ = kp₁ (f := g) := pb.lift_fst _
-  have hv2 : v ≫ pb.cone.π₂ = kp₂ (f := g) := pb.lift_snd _
-  refine ⟨⟨v ≫ image.lift sp, ?_, ?_⟩⟩
-  · show (v ≫ image.lift sp) ≫ ((image sp).arr ≫ fst) = kp₁ (f := g)
-    calc (v ≫ image.lift sp) ≫ ((image sp).arr ≫ fst)
-        = v ≫ ((image.lift sp ≫ (image sp).arr) ≫ fst) := by simp [Cat.assoc]
-      _ = v ≫ (sp ≫ fst) := by rw [image.lift_fac]
-      _ = v ≫ a' := by rw [fst_pair]
-      _ = (v ≫ pb.cone.π₁) ≫ (graph g).colA := by dsimp [a']; rw [Cat.assoc]
-      _ = kp₁ (f := g) := by rw [hv1]; simp [graph, Cat.comp_id]
-  · show (v ≫ image.lift sp) ≫ ((image sp).arr ≫ snd) = kp₂ (f := g)
-    calc (v ≫ image.lift sp) ≫ ((image sp).arr ≫ snd)
-        = v ≫ ((image.lift sp ≫ (image sp).arr) ≫ snd) := by simp [Cat.assoc]
-      _ = v ≫ (sp ≫ snd) := by rw [image.lift_fac]
-      _ = v ≫ c' := by rw [snd_pair]
-      _ = (v ≫ pb.cone.π₂) ≫ ((graph g)°).colB := by dsimp [c']; rw [Cat.assoc]
-      _ = kp₂ (f := g) := by rw [hv2]; simp [graph, reciprocal, Cat.comp_id]
-
 /-- The forgotten relation of a slice equivalence relation is a `𝒞`-equivalence relation. -/
 theorem forgetSlice_equivalenceRelation (E : BinRel (Over B) X X)
     (hE : EquivalenceRelation E) : EquivalenceRelation E.forgetSlice := by
@@ -700,14 +669,6 @@ instance overHasSubobjectUnions (B : 𝒞) : HasSubobjectUnions (Over B) where
     Subobject.forgetSlice Y (HasSubobjectUnions.union S T)
       = HasSubobjectUnions.union (Subobject.forgetSlice Y S) (Subobject.forgetSlice Y T) := rfl
 
-/-- `𝒞`-union is monotone in both arguments (from `union_min`/`union_left`/`union_right`). -/
-theorem union_mono {W : 𝒞} {S S' T T' : Subobject 𝒞 W}
-    (hS : S.le S') (hT : T.le T') :
-    (HasSubobjectUnions.union S T).le (HasSubobjectUnions.union S' T') :=
-  HasSubobjectUnions.union_min _ _ _
-    (subLe_trans' hS (HasSubobjectUnions.union_left S' T'))
-    (subLe_trans' hT (HasSubobjectUnions.union_right S' T'))
-
 /-- **The slice of a pre-logos is a pre-logos.**  Subobject lattices, bottom, and inverse-image
     preservation all transport from `𝒞`'s lattice on `Y.dom` along the subobject identification
     `Sub (Over B) Y ≃ Sub 𝒞 Y.dom`. -/
@@ -746,8 +707,8 @@ instance overPreLogos (B : 𝒞) : PreLogos (Over B) where
           (Subobject.forgetSlice X (InverseImage f (HasSubobjectUnions.union S T)))
           (HasSubobjectUnions.union (Subobject.forgetSlice X (InverseImage f S))
                                     (Subobject.forgetSlice X (InverseImage f T)))
-      refine subLe_trans' (forgetSlice_invImage_le f _) ?_
-      refine subLe_trans' (PreLogos.invImage_preserves_union f.f
+      refine Subobject.le_trans (forgetSlice_invImage_le f _) ?_
+      refine Subobject.le_trans (PreLogos.invImage_preserves_union f.f
         (Subobject.forgetSlice Y S) (Subobject.forgetSlice Y T)).1 ?_
       exact union_mono (le_forgetSlice_invImage f S) (le_forgetSlice_invImage f T)
     · apply Subobject.forgetSlice_reflects
@@ -755,9 +716,9 @@ instance overPreLogos (B : 𝒞) : PreLogos (Over B) where
           (HasSubobjectUnions.union (Subobject.forgetSlice X (InverseImage f S))
                                     (Subobject.forgetSlice X (InverseImage f T)))
           (Subobject.forgetSlice X (InverseImage f (HasSubobjectUnions.union S T)))
-      refine subLe_trans'
+      refine Subobject.le_trans
         (union_mono (forgetSlice_invImage_le f S) (forgetSlice_invImage_le f T)) ?_
-      refine subLe_trans' ?_ (le_forgetSlice_invImage f _)
+      refine Subobject.le_trans ?_ (le_forgetSlice_invImage f _)
       exact (PreLogos.invImage_preserves_union f.f
         (Subobject.forgetSlice Y S) (Subobject.forgetSlice Y T)).2
   invImage_preserves_bottom {X Y} f := by
@@ -838,7 +799,7 @@ instance overDisjointBinaryCoproduct (B : 𝒞) : DisjointBinaryCoproduct (Over 
         (Subobject.forgetSlice (HasBinaryCoproducts.coprod X Y)
           (Subobject.inter (inlSub over_inl_monic) (inrSub over_inr_monic)))
         (PreLogos.bottom (HasBinaryCoproducts.coprod X Y).dom)
-    exact subLe_trans' (forgetSlice_inter_le _ _) inl_inter_inr_le_bottom
+    exact Subobject.le_trans (forgetSlice_inter_le _ _) inl_inter_inr_le_bottom
   inl_union_inr {X Y} := by
     apply Subobject.forgetSlice_reflects
     show Subobject.le
@@ -1160,8 +1121,8 @@ theorem swap_fixed_le_bottom {X : 𝒞} (g : X ⟶ coprod (one : 𝒞) one)
         (InverseImage g (HasSubobjectUnions.union Inl Inr)) := invImage_mono_local g hbu
     have hc : (InverseImage g (HasSubobjectUnions.union Inl Inr)).le
         (HasSubobjectUnions.union A₁ A₂) := (PreLogos.invImage_preserves_union g Inl Inr).1
-    exact subLe_trans ha (subLe_trans hb hc)
-  exact subLe_trans hentU (HasSubobjectUnions.union_min A₁ A₂ _ hA₁bot hA₂bot)
+    exact Subobject.le_trans ha (Subobject.le_trans hb hc)
+  exact Subobject.le_trans hentU (HasSubobjectUnions.union_min A₁ A₂ _ hA₁bot hA₂bot)
 
 /-- The diagonal subobject `Δ_{1+1}` of `(1+1)×(1+1)`. -/
 noncomputable def diagSub11 : Subobject 𝒞 (prod (coprod (one : 𝒞) one) (coprod one one)) :=
