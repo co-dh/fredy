@@ -1329,24 +1329,22 @@ end S217
   (The instance-pinning accessors `MapCat.relColA`/`relColB`/`relColA_map`/`relColB_map` package the
   `mapCat`-explicit field projections that the `MapObj A := A` abbrev otherwise mis-synthesizes.)
 
-  -- BOOK §2.217(2): the EXACT two RelLe directions still to bridge to package `EffectiveRegular D`
-  -- (hence `PreTopos D`).  The forward dictionary + `s217_2_effectiveSplit_isCover` already turn an
-  -- `EquivalenceRelation E` into: `relOf E` reflexive (`relOf_reflexive`) + symmetric
-  -- (`relOf_symmetric`); split by `[EffectiveAllegory]` to a cover `x : A→Q` with `x≫x° = relOf E`,
-  -- `x°≫x = id` (`mapEffectivenessSplit`).  What is NOT yet bridged:
-  --   (C)  COMPOSITION:  `relOf (R ⊚ S) = relOf R ≫ relOf S`  (in particular its `⊒` half
-  --        `relOf E ≫ relOf E ⊑ relOf (E ⊚ E)`, which — composed with category transitivity
-  --        `E ⊚ E ⊂ E` via `relOf_le_of_relLe` — supplies the IDEMPOTENCY `relOf E ≫ relOf E = relOf E`
-  --        that `EffectiveAllegory.split_symmetric_idempotent` demands);
-  --   (D)  REVERSE containment:  `relOf E ⊑ relOf F  ⟹  E ⊂ F`  (needs `F`'s jointly-monic columns
-  --        to TABULATE `relOf F`, i.e. `F.colA≫F.colA° ∩ F.colB≫F.colB° = id`, stronger than
-  --        category joint-monicity; true for the level/kernel-pair relations `graph x ⊚ graph x°`).
-  -- (C)+(D) are the §2.14 `Rel(Map A) ≅ A` equivalence promoted to the CATEGORY level — `compose`
-  -- (S1_56) is the pullback-then-IMAGE of a span, so (C)'s `⊒` half hinges on the image-cover of
-  -- that span being relationally inverted (cover⊥mono descent), and (D) on the columns tabulating.
-  -- Both reuse `mapPullback_leg_corOf`/`tab_leg_dom`/`mapHasImages`; they are the genuine research
-  -- core, left as this sharpened marker.  With (C)+(D): `relOf E = x≫x° = relOf (graph x ⊚ graph x°)`
-  -- (via `relOf_graph`+`relOf_reciprocal`), so `E ⊂ graph x⊚graph x°` and back follow from (D). -/
+  -- BOOK §2.217(2): the two RelLe bridges are now BOTH CLOSED in `MapCat` (the §2.14 `Rel(Map A) ≅ A`
+  -- equivalence at the CATEGORY level), and the full assembly lands below.
+  --   (C)  COMPOSITION  `relOf (R ⊚ S) = relOf R ≫ relOf S`  =  `MapCat.relOf_compose`.  `compose`
+  --        (S1_56) is the pullback-then-IMAGE of a span; the pullback CROSS-term collapses by
+  --        `MapCat.mapPullback_cross` (`π₁°≫π₂ = R.colB≫S.colA°`) and the image-cover `e` by
+  --        `e°≫e = id` (cover-map), giving the equality OUTRIGHT (no cover⊥mono descent needed).
+  --   (D)  REVERSE containment  `relOf E ⊑ relOf F ⟹ E ⊂ F`  =  `MapCat.relLe_of_relOf_le`, via
+  --        `MapCat.relOf_tabulates`: EVERY `BinRel(Map A)` tabulates its `relOf` — the tabulation
+  --        identity `colA≫colA° ∩ colB≫colB° = id` follows from the categorical joint-monicity
+  --        (`isMonicPair`) by `MapCat.monicPair_tab_identity` (the §2.141 converse).  Then §2.143
+  --        `tabulation_UP_forward` factors `E`'s columns through `F`'s = a `RelHom E F`.
+  -- ASSEMBLY (below): `MapCat.relOf_idempotent` (C + transitivity + reflexivity) ⟹ idempotent
+  -- `relOf E`; `MapCat.mapIsEffective_of_split` packages every equivalence relation as the level of a
+  -- cover (`relOf E = x≫x° = relOf (graph x ⊚ graph x°)` via `relOf_graph`/`relOf_reciprocal`, both
+  -- containments by (D)); `MapCat.mapEffectiveRegular` ⟹ `EffectiveRegular D`; hence `s217_2_preTopos`
+  -- (`PreTopos D`) and `s217_2_faithful_embed_into_preTopos` (the §2.217(2) headline). -/
 
 section S217_2
 
@@ -1401,6 +1399,101 @@ theorem s217_2_effectiveSplit_isCover
   -- Bundle the bare allegory map `x` with its `Map` proof into a `Map(𝒜)`-morphism.
   refine ⟨Q, ⟨x, hxMap⟩, hxx, hxxId,
     Freyd.Alg.mapEffectivenessSplit (A := SplObj (MatObj (RelObj 𝒞))) ⟨x, hxMap⟩ hxxId⟩
+
+/-- The splitting-completion embedding `embObj/embHom : 𝒜 ↪ SplObj 𝒜` preserves MAPS: from
+    `Map R` follows `Map (embHom R)`.  `embHom` is an allegory functor (`embHom_id/comp/recip/
+    inter`) and is injective, so it commutes with `dom` and reflects/preserves `⊑`:
+    `dom (embHom R) = embHom (dom R) = embHom 1 = 1` (Entire), and similarly Simple. -/
+theorem embHom_preserves_map {𝒜 : Type u} [Freyd.Alg.Allegory 𝒜] {a b : 𝒜} {R : a ⟶ b}
+    (hR : Freyd.Alg.Map R) :
+    Freyd.Alg.Map (a := Freyd.Alg.embObj a) (b := Freyd.Alg.embObj b) (Freyd.Alg.embHom R) := by
+  obtain ⟨hEnt, hSim⟩ := hR
+  let eR : Freyd.Alg.embObj a ⟶ Freyd.Alg.embObj b := Freyd.Alg.embHom R
+  -- embHom commutes with `dom` (functoriality of `∩`, `≫`, `°`, `id`).
+  have hdom : Freyd.Alg.dom eR = Freyd.Alg.embHom (Freyd.Alg.dom R) := by
+    show Cat.id _ ∩ eR ≫ eR° = Freyd.Alg.embHom (Cat.id a ∩ R ≫ R°)
+    rw [Freyd.Alg.embHom_inter, Freyd.Alg.embHom_id, Freyd.Alg.embHom_comp,
+        Freyd.Alg.embHom_recip]
+    rfl
+  constructor
+  · -- Entire: dom (embHom R) = embHom (dom R) = embHom 1 = 1.
+    show Freyd.Alg.dom eR = Cat.id _
+    rw [hdom, hEnt, Freyd.Alg.embHom_id]
+  · -- Simple: eR°≫eR ⊑ 1.  R°≫R ⊑ 1 (`hSim`) ⟹ embHom monotone via dom-commuting:
+    -- dom(eR°) = embHom(dom R°); R° simple-ish unused — use injectivity of `∩`-eqn instead.
+    show eR° ≫ eR ∩ Cat.id _ = eR° ≫ eR
+    have : Freyd.Alg.embHom (R° ≫ R ∩ Cat.id b) = Freyd.Alg.embHom (R° ≫ R) :=
+      congrArg Freyd.Alg.embHom hSim
+    rw [Freyd.Alg.embHom_inter, Freyd.Alg.embHom_comp, Freyd.Alg.embHom_recip,
+        Freyd.Alg.embHom_id] at this
+    exact this
+
+/-- **§2.217(2) — the effectiveness field** of `D = Map(SplObj(Mat(Rel C)))`: every category-level
+    equivalence relation is the level of a cover.  `MapCat.mapIsEffective_of_split` fed the splitting
+    datum of the EFFECTIVE allegory `SplObj(Mat(Rel C))`
+    (`s217_2_effectiveAllegory.split_symmetric_idempotent`) — closed by the bridges (C)/(D). -/
+theorem s217_2_effective {a : MapObj (SplObj (MatObj (RelObj 𝒞)))}
+    (E : @BinRel (MapObj (SplObj (MatObj (RelObj 𝒞))))
+          (mapCat (𝒜 := SplObj (MatObj (RelObj 𝒞)))) a a)
+    (hE : @EquivalenceRelation (MapObj (SplObj (MatObj (RelObj 𝒞))))
+            (mapCat (𝒜 := SplObj (MatObj (RelObj 𝒞)))) _ _ _ a E) :
+    @IsEffective (MapObj (SplObj (MatObj (RelObj 𝒞))))
+      (mapCat (𝒜 := SplObj (MatObj (RelObj 𝒞)))) a E _ _ _ :=
+  Freyd.Alg.mapIsEffective_of_split (A := SplObj (MatObj (RelObj 𝒞)))
+    (s217_2_effectiveAllegory (𝒞 := 𝒞)).split_symmetric_idempotent hE
+
+/-- **§2.217(2) — `D = Map(SplObj(Mat(Rel C)))` is a PRE-TOPOS.**  The positive-pre-logos structure
+    is `s217_2_target_positivePreLogos`; the `effective` field is `s217_2_effective`.  Supplying
+    `toPositivePreLogos` (not a separate `EffectiveRegular`) keeps a SINGLE `mapRegularCategory`
+    grandparent — the repo's standard diamond dodge for `PreTopos`. -/
+noncomputable def s217_2_preTopos :
+    @Freyd.PreTopos (MapObj (SplObj (MatObj (RelObj 𝒞))))
+      (mapCat (𝒜 := SplObj (MatObj (RelObj 𝒞)))) :=
+  letI er : @Freyd.EffectiveRegular (MapObj (SplObj (MatObj (RelObj 𝒞))))
+      (mapCat (𝒜 := SplObj (MatObj (RelObj 𝒞)))) :=
+    Freyd.Alg.mapEffectiveRegular (A := SplObj (MatObj (RelObj 𝒞)))
+      (s217_2_effectiveAllegory (𝒞 := 𝒞)).split_symmetric_idempotent
+  letI pl : @Freyd.PreLogos (MapObj (SplObj (MatObj (RelObj 𝒞))))
+      (mapCat (𝒜 := SplObj (MatObj (RelObj 𝒞)))) :=
+    (s217_2_target_positivePreLogos (𝒞 := 𝒞)).toPreLogos
+  @Freyd.PreTopos.mk (MapObj (SplObj (MatObj (RelObj 𝒞))))
+    (mapCat (𝒜 := SplObj (MatObj (RelObj 𝒞)))) er
+    pl.toHasSubobjectUnions pl.bottom (fun {_A} S => pl.bottom_min S)
+    pl.bottom_dom_iso (fun {_A _B} f => pl.invImage_preserves_union f)
+    (fun {_A _B} f => pl.invImage_preserves_bottom f)
+    (s217_2_target_positivePreLogos (𝒞 := 𝒞)).toHasBinaryCoproducts
+
+/-! ### §2.217(2)  The faithful embedding `C ↪ D = Map(SplObj(Mat(Rel C)))` and the headline. -/
+
+/-- **§2.217(2)**: object part `C → Map(SplObj(Mat(Rel C)))`, `a ↦ embObj (embed217Obj a)` — the
+    §2.217(1) embedding `a ↦ unitObj ⟨a⟩` followed by the splitting-completion embedding. -/
+def embed217_2Obj (a : 𝒞) : MapObj (SplObj (MatObj (RelObj 𝒞))) :=
+  Freyd.Alg.embObj (embed217Obj a)
+
+/-- **§2.217(2)**: morphism part `f ↦ embHom (embed217 f)` — `embed217 f` (a Map of `Mat(Rel C)`)
+    pushed through the splitting-completion embedding, a Map of `SplObj(Mat(Rel C))` by
+    `embHom_preserves_map`. -/
+noncomputable def embed217_2 {a b : 𝒞} (f : a ⟶ b) :
+    @Cat.Hom (MapObj (SplObj (MatObj (RelObj 𝒞))))
+      (mapCat (𝒜 := SplObj (MatObj (RelObj 𝒞)))) (embed217_2Obj a) (embed217_2Obj b) :=
+  ⟨Freyd.Alg.embHom (embed217 f).val, embHom_preserves_map (embed217 f).property⟩
+
+/-- **§2.217(2)**: the embedding `C ↪ D` is FAITHFUL.  Peel the splitting-completion embedding
+    (`embHom_injective`) to recover `embed217 f = embed217 g`, then `embed217_faithful`. -/
+theorem embed217_2_faithful {a b : 𝒞} {f g : a ⟶ b} (h : embed217_2 f = embed217_2 g) : f = g := by
+  have hval : Freyd.Alg.embHom (embed217 f).val = Freyd.Alg.embHom (embed217 g).val :=
+    congrArg Subtype.val h
+  exact embed217_faithful (Subtype.ext (Freyd.Alg.embHom_injective hval))
+
+/-- **§2.217(2)** (Freyd's headline): *every pre-logos `C` embeds faithfully in a PRE-TOPOS.*
+    The target is `D := Map(SplObj(Mat(Rel C)))`, a pre-topos (`s217_2_preTopos`), and `embed217_2`
+    is a faithful per-hom injection `C ↪ D` (`embed217_2_faithful`).  Bare `[PreLogos C]` — `C`
+    need NOT be positive or effective; positivity is supplied by `Mat`, effectiveness by `SplObj`. -/
+theorem s217_2_faithful_embed_into_preTopos :
+    Nonempty (@Freyd.PreTopos (MapObj (SplObj (MatObj (RelObj 𝒞))))
+                (mapCat (𝒜 := SplObj (MatObj (RelObj 𝒞))))) ∧
+    ∀ {a b : 𝒞} {f g : a ⟶ b}, embed217_2 f = embed217_2 g → f = g :=
+  ⟨⟨s217_2_preTopos⟩, fun {_ _ _ _} h => embed217_2_faithful h⟩
 
 end S217_2
 

@@ -971,6 +971,58 @@ theorem mapPullback_leg_corOf {a b c : MapObj A}
     _ = π₁° ≫ π₁ := by rw [Cat.id_comp]
     _ = dom (f.val ≫ g.val°) := tab_leg_dom ht
 
+/-- **§2.147 BRIDGE (pullback cross-term)**: for ANY pullback `pb` of maps `f : a→c`,
+    `g : b→c` in Map(𝒜), the cross composite of the legs equals the relational `f ≫ g°`:
+
+        `pb.cone.π₁° ≫ pb.cone.π₂ = f.val ≫ g.val°`.
+
+    Same comparison-iso transport as `mapPullback_leg_corOf`, but reads off the cross term
+    (`π₁°≫π₂ = f g°` is the very tabulation equation) rather than the first-leg coreflexive. -/
+theorem mapPullback_cross {a b c : MapObj A}
+    (f : @Cat.Hom _ (mapCat (𝒜 := A)) a c) (g : @Cat.Hom _ (mapCat (𝒜 := A)) b c)
+    (pb : @HasPullback (MapObj A) (mapCat (𝒜 := A)) a b c f g) :
+    (@Cone.π₁ _ (mapCat (𝒜 := A)) a b c f g
+        (@HasPullback.cone _ (mapCat (𝒜 := A)) a b c f g pb)).val° ≫
+      (@Cone.π₂ _ (mapCat (𝒜 := A)) a b c f g
+        (@HasPullback.cone _ (mapCat (𝒜 := A)) a b c f g pb)).val
+      = f.val ≫ g.val° := by
+  let C := @HasPullback.cone _ (mapCat (𝒜 := A)) a b c f g pb
+  let cpt : MapObj A := @Cone.pt _ (mapCat (𝒜 := A)) a b c f g C
+  let pbπ₁ : @Cat.Hom _ (mapCat (𝒜 := A)) cpt a := @Cone.π₁ _ (mapCat (𝒜 := A)) a b c f g C
+  let pbπ₂ : @Cat.Hom _ (mapCat (𝒜 := A)) cpt b := @Cone.π₂ _ (mapCat (𝒜 := A)) a b c f g C
+  show pbπ₁.val° ≫ pbπ₂.val = f.val ≫ g.val°
+  have fgR : @Freyd.Alg.Tabular A TabularAllegory.toAllegory _ _ (f.val ≫ g.val°) :=
+    @TabularAllegory.tabular A _ _ _ (f.val ≫ g.val°)
+  have fgR_N : Nonempty (PSigma fun p : A =>
+      PSigma fun π₁ : p ⟶ _ => PSigma fun π₂ : p ⟶ _ =>
+      Tabulates π₁ π₂ (f.val ≫ g.val°)) := by
+    obtain ⟨p, π₁, π₂, ht⟩ := fgR; exact ⟨⟨p, π₁, π₂, ht⟩⟩
+  obtain ⟨p, π₁, π₂, ht⟩ := Classical.choice fgR_N
+  have hcw : pbπ₁.val ≫ f.val = pbπ₂.val ≫ g.val :=
+    congrArg Subtype.val (@Cone.w _ (mapCat (𝒜 := A)) a b c f g C)
+  obtain ⟨hm, hm_map, hm1, hm2, _⟩ :=
+    tab_pullback_UMP f.property g.property ht pbπ₁.property pbπ₂.property hcw
+  let cone0 : @Cone (MapObj A) (mapCat (𝒜 := A)) a b c f g :=
+    @Cone.mk (MapObj A) (mapCat (𝒜 := A)) a b c f g p ⟨π₁, ht.1⟩ ⟨π₂, ht.2.1⟩
+      (mapHom_ext (tab_pullback_cone' f.property g.property ht))
+  let u : @Cat.Hom _ (mapCat (𝒜 := A)) p cpt :=
+    @HasPullback.lift _ (mapCat (𝒜 := A)) a b c f g pb cone0
+  have hu1 : u.val ≫ pbπ₁.val = π₁ :=
+    congrArg Subtype.val (@HasPullback.lift_fst _ (mapCat (𝒜 := A)) a b c f g pb cone0)
+  have hu2 : u.val ≫ pbπ₂.val = π₂ :=
+    congrArg Subtype.val (@HasPullback.lift_snd _ (mapCat (𝒜 := A)) a b c f g pb cone0)
+  have huv_alg : u.val ≫ hm = Cat.id p := by
+    apply tabulation_UP_unique ht (map_comp u.property hm_map) (id_is_map_local p)
+    · rw [Cat.assoc, show hm ≫ π₁ = pbπ₁.val from hm1, hu1, Cat.id_comp]
+    · rw [Cat.assoc, show hm ≫ π₂ = pbπ₂.val from hm2, hu2, Cat.id_comp]
+  have hvleg : hm° ≫ hm = Cat.id p := map_retr_leg hm_map u.property huv_alg
+  calc pbπ₁.val° ≫ pbπ₂.val = (hm ≫ π₁)° ≫ (hm ≫ π₂) := by
+        rw [show pbπ₁.val = hm ≫ π₁ from hm1.symm, show pbπ₂.val = hm ≫ π₂ from hm2.symm]
+    _ = π₁° ≫ (hm° ≫ hm) ≫ π₂ := by rw [Allegory.recip_comp]; simp [Cat.assoc]
+    _ = π₁° ≫ Cat.id p ≫ π₂ := by rw [show hm° ≫ hm = Cat.id p from hvleg]
+    _ = π₁° ≫ π₂ := by rw [Cat.id_comp]
+    _ = f.val ≫ g.val° := ht.2.2.1.symm
+
 /-! ### §2.212  HasBinaryProducts (MapObj A)
 
   Product a×b = pullback over the terminal (unit). -/
@@ -1561,33 +1613,35 @@ theorem mapEffectivenessSplit {a Q : A} (x : @Cat.Hom (MapObj A) (mapCat (𝒜 :
     • `relOf_symmetric`   : `E ⊂ E°` ⟹ `Symmetric (relOf E)`.
 
   This reduces an equivalence relation of `Map(A)` to a reflexive symmetric (idempotent) of `A`,
-  which `[EffectiveAllegory A]` splits to a cover (`mapEffectivenessSplit`) whose level is `E`.
-  The two remaining bridges (`relOf` of `⊚` = allegory `≫`, and the reverse containment) are the
-  §2.14 `Rel(Map A) ≅ A` equivalence at the CATEGORY level; see the sharpened marker below. -/
+  which `mapIsEffective_of_split` splits to a cover (`mapEffectivenessSplit`) whose level is `E`.
+  The two §2.14 bridges are now CLOSED below: `relOf_compose` (`relOf (R⊚S) = relOf R ≫ relOf S`,
+  via `mapPullback_cross` + the image cover), `relOf_tabulates`/`relLe_of_relOf_le` (reverse
+  containment, via `monicPair_tab_identity` = the §2.141 converse).  These promote
+  `Rel(Map A) ≅ A` to the CATEGORY level and yield `mapIsEffective_of_split`/`mapEffectiveRegular`. -/
 
 /-- Underlying allegory leg `colA.val : E.src → a` of a Map(A) relation (instance pinned). -/
-@[reducible] def relColA {a : A} (E : @BinRel (MapObj A) (mapCat (𝒜 := A)) a a) :
-    @Cat.Hom A Allegory.toCat (@BinRel.src (MapObj A) (mapCat (𝒜 := A)) a a E) a :=
-  (@BinRel.colA (MapObj A) (mapCat (𝒜 := A)) a a E).val
+@[reducible] def relColA {a b : A} (E : @BinRel (MapObj A) (mapCat (𝒜 := A)) a b) :
+    @Cat.Hom A Allegory.toCat (@BinRel.src (MapObj A) (mapCat (𝒜 := A)) a b E) a :=
+  (@BinRel.colA (MapObj A) (mapCat (𝒜 := A)) a b E).val
 
-/-- Underlying allegory leg `colB.val : E.src → a` of a Map(A) relation (instance pinned). -/
-@[reducible] def relColB {a : A} (E : @BinRel (MapObj A) (mapCat (𝒜 := A)) a a) :
-    @Cat.Hom A Allegory.toCat (@BinRel.src (MapObj A) (mapCat (𝒜 := A)) a a E) a :=
-  (@BinRel.colB (MapObj A) (mapCat (𝒜 := A)) a a E).val
+/-- Underlying allegory leg `colB.val : E.src → b` of a Map(A) relation (instance pinned). -/
+@[reducible] def relColB {a b : A} (E : @BinRel (MapObj A) (mapCat (𝒜 := A)) a b) :
+    @Cat.Hom A Allegory.toCat (@BinRel.src (MapObj A) (mapCat (𝒜 := A)) a b E) b :=
+  (@BinRel.colB (MapObj A) (mapCat (𝒜 := A)) a b E).val
 
 /-- `relColA E` is a map of `A`. -/
-def relColA_map {a : A} (E : @BinRel (MapObj A) (mapCat (𝒜 := A)) a a) : Map (relColA E) :=
-  (@BinRel.colA (MapObj A) (mapCat (𝒜 := A)) a a E).property
+def relColA_map {a b : A} (E : @BinRel (MapObj A) (mapCat (𝒜 := A)) a b) : Map (relColA E) :=
+  (@BinRel.colA (MapObj A) (mapCat (𝒜 := A)) a b E).property
 
 /-- `relColB E` is a map of `A`. -/
-def relColB_map {a : A} (E : @BinRel (MapObj A) (mapCat (𝒜 := A)) a a) : Map (relColB E) :=
-  (@BinRel.colB (MapObj A) (mapCat (𝒜 := A)) a a E).property
+def relColB_map {a b : A} (E : @BinRel (MapObj A) (mapCat (𝒜 := A)) a b) : Map (relColB E) :=
+  (@BinRel.colB (MapObj A) (mapCat (𝒜 := A)) a b E).property
 
-/-- The underlying allegory endo of a category-level relation `E : BinRel (MapObj A) A A`:
-    `relOf E = E.colA° ≫ E.colB : A → A` in the allegory `A`.  (`relOf (graph x) = x`, and
+/-- The underlying allegory morphism of a category-level relation `E : BinRel (MapObj A) a b`:
+    `relOf E = E.colA° ≫ E.colB : a → b` in the allegory `A`.  (`relOf (graph x) = x`, and
     `relOf (E°) = (relOf E)°`.) -/
-def relOf {a : A} (E : @BinRel (MapObj A) (mapCat (𝒜 := A)) a a) :
-    @Cat.Hom A Allegory.toCat a a :=
+def relOf {a b : A} (E : @BinRel (MapObj A) (mapCat (𝒜 := A)) a b) :
+    @Cat.Hom A Allegory.toCat a b :=
   Allegory.recip (relColA E) ≫ relColB E
 
 /-- **§2.217(2) dictionary (forward, structural)**: a `Map(A)`-containment `E ⊂ F` descends to
@@ -1595,8 +1649,8 @@ def relOf {a : A} (E : @BinRel (MapObj A) (mapCat (𝒜 := A)) a a) :
     `h≫F.colA = E.colA`, `h≫F.colB = E.colB`) gives
     `relOf E = (h F.colA)°(h F.colB) = F.colA°(h°h)F.colB ⊑ F.colA° F.colB = relOf F`
     (`h` simple: `h°≫h ⊑ id`). -/
-theorem relOf_le_of_relLe {a : A} {E F : @BinRel (MapObj A) (mapCat (𝒜 := A)) a a}
-    (h : @RelLe (MapObj A) (mapCat (𝒜 := A)) a a E F) : relOf E ⊑ relOf F := by
+theorem relOf_le_of_relLe {a b : A} {E F : @BinRel (MapObj A) (mapCat (𝒜 := A)) a b}
+    (h : @RelLe (MapObj A) (mapCat (𝒜 := A)) a b E F) : relOf E ⊑ relOf F := by
   obtain ⟨⟨hh, hhA, hhB⟩⟩ := h
   have hhA' : hh.val ≫ relColA F = relColA E := congrArg Subtype.val hhA
   have hhB' : hh.val ≫ relColB F = relColB E := congrArg Subtype.val hhB
@@ -1610,15 +1664,15 @@ theorem relOf_le_of_relLe {a : A} {E F : @BinRel (MapObj A) (mapCat (𝒜 := A))
     _ ⊑ Allegory.recip (relColA F) ≫ relColB F := comp_mono_left _ hmid
 
 /-- `relOf (E°) = (relOf E)°`: the reciprocal swaps the columns. -/
-theorem relOf_reciprocal {a : A} (E : @BinRel (MapObj A) (mapCat (𝒜 := A)) a a) :
-    relOf (@reciprocal (MapObj A) (mapCat (𝒜 := A)) a a E) = Allegory.recip (relOf E) := by
+theorem relOf_reciprocal {a b : A} (E : @BinRel (MapObj A) (mapCat (𝒜 := A)) a b) :
+    relOf (@reciprocal (MapObj A) (mapCat (𝒜 := A)) a b E) = Allegory.recip (relOf E) := by
   show Allegory.recip (relColB E) ≫ relColA E
       = Allegory.recip (Allegory.recip (relColA E) ≫ relColB E)
   rw [Allegory.recip_comp, Allegory.recip_recip]
 
 /-- `relOf (graph x) = x.val` for a Map(A) endo-map `x : a → a`. -/
-theorem relOf_graph {a : A} (x : @Cat.Hom (MapObj A) (mapCat (𝒜 := A)) a a) :
-    relOf (@graph (MapObj A) (mapCat (𝒜 := A)) a a x) = x.val := by
+theorem relOf_graph {a b : A} (x : @Cat.Hom (MapObj A) (mapCat (𝒜 := A)) a b) :
+    relOf (@graph (MapObj A) (mapCat (𝒜 := A)) a b x) = x.val := by
   show Allegory.recip (Cat.id a) ≫ x.val = x.val
   rw [recip_id, Cat.id_comp]
 
@@ -1650,6 +1704,239 @@ theorem relOf_symmetric {a : A} {E : @BinRel (MapObj A) (mapCat (𝒜 := A)) a a
   rw [relOf_reciprocal] at h
   have := recip_mono h
   rwa [Allegory.recip_recip] at this
+
+/-- Entirety of a map `f`, in the form `id ⊑ f ≫ f°` (the `dom f = id` rewrite). -/
+private theorem map_id_le_ffo {x y : A} {f : x ⟶ y} (hf : Map f) : Cat.id x ⊑ f ≫ f° := by
+  have h := hf.1; dsimp [Entire, dom] at h; dsimp [le]; rw [h]
+
+/-- **§2.141 converse (tabular)**: a CATEGORICALLY jointly-monic pair of maps `colA, colB : s → a`
+    in `Map(A)` satisfies the ALGEBRAIC tabulation identity `colA≫colA° ∩ colB≫colB° = id_s`.
+    `⊒ id` is automatic (both legs entire); for `⊑ id` tabulate the symmetric coreflexive-candidate
+    `m := colA≫colA° ∩ colB≫colB°` by maps `(u,v)`; from `m ⊑ colA≫colA°`, `m ⊑ colB≫colB°` and
+    simplicity of `colA`, `colB` one gets `u≫colX = v≫colX` (X∈{A,B}), so `u = v` by joint-monicity,
+    whence `m = u°≫v = u°≫u ⊑ id`. -/
+theorem monicPair_tab_identity {a b s : A} {colA : s ⟶ a} {colB : s ⟶ b}
+    (hA : Map colA) (hB : Map colB)
+    (hmono : @MonicPair (MapObj A) (mapCat (𝒜 := A)) s a b ⟨colA, hA⟩ ⟨colB, hB⟩) :
+    colA ≫ colA° ∩ colB ≫ colB° = Cat.id s := by
+  -- abbreviation `m` introduced by a definitional `have`.
+  obtain ⟨m, hm⟩ : ∃ m, m = colA ≫ colA° ∩ colB ≫ colB° := ⟨_, rfl⟩
+  rw [← hm]
+  obtain ⟨t, u, v, hu, hv, hmuv, _⟩ := TabularAllegory.tabular m
+  -- m = u°≫v, m symmetric ⟹ also v°≫u = m.
+  have hmsym : m° = m := by
+    rw [hm, Allegory.recip_inter, Allegory.recip_comp, Allegory.recip_comp,
+        Allegory.recip_recip, Allegory.recip_recip]
+  have hvu : v° ≫ u = m := by
+    have := congrArg Allegory.recip hmuv
+    rw [Allegory.recip_comp, Allegory.recip_recip, hmsym] at this; exact this.symm
+  -- For a leg `col` (X-component): `u≫col = v≫col`.  Uses `m ⊑ col≫col°` + `col` simple.
+  have leg_eq : ∀ {tgt : A} {col : s ⟶ tgt}, Map col → m ⊑ col ≫ col° → u ≫ col = v ≫ col := by
+    intro tgt col hcol hmle
+    -- m≫col ⊑ col≫col°≫col ⊑ col (col simple).
+    have hstep : m ≫ col ⊑ col := by
+      have h1 : m ≫ col ⊑ (col ≫ col°) ≫ col := comp_mono_right hmle col
+      have h2 : (col ≫ col°) ≫ col ⊑ col := by
+        rw [Cat.assoc]
+        have := comp_mono_left col hcol.2; rwa [Cat.comp_id] at this
+      exact le_trans h1 h2
+    -- v≫col ⊑ (u≫u°)≫(v≫col) = u≫(m≫col) ⊑ u≫col.
+    have hle : v ≫ col ⊑ u ≫ col := by
+      have h1 : v ≫ col ⊑ (u ≫ u°) ≫ (v ≫ col) := by
+        have := comp_mono_right (map_id_le_ffo hu) (v ≫ col); rwa [Cat.id_comp] at this
+      have h2 : (u ≫ u°) ≫ (v ≫ col) = u ≫ (m ≫ col) := by rw [hmuv]; simp [Cat.assoc]
+      have h3 : u ≫ (m ≫ col) ⊑ u ≫ col := comp_mono_left u hstep
+      exact le_trans h1 (le_trans (h2 ▸ le_refl _) h3)
+    -- u≫col ⊑ (v≫v°)≫(u≫col) = v≫(m≫col) ⊑ v≫col  (via v°≫u = m).
+    have hge : u ≫ col ⊑ v ≫ col := by
+      have h1 : u ≫ col ⊑ (v ≫ v°) ≫ (u ≫ col) := by
+        have := comp_mono_right (map_id_le_ffo hv) (u ≫ col); rwa [Cat.id_comp] at this
+      have h2 : (v ≫ v°) ≫ (u ≫ col) = v ≫ (m ≫ col) := by rw [← hvu]; simp [Cat.assoc]
+      have h3 : v ≫ (m ≫ col) ⊑ v ≫ col := comp_mono_left v hstep
+      exact le_trans h1 (le_trans (h2 ▸ le_refl _) h3)
+    exact le_antisymm hge hle
+  have heA : u ≫ colA = v ≫ colA := leg_eq hA (hm ▸ inter_lb_left _ _)
+  have heB : u ≫ colB = v ≫ colB := leg_eq hB (hm ▸ inter_lb_right _ _)
+  -- joint-monicity (categorical) on the maps u, v : t → s ⟹ u = v.
+  have huv : u = v :=
+    congrArg Subtype.val (hmono (W := t) ⟨u, hu⟩ ⟨v, hv⟩ (mapHom_ext heA) (mapHom_ext heB))
+  -- m = u°≫v = v°≫v; `m ⊑ id` (v simple) and `id ⊑ m` (m entire: both legs entire) ⟹ m = id.
+  have hmle_id : m ⊑ Cat.id s := by rw [hmuv, huv]; exact hv.2
+  have hid_le_m : Cat.id s ⊑ m := by
+    rw [hm]; exact le_inter (map_id_le_ffo hA) (map_id_le_ffo hB)
+  exact le_antisymm hmle_id hid_le_m
+
+/-- **§2.217(2) dictionary (tabulation)**: every category-level relation `E : BinRel (Map A) A A`
+    TABULATES its underlying allegory endo `relOf E = E.colA°≫E.colB`.  The tabulation identity
+    is the `monicPair_tab_identity` translation of the categorical joint-monicity (`isMonicPair`)
+    that every `BinRel` carries; hence in `Map(A)` over a tabular allegory a category-level
+    relation is exactly a §2.14 tabulation. -/
+theorem relOf_tabulates {a b : A} (E : @BinRel (MapObj A) (mapCat (𝒜 := A)) a b) :
+    Tabulates (relColA E) (relColB E) (relOf E) := by
+  refine ⟨relColA_map E, relColB_map E, rfl, ?_⟩
+  exact monicPair_tab_identity (relColA_map E) (relColB_map E)
+    (@BinRel.isMonicPair (MapObj A) (mapCat (𝒜 := A)) a b E)
+
+/-- **§2.217(2) dictionary (REVERSE containment, bridge D)**: allegory containment of the
+    underlying relations descends to `Map(A)`-containment, `relOf E ⊑ relOf F ⟹ E ⊂ F`.
+    Since `F` tabulates `relOf F` (`relOf_tabulates`), the §2.143 universal property
+    (`tabulation_UP_forward`) factors `E`'s columns through `F`'s — exactly a `RelHom E F`. -/
+theorem relLe_of_relOf_le {a b : A} {E F : @BinRel (MapObj A) (mapCat (𝒜 := A)) a b}
+    (hle : relOf E ⊑ relOf F) : @RelLe (MapObj A) (mapCat (𝒜 := A)) a b E F := by
+  obtain ⟨h, hmap, hA, hB⟩ :=
+    tabulation_UP_forward (relOf_tabulates F) (relColA_map E) (relColB_map E) hle
+  exact ⟨⟨⟨h, hmap⟩, mapHom_ext hA, mapHom_ext hB⟩⟩
+
+/-- **§2.217(2) dictionary (COMPOSITION, bridge C)**: `relOf (R ⊚ S) = relOf R ≫ relOf S`.
+    The category-level composite `R ⊚ S` is the IMAGE (cover `e`) of the span over the pullback
+    `(π₁,π₂)` of `R.colB, S.colA`.  Two §2.147 facts collapse the image+pullback to a plain
+    allegory product: the pullback CROSS-term `π₁°≫π₂ = R.colB≫S.colA°` (`mapPullback_cross`) and
+    the image cover identity `e°≫e = id` (`e` a cover-map).  Then
+      `relOf R ≫ relOf S = R.colA°≫(R.colB≫S.colA°)≫S.colB = (π₁≫R.colA)°≫(π₂≫S.colB)`
+                        `= (e≫(R⊚S).colA)°≫(e≫(R⊚S).colB) = (R⊚S).colA°≫(e°≫e)≫(R⊚S).colB`
+                        `= relOf (R ⊚ S)`. -/
+theorem relOf_compose {a b c : A}
+    (R : @BinRel (MapObj A) (mapCat (𝒜 := A)) a b)
+    (S : @BinRel (MapObj A) (mapCat (𝒜 := A)) b c) :
+    relOf (@compose (MapObj A) (mapCat (𝒜 := A))
+            mapHasBinaryProducts mapHasPullbacks mapHasImages a b c R S)
+      = relOf R ≫ relOf S := by
+  -- Abbreviations (mapCat composition `cm`; mapCat reciprocal stays the allegory `°` on `.val`).
+  let cm := @Cat.comp (MapObj A) (mapCat (𝒜 := A))
+  let cB := @BinRel.colB (MapObj A) (mapCat (𝒜 := A)) a b R
+  let cA := @BinRel.colA (MapObj A) (mapCat (𝒜 := A)) b c S
+  let pb := @HasPullbacks.has (MapObj A) (mapCat (𝒜 := A)) mapHasPullbacks _ _ _ cB cA
+  let π₁ := @Cone.π₁ (MapObj A) (mapCat (𝒜 := A)) _ _ _ cB cA pb.cone
+  let π₂ := @Cone.π₂ (MapObj A) (mapCat (𝒜 := A)) _ _ _ cB cA pb.cone
+  let qA := cm π₁ (@BinRel.colA (MapObj A) (mapCat (𝒜 := A)) a b R)
+  let qB := cm π₂ (@BinRel.colB (MapObj A) (mapCat (𝒜 := A)) b c S)
+  let span := @pair (MapObj A) (mapCat (𝒜 := A)) mapHasBinaryProducts _ _ _ qA qB
+  let img := @image (MapObj A) (mapCat (𝒜 := A)) mapHasImages _ _ span
+  let e := @image.lift (MapObj A) (mapCat (𝒜 := A)) mapHasImages _ _ span
+  let RS := @compose (MapObj A) (mapCat (𝒜 := A))
+              mapHasBinaryProducts mapHasPullbacks mapHasImages a b c R S
+  -- (R⊚S) columns are the image-arrow legs (definitional).
+  let pfst := @fst (MapObj A) (mapCat (𝒜 := A)) mapHasBinaryProducts a c
+  let psnd := @snd (MapObj A) (mapCat (𝒜 := A)) mapHasBinaryProducts a c
+  let iarr := @Subobject.arr (MapObj A) (mapCat (𝒜 := A))
+                (@prod (MapObj A) (mapCat (𝒜 := A)) mapHasBinaryProducts a c) img
+  have hcolA_def : @BinRel.colA (MapObj A) (mapCat (𝒜 := A)) a c RS
+      = cm iarr pfst := rfl
+  have hcolB_def : @BinRel.colB (MapObj A) (mapCat (𝒜 := A)) a c RS
+      = cm iarr psnd := rfl
+  -- Image factorization: e ≫ img.arr = span.
+  have hfac : cm e iarr = span :=
+    @image.lift_fac (MapObj A) (mapCat (𝒜 := A)) mapHasImages _ _ span
+  -- Column factorizations through cover `e` (mapCat homs).
+  have heA : cm e (@BinRel.colA (MapObj A) (mapCat (𝒜 := A)) a c RS)
+      = qA :=
+    calc cm e (cm iarr pfst)
+        = cm (cm e iarr) pfst :=
+          (@Cat.assoc (MapObj A) (mapCat (𝒜 := A)) _ _ _ _ e iarr pfst).symm
+      _ = cm span pfst := by rw [hfac]
+      _ = qA := @fst_pair (MapObj A) (mapCat (𝒜 := A)) mapHasBinaryProducts _ _ _ qA qB
+  have heB : cm e (@BinRel.colB (MapObj A) (mapCat (𝒜 := A)) a c RS)
+      = qB :=
+    calc cm e (cm iarr psnd)
+        = cm (cm e iarr) psnd :=
+          (@Cat.assoc (MapObj A) (mapCat (𝒜 := A)) _ _ _ _ e iarr psnd).symm
+      _ = cm span psnd := by rw [hfac]
+      _ = qB := @snd_pair (MapObj A) (mapCat (𝒜 := A)) mapHasBinaryProducts _ _ _ qA qB
+  -- Cover `e` is a map with `e°≫e = id` (cover ⟹ `id ⊑ e°≫e`; map ⟹ `e°≫e ⊑ id`).
+  have he_cover : @Cover (MapObj A) (mapCat (𝒜 := A)) _ _ e :=
+    @image_lift_cover (MapObj A) (mapCat (𝒜 := A)) _ _ span mapHasImages
+  have hee_id : e.val° ≫ e.val = Cat.id _ :=
+    le_antisymm e.property.2 (mapCover_entire e he_cover)
+  -- Pullback cross-term: π₁°≫π₂ = R.colB ≫ S.colA°.
+  have hcross : π₁.val° ≫ π₂.val
+      = (@BinRel.colB (MapObj A) (mapCat (𝒜 := A)) a b R).val ≫
+        (@BinRel.colA (MapObj A) (mapCat (𝒜 := A)) b c S).val° :=
+    mapPullback_cross cB cA pb
+  -- `.val` of the factorizations heA/heB.
+  have heAv : e.val ≫ (@BinRel.colA (MapObj A) (mapCat (𝒜 := A)) a c RS).val
+      = π₁.val ≫ (@BinRel.colA (MapObj A) (mapCat (𝒜 := A)) a b R).val :=
+    congrArg Subtype.val heA
+  have heBv : e.val ≫ (@BinRel.colB (MapObj A) (mapCat (𝒜 := A)) a c RS).val
+      = π₂.val ≫ (@BinRel.colB (MapObj A) (mapCat (𝒜 := A)) b c S).val :=
+    congrArg Subtype.val heB
+  -- The allegory computation (all on `.val`).
+  show relOf RS = relOf R ≫ relOf S
+  show (relColA RS)° ≫ relColB RS
+      = ((relColA R)° ≫ relColB R) ≫ ((relColA S)° ≫ relColB S)
+  -- relColX RS = RS.colX.val, relColX R = R.colX.val, etc.  Rewrite via heAv/heBv & hcross.
+  have key : (π₁.val ≫ (relColA R)) ° ≫ (π₂.val ≫ (relColB S))
+      = (relColA R)° ≫ (relColB R ≫ (relColA S)°) ≫ (relColB S) := by
+    rw [Allegory.recip_comp]
+    simp only [Cat.assoc]
+    rw [← Cat.assoc π₁.val° π₂.val (relColB S), hcross]
+    simp only [Cat.assoc]
+  calc (relColA RS)° ≫ relColB RS
+      = (e.val ≫ relColA RS)° ≫ (e.val ≫ relColB RS) := by
+        rw [Allegory.recip_comp]; simp only [Cat.assoc]
+        rw [← Cat.assoc e.val° e.val (relColB RS), hee_id, Cat.id_comp]
+    _ = (π₁.val ≫ relColA R)° ≫ (π₂.val ≫ relColB S) := by rw [heAv, heBv]
+    _ = (relColA R)° ≫ (relColB R ≫ (relColA S)°) ≫ (relColB S) := key
+    _ = ((relColA R)° ≫ relColB R) ≫ ((relColA S)° ≫ relColB S) := by
+        simp only [Cat.assoc]
+
+/-- **§2.217(2) dictionary (IDEMPOTENCY)**: a TRANSITIVE + REFLEXIVE relation `E` of `Map(A)` has
+    an idempotent `relOf E`.  `E⊚E ⊂ E` (transitivity) gives `relOf (E⊚E) ⊑ relOf E`; by the
+    composition bridge `relOf (E⊚E) = relOf E ≫ relOf E`, so `relOf E ≫ relOf E ⊑ relOf E`.  And
+    reflexivity (`id ⊑ relOf E`) gives `relOf E = id ≫ relOf E ⊑ relOf E ≫ relOf E`. -/
+theorem relOf_idempotent {a : A} {E : @BinRel (MapObj A) (mapCat (𝒜 := A)) a a}
+    (hrefl : Reflexive (relOf E))
+    (htrans : @RelLe (MapObj A) (mapCat (𝒜 := A)) a a
+                (@compose (MapObj A) (mapCat (𝒜 := A))
+                  mapHasBinaryProducts mapHasPullbacks mapHasImages a a a E E) E) :
+    relOf E ≫ relOf E = relOf E := by
+  -- ⊑ : relOf E ≫ relOf E = relOf (E⊚E) ⊑ relOf E.
+  have hle : relOf E ≫ relOf E ⊑ relOf E := by
+    have h := relOf_le_of_relLe htrans
+    rwa [relOf_compose] at h
+  -- ⊒ : relOf E = id ≫ relOf E ⊑ (relOf E ≫ relOf E).
+  have hge : relOf E ⊑ relOf E ≫ relOf E := by
+    have := comp_mono_right hrefl (relOf E)
+    rwa [Cat.id_comp] at this
+  exact le_antisymm hle hge
+
+/-- **§2.217(2) — `Map(A)` is EFFECTIVE (core)**: every category-level equivalence relation `E`
+    of `Map(A)` is the level of a cover.  Effectiveness of the allegory `A` is supplied as the
+    explicit splitting datum `split` (the `EffectiveAllegory.split_symmetric_idempotent` shape),
+    passed as DATA to avoid the `Allegory A` diamond between an `[EffectiveAllegory A]` instance
+    and the ambient `[TabularUnitaryDistributiveAllegory A]`.
+
+    `E` equiv ⟹ `relOf E` reflexive (`relOf_reflexive`), symmetric (`relOf_symmetric`), idempotent
+    (`relOf_idempotent`) ⟹ `split` gives a map `x` with `x≫x° = relOf E`, `x°≫x = id` ⟹ `x` is a
+    COVER (`mapEffectivenessSplit`).  Finally `relOf (graph x ⊚ graph x°) = x≫x° = relOf E` (bridge
+    C + `relOf_graph`/`relOf_reciprocal`), so `E ⊂ graph x⊚graph x°` and back by bridge D. -/
+theorem mapIsEffective_of_split {a : A}
+    (split : ∀ {c : A} (R : c ⟶ c), Reflexive R → Symmetric R → R ≫ R = R →
+      ∃ (d : A) (f : c ⟶ d), Map f ∧ f ≫ f° = R ∧ f° ≫ f = Cat.id d)
+    {E : @BinRel (MapObj A) (mapCat (𝒜 := A)) a a}
+    (hE : @EquivalenceRelation (MapObj A) (mapCat (𝒜 := A))
+            mapHasBinaryProducts mapHasPullbacks mapHasImages a E) :
+    @IsEffective (MapObj A) (mapCat (𝒜 := A)) a E
+      mapHasBinaryProducts mapHasPullbacks mapHasImages := by
+  obtain ⟨⟨d, hdA, hdB⟩, ⟨hsymHom⟩, ⟨htransHom⟩⟩ := hE
+  -- relOf E reflexive / symmetric / idempotent.
+  have hrefl : Reflexive (relOf E) :=
+    relOf_reflexive (E := E) (d := d) (congrArg Subtype.val hdA) (congrArg Subtype.val hdB)
+  have hsym : Symmetric (relOf E) := relOf_symmetric ⟨hsymHom⟩
+  have hidem : relOf E ≫ relOf E = relOf E := relOf_idempotent hrefl ⟨htransHom⟩
+  -- Split it as a map x : a → Q (allegory level), then bundle into Map(A).
+  obtain ⟨Q, xv, hxMap, hxx, hxxId⟩ := split (relOf E) hrefl hsym hidem
+  let x : @Cat.Hom (MapObj A) (mapCat (𝒜 := A)) a Q := ⟨xv, hxMap⟩
+  have hxcov : @Cover (MapObj A) (mapCat (𝒜 := A)) a Q x := mapEffectivenessSplit x hxxId
+  -- relOf (graph x ⊚ (graph x)°) = x ≫ x° = relOf E.
+  have hlevel : relOf (@compose (MapObj A) (mapCat (𝒜 := A))
+          mapHasBinaryProducts mapHasPullbacks mapHasImages a Q a
+          (@graph (MapObj A) (mapCat (𝒜 := A)) a Q x)
+          (@reciprocal (MapObj A) (mapCat (𝒜 := A)) a Q (@graph (MapObj A) (mapCat (𝒜 := A)) a Q x)))
+      = relOf E := by
+    rw [relOf_compose, relOf_graph, relOf_reciprocal, relOf_graph, hxx]
+  refine ⟨⟨⟨d, hdA, hdB⟩, ⟨hsymHom⟩, ⟨htransHom⟩⟩, Q, x, hxcov, ?_, ?_⟩
+  · exact relLe_of_relOf_le (hlevel ▸ le_refl _)
+  · exact relLe_of_relOf_le (hlevel ▸ le_refl _)
 
 /-! ### §2.212  HasSubobjectUnions (MapObj A)
 
@@ -1997,6 +2284,18 @@ noncomputable instance mapPreLogos {A : Type u} [TabularUnitaryDistributiveAlleg
     mapBottom (fun {_B} S => mapBottom_min S) mapBottom_dom_iso
     (fun {_B _C} f => mapInvImage_preserves_union f)
     (fun {_B _C} f => mapInvImage_preserves_bottom f)
+
+/-- **§2.217(2) — `Map(A)` is EFFECTIVE REGULAR** (given allegory effectiveness as DATA).
+    `mapRegularCategory` supplies the regular structure; the `effective` field is
+    `mapIsEffective_of_split` fed the supplied splitting `split`.  Taken as a `def` over the
+    SPLIT DATA (not an `[EffectiveAllegory A]` instance) to keep the single `Allegory A` from
+    `[TabularUnitaryDistributiveAllegory A]` — the standard diamond dodge, cf. `s217_2_*`. -/
+noncomputable def mapEffectiveRegular {A : Type u} [TabularUnitaryDistributiveAllegory A]
+    (split : ∀ {c : A} (R : c ⟶ c), Freyd.Alg.Reflexive R → Freyd.Alg.Symmetric R → R ≫ R = R →
+      ∃ (d : A) (f : c ⟶ d), Freyd.Alg.Map f ∧ f ≫ f° = R ∧ f° ≫ f = Cat.id d) :
+    @EffectiveRegular (MapObj A) (mapCat (𝒜 := A)) :=
+  @EffectiveRegular.mk (MapObj A) (mapCat (𝒜 := A)) mapRegularCategory
+    (fun {_a} _E hE => mapIsEffective_of_split split hE)
 
 /-! ### §2.212  PreLogos (MapObj A) — DONE (Sorry-free)
 
