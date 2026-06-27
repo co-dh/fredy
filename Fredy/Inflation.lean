@@ -79,6 +79,7 @@ import Fredy.S1_33
 import Fredy.S1_42
 import Fredy.S1_44
 import Fredy.SliceRegular
+import Fredy.SlicePreTopos
 import Fredy.CatColimitRegular
 
 open Freyd
@@ -950,6 +951,100 @@ instance inflPreRegular [PreRegularCategory 𝒞] : PreRegularCategory (Infl �
     toHasBinaryProducts := inflHasBinaryProducts
     toHasPullbacks := inflHasPullbacks
     toPullbacksTransferCovers := inflPullbacksTransferCovers }
+
+/-! ### `A′` has images
+
+  The objects of `A′ = List 𝒞` are the finite products `∏s`, but EVERY `A`-object `J` is itself
+  `∏[J] = J × 1` up to the unitor `fst : J×1 ≅ J` (`prod_one_iso_right`).  So the `A`-image
+  `∏s ─image.lift→ J ─(image f).arr↣ ∏t` of `f : ∏s ⟶ ∏t` becomes an `A′`-image with object the
+  SINGLETON `[J]`: the `A′`-mono is `fst ≫ (image f).arr : ∏[J] = J×1 ⟶ ∏t` (mono in `A` ⟹ mono in
+  `A′` by `mono_to_inflMono`), and the cover leg is `image.lift f ≫ prodOneRightInv J : ∏s ⟶ J×1`
+  (a cover post-composed with the iso `prodOneRightInv J`).  Mirrors `inflHasEqualizers`' singleton
+  pattern; cover-then-mono is an image (`coverMono_isImage`, needs only `A′`-pullbacks). -/
+
+/-- A cover post-composed with an isomorphism is a cover (the dual of `cover_precomp_iso`; a same-named
+    `cover_postcomp_iso` lives in the topos file `SlicePi`, not in this file's import chain — re-proved
+    here under a distinct name to avoid the import cycle).  If `g ≫ m = e ≫ i` with `m` monic and `i`
+    iso, then `g ≫ (m ≫ i⁻¹) = e`, `m ≫ i⁻¹` is monic, and `e` a cover forces it — hence `m` — iso. -/
+theorem cover_comp_iso_right {X Y Y' : 𝒞} {e : X ⟶ Y} (he : Cover e) {i : Y ⟶ Y'} (hi : IsIso i) :
+    Cover (e ≫ i) := by
+  obtain ⟨i', hii, hi'i⟩ := hi
+  intro C m g hm hgm
+  -- `m ≫ i⁻¹` is monic, and `g ≫ (m ≫ i⁻¹) = e`, so `e` cover ⟹ `m ≫ i⁻¹` iso ⟹ `m` iso.
+  have hmi'_mono : Monic (m ≫ i') := by
+    intro W p q hpq
+    apply hm
+    have := congrArg (fun u => u ≫ i) hpq
+    simpa only [Cat.assoc, hi'i, Cat.comp_id] using this
+  have hfac : g ≫ (m ≫ i') = e := by
+    calc g ≫ (m ≫ i') = (g ≫ m) ≫ i' := (Cat.assoc _ _ _).symm
+      _ = (e ≫ i) ≫ i' := by rw [hgm]
+      _ = e ≫ (i ≫ i') := Cat.assoc _ _ _
+      _ = e := by rw [hii, Cat.comp_id]
+  have hmi'_iso : IsIso (m ≫ i') := he (m ≫ i') g hmi'_mono hfac
+  -- `m = (m ≫ i') ≫ i` (since `i' ≫ i = id`), a composite of two isos.
+  have hmeq : m = (m ≫ i') ≫ i := by rw [Cat.assoc, hi'i, Cat.comp_id]
+  rw [hmeq]; exact isIso_comp hmi'_iso ⟨i', hii, hi'i⟩
+
+/-- The `A`-arrow `fst ≫ m` (`J×1 ⟶ ∏t`) is monic when `m : J ↣ ∏t` is (`fst` iso, cancel via
+    `prodOneRightInv J`).  Same unitor-cancellation as `inflCover_to_cover`'s `hm𝒞`. -/
+theorem fst_comp_monic {J : 𝒞} {Z : 𝒞} {m : J ⟶ Z} (hm : Monic m) :
+    Monic ((fst : prod J one ⟶ J) ≫ m) := by
+  intro W p q hpq
+  have h1 : (p ≫ (fst : prod J one ⟶ J)) ≫ m = (q ≫ (fst : prod J one ⟶ J)) ≫ m := by
+    rw [Cat.assoc, Cat.assoc]; exact hpq
+  have h2 : p ≫ (fst : prod J one ⟶ J) = q ≫ (fst : prod J one ⟶ J) := hm _ _ h1
+  have := congrArg (fun u => u ≫ prodOneRightInv J) h2
+  simpa only [Cat.assoc, fst_prodOneRightInv, Cat.comp_id] using this
+
+/-- The image of `f : s ⟶ t` in `A′` (i.e. of `f : ∏s ⟶ ∏t` in `A`): the SINGLETON `[J]` of the
+    `A`-image object `J := (image f).dom`, with `A′`-mono `fst ≫ (image f).arr : ∏[J] = J×1 ⟶ ∏t`. -/
+noncomputable def inflImage [RegularCategory 𝒞] {s t : Infl 𝒞}
+    (f : listProd (𝒞 := 𝒞) s ⟶ listProd t) : Subobject (Infl 𝒞) t :=
+  let f' : listProd (𝒞 := 𝒞) s ⟶ listProd t := f
+  let J : 𝒞 := (image (𝒞 := 𝒞) f').dom
+  Subobject.mk (𝒞 := Infl 𝒞) ([J] : List 𝒞)
+    ((fst : prod J one ⟶ J) ≫ (image (𝒞 := 𝒞) f').arr :
+      listProd (𝒞 := 𝒞) ([J] : List 𝒞) ⟶ listProd t)
+    (mono_to_inflMono (C := ([J] : List 𝒞)) (t := t)
+      (m := (fst : prod J one ⟶ J) ≫ (image (𝒞 := 𝒞) f').arr)
+      (fst_comp_monic (image (𝒞 := 𝒞) f').monic))
+
+/-- `inflImage f` is the image of `f` in `A′`: cover-then-mono factorization (`coverMono_isImage`).
+    Cover leg `image.lift f ≫ prodOneRightInv J : ∏s ⟶ J×1` (cover · iso = cover, `cover_postcomp_iso`),
+    mono leg `fst ≫ (image f).arr`; their composite is `f` (unitor `prodOneRightInv_fst`). -/
+theorem inflImage_isImage [RegularCategory 𝒞] {s t : Infl 𝒞}
+    (f : listProd (𝒞 := 𝒞) s ⟶ listProd t) :
+    IsImage (𝒞 := Infl 𝒞) (A := s) (B := t) f (inflImage f) := by
+  letI : HasEqualizers 𝒞 := products_pullbacks_implies_equalizers
+  letI : HasPullbacks (Infl 𝒞) := inflHasPullbacks
+  let f' : listProd (𝒞 := 𝒞) s ⟶ listProd t := f
+  let J : 𝒞 := (image (𝒞 := 𝒞) f').dom
+  -- cover leg in `A` (= in `A′`, same underlying arrow): `image.lift f ≫ prodOneRightInv J`.
+  let e : listProd (𝒞 := 𝒞) s ⟶ listProd ([J] : List 𝒞) :=
+    image.lift (𝒞 := 𝒞) f' ≫ prodOneRightInv J
+  -- `e` is an `A`-cover (cover `image.lift` post-composed with the iso `prodOneRightInv J`),
+  -- hence an `A′`-cover on the same underlying arrow (`coverC_to_inflCover`).
+  have hcov𝒞 : Cover (𝒞 := 𝒞) e :=
+    cover_comp_iso_right (Colim.image_lift_cover_local f')
+      ⟨_, prodOneRightInv_fst, fst_prodOneRightInv⟩
+  have hcov : Cover (𝒞 := Infl 𝒞) (X := s) (Y := ([J] : List 𝒞)) e :=
+    coverC_to_inflCover (s := s) (t := ([J] : List 𝒞)) (f := e) hcov𝒞
+  -- `e ≫ m = f` (the singleton mono `m = fst ≫ (image f).arr`), via `prodOneRightInv_fst`.
+  have hfac : @Eq (listProd (𝒞 := 𝒞) s ⟶ listProd t) (e ≫ (inflImage f).arr) f := by
+    show (image.lift (𝒞 := 𝒞) f' ≫ prodOneRightInv J)
+        ≫ ((fst : prod J one ⟶ J) ≫ (image (𝒞 := 𝒞) f').arr) = f'
+    rw [← Cat.assoc, Cat.assoc (image.lift (𝒞 := 𝒞) f'), prodOneRightInv_fst, Cat.comp_id,
+      image.lift_fac]
+  exact Colim.coverMono_isImage (𝒞 := Infl 𝒞) (inflImage f).monic hcov hfac
+
+/-- **`A′` has images** when `A` is regular.  See `inflImage`. -/
+noncomputable instance inflHasImages [RegularCategory 𝒞] : HasImages (Infl 𝒞) where
+  image f := inflImage f
+  isImage f := inflImage_isImage f
+
+/-- **`A′` is regular** when `A` is.  Pre-regular (`inflPreRegular`) plus images (`inflHasImages`). -/
+noncomputable instance inflRegular [RegularCategory 𝒞] : RegularCategory (Infl 𝒞) where
 
 /-! ### The single-factor slice base-change `A′/V → A′/(V ++ [B])`
 
@@ -2349,6 +2444,51 @@ noncomputable def ordChainSlicePreRegular [Nonempty ι]
     (ordChainHasEqualizers O) (ordChainHepres O) (ordChainHepresLift O)
     hcanon
 
+/-! ### `HasImages` of the inner slice colimit (the regular upgrade of `ordChainSlicePreRegular`)
+
+  When `𝒞` is REGULAR (`inflRegular` ⟹ `RegularCategory (Infl 𝒞)`), every inner stage
+  `Over (chain i : Infl 𝒞)` has images (`overHasImages`), the inner transitions preserve monos
+  (`ordChainHmono`) and covers (`ordChainHcovpres`) hence images (`transitions_preserve_images`),
+  and the transitions are faithful (`ordChainHfaith`, given the WS suffix).  So the colimit
+  `(ordChainSliceSystem O).Obj` has images by `Colim.colimitHasImages`.  This is the per-rung
+  HasImages the §1.543 successor (`nextStepOfEnum`) carries to make each tower stage regular. -/
+
+/-- Per-inner-stage images: each stage `Over (chain i : Infl 𝒞)` is a slice of the regular
+    inflation `Infl 𝒞` (`inflRegular`), hence has images (`overHasImages`). -/
+noncomputable def ordChainStageHasImages [RegularCategory 𝒞] (i : ι) :
+    @HasImages ((ordChainSliceSystem O).A i) ((ordChainSliceSystem O).catA i) :=
+  overHasImages (𝒞 := Infl 𝒞) ((O.chain i : Infl 𝒞))
+
+/-- The inner transitions preserve monos as a `PreservesMono` (packaging `ordChainHmono`). -/
+theorem ordChainPreservesMono {i j : ι} (hij : D.le i j) :
+    @PreservesMono _ ((ordChainSliceSystem O).catA i) _ ((ordChainSliceSystem O).catA j)
+      ((ordChainSliceSystem O).F hij) ((ordChainSliceSystem O).functF hij) :=
+  fun {_ _ _} hφ => ordChainHmono O hij _ hφ
+
+open Freyd.Colim in
+/-- **GENERIC** `HasImages` of the inner slice colimit over ANY directed index, `𝒞` regular.
+    Given the WS-suffix faithfulness precondition (`hwsuf`) and the colimit pullbacks (`hpull`),
+    every colimit morphism has an image (`Colim.colimitHasImages`): per-stage images
+    (`ordChainStageHasImages`), mono-preserving transitions (`ordChainPreservesMono`), and
+    image-preserving transitions (`Colim.transitions_preserve_images` from mono+cover preservation). -/
+noncomputable def ordChainSliceHasImages [RegularCategory 𝒞]
+    (hwsuf : ∀ {i j : ι} (hij : D.le i j),
+        WellSupported (listProd (𝒞 := 𝒞) (prefixSuffix (O.chain i) (O.chain j))))
+    [hpull : @HasPullbacks (ordChainSliceSystem O).Obj (colimitCat _ (ordChainSliceCoherent O))] :
+    @HasImages (ordChainSliceSystem O).Obj (colimitCat _ (ordChainSliceCoherent O)) :=
+  Colim.colimitHasImages (ordChainSliceSystem O) (ordChainSliceCoherent O)
+    (fun i => ordChainStageHasImages O i)
+    (fun {i j} hij {x y} p q h => ordChainHfaith O hij (hwsuf hij) p q h)
+    (fun {i j} hij => ordChainPreservesMono O hij)
+    (fun {i j} hij {A B} f =>
+      letI : @HasImages ((ordChainSliceSystem O).A i) ((ordChainSliceSystem O).catA i) :=
+        ordChainStageHasImages O i
+      letI : @HasPullbacks ((ordChainSliceSystem O).A j) ((ordChainSliceSystem O).catA j) :=
+        overHasPullbacks (𝒞 := Infl 𝒞) ((O.chain j : Infl 𝒞))
+      Colim.transitions_preserve_images ((ordChainSliceSystem O).F hij)
+        (hF := (ordChainSliceSystem O).functF hij) (ordChainPreservesMono O hij)
+        (fun {_ _} φ hφ => ordChainHcovpres O hij φ hφ) f)
+
 end InnerPackage
 
 /-! ### ℕ-chain specializations of the generic `ordChain*` preservation package
@@ -2458,6 +2598,21 @@ noncomputable def chainSlicePreRegular
     (chainHppres P) (chainHppresPair P)
     (chainHasEqualizers P) (chainHepres P) (chainHepresLift P)
     hcanon
+
+open Freyd.Colim in
+/-- **§1.547 (B-package, REGULAR) — the inner ℕ-chain-slice colimit HAS IMAGES** (the
+    `uliftNatDirected` specialization of `ordChainSliceHasImages`), `𝒞` regular.  Given the colimit
+    pullbacks (`hpull`) and the WS-suffix faithfulness precondition (`hwsuf`).  This is the per-rung
+    `HasImages` upgrade of `chainSlicePreRegular`, the regular half of the §1.543 successor. -/
+noncomputable def chainSliceHasImages [RegularCategory 𝒞]
+    (hwsuf : ∀ {i j : ULift.{u} Nat} (hij : uliftNatDirected.le i j),
+        WellSupported (listProd (𝒞 := 𝒞)
+          (prefixSuffix (P.toOrdChain.chain i) (P.toOrdChain.chain j))))
+    [hpull : @HasPullbacks (chainSliceSystem P).Obj (colimitCat _ (chainSliceCoherent P))] :
+    @HasImages (chainSliceSystem P).Obj (colimitCat _ (chainSliceCoherent P)) :=
+  letI : @HasPullbacks (ordChainSliceSystem P.toOrdChain).Obj
+      (colimitCat _ (ordChainSliceCoherent P.toOrdChain)) := hpull
+  ordChainSliceHasImages P.toOrdChain (fun {i j} hij => hwsuf hij)
 
 end InnerPackageNat
 
