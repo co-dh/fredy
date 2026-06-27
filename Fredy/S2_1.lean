@@ -868,6 +868,27 @@ theorem tabulation_UP_forward {a b c p : 𝒜} {f : c ⟶ a} {g : c ⟶ b} {R : 
       rw [Cat.assoc]; exact comp_mono_left y hg_map.2
     rwa [Cat.comp_id] at h2
 
+/-- §2.143 forward, EXPLICIT witness: the mediating map is exactly `x≫f° ∩ y≫g°`. -/
+theorem tabulation_UP_forward_witness {a b c p : 𝒜} {f : c ⟶ a} {g : c ⟶ b} {R : a ⟶ b}
+    (ht : Tabulates f g R) {x : p ⟶ a} {y : p ⟶ b}
+    (hx : Map x) (hy : Map y) (hxy : x° ≫ y ⊑ R) :
+    Map (x ≫ f° ∩ y ≫ g°) ∧ (x ≫ f° ∩ y ≫ g°) ≫ f = x ∧ (x ≫ f° ∩ y ≫ g°) ≫ g = y := by
+  have hf_map : Map f := ht.1
+  have hg_map : Map g := ht.2.1
+  have hH : Map (x ≫ f° ∩ y ≫ g°) :=
+    ⟨tab_UP_H_entire ht hx hy hxy, tab_UP_H_simple ht hx hy⟩
+  refine ⟨hH, ?_, ?_⟩
+  · apply map_order_discrete (map_comp hH hf_map) hx
+    have h1 : (x ≫ f° ∩ y ≫ g°) ≫ f ⊑ x ≫ Cat.id a := by
+      refine le_trans (comp_mono_right (inter_lb_left _ _) f) ?_
+      rw [Cat.assoc]; exact comp_mono_left x hf_map.2
+    rwa [Cat.comp_id] at h1
+  · apply map_order_discrete (map_comp hH hg_map) hy
+    have h2 : (x ≫ f° ∩ y ≫ g°) ≫ g ⊑ y ≫ Cat.id b := by
+      refine le_trans (comp_mono_right (inter_lb_right _ _) g) ?_
+      rw [Cat.assoc]; exact comp_mono_left y hg_map.2
+    rwa [Cat.comp_id] at h2
+
 /-- §2.143 uniqueness: two maps `h, h'` mediating the same factorization are equal.
     If `h≫f=x=h'≫f` then `h = h(f f° … )`; more directly `h = h(ff°∩gg°)…` is not needed —
     we use `h≫f=h'≫f` and `h≫g=h'≫g` and §2.141 joint-monicity of `(f,g)`. -/

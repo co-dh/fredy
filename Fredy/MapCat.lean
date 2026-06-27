@@ -34,6 +34,7 @@
 -/
 
 import Fredy.S2_1
+import Fredy.S2_3           -- §2.316 oneHeyting / oneHeyting_adj: right adjoint to f# (Logos backward)
 import Fredy.S2_22b
 import Fredy.S1_60
 import Fredy.S1_62
@@ -2315,6 +2316,80 @@ noncomputable def mapEffectiveRegular {A : Type u} [TabularUnitaryDistributiveAl
       `dom_eq_dom_comp_recip`.  Union/bottom preservation are mechanical relational algebra from (†)
       (`corOf_mapSubUnion`, `comp_union_distrib`/`union_comp_distrib`, `dom_union`, `dom_zero`),
       read off through the `corOf` correspondence `le_iff_corOf_le` / `corOf_eq_dom_iso`. -/
+
+/-! ### §2.32 backward  `Logos (MapObj A)` for a tabular unitary DIVISION allegory
+
+  The one field beyond `mapPreLogos` is `HasRightAdjointImage`: the right adjoint `f##` to the
+  inverse-image `f#`.  Under the bridge `Sub(Map A) X ≅ Cor(X)` (`corOf`/`splitSub`), for a map
+  `f : a → b` and coreflexives `A = corOf A'` (on a), `c = corOf B'` (on b), the inverse image
+  reads off as `corOf (InverseImage f B') = dom (f c f°) = 1 ∩ f c f°` (`corOf_invImage` +
+  `dom_map_coref`, §2.32).  Its right adjoint on `Cor` is `D = f \ (1 → A) / f°`, where `1 → A`
+  is the §2.316 Heyting arrow `oneHeyting A` on the FULL hom-poset `(a,a)` (NOT on `Cor(a)`); the
+  adjunction `1 ∩ f c f° ⊑ A ↔ c ⊑ D` for coreflexive `c` is `le_leftDiv_iff`/`le_div_iff` chained
+  with `oneHeyting_adj`.  We take the coreflexive part `1_b ∩ D` (so it splits to a subobject;
+  `c ⊑ 1_b ∩ D ↔ c ⊑ D` as `c ⊑ 1_b`). -/
+
+section MapLogos
+variable {A : Type u} [TabularUnitaryDivisionAllegory A]
+
+/-- A `TabularUnitaryDivisionAllegory` is a `TabularUnitaryDistributiveAllegory`
+    (forgetting right division).  Same `Allegory` base — no diamond. -/
+instance mapTUDA_of_TUDiv : TabularUnitaryDistributiveAllegory A :=
+  { (inferInstance : TabularAllegory A), (inferInstance : UnitaryAllegory A),
+    (inferInstance : DistributiveAllegory A) with }
+
+/-- The coreflexive right adjoint `1_b ∩ f \ (oneHeyting A) / f°` for a map `f : a → b`
+    and a coreflexive `A` on `a`. -/
+private noncomputable def rightAdjCor {a b : MapObj A}
+    (f : @Cat.Hom _ (mapCat (𝒜 := A)) a b) (A' : a ⟶ a) : b ⟶ b :=
+  Cat.id b ∩ leftDiv f.val (DivisionAllegory.div (oneHeyting A') f.val°)
+
+private theorem rightAdjCor_coref {a b : MapObj A}
+    (f : @Cat.Hom _ (mapCat (𝒜 := A)) a b) (A' : a ⟶ a) : Coreflexive (rightAdjCor f A') :=
+  inter_lb_left _ _
+
+/-- **§2.32 adjunction (coreflexive form)**: for a map `f : a → b`, coreflexive `A` on `a`
+    and coreflexive `c` on `b`,
+        `(1 ∩ f c f°) ⊑ A   ↔   c ⊑ rightAdjCor f A`. -/
+private theorem rightAdjCor_adj {a b : MapObj A}
+    (f : @Cat.Hom _ (mapCat (𝒜 := A)) a b) {A' : a ⟶ a} {c : b ⟶ b}
+    (hc : Coreflexive c) :
+    (Cat.id a ∩ (f.val ≫ c ≫ f.val°)) ⊑ A' ↔ c ⊑ rightAdjCor f A' := by
+  have hf : Map f.val := f.property
+  -- c ⊑ 1_b ∩ D  ↔  c ⊑ D   (c ⊑ 1_b)
+  have hcc : c ⊑ rightAdjCor f A' ↔ c ⊑ leftDiv f.val (DivisionAllegory.div (oneHeyting A') f.val°) := by
+    rw [rightAdjCor]
+    exact ⟨fun h => le_trans h (inter_lb_right _ _), fun h => le_inter hc h⟩
+  rw [hcc, le_leftDiv_iff, le_div_iff]
+  -- (f c) f° ⊑ oneHeyting A  ↔  f c f° ⊑ oneHeyting A
+  have hassoc : (f.val ≫ c) ≫ f.val° = f.val ≫ c ≫ f.val° := Cat.assoc _ _ _
+  rw [hassoc, ← oneHeyting_adj A' (f.val ≫ c ≫ f.val°), Allegory.inter_comm]
+
+/-- **§2.32 backward — `HasRightAdjointImage (MapObj A)`**.  `rightAdj f A' := splitSub (rightAdjCor)`;
+    the adjunction is `rightAdjCor_adj` read through the `corOf`/`splitSub` bridge. -/
+noncomputable instance mapHasRightAdjointImage :
+    @HasRightAdjointImage (MapObj A) (mapCat (𝒜 := A)) :=
+  @HasRightAdjointImage.mk (MapObj A) (mapCat (𝒜 := A)) mapHasImages mapHasPullbacks
+    (fun {a b} f A' => splitSub (R := rightAdjCor f (corOf A')) (rightAdjCor_coref f (corOf A')))
+    (fun {a b} f B' A' => by
+      -- LHS: InverseImage f B' ≤ A'  ↔  corOf (InverseImage f B') ⊑ corOf A'
+      rw [le_iff_corOf_le, le_iff_corOf_le, corOf_splitSub,
+          corOf_invImage f B', dom_map_coref f.val f.property (corOf_coreflexive B')]
+      -- goal: (1 ∩ f (corOf B') f°) ⊑ corOf A'  ↔  corOf B' ⊑ rightAdjCor f (corOf A')
+      exact rightAdjCor_adj f (corOf_coreflexive B'))
+
+/-- **§2.32 — `Logos (MapObj A)`** for a tabular unitary division allegory `A`.  Combines the
+    pre-logos `mapPreLogos` (regular + subobject lattice) with the right adjoint
+    `mapHasRightAdjointImage` to `f#`.  This is Freyd §2.32 (backward direction): `Mσn(A)` is a
+    logos. -/
+noncomputable instance mapLogos : @Logos (MapObj A) (mapCat (𝒜 := A)) :=
+  @Logos.mk (MapObj A) (mapCat (𝒜 := A))
+    mapRegularCategory mapHasSubobjectUnions
+    (@HasRightAdjointImage.rightAdj (MapObj A) (mapCat (𝒜 := A)) mapHasRightAdjointImage)
+    (@HasRightAdjointImage.adjunction (MapObj A) (mapCat (𝒜 := A)) mapHasRightAdjointImage)
+    mapBottom (fun {_B} S => mapBottom_min S) mapBottom_dom_iso
+
+end MapLogos
 
 /-! ## §2.214 (dual)  `Map(positive allegory)` has disjoint binary coproducts
 

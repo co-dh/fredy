@@ -815,6 +815,257 @@ theorem simplePart_largest {a b : 𝒜} (R : a ⟶ b) (A : a ⟶ a)
 --   (2) division `D₁/D₂ := ↓{T | T≫D₂ ⊑ D₁}` on downdeals, plus verification of the six
 --   `DivisionAllegory` class fields.  None of these structures exist in the repo.
 
+/-! ## §2.316 (final paragraph)  The full hom-poset `(a,a)` is a Heyting algebra
+
+  In a TABULAR UNITARY division allegory, tabulate the maximal morphism `⊤ : a → a`
+  by maps `ℓ₁, ℓ₂ : γ → a`.  Then `(a,a) ≅ Cor(γ)` via `R ↦ 1_γ ∩ ℓ₁ R ℓ₂°`, with
+  inverse `c ↦ ℓ₁° c ℓ₂`.  Transporting the Cor(γ) Heyting arrow (`heyting_adj_coref`)
+  across this order-iso makes `(a,a)` a Heyting algebra.  We need exactly the special
+  arrow `1 → A` (largest `H` with `H ∩ 1 ⊑ A`), used in §2.32 to right-adjoin `f#`. -/
+
+/-- A **TABULAR UNITARY DIVISION ALLEGORY** (§2.316/§2.32): combines `TabularAllegory`,
+    `UnitaryAllegory` and `DivisionAllegory` in a SINGLE class so their shared `Allegory`
+    grandparent is merged into ONE `toAllegory` field (the diamond-safe inheritance pattern;
+    `DivisionAllegory` brings `DistributiveAllegory`, hence `∪`/`𝟘`).  This is exactly the
+    hypothesis under which `Mσn(𝒜)` is a logos (§2.32). -/
+class TabularUnitaryDivisionAllegory (𝒜 : Type u) extends
+    TabularAllegory 𝒜, UnitaryAllegory 𝒜, DivisionAllegory 𝒜
+
+section HeytingHom
+variable {𝒜 : Type u} [TabularUnitaryDivisionAllegory 𝒜]
+
+open Allegory in
+/-- The maximal morphism `⊤ : a → b` of a unitary allegory: `p_a ≫ p_b°` for the
+    (map) projections to the unit.  `topMor_max`: every `R ⊑ ⊤`. -/
+noncomputable def topMor (a b : 𝒜) : a ⟶ b :=
+  (unit_proj_is_map a).choose ≫ (unit_proj_is_map b).choose°
+
+theorem topMor_max {a b : 𝒜} (R : a ⟶ b) : R ⊑ topMor a b :=
+  unit_proj_max _ (unit_proj_is_map a).choose_spec _ (unit_proj_is_map b).choose_spec R
+
+/-- A chosen tabulation `(ℓ₁, ℓ₂) : γ → a` of the maximal morphism `⊤ : a → a`. -/
+noncomputable def topTab (a : 𝒜) : Σ γ : 𝒜, (γ ⟶ a) × (γ ⟶ a) :=
+  ⟨(TabularAllegory.tabular (topMor a a)).choose,
+   ((TabularAllegory.tabular (topMor a a)).choose_spec.choose,
+    (TabularAllegory.tabular (topMor a a)).choose_spec.choose_spec.choose)⟩
+
+/-- ℓ₁, ℓ₂ are maps; ℓ₁° ℓ₂ = ⊤; ℓ₁ℓ₁° ∩ ℓ₂ℓ₂° = 1_γ. -/
+theorem topTab_spec (a : 𝒜) :
+    Tabulates (topTab a).2.1 (topTab a).2.2 (topMor a a) :=
+  (TabularAllegory.tabular (topMor a a)).choose_spec.choose_spec.choose_spec
+
+theorem topTab_l1_map (a : 𝒜) : Map (topTab a).2.1 := (topTab_spec a).1
+theorem topTab_l2_map (a : 𝒜) : Map (topTab a).2.2 := (topTab_spec a).2.1
+theorem topTab_eq (a : 𝒜) : topMor a a = (topTab a).2.1° ≫ (topTab a).2.2 :=
+  (topTab_spec a).2.2.1
+theorem topTab_jointMono (a : 𝒜) :
+    (topTab a).2.1 ≫ (topTab a).2.1° ∩ (topTab a).2.2 ≫ (topTab a).2.2° = Cat.id (topTab a).1 :=
+  (topTab_spec a).2.2.2
+
+/-- `Φ : (a,a) → Cor(γ)` sends `R` to `1_γ ∩ ℓ₁ R ℓ₂°`. -/
+noncomputable def phiCor {a : 𝒜} (R : a ⟶ a) : (topTab a).1 ⟶ (topTab a).1 :=
+  Cat.id (topTab a).1 ∩ ((topTab a).2.1 ≫ R ≫ (topTab a).2.2°)
+
+/-- `Ψ : Cor(γ) → (a,a)` sends `c` to `ℓ₁° c ℓ₂`. -/
+noncomputable def psiCor {a : 𝒜} (c : (topTab a).1 ⟶ (topTab a).1) : a ⟶ a :=
+  (topTab a).2.1° ≫ c ≫ (topTab a).2.2
+
+/-- Dual modular law: `(R≫S) ∩ T ⊑ R ≫ (S ∩ R°≫T)`.  (Reciprocal form of `modular_le`.) -/
+theorem modular_le' {a b c : 𝒜} (R : a ⟶ b) (S : b ⟶ c) (T : a ⟶ c) :
+    (R ≫ S) ∩ T ⊑ R ≫ (S ∩ R° ≫ T) := by
+  have h := modular_le S° R° T° (𝒜 := 𝒜)
+  -- h : (S°≫R°) ∩ T° ⊑ (S° ∩ T°≫R)≫R°
+  have hr := recip_mono h
+  rw [Allegory.recip_inter, ← Allegory.recip_comp, Allegory.recip_recip, Allegory.recip_recip] at hr
+  -- hr : ((R≫S) ∩ T) ⊑ ((S° ∩ T°≫R°°)≫R°)°
+  simpa [Allegory.recip_comp, Allegory.recip_recip, Allegory.recip_inter] using hr
+
+/-- **Tabulation recovery**: if `(f, g)` are maps from `γ` with `f° ≫ g` maximal
+    (so `R ⊑ f° ≫ g` for all `R : a → a`), then `R = f° ≫ (1_γ ∩ f ≫ R ≫ g°) ≫ g`.
+    This is the recovery half of the order-iso `(a,a) ≅ Cor(γ)`. -/
+theorem tab_recover {a γ : 𝒜} {R : a ⟶ a} {f g : γ ⟶ a} (hfm : Map f) (hgm : Map g)
+    (htop : R ⊑ f° ≫ g) :
+    f° ≫ (Cat.id γ ∩ f ≫ R ≫ g°) ≫ g = R := by
+  have hfs : f° ≫ f ⊑ Cat.id a := hfm.2
+  have hgs : g° ≫ g ⊑ Cat.id a := hgm.2
+  apply le_antisymm
+  · -- upper: f°(1∩fRg°)g ⊑ f°(fRg°)g = (f°f)R(g°g) ⊑ R
+    have u1 : f° ≫ (Cat.id γ ∩ f ≫ R ≫ g°) ≫ g ⊑ f° ≫ (f ≫ R ≫ g°) ≫ g :=
+      comp_mono_left _ (comp_mono_right (inter_lb_right _ _) g)
+    have u2 : f° ≫ (f ≫ R ≫ g°) ≫ g = (f° ≫ f) ≫ R ≫ (g° ≫ g) := by simp [Cat.assoc]
+    have u3 : (f° ≫ f) ≫ R ≫ (g° ≫ g) ⊑ R := by
+      have := le_trans (comp_mono_right hfs _) (comp_mono_left _ (comp_mono_left R hgs))
+      rwa [Cat.id_comp, Cat.comp_id] at this
+    exact le_trans u1 (u2 ▸ u3)
+  · -- lower: R ⊑ R ∩ f°g ⊑ (f° ∩ Rg°)g ⊑ f°(1∩fRg°)g
+    have hReq : R = (f° ≫ g) ∩ R := by
+      rw [Allegory.inter_comm]; exact (le_antisymm (inter_lb_left _ _) (le_inter (le_refl _) htop)).symm
+    have step2 : (f° ≫ g) ∩ R ⊑ (f° ∩ R ≫ g°) ≫ g := modular_le f° g R
+    have step3 : (f° ∩ R ≫ g°) ⊑ f° ≫ (Cat.id γ ∩ f ≫ R ≫ g°) := by
+      have h := modular_le' f° (Cat.id γ) (R ≫ g°)
+      rw [Cat.comp_id, Allegory.recip_recip] at h
+      exact h
+    have step4 : (f° ∩ R ≫ g°) ≫ g ⊑ (f° ≫ (Cat.id γ ∩ f ≫ R ≫ g°)) ≫ g :=
+      comp_mono_right step3 g
+    have step5 : (f° ≫ (Cat.id γ ∩ f ≫ R ≫ g°)) ≫ g = f° ≫ (Cat.id γ ∩ f ≫ R ≫ g°) ≫ g := by
+      rw [Cat.assoc]
+    calc R = (f° ≫ g) ∩ R := hReq
+      _ ⊑ f° ≫ (Cat.id γ ∩ f ≫ R ≫ g°) ≫ g := le_trans step2 (step5 ▸ step4)
+
+/-- **§2.316 crux**: `ψ(φ(R)) = R`. -/
+theorem psi_phi {a : 𝒜} (R : a ⟶ a) : psiCor (phiCor R) = R :=
+  tab_recover (R := R) (topTab_l1_map a) (topTab_l2_map a)
+    ((topTab_eq a) ▸ topMor_max R)
+
+/-- **Tabulation co-recovery**: `φ(ψ(c)) = c` for coreflexive `c` on the apex `γ`, when
+    `(f, g)` are maps with `f ≫ f° ∩ g ≫ g° = 1_γ` (jointly monic).  I.e.
+    `1_γ ∩ f ≫ (f° ≫ c ≫ g) ≫ g° = c`. -/
+theorem tab_corecover {a γ : 𝒜} {c : γ ⟶ γ} {f g : γ ⟶ a} (hfm : Map f) (hgm : Map g)
+    (hjm : f ≫ f° ∩ g ≫ g° = Cat.id γ) (hc : Coreflexive c) :
+    Cat.id γ ∩ f ≫ (f° ≫ c ≫ g) ≫ g° = c := by
+  have hfe : Cat.id γ ⊑ f ≫ f° := by
+    have := hfm.1; rw [Entire, dom] at this; exact this ▸ inter_lb_right _ _
+  have hge : Cat.id γ ⊑ g ≫ g° := by
+    have := hgm.1; rw [Entire, dom] at this; exact this ▸ inter_lb_right _ _
+  have htab : Tabulates f g (f° ≫ g) := ⟨hfm, hgm, rfl, hjm⟩
+  apply le_antisymm
+  · -- 1 ∩ f(f°cg)g° ⊑ c.  Split c = e°e (e map, ee°=1), set x=ef, y=eg.
+    obtain ⟨d, e, hem, hee, hee'⟩ := coreflexive_splits hc
+    -- ψ(c) = f°cg = (ef)°(eg)
+    have hpsi : f° ≫ c ≫ g = (e ≫ f)° ≫ (e ≫ g) := by
+      rw [← hee, Allegory.recip_comp]; simp [Cat.assoc]
+    -- mediating map H with Hf = ef, Hg = eg; by uniqueness H = e.
+    have hxy : (e ≫ f)° ≫ (e ≫ g) ⊑ f° ≫ g := by
+      rw [← hpsi]
+      -- f°cg ⊑ f°g since c ⊑ 1
+      have h1 : f° ≫ c ≫ g ⊑ f° ≫ Cat.id γ ≫ g := comp_mono_left f° (comp_mono_right hc g)
+      rwa [Cat.id_comp] at h1
+    obtain ⟨hHm, hHf, hHg⟩ :=
+      tabulation_UP_forward_witness htab (map_comp hem hfm) (map_comp hem hgm) hxy
+    -- explicit mediating map K = (ef)f° ∩ (eg)g°; K = e by uniqueness.
+    have hKe : ((e ≫ f) ≫ f° ∩ (e ≫ g) ≫ g°) = e :=
+      tabulation_UP_unique htab hHm hem hHf hHg
+    -- recip: f(ef)° ∩ g(eg)° = e°.
+    have hKrecip : (f ≫ (e ≫ f)° ∩ g ≫ (e ≫ g)°) = e° := by
+      have := congrArg (·°) hKe
+      simpa [Allegory.recip_inter, Allegory.recip_comp, Allegory.recip_recip, Cat.assoc]
+        using this
+    -- D = 1 ∩ (f(ef)°)≫((eg)g°);  modular ⟹ D ⊑ (f(ef)° ∩ g(eg)°)≫((eg)g°) = e°≫(eg≫g°).
+    have hDle : Cat.id γ ∩ f ≫ (f° ≫ c ≫ g) ≫ g° ⊑ c ≫ g ≫ g° := by
+      have hgrp : f ≫ (f° ≫ c ≫ g) ≫ g° = (f ≫ (e ≫ f)°) ≫ ((e ≫ g) ≫ g°) := by
+        rw [hpsi]; simp [Cat.assoc]
+      rw [hgrp, Allegory.inter_comm]
+      have hm := modular_le (f ≫ (e ≫ f)°) ((e ≫ g) ≫ g°) (Cat.id γ)
+      -- hm : (f(ef)°)((eg)g°) ∩ 1 ⊑ (f(ef)° ∩ 1≫((eg)g°)°)≫((eg)g°)
+      have hpr : Cat.id γ ≫ ((e ≫ g) ≫ g°)° = g ≫ (e ≫ g)° := by
+        rw [Cat.id_comp, Allegory.recip_comp, Allegory.recip_recip]
+      rw [hpr, hKrecip] at hm
+      have hKval : e° ≫ ((e ≫ g) ≫ g°) = c ≫ g ≫ g° := by
+        rw [← hee]; simp [Cat.assoc]
+      rw [hKval] at hm
+      exact hm
+    -- D ⊑ 1 and D ⊑ c≫g≫g° ⟹ D ⊑ 1 ∩ c≫g≫g° ⊑ c≫(g≫g° ∩ c) = c≫c = c.
+    have hfin : (Cat.id γ ∩ f ≫ (f° ≫ c ≫ g) ≫ g°) ⊑ c := by
+      have hD1 : (Cat.id γ ∩ f ≫ (f° ≫ c ≫ g) ≫ g°) ⊑ Cat.id γ := inter_lb_left _ _
+      have hmeet := modular_le' c (g ≫ g°) (Cat.id γ)
+      -- (c≫gg°) ∩ 1 ⊑ c≫(gg° ∩ c°≫1) = c≫(gg° ∩ c)
+      have hcc : g ≫ g° ∩ c° ≫ Cat.id γ = c := by
+        have hcsym : c° = c := symmetric_eq (coreflexive_symmetric_idempotent hc).1
+        rw [Cat.comp_id, hcsym, Allegory.inter_comm]
+        exact le_antisymm (inter_lb_left _ _) (le_inter (le_refl _) (le_trans hc hge))
+      rw [hcc] at hmeet
+      have hidem : c ≫ c = c := (coreflexive_symmetric_idempotent hc).2
+      rw [hidem] at hmeet
+      exact le_trans (le_inter hDle hD1) hmeet
+    exact hfin
+  · -- c ⊑ 1 ∩ f(f°cg)g° : c ⊑ 1 (coref) and c ⊑ f f° c g g° (entirety both sides).
+    apply le_inter hc
+    have l1 : c ⊑ (f ≫ f°) ≫ c := by
+      have := comp_mono_right hfe c; rwa [Cat.id_comp] at this
+    have l2 : (f ≫ f°) ≫ c ⊑ (f ≫ f°) ≫ c ≫ (g ≫ g°) := by
+      apply comp_mono_left
+      have := comp_mono_left c hge; rwa [Cat.comp_id] at this
+    have hassoc : (f ≫ f°) ≫ c ≫ (g ≫ g°) = f ≫ (f° ≫ c ≫ g) ≫ g° := by
+      simp [Cat.assoc]
+    exact hassoc ▸ le_trans l1 l2
+
+/-- `φ(R)` is coreflexive. -/
+theorem phiCor_coref {a : 𝒜} (R : a ⟶ a) : Coreflexive (phiCor R) := inter_lb_left _ _
+
+/-- `φ` is monotone. -/
+theorem phiCor_mono {a : 𝒜} {R S : a ⟶ a} (h : R ⊑ S) : phiCor R ⊑ phiCor S :=
+  le_inter (inter_lb_left _ _)
+    (le_trans (inter_lb_right _ _) (comp_mono_left _ (comp_mono_right h _)))
+
+/-- `ψ` is monotone. -/
+theorem psiCor_mono {a : 𝒜} {c d : (topTab a).1 ⟶ (topTab a).1} (h : c ⊑ d) :
+    psiCor c ⊑ psiCor d :=
+  comp_mono_left _ (comp_mono_right h _)
+
+/-- `φ(ψ(c)) = c` for coreflexive `c` (specialization of `tab_corecover` to the chosen
+    tabulation of `⊤_a`). -/
+theorem phi_psi {a : 𝒜} {c : (topTab a).1 ⟶ (topTab a).1} (hc : Coreflexive c) :
+    phiCor (psiCor c) = c :=
+  tab_corecover (topTab_l1_map a) (topTab_l2_map a) (topTab_jointMono a) hc
+
+/-- `φ` reflects order: `φ(X) ⊑ φ(Y) ↔ X ⊑ Y` (an order-iso onto `Cor(γ)`). -/
+theorem phiCor_le_iff {a : 𝒜} (X Y : a ⟶ a) : phiCor X ⊑ phiCor Y ↔ X ⊑ Y := by
+  constructor
+  · intro h
+    have := psiCor_mono h
+    rwa [psi_phi, psi_phi] at this
+  · exact phiCor_mono
+
+/-- `ψ`-`φ` Galois iff for coreflexive targets: `Z ⊑ ψ(c) ↔ φ(Z) ⊑ c`. -/
+theorem le_psiCor_iff {a : 𝒜} (Z : a ⟶ a) {c : (topTab a).1 ⟶ (topTab a).1}
+    (hc : Coreflexive c) : Z ⊑ psiCor c ↔ phiCor Z ⊑ c := by
+  constructor
+  · intro h
+    have := phiCor_mono h
+    rwa [phi_psi hc] at this
+  · intro h
+    have := psiCor_mono h
+    rwa [psi_phi] at this
+
+/-- `φ` preserves meets: `φ(X ∩ Y) = φ(X) ∩ φ(Y)`. -/
+theorem phiCor_inter {a : 𝒜} (X Y : a ⟶ a) : phiCor (X ∩ Y) = phiCor X ∩ phiCor Y := by
+  apply le_antisymm
+  · exact le_inter (phiCor_mono (inter_lb_left _ _)) (phiCor_mono (inter_lb_right _ _))
+  · -- φX ∩ φY ⊑ φ(X∩Y): both coreflexive; transport back via ψ and the meet-on-Cor.
+    have hle : phiCor X ∩ phiCor Y ⊑ phiCor (X ∩ Y) := by
+      -- ψ(φX ∩ φY) ⊑ X and ⊑ Y, so ⊑ X∩Y; then φ-monotone + φψ.
+      have hcor : Coreflexive (phiCor X ∩ phiCor Y) :=
+        le_trans (inter_lb_left _ _) (phiCor_coref X)
+      have hX : psiCor (phiCor X ∩ phiCor Y) ⊑ X := by
+        have := psiCor_mono (inter_lb_left (phiCor X) (phiCor Y)); rwa [psi_phi] at this
+      have hY : psiCor (phiCor X ∩ phiCor Y) ⊑ Y := by
+        have := psiCor_mono (inter_lb_right (phiCor X) (phiCor Y)); rwa [psi_phi] at this
+      have hXY : psiCor (phiCor X ∩ phiCor Y) ⊑ X ∩ Y := le_inter hX hY
+      have := phiCor_mono hXY
+      rwa [phi_psi hcor] at this
+    exact hle
+
+-- ⊤ → A : the largest H with H ∩ 1 ⊑ A.
+/-- The Heyting special arrow `1 → A` on the full poset `(a,a)`: `Ψ(Φ(1) ⟹ Φ(A))`,
+    where `⟹` is the Cor(γ) Heyting arrow. -/
+noncomputable def oneHeyting {a : 𝒜} (A : a ⟶ a) : a ⟶ a :=
+  psiCor (heytingImpl (phiCor (Cat.id a)) (phiCor A))
+
+/-- **§2.316 / §2.32 adjunction**: for coreflexive `A`, `oneHeyting A` is the largest
+    `Z : (a,a)` whose coreflexive part lies under `A`:  `Z ∩ 1 ⊑ A ↔ Z ⊑ oneHeyting A`. -/
+theorem oneHeyting_adj {a : 𝒜} (A : a ⟶ a) (Z : a ⟶ a) :
+    Z ∩ Cat.id a ⊑ A ↔ Z ⊑ oneHeyting A := by
+  have hP : Coreflexive (heytingImpl (phiCor (Cat.id a)) (phiCor A)) := inter_lb_left _ _
+  rw [oneHeyting, le_psiCor_iff Z hP]
+  -- φZ ⊑ (φ1 ⟹ φA)  ↔  φ1 ≫ φZ ⊑ φA   (heyting_adj_coref)
+  rw [← heyting_adj_coref (phiCor_coref (Cat.id a)) (phiCor_coref Z)]
+  -- φ1 ≫ φZ = φ1 ∩ φZ = φ(1 ∩ Z); and ⊑ φA ↔ 1 ∩ Z ⊑ A.
+  rw [coreflexive_comp_eq_inter (phiCor_coref (Cat.id a)) (phiCor_coref Z),
+      Allegory.inter_comm (phiCor (Cat.id a)) (phiCor Z), ← phiCor_inter,
+      phiCor_le_iff, Allegory.inter_comm Z (Cat.id a)]
+
+end HeytingHom
+
 /-! ## §2.32  Tabular unitary division allegory ↔ Mσn(A) is a logos
 
   The MAP CATEGORY Mσn(A) of a tabular unitary allegory A has:
@@ -870,55 +1121,32 @@ theorem dom_map_coref {a b : 𝒜} (f : a ⟶ b) (hf : Map f) {c : b ⟶ b} (hc 
       (comp_mono_left _ (inter_lb_right _ _))
 
 -- BOOK §2.32: A is a tabular unitary division allegory iff Mσn(A) is a logos.
--- STATUS: OPEN (both directions).
--- AVAILABLE:
---   • `mapPreLogos` in MapCat.lean: `PreLogos (MapObj 𝒜)` for `[TabularUnitaryDistributiveAllegory 𝒜]`
---     (terminal, pullbacks, regular covers, subobject unions, bottom, inverse-image preservation).
---   • `leftDiv` (§2.312) is defined above in this file.
--- MISSING (FORWARD, logos → division allegory):
+-- STATUS: BACKWARD direction DONE (`Logos (MapObj A)` in MapCat.lean, `mapLogos`, axiom-clean
+--   `[propext, Classical.choice]`).  FORWARD direction (logos → division allegory on Rel) still OPEN.
+-- FORWARD (logos → division allegory) — still OPEN:
 --   • `DivisionAllegory (RelObj 𝒞)` for `[Logos 𝒞]`.  S1_77.lean proves the adjointness
 --     `T ⊑ R/(graph f)°` ↔ `T⊚(graph f)° ⊑ R` for maps `f`, but the full right division
 --     `R/S` for an arbitrary relation `S` (not just a graph) is not yet assembled as an
 --     instance; `DivisionAllegory (RelObj 𝒞)` does not exist in RelCat.lean.
--- MISSING (BACKWARD, division allegory → logos on Map(𝒜)):
---   • EXACT FIELD NEEDED.  `Logos (MapObj 𝒜)` = `mapPreLogos` (DONE) + `HasRightAdjointImage`.
---     `HasRightAdjointImage` (S1_70) needs ONE constructive field beyond pullbacks/images:
---         rightAdj : ∀ {A B} (f : A ⟶ B), Subobject (MapObj 𝒜) A → Subobject (MapObj 𝒜) B
---         adjunction : (InverseImage f B').le A' ↔ B'.le (rightAdj f A')      [B':Sub B, A':Sub A]
---   • THE TRANSLATION IS DONE (bridge already in MapCat, here made usable):
---     under the iso `Sub(MapObj 𝒜) X ≅ Cor(X)` (`corOf`/`splitSub`, `le_iff_corOf_le`,
---     `corOf_splitSub`, `corOf_invImage` in MapCat), with `f : a → b` a map, `A := corOf A'`
---     (coreflexive on a), `c := corOf B'` (coreflexive on b), the adjunction is EXACTLY
---         dom (f.val ≫ c ≫ f.val°) ⊑ A   ↔   c ⊑ corOf (rightAdj f A')              (★)
---     and `corOf_invImage` rewrites the LHS to `dom (f c f°)`, which by `dom_map_coref`
---     (proved just above) equals `1 ∩ f c f°` — Freyd's lower function `1 ∩ f B f°`
---     (= `dom (f≫c)` by `dom_comp_coref`).  So `rightAdj f A' := splitSub <coreflexive D>`
---     reduces the whole problem to ONE poset statement:
---         find a coreflexive `D` on `b` with   (1 ∩ f c f°) ⊑ A  ↔  c ⊑ D   for all coref `c`.
---   • THE ONE GENUINELY MISSING BRICK (mathematical depth, NOT mere infra):
---     `D` is the RIGHT ADJOINT of the monotone map `c ↦ 1 ∩ f c f° : Cor(b) → Cor(a)`.
---     Freyd's closed form is `D = f \ (1 → A) / f°` where `→` is the Heyting arrow ON THE FULL
---     HOM-POSET `(a,a)` (his words: "the Heyting arrow on (α,α), NOT Cor(α)").  The naive read
---     `1 → A = 1 ∩ A/1 = A` (A coref) is WRONG: it yields `D = f\A/f°`, whose adjunction
---     (`le_div_iff` ∘ `le_leftDiv_iff`) is `c ⊑ f\A/f° ↔ f c f° ⊑ A` — STRICTLY STRONGER than
---     `1 ∩ f c f° ⊑ A` (counterexample: `c = 1` forces `f f° ⊑ A`, false unless `f` is a
---     retraction-mono).  Hence the `1 ∩` cannot be dropped, and `D ≠ f\A/f°`.
---   • WHAT IS REALLY REQUIRED:  the FULL hom-poset `(a,a)` (not just `Cor(a)`) must be a HEYTING
---     ALGEBRA — i.e. `∩` must have a relative pseudocomplement `X ⟹ Y` (`Z ∩ X ⊑ Y ↔ Z ⊑ X⟹Y`).
---     A division allegory supplies the `≫`-residual `/`, NOT the `∩`-residual, so `(a,a)` Heyting
---     does NOT follow from `DivisionAllegory` alone.  Freyd gets it from §2.316's LAST paragraph:
---     in a TABULAR UNITARY division allegory tabulate the maximal morphism `⊤ : a → a` by
---     `(ℓ₁,ℓ₂) : γ → a × a`; then `(a,a) ≅ Cor(γ)` (`R ↦ 1 ∩ ℓ₁ R ℓ₂°`), and the `(a,a)` arrow is
---     the Cor(γ) Heyting arrow transported across that iso.  (THIS is why the theorem needs
---     tabular + unitary, not just division.)
---   • REPO STATUS OF THAT BRICK: ABSENT.  There is no `⊤`/maximal-morphism tabulation, no
---     `(a,a) ≅ Cor(γ)` iso, and no `(a,a)`-Heyting-algebra instance in the repo.  `UnitaryAllegory`
---     gives only a unit object (`unit_obj`/`unit_prop`), not the tabulated top or the §2.316 iso.
---     Building these (⊤-tabulation + the poset iso + transported Heyting arrow) is a multi-lemma
---     §2.316-final-paragraph construction — a real piece of mathematics, not a one-line bridge.
---   • DELIVERED HERE: `dom_comp_coref`, `dom_map_coref` (both proved, axiom-clean) reduce the
---     backward direction to exactly statement (★)+the `D`-existence poset fact above; the residual
---     gap is precisely "(a,a) is a Heyting algebra via the ⊤-tabulation `(a,a) ≅ Cor(γ)`".
+-- BACKWARD (division allegory → logos on Map(𝒜)) — DONE.  The construction (Freyd §2.316 final
+--   paragraph + §2.32) is split between THIS file (the §2.316 Heyting machinery) and MapCat.lean
+--   (the subobject bridge + the `Logos` instance):
+--   • §2.316 HOM-POSET HEYTING ARROW (this file, `section HeytingHom`):
+--     - `topMor`/`topMor_max`: the maximal morphism `⊤_{a,b} = p_a ≫ p_b°` of the unit (`R ⊑ ⊤`).
+--     - `topTab`: a chosen tabulation `(ℓ₁,ℓ₂) : γ → a` of `⊤_a` (`topTab_spec`).
+--     - `phiCor R := 1_γ ∩ ℓ₁ R ℓ₂°`,  `psiCor c := ℓ₁° c ℓ₂`:  the ORDER-ISO `(a,a) ≅ Cor(γ)`.
+--       `psi_phi : ψ(φ R) = R` (via `tab_recover`) and `phi_psi : φ(ψ c) = c` for coreflexive `c`
+--       (via `tab_corecover`, joint-monicity + `tabulation_UP_*`); `phiCor_le_iff`, `phiCor_inter`,
+--       `le_psiCor_iff` are the order/meet/Galois consequences.
+--     - `oneHeyting A := ψ(φ1 ⟹ φA)` (the §2.316 arrow `1 → A` on `(a,a)`, NOT on `Cor(a)`), with
+--       `oneHeyting_adj : Z ∩ 1 ⊑ A ↔ Z ⊑ oneHeyting A`  (the relative pseudocomplement of `∩`).
+--   • §2.32 RIGHT ADJOINT TO `f#` (MapCat.lean, `section MapLogos`):  under the subobject bridge
+--     `Sub(Map A) X ≅ Cor(X)`, `corOf_invImage` + `dom_map_coref` give `corOf (f# B') = 1 ∩ f c f°`.
+--     `rightAdjCor f A := 1_b ∩ f \ (oneHeyting A) / f°` is its right adjoint
+--     (`rightAdjCor_adj`: `1 ∩ f c f° ⊑ A ↔ c ⊑ rightAdjCor f A`, via `le_leftDiv_iff`/`le_div_iff`
+--     ∘ `oneHeyting_adj`).  `mapHasRightAdjointImage` = `splitSub ∘ rightAdjCor`; `mapLogos` then
+--     bundles it with `mapPreLogos`.  (`D = f\A/f°` would be WRONG: its adjunction `f c f° ⊑ A` is
+--     strictly stronger than `1 ∩ f c f° ⊑ A` — hence the genuine §2.316 `oneHeyting` is needed.)
 
 /-! ## §2.331  Moerdijk representation theorems
 
@@ -994,12 +1222,14 @@ theorem dom_map_coref {a b : 𝒜} (f : a ⟶ b) (hf : Map f) {c : b ⟶ b} (hc 
 --   Mσn(A) — `Cat (MapObj 𝒜)`: `mapCat` in MapCat.lean; `PreLogos (MapObj 𝒜)`: `mapPreLogos`.
 --   §2.217(1) (not §2.343): `C ↪ Map(Mat(Rel C))` faithful + target positive-pre-logos:
 --   `s217_faithful_embed_into_positive` in RelCat.lean.  This covers the PRE-LOGOS version.
--- MISSING for §2.343 specifically:
---   • `Logos (MapObj 𝒜)` (not just `PreLogos`): needs `HasRightAdjointImage` on `MapObj 𝒜`
---     (the §2.32 gap above).
+-- REMAINING for §2.343 specifically:
+--   • `Logos (MapObj 𝒜)` (not just `PreLogos`): DONE — `mapLogos` in MapCat.lean (§2.32 backward,
+--     via `HasRightAdjointImage` on `MapObj 𝒜`, the `oneHeyting`/`rightAdjCor` construction above).
 --   • The §2.343 target is `Mσn(Eq(Rel(C))⁺)` = `Map(SplObj(Mat(Rel C)))`.  Its
---     `DivisionAllegory (SplObj 𝒜)` prerequisite (§2.34) is DONE (`instDivisionSpl`);
---     the remaining blocker is §2.32 backward (`HasRightAdjointImage (MapObj 𝒜)`).
+--     `DivisionAllegory (SplObj 𝒜)` prerequisite (§2.34) is DONE (`instDivisionSpl`); to obtain a
+--     `Logos` here one instantiates `mapLogos` at `A := SplObj(Mat(Rel C))` once that carrier is a
+--     `TabularUnitaryDivisionAllegory` (tabular+unitary already assembled in RelCat.lean; division is
+--     `instDivisionSpl`).
 --   • Fullness of the composite embedding `C → Map(SplObj(Mat(Rel C)))` has not been assembled.
 
 end Freyd.Alg
