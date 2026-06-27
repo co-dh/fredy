@@ -796,6 +796,83 @@ theorem simplePart_largest {a b : 𝒜} (R : a ⟶ b) (A : a ⟶ a)
     exact le_trans (comp_mono_right hA R) (by rw [Cat.id_comp]; exact le_refl R)
   · exact hAR
 
+/-! ## §2.315(a)  Every locally complete distributive allegory is a division allegory
+
+  In a `LocallyCompleteDistributiveAllegory` the right adjoint to `(-) ≫ S`
+  exists as a supremum: `R / S := ⊔ {T | T ≫ S ⊑ R}`.  The two `DivisionAllegory`
+  fields then follow from `Sup_le`/`le_Sup`.  (`div_comp_le` needs that composition
+  on the *right* distributes over `Sup`; we get that by reciprocating the left
+  distributivity `comp_Sup_distrib`.) -/
+
+section LCDADivision
+
+open LocallyCompleteDistributiveAllegory
+
+variable {𝒜 : Type u} [LocallyCompleteDistributiveAllegory 𝒜]
+
+/-- Reciprocation commutes with `Sup`: `(Sup P)° = Sup {R° | P R}`.
+    Reciprocation is an order-isomorphism, so it carries suprema to suprema. -/
+theorem recip_Sup {a b : 𝒜} (P : (a ⟶ b) → Prop) :
+    (Sup P)° = Sup (fun T : b ⟶ a => ∃ R, P R ∧ T = R°) := by
+  apply le_antisymm
+  · -- (Sup P)° ⊑ Sup Pᵒ  ↔  Sup P ⊑ (Sup Pᵒ)°  (recip adjoint); then Sup_le pointwise.
+    apply recip_le_iff.mpr
+    apply Sup_le; intro R hR
+    -- R ⊑ (Sup Pᵒ)°  ↔  R° ⊑ Sup Pᵒ, and R° is a member of Pᵒ.
+    exact recip_le_iff.mp (le_Sup ⟨R, hR, rfl⟩)
+  · -- Sup Pᵒ ⊑ (Sup P)°: each member R° ⊑ (Sup P)° since R ⊑ Sup P.
+    apply Sup_le; intro T ⟨R, hR, hT⟩
+    subst hT; exact recip_mono (le_Sup hR)
+
+/-- Composition on the right distributes over `Sup`: `(Sup P) ≫ S = ⊔ {T ≫ S | P T}`.
+    Derived from the left law `comp_Sup_distrib` by reciprocation. -/
+theorem Sup_comp_distrib {a b c : 𝒜} (P : (a ⟶ b) → Prop) (S : b ⟶ c) :
+    Sup P ≫ S = Sup (fun T : a ⟶ c => ∃ R, P R ∧ T = R ≫ S) := by
+  apply le_antisymm
+  · -- (Sup P)S ⊑ ⊔{RS}.  Reciprocate both sides: ((Sup P)S)° ⊑ (⊔{RS})°, i.e.
+    -- S°(Sup P)° ⊑ (⊔{RS})°.
+    have key : (Sup P ≫ S)° ⊑ (Sup (fun T : a ⟶ c => ∃ R, P R ∧ T = R ≫ S))° := by
+      rw [Allegory.recip_comp, recip_Sup, comp_Sup_distrib]
+      apply Sup_le; intro U ⟨T, ⟨R, hR, hT⟩, hU⟩
+      subst hT; subst hU
+      -- S° ≫ R° = (R ≫ S)° ⊑ (⊔{RS})°  since R ≫ S is a member.
+      rw [← Allegory.recip_comp]
+      have hmem : (fun T : a ⟶ c => ∃ R', P R' ∧ T = R' ≫ S) (R ≫ S) := ⟨R, hR, rfl⟩
+      exact recip_mono (le_Sup hmem)
+    have := recip_mono key
+    rwa [Allegory.recip_recip, Allegory.recip_recip] at this
+  · -- ⊔{RS} ⊑ (Sup P)S: each RS ⊑ (Sup P)S since R ⊑ Sup P.
+    apply Sup_le; intro T ⟨R, hR, hT⟩
+    subst hT; exact comp_mono_right (le_Sup hR) S
+
+/-- Right division in a locally complete distributive allegory: `R / S := ⊔ {T | T ≫ S ⊑ R}`. -/
+def lcdaDiv {a b c : 𝒜} (R : a ⟶ c) (S : b ⟶ c) : a ⟶ b :=
+  Sup (fun T : a ⟶ b => T ≫ S ⊑ R)
+
+/-- The semi-commutative triangle `(R / S) ≫ S ⊑ R` (§2.31 field). -/
+theorem lcdaDiv_comp_le {a b c : 𝒜} (R : a ⟶ c) (S : b ⟶ c) : lcdaDiv R S ≫ S ⊑ R := by
+  rw [lcdaDiv, Sup_comp_distrib]
+  apply Sup_le; intro T ⟨U, hU, hT⟩
+  subst hT; exact hU
+
+/-- The adjointness `T ≫ S ⊑ R → T ⊑ R / S` (§2.31 field). -/
+theorem le_lcdaDiv {a b c : 𝒜} (T : a ⟶ b) (R : a ⟶ c) (S : b ⟶ c) (h : T ≫ S ⊑ R) :
+    T ⊑ lcdaDiv R S :=
+  le_Sup h
+
+/-- (§2.315a) A locally complete distributive allegory is a division allegory, with
+    `R / S = ⊔ {T | T ≫ S ⊑ R}`.  Provided as a `def` (not a global instance) to avoid a
+    typeclass-resolution loop: `DivisionAllegory` extends `DistributiveAllegory`, so a global
+    instance here would give `DistributiveAllegory X` two derivations (direct, and via this).
+    Apply with `letI`/`@`. -/
+def divisionAllegoryLCDA : DivisionAllegory 𝒜 :=
+  { (inferInstance : LocallyCompleteDistributiveAllegory 𝒜).toDistributiveAllegory with
+    div         := fun R S => lcdaDiv R S
+    div_comp_le := fun R S => lcdaDiv_comp_le R S
+    le_div      := fun T R S h => le_lcdaDiv T R S h }
+
+end LCDADivision
+
 /-! ## §2.315  Division allegory → locally complete distributive allegory
 
   Any division allegory is faithfully representable in a locally complete
@@ -807,13 +884,46 @@ theorem simplePart_largest {a b : 𝒜} (R : a ⟶ b) (A : a ⟶ a)
 
 -- BOOK §2.315: Any division allegory is faithfully representable in a locally complete
 -- distributive allegory, and thus in a globally complete allegory.
--- STATUS: OPEN.
--- AVAILABLE: the faithful embedding A → Â (R ↦ ↓R via `principalDowndeal`) exists in
---   S2_2.lean; `IsDowndeal` and `principalIdeal_isIdeal` (closure under union) are defined.
--- MISSING: a `Cat`+`Allegory`+`DivisionAllegory` instance on the downdeal completion Â.
---   Specifically: (1) Â-composition `(D₁ ≫ D₂) := ↓{T | ∃ R ∈ D₁, S ∈ D₂, T ⊑ R≫S}` and
---   (2) division `D₁/D₂ := ↓{T | T≫D₂ ⊑ D₁}` on downdeals, plus verification of the six
---   `DivisionAllegory` class fields.  None of these structures exist in the repo.
+-- STATUS: DONE.
+-- The local completion `Â = Downdeal 𝒜` (ideals of A-homs, S2_2.lean) is a
+-- `LocallyCompleteDistributiveAllegory`; by §2.315(a) every LCDA is a `DivisionAllegory`.
+-- The principal-ideal embedding `R ↦ ↓R = DowndealHom.prin R` preserves ≫/°/∩/∪/𝟘 and is
+-- injective (`DowndealHom.prin_*`).  The headline `divisionAllegory_faithful_in_lcda`
+-- packages this.
+
+section Representation
+
+/-- (§2.315) **Any division allegory is faithfully representable in a locally complete
+    distributive allegory** (which is, by §2.315(a), itself a division allegory).
+
+    Concretely: for any `DistributiveAllegory ℬ` — in particular any `DivisionAllegory` —
+    the local completion `B̂ = Downdeal ℬ` is a `LocallyCompleteDistributiveAllegory` (hence a
+    `DivisionAllegory` via `divisionAllegoryLCDA`), and the principal-ideal embedding
+    `R ↦ ↓R` is a faithful homomorphism: injective and preserving `≫`, `°`, `∩`, `∪`, `𝟘`.
+    (Fresh type variable `ℬ` avoids the file-level `[DivisionAllegory 𝒜]`, which would make
+    the base `DistributiveAllegory` ambiguous.) -/
+theorem divisionAllegory_faithful_in_lcda {ℬ : Type u} [hℬ : DistributiveAllegory.{u, u} ℬ] :
+    -- B̂ is locally complete distributive (and so a division allegory):
+    Nonempty (LocallyCompleteDistributiveAllegory.{u, u} (Downdeal ℬ)) ∧
+    Nonempty (DivisionAllegory.{u, u} (Downdeal ℬ)) ∧
+    -- the embedding R ↦ ↓R is faithful:
+    (∀ {a b : ℬ} {R S : a ⟶ b}, DowndealHom.prin R = DowndealHom.prin S → R = S) ∧
+    -- and preserves every operation:
+    (∀ {a b c : ℬ} (R : a ⟶ b) (S : b ⟶ c),
+      DowndealHom.prin (R ≫ S) = DowndealHom.comp (DowndealHom.prin R) (DowndealHom.prin S)) ∧
+    (∀ {a b : ℬ} (R : a ⟶ b), DowndealHom.prin (R°) = DowndealHom.recip (DowndealHom.prin R)) ∧
+    (∀ {a b : ℬ} (R S : a ⟶ b),
+      DowndealHom.prin (R ∩ S) = DowndealHom.inter (DowndealHom.prin R) (DowndealHom.prin S)) ∧
+    (∀ {a b : ℬ} (R S : a ⟶ b),
+      DowndealHom.prin (R ∪ S) = DowndealHom.union (DowndealHom.prin R) (DowndealHom.prin S)) :=
+  by
+  letI inst : LocallyCompleteDistributiveAllegory (Downdeal ℬ) :=
+    @instLocallyCompleteDistributiveAllegoryDowndealHom ℬ hℬ
+  exact ⟨⟨inst⟩, ⟨@divisionAllegoryLCDA (Downdeal ℬ) inst⟩,
+    DowndealHom.prin_injective, DowndealHom.prin_comp, DowndealHom.prin_recip,
+    DowndealHom.prin_inter, DowndealHom.prin_union⟩
+
+end Representation
 
 /-! ## §2.316 (final paragraph)  The full hom-poset `(a,a)` is a Heyting algebra
 
