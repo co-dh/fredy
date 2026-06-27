@@ -1318,17 +1318,35 @@ end S217
          an equivalence relation `R` of `SplObj(Mat(Rel C))` is a COVER of `D` (via
          `MapCat.mapEffectivenessSplit`), with `x≫x° = R`, `x°≫x = id`.
 
-  -- BOOK §2.217(2): the REMAINING step to package `EffectiveRegular D` (hence `PreTopos D`) is
-  -- the BinRel↔allegory translation: given a CATEGORY-level `EquivalenceRelation E :
-  -- BinRel D A A` (S1_56, stated via `graph`/`⊚`/`RelHom` and the pullback/image structure of
-  -- `D`), exhibit its underlying allegory endo `R := E.colA°≫E.colB : A→A` of `SplObj(Mat(Rel C))`
-  -- as a reflexive symmetric idempotent, split it by (iii) to a cover `x : A→Q`, and prove the
-  -- category-level kernel pair `kernelPairRel x` equals `E` (`RelLe` both ways).  This needs a
-  -- dictionary `BinRel(Map 𝒜) ↔ 𝒜` (relating `⊚`/`graph`/`kernelPairRel`/`Cover` to allegory
-  -- `≫`/`°`/`dom`/`id⊑x°x`) that the repo does not yet have — `MapCat` has ZERO `BinRel`
-  -- references.  Its construction parallels §2.14 (`relMap_allegoryEquiv`) and the §2.147
-  -- `mapPullback_leg_corOf`/`mapHasImages` machinery but at the category level; it is the
-  -- genuine research core of §2.217(2), left as a precise marker here. -/
+  THE DICTIONARY (now built, sorry-free, in `MapCat`, `[propext]` only).  `relOf E := E.colA°≫E.colB`
+  is the underlying allegory endo of a category-level `E : BinRel (Map A) A A`, and (over a bare
+  `[TabularAllegory A]`):
+    • `MapCat.relOf_le_of_relLe` : `E ⊂ F` (Map(A))  ⟹  `relOf E ⊑ relOf F`  (allegory);
+    • `MapCat.relOf_reciprocal`  : `relOf (E°) = (relOf E)°`;
+    • `MapCat.relOf_graph`       : `relOf (graph x) = x.val`;
+    • `MapCat.relOf_reflexive`   : `E`'s diagonal ⟹ `Reflexive (relOf E)`;
+    • `MapCat.relOf_symmetric`   : `E ⊂ E°`        ⟹ `Symmetric (relOf E)`.
+  (The instance-pinning accessors `MapCat.relColA`/`relColB`/`relColA_map`/`relColB_map` package the
+  `mapCat`-explicit field projections that the `MapObj A := A` abbrev otherwise mis-synthesizes.)
+
+  -- BOOK §2.217(2): the EXACT two RelLe directions still to bridge to package `EffectiveRegular D`
+  -- (hence `PreTopos D`).  The forward dictionary + `s217_2_effectiveSplit_isCover` already turn an
+  -- `EquivalenceRelation E` into: `relOf E` reflexive (`relOf_reflexive`) + symmetric
+  -- (`relOf_symmetric`); split by `[EffectiveAllegory]` to a cover `x : A→Q` with `x≫x° = relOf E`,
+  -- `x°≫x = id` (`mapEffectivenessSplit`).  What is NOT yet bridged:
+  --   (C)  COMPOSITION:  `relOf (R ⊚ S) = relOf R ≫ relOf S`  (in particular its `⊒` half
+  --        `relOf E ≫ relOf E ⊑ relOf (E ⊚ E)`, which — composed with category transitivity
+  --        `E ⊚ E ⊂ E` via `relOf_le_of_relLe` — supplies the IDEMPOTENCY `relOf E ≫ relOf E = relOf E`
+  --        that `EffectiveAllegory.split_symmetric_idempotent` demands);
+  --   (D)  REVERSE containment:  `relOf E ⊑ relOf F  ⟹  E ⊂ F`  (needs `F`'s jointly-monic columns
+  --        to TABULATE `relOf F`, i.e. `F.colA≫F.colA° ∩ F.colB≫F.colB° = id`, stronger than
+  --        category joint-monicity; true for the level/kernel-pair relations `graph x ⊚ graph x°`).
+  -- (C)+(D) are the §2.14 `Rel(Map A) ≅ A` equivalence promoted to the CATEGORY level — `compose`
+  -- (S1_56) is the pullback-then-IMAGE of a span, so (C)'s `⊒` half hinges on the image-cover of
+  -- that span being relationally inverted (cover⊥mono descent), and (D) on the columns tabulating.
+  -- Both reuse `mapPullback_leg_corOf`/`tab_leg_dom`/`mapHasImages`; they are the genuine research
+  -- core, left as this sharpened marker.  With (C)+(D): `relOf E = x≫x° = relOf (graph x ⊚ graph x°)`
+  -- (via `relOf_graph`+`relOf_reciprocal`), so `E ⊂ graph x⊚graph x°` and back follow from (D). -/
 
 section S217_2
 

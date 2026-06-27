@@ -37,6 +37,7 @@ import Fredy.S2_1
 import Fredy.S2_22b
 import Fredy.S1_60
 import Fredy.S1_62
+import Fredy.S1_64           -- §2.217(2): category-level kernelPairRel / IsEffective / kernelPairRel↔graphComp
 
 universe v u
 
@@ -1538,6 +1539,117 @@ theorem mapEffectivenessSplit {a Q : A} (x : @Cat.Hom (MapObj A) (mapCat (𝒜 :
     @Cover (MapObj A) (mapCat (𝒜 := A)) a Q x :=
   -- Cover: `mapEntire_cover` needs `id_Q ⊑ x°≫x`; here `x°≫x = id_Q` exactly.
   mapEntire_cover x (hxxId ▸ le_refl (Cat.id Q))  -- `id_Q ⊑ x°≫x` ⟸ `x°≫x = id_Q`
+
+/-! ### §2.217(2)  The BinRel(Map 𝒜) ↔ allegory dictionary
+
+  The crux of §2.217(2) is the translation between a CATEGORY-level binary relation
+  `E : BinRel (MapObj A) A A` (a jointly-monic span of maps `colA, colB : src → A`) and its
+  underlying ALLEGORY endo `relOf E := colA° ≫ colB : A → A` of `A`.
+
+  CONVENTION NOTE.  `MapObj A` is an `abbrev` for `A`, so the `Cat (MapObj A)` instance `mapCat`
+  is NEVER auto-found (Lean unfolds `MapObj A → A` and picks the allegory's `Allegory.toCat`).
+  Every `BinRel (MapObj A)` field projection therefore re-synthesizes the wrong `Cat` instance and
+  fails with "synthesized instance not defeq".  The fix used throughout this section is to pass
+  `mapCat` EXPLICITLY to each projection — packaged once in the accessors `relColA`/`relColB`
+  (the underlying allegory legs) and `relColA_map`/`relColB_map` (their `Map` certificates).
+
+  The dictionary then proves (all over a bare `[TabularAllegory A]`):
+    • `relOf_le_of_relLe` : `E ⊂ F`  (Map(A) containment)   ⟹  `relOf E ⊑ relOf F`   (allegory);
+    • `relOf_reciprocal`  : `relOf (E°) = (relOf E)°`;
+    • `relOf_graph`       : `relOf (graph x) = x.val`;
+    • `relOf_reflexive`   : the diagonal of `E` ⟹ `Reflexive (relOf E)`;
+    • `relOf_symmetric`   : `E ⊂ E°` ⟹ `Symmetric (relOf E)`.
+
+  This reduces an equivalence relation of `Map(A)` to a reflexive symmetric (idempotent) of `A`,
+  which `[EffectiveAllegory A]` splits to a cover (`mapEffectivenessSplit`) whose level is `E`.
+  The two remaining bridges (`relOf` of `⊚` = allegory `≫`, and the reverse containment) are the
+  §2.14 `Rel(Map A) ≅ A` equivalence at the CATEGORY level; see the sharpened marker below. -/
+
+/-- Underlying allegory leg `colA.val : E.src → a` of a Map(A) relation (instance pinned). -/
+@[reducible] def relColA {a : A} (E : @BinRel (MapObj A) (mapCat (𝒜 := A)) a a) :
+    @Cat.Hom A Allegory.toCat (@BinRel.src (MapObj A) (mapCat (𝒜 := A)) a a E) a :=
+  (@BinRel.colA (MapObj A) (mapCat (𝒜 := A)) a a E).val
+
+/-- Underlying allegory leg `colB.val : E.src → a` of a Map(A) relation (instance pinned). -/
+@[reducible] def relColB {a : A} (E : @BinRel (MapObj A) (mapCat (𝒜 := A)) a a) :
+    @Cat.Hom A Allegory.toCat (@BinRel.src (MapObj A) (mapCat (𝒜 := A)) a a E) a :=
+  (@BinRel.colB (MapObj A) (mapCat (𝒜 := A)) a a E).val
+
+/-- `relColA E` is a map of `A`. -/
+def relColA_map {a : A} (E : @BinRel (MapObj A) (mapCat (𝒜 := A)) a a) : Map (relColA E) :=
+  (@BinRel.colA (MapObj A) (mapCat (𝒜 := A)) a a E).property
+
+/-- `relColB E` is a map of `A`. -/
+def relColB_map {a : A} (E : @BinRel (MapObj A) (mapCat (𝒜 := A)) a a) : Map (relColB E) :=
+  (@BinRel.colB (MapObj A) (mapCat (𝒜 := A)) a a E).property
+
+/-- The underlying allegory endo of a category-level relation `E : BinRel (MapObj A) A A`:
+    `relOf E = E.colA° ≫ E.colB : A → A` in the allegory `A`.  (`relOf (graph x) = x`, and
+    `relOf (E°) = (relOf E)°`.) -/
+def relOf {a : A} (E : @BinRel (MapObj A) (mapCat (𝒜 := A)) a a) :
+    @Cat.Hom A Allegory.toCat a a :=
+  Allegory.recip (relColA E) ≫ relColB E
+
+/-- **§2.217(2) dictionary (forward, structural)**: a `Map(A)`-containment `E ⊂ F` descends to
+    allegory containment `relOf E ⊑ relOf F`.  The witnessing map `h : E.src → F.src` (with
+    `h≫F.colA = E.colA`, `h≫F.colB = E.colB`) gives
+    `relOf E = (h F.colA)°(h F.colB) = F.colA°(h°h)F.colB ⊑ F.colA° F.colB = relOf F`
+    (`h` simple: `h°≫h ⊑ id`). -/
+theorem relOf_le_of_relLe {a : A} {E F : @BinRel (MapObj A) (mapCat (𝒜 := A)) a a}
+    (h : @RelLe (MapObj A) (mapCat (𝒜 := A)) a a E F) : relOf E ⊑ relOf F := by
+  obtain ⟨⟨hh, hhA, hhB⟩⟩ := h
+  have hhA' : hh.val ≫ relColA F = relColA E := congrArg Subtype.val hhA
+  have hhB' : hh.val ≫ relColB F = relColB E := congrArg Subtype.val hhB
+  show Allegory.recip (relColA E) ≫ relColB E ⊑ Allegory.recip (relColA F) ≫ relColB F
+  have hmid : (Allegory.recip hh.val ≫ hh.val) ≫ relColB F ⊑ relColB F := by
+    have := comp_mono_right hh.property.2 (relColB F); rwa [Cat.id_comp] at this
+  calc Allegory.recip (relColA E) ≫ relColB E
+      = Allegory.recip (hh.val ≫ relColA F) ≫ (hh.val ≫ relColB F) := by rw [hhA', hhB']
+    _ = Allegory.recip (relColA F) ≫ ((Allegory.recip hh.val ≫ hh.val) ≫ relColB F) := by
+          rw [Allegory.recip_comp]; simp [Cat.assoc]
+    _ ⊑ Allegory.recip (relColA F) ≫ relColB F := comp_mono_left _ hmid
+
+/-- `relOf (E°) = (relOf E)°`: the reciprocal swaps the columns. -/
+theorem relOf_reciprocal {a : A} (E : @BinRel (MapObj A) (mapCat (𝒜 := A)) a a) :
+    relOf (@reciprocal (MapObj A) (mapCat (𝒜 := A)) a a E) = Allegory.recip (relOf E) := by
+  show Allegory.recip (relColB E) ≫ relColA E
+      = Allegory.recip (Allegory.recip (relColA E) ≫ relColB E)
+  rw [Allegory.recip_comp, Allegory.recip_recip]
+
+/-- `relOf (graph x) = x.val` for a Map(A) endo-map `x : a → a`. -/
+theorem relOf_graph {a : A} (x : @Cat.Hom (MapObj A) (mapCat (𝒜 := A)) a a) :
+    relOf (@graph (MapObj A) (mapCat (𝒜 := A)) a a x) = x.val := by
+  show Allegory.recip (Cat.id a) ≫ x.val = x.val
+  rw [recip_id, Cat.id_comp]
+
+/-- **§2.217(2) dictionary**: `relOf E` is REFLEXIVE given `E`'s diagonal map (the reflexivity
+    component of `EquivalenceRelation`, fed through `relColA`/`relColB`). -/
+theorem relOf_reflexive {a : A} {E : @BinRel (MapObj A) (mapCat (𝒜 := A)) a a}
+    {d : @Cat.Hom (MapObj A) (mapCat (𝒜 := A)) a
+          (@BinRel.src (MapObj A) (mapCat (𝒜 := A)) a a E)}
+    (hdA' : d.val ≫ relColA E = Cat.id a) (hdB' : d.val ≫ relColB E = Cat.id a) :
+    Reflexive (relOf E) := by
+  show Cat.id a ⊑ Allegory.recip (relColA E) ≫ relColB E
+  have hmid : (Allegory.recip d.val ≫ d.val) ≫ relColB E ⊑ relColB E := by
+    have := comp_mono_right d.property.2 (relColB E); rwa [Cat.id_comp] at this
+  calc Cat.id a
+      = Allegory.recip (d.val ≫ relColA E) ≫ (d.val ≫ relColB E) := by
+          rw [hdA', hdB', recip_id, Cat.id_comp]
+    _ = Allegory.recip (relColA E) ≫ ((Allegory.recip d.val ≫ d.val) ≫ relColB E) := by
+          rw [Allegory.recip_comp]; simp [Cat.assoc]
+    _ ⊑ Allegory.recip (relColA E) ≫ relColB E := comp_mono_left _ hmid
+
+/-- **§2.217(2) dictionary**: `relOf E` is SYMMETRIC given `E ⊂ E°` (the symmetry component of
+    `EquivalenceRelation`).  `relOf E ⊑ (relOf E)°` by the forward dictionary + `relOf_reciprocal`;
+    reciprocate. -/
+theorem relOf_symmetric {a : A} {E : @BinRel (MapObj A) (mapCat (𝒜 := A)) a a}
+    (hsym : @RelLe (MapObj A) (mapCat (𝒜 := A)) a a E
+              (@reciprocal (MapObj A) (mapCat (𝒜 := A)) a a E)) :
+    Symmetric (relOf E) := by
+  have h := relOf_le_of_relLe hsym
+  rw [relOf_reciprocal] at h
+  have := recip_mono h
+  rwa [Allegory.recip_recip] at this
 
 /-! ### §2.212  HasSubobjectUnions (MapObj A)
 
