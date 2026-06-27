@@ -19,6 +19,7 @@ import Fredy.RelCat
 import Fredy.StalkRegular
 import Fredy.FiniteSeparation
 import Fredy.Capitalization
+import Fredy.CapitalProjective
 
 universe u w
 
@@ -152,5 +153,36 @@ theorem relStalk_faithful {𝒞 : Type u} [Cat.{u} 𝒞] [PreLogos 𝒞]
   (TF_regularFunctor ℱ hℱ hproj).relAllegoryHom_faithful_of_reflects
     (fun f hiso => hrefl f hiso)
     (fun e he => set_cover_splits e he)
+
+/-! ## §1.633 discharges the stalk-route PROJECTIVITY residual (R3) in the capital case
+
+  Freyd's §1.635 stalk construction takes `ℱ` to be an ultra-filter on the boolean algebra `ℬ`
+  of COMPLEMENTED SUBTERMINATORS of a CAPITAL positive pre-logos.  For such an `ℱ` the
+  `hproj` hypothesis of `TF_regularFunctor`/`relStalk_faithful` (each member projective) is no
+  longer an assumption: it is `capital_complementedSub_projective` (§1.633).  This is exactly why
+  Freyd opens §1.635 with *"we may concentrate on a capital positive pre-logos"*. -/
+
+/-- **§1.633 ⟹ stalk projectivity.**  In a CAPITAL positive pre-logos, if every member of the
+    pre-filter `ℱ` is a complemented subterminator, then every member's domain is projective —
+    discharging the `hproj` residual of the stalk route. -/
+theorem capital_filter_projective {𝒞 : Type u} [Cat.{u} 𝒞] [DisjointBinaryCoproduct 𝒞]
+    (hcap : Capital (𝒞 := 𝒞)) (ℱ : Subobject 𝒞 one → Prop)
+    (hcompl : ∀ U : Subobject 𝒞 one, ℱ U → IsComplementedSub U) :
+    ∀ U : Subobject 𝒞 one, ℱ U → Projective U.dom :=
+  fun U hU => capital_complementedSub_projective hcap U (hcompl U hU)
+
+open PreLogosHorn.Stalk in
+/-- **§2.218 (K2, capital stalk).**  Freyd's actual §1.635 hypotheses: a CAPITAL positive pre-logos
+    `𝒞`, an ultra-filter `ℱ` of COMPLEMENTED SUBTERMINATORS whose stalk reflects isos.  The
+    projectivity residual is discharged by §1.633 (`capital_filter_projective`); only the
+    single-stalk CONSERVATIVITY (`hrefl`) remains — the genuinely irreducible §2.217-grade residual
+    that needs the stalk FAMILY, not `Capital` alone (a single stalk forgets every subterminator
+    outside `ℱ`, so cannot detect an iso supported off `ℱ`). -/
+theorem relStalk_faithful_capital {𝒞 : Type u} [Cat.{u} 𝒞] [DisjointBinaryCoproduct 𝒞]
+    (hcap : Capital (𝒞 := 𝒞)) (ℱ : Subobject 𝒞 one → Prop) (hℱ : IsPreFilter ℱ)
+    (hcompl : ∀ U : Subobject 𝒞 one, ℱ U → IsComplementedSub U)
+    (hrefl : ∀ {X Y : 𝒞} (f : X ⟶ Y), IsIso ((TF_functor ℱ).map f) → IsIso f) :
+    (TF_regularFunctor ℱ hℱ (capital_filter_projective hcap ℱ hcompl)).relAllegoryHom.Faithful :=
+  relStalk_faithful ℱ hℱ (capital_filter_projective hcap ℱ hcompl) hrefl
 
 end Freyd

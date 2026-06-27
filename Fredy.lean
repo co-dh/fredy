@@ -89,3 +89,4 @@ import Fredy.Locale
 import Fredy.RelCat
 import Fredy.S2_218
 import Fredy.S2_33
+import Fredy.CapitalProjective
