@@ -1213,12 +1213,14 @@ theorem inter_complemented [HasBinaryCoproducts 𝒞] {B : 𝒞} {U V : Subobjec
 --       closure puts `V₁∪V₂∈ℱ` and `UnionPrime` (= `ultrafilter_unionPrime`) puts `V₁∈ℱ ∨ V₂∈ℱ`.
 --   (⟹) part 1 DONE — `notMem_zero_of_injective`: injectivity forces `0 ∉ ℱ` (else the two zero-named
 --   elements of `T(A₁),T(A₂)` collide under the comparison but carry distinct sum tags).
---   (⟹) part 2 RESIDUAL — `UnionPrime`'s membership clause from surjectivity: given `U₁∩U₂≤0` and
---   `U₁∪U₂∈ℱ`, build the complemented pair `Q₁=K#U₁,Q₂=K#U₂ ⊆ K.dom` (`K=U₁∪U₂`), name the iso
---   `K.dom ≅ Q₁.dom+Q₂.dom`, and read off `W ≤ Uᵢ` from the surjectivity preimage.  Needs a
---   WITNESS-EXPOSING `complementedSub_iso_coproduct` (`inl≫h⁻¹ = Q₁.arr`) — the dual of
---   `decompose_witnesses` — plus complemented up-closure (`complemented_of_disjoint_half`).  Not yet
---   built; this is the only open piece of the §1.634 iff (the ⟸ keystone for §1.635 is DONE).
+--   (⟹) part 2 DONE — `unionPrime_membership_of_surjective`: `UnionPrime`'s membership clause from
+--   surjectivity.  Given `U₁∩U₂≤0` and `K:=U₁∪U₂∈ℱ`, the witness-exposing `disjointPair_legs_iso`
+--   (the dual of `decompose_witnesses`, needing only disjointness — NOT a cover) names the iso
+--   `K.dom ≅ U₁.dom+U₂.dom` with legs `inl≫ψ≫K.arr=U₁.arr`, `inr≫ψ≫K.arr=U₂.arr`.  Feeding the name
+--   `(K, ψ⁻¹)` to surjectivity, its `inl`/`inr` preimage `(W,g)` gives (via `PrefRel`) a refinement
+--   `W'≤Uᵢ` (post-composing `a≫g≫inl = b≫ψ⁻¹` with `ψ`); complemented up-closure
+--   (`complemented_of_disjoint_half`, `K` complemented as a member of ℱ) puts `Uᵢ∈ℱ`.
+--   FULL §1.634 IFF DONE — `preservesDisjointUnions_iff_unionPrime` (part 1 + part 2 + the ⟸).
 
 -- BOOK §1.635: If F̂ is an ultra-filter in the boolean algebra of complemented
 -- subterminators, then T_F̂ is a representation of pre-logoi (union-preserving).
@@ -1249,25 +1251,27 @@ theorem inter_complemented [HasBinaryCoproducts 𝒞] {B : 𝒞} {U V : Subobjec
 
 -- BOOK §1.636: Any Horn sentence in the predicates of pre-logoi that holds for the
 -- category of sets holds for all positive pre-logoi.
--- INFRA-BLOCKED. §1.636 is a DIFFERENT Horn metatheorem from §1.444 (Horn.lean):
---   - §1.444 Horn.lean covers Cartesian predicates (terminator / product / equalizer).
---   - §1.636 covers PRE-LOGOS predicates: additionally `image`, `disjoint coproduct`,
---     `zero object`, `union of subobjects` — none of these appear in `Freyd.Horn.Atom`.
--- (The between-pre-logoi `PreLogosFunctor` predicate — item (4) of the assembly — already exists
---  in S1_61 (`Freyd.PreLogosFunctor`): preserves union + bottom on top of Cartesian+mono.)
--- To formalize §1.636 one needs:
---   (1) An extended `PreLogosAtom` inductive adding `image`, `disjointCoprod`, `zero`,
---       `union` constructors with well-typed morphism variables.
---   (2) `HoldsInPreLogos 𝒞 φ` semantics interpreting those atoms via the pre-logos
---       operations (`HasImages`, `DisjointBinaryCoproduct`, `PreLogos.bottom`, etc.).
---   (3) Preservation theorems for each new predicate under `T_F̂` — the functional core
---       of §1.634–1.635 (INFRA-BLOCKED above).
---   (4) Reflection theorems (collective faithfulness for the extended language via
---       `prelogos_representation_theorem`).
--- Transfer route: once (1)–(4) are in place, the proof follows §1.444's pattern:
--- for each `i`, `pushEnv i ρ` preserves all pre-logos predicates by (3); truth-for-Set
--- gives the conclusion; reflection (4) pulls it back.  But (1)–(3) are substantial new
--- infra, not a one-liner extension of `Horn.lean`.
+-- DONE MODULO §2.217 — see `namespace PreLogosHorn` (end of file).  §1.636 is the §1.444 Horn
+-- metatheorem (Horn.lean) with the predicate language ENLARGED to the pre-logos primitives.
+-- LANDED there, axiom-clean, sorry-free:
+--   (1) `PLAtom` — the extended atom inductive: Cartesian `terminator`/`product`/`equalizer`
+--       PLUS `zero` (initial), `cover`, `image`, `disjointCoprod`, with typed morphism variables.
+--   (2) `PLAtom.holds`/`PLHoldsIn` — the semantics, interpreting the new atoms via §1.636
+--       universal-property predicates `IsInitialObj`/`IsCoverObj`/`IsImageObj`/`IsDisjointCoprodObj`
+--       (Cartesian cases reuse `Horn`'s `IsTerminalObj`/`IsProductObj`/`IsEqualizerObj`).
+--   (3+4) `PreLogosRep 𝒞 𝒟` — the representation interface bundling, per atom, the two halves
+--       Freyd cites: PRESERVATION by the representation and REFLECTION (joint faithfulness).
+--   • `preLogos_horn_metatheorem` — the TRANSFER: true-in-`𝒟` ⟹ true-in-`𝒞` along any
+--     `PreLogosRep 𝒞 𝒟` (the verbatim §1.444 argument; NO axioms).  `_set` specialises to
+--     `𝒟 = Type w` ("true in the category of sets").  `PreLogosRep.id` witnesses non-vacuity.
+-- THE OPEN PIECE (§2.217-grade, recorded in project memory `Ch2 Rel/Map bridge`): constructing
+-- the interface for the CONCRETE union-preserving family `∏_{F̂} T_{F̂} : 𝒞 → Set^I` over all
+-- ultra-filters.  `preserves` is the §1.634/§1.625 union+image+cover preservation of each `T_{F̂}`
+-- (`setRepOfPreLogos_of_ultrafilter`; the PIECE-1 iff supplies the disjoint-coproduct half).
+-- `reflects` is the family's JOINT FAITHFULNESS for the EXTENDED language — `SeparatesMaps`
+-- (`prelogos_representation_theorem`) strengthened to reflect the pre-logos predicates, whose
+-- "positive removable" form is exactly the §2.217 faithful-positive-embedding.  See the sharp
+-- diagnosis at the foot of `namespace PreLogosHorn`.
 
 /-- FILTER in a subobject lattice: up-closed pre-filter (§1.634). -/
 def IsFilter (ℱ : (Subobject 𝒞 one) → Prop) : Prop :=
@@ -2066,6 +2070,63 @@ theorem complementedSub_legs_iso [HasBinaryCoproducts 𝒞] {A : 𝒞} (U U₂ :
   · calc HasBinaryCoproducts.inr ≫ (χ ≫ Un.arr)
         = (HasBinaryCoproducts.inr ≫ χ) ≫ Un.arr := (Cat.assoc _ _ _).symm
       _ = po.cocone.ι₂ ≫ Un.arr := by rw [hχ₂]
+      _ = U₂.arr := hy
+
+/-- **Leg-exposing disjoint-pair coproduct iso** (the dual of `decompose_witnesses`).  A merely
+    DISJOINT pair `(U₁,U₂)` of `A` (`U₁∩U₂ ≤ ⊥`, no cover assumption) realises the *union object*
+    `(U₁∪U₂).dom` as the coproduct `U₁.dom + U₂.dom`, with an iso `ψ : U₁.dom+U₂.dom → (U₁∪U₂).dom`
+    and inverse whose legs are the two union inclusions: `inl≫ψ` is the inclusion `U₁.dom ↪ (U₁∪U₂).dom`
+    (so `inl≫ψ≫(U₁∪U₂).arr = U₁.arr`) and similarly `inr≫ψ` for `U₂`.
+
+    Same pasting-lemma kernel as `complementedSub_legs_iso`, but without the entireness step: we
+    expose the iso onto `Un.dom` rather than transporting it onto `A`, so the cover clause is dropped.
+    This is exactly what the §1.634 (⟹) membership argument needs: it reads `W ≤ Uᵢ` off the
+    surjectivity preimage of the name `((U₁∪U₂), ψ⁻¹)`. -/
+theorem disjointPair_legs_iso [HasBinaryCoproducts 𝒞] {A : 𝒞} (U₁ U₂ : Subobject 𝒞 A)
+    (hdisj : Subobject.le (Subobject.inter U₁ U₂) (PreLogos.bottom A)) :
+    ∃ (ψ : HasBinaryCoproducts.coprod U₁.dom U₂.dom ⟶ (HasSubobjectUnions.union U₁ U₂).dom)
+      (ψinv : (HasSubobjectUnions.union U₁ U₂).dom ⟶ HasBinaryCoproducts.coprod U₁.dom U₂.dom),
+      ψ ≫ ψinv = Cat.id _ ∧ ψinv ≫ ψ = Cat.id _ ∧
+      HasBinaryCoproducts.inl ≫ ψ ≫ (HasSubobjectUnions.union U₁ U₂).arr = U₁.arr ∧
+      HasBinaryCoproducts.inr ≫ ψ ≫ (HasSubobjectUnions.union U₁ U₂).arr = U₂.arr := by
+  have hCinit : ∀ {X : 𝒞} (u v : (HasPullbacks.has U₁.arr U₂.arr).cone.pt ⟶ X), u = v :=
+    dom_initial_of_le_bottom (S := Subobject.inter U₁ U₂) hdisj
+  let po := pasting_lemma U₁ U₂
+  let Un := HasSubobjectUnions.union U₁ U₂
+  have hx : po.cocone.ι₁ ≫ Un.arr = U₁.arr := (HasSubobjectUnions.union_left U₁ U₂).choose_spec
+  have hy : po.cocone.ι₂ ≫ Un.arr = U₂.arr := (HasSubobjectUnions.union_right U₁ U₂).choose_spec
+  let coCoc : PushoutCocone (HasPullbacks.has U₁.arr U₂.arr).cone.π₁
+      (HasPullbacks.has U₁.arr U₂.arr).cone.π₂ :=
+    ⟨HasBinaryCoproducts.coprod U₁.dom U₂.dom, HasBinaryCoproducts.inl, HasBinaryCoproducts.inr,
+     hCinit _ _⟩
+  -- φ : Un.dom → U₁.dom+U₂.dom (pushout desc);  ψ := case of the two pushout legs.
+  let φ : po.cocone.pt ⟶ HasBinaryCoproducts.coprod U₁.dom U₂.dom := po.desc coCoc
+  have hφ₁ : po.cocone.ι₁ ≫ φ = HasBinaryCoproducts.inl := po.fac₁ coCoc
+  have hφ₂ : po.cocone.ι₂ ≫ φ = HasBinaryCoproducts.inr := po.fac₂ coCoc
+  let ψ : HasBinaryCoproducts.coprod U₁.dom U₂.dom ⟶ po.cocone.pt :=
+    HasBinaryCoproducts.case po.cocone.ι₁ po.cocone.ι₂
+  have hψ₁ : HasBinaryCoproducts.inl ≫ ψ = po.cocone.ι₁ := HasBinaryCoproducts.case_inl _ _
+  have hψ₂ : HasBinaryCoproducts.inr ≫ ψ = po.cocone.ι₂ := HasBinaryCoproducts.case_inr _ _
+  have hφψ : φ ≫ ψ = Cat.id _ := by
+    have h1 : po.cocone.ι₁ ≫ (φ ≫ ψ) = po.cocone.ι₁ := by rw [← Cat.assoc, hφ₁, hψ₁]
+    have h2 : po.cocone.ι₂ ≫ (φ ≫ ψ) = po.cocone.ι₂ := by rw [← Cat.assoc, hφ₂, hψ₂]
+    rw [po.uniq po.cocone (φ ≫ ψ) h1 h2,
+        po.uniq po.cocone (Cat.id _) (Cat.comp_id _) (Cat.comp_id _)]
+  have hψφ : ψ ≫ φ = Cat.id _ := by
+    have h1 : HasBinaryCoproducts.inl ≫ (ψ ≫ φ) = HasBinaryCoproducts.inl := by
+      rw [← Cat.assoc, hψ₁, hφ₁]
+    have h2 : HasBinaryCoproducts.inr ≫ (ψ ≫ φ) = HasBinaryCoproducts.inr := by
+      rw [← Cat.assoc, hψ₂, hφ₂]
+    rw [HasBinaryCoproducts.case_uniq _ _ (ψ ≫ φ) h1 h2,
+        HasBinaryCoproducts.case_uniq _ _ (Cat.id _) (Cat.comp_id _) (Cat.comp_id _)]
+  refine ⟨ψ, φ, hψφ, hφψ, ?_, ?_⟩
+  · calc HasBinaryCoproducts.inl ≫ ψ ≫ Un.arr
+        = (HasBinaryCoproducts.inl ≫ ψ) ≫ Un.arr := (Cat.assoc _ _ _).symm
+      _ = po.cocone.ι₁ ≫ Un.arr := by rw [hψ₁]
+      _ = U₁.arr := hx
+  · calc HasBinaryCoproducts.inr ≫ ψ ≫ Un.arr
+        = (HasBinaryCoproducts.inr ≫ ψ) ≫ Un.arr := (Cat.assoc _ _ _).symm
+      _ = po.cocone.ι₂ ≫ Un.arr := by rw [hψ₂]
       _ = U₂.arr := hy
 
 /-- Being a complemented subobject is symmetric: if `U` is complemented with complement `U₂`,
@@ -2949,6 +3010,142 @@ theorem notMem_zero_of_injective (ℱ : (Subobject 𝒞 one) → Prop)
     exact (minimal_subobject_of_one_is_coterminator (inferInstance : PreLogos 𝒞)).init_uniq _ _
   exact nomatch hsum
 
+/-- **§1.634 (⟹), part 2:** the `UnionPrime` MEMBERSHIP clause from SURJECTIVITY of
+    `disjUnionCompare`.  Given a disjoint pair `U₁∩U₂ ≤ 0` with `U₁∪U₂ ∈ ℱ`, we show `ℱ U₁` or
+    `ℱ U₂`.
+
+    PROOF (Freyd's "the given element comes from `T(A₁)` or `T(A₂)`"): set `K = U₁∪U₂ ∈ ℱ`.  The
+    disjoint pair realises `K.dom ≅ U₁.dom + U₂.dom` with leg-exposed inclusions
+    (`disjointPair_legs_iso`): `inl≫ψ≫K.arr = U₁.arr`, `inr≫ψ≫K.arr = U₂.arr`, inverse `ψinv`.
+    Feed the name `(K, ψinv : K.dom → U₁.dom+U₂.dom)` to surjectivity of
+    `disjUnionCompare (TF ℱ) U₁.dom U₂.dom`.  Its preimage is `inl x` or `inr y`.  In the `inl`
+    case `x = ⟨W,g⟩` and `TF.mk⟨W, g≫inl⟩ = TF.mk⟨K, ψinv⟩`, so `PrefRel` gives a common
+    refinement `W' ∈ ℱ` with legs `a:W'→W`, `b:W'→K`, `b≫K.arr = W'.arr`, and
+    `a≫(g≫inl) = b≫ψinv`.  Post-composing the last with `ψ` (using `ψinv≫ψ = id` and
+    `inl≫ψ≫K.arr = U₁.arr`) yields `W'.arr = (a≫g)≫U₁.arr`, i.e. `W' ≤ U₁`.  As `U₁` is
+    complemented (`complemented_of_disjoint_half`, since `K` is complemented being in `ℱ`),
+    up-closure puts `ℱ U₁`.  The `inr` case is symmetric. -/
+theorem unionPrime_membership_of_surjective (ℱ : (Subobject 𝒞 one) → Prop)
+    (hpre : IsPreFilter ℱ)
+    (hcompAll : ∀ U, ℱ U → IsComplementedSub U)
+    (hup : ∀ U V, ℱ U → U.le V → IsComplementedSub V → ℱ V)
+    (hsurj : ∀ A₁ A₂ : 𝒞, Function.Surjective (disjUnionCompare (TF ℱ) A₁ A₂))
+    (U₁ U₂ : Subobject 𝒞 one)
+    (hdisj : Subobject.le (Subobject.inter U₁ U₂) Zero1)
+    (hKmem : ℱ (HasSubobjectUnions.union U₁ U₂)) :
+    ℱ U₁ ∨ ℱ U₂ := by
+  let K := HasSubobjectUnions.union U₁ U₂
+  -- K.dom ≅ U₁.dom + U₂.dom with leg-exposed inclusions.
+  obtain ⟨ψ, ψinv, hψψinv, hψinvψ, hlegL, hlegR⟩ := disjointPair_legs_iso U₁ U₂ hdisj
+  -- the name (K, ψinv) as an element of T_ℱ(U₁.dom + U₂.dom); hit it by surjectivity.
+  obtain ⟨s, hs⟩ := hsurj U₁.dom U₂.dom (TF.mk ℱ ⟨K, hKmem, ψinv⟩)
+  -- K is complemented (member of ℱ); each half is complemented.
+  have hKcomp : IsComplementedSub K := hcompAll K hKmem
+  cases s with
+  | inl x =>
+      refine Or.inl ?_
+      revert hs
+      refine Quot.inductionOn x (fun pW hWname => ?_)
+      · -- `disjUnionCompare (inl (TF.mk pW)) = TF.map inl (TF.mk pW) = TF.mk⟨pW.U, pW.hU, pW.map≫inl⟩`.
+        have hWname' : TF.mk ℱ (⟨pW.U, pW.hU, pW.map ≫ HasBinaryCoproducts.inl⟩ : PrefilterMap ℱ _)
+            = TF.mk ℱ ⟨K, hKmem, ψinv⟩ := by
+          have h := hWname
+          rw [show disjUnionCompare (TF ℱ) U₁.dom U₂.dom (Sum.inl (Quot.mk (PrefRel ℱ) pW))
+                 = TF.map ℱ HasBinaryCoproducts.inl (TF.mk ℱ pW) from rfl, TF.map_mk] at h
+          exact h
+        obtain ⟨W', hW', a, b, ha, hb, hagree⟩ := PrefRel_of_TF_eq ℱ hpre hWname'
+        -- b = a ≫ pW.map ≫ (inl ≫ ψ),  hence W'.arr = (a ≫ pW.map) ≫ U₁.arr.
+        have hb_eq : b = (a ≫ pW.map) ≫ (HasBinaryCoproducts.inl ≫ ψ) := by
+          have hpost : (a ≫ (pW.map ≫ HasBinaryCoproducts.inl)) ≫ ψ = (b ≫ ψinv) ≫ ψ := by
+            rw [hagree]
+          calc b = b ≫ (ψinv ≫ ψ) := by rw [hψinvψ, Cat.comp_id]
+            _ = (b ≫ ψinv) ≫ ψ := (Cat.assoc _ _ _).symm
+            _ = (a ≫ (pW.map ≫ HasBinaryCoproducts.inl)) ≫ ψ := hpost.symm
+            _ = (a ≫ pW.map) ≫ (HasBinaryCoproducts.inl ≫ ψ) := by
+                  rw [Cat.assoc, Cat.assoc, Cat.assoc]
+        have hbU : b ≫ (HasSubobjectUnions.union U₁ U₂).arr = (a ≫ pW.map) ≫ U₁.arr :=
+          calc b ≫ (HasSubobjectUnions.union U₁ U₂).arr
+              = ((a ≫ pW.map) ≫ (HasBinaryCoproducts.inl ≫ ψ))
+                  ≫ (HasSubobjectUnions.union U₁ U₂).arr := by rw [hb_eq]
+            _ = (a ≫ pW.map) ≫ (HasBinaryCoproducts.inl ≫ ψ
+                  ≫ (HasSubobjectUnions.union U₁ U₂).arr) := by simp only [Cat.assoc]
+            _ = (a ≫ pW.map) ≫ U₁.arr := by rw [hlegL]
+        have hW'le : W'.le U₁ := ⟨a ≫ pW.map, hbU ▸ hb⟩
+        exact hup W' U₁ hW' hW'le (complemented_of_disjoint_half hdisj hKcomp)
+  | inr y =>
+      refine Or.inr ?_
+      revert hs
+      refine Quot.inductionOn y (fun pW hWname => ?_)
+      · have hWname' : TF.mk ℱ (⟨pW.U, pW.hU, pW.map ≫ HasBinaryCoproducts.inr⟩ : PrefilterMap ℱ _)
+            = TF.mk ℱ ⟨K, hKmem, ψinv⟩ := by
+          have h := hWname
+          rw [show disjUnionCompare (TF ℱ) U₁.dom U₂.dom (Sum.inr (Quot.mk (PrefRel ℱ) pW))
+                 = TF.map ℱ HasBinaryCoproducts.inr (TF.mk ℱ pW) from rfl, TF.map_mk] at h
+          exact h
+        obtain ⟨W', hW', a, b, ha, hb, hagree⟩ := PrefRel_of_TF_eq ℱ hpre hWname'
+        have hb_eq : b = (a ≫ pW.map) ≫ (HasBinaryCoproducts.inr ≫ ψ) := by
+          have hpost : (a ≫ (pW.map ≫ HasBinaryCoproducts.inr)) ≫ ψ = (b ≫ ψinv) ≫ ψ := by
+            rw [hagree]
+          calc b = b ≫ (ψinv ≫ ψ) := by rw [hψinvψ, Cat.comp_id]
+            _ = (b ≫ ψinv) ≫ ψ := (Cat.assoc _ _ _).symm
+            _ = (a ≫ (pW.map ≫ HasBinaryCoproducts.inr)) ≫ ψ := hpost.symm
+            _ = (a ≫ pW.map) ≫ (HasBinaryCoproducts.inr ≫ ψ) := by
+                  rw [Cat.assoc, Cat.assoc, Cat.assoc]
+        have hbU : b ≫ (HasSubobjectUnions.union U₁ U₂).arr = (a ≫ pW.map) ≫ U₂.arr :=
+          calc b ≫ (HasSubobjectUnions.union U₁ U₂).arr
+              = ((a ≫ pW.map) ≫ (HasBinaryCoproducts.inr ≫ ψ))
+                  ≫ (HasSubobjectUnions.union U₁ U₂).arr := by rw [hb_eq]
+            _ = (a ≫ pW.map) ≫ (HasBinaryCoproducts.inr ≫ ψ
+                  ≫ (HasSubobjectUnions.union U₁ U₂).arr) := by simp only [Cat.assoc]
+            _ = (a ≫ pW.map) ≫ U₂.arr := by rw [hlegR]
+        have hW'le : W'.le U₂ := ⟨a ≫ pW.map, hbU ▸ hb⟩
+        -- U₂ complemented:  K = U₁∪U₂ = U₂∪U₁ complemented, U₂∩U₁ ≤ 0.
+        have hU₂comp : IsComplementedSub U₂ :=
+          complemented_of_disjoint_half (U₁ := U₂) (U₂ := U₁)
+            (Subobject.le_trans (inter_comm_le U₂ U₁) hdisj)
+            (complementedSub_congr (union_comm_le U₂ U₁) (union_comm_le U₁ U₂) hKcomp)
+        exact hup W' U₂ hW' hW'le hU₂comp
+
+/-- **§1.634 (⟹):** if `T_ℱ` preserves disjoint unions then `ℱ` is `UnionPrime`.
+    `0 ∉ ℱ` from injectivity (`notMem_zero_of_injective`); the membership clause from surjectivity
+    (`unionPrime_membership_of_surjective`).  Needs `ℱ` a pre-filter whose members are complemented
+    and which is up-closed within complemented subterminators (the ultra-filter shape). -/
+theorem unionPrime_of_preservesDisjointUnions (ℱ : (Subobject 𝒞 one) → Prop)
+    (hpre : IsPreFilter ℱ)
+    (hcompAll : ∀ U, ℱ U → IsComplementedSub U)
+    (hup : ∀ U V, ℱ U → U.le V → IsComplementedSub V → ℱ V)
+    (hPDU : PreservesDisjointUnions (TF ℱ)) : UnionPrime ℱ :=
+  ⟨notMem_zero_of_injective ℱ (hPDU _ _).1,
+   fun U₁ U₂ hdisj hKmem =>
+     unionPrime_membership_of_surjective ℱ hpre hcompAll hup
+       (fun A₁ A₂ => (hPDU A₁ A₂).2) U₁ U₂ hdisj hKmem⟩
+
+/-- **§1.634 (the full iff):** for a pre-filter `ℱ` of complemented subterminators, up-closed
+    within them, `T_ℱ` preserves disjoint unions **iff** `ℱ` is `UnionPrime`
+    (`0 ∉ ℱ`, and a disjoint complemented union in `ℱ` has one of its halves in `ℱ`).
+    (⟸) is `preservesDisjointUnions` from `unionPrime`; (⟹) is
+    `unionPrime_of_preservesDisjointUnions`.  Together with §1.635(a)/(b) this closes the
+    representation theorem keystone. -/
+theorem preservesDisjointUnions_iff_unionPrime (ℱ : (Subobject 𝒞 one) → Prop)
+    (hpre : IsPreFilter ℱ)
+    (hcompAll : ∀ U, ℱ U → IsComplementedSub U)
+    (hup : ∀ U V, ℱ U → U.le V → IsComplementedSub V → ℱ V) :
+    PreservesDisjointUnions (TF ℱ) ↔ UnionPrime ℱ := by
+  constructor
+  · exact unionPrime_of_preservesDisjointUnions ℱ hpre hcompAll hup
+  · intro hUP A₁ A₂
+    -- Upgrade `¬ ℱ Zero1` (UnionPrime form) to the order-robust `¬ ∃ U ∈ ℱ, U ≤ 0` the
+    -- injectivity lemma wants: `Zero1` is complemented (complement = entire 1), so up-closure
+    -- of any `U ∈ ℱ` with `U ≤ Zero1` would put `Zero1 ∈ ℱ`, contradicting `hUP.1`.
+    have hZ1comp : IsComplementedSub (Zero1 : Subobject 𝒞 one) :=
+      ⟨Subobject.entire (one : 𝒞),
+       Subobject.inter_le_left Zero1 (Subobject.entire (one : 𝒞)),
+       HasSubobjectUnions.union_right Zero1 (Subobject.entire (one : 𝒞))⟩
+    have hprop : IsProperFilter ℱ :=
+      ⟨hpre, fun ⟨U, hUmem, hU0⟩ => hUP.1 (hup U Zero1 hUmem hU0 hZ1comp)⟩
+    exact ⟨disjUnionCompare_injective ℱ hprop A₁ A₂,
+           disjUnionCompare_surjective ℱ hcompAll hup hUP A₁ A₂⟩
+
 /-- **§1.635 (proper):** for an ultra-filter `F̂` in the Boolean algebra of complemented
     subterminators, `T_F̂` is a REPRESENTATION OF PRE-LOGOI — i.e. a representation of regular
     categories (`repReg`, the §1.634 "preserves finite products, equalizers and covers" half,
@@ -3383,5 +3580,221 @@ theorem homRep_preserves_images
     rw [ht' i (pre i y), hpre i y]
 
 end HomRepRegular
+
+/-! ## §1.636 THE HORN-SENTENCE METATHEOREM FOR PRE-LOGOI
+
+  Freyd §1.636: *Any Horn sentence in the predicates of pre-logoi true in the category of sets
+  holds in all positive pre-logoi.*  This is the §1.444 metatheorem (`Horn.horn_metatheorem`),
+  with the predicate language ENLARGED from the Cartesian primitives (terminator / product /
+  equalizer) to the PRE-LOGOS primitives — additionally `cover`, `image`, `zero` (initial
+  object) and `disjoint coproduct`.
+
+  The §1.444 proof transferred a counterexample along the COLLECTIVELY FAITHFUL representables
+  `Hom(i,-)`, which preserve+reflect the Cartesian predicates.  For pre-logoi the corresponding
+  transfer is along the jointly-faithful UNION-PRESERVING family `T = ∏_{F̂} T_{F̂} : 𝒞 → Set^I`
+  of stalk functors over all ultra-filters `F̂` (§1.634/§1.635, `setRepOfPreLogos_of_ultrafilter`
+  + `prelogos_representation_theorem`): each `T_{F̂}` preserves products, equalizers, covers,
+  images, the zero object and disjoint unions (the §1.634 fact + the §1.625 union-preservation),
+  and the family is jointly faithful, hence jointly REFLECTS the predicates.
+
+  We mirror `Horn.lean` exactly.  The §1.444 file hard-wired the representation to the concrete
+  `homFunctor` and proved preservation/reflection for it; here the representation is abstracted
+  into an interface `PreLogosRep` bundling, predicate-by-predicate, the two halves Freyd cites
+  (PRESERVATION by the representation, and REFLECTION = joint faithfulness).  The metatheorem
+  `preLogos_horn_metatheorem` is then a clean transfer along ANY such interface — exactly the
+  shape of `Horn.horn_metatheorem`.  Instantiating the interface with the concrete `∏_{F̂} T_{F̂}`
+  is the remaining §2.217-grade infra (see the diagnosis at the end of the section). -/
+
+namespace PreLogosHorn
+
+open Freyd.Horn (ObjVar MorVar Env morAs)
+
+universe w u₂ w₂
+
+/-! ### §1.636 Pre-logos predicates as universal properties (over a bare `Cat`)
+
+  Each predicate is a `Prop` interpretable in ANY category `𝒞` (only `Cat` needed), phrased as a
+  universal property so it transports cleanly under a functor.  Terminator / product / equalizer
+  reuse `Horn`'s `IsTerminalObj`/`IsProductObj`/`IsEqualizerObj`; we add the four pre-logos ones. -/
+
+section Predicates
+variable {𝒞 : Type u} [Cat.{w} 𝒞]
+
+/-- The ZERO (initial object) predicate: `z` admits a unique map to every object. -/
+def IsInitialObj (z : 𝒞) : Prop := ∀ X : 𝒞, ∃ f : z ⟶ X, ∀ g : z ⟶ X, g = f
+
+/-- The COVER predicate: `f : a → b` is a cover — every monic it factors through is iso
+    (the repo's `Cover`, §1.512). -/
+def IsCoverObj {a b : 𝒞} (f : a ⟶ b) : Prop := Cover f
+
+/-- The IMAGE predicate for `em : im → b` of `f : a → b`: `em` is monic, `f` factors through
+    `em`, and `em` is the LEAST such monic (any monic `m` that `f` factors through receives
+    `em`).  This is the universal property of the image subobject, written with raw morphisms
+    (no `Subobject`) so it transports under a functor. -/
+def IsImageObj {a b im : 𝒞} (em : im ⟶ b) (f : a ⟶ b) : Prop :=
+  Monic em ∧ (∃ ℓ : a ⟶ im, ℓ ≫ em = f) ∧
+    ∀ (c : 𝒞) (m : c ⟶ b), Monic m → (∃ k : a ⟶ c, k ≫ m = f) →
+      ∃ j : im ⟶ c, j ≫ m = em
+
+/-- The DISJOINT-COPRODUCT predicate for `(c, inl, inr)` over `a, b`: `(c, inl, inr)` is a
+    coproduct (couniversal property), the injections are monic, and they are DISJOINT — any pair
+    `u : x → a`, `v : x → b` with `u ≫ inl = v ≫ inr` factors through an object on which all
+    maps coincide (the pullback `inl ×_c inr` is initial, stated elementarily). -/
+def IsDisjointCoprodObj {a b c : 𝒞} (inl : a ⟶ c) (inr : b ⟶ c) : Prop :=
+  (∀ (X : 𝒞) (u : a ⟶ X) (v : b ⟶ X),
+      ∃ h : c ⟶ X, inl ≫ h = u ∧ inr ≫ h = v ∧
+        ∀ k : c ⟶ X, inl ≫ k = u → inr ≫ k = v → k = h) ∧
+  Monic inl ∧ Monic inr ∧
+  (∀ (x : 𝒞) (u : x ⟶ a) (v : x ⟶ b), u ≫ inl = v ≫ inr →
+      ∀ (Y : 𝒞) (p q : x ⟶ Y), p = q)
+
+end Predicates
+
+/-! ### §1.636 Atom language (extends the Cartesian atoms with the four pre-logos predicates) -/
+
+/-- A PRE-LOGOS atom: the three Cartesian predicates of §1.444 plus `cover`, `image`, `zero`,
+    `disjointCoprod`.  Morphism variables carry their typing as propositional source/target
+    fields, exactly as in `Horn.Atom`, so only well-typed diagrams are nameable. -/
+inductive PLAtom (nObj : Nat) where
+  | terminator (o : ObjVar nObj)
+  | product (a b p : ObjVar nObj) (pf ps : MorVar nObj)
+      (hpf_src : pf.src = p) (hpf_tgt : pf.tgt = a)
+      (hps_src : ps.src = p) (hps_tgt : ps.tgt = b)
+  | equalizer (e a bb : ObjVar nObj) (em f g : MorVar nObj)
+      (hem_src : em.src = e) (hem_tgt : em.tgt = a)
+      (hf_src : f.src = a) (hf_tgt : f.tgt = bb)
+      (hg_src : g.src = a) (hg_tgt : g.tgt = bb)
+  | zero (z : ObjVar nObj)
+  | cover (a b : ObjVar nObj) (f : MorVar nObj) (hf_src : f.src = a) (hf_tgt : f.tgt = b)
+  | image (a b im : ObjVar nObj) (em f : MorVar nObj)
+      (hem_src : em.src = im) (hem_tgt : em.tgt = b)
+      (hf_src : f.src = a) (hf_tgt : f.tgt = b)
+  | disjointCoprod (a b c : ObjVar nObj) (inl inr : MorVar nObj)
+      (hinl_src : inl.src = a) (hinl_tgt : inl.tgt = c)
+      (hinr_src : inr.src = b) (hinr_tgt : inr.tgt = c)
+
+/-- A pre-logos HORN SENTENCE: `(⋀ hyps) ⊃ concl` over `nObj` object variables. -/
+structure PLSentence where
+  nObj  : Nat
+  hyps  : List (PLAtom nObj)
+  concl : PLAtom nObj
+
+section Semantics
+variable {𝒞 : Type u} [Cat.{w} 𝒞]
+
+/-- Satisfaction of a pre-logos atom by an environment.  The Cartesian cases reuse `Horn`'s
+    predicates; the four new cases use the §1.636 universal properties above. -/
+def PLAtom.holds {nObj : Nat} (ρ : Env 𝒞 nObj) : PLAtom nObj → Prop
+  | .terminator o => Freyd.Horn.IsTerminalObj (ρ.obj o)
+  | .product _a _b _p pf ps hpf_src hpf_tgt hps_src hps_tgt =>
+      Freyd.Horn.IsProductObj (morAs ρ pf hpf_src hpf_tgt) (morAs ρ ps hps_src hps_tgt)
+  | .equalizer _e _a _bb em f g hem_src hem_tgt hf_src hf_tgt hg_src hg_tgt =>
+      Freyd.Horn.IsEqualizerObj (morAs ρ em hem_src hem_tgt)
+        (morAs ρ f hf_src hf_tgt) (morAs ρ g hg_src hg_tgt)
+  | .zero z => IsInitialObj (ρ.obj z)
+  | .cover _a _b f hf_src hf_tgt => IsCoverObj (morAs ρ f hf_src hf_tgt)
+  | .image _a _b _im em f hem_src hem_tgt hf_src hf_tgt =>
+      IsImageObj (morAs ρ em hem_src hem_tgt) (morAs ρ f hf_src hf_tgt)
+  | .disjointCoprod _a _b _c inl inr hinl_src hinl_tgt hinr_src hinr_tgt =>
+      IsDisjointCoprodObj (morAs ρ inl hinl_src hinl_tgt) (morAs ρ inr hinr_src hinr_tgt)
+
+/-- An environment satisfies a list of hypotheses (their conjunction). -/
+def plHypsHold {nObj : Nat} (ρ : Env 𝒞 nObj) (hs : List (PLAtom nObj)) : Prop :=
+  ∀ a ∈ hs, a.holds ρ
+
+/-- **§1.636 SEMANTICS**: `PLHoldsIn 𝒞 φ` — `φ` holds in `𝒞` (every hypothesis-satisfying
+    environment makes the conclusion hold). -/
+def PLHoldsIn (𝒞 : Type u) [Cat.{w} 𝒞] (φ : PLSentence) : Prop :=
+  ∀ ρ : Env 𝒞 φ.nObj, plHypsHold ρ φ.hyps → φ.concl.holds ρ
+
+end Semantics
+
+/-! ### §1.636 The representation interface
+
+  A `PreLogosRep 𝒞 𝒟` packages a representation `𝒞 → 𝒟` (between bare categories) together with
+  the two ingredients Freyd cites: it PRESERVES every pre-logos atom (so hypotheses true in `𝒞`
+  stay true downstream) and it REFLECTS every pre-logos atom (joint faithfulness pulls a violated
+  conclusion back).  This is the abstract shape `Hom(i,-)` instantiates in §1.444; for §1.636 the
+  intended instance is the union-preserving family `∏_{F̂} T_{F̂}` (see end-of-section diagnosis).
+
+  Stated environment-wise (the only form the transfer uses): a map `push` on environments, with
+  per-atom preservation and reflection. -/
+structure PreLogosRep (𝒞 : Type u) [Cat.{w} 𝒞] (𝒟 : Type u₂) [Cat.{w₂} 𝒟] where
+  /-- push an environment in `𝒞` to one in `𝒟` (post-composition with the representation). -/
+  push : ∀ {nObj : Nat}, Env 𝒞 nObj → Env 𝒟 nObj
+  /-- PRESERVATION: an atom satisfied in `𝒞` stays satisfied after pushing. -/
+  preserves : ∀ {nObj : Nat} (ρ : Env 𝒞 nObj) (α : PLAtom nObj),
+      α.holds ρ → α.holds (push ρ)
+  /-- REFLECTION (joint faithfulness): an atom satisfied after pushing was satisfied in `𝒞`. -/
+  reflects : ∀ {nObj : Nat} (ρ : Env 𝒞 nObj) (α : PLAtom nObj),
+      α.holds (push ρ) → α.holds ρ
+
+/-- The IDENTITY representation interface (sanity / non-vacuity witness): every category
+    represents itself, preserving and reflecting every atom trivially.  This confirms the
+    `PreLogosRep` fields are jointly satisfiable — so the metatheorem is not vacuous — and that
+    `preLogos_horn_metatheorem` instantiates to the identity transfer `PLHoldsIn 𝒞 φ → PLHoldsIn 𝒞 φ`. -/
+def PreLogosRep.id (𝒞 : Type u) [Cat.{w} 𝒞] : PreLogosRep 𝒞 𝒞 where
+  push ρ := ρ
+  preserves _ _ h := h
+  reflects _ _ h := h
+
+/-- Preservation lifts to whole hypothesis lists. -/
+theorem PreLogosRep.preservesHyps {𝒞 : Type u} [Cat.{w} 𝒞] {𝒟 : Type u₂} [Cat.{w₂} 𝒟]
+    (R : PreLogosRep 𝒞 𝒟) {nObj : Nat} (ρ : Env 𝒞 nObj) (hs : List (PLAtom nObj))
+    (h : plHypsHold ρ hs) : plHypsHold (R.push ρ) hs :=
+  fun α hα => R.preserves ρ α (h α hα)
+
+/-! ### §1.636 The metatheorem -/
+
+/-- **§1.636 (Freyd), transfer form**: given a representation interface `R : PreLogosRep 𝒞 𝒟`,
+    any pre-logos Horn sentence true in `𝒟` is true in `𝒞`.
+
+    PROOF (Freyd's §1.444 proof, verbatim in the new language): let `ρ` satisfy all hypotheses in
+    `𝒞`.  Push to `𝒟`: the hypotheses are PRESERVED (`R.preservesHyps`), so by truth-in-`𝒟`
+    (`hD`) the conclusion holds for `R.push ρ`.  REFLECTION (`R.reflects`, joint faithfulness)
+    pulls the conclusion back to `ρ` in `𝒞`. -/
+theorem preLogos_horn_metatheorem {𝒞 : Type u} [Cat.{w} 𝒞] {𝒟 : Type u₂} [Cat.{w₂} 𝒟]
+    (R : PreLogosRep 𝒞 𝒟) (φ : PLSentence) (hD : PLHoldsIn 𝒟 φ) : PLHoldsIn 𝒞 φ := by
+  intro ρ hρ
+  exact R.reflects ρ φ.concl (hD (R.push ρ) (R.preservesHyps ρ φ.hyps hρ))
+
+/-- **§1.636 (Freyd)**: any pre-logos Horn sentence true in the category of sets `Type w` holds in
+    a positive pre-logos `𝒞`, GIVEN the union-preserving faithful representation interface
+    `R : PreLogosRep 𝒞 (Type w)`.  Direct specialisation of `preLogos_horn_metatheorem` to
+    `𝒟 = Type w` — the book's "true in the category of sets" target. -/
+theorem preLogos_horn_metatheorem_set {𝒞 : Type u} [Cat.{w} 𝒞]
+    (R : PreLogosRep 𝒞 (Type w)) (φ : PLSentence)
+    (hSet : PLHoldsIn (Type w) φ) : PLHoldsIn 𝒞 φ :=
+  preLogos_horn_metatheorem R φ hSet
+
+/-! ### §1.636 Status of the concrete instance — sharp diagnosis
+
+  `preLogos_horn_metatheorem(_set)` is the §1.636 metatheorem MODULO the representation interface
+  `PreLogosRep 𝒞 (Type w)`.  It is sorry-free and axiom-clean, and the transfer proof is the
+  complete §1.444 argument in the enlarged language.  What remains — the genuinely open infra — is
+  CONSTRUCTING the interface for the concrete union-preserving family:
+
+    `R := PreLogosRep 𝒞 (Set^I)` with `push ρ = (T_{F̂})_{F̂} ∘ ρ`, `I = {ultra-filters F̂}`.
+
+  Its two fields require, atom-by-atom:
+   • `preserves` — each `T_{F̂}` preserves terminator/product/equalizer (the §1.634 "preserves
+     finite products and equalizers" fact), preserves covers (when the `F̂`-members are projective
+     — the CAPITAL hypothesis), preserves images, the zero object, and disjoint coproducts (the
+     §1.625/§1.634 union-preservation, `setRepOfPreLogos_of_ultrafilter` — the PIECE-1 iff supplies
+     the disjoint-coproduct half).  These are functor-preservation facts, mostly in hand for the
+     hom-representation (`HomRepRegular` above) and for `T_{F̂}` via §1.634.
+   • `reflects` — JOINT FAITHFULNESS of the family `(T_{F̂})_{F̂}`: a name detected by some stalk.
+     This is `prelogos_representation_theorem`'s `SeparatesMaps` STRENGTHENED to reflect the
+     pre-logos predicates (not just separate maps), and for the FULL "positive removable" form it
+     needs §2.217 (every pre-logos faithfully embeds in a positive one).  That is the recorded
+     §2.217-grade gap (`Ch2 Rel/Map bridge`): the family's joint faithfulness for the EXTENDED
+     language is precisely the open content.
+
+  So §1.636 is closed down to: "the concrete `∏_{F̂} T_{F̂}` is a `PreLogosRep` that reflects the
+  pre-logos predicates" — i.e. the §2.217 faithful-positive-embedding, the single deep dependency
+  already tracked in the project memory.  The atom language, Set semantics, and the transfer
+  theorem are all complete here. -/
+
+end PreLogosHorn
 
 end Freyd
