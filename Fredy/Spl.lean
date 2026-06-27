@@ -13,7 +13,11 @@
     §2.16(10) SplObj 𝒜 (FULL split) is tabular ↔ 𝒜 is semi-simple.
               Backward (𝒜 semi-simple → tabular): [PROVED]
                 `splObj_tabular_of_semiSimple`, axiom-clean ([propext]).
-              Forward (tabular → 𝒜 semi-simple): [TODO: simple-span extraction gap]
+              Forward (tabular → 𝒜 semi-simple): [PROVED]
+                `semiSimpleAllegory_of_splObj_tabular` ([propext]).  The old "apex-vs-carrier"
+                worry dissolves: the legs of a tabulation of `embHom R` are simple in `𝒜`
+                because the EMBEDDED codomains carry the identity idempotent, so leg-simplicity
+                in `SplObj` IS carrier-level simplicity in `𝒜` (`splLe_iff`).
 
   IMPORTANT SCOPE CORRECTION.  The full `SplObj 𝒜` (split ALL symmetric idempotents)
   is NOT tabular merely because `𝒜` is tabular — Freyd §2.16(10) shows it is tabular
@@ -51,15 +55,16 @@
     source-apex assembly (`srcTabulation_of_semiSimple_split`, S2_22) tabulates every
     morphism.  No `UnionAllegory (SplObj 𝒜)` needed.
 
-  WHY §2.16(10) FORWARD is still TODO (tabular `SplObj 𝒜` → `𝒜` semi-simple):
-
-  A tabulation of `embHom R` in `SplObj 𝒜` gives `P : embObj a ⟶ C`, `Q : embObj b ⟶ C`
-  maps with `R = P.R ≫ Q.R°` and `P.R°P.R = C.idem.e = Q.R°Q.R`.  For `SemiSimple R` one
-  needs simple `F₀ : c₀ → a`, `G₀ : c₀ → b` with `R = F₀° ≫ G₀`.  Setting `F₀ = P.R°`,
-  `G₀ = Q.R°` gives `R = F₀° ≫ G₀` ✓, but `Simple F₀` requires `P.R ≫ P.R° ⊑ 1_a` while
-  `Entire P` gives `1_a ⊑ P.R ≫ P.R°` — incompatible unless `P.R` is iso.  Freyd reads
-  `F, G` simple off the apex `C` (whose identity is `C.idem.e`, not `1`); converting that
-  to `𝒜`-level simplicity at the carrier still needs the carrier-vs-apex bridge.
+  §2.16(10) FORWARD (tabular `SplObj 𝒜` → `𝒜` semi-simple): PROVED
+  (`semiSimpleAllegory_of_splObj_tabular`).  Tabulate `embHom R` (source-apex convention):
+  apex `C` and MAPS `P : C ⟶ embObj a`, `Q : C ⟶ embObj b` with `embHom R = P° ≫ Q`,
+  `P≫P° ∩ Q≫Q° = id_C`.  Underlying `R = P.R° ≫ Q.R`.  The legs ARE simple in `𝒜` at the
+  carrier: `Simple P` in `SplObj` is `P° ≫ P ⊑ id_{embObj a}`, and the EMBEDDED codomain
+  `embObj a` has the IDENTITY idempotent (`1_a`), so via `splLe_iff` this is exactly
+  `P.R° ≫ P.R ⊑ 1_a` = `Simple P.R` in `𝒜`.  The old "apex-vs-carrier" worry was a false
+  alarm: `SemiSimple` tests simplicity at the leg CODOMAIN (`1_a`, `1_b`), not at the apex
+  `C.idem.e`, so no carrier-vs-apex bridge is needed — the apex idempotent only constrains
+  the (untested) source.
 
   Conventions: diagram-order `R ≫ S`, reciprocation `R°`, `R ⊑ S`, `R ∩ S`.
   Mathlib-free.
@@ -236,6 +241,51 @@ def splObj_tabular_of_tabular {𝒜 : Type u} [TabularAllegory 𝒜] :
     TabularAllegory (SplObj 𝒜) :=
   letI := semiSimpleAllegory_of_tabular (ℬ := 𝒜)
   splObj_tabular_of_semiSimple
+
+/-! ### §2.16(10) FORWARD — `TabularAllegory (SplObj 𝒜) → SemiSimpleAllegory 𝒜`
+
+  Freyd §2.16(10), the other implication: if the full splitting completion `SplObj 𝒜`
+  (split ALL symmetric idempotents) is tabular, then `𝒜` is semi-simple.
+
+  Given `R : a ⟶ b` in `𝒜`, embed it as `embHom R : embObj a ⟶ embObj b` and TABULATE it
+  in `SplObj 𝒜`: an apex `C` and MAPS `P : C ⟶ embObj a`, `Q : C ⟶ embObj b` with
+  `embHom R = P° ≫ Q` and `P≫P° ∩ Q≫Q° = id_C`.  Underlying, `R = P.R° ≫ Q.R` with
+  `P.R, Q.R : C.carrier ⟶ a, b`.
+
+  The apex/carrier reconciliation (the old marker's worry): simplicity of the legs is read
+  off the CODOMAIN object, and the codomains `embObj a`, `embObj b` carry the IDENTITY
+  idempotent (`1_a`, `1_b`).  So `Simple P` in `SplObj` — `P° ≫ P ⊑ id_{embObj a}` — descends
+  via `splLe_iff` to `P.R° ≫ P.R ⊑ 1_a`, i.e. `Simple P.R` in `𝒜` AT THE CARRIER LEVEL (no
+  apex idempotent intrudes, because `Simple F := F°≫F ⊑ id_{cod}` and the cod identity is
+  `1_a`).  Hence `F = P.R`, `G = Q.R` are simple in `𝒜` with `R = F°≫G` — exactly `SemiSimple R`.
+  (The apex `C.idem.e` only constrains the SOURCE, which `SemiSimple` does not test.) -/
+
+/-- **§2.16(10) forward (per morphism)**: if every morphism of `SplObj 𝒜` is tabular
+    (the `Tabular` predicate over the canonical `instAllegorySpl`) then every `R : a ⟶ b`
+    of `𝒜` is semi-simple.  Tabulate `embHom R`; the legs' underlying morphisms are simple
+    in `𝒜` because the embedded codomains carry the identity idempotent (`splLe_iff`).
+
+    Stated against the `Tabular` predicate rather than `[TabularAllegory (SplObj 𝒜)]` so it
+    is independent of which `Cat (SplObj 𝒜)` an ambient instance carries — the canonical
+    `splObj_tabular_of_semiSimple` supplies `htab` via `TabularAllegory.tabular`. -/
+theorem semiSimple_of_splObj_tabular {𝒜 : Type u} [Allegory 𝒜]
+    (htab : ∀ {E F : SplObj 𝒜} (Ψ : E ⟶ F), Tabular Ψ)
+    {a b : 𝒜} (R : a ⟶ b) : SemiSimple R := by
+  obtain ⟨C, P, Q, hPmap, hQmap, hRfac, _hjoint⟩ := htab (embHom R)
+  -- Legs simple in `𝒜`: `Simple P` in `SplObj` is `P° ≫ P ⊑ id_{embObj a}`; via `splLe_iff`
+  -- the underlying is `P.R° ≫ P.R ⊑ (Cat.id (embObj a)).R = Cat.id a` — `Simple P.R` in `𝒜`.
+  have hFsimple : Simple P.R := (splLe_iff (P° ≫ P) (Cat.id (embObj a))).mp hPmap.2
+  have hGsimple : Simple Q.R := (splLe_iff (Q° ≫ Q) (Cat.id (embObj b))).mp hQmap.2
+  -- `R = P.R° ≫ Q.R`:  `embHom R = P° ≫ Q` underlies as `R = P.R° ≫ Q.R` (`(embHom R).R = R`).
+  have hR : R = P.R° ≫ Q.R := congrArg SplHom.R hRfac
+  exact ⟨C.carrier, P.R, Q.R, hFsimple, hGsimple, hR⟩
+
+/-- **§2.16(10) forward**: if the full splitting completion `SplObj 𝒜` is tabular (canonical
+    instance) then `𝒜` is a SEMI-SIMPLE allegory.  Combined with `splObj_tabular_of_semiSimple`
+    (backward), this is Freyd's biconditional `SplObj 𝒜` tabular ↔ `𝒜` semi-simple. -/
+def semiSimpleAllegory_of_splObj_tabular {𝒜 : Type u} [Allegory 𝒜]
+    (htab : ∀ {E F : SplObj 𝒜} (Ψ : E ⟶ F), Tabular Ψ) : SemiSimpleAllegory 𝒜 where
+  semi_simple R := semiSimple_of_splObj_tabular htab R
 
 /-! ## §2.21  `SplObj 𝒜` is a DISTRIBUTIVE allegory (pointwise union/zero)
 
@@ -549,23 +599,90 @@ def splObj_effective_of_tabular {𝒜 : Type u} [TabularAllegory 𝒜] :
   letI := semiSimpleAllegory_of_tabular (ℬ := 𝒜)
   instEffectiveSpl
 
+/-! ## §2.31  `SplObj 𝒜` is a DIVISION allegory (pointwise division)
+
+  Freyd §2.31: right division descends to `SplObj 𝒜` pointwise.  For `Φ : E ⟶ G`,
+  `Ψ : F ⟶ G` the quotient `Φ / Ψ : E ⟶ F` has underlying `E.e ≫ (Φ.R / Ψ.R) ≫ F.e`
+  (the base division `Φ.R / Ψ.R`, re-fixed by the source/target idempotents `E.e, F.e`).
+  The two §2.31 laws lift to the base laws:
+    • `(Φ/Ψ)≫Ψ ⊑ Φ`:  underlying `E.e≫(Φ.R/Ψ.R)≫F.e≫Ψ.R = E.e≫(Φ.R/Ψ.R)≫Ψ.R`
+      (`F.e≫Ψ.R = Ψ.R`, `Ψ.fixed_left`) `⊑ E.e≫Φ.R = Φ.R` (`div_comp_le`, `Φ.fixed_left`).
+    • `T≫Ψ ⊑ Φ ⟹ T ⊑ Φ/Ψ`:  base `le_div` gives `T.R ⊑ Φ.R/Ψ.R`, then
+      `T.R = E.e≫T.R≫F.e ⊑ E.e≫(Φ.R/Ψ.R)≫F.e` (`T.fixed`, monotone). -/
+
+/-- Pointwise right division of split-homs: underlying `E.e ≫ (Φ.R / Ψ.R) ≫ F.e`, the base
+    quotient re-fixed by the source/target idempotents (so the result is a genuine split-hom). -/
+def splDiv {𝒜 : Type u} [DivisionAllegory 𝒜] {E F G : SplObj 𝒜} (Φ : E ⟶ G) (Ψ : F ⟶ G) :
+    E ⟶ F :=
+  ⟨E.idem.e ≫ (Φ.R / Ψ.R) ≫ F.idem.e, by
+    show E.idem.e ≫ (E.idem.e ≫ (Φ.R / Ψ.R) ≫ F.idem.e) ≫ F.idem.e
+        = E.idem.e ≫ (Φ.R / Ψ.R) ≫ F.idem.e
+    simp only [Cat.assoc]
+    rw [← Cat.assoc E.idem.e E.idem.e, E.idem.idem, F.idem.idem]⟩
+
+/-- **§2.31**: if `𝒜` is a DIVISION allegory then so is `SplObj 𝒜`, with right division taken
+    pointwise (`splDiv`).  Both §2.31 laws reduce to the base `div_comp_le` / `le_div`. -/
+noncomputable instance instDivisionSpl {𝒜 : Type u} [DivisionAllegory 𝒜] :
+    DivisionAllegory (SplObj 𝒜) :=
+  { instDistributiveSpl with
+    div := splDiv
+    div_comp_le := fun {E F G} Φ Ψ => by
+      rw [splLe_iff]
+      show (E.idem.e ≫ (Φ.R / Ψ.R) ≫ F.idem.e) ≫ Ψ.R ⊑ Φ.R
+      -- F.e ≫ Ψ.R = Ψ.R (Ψ.fixed_left), then div_comp_le, then E.e ≫ Φ.R = Φ.R (Φ.fixed_left).
+      calc (E.idem.e ≫ (Φ.R / Ψ.R) ≫ F.idem.e) ≫ Ψ.R
+          = E.idem.e ≫ (Φ.R / Ψ.R) ≫ (F.idem.e ≫ Ψ.R) := by simp only [Cat.assoc]
+        _ = E.idem.e ≫ (Φ.R / Ψ.R) ≫ Ψ.R := by rw [Ψ.fixed_left]
+        _ ⊑ E.idem.e ≫ Φ.R := comp_mono_left _ (DivisionAllegory.div_comp_le _ _)
+        _ = Φ.R := Φ.fixed_left
+    le_div := fun {E F G} T Φ Ψ h => by
+      rw [splLe_iff] at h ⊢
+      show T.R ⊑ E.idem.e ≫ (Φ.R / Ψ.R) ≫ F.idem.e
+      have hbase : T.R ⊑ Φ.R / Ψ.R := DivisionAllegory.le_div T.R Φ.R Ψ.R h
+      calc T.R = E.idem.e ≫ T.R ≫ F.idem.e := T.fixed.symm
+        _ ⊑ E.idem.e ≫ (Φ.R / Ψ.R) ≫ F.idem.e :=
+            comp_mono_left _ (comp_mono_right hbase _) }
+
 /-! ## §2.42  `SplObj 𝒜` is an effective power allegory for a power allegory `𝒜`
 
-  Freyd §2.42: if `𝒜` is a power allegory then `SplObj 𝒜` is an effective power allegory.
+  Freyd §2.42 (book, §2.422 corollary): *Let A be a power allegory.  Then `Spl(Corefl A)`
+  is an effective power allegory.*  The completion is the COREFLEXIVE one `SplCorObj 𝒜`
+  (split only coreflexives), reached because §2.421/§2.422 give `E = E/E = A(E)A°(E) = ff°`
+  for every equivalence relation `E`, so splitting coreflexives makes every equivalence
+  relation effective.  Crucially the book does NOT make the power allegory semi-simple —
+  "free power allegories are not semi-simple" (book §2.42, near §2.441) — so the full
+  `SplObj`/`instEffectiveSpl` route (which DEMANDS `[SemiSimpleAllegory 𝒜]`) does NOT apply
+  to a general power allegory.
 
-  Route: show `SplObj 𝒜` is `EffectivePrePowerAllegory` → apply
-  `effective_pre_power_is_power` (S2_4) to get `PowerAllegory (SplObj 𝒜)`.
+  WHAT LANDS HERE (the genuinely transportable structure, all sorry-free):
+    • `instDivisionSpl` — `DivisionAllegory (SplObj 𝒜)` (pointwise division, above). This was
+      the PRIMARY blocker flagged by the old TODO; it is now closed for the FULL `SplObj 𝒜`
+      (hence a fortiori usable for `SplCorObj 𝒜`).  Together with `instDistributiveSpl`
+      (§2.21) and `instUnitarySpl`/`instPositiveSpl`, `SplObj 𝒜` now has the full
+      distributive/division tower.
+    • For a SEMI-SIMPLE power allegory the assembly completes through the existing pieces:
+      `instEffectiveSpl` + `instDivisionSpl` give `EffectiveDivisionAllegory (SplObj 𝒜)`,
+      `splObj_effectivePrePower_of_semiSimple` adds the thick targets, and
+      `effective_pre_power_is_power` yields `PowerAllegory (SplObj 𝒜)`.
 
-  PRIMARY BLOCKER: `EffectivePrePowerAllegory` extends `DistributiveAllegory`
-  (→ `UnionAllegory` → union/zero).  The repo has these for `𝒜` but NOT for `SplObj 𝒜`.
-  Adding `UnionAllegory (SplObj 𝒜)` is structurally straightforward (pointwise union)
-  but not yet done.
+  REMAINING GAP (precise, NOT a repo lemma).  The conclusion `(effective) PowerAllegory`
+  needs a THICK target for every object, which §2.43/§2.432 supply via the membership `eps`
+  (`Thick (eps b)`).  An `EffectivePrePowerAllegory.thick_target` therefore requires a
+  GENUINELY thick morphism on `SplObj 𝒜` — and the only source of one is a TRANSPORTED `eps`.
+  Identities are NOT thick (`Thick (id_b)` would force every box-matched `R` to be entire), so
+  no thick target can be fabricated from the distributive/division tower alone.
 
-  SECONDARY: given `UnionAllegory (SplObj 𝒜)`, `PrePowerAllegory (SplObj 𝒜)` needs
-  ε-membership; `Thick ε` in `SplObj 𝒜` requires `straight_descent_thick` (S2_4). -/
+  Hence the two missing primitives (book-routine, neither reducible to an existing repo lemma):
+    (1) the TRANSPORTED `eps_{SplObj}`/`powerObj_{SplObj}` (the §2.421 identity
+        `R/S = A(R)A°(S)`, carried across the splitting), giving `Thick (eps_{SplObj} b)`;
+    (2) for a GENERAL power allegory, effectiveness of the COREFLEXIVE completion
+        `SplCorObj 𝒜` via §2.422 (`E = E/E = A(E)A°(E) = ff°` + coreflexive split), since a
+        general power allegory is NOT semi-simple so `instEffectiveSpl` does not fire.
 
--- TODO §2.42: add UnionAllegory/DistributiveAllegory instances for SplObj 𝒜, then prove
--- EffectivePrePowerAllegory (SplObj 𝒜) and invoke effective_pre_power_is_power.
+  With those, `effective_pre_power_is_power` (S2_4) closes the conclusion.  The
+  distributive/division tower (`instDistributiveSpl`, `instDivisionSpl`, `instUnitarySpl`,
+  `instPositiveSpl`) and — in the semi-simple case — `instEffectiveSpl` are all in place;
+  the strict residue is the transported membership `eps`. -/
 
 /-! ## §2.433 / §2.434 / §2.435  Power allegory completions
 
