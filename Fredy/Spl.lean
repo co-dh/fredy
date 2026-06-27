@@ -237,6 +237,273 @@ def splObj_tabular_of_tabular {𝒜 : Type u} [TabularAllegory 𝒜] :
   letI := semiSimpleAllegory_of_tabular (ℬ := 𝒜)
   splObj_tabular_of_semiSimple
 
+/-! ## §2.21  `SplObj 𝒜` is a DISTRIBUTIVE allegory (pointwise union/zero)
+
+  Freyd §2.21: union and zero of `SplObj 𝒜` are read off the underlying `𝒜`-morphisms.
+  For parallel `Φ Ψ : E ⟶ F` the union is `Φ.R ∪ Ψ.R` (fixed since `E.e ≫ (Φ.R∪Ψ.R) ≫ F.e
+  = (E.e≫Φ.R≫F.e) ∪ (E.e≫Ψ.R≫F.e) = Φ.R ∪ Ψ.R` by `union_comp_distrib`/`comp_union_distrib`,
+  each leg fixed); zero is `𝟘` (fixed since `E.e≫𝟘≫F.e = 𝟘`).  All distributive-allegory
+  laws descend pointwise from `[DistributiveAllegory 𝒜]` via `SplHom.ext`. -/
+
+/-- Pointwise union of two parallel split-homs: underlying `Φ.R ∪ Ψ.R`, fixed because
+    `E.e ≫ (Φ.R∪Ψ.R) ≫ F.e` distributes into `(E.e≫Φ.R≫F.e) ∪ (E.e≫Ψ.R≫F.e) = Φ.R ∪ Ψ.R`. -/
+def splUnion {𝒜 : Type u} [DistributiveAllegory 𝒜] {E F : SplObj 𝒜} (Φ Ψ : E ⟶ F) : E ⟶ F :=
+  ⟨Φ.R ∪ Ψ.R, by
+    rw [union_comp_distrib, DistributiveAllegory.comp_union_distrib, Φ.fixed, Ψ.fixed]⟩
+
+/-- The zero split-hom `E ⟶ F`: underlying `𝟘`, fixed because `E.e ≫ 𝟘 ≫ F.e = 𝟘`. -/
+def splZero {𝒜 : Type u} [DistributiveAllegory 𝒜] {E F : SplObj 𝒜} : E ⟶ F :=
+  ⟨𝟘, by rw [DistributiveAllegory.zero_comp, DistributiveAllegory.comp_zero]⟩
+
+/-- **§2.21**: if `𝒜` is a DISTRIBUTIVE allegory then so is `SplObj 𝒜`, with union and
+    zero taken pointwise on the underlying `𝒜`-morphisms (`splUnion`, `splZero`).  Every
+    distributive law reduces to the base `[DistributiveAllegory 𝒜]` law via `SplHom.ext`. -/
+instance instDistributiveSpl {𝒜 : Type u} [DistributiveAllegory 𝒜] :
+    DistributiveAllegory (SplObj 𝒜) :=
+  { instAllegorySpl with
+    zero := splZero
+    union := splUnion
+    zero_comp := fun R => by
+      apply SplHom.ext; show (𝟘 : _ ⟶ _) ≫ R.R = 𝟘; exact DistributiveAllegory.zero_comp _
+    comp_zero := fun R => by
+      apply SplHom.ext; show R.R ≫ (𝟘 : _ ⟶ _) = 𝟘; exact DistributiveAllegory.comp_zero _
+    union_idem := fun R => by
+      apply SplHom.ext; show R.R ∪ R.R = R.R; exact DistributiveAllegory.union_idem _
+    union_comm := fun R S => by
+      apply SplHom.ext; show R.R ∪ S.R = S.R ∪ R.R; exact DistributiveAllegory.union_comm _ _
+    union_assoc := fun R S T => by
+      apply SplHom.ext; show R.R ∪ (S.R ∪ T.R) = (R.R ∪ S.R) ∪ T.R
+      exact DistributiveAllegory.union_assoc _ _ _
+    union_inter_absorb := fun R S => by
+      apply SplHom.ext; show R.R ∪ (S.R ∩ R.R) = R.R; exact DistributiveAllegory.union_inter_absorb _ _
+    inter_union_absorb := fun R S => by
+      apply SplHom.ext; show (R.R ∪ S.R) ∩ R.R = R.R; exact DistributiveAllegory.inter_union_absorb _ _
+    comp_union_distrib := fun R S T => by
+      apply SplHom.ext; show R.R ≫ (S.R ∪ T.R) = (R.R ≫ S.R) ∪ (R.R ≫ T.R)
+      exact DistributiveAllegory.comp_union_distrib _ _ _
+    inter_union_distrib := fun R S T => by
+      apply SplHom.ext; show R.R ∩ (S.R ∪ T.R) = (R.R ∩ S.R) ∪ (R.R ∩ T.R)
+      exact DistributiveAllegory.inter_union_distrib _ _ _
+    zero_union := fun R => by
+      apply SplHom.ext; show (𝟘 : _ ⟶ _) ∪ R.R = R.R; exact DistributiveAllegory.zero_union _ }
+
+/-! ## §2.15  `SplObj 𝒜` is a UNITARY allegory
+
+  Freyd §2.15: the unit object of `SplObj 𝒜` is the embedded base unit `⟨λ, 1_λ⟩` (the
+  unit `λ` with its identity idempotent — `1_λ` is coreflexive, so this IS a SplObj).
+
+    • PartialUnit `⟨λ,1⟩`: any `Φ : ⟨λ,1⟩ ⟶ ⟨λ,1⟩` has underlying `Φ.R : λ⟶λ ⊑ 1_λ`
+      (base `PartialUnit λ`), and `Φ ⊑ id` in `SplObj` is exactly `Φ.R ⊑ 1_λ` (`splLe_iff`,
+      with `id_{⟨λ,1⟩}.R = 1_λ`).
+    • Entire-to-unit: for any `E = ⟨a,e⟩`, the base entire `p : a ⟶ λ` gives the SplHom
+      `legP = ⟨e ≫ p, …⟩ : E ⟶ ⟨λ,1⟩` (fixed: `e≫(e≫p)≫1 = e≫p`).  It is `Entire` AGAINST
+      the OBJECT idempotent `e = id_E`: `dom legP = id_E`, i.e. `e ∩ (e≫p)≫(e≫p)° = e`,
+      which holds because base-entire `p` gives `1_a ⊑ p≫p°`, hence `e ⊑ e≫(p≫p°)≫e`. -/
+
+/-- The unit object of `SplObj 𝒜`: the embedded base unit `⟨λ, 1_λ⟩`. -/
+def splUnitObj (𝒜 : Type u) [UnitaryAllegory 𝒜] : SplObj 𝒜 :=
+  embObj (UnitaryAllegory.unit_obj (𝒜 := 𝒜))
+
+/-- `⟨λ,1⟩` is a partial unit of `SplObj 𝒜`: every endomorphism is `⊑ id`, because its
+    underlying `λ⟶λ` morphism is `⊑ 1_λ` by the base `PartialUnit λ`. -/
+theorem splUnit_partialUnit {𝒜 : Type u} [UnitaryAllegory 𝒜] :
+    PartialUnit (splUnitObj 𝒜) := by
+  intro Φ
+  have hPU : PartialUnit (UnitaryAllegory.unit_obj (𝒜 := 𝒜)) := UnitaryAllegory.unit_prop.1
+  -- `Φ ⊑ id_{⟨λ,1⟩}` is `Φ.R ⊑ (splId _).R = 1_λ`; base PartialUnit gives `Φ.R ⊑ 1_λ`.
+  rw [splLe_iff]; exact hPU Φ.R
+
+/-- Every object `E = ⟨a,e⟩` of `SplObj 𝒜` is the source of an ENTIRE split-hom to the
+    unit `⟨λ,1⟩` (entire against the OBJECT idempotent `e = id_E`, not `1_a`).
+    Take the base entire `p : a ⟶ λ` and absorb the object idempotent: `legP = e ≫ p`. -/
+theorem splUnit_entire {𝒜 : Type u} [UnitaryAllegory 𝒜] (E : SplObj 𝒜) :
+    ∃ (P : E ⟶ splUnitObj 𝒜), Entire P := by
+  obtain ⟨p, hpEntire⟩ :=
+    UnitaryAllegory.unit_prop.2 E.carrier
+  have hesym : E.idem.e° = E.idem.e := E.idem.sym
+  have heidem : E.idem.e ≫ E.idem.e = E.idem.e := E.idem.idem
+  -- Base entire `p`: `1_a ⊑ p ≫ p°`.
+  have hpp : Cat.id E.carrier ⊑ p ≫ p° := by
+    have := hpEntire; unfold Entire dom at this; exact this ▸ inter_lb_right _ _
+  -- SplHom `legP = ⟨e ≫ p, …⟩ : E ⟶ ⟨λ,1⟩` (right idempotent `1_λ` absorbs trivially).
+  let legP : E ⟶ splUnitObj 𝒜 := ⟨E.idem.e ≫ p, by
+        show E.idem.e ≫ (E.idem.e ≫ p) ≫ Cat.id (UnitaryAllegory.unit_obj) = E.idem.e ≫ p
+        rw [Cat.comp_id, ← Cat.assoc, heidem]⟩
+  refine ⟨legP, ?_⟩
+  -- Entire legP in SplObj: `dom legP = id_E`, i.e. `e ∩ (e≫p)≫(e≫p)° = e`.
+  unfold Entire dom; apply SplHom.ext
+  show E.idem.e ∩ (E.idem.e ≫ p) ≫ (E.idem.e ≫ p)° = E.idem.e
+  -- (e≫p)≫(e≫p)° = e≫(p≫p°)≫e  (e symmetric);  e ⊑ e≫(p≫p°)≫e  (1 ⊑ p≫p°).
+  have hPP : (E.idem.e ≫ p) ≫ (E.idem.e ≫ p)° = E.idem.e ≫ (p ≫ p°) ≫ E.idem.e := by
+    rw [Allegory.recip_comp, hesym]; simp only [Cat.assoc]
+  have hEnt : E.idem.e ⊑ (E.idem.e ≫ p) ≫ (E.idem.e ≫ p)° := by
+    rw [hPP]
+    calc E.idem.e = E.idem.e ≫ Cat.id E.carrier ≫ E.idem.e := by rw [Cat.id_comp, heidem]
+      _ ⊑ E.idem.e ≫ (p ≫ p°) ≫ E.idem.e := comp_mono_left _ (comp_mono_right hpp _)
+  exact le_antisymm (inter_lb_left _ _) (le_inter (le_refl _) hEnt)
+
+/-- **§2.15**: if `𝒜` is a UNITARY allegory then so is `SplObj 𝒜`, with unit object the
+    embedded base unit `⟨λ, 1_λ⟩` (`splUnitObj`). -/
+noncomputable instance instUnitarySpl {𝒜 : Type u} [UnitaryAllegory 𝒜] :
+    UnitaryAllegory (SplObj 𝒜) :=
+  { instAllegorySpl with
+    unit_obj := splUnitObj 𝒜
+    unit_prop := ⟨splUnit_partialUnit, splUnit_entire⟩ }
+
+/-! ## §2.215  `SplObj 𝒜` is a POSITIVE allegory (block-diagonal coproduct)
+
+  Freyd §2.215: the coproduct of `E = ⟨a,e⟩, F = ⟨b,f⟩` in `SplObj 𝒜` is built on the base
+  coproduct `coprod a b` (injections `u₁ : a ⟶ coprod a b`, `u₂ : b ⟶ coprod a b`).  The
+  apex object carries the BLOCK-DIAGONAL symmetric idempotent
+
+      D = u₁°≫e≫u₁ ∪ u₂°≫f≫u₂   on   coprod a b,
+
+  with SplObj injections `U₁ = e≫u₁ : E ⟶ ⟨coprod a b, D⟩`, `U₂ = f≫u₂ : F ⟶ …`.
+  The base coproduct equations (`u₁u₁°=1`, `u₁u₂°=0`, `u₂u₁°=0`, `u₂u₂°=1`, `e,f` sym+idem)
+  make the five §2.214 `Coproduct` equations lift verbatim:
+    `U₁U₁° = e(u₁u₁°)e = e = id_E`,  `U₁U₂° = e(u₁u₂°)f = 0`,  `U₂U₁° = 0`,
+    `U₂U₂° = f = id_F`,  `U₁°U₁ ∪ U₂°U₂ = u₁°eu₁ ∪ u₂°fu₂ = D = id_C`. -/
+
+/-- The block-diagonal symmetric idempotent `D = u₁°eu₁ ∪ u₂°fu₂` on `coprod a b`, the
+    apex carrier of the `SplObj 𝒜` coproduct of `E = ⟨a,e⟩` and `F = ⟨b,f⟩`. -/
+def splCoprodIdem {𝒜 : Type u} [PositiveAllegory 𝒜] (E F : SplObj 𝒜) :
+    SymIdem (PositiveAllegory.coprod E.carrier F.carrier) :=
+  let cp := PositiveAllegory.has_coproduct E.carrier F.carrier
+  { e := (cp.u₁° ≫ E.idem.e ≫ cp.u₁) ∪ (cp.u₂° ≫ F.idem.e ≫ cp.u₂)
+    sym := by
+      -- D° = (u₁°eu₁)° ∪ (u₂°fu₂)°  (recip_union flips, then ∪-comm);  e,f symmetric.
+      show ((cp.u₁° ≫ E.idem.e ≫ cp.u₁) ∪ (cp.u₂° ≫ F.idem.e ≫ cp.u₂))° = _
+      rw [recip_union]
+      simp only [Allegory.recip_comp, Allegory.recip_recip, E.idem.sym, F.idem.sym, Cat.assoc,
+        DistributiveAllegory.union_comm]
+    idem := by
+      -- D≫D: diagonal terms reproduce, cross terms vanish (u₁u₂°=0, u₂u₁°=0).
+      show ((cp.u₁° ≫ E.idem.e ≫ cp.u₁) ∪ (cp.u₂° ≫ F.idem.e ≫ cp.u₂)) ≫
+           ((cp.u₁° ≫ E.idem.e ≫ cp.u₁) ∪ (cp.u₂° ≫ F.idem.e ≫ cp.u₂))
+        = (cp.u₁° ≫ E.idem.e ≫ cp.u₁) ∪ (cp.u₂° ≫ F.idem.e ≫ cp.u₂)
+      rw [union_comp_distrib, DistributiveAllegory.comp_union_distrib,
+          DistributiveAllegory.comp_union_distrib]
+      -- four terms; rewrite each via the coproduct equations.
+      have t11 : (cp.u₁° ≫ E.idem.e ≫ cp.u₁) ≫ (cp.u₁° ≫ E.idem.e ≫ cp.u₁)
+          = cp.u₁° ≫ E.idem.e ≫ cp.u₁ := by
+        calc (cp.u₁° ≫ E.idem.e ≫ cp.u₁) ≫ (cp.u₁° ≫ E.idem.e ≫ cp.u₁)
+            = cp.u₁° ≫ E.idem.e ≫ (cp.u₁ ≫ cp.u₁°) ≫ E.idem.e ≫ cp.u₁ := by
+                simp only [Cat.assoc]
+          _ = cp.u₁° ≫ E.idem.e ≫ E.idem.e ≫ cp.u₁ := by rw [cp.u₁_self_comp_recip, Cat.id_comp]
+          _ = cp.u₁° ≫ E.idem.e ≫ cp.u₁ := by rw [← Cat.assoc E.idem.e E.idem.e cp.u₁, E.idem.idem]
+      have t12 : (cp.u₁° ≫ E.idem.e ≫ cp.u₁) ≫ (cp.u₂° ≫ F.idem.e ≫ cp.u₂) = 𝟘 := by
+        calc (cp.u₁° ≫ E.idem.e ≫ cp.u₁) ≫ (cp.u₂° ≫ F.idem.e ≫ cp.u₂)
+            = cp.u₁° ≫ E.idem.e ≫ (cp.u₁ ≫ cp.u₂°) ≫ F.idem.e ≫ cp.u₂ := by simp only [Cat.assoc]
+          _ = cp.u₁° ≫ E.idem.e ≫ 𝟘 ≫ F.idem.e ≫ cp.u₂ := by rw [cp.u₁_u₂_recip]
+          _ = 𝟘 := by rw [DistributiveAllegory.zero_comp, DistributiveAllegory.comp_zero,
+                          DistributiveAllegory.comp_zero]
+      have t21 : (cp.u₂° ≫ F.idem.e ≫ cp.u₂) ≫ (cp.u₁° ≫ E.idem.e ≫ cp.u₁) = 𝟘 := by
+        calc (cp.u₂° ≫ F.idem.e ≫ cp.u₂) ≫ (cp.u₁° ≫ E.idem.e ≫ cp.u₁)
+            = cp.u₂° ≫ F.idem.e ≫ (cp.u₂ ≫ cp.u₁°) ≫ E.idem.e ≫ cp.u₁ := by simp only [Cat.assoc]
+          _ = cp.u₂° ≫ F.idem.e ≫ 𝟘 ≫ E.idem.e ≫ cp.u₁ := by rw [cp.u₂_u₁_recip]
+          _ = 𝟘 := by rw [DistributiveAllegory.zero_comp, DistributiveAllegory.comp_zero,
+                          DistributiveAllegory.comp_zero]
+      have t22 : (cp.u₂° ≫ F.idem.e ≫ cp.u₂) ≫ (cp.u₂° ≫ F.idem.e ≫ cp.u₂)
+          = cp.u₂° ≫ F.idem.e ≫ cp.u₂ := by
+        calc (cp.u₂° ≫ F.idem.e ≫ cp.u₂) ≫ (cp.u₂° ≫ F.idem.e ≫ cp.u₂)
+            = cp.u₂° ≫ F.idem.e ≫ (cp.u₂ ≫ cp.u₂°) ≫ F.idem.e ≫ cp.u₂ := by simp only [Cat.assoc]
+          _ = cp.u₂° ≫ F.idem.e ≫ F.idem.e ≫ cp.u₂ := by rw [cp.u₂_self_comp_recip, Cat.id_comp]
+          _ = cp.u₂° ≫ F.idem.e ≫ cp.u₂ := by rw [← Cat.assoc F.idem.e F.idem.e cp.u₂, F.idem.idem]
+      show ((cp.u₁° ≫ E.idem.e ≫ cp.u₁) ≫ (cp.u₁° ≫ E.idem.e ≫ cp.u₁) ∪
+            (cp.u₁° ≫ E.idem.e ≫ cp.u₁) ≫ (cp.u₂° ≫ F.idem.e ≫ cp.u₂)) ∪
+           ((cp.u₂° ≫ F.idem.e ≫ cp.u₂) ≫ (cp.u₁° ≫ E.idem.e ≫ cp.u₁) ∪
+            (cp.u₂° ≫ F.idem.e ≫ cp.u₂) ≫ (cp.u₂° ≫ F.idem.e ≫ cp.u₂)) = _
+      rw [t11, t12, t21, t22, union_zero, DistributiveAllegory.zero_union] }
+
+/-- The `SplObj 𝒜` coproduct diagram of `E, F`: apex `⟨coprod a b, D⟩` with the block-diagonal
+    idempotent `D`, injections `U₁ = e≫u₁`, `U₂ = f≫u₂`.  The five §2.214 equations lift from
+    the base coproduct equations. -/
+def splCoproduct {𝒜 : Type u} [PositiveAllegory 𝒜] (E F : SplObj 𝒜) :
+    Coproduct (𝒜 := SplObj 𝒜) ⟨PositiveAllegory.coprod E.carrier F.carrier, splCoprodIdem E F⟩ E F :=
+  let cp := PositiveAllegory.has_coproduct E.carrier F.carrier
+  let C : SplObj 𝒜 := ⟨PositiveAllegory.coprod E.carrier F.carrier, splCoprodIdem E F⟩
+  -- U₁ : E ⟶ C with underlying `e ≫ u₁` (fixed: e≫(e≫u₁)≫D = e≫u₁ since u₁≫D = e≫u₁).
+  let U₁ : E ⟶ C := ⟨E.idem.e ≫ cp.u₁, by
+        show E.idem.e ≫ (E.idem.e ≫ cp.u₁) ≫ (splCoprodIdem E F).e = E.idem.e ≫ cp.u₁
+        show E.idem.e ≫ (E.idem.e ≫ cp.u₁) ≫
+              ((cp.u₁° ≫ E.idem.e ≫ cp.u₁) ∪ (cp.u₂° ≫ F.idem.e ≫ cp.u₂)) = E.idem.e ≫ cp.u₁
+        rw [DistributiveAllegory.comp_union_distrib]
+        have h1 : (E.idem.e ≫ cp.u₁) ≫ (cp.u₁° ≫ E.idem.e ≫ cp.u₁)
+            = E.idem.e ≫ cp.u₁ := by
+          calc (E.idem.e ≫ cp.u₁) ≫ (cp.u₁° ≫ E.idem.e ≫ cp.u₁)
+              = E.idem.e ≫ (cp.u₁ ≫ cp.u₁°) ≫ E.idem.e ≫ cp.u₁ := by simp only [Cat.assoc]
+            _ = E.idem.e ≫ E.idem.e ≫ cp.u₁ := by rw [cp.u₁_self_comp_recip, Cat.id_comp]
+            _ = E.idem.e ≫ cp.u₁ := by rw [← Cat.assoc E.idem.e E.idem.e cp.u₁, E.idem.idem]
+        have h2 : (E.idem.e ≫ cp.u₁) ≫ (cp.u₂° ≫ F.idem.e ≫ cp.u₂) = 𝟘 := by
+          calc (E.idem.e ≫ cp.u₁) ≫ (cp.u₂° ≫ F.idem.e ≫ cp.u₂)
+              = E.idem.e ≫ (cp.u₁ ≫ cp.u₂°) ≫ F.idem.e ≫ cp.u₂ := by simp only [Cat.assoc]
+            _ = E.idem.e ≫ 𝟘 ≫ F.idem.e ≫ cp.u₂ := by rw [cp.u₁_u₂_recip]
+            _ = 𝟘 := by rw [DistributiveAllegory.zero_comp, DistributiveAllegory.comp_zero]
+        rw [h1, h2, union_zero, ← Cat.assoc, E.idem.idem]⟩
+  let U₂ : F ⟶ C := ⟨F.idem.e ≫ cp.u₂, by
+        show F.idem.e ≫ (F.idem.e ≫ cp.u₂) ≫
+              ((cp.u₁° ≫ E.idem.e ≫ cp.u₁) ∪ (cp.u₂° ≫ F.idem.e ≫ cp.u₂)) = F.idem.e ≫ cp.u₂
+        rw [DistributiveAllegory.comp_union_distrib]
+        have h1 : (F.idem.e ≫ cp.u₂) ≫ (cp.u₁° ≫ E.idem.e ≫ cp.u₁) = 𝟘 := by
+          calc (F.idem.e ≫ cp.u₂) ≫ (cp.u₁° ≫ E.idem.e ≫ cp.u₁)
+              = F.idem.e ≫ (cp.u₂ ≫ cp.u₁°) ≫ E.idem.e ≫ cp.u₁ := by simp only [Cat.assoc]
+            _ = F.idem.e ≫ 𝟘 ≫ E.idem.e ≫ cp.u₁ := by rw [cp.u₂_u₁_recip]
+            _ = 𝟘 := by rw [DistributiveAllegory.zero_comp, DistributiveAllegory.comp_zero]
+        have h2 : (F.idem.e ≫ cp.u₂) ≫ (cp.u₂° ≫ F.idem.e ≫ cp.u₂) = F.idem.e ≫ cp.u₂ := by
+          calc (F.idem.e ≫ cp.u₂) ≫ (cp.u₂° ≫ F.idem.e ≫ cp.u₂)
+              = F.idem.e ≫ (cp.u₂ ≫ cp.u₂°) ≫ F.idem.e ≫ cp.u₂ := by simp only [Cat.assoc]
+            _ = F.idem.e ≫ F.idem.e ≫ cp.u₂ := by rw [cp.u₂_self_comp_recip, Cat.id_comp]
+            _ = F.idem.e ≫ cp.u₂ := by rw [← Cat.assoc F.idem.e F.idem.e cp.u₂, F.idem.idem]
+        rw [h1, h2, DistributiveAllegory.zero_union, ← Cat.assoc, F.idem.idem]⟩
+  { u₁ := U₁
+    u₂ := U₂
+    -- U₁≫U₁° = id_E:  underlying  (e≫u₁)(u₁°≫e) = e(u₁u₁°)e = e·1·e = e.
+    u₁_self_comp_recip := by
+      apply SplHom.ext
+      show (E.idem.e ≫ cp.u₁) ≫ (E.idem.e ≫ cp.u₁)° = E.idem.e
+      rw [Allegory.recip_comp, E.idem.sym]; simp only [Cat.assoc]
+      rw [← Cat.assoc cp.u₁ cp.u₁° E.idem.e, cp.u₁_self_comp_recip, Cat.id_comp, E.idem.idem]
+    -- U₁≫U₂° = 0:  (e≫u₁)(u₂°≫f) = e(u₁u₂°)f = e·0·f = 0.
+    u₁_u₂_recip := by
+      apply SplHom.ext
+      show (E.idem.e ≫ cp.u₁) ≫ (F.idem.e ≫ cp.u₂)° = 𝟘
+      rw [Allegory.recip_comp, F.idem.sym]; simp only [Cat.assoc]
+      rw [← Cat.assoc cp.u₁ cp.u₂° F.idem.e, cp.u₁_u₂_recip, DistributiveAllegory.zero_comp,
+          DistributiveAllegory.comp_zero]
+    -- U₂≫U₁° = 0.
+    u₂_u₁_recip := by
+      apply SplHom.ext
+      show (F.idem.e ≫ cp.u₂) ≫ (E.idem.e ≫ cp.u₁)° = 𝟘
+      rw [Allegory.recip_comp, E.idem.sym]; simp only [Cat.assoc]
+      rw [← Cat.assoc cp.u₂ cp.u₁° E.idem.e, cp.u₂_u₁_recip, DistributiveAllegory.zero_comp,
+          DistributiveAllegory.comp_zero]
+    -- U₂≫U₂° = id_F = f.
+    u₂_self_comp_recip := by
+      apply SplHom.ext
+      show (F.idem.e ≫ cp.u₂) ≫ (F.idem.e ≫ cp.u₂)° = F.idem.e
+      rw [Allegory.recip_comp, F.idem.sym]; simp only [Cat.assoc]
+      rw [← Cat.assoc cp.u₂ cp.u₂° F.idem.e, cp.u₂_self_comp_recip, Cat.id_comp, F.idem.idem]
+    -- (U₁°≫U₁) ∪ (U₂°≫U₂) = id_C = D.
+    recip_union_eq_id := by
+      apply SplHom.ext
+      show ((E.idem.e ≫ cp.u₁)° ≫ (E.idem.e ≫ cp.u₁)) ∪ ((F.idem.e ≫ cp.u₂)° ≫ (F.idem.e ≫ cp.u₂))
+        = (cp.u₁° ≫ E.idem.e ≫ cp.u₁) ∪ (cp.u₂° ≫ F.idem.e ≫ cp.u₂)
+      rw [Allegory.recip_comp, Allegory.recip_comp, E.idem.sym, F.idem.sym]
+      simp only [Cat.assoc]
+      rw [← Cat.assoc E.idem.e E.idem.e cp.u₁, E.idem.idem,
+          ← Cat.assoc F.idem.e F.idem.e cp.u₂, F.idem.idem] }
+
+/-- **§2.215**: if `𝒜` is a POSITIVE allegory then so is `SplObj 𝒜`.  The coproduct of
+    `E = ⟨a,e⟩, F = ⟨b,f⟩` is the apex `⟨coprod a b, D⟩` with the block-diagonal symmetric
+    idempotent `D = u₁°eu₁ ∪ u₂°fu₂` and injections `U₁ = e≫u₁`, `U₂ = f≫u₂` (`splCoproduct`).
+    The coterminal object is the embedded base `coterm`. -/
+noncomputable instance instPositiveSpl {𝒜 : Type u} [PositiveAllegory 𝒜] :
+    PositiveAllegory (SplObj 𝒜) :=
+  { instDistributiveSpl with
+    coterm := embObj PositiveAllegory.coterm
+    coprod := fun E F => ⟨PositiveAllegory.coprod E.carrier F.carrier, splCoprodIdem E F⟩
+    has_coproduct := fun E F => splCoproduct E F }
+
 /-! ## §2.42  `SplObj 𝒜` is an effective power allegory for a power allegory `𝒜`
 
   Freyd §2.42: if `𝒜` is a power allegory then `SplObj 𝒜` is an effective power allegory.
