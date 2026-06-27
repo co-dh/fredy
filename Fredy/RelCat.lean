@@ -2885,12 +2885,136 @@ end SameUniverseFaithful
   The §2.218 assembly's `F = homRep ‾Map A : ‾Map A → Set^|‾Map A|` is faithful and reflects
   monos, but is NOT full, and crosses universes (`Type u → Type (u+1)`).  The fullness-based
   `relMap_faithful` does not apply.  Instead we use that a `BinRel` span is already JOINTLY MONIC
-  (its own image), and that `F`, being faithful and image-reflecting, reflects the `RelLe`
-  comparison: a containment `relImageObj R ⊆ relImageObj S` downstairs comes from a comparison
-  `k : IR.src → IS.src`; splitting the cover `eS` and pre/post-composing the covers `eR`, `eS`
-  produces a map `F R.src → F S.src` carrying the legs, which — because the SPANS are jointly monic
-  and `F` is faithful — descends to the required `RelHom R S`.  The leg-lift that fullness supplied
-  is replaced by the SEPARATING property of `F` applied to the jointly-monic target span. -/
+  (its own image), so a `RelHom R S` is a *factorization of monos* `pair R.colA R.colB` through
+  `pair S.colA S.colB` in `A × B`.  A pullback-preserving, iso-reflecting `F` reflects such a
+  factorization: pull `pair R` back along the mono `pair S`; `F` carries the §1.56 product-pair to
+  the downstairs one (`pres_prod`'s comparison iso), so the downstairs factorization `g` makes
+  `F(π₁)` (the pullback projection, monic) a retraction, hence iso; `F` reflecting isos pulls that
+  back upstairs to give `π₁` iso and the required leg-map `h := π₁⁻¹ ≫ π₂`. -/
+
+/-- **Mono-factorization reflection** (the engine of `relImageObj_reflect_le_of_reflects`).
+    For monos `m : M → X`, `n : N → X` in `C`, if `F` preserves pullbacks + monos and reflects isos,
+    then a *downstairs* factorization `g : F M → F N` with `g ≫ F n = F m` reflects to an *upstairs*
+    factorization `h : M → N` with `h ≫ n = m`.  Pullback of `m` along the mono `n` gives a monic
+    projection `π₁ : P → M`; the downstairs cone `(F M, id, g)` factors through `F P`, exhibiting a
+    section of `F π₁`, so `F π₁` (monic) is iso; reflecting the iso makes `π₁` iso upstairs. -/
+theorem monoFactor_reflect (hreg : RegularFunctor F)
+    (hreflIso : ∀ {X Y : C} (f : X ⟶ Y), IsIso (hF.map f) → IsIso f)
+    {M N X : C} {m : M ⟶ X} {n : N ⟶ X} (hn : Monic n)
+    (g : F M ⟶ F N) (hg : g ≫ hF.map n = hF.map m) :
+    ∃ h : M ⟶ N, h ≫ n = m := by
+  -- pullback of `m` along the mono `n`
+  let pb := HasPullbacks.has m n
+  have hπ₁mono : Monic pb.cone.π₁ := mono_pullback m n hn pb
+  -- downstairs cone `(F M, id, g)` over the cospan `(F m, F n)`
+  have hdw : Cat.id (F M) ≫ hF.map m = g ≫ hF.map n := by rw [Cat.id_comp, hg]
+  let dcone : Cone (hF.map m) (hF.map n) := ⟨F M, Cat.id (F M), g, hdw⟩
+  have hFpb := hreg.pres_pullback m n pb.cone pb.cone_isPullback
+  obtain ⟨u, ⟨hu₁, _hu₂⟩, _⟩ := hFpb dcone
+  -- `u ≫ F π₁ = id_{F M}`, so `u` is a section of `F π₁`
+  have hFπ₁mono : Monic (hF.map pb.cone.π₁) := hreg.pres_mono hπ₁mono
+  -- a monic with a section is an iso
+  have hFπ₁iso : IsIso (hF.map pb.cone.π₁) := by
+    refine ⟨u, ?_, hu₁⟩
+    apply hFπ₁mono (hF.map pb.cone.π₁ ≫ u) (Cat.id _)
+    rw [Cat.assoc, hu₁, Cat.comp_id, Cat.id_comp]
+  obtain ⟨π₁inv, _hpi1, hpi2⟩ := hreflIso pb.cone.π₁ hFπ₁iso
+  refine ⟨π₁inv ≫ pb.cone.π₂, ?_⟩
+  -- `(π₁⁻¹ ≫ π₂) ≫ n = π₁⁻¹ ≫ (π₁ ≫ m) = m`  (using the pullback square `π₂ ≫ n = π₁ ≫ m`)
+  rw [Cat.assoc, ← pb.cone.w, ← Cat.assoc, hpi2, Cat.id_comp]
+
+/-- The §1.56 product-pair `pair (F a) (F b)` factors the `F`-image of the upstairs pair through
+    the product-comparison iso: `F (pair a b) ≫ φ = pair (F a) (F b)`, where
+    `φ = pair (F fst) (F snd) : F (A×B) → F A × F B`. -/
+theorem map_pair_comp_comparison {A B Z : C} (a : Z ⟶ A) (b : Z ⟶ B) :
+    hF.map (pair a b) ≫ pair (hF.map (fst (A := A) (B := B))) (hF.map (snd (A := A) (B := B)))
+      = pair (hF.map a) (hF.map b) := by
+  refine pair_uniq (hF.map a) (hF.map b)
+    (hF.map (pair a b) ≫ pair (hF.map (fst (A := A) (B := B))) (hF.map (snd (A := A) (B := B))))
+    ?_ ?_
+  · rw [Cat.assoc, fst_pair, ← hF.map_comp, fst_pair]
+  · rw [Cat.assoc, snd_pair, ← hF.map_comp, snd_pair]
+
+/-- **§2.218 (2b′) reflection step.**  A `RelLe` between the `F`-image relations descends to a
+    `RelLe` upstairs, using only that `F` preserves pullbacks/monos/products and reflects isos — no
+    fullness.  The leg-map produced by the cover-split chase is converted (via `monoFactor_reflect`
+    on the jointly-monic span `pair S.colA S.colB`) into the required `RelHom R S`. -/
+theorem relImageObj_reflect_le_of_reflects (hreg : RegularFunctor F)
+    (hreflIso : ∀ {X Y : C} (f : X ⟶ Y), IsIso (hF.map f) → IsIso f)
+    (hsplit : ∀ {X Y : D} (e : X ⟶ Y), Cover e → ∃ s : Y ⟶ X, s ≫ e = Cat.id Y)
+    {A B : C} {R S : BinRel C A B}
+    (h : RelLe (relImageObj hreg R) (relImageObj hreg S)) : RelLe R S := by
+  obtain ⟨eR, _, heRA, heRB⟩ := relImageObj_cover hreg R
+  obtain ⟨eS, heScov, heSA, heSB⟩ := relImageObj_cover hreg S
+  obtain ⟨⟨k, hkA, hkB⟩⟩ := h
+  obtain ⟨sS, hsS⟩ := hsplit eS heScov
+  -- the leg-map `g : F R.src → F S.src` carrying `F R.colA/colB` (fullness-FREE)
+  let g : F R.src ⟶ F S.src := eR ≫ k ≫ sS
+  have hsSA : sS ≫ hF.map S.colA = (relImageObj hreg S).colA := by
+    rw [← heSA, ← Cat.assoc, hsS, Cat.id_comp]
+  have hsSB : sS ≫ hF.map S.colB = (relImageObj hreg S).colB := by
+    rw [← heSB, ← Cat.assoc, hsS, Cat.id_comp]
+  have hgA : g ≫ hF.map S.colA = hF.map R.colA := by
+    show (eR ≫ k ≫ sS) ≫ hF.map S.colA = hF.map R.colA
+    rw [Cat.assoc, Cat.assoc, hsSA, hkA, heRA]
+  have hgB : g ≫ hF.map S.colB = hF.map R.colB := by
+    show (eR ≫ k ≫ sS) ≫ hF.map S.colB = hF.map R.colB
+    rw [Cat.assoc, Cat.assoc, hsSB, hkB, heRB]
+  -- convert leg equations into the single product-pair factorization `g ≫ F(pair S) = F(pair R)`
+  let φ := pair (hF.map (fst (A := A) (B := B))) (hF.map (snd (A := A) (B := B)))
+  have hφiso : IsIso φ := hreg.pres_prod
+  obtain ⟨φinv, hφ1, _hφ2⟩ := hφiso
+  -- `g ≫ pair (F S.colA) (F S.colB) = pair (F R.colA) (F R.colB)`
+  have hgpair : g ≫ pair (hF.map S.colA) (hF.map S.colB)
+      = pair (hF.map R.colA) (hF.map R.colB) := by
+    refine pair_uniq (hF.map R.colA) (hF.map R.colB)
+      (g ≫ pair (hF.map S.colA) (hF.map S.colB)) ?_ ?_
+    · rw [Cat.assoc, fst_pair, hgA]
+    · rw [Cat.assoc, snd_pair, hgB]
+  -- substitute `pair (F·) (F·) = F(pair ·) ≫ φ` and cancel the iso `φ`
+  have hgFpair : g ≫ hF.map (pair S.colA S.colB) = hF.map (pair R.colA R.colB) := by
+    have hSφ := map_pair_comp_comparison (F := F) S.colA S.colB
+    have hRφ := map_pair_comp_comparison (F := F) R.colA R.colB
+    have : (g ≫ hF.map (pair S.colA S.colB)) ≫ φ = hF.map (pair R.colA R.colB) ≫ φ := by
+      rw [Cat.assoc, hSφ, hgpair, ← hRφ]
+    -- cancel `φ` on the right (`φ` iso)
+    have hcancel := congrArg (· ≫ φinv) this
+    simpa [Cat.assoc, hφ1, Cat.comp_id] using hcancel
+  -- `pair S.colA S.colB` is monic; reflect the factorization upstairs
+  have hnmono : Monic (pair S.colA S.colB) :=
+    monic_pair_of_monicPair S.colA S.colB S.isMonicPair
+  obtain ⟨hmap, hfac⟩ := monoFactor_reflect hreg hreflIso hnmono g hgFpair
+  refine ⟨⟨hmap, ?_, ?_⟩⟩
+  · -- `hmap ≫ S.colA = R.colA` from `hmap ≫ pair S = pair R`
+    have := congrArg (· ≫ fst) hfac
+    simpa [Cat.assoc, fst_pair] using this
+  · have := congrArg (· ≫ snd) hfac
+    simpa [Cat.assoc, snd_pair] using this
+
+/-- **§2.218 (2b′) — `Rel(F)` is faithful for a NON-FULL `F`** that preserves the regular
+    structure, reflects isos, and has split covers downstairs (the `homRep ‾Map A` case).
+    `hreg.relMap x = hreg.relMap y ⟹ x = y`. -/
+theorem RegularFunctor.relMap_faithful_of_reflects (hreg : RegularFunctor F)
+    (hreflIso : ∀ {X Y : C} (f : X ⟶ Y), IsIso (hF.map f) → IsIso f)
+    (hsplit : ∀ {X Y : D} (e : X ⟶ Y), Cover e → ∃ s : Y ⟶ X, s ≫ e = Cat.id Y)
+    {A B : C} (x y : BinRelQuot (𝒞 := C) A B)
+    (hxy : hreg.relMap x = hreg.relMap y) : x = y := by
+  refine Quotient.inductionOn₂ x y (fun R S hRS => ?_) hxy
+  have heq : relClass (relImageObj hreg R) = relClass (relImageObj hreg S) := hRS
+  obtain ⟨hle, hge⟩ := Quotient.exact heq
+  exact quotLe_antisymm
+    (relImageObj_reflect_le_of_reflects hreg hreflIso hsplit hle)
+    (relImageObj_reflect_le_of_reflects hreg hreflIso hsplit hge)
+
+/-- **§2.218 — the packaged faithful allegory morphism `Rel(F)`.**  For a `RegularFunctor F` that
+    reflects isos and whose covers split downstairs (NOT necessarily full), the allegory morphism
+    `Rel(F) = relAllegoryHom` is `AllegoryFunctor.Faithful`.  This is the form consumed by the
+    §2.218 assembly (`F = homRep ‾Map A`). -/
+theorem RegularFunctor.relAllegoryHom_faithful_of_reflects (hreg : RegularFunctor F)
+    (hreflIso : ∀ {X Y : C} (f : X ⟶ Y), IsIso (hF.map f) → IsIso f)
+    (hsplit : ∀ {X Y : D} (e : X ⟶ Y), Cover e → ∃ s : Y ⟶ X, s ≫ e = Cat.id Y) :
+    hreg.relAllegoryHom.Faithful :=
+  fun {a b} R S h => hreg.relMap_faithful_of_reflects hreflIso hsplit R S h
 
 end RelFunctor
 

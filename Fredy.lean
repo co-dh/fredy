@@ -87,3 +87,4 @@ import Fredy.Spl
 import Fredy.MatrixAllegory
 import Fredy.Locale
 import Fredy.RelCat
+import Fredy.S2_218
