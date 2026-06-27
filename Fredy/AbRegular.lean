@@ -36,6 +36,7 @@ import Fredy.S1_31
 import Fredy.S1_33
 import Fredy.S1_51
 import Fredy.S1_52
+import Fredy.S1_56
 
 open Freyd
 
@@ -373,4 +374,124 @@ noncomputable instance instHasPullbacksAb : HasPullbacks (AbelianGroupObject �
 
 end Pullback
 
-end Freyd
+/-! ### §1.595 Carrier-iso lifts to `Ab(𝒞)`-iso; covers in `Ab(𝒞)` reflect carrier covers
+
+  The key structural lemma: if the carrier of a `HomAb` morphism is an isomorphism,
+  then the whole morphism is an isomorphism (the carrier inverse is automatically a group hom).
+  This lets us show `Cover f.val → Cover f` for maps in `Ab(𝒞)`. -/
+
+section Covers
+
+/-- If `m : M ⟶ B` is a `HomAb` morphism and `m.val` is an isomorphism in 𝒞,
+    then `m` is an isomorphism in `Ab(𝒞)`.
+
+    The inverse hom property of `inv = m.val⁻¹` follows by post-composing with the monic
+    `m.val`: `B.add ≫ inv ≫ m.val = B.add` (LHS) equals `pair (fst≫inv) (snd≫inv) ≫ M.add ≫ m.val`
+    (RHS, via `m.property` + `inv ≫ m.val = id`), so monicity of `m.val` gives the hom square. -/
+theorem isHom_of_carrier_iso {M B : AbelianGroupObject 𝒞} (m : M ⟶ B)
+    (hiso : IsIso m.val) : IsIso m := by
+  obtain ⟨inv, hinv_l, hinv_r⟩ := hiso
+  -- m.val is monic (it has a retraction inv with m.val ≫ inv = id).
+  have hm_mono : Monic m.val := mono_of_retraction m.val inv hinv_l
+  have hinv_hom : IsHomAbelianGroupObject B M inv := by
+    -- Goal: B.add ≫ inv = pair (fst ≫ inv) (snd ≫ inv) ≫ M.add.
+    -- Post-compose with m.val (monic) and show both sides equal B.add.
+    apply hm_mono
+    -- After apply: goal is (B.add ≫ inv) ≫ m.val = (pair(fst≫inv)(snd≫inv) ≫ M.add) ≫ m.val.
+    -- LHS = B.add (by hinv_r).  RHS = B.add (by m.property + hinv_r + pair_fst_snd).
+    have lhs : (B.add ≫ inv) ≫ m.val = B.add := by
+      rw [Cat.assoc, hinv_r, Cat.comp_id]
+    have rhs : (pair (fst ≫ inv) (snd ≫ inv) ≫ M.add) ≫ m.val = B.add := by
+      -- reassociate inner: pair(a)(b) ≫ (x ≫ m.val) = (pair(a)(b) ≫ x) ≫ m.val = ... ≫ m.val
+      have fst_eq : pair (fst ≫ inv) (snd ≫ inv) ≫ (fst ≫ m.val) = fst ≫ inv ≫ m.val := by
+        rw [← Cat.assoc, fst_pair]; exact Cat.assoc _ _ _
+      have snd_eq : pair (fst ≫ inv) (snd ≫ inv) ≫ (snd ≫ m.val) = snd ≫ inv ≫ m.val := by
+        rw [← Cat.assoc, snd_pair]; exact Cat.assoc _ _ _
+      rw [Cat.assoc, m.property, ← Cat.assoc, ab_pair_precomp, fst_eq, snd_eq, hinv_r]
+      simp only [Cat.comp_id, pair_fst_snd, Cat.id_comp]
+    rw [lhs, rhs]
+  exact ⟨⟨inv, hinv_hom⟩, Subtype.ext hinv_l, Subtype.ext hinv_r⟩
+
+/-! **RESIDUAL: Ab-monics have monic carriers** (`ab_monic_carrier_monic`)
+
+    Claim: if `m : M ⟶ B` is monic in `Ab(𝒞)`, then `m.val` is monic in 𝒞.
+
+    PROOF STRATEGY: `Monic m` in `Ab(𝒞)` means every `Ab(𝒞)`-equalizer of two Ab-maps is `m`.
+    The carrier monicity talks about arbitrary 𝒞-maps, which need not be group homs.
+    `U` does NOT generally preserve monics: `Monic m` (cancellation among HomAb maps) does not
+    imply `Monic m.val` (cancellation among all 𝒞-maps) without additional structure.
+
+    Claim: if `[HasEqualizers 𝒞]` and `m : M ⟶ B` is monic in `Ab(𝒞)`, then `m.val` is
+    monic in 𝒞.
+
+    PROOF OUTLINE (not yet formalized):
+    - The equalizer of `(m.val, B.zero ∘ term M.carrier)` in 𝒞 computes the same domain as
+      the Ab-equalizer of `(m, abZeroHom M B)` in `Ab(𝒞)`.  This uses
+      `HasEqualizers (Ab 𝒞)` — the Ab-equalizer is the carrier equalizer with induced group
+      structure (same argument as `HasPullbacks (Ab 𝒞)` via `AbPullback`).
+    - `m` being Ab-monic means `abZeroHom M B` is the only Ab-map equal to `m` after
+      precomposing with the equalizer inclusion, so the equalizer is the zero group object.
+    - The zero group object has carrier `one`, so the equalizer of `(m.val, zero)` in 𝒞 is
+      the terminal object, which means `m.val` is monic in 𝒞 (standard: `e ≫ m.val = e ≫ 0
+      → e = 0 → m.val` monic).
+    EXACT DEPENDENCY: `HasEqualizers (Ab 𝒞)` — construct as the carrier equalizer in 𝒞
+    equipped with the induced group structure (proved the same way as `AbPullback`). -/
+
+/-- If `f.val` is a cover in 𝒞 and `m.val` is monic in 𝒞 (additional hypothesis), then
+    `f` is a cover in `Ab(𝒞)`.  This is the clean (←) half of the cover equivalence.
+
+    The full `Cover f.val → Cover f` also needs `U` to preserve monics (see
+    `ab_monic_carrier_monic`); once that is available, the proof is immediate. -/
+theorem carrier_cover_to_ab_cover_aux {A B M : AbelianGroupObject 𝒞} {f : A ⟶ B}
+    (hfval : Cover f.val) (m : M ⟶ B)
+    (hm_carrier : Monic m.val) (g : A ⟶ M) (hgm : g ≫ m = f) : IsIso m :=
+  isHom_of_carrier_iso m (hfval m.val g.val hm_carrier (congrArg Subtype.val hgm))
+
+/-!
+  ### SHARP RESIDUAL for `PullbacksTransferCovers (Ab 𝒞)` and `HasImages (Ab 𝒞)`
+
+  **`PullbacksTransferCovers (Ab 𝒞)` from `[RegularCategory 𝒞]`:**
+
+  Given `c : Cone f g` with `c.IsPullback` in `Ab(𝒞)` and `Cover f`, prove `Cover c.π₂`.
+  The proof reduces to two steps:
+  1. `Cover c.π₂.val` in 𝒞 — holds because `c.π₂.val` is iso-to `(pb f g).cone.π₂` (the
+     canonical 𝒞-pullback projection), and `Cover f.val → Cover (pb f g).cone.π₂`
+     by `[PullbacksTransferCovers 𝒞]`.  The `Cover f.val` step needs `Cover f →
+     Cover f.val`, i.e., `PreservesMono U` (= `ab_monic_carrier_monic`).
+  2. `Cover c.π₂.val → Cover c.π₂` — needs `ab_monic_carrier_monic` as in
+     `carrier_cover_to_ab_cover_aux`.
+
+  **EXACT BLOCKER**: `ab_monic_carrier_monic` (Ab-monics → carrier-monics).
+  Once that is proved (via `HasEqualizers (Ab 𝒞)`, which constructs the Ab-equalizer
+  as the carrier equalizer with induced group structure — same argument as pullbacks),
+  the PTC and HasImages proofs follow.
+
+  **`HasImages (Ab 𝒞)` from `[RegularCategory 𝒞]`:**
+
+  For `f : A ⟶ B` in `Ab(𝒞)`, the 𝒞-image `Im = image f.val` has carrier `Im.dom`
+  which must carry a group structure making `Im.arr : Im.dom ⟶ B.carrier` a group hom.
+
+  - `zero_I : one ⟶ Im.dom` — define as `image_min f.val` applied to the zero of A:
+    `A.zero ≫ image.lift f.val : one ⟶ Im.dom` satisfies
+    `(A.zero ≫ image.lift f.val) ≫ Im.arr = A.zero ≫ f.val = B.zero`.
+    Unique by monicity of `Im.arr`.
+  - `neg_I : Im.dom ⟶ Im.dom` — via image minimality: the subobject
+    `⟨Im.dom, Im.arr ≫ B.neg, mono(Im.arr ≫ B.neg)⟩` allows `f.val`
+    (witness `A.neg ≫ image.lift f.val ≫ Im.arr ≫ B.neg ≫ B.neg = f.val`
+    since `B.neg ≫ B.neg = id`), so `Img ≤ ⟨Im.dom, Im.arr ≫ B.neg, ...⟩`,
+    giving `k : Im.dom → Im.dom` with `k ≫ Im.arr ≫ B.neg = Im.arr`, hence
+    `k ≫ Im.arr = Im.arr ≫ B.neg`. Set `neg_I = k`.  ✓
+  - `add_I : Im.dom × Im.dom ⟶ Im.dom` — **THE BLOCKER**.
+    Needs `pair (fst ≫ Im.arr) (snd ≫ Im.arr) ≫ B.add` to factor through `Im.arr`.
+    This requires descent of `A.add ≫ image.lift f.val` along the cover
+    `pair (fst ≫ image.lift f.val) (snd ≫ image.lift f.val)`.
+    This descent needs `[EffectiveRegular 𝒞]` (or `HasEqualizers (Ab 𝒞)` + coequalizers
+    as effective epis).
+
+  With `[EffectiveRegular 𝒞]`, the cover `e = image.lift f.val` is an effective epi
+  (coequalizer of its kernel pair), and `A.add ≫ e` descends along `pair (fst≫e)(snd≫e)`
+  (which is also a cover) to give `add_I`.  The group axioms on `Im.dom` then follow
+  by carrier-level monicity of `Im.arr` from those of `A` and `B`.
+-/
+
+end Covers
