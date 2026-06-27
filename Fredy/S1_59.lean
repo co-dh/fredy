@@ -1313,11 +1313,27 @@ def HomAb {𝒞 : Type u} [Cat.{v} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts �
 
 -- BOOK §1.595: If A is effective regular, then so is Ab(A) and the forgetful functor
 --   Ab(A) → A is a faithful representation of regular categories.
--- (Blocked: needs a `Cat` instance for Ab(A), i.e. universe-polymorphic hom-set infrastructure.)
+--
+-- STATUS (Fredy/AbCategory.lean, Fredy/AbAbelian.lean, Fredy/AbRegular.lean):
+--   DONE  `instCatAb : Cat (AbelianGroupObject 𝒞)`                    (AbCategory)
+--   DONE  forgetful `U : Ab(𝒞) → 𝒞` is a `Functor`, FAITHFUL          (AbRegular.U_separatesMaps)
+--         — an Ab-morphism is a subtype of its carrier 𝒞-map, so `Subtype.ext` gives
+--           injectivity on every hom-set; `U` also `ReflectsMono` and preserves 1 / × / pullbacks
+--           on the nose (`U_reflectsMono`, `instHasPullbacksAb`).
+--   DONE  `HalfAdditiveCategory (Ab 𝒞)`  and  `AdditiveCategory (Ab 𝒞)` (AbAbelian:
+--           instHalfAdditiveAb, instAdditiveAb — additive inverse = pointwise `HomAb.neg`).
+--   OPEN  `HasImages (Ab 𝒞)` ⟹ `RegularCategory (Ab 𝒞)` ⟹ `EffectiveRegular (Ab 𝒞)`.
+--     Precise missing lemma: a group hom `f : A → B` of abelian group objects factors as
+--       cover ≫ monic in `Ab(𝒞)`, i.e. the 𝒞-image of `f.val` carries an AbelianGroupObject
+--       structure (image = subgroup object) for which the image-projection and inclusion are
+--       homomorphisms, and `PullbacksTransferCovers (Ab 𝒞)`.  This is the §1.594 image/quotient
+--       transport across the 𝒞-image universal property, requiring `[EffectiveRegular 𝒞]`.
 
 -- BOOK §1.595: For any effective regular category A, the category Ab(A) is abelian.
--- (Follows from §1.594 + forgetful faithful representation + Ab(A) additive by construction.
---  Blocked: same Cat instance for Ab(A).) -/
+-- (Assembles via `abelian_iff_normal_kernels_cokernels` once the OPEN piece above gives
+--  `RegularCategory (Ab 𝒞)`: `Ab(𝒞)` is already additive (instAdditiveAb) with biproducts
+--  (instHalfAdditiveAb), so all that is missing for `AbelianCategory (Ab 𝒞)` is the regular
+--  (images) structure + all-monos-normal, both downstream of the OPEN image lemma.) -/
 
 
 /-! ## §1.597 Exact categories

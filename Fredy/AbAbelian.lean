@@ -491,4 +491,12 @@ noncomputable instance instHalfAdditiveAb : HalfAdditiveCategory (AbelianGroupOb
         Cat.id_comp (HasBinaryCoproducts.case (Cat.id B) (Cat.id B))]
     rfl
 
+/-- **§1.595.**  `Ab(𝒞)` is an ADDITIVE category: every hom `f` has an additive inverse.
+    The witness is the pointwise negation `HomAb.neg f` (carrier `f.val ≫ B.neg`), and
+    `HomAb.add f (HomAb.neg f) = HomAb.zero = abZeroHom` is exactly `HomAb.add_neg`.
+    (`HalfAdditiveCategory.add` of `instHalfAdditiveAb` IS `HomAb.add`, and its `zeroHom`
+    IS `abZeroHom = HomAb.zero`, so the field reduces definitionally.) -/
+noncomputable instance instAdditiveAb : AdditiveCategory (AbelianGroupObject 𝒞) where
+  addInv f := ⟨HomAb.neg f, HomAb.add_neg f⟩
+
 end Freyd

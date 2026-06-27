@@ -24,8 +24,9 @@
   object, quotient by a congruence).  That requires `[HasImages 𝒞]` / `[EffectiveRegular 𝒞]`
   PLUS transporting the group operations across the 𝒞-image/quotient via their universal
   properties.  We stop at the forgetful functor + faithfulness + finite-limit preservation
-  + mono/iso reflection, which is exactly the "faithful exact functor that creates finite
-  limits" half of the §1.595 representation.  See the residual note at the bottom.
+  + mono/iso reflection + the additive structure (`instAdditiveAb`, in `AbAbelian`), which is
+  exactly the "faithful exact functor that creates finite limits" half of the §1.595
+  representation.  See the residual note at the bottom.
 
   No `Sorry`, no new axiom.
 -/
