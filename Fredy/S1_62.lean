@@ -17,6 +17,7 @@ import Fredy.S1_42
 import Fredy.S1_45
 import Fredy.S1_51
 import Fredy.S1_52
+import Fredy.Horn          -- §2.218 BRICK 1: reuse `setCat : Cat (Type v)` for the regular structure of Set
 import Fredy.S1_55
 import Fredy.S1_56
 import Fredy.S1_57
@@ -1876,5 +1877,267 @@ theorem capital_iff_complemented_subterminators :
       _ = x := by rw [hφφ, Cat.id_comp]
 
 end IsoCoprodComplemented
+
+/-! ## §2.218 BRICK 1 — `RegularCategory (Type v)` and `RegularCategory (I → Type v)`
+
+  The §1.635 Henkin–Lubkin target is `Set^I = (I → Type v)`.  To apply `Rel(–)` (the
+  allegory-of-relations construction, §2.111) to it we need it packaged as a
+  `RegularCategory`.  We build the regular structure of `Set = Type v` first (finite limits
+  pointwise, images = set-images, covers = surjections, pullbacks transfer surjections), then
+  lift it pointwise to `I → Type v`.
+
+  `setCat : Cat.{v} (Type v)` is reused from `Horn.lean` (DRY). -/
+
+namespace SetRegular
+
+universe w
+
+/-! ### Finite limits of `Type w` -/
+
+/-- §1.421 (Set): `PUnit` is the terminator. -/
+instance setHasTerminal : HasTerminal (Type w) where
+  one := PUnit
+  trm _ := fun _ => PUnit.unit
+  uniq f g := by funext x; rfl
+
+/-- §1.423 (Set): the cartesian product is the categorical product. -/
+instance setHasBinaryProducts : HasBinaryProducts (Type w) where
+  prod A B := A × B
+  fst := Prod.fst
+  snd := Prod.snd
+  pair f g := fun x => (f x, g x)
+  fst_pair _ _ := rfl
+  snd_pair _ _ := rfl
+  pair_uniq f g h h₁ h₂ := by
+    funext x
+    have e1 : (h x).1 = f x := congrFun h₁ x
+    have e2 : (h x).2 = g x := congrFun h₂ x
+    exact Prod.ext e1 e2
+
+/-- §1.454 (Set): the pullback of `f, g` is the fibre-product subtype. -/
+instance setHasPullbacks : HasPullbacks (Type w) where
+  has {A B C} f g :=
+    { cone :=
+        { pt := {p : A × B // f p.1 = g p.2}
+          π₁ := fun p => p.val.1
+          π₂ := fun p => p.val.2
+          w  := by funext p; exact p.property }
+      lift := fun c => fun x => ⟨(c.π₁ x, c.π₂ x), congrFun c.w x⟩
+      lift_fst := fun _ => rfl
+      lift_snd := fun _ => rfl
+      lift_uniq := fun c u h₁ h₂ => by
+        funext x
+        apply Subtype.ext
+        exact Prod.ext (congrFun h₁ x) (congrFun h₂ x) }
+
+/-! ### Monics, covers and images of `Type w` -/
+
+/-- A `Type w`-morphism is monic iff it is injective. -/
+theorem set_monic_iff_injective {A B : Type w} (f : A ⟶ B) :
+    Monic f ↔ Function.Injective f := by
+  constructor
+  · intro hm a a' h
+    -- Test the two constant maps `PUnit → A` at `a, a'`.
+    have := hm (fun _ : PUnit => a) (fun _ : PUnit => a') (by funext _; exact h)
+    exact congrFun this PUnit.unit
+  · intro hinj W g h hgh
+    funext x; exact hinj (congrFun hgh x)
+
+/-- A `Type w`-morphism is a cover iff it is surjective.  (⇐) uses `Classical.choice`
+    to split the surjection through any monic factor; (⇒) takes the image subtype as a
+    monic the cover must factor through. -/
+theorem set_cover_iff_surjective {A B : Type w} (f : A ⟶ B) :
+    Cover f ↔ Function.Surjective f := by
+  constructor
+  · intro hc b
+    -- Factor `f` through the image subtype `{b // ∃ a, f a = b}` (monic); cover ⟹ iso ⟹ onto.
+    let I : Type w := {b : B // ∃ a, f a = b}
+    let m : I ⟶ B := Subtype.val
+    have hm : Monic m := (set_monic_iff_injective m).2 (fun _ _ h => Subtype.ext h)
+    let g : A ⟶ I := fun a => ⟨f a, a, rfl⟩
+    have hgm : g ≫ m = f := rfl
+    obtain ⟨inv, _, hinv2⟩ := hc m g hm hgm
+    -- `inv : B → I`, `m ∘ inv = id`, so `b = m (inv b) ∈ image`.
+    have hmb : m (inv b) = b := congrFun hinv2 b
+    obtain ⟨a, ha⟩ := (inv b).property
+    exact ⟨a, by rw [ha]; exact hmb⟩
+  · intro hsurj
+    -- Surjective ⟹ has a section (Classical.choice) ⟹ cover.
+    let s : B ⟶ A := fun b => (hsurj b).choose
+    have hs : s ≫ f = Cat.id B := by funext b; exact (hsurj b).choose_spec
+    intro C m g hm hgm
+    exact cover_of_section (e := f) s hs m g hm hgm
+
+/-- §1.51 (Set): the image of `f : A → B` is the subtype `{b // ∃ a, f a = b}`. -/
+def setImage {A B : Type w} (f : A ⟶ B) : Subobject (Type w) B where
+  dom := {b : B // ∃ a, f a = b}
+  arr := Subtype.val
+  monic := (set_monic_iff_injective _).2 (fun _ _ h => Subtype.ext h)
+
+theorem set_isImage {A B : Type w} (f : A ⟶ B) : IsImage f (setImage f) := by
+  refine ⟨⟨fun a => ⟨f a, a, rfl⟩, rfl⟩, ?_⟩
+  -- Minimality: any subobject `S` allowing `f` receives a map from the image subtype.
+  intro S hS
+  obtain ⟨g, hg⟩ := hS
+  -- For `⟨b, a, ha⟩ : image`, send to `g a`; well-defined since `S.arr` is monic.
+  refine ⟨fun p => g p.property.choose, ?_⟩
+  funext p
+  obtain ⟨b, hb⟩ := p
+  -- `S.arr (g a') = f a' = b` for `a' := (∃ a, f a = b).choose`.
+  exact (Eq.trans (congrFun hg _) hb.choose_spec)
+
+instance setHasImages : HasImages (Type w) where
+  image f := setImage f
+  isImage f := set_isImage f
+
+/-! ### Pullbacks transfer covers in `Type w` -/
+
+/-- §1.52 (Set): in a pullback square the map opposite a surjection is a surjection. -/
+instance setPullbacksTransferCovers : PullbacksTransferCovers (Type w) where
+  pullbacks_transfer_covers {A B C f g} c hpb hf := by
+    -- `c` is a pullback of `f, g`; `f` surjective ⟹ `c.π₂` surjective.
+    rw [set_cover_iff_surjective] at hf ⊢
+    intro b
+    -- pick `a` with `f a = g b`; the pair `(a, b)` lifts into the pullback vertex.
+    obtain ⟨a, ha⟩ := hf (g b)
+    -- Use the comparison `u` from the canonical fibre cone `{(a,b) // f a = g b}` into `c`.
+    let d : Cone f g :=
+      { pt := PUnit
+        π₁ := fun _ => a
+        π₂ := fun _ => b
+        w  := by funext _; exact ha }
+    obtain ⟨u, ⟨_, hu₂⟩, _⟩ := hpb d
+    exact ⟨u PUnit.unit, congrFun hu₂ PUnit.unit⟩
+
+/-- §1.52: `Type w` is a regular category. -/
+instance setRegular : RegularCategory (Type w) where
+  toHasTerminal := setHasTerminal
+  toHasBinaryProducts := setHasBinaryProducts
+  toHasPullbacks := setHasPullbacks
+  toHasImages := setHasImages
+  toPullbacksTransferCovers := setPullbacksTransferCovers
+
+/-! ### §1.521 The power `Set^I = (I → Type w)` is regular (pointwise)
+
+  Everything lifts pointwise: terminator/product/pullback/image are computed in each fibre,
+  and a morphism is monic / a cover iff it is so in every fibre (injective / surjective at
+  each `i`).  `powerCat I : Cat (I → Type w)` is reused from `S1_55`. -/
+
+variable {I : Type w}
+
+/-- A power morphism is monic iff it is fibrewise injective.  The forward probe uses the
+    pointed family `W j := PLift (i = j)`, inhabited only at `j = i` (so off-`i` fibres carry
+    a unique empty-domain map — no choice, no decidability, handles empty fibres). -/
+theorem power_monic_iff {X Y : I → Type w} (f : X ⟶ Y) :
+    Monic f ↔ ∀ i, Function.Injective (f i) := by
+  constructor
+  · intro hm i a a' h
+    let W : I → Type w := fun j => ULift.{w} (PLift (i = j))
+    have := hm (W := W)
+               (fun j p => p.down.down ▸ a) (fun j p => p.down.down ▸ a') ?_
+    · have := congrFun (congrFun this i) (ULift.up (PLift.up rfl))
+      simpa using this
+    · funext j p
+      obtain ⟨⟨e⟩⟩ := p; cases e; simpa using h
+  · intro hinj W g h hgh
+    funext i x
+    exact hinj i (congrFun (congrFun hgh i) x)
+
+/-- A power morphism is a cover iff it is fibrewise surjective. -/
+theorem power_cover_iff {X Y : I → Type w} (f : X ⟶ Y) :
+    Cover f ↔ ∀ i, Function.Surjective (f i) := by
+  constructor
+  · intro hc i b
+    -- Factor through the fibrewise-image family; cover ⟹ iso ⟹ each fibre onto.
+    let Im : I → Type w := fun j => {b : Y j // ∃ a, f j a = b}
+    let m : Im ⟶ Y := fun j p => p.val
+    have hm : Monic m := (power_monic_iff m).2 (fun j _ _ h => Subtype.ext h)
+    let g : X ⟶ Im := fun j a => ⟨f j a, a, rfl⟩
+    have hgm : g ≫ m = f := rfl
+    obtain ⟨inv, _, hinv2⟩ := hc m g hm hgm
+    have hmb : m i (inv i b) = b := congrFun (congrFun hinv2 i) b
+    obtain ⟨a, ha⟩ := (inv i b).property
+    exact ⟨a, by rw [ha]; exact hmb⟩
+  · intro hsurj
+    let s : Y ⟶ X := fun j b => (hsurj j b).choose
+    have hs : s ≫ f = Cat.id Y := by funext j b; exact (hsurj j b).choose_spec
+    intro C m g hm hgm
+    exact cover_of_section (e := f) s hs m g hm hgm
+
+instance powerHasTerminal : HasTerminal (I → Type w) where
+  one := fun _ => PUnit
+  trm _ := fun _ _ => PUnit.unit
+  uniq f g := by funext i x; rfl
+
+instance powerHasBinaryProducts : HasBinaryProducts (I → Type w) where
+  prod X Y := fun i => X i × Y i
+  fst := fun _ p => p.1
+  snd := fun _ p => p.2
+  pair f g := fun i x => (f i x, g i x)
+  fst_pair _ _ := rfl
+  snd_pair _ _ := rfl
+  pair_uniq f g h h₁ h₂ := by
+    funext i x
+    exact Prod.ext (congrFun (congrFun h₁ i) x) (congrFun (congrFun h₂ i) x)
+
+instance powerHasPullbacks : HasPullbacks (I → Type w) where
+  has {A B C} f g :=
+    { cone :=
+        { pt := fun i => {p : A i × B i // f i p.1 = g i p.2}
+          π₁ := fun _ p => p.val.1
+          π₂ := fun _ p => p.val.2
+          w  := by funext i p; exact p.property }
+      lift := fun c => fun i x => ⟨(c.π₁ i x, c.π₂ i x), congrFun (congrFun c.w i) x⟩
+      lift_fst := fun _ => rfl
+      lift_snd := fun _ => rfl
+      lift_uniq := fun c u h₁ h₂ => by
+        funext i x
+        apply Subtype.ext
+        exact Prod.ext (congrFun (congrFun h₁ i) x) (congrFun (congrFun h₂ i) x) }
+
+/-- §1.51 (power): the image of `f` is the fibrewise image family. -/
+def powerImage {X Y : I → Type w} (f : X ⟶ Y) : Subobject (I → Type w) Y where
+  dom := fun i => {b : Y i // ∃ a, f i a = b}
+  arr := fun _ p => p.val
+  monic := (power_monic_iff _).2 (fun _ _ _ h => Subtype.ext h)
+
+theorem power_isImage {X Y : I → Type w} (f : X ⟶ Y) : IsImage f (powerImage f) := by
+  refine ⟨⟨fun i a => ⟨f i a, a, rfl⟩, rfl⟩, ?_⟩
+  intro S hS
+  obtain ⟨g, hg⟩ := hS
+  refine ⟨fun i p => g i p.property.choose, ?_⟩
+  funext i p
+  obtain ⟨b, hb⟩ := p
+  exact Eq.trans (congrFun (congrFun hg i) _) hb.choose_spec
+
+instance powerHasImages : HasImages (I → Type w) where
+  image f := powerImage f
+  isImage f := power_isImage f
+
+instance powerPullbacksTransferCovers : PullbacksTransferCovers (I → Type w) where
+  pullbacks_transfer_covers {A B C f g} c hpb hf := by
+    rw [power_cover_iff] at hf ⊢
+    intro i b
+    obtain ⟨a, ha⟩ := hf i (g i b)
+    -- Pointed cone supported at `i`: `d.pt j = PLift (i = j)` carries `(a, b)` at `i`.
+    let d : Cone f g :=
+      { pt := fun j => ULift.{w} (PLift (i = j))
+        π₁ := fun j p => p.down.down ▸ a
+        π₂ := fun j p => p.down.down ▸ b
+        w  := by funext j p; obtain ⟨⟨e⟩⟩ := p; cases e; simpa using ha }
+    obtain ⟨u, ⟨_, hu₂⟩, _⟩ := hpb d
+    refine ⟨u i (ULift.up (PLift.up rfl)), ?_⟩
+    have hval := congrFun (congrFun hu₂ i) (ULift.up (PLift.up (rfl : i = i)))
+    simpa using hval
+
+/-- §1.521: the power category `Set^I = (I → Type w)` is regular. -/
+instance powerRegular : RegularCategory (I → Type w) where
+  toHasTerminal := powerHasTerminal
+  toHasBinaryProducts := powerHasBinaryProducts
+  toHasPullbacks := powerHasPullbacks
+  toHasImages := powerHasImages
+  toPullbacksTransferCovers := powerPullbacksTransferCovers
+
+end SetRegular
 
 end Freyd
