@@ -374,6 +374,211 @@ noncomputable instance instHasPullbacksAb : HasPullbacks (AbelianGroupObject �
 
 end Pullback
 
+/-! ### §1.594 Equalizers in `Ab(𝒞)`
+
+  Given `f g : A ⟶ B` in `Ab(𝒞)`, their equalizer is carried by the 𝒞-equalizer
+  `E = eqObj f.val g.val ↪ A.carrier`.  The group structure on `E` is induced by the equalizer
+  universal property (same pattern as `AbPullback`): each operation is the unique lift into `E`
+  whose post-composition with `eqMap` gives the corresponding operation of `A`, and the
+  coherence conditions hold because `f` and `g` are group homs.  The four group axioms
+  transport from `A` by monicity of `eqMap`.  This yields `HasEqualizers (Ab 𝒞)` from
+  `[HasEqualizers 𝒞]`. -/
+
+section Equalizer
+
+variable [HasEqualizers 𝒞]
+
+namespace AbEqualizer
+
+variable {A B : AbelianGroupObject 𝒞} (f g : A ⟶ B)
+
+private noncomputable def em : eqObj f.val g.val ⟶ A.carrier := eqMap f.val g.val
+
+private theorem em_eq : em f g ≫ f.val = em f g ≫ g.val := eqMap_eq f.val g.val
+
+/-- The equalizer map is monic in 𝒞. -/
+private theorem em_mono : Monic (em f g) := eqMap_mono' f.val g.val
+
+/-- The equalizer lift. -/
+private noncomputable def eLift {X : 𝒞} (k : X ⟶ A.carrier) (h : k ≫ f.val = k ≫ g.val) :
+    X ⟶ eqObj f.val g.val :=
+  eqLift f.val g.val k h
+
+@[simp] private theorem eLift_fac {X : 𝒞} (k : X ⟶ A.carrier) (h : k ≫ f.val = k ≫ g.val) :
+    eLift f g k h ≫ em f g = k :=
+  eqLift_fac f.val g.val k h
+
+private theorem eLift_uniq {X : 𝒞} (k : X ⟶ A.carrier) (h : k ≫ f.val = k ≫ g.val)
+    (u : X ⟶ eqObj f.val g.val) (hu : u ≫ em f g = k) : u = eLift f g k h :=
+  eqLift_uniq f.val g.val k h u hu
+
+/-! Three group operations on `eqObj f.val g.val`, each the unique lift whose composite with
+    `eqMap` gives the corresponding operation of `A`.  Coherence holds because `f` and `g` are
+    group homs. -/
+
+/-- Zero of the equalizer group object: lift of `term one ≫ A.zero`. -/
+private noncomputable def eqZero : (one : 𝒞) ⟶ eqObj f.val g.val :=
+  eLift f g (term one ≫ A.zero) (by
+    rw [hom_preserves_zero f.property (term one), hom_preserves_zero g.property (term one)])
+
+/-- Negation of the equalizer group object: lift of `eqMap ≫ A.neg`. -/
+private noncomputable def eqNeg : eqObj f.val g.val ⟶ eqObj f.val g.val :=
+  eLift f g (em f g ≫ A.neg) (by
+    rw [hom_preserves_neg f.property (em f g), hom_preserves_neg g.property (em f g), em_eq])
+
+/-- Addition of the equalizer group object: lift of componentwise sum. -/
+private noncomputable def eqAdd :
+    prod (eqObj f.val g.val) (eqObj f.val g.val) ⟶ eqObj f.val g.val :=
+  eLift f g (pair (fst ≫ em f g) (snd ≫ em f g) ≫ A.add) (by
+    rw [hom_preserves_add f.property (fst ≫ em f g) (snd ≫ em f g),
+        hom_preserves_add g.property (fst ≫ em f g) (snd ≫ em f g)]
+    -- goal: pair (fst ≫ em f g ≫ f.val) (snd ≫ em f g ≫ f.val) ≫ B.add
+    --     = pair (fst ≫ em f g ≫ g.val) (snd ≫ em f g ≫ g.val) ≫ B.add
+    -- follows by rewriting em_eq : em f g ≫ f.val = em f g ≫ g.val in both slots.
+    have := em_eq f g
+    congr 2 <;> simp [Cat.assoc, this])
+
+/-! Projection lemmas: each operation composes with `eqMap` to give the corresponding `A`-op. -/
+
+@[simp] private theorem eqZero_em : eqZero f g ≫ em f g = term one ≫ A.zero :=
+  eLift_fac f g _ _
+
+@[simp] private theorem eqNeg_em : eqNeg f g ≫ em f g = em f g ≫ A.neg :=
+  eLift_fac f g _ _
+
+@[simp] private theorem eqAdd_em :
+    eqAdd f g ≫ em f g = pair (fst ≫ em f g) (snd ≫ em f g) ≫ A.add :=
+  eLift_fac f g _ _
+
+/-- Component lemma for the sum: `⟨u,w⟩ ≫ eqAdd ≫ eqMap = ⟨u≫eqMap, w≫eqMap⟩ ≫ A.add`. -/
+private theorem eqAdd_proj {S : 𝒞} (u w : S ⟶ eqObj f.val g.val) :
+    (pair u w ≫ eqAdd f g) ≫ em f g = pair (u ≫ em f g) (w ≫ em f g) ≫ A.add := by
+  rw [Cat.assoc, eqAdd_em, ← Cat.assoc, ab_pair_precomp, ← Cat.assoc, ← Cat.assoc,
+      fst_pair, snd_pair]
+
+/-- The equalizer group object: carrier `eqObj f.val g.val`, operations induced above.
+    Each group axiom is proved by monicity of `eqMap` from the corresponding axiom of `A`. -/
+noncomputable def eqGObj : AbelianGroupObject 𝒞 where
+  carrier := eqObj f.val g.val
+  zero := eqZero f g
+  neg := eqNeg f g
+  add := eqAdd f g
+  add_zero := by
+    apply em_mono f g
+    rw [eqAdd_proj, Cat.id_comp]
+    have e : (term (eqObj f.val g.val) ≫ eqZero f g) ≫ em f g
+           = term (eqObj f.val g.val) ≫ A.zero := by
+      rw [Cat.assoc, eqZero_em, ← Cat.assoc,
+          term_uniq (term (eqObj f.val g.val) ≫ term one) (term _)]
+    rw [e]; exact GElt.zero_add A (em f g)
+  add_neg := by
+    apply em_mono f g
+    rw [eqAdd_proj, Cat.id_comp, eqNeg_em, Cat.assoc, eqZero_em, ← Cat.assoc,
+        term_uniq (term (eqObj f.val g.val) ≫ term one) (term _)]
+    exact GElt.neg_add A (em f g)
+  add_assoc := by
+    apply em_mono f g
+    rw [eqAdd_proj, Cat.assoc, eqAdd_em, ← Cat.assoc, ab_pair_precomp,
+        eqAdd_proj, eqAdd_proj]
+    simp only [Cat.assoc]
+    exact GElt.add_assoc A (fst ≫ fst ≫ em f g) (fst ≫ snd ≫ em f g) (snd ≫ em f g)
+  add_comm := by
+    apply em_mono f g
+    rw [eqAdd_proj, eqAdd_em]
+    exact GElt.add_comm A (snd ≫ em f g) (fst ≫ em f g)
+
+@[simp] private theorem eqGObj_add : (eqGObj f g).add = eqAdd f g := rfl
+@[simp] private theorem eqGObj_carrier : (eqGObj f g).carrier = eqObj f.val g.val := rfl
+
+/-- The equalizer inclusion `eqMap : eqGObj → A` is a homomorphism. -/
+theorem isHom_em : IsHomAbelianGroupObject (eqGObj f g) A (em f g) :=
+  eqAdd_em f g
+
+/-- The lift of a group hom `k : D → A` (with `k ≫ f = k ≫ g`) into `eqGObj` is a hom. -/
+theorem isHom_eLift {D : AbelianGroupObject 𝒞} {k : D.carrier ⟶ A.carrier}
+    (hk : IsHomAbelianGroupObject D A k) (h : k ≫ f.val = k ≫ g.val) :
+    IsHomAbelianGroupObject D (eqGObj f g) (eLift f g k h) := by
+  -- Goal: D.add ≫ eLift k h = pair (fst ≫ eLift k h) (snd ≫ eLift k h) ≫ (eqGObj f g).add
+  -- Post-compose with em (monic) and show both sides give pair (fst≫k) (snd≫k) ≫ A.add.
+  apply em_mono f g
+  -- After apply: (D.add ≫ eLift f g k h) ≫ em = (pair(...) ≫ eqGObj.add) ≫ em
+  -- LHS = pair (fst ≫ k) (snd ≫ k) ≫ A.add = RHS.
+  have lhs : (D.add ≫ eLift f g k h) ≫ em f g = pair (fst ≫ k) (snd ≫ k) ≫ A.add := by
+    rw [Cat.assoc, eLift_fac]; exact hk
+  have rhs : (pair (fst ≫ eLift f g k h) (snd ≫ eLift f g k h) ≫ (eqGObj f g).add) ≫ em f g
+           = pair (fst ≫ k) (snd ≫ k) ≫ A.add := by
+    rw [Cat.assoc, eqGObj_add, eqAdd_em, ← Cat.assoc, ab_pair_precomp]
+    -- goal: pair (pair(fst≫eLift)(snd≫eLift) ≫ fst ≫ em) (pair(fst≫eLift)(snd≫eLift) ≫ snd ≫ em) ≫ A.add
+    --     = pair (fst ≫ k) (snd ≫ k) ≫ A.add
+    -- Use fst_pair: pair a b ≫ fst = a; snd_pair: pair a b ≫ snd = b.
+    -- After ← Cat.assoc at the pair applications: (pair ≫ fst) ≫ em = eLift ≫ em = k; similarly snd.
+    have h1 : pair (fst ≫ eLift f g k h) (snd ≫ eLift f g k h) ≫ fst ≫ em f g = fst ≫ k := by
+      rw [← Cat.assoc, fst_pair, Cat.assoc, eLift_fac]
+    have h2 : pair (fst ≫ eLift f g k h) (snd ≫ eLift f g k h) ≫ snd ≫ em f g = snd ≫ k := by
+      rw [← Cat.assoc, snd_pair, Cat.assoc, eLift_fac]
+    rw [h1, h2]
+  rw [lhs, rhs]
+
+/-- `eqMap ≫ f = eqMap ≫ g` as Ab-morphisms. -/
+theorem eqGObj_w :
+    (⟨em f g, isHom_em f g⟩ : eqGObj f g ⟶ A) ≫ f
+      = (⟨em f g, isHom_em f g⟩ : eqGObj f g ⟶ A) ≫ g :=
+  Subtype.ext (em_eq f g)
+
+/-- The equalizer cone of `f, g` in `Ab(𝒞)`. -/
+noncomputable def eqCone : EqualizerCone f g :=
+  ⟨eqGObj f g, ⟨em f g, isHom_em f g⟩, eqGObj_w f g⟩
+
+/-- §1.594: `Ab(𝒞)` has the equalizer of `f, g`: the cone `eqCone`, with lift induced from
+    the carrier equalizer (a homomorphism by `isHom_eLift`), unique by monicity of `eqMap`. -/
+noncomputable def hasEqualizerAb : HasEqualizer f g where
+  cone := eqCone f g
+  lift c := ⟨eLift f g c.map.val (congrArg Subtype.val c.eq),
+    isHom_eLift f g c.map.property (congrArg Subtype.val c.eq)⟩
+  fac c := Subtype.ext (eLift_fac f g c.map.val (congrArg Subtype.val c.eq))
+  uniq c u hu := Subtype.ext (eLift_uniq f g c.map.val (congrArg Subtype.val c.eq) u.val
+    (congrArg Subtype.val hu))
+
+end AbEqualizer
+
+open AbEqualizer in
+/-- §1.594: `Ab(𝒞)` has all equalizers (lifted from `[HasEqualizers 𝒞]`, computed on carriers). -/
+noncomputable instance instHasEqualizersAb : HasEqualizers (AbelianGroupObject 𝒞) where
+  eq _ _ f g := hasEqualizerAb f g
+
+end Equalizer
+
+/-! ### §1.595 `ab_monic_carrier_monic` — U preserves/reflects monics via zero-kernel
+
+  **SHARP MARKER (§1.595 residual).**
+
+  Claim: if `m : M ⟶ B` is monic in `Ab(𝒞)` and `𝒞` is EFFECTIVE REGULAR, then `m.val`
+  is monic in `𝒞`.
+
+  PROOF SKETCH (requires `[EffectiveRegular 𝒞]`):
+  (1) Factor `m` as `e ≫ i` in `Ab(𝒞)` where `e` is an Ab-cover and `i` is Ab-monic.
+      `HasImages (Ab 𝒞)` (from `[EffectiveRegular 𝒞]`) provides this factorization.
+  (2) `m` being Ab-monic forces `e` to be Ab-iso (cover + monic = iso in a regular category,
+      §1.512). So `m = e ≫ i` with `e` iso, hence `m` is Ab-monic iff `i` is.
+      Wait: `m` is Ab-monic, and `m = e ≫ i`. For `m` to be monic, `e` must be iso.
+      Proof: if `m` is monic and `e` is a cover, apply `m.monic` to `e` and `id ≫ m`:
+      `(id ≫ m) ≫ ... ` — no, simpler: `m = e ≫ i`, `e` cover, `i` monic → in
+      a regular category covers are left-cancellable for monics; actually monic ≫ cover ≠ iso.
+      The right direction: since `m` is monic and `i` is monic and `m = e ≫ i`,
+      `e` must be monic (since a composition of two maps where the first makes the result monic...
+      this requires `e` to be monic). `e` is a cover and monic ⟹ `e` is iso.
+  (3) Hence `m.val = e.val ≫ i.val`, `e.val` is iso, `i.val` is monic ⟹ `m.val` is monic.
+
+  EXACT DEPENDENCY: `HasImages (Ab 𝒞)` — requires `[EffectiveRegular 𝒞]` for the
+  `add_I` operation (closure of image under + via effective-quotient descent).
+
+  NOTE: The weaker `[HasEqualizers 𝒞]` alone does NOT suffice: the 𝒞-hom-sets are plain sets
+  (not abelian groups), so "trivial kernel of m.val in 𝒞" (eqObj m.val 0 = one) does not imply
+  m.val is monic among all 𝒞-maps — only among those maps `p` satisfying `p ≫ m.val = 0`,
+  which is not the same as `p ≫ m.val = q ≫ m.val` for general `p, q`.
+
+  PullbacksTransferCovers and RegularCategory for Ab(𝒞) follow once HasImages + this hold. -/
+
 /-! ### §1.595 Carrier-iso lifts to `Ab(𝒞)`-iso; covers in `Ab(𝒞)` reflect carrier covers
 
   The key structural lemma: if the carrier of a `HomAb` morphism is an isomorphism,
@@ -414,28 +619,15 @@ theorem isHom_of_carrier_iso {M B : AbelianGroupObject 𝒞} (m : M ⟶ B)
 
 /-! **RESIDUAL: Ab-monics have monic carriers** (`ab_monic_carrier_monic`)
 
-    Claim: if `m : M ⟶ B` is monic in `Ab(𝒞)`, then `m.val` is monic in 𝒞.
+    STATUS: `HasEqualizers (Ab 𝒞)` is NOW PROVED (see `instHasEqualizersAb` above).
+    The remaining blocker for `ab_monic_carrier_monic` is NOT just `HasEqualizers (Ab 𝒞)`:
 
-    PROOF STRATEGY: `Monic m` in `Ab(𝒞)` means every `Ab(𝒞)`-equalizer of two Ab-maps is `m`.
-    The carrier monicity talks about arbitrary 𝒞-maps, which need not be group homs.
-    `U` does NOT generally preserve monics: `Monic m` (cancellation among HomAb maps) does not
-    imply `Monic m.val` (cancellation among all 𝒞-maps) without additional structure.
+    The claim "if `m` is Ab-monic then `m.val` is monic in 𝒞" CANNOT be proved from
+    `[HasEqualizers 𝒞]` alone.  The 𝒞-hom-sets are plain sets, not abelian groups, so
+    "trivial kernel of m.val" (eqObj m.val 0 = one) does NOT imply m.val is monic among
+    all 𝒞-maps.  The correct dependency is `[EffectiveRegular 𝒞]` (for `HasImages (Ab 𝒞)`).
 
-    Claim: if `[HasEqualizers 𝒞]` and `m : M ⟶ B` is monic in `Ab(𝒞)`, then `m.val` is
-    monic in 𝒞.
-
-    PROOF OUTLINE (not yet formalized):
-    - The equalizer of `(m.val, B.zero ∘ term M.carrier)` in 𝒞 computes the same domain as
-      the Ab-equalizer of `(m, abZeroHom M B)` in `Ab(𝒞)`.  This uses
-      `HasEqualizers (Ab 𝒞)` — the Ab-equalizer is the carrier equalizer with induced group
-      structure (same argument as `HasPullbacks (Ab 𝒞)` via `AbPullback`).
-    - `m` being Ab-monic means `abZeroHom M B` is the only Ab-map equal to `m` after
-      precomposing with the equalizer inclusion, so the equalizer is the zero group object.
-    - The zero group object has carrier `one`, so the equalizer of `(m.val, zero)` in 𝒞 is
-      the terminal object, which means `m.val` is monic in 𝒞 (standard: `e ≫ m.val = e ≫ 0
-      → e = 0 → m.val` monic).
-    EXACT DEPENDENCY: `HasEqualizers (Ab 𝒞)` — construct as the carrier equalizer in 𝒞
-    equipped with the induced group structure (proved the same way as `AbPullback`). -/
+    See the SHARP MARKER above (§1.595 residual section) for the precise proof path. -/
 
 /-- If `f.val` is a cover in 𝒞 and `m.val` is monic in 𝒞 (additional hypothesis), then
     `f` is a cover in `Ab(𝒞)`.  This is the clean (←) half of the cover equivalence.
@@ -461,10 +653,11 @@ theorem carrier_cover_to_ab_cover_aux {A B M : AbelianGroupObject 𝒞} {f : A �
   2. `Cover c.π₂.val → Cover c.π₂` — needs `ab_monic_carrier_monic` as in
      `carrier_cover_to_ab_cover_aux`.
 
-  **EXACT BLOCKER**: `ab_monic_carrier_monic` (Ab-monics → carrier-monics).
-  Once that is proved (via `HasEqualizers (Ab 𝒞)`, which constructs the Ab-equalizer
-  as the carrier equalizer with induced group structure — same argument as pullbacks),
-  the PTC and HasImages proofs follow.
+  **EXACT BLOCKER**: `HasImages (Ab 𝒞)` (requires `[EffectiveRegular 𝒞]`).
+  `HasEqualizers (Ab 𝒞)` is NOW PROVED (instHasEqualizersAb).  The true dependency
+  chain is: `[EffectiveRegular 𝒞]` ⟹ `HasImages (Ab 𝒞)` ⟹ `ab_monic_carrier_monic` ⟹ PTC.
+  NOTE: `HasEqualizers (Ab 𝒞)` alone does NOT give `ab_monic_carrier_monic` because
+  𝒞-hom-sets are sets (not abelian groups) — see the §1.595 residual note above.
 
   **`HasImages (Ab 𝒞)` from `[RegularCategory 𝒞]`:**
 
