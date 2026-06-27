@@ -1121,3 +1121,550 @@ noncomputable instance instRegularCategoryAb : RegularCategory (AbelianGroupObje
   once it lands.  All of stages 1-4 above are sorry-free with axioms `[propext, Classical.choice]`. -/
 
 end Images2
+
+/-! ### §1.595 STAGE 5 — `EffectiveRegular (Ab 𝒞)` (the crux)
+
+  Given an `Ab(𝒞)`-equivalence-relation `E : BinRel (Ab 𝒞) A A`, we descend to its carrier
+  relation `carRelGen E : BinRel 𝒞 A.car A.car` (legs `E.colA.val, E.colB.val`, jointly monic
+  because the Ab joint-monic pair has a monic carrier via `ab_monic_carrier_monic`).  The
+  forgetful functor `U` carries Ab relation-composition to carrier relation-composition up to a
+  cover comparison (`carRel_comp_le`/`carRel_comp_ge`), so an Ab-equivalence-relation descends to
+  a carrier equivalence relation (`carRel_equivalence`).  `EffectiveRegular 𝒞` then yields a
+  carrier cover `q : A.car ↠ Q` with `level(q) = carRelGen E`; we descend a group structure onto
+  `Q` (exactly as `imageGObj`, but along the quotient cover `q`), giving an `Ab(𝒞)`-cover `qHom`
+  whose Ab-level is `E`.  Hence `E` is Ab-effective and `EffectiveRegular (Ab 𝒞)` holds. -/
+
+section EffReg
+
+variable [EffectiveRegular 𝒞]
+
+/-- The carrier relation of an `Ab(𝒞)`-relation: legs are the `.val` of `E`'s legs.  Jointly
+    monic because the Ab joint-monic pair `⟨colA,colB⟩` has a monic carrier
+    (`ab_monic_carrier_monic`). -/
+noncomputable def carRelGen {A B : AbelianGroupObject 𝒞} (E : BinRel (AbelianGroupObject 𝒞) A B) :
+    BinRel 𝒞 A.carrier B.carrier where
+  src := (E.src).carrier
+  colA := E.colA.val
+  colB := E.colB.val
+  isMonicPair := by
+    intro W f g hA hB
+    have habmono : Monic (pair E.colA E.colB : E.src ⟶ instHasBinaryProductsAb.prod A B) :=
+      monic_pair_of_monicPair E.colA E.colB E.isMonicPair
+    have hcarmono : Monic (pair E.colA.val E.colB.val) := ab_monic_carrier_monic habmono
+    exact monicPair_of_monic_pair E.colA.val E.colB.val hcarmono f g hA hB
+
+@[simp] theorem carRelGen_colA {A B : AbelianGroupObject 𝒞} (E : BinRel (AbelianGroupObject 𝒞) A B) :
+    (carRelGen E).colA = E.colA.val := rfl
+@[simp] theorem carRelGen_colB {A B : AbelianGroupObject 𝒞} (E : BinRel (AbelianGroupObject 𝒞) A B) :
+    (carRelGen E).colB = E.colB.val := rfl
+@[simp] theorem carRelGen_src {A B : AbelianGroupObject 𝒞} (E : BinRel (AbelianGroupObject 𝒞) A B) :
+    (carRelGen E).src = E.src.carrier := rfl
+
+/-- `carRelGen` is monotone: an Ab `RelHom R ⊂ S` descends (take `.val` of the witness). -/
+theorem carRel_mono {A B : AbelianGroupObject 𝒞} {R S : BinRel (AbelianGroupObject 𝒞) A B}
+    (h : R ⊂ S) : carRelGen R ⊂ carRelGen S := by
+  obtain ⟨k, hkA, hkB⟩ := h
+  exact ⟨⟨k.val, congrArg Subtype.val hkA, congrArg Subtype.val hkB⟩⟩
+
+/-- The carrier composite `carRelGen R ⊚ carRelGen S` is contained in the carrier relation of the
+    Ab-composite `R ⊚ S`.  Both are images of the *same* carrier span over the *same* carrier
+    pullback (the Ab pullback/product/image are all computed on carriers); the Ab-image cover
+    `imE` and the carrier-image cover `image.lift` agree on legs, so `relLe_of_cover_factor`
+    bridges them.  This is the `U`-preserves-`⊚` half of the relation-calculus diamond. -/
+theorem carRel_comp_le {A B C : AbelianGroupObject 𝒞} (R : BinRel (AbelianGroupObject 𝒞) A B)
+    (S : BinRel (AbelianGroupObject 𝒞) B C) :
+    (carRelGen R ⊚ carRelGen S) ⊂ carRelGen (R ⊚ S) := by
+  let pb := HasPullbacks.has R.colB.val S.colA.val
+  let carSpan : pb.cone.pt ⟶ prod A.carrier C.carrier :=
+    pair (pb.cone.π₁ ≫ R.colA.val) (pb.cone.π₂ ≫ S.colB.val)
+  let abSpan := instHasBinaryProductsAb.pair
+        ((instHasPullbacksAb.has R.colB S.colA).cone.π₁ ≫ R.colA)
+        ((instHasPullbacksAb.has R.colB S.colA).cone.π₂ ≫ S.colB)
+  have hspanval : abSpan.val = carSpan := rfl
+  refine relLe_of_cover_factor (X := carRelGen R ⊚ carRelGen S) (Y := carRelGen (R ⊚ S))
+    (image.lift carSpan) (image_lift_cover carSpan) (AbImage.imE abSpan) ?_ ?_
+  · show AbImage.imE abSpan ≫ (carRelGen (R ⊚ S)).colA
+       = image.lift carSpan ≫ (carRelGen R ⊚ carRelGen S).colA
+    have hL : AbImage.imE abSpan ≫ (carRelGen (R ⊚ S)).colA = carSpan ≫ fst := by
+      show AbImage.imE abSpan ≫ (AbImage.imArr abSpan ≫ fst) = carSpan ≫ fst
+      rw [← Cat.assoc, AbImage.imE_imArr, hspanval]
+    have hR : image.lift carSpan ≫ (carRelGen R ⊚ carRelGen S).colA = carSpan ≫ fst := by
+      show image.lift carSpan ≫ ((image carSpan).arr ≫ fst) = carSpan ≫ fst
+      rw [← Cat.assoc, image.lift_fac]
+    rw [hL, hR]
+  · show AbImage.imE abSpan ≫ (carRelGen (R ⊚ S)).colB
+       = image.lift carSpan ≫ (carRelGen R ⊚ carRelGen S).colB
+    have hL : AbImage.imE abSpan ≫ (carRelGen (R ⊚ S)).colB = carSpan ≫ snd := by
+      show AbImage.imE abSpan ≫ (AbImage.imArr abSpan ≫ snd) = carSpan ≫ snd
+      rw [← Cat.assoc, AbImage.imE_imArr, hspanval]
+    have hR : image.lift carSpan ≫ (carRelGen R ⊚ carRelGen S).colB = carSpan ≫ snd := by
+      show image.lift carSpan ≫ ((image carSpan).arr ≫ snd) = carSpan ≫ snd
+      rw [← Cat.assoc, image.lift_fac]
+    rw [hL, hR]
+
+/-- The reverse direction of `carRel_comp_le`: `carRelGen (R ⊚ S) ⊂ carRelGen R ⊚ carRelGen S`.
+    Same image-of-the-same-carrier-span bridge, with the cover and comparison map swapped. -/
+theorem carRel_comp_ge {A B C : AbelianGroupObject 𝒞} (R : BinRel (AbelianGroupObject 𝒞) A B)
+    (S : BinRel (AbelianGroupObject 𝒞) B C) :
+    carRelGen (R ⊚ S) ⊂ (carRelGen R ⊚ carRelGen S) := by
+  let pb := HasPullbacks.has R.colB.val S.colA.val
+  let carSpan : pb.cone.pt ⟶ prod A.carrier C.carrier :=
+    pair (pb.cone.π₁ ≫ R.colA.val) (pb.cone.π₂ ≫ S.colB.val)
+  let abSpan := instHasBinaryProductsAb.pair
+        ((instHasPullbacksAb.has R.colB S.colA).cone.π₁ ≫ R.colA)
+        ((instHasPullbacksAb.has R.colB S.colA).cone.π₂ ≫ S.colB)
+  have hspanval : abSpan.val = carSpan := rfl
+  refine relLe_of_cover_factor (X := carRelGen (R ⊚ S)) (Y := carRelGen R ⊚ carRelGen S)
+    (AbImage.imE abSpan) (AbImage.imE_cover abSpan) (image.lift carSpan) ?_ ?_
+  · show image.lift carSpan ≫ (carRelGen R ⊚ carRelGen S).colA
+       = AbImage.imE abSpan ≫ (carRelGen (R ⊚ S)).colA
+    have hL : image.lift carSpan ≫ (carRelGen R ⊚ carRelGen S).colA = carSpan ≫ fst := by
+      show image.lift carSpan ≫ ((image carSpan).arr ≫ fst) = carSpan ≫ fst
+      rw [← Cat.assoc, image.lift_fac]
+    have hR : AbImage.imE abSpan ≫ (carRelGen (R ⊚ S)).colA = carSpan ≫ fst := by
+      show AbImage.imE abSpan ≫ (AbImage.imArr abSpan ≫ fst) = carSpan ≫ fst
+      rw [← Cat.assoc, AbImage.imE_imArr, hspanval]
+    rw [hL, hR]
+  · show image.lift carSpan ≫ (carRelGen R ⊚ carRelGen S).colB
+       = AbImage.imE abSpan ≫ (carRelGen (R ⊚ S)).colB
+    have hL : image.lift carSpan ≫ (carRelGen R ⊚ carRelGen S).colB = carSpan ≫ snd := by
+      show image.lift carSpan ≫ ((image carSpan).arr ≫ snd) = carSpan ≫ snd
+      rw [← Cat.assoc, image.lift_fac]
+    have hR : AbImage.imE abSpan ≫ (carRelGen (R ⊚ S)).colB = carSpan ≫ snd := by
+      show AbImage.imE abSpan ≫ (AbImage.imArr abSpan ≫ snd) = carSpan ≫ snd
+      rw [← Cat.assoc, AbImage.imE_imArr, hspanval]
+    rw [hL, hR]
+
+/-- §1.595: an `Ab(𝒞)`-equivalence-relation descends to a carrier equivalence relation.
+    Reflexivity (the section's `.val`), symmetry (`carRelGen E° = (carRelGen E)°` definitionally),
+    transitivity (`carRel_comp_le` + monotonicity of the Ab transitivity witness). -/
+theorem carRel_equivalence {A : AbelianGroupObject 𝒞} {E : BinRel (AbelianGroupObject 𝒞) A A}
+    (hE : EquivalenceRelation E) : EquivalenceRelation (carRelGen E) := by
+  obtain ⟨⟨hsec, hsA, hsB⟩, hsymm, htrans⟩ := hE
+  refine ⟨⟨hsec.val, congrArg Subtype.val hsA, congrArg Subtype.val hsB⟩, ?_, ?_⟩
+  · exact (carRel_mono hsymm : carRelGen E ⊂ carRelGen (E°))
+  · exact rel_le_trans (carRel_comp_le E E) (carRel_mono htrans)
+
+/-- §1.595: `U` REFLECTS relation containment between `Ab(𝒞)`-relations: a carrier RelHom
+    `carRelGen E ⊂ carRelGen S` lifts to an `Ab(𝒞)` RelHom `E ⊂ S`.  The carrier witness `w` is an
+    `Ab(𝒞)`-homomorphism `E.src → S.src` because both tables are Ab-relations (their legs are homs)
+    and `w`'s hom square is forced by the carrier joint-monicity of `S`'s legs. -/
+theorem carRel_reflect {A B : AbelianGroupObject 𝒞} {E S : BinRel (AbelianGroupObject 𝒞) A B}
+    (h : carRelGen E ⊂ carRelGen S) : E ⊂ S := by
+  obtain ⟨w, hwA, hwB⟩ := h
+  have hwA' : w ≫ S.colA.val = E.colA.val := hwA
+  have hwB' : w ≫ S.colB.val = E.colB.val := hwB
+  have hSjm : MonicPair S.colA.val S.colB.val := (carRelGen S).isMonicPair
+  have hwhom : IsHomAbelianGroupObject E.src S.src w := by
+    apply hSjm
+    · rw [Cat.assoc, hwA',
+          show E.src.add ≫ E.colA.val
+            = pair (fst ≫ E.colA.val) (snd ≫ E.colA.val) ≫ A.add from E.colA.property,
+          Cat.assoc,
+          show S.src.add ≫ S.colA.val
+            = pair (fst ≫ S.colA.val) (snd ≫ S.colA.val) ≫ A.add from S.colA.property,
+          ← Cat.assoc, ab_pair_precomp]
+      congr 2
+      · rw [← Cat.assoc, fst_pair, Cat.assoc, hwA']
+      · rw [← Cat.assoc, snd_pair, Cat.assoc, hwA']
+    · rw [Cat.assoc, hwB',
+          show E.src.add ≫ E.colB.val
+            = pair (fst ≫ E.colB.val) (snd ≫ E.colB.val) ≫ B.add from E.colB.property,
+          Cat.assoc,
+          show S.src.add ≫ S.colB.val
+            = pair (fst ≫ S.colB.val) (snd ≫ S.colB.val) ≫ B.add from S.colB.property,
+          ← Cat.assoc, ab_pair_precomp]
+      congr 2
+      · rw [← Cat.assoc, fst_pair, Cat.assoc, hwB']
+      · rw [← Cat.assoc, snd_pair, Cat.assoc, hwB']
+  exact ⟨⟨⟨w, hwhom⟩, Subtype.ext hwA', Subtype.ext hwB'⟩⟩
+
+/-- §1.595: the carrier equivalence relation of an `Ab(𝒞)`-equivalence-relation `E` is
+    EFFECTIVE in 𝒞: there is a 𝒞-cover `q : A.car ↠ Q` whose level `graph q ⊚ (graph q)°`
+    brackets `carRelGen E` from both sides.  Applies `EffectiveRegular.effective` to the carrier
+    relation; the products diamond between the ambient `HasBinaryProducts` and `EffectiveRegular`'s
+    is bridged by `compose_prods_indep` (mirroring `effective_regular_additive_is_abelian`). -/
+theorem carRel_effective_cover {A : AbelianGroupObject 𝒞}
+    (E : BinRel (AbelianGroupObject 𝒞) A A) (hE : EquivalenceRelation E) :
+    ∃ (Q : 𝒞) (q : A.carrier ⟶ Q), Cover q ∧
+      carRelGen E ⊂ (graph q ⊚ (graph q)°) ∧ (graph q ⊚ (graph q)°) ⊂ carRelGen E := by
+  letI hpA : HasBinaryProducts 𝒞 := inferInstance
+  have hce : EquivalenceRelation (carRelGen E) := carRel_equivalence hE
+  have hequiv : @EquivalenceRelation 𝒞 _ EffectiveRegular.toRegularCategory.toHasBinaryProducts
+      _ _ A.carrier (carRelGen E) := by
+    obtain ⟨hsec, hsymm, htrans⟩ := hce
+    exact ⟨hsec, hsymm,
+      rel_le_trans (compose_prods_indep _ hpA (carRelGen E) (carRelGen E)) htrans⟩
+  obtain ⟨_, Q, q, hqcov, hEqq, hqqE⟩ := EffectiveRegular.effective (carRelGen E) hequiv
+  refine ⟨Q, q, hqcov, ?_, ?_⟩
+  · exact rel_le_trans hEqq (compose_prods_indep _ hpA (graph q) (graph q)°)
+  · exact rel_le_trans (compose_prods_indep hpA _ (graph q) (graph q)°) hqqE
+
+/-! ### §1.595 The quotient group object `quotGObj` along a congruence cover
+
+  Given the carrier cover `q : A.car ↠ Q` from `carRel_effective_cover`, with the level relation
+  `graph q ⊚ (graph q)°` bracketing `carRelGen E`, we descend a group structure onto `Q` exactly
+  as `imageGObj` did along the image cover, but with the CONGRUENCE supplied by `E`'s legs being
+  homomorphisms.  The key is `kfac`: any `q`-equal pair factors through `E`'s table (the kernel
+  pair of `q` lies in the congruence `carRelGen E`); then the operations descend because `E.colA`,
+  `E.colB` are homs (`hom_preserves_add/neg/zero`) and `E.src` is itself a group object. -/
+
+namespace AbQuot
+
+variable {A : AbelianGroupObject 𝒞} (E : BinRel (AbelianGroupObject 𝒞) A A)
+  {Q : 𝒞} (q : A.carrier ⟶ Q) (hqcov : Cover q)
+  (hbracket : (graph q ⊚ (graph q)°) ⊂ carRelGen E)
+
+/-- The two legs of `E` (carrier) agree after `≫ q` (`level_legs_comp` along `carRelGen E ⊂ qq°`). -/
+theorem legs_agree (hEqq : carRelGen E ⊂ (graph q ⊚ (graph q)°)) :
+    E.colA.val ≫ q = E.colB.val ≫ q := by
+  obtain ⟨he, heA, heB⟩ := hEqq
+  have key : he ≫ ((graph q ⊚ (graph q)°).colA ≫ q) = he ≫ ((graph q ⊚ (graph q)°).colB ≫ q) := by
+    rw [level_legs_comp q]
+  have heA' : he ≫ (graph q ⊚ (graph q)°).colA = E.colA.val := heA
+  have heB' : he ≫ (graph q ⊚ (graph q)°).colB = E.colB.val := heB
+  calc E.colA.val ≫ q = (he ≫ (graph q ⊚ (graph q)°).colA) ≫ q := by rw [heA']
+    _ = he ≫ ((graph q ⊚ (graph q)°).colA ≫ q) := Cat.assoc _ _ _
+    _ = he ≫ ((graph q ⊚ (graph q)°).colB ≫ q) := key
+    _ = (he ≫ (graph q ⊚ (graph q)°).colB) ≫ q := (Cat.assoc _ _ _).symm
+    _ = E.colB.val ≫ q := by rw [heB']
+
+include hbracket in
+/-- Any `q`-equal pair `u, v` factors through `E`'s table.  (`kernelPairRel q ⊂ level(q) ⊂
+    carRelGen E`; lift `(u,v)` into the kernel pair and follow the `RelHom`.) -/
+theorem kfac {T : 𝒞} (u v : T ⟶ A.carrier) (huv : u ≫ q = v ≫ q) :
+    ∃ e : T ⟶ E.src.carrier, e ≫ E.colA.val = u ∧ e ≫ E.colB.val = v := by
+  obtain ⟨κ, hκA, hκB⟩ := rel_le_trans (kernelPairRel_le_level q) hbracket
+  have hκA' : κ ≫ E.colA.val = kp₁ (f := q) := hκA
+  have hκB' : κ ≫ E.colB.val = kp₂ (f := q) := hκB
+  have hl1 : (HasPullbacks.has q q).lift ⟨T, u, v, huv⟩ ≫ kp₁ (f := q) = u := kp_lift_p₁ u v huv
+  have hl2 : (HasPullbacks.has q q).lift ⟨T, u, v, huv⟩ ≫ kp₂ (f := q) = v := kp_lift_p₂ u v huv
+  exact ⟨(HasPullbacks.has q q).lift ⟨T, u, v, huv⟩ ≫ κ,
+    by rw [Cat.assoc, hκA']; exact hl1, by rw [Cat.assoc, hκB']; exact hl2⟩
+
+include hbracket in
+/-- The negation descends: `A.neg ≫ q` coequalizes the kernel pair of `q`.  (The `q`-equal pair
+    `kp₁,kp₂` factors through `E` via `kfac`; `E.src.neg` is the diagonal witness and `E.colA/colB`
+    preserve negation, so the negated legs still agree after `q`.) -/
+theorem neg_descends (hEqq : carRelGen E ⊂ (graph q ⊚ (graph q)°)) :
+    kp₁ (f := q) ≫ (A.neg ≫ q) = kp₂ (f := q) ≫ (A.neg ≫ q) := by
+  have hlegs := legs_agree E q hEqq
+  obtain ⟨e, heA, heB⟩ := kfac E q hbracket (kp₁ (f:=q)) (kp₂ (f:=q)) kp_sq
+  have hcolA : E.src.neg ≫ E.colA.val = E.colA.val ≫ A.neg := by
+    have := hom_preserves_neg E.colA.property (Cat.id E.src.carrier)
+    rwa [Cat.id_comp, Cat.id_comp] at this
+  have hcolB : E.src.neg ≫ E.colB.val = E.colB.val ≫ A.neg := by
+    have := hom_preserves_neg E.colB.property (Cat.id E.src.carrier)
+    rwa [Cat.id_comp, Cat.id_comp] at this
+  have hcong : (E.colA.val ≫ A.neg) ≫ q = (E.colB.val ≫ A.neg) ≫ q := by
+    calc (E.colA.val ≫ A.neg) ≫ q = (E.src.neg ≫ E.colA.val) ≫ q := by rw [hcolA]
+      _ = E.src.neg ≫ (E.colA.val ≫ q) := Cat.assoc _ _ _
+      _ = E.src.neg ≫ (E.colB.val ≫ q) := by rw [hlegs]
+      _ = (E.src.neg ≫ E.colB.val) ≫ q := (Cat.assoc _ _ _).symm
+      _ = (E.colB.val ≫ A.neg) ≫ q := by rw [hcolB]
+  calc kp₁ (f := q) ≫ (A.neg ≫ q)
+      = (e ≫ E.colA.val) ≫ (A.neg ≫ q) := by rw [heA]
+    _ = e ≫ ((E.colA.val ≫ A.neg) ≫ q) := by simp only [Cat.assoc]
+    _ = e ≫ ((E.colB.val ≫ A.neg) ≫ q) := by rw [hcong]
+    _ = (e ≫ E.colB.val) ≫ (A.neg ≫ q) := by simp only [Cat.assoc]
+    _ = kp₂ (f := q) ≫ (A.neg ≫ q) := by rw [heB]
+
+include hbracket in
+/-- Addition congruence: a pair `u,w` that is `q`-equal in each coordinate stays `q`-equal after
+    `A.add`.  Each coordinate factors through `E` (`kfac`); `E.src.add` is the diagonal witness and
+    `E.colA/colB` preserve addition (`hom_preserves_add`). -/
+theorem add_cong (hEqq : carRelGen E ⊂ (graph q ⊚ (graph q)°))
+    {T : 𝒞} (u w : T ⟶ prod A.carrier A.carrier)
+    (h1 : u ≫ (fst ≫ q) = w ≫ (fst ≫ q)) (h2 : u ≫ (snd ≫ q) = w ≫ (snd ≫ q)) :
+    (u ≫ A.add) ≫ q = (w ≫ A.add) ≫ q := by
+  have hlegs := legs_agree E q hEqq
+  obtain ⟨e1, he1A, he1B⟩ := kfac E q hbracket (u ≫ fst) (w ≫ fst) (by rw [Cat.assoc, Cat.assoc]; exact h1)
+  obtain ⟨e2, he2A, he2B⟩ := kfac E q hbracket (u ≫ snd) (w ≫ snd) (by rw [Cat.assoc, Cat.assoc]; exact h2)
+  let eAdd : T ⟶ E.src.carrier := pair e1 e2 ≫ (E.src).add
+  have heAddA : eAdd ≫ E.colA.val = u ≫ A.add := by
+    show (pair e1 e2 ≫ E.src.add) ≫ E.colA.val = u ≫ A.add
+    rw [hom_preserves_add E.colA.property e1 e2, he1A, he2A,
+        show pair (u ≫ fst) (u ≫ snd) = u ≫ pair fst snd from (ab_pair_precomp u fst snd).symm,
+        pair_fst_snd, Cat.comp_id]
+  have heAddB : eAdd ≫ E.colB.val = w ≫ A.add := by
+    show (pair e1 e2 ≫ E.src.add) ≫ E.colB.val = w ≫ A.add
+    rw [hom_preserves_add E.colB.property e1 e2, he1B, he2B,
+        show pair (w ≫ fst) (w ≫ snd) = w ≫ pair fst snd from (ab_pair_precomp w fst snd).symm,
+        pair_fst_snd, Cat.comp_id]
+  calc (u ≫ A.add) ≫ q = (eAdd ≫ E.colA.val) ≫ q := by rw [heAddA]
+    _ = eAdd ≫ (E.colA.val ≫ q) := Cat.assoc _ _ _
+    _ = eAdd ≫ (E.colB.val ≫ q) := by rw [hlegs]
+    _ = (eAdd ≫ E.colB.val) ≫ q := (Cat.assoc _ _ _).symm
+    _ = (w ≫ A.add) ≫ q := by rw [heAddB]
+
+include hbracket in
+/-- The product cover `qq := ⟨fst≫q, snd≫q⟩ : A.car×A.car ↠ Q×Q` (`coverProdBoth`). -/
+theorem add_descends (hEqq : carRelGen E ⊂ (graph q ⊚ (graph q)°)) :
+    kp₁ (f := pair (fst ≫ q) (snd ≫ q : prod A.carrier A.carrier ⟶ Q)) ≫ (A.add ≫ q)
+      = kp₂ (f := pair (fst ≫ q) (snd ≫ q)) ≫ (A.add ≫ q) := by
+  have hsq : kp₁ (f := pair (fst ≫ q) (snd ≫ q : prod A.carrier A.carrier ⟶ Q)) ≫ pair (fst ≫ q) (snd ≫ q)
+           = kp₂ (f := pair (fst ≫ q) (snd ≫ q)) ≫ pair (fst ≫ q) (snd ≫ q) := kp_sq
+  have hf : kp₁ (f := pair (fst ≫ q) (snd ≫ q : prod A.carrier A.carrier ⟶ Q)) ≫ (fst ≫ q)
+          = kp₂ (f := pair (fst ≫ q) (snd ≫ q)) ≫ (fst ≫ q) := by
+    have h := congrArg (· ≫ fst) hsq; simp only [Cat.assoc, fst_pair] at h; exact h
+  have hs : kp₁ (f := pair (fst ≫ q) (snd ≫ q : prod A.carrier A.carrier ⟶ Q)) ≫ (snd ≫ q)
+          = kp₂ (f := pair (fst ≫ q) (snd ≫ q)) ≫ (snd ≫ q) := by
+    have h := congrArg (· ≫ snd) hsq; simp only [Cat.assoc, snd_pair] at h; exact h
+  have hmain := add_cong E q hbracket hEqq
+    (kp₁ (f := pair (fst ≫ q) (snd ≫ q))) (kp₂ (f := pair (fst ≫ q) (snd ≫ q))) hf hs
+  rw [Cat.assoc, Cat.assoc] at hmain
+  exact hmain
+
+/-! The descended group operations on `Q` (mirroring `imageGObj`, but along the cover `q`). -/
+
+variable (hEqq : carRelGen E ⊂ (graph q ⊚ (graph q)°))
+
+/-- Zero of the quotient: `A.zero ≫ q`. -/
+noncomputable def Qzero : (one : 𝒞) ⟶ Q := A.zero ≫ q
+
+/-- Negation of the quotient: descent of `A.neg ≫ q` along the cover `q`. -/
+noncomputable def Qneg : Q ⟶ Q :=
+  (cover_is_coequalizer_of_level q hqcov (A.neg ≫ q) (neg_descends E q hbracket hEqq)).choose
+
+theorem q_Qneg : q ≫ Qneg E q hqcov hbracket hEqq = A.neg ≫ q :=
+  (cover_is_coequalizer_of_level q hqcov (A.neg ≫ q) (neg_descends E q hbracket hEqq)).choose_spec.1
+
+/-- Addition of the quotient: descent of `A.add ≫ q` along the product cover `⟨fst≫q,snd≫q⟩`. -/
+noncomputable def Qadd : prod Q Q ⟶ Q :=
+  (cover_is_coequalizer_of_level (pair (fst ≫ q) (snd ≫ q)) (coverProdBoth hqcov)
+    (A.add ≫ q) (add_descends E q hbracket hEqq)).choose
+
+theorem qq_Qadd : pair (fst ≫ q) (snd ≫ q : prod A.carrier A.carrier ⟶ Q) ≫ Qadd E q hqcov hbracket hEqq
+    = A.add ≫ q :=
+  (cover_is_coequalizer_of_level (pair (fst ≫ q) (snd ≫ q)) (coverProdBoth hqcov)
+    (A.add ≫ q) (add_descends E q hbracket hEqq)).choose_spec.1
+
+/-- The descended sum projects: `⟨s≫q, t≫q⟩ ≫ Qadd = (⟨s,t⟩ ≫ A.add) ≫ q`. -/
+theorem qq_Qadd_proj {S : 𝒞} (s t : S ⟶ A.carrier) :
+    pair (s ≫ q) (t ≫ q) ≫ Qadd E q hqcov hbracket hEqq = (pair s t ≫ A.add) ≫ q := by
+  have hrw : pair (s ≫ q) (t ≫ q) = pair s t ≫ pair (fst ≫ q) (snd ≫ q) := by
+    rw [ab_pair_precomp]; congr 1
+    · rw [← Cat.assoc, fst_pair]
+    · rw [← Cat.assoc, snd_pair]
+  rw [hrw, Cat.assoc, qq_Qadd, ← Cat.assoc]
+
+/-- The triple cover `⟨fst≫⟨fst≫q,snd≫q⟩, snd≫q⟩ : (A.car×A.car)×A.car ↠ (Q×Q)×Q`.  Built from
+    `coverProdLeft`/`coverProdRight`/`cover_comp`; needed for the `add_assoc` axiom cancellation. -/
+theorem tripleCover (hq : Cover q) :
+    Cover (pair (fst ≫ pair (fst ≫ q) (snd ≫ q))
+                (snd ≫ q : prod (prod A.carrier A.carrier) A.carrier ⟶ Q)) := by
+  have hfac : (pair (fst ≫ pair (fst ≫ q) (snd ≫ q))
+                    (snd : prod (prod A.carrier A.carrier) A.carrier ⟶ A.carrier))
+              ≫ pair (fst : prod (prod Q Q) A.carrier ⟶ prod Q Q) (snd ≫ q)
+            = pair (fst ≫ pair (fst ≫ q) (snd ≫ q)) (snd ≫ q) := by
+    apply fst_snd_jointly_monic
+    · rw [Cat.assoc, fst_pair, fst_pair, fst_pair]
+    · rw [Cat.assoc, snd_pair, snd_pair, ← Cat.assoc, snd_pair]
+  intro D m g hm hgm
+  refine cover_comp (coverProdLeft (X := A.carrier) (coverProdBoth hq))
+    (coverProdRight (X := prod Q Q) hq) m g hm ?_
+  rw [hfac]; exact hgm
+
+/-- §1.595: associativity of any descended `Qadd` (the `q`-image of `A.add`).  Cancel the triple
+    cover, reduce both bracketings to `A`-coordinates via `qq_Qadd_proj`, apply `A.add_assoc`. -/
+theorem quotAddAssoc (Qadd : prod Q Q ⟶ Q)
+    (hadd : pair (fst ≫ q) (snd ≫ q : prod A.carrier A.carrier ⟶ Q) ≫ Qadd = A.add ≫ q)
+    (hq : Cover q) :
+    pair (fst (A := prod Q Q) (B := Q) ≫ Qadd) snd ≫ Qadd
+      = pair (fst (A := prod Q Q) (B := Q) ≫ fst) (pair (fst ≫ snd) snd ≫ Qadd) ≫ Qadd := by
+  apply cover_epi (tripleCover q hq)
+  have proj : ∀ {S : 𝒞} (s t : S ⟶ A.carrier),
+      pair (s ≫ q) (t ≫ q) ≫ Qadd = (pair s t ≫ A.add) ≫ q := by
+    intro S s t
+    have hrw : pair (s ≫ q) (t ≫ q) = pair s t ≫ pair (fst ≫ q) (snd ≫ q) := by
+      rw [ab_pair_precomp]; congr 1
+      · rw [← Cat.assoc, fst_pair]
+      · rw [← Cat.assoc, snd_pair]
+    rw [hrw, Cat.assoc, hadd, ← Cat.assoc]
+  have key : ∀ (x y z : prod (prod A.carrier A.carrier) A.carrier ⟶ A.carrier),
+      pair (pair (x ≫ q) (y ≫ q) ≫ Qadd) (z ≫ q) ≫ Qadd
+        = (pair (pair x y ≫ A.add) z ≫ A.add) ≫ q := fun x y z => by
+    rw [proj x y, proj (pair x y ≫ A.add) z]
+  have key2 : ∀ (x y z : prod (prod A.carrier A.carrier) A.carrier ⟶ A.carrier),
+      pair (x ≫ q) (pair (y ≫ q) (z ≫ q) ≫ Qadd) ≫ Qadd
+        = (pair x (pair y z ≫ A.add) ≫ A.add) ≫ q := fun x y z => by
+    rw [proj y z, proj x (pair y z ≫ A.add)]
+  have hffsnd : pair (fst ≫ fst) (fst ≫ snd)
+      = (fst : prod (prod A.carrier A.carrier) A.carrier ⟶ prod A.carrier A.carrier) := by
+    apply fst_snd_jointly_monic <;> simp only [fst_pair, snd_pair]
+  have hLHS : pair (fst ≫ pair (fst ≫ q) (snd ≫ q))
+        (snd ≫ q : prod (prod A.carrier A.carrier) A.carrier ⟶ Q)
+        ≫ (pair (fst (A := prod Q Q) (B := Q) ≫ Qadd) snd ≫ Qadd)
+      = pair (pair ((fst ≫ fst) ≫ q) ((fst ≫ snd) ≫ q) ≫ Qadd) (snd ≫ q) ≫ Qadd := by
+    rw [← Cat.assoc, ab_pair_precomp]
+    congr 2
+    · simp only [Cat.assoc, fst_pair]
+      rw [← Cat.assoc, ab_pair_precomp]; simp only [Cat.assoc, fst_pair, snd_pair]
+    · rw [snd_pair]
+  have hRHS : pair (fst ≫ pair (fst ≫ q) (snd ≫ q))
+        (snd ≫ q : prod (prod A.carrier A.carrier) A.carrier ⟶ Q)
+        ≫ (pair (fst (A := prod Q Q) (B := Q) ≫ fst) (pair (fst ≫ snd) snd ≫ Qadd) ≫ Qadd)
+      = pair ((fst ≫ fst) ≫ q) (pair ((fst ≫ snd) ≫ q) (snd ≫ q) ≫ Qadd) ≫ Qadd := by
+    rw [← Cat.assoc, ab_pair_precomp]
+    congr 2
+    · rw [← Cat.assoc]; simp only [Cat.assoc, fst_pair]
+    · rw [← Cat.assoc, ab_pair_precomp]
+      congr 2
+      · rw [← Cat.assoc]; simp only [Cat.assoc, fst_pair, snd_pair]
+      · rw [snd_pair]
+  rw [hLHS, hRHS, key (fst ≫ fst) (fst ≫ snd) snd, key2 (fst ≫ fst) (fst ≫ snd) snd,
+      hffsnd, A.add_assoc]
+
+/-- §1.595: commutativity of any descended `Qadd`.  Cancel `coverProdBoth`, then `A.add_comm`. -/
+theorem quotAddComm (Qadd : prod Q Q ⟶ Q)
+    (hadd : pair (fst ≫ q) (snd ≫ q : prod A.carrier A.carrier ⟶ Q) ≫ Qadd = A.add ≫ q)
+    (hq : Cover q) :
+    pair (snd : prod Q Q ⟶ Q) fst ≫ Qadd = Qadd := by
+  apply cover_epi (coverProdBoth hq)
+  rw [← Cat.assoc]
+  have hqqsf : pair (fst ≫ q) (snd ≫ q : prod A.carrier A.carrier ⟶ Q) ≫ pair (snd : prod Q Q ⟶ Q) fst
+             = pair (snd ≫ q) (fst ≫ q) := by rw [ab_pair_precomp, fst_pair, snd_pair]
+  have proj : ∀ {S : 𝒞} (s t : S ⟶ A.carrier),
+      pair (s ≫ q) (t ≫ q) ≫ Qadd = (pair s t ≫ A.add) ≫ q := by
+    intro S s t
+    have hrw : pair (s ≫ q) (t ≫ q) = pair s t ≫ pair (fst ≫ q) (snd ≫ q) := by
+      rw [ab_pair_precomp]; congr 1
+      · rw [← Cat.assoc, fst_pair]
+      · rw [← Cat.assoc, snd_pair]
+    rw [hrw, Cat.assoc, hadd, ← Cat.assoc]
+  rw [hqqsf, proj snd fst, hadd, A.add_comm]
+
+/-- §1.595: the quotient group object `Q` carrying the descended `zero/neg/add`.  Each axiom is
+    cancelled by `cover_epi q` and reduced to the corresponding axiom of `A` via `qq_Qadd_proj`
+    and the descent equations (`Qzero = A.zero≫q`, `q≫Qneg = A.neg≫q`). -/
+noncomputable def quotGObj : AbelianGroupObject 𝒞 where
+  carrier := Q
+  zero := Qzero q
+  neg := Qneg E q hqcov hbracket hEqq
+  add := Qadd E q hqcov hbracket hEqq
+  add_zero := by
+    apply cover_epi hqcov
+    rw [Cat.comp_id, ← Cat.assoc, ab_pair_precomp, Cat.comp_id]
+    have e1 : q ≫ term Q ≫ Qzero q = (term A.carrier ≫ A.zero) ≫ q := by
+      show q ≫ term Q ≫ (A.zero ≫ q) = (term A.carrier ≫ A.zero) ≫ q
+      rw [← Cat.assoc q (term Q), term_uniq (q ≫ term Q) (term A.carrier)]; simp only [Cat.assoc]
+    rw [e1, show pair ((term A.carrier ≫ A.zero) ≫ q) q
+          = pair ((term A.carrier ≫ A.zero) ≫ q) ((Cat.id A.carrier) ≫ q) by rw [Cat.id_comp],
+        qq_Qadd_proj E q hqcov hbracket hEqq (term A.carrier ≫ A.zero) (Cat.id A.carrier),
+        A.add_zero, Cat.id_comp]
+  add_neg := by
+    apply cover_epi hqcov
+    rw [← Cat.assoc, ab_pair_precomp, Cat.comp_id]
+    -- pair (q ≫ Qneg) q ≫ Qadd = q ≫ term Q ≫ Qzero
+    rw [q_Qneg E q hqcov hbracket hEqq]
+    rw [show pair (A.neg ≫ q) q = pair (A.neg ≫ q) ((Cat.id A.carrier) ≫ q) by rw [Cat.id_comp]]
+    rw [show A.neg ≫ q = (Cat.id A.carrier ≫ A.neg) ≫ q by rw [Cat.id_comp]]
+    rw [qq_Qadd_proj E q hqcov hbracket hEqq (Cat.id A.carrier ≫ A.neg) (Cat.id A.carrier)]
+    -- (pair (id≫A.neg) id ≫ A.add) ≫ q = q ≫ term Q ≫ (A.zero ≫ q)
+    rw [show pair (Cat.id A.carrier ≫ A.neg) (Cat.id A.carrier)
+          = pair A.neg (Cat.id A.carrier) by rw [Cat.id_comp], A.add_neg]
+    show (term A.carrier ≫ A.zero) ≫ q = q ≫ term Q ≫ (A.zero ≫ q)
+    rw [← Cat.assoc q (term Q), term_uniq (q ≫ term Q) (term A.carrier)]; simp only [Cat.assoc]
+  add_assoc :=
+    quotAddAssoc q (Qadd E q hqcov hbracket hEqq) (qq_Qadd E q hqcov hbracket hEqq) hqcov
+  add_comm :=
+    quotAddComm q (Qadd E q hqcov hbracket hEqq) (qq_Qadd E q hqcov hbracket hEqq) hqcov
+
+/-- The quotient cover `q` is an `Ab(𝒞)`-homomorphism `A → quotGObj`: its hom square is exactly
+    the descent equation `qq_Qadd` (`A.add ≫ q = ⟨fst≫q,snd≫q⟩ ≫ Qadd`). -/
+theorem isHom_q : IsHomAbelianGroupObject A (quotGObj E q hqcov hbracket hEqq) q :=
+  (qq_Qadd E q hqcov hbracket hEqq).symm
+
+/-- The `Ab(𝒞)`-morphism carried by the quotient cover `q`. -/
+noncomputable def qHom : A ⟶ quotGObj E q hqcov hbracket hEqq := ⟨q, isHom_q E q hqcov hbracket hEqq⟩
+
+theorem qHom_val : (qHom E q hqcov hbracket hEqq).val = q := rfl
+
+/-- `qHom` is an `Ab(𝒞)`-cover (its carrier `q` is a 𝒞-cover; `ab_cover_of_carrier_cover`). -/
+theorem qHom_cover : Cover (qHom E q hqcov hbracket hEqq) :=
+  ab_cover_of_carrier_cover (φ := qHom E q hqcov hbracket hEqq) hqcov
+
+/-- The carrier relation of the `Ab(𝒞)`-graph of an Ab-hom `f` is the carrier graph of `f.val`
+    (both have legs `id`, `f.val`). -/
+theorem carRelGen_graph {X Y : AbelianGroupObject 𝒞} (f : X ⟶ Y) :
+    carRelGen (graph f) = graph f.val := rfl
+
+/-- The carrier level of `qHom` equals the carrier level of `q` (up to `⊂` both ways), bridging
+    the `Ab(𝒞)` composite `graph qHom ⊚ (graph qHom)°` to the 𝒞 composite `graph q ⊚ (graph q)°`
+    via `carRel_comp_le`/`carRel_comp_ge` and `carRelGen_graph`. -/
+theorem carRel_level_le :
+    carRelGen (graph (qHom E q hqcov hbracket hEqq) ⊚ (graph (qHom E q hqcov hbracket hEqq))°)
+      ⊂ (graph q ⊚ (graph q)°) := by
+  refine rel_le_trans (carRel_comp_ge (graph (qHom E q hqcov hbracket hEqq))
+    ((graph (qHom E q hqcov hbracket hEqq))°)) ?_
+  -- carRelGen (graph qHom) ⊚ carRelGen (graph qHom°) = graph q ⊚ graph q° (defeq via qHom_val)
+  exact ⟨⟨Cat.id _, Cat.id_comp _, Cat.id_comp _⟩⟩
+
+theorem carRel_level_ge :
+    (graph q ⊚ (graph q)°)
+      ⊂ carRelGen (graph (qHom E q hqcov hbracket hEqq) ⊚ (graph (qHom E q hqcov hbracket hEqq))°) := by
+  refine rel_le_trans ?_ (carRel_comp_le (graph (qHom E q hqcov hbracket hEqq))
+    ((graph (qHom E q hqcov hbracket hEqq))°))
+  exact ⟨⟨Cat.id _, Cat.id_comp _, Cat.id_comp _⟩⟩
+
+/-- §1.595: `E ⊂ graph qHom ⊚ (graph qHom)°` in `Ab(𝒞)`.  Reflect (`carRel_reflect`) the carrier
+    containment `carRelGen E ⊂ carRelGen (level qHom)`, obtained from `hEqq` (`carRelGen E ⊂ level q`)
+    composed through `carRel_level_ge`. -/
+theorem E_le_qHom_level :
+    E ⊂ (graph (qHom E q hqcov hbracket hEqq) ⊚ (graph (qHom E q hqcov hbracket hEqq))°) := by
+  apply carRel_reflect
+  exact rel_le_trans hEqq (carRel_level_ge E q hqcov hbracket hEqq)
+
+/-- §1.595: `graph qHom ⊚ (graph qHom)° ⊂ E` in `Ab(𝒞)` (the reverse containment). -/
+theorem qHom_level_le_E :
+    (graph (qHom E q hqcov hbracket hEqq) ⊚ (graph (qHom E q hqcov hbracket hEqq))°) ⊂ E := by
+  apply carRel_reflect
+  exact rel_le_trans (carRel_level_le E q hqcov hbracket hEqq) hbracket
+
+end AbQuot
+
+/-- §1.595: every `Ab(𝒞)`-equivalence-relation `E` is EFFECTIVE.  Descend to the carrier
+    equivalence relation, take the carrier effective quotient cover `q`, descend a group structure
+    onto `Q` (`AbQuot.quotGObj`), and lift `q` to the `Ab(𝒞)`-cover `qHom` whose level brackets `E`. -/
+theorem ab_isEffective {A : AbelianGroupObject 𝒞} (E : BinRel (AbelianGroupObject 𝒞) A A)
+    (hE : EquivalenceRelation E) : IsEffective E := by
+  obtain ⟨Q, q, hqcov, hEqq, hbracket⟩ := carRel_effective_cover E hE
+  exact ⟨hE, AbQuot.quotGObj E q hqcov hbracket hEqq, AbQuot.qHom E q hqcov hbracket hEqq,
+    AbQuot.qHom_cover E q hqcov hbracket hEqq,
+    AbQuot.E_le_qHom_level E q hqcov hbracket hEqq,
+    AbQuot.qHom_level_le_E E q hqcov hbracket hEqq⟩
+
+/-- §1.595: **`Ab(𝒞)` is EFFECTIVE regular** whenever `𝒞` is.  Every equivalence relation in
+    `Ab(𝒞)` is the kernel pair of an `Ab(𝒞)`-cover (its quotient group object). -/
+noncomputable instance instEffectiveRegularAb : EffectiveRegular (AbelianGroupObject 𝒞) where
+  effective E hE := ab_isEffective E hE
+
+end EffReg
+
+/-! ### §1.595 STAGE 5 — `HasCoequalizers (Ab 𝒞)`, `all_normal`, and `AbelianCategory (Ab 𝒞)` -/
+
+section Abelian
+
+variable [EffectiveRegular 𝒞] [HasEqualizers 𝒞]
+
+/-- §1.595: **`Ab(𝒞)` has coequalizers** (an effective regular additive category with a zero object
+    and equalizers has coequalizers — `S1_59.additive_has_coequalizers`). -/
+noncomputable instance instHasCoequalizersAb : HasCoequalizers (AbelianGroupObject 𝒞) :=
+  additive_has_coequalizers (AbelianGroupObject 𝒞)
+
+/-- §1.595: every `Ab(𝒞)`-monic is a normal subobject (a kernel) — the `all_normal` field of
+    `AbelianCategory`.  This is `S1_59.effective_regular_additive_is_abelian` applied to `Ab(𝒞)`,
+    which is effective-regular (`instEffectiveRegularAb`), additive (`instAdditiveAb`), has a zero
+    object (`instHasZeroObjectAb`) and equalizers (`instHasEqualizersAb`). -/
+theorem ab_all_normal {A B : AbelianGroupObject 𝒞} (m : A ⟶ B) (hm : Monic m) :
+    IsNormalSubobject m hm :=
+  effective_regular_additive_is_abelian (AbelianGroupObject 𝒞) m hm
+
+/-- §1.595 (the headline theorem of the section): **`Ab(𝒞)` is an abelian category** whenever `𝒞`
+    is effective regular.  Assembles `RegularCategory`/`AdditiveCategory`/`HasZeroObject`/
+    `HasEqualizers` (earlier stages) with the new `HasCoequalizers` (`instHasCoequalizersAb`) and
+    `all_normal` (`ab_all_normal`, via the §1.594 Mal'cev effective-quotient argument). -/
+noncomputable instance instAbelianCategoryAb : AbelianCategory (AbelianGroupObject 𝒞) where
+  all_normal m hm := ab_all_normal m hm
+
+end Abelian

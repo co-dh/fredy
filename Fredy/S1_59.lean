@@ -1243,6 +1243,167 @@ theorem effective_regular_additive_is_abelian
       _ = kernelMap q := hrm
       _ = Cat.id (Kernel q) ≫ kernelMap q := (Cat.id_comp _).symm
 
+/-! ## §1.594 Coequalizers in an effective regular additive category
+
+  Generalizing the `malRel`-cover construction of `effective_regular_additive_is_abelian`: in an
+  effective regular additive category with a zero object and equalizers, every parallel pair
+  `f, g` has a coequalizer — the quotient cover of `B` by the §1.594 relation `malRel m` of the
+  image-mono `m` of the difference `d = f − g`.  This gives `HasCoequalizers`, the last missing
+  bicartesian datum for `AbelianCategory`. -/
+
+/-- The kernel-pair relation of `q` is contained in its level relation `graph q ⊚ (graph q)°`.
+    (`kp(q)` lifts into the level pullback then the level image, matching legs.) -/
+theorem kernelPairRel_le_level [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
+    [HasImages 𝒞] [RegularCategory 𝒞] {A Q : 𝒞} (q : A ⟶ Q) :
+    kernelPairRel q ⊂ (graph q ⊚ (graph q)°) := by
+  let pb := HasPullbacks.has (graph q).colB ((graph q)°).colA
+  have hkp : kp₁ (f:=q) ≫ q = kp₂ (f:=q) ≫ q := kp_sq
+  let w : kernelPair q ⟶ pb.cone.pt := pb.lift ⟨_, kp₁ (f:=q), kp₂ (f:=q), hkp⟩
+  have hw1 : w ≫ pb.cone.π₁ = kp₁ (f:=q) := pb.lift_fst _
+  have hw2 : w ≫ pb.cone.π₂ = kp₂ (f:=q) := pb.lift_snd _
+  let span : pb.cone.pt ⟶ prod A A :=
+    pair (pb.cone.π₁ ≫ (graph q).colA) (pb.cone.π₂ ≫ ((graph q)°).colB)
+  refine relLe_of_cover_factor (X := kernelPairRel q) (Y := graph q ⊚ (graph q)°)
+    (Cat.id (kernelPair q)) (iso_cover _ ⟨Cat.id _, Cat.id_comp _, Cat.id_comp _⟩)
+    (w ≫ image.lift span) ?_ ?_
+  · show (w ≫ image.lift span) ≫ (graph q ⊚ (graph q)°).colA = Cat.id _ ≫ (kernelPairRel q).colA
+    rw [Cat.id_comp]
+    show (w ≫ image.lift span) ≫ ((image span).arr ≫ fst) = kp₁ (f:=q)
+    have hsf : image.lift span ≫ ((image span).arr ≫ fst) = span ≫ fst := by
+      rw [← Cat.assoc, image.lift_fac]
+    rw [Cat.assoc, hsf, show span ≫ fst = pb.cone.π₁ ≫ (graph q).colA from fst_pair _ _,
+        show (pb.cone.π₁ ≫ (graph q).colA) = pb.cone.π₁ from Cat.comp_id _]
+    exact hw1
+  · show (w ≫ image.lift span) ≫ (graph q ⊚ (graph q)°).colB = Cat.id _ ≫ (kernelPairRel q).colB
+    rw [Cat.id_comp]
+    show (w ≫ image.lift span) ≫ ((image span).arr ≫ snd) = kp₂ (f:=q)
+    have hss : image.lift span ≫ ((image span).arr ≫ snd) = span ≫ snd := by
+      rw [← Cat.assoc, image.lift_fac]
+    rw [Cat.assoc, hss, show span ≫ snd = pb.cone.π₂ ≫ ((graph q)°).colB from snd_pair _ _,
+        show (pb.cone.π₂ ≫ ((graph q)°).colB) = pb.cone.π₂ from Cat.comp_id _]
+    exact hw2
+
+open HalfAdditiveCategory in
+/-- The two legs of `malRel m` agree after `≫ k` for any `k` killing `m` (`m ≫ k = 0`).  The
+    columns differ by `fst ≫ neg m`, which `k` sends to `0` (`neg (m≫k) = neg 0 = 0`). -/
+theorem malRel_legs_comp [EffectiveRegular 𝒞] [AdditiveCategory 𝒞] [HasZeroObject 𝒞]
+    [HasEqualizers 𝒞] {A B : 𝒞} (m : A ⟶ B) (hm : Monic m)
+    {X : 𝒞} (k : B ⟶ X) (hmk : m ≫ k = zeroMorphism A X) :
+    (malRel m hm).colA ≫ k = (malRel m hm).colB ≫ k := by
+  show (snd : prod A B ⟶ B) ≫ k = add ((fst : prod A B ⟶ A) ≫ neg m) snd ≫ k
+  rw [add_comp, Cat.assoc ((fst : prod A B ⟶ A)) (neg m) k, neg_comp,
+      show m ≫ k = zeroHom A X by rw [hmk, zeroHom_eq_zeroMorphism'],
+      neg_zero, zeroHom_comp_left, zero_add]
+
+open HalfAdditiveCategory in
+/-- **§1.594**: an effective regular additive category with a zero object and equalizers has
+    **coequalizers**.  The coequalizer of `f, g` is the quotient cover `B ↠ Q` by the §1.594
+    relation `malRel m` of the image-mono `m` of the difference `d = f − g`: `m ≫ q = 0` (the
+    STEP-3 algebra of `effective_regular_additive_is_abelian`), so `f ≫ q = g ≫ q`; and the cover
+    UMP (`cover_is_coequalizer_of_level`) supplies `desc/fac/uniq`, every `k` equalizing `f, g`
+    killing `m` hence equalizing the kernel pair of `q` (via `malRel_legs_comp`). -/
+noncomputable def additive_has_coequalizers
+    (𝒞 : Type u) [Cat.{v} 𝒞]
+    [EffectiveRegular 𝒞] [AdditiveCategory 𝒞] [HasZeroObject 𝒞] [HasEqualizers 𝒞] :
+    HasCoequalizers 𝒞 := by
+  letI hPB : HasPullbacks 𝒞 := EffectiveRegular.toRegularCategory.toHasPullbacks
+  refine ⟨fun {A B} f g => ?_⟩
+  let d : A ⟶ B := add f (neg g)
+  let m : (image d).dom ⟶ B := (image d).arr
+  have hm : Monic m := (image d).monic
+  have hlift_cover : Cover (image.lift d) := image_lift_cover d
+  have hdm : image.lift d ≫ m = d := image.lift_fac d
+  letI hpA : HasBinaryProducts 𝒞 := inferInstance
+  have hequiv : @EquivalenceRelation 𝒞 _ EffectiveRegular.toRegularCategory.toHasBinaryProducts
+      _ _ B (malRel m hm) :=
+    ⟨malRel_refl m hm, malRel_symm m hm,
+      rel_le_trans (compose_prods_indep _ hpA (malRel m hm) (malRel m hm)) (malRel_trans m hm)⟩
+  have hEff := (EffectiveRegular.effective (malRel m hm) hequiv).2
+  let Q : 𝒞 := hEff.choose
+  let q : B ⟶ Q := hEff.choose_spec.choose
+  have hqcov : Cover q := hEff.choose_spec.choose_spec.1
+  have hEqq : malRel m hm ⊂ graph q ⊚ (graph q)° :=
+    rel_le_trans hEff.choose_spec.choose_spec.2.1 (compose_prods_indep _ hpA (graph q) (graph q)°)
+  have hqqE : graph q ⊚ (graph q)° ⊂ malRel m hm :=
+    rel_le_trans (compose_prods_indep hpA _ (graph q) (graph q)°) hEff.choose_spec.choose_spec.2.2
+  -- STEP: m ≫ q = 0.
+  have hlegs : (malRel m hm).colA ≫ q = (malRel m hm).colB ≫ q := by
+    obtain ⟨he, heA, heB⟩ := hEqq
+    have key : he ≫ ((graph q ⊚ (graph q)°).colA ≫ q) = he ≫ ((graph q ⊚ (graph q)°).colB ≫ q) := by
+      rw [level_legs_comp q]
+    calc (malRel m hm).colA ≫ q = (he ≫ (graph q ⊚ (graph q)°).colA) ≫ q := by rw [heA]
+      _ = he ≫ ((graph q ⊚ (graph q)°).colA ≫ q) := Cat.assoc _ _ _
+      _ = he ≫ ((graph q ⊚ (graph q)°).colB ≫ q) := key
+      _ = (he ≫ (graph q ⊚ (graph q)°).colB) ≫ q := (Cat.assoc _ _ _).symm
+      _ = (malRel m hm).colB ≫ q := by rw [heB]
+  have hmq : m ≫ q = zeroMorphism (image d).dom Q := by
+    have h1 : (snd : prod (image d).dom B ⟶ B) ≫ q
+        = add (((fst : prod (image d).dom B ⟶ (image d).dom) ≫ neg m) ≫ q)
+              ((snd : prod (image d).dom B ⟶ B) ≫ q) := by
+      have h0 : (snd : prod (image d).dom B ⟶ B) ≫ q
+          = (add ((fst : prod (image d).dom B ⟶ (image d).dom) ≫ neg m) snd) ≫ q := hlegs
+      rwa [add_comp] at h0
+    have h2 : ((fst : prod (image d).dom B ⟶ (image d).dom) ≫ neg m) ≫ q
+        = zeroHom (prod (image d).dom B) Q := by
+      apply add_right_cancel (Y := (snd : prod (image d).dom B ⟶ B) ≫ q)
+      rw [zero_add]; exact h1.symm
+    have hsfst : (pair (Cat.id (image d).dom) (zeroHom (image d).dom B)
+        : (image d).dom ⟶ prod (image d).dom B) ≫ fst = Cat.id (image d).dom := fst_pair _ _
+    have h3 : neg m ≫ q = zeroHom (image d).dom Q := by
+      calc neg m ≫ q = (Cat.id (image d).dom ≫ neg m) ≫ q := by rw [Cat.id_comp]
+        _ = (((pair (Cat.id (image d).dom) (zeroHom (image d).dom B)
+              : (image d).dom ⟶ prod (image d).dom B) ≫ fst) ≫ neg m) ≫ q := by rw [hsfst]
+        _ = (pair (Cat.id (image d).dom) (zeroHom (image d).dom B)
+              : (image d).dom ⟶ prod (image d).dom B)
+              ≫ (((fst : prod (image d).dom B ⟶ (image d).dom) ≫ neg m) ≫ q) := by
+              rw [← Cat.assoc, ← Cat.assoc]
+        _ = (pair (Cat.id (image d).dom) (zeroHom (image d).dom B)
+              : (image d).dom ⟶ prod (image d).dom B) ≫ zeroHom (prod (image d).dom B) Q := by rw [h2]
+        _ = zeroHom (image d).dom Q := zeroHom_comp_left _
+    have h4 : neg (m ≫ q) = zeroHom (image d).dom Q := by rw [← neg_comp]; exact h3
+    have h5 : m ≫ q = zeroHom (image d).dom Q := by
+      rw [← neg_neg (m ≫ q), h4, neg_zero]
+    rw [h5, zeroHom_eq_zeroMorphism']
+  -- eq: f ≫ q = g ≫ q.
+  have heq : f ≫ q = g ≫ q := by
+    have hdq : d ≫ q = zeroMorphism A Q := by
+      rw [← hdm, Cat.assoc, hmq, zero_morphism_comp (image.lift d) (m ≫ q)]
+    have hdq' : add (f ≫ q) (neg (g ≫ q)) = zeroMorphism A Q := by
+      rw [← neg_comp, ← add_comp]; exact hdq
+    have hu := neg_unique (f := f ≫ q) (g := neg (g ≫ q))
+      (by rw [hdq', zeroHom_eq_zeroMorphism'])
+    have := congrArg neg hu; rw [neg_neg, neg_neg] at this; exact this.symm
+  -- the cover UMP: any k with f≫k=g≫k equalizes the kernel pair of q.
+  have hkpk : ∀ {X : 𝒞} (k : B ⟶ X), f ≫ k = g ≫ k → kp₁ (f := q) ≫ k = kp₂ (f := q) ≫ k := by
+    intro X k hk
+    have hmk : m ≫ k = zeroMorphism (image d).dom X := by
+      have hdk : d ≫ k = zeroMorphism A X := by
+        have hgk : add (g ≫ k) (neg (g ≫ k)) = zeroMorphism A X := by
+          rw [show add (g ≫ k) (neg (g ≫ k)) = zeroHom A X from add_neg _, zeroHom_eq_zeroMorphism']
+        calc d ≫ k = add f (neg g) ≫ k := rfl
+          _ = add (f ≫ k) ((neg g) ≫ k) := add_comp _ _ _
+          _ = add (f ≫ k) (neg (g ≫ k)) := by rw [neg_comp]
+          _ = add (g ≫ k) (neg (g ≫ k)) := by rw [hk]
+          _ = zeroMorphism A X := hgk
+      apply cover_epi hlift_cover
+      rw [← Cat.assoc, hdm, hdk, zero_morphism_comp (image.lift d) (m ≫ k)]
+    obtain ⟨ww, hwA, hwB⟩ := rel_le_trans (kernelPairRel_le_level q) hqqE
+    have hwA' : ww ≫ (malRel m hm).colA = kp₁ (f := q) := hwA
+    have hwB' : ww ≫ (malRel m hm).colB = kp₂ (f := q) := hwB
+    have hml := malRel_legs_comp m hm k hmk
+    calc kp₁ (f := q) ≫ k = (ww ≫ (malRel m hm).colA) ≫ k := by rw [hwA']
+      _ = ww ≫ ((malRel m hm).colA ≫ k) := Cat.assoc _ _ _
+      _ = ww ≫ ((malRel m hm).colB ≫ k) := by rw [hml]
+      _ = (ww ≫ (malRel m hm).colB) ≫ k := (Cat.assoc _ _ _).symm
+      _ = kp₂ (f := q) ≫ k := by rw [hwB']
+  exact
+    { obj := Q
+      map := q
+      eq := heq
+      desc := fun {X} k hk => (cover_is_coequalizer_of_level q hqcov k (hkpk k hk)).choose
+      fac := fun {X} k hk => (cover_is_coequalizer_of_level q hqcov k (hkpk k hk)).choose_spec.1
+      uniq := fun {X} k hk mm hmm =>
+        (cover_is_coequalizer_of_level q hqcov k (hkpk k hk)).choose_spec.2 mm hmm }
 
 /-! ## §1.595 Abelian group objects
 
