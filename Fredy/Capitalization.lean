@@ -694,6 +694,44 @@ theorem capitalization_of_capData_regular {A : Type u} [Cat.{u} A] [PreRegularCa
   exact ⟨cd.C.objIncl cd.i₀ ∘ cd.base, inferInstance,
     faithful_comp cd.baseFaithful (stageInclFaithful cd.C cd.hC cd.hfaith cd.hcons cd.i₀)⟩
 
+/-- **§1.543 reduction, REGULAR form — image-preservation DERIVED.**  Same conclusion as
+    `capitalization_of_capData_regular` (a genuine `RegularCategory Ā`, capital, faithful `A → Ā`),
+    but it does NOT take `himgpres` as a hypothesis: the transition image-preservation is *derived*
+    from cover-preservation (`hcovpres`) via `Colim.transitions_preserve_images`.  KEY INSIGHT
+    (§2.218 R3(a)): a functor that preserves COVERS + MONOS, with pullbacks in the target, preserves
+    the image factorization (image = cover-then-mono; `coverMono_isImage`).  The §1.543 tower
+    transitions already preserve covers (`hcovpres`) and monos (`hmono`); so the only genuinely new
+    inputs beyond a pre-regular `CapData` are `hi` (each stage has IMAGES — the regular, not merely
+    pre-regular, structure of the slice successors) and the `PreservesMono`/`PreservesCovers` forms.
+    The per-stage target pullbacks `coverMono_isImage` needs are built from `cd.hp`/`cd.he`
+    (`products_equalizers_implies_pullbacks`). -/
+theorem capitalization_of_capData_regular_of_covers {A : Type u} [Cat.{u} A] [PreRegularCategory A]
+    (cd : CapData.{u} A)
+    (hi : ∀ i, HasImages (cd.C.A i))
+    (hmono : ∀ {i j : cd.ι} (hij : cd.D.le i j),
+        @PreservesMono _ (cd.C.catA i) _ (cd.C.catA j) (cd.C.F hij) (cd.C.functF hij))
+    (hcovpres : ∀ {i j : cd.ι} (hij : cd.D.le i j),
+        @PreservesCovers _ _ (cd.C.catA i) (cd.C.catA j) (cd.C.F hij) (cd.C.functF hij)) :
+    ∃ (Ā : Type u) (hC : Cat.{u} Ā) (hR : RegularCategory Ā),
+      @Capital.{u, u} Ā hC (hR.toHasTerminal) ∧
+      ∃ (F : A → Ā) (hF : Functor F), @Faithful.{u, u} A _ Ā hC F hF := by
+  -- derive `himgpres` per transition from cover + mono preservation + target stage pullbacks.
+  have himgpres : ∀ {i j : cd.ι} (hij : cd.D.le i j) {X Y : cd.C.A i} (f : X ⟶ Y),
+      IsImage ((cd.C.functF hij).map f)
+        (@Subobject.map _ _ (cd.C.catA i) (cd.C.catA j) (cd.C.F hij) (cd.C.functF hij)
+          (hmono hij) _ (@image _ (cd.C.catA i) (hi i) _ _ f)) := by
+    intro i j hij X Y f
+    letI : Cat (cd.C.A i) := cd.C.catA i
+    letI : Cat (cd.C.A j) := cd.C.catA j
+    letI : HasImages (cd.C.A i) := hi i
+    -- target-stage pullbacks from products + equalizers (`products_equalizers_implies_pullbacks`).
+    letI : HasBinaryProducts (cd.C.A j) := cd.hp j
+    letI : HasEqualizers (cd.C.A j) := cd.he j
+    letI : HasPullbacks (cd.C.A j) := ⟨fun f g => products_equalizers_implies_pullbacks f g⟩
+    exact Colim.transitions_preserve_images (cd.C.F hij) (hF := cd.C.functF hij)
+      (hmono hij) (hcovpres hij) f
+  exact capitalization_of_capData_regular cd hi hmono himgpres
+
 /-! ## §1.543 The ω-tower scaffolding for the transfinite recursion
 
   The transfinite recursion `A₀ = A`, `A_{α+1} = (A_α)*`, `A_λ = colim_{β<λ}` is, at the
@@ -1648,6 +1686,78 @@ noncomputable def capData_of_tower (A : Type u) [Cat.{u} A] [PreRegularCategory 
       hcons := fun {i j} hij {x y} φ hiso => towerHcons _ nextStep hij φ hiso
       ht := ht, htpres := htpres, hp := hp, hppres := hppres, hppres_pair := hppres_pair
       he := he, hepres := hepres, hepres_lift := hepres_lift, hcanon := hcanon, capital := hcap }
+
+/-- **§1.543 — tower ⟹ `RegularCategory Ā`, image hypotheses ELIMINATED to the single `hi`.**
+
+    `capData_of_tower` builds a (pre-regular) `CapData A` from the ω-tower preservation package.
+    This packages the SAME inputs PLUS `hi` (every tower stage has IMAGES) and concludes a genuine
+    `RegularCategory Ā` (capital, faithful `A → Ā`).  The transition mono/cover preservation needed
+    by the image machinery is NOT a new hypothesis — it is supplied internally by the tower's own
+    `towerHmono`/`towerHcovpres`, and the image-preservation is DERIVED from cover-preservation
+    (`Colim.transitions_preserve_images`, via `capitalization_of_capData_regular_of_covers`).
+
+    Hence the ONLY residual to make §2.218 R3(a) (`RegularCategory Ā`) unconditional is `hi`: each
+    stage of the tower must have images.  Stage 0 is `A` (regular, if `[RegularCategory A]`); each
+    successor `nextStep S` is a directed colimit of slices `S/B` (`overRegular`/`overHasImages` make
+    the slices regular when `S` is), so its `HasImages` is itself a `colimitHasImages` of the inner
+    slice system — derivable but requiring `CapStep`/`PreRegBundle` to *carry* the per-stage regular
+    structure (an instance-level extension of those structures, deliberately not done here). -/
+theorem capData_of_tower_regular (A : Type u) [Cat.{u} A] [PreRegularCategory A]
+    (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier)
+    (b : PreRegBundle.{u}) (hb : b = ⟨A, inferInstance, inferInstance⟩)
+    (ht : ∀ i, HasTerminal ((towerSystem b nextStep).A i))
+    (htpres : ∀ {i j} (hij : uliftNatDirected.le i j),
+      (towerSystem b nextStep).F hij (ht i).one = (ht j).one)
+    (hp : ∀ i, HasBinaryProducts ((towerSystem b nextStep).A i))
+    (hppres : ∀ {i j} (hij : uliftNatDirected.le i j) (a c : (towerSystem b nextStep).A i)
+      (z : (towerSystem b nextStep).A j)
+      (uu vv : z ⟶ (towerSystem b nextStep).F hij ((hp i).prod a c)),
+      uu ≫ ((towerSystem b nextStep).functF hij).map (hp i).fst =
+        vv ≫ ((towerSystem b nextStep).functF hij).map (hp i).fst →
+      uu ≫ ((towerSystem b nextStep).functF hij).map (hp i).snd =
+        vv ≫ ((towerSystem b nextStep).functF hij).map (hp i).snd → uu = vv)
+    (hppres_pair : ∀ {i j} (hij : uliftNatDirected.le i j) (a c : (towerSystem b nextStep).A i)
+      (z : (towerSystem b nextStep).A j)
+      (p : z ⟶ (towerSystem b nextStep).F hij a) (q : z ⟶ (towerSystem b nextStep).F hij c),
+      ∃ r : z ⟶ (towerSystem b nextStep).F hij ((hp i).prod a c),
+        r ≫ ((towerSystem b nextStep).functF hij).map (hp i).fst = p ∧
+        r ≫ ((towerSystem b nextStep).functF hij).map (hp i).snd = q)
+    (he : ∀ i, HasEqualizers ((towerSystem b nextStep).A i))
+    (hepres : ∀ {i j} (hij : uliftNatDirected.le i j) {X Y : (towerSystem b nextStep).A i}
+      (f g : X ⟶ Y) (z : (towerSystem b nextStep).A j)
+      (uu vv : z ⟶ (towerSystem b nextStep).F hij (eqObj f g)),
+      uu ≫ ((towerSystem b nextStep).functF hij).map (eqMap f g) =
+        vv ≫ ((towerSystem b nextStep).functF hij).map (eqMap f g) → uu = vv)
+    (hepres_lift : ∀ {i j} (hij : uliftNatDirected.le i j) {X Y : (towerSystem b nextStep).A i}
+      (f g : X ⟶ Y) (z : (towerSystem b nextStep).A j) (k : z ⟶ (towerSystem b nextStep).F hij X)
+      (_hk : k ≫ ((towerSystem b nextStep).functF hij).map f =
+        k ≫ ((towerSystem b nextStep).functF hij).map g),
+      ∃ r : z ⟶ (towerSystem b nextStep).F hij (eqObj f g),
+        r ≫ ((towerSystem b nextStep).functF hij).map (eqMap f g) = k)
+    (hcanon : letI : Cat (towerSystem b nextStep).Obj := colimitCat _ (towerCoherent b nextStep)
+        letI : HasPullbacks (towerSystem b nextStep).Obj :=
+          colimitHasPullbacks _ (towerCoherent b nextStep) ht htpres hp hppres hppres_pair he
+            hepres hepres_lift
+      ∀ {X Y Z : (towerSystem b nextStep).Obj} (f : X ⟶ Z) (g : Y ⟶ Z),
+          Cover f → Cover (HasPullbacks.has f g).cone.π₂)
+    (hcap : letI : Cat (towerSystem b nextStep).Obj := colimitCat _ (towerCoherent b nextStep)
+        letI : PreRegularCategory (towerSystem b nextStep).Obj :=
+          colimitPreRegular _ (towerCoherent b nextStep) ht htpres hp hppres hppres_pair he
+            hepres hepres_lift hcanon
+      Capital (𝒞 := (towerSystem b nextStep).Obj))
+    (hi : ∀ i, HasImages ((towerSystem b nextStep).A i)) :
+    ∃ (Ā : Type u) (hC : Cat.{u} Ā) (hR : RegularCategory Ā),
+      @Capital.{u, u} Ā hC (hR.toHasTerminal) ∧
+      ∃ (F : A → Ā) (hF : Functor F), @Faithful.{u, u} A _ Ā hC F hF := by
+  -- normalize `b = ⟨A,…⟩` everywhere FIRST, so `capData_of_tower`'s internal `subst` and the
+  -- `towerHmono`/`towerHcovpres` references all sit over the SAME bundle (`cd.C = towerSystem b _`).
+  subst hb
+  letI cd : CapData.{u} A :=
+    capData_of_tower A nextStep _ rfl ht htpres hp hppres hppres_pair he hepres hepres_lift hcanon hcap
+  refine capitalization_of_capData_regular_of_covers cd hi
+    (fun {i j} hij => ?_) (fun {i j} hij => ?_)
+  · exact fun {x y} {φ} hφ => towerHmono _ nextStep hij φ hφ
+  · exact fun {x y} φ hφ => towerHcovpres _ nextStep hij φ hφ
 
 /-! ## §1.546/§1.547  The uniform successor `nextStep` (RELOCATED from `RelativeCapitalization`)
 

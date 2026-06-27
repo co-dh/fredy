@@ -1979,6 +1979,44 @@ theorem preservesImage_lift_cover {𝒜 ℬ : Type w} [Cat.{w} 𝒜] [Cat.{w} �
   refine ⟨h, ?_, hhn⟩
   exact hn _ _ (by rw [Cat.assoc, hhn, Cat.id_comp]; exact Cat.comp_id n)
 
+/-! ## Generic: cover + mono + pullback preservation ⟹ image preservation
+
+  This is the KEY derivation that makes `himgpres` (transition image-preservation) *derivable*
+  rather than a primitive hypothesis of the §1.543 tower.  A functor `F` that preserves COVERS
+  (`hcov`) and MONOS (`hpm`), with PULLBACKS available in the target (`[HasPullbacks ℬ]`),
+  carries the image factorization `f = image.lift f ≫ (image f).arr` (cover-then-mono in `𝒜`) to
+  a cover-then-mono factorization `F f = F(image.lift f) ≫ F((image f).arr)` in `ℬ`; by
+  `coverMono_isImage` that IS the image of `F f`.  Hence `Subobject.map F hpm (image f)` — whose
+  arrow is exactly `F((image f).arr)` — is the image of `F f`. -/
+theorem image_lift_cover_local {𝒜 : Type w} [Cat.{w} 𝒜] [HasImages 𝒜] {A B : 𝒜} (f : A ⟶ B) :
+    Cover (image.lift f) := by
+  -- (self-contained copy of `S1_56.image_lift_cover`, to avoid importing S1_56 here)
+  intro D m g hm hfac
+  have hmono_comp : Monic (m ≫ (image f).arr) := fun u v huv =>
+    hm _ _ ((image f).monic _ _ (by simpa [Cat.assoc] using huv))
+  have h_allows : Allows ⟨D, m ≫ (image f).arr, hmono_comp⟩ f :=
+    ⟨g, by rw [← Cat.assoc, hfac, image.lift_fac]⟩
+  obtain ⟨h, hh⟩ := image_min f _ h_allows
+  have hhm : h ≫ m = Cat.id (image f).dom := (image f).monic (h ≫ m) (Cat.id _) (by
+    rw [Cat.assoc, hh, Cat.id_comp])
+  exact ⟨h, hm _ _ (by rw [Cat.assoc, hhm, Cat.id_comp, Cat.comp_id]), hhm⟩
+
+/-- **Transition image-preservation from cover + mono + pullback preservation.**  Supplies the
+    `himgpres` shape (`IsImage (F.map f) (Subobject.map F hpm (image f))`) WITHOUT it being a
+    primitive axiom: it is derived from `F` preserving covers (`hcov`), preserving monos (`hpm`),
+    and the target having pullbacks.  This is what turns the §1.543 tower (whose transitions
+    already preserve covers/monos/finite limits) into an *image*-preserving tower. -/
+theorem transitions_preserve_images {𝒜 ℬ : Type w} [Cat.{w} 𝒜] [Cat.{w} ℬ]
+    [HasImages 𝒜] [HasPullbacks ℬ] (F : 𝒜 → ℬ) [hF : Functor F] (hpm : PreservesMono F)
+    (hcov : PreservesCovers F) {A B : 𝒜} (f : A ⟶ B) :
+    IsImage (hF.map f) (Subobject.map F hpm (image f)) := by
+  -- target factorization `F(image.lift f) ≫ F((image f).arr) = F f`, cover-then-mono.
+  have hfac : hF.map (image.lift f) ≫ (Subobject.map F hpm (image f)).arr = hF.map f := by
+    show hF.map (image.lift f) ≫ hF.map (image f).arr = hF.map f
+    rw [← hF.map_comp, image.lift_fac]
+  have hcover : Cover (hF.map (image.lift f)) := hcov _ (image_lift_cover_local f)
+  exact coverMono_isImage (Subobject.map F hpm (image f)).monic hcover hfac
+
 /-- **`objIncl i` preserves images** (the image analog of `objIncl_preserves_equalizers`).
     Given per-stage images (`hi`), transition mono-preservation (`hmono`), faithfulness
     (`hfaith`), and transition image-preservation (`himgpres`), the `objIncl i`-image of the
