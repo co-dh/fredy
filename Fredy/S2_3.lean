@@ -1218,23 +1218,28 @@ theorem dom_map_coref {a b : 𝒜} (f : a ⟶ b) (hf : Map f) {c : b ⟶ b} (hc 
 /-! ## §2.343  Every logos faithfully and fully embeds in a positive effective logos -/
 
 -- BOOK §2.343: Every logos C embeds faithfully and fully in a positive effective logos via
--- C → Mσn(H̃(Eq(Rel(C))⁺)), using §2.32, §2.216 (A⁺ faithfully embeds A), §2.169 (Spl).
--- STATUS: OPEN.
--- AVAILABLE steps:
---   Rel(C)     — `Allegory (RelObj C)` + `DistributiveAllegory`: proved in RelCat.lean.
---   A⁺ = Mat(A)  — `DivisionAllegory (MatObj 𝒜)`: `instDivisionAllegoryMat` in MatrixAllegory.
---   Eq(A) = SplObj — `instAllegorySpl`, effective: proved in S2_21/S2_22b/Spl.lean.
---   Mσn(A) — `Cat (MapObj 𝒜)`: `mapCat` in MapCat.lean; `PreLogos (MapObj 𝒜)`: `mapPreLogos`.
---   §2.217(1) (not §2.343): `C ↪ Map(Mat(Rel C))` faithful + target positive-pre-logos:
---   `s217_faithful_embed_into_positive` in RelCat.lean.  This covers the PRE-LOGOS version.
--- REMAINING for §2.343 specifically:
---   • `Logos (MapObj 𝒜)` (not just `PreLogos`): DONE — `mapLogos` in MapCat.lean (§2.32 backward,
---     via `HasRightAdjointImage` on `MapObj 𝒜`, the `oneHeyting`/`rightAdjCor` construction above).
---   • The §2.343 target is `Mσn(Eq(Rel(C))⁺)` = `Map(SplObj(Mat(Rel C)))`.  Its
---     `DivisionAllegory (SplObj 𝒜)` prerequisite (§2.34) is DONE (`instDivisionSpl`); to obtain a
---     `Logos` here one instantiates `mapLogos` at `A := SplObj(Mat(Rel C))` once that carrier is a
---     `TabularUnitaryDivisionAllegory` (tabular+unitary already assembled in RelCat.lean; division is
---     `instDivisionSpl`).
---   • Fullness of the composite embedding `C → Map(SplObj(Mat(Rel C)))` has not been assembled.
+-- C → Mσn(H̃(Eq(Rel(C))⁺)) = Map(SplObj(Mat(Rel C))), using §2.32, §2.216, §2.169 (Spl).
+-- STATUS: DONE — assembled in `Fredy/RelCat.lean` (this file cannot import RelCat/MapCat without a
+-- cycle, so the theorems live there; their statements/names are recorded here).
+--
+-- The target `D := Map(SplObj(Mat(Rel C)))` and the embedding `embed217_2 : C → D` (already FAITHFUL
+-- from §2.217(2)) are reused; over `[Logos C]` they upgrade to the §2.343 headline:
+--
+--   PART A (structure) — `D` is a POSITIVE EFFECTIVE LOGOS (`Freyd.s343_positive_effective_logos`):
+--     • `Freyd.splMatRelTUDiv` : `TabularUnitaryDivisionAllegory (SplObj (Mat (Rel C)))`, assembling
+--       `relDivisionAllegory` (§1.784/§2.32 fwd, `RelObj C`) → `instDivisionAllegoryMat` (§2.342) →
+--       `instDivisionSpl` (§2.31) for division, with tabular+unitary from `splMatRelTUP`.
+--     • `Freyd.s343_logos`            : `Logos D`             (`mapLogos`, §2.32 backward);
+--     • positivity                    : `s217_2_target_positivePreLogos.toHasBinaryCoproducts`;
+--     • `Freyd.s343_effectiveRegular` : `EffectiveRegular D`  (`mapEffectiveRegular`, §2.217(2) split).
+--
+--   PART B (fullness) — `Freyd.embed217_2_full`: every `D`-morphism `embed217_2Obj a ⟶ embed217_2Obj b`
+--   is `embed217_2 f` for a unique `f`.  The collapse runs down the tower
+--     Spl (`embHom_full` + `embHom_reflects_map`) → Mat 1×1 (`Fin 1` + `embed1_reflects_map`) →
+--     Rel (`embedRel_full`, every Map is the graph of a unique C-morphism).
+--
+--   HEADLINE: `Freyd.s343_full_faithful_embed_into_positive_effective_logos` — there is a positive
+--   effective logos structure on `D` plus a FULL+FAITHFUL embedding `C ↪ D`.  Bare `[Logos C]`.
+--   Axioms: [propext, Classical.choice, Quot.sound], no `sorryAx`.
 
 end Freyd.Alg

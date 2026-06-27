@@ -1615,6 +1615,228 @@ theorem s217_2_faithful_embed_into_preTopos :
 
 end S217_2
 
+/-! ### §2.343  Every LOGOS embeds faithfully AND FULLY in a positive effective LOGOS.
+
+  Freyd §2.343 upgrades §2.217(2) from *pre-logos ↪ pre-topos* to *logos ↪ positive effective
+  logos*, AND makes the embedding FULL (not merely faithful).  The target is the SAME tower
+  carrier
+
+      D := Map(SplObj(Mat(Rel C)))                                                    (§2.169)
+
+  but now over a `[Logos C]` (so `Rel(C)` is a DIVISION allegory, `relDivisionAllegory`).
+
+  PART A (structure).  Over `[Logos C]`:
+    • `RelObj C`               — DIVISION allegory (`relDivisionAllegory`, §1.784/§2.32 forward);
+    • `MatObj (RelObj C)`      — DIVISION (`instDivisionAllegoryMat`, §2.342) + tabular + unitary;
+    • `SplObj (MatObj (RelObj C))` — DIVISION (`instDivisionSpl`, §2.31) + tabular + unitary
+      (`splMatRelTUP`), i.e. a `TabularUnitaryDivisionAllegory` (`splMatRelTUDiv` below);
+    • hence `Map(SplObj(Mat(Rel C)))` is a `Logos` (`mapLogos`, §2.32 backward) — `s343_logos`;
+    • it is also POSITIVE (`s217_2_target_positivePreLogos.toHasBinaryCoproducts`) and EFFECTIVE
+      (`mapEffectiveRegular` over the `s217_2_effectiveAllegory` split) — `s343_effectiveRegular`.
+    So `D` is a POSITIVE EFFECTIVE LOGOS (`s343_positive_effective_logos`).
+
+  PART B (fullness).  The composite `embed217_2 : C → D` is FULL: every `D`-morphism
+  `embed217_2Obj a ⟶ embed217_2Obj b` collapses through the 1×1 Spl/Mat structure to a
+  `Map(Rel C)`-morphism `⟨a⟩ → ⟨b⟩`, which by `embedRel_full` is the graph of a unique
+  `C`-morphism (`embed217_2_full`). -/
+
+/-! #### §2.343 PART B helpers — the splitting/matrix embeddings are FULL and reflect `Map`.
+
+  These two reflection lemmas are the layer-by-layer inverses of `embHom_preserves_map` /
+  `embed1_map`.  Both `embHom : 𝒜 → SplObj 𝒜` and `embed1 : 𝒜 → MatObj 𝒜` are INJECTIVE allegory
+  homomorphisms that commute with `dom` and `id` (so they REFLECT `Entire`/`Simple`, hence `Map`),
+  and they are FULL onto the embedded objects (`embHom_full`; the 1×1 `Fin 1` collapse). -/
+
+section EmbReflectMap
+
+open Freyd.Alg Freyd.Alg.Mat
+
+/-- `embHom : 𝒜 → SplObj 𝒜` REFLECTS `Map`: if the split-hom `embHom R` is a map (over the
+    canonical `instAllegorySpl`) then `R` is a map in `𝒜`.  `embObj` carries the IDENTITY
+    idempotent, so `Entire`/`Simple` of `embHom R` descend to `R` via `splLe_iff` and the
+    `dom`/`id`-commutation of `embHom` (`embHom_inter`/`embHom_comp`/`embHom_recip`/`embHom_id`,
+    plus `embHom_injective`). -/
+theorem embHom_reflects_map {𝒜 : Type u} [Freyd.Alg.Allegory 𝒜] {a b : 𝒜} {R : a ⟶ b}
+    (h : Freyd.Alg.Map (𝒜 := SplObj 𝒜) (a := Freyd.Alg.embObj a) (b := Freyd.Alg.embObj b)
+          (Freyd.Alg.embHom R)) :
+    Freyd.Alg.Map R := by
+  obtain ⟨hEnt, hSim⟩ := h
+  let eR : embObj a ⟶ embObj b := embHom R
+  -- embHom commutes with `dom` (functoriality of `∩`, `≫`, `°`, `id`) — same as `embHom_preserves_map`.
+  have hdom : dom eR = embHom (dom R) := by
+    show Cat.id _ ∩ eR ≫ eR° = embHom (Cat.id a ∩ R ≫ R°)
+    rw [embHom_inter, embHom_id, embHom_comp, embHom_recip]; rfl
+  constructor
+  · -- Entire: `dom (embHom R) = id` is `embHom (dom R) = embHom (id a)`; injective.
+    show dom R = Cat.id a
+    have : embHom (dom R) = embHom (Cat.id a) := by
+      rw [← hdom, embHom_id]; exact hEnt
+    exact embHom_injective this
+  · -- Simple: `(embHom R)° ≫ embHom R ⊑ id_{embObj b}` descends via `splLe_iff`.
+    show R° ≫ R ⊑ Cat.id b
+    have hle : eR° ≫ eR ⊑ Cat.id (embObj b) := hSim
+    -- `eR° ≫ eR` and `embHom (R° ≫ R)` agree on `.R` (`= R° ≫ R`), so are equal (`SplHom.ext`).
+    have heq : eR° ≫ eR = embHom (R° ≫ R) := SplHom.ext rfl
+    rw [heq, ← embHom_id] at hle
+    exact (splLe_iff _ _).mp hle
+
+/-- The 1×1 matrix `embed1 r : unitObj a ⟶ unitObj b` reflects `Map`: if `embed1 r` is a map of
+    `Mat 𝒜` then `r` is a map of `𝒜`.  `embed1` is an injective allegory hom commuting with `dom`
+    (`embed1_dom`) and `id` (`embed1_id`) and reflects order (`embed1_le_iff`). -/
+theorem embed1_reflects_map {𝒜 : Type u} [Freyd.Alg.DistributiveAllegory 𝒜] {a b : 𝒜}
+    {r : a ⟶ b}
+    (h : Freyd.Alg.Map (𝒜 := MatObj 𝒜) (a := unitObj a) (b := unitObj b) (embed1' r)) :
+    Freyd.Alg.Map r := by
+  obtain ⟨hEnt, hSim⟩ := h
+  constructor
+  · -- Entire: `dom (embed1 r) = id` is `embed1 (dom r) = embed1 (id a)`; injective.
+    show dom r = Cat.id a
+    have hent' : dom (embed1' r) = Cat.id (unitObj a) := hEnt
+    have hdom : dom (embed1' r) = embed1' (dom r) := embed1_dom r
+    have hid : Cat.id (unitObj a) = embed1' (Cat.id a) := by
+      show matId (unitObj a) = embed1 (Cat.id a); rw [embed1_id]
+    rw [hdom, hid] at hent'
+    exact embed1'_injective hent'
+  · -- Simple: `(embed1 r)° ≫ embed1 r ⊑ id` descends via `embed1_le_iff`.
+    show r° ≫ r ⊑ Cat.id b
+    have hsim' : (embed1' r)° ≫ embed1' r ⊑ Cat.id (unitObj b) := hSim
+    have heq : (embed1' r)° ≫ embed1' r = embed1' (r° ≫ r) := by
+      show matComp (matRecip (embed1 r)) (embed1 r) = embed1 (r° ≫ r)
+      rw [embed1_comp, embed1_recip]
+    have hid : Cat.id (unitObj b) = embed1' (Cat.id b) := by
+      show matId (unitObj b) = embed1 (Cat.id b); rw [embed1_id]
+    rw [heq, hid] at hsim'
+    exact embed1_le_iff.mp hsim'
+
+end EmbReflectMap
+
+section S343
+
+open Freyd.Alg.Mat
+
+variable [Logos 𝒞]
+
+-- A logos is a pre-logos (§1.711); needed for the §2.217(2) pieces (`s217_2_effectiveAllegory`,
+-- `s217_2_target_positivePreLogos`) which are stated over `[PreLogos 𝒞]`.
+attribute [local instance] logos_implies_preLogos
+
+/-! #### PART A — `D = Map(SplObj(Mat(Rel C)))` is a positive effective LOGOS. -/
+
+/-- **§2.343 PART A — division up the tower**: `SplObj(Mat(Rel C))` is a
+    `TabularUnitaryDivisionAllegory`.  Over `[Logos C]`, `RelObj C` is a division allegory
+    (`relDivisionAllegory`), so `Mat(Rel C)` is (`instDivisionAllegoryMat`), so `SplObj` of it
+    is (`instDivisionSpl`); tabular+unitary are the same legs that build `splMatRelTUP`.  All
+    parents share the ONE `Allegory (SplObj (Mat (Rel C)))` — the diamond merges. -/
+noncomputable instance splMatRelTUDiv :
+    TabularUnitaryDivisionAllegory (SplObj (MatObj (RelObj 𝒞))) :=
+  letI : SemiSimpleAllegory (MatObj (RelObj 𝒞)) :=
+    Freyd.Alg.semiSimpleAllegory_of_tabular (ℬ := MatObj (RelObj 𝒞))
+  { (Freyd.Alg.splObj_tabular_of_semiSimple : TabularAllegory (SplObj (MatObj (RelObj 𝒞)))),
+    (Freyd.Alg.instUnitarySpl  : UnitaryAllegory  (SplObj (MatObj (RelObj 𝒞)))),
+    (Freyd.Alg.instDivisionSpl : DivisionAllegory (SplObj (MatObj (RelObj 𝒞)))) with }
+
+/-- **§2.343 PART A (i)**: `D = Map(SplObj(Mat(Rel C)))` is a `Logos` (§2.32 backward).  Immediate
+    from `mapLogos` over `splMatRelTUDiv`.  This is the one structure beyond the §2.217(2)
+    pre-topos: the right adjoint `f##` to inverse-image, which needs the DIVISION allegory. -/
+noncomputable def s343_logos :=
+  Freyd.Alg.mapLogos (A := SplObj (MatObj (RelObj 𝒞)))
+
+/-- **§2.343 PART A (ii)**: `D` is EFFECTIVE-regular — `mapEffectiveRegular` over the effective
+    splitting of the EFFECTIVE allegory `SplObj(Mat(Rel C))` (`s217_2_effectiveAllegory`). -/
+noncomputable def s343_effectiveRegular :=
+  Freyd.Alg.mapEffectiveRegular (A := SplObj (MatObj (RelObj 𝒞)))
+    (s217_2_effectiveAllegory (𝒞 := 𝒞)).split_symmetric_idempotent
+
+/-- **§2.343 PART A — packaged**: `D = Map(SplObj(Mat(Rel C)))` is a POSITIVE EFFECTIVE LOGOS:
+    a `Logos` (`s343_logos`), with finite coproducts (positive,
+    `s217_2_target_positivePreLogos.toHasBinaryCoproducts`) and effective quotients
+    (`s343_effectiveRegular`).  Bundled as the conjunction of the three structures, all over the
+    single `mapCat` of `D`. -/
+noncomputable def s343_positive_effective_logos :
+    @Logos (MapObj (SplObj (MatObj (RelObj 𝒞))))
+        (mapCat (𝒜 := SplObj (MatObj (RelObj 𝒞)))) ×
+    @HasBinaryCoproducts (MapObj (SplObj (MatObj (RelObj 𝒞))))
+        (mapCat (𝒜 := SplObj (MatObj (RelObj 𝒞)))) ×'
+    @Freyd.EffectiveRegular (MapObj (SplObj (MatObj (RelObj 𝒞))))
+        (mapCat (𝒜 := SplObj (MatObj (RelObj 𝒞)))) :=
+  ⟨s343_logos,
+   (s217_2_target_positivePreLogos (𝒞 := 𝒞)).toHasBinaryCoproducts,
+   s343_effectiveRegular⟩
+
+/-! #### PART B — the embedding `C ↪ D = Map(SplObj(Mat(Rel C)))` is FULL. -/
+
+/-- **§2.343 PART B (fullness)**: every `D`-morphism `embed217_2Obj a ⟶ embed217_2Obj b` is
+    `embed217_2 f` for a unique `f : a ⟶ b`.  The collapse runs DOWN the tower:
+
+      `D`-hom `m`                       — a `Map(SplObj(Mat(Rel C)))`-morphism `embObj⟨a⟩₁ → embObj⟨b⟩₁`
+        ⟶ `m.val = embHom m.val.R`       (`embHom_full`; `embObj` has the identity idempotent)
+        ⟶ `Map m.val.R`                  (`embHom_reflects_map`)            [Spl layer peeled]
+        ⟶ `m.val.R = embed1' r`          (`Fin 1` collapse, `r` = the single entry)
+        ⟶ `Map r`                        (`embed1_reflects_map`)            [Mat layer peeled]
+        ⟶ `r = relClass (graph f)`       (`embedRel_full`, §2.148 dual)     [Rel layer = a graph]
+
+    and BACK UP: `embed217_2 f` rebuilds `embHom (embed1' (relClass (graph f))) = embHom (embed1' r)
+    = embHom m.val.R = m.val`, so `m = embed217_2 f` (`Subtype.ext`). -/
+theorem embed217_2_full {a b : 𝒞}
+    (m : @Cat.Hom (MapObj (SplObj (MatObj (RelObj 𝒞))))
+          (mapCat (𝒜 := SplObj (MatObj (RelObj 𝒞)))) (embed217_2Obj a) (embed217_2Obj b)) :
+    ∃ f : a ⟶ b, m = embed217_2 f := by
+  -- (1) Spl layer: `m.val = embHom m.val.R`, and `Map m.val.R` in `Mat(Rel C)`.
+  have hsplmap : Freyd.Alg.Map (𝒜 := SplObj (MatObj (RelObj 𝒞)))
+      (a := Freyd.Alg.embObj (embed217Obj a)) (b := Freyd.Alg.embObj (embed217Obj b))
+      (Freyd.Alg.embHom m.val.R) := by
+    rw [Freyd.Alg.embHom_full]; exact m.property
+  have hmatmap : Freyd.Alg.Map (𝒜 := MatObj (RelObj 𝒞)) m.val.R := embHom_reflects_map hsplmap
+  -- (2) Mat layer: 1×1 collapse `m.val.R = embed1' r` for the single entry `r`.
+  let r : (⟨a⟩ : RelObj 𝒞) ⟶ (⟨b⟩ : RelObj 𝒞) :=
+    m.val.R ⟨0, Nat.zero_lt_one⟩ ⟨0, Nat.zero_lt_one⟩
+  have hcollapse : m.val.R = embed1' (𝒜 := RelObj 𝒞) r := by
+    funext i j
+    rw [Fin.fin_one_eq_zero i, Fin.fin_one_eq_zero j]; rfl
+  have hrelmap : Freyd.Alg.Map (𝒜 := RelObj 𝒞) r :=
+    embed1_reflects_map (by rw [← hcollapse]; exact hmatmap)
+  -- (3) Rel layer: `r` is a Map of `Rel C`, hence (representative `R₀`) the graph of some `f`.
+  obtain ⟨f, hf⟩ := Quotient.inductionOn (motive := fun q =>
+      Freyd.Alg.Map (𝒜 := RelObj 𝒞) q → ∃ f : a ⟶ b, q = relClass (graph f))
+    r (fun R₀ hR₀ => embedRel_full (a := a) (b := b) R₀ hR₀) hrelmap
+  -- (4) Back up the tower: `m.val.R = embed1' r = embed1' (relClass (graph f)) = (embed217_2 f).val.R`.
+  refine ⟨f, ?_⟩
+  apply Subtype.ext
+  apply Freyd.Alg.SplHom.ext
+  -- `(embed217_2 f).val.R = (embHom (embed217 f).val).R = (embed217 f).val = embed1' (embedRel f).val`.
+  show m.val.R = (Freyd.Alg.embHom (embed217 f).val).R
+  rw [Freyd.Alg.embHom_R]
+  -- `(embed217 f).val = embed1' (embedRel f).val` and `(embedRel f).val = relClass (graph f) = r`.
+  show m.val.R = embed1' (𝒜 := RelObj 𝒞) (embedRel f).val
+  show m.val.R = embed1' (𝒜 := RelObj 𝒞) (relClass (graph f))
+  rw [hcollapse, hf]
+
+/-- **§2.343** (Freyd's headline): *every LOGOS `C` embeds faithfully AND FULLY in a POSITIVE
+    EFFECTIVE LOGOS.*  The target is `D := Map(SplObj(Mat(Rel C)))`, a positive effective logos
+    (`s343_positive_effective_logos`), and `embed217_2 : C → D` is a per-hom BIJECTION:
+    FAITHFUL (`embed217_2_faithful`) and FULL (`embed217_2_full`).  Bundled as: there is a positive
+    effective logos structure on `D` together with a full+faithful embedding. -/
+theorem s343_full_faithful_embed_into_positive_effective_logos :
+    (Nonempty (@Logos (MapObj (SplObj (MatObj (RelObj 𝒞))))
+                (mapCat (𝒜 := SplObj (MatObj (RelObj 𝒞)))))) ∧
+    (Nonempty (@HasBinaryCoproducts (MapObj (SplObj (MatObj (RelObj 𝒞))))
+                (mapCat (𝒜 := SplObj (MatObj (RelObj 𝒞)))))) ∧
+    (Nonempty (@Freyd.EffectiveRegular (MapObj (SplObj (MatObj (RelObj 𝒞))))
+                (mapCat (𝒜 := SplObj (MatObj (RelObj 𝒞)))))) ∧
+    -- faithful
+    (∀ {a b : 𝒞} {f g : a ⟶ b}, embed217_2 f = embed217_2 g → f = g) ∧
+    -- full
+    (∀ {a b : 𝒞} (m : @Cat.Hom (MapObj (SplObj (MatObj (RelObj 𝒞))))
+          (mapCat (𝒜 := SplObj (MatObj (RelObj 𝒞)))) (embed217_2Obj a) (embed217_2Obj b)),
+        ∃ f : a ⟶ b, m = embed217_2 f) :=
+  ⟨⟨s343_logos⟩,
+   ⟨(s217_2_target_positivePreLogos (𝒞 := 𝒞)).toHasBinaryCoproducts⟩,
+   ⟨s343_effectiveRegular⟩,
+   fun {_ _ _ _} h => embed217_2_faithful h,
+   fun {_ _} m => embed217_2_full m⟩
+
+end S343
+
 /-! ### §2.214 REVERSE — `Rel(C)` has finite coproducts ⟹ `C` is positive.
 
   Freyd §2.214: a pre-logos `C` is positive **iff** `Rel(C)` has finite coproducts.  The forward
