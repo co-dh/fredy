@@ -881,12 +881,10 @@ theorem simplePart_largest {a b : 𝒜} (R : a ⟶ b) (A : a ⟶ a)
 -- AVAILABLE: `SplObj 𝒜` (S2_21.lean) = the case E = all symmetric idempotents, with
 --   `instAllegorySpl`, `instDistributiveSpl`, `instUnitarySpl`, `instPositiveSpl`,
 --   `instTabularAllegorySplCor` (Spl.lean), `splObj_tabular_of_semiSimple`.
---   However, `DivisionAllegory (SplObj 𝒜)` is NOT proved.
--- MISSING: (1) for the full-Spl case (E = all symmetric idempotents): define
---   `splDiv` on `SplHom E F` as `⟨E.idem.e ≫ (R.R / S.R) ≫ F.idem.e⟩` and verify
---   `le_div_iff` using `SplHom.fixed_left`/`fixed_right` + `DivisionAllegory.le_div` in 𝒜.
---   This is the sharpest gap: `instDivisionAllegorySpl [DivisionAllegory 𝒜]` is one definition
---   + two lemmas away.  (2) For restricted PRel(E) with E ⊊ all-sym-idempotents: not yet
+-- FULL-Spl case (E = all symmetric idempotents) DONE: `DivisionAllegory (SplObj 𝒜)` for
+--   `[DivisionAllegory 𝒜]` is PROVED as `instDivisionSpl` (Spl.lean) — pointwise division
+--   `splDiv = E.e ≫ (R.R/S.R) ≫ F.e`, both §2.31 laws via SplHom.fixed + base div_comp_le/le_div.
+-- MISSING: (2) For restricted PRel(E) with E ⊊ all-sym-idempotents: not yet
 --   needed; the full-Spl case subsumes the faithful-embedding claim when |A| ⊂ E.
 
 /-! ## §2.342  Positive reflection of a division allegory
