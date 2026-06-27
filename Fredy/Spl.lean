@@ -227,6 +227,16 @@ instance splObj_tabular_of_semiSimple {𝒜 : Type u} [SemiSimpleAllegory 𝒜] 
     tabular := fun {E F} Ψ =>
       tabular_of_semiSimple_splits (fun R => splObj_semiSimple R) splObj_splitsSymmIdem Ψ }
 
+/-- **§2.16(10) corollary**: `SplObj 𝒜` is tabular whenever `𝒜` is TABULAR — since every
+    tabular allegory is semi-simple (`tabular_is_semiSimple`), the keystone applies.  Combined
+    with `§2.169` (every equivalence relation of `SplObj 𝒜` splits), `SplObj 𝒜` is the
+    *effective tabular* completion of a tabular allegory — the allegory side of the effective
+    reflection of a regular category. -/
+def splObj_tabular_of_tabular {𝒜 : Type u} [TabularAllegory 𝒜] :
+    TabularAllegory (SplObj 𝒜) :=
+  letI := semiSimpleAllegory_of_tabular (ℬ := 𝒜)
+  splObj_tabular_of_semiSimple
+
 /-! ## §2.42  `SplObj 𝒜` is an effective power allegory for a power allegory `𝒜`
 
   Freyd §2.42: if `𝒜` is a power allegory then `SplObj 𝒜` is an effective power allegory.

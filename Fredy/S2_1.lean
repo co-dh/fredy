@@ -566,6 +566,21 @@ def SemiSimple {a b : 𝒜} (R : a ⟶ b) : Prop :=
 class SemiSimpleAllegory (𝒜 : Type u) extends Allegory 𝒜 where
   semi_simple {a b : 𝒜} (R : a ⟶ b) : SemiSimple R
 
+/-- **§2.16(10)**: every TABULAR allegory is SEMI-SIMPLE.  A tabulation `R = f°≫g` with
+    `f, g` MAPS (entire+simple) is in particular a semi-simple factoring `F°≫G` with
+    `F = f`, `G = g` simple — semi-simplicity drops the entireness, keeping only simplicity.
+    (Fresh type variable `ℬ` avoids a diamond with the file-level `variable [Allegory 𝒜]`.) -/
+theorem tabular_is_semiSimple {ℬ : Type u} [TabularAllegory ℬ] {a b : ℬ} (R : a ⟶ b) :
+    SemiSimple R := by
+  obtain ⟨c, f, g, hf, hg, hRfg, _⟩ := TabularAllegory.tabular R
+  exact ⟨c, f, g, hf.2, hg.2, hRfg⟩
+
+/-- **§2.16(10)**: a tabular allegory, viewed as a semi-simple allegory.  Provided as a `def`
+    (not a global instance) to avoid surprising typeclass resolution; apply via `letI`. -/
+def semiSimpleAllegory_of_tabular {ℬ : Type u} [TabularAllegory ℬ] : SemiSimpleAllegory ℬ where
+  toAllegory := (inferInstance : TabularAllegory ℬ).toAllegory
+  semi_simple := tabular_is_semiSimple
+
 /-! ## Missing propositions from §2.12–§2.16(13) -/
 
 -- §2.12: Symmetric and transitive imply idempotent.
