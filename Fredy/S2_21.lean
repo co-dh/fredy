@@ -515,6 +515,40 @@ example (𝒜 : Type u) [DistributiveAllegory 𝒜] : PositiveAllegory (Mat.MatO
 --   discharged (`Freyd.repr_in_power_of_sets_of_tabular`), only ONE genuine §1.543 structural
 --   residual remains (R3), isolated as explicit hypotheses (see below).
 --
+-- ★ K1 — DONE (STALK REGULAR-FUNCTOR, Fredy/StalkRegular.lean, axioms ⊆ [propext,Classical.choice,
+--   Quot.sound]).  The §1.635 stalk functor `T_F̂ : 𝒞 → Set` (the colimit `TF` of S1_62) is a
+--   `RelFunctor.RegularFunctor`: `Freyd.PreLogosHorn.Stalk.TF_regularFunctor ℱ hℱ hproj`.
+--   This makes CONCRETE the §1.625 "representation of regular categories" content that S1_62 carried
+--   only ABSTRACTLY as the parameter `repReg`.  The five fields split into:
+--     • UNCONDITIONAL (any pre-filter — "directed colimit commutes with finite limit in Set"):
+--         `TF_preserves_binaryProducts`, `TF_preserves_pullbacks`, `TF_preserves_mono`.
+--     • CONDITIONAL on `hproj` = "every member of `ℱ` is PROJECTIVE":
+--         `TF_preserves_covers_of_projective`, `TF_preserves_images`.
+--   The conditionality is NOT a defect of the formalization — it is Freyd's OWN hypothesis.  §1.635
+--   p.123 opens *"We may concentrate on a CAPITAL positive pre-logos A [1.63]"* and §1.634 states
+--   *"`T_F` preserves finite products and equalizers; IF the elements of `F` are projective then
+--   `T_F` preserves covers."*  In a capital pre-logos the complemented subterminators (an
+--   ultra-filter's members) are projective (§1.633).  So the prompt-conjectured "filtered colimit of
+--   representables preserves covers with NO projectivity" is FALSE: covers/epis are not a
+--   finite-limit notion, and filteredness alone never gives them.  The stalk route DOES NOT bypass
+--   capitalization for cover-preservation; it relocates R3, it does not remove it.
+--
+-- ★ K2 — the stalk route to §2.218 (Fredy/S2_218.lean `Freyd.relStalk_faithful`, axiom-FREE).
+--   `Rel(T_F̂) : Rel(𝒞) ⟶ Rel(Set)` is a FAITHFUL allegory morphism GIVEN (i) `hproj` (K1 covers =
+--   capitalization, the relocated R3) and (ii) `T_F̂` REFLECTS ISOS.  Set-covers split for free
+--   (`set_cover_splits`).  Ingredient (ii) — CONSERVATIVITY — is the genuinely IRREDUCIBLE wall:
+--   `relAllegoryHom_faithful_of_reflects` needs reflects-isos, and the reduction `monoFactor_reflect`
+--   genuinely uses it (a pullback projection becomes a split-mono = iso downstairs and must reflect
+--   to an iso upstairs).  Faithful + reflects-MONOS does NOT suffice — a faithful functor reflects
+--   monos but never isos.  A SINGLE stalk is never iso-reflecting; iso-reflection is the JOINT
+--   CONSERVATIVITY of the stalk FAMILY (`StalkResidual.reflect`, S1_62), which is genuinely
+--   §2.217-grade (ZERO-reflection alone already needs well-pointedness — a non-initial object with no
+--   global element has every stalk empty).  CONCLUSION: the stalk route does NOT make §2.218
+--   unconditional.  R3 (capitalization, for covers) AND conservativity (for faithfulness) both
+--   remain; the stalk route's genuine win is making K1's `RegularFunctor` CONCRETE and supplying the
+--   colimit-only ZERO-preservation (already recorded).  The §2.217 conservativity wall is REAL, not a
+--   wrong-route artifact, and is the true irreducible residual of §2.218.
+--
 -- ★ R2 — DONE (CARRIER BRIDGE, Fredy/MapCat.lean + Fredy/RelCat.lean, axioms ⊆ [propext,
 --   Classical.choice,Quot.sound]):  the MISSING meet-tabulation lemma `relOf (E ⊓ F) = relOf E ∩
 --   relOf F` is now built — `Freyd.Alg.relOf_inter` (MapCat): `⊑` by `relOf_le_of_relLe` on the

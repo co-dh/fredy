@@ -16,6 +16,7 @@
 -/
 
 import Fredy.RelCat
+import Fredy.StalkRegular
 import Fredy.FiniteSeparation
 import Fredy.Capitalization
 
@@ -107,5 +108,49 @@ theorem repr_in_power_of_sets_of_tabular
   letI : RegularCategory (Alg.MapObj 𝒜) := Alg.mapRegularCategory
   exact repr_in_power_of_sets (MapA := Alg.MapObj 𝒜)
     (bridgeFunctor 𝒜) (bridgeFunctor_faithful 𝒜) hproj cap hcap
+
+/-! ## §2.218 (K2) — the ULTRA-FILTER STALK route to a faithful `Rel(𝒞) → Rel(Set)`
+
+  Freyd's §1.635 proves the representation theorem through the stalk functors `T_F̂` rather than the
+  raw hom-representation.  The keystone `TF_regularFunctor` (K1, `Fredy/StalkRegular.lean`) makes a
+  single stalk a `RegularFunctor 𝒞 → Set`, so `Rel(T_F̂)` is an allegory morphism `Rel(𝒞) → Rel(Set)`.
+  Its FAITHFULNESS, via `relAllegoryHom_faithful_of_reflects`, needs exactly two facts about the
+  stalk — and the stalk route does NOT remove either of the §2.218 residuals, it RELOCATES them:
+
+    (R3, projectivity)  `T_F̂` preserves COVERS only when the elements of `F̂` are PROJECTIVE
+        (`TF_preserves_covers_of_projective`).  This is Freyd's own hypothesis — his §1.635 proof
+        opens *"We may concentrate on a CAPITAL positive pre-logos A [1.63]"* precisely so that the
+        complemented subterminators (the ultra-filter's members) are projective (§1.633).  So
+        capitalization is STILL required; the colimit does not buy cover-preservation for free
+        (covers are not a finite-limit notion — only `pres_prod`/`pres_pullback`/`pres_mono` are
+        unconditional).
+
+    (CONSERVATIVITY)  `relAllegoryHom_faithful_of_reflects` needs `T_F̂` to REFLECT ISOS.  A single
+        stalk does not; this is the §2.217-grade joint conservativity of the stalk FAMILY, the
+        genuinely irreducible residual (`StalkResidual.reflect` in `S1_62`).
+
+  Covers in `Set` split (choice, `set_cover_splits`), so the third ingredient is free. -/
+
+/-- Every cover in `Set = Type u` splits (fibrewise surjection has a section). -/
+theorem set_cover_splits {X Y : Type u} (e : X ⟶ Y) (he : Cover e) :
+    ∃ s : Y ⟶ X, s ≫ e = Cat.id Y := by
+  have hsurj : Function.Surjective e := (SetRegular.set_cover_iff_surjective e).1 he
+  exact ⟨fun b => (hsurj b).choose, by funext b; exact (hsurj b).choose_spec⟩
+
+open PreLogosHorn.Stalk in
+/-- **§2.218 (K2, single stalk).**  For a positive pre-logos `𝒞` and an ultra-filter `F̂` whose
+    members are PROJECTIVE (the capital case, §1.633) and whose stalk `T_F̂` REFLECTS ISOS
+    (conservativity), `Rel(T_F̂) : Rel(𝒞) ⟶ Rel(Set)` is a FAITHFUL allegory morphism.
+
+    This is the stalk-route analogue of `relHomRep_faithful`; it shows the stalk does not bypass
+    either §2.218 residual (projectivity + conservativity) but packages them cleanly via K1. -/
+theorem relStalk_faithful {𝒞 : Type u} [Cat.{u} 𝒞] [PreLogos 𝒞]
+    (ℱ : Subobject 𝒞 one → Prop) (hℱ : IsPreFilter ℱ)
+    (hproj : ∀ U : Subobject 𝒞 one, ℱ U → Projective U.dom)
+    (hrefl : ∀ {X Y : 𝒞} (f : X ⟶ Y), IsIso ((TF_functor ℱ).map f) → IsIso f) :
+    (TF_regularFunctor ℱ hℱ hproj).relAllegoryHom.Faithful :=
+  (TF_regularFunctor ℱ hℱ hproj).relAllegoryHom_faithful_of_reflects
+    (fun f hiso => hrefl f hiso)
+    (fun e he => set_cover_splits e he)
 
 end Freyd
