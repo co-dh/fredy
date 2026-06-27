@@ -2135,4 +2135,302 @@ theorem relReverse_positive_of_relCoproducts (zero : RelObj 𝒞)
 
 end ReverseCoproduct
 
+/-! ## §2.218 BRICK 2 — Rel-2-functoriality (`Rel(F)` for a regular functor `F`)
+
+  A REGULAR FUNCTOR `F : C → D` between regular categories preserves finite limits
+  (terminal/products/equalizers, hence pullbacks via §1.437), monos, images, and covers.
+  Such an `F` induces an ALLEGORY FUNCTOR `Rel(F) : Rel(C) → Rel(D)`:
+    • on objects:  `Rel(F)(A) := F A`  (lifted along `RelObj`);
+    • on a relation `R ⊆ A×B` (a jointly-monic span `R.colA, R.colB`): apply `F` to the span,
+      land in `F A × F B` via `pair (F R.colA) (F R.colB)`, and take the IMAGE.
+
+  This file LANDS:
+    • `RegularFunctor` — the structure (reuses `RepOfPreReg` + mono/image preservation + faithful).
+    • `relImageObj` — the `BinRel D (F A) (F B)` built from `F`'s action on a span (the image of
+      `⟨F colA, F colB⟩`), with the joint-monic proof.
+    • `RegularFunctor.relMap` — the hom action on `BinRelQuot` (well-defined on `RelLe`-classes).
+    • `RegularFunctor.relMap_id` and `RegularFunctor.relMap_recip` — the cheap allegory laws.
+
+  REMAINING WALL (documented, NOT faked): `map_comp` and `map_inter` need the Beck–Chevalley
+  identity "image ∘ F = F ∘ image of a pullback span", i.e. that `F` preserving pullbacks+covers
+  makes `image (F applied to the composite span) = F applied to (image of the span)`.  That is the
+  several-hundred-line analytic core; it is left as the explicit hypotheses-driven gap below. -/
+
+section SubobjectPostIso
+variable {D : Type u} [Cat.{v} D]
+
+/-- Post-compose a subobject's arrow by an isomorphism `e`, giving a subobject of the target.
+    (`m ≫ e` is monic because `e` is iso.) -/
+noncomputable def Subobject.postIso {X Y : D} (S : Subobject D X) {e : X ⟶ Y} (he : IsIso e) :
+    Subobject D Y where
+  dom := S.dom
+  arr := S.arr ≫ e
+  monic := by
+    obtain ⟨e', he1, _⟩ := he
+    intro W g h hgh
+    apply S.monic
+    have : (g ≫ S.arr) ≫ e = (h ≫ S.arr) ≫ e := by rw [Cat.assoc, Cat.assoc]; exact hgh
+    calc g ≫ S.arr = (g ≫ S.arr) ≫ e ≫ e' := by rw [he1, Cat.comp_id]
+      _ = ((g ≫ S.arr) ≫ e) ≫ e' := (Cat.assoc _ _ _).symm
+      _ = ((h ≫ S.arr) ≫ e) ≫ e' := by rw [this]
+      _ = h ≫ S.arr := by rw [Cat.assoc, Cat.assoc, he1, Cat.comp_id]
+
+/-- An iso post-composition preserves `IsImage`: if `I` is the image of `m`, then `I.postIso e`
+    is the image of `m ≫ e`.  (Allowing/minimality both transport across the iso `e`.) -/
+theorem isImage_postIso {W' X Y : D} {m : W' ⟶ X} {I : Subobject D X} (hI : IsImage m I)
+    {e : X ⟶ Y} (he : IsIso e) : IsImage (m ≫ e) (I.postIso he) := by
+  obtain ⟨e', he1, he2⟩ := he
+  refine ⟨?_, ?_⟩
+  · obtain ⟨l, hl⟩ := hI.1
+    exact ⟨l, by show l ≫ (I.arr ≫ e) = m ≫ e; rw [← Cat.assoc, hl]⟩
+  · rintro T ⟨t, ht⟩
+    -- `T.postIso e'` allows `m`, so `I ≤ T.postIso e'`; transport the comparison back.
+    have hTallows : Allows (T.postIso (⟨e, he2, he1⟩ : IsIso e')) m :=
+      ⟨t, by
+        show t ≫ (T.arr ≫ e') = m
+        rw [← Cat.assoc, ht, Cat.assoc, he1, Cat.comp_id]⟩
+    obtain ⟨k, hk⟩ := hI.2 _ hTallows
+    refine ⟨k, ?_⟩
+    show k ≫ T.arr = I.arr ≫ e
+    have hk' : k ≫ (T.arr ≫ e') = I.arr := hk
+    have hcollapse : (T.arr ≫ e') ≫ e = T.arr := by
+      rw [Cat.assoc, he2, Cat.comp_id]
+    have step : (k ≫ (T.arr ≫ e')) ≫ e = k ≫ T.arr := by
+      rw [Cat.assoc, hcollapse]
+    calc k ≫ T.arr = (k ≫ (T.arr ≫ e')) ≫ e := step.symm
+      _ = I.arr ≫ e := by rw [hk']
+
+end SubobjectPostIso
+
+namespace RelFunctor
+
+open Freyd
+
+variable {C D : Type u} [Cat.{v} C] [Cat.{v} D]
+
+/-- A **regular functor** `F : C → D` between regular categories: preserves binary products
+    (`pres_prod`), covers (`pres_covers`), monos (`pres_mono`), and images (`pres_image`).
+    These are exactly the data needed to transport relations: `pair` lands in `F A × F B`
+    (products), `image` of the span exists & is preserved (images/monos), and `°`/`∩`/`≫` of
+    relations are preserved (covers handle composition's image step).  We phrase everything
+    over `[RegularCategory]` only (which already supplies products/pullbacks/images), avoiding the
+    `exactPullbacks`/`RegularCategory.toHasPullbacks` instance diamond that `CartesianCategory`
+    would introduce.  (Equalizer-preservation, needed only for the unused finite-limit packaging,
+    is recovered from `pres_prod` + pullbacks where required.) -/
+structure RegularFunctor (F : C → D) [hF : Functor F]
+    [RegularCategory C] [RegularCategory D] : Prop where
+  /-- preserves binary products: the canonical `F(A×B) → FA×FB` is iso. -/
+  pres_prod  : PreservesBinaryProducts F
+  /-- preserves covers (§1.52). -/
+  pres_covers : PreservesCovers F
+  /-- preserves monos. -/
+  pres_mono  : PreservesMono F
+  /-- preserves images (§1.51). -/
+  pres_image : PreservesImages F pres_mono
+
+variable {F : C → D} [hF : Functor F]
+  [RegularCategory C] [RegularCategory D]
+
+/-- The image-relation of a span through `F`: take `F` of the columns, pair them into
+    `F A × F B`, and form the `BinRel` from the image subobject (its arrow is monic, hence
+    a jointly-monic pair via `monicPair_of_monic_pair`). -/
+noncomputable def relImageObj (hreg : RegularFunctor F) {A B : C}
+    (R : BinRel C A B) : BinRel D (F A) (F B) :=
+  let I := image (pair (hF.map R.colA) (hF.map R.colB))
+  { src  := I.dom
+    colA := I.arr ≫ fst
+    colB := I.arr ≫ snd
+    isMonicPair := by
+      -- `I.arr` is monic, so the pair `(I.arr ≫ fst, I.arr ≫ snd)` is jointly monic.
+      refine fun {W} f g hA hB => ?_
+      have hfst : (f ≫ I.arr) ≫ fst = (g ≫ I.arr) ≫ fst := by
+        simpa [Cat.assoc] using hA
+      have hsnd : (f ≫ I.arr) ≫ snd = (g ≫ I.arr) ≫ snd := by
+        simpa [Cat.assoc] using hB
+      have hprod : f ≫ I.arr = g ≫ I.arr := by
+        have hf : f ≫ I.arr = pair ((f ≫ I.arr) ≫ fst) ((f ≫ I.arr) ≫ snd) :=
+          (pair_uniq _ _ (f ≫ I.arr) rfl rfl)
+        have hg : g ≫ I.arr = pair ((f ≫ I.arr) ≫ fst) ((f ≫ I.arr) ≫ snd) :=
+          (pair_uniq _ _ (g ≫ I.arr) hfst.symm hsnd.symm)
+        rw [hf, hg]
+      exact I.monic f g hprod }
+
+/-- `relImageObj` is monotone for `RelLe`: a containment of spans upstairs gives a containment
+    of their `F`-images downstairs (images are monotone, and `F` preserves the witnessing
+    factorization).  This is what makes the hom action descend to `RelLe`-classes. -/
+theorem relImageObj_mono (hreg : RegularFunctor F) {A B : C}
+    {R S : BinRel C A B} (h : RelLe R S) :
+    RelLe (relImageObj hreg R) (relImageObj hreg S) := by
+  -- From `R ⊂ S` get the witness `z : R.src → S.src` with `z ≫ S.colA = R.colA` etc.
+  obtain ⟨⟨z, hzA, hzB⟩⟩ := h
+  -- `F z` sends the `R`-span to the `S`-span: `F z ≫ F S.colA = F R.colA`.
+  have hFzA : hF.map z ≫ hF.map S.colA = hF.map R.colA := by
+    rw [← hF.map_comp, hzA]
+  have hFzB : hF.map z ≫ hF.map S.colB = hF.map R.colB := by
+    rw [← hF.map_comp, hzB]
+  -- The paired span `pR = pair (F R.colA) (F R.colB)` factors through `pS = pair (F S.colA) (F S.colB)`
+  -- via `F z`.  Abbreviations `pR`, `pS`, `IR`, `IS` introduced with `let` (mathlib-free `set` is N/A).
+  let pR := pair (hF.map R.colA) (hF.map R.colB)
+  let pS := pair (hF.map S.colA) (hF.map S.colB)
+  have hfst : (hF.map z ≫ pS) ≫ fst = hF.map R.colA := by
+    rw [Cat.assoc]; show hF.map z ≫ (pS ≫ fst) = hF.map R.colA
+    rw [fst_pair, hFzA]
+  have hsnd : (hF.map z ≫ pS) ≫ snd = hF.map R.colB := by
+    rw [Cat.assoc]; show hF.map z ≫ (pS ≫ snd) = hF.map R.colB
+    rw [snd_pair, hFzB]
+  have hfac : hF.map z ≫ pS = pR :=
+    pair_uniq (hF.map R.colA) (hF.map R.colB) (hF.map z ≫ pS) hfst hsnd
+  have hIS_allows_pR : Allows (image pS) pR := by
+    obtain ⟨lS, hlS⟩ := (image_allows pS)
+    refine ⟨hF.map z ≫ lS, ?_⟩
+    show (hF.map z ≫ lS) ≫ (image pS).arr = pR
+    rw [Cat.assoc, hlS, hfac]
+  obtain ⟨k, hk⟩ := image_min pR (image pS) hIS_allows_pR
+  -- `k : (image pR).dom → (image pS).dom` with `k ≫ (image pS).arr = (image pR).arr`.
+  refine ⟨⟨k, ?_, ?_⟩⟩
+  · show k ≫ ((image pS).arr ≫ fst) = (image pR).arr ≫ fst
+    rw [← Cat.assoc, hk]
+  · show k ≫ ((image pS).arr ≫ snd) = (image pR).arr ≫ snd
+    rw [← Cat.assoc, hk]
+
+/-- The hom action of `Rel(F)` on a single representative span, as a `RelLe`-class. -/
+noncomputable def relMapRep (hreg : RegularFunctor F) {A B : C}
+    (R : BinRel C A B) : BinRelQuot (𝒞 := D) (F A) (F B) :=
+  relClass (relImageObj hreg R)
+
+/-- The hom action `Rel(F) : BinRelQuot C A B → BinRelQuot D (F A) (F B)`, descended to
+    `RelLe`-classes via `relImageObj_mono`. -/
+noncomputable def RegularFunctor.relMap (hreg : RegularFunctor F) {A B : C}
+    (x : BinRelQuot (𝒞 := C) A B) : BinRelQuot (𝒞 := D) (F A) (F B) :=
+  Quotient.liftOn x (relMapRep hreg) (by
+    intro R S ⟨hRS, hSR⟩
+    exact quotLe_antisymm (relImageObj_mono hreg hRS) (relImageObj_mono hreg hSR))
+
+@[simp] theorem RegularFunctor.relMap_mk (hreg : RegularFunctor F) {A B : C}
+    (R : BinRel C A B) :
+    hreg.relMap (relClass R) = relClass (relImageObj hreg R) := rfl
+
+/-- The swapped span `pair (F R.colB) (F R.colA)` equals `pair (F R.colA) (F R.colB) ≫ σ`. -/
+theorem pair_swap_eq {A B : C} (R : BinRel C A B) :
+    pair (hF.map R.colB) (hF.map R.colA)
+      = pair (hF.map R.colA) (hF.map R.colB) ≫ prodSwap (F A) (F B) := by
+  refine (pair_uniq (hF.map R.colB) (hF.map R.colA)
+    (pair (hF.map R.colA) (hF.map R.colB) ≫ prodSwap (F A) (F B)) ?_ ?_).symm
+  · rw [Cat.assoc, prodSwap_fst, snd_pair]
+  · rw [Cat.assoc, prodSwap_snd, fst_pair]
+
+/-- The swapped image subobject of `pair (F R.colA) (F R.colB)` is an image of the column-swapped
+    span `pair (F R.colB) (F R.colA)`.  Technical heart of reciprocation-preservation. -/
+theorem swapImage_isImage {A B : C} (R : BinRel C A B) :
+    IsImage (pair (hF.map R.colB) (hF.map R.colA))
+      ((image (pair (hF.map R.colA) (hF.map R.colB))).postIso
+        (prod_comm_iso (A := F A) (B := F B))) := by
+  rw [pair_swap_eq]
+  exact isImage_postIso (HasImages.isImage _) (prod_comm_iso (A := F A) (B := F B))
+
+/-- **`Rel(F)` preserves reciprocation.**  `relImageObj (R°)` is the image of the swapped span,
+    which equals the reciprocal (column-swap) of `relImageObj R` up to the image-uniqueness iso. -/
+theorem RegularFunctor.relMap_recip (hreg : RegularFunctor F) {A B : C}
+    (x : BinRelQuot (𝒞 := C) A B) :
+    hreg.relMap (qRecip x) = qRecip (hreg.relMap x) := by
+  refine Quotient.inductionOn x (fun R => ?_)
+  show relClass (relImageObj hreg (reciprocal R)) = qRecip (relClass (relImageObj hreg R))
+  rw [qRecip_mk]
+  -- The two images of `pair (F R.colB) (F R.colA)` give an iso comparison, hence equal classes.
+  have hQimg := swapImage_isImage (F := F) R
+  have hPimg : IsImage (pair (hF.map R.colB) (hF.map R.colA))
+      (image (pair (hF.map R.colB) (hF.map R.colA))) := HasImages.isImage _
+  -- Abbreviations (mathlib-free `set` is N/A): σ = swap iso, Ip/Iq the two images.
+  let σ := prodSwap (F A) (F B)
+  let Ip := image (pair (hF.map R.colA) (hF.map R.colB))
+  let Iq := image (pair (hF.map R.colB) (hF.map R.colA))
+  apply quotLe_antisymm
+  · -- `c : Iq.dom → Ip.dom`, `c ≫ (Ip.arr ≫ σ) = Iq.arr`.
+    obtain ⟨c, hc⟩ := hPimg.2 _ hQimg.1
+    have hc' : c ≫ (Ip.arr ≫ σ) = Iq.arr := hc
+    refine ⟨c, ?_, ?_⟩
+    · -- target colA of `(relImageObj R)°` is `Ip.arr ≫ snd`; source colA of `relImageObj (R°)` is `Iq.arr ≫ fst`.
+      show c ≫ (Ip.arr ≫ snd) = Iq.arr ≫ fst
+      have hexp : (c ≫ (Ip.arr ≫ σ)) ≫ fst = c ≫ (Ip.arr ≫ snd) := by
+        rw [Cat.assoc, Cat.assoc, prodSwap_fst]
+      rw [← hexp, hc']
+    · show c ≫ (Ip.arr ≫ fst) = Iq.arr ≫ snd
+      have hexp : (c ≫ (Ip.arr ≫ σ)) ≫ snd = c ≫ (Ip.arr ≫ fst) := by
+        rw [Cat.assoc, Cat.assoc, prodSwap_snd]
+      rw [← hexp, hc']
+  · obtain ⟨c, hc⟩ := hQimg.2 _ hPimg.1
+    have hc' : c ≫ Iq.arr = Ip.arr ≫ σ := hc
+    refine ⟨c, ?_, ?_⟩
+    · show c ≫ (Iq.arr ≫ fst) = Ip.arr ≫ snd
+      have hlhs : c ≫ (Iq.arr ≫ fst) = (c ≫ Iq.arr) ≫ fst := (Cat.assoc _ _ _).symm
+      have hrhs : Ip.arr ≫ snd = (Ip.arr ≫ σ) ≫ fst := by rw [Cat.assoc, prodSwap_fst]
+      rw [hlhs, hc', hrhs]
+    · show c ≫ (Iq.arr ≫ snd) = Ip.arr ≫ fst
+      have hlhs : c ≫ (Iq.arr ≫ snd) = (c ≫ Iq.arr) ≫ snd := (Cat.assoc _ _ _).symm
+      have hrhs : Ip.arr ≫ fst = (Ip.arr ≫ σ) ≫ snd := by rw [Cat.assoc, prodSwap_snd]
+      rw [hlhs, hc', hrhs]
+
+end RelFunctor
+
+/-! ## §2.218 BRICK 3 — the power of an allegory `(I → 𝒜)`
+
+  For any allegory `𝒜` and index type `I`, the functor category `𝒜^I` is again an allegory,
+  with ALL operations computed POINTWISE (`(R ≫ S) i = R i ≫ S i`, `(R°) i = (R i)°`,
+  `(R ∩ S) i = R i ∩ S i`).  Every allegory axiom is a *pointwise* equation, so it lifts by
+  `funext` from the fibre `𝒜`.
+
+  We host the structure on a type synonym `PowerObj I 𝒜 := I → 𝒜` to keep the new `Cat`/`Allegory`
+  instances from clashing with the bespoke `Cat (I → Type w)` (`powerCat`, S1_55) — `Set^I`'s own
+  category structure stays the canonical one on `I → Type w`, while the allegory of a *power of an
+  allegory* lives on `PowerObj`.  (For the §2.218 assembly the relevant power is `Rel(Set)^I`, an
+  allegory-power, so this synonym is exactly the carrier we want.) -/
+
+namespace PowerAllegory
+
+/-- The carrier of the power allegory `𝒜^I`: an `I`-indexed family of objects of `𝒜`. -/
+def PowerObj (I : Type w) (𝒜 : Type u) : Type (max w u) := I → 𝒜
+
+variable {I : Type w} {𝒜 : Type u}
+
+/-- A morphism of `𝒜^I` is a pointwise family of `𝒜`-morphisms. -/
+def PowerHom [Cat.{v} 𝒜] (X Y : PowerObj I 𝒜) : Type (max w v) := ∀ i, X i ⟶ Y i
+
+/-- **§2.218 BRICK 3 — the power category `𝒜^I`.**  Objects `I → 𝒜`, homs pointwise families,
+    composition/identity pointwise.  All four category laws are pointwise (`funext`). -/
+instance powerCatAlg [Cat.{v} 𝒜] : Cat.{max w v} (PowerObj I 𝒜) where
+  Hom X Y := PowerHom X Y
+  id X := fun i => Cat.id (X i)
+  comp R S := fun i => R i ≫ S i
+  id_comp R := funext fun i => Cat.id_comp (R i)
+  comp_id R := funext fun i => Cat.comp_id (R i)
+  assoc R S T := funext fun i => Cat.assoc (R i) (S i) (T i)
+
+@[simp] theorem power_comp_apply [Cat.{v} 𝒜] {X Y Z : PowerObj I 𝒜}
+    (R : X ⟶ Y) (S : Y ⟶ Z) (i : I) : (R ≫ S) i = R i ≫ S i := rfl
+
+@[simp] theorem power_id_apply [Cat.{v} 𝒜] (X : PowerObj I 𝒜) (i : I) :
+    (Cat.id X) i = Cat.id (X i) := rfl
+
+/-- **§2.218 BRICK 3 — the power allegory `𝒜^I`.**  Reciprocation and intersection pointwise;
+    every allegory equation lifts from the fibre by `funext`. -/
+instance powerAllegory [Allegory.{v} 𝒜] : Allegory.{max w v} (PowerObj I 𝒜) where
+  recip {a b} R := fun i => (R i)°
+  inter {a b} R S := fun i => R i ∩ S i
+  recip_recip R := funext fun i => Allegory.recip_recip (R i)
+  recip_comp R S := funext fun i => Allegory.recip_comp (R i) (S i)
+  recip_inter R S := funext fun i => Allegory.recip_inter (R i) (S i)
+  inter_idem R := funext fun i => Allegory.inter_idem (R i)
+  inter_comm R S := funext fun i => Allegory.inter_comm (R i) (S i)
+  inter_assoc R S T := funext fun i => Allegory.inter_assoc (R i) (S i) (T i)
+  semidistrib R S T := funext fun i => Allegory.semidistrib (R i) (S i) (T i)
+  modular R S T := funext fun i => Allegory.modular (R i) (S i) (T i)
+
+@[simp] theorem power_recip_apply [Allegory.{v} 𝒜] {X Y : PowerObj I 𝒜}
+    (R : X ⟶ Y) (i : I) : (R°) i = (R i)° := rfl
+
+@[simp] theorem power_inter_apply [Allegory.{v} 𝒜] {X Y : PowerObj I 𝒜}
+    (R S : X ⟶ Y) (i : I) : (R ∩ S) i = R i ∩ S i := rfl
+
+end PowerAllegory
+
 end Freyd
