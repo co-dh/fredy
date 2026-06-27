@@ -643,6 +643,70 @@ noncomputable instance instDivisionSpl {𝒜 : Type u} [DivisionAllegory 𝒜] :
         _ ⊑ E.idem.e ≫ (Φ.R / Ψ.R) ≫ F.idem.e :=
             comp_mono_left _ (comp_mono_right hbase _) }
 
+/-! ## Goal A — `EffectiveDivisionAllegory (SplObj 𝒜)` for a semi-simple division allegory
+
+  Packages `instDivisionSpl` + `instEffectiveSpl` into the combined class.  The hypothesis
+  uses `SemiSimpleDivisionAllegory 𝒜` (defined in S2_4.lean, extending BOTH `DivisionAllegory`
+  and `SemiSimpleAllegory` from ONE shared `Allegory` base) to avoid the Lean 4 instance diamond
+  that arises when `[DivisionAllegory 𝒜]` and `[SemiSimpleAllegory 𝒜]` are carried separately:
+  the two `extends Allegory 𝒜` chains give distinct `Cat.Hom` types on `𝒜`, making `SplObj 𝒜`
+  via each path a DIFFERENT TYPE.  The combined class eliminates this by construction. -/
+
+/-- **Goal A** (§2.42 packaging): if `𝒜` is a SEMI-SIMPLE DIVISION ALLEGORY (the combined
+    `SemiSimpleDivisionAllegory`, which unifies the `Allegory` base) then `SplObj 𝒜` is an
+    EFFECTIVE DIVISION ALLEGORY.  The proof inlines `instDivisionSpl` for the division structure
+    and rebuilds the `EffectiveAllegory` side from `SemiSimpleDivisionAllegory.semi_simple` (which
+    operates on the SAME `Allegory` as the division side), avoiding any instance diamond. -/
+private theorem splObj_semiSimple_of_ssd {𝒜 : Type u} [SemiSimpleDivisionAllegory 𝒜]
+    {E F : SplObj 𝒜} (Ψ : E ⟶ F) : SemiSimple Ψ := by
+  obtain ⟨c0, F0, G0, hF0, hG0, hUfac⟩ := SemiSimpleDivisionAllegory.semi_simple Ψ.R
+  have hEsym : E.idem.e° = E.idem.e := E.idem.sym
+  have hFsym : F.idem.e° = F.idem.e := F.idem.sym
+  have hEidem : E.idem.e ≫ E.idem.e = E.idem.e := E.idem.idem
+  have hFidem : F.idem.e ≫ F.idem.e = F.idem.e := F.idem.idem
+  let C : SplObj 𝒜 := ⟨c0, ⟨Cat.id c0, recip_id, Cat.id_comp _⟩⟩
+  let legF : C ⟶ E := ⟨F0 ≫ E.idem.e, by
+        show Cat.id c0 ≫ (F0 ≫ E.idem.e) ≫ E.idem.e = F0 ≫ E.idem.e
+        rw [Cat.id_comp, Cat.assoc, hEidem]⟩
+  let legG : C ⟶ F := ⟨G0 ≫ F.idem.e, by
+        show Cat.id c0 ≫ (G0 ≫ F.idem.e) ≫ F.idem.e = G0 ≫ F.idem.e
+        rw [Cat.id_comp, Cat.assoc, hFidem]⟩
+  refine ⟨C, legF, legG, ?_, ?_, ?_⟩
+  · unfold Simple; rw [splLe_iff]
+    show (F0 ≫ E.idem.e)° ≫ (F0 ≫ E.idem.e) ⊑ E.idem.e
+    rw [Allegory.recip_comp, hEsym]
+    calc (E.idem.e ≫ F0°) ≫ F0 ≫ E.idem.e
+        = E.idem.e ≫ (F0° ≫ F0) ≫ E.idem.e := by simp only [Cat.assoc]
+      _ ⊑ E.idem.e ≫ Cat.id E.carrier ≫ E.idem.e := comp_mono_left _ (comp_mono_right hF0 _)
+      _ = E.idem.e := by rw [Cat.id_comp, hEidem]
+  · unfold Simple; rw [splLe_iff]
+    show (G0 ≫ F.idem.e)° ≫ (G0 ≫ F.idem.e) ⊑ F.idem.e
+    rw [Allegory.recip_comp, hFsym]
+    calc (F.idem.e ≫ G0°) ≫ G0 ≫ F.idem.e
+        = F.idem.e ≫ (G0° ≫ G0) ≫ F.idem.e := by simp only [Cat.assoc]
+      _ ⊑ F.idem.e ≫ Cat.id F.carrier ≫ F.idem.e := comp_mono_left _ (comp_mono_right hG0 _)
+      _ = F.idem.e := by rw [Cat.id_comp, hFidem]
+  · apply SplHom.ext
+    show Ψ.R = ((splRecip legF) ≫ legG).R
+    show Ψ.R = (F0 ≫ E.idem.e)° ≫ (G0 ≫ F.idem.e)
+    rw [Allegory.recip_comp, hEsym]
+    have hfix : E.idem.e ≫ Ψ.R ≫ F.idem.e = Ψ.R := Ψ.fixed
+    calc Ψ.R = E.idem.e ≫ Ψ.R ≫ F.idem.e := hfix.symm
+      _ = E.idem.e ≫ (F0° ≫ G0) ≫ F.idem.e := by rw [hUfac]
+      _ = (E.idem.e ≫ F0°) ≫ (G0 ≫ F.idem.e) := by simp only [Cat.assoc]
+
+noncomputable instance instEffectiveDivisionSpl {𝒜 : Type u}
+    [SemiSimpleDivisionAllegory 𝒜] :
+    EffectiveDivisionAllegory (SplObj 𝒜) :=
+  { instDivisionSpl,
+    (show EffectiveAllegory (SplObj 𝒜) from
+      { instAllegorySpl with
+        tabular := fun Ψ => tabular_of_semiSimple_splits
+          (fun S => splObj_semiSimple_of_ssd S) splObj_splitsSymmIdem Ψ
+        split_symmetric_idempotent := fun Φ hrefl hsym hidem =>
+          splObj_split_equivalence Φ hrefl hsym hidem })
+    with }
+
 /-! ## §2.42  `SplObj 𝒜` is an effective power allegory for a power allegory `𝒜`
 
   Freyd §2.42 (book, §2.422 corollary): *Let A be a power allegory.  Then `Spl(Corefl A)`
@@ -665,6 +729,27 @@ noncomputable instance instDivisionSpl {𝒜 : Type u} [DivisionAllegory 𝒜] :
       `splObj_effectivePrePower_of_semiSimple` adds the thick targets, and
       `effective_pre_power_is_power` yields `PowerAllegory (SplObj 𝒜)`.
 
+  GOAL B STATUS (precise marker):
+
+  Goal B is `EffectiveAllegory (SplCorObj 𝒜)` for `[PowerAllegory 𝒜]`.  The Lean class
+  `EffectiveAllegory` extends `TabularAllegory`, but the existing `SplCorObj.instTabularAllegorySplCor`
+  requires `[TabularAllegory 𝒜]`, which `PowerAllegory` alone does not provide.  Hence the
+  instance cannot be assembled as is.
+
+  The *mathematical* content — that every equivalence relation in `SplCorObj 𝒜` splits —
+  relies on `equivRel_eq_map_comp_recip` (§2.422), which requires the side-condition
+  `hbox : codBox E = codBox (∋ a)`.  For a reflexive E, `codBox E = 1`; but `codBox (∋ a) = 1`
+  iff `∋ a` is entire, which is NOT a consequence of the current `PowerAllegory` axioms
+  (the `eps_thick` field is box-guarded, not the unguarded `1 ⊑ ∋/∋`).
+
+  TWO-PART BLOCKER for Goal B:
+    (B1) `TabularAllegory (SplCorObj 𝒜)` under `[PowerAllegory 𝒜]` — needs either
+         `PowerAllegory → TabularAllegory` (not in repo; not trivially true) or the
+         effective part decoupled from `TabularAllegory`.
+    (B2) `hbox` for reflexive `E` — needs `dom((∋ a)°) = 1`, i.e., `∋ a` entire, which
+         requires adding `eps_entire : Entire (∋ b)` or `eps_codBox_one : codBox (∋ b) = 1`
+         to `PowerAllegory` (currently absent).
+
   REMAINING GAP (precise, NOT a repo lemma).  The conclusion `(effective) PowerAllegory`
   needs a THICK target for every object, which §2.43/§2.432 supply via the membership `eps`
   (`Thick (eps b)`).  An `EffectivePrePowerAllegory.thick_target` therefore requires a
@@ -677,7 +762,8 @@ noncomputable instance instDivisionSpl {𝒜 : Type u} [DivisionAllegory 𝒜] :
         `R/S = A(R)A°(S)`, carried across the splitting), giving `Thick (eps_{SplObj} b)`;
     (2) for a GENERAL power allegory, effectiveness of the COREFLEXIVE completion
         `SplCorObj 𝒜` via §2.422 (`E = E/E = A(E)A°(E) = ff°` + coreflexive split), since a
-        general power allegory is NOT semi-simple so `instEffectiveSpl` does not fire.
+        general power allegory is NOT semi-simple so `instEffectiveSpl` does not fire;
+        BLOCKED by (B1)+(B2) above.
 
   With those, `effective_pre_power_is_power` (S2_4) closes the conclusion.  The
   distributive/division tower (`instDistributiveSpl`, `instDivisionSpl`, `instUnitarySpl`,

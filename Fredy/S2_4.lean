@@ -449,6 +449,14 @@ class PrePowerAllegory (𝒜 : Type u) extends DivisionAllegory 𝒜 where
 class EffectiveDivisionAllegory (𝒜 : Type u)
     extends DivisionAllegory 𝒜, EffectiveAllegory 𝒜
 
+/-- A SEMI-SIMPLE DIVISION ALLEGORY: simultaneously a `DivisionAllegory` and a
+    `SemiSimpleAllegory` over the **same** `Allegory` base — the `extends` syntax
+    forces Lean to unify the two parents' shared `Cat`/`Allegory` fields into one,
+    eliminating the instance diamond that arises from carrying `[DivisionAllegory 𝒜]`
+    and `[SemiSimpleAllegory 𝒜]` as separate context hypotheses. -/
+class SemiSimpleDivisionAllegory (𝒜 : Type u)
+    extends DivisionAllegory 𝒜, SemiSimpleAllegory 𝒜
+
 /-- §2.354 (effective division allegory): every `T : x → a` factors as `T = h ≫ S`
     with `h` a map and `S = h° ≫ T` straight.  Splits `E = T/ₛT` via effectiveness.
 
