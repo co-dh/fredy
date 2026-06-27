@@ -826,6 +826,49 @@ theorem simplePart_largest {a b : 𝒜} (R : a ⟶ b) (A : a ⟶ a)
   (One direction was shown in §1.784: Rel(C) is a division allegory when C is a
   logos.  The other direction: construct the right adjoint to f# using f\(-)/f°.) -/
 
+/-- **§2.32 lower-function form.** For a map `f : a → b` and a coreflexive `c` on `b`, the
+    book's "domain of `fB`" lower function is `dom (f ≫ c) = 1 ∩ f c f°` (using `c° = c`,
+    `c ≫ c = c`).  This is the coreflexive on `a` that `corOf_invImage` (MapCat) computes for the
+    inverse image `f#` once the subobject `B` of `b` is read as the coreflexive `c = corOf B`. -/
+theorem dom_comp_coref {a b : 𝒜} (f : a ⟶ b) {c : b ⟶ b} (hc : Coreflexive c) :
+    dom (f ≫ c) = Cat.id a ∩ (f ≫ c ≫ f°) := by
+  have hcsym : c° = c := symmetric_eq (coreflexive_symmetric_idempotent hc).1
+  have hcidem : c ≫ c = c := (coreflexive_symmetric_idempotent hc).2
+  unfold dom
+  rw [Allegory.recip_comp, hcsym, Cat.assoc, ← Cat.assoc c c f°, hcidem]
+
+/-- **§2.32, the coreflexive `dom` of a map-conjugate is its plain `1 ∩`-meet.**  For a map
+    `f : a → b` and a coreflexive `c` on `b`, `dom (f ≫ c ≫ f°) = 1 ∩ f c f°`.  (The general
+    `dom R = 1 ∩ R R°` collapses because `R := f c f°` is symmetric and `f° f ⊑ 1` makes
+    `R R° ⊑ R`, while `R` is itself a meet of symmetric idempotents.)  Together with
+    `dom_comp_coref` this says `dom (f ≫ c) = dom (f ≫ c ≫ f°) = 1 ∩ f c f°`. -/
+theorem dom_map_coref {a b : 𝒜} (f : a ⟶ b) (hf : Map f) {c : b ⟶ b} (hc : Coreflexive c) :
+    dom (f ≫ c ≫ f°) = Cat.id a ∩ (f ≫ c ≫ f°) := by
+  have hsym : (f ≫ c ≫ f°)° = f ≫ c ≫ f° := by
+    have hCsym : c° = c := symmetric_eq (coreflexive_symmetric_idempotent hc).1
+    rw [Allegory.recip_comp, Allegory.recip_comp, Allegory.recip_recip, hCsym, Cat.assoc]
+  have hCidem : c ≫ c = c := (coreflexive_symmetric_idempotent hc).2
+  have hidem_le : (f ≫ c ≫ f°) ≫ (f ≫ c ≫ f°) ⊑ f ≫ c ≫ f° := by
+    have hmid : c ≫ (f° ≫ f) ≫ c ⊑ c := by
+      calc c ≫ (f° ≫ f) ≫ c ⊑ c ≫ Cat.id b ≫ c := comp_mono_left c (comp_mono_right hf.2 c)
+        _ = c ≫ c := by rw [Cat.id_comp]
+        _ = c := hCidem
+    calc (f ≫ c ≫ f°) ≫ (f ≫ c ≫ f°)
+        = f ≫ (c ≫ (f° ≫ f) ≫ c) ≫ f° := by
+          rw [Cat.assoc, Cat.assoc, Cat.assoc, Cat.assoc, Cat.assoc]
+      _ ⊑ f ≫ c ≫ f° := comp_mono_left f (comp_mono_right hmid f°)
+  unfold dom
+  rw [hsym]
+  apply le_antisymm
+  · exact le_inter (inter_lb_left _ _) (le_trans (inter_lb_right _ _) hidem_le)
+  · apply le_inter (inter_lb_left _ _)
+    have hKcor : Coreflexive (Cat.id a ∩ (f ≫ c ≫ f°)) := inter_lb_left _ _
+    have hKidem : (Cat.id a ∩ (f ≫ c ≫ f°)) ≫ (Cat.id a ∩ (f ≫ c ≫ f°))
+        = Cat.id a ∩ (f ≫ c ≫ f°) := (coreflexive_symmetric_idempotent hKcor).2
+    rw [← hKidem]
+    exact le_trans (comp_mono_right (inter_lb_right _ _) _)
+      (comp_mono_left _ (inter_lb_right _ _))
+
 -- BOOK §2.32: A is a tabular unitary division allegory iff Mσn(A) is a logos.
 -- STATUS: OPEN (both directions).
 -- AVAILABLE:
@@ -838,12 +881,44 @@ theorem simplePart_largest {a b : 𝒜} (R : a ⟶ b) (A : a ⟶ a)
 --     `R/S` for an arbitrary relation `S` (not just a graph) is not yet assembled as an
 --     instance; `DivisionAllegory (RelObj 𝒞)` does not exist in RelCat.lean.
 -- MISSING (BACKWARD, division allegory → logos on Map(𝒜)):
---   • `HasRightAdjointImage` on `MapObj 𝒜`: the candidate right adjoint
---     `f\ := f\(-)/f°` via `leftDiv` requires `leftDiv` to land in the subobject lattice,
---     which needs the tabulation data (`TabularAllegory`) to be unwound; this is not yet done.
---   • Together, `Logos (MapObj 𝒜)` = `mapPreLogos` + `HasRightAdjointImage`: only the
---     `HasRightAdjointImage` field is missing.  One sharpened gap: define `mapRightAdjointImage`
---     for `[TabularUnitaryDivisionAllegory 𝒜]` using `leftDiv` + tabulation.
+--   • EXACT FIELD NEEDED.  `Logos (MapObj 𝒜)` = `mapPreLogos` (DONE) + `HasRightAdjointImage`.
+--     `HasRightAdjointImage` (S1_70) needs ONE constructive field beyond pullbacks/images:
+--         rightAdj : ∀ {A B} (f : A ⟶ B), Subobject (MapObj 𝒜) A → Subobject (MapObj 𝒜) B
+--         adjunction : (InverseImage f B').le A' ↔ B'.le (rightAdj f A')      [B':Sub B, A':Sub A]
+--   • THE TRANSLATION IS DONE (bridge already in MapCat, here made usable):
+--     under the iso `Sub(MapObj 𝒜) X ≅ Cor(X)` (`corOf`/`splitSub`, `le_iff_corOf_le`,
+--     `corOf_splitSub`, `corOf_invImage` in MapCat), with `f : a → b` a map, `A := corOf A'`
+--     (coreflexive on a), `c := corOf B'` (coreflexive on b), the adjunction is EXACTLY
+--         dom (f.val ≫ c ≫ f.val°) ⊑ A   ↔   c ⊑ corOf (rightAdj f A')              (★)
+--     and `corOf_invImage` rewrites the LHS to `dom (f c f°)`, which by `dom_map_coref`
+--     (proved just above) equals `1 ∩ f c f°` — Freyd's lower function `1 ∩ f B f°`
+--     (= `dom (f≫c)` by `dom_comp_coref`).  So `rightAdj f A' := splitSub <coreflexive D>`
+--     reduces the whole problem to ONE poset statement:
+--         find a coreflexive `D` on `b` with   (1 ∩ f c f°) ⊑ A  ↔  c ⊑ D   for all coref `c`.
+--   • THE ONE GENUINELY MISSING BRICK (mathematical depth, NOT mere infra):
+--     `D` is the RIGHT ADJOINT of the monotone map `c ↦ 1 ∩ f c f° : Cor(b) → Cor(a)`.
+--     Freyd's closed form is `D = f \ (1 → A) / f°` where `→` is the Heyting arrow ON THE FULL
+--     HOM-POSET `(a,a)` (his words: "the Heyting arrow on (α,α), NOT Cor(α)").  The naive read
+--     `1 → A = 1 ∩ A/1 = A` (A coref) is WRONG: it yields `D = f\A/f°`, whose adjunction
+--     (`le_div_iff` ∘ `le_leftDiv_iff`) is `c ⊑ f\A/f° ↔ f c f° ⊑ A` — STRICTLY STRONGER than
+--     `1 ∩ f c f° ⊑ A` (counterexample: `c = 1` forces `f f° ⊑ A`, false unless `f` is a
+--     retraction-mono).  Hence the `1 ∩` cannot be dropped, and `D ≠ f\A/f°`.
+--   • WHAT IS REALLY REQUIRED:  the FULL hom-poset `(a,a)` (not just `Cor(a)`) must be a HEYTING
+--     ALGEBRA — i.e. `∩` must have a relative pseudocomplement `X ⟹ Y` (`Z ∩ X ⊑ Y ↔ Z ⊑ X⟹Y`).
+--     A division allegory supplies the `≫`-residual `/`, NOT the `∩`-residual, so `(a,a)` Heyting
+--     does NOT follow from `DivisionAllegory` alone.  Freyd gets it from §2.316's LAST paragraph:
+--     in a TABULAR UNITARY division allegory tabulate the maximal morphism `⊤ : a → a` by
+--     `(ℓ₁,ℓ₂) : γ → a × a`; then `(a,a) ≅ Cor(γ)` (`R ↦ 1 ∩ ℓ₁ R ℓ₂°`), and the `(a,a)` arrow is
+--     the Cor(γ) Heyting arrow transported across that iso.  (THIS is why the theorem needs
+--     tabular + unitary, not just division.)
+--   • REPO STATUS OF THAT BRICK: ABSENT.  There is no `⊤`/maximal-morphism tabulation, no
+--     `(a,a) ≅ Cor(γ)` iso, and no `(a,a)`-Heyting-algebra instance in the repo.  `UnitaryAllegory`
+--     gives only a unit object (`unit_obj`/`unit_prop`), not the tabulated top or the §2.316 iso.
+--     Building these (⊤-tabulation + the poset iso + transported Heyting arrow) is a multi-lemma
+--     §2.316-final-paragraph construction — a real piece of mathematics, not a one-line bridge.
+--   • DELIVERED HERE: `dom_comp_coref`, `dom_map_coref` (both proved, axiom-clean) reduce the
+--     backward direction to exactly statement (★)+the `D`-existence poset fact above; the residual
+--     gap is precisely "(a,a) is a Heyting algebra via the ⊤-tabulation `(a,a) ≅ Cor(γ)`".
 
 /-! ## §2.331  Moerdijk representation theorems
 
