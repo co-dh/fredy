@@ -629,11 +629,17 @@ example (𝒜 : Type u) [DistributiveAllegory 𝒜] : PositiveAllegory (Mat.MatO
 --          PRE-regular `Ā` with a faithful `Map A → Ā`, BUT the §2.218 `Rel(homRep Ā)` path needs
 --          TWO facts about `Ā` that the colimit does NOT surface — VERIFIED genuine gaps (R3
 --          INVESTIGATED 2026-06, both confirmed against the actual defs, NOT stale):
---          (a) `RegularCategory Ā` (i.e. `HasImages Ā`).  `capitalization_of_capData`'s return type
---              (Capitalization.lean line ~643) is `∃ Ā, … PreRegularCategory Ā ∧ Capital Ā ∧ faithful`;
---              `colimitPreRegular` builds only `PreRegularCategory` (pre-regular ≠ regular without
---              image-factorization surviving the ω-tower colimit).  No `RegularCategory`/`HasImages`
---              instance for the capital object exists.
+--          (a) `RegularCategory Ā` (i.e. `HasImages Ā`).  STATUS (2026-06): the colimit `HasImages`
+--              MACHINERY now exists and is axiom-clean — `Colim.colimitHasImages` (Fredy/
+--              CatColimitRegular.lean) builds `HasImages C.Obj` from per-stage images + transition
+--              image-preservation (each colimit map factors at a stage as cover-then-mono;
+--              `coverMono_isImage` makes that an image; `Colim.objIncl_preserves_images` is the
+--              per-stage statement).  `capitalization_of_capData_regular` (Fredy/Capitalization.lean)
+--              ASSEMBLES `RegularCategory Ā` (capital + faithful) from a `CapData` PLUS the three
+--              image hypotheses `hi`/`hmono`/`himgpres`.  RESIDUAL: those three must be DISCHARGED
+--              from the §1.543 tower (the slice successors are regular, hence the rungs preserve
+--              images) — wiring not yet threaded through `capData_exists`.  So R3(a) is reduced from
+--              "no machinery exists" to "thread per-stage image-preservation through the tower".
 --          (b) `hproj` — EVERY object of `Ā` projective (every cover splits) = `ACRegularCategory`
 --              (S1_57 `Projective C := every cover into C splits`; `∀ C, Choice C ↔ ∀ C, Projective C`).
 --              `homRep_regularFunctor` requires this for cover/image preservation.  But `Capital`

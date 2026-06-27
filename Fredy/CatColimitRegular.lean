@@ -1903,6 +1903,263 @@ theorem objIncl_preserves_equalizers (C : CatSystem ι D) (hC : C.Coherent)
     exact castHom_of_heq rfl _ HEq.rfl
   exact ⟨u, hux, fun v hv => hmono v u (hv.trans hux.symm)⟩
 
+/-! ## Generic: a cover-then-mono factorization is an image (needs only pullbacks)
+
+  In any category with pullbacks, if `f = e ≫ m` with `e` a cover and `m` monic, then the
+  subobject `⟨·, m⟩` is the IMAGE of `f`.  `Allows` is `e`; minimality uses cover⊥mono
+  (`cover_mono_diagonal`): any subobject `S` allowing `f` (`g ≫ S.arr = f = e ≫ m`) admits a
+  diagonal `d : · ⟶ S.dom` filling the cover⊥mono square, giving `⟨·,m⟩ ≤ S` via `d`.  This is
+  the colimit-level image construction: each colimit map factors at a stage as cover-then-mono. -/
+theorem coverMono_isImage {𝒞 : Type w} [Cat.{w} 𝒞] [HasPullbacks 𝒞]
+    {A I B : 𝒞} {f : A ⟶ B} {e : A ⟶ I} {m : I ⟶ B} (hm : Monic m)
+    (he : Cover e) (hfac : e ≫ m = f) :
+    IsImage f (Subobject.mk I m hm) := by
+  refine ⟨⟨e, hfac⟩, ?_⟩
+  intro S hS
+  obtain ⟨g, hg⟩ := hS
+  -- cover⊥mono diagonal fill (inlined; `cover_mono_diagonal` inherits a `HasImages` section var):
+  -- `e ≫ m = f = g ≫ S.arr`, pullback of `(m, S.arr)`, `π₁` mono, `e` a cover onto it ⟹ `π₁` iso.
+  have hsq : e ≫ m = g ≫ S.arr := by rw [hfac, hg]
+  let pb := HasPullbacks.has m S.arr
+  have hπmono : Monic pb.cone.π₁ := by
+    intro W p q hpq
+    have hpq2 : p ≫ pb.cone.π₂ = q ≫ pb.cone.π₂ := by
+      apply S.monic
+      calc (p ≫ pb.cone.π₂) ≫ S.arr = p ≫ (pb.cone.π₁ ≫ m) := by rw [Cat.assoc, ← pb.cone.w]
+        _ = (q ≫ pb.cone.π₁) ≫ m := by rw [← Cat.assoc, hpq]
+        _ = (q ≫ pb.cone.π₂) ≫ S.arr := by rw [Cat.assoc, pb.cone.w, ← Cat.assoc]
+    let cn : Cone m S.arr := ⟨W, p ≫ pb.cone.π₁, p ≫ pb.cone.π₂, by rw [Cat.assoc, Cat.assoc, pb.cone.w]⟩
+    rw [pb.lift_uniq cn p rfl rfl, pb.lift_uniq cn q hpq.symm hpq2.symm]
+  let u := pb.lift ⟨A, e, g, hsq⟩
+  have hu₁ : u ≫ pb.cone.π₁ = e := pb.lift_fst _
+  obtain ⟨inv, _, hinvπ⟩ : IsIso pb.cone.π₁ := he pb.cone.π₁ u hπmono hu₁
+  -- `d := inv ≫ π₂ : I ⟶ S.dom` fills `d ≫ S.arr = m`, so `⟨I,m⟩ ≤ S`.
+  refine ⟨inv ≫ pb.cone.π₂, ?_⟩
+  show (inv ≫ pb.cone.π₂) ≫ S.arr = m
+  rw [Cat.assoc, ← pb.cone.w, ← Cat.assoc, hinvπ, Cat.id_comp]
+
+/-! ## Generic: image preservation lifts the image-cover
+
+  If `F` preserves the image factorization of `f` (`himg`), then `F`-image of the cover-lift
+  `image.lift f` is again a cover.  PROOF: `F (image.lift f) ≫ F (image f).arr = F f`, while
+  the image of `F f` is `F (image f)` (by `himg`), so `F (image.lift f)` is *a* lift of `F f`
+  through its image's mono `F (image f).arr`; that mono being monic and `image.lift (F f)` also
+  factoring `F f`, the two lifts agree, hence `F (image.lift f)` is a cover. -/
+theorem preservesImage_lift_cover {𝒜 ℬ : Type w} [Cat.{w} 𝒜] [Cat.{w} ℬ] [HasImages 𝒜]
+    (F : 𝒜 → ℬ) [hF : Functor F] (hpm : PreservesMono F) {A B : 𝒜} (f : A ⟶ B)
+    (himg : IsImage (hF.map f) (Subobject.map F hpm (image f))) :
+    Cover (hF.map (image.lift f)) := by
+  -- `F (image.lift f)` factors `F f` through the monic `(Subobject.map F hpm (image f)).arr`.
+  have hfac : hF.map (image.lift f) ≫ (Subobject.map F hpm (image f)).arr = hF.map f := by
+    show hF.map (image.lift f) ≫ hF.map (image f).arr = hF.map f
+    rw [← hF.map_comp, image.lift_fac]
+  -- That subobject IS the image of `F f` (himg), so its lift is `F (image.lift f)`;
+  -- and an image-lift is a cover.  Concretely: `F (image.lift f)` is a cover because any
+  -- monic `n` it factors through, `(Subobject.map F hpm (image f)).arr` factors through too
+  -- (cover⊥mono is not available here without pullbacks, so use minimality directly).
+  intro Cobj n p hn hpn
+  -- `⟨Cobj, n⟩` is a subobject of `F (image f).dom`; lift it to a subobject of `F B` via the mono.
+  -- The composite `n ≫ (image f-arr)` is monic and allows `F f` (via `p`), so the image of `F f`
+  -- (= `Subobject.map F (image f)`) factors through it; combined with minimality this forces `n` iso.
+  have hcomp_mono : Monic (n ≫ (Subobject.map F hpm (image f)).arr) := by
+    intro W u v huv
+    exact hn _ _ ((Subobject.map F hpm (image f)).monic _ _ (by
+      rw [← Cat.assoc, ← Cat.assoc] at huv; exact huv))
+  have hallow : Allows (Subobject.mk Cobj (n ≫ (Subobject.map F hpm (image f)).arr) hcomp_mono)
+      (hF.map f) := by
+    refine ⟨p, ?_⟩
+    show p ≫ (n ≫ (Subobject.map F hpm (image f)).arr) = hF.map f
+    rw [← Cat.assoc, hpn, hfac]
+  obtain ⟨h, hh⟩ := himg.2 _ hallow
+  -- `hh : h ≫ (n ≫ image-arr) = image-arr`, with `image-arr` mono ⟹ `h ≫ n = id`.
+  have hhn : h ≫ n = Cat.id _ := (Subobject.map F hpm (image f)).monic _ _ (by
+    show (h ≫ n) ≫ (Subobject.map F hpm (image f)).arr = Cat.id _ ≫ (Subobject.map F hpm (image f)).arr
+    rw [Cat.assoc, hh, Cat.id_comp])
+  -- and `n ≫ h = id` by monic cancellation of `n`.
+  refine ⟨h, ?_, hhn⟩
+  exact hn _ _ (by rw [Cat.assoc, hhn, Cat.id_comp]; exact Cat.comp_id n)
+
+/-- **`objIncl i` preserves images** (the image analog of `objIncl_preserves_equalizers`).
+    Given per-stage images (`hi`), transition mono-preservation (`hmono`), faithfulness
+    (`hfaith`), and transition image-preservation (`himgpres`), the `objIncl i`-image of the
+    stage image factorization of `f : a ⟶ b` is an image in `colimitCat`: the subobject
+    `⟨objIncl i (image f).dom, homInclObj (image f).arr⟩` is the image of `homInclObj f`.
+
+    PROOF.  Factor `f = image.lift f ≫ (image f).arr` at stage `i` (`image.lift_fac`).  Include:
+    `homInclObj (image.lift f)` is a colimit COVER (`homInclObj_cover_of_stage`; each transition
+    keeps it a cover by `preservesImage_lift_cover` from `himgpres`), and `homInclObj (image f).arr`
+    is a colimit MONO (`homInclObj_mono_of_stage`; transitions preserve it by `hmono`).  Their
+    composite is `homInclObj f` (`homInclObj_comp` + `image.lift_fac`).  A cover-then-mono
+    factorization is an image (`coverMono_isImage`, needs only `HasPullbacks C.Obj`). -/
+theorem objIncl_preserves_images (C : CatSystem ι D) (hC : C.Coherent)
+    (hi : ∀ i, HasImages (C.A i))
+    (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (p q : x ⟶ y),
+        (C.functF hij).map p = (C.functF hij).map q → p = q)
+    (hmono : ∀ {i j : ι} (hij : D.le i j),
+        @PreservesMono _ (C.catA i) _ (C.catA j) (C.F hij) (C.functF hij))
+    (himgpres : ∀ {i j : ι} (hij : D.le i j) {A B : C.A i} (f : A ⟶ B),
+        IsImage ((C.functF hij).map f)
+          (@Subobject.map _ _ (C.catA i) (C.catA j) (C.F hij) (C.functF hij) (hmono hij) _
+            (@image _ (C.catA i) (hi i) _ _ f)))
+    [hpull : @HasPullbacks C.Obj (colimitCat C hC)]
+    (i : ι) {a b : C.A i} (f : a ⟶ b) :
+    letI : Cat C.Obj := colimitCat C hC
+    letI : HasImages (C.A i) := hi i
+    IsImage (homInclObj C hC f)
+      (Subobject.mk (C.objIncl i (image f).dom) (homInclObj C hC (image f).arr)
+        (homInclObj_mono_of_stage C hC (image f).arr
+          (fun {j} hij z u v huv => hmono hij (image f).monic u v huv))) := by
+  letI : Cat C.Obj := colimitCat C hC
+  letI : HasImages (C.A i) := hi i
+  -- stage factorization `image.lift f ≫ (image f).arr = f`
+  have hfac_stage : image.lift f ≫ (image f).arr = f := image.lift_fac f
+  -- the cover leg: `homInclObj (image.lift f)` is a colimit cover.
+  have hcov : @Cover C.Obj (colimitCat C hC) _ _ (homInclObj C hC (image.lift f)) :=
+    homInclObj_cover_of_stage C hC hfaith (image.lift f)
+      (fun {j} hij => preservesImage_lift_cover (C.F hij) (hF := C.functF hij) (hmono hij) f
+        (himgpres hij f))
+  -- the composite `homInclObj (image.lift f) ≫ homInclObj (image f).arr = homInclObj f`.
+  have hcomp : colimComp C hC (homInclObj C hC (image.lift f)) (homInclObj C hC (image f).arr)
+      = homInclObj C hC f := by
+    rw [← homInclObj_comp C hC (image.lift f) (image f).arr, hfac_stage]
+  -- cover-then-mono factorization is an image.
+  exact coverMono_isImage
+    (homInclObj_mono_of_stage C hC (image f).arr
+      (fun {j} hij z u v huv => hmono hij (image f).monic u v huv))
+    hcov hcomp
+
+/-- **`HasImages` for the colimit** (M3-image; the regular-category piece beyond `colimitPreRegular`).
+    Given per-stage images (`hi`), faithful (`hfaith`) / mono-preserving (`hmono`) / image-preserving
+    (`himgpres`) transitions, and the colimit pullbacks (`[hpull]`), every colimit morphism has an
+    image.  Each `F : X ⟶ Y` is represented at a stage `s` by a germ `f₀`; its stage image factors
+    `f₀ = e₀ ≫ m₀` (cover then mono).  Transport the stage image object `objIncl s (image f₀).dom`
+    to its `colimOut` rep, include the two legs: `E` is a colimit COVER (`colimHom_cover_of_rep` +
+    `preservesImage_lift_cover`) and `M` a colimit MONO (`colimHom_mono_of_rep` + `hmono`), with
+    `E ≫ M = F`.  A cover-then-mono factorization is an image (`coverMono_isImage`). -/
+noncomputable def colimitHasImages (C : CatSystem ι D) (hC : C.Coherent)
+    (hi : ∀ i, HasImages (C.A i))
+    (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (p q : x ⟶ y),
+        (C.functF hij).map p = (C.functF hij).map q → p = q)
+    (hmono : ∀ {i j : ι} (hij : D.le i j),
+        @PreservesMono _ (C.catA i) _ (C.catA j) (C.F hij) (C.functF hij))
+    (himgpres : ∀ {i j : ι} (hij : D.le i j) {A B : C.A i} (f : A ⟶ B),
+        IsImage ((C.functF hij).map f)
+          (@Subobject.map _ _ (C.catA i) (C.catA j) (C.F hij) (C.functF hij) (hmono hij) _
+            (@image _ (C.catA i) (hi i) _ _ f)))
+    [hpull : @HasPullbacks C.Obj (colimitCat C hC)] :
+    @HasImages C.Obj (colimitCat C hC) := by
+  letI : Cat C.Obj := colimitCat C hC
+  -- the data, by choice (the goal is a `class`/`Type`, so we extract via `Exists.choose`).
+  have hImgData : ∀ (X Y : C.Obj) (F : X ⟶ Y),
+      ∃ (I : Subobject C.Obj Y), IsImage F I := by
+    intro X Y
+    refine Quotient.ind (fun Fr => ?_)
+    obtain ⟨a, f₀⟩ := Fr
+    letI : HasImages (C.A a.1) := hi a.1
+    let xX := (colimOut C X).2; let xY := (colimOut C Y).2
+    let s : ι := a.1
+    -- stage image factorization of the germ `f₀ : C.F a.2.1 xX ⟶ C.F a.2.2 xY` at `s`
+    let Iobj : C.A s := (image f₀).dom
+    let m₀ : Iobj ⟶ C.F a.2.2 xY := (image f₀).arr
+    let e₀ : C.F a.2.1 xX ⟶ Iobj := image.lift f₀
+    have hfac : e₀ ≫ m₀ = f₀ := image.lift_fac f₀
+    have hm₀_mono : Monic m₀ := (image f₀).monic
+    -- include the image object and transport its chosen rep back to `⟨s, Iobj⟩` (mirror equalizer `E`).
+    let Img : C.Obj := C.objIncl s Iobj
+    let ipI : ι := (colimOut C Img).1; let opI : C.A ipI := (colimOut C Img).2
+    have hIRel : Rel C.objSystem ⟨ipI, opI⟩ ⟨s, Iobj⟩ := Quotient.exact (colimOut_spec C Img)
+    let kpI : ι := Classical.choose hIRel
+    have hkpI1 : ∃ (hik : D.le ipI kpI) (hjk : D.le s kpI), C.F hik opI = C.F hjk Iobj :=
+      Classical.choose_spec hIRel
+    let h_ipI_kpI : D.le ipI kpI := Classical.choose hkpI1
+    have hkpI2 : ∃ (hjk : D.le s kpI), C.F h_ipI_kpI opI = C.F hjk Iobj := Classical.choose_spec hkpI1
+    let h_s_kpI : D.le s kpI := Classical.choose hkpI2
+    have h_I_eq : C.F h_ipI_kpI opI = C.F h_s_kpI Iobj := Classical.choose_spec hkpI2
+    -- the mono leg `M : Img ⟶ Y`, a germ from `opI` (= colimOut rep of Img) to `xY`.
+    let ubM : UpperBound D ipI (colimOut C Y).1 := ⟨kpI, h_ipI_kpI, D.trans a.2.2 h_s_kpI⟩
+    let gM : C.F ubM.2.1 opI ⟶ C.F ubM.2.2 xY :=
+      castHom h_I_eq.symm (C.F_trans a.2.2 h_s_kpI xY).symm ((C.functF h_s_kpI).map m₀)
+    let M : Img ⟶ Y := homIncl C hC opI xY ubM gM
+    -- the cover leg `E : X ⟶ Img`, a germ from `xX` to `opI`.
+    let ubE : UpperBound D (colimOut C X).1 ipI := ⟨kpI, D.trans a.2.1 h_s_kpI, h_ipI_kpI⟩
+    let gE : C.F ubE.2.1 xX ⟶ C.F ubE.2.2 opI :=
+      castHom (C.F_trans a.2.1 h_s_kpI xX).symm h_I_eq.symm ((C.functF h_s_kpI).map e₀)
+    let E : X ⟶ Img := homIncl C hC xX opI ubE gE
+    -- `M` is monic (`m₀` monic, preserved by every transition via `hmono`).
+    have hM_mono : @Monic C.Obj (colimitCat C hC) Img Y M := by
+      have hcancel : ∀ {j : ι} (hjk : D.le ubM.1 j) (z : C.A j)
+          (u v : z ⟶ C.F hjk (C.F ubM.2.1 opI)),
+          u ≫ (C.functF hjk).map gM = v ≫ (C.functF hjk).map gM → u = v := by
+        intro j hjk z u v huv
+        -- push `gM`'s germ to `j`: `castHom ∘ functF.map m₀` over `(s → kpI → j)`.
+        have ed : C.F hjk (C.F ubM.2.1 opI) = C.F (D.trans h_s_kpI hjk) Iobj :=
+          (congrArg (C.F hjk) h_I_eq).trans (C.F_trans h_s_kpI hjk Iobj).symm
+        have ec : C.F hjk (C.F ubM.2.2 xY) = C.F (D.trans h_s_kpI hjk) (C.F a.2.2 xY) := by
+          show C.F hjk (C.F (D.trans a.2.2 h_s_kpI) xY) = _
+          rw [← C.F_trans (D.trans a.2.2 h_s_kpI) hjk xY, ← C.F_trans a.2.2 (D.trans h_s_kpI hjk) xY]
+        have hgm : (C.functF hjk).map gM
+            = castHom ed.symm ec.symm ((C.functF (D.trans h_s_kpI hjk)).map m₀) := by
+          show (C.functF hjk).map (castHom h_I_eq.symm (C.F_trans a.2.2 h_s_kpI xY).symm
+            ((C.functF h_s_kpI).map m₀)) = _
+          rw [map_castHom (C.F hjk) (hT := C.functF hjk)]
+          exact castHom_heq_congr _ _ ed.symm ec.symm (hC.trans_map h_s_kpI hjk m₀).symm
+        rw [hgm] at huv
+        have cR : ∀ {P Q Q' R : C.A j} (he : Q = Q') (bb : P ⟶ Q) (cc : Q' ⟶ R),
+            castHom rfl he bb ≫ cc = bb ≫ castHom he.symm rfl cc := by
+          intro _ _ _ _ he bb cc; subst he; rfl
+        have cT : ∀ {P Q R R' : C.A j} (he : R = R') (bb : P ⟶ Q) (cc : Q ⟶ R),
+            castHom rfl he (bb ≫ cc) = bb ≫ castHom rfl he cc := by
+          intro _ _ _ _ he bb cc; subst he; rfl
+        have hcc : (castHom rfl ed u) ≫ (C.functF (D.trans h_s_kpI hjk)).map m₀
+            = (castHom rfl ed v) ≫ (C.functF (D.trans h_s_kpI hjk)).map m₀ := by
+          apply castHom_injective rfl ec.symm
+          rw [cT, cT, cR, cR]; exact huv
+        exact castHom_injective rfl ed
+          (hmono (D.trans h_s_kpI hjk) hm₀_mono (castHom rfl ed u) (castHom rfl ed v) hcc)
+      intro Z p q hpq
+      exact colimHom_mono_of_rep (A := Img) (B := Y) C hC ubM gM hcancel p q hpq
+    -- `E` is a cover (`e₀ = image.lift f₀` stays a cover under every transition via `himgpres`).
+    have hE_cover : @Cover C.Obj (colimitCat C hC) X Img E := by
+      have hcov : ∀ (L : ι) (haL : D.le ubE.1 L), Cover ((C.functF haL).map gE) := by
+        intro L haL
+        -- push `gE`'s germ to `L`: `castHom ∘ functF.map e₀` over `(s → kpI → L)`; e₀ stays a cover.
+        have ed : C.F haL (C.F ubE.2.1 xX) = C.F (D.trans h_s_kpI haL) (C.F a.2.1 xX) := by
+          rw [← C.F_trans a.2.1 (D.trans h_s_kpI haL) xX]; exact (C.F_trans ubE.2.1 haL xX).symm.trans
+            (C.F_proof_irrel _ _ xX)
+        have ec : C.F haL (C.F ubE.2.2 opI) = C.F (D.trans h_s_kpI haL) Iobj :=
+          (congrArg (C.F haL) h_I_eq).trans (C.F_trans h_s_kpI haL Iobj).symm
+        have hgm : (C.functF haL).map gE
+            = castHom ed.symm ec.symm ((C.functF (D.trans h_s_kpI haL)).map e₀) := by
+          show (C.functF haL).map (castHom (C.F_trans a.2.1 h_s_kpI xX).symm h_I_eq.symm
+            ((C.functF h_s_kpI).map e₀)) = _
+          rw [map_castHom (C.F haL) (hT := C.functF haL)]
+          exact castHom_heq_congr _ _ ed.symm ec.symm (hC.trans_map h_s_kpI haL e₀).symm
+        rw [hgm]
+        apply cover_castHom ed.symm ec.symm
+        exact preservesImage_lift_cover (C.F (D.trans h_s_kpI haL)) (hF := C.functF (D.trans h_s_kpI haL))
+          (hmono (D.trans h_s_kpI haL)) f₀ (himgpres (D.trans h_s_kpI haL) f₀)
+      apply colimHom_cover_of_rep (A := X) (B := Img) C hC hfaith ubE gE
+      exact hcov
+    -- the composite `E ≫ M = F` reduces to the stage equation `e₀ ≫ m₀ = f₀`.
+    have hEM : colimComp C hC E M = Quotient.mk _ ⟨a, f₀⟩ := by
+      show homCompRaw C hC xX opI xY ubE gE ubM gM = homIncl C hC xX xY a f₀
+      refine homCompRaw_eq_of_stage C hC xX opI xY ubE gE ubM gM a f₀ kpI (D.refl kpI) (D.refl kpI)
+        h_s_kpI ?_
+      rw [homTr_refl C hC xX opI ubE gE, homTr_refl C hC opI xY ubM gM]
+      -- `gE ≫ gM = castHom .. (functF h_s_kpI).map (e₀ ≫ m₀) = (homTr f₀)`.
+      show castHom (C.F_trans a.2.1 h_s_kpI xX).symm h_I_eq.symm ((C.functF h_s_kpI).map e₀)
+          ≫ castHom h_I_eq.symm (C.F_trans a.2.2 h_s_kpI xY).symm ((C.functF h_s_kpI).map m₀)
+        = homTr C xX xY a ⟨kpI, D.trans a.2.1 h_s_kpI, D.trans a.2.2 h_s_kpI⟩ h_s_kpI f₀
+      rw [castHom_comp, ← (C.functF h_s_kpI).map_comp, hfac]
+      rfl
+    refine ⟨Subobject.mk Img M hM_mono, ?_⟩
+    rw [show (Quotient.mk (setoid (homSystem C hC xX xY)) ⟨a, f₀⟩ : X ⟶ Y) = colimComp C hC E M
+        from hEM.symm]
+    exact coverMono_isImage hM_mono hE_cover rfl
+  exact {
+    image := fun {X Y} F => (hImgData X Y F).choose
+    isImage := fun {X Y} F => (hImgData X Y F).choose_spec }
+
 /-! ## Generic finite-limit-preservation ⟹ pullback-cone preservation
 
   A functor `F` preserving binary products and equalizers sends the §1.432

@@ -657,6 +657,43 @@ theorem capitalization_of_capData {A : Type u} [Cat.{u} A] [PreRegularCategory A
   exact faithful_comp cd.baseFaithful
     (stageInclFaithful cd.C cd.hC cd.hfaith cd.hcons cd.i₀)
 
+/-- **§1.543 reduction, REGULAR form.**  Same as `capitalization_of_capData`, but upgrades the
+    target from `PreRegularCategory Ā` to `RegularCategory Ā` (= pre-regular + `HasImages`) using the
+    colimit image machinery (`Colim.colimitHasImages`).  Beyond the `CapData`, it consumes the
+    per-stage image data the colimit `HasImages` needs — `hi` (every stage has images), `hmono`
+    (transitions preserve monos, the `PreservesMono` form), and `himgpres` (transitions preserve
+    images) — which a *regular* (not merely pre-regular) tower supplies.  This is the assembly that
+    makes §2.218 R3(a) discharge once the §1.543 tower is shown to be image-preserving (the slice
+    successors are regular, hence the rungs preserve images).  Returns a genuine `RegularCategory Ā`
+    (capital, with the faithful `A → Ā`). -/
+theorem capitalization_of_capData_regular {A : Type u} [Cat.{u} A] [PreRegularCategory A]
+    (cd : CapData.{u} A)
+    (hi : ∀ i, HasImages (cd.C.A i))
+    (hmono : ∀ {i j : cd.ι} (hij : cd.D.le i j),
+        @PreservesMono _ (cd.C.catA i) _ (cd.C.catA j) (cd.C.F hij) (cd.C.functF hij))
+    (himgpres : ∀ {i j : cd.ι} (hij : cd.D.le i j) {X Y : cd.C.A i} (f : X ⟶ Y),
+        IsImage ((cd.C.functF hij).map f)
+          (@Subobject.map _ _ (cd.C.catA i) (cd.C.catA j) (cd.C.F hij) (cd.C.functF hij)
+            (hmono hij) _ (@image _ (cd.C.catA i) (hi i) _ _ f))) :
+    ∃ (Ā : Type u) (hC : Cat.{u} Ā) (hR : RegularCategory Ā),
+      @Capital.{u, u} Ā hC (hR.toHasTerminal) ∧
+      ∃ (F : A → Ā) (hF : Functor F), @Faithful.{u, u} A _ Ā hC F hF := by
+  haveI := cd.hne
+  letI : Cat cd.C.Obj := colimitCat cd.C cd.hC
+  letI hPre : PreRegularCategory cd.C.Obj :=
+    colimitPreRegular cd.C cd.hC cd.ht cd.htpres cd.hp cd.hppres cd.hppres_pair
+      cd.he cd.hepres cd.hepres_lift cd.hcanon
+  letI hImg : HasImages cd.C.Obj :=
+    Colim.colimitHasImages cd.C cd.hC hi cd.hfaith hmono himgpres
+  letI hReg : RegularCategory cd.C.Obj := { hPre with toHasImages := hImg }
+  -- `hReg.toHasTerminal` is `hPre.toHasTerminal` definitionally, so `cd.capital` lands directly.
+  refine ⟨cd.C.Obj, _, hReg, cd.capital, ?_⟩
+  letI := cd.baseFun
+  letI : @Functor (cd.C.A cd.i₀) (cd.C.catA cd.i₀) cd.C.Obj _ (cd.C.objIncl cd.i₀) :=
+    stageInclFunctor cd.C cd.hC cd.i₀
+  exact ⟨cd.C.objIncl cd.i₀ ∘ cd.base, inferInstance,
+    faithful_comp cd.baseFaithful (stageInclFaithful cd.C cd.hC cd.hfaith cd.hcons cd.i₀)⟩
+
 /-! ## §1.543 The ω-tower scaffolding for the transfinite recursion
 
   The transfinite recursion `A₀ = A`, `A_{α+1} = (A_α)*`, `A_λ = colim_{β<λ}` is, at the
