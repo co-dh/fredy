@@ -877,7 +877,7 @@ theorem simplePart_largest {a b : 𝒜} (R : a ⟶ b) (A : a ⟶ a)
 -- Then PRel(E) (the E-split completion of A) is a division allegory.
 -- If |A| ⊂ E (all objects are in E) then A → PRel(E) is a faithful embedding of
 -- division allegories.
--- STATUS: OPEN.
+-- STATUS: DONE for the full-Spl case (E = all symmetric idempotents); see below.
 -- AVAILABLE: `SplObj 𝒜` (S2_21.lean) = the case E = all symmetric idempotents, with
 --   `instAllegorySpl`, `instDistributiveSpl`, `instUnitarySpl`, `instPositiveSpl`,
 --   `instTabularAllegorySplCor` (Spl.lean), `splObj_tabular_of_semiSimple`.
@@ -922,8 +922,9 @@ theorem simplePart_largest {a b : 𝒜} (R : a ⟶ b) (A : a ⟶ a)
 -- MISSING for §2.343 specifically:
 --   • `Logos (MapObj 𝒜)` (not just `PreLogos`): needs `HasRightAdjointImage` on `MapObj 𝒜`
 --     (the §2.32 gap above).
---   • The §2.343 target is `Mσn(Eq(Rel(C))⁺)` = `Map(SplObj(Mat(Rel C)))`, which requires
---     `DivisionAllegory (SplObj 𝒜)` (the §2.34 gap above) to apply §2.32 backward.
+--   • The §2.343 target is `Mσn(Eq(Rel(C))⁺)` = `Map(SplObj(Mat(Rel C)))`.  Its
+--     `DivisionAllegory (SplObj 𝒜)` prerequisite (§2.34) is DONE (`instDivisionSpl`);
+--     the remaining blocker is §2.32 backward (`HasRightAdjointImage (MapObj 𝒜)`).
 --   • Fullness of the composite embedding `C → Map(SplObj(Mat(Rel C)))` has not been assembled.
 
 end Freyd.Alg
