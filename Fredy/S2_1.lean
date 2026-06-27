@@ -1106,7 +1106,9 @@ theorem equiv_rel_split_iff_effective {a : 𝒜} {E : a ⟶ a} (hE : Equivalence
 
 -- BOOK §2.166: An allegory is tabular iff it is pre-tabular and all coreflexive morphisms split.
 
--- BOOK §2.167: For a pre-tabular allegory A, Spl(Cor(A)) is its tabular reflection.
+-- §2.167: For a pre-tabular allegory A, Spl(Cor(A)) is its tabular reflection.
+--   TABULARITY PROVED: `SplCorObj.tabular_of_preTabular` (Fredy/Spl.lean) — TabularAllegory
+--   (SplCorObj A) for [PreTabularAllegory A]. (Full "reflection" universal property still open.)
 
 -- BOOK §2.16(10): Let A be an allegory, SI its class of symmetric idempotents.
 -- Spl(SI) is tabular iff A is semi-simple.
