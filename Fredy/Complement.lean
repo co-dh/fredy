@@ -69,30 +69,9 @@ theorem le_bottom_of_dom_iso {B : 𝒞} (Z : Subobject 𝒞 B)
 /-! ## §1.658 Subobject-meet lattice lemmas for `Subobject.inter`
 
   `Subobject.inter` (S1_62:75) is the pullback `π₁ ≫ S.arr`.  It is the greatest
-  lower bound of `S` and `T` in `Sub(B)`.  These are the meet (`∩`) counterparts of
-  the `HasSubobjectUnions` join laws, proved directly from the chosen pullback. -/
-
-/-- `S ∩ T ≤ S`: project on the first leg of the defining pullback. -/
-theorem Subobject.inter_le_left {B : 𝒞} (S T : Subobject 𝒞 B) :
-    (Subobject.inter S T).le S :=
-  ⟨(HasPullbacks.has S.arr T.arr).cone.π₁, rfl⟩
-
-/-- `S ∩ T ≤ T`: project on the second leg, then use the pullback square. -/
-theorem Subobject.inter_le_right {B : 𝒞} (S T : Subobject 𝒞 B) :
-    (Subobject.inter S T).le T :=
-  ⟨(HasPullbacks.has S.arr T.arr).cone.π₂, (HasPullbacks.has S.arr T.arr).cone.w.symm⟩
-
-/-- `S ∩ T` is the greatest lower bound: any common lower bound `U` factors through it. -/
-theorem Subobject.le_inter {B : 𝒞} {S T U : Subobject 𝒞 B}
-    (hS : U.le S) (hT : U.le T) : U.le (Subobject.inter S T) := by
-  obtain ⟨ks, hks⟩ := hS
-  obtain ⟨kt, hkt⟩ := hT
-  let pb := HasPullbacks.has S.arr T.arr
-  have hw : ks ≫ S.arr = kt ≫ T.arr := by rw [hks, hkt]
-  refine ⟨pb.lift ⟨U.dom, ks, kt, hw⟩, ?_⟩
-  -- (Subobject.inter S T).arr = pb.cone.π₁ ≫ S.arr  (definitionally)
-  show pb.lift ⟨U.dom, ks, kt, hw⟩ ≫ pb.cone.π₁ ≫ S.arr = U.arr
-  rw [← Cat.assoc, pb.lift_fst _, hks]
+  lower bound of `S` and `T` in `Sub(B)`.  The meet laws `Subobject.inter_le_left`,
+  `Subobject.inter_le_right`, `Subobject.le_inter` are proved next to `Subobject.inter`
+  in S1_62 (needed there for the §1.635 ultra-filter algebra); reused here. -/
 
 /-- `Subobject.inter` is monotone in both arguments. -/
 theorem Subobject.inter_mono {B : 𝒞} {S S' T T' : Subobject 𝒞 B}

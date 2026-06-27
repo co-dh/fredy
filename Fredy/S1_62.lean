@@ -114,6 +114,27 @@ def Subobject.inter [HasPullbacks 𝒞] {B : 𝒞} (S T : Subobject 𝒞 B) : Su
             _ = c.π₂ := rfl
       rw [hv_eq_u] }
 
+/-- `S ∩ T ≤ S` (the intersection is below its left factor). -/
+theorem Subobject.inter_le_left [HasPullbacks 𝒞] {B : 𝒞} (S T : Subobject 𝒞 B) :
+    (Subobject.inter S T).le S :=
+  ⟨(HasPullbacks.has S.arr T.arr).cone.π₁, rfl⟩
+
+/-- `S ∩ T ≤ T`. -/
+theorem Subobject.inter_le_right [HasPullbacks 𝒞] {B : 𝒞} (S T : Subobject 𝒞 B) :
+    (Subobject.inter S T).le T :=
+  ⟨(HasPullbacks.has S.arr T.arr).cone.π₂, ((HasPullbacks.has S.arr T.arr).cone.w).symm⟩
+
+/-- The meet property: any `X` below both `S` and `T` is below `S ∩ T` (the pullback's
+    universal property: `X`'s two factorizations form a cone, lifted into the pullback). -/
+theorem Subobject.le_inter [HasPullbacks 𝒞] {B : 𝒞} {X S T : Subobject 𝒞 B}
+    (hS : X.le S) (hT : X.le T) : X.le (Subobject.inter S T) := by
+  obtain ⟨f, hf⟩ := hS; obtain ⟨g, hg⟩ := hT
+  let pb := HasPullbacks.has S.arr T.arr
+  let c : Cone S.arr T.arr := { pt := X.dom, π₁ := f, π₂ := g, w := by rw [hf, hg] }
+  refine ⟨pb.lift c, ?_⟩
+  show pb.lift c ≫ (pb.cone.π₁ ≫ S.arr) = X.arr
+  rw [← Cat.assoc, pb.lift_fst c]; exact hf
+
 /-- If `I` is an image of `g` and `e ≫ I.arr = g`, then `e` is a cover.  The
     abstract-image generalization of `image_lift_cover`. -/
 theorem cover_of_image_factor {A B : 𝒞} {g : A ⟶ B} {I : Subobject 𝒞 B}
@@ -757,6 +778,110 @@ structure PrefilterMap (ℱ : (Subobject 𝒞 one) → Prop) (A : 𝒞) where
 def prefilter_functor (ℱ : (Subobject 𝒞 one) → Prop) (_hℱ : IsPreFilter ℱ) : 𝒞 → Type (max u v) :=
   PrefilterMap ℱ
 
+/-! ### §1.634 The colimit functor `T_ℱ = colim_{U∈ℱ} Hom(U,-)`
+
+  `PrefilterMap ℱ A` is only the disjoint union of the representing hom-sets; the
+  actual value `T_ℱ(A)` is the *colimit*: two names `x : U→A`, `y : V→A` give the same
+  element iff there is `W ∈ ℱ`, `W ⊆ U`, `W ⊆ V` with the two restrictions of `x, y`
+  to `W` equal.  Because every `U.arr : U.dom ↣ 1` is monic, the inclusion `W ⊆ U` has a
+  *unique* witness, so the restriction is canonical and the relation below is an honest
+  equivalence (transitivity uses the ↓-directedness of the pre-filter `ℱ`). -/
+
+/-- The book's naming relation on `PrefilterMap ℱ A`: `p ~ q` iff there is a common
+    refinement `W ∈ ℱ` below both `p.U` and `q.U` on which the two maps agree.  The
+    witnessing factorizations `a, b` are unique (monic `arr`), so this is canonical. -/
+def PrefRel (ℱ : (Subobject 𝒞 one) → Prop) {A : 𝒞} (p q : PrefilterMap ℱ A) : Prop :=
+  ∃ (W : Subobject 𝒞 one), ℱ W ∧ ∃ (a : W.dom ⟶ p.U.dom) (b : W.dom ⟶ q.U.dom),
+    a ≫ p.U.arr = W.arr ∧ b ≫ q.U.arr = W.arr ∧ a ≫ p.map = b ≫ q.map
+
+/-- `PrefRel` is reflexive (refine by `p.U` itself, identity factorization). -/
+theorem PrefRel.refl (ℱ : (Subobject 𝒞 one) → Prop) {A : 𝒞} (p : PrefilterMap ℱ A) :
+    PrefRel ℱ p p :=
+  ⟨p.U, p.hU, Cat.id _, Cat.id _, Cat.id_comp _, Cat.id_comp _, rfl⟩
+
+theorem PrefRel.symm (ℱ : (Subobject 𝒞 one) → Prop) {A : 𝒞} {p q : PrefilterMap ℱ A}
+    (h : PrefRel ℱ p q) : PrefRel ℱ q p := by
+  obtain ⟨W, hW, a, b, ha, hb, hab⟩ := h
+  exact ⟨W, hW, b, a, hb, ha, hab.symm⟩
+
+/-- Transitivity uses ↓-directedness of `ℱ`: a common refinement `W ⊆ W₁, W ⊆ W₂` of the
+    two refinements, and monic cancellation of `q.U.arr` to splice the two agreements. -/
+theorem PrefRel.trans (ℱ : (Subobject 𝒞 one) → Prop) (hℱ : IsPreFilter ℱ)
+    {A : 𝒞} {p q r : PrefilterMap ℱ A}
+    (h₁ : PrefRel ℱ p q) (h₂ : PrefRel ℱ q r) : PrefRel ℱ p r := by
+  obtain ⟨W₁, hW₁, a₁, b₁, ha₁, hb₁, hab₁⟩ := h₁
+  obtain ⟨W₂, hW₂, a₂, b₂, ha₂, hb₂, hab₂⟩ := h₂
+  obtain ⟨W, hW, ⟨c₁, hc₁⟩, ⟨c₂, hc₂⟩⟩ := hℱ.2 W₁ W₂ hW₁ hW₂
+  -- W ⊆ W₁ via c₁ (c₁ ≫ W₁.arr = W.arr), W ⊆ W₂ via c₂.
+  -- The two routes  W → q.U.dom  (c₁ ≫ b₁ and c₂ ≫ a₂) agree since q.U.arr is monic.
+  have hmid : c₁ ≫ b₁ = c₂ ≫ a₂ := by
+    apply q.U.monic
+    calc (c₁ ≫ b₁) ≫ q.U.arr = c₁ ≫ (b₁ ≫ q.U.arr) := Cat.assoc _ _ _
+      _ = c₁ ≫ W₁.arr := by rw [hb₁]
+      _ = W.arr := hc₁
+      _ = c₂ ≫ W₂.arr := hc₂.symm
+      _ = c₂ ≫ (a₂ ≫ q.U.arr) := by rw [ha₂]
+      _ = (c₂ ≫ a₂) ≫ q.U.arr := (Cat.assoc _ _ _).symm
+  refine ⟨W, hW, c₁ ≫ a₁, c₂ ≫ b₂, ?_, ?_, ?_⟩
+  · rw [Cat.assoc, ha₁]; exact hc₁
+  · rw [Cat.assoc, hb₂]; exact hc₂
+  · calc (c₁ ≫ a₁) ≫ p.map = c₁ ≫ (a₁ ≫ p.map) := Cat.assoc _ _ _
+      _ = c₁ ≫ (b₁ ≫ q.map) := by rw [hab₁]
+      _ = (c₁ ≫ b₁) ≫ q.map := (Cat.assoc _ _ _).symm
+      _ = (c₂ ≫ a₂) ≫ q.map := by rw [hmid]
+      _ = c₂ ≫ (a₂ ≫ q.map) := Cat.assoc _ _ _
+      _ = c₂ ≫ (b₂ ≫ r.map) := by rw [hab₂]
+      _ = (c₂ ≫ b₂) ≫ r.map := (Cat.assoc _ _ _).symm
+
+/-- `T_ℱ(A)` — the colimit value: equivalence classes of `PrefilterMap ℱ A` under
+    `PrefRel`.  Lives in `Type (max u v)`. -/
+def TF (ℱ : (Subobject 𝒞 one) → Prop) (A : 𝒞) : Type (max u v) :=
+  Quot (PrefRel ℱ (A := A))
+
+/-- The class of a name `x : U → A` (`U ∈ ℱ`) as an element of `T_ℱ(A)`. -/
+def TF.mk (ℱ : (Subobject 𝒞 one) → Prop) {A : 𝒞} (p : PrefilterMap ℱ A) : TF ℱ A :=
+  Quot.mk _ p
+
+/-- Functorial action: post-compose a name `U → A` with `f : A → B`.  Respects `PrefRel`. -/
+def TF.map (ℱ : (Subobject 𝒞 one) → Prop) {A B : 𝒞} (f : A ⟶ B) : TF ℱ A → TF ℱ B :=
+  Quot.lift (fun p => TF.mk ℱ ⟨p.U, p.hU, p.map ≫ f⟩) (by
+    intro p q h
+    obtain ⟨W, hW, a, b, ha, hb, hab⟩ := h
+    apply Quot.sound
+    exact ⟨W, hW, a, b, ha, hb, by
+      show a ≫ (p.map ≫ f) = b ≫ (q.map ≫ f)
+      rw [← Cat.assoc, ← Cat.assoc, hab]⟩)
+
+@[simp] theorem TF.map_mk (ℱ : (Subobject 𝒞 one) → Prop) {A B : 𝒞} (f : A ⟶ B)
+    (p : PrefilterMap ℱ A) :
+    TF.map ℱ f (TF.mk ℱ p) = TF.mk ℱ ⟨p.U, p.hU, p.map ≫ f⟩ := rfl
+
+/-- Functor law (identity): `T_ℱ(id) = id`.  Stated as a plain law rather than via the
+    `Functor` typeclass because that class forces the source hom-universe `v` to equal the
+    target hom-universe `max u v` (it would need `u ≤ v`); §1.55's representations dodge this
+    by working at `Cat.{u}`.  At `v = u`, `TF_functor` below packages these into an instance. -/
+theorem TF.map_id (ℱ : (Subobject 𝒞 one) → Prop) {A : 𝒞} (x : TF ℱ A) :
+    TF.map ℱ (Cat.id A) x = x := by
+  refine Quot.inductionOn x (fun p => ?_)
+  show TF.map ℱ (Cat.id A) (TF.mk ℱ p) = TF.mk ℱ p
+  simp [TF.map_mk, Cat.comp_id]
+
+/-- Functor law (composition): `T_ℱ(f ≫ g) = T_ℱ(f) ≫ T_ℱ(g)`. -/
+theorem TF.map_comp (ℱ : (Subobject 𝒞 one) → Prop) {A B C : 𝒞} (f : A ⟶ B) (g : B ⟶ C)
+    (x : TF ℱ A) :
+    TF.map ℱ (f ≫ g) x = TF.map ℱ g (TF.map ℱ f x) := by
+  refine Quot.inductionOn x (fun p => ?_)
+  show TF.map ℱ (f ≫ g) (TF.mk ℱ p) = TF.map ℱ g (TF.map ℱ f (TF.mk ℱ p))
+  simp [TF.map_mk, Cat.assoc]
+
+/-- `T_ℱ : 𝒞 → 𝒮` is a set-valued functor, packaged at `Cat.{u} 𝒞` (so source and target
+    hom-universes coincide, exactly as the §1.55 representations require). -/
+instance TF_functor {𝒞 : Type u} [Cat.{u} 𝒞] [PreLogos 𝒞] (ℱ : (Subobject 𝒞 one) → Prop) :
+    Functor (TF ℱ) where
+  map f := TF.map ℱ f
+  map_id A := by funext x; exact TF.map_id ℱ x
+  map_comp f g := by funext x; exact TF.map_comp ℱ f g x
+
 /-! ## §1.635 Representation theorem for pre-logoi
 
   Every small positive pre-logos is faithfully representable in a
@@ -790,26 +915,35 @@ theorem prelogos_representation_theorem (A : Type u) [Cat.{u} A] [PositivePreLog
 
 -- BOOK §1.634: If A is a pre-logos then T_ℱ preserves disjoint unions iff
 --   (0 ∉ ℱ) and (U₁+U₂ ∈ ℱ implies U₁ ∈ ℱ or U₂ ∈ ℱ).
--- INFRA-BLOCKED. Two things are missing:
---   (1) A quotient type `TF (ℱ : ...) (A : 𝒞) : Type` making `PrefilterMap ℱ A` into the
---       actual colimit-of-Hom-sets (equivalence classes under `(U,f) ~ (V,g)` when ∃ W ≤ U,V
---       in ℱ with W→A agreeing).  The current `PrefilterMap` is just the pre-sheaf of
---       representatives, not the colimit quotient.
---   (2) A `PreservesDisjointUnions (TF ℱ)` predicate (functor maps disjoint-coproduct
---       subobjects to disjoint-coproduct subobjects in Set); requires `[DisjointBinaryCoproduct 𝒞]`
---       and the filter conditions `0 ∉ ℱ` and `(U₁+U₂ ∈ ℱ → U₁ ∈ ℱ ∨ U₂ ∈ ℱ)`.
+-- LANDED (below, after `IsFilter`):
+--   * The COLIMIT functor `TF ℱ A = colim_{U∈ℱ} Hom(U,A)` (quotient of `PrefilterMap` by
+--     `PrefRel`), with functoriality (`TF.map_id`, `TF.map_comp`, `TF_functor`).
+--   * `PreservesDisjointUnions T` predicate (`disjUnionCompare` bijective) and the
+--     §1.625 `SetRepOfPreLogos` packaging "rep-of-regular + preserves disjoint unions".
+--   * The §1.634 BECAUSE first sentence `0 ∉ ℱ ⇔ T_ℱ(0) = ∅`
+--     (`TF_coterminator_empty` ⇐ / `TF_coterminator_nonempty` ⇒).
+--   * The §1.634 membership condition `UnionPrime ℱ`.
+-- STILL OPEN (the hard analytic half): the actual equivalence
+--     `PreservesDisjointUnions (TF ℱ) ↔ UnionPrime ℱ`.
+--   This requires the coproduct-decomposition of a name `U → A₁+A₂` into
+--   `f₁+f₂ : U₁+U₂ → A₁+A₂` (U₁,U₂ a complemented pair of U via the pullbacks of `inl/inr`),
+--   i.e. the §1.624 invImage-arithmetic on `U` — substantial but elementary; it slots onto
+--   `disjUnionCompare`/`TF` directly.
 
 -- BOOK §1.635: If F̂ is an ultra-filter in the boolean algebra of complemented
 -- subterminators, then T_F̂ is a representation of pre-logoi (union-preserving).
--- INFRA-BLOCKED. Requires:
---   (1) `IsUltraFilter (ℱ : Subobject 𝒞 one → Prop)`: an ultra-filter in the Boolean
---       algebra of complemented subterminators (`IsComplementedSub` lattice) — needs
---       `Classical.choice` / Zorn's lemma to produce one from a proper filter.
---   (2) `PreLogosFunctor T`: a Lean predicate asserting T preserves finite products,
---       equalizers, images, AND disjoint unions (= representation of pre-logoi), not
---       yet defined anywhere.
---   (3) The proof that `TF F̂` (with F̂ ultra) satisfies `PreLogosFunctor` — depends
---       on §1.634's `PreservesDisjointUnions` result (INFRA-BLOCKED above).
+-- LANDED (below): `IsProperFilter`/`IsUltraFilter` predicates; the standard ultra-filter
+--   algebra `ultrafilter_isFilter` (maximal proper ⟹ up-closed) and `ultrafilter_inter_closed`
+--   (closed under meet) — Freyd's "an ultra-filter is easily seen to be a filter, hence closed
+--   under intersection".  The §1.625 conclusion shape is `SetRepOfPreLogos`.
+-- STILL OPEN:
+--   (a) ULTRA-FILTER EXISTENCE: extend a proper pre-filter on `ℬ` to a maximal one.  The
+--       mathlib-free Zorn/Zermelo engine in `Fredy.WellOrdering` (Bourbaki–Witt g-tower) is the
+--       intended driver; it is packaged there for `Colim.OrdChain`, not yet exposed as a generic
+--       "maximal element of a chain-closed family of predicates", so adapting it to the poset of
+--       proper pre-filters is the remaining work.
+--   (b) `UnionPrime F̂` for `F̂` ultra (Freyd's `F' = F̂ ∪ {U∩W}` maximality argument) — needs
+--       distributivity + De Morgan complement of `U∩V` in `ℬ` (the only non-elementary input).
 -- The faithful-representation half (`SeparatesMaps`) is `prelogos_representation_theorem`.
 
 -- BOOK §1.636: Any Horn sentence in the predicates of pre-logoi that holds for the
@@ -835,6 +969,154 @@ theorem prelogos_representation_theorem (A : Type u) [Cat.{u} A] [PositivePreLog
 /-- FILTER in a subobject lattice: up-closed pre-filter (§1.634). -/
 def IsFilter (ℱ : (Subobject 𝒞 one) → Prop) : Prop :=
   IsPreFilter ℱ ∧ ∀ (U V : Subobject 𝒞 one), ℱ U → Subobject.le U V → ℱ V
+
+/-! ### §1.634/§1.635 The ultra-filter layer
+
+  The subobjects of `1` carry the order `Subobject.le`; the *complemented* ones
+  (`IsComplementedSub`) form a distributive lattice with `0 = PreLogos.bottom 1` and meet
+  `Subobject.inter`, complements — Freyd's BOOLEAN ALGEBRA `ℬ` of complemented
+  subterminators (§1.635).  A pre-filter is PROPER when it omits `0`; an ULTRA-FILTER is a
+  maximal proper pre-filter.  All predicates below are on `Subobject 𝒞 one → Prop`. -/
+
+/-- `0` (the bottom subterminator) — `PreLogos.bottom 1`.  `0 ∈ ℱ` means `Zero ∈ ℱ`. -/
+abbrev Zero1 : Subobject 𝒞 one := PreLogos.bottom one
+
+/-- A pre-filter is PROPER if no member is below `0` (equivalently `0 ∉ ℱ`, stated in the
+    order-robust form `¬ ∃ U ∈ ℱ, U ≤ 0` so it is stable under the iso-ambiguity of raw
+    subobjects). -/
+def IsProperFilter (ℱ : (Subobject 𝒞 one) → Prop) : Prop :=
+  IsPreFilter ℱ ∧ ¬ ∃ U, ℱ U ∧ Subobject.le U Zero1
+
+/-- §1.635 ULTRA-FILTER: a maximal proper pre-filter in the Boolean algebra of complemented
+    subterminators.  `ℱ` is a proper pre-filter all of whose members are complemented, and any
+    proper pre-filter (of complemented subterminators) extending `ℱ` equals `ℱ`. -/
+def IsUltraFilter (ℱ : (Subobject 𝒞 one) → Prop) : Prop :=
+  IsProperFilter ℱ ∧ (∀ U, ℱ U → IsComplementedSub U) ∧
+    ∀ (𝒢 : (Subobject 𝒞 one) → Prop), IsProperFilter 𝒢 → (∀ U, 𝒢 U → IsComplementedSub U) →
+      (∀ U, ℱ U → 𝒢 U) → ∀ U, 𝒢 U → ℱ U
+
+/-- §1.634 filter membership condition that characterises union-preservation of `T_ℱ`:
+    `0 ∉ ℱ`, and a disjoint complemented union `U₁ ∪ U₂ ∈ ℱ` forces `U₁ ∈ ℱ` or `U₂ ∈ ℱ`.
+    (The union is taken in `Subobject 𝒞 one`; `U₁, U₂` are the two halves of a complemented
+    pair, i.e. `U₁ ∩ U₂ = 0`.) -/
+def UnionPrime (ℱ : (Subobject 𝒞 one) → Prop) : Prop :=
+  ¬ ℱ Zero1 ∧
+    ∀ (U₁ U₂ : Subobject 𝒞 one),
+      Subobject.le (Subobject.inter U₁ U₂) Zero1 →
+      ℱ (HasSubobjectUnions.union U₁ U₂) → ℱ U₁ ∨ ℱ U₂
+
+/-! ### §1.634/§1.625  Union-preservation of a set-valued representation
+
+  A representation `T : 𝒞 → 𝒮` of regular categories preserves DISJOINT UNIONS (§1.625) iff
+  for every disjoint complemented pair realising `A ≅ A₁ + A₂` the two injection images in
+  `T A` are disjoint and jointly cover `T A` (and each injection is injective).  This is the
+  Set-theoretic content of "`T(A₁+A₂) = T(A₁) ⊔ T(A₂)`" — a representation of pre-logoi is
+  exactly a representation of regular categories that is additionally union-preserving. -/
+
+/-- The canonical comparison `T A₁ ⊔ T A₂ → T(A₁+A₂)` of a SET-valued functor `T`,
+    namely `[T(inl), T(inr)]` on the disjoint sum of the two stalks. -/
+def disjUnionCompare (T : 𝒞 → Type v) [hT : Functor T]
+    [HasBinaryCoproducts 𝒞] (A₁ A₂ : 𝒞) :
+    (T A₁) ⊕ (T A₂) → T (HasBinaryCoproducts.coprod A₁ A₂) :=
+  fun s => s.elim (fun x => hT.map (HasBinaryCoproducts.inl) x)
+                  (fun y => hT.map (HasBinaryCoproducts.inr) y)
+
+/-- §1.625  `T : 𝒞 → 𝒮` PRESERVES DISJOINT UNIONS: for every binary coproduct the canonical
+    comparison `T A₁ ⊔ T A₂ → T(A₁+A₂)` is a bijection (Set-level
+    "`T(A₁+A₂) = T A₁ ⊔ T A₂`").  A representation of regular categories that preserves
+    disjoint unions is a REPRESENTATION OF PRE-LOGOI. -/
+def PreservesDisjointUnions (T : 𝒞 → Type v) [Functor T]
+    [HasBinaryCoproducts 𝒞] : Prop :=
+  ∀ (A₁ A₂ : 𝒞),
+    Function.Injective (disjUnionCompare T A₁ A₂) ∧ Function.Surjective (disjUnionCompare T A₁ A₂)
+
+/-- §1.625/§1.635 SET-VALUED REPRESENTATION OF PRE-LOGOI.  A set-valued functor
+    `T : 𝒞 → 𝒮` is a representation of pre-logoi iff it is a representation of regular
+    categories that also preserves disjoint unions.  (The §1.61 class `PreLogosFunctor` is the
+    between-pre-logoi version; this `SetRepOfPreLogos` is its set-valued analogue, the form the
+    representation theorem §1.635 actually produces, since the target `𝒮 = Type v` is not
+    instanced as a `PreLogos` object in this repo.)
+
+    The regular-representation half (`repReg`) is supplied as an abstract predicate: it is the
+    conjunction of preservation of binary products, equalizers and covers, which for `T_ℱ` is
+    the §1.634 fact "`T_ℱ` preserves finite products and equalizers, and preserves covers when
+    the elements of `ℱ` are projective".  `SetRepOfPreLogos` adds the missing §1.635 ingredient
+    — disjoint-union preservation — on top.  `repReg` is the regular-representation predicate
+    (preserves products, equalizers, covers) carried as a parameter. -/
+def SetRepOfPreLogos (T : 𝒞 → Type v) [Functor T] [HasBinaryCoproducts 𝒞]
+    (repReg : Prop) : Prop :=
+  repReg ∧ PreservesDisjointUnions T
+
+/-! ### §1.635  Algebra of ultra-filters
+
+  An ultra-filter in the Boolean algebra of complemented subterminators is automatically a
+  filter (up-closed), hence — `ℬ` being a lattice — closed under meet.  These are the
+  "standard facts" Freyd invokes ("An ultra-filter is easily seen to be a filter, hence
+  closed under intersection").  We prove the up-closure half here from maximality. -/
+
+/-- An ULTRA-FILTER is a FILTER: it is up-closed within the complemented subterminators.
+    PROOF (Freyd): the up-closure `𝒢 = {W complemented | ∃ S ∈ ℱ, S ≤ W}` is a proper
+    pre-filter extending `ℱ`; by maximality `𝒢 = ℱ`, and `U ≤ V`, `U ∈ ℱ` puts `V ∈ 𝒢 = ℱ`. -/
+theorem ultrafilter_isFilter (ℱ : (Subobject 𝒞 one) → Prop) (hU : IsUltraFilter ℱ) :
+    ∀ (U V : Subobject 𝒞 one), ℱ U → IsComplementedSub V → Subobject.le U V → ℱ V := by
+  obtain ⟨⟨hpre, h0⟩, hcomp, hmax⟩ := hU
+  intro U V hUmem hVcomp hUV
+  -- 𝒢 = the up-closure of ℱ within complemented subterminators.
+  let 𝒢 : (Subobject 𝒞 one) → Prop := fun W => IsComplementedSub W ∧ ∃ S, ℱ S ∧ Subobject.le S W
+  -- 𝒢 is a pre-filter: ↓-directed using directedness of ℱ on the witnesses.
+  have h𝒢pre : IsPreFilter 𝒢 := by
+    obtain ⟨S₀, hS₀⟩ := hpre.1
+    refine ⟨⟨S₀, hcomp S₀ hS₀, S₀, hS₀, Subobject.le_refl S₀⟩, ?_⟩
+    rintro W₁ W₂ ⟨_, S₁, hS₁, hS₁W₁⟩ ⟨_, S₂, hS₂, hS₂W₂⟩
+    obtain ⟨T, hT, hTS₁, hTS₂⟩ := hpre.2 S₁ S₂ hS₁ hS₂
+    -- T ∈ ℱ ⊆ 𝒢, and T ≤ S₁ ≤ W₁, T ≤ S₂ ≤ W₂.
+    exact ⟨T, ⟨hcomp T hT, T, hT, Subobject.le_refl T⟩,
+      Subobject.le_trans hTS₁ hS₁W₁, Subobject.le_trans hTS₂ hS₂W₂⟩
+  -- 𝒢 is proper: a member ≤ 0 yields a witness S ∈ ℱ with S ≤ 0, contradicting properness of ℱ.
+  have h𝒢prop : ¬ ∃ W, 𝒢 W ∧ Subobject.le W Zero1 := by
+    rintro ⟨W, ⟨_, S, hS, hSW⟩, hW0⟩
+    exact h0 ⟨S, hS, Subobject.le_trans hSW hW0⟩
+  -- ℱ ⊆ 𝒢 (every member is above itself), all 𝒢-members complemented; maximality ⟹ 𝒢 ⊆ ℱ.
+  have hℱ𝒢 : ∀ W, ℱ W → 𝒢 W := fun W hW => ⟨hcomp W hW, W, hW, Subobject.le_refl W⟩
+  exact hmax 𝒢 ⟨h𝒢pre, h𝒢prop⟩ (fun W hW => hW.1) hℱ𝒢 V ⟨hVcomp, U, hUmem, hUV⟩
+
+/-- An ULTRA-FILTER is closed under MEET (intersection): if `U, V ∈ ℱ` and their meet
+    `U ∩ V` is complemented (which it is in the Boolean algebra `ℬ`), then `U ∩ V ∈ ℱ`.
+    PROOF: ↓-directedness gives `T ∈ ℱ` with `T ≤ U`, `T ≤ V`, hence `T ≤ U ∩ V`
+    (`Subobject.le_inter`); up-closure (`ultrafilter_isFilter`) lifts membership to `U ∩ V`.
+    The complementedness of `U ∩ V` is the only non-elementary input (De Morgan in `ℬ`), so it
+    is taken as a hypothesis here rather than re-deriving the Boolean-algebra structure. -/
+theorem ultrafilter_inter_closed (ℱ : (Subobject 𝒞 one) → Prop) (hU : IsUltraFilter ℱ)
+    (U V : Subobject 𝒞 one) (hUmem : ℱ U) (hVmem : ℱ V)
+    (hcompInter : IsComplementedSub (Subobject.inter U V)) :
+    ℱ (Subobject.inter U V) := by
+  have hpre : IsPreFilter ℱ := hU.1.1
+  obtain ⟨T, hT, hTU, hTV⟩ := hpre.2 U V hUmem hVmem
+  exact ultrafilter_isFilter ℱ hU T (Subobject.inter U V) hT hcompInter
+    (Subobject.le_inter hTU hTV)
+
+/-- §1.634 (BECAUSE, first sentence): `0 ∉ ℱ` is equivalent with `T_ℱ(0) = ∅`.
+
+  Here `0` is the coterminator object of the pre-logos.  An element of `T_ℱ(0)` is named by
+  some `x : U.dom → 0` with `U ∈ ℱ`; any map into the (strict) coterminator is an iso
+  (`any_map_to_zero_is_iso`), so `U.dom ≅ 0 ≅ (PreLogos.bottom 1).dom`, and since `1` is
+  terminal that iso *is* a witness `U ≤ 0` in `Sub(1)`.  Properness (`0 ∉ ℱ`, i.e. no member
+  `≤ 0`) then excludes `U`, so `T_ℱ(0)` is empty. -/
+theorem TF_coterminator_empty (ℱ : (Subobject 𝒞 one) → Prop) (hprop : ¬ ∃ U, ℱ U ∧ Subobject.le U Zero1) :
+    TF ℱ (minimal_subobject_of_one_is_coterminator (inferInstance : PreLogos 𝒞)).zero → False := by
+  intro t
+  refine Quot.inductionOn t (fun p => ?_)
+  -- `0 = Zero1.dom` definitionally, so `p.map : p.U.dom → Zero1.dom` IS a witness `p.U ≤ Zero1`
+  -- once composed with `Zero1.arr`; the triangle holds since `1` is terminal (`term_uniq`).
+  have hle : Subobject.le p.U Zero1 := ⟨p.map, term_uniq _ _⟩
+  exact hprop ⟨p.U, p.hU, hle⟩
+
+/-- §1.634 converse: if `0 ∈ ℱ` (the literal bottom subterminator) then `T_ℱ(0) ≠ ∅` — the
+    identity name `Zero1 → 0` (recall `0 = Zero1.dom`) is an element.  Together with
+    `TF_coterminator_empty` this gives Freyd's equivalence `0 ∉ ℱ ⇔ T_ℱ(0) = ∅`. -/
+def TF_coterminator_nonempty (ℱ : (Subobject 𝒞 one) → Prop) (h0 : ℱ Zero1) :
+    TF ℱ (minimal_subobject_of_one_is_coterminator (inferInstance : PreLogos 𝒞)).zero :=
+  TF.mk ℱ ⟨Zero1, h0, Cat.id _⟩
 
 /-! ## §1.631 Complemented subobject of a projective is projective
 
