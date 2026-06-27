@@ -204,6 +204,12 @@ noncomputable instance instHasCoterminatorAb : HasCoterminator (AbelianGroupObje
   init_uniq f g := Subtype.ext ((hom_fromZero_unique f.property).trans
     (hom_fromZero_unique g.property).symm)
 
+/-- §1.595: **`Ab(𝒞)` has a zero object** — the zero group object `zeroGObj` is at once terminal
+    (`instHasTerminalAb`) and coterminal (`instHasCoterminatorAb`), with `one = coterm` on the
+    nose, so `0 ≅ 1`. -/
+noncomputable instance instHasZeroObjectAb : HasZeroObject (AbelianGroupObject 𝒞) where
+  zero_eq_one := rfl
+
 /-! ### Products in `Ab(𝒞)`
 
   The projections `π₁ : prodGObj A B → A`, `π₂ : prodGObj A B → B` and the pairing

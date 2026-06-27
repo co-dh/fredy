@@ -639,52 +639,485 @@ theorem carrier_cover_to_ab_cover_aux {A B M : AbelianGroupObject 𝒞} {f : A �
     (hm_carrier : Monic m.val) (g : A ⟶ M) (hgm : g ≫ m = f) : IsIso m :=
   isHom_of_carrier_iso m (hfval m.val g.val hm_carrier (congrArg Subtype.val hgm))
 
-/-!
-  ### SHARP RESIDUAL for `PullbacksTransferCovers (Ab 𝒞)` and `HasImages (Ab 𝒞)`
-
-  **`PullbacksTransferCovers (Ab 𝒞)` from `[RegularCategory 𝒞]`:**
-
-  Given `c : Cone f g` with `c.IsPullback` in `Ab(𝒞)` and `Cover f`, prove `Cover c.π₂`.
-  The proof reduces to two steps:
-  1. `Cover c.π₂.val` in 𝒞 — holds because `c.π₂.val` is iso-to `(pb f g).cone.π₂` (the
-     canonical 𝒞-pullback projection), and `Cover f.val → Cover (pb f g).cone.π₂`
-     by `[PullbacksTransferCovers 𝒞]`.  The `Cover f.val` step needs `Cover f →
-     Cover f.val`, i.e., `PreservesMono U` (= `ab_monic_carrier_monic`).
-  2. `Cover c.π₂.val → Cover c.π₂` — needs `ab_monic_carrier_monic` as in
-     `carrier_cover_to_ab_cover_aux`.
-
-  **EXACT BLOCKER**: `HasImages (Ab 𝒞)` (requires `[EffectiveRegular 𝒞]`).
-  `HasEqualizers (Ab 𝒞)` is NOW PROVED (instHasEqualizersAb).  The true dependency
-  chain is: `[EffectiveRegular 𝒞]` ⟹ `HasImages (Ab 𝒞)` ⟹ `ab_monic_carrier_monic` ⟹ PTC.
-  NOTE: `HasEqualizers (Ab 𝒞)` alone does NOT give `ab_monic_carrier_monic` because
-  𝒞-hom-sets are sets (not abelian groups) — see the §1.595 residual note above.
-
-  **`HasImages (Ab 𝒞)` from `[RegularCategory 𝒞]`:**
-
-  For `f : A ⟶ B` in `Ab(𝒞)`, the 𝒞-image `Im = image f.val` has carrier `Im.dom`
-  which must carry a group structure making `Im.arr : Im.dom ⟶ B.carrier` a group hom.
-
-  - `zero_I : one ⟶ Im.dom` — define as `image_min f.val` applied to the zero of A:
-    `A.zero ≫ image.lift f.val : one ⟶ Im.dom` satisfies
-    `(A.zero ≫ image.lift f.val) ≫ Im.arr = A.zero ≫ f.val = B.zero`.
-    Unique by monicity of `Im.arr`.
-  - `neg_I : Im.dom ⟶ Im.dom` — via image minimality: the subobject
-    `⟨Im.dom, Im.arr ≫ B.neg, mono(Im.arr ≫ B.neg)⟩` allows `f.val`
-    (witness `A.neg ≫ image.lift f.val ≫ Im.arr ≫ B.neg ≫ B.neg = f.val`
-    since `B.neg ≫ B.neg = id`), so `Img ≤ ⟨Im.dom, Im.arr ≫ B.neg, ...⟩`,
-    giving `k : Im.dom → Im.dom` with `k ≫ Im.arr ≫ B.neg = Im.arr`, hence
-    `k ≫ Im.arr = Im.arr ≫ B.neg`. Set `neg_I = k`.  ✓
-  - `add_I : Im.dom × Im.dom ⟶ Im.dom` — **THE BLOCKER**.
-    Needs `pair (fst ≫ Im.arr) (snd ≫ Im.arr) ≫ B.add` to factor through `Im.arr`.
-    This requires descent of `A.add ≫ image.lift f.val` along the cover
-    `pair (fst ≫ image.lift f.val) (snd ≫ image.lift f.val)`.
-    This descent needs `[EffectiveRegular 𝒞]` (or `HasEqualizers (Ab 𝒞)` + coequalizers
-    as effective epis).
-
-  With `[EffectiveRegular 𝒞]`, the cover `e = image.lift f.val` is an effective epi
-  (coequalizer of its kernel pair), and `A.add ≫ e` descends along `pair (fst≫e)(snd≫e)`
-  (which is also a cover) to give `add_I`.  The group axioms on `Im.dom` then follow
-  by carrier-level monicity of `Im.arr` from those of `A` and `B`.
--/
-
 end Covers
+
+/-! ### §1.595 Covers of products
+
+  The image construction below descends the addition `A.add ≫ e` along the cover
+  `pair (fst ≫ e) (snd ≫ e) : A×A ⟶ I×I`.  We first record that this map of products
+  is a cover whenever `e` is.  Both factors are base changes of `e` (each is a pullback of
+  `e` along a projection), so `cover_pullback` + `cover_comp` apply.  This is the
+  product-of-covers content; it is the only place the descent needs `PullbacksTransferCovers`,
+  which `[RegularCategory 𝒞]` supplies. -/
+
+section ProdCovers
+
+variable [HasPullbacks 𝒞] [PullbacksTransferCovers 𝒞] [HasImages 𝒞]
+
+/-- `pair (fst ≫ e) snd : A×X ⟶ I×X` is a cover when `e : A ⟶ I` is (it is the base change
+    of `e` along `fst : I×X ⟶ I`).  The cone `(pair (fst≫e) snd, snd)` is a pullback of the
+    cospan `(e, fst)`, so `cover_pullback` transfers the cover `e`. -/
+theorem coverProdLeft {A I X : 𝒞} {e : A ⟶ I} (he : Cover e) :
+    Cover (pair (fst ≫ e) (snd : prod A X ⟶ X)) := by
+  -- Pullback of cospan `(e : A → I, fst : I×X → I)`: apex `A×X`, π₁ = fst, π₂ = pair (fst≫e) snd.
+  have hpb : (⟨prod A X, fst, pair (fst ≫ e) snd,
+      (fst_pair (fst ≫ e) snd).symm⟩ : Cone e (fst (A := I) (B := X))).IsPullback := by
+    intro d
+    -- d.π₁ : d.pt → A,  d.π₂ : d.pt → I×X,  d.w : d.π₁ ≫ e = d.π₂ ≫ fst.
+    refine ⟨pair d.π₁ (d.π₂ ≫ snd), ⟨fst_pair _ _, ?_⟩, ?_⟩
+    · show pair d.π₁ (d.π₂ ≫ snd) ≫ pair (fst ≫ e) snd = d.π₂
+      apply fst_snd_jointly_monic
+      · rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair]; exact d.w
+      · rw [Cat.assoc, snd_pair, snd_pair]
+    · intro v hv₁ hv₂
+      have hv₂' : v ≫ pair (fst ≫ e) snd = d.π₂ := hv₂
+      apply fst_snd_jointly_monic
+      · rw [fst_pair]; exact hv₁
+      · rw [snd_pair, ← hv₂', Cat.assoc, snd_pair]
+  intro D m g hm hgm
+  exact PullbacksTransferCovers.pullbacks_transfer_covers _ hpb he m g hm hgm
+
+/-- `pair fst (snd ≫ e) : X×A ⟶ X×I` is a cover when `e : A ⟶ I` is (base change of `e`
+    along `snd : X×I ⟶ I`). -/
+theorem coverProdRight {A I X : 𝒞} {e : A ⟶ I} (he : Cover e) :
+    Cover (pair (fst : prod X A ⟶ X) (snd ≫ e)) := by
+  have hpb : (⟨prod X A, snd, pair fst (snd ≫ e),
+      (snd_pair fst (snd ≫ e)).symm⟩ : Cone e (snd (A := X) (B := I))).IsPullback := by
+    intro d
+    refine ⟨pair (d.π₂ ≫ fst) d.π₁, ⟨snd_pair _ _, ?_⟩, ?_⟩
+    · show pair (d.π₂ ≫ fst) d.π₁ ≫ pair fst (snd ≫ e) = d.π₂
+      apply fst_snd_jointly_monic
+      · rw [Cat.assoc, fst_pair, fst_pair]
+      · rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair]; exact d.w
+    · intro v hv₁ hv₂
+      have hv₂' : v ≫ pair fst (snd ≫ e) = d.π₂ := hv₂
+      apply fst_snd_jointly_monic
+      · rw [fst_pair, ← hv₂', Cat.assoc, fst_pair]
+      · rw [snd_pair]; exact hv₁
+  intro D m g hm hgm
+  exact PullbacksTransferCovers.pullbacks_transfer_covers _ hpb he m g hm hgm
+
+/-- `pair (fst ≫ e) (snd ≫ e) : A×A ⟶ I×I` is a cover when `e : A ⟶ I` is.  Factor as
+    `pair (fst≫e) snd ≫ pair fst (snd≫e)` (change left factor, then right). -/
+theorem coverProdBoth {A I : 𝒞} {e : A ⟶ I} (he : Cover e) :
+    Cover (pair (fst ≫ e) (snd ≫ e) : prod A A ⟶ prod I I) := by
+  have hfac : (pair (fst ≫ e) (snd : prod A A ⟶ A)) ≫ pair (fst : prod I A ⟶ I) (snd ≫ e)
+      = pair (fst ≫ e) (snd ≫ e) := by
+    apply fst_snd_jointly_monic
+    · rw [Cat.assoc, fst_pair, fst_pair, fst_pair]
+    · rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair, snd_pair]
+  have hc : Cover ((pair (fst ≫ e) (snd : prod A A ⟶ A)) ≫ pair (fst : prod I A ⟶ I) (snd ≫ e)) :=
+    cover_comp (coverProdLeft he) (coverProdRight he)
+  rwa [hfac] at hc
+
+end ProdCovers
+
+/-! ### §1.595 `HasImages (Ab 𝒞)` — the image of a group hom carries a group structure
+
+  For `f : A ⟶ B` in `Ab(𝒞)`, write `e := image.lift f.val : A.car ⟶ I` (a cover,
+  `image_lift_cover`) and `m := (image f.val).arr : I ⟶ B.car` (monic), with `e ≫ m = f.val`.
+  We put an `AbelianGroupObject` structure on `I = (image f.val).dom`:
+
+  * `zero := A.zero ≫ e` — directly, `(A.zero ≫ e) ≫ m = A.zero ≫ f.val = B.zero`.
+  * `neg`  — the DESCENT of `A.neg ≫ e` along the cover `e` (§1.566
+    `cover_is_coequalizer_of_level`): the unique `nI` with `e ≫ nI = A.neg ≫ e`.
+    Well-defined because `A.neg ≫ e` equalizes the kernel pair of `e` (post-compose the
+    monic `m`: `A.neg ≫ f.val = f.val ≫ B.neg`, and `kp_sq` for `f.val`/`e` matches them).
+  * `add`  — the DESCENT of `A.add ≫ e` along the cover `ee := pair (fst≫e) (snd≫e)`
+    (`coverProdBoth`): the unique `aI` with `ee ≫ aI = A.add ≫ e`.  Well-defined because
+    `A.add ≫ e` equalizes the kernel pair of `ee` (post-compose `m`; `f` is a hom, and the
+    kernel-pair square of `ee` matches the two summands componentwise).
+
+  All four group axioms transport to `I` by monicity of `m` from those of `A` and `B`, and
+  `m` is a homomorphism by construction.  This needs only `[RegularCategory 𝒞]`. -/
+
+section Images
+
+variable [RegularCategory 𝒞]
+
+namespace AbImage
+
+variable {A B : AbelianGroupObject 𝒞} (f : A ⟶ B)
+
+/-- The image carrier of `f.val`. -/
+def imI : 𝒞 := (image f.val).dom
+/-- The image inclusion `imI ⟶ B.carrier` (monic). -/
+def imArr : imI f ⟶ B.carrier := (image f.val).arr
+/-- The image cover `A.carrier ⟶ imI` (`= image.lift f.val`). -/
+noncomputable def imE : A.carrier ⟶ imI f := image.lift f.val
+
+theorem imArr_monic : Monic (imArr f) := (image f.val).monic
+theorem imE_cover : Cover (imE f) := image_lift_cover f.val
+theorem imE_imArr : imE f ≫ imArr f = f.val := image.lift_fac f.val
+
+/-- Zero of the image group object: `A.zero ≫ e`. -/
+noncomputable def imZero : (one : 𝒞) ⟶ imI f := A.zero ≫ imE f
+
+@[simp] theorem imZero_imArr : imZero f ≫ imArr f = term one ≫ B.zero := by
+  rw [imZero, Cat.assoc, imE_imArr]
+  have h1 : A.zero = term one ≫ A.zero := by rw [term_uniq (term one) (Cat.id one), Cat.id_comp]
+  rw [h1]
+  exact hom_preserves_zero f.property (term one)
+
+/-- The descent equation for negation: `A.neg ≫ e` equalizes the kernel pair of `e`. -/
+theorem neg_descends :
+    kp₁ (f := imE f) ≫ (A.neg ≫ imE f) = kp₂ (f := imE f) ≫ (A.neg ≫ imE f) := by
+  apply imArr_monic f
+  -- post-compose with the monic `m`; use `A.neg ≫ f.val = f.val ≫ B.neg` and `kp_sq`.
+  have key : ∀ k : kernelPair (imE f) ⟶ A.carrier,
+      (k ≫ (A.neg ≫ imE f)) ≫ imArr f = (k ≫ imE f) ≫ (imArr f ≫ B.neg) := by
+    intro k
+    calc (k ≫ (A.neg ≫ imE f)) ≫ imArr f
+        = (k ≫ A.neg) ≫ f.val := by
+          rw [Cat.assoc, Cat.assoc, imE_imArr, ← Cat.assoc]
+      _ = (k ≫ f.val) ≫ B.neg := hom_preserves_neg f.property k
+      _ = (k ≫ imE f) ≫ (imArr f ≫ B.neg) := by rw [← imE_imArr]; simp only [Cat.assoc]
+  rw [key, key, kp_sq]
+
+/-- Negation of the image group object: the descent of `A.neg ≫ e` along the cover `e`. -/
+noncomputable def imNeg : imI f ⟶ imI f :=
+  (cover_is_coequalizer_of_level (imE f) (imE_cover f) (A.neg ≫ imE f) (neg_descends f)).choose
+
+theorem imE_imNeg : imE f ≫ imNeg f = A.neg ≫ imE f :=
+  (cover_is_coequalizer_of_level (imE f) (imE_cover f) (A.neg ≫ imE f)
+    (neg_descends f)).choose_spec.1
+
+@[simp] theorem imNeg_imArr : imNeg f ≫ imArr f = imArr f ≫ B.neg := by
+  apply cover_epi (imE_cover f)
+  rw [← Cat.assoc, imE_imNeg, Cat.assoc, imE_imArr, ← Cat.assoc, imE_imArr]
+  -- goal: A.neg ≫ f.val = f.val ≫ B.neg
+  have := hom_preserves_neg f.property (Cat.id A.carrier)
+  rwa [Cat.id_comp, Cat.id_comp] at this
+
+/-- The product cover `ee := pair (fst≫e) (snd≫e) : A×A ⟶ I×I`. -/
+noncomputable def imEE : prod A.carrier A.carrier ⟶ prod (imI f) (imI f) :=
+  pair (fst ≫ imE f) (snd ≫ imE f)
+
+theorem imEE_cover : Cover (imEE f) := coverProdBoth (imE_cover f)
+
+@[simp] theorem imEE_fst : imEE f ≫ fst = fst ≫ imE f := by rw [imEE, fst_pair]
+@[simp] theorem imEE_snd : imEE f ≫ snd = snd ≫ imE f := by rw [imEE, snd_pair]
+
+theorem imEE_fst_imArr : imEE f ≫ fst ≫ imArr f = fst ≫ f.val := by
+  rw [← Cat.assoc, imEE_fst, Cat.assoc, imE_imArr]
+theorem imEE_snd_imArr : imEE f ≫ snd ≫ imArr f = snd ≫ f.val := by
+  rw [← Cat.assoc, imEE_snd, Cat.assoc, imE_imArr]
+
+/-- The descent equation for addition: `A.add ≫ e` equalizes the kernel pair of `ee`. -/
+theorem add_descends :
+    kp₁ (f := imEE f) ≫ (A.add ≫ imE f) = kp₂ (f := imEE f) ≫ (A.add ≫ imE f) := by
+  apply imArr_monic f
+  -- post-compose `m`: both kp-projections, after `m`, become `(kp_i ≫ ee) ≫ (B-sum of m's)`;
+  -- they agree by `kp_sq` for `ee`.
+  have key : ∀ k : kernelPair (imEE f) ⟶ prod A.carrier A.carrier,
+      (k ≫ (A.add ≫ imE f)) ≫ imArr f
+        = (k ≫ imEE f) ≫ (pair (fst ≫ imArr f) (snd ≫ imArr f) ≫ B.add) := by
+    intro k
+    have hlhs : (k ≫ (A.add ≫ imE f)) ≫ imArr f
+        = pair (k ≫ fst ≫ f.val) (k ≫ snd ≫ f.val) ≫ B.add := by
+      rw [Cat.assoc, Cat.assoc, imE_imArr,
+          show A.add ≫ f.val = pair (fst ≫ f.val) (snd ≫ f.val) ≫ B.add from f.property,
+          ← Cat.assoc, ab_pair_precomp]
+    have hrhs : (k ≫ imEE f) ≫ (pair (fst ≫ imArr f) (snd ≫ imArr f) ≫ B.add)
+        = pair (k ≫ fst ≫ f.val) (k ≫ snd ≫ f.val) ≫ B.add := by
+      rw [← Cat.assoc, ab_pair_precomp]
+      congr 2
+      · rw [Cat.assoc, imEE_fst_imArr]
+      · rw [Cat.assoc, imEE_snd_imArr]
+    rw [hlhs, hrhs]
+  rw [key, key, kp_sq]
+
+/-- Addition of the image group object: the descent of `A.add ≫ e` along the cover `ee`. -/
+noncomputable def imAdd : prod (imI f) (imI f) ⟶ imI f :=
+  (cover_is_coequalizer_of_level (imEE f) (imEE_cover f) (A.add ≫ imE f)
+    (add_descends f)).choose
+
+theorem imEE_imAdd : imEE f ≫ imAdd f = A.add ≫ imE f :=
+  (cover_is_coequalizer_of_level (imEE f) (imEE_cover f) (A.add ≫ imE f)
+    (add_descends f)).choose_spec.1
+
+/-- The addition projects through `m` to the componentwise `B`-sum. -/
+@[simp] theorem imAdd_imArr :
+    imAdd f ≫ imArr f = pair (fst ≫ imArr f) (snd ≫ imArr f) ≫ B.add := by
+  apply cover_epi (imEE_cover f)
+  rw [← Cat.assoc, imEE_imAdd, Cat.assoc, imE_imArr,
+      show A.add ≫ f.val = pair (fst ≫ f.val) (snd ≫ f.val) ≫ B.add from f.property,
+      ← Cat.assoc, ab_pair_precomp]
+  -- RHS now: pair (imEE f ≫ fst ≫ imArr) (imEE f ≫ snd ≫ imArr) ≫ B.add
+  congr 2
+  · rw [imEE_fst_imArr]
+  · rw [imEE_snd_imArr]
+
+/-- **Component lemma** for the image sum: `(⟨u,w⟩ ≫ imAdd) ≫ m = ⟨u≫m, w≫m⟩ ≫ B.add`. -/
+theorem imAdd_proj {S : 𝒞} (u w : S ⟶ imI f) :
+    (pair u w ≫ imAdd f) ≫ imArr f = pair (u ≫ imArr f) (w ≫ imArr f) ≫ B.add := by
+  rw [Cat.assoc, imAdd_imArr, ← Cat.assoc, ab_pair_precomp, ← Cat.assoc, ← Cat.assoc,
+      fst_pair, snd_pair]
+
+/-! The group axioms on `imI`, each proved by monicity of `m` from the axioms of `B`,
+    using that `m` intertwines the image operations with `B`'s (`imAdd_proj`). -/
+
+/-- The image group object: carrier `(image f.val).dom`, operations descended above. -/
+noncomputable def imageGObj : AbelianGroupObject 𝒞 where
+  carrier := imI f
+  zero := imZero f
+  neg := imNeg f
+  add := imAdd f
+  add_zero := by
+    apply imArr_monic f
+    rw [imAdd_proj, Cat.id_comp]
+    have e : (term (imI f) ≫ imZero f) ≫ imArr f = term (imI f) ≫ B.zero := by
+      rw [Cat.assoc, imZero_imArr, ← Cat.assoc, term_uniq (term (imI f) ≫ term one) (term _)]
+    rw [e]; exact GElt.zero_add B (imArr f)
+  add_neg := by
+    apply imArr_monic f
+    rw [imAdd_proj, Cat.id_comp, imNeg_imArr, Cat.assoc, imZero_imArr, ← Cat.assoc,
+        term_uniq (term (imI f) ≫ term one) (term (imI f))]
+    exact GElt.neg_add B (imArr f)
+  add_assoc := by
+    apply imArr_monic f
+    rw [imAdd_proj, Cat.assoc, imAdd_imArr, ← Cat.assoc, ab_pair_precomp,
+        imAdd_proj, imAdd_proj]
+    simp only [Cat.assoc]
+    exact GElt.add_assoc B (fst ≫ fst ≫ imArr f) (fst ≫ snd ≫ imArr f) (snd ≫ imArr f)
+  add_comm := by
+    apply imArr_monic f
+    rw [imAdd_proj, imAdd_imArr]
+    exact GElt.add_comm B (snd ≫ imArr f) (fst ≫ imArr f)
+
+@[simp] theorem imageGObj_carrier : (imageGObj f).carrier = imI f := rfl
+@[simp] theorem imageGObj_add : (imageGObj f).add = imAdd f := rfl
+
+/-- `m = (image f.val).arr : imageGObj → B` is a homomorphism (its hom square is `imAdd_imArr`). -/
+theorem isHom_imArr : IsHomAbelianGroupObject (imageGObj f) B (imArr f) :=
+  imAdd_imArr f
+
+/-- `e = image.lift f.val : A → imageGObj` is a homomorphism: post-compose the monic `m`;
+    `(A.add ≫ e) ≫ m = pair (fst≫e) (snd≫e) ≫ imAdd ≫ m`, both `= A.add ≫ f.val`. -/
+theorem isHom_imE : IsHomAbelianGroupObject A (imageGObj f) (imE f) := by
+  show A.add ≫ imE f = pair (fst ≫ imE f) (snd ≫ imE f) ≫ (imageGObj f).add
+  rw [imageGObj_add, ← imEE, imEE_imAdd]
+
+/-- The `Ab(𝒞)` morphism carried by `m`. -/
+def imArrHom : imageGObj f ⟶ B := ⟨imArr f, isHom_imArr f⟩
+/-- The `Ab(𝒞)` morphism carried by `e` (the image cover). -/
+noncomputable def imEHom : A ⟶ imageGObj f := ⟨imE f, isHom_imE f⟩
+
+theorem imArrHom_val : (imArrHom f).val = imArr f := rfl
+theorem imEHom_val : (imEHom f).val = imE f := rfl
+
+/-- `imArrHom` is monic in `Ab(𝒞)` (carrier monic + `U` reflects monos). -/
+theorem imArrHom_monic : Monic (imArrHom f) :=
+  U_reflectsMono (f := imArrHom f) (imArr_monic f)
+
+/-- `e ≫ m = f` in `Ab(𝒞)`: the image factorization. -/
+theorem image_factorization : imEHom f ≫ imArrHom f = f :=
+  Subtype.ext (imE_imArr f)
+
+end AbImage
+
+end Images
+
+/-! ### §1.595 `ab_monic_carrier_monic` — `U` preserves monics (the KERNEL-PAIR route)
+
+  An Ab-monic `m₀ : M → B` has a monic carrier `m₀.val`.  The proof avoids images entirely
+  and uses that `Ab(𝒞)` has pullbacks COMPUTED ON CARRIERS (`instHasPullbacksAb`):
+
+  The 𝒞-kernel pair `kernelPair m₀.val` of the carrier carries a group structure
+  (`AbPullback.pullbackGObj m₀ m₀`), and its two projections `kp₁, kp₂` are Ab-homomorphisms
+  (`AbPullback.isHom_p₁/p₂`) satisfying `⟨kp₁⟩ ≫ m₀ = ⟨kp₂⟩ ≫ m₀` in `Ab(𝒞)`
+  (`AbPullback.pbCone_w`).  Since `m₀` is Ab-monic, `⟨kp₁⟩ = ⟨kp₂⟩` as Ab-homs, so `kp₁ = kp₂`
+  on carriers.  A map whose kernel-pair projections coincide is 𝒞-monic (lift-uniqueness). -/
+
+section MonicCarrier
+
+variable [HasPullbacks 𝒞]
+
+open AbPullback in
+/-- §1.595: an `Ab(𝒞)`-monic `m₀` has a monic carrier.  Kernel-pair route: the carrier
+    kernel pair is an internal group object, its projections are homs equalised by `m₀`, so
+    Ab-monicity collapses them, forcing `m₀.val` monic. -/
+theorem ab_monic_carrier_monic {M B : AbelianGroupObject 𝒞} {m₀ : M ⟶ B}
+    (hm₀ : Monic m₀) : Monic m₀.val := by
+  have hkp_w : (⟨kp₁ (f := m₀.val), isHom_p₁ m₀ m₀⟩ : pullbackGObj m₀ m₀ ⟶ M) ≫ m₀
+             = (⟨kp₂ (f := m₀.val), isHom_p₂ m₀ m₀⟩ : pullbackGObj m₀ m₀ ⟶ M) ≫ m₀ :=
+    Subtype.ext kp_sq
+  have hkp_eq : kp₁ (f := m₀.val) = kp₂ (f := m₀.val) :=
+    congrArg Subtype.val (hm₀ _ _ hkp_w)
+  intro W p q hpq
+  -- the kernel-pair lift `l` recovers `p, q` as its two projections; `kp₁ = kp₂` collapses them.
+  let l := (HasPullbacks.has m₀.val m₀.val).lift ⟨W, p, q, hpq⟩
+  have hl₁ : l ≫ kp₁ (f := m₀.val) = p := kp_lift_p₁ p q hpq
+  have hl₂ : l ≫ kp₂ (f := m₀.val) = q := kp_lift_p₂ p q hpq
+  calc p = l ≫ kp₁ (f := m₀.val) := hl₁.symm
+    _ = l ≫ kp₂ (f := m₀.val) := by rw [hkp_eq]
+    _ = q := hl₂
+
+end MonicCarrier
+
+/-! ### §1.595 The image factorization, minimality, and `HasImages (Ab 𝒞)`
+
+  With `ab_monic_carrier_monic` the Ab-image is minimal: given an Ab-subobject `S` of `B`
+  allowing `f`, `S.arr.val` is 𝒞-monic; `f.val` factors through it, so 𝒞-image minimality
+  (`image_min`) yields a comparison carrier `t : imI f → S.dom.carrier`, a hom by monicity
+  of `S.arr.val`.  This gives `HasImages (Ab 𝒞)`. -/
+
+section Images2
+
+variable [RegularCategory 𝒞]
+
+open AbImage
+
+/-- The image of `f` as an `Ab(𝒞)`-subobject of `B`.  (Named `abImageSub` to avoid the
+    §1.59 `imageSub` for general categories, which carries different hypotheses.) -/
+noncomputable def abImageSub {A B : AbelianGroupObject 𝒞} (f : A ⟶ B) :
+    Subobject (AbelianGroupObject 𝒞) B :=
+  ⟨imageGObj f, imArrHom f, imArrHom_monic f⟩
+
+/-- `abImageSub` allows `f` (via `imEHom`). -/
+theorem abImageSub_allows {A B : AbelianGroupObject 𝒞} (f : A ⟶ B) : Allows (abImageSub f) f :=
+  ⟨imEHom f, image_factorization f⟩
+
+/-- **Minimality** of the Ab-image: any Ab-subobject `S` of `B` allowing `f` dominates it. -/
+theorem abImageSub_min {A B : AbelianGroupObject 𝒞} (f : A ⟶ B)
+    (S : Subobject (AbelianGroupObject 𝒞) B) (hAllow : Allows S f) : (abImageSub f).le S := by
+  obtain ⟨g, hg⟩ := hAllow
+  have hSmono : Monic S.arr.val := ab_monic_carrier_monic S.monic
+  have hfac : g.val ≫ S.arr.val = f.val := congrArg Subtype.val hg
+  obtain ⟨t, ht⟩ := image_min f.val ⟨S.dom.carrier, S.arr.val, hSmono⟩ ⟨g.val, hfac⟩
+  -- `ht : t ≫ S.arr.val = (image f.val).arr`; fold to `imArr f`.
+  have hti : t ≫ S.arr.val = imArr f := ht
+  have ht_hom : IsHomAbelianGroupObject (imageGObj f) S.dom t := by
+    apply hSmono
+    -- LHS: (imageGObj.add ≫ t) ≫ m = imAdd ≫ (t≫m) = imAdd ≫ imArr = ⟨fst≫imArr,snd≫imArr⟩≫B.add
+    rw [Cat.assoc, hti, imageGObj_add, imAdd_imArr]
+    -- RHS: (⟨fst≫t,snd≫t⟩ ≫ S.dom.add) ≫ m = ⟨fst≫t,snd≫t⟩ ≫ ⟨fst≫m,snd≫m⟩ ≫ B.add
+    rw [Cat.assoc, S.arr.property, ← Cat.assoc, ab_pair_precomp]
+    congr 2
+    · rw [← Cat.assoc, fst_pair, Cat.assoc, hti]
+    · rw [← Cat.assoc, snd_pair, Cat.assoc, hti]
+  exact ⟨⟨t, ht_hom⟩, Subtype.ext ht⟩
+
+/-- §1.595: `abImageSub f` IS the image of `f` in `Ab(𝒞)`. -/
+theorem isImage_abImageSub {A B : AbelianGroupObject 𝒞} (f : A ⟶ B) :
+    IsImage f (abImageSub f) :=
+  ⟨abImageSub_allows f, abImageSub_min f⟩
+
+/-- §1.595: **`Ab(𝒞)` has images** (the 𝒞-image with a descended group structure). -/
+noncomputable instance instHasImagesAb : HasImages (AbelianGroupObject 𝒞) where
+  image f := abImageSub f
+  isImage f := isImage_abImageSub f
+
+/-! ### §1.595 `U` preserves and reflects covers; `PullbacksTransferCovers (Ab 𝒞)`
+
+  `ab_monic_carrier_monic` lets `U` both REFLECT covers (a HomAb with a 𝒞-cover carrier is an
+  Ab-cover) and PRESERVE covers (an Ab-cover has a 𝒞-cover carrier, via the image factorization
+  `f = e ≫ i`: `f` Ab-cover ⟹ `i` Ab-iso ⟹ `i.val` 𝒞-iso ⟹ `f.val = e.val ≫ i.val` 𝒞-cover). -/
+
+/-- §1.595: a HomAb whose carrier is a 𝒞-cover is an `Ab(𝒞)`-cover.  Test an Ab-monic `n`
+    factoring `φ`; its carrier `n.val` is 𝒞-monic (`ab_monic_carrier_monic`), so the 𝒞-cover
+    `φ.val` forces `n.val` iso, hence `n` Ab-iso (`isHom_of_carrier_iso`). -/
+theorem ab_cover_of_carrier_cover {X Y : AbelianGroupObject 𝒞} {φ : X ⟶ Y}
+    (hφ : Cover φ.val) : Cover φ := by
+  intro N n k hn hkn
+  exact carrier_cover_to_ab_cover_aux hφ n (ab_monic_carrier_monic hn) k hkn
+
+/-- §1.595: an `Ab(𝒞)`-cover has a 𝒞-cover carrier.  Factor `φ = e ≫ i` (image in `Ab(𝒞)`):
+    `e = imEHom` (carrier a 𝒞-cover), `i = imArrHom` (Ab-monic).  `φ` Ab-cover and `i` Ab-monic
+    ⟹ `i` Ab-iso ⟹ `i.val` 𝒞-iso ⟹ `φ.val = e.val ≫ i.val` is a 𝒞-cover. -/
+theorem ab_cover_carrier_cover {X Y : AbelianGroupObject 𝒞} {φ : X ⟶ Y}
+    (hφ : Cover φ) : Cover φ.val := by
+  -- `φ` factors through the Ab-monic image inclusion `imArrHom φ`; cover forces it iso.
+  have hi_iso : IsIso (AbImage.imArrHom φ) :=
+    hφ (AbImage.imArrHom φ) (AbImage.imEHom φ) (AbImage.imArrHom_monic φ)
+      (AbImage.image_factorization φ)
+  obtain ⟨i', hi'1, hi'2⟩ := hi_iso
+  -- carrier iso: `imArr φ` has inverse `i'.val`.
+  have hival_iso : IsIso (AbImage.imArr φ) :=
+    ⟨i'.val, congrArg Subtype.val hi'1, congrArg Subtype.val hi'2⟩
+  -- `φ.val = imE φ ≫ imArr φ`, `imE φ` a 𝒞-cover, `imArr φ` a 𝒞-iso (hence cover).
+  rw [← AbImage.imE_imArr φ]
+  intro D m k hm hkm
+  exact cover_comp (AbImage.imE_cover φ) (iso_cover _ hival_iso) m k hm hkm
+
+/-- §1.595: **`Ab(𝒞)` transfers covers across pullbacks.**  The Ab-pullback is computed on
+    carriers (`instHasPullbacksAb`), so the comparison to the canonical cone is an Ab-iso; the
+    canonical projection's carrier is the 𝒞-pullback projection, a 𝒞-cover by `[PullbacksTransferCovers 𝒞]`
+    applied to the 𝒞-cover `φ.val` (`ab_cover_carrier_cover`); reflect back with `ab_cover_of_carrier_cover`. -/
+theorem ab_pullbacks_transfer_covers {A B C : AbelianGroupObject 𝒞} {f : A ⟶ B} {g : C ⟶ B}
+    (c : Cone f g) (hc : c.IsPullback) (hf : Cover f) : Cover c.π₂ := by
+  -- carrier cover of `f`
+  have hfval : Cover f.val := ab_cover_carrier_cover hf
+  -- the canonical Ab-pullback `P` and its comparison iso to `c`.
+  let P := AbPullback.hasPullbackAb f g
+  -- φ : c.pt → P.cone.pt (from P universal), ψ : P.cone.pt → c.pt (from c universal).
+  obtain ⟨φ, ⟨hφ₁, hφ₂⟩, _⟩ := P.cone_isPullback c
+  obtain ⟨ψ, ⟨hψ₁, hψ₂⟩, _⟩ := hc P.cone
+  -- φ, ψ are mutually inverse (joint monicity of `c` resp. `P`).
+  have hφψ : φ ≫ ψ = Cat.id c.pt := by
+    have e1 : (φ ≫ ψ) ≫ c.π₁ = c.π₁ := by rw [Cat.assoc, hψ₁, hφ₁]
+    have e2 : (φ ≫ ψ) ≫ c.π₂ = c.π₂ := by rw [Cat.assoc, hψ₂, hφ₂]
+    obtain ⟨u, _, huniq⟩ := hc c
+    exact (huniq _ e1 e2).trans (huniq _ (Cat.id_comp _) (Cat.id_comp _)).symm
+  have hψφ : ψ ≫ φ = Cat.id P.cone.pt := by
+    have e1 : (ψ ≫ φ) ≫ P.cone.π₁ = P.cone.π₁ := by rw [Cat.assoc, hφ₁, hψ₁]
+    have e2 : (ψ ≫ φ) ≫ P.cone.π₂ = P.cone.π₂ := by rw [Cat.assoc, hφ₂, hψ₂]
+    obtain ⟨u, _, huniq⟩ := P.cone_isPullback P.cone
+    exact (huniq _ e1 e2).trans (huniq _ (Cat.id_comp _) (Cat.id_comp _)).symm
+  -- `c.π₂ = φ ≫ P.cone.π₂` (hφ₂); `φ` iso, so `Cover c.π₂ ⟸ Cover P.cone.π₂`.
+  have hcanon : Cover P.cone.π₂ := by
+    -- carrier `P.cone.π₂.val = (HasPullbacks.has f.val g.val).cone.π₂`, a 𝒞-cover by 𝒞-PTC.
+    apply ab_cover_of_carrier_cover
+    exact cover_pullback g.val hfval
+  rw [← hφ₂]
+  intro D m k hm hkm
+  exact cover_precomp_iso ⟨ψ, hφψ, hψφ⟩ hcanon m k hm hkm
+
+/-- §1.595: **`Ab(𝒞)` transfers covers across pullbacks** (instance form). -/
+instance instPullbacksTransferCoversAb : PullbacksTransferCovers (AbelianGroupObject 𝒞) where
+  pullbacks_transfer_covers c hc hf := ab_pullbacks_transfer_covers c hc hf
+
+/-- §1.595 (Freyd, the headline of the section): **`Ab(𝒞)` is a regular category** whenever
+    `𝒞` is effective regular.  Assembles `HasTerminal`/`HasBinaryProducts` (`AbAbelian`),
+    `HasPullbacks` (`instHasPullbacksAb`), `HasImages` (`instHasImagesAb`), and
+    `PullbacksTransferCovers` (`instPullbacksTransferCoversAb`). -/
+noncomputable instance instRegularCategoryAb : RegularCategory (AbelianGroupObject 𝒞) :=
+  @RegularCategory.mk (AbelianGroupObject 𝒞) instCatAb
+    instHasTerminalAb instHasBinaryProductsAb instHasPullbacksAb
+    instHasImagesAb instPullbacksTransferCoversAb
+
+/-! ### §1.595 SHARP MARKER — remaining step to `AbelianCategory (Ab 𝒞)` (STAGE 5)
+
+  `RegularCategory (Ab 𝒞)` (above) + `AdditiveCategory (Ab 𝒞)` (`instAdditiveAb`, `AbAbelian`)
+  is the hard structural half.  To reach `AbelianCategory (Ab 𝒞)` via the §1.598 route
+  `abelian_iff_normal_kernels_cokernels` (which needs `[HasZeroObject][HasEqualizers]
+  [HasCoequalizers][HasBinaryProducts] + IsNormalCategory`), THREE pieces remain, each a
+  self-contained construction on `Ab(𝒞)`:
+
+  1. **`HasZeroObject (Ab 𝒞)`** — ✅ DONE (`instHasZeroObjectAb`, `AbAbelian`): the zero group
+     object is at once terminal (`instHasTerminalAb`) and coterminal (`instHasCoterminatorAb`),
+     with `one = coterm` on the nose (`zero_eq_one := rfl`).
+
+  2. **`HasCoequalizers (Ab 𝒞)`** — the coequalizer of `f, g : A → B` is `B ↠ Q` where `Q` is the
+     IMAGE (in `Ab(𝒞)`, now available via `instHasImagesAb`) of `B → B/⟨im(f−g)⟩` — concretely
+     the effective quotient of `B` by the congruence generated by `f − g` (`f − g := homAddL f
+     (neg g)` from `instAdditiveAb`).  In a regular category a coequalizer of a reflexive pair
+     is the cover onto the image of the induced relation; for `Ab` use that `Ab(𝒞)` is regular
+     (above) + EFFECTIVE: `[EffectiveRegular 𝒞]` should lift to `EffectiveRegular (Ab 𝒞)` because
+     the carrier effective quotient (`IsEffective`, §1.56/§1.64) descends a group structure exactly
+     as `imageGObj` did.  EXACT BLOCKER: `EffectiveRegular (Ab 𝒞)` — every Ab-equivalence-relation
+     is the kernel pair of an Ab-cover; reduce to the carrier `IsEffective` + descend the group
+     operations onto the quotient object (mirror `imageGObj`'s `add_descends`/`neg_descends`).
+
+  3. **`IsNormalCategory (Ab 𝒞)`** (= `IsLeftNormal ∧ IsRightNormal`) — every Ab-mono is a kernel
+     and every Ab-cover is a cokernel.  This is the genuine §1.598 content and follows from
+     1+2 + additivity (`instAdditiveAb`): in an additive regular category with a zero object and
+     (co)kernels, mono = ker(coker) and epi = coker(ker).  Mirror the elementary §1.597 argument
+     in S1_59 (`exactOfNormal` is the converse; here we need the normality itself, available once
+     `Ab(𝒞)` has kernels (= equalizers with 0, DONE via `instHasEqualizersAb`) and cokernels (piece 2)).
+
+  Then: `Nonempty (AbelianCategory (Ab 𝒞)) := abelian_iff_normal_kernels_cokernels hN`.
+  The crux is piece 2 (`HasCoequalizers`/`EffectiveRegular (Ab 𝒞)`); pieces 1 and 3 are short
+  once it lands.  All of stages 1-4 above are sorry-free with axioms `[propext, Classical.choice]`. -/
+
+end Images2
