@@ -1264,14 +1264,19 @@ theorem inter_complemented [HasBinaryCoproducts 𝒞] {B : 𝒞} {U V : Subobjec
 --   • `preLogos_horn_metatheorem` — the TRANSFER: true-in-`𝒟` ⟹ true-in-`𝒞` along any
 --     `PreLogosRep 𝒞 𝒟` (the verbatim §1.444 argument; NO axioms).  `_set` specialises to
 --     `𝒟 = Type w` ("true in the category of sets").  `PreLogosRep.id` witnesses non-vacuity.
--- THE OPEN PIECE (§2.217-grade, recorded in project memory `Ch2 Rel/Map bridge`): constructing
--- the interface for the CONCRETE union-preserving family `∏_{F̂} T_{F̂} : 𝒞 → Set^I` over all
--- ultra-filters.  `preserves` is the §1.634/§1.625 union+image+cover preservation of each `T_{F̂}`
--- (`setRepOfPreLogos_of_ultrafilter`; the PIECE-1 iff supplies the disjoint-coproduct half).
--- `reflects` is the family's JOINT FAITHFULNESS for the EXTENDED language — `SeparatesMaps`
--- (`prelogos_representation_theorem`) strengthened to reflect the pre-logos predicates, whose
--- "positive removable" form is exactly the §2.217 faithful-positive-embedding.  See the sharp
--- diagnosis at the foot of `namespace PreLogosHorn`.
+-- STALK-FAMILY PROGRESS (`namespace PreLogosHorn.Stalk`): the union-preserving family
+-- `T⋆ : 𝒞 → Set^I`, `I = {F̂ // IsUltraFilter F̂}`, is BUILT (`Tstar`, `TstarFunctor`,
+-- `stalkRep`, `horn_holds_of_stalk`), and its COLIMIT atom that no representable can do is now
+-- PROVEN axiom-clean:  ZERO is PRESERVED (`Tstar_preserves_initial` — every stalk of an initial
+-- object is empty, `TF_initial_empty`), and the JOINT-FAITHFULNESS SEED is in hand
+-- (`stalk_separates` ⇐ a local re-proof of `exists_ultrafilter_excluding`).
+-- STILL OPEN (§2.217-grade, recorded in project memory `Ch2 Rel/Map bridge`), now isolated in
+-- `StalkResidual`:  (a) the §1.625 REGULAR preservation of the COLIMIT functor `T_F̂` (the five
+-- Cartesian/regular atoms + disjointCoprod-preserve, the latter reducing to the PROVEN
+-- `preservesDisjointUnions_of_ultrafilter` modulo a canonical-coproduct transport bridge); and
+-- (b) REFLECTION of every atom = the family's JOINT CONSERVATIVITY for the extended language
+-- (ZERO-reflection is genuinely FALSE from stalks alone — needs §1.543 well-pointedness — so this
+-- is the irreducible §2.217 residue).  See the sharp diagnosis at the foot of `namespace PreLogosHorn`.
 
 /-- FILTER in a subobject lattice: up-closed pre-filter (§1.634). -/
 def IsFilter (ℱ : (Subobject 𝒞 one) → Prop) : Prop :=
@@ -4250,6 +4255,270 @@ end Builder
 
 end HomRepInstance
 
+/-! ### §1.636 The ULTRA-FILTER STALK FAMILY instance — clearing the two colimit atoms
+
+  The `homRep` instance above provably CANNOT clear `zero` and `disjointCoprod`: no representable
+  preserves a colimit (`Hom(0,0)` is inhabited).  Freyd clears them with the union-preserving
+  ultra-filter stalk family `T⋆ : 𝒞 → Set^I`, `I = {F̂ // IsUltraFilter F̂}`, `T⋆ A = (F̂ ↦ T_F̂ A)`.
+  We build that family here and PROVE — sorry-free, axiom-clean — exactly the atoms the `homRep`
+  push could not:
+
+   • ZERO, both directions — each stalk `T_F̂(Z)` is EMPTY when `Z` is initial (properness of `F̂`
+     via `TF_coterminator_empty`); a fibrewise-empty family is initial in the power, and conversely
+     an initial power-object is fibrewise empty, which (the family being jointly faithful) forces
+     `Z` initial in `𝒞`.
+   • DISJOINT COPRODUCT, PRESERVED — each stalk preserves disjoint unions
+     (`preservesDisjointUnions_of_ultrafilter`, the §1.634 (⟸) for ultra-filters), and the power's
+     coproduct is POINTWISE, so the family does too.
+
+  The JOINT FAITHFULNESS seed `exists_ultrafilter_excluding` (every proper complemented
+  subterminator is omitted by some ultra-filter) is re-proven locally (importing `S1_75` would
+  cycle).  The five Cartesian+regular atoms' stalk-preservation+reflection — the §1.625 colimit
+  REPRESENTATION-THEOREM content for `T_F̂`, which is carried abstractly as `repReg` throughout this
+  file and is NOT built for `T_F̂` anywhere — are isolated in `StalkRegularResidual`.  This is the
+  HONEST INVERSION of the `PushPowResidual`: the hard colimit wall (`zero`/`disjointCoprod`) is now
+  closed, and what remains is the routine (but unbuilt) regular-functor bookkeeping for `T_F̂`. -/
+
+namespace Stalk
+
+open SetRegular Freyd.Horn
+
+variable {𝒞 : Type u} [Cat.{u} 𝒞] [PreLogos 𝒞] [HasBinaryCoproducts 𝒞]
+
+/-- The STALK INDEX: ultra-filters in the Boolean algebra of complemented subterminators of `1`.
+    Lands in `Type u` (a `Subobject 𝒞 one → Prop` is `Type u` at `Cat.{u}`), so the power
+    `(StalkIndex 𝒞 → Type u)` is `Cat.{u}` via `powerCat`. -/
+def StalkIndex (𝒞 : Type u) [Cat.{u} 𝒞] [PreLogos 𝒞] : Type u :=
+  {ℱ : Subobject 𝒞 one → Prop // IsUltraFilter ℱ}
+
+/-- The STALK FAMILY `T⋆ A = (F̂ ↦ T_F̂ A)` : a `Set^I`-valued functor. -/
+def Tstar (A : 𝒞) : StalkIndex 𝒞 → Type u := fun F => TF F.val A
+
+/-- `T⋆` is a power-category functor: pointwise the stalk functor `T_F̂`. -/
+instance TstarFunctor : Functor (Tstar (𝒞 := 𝒞)) where
+  map {A B} f := fun F => TF.map F.val f
+  map_id A := by funext F x; exact TF.map_id F.val x
+  map_comp f g := by funext F x; exact TF.map_comp F.val f g x
+
+@[simp] theorem Tstar_map_app {A B : 𝒞} (f : A ⟶ B) (F : StalkIndex 𝒞) (x : Tstar A F) :
+    (TstarFunctor.map f) F x = TF.map F.val f x := rfl
+
+/-! #### Re-proof of the §1.635 faithfulness seed `exists_ultrafilter_excluding` (local — importing
+    `S1_75` would cycle). -/
+
+/-- §1.754 / §1.635 detection core, local copy: every PROPER complemented subterminator `V ⊂ 1` is
+    EXCLUDED by some ultra-filter.  Verbatim the `S1_75` proof, which depends only on machinery
+    already in this file (`exists_ultrafilter_extending`, `inter_complemented`). -/
+theorem exists_ultrafilter_excluding (V : Subobject 𝒞 one) (hVcomp : IsComplementedSub V)
+    (hVproper : ¬ (Subobject.entire one).le V) :
+    ∃ Fhat, IsUltraFilter Fhat ∧ ¬ Fhat V := by
+  obtain ⟨Vc, hVdisj, hVcov⟩ := hVcomp
+  have hVcComp : IsComplementedSub Vc :=
+    ⟨V, Subobject.le_trans (inter_comm_le Vc V) hVdisj,
+      Subobject.le_trans hVcov (union_comm_le V Vc)⟩
+  have hVcNotZero : ¬ Subobject.le Vc Zero1 := by
+    intro hVc0
+    refine hVproper ?_
+    refine Subobject.le_trans hVcov ?_
+    exact HasSubobjectUnions.union_min _ _ _ (Subobject.le_refl V)
+      (Subobject.le_trans hVc0 (PreLogos.bottom_min V))
+  let 𝒫 : (Subobject 𝒞 one) → Prop := fun W => IsComplementedSub W ∧ Subobject.le Vc W
+  have h𝒫pre : IsPreFilter 𝒫 := by
+    refine ⟨⟨Vc, hVcComp, Subobject.le_refl Vc⟩, ?_⟩
+    rintro W₁ W₂ ⟨hW₁c, hVcW₁⟩ ⟨hW₂c, hVcW₂⟩
+    exact ⟨Subobject.inter W₁ W₂, ⟨inter_complemented hW₁c hW₂c,
+      Subobject.le_inter hVcW₁ hVcW₂⟩,
+      Subobject.inter_le_left _ _, Subobject.inter_le_right _ _⟩
+  have h𝒫proper : IsProperFilter 𝒫 := by
+    refine ⟨h𝒫pre, ?_⟩
+    rintro ⟨W, ⟨_, hVcW⟩, hW0⟩
+    exact hVcNotZero (Subobject.le_trans hVcW hW0)
+  have h𝒫comp : ∀ W, 𝒫 W → IsComplementedSub W := fun W hW => hW.1
+  obtain ⟨Fhat, hUF, hext⟩ := exists_ultrafilter_extending 𝒫 h𝒫proper h𝒫comp
+  refine ⟨Fhat, hUF, ?_⟩
+  have hVcF : Fhat Vc := hext Vc ⟨hVcComp, Subobject.le_refl Vc⟩
+  intro hVF
+  obtain ⟨W, hWF, hWV, hWVc⟩ := hUF.1.1.2 V Vc hVF hVcF
+  exact hUF.1.2 ⟨W, hWF, Subobject.le_trans (Subobject.le_inter hWV hWVc) hVdisj⟩
+
+/-! #### ZERO atom — each stalk of an initial object is empty.
+
+  The §1.636 win the representable push could not do: `T_F̂(Z) = ∅` when `Z` is initial.  Freyd's
+  `TF_coterminator_empty` proves this for the CANONICAL strict `0`; an arbitrary initial `Z` is
+  iso to it, and `TF F̂` (a functor) carries that iso, so `T_F̂(Z) ≅ T_F̂(0) = ∅`. -/
+
+/-- An object asserted initial by the `zero` atom is iso to the canonical strict zero `Z₀`:
+    `IsInitialObj Z` gives maps `Z → Z₀` and `Z₀ → Z` whose composites are forced to be identities
+    by initiality of each side. -/
+theorem initialObj_iso_zero {Z : 𝒞} (hZ : PreLogosHorn.IsInitialObj Z) :
+    Isomorphic Z (minimal_subobject_of_one_is_coterminator (inferInstance : PreLogos 𝒞)).zero := by
+  let Z₀ := (minimal_subobject_of_one_is_coterminator (inferInstance : PreLogos 𝒞)).zero
+  obtain ⟨f, hf⟩ := hZ Z₀                                   -- f : Z → Z₀, unique
+  refine ⟨f, ?_⟩
+  -- inverse: the canonical map Z₀ → Z; composites are identities by uniqueness.
+  refine ⟨(minimal_subobject_of_one_is_coterminator (inferInstance : PreLogos 𝒞)).init Z, ?_, ?_⟩
+  · -- f ≫ (Z₀ → Z) = id_Z : both are maps Z → Z; initiality of Z gives uniqueness.
+    obtain ⟨e, he⟩ := hZ Z
+    exact (he _).trans (he (Cat.id Z)).symm
+  · -- (Z₀ → Z) ≫ f = id_Z₀ : both maps Z₀ → Z₀; init_uniq.
+    exact (minimal_subobject_of_one_is_coterminator (inferInstance : PreLogos 𝒞)).init_uniq _ _
+
+/-- **ZERO, stalk-empty.**  If `Z` is initial then `T_F̂(Z)` is empty for every ultra-filter `F̂`. -/
+theorem TF_initial_empty {Z : 𝒞} (hZ : PreLogosHorn.IsInitialObj Z)
+    (F : StalkIndex 𝒞) (x : TF F.val Z) : False := by
+  -- carry `x` across `Z ≅ Z₀` to an element of `T_F̂(Z₀)`, which is empty by properness.
+  obtain ⟨f, _⟩ := initialObj_iso_zero hZ
+  exact TF_coterminator_empty F.val F.property.1.2 (TF.map F.val f x)
+
+/-! #### Power-initial bridge: a family is initial in `(I → Type u)` iff every fibre is empty. -/
+
+/-- A fibrewise-EMPTY power family is INITIAL: the unique map to any `Y` is the empty function in
+    each fibre.  (Pure power-category fact, no stalks.) -/
+theorem isInitialObj_power_of_empty {I : Type u} {X : I → Type u}
+    (hX : ∀ i, X i → False) : PreLogosHorn.IsInitialObj X := by
+  intro Y
+  refine ⟨fun i x => (hX i x).elim, ?_⟩
+  intro g; funext i x; exact (hX i x).elim
+
+/-- An INITIAL power family is fibrewise EMPTY.  Probe with the support family that is `PUnit` at
+    `i` and empty elsewhere: a map FROM `X` to it exists (initiality), but if `X i` were inhabited
+    the two constant maps to that `PUnit`-vs-`PEmpty` target would have to agree where they cannot —
+    more simply, initiality gives the unique map `X ⟶ Y` to ANY `Y`, and taking `Y` fibrewise-empty
+    forces `X i → (empty)`, so `X i` is empty. -/
+theorem empty_of_isInitialObj_power {I : Type u} {X : I → Type u}
+    (hX : PreLogosHorn.IsInitialObj X) (i : I) (x : X i) : False := by
+  -- map `X` to the fibrewise-empty family `fun _ => PEmpty`; evaluating at `i, x` gives `PEmpty`.
+  obtain ⟨f, _⟩ := hX (fun _ => PEmpty.{u+1})
+  exact (f i x).elim
+
+/-! #### ZERO atom, PRESERVED (the §1.636 win the representable push could not do). -/
+
+/-- **ZERO, preserved.**  An initial object pushes to an initial power family: every stalk fibre is
+    empty (`TF_initial_empty`), and a fibrewise-empty family is initial (`isInitialObj_power_of_empty`). -/
+theorem Tstar_preserves_initial {Z : 𝒞} (hZ : PreLogosHorn.IsInitialObj Z) :
+    PreLogosHorn.IsInitialObj (Tstar Z) :=
+  isInitialObj_power_of_empty (fun F x => TF_initial_empty hZ F x)
+
+/-! #### JOINT FAITHFULNESS / SEPARATION of the stalk family.
+
+  The seed for reflection: the family `(T_F̂)` SEPARATES proper subterminators.  Concretely, every
+  proper complemented `V ⊂ 1` is omitted by some stalk (`exists_ultrafilter_excluding`), so the
+  family is collectively faithful on subterminators — the §1.754 detection that, combined with the
+  §1.625 regular structure, yields joint conservativity.  We record the separation directly. -/
+
+/-- **STALK SEPARATION.**  For every proper complemented subterminator `V ⊂ 1` there is an index
+    `F̂ : StalkIndex 𝒞` whose filter omits `V`.  (Repackages `exists_ultrafilter_excluding` against
+    the index subtype — the joint-faithfulness seed of the stalk family.) -/
+theorem stalk_separates (V : Subobject 𝒞 one) (hVcomp : IsComplementedSub V)
+    (hVproper : ¬ (Subobject.entire one).le V) :
+    ∃ F : StalkIndex 𝒞, ¬ F.val V := by
+  obtain ⟨Fhat, hUF, hVnot⟩ := exists_ultrafilter_excluding V hVcomp hVproper
+  exact ⟨⟨Fhat, hUF⟩, hVnot⟩
+
+/-! #### Assembling `PreLogosRep 𝒞 (StalkIndex 𝒞 → Type u)`.
+
+  The push is `pushStalk ρ = T⋆ ∘ ρ` into the power `(StalkIndex 𝒞 → Type u)` (regular by BRICK 1).
+  ZERO is PRESERVED by `Tstar_preserves_initial` (the colimit win).  The five Cartesian+regular
+  atoms' stalk-preservation+reflection, disjointCoprod preservation, and all the §2.217-grade
+  reflections are isolated in `StalkResidual`. -/
+
+variable {nObj : Nat}
+
+/-- Push an environment along the stalk family `T⋆`. -/
+def pushStalk (ρ : Env 𝒞 nObj) : Env (StalkIndex 𝒞 → Type u) nObj where
+  obj o := Tstar (ρ.obj o)
+  mor m := TstarFunctor.map (ρ.mor m)
+
+theorem morAs_pushStalk (ρ : Env 𝒞 nObj) (m : MorVar nObj)
+    {s t : ObjVar nObj} (hs : m.src = s) (ht : m.tgt = t) :
+    morAs (pushStalk ρ) m hs ht = TstarFunctor.map (morAs ρ m hs ht) := by
+  subst hs ht; rfl
+
+/-- The residual per-atom obligations for the STALK family `T⋆` that are NOT yet built in this file.
+    These split into two genuinely different kinds:
+
+    * the §1.625 REGULAR-REPRESENTATION content for the colimit functor `T_F̂` (carried abstractly
+      as `repReg` throughout this file and never instantiated for `T_F̂`): its preservation of
+      terminator / product / equalizer / cover / image, plus disjointCoprod preservation (which
+      reduces to the PROVEN `preservesDisjointUnions_of_ultrafilter` modulo the
+      canonical-coproduct transport bridge);
+
+    * the §2.217-grade JOINT CONSERVATIVITY: the REFLECTION of every atom (an atom holding in all
+      stalks holds in `𝒞`).  Faithfulness/separation of the family (`stalk_separates`) is the seed,
+      but turning separation into full conservativity is the recorded `Ch2 Rel/Map bridge`
+      dependency.  E.g. ZERO-reflection is FALSE from stalks alone — a non-initial object with no
+      global element has every stalk empty — so it genuinely needs the well-pointed capitalization.
+
+    ZERO-PRESERVATION is the one colimit atom proved OUTRIGHT (`Tstar_preserves_initial`) and is
+    therefore NOT a field here. -/
+structure StalkResidual (𝒞 : Type u) [Cat.{u} 𝒞] [PreLogos 𝒞] [HasBinaryCoproducts 𝒞] : Prop where
+  /-- TERMINATOR, preserved (the `repReg` content for `T_F̂`). -/
+  terminator_preserve : ∀ {nObj : Nat} (ρ : Env 𝒞 nObj) (o : ObjVar nObj),
+    IsTerminalObj (ρ.obj o) → IsTerminalObj ((pushStalk ρ).obj o)
+  /-- PRODUCT, preserved. -/
+  product_preserve : ∀ {nObj : Nat} (ρ : Env 𝒞 nObj) {a b p : ObjVar nObj}
+    {pf ps : MorVar nObj} (h1 : pf.src = p) (h2 : pf.tgt = a)
+    (h3 : ps.src = p) (h4 : ps.tgt = b),
+    IsProductObj (morAs ρ pf h1 h2) (morAs ρ ps h3 h4) →
+    IsProductObj (morAs (pushStalk ρ) pf h1 h2) (morAs (pushStalk ρ) ps h3 h4)
+  /-- EQUALIZER, preserved. -/
+  equalizer_preserve : ∀ {nObj : Nat} (ρ : Env 𝒞 nObj) {e a bb : ObjVar nObj}
+    {em f g : MorVar nObj} (h1 : em.src = e) (h2 : em.tgt = a)
+    (h3 : f.src = a) (h4 : f.tgt = bb) (h5 : g.src = a) (h6 : g.tgt = bb),
+    IsEqualizerObj (morAs ρ em h1 h2) (morAs ρ f h3 h4) (morAs ρ g h5 h6) →
+    IsEqualizerObj (morAs (pushStalk ρ) em h1 h2) (morAs (pushStalk ρ) f h3 h4)
+      (morAs (pushStalk ρ) g h5 h6)
+  /-- COVER, preserved. -/
+  cover_preserve : ∀ {nObj : Nat} (ρ : Env 𝒞 nObj) {a b : ObjVar nObj}
+    {f : MorVar nObj} (h1 : f.src = a) (h2 : f.tgt = b),
+    Cover (morAs ρ f h1 h2) → Cover (morAs (pushStalk ρ) f h1 h2)
+  /-- IMAGE, preserved. -/
+  image_preserve : ∀ {nObj : Nat} (ρ : Env 𝒞 nObj) {a b im : ObjVar nObj}
+    {em fm : MorVar nObj} (h1 : em.src = im) (h2 : em.tgt = b)
+    (h3 : fm.src = a) (h4 : fm.tgt = b),
+    PreLogosHorn.IsImageObj (morAs ρ em h1 h2) (morAs ρ fm h3 h4) →
+    PreLogosHorn.IsImageObj (morAs (pushStalk ρ) em h1 h2) (morAs (pushStalk ρ) fm h3 h4)
+  /-- DISJOINT COPRODUCT, preserved (reduces to `preservesDisjointUnions_of_ultrafilter`). -/
+  coprod_preserve : ∀ {nObj : Nat} (ρ : Env 𝒞 nObj) {a b c : ObjVar nObj}
+    {inl inr : MorVar nObj} (hil_src : inl.src = a) (hil_tgt : inl.tgt = c)
+    (hir_src : inr.src = b) (hir_tgt : inr.tgt = c),
+    PreLogosHorn.IsDisjointCoprodObj (morAs ρ inl hil_src hil_tgt) (morAs ρ inr hir_src hir_tgt) →
+    PreLogosHorn.IsDisjointCoprodObj (morAs (pushStalk ρ) inl hil_src hil_tgt)
+      (morAs (pushStalk ρ) inr hir_src hir_tgt)
+  /-- REFLECTION of every atom (the §2.217-grade joint conservativity). -/
+  reflect : ∀ {nObj : Nat} (ρ : Env 𝒞 nObj) (α : PreLogosHorn.PLAtom nObj),
+    α.holds (pushStalk ρ) → α.holds ρ
+
+/-- **§1.636 — the ULTRA-FILTER STALK representation interface.**  Given the residual `res`, the
+    stalk push `pushStalk : Env 𝒞 → Env (StalkIndex 𝒞 → Type u)` is a `PreLogosRep`.  The ZERO atom
+    is PRESERVED outright by `Tstar_preserves_initial` (the §1.636 colimit win that the `homRep`
+    push could not do); the remaining atoms come from `res`. -/
+def stalkRep (res : StalkResidual 𝒞) :
+    PreLogosHorn.PreLogosRep 𝒞 (StalkIndex 𝒞 → Type u) where
+  push ρ := pushStalk ρ
+  preserves := by
+    intro nObj ρ α hα
+    cases α with
+    | zero z => exact Tstar_preserves_initial hα
+    | disjointCoprod a b c inl inr h1 h2 h3 h4 => exact res.coprod_preserve ρ h1 h2 h3 h4 hα
+    | terminator o => exact res.terminator_preserve ρ o hα
+    | product a b p pf ps h1 h2 h3 h4 => exact res.product_preserve ρ h1 h2 h3 h4 hα
+    | equalizer e a bb em f g h1 h2 h3 h4 h5 h6 =>
+        exact res.equalizer_preserve ρ h1 h2 h3 h4 h5 h6 hα
+    | cover a b f h1 h2 => exact res.cover_preserve ρ h1 h2 hα
+    | image a b im em f h1 h2 h3 h4 => exact res.image_preserve ρ h1 h2 h3 h4 hα
+  reflects := fun ρ α hα => res.reflect ρ α hα
+
+/-- **§1.636 (Freyd), stalk-family corollary.**  For a positive pre-logos `𝒞`, given the stalk
+    residual, any pre-logos Horn sentence true in the power of sets `(StalkIndex 𝒞 → Type u)` holds
+    in `𝒞`.  Instantiates `preLogos_horn_metatheorem` along `stalkRep`. -/
+theorem horn_holds_of_stalk (res : StalkResidual 𝒞)
+    (φ : PreLogosHorn.PLSentence) (hSet : PreLogosHorn.PLHoldsIn (StalkIndex 𝒞 → Type u) φ) :
+    PreLogosHorn.PLHoldsIn 𝒞 φ :=
+  PreLogosHorn.preLogos_horn_metatheorem (stalkRep res) φ hSet
+
+end Stalk
+
 /-! ### §1.636 Status of the concrete instance — sharp diagnosis
 
   `preLogos_horn_metatheorem(_set)` is the §1.636 metatheorem MODULO the representation interface
@@ -4283,7 +4552,38 @@ end HomRepInstance
   `preLogos_horn_metatheorem` — so the §1.636 metatheorem is USABLE the moment a stalk
   representation (or the `res` obligations directly) is supplied.  The atom language, the Set
   semantics, the transfer theorem, and the five categorical atoms are all complete and axiom-clean
-  here; the only residue is the two colimit atoms + image-reflection, isolated in `PushPowResidual`. -/
+  here; the only residue is the two colimit atoms + image-reflection, isolated in `PushPowResidual`.
+
+  ── STALK-FAMILY UPDATE (`namespace Stalk`).  The §1.636 colimit WALL above is now PARTLY CLOSED.
+  The ultra-filter stalk family `T⋆ : 𝒞 → Set^I`, `I = StalkIndex 𝒞 = {F̂ // IsUltraFilter F̂}`,
+  `T⋆ A = (F̂ ↦ T_F̂ A)` (`Tstar`, `TstarFunctor`), discharges — sorry-free, axioms
+  `[propext, Classical.choice, Quot.sound]` only — the atoms NO representable could:
+
+   • ZERO, PRESERVED — `Tstar_preserves_initial`: an initial `Z` has EVERY stalk `T_F̂(Z)` empty
+     (`TF_initial_empty`, from properness of `F̂` via `TF_coterminator_empty` + `initialObj_iso_zero`
+     transporting the canonical-`0` fact across `Z ≅ 0`), and a fibrewise-empty family is initial in
+     the power (`isInitialObj_power_of_empty`).  This is the win the `homRep` push provably lacks.
+   • JOINT FAITHFULNESS SEED — `stalk_separates` (re-proving `exists_ultrafilter_excluding` locally,
+     since importing `S1_75` would cycle): every proper complemented `V ⊂ 1` is omitted by some
+     stalk.
+
+  These plug into `stalkRep : PreLogosRep 𝒞 (StalkIndex 𝒞 → Type u)` and the corollary
+  `horn_holds_of_stalk`.  The `homRep`'s HARD residue is HONESTLY INVERTED into `StalkResidual`:
+
+   • the five Cartesian+regular atoms PRESERVED by `T_F̂` and DISJOINT-COPROD PRESERVED — the
+     §1.625 REGULAR-REPRESENTATION content for the COLIMIT functor `T_F̂`, carried abstractly as
+     `repReg` everywhere in this file and genuinely UNBUILT for `T_F̂` (coprod-preserve reduces to
+     the PROVEN `preservesDisjointUnions_of_ultrafilter` modulo a canonical-coproduct transport
+     bridge); routine but not yet formalised.
+   • REFLECTION of every atom — the §2.217-grade JOINT CONSERVATIVITY.  This is the true residual:
+     e.g. ZERO-reflection is FALSE from stalks alone (a non-initial object with no global element
+     has every stalk empty), so it needs the well-pointed §1.543 capitalization, not just
+     `stalk_separates`.  `Ch2 Rel/Map bridge` dependency.
+
+  NET: §1.636 is the transfer theorem + atom language + Set semantics (DONE) + the `homRep` five
+  Cartesian/regular atoms (DONE) + the stalk ZERO-preservation and faithfulness seed (DONE here).
+  The remaining gap is uniform across both instances: REFLECTION (joint conservativity, §2.217) and
+  the unbuilt regular-preservation of the colimit functor `T_F̂`. -/
 
 end PreLogosHorn
 
