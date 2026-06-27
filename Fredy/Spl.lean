@@ -5,58 +5,61 @@
   Builds the pre-tabular / tabular / effective / semi-simple theory for the splitting
   completion `Spl 𝒜 = SplObj 𝒜` (constructed in `S2_21.lean`):
 
-    §2.165   PreTabularAllegory (SplObj 𝒜) when 𝒜 is pre-tabular.
-             [TODO: source-apex legs require coreflexive E.e; blocked for full SplObj]
-    §2.166   TabularAllegory (SplObj 𝒜) when 𝒜 is pre-tabular.
-             [TODO: relies on §2.165]
+    §2.165   PreTabularAllegory (SplCorObj 𝒜) when 𝒜 is pre-tabular.   [PROVED]
+    §2.166   TabularAllegory (SplCorObj 𝒜) when 𝒜 is pre-tabular.      [PROVED]
+             (the COREFLEXIVE sub-completion = Freyd's tabular reflection §2.167)
     §2.167   The embedding 𝒜 ↪ SplObj 𝒜 is faithful.                [PROVED]
     §2.169   SplObj 𝒜 is effective.                                  [PROVED; re-export]
-    §2.16(10) SplObj 𝒜 is tabular ↔ 𝒜 is semi-simple.
-              Forward: [TODO: apex convention gap]
-              Backward: [TODO: needs SemiSimple in SplObj + UnionAllegory (SplObj 𝒜)]
+    §2.16(10) SplObj 𝒜 (FULL split) is tabular ↔ 𝒜 is semi-simple.
+              Backward (𝒜 semi-simple → tabular): [PROVED]
+                `splObj_tabular_of_semiSimple`, axiom-clean ([propext]).
+              Forward (tabular → 𝒜 semi-simple): [TODO: simple-span extraction gap]
+
+  IMPORTANT SCOPE CORRECTION.  The full `SplObj 𝒜` (split ALL symmetric idempotents)
+  is NOT tabular merely because `𝒜` is tabular — Freyd §2.16(10) shows it is tabular
+  *iff* `𝒜` is SEMI-SIMPLE, and a general tabular allegory need not be semi-simple.
+  "Spl of a tabular allegory is tabular" holds only for the COREFLEXIVE sub-completion
+  `SplCorObj 𝒜` (the genuine tabular reflection, §2.167), proved below.  The full
+  case needs the stronger hypothesis `[SemiSimpleAllegory 𝒜]`, under which we DO get
+  `TabularAllegory (SplObj 𝒜)` (`splObj_tabular_of_semiSimple`).
     §2.42    For a power allegory 𝒜, SplObj 𝒜 is an effective power allegory.
              [TODO: needs UnionAllegory/DistributiveAllegory for SplObj 𝒜]
     §2.433–§2.435  [TODO: infra missing]
 
   ---
 
-  WHY §2.165/§2.166 are TODO — DESIGN SCOPE MISMATCH:
+  TWO COMPLETIONS — §2.165/§2.166 vs §2.16(10):
 
-  `SplObj 𝒜` splits ALL symmetric idempotents `e : a → a` (SymIdem: `e° = e`, `ee = e`).
-  This combines Freyd's TWO-STEP process:
+  `SplObj 𝒜` splits ALL symmetric idempotents `e : a → a` (SymIdem: `e° = e`, `ee = e`),
+  combining Freyd's two steps:
     §2.167  PM(Corefl 𝒜): split coreflexive SymIdem only (`e ⊑ id_a`).
     §2.169  PM(ER 𝒜):     split equivalence-relation SymIdem only (`id_a ⊑ e`).
-  The repo's `SplObj 𝒜` is the COMBINED completion. §2.165/§2.166 apply to the
-  COREFLEXIVE sub-completion only.
 
-  For `R : E ⟶ F` in `SplObj 𝒜` (with `E = ⟨a, E.e⟩`, `F = ⟨b, F.e⟩`), the source-apex
-  tabulation route requires — after extracting legs `(P : t → a, Q : t → b)` from a
-  pre-tabulation of `R.R` in `𝒜` — that the legs into `SplObj 𝒜` are MAPS (Simple).
-  For the leg `legA : (t, id_t) ⟶ E` with `legA.R = P ≫ E.e`, Simple(legA) reduces to
-  `P° ≫ E.e ≫ P ⊑ id_t`.  This holds when `E.e ⊑ id_a` (coreflexive), but FAILS when
-  `id_a ⊑ E.e` (equivalence relation): `P° E.e P ≥ P°P = id_t` gives equality, not `⊑`.
+  • §2.165/§2.166 (`SplCorObj 𝒜`, below): the COREFLEXIVE sub-completion is the tabular
+    reflection of a pre-tabular `𝒜` — PROVED (`SplCorObj.tabular_of_preTabular`).  The
+    coreflexive apex `A = 1 ∩ f≫Ψ.R≫g°` and leg-absorption (`coref_inter_comp_le`)
+    handle general object idempotents; the source-apex Simple-leg obstruction
+    "`P° E.e P ⊑ id_t` fails for ER E.e" is dissolved by measuring simplicity against the
+    OBJECT identity `E.e` (= `id_E` in SplObj), not `id_a`.
 
-  Fix: restrict §2.165/§2.166 to `CoreflSplObj 𝒜` (splitting only coreflexive SymIdem),
-  or show that every morphism in `SplObj 𝒜` has a tabulation using a coreflexive apex
-  `(t, id_t)` with legs satisfying the stronger hypothesis that `E.e ⊑ P ≫ P°` (which
-  is NOT the same as coreflexive E.e).  Neither construction is yet in the repo.
+  • §2.16(10) (FULL `SplObj 𝒜`): tabular IFF `𝒜` semi-simple.  Backward PROVED
+    (`splObj_tabular_of_semiSimple`):  every `Ψ : E ⟶ F` is semi-simple in `SplObj 𝒜`
+    via the TRIVIAL apex `C = ⟨c₀, 1_{c₀}⟩`, legs `F₀≫E.e`, `G₀≫F.e` — SIMPLE because
+    `(F₀ E.e)°(F₀ E.e) = E.e F₀° F₀ E.e ⊑ E.e = id_E`; and `SplObj 𝒜` splits its own
+    symmetric idempotents (`splObj_splitsSymmIdem`, WEAK leg — not entire, since a
+    general/coreflexive object idempotent is not reflexive).  Then §2.16(10)'s
+    source-apex assembly (`srcTabulation_of_semiSimple_split`, S2_22) tabulates every
+    morphism.  No `UnionAllegory (SplObj 𝒜)` needed.
 
-  WHY §2.16(10) forward is TODO:
+  WHY §2.16(10) FORWARD is still TODO (tabular `SplObj 𝒜` → `𝒜` semi-simple):
 
   A tabulation of `embHom R` in `SplObj 𝒜` gives `P : embObj a ⟶ C`, `Q : embObj b ⟶ C`
   maps with `R = P.R ≫ Q.R°` and `P.R°P.R = C.idem.e = Q.R°Q.R`.  For `SemiSimple R` one
-  needs simple `F₀ : c₀ → a` and `G₀ : c₀ → b` with `R = F₀° ≫ G₀`.  Setting `F₀ = P.R°`
-  and `G₀ = Q.R°` gives `R = F₀° ≫ G₀` ✓, but `Simple F₀` requires `P.R ≫ P.R° ≤ 1_a`,
-  while `Entire P` gives `1_a ≤ P.R ≫ P.R°`.  These are incompatible unless `P.R` is an
-  isomorphism, so no direct conversion is possible without further work.
-
-  WHY §2.16(10) backward is TODO:
-
-  From semi-simplicity of `𝒜`, a morphism `R : E ⟶ F` in `SplObj 𝒜` has `R.R = F₀° ≫ G₀`
-  with `F₀, G₀` simple.  The source-apex construction needs
-  `SemiSimple R` in `SplObj 𝒜` (requiring `F₀` to absorb `E.idem.e` on the left, which is
-  not guaranteed) and `[UnionAllegory (SplObj 𝒜)]` (pointwise union, not yet an instance).
-  Both can be added with additional work.
+  needs simple `F₀ : c₀ → a`, `G₀ : c₀ → b` with `R = F₀° ≫ G₀`.  Setting `F₀ = P.R°`,
+  `G₀ = Q.R°` gives `R = F₀° ≫ G₀` ✓, but `Simple F₀` requires `P.R ≫ P.R° ⊑ 1_a` while
+  `Entire P` gives `1_a ⊑ P.R ≫ P.R°` — incompatible unless `P.R` is iso.  Freyd reads
+  `F, G` simple off the apex `C` (whose identity is `C.idem.e`, not `1`); converting that
+  to `𝒜`-level simplicity at the carrier still needs the carrier-vs-apex bridge.
 
   Conventions: diagram-order `R ≫ S`, reciprocation `R°`, `R ⊑ S`, `R ∩ S`.
   Mathlib-free.
@@ -74,18 +77,10 @@ open Cat
 
 /-! ## §2.165 / §2.166  Pre-tabular and tabular completion
 
-  Both results are TODO; see file header for the design-scope analysis. -/
-
--- BOOK §2.165: If 𝒜 is pre-tabular then SplObj 𝒜 is pre-tabular.
--- TODO §2.165: Source-apex route (Freyd §2.165): take legs `(P : t → a, Q : t → b)` from
---   a pre-tabulation of `R.R` in 𝒜, then form `legA : (t, id_t) ⟶ E` with `legA.R = P ≫ E.e`.
---   Simple(legA) requires `P° ≫ E.e ≫ P ⊑ id_t`.  This holds when E.e coreflexive
---   (`E.e ⊑ id_a`), but FAILS for ER objects (`id_a ⊑ E.e`): `P°EP ≥ P°P = id_t`.
---   Blocked for full `SplObj 𝒜`.  Fix: restrict to coreflexive sub-completion.
-
--- BOOK §2.166: 𝒜 pre-tabular → SplObj 𝒜 tabular (§2.166: tabular ↔ pre-tabular + coref split).
--- TODO §2.166: Relies on §2.165.  The coreflexive-splitting half is available
---   (`spl_equivalence_splits`, `tabulation_of_split_apex`) but §2.165 is blocked.
+  §2.165/§2.166 (`SplCorObj 𝒜`, the COREFLEXIVE sub-completion = Freyd's tabular
+  reflection of a pre-tabular `𝒜`): PROVED below, `SplCorObj.tabular_of_preTabular`.
+  §2.16(10) (FULL `SplObj 𝒜`, tabular from `[SemiSimpleAllegory 𝒜]`): PROVED below,
+  `splObj_tabular_of_semiSimple`.  See file header for the scope correction. -/
 
 /-! ## §2.167  The embedding `𝒜 ↪ SplObj 𝒜` and the tabular reflection
   Faithfulness: use `embHom_injective` from `S2_21`. -/
@@ -99,28 +94,138 @@ theorem spl_effective {𝒜 : Type u} [Allegory 𝒜] {E : SplObj 𝒜} (Φ : E 
     ∃ (G : SplObj 𝒜) (f : E ⟶ G), Map f ∧ f ≫ f° = Φ ∧ f° ≫ f = Cat.id G :=
   spl_equivalence_splits_map Φ hrefl hsym hidem
 
-/-! ## §2.16(10)  `SplObj 𝒜` is tabular ↔ `𝒜` is semi-simple
+/-! ## §2.16(10)  `SplObj 𝒜` is tabular when `𝒜` is semi-simple
 
-  Both directions are TODO pending further infrastructure; see file header for the precise gaps.
+  Freyd §2.16(10): `PM(RI 𝒜)` — the completion that splits *all* symmetric idempotents,
+  our `SplObj 𝒜` — is tabular **iff** `𝒜` is semi-simple.  (It is NOT tabular merely
+  because `𝒜` is tabular: a general tabular allegory need not be semi-simple, so the
+  "Spl of a tabular allegory is tabular" reading holds only for the COREFLEXIVE
+  sub-completion `SplCorObj 𝒜` below, the genuine tabular reflection §2.167.)
 
-  For the BACKWARD direction, the available route is:
-    (a) Build `UnionAllegory (SplObj 𝒜)` (pointwise union).
-    (b) Build `SemiSimple R` in `SplObj 𝒜` from semi-simplicity of `𝒜`.
-    (c) Show `SplitsSymmIdem (SplObj 𝒜)` from `SplHom.split_symmetric_idempotent`.
-    (d) Apply `srcTabulation_of_semiSimple_split` (S2_22.lean).
-  Steps (a)–(b) require ≈ 50 additional lines of infrastructure. -/
+  BACKWARD (the keystone, proven here): `[SemiSimpleAllegory 𝒜] → TabularAllegory (SplObj 𝒜)`.
+  Freyd's "routine" argument, made constructive:
+    • `SplObj 𝒜` is itself semi-simple (`splObj_semiSimple`): a factorisation
+      `Ψ.R = F₀° G₀` in `𝒜` (`F₀, G₀` simple) lifts to SIMPLE split-homs `F = F₀ E.e`,
+      `G = G₀ F.e` out of the apex `C = ⟨c₀, F F° ∩ G G°⟩` — using `Ψ.R` fixed
+      (`Ψ.R = (F₀ E.e)°(G₀ F.e)`).
+    • `SplObj 𝒜` splits all its own symmetric idempotents (`splObj_splitsSymmIdem`,
+      from `spl_equivalence_splits`); the split leg need not be entire (the object
+      idempotent need not be reflexive), which is exactly why the WEAKENED
+      `SplitsSymmIdem` predicate (no `Map f`) is the right hypothesis.
+    • §2.16(10) source-apex assembly (`srcTabulation_of_semiSimple_split`, S2_22) then
+      tabulates every morphism: split `F F° ∩ G G°` of a semi-simple factorisation, and
+      `(f° F, f° G)` is a jointly-monic map span.  `tabular_of_semiSimple_splits`
+      packages this into `Tabular` for any allegory with both properties. -/
 
--- BOOK §2.16(10) forward: SplObj 𝒜 tabular → 𝒜 semi-simple.
--- TODO §2.16(10)-fwd: A tabulation (P, Q) of embHom R in SplObj 𝒜 gives R = P.R ≫ Q.R°
---   with P.R°P.R = C.idem.e.  Setting F₀ = P.R° and G₀ = Q.R° gives R = F₀° ≫ G₀ ✓,
---   but Simple F₀ needs P.R ≫ P.R° ≤ 1_a, while Entire P gives 1_a ≤ P.R ≫ P.R°.
---   These only agree when P.R is an isomorphism; no direct conversion available.
+/-- An allegory in which every morphism is semi-simple **and** every symmetric idempotent
+    splits (the weak idempotent-split, no entireness) is tabular.  Freyd §2.16(10):
+    `srcTabulation_of_semiSimple_split` yields a source-apex jointly-monic *map* span
+    `(f° F₀, f° G₀)` of any morphism, which is exactly a `Tabulates`. -/
+theorem tabular_of_semiSimple_splits {ℬ : Type u} [Allegory ℬ]
+    (hss : ∀ {a b : ℬ} (R : a ⟶ b), SemiSimple R) (hsplit : SplitsSymmIdem ℬ)
+    {a b : ℬ} (R : a ⟶ b) : Tabular R :=
+  let ⟨c, F, G, hF, hG, hU, hm⟩ := srcTabulation_of_semiSimple_split hsplit R (hss R)
+  ⟨c, F, G, hF, hG, hU, hm⟩
 
--- BOOK §2.16(10) backward: 𝒜 semi-simple → SplObj 𝒜 tabular.
--- TODO §2.16(10)-bwd: Needs (a) UnionAllegory (SplObj 𝒜) (pointwise) and
---   (b) SemiSimple R for R : E ⟶ F in SplObj 𝒜 from hSS about 𝒜 (requires
---   the typed restriction F₀|_{E} = E.idem.e ≫ F₀° satisfying the SplHom fixed
---   condition, which needs F₀ to "absorb" E.idem.e on the left — not guaranteed).
+/-! ### §2.16(10) ingredient 1 — `SplObj 𝒜` splits its own symmetric idempotents. -/
+
+/-- In `SplObj 𝒜`, the allegory order, reciprocation and composition are read off the
+    underlying `𝒜`-morphisms (`splInter`/`splRecip`/`splComp` are `𝒜`-fixed). -/
+theorem splLe_iff {𝒜 : Type u} [Allegory 𝒜] {E F : SplObj 𝒜} (Φ Ψ : E ⟶ F) :
+    Φ ⊑ Ψ ↔ Φ.R ⊑ Ψ.R := by
+  -- `Φ ⊑ Ψ` is `Φ ∩ Ψ = Φ`, i.e. `splInter Φ Ψ = Φ`; underlying `(splInter Φ Ψ).R = Φ.R ∩ Ψ.R`.
+  show splInter Φ Ψ = Φ ↔ Φ.R ∩ Ψ.R = Φ.R
+  constructor
+  · intro h; exact congrArg SplHom.R h
+  · intro h; exact SplHom.ext h
+
+/-- **§2.16(10) ingredient 1**: `SplObj 𝒜` splits every symmetric idempotent (no
+    entireness on the leg — a general object idempotent is not reflexive).  This is
+    exactly `spl_equivalence_splits` repackaged into the weak `SplitsSymmIdem` form. -/
+theorem splObj_splitsSymmIdem {𝒜 : Type u} [Allegory 𝒜] : SplitsSymmIdem (SplObj 𝒜) := by
+  intro E Φ hΦsym hΦidem
+  -- Φ.R is a symmetric idempotent of 𝒜 (the SplObj symmetry/idempotency descend).
+  have hRsym : Φ.R° = Φ.R := by
+    have := (splLe_iff (splRecip Φ) Φ).mp hΦsym
+    exact symmetric_eq this
+  have hRidem : Φ.R ≫ Φ.R = Φ.R := by
+    have h := congrArg SplHom.R hΦidem
+    exact h
+  obtain ⟨G, leg, hleg1, hleg2⟩ := spl_equivalence_splits Φ hRsym hRidem
+  exact ⟨G, leg, hleg1, hleg2⟩
+
+/-! ### §2.16(10) ingredient 2 — `SplObj 𝒜` is semi-simple when `𝒜` is. -/
+
+/-- **§2.16(10) ingredient 2**: if `𝒜` is semi-simple then so is `SplObj 𝒜`.
+
+    A factorisation `Ψ.R = F₀° G₀` (`F₀ : c₀ ⟶ a`, `G₀ : c₀ ⟶ b` simple in `𝒜`) lifts
+    to the TRIVIAL-apex span `C = ⟨c₀, 1_{c₀}⟩`, `legF.R = F₀ ≫ E.e : C ⟶ E`,
+    `legG.R = G₀ ≫ F.e : C ⟶ F`.
+
+    • `Ψ = legF° ≫ legG`: underlying `E.e F₀° G₀ F.e = E.e Ψ.R F.e = Ψ.R` (`Ψ.R` fixed).
+    • `legF` SIMPLE in `SplObj` — `legF° ≫ legF ⊑ id_E = E.e` — because the codomain
+      identity *is* `E.e`: `(F₀ E.e)° (F₀ E.e) = E.e F₀° F₀ E.e ⊑ E.e 1 E.e = E.e`
+      (`F₀` simple).  This is exactly why the trivial apex suffices: simplicity is
+      measured against the codomain idempotent `E.e`, not against `1_a`. -/
+theorem splObj_semiSimple {𝒜 : Type u} [SemiSimpleAllegory 𝒜] {E F : SplObj 𝒜}
+    (Ψ : E ⟶ F) : SemiSimple Ψ := by
+  obtain ⟨c0, F0, G0, hF0, hG0, hUfac⟩ := SemiSimpleAllegory.semi_simple Ψ.R
+  have hEsym : E.idem.e° = E.idem.e := E.idem.sym
+  have hFsym : F.idem.e° = F.idem.e := F.idem.sym
+  have hEidem : E.idem.e ≫ E.idem.e = E.idem.e := E.idem.idem
+  have hFidem : F.idem.e ≫ F.idem.e = F.idem.e := F.idem.idem
+  -- Trivial apex C = ⟨c0, 1_{c0}⟩.
+  let C : SplObj 𝒜 := ⟨c0, ⟨Cat.id c0, recip_id, Cat.id_comp _⟩⟩
+  -- Legs, with the right SplHom fixedness (id on the left, E.e/F.e on the right).
+  let legF : C ⟶ E := ⟨F0 ≫ E.idem.e, by
+        show Cat.id c0 ≫ (F0 ≫ E.idem.e) ≫ E.idem.e = F0 ≫ E.idem.e
+        rw [Cat.id_comp, Cat.assoc, hEidem]⟩
+  let legG : C ⟶ F := ⟨G0 ≫ F.idem.e, by
+        show Cat.id c0 ≫ (G0 ≫ F.idem.e) ≫ F.idem.e = G0 ≫ F.idem.e
+        rw [Cat.id_comp, Cat.assoc, hFidem]⟩
+  refine ⟨C, legF, legG, ?_, ?_, ?_⟩
+  · -- Simple legF:  legF° ≫ legF ⊑ id_E.
+    unfold Simple; rw [splLe_iff]
+    show (F0 ≫ E.idem.e)° ≫ (F0 ≫ E.idem.e) ⊑ E.idem.e
+    rw [Allegory.recip_comp, hEsym]
+    calc (E.idem.e ≫ F0°) ≫ F0 ≫ E.idem.e
+        = E.idem.e ≫ (F0° ≫ F0) ≫ E.idem.e := by simp only [Cat.assoc]
+      _ ⊑ E.idem.e ≫ Cat.id E.carrier ≫ E.idem.e := comp_mono_left _ (comp_mono_right hF0 _)
+      _ = E.idem.e := by rw [Cat.id_comp, hEidem]
+  · -- Simple legG.
+    unfold Simple; rw [splLe_iff]
+    show (G0 ≫ F.idem.e)° ≫ (G0 ≫ F.idem.e) ⊑ F.idem.e
+    rw [Allegory.recip_comp, hFsym]
+    calc (F.idem.e ≫ G0°) ≫ G0 ≫ F.idem.e
+        = F.idem.e ≫ (G0° ≫ G0) ≫ F.idem.e := by simp only [Cat.assoc]
+      _ ⊑ F.idem.e ≫ Cat.id F.carrier ≫ F.idem.e := comp_mono_left _ (comp_mono_right hG0 _)
+      _ = F.idem.e := by rw [Cat.id_comp, hFidem]
+  · -- Ψ = legF° ≫ legG.
+    apply SplHom.ext
+    show Ψ.R = ((splRecip legF) ≫ legG).R
+    show Ψ.R = (F0 ≫ E.idem.e)° ≫ (G0 ≫ F.idem.e)
+    rw [Allegory.recip_comp, hEsym]
+    have hfix : E.idem.e ≫ Ψ.R ≫ F.idem.e = Ψ.R := Ψ.fixed
+    calc Ψ.R = E.idem.e ≫ Ψ.R ≫ F.idem.e := hfix.symm
+      _ = E.idem.e ≫ (F0° ≫ G0) ≫ F.idem.e := by rw [hUfac]
+      _ = (E.idem.e ≫ F0°) ≫ (G0 ≫ F.idem.e) := by simp only [Cat.assoc]
+
+/-! ### §2.16(10) assembly — `TabularAllegory (SplObj 𝒜)` for semi-simple `𝒜`. -/
+
+/-- **§2.16(10) (the keystone)**: if `𝒜` is a SEMI-SIMPLE allegory then the full
+    splitting completion `SplObj 𝒜` — which splits *all* symmetric idempotents — is a
+    TABULAR allegory.  (Freyd §2.16(10): `PM(RI)` is tabular iff `𝒜` is semi-simple;
+    this is the substantive "if".  A merely tabular `𝒜` does NOT suffice — that gives
+    only the coreflexive reflection `SplCorObj 𝒜` below.)
+
+    Assembled from the two ingredients via `tabular_of_semiSimple_splits`:
+    `splObj_semiSimple` (every morphism semi-simple) and `splObj_splitsSymmIdem`
+    (every symmetric idempotent splits, weak leg). -/
+instance splObj_tabular_of_semiSimple {𝒜 : Type u} [SemiSimpleAllegory 𝒜] :
+    TabularAllegory (SplObj 𝒜) :=
+  { instAllegorySpl with
+    tabular := fun {E F} Ψ =>
+      tabular_of_semiSimple_splits (fun R => splObj_semiSimple R) splObj_splitsSymmIdem Ψ }
 
 /-! ## §2.42  `SplObj 𝒜` is an effective power allegory for a power allegory `𝒜`
 
