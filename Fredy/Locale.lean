@@ -23,6 +23,7 @@
 -/
 
 import Fredy.S1_72   -- HeytingPoset, HeytingAlgebra, Locale (subobject-based)
+import Fredy.S2_1     -- Allegory class (§2.227: OSet(F) as a full allegory). Closure = {S1_1,S1_41} ⊆ S1_72's.
 
 open Freyd
 
@@ -955,6 +956,194 @@ instance osetCat (F : Frame.{u}) : Cat.{u} (OValuedSet F) where
   This is exactly the piece §2.331 needs ("the allegory of `O(X)`-valued sets"): its objects,
   reciprocal and intersection now exist; only `modular`/`semidistrib` remain.  See `S2_3.lean`
   §2.331 for the conditional reduction stated over this structure. -/
+
+/-! ### §2.16(12)/§2.227  OSet(F) is a full `Allegory`
+
+  The remaining two `Allegory`-class fields (`semidistrib`, `modular`) couple `inter` with the
+  `⨆`-defined composition.  Both reduce — via the order characterization `f ⊑ g ↔ pointwise
+  `f.rel i j ≤ g.rel i j`` — to an elementary frame meet/`sSup` inequality.  We discharge them
+  here and register `instOSetAllegory : Allegory (OValuedSet F)`, completing §2.227. -/
+
+namespace OSetHom
+
+variable {F : Frame.{u}} {A B C : OValuedSet F}
+
+/-- Extensional order on OSetHom: `inter f g = f` iff `f.rel i j ≤ g.rel i j` pointwise.
+    (This is exactly the `Allegory.le` order once the instance exists.) -/
+theorem inter_eq_left_iff (f g : OSetHom A B) :
+    inter f g = f ↔ ∀ i j, F.le (f.rel i j) (g.rel i j) := by
+  constructor
+  · intro h i j
+    have : (inter f g).rel i j = f.rel i j := by rw [h]
+    -- (inter f g).rel i j = meet (f i j) (g i j) = f i j  ⟹  f i j ≤ g i j
+    show F.le (f.rel i j) (g.rel i j)
+    have hm : F.meet (f.rel i j) (g.rel i j) = f.rel i j := this
+    exact hm ▸ F.meet_le_right _ _
+  · intro h; ext i j
+    exact F.le_antisymm (F.meet_le_left _ _) (F.le_meet (F.le_refl _) (h i j))
+
+/-- The `meet` of a pointwise composition value with a constant, expanded by distributivity:
+    `(comp f g).rel i k ⊓ t = ⨆_j (f i j ⊓ g j k ⊓ t)`. -/
+private theorem comp_rel_meet (f : OSetHom A B) (g : OSetHom B C)
+    (i : A.carrier) (k : C.carrier) (t : F.carrier) :
+    F.meet ((comp f g).rel i k) t
+      = F.sSup (fun v => ∃ j, v = F.meet (F.meet (f.rel i j) (g.rel j k)) t) := by
+  show F.meet (F.sSup (fun v => ∃ j, v = F.meet (f.rel i j) (g.rel j k))) t = _
+  rw [Frame.sSup_meet_distrib]
+  apply F.le_antisymm
+  · -- ⨆ {meet s t | s = f i j ∧ g j k}  ≤  ⨆_j meet (meet (f i j) (g j k)) t
+    apply F.sSup_le; intro x ⟨s, ⟨j, hs⟩, hx⟩
+    exact F.le_sSup _ _ ⟨j, by rw [hx, hs]⟩
+  · -- reverse
+    apply F.sSup_le; intro x ⟨j, hx⟩
+    exact F.le_sSup _ _ ⟨F.meet (f.rel i j) (g.rel j k), ⟨j, rfl⟩, hx⟩
+
+/-- **SEMI-DISTRIBUTIVITY** (§2.11 field form): the colimit composition distributes through
+    `inter` on the right as the nested intersection. -/
+theorem osetAlleg_semidistrib (R : OSetHom A B) (S T : OSetHom B C) :
+    comp R (inter S T) = inter (inter (comp R S) (comp R (inter S T))) (comp R T) := by
+  -- Reverse direction is free (RHS ⊑ comp R (inter S T) by the inter projections); equality
+  -- follows once we show comp R (inter S T) ⊑ comp R S and ⊑ comp R T pointwise.
+  have hS : ∀ i k, F.le ((comp R (inter S T)).rel i k) ((comp R S).rel i k) := by
+    intro i k
+    show F.le (F.sSup (fun v => ∃ j, v = F.meet (R.rel i j) (F.meet (S.rel j k) (T.rel j k))))
+              (F.sSup (fun v => ∃ j, v = F.meet (R.rel i j) (S.rel j k)))
+    apply F.sSup_le; intro v ⟨j, hv⟩; rw [hv]
+    refine F.le_trans ?_ (F.le_sSup _ _ ⟨j, rfl⟩)
+    exact F.le_meet (F.meet_le_left _ _)
+      (F.le_trans (F.meet_le_right _ _) (F.meet_le_left _ _))
+  have hT : ∀ i k, F.le ((comp R (inter S T)).rel i k) ((comp R T).rel i k) := by
+    intro i k
+    show F.le (F.sSup (fun v => ∃ j, v = F.meet (R.rel i j) (F.meet (S.rel j k) (T.rel j k))))
+              (F.sSup (fun v => ∃ j, v = F.meet (R.rel i j) (T.rel j k)))
+    apply F.sSup_le; intro v ⟨j, hv⟩; rw [hv]
+    refine F.le_trans ?_ (F.le_sSup _ _ ⟨j, rfl⟩)
+    exact F.le_meet (F.meet_le_left _ _)
+      (F.le_trans (F.meet_le_right _ _) (F.meet_le_right _ _))
+  -- Assemble the field equality from the two ⊑'s.  Y := comp R (inter S T).
+  have e1 : inter (comp R S) (comp R (inter S T)) = comp R (inter S T) := by
+    rw [inter_comm]; exact (inter_eq_left_iff _ _).mpr hS
+  have e2 : inter (comp R (inter S T)) (comp R T) = comp R (inter S T) :=
+    (inter_eq_left_iff _ _).mpr hT
+  rw [e1, e2]
+
+/-- **MODULAR LAW** (§2.11 field form) for OSet(F). -/
+theorem osetAlleg_modular (R : OSetHom A B) (S : OSetHom B C) (T : OSetHom A C) :
+    inter (comp R S) T
+      = inter (inter (comp R S) T) (comp (inter R (comp T (recip S))) S) := by
+  -- Equivalent to  (comp R S) ∩ T  ⊑  comp (R ∩ T S°) S  pointwise.
+  have key : ∀ i k,
+      F.le ((inter (comp R S) T).rel i k) ((comp (inter R (comp T (recip S))) S).rel i k) := by
+    intro i k
+    -- LHS = meet (⨆_j R(i,j)∧S(j,k))  T(i,k) = ⨆_j (R(i,j)∧S(j,k))∧T(i,k)  by distributivity.
+    show F.le (F.meet ((comp R S).rel i k) (T.rel i k)) _
+    rw [comp_rel_meet R S i k (T.rel i k)]
+    apply F.sSup_le; intro v ⟨j, hv⟩; rw [hv]
+    -- v = meet (meet (R i j) (S j k)) (T i k);  target sup is over (R ∩ T S°) S at index j.
+    refine F.le_trans ?_ (F.le_sSup _ _ ⟨j, rfl⟩)
+    -- target term at j: meet ((inter R (comp T (recip S))).rel i j) (S.rel j k).
+    --   (inter R (comp T (recip S))).rel i j = meet (R i j) ((comp T (recip S)).rel i j),
+    --   and (comp T (recip S)).rel i j = ⨆_{k'} T(i,k') ∧ S(j,k')  ≥  T(i,k) ∧ S(j,k).
+    refine F.le_meet (F.le_meet ?_ ?_) ?_
+    · -- ≤ R(i,j)
+      exact F.le_trans (F.meet_le_left _ _) (F.meet_le_left _ _)
+    · -- ≤ (comp T (recip S)).rel i j = ⨆_{k'} T(i,k') ∧ (recip S)(k',j) = ⨆ T(i,k')∧S(j,k')
+      show F.le _ (F.sSup (fun w => ∃ k', w = F.meet (T.rel i k') ((recip S).rel k' j)))
+      refine F.le_trans ?_ (F.le_sSup _ _ ⟨k, rfl⟩)
+      -- need meet(meet(R i j, S j k), T i k) ≤ meet (T i k) ((recip S) k j) = meet (T i k) (S j k)
+      show F.le _ (F.meet (T.rel i k) (S.rel j k))
+      exact F.le_meet (F.meet_le_right _ _)
+        (F.le_trans (F.meet_le_left _ _) (F.meet_le_right _ _))
+    · -- ≤ S(j,k)
+      exact F.le_trans (F.meet_le_left _ _) (F.meet_le_right _ _)
+  have e : inter (inter (comp R S) T) (comp (inter R (comp T (recip S))) S)
+            = inter (comp R S) T :=
+    (inter_eq_left_iff _ _).mpr key
+  rw [e]
+
+end OSetHom
+
+/-- **OSet(F) is an Allegory** (§2.16(12)/§2.227).  Objects = `OValuedSet F`; composition is the
+    `⨆`-colimit; reciprocation/intersection are pointwise; all eight `Allegory` fields hold.
+    This is the abstract target of the §2.331 representation theorems (`S2_33.lean`). -/
+instance instOSetAllegory (F : Frame.{u}) : Freyd.Alg.Allegory.{u} (OValuedSet F) where
+  toCat       := osetCat F
+  recip       := OSetHom.recip
+  inter       := OSetHom.inter
+  recip_recip := OSetHom.recip_recip
+  recip_comp  := OSetHom.recip_comp
+  recip_inter := OSetHom.recip_inter
+  inter_idem  := OSetHom.inter_idem
+  inter_comm  := OSetHom.inter_comm
+  inter_assoc := OSetHom.inter_assoc
+  semidistrib := OSetHom.osetAlleg_semidistrib
+  modular     := OSetHom.osetAlleg_modular
+
+/-! ### §2.227/§2.331  Functoriality of OSet in the frame
+
+  A `FrameHom f : F ⟶ G` reindexes `F`-valued sets to `G`-valued sets — relabel every truth
+  value by `f`.  Because `f` preserves `meet`, `top` and `sSup`, this carries the symmetric/
+  transitive equalities, the morphism bounds/naturality, and (crucially for §2.331) the colimit
+  composition: it is an `AllegoryFunctor (OValuedSet F) (OValuedSet G)`.  This is the abstract
+  vehicle by which a SPACE enters §2.331 — Moerdijk's locale embedding `O(2^ω) ⟶ O(X)` is just
+  such a `FrameHom`, inducing this functor on the OSet allegories. -/
+
+namespace OSetFrameHom
+
+variable {F G : Frame.{u}} (f : FrameHom F G)
+
+/-- Object map: relabel the `F`-valued equality of `A` by `f`.  Same carrier; symmetry from
+    `A.symm`, transitivity from `f.map_meet` + `f.map_mono`. -/
+def obj (A : OValuedSet F) : OValuedSet G where
+  carrier := A.carrier
+  E i j := f.map (A.E i j)
+  symm i j := by rw [A.symm]
+  trans i j k := by
+    rw [← f.map_meet]; exact f.map_mono (A.trans i j k)
+
+/-- Hom map: relabel the `F`-valued relation by `f`.  Bounds from `f.map_mono`; naturality from
+    `f.map_meet` (twice) + `f.map_mono`. -/
+def map {A B : OValuedSet F} (R : OSetHom A B) : OSetHom (obj f A) (obj f B) where
+  rel i j := f.map (R.rel i j)
+  dom_bound i j := f.map_mono (R.dom_bound i j)
+  cod_bound i j := f.map_mono (R.cod_bound i j)
+  natural i i' j j' := by
+    show G.le (G.meet (G.meet (f.map (A.E i i')) (f.map (B.E j j'))) (f.map (R.rel i j)))
+              (f.map (R.rel i' j'))
+    rw [← f.map_meet, ← f.map_meet]; exact f.map_mono (R.natural i i' j j')
+
+/-- `map f` sends a `⨆`-composition to the `⨆`-composition of the images: the genuine content,
+    using `f.map_sSup` and `f.map_meet`. -/
+theorem map_comp {A B C : OValuedSet F} (R : OSetHom A B) (S : OSetHom B C) :
+    map f (OSetHom.comp R S) = OSetHom.comp (map f R) (map f S) := by
+  ext i k
+  show f.map (F.sSup (fun v => ∃ j, v = F.meet (R.rel i j) (S.rel j k)))
+     = G.sSup (fun w => ∃ j, w = G.meet (f.map (R.rel i j)) (f.map (S.rel j k)))
+  rw [f.map_sSup]
+  apply G.le_antisymm
+  · apply G.sSup_le; intro y ⟨x, ⟨j, hx⟩, hy⟩
+    refine G.le_sSup _ _ ⟨j, ?_⟩
+    rw [hy, hx, f.map_meet]
+  · apply G.sSup_le; intro w ⟨j, hw⟩
+    refine G.le_sSup _ _ ⟨F.meet (R.rel i j) (S.rel j k), ⟨j, rfl⟩, ?_⟩
+    rw [hw, f.map_meet]
+
+-- The four remaining `AllegoryFunctor` laws are bundled in `Fredy/S2_33.lean`
+-- (`OSetFrameHom.functor`): `AllegoryFunctor` lives in `MapCat.lean`, which transitively imports
+-- `S2_3` and so cannot be imported here without a cycle.  The genuine content (`map_comp`) is the
+-- theorem above; `map_id`/`map_recip`/`map_inter` are then immediate.
+
+theorem map_id (A : OValuedSet F) : map f (OSetHom.id A) = OSetHom.id (obj f A) := by
+  ext i j; show f.map (A.E i j) = f.map (A.E i j); rfl
+
+theorem map_recip {A B : OValuedSet F} (R : OSetHom A B) :
+    map f (OSetHom.recip R) = OSetHom.recip (map f R) := by ext j i; rfl
+
+theorem map_inter {A B : OValuedSet F} (R S : OSetHom A B) :
+    map f (OSetHom.inter R S) = OSetHom.inter (map f R) (map f S) := by
+  ext i j; show f.map (F.meet (R.rel i j) (S.rel i j)) = _; rw [f.map_meet]; rfl
+
+end OSetFrameHom
 
 /-! ## Terminal F-valued set
 
