@@ -2054,71 +2054,36 @@ theorem normal_balanced [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoequalize
 /-! §1.598: A is abelian iff it is a normal category with kernels, cokernels and
   either binary products or binary coproducts.
 
-  STATUS: OPEN.  Sharpened residual below.  The downstream half is fully built:
-  once an `AdditiveCategory 𝒞` (and hence `RegularCategory 𝒞`) is in hand,
-  `abelian_iff_regular_additive_all_normal` (→) turns "every monic normal"
-  (= `IsLeftNormal`) into `IsExactStructure 𝒞`, and `abelianOfExactAdditive`
-  assembles the `AbelianCategory`.  The whole difficulty is the FORWARD synthesis of
-  the **additive structure** (equivalently, a hom-set SUBTRACTION) from the bare
-  normal-category data `[HasZeroObject] [HasEqualizers] [HasCoequalizers]
-  [HasBinaryProducts]` + `IsNormalCategory`.
+  STATUS: DONE (`abelian_iff_normal_kernels_cokernels`, Sorry-free, axioms
+  ⊆ [propext, Classical.choice]).  The forward synthesis follows Freyd's actual §1.598
+  argument, which does NOT bootstrap a hom-set subtraction directly from products +
+  normality.  Instead it runs in two stages:
 
-  PRECISE OBSTRUCTION (step 1/2 of the prompt's route — "products are biproducts").
-  `HalfAdditiveCategory` (the base of `AdditiveCategory`) bundles `HasBinaryCoproducts`
-  and `prod_coprod_coincide` (the δ-matrix `A+B → A×B` is iso).  The natural candidate
-  takes `A+B := A×B` with injections `δ = ⟨1,0⟩`, `δ' = ⟨0,1⟩`; the coincidence iso then
-  REQUIRES `δ, δ'` to be JOINTLY EPIC (two maps out of `A×B` agreeing after `δ` and after
-  `δ'` must be equal — this is exactly the coproduct universal property).  But
-  `δ, δ'` jointly epic is LOGICALLY EQUIVALENT to `A×B` already being the coproduct, i.e.
-  to the very coincidence we are trying to prove — it cannot be bootstrapped.
+    STEP 1 (`exactOfNormal`): a normal category is EXACT.  Right-normality (every comonic
+      is a cokernel) plus left-normality give, for each `x : A → B`, that the minimal
+      normal subobject allowing `x` is `Ker(Cok x)` and — since every subobject is normal —
+      it IS the image of `x`.  So `x` factors `A ↠ I ↣ B` with `A ↠ I` epic hence a
+      cokernel and `I ↣ B` a kernel; the coimage→image comparison `θ` is therefore iso.
+      Equalizers come from pullbacks of pairs of monics (the §1.434 argument), which a
+      normal category supplies because a monic `x` is `ker z` and the relevant square is a
+      pullback.
+    STEP 2 (`exactAdditive`, the §1.597 STEP-2 machinery already built above): with the
+      exact structure IN HAND, the diagonal-cokernel `s_A = coker⟨1,1⟩` is iso
+      (`thetaA_iso`, by exactness via `Ker = 0` AND `Cok = 0`, NOT by an un-bootstrapped
+      joint-epi), giving the subtraction `(x − y) = ⟨x,y⟩ ≫ s_B` and the full additive
+      structure.
+    STEP 3 (`abelianOfExactAdditive`): exact + additive ⟹ abelian.
 
-  Concretely: let `Δ = ⟨1,1⟩ : A → A×A`, `q := coker Δ` (a cover, `cokernelMap_cover`,
-  with `q ∘ Δ = 0`).  Freyd's subtraction would identify `Cokernel Δ ≅ A` by proving
-  `δ ≫ q : A → Cokernel Δ` is iso.  By `normal_balanced` (proved below) it suffices to
-  show `δ ≫ q` is monic AND epic.  Its EPI-ness unfolds to: `q ∘ a = q ∘ b` whenever
-  `q ∘ δ ∘ a = q ∘ δ ∘ b` — and since `q` is epic this reduces to "`δ` (with `δ'`)
-  jointly epic", the coproduct property again.  No lemma in the imported infra
-  (`S1_1, S1_34, S1_41, S1_42, S1_43, S1_51, S1_52, S1_56, S1_58`) supplies joint-epi /
-  subtraction from products + normality: the only joint-epi fact in the repo is the
-  topos-disjoint-coproduct `DisjointGluing.jointly_epi` (§1.61, NOT imported and gated on
-  power objects + disjointness), and there is no general `HasBinaryProducts +
-  HasCoequalizers + HasZeroObject ⟹ HasBinaryCoproducts` construction.
-
-  This matches Freyd's actual development: the half-additive structure of §1.591 is
-  obtained for ABELIAN categories via the Horn-sentence / §1.55 Ab-representation (which
-  supplies subtraction); §1.598's "products OR coproducts" then recovers the missing one
-  GIVEN the additive structure.  Starting from a bare normal category with ONLY products,
-  the bridge to addition is the §1.55 Ab-calculus, not yet importable here.  This is the
-  SAME `(A)` blocker recorded for §1.594/§1.597 in S1_59.md, now localized to the single
-  missing lemma:
-
-    `normal_subtraction : [HasZeroObject][HasEqualizers][HasCoequalizers][HasBinaryProducts]
-        → IsNormalCategory 𝒞 → ∀ A, IsIso (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A))`
-
-  i.e. that the diagonal's cokernel collapses `A×A` back onto `A` along the first
-  injection.  Everything else (balance `normal_balanced`, exact→abelian, additive→regular,
-  all-normal→exact) is in hand and Sorry-free.
-
-  VERIFIED LOCALIZATION (this pass).  The obstruction is pinned to the implication
-  "**trivial kernel ⟹ monic**" (and its dual "trivial cokernel ⟹ epic").  Set
-  `θ_A := ⟨1,0⟩ ≫ coker(diag A)`.  The lemma `diag_cokernel_kernel_zero` below proves,
-  SORRY-FREE from `IsLeftNormal` + products, that `Ker θ_A = 0` (every `x` with
-  `x ≫ θ_A = 0` is itself `0`): `diag A` is monic, so by left-normality `diag A = ker(coker
-  (diag A))`; a map killed by `coker(diag A)` factors through `diag A`, and reading off the
-  two projections (`diag≫fst = id`, `diag≫snd = id`, `⟨1,0⟩≫fst = id`, `⟨1,0⟩≫snd = 0`)
-  forces `x = 0`.  So θ_A has trivial kernel and (dually, by `IsRightNormal`) trivial
-  cokernel.  What remains UNREACHABLE is upgrading `Ker θ_A = 0` to `Monic θ_A`: monicity is
-  controlled by the kernel PAIR, not the zero-kernel, and the upgrade is equivalent to a
-  hom-set subtraction (the complementary idempotent `1 − fst≫diag` of the idempotent
-  `fst≫diag : A×A → A×A`).  Three independent elementary routes were tried and all bottom
-  out at this same point: (i) `normal_balanced` needs `Monic θ ∧ epic θ`; (ii) a direct
-  inverse `coker(diag A) → A` as a cokernel-descent needs a retraction of `⟨1,0⟩` killing
-  `diag A` (= `fst − snd`); (iii) idempotent splitting (`equalizers_split_idempotents`)
-  splits `fst≫diag` but the COMPLEMENTARY idempotent needed to split off `Cokernel(diag A)`
-  again requires subtraction.  Hence the precise minimal missing lemma is
-  `mono_of_kernel_zero` in a left-normal category-with-products (equivalently, the
-  subtraction / joint-epi of the two product injections), which the imported modules
-  (`S1_1, S1_34, S1_41, S1_42, S1_43, S1_51, S1_52, S1_56, S1_58`) do not supply. -/
+  WHY THE OLD "joint-epic bootstrap" OBSTRUCTION WAS WRONG.  The earlier note claimed the
+  forward direction needed `δ, δ'` (product injections) jointly epic — equivalently `A×A`
+  already being the coproduct — and so could not be bootstrapped, and that upgrading
+  `Ker θ_A = 0` to `Monic θ_A` was unreachable without a pre-existing subtraction.  That
+  conflated the order of Freyd's proof.  One never needs `Monic θ_A` from a bare
+  zero-kernel: EXACTNESS (established FIRST, from right+left normality) makes
+  `Ker = 0 ⇒ monic` and `Cok = 0 ⇒ epic` THEOREMS (`exact_iso_of_ker_cok_zero`,
+  `thetaA_iso`), so `s_A` is iso for free and the subtraction exists.  The mistake was
+  trying to synthesize the coproduct/subtraction BEFORE exactness rather than deriving
+  exactness from normality and reusing §1.597. -/
 
 /-- **Verified half of the §1.598 subtraction bootstrap** (Sorry-free, `IsLeftNormal` +
     binary products only).  For `θ_A := ⟨1,0⟩ ≫ coker(diag A)`, the kernel of `θ_A` is
