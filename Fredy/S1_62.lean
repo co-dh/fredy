@@ -3767,33 +3767,523 @@ theorem preLogos_horn_metatheorem_set {𝒞 : Type u} [Cat.{w} 𝒞]
     (hSet : PLHoldsIn (Type w) φ) : PLHoldsIn 𝒞 φ :=
   preLogos_horn_metatheorem R φ hSet
 
+/-! ### §1.636 The concrete `homRep` instance — pushing into the power `Set^|𝒞|`
+
+  We now CONSTRUCT a `PreLogosRep 𝒞 (𝒞 → Type u)` from the Henkin–Lubkin representation
+  `homRep 𝒞 : 𝒞 → Set^|𝒞|` (§1.55).  The push is `pushPow ρ = homRep ∘ ρ`; the power category
+  `(𝒞 → Type u)` is the §1.636 "category of sets" target (a power of `Set`, regular by BRICK 1).
+
+  The five CARTESIAN+REGULAR atoms — terminator, product, equalizer, cover, image — are PRESERVED
+  and REFLECTED by `homRep`, proven below as reusable lemmas: the limit atoms unconditionally
+  (representables preserve limits; faithfulness reflects them, the §1.444 argument), the regular
+  atoms (cover, image) under the projectivity hypothesis `hproj` that §1.543 capitalization
+  supplies.  Each power predicate is bridged to its FIBREWISE form (the power's limits/covers are
+  pointwise) and then to the per-index `Hom(i,-)` lemmas of `Horn.lean`.
+
+  The two COLIMIT atoms — `zero` (initial object) and `disjointCoprod` — are NOT preserved by any
+  representable: `Hom(i, 0)` is INHABITED at `i = 0` (the identity), so `homRep 𝒞 0` is never
+  initial in the power.  This is the genuine §2.217-grade residual: it needs the union-preserving
+  ultra-filter stalk family `(T_F̂)`, not bare representables (see the diagnosis at the end).  We
+  therefore expose a builder `PreLogosRep.ofHomRep` that DISCHARGES the five categorical atoms from
+  proven machinery and takes the two colimit atoms' preserve+reflect as explicit hypotheses — so
+  the metatheorem is usable the moment those (or a full stalk representation) are supplied. -/
+
+section HomRepInstance
+
+open SetRegular Freyd.Horn
+
+variable {𝒞 : Type u} [Cat.{u} 𝒞] {nObj : Nat}
+
+/-- Push an environment along `homRep 𝒞 : 𝒞 → Set^|𝒞|` (post-compose every object/morphism with
+    the Henkin–Lubkin representation).  This is the §1.636 analogue of `Horn.pushEnv`, but into the
+    POWER `(𝒞 → Type u)` at once (all indices `i` simultaneously) rather than one fibre. -/
+def pushPow (ρ : Env 𝒞 nObj) : Env (𝒞 → Type u) nObj where
+  obj o := homRep 𝒞 (ρ.obj o)
+  mor m := (homRepFunctor 𝒞).map (ρ.mor m)
+
+/-- `morAs` commutes with `pushPow` (mirrors `Horn.morAs_pushEnv`). -/
+theorem morAs_pushPow (ρ : Env 𝒞 nObj) (m : MorVar nObj)
+    {s t : ObjVar nObj} (hs : m.src = s) (ht : m.tgt = t) :
+    morAs (pushPow ρ) m hs ht = (homRepFunctor 𝒞).map (morAs ρ m hs ht) := by
+  subst hs ht; rfl
+
+/-- Evaluating the pushed environment at a single index `i`: `(pushPow ρ).obj o` at `i` is the
+    hom-set `(i ⟶ ρ.obj o)`, definitionally — the per-index `Hom(i,-)` push that `Horn.lean`
+    reflects against. -/
+theorem pushPow_obj_app (ρ : Env 𝒞 nObj) (o : ObjVar nObj) (i : 𝒞) :
+    (pushPow ρ).obj o i = (i ⟶ ρ.obj o) := rfl
+
+/-! #### Pointwise bridges: a power predicate ⟺ the fibrewise family of `Type u` predicates.
+
+  Limits and covers in `(𝒞 → Type u)` are computed POINTWISE (BRICK 1), so each "Obj" predicate
+  of the power is exactly the conjunction over `i` of the same predicate in the fibre `Type u`.
+  These bridges are pure power-category facts (no `homRep`); they let the per-index `Horn.lean`
+  preservation/reflection lemmas drive the power statements.
+
+  The forward (power ⟹ fibre) halves all share ONE device, packaged here once: the SUPPORT FAMILY
+  `supp i Z`, equal to `Z` at index `i` and EMPTY elsewhere.  A power-morphism out of `supp i Z`
+  is the same data as a single fibre function `Z → X i` (empty fibres force the rest), giving a
+  clean bijection `suppHomEquiv` that drives every forward bridge with no ad-hoc point choices. -/
+
+open Classical in
+/-- The SUPPORT FAMILY at index `i` with fibre `Z`: `Z` at `i`, `PEmpty` elsewhere.  Off `i` the
+    fibre is empty, so a power-map out of it is determined there with no choices — the device that
+    turns every "power ⟹ fibre" bridge into the `Hom(i,-)` reflection argument, done once. -/
+def supp (i : 𝒞) (Z : Type u) : 𝒞 → Type u := fun j => if i = j then Z else PEmpty
+
+@[simp] theorem supp_self (i : 𝒞) (Z : Type u) : supp i Z i = Z := dif_pos rfl
+
+theorem supp_ne {i j : 𝒞} (h : i ≠ j) (Z : Type u) : supp i Z j = PEmpty := dif_neg h
+
+/-- Inject `Z` into the `i`-fibre of its support family. -/
+def supp.inj (i : 𝒞) {Z : Type u} (z : Z) : supp i Z i := cast (supp_self i Z).symm z
+
+/-- Project the `i`-fibre back to `Z`. -/
+def supp.prj (i : 𝒞) {Z : Type u} (zz : supp i Z i) : Z := cast (supp_self i Z) zz
+
+@[simp] theorem supp.prj_inj (i : 𝒞) {Z : Type u} (z : Z) : supp.prj i (supp.inj i z) = z := by
+  simp only [supp.prj, supp.inj, cast_cast, cast_eq]
+
+@[simp] theorem supp.inj_prj (i : 𝒞) {Z : Type u} (zz : supp i Z i) : supp.inj i (supp.prj i zz) = zz := by
+  simp only [supp.prj, supp.inj, cast_cast, cast_eq]
+
+/-- A power-map out of `supp i Z` evaluated at the `i`-fibre, as a plain function `Z → X i`. -/
+def suppApp {i : 𝒞} {Z : Type u} {X : 𝒞 → Type u} (φ : supp i Z ⟶ X) : Z → X i :=
+  fun z => φ i (supp.inj i z)
+
+open Classical in
+/-- EXTEND a fibre function `m : Z → X i` to a power-map `supp i Z ⟶ X` (empty off `i`). -/
+noncomputable def suppExt {i : 𝒞} {Z : Type u} {X : 𝒞 → Type u} (m : Z → X i) : supp i Z ⟶ X :=
+  fun j zz =>
+    if h : i = j then h ▸ m (supp.prj i (h ▸ zz : supp i Z i))
+    else ((cast (supp_ne h Z) zz : PEmpty)).elim
+
+@[simp] theorem suppApp_suppExt {i : 𝒞} {Z : Type u} {X : 𝒞 → Type u} (m : Z → X i) :
+    suppApp (suppExt m) = m := by
+  funext z
+  show (suppExt m) i (supp.inj i z) = m z
+  simp only [suppExt, dif_pos (rfl : i = i)]
+  show m (supp.prj i ((rfl : i = i) ▸ supp.inj i z)) = m z
+  rw [show ((rfl : i = i) ▸ supp.inj i z) = supp.inj i z from rfl, supp.prj_inj]
+
+/-- A power-map out of a support family is its own extension: `suppExt (suppApp φ) = φ`.
+    Off `i` both sides are the unique map out of the empty fibre; at `i` both are `φ i`. -/
+theorem suppExt_suppApp {i : 𝒞} {Z : Type u} {X : 𝒞 → Type u} (φ : supp i Z ⟶ X) :
+    suppExt (suppApp φ) = φ := by
+  funext j zz
+  by_cases h : i = j
+  · subst h
+    show (suppExt (suppApp φ)) i zz = φ i zz
+    simp only [suppExt, dif_pos (rfl : i = i)]
+    show suppApp φ (supp.prj i ((rfl : i = i) ▸ zz)) = φ i zz
+    rw [show ((rfl : i = i) ▸ zz) = zz from rfl]
+    simp only [suppApp, supp.inj_prj]
+  · exact ((cast (supp_ne h Z) zz : PEmpty)).elim
+
+/-- Composing a support-map with a fibre map commutes with `suppApp`:
+    `suppApp (φ ≫ g) = (g i) ∘ suppApp φ`.  (Power composition is pointwise.) -/
+@[simp] theorem suppApp_comp {i : 𝒞} {Z : Type u} {X Y : 𝒞 → Type u}
+    (φ : supp i Z ⟶ X) (g : X ⟶ Y) :
+    suppApp (φ ≫ g) = fun z => g i (suppApp φ z) := rfl
+
+/-- `suppExt` commutes with post-composition: extending the composite fibre map `z ↦ g i (m z)`
+    is the same as extending `m` then post-composing by `g` in the power. -/
+theorem suppExt_comp {i : 𝒞} {Z : Type u} {X Y : 𝒞 → Type u} (m : Z → X i) (g : X ⟶ Y) :
+    suppExt (fun z => g i (m z)) = (suppExt m ≫ g) := by
+  have h1 : suppApp (suppExt m ≫ g) = fun z => g i (m z) := by
+    rw [suppApp_comp, suppApp_suppExt]
+  calc suppExt (fun z => g i (m z))
+      = suppExt (suppApp (suppExt m ≫ g)) := by rw [h1]
+    _ = suppExt m ≫ g := suppExt_suppApp _
+
+/-- TERMINATOR bridge: `X` is terminal in the power iff every fibre `X i` is terminal in `Type u`.
+    A power terminal is a pointwise terminal: the fibre-`i` element is probed with the support
+    family `Y j := PLift (i = j)`, and fibrewise uniqueness comes from two global maps out of
+    `fun _ => PUnit` that must agree. -/
+theorem isTerminalObj_power_iff {X : 𝒞 → Type u} :
+    Freyd.Horn.IsTerminalObj X ↔ ∀ i, Freyd.Horn.IsTerminalObj (X i) := by
+  classical
+  constructor
+  · -- power-terminal ⟹ each fibre `X i` is a singleton (nonempty + subsingleton), hence terminal.
+    intro hX i
+    -- canonical global point `pt j : X j` (from the map out of `fun _ => PUnit`).
+    let pt : ∀ j, X j := fun j => (hX (fun _ => PUnit)).choose j PUnit.unit
+    -- fibre `i` is a subsingleton: any `a : X i` equals `pt i`.
+    have hsub : ∀ a : X i, a = pt i := by
+      intro a
+      -- the global map sending everything to `pt` except value `a` at `i` equals the chosen one.
+      let ga : (fun _ : 𝒞 => PUnit) ⟶ X := fun j _ => if h : i = j then h ▸ a else pt j
+      have e : ga = (hX (fun _ : 𝒞 => PUnit)).choose :=
+        (hX (fun _ : 𝒞 => PUnit)).choose_spec ga
+      have := congrFun (congrFun e i) PUnit.unit
+      simp only [ga, dif_pos (rfl : i = i)] at this
+      -- `this : a = (hX _).choose i PUnit.unit = pt i`.
+      simpa [pt] using this
+    -- now terminal: for any `Z`, the unique map is the constant `pt i`.
+    intro Z
+    exact ⟨fun _ => pt i, fun g => by funext z; exact hsub (g z)⟩
+  · intro hX Z
+    refine ⟨fun i z => (hX i (Z i)).choose z, fun g => ?_⟩
+    funext i z
+    exact congrFun ((hX i (Z i)).choose_spec (g i)) z
+
+/-- PRODUCT bridge: `(pf, ps)` is a product in the power iff it is fibrewise a product in `Type u`.
+    Products in `(𝒞 → Type u)` are pointwise (BRICK 1), so the universal property factors index-by-index. -/
+theorem isProductObj_power_iff {A B P : 𝒞 → Type u} {pf : P ⟶ A} {ps : P ⟶ B} :
+    Freyd.Horn.IsProductObj pf ps ↔
+      ∀ i, Freyd.Horn.IsProductObj (𝒞 := Type u) (pf i) (ps i) := by
+  classical
+  constructor
+  · -- power product ⟹ fibre product, via the support bijection `suppApp`/`suppExt`.
+    intro hP i Z u v
+    -- the `Z`-cone on the fibre lifts to a `supp i Z`-cone on the power; transport the legs.
+    obtain ⟨H, hHf, hHs, hHu⟩ := hP (supp i Z) (suppExt u) (suppExt v)
+    refine ⟨suppApp H, ?_, ?_, ?_⟩
+    · have := congrArg (suppApp ·) hHf
+      simpa [suppApp_comp] using this
+    · have := congrArg (suppApp ·) hHs
+      simpa [suppApp_comp] using this
+    · intro k hk₁ hk₂
+      -- extend `k` to a power lift `suppExt k`; uniqueness of `H` forces `suppExt k = H`, then
+      -- apply `suppApp` (which is a section of `suppExt`).
+      have hke : suppExt k = H :=
+        hHu (suppExt k)
+          (by rw [← suppExt_comp]; exact congrArg suppExt hk₁)
+          (by rw [← suppExt_comp]; exact congrArg suppExt hk₂)
+      have := congrArg suppApp hke
+      simpa [suppApp_suppExt] using this
+  · -- fibre products ⟹ power product: assemble the lift index-by-index.
+    intro hP X u v
+    refine ⟨fun i x => (hP i (X i) (u i) (v i)).choose x, ?_, ?_, ?_⟩
+    · funext i x; exact congrFun (hP i (X i) (u i) (v i)).choose_spec.1 x
+    · funext i x; exact congrFun (hP i (X i) (u i) (v i)).choose_spec.2.1 x
+    · intro k hk₁ hk₂; funext i x
+      exact congrFun ((hP i (X i) (u i) (v i)).choose_spec.2.2 (fun y => k i y)
+        (congrFun hk₁ i) (congrFun hk₂ i)) x
+
+/-- EQUALIZER bridge: `em` is an equalizer in the power iff it is fibrewise an equalizer in
+    `Type u` (power equalizers are pointwise). -/
+theorem isEqualizerObj_power_iff {E A Bb : 𝒞 → Type u} {em : E ⟶ A} {f g : A ⟶ Bb} :
+    Freyd.Horn.IsEqualizerObj em f g ↔
+      ∀ i, Freyd.Horn.IsEqualizerObj (𝒞 := Type u) (em i) (f i) (g i) := by
+  classical
+  constructor
+  · intro hE i
+    refine ⟨?_, ?_⟩
+    · -- `em i ≫ f i = em i ≫ g i` read fibrewise from the power comm law.
+      exact congrFun hE.1 i
+    · intro Z h hcomm
+      -- lift the fibre cone `(Z, h)` to a power cone via `suppExt`, equalised by `suppExt h`.
+      obtain ⟨k, hk, hku⟩ := hE.2 (supp i Z) (suppExt h)
+        (by rw [← suppExt_comp, ← suppExt_comp]; exact congrArg suppExt hcomm)
+      refine ⟨suppApp k, ?_, ?_⟩
+      · have := congrArg suppApp hk; simpa [suppApp_comp, suppApp_suppExt] using this
+      · intro m hm
+        have hme : suppExt m = k :=
+          hku (suppExt m) (by rw [← suppExt_comp]; exact congrArg suppExt hm)
+        have := congrArg suppApp hme; simpa [suppApp_suppExt] using this
+  · intro hE
+    refine ⟨?_, ?_⟩
+    · funext i x; exact congrFun (hE i).1 x
+    · intro X h hcomm
+      refine ⟨fun i x => ((hE i).2 (X i) (h i) (congrFun hcomm i)).choose x, ?_, ?_⟩
+      · funext i x; exact congrFun ((hE i).2 (X i) (h i) (congrFun hcomm i)).choose_spec.1 x
+      · intro m hm; funext i x
+        exact congrFun (((hE i).2 (X i) (h i) (congrFun hcomm i)).choose_spec.2 (fun y => m i y)
+          (congrFun hm i)) x
+
+/-! #### §1.636 The five categorical atoms: `homRep` preserves + reflects them in the power.
+
+  Each fibre of `pushPow ρ` at index `i` is the §1.444 `Hom(i,-)` push (`pushPow_obj_app`), so the
+  power statements decompose through the bridges above into the per-index `Horn.lean` lemmas:
+  `homFunctor_preserves_*` (preservation) and `reflect_*` (reflection, = `cayley_faithful`).  The
+  cover and image atoms additionally need the projectivity hypothesis `hproj` that §1.543
+  capitalization supplies, and route through `HomRepRegular`. -/
+
+section AtomLemmas
+open SetRegular Freyd.Horn HomRepRegular
+variable {𝒞 : Type u} [Cat.{u} 𝒞] {nObj : Nat}
+
+/-- The pushed morphism's fibre at `i` is the per-index `Hom(i,-)` push of the same morphism. -/
+theorem pushPow_mor_app (ρ : Env 𝒞 nObj) (m : MorVar nObj)
+    {s t : ObjVar nObj} (hs : m.src = s) (ht : m.tgt = t) (i : 𝒞) :
+    (morAs (pushPow ρ) m hs ht) i
+      = (Freyd.Horn.homFunctorFunctor i).map (morAs ρ m hs ht) := by
+  rw [morAs_pushPow]; rfl
+
+/-- **TERMINATOR**, preserved: if `ρ.obj o` is terminal in `𝒞`, then `homRep` of it is terminal in
+    the power.  Bridge to fibrewise + per-index `homFunctor_preserves_terminal`. -/
+theorem pushPow_preserves_terminator (ρ : Env 𝒞 nObj) {o : ObjVar nObj}
+    (h : IsTerminalObj (ρ.obj o)) : IsTerminalObj ((pushPow ρ).obj o) :=
+  isTerminalObj_power_iff.mpr (fun i => homFunctor_preserves_terminal i h)
+
+/-- **TERMINATOR**, reflected: terminal in the power ⟹ terminal in `𝒞` (`cayley_faithful`). -/
+theorem pushPow_reflects_terminator (ρ : Env 𝒞 nObj) {o : ObjVar nObj}
+    (h : IsTerminalObj ((pushPow ρ).obj o)) : IsTerminalObj (ρ.obj o) :=
+  reflect_terminal (isTerminalObj_power_iff.mp h)
+
+/-- **PRODUCT**, preserved. -/
+theorem pushPow_preserves_product (ρ : Env 𝒞 nObj) {a b p : ObjVar nObj}
+    {pf ps : MorVar nObj} (hpf_src : pf.src = p) (hpf_tgt : pf.tgt = a)
+    (hps_src : ps.src = p) (hps_tgt : ps.tgt = b)
+    (h : IsProductObj (morAs ρ pf hpf_src hpf_tgt) (morAs ρ ps hps_src hps_tgt)) :
+    IsProductObj (morAs (pushPow ρ) pf hpf_src hpf_tgt) (morAs (pushPow ρ) ps hps_src hps_tgt) := by
+  apply isProductObj_power_iff.mpr
+  intro i
+  rw [pushPow_mor_app, pushPow_mor_app]
+  exact homFunctor_preserves_product i h
+
+/-- **PRODUCT**, reflected. -/
+theorem pushPow_reflects_product (ρ : Env 𝒞 nObj) {a b p : ObjVar nObj}
+    {pf ps : MorVar nObj} (hpf_src : pf.src = p) (hpf_tgt : pf.tgt = a)
+    (hps_src : ps.src = p) (hps_tgt : ps.tgt = b)
+    (h : IsProductObj (morAs (pushPow ρ) pf hpf_src hpf_tgt) (morAs (pushPow ρ) ps hps_src hps_tgt)) :
+    IsProductObj (morAs ρ pf hpf_src hpf_tgt) (morAs ρ ps hps_src hps_tgt) := by
+  apply reflect_product
+  intro i
+  have := isProductObj_power_iff.mp h i
+  rwa [pushPow_mor_app, pushPow_mor_app] at this
+
+/-- **EQUALIZER**, preserved. -/
+theorem pushPow_preserves_equalizer (ρ : Env 𝒞 nObj) {e a bb : ObjVar nObj}
+    {em f g : MorVar nObj} (hem_src : em.src = e) (hem_tgt : em.tgt = a)
+    (hf_src : f.src = a) (hf_tgt : f.tgt = bb) (hg_src : g.src = a) (hg_tgt : g.tgt = bb)
+    (h : IsEqualizerObj (morAs ρ em hem_src hem_tgt) (morAs ρ f hf_src hf_tgt) (morAs ρ g hg_src hg_tgt)) :
+    IsEqualizerObj (morAs (pushPow ρ) em hem_src hem_tgt)
+      (morAs (pushPow ρ) f hf_src hf_tgt) (morAs (pushPow ρ) g hg_src hg_tgt) := by
+  apply isEqualizerObj_power_iff.mpr
+  intro i
+  rw [pushPow_mor_app, pushPow_mor_app, pushPow_mor_app]
+  exact homFunctor_preserves_equalizer i h
+
+/-- **EQUALIZER**, reflected. -/
+theorem pushPow_reflects_equalizer (ρ : Env 𝒞 nObj) {e a bb : ObjVar nObj}
+    {em f g : MorVar nObj} (hem_src : em.src = e) (hem_tgt : em.tgt = a)
+    (hf_src : f.src = a) (hf_tgt : f.tgt = bb) (hg_src : g.src = a) (hg_tgt : g.tgt = bb)
+    (h : IsEqualizerObj (morAs (pushPow ρ) em hem_src hem_tgt)
+      (morAs (pushPow ρ) f hf_src hf_tgt) (morAs (pushPow ρ) g hg_src hg_tgt)) :
+    IsEqualizerObj (morAs ρ em hem_src hem_tgt) (morAs ρ f hf_src hf_tgt) (morAs ρ g hg_src hg_tgt) := by
+  apply reflect_equalizer
+  intro i
+  have := isEqualizerObj_power_iff.mp h i
+  rwa [pushPow_mor_app, pushPow_mor_app, pushPow_mor_app] at this
+
+end AtomLemmas
+
+/-! #### §1.636 The regular atoms `cover` and `image` (require projectivity `hproj`).
+
+  `homRep` preserves covers/images only when every object of `𝒞` is PROJECTIVE — the §1.543
+  capital case (`hproj`).  Reflection of cover, by contrast, is unconditional: a power-cover is
+  fibrewise surjective, and surjectivity at the index `i = cod` lifts `id_cod`, exhibiting a
+  section of `f`, hence a cover. -/
+
+section RegularAtoms
+open SetRegular Freyd.Horn HomRepRegular
+variable {𝒞 : Type u} [Cat.{u} 𝒞] [RegularCategory 𝒞] {nObj : Nat}
+
+/-- The projectivity hypothesis that §1.543 capitalization supplies: every cover splits. -/
+abbrev Capital (𝒞 : Type u) [Cat.{u} 𝒞] : Prop :=
+  ∀ C : 𝒞, ∀ {P : 𝒞} (e : P ⟶ C), Cover e → ∃ s : C ⟶ P, s ≫ e = Cat.id C
+
+/-- **COVER**, preserved (given `hproj`): a cover in `𝒞` pushes to a fibrewise-surjective, hence
+    cover, morphism in the power. -/
+theorem pushPow_preserves_cover (hproj : Capital 𝒞) (ρ : Env 𝒞 nObj) {a b : ObjVar nObj}
+    {f : MorVar nObj} (hf_src : f.src = a) (hf_tgt : f.tgt = b)
+    (h : Cover (morAs ρ f hf_src hf_tgt)) : Cover (morAs (pushPow ρ) f hf_src hf_tgt) := by
+  rw [morAs_pushPow]
+  exact homRep_preserves_covers hproj _ h
+
+/-- **COVER**, reflected (unconditional): a power-cover is fibrewise surjective; surjectivity at
+    `i = b` lifts `id_b` to a section of `f`, so `f` is a cover. -/
+theorem pushPow_reflects_cover (ρ : Env 𝒞 nObj) {a b : ObjVar nObj}
+    {f : MorVar nObj} (hf_src : f.src = a) (hf_tgt : f.tgt = b)
+    (h : Cover (morAs (pushPow ρ) f hf_src hf_tgt)) : Cover (morAs ρ f hf_src hf_tgt) := by
+  rw [morAs_pushPow] at h
+  -- fibrewise surjective: at index `b`, `Hom(b, f)` is onto, so `id_b` lifts to a section.
+  have hsurj := (power_cover_iff _).mp h (ρ.obj b)
+  obtain ⟨s, hs⟩ := hsurj (Cat.id (ρ.obj b))
+  -- `s : b ⟶ a` with `(homFunctor b).map f s = s ≫ f = id_b`.
+  have hs' : s ≫ morAs ρ f hf_src hf_tgt = Cat.id (ρ.obj b) := hs
+  intro C m g hm hgm
+  exact cover_of_section (morAs ρ f hf_src hf_tgt) s hs' m g hm hgm
+
+/-! ##### `IsImageObj` (raw-morphism predicate) ↔ `IsImage` (subobject predicate).
+
+  `IsImageObj em f` is exactly `IsImage f ⟨_, em, monic⟩`: `Allows` is the factorization, and the
+  raw-monic minimality is the `Subobject` minimality (every subobject is a monic-with-domain). -/
+
+/-- Forward: a witnessed `IsImageObj` gives `IsImage` of the subobject it names. -/
+theorem isImage_of_isImageObj {𝒟 : Type u₂} [Cat.{u} 𝒟] {A B IM : 𝒟}
+    {em : IM ⟶ B} {f : A ⟶ B} (h : IsImageObj em f) :
+    IsImage f (Subobject.mk IM em h.1) := by
+  obtain ⟨hmonic, ⟨ℓ, hℓ⟩, hmin⟩ := h
+  refine ⟨⟨ℓ, hℓ⟩, ?_⟩
+  intro S hS
+  obtain ⟨k, hk⟩ := hS
+  obtain ⟨j, hj⟩ := hmin S.dom S.arr S.monic ⟨k, hk⟩
+  exact ⟨j, hj⟩
+
+/-- Backward: `IsImage f I` (with `I.arr` the chosen mono) gives `IsImageObj I.arr f`. -/
+theorem isImageObj_of_isImage {𝒟 : Type u₂} [Cat.{u} 𝒟] {A B : 𝒟}
+    {f : A ⟶ B} {I : Subobject 𝒟 B} (h : IsImage f I) : IsImageObj I.arr f := by
+  obtain ⟨⟨ℓ, hℓ⟩, hmin⟩ := h
+  refine ⟨I.monic, ⟨ℓ, hℓ⟩, ?_⟩
+  intro c m hm hk
+  obtain ⟨j, hj⟩ := hmin (Subobject.mk c m hm) hk
+  exact ⟨j, hj⟩
+
+section RegularAtoms2
+open SetRegular Freyd.Horn HomRepRegular
+variable {𝒞 : Type u} [Cat.{u} 𝒞] [RegularCategory 𝒞] {nObj : Nat}
+
+/-- **IMAGE**, preserved (given `hproj`): the image subobject in `𝒞` pushes to the image in the
+    power.  Translate `IsImageObj` to `IsImage`, apply `homRep_preserves_images`, translate back. -/
+theorem pushPow_preserves_image (hproj : Capital 𝒞) (ρ : Env 𝒞 nObj) {a b im : ObjVar nObj}
+    {em fm : MorVar nObj} (hem_src : em.src = im) (hem_tgt : em.tgt = b)
+    (hf_src : fm.src = a) (hf_tgt : fm.tgt = b)
+    (h : IsImageObj (morAs ρ em hem_src hem_tgt) (morAs ρ fm hf_src hf_tgt)) :
+    IsImageObj (morAs (pushPow ρ) em hem_src hem_tgt) (morAs (pushPow ρ) fm hf_src hf_tgt) := by
+  -- `IsImage` of the named subobject in `𝒞`.
+  have hI : IsImage (morAs ρ fm hf_src hf_tgt)
+      (Subobject.mk _ (morAs ρ em hem_src hem_tgt) h.1) := isImage_of_isImageObj h
+  -- push the subobject; `homRep` preserves images.
+  have hpres := homRep_preserves_images (𝒞 := 𝒞) hproj _ _ hI
+  -- `Subobject.map (homRep 𝒞) _ (mk ..)` has arrow `homRep em`; rewrite to `morAs (pushPow ρ) em`.
+  have harr : (Subobject.map (homRep 𝒞) (homRep_preserves_mono 𝒞)
+      (Subobject.mk _ (morAs ρ em hem_src hem_tgt) h.1)).arr
+        = morAs (pushPow ρ) em hem_src hem_tgt := by
+    rw [morAs_pushPow]; rfl
+  have := isImageObj_of_isImage hpres
+  rw [harr] at this
+  -- the `f` side: `homRep f = morAs (pushPow ρ) fm`.
+  have hffix : (homRepFunctor 𝒞).map (morAs ρ fm hf_src hf_tgt)
+      = morAs (pushPow ρ) fm hf_src hf_tgt := (morAs_pushPow ρ fm hf_src hf_tgt).symm
+  rwa [hffix] at this
+
+end RegularAtoms2
+
+end RegularAtoms
+
+/-! #### §1.636 Assembling `PreLogosRep 𝒞 (𝒞 → Type u)` from `homRep`.
+
+  The five CARTESIAN+REGULAR atoms are discharged from the proven `pushPow_*` lemmas above
+  (cover/image preservation under the projectivity hypothesis `hproj`).  The genuinely OPEN
+  obligations — image REFLECTION (needs reflecting the factorization `Allows`, not available from a
+  faithful-but-not-full representation) and BOTH halves of the two COLIMIT atoms `zero`,
+  `disjointCoprod` (no representable preserves a colimit: `Hom(0,0)` is inhabited) — are bundled in
+  `PushPowResidual` as explicit fields.  Supplying them (e.g. from the §1.636 union-preserving
+  ultra-filter stalk family) yields the full `PreLogosRep`, hence the §1.636 corollary. -/
+
+section Builder
+open SetRegular Freyd.Horn HomRepRegular
+variable {𝒞 : Type u} [Cat.{u} 𝒞] [RegularCategory 𝒞]
+
+/-- The residual per-atom obligations for the `homRep` representation that are NOT discharged by
+    representable preservation (the §2.217/stalk-grade content): image reflection, and the two
+    colimit atoms `zero`/`disjointCoprod` in both directions.  Phrased environment-wise on the
+    `pushPow` push so it plugs straight into `PreLogosRep`. -/
+structure PushPowResidual (𝒞 : Type u) [Cat.{u} 𝒞] : Prop where
+  /-- IMAGE, reflected: `homRep`'s faithful-but-not-full representation cannot reflect the
+      factorization `Allows`; supplied externally. -/
+  image_reflect : ∀ {nObj : Nat} (ρ : Env 𝒞 nObj) {a b im : ObjVar nObj}
+    {em fm : MorVar nObj} (hem_src : em.src = im) (hem_tgt : em.tgt = b)
+    (hf_src : fm.src = a) (hf_tgt : fm.tgt = b),
+    IsImageObj (morAs (pushPow ρ) em hem_src hem_tgt) (morAs (pushPow ρ) fm hf_src hf_tgt) →
+    IsImageObj (morAs ρ em hem_src hem_tgt) (morAs ρ fm hf_src hf_tgt)
+  /-- ZERO, preserved + reflected. -/
+  zero_preserve : ∀ {nObj : Nat} (ρ : Env 𝒞 nObj) (z : ObjVar nObj),
+    IsInitialObj (ρ.obj z) → IsInitialObj ((pushPow ρ).obj z)
+  zero_reflect : ∀ {nObj : Nat} (ρ : Env 𝒞 nObj) (z : ObjVar nObj),
+    IsInitialObj ((pushPow ρ).obj z) → IsInitialObj (ρ.obj z)
+  /-- DISJOINT COPRODUCT, preserved + reflected. -/
+  coprod_preserve : ∀ {nObj : Nat} (ρ : Env 𝒞 nObj) {a b c : ObjVar nObj}
+    {inl inr : MorVar nObj} (hil_src : inl.src = a) (hil_tgt : inl.tgt = c)
+    (hir_src : inr.src = b) (hir_tgt : inr.tgt = c),
+    IsDisjointCoprodObj (morAs ρ inl hil_src hil_tgt) (morAs ρ inr hir_src hir_tgt) →
+    IsDisjointCoprodObj (morAs (pushPow ρ) inl hil_src hil_tgt) (morAs (pushPow ρ) inr hir_src hir_tgt)
+  coprod_reflect : ∀ {nObj : Nat} (ρ : Env 𝒞 nObj) {a b c : ObjVar nObj}
+    {inl inr : MorVar nObj} (hil_src : inl.src = a) (hil_tgt : inl.tgt = c)
+    (hir_src : inr.src = b) (hir_tgt : inr.tgt = c),
+    IsDisjointCoprodObj (morAs (pushPow ρ) inl hil_src hil_tgt) (morAs (pushPow ρ) inr hir_src hir_tgt) →
+    IsDisjointCoprodObj (morAs ρ inl hil_src hil_tgt) (morAs ρ inr hir_src hir_tgt)
+
+/-- **§1.636 — the concrete `homRep` representation interface.**  Given the §1.543 projectivity
+    `hproj` and the residual stalk-grade obligations `res`, the Henkin–Lubkin push
+    `pushPow : Env 𝒞 → Env (𝒞 → Type u)` is a `PreLogosRep`: it preserves AND reflects every
+    pre-logos atom.  The five categorical atoms are discharged by the proven `pushPow_*` lemmas;
+    the colimit atoms and image-reflection come from `res`. -/
+def PreLogosRep.ofPushPow (hproj : Capital 𝒞) (res : PushPowResidual 𝒞) :
+    PreLogosRep 𝒞 (𝒞 → Type u) where
+  push ρ := pushPow ρ
+  preserves := by
+    intro nObj ρ α hα
+    cases α with
+    | terminator o => exact pushPow_preserves_terminator ρ hα
+    | product a b p pf ps h1 h2 h3 h4 => exact pushPow_preserves_product ρ h1 h2 h3 h4 hα
+    | equalizer e a bb em f g h1 h2 h3 h4 h5 h6 =>
+        exact pushPow_preserves_equalizer ρ h1 h2 h3 h4 h5 h6 hα
+    | zero z => exact res.zero_preserve ρ z hα
+    | cover a b f h1 h2 => exact pushPow_preserves_cover hproj ρ h1 h2 hα
+    | image a b im em f h1 h2 h3 h4 => exact pushPow_preserves_image hproj ρ h1 h2 h3 h4 hα
+    | disjointCoprod a b c inl inr h1 h2 h3 h4 => exact res.coprod_preserve ρ h1 h2 h3 h4 hα
+  reflects := by
+    intro nObj ρ α hα
+    cases α with
+    | terminator o => exact pushPow_reflects_terminator ρ hα
+    | product a b p pf ps h1 h2 h3 h4 => exact pushPow_reflects_product ρ h1 h2 h3 h4 hα
+    | equalizer e a bb em f g h1 h2 h3 h4 h5 h6 =>
+        exact pushPow_reflects_equalizer ρ h1 h2 h3 h4 h5 h6 hα
+    | zero z => exact res.zero_reflect ρ z hα
+    | cover a b f h1 h2 => exact pushPow_reflects_cover ρ h1 h2 hα
+    | image a b im em f h1 h2 h3 h4 => exact res.image_reflect ρ h1 h2 h3 h4 hα
+    | disjointCoprod a b c inl inr h1 h2 h3 h4 => exact res.coprod_reflect ρ h1 h2 h3 h4 hα
+
+/-- **§1.636 (Freyd), concrete corollary.**  For a capital regular category `𝒞` (the §1.543
+    case) with the residual stalk-grade obligations, any pre-logos Horn sentence true in the
+    power of sets `(𝒞 → Type u)` holds in `𝒞`.  Direct instantiation of
+    `preLogos_horn_metatheorem` along `PreLogosRep.ofPushPow`. -/
+theorem horn_holds_of_holds_in_setPower (hproj : Capital 𝒞) (res : PushPowResidual 𝒞)
+    (φ : PLSentence) (hSet : PLHoldsIn (𝒞 → Type u) φ) : PLHoldsIn 𝒞 φ :=
+  preLogos_horn_metatheorem (PreLogosRep.ofPushPow hproj res) φ hSet
+
+end Builder
+
+end HomRepInstance
+
 /-! ### §1.636 Status of the concrete instance — sharp diagnosis
 
   `preLogos_horn_metatheorem(_set)` is the §1.636 metatheorem MODULO the representation interface
-  `PreLogosRep 𝒞 (Type w)`.  It is sorry-free and axiom-clean, and the transfer proof is the
-  complete §1.444 argument in the enlarged language.  What remains — the genuinely open infra — is
-  CONSTRUCTING the interface for the concrete union-preserving family:
+  `PreLogosRep 𝒞 𝒟`.  The CONCRETE `homRep` instance (`PreLogosRep.ofPushPow`, target the power of
+  sets `(𝒞 → Type u)`) is now built: it pushes along the Henkin–Lubkin representation `pushPow`,
+  and DISCHARGES — sorry-free, axiom-clean — five of the seven pre-logos atoms in BOTH directions:
 
-    `R := PreLogosRep 𝒞 (Set^I)` with `push ρ = (T_{F̂})_{F̂} ∘ ρ`, `I = {ultra-filters F̂}`.
+   • terminator / product / equalizer — preserved (`pushPow_preserves_*`, the §1.444 representable
+     facts) and reflected (`pushPow_reflects_*`, = `cayley_faithful` via the `Horn.reflect_*`
+     lemmas, bridged through `isTerminalObj/isProductObj/isEqualizerObj_power_iff`).
+   • cover — preserved given §1.543 projectivity `Capital 𝒞` (`pushPow_preserves_cover` via
+     `homRep_preserves_covers`); reflected UNCONDITIONALLY (`pushPow_reflects_cover`: a power-cover
+     is fibrewise surjective, and surjectivity at `i = cod` splits `f`).
+   • image — preserved given `Capital 𝒞` (`pushPow_preserves_image` via `homRep_preserves_images`,
+     with the `IsImageObj ↔ IsImage` bridge `isImage_of_isImageObj`).
 
-  Its two fields require, atom-by-atom:
-   • `preserves` — each `T_{F̂}` preserves terminator/product/equalizer (the §1.634 "preserves
-     finite products and equalizers" fact), preserves covers (when the `F̂`-members are projective
-     — the CAPITAL hypothesis), preserves images, the zero object, and disjoint coproducts (the
-     §1.625/§1.634 union-preservation, `setRepOfPreLogos_of_ultrafilter` — the PIECE-1 iff supplies
-     the disjoint-coproduct half).  These are functor-preservation facts, mostly in hand for the
-     hom-representation (`HomRepRegular` above) and for `T_{F̂}` via §1.634.
-   • `reflects` — JOINT FAITHFULNESS of the family `(T_{F̂})_{F̂}`: a name detected by some stalk.
-     This is `prelogos_representation_theorem`'s `SeparatesMaps` STRENGTHENED to reflect the
-     pre-logos predicates (not just separate maps), and for the FULL "positive removable" form it
-     needs §2.217 (every pre-logos faithfully embeds in a positive one).  That is the recorded
-     §2.217-grade gap (`Ch2 Rel/Map bridge`): the family's joint faithfulness for the EXTENDED
-     language is precisely the open content.
+  The genuinely OPEN residue (`PushPowResidual`, the §2.217-grade content) is exactly:
 
-  So §1.636 is closed down to: "the concrete `∏_{F̂} T_{F̂}` is a `PreLogosRep` that reflects the
-  pre-logos predicates" — i.e. the §2.217 faithful-positive-embedding, the single deep dependency
-  already tracked in the project memory.  The atom language, Set semantics, and the transfer
-  theorem are all complete here. -/
+   • IMAGE, REFLECTED — `homRep` is faithful but NOT full, so it cannot reflect the factorization
+     `Allows`; `faithful_preserves_images_reflects_images` needs that `Allows` upstairs as input.
+   • ZERO and DISJOINT COPRODUCT, BOTH directions — a HARD wall for ANY representable: `Hom(i, 0)`
+     is INHABITED at `i = 0` (the identity), so `homRep 𝒞 0` is never initial in the power, and
+     dually for coproducts.  Freyd's proof uses the UNION-PRESERVING ultra-filter stalk family
+     `(T_F̂)` (`setRepOfPreLogos_of_ultrafilter` + `preservesDisjointUnions_iff_unionPrime`,
+     §1.634/§1.635) — NOT bare representables — precisely to clear these two atoms; assembling that
+     family's regular-preservation (`repReg`) and joint faithfulness is the recorded
+     §2.217/`Ch2 Rel/Map bridge` dependency.
+
+  `PreLogosRep.ofPushPow hproj res` plugs the residue `res : PushPowResidual 𝒞` into the five proven
+  atoms to yield the full interface, and `horn_holds_of_holds_in_setPower` instantiates
+  `preLogos_horn_metatheorem` — so the §1.636 metatheorem is USABLE the moment a stalk
+  representation (or the `res` obligations directly) is supplied.  The atom language, the Set
+  semantics, the transfer theorem, and the five categorical atoms are all complete and axiom-clean
+  here; the only residue is the two colimit atoms + image-reflection, isolated in `PushPowResidual`. -/
 
 end PreLogosHorn
 
