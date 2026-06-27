@@ -509,10 +509,22 @@ example (𝒜 : Type u) [DistributiveAllegory 𝒜] : PositiveAllegory (Mat.MatO
 
 -- BOOK §2.218: A small pre-tabular or semi-simple unitary distributive allegory may be
 -- faithfully represented in a power of the allegory of sets.
--- STATUS: BRICKS 1,2,2c,3 DONE; R1 (THE WALL) DONE; the §2.218 ASSEMBLY is BUILT and faithful.
---   The headline + assembly live in `Fredy/S2_218.lean` (`Freyd.repr_in_power_of_sets`,
---   axioms [propext,Classical.choice,Quot.sound]).  Only TWO genuine §1.543/§2.148 structural
---   residuals remain, isolated as explicit hypotheses of `repr_in_power_of_sets` (see below).
+-- STATUS: BRICKS 1,2,2c,3 DONE; R1 (THE WALL) DONE; R2 (CARRIER BRIDGE) DONE; the §2.218 ASSEMBLY
+--   is BUILT and faithful.  The headline + assembly live in `Fredy/S2_218.lean`
+--   (`Freyd.repr_in_power_of_sets`, axioms [propext,Classical.choice,Quot.sound]).  With R2 now
+--   discharged (`Freyd.repr_in_power_of_sets_of_tabular`), only ONE genuine §1.543 structural
+--   residual remains (R3), isolated as explicit hypotheses (see below).
+--
+-- ★ R2 — DONE (CARRIER BRIDGE, Fredy/MapCat.lean + Fredy/RelCat.lean, axioms ⊆ [propext,
+--   Classical.choice,Quot.sound]):  the MISSING meet-tabulation lemma `relOf (E ⊓ F) = relOf E ∩
+--   relOf F` is now built — `Freyd.Alg.relOf_inter` (MapCat): `⊑` by `relOf_le_of_relLe` on the
+--   meet projections + `le_inter`; `⊒` by tabulating the allegory meet `m = relOf R ∩ relOf S`
+--   (`TabularAllegory.tabular`), assembling it as a `BinRel (Map A)` table `M` (joint-monic via
+--   `mapMonicPair_of_tab`/§2.141), then `relLe_of_relOf_le` + `le_intersect` descend `m ⊑
+--   relOf (R⊓S)`.  With it the §2.217(2) `relOf` dictionary is COMPLETE (≫,°,id,∩) and assembles
+--   the faithful bridge `Freyd.bridgeFunctor : AllegoryFunctor 𝒜 (Rel(Map 𝒜))` (RelCat,
+--   span encoding), faithful by `Freyd.bridgeFunctor_faithful` (`relOf (bridge.map R) = R` via
+--   `relOf_tabSpan`).  Feeds the headline as `repr_in_power_of_sets_of_tabular`.
 --
 -- ★ R1 — DONE (THE WALL, Fredy/RelCat.lean, axioms ⊆ [propext,Classical.choice,Quot.sound]):
 --     NON-FULL faithfulness of `Rel(F)`.  `RegularFunctor.relMap_faithful_of_reflects` /
@@ -573,27 +585,35 @@ example (𝒜 : Type u) [DistributiveAllegory 𝒜] : PositiveAllegory (Mat.MatO
 --       covers in `D` split (`relImageObj_reflect_le`: split the image-cover `eS`, lift the leg-map
 --       through fullness, descend the equations by faithfulness).
 --
---   REMAINING RESIDUALS (the final assembly), now exactly TWO (R1 — the wall — is DONE):
---     (R2) CARRIER BRIDGE — a FAITHFUL `AllegoryFunctor A (RelObj (MapObj A))`.  §2.148
---          `relMap_allegoryEquiv` gives `A ≅ RelMapObj A` (homs = tabular morphisms of `A`); the
---          §2.218 machinery consumes `RelObj (MapObj A)` (homs = jointly-monic spans in `Map A`).
---          The two encodings are bridged by the `relOf` dictionary (MapCat §2.217(2), sorry-free):
---          `relOf_compose` (≫), `relOf_reciprocal` (°), `relOf_graph` (id), `relOf_le_of_relLe` /
---          `relLe_of_relOf_le` (order both ways).  WHAT IS MISSING is exactly the INTERSECTION
---          bridge `relOf (E ⊓ F) = relOf E ∩ relOf F` (the §2.14 fact: the allegory meet is
---          tabulated by the pullback/meet of the two tabulation spans).  With it the `relOf`-functor
---          `RelObj (MapObj A) → A` is a full `AllegoryFunctor`, part of an equivalence, whose
---          inverse is the faithful `bridge`.  NOT routine: the meet-tabulation lemma is unbuilt.
+--   REMAINING RESIDUAL (the final assembly), now exactly ONE (R1 — the wall — and R2 — the carrier
+--   bridge — are DONE):
+--     (R2) CARRIER BRIDGE — DONE (see the ★ R2 block above).  The faithful
+--          `Freyd.bridgeFunctor : AllegoryFunctor A (RelObj (MapObj A))` is built from the COMPLETE
+--          §2.217(2) `relOf` dictionary (the last piece, `relOf_inter`, is now proven), via the
+--          tabulation-span encoding (`tabSpan`/`relOf_tabSpan`); faithful by `bridgeFunctor_faithful`.
 --     (R3) CAPITAL-TARGET STRUCTURE.  `capitalization_of_capData` (§1.543) delivers a capital
 --          PRE-regular `Ā` with a faithful `Map A → Ā`, BUT the §2.218 `Rel(homRep Ā)` path needs
---          TWO facts about `Ā` that the colimit does NOT surface: (a) `RegularCategory Ā` (i.e.
---          `HasImages Ā` — `colimitPreRegular` builds only `PreRegularCategory`; pre-regular ≠
---          regular without coequalizers/image-factorization), and (b) `hproj` — EVERY object of `Ā`
---          projective (every cover splits), which `homRep_regularFunctor` requires for cover/image
---          preservation.  `Capital` only gives the TERMINATOR projective (`capital_one_projective`),
---          not all objects.  Both are genuine §1.543-colimit-structure gaps (images and
---          all-objects-projectivity must be shown to survive the ω-tower colimit) — surfaced as the
---          explicit `[RegularCategory Ā]` + `hproj` hypotheses of `repr_in_power_of_sets`.
+--          TWO facts about `Ā` that the colimit does NOT surface — VERIFIED genuine gaps (R3
+--          INVESTIGATED 2026-06, both confirmed against the actual defs, NOT stale):
+--          (a) `RegularCategory Ā` (i.e. `HasImages Ā`).  `capitalization_of_capData`'s return type
+--              (Capitalization.lean line ~643) is `∃ Ā, … PreRegularCategory Ā ∧ Capital Ā ∧ faithful`;
+--              `colimitPreRegular` builds only `PreRegularCategory` (pre-regular ≠ regular without
+--              image-factorization surviving the ω-tower colimit).  No `RegularCategory`/`HasImages`
+--              instance for the capital object exists.
+--          (b) `hproj` — EVERY object of `Ā` projective (every cover splits) = `ACRegularCategory`
+--              (S1_57 `Projective C := every cover into C splits`; `∀ C, Choice C ↔ ∀ C, Projective C`).
+--              `homRep_regularFunctor` requires this for cover/image preservation.  But `Capital`
+--              (S1_52 line 167) is `∀ A, WellSupported A → WellPointed A` — WELL-POINTEDNESS, which is
+--              STRICTLY WEAKER than all-objects-projective: it gives only the TERMINATOR projective
+--              (`capital_one_projective`/§1.525), not arbitrary `Projective C`.  Capitalization
+--              delivers well-pointedness, not the AC condition.
+--          Both are genuine §1.543-colimit-structure gaps (image-factorization and
+--          all-objects-projectivity must be shown to survive the ω-tower colimit; the latter is a
+--          STRENGTHENING of `Capital` from well-pointed to AC-projective, not just a colimit-survival
+--          statement) — surfaced as the explicit `[RegularCategory Ā]` + `hproj` hypotheses of
+--          `repr_in_power_of_sets`.  Closing R3 = (i) build `HasImages`/`RegularCategory` for the
+--          colimit (a `colimitRegular` strengthening of `colimitPreRegular`) and (ii) prove the
+--          capitalization yields an `ACRegularCategory`, not merely `Capital`.
 --   (Historical R1 note — CLOSED.)  Non-full faithfulness of `Rel(homRep)`: see the R1 block above;
 --          `RegularFunctor.relMap_faithful_of_reflects` (RelCat) discharges it via `monoFactor_reflect`
 --          (pullback + iso-reflection), replacing the fullness leg-lift of the old `relMap_faithful`.

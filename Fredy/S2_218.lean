@@ -19,7 +19,7 @@ import Fredy.RelCat
 import Fredy.FiniteSeparation
 import Fredy.Capitalization
 
-universe u
+universe u w
 
 namespace Freyd
 
@@ -75,7 +75,7 @@ theorem relHomRep_faithful {𝒞 : Type u} [Cat.{u} 𝒞] [RegularCategory 𝒞]
     `cap`+`Ā` hypotheses are the precisely-isolated residuals (R2 / R3). -/
 theorem repr_in_power_of_sets
     {𝒜 : Type u} [Alg.Allegory 𝒜]
-    {MapA : Type u} [Cat.{u} MapA] [RegularCategory MapA]
+    {MapA : Type u} [Cat.{w} MapA] [RegularCategory MapA]
     (bridge : Alg.AllegoryFunctor 𝒜 (RelObj MapA)) (hbridge : bridge.Faithful)
     {Ā : Type u} [Cat.{u} Ā] [RegularCategory Ā]
     (hproj : ∀ C : Ā, ∀ {P : Ā} (e : P ⟶ C), Cover e → ∃ s : C ⟶ P, s ≫ e = Cat.id C)
@@ -84,5 +84,28 @@ theorem repr_in_power_of_sets
   refine ⟨(bridge.comp cap).comp (homRep_regularFunctor hproj).relAllegoryHom, ?_⟩
   exact Alg.AllegoryFunctor.Faithful.comp
     (Alg.AllegoryFunctor.Faithful.comp hbridge hcap) (relHomRep_faithful hproj)
+
+/-- **§2.218 (R2 discharged).**  Specialization of `repr_in_power_of_sets` to a *tabular* unitary
+    distributive allegory `𝒜`, with the CARRIER BRIDGE (R2) supplied internally by the §2.148/§2.217(2)
+    span equivalence `bridgeFunctor` (faithful by `bridgeFunctor_faithful`, built from the `relOf`
+    dictionary + the meet-tabulation `relOf_inter`).  `MapA := Map 𝒜` (`mapRegularCategory`).
+
+    Only the §1.543 CAPITAL-TARGET data (R3) remains as hypotheses: a regular capital `Ā`
+    (`[RegularCategory Ā]` + `hproj`) with a faithful regular allegory morphism
+    `cap : Rel(Map 𝒜) ⟶ Rel(Ā)`.  See the §2.218 marker in `S2_21.lean` for R3's status. -/
+theorem repr_in_power_of_sets_of_tabular
+    {𝒜 : Type u} [Alg.TabularUnitaryDistributiveAllegory 𝒜]
+    {Ā : Type u} [Cat.{u} Ā] [RegularCategory Ā]
+    (hproj : ∀ C : Ā, ∀ {P : Ā} (e : P ⟶ C), Cover e → ∃ s : C ⟶ P, s ≫ e = Cat.id C)
+    (cap : @Alg.AllegoryFunctor (RelObj (Alg.MapObj 𝒜)) (RelObj Ā)
+        (@relAllegory (Alg.MapObj 𝒜) Alg.mapCat Alg.mapRegularCategory) (relAllegory)
+      ) (hcap : cap.Faithful) :
+    ∃ rep : Alg.AllegoryFunctor 𝒜 (RelObj (Ā → Type u)), rep.Faithful := by
+  -- Pin `Map 𝒜`'s category / regular structure to `mapCat` (hom-universe `v`, NOT forced to `u`),
+  -- so `RelObj (Map 𝒜)`'s `relAllegory` matches the one baked into `bridgeFunctor`/`cap`.
+  letI : Cat (Alg.MapObj 𝒜) := Alg.mapCat
+  letI : RegularCategory (Alg.MapObj 𝒜) := Alg.mapRegularCategory
+  exact repr_in_power_of_sets (MapA := Alg.MapObj 𝒜)
+    (bridgeFunctor 𝒜) (bridgeFunctor_faithful 𝒜) hproj cap hcap
 
 end Freyd

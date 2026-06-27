@@ -3097,4 +3097,113 @@ theorem homRep_regularFunctor {𝒞 : Type u} [Cat.{u} 𝒞] [RegularCategory �
   pres_mono := homRep_preserves_mono 𝒞
   pres_image := HomRepRegular.homRep_preserves_images hproj
 
+/-! ## §2.218 R2 — the carrier bridge `𝒜 ≅ Rel(Map 𝒜)` (span encoding)
+
+  The §2.218 machinery consumes `RelObj (MapObj 𝒜)`, the allegory of (mutual-containment classes
+  of) jointly-monic spans in `Map 𝒜`.  §2.148 `relMap_allegoryEquiv` gives `RelMapObj 𝒜 ≅ 𝒜`,
+  but its homs are the *tabular morphisms* of `𝒜`, not spans.  We bridge the two encodings with
+  the `relOf` dictionary (`MapCat`): `relOf : BinRel (Map 𝒜) a b → (a ⟶ b)` carries a span to its
+  underlying allegory morphism `colA°≫colB`, respecting `≫`/`°`/`id`/`∩` (`relOf_compose`,
+  `relOf_reciprocal`, `relOf_graph`, `relOf_inter`) and is an order-iso onto its image
+  (`relOf_le_of_relLe` / `relLe_of_relOf_le`).  This packages a faithful
+  `AllegoryFunctor 𝒜 (RelObj (Map 𝒜))` (the §2.218 `bridge`). -/
+
+section CarrierBridge
+
+open Freyd.Alg
+
+variable (𝒜 : Type u) [Freyd.Alg.TabularUnitaryDistributiveAllegory 𝒜]
+
+/-- The §2.218 carrier `Rel(Map 𝒜)`, with all instances pinned to `mapCat` (avoiding the
+    `MapObj 𝒜 = 𝒜` `Cat`-diamond: the canonical `Cat` on objects of `Map 𝒜` is `mapCat`, not the
+    allegory's `toCat`).  `RM 𝒜 := RelObj (MapObj 𝒜)`. -/
+abbrev RM : Type u := RelObj (MapObj 𝒜)
+
+-- We must NOT register a `local instance : Cat (MapObj 𝒜)`: since `MapObj 𝒜 = 𝒜` (abbrev), that
+-- would hijack the SOURCE allegory homs `a ⟶ b` (`tabSpan`'s `R`, `bridgeFunctor.map`'s `R`) and
+-- break `TabularAllegory.tabular R` / `relOf`.  Instead provide ONLY the target `Rel(Map 𝒜)`
+-- allegory the bridge needs, with its `Cat`/`RegularCategory` args pinned to the `mapCat` ones
+-- (the `MapObj 𝒜 = 𝒜` `Cat`-diamond fix from MapCat's convention note).  Everywhere a
+-- `BinRel`/`BinRelQuot`/`relClass`/`RelLe` of `MapObj 𝒜` appears below, we `@`-pin `mapCat`
+-- (and `mapHasBinaryProducts`/`mapHasPullbacks`) the same way §2.217 in MapCat does.
+noncomputable instance instAllegRM : Freyd.Alg.Allegory.{max u v} (RM 𝒜) :=
+  @relAllegory (MapObj 𝒜) (Freyd.Alg.mapCat (𝒜 := 𝒜)) (Freyd.Alg.mapRegularCategory (A := 𝒜))
+
+/-- `relOf` is constant on a mutual-containment class (`relOf_le_of_relLe` both ways). -/
+private theorem relOf_respects {a b : MapObj 𝒜}
+    {R S : @BinRel (MapObj 𝒜) (Freyd.Alg.mapCat (𝒜 := 𝒜)) a b}
+    (h : @RelLe (MapObj 𝒜) (Freyd.Alg.mapCat (𝒜 := 𝒜)) a b R S ∧
+         @RelLe (MapObj 𝒜) (Freyd.Alg.mapCat (𝒜 := 𝒜)) a b S R) :
+    Freyd.Alg.relOf R = Freyd.Alg.relOf S :=
+  le_antisymm (Freyd.Alg.relOf_le_of_relLe h.1) (Freyd.Alg.relOf_le_of_relLe h.2)
+
+/-- `relOf` lifted to mutual-containment classes (`BinRelQuot` = `Rel(Map 𝒜)` hom). -/
+private noncomputable def relOfQuot {a b : MapObj 𝒜}
+    (x : @BinRelQuot (MapObj 𝒜) (Freyd.Alg.mapCat (𝒜 := 𝒜))
+          Freyd.Alg.mapHasBinaryProducts Freyd.Alg.mapHasPullbacks a b) :
+    @Cat.Hom 𝒜 Freyd.Alg.Allegory.toCat a b :=
+  Quotient.liftOn x Freyd.Alg.relOf (fun _ _ h => relOf_respects 𝒜 h)
+
+@[simp] private theorem relOfQuot_mk {a b : MapObj 𝒜}
+    (R : @BinRel (MapObj 𝒜) (Freyd.Alg.mapCat (𝒜 := 𝒜)) a b) :
+    relOfQuot 𝒜 (@relClass (MapObj 𝒜) (Freyd.Alg.mapCat (𝒜 := 𝒜))
+      Freyd.Alg.mapHasBinaryProducts Freyd.Alg.mapHasPullbacks a b R)
+      = Freyd.Alg.relOf R := rfl
+
+/-- The tabulating span of an allegory morphism `R : a ⟶ b`: the `BinRel (Map 𝒜)` table
+    `⟨c; f, g⟩` of a tabulation `R = f°≫g` (`TabularAllegory.tabular`), joint-monic by §2.141. -/
+noncomputable def tabSpan {a b : 𝒜} (R : a ⟶ b) :
+    @BinRel (MapObj 𝒜) (Freyd.Alg.mapCat (𝒜 := 𝒜)) a b :=
+  let t := TabularAllegory.tabular (𝒜 := 𝒜) R
+  @BinRel.mk (MapObj 𝒜) (Freyd.Alg.mapCat (𝒜 := 𝒜)) a b t.choose
+    ⟨t.choose_spec.choose, t.choose_spec.choose_spec.choose_spec.1⟩
+    ⟨t.choose_spec.choose_spec.choose, t.choose_spec.choose_spec.choose_spec.2.1⟩
+    (Freyd.Alg.mapMonicPair_of_tab _ _ t.choose_spec.choose_spec.choose_spec.2.2.2)
+
+/-- `relOf (tabSpan R) = R`: the span tabulates `R`, so its underlying morphism is `R`. -/
+theorem relOf_tabSpan {a b : 𝒜} (R : a ⟶ b) :
+    Freyd.Alg.relOf (tabSpan 𝒜 R) = R :=
+  (TabularAllegory.tabular (𝒜 := 𝒜) R).choose_spec.choose_spec.choose_spec.2.2.1.symm
+
+/-- The bridge `Φ : 𝒜 ⟶ Rel(Map 𝒜)`: object `a ↦ ⟨a⟩`, hom `R ↦ [tabSpan R]`.
+    Each functor law is checked through `relOf` (its left inverse): `relOf` of both sides agree
+    by `relOf_tabSpan` + the dictionary (`relOf_graph`/`_compose`/`_reciprocal`/`_inter`), so the
+    classes are equal (`relLe_of_relOf_le` lifts the morphism equality back to mutual
+    containment). -/
+noncomputable def bridgeFunctor :
+    Freyd.Alg.AllegoryFunctor 𝒜 (RM 𝒜) where
+  obj a := ⟨a⟩
+  map {a b} R := @relClass (MapObj 𝒜) (Freyd.Alg.mapCat (𝒜 := 𝒜))
+    Freyd.Alg.mapHasBinaryProducts Freyd.Alg.mapHasPullbacks a b (tabSpan 𝒜 R)
+  map_id a := by
+    apply Quotient.sound
+    refine ⟨relLe_of_relOf_le ?_, relLe_of_relOf_le ?_⟩ <;>
+      rw [relOf_tabSpan, Freyd.Alg.relOf_graph] <;> exact le_refl _
+  map_comp {a b c} R S := by
+    apply Quotient.sound
+    refine ⟨relLe_of_relOf_le ?_, relLe_of_relOf_le ?_⟩ <;>
+      rw [Freyd.Alg.relOf_compose, relOf_tabSpan, relOf_tabSpan, relOf_tabSpan] <;>
+      exact le_refl _
+  map_recip {a b} R := by
+    apply Quotient.sound
+    refine ⟨relLe_of_relOf_le ?_, relLe_of_relOf_le ?_⟩ <;>
+      rw [Freyd.Alg.relOf_reciprocal, relOf_tabSpan, relOf_tabSpan] <;> exact le_refl _
+  map_inter {a b} R S := by
+    apply Quotient.sound
+    refine ⟨relLe_of_relOf_le ?_, relLe_of_relOf_le ?_⟩ <;>
+      rw [Freyd.Alg.relOf_inter, relOf_tabSpan, relOf_tabSpan, relOf_tabSpan] <;>
+      exact le_refl _
+
+/-- **§2.218 R2 — the carrier bridge is FAITHFUL.**  `relOf (bridgeFunctor.map R) = R`
+    (`relOf_tabSpan`), so `bridgeFunctor.map R = bridgeFunctor.map S` ⟹
+    `R = relOf (…R) = relOf (…S) = S`. -/
+theorem bridgeFunctor_faithful :
+    (bridgeFunctor 𝒜).Faithful := by
+  intro a b R S h
+  have hR : relOfQuot 𝒜 ((bridgeFunctor 𝒜).map R) = R := relOf_tabSpan 𝒜 R
+  have hS : relOfQuot 𝒜 ((bridgeFunctor 𝒜).map S) = S := relOf_tabSpan 𝒜 S
+  rw [← hR, ← hS, h]
+
+end CarrierBridge
+
 end Freyd

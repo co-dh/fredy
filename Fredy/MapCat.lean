@@ -1913,6 +1913,64 @@ theorem relOf_compose {a b c : A}
     _ = ((relColA R)° ≫ relColB R) ≫ ((relColA S)° ≫ relColB S) := by
         simp only [Cat.assoc]
 
+/-- A tabulating pair `(u, v)` of maps (`u≫u° ∩ v≫v° = id`) is a `MonicPair` in `Map(A)`.
+    Bridges the `.val`-level §2.141 joint-monicity (`tabulates_monic_pair`) to the subtype
+    `MonicPair` that a `BinRel (MapObj A)` carries. -/
+theorem mapMonicPair_of_tab {a b s : A} {u : s ⟶ a} {v : s ⟶ b}
+    (hu : Map u) (hv : Map v) (htab : u ≫ u° ∩ v ≫ v° = Cat.id s) :
+    @MonicPair (MapObj A) (mapCat (𝒜 := A)) s a b ⟨u, hu⟩ ⟨v, hv⟩ := by
+  intro W f g hfA hfB
+  apply mapHom_ext
+  refine tabulates_monic_pair hu hv htab f.val g.val f.property g.property
+    (congrArg Subtype.val hfA) (congrArg Subtype.val hfB)
+
+/-- **§2.217(2) dictionary (MEET, bridge for R2)**: `relOf (R ⊓ S) = relOf R ∩ relOf S`.
+    The §2.14 fact that tabulation respects meets, here for two `BinRel (Map A)` relations.
+
+    `⊑`: `R ⊓ S ⊂ R` and `R ⊓ S ⊂ S` (`intersect_le_left`/`right`); the forward dictionary
+    `relOf_le_of_relLe` lowers these to `relOf (R⊓S) ⊑ relOf R, relOf S`, so the meet UMP
+    (`le_inter`) gives `relOf (R⊓S) ⊑ relOf R ∩ relOf S`.
+
+    `⊒`: let `m := relOf R ∩ relOf S`; tabulate it by maps `(u,v)` (tabular allegory).  The pair
+    is jointly monic, so it assembles a `BinRel (Map A)` table `M` with `relOf M = u°≫v = m`.
+    From `m ⊑ relOf R`, `m ⊑ relOf S` the reverse dictionary `relLe_of_relOf_le` gives
+    `M ⊂ R`, `M ⊂ S`, hence `M ⊂ R ⊓ S` (`le_intersect`); the forward dictionary lowers this to
+    `m = relOf M ⊑ relOf (R⊓S)`. -/
+theorem relOf_inter {a b : A}
+    (R S : @BinRel (MapObj A) (mapCat (𝒜 := A)) a b) :
+    relOf (@intersect (MapObj A) (mapCat (𝒜 := A)) mapHasBinaryProducts mapHasPullbacks a b R S)
+      = relOf R ∩ relOf S := by
+  apply le_antisymm
+  · -- relOf (R⊓S) ⊑ relOf R ∩ relOf S
+    exact le_inter
+      (relOf_le_of_relLe
+        (@intersect_le_left (MapObj A) (mapCat (𝒜 := A)) mapHasBinaryProducts mapHasPullbacks a b R S))
+      (relOf_le_of_relLe
+        (@intersect_le_right (MapObj A) (mapCat (𝒜 := A)) mapHasBinaryProducts mapHasPullbacks a b R S))
+  · -- relOf R ∩ relOf S ⊑ relOf (R⊓S):  tabulate the meet, descend to a BinRel, intersect.
+    obtain ⟨s, u, v, hu, hv, hmuv, htab⟩ :=
+      TabularAllegory.tabular (𝒜 := A) (relOf R ∩ relOf S)
+    -- M : the BinRel table tabulating the allegory meet m = u°≫v.
+    let M : @BinRel (MapObj A) (mapCat (𝒜 := A)) a b :=
+      @BinRel.mk (MapObj A) (mapCat (𝒜 := A)) a b s ⟨u, hu⟩ ⟨v, hv⟩
+        (mapMonicPair_of_tab hu hv htab)
+    have hcolAM : relColA M = u := rfl
+    have hcolBM : relColB M = v := rfl
+    have hrelM : relOf M = relOf R ∩ relOf S := by
+      show Allegory.recip (relColA M) ≫ relColB M = relOf R ∩ relOf S
+      rw [hcolAM, hcolBM]; exact hmuv.symm
+    -- M ⊂ R and M ⊂ S from m ⊑ relOf R, relOf S (reverse dictionary).
+    have hMR : @RelLe (MapObj A) (mapCat (𝒜 := A)) a b M R :=
+      relLe_of_relOf_le (hrelM ▸ inter_lb_left _ _)
+    have hMS : @RelLe (MapObj A) (mapCat (𝒜 := A)) a b M S :=
+      relLe_of_relOf_le (hrelM ▸ inter_lb_right _ _)
+    -- M ⊂ R ⊓ S, lowered to m ⊑ relOf (R⊓S).
+    have hMRS : @RelLe (MapObj A) (mapCat (𝒜 := A)) a b M
+        (@intersect (MapObj A) (mapCat (𝒜 := A)) mapHasBinaryProducts mapHasPullbacks a b R S) :=
+      @le_intersect (MapObj A) (mapCat (𝒜 := A)) mapHasBinaryProducts mapHasPullbacks a b M R S hMR hMS
+    have := relOf_le_of_relLe hMRS
+    rwa [hrelM] at this
+
 /-- **§2.217(2) dictionary (IDEMPOTENCY)**: a TRANSITIVE + REFLEXIVE relation `E` of `Map(A)` has
     an idempotent `relOf E`.  `E⊚E ⊂ E` (transitivity) gives `relOf (E⊚E) ⊑ relOf E`; by the
     composition bridge `relOf (E⊚E) = relOf E ≫ relOf E`, so `relOf E ≫ relOf E ⊑ relOf E`.  And
