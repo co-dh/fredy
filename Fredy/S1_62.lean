@@ -24,6 +24,7 @@ import Fredy.S1_57
 import Fredy.S1_58
 import Fredy.S1_60
 import Fredy.S1_61
+import Fredy.WellOrdering   -- §1.635(a): mathlib-free Zorn for ultra-filter existence
 
 
 open Freyd
@@ -925,10 +926,13 @@ theorem prelogos_representation_theorem (A : Type u) [Cat.{u} A] [PositivePreLog
 --   * The §1.634 membership condition `UnionPrime ℱ`.
 -- STILL OPEN (the hard analytic half): the actual equivalence
 --     `PreservesDisjointUnions (TF ℱ) ↔ UnionPrime ℱ`.
---   This requires the coproduct-decomposition of a name `U → A₁+A₂` into
---   `f₁+f₂ : U₁+U₂ → A₁+A₂` (U₁,U₂ a complemented pair of U via the pullbacks of `inl/inr`),
---   i.e. the §1.624 invImage-arithmetic on `U` — substantial but elementary; it slots onto
---   `disjUnionCompare`/`TF` directly.
+--   `decompose_via_coproduct` already provides the coproduct-decomposition of a name
+--   `f : U.dom → A₁+A₂` into `A ≅ A₁+A₂` with `Aᵢ = f#(inlᵢ)` (needs `[DisjointBinaryCoproduct]`).
+--   The remaining glue is to RE-INDEX that decomposition through `Sub(1)`: the two halves `U₁,U₂`
+--   of the name's domain must be pulled back to subterminators `U₁',U₂' ∈ Sub(1)` along `U.arr`,
+--   where `UnionPrime ℱ`'s hypothesis `U₁'∪U₂' ∈ ℱ ⟹ U₁'∈ℱ ∨ U₂'∈ℱ` then drives surjectivity of
+--   `disjUnionCompare (TF ℱ)`.  This needs the SAME `Sub(1)` pushforward/distributivity bridge as
+--   §1.635(b) item (i) below — once that lands, both GAP 1 (⇐) and §1.635(b) close together.
 
 -- BOOK §1.635: If F̂ is an ultra-filter in the boolean algebra of complemented
 -- subterminators, then T_F̂ is a representation of pre-logoi (union-preserving).
@@ -936,14 +940,26 @@ theorem prelogos_representation_theorem (A : Type u) [Cat.{u} A] [PositivePreLog
 --   algebra `ultrafilter_isFilter` (maximal proper ⟹ up-closed) and `ultrafilter_inter_closed`
 --   (closed under meet) — Freyd's "an ultra-filter is easily seen to be a filter, hence closed
 --   under intersection".  The §1.625 conclusion shape is `SetRepOfPreLogos`.
+--   (a) ULTRA-FILTER EXISTENCE: **DONE** — `exists_ultrafilter_extending` (below).  Every proper
+--       complemented pre-filter extends to an `IsUltraFilter`, via the now-generic mathlib-free
+--       `Freyd.WO.zorn` (Bourbaki–Witt tower in `Fredy/WellOrdering.lean`, axiom-clean
+--       [propext, Classical.choice, Quot.sound]) applied to the poset `ExtFilter ℱ₀` of proper
+--       complemented pre-filters extending `ℱ₀`; the chain-upper-bound is the union of the chain.
 -- STILL OPEN:
---   (a) ULTRA-FILTER EXISTENCE: extend a proper pre-filter on `ℬ` to a maximal one.  The
---       mathlib-free Zorn/Zermelo engine in `Fredy.WellOrdering` (Bourbaki–Witt g-tower) is the
---       intended driver; it is packaged there for `Colim.OrdChain`, not yet exposed as a generic
---       "maximal element of a chain-closed family of predicates", so adapting it to the poset of
---       proper pre-filters is the remaining work.
---   (b) `UnionPrime F̂` for `F̂` ultra (Freyd's `F' = F̂ ∪ {U∩W}` maximality argument) — needs
---       distributivity + De Morgan complement of `U∩V` in `ℬ` (the only non-elementary input).
+--   (b) `UnionPrime F̂` for `F̂` ultra (Freyd's maximality argument).  Reduces — via the up-closure
+--       family `𝒢 = {W complemented | ∃ S∈F̂, S∩U₂ ≤ W}` and `IsUltraFilter`'s maximality — to TWO
+--       Boolean facts about `Sub(1)` NOT yet in the repo:
+--         (i)  DISTRIBUTIVITY of `Sub(1)`: `S ∩ (U₁∪U₂) ≤ (S∩U₁) ∪ (S∩U₂)`.  This IS derivable
+--              (it is NOT a new axiom): `(PreLogos.invImage_preserves_union S.arr U₁ U₂).1` gives
+--              `S.arr#(U₁∪U₂) ≤ S.arr#U₁ ∪ S.arr#U₂` in `Sub(S.dom)`; the missing glue is
+--              (1) `Subobject.inter S X ≅ pushforward S.arr (InverseImage S.arr X)` and
+--              (2) pushforward-along-the-monic-`S.arr` preserves `≤` and binary unions
+--              (image of a union = union of images, via the §1.60 `union_is_image` machinery).
+--         (ii) INTERSECTION OF COMPLEMENTED IS COMPLEMENTED (`S,T` complemented ⟹ `S∩T`), to keep
+--              the up-closure family inside the complemented subterminators (this is the
+--              hypothesis `ultrafilter_inter_closed` already takes as input).
+--       Both (i),(ii) are a small multi-lemma `Sub(1)`-Boolean-algebra development — elementary but
+--       not a one-liner; nothing nonconstructive is needed.
 -- The faithful-representation half (`SeparatesMaps`) is `prelogos_representation_theorem`.
 
 -- BOOK §1.636: Any Horn sentence in the predicates of pre-logoi that holds for the
@@ -952,6 +968,8 @@ theorem prelogos_representation_theorem (A : Type u) [Cat.{u} A] [PositivePreLog
 --   - §1.444 Horn.lean covers Cartesian predicates (terminator / product / equalizer).
 --   - §1.636 covers PRE-LOGOS predicates: additionally `image`, `disjoint coproduct`,
 --     `zero object`, `union of subobjects` — none of these appear in `Freyd.Horn.Atom`.
+-- (The between-pre-logoi `PreLogosFunctor` predicate — item (4) of the assembly — already exists
+--  in S1_61 (`Freyd.PreLogosFunctor`): preserves union + bottom on top of Cartesian+mono.)
 -- To formalize §1.636 one needs:
 --   (1) An extended `PreLogosAtom` inductive adding `image`, `disjointCoprod`, `zero`,
 --       `union` constructors with well-typed morphism variables.
@@ -1117,6 +1135,101 @@ theorem TF_coterminator_empty (ℱ : (Subobject 𝒞 one) → Prop) (hprop : ¬ 
 def TF_coterminator_nonempty (ℱ : (Subobject 𝒞 one) → Prop) (h0 : ℱ Zero1) :
     TF ℱ (minimal_subobject_of_one_is_coterminator (inferInstance : PreLogos 𝒞)).zero :=
   TF.mk ℱ ⟨Zero1, h0, Cat.id _⟩
+
+/-- §1.635 (GAP 3, part a): a PROPER pre-filter omits the literal bottom `0 ∈ Sub(1)`.
+    Immediate from properness (`¬ ∃ U ∈ ℱ, U ≤ 0`) since `0 ≤ 0` (`Subobject.le_refl`). -/
+theorem properFilter_not_zero (ℱ : (Subobject 𝒞 one) → Prop) (hprop : IsProperFilter ℱ) :
+    ¬ ℱ Zero1 := fun h0 => hprop.2 ⟨Zero1, h0, Subobject.le_refl _⟩
+
+/-! ### §1.635(a)  Ultra-filter EXISTENCE (Zorn)
+
+  Every proper pre-filter `ℱ₀` of complemented subterminators extends to an ULTRA-FILTER.
+  This is the one genuine use of the axiom of choice in §1.635.  We drive it with the
+  mathlib-free `Freyd.WO.zorn` (Bourbaki–Witt tower, `Fredy/WellOrdering.lean`) applied to the
+  poset of proper complemented pre-filters extending `ℱ₀`, ordered by `⊆`.  The chain-upper-bound
+  hypothesis is the union of the chain (a proper complemented pre-filter), and the `zorn`-maximal
+  element is exactly Freyd's ultra-filter. -/
+
+/-- The poset point: a proper pre-filter of complemented subterminators extending `ℱ₀`. -/
+structure ExtFilter (ℱ₀ : (Subobject 𝒞 one) → Prop) : Type (max u v) where
+  fam      : (Subobject 𝒞 one) → Prop
+  isProper : IsProperFilter fam
+  allComp  : ∀ U, fam U → IsComplementedSub U
+  extends₀ : ∀ U, ℱ₀ U → fam U
+
+/-- §1.635(a): **EXISTENCE OF ULTRA-FILTERS.**  Every proper pre-filter `ℱ₀` all of whose members
+    are complemented extends to an `IsUltraFilter`.  Proof by Zorn on `ExtFilter ℱ₀` ordered by
+    `⊆`; the union of a chain is again a proper complemented pre-filter (the bound), and Zorn's
+    maximal element is the ultra-filter. -/
+theorem exists_ultrafilter_extending (ℱ₀ : (Subobject 𝒞 one) → Prop)
+    (hproper : IsProperFilter ℱ₀) (hcomp : ∀ U, ℱ₀ U → IsComplementedSub U) :
+    ∃ Fhat, IsUltraFilter Fhat ∧ (∀ U, ℱ₀ U → Fhat U) := by
+  -- order on ExtFilter: containment of the underlying families.
+  let le : ExtFilter ℱ₀ → ExtFilter ℱ₀ → Prop := fun a b => ∀ U, a.fam U → b.fam U
+  have hrefl : ∀ a, le a a := fun a U h => h
+  have htrans : ∀ {a b c}, le a b → le b c → le a c :=
+    fun {a b c} hab hbc U h => hbc U (hab U h)
+  -- the union of a chain of ExtFilters, joined with ℱ₀ to stay nonempty even on the empty chain.
+  -- chain-upper-bound: take the family  ℱ₀ ∪ (⋃ of the chain).
+  have hub : ∀ s : Freyd.WO.Sub (ExtFilter ℱ₀), Freyd.WO.IsChain le s →
+      ∃ b, Freyd.WO.IsUB le s b := by
+    intro s hchain
+    -- the union family
+    let 𝒰 : (Subobject 𝒞 one) → Prop := fun U => ℱ₀ U ∨ ∃ a, s a ∧ a.fam U
+    -- every member of 𝒰 is complemented
+    have hUcomp : ∀ U, 𝒰 U → IsComplementedSub U := by
+      rintro U (h | ⟨a, _, ha⟩)
+      · exact hcomp U h
+      · exact a.allComp U ha
+    -- 𝒰 is a pre-filter
+    have hUpre : IsPreFilter 𝒰 := by
+      refine ⟨⟨_, Or.inl hproper.1.1.choose_spec⟩, ?_⟩
+      -- ↓-directedness
+      rintro U V hU hV
+      -- reduce both to a single ExtFilter a (or to ℱ₀), then use its directedness.
+      -- helper: anything in ℱ₀ is in every chain member's family (extends₀); so if the chain is
+      -- inhabited we can absorb ℱ₀-members into a chain member.
+      -- Case analysis on where U, V come from.
+      rcases hU with hU0 | ⟨a, hsa, haU⟩ <;> rcases hV with hV0 | ⟨b, hsb, hbV⟩
+      · -- both from ℱ₀: use ℱ₀'s directedness.
+        obtain ⟨W, hW, hWU, hWV⟩ := hproper.1.2 U V hU0 hV0
+        exact ⟨W, Or.inl hW, hWU, hWV⟩
+      · -- U ∈ ℱ₀, V ∈ b.fam.  ℱ₀ ⊆ b.fam, so U ∈ b.fam; use b's directedness.
+        obtain ⟨W, hW, hWU, hWV⟩ := b.isProper.1.2 U V (b.extends₀ U hU0) hbV
+        exact ⟨W, Or.inr ⟨b, hsb, hW⟩, hWU, hWV⟩
+      · -- symmetric
+        obtain ⟨W, hW, hWU, hWV⟩ := a.isProper.1.2 U V haU (a.extends₀ V hV0)
+        exact ⟨W, Or.inr ⟨a, hsa, hW⟩, hWU, hWV⟩
+      · -- both from chain members a, b: compare via the chain to land both in one family.
+        rcases hchain hsa hsb with hab | hba
+        · obtain ⟨W, hW, hWU, hWV⟩ := b.isProper.1.2 U V (hab U haU) hbV
+          exact ⟨W, Or.inr ⟨b, hsb, hW⟩, hWU, hWV⟩
+        · obtain ⟨W, hW, hWU, hWV⟩ := a.isProper.1.2 U V haU (hba V hbV)
+          exact ⟨W, Or.inr ⟨a, hsa, hW⟩, hWU, hWV⟩
+    -- 𝒰 is proper
+    have hUprop : ¬ ∃ U, 𝒰 U ∧ Subobject.le U Zero1 := by
+      rintro ⟨U, (hU0 | ⟨a, _, haU⟩), hU0le⟩
+      · exact hproper.2 ⟨U, hU0, hU0le⟩
+      · exact a.isProper.2 ⟨U, haU, hU0le⟩
+    -- assemble the bound ExtFilter
+    let bnd : ExtFilter ℱ₀ :=
+      { fam := 𝒰, isProper := ⟨hUpre, hUprop⟩, allComp := hUcomp, extends₀ := fun U h => Or.inl h }
+    exact ⟨bnd, fun a hsa U haU => Or.inr ⟨a, hsa, haU⟩⟩
+  -- ExtFilter ℱ₀ is nonempty: ℱ₀ itself.
+  have hne : Nonempty (ExtFilter ℱ₀) :=
+    ⟨{ fam := ℱ₀, isProper := hproper, allComp := hcomp, extends₀ := fun _ h => h }⟩
+  -- apply Zorn.
+  obtain ⟨m, hm⟩ := Freyd.WO.zorn le hrefl htrans hub hne
+  -- m.fam is the ultra-filter.
+  refine ⟨m.fam, ⟨m.isProper, m.allComp, ?_⟩, m.extends₀⟩
+  -- maximality clause: any proper complemented pre-filter 𝒢 ⊇ m.fam is ⊆ m.fam.
+  intro 𝒢 h𝒢prop h𝒢comp hm𝒢 U h𝒢U
+  -- 𝒢 extends ℱ₀ (via m.fam ⊇ ℱ₀ ⊆ … actually 𝒢 ⊇ m.fam ⊇ ℱ₀).
+  let g : ExtFilter ℱ₀ :=
+    { fam := 𝒢, isProper := h𝒢prop, allComp := h𝒢comp,
+      extends₀ := fun V hV => hm𝒢 V (m.extends₀ V hV) }
+  -- m ≤ g, so Zorn-maximality of m gives g ≤ m, i.e. 𝒢 ⊆ m.fam.
+  exact hm g hm𝒢 U h𝒢U
 
 /-! ## §1.631 Complemented subobject of a projective is projective
 

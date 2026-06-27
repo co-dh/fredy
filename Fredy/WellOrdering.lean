@@ -463,4 +463,112 @@ def toDirected (w : IsWellOrder r) : Colim.Directed α where
 
 end IsWellOrder
 
+/-! ## Zorn's lemma (mathlib-free), from the Bourbaki–Witt tower engine
+
+  The same `Tower`/`bigU` machinery yields Zorn directly, with NO well-order detour.  We phrase it
+  for a type `T` carrying a preorder `le` in which every `le`-CHAIN (a `⊆`-set of pairwise comparable
+  points) has an upper bound: then `T` has a `le`-maximal element.
+
+  Construction (standard).  Fix a default `d : T` and a choice function `g : Sub T → T` that, on a
+  set `s` admitting a *strict* upper bound, returns one; else returns an arbitrary upper bound of `s`
+  (which exists by the chain hypothesis once `s` is a chain).  Every tower is then a chain (induction
+  on the tower: `succ s = s ∪ {g s}` stays a chain because `g s` is `≥` every element of the chain
+  `s`).  Hence `bigU` is a chain, so it has an upper bound `b`.  And `b` is maximal: if some `c > b`
+  then `g bigU` is a strict upper bound of `bigU`, so `g bigU ∉ bigU` (it is `>` every member),
+  contradicting `g_bigU_mem`. -/
+
+section Zorn
+variable {T : Type u}
+open Classical
+
+/-- A `Sub T` is a `le`-CHAIN: any two of its members are `le`-comparable. -/
+def IsChain (le : T → T → Prop) (s : Sub T) : Prop :=
+  ∀ ⦃x⦄, s x → ∀ ⦃y⦄, s y → le x y ∨ le y x
+
+/-- `b` is an upper bound of `s`. -/
+def IsUB (le : T → T → Prop) (s : Sub T) (b : T) : Prop := ∀ ⦃x⦄, s x → le x b
+
+/-- `c` is a STRICT upper bound of `s`: an upper bound of `s` that is `le`-below NO member of `s`.
+    (Reflexivity then forces `c ∉ s`, which is the contradiction that terminates the tower.) -/
+def IsStrictUB (le : T → T → Prop) (s : Sub T) (c : T) : Prop :=
+  IsUB le s c ∧ ∀ x, s x → ¬ le c x
+
+/-- The Zorn choice function.  `zg le d s` returns a STRICT upper bound of `s` if one exists; else
+    ANY upper bound of `s` if one exists; else the default `d`.  On every chain (which, by the Zorn
+    hypothesis, has an upper bound) `zg le d s` is therefore an upper bound of `s` — this is what
+    keeps the towers chains.  When `s` additionally has a strict upper bound, `zg le d s` is one. -/
+noncomputable def zg (le : T → T → Prop) (d : T) : Sub T → T :=
+  fun s => if hstr : ∃ c, IsStrictUB le s c then Classical.choose hstr
+           else if hub : ∃ c, IsUB le s c then Classical.choose hub else d
+
+/-- When `s` has a strict upper bound, `zg le d s` is one. -/
+theorem zg_strict {le : T → T → Prop} {d : T} {s : Sub T} (h : ∃ c, IsStrictUB le s c) :
+    IsStrictUB le s (zg le d s) := by
+  unfold zg; rw [dif_pos h]; exact Classical.choose_spec h
+
+/-- When `s` has any upper bound, `zg le d s` is one (whether or not a strict one exists). -/
+theorem zg_ub {le : T → T → Prop} {d : T} {s : Sub T} (h : ∃ c, IsUB le s c) :
+    IsUB le s (zg le d s) := by
+  unfold zg
+  by_cases hstr : ∃ c, IsStrictUB le s c
+  · rw [dif_pos hstr]; exact (Classical.choose_spec hstr).1
+  · rw [dif_neg hstr, dif_pos h]; exact Classical.choose_spec h
+
+/-- Every tower (for `g = zg le d`) is a `le`-chain.  Induction on the tower: the successor
+    `succ s = s ∪ {g s}` stays a chain because `g s` is an upper bound of the chain `s` (`zg_ub`,
+    using the Zorn hypothesis `hub` to know `s` has an upper bound). -/
+theorem zg_tower_chain (le : T → T → Prop) (hrefl : ∀ a, le a a) (d : T)
+    (hub : ∀ s : Sub T, IsChain le s → ∃ b, IsUB le s b) :
+    ∀ {t : Sub T}, Tower (zg le d) t → IsChain le t := by
+  intro t ht
+  induction ht with
+  | step s hs ih =>
+    -- `s` is a chain (ih), so it has an upper bound, so `g s := zg le d s` is an upper bound of `s`.
+    have hUB : IsUB le s (zg le d s) := zg_ub (hub s ih)
+    intro x hx y hy
+    rcases hx with hxs | rfl <;> rcases hy with hys | rfl
+    · exact ih hxs hys
+    · exact Or.inl (hUB hxs)
+    · exact Or.inr (hUB hys)
+    · exact Or.inl (hrefl _)
+  | sUnion P hP ih =>
+    -- union of towers; compare two members' source towers via `tower_compare`.
+    intro x ⟨sx, hPsx, hsx⟩ y ⟨sy, hPsy, hsy⟩
+    rcases tower_compare (hP sx hPsx) (hP sy hPsy) with hxy | hyx
+    · exact ih sy hPsy (hxy hsx) hsy
+    · exact ih sx hPsx hsx (hyx hsy)
+
+/-- **Zorn's lemma (mathlib-free).**  If every `le`-chain in `T` has an upper bound (and `le` is
+    reflexive), then `T` has a `le`-maximal element: some `m` such that no `c` is strictly `> m`
+    (i.e. `le m c ∧ le c m` for every `c` with `le m c`).
+
+    PROOF.  `bigU` (for `g = zg le d`) is a tower, hence a chain (`zg_tower_chain`); by the chain
+    hypothesis it has an upper bound `m`.  `m` is maximal: were there `c` with `le m c` but not
+    `le c m`, then `m` itself extends to a strict upper bound `c` of `bigU` (since `m` already bounds
+    `bigU`), so `bigU` has a strict upper bound and `g bigU := zg le d bigU` is one
+    (`zg_strict`).  But `g bigU ∈ bigU` (`g_bigU_mem`), so applying the strictness clause to
+    `b := g bigU` (an upper bound, with `le (g bigU)(g bigU)` by reflexivity) yields `False`. -/
+theorem zorn (le : T → T → Prop) (hrefl : ∀ a, le a a)
+    (htrans : ∀ {a b c}, le a b → le b c → le a c)
+    (hub : ∀ s : Sub T, IsChain le s → ∃ b, IsUB le s b) (hne : Nonempty T) :
+    ∃ m : T, ∀ c, le m c → le c m := by
+  obtain ⟨d⟩ := hne
+  -- `m` := an upper bound of the maximal chain `bigU`.
+  have hbigU_chain : IsChain le (bigU (g := zg le d)) :=
+    zg_tower_chain le hrefl d hub bigU_tower
+  obtain ⟨m, hm⟩ := hub _ hbigU_chain
+  refine ⟨m, fun c hmc => ?_⟩
+  -- Suppose not `le c m`.  Then `c` is a strict upper bound of `bigU`, contradiction.
+  refine Classical.byContradiction (fun hcm => ?_)
+  -- `c` upper-bounds bigU (every member `x ≤ m ≤ c`) and lies above no member
+  -- (`le c x` ⟹ `le c m` via `le x m`, contradicting `¬ le c m`).
+  have hstrUB : IsStrictUB le (bigU (g := zg le d)) c := by
+    refine ⟨fun x hx => htrans (hm hx) hmc, fun x hx hcx => ?_⟩
+    exact hcm (htrans hcx (hm hx))
+  -- `g bigU` is then a strict upper bound, yet `g bigU ∈ bigU` (`g_bigU_mem`): reflexivity clashes.
+  have hg_str := zg_strict (le := le) (d := d) ⟨c, hstrUB⟩
+  exact hg_str.2 _ g_bigU_mem (hrefl _)
+
+end Zorn
+
 end Freyd.WO
