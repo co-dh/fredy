@@ -547,12 +547,17 @@ class UnitaryAllegory (𝒜 : Type u) extends Allegory 𝒜 where
 class PreTabularAllegory (𝒜 : Type u) extends Allegory 𝒜 where
   pre_tabular {a b : 𝒜} (R : a ⟶ b) : ∃ (S : a ⟶ b), R ⊑ S ∧ Tabular S
 
-/-- An EFFECTIVE ALLEGORY: tabular + every symmetric idempotent splits (§2.167, §2.169).
-    A symmetric idempotent E : a → a splits as E = f ≫ f° where f : a → c is a map
-    and f° ≫ f = id_c. -/
+/-- An EFFECTIVE ALLEGORY: tabular + every EQUIVALENCE RELATION splits (§2.167, §2.169).
+    Freyd §2.169: "An effective allegory is one in which all equivalence relations split."
+    §2.163: an equivalence relation `E : a → a` (reflexive, symmetric, idempotent) is a split
+    idempotent iff there is a map `f` with `f ≫ f° = E`, `f° ≫ f = id_c` — i.e. iff `E` is
+    effective.  The leg can only be a MAP (entire) when `E` is REFLEXIVE: a non-reflexive
+    symmetric idempotent splits with a partial-map leg, never an entire one (`dom f = E ≠ id`).
+    Hence the field is stated for equivalence relations, as the book has it. -/
 class EffectiveAllegory (𝒜 : Type u) extends TabularAllegory 𝒜 where
   split_symmetric_idempotent {a : 𝒜} (E : a ⟶ a) :
-    Symmetric E → E ≫ E = E → ∃ (c : 𝒜) (f : a ⟶ c), Map f ∧ f ≫ f° = E ∧ f° ≫ f = Cat.id c
+    Reflexive E → Symmetric E → E ≫ E = E →
+      ∃ (c : 𝒜) (f : a ⟶ c), Map f ∧ f ≫ f° = E ∧ f° ≫ f = Cat.id c
 
 /-- A SEMI-SIMPLE morphism factors as F° ≫ G with F, G simple (§2.16(10)).
     F : c → a, G : c → b have a common source (apex) c, so F° ≫ G : a → b — exactly

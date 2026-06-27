@@ -466,7 +466,7 @@ theorem straight_factorization {𝒜 : Type u} [EffectiveDivisionAllegory 𝒜]
   have hEidem : (T /ₛ T) ≫ (T /ₛ T) = T /ₛ T :=
     reflexive_transitive_idempotent hErefl (symmDiv_self_transitive T)
   obtain ⟨c, h, hMap, hhh, hch⟩ :=
-    EffectiveAllegory.split_symmetric_idempotent (T /ₛ T) hEsym hEidem
+    EffectiveAllegory.split_symmetric_idempotent (T /ₛ T) hErefl hEsym hEidem
   refine ⟨c, h, hMap, hch, ?_, ?_⟩
   · -- Straightness of S = h° ≫ T.
     -- ET = T (E reflexive, (T/ₛT)T ⊑ T).

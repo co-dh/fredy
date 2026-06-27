@@ -504,6 +504,51 @@ noncomputable instance instPositiveSpl {𝒜 : Type u} [PositiveAllegory 𝒜] :
     coprod := fun E F => ⟨PositiveAllegory.coprod E.carrier F.carrier, splCoprodIdem E F⟩
     has_coproduct := fun E F => splCoproduct E F }
 
+/-! ## §2.169  `SplObj 𝒜` is an EFFECTIVE allegory
+
+  Freyd §2.169: an effective allegory is one in which every EQUIVALENCE RELATION splits.
+  `SplObj 𝒜` splits all symmetric idempotents (`spl_equivalence_splits_map`); for a
+  REFLEXIVE one (an equivalence relation) the splitting leg is a MAP — exactly the
+  `EffectiveAllegory.split_symmetric_idempotent` shape.  Combined with
+  `splObj_tabular_of_semiSimple` (tabular for semi-simple `𝒜`), this packages
+  `EffectiveAllegory (SplObj 𝒜)`. -/
+
+/-- **§2.169 (effective-shape lemma)**: a reflexive symmetric idempotent `Φ : E ⟶ E` of
+    `SplObj 𝒜` — i.e. an equivalence relation — splits with a MAP leg.  Translates the
+    category-level `Reflexive Φ` (`id_E ⊑ Φ`, where `id_E` underlies as `E.idem.e`),
+    `Symmetric Φ` (`Φ° ⊑ Φ`, giving `Φ.R° = Φ.R`) and idempotency `Φ≫Φ=Φ` (giving
+    `Φ.R≫Φ.R=Φ.R`) into the hypotheses of `spl_effective`. -/
+theorem splObj_split_equivalence {𝒜 : Type u} [Allegory 𝒜] {E : SplObj 𝒜} (Φ : E ⟶ E)
+    (hrefl : Reflexive Φ) (hsym : Symmetric Φ) (hidem : Φ ≫ Φ = Φ) :
+    ∃ (G : SplObj 𝒜) (f : E ⟶ G), Map f ∧ f ≫ f° = Φ ∧ f° ≫ f = Cat.id G := by
+  -- Reflexive Φ : id_E ⊑ Φ, i.e. (splId E) ⊑ Φ; via splLe_iff this is E.idem.e ⊑ Φ.R.
+  have hreflR : E.idem.e ⊑ Φ.R := (splLe_iff (splId E) Φ).mp hrefl
+  -- Symmetric Φ : Φ° ⊑ Φ, i.e. Φ.R° ⊑ Φ.R; reciprocating gives Φ.R ⊑ Φ.R°, hence equality.
+  have hsymR : Φ.R° = Φ.R := by
+    have h1 : Φ.R° ⊑ Φ.R := (splLe_iff (Φ°) Φ).mp hsym
+    have h2 : Φ.R ⊑ Φ.R° := by
+      have := recip_mono h1; rwa [Allegory.recip_recip] at this
+    exact le_antisymm h1 h2
+  -- Idempotency: Φ ≫ Φ = Φ underlies as Φ.R ≫ Φ.R = Φ.R.
+  have hidemR : Φ.R ≫ Φ.R = Φ.R := congrArg SplHom.R hidem
+  exact spl_effective Φ hreflR hsymR hidemR
+
+/-- **§2.169**: `SplObj 𝒜` is an EFFECTIVE allegory whenever `𝒜` is SEMI-SIMPLE — it is
+    tabular (`splObj_tabular_of_semiSimple`) and every equivalence relation splits as a map
+    (`splObj_split_equivalence`).  This is the §2.217(2) ingredient for the pre-topos target. -/
+instance instEffectiveSpl {𝒜 : Type u} [SemiSimpleAllegory 𝒜] :
+    EffectiveAllegory (SplObj 𝒜) :=
+  { splObj_tabular_of_semiSimple with
+    split_symmetric_idempotent := fun E hrefl hsym hidem =>
+      splObj_split_equivalence E hrefl hsym hidem }
+
+/-- **§2.169 (corollary)**: `SplObj 𝒜` is an EFFECTIVE allegory whenever `𝒜` is TABULAR
+    (a tabular allegory is semi-simple, `semiSimpleAllegory_of_tabular`). -/
+def splObj_effective_of_tabular {𝒜 : Type u} [TabularAllegory 𝒜] :
+    EffectiveAllegory (SplObj 𝒜) :=
+  letI := semiSimpleAllegory_of_tabular (ℬ := 𝒜)
+  instEffectiveSpl
+
 /-! ## §2.42  `SplObj 𝒜` is an effective power allegory for a power allegory `𝒜`
 
   Freyd §2.42: if `𝒜` is a power allegory then `SplObj 𝒜` is an effective power allegory.

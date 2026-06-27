@@ -31,6 +31,7 @@
 -/
 
 import Fredy.S1_56
+import Fredy.S1_59           -- §2.217(2): EffectiveRegular (effective-quotients axiom)
 import Fredy.S1_60
 import Fredy.S1_61
 import Fredy.S1_62
@@ -38,6 +39,7 @@ import Fredy.S2_1
 import Fredy.S2_2
 import Fredy.MapCat
 import Fredy.MatrixAllegory   -- §2.217(1): the positive reflection Mat(𝒜) (acyclic: Mat imports only S2_*)
+import Fredy.Spl              -- §2.217(2): SplObj effective/tabular/distributive/unitary/positive
 
 open Freyd
 open Freyd.Alg
@@ -1293,6 +1295,96 @@ theorem s217_faithful_embed_into_positive :
   ⟨⟨s217PreLogos⟩, fun {_ _ _ _} h => embed217_faithful h⟩
 
 end S217
+
+/-! ### §2.217(2)  Every pre-logos embeds faithfully in a PRE-TOPOS.
+
+  Freyd §2.217(2): a pre-logos `C` embeds faithfully in a pre-topos.  The §2.217(1) target
+  `Map(Mat(Rel C))` is a positive pre-logos but need NOT be EFFECTIVE.  To make it effective we
+  split the equivalence relations: the pre-topos target is
+
+      D := Map(SplObj(Mat(Rel C)))                                                    (§2.169)
+
+  `SplObj(𝒜)` splits every symmetric idempotent of `𝒜`, so over the tabular-unitary-positive
+  allegory `𝒜 = Mat(Rel C)`:
+    • `SplObj 𝒜` is again TABULAR/UNITARY/DISTRIBUTIVE/POSITIVE (`splObj_tabular_of_semiSimple`,
+      `instUnitarySpl`, `instDistributiveSpl`, `instPositiveSpl`), hence `Map(SplObj 𝒜)` is a
+      POSITIVE PRE-LOGOS (`mapPositivePreLogos`);
+    • `SplObj 𝒜` is EFFECTIVE (`instEffectiveSpl`): every equivalence relation splits as a map.
+
+  WHAT LANDS HERE (sorry-free):
+    (i)  `s217_2_target_positivePreLogos`  — `D` is a positive pre-logos;
+    (ii) `s217_2_effectiveAllegory`        — `SplObj(Mat(Rel C))` is an EFFECTIVE allegory;
+    (iii)`s217_2_effectiveSplit_isCover`   — the allegory-side core: the effective splitting of
+         an equivalence relation `R` of `SplObj(Mat(Rel C))` is a COVER of `D` (via
+         `MapCat.mapEffectivenessSplit`), with `x≫x° = R`, `x°≫x = id`.
+
+  -- BOOK §2.217(2): the REMAINING step to package `EffectiveRegular D` (hence `PreTopos D`) is
+  -- the BinRel↔allegory translation: given a CATEGORY-level `EquivalenceRelation E :
+  -- BinRel D A A` (S1_56, stated via `graph`/`⊚`/`RelHom` and the pullback/image structure of
+  -- `D`), exhibit its underlying allegory endo `R := E.colA°≫E.colB : A→A` of `SplObj(Mat(Rel C))`
+  -- as a reflexive symmetric idempotent, split it by (iii) to a cover `x : A→Q`, and prove the
+  -- category-level kernel pair `kernelPairRel x` equals `E` (`RelLe` both ways).  This needs a
+  -- dictionary `BinRel(Map 𝒜) ↔ 𝒜` (relating `⊚`/`graph`/`kernelPairRel`/`Cover` to allegory
+  -- `≫`/`°`/`dom`/`id⊑x°x`) that the repo does not yet have — `MapCat` has ZERO `BinRel`
+  -- references.  Its construction parallels §2.14 (`relMap_allegoryEquiv`) and the §2.147
+  -- `mapPullback_leg_corOf`/`mapHasImages` machinery but at the category level; it is the
+  -- genuine research core of §2.217(2), left as a precise marker here. -/
+
+section S217_2
+
+open Freyd.Alg.Mat
+
+variable [PreLogos 𝒞]
+
+/-- **§2.217(2) ingredient**: `SplObj(Mat(Rel C))` is a TABULAR-UNITARY-POSITIVE allegory.
+    Bundles the splitting-completion instances over the tabular-unitary-positive `Mat(Rel C)`
+    (`splObj_tabular_of_semiSimple` via `semiSimpleAllegory_of_tabular`, `instUnitarySpl`,
+    `instPositiveSpl` — which also yields `instDistributiveSpl`). -/
+noncomputable instance splMatRelTUP :
+    Freyd.Alg.TabularUnitaryPositiveAllegory (SplObj (MatObj (RelObj 𝒞))) :=
+  letI : SemiSimpleAllegory (MatObj (RelObj 𝒞)) :=
+    Freyd.Alg.semiSimpleAllegory_of_tabular (ℬ := MatObj (RelObj 𝒞))
+  { (Freyd.Alg.splObj_tabular_of_semiSimple : TabularAllegory (SplObj (MatObj (RelObj 𝒞)))),
+    (Freyd.Alg.instUnitarySpl  : UnitaryAllegory  (SplObj (MatObj (RelObj 𝒞)))),
+    (Freyd.Alg.instPositiveSpl : PositiveAllegory (SplObj (MatObj (RelObj 𝒞)))) with }
+
+/-- **§2.217(2) ingredient (i)**: `D = Map(SplObj(Mat(Rel C)))` is a POSITIVE PRE-LOGOS.
+    Immediate from `mapPositivePreLogos` over `splMatRelTUP`. -/
+noncomputable instance s217_2_target_positivePreLogos :
+    @PositivePreLogos (MapObj (SplObj (MatObj (RelObj 𝒞))))
+      (mapCat (𝒜 := SplObj (MatObj (RelObj 𝒞)))) :=
+  Freyd.Alg.mapPositivePreLogos (A := SplObj (MatObj (RelObj 𝒞)))
+
+/-- **§2.217(2) ingredient (ii)**: `SplObj(Mat(Rel C))` is an EFFECTIVE allegory — every
+    equivalence relation splits as a map (`instEffectiveSpl`, since `Mat(Rel C)` is tabular
+    hence semi-simple). -/
+noncomputable def s217_2_effectiveAllegory :
+    Freyd.Alg.EffectiveAllegory (SplObj (MatObj (RelObj 𝒞))) :=
+  Freyd.Alg.splObj_effective_of_tabular (𝒜 := MatObj (RelObj 𝒞))
+
+/-- **§2.217(2) ingredient (iii) — allegory-side effectiveness core**: in
+    `D = Map(SplObj(Mat(Rel C)))`, the effective splitting of a reflexive symmetric idempotent
+    `R` of `SplObj(Mat(Rel C))` (an allegory-level equivalence relation) IS a COVER of `D`,
+    with `x≫x° = R` and `x°≫x = id`.  Combines `splObj_split_equivalence` (the split as a map)
+    with `MapCat.mapEffectivenessSplit` (the split leg is a cover).  This is exactly the
+    cover/quotient datum the category-level `IsEffective` needs; what remains is the BinRel↔
+    allegory translation flagged in the `-- BOOK §2.217(2)` marker above. -/
+theorem s217_2_effectiveSplit_isCover
+    {a : SplObj (MatObj (RelObj 𝒞))} (R : a ⟶ a)
+    (hrefl : Freyd.Alg.Reflexive R) (hsym : Freyd.Alg.Symmetric R) (hidem : R ≫ R = R) :
+    ∃ (Q : SplObj (MatObj (RelObj 𝒞)))
+      (x : @Cat.Hom (MapObj (SplObj (MatObj (RelObj 𝒞))))
+            (mapCat (𝒜 := SplObj (MatObj (RelObj 𝒞)))) a Q),
+      x.val ≫ x.val° = R ∧ x.val° ≫ x.val = Cat.id Q ∧
+      @Cover (MapObj (SplObj (MatObj (RelObj 𝒞))))
+        (mapCat (𝒜 := SplObj (MatObj (RelObj 𝒞)))) a Q x := by
+  obtain ⟨Q, x, hxMap, hxx, hxxId⟩ :=
+    Freyd.Alg.splObj_split_equivalence (𝒜 := MatObj (RelObj 𝒞)) R hrefl hsym hidem
+  -- Bundle the bare allegory map `x` with its `Map` proof into a `Map(𝒜)`-morphism.
+  refine ⟨Q, ⟨x, hxMap⟩, hxx, hxxId,
+    Freyd.Alg.mapEffectivenessSplit (A := SplObj (MatObj (RelObj 𝒞))) ⟨x, hxMap⟩ hxxId⟩
+
+end S217_2
 
 /-! ### §2.214 REVERSE — `Rel(C)` has finite coproducts ⟹ `C` is positive.
 

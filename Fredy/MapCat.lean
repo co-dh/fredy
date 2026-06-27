@@ -1349,6 +1349,38 @@ private theorem mapCover_entire {a c : MapObj A}
   have hid_dom : Cat.id c ⊑ dom (f.val°) := hee_l ▸ hid_le
   exact le_trans hid_dom hff_inter
 
+/-- **§2.147 (cover from allegory-entireness)**: a map `x : a → c` of Map(𝒜) with
+    `id_c ⊑ x°≫x` (allegory level — equivalently `Entire x°`, §2.147) is a COVER in the
+    category sense.  Reason: any monic factor `m` of `x` (with `k≫m = x`) has
+    `id_c ⊑ x°≫x ⊑ m°≫m ⊑ id_c`, so `m°≫m = id_c`; `m` monic+Entire forces `m≫m° = id`,
+    making `m` iso with inverse `m°`.  (Reused by `mapPullbacksTransferCovers` and the
+    §2.217(2) effectiveness bridge.) -/
+theorem mapEntire_cover {a c : MapObj A}
+    (x : @Cat.Hom _ (mapCat (𝒜 := A)) a c) (hx : Cat.id c ⊑ x.val° ≫ x.val) :
+    @Cover (MapObj A) (mapCat (𝒜 := A)) a c x := by
+  intro C m k hm_monic hkm
+  obtain ⟨m, hm_map⟩ := m
+  obtain ⟨k, hk_map⟩ := k
+  have hkm_alg : k ≫ m = x.val := congrArg Subtype.val hkm
+  have hm_sim : m° ≫ m ⊑ Cat.id c := hm_map.2
+  have hm_ent : Cat.id C ⊑ m ≫ m° := map_entire_le hm_map
+  have hid_le_mm : Cat.id c ⊑ m° ≫ m := by
+    have heq : x.val° ≫ x.val = m° ≫ k° ≫ k ≫ m := by
+      rw [← hkm_alg, Allegory.recip_comp]; simp [Cat.assoc]
+    have hkk_le : (k° ≫ k) ≫ m ⊑ m := by
+      have h := comp_mono_right hk_map.2 m; rwa [Cat.id_comp] at h
+    have hstep : m° ≫ k° ≫ k ≫ m ⊑ m° ≫ m := by
+      apply comp_mono_left m°; rw [← Cat.assoc]; exact hkk_le
+    exact le_trans (heq ▸ hx) hstep
+  have hmm_id : m° ≫ m = Cat.id c := le_antisymm hm_sim hid_le_mm
+  have hmm'_id : m ≫ m° = Cat.id C :=
+    le_antisymm (mapMonic_inj hm_map hm_monic) hm_ent
+  have hmo_map : Map (m°) := by
+    refine ⟨?_, ?_⟩
+    · rw [Entire, dom, Allegory.recip_recip, hmm_id]; exact (Allegory.inter_idem _)
+    · rw [Simple, Allegory.recip_recip]; exact hmm'_id ▸ le_refl _
+  exact ⟨⟨m°, hmo_map⟩, mapHom_ext hmm'_id, mapHom_ext hmm_id⟩
+
 /-- §2.212: PullbacksTransferCovers for Map(𝒜). -/
 noncomputable instance mapPullbacksTransferCovers :
     @PullbacksTransferCovers (MapObj A) (mapCat (𝒜 := A)) :=
@@ -1456,49 +1488,10 @@ noncomputable instance mapPullbacksTransferCovers :
     -- cover_precomp_iso: ⟨π₂, hπ₂⟩ cover and iso ≫ cover ⟹ cone.π₂ cover
     -- First: ⟨π₂, hπ₂⟩ is a cover in Map(𝒜) (from hcan_π₂_cover via cover_iff_recip_entire)
     -- π₂ : p ⟶ c (second tabulation leg); Cover in mapCat = every monic factor is iso.
-    have hπ₂_cover : @Cover (MapObj A) (mapCat (𝒜 := A)) p c hπ₂_sub := by
-      intro C m k hm_monic hkm
-      obtain ⟨m, hm_map⟩ := m
-      obtain ⟨k, hk_map⟩ := k
-      -- k≫m = π₂ (allegory). m monic in MapCat.
-      -- hcan_π₂_cover: id_b ⊑ π₂°≫π₂.
-      -- π₂ = k≫m, so π₂°≫π₂ = m°≫k°≫k≫m ⊑ m°≫m. And id_b ⊑ m°≫m.
-      -- m monic in MapCat means: for all u,v maps, u≫m = v≫m ⟹ u = v.
-      -- m simple (Map m): m°≫m ⊑ id_C.
-      -- So id_b ⊑ m°≫m ⊑ id_C?? b=C here (m:C→b), so id_b ⊑ m°≫m ⊑ id_b, hence m°≫m = id_b.
-      -- And m entire (Map m): id_C ⊑ m≫m°.
-      -- m iso: need m≫m°=id_b (above proved m°≫m=id_b? No: m:C→b, m°:b→C, m°≫m:b→b ⊑ id_b... wait.
-      -- m : C → b (as a map in the allegory). m° : b → C. m°≫m : b→b. Simple m: m°≫m ⊑ id_b? NO.
-      -- Simple m for m:C→b means m°≫m ⊑ id_b (source of m° is b, target is C; m°≫m : b→b).
-      -- Actually wait: m:C→b, m°:b→C. Simple m: (m°)°≫m° = m≫m° ⊑ id_C... NO.
-      -- Simple R for R:a→b: R°≫R ⊑ id_b. So Simple m for m:C→b: m°≫m ⊑ id_b. ✓
-      -- id_b ⊑ π₂°≫π₂. π₂ = k≫m: π₂° = m°≫k°. π₂°≫π₂ = m°≫k°≫k≫m ⊑ m°≫id_C≫m = m°≫m ⊑ id_b.
-      -- So m°≫m = id_b. Now m is entire (Map m: id_C ⊑ m≫m°). So m is iso.
-      have hkm_alg : k ≫ m = π₂ := congrArg Subtype.val hkm
-      have hm_sim : m° ≫ m ⊑ Cat.id c := hm_map.2
-      have hm_ent : Cat.id C ⊑ m ≫ m° := map_entire_le hm_map
-      -- id_c ⊑ m°≫m from hcan_π₂_cover and π₂ = k≫m
-      have hid_le_mm : Cat.id c ⊑ m° ≫ m := by
-        have heq : π₂° ≫ π₂ = m° ≫ k° ≫ k ≫ m := by
-          rw [← hkm_alg, Allegory.recip_comp]; simp [Cat.assoc]
-        have hkk_le : (k° ≫ k) ≫ m ⊑ m := by
-          have h := comp_mono_right hk_map.2 m; rwa [Cat.id_comp] at h
-        have hstep : m° ≫ k° ≫ k ≫ m ⊑ m° ≫ m := by
-          apply comp_mono_left m°
-          rw [← Cat.assoc]; exact hkk_le
-        exact le_trans (heq ▸ hcan_π₂_cover) hstep
-      -- m°≫m = id_c (simple + the cover bound) and m≫m° = id_C (Entire m + mapMonic_inj):
-      -- m is iso in Map(𝒜) with inverse m°.
-      have hmm_id : m° ≫ m = Cat.id c := le_antisymm hm_sim hid_le_mm
-      have hmm'_id : m ≫ m° = Cat.id C :=
-        le_antisymm (mapMonic_inj hm_map hm_monic) hm_ent
-      -- m° is itself a map: Entire m° (id_c ⊑ m°≫m°°=m°≫m=id_c) and Simple m° (m≫m° ⊑ id_C).
-      have hmo_map : Map (m°) := by
-        refine ⟨?_, ?_⟩
-        · rw [Entire, dom, Allegory.recip_recip, hmm_id]
-          exact (Allegory.inter_idem _)
-        · rw [Simple, Allegory.recip_recip]; exact hmm'_id ▸ le_refl _
-      exact ⟨⟨m°, hmo_map⟩, mapHom_ext hmm'_id, mapHom_ext hmm_id⟩
+    have hπ₂_cover : @Cover (MapObj A) (mapCat (𝒜 := A)) p c hπ₂_sub :=
+      -- `hπ₂_sub = ⟨π₂, hπ₂⟩`, so `hπ₂_sub.val°≫hπ₂_sub.val = π₂°≫π₂` (defeq); apply the
+      -- extracted allegory-entireness ⟹ cover lemma.
+      mapEntire_cover hπ₂_sub hcan_π₂_cover
     -- Step 4: cone.π₂ = hv_sub ≫ hπ₂_sub (hπ₂_eq via cπ₂c=cone.π₂) + h_hv_iso ⟹ Cover cone.π₂
     -- cπ₂c = cone.π₂ by definition; rewrite goal Cover cone.π₂ to Cover (hv_sub ≫ hπ₂_sub)
     have hπ₂_eq' : @Cone.π₂ (MapObj A) (mapCat (𝒜 := A)) a c b f g cone =
@@ -1516,6 +1509,35 @@ noncomputable instance mapRegularCategory :
     @RegularCategory (MapObj A) (mapCat (𝒜 := A)) :=
   @RegularCategory.mk (MapObj A) (mapCat (𝒜 := A))
     mapHasTerminal mapHasBinaryProducts mapHasPullbacks mapHasImages mapPullbacksTransferCovers
+
+/-! ### §2.217(2)  Effectiveness bridge — allegory side
+
+  Freyd §2.169/§2.217(2): if the allegory `A` is EFFECTIVE then every equivalence relation
+  of `Map(A)` is the level (kernel pair) of a cover — i.e. `Map(A)` is an EFFECTIVE regular
+  category.  The ALLEGORY side of that bridge is purely about splitting: a reflexive
+  symmetric idempotent `R : a → a` of `A` (an allegory-level equivalence relation) splits
+  via `EffectiveAllegory.split_symmetric_idempotent` as `R = x≫x°`, `x°≫x = id_Q`, with `x`
+  a MAP; that map `x : a → Q` is then a COVER of `Map(A)` (`mapEntire_cover`, since
+  `id_Q = x°≫x ⊑ x°≫x`).  This `mapEffectivenessSplit` is the constructive core; the
+  remaining §2.217(2) gap (see the marker below) is the BinRel↔allegory translation that
+  exhibits `R` as the relation underlying a category-level `EquivalenceRelation` and the
+  kernel pair of `x` as that relation. -/
+
+/-- **§2.217(2) (allegory-side core)**: in `Map(A)`, the effective splitting of a reflexive
+    symmetric idempotent `R : a → a` of `A` IS a COVER.  Given the split data — a map
+    `x : a → Q` of `A` with `x ≫ x° = R` and `x° ≫ x = id_Q` (exactly what
+    `EffectiveAllegory.split_symmetric_idempotent` produces for an equivalence relation `R`)
+    — `x` is a `Cover` in `Map(A)`.  The split is taken as DATA (not via an
+    `[EffectiveAllegory A]` instance) to avoid the `Allegory A` diamond between the effective
+    structure and the ambient `TabularUnitaryDistributiveAllegory A` (the repo's standard
+    workaround, cf. `SplitsSymmIdem` in S2_22).  This packages the effective splitting of an
+    allegory-level equivalence relation into the cover/quotient datum the category-level
+    `IsEffective` needs. -/
+theorem mapEffectivenessSplit {a Q : A} (x : @Cat.Hom (MapObj A) (mapCat (𝒜 := A)) a Q)
+    (hxxId : x.val° ≫ x.val = Cat.id Q) :
+    @Cover (MapObj A) (mapCat (𝒜 := A)) a Q x :=
+  -- Cover: `mapEntire_cover` needs `id_Q ⊑ x°≫x`; here `x°≫x = id_Q` exactly.
+  mapEntire_cover x (hxxId ▸ le_refl (Cat.id Q))  -- `id_Q ⊑ x°≫x` ⟸ `x°≫x = id_Q`
 
 /-! ### §2.212  HasSubobjectUnions (MapObj A)
 
