@@ -581,4 +581,79 @@ theorem capData_of_cofinalSystem (A : Type u) [Cat.{u} A] [PreRegularCategory A]
      capital := capital_of_cofinalSystem C hC ht htpres hp hppres hppres_pair he hepres hepres_lift
        hcanon hcons hmono hstage }⟩
 
+/-- **§1.543 generic regular capitalization (the `hi`-threaded entry point).**  Same cofinal-system
+    data as `capData_of_cofinalSystem`, but with TWO additional regular ingredients —
+      * `hi`       : every stage `C.A i` HAS IMAGES (the *regular*, not merely pre-regular, structure
+                     of the stages — `CapStep.stepImages` for the §1.547 successor stages);
+      * `hcovpres` : the transitions PRESERVE COVERS (`PreservesCovers`) —
+    it produces a genuine `RegularCategory Ā` (= pre-regular + `HasImages`), still capital and with the
+    faithful `A → Ā`.  This is exactly the §2.218 R3(a) discharge: a `CapData` whose colimit has images
+    (`Colim.colimitHasImages`, transition image-preservation *derived* from `hmono`+`hcovpres` via
+    `capitalization_of_capData_regular_of_covers`).  The `hi` is the last structural ingredient that
+    upgrades the capital target from pre-regular to regular; it is threaded HERE at the generic
+    cofinal-system level (every concrete tower supplies it from its per-stage `stepImages`). -/
+theorem capitalization_regular_of_cofinalSystem (A : Type u) [Cat.{u} A] [PreRegularCategory A]
+    {ι : Type u} {D : Colim.Directed ι} (C : Colim.CatSystem.{u, u} ι D) (hC : C.Coherent)
+    [hne : Nonempty ι] (i₀ : ι) (base : A → C.A i₀)
+    (baseFun : @Functor A _ (C.A i₀) (C.catA i₀) base)
+    (baseFaithful : @Faithful A _ (C.A i₀) (C.catA i₀) base baseFun)
+    (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (p q : x ⟶ y),
+      (C.functF hij).map p = (C.functF hij).map q → p = q)
+    (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
+        IsIso ((C.functF hij).map φ) → IsIso φ)
+    (hmono : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
+        Monic φ → Monic ((C.functF hij).map φ))
+    (hcovpres : ∀ {i j : ι} (hij : D.le i j),
+        @PreservesCovers _ _ (C.catA i) (C.catA j) (C.F hij) (C.functF hij))
+    (hi : ∀ i, @HasImages (C.A i) (C.catA i))
+    (ht : ∀ i, HasTerminal (C.A i))
+    (htpres : ∀ {i j} (hij : D.le i j), C.F hij (ht i).one = (ht j).one)
+    (hp : ∀ i, HasBinaryProducts (C.A i))
+    (hppres : ∀ {i j} (hij : D.le i j) (a c : C.A i) (z : C.A j)
+      (uu vv : z ⟶ C.F hij ((hp i).prod a c)),
+      uu ≫ ((C.functF hij).map (hp i).fst) = vv ≫ ((C.functF hij).map (hp i).fst) →
+      uu ≫ ((C.functF hij).map (hp i).snd) = vv ≫ ((C.functF hij).map (hp i).snd) → uu = vv)
+    (hppres_pair : ∀ {i j} (hij : D.le i j) (a c : C.A i) (z : C.A j)
+      (p : z ⟶ C.F hij a) (q : z ⟶ C.F hij c),
+      ∃ r : z ⟶ C.F hij ((hp i).prod a c),
+        r ≫ ((C.functF hij).map (hp i).fst) = p ∧ r ≫ ((C.functF hij).map (hp i).snd) = q)
+    (he : ∀ i, HasEqualizers (C.A i))
+    (hepres : ∀ {i j} (hij : D.le i j) {X Y : C.A i} (f g : X ⟶ Y) (z : C.A j)
+      (uu vv : z ⟶ C.F hij (eqObj f g)),
+      uu ≫ ((C.functF hij).map (eqMap f g)) = vv ≫ ((C.functF hij).map (eqMap f g)) → uu = vv)
+    (hepres_lift : ∀ {i j} (hij : D.le i j) {X Y : C.A i} (f g : X ⟶ Y) (z : C.A j)
+      (k : z ⟶ C.F hij X) (_hk : k ≫ ((C.functF hij).map f) = k ≫ ((C.functF hij).map g)),
+      ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ ((C.functF hij).map (eqMap f g)) = k)
+    (hcanon : letI : Cat C.Obj := colimitCat C hC
+        letI : HasPullbacks C.Obj :=
+          colimitHasPullbacks C hC ht htpres hp hppres hppres_pair he hepres hepres_lift
+        ∀ {X Y Z : C.Obj} (f : X ⟶ Z) (g : Y ⟶ Z),
+            Cover f → Cover (HasPullbacks.has f g).cone.π₂)
+    (hstage : ∀ (X : C.Obj),
+        letI : Cat C.Obj := colimitCat C hC
+        letI : PreRegularCategory C.Obj :=
+          colimitPreRegular C hC ht htpres hp hppres hppres_pair he hepres hepres_lift hcanon
+        WellSupported X →
+        StageRelCap C ht (colimOut C X).1 (colimOut C X).2) :
+    ∃ (Ā : Type u) (hC : Cat.{u} Ā) (hR : RegularCategory Ā),
+      @Capital.{u, u} Ā hC (hR.toHasTerminal) ∧
+      ∃ (F : A → Ā) (hF : Functor F), @Faithful.{u, u} A _ Ā hC F hF := by
+  -- Build the pre-regular `CapData` AS A RECORD LITERAL (not via `capData_of_cofinalSystem`'s
+  -- `Nonempty`), so its `.ι`/`.D`/`.C` fields are DEFINITIONALLY `ι`/`D`/`C`; this lets `hi`/`hmono`/
+  -- `hcovpres` (stated over `C`) land directly into the regular reduction without a transport.
+  letI cd : CapData.{u} A :=
+    { ι := ι, D := D, C := C, hC := hC, hne := hne, i₀ := i₀
+      base := base, baseFun := baseFun, baseFaithful := baseFaithful
+      hfaith := hfaith, hcons := hcons
+      ht := ht, htpres := htpres, hp := hp, hppres := hppres, hppres_pair := hppres_pair
+      he := he, hepres := hepres, hepres_lift := hepres_lift, hcanon := hcanon
+      capital := capital_of_cofinalSystem C hC ht htpres hp hppres hppres_pair he hepres hepres_lift
+        hcanon hcons hmono hstage }
+  -- `cd.C ≡ C` definitionally, so `hi`/`hmono`/`hcovpres` over `C` ARE the per-`cd` ingredients the
+  -- regular reduction consumes (`capitalization_of_capData_regular_of_covers` derives transition
+  -- image-preservation from cover+mono preservation via `Colim.transitions_preserve_images`).
+  exact capitalization_of_capData_regular_of_covers cd hi
+    (fun {i j} hij {x y} {φ} hφ => hmono hij φ hφ)
+    (fun {i j} hij {x y} f hf => hcovpres hij f hf)
+
 end Freyd

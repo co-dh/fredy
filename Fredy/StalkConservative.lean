@@ -328,4 +328,41 @@ theorem relStalk_faithful_of_wellPointed
   relStalk_faithful principalTop principalTop_isPreFilter (principalTop_projective hone)
     (fun {_ _} f hiso => principalStalk_reflects_iso hwp f hiso)
 
+/-! ## §2.218 (K2) — the stalk-route REPRESENTATION of a tabular allegory in `Rel(Set)`
+
+  Wires `relStalk_faithful_of_wellPointed` into the §2.218 assembly: for a TABULAR unitary
+  distributive allegory `𝒜`, the carrier bridge `bridgeFunctor : 𝒜 ⟶ Rel(Map 𝒜)` (faithful, R2) and
+  a faithful regular allegory morphism `cap : Rel(Map 𝒜) ⟶ Rel(Ā)` from capitalizing `Map 𝒜 ↪ Ā`
+  (R3) compose with the principal-top stalk `Rel(T) : Rel(Ā) ⟶ Rel(Set)` to a FAITHFUL allegory
+  morphism `𝒜 ⟶ Rel(Set)` — a faithful representation in the allegory of relations in a *single* set
+  (a fortiori in a power).  This is the STALK route to §2.218 (Freyd §1.635), which needs only
+  `Projective one` + FULL well-pointedness of `Ā` (`hwp`), NOT all-objects-projective AC.
+
+  RESIDUAL (R3, the §1.543 capital target).  `Ā` must be a `PreLogos` that is FULLY WELL-POINTED
+  and has a faithful `cap` from the capitalization of `Map 𝒜`.  The §1.543 transfinite tower's
+  generic regular packaging is `Freyd.capitalization_regular_of_cofinalSystem`
+  (`Fredy/CapitalizationTransfinite.lean`), which delivers a regular CAPITAL target — but `Capital`
+  (`∀ A, WellSupported A → WellPointed A`, S1_52) gives well-pointedness only on WELL-SUPPORTED
+  objects, whereas the stalk's iso-reflection (`principalStalk_reflects_iso`) needs FULL `∀ A,
+  WellPointed A`.  That full well-pointedness is the genuine remaining residual of §1.543
+  capitalization (see the §2.218 marker in `S2_21.lean`); it is surfaced here as the explicit
+  `hwp` hypothesis, alongside `[PreLogos Ā]` and the bridge `cap`. -/
+theorem repr_in_set_of_tabular_wellPointed
+    {𝒜 : Type u} [Alg.TabularUnitaryDistributiveAllegory 𝒜]
+    {Ā : Type u} [Cat.{u} Ā] [PreLogos Ā]
+    (hwp : ∀ A : Ā, WellPointed A) (hone : Projective (one : Ā))
+    (cap : @Alg.AllegoryFunctor (RelObj (Alg.MapObj 𝒜)) (RelObj Ā)
+        (@relAllegory (Alg.MapObj 𝒜) Alg.mapCat Alg.mapRegularCategory) (relAllegory))
+    (hcap : cap.Faithful) :
+    ∃ rep : Alg.AllegoryFunctor 𝒜 (RelObj (Type u)), rep.Faithful := by
+  letI : Cat (Alg.MapObj 𝒜) := Alg.mapCat
+  letI : RegularCategory (Alg.MapObj 𝒜) := Alg.mapRegularCategory
+  -- The three faithful factors: bridge (R2) ∘ cap (R3) ∘ stalk (K2 = relStalk_faithful_of_wellPointed).
+  refine ⟨((bridgeFunctor 𝒜).comp cap).comp
+      (TF_regularFunctor principalTop principalTop_isPreFilter
+        (principalTop_projective hone)).relAllegoryHom, ?_⟩
+  exact Alg.AllegoryFunctor.Faithful.comp
+    (Alg.AllegoryFunctor.Faithful.comp (bridgeFunctor_faithful 𝒜) hcap)
+    (relStalk_faithful_of_wellPointed hwp hone)
+
 end Freyd.PreLogosHorn.Stalk

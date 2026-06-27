@@ -549,6 +549,26 @@ example (𝒜 : Type u) [DistributiveAllegory 𝒜] : PositiveAllegory (Mat.MatO
 --   colimit-only ZERO-preservation (already recorded).  The §2.217 conservativity wall is REAL, not a
 --   wrong-route artifact, and is the true irreducible residual of §2.218.
 --
+-- ★ K2′ — the WELL-POINTED stalk route, both stalk residuals discharged (Fredy/StalkConservative.lean,
+--   axioms ⊆ [propext,Classical.choice,Quot.sound]).  The PRINCIPAL-TOP stalk `T_principalTop` makes
+--   BOTH K2 residuals follow from `Ā` being FULLY WELL-POINTED + `Projective one`:
+--     • projectivity  — `principalTop`'s members are `≅ 1`, projective once `1` is (`Projective one`,
+--       from `Capital` via `capital_one_Projective`, §1.525);
+--     • conservativity — `principalStalk_reflects_iso` (`isIso_of_points_bijective`): in a FULLY
+--       well-pointed pre-logos a points-bijective map is an iso, so the principal stalk reflects isos.
+--   `Freyd.PreLogosHorn.Stalk.relStalk_faithful_of_wellPointed (hwp : ∀ A, WellPointed Ā) (hone :
+--   Projective one)` gives `Rel(T_principalTop)` faithful with NO separate `hrefl`.  Wired into the
+--   §2.218 assembly as `Freyd.PreLogosHorn.Stalk.repr_in_set_of_tabular_wellPointed` — a FAITHFUL
+--   `𝒜 ⟶ Rel(Set)` (a single set, a fortiori a power) from a tabular `𝒜`, given a PreLogos `Ā` that is
+--   fully well-pointed + `Projective one` + a faithful `cap : Rel(Map 𝒜) ⟶ Rel(Ā)`.  This is the
+--   CLEANER route: it needs only `Projective one` + well-pointedness, NOT all-objects-projective AC
+--   (the homRep route's `hproj`).  THE RESIDUAL IT EXPOSES is the genuine §1.543 gap: capitalization
+--   delivers `Capital` = (well-supported ⟹ well-pointed), which is STRICTLY weaker than FULL
+--   `∀ A, WellPointed Ā` (a non-well-supported object — e.g. one with empty support — is never
+--   well-pointed, so full well-pointedness is FALSE in general for the capital `Ā`).  Hence neither
+--   route is unconditional at the §1.543 level: homRep needs all-objects-AC, K2′ needs full
+--   well-pointedness, and `Capital` supplies neither.  R3 remains the genuine residual.
+--
 -- ★ R2 — DONE (CARRIER BRIDGE, Fredy/MapCat.lean + Fredy/RelCat.lean, axioms ⊆ [propext,
 --   Classical.choice,Quot.sound]):  the MISSING meet-tabulation lemma `relOf (E ⊓ F) = relOf E ∩
 --   relOf F` is now built — `Freyd.Alg.relOf_inter` (MapCat): `⊑` by `relOf_le_of_relLe` on the
@@ -636,10 +656,14 @@ example (𝒜 : Type u) [DistributiveAllegory 𝒜] : PositiveAllegory (Mat.MatO
 --              `coverMono_isImage` makes that an image; `Colim.objIncl_preserves_images` is the
 --              per-stage statement).  `capitalization_of_capData_regular` (Fredy/Capitalization.lean)
 --              ASSEMBLES `RegularCategory Ā` (capital + faithful) from a `CapData` PLUS the three
---              image hypotheses `hi`/`hmono`/`himgpres`.  RESIDUAL: those three must be DISCHARGED
---              from the §1.543 tower (the slice successors are regular, hence the rungs preserve
---              images) — wiring not yet threaded through `capData_exists`.  So R3(a) is reduced from
---              "no machinery exists" to "thread per-stage image-preservation through the tower".
+--              image hypotheses `hi`/`hmono`/`himgpres`.  THREADED (2026-06): the generic regular
+--              entry point `Freyd.capitalization_regular_of_cofinalSystem` (Fredy/Capitalization-
+--              Transfinite.lean) now delivers `RegularCategory Ā` (capital + faithful) directly from a
+--              cofinal `CatSystem` + per-stage `hi : ∀ i, HasImages (C.A i)` + `hcovpres` (covers
+--              preserved); it derives transition image-preservation from cover+mono preservation via
+--              `capitalization_of_capData_regular_of_covers`/`Colim.transitions_preserve_images`.  So
+--              R3(a) is DONE at the generic cofinal-system level (axioms [propext,Classical.choice,
+--              Quot.sound]); each concrete tower supplies `hi` from its per-stage `CapStep.stepImages`.
 --          (b) `hproj` — EVERY object of `Ā` projective (every cover splits) = `ACRegularCategory`
 --              (S1_57 `Projective C := every cover into C splits`; `∀ C, Choice C ↔ ∀ C, Projective C`).
 --              `homRep_regularFunctor` requires this for cover/image preservation.  But `Capital`
