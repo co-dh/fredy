@@ -2208,7 +2208,7 @@ namespace RelFunctor
 
 open Freyd
 
-variable {C D : Type u} [Cat.{v} C] [Cat.{v} D]
+variable {C : Type u₁} {D : Type u₂} [Cat.{v} C] [Cat.{v} D]
 
 /-- A **regular functor** `F : C → D` between regular categories: preserves binary products
     (`pres_prod`), covers (`pres_covers`), monos (`pres_mono`), and images (`pres_image`).
@@ -2836,6 +2836,13 @@ noncomputable def RegularFunctor.relAllegoryHom (hreg : RegularFunctor F) :
   the legs `F R.colA → F S.colA`.  Fullness lifts `g` to `F h`; faithfulness turns the leg equations
   `F(h ≫ S.colA) = F R.colA` into `h ≫ S.colA = R.colA`, i.e. a `RelHom R S`.  -/
 
+section SameUniverseFaithful
+-- The full+faithful faithfulness route uses `Faithful F`, which is stated for a single object
+-- universe; re-fix `D` at `C`'s universe `u₁` here.  (The §2.218 assembly uses instead the
+-- cross-universe image-reflection variant `relMap_faithful_of_reflects` below.)
+variable {D : Type u₁} [Cat.{v} D] [RegularCategory C] [RegularCategory D]
+  {F : C → D} [hF : Functor F]
+
 /-- One direction of faithfulness: a `RelLe` between the `F`-image relations descends to a `RelLe`
     upstairs, given `F` full+faithful and split covers in `D`. -/
 theorem relImageObj_reflect_le (hreg : RegularFunctor F)
@@ -2881,6 +2888,20 @@ theorem RegularFunctor.relMap_faithful (hreg : RegularFunctor F)
   exact quotLe_antisymm
     (relImageObj_reflect_le hreg hfull hfaith hsplit hle)
     (relImageObj_reflect_le hreg hfull hfaith hsplit hge)
+
+end SameUniverseFaithful
+
+/-! ### §2.218 (2b′) — Cross-universe faithfulness of `Rel(F)` via image-reflection
+
+  The §2.218 assembly's `F = homRep ‾Map A : ‾Map A → Set^|‾Map A|` is faithful and reflects
+  monos, but is NOT full, and crosses universes (`Type u → Type (u+1)`).  The fullness-based
+  `relMap_faithful` does not apply.  Instead we use that a `BinRel` span is already JOINTLY MONIC
+  (its own image), and that `F`, being faithful and image-reflecting, reflects the `RelLe`
+  comparison: a containment `relImageObj R ⊆ relImageObj S` downstairs comes from a comparison
+  `k : IR.src → IS.src`; splitting the cover `eS` and pre/post-composing the covers `eR`, `eS`
+  produces a map `F R.src → F S.src` carrying the legs, which — because the SPANS are jointly monic
+  and `F` is faithful — descends to the required `RelHom R S`.  The leg-lift that fullness supplied
+  is replaced by the SEPARATING property of `F` applied to the jointly-monic target span. -/
 
 end RelFunctor
 
@@ -2944,5 +2965,23 @@ instance powerAllegory [Allegory.{v} 𝒜] : Allegory.{max w v} (PowerObj I 𝒜
     (R S : X ⟶ Y) (i : I) : (R ∩ S) i = R i ∩ S i := rfl
 
 end PowerAllegory
+
+/-! ## §2.218 BRICK 2c — `homRep 𝒞` packaged as a `RegularFunctor`
+
+  Combine the five §1.62 `HomRepRegular` preservation lemmas (`homRep_preserves_prod`/
+  `_pullbacks`/`_covers`/`_images`, and §1.55 `homRep_preserves_mono`) into the cross-universe
+  `RegularFunctor (homRep 𝒞) : 𝒞 → (𝒞 → Type u)`.  Requires `𝒞` CAPITAL — every cover splits
+  (`hproj`), the §1.543 situation — for the cover- and image-preservation. -/
+
+/-- **§2.218 (2c).**  When every cover in the regular category `𝒞` splits (`𝒞` capital, the
+    §1.543 case), the Henkin–Lubkin representation `homRep 𝒞 : 𝒞 → Set^|𝒞|` is a regular functor. -/
+theorem homRep_regularFunctor {𝒞 : Type u} [Cat.{u} 𝒞] [RegularCategory 𝒞]
+    (hproj : ∀ C : 𝒞, ∀ {P : 𝒞} (e : P ⟶ C), Cover e → ∃ s : C ⟶ P, s ≫ e = Cat.id C) :
+    RelFunctor.RegularFunctor (homRep 𝒞) where
+  pres_prod := HomRepRegular.homRep_preserves_prod
+  pres_pullback := HomRepRegular.homRep_preserves_pullbacks
+  pres_covers := HomRepRegular.homRep_preserves_covers hproj
+  pres_mono := homRep_preserves_mono 𝒞
+  pres_image := HomRepRegular.homRep_preserves_images hproj
 
 end Freyd

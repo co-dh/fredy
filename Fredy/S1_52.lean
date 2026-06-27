@@ -45,6 +45,17 @@ class PreRegularCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
     HasTerminal 𝒞, HasBinaryProducts 𝒞, HasPullbacks 𝒞,
     PullbacksTransferCovers 𝒞
 
+/-- Every regular category is pre-regular (forget images).  The four shared parents
+    (`HasTerminal`/`HasBinaryProducts`/`HasPullbacks`/`PullbacksTransferCovers`) are projected
+    directly, so this introduces no new data and merges cleanly with any other `PreRegularCategory`
+    instance built from the same parents. -/
+instance (priority := 100) RegularCategory.toPreRegularCategory
+    {𝒞 : Type u} [Cat.{v} 𝒞] [RegularCategory 𝒞] : PreRegularCategory 𝒞 where
+  toHasTerminal := inferInstance
+  toHasBinaryProducts := inferInstance
+  toHasPullbacks := inferInstance
+  toPullbacksTransferCovers := inferInstance
+
 /-- The chosen pullback of a cover along any map is a cover. -/
 theorem cover_pullback [hpull : HasPullbacks 𝒞] [PullbacksTransferCovers 𝒞]
     {A B C : 𝒞} {f : A ⟶ B} (g : C ⟶ B) (hf : Cover f) :
@@ -284,7 +295,7 @@ theorem capital_one_projective
   finite products (terminal + binary products), equalizers, and covers (§1.52). -/
 
 /-- A functor `F : 𝒞 → 𝒟` PRESERVES COVERS if it carries every cover to a cover. -/
-def PreservesCovers {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
+def PreservesCovers {𝒞 : Type u₁} {𝒟 : Type u₂} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
     (F : 𝒞 → 𝒟) [hF : Functor F] : Prop :=
   ∀ {A B : 𝒞} (f : A ⟶ B), Cover f → Cover (hF.map f)
 

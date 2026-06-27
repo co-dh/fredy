@@ -81,6 +81,16 @@ class HasImages (𝒞 : Type u) [Cat.{v} 𝒞] where
   image   : ∀ {A B : 𝒞} (f : A ⟶ B), Subobject 𝒞 B
   isImage : ∀ {A B : 𝒞} (f : A ⟶ B), IsImage f (image f)
 
+/-- A monic `m : M → B` is its OWN image: the subobject `⟨M, m, hm⟩` is the image of `m`.
+    (`m` allows itself by `id`; minimality factors any allowing subobject through `m` using `hm`.) -/
+theorem monic_isImage {M B : 𝒞} (m : M ⟶ B) (hm : Monic m) :
+    IsImage m (Subobject.mk M m hm) := by
+  refine ⟨⟨Cat.id M, Cat.id_comp m⟩, ?_⟩
+  intro S hS
+  obtain ⟨g, hg⟩ := hS
+  -- `g ≫ S.arr = m`, so `⟨M, m⟩ ≤ S` via `g`.
+  exact ⟨g, hg⟩
+
 /-! ## §1.512 Cover
 
   A morphism is a COVER if every monic it factors through is iso.
@@ -185,7 +195,7 @@ theorem cover_iff_image_entire {X Y : 𝒞} (f : X ⟶ Y) : Cover f ↔ Subobjec
 
 /-- Push a subobject of `B` forward along a mono-preserving functor `T`, landing as
     a subobject of `T B`. -/
-def Subobject.map {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ] (T : 𝒜 → ℬ) [hT : Functor T]
+def Subobject.map {𝒜 : Type u₁} {ℬ : Type u₂} [Cat.{v} 𝒜] [Cat.{v} ℬ] (T : 𝒜 → ℬ) [hT : Functor T]
     (hpm : PreservesMono T) {B : 𝒜} (S : Subobject 𝒜 B) : Subobject ℬ (T B) where
   dom   := T S.dom
   arr   := hT.map S.arr
@@ -193,7 +203,7 @@ def Subobject.map {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ] (T : 𝒜 →
 
 /-- `T` PRESERVES IMAGES: it carries every image factorization in `𝒜` to an image
     factorization in `ℬ`. -/
-def PreservesImages {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ] (T : 𝒜 → ℬ) [hT : Functor T]
+def PreservesImages {𝒜 : Type u₁} {ℬ : Type u₂} [Cat.{v} 𝒜] [Cat.{v} ℬ] (T : 𝒜 → ℬ) [hT : Functor T]
     (hpm : PreservesMono T) : Prop :=
   ∀ {A B : 𝒜} (f : A ⟶ B) (I : Subobject 𝒜 B), IsImage f I → IsImage (hT.map f) (Subobject.map T hpm I)
 
@@ -222,6 +232,37 @@ theorem faithful_preserves_images_reflects_images
   obtain ⟨kinv, _hk1, hk2⟩ := hfaithful.2 k hTk_iso
   refine ⟨hJallows, ?_⟩
   -- `J` is minimal: for any `S` allowing `f`, factor `J ≤ image f ≤ S`.
+  intro S hS
+  obtain ⟨t, ht⟩ := hI.2 S hS
+  exact ⟨kinv ≫ t, by
+    calc (kinv ≫ t) ≫ S.arr = kinv ≫ t ≫ S.arr     := Cat.assoc _ _ _
+      _ = kinv ≫ (image f).arr                       := by rw [ht]
+      _ = kinv ≫ k ≫ J.arr                           := by rw [hk]
+      _ = (kinv ≫ k) ≫ J.arr                         := (Cat.assoc _ _ _).symm
+      _ = Cat.id J.dom ≫ J.arr                       := by rw [hk2]
+      _ = J.arr                                      := Cat.id_comp _⟩
+
+/-- **§1.511, cross-universe form.**  Same as `faithful_preserves_images_reflects_images` but the
+    only thing it needs from `Faithful` is REFLECTION OF ISOS (`hreflIso`), and the categories may
+    live in different object universes — the form required by the §2.218 `homRep : Type u → Type (u+1)`
+    representation (faithful + reflects-iso, not full). -/
+theorem preservesImages_reflectsImages_of_reflectsIso
+    {𝒜 : Type u₁} {ℬ : Type u₂} [Cat.{v} 𝒜] [Cat.{v} ℬ] [HasImages 𝒜]
+    (T : 𝒜 → ℬ) [hT : Functor T]
+    (hreflIso : ∀ {X Y : 𝒜} (f : X ⟶ Y), IsIso (hT.map f) → IsIso f)
+    (hpm : PreservesMono T) (hpres : PreservesImages T hpm)
+    {A B : 𝒜} (f : A ⟶ B) (J : Subobject 𝒜 B)
+    (hJallows : Allows J f) (hJimg : IsImage (hT.map f) (Subobject.map T hpm J)) :
+    IsImage f J := by
+  have hI : IsImage f (image f) := HasImages.isImage f
+  obtain ⟨k, hk⟩ := hI.2 J hJallows
+  have hTI : IsImage (hT.map f) (Subobject.map T hpm (image f)) := hpres f (image f) hI
+  have hTk_fac : hT.map k ≫ (Subobject.map T hpm J).arr = (Subobject.map T hpm (image f)).arr := by
+    show hT.map k ≫ hT.map J.arr = hT.map (image f).arr
+    rw [← hT.map_comp, hk]
+  have hTk_iso : IsIso (hT.map k) := image_comparison_iso hTI hJimg (hT.map k) hTk_fac
+  obtain ⟨kinv, _hk1, hk2⟩ := hreflIso k hTk_iso
+  refine ⟨hJallows, ?_⟩
   intro S hS
   obtain ⟨t, ht⟩ := hI.2 S hS
   exact ⟨kinv ≫ t, by

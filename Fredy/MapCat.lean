@@ -504,7 +504,7 @@ end Rel148
 section AllegoryFunctorDef
 
 /-- A functor between allegories preserving `≫`, `id`, `°`, `∩`. -/
-structure AllegoryFunctor (𝒜 ℬ : Type u) [Allegory.{v} 𝒜] [Allegory.{v} ℬ] where
+structure AllegoryFunctor (𝒜 : Type u₁) (ℬ : Type u₂) [Allegory.{v₁} 𝒜] [Allegory.{v₂} ℬ] where
   /-- Object map. -/
   obj  : 𝒜 → ℬ
   /-- Hom map. -/
@@ -516,7 +516,7 @@ structure AllegoryFunctor (𝒜 ℬ : Type u) [Allegory.{v} 𝒜] [Allegory.{v} 
 
 /-- A pair of allegory functors mutually inverse on objects and homs (using `HEq`
     for the hom round-trip conditions, since the hom-types differ by the object round-trip). -/
-structure AllegoryEquiv (𝒜 ℬ : Type u) [Allegory.{v} 𝒜] [Allegory.{v} ℬ] where
+structure AllegoryEquiv (𝒜 : Type u₁) (ℬ : Type u₂) [Allegory.{v₁} 𝒜] [Allegory.{v₂} ℬ] where
   toFun   : AllegoryFunctor 𝒜 ℬ
   invFun  : AllegoryFunctor ℬ 𝒜
   left_inv_obj  : ∀ (a : 𝒜), invFun.obj (toFun.obj a) = a
@@ -527,6 +527,39 @@ structure AllegoryEquiv (𝒜 ℬ : Type u) [Allegory.{v} 𝒜] [Allegory.{v} �
   /-- Round-trip on homs: `toFun.map (invFun.map S) ≅ S` (heterogeneously). -/
   right_inv_map : ∀ {a b : ℬ} (S : a ⟶ b),
     HEq (toFun.map (invFun.map S)) S
+
+/-- Composition of allegory functors: `obj`/`map` compose, every law follows. -/
+def AllegoryFunctor.comp {𝒜 : Type u₁} {ℬ : Type u₂} {𝒞 : Type u₃}
+    [Allegory.{v₁} 𝒜] [Allegory.{v₂} ℬ] [Allegory.{v₃} 𝒞]
+    (F : AllegoryFunctor 𝒜 ℬ) (G : AllegoryFunctor ℬ 𝒞) : AllegoryFunctor 𝒜 𝒞 where
+  obj a := G.obj (F.obj a)
+  map {a b} R := G.map (F.map R)
+  map_id a := by rw [F.map_id, G.map_id]
+  map_comp R S := by rw [F.map_comp, G.map_comp]
+  map_recip R := by rw [F.map_recip, G.map_recip]
+  map_inter R S := by rw [F.map_inter, G.map_inter]
+
+/-- An allegory functor is FAITHFUL if it is injective on hom-sets. -/
+def AllegoryFunctor.Faithful {𝒜 : Type u₁} {ℬ : Type u₂}
+    [Allegory.{v₁} 𝒜] [Allegory.{v₂} ℬ] (F : AllegoryFunctor 𝒜 ℬ) : Prop :=
+  ∀ {a b : 𝒜} (R S : a ⟶ b), F.map R = F.map S → R = S
+
+/-- Faithfulness composes. -/
+theorem AllegoryFunctor.Faithful.comp {𝒜 : Type u₁} {ℬ : Type u₂} {𝒞 : Type u₃}
+    [Allegory.{v₁} 𝒜] [Allegory.{v₂} ℬ] [Allegory.{v₃} 𝒞]
+    {F : AllegoryFunctor 𝒜 ℬ} {G : AllegoryFunctor ℬ 𝒞}
+    (hF : F.Faithful) (hG : G.Faithful) : (F.comp G).Faithful :=
+  fun R S h => hF R S (hG _ _ h)
+
+/-- The forward leg of an `AllegoryEquiv` is faithful (it has a left inverse on homs). -/
+theorem AllegoryEquiv.toFun_faithful {𝒜 : Type u₁} {ℬ : Type u₂}
+    [Allegory.{v₁} 𝒜] [Allegory.{v₂} ℬ] (E : AllegoryEquiv 𝒜 ℬ) : E.toFun.Faithful := by
+  intro a b R S h
+  have hR := E.left_inv_map R
+  have hS := E.left_inv_map S
+  -- `invFun.map (toFun.map R) ≅ R`, `invFun.map (toFun.map S) ≅ S`, and `toFun.map R = toFun.map S`.
+  rw [h] at hR
+  exact eq_of_heq (hR.symm.trans hS)
 
 end AllegoryFunctorDef
 

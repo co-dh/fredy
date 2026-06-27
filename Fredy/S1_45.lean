@@ -544,7 +544,7 @@ theorem mono_iff_level_diag_iso {A B : 𝒞} {f : A ⟶ B} (L : Level f) :
 
 /-- T PRESERVES PULLBACKS: for every pullback cone in `𝒜`, the image cone in `ℬ`
     is also a pullback. -/
-def PreservesPullbacks {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
+def PreservesPullbacks {𝒜 : Type u₁} {ℬ : Type u₂} [Cat.{v} 𝒜] [Cat.{v} ℬ]
     (T : 𝒜 → ℬ) [hT : Functor T] : Prop :=
   ∀ {A B C : 𝒜} (f : A ⟶ C) (g : B ⟶ C) (c : Cone f g),
     c.IsPullback →

@@ -2832,4 +2832,164 @@ instance powerRegular : RegularCategory (I → Type w) where
 
 end SetRegular
 
+/-! ## §2.218 BRICK 2c — the hom-representation `homRep 𝒞 : 𝒞 → 𝒮^|𝒞|` is a regular functor
+
+  `homRep 𝒞 A i = (i ⟶ A)` is the §1.55 Henkin–Lubkin representation into the power
+  `(𝒞 → Type u)` (= `Set^|𝒞|`, regular by BRICK 1).  A representable functor preserves all
+  limits essentially definitionally (the universal property of products / pullbacks in `𝒞`
+  IS the bijection `Hom(i, lim) ≅ lim Hom(i, –)`), and — when the source is CAPITAL (every
+  object projective, the §1.543 case) — it preserves covers (`homRep_preserves_cover_pointwise`)
+  and hence images.  We assemble the five `RegularFunctor` fields here; the structure itself
+  lives in `RelCat`, so the packaged `RegularFunctor (homRep 𝒞)` is built there from these. -/
+
+namespace HomRepRegular
+
+open SetRegular
+
+variable {𝒞 : Type u} [Cat.{u} 𝒞] [RegularCategory 𝒞]
+
+/-- **`homRep` preserves binary products.**  The comparison `homRep(A×B) → homRep A × homRep B`,
+    `h ↦ (h ≫ fst, h ≫ snd)`, has inverse `(p, q) ↦ ⟨p, q⟩` (the `𝒞`-pairing); both round-trips
+    are the product universal property (`fst_pair`/`snd_pair`/`pair_uniq`). -/
+theorem homRep_preserves_prod : PreservesBinaryProducts (homRep 𝒞) := by
+  intro A B
+  -- The comparison is `pair (map fst) (map snd)`; its fibrewise value at `h` is `(h ≫ fst, h ≫ snd)`.
+  refine ⟨fun i pq => pair (pq.1) (pq.2), ?_, ?_⟩
+  · -- comparison ≫ inverse = id on `homRep (prod A B)`
+    funext i h
+    -- `(pair (map fst)(map snd)) i h = (h ≫ fst, h ≫ snd)`; pairing recovers `h`.
+    show pair ((h ≫ fst : i ⟶ A)) ((h ≫ snd : i ⟶ B)) = h
+    exact (pair_uniq (h ≫ fst) (h ≫ snd) h rfl rfl).symm
+  · -- inverse ≫ comparison = id on `prod (homRep A) (homRep B)`
+    funext i pq
+    -- `cmp i (pair pq.1 pq.2) = (pair pq.1 pq.2 ≫ fst, pair pq.1 pq.2 ≫ snd) = (pq.1, pq.2) = pq`.
+    show ((pair pq.1 pq.2 ≫ fst : i ⟶ A), (pair pq.1 pq.2 ≫ snd : i ⟶ B)) = pq
+    rw [fst_pair, snd_pair]
+    rfl
+
+/-- **`homRep` preserves pullbacks.**  A pullback square in `𝒞` is sent to a pullback square in
+    `Set^|𝒞|`: at each index `i`, a fibrewise compatible pair `(x, y)` of arrows out of `i`
+    glues, by the pullback's universal property, to a unique arrow `i → c.pt`. -/
+theorem homRep_preserves_pullbacks : PreservesPullbacks (homRep 𝒞) := by
+  intro A B C f g c hpb
+  -- Goal: the image cone in `Set^|𝒞|` is a pullback, i.e. the canonical lift exists+unique.
+  intro d
+  -- At index `i` and element `x`, `d.π₁ i x : i ⟶ A`, `d.π₂ i x : i ⟶ B`, compatible after `f`/`g`.
+  -- Package the fibre cone over `f, g` in `𝒞` with apex `i`.
+  let leg₁ : ∀ i, d.pt i → (i ⟶ A) := fun i x => d.π₁ i x
+  let leg₂ : ∀ i, d.pt i → (i ⟶ B) := fun i x => d.π₂ i x
+  have hcompat : ∀ i (x : d.pt i), leg₁ i x ≫ f = leg₂ i x ≫ g := by
+    intro i x
+    have := congrFun (congrFun d.w i) x
+    simpa [homRep, familyFunctor, homFunctor] using this
+  let fibreCone : ∀ i, d.pt i → Cone f g := fun i x => Cone.mk i (leg₁ i x) (leg₂ i x) (hcompat i x)
+  refine ⟨fun i x => (hpb (fibreCone i x)).choose, ?_, ?_⟩
+  · constructor
+    · funext i x
+      show (hpb (fibreCone i x)).choose ≫ c.π₁ = leg₁ i x
+      exact (hpb (fibreCone i x)).choose_spec.1.1
+    · funext i x
+      show (hpb (fibreCone i x)).choose ≫ c.π₂ = leg₂ i x
+      exact (hpb (fibreCone i x)).choose_spec.1.2
+  · intro u hu1 hu2
+    funext i x
+    -- uniqueness fibrewise: `u i x : i ⟶ c.pt` is also a lift, so equals the chosen one.
+    refine (hpb (fibreCone i x)).choose_spec.2 (u i x) ?_ ?_
+    · have := congrFun (congrFun hu1 i) x; simpa [homRep, familyFunctor, homFunctor] using this
+    · have := congrFun (congrFun hu2 i) x; simpa [homRep, familyFunctor, homFunctor] using this
+
+/-- **`homRep` preserves covers**, given the source is capital (every object projective, so every
+    cover splits — the §1.543 situation).  A power morphism is a cover iff fibrewise surjective
+    (`power_cover_iff`); `homRep_preserves_cover_pointwise` gives exactly fibrewise surjectivity. -/
+theorem homRep_preserves_covers
+    (hproj : ∀ C : 𝒞, ∀ {P : 𝒞} (e : P ⟶ C), Cover e → ∃ s : C ⟶ P, s ≫ e = Cat.id C) :
+    PreservesCovers (homRep 𝒞) := by
+  intro X Y f hf
+  rw [power_cover_iff]
+  intro i b
+  obtain ⟨h', hh'⟩ := homRep_preserves_cover_pointwise hproj hf i b
+  exact ⟨h', hh'⟩
+
+/-- **`homRep` preserves images**, given the source is capital.  In a regular category
+    `image f = cover ; mono` (the `image.lift` is a cover, `image.arr` a mono); `homRep` preserves
+    both (`homRep_preserves_covers`, `homRep_preserves_mono`), and in `Set^|𝒞|` a cover-then-mono
+    factorization IS the image (`image` of a cover∘mono is the mono).  We discharge the
+    `PreservesImages` obligation directly: the pushed-forward image subobject allows `homRep f`
+    and is minimal, because the cover `homRep (image.lift f)` is onto it. -/
+theorem homRep_preserves_images
+    (hproj : ∀ C : 𝒞, ∀ {P : 𝒞} (e : P ⟶ C), Cover e → ∃ s : C ⟶ P, s ≫ e = Cat.id C) :
+    PreservesImages (homRep 𝒞) (homRep_preserves_mono 𝒞) := by
+  intro A B f I hI
+  -- `Subobject.map (homRep 𝒞) _ I` has arrow `homRep (I.arr)` (a mono) and allows `homRep f`.
+  -- We show it is the image of `homRep f`.  Strategy: `homRep` preserves the cover `image.lift`.
+  -- `hI : IsImage f I`.  The canonical image `image f` has `(image f).le I` and `I.le (image f)`
+  -- (both images), but to stay general we work from `hI` directly via the cover onto `I`.
+  -- The lift `ℓ : A → I.dom` with `ℓ ≫ I.arr = f` is a cover (since `I` is an image: `image f`
+  -- minimal and `f` factors, the comparison is a cover).  We obtain it from `cover_iff`...
+  -- Simpler: use that in a regular category, the image lift `image.lift f` is a cover and
+  -- `(image f)` equals `I` up to iso; transport along the iso.
+  -- We instead prove minimality of `Subobject.map _ I` by hand using the onto cover.
+  -- Allows: `homRep f` factors through `homRep I.arr` via `homRep ℓ`.
+  obtain ⟨ℓ, hℓ⟩ := hI.1
+  -- ℓ ≫ I.arr = f, and ℓ is a cover (image lift is a cover; here `I` is an image of `f`).
+  have hℓcov : Cover ℓ := by
+    -- `ℓ : A → I.dom` with `ℓ ≫ I.arr = f`.  Since `I` is the image, `image.lift f` and `ℓ`
+    -- both witness the factorization through a mono; `image.lift` is a cover and the
+    -- comparison `image f ≅ I` makes `ℓ` a cover.
+    have hImg : IsImage f (image f) := HasImages.isImage f
+    -- comparison isos between the two images `image f` and `I`
+    obtain ⟨k, hk⟩ := hImg.2 I hI.1
+    obtain ⟨k', hk'⟩ := hI.2 (image f) hImg.1
+    -- `k : (image f).dom → I.dom`, `k ≫ I.arr = (image f).arr`; `k' : I.dom → (image f).dom`.
+    -- `k` is iso (mutually inverse via monic cancellation).
+    have hkk' : k ≫ k' = Cat.id (image f).dom := by
+      apply (image f).monic
+      rw [Cat.assoc, hk', hk, Cat.id_comp]
+    have hk'k : k' ≫ k = Cat.id I.dom := by
+      apply I.monic
+      rw [Cat.assoc, hk, hk', Cat.id_comp]
+    -- `image.lift f : A → (image f).dom` is a cover; `ℓ = image.lift f ≫ k` (both monic-cancel
+    -- to `f` through `I.arr`), so `ℓ` is a cover.
+    have hlift : image.lift f ≫ k = ℓ := by
+      apply I.monic
+      rw [Cat.assoc, hk, image.lift_fac, hℓ]
+    have hkcov : Cover k := iso_cover k ⟨k', hkk', hk'k⟩
+    have hliftcov : Cover (image.lift f) := image_lift_cover f
+    have : Cover (image.lift f ≫ k) := cover_comp hliftcov hkcov
+    rwa [hlift] at this
+  -- Now build `IsImage (homRep f) (Subobject.map (homRep 𝒞) _ I)`.
+  refine ⟨⟨(homRepFunctor 𝒞).map ℓ, ?_⟩, ?_⟩
+  · -- allows: `homRep ℓ ≫ homRep I.arr = homRep f`
+    show (homRepFunctor 𝒞).map ℓ ≫ (homRepFunctor 𝒞).map I.arr = (homRepFunctor 𝒞).map f
+    rw [← (homRepFunctor 𝒞).map_comp, hℓ]
+  · -- minimality: any `S` allowing `homRep f` receives `Subobject.map _ I`.
+    intro S hS
+    obtain ⟨t, ht⟩ := hS
+    -- `t : homRep A → S.dom`, `t ≫ S.arr = homRep f`.  Goal `(Subobject.map _ I).le S`: produce
+    -- `r : homRep I.dom → S.dom` with `r ≫ S.arr = (Subobject.map _ I).arr = homRep I.arr`.
+    -- `homRep ℓ` is a cover onto `homRep I.dom` (fibrewise surjective).
+    have hℓcov' : Cover ((homRepFunctor 𝒞).map ℓ) := homRep_preserves_covers hproj ℓ hℓcov
+    rw [power_cover_iff] at hℓcov'
+    -- Fibrewise: pick ANY preimage `pre i y` of `y` under `homRep ℓ`; the value `t i (pre i y)`
+    -- satisfies the required equation regardless of the choice (so no well-definedness needed):
+    --   S.arr (t (pre y)) = homRep I.arr (homRep ℓ (pre y)) = homRep I.arr y.
+    let pre : ∀ i, (homRep 𝒞 I.dom) i → (homRep 𝒞 A) i :=
+      fun i y => (hℓcov' i y).choose
+    have hpre : ∀ i y, (homRepFunctor 𝒞).map ℓ i (pre i y) = y :=
+      fun i y => (hℓcov' i y).choose_spec
+    -- `ht` fibrewise: `S.arr i (t i z) = (homRep f) i z = (homRep I.arr) i ((homRep ℓ) i z)`.
+    have ht' : ∀ i z, S.arr i (t i z)
+        = (homRepFunctor 𝒞).map I.arr i ((homRepFunctor 𝒞).map ℓ i z) := by
+      intro i z
+      have e1 : (homRepFunctor 𝒞).map f = (homRepFunctor 𝒞).map ℓ ≫ (homRepFunctor 𝒞).map I.arr := by
+        rw [← (homRepFunctor 𝒞).map_comp, hℓ]
+      have e2 : S.arr i (t i z) = (homRepFunctor 𝒞).map f i z := congrFun (congrFun ht i) z
+      rw [e2, e1]; rfl
+    refine ⟨fun i y => t i (pre i y), ?_⟩
+    funext i y
+    show S.arr i (t i (pre i y)) = (homRepFunctor 𝒞).map I.arr i y
+    rw [ht' i (pre i y), hpre i y]
+
+end HomRepRegular
+
 end Freyd

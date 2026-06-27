@@ -449,7 +449,7 @@ def PreservesTerminal {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
 
 /-- A functor `F : 𝒞 → 𝒟` PRESERVES BINARY PRODUCTS if the canonical map
     `F(A × B) → F A × F B` (given by `⟨F fst, F snd⟩`) is an isomorphism. -/
-def PreservesBinaryProducts {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
+def PreservesBinaryProducts {𝒞 : Type u₁} {𝒟 : Type u₂} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
     (F : 𝒞 → 𝒟) [hF : Functor F] [HasBinaryProducts 𝒞] [HasBinaryProducts 𝒟] : Prop :=
   ∀ {A B : 𝒞},
     IsIso (pair (hF.map (fst (A := A) (B := B))) (hF.map (snd (A := A) (B := B))) :
