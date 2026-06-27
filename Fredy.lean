@@ -66,6 +66,24 @@ import Fredy.CatColimitRegular
 import Fredy.Capitalization
 import Fredy.CapitalizationTransfinite
 import Fredy.RelativeCapitalization
+-- §1.543 capitalization: the FULL sorry-free closure of `Freyd.capData_exists`.  `CapDataWiring`
+-- discharges `∀ A, Nonempty (CapData A)` by the §1.547 uniform cofinal successor (`uniformStep`) plus
+-- the §1.546 fibre-density obligation, and transitively imports the whole cofinal-route stack:
+--   UniformCapStep → UniformWellPoints → FibreDensityProof → CapDataWiring (all sorry-free).
+-- `capData_exists`/`capitalization_lemma` are LIVE here; `#print axioms` = [propext, Classical.choice,
+-- Quot.sound].  (The alternative §1.547 `PairObj` route — `RationalCapitalization`/`SliceWellPointed` —
+-- is NOT imported; it carried isolated sorries and is unreachable from this chain.)
+import Fredy.CapitalizationLaxColimit
+import Fredy.LaxColimitPreReg
+import Fredy.CofinalHstage
+import Fredy.RatCapPreReg
+import Fredy.RatCapHcanon
+import Fredy.RatCapStagePTC
+import Fredy.CofinalProjSystem
+import Fredy.UniformCapStep
+import Fredy.UniformWellPoints
+import Fredy.FibreDensityProof
+import Fredy.CapDataWiring
 import Fredy.Inflation
 import Fredy.S2_1
 import Fredy.S2_21
