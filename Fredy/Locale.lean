@@ -108,6 +108,24 @@ theorem meet_top (a : F.carrier) : F.meet a F.top = a :=
 theorem meet_bot (a : F.carrier) : F.meet a F.bot = F.bot :=
   F.le_antisymm (F.meet_le_right a F.bot) (F.bot_le _)
 
+/-- Meet is idempotent: `a ⊓ a = a`. -/
+theorem meet_idem (a : F.carrier) : F.meet a a = a :=
+  F.le_antisymm (F.meet_le_left a a) (F.le_meet (F.le_refl a) (F.le_refl a))
+
+/-- Meet is commutative. -/
+theorem meet_comm (a b : F.carrier) : F.meet a b = F.meet b a :=
+  F.le_antisymm
+    (F.le_meet (F.meet_le_right a b) (F.meet_le_left a b))
+    (F.le_meet (F.meet_le_right b a) (F.meet_le_left b a))
+
+/-- Meet is associative. -/
+theorem meet_assoc (a b c : F.carrier) : F.meet (F.meet a b) c = F.meet a (F.meet b c) :=
+  F.le_antisymm
+    (F.le_meet (F.le_trans (F.meet_le_left _ c) (F.meet_le_left a b))
+      (F.le_meet (F.le_trans (F.meet_le_left _ c) (F.meet_le_right a b)) (F.meet_le_right _ c)))
+    (F.le_meet (F.le_meet (F.meet_le_left a _) (F.le_trans (F.meet_le_right a _) (F.meet_le_left b c)))
+      (F.le_trans (F.meet_le_right a _) (F.meet_le_right b c)))
+
 /-- `sSup` of the whole carrier = top. -/
 theorem sSup_univ : F.sSup (fun _ => True) = F.top :=
   F.le_antisymm (F.sSup_le _ _ (fun _ _ => F.le_top _))
@@ -697,6 +715,85 @@ def comp (f : OSetHom A B) (g : OSetHom B C) : OSetHom A C where
     apply F.le_trans (F.le_meet hf_app hg_app)
     exact F.le_sSup _ _ ⟨j, rfl⟩
 
+/-! ### §2.16(12)/§2.227  The allegory operations on OSet(F)
+
+  Beyond identity and composition (the `Cat` structure `osetCat`), the allegory of
+  `F`-valued sets carries RECIPROCATION `f° j i = f i j` and INTERSECTION `(f ∩ g) i j =
+  f i j ∧ g i j`.  We define both and prove the INVOLUTION + LATTICE laws of an
+  `Allegory` (`recip_recip`, `recip_comp`, `recip_inter`, `inter_idem/comm/assoc`).  These are
+  the structural half of the §2.16(12) allegory; the residual `semidistrib`/`modular` laws (the
+  join-composition interaction) are NOT yet built — see the note after `osetCat`. -/
+
+/-- **Reciprocal** `f° : B ⟶ A` of `f : A ⟶ B`: `f° j i = f i j`.  Bounds/naturality follow by
+    swapping `i ↔ j` and using `E`-symmetry. -/
+def recip (f : OSetHom A B) : OSetHom B A where
+  rel j i := f.rel i j
+  dom_bound j i := f.cod_bound i j
+  cod_bound j i := f.dom_bound i j
+  natural j j' i i' := by
+    -- meet(meet(B.E j j', A.E i i'), f.rel i j) ≤ f.rel i' j'
+    -- rewrite the two E's by symmetry to (A.E i i', B.E j j') and apply f.natural i i' j j'.
+    rw [B.symm j j', A.symm i i']
+    refine F.le_trans ?_ (f.natural i i' j j')
+    -- meet(meet(B.E j' j, A.E i' i), f.rel i j) ≤ meet(meet(A.E i i', B.E j j'), f.rel i j)
+    refine F.le_meet (F.le_meet ?_ ?_) (F.le_trans (F.meet_le_right _ _) (F.le_refl _))
+    · exact F.le_trans (F.le_trans (F.meet_le_left _ _) (F.meet_le_right _ _))
+        (le_of_eq (A.symm i' i))
+    · exact F.le_trans (F.le_trans (F.meet_le_left _ _) (F.meet_le_left _ _))
+        (le_of_eq (B.symm j' j))
+where
+  le_of_eq {a b : F.carrier} (h : a = b) : F.le a b := h ▸ F.le_refl a
+
+/-- **Intersection** `f ∩ g : A ⟶ B`: `(f ∩ g) i j = f i j ∧ g i j`.  Bounds/naturality follow
+    from those of `f` (taking the left meet projection). -/
+def inter (f g : OSetHom A B) : OSetHom A B where
+  rel i j := F.meet (f.rel i j) (g.rel i j)
+  dom_bound i j := F.le_trans (F.meet_le_left _ _) (f.dom_bound i j)
+  cod_bound i j := F.le_trans (F.meet_le_left _ _) (f.cod_bound i j)
+  natural i i' j j' := by
+    -- meet(meet(E,E), f i j ∧ g i j) ≤ f i' j' ∧ g i' j'.
+    refine F.le_meet ?_ ?_
+    · -- project to f's component then apply f.natural.
+      refine F.le_trans ?_ (f.natural i i' j j')
+      exact F.le_meet (F.meet_le_left _ _)
+        (F.le_trans (F.meet_le_right _ _) (F.meet_le_left _ _))
+    · refine F.le_trans ?_ (g.natural i i' j j')
+      exact F.le_meet (F.meet_le_left _ _)
+        (F.le_trans (F.meet_le_right _ _) (F.meet_le_right _ _))
+
+/-- `(f°)° = f`. -/
+theorem recip_recip (f : OSetHom A B) : recip (recip f) = f := by ext i j; rfl
+
+/-- `(f ⊚ g)° = g° ⊚ f°`:  swapping indices in the colimit and using frame-meet commutativity. -/
+theorem recip_comp (f : OSetHom A B) (g : OSetHom B C) :
+    recip (comp f g) = comp (recip g) (recip f) := by
+  ext k i
+  show F.sSup (fun v => ∃ j, v = F.meet (f.rel i j) (g.rel j k))
+     = F.sSup (fun v => ∃ j, v = F.meet (g.rel j k) (f.rel i j))
+  apply F.le_antisymm <;>
+    refine F.sSup_le _ _ (fun v ⟨j, hv⟩ => ?_) <;> subst hv
+  · exact F.le_trans (le_of_eq (F.meet_comm _ _)) (F.le_sSup _ _ ⟨j, rfl⟩)
+  · exact F.le_trans (le_of_eq (F.meet_comm _ _)) (F.le_sSup _ _ ⟨j, rfl⟩)
+where
+  le_of_eq {a b : F.carrier} (h : a = b) : F.le a b := h ▸ F.le_refl a
+
+/-- `(f ∩ g)° = f° ∩ g°`. -/
+theorem recip_inter (f g : OSetHom A B) : recip (inter f g) = inter (recip f) (recip g) := by
+  ext j i; rfl
+
+/-- `f ∩ f = f`. -/
+theorem inter_idem (f : OSetHom A B) : inter f f = f := by
+  ext i j; exact F.meet_idem (f.rel i j)
+
+/-- `f ∩ g = g ∩ f`. -/
+theorem inter_comm (f g : OSetHom A B) : inter f g = inter g f := by
+  ext i j; exact F.meet_comm (f.rel i j) (g.rel i j)
+
+/-- `f ∩ (g ∩ h) = (f ∩ g) ∩ h`. -/
+theorem inter_assoc (f g h : OSetHom A B) :
+    inter f (inter g h) = inter (inter f g) h := by
+  ext i j; exact (F.meet_assoc (f.rel i j) (g.rel i j) (h.rel i j)).symm
+
 end OSetHom
 
 /-! ### The category OSet(F)
@@ -839,6 +936,25 @@ instance osetCat (F : Frame.{u}) : Cat.{u} (OValuedSet F) where
   id_comp := oset_id_comp
   comp_id := oset_comp_id
   assoc  := oset_comp_assoc
+
+/-! ### §2.16(12)/§2.227  Status of the allegory structure on OSet(F)
+
+  DONE here: `osetCat` (Cat) PLUS the involution + lattice half of the allegory —
+  `OSetHom.recip`, `OSetHom.inter`, and the laws `recip_recip`, `recip_comp`, `recip_inter`,
+  `inter_idem`, `inter_comm`, `inter_assoc` (the first six fields beyond `Cat` of the `Allegory`
+  class in `Fredy/S2_1.lean`).
+
+  RESIDUAL (NOT built): the two ORDER/COMPOSITION-interaction laws `semidistrib` and `modular`
+  of the `Allegory` class, which couple `inter` with the `⨆`-defined `comp`.  These are the
+  genuine §2.16(12) content and require frame-distributivity calculations over the colimit
+  composition.  Until they are discharged, `OSet(F)` is NOT registered as a full `Allegory`
+  instance (doing so is the remaining §2.227 work).  We deliberately do NOT import `S2_1`
+  (`Allegory`) here to keep `Locale.lean`'s import-closure small and acyclic; the `Allegory`
+  instance, when built, should live in a downstream file that imports both `Locale` and `S2_1`.
+
+  This is exactly the piece §2.331 needs ("the allegory of `O(X)`-valued sets"): its objects,
+  reciprocal and intersection now exist; only `modular`/`semidistrib` remain.  See `S2_3.lean`
+  §2.331 for the conditional reduction stated over this structure. -/
 
 /-! ## Terminal F-valued set
 

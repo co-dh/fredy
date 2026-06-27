@@ -1283,11 +1283,41 @@ theorem dom_map_coref {a b : 𝒜} (f : a ⟶ b) (hf : Map f) {c : b ⟶ b} (hc 
 -- BOOK §2.331 (iv): Any countable logos with a coprime terminator may be faithfully
 -- represented in H(X).
 
--- STATUS: OPEN — all four parts out of scope for the current formalization.
--- MISSING: (a) a locale `O(X)` type for metrizable X (Locale.lean has abstract frames but no
---   topology); (b) the allegory of `O(X)`-valued sets (§2.227); (c) Heyting algebra `H(X)`;
---   (d) Moerdijk's embedding `O(2^ω) ↪ O(X)` used to pass from the Cantor space to X.
---   None of (a)–(d) exist in this repo.  Out of scope for the current formalization.
+-- STATUS: PARTIAL — the abstract target "allegory of `O`-valued sets" is now under construction
+--   in `Fredy/Locale.lean` (§2.16(12)/§2.227 block), but the full §2.331 representation cannot yet
+--   be STATED in this file, for two independent honest reasons:
+--
+--   (1) THE ALLEGORY OF `O`-VALUED SETS IS NOT YET A FULL `Allegory`.  `Fredy/Locale.lean` now
+--       gives `OValuedSet F` (objects), `osetCat` (the `Cat`), and — added this session —
+--       `OSetHom.recip`/`OSetHom.inter` with the INVOLUTION + LATTICE laws (`recip_recip`,
+--       `recip_comp`, `recip_inter`, `inter_idem`, `inter_comm`, `inter_assoc`).  The RESIDUAL is
+--       the `Allegory`-class laws `semidistrib` and `modular` (the join-composition interaction,
+--       the genuine §2.16(12) content).  Until those are discharged there is no `Allegory
+--       (OValuedSet F)` instance, hence no "`power of the allegory of O-valued sets`" target and no
+--       `AllegoryFunctor` into it to call faithful.
+--
+--   (2) IMPORT CYCLE.  Even granting the instance, the representation vocabulary
+--       (`AllegoryFunctor`, `AllegoryFunctor.Faithful`, `PowerObj`/`powerAllegory`) lives in
+--       `MapCat.lean`/`RelCat.lean`, and `MapCat` ALREADY imports `S2_3` (for §2.316
+--       `oneHeyting`).  So `S2_3` cannot import that vocabulary without a cycle; the §2.331
+--       conditional theorem must be HOSTED in a downstream file that imports `Locale`, `S2_1`,
+--       `MapCat`/`RelCat` together (e.g. a new `S2_33`), NOT here.
+--
+--   (3) METRIZABLE-SPACE RESIDUAL (parts (i),(iv)).  Parts (i) and (iv) additionally name a
+--       metrizable space `X` without isolated points and `H(X)`/coprime-terminator focal data.
+--       No metric-space or point-set-topology type exists in the repo and one must NOT be
+--       fabricated.  The faithful abstract form replaces "`O(X)` for metrizable `X`" by an
+--       ABSTRACT frame/locale `O` plus, as an EXPLICIT hypothesis, Moerdijk's embedding
+--       `O(2^ω) → O(X)` (a `FrameHom`, which `Locale.lean` HAS) — but this too belongs in the
+--       downstream `S2_33` once (1) is closed, since the conclusion still quantifies over the
+--       OSet allegory.
+--
+--   HONEST IRREDUCIBLE RESIDUAL: parts (i)–(iv) reduce to ONE algebraic gap — the
+--   `semidistrib`/`modular` laws making `OValuedSet O` a full `Allegory` (Locale.lean) — plus the
+--   bookkeeping of hosting the conditional statement downstream of the import cycle.  The
+--   metrizable space `X` itself enters ONLY through the `FrameHom O(2^ω) → O` (Moerdijk), an
+--   explicit hypothesis, so no metric-space type need be fabricated.  See the §2.16(12)/§2.227
+--   status note in `Fredy/Locale.lean` (after `osetCat`).
 
 /-! ## §2.34  Split allegory PRel(E) is a division allegory -/
 

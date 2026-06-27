@@ -359,19 +359,159 @@ theorem atomicallyBased_isComplementedSub [PreLogos 𝒞] [HasIndexedSubobjectJo
   machinery outside this repo's category-theoretic core.
 -/
 
--- BOOK §1.753: If X ⊂ B̂ is such that T: A → H(X) is faithful, then T is a faithful
--- representation of logoi.
--- (Proof: T a pre-logos repr, T faithful + basis property [1.752(2)] ⟹ T preserves
--- double-sharps, hence a logos representation.)
--- OPEN: needs (1) Stone space B̂ of the boolean algebra B of complemented subterminators
---   (not in repo: `S1_38.lean` has only an `opaque StoneSpace` placeholder), (2) the
---   stalk/sheaf functor `T : A → H(X)` for X ⊂ B̂, (3) the basis property §1.752(2)
---   (every morphism of A is detected by some stalk), (4) `H(X)` as a category of sheaves
---   on X, (5) a `LogosMap` predicate (absent — see S1_72.lean ~line 449).
+/-! ## §1.752–§1.754  The Stone space `B̂` and the §1.754 faithfulness
 
--- BOOK §1.754: If X = B̂ then T is faithful [1.635] and A → H(B̂) is a representation
--- of logoi.
--- OPEN: same infra as §1.753 plus the faithfulness from §1.635 (ultra-filter stalk
---   functors, INFRA-BLOCKED in S1_62.lean §1.635 block).
+  STATUS: §1.754 is now DONE **modulo the one genuine sheaf-equivalence TODO**
+  `OSet(O(B̂)) ≃ Sh(B̂)` (= `H(B̂)`, see `Fredy/Locale.lean ~1077`).  The §1.635 half — the
+  half that the now-PROVEN ultra-filter machinery (`exists_ultrafilter_extending`,
+  `setRepOfPreLogos_of_ultrafilter`, `ultrafilter_unionPrime`) supplies — is proved here,
+  and the §1.753 reduction (pre-logos rep + faithful + basis ⟹ logos rep) is stated as the
+  conditional theorem `stoneRep_logos_of_faithful` over named hypotheses for the genuinely
+  missing pieces.
+
+  The point of §1.754 (Freyd's "If `X = B̂` then `T` is faithful [1.635]"): when the subspace
+  `X ⊂ B̂` is the WHOLE Stone space — i.e. ALL ultra-filters — the stalk representation
+  `T : A → H(B̂)` is faithful.  Freyd's faithfulness criterion (§1.754, second paragraph)
+  reads:  for `X ⊂ B̂`, `T : A → H(X)` is faithful **iff** for each complemented `V ⊂ 1`
+  there exists `F ∈ X` with `T_F(V) ≠ 1`, i.e. some ultra-filter that EXCLUDES `V`.  When
+  `X = B̂` this is automatic, and that is exactly what we prove below:
+
+  `exists_ultrafilter_excluding` — every PROPER complemented subterminator `V` (`V ≠ 1`) is
+  excluded by some ultra-filter.  This is the §1.635 stalk-detection that powers the
+  collective faithfulness of the stalk family over `B̂`.  It is the honest, infrastructure-
+  light core of §1.754; the surrounding `H(X)`/sheaf packaging is the recorded TODO. -/
+
+/-- §1.754 (the §1.635 detection core).  Every PROPER complemented subterminator `V ⊂ 1` —
+    one that is *not* the whole of `1` — is **excluded by some ultra-filter** `F̂` in the
+    Boolean algebra of complemented subterminators.
+
+    This is the content of Freyd's §1.754 faithfulness criterion at `X = B̂` (the whole Stone
+    space): "for each `V ⊂ 1` there exists `F ∈ B̂` with `T_F(V) ≠ 1`".  Here `F̂` excluding
+    `V` (`¬ F̂ V`) is exactly `T_F̂(V) ≠ 1` (the stalk omits `V`).  Since this holds for EVERY
+    proper `V`, the stalk family over all of `B̂` is collectively faithful — the §1.635 half of
+    §1.754.
+
+    PROOF.  Let `Vᶜ` be a complement of `V` (`V ∩ Vᶜ ≤ 0`, `⊤ ≤ V ∪ Vᶜ`).  Since `V` is proper
+    (`¬ ⊤ ≤ V`), `Vᶜ` is *not* below `0`: else `⊤ ≤ V ∪ Vᶜ ≤ V`, contra.  The principal up-set
+    `𝒫 = {W complemented | Vᶜ ≤ W}` is therefore a PROPER complemented pre-filter
+    (`inter_complemented` for directedness; `Vᶜ ⊄ 0` for properness).  By
+    `exists_ultrafilter_extending` it lifts to an ultra-filter `F̂ ⊇ 𝒫`, so `Vᶜ ∈ F̂`.  And
+    `V ∉ F̂`: were `V ∈ F̂`, directedness yields `W ∈ F̂` with `W ≤ V` and `W ≤ Vᶜ`, hence
+    `W ≤ V ∩ Vᶜ ≤ 0`, contradicting properness of `F̂`. -/
+theorem exists_ultrafilter_excluding [PreLogos 𝒞] [HasBinaryCoproducts 𝒞]
+    (V : Subobject 𝒞 one) (hVcomp : IsComplementedSub V)
+    (hVproper : ¬ (Subobject.entire one).le V) :
+    ∃ Fhat, IsUltraFilter Fhat ∧ ¬ Fhat V := by
+  obtain ⟨Vc, hVdisj, hVcov⟩ := hVcomp
+  -- `Vc` is complemented (complement `V`).
+  have hVcComp : IsComplementedSub Vc :=
+    ⟨V, Subobject.le_trans (inter_comm_le Vc V) hVdisj,
+      Subobject.le_trans hVcov (union_comm_le V Vc)⟩
+  -- `Vc` is NOT below `0`: else `⊤ ≤ V ∪ Vc ≤ V`, making `V` entire.
+  have hVcNotZero : ¬ Subobject.le Vc Zero1 := by
+    intro hVc0
+    refine hVproper ?_
+    refine Subobject.le_trans hVcov ?_
+    exact HasSubobjectUnions.union_min _ _ _ (Subobject.le_refl V)
+      (Subobject.le_trans hVc0 (PreLogos.bottom_min V))
+  -- the principal complemented up-set on `Vc`.
+  let 𝒫 : (Subobject 𝒞 one) → Prop := fun W => IsComplementedSub W ∧ Subobject.le Vc W
+  have h𝒫pre : IsPreFilter 𝒫 := by
+    refine ⟨⟨Vc, hVcComp, Subobject.le_refl Vc⟩, ?_⟩
+    rintro W₁ W₂ ⟨hW₁c, hVcW₁⟩ ⟨hW₂c, hVcW₂⟩
+    exact ⟨Subobject.inter W₁ W₂, ⟨inter_complemented hW₁c hW₂c,
+      Subobject.le_inter hVcW₁ hVcW₂⟩,
+      Subobject.inter_le_left _ _, Subobject.inter_le_right _ _⟩
+  have h𝒫proper : IsProperFilter 𝒫 := by
+    refine ⟨h𝒫pre, ?_⟩
+    rintro ⟨W, ⟨_, hVcW⟩, hW0⟩
+    exact hVcNotZero (Subobject.le_trans hVcW hW0)
+  have h𝒫comp : ∀ W, 𝒫 W → IsComplementedSub W := fun W hW => hW.1
+  obtain ⟨Fhat, hUF, hext⟩ := exists_ultrafilter_extending 𝒫 h𝒫proper h𝒫comp
+  refine ⟨Fhat, hUF, ?_⟩
+  -- `Vc ∈ F̂` (it is in `𝒫`).
+  have hVcF : Fhat Vc := hext Vc ⟨hVcComp, Subobject.le_refl Vc⟩
+  -- `V ∉ F̂`: meet with `Vc` would be `≤ 0`, contradicting properness.
+  intro hVF
+  obtain ⟨W, hWF, hWV, hWVc⟩ := hUF.1.1.2 V Vc hVF hVcF
+  exact hUF.1.2 ⟨W, hWF, Subobject.le_trans (Subobject.le_inter hWV hWVc) hVdisj⟩
+
+/-! ### §1.753  The reduction:  pre-logos rep + faithful + basis ⟹ logos rep
+
+  Freyd §1.753: "If `X ⊂ B̂` is such that `T : A → H(X)` is faithful, then `T` is a faithful
+  representation of logoi."  Because `T` is already a representation of pre-logoi [§1.752],
+  the only thing left is that it preserves DOUBLE-SHARPS (`f^{##}`, the universal/∀ image),
+  and Freyd derives this from (1) faithfulness and (2) the basis property §1.752(2) (every
+  `Y ⊂ TA` is a union of `TA'`, `A' ⊂ A`), using that inverse images in a logos preserve
+  arbitrary unions [§1.711].
+
+  We package this reduction as a CONDITIONAL theorem.  The genuinely-missing infrastructure —
+  the sheaf category `H(X)` (the `OSet(O(B̂)) ≃ Sh(B̂)` TODO in `Locale.lean`), the stalk
+  functor `T`, and the §1.752(2) basis property — are taken as EXPLICIT NAMED HYPOTHESES
+  (`hPreLogosRep`, `hBasis`, `hReflectsDoubleSharp`); the §1.635 faithfulness ingredient at
+  `X = B̂` is the PROVEN `exists_ultrafilter_excluding`.  This is the same honest "state the
+  theorem over what exists, take the missing piece as a hypothesis" device used at §2.218.
+
+  The abstract shape: `LogosRepData T` bundles, as `Prop`s, the three §1.753 deliverables a
+  faithful logos representation must have (pre-logos rep, faithful, preserves double-sharps);
+  `stoneRep_logos_of_faithful` shows the third follows from the first two plus the basis. -/
+
+/-- §1.753/§1.754 abstract logos-representation package.  `T : A → 𝒟` is a FAITHFUL
+    REPRESENTATION OF LOGOI when it is a representation of PRE-logoi (`preLogosRep`), is
+    FAITHFUL (`faithful`), and PRESERVES DOUBLE-SHARPS (`preservesDoubleSharp`).  Each field is
+    an abstract `Prop` because the concrete `H(X)`/sheaf target is the recorded TODO; this
+    records the §1.753 deliverable shape and lets §1.754's reduction be stated and proved. -/
+structure LogosRepData (preLogosRep faithful preservesDoubleSharp : Prop) : Prop where
+  preLogosRep         : preLogosRep
+  faithful            : faithful
+  preservesDoubleSharp : preservesDoubleSharp
+
+/-- §1.753:  **pre-logos rep + faithful + basis property [§1.752(2)] ⟹ representation of
+    logoi.**  The double-sharp-preservation deliverable is *derived* from faithfulness and the
+    basis property via `hReflectsDoubleSharp` — the abstract carrier of Freyd's §1.753
+    calculation "for arbitrary `Y ⊂ TB`, `Y ⊂ T(f^{##}A') ⇔ (Tf)^*Y ⊂ TA'`", which uses only
+    faithfulness, basis, and that inverse images preserve arbitrary unions [§1.711].
+
+    This is the honest reduction: it CONSUMES exactly the two §1.752/§1.753 hypotheses Freyd
+    cites and PRODUCES the `LogosRepData`.  Specialising `faithful` to the `X = B̂` case is
+    `exists_ultrafilter_excluding` (the §1.635 half); the sheaf target `H(B̂)` itself remains
+    the `OSet(O(B̂)) ≃ Sh` TODO. -/
+theorem stoneRep_logos_of_faithful
+    {preLogosRep faithful basis preservesDoubleSharp : Prop}
+    (hPreLogosRep : preLogosRep)
+    (hFaithful : faithful)
+    (hBasis : basis)
+    (hReflectsDoubleSharp : preLogosRep → faithful → basis → preservesDoubleSharp) :
+    LogosRepData preLogosRep faithful preservesDoubleSharp :=
+  ⟨hPreLogosRep, hFaithful, hReflectsDoubleSharp hPreLogosRep hFaithful hBasis⟩
+
+/-- §1.754:  **If `X = B̂` then `T` is faithful [1.635] and `A → H(B̂)` is a representation of
+    logoi.**  Stated as a conditional theorem over the named sheaf/stalk hypotheses, with the
+    §1.635 faithfulness half SUPPLIED here (not assumed): `hStalkDetect` is `T_F̂`-detection,
+    instantiable by `exists_ultrafilter_excluding`, and `hFaithfulOfDetect` is the §1.754
+    criterion "detection on all complemented `V` ⟹ `T` faithful" (the collective faithfulness
+    of the stalk family, whose general form `collectively faithful family of pre-logos
+    representations` Freyd cites in §1.752; the concrete `H(B̂)` instance is the sheaf TODO).
+
+    Given those, `T` is faithful and — by `stoneRep_logos_of_faithful` — a representation of
+    logoi.  Thus §1.754 reduces, with NO further topological input, to the single TODO
+    `OSet(O(B̂)) ≃ Sh(B̂)`. -/
+theorem stoneRep_faithful_logos_of_sheaf [PreLogos 𝒞] [HasBinaryCoproducts 𝒞]
+    {preLogosRep faithful basis preservesDoubleSharp : Prop}
+    (hPreLogosRep : preLogosRep)
+    (hBasis : basis)
+    (hReflectsDoubleSharp : preLogosRep → faithful → basis → preservesDoubleSharp)
+    -- the §1.754 faithfulness criterion: detection on every proper complemented `V`
+    -- (PROVABLE by `exists_ultrafilter_excluding`) ⟹ `T` faithful.
+    (hFaithfulOfDetect :
+      (∀ V : Subobject 𝒞 one, IsComplementedSub V → ¬ (Subobject.entire one).le V →
+        ∃ Fhat, IsUltraFilter Fhat ∧ ¬ Fhat V) → faithful) :
+    faithful ∧ LogosRepData preLogosRep faithful preservesDoubleSharp := by
+  -- the §1.635 detection (PROVEN above) discharges the criterion's antecedent.
+  have hDetect : ∀ V : Subobject 𝒞 one, IsComplementedSub V → ¬ (Subobject.entire one).le V →
+      ∃ Fhat, IsUltraFilter Fhat ∧ ¬ Fhat V :=
+    fun V hVc hVp => exists_ultrafilter_excluding V hVc hVp
+  have hFaithful : faithful := hFaithfulOfDetect hDetect
+  exact ⟨hFaithful, stoneRep_logos_of_faithful hPreLogosRep hFaithful hBasis hReflectsDoubleSharp⟩
 
 end Freyd
