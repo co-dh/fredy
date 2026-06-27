@@ -883,6 +883,51 @@ instance TF_functor {𝒞 : Type u} [Cat.{u} 𝒞] [PreLogos 𝒞] (ℱ : (Subob
   map_id A := by funext x; exact TF.map_id ℱ x
   map_comp f g := by funext x; exact TF.map_comp ℱ f g x
 
+/-! ### §1.634  Recovering `PrefRel` from a `TF`-quotient equality (OBSTACLE 2 kernel)
+
+  `TF ℱ A = Quot (PrefRel ℱ)` is a BARE `Quot`, not a `Quotient`/`Setoid`, so `Quot.exact`
+  is unavailable.  We recover relatedness from `Quot.mk p = Quot.mk q` with the standard
+  separating-invariant trick: for a fixed `q`, the predicate `fun p => PrefRel ℱ p q` is
+  `PrefRel`-invariant in `p` (by `symm` + `trans`, the latter needing `IsPreFilter ℱ`), so it
+  descends through `Quot.lift` to `TF ℱ A → Prop`; evaluating the descent at the two equal
+  classes and using reflexivity at `q` yields `PrefRel ℱ p q`. -/
+
+/-- The `PrefRel`-invariant predicate `relatesTo ℱ q` descended to `TF ℱ A`:
+    `relatesTo ℱ q (TF.mk p) ↔ PrefRel ℱ p q`. -/
+def TF.relatesTo (ℱ : (Subobject 𝒞 one) → Prop) (hℱ : IsPreFilter ℱ) {A : 𝒞}
+    (q : PrefilterMap ℱ A) : TF ℱ A → Prop :=
+  Quot.lift (fun p => PrefRel ℱ p q) (by
+    intro p p' h
+    apply propext
+    constructor
+    · exact fun hp => PrefRel.trans ℱ hℱ (PrefRel.symm ℱ h) hp
+    · exact fun hp' => PrefRel.trans ℱ hℱ h hp')
+
+@[simp] theorem TF.relatesTo_mk (ℱ : (Subobject 𝒞 one) → Prop) (hℱ : IsPreFilter ℱ) {A : 𝒞}
+    (q p : PrefilterMap ℱ A) : TF.relatesTo ℱ hℱ q (TF.mk ℱ p) = PrefRel ℱ p q := rfl
+
+/-- **OBSTACLE 2 kernel.**  Equal `TF`-classes are `PrefRel`-related. -/
+theorem PrefRel_of_TF_eq (ℱ : (Subobject 𝒞 one) → Prop) (hℱ : IsPreFilter ℱ) {A : 𝒞}
+    {p q : PrefilterMap ℱ A} (h : TF.mk ℱ p = TF.mk ℱ q) : PrefRel ℱ p q := by
+  have hq : TF.relatesTo ℱ hℱ q (TF.mk ℱ q) = PrefRel ℱ q q := rfl
+  have := hq ▸ (PrefRel.refl ℱ q)         -- relatesTo ℱ q (TF.mk q)
+  rw [← h] at this                         -- relatesTo ℱ q (TF.mk p) = PrefRel p q
+  exact this
+
+/-- Post-composition with a MONIC `m` reflects `PrefRel`: a refinement-agreement of
+    `p.map ≫ m` and `q.map ≫ m` cancels `m` to one of `p.map` and `q.map`.  (The inl/inl
+    and inr/inr injectivity cases of `disjUnionCompare` on the `TF`-quotient.) -/
+theorem PrefRel_reflect_monic (ℱ : (Subobject 𝒞 one) → Prop) {A B : 𝒞} {m : A ⟶ B}
+    (hm : Monic m) {p q : PrefilterMap ℱ A}
+    (h : PrefRel ℱ (⟨p.U, p.hU, p.map ≫ m⟩ : PrefilterMap ℱ B) ⟨q.U, q.hU, q.map ≫ m⟩) :
+    PrefRel ℱ p q := by
+  obtain ⟨W, hW, a, b, ha, hb, hab⟩ := h
+  refine ⟨W, hW, a, b, ha, hb, hm _ _ ?_⟩
+  -- a ≫ p.map ≫ m = b ≫ q.map ≫ m  (reassociate the given `a≫(p.map≫m)=b≫(q.map≫m)`).
+  calc (a ≫ p.map) ≫ m = a ≫ (p.map ≫ m) := Cat.assoc _ _ _
+    _ = b ≫ (q.map ≫ m) := hab
+    _ = (b ≫ q.map) ≫ m := (Cat.assoc _ _ _).symm
+
 /-! ## §1.635 Representation theorem for pre-logoi
 
   Every small positive pre-logos is faithfully representable in a
@@ -982,6 +1027,32 @@ theorem pushforwardSub_union_le [HasBinaryCoproducts 𝒞] {S B : 𝒞} (m : S �
   obtain ⟨g, _, hg⟩ := cover_mono_diagonal hcover RHS.monic hsq
   exact ⟨g, hg⟩
 
+/-- Pushforward and meet (one inclusion): `push m P ∩ push m Q ≤ push m (P ∩ Q)`.
+    The two pushed legs are `P.arr ≫ m`, `Q.arr ≫ m`; their pullback's square, after cancelling
+    the monic `m`, is a cone over `(P.arr, Q.arr)`, lifting into `P ∩ Q`.  That lift witnesses the
+    `≤`. -/
+theorem inter_pushforward_le {S B : 𝒞} (m : S ⟶ B) (hm : Monic m) (P Q : Subobject 𝒞 S) :
+    (Subobject.inter (pushforwardSub m hm P) (pushforwardSub m hm Q)).le
+      (pushforwardSub m hm (Subobject.inter P Q)) := by
+  let pbF := HasPullbacks.has (pushforwardSub m hm P).arr (pushforwardSub m hm Q).arr
+  -- pbF legs already land in (push P).dom = P.dom and (push Q).dom = Q.dom.
+  -- pbF.w : pbF.π₁ ≫ (P.arr ≫ m) = pbF.π₂ ≫ (Q.arr ≫ m); cancel m ⟹ cone over (P.arr, Q.arr).
+  have hcone : pbF.cone.π₁ ≫ P.arr = pbF.cone.π₂ ≫ Q.arr := by
+    apply hm
+    calc (pbF.cone.π₁ ≫ P.arr) ≫ m = pbF.cone.π₁ ≫ (pushforwardSub m hm P).arr := Cat.assoc _ _ _
+      _ = pbF.cone.π₂ ≫ (pushforwardSub m hm Q).arr := pbF.cone.w
+      _ = (pbF.cone.π₂ ≫ Q.arr) ≫ m := (Cat.assoc _ _ _).symm
+  let pbI := HasPullbacks.has P.arr Q.arr
+  let cI : Cone P.arr Q.arr := ⟨pbF.cone.pt, pbF.cone.π₁, pbF.cone.π₂, hcone⟩
+  refine ⟨pbI.lift cI, ?_⟩
+  -- Goal: pbI.lift cI ≫ (P∩Q).arr ≫ m = pbF.π₁ ≫ (push P).arr.
+  have hlf : pbI.lift cI ≫ pbI.cone.π₁ = pbF.cone.π₁ := pbI.lift_fst cI
+  calc pbI.lift cI ≫ ((Subobject.inter P Q).arr ≫ m)
+      = pbI.lift cI ≫ ((pbI.cone.π₁ ≫ P.arr) ≫ m) := rfl
+    _ = (pbI.lift cI ≫ pbI.cone.π₁) ≫ (P.arr ≫ m) := by simp only [Cat.assoc]
+    _ = pbF.cone.π₁ ≫ (P.arr ≫ m) := by rw [hlf]
+    _ = pbF.cone.π₁ ≫ (pushforwardSub m hm P).arr := rfl
+
 /-- BRIDGE: `Subobject.inter S X = pushforward S.arr (InverseImage S.arr X)`.
     Both subobjects have apex `pullback(S.arr, X.arr)`; `inter` uses `π₁ ≫ S.arr` while the
     pushforward of `InverseImage S.arr X` (whose arrow is `π₁`) is again `π₁ ≫ S.arr`.  Equal up
@@ -1022,6 +1093,19 @@ theorem inter_mono {B : 𝒞} {S S' T T' : Subobject 𝒞 B}
     (hS : S.le S') (hT : T.le T') : (Subobject.inter S T).le (Subobject.inter S' T') :=
   Subobject.le_inter (Subobject.le_trans (Subobject.inter_le_left S T) hS)
                      (Subobject.le_trans (Subobject.inter_le_right S T) hT)
+
+/-- `IsComplementedSub` is invariant under subobject equality (mutual `≤`): same complement
+    `T₂` works.  (Mirror of `Complement.IsComplementedSub_congr`, inlined here because
+    `Complement.lean` imports `S1_62`.) -/
+theorem complementedSub_congr {A : 𝒞} {S T : Subobject 𝒞 A}
+    (hST : S.le T) (hTS : T.le S) (hT : IsComplementedSub T) : IsComplementedSub S := by
+  obtain ⟨T₂, hdisj, hcover⟩ := hT
+  refine ⟨T₂, ?_, ?_⟩
+  · exact Subobject.le_trans (inter_mono hST (Subobject.le_refl T₂)) hdisj
+  · exact Subobject.le_trans hcover
+      (HasSubobjectUnions.union_min _ _ _
+        (Subobject.le_trans hTS (HasSubobjectUnions.union_left S T₂))
+        (HasSubobjectUnions.union_right S T₂))
 
 /-- Every subobject is below the entire subobject (whose arrow is `id`): witness `S.arr`. -/
 theorem sub_le_entire {B : 𝒞} (S : Subobject 𝒞 B) : S.le (Subobject.entire B) := by
@@ -1112,27 +1196,29 @@ theorem inter_complemented [HasBinaryCoproducts 𝒞] {B : 𝒞} {U V : Subobjec
 --   * The §1.634 BECAUSE first sentence `0 ∉ ℱ ⇔ T_ℱ(0) = ∅`
 --     (`TF_coterminator_empty` ⇐ / `TF_coterminator_nonempty` ⇒).
 --   * The §1.634 membership condition `UnionPrime ℱ`.
--- STILL OPEN (the hard analytic half): the actual equivalence
---     `PreservesDisjointUnions (TF ℱ) ↔ UnionPrime ℱ`.
---   STEP A (the shared `Sub(1)` Boolean bridge) is now LANDED above — `inter_union_le`
---   (distributivity), `inter_complemented` (De Morgan), `pushforwardSub*` — and STEP C
---   (`ultrafilter_unionPrime`) is DONE, so `UnionPrime` is no longer the blocker.  What remains is
---   purely the `TF`-QUOTIENT BIJECTIVITY of `disjUnionCompare (TF ℱ)`, in two halves:
---     • INJECTIVITY (needs `IsProperFilter ℱ`): the inl/inl and inr/inr cases cancel the monic
---       injection (`inl`,`inr` monic in a `DisjointBinaryCoproduct`) so `[U,f≫inl]=[V,g≫inl] ⟹
---       [U,f]=[V,g]`; the CROSS case `[U,f≫inl]=[V,g≫inr]` forces a common refinement `W∈ℱ`
---       factoring through both `inl` and `inr`, hence through `inl∩inr ≤ 0`, so `W ≤ Zero1` —
---       contradicting properness.  OBSTACLE: extracting `PrefRel` from a `Quot.mk` equality needs a
---       `Quot.lift` separating invariant (PrefRel is a bare `Quot`, not a `Setoid`/`Quot.exact`).
---     • SURJECTIVITY (needs `UnionPrime ℱ`): given `[U, h:U.dom→A₁+A₂]`, set `U₁'' := h#inl`,
---       `U₂'' := h#inr ⊆ U.dom` (the `decompose_via_coproduct` kernel: `U₁''∪U₂'' = U.dom`,
---       `U₁''∩U₂'' ≤ 0`); push to `Sub(1)` along `U.arr` (`pushforwardSub`) to get `U₁',U₂' ∈ Sub(1)`
---       with `U₁'∪U₂' = U ∈ ℱ` and `U₁'∩U₂' ≤ 0`.  `UnionPrime ℱ` ⟹ `U₁'∈ℱ ∨ U₂'∈ℱ`; in the
---       `U₁'∈ℱ` case `disjUnionCompare (inl [U₁', h|U₁']) = [U, h]` (common refinement `U₁'≤U`, on
---       which `h = (h|U₁')≫inl`).  OBSTACLE: `decompose_via_coproduct` returns only `Isomorphic`,
---       discarding the `U₁'',U₂''⊆U.dom` subobject witnesses + their cover/disjointness; a
---       witness-exposing variant is needed before the `pushforwardSub`-to-`Sub(1)` re-indexing.
---   Both obstacles are `TF`-quotient/coproduct-decomposition infra, INDEPENDENT of STEP A/C.
+-- (⟸) DONE — `preservesDisjointUnions_of_ultrafilter`:  an ULTRA-FILTER `F̂` (proper + all members
+--   complemented + maximal) gives a union-preserving `T_F̂`.  Built from the two OBSTACLE kernels,
+--   both now CLOSED (section `DisjointUnionPreservation`, at `Cat.{u}`):
+--     • OBSTACLE 2 (injectivity, `disjUnionCompare_injective`, needs `IsProperFilter`): the bare
+--       `Quot (PrefRel)` has no `Quot.exact`, so `PrefRel_of_TF_eq` recovers relatedness via the
+--       SEPARATING-INVARIANT `TF.relatesTo` (`Quot.lift` of `fun p => PrefRel p q`, invariant by
+--       symm+trans).  inl/inl, inr/inr cancel the monic injection (`PrefRel_reflect_monic`); the
+--       cross inl/inr forces a common refinement `W∈ℱ` factoring through both injections, hence
+--       `W ≤ 0` (`coprod_inl_inr_disjoint_elt` + `le_bottom_of_map_to_bottom`), contra properness.
+--     • OBSTACLE 1 (surjectivity, `disjUnionCompare_surjective`, needs `UnionPrime` + complemented
+--       up-closure): the witness-exposing `decompose_witnesses` splits a name `(U,h:U.dom→A₁+A₂)`
+--       into `U₁=h#inl, U₂=h#inr ⊆ U.dom` with cover/disjoint/factorizations; pushed to `Sub(1)`
+--       (`pushforwardSub`, `inter_pushforward_le`, `pushforwardSub_bottom_le`) the pair `V₁,V₂`
+--       satisfies `V₁∩V₂≤0` and `V₁∪V₂ ≅ U ∈ ℱ` (complemented via `complementedSub_congr`), so up-
+--       closure puts `V₁∪V₂∈ℱ` and `UnionPrime` (= `ultrafilter_unionPrime`) puts `V₁∈ℱ ∨ V₂∈ℱ`.
+--   (⟹) part 1 DONE — `notMem_zero_of_injective`: injectivity forces `0 ∉ ℱ` (else the two zero-named
+--   elements of `T(A₁),T(A₂)` collide under the comparison but carry distinct sum tags).
+--   (⟹) part 2 RESIDUAL — `UnionPrime`'s membership clause from surjectivity: given `U₁∩U₂≤0` and
+--   `U₁∪U₂∈ℱ`, build the complemented pair `Q₁=K#U₁,Q₂=K#U₂ ⊆ K.dom` (`K=U₁∪U₂`), name the iso
+--   `K.dom ≅ Q₁.dom+Q₂.dom`, and read off `W ≤ Uᵢ` from the surjectivity preimage.  Needs a
+--   WITNESS-EXPOSING `complementedSub_iso_coproduct` (`inl≫h⁻¹ = Q₁.arr`) — the dual of
+--   `decompose_witnesses` — plus complemented up-closure (`complemented_of_disjoint_half`).  Not yet
+--   built; this is the only open piece of the §1.634 iff (the ⟸ keystone for §1.635 is DONE).
 
 -- BOOK §1.635: If F̂ is an ultra-filter in the boolean algebra of complemented
 -- subterminators, then T_F̂ is a representation of pre-logoi (union-preserving).
@@ -1154,6 +1240,11 @@ theorem inter_complemented [HasBinaryCoproducts 𝒞] {B : 𝒞} {U V : Subobjec
 --              cover⊥mono diagonal `cover_mono_diagonal`).
 --         (ii) INTERSECTION OF COMPLEMENTED IS COMPLEMENTED: **DONE** `inter_complemented`
 --              (complement `Uᶜ∪Vᶜ`, De Morgan via (i)).  Plus `complemented_of_disjoint_half`.
+--   (c) `T_F̂` IS A REPRESENTATION OF PRE-LOGOI: **DONE** — `setRepOfPreLogos_of_ultrafilter`
+--       (and the core `preservesDisjointUnions_of_ultrafilter`).  Combines (a)/(b) with the
+--       §1.634 (⟸) iff: `ultrafilter_unionPrime F̂` + `ultrafilter_isFilter` up-closure feed the
+--       now-closed `disjUnionCompare` bijectivity, giving `PreservesDisjointUnions (TF F̂)`, packaged
+--       in the §1.625 `SetRepOfPreLogos` shape ("rep-of-regular + preserves disjoint unions").
 -- The faithful-representation half (`SeparatesMaps`) is `prelogos_representation_theorem`.
 
 -- BOOK §1.636: Any Horn sentence in the predicates of pre-logoi that holds for the
@@ -1872,6 +1963,27 @@ theorem dom_initial_of_map_to_bottom {X Z : 𝒞} (g : X ⟶ (PreLogos.bottom Z)
   rw [key u, key v,
       (minimal_subobject_of_one_is_coterminator hPL).init_uniq (zinv ≫ u) (zinv ≫ v)]
 
+/-- A subobject `S` of `A` whose domain admits ANY map into a bottom domain `(⊥ W).dom` is
+    `≤ ⊥ A`.  The map makes `S.dom` initial (`dom_initial_of_map_to_bottom`); transporting along
+    `bottom_dom_iso W A` yields `S.dom → (⊥ A).dom`, and the factorization triangle is forced
+    because both sides are maps out of the initial `S.dom`. -/
+theorem le_bottom_of_map_to_bottom {A W : 𝒞} (S : Subobject 𝒞 A)
+    (g : S.dom ⟶ (PreLogos.bottom W).dom) : S.le (PreLogos.bottom A) := by
+  have hinit : ∀ {Y : 𝒞} (u v : S.dom ⟶ Y), u = v := dom_initial_of_map_to_bottom g
+  obtain ⟨ι, _⟩ := PreLogos.bottom_dom_iso W A
+  exact ⟨g ≫ ι, hinit ((g ≫ ι) ≫ (PreLogos.bottom A).arr) S.arr⟩
+
+/-- Pushforward of the bottom subobject lands in the bottom: `push m (⊥ S) ≤ ⊥ B`.
+    `(push m (⊥ S)).dom = (⊥ S).dom` admits the identity map into a bottom domain, so it is
+    INITIAL (`dom_initial_of_map_to_bottom`); the factorization triangle into `⊥ B` is forced
+    because both sides are maps out of that initial object. -/
+theorem pushforwardSub_bottom_le {S B : 𝒞} (m : S ⟶ B) (hm : Monic m) :
+    (pushforwardSub m hm (PreLogos.bottom S)).le (PreLogos.bottom B) := by
+  have hinit : ∀ {Y : 𝒞} (u v : (PreLogos.bottom S).dom ⟶ Y), u = v :=
+    dom_initial_of_map_to_bottom (Cat.id (PreLogos.bottom S).dom)
+  obtain ⟨ι, _⟩ := PreLogos.bottom_dom_iso S B   -- ι : (⊥ S).dom → (⊥ B).dom
+  exact ⟨ι, hinit (ι ≫ (PreLogos.bottom B).arr) (pushforwardSub m hm (PreLogos.bottom S)).arr⟩
+
 /-- §1.62/§1.631: a complemented pair `(U, U₂)` of `A` realises `A` as the coproduct of the
     two subobject domains.  Hypotheses are exactly the two clauses of `IsComplementedSub`. -/
 theorem complementedSub_iso_coproduct [HasBinaryCoproducts 𝒞] {A : 𝒞}
@@ -2211,6 +2323,82 @@ theorem coprodMapOne_image_proper {A' A : 𝒞} (m : A' ⟶ A)
   -- assemble: entire A ≤ inl⁻¹(entire) ≤ inl⁻¹(union) ≤ union(inl⁻¹J)(inl⁻¹Kr) ≤ image m.
   exact Subobject.le_trans ha (Subobject.le_trans hb (Subobject.le_trans hc
     (HasSubobjectUnions.union_min _ _ _ hJl hKl)))
+
+/-! ### §1.634 OBSTACLE 1 — witness-exposing coproduct decomposition
+
+  `decompose_via_coproduct` returns only an `Isomorphic A (A₁ + A₂)`, discarding the subobject
+  witnesses.  For the surjectivity of `disjUnionCompare` on the `TF`-quotient we need the two
+  inverse-image subobjects `A₁ := h#inl`, `A₂ := h#inr ⊆ U.dom` with their COVER
+  (`A₁ ∪ A₂ = ⊤`), DISJOINTNESS (`A₁ ∩ A₂ ≤ ⊥`) and the FACTORIZATIONS `A_i.arr ≫ h = f_i ≫ inj_i`.
+  All three are extracted from the same pullback data that builds the iso. -/
+
+/-- **OBSTACLE 1.**  For `h : X → A₁+A₂` the two inverse images `A₁ := h#inl`, `A₂ := h#inr`
+    of the coproduct injections give a complemented pair of `X` together with the factorizing
+    legs `f₁ : A₁.dom → A₁`, `f₂ : A₂.dom → A₂`:
+      * cover  `⊤ ≤ A₁ ∪ A₂`  (every element of `X` lands in one injection's image),
+      * disjoint `A₁ ∩ A₂ ≤ ⊥`  (no element lands in both),
+      * `A₁.arr ≫ h = f₁ ≫ inl`,  `A₂.arr ≫ h = f₂ ≫ inr`. -/
+theorem decompose_witnesses {X A₁ A₂ : 𝒞} (h : X ⟶ HasBinaryCoproducts.coprod A₁ A₂) :
+    (Subobject.entire X).le (HasSubobjectUnions.union
+        (InverseImage h (inlSub (𝒞 := 𝒞) (A := A₁) (B := A₂) inl_mono))
+        (InverseImage h (inrSub (𝒞 := 𝒞) (A := A₁) (B := A₂) inr_mono)))
+    ∧ (Subobject.inter
+        (InverseImage h (inlSub (𝒞 := 𝒞) (A := A₁) (B := A₂) inl_mono))
+        (InverseImage h (inrSub (𝒞 := 𝒞) (A := A₁) (B := A₂) inr_mono))).le (PreLogos.bottom X)
+    ∧ (∃ f₁ : (InverseImage h (inlSub (𝒞 := 𝒞) (A := A₁) (B := A₂) inl_mono)).dom ⟶ A₁,
+        (InverseImage h (inlSub (𝒞 := 𝒞) (A := A₁) (B := A₂) inl_mono)).arr ≫ h
+          = f₁ ≫ HasBinaryCoproducts.inl)
+    ∧ (∃ f₂ : (InverseImage h (inrSub (𝒞 := 𝒞) (A := A₁) (B := A₂) inr_mono)).dom ⟶ A₂,
+        (InverseImage h (inrSub (𝒞 := 𝒞) (A := A₁) (B := A₂) inr_mono)).arr ≫ h
+          = f₂ ≫ HasBinaryCoproducts.inr) := by
+  let Inl := inlSub (𝒞 := 𝒞) (A := A₁) (B := A₂) inl_mono
+  let Inr := inrSub (𝒞 := 𝒞) (A := A₁) (B := A₂) inr_mono
+  let U₁ := InverseImage h Inl
+  let U₂ := InverseImage h Inr
+  show (Subobject.entire X).le (HasSubobjectUnions.union U₁ U₂)
+    ∧ (Subobject.inter U₁ U₂).le (PreLogos.bottom X)
+    ∧ (∃ f₁ : U₁.dom ⟶ A₁, U₁.arr ≫ h = f₁ ≫ HasBinaryCoproducts.inl)
+    ∧ (∃ f₂ : U₂.dom ⟶ A₂, U₂.arr ≫ h = f₂ ≫ HasBinaryCoproducts.inr)
+  let pbL := HasPullbacks.has h Inl.arr   -- U₁.dom = pbL.pt, U₁.arr = pbL.π₁, f₁ = pbL.π₂
+  let pbR := HasPullbacks.has h Inr.arr
+  refine ⟨?_, ?_, ⟨pbL.cone.π₂, ?_⟩, ⟨pbR.cone.π₂, ?_⟩⟩
+  · -- COVER:  entire X ≤ h#(entire) ≤ h#(Inl∪Inr) ≤ h#Inl ∪ h#Inr = U₁∪U₂.
+    have ha : (Subobject.entire X).le
+        (InverseImage h (Subobject.entire (HasBinaryCoproducts.coprod A₁ A₂))) :=
+      entire_le_invImage_entire h
+    have hbu : (Subobject.entire (HasBinaryCoproducts.coprod A₁ A₂)).le
+        (HasSubobjectUnions.union Inl Inr) := inl_union_inr_entire (𝒟 := 𝒞) (A := A₁) (B := A₂)
+    have hb : (InverseImage h (Subobject.entire _)).le
+        (InverseImage h (HasSubobjectUnions.union Inl Inr)) := invImage_mono_local h hbu
+    have hc : (InverseImage h (HasSubobjectUnions.union Inl Inr)).le
+        (HasSubobjectUnions.union U₁ U₂) := (PreLogos.invImage_preserves_union h Inl Inr).1
+    exact Subobject.le_trans ha (Subobject.le_trans hb hc)
+  · -- DISJOINT:  the intersection apex maps into (Inl∩Inr).dom ≤ ⊥(A₁+A₂), hence U₁∩U₂ ≤ ⊥X.
+    let pbI := HasPullbacks.has U₁.arr U₂.arr   -- (U₁∩U₂).dom = pbI.pt
+    let pbJ := HasPullbacks.has Inl.arr Inr.arr -- (Inl∩Inr).dom
+    have hsq : (pbI.cone.π₁ ≫ pbL.cone.π₂) ≫ Inl.arr
+             = (pbI.cone.π₂ ≫ pbR.cone.π₂) ≫ Inr.arr := by
+      calc (pbI.cone.π₁ ≫ pbL.cone.π₂) ≫ Inl.arr
+          = pbI.cone.π₁ ≫ (pbL.cone.π₂ ≫ Inl.arr) := Cat.assoc _ _ _
+        _ = pbI.cone.π₁ ≫ (pbL.cone.π₁ ≫ h) := by rw [pbL.cone.w]
+        _ = (pbI.cone.π₁ ≫ pbL.cone.π₁) ≫ h := (Cat.assoc _ _ _).symm
+        _ = (pbI.cone.π₁ ≫ U₁.arr) ≫ h := rfl
+        _ = (pbI.cone.π₂ ≫ U₂.arr) ≫ h := by rw [pbI.cone.w]
+        _ = (pbI.cone.π₂ ≫ pbR.cone.π₁) ≫ h := rfl
+        _ = pbI.cone.π₂ ≫ (pbR.cone.π₁ ≫ h) := Cat.assoc _ _ _
+        _ = pbI.cone.π₂ ≫ (pbR.cone.π₂ ≫ Inr.arr) := by rw [pbR.cone.w]
+        _ = (pbI.cone.π₂ ≫ pbR.cone.π₂) ≫ Inr.arr := (Cat.assoc _ _ _).symm
+    let cJ : Cone Inl.arr Inr.arr :=
+      ⟨pbI.cone.pt, pbI.cone.π₁ ≫ pbL.cone.π₂, pbI.cone.π₂ ≫ pbR.cone.π₂, hsq⟩
+    let mJ : pbI.cone.pt ⟶ (Subobject.inter Inl Inr).dom := pbJ.lift cJ
+    obtain ⟨e, _⟩ := inl_inter_inr_le_bottom (𝒟 := 𝒞) (A := A₁) (B := A₂)
+    -- e : (Inl∩Inr).dom → (⊥(A₁+A₂)).dom.  (U₁∩U₂).dom = pbI.pt maps to a bottom domain.
+    exact le_bottom_of_map_to_bottom (Subobject.inter U₁ U₂) (mJ ≫ e)
+  · -- FACTORIZATION U₁:  U₁.arr ≫ h = pbL.π₁ ≫ h = pbL.π₂ ≫ Inl.arr = f₁ ≫ inl.
+    show pbL.cone.π₁ ≫ h = pbL.cone.π₂ ≫ HasBinaryCoproducts.inl
+    exact pbL.cone.w
+  · show pbR.cone.π₁ ≫ h = pbR.cone.π₂ ≫ HasBinaryCoproducts.inr
+    exact pbR.cone.w
 
 section Distributivity
 open HasBinaryCoproducts
@@ -2569,6 +2757,210 @@ theorem capital_iff_complemented_subterminators :
       _ = x := by rw [hφφ, Cat.id_comp]
 
 end IsoCoprodComplemented
+
+/-! ## §1.634 The disjoint-union iff:  `PreservesDisjointUnions (T_ℱ) ↔ UnionPrime ℱ`
+
+  Working at `Cat.{u}` (source and target hom-universes coincide, so `TF ℱ : 𝒞 → Type u` and the
+  `TF_functor` instance applies — exactly the §1.55 setting).  We combine the two OBSTACLE kernels:
+
+    * SURJECTIVITY ⟸ `UnionPrime ℱ` (with `ℱ` up-closed, `IsFilter`): `decompose_witnesses`
+      splits a name `(U, h:U.dom→A₁+A₂)` into `U₁=h#inl, U₂=h#inr ⊆ U.dom`; pushing to `Sub(1)`
+      (`pushforwardSub`) gives `V₁,V₂` with `V₁∩V₂ ≤ 0` (`inter_pushforward_le` +
+      `pushforwardSub_bottom_le`) and `U ≤ V₁∪V₂` (cover + `pushforwardSub_union_le`), so up-closure
+      puts `V₁∪V₂ ∈ ℱ` and `UnionPrime` puts `V₁∈ℱ` or `V₂∈ℱ`; the name then comes from `T_ℱ(Aᵢ)`.
+
+    * INJECTIVITY ⟸ `IsProperFilter ℱ`: the inl/inl, inr/inr cases cancel the monic injection
+      (`PrefRel_of_TF_eq` + `PrefRel_reflect_monic`); the cross inl/inr case forces a common
+      refinement `W∈ℱ` factoring through both injections, hence `W ≤ 0` (`coprod_inl_inr_disjoint_elt`
+      + `le_bottom_of_map_to_bottom`), contradicting properness. -/
+
+section DisjointUnionPreservation
+
+variable {𝒞 : Type u} [Cat.{u} 𝒞] [DisjointBinaryCoproduct 𝒞]
+
+/-- SURJECTIVITY of `disjUnionCompare (TF ℱ)` from `UnionPrime ℱ` (and up-closure of `ℱ`). -/
+theorem disjUnionCompare_surjective (ℱ : (Subobject 𝒞 one) → Prop)
+    (hcompAll : ∀ U, ℱ U → IsComplementedSub U)
+    (hup : ∀ U V, ℱ U → U.le V → IsComplementedSub V → ℱ V)
+    (hUP : UnionPrime ℱ) (A₁ A₂ : 𝒞) :
+    Function.Surjective (disjUnionCompare (TF ℱ) A₁ A₂) := by
+  intro t
+  refine Quot.inductionOn t (fun p => ?_)
+  -- p = ⟨U, hU, h⟩, h : U.dom → A₁+A₂.
+  obtain ⟨hcover, hdisj, ⟨f₁, hf₁⟩, ⟨f₂, hf₂⟩⟩ := decompose_witnesses (X := p.U.dom) p.map
+  -- subobjects of U.dom and their pushforwards to Sub(1).
+  let Inl := inlSub (𝒞 := 𝒞) (A := A₁) (B := A₂) inl_mono
+  let Inr := inrSub (𝒞 := 𝒞) (A := A₁) (B := A₂) inr_mono
+  let U₁ := InverseImage p.map Inl
+  let U₂ := InverseImage p.map Inr
+  let V₁ := pushforwardSub p.U.arr p.U.monic U₁
+  let V₂ := pushforwardSub p.U.arr p.U.monic U₂
+  -- push(entire U.dom) and U coincide; V₁,V₂ ≤ U.
+  have hpushEntire_le_U : (pushforwardSub p.U.arr p.U.monic (Subobject.entire p.U.dom)).le p.U :=
+    ⟨Cat.id _, by
+      show Cat.id _ ≫ p.U.arr
+        = (Subobject.entire p.U.dom).arr ≫ p.U.arr
+      rw [Cat.id_comp]
+      show p.U.arr = Cat.id p.U.dom ≫ p.U.arr
+      rw [Cat.id_comp]⟩
+  have hV₁_le_U : V₁.le p.U :=
+    Subobject.le_trans (pushforwardSub_mono p.U.arr p.U.monic (sub_le_entire U₁)) hpushEntire_le_U
+  have hV₂_le_U : V₂.le p.U :=
+    Subobject.le_trans (pushforwardSub_mono p.U.arr p.U.monic (sub_le_entire U₂)) hpushEntire_le_U
+  -- (a) V₁ ∩ V₂ ≤ 0.
+  have hVdisj : (Subobject.inter V₁ V₂).le Zero1 := by
+    refine Subobject.le_trans (inter_pushforward_le p.U.arr p.U.monic U₁ U₂) ?_
+    refine Subobject.le_trans (pushforwardSub_mono p.U.arr p.U.monic hdisj) ?_
+    exact pushforwardSub_bottom_le p.U.arr p.U.monic
+  -- (b) U ≤ V₁ ∪ V₂  and  V₁∪V₂ ≤ U, so V₁∪V₂ ≅ U is complemented; up-closure puts it in ℱ.
+  have hUV : p.U.le (HasSubobjectUnions.union V₁ V₂) := by
+    -- U ≤ push(entire U.dom) ≤ push(U₁∪U₂) ≤ V₁∪V₂.
+    have hUpush : p.U.le (pushforwardSub p.U.arr p.U.monic (Subobject.entire p.U.dom)) :=
+      ⟨Cat.id _, by
+        show Cat.id _ ≫ (Cat.id p.U.dom ≫ p.U.arr) = p.U.arr
+        rw [Cat.id_comp, Cat.id_comp]⟩
+    refine Subobject.le_trans hUpush ?_
+    refine Subobject.le_trans
+      (pushforwardSub_mono p.U.arr p.U.monic hcover) ?_
+    exact pushforwardSub_union_le p.U.arr p.U.monic U₁ U₂
+  have hVU : (HasSubobjectUnions.union V₁ V₂).le p.U :=
+    HasSubobjectUnions.union_min _ _ _ hV₁_le_U hV₂_le_U
+  have hVcomp : IsComplementedSub (HasSubobjectUnions.union V₁ V₂) :=
+    complementedSub_congr hVU hUV (hcompAll p.U p.hU)
+  have hUmem : ℱ (HasSubobjectUnions.union V₁ V₂) := hup p.U _ p.hU hUV hVcomp
+  -- (c) UnionPrime ⟹ V₁ ∈ ℱ or V₂ ∈ ℱ.
+  rcases hUP.2 V₁ V₂ hVdisj hUmem with hV1 | hV2
+  · -- V₁ ∈ ℱ:  the name comes from T_ℱ(A₁) via f₁.
+    refine ⟨Sum.inl (TF.mk ℱ ⟨V₁, hV1, f₁⟩), ?_⟩
+    show TF.map ℱ HasBinaryCoproducts.inl (TF.mk ℱ ⟨V₁, hV1, f₁⟩) = Quot.mk _ p
+    show TF.mk ℱ ⟨V₁, hV1, f₁ ≫ HasBinaryCoproducts.inl⟩ = TF.mk ℱ p
+    apply Quot.sound
+    -- PrefRel: W=V₁, a=id, b=U₁.arr.
+    refine ⟨V₁, hV1, Cat.id _, U₁.arr, Cat.id_comp _, ?_, ?_⟩
+    · show U₁.arr ≫ p.U.arr = U₁.arr ≫ p.U.arr; rfl
+    · show Cat.id _ ≫ (f₁ ≫ HasBinaryCoproducts.inl) = U₁.arr ≫ p.map
+      rw [Cat.id_comp, ← hf₁]
+  · refine ⟨Sum.inr (TF.mk ℱ ⟨V₂, hV2, f₂⟩), ?_⟩
+    show TF.map ℱ HasBinaryCoproducts.inr (TF.mk ℱ ⟨V₂, hV2, f₂⟩) = Quot.mk _ p
+    show TF.mk ℱ ⟨V₂, hV2, f₂ ≫ HasBinaryCoproducts.inr⟩ = TF.mk ℱ p
+    apply Quot.sound
+    refine ⟨V₂, hV2, Cat.id _, U₂.arr, Cat.id_comp _, ?_, ?_⟩
+    · show U₂.arr ≫ p.U.arr = U₂.arr ≫ p.U.arr; rfl
+    · show Cat.id _ ≫ (f₂ ≫ HasBinaryCoproducts.inr) = U₂.arr ≫ p.map
+      rw [Cat.id_comp, ← hf₂]
+
+/-- INJECTIVITY of `disjUnionCompare (TF ℱ)` from `IsProperFilter ℱ`. -/
+theorem disjUnionCompare_injective (ℱ : (Subobject 𝒞 one) → Prop)
+    (hprop : IsProperFilter ℱ) (A₁ A₂ : 𝒞) :
+    Function.Injective (disjUnionCompare (TF ℱ) A₁ A₂) := by
+  have hpre : IsPreFilter ℱ := hprop.1
+  -- The cross case: TF.map inl x = TF.map inr y is impossible (properness).
+  have hcross : ∀ (p : PrefilterMap ℱ A₁) (q : PrefilterMap ℱ A₂),
+      TF.map ℱ (HasBinaryCoproducts.inl (A := A₁) (B := A₂)) (TF.mk ℱ p)
+        = TF.map ℱ (HasBinaryCoproducts.inr (A := A₁) (B := A₂)) (TF.mk ℱ q)
+      → False := by
+    intro p q hpq
+    rw [TF.map_mk, TF.map_mk] at hpq
+    -- PrefRel ⟨p.U,_,p.map≫inl⟩ ⟨q.U,_,q.map≫inr⟩.
+    have hrel : PrefRel ℱ (⟨p.U, p.hU, p.map ≫ HasBinaryCoproducts.inl⟩ : PrefilterMap ℱ _)
+        ⟨q.U, q.hU, q.map ≫ HasBinaryCoproducts.inr⟩ := PrefRel_of_TF_eq ℱ hpre hpq
+    obtain ⟨W, hW, a, b, ha, hb, hab⟩ := hrel
+    -- (a≫p.map)≫inl = (b≫q.map)≫inr.
+    have hcross_eq : (a ≫ p.map) ≫ HasBinaryCoproducts.inl
+        = (b ≫ q.map) ≫ HasBinaryCoproducts.inr := by
+      calc (a ≫ p.map) ≫ HasBinaryCoproducts.inl = a ≫ (p.map ≫ HasBinaryCoproducts.inl) := Cat.assoc _ _ _
+        _ = b ≫ (q.map ≫ HasBinaryCoproducts.inr) := hab
+        _ = (b ≫ q.map) ≫ HasBinaryCoproducts.inr := (Cat.assoc _ _ _).symm
+    obtain ⟨e, _⟩ := coprod_inl_inr_disjoint_elt (𝒟 := 𝒞) (A := A₁) (B := A₂)
+      (a ≫ p.map) (b ≫ q.map) hcross_eq
+    -- e : W.dom → bottom(A₁+A₂).dom ⟹ W ≤ 0 ⟹ contradicts properness.
+    exact hprop.2 ⟨W, hW, le_bottom_of_map_to_bottom W e⟩
+  -- inl/inl, inr/inr injectivity at the representative level.
+  have hinl : ∀ (p p' : PrefilterMap ℱ A₁),
+      TF.map ℱ (HasBinaryCoproducts.inl (A := A₁) (B := A₂)) (TF.mk ℱ p)
+        = TF.map ℱ (HasBinaryCoproducts.inl (A := A₁) (B := A₂)) (TF.mk ℱ p')
+      → TF.mk ℱ p = TF.mk ℱ p' := by
+    intro p p' hpp
+    rw [TF.map_mk, TF.map_mk] at hpp
+    exact Quot.sound (PrefRel_reflect_monic ℱ (m := HasBinaryCoproducts.inl) inl_mono
+      (PrefRel_of_TF_eq ℱ hpre hpp))
+  have hinr : ∀ (q q' : PrefilterMap ℱ A₂),
+      TF.map ℱ (HasBinaryCoproducts.inr (A := A₁) (B := A₂)) (TF.mk ℱ q)
+        = TF.map ℱ (HasBinaryCoproducts.inr (A := A₁) (B := A₂)) (TF.mk ℱ q')
+      → TF.mk ℱ q = TF.mk ℱ q' := by
+    intro q q' hqq
+    rw [TF.map_mk, TF.map_mk] at hqq
+    exact Quot.sound (PrefRel_reflect_monic ℱ (m := HasBinaryCoproducts.inr) inr_mono
+      (PrefRel_of_TF_eq ℱ hpre hqq))
+  intro s s' hss
+  revert hss
+  cases s with
+  | inl x => cases s' with
+    | inl x' =>
+        refine Quot.inductionOn x (fun p => Quot.inductionOn x' (fun p' hss => ?_))
+        exact congrArg Sum.inl (hinl p p' hss)
+    | inr y' =>
+        refine Quot.inductionOn x (fun p => Quot.inductionOn y' (fun q hss => ?_))
+        exact (hcross p q hss).elim
+  | inr y => cases s' with
+    | inl x' =>
+        refine Quot.inductionOn y (fun q => Quot.inductionOn x' (fun p hss => ?_))
+        exact (hcross p q hss.symm).elim
+    | inr y' =>
+        refine Quot.inductionOn y (fun q => Quot.inductionOn y' (fun q' hss => ?_))
+        exact congrArg Sum.inr (hinr q q' hss)
+
+/-- **§1.634 (⟸):** an ULTRA-FILTER `F̂` gives a union-preserving `T_F̂`.  Injectivity from
+    properness; surjectivity from `UnionPrime F̂` (`ultrafilter_unionPrime`), with up-closure
+    within complemented subterminators supplied by `ultrafilter_isFilter`. -/
+theorem preservesDisjointUnions_of_ultrafilter (ℱ : (Subobject 𝒞 one) → Prop)
+    (hU : IsUltraFilter ℱ) : PreservesDisjointUnions (TF ℱ) :=
+  fun A₁ A₂ =>
+    ⟨disjUnionCompare_injective ℱ hU.1 A₁ A₂,
+     disjUnionCompare_surjective ℱ hU.2.1
+       (fun U V hUmem hUV hVcomp => ultrafilter_isFilter ℱ hU U V hUmem hVcomp hUV)
+       (ultrafilter_unionPrime ℱ hU) A₁ A₂⟩
+
+/-- **§1.634 (⟹), part 1:** injectivity of `disjUnionCompare` forces `0 ∉ ℱ`.  If `0 ∈ ℱ`, the
+    zero-named elements of `T_ℱ(A₁)` and `T_ℱ(A₂)` (named by the unique maps out of the initial
+    `0 = Zero1.dom`) have equal images under the comparison (their representatives agree on the
+    common refinement `Zero1`, both maps out of the initial `0`), but `inl ≠ inr` as sum tags. -/
+theorem notMem_zero_of_injective (ℱ : (Subobject 𝒞 one) → Prop)
+    (hinj : Function.Injective
+      (disjUnionCompare (TF ℱ) (minimal_subobject_of_one_is_coterminator
+        (inferInstance : PreLogos 𝒞)).zero
+        (minimal_subobject_of_one_is_coterminator (inferInstance : PreLogos 𝒞)).zero)) :
+    ¬ ℱ Zero1 := by
+  intro h0
+  let Z := (minimal_subobject_of_one_is_coterminator (inferInstance : PreLogos 𝒞)).zero
+  -- Zero1.dom = Z definitionally; the coterminator gives ζ : Z → Z (here identity suffices).
+  -- zero-named elements of T_ℱ(Z) on the left and right summand.
+  let pL : PrefilterMap ℱ Z := ⟨Zero1, h0, Cat.id _⟩
+  let pR : PrefilterMap ℱ Z := ⟨Zero1, h0, Cat.id _⟩
+  have hsum : (Sum.inl (TF.mk ℱ pL) : (TF ℱ Z) ⊕ (TF ℱ Z)) = Sum.inr (TF.mk ℱ pR) := by
+    apply hinj
+    -- disjUnionCompare(inl pL)=TF.mk⟨Zero1,_,id≫inl⟩, (inr pR)=TF.mk⟨Zero1,_,id≫inr⟩.
+    show TF.map ℱ HasBinaryCoproducts.inl (TF.mk ℱ pL)
+       = TF.map ℱ HasBinaryCoproducts.inr (TF.mk ℱ pR)
+    rw [TF.map_mk, TF.map_mk]
+    apply Quot.sound
+    -- common refinement Zero1; both maps out of the initial Z = Zero1.dom agree.
+    refine ⟨Zero1, h0, Cat.id _, Cat.id _, Cat.id_comp _, Cat.id_comp _, ?_⟩
+    exact (minimal_subobject_of_one_is_coterminator (inferInstance : PreLogos 𝒞)).init_uniq _ _
+  exact nomatch hsum
+
+/-- **§1.635 (proper):** for an ultra-filter `F̂` in the Boolean algebra of complemented
+    subterminators, `T_F̂` is a REPRESENTATION OF PRE-LOGOI — i.e. a representation of regular
+    categories (`repReg`, the §1.634 "preserves finite products, equalizers and covers" half,
+    carried as a parameter since `Type u` is not instanced as a `PreLogos` here) that additionally
+    PRESERVES DISJOINT UNIONS (`preservesDisjointUnions_of_ultrafilter`).  This packages
+    `T_F̂` in the `SetRepOfPreLogos` shape Freyd's representation theorem produces. -/
+theorem setRepOfPreLogos_of_ultrafilter (ℱ : (Subobject 𝒞 one) → Prop)
+    (hU : IsUltraFilter ℱ) {repReg : Prop} (hreg : repReg) :
+    SetRepOfPreLogos (TF ℱ) repReg :=
+  ⟨hreg, preservesDisjointUnions_of_ultrafilter ℱ hU⟩
+
+end DisjointUnionPreservation
 
 /-! ## §2.218 BRICK 1 — `RegularCategory (Type v)` and `RegularCategory (I → Type v)`
 

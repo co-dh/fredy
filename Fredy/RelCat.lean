@@ -2018,19 +2018,8 @@ theorem relReverse_inl_union_inr (zero : RelObj 𝒞)
   obtain ⟨l, hl⟩ := (union_is_image Il Ir).1
   exact ⟨l, by rw [hl, hcase]; rfl⟩
 
-/-- A subobject `Z` of `B` whose domain admits **any** map into a bottom domain is `≤ ⊥ B`.
-    The map makes `Z.dom` initial (`dom_initial_of_map_to_bottom`); transporting along
-    `bottom_dom_iso` yields a map `Z.dom → (⊥ B).dom`, and the factorization
-    `· ≫ (⊥ B).arr = Z.arr` is forced because both sides are maps out of the initial `Z.dom`. -/
-private theorem le_bottom_of_map_to_bottom {B W : 𝒞} (Z : Subobject 𝒞 B)
-    (g : Z.dom ⟶ (PreLogos.bottom W).dom) : Z.le (PreLogos.bottom B) := by
-  -- `Z.dom` is initial: any two maps out agree.
-  have hinit : ∀ {Y : 𝒞} (u v : Z.dom ⟶ Y), u = v := dom_initial_of_map_to_bottom g
-  -- a map `Z.dom → (⊥ B).dom`, via `bottom_dom_iso W B`.
-  obtain ⟨ι, _⟩ := PreLogos.bottom_dom_iso W B
-  refine ⟨g ≫ ι, ?_⟩
-  -- `(g ≫ ι) ≫ (⊥ B).arr` and `Z.arr` are both maps out of the initial `Z.dom`.
-  exact hinit ((g ≫ ι) ≫ (PreLogos.bottom B).arr) Z.arr
+-- `le_bottom_of_map_to_bottom` is now the canonical `Freyd.le_bottom_of_map_to_bottom` in `S1_62`
+-- (DRY — this file's private copy was byte-identical and is now reused from the import).
 
 /-- **§2.214 REVERSE — disjointness inequality `inl ∩ inr ≤ 0` (TRANSPORTED through `embedRel`).**
     The intersection's domain `P` is the C-pullback of `(inl, inr)`.  Pushing the pullback square

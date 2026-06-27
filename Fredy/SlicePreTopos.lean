@@ -1056,18 +1056,8 @@ theorem adiag_mono : Monic (adiag (𝒞 := 𝒞)) := by
 theorem inl_swap : (inl : (one : 𝒞) ⟶ coprod one one) ≫ case inr inl = inr := case_inl _ _
 theorem inr_swap : (inr : (one : 𝒞) ⟶ coprod one one) ≫ case inr inl = inl := case_inr _ _
 
-/-- A subobject `Z ⊆ X` whose domain receives ANY map `e : Z.dom → (⊥ C).dom` (to the bottom of
-    SOME object `C`) is `≤ ⊥ X`.  `(⊥ C).dom ≅ 0` (initial), so `Z.dom → 0` makes `Z.dom` iso to
-    `0` (`any_map_to_zero_is_iso`), hence `Z.dom ≅ (⊥ X).dom`, and `le_bottom_of_dom_iso` finishes. -/
-theorem le_bottom_of_map_to_bottom {X C : 𝒞} (Z : Subobject 𝒞 X)
-    (e : Z.dom ⟶ (PreLogos.bottom C).dom) : Z.le (PreLogos.bottom X) := by
-  letI hPL : PreLogos 𝒞 := ‹PreToposDisjoint 𝒞›.toPositivePreLogos.toPreLogos
-  let zeroObj := (minimal_subobject_of_one_is_coterminator hPL).zero
-  obtain ⟨ζ, hζ⟩ := hPL.bottom_dom_iso C hPL.toHasTerminal.one  -- ζ : (⊥C).dom → zeroObj iso
-  have hiso0 : IsIso (e ≫ ζ) := any_map_to_zero_is_iso hPL (e ≫ ζ)
-  have hZ0 : Isomorphic Z.dom zeroObj := ⟨e ≫ ζ, hiso0⟩
-  have hbX0 : Isomorphic (PreLogos.bottom X).dom zeroObj := hPL.bottom_dom_iso X hPL.toHasTerminal.one
-  exact le_bottom_of_dom_iso Z (isomorphic_trans hZ0 (isomorphic_symm hbX0))
+-- `le_bottom_of_map_to_bottom` (a subobject whose domain maps to any bottom is `≤ ⊥`) is now the
+-- canonical `Freyd.le_bottom_of_map_to_bottom` in `S1_62` (DRY — was duplicated here).
 
 /-- A generalized element `g : X → 1+1` FIXED by the swap (`g ≫ case inr inl = g`) has an
     INITIAL domain: on the `inl`-part of `X` the swap turns `inl` into `inr`, an `inl/inr` clash,
