@@ -1121,13 +1121,18 @@ theorem dom_map_coref {a b : 𝒜} (f : a ⟶ b) (hf : Map f) {c : b ⟶ b} (hc 
       (comp_mono_left _ (inter_lb_right _ _))
 
 -- BOOK §2.32: A is a tabular unitary division allegory iff Mσn(A) is a logos.
--- STATUS: BACKWARD direction DONE (`Logos (MapObj A)` in MapCat.lean, `mapLogos`, axiom-clean
---   `[propext, Classical.choice]`).  FORWARD direction (logos → division allegory on Rel) still OPEN.
--- FORWARD (logos → division allegory) — still OPEN:
---   • `DivisionAllegory (RelObj 𝒞)` for `[Logos 𝒞]`.  S1_77.lean proves the adjointness
---     `T ⊑ R/(graph f)°` ↔ `T⊚(graph f)° ⊑ R` for maps `f`, but the full right division
---     `R/S` for an arbitrary relation `S` (not just a graph) is not yet assembled as an
---     instance; `DivisionAllegory (RelObj 𝒞)` does not exist in RelCat.lean.
+-- STATUS: BOTH directions DONE.
+-- BACKWARD direction DONE (`Logos (MapObj A)` in MapCat.lean, `mapLogos`, axiom-clean
+--   `[propext, Classical.choice]`).
+-- FORWARD (logos → division allegory) — DONE (§1.784):
+--   • `DivisionAllegory (RelObj 𝒞)` for `[Logos 𝒞]` = `relDivisionAllegory` (RelCat.lean,
+--     axioms `[propext, Classical.choice, Quot.sound]`).  S1_77 proves the two special
+--     quotients — by a graph (`relQuotByMap`) and by the reciprocal of a graph
+--     (`relQuotByMapRecip`, the `f##` right-adjoint image).  The general `R/S` for an arbitrary
+--     relation `S` is `relQuotGen R S = (R/graph(S.colB))/(graph S.colA)°`, using the span
+--     factorisation `S ≈ (graph S.colA)° ⊚ graph S.colB` (`reconstitute_le`/`le_reconstitute`) and
+--     §1.783 associativity.  `qDiv` descends it to the `RelLe`-quotient; both adjunction laws are
+--     `relQuotGen.le`/`.maximal` across the `quotLe ↔ ⊑` bridge.  This unblocks §2.343.
 -- BACKWARD (division allegory → logos on Map(𝒜)) — DONE.  The construction (Freyd §2.316 final
 --   paragraph + §2.32) is split between THIS file (the §2.316 Heyting machinery) and MapCat.lean
 --   (the subobject bridge + the `Logos` instance):

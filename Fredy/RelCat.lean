@@ -967,6 +967,124 @@ instance (priority := 0) relUnitaryAllegory : UnitaryAllegory (RelObj 𝒞) :=
 
 end TabularUnitary
 
+/-! ## §1.784 / §2.32 (forward)  `Rel(C)` is a DIVISION ALLEGORY when `C` is a logos
+
+  Freyd §1.784: "in a logos, `R/S` exists for every pair of relations with a common target."
+  §1.78 (`RelQuot`) already gives the universal property `T ⊑ R/S ↔ T⊚S ⊑ R`, and §1.782/§1.784
+  (S1_77) supply two SPECIAL quotients: by a graph (`relQuotByMap`) and by the reciprocal of a
+  graph (`relQuotByMapRecip`, the `f##` right-adjoint image, needs `HasRightAdjointImage`).
+
+  Every relation factors through its own legs: `S ≈ (graph S.colA)° ⊚ graph S.colB`
+  (`reconstitute_le`/`le_reconstitute`).  By §1.783 associativity, the GENERAL quotient is the
+  two special ones composed:
+
+      R / S  =  (R / graph S.colB) / (graph S.colA)°.
+
+  The inner `R/graph(S.colB)` lives because `C` is regular (`PullbacksTransferCovers`); the outer
+  `_/(graph S.colA)°` because `C` is a logos (`HasRightAdjointImage`).  We package the result as
+  `DivisionAllegory (RelObj C)` — the LAST gap for §2.343 (every logos embeds in a positive
+  effective logos). -/
+
+section RelDivision
+
+variable [Logos 𝒞]
+
+-- A logos is in particular a pre-logos (§1.711); make it available so the `BinRel`/subobject
+-- bridge (`relSub`, `relLe_iff_subLe`) and the `relQuotByMapRecip` (`f##`) construction resolve.
+attribute [local instance] logos_implies_preLogos
+
+/-- **§1.784 general relational quotient.**  For `R : a → c` and `S : b → c` in a logos, the
+    quotient `R/S : a → b` (maximal `T` with `T⊚S ⊑ R`), built as `(R/graph(S.colB))/(graph S.colA)°`
+    via the span factorisation `S ≈ (graph S.colA)° ⊚ graph S.colB`. -/
+noncomputable def relQuotGen {a b c : 𝒞} (R : BinRel 𝒞 a c) (S : BinRel 𝒞 b c) :
+    RelQuot R S where
+  quot := (relQuotByMapRecip (relQuotByMap R S.colB).quot S.colA).quot
+  le := by
+    -- quot ⊚ S ≈ quot ⊚ ((graph S.colA)° ⊚ graph S.colB) ≈ (quot ⊚ (graph S.colA)°) ⊚ graph S.colB
+    -- and (quot ⊚ (graph S.colA)°) ⊑ (R/graph S.colB), so the whole ⊑ R.
+    let q₁ := relQuotByMap R S.colB                                   -- R / graph(S.colB)
+    let q₂ := relQuotByMapRecip q₁.quot S.colA                        -- q₁.quot / (graph S.colA)°
+    -- q₂.quot ⊚ (graph S.colA)° ⊑ q₁.quot   (q₂.le)
+    have hstep : RelLe (q₂.quot ⊚ (graph S.colA)°) q₁.quot := q₂.le
+    -- q₂.quot ⊚ S ⊑ q₂.quot ⊚ ((graph S.colA)° ⊚ graph S.colB)        [S ⊑ recon]
+    have hS : RelLe (q₂.quot ⊚ S) (q₂.quot ⊚ ((graph S.colA)° ⊚ graph S.colB)) :=
+      compose_le (rel_le_refl _) (le_reconstitute S)
+    -- reassociate to ((q₂.quot ⊚ (graph S.colA)°) ⊚ graph S.colB)
+    have hass : RelLe (q₂.quot ⊚ ((graph S.colA)° ⊚ graph S.colB))
+        ((q₂.quot ⊚ (graph S.colA)°) ⊚ graph S.colB) :=
+      compose_assoc' q₂.quot ((graph S.colA)°) (graph S.colB)
+    -- (q₂.quot ⊚ (graph S.colA)°) ⊚ graph S.colB ⊑ q₁.quot ⊚ graph S.colB ⊑ R
+    have h3 : RelLe ((q₂.quot ⊚ (graph S.colA)°) ⊚ graph S.colB) (q₁.quot ⊚ graph S.colB) :=
+      compose_le_left hstep (graph S.colB)
+    exact rel_le_trans hS (rel_le_trans hass (rel_le_trans h3 q₁.le))
+  maximal := by
+    intro T hT
+    -- hT : T ⊚ S ⊑ R.   Want T ⊑ q₂.quot, i.e. T ⊚ (graph S.colA)° ⊑ q₁.quot,
+    -- i.e. (T ⊚ (graph S.colA)°) ⊚ graph S.colB ⊑ R.
+    let q₁ := relQuotByMap R S.colB
+    let q₂ := relQuotByMapRecip q₁.quot S.colA
+    apply (relQuot_iff q₂ T).mpr        -- reduce to T ⊚ (graph S.colA)° ⊑ q₁.quot
+    apply (relQuot_iff q₁ _).mpr        -- reduce to (T ⊚ (graph S.colA)°) ⊚ graph S.colB ⊑ R
+    -- (T ⊚ (graph S.colA)°) ⊚ graph S.colB ≈ T ⊚ ((graph S.colA)° ⊚ graph S.colB) ⊑ T ⊚ S ⊑ R
+    have hass : RelLe ((T ⊚ (graph S.colA)°) ⊚ graph S.colB)
+        (T ⊚ ((graph S.colA)° ⊚ graph S.colB)) :=
+      compose_assoc T ((graph S.colA)°) (graph S.colB)
+    have hrec : RelLe (T ⊚ ((graph S.colA)° ⊚ graph S.colB)) (T ⊚ S) :=
+      compose_le (rel_le_refl T) (reconstitute_le S)
+    exact rel_le_trans hass (rel_le_trans hrec hT)
+
+/-- The quotient `R/S` is MONOTONE in `R` and ANTITONE in `S`: from `R ⊂ R'` and `S' ⊂ S`,
+    `relQuotGen R S ⊂ relQuotGen R' S'`.  (Pure consequence of the universal property
+    `relQuot_iff`; used to descend `R/S` to the `RelLe`-quotient.) -/
+private theorem relQuotGen_mono {a b c : 𝒞}
+    {R R' : BinRel 𝒞 a c} {S S' : BinRel 𝒞 b c}
+    (hR : RelLe R R') (hS : RelLe S' S) :
+    RelLe (relQuotGen R S).quot (relQuotGen R' S').quot := by
+  apply (relQuot_iff (relQuotGen R' S') _).mpr
+  -- (R/S) ⊚ S' ⊑ (R/S) ⊚ S ⊑ R ⊑ R'
+  refine rel_le_trans (compose_le (rel_le_refl _) hS) ?_
+  exact rel_le_trans (relQuotGen R S).le hR
+
+/-- Division on the `RelLe`-quotient: `[R] / [S] = [relQuotGen R S]`, well-defined by
+    `relQuotGen_mono` (antisymmetry of the two monotonicity directions). -/
+noncomputable def qDiv {a b c : 𝒞}
+    (x : BinRelQuot (𝒞 := 𝒞) a c) (y : BinRelQuot (𝒞 := 𝒞) b c) :
+    BinRelQuot (𝒞 := 𝒞) a b :=
+  Quotient.liftOn₂ x y (fun R S => relClass (relQuotGen R S).quot)
+    (fun _ _ _ _ hR hS => Quotient.sound
+      ⟨relQuotGen_mono hR.1 hS.2, relQuotGen_mono hR.2 hS.1⟩)
+
+@[simp] theorem qDiv_mk {a b c : 𝒞} (R : BinRel 𝒞 a c) (S : BinRel 𝒞 b c) :
+    qDiv (relClass R) (relClass S) = relClass (relQuotGen R S).quot := rfl
+
+/-- **§1.784 / §2.32 (forward)**: `Rel(C)` is a DIVISION ALLEGORY for a logos `C`.
+    `div = qDiv` (the §1.784 general quotient); the two adjunction laws are exactly the
+    `le`/`maximal` of `relQuotGen`, transported across the `quotLe ↔ ⊑` bridge
+    (`quotLe_iff_algLe`).  This is the last brick for §2.343. -/
+noncomputable instance relDivisionAllegory : DivisionAllegory (RelObj 𝒞) :=
+  { DisjointGluing.relDistributiveAllegory with
+    div := fun {a b c} R S => qDiv R S
+    div_comp_le := fun {a b c} R S => by
+      -- (R/S) ≫ S ⊑ R  ⟺  RelLe ((relQuotGen R S).quot ⊚ S') R  =  (relQuotGen R S).le
+      refine Quotient.inductionOn₂ R S (fun R S => ?_)
+      rw [← quotLe_iff_algLe]
+      show quotLe (qComp (qDiv (relClass R) (relClass S)) (relClass S)) (relClass R)
+      rw [qDiv_mk, qComp_mk]
+      exact (relQuotGen R S).le
+    le_div := fun {a b c} T R S h => by
+      -- T ≫ S ⊑ R → T ⊑ R/S, by `relQuotGen.maximal` (= `relQuot_iff`).
+      refine Quotient.inductionOn₃ T R S (fun T R S h => ?_) h
+      rw [← quotLe_iff_algLe]
+      show quotLe (relClass T) (qDiv (relClass R) (relClass S))
+      rw [qDiv_mk]
+      apply (relQuotGen R S).maximal
+      -- h : T ≫ S ⊑ R  ⟹  RelLe (T ⊚ S) R
+      have h' : quotLe (qComp (relClass T) (relClass S)) (relClass R) :=
+        (quotLe_iff_algLe _ _).mpr h
+      rwa [qComp_mk] at h' }
+
+end RelDivision
+
 /-! ### §2.217  `Rel(C)` is a tabular-unitary-distributive allegory; `Map(Rel C)` is a pre-logos;
     and `C ↪ Map(Rel C)` is a faithful embedding.
 
