@@ -509,8 +509,53 @@ example (𝒜 : Type u) [DistributiveAllegory 𝒜] : PositiveAllegory (Mat.MatO
 
 -- BOOK §2.218: A small pre-tabular or semi-simple unitary distributive allegory may be
 -- faithfully represented in a power of the allegory of sets.
--- STATUS: PARTIAL — BRICKS 1, 3 DONE; BRICK 2 infrastructure + reciprocation DONE; the residual
---   wall is BRICK 2's `map_comp`/`map_inter` (Beck–Chevalley) + faithfulness wiring.
+-- STATUS: PARTIAL — BRICKS 1, 3 DONE; BRICK 2 (the general Rel-2-functor) NOW FULLY DONE incl.
+--   Beck–Chevalley (`relMap_comp`/`relMap_inter`), identity, reciprocation, allegory-functor
+--   packaging, and faithfulness.  The residual is BRICK 2c (capital hom-rep is a `RegularFunctor`)
+--   + the final assembly.
+--
+-- ★ BRICK 2 — DONE (Fredy/RelCat.lean, namespace `RelFunctor`), axioms [propext,Classical.choice,
+--   Quot.sound]:
+--     • `relImageObj_cover` — `image.lift (pair (F colA)(F colB))` is a cover onto the image-relation
+--       src whose legs are the F-images of R's legs.  THE bridge that makes `relLe_of_cover_factor`
+--       apply to `relImageObj`.
+--     • `RegularFunctor` gained a `pres_pullback : PreservesPullbacks F` field (a regular functor
+--       preserves the §1.56 compose/meet pullbacks; products alone don't suffice).
+--     • `relImageObj_compose_le` / `relImageObj_le_compose` ⟹ `RegularFunctor.relMap_comp`:
+--       **`Rel(F)(R ⊚ S) = Rel(F)(R) ⊚ Rel(F)(S)`** (Beck–Chevalley).  Forward: push the upstairs
+--       §1.56 pullback through `F`, lift through the downstairs pullback, descend the composite
+--       image-span.  Reverse: pull the image-covers `eR`/`eS` back along the downstairs projections
+--       (`cover_pullback`), lift to `F pbRS.pt` via `pres_pullback`, push through `F eRS ≫ eRSd`.
+--     • `relImageObj_inter_le` / `relImageObj_le_inter` ⟹ `RegularFunctor.relMap_inter`:
+--       **`Rel(F)(R ∩ S) = Rel(F)(R) ∩ Rel(F)(S)`**.  Same pattern over the single meet-pullback;
+--       `map_prod_jointly_monic` (from `pres_prod`) lifts the column-agreeing legs into `F(prod A B)`.
+--     • `RegularFunctor.relMap_id` (image of the diagonal ≡ graph id) and `relMap_recip` (was done).
+--     • `RegularFunctor.relAllegoryHom : AllegoryFunctor (RelObj C) (RelObj D)` — the packaged
+--       allegory morphism `Rel(C) → Rel(D)` (all four laws).
+--     • `RegularFunctor.relMap_faithful` — **`Rel(F)` is faithful** when `F` is full+faithful and
+--       covers in `D` split (`relImageObj_reflect_le`: split the image-cover `eS`, lift the leg-map
+--       through fullness, descend the equations by faithfulness).
+--
+--   RESIDUAL (2c + assembly):
+--     (2c) the capital hom-rep `homRep ‾Map A : ‾Map A → Set^I` is a `RegularFunctor`.  Available:
+--          `homRep_preserves_mono`/`_reflects_mono`/`_reflects_iso` (§1.55), `homRep_preserves_
+--          cover_pointwise` (needs `[HasPullbacks]`).  MISSING for the `RegularFunctor` bundle:
+--          `PreservesBinaryProducts (homRep)`, `PreservesPullbacks (homRep)`, `PreservesImages
+--          (homRep)` — `homRep i A = (i ⟶ A)` is a representable/limit-preserving functor into
+--          `Type u` (with `SetRegular.setRegular`/`powerRegular` as the target `RegularCategory`),
+--          so products/pullbacks are preserved by the hom-functor limit argument; images need
+--          cover+mono preservation (have both) routed through `image = cover∘mono` in `Type`.
+--          The capitalization composite `Map A → ‾Map A` (§1.543 `capitalization_of_capData`,
+--          faithful) precedes it.
+--     (·)  FAITHFULNESS-IN-ASSEMBLY caveat: `relMap_faithful` as proven assumes `Full F`; the
+--          hom-rep is NOT full, so the assembly's faithfulness must instead route through
+--          `homRep` faithful + `reflects_mono` + image-reflection (`faithful_preserves_images_
+--          reflects_images`, §1.511) — a `relImageObj_reflect_le` variant whose leg-lift comes from
+--          image-minimality rather than fullness.  (Capital ⟹ split covers gives the section, but
+--          the leg map still needs lifting; the reflects-mono/image route supplies it without `Full`.)
+--   With (2c) + that faithfulness variant, the composite
+--     A ≅ Rel(Map A) ↪ Rel(‾Map A) ──Rel(homRep)──▶ Rel(Set^I) ≅ Rel(Set)^I
+--   (capitalization faithful, `relAllegoryHom`, BRICK 3 power-comparison) is the §2.218 embedding.
 --
 -- ASSEMBLY ROUTE.  Pre-tabular/semi-simple ⟹ tabular (§2.16(10) `splObj_tabular_of_semiSimple` /
 -- §2.167 `SplCorObj.tabular_of_preTabular`); a tabular allegory A ≅ Rel(Map A) (§2.148
