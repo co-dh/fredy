@@ -914,6 +914,194 @@ theorem prelogos_representation_theorem (A : Type u) [Cat.{u} A] [PositivePreLog
   exact henkin_lubkin A
 
 
+/-! ## §1.634/§1.635(b) STEP A — the Boolean algebra of subterminators `Sub(1)`
+
+  Freyd's §1.635 maximality argument runs in the Boolean algebra `ℬ` of complemented
+  subobjects of `1`.  It needs two elementary facts about the underlying lattice `Sub(B)`:
+
+  * DISTRIBUTIVITY  `S ∩ (U₁ ∪ U₂) ≤ (S∩U₁) ∪ (S∩U₂)`  (§1.612/§1.613), and
+  * intersection-of-complemented-is-complemented (via De Morgan).
+
+  The bridge is the PUSHFORWARD of a subobject of `S.dom` along the monic `S.arr : S.dom ↣ B`.
+  Pushing forward `InverseImage S.arr X` recovers `Subobject.inter S X` *definitionally*
+  (both have apex `pullback(S.arr, X.arr)`; the inter-arrow `π₁ ≫ S.arr` is exactly the
+  pushforward of the inverse-image arrow `π₁`), so distributivity reduces to
+  `PreLogos.invImage_preserves_union` plus monotonicity of pushforward. -/
+
+/-- Pushforward of a subobject `X ⊆ S.dom` along a monic `m : S.dom ↣ B`: the subobject
+    `⟨X.dom, X.arr ≫ m⟩ ⊆ B`.  (`X.arr ≫ m` is monic as a composite of monics.) -/
+def pushforwardSub {S B : 𝒞} (m : S ⟶ B) (hm : Monic m) (X : Subobject 𝒞 S) :
+    Subobject 𝒞 B :=
+  ⟨X.dom, X.arr ≫ m, by
+    intro W u v huv
+    exact X.monic _ _ (hm _ _ (by simpa [Cat.assoc] using huv))⟩
+
+/-- Pushforward is order-preserving: `X ≤ Y ⟹ pushforward m X ≤ pushforward m Y`.
+    The witness `h : X.dom → Y.dom` with `h ≫ Y.arr = X.arr` also factors the pushed arrows. -/
+theorem pushforwardSub_mono {S B : 𝒞} (m : S ⟶ B) (hm : Monic m) {X Y : Subobject 𝒞 S}
+    (hXY : X.le Y) : (pushforwardSub m hm X).le (pushforwardSub m hm Y) := by
+  obtain ⟨h, hh⟩ := hXY
+  exact ⟨h, by show h ≫ (Y.arr ≫ m) = X.arr ≫ m; rw [← Cat.assoc, hh]⟩
+
+/-- Pushforward distributes over binary unions (one inclusion):
+    `pushforward m (P ∪ Q) ≤ pushforward m P ∪ pushforward m Q`.
+    The union `P ∪ Q` is the image of `case P.arr Q.arr`; pushing along `m`, the composite
+    `case P.arr Q.arr ≫ m = case (P.arr≫m) (Q.arr≫m)` is allowed by
+    `pushforward m P ∪ pushforward m Q` (which is its image by `union_is_image`), and image
+    minimality gives the inclusion. -/
+theorem pushforwardSub_union_le [HasBinaryCoproducts 𝒞] {S B : 𝒞} (m : S ⟶ B) (hm : Monic m)
+    (P Q : Subobject 𝒞 S) :
+    (pushforwardSub m hm (HasSubobjectUnions.union P Q)).le
+      (HasSubobjectUnions.union (pushforwardSub m hm P) (pushforwardSub m hm Q)) := by
+  let RHS := HasSubobjectUnions.union (pushforwardSub m hm P) (pushforwardSub m hm Q)
+  -- RHS is the image of `case ((pushforward P).arr) ((pushforward Q).arr)
+  --                    = case (P.arr≫m) (Q.arr≫m)`.
+  have hImg : IsImage (HasBinaryCoproducts.case (P.arr ≫ m) (Q.arr ≫ m)) RHS := union_is_image _ _
+  obtain ⟨k, hk⟩ := hImg.1   -- k : coprod P.dom Q.dom → RHS.dom, k ≫ RHS.arr = case (P.arr≫m)(Q.arr≫m)
+  -- Union inclusions of `P,Q` into `P∪Q`, whose copairing is a cover.
+  obtain ⟨cP, hcP⟩ := HasSubobjectUnions.union_left P Q
+  obtain ⟨cQ, hcQ⟩ := HasSubobjectUnions.union_right P Q
+  have hcover : Cover (HasBinaryCoproducts.case cP cQ) := union_case_cover P Q hcP hcQ
+  -- `case cP cQ ≫ (P∪Q).arr = case P.arr Q.arr`.
+  have hcc_fac : HasBinaryCoproducts.case cP cQ ≫ (HasSubobjectUnions.union P Q).arr
+      = HasBinaryCoproducts.case P.arr Q.arr := by
+    refine HasBinaryCoproducts.case_uniq _ _ _ ?_ ?_
+    · rw [← Cat.assoc, HasBinaryCoproducts.case_inl, hcP]
+    · rw [← Cat.assoc, HasBinaryCoproducts.case_inr, hcQ]
+  -- `case P.arr Q.arr ≫ m = case (P.arr≫m)(Q.arr≫m)`.
+  have hcase_m : HasBinaryCoproducts.case P.arr Q.arr ≫ m
+      = HasBinaryCoproducts.case (P.arr ≫ m) (Q.arr ≫ m) := by
+    refine HasBinaryCoproducts.case_uniq _ _ _ ?_ ?_
+    · rw [← Cat.assoc, HasBinaryCoproducts.case_inl]
+    · rw [← Cat.assoc, HasBinaryCoproducts.case_inr]
+  -- Square for cover ⊥ mono:  (case cP cQ) ≫ ((P∪Q).arr ≫ m) = k ≫ RHS.arr.
+  have hsq : HasBinaryCoproducts.case cP cQ ≫ ((HasSubobjectUnions.union P Q).arr ≫ m)
+      = k ≫ RHS.arr := by
+    rw [← Cat.assoc, hcc_fac, hcase_m, hk]
+  -- Diagonal fill-in gives `g : (P∪Q).dom → RHS.dom` with `g ≫ RHS.arr = (P∪Q).arr ≫ m`.
+  obtain ⟨g, _, hg⟩ := cover_mono_diagonal hcover RHS.monic hsq
+  exact ⟨g, hg⟩
+
+/-- BRIDGE: `Subobject.inter S X = pushforward S.arr (InverseImage S.arr X)`.
+    Both subobjects have apex `pullback(S.arr, X.arr)`; `inter` uses `π₁ ≫ S.arr` while the
+    pushforward of `InverseImage S.arr X` (whose arrow is `π₁`) is again `π₁ ≫ S.arr`.  Equal up
+    to `Subobject.le` both ways — here even definitionally, so a single `le` (identity witness)
+    suffices in each direction. -/
+theorem inter_eq_pushforward_invImage {B : 𝒞} (S X : Subobject 𝒞 B) :
+    (Subobject.inter S X).le (pushforwardSub S.arr S.monic (InverseImage S.arr X))
+    ∧ (pushforwardSub S.arr S.monic (InverseImage S.arr X)).le (Subobject.inter S X) :=
+  ⟨⟨Cat.id _, by rw [Cat.id_comp]; rfl⟩, ⟨Cat.id _, by rw [Cat.id_comp]; rfl⟩⟩
+
+/-- §1.612/§1.613 DISTRIBUTIVITY of `Sub(B)` (forward inequality):
+    `S ∩ (U₁ ∪ U₂) ≤ (S ∩ U₁) ∪ (S ∩ U₂)`.
+    PROOF: pass to `Sub(S.dom)` via the bridge `S ∩ X = pushforward S.arr (S.arr#X)`, where
+    `PreLogos.invImage_preserves_union` gives `S.arr#(U₁∪U₂) ≤ S.arr#U₁ ∪ S.arr#U₂`; push
+    that forward (`pushforwardSub_mono`, then `pushforwardSub_union_le`) and re-bridge. -/
+theorem inter_union_le [HasBinaryCoproducts 𝒞] {B : 𝒞} (S U₁ U₂ : Subobject 𝒞 B) :
+    (Subobject.inter S (HasSubobjectUnions.union U₁ U₂)).le
+      (HasSubobjectUnions.union (Subobject.inter S U₁) (Subobject.inter S U₂)) := by
+  -- (1) S ∩ (U₁∪U₂) = pushforward S.arr (S.arr#(U₁∪U₂)).
+  refine Subobject.le_trans (inter_eq_pushforward_invImage S (HasSubobjectUnions.union U₁ U₂)).1 ?_
+  -- (2) S.arr#(U₁∪U₂) ≤ S.arr#U₁ ∪ S.arr#U₂ in Sub(S.dom), pushed forward.
+  refine Subobject.le_trans
+    (pushforwardSub_mono S.arr S.monic
+      (PreLogos.invImage_preserves_union S.arr U₁ U₂).1) ?_
+  -- (3) pushforward (P ∪ Q) ≤ pushforward P ∪ pushforward Q.
+  refine Subobject.le_trans (pushforwardSub_union_le S.arr S.monic _ _) ?_
+  -- (4) re-bridge each summand: pushforward S.arr (S.arr#Uᵢ) ≤ S ∩ Uᵢ.
+  exact HasSubobjectUnions.union_min _ _ _
+    (Subobject.le_trans (inter_eq_pushforward_invImage S U₁).2
+      (HasSubobjectUnions.union_left _ _))
+    (Subobject.le_trans (inter_eq_pushforward_invImage S U₂).2
+      (HasSubobjectUnions.union_right _ _))
+
+/-! ### STEP A lattice helpers (monotonicity / commutativity of meet) -/
+
+/-- Meet is monotone in both arguments. -/
+theorem inter_mono {B : 𝒞} {S S' T T' : Subobject 𝒞 B}
+    (hS : S.le S') (hT : T.le T') : (Subobject.inter S T).le (Subobject.inter S' T') :=
+  Subobject.le_inter (Subobject.le_trans (Subobject.inter_le_left S T) hS)
+                     (Subobject.le_trans (Subobject.inter_le_right S T) hT)
+
+/-- Every subobject is below the entire subobject (whose arrow is `id`): witness `S.arr`. -/
+theorem sub_le_entire {B : 𝒞} (S : Subobject 𝒞 B) : S.le (Subobject.entire B) := by
+  refine ⟨S.arr, ?_⟩
+  show S.arr ≫ (Subobject.entire B).arr = S.arr
+  rw [show (Subobject.entire B).arr = Cat.id B from rfl, Cat.comp_id]
+
+/-- Intersection of subobjects is symmetric up to `≤`: swapping the pullback legs gives
+    `inter S T ≤ inter T S`.  Both intersections are pullbacks of the same cospan in the two
+    orders; the comparison map is the canonical lift swapping `π₁` and `π₂`. -/
+theorem inter_comm_le {B : 𝒞} (S T : Subobject 𝒞 B) :
+    Subobject.le (Subobject.inter S T) (Subobject.inter T S) := by
+  let pbST := HasPullbacks.has S.arr T.arr
+  let pbTS := HasPullbacks.has T.arr S.arr
+  let c : Cone T.arr S.arr := ⟨pbST.cone.pt, pbST.cone.π₂, pbST.cone.π₁, pbST.cone.w.symm⟩
+  refine ⟨pbTS.lift c, ?_⟩
+  show pbTS.lift c ≫ (pbTS.cone.π₁ ≫ T.arr) = pbST.cone.π₁ ≫ S.arr
+  rw [← Cat.assoc, pbTS.lift_fst c]
+  show pbST.cone.π₂ ≫ T.arr = pbST.cone.π₁ ≫ S.arr
+  exact pbST.cone.w.symm
+
+/-- Union of subobjects is symmetric up to `≤`: `union S T ≤ union T S` by minimality. -/
+theorem union_comm_le {B : 𝒞} (S T : Subobject 𝒞 B) :
+    Subobject.le (HasSubobjectUnions.union S T) (HasSubobjectUnions.union T S) :=
+  HasSubobjectUnions.union_min S T _
+    (HasSubobjectUnions.union_right T S) (HasSubobjectUnions.union_left T S)
+
+/-- §1.634/§1.635(b) STEP A(ii): the meet of two COMPLEMENTED subterminators is complemented.
+    If `U,V` have complements `Uᶜ,Vᶜ` (`U∩Uᶜ ≤ 0`, `⊤ ≤ U∪Uᶜ`, likewise `V`), then `U∩V` has
+    complement `Uᶜ ∪ Vᶜ`:
+      * DISJOINTNESS `(U∩V) ∩ (Uᶜ∪Vᶜ) ≤ 0`: distribute (`inter_union_le`) into
+        `((U∩V)∩Uᶜ) ∪ ((U∩V)∩Vᶜ)`; the first `≤ U∩Uᶜ ≤ 0`, the second `≤ V∩Vᶜ ≤ 0`.
+      * COVER `⊤ ≤ (U∩V) ∪ (Uᶜ∪Vᶜ)`: from `⊤ ≤ (U∪Uᶜ)∩(V∪Vᶜ)`, distribute twice; the only
+        meet of two un-complemented pieces is `U∩V`, every other piece lands in `Uᶜ∪Vᶜ`. -/
+theorem inter_complemented [HasBinaryCoproducts 𝒞] {B : 𝒞} {U V : Subobject 𝒞 B}
+    (hU : IsComplementedSub U) (hV : IsComplementedSub V) :
+    IsComplementedSub (Subobject.inter U V) := by
+  obtain ⟨Uc, hUdisj, hUcov⟩ := hU
+  obtain ⟨Vc, hVdisj, hVcov⟩ := hV
+  refine ⟨HasSubobjectUnions.union Uc Vc, ?_, ?_⟩
+  · -- DISJOINTNESS
+    refine Subobject.le_trans (inter_union_le (Subobject.inter U V) Uc Vc) ?_
+    refine HasSubobjectUnions.union_min _ _ _ ?_ ?_
+    · -- (U∩V)∩Uc ≤ U∩Uc ≤ 0
+      refine Subobject.le_trans ?_ hUdisj
+      exact inter_mono (Subobject.inter_le_left U V) (Subobject.le_refl Uc)
+    · -- (U∩V)∩Vc ≤ V∩Vc ≤ 0
+      refine Subobject.le_trans ?_ hVdisj
+      exact inter_mono (Subobject.inter_le_right U V) (Subobject.le_refl Vc)
+  · -- COVER:  ⊤ ≤ (U∪Uc) ∩ (V∪Vc) ≤ … ≤ (U∩V) ∪ (Uc∪Vc).
+    -- Abbreviate the complement union  W := Uc ∪ Vc.
+    let W := HasSubobjectUnions.union Uc Vc
+    -- ⊤ ≤ (U∪Uc) ∩ (V∪Vc).
+    have htop : (Subobject.entire B).le
+        (Subobject.inter (HasSubobjectUnions.union U Uc) (HasSubobjectUnions.union V Vc)) :=
+      Subobject.le_inter hUcov hVcov
+    refine Subobject.le_trans htop ?_
+    -- Distribute over the FIRST union (after commuting):
+    --   (U∪Uc)∩(V∪Vc) ≤ (V∪Vc)∩(U∪Uc) ≤ ((V∪Vc)∩U) ∪ ((V∪Vc)∩Uc).
+    refine Subobject.le_trans (Subobject.le_trans
+        (Subobject.le_inter (Subobject.inter_le_right _ _) (Subobject.inter_le_left _ _))
+        (inter_union_le (HasSubobjectUnions.union V Vc) U Uc)) ?_
+    -- Now bound each of the two pieces by  (U∩V) ∪ W.
+    refine HasSubobjectUnions.union_min _ _ _ ?_ ?_
+    · -- (V∪Vc)∩U ≤ U∩(V∪Vc) ≤ (U∩V) ∪ (U∩Vc) ≤ (U∩V) ∪ W.
+      refine Subobject.le_trans
+        (Subobject.le_inter (Subobject.inter_le_right _ _) (Subobject.inter_le_left _ _)) ?_
+      refine Subobject.le_trans (inter_union_le U V Vc) ?_
+      refine HasSubobjectUnions.union_min _ _ _ ?_ ?_
+      · -- U∩V ≤ (U∩V) ∪ W
+        exact HasSubobjectUnions.union_left _ _
+      · -- U∩Vc ≤ Vc ≤ W ≤ (U∩V) ∪ W
+        refine Subobject.le_trans (Subobject.inter_le_right U Vc) ?_
+        exact Subobject.le_trans (HasSubobjectUnions.union_right Uc Vc)
+          (HasSubobjectUnions.union_right (Subobject.inter U V) W)
+    · -- (V∪Vc)∩Uc ≤ Uc ≤ W ≤ (U∩V) ∪ W.
+      refine Subobject.le_trans (Subobject.inter_le_right (HasSubobjectUnions.union V Vc) Uc) ?_
+      exact Subobject.le_trans (HasSubobjectUnions.union_left Uc Vc)
+        (HasSubobjectUnions.union_right (Subobject.inter U V) W)
+
 -- BOOK §1.634: If A is a pre-logos then T_ℱ preserves disjoint unions iff
 --   (0 ∉ ℱ) and (U₁+U₂ ∈ ℱ implies U₁ ∈ ℱ or U₂ ∈ ℱ).
 -- LANDED (below, after `IsFilter`):
@@ -926,13 +1114,25 @@ theorem prelogos_representation_theorem (A : Type u) [Cat.{u} A] [PositivePreLog
 --   * The §1.634 membership condition `UnionPrime ℱ`.
 -- STILL OPEN (the hard analytic half): the actual equivalence
 --     `PreservesDisjointUnions (TF ℱ) ↔ UnionPrime ℱ`.
---   `decompose_via_coproduct` already provides the coproduct-decomposition of a name
---   `f : U.dom → A₁+A₂` into `A ≅ A₁+A₂` with `Aᵢ = f#(inlᵢ)` (needs `[DisjointBinaryCoproduct]`).
---   The remaining glue is to RE-INDEX that decomposition through `Sub(1)`: the two halves `U₁,U₂`
---   of the name's domain must be pulled back to subterminators `U₁',U₂' ∈ Sub(1)` along `U.arr`,
---   where `UnionPrime ℱ`'s hypothesis `U₁'∪U₂' ∈ ℱ ⟹ U₁'∈ℱ ∨ U₂'∈ℱ` then drives surjectivity of
---   `disjUnionCompare (TF ℱ)`.  This needs the SAME `Sub(1)` pushforward/distributivity bridge as
---   §1.635(b) item (i) below — once that lands, both GAP 1 (⇐) and §1.635(b) close together.
+--   STEP A (the shared `Sub(1)` Boolean bridge) is now LANDED above — `inter_union_le`
+--   (distributivity), `inter_complemented` (De Morgan), `pushforwardSub*` — and STEP C
+--   (`ultrafilter_unionPrime`) is DONE, so `UnionPrime` is no longer the blocker.  What remains is
+--   purely the `TF`-QUOTIENT BIJECTIVITY of `disjUnionCompare (TF ℱ)`, in two halves:
+--     • INJECTIVITY (needs `IsProperFilter ℱ`): the inl/inl and inr/inr cases cancel the monic
+--       injection (`inl`,`inr` monic in a `DisjointBinaryCoproduct`) so `[U,f≫inl]=[V,g≫inl] ⟹
+--       [U,f]=[V,g]`; the CROSS case `[U,f≫inl]=[V,g≫inr]` forces a common refinement `W∈ℱ`
+--       factoring through both `inl` and `inr`, hence through `inl∩inr ≤ 0`, so `W ≤ Zero1` —
+--       contradicting properness.  OBSTACLE: extracting `PrefRel` from a `Quot.mk` equality needs a
+--       `Quot.lift` separating invariant (PrefRel is a bare `Quot`, not a `Setoid`/`Quot.exact`).
+--     • SURJECTIVITY (needs `UnionPrime ℱ`): given `[U, h:U.dom→A₁+A₂]`, set `U₁'' := h#inl`,
+--       `U₂'' := h#inr ⊆ U.dom` (the `decompose_via_coproduct` kernel: `U₁''∪U₂'' = U.dom`,
+--       `U₁''∩U₂'' ≤ 0`); push to `Sub(1)` along `U.arr` (`pushforwardSub`) to get `U₁',U₂' ∈ Sub(1)`
+--       with `U₁'∪U₂' = U ∈ ℱ` and `U₁'∩U₂' ≤ 0`.  `UnionPrime ℱ` ⟹ `U₁'∈ℱ ∨ U₂'∈ℱ`; in the
+--       `U₁'∈ℱ` case `disjUnionCompare (inl [U₁', h|U₁']) = [U, h]` (common refinement `U₁'≤U`, on
+--       which `h = (h|U₁')≫inl`).  OBSTACLE: `decompose_via_coproduct` returns only `Isomorphic`,
+--       discarding the `U₁'',U₂''⊆U.dom` subobject witnesses + their cover/disjointness; a
+--       witness-exposing variant is needed before the `pushforwardSub`-to-`Sub(1)` re-indexing.
+--   Both obstacles are `TF`-quotient/coproduct-decomposition infra, INDEPENDENT of STEP A/C.
 
 -- BOOK §1.635: If F̂ is an ultra-filter in the boolean algebra of complemented
 -- subterminators, then T_F̂ is a representation of pre-logoi (union-preserving).
@@ -945,21 +1145,15 @@ theorem prelogos_representation_theorem (A : Type u) [Cat.{u} A] [PositivePreLog
 --       `Freyd.WO.zorn` (Bourbaki–Witt tower in `Fredy/WellOrdering.lean`, axiom-clean
 --       [propext, Classical.choice, Quot.sound]) applied to the poset `ExtFilter ℱ₀` of proper
 --       complemented pre-filters extending `ℱ₀`; the chain-upper-bound is the union of the chain.
--- STILL OPEN:
---   (b) `UnionPrime F̂` for `F̂` ultra (Freyd's maximality argument).  Reduces — via the up-closure
---       family `𝒢 = {W complemented | ∃ S∈F̂, S∩U₂ ≤ W}` and `IsUltraFilter`'s maximality — to TWO
---       Boolean facts about `Sub(1)` NOT yet in the repo:
---         (i)  DISTRIBUTIVITY of `Sub(1)`: `S ∩ (U₁∪U₂) ≤ (S∩U₁) ∪ (S∩U₂)`.  This IS derivable
---              (it is NOT a new axiom): `(PreLogos.invImage_preserves_union S.arr U₁ U₂).1` gives
---              `S.arr#(U₁∪U₂) ≤ S.arr#U₁ ∪ S.arr#U₂` in `Sub(S.dom)`; the missing glue is
---              (1) `Subobject.inter S X ≅ pushforward S.arr (InverseImage S.arr X)` and
---              (2) pushforward-along-the-monic-`S.arr` preserves `≤` and binary unions
---              (image of a union = union of images, via the §1.60 `union_is_image` machinery).
---         (ii) INTERSECTION OF COMPLEMENTED IS COMPLEMENTED (`S,T` complemented ⟹ `S∩T`), to keep
---              the up-closure family inside the complemented subterminators (this is the
---              hypothesis `ultrafilter_inter_closed` already takes as input).
---       Both (i),(ii) are a small multi-lemma `Sub(1)`-Boolean-algebra development — elementary but
---       not a one-liner; nothing nonconstructive is needed.
+--   (b) `UnionPrime F̂` for `F̂` ultra: **DONE** — `ultrafilter_unionPrime` (Freyd's maximality
+--       argument, STEP C).  Uses the now-landed STEP A Boolean development:
+--         (i)  DISTRIBUTIVITY `S ∩ (U₁∪U₂) ≤ (S∩U₁)∪(S∩U₂)`: **DONE** `inter_union_le`, via the
+--              pushforward bridge `Subobject.inter S X = pushforwardSub S.arr (InverseImage S.arr X)`
+--              (`inter_eq_pushforward_invImage`) + `(PreLogos.invImage_preserves_union S.arr ..).1`
+--              + `pushforwardSub_mono`/`pushforwardSub_union_le` (the latter via the §1.56
+--              cover⊥mono diagonal `cover_mono_diagonal`).
+--         (ii) INTERSECTION OF COMPLEMENTED IS COMPLEMENTED: **DONE** `inter_complemented`
+--              (complement `Uᶜ∪Vᶜ`, De Morgan via (i)).  Plus `complemented_of_disjoint_half`.
 -- The faithful-representation half (`SeparatesMaps`) is `prelogos_representation_theorem`.
 
 -- BOOK §1.636: Any Horn sentence in the predicates of pre-logoi that holds for the
@@ -1140,6 +1334,131 @@ def TF_coterminator_nonempty (ℱ : (Subobject 𝒞 one) → Prop) (h0 : ℱ Zer
     Immediate from properness (`¬ ∃ U ∈ ℱ, U ≤ 0`) since `0 ≤ 0` (`Subobject.le_refl`). -/
 theorem properFilter_not_zero (ℱ : (Subobject 𝒞 one) → Prop) (hprop : IsProperFilter ℱ) :
     ¬ ℱ Zero1 := fun h0 => hprop.2 ⟨Zero1, h0, Subobject.le_refl _⟩
+
+/-! ### §1.635(b)  STEP C — `UnionPrime` of every ultra-filter
+
+  If `U₁∩U₂ ≤ 0` and `U₁∪U₂ ∈ F̂` then `U₁ ∈ F̂` or `U₂ ∈ F̂`.  Freyd's maximality argument:
+  if `U₁ ∉ F̂`, the up-closure `𝒢 = {W complemented | ∃ S∈F̂, S∩U₁ᶜ ≤ W}` (using the complement
+  `U₁ᶜ`) is a proper complemented pre-filter strictly above `F̂` that contains `U₂`; maximality
+  collapses `𝒢 = F̂`, forcing `U₂ ∈ F̂`.  Distributivity (`inter_union_le`) and
+  intersection-of-complemented (`inter_complemented`) from STEP A power the filter axioms. -/
+
+/-- A disjoint half of a complemented union is itself complemented:
+    if `U₁∩U₂ ≤ 0` and `K = U₁∪U₂` is complemented with complement `Kᶜ`, then `U₁` is
+    complemented with complement `U₂ ∪ Kᶜ`.
+      * `U₁ ∩ (U₂∪Kᶜ) ≤ (U₁∩U₂) ∪ (U₁∩Kᶜ) ≤ 0 ∪ (K∩Kᶜ) ≤ 0` (`U₁ ≤ K`),
+      * `⊤ ≤ K ∪ Kᶜ = (U₁∪U₂) ∪ Kᶜ = U₁ ∪ (U₂∪Kᶜ)`. -/
+theorem complemented_of_disjoint_half [HasBinaryCoproducts 𝒞] {U₁ U₂ : Subobject 𝒞 one}
+    (hdisj : Subobject.le (Subobject.inter U₁ U₂) Zero1)
+    (hKcomp : IsComplementedSub (HasSubobjectUnions.union U₁ U₂)) :
+    IsComplementedSub U₁ := by
+  obtain ⟨Kc, hKdisj, hKcov⟩ := hKcomp
+  refine ⟨HasSubobjectUnions.union U₂ Kc, ?_, ?_⟩
+  · -- U₁ ∩ (U₂ ∪ Kc) ≤ (U₁∩U₂) ∪ (U₁∩Kc) ≤ 0.
+    refine Subobject.le_trans (inter_union_le U₁ U₂ Kc) ?_
+    refine HasSubobjectUnions.union_min _ _ _ hdisj ?_
+    -- U₁ ∩ Kc ≤ (U₁∪U₂) ∩ Kc = K ∩ Kc ≤ 0.
+    refine Subobject.le_trans ?_ hKdisj
+    exact inter_mono (HasSubobjectUnions.union_left U₁ U₂) (Subobject.le_refl Kc)
+  · -- ⊤ ≤ (U₁∪U₂) ∪ Kc ≤ U₁ ∪ (U₂ ∪ Kc).
+    refine Subobject.le_trans hKcov ?_
+    refine HasSubobjectUnions.union_min _ _ _ ?_ ?_
+    · -- U₁∪U₂ ≤ U₁ ∪ (U₂∪Kc)
+      refine HasSubobjectUnions.union_min _ _ _ (HasSubobjectUnions.union_left _ _) ?_
+      exact Subobject.le_trans (HasSubobjectUnions.union_left U₂ Kc)
+        (HasSubobjectUnions.union_right U₁ (HasSubobjectUnions.union U₂ Kc))
+    · -- Kc ≤ U₂∪Kc ≤ U₁ ∪ (U₂∪Kc)
+      exact Subobject.le_trans (HasSubobjectUnions.union_right U₂ Kc)
+        (HasSubobjectUnions.union_right U₁ (HasSubobjectUnions.union U₂ Kc))
+
+/-- §1.635(b): every ULTRA-FILTER is `UnionPrime`.  (Freyd's maximality argument; STEP C.) -/
+theorem ultrafilter_unionPrime [HasBinaryCoproducts 𝒞] (Fhat : (Subobject 𝒞 one) → Prop)
+    (hU : IsUltraFilter Fhat) : UnionPrime Fhat := by
+  have hUF := hU
+  obtain ⟨hprop, hcompAll, hmax⟩ := hU
+  refine ⟨properFilter_not_zero Fhat hprop, ?_⟩
+  intro U₁ U₂ hdisj hKmem
+  by_cases hU1 : Fhat U₁
+  · exact Or.inl hU1
+  · refine Or.inr ?_
+    -- K := U₁∪U₂ ∈ F̂; it is complemented, with complement Kc.
+    obtain ⟨Kc, hKdisj, hKcov⟩ := hcompAll _ hKmem
+    -- complement of U₁:  U₁ᶜ := U₂ ∪ Kc.  Disjointness/cover proved directly (cf.
+    -- `complemented_of_disjoint_half`, inlined here so `U1c` stays the literal `U₂∪Kc`).
+    let U1c : Subobject 𝒞 one := HasSubobjectUnions.union U₂ Kc
+    have hU1disj : Subobject.le (Subobject.inter U₁ U1c) Zero1 := by
+      refine Subobject.le_trans (inter_union_le U₁ U₂ Kc) ?_
+      refine HasSubobjectUnions.union_min _ _ _ hdisj ?_
+      refine Subobject.le_trans ?_ hKdisj
+      exact inter_mono (HasSubobjectUnions.union_left U₁ U₂) (Subobject.le_refl Kc)
+    have hU1cov : (Subobject.entire one).le (HasSubobjectUnions.union U₁ U1c) := by
+      refine Subobject.le_trans hKcov ?_
+      refine HasSubobjectUnions.union_min _ _ _ ?_ ?_
+      · refine HasSubobjectUnions.union_min _ _ _ (HasSubobjectUnions.union_left _ _) ?_
+        exact Subobject.le_trans (HasSubobjectUnions.union_left U₂ Kc)
+          (HasSubobjectUnions.union_right U₁ U1c)
+      · exact Subobject.le_trans (HasSubobjectUnions.union_right U₂ Kc)
+          (HasSubobjectUnions.union_right U₁ U1c)
+    -- Freyd's family 𝒢 = up-closure of F̂ ∩ U1c.
+    let 𝒢 : (Subobject 𝒞 one) → Prop :=
+      fun W => IsComplementedSub W ∧ ∃ S, Fhat S ∧ Subobject.le (Subobject.inter S U1c) W
+    have hpreF : IsPreFilter Fhat := hprop.1
+    -- (1) 𝒢 is a pre-filter.
+    have h𝒢pre : IsPreFilter 𝒢 := by
+      refine ⟨⟨HasSubobjectUnions.union U₁ U₂, hcompAll _ hKmem,
+        HasSubobjectUnions.union U₁ U₂, hKmem, Subobject.inter_le_left _ _⟩, ?_⟩
+      rintro W₁ W₂ ⟨hW₁c, S₁, hS₁, hS₁W₁⟩ ⟨hW₂c, S₂, hS₂, hS₂W₂⟩
+      -- common refinement: T ≤ S₁,S₂ with T ∈ Fhat (directed); the witness is T ∩ U1c.
+      obtain ⟨T, hT, hTS₁, hTS₂⟩ := hpreF.2 S₁ S₂ hS₁ hS₂
+      have hU1cc : IsComplementedSub U1c := ⟨U₁, Subobject.le_trans (inter_comm_le _ _) hU1disj,
+        Subobject.le_trans hU1cov (union_comm_le U₁ U1c)⟩
+      refine ⟨Subobject.inter T U1c,
+        ⟨inter_complemented (hcompAll _ hT) hU1cc, T, hT, Subobject.le_refl _⟩, ?_, ?_⟩
+      · -- T∩U1c ≤ S₁∩U1c ≤ W₁
+        exact Subobject.le_trans (inter_mono hTS₁ (Subobject.le_refl U1c)) hS₁W₁
+      · -- T∩U1c ≤ S₂∩U1c ≤ W₂
+        exact Subobject.le_trans (inter_mono hTS₂ (Subobject.le_refl U1c)) hS₂W₂
+    -- (2) all members complemented (by construction).
+    have h𝒢comp : ∀ W, 𝒢 W → IsComplementedSub W := fun W hW => hW.1
+    -- (3) 𝒢 is proper: a member ≤ 0 forces U₁ ∈ F̂, contradicting hU1.
+    have h𝒢prop : IsProperFilter 𝒢 := by
+      refine ⟨h𝒢pre, ?_⟩
+      rintro ⟨W, ⟨_, S, hS, hSW⟩, hW0⟩
+      -- S ∩ U1c ≤ W ≤ 0.  Then S ≤ S∩(U₁∪U1c) ≤ (S∩U₁)∪(S∩U1c) ≤ (S∩U₁)∪0 = S∩U₁ ≤ U₁.
+      have hSU1c0 : Subobject.le (Subobject.inter S U1c) Zero1 := Subobject.le_trans hSW hW0
+      -- S ≤ (S∩U₁) ∪ (S∩U1c):  S = S∩⊤ ≤ S∩(U₁∪U1c) ≤ (S∩U₁)∪(S∩U1c).
+      have hS_le : S.le (HasSubobjectUnions.union (Subobject.inter S U₁) (Subobject.inter S U1c)) := by
+        have h1 : S.le (Subobject.inter S (HasSubobjectUnions.union U₁ U1c)) :=
+          Subobject.le_inter (Subobject.le_refl S)
+            (Subobject.le_trans (sub_le_entire S) hU1cov)
+        exact Subobject.le_trans h1 (inter_union_le S U₁ U1c)
+      -- (S∩U₁) ∪ (S∩U1c) ≤ (S∩U₁) ∪ 0 ≤ S∩U₁ ≤ U₁.
+      have hS_U1 : S.le U₁ := by
+        refine Subobject.le_trans hS_le ?_
+        refine HasSubobjectUnions.union_min _ _ _ (Subobject.inter_le_right S U₁) ?_
+        exact Subobject.le_trans hSU1c0 (PreLogos.bottom_min U₁)
+      exact hU1 (ultrafilter_isFilter Fhat hUF S U₁ hS ⟨U1c, hU1disj, hU1cov⟩ hS_U1)
+    -- (4) F̂ ⊆ 𝒢.
+    have hF𝒢 : ∀ W, Fhat W → 𝒢 W := fun W hW =>
+      ⟨hcompAll _ hW, W, hW, Subobject.inter_le_left _ _⟩
+    -- (5) U₂ ∈ 𝒢:  S = K = U₁∪U₂ ∈ F̂,  K ∩ U1c ≤ U₂.
+    have hU2𝒢 : 𝒢 U₂ := by
+      refine ⟨complemented_of_disjoint_half (U₁ := U₂) (U₂ := U₁)
+        (Subobject.le_trans (inter_comm_le _ _) hdisj)
+        ⟨Kc, Subobject.le_trans (inter_mono (union_comm_le U₂ U₁) (Subobject.le_refl Kc)) hKdisj,
+          Subobject.le_trans hKcov
+            (HasSubobjectUnions.union_min _ _ _
+              (Subobject.le_trans (union_comm_le U₁ U₂)
+                (HasSubobjectUnions.union_left (HasSubobjectUnions.union U₂ U₁) Kc))
+              (HasSubobjectUnions.union_right (HasSubobjectUnions.union U₂ U₁) Kc))⟩,
+        HasSubobjectUnions.union U₁ U₂, hKmem, ?_⟩
+      -- (U₁∪U₂) ∩ (U₂∪Kc) ≤ ((U₁∪U₂)∩U₂) ∪ ((U₁∪U₂)∩Kc) ≤ U₂.
+      refine Subobject.le_trans (inter_union_le (HasSubobjectUnions.union U₁ U₂) U₂ Kc) ?_
+      refine HasSubobjectUnions.union_min _ _ _ (Subobject.inter_le_right _ _) ?_
+      -- (U₁∪U₂)∩Kc = K∩Kc ≤ 0 ≤ U₂.
+      exact Subobject.le_trans hKdisj (PreLogos.bottom_min U₂)
+    -- maximality: 𝒢 proper complemented extending F̂ ⟹ 𝒢 ⊆ F̂; hence U₂ ∈ F̂.
+    exact hmax 𝒢 h𝒢prop h𝒢comp hF𝒢 U₂ hU2𝒢
 
 /-! ### §1.635(a)  Ultra-filter EXISTENCE (Zorn)
 
@@ -1636,28 +1955,6 @@ theorem complementedSub_legs_iso [HasBinaryCoproducts 𝒞] {A : 𝒞} (U U₂ :
         = (HasBinaryCoproducts.inr ≫ χ) ≫ Un.arr := (Cat.assoc _ _ _).symm
       _ = po.cocone.ι₂ ≫ Un.arr := by rw [hχ₂]
       _ = U₂.arr := hy
-
-/-- Intersection of subobjects is symmetric up to `≤`: swapping the pullback legs gives
-    `inter S T ≤ inter T S`.  Both intersections are pullbacks of the same cospan in the two
-    orders; the comparison map is the canonical lift swapping `π₁` and `π₂`. -/
-theorem inter_comm_le [HasPullbacks 𝒞] {B : 𝒞} (S T : Subobject 𝒞 B) :
-    Subobject.le (Subobject.inter S T) (Subobject.inter T S) := by
-  let pbST := HasPullbacks.has S.arr T.arr
-  let pbTS := HasPullbacks.has T.arr S.arr
-  -- swap legs of pbST's cone to form a cone over (T.arr, S.arr).
-  let c : Cone T.arr S.arr := ⟨pbST.cone.pt, pbST.cone.π₂, pbST.cone.π₁, pbST.cone.w.symm⟩
-  refine ⟨pbTS.lift c, ?_⟩
-  -- (inter T S).arr = pbTS.π₁ ≫ T.arr;  lift ≫ pbTS.π₁ = c.π₁ = pbST.π₂.
-  show pbTS.lift c ≫ (pbTS.cone.π₁ ≫ T.arr) = pbST.cone.π₁ ≫ S.arr
-  rw [← Cat.assoc, pbTS.lift_fst c]
-  show pbST.cone.π₂ ≫ T.arr = pbST.cone.π₁ ≫ S.arr
-  exact pbST.cone.w.symm
-
-/-- Union of subobjects is symmetric up to `≤`: `union S T ≤ union T S` by minimality. -/
-theorem union_comm_le {B : 𝒞} (S T : Subobject 𝒞 B) :
-    Subobject.le (HasSubobjectUnions.union S T) (HasSubobjectUnions.union T S) :=
-  HasSubobjectUnions.union_min S T _
-    (HasSubobjectUnions.union_right T S) (HasSubobjectUnions.union_left T S)
 
 /-- Being a complemented subobject is symmetric: if `U` is complemented with complement `U₂`,
     then `U₂` is complemented with complement `U`.  `inter`/`union` are commutative up to `≤`. -/
