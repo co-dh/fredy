@@ -140,16 +140,28 @@ class OmegaTransitivePreLogos (𝒞 : Type u) [Cat.{v} 𝒞]
   "Every countable E-standard bicartesian pre-topos is faithfully representable in a power of S."
   (Freyd §1.776, proofs in §1.777.)
 
-  These statements require the capitalization lemma (§1.54), atom-splitting, Stone-space
-  machinery, and the full Stone representation theorem (§1.75).  None of that infrastructure
-  is in this file.  See S1_75.lean / S1_77.md for the precise census. -/
+  OPEN.  These are the top-level corollaries of §1.777 + §1.75 Stone representation.
+  They require, in order:
+  (a) §1.777's dense G_δ lemma (see below — itself OPEN for Stone/topological reasons),
+  (b) The Stone representation theorem §1.754 (OPEN, see S1_75.lean),
+  (c) A `CountableCategory` predicate and the atom-splitting step (§1.751 periodic-power
+      reduction to the atomless case, OPEN — see S1_75.lean §1.751 block),
+  (d) For the logos / H(X) variant: the topological fact that the rationals Q and the
+      irrationals ℝ∖Q are homeomorphic to the Stone space of a countable atomless boolean
+      algebra — requires metric topology not in repo,
+  (e) For the E-standard pre-topos variant: equivalence-closure R^E preserves the
+      `OmegaTransitivePreLogos` structure (§1.775 `EquivClos` is defined above but no
+      preservation theorem is proven). -/
 
 -- BOOK §1.776: Every countable positive σ-transitive pre-logos is faithfully representable
 -- in a power of S.
+-- OPEN: needs §1.777 + Stone repr (§1.754, OPEN) + countable-atomless reduction (§1.751, OPEN).
 -- BOOK §1.776: Every countable positive σ-transitive logos is faithfully representable in
 -- H(X), where X may be taken as either the rationals or the irrationals.
+-- OPEN: additionally needs metric topology (Q ≅ Stone space of countable atomless boolean alg).
 -- BOOK §1.776: Every countable E-standard bicartesian pre-topos is faithfully representable
 -- in a power of S.
+-- OPEN: additionally needs EquivClos preserves OmegaTransitivePreLogos structure.
 
 /-! ## §1.777 Dense G-delta slice of the Stone space
 
@@ -159,11 +171,21 @@ class OmegaTransitivePreLogos (𝒞 : Type u) [Cat.{v} 𝒞]
    stable unions in the given countable family."
   (Freyd §1.777; this is the key lemma behind §1.776.)
 
-  Requires Stone-space / G_δ / sheaf-on-X machinery.  Recorded MISSING. -/
+  OPEN.  Missing:
+  1. `StoneSpace B` as a concrete type with a topology (S1_38.lean has only an opaque
+     placeholder `StoneSpace : Type u` with no `Cat` or topological structure).
+  2. The notion of a `GDeltaSet` (countable intersection of open sets) in the Stone space.
+  3. The sheaf functor `A → H(Z)` for `Z ⊆ B̂` and the proof it is faithful and preserves
+     the given countable family of stable unions.
+  4. A `CapitalPreLogos` instance (§1.54 capitalization); `Capitalization.lean` closes this
+     for the abstract setting but H(Z) is not known to be capital in the repo.
+  This is a combination of the Stone-space infra wall (shared with §1.75) and the
+  constructive-density argument (Baire category theorem / ω-tower of open sets). -/
 
 -- BOOK §1.777: Given a countable atomless positive capital (pre-)logos A and a countable
 -- family of stable unions therein, there exists a dense G_δ Z in B̂ (B = boolean algebra of
 -- complemented subterminators) such that A → H(Z) is faithful and preserves each stable union.
+-- OPEN: needs StoneSpace B̂ with topology, G_δ notion, sheaf functor A → H(Z), capital infra.
 
 /-! ## §1.775 Equivalence closure R^E and E-standard pre-logos -/
 

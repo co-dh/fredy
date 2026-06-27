@@ -138,11 +138,18 @@ theorem dominates_trans {E : Type u₃} [Cat.{v} E] {D' : Type u₁} [Cat.{v} D'
   (Freyd §1.744; proof is identity-checking using §1.713's formula for double-sharps
   in functor categories.)
 
-  Needs: logos structure on functor categories S^D (double-sharps from §1.713 =
-  pointwise formula), plus the functor `F*: S^D → S^D'` given by composition with F.
-  None of this exists in the repo (no concrete model of S^D).  Recorded MISSING. -/
+  OPEN.  Three missing pieces, none in the repo:
+  1. `Logos (FunctorObj D S)` instance: `FunctorCategory.lean` gives only `RegularCategory`
+     on `FunctorObj 𝒜 𝒮`; the logos structure (the right adjoint `f##` in `S^D`,
+     §1.713's pointwise formula `(f## A')_d = f_d## A'_d`) is NOT built.
+  2. `LogosMap` predicate: a Lean type asserting a functor between logoi preserves `f##`;
+     currently absent from the repo (see `S1_72.lean` note near line 449).
+  3. The restriction functor `F* : S^D → S^D'` (precompose with F): a `FunctorObj`-level
+     functor built from `LeftFull F` and `OntoObjects F` — not constructed anywhere. -/
 
 -- BOOK §1.744: If D' dominates D then S^D is faithfully representable in S^D' as a logos.
+-- OPEN: needs (1) `Logos (FunctorObj D S)` via pointwise §1.713 double-sharps,
+--   (2) a `LogosMap` predicate, (3) the restriction functor `F* : S^D → S^D'`.
 
 /-! ## §1.745 Every category dominated by a rooted tree
 
@@ -150,9 +157,12 @@ theorem dominates_trans {E : Type u₃} [Cat.{v} E] {D' : Type u₁} [Cat.{v} D'
   (Freyd §1.745; by taking P(D) = tree of finite composable paths, ordered by prolongation,
   with functor P(D) → D sending a path to the target of its last map.)
 
-  Needs: a concrete model of the path-tree P(D) as a category.  Recorded MISSING. -/
+  OPEN.  Missing: a concrete Lean category `PathTree D` whose objects are finite
+  composable sequences in D, morphisms are prolongations, and a `Functor (PathTree D → D)`
+  (target-of-last-map) that is `OntoObjects` and `LeftFull`.  None of this exists. -/
 
 -- BOOK §1.745: Every category (with a coterminator) is dominated by a (rooted) tree.
+-- OPEN: needs `PathTree D` category (composable-path tree) + domination functor to D.
 
 /-! ## §1.746 Every countable category dominated by the binary tree
 
@@ -160,9 +170,14 @@ theorem dominates_trans {E : Type u₃} [Cat.{v} E] {D' : Type u₁} [Cat.{v} D'
   (Freyd §1.746; by homogenising P(D) to D⁺ (words of morphisms) and then to ℕ*,
   then dominating ℕ* by the binary tree 2* via the function f with f⁻¹(n) infinite.)
 
-  Needs: concrete models of D⁺, ℕ*, 2*.  Recorded MISSING. -/
+  OPEN.  Missing: concrete categories `WordCat D` (free monoid on morphisms of D),
+  `NatStar` (the category with objects ℕ, unique morphism n → m for n ≤ m), `BinTree`
+  (the binary tree 2* = full binary tree as a category), and the three domination
+  functors `WordCat D → PathTree D`, `NatStar → WordCat D` (for countable D), and
+  `BinTree → NatStar` (via the function with infinite fibers).  None exist in repo. -/
 
 -- BOOK §1.746: Every countable category with a coterminator is dominated by the binary tree.
+-- OPEN: needs `WordCat D`, `NatStar`, `BinTree` categories and three domination functors.
 
 /-! ## §1.748 Open continuous map ⟹ logos representation
 
@@ -170,9 +185,18 @@ theorem dominates_trans {E : Type u₃} [Cat.{v} E] {D' : Type u₁} [Cat.{v} D'
   (Freyd §1.748; proof: g open ⟹ g# preserves double-sharps, via the pointwise description
   of double-sharps in H(X) as unions of open subspaces [§1.713].)
 
-  Purely topological (Lazard sheaves, open maps).  Recorded MISSING. -/
+  OPEN.  Missing:
+  1. `TopologicalSpace X` and `OpenSubset X` infrastructure (none in repo; `Locale.lean`
+     has a locale/frame layer but no concrete topological space type with open sets).
+  2. `H(X)` as a category: the category of Lazard sheaves on X (or equivalently of
+     sheaves on the locale O(X)) — not constructed anywhere.
+  3. The functor `g# : H(Y) → H(X)` for `g : X → Y` open continuous, and the
+     `LogosMap` proof that it preserves double-sharps.
+  This is irreducibly topological; no category-theoretic shortcut exists. -/
 
 -- BOOK §1.748: If g: X → Y is an open continuous map, then g#: H(Y) → H(X) is a
 -- representation of logoi.
+-- OPEN: needs TopologicalSpace/OpenSubset infra, category H(X) of Lazard sheaves,
+--   and proof g# preserves double-sharps via §1.713's pointwise formula.
 
 end Freyd

@@ -807,14 +807,13 @@ theorem simplePart_largest {a b : 𝒜} (R : a ⟶ b) (A : a ⟶ a)
 
 -- BOOK §2.315: Any division allegory is faithfully representable in a locally complete
 -- distributive allegory, and thus in a globally complete allegory.
--- MISSING INFRASTRUCTURE: needs a `DivisionAllegory` instance on the local-completion Â
--- whose objects are those of A and whose hom-sets are downdeals (§2.221, `IsDowndeal`).
--- The faithful embedding A → Â (R ↦ ↓R via `principalDowndeal`) exists in S2_2.lean, but
--- the Â-composition `(D₁ ≫ D₂) := ↓{T | ∃ R ∈ D₁, S ∈ D₂, T ⊑ RS}` and the division
--- `D₁/D₂ := ↓{T | T ≫ D₂ ⊑ D₁}` on downdeals have not yet been defined or proved to
--- satisfy the `DivisionAllegory` axioms.  The `principalIdeal_isIdeal` lemma in S2_2
--- provides closure under union; the Allegory/Division structure on downdeals is
--- the remaining gap.
+-- STATUS: OPEN.
+-- AVAILABLE: the faithful embedding A → Â (R ↦ ↓R via `principalDowndeal`) exists in
+--   S2_2.lean; `IsDowndeal` and `principalIdeal_isIdeal` (closure under union) are defined.
+-- MISSING: a `Cat`+`Allegory`+`DivisionAllegory` instance on the downdeal completion Â.
+--   Specifically: (1) Â-composition `(D₁ ≫ D₂) := ↓{T | ∃ R ∈ D₁, S ∈ D₂, T ⊑ R≫S}` and
+--   (2) division `D₁/D₂ := ↓{T | T≫D₂ ⊑ D₁}` on downdeals, plus verification of the six
+--   `DivisionAllegory` class fields.  None of these structures exist in the repo.
 
 /-! ## §2.32  Tabular unitary division allegory ↔ Mσn(A) is a logos
 
@@ -828,14 +827,23 @@ theorem simplePart_largest {a b : 𝒜} (R : a ⟶ b) (A : a ⟶ a)
   logos.  The other direction: construct the right adjoint to f# using f\(-)/f°.) -/
 
 -- BOOK §2.32: A is a tabular unitary division allegory iff Mσn(A) is a logos.
--- MISSING INFRASTRUCTURE: needs a `Logos` (or `PreLogos`) instance on `MapObj 𝒜` whose
--- carrier type is already `Cat`-structured in Fredy/MapCat.lean.
--- FORWARD (logos → division allegory): uses §1.784 (Rel(C) is a division allegory).
--- BACKWARD (division allegory → logos on maps): the right adjoint to `f# : Sub(B) → Sub(A)`
--- is `f\ := f\(-)/f° = leftDiv f ≫ (-) ≫ f°` via left division from §2.312; this
--- construction relies on `leftDiv` (already defined above) and the tabulation data
--- (`TabularAllegory`), but the full logos structure (preservation of covers, equalizers,
--- and subobject classifier) on `MapObj 𝒜` is not yet assembled in this repo.
+-- STATUS: OPEN (both directions).
+-- AVAILABLE:
+--   • `mapPreLogos` in MapCat.lean: `PreLogos (MapObj 𝒜)` for `[TabularUnitaryDistributiveAllegory 𝒜]`
+--     (terminal, pullbacks, regular covers, subobject unions, bottom, inverse-image preservation).
+--   • `leftDiv` (§2.312) is defined above in this file.
+-- MISSING (FORWARD, logos → division allegory):
+--   • `DivisionAllegory (RelObj 𝒞)` for `[Logos 𝒞]`.  S1_77.lean proves the adjointness
+--     `T ⊑ R/(graph f)°` ↔ `T⊚(graph f)° ⊑ R` for maps `f`, but the full right division
+--     `R/S` for an arbitrary relation `S` (not just a graph) is not yet assembled as an
+--     instance; `DivisionAllegory (RelObj 𝒞)` does not exist in RelCat.lean.
+-- MISSING (BACKWARD, division allegory → logos on Map(𝒜)):
+--   • `HasRightAdjointImage` on `MapObj 𝒜`: the candidate right adjoint
+--     `f\ := f\(-)/f°` via `leftDiv` requires `leftDiv` to land in the subobject lattice,
+--     which needs the tabulation data (`TabularAllegory`) to be unwound; this is not yet done.
+--   • Together, `Logos (MapObj 𝒜)` = `mapPreLogos` + `HasRightAdjointImage`: only the
+--     `HasRightAdjointImage` field is missing.  One sharpened gap: define `mapRightAdjointImage`
+--     for `[TabularUnitaryDivisionAllegory 𝒜]` using `leftDiv` + tabulation.
 
 /-! ## §2.331  Moerdijk representation theorems
 
@@ -857,10 +865,11 @@ theorem simplePart_largest {a b : 𝒜} (R : a ⟶ b) (A : a ⟶ a)
 -- BOOK §2.331 (iv): Any countable logos with a coprime terminator may be faithfully
 -- represented in H(X).
 
--- MISSING INFRASTRUCTURE: requires locale O(X), Heyting algebra H(X), the §2.227
--- allegory of O(X)-valued sets, and Moerdijk's topological construction embedding
--- O(2*) into O(X) for metrizable X without isolated points.  None of these locale-
--- theoretic types exist in this repo.  Out of scope for the current formalization.
+-- STATUS: OPEN — all four parts out of scope for the current formalization.
+-- MISSING: (a) a locale `O(X)` type for metrizable X (Locale.lean has abstract frames but no
+--   topology); (b) the allegory of `O(X)`-valued sets (§2.227); (c) Heyting algebra `H(X)`;
+--   (d) Moerdijk's embedding `O(2^ω) ↪ O(X)` used to pass from the Cantor space to X.
+--   None of (a)–(d) exist in this repo.  Out of scope for the current formalization.
 
 /-! ## §2.34  Split allegory PRel(E) is a division allegory -/
 
@@ -868,14 +877,17 @@ theorem simplePart_largest {a b : 𝒜} (R : a ⟶ b) (A : a ⟶ a)
 -- Then PRel(E) (the E-split completion of A) is a division allegory.
 -- If |A| ⊂ E (all objects are in E) then A → PRel(E) is a faithful embedding of
 -- division allegories.
--- MISSING INFRASTRUCTURE: PRel(E) as an allegory type is not yet defined in this repo.
--- The split-idempotent completion `Spl 𝒜` (living in S2_21.lean via `SplObj`/`SplHom`)
--- handles the case E = all symmetric idempotents; a restricted PRel(E) for a
--- given class E has not been constructed.  The division on PRel(E) would be computed
--- entrywise from A's division: for `(e₁ : a→a, R : a→b, e₂ : b→b)` in PRel(E),
--- `(R/S)` is the entrywise `e₁ ≫ (R / S) ≫ e₂`; the key axiom verification reduces
--- to `le_div_iff` in A, but the ambient category/allegory typeclass instance on PRel(E)
--- must first be constructed (analogous to `instAllegorySpl` in S2_21.lean).
+-- STATUS: OPEN.
+-- AVAILABLE: `SplObj 𝒜` (S2_21.lean) = the case E = all symmetric idempotents, with
+--   `instAllegorySpl`, `instDistributiveSpl`, `instUnitarySpl`, `instPositiveSpl`,
+--   `instTabularAllegorySplCor` (Spl.lean), `splObj_tabular_of_semiSimple`.
+--   However, `DivisionAllegory (SplObj 𝒜)` is NOT proved.
+-- MISSING: (1) for the full-Spl case (E = all symmetric idempotents): define
+--   `splDiv` on `SplHom E F` as `⟨E.idem.e ≫ (R.R / S.R) ≫ F.idem.e⟩` and verify
+--   `le_div_iff` using `SplHom.fixed_left`/`fixed_right` + `DivisionAllegory.le_div` in 𝒜.
+--   This is the sharpest gap: `instDivisionAllegorySpl [DivisionAllegory 𝒜]` is one definition
+--   + two lemmas away.  (2) For restricted PRel(E) with E ⊊ all-sym-idempotents: not yet
+--   needed; the full-Spl case subsumes the faithful-embedding claim when |A| ⊂ E.
 
 /-! ## §2.342  Positive reflection of a division allegory
 
@@ -901,13 +913,19 @@ theorem simplePart_largest {a b : 𝒜} (R : a ⟶ b) (A : a ⟶ a)
 
 -- BOOK §2.343: Every logos C embeds faithfully and fully in a positive effective logos via
 -- C → Mσn(H̃(Eq(Rel(C))⁺)), using §2.32, §2.216 (A⁺ faithfully embeds A), §2.169 (Spl).
--- MISSING INFRASTRUCTURE: the full construction chain is:
---   Rel(C)     — the allegory of relations of C [not yet defined as an allegory instance]
---   → local completion Â  [§2.315 gap above]
---   → positive reflection A⁺  [§2.342 proved in MatrixAllegory]
---   → effective completion Eq(−) = Spl [available via S2_21/S2_22b.lean]
---   → Mσn(−) = map category [MapCat.lean provides the Cat instance]
--- Each individual step is partially available, but the composition and the proof that
--- the composite embedding is faithful and full is not yet assembled.
+-- STATUS: OPEN.
+-- AVAILABLE steps:
+--   Rel(C)     — `Allegory (RelObj C)` + `DistributiveAllegory`: proved in RelCat.lean.
+--   A⁺ = Mat(A)  — `DivisionAllegory (MatObj 𝒜)`: `instDivisionAllegoryMat` in MatrixAllegory.
+--   Eq(A) = SplObj — `instAllegorySpl`, effective: proved in S2_21/S2_22b/Spl.lean.
+--   Mσn(A) — `Cat (MapObj 𝒜)`: `mapCat` in MapCat.lean; `PreLogos (MapObj 𝒜)`: `mapPreLogos`.
+--   §2.217(1) (not §2.343): `C ↪ Map(Mat(Rel C))` faithful + target positive-pre-logos:
+--   `s217_faithful_embed_into_positive` in RelCat.lean.  This covers the PRE-LOGOS version.
+-- MISSING for §2.343 specifically:
+--   • `Logos (MapObj 𝒜)` (not just `PreLogos`): needs `HasRightAdjointImage` on `MapObj 𝒜`
+--     (the §2.32 gap above).
+--   • The §2.343 target is `Mσn(Eq(Rel(C))⁺)` = `Map(SplObj(Mat(Rel C)))`, which requires
+--     `DivisionAllegory (SplObj 𝒜)` (the §2.34 gap above) to apply §2.32 backward.
+--   • Fullness of the composite embedding `C → Map(SplObj(Mat(Rel C)))` has not been assembled.
 
 end Freyd.Alg

@@ -363,8 +363,15 @@ theorem atomicallyBased_isComplementedSub [PreLogos 𝒞] [HasIndexedSubobjectJo
 -- representation of logoi.
 -- (Proof: T a pre-logos repr, T faithful + basis property [1.752(2)] ⟹ T preserves
 -- double-sharps, hence a logos representation.)
+-- OPEN: needs (1) Stone space B̂ of the boolean algebra B of complemented subterminators
+--   (not in repo: `S1_38.lean` has only an `opaque StoneSpace` placeholder), (2) the
+--   stalk/sheaf functor `T : A → H(X)` for X ⊂ B̂, (3) the basis property §1.752(2)
+--   (every morphism of A is detected by some stalk), (4) `H(X)` as a category of sheaves
+--   on X, (5) a `LogosMap` predicate (absent — see S1_72.lean ~line 449).
 
 -- BOOK §1.754: If X = B̂ then T is faithful [1.635] and A → H(B̂) is a representation
 -- of logoi.
+-- OPEN: same infra as §1.753 plus the faithfulness from §1.635 (ultra-filter stalk
+--   functors, INFRA-BLOCKED in S1_62.lean §1.635 block).
 
 end Freyd
