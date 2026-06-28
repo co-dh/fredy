@@ -452,4 +452,63 @@ noncomputable def colimitDisjointBinaryCoproduct
       he hepres hepres_lift hcoppres hcoppres_case hl hr
   exact disjointBinaryCoproduct_of_disjoint (𝒞 := C.Obj) hl hr hinter
 
+/-- **The directed colimit of positive pre-logoi is a positive pre-logos** (Freyd §1.63 "union
+    condition", strict level).  Single entry point bundling `colimitPreLogos` (the `PreLogos` layer,
+    via `colimit_invImage_union_le`) as the `[hPL]` of `colimitDisjointBinaryCoproduct` (the disjoint
+    binary coproduct, via the internal `colimit_inl/inr_monic` + `colimit_inl_inter_inr`).  All
+    hypotheses are the per-stage finite-limit / image / coproduct coherence bundles the §2.218
+    capitalization tower already supplies; the colimit's `RegularCategory`/`HasSubobjectUnions` come
+    from `colimitPreRegular` + `colimitHasImages` + `hasSubobjectUnions_of_coproducts_images`. -/
+noncomputable def colimitPositive
+    (C : CatSystem.{u, u} ι D) (hC : C.Coherent) [Nonempty ι]
+    (hdisj : ∀ i, DisjointBinaryCoproduct (C.A i)) (hmono : TransMono C)
+    (hbot : ∀ i, PreLogos (C.A i))
+    (hinitpres : ∀ {i j : ι} (hij : D.le i j), C.F hij (stageZero C hbot i) = stageZero C hbot j)
+    (ht : ∀ i, HasTerminal (C.A i))
+    (htpres : ∀ {i j} (hij : D.le i j), C.F hij (ht i).one = (ht j).one)
+    (hp : ∀ i, HasBinaryProducts (C.A i))
+    (hpres : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
+        (u v : z ⟶ C.F hij ((hp i).prod a b)),
+        u ≫ (C.functF hij).map (hp i).fst = v ≫ (C.functF hij).map (hp i).fst →
+        u ≫ (C.functF hij).map (hp i).snd = v ≫ (C.functF hij).map (hp i).snd → u = v)
+    (hpres_pair : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
+        (p : z ⟶ C.F hij a) (q : z ⟶ C.F hij b),
+        ∃ r : z ⟶ C.F hij ((hp i).prod a b),
+          r ≫ (C.functF hij).map (hp i).fst = p ∧ r ≫ (C.functF hij).map (hp i).snd = q)
+    (he : ∀ i, HasEqualizers (C.A i))
+    (hepres : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
+        (u v : z ⟶ C.F hij (eqObj f g)),
+        u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
+    (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
+        (k : z ⟶ C.F hij A)
+        (hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
+        ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k)
+    (hcoppres : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
+        (u v : C.F hij ((hdisj i).toHasBinaryCoproducts.coprod a b) ⟶ z),
+        (C.functF hij).map (hdisj i).toHasBinaryCoproducts.inl ≫ u
+            = (C.functF hij).map (hdisj i).toHasBinaryCoproducts.inl ≫ v →
+        (C.functF hij).map (hdisj i).toHasBinaryCoproducts.inr ≫ u
+            = (C.functF hij).map (hdisj i).toHasBinaryCoproducts.inr ≫ v → u = v)
+    (hcoppres_case : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
+        (p : C.F hij a ⟶ z) (q : C.F hij b ⟶ z),
+        ∃ r : C.F hij ((hdisj i).toHasBinaryCoproducts.coprod a b) ⟶ z,
+          (C.functF hij).map (hdisj i).toHasBinaryCoproducts.inl ≫ r = p
+          ∧ (C.functF hij).map (hdisj i).toHasBinaryCoproducts.inr ≫ r = q)
+    (hi : ∀ i, HasImages (C.A i))
+    (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (p q : x ⟶ y),
+        (C.functF hij).map p = (C.functF hij).map q → p = q)
+    (himgpres : ∀ {i j : ι} (hij : D.le i j) {A B : C.A i} (f : A ⟶ B),
+        IsImage ((C.functF hij).map f)
+          (@Subobject.map _ _ (C.catA i) (C.catA j) (C.F hij) (C.functF hij) (hmono hij) _
+            (@image _ (C.catA i) (hi i) _ _ f)))
+    [hReg : @RegularCategory C.Obj (colimitCat C hC)]
+    [hUn : @HasSubobjectUnions C.Obj (colimitCat C hC) hReg.toHasImages] :
+    @DisjointBinaryCoproduct C.Obj (colimitCat C hC) :=
+  letI : Cat C.Obj := colimitCat C hC
+  letI hPL : @PreLogos C.Obj (colimitCat C hC) :=
+    colimitPreLogos C hC hbot hinitpres hmono ht htpres hp hpres hpres_pair he hepres hepres_lift
+      (fun i => (hdisj i).toHasBinaryCoproducts) hcoppres hcoppres_case hi hfaith himgpres
+  colimitDisjointBinaryCoproduct C hC hdisj hmono hbot hinitpres ht htpres hp hpres hpres_pair
+    he hepres hepres_lift hcoppres hcoppres_case
+
 end Freyd.Colim
