@@ -97,6 +97,7 @@ import Fredy.LaxInvImageUnion
 import Fredy.LaxDisjoint
 import Fredy.LaxColimitPositive
 import Fredy.RatCapPositive
+import Fredy.CapDataPositive
 import Fredy.RatCapImages
 import Fredy.CapDataRegular
 import Fredy.PowerAllegoryFamily
