@@ -90,6 +90,7 @@ import Fredy.LaxGermProducts
 import Fredy.LaxGermImages
 import Fredy.LaxGermEqualizers
 import Fredy.LaxGermPullbacks
+import Fredy.LaxGermCoproduct
 import Fredy.LaxStrictInitial
 import Fredy.RatCapImages
 import Fredy.CapDataRegular
