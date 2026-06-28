@@ -17,6 +17,7 @@ import Fredy.S1_27
 import Fredy.S1_41
 import Fredy.S1_42
 import Fredy.S1_44
+import Fredy.FunctorReflects
 import Fredy.S1_45
 import Fredy.S1_47
 import Fredy.Horn
@@ -95,6 +96,7 @@ import Fredy.LaxStrictInitial
 import Fredy.LaxInvImageUnion
 import Fredy.LaxDisjoint
 import Fredy.LaxColimitPositive
+import Fredy.RatCapPositive
 import Fredy.RatCapImages
 import Fredy.CapDataRegular
 import Fredy.PowerAllegoryFamily
