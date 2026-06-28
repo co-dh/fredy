@@ -96,6 +96,7 @@ import Fredy.StalkRepr
 import Fredy.UnionFromCoproduct
 import Fredy.ColimitPositive
 import Fredy.ColimitPreLogos
+import Fredy.ColimitCoproductGerm
 import Fredy.Inflation
 import Fredy.S2_1
 import Fredy.S2_21
