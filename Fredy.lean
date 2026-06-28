@@ -87,6 +87,7 @@ import Fredy.CapDataWiring
 import Fredy.LaxColimitImages
 import Fredy.RatCapImages
 import Fredy.CapDataRegular
+import Fredy.PowerAllegoryFamily
 import Fredy.Inflation
 import Fredy.S2_1
 import Fredy.S2_21
