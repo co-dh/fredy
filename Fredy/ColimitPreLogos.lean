@@ -2,6 +2,7 @@ import Fredy.CatColimitRegular
 import Fredy.S1_61
 import Fredy.UnionFromCoproduct
 import Fredy.Initial
+import Fredy.ColimitInvImageUnion
 
 /-!
   # The directed colimit of pre-logoi is a pre-logos
@@ -27,10 +28,12 @@ import Fredy.Initial
     * `invImage_preserves_bottom` — the pullback of `Z₀ ↣ B` along `f` projects to `Z₀`, hence
       (strictness) is iso to `Z₀`.
 
-  The remaining field `invImage_preserves_union` (Freyd's coherent-stability law) is threaded as a
-  hypothesis: at the colimit it requires showing the colimit union / inverse-image agree with the
-  germs of the per-stage operations (`objIncl_preserves_images` + `objIncl_preserves_pullbacks` +
-  a coproduct-germ lemma) — a separate, heavy assembly, not the bottom content of this file.
+  The remaining field `invImage_preserves_union` (Freyd's coherent-stability law) is discharged by
+  `colimit_invImage_union_le` (`Fredy/ColimitInvImageUnion.lean`): the colimit union / inverse image
+  agree with the germs of the per-stage operations (`objIncl_preserves_images` +
+  `objIncl_preserves_pullbacks` + `objIncl_preserves_coproducts`), so the per-stage hard direction
+  transports up.  The per-stage finite-limit / image / coproduct bundles are exactly those the
+  §2.218 regular tower already supplies.
 -/
 
 open Freyd
@@ -136,14 +139,50 @@ theorem mono_of_strict_initial {𝒞 : Type u} [Cat.{v} 𝒞] {Z A : 𝒞}
   the colimit is a `PreLogos`.
 
   The four bottom fields rest on the single new brick `colimitStrictInitial`; the substantive
-  coherent-stability law `invImage_preserves_union` is threaded as `hinvun`. -/
-noncomputable def colimitPreLogos (C : CatSystem ι D) (hC : C.Coherent) [Nonempty ι]
+  coherent-stability law `invImage_preserves_union` is discharged by germ-transport
+  (`colimit_invImage_union_le`, §1.63 union condition) from the per-stage finite-limit / image /
+  coproduct bundles (the same ones the §2.218 regular tower already supplies). -/
+noncomputable def colimitPreLogos (C : CatSystem.{u, u} ι D) (hC : C.Coherent) [Nonempty ι]
     (hbot : ∀ i, PreLogos (C.A i))
     (hinitpres : ∀ {i j : ι} (hij : D.le i j), C.F hij (stageZero C hbot i) = stageZero C hbot j)
+    (hmono : TransMono C)
+    (ht : ∀ i, HasTerminal (C.A i))
+    (htpres : ∀ {i j} (hij : D.le i j), C.F hij (ht i).one = (ht j).one)
+    (hp : ∀ i, HasBinaryProducts (C.A i))
+    (hpres : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
+        (u v : z ⟶ C.F hij ((hp i).prod a b)),
+        u ≫ (C.functF hij).map (hp i).fst = v ≫ (C.functF hij).map (hp i).fst →
+        u ≫ (C.functF hij).map (hp i).snd = v ≫ (C.functF hij).map (hp i).snd → u = v)
+    (hpres_pair : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
+        (p : z ⟶ C.F hij a) (q : z ⟶ C.F hij b),
+        ∃ r : z ⟶ C.F hij ((hp i).prod a b),
+          r ≫ (C.functF hij).map (hp i).fst = p ∧ r ≫ (C.functF hij).map (hp i).snd = q)
+    (he : ∀ i, HasEqualizers (C.A i))
+    (hepres : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
+        (u v : z ⟶ C.F hij (eqObj f g)),
+        u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
+    (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
+        (k : z ⟶ C.F hij A)
+        (hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
+        ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k)
+    (hcop : ∀ i, HasBinaryCoproducts (C.A i))
+    (hcoppres : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
+        (u v : C.F hij ((hcop i).coprod a b) ⟶ z),
+        (C.functF hij).map (hcop i).inl ≫ u = (C.functF hij).map (hcop i).inl ≫ v →
+        (C.functF hij).map (hcop i).inr ≫ u = (C.functF hij).map (hcop i).inr ≫ v → u = v)
+    (hcoppres_case : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
+        (p : C.F hij a ⟶ z) (q : C.F hij b ⟶ z),
+        ∃ r : C.F hij ((hcop i).coprod a b) ⟶ z,
+          (C.functF hij).map (hcop i).inl ≫ r = p ∧ (C.functF hij).map (hcop i).inr ≫ r = q)
+    (hi : ∀ i, HasImages (C.A i))
+    (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (p q : x ⟶ y),
+        (C.functF hij).map p = (C.functF hij).map q → p = q)
+    (himgpres : ∀ {i j : ι} (hij : D.le i j) {A B : C.A i} (f : A ⟶ B),
+        IsImage ((C.functF hij).map f)
+          (@Subobject.map _ _ (C.catA i) (C.catA j) (C.F hij) (C.functF hij) (hmono hij) _
+            (@image _ (C.catA i) (hi i) _ _ f)))
     [hReg : @RegularCategory C.Obj (colimitCat C hC)]
-    [hUn : @HasSubobjectUnions C.Obj (colimitCat C hC) hReg.toHasImages]
-    (hinvun : letI : Cat C.Obj := colimitCat C hC
-              ∀ {A B : C.Obj} (f : A ⟶ B), inverseImage_preserves_unions f) :
+    [hUn : @HasSubobjectUnions C.Obj (colimitCat C hC) hReg.toHasImages] :
     @PreLogos C.Obj (colimitCat C hC) := by
   letI : Cat C.Obj := colimitCat C hC
   let i₀ : ι := Classical.choice ‹Nonempty ι›
@@ -156,7 +195,12 @@ noncomputable def colimitPreLogos (C : CatSystem ι D) (hC : C.Coherent) [Nonemp
       bottom := fun A => ⟨Z₀, hInit.out A, mono_of_strict_initial hInit hSI (hInit.out A)⟩
       bottom_min := fun {A} S => ⟨hInit.out S.dom, hInit.hom_uniq _ _⟩
       bottom_dom_iso := fun A B => isomorphic_refl Z₀
-      invImage_preserves_union := fun {A B} f => hinvun f
+      invImage_preserves_union := fun {A B} f S T =>
+        ⟨colimit_invImage_union_le C hC hmono ht htpres hp hpres hpres_pair he hepres hepres_lift
+           hcop hcoppres hcoppres_case hi hfaith himgpres hbot f S T,
+         HasSubobjectUnions.union_min _ _ _
+           (inverseImage_mono f (HasSubobjectUnions.union_left S T))
+           (inverseImage_mono f (HasSubobjectUnions.union_right S T))⟩
       invImage_preserves_bottom := fun {A B} f =>
         ⟨(HasPullbacks.has f (hInit.out B)).cone.π₂, hSI _⟩ }
 
