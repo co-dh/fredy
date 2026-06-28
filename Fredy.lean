@@ -86,6 +86,7 @@ import Fredy.FibreDensityProof
 import Fredy.CapDataWiring
 import Fredy.LaxColimitImages
 import Fredy.LaxColimitCoproduct
+import Fredy.LaxGermProducts
 import Fredy.RatCapImages
 import Fredy.CapDataRegular
 import Fredy.PowerAllegoryFamily
