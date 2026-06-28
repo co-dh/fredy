@@ -47,15 +47,23 @@ noncomputable def stageZero (L : LaxCatSystem ι D) (hbot : ∀ i, PreLogos (L.A
     STRICT COTERMINATOR (strict initial) of `laxColimCat L hL`: every lax-colimit map into it is an
     iso.  Lax port of `Colim.colimitStrictInitial`.
 
+    The transition hypothesis is the UP-TO-ISO form `hinitstrict`: every transition `L.F hij` sends the
+    chosen stage strict-initial `0_i` to a STRICT COTERMINATOR of stage `j` (NOT the on-the-nose object
+    equality `L.F hij 0_i = 0_j`).  This is the form satisfied by the intended base-change transitions
+    (`baseChangeObj`) of the §2.218 capitalization tower: pullback of a strict initial along any map is
+    again strict-initial, but only up to iso, never as a chosen-object equality.  The `Eq` form implies
+    this one (`strictCoterminator_of_eq` below), so existing callers that DO have an on-the-nose
+    equality lose nothing.
+
     PROOF.  A map `g : X ⟶ objIncl L i₀ 0_{i₀}` is a germ; pick a representative `⟨a, f₀⟩` with
     `f₀ : L.F a.2.1 xX ⟶ L.F a.2.2 0_{i₀}` at an upper bound `a` of `(jX, i₀)`.  Its codomain
-    `L.F a.2.2 0_{i₀}` IS the stage strict-initial `0_{a.1}` on the nose (`hinitpres a.2.2`), so
-    casting `f₀` to a map into `0_{a.1}` makes it a map into the stage strict initial, hence iso
-    (`any_map_to_zero_is_iso`, §1.61).  `isIso_of_castHom` strips the cast to `IsIso f₀`, whose
-    inverse-and-equations feed `homInclL_isIso_of_rep` to lift the stage iso to the colimit. -/
+    `L.F a.2.2 0_{i₀}` is a STRICT COTERMINATOR of stage `a.1` (`hinitstrict a.2.2`), so `f₀` — a map
+    INTO a strict coterminator — is iso directly.  Its inverse-and-equations feed
+    `homInclL_isIso_of_rep` to lift the stage iso to the colimit. -/
 theorem laxColimStrictInitial (L : LaxCatSystem.{u, w} ι D) (hL : Coherent L) [Nonempty ι]
     (hbot : ∀ i, PreLogos (L.A i))
-    (hinitpres : ∀ {i j : ι} (hij : D.le i j), L.F hij (stageZero L hbot i) = stageZero L hbot j)
+    (hinitstrict : ∀ {i j : ι} (hij : D.le i j),
+      @StrictCoterminator (L.A j) (L.catA j) (L.F hij (stageZero L hbot i)))
     (i₀ : ι) :
     letI : Cat (Obj L) := laxColimCat L hL
     StrictCoterminator (objIncl L i₀ (stageZero L hbot i₀)) := by
@@ -65,13 +73,21 @@ theorem laxColimStrictInitial (L : LaxCatSystem.{u, w} ι D) (hL : Coherent L) [
   -- a germ representative `⟨a, f₀⟩` of the lax-colimit map `g`
   refine Quotient.inductionOn g (fun rep => ?_)
   obtain ⟨a, f₀⟩ := rep
-  -- `f₀ : L.F a.2.1 xX ⟶ L.F a.2.2 0_{i₀}`; its codomain IS `0_{a.1}` on the nose
-  have e : L.F a.2.2 (stageZero L hbot i₀) = stageZero L hbot a.1 := hinitpres a.2.2
-  -- cast into `0_{a.1}` ⟹ a map into a strict initial ⟹ iso (§1.61); strip the cast
-  have hf0 : IsIso f₀ :=
-    isIso_of_castHom rfl e f₀ (any_map_to_zero_is_iso (hbot a.1) (castHom rfl e f₀))
-  obtain ⟨g₀, h1, h2⟩ := hf0
+  -- `f₀ : L.F a.2.1 xX ⟶ L.F a.2.2 0_{i₀}`; its codomain is a strict coterminator of stage `a.1`,
+  -- so `f₀` (a map INTO it) is iso directly.
+  obtain ⟨g₀, h1, h2⟩ := hinitstrict a.2.2 f₀
   -- lift the stage iso to the colimit
   exact homInclL_isIso_of_rep L hL xX (stageZero L hbot i₀) a f₀ g₀ h1 h2
+
+/-- The on-the-nose equality form of `hinitstrict` implies the up-to-iso `StrictCoterminator` form:
+    if `L.F hij 0_i = 0_j` then `L.F hij 0_i` is the chosen stage strict-initial `0_j`, which is a
+    strict coterminator (`minimal_subobject_of_one_is_coterminator`).  Lets callers with an on-the-nose
+    equality use `laxColimStrictInitial` unchanged. -/
+theorem strictCoterminator_of_eq (L : LaxCatSystem.{u, w} ι D) (hbot : ∀ i, PreLogos (L.A i))
+    {i j : ι} (hij : D.le i j) (e : L.F hij (stageZero L hbot i) = stageZero L hbot j) :
+    @StrictCoterminator (L.A j) (L.catA j) (L.F hij (stageZero L hbot i)) := by
+  rw [e]
+  intro X f
+  exact any_map_to_zero_is_iso (hbot j) f
 
 end Freyd.LaxColim

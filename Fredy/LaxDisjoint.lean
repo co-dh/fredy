@@ -250,7 +250,8 @@ theorem laxColim_inl_inter_inr [Nonempty ι]
     (hmono : ∀ {i j : ι} (hij : D.le i j),
         @PreservesMono _ (L.catA i) _ (L.catA j) (L.F hij) (L.functF hij))
     (hbot : ∀ i, PreLogos (L.A i))
-    (hinitpres : ∀ {i j : ι} (hij : D.le i j), L.F hij (stageZero L hbot i) = stageZero L hbot j)
+    (hinitpres : ∀ {i j : ι} (hij : D.le i j),
+      @StrictCoterminator (L.A j) (L.catA j) (L.F hij (stageZero L hbot i)))
     (tData : LaxTerminalData L) (pData : LaxProductData L) (eqData : LaxEqualizerData L)
     (hcoppres : ∀ {i j} (hij : D.le i j) (a b : L.A i) (z : L.A j)
         (u v : L.F hij ((hdisj i).toHasBinaryCoproducts.coprod a b) ⟶ z),

@@ -58,7 +58,8 @@ variable {ι : Type w} {D : Directed ι}
   direction and `invImage_le_of_le` + `union_min` for the reverse (monotonicity of inverse image). -/
 noncomputable def laxColimPreLogos (L : LaxCatSystem.{w, w} ι D) (hL : Coherent L) [Nonempty ι]
     (hbot : ∀ i, PreLogos (L.A i))
-    (hinitpres : ∀ {i j : ι} (hij : D.le i j), L.F hij (stageZero L hbot i) = stageZero L hbot j)
+    (hinitpres : ∀ {i j : ι} (hij : D.le i j),
+      @StrictCoterminator (L.A j) (L.catA j) (L.F hij (stageZero L hbot i)))
     (hmono : TransMonoL L)
     (tData : LaxTerminalData L) (pData : LaxProductData L) (eqData : LaxEqualizerData L)
     (coprData : LaxCoproductData L)
@@ -105,7 +106,8 @@ noncomputable def laxColimPreLogos (L : LaxCatSystem.{w, w} ι D) (hL : Coherent
 noncomputable def laxColimPositive (L : LaxCatSystem.{w, w} ι D) (hL : Coherent L) [Nonempty ι]
     (hdisj : ∀ i, DisjointBinaryCoproduct (L.A i)) (hmono : TransMonoL L)
     (hbot : ∀ i, PreLogos (L.A i))
-    (hinitpres : ∀ {i j : ι} (hij : D.le i j), L.F hij (stageZero L hbot i) = stageZero L hbot j)
+    (hinitpres : ∀ {i j : ι} (hij : D.le i j),
+      @StrictCoterminator (L.A j) (L.catA j) (L.F hij (stageZero L hbot i)))
     (tData : LaxTerminalData L) (pData : LaxProductData L) (eqData : LaxEqualizerData L)
     (hcoppres : ∀ {i j} (hij : D.le i j) (a b : L.A i) (z : L.A j)
         (u v : L.F hij ((hdisj i).toHasBinaryCoproducts.coprod a b) ⟶ z),
