@@ -94,6 +94,7 @@ import Fredy.LaxGermCoproduct
 import Fredy.LaxStrictInitial
 import Fredy.LaxInvImageUnion
 import Fredy.LaxDisjoint
+import Fredy.LaxColimitPositive
 import Fredy.RatCapImages
 import Fredy.CapDataRegular
 import Fredy.PowerAllegoryFamily
