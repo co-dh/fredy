@@ -92,6 +92,7 @@ import Fredy.LaxGermEqualizers
 import Fredy.LaxGermPullbacks
 import Fredy.LaxGermCoproduct
 import Fredy.LaxStrictInitial
+import Fredy.LaxDisjoint
 import Fredy.RatCapImages
 import Fredy.CapDataRegular
 import Fredy.PowerAllegoryFamily
