@@ -16,12 +16,16 @@ open PreLogosHorn.Stalk
 
 variable {𝒞 : Type u} [Cat.{u} 𝒞] [PreLogos 𝒞] [HasBinaryCoproducts 𝒞]
 
-/-- §1.635:239 — a proper subobject probed by a complemented subterminator is DETECTED by some
-    ultra-filter stalk: the probe class escapes the image of `T_F̂(m)`. -/
-theorem stalk_detects_proper_mono {A' A : 𝒞} (m : A' ⟶ A) (hm : Monic m)
+/-- §1.635:239 — STRONG FORM: a proper subobject probed by a complemented subterminator `U` is
+    DETECTED by some ultra-filter stalk that CONTAINS `U`, and the SPECIFIC class `T_F̂(x')` of the
+    probe escapes the image of `T_F̂(m)`.  Names the escaping class (unlike the `¬ Surjective`
+    corollary below), so it can be combined with an external equation on the stalk — e.g. the
+    equalizing identity that drives `Tstar_separates`. -/
+theorem stalk_detects_proper_mono_class {A' A : 𝒞} (m : A' ⟶ A) (hm : Monic m)
     (U : Subobject 𝒞 one) (hUcomp : IsComplementedSub U)
     (x' : U.dom ⟶ A) (hx' : ¬ ∃ y : U.dom ⟶ A', y ≫ m = x') :
-    ∃ F : StalkIndex 𝒞, ¬ Function.Surjective (TF.map F.val m) := by
+    ∃ F : StalkIndex 𝒞, ∃ hU : F.val U,
+      ¬ ∃ z : TF F.val A', TF.map F.val m z = TF.mk F.val ⟨U, hU, x'⟩ := by
   -- The subobject `m`, its inverse image along `x'`, and its pushforward into `Sub(1)`.
   let S : Subobject 𝒞 A := ⟨A', m, hm⟩
   let pb := HasPullbacks.has x' S.arr
@@ -50,11 +54,9 @@ theorem stalk_detects_proper_mono {A' A : 𝒞} (m : A' ⟶ A) (hm : Monic m)
   obtain ⟨ℱ, hUF, hUmem, hexcl⟩ :=
     exists_ultrafilter_excluding_within U hUcomp Usub hsub hUproper
   have hℱpre : IsPreFilter ℱ := hUF.1.1
-  refine ⟨⟨ℱ, hUF⟩, ?_⟩
-  show ¬ Function.Surjective (TF.map ℱ m)
-  intro hsurj
-  -- The class of `x'` in `T_ℱ(A)` is hit by some `z`; pick a representative `p` of `z`.
-  obtain ⟨z, hz⟩ := hsurj (TF.mk ℱ ⟨U, hUmem, x'⟩)
+  refine ⟨⟨ℱ, hUF⟩, hUmem, ?_⟩
+  -- Suppose the probe class `T_ℱ(x')` were hit by some `z`; pick a representative `p` of `z`.
+  rintro ⟨z, hz⟩
   obtain ⟨p, rfl⟩ := Quot.exists_rep z
   have hz2 : TF.mk ℱ ⟨p.U, p.hU, p.map ≫ m⟩ = TF.mk ℱ ⟨U, hUmem, x'⟩ := hz
   -- Equal `TF`-classes are `PrefRel`-related: a common refinement `W'` on which the maps agree.
@@ -75,5 +77,15 @@ theorem stalk_detects_proper_mono {A' A : 𝒞} (m : A' ⟶ A) (hm : Monic m)
       _ = b ≫ U.arr := by rw [hk]
       _ = W'.arr := hb⟩
   exact hexcl W' (hUF.2.1 W' hW') hW'le hW'
+
+/-- §1.635:239 — a proper subobject probed by a complemented subterminator is DETECTED by some
+    ultra-filter stalk: the post-composition `T_F̂(m)` fails to be surjective.  Corollary of the
+    strong form `stalk_detects_proper_mono_class`, forgetting WHICH class escapes. -/
+theorem stalk_detects_proper_mono {A' A : 𝒞} (m : A' ⟶ A) (hm : Monic m)
+    (U : Subobject 𝒞 one) (hUcomp : IsComplementedSub U)
+    (x' : U.dom ⟶ A) (hx' : ¬ ∃ y : U.dom ⟶ A', y ≫ m = x') :
+    ∃ F : StalkIndex 𝒞, ¬ Function.Surjective (TF.map F.val m) := by
+  obtain ⟨F, hU, hne⟩ := stalk_detects_proper_mono_class m hm U hUcomp x' hx'
+  exact ⟨F, fun hsurj => hne (hsurj (TF.mk F.val ⟨U, hU, x'⟩))⟩
 
 end Freyd
