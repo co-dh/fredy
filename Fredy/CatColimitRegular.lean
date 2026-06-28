@@ -10,6 +10,7 @@ import Fredy.S1_42
 import Fredy.S1_43
 import Fredy.S1_51
 import Fredy.S1_52
+import Fredy.S1_58
 open Freyd
 namespace Freyd.Colim
 universe u w
@@ -412,6 +413,331 @@ noncomputable def colimitHasBinaryProducts (C : CatSystem ι D) (hC : C.Coherent
     rw [castHom_castHom, castHom_castHom] at hu2
     exact hu2
   exact @HasBinaryProducts.mk C.Obj (colimitCat C hC) prodFun fst snd pair h_fst_pair h_snd_pair h_pair_uniq
+
+/-!
+  M3b' — binary COPRODUCTS of the colimit category (dual to `colimitHasBinaryProducts`).
+
+  If each stage `C.A i` has binary coproducts and the transitions preserve them
+  (the image of a stage coproduct cocone is again jointly-epic and admits a
+  copairing), the colimit category `C.Obj` has binary coproducts.  Unlike
+  products, the construction is the exact dual: `inl`/`inr` go *into* the
+  coproduct germ, and `case` goes *out* of it.
+-/
+
+noncomputable def colimitHasBinaryCoproducts (C : CatSystem ι D) (hC : C.Coherent)
+    (hcop : ∀ i, HasBinaryCoproducts (C.A i))
+    (hcoppres : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
+        (u v : C.F hij ((hcop i).coprod a b) ⟶ z),
+        (C.functF hij).map (hcop i).inl ≫ u = (C.functF hij).map (hcop i).inl ≫ v →
+        (C.functF hij).map (hcop i).inr ≫ u = (C.functF hij).map (hcop i).inr ≫ v → u = v)
+    (hcoppres_case : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
+        (p : C.F hij a ⟶ z) (q : C.F hij b ⟶ z),
+        ∃ r : C.F hij ((hcop i).coprod a b) ⟶ z,
+          (C.functF hij).map (hcop i).inl ≫ r = p ∧ (C.functF hij).map (hcop i).inr ≫ r = q) :
+    @HasBinaryCoproducts C.Obj (colimitCat C hC) := by
+  have hDirSubsingleton : ∀ {i j : ι} (h h' : D.le i j), h = h' := by
+    intro i j h h'; exact Subsingleton.elim h h'
+  have hF_proof_irrel : ∀ {i j : ι} (h h' : D.le i j) (a : C.A i), C.F h a = C.F h' a := by
+    intro i j h h' a; rw [hDirSubsingleton h h']
+  -- Shared data parameterized by (A, B): the coproduct stage k and pushed summands.
+  let iObj (A : C.Obj) : ι := (colimOut C A).1
+  let xObj (A : C.Obj) : C.A (iObj A) := (colimOut C A).2
+  let k (A B : C.Obj) : ι := Classical.choose (D.bound (iObj A) (iObj B))
+  have hbd (A B : C.Obj) : D.le (iObj A) (k A B) ∧ D.le (iObj B) (k A B) :=
+    Classical.choose_spec (D.bound (iObj A) (iObj B))
+  let hA_k (A B : C.Obj) : D.le (iObj A) (k A B) := (hbd A B).1
+  let hB_k (A B : C.Obj) : D.le (iObj B) (k A B) := (hbd A B).2
+  let ak (A B : C.Obj) : C.A (k A B) := C.F (hA_k A B) (xObj A)
+  let bk (A B : C.Obj) : C.A (k A B) := C.F (hB_k A B) (xObj B)
+  -- Coproduct object (uses shared k)
+  let coprodFun (X Y : C.Obj) : C.Obj :=
+    C.objIncl (k X Y) ((hcop (k X Y)).coprod (ak X Y) (bk X Y))
+  -- Representative of the coproduct object
+  let ip (A B : C.Obj) : ι := (colimOut C (coprodFun A B)).1
+  let op (A B : C.Obj) : C.A (ip A B) := (colimOut C (coprodFun A B)).2
+  have hCoprodSpec (A B : C.Obj) : C.objIncl (ip A B) (op A B) = coprodFun A B :=
+    colimOut_spec C (coprodFun A B)
+  have hCoprodRel (A B : C.Obj) : Rel C.objSystem ⟨ip A B, op A B⟩
+      ⟨k A B, (hcop (k A B)).coprod (ak A B) (bk A B)⟩ :=
+    Quotient.exact (hCoprodSpec A B)
+  let kp (A B : C.Obj) : ι := Classical.choose (hCoprodRel A B)
+  have h_kp_spec1 (A B : C.Obj) : ∃ (hik : D.le (ip A B) (kp A B)) (hjk : D.le (k A B) (kp A B)),
+      C.F hik (op A B) = C.F hjk ((hcop (k A B)).coprod (ak A B) (bk A B)) :=
+    Classical.choose_spec (hCoprodRel A B)
+  let h_ip_kp (A B : C.Obj) : D.le (ip A B) (kp A B) := Classical.choose (h_kp_spec1 A B)
+  have h_kp_spec2 (A B : C.Obj) : ∃ (hjk : D.le (k A B) (kp A B)),
+      C.F (h_ip_kp A B) (op A B) = C.F hjk ((hcop (k A B)).coprod (ak A B) (bk A B)) :=
+    Classical.choose_spec (h_kp_spec1 A B)
+  let h_k_kp (A B : C.Obj) : D.le (k A B) (kp A B) := Classical.choose (h_kp_spec2 A B)
+  have h_coprod_eq (A B : C.Obj) : C.F (h_ip_kp A B) (op A B)
+      = C.F (h_k_kp A B) ((hcop (k A B)).coprod (ak A B) (bk A B)) :=
+    Classical.choose_spec (h_kp_spec2 A B)
+  -- inl and inr as let definitions (germ inclusions of the stage inl/inr)
+  let inl {A B : C.Obj} : colimHom C hC A (coprodFun A B) :=
+    homIncl C hC (xObj A) (op A B) ⟨kp A B, D.trans (hA_k A B) (h_k_kp A B), h_ip_kp A B⟩
+      (castHom
+        (calc
+          C.F (h_k_kp A B) (ak A B) = C.F (h_k_kp A B) (C.F (hA_k A B) (xObj A)) := rfl
+          _ = C.F (D.trans (hA_k A B) (h_k_kp A B)) (xObj A) := by rw [C.F_trans (hA_k A B) (h_k_kp A B) (xObj A)])
+        (h_coprod_eq A B).symm
+        ((C.functF (h_k_kp A B)).map ((hcop (k A B)).inl (A:=ak A B) (B:=bk A B))))
+  let inr {A B : C.Obj} : colimHom C hC B (coprodFun A B) :=
+    homIncl C hC (xObj B) (op A B) ⟨kp A B, D.trans (hB_k A B) (h_k_kp A B), h_ip_kp A B⟩
+      (castHom
+        (calc
+          C.F (h_k_kp A B) (bk A B) = C.F (h_k_kp A B) (C.F (hB_k A B) (xObj B)) := rfl
+          _ = C.F (D.trans (hB_k A B) (h_k_kp A B)) (xObj B) := by rw [C.F_trans (hB_k A B) (h_k_kp A B) (xObj B)])
+        (h_coprod_eq A B).symm
+        ((C.functF (h_k_kp A B)).map ((hcop (k A B)).inr (A:=ak A B) (B:=bk A B))))
+  -- Existence of a mediating morphism OUT of the coproduct for any f, g.
+  have h_exists_case (Z X Y : C.Obj) (f : colimHom C hC X Z) (g : colimHom C hC Y Z) :
+      ∃ h : colimHom C hC (coprodFun X Y) Z,
+        colimComp C hC (inl (A:=X) (B:=Y)) h = f ∧ colimComp C hC (inr (A:=X) (B:=Y)) h = g := by
+    refine Quotient.inductionOn f (fun ⟨af, fa⟩ => ?_)
+    refine Quotient.inductionOn g (fun ⟨ag, ga⟩ => ?_)
+    let iZ := iObj Z; let z := xObj Z
+    let iX := iObj X; let iY := iObj Y
+    let k0 := k X Y; let kp0 := kp X Y
+    let ip0 := ip X Y; let op0 := op X Y
+    let h_ip_kp0 := h_ip_kp X Y; let h_k_kp0 := h_k_kp X Y
+    let h_coprod_eq0 := h_coprod_eq X Y
+    -- Pick M ≥ af.1, ag.1, kp0
+    obtain ⟨m, ham, hbm⟩ := D.bound af.1 ag.1
+    obtain ⟨M, hmM, hkpM⟩ := D.bound m kp0
+    let haM : D.le af.1 M := D.trans ham hmM
+    let hbM : D.le ag.1 M := D.trans hbm hmM
+    let h_k_M : D.le k0 M := D.trans h_k_kp0 hkpM
+    let h_ip_M : D.le ip0 M := D.trans h_ip_kp0 hkpM
+    let h_iZ_M : D.le iZ M := D.trans af.2.2 haM
+    let h_iX_M : D.le iX M := D.trans (hA_k X Y) h_k_M
+    let h_iY_M : D.le iY M := D.trans (hB_k X Y) h_k_M
+    -- Transport fa : X ⟶ Z and ga : Y ⟶ Z to level M
+    let ub_a_M : UpperBound D iX iZ := ⟨M, D.trans af.2.1 haM, D.trans af.2.2 haM⟩
+    let ub_b_M : UpperBound D iY iZ := ⟨M, D.trans ag.2.1 hbM, D.trans ag.2.2 hbM⟩
+    let fa_M_raw : C.F (D.trans af.2.1 haM) (xObj X) ⟶ C.F h_iZ_M z := homTr C (xObj X) z af ub_a_M haM fa
+    let gb_M_raw : C.F (D.trans ag.2.1 hbM) (xObj Y) ⟶ C.F (D.trans ag.2.2 hbM) z :=
+      homTr C (xObj Y) z ag ub_b_M hbM ga
+    have h_fa_src : C.F (D.trans af.2.1 haM) (xObj X) = C.F h_iX_M (xObj X) :=
+      hF_proof_irrel (D.trans af.2.1 haM) h_iX_M (xObj X)
+    have h_gb_src : C.F (D.trans ag.2.1 hbM) (xObj Y) = C.F h_iY_M (xObj Y) :=
+      hF_proof_irrel (D.trans ag.2.1 hbM) h_iY_M (xObj Y)
+    have h_gb_tgt : C.F (D.trans ag.2.2 hbM) z = C.F h_iZ_M z :=
+      hF_proof_irrel (D.trans ag.2.2 hbM) h_iZ_M z
+    let fa_M : C.F h_iX_M (xObj X) ⟶ C.F h_iZ_M z := castHom h_fa_src rfl fa_M_raw
+    let gb_M : C.F h_iY_M (xObj Y) ⟶ C.F h_iZ_M z := castHom h_gb_src h_gb_tgt gb_M_raw
+    have h_fa_to_ak : C.F h_iX_M (xObj X) = C.F h_k_M (ak X Y) := by
+      calc
+        C.F h_iX_M (xObj X) = C.F (D.trans (hA_k X Y) h_k_M) (xObj X) := rfl
+        _ = C.F h_k_M (C.F (hA_k X Y) (xObj X)) := by rw [C.F_trans (hA_k X Y) h_k_M (xObj X)]
+        _ = C.F h_k_M (ak X Y) := rfl
+    have h_gb_to_bk : C.F h_iY_M (xObj Y) = C.F h_k_M (bk X Y) := by
+      calc
+        C.F h_iY_M (xObj Y) = C.F (D.trans (hB_k X Y) h_k_M) (xObj Y) := rfl
+        _ = C.F h_k_M (C.F (hB_k X Y) (xObj Y)) := by rw [C.F_trans (hB_k X Y) h_k_M (xObj Y)]
+        _ = C.F h_k_M (bk X Y) := rfl
+    let p_case : C.F h_k_M (ak X Y) ⟶ C.F h_iZ_M z := castHom h_fa_to_ak rfl fa_M
+    let q_case : C.F h_k_M (bk X Y) ⟶ C.F h_iZ_M z := castHom h_gb_to_bk rfl gb_M
+    obtain ⟨r, hr_inl, hr_inr⟩ := hcoppres_case h_k_M (ak X Y) (bk X Y) (C.F h_iZ_M z) p_case q_case
+    have h_coprod_eq_M : C.F h_ip_M op0 = C.F h_k_M ((hcop k0).coprod (ak X Y) (bk X Y)) := by
+      calc
+        C.F h_ip_M op0 = C.F (D.trans h_ip_kp0 hkpM) op0 := rfl
+        _ = C.F hkpM (C.F h_ip_kp0 op0) := by rw [C.F_trans h_ip_kp0 hkpM op0]
+        _ = C.F hkpM (C.F h_k_kp0 ((hcop k0).coprod (ak X Y) (bk X Y))) := by rw [h_coprod_eq0]
+        _ = C.F (D.trans h_k_kp0 hkpM) ((hcop k0).coprod (ak X Y) (bk X Y)) := by
+          rw [C.F_trans h_k_kp0 hkpM ((hcop k0).coprod (ak X Y) (bk X Y))]
+        _ = C.F h_k_M ((hcop k0).coprod (ak X Y) (bk X Y)) := rfl
+    let r' : C.F h_ip_M op0 ⟶ C.F h_iZ_M z := castHom h_coprod_eq_M.symm rfl r
+    let ub_pair : UpperBound D ip0 iZ := ⟨M, h_ip_M, h_iZ_M⟩
+    let h := homIncl C hC op0 z ub_pair r'
+    -- inl's germ data
+    let ub_inl : UpperBound D (iObj X) ip0 := ⟨kp0, D.trans (hA_k X Y) h_k_kp0, h_ip_kp0⟩
+    let m_inl : C.F (D.trans (hA_k X Y) h_k_kp0) (xObj X) ⟶ C.F h_ip_kp0 op0 :=
+      castHom
+        (calc
+          C.F h_k_kp0 (ak X Y) = C.F h_k_kp0 (C.F (hA_k X Y) (xObj X)) := rfl
+          _ = C.F (D.trans (hA_k X Y) h_k_kp0) (xObj X) := by rw [C.F_trans (hA_k X Y) h_k_kp0 (xObj X)])
+        h_coprod_eq0.symm
+        ((C.functF h_k_kp0).map ((hcop k0).inl (A:=ak X Y) (B:=bk X Y)))
+    have h_inl_eq : inl (A:=X) (B:=Y) = homIncl C hC (xObj X) op0 ub_inl m_inl := rfl
+    have h_inl_ok : colimComp C hC (inl (A:=X) (B:=Y)) h
+        = Quotient.mk (setoid (homSystem C hC (xObj X) z)) ⟨af, fa⟩ := by
+      show homCompRaw C hC (xObj X) op0 z ub_inl m_inl ub_pair r' = homIncl C hC (xObj X) z af fa
+      refine homCompRaw_eq_of_stage C hC (xObj X) op0 z ub_inl m_inl ub_pair r' af fa M
+        hkpM (D.refl M) haM ?_
+      have h2 : homTr C op0 z ub_pair ⟨M, D.trans ub_pair.2.1 (D.refl M), D.trans ub_pair.2.2 (D.refl M)⟩ (D.refl M) r' = r' := by
+        simpa [ub_pair] using homTr_refl C hC op0 z ⟨M, D.trans ub_pair.2.1 (D.refl M), D.trans ub_pair.2.2 (D.refl M)⟩ r'
+      have h_minl_push : homTr C (xObj X) op0 ub_inl ⟨M, D.trans ub_inl.2.1 hkpM, D.trans ub_inl.2.2 hkpM⟩ hkpM m_inl
+          = castHom (h_fa_to_ak.symm.trans (hF_proof_irrel _ _ _)) (h_coprod_eq_M.symm)
+              ((C.functF h_k_M).map ((hcop k0).inl (A:=ak X Y) (B:=bk X Y))) := by
+        dsimp [homTr, m_inl]
+        rw [map_castHom (C.F hkpM) (hT := C.functF hkpM), castHom_castHom]
+        exact castHom_heq_congr _ _ _ _
+          (hC.trans_map h_k_kp0 hkpM ((hcop k0).inl (A:=ak X Y) (B:=bk X Y))).symm
+      rw [h_minl_push, h2]
+      dsimp [r']
+      rw [castHom_comp, hr_inl]
+      dsimp [p_case, fa_M, fa_M_raw, ub_a_M]
+      unfold homTr
+      simp only [castHom_castHom]
+    -- inr proof is symmetric
+    have h_inr_ok : colimComp C hC (inr (A:=X) (B:=Y)) h
+        = Quotient.mk (setoid (homSystem C hC (xObj Y) z)) ⟨ag, ga⟩ := by
+      let ub_inr : UpperBound D (iObj Y) ip0 := ⟨kp0, D.trans (hB_k X Y) h_k_kp0, h_ip_kp0⟩
+      let m_inr : C.F (D.trans (hB_k X Y) h_k_kp0) (xObj Y) ⟶ C.F h_ip_kp0 op0 :=
+        castHom
+          (calc
+            C.F h_k_kp0 (bk X Y) = C.F h_k_kp0 (C.F (hB_k X Y) (xObj Y)) := rfl
+            _ = C.F (D.trans (hB_k X Y) h_k_kp0) (xObj Y) := by rw [C.F_trans (hB_k X Y) h_k_kp0 (xObj Y)])
+          h_coprod_eq0.symm
+          ((C.functF h_k_kp0).map ((hcop k0).inr (A:=ak X Y) (B:=bk X Y)))
+      show homCompRaw C hC (xObj Y) op0 z ub_inr m_inr ub_pair r' = homIncl C hC (xObj Y) z ag ga
+      refine homCompRaw_eq_of_stage C hC (xObj Y) op0 z ub_inr m_inr ub_pair r' ag ga M
+        hkpM (D.refl M) hbM ?_
+      have h2 : homTr C op0 z ub_pair ⟨M, D.trans ub_pair.2.1 (D.refl M), D.trans ub_pair.2.2 (D.refl M)⟩ (D.refl M) r' = r' := by
+        simpa [ub_pair] using homTr_refl C hC op0 z ⟨M, D.trans ub_pair.2.1 (D.refl M), D.trans ub_pair.2.2 (D.refl M)⟩ r'
+      have h_minr_push : homTr C (xObj Y) op0 ub_inr ⟨M, D.trans ub_inr.2.1 hkpM, D.trans ub_inr.2.2 hkpM⟩ hkpM m_inr
+          = castHom (h_gb_to_bk.symm.trans (hF_proof_irrel _ _ _)) (h_coprod_eq_M.symm)
+              ((C.functF h_k_M).map ((hcop k0).inr (A:=ak X Y) (B:=bk X Y))) := by
+        dsimp [homTr, m_inr]
+        rw [map_castHom (C.F hkpM) (hT := C.functF hkpM), castHom_castHom]
+        exact castHom_heq_congr _ _ _ _
+          (hC.trans_map h_k_kp0 hkpM ((hcop k0).inr (A:=ak X Y) (B:=bk X Y))).symm
+      rw [h_minr_push, h2]
+      dsimp [r']
+      rw [castHom_comp, hr_inr]
+      dsimp [q_case, gb_M, gb_M_raw, ub_b_M]
+      unfold homTr
+      simp only [castHom_castHom]
+    exact ⟨h, h_inl_ok, h_inr_ok⟩
+  -- Define case via Classical.choice on h_exists_case
+  let case {X A B : C.Obj} (f : colimHom C hC A X) (g : colimHom C hC B X) :
+      colimHom C hC (coprodFun A B) X :=
+    Classical.choose (h_exists_case X A B f g)
+  have h_inl_case : ∀ {Z X Y : C.Obj} (f : colimHom C hC X Z) (g : colimHom C hC Y Z),
+      colimComp C hC (inl (A:=X) (B:=Y)) (case f g) = f := by
+    intro Z X Y f g; exact (Classical.choose_spec (h_exists_case Z X Y f g)).1
+  have h_inr_case : ∀ {Z X Y : C.Obj} (f : colimHom C hC X Z) (g : colimHom C hC Y Z),
+      colimComp C hC (inr (A:=X) (B:=Y)) (case f g) = g := by
+    intro Z X Y f g; exact (Classical.choose_spec (h_exists_case Z X Y f g)).2
+  have h_case_uniq : ∀ {Z X Y : C.Obj} (f : colimHom C hC X Z) (g : colimHom C hC Y Z)
+      (h : colimHom C hC (coprodFun X Y) Z),
+      colimComp C hC (inl (A:=X) (B:=Y)) h = f → colimComp C hC (inr (A:=X) (B:=Y)) h = g →
+      h = case f g := by
+    intro Z X Y f g h h_hinl h_hinr
+    have e1 : colimComp C hC (inl (A:=X) (B:=Y)) h = colimComp C hC (inl (A:=X) (B:=Y)) (case f g) := by
+      rw [h_hinl, h_inl_case]
+    have e2 : colimComp C hC (inr (A:=X) (B:=Y)) h = colimComp C hC (inr (A:=X) (B:=Y)) (case f g) := by
+      rw [h_hinr, h_inr_case]
+    revert e1 e2
+    refine Quotient.inductionOn₂ h (case f g) ?_
+    rintro ⟨ah, mha⟩ ⟨ap, mpa⟩ e1 e2
+    -- inclusion germs (defeq to `inl`/`inr`)
+    let ub_inlg : UpperBound D (iObj X) (ip X Y) := ⟨kp X Y, D.trans (hA_k X Y) (h_k_kp X Y), h_ip_kp X Y⟩
+    let m_inlg : C.F (D.trans (hA_k X Y) (h_k_kp X Y)) (xObj X) ⟶ C.F (h_ip_kp X Y) (op X Y) :=
+      castHom
+        (calc C.F (h_k_kp X Y) (ak X Y) = C.F (h_k_kp X Y) (C.F (hA_k X Y) (xObj X)) := rfl
+          _ = C.F (D.trans (hA_k X Y) (h_k_kp X Y)) (xObj X) := by rw [C.F_trans (hA_k X Y) (h_k_kp X Y) (xObj X)])
+        (h_coprod_eq X Y).symm
+        ((C.functF (h_k_kp X Y)).map ((hcop (k X Y)).inl (A:=ak X Y) (B:=bk X Y)))
+    let ub_inrg : UpperBound D (iObj Y) (ip X Y) := ⟨kp X Y, D.trans (hB_k X Y) (h_k_kp X Y), h_ip_kp X Y⟩
+    let m_inrg : C.F (D.trans (hB_k X Y) (h_k_kp X Y)) (xObj Y) ⟶ C.F (h_ip_kp X Y) (op X Y) :=
+      castHom
+        (calc C.F (h_k_kp X Y) (bk X Y) = C.F (h_k_kp X Y) (C.F (hB_k X Y) (xObj Y)) := rfl
+          _ = C.F (D.trans (hB_k X Y) (h_k_kp X Y)) (xObj Y) := by rw [C.F_trans (hB_k X Y) (h_k_kp X Y) (xObj Y)])
+        (h_coprod_eq X Y).symm
+        ((C.functF (h_k_kp X Y)).map ((hcop (k X Y)).inr (A:=ak X Y) (B:=bk X Y)))
+    have er1 : homCompRaw C hC (xObj X) (op X Y) (colimOut C Z).2 ub_inlg m_inlg ah mha
+             = homCompRaw C hC (xObj X) (op X Y) (colimOut C Z).2 ub_inlg m_inlg ap mpa := e1
+    have er2 : homCompRaw C hC (xObj Y) (op X Y) (colimOut C Z).2 ub_inrg m_inrg ah mha
+             = homCompRaw C hC (xObj Y) (op X Y) (colimOut C Z).2 ub_inrg m_inrg ap mpa := e2
+    -- common level L0 ≥ ah.1, ap.1, kp X Y; rewrite both composites as `compAt` at L0
+    obtain ⟨w, hw_a, hw_p⟩ := D.bound ah.1 ap.1
+    obtain ⟨L0, hL0_w, hL0_kp⟩ := D.bound w (kp X Y)
+    have ha_L0 : D.le ah.1 L0 := D.trans hw_a hL0_w
+    have hp_L0 : D.le ap.1 L0 := D.trans hw_p hL0_w
+    rw [homCompRaw_eq_compAt C hC (xObj X) (op X Y) (colimOut C Z).2 ub_inlg m_inlg ah mha L0 hL0_kp ha_L0,
+        homCompRaw_eq_compAt C hC (xObj X) (op X Y) (colimOut C Z).2 ub_inlg m_inlg ap mpa L0 hL0_kp hp_L0] at er1
+    rw [homCompRaw_eq_compAt C hC (xObj Y) (op X Y) (colimOut C Z).2 ub_inrg m_inrg ah mha L0 hL0_kp ha_L0,
+        homCompRaw_eq_compAt C hC (xObj Y) (op X Y) (colimOut C Z).2 ub_inrg m_inrg ap mpa L0 hL0_kp hp_L0] at er2
+    obtain ⟨Kf, hKf_A, hKf_B, hKf_eq⟩ := Quotient.exact er1
+    obtain ⟨Ks, hKs_A, hKs_B, hKs_eq⟩ := Quotient.exact er2
+    dsimp only [homSystem] at hKf_eq hKs_eq
+    obtain ⟨L, hL_Kf, hL_Ks⟩ := D.bound Kf.1 Ks.1
+    have key_f := congrArg
+      (homTr C (xObj X) (colimOut C Z).2 Kf ⟨L, D.trans Kf.2.1 hL_Kf, D.trans Kf.2.2 hL_Kf⟩ hL_Kf) hKf_eq
+    have key_s := congrArg
+      (homTr C (xObj Y) (colimOut C Z).2 Ks ⟨L, D.trans Ks.2.1 hL_Ks, D.trans Ks.2.2 hL_Ks⟩ hL_Ks) hKs_eq
+    rw [← homTr_trans C hC, ← homTr_trans C hC] at key_f
+    rw [← homTr_trans C hC, ← homTr_trans C hC] at key_s
+    rw [homTr_comp C] at key_f
+    rw [homTr_comp C] at key_f
+    rw [homTr_comp C] at key_s
+    rw [homTr_comp C] at key_s
+    rw [← homTr_trans C hC, ← homTr_trans C hC, ← homTr_trans C hC] at key_f
+    rw [← homTr_trans C hC, ← homTr_trans C hC, ← homTr_trans C hC] at key_s
+    -- coproduct level data at L
+    have hkp_L : D.le (kp X Y) L := D.trans hL0_kp (D.trans hKf_A hL_Kf)
+    have hk_L : D.le (k X Y) L := D.trans (h_k_kp X Y) hkp_L
+    have h_coprod_eq_L : C.F (D.trans (h_ip_kp X Y) hkp_L) (op X Y)
+        = C.F hk_L ((hcop (k X Y)).coprod (ak X Y) (bk X Y)) := by
+      calc C.F (D.trans (h_ip_kp X Y) hkp_L) (op X Y)
+            = C.F hkp_L (C.F (h_ip_kp X Y) (op X Y)) := by rw [C.F_trans (h_ip_kp X Y) hkp_L (op X Y)]
+        _ = C.F hkp_L (C.F (h_k_kp X Y) ((hcop (k X Y)).coprod (ak X Y) (bk X Y))) := by rw [h_coprod_eq X Y]
+        _ = C.F hk_L ((hcop (k X Y)).coprod (ak X Y) (bk X Y)) := by
+              rw [← C.F_trans (h_k_kp X Y) hkp_L ((hcop (k X Y)).coprod (ak X Y) (bk X Y))]
+    have h_aktoX_L : C.F hk_L (ak X Y) = C.F (D.trans (D.trans (hA_k X Y) (h_k_kp X Y)) hkp_L) (xObj X) := by
+      rw [show C.F hk_L (ak X Y) = C.F hk_L (C.F (hA_k X Y) (xObj X)) from rfl,
+          ← C.F_trans (hA_k X Y) hk_L (xObj X)]
+    have h_bktoY_L : C.F hk_L (bk X Y) = C.F (D.trans (D.trans (hB_k X Y) (h_k_kp X Y)) hkp_L) (xObj Y) := by
+      rw [show C.F hk_L (bk X Y) = C.F hk_L (C.F (hB_k X Y) (xObj Y)) from rfl,
+          ← C.F_trans (hB_k X Y) hk_L (xObj Y)]
+    have hpush_f : homTr C (xObj X) (op X Y) ub_inlg ⟨L, D.trans ub_inlg.2.1 hkp_L, D.trans ub_inlg.2.2 hkp_L⟩ hkp_L m_inlg
+        = castHom h_aktoX_L h_coprod_eq_L.symm ((C.functF hk_L).map ((hcop (k X Y)).inl (A:=ak X Y) (B:=bk X Y))) := by
+      dsimp [homTr, m_inlg]
+      rw [map_castHom (C.F hkp_L) (hT := C.functF hkp_L), castHom_castHom]
+      exact castHom_heq_congr _ _ _ _
+        (hC.trans_map (h_k_kp X Y) hkp_L ((hcop (k X Y)).inl (A:=ak X Y) (B:=bk X Y))).symm
+    have hpush_s : homTr C (xObj Y) (op X Y) ub_inrg ⟨L, D.trans ub_inrg.2.1 hkp_L, D.trans ub_inrg.2.2 hkp_L⟩ hkp_L m_inrg
+        = castHom h_bktoY_L h_coprod_eq_L.symm ((C.functF hk_L).map ((hcop (k X Y)).inr (A:=ak X Y) (B:=bk X Y))) := by
+      dsimp [homTr, m_inrg]
+      rw [map_castHom (C.F hkp_L) (hT := C.functF hkp_L), castHom_castHom]
+      exact castHom_heq_congr _ _ _ _
+        (hC.trans_map (h_k_kp X Y) hkp_L ((hcop (k X Y)).inr (A:=ak X Y) (B:=bk X Y))).symm
+    rw [hpush_f] at key_f
+    rw [hpush_s] at key_s
+    have hik : D.le ah.1 L := D.trans ha_L0 (D.trans hKf_A hL_Kf)
+    have hjk : D.le ap.1 L := D.trans hp_L0 (D.trans hKf_B hL_Kf)
+    -- cast slides across composition (proof-irrelevant transports)
+    have cL : ∀ {U V V' W : C.A L} (he : V' = V) (a : U ⟶ V) (b : V' ⟶ W),
+        a ≫ castHom he rfl b = castHom rfl he.symm a ≫ b := by
+      intro U V V' W he a b; subst he; rfl
+    have cS : ∀ {U U' V W : C.A L} (he : U = U') (a : U ⟶ V) (b : V ⟶ W),
+        castHom he rfl (a ≫ b) = castHom he rfl a ≫ b := by
+      intro U U' V W he a b; subst he; rfl
+    refine Quotient.sound ⟨⟨L, D.trans ah.2.1 hik, D.trans ah.2.2 hik⟩, hik, hjk, ?_⟩
+    dsimp only [homSystem]
+    have hu := hcoppres hk_L (ak X Y) (bk X Y)
+        (C.F (D.trans ah.2.2 hik) (colimOut C Z).2)
+        (castHom h_coprod_eq_L rfl
+          (homTr C (op X Y) (colimOut C Z).2 ah ⟨L, D.trans ah.2.1 hik, D.trans ah.2.2 hik⟩ hik mha))
+        (castHom h_coprod_eq_L rfl
+          (homTr C (op X Y) (colimOut C Z).2 ap ⟨L, D.trans ah.2.1 hik, D.trans ah.2.2 hik⟩ hjk mpa))
+        (by
+          rw [cL, cL]
+          have hh := congrArg (castHom h_aktoX_L.symm rfl) key_f
+          rw [cS, cS, castHom_castHom] at hh
+          exact hh)
+        (by
+          rw [cL, cL]
+          have hh := congrArg (castHom h_bktoY_L.symm rfl) key_s
+          rw [cS, cS, castHom_castHom] at hh
+          exact hh)
+    have hu2 := congrArg (castHom h_coprod_eq_L.symm rfl) hu
+    rw [castHom_castHom, castHom_castHom] at hu2
+    exact hu2
+  exact @HasBinaryCoproducts.mk C.Obj (colimitCat C hC) coprodFun inl inr
+    (fun {X A B} f g => case f g) (fun {X A B} f g => h_inl_case f g)
+    (fun {X A B} f g => h_inr_case f g) (fun {X A B} f g h => h_case_uniq f g h)
 
 /-!
   M3 — equalizers of the colimit category.
