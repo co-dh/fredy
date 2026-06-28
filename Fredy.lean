@@ -88,6 +88,7 @@ import Fredy.LaxColimitImages
 import Fredy.LaxColimitCoproduct
 import Fredy.LaxGermProducts
 import Fredy.LaxGermImages
+import Fredy.LaxGermEqualizers
 import Fredy.RatCapImages
 import Fredy.CapDataRegular
 import Fredy.PowerAllegoryFamily
