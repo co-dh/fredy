@@ -297,7 +297,8 @@ theorem colimit_inr_monic (C : CatSystem ι D) (hC : C.Coherent)
 theorem colimit_inl_inter_inr (C : CatSystem.{u, u} ι D) (hC : C.Coherent) [hne : Nonempty ι]
     (hdisj : ∀ i, DisjointBinaryCoproduct (C.A i)) (hmono : TransMono C)
     (hbot : ∀ i, PreLogos (C.A i))
-    (hinitpres : ∀ {i j : ι} (hij : D.le i j), C.F hij (stageZero C hbot i) = stageZero C hbot j)
+    (hinitpres : ∀ {i j : ι} (hij : D.le i j),
+      @StrictCoterminator (C.A j) (C.catA j) (C.F hij (stageZero C hbot i)))
     (ht : ∀ i, HasTerminal (C.A i))
     (htpres : ∀ {i j} (hij : D.le i j), C.F hij (ht i).one = (ht j).one)
     (hp : ∀ i, HasBinaryProducts (C.A i))
@@ -404,7 +405,8 @@ noncomputable def colimitDisjointBinaryCoproduct
     (C : CatSystem.{u, u} ι D) (hC : C.Coherent) [Nonempty ι]
     (hdisj : ∀ i, DisjointBinaryCoproduct (C.A i)) (hmono : TransMono C)
     (hbot : ∀ i, PreLogos (C.A i))
-    (hinitpres : ∀ {i j : ι} (hij : D.le i j), C.F hij (stageZero C hbot i) = stageZero C hbot j)
+    (hinitpres : ∀ {i j : ι} (hij : D.le i j),
+      @StrictCoterminator (C.A j) (C.catA j) (C.F hij (stageZero C hbot i)))
     (ht : ∀ i, HasTerminal (C.A i))
     (htpres : ∀ {i j} (hij : D.le i j), C.F hij (ht i).one = (ht j).one)
     (hp : ∀ i, HasBinaryProducts (C.A i))
@@ -463,7 +465,8 @@ noncomputable def colimitPositive
     (C : CatSystem.{u, u} ι D) (hC : C.Coherent) [Nonempty ι]
     (hdisj : ∀ i, DisjointBinaryCoproduct (C.A i)) (hmono : TransMono C)
     (hbot : ∀ i, PreLogos (C.A i))
-    (hinitpres : ∀ {i j : ι} (hij : D.le i j), C.F hij (stageZero C hbot i) = stageZero C hbot j)
+    (hinitpres : ∀ {i j : ι} (hij : D.le i j),
+      @StrictCoterminator (C.A j) (C.catA j) (C.F hij (stageZero C hbot i)))
     (ht : ∀ i, HasTerminal (C.A i))
     (htpres : ∀ {i j} (hij : D.le i j), C.F hij (ht i).one = (ht j).one)
     (hp : ∀ i, HasBinaryProducts (C.A i))

@@ -65,16 +65,21 @@ noncomputable def stageZero (C : CatSystem ι D) (hbot : ∀ i, PreLogos (C.A i)
 /-- **The new colimit-zero brick.**  The `objIncl`-image of one stage's strict initial `0_{i₀}` is
     a STRICT COTERMINATOR (strict initial) of `colimitCat`: every colimit map into it is an iso.
 
+    The transition hypothesis is the UP-TO-ISO form `hinitpres`: every transition `C.F hij` sends the
+    chosen stage strict-initial `0_i` to a STRICT COTERMINATOR of stage `j` (NOT the on-the-nose object
+    equality `C.F hij 0_i = 0_j`).  This is the form satisfied by the §2.218 tower's stage-embedding
+    transitions: the embedding preserves the strict initial only up to iso, never as a chosen-object
+    equality.  (`strictCoterminator_of_eq` below bridges the `Eq` form to this one.)
+
     PROOF.  A map `g : X ⟶ objIncl i₀ 0_{i₀}` is, up to `HEq`, the stage inclusion `homInclObj fN`
-    of a germ `fN : xX ⟶ xZ` at some stage `N` with `objIncl N xZ = objIncl i₀ 0_{i₀}`.  Pushing to
-    a common stage `M'` where `xZ` becomes the stage initial `0_{M'}` (the two `objIncl`-images agree
-    there, `objIncl_eq_commonStage`, and transitions preserve `0`), the pushed germ is a map INTO
-    `0_{M'}`, hence iso by `any_map_to_zero_is_iso`.  `homInclObj_isIso_of_stage` lifts this stage
-    iso to the colimit, and the `HEq` chain (`homInclObj_castHom_cod_heq` + `homInclObj_push_heq` +
-    the alignment) transports `IsIso` to `g`. -/
+    of a germ `fN : xX ⟶ xZ` at some stage `N` with `objIncl N xZ = objIncl i₀ 0_{i₀}`.  At a common
+    stage `M'`, `F_{N→M'} xZ = F_{i₀→M'} 0_{i₀}` (`objIncl_eq_commonStage`), which is a STRICT
+    COTERMINATOR (`hinitpres`); so the pushed germ `fN'` — a map INTO it — is iso directly.
+    `homInclObj_isIso_of_stage` lifts this to the colimit and the `HEq` chain transports `IsIso` to `g`. -/
 theorem colimitStrictInitial (C : CatSystem ι D) (hC : C.Coherent) [Nonempty ι]
     (hbot : ∀ i, PreLogos (C.A i))
-    (hinitpres : ∀ {i j : ι} (hij : D.le i j), C.F hij (stageZero C hbot i) = stageZero C hbot j)
+    (hinitpres : ∀ {i j : ι} (hij : D.le i j),
+      @StrictCoterminator (C.A j) (C.catA j) (C.F hij (stageZero C hbot i)))
     (i₀ : ι) :
     letI : Cat C.Obj := colimitCat C hC
     StrictCoterminator (C.objIncl i₀ (stageZero C hbot i₀)) := by
@@ -83,37 +88,43 @@ theorem colimitStrictInitial (C : CatSystem ι D) (hC : C.Coherent) [Nonempty ι
   -- align `g` to a stage inclusion `homInclObj fN`
   obtain ⟨N, xX, xZ, fN, eX, eZ, hHEq⟩ :=
     colimHom_as_homInclObj C hC (A := X) (Z := C.objIncl i₀ (stageZero C hbot i₀)) g
-  -- find a stage `M'` where `xZ` becomes the stage initial `0_{M'}`
+  -- a common stage `M ≥ N, i₀` where `xZ` and `0_{i₀}` are objIncl-equal
   obtain ⟨M, hNM, hi₀M⟩ := D.bound N i₀
-  -- the two `objIncl`-images agree at `M`: `objIncl M (F xZ) = objIncl M 0_M`
-  have hAgreeM : C.objIncl M (C.F hNM xZ) = C.objIncl M (stageZero C hbot M) := by
-    rw [C.objIncl_compat hNM xZ, eZ, ← hinitpres hi₀M, C.objIncl_compat hi₀M (stageZero C hbot i₀)]
-  obtain ⟨M', hMM', hZeqM'⟩ := objIncl_eq_commonStage C (C.F hNM xZ) (stageZero C hbot M) hAgreeM
-  -- assemble the transition `N ≤ M'` and the codomain equality `F (N→M') xZ = 0_{M'}`
+  have hAgreeM : C.objIncl M (C.F hNM xZ) = C.objIncl M (C.F hi₀M (stageZero C hbot i₀)) := by
+    rw [C.objIncl_compat hNM xZ, eZ, C.objIncl_compat hi₀M (stageZero C hbot i₀)]
+  obtain ⟨M', hMM', hZeqM'⟩ :=
+    objIncl_eq_commonStage C (C.F hNM xZ) (C.F hi₀M (stageZero C hbot i₀)) hAgreeM
   let hNM' : D.le N M' := D.trans hNM hMM'
-  have e : C.F hNM' xZ = stageZero C hbot M' := by
+  let hi₀M' : D.le i₀ M' := D.trans hi₀M hMM'
+  -- `F_{N→M'} xZ = F_{i₀→M'} 0_{i₀}`, hence a STRICT COTERMINATOR (`hinitpres`)
+  have e : C.F hNM' xZ = C.F hi₀M' (stageZero C hbot i₀) := by
     calc C.F hNM' xZ = C.F hMM' (C.F hNM xZ) := by rw [C.F_trans hNM hMM']
-      _ = C.F hMM' (stageZero C hbot M) := by rw [hZeqM']
-      _ = stageZero C hbot M' := hinitpres hMM'
-  -- the pushed germ, cast to a map INTO the stage initial `0_{M'}`
+      _ = C.F hMM' (C.F hi₀M (stageZero C hbot i₀)) := hZeqM'
+      _ = C.F hi₀M' (stageZero C hbot i₀) := by rw [← C.F_trans hi₀M hMM']
+  have hSC : @StrictCoterminator (C.A M') (C.catA M') (C.F hNM' xZ) := by
+    rw [e]; exact hinitpres hi₀M'
+  -- the pushed germ `fN'` is a map INTO a strict coterminator, hence iso
   let fN' : C.F hNM' xX ⟶ C.F hNM' xZ := (C.functF hNM').map fN
-  let fM' : C.F hNM' xX ⟶ stageZero C hbot M' := castHom rfl e fN'
-  -- `fM'` is a map into the stage strict initial, hence iso (§1.61)
-  obtain ⟨inv, hfi1, hfi2⟩ := any_map_to_zero_is_iso (hbot M') fM'
-  -- lift the stage iso to the colimit
-  have hiso_fM' : @IsIso C.Obj (colimitCat C hC) _ _ (homInclObj C hC fM') :=
-    homInclObj_isIso_of_stage C hC fM' inv hfi1 hfi2
-  -- HEq chain: homInclObj fM' ≅ homInclObj fN' ≅ homInclObj fN ≅ g
-  have H1 : HEq (homInclObj C hC fM') (homInclObj C hC fN') :=
-    homInclObj_castHom_cod_heq C hC fN' e
+  obtain ⟨inv, hfi1, hfi2⟩ := hSC fN'
+  have hiso_fN' : @IsIso C.Obj (colimitCat C hC) _ _ (homInclObj C hC fN') :=
+    homInclObj_isIso_of_stage C hC fN' inv hfi1 hfi2
+  -- HEq chain: homInclObj fN' ≅ homInclObj fN ≅ g
   have H2 : HEq (homInclObj C hC fN') (homInclObj C hC fN) :=
     homInclObj_push_heq C hC hNM' fN
-  have Hchain : HEq (homInclObj C hC fM') g := H1.trans (H2.trans hHEq)
-  -- object equalities for the transfer
+  have Hchain : HEq (homInclObj C hC fN') g := H2.trans hHEq
   have hP : C.objIncl M' (C.F hNM' xX) = X := (C.objIncl_compat hNM' xX).trans eX
-  have hQ : C.objIncl M' (stageZero C hbot M') = C.objIncl i₀ (stageZero C hbot i₀) := by
-    rw [← e, C.objIncl_compat hNM' xZ, eZ]
-  exact isIso_of_heq hP hQ Hchain hiso_fM'
+  have hQ : C.objIncl M' (C.F hNM' xZ) = C.objIncl i₀ (stageZero C hbot i₀) := by
+    rw [C.objIncl_compat hNM' xZ, eZ]
+  exact isIso_of_heq hP hQ Hchain hiso_fN'
+
+/-- The on-the-nose equality form of `colimitStrictInitial`'s hypothesis implies the up-to-iso
+    `StrictCoterminator` form: if `C.F hij 0_i = 0_j` then `C.F hij 0_i` is the chosen stage
+    strict-initial `0_j`, a strict coterminator (`any_map_to_zero_is_iso`).  Lets callers with an
+    on-the-nose equality use `colimitStrictInitial`/`colimitPreLogos` unchanged. -/
+theorem strictCoterminator_of_eq (C : CatSystem ι D) (hbot : ∀ i, PreLogos (C.A i))
+    {i j : ι} (hij : D.le i j) (e : C.F hij (stageZero C hbot i) = stageZero C hbot j) :
+    @StrictCoterminator (C.A j) (C.catA j) (C.F hij (stageZero C hbot i)) := by
+  rw [e]; intro X f; exact any_map_to_zero_is_iso (hbot j) f
 
 /-- A map out of a strict initial object is monic.  Given `u v : W ⟶ Z` with `u ≫ m = v ≫ m`:
     `u` is iso (strictness, inverse `ui`), and `ui ≫ v = ui ≫ u` (both maps OUT of the initial
@@ -144,7 +155,8 @@ theorem mono_of_strict_initial {𝒞 : Type u} [Cat.{v} 𝒞] {Z A : 𝒞}
   coproduct bundles (the same ones the §2.218 regular tower already supplies). -/
 noncomputable def colimitPreLogos (C : CatSystem.{u, u} ι D) (hC : C.Coherent) [Nonempty ι]
     (hbot : ∀ i, PreLogos (C.A i))
-    (hinitpres : ∀ {i j : ι} (hij : D.le i j), C.F hij (stageZero C hbot i) = stageZero C hbot j)
+    (hinitpres : ∀ {i j : ι} (hij : D.le i j),
+      @StrictCoterminator (C.A j) (C.catA j) (C.F hij (stageZero C hbot i)))
     (hmono : TransMono C)
     (ht : ∀ i, HasTerminal (C.A i))
     (htpres : ∀ {i j} (hij : D.le i j), C.F hij (ht i).one = (ht j).one)
