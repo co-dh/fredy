@@ -90,6 +90,7 @@ import Fredy.CapDataRegular
 import Fredy.PowerAllegoryFamily
 import Fredy.StalkFamily
 import Fredy.StalkDetect
+import Fredy.TstarRegular
 import Fredy.Inflation
 import Fredy.S2_1
 import Fredy.S2_21
