@@ -99,6 +99,7 @@ import Fredy.LaxColimitPositive
 import Fredy.RatCapPositive
 import Fredy.CapDataPositive
 import Fredy.UniformStepCoproduct
+import Fredy.CapDataPositiveTower
 import Fredy.RatCapImages
 import Fredy.CapDataRegular
 import Fredy.PowerAllegoryFamily
