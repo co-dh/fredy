@@ -233,15 +233,15 @@ sets≃H(Y)** (needs sheaf infra).
 
 DONE: §2.31 DIVISION ALLEGORY + adjunction · §2.312/§2.313 LEFT DIVISION / adjoint-reformulation · §2.314 division identities
 + Rel(C)-division · §2.315 LCDA⟹division + division↪LCDA faithful · §2.316 Heyting-impl + Cor-adjunction + endo-poset · §2.32
-TUDivAllegory + mapLogos + rightAdj · §2.34 PRel(E) division + embHom-faithful · §2.342 A⁺ division + embed1_div · §2.343
+TUDivAllegory + mapLogos + rightAdj · §2.34 PRel(E) division + embHom faithful + **embHom preserves division**
+(`embHom_div`) · §2.342 A⁺ division + embed1_div · §2.343
 logos↪positive-effective-logos full+faithful · §2.35/§2.351 SYMMETRIC DIVISION / STRAIGHT · §2.352/§2.353 straight-cancel +
 converse · §2.354/§2.355/§2.356 effective-factorization / straight-of-comp / symmDiv-simple · §2.357 SIMPLE PART R/ₛ1 +
 **Dom(R/ₛS)=1∩(R/S)(S/R) + Dom(R/ₛ1)=1∩R(1/R)** (`dom_symmDiv`/`domSimplicity_eq`) · §2.314 **(R/R)²⊑R/R +
 (S\R/T)°=T°\R°/S°** (`div_self_idem`/`leftDiv_div_recip`) · §2.351 **straight⟺every-symmetric-T-with-TS⊑S-coreflexive**
 (`straight_iff_symmetric_invariant_coreflexive`).
 PARTIAL: §2.311 division⟹comp-over-union (not derived from axioms) · §2.316 general-(α,β) Heyting / bundled instance · **§2.331(i)–
-(iii) Moerdijk** (algebraic reduction done; faithfulness + §1.543 capital-data are hypotheses; topological existence unproven) ·
-§2.34 embed1-division-preservation not named.
+(iii) Moerdijk** (algebraic reduction done; faithfulness + §1.543 capital-data are hypotheses; topological existence unproven).
 MISSING: §2.316 converse one-object-division⟹Heyting · §2.33 geometric/Stone rep specialized to countable TUDA ·
 **§2.331(iv)** coprime-terminator⟹single-H(X) (TOPOLOGY WALL) + δ-DENSE defs · §2.341 pre-tabular/semi-simple PRel reps ·
 §2.353 tabular cancellation-on-maps.

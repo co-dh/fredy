@@ -643,6 +643,16 @@ noncomputable instance instDivisionSpl {𝒜 : Type u} [DivisionAllegory 𝒜] :
         _ ⊑ E.idem.e ≫ (Φ.R / Ψ.R) ≫ F.idem.e :=
             comp_mono_left _ (comp_mono_right hbase _) }
 
+/-- **§2.34**: the faithful embedding `A → PRel(E)` (`embHom`) PRESERVES DIVISION —
+    `embHom (R/S) = splDiv (embHom R) (embHom S)` — so it is a faithful representation OF DIVISION
+    ALLEGORIES (it already preserves `≫`/`°`/`∩`/`∪`).  On `embObj a` the idempotent is the identity
+    (`idSymIdem`, `.e = 1`), so `splDiv`'s `E.e ≫ (R/S) ≫ F.e` collapses to `R/S`. -/
+theorem embHom_div {𝒜 : Type u} [DivisionAllegory 𝒜] {a b c : 𝒜} (R : a ⟶ c) (S : b ⟶ c) :
+    (embHom (R / S) : embObj a ⟶ embObj b) = splDiv (embHom R) (embHom S) := by
+  apply SplHom.ext
+  show R / S = (embObj a).idem.e ≫ ((embHom R).R / (embHom S).R) ≫ (embObj b).idem.e
+  simp only [embObj, idSymIdem, embHom_R, Cat.id_comp, Cat.comp_id]
+
 /-! ## Goal A — `EffectiveDivisionAllegory (SplObj 𝒜)` for a semi-simple division allegory
 
   Packages `instDivisionSpl` + `instEffectiveSpl` into the combined class.  The hypothesis
