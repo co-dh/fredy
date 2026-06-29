@@ -135,6 +135,7 @@ import Fredy.MatrixAllegory
 import Fredy.Locale
 import Fredy.RelCat
 import Fredy.S2_218
+import Fredy.S2_218_Tabular
 import Fredy.StalkConservative
 import Fredy.S2_33
 import Fredy.CapitalProjective

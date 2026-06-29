@@ -16,6 +16,7 @@ import Fredy.CapDataPositive
 import Fredy.UniformStepCoproduct
 import Fredy.CapDataRegular
 import Fredy.ColimitPositive
+import Fredy.ObjInclRegular
 
 open Freyd
 open Freyd.Colim
@@ -459,6 +460,140 @@ theorem capitalization_lemma_regular_positive (A : Type u) [Cat.{u} A] [Disjoint
     (fun {i j} hij a c z u v hl hr => towerHcoppres b inferInstance rfl hij a c z u v hl hr)
     (fun {i j} hij a c z p q => towerHcoppresCase b inferInstance rfl hij a c z p q)
 
+/-- **§1.54 + §2.218 R3 — the STRENGTHENED POSITIVE Capitalization Lemma.**  Same conclusion as
+    `capitalization_lemma_regular_positive` (a faithful embedding into a capital positive pre-logos
+    `Ā`), but the embedding `F` is ALSO a `RegularFunctor` (w.r.t. the positivity-derived regular
+    structures on `A` and `Ā`) and REFLECTS ALL ISOS.  This is the form §2.218's stalk route
+    consumes: `Rel(Tstar ∘ F)` is then faithful (`F` reflects isos, `Tstar` reflects isos, and
+    power-covers split in `Set^I`).
+
+    `F = objIncl ⟨0⟩` (stage 0 of the §1.543 ω-tower is `A`, so `base = id`).  Its five
+    `RegularFunctor` fields are the colimit-stage-inclusion preservation lemmas
+    (`objIncl_preservesBinaryProducts`, `objIncl_preservesPullbacks_generic`, `objIncl_preservesCover`,
+    `objIncl_preservesMono`, `objIncl_preservesImages_generic`) against the IN-SCOPE colimit regular
+    structure `hReg`, which is exactly `hD.toPositivePreLogos.toPreLogos.toRegularCategory` (the
+    `DisjointBinaryCoproduct` threads `hReg` verbatim through `colimitPreLogos`); the source products
+    `cd.hp ⟨0⟩` are `A`'s positivity-derived products on the nose.  Iso-reflection is
+    `objIncl_reflectsIso` fed the tower's conservativity `cd.hcons`. -/
+theorem capitalization_lemma_regular_positive_strong (A : Type u) [Cat.{u} A]
+    [DisjointBinaryCoproduct A] :
+    ∃ (Ā : Type u) (hC : Cat.{u} Ā) (hD : @DisjointBinaryCoproduct Ā hC),
+      @Capital.{u, u} Ā hC (hD.toPositivePreLogos.toPreLogos.toRegularCategory.toHasTerminal) ∧
+      ∃ (F : A → Ā) (hF : @Functor A _ Ā hC F),
+        @Faithful.{u, u} A _ Ā hC F hF ∧
+        @RelFunctor.RegularFunctor A Ā _ hC F hF
+            (DisjointBinaryCoproduct.toPositivePreLogos.toPreLogos.toRegularCategory)
+            (hD.toPositivePreLogos.toPreLogos.toRegularCategory) ∧
+        ∀ {X Y : A} (f : X ⟶ Y), @IsIso Ā hC _ _ (hF.map f) → IsIso f := by
+  -- ===== build the cofinal ω-tower CapData (identical to `capitalization_lemma_regular_positive`) =====
+  have hFD : ∀ (S : PreRegBundle.{u}),
+      letI := S.cat; letI := S.pre; letI := (wsCover S).dec
+      Freyd.UniformWellPoints.FibreDensity (wsCover S) :=
+    fun S => Freyd.CofinalProj.wsCover_fibreDensity S
+  let ccs : CofinalCapStep.{u} :=
+    { step := uniformStepFun
+      wellPoints := fun S =>
+        letI := S.cat; letI := S.pre; letI := (wsCover S).dec
+        Freyd.UniformWellPoints.stepWellPoints_of_fibreDensity (wsCover S) (hFD S) }
+  let b : PreRegBundle.{u} := ⟨A, inferInstance, inferInstance⟩
+  letI cd : CapData.{u} A := capData_of_tower A ccs.step b rfl
+    (towerHasTerminal b ccs.step) (fun {i j} hij => towerHtpres b ccs.step hij) (towerHp b ccs.step)
+    (fun {i j} hij a c z uu vv h1 h2 => towerHppres b ccs.step hij a c z uu vv h1 h2)
+    (fun {i j} hij a c z p q => towerHppresPair b ccs.step hij a c z p q) (towerHe b ccs.step)
+    (fun {i j} hij _ _ f g z uu vv h => towerHepres b ccs.step hij f g z uu vv h)
+    (fun {i j} hij _ _ f g z k hk => towerHepresLift b ccs.step hij f g z k hk)
+    (towerHcanon b ccs.step)
+    (tower_capital_of_cofinal A ccs b
+      (towerHasTerminal b ccs.step) (fun {i j} hij => towerHtpres b ccs.step hij) (towerHp b ccs.step)
+      (fun {i j} hij a c z uu vv h1 h2 => towerHppres b ccs.step hij a c z uu vv h1 h2)
+      (fun {i j} hij a c z p q => towerHppresPair b ccs.step hij a c z p q) (towerHe b ccs.step)
+      (fun {i j} hij _ _ f g z uu vv h => towerHepres b ccs.step hij f g z uu vv h)
+      (fun {i j} hij _ _ f g z k hk => towerHepresLift b ccs.step hij f g z k hk)
+      (towerHcanon b ccs.step)
+      (hstage_of_cofinal b ccs
+        (towerHasTerminal b ccs.step) (fun {i j} hij => towerHtpres b ccs.step hij) (towerHp b ccs.step)
+        (fun {i j} hij a c z uu vv h1 h2 => towerHppres b ccs.step hij a c z uu vv h1 h2)
+        (fun {i j} hij a c z p q => towerHppresPair b ccs.step hij a c z p q) (towerHe b ccs.step)
+        (fun {i j} hij _ _ f g z uu vv h => towerHepres b ccs.step hij f g z uu vv h)
+        (fun {i j} hij _ _ f g z k hk => towerHepresLift b ccs.step hij f g z k hk)
+        (towerHcanon b ccs.step)))
+  -- per-stage positivity data and regularity inputs (the same the existing proof feeds the reducer)
+  letI hbot : ∀ i, PreLogos (cd.C.A i) :=
+    fun i => (stageDisjoint b inferInstance rfl i.down).toPositivePreLogos.toPreLogos
+  let hi : ∀ i, HasImages (cd.C.A i) := fun i => stageHasImages b RegularCategory.toHasImages i.down
+  let hdisj : ∀ i, DisjointBinaryCoproduct (cd.C.A i) :=
+    fun i => stageDisjoint b inferInstance rfl i.down
+  let hmonoTrans : Colim.TransMono cd.C :=
+    fun {i j} hij {x y} {φ} hφ => towerHmono b ccs.step hij φ hφ
+  let hmonoElem : ∀ {i j : cd.ι} (hij : cd.D.le i j) {x y : cd.C.A i} (φ : x ⟶ y),
+      Monic φ → Monic ((cd.C.functF hij).map φ) :=
+    fun {i j} hij {x y} φ hφ => towerHmono b ccs.step hij φ hφ
+  let hcovpresElem : ∀ {i j : cd.ι} (hij : cd.D.le i j) {x y : cd.C.A i} (φ : x ⟶ y),
+      Cover φ → Cover ((cd.C.functF hij).map φ) :=
+    fun {i j} hij {x y} φ hφ => towerHcovpres b ccs.step hij φ hφ
+  let hcoppres : ∀ {i j : cd.ι} (hij : cd.D.le i j) (a c : cd.C.A i) (z : cd.C.A j)
+      (u v : cd.C.F hij ((hdisj i).toHasBinaryCoproducts.coprod a c) ⟶ z),
+      (cd.C.functF hij).map (hdisj i).toHasBinaryCoproducts.inl ≫ u
+          = (cd.C.functF hij).map (hdisj i).toHasBinaryCoproducts.inl ≫ v →
+      (cd.C.functF hij).map (hdisj i).toHasBinaryCoproducts.inr ≫ u
+          = (cd.C.functF hij).map (hdisj i).toHasBinaryCoproducts.inr ≫ v → u = v :=
+    fun {i j} hij a c z u v hl hr => towerHcoppres b inferInstance rfl hij a c z u v hl hr
+  let hcoppres_case : ∀ {i j : cd.ι} (hij : cd.D.le i j) (a c : cd.C.A i) (z : cd.C.A j)
+      (p : cd.C.F hij a ⟶ z) (q : cd.C.F hij c ⟶ z),
+      ∃ r : cd.C.F hij ((hdisj i).toHasBinaryCoproducts.coprod a c) ⟶ z,
+        (cd.C.functF hij).map (hdisj i).toHasBinaryCoproducts.inl ≫ r = p
+        ∧ (cd.C.functF hij).map (hdisj i).toHasBinaryCoproducts.inr ≫ r = q :=
+    fun {i j} hij a c z p q => towerHcoppresCase b inferInstance rfl hij a c z p q
+  let hinitpres : ∀ {i j : cd.ι} (hij : cd.D.le i j),
+      @StrictCoterminator (cd.C.A j) (cd.C.catA j) (cd.C.F hij (Colim.stageZero cd.C hbot i)) :=
+    fun {i j} hij => towerF_preservesStrictCot b hij (Colim.stageZero cd.C hbot i)
+      (fun {X} f => any_map_to_zero_is_iso (hbot i) f)
+  -- ===== inline `capitalization_of_capData_positive` to expose `hReg`/`hD` transparently =====
+  haveI := cd.hne
+  letI : Cat cd.C.Obj := colimitCat cd.C cd.hC
+  letI hPre : PreRegularCategory cd.C.Obj :=
+    colimitPreRegular cd.C cd.hC cd.ht cd.htpres cd.hp cd.hppres cd.hppres_pair
+      cd.he cd.hepres cd.hepres_lift cd.hcanon
+  have himgpres : ∀ {i j : cd.ι} (hij : cd.D.le i j) {X Y : cd.C.A i} (f : X ⟶ Y),
+      IsImage ((cd.C.functF hij).map f)
+        (@Subobject.map _ _ (cd.C.catA i) (cd.C.catA j) (cd.C.F hij) (cd.C.functF hij)
+          (hmonoTrans hij) _ (@image _ (cd.C.catA i) (hi i) _ _ f)) := by
+    intro i j hij X Y f
+    letI : Cat (cd.C.A i) := cd.C.catA i
+    letI : Cat (cd.C.A j) := cd.C.catA j
+    letI : HasImages (cd.C.A i) := hi i
+    letI : HasBinaryProducts (cd.C.A j) := cd.hp j
+    letI : HasEqualizers (cd.C.A j) := cd.he j
+    letI : HasPullbacks (cd.C.A j) := ⟨fun f g => products_equalizers_implies_pullbacks f g⟩
+    exact Colim.transitions_preserve_images (cd.C.F hij) (hF := cd.C.functF hij)
+      (hmonoTrans hij) (hcovpresElem hij ·) f
+  letI hImg : HasImages cd.C.Obj :=
+    Colim.colimitHasImages cd.C cd.hC hi cd.hfaith hmonoTrans himgpres
+  letI hReg : RegularCategory cd.C.Obj := { hPre with toHasImages := hImg }
+  letI hCop : HasBinaryCoproducts cd.C.Obj :=
+    Colim.colimitCoprodOfDisjoint cd.C cd.hC hdisj hcoppres hcoppres_case
+  letI hUn : HasSubobjectUnions cd.C.Obj := hasSubobjectUnions_of_coproducts_images
+  letI hD : DisjointBinaryCoproduct cd.C.Obj :=
+    Colim.colimitPositive cd.C cd.hC hdisj hmonoTrans hbot hinitpres cd.ht cd.htpres cd.hp cd.hppres
+      cd.hppres_pair cd.he cd.hepres cd.hepres_lift hcoppres hcoppres_case hi cd.hfaith himgpres
+  -- ===== assemble: `F = objIncl ⟨0⟩` is faithful, regular, and reflects all isos =====
+  letI : @Functor (cd.C.A cd.i₀) (cd.C.catA cd.i₀) cd.C.Obj _ (cd.C.objIncl cd.i₀) :=
+    stageInclFunctor cd.C cd.hC cd.i₀
+  refine ⟨cd.C.Obj, _, hD, cd.capital, cd.C.objIncl cd.i₀, inferInstance,
+    stageInclFaithful cd.C cd.hC cd.hfaith cd.hcons cd.i₀, ?_, ?_⟩
+  · -- `objIncl ⟨0⟩` is a `RegularFunctor` against `hReg = hD.…toRegularCategory`.
+    exact
+      { pres_prod := objIncl_preservesBinaryProducts cd.C cd.hC cd.hp cd.hppres cd.hppres_pair cd.i₀
+        pres_pullback := objIncl_preservesPullbacks_generic cd.C cd.hC cd.ht cd.htpres cd.hp
+          cd.hppres cd.hppres_pair cd.he cd.hepres cd.hepres_lift cd.i₀
+        pres_covers := fun {_ _} φ hφ =>
+          objIncl_preservesCover cd.C cd.hC cd.hfaith hcovpresElem (i := cd.i₀) φ hφ
+        pres_mono := objIncl_preservesMono cd.C cd.hC hmonoElem cd.i₀
+        pres_image := objIncl_preservesImages_generic cd.C cd.hC cd.hfaith hcovpresElem hmonoElem cd.i₀ }
+  · -- `objIncl ⟨0⟩` reflects all isos (full conservativity `cd.hcons`).
+    exact fun {X Y} f hiso => objIncl_reflectsIso cd.C cd.hC cd.hcons cd.i₀ f hiso
+
 end Freyd
 
 #print axioms Freyd.capitalization_lemma_regular_positive
+#print axioms Freyd.capitalization_lemma_regular_positive_strong
