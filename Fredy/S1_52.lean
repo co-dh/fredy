@@ -289,6 +289,69 @@ theorem capital_one_projective
   obtain ⟨s⟩ := capital_implies_one_projective hcap A he
   exact ⟨s, term_uniq _ _⟩
 
+/-! ### §1.524 (Set illustration)  A left inverse of a cover is unique up to iso over the base
+
+  §1.524 gives a cover targeted at a projective object a left inverse (a section); that section is
+  not unique.  In `Set`, however, any two sections of a surjection are related by an automorphism of
+  the total space *over the base* — the canonical fibrewise transposition swapping the two chosen
+  points in each fibre.  (Special to `Set`: it fails in `Top`, where the Sierpiński cover `S ↠ ∗` has
+  two sections related by no homeomorphism.)  A concrete `Type`-level statement, independent of the
+  abstract `Cat` development above. -/
+
+/-- The fibrewise transposition over `c` swapping `s p` and `t p` in each fibre. -/
+def fibreSwap {C P : Type u} [DecidableEq C] (c : C → P) (s t : P → C) : C → C :=
+  fun x => if x = s (c x) then t (c x) else if x = t (c x) then s (c x) else x
+
+/-- Two sections of a surjection in `Set` are related by an automorphism over the base.
+    So a left inverse of a cover is unique up to iso over the base. -/
+theorem section_unique_up_to_iso_over_base
+    {C P : Type u} (c : C → P) (s t : P → C)
+    (hs : ∀ p, c (s p) = p) (ht : ∀ p, c (t p) = p) :
+    ∃ φ : C → C,
+      (Function.Injective φ ∧ Function.Surjective φ) ∧
+      (∀ x, c (φ x) = c x) ∧
+      (∀ p, φ (s p) = t p) := by
+  classical
+  have hbase : ∀ x, c (fibreSwap c s t x) = c x := by
+    intro x
+    simp only [fibreSwap]
+    by_cases h1 : x = s (c x)
+    · rw [if_pos h1, ht]
+    · rw [if_neg h1]
+      by_cases h2 : x = t (c x)
+      · rw [if_pos h2, hs]
+      · rw [if_neg h2]
+  have hst : ∀ p, fibreSwap c s t (s p) = t p := by
+    intro p
+    simp only [fibreSwap, hs p, if_true]
+  have hinv : ∀ x, fibreSwap c s t (fibreSwap c s t x) = x := by
+    intro x
+    by_cases h1 : x = s (c x)
+    · by_cases h2 : x = t (c x)
+      · simp only [fibreSwap]
+        rw [if_pos h1]
+        have hctp : c (t (c x)) = c x := ht (c x)
+        rw [hctp, ← h1, if_pos h2.symm]
+        exact h2.symm
+      · simp only [fibreSwap]
+        rw [if_pos h1]
+        have hctp : c (t (c x)) = c x := ht (c x)
+        rw [hctp, ← h1, if_neg (Ne.symm h2), if_pos rfl]
+    · by_cases h2 : x = t (c x)
+      · simp only [fibreSwap]
+        rw [if_neg h1, if_pos h2]
+        have hcsp : c (s (c x)) = c x := hs (c x)
+        rw [hcsp, if_pos rfl, ← h2]
+      · simp only [fibreSwap]
+        rw [if_neg h1, if_neg h2]
+        rw [if_neg h1, if_neg h2]
+  refine ⟨fibreSwap c s t, ⟨?_, ?_⟩, hbase, hst⟩
+  · intro a b h
+    have h2 := congrArg (fibreSwap c s t) h
+    rwa [hinv, hinv] at h2
+  · intro y
+    exact ⟨fibreSwap c s t y, hinv y⟩
+
 /-! ## §1.52 Representation of pre-regular categories
 
   A REPRESENTATION OF PRE-REGULAR CATEGORIES is a functor that preserves
