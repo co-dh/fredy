@@ -335,6 +335,32 @@ theorem leftDiv_div {a b c d : 𝒜} (S : a ⟶ b) (R : a ⟶ d) (T : c ⟶ d) :
     have step4 : S ≫ (((leftDiv S R) / T) ≫ T) ⊑ R := le_trans step2 step3
     rwa [← Cat.assoc] at step4
 
+/-- **§2.314**: `(R/R)² ⊑ R/R`.  Immediate instance of `div_comp` with `S = T = R`. -/
+theorem div_self_idem {a b : 𝒜} (R : a ⟶ b) : (R / R) ≫ (R / R) ⊑ R / R :=
+  div_comp R R R
+
+/-- **§2.314**: `(S\R/T)° = T°\R°/S°`.  With `leftDiv S X = (X°/S°)°`, both sides reduce
+    by `recip_recip` to `(R/T)°/S°` (the LHS unfolds directly; the RHS via `R°° = R`, `T°° = T`).
+    This is what makes the two-sided division `S\R/T` self-dual under reciprocation. -/
+theorem leftDiv_div_recip {a b c d : 𝒜} (S : a ⟶ b) (R : a ⟶ d) (T : c ⟶ d) :
+    (leftDiv S (R / T))° = leftDiv T° R° / S° := by
+  simp only [leftDiv, Allegory.recip_recip]
+
+/-- **§2.351**: `S` is STRAIGHT iff every symmetric `T` with `TS ⊑ S` is coreflexive.
+    Forward: such a `T` lies in `S/ₛS` (`le_symmDiv_iff`, using `T° = T`), and `S/ₛS ⊑ 1`.
+    Backward: `S/ₛS` is itself symmetric (`symmDiv_recip`) and satisfies `(S/ₛS)S ⊑ S`, so the
+    hypothesis forces `S/ₛS ⊑ 1`, i.e. `S` is straight. -/
+theorem straight_iff_symmetric_invariant_coreflexive {a b : 𝒜} (S : a ⟶ b) :
+    Straight S ↔ ∀ (T : a ⟶ a), Symmetric T → T ≫ S ⊑ S → Coreflexive T := by
+  constructor
+  · intro hstr T hsym hTS
+    have hTsd : T ⊑ S /ₛ S :=
+      (le_symmDiv_iff T S S).mpr ⟨hTS, by rw [symmetric_eq hsym]; exact hTS⟩
+    exact le_trans hTsd hstr
+  · intro h
+    exact h (S /ₛ S) ((symmetric_iff _).mpr (symmDiv_recip S S))
+      (((le_symmDiv_iff (S /ₛ S) S S).mp (le_refl _)).1)
+
 /-! ## §2.351  R/ₛR is an equivalence relation
 
   The book's §2.351 states that R/ₛR is an equivalence relation. -/
@@ -780,6 +806,29 @@ theorem simplePart_le {a b : 𝒜} (R : a ⟶ b) : simplePart R ⊑ R := by
   dsimp [simplePart, symmDiv]
   calc (R / Cat.id b) ∩ ((Cat.id b / R)°) ⊑ R / Cat.id b := inter_lb_left _ _
       _ = R := div_one R
+
+/-- `1 ∩ M = 1 ∩ M°`: the intersection-with-identity is coreflexive, hence symmetric, so it
+    equals its own reciprocal `1 ∩ M°` (`(1∩M)° = 1° ∩ M° = 1 ∩ M°`). -/
+theorem one_inter_eq_one_inter_recip {a : 𝒜} (M : a ⟶ a) :
+    Cat.id a ∩ M = Cat.id a ∩ M° := by
+  have hsym : (Cat.id a ∩ M)° = Cat.id a ∩ M :=
+    symmetric_eq (coreflexive_symmetric_idempotent (inter_lb_left (Cat.id a) M)).1
+  rw [Allegory.recip_inter, recip_id] at hsym
+  exact hsym.symm
+
+/-- **§2.357**: `Dom(R/ₛS) = 1 ∩ (R/S)(S/R)`.  Unfold `R/ₛS = (R/S) ∩ (S/R)°`, apply `dom_inter`,
+    then `(S/R)°(R/S)° = ((R/S)(S/R))°` (`recip_comp`) and `1 ∩ X° = 1 ∩ X`. -/
+theorem dom_symmDiv {a b c : 𝒜} (R : a ⟶ c) (S : b ⟶ c) :
+    dom (R /ₛ S) = Cat.id a ∩ (R / S) ≫ (S / R) := by
+  dsimp only [symmDiv]
+  rw [dom_inter, ← Allegory.recip_comp, ← one_inter_eq_one_inter_recip]
+
+/-- **§2.357**: `Dom(R/ₛ1) = 1 ∩ R(1/R)` — the DOMAIN OF SIMPLICITY of `R`.  The `S = 1` case of
+    `dom_symmDiv`, simplified by `R/1 = R`. -/
+theorem domSimplicity_eq {a b : 𝒜} (R : a ⟶ b) :
+    domSimplicity R = Cat.id a ∩ R ≫ (Cat.id b / R) := by
+  dsimp only [domSimplicity, simplePart]
+  rw [dom_symmDiv, div_one]
 
 /-- R/ₛ1 is the largest simple AR with A coreflexive (§2.357).
     Here the "simple" condition on AR is expressed directly as the

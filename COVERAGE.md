@@ -1,168 +1,269 @@
 # Book → Lean coverage audit (Freyd & Scedrov, *Categories, Allegories*)
 
-Generated 2026-06-16 by a 10-way parallel audit of `categories-allegories.txt` against `Fredy/*.lean`.
-Filename convention (`Sa_bc.lean` for §a.bc) is **not** reliably followed (e.g. §1.281 lives in `S1_39.lean`),
-so status below is by **content search across all files**, not by filename.
+Regenerated **2026-06-29** at master **0bb431b** by a 10-way parallel audit of the book
+(`/home/dh/anki/typst-book/chapters/<a.b>/section-<a.b>.fixed.md`) against `Fredy/*.lean`.
+Status is by **content search across all files**, not by filename (the `Sa_bc.lean` convention is
+not reliably followed — e.g. §1.281 lives in `S1_39.lean`, §1.438 in `FunctorReflects.lean`).
 
-Legend: **DONE** = faithful def/theorem, real proof · **PARTIAL** = exists but `sorry`/`:= trivial`/`: True`/materially weaker ·
-**MISSING** = no declaration anywhere.
+**Legend:** **DONE** = faithful def/theorem with a real proof · **PARTIAL** = exists but materially
+weaker / hypothesis-laden / a definitional stub · **MISSING** = no declaration anywhere.
 
-This is the master gap list. Items are the book's CAPITALIZED definitions and its numbered theorems.
+**Repo health:** the repo is **sorry-free** (0 reachable `sorry`) and has **no vacuous `: True` /
+`:= trivial` stubs** in the core — so every PARTIAL below is a genuine real-but-weaker proof, and
+every MISSING is an honest absence (recorded as a `-- BOOK …` comment), never a false-statement-with-sorry.
+The old (2026-06-16) `topos_allegory_is_power` / `topos_boolean_representation` stubs have been removed.
 
 ---
 
-## §1.1–1.2  Basic definitions & constructions
-MISSING: §1.13 `O(Ox)=Ox` derivation · §1.14 MONOIDS as categories (+converse) · §1.15 DISCRETE CATEGORIES ·
-§1.182 CONTRAVARIANT FUNCTOR + OPPOSITE CATEGORY A° · §1.1(10) ISOMORPHISM OF CATEGORIES (bijective functor) ·
-§1.242 CATEGORY OF GROUPS · §1.245 PRE-ORDERING as category · §1.262 LOCAL HOMEOMORPHISMS / LAZARD SHEAVES ·
-§1.263 counter-slice; POINTED SETS · §1.271 right A-SETS (M-sets) · §1.273 LEFT A-SETS ·
-§1.282 uniqueness up to iso of idempotent splittings · §1.283 STRONGLY CONNECTED category · §1.284 PREFUNCTOR.
-PARTIAL: §1.17 GROUPOID/GROUP/uniqueness-of-inverse/`x⁻¹` (only IsIso/HasLeftInv exist) ·
-§1.243 Founded/ConcreteCat/UnderlyingSetFunctor (only ForgetfulFunctor) ·
-§1.27 FunctorCat as a Cat instance (NaturalTransformation exists, no id/comp) ·
-§1.272 Cayley completeness metatheorem · §1.28 idempotent-completion category Y//(E) · §1.281 universality of canonical splitting.
+## What's left — prioritized
+
+The headline results are **done**: §1.543 capitalization, §1.55 Henkin, §1.635 pre-logos
+representation, §1.9 topos theory (incl. NNO/list-object), §1.59 abelian (five/snake lemma),
+§2.148/§2.16x reflections, §2.216/§2.217 positive reflection, and **§2.218** (positive *and* general
+distributive: `tabular_repr_in_power_of_sets` / `_distributive`). What remains:
+
+**Tier 1 — large unbuilt infrastructure**
+- **§1.10 Sconing** — entirely unformalized (`S1_10.lean` = comments only, 0 declarations).
+- **§1.3 sheaf/equivalence tail** — §1.371–§1.375 (presheaf / germ / stalk / associated-sheaf / T₀),
+  §1.381–§1.388 duality examples, §1.3(10) "stable = good Q-tree" metatheorem.
+- **§2.5 quotient-allegory type** — `Congruence`/`largest` algebra is done, but no `QuotAllegory`
+  type is built, which blocks §2.51 / §2.536 / §2.537 / §2.55.
+- **§2.4 power-allegory tail** — §2.416 progenitor ∋-construction (only monic half), §2.42 splitting
+  lemma, §2.418 realizability topos, §2.433–§2.435.
+
+**Tier 2 — topology / sheaf walls**
+- **§1.74 geometric representation**, **§1.75 Stone (§1.754)**, **§2.331(iv)**, **§2.227 locale
+  representation**, §1.76 micro-sheaves. All need point-set-topology / sheaf infra absent by design.
+
+**Tier 3 — isolated residuals (infra present, one hypothesis to discharge)**
+- **§1.636** Horn metatheorem for positive pre-logoi — proved in transfer form; takes the
+  `StalkResidual`/`PushPowResidual` reflection as a hypothesis (2 colimit atoms + image-reflection
+  not discharged unconditionally).
+- **§1.55** exact (cover-preserving) Henkin — current witness separates maps but isn't shown to
+  preserve covers.
+- **§1.637** special pre-logos converse (the hard `iff`, explicit TODO).
+- **§2.225 / §2.226** union-of-semisimple ⟹ semisimple / systemic-completion generating-set-unit.
+- **§1.592 / §1.598** small-abelian faithful exact rep into Ab / normal-characterization converse.
+
+**Tier 4 — optional / low value**
+- **§1.4(10)–(12) free τ-category / term model** — confirmed **not used anywhere else in the book**
+  (the τ-category is confined to §1.4; every "τ" elsewhere is the OCR rendering of the functor "T").
+  Safe to skip. `S1_49.lean` is imported by nothing.
+- §1.398 Q-trees; model/example items (§1.915–918, §1.948, §1.953, §1.572–574, §2.155–158); basic
+  Ch1 definitions (monoids-as-categories, discrete categories, M-sets, full subcategory, …).
+
+---
+
+## §1.1  Basic definitions
+
+DONE: CATEGORY (`Cat`, S1_1:9) · §1.13 IDENTITY six-way equiv (`isIdentity_iff_*`, S1_13) · §1.17
+LEFT/RIGHT-INVERTIBLE, ISO, INVERSE-uniqueness, GROUPOID, GROUP (S1_14:76–136) · §1.18 FUNCTOR (S1_18:57) ·
+§1.181 preserves-iso + F(x⁻¹)=(Fx)⁻¹ (S1_18:121–157) · §1.182 CONTRAVARIANT FUNCTOR + OPPOSITE (S1_18:179,
+S1_14:151) · §1.19 |A| id-morphisms (S1_18:208) · §1.1(10) ISO OF CATEGORIES (`CatIso`, S1_14:182).
+PARTIAL: §1.14 MONOID↔category (faithful, converse characterization unproven, S1_14:25) · §1.15 DISCRETE
+(converse "□x=x ⟹ from a set" not a theorem, S1_14:55).
+MISSING: §1.11 ESSENTIALLY ALGEBRAIC THEORY · §1.12 directed-equality remark · §1.16 □x=x ⟹ disjoint union of monoids.
+
+## §1.2  Basic examples and constructions
+
+DONE: §1.21/§1.22 SOURCE-TARGET PREDICATE + category-from-predicate (`FoundingData`, S1_35:83) · §1.241 𝒮
+(`setCat`) · §1.242 GROUPS · §1.243 FOUNDED/FORGETFUL/CONCRETE/UNDERLYING-SET (S1_35) · §1.245 PRE-ORDERING ·
+§1.26 SLICE A/B (`Over`, S1_26) · §1.263 pointed/counter-slice · §1.27 FUNCTOR CATEGORY 𝒮^A + NAT TRANS
+(S1_27) · §1.273 LEFT A-SET · §1.274 NATURAL EQUIVALENCE.
+PARTIAL: §1.271 RIGHT A-SET / M-SETS (↔functor A→𝒮 unproven) · §1.272 CAYLEY (faithfulness real, completeness
+metatheorem not formalized) · §1.28/§1.281 IDEMPOTENT / SPLITS (`SplitIdempotent`; Split(𝓔) construction +
+universal property absent) · §1.283 STRONGLY CONNECTED · §1.284 PRE-FUNCTOR.
+MISSING: §1.24/§1.25/§1.251 presentations/notation · §1.261/§1.262 indexed families / LAZARD SHEAVES (topology) ·
+§1.282 uniqueness of splitting · §1.27 SMALL-CATEGORY predicate, CONJUGATE functor F^η.
 
 ## §1.3  Equivalence of categories
-MISSING: §1.31 FULL SUBCATEGORY · §1.32 three cancellation principles + conjugation-invariance ·
-§1.332 contravariant Cayley C° · §1.333 functor-between-posets characterisations ·
-§1.341 equinumerous iso-classes ⇒ conjugate to iso · §1.36 inflation-forgetful is full embedding ·
-§1.363 "equivalent" is an equivalence relation · §1.364 equiv functor of skeletals is iso; AoC conditions (a)–(g) ·
-§1.366 quotient A/K + universal property · §1.367 factorisation of equivalence functors ·
-§1.371–§1.375 right-A-set / Lazard-sheaf / presheaf / sheaf-functor / T₀-ification equivalences ·
-§1.381–§1.388 duality/equivalence examples · §1.395–§1.399 Q-sequence preservation theorems ·
-§1.3(10)–§1.3(10)6 stable = good Q-tree metatheorem.
-PARTIAL: §1.331 `reflects_leftInv_reflects_iso` proof is `trivial` · §1.362 `inflation_strong_equiv` = `True` ·
-§1.363 `EquivalentCategories` def not via isomorphic inflations · §1.38 `Duality` aliased to StrongEquivalence (no contravariance) ·
-§1.373 `AdjointPair` missing triangle identities · §1.389 `StoneSpace` opaque · §1.392 `SatisfiesQSequence` body `True` ·
-§1.395 `complementaryQSequence` complementarity unproven.
+
+DONE: §1.31 EMBEDDING/FULL/REP-IMAGE/EQUIVALENCE-FUNCTOR/FULL-SUBCATEGORY (S1_31) · §1.32 conjugation-
+invariance + composition + cancellation + STRONG EQUIVALENCE · §1.33 FAITHFUL + reflects-leftInv⟹iso ·
+§1.331/§1.332 contravariant Cayley faithful + combined-reflects-leftInv · §1.333 poset-functor characterizations ·
+§1.34/§1.341 ISOMORPHIC equiv-rel + equinumerous⟹(AC)conjugate · §1.35 FORGETFUL/FOUNDED/CONCRETE · §1.36
+INFLATION + cross-section strong-equiv · §1.361/§1.366/§1.367 factor-through-inflation / EQUIVALENCE KERNEL /
+A→A/K universal-property · §1.363/§1.364 EQUIVALENT/SKELETAL defs · §1.38 DUALITY · §1.392/§1.395–§1.399 Q-SEQUENCE
++ satisfaction + diagonal-fill + preserve/reflect · §1.373 ADJOINT defs.
+PARTIAL: §1.32 full-cancellation (only "G full on F-images"; book's unqualified form is false) · §1.389 STONE
+SPACE (`opaque` placeholder) · §1.396 `DiagonalFillable` (vacuous `→True`, superseded).
+MISSING: §1.32/§1.362 AC⟺equiv-functor-half-strong-equiv · §1.363 "equivalent" equiv-relation + bridge ·
+§1.364 equiv-of-skeletals-is-iso, list (a)–(g)⟺AC · §1.365 every-cat≃skeletal · **§1.371–§1.375** 𝒮↓B≃𝒮^B,
+Lazard-sheaves, PRESHEAF/GERM/STALK/ASSOC-SHEAF S, S⊣Γ*, T₀-reflection · **§1.381–§1.388** duality/equivalence
+examples · §1.398 Q-TREE def + satisfaction · **§1.3(10)1–6** stable=good-Q-tree metatheorem.
 
 ## §1.4  Cartesian categories
-MISSING: §1.413 CONTAINED + poset-of-relations · §1.414 monic ↔ subterminator in A/B · §1.425 n-ary PRODUCT ·
-§1.429 equalizers split idempotents · §1.437 REPRESENTATION OF CARTESIAN CATEGORIES + thms ·
-§1.438 reflects/preserves-limit theorems · §1.442 Cayley preserves pullbacks/equalizers · §1.444 HORN SENTENCE + metatheorem ·
-§1.45 pullback of monic is monic · §1.451 INVERSE IMAGE f# + Sub(−) contravariant · §1.452 Sub(A) semilattice ·
-§1.453 properness lemma · §1.471–§1.474 SPECIAL-Cartesian characterisations · §1.481 rational category is Cartesian ·
-§1.492 SUPPORTING subsequence · §1.494 expansion lemma · §1.496 subterminator ⇒ terminator ·
-§1.497 CANCELLATION LEMMA · §1.498 CANONICAL CARTESIAN STRUCTURE · §1.4(10)1 free τ-category exists ·
-§1.4(11)2–6 τ/B, Δ-functors, generic point theorems · §1.4(12) TERM language + metatheorem.
-PARTIAL: §1.412 `Relation` not quotiented by TableIso · §1.47 `SpecialCartesianCategory` axiom wrong placeholder ·
-§1.48 `DenseMonic` = `True`, `RationalCategory` malformed · §1.49 `Table.comp` placeholder ·
-§1.4(10) `FreeTCategory.isFree:True` · §1.4(11) `canonicalSlice` = identity · §1.4(11)4 `GenericPoint` is a table not a map.
 
-## §1.5  Regular categories
-MISSING: §1.51 image⊣pullback adjunction · §1.512 cover left-cancellation · §1.513 covering family ·
-§1.514 jointly-epic covers · §1.521 Y^A regular · §1.534 not-well-supported ⇒ not faithful · §1.552 SPECIAL pre-regular ·
-§1.561 (RS)°=S°R° · §1.562 (R∩S)T⊆RT∩ST · §1.566 every coequalizer is a cover · §1.568 Quot(A)→EquivRel(A) ·
-§1.56(10) constant image is subterminator · §1.572–§1.574 recursive-function category · §1.581 bicartesian-rep preserves covers ·
-§1.583 effectiveness is Horn · §1.593 abelian ↔ regular-additive-all-normal · §1.595 Ab(A) construction.
-PARTIAL: §1.524 projective sufficiency criterion · §1.526 Pts not proved a representation · §1.531 A/B pre-regular not assembled ·
-§1.543 `capitalization_lemma` = `sorry` · §1.55 `henkin_lubkin` only Cayley (not exact) ·
-§1.551 `horn_sentence_preservation` = `True` · §1.563 `modular_identity`/`horn_*` = `sorry` ·
-§1.565 `pullback_of_covers_is_pushout` = `sorry` · §1.569 `regular_of_compose_assoc` = `sorry` ·
-§1.582 `image_via_coeq` = `trivial` · §1.591 HalfAdditive/Additive fields = `True` · §1.593 `IsNormalSubobject` placeholder ·
-§1.594 `effective_regular_additive_is_abelian` = `trivial`.
+DONE: §1.41 MONIC-PAIR/TABLE/RELATION/SUBOBJECT/SUBTERMINATOR · §1.413 CONTAINED order · §1.414 monic⇔subterminal-
+in-A/B · §1.421–§1.429 TERMINATOR/PRODUCT/indexed-product/EQUALIZER/idempotent-split · §1.43–§1.435 CARTESIAN +
+PULLBACK + three lemmas · §1.437 REPRESENTATION + preserves-pb · §1.438 reflects-eq⟹reflects-iso, iso-reflecting+
+eq-pres⟹faithful (`FunctorReflects`) · §1.44 Σ-forgetful-universal · §1.441/§1.442 A/B-pullbacks, Cayley
+preserve/reflect, representables collectively faithful, REPRESENTABLE FUNCTOR · §1.444 HORN SENTENCE + metatheorem ·
+§1.45 pb-transfer-monics · §1.451/§1.452 INVERSE IMAGE f# / SEMILATTICE · §1.453 pb-faithful⇔properness · §1.454
+LEVEL/DIAGONAL · §1.462/§1.464 αmonic⇔pointwise / YONEDA · §1.47/§1.471–§1.474 SPECIAL + characterizations · §1.48
+DENSE CLASS/Fraction · §1.49/§1.491–§1.498/§1.49(10) τ-CATEGORY core (SHORT-COLUMN, Table.comp, SUPPORTING/PRUNE,
+RESURFACING, CANCELLATION, CANONICAL CARTESIAN assoc/unit) · §1.4(10)/§1.4(11) τ-FUNCTOR / Σ-functor.
+PARTIAL: §1.414 poset-iso Sub≅Val · §1.426 full poset-iso Rel≅Sub(A×B) (deferred §1.56) · §1.438 third claim
+(only `isIso_of_two_*`) · §1.44 Δ not a named functor · **§1.48/§1.481 RATIONAL CATEGORY** A[D⁻¹] (well-def/
+universal/cartesian-pres are STRUCTURE FIELDS, not constructed; TODO) · §1.463/§1.465 Yoneda partial · §1.4(10)
+WELL-MADE-PART/CANONICAL-SLICE/GENERIC-POINT/FREE-τ-CATEGORY/AUSPICIOUS — definitional stubs (`:=tab`/`:=τ`/`:=idTable`).
+MISSING: §1.411/§1.415/§1.422/§1.424/§1.427/§1.436/§1.461/§1.475 examples · §1.439 preserves-pb⟹preserves-eq ·
+§1.443 universal-sentence⟹Set · §1.493/§1.495/§1.499 diversions · **§1.4(10)1–§1.4(12)2** free-τ-category / slice-τ /
+generic-point-generates / Γ-universal / POINT+TERM defs / METATHEOREM / model P — all `-- BOOK …: TODO` in S1_49,
+no declarations. *(Tier-4: not used downstream — see top.)*
+
+## §1.5  Regular categories / capitalization
+
+DONE: §1.51 ALLOWS/IMAGE/∃_f⊣f# · §1.511 reflect-images · §1.512 COVER + monic-cover-iso · §1.514 EPIC · §1.52
+REGULAR/PRE-REGULAR + PTC + REPRESENTATION · §1.521 𝒮^𝒜 regular · §1.522/§1.523 SUPPORT/WELL-SUPPORTED/WELL-POINTED ·
+§1.524 PROJECTIVE · §1.525 CAPITAL · §1.526 I=(1,−) rep · §1.53/§1.531/§1.532 A/B-pre-regular, Σ-reflects-covers,
+(B×−)-pullback · §1.533/§1.534 Δ-faithful⇔well-supported · **§1.543 CAPITALIZATION LEMMA** (`capitalization_lemma`,
+`_regular`, `_regular_positive`) · §1.544 inflation/strict-cancellation · §1.545 RELATIVE CAPITALIZATION · §1.546
+transfinite well-ordered-union · §1.547 choice-free rational-category · §1.55 HENKIN-LUBKIN (`henkin_lubkin`) ·
+§1.552 special pre-regular · §1.56–§1.56(11) calculus of relations (RECIPROCAL, GRAPH, MODULAR IDENTITY, ENTIRE/
+SIMPLE/MAP, PUSHOUT, cover⟺coequalizer, EFFECTIVE, comp-assoc⟺regular, projective⟺entire-contains-map) · §1.57/§1.571
+CHOICE/AC-REGULAR · §1.58–§1.583 BICARTESIAN/image-via-coeq/effectiveness · §1.59 abelian cluster (zero/kernel/
+cokernel/abelian⟺normal/A(𝒜)-abelian/EXACT/FIVE+SNAKE LEMMA).
+PARTIAL: §1.541–§1.542 abstract capitalization framework (realized concretely, not abstracted) · **§1.55 exact
+(cover-preserving) Henkin** (witness separates maps, cover-pres conditional) · §1.551/§1.563/§1.564 regular/relational
+Horn-metatheorem corollaries (hypothesis-laden) · §1.592 small-abelian↪Ab exact rep (interface hypothetical) · §1.598
+normal+kernels/cokernels⟹abelian converse.
+MISSING: §1.513 covering-FAMILY predicate · §1.568 Quot(A)→equiv-rels functor · §1.572–§1.574 R/P recursive
+categories · §1.584–§1.587 cocartesian-slice/Lazard/diophantine · §1.596 A(𝒮^𝒜) · §1.59(10) modular-lattice Galois.
 
 ## §1.6  Pre-logoi
-MISSING: §1.621 A₁∩A₂=0 ∧ A₁∪A₂=A ⇒ A≅A₁+A₂ · §1.625 preserves-disjoint-unions ↔ representation · §1.63 A/B pre-logos ·
-§1.631 complemented-of-projective is projective · §1.633 capital ↔ complemented-subterminators basis · §1.635 BOOLEAN ALGEBRA def ·
-§1.636 Horn for positive pre-logoi · §1.641 boolean-rep preserves structure · §1.642 Y^A boolean ↔ groupoid ·
-§1.643 H(Y) boolean ↔ discrete · §1.644 ULTRA-PRODUCT/ULTRA-POWER FUNCTOR · §1.646 special ⇒ representable in Set ·
-§1.647 boolean special ↔ two-valued · §1.653 pushout monic+arb · §1.655 bicartesian-rep criterion ·
-§1.658 every-object-decidable ↔ boolean · §1.659 decidable in Y^A · §1.66–§1.662 choice objects + Diaconescu.
-PARTIAL: §1.611 `sorry` · §1.612 `True` · §1.613 only one direction · §1.614 `PreLogosFunctor` = `True` ·
-§1.615 `True` · §1.62 `pasting_lemma` = `sorry` · §1.624 `sorry` · §1.631 `IsComplemented` weak ·
-§1.634 prefilter functor not a colimit · §1.635 `prelogos_representation_theorem` = `sorry` · §1.645 `killedValues` wrong target ·
-§1.648 `CompleteMeasure` = `True` · §1.651 `amalgamation_lemma` = `sorry` · §1.652 `cover_eq_epic`/`monic_eq_cocover` `sorry` ·
-§1.654/§1.657 `preTopos_opposite_regular` = `True` · §1.658 `DecidableObject` commented out.
+
+DONE: §1.6/§1.611 PRE-LOGOS + alt-def · §1.61 map-to-0-iso/degenerate · §1.612 DISTRIBUTIVE LATTICE + f#-pres-
+union⟺distributive · §1.613 poset-cartesian⟺semilattice · §1.614 REP OF PRE-LOGOI · §1.615 union=image(A₁+A₂→A) ·
+§1.616 Rel distrib-lattice + relational laws · §1.62 PASTING LEMMA · §1.621 disjoint-cover⟹coproduct · §1.623
+POSITIVE PRE-LOGOS + DisjointBinaryCoproduct · §1.624 decompose f:A→B₁+B₂ · **§1.63** capital-positive faithful-rep ·
+§1.631 COMPLEMENTED SUBOBJECT + projectivity · §1.632 GENERATING SET/BASIS · §1.633 capital⟺complemented-subterms-
+projective+basis · §1.634 PRE-FILTER/FILTER + T_F preserves prod/pb/img/covers + pres-disjoint-unions⟺unionPrime ·
+**§1.635 REPRESENTATION THEOREM** (ultrafilter-stalk family, `exists_ultrafilter_extending`, `stalk_separates`) · §1.64
+BOOLEAN PRE-LOGOS · §1.65 PRE-TOPOS · §1.651 AMALGAMATION · §1.652/§1.653 covers=epics / pushout-of-monic · §1.655
+PreToposFunctor bicartesian-rep · §1.657/§1.658 cocartesian⟺min-equiv / DECIDABLE⟺boolean · §1.66/§1.661/§1.662
+choice objects + Diaconescu (choice⟺boolean).
+PARTIAL: §1.615 finite-Horn⟺bicart-is-prelogos · §1.635 in-file `prelogos_representation_theorem` is only the weak
+Henkin functor · **§1.636 Horn metatheorem for positive pre-logoi** (transfer form; takes StalkResidual hypothesis) ·
+§1.637 SPECIAL PRE-LOGOS (forward only; converse iff is TODO) · §1.644 ULTRA-PRODUCT functor · §1.645 Kel(T)/PROP ·
+§1.646 representation646 faithful properness-reflecting functor (no structure-pres) · §1.648 COMPLETE/ATOMIC MEASURE.
+MISSING: §1.625 T-rep⟺preserves-disjoint-unions (stub removed) · §1.638 S^A special⟺strongly-connected (needs S^A
+infra) · §1.639 R/P recursive · §1.641–§1.643 rep-preserves-boolean / S^A-boolean⟺groupoid / LH(Y)-boolean⟺discrete ·
+§1.647 boolean-special⟺two-valued · §1.659 S^A-decidable⟺T(x)-monic · §1.631 complement-uniqueness-as-subobject.
 
 ## §1.7  Logoi
-MISSING (almost all): §1.71 f##=¬f(¬·) · §1.713–§1.714 Sh locally complete / alt axiom · §1.721–§1.722 subobject lattice Heyting; poset logos ↔ Heyting ·
-§1.723 LOCALE · §1.724 ↔ operation · §1.725–§1.726 Heyting equational theory · §1.727 NEGATION + De Morgan ·
-§1.728 EXCLUDED MIDDLE ⇒ boolean · §1.729 f# preserves → · §1.72(10)–(11) scone/retract ·
-§1.731 quotient logos A/ℱ · §1.732 slice-logos capitalization · §1.733 CONNECTED obj; focal ↔ connected-projective ·
-§1.734 FOCAL REPRESENTATION · §1.735 cardinality · §1.741–§1.74(10) GEOMETRIC REP THEOREM chain (DOMINATES/LEFT-FULL, trees, Freyd curve, sobrification) ·
-§1.75–§1.755 STONE REP THEOREM (ATOM, ATOMICALLY BASED, ATOMLESS) · §1.76–§1.761 MICRO-SHEAVES ·
-§1.77–§1.777 TRANSITIVE CLOSURE R^t/R*, TRANSITIVE LOGOS, ω-TRANSITIVE, EQUIVALENCE CLOSURE, E-STANDARD ·
-§1.78–§1.787 relational quotient R/S and all laws (R̄=R*).
-PARTIAL: §1.7 `Logos` lattice cond split off · §1.711 `logos_implies_preLogos` all fields `sorry` ·
-§1.712 `locallyComplete_*` = `sorry` · §1.72 `HeytingAlgebra` adjunction orientation · §1.73 `repFilter` predicate only;
-`faithful_iff_trivial_filter` converse `sorry` · §1.733 `Coprime` misformulated; `FocalLogos` depends on it ·
-§1.734 `focal_representation_theorem` = `True`+`sorry` · §1.74 `geometric_representation_theorem` = `True`+`sorry`.
 
-## §1.8  Adjoint functors, Grothendieck topoi
-MISSING: §1.817 representability ↔ left adjoint · §1.82 DIAGONAL FUNCTOR Δ:B→B^D · §1.822 LIMITS/COLIMITS ·
-§1.823 COMPLETE/COCOMPLETE · §1.825 complete ↔ equalizers+products · §1.827 CONTINUOUS/COCONTINUOUS ·
-§1.828 WEAK-LIMIT/WEAKLY-COMPLETE · §1.829 weak-limit preservation · §1.82(10) PRE-LIMIT/PRE-COMPLETE ·
-§1.83 PRE-ADJOINT + GENERAL ADJOINT FUNCTOR THEOREM · §1.831 UNIFORMLY CONTINUOUS + MORE GENERAL AFT ·
-§1.832 POINTWISE CONTINUOUS · §1.833 PETTY-FUNCTOR · §1.834 GENERAL REPRESENTABILITY THEOREM ·
-§1.835/§1.837 coterminator criteria · §1.838 WELL-POWERED · §1.83(10) COGENERATING SET + SPECIAL AFT ·
-§1.84 GIRAUD DEFINITION · §1.843–§1.846 Grothendieck topos properties · §1.852 poset exponential ↔ Heyting ·
-§1.853 B^A bifunctor + limit preservation · §1.854 Σ⊣Δ, Π dependent products · §1.857 EXPONENTIAL IDEAL, REPLETE SUBCATEGORY ·
-§1.858 KURATOWSKI INTERIOR, LAWVERE-TIERNEY CLOSURE · §1.859 BASEABLE objects.
-PARTIAL: §1.815 `ClosureOperation` omits explicit poset axioms.
+DONE: §1.7 LOGOS · §1.71 boolean f##=¬f(¬A') · §1.711 logos⟹pre-logos · §1.712 LOCALLY COMPLETE+union-pres⟹logos ·
+§1.72 HEYTING ALGEBRA + is-logos · §1.722 poset-logos⟺Heyting · §1.723 LOCALE + is-Heyting (`Frame`/`himp_adjunction`) ·
+§1.727 NEGATION laws · §1.728 LEM⟹Boolean · §1.733 COPRIME/CONNECTED/FOCAL + focal⟺connected-projective · §1.77 TRANS/
+TRC closures + TRANSITIVE LOGOS · §1.772 σ-TRANSITIVE · §1.775 EQUIVALENCE CLOSURE/E-STANDARD · §1.78–§1.787 RELATIONAL
+QUOTIENT R/S + R/f=Rf° + assoc + exists-in-logos + R̄=R*.
+PARTIAL: §1.721 Sub(A)-Heyting (thin case only) · §1.724 double-arrow · §1.726 derived →-equations · §1.73 ℱ(T)
+filter (`faithful_iff_trivial_filter` missing) · §1.771 R†=⋃Rⁿ.
+MISSING: §1.713 𝒮^A/ℋ(Y) loc-complete · §1.725 HA equational theory · §1.729 f#-preserves-arrow · §1.72(10)/(11) HA
+scone · §1.731/§1.732 A/ℱ quotient / logos-capitalization · §1.734/§1.735 FOCAL REPRESENTATION · **§1.74 GEOMETRIC
+REPRESENTATION** (§1.744 Dominates def done; theorem missing — TOPOLOGY WALL) · **§1.75 STONE REPRESENTATION** (§1.751
+ATOM/ATOMLESS + atomically-based⟹boolean done; §1.752–§1.755 incl §1.754 WALL) · §1.76 MICRO-SHEAVES · §1.773/§1.774/
+§1.776/§1.777 · §1.781/§1.785.
 
-## §1.9  Topoi
-MISSING: §1.9 UNIVERSAL RELATION · §1.914 algebra of Ω · §1.92 SINGLETON MAP Δ1 + laws · §1.921 LAWVERE DEFINITION (partial-map classifier) ·
-§1.922 Ω^(−) functor · §1.923 B^A as subobject of [A×B] · §1.926 exponential ↔ Heyting on Sub(1) · §1.93 SLICE LEMMA ·
-§1.931 FUNDAMENTAL LEMMA OF TOPOI (Πf) · §1.932 double-sharp · §1.933 topos pre-regular · §1.934 PARTIAL MAPS category + classifier Ã ·
-§1.935 rep into capital topos · §1.94 SUBOBJECTS NAMED BY F, ∩F · §1.941–§1.943 ∩F props, NAME OF A' · §1.947 topos is transitive logos ·
-§1.949 ∪F · §1.94(10) WELL-POINTED PART, SOLVABLE TOPOS · §1.951 topos effective · §1.952 topos positive · §1.954 topos has coequalizers ·
-§1.955 topos bicartesian · §1.961–§1.966 INJECTIVE/INTERNALLY INJECTIVE/VALUE-BASED/PROGENITOR/COGENERATOR ·
-§1.967–§1.968 power/copower/completeness equivalences · §1.969 LAWVERE/TIERNEY Grothendieck defs · §1.971 SMALL OBJECT ·
-§1.972 projective-1 ↔ progenitor · §1.973 IAC · §1.974–§1.978 AC↔IAC, ETENDUE · §1.981/§1.983 NNO iterate-pairs, primitive recursion ·
-§1.985–§1.989 N=1+N, PEANO PROPERTY · §1.98(10)–§1.98(14) bicartesian NNO, A-ACTION / FREE A-ACTION.
-PARTIAL: §1.9 `Topos` conflates power-object with Ω-classifier · §1.919 `omega_monic_endo_is_involution` `sorry` ·
-§1.91(10) `minimal_topos_has_terminator` = `True` · §1.92 `topos_has_exponentials` `sorry` ·
-§1.944/§1.945/§1.946 `topos_has_strict_coterminator`/`topos_is_regular`/`topos_is_logos` = `True`.
+## §1.8  Adjoints, Grothendieck topoi, exponentials
 
-## §2.1–2.2  Allegories, distributive allegories
-MISSING: §2.111 Rel(C) is an allegory · §2.112 R⊑RR°R · §2.12 EQUIVALENCE RELATION def · §2.122 dom universal property ·
-§2.123 dom(RS)⊑domR · §2.131 RS entire ⇒ R entire · §2.132 subcategory Map(A) · §2.135 isos coincide · §2.136 simple F distributes over ∩ ·
-§2.142 Rel(C) tabular · §2.143–§2.146 tabulation characterisations · §2.147 Map(A) has pullbacks/equalizers/images ·
-§2.148 A=Rel(Map(A)) · §2.151–§2.152 partial-unit / unit theorems · §2.154 REPRESENTATION OF ALLEGORIES ·
-§2.162–§2.167 splitting / tabular-reflection theorems · §2.212–§2.213 Rel(pre-logos) distributive; Split distributive ·
-§2.215 Map positive pre-logos · §2.216 POSITIVE REFLECTION A⁺ · §2.217–§2.219 representation theorems ·
-§2.221–§2.226 LOCAL/GLOBAL/SYSTEMIC COMPLETION · §2.228 tabular+∪-distributive ⇒ distributive.
-PARTIAL: §2.169 `EffectiveAllegory` over-specific (requires Tabular parent; uses symm-idempotents not equiv-rels) ·
-§2.214 `Coproduct` universal property unproven.
+DONE: §1.81 ADJOINT PAIR + unit/counit/triangles · §1.813/§1.816 REFLECTIVE/COREFLECTIVE · §1.815 CLOSURE OPERATION ·
+§1.817 representability⟺left-adjoint · §1.818 ADJOINT-ON-RIGHT/LEFT · §1.821–§1.823 LIMITS/COLIMITS/COMPLETE · §1.825
+complete⟺eq+prod · §1.827–§1.829 CONTINUOUS/WEAK-LIMIT · §1.82(10) PRE-LIMIT · §1.83 PRE-ADJOINT + GENERAL ADJOINT
+FUNCTOR THEOREM · §1.831 MORE-GENERAL-AFT · §1.834 GENERAL REPRESENTABILITY · §1.835/§1.837 coterminator/precocomplete ·
+§1.83(10)/(11) COGENERATING SET + SPECIAL-AFT + duals · §1.84 GIRAUD def · §1.843/§1.844 well-(co)powered / loc-complete ·
+§1.845/§1.846 coproducts/coequalizer-in-Rel(E) · §1.85 EXPONENTIAL CATEGORY + eval/curry · §1.852 poset-exp⟺meets+Heyting ·
+§1.854 Σ⊣Δ/Π/Δ⊣Π · §1.857 EXPONENTIAL IDEAL/REPLETE · §1.858 KURATOWSKI/LAWVERE-TIERNEY · §1.859 BASEABLE.
+PARTIAL: §1.832 PointwiseContinuous · §1.833 PettyFunctor · §1.838 WELL-POWERED (minimal-subobject embedded in SAFT) ·
+§1.853 B^A bifunctor (contravariant deferred §1.95; identity family missing).
+MISSING: §1.811/§1.812 poset-adjoint/free · §1.814 fullness⟺idempotent-reflection · §1.824 intersection-as-limit ·
+§1.839 cardinality · §1.841/§1.842/§1.847 Giraud examples / graphing-functor adjoint (needs Rel(E) as Cat) · §1.851/
+§1.855/§1.856 exp examples / Π-construction / slice-counterexample.
 
-## §2.3  Division allegories
-MISSING: §2.311 ∪-distributivity · §2.312 LEFT DIVISION S\R · §2.313 adjunction · §2.314 R/(S₁∪S₂)=R/S₁∩R/S₂, S\(R/T)=(S\R)/T ·
-§2.315 loc-complete-distributive is division · §2.316 (a,a) Heyting · §2.32 tabular-unitary-division ↔ Map logos ·
-§2.33 geometric rep · §2.331 Moerdijk · §2.34 Split(E) division · §2.341 pre-tabular embeds · §2.342 positive reflection division ·
-§2.343 logos ⇒ positive effective logos · §2.351 R/R equivalence relation · §2.352–§2.353 straight ↔ cancellation ·
-§2.354 R=hS factorisation · §2.355 SR straight ⇒ S straight · §2.356 S straight ⇒ R/ₛS simple · §2.357 SIMPLE PART / domain of simplicity.
+## §1.9  Toposes  *(very heavily and faithfully formalized)*
+
+DONE: §1.9 UNIVERSAL-RELATION/POWER-OBJECT/TOPOS · §1.911–§1.914 Rel(−,B)≃(−,[B]) / Ω / subobjects-are-equalizers /
+Ω-Heyting · §1.919 monic-endo-Ω involution · §1.91(10) terminator · §1.92/§1.921/§1.922/§1.923 SINGLETON / topos-
+exponential / [B]≅Ω^B / partial-map-classifier / B^A-subobject · §1.926 Sub(1)-Heyting · §1.93 SLICE LEMMA (`overTopos`) ·
+§1.931 FUNDAMENTAL LEMMA · §1.932 double-sharp · §1.933 pre-regular · §1.934 PARTIAL MAPS + classifier Ã · §1.94/§1.942/
+§1.943 ∩F internal intersection + NAME-OF + glb · §1.944 strict coterminator · §1.945 regular(images) · §1.946 logos ·
+§1.947 transitive-logos(RTC) · §1.94(10) WELL-POINTED PART/SOLVABLE · §1.95/§1.951/§1.952/§1.954/§1.955 pre-topos/effective/
+positive/coequalizers/bicartesian · §1.961–§1.966 INJECTIVE/VALUE-BASED/COGENERATES/PROGENITOR · §1.967/§1.968 powers⟺
+copowers⟹loc-complete / complete⟺cocomplete · §1.969 LAWVERE/TIERNEY · §1.973/§1.974 IAC + AC⟺IAC∧1-projective ·
+**§1.98–§1.98(14)** NNO + full recursion/Peano/free-A-action/**LIST OBJECT** (`free_action_exists`).
+PARTIAL: §1.941 ∩F preserved-by-reps characterization · §1.949 ∪F lub lemmas · §1.971 small-object thm.
+MISSING: §1.915–§1.918 models (𝒮^G, N-sets, 𝒮^A, ℋ(X)) · §1.924/§1.925 exp examples · §1.935 capital-topos rep · §1.948
+G-sets ∩F-empty · §1.953 𝒮 A+B · §1.96(10)/(11) counterexample/Grothendieck-slice · §1.963 Ã-injective · §1.972 boolean-
+logos AC · §1.975–§1.979 slice-left-inverse/AC-rep/ETENDUE/boolean-bicartesian-rep · §1.984 named arithmetic (+,×,exp).
+
+## §1.10  Sconing  *(entirely unformalized — `S1_10.lean` = BOOK comments only, 0 declarations)*
+
+MISSING: EXACTING def · §1.(10)1 every-cat-slice-of-exacting-Â + SCONE · §1.(10)11–14 scone structure / both adjoints ·
+§1.(10)2/§1.(10)21 Heyting / 𝒮(X̂) sconing · §1.(10)3/§1.(10)31/§1.(10)32 free⟹retract-of-scone · §1.(10)4 SMALL
+PROJECTIVE · §1.(10)41 connected-projective-preserves-colimits.
+
+## §2.1  Allegories
+
+DONE: §2.11 ALLEGORY · §2.111 Rel(C)/𝒱-valued · §2.112 R⊑RR°R · §2.12 REFLEXIVE/SYMM/TRANS/COREFLEXIVE/EQUIV + idempotence ·
+§2.121–§2.124 coref-AB=A∩B / DOMAIN / Dom-laws · §2.13/§2.131 ENTIRE/SIMPLE/MAP + composition · §2.132 Map(A) + C≃Map(Rel C) ·
+§2.133–§2.136 map-order / recip-inverse / isos-coincide / simple-dist-inter · §2.14/§2.141–§2.146 TABULAR + UP + uniqueness +
+coref-tab + pullback-tab · §2.147 Map(A) pullbacks/eq/images/covers · §2.148 A≃Rel(Map A) · §2.15/§2.151/§2.152 PARTIAL UNIT/
+UNIT/UNITARY · §2.154 REPRESENTATION OF ALLEGORIES def + `tabular_repr_in_power_of_sets` · §2.162/§2.163 split-symm-idem⟹S=R° /
+coref-split⟺tabular · §2.164 Spl(𝓔) + embHom-faithful · §2.165/§2.166/§2.167 PRE-TABULAR / tabular⟺pre-tabular+coref-split /
+tabular-reflection=Spl(Cor) · §2.169 EFFECTIVE · §2.16(10) SEMI-SIMPLE · §2.16(12) 𝒱-valued sets.
+PARTIAL: §2.222 ideal-allegory (embed only) · §2.224 GLOBAL COMPLETION Aᴴ (embed only) · §2.225 union-of-SS⟹SS · §2.226
+SYSTEMIC COMPLETION (assumes splitting witness).
+MISSING: §2.113 lat-ordered-monoid · §2.153 assemblies · §2.155–§2.158 examples/projective-planes/free-rep/no-finite-axiom ·
+§2.154 categories-iso headline · §2.168 ⟨I,∃⟩ presentation · §2.16(11)/(13)/(14) neighbors/recursive/assemblies · §2.21(10).
+
+## §2.2  Distributive allegories
+
+DONE: §2.21/§2.211 DISTRIBUTIVE ALLEGORY + laws · §2.212 Rel(C) distrib + TUDist⟹Map pre-logos · §2.213 Spl(𝓔)
+distrib/effective/positive · §2.214 5-eq coproduct↔universal + positive⟺Rel-finite-coproducts · §2.215 POSITIVE ALLEGORY +
+coproduct⟺product + TUPos⟹Map positive · **§2.216 POSITIVE REFLECTION** A⁺ (`MatObj`, `embed1` faithful, Tabular/Unitary/Positive
+instances) · **§2.217** pre-logos↪positive(+pre-topos) · **§2.218** `tabular_repr_in_power_of_sets` (+`_distributive`) · §2.219
+positive-SS⟺polarization · §2.22 LOCALLY COMPLETE · §2.221 downdeal LOCAL COMPLETION + faithful-rep · §2.223 GLOBALLY COMPLETE
+def · §2.228 finite-unions-distribute-comp + counterexample.
+PARTIAL: §2.222 ideal-allegory · §2.224 GLOBAL COMPLETION · §2.225 union-of-SS⟹SS · §2.226 SYSTEMIC COMPLETION.
+MISSING: §2.21(10) eqn-theory union-free · §2.223 disjoint-unions=coproducts coincidence · **§2.227 maps-of-O(Y)-valued-
+sets≃H(Y)** (needs sheaf infra).
+
+## §2.3  Division / power allegories
+
+DONE: §2.31 DIVISION ALLEGORY + adjunction · §2.312/§2.313 LEFT DIVISION / adjoint-reformulation · §2.314 division identities
++ Rel(C)-division · §2.315 LCDA⟹division + division↪LCDA faithful · §2.316 Heyting-impl + Cor-adjunction + endo-poset · §2.32
+TUDivAllegory + mapLogos + rightAdj · §2.34 PRel(E) division + embHom-faithful · §2.342 A⁺ division + embed1_div · §2.343
+logos↪positive-effective-logos full+faithful · §2.35/§2.351 SYMMETRIC DIVISION / STRAIGHT · §2.352/§2.353 straight-cancel +
+converse · §2.354/§2.355/§2.356 effective-factorization / straight-of-comp / symmDiv-simple · §2.357 SIMPLE PART R/ₛ1 +
+**Dom(R/ₛS)=1∩(R/S)(S/R) + Dom(R/ₛ1)=1∩R(1/R)** (`dom_symmDiv`/`domSimplicity_eq`) · §2.314 **(R/R)²⊑R/R +
+(S\R/T)°=T°\R°/S°** (`div_self_idem`/`leftDiv_div_recip`) · §2.351 **straight⟺every-symmetric-T-with-TS⊑S-coreflexive**
+(`straight_iff_symmetric_invariant_coreflexive`).
+PARTIAL: §2.311 division⟹comp-over-union (not derived from axioms) · §2.316 general-(α,β) Heyting / bundled instance · **§2.331(i)–
+(iii) Moerdijk** (algebraic reduction done; faithfulness + §1.543 capital-data are hypotheses; topological existence unproven) ·
+§2.34 embed1-division-preservation not named.
+MISSING: §2.316 converse one-object-division⟹Heyting · §2.33 geometric/Stone rep specialized to countable TUDA ·
+**§2.331(iv)** coprime-terminator⟹single-H(X) (TOPOLOGY WALL) + δ-DENSE defs · §2.341 pre-tabular/semi-simple PRel reps ·
+§2.353 tabular cancellation-on-maps.
 
 ## §2.4  Power allegories
-MISSING: §2.412 A(R) uniqueness · §2.413 thickness from factoring · §2.415 A(f)=f·A(1) · §2.416 Grothendieck ⇒ power allegory ·
-§2.42 Split(Eqv) power · §2.421 R/S=A(R)A°(S) · §2.422 equiv rels are ff° · §2.423 unit existence · §2.424 Map(Split) is topos ·
-§2.431 thickness characterisation · §2.433 Split(Eqv) pre-power · §2.434 systemic completion power · §2.435 Cantor ·
-§2.436 inconsistency of 1-object · §2.441 PRE-POSITIVE / WELL-JOINED · §2.442 LAW OF METONYMY · §2.443 ∋ semi-simplicity · §2.446 zero/union derivable.
-PARTIAL: §2.41 `A_is_map` entireness `sorry`; `A_eps_eq` second dir `sorry` · §2.414 `topos_allegory_is_power` = `True` ·
-§2.432 `effective_pre_power_is_power` = `sorry`.
+
+DONE: §2.41 POWER ALLEGORY/THICK (box-guarded) · §2.412 A(R) simple/map/uniqueness · §2.413 thickness-inference · §2.415
+POWER-OBJECT/SINGLETON · §2.421 R/S=A(R)A°(S) · §2.43/§2.431/§2.432 PRE-POWER + thickness-char + effective-pre-power-is-power ·
+§2.436 one-object-pre-power-inconsistent (+ honest hBox; unconditional book form proven FALSE for faithful box-guard) · §2.442
+LAW OF METONYMY + semi-simple⟺metonymic · §2.443 A-calculus.
+PARTIAL: §2.416 progenitor ∋-construction (only monic half) · §2.422 Spl(Eq) effective power · §2.441 pre-positive 4-way equiv
+(only (1)⟺(2)).
+MISSING: §2.414 C-topos⟹Rel(C)-power · §2.417 generator counterexample · §2.418 REALIZABILITY TOPOS · §2.42 splitting lemma ·
+§2.423/§2.424 connected-power · §2.433–§2.435 Spl(Eq)/systemic/connected-division · §2.437/§2.438 r.e.-relations / Gödel ·
+§2.444–§2.446 metonymy-independence · §2.451–§2.455 boolean/CH/WELL-POINTED/cocartesian.
 
 ## §2.5  Quotient allegories
-MISSING: §2.5 QUOTIENT ALLEGORY construction (only `Congruence` exists) · §2.51 quotient tabular/unitary · §2.52 zero/union congruence ·
-§2.533 R⊑S ↔ R⁺⊑S⁺ · §2.534 T⁺S⁺⊑(TS)⁺ · §2.535 refl/symm/trans preserved · §2.537 amenable quotient power ·
-§2.54 coreflexive named · §2.541 transitive closure preserved · §2.55 amenable quotient complete · §2.551 locale congruence ·
-§2.56 SEPARATED / DENSE · §2.563 separated-target naming · §2.56(12) ΠHₙ empty (independence of AC).
-PARTIAL: §2.521 `booleanQuotientRel` not shown a congruence · §2.522 `closedQuotientRel` amenability unproven ·
-§2.536 `amenableQuotientDivision` = `sorry` · §2.542 `topos_boolean_representation` = `True`.
 
----
-
-## Dispatch plan (wave 1 — 10 Sonnet worktree agents, definition-focused)
-Each agent owns DISJOINT files, builds `lake build Fredy.<module>`, does NOT edit `Fredy.lean` (imports merged centrally),
-states book-faithful definitions/theorems, proves the easy ones, leaves correctly-stated `sorry` for the hard ones
-(never weakened to `True`/`trivial`), never adds `axiom`.
-
-1. S1_82.lean (new) — §1.82–1.83 LIMIT/COLIMIT/COMPLETE/CONTINUOUS/WELL-POWERED/COGENERATING SET/PRE-ADJOINT (+AFT stmts)
-2. S1_77.lean (new) — §1.77 TRANSITIVE CLOSURE R^t,R*, TRANSITIVE/ω-TRANSITIVE LOGOS; §1.78 relational quotient R/S + laws
-3. S1_72.lean (own) — §1.72 HEYTING/LOCALE/NEGATION/EXCLUDED-MIDDLE + equational laws; fix Coprime/FocalLogos
-4. S1_85.lean (own) — §1.857 EXPONENTIAL IDEAL/REPLETE; §1.858 KURATOWSKI/LAWVERE-TIERNEY; §1.859 BASEABLE
-5. S1_84.lean (new) — §1.84 GIRAUD DEFINITION of Grothendieck topos + §1.843–846 statements
-6. S1_95.lean (new) — §1.95 topos effective/positive/bicartesian/coequalizers; §1.96 INJECTIVE/VALUE-BASED/PROGENITOR/COGENERATOR
-7. S1_14.lean (new) — §1.14 MONOID-as-cat, §1.15 DISCRETE CAT, §1.17 GROUPOID/GROUP/inverse, §1.182 CONTRAVARIANT FUNCTOR+OPPOSITE, §1.1(10) CAT ISO
-8. S2_3.lean (own) — §2.312 LEFT DIVISION, §2.314 division laws, §2.351 R/R equiv, §2.352–356 STRAIGHT, §2.357 SIMPLE PART
-9. S2_4.lean (own) — fix §2.41 A_is_map/A_eps_eq; §2.415 A(f)=f·A(1); §2.441 PRE-POSITIVE/WELL-JOINED; §2.442 LAW OF METONYMY
-10. S2_5.lean (own) — §2.5 QUOTIENT ALLEGORY, §2.521/2.522 boolean/closed quotient congruences, §2.533–535 ⁺-laws, §2.56 SEPARATED/DENSE
+DONE: §2.521 BOOLEAN QUOTIENT · §2.53 AMENABLE CONGRUENCE def · §2.531–§2.535 ⁺-laws (R⊑S⟹R⁺⊑S⁺, (R∩S)⁺, [R]⊑[S]⟺R⁺⊑S⁺,
+T⁺S⁺⊑(TS)⁺, refl/symm/trans-preservation) · §2.54 coreflexive-named · §2.563 SEPARATED/DENSE (faithful R≡⊤) + named-by-simple.
+PARTIAL: §2.5 CONGRUENCE/QUOTIENT (`Congruence`+well-def done, **no `QuotAllegory` type** — blocks §2.51/2.536/2.537/2.55) ·
+§2.522 CLOSED QUOTIENT (congruence done, amenability instance not constructed).
+MISSING: §2.51 quotient-tabular/unitary · §2.52 respects-zero/representation · §2.536/§2.537 quotient-division / quotient-
+effective-power · §2.541 transitive-closure · §2.542 topos⟹boolean-topos+bicartesian-rep (twin §1.979) · §2.55 quotient-complete ·
+§2.551 disjoint-unions=coproducts · §2.56 independence of AC · §2.561/§2.562/§2.564–§2.56(12) (need presheaf infra).
