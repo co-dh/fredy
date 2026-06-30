@@ -215,8 +215,12 @@ tabular-reflection=Spl(Cor) · §2.169 EFFECTIVE · §2.16(10) SEMI-SIMPLE · §
 DONE (newly): §2.113 l-monoid one-object allegory (`LMonObj`; the modular law — the one axiom a general l-monoid lacks —
 isolated as `ModularLOCMonoid`, Bool witness) · §2.222 ideal-allegory LCDA (`idealAllegory_locallyComplete`/`_faithful`;
 the Downdeal allegory IS the ideal allegory) · §2.225 union-of-SS⟹SS (`semiSimple_of_iSup_semiSimple`).
-PARTIAL: §2.224 GLOBAL COMPLETION Aᴴ (embed only; GloballyComplete instance = the unbuilt infinite-matrix allegory over the
-LCDA Sup) · §2.226 SYSTEMIC COMPLETION (assumes splitting witness; full unit-existence blocked by §2.224).
+PARTIAL: §2.224 GLOBAL COMPLETION Aᴴ — now a FAITHFUL LCDA REPRESENTATION (`globalCat`/`globalAllegory`/
+`globalDistributiveAllegory`/`globalLCDA`/`globalCompletion_faithful`, all constructive; infinite matrices over the LCDA Sup,
+identity via propositional i=j + HEq, modular per-entry, assoc/Sup = Fubini interchange). The final GloballyComplete instance is
+UNIVERSE-BLOCKED (disjoint union of u-indexed families escapes to u+1; the completion is complete only at the next universe level
+— needs a class redesign, not just a universe-poly GlobalObj) · §2.226 SYSTEMIC COMPLETION (assumes splitting witness; full
+unit-existence blocked by §2.224 GloballyComplete).
 MISSING: §2.153 assemblies · §2.155–§2.158 examples/projective-planes/free-rep/no-finite-axiom ·
 §2.154 categories-iso headline · §2.168 ⟨I,∃⟩ presentation · §2.16(11)/(13)/(14) neighbors/recursive/assemblies · §2.21(10).
 
@@ -230,8 +234,9 @@ positive-SS⟺polarization · §2.22 LOCALLY COMPLETE · §2.221 downdeal LOCAL 
 def · §2.228 finite-unions-distribute-comp + counterexample.
 DONE (newly): §2.222 ideal-allegory LCDA · §2.225 union-of-SS⟹SS · §2.223 disjoint-unions=coproducts FORWARD
 (`IndexedDisjointUnion.isCoproduct`: a disjoint-union datum's injections are an indexed coproduct, mediator ⋃Uᵢ°Rᵢ).
-PARTIAL: §2.224 GLOBAL COMPLETION (embed only; infinite-matrix construction) · §2.226 SYSTEMIC COMPLETION (blocked by §2.224) ·
-§2.223 converse (universal⟹five-eqs) not included.
+PARTIAL: §2.224 GLOBAL COMPLETION — faithful LCDA representation built (`globalLCDA`); final GloballyComplete instance
+universe-blocked · §2.226 SYSTEMIC COMPLETION (blocked by §2.224 GloballyComplete) · §2.223 converse (universal⟹five-eqs) not
+included.
 MISSING: §2.21(10) eqn-theory union-free · **§2.227 maps-of-O(Y)-valued-sets≃H(Y)** (needs sheaf infra).
 
 ## §2.3  Division / power allegories
