@@ -138,6 +138,7 @@ import Fredy.S2_541_QuotTransClosure
 import Fredy.S2_55_QuotComplete
 import Fredy.S2_522_ClosedAmenable
 import Fredy.S2_423_ConnectedUnit
+import Fredy.S2_341_PreTabularRep
 import Fredy.S1_38b
 import Fredy.FiniteSeparation
 import Fredy.Representation646
