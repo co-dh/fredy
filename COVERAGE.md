@@ -295,7 +295,10 @@ have no thick target by this route) · §2.434 "systemic completion is a power a
 completion of `globalScPrePower` (documented corollary).
 NOTE: §2.42 "splitting lemmas" = the inequalities Λ(R)Λ°(S)⊑(R/∋)(∋/S)⊑R/S and back, which PROVE §2.421 R/S=A(R)A°(S) —
 already DONE as `symm_div_eq_A_comp`; the content is covered.
-MISSING: §2.414 CONVERSE (unitary tabular power allegory ⟹ Map(A) topos) · §2.417 generator counterexample (model) · §2.418 REALIZABILITY
+PARTIAL: §2.414 CONVERSE (`S2_41b`, Map(A) topos up to the box-guard: merged class `TabularUnitaryPowerAllegory`,
+membership `mapMem`, box-guarded universal property `mapTranspose_existsUnique`; full Topos blocked by the BOX-GATING WALL —
+unguarded membership / `A(𝟘)` a map, the same root as §2.441/2.433/2.537, needs a `PowerAllegory`-interface strengthening).
+MISSING: §2.417 generator counterexample (model) · §2.418 REALIZABILITY
 TOPOS (construction) · §2.424 connected-power topos corollary · §2.437/§2.438 r.e.-relations / Gödel (RECURSION THEORY) ·
 §2.444–§2.446 metonymy-independence (model) · §2.451–§2.455 boolean/CH/WELL-POINTED/cocartesian (set-theoretic models).
 
