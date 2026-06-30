@@ -236,4 +236,48 @@ theorem progenitor_straight_thick (γ : 𝒜) (hSep : Separates γ)
   have hrS : h° ≫ S = S' := by rw [hSeq, ← Cat.assoc, hrH, Cat.id_comp]
   exact ⟨h' ≫ h°, map_comp hh' hrmap, by rw [hReq, ← hrS, Cat.assoc]⟩
 
+/-- §2.416: the cotuple hypothesis `hCotuple` of `progenitor_straight_thick` is DISCHARGED in an
+    EFFECTIVE division allegory with binary coproducts — exactly Freyd's §2.416 coproduct/
+    effectiveness content, now derived rather than assumed.  Given a binary coproduct `Q = P ⊕ β`
+    the cotuple `(S;R) : Q → α` is the coproduct mediator (`coproduct_five_eqs_to_universal`);
+    straightening it via §2.354 (`straight_factorization`) gives `(S;R) = k ≫ S'` with `k` a map
+    and `S'` straight, and restricting `k` to the injections `u₁, u₂` gives `h = u₁ ≫ k`,
+    `h' = u₂ ≫ k` with `S = h ≫ S'`, `R = h' ≫ S'`.  (Stated with a fresh carrier `ℬ` so the
+    section's ambient `[DivisionAllegory 𝒜]` is not also bound — no instance diamond.) -/
+theorem hCotuple_of_coproduct {ℬ : Type u} [EffectiveDivisionAllegory ℬ]
+    {P α : ℬ} (S : P ⟶ α) {β : ℬ} (R : β ⟶ α) {Q : ℬ} (cp : Coproduct Q P β) :
+    ∃ (Q' : ℬ) (S' : Q' ⟶ α) (h : P ⟶ Q') (h' : β ⟶ Q'),
+      Straight S' ∧ Map h ∧ Map h' ∧ S = h ≫ S' ∧ R = h' ≫ S' := by
+  -- The cotuple mediator `M = (S;R) : Q → α`.
+  obtain ⟨M, hM1, hM2, _⟩ := coproduct_five_eqs_to_universal cp α S R
+  -- The injections are maps: entire from `uᵢuᵢ° = 1`, simple from `⋃ uᵢ°uᵢ = 1`.
+  have hu1simp : cp.u₁° ≫ cp.u₁ ⊑ Cat.id Q := by
+    have h := le_union_left (cp.u₁° ≫ cp.u₁) (cp.u₂° ≫ cp.u₂); rwa [cp.recip_union_eq_id] at h
+  have hu2simp : cp.u₂° ≫ cp.u₂ ⊑ Cat.id Q := by
+    have h := le_union_right (cp.u₁° ≫ cp.u₁) (cp.u₂° ≫ cp.u₂); rwa [cp.recip_union_eq_id] at h
+  have hu1 : Map cp.u₁ :=
+    ⟨by show dom cp.u₁ = Cat.id P; dsimp [dom]; rw [cp.u₁_self_comp_recip, Allegory.inter_idem], hu1simp⟩
+  have hu2 : Map cp.u₂ :=
+    ⟨by show dom cp.u₂ = Cat.id β; dsimp [dom]; rw [cp.u₂_self_comp_recip, Allegory.inter_idem], hu2simp⟩
+  -- Straighten `M` (§2.354): `M = k ≫ (k° ≫ M)`, `k` a map, `k° ≫ M` straight.
+  obtain ⟨c, k, hk, _, hS'str, hMeq⟩ := straight_factorization M
+  refine ⟨c, k° ≫ M, cp.u₁ ≫ k, cp.u₂ ≫ k, hS'str, map_comp hu1 hk, map_comp hu2 hk, ?_, ?_⟩
+  · show S = (cp.u₁ ≫ k) ≫ (k° ≫ M); rw [Cat.assoc, ← hMeq, hM1]
+  · show R = (cp.u₂ ≫ k) ≫ (k° ≫ M); rw [Cat.assoc, ← hMeq, hM2]
+
+/-- **§2.416 (cotuple hypothesis discharged).**  In an EFFECTIVE division allegory with binary
+    coproducts, a straight `S : P → α` that is thick against a progenitor `γ` (`Separates γ`,
+    `hSthick`) is THICK for ALL targets — Freyd's §2.416 — with NO `hCotuple` hypothesis: it is
+    discharged by `hCotuple_of_coproduct` from the binary coproducts `Q = P ⊕ b`. -/
+theorem progenitor_straight_thick_of_coproduct {ℬ : Type u} [EffectiveDivisionAllegory ℬ]
+    (γ : ℬ) (hSep : Separates γ) {P α : ℬ} {S : P ⟶ α} (hSstr : Straight S)
+    (hSthick : ∀ (R : γ ⟶ α), ∃ (f : γ ⟶ P), Map f ∧ R = f ≫ S)
+    (hcoprod : ∀ (b : ℬ), ∃ (Q : ℬ), Nonempty (Coproduct Q P b))
+    {β : ℬ} (R : β ⟶ α) :
+    ∃ (m : β ⟶ P), Map m ∧ R = m ≫ S := by
+  refine progenitor_straight_thick γ hSep hSstr hSthick ?_ R
+  intro b R'
+  obtain ⟨Q, ⟨cp⟩⟩ := hcoprod b
+  exact hCotuple_of_coproduct S R' cp
+
 end Freyd.Alg
