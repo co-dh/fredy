@@ -15,8 +15,8 @@ import Fredy.S1_26
 import Fredy.S1_42
 import Fredy.S1_45
 import Fredy.S1_27
-import Fredy.Horn
-import Fredy.FunctorCategory
+import Fredy.S1_444_Horn
+import Fredy.S1_422_FunctorCategory
 
 
 universe v u

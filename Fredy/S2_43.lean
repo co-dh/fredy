@@ -3,7 +3,7 @@ import Fredy.S2_1
 import Fredy.S2_2
 import Fredy.S2_3
 import Fredy.S2_4
-import Fredy.Spl
+import Fredy.S2_165_Spl
 import Fredy.S2_22
 import Fredy.S2_42
 

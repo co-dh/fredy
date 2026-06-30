@@ -35,10 +35,10 @@
   marker at the end of the file.
 -/
 
-import Fredy.Locale
+import Fredy.S1_723_Locale
 import Fredy.S2_21
-import Fredy.MapCat
-import Fredy.RelCat
+import Fredy.S2_147_MapCat
+import Fredy.S2_111_RelCat
 
 universe u
 

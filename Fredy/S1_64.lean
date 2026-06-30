@@ -28,7 +28,7 @@ import Fredy.S1_57
 import Fredy.S1_47
 import Fredy.S1_62
 import Fredy.S1_77
-import Fredy.Complement
+import Fredy.S1_658_Complement
 
 
 open Freyd

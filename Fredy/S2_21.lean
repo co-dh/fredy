@@ -1,8 +1,8 @@
-import Fredy.RelCat
-import Fredy.StalkRegular
-import Fredy.FiniteSeparation
-import Fredy.Capitalization
-import Fredy.CapitalProjective
+import Fredy.S2_111_RelCat
+import Fredy.S1_625_StalkRegular
+import Fredy.S1_637_FiniteSeparation
+import Fredy.S1_543_Capitalization
+import Fredy.S1_631_CapitalProjective
 
 universe u w
 

@@ -1,7 +1,7 @@
-import Fredy.CapDataPositiveTower
-import Fredy.StalkRepr
-import Fredy.MapCat
-import Fredy.MatrixAllegory
+import Fredy.S2_218_CapDataPositiveTower
+import Fredy.S1_635_StalkRepr
+import Fredy.S2_147_MapCat
+import Fredy.S2_216_MatrixAllegory
 
 universe u u₁ u₂ u₃ v
 

@@ -1,5 +1,5 @@
-import Fredy.Spl
-import Fredy.MapCat
+import Fredy.S2_165_Spl
+import Fredy.S2_147_MapCat
 
 universe v u
 

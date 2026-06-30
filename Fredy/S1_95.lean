@@ -32,10 +32,10 @@ import Fredy.S1_85
 import Fredy.S1_91
 import Fredy.S1_92
 import Fredy.S1_94
-import Fredy.ToposExists
+import Fredy.S1_967_ToposExists
 import Fredy.S1_75
-import Fredy.ToposDistributive
-import Fredy.ToposRTC
+import Fredy.S1_97_ToposDistributive
+import Fredy.S1_943_ToposRTC
 
 
 universe v u

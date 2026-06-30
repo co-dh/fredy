@@ -28,12 +28,12 @@ import Fredy.S1_64
 import Fredy.S1_85
 import Fredy.S1_92
 import Fredy.S1_94
-import Fredy.InternalForall
-import Fredy.PartialMapClassifier
-import Fredy.LeastClosedTopos
-import Fredy.Complement
-import Fredy.ToposExists
-import Fredy.ToposDistributive
+import Fredy.S1_94_InternalForall
+import Fredy.S1_934_PartialMapClassifier
+import Fredy.S1_987_LeastClosedTopos
+import Fredy.S1_658_Complement
+import Fredy.S1_967_ToposExists
+import Fredy.S1_97_ToposDistributive
 
 
 universe v u

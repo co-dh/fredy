@@ -1,6 +1,6 @@
 import Fredy.S2_1
 import Fredy.S2_2
-import Fredy.MatrixAllegory
+import Fredy.S2_216_MatrixAllegory
 
 universe v u
 

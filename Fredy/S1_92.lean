@@ -19,7 +19,7 @@ import Fredy.S1_51
 import Fredy.S1_58
 import Fredy.S1_42
 import Fredy.S1_91
-import Fredy.Baseable923
+import Fredy.S1_923_Baseable
 
 
 universe v u

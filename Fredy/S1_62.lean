@@ -17,14 +17,14 @@ import Fredy.S1_42
 import Fredy.S1_45
 import Fredy.S1_51
 import Fredy.S1_52
-import Fredy.Horn
+import Fredy.S1_444_Horn
 import Fredy.S1_55
 import Fredy.S1_56
 import Fredy.S1_57
 import Fredy.S1_58
 import Fredy.S1_60
 import Fredy.S1_61
-import Fredy.WellOrdering
+import Fredy.S1_543_WellOrdering
 
 
 open Freyd

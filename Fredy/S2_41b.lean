@@ -30,7 +30,7 @@
   merge is well-formed.
 -/
 
-import Fredy.MapCat
+import Fredy.S2_147_MapCat
 import Fredy.S2_4
 import Fredy.S2_41
 import Fredy.S1_9

@@ -3,7 +3,7 @@ import Fredy.S2_1
 import Fredy.S2_2
 import Fredy.S2_3
 import Fredy.S2_4
-import Fredy.MapCat
+import Fredy.S2_147_MapCat
 
 universe v u
 

@@ -30,21 +30,21 @@ import Fredy.S1_77
 -- import cycle S1_94 → InternalForall → InternalForallTopos → S1_94).  Re-exported here so
 -- S1_94's public surface (`powObj`, `nameOf`, `interIntersection`, …) is unchanged for its
 -- own downstream users.
-import Fredy.InterIntersection
+import Fredy.S1_94_InterIntersection
 -- §1.945 topos-regularity infrastructure.  The cycle that used to block this import
 -- (S1_94 → InternalForall → InternalForallTopos → S1_94) was removed by pointing
 -- InternalForall at S1_9 directly instead of S1_94.  InternalForallTopos provides the
 -- Sorry-free `toposHasImages` instance, the `SlicePi.toposPullbacksTransferCovers`
 -- instance, and `topos_is_regular_real : Nonempty (RegularCategory 𝒞)`.
-import Fredy.InternalForallTopos
+import Fredy.S1_94_InternalForallTopos
 -- §1.946 right adjoint f## to inverse image (the `HasRightAdjointImage'` keystone): the
 -- subobject-level internal-∀ `radjImage`/`radjImage_adjunction`, built Sorry-free via the
 -- internal-∀ family-glb machinery.  Plus §1.95 `bottomSub` for the strict coterminator.
-import Fredy.RightAdjointImage
-import Fredy.ToposColimits
+import Fredy.S1_946_RightAdjointImage
+import Fredy.S1_95_ToposColimits
 -- §1.944 strict coterminator: `topos_has_coterminator` (built Sorry-free modulo the single
 -- `bottomSub_dom_iso` seed = `0 × A ≅ 0`; see `Fredy/ToposStrictZero.lean`).
-import Fredy.ToposStrictZero
+import Fredy.S1_944_ToposStrictZero
 
 universe v u
 
