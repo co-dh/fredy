@@ -29,9 +29,11 @@ merged class `TabularUnitaryUnguardedPowerAllegory`): Map(A) has FULL power obje
 - **§2.433 full instance** — needs the reflexive-only `Spl(Eq)` subtype + per-object `SplEqBoxNaming` (the wall);
   `splEqTarget_thick` (the per-object thickness) is done.
 - **§2.537 `hbox`** — `quot_effective_power_is_power` carries the §2.41 box-naming `∋_R = ∋_{R⁺}` (the wall).
-- **§2.414 converse** (`S2_41b`) — universal-property half DONE over `UnguardedPowerAllegory`
-  (`mapTranspose_existsUnique_all`); remaining for the full `Topos`: the `Ω = [1]` subobject classifier
-  (`HasSubobjectClassifier` on `Map(A)`: classify a Map-monic ↔ coreflexive ↔ char map into `[1]`).
+- **§2.414 converse** (`S2_41b`) — finite limits (`mapPreLogos`) + FULL power objects
+  (`mapTranspose_existsUnique_all`) + subobject classifier `Ω=[1]` (`mapHasSubobjectClassifier`, commit 40a10f3)
+  all DONE over `UnguardedPowerAllegory`. ONLY remaining for the full `Topos` instance: `has_pow : ∀ C,
+  HasPowerObject C` — bridging the composition form `f≫∋=R̄` (have) to the `IsUniversalRel`/`relPullback`
+  form (S1_9 wants), i.e. transport `relPullback ≅ graph⊚mem` (cf. `relPullback_graphComp`) onto `Rel(Map A)`.
 - ~~**§2.416 `hCotuple`**~~ — **DONE** (`hCotuple_of_coproduct` / `progenitor_straight_thick_of_coproduct`,
   S2_44, commit 308a811): discharged from binary coproducts + effectiveness via the coproduct mediator +
   §2.354 straightening. No box-gating.
