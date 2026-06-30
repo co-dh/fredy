@@ -6,10 +6,11 @@ Status as of 2026-06-30. Everything below is **not yet formalized**; the rest of
 ## Tractable, attempted, not yet landed
 
 - **§2.441 (3)⟹(1)** — discharge `hSJtoPP` (`StraightJoinCond ⟹ PrePositiveCond`) in `S2_44.lean`.
-  Book proof complete (typ §2.4 lines 293–360): `Λ(S)=A(S)` monic (already have `A_monic_of_straight`),
-  then `ℓ,ϰ = (1/∋)(1/∋')` into the **double** power object with disjoint images `ℓϰ°=0`, reducing to
-  `Λ(0) ∩ Λ(1) = 0`. The disjointness core is OCR-murky in the book *and* likely box-guard-gated
-  (`Λ(S)` entire needs `codBox S = codBox ∋`, same box issue as §2.433/§2.537). Needs a focused session.
+  Disjointness crux **DONE** (`A_zero_inter_A_one`: `Λ(0)∩Λ(1)=0`, commit 2a58762) and `Λ(S)` monic done
+  (`A_monic_of_straight`). REMAINING: the full `ℓ,ϰ : [γ]→[[[γ]]]` split-monic construction needs `Λ(S)`
+  ENTIRE (`Λ(S)Λ(S)°=1`), which the repo's box-guarded power allegory gives only under `codBox S = codBox ∋`
+  (`A_is_map`) — so the full assembly is box-gated (like §2.537). A box-naming-hypothesis version is the
+  honest repo-consistent close.
 - **§2.433 full instance** — `PrePowerAllegory (SplObj 𝒜)` proper. Have `splEqTarget_thick` (equivalence-
   relation objects thick, gated on `SplEqBoxNaming`). Needs the reflexive-only `Spl(Eq)` **subtype**
   carrying its own `Cat`/`Division`/`Effective` instances, with per-object box-naming discharged.
@@ -17,8 +18,9 @@ Status as of 2026-06-30. Everything below is **not yet formalized**; the rest of
 ## Box-naming-gated (the accepted §2.537 `hbox` pattern — repo design)
 
 - **§2.537 `hbox`** — `quot_effective_power_is_power` carries the §2.41 box-naming `∋_R = ∋_{R⁺}`.
-- **§2.416 `hCotuple`** — `progenitor_straight_thick` takes a cotuple/coproduct straightening hypothesis;
-  may now be dischargeable in a positive/globally-complete setting given §2.223/§2.551 coproducts.
+- ~~**§2.416 `hCotuple`**~~ — **DONE** (`hCotuple_of_coproduct` / `progenitor_straight_thick_of_coproduct`,
+  S2_44, commit 308a811): discharged from binary coproducts + effectiveness via the coproduct mediator +
+  §2.354 straightening. No box-gating.
 
 ## Real but large bridges/constructions (formalizable, multi-file)
 
