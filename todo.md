@@ -3,21 +3,21 @@
 Status as of 2026-06-30. Everything below is **not yet formalized**; the rest of Chapter 2 is done
 (see `COVERAGE.md`). Grouped by how reachable each is.
 
-## ★ THE BOX-GATING WALL — one root cause blocking FOUR items
+## ★ THE BOX-MATCHED THICKNESS — FAITHFUL to §2.431 (resolved 2026-06-30 from the original scan)
 
-The repo's `PowerAllegory.eps_thick` is **box-guarded** (`codBox R = codBox ∋`): the membership `∋` classifies
-a relation `R̄` only when its box matches. This single limitation blocks the *full* versions of §2.441 (3)⟹(1),
-§2.433, §2.537, AND the §2.414 converse (S2_41b). Each has its sorry-free **partial** committed (everything up
-to the box-guard); the full closes need ONE of:
-  (i)  an **unguarded thickness** `∀ R̄, ∃ map f, f ≫ ∋ = R̄` (equivalently: `A(𝟘)` is a map — `[C]` has a
-       ⊥ point `∅`); or
-  (ii) a **box-indexed membership family** `∋_K : [C]_K → C` per coreflexive box `K ⊑ 1_C` (Freyd's `∋_{R□}`).
-Both are genuine ADDITIONS to the `PowerAllegory` interface, not derivable from box-guarded `eps_thick` (same
-gap as `Spl.lean` Goal-B; `eps_entire`/`codBox ∋ = 1` is necessary but NOT sufficient — it still excludes `𝟘`).
-**HIGH-VALUE NEXT STEP**: decide whether (i)/(ii) is a sound strengthening (esp. provable in a *tabular unitary*
-power allegory, where `A(𝟘)`-as-a-map may follow from tabulation+unit — UNTESTED) or a genuine new axiom; either
-way it unblocks all four at once. NB the box-guard was added deliberately (makes §2.431 a true biconditional;
-§2.435 proved the *unconditional thickness collapse* false) — so (i)/(ii) must be checked for soundness first.
+`PowerAllegory.eps_thick` is box-guarded (`codBox R = codBox ∋`). VERDICT after reading Freyd §2.431 (scan p.240):
+this is **the book's definition**, not a deviation — §2.431 literally says "T is thick iff for all R such that
+`R□ = T□` there exists R̂ ...". Freyd's thickness is box-matched, and §2.432/2.433/2.434 each construct a single
+box-matched straight-thick `∋` per object — exactly this class. So **do NOT "fix" the class**: dropping the guard
+(or adding an unguarded/box-family `∋`) would BREAK the faithful §2.432 `effective_pre_power_is_power` (and the
+§2.433/§2.537 that build on it), which correctly produce only box-matched `∋`. (My earlier "deviation" framing
+was wrong — extrapolated from §2.41's `∋_R = ∋_{R□}` notation without reading §2.431.)
+
+So the four items below are NOT blocked by a class defect. They genuinely need MORE than a bare power allegory —
+an UNGUARDED `∋` (classify every R, incl. naming `∅`) — which Freyd's relevant theorems supply via EXTRA
+hypotheses: §2.414-converse assumes *unitary tabular*; §2.434 builds the explicit eval matrix (unguarded, already
+done as `globalScPrePower`). The honest close of each = add that extra structure as a hypothesis (the repo-
+consistent §2.537 pattern), NOT a core-class change. Their sorry-free partials are committed.
 
 ## Box-gated — partial committed, full close blocked by the wall above
 
