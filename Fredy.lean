@@ -145,6 +145,7 @@ import Fredy.Spl
 import Fredy.MatrixAllegory
 import Fredy.Locale
 import Fredy.RelCat
+import Fredy.S2_41
 import Fredy.S2_21
 import Fredy.S2_21b
 import Fredy.StalkConservative

@@ -753,7 +753,7 @@ variable [RegularCategory 𝒞]
     pullback is `pullback(id, id)` over `R.src`, on which `π₁ = π₂`, so its span is
     `π₁ ≫ pair R.colA R.colB`, which `Allows` the subobject `⟨R.src; pair colA colB⟩`;
     image-minimality gives the `RelHom`. -/
-private theorem reconstitute_le {a b : 𝒞} (R : BinRel 𝒞 a b) :
+theorem reconstitute_le {a b : 𝒞} (R : BinRel 𝒞 a b) :
     RelLe ((graph R.colA)° ⊚ graph R.colB) R := by
   let pb := HasPullbacks.has ((graph R.colA)°).colB (graph R.colB).colA
   -- both pullback maps are id_{R.src}, so π₁ = π₂.
@@ -784,7 +784,7 @@ private theorem reconstitute_le {a b : 𝒞} (R : BinRel 𝒞 a b) :
 /-- **Span reconstitution (⊇)**: `R ⊂ (graph R.colA)° ⊚ graph R.colB`.  Lift `R.src` into
     the trivial pullback via the cone `⟨id, id⟩`, then `R.src → I.dom` through the image
     lift; its legs are `R.colA`, `R.colB`. -/
-private theorem le_reconstitute {a b : 𝒞} (R : BinRel 𝒞 a b) :
+theorem le_reconstitute {a b : 𝒞} (R : BinRel 𝒞 a b) :
     RelLe R ((graph R.colA)° ⊚ graph R.colB) := by
   let pb := HasPullbacks.has ((graph R.colA)°).colB (graph R.colB).colA
   -- cone ⟨R.src; id, id⟩ over (id, id).
@@ -906,7 +906,7 @@ private theorem map_relClass {a b : 𝒞} (R : BinRel 𝒞 a b) :
   and_congr (entire_relClass R) (simple_relClass R)
 
 /-- A graph's class is a `Map` in `Rel(C)` (from `graph_is_map`). -/
-private theorem relClass_graph_map {a b : 𝒞} (f : a ⟶ b) :
+theorem relClass_graph_map {a b : 𝒞} (f : a ⟶ b) :
     Freyd.Alg.Map (𝒜 := RelObj 𝒞) (a := ⟨a⟩) (b := ⟨b⟩) (relClass (graph f)) :=
   (map_relClass (graph f)).mpr (graph_is_map f)
 
