@@ -22,8 +22,8 @@
   Axioms (post-build): propext, Classical.choice, Quot.sound only.
 -/
 
-import Fredy.S1_72   -- HeytingPoset, HeytingAlgebra, Locale (subobject-based)
-import Fredy.S2_1     -- Allegory class (§2.227: OSet(F) as a full allegory). Closure = {S1_1,S1_41} ⊆ S1_72's.
+import Fredy.S1_72
+import Fredy.S2_1
 
 open Freyd
 

@@ -1,7 +1,7 @@
 import Fredy.RationalCapitalization
-import Fredy.SliceWellPointed -- `factorWP_imp_wp`: the decisive negative determination on `ProperMonoIsProductForm`
-import Fredy.S1_47 -- §1.472 `IsSpecial`/`prodEndo` properness: the genuine content of product-form properness
-import Fredy.S1_36 -- `eqToHom`: cast-free transport along object equalities (for the fixed-`U` base)
+import Fredy.SliceWellPointed
+import Fredy.S1_47
+import Fredy.S1_36
 
 /-! # §1.543 C — the §1.547 slice equivalence interface, and the precise well-pointedness gap
 

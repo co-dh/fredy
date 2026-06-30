@@ -1,3 +1,7 @@
+import Fredy.S2_5
+
+universe v₁ v₂ u₁ u₂
+
 /-
   Freyd & Scedrov, *Categories and Allegories* §2.51
 
@@ -22,9 +26,7 @@
   `quotRep` specifically.
 -/
 
-import Fredy.S2_5_QuotAllegory
 
-universe v₁ v₂ u₁ u₂
 
 namespace Freyd.Alg
 

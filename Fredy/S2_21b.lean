@@ -1,3 +1,10 @@
+import Fredy.CapDataPositiveTower
+import Fredy.StalkRepr
+import Fredy.MapCat
+import Fredy.MatrixAllegory
+
+universe u u₁ u₂ u₃ v
+
 /-
   Freyd & Scedrov, *Categories and Allegories* — §2.218 (the headline representation theorem).
 
@@ -23,12 +30,7 @@
        i.e. `𝒜` is faithfully represented in `Rel(Set^I)`, the allegory of relations in a power of
        sets, with `I = StalkIndex Ā`.
 -/
-import Fredy.CapDataPositiveTower
-import Fredy.StalkRepr
-import Fredy.MapCat
-import Fredy.MatrixAllegory
 
-universe u u₁ u₂ u₃ v
 
 namespace Freyd
 

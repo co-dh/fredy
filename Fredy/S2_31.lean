@@ -1,3 +1,7 @@
+import Fredy.S2_3
+
+universe u v
+
 /-
   Freyd & Scedrov, *Categories and Allegories* §2.316.
 
@@ -25,9 +29,7 @@
   and reuse it for BOTH tasks.  STRICTLY MATHLIB-FREE.
 -/
 
-import Fredy.S2_3
 
-universe u v
 
 namespace Freyd
 

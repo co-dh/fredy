@@ -70,9 +70,9 @@
   Mathlib-free.
 -/
 
-import Fredy.S2_21    -- SplObj, SplHom, instAllegorySpl, embObj, embHom, splDown/splUp
-import Fredy.S2_22b   -- §2.165/§2.166/§2.169 structural theorems; spl_equivalence_splits_map
-import Fredy.S2_4     -- PowerAllegory, EffectivePrePowerAllegory, effective_pre_power_is_power
+import Fredy.S2_16
+import Fredy.S2_22b
+import Fredy.S2_4
 
 universe v u
 

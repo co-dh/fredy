@@ -17,14 +17,14 @@ import Fredy.S1_42
 import Fredy.S1_45
 import Fredy.S1_51
 import Fredy.S1_52
-import Fredy.Horn          -- §2.218 BRICK 1: reuse `setCat : Cat (Type v)` for the regular structure of Set
+import Fredy.Horn
 import Fredy.S1_55
 import Fredy.S1_56
 import Fredy.S1_57
 import Fredy.S1_58
 import Fredy.S1_60
 import Fredy.S1_61
-import Fredy.WellOrdering   -- §1.635(a): mathlib-free Zorn for ultra-filter existence
+import Fredy.WellOrdering
 
 
 open Freyd

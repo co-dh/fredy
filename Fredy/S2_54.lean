@@ -1,3 +1,7 @@
+import Fredy.S2_5
+
+universe v u
+
 /-
   Freyd & Scedrov, *Categories and Allegories* §2.541
   TRANSITIVE CLOSURE IN AN AMENABLE QUOTIENT.
@@ -18,9 +22,7 @@
   `IsTransClosure (quotRep R) (quotRep Rstar)` in the quotient allegory.
 -/
 
-import Fredy.S2_5_QuotAllegory
 
-universe v u
 
 namespace Freyd.Alg
 

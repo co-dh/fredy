@@ -27,7 +27,7 @@
   Hand-built category theory only (no `Mathlib.CategoryTheory.*`).
 -/
 
-import Fredy.S1_31   -- Cat, Functor, Embedding, EquivalenceFunctor; transitively S1_1/S1_18/S1_41 (IsIso)
+import Fredy.S1_31
 
 open Freyd
 

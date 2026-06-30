@@ -31,15 +31,15 @@
 -/
 
 import Fredy.S1_56
-import Fredy.S1_59           -- §2.217(2): EffectiveRegular (effective-quotients axiom)
+import Fredy.S1_59
 import Fredy.S1_60
 import Fredy.S1_61
 import Fredy.S1_62
 import Fredy.S2_1
 import Fredy.S2_2
 import Fredy.MapCat
-import Fredy.MatrixAllegory   -- §2.217(1): the positive reflection Mat(𝒜) (acyclic: Mat imports only S2_*)
-import Fredy.Spl              -- §2.217(2): SplObj effective/tabular/distributive/unitary/positive
+import Fredy.MatrixAllegory
+import Fredy.Spl
 
 open Freyd
 open Freyd.Alg

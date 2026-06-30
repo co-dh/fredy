@@ -14,7 +14,7 @@ import Fredy.S1_1
 import Fredy.S2_1
 import Fredy.S2_2
 import Fredy.S2_3
-import Fredy.S2_22  -- §2.16(10) srcTabulation_of_semiSimple_split + SplitsSymmIdem (converse map-realization)
+import Fredy.S2_22
 
 
 universe v u

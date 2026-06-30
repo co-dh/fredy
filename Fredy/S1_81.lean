@@ -11,7 +11,7 @@
 import Fredy.S1_1
 import Fredy.S1_18
 import Fredy.S1_8
-import Fredy.S1_14  -- canonical `ContraFunctor` (§1.182) lives here
+import Fredy.S1_14
 
 
 universe v u₁ u₂

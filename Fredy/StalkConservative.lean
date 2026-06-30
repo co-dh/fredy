@@ -24,7 +24,7 @@
 -/
 
 import Fredy.StalkRegular
-import Fredy.S2_218
+import Fredy.S2_21
 
 universe u
 

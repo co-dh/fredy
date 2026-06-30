@@ -34,11 +34,11 @@
 -/
 
 import Fredy.S2_1
-import Fredy.S2_3           -- §2.316 oneHeyting / oneHeyting_adj: right adjoint to f# (Logos backward)
+import Fredy.S2_3
 import Fredy.S2_22b
 import Fredy.S1_60
 import Fredy.S1_62
-import Fredy.S1_64           -- §2.217(2): category-level kernelPairRel / IsEffective / kernelPairRel↔graphComp
+import Fredy.S1_64
 
 universe v u
 

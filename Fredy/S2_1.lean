@@ -13,7 +13,7 @@
 -/
 
 import Fredy.S1_1
-import Fredy.S1_41   -- for Freyd.IsIso, Freyd.Monic (§2.135, §2.144, §2.145)
+import Fredy.S1_41
 
 
 universe v u

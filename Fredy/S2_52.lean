@@ -1,3 +1,7 @@
+import Fredy.S2_5
+
+universe v u
+
 /-
   Freyd & Scedrov, *Categories and Allegories* §2.522 / §2.53.
 
@@ -15,9 +19,7 @@
   `AmenableCongruence`, with `largest R := R ∪ (p a ≫ U ≫ (p b)°)` — Freyd's `R⁺`.
 -/
 
-import Fredy.S2_5
 
-universe v u
 
 namespace Freyd.Alg
 

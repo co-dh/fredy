@@ -66,9 +66,9 @@ import Fredy.S1_18
 import Fredy.S1_8
 import Fredy.S1_41
 import Fredy.S1_42
-import Fredy.S1_43  -- canonical `HasEqualizers` (§1.428)
-import Fredy.S1_51  -- canonical `Subobject` (§1.51)
-import Fredy.S1_58  -- canonical `HasCoequalizers` (§1.58)
+import Fredy.S1_43
+import Fredy.S1_51
+import Fredy.S1_58
 
 universe v u u₁ u₂
 

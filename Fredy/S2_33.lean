@@ -35,10 +35,10 @@
   marker at the end of the file.
 -/
 
-import Fredy.Locale     -- Frame, FrameHom, OValuedSet, instOSetAllegory, OSetFrameHom.{obj,map}
-import Fredy.S2_218      -- repr_in_power_of_sets_of_tabular (§2.218)
-import Fredy.MapCat      -- AllegoryFunctor / .Faithful / .comp
-import Fredy.RelCat      -- RelObj, powerAllegory
+import Fredy.Locale
+import Fredy.S2_21
+import Fredy.MapCat
+import Fredy.RelCat
 
 universe u
 

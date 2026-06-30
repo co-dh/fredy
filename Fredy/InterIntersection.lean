@@ -26,7 +26,7 @@
 
 import Fredy.S1_9
 import Fredy.S1_92
-import Fredy.S1_60  -- `InverseImage` (the pullback-of-true that defines `interIntersection`)
+import Fredy.S1_60
 
 universe v u
 

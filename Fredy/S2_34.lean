@@ -1,3 +1,8 @@
+import Fredy.Spl
+import Fredy.MapCat
+
+universe v u
+
 /-
   Freyd & Scedrov, *Categories and Allegories* — §2.341 (representation of pre-tabular /
   semi-simple division allegories).
@@ -31,11 +36,8 @@
   Mathlib-free.
 -/
 
-import Fredy.Spl      -- SplObj, SplCorObj, embObj/embHom, instDivisionSpl, splDiv, embHom_div,
                        --   SplCorObj.tabular_of_preTabular, splObj_tabular_of_semiSimple
-import Fredy.MapCat    -- AllegoryFunctor, AllegoryFunctor.Faithful
 
-universe v u
 
 namespace Freyd.Alg
 

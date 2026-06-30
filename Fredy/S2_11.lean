@@ -1,3 +1,8 @@
+import Fredy.S2_1
+import Fredy.S2_3
+
+universe v u
+
 /-
   Freyd & Scedrov, *Categories and Allegories*.
 
@@ -28,10 +33,7 @@
   `ModularLOCMonoid`.  This is exactly the hypothesis the book isolates.
 -/
 
-import Fredy.S2_1
-import Fredy.S2_3
 
-universe v u
 
 namespace Freyd.Alg
 

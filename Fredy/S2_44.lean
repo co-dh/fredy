@@ -1,3 +1,7 @@
+import Fredy.S2_4
+
+universe u
+
 /-
   Freyd & Scedrov, *Categories and Allegories*.
 
@@ -14,9 +18,7 @@
   `straight_cancel_simple`, `map_comp`, `le_dom_comp` from `Fredy.S2_*`.
 -/
 
-import Fredy.S2_4
 
-universe u
 
 namespace Freyd.Alg
 
