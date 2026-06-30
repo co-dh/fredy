@@ -121,6 +121,7 @@ import Fredy.S2_2
 import Fredy.S2_22
 import Fredy.S2_22b
 import Fredy.S2_22_Completions
+import Fredy.S2_224_GlobalCompletion
 import Fredy.S2_3
 import Fredy.S2_316
 import Fredy.S2_113_Examples
