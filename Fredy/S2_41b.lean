@@ -52,6 +52,14 @@ namespace Freyd.Alg
 class TabularUnitaryPowerAllegory (𝒜 : Type u) extends
     TabularUnitaryDistributiveAllegory 𝒜, PowerAllegory 𝒜
 
+/-- A unitary tabular power allegory whose membership is UNGUARDED — Freyd's §2.414-converse
+    hypothesis made precise (the EXTRA structure beyond a bare power allegory).  Both parents
+    share one `PowerAllegory`/`Allegory` base (structure inheritance unifies the diamond), so
+    `A`/`eps`/`mapCat` all resolve on the same instance.  `Map(A)` of such an `A` has FULL
+    power objects (the universal-property half of the topos), via `A_is_map'`/`A_eps_eq'`. -/
+class TabularUnitaryUnguardedPowerAllegory (𝒜 : Type u) extends
+    TabularUnitaryPowerAllegory 𝒜, UnguardedPowerAllegory 𝒜
+
 section
 variable {𝒜 : Type u} [TabularUnitaryPowerAllegory 𝒜]
 
@@ -160,6 +168,32 @@ theorem mapClassify_eps (C : 𝒜) {a : 𝒜} (R : a ⟶ C)
   A_eps_eq R hbox
 
 end UniversalProperty
+
+/-! ## §2.414  Unguarded universal property — FULL power objects of `Map(A)`
+
+  Under the UNGUARDED hypothesis (`TabularUnitaryUnguardedPowerAllegory`, Freyd's actual
+  §2.414-converse structure), `∋_C` classifies EVERY relation, so the §1.9 universal property
+  holds for all `R̄` — `Map(A)` has full (not box-restricted) power objects.  This closes the
+  box-guard wall of the converse's universal-property half; the remaining half is `Ω = [1]`. -/
+
+section UnguardedUP
+variable {𝒜 : Type u} [TabularUnitaryUnguardedPowerAllegory 𝒜]
+
+/-- **§2.414-converse (full power objects)**: in a unitary tabular UNGUARDED power allegory,
+    the membership `∋_C` of `Map(A)` has the §1.9 universal property for EVERY relation
+    `R̄ : A → C` — a UNIQUE `Map(A)`-morphism `f : A → [C]` with `f ≫ ∋_C = R̄`.  No box guard
+    (cf. the box-restricted `mapTranspose_existsUnique`); the `∅`-naming case (`R̄ = 𝟘`) is now
+    included.  This is the universal-property half of "`Map(A)` is a topos". -/
+theorem mapTranspose_existsUnique_all (C : 𝒜) {a : 𝒜} (R : a ⟶ C) :
+    ∃ f : @Cat.Hom (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) a (PowerAllegory.powerObj C),
+      f.val ≫ PowerAllegory.eps C = R ∧
+      ∀ g : @Cat.Hom (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) a (PowerAllegory.powerObj C),
+        g.val ≫ PowerAllegory.eps C = R → g = f := by
+  refine ⟨⟨A R, A_is_map' R⟩, A_eps_eq' R, ?_⟩
+  intro g hgeq
+  exact Subtype.ext (A_unique R g.val g.property hgeq)
+
+end UnguardedUP
 
 /-! ## §2.414  STATUS — the box-guard gap to the FULL topos
 
