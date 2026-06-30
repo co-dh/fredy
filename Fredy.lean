@@ -131,6 +131,7 @@ import Fredy.S2_5
 import Fredy.S2_5_QuotAllegory
 import Fredy.S2_51_QuotPreserve
 import Fredy.S2_536_QuotDivision
+import Fredy.S2_537_QuotPower
 import Fredy.S2_541_QuotTransClosure
 import Fredy.S2_55_QuotComplete
 import Fredy.S1_38b
