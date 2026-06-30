@@ -195,39 +195,302 @@ theorem mapTranspose_existsUnique_all (C : 𝒜) {a : 𝒜} (R : a ⟶ C) :
 
 end UnguardedUP
 
-/-! ## §2.414  STATUS — the box-guard gap to the FULL topos
+/-! ## §2.414  STATUS — what is assembled, and the one gap to the FULL `Topos`
 
-  Assembled here, sorry-free:
-    • `TabularUnitaryPowerAllegory` — the merged hypothesis class (one `Allegory` base);
-    • finite limits of `Map(A)` (from `mapPreLogos`, re-confirmed under the merged class);
-    • `mapMem C` — the membership relation `∋_C ⊆ [C] × C` as a §1.9 `BinRel (Map A) [C] C`
-      (jointly-monic span of maps, allegory relation `= eps C`, `memSpan_rel`);
-    • `mapTranspose_existsUnique` — the §1.9 power-object universal property of `∋_C`
-      RESTRICTED to relations of the membership's box.
+  Assembled below, sorry-free (axioms `[propext, Classical.choice]`):
+    • `TabularUnitaryUnguardedPowerAllegory` — Freyd's §2.414-converse hypothesis (one `Allegory`
+      base); the UNGUARDED `∋` (`eps_thick_all`) closes the box-guard, so `A(R̄)` is a map and
+      `A(R̄) ≫ ∋ = R̄` for EVERY relation `R̄` (`A_is_map'`/`A_eps_eq'`), the empty-naming case
+      included.  `mapTranspose_existsUnique_all` is the resulting unrestricted §1.9 universal
+      property of `∋_C`.
+    • finite limits of `Map(A)` (`mapPreLogos`: `HasTerminal = unit`, products/pullbacks via
+      tabulations);
+    • **the SUBOBJECT CLASSIFIER** `Ω = [1]`, `true = A(1_1)`, with `classify`/`classify_sq`/
+      `classify_pullback`/`classify_unique` — i.e. `HasSubobjectClassifier (MapObj 𝒜)`
+      (`mapHasSubobjectClassifier`).  The keystone is `unit_eps_eq_singleton_recip` (`∋_1 = true°`).
 
-  NOT assembled: the unrestricted `Topos (MapObj A)` (`has_pow` with `IsUniversalRel`, and
-  `HasSubobjectClassifier`).  PRECISE BLOCKER: `IsUniversalRel mem` (S1_9) quantifies over
-  ALL `R : BinRel (Map A) A C`, i.e. all allegory relations `R̄ : A → C`; classifying `R̄`
-  needs a map `f` with `f ≫ ∋_C = R̄`, which `PowerAllegory.eps_thick` supplies ONLY when
-  `codBox R̄ = codBox (∋_C)`.  This box-guard is FAITHFUL to Freyd (§2.41/§2.413/§2.431):
-  his membership is box-indexed (`∋_R□ = R□`), so a single `eps C` is the membership on ONE
-  box.  Concretely it fails for the EMPTY relation `𝟘 : A → C` (`codBox 𝟘 = 𝟘 ≠ codBox ∋_C`)
-  — i.e. naming the empty subset `∅ ∈ [C]` — and for any non-co-entire `R̄`.
+  NOT yet assembled: the full `Topos (MapObj A)`.  `Topos = HasBinaryProducts + HasSubobjectClassifier
+  + has_pow`; the first two ARE in hand (`mapPreLogos`, `mapHasSubobjectClassifier`).  The ONLY
+  missing field is `has_pow : ∀ C, HasPowerObject C`.  PRECISE BLOCKER: `HasPowerObject` (S1_9)
+  demands `IsUniversalRel (mem)`, phrased with `relPullback f mem ≅ R` for every §1.9 binary
+  relation `R : BinRel (Map A) A C`.  This is a DIFFERENT formulation from the composition form
+  `f ≫ ∋_C = R̄` proved here (`mapTranspose_existsUnique_all`): bridging them needs the §2.41-style
+  `relPullback ≅ graph f ⊚ U` machinery (cf. `relPullback_graphComp`, S2_41) transported to
+  `Map(A)` with `mem = mapMem C`.  That bridge is a separate development, not built in this file;
+  hence the converse is delivered up to exactly the `has_pow` relPullback↔composition bridge. -/
 
-  Closing the gap needs ONE of:
-    (i)  the box-indexed membership family `∋_K : [C]_K → C` for every coreflexive box
-         `K ⊑ 1_C` (Freyd's `∋_{R□}`), constructible in a tabular allegory where
-         coreflexives split, but NOT a field of the current `PowerAllegory` class; or
-    (ii) an UNGUARDED thickness `∀ R̄, ∃ map f, f ≫ ∋_C = R̄` strengthening `eps_thick`
-         (equivalently: `A(𝟘)` is a map — `[C]` has a bottom point `∅`).
-  Both are genuine additions to the `PowerAllegory` interface, not derivable from its
-  box-guarded `eps_thick`; hence the converse is delivered up to exactly this box-guard.
+/-! ## §2.414  SUBOBJECT CLASSIFIER  `Ω = [1]`  of `Map(A)`
 
-  This is the SAME interface gap recorded independently in `Fredy/Spl.lean` (Goal-B note,
-  ~line 752): `codBox (∋ b) = 1` (i.e. `eps_entire : Entire (∋ b)`) "is NOT a consequence
-  of the current `PowerAllegory` axioms".  NOTE that `eps_entire`/`codBox(∋)=1` alone is
-  NECESSARY but NOT SUFFICIENT here: it only makes the matched box the FULL box `1_C`, which
-  still excludes the non-co-entire relations (e.g. `𝟘`).  The full §1.9 universal property
-  needs the strictly stronger (i)/(ii) above. -/
+  The §2.415 subobject classifier of the topos `Map(A)`: `Ω = [1] = powerObj (unit)`,
+  with `true : 1 → Ω` the name `A(1_1)` of the maximal subobject of the unit.  A `Map(A)`-monic
+  `m : C → a` is classified by `χ_m = A(m° ≫ p_C) : a → Ω` where `p_C = term C : C → 1`; the
+  classifying square is the tabulation of `χ_m ≫ true°`, which equals the span `(m, term C)`.
+
+  The whole construction rests on ONE allegory identity special to the unit:
+  `∋_1 = (A 1_1)°`  (membership of the unit = reciprocal of its singleton), proved from
+  `A_simple`/`A_eps_eq'` and `PartialUnit` (every endo of the unit `⊑ 1`). -/
+
+section Classifier
+variable {𝒜 : Type u} [TabularUnitaryUnguardedPowerAllegory 𝒜]
+
+/-- **§2.415 (crux)**: the membership `∋_1` of the unit equals the reciprocal of its singleton
+    `A(1_1)`.  Both directions are elementary:
+    (⊒) `(A 1)° = (A 1)° ≫ (A 1 ≫ ∋) = ((A 1)° ≫ A 1) ≫ ∋ ⊑ ∋`, using `A 1 ≫ ∋ = 1` (`A_eps_eq'`)
+        and `A 1` simple (`A_simple`);
+    (⊑) `∋° ⊑ A 1 = 1 /ₛ ∋` by `le_symmDiv_iff`: `∋° ≫ ∋ ⊑ 1` is exactly `PartialUnit` (an endo of
+        the unit), and `∋ ≫ 1 ⊑ ∋` is reflexivity; reciprocate. -/
+theorem unit_eps_eq_singleton_recip :
+    (A (Cat.id (UnitaryAllegory.unit_obj : 𝒜)))°
+      = PowerAllegory.eps (UnitaryAllegory.unit_obj : 𝒜) := by
+  have hse : A (Cat.id (UnitaryAllegory.unit_obj : 𝒜)) ≫ PowerAllegory.eps _ = Cat.id _ :=
+    A_eps_eq' (Cat.id (UnitaryAllegory.unit_obj : 𝒜))
+  have hssimp : (A (Cat.id (UnitaryAllegory.unit_obj : 𝒜)))° ≫ A (Cat.id _) ⊑ Cat.id _ :=
+    A_simple (Cat.id (UnitaryAllegory.unit_obj : 𝒜))
+  apply le_antisymm
+  · -- (A 1)° ⊑ ∋
+    calc (A (Cat.id (UnitaryAllegory.unit_obj : 𝒜)))°
+        = (A (Cat.id _))° ≫ (A (Cat.id _) ≫ PowerAllegory.eps _) := by rw [hse, Cat.comp_id]
+      _ = ((A (Cat.id _))° ≫ A (Cat.id _)) ≫ PowerAllegory.eps _ := by rw [Cat.assoc]
+      _ ⊑ Cat.id _ ≫ PowerAllegory.eps _ := comp_mono_right hssimp _
+      _ = PowerAllegory.eps _ := Cat.id_comp _
+  · -- ∋ ⊑ (A 1)°
+    have he_le : (PowerAllegory.eps (UnitaryAllegory.unit_obj : 𝒜))°
+        ⊑ A (Cat.id (UnitaryAllegory.unit_obj : 𝒜)) := by
+      refine (le_symmDiv_iff _ (Cat.id _) (PowerAllegory.eps _)).mpr ⟨?_, ?_⟩
+      · exact (UnitaryAllegory.unit_prop (𝒜 := 𝒜)).1 _
+      · rw [Allegory.recip_recip, Cat.comp_id]; exact le_refl _
+    have hrec := recip_mono he_le
+    rwa [Allegory.recip_recip] at hrec
+
+/-- A `Map(𝒜)`-monic `m` is a relational split mono: `m ≫ m° = 1_C`.  Injectivity
+    (`m ≫ m° ⊑ 1`) is the kernel-pair argument (re-derived here, since `MapCat`'s `mapMonic_inj`
+    is private), and `1 ⊑ m ≫ m°` is entirety of the map `m`. -/
+theorem mapMonic_retract {C a : 𝒜}
+    (m : @Cat.Hom (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) C a)
+    (hm : @Monic (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) C a m) :
+    m.val ≫ m.val° = Cat.id C := by
+  apply le_antisymm
+  · obtain ⟨k, s, t, ht⟩ := TabularAllegory.tabular (𝒜 := 𝒜) (m.val ≫ m.val°)
+    have hs : Map s := ht.1
+    have htt : Map t := ht.2.1
+    have hcone : s ≫ m.val = t ≫ m.val :=
+      tab_pullback_cone' (f := m.val) (g := m.val) m.property m.property ht
+    have hst : s = t := congrArg Subtype.val
+      (hm ⟨s, hs⟩ ⟨t, htt⟩ (Subtype.ext hcone))
+    calc m.val ≫ m.val° = s° ≫ t := ht.2.2.1
+      _ = s° ≫ s := by rw [hst]
+      _ ⊑ Cat.id C := hs.2
+  · have h := m.property.1; rw [Entire, dom] at h; exact h ▸ inter_lb_right _ _
+
+/-- **§2.415**: the subobject classifier `Ω = [1] = powerObj (unit)` of `Map(A)`. -/
+noncomputable def mapOmega : MapObj 𝒜 := PowerAllegory.powerObj (UnitaryAllegory.unit_obj : 𝒜)
+
+/-- **§2.415**: `true : 1 → Ω` is the name `A(1_1)` of the maximal subobject of the unit
+    (the singleton map of the unit). -/
+noncomputable def mapTrue :
+    @Cat.Hom (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) (UnitaryAllegory.unit_obj : 𝒜) (mapOmega (𝒜 := 𝒜)) :=
+  ⟨A (Cat.id (UnitaryAllegory.unit_obj : 𝒜)), A_is_map' _⟩
+
+/-- `mapTrue` is a relational split mono on the nose: `true.val ≫ true.val° = 1_1`
+    (singleton monic `singletonMap_monic` + entire `A_is_map'`). -/
+theorem mapTrue_retract :
+    (mapTrue (𝒜 := 𝒜)).val ≫ (mapTrue (𝒜 := 𝒜)).val° = Cat.id (UnitaryAllegory.unit_obj : 𝒜) := by
+  apply le_antisymm
+  · exact singletonMap_monic (a := (UnitaryAllegory.unit_obj : 𝒜))
+  · have h := (A_is_map' (Cat.id (UnitaryAllegory.unit_obj : 𝒜))).1
+    rw [Entire, dom] at h; exact h ▸ inter_lb_right _ _
+
+/-- **§2.415**: `true : 1 → Ω` is monic in `Map(A)` (it is a relational split mono). -/
+theorem mapTrue_monic :
+    @Monic (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) _ _ (mapTrue (𝒜 := 𝒜)) := by
+  intro W u v huv
+  apply Subtype.ext
+  have hval : u.val ≫ (mapTrue (𝒜 := 𝒜)).val = v.val ≫ (mapTrue (𝒜 := 𝒜)).val :=
+    congrArg Subtype.val huv
+  calc u.val
+      = u.val ≫ ((mapTrue (𝒜 := 𝒜)).val ≫ (mapTrue (𝒜 := 𝒜)).val°) := by
+        rw [mapTrue_retract, Cat.comp_id]
+    _ = (u.val ≫ (mapTrue (𝒜 := 𝒜)).val) ≫ (mapTrue (𝒜 := 𝒜)).val° := by rw [Cat.assoc]
+    _ = (v.val ≫ (mapTrue (𝒜 := 𝒜)).val) ≫ (mapTrue (𝒜 := 𝒜)).val° := by rw [hval]
+    _ = v.val ≫ ((mapTrue (𝒜 := 𝒜)).val ≫ (mapTrue (𝒜 := 𝒜)).val°) := by rw [Cat.assoc]
+    _ = v.val := by rw [mapTrue_retract, Cat.comp_id]
+
+/-- The `Map(A)` terminal projection `C → 1 = term C`, retyped with the syntactic target
+    `unit_obj` (the terminal `one` of `Map(A)` is `unit_obj` on the nose, `rfl`).  Pinning the
+    target as `unit_obj` keeps `∋`/`powerObj` at `unit_obj` syntactically throughout, while
+    `mapTerm C` is DEFINITIONALLY `term C`, so it slots into the `classify_sq` field. -/
+noncomputable def mapTerm (C : MapObj 𝒜) :
+    @Cat.Hom (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) C (UnitaryAllegory.unit_obj : 𝒜) :=
+  @Freyd.term (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) inferInstance C
+
+/-- **§2.415**: the characteristic map `χ_m = A(m° ≫ p_C) : a → Ω` of a `Map(A)`-monic
+    `m : C → a`, where `p_C = term C : C → 1`.  It names the relation `a → 1` whose extension is
+    the image of `m`. -/
+noncomputable def mapClassifyChi {C a : 𝒜}
+    (m : @Cat.Hom (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) C a)
+    (_hm : @Monic (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) C a m) :
+    @Cat.Hom (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) a (mapOmega (𝒜 := 𝒜)) :=
+  ⟨A (m.val° ≫ (mapTerm C).val), A_is_map' _⟩
+
+/-- **§2.415 (classifying square commutes)**: `m ≫ χ_m = (term C) ≫ true`.  Both sides are maps
+    `C → Ω` whose composite with `∋_1` is `term C` (LHS uses `m ≫ m° = 1`; RHS uses `true ≫ ∋ = 1`),
+    so both equal `A(term C)` by `A_unique`. -/
+theorem mapClassify_sq {C a : 𝒜}
+    (m : @Cat.Hom (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) C a)
+    (hm : @Monic (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) C a m) :
+    @Cat.comp (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) C a (mapOmega (𝒜 := 𝒜)) m (mapClassifyChi m hm)
+      = @Cat.comp (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) C (UnitaryAllegory.unit_obj : 𝒜)
+          (mapOmega (𝒜 := 𝒜)) (mapTerm C) (mapTrue (𝒜 := 𝒜)) := by
+  apply Subtype.ext
+  show m.val ≫ A (m.val° ≫ (mapTerm C).val)
+      = (mapTerm C).val ≫ A (Cat.id (UnitaryAllegory.unit_obj : 𝒜))
+  have hmm : m.val ≫ m.val° = Cat.id C := mapMonic_retract m hm
+  have hLmap : Map (m.val ≫ A (m.val° ≫ (mapTerm C).val)) :=
+    map_comp m.property (A_is_map' _)
+  have hRmap : Map ((mapTerm C).val ≫ A (Cat.id (UnitaryAllegory.unit_obj : 𝒜))) :=
+    map_comp (mapTerm C).property (A_is_map' _)
+  have hL : (m.val ≫ A (m.val° ≫ (mapTerm C).val))
+        ≫ PowerAllegory.eps (UnitaryAllegory.unit_obj : 𝒜) = (mapTerm C).val := by
+    rw [Cat.assoc, A_eps_eq', ← Cat.assoc, hmm, Cat.id_comp]
+  have hR : ((mapTerm C).val ≫ A (Cat.id (UnitaryAllegory.unit_obj : 𝒜)))
+        ≫ PowerAllegory.eps (UnitaryAllegory.unit_obj : 𝒜) = (mapTerm C).val := by
+    rw [Cat.assoc, A_eps_eq', Cat.comp_id]
+  rw [A_unique _ _ hLmap hL, A_unique _ _ hRmap hR]
+
+/-- **§2.415**: the classifying span `(m, term C)` TABULATES `χ_m ≫ true°`.  Relation condition:
+    `χ_m ≫ true° = A(R̄) ≫ ∋_1 = R̄ = m° ≫ p_C` (crux `true° = ∋_1`, then `A_eps_eq'`).  Joint
+    monicity: `m ≫ m° ∩ p_C ≫ p_C° = 1_C ∩ X = 1_C` (`mapMonic_retract` + entire `p_C`). -/
+theorem mapClassify_tabulates {C a : 𝒜}
+    (m : @Cat.Hom (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) C a)
+    (hm : @Monic (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) C a m) :
+    Tabulates m.val (mapTerm C).val
+      ((mapClassifyChi m hm).val ≫ (mapTrue (𝒜 := 𝒜)).val°) := by
+  refine ⟨m.property, (mapTerm C).property, ?_, ?_⟩
+  · show A (m.val° ≫ (mapTerm C).val) ≫ (A (Cat.id (UnitaryAllegory.unit_obj : 𝒜)))°
+        = m.val° ≫ (mapTerm C).val
+    rw [unit_eps_eq_singleton_recip, A_eps_eq']
+  · rw [mapMonic_retract m hm]
+    have hent : Cat.id C ⊑ (mapTerm C).val ≫ (mapTerm C).val° := by
+      have h := (mapTerm C).property.1; rw [Entire, dom] at h; exact h ▸ inter_lb_right _ _
+    exact inter_eq_left hent
+
+/-- The classifying cone `(C, m, term C)` over `(χ_m, true)`, with the `Cat` instance pinned to
+    `mapCat` (the priority-0 instance is otherwise mis-synthesized in the anonymous constructor). -/
+noncomputable def mapClassifyCone {C a : 𝒜}
+    (m : @Cat.Hom (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) C a)
+    (hm : @Monic (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) C a m) :
+    @Cone (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) a (UnitaryAllegory.unit_obj : 𝒜) (mapOmega (𝒜 := 𝒜))
+      (mapClassifyChi m hm) (mapTrue (𝒜 := 𝒜)) :=
+  @Cone.mk (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) a (UnitaryAllegory.unit_obj : 𝒜) (mapOmega (𝒜 := 𝒜))
+    (mapClassifyChi m hm) (mapTrue (𝒜 := 𝒜)) C m (mapTerm C) (mapClassify_sq m hm)
+
+/-- **§2.415 (classifying square is a pullback)**: the cone `(C, m, term C)` over
+    `(χ_m, true)` is a pullback in `Map(A)`.  Transports the §2.147 tabulation pullback UMP
+    (`tab_pullback_UMP`) for the tabulation `(m, term C)` of `χ_m ≫ true°` into `Cone.IsPullback`. -/
+theorem mapClassify_pullback {C a : 𝒜}
+    (m : @Cat.Hom (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) C a)
+    (hm : @Monic (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) C a m) :
+    @Cone.IsPullback (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) a (UnitaryAllegory.unit_obj : 𝒜)
+      (mapOmega (𝒜 := 𝒜)) (mapClassifyChi m hm) (mapTrue (𝒜 := 𝒜))
+      (mapClassifyCone m hm) := by
+  intro d
+  have htab := mapClassify_tabulates m hm
+  -- Pin every cone-field access to `mapCat` (priority-0 instance is otherwise mis-synthesized).
+  let dπ₁ := @Cone.π₁ (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) a (UnitaryAllegory.unit_obj : 𝒜)
+    (mapOmega (𝒜 := 𝒜)) (mapClassifyChi m hm) (mapTrue (𝒜 := 𝒜)) d
+  let dπ₂ := @Cone.π₂ (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) a (UnitaryAllegory.unit_obj : 𝒜)
+    (mapOmega (𝒜 := 𝒜)) (mapClassifyChi m hm) (mapTrue (𝒜 := 𝒜)) d
+  have hcone_val := congrArg Subtype.val (@Cone.w (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) a
+    (UnitaryAllegory.unit_obj : 𝒜) (mapOmega (𝒜 := 𝒜)) (mapClassifyChi m hm) (mapTrue (𝒜 := 𝒜)) d)
+  obtain ⟨hlift, hlift_map, h1, h2, huniq⟩ :=
+    tab_pullback_UMP (f := (mapClassifyChi m hm).val) (g := (mapTrue (𝒜 := 𝒜)).val)
+      (mapClassifyChi m hm).property (mapTrue (𝒜 := 𝒜)).property htab
+      dπ₁.property dπ₂.property hcone_val
+  refine ⟨⟨hlift, hlift_map⟩, ⟨Subtype.ext h1, Subtype.ext h2⟩, ?_⟩
+  intro v hv1 hv2
+  exact Subtype.ext (huniq v.val v.property (congrArg Subtype.val hv1) (congrArg Subtype.val hv2))
+
+/-- **§2.415 (uniqueness of the characteristic map)**: any `χ : a → Ω` making `(C, m, term C)` a
+    pullback of `(χ, true)` equals `χ_m`.  The classifying relation `χ ≫ ∋_1` is pinned to
+    `m° ≫ p_C` by two inclusions — easy `m° ≫ p_C ⊑ χ ≫ ∋_1` from the square (`hsq`) + `m` simple;
+    hard `χ ≫ ∋_1 ⊑ m° ≫ p_C` from the pullback's lift `ψ` of the tabulation cone of `χ ≫ ∋_1`,
+    using `ψ` simple — so `χ = A(m° ≫ p_C) = χ_m` by `A_unique`. -/
+theorem mapClassify_unique {C a : 𝒜}
+    (m : @Cat.Hom (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) C a)
+    (hm : @Monic (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) C a m)
+    (χ : @Cat.Hom (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) a (mapOmega (𝒜 := 𝒜)))
+    (hsq : @Cat.comp (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) C a (mapOmega (𝒜 := 𝒜)) m χ
+        = @Cat.comp (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) C (UnitaryAllegory.unit_obj : 𝒜)
+            (mapOmega (𝒜 := 𝒜)) (mapTerm C) (mapTrue (𝒜 := 𝒜)))
+    (hpb : @Cone.IsPullback (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) a (UnitaryAllegory.unit_obj : 𝒜)
+        (mapOmega (𝒜 := 𝒜)) χ (mapTrue (𝒜 := 𝒜))
+        (@Cone.mk (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) a (UnitaryAllegory.unit_obj : 𝒜)
+          (mapOmega (𝒜 := 𝒜)) χ (mapTrue (𝒜 := 𝒜)) C m (mapTerm C) hsq)) :
+    χ = mapClassifyChi m hm := by
+  have hsq_val : m.val ≫ χ.val = (mapTerm C).val ≫ (mapTrue (𝒜 := 𝒜)).val :=
+    congrArg Subtype.val hsq
+  have hcrux : (mapTrue (𝒜 := 𝒜)).val° = PowerAllegory.eps (UnitaryAllegory.unit_obj : 𝒜) :=
+    unit_eps_eq_singleton_recip
+  -- easy inclusion: m° ≫ p_C ⊑ χ ≫ true°
+  have p_eq : (mapTerm C).val = m.val ≫ (χ.val ≫ (mapTrue (𝒜 := 𝒜)).val°) := by
+    calc (mapTerm C).val
+        = (mapTerm C).val ≫ ((mapTrue (𝒜 := 𝒜)).val ≫ (mapTrue (𝒜 := 𝒜)).val°) := by
+          rw [mapTrue_retract, Cat.comp_id]
+      _ = ((mapTerm C).val ≫ (mapTrue (𝒜 := 𝒜)).val) ≫ (mapTrue (𝒜 := 𝒜)).val° := by rw [Cat.assoc]
+      _ = (m.val ≫ χ.val) ≫ (mapTrue (𝒜 := 𝒜)).val° := by rw [← hsq_val]
+      _ = m.val ≫ (χ.val ≫ (mapTrue (𝒜 := 𝒜)).val°) := Cat.assoc _ _ _
+  have easy : m.val° ≫ (mapTerm C).val ⊑ χ.val ≫ (mapTrue (𝒜 := 𝒜)).val° := by
+    rw [p_eq, ← Cat.assoc]
+    calc (m.val° ≫ m.val) ≫ (χ.val ≫ (mapTrue (𝒜 := 𝒜)).val°)
+        ⊑ Cat.id a ≫ (χ.val ≫ (mapTrue (𝒜 := 𝒜)).val°) := comp_mono_right m.property.2 _
+      _ = χ.val ≫ (mapTrue (𝒜 := 𝒜)).val° := Cat.id_comp _
+  -- hard inclusion: χ ≫ true° ⊑ m° ≫ p_C, via the pullback's lift of the tabulation cone
+  obtain ⟨P, π₁, π₂, ht_tab⟩ := TabularAllegory.tabular (𝒜 := 𝒜)
+    (χ.val ≫ (mapTrue (𝒜 := 𝒜)).val°)
+  have hpc : π₁ ≫ χ.val = π₂ ≫ (mapTrue (𝒜 := 𝒜)).val :=
+    tab_pullback_cone' (f := χ.val) (g := (mapTrue (𝒜 := 𝒜)).val) χ.property
+      (mapTrue (𝒜 := 𝒜)).property ht_tab
+  obtain ⟨ψ, ⟨hψm, hψt⟩, _⟩ := hpb (@Cone.mk (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) a
+    (UnitaryAllegory.unit_obj : 𝒜) (mapOmega (𝒜 := 𝒜)) χ (mapTrue (𝒜 := 𝒜)) P
+    ⟨π₁, ht_tab.1⟩ ⟨π₂, ht_tab.2.1⟩ (Subtype.ext hpc))
+  have hψ₁ : ψ.val ≫ m.val = π₁ := congrArg Subtype.val hψm
+  have hψ₂ : ψ.val ≫ (mapTerm C).val = π₂ := congrArg Subtype.val hψt
+  have hard : χ.val ≫ (mapTrue (𝒜 := 𝒜)).val° ⊑ m.val° ≫ (mapTerm C).val := by
+    calc χ.val ≫ (mapTrue (𝒜 := 𝒜)).val°
+        = π₁° ≫ π₂ := ht_tab.2.2.1
+      _ = (ψ.val ≫ m.val)° ≫ π₂ := by rw [hψ₁]
+      _ = m.val° ≫ (ψ.val° ≫ π₂) := by rw [Allegory.recip_comp, Cat.assoc]
+      _ = m.val° ≫ (ψ.val° ≫ (ψ.val ≫ (mapTerm C).val)) := by rw [hψ₂]
+      _ = m.val° ≫ ((ψ.val° ≫ ψ.val) ≫ (mapTerm C).val) := by
+          rw [← Cat.assoc ψ.val° ψ.val (mapTerm C).val]
+      _ ⊑ m.val° ≫ (Cat.id C ≫ (mapTerm C).val) :=
+          comp_mono_left _ (comp_mono_right ψ.property.2 _)
+      _ = m.val° ≫ (mapTerm C).val := by rw [Cat.id_comp]
+  -- combine and identify χ with A(m° ≫ p_C)
+  have hχ : χ.val ≫ PowerAllegory.eps (UnitaryAllegory.unit_obj : 𝒜)
+      = m.val° ≫ (mapTerm C).val := by
+    rw [← hcrux]; exact le_antisymm hard easy
+  exact Subtype.ext (A_unique (m.val° ≫ (mapTerm C).val) χ.val χ.property hχ)
+
+/-- **§2.414/§2.415**: `Map(A)` of a tabular unitary UNGUARDED power allegory has a SUBOBJECT
+    CLASSIFIER `Ω = [1]`, with universal monic `true = A(1_1) : 1 → Ω`.  Every `Map(A)`-monic `m`
+    has a unique characteristic map `χ_m = A(m° ≫ p)` whose classifying square is a pullback
+    (`mapClassifyChi`/`mapClassify_sq`/`mapClassify_pullback`/`mapClassify_unique`).  The terminal
+    and pullback parents are the finite-limit structure of `mapPreLogos`. -/
+noncomputable instance mapHasSubobjectClassifier :
+    @HasSubobjectClassifier (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) :=
+  @HasSubobjectClassifier.mk (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) mapHasTerminal mapHasPullbacks
+    mapOmega mapTrue mapTrue_monic
+    (fun {A A'} m hm => mapClassifyChi (C := A') (a := A) m hm)
+    (fun {A A'} m hm => mapClassify_sq (C := A') (a := A) m hm)
+    (fun {A A'} m hm => mapClassify_pullback (C := A') (a := A) m hm)
+    (fun {A A'} m hm χ hsq hcone => mapClassify_unique (C := A') (a := A) m hm χ hsq hcone)
+
+-- Usability check: the classifier is found by instance resolution, and `Map(A)`'s topos data is
+-- complete except `has_pow`.
+noncomputable example : @HasSubobjectClassifier (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) := inferInstance
+noncomputable example : @HasBinaryProducts (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) := inferInstance
+
+end Classifier
 
 end Freyd.Alg
