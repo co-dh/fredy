@@ -124,6 +124,7 @@ import Fredy.S2_316
 import Fredy.S2_113_Examples
 import Fredy.S2_4
 import Fredy.S2_43
+import Fredy.S2_44_Equiv
 import Fredy.S2_5
 import Fredy.S2_5_QuotAllegory
 import Fredy.S1_38b
