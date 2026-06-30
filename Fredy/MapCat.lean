@@ -35,7 +35,7 @@
 
 import Fredy.S2_1
 import Fredy.S2_3
-import Fredy.S2_22b
+import Fredy.S2_16b
 import Fredy.S1_60
 import Fredy.S1_62
 import Fredy.S1_64

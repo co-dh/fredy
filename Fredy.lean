@@ -119,7 +119,7 @@ import Fredy.S2_1
 import Fredy.S2_16
 import Fredy.S2_2
 import Fredy.S2_22
-import Fredy.S2_22b
+import Fredy.S2_16b
 import Fredy.S2_55
 import Fredy.S2_43
 import Fredy.S2_42

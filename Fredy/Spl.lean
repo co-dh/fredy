@@ -71,7 +71,7 @@
 -/
 
 import Fredy.S2_16
-import Fredy.S2_22b
+import Fredy.S2_16b
 import Fredy.S2_4
 
 universe v u
