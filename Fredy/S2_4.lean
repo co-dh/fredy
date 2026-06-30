@@ -47,19 +47,19 @@ class PowerAllegory (𝒜 : Type u) extends DivisionAllegory 𝒜 where
   /-- ∋ is straight: ∋ /ₛ ∋ ⊑ 1 (§2.41). -/
   eps_straight (b : 𝒜) : Straight (eps b)
 
-  /-- ∋ is THICK.  ⚠ DEVIATION FROM THE BOOK (recorded after reading the original scan,
-      Freyd p.236).  Freyd's §2.41 membership is a BOX-INDEXED FAMILY `∋_R` with
-      `∋_R = ∋_{R□}` and `∋_R□ = R□`, and his thickness (§2.412/§2.413) is UNGUARDED:
-      "for all R there exists a map f such that `f ∋_R = R`" (each R classified by its
-      OWN box-matched `∋_R`; §2.415's power object `[b]` is the source of `∋_{1_b}`).
-      This class keeps ONLY `∋_{1_b}` (the single `eps b`) and adds the `codBox R =
-      codBox (eps b)` GUARD — i.e. it can classify only box-`1`-matched `R`.  That guard
-      is NOT in Freyd; it is a strict weakening, and it is exactly the wall blocking the
-      full §2.441 (3)⟹(1), §2.433, §2.537 and §2.414-converse (e.g. `A(𝟘)` / naming `∅`
-      is unclassifiable here).  Following the book = giving this class the indexed `∋_R`
-      family / unguarded thickness; that refactor forks at §2.432 (the unguarded ∋ is
-      Freyd's §2.416 progenitor construction, which the repo's `effective_pre_power_is_power`
-      omitted — it produces only the box-matched version).  See `todo.md`. -/
+  /-- ∋ is THICK — FAITHFUL to Freyd §2.431 (verified against the original scan, p.240):
+      "T is thick iff for all R such that `R□ = T□` there exists R̂ with `1 ⊂ R̂R̂°`,
+      `R̂T ⊂ R`, `R̂°R ⊂ T`".  Freyd's thickness is genuinely BOX-MATCHED (`R□ = T□`), so
+      the `codBox R = codBox (eps b)` guard here IS the book's condition (with `T = ∋_b`),
+      not a weakening.  Freyd's §2.432/§2.433/§2.434 each construct a single straight-thick
+      `∋` per object with exactly this box-matched thickness, matching this field.
+      (The §2.41 notation `∋_R = ∋_{R□}` makes `∋` a box-family; this class carries the
+      canonical member `∋_{1_b}` = the power object `[b]` of §2.415.  Items that need an
+      UNGUARDED `∋` — §2.414-converse naming `∅`, etc. — require strictly more than a bare
+      power allegory, e.g. Freyd's *unitary tabular* hypothesis or the explicit §2.434
+      matrix; those are extra structure, not a defect of this faithful field.)  The naïve
+      `1 ⊑ ∋/∋` is vacuous (`one_le_div_self`); this existential form is the real condition
+      (it forces `A(R) = R/ₛ∋` entire on the matched box). -/
   eps_thick {b : 𝒜} {c : 𝒜} (R : c ⟶ b) (hbox : codBox R = codBox (eps b)) :
     ∃ (f : c ⟶ powerObj b), Map f ∧ f ≫ eps b = R
 
