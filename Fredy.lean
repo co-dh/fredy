@@ -29,6 +29,7 @@ import Fredy.SliceRegular
 import Fredy.SliceTopos
 import Fredy.SlicePower
 import Fredy.SlicePi
+import Fredy.SliceDeltaCartesian
 import Fredy.BaseChangeDescent
 import Fredy.S1_55
 import Fredy.S1_36
@@ -128,6 +129,7 @@ import Fredy.S2_43
 import Fredy.S2_44_Equiv
 import Fredy.S2_5
 import Fredy.S2_5_QuotAllegory
+import Fredy.S2_51_QuotPreserve
 import Fredy.S1_38b
 import Fredy.FiniteSeparation
 import Fredy.Representation646
