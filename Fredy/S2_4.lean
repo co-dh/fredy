@@ -671,7 +671,7 @@ theorem straight_factor_map_monic {𝒜 : Type u} [DivisionAllegory 𝒜] {x c a
       `S2_22.srcTabulation_exists` does NOT apply here.  That trick builds, from a single
       morphism `U`, a source-apex span by splitting the symmetric idempotent
       `F₀F₀° ∩ G₀G₀°` *on one object* (`srcTabulation_of_semiSimple_split`); and the
-      `Spl 𝒜` completion (`S2_22b`, §2.164) only ever adds objects `(a, e)` that are
+      `Spl 𝒜` completion (`S2_16b`, §2.164) only ever adds objects `(a, e)` that are
       RETRACTS (subobjects, carved by a coreflexive/idempotent `e`) of pre-existing
       objects `a`.  A coproduct `c ⊕ p` is a colimit joining two DISTINCT sources, not a
       retract of any single object, so no idempotent splitting and no `Spl`-style

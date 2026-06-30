@@ -93,7 +93,7 @@ open Cat
 /-! ## §2.169 (re-export)  Every equivalence relation of `SplObj 𝒜` splits as a map -/
 
 /-- **§2.169** (re-export): every reflexive symmetric idempotent of `SplObj 𝒜` splits
-    as a map (= every equivalence relation splits). Re-export from `S2_22b`. -/
+    as a map (= every equivalence relation splits). Re-export from `S2_16b`. -/
 theorem spl_effective {𝒜 : Type u} [Allegory 𝒜] {E : SplObj 𝒜} (Φ : E ⟶ E)
     (hrefl : E.idem.e ⊑ Φ.R) (hsym : Φ.R° = Φ.R) (hidem : Φ.R ≫ Φ.R = Φ.R) :
     ∃ (G : SplObj 𝒜) (f : E ⟶ G), Map f ∧ f ≫ f° = Φ ∧ f° ≫ f = Cat.id G :=
