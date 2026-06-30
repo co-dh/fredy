@@ -28,7 +28,8 @@ merged class `TabularUnitaryUnguardedPowerAllegory`): Map(A) has FULL power obje
   triple-power trick is only for the FREE no-coproduct power allegory.)
 - **§2.433 full instance** — needs the reflexive-only `Spl(Eq)` subtype + per-object `SplEqBoxNaming` (the wall);
   `splEqTarget_thick` (the per-object thickness) is done.
-- **§2.537 `hbox`** — `quot_effective_power_is_power` carries the §2.41 box-naming `∋_R = ∋_{R⁺}` (the wall).
+- ~~**§2.537**~~ — **DONE** (`quot_effective_power_is_power_unguarded`, commit 28fe050): unconditional over the
+  unguarded base (`EffectiveUnguardedPowerAllegory`); the §2.41 box-naming hbox is automatic when ∋ is unguarded.
 - **§2.414 converse** (`S2_41b`) — finite limits (`mapPreLogos`) + FULL power objects
   (`mapTranspose_existsUnique_all`) + subobject classifier `Ω=[1]` (`mapHasSubobjectClassifier`, commit 40a10f3)
   all DONE over `UnguardedPowerAllegory`. ONLY remaining for the full `Topos` instance: `has_pow : ∀ C,
