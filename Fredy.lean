@@ -154,6 +154,7 @@ import Fredy.Spl
 import Fredy.MatrixAllegory
 import Fredy.Locale
 import Fredy.RelCat
+import Fredy.S2_433_SplEqInstance
 import Fredy.S2_218
 import Fredy.S2_218_Tabular
 import Fredy.StalkConservative
