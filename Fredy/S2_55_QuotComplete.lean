@@ -55,10 +55,6 @@ theorem rel_of_largest_eq (amen : AmenableCongruence 𝒜) {a b : 𝒜} {X Y : a
   rw [h] at h1
   exact amen.cong.trans h1 h2
 
-/-- `⁺` is idempotent: `(R⁺)⁺ = R⁺` (the book's `⁺⁺ = ⁺`). -/
-theorem largest_idem (amen : AmenableCongruence 𝒜) {a b : 𝒜} (X : a ⟶ b) :
-    amen.largest (amen.largest X) = amen.largest X :=
-  (amenable_largest_class_invariant amen (amen.largest_rel X)).symm
 
 /-- Every morphism is below the largest element of its class: `R ⊑ R⁺`. -/
 theorem self_le_largest (amen : AmenableCongruence 𝒜) {a b : 𝒜} (X : a ⟶ b) :

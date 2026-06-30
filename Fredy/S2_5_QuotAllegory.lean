@@ -211,4 +211,19 @@ theorem quotRep_map_zero {𝒜 : Type u} [DistributiveAllegory 𝒜] (C : Congru
     letI := QuotAllegory.instDistributiveAllegory C hunion
     (quotRep C).map (𝟘 : a ⟶ b) = (𝟘 : (quotRep C).obj a ⟶ (quotRep C).obj b) := rfl
 
+/-! ## Shared helpers (used across §2.51/§2.536/§2.537/§2.541/§2.55) -/
+
+/-- `quotRep` is monotone: `R ⊑ S → [R] ⊑ [S]`.  (`⊑` is `R = R ∩ S`, and `quotRep`
+    preserves `∩`.)  The single canonical version of this fact. -/
+theorem quotRep_mono {𝒜 : Type u} [Allegory 𝒜] (C : Congruence 𝒜) {a b : 𝒜}
+    {R S : a ⟶ b} (h : R ⊑ S) : (quotRep C).map R ⊑ (quotRep C).map S := by
+  show (quotRep C).map R ∩ (quotRep C).map S = (quotRep C).map R
+  rw [← (quotRep C).map_inter, inter_eq_left h]
+
+/-- The largest-element operator is idempotent: `R⁺⁺ = R⁺` (the book's "largest
+    idempotent").  The single canonical version of this fact. -/
+theorem largest_idem {𝒜 : Type u} [DistributiveAllegory 𝒜] (amen : AmenableCongruence 𝒜)
+    {a b : 𝒜} (R : a ⟶ b) : amen.largest (amen.largest R) = amen.largest R :=
+  (amenable_largest_class_invariant amen (amen.largest_rel R)).symm
+
 end Freyd.Alg

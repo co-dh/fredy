@@ -70,11 +70,6 @@ theorem quotLe_iff_largest (amen : AmenableCongruence 𝒜) {a b : 𝒜} (R S : 
     rw [e1] at hRS
     exact Quotient.sound (amen.cong.trans hRS (amen.cong.symm (amen.largest_rel R)))
 
-/-- `R⁺⁺ = R⁺`: `⁺` is idempotent (a special case of class-invariance, since
-    `R ≡ R⁺`). -/
-theorem largest_largest (amen : AmenableCongruence 𝒜) {a b : 𝒜} (R : a ⟶ b) :
-    amen.largest (amen.largest R) = amen.largest R :=
-  (amenable_largest_class_invariant amen (amen.largest_rel R)).symm
 
 /-! ## §2.536  The quotient division allegory
 
@@ -115,7 +110,7 @@ def QuotAllegory.instDivisionAllegory (amen : AmenableCongruence 𝒜) :
       -- `((R⁺/S⁺) ≫ S⁺)⁺ ⊑ R⁺⁺ = R⁺`.
       have hmono : amen.largest ((amen.largest R / amen.largest S) ≫ amen.largest S)
                  ⊑ amen.largest (amen.largest R) := amenable_le_largest amen base
-      rw [largest_largest amen R] at hmono
+      rw [largest_idem amen R] at hmono
       rw [heq]; exact hmono
     -- §2.536: if `overline(TS) ⊑ R̄` then `T̄ ⊑ overline(R⁺/S⁺)`.
     le_div := by
@@ -134,7 +129,7 @@ def QuotAllegory.instDivisionAllegory (amen : AmenableCongruence 𝒜) :
       -- `⁺`-monotone (§2.531): `T⁺⁺ ⊑ (R⁺/S⁺)⁺`, and `T⁺⁺ = T⁺`.
       have hmono : amen.largest (amen.largest T)
                  ⊑ amen.largest (amen.largest R / amen.largest S) := amenable_le_largest amen hdiv
-      rw [largest_largest amen T] at hmono
+      rw [largest_idem amen T] at hmono
       -- Goal (defeq): `[T] ⊑ [R⁺/S⁺]`.  By `quotLe_iff_largest`: `T⁺ ⊑ (R⁺/S⁺)⁺`.
       exact (quotLe_iff_largest amen T (amen.largest R / amen.largest S)).mpr hmono }
 

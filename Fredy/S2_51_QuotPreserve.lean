@@ -90,10 +90,6 @@ theorem AllegoryFunctor.preserves_tabular (F : AllegoryFunctor 𝒜 ℬ) {a b : 
 
 variable {𝒜' : Type u₁} [Allegory.{v₁} 𝒜'] (C : Congruence 𝒜')
 
-/-- §2.51  `quotRep` is monotone: `R ⊑ S ⟹ [R] ⊑ [S]`. -/
-theorem quotRep_mono {a b : 𝒜'} {R S : a ⟶ b} (h : R ⊑ S) :
-    (quotRep C).map R ⊑ (quotRep C).map S := (quotRep C).mono h
-
 /-- §2.51  The equivalence class of an ENTIRE morphism is entire. -/
 theorem quotRep_preserves_entire {a b : 𝒜'} {R : a ⟶ b} (h : Entire R) :
     Entire ((quotRep C).map R) := (quotRep C).preserves_entire h

@@ -66,11 +66,6 @@ theorem quotRep_le_iff_rel (C : Congruence 𝒜) {a b : 𝒜} (R S : a ⟶ b) :
     show (Quotient.mk (congSetoid C) (R ∩ S)) = Quotient.mk (congSetoid C) R
     exact Quotient.sound h
 
-/-- `quotRep` is monotone: `R ⊑ S ⟹ [R] ⊑ [S]`. -/
-theorem quotRep_mono (C : Congruence 𝒜) {a b : 𝒜} {R S : a ⟶ b} (h : R ⊑ S) :
-    (quotRep C).map R ⊑ (quotRep C).map S :=
-  (quotRep_le_iff_rel C R S).mpr (by rw [inter_eq_left h]; exact C.refl R)
-
 end QuotOrder
 
 section AmenableQuot
@@ -90,12 +85,6 @@ theorem quotRep_le_iff_largest (amen : AmenableCongruence 𝒜) {a b : 𝒜} (R 
     rw [inter_eq_left hle] at h1
     exact amen.cong.trans h1 (amen.cong.symm hR)
 
-/-- The largest-in-class operator is idempotent: `S⁺⁺ = S⁺` (the book's
-    `S⁺⁺ = S⁺`, used in the §2.541 step).  `S ≡ S⁺` makes `largest` agree on
-    the two by class invariance. -/
-theorem largest_idem (amen : AmenableCongruence 𝒜) {a b : 𝒜} (R : a ⟶ b) :
-    amen.largest (amen.largest R) = amen.largest R :=
-  (amenable_largest_class_invariant amen (amen.largest_rel R)).symm
 
 /-! ## §2.541  Transitive closure survives an amenable quotient -/
 

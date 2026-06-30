@@ -114,10 +114,6 @@ theorem quot_le_iff {a b : 𝒜} (R S : a ⟶ b) :
 theorem le_largest_self {a b : 𝒜} (R : a ⟶ b) : R ⊑ amen.largest R :=
   amen.largest_max (amen.cong.refl R)
 
-/-- `(R⁺)⁺ = R⁺` — `⁺` is idempotent (it is class-invariant and `R⁺ ≡ R`). -/
-theorem largest_largest {a b : 𝒜} (R : a ⟶ b) :
-    amen.largest (amen.largest R) = amen.largest R :=
-  (amenable_largest_class_invariant amen (amen.cong.symm (amen.largest_rel R)))
 
 end
 
@@ -160,7 +156,7 @@ noncomputable def quotDiv : DivisionAllegory (QuotAllegory 𝒜 amen.cong) :=
       -- ((R⁺/S⁺)≫S)⁺ ⊑ (R⁺)⁺ = R⁺.
       refine (quot_le_iff amen ((amen.largest R / amen.largest S) ≫ S) R).mpr ?_
       refine le_trans (amenable_le_largest amen hstep) ?_
-      rw [largest_largest amen]; exact le_refl _
+      rw [largest_idem amen]; exact le_refl _
     le_div := by
       -- T̄S̄ ⊑ R̄ ⟹ T̄ ⊑ R̄/S̄ :  via quot_le_iff (TS)⁺ ⊑ R⁺; with §2.534 T⁺S⁺ ⊑ (TS)⁺ ⊑ R⁺,
       -- so T⁺ ⊑ R⁺/S⁺ ⊑ (R⁺/S⁺)⁺ = the largest of the RHS representative.
@@ -337,7 +333,7 @@ theorem quotThickEps (b : 𝒜)
   · -- [f₀][∋] ⊑ [R₀] :  largest(f₀∋) ⊑ largest(R₀⁺) = R₀⁺ = largest R₀  (§2.531).
     refine (quot_le_iff amen (f₀ ≫ ∋ b) R₀).mpr ?_
     have h := amenable_le_largest amen hf₀_le
-    rwa [largest_largest amen] at h
+    rwa [largest_idem amen] at h
   · -- [f₀]°[R₀] ⊑ [∋] :  R₀ ≡ R₀⁺ ⟹ largest(f₀°R₀)=largest(f₀°R₀⁺) ⊑ largest(∋)  (§2.531).
     refine (quot_le_iff amen (f₀° ≫ R₀) (∋ b)).mpr ?_
     have hcong : amen.cong.rel (f₀° ≫ R₀) (f₀° ≫ amen.largest R₀) :=
