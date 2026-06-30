@@ -124,6 +124,43 @@ theorem A_eps_eq {a b : 𝒜} [PowerAllegory 𝒜] (R : a ⟶ b)
     calc R = f ≫ ∋ b := hfeq.symm
       _ ⊑ A R ≫ ∋ b := comp_mono_right (thick_witness_le_A R hf hfeq) (∋ b)
 
+/-! ## §2.41  Unguarded (full) power allegory
+
+  Freyd's thickness (§2.431) is box-matched, so the bare `PowerAllegory` classifies only
+  box-matched `R`.  Several of Freyd's theorems (§2.414-converse, §2.441-(3)⟹(1)) and the
+  genuine examples (Rel(C) of a topos, the §2.434 global completion) use the STRONGER form
+  of §2.412/§2.413 — "for every R there is a map f with `f ∋ = R`" — i.e. `∋` classifies
+  EVERY relation.  We capture exactly that as a refinement, used to close those items. -/
+
+/-- An UNGUARDED POWER ALLEGORY: a power allegory whose membership `∋` is thick for EVERY
+    relation (Freyd §2.412/§2.413, the form `∀ R, ∃ map f, f ∋ = R`), not only the
+    box-matched ones (§2.431).  Strictly stronger than `PowerAllegory`; satisfied by the
+    genuine power allegories (toposes' `Rel(C)`, the §2.434 global completion). -/
+class UnguardedPowerAllegory (𝒜 : Type u) extends PowerAllegory 𝒜 where
+  /-- `∋` classifies EVERY `R : c → b`: there is a map `f` with `f ≫ ∋ = R` (§2.412/§2.413). -/
+  eps_thick_all {b c : 𝒜} (R : c ⟶ b) : ∃ (f : c ⟶ powerObj b), Map f ∧ f ≫ eps b = R
+
+/-- In an unguarded power allegory `A(R)` is a MAP for EVERY `R` (no box hypothesis). -/
+theorem A_is_map' {a b : 𝒜} [UnguardedPowerAllegory 𝒜] (R : a ⟶ b) : Map (A R) := by
+  constructor
+  · obtain ⟨f, hf, hfeq⟩ := UnguardedPowerAllegory.eps_thick_all (b := b) R
+    have hf_le : f ⊑ A R := thick_witness_le_A R hf hfeq
+    have h1 : Cat.id a ⊑ f ≫ f° := by
+      have := hf.1; dsimp [Entire, dom] at this; rw [← this]; exact inter_lb_right _ _
+    have h2 : f ≫ f° ⊑ A R ≫ (A R)° :=
+      le_trans (comp_mono_right hf_le _) (comp_mono_left _ (recip_mono hf_le))
+    dsimp [Entire, dom]
+    exact le_antisymm (inter_lb_left _ _) (le_inter (le_refl _) (le_trans h1 h2))
+  · exact straight_symmDiv_simple (PowerAllegory.eps_straight b) R
+
+/-- In an unguarded power allegory `A(R)∋ = R` for EVERY `R` (no box hypothesis). -/
+theorem A_eps_eq' {a b : 𝒜} [UnguardedPowerAllegory 𝒜] (R : a ⟶ b) : A R ≫ ∋ b = R := by
+  apply le_antisymm
+  · exact ((le_symmDiv_iff _ R _).mp (le_refl _)).1
+  · obtain ⟨f, hf, hfeq⟩ := UnguardedPowerAllegory.eps_thick_all (b := b) R
+    calc R = f ≫ ∋ b := hfeq.symm
+      _ ⊑ A R ≫ ∋ b := comp_mono_right (thick_witness_le_A R hf hfeq) (∋ b)
+
 /-! ## §2.415  Power object and singleton map -/
 
 /-- The SINGLETON MAP of a is A(1_a) : a → [a] (§2.415). -/

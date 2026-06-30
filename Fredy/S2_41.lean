@@ -194,4 +194,17 @@ noncomputable def relPowerAllegory : PowerAllegory (RelObj 𝒞) :=
           = relClass R₀
       exact (mem_thick b.carrier R₀).2 }
 
+/-- **§2.414 forward (full)**: `Rel(C)` of a topos is an UNGUARDED power allegory — its
+    membership `∋` classifies EVERY relation (the §2.413 transpose `mem_thick` is unguarded,
+    discharged for all `R`).  This is the genuine power allegory Freyd's converse-side theorems
+    use, and the witness for `UnguardedPowerAllegory`'s non-vacuity. -/
+noncomputable def relUnguardedPowerAllegory : UnguardedPowerAllegory (RelObj 𝒞) :=
+  { relPowerAllegory with
+    eps_thick_all := fun {b c} R => by
+      refine Quotient.inductionOn R (fun R₀ => ?_)
+      refine ⟨relClass (graph (memTranspose b.carrier R₀)), (mem_thick b.carrier R₀).1, ?_⟩
+      show relClass (graph (memTranspose b.carrier R₀) ⊚ HasPowerObject.mem (C := b.carrier))
+          = relClass R₀
+      exact (mem_thick b.carrier R₀).2 }
+
 end Freyd
