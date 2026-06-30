@@ -135,6 +135,7 @@ import Fredy.S2_536_QuotDivision
 import Fredy.S2_537_QuotPower
 import Fredy.S2_541_QuotTransClosure
 import Fredy.S2_55_QuotComplete
+import Fredy.S2_522_ClosedAmenable
 import Fredy.S1_38b
 import Fredy.FiniteSeparation
 import Fredy.Representation646
