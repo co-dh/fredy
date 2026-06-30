@@ -280,9 +280,12 @@ E', thick T box-matched to E, fixed R, the witness `R̂ = E'(R/ₛT)` is entire 
 OCR'd `R/T` is SYMMETRIC division `R/ₛT`, so chain 2 collapses via `le_symmDiv_iff`).
 PARTIAL: §2.422 "Spl(Cor) effective power" needs Spl idempotent-completion (the E=E/E part is done) · §2.441 full equivalence —
 (3)⟹(1) honest hyp `hSJtoPP` · §2.416 thick-conclusion takes `hCotuple` · §2.435 carries the box-guard hypothesis (repo's
-box-guarded Thick makes unconditional collapse false) · **§2.433** SplObj-level `PrePowerAllegory (SplObj 𝒜)` instance wrapper
-remains (carrier-level witness done; reduce SplObj `Thick`/`Entire`/`/ₛ` to the chains) · §2.434 "systemic completion is a power
-allegory" headline = §2.432 on the effective/systemic completion of `globalScPrePower` (documented corollary).
+box-guarded Thick makes unconditional collapse false) · **§2.433** SplObj-level thickness for equivalence-relation objects DONE
+(`splEqTarget_thick`: equiv-rel object E + base thick T ⟹ `embObj x ⟶ E` thick in SplObj, gated on `SplEqBoxNaming` = Freyd's §2.41
+box index / §2.537 `QuotBoxNaming` analogue, discharged hbox-free for embedded objects via `splEq_embObj_thick`); the full
+`PrePowerAllegory (SplObj 𝒜)` instance remains (needs the reflexive-only `Spl(Eq)` subtype — non-reflexive PER/coreflexive objects
+have no thick target by this route) · §2.434 "systemic completion is a power allegory" headline = §2.432 on the effective/systemic
+completion of `globalScPrePower` (documented corollary).
 NOTE: §2.42 "splitting lemmas" = the inequalities Λ(R)Λ°(S)⊑(R/∋)(∋/S)⊑R/S and back, which PROVE §2.421 R/S=A(R)A°(S) —
 already DONE as `symm_div_eq_A_comp`; the content is covered.
 MISSING: §2.414 C-topos⟹Rel(C)-power (topos↔power bridge) · §2.417 generator counterexample (model) · §2.418 REALIZABILITY
