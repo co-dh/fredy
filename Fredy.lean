@@ -128,6 +128,7 @@ import Fredy.S2_3
 import Fredy.S2_316
 import Fredy.S2_113_Examples
 import Fredy.S2_4
+import Fredy.S2_433_SplEqPower
 import Fredy.S2_43
 import Fredy.S2_44_Equiv
 import Fredy.S2_5
