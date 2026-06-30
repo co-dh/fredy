@@ -251,11 +251,14 @@ converse · §2.354/§2.355/§2.356 effective-factorization / straight-of-comp /
 (S\R/T)°=T°\R°/S°** (`div_self_idem`/`leftDiv_div_recip`) · §2.351 **straight⟺every-symmetric-T-with-TS⊑S-coreflexive**
 (`straight_iff_symmetric_invariant_coreflexive`).
 DONE (newly): §2.316 converse — a Heyting algebra IS a one-object division allegory (`OneObj H`: comp=inter=⊓, div R S:=S⇨R;
-Allegory/Distributive/Division instances axiom-free) + bundled `HeytAlg` instance on `Cor(a)` (`Cor.instHeytAlg`).
+Allegory/Distributive/Division instances axiom-free) + bundled `HeytAlg` instance on `Cor(a)` (`Cor.instHeytAlg`) · §2.341
+pre-tabular division ⟹ faithful division-preserving rep in tabular Spl(Cor) (`preTabularDivision_repr`) + semi-simple ⟹ faithful
+rep in tabular Spl(𝒜) (`semiSimple_faithful_Spl_repr`) · §2.353 cancellation-on-maps (`straight_of_cancel_on_maps`).
 PARTIAL: §2.311 division⟹comp-over-union (not derived from axioms) · **§2.331(i)–(iii) Moerdijk** (algebraic reduction done;
-faithfulness + §1.543 capital-data are hypotheses; topological existence unproven).
+faithfulness + §1.543 capital-data are hypotheses; topological existence unproven) · §2.341 exact PRel(Rel) target needs
+arbitrary-tabular↪Rel(Set) (only unitary+distributive→power available).
 MISSING: §2.33 geometric/Stone rep specialized to countable TUDA · **§2.331(iv)** coprime-terminator⟹single-H(X)
-(TOPOLOGY WALL) + δ-DENSE defs · §2.341 pre-tabular/semi-simple PRel reps · §2.353 tabular cancellation-on-maps.
+(TOPOLOGY WALL) + δ-DENSE defs.
 
 ## §2.4  Power allegories
 
@@ -264,13 +267,20 @@ POWER-OBJECT/SINGLETON · §2.421 R/S=A(R)A°(S) · §2.43/§2.431/§2.432 PRE-P
 §2.436 one-object-pre-power-inconsistent (+ honest hBox; unconditional book form proven FALSE for faithful box-guard) · §2.442
 LAW OF METONYMY + semi-simple⟺metonymic · §2.443 A-calculus.
 DONE (newly): §2.416 progenitor ∋-construction EPIC half (`progenitor_straight_factor_iso`: full iso h≫h°=1 ∧ h°≫h=1, the
-piece flagged out-of-reach) · §2.441 forward directions (1)⟹(2)⟹(3), (1)⟹(4) (`prePositive_to_wellJoined`/
-`wellJoined_to_straightJoin`/`prePositive_to_connectedSimpleFactor`).
-PARTIAL: §2.422 Spl(Eq) effective power · §2.441 full equivalence — (3)⟹(1) needs two-level membership/division (1/(1/∋)=0),
-surfaced as honest hypothesis `hSJtoPP` · §2.416 thick-conclusion takes cotuple-straightening hypothesis `hCotuple`.
-MISSING: §2.414 C-topos⟹Rel(C)-power · §2.417 generator counterexample · §2.418 REALIZABILITY TOPOS · §2.42 splitting lemma ·
-§2.423/§2.424 connected-power · §2.433–§2.435 Spl(Eq)/systemic/connected-division · §2.437/§2.438 r.e.-relations / Gödel ·
-§2.444–§2.446 metonymy-independence · §2.451–§2.455 boolean/CH/WELL-POINTED/cocartesian.
+piece flagged out-of-reach) · §2.441 forward directions (1)⟹(2)⟹(3), (1)⟹(4) · §2.422 `E = E/E` for equivalence relations
+(`equivRel_eq_div_self`, axiom-free) + effectivity-if-coreflexives-split (`equivRel_effective_of_coreflexives_split`) · §2.423
+connected power + coreflexives-split ⟹ unit (`maxEndo`/`target_split_partialUnit` unconditional; unit theorem on the book's own
+hypotheses) · §2.435 Cantor algebraic (`thick_endo_degenerate`/`cantor_thick_endo`: thick endo on strongly-connected ⟹ degenerate;
+T=F∋ thick when F°F=1).
+PARTIAL: §2.422 "Spl(Cor) effective power" needs Spl idempotent-completion (the E=E/E part is done) · §2.441 full equivalence —
+(3)⟹(1) honest hyp `hSJtoPP` · §2.416 thick-conclusion takes `hCotuple` · §2.435 carries the box-guard hypothesis (repo's
+box-guarded Thick makes unconditional collapse false).
+NOTE: §2.42 "splitting lemmas" = the inequalities Λ(R)Λ°(S)⊑(R/∋)(∋/S)⊑R/S and back, which PROVE §2.421 R/S=A(R)A°(S) —
+already DONE as `symm_div_eq_A_comp`; the content is covered.
+MISSING: §2.414 C-topos⟹Rel(C)-power (topos↔power bridge) · §2.417 generator counterexample (model) · §2.418 REALIZABILITY
+TOPOS (construction) · §2.424 connected-power topos corollary · §2.433/§2.434 Spl(Eq)-of-pre-power-is-power / systemic completion
+of LCDA is power (needs Spl(Eq) + global-completion pre-power) · §2.437/§2.438 r.e.-relations / Gödel (RECURSION THEORY) ·
+§2.444–§2.446 metonymy-independence (model) · §2.451–§2.455 boolean/CH/WELL-POINTED/cocartesian (set-theoretic models).
 
 ## §2.5  Quotient allegories
 
@@ -282,7 +292,8 @@ entire/simple/map/tabular/(partial)unit (`quotRep_preserves_*`, generic over All
 division is division (`QuotAllegory.instDivisionAllegory`, R̄/S̄=overline(R⁺/S⁺)) · **§2.55** amenable quotient of locally/globally
 complete (`instLocallyComplete`/`instGloballyComplete`) · **§2.541** transitive closure in amenable quotient
 (`quotRep_isTransClosure`).
-PARTIAL: §2.522 CLOSED QUOTIENT (congruence done, amenability instance not constructed) · **§2.537** amenable quotient of effective
+DONE (newly): §2.522 CLOSED QUOTIENT amenability (`closedQuotient_amenable`, R⁺ = R ∪ pαUpβ°).
+PARTIAL: **§2.537** amenable quotient of effective
 power allegory (`quot_effective_power_is_power`; §2.536 division, §2.535 splitting, §2.51 tabularity, §2.537 thickness all
 unconditional — single remaining hypothesis `hbox` = §2.41 box-naming ∋_R=∋_{R⁺}).
 MISSING: §2.542 topos⟹boolean-topos+bicartesian-rep (twin §1.979, WALL) · §2.551 disjoint-unions=coproducts (blocked by §2.224
