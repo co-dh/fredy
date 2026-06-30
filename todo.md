@@ -14,10 +14,12 @@ box-matched straight-thick `∋` per object — exactly this class. So **do NOT 
 was wrong — extrapolated from §2.41's `∋_R = ∋_{R□}` notation without reading §2.431.)
 
 So the four items below are NOT blocked by a class defect. They genuinely need MORE than a bare power allegory —
-an UNGUARDED `∋` (classify every R, incl. naming `∅`) — which Freyd's relevant theorems supply via EXTRA
-hypotheses: §2.414-converse assumes *unitary tabular*; §2.434 builds the explicit eval matrix (unguarded, already
-done as `globalScPrePower`). The honest close of each = add that extra structure as a hypothesis (the repo-
-consistent §2.537 pattern), NOT a core-class change. Their sorry-free partials are committed.
+an UNGUARDED `∋` (classify every R, incl. naming `∅`). FOUNDATION DONE (commit 2f20f36): `UnguardedPowerAllegory`
+(extends `PowerAllegory` with `eps_thick_all : ∀ R, ∃ map f, f∋=R`, Freyd §2.412/2.413) + `A_is_map'`/`A_eps_eq'`
+(A(R) a map / A(R)∋=R for EVERY R) in `S2_4`; `relUnguardedPowerAllegory` (Rel(C) of a topos IS unguarded) in
+`S2_41` = the non-vacuity witness. Bucket-1 items close OVER this refinement, no base-class change.
+PROGRESS: §2.414-converse universal-property half DONE over it (`mapTranspose_existsUnique_all`, commit cccd487,
+merged class `TabularUnitaryUnguardedPowerAllegory`): Map(A) has FULL power objects, ∅-naming included.
 
 ## Box-gated — partial committed, full close blocked by the wall above
 
@@ -27,8 +29,9 @@ consistent §2.537 pattern), NOT a core-class change. Their sorry-free partials 
 - **§2.433 full instance** — needs the reflexive-only `Spl(Eq)` subtype + per-object `SplEqBoxNaming` (the wall);
   `splEqTarget_thick` (the per-object thickness) is done.
 - **§2.537 `hbox`** — `quot_effective_power_is_power` carries the §2.41 box-naming `∋_R = ∋_{R⁺}` (the wall).
-- **§2.414 converse** (`S2_41b`) — `Map(A)` topos: merged class + membership `mapMem` + box-guarded universal
-  property DONE; full `Topos` needs the unguarded membership (the wall).
+- **§2.414 converse** (`S2_41b`) — universal-property half DONE over `UnguardedPowerAllegory`
+  (`mapTranspose_existsUnique_all`); remaining for the full `Topos`: the `Ω = [1]` subobject classifier
+  (`HasSubobjectClassifier` on `Map(A)`: classify a Map-monic ↔ coreflexive ↔ char map into `[1]`).
 - ~~**§2.416 `hCotuple`**~~ — **DONE** (`hCotuple_of_coproduct` / `progenitor_straight_thick_of_coproduct`,
   S2_44, commit 308a811): discharged from binary coproducts + effectiveness via the coproduct mediator +
   §2.354 straightening. No box-gating.
