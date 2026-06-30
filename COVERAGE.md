@@ -281,9 +281,13 @@ matrix `T_{f,i}=f(i)`, boolean `R̂`, `R̂T=R`, `R̂°R=(R̂°R̂)T⊑T`; [I]=(I
 core** Spl(Eq) thickness witness (`splEq_thick_witness`/`splEq_chain1`/`splEq_chain2`: for an equivalence-rel object E with source
 E', thick T box-matched to E, fixed R, the witness `R̂ = E'(R/ₛT)` is entire with `R̂(TE)⊑R`, `R̂°R⊑TE` — the §2.433 BECAUSE; the
 OCR'd `R/T` is SYMMETRIC division `R/ₛT`, so chain 2 collapses via `le_symmDiv_iff`).
+DONE (wave-5): **§2.414 forward** C-topos ⟹ Rel(C) power allegory (`relPowerAllegory`, S2_41; eps=[∈], straight from
+classify-uniqueness `mem_straight`, thick from §2.413 transpose `mem_thick`) · **§2.416** `hCotuple` DISCHARGED from coproducts +
+effectiveness (`hCotuple_of_coproduct`/`progenitor_straight_thick_of_coproduct`, S2_44) · **§2.441 (3)⟹(1) disjointness crux**
+`Λ(0)∩Λ(1)=0` (`A_zero_inter_A_one`, S2_44; with `A_monic_of_straight`, 2 of 3 ingredients done; the 3rd `Λ(S)` entire is box-gated).
 PARTIAL: §2.422 "Spl(Cor) effective power" needs Spl idempotent-completion (the E=E/E part is done) · §2.441 full equivalence —
-(3)⟹(1) honest hyp `hSJtoPP` · §2.416 thick-conclusion takes `hCotuple` · §2.435 carries the box-guard hypothesis (repo's
-box-guarded Thick makes unconditional collapse false) · **§2.433** SplObj-level thickness for equivalence-relation objects DONE
+(3)⟹(1) full assembly box-gated (`Λ(S)` split-monic needs entire = `codBox S = codBox ∋`) · §2.435 carries the box-guard
+hypothesis (repo's box-guarded Thick makes unconditional collapse false) · **§2.433** SplObj-level thickness for equivalence-relation objects DONE
 (`splEqTarget_thick`: equiv-rel object E + base thick T ⟹ `embObj x ⟶ E` thick in SplObj, gated on `SplEqBoxNaming` = Freyd's §2.41
 box index / §2.537 `QuotBoxNaming` analogue, discharged hbox-free for embedded objects via `splEq_embObj_thick`); the full
 `PrePowerAllegory (SplObj 𝒜)` instance remains (needs the reflexive-only `Spl(Eq)` subtype — non-reflexive PER/coreflexive objects
@@ -291,7 +295,7 @@ have no thick target by this route) · §2.434 "systemic completion is a power a
 completion of `globalScPrePower` (documented corollary).
 NOTE: §2.42 "splitting lemmas" = the inequalities Λ(R)Λ°(S)⊑(R/∋)(∋/S)⊑R/S and back, which PROVE §2.421 R/S=A(R)A°(S) —
 already DONE as `symm_div_eq_A_comp`; the content is covered.
-MISSING: §2.414 C-topos⟹Rel(C)-power (topos↔power bridge) · §2.417 generator counterexample (model) · §2.418 REALIZABILITY
+MISSING: §2.414 CONVERSE (unitary tabular power allegory ⟹ Map(A) topos) · §2.417 generator counterexample (model) · §2.418 REALIZABILITY
 TOPOS (construction) · §2.424 connected-power topos corollary · §2.437/§2.438 r.e.-relations / Gödel (RECURSION THEORY) ·
 §2.444–§2.446 metonymy-independence (model) · §2.451–§2.455 boolean/CH/WELL-POINTED/cocartesian (set-theoretic models).
 

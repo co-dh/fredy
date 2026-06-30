@@ -24,9 +24,11 @@ Status as of 2026-06-30. Everything below is **not yet formalized**; the rest of
 
 ## Real but large bridges/constructions (formalizable, multi-file)
 
-- **§2.414 forward** — topos `C` ⟹ `Rel(C)` is a power allegory. `RelObj C` currently stops at
-  `DistributiveAllegory`; must build the topos power object as a `Rel(C)` membership `∋`, prove it
-  straight + thick. (§2.424 connected-power-topos corollary follows.)
+- ~~**§2.414 forward**~~ — **DONE** (`relPowerAllegory`, S2_41, commit 5ce5b60): topos `C` ⟹ `Rel(C)` is a
+  power allegory, via the topos membership `∋` (straight from classify-uniqueness, thick from the §2.413
+  transpose). REMAINING for §2.414: the **converse** (a unitary tabular power allegory `A` ⟹ `Map(A)` is a
+  topos) — needs the topos structure rebuilt on `Map(A)`. **§2.424** connected-power-topos corollary follows
+  from the forward direction + §2.219.
 - **§2.155–§2.158**, **§2.168** (⟨I,∃⟩ locale-valued), **§2.417** (generator counterexample) — specific
   model/example constructions.
 
