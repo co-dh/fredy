@@ -47,14 +47,19 @@ class PowerAllegory (𝒜 : Type u) extends DivisionAllegory 𝒜 where
   /-- ∋ is straight: ∋ /ₛ ∋ ⊑ 1 (§2.41). -/
   eps_straight (b : 𝒜) : Straight (eps b)
 
-  /-- ∋ is THICK (§2.41, Freyd's box-indexed membership `∋_R` with `∋_R□ = R□`):
-      for every `R : c → b` whose codomain box matches that of `∋_b` there exists a
-      map `f` with `f ≫ ∋ = R`.  The `codBox R = codBox (eps b)` guard is Freyd's own
-      side-condition on `∋_R` (the domain on which his partial membership is defined);
-      it is what makes this discharge from box-guarded `Thick (eps b)` (§2.43) faithful
-      rather than the over-strong unconditional §2.413 form.  The naïve `1 ⊑ ∋/∋` is
-      vacuous (`one_le_div_self`); this existential form IS the thickness condition (it
-      forces `A(R) = R/ₛ∋` entire on the matched box). -/
+  /-- ∋ is THICK.  ⚠ DEVIATION FROM THE BOOK (recorded after reading the original scan,
+      Freyd p.236).  Freyd's §2.41 membership is a BOX-INDEXED FAMILY `∋_R` with
+      `∋_R = ∋_{R□}` and `∋_R□ = R□`, and his thickness (§2.412/§2.413) is UNGUARDED:
+      "for all R there exists a map f such that `f ∋_R = R`" (each R classified by its
+      OWN box-matched `∋_R`; §2.415's power object `[b]` is the source of `∋_{1_b}`).
+      This class keeps ONLY `∋_{1_b}` (the single `eps b`) and adds the `codBox R =
+      codBox (eps b)` GUARD — i.e. it can classify only box-`1`-matched `R`.  That guard
+      is NOT in Freyd; it is a strict weakening, and it is exactly the wall blocking the
+      full §2.441 (3)⟹(1), §2.433, §2.537 and §2.414-converse (e.g. `A(𝟘)` / naming `∅`
+      is unclassifiable here).  Following the book = giving this class the indexed `∋_R`
+      family / unguarded thickness; that refactor forks at §2.432 (the unguarded ∋ is
+      Freyd's §2.416 progenitor construction, which the repo's `effective_pre_power_is_power`
+      omitted — it produces only the box-matched version).  See `todo.md`. -/
   eps_thick {b : 𝒜} {c : 𝒜} (R : c ⟶ b) (hbox : codBox R = codBox (eps b)) :
     ∃ (f : c ⟶ powerObj b), Map f ∧ f ≫ eps b = R
 
