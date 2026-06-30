@@ -121,9 +121,11 @@ import Fredy.S2_22
 import Fredy.S2_22b
 import Fredy.S2_3
 import Fredy.S2_316
+import Fredy.S2_113_Examples
 import Fredy.S2_4
 import Fredy.S2_43
 import Fredy.S2_5
+import Fredy.S2_5_QuotAllegory
 import Fredy.S1_38b
 import Fredy.FiniteSeparation
 import Fredy.Representation646
