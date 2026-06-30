@@ -544,4 +544,66 @@ noncomputable def quot_effective_power_is_power
 
 end Assembly
 
+/-! ## §2.537  Unconditional over an UNGUARDED base — the `hbox` is FREE
+
+  The §2.41 box-naming `hbox` is needed only to box-match the largest representative `R₀⁺`
+  for the BASE membership's box-matched thickness (§2.431).  If the base is an UNGUARDED power
+  allegory (Freyd §2.412/§2.413 — `∋` classifies EVERY `R`, the form genuine examples like
+  `Rel(C)` of a topos satisfy), that box-match is unnecessary: `eps_thick_all` classifies
+  `R₀⁺` for any box.  So over `EffectiveUnguardedPowerAllegory` §2.537 is UNCONDITIONAL. -/
+
+/-- An EFFECTIVE UNGUARDED power allegory: effective + the full (unguarded) §2.41 membership
+    (`∋` classifies every relation).  One `Allegory` base (structure inheritance). -/
+class EffectiveUnguardedPowerAllegory (𝒜 : Type u) extends
+    EffectivePowerAllegory 𝒜, UnguardedPowerAllegory 𝒜
+
+section UnguardedAssembly
+variable {𝒜 : Type u} [EffectiveUnguardedPowerAllegory 𝒜] (amen : AmenableCongruence 𝒜)
+
+/-- §2.537 over an unguarded base: the quotient membership `[∋_b]` is thick — `hbox`-free.
+    The witness `[f₀]` comes from the UNGUARDED thickness `eps_thick_all` applied to `R₀⁺`
+    (a map with `f₀ ∋ = R₀⁺`); the two quotient containments are read off exactly as in
+    `quotThickEps` via `quot_le_iff`/`amenable_le_largest`/`largest_idem`. -/
+theorem quotThickEps_unguarded (b : 𝒜) :
+    letI := quotDiv amen
+    Thick ((quotRep amen.cong).map (∋ b)) := by
+  letI := quotDiv amen
+  rw [thick_iff_existential]
+  intro c R _hboxQ
+  refine Quotient.inductionOn R (fun R₀ => ?_) _hboxQ
+  intro _
+  obtain ⟨f₀, hf₀map, hf₀eq⟩ := UnguardedPowerAllegory.eps_thick_all (b := b) (amen.largest R₀)
+  have hf₀_le : f₀ ≫ ∋ b ⊑ amen.largest R₀ := by rw [hf₀eq]; exact le_refl _
+  have hf₀o : f₀° ≫ amen.largest R₀ ⊑ ∋ b := by
+    rw [← hf₀eq, ← Cat.assoc]
+    have h := comp_mono_right hf₀map.2 (∋ b); rwa [Cat.id_comp] at h
+  refine ⟨(quotRep amen.cong).map f₀, quotRep_entire amen hf₀map.1, ?_, ?_⟩
+  · refine (quot_le_iff amen (f₀ ≫ ∋ b) R₀).mpr ?_
+    have h := amenable_le_largest amen hf₀_le
+    rwa [largest_idem amen] at h
+  · refine (quot_le_iff amen (f₀° ≫ R₀) (∋ b)).mpr ?_
+    have hcong : amen.cong.rel (f₀° ≫ R₀) (f₀° ≫ amen.largest R₀) :=
+      amen.cong.comp_congr (amen.cong.refl _) (amen.largest_rel R₀)
+    rw [amenable_largest_class_invariant amen hcong]
+    exact amenable_le_largest amen hf₀o
+
+/-- §2.537 (unguarded): the amenable quotient is an effective pre-power allegory — no `hbox`. -/
+noncomputable def quotEffectivePrePower_unguarded :
+    EffectivePrePowerAllegory (QuotAllegory 𝒜 amen.cong) :=
+  { quotDiv amen with
+    tabular := fun {_ _} R => Quotient.inductionOn R
+      (fun R₀ => quotRep_preserves_tabular amen.cong (TabularAllegory.tabular R₀))
+    split_symmetric_idempotent := fun {_a} E hR hS hI => quotSplit amen E hR hS hI
+    thick_target := fun b =>
+      ⟨@PowerAllegory.powerObj 𝒜 _ b, (quotRep amen.cong).map (@PowerAllegory.eps 𝒜 _ b),
+        quotThickEps_unguarded amen b⟩ }
+
+/-- **§2.537 (unconditional)**: an amenable quotient of an effective UNGUARDED power allegory
+    is a power allegory — `hbox`-free (the §2.41 box-naming is automatic when `∋` is unguarded). -/
+noncomputable def quot_effective_power_is_power_unguarded :
+    PowerAllegory (QuotAllegory 𝒜 amen.cong) :=
+  @effective_pre_power_is_power _ (quotEffectivePrePower_unguarded amen)
+
+end UnguardedAssembly
+
 end Freyd.Alg
