@@ -23,9 +23,9 @@ merged class `TabularUnitaryUnguardedPowerAllegory`): Map(A) has FULL power obje
 
 ## Box-gated — partial committed, full close blocked by the wall above
 
-- **§2.441 (3)⟹(1)** (`S2_44`) — disjointness crux DONE (`A_zero_inter_A_one`) + `A_monic_of_straight`; full
-  `ℓ,ϰ:[γ]→[[[γ]]]` split-monic needs `Λ(S)` entire (the wall). (NB: trivial WITH coproducts via inl/inr — the
-  triple-power trick is only for the FREE no-coproduct power allegory.)
+- ~~**§2.441 (3)⟹(1)**~~ — **DONE** (`straightJoin_to_prePositive`, `S2_441`, commit 44fc9c8): over
+  `UnguardedPowerAllegory`, ℓ=A(1)≫A(1), ϰ=A(1/∋) into [[[γ]]], disjointness via `A_zero_inter_A_one`.
+  `prePositive_wellJoined_straightJoin_tfae'` closes the TFAE. Axioms [propext].
 - **§2.433 full instance** — needs the reflexive-only `Spl(Eq)` subtype + per-object `SplEqBoxNaming` (the wall);
   `splEqTarget_thick` (the per-object thickness) is done.
 - ~~**§2.537**~~ — **DONE** (`quot_effective_power_is_power_unguarded`, commit 28fe050): unconditional over the
