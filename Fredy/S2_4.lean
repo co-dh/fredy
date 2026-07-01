@@ -499,14 +499,26 @@ class EffectiveDivisionAllegory (𝒜 : Type u)
 class SemiSimpleDivisionAllegory (𝒜 : Type u)
     extends DivisionAllegory 𝒜, SemiSimpleAllegory 𝒜
 
-/-- §2.354 (effective division allegory): every `T : x → a` factors as `T = h ≫ S`
-    with `h` a map and `S = h° ≫ T` straight.  Splits `E = T/ₛT` via effectiveness.
+/-- `EqSplits 𝒜`: every equivalence relation (reflexive symmetric idempotent) splits with a
+    MAP leg — Freyd's §2.169 "effective" condition, WITHOUT the `TabularAllegory` parent that
+    the `EffectiveAllegory` class bundles.  This is ALL the pre-power→power route actually uses
+    (`straight_factorization`/`exists_straight_thick_target`/`effective_pre_power_is_power` never
+    touch tabularity), so parametrising by it lets NON-tabular effective allegories reach
+    `PowerAllegory` too — e.g. `Spl(Eq 𝒜)` (§2.433), whose tabulation apexes are coreflexive
+    (they live in `Spl(Cor)`, not `Spl(Eq)`) so it is effective-by-splitting yet not tabular. -/
+def EqSplits (𝒜 : Type u) [Allegory 𝒜] : Prop :=
+  ∀ {a : 𝒜} (E : a ⟶ a), Reflexive E → Symmetric E → E ≫ E = E →
+    ∃ (c : 𝒜) (f : a ⟶ c), Map f ∧ f ≫ f° = E ∧ f° ≫ f = Cat.id c
+
+/-- §2.354 (over `EqSplits`): every `T : x → a` factors as `T = h ≫ S` with `h` a map and
+    `S = h° ≫ T` straight.  Splits `E = T/ₛT` via the `hsplit` hypothesis (needs only division
+    + eq-splitting, NO tabularity).
 
     `T = h ≫ S`: `h ≫ h° ≫ T = E ≫ T = T` since `E` is reflexive and `(T/ₛT)T ⊑ T`.
     `Straight S`: for the symmetric `U = S/ₛS` with `US ⊑ S`, the symmetric `hUh°`
     satisfies `(hUh°)T ⊑ T`, hence `hUh° ⊑ T/ₛT = E = hh°`; conjugating by `h°h = 1`
     gives `U = h°(hUh°)h ⊑ h°(hh°)h = (h°h)(h°h) = 1`. -/
-theorem straight_factorization {𝒜 : Type u} [EffectiveDivisionAllegory 𝒜]
+theorem straight_factorization_of_split {𝒜 : Type u} [DivisionAllegory 𝒜] (hsplit : EqSplits 𝒜)
     {x a : 𝒜} (T : x ⟶ a) :
     ∃ (c : 𝒜) (h : x ⟶ c), Map h ∧ h° ≫ h = Cat.id c ∧
       Straight (h° ≫ T) ∧ T = h ≫ (h° ≫ T) := by
@@ -516,7 +528,7 @@ theorem straight_factorization {𝒜 : Type u} [EffectiveDivisionAllegory 𝒜]
   have hEidem : (T /ₛ T) ≫ (T /ₛ T) = T /ₛ T :=
     reflexive_transitive_idempotent hErefl (symmDiv_self_transitive T)
   obtain ⟨c, h, hMap, hhh, hch⟩ :=
-    EffectiveAllegory.split_symmetric_idempotent (T /ₛ T) hErefl hEsym hEidem
+    hsplit (T /ₛ T) hErefl hEsym hEidem
   refine ⟨c, h, hMap, hch, ?_, ?_⟩
   · -- Straightness of S = h° ≫ T.
     -- ET = T (E reflexive, (T/ₛT)T ⊑ T).
@@ -570,6 +582,17 @@ theorem straight_factorization {𝒜 : Type u} [EffectiveDivisionAllegory 𝒜]
       have := comp_mono_right hErefl T; rwa [Cat.id_comp] at this
     have hET : (T /ₛ T) ≫ T = T := le_antisymm hET_le hET_ge
     rw [← Cat.assoc, hhh, hET]
+
+/-- `EqSplits` from an `EffectiveAllegory` (its `split_symmetric_idempotent` field). -/
+theorem effectiveEqSplits {𝒜 : Type u} [EffectiveAllegory 𝒜] : EqSplits 𝒜 :=
+  fun E => EffectiveAllegory.split_symmetric_idempotent E
+
+/-- §2.354: `straight_factorization_of_split` specialised to an `EffectiveDivisionAllegory`. -/
+theorem straight_factorization {𝒜 : Type u} [EffectiveDivisionAllegory 𝒜]
+    {x a : 𝒜} (T : x ⟶ a) :
+    ∃ (c : 𝒜) (h : x ⟶ c), Map h ∧ h° ≫ h = Cat.id c ∧
+      Straight (h° ≫ T) ∧ T = h ≫ (h° ≫ T) :=
+  straight_factorization_of_split effectiveEqSplits T
 
 /-- If `T = h ≫ S` with `h° ≫ h = 1`, then `S` and `T` have the same codomain box
     `codBox = dom(·°) = 1 ∩ (·)°(·)`.  Indeed `T°T = (hS)°(hS) = S°(h°h)S = S°S`. -/
@@ -638,11 +661,17 @@ class EffectivePrePowerAllegory (𝒜 : Type u) extends EffectiveDivisionAllegor
     factors it `T = h ≫ S` with `h` a map, `h°h = 1`, `S = h° ≫ T` straight;
     `straight_descent_thick` shows `S` stays thick.  This is a `Prop`, so it may be `choose`n
     into the (data) `powerObj`/`eps` fields below via `Classical`. -/
-theorem exists_straight_thick_target {𝒜 : Type u} [EffectivePrePowerAllegory 𝒜] (b : 𝒜) :
+theorem exists_straight_thick_target_of_split {𝒜 : Type u} [DivisionAllegory 𝒜]
+    (hsplit : EqSplits 𝒜) (hthick : ∀ (a : 𝒜), ∃ (x : 𝒜) (S : x ⟶ a), Thick S) (b : 𝒜) :
     ∃ (p : 𝒜) (S : p ⟶ b), Straight S ∧ Thick S := by
-  obtain ⟨x, T, hThickT⟩ := EffectivePrePowerAllegory.thick_target (𝒜 := 𝒜) b
-  obtain ⟨c, h, hMap, hch, hStr, hTeq⟩ := straight_factorization T
+  obtain ⟨x, T, hThickT⟩ := hthick b
+  obtain ⟨c, h, hMap, hch, hStr, hTeq⟩ := straight_factorization_of_split hsplit T
   exact ⟨c, h° ≫ T, hStr, straight_descent_thick hMap hch hTeq hThickT⟩
+
+/-- §2.432: `exists_straight_thick_target_of_split` specialised to an effective pre-power. -/
+theorem exists_straight_thick_target {𝒜 : Type u} [EffectivePrePowerAllegory 𝒜] (b : 𝒜) :
+    ∃ (p : 𝒜) (S : p ⟶ b), Straight S ∧ Thick S :=
+  exists_straight_thick_target_of_split effectiveEqSplits EffectivePrePowerAllegory.thick_target b
 
 /-- §2.416 (monic half of maximality): a STRAIGHT MAP is monic, `h ≫ h° ⊑ 1`.
     Book: `hh°` is symmetric, and `(hh°)h = h(h°h) ⊑ h` since `h` is simple; so
@@ -735,20 +764,21 @@ theorem straight_factor_map_monic {𝒜 : Type u} [DivisionAllegory 𝒜] {x c a
     the book's hypotheses.  Precise missing primitive: a progenitor `y : 𝒜` (§1.966) with
     its copower `coprod (powerObj b) p` (`PositiveAllegory.has_coproduct`).  That route is
     moot here: the field is now the faithful box-guarded membership, discharged below. -/
-noncomputable def effective_pre_power_is_power {𝒜 : Type u} [EffectivePrePowerAllegory 𝒜] :
+noncomputable def power_of_split_thick {𝒜 : Type u} [DivisionAllegory 𝒜]
+    (hsplit : EqSplits 𝒜) (hthick : ∀ (a : 𝒜), ∃ (x : 𝒜) (S : x ⟶ a), Thick S) :
     PowerAllegory 𝒜 :=
-  { powerObj := fun b => (exists_straight_thick_target b).choose
-    eps := fun b => (exists_straight_thick_target b).choose_spec.choose
-    eps_straight := fun b => (exists_straight_thick_target b).choose_spec.choose_spec.1
+  { powerObj := fun b => (exists_straight_thick_target_of_split hsplit hthick b).choose
+    eps := fun b => (exists_straight_thick_target_of_split hsplit hthick b).choose_spec.choose
+    eps_straight := fun b => (exists_straight_thick_target_of_split hsplit hthick b).choose_spec.choose_spec.1
     eps_thick := by
       -- Discharge the box-guarded membership directly from `Straight S` + box-matched
       -- `Thick S` (= `exists_straight_thick_target`), with `S = eps b`.  Witness `f = R /ₛ S`.
       intro b c R hbox
-      have hStr : Straight (exists_straight_thick_target b).choose_spec.choose :=
-        (exists_straight_thick_target b).choose_spec.choose_spec.1
-      have hThick : Thick (exists_straight_thick_target b).choose_spec.choose :=
-        (exists_straight_thick_target b).choose_spec.choose_spec.2
-      generalize hSdef : (exists_straight_thick_target b).choose_spec.choose = S at *
+      have hStr : Straight (exists_straight_thick_target_of_split hsplit hthick b).choose_spec.choose :=
+        (exists_straight_thick_target_of_split hsplit hthick b).choose_spec.choose_spec.1
+      have hThick : Thick (exists_straight_thick_target_of_split hsplit hthick b).choose_spec.choose :=
+        (exists_straight_thick_target_of_split hsplit hthick b).choose_spec.choose_spec.2
+      generalize hSdef : (exists_straight_thick_target_of_split hsplit hthick b).choose_spec.choose = S at *
       -- `hbox` is now `codBox R = codBox S`.
       -- Box-matched thickness supplies `R'` entire with `R'≫S ⊑ R`, `R'°≫R ⊑ S`.
       obtain ⟨R', hEnt', hR'S, hR'oR⟩ :=
@@ -773,6 +803,13 @@ noncomputable def effective_pre_power_is_power {𝒜 : Type u} [EffectivePrePowe
             rw [Cat.assoc] at e1
             exact le_trans e1 (comp_mono_left R' hR'oR)
           exact le_trans hRle (comp_mono_right hR'_le S) }
+
+/-- §2.432 (HEADLINE): an EFFECTIVE PRE-POWER ALLEGORY is a POWER ALLEGORY.
+    (Thin wrapper over `power_of_split_thick` — the route needs only division + eq-splitting
+    + thick targets, no tabularity.) -/
+noncomputable def effective_pre_power_is_power {𝒜 : Type u} [EffectivePrePowerAllegory 𝒜] :
+    PowerAllegory 𝒜 :=
+  power_of_split_thick effectiveEqSplits EffectivePrePowerAllegory.thick_target
 
 /-! ## §2.441  Pre-positive allegory and well-joined category
 
