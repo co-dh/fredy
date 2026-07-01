@@ -122,6 +122,7 @@ import Fredy.S2_22
 import Fredy.S2_16b
 import Fredy.S2_55
 import Fredy.S2_43
+import Fredy.S2_433_SplEqInstance2
 import Fredy.S2_42
 import Fredy.S2_3
 import Fredy.S2_31
