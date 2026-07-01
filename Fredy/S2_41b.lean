@@ -195,7 +195,7 @@ theorem mapTranspose_existsUnique_all (C : 𝒜) {a : 𝒜} (R : a ⟶ C) :
 
 end UnguardedUP
 
-/-! ## §2.414  STATUS — what is assembled, and the one gap to the FULL `Topos`
+/-! ## §2.414  STATUS — the FULL `Topos (MapObj A)` is assembled
 
   Assembled below, sorry-free (axioms `[propext, Classical.choice]`):
     • `TabularUnitaryUnguardedPowerAllegory` — Freyd's §2.414-converse hypothesis (one `Allegory`
@@ -208,16 +208,17 @@ end UnguardedUP
     • **the SUBOBJECT CLASSIFIER** `Ω = [1]`, `true = A(1_1)`, with `classify`/`classify_sq`/
       `classify_pullback`/`classify_unique` — i.e. `HasSubobjectClassifier (MapObj 𝒜)`
       (`mapHasSubobjectClassifier`).  The keystone is `unit_eps_eq_singleton_recip` (`∋_1 = true°`).
+    • **POWER OBJECTS** `[C] = powerObj C` with `mem = mapMem C` the §1.9 universal relation
+      (`mapHasPowerObject`), and the **full `Topos (MapObj 𝒜)`** (`mapTopos`).
 
-  NOT yet assembled: the full `Topos (MapObj A)`.  `Topos = HasBinaryProducts + HasSubobjectClassifier
-  + has_pow`; the first two ARE in hand (`mapPreLogos`, `mapHasSubobjectClassifier`).  The ONLY
-  missing field is `has_pow : ∀ C, HasPowerObject C`.  PRECISE BLOCKER: `HasPowerObject` (S1_9)
-  demands `IsUniversalRel (mem)`, phrased with `relPullback f mem ≅ R` for every §1.9 binary
-  relation `R : BinRel (Map A) A C`.  This is a DIFFERENT formulation from the composition form
-  `f ≫ ∋_C = R̄` proved here (`mapTranspose_existsUnique_all`): bridging them needs the §2.41-style
-  `relPullback ≅ graph f ⊚ U` machinery (cf. `relPullback_graphComp`, S2_41) transported to
-  `Map(A)` with `mem = mapMem C`.  That bridge is a separate development, not built in this file;
-  hence the converse is delivered up to exactly the `has_pow` relPullback↔composition bridge. -/
+  The `has_pow` closure (`§2.414  POWER OBJECTS` section below).  `HasPowerObject` (S1_9) demands
+  `IsUniversalRel (mem)`, phrased with `relPullback f mem ≅ R` (mutual `RelHom`) for every §1.9
+  binary relation `R : BinRel (Map A) a C`.  This is bridged to the composition form
+  `f.val ≫ ∋_C = R̄` (`mapTranspose_existsUnique_all`) WITHOUT the §2.41 `[Logos]`
+  `relPullback ≅ graph f ⊚ U` machinery: `relOf_relPullback_of_tab` (`relOf (relPullback f U) =
+  f.val ≫ relOf U`, via the §2.147 pullback CROSS-term `mapPullback_cross`) computes the allegory
+  relation of `relPullback f (mapMem C)` directly, and the §2.217(2) BinRel↔allegory dictionary
+  (`relOf_le_of_relLe`/`relLe_of_relOf_le`) converts "equal allegory relation" ⟺ "mutual `RelHom`". -/
 
 /-! ## §2.414  SUBOBJECT CLASSIFIER  `Ω = [1]`  of `Map(A)`
 
@@ -492,5 +493,169 @@ noncomputable example : @HasSubobjectClassifier (MapObj 𝒜) (mapCat (𝒜 := �
 noncomputable example : @HasBinaryProducts (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) := inferInstance
 
 end Classifier
+
+/-! ## §2.414  POWER OBJECTS  `[C]`  of `Map(A)` — the final `has_pow` gap
+
+  The §1.9 power object `[C]` of `Map(A)` is `PowerAllegory.powerObj C` with membership the
+  span `mapMem C` (allegory relation `∋_C = eps C`).  `HasPowerObject` demands the §1.9
+  `IsUniversalRel (mapMem C)`, phrased with `relPullback f (mapMem C) ≅ R` (mutual `RelHom`)
+  for every §1.9 binary relation `R : BinRel (Map A) A C`.  We bridge this to the composition
+  form `f.val ≫ ∋_C = R̄` (`mapTranspose_existsUnique_all`) WITHOUT the §2.41 `[Logos]`
+  `relPullback ≅ graph f ⊚ U` machinery: the §2.147 pullback CROSS-term (`mapPullback_cross`,
+  `pb.π₁°≫pb.π₂ = f≫g°`) computes the allegory relation of `relPullback f (mapMem C)` directly,
+  and the §2.217(2) BinRel↔allegory dictionary (`relOf_le_of_relLe`/`relLe_of_relOf_le`) turns
+  "equal allegory relation" into "mutual `RelHom`" and back.
+
+  `HasPullbacks` pinning: `IsUniversalRel`/`HasPowerObject` take `[HasPullbacks 𝒞]` as a
+  parameter, so the `relPullback` inside them uses whichever instance is inferred.  We pin
+  `mapHasPullbacks` in the bridge lemma, in `@IsUniversalRel`, and in `@HasPowerObject.mk`, so
+  all three see the SAME pullback route (Freyd's tabulation pullbacks) and unify. -/
+
+section RelPullbackRelOf
+variable {𝒜 : Type u} [TabularUnitaryDistributiveAllegory 𝒜]
+
+/-- **§2.414 bridge (general)**: the allegory relation of a §1.9 relation-pullback in `Map(A)`
+    is `relOf (relPullback f U) = f.val ≫ relOf U`.  Proof (over a bare distributive tabular
+    allegory, so the `relColA`/`relColB` dictionary applies with no `PowerAllegory` diamond):
+    `relPullback f U` has legs `π₁ : pb → a` and `π₂ ≫ U.colB : pb → c`, so its `relOf` is
+    `π₁.val° ≫ (π₂.val ≫ U.colB.val) = (π₁.val° ≫ π₂.val) ≫ U.colB.val = (f.val ≫ U.colA.val°)
+    ≫ U.colB.val = f.val ≫ (U.colA.val° ≫ U.colB.val) = f.val ≫ relOf U`, using the §2.147
+    pullback cross-term `mapPullback_cross` (`π₁°≫π₂ = f≫g°`). -/
+theorem relOf_relPullback_of_tab {a p c : 𝒜}
+    (f : @Cat.Hom (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) a p)
+    (U : @BinRel (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) p c) :
+    relOf (@Freyd.relPullback (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) mapHasPullbacks p c a f U)
+      = f.val ≫ relOf U := by
+  -- Pin cone projections via `@Cone.π₁/π₂` (the dot form `pb.cone.π₁` mis-resolves the priority-0
+  -- `mapCat`; see `relOf_compose`).
+  let uA := @BinRel.colA (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) p c U
+  let pb := @HasPullbacks.has (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) mapHasPullbacks a
+              (@BinRel.src (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) p c U) p f uA
+  let π₁ := @Cone.π₁ (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) _ _ _ f uA pb.cone
+  let π₂ := @Cone.π₂ (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) _ _ _ f uA pb.cone
+  have hcross : π₁.val° ≫ π₂.val = f.val ≫ (relColA U)° := mapPullback_cross f uA pb
+  have hcA : relColA (@Freyd.relPullback (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) mapHasPullbacks p c a f U)
+      = π₁.val := rfl
+  have hcB : relColB (@Freyd.relPullback (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) mapHasPullbacks p c a f U)
+      = π₂.val ≫ relColB U := rfl
+  calc relOf (@Freyd.relPullback (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) mapHasPullbacks p c a f U)
+      = (relColA (@Freyd.relPullback (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) mapHasPullbacks p c a f U))°
+          ≫ relColB (@Freyd.relPullback (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) mapHasPullbacks p c a f U) :=
+        rfl
+    _ = π₁.val° ≫ (π₂.val ≫ relColB U) := by rw [hcA, hcB]
+    _ = (π₁.val° ≫ π₂.val) ≫ relColB U := by rw [← Cat.assoc]
+    _ = (f.val ≫ (relColA U)°) ≫ relColB U := by rw [hcross]
+    _ = f.val ≫ ((relColA U)° ≫ relColB U) := by rw [Cat.assoc]
+    _ = f.val ≫ relOf U := rfl
+
+/-- Allegory-order reflexivity from equality (`R = S ⟹ R ⊑ S`). -/
+theorem relLe_of_eq {a b : 𝒜} {R S : a ⟶ b} (h : R = S) : R ⊑ S := h ▸ le_refl R
+
+/-- **§2.217(2) dictionary**: equal allegory relation ⟹ mutual `RelHom` in `Map(A)`.  Both
+    directions of `relLe_of_relOf_le` (the reverse dictionary), one per inequality. -/
+theorem mutual_relHom_of_relOf_eq {a b : 𝒜}
+    (E F : @BinRel (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) a b) (h : relOf E = relOf F) :
+    @RelHom (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) a b E F
+      ∧ @RelHom (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) a b F E := by
+  obtain ⟨w1⟩ := relLe_of_relOf_le (relLe_of_eq h)
+  obtain ⟨w2⟩ := relLe_of_relOf_le (relLe_of_eq h.symm)
+  exact ⟨w1, w2⟩
+
+end RelPullbackRelOf
+
+section PowerObjects
+variable {𝒜 : Type u} [TabularUnitaryUnguardedPowerAllegory 𝒜]
+
+/-- `relOf (mapMem C) = ∋_C = eps C`: the allegory relation of the membership span is the
+    epsilon (`relColA° ≫ relColB = memP° ≫ memQ = eps C`, `memSpan_rel`). -/
+theorem relOf_mapMem (C : 𝒜) : relOf (mapMem C) = PowerAllegory.eps C := memSpan_rel C
+
+/-- **§2.414 bridge (A)**: the allegory relation of the §1.9 pullback `relPullback f (mapMem C)`
+    (in `Map(A)`) is `f.val ≫ ∋_C`.  Immediate from the general `relOf_relPullback_of_tab`
+    (`relOf (relPullback f U) = f.val ≫ relOf U`) plus `relOf_mapMem` (`relOf (mapMem C) = ∋_C`). -/
+theorem relOf_relPullback_mem (C : 𝒜) {a : 𝒜}
+    (f : @Cat.Hom (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) a (PowerAllegory.powerObj C)) :
+    relOf (@Freyd.relPullback (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) mapHasPullbacks
+        (PowerAllegory.powerObj C) C a f (mapMem C))
+      = f.val ≫ PowerAllegory.eps C := by
+  rw [relOf_relPullback_of_tab f (mapMem C), relOf_mapMem]
+
+/-- **§2.414 (universality, existence)**: every §1.9 relation `R : BinRel (Map A) a C` is
+    classified by a UNIQUE map `f : a → [C]` with `R ≅ relPullback f (mapMem C)`.  The classifier
+    is the transpose `f = A(R̄)` (`mapTranspose_existsUnique_all`) of `R̄ = relOf R`; the iso
+    `R ≅ relPullback f (mapMem C)` is "equal allegory relation" (bridge A: `relOf (relPullback f
+    (mapMem C)) = f.val ≫ ∋_C = R̄ = relOf R`) turned into mutual `RelHom` by the dictionary. -/
+theorem mapClassifyExists (C : 𝒜) (a : 𝒜)
+    (R : @BinRel (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) a C) :
+    ∃ f : @Cat.Hom (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) a (PowerAllegory.powerObj C),
+      @RelHom (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) a C R
+          (@Freyd.relPullback (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) mapHasPullbacks
+            (PowerAllegory.powerObj C) C a f (mapMem C))
+        ∧ @RelHom (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) a C
+          (@Freyd.relPullback (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) mapHasPullbacks
+            (PowerAllegory.powerObj C) C a f (mapMem C)) R := by
+  obtain ⟨f, hf, _⟩ := mapTranspose_existsUnique_all C (relOf R)
+  have key : relOf (@Freyd.relPullback (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) mapHasPullbacks
+      (PowerAllegory.powerObj C) C a f (mapMem C)) = relOf R := by
+    rw [relOf_relPullback_mem]; exact hf
+  obtain ⟨w1, w2⟩ := mutual_relHom_of_relOf_eq R _ key.symm
+  exact ⟨f, w1, w2⟩
+
+/-- **§2.414 (universality, uniqueness)**: the classifying map is unique.  If `f, g : a → [C]`
+    both present `R` as `relPullback · (mapMem C)`, then `f.val ≫ ∋_C = relOf R = g.val ≫ ∋_C`
+    (bridge A + the dictionary), so `f = g` by `mapTranspose_existsUnique_all`'s uniqueness. -/
+theorem mapClassifyUnique (C : 𝒜) (a : 𝒜)
+    (R : @BinRel (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) a C)
+    (f g : @Cat.Hom (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) a (PowerAllegory.powerObj C))
+    (hf : @RelHom (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) a C R
+            (@Freyd.relPullback (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) mapHasPullbacks
+              (PowerAllegory.powerObj C) C a f (mapMem C))
+          ∧ @RelHom (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) a C
+            (@Freyd.relPullback (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) mapHasPullbacks
+              (PowerAllegory.powerObj C) C a f (mapMem C)) R)
+    (hg : @RelHom (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) a C R
+            (@Freyd.relPullback (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) mapHasPullbacks
+              (PowerAllegory.powerObj C) C a g (mapMem C))
+          ∧ @RelHom (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) a C
+            (@Freyd.relPullback (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) mapHasPullbacks
+              (PowerAllegory.powerObj C) C a g (mapMem C)) R) :
+    f = g := by
+  obtain ⟨f0, _, huniq⟩ := mapTranspose_existsUnique_all C (relOf R)
+  have hfe : relOf (@Freyd.relPullback (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) mapHasPullbacks
+      (PowerAllegory.powerObj C) C a f (mapMem C)) = relOf R :=
+    le_antisymm (relOf_le_of_relLe ⟨hf.2⟩) (relOf_le_of_relLe ⟨hf.1⟩)
+  have hge : relOf (@Freyd.relPullback (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) mapHasPullbacks
+      (PowerAllegory.powerObj C) C a g (mapMem C)) = relOf R :=
+    le_antisymm (relOf_le_of_relLe ⟨hg.2⟩) (relOf_le_of_relLe ⟨hg.1⟩)
+  have hfeps : f.val ≫ PowerAllegory.eps C = relOf R := by rw [← relOf_relPullback_mem C f]; exact hfe
+  have hgeps : g.val ≫ PowerAllegory.eps C = relOf R := by rw [← relOf_relPullback_mem C g]; exact hge
+  rw [huniq f hfeps, huniq g hgeps]
+
+/-- **§2.414-converse (power objects)**: `∋_C = mapMem C` is a §1.9 UNIVERSAL relation targeted
+    at `C` (`mapClassifyExists`/`mapClassifyUnique`). -/
+theorem mapIsUniversal (C : 𝒜) :
+    @IsUniversalRel (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) mapHasPullbacks
+      (PowerAllegory.powerObj C) C (mapMem C) :=
+  @IsUniversalRel.mk (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) mapHasPullbacks
+    (PowerAllegory.powerObj C) C (mapMem C)
+    (fun a R => mapClassifyExists C a R)
+    (fun a R f g hf hg => mapClassifyUnique C a R f g hf hg)
+
+/-- **§2.414-converse (has_pow)**: every object `C` of `Map(A)` has a POWER OBJECT
+    `[C] = PowerAllegory.powerObj C` with membership span `mapMem C` (allegory relation `∋_C`) as
+    its §1.9 universal relation. -/
+noncomputable instance mapHasPowerObject (C : 𝒜) :
+    @HasPowerObject (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) mapHasPullbacks C :=
+  @HasPowerObject.mk (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) mapHasPullbacks C
+    (PowerAllegory.powerObj C) (mapMem C) (mapIsUniversal C)
+
+/-- **§2.414-converse (TOPOS)**: `Map(A)` of a tabular unitary UNGUARDED power allegory is a
+    TOPOS.  Finite limits + `HasBinaryProducts` are `mapPreLogos`; the subobject classifier
+    `Ω = [1]` is `mapHasSubobjectClassifier`; power objects are `mapHasPowerObject`. -/
+noncomputable instance mapTopos : @Topos.{v} (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) :=
+  @Topos.mk (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) mapHasBinaryProducts mapHasSubobjectClassifier
+    (fun C => mapHasPowerObject C)
+
+end PowerObjects
 
 end Freyd.Alg
