@@ -30,11 +30,10 @@ merged class `TabularUnitaryUnguardedPowerAllegory`): Map(A) has FULL power obje
   `splEqTarget_thick` (the per-object thickness) is done.
 - ~~**§2.537**~~ — **DONE** (`quot_effective_power_is_power_unguarded`, commit 28fe050): unconditional over the
   unguarded base (`EffectiveUnguardedPowerAllegory`); the §2.41 box-naming hbox is automatic when ∋ is unguarded.
-- **§2.414 converse** (`S2_41b`) — finite limits (`mapPreLogos`) + FULL power objects
-  (`mapTranspose_existsUnique_all`) + subobject classifier `Ω=[1]` (`mapHasSubobjectClassifier`, commit 40a10f3)
-  all DONE over `UnguardedPowerAllegory`. ONLY remaining for the full `Topos` instance: `has_pow : ∀ C,
-  HasPowerObject C` — bridging the composition form `f≫∋=R̄` (have) to the `IsUniversalRel`/`relPullback`
-  form (S1_9 wants), i.e. transport `relPullback ≅ graph⊚mem` (cf. `relPullback_graphComp`) onto `Rel(Map A)`.
+- ~~**§2.414 converse**~~ — **DONE** (`mapTopos : Topos (Map A)`, `S2_41b`, commit af6d347): finite limits
+  + full power objects + subobject classifier + `has_pow` all assembled over `TabularUnitaryUnguardedPower-
+  Allegory`. Bridge `relOf(relPullback f U)=f≫relOf U` (from §2.147 cross-term) reduces `IsUniversalRel` to
+  `mapTranspose_existsUnique_all`. §2.414 COMPLETE both directions. Axioms [propext, Classical.choice].
 - ~~**§2.416 `hCotuple`**~~ — **DONE** (`hCotuple_of_coproduct` / `progenitor_straight_thick_of_coproduct`,
   S2_44, commit 308a811): discharged from binary coproducts + effectiveness via the coproduct mediator +
   §2.354 straightening. No box-gating.
