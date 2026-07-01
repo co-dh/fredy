@@ -26,8 +26,16 @@ merged class `TabularUnitaryUnguardedPowerAllegory`): Map(A) has FULL power obje
 - ~~**§2.441 (3)⟹(1)**~~ — **DONE** (`straightJoin_to_prePositive`, `S2_441`, commit 44fc9c8): over
   `UnguardedPowerAllegory`, ℓ=A(1)≫A(1), ϰ=A(1/∋) into [[[γ]]], disjointness via `A_zero_inter_A_one`.
   `prePositive_wellJoined_straightJoin_tfae'` closes the TFAE. Axioms [propext].
-- **§2.433 full instance** — needs the reflexive-only `Spl(Eq)` subtype + per-object `SplEqBoxNaming` (the wall);
-  `splEqTarget_thick` (the per-object thickness) is done.
+- **§2.433 full instance** — FOUNDATION DONE (`S2_433_SplEqInstance2`, commit f09be78): `SplEqObj` subtype +
+  Cat/Allegory/Distributive/Division (mirrors `SplCorObj`), sorry-free. Per-object thickness `splEqTarget_thick`
+  done; effective-split part DOABLE (`spl_equivalence_splits_map` + split object reflexive since Φ⊒E.idem⊒id).
+  REAL BLOCKER (found 2026-06-30): the repo's `EffectiveAllegory` bundles `TabularAllegory` with eq-splitting,
+  but `Spl(Eq)` is effective only in FREYD's weaker §2.169 sense (eq-relations split) and is NOT tabular — its
+  §2.166 tabulation apex `1∩f≫Ψ≫g°` is COREFLEXIVE (lives in `Spl(Cor)`, not `Spl(Eq)`). So
+  `effective_pre_power_is_power` (needs tabular-bundled Effective) doesn't apply. TWO paths to close: (a) restate
+  §2.432 over Freyd's non-tabular "effective" (eq-split only) — needs checking `straight_factorization`/
+  `exists_straight_thick_target` don't use tabular; or (b) §2.434 systemic completion (split coreflexives too)
+  to recover tabularity. Architectural decision, not boilerplate.
 - ~~**§2.537**~~ — **DONE** (`quot_effective_power_is_power_unguarded`, commit 28fe050): unconditional over the
   unguarded base (`EffectiveUnguardedPowerAllegory`); the §2.41 box-naming hbox is automatic when ∋ is unguarded.
 - ~~**§2.414 converse**~~ — **DONE** (`mapTopos : Topos (Map A)`, `S2_41b`, commit af6d347): finite limits
