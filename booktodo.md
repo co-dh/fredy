@@ -8,15 +8,21 @@ Each lists: file:line — what the `.typ` has now → what the scan shows (book 
 
 ## FIX PLAN (2026-06-30 full-book review — read this before editing any fix_ocr)
 
-**Scope of this pass:** all 15 sections reviewed (§1.1–1.10, §2.1–2.5) by one agent per section comparing
-`.typ` against the scan, then independently gated by re-checking every SEMANTIC finding myself (grep for
-self-contradiction within the `.typ`, or a PDF re-read/zoom when no internal tell existed) before recording it
-here — see "Verification-tier note" below the §1.7 entries for what CONFIRMED/PLAUSIBLE mean. **Coverage
-caveat: this catches false positives well; it does NOT prove completeness. Absence of an entry means
-"unaudited," not "clean," except where a section says otherwise.** §1.1/§1.10 audit still pending a redispatch
-(original agent's transcript was lost); will be appended when it lands.
+**Scope of this pass:** all 15 sections reviewed (§1.1–1.10, §2.1–2.5), one agent per section comparing `.typ`
+against the scan, then independently gated by re-checking every SEMANTIC finding myself before recording it
+here (§1.1/§1.10 were small enough to re-derive directly rather than just gate a report). **Coverage caveat:
+this catches false positives well; it does NOT prove completeness. Absence of an entry means "unaudited," not
+"clean," except where a section says otherwise.**
 
-**Fix this BEFORE anything else — 3 regressions where a prior fix_ocr made the `.typ` WRONG, so the current
+**Verification-tier note (applies to every entry in this file):** **CONFIRMED** = independently re-checked
+against the scan (zoom when the glyph pair is genuinely close, e.g. `f^#`/`f^*`, `R°°`/`R^∞`). **CONFIRMED
+(self-evident)** = the `.typ` contradicts itself — the same symbol/formula appears correctly elsewhere in the
+same line/sentence/paragraph, checked directly by grep/read, no PDF needed (at least as strong as a scan check
+— it's the same failure mode that caught the original `∋`/`∃` bug, just spotted via text instead of image).
+**PLAUSIBLE** = agent-reported with a stated scan check I did not personally re-derive (lower stakes, or the
+corroborating evidence was already strong enough not to warrant re-spending a PDF read).
+
+**Fix this BEFORE anything else — 4 regressions where a prior fix_ocr made the `.typ` WRONG, so the current
 text looks deliberate/reviewed but isn't:**
 1. `fix_ocr_1.4.py` line ~68 (`SCRIPT_SUBS`): `chapters/1.4/section-1.4.typ:77` — its own `Val(Y)` rewrite is
    backwards; revert to `\mathcal{H}(Y)` on this ONE site only (the script correctly leaves the *other* `ℋ(Y)`
@@ -29,23 +35,42 @@ text looks deliberate/reviewed but isn't:**
    `chapters/1.9/section-1.9.typ:140,144` the book actually has `\leftrightarrow` (the §1.914 Heyting
    double-arrow operation), and the substituted `\to` produces an ill-typed formula (intersecting a subobject
    with a morphism). **Audit every hit of this regex in §1.9** before trusting the rest of that file's arrows.
+4. `fix_ocr_1.1.py`'s `eqv` block (line ~98) correctly established `\asymp` as this pipeline's rendering of the
+   book's own directed-equality "venturi-tube" symbol, but only patched 2 of the (at least) 6 sites that need
+   it — `chapters/1.1/section-1.1.typ:54,112,121,130` are still plain `=`/`\mathop{=}`. Not a fix that made
+   things wrong, but an incomplete pattern-match worth grouping with the regressions since it's the same
+   "looks reviewed, isn't" risk.
 
-**Then fix by CLASS, not by line — the ~150 findings collapse to about 10 systemic patterns. One
-`fix_ocr_<sec>.py` substitution table per class per section, on the `fix_ocr_1.3.py` `INFLATION_C` precedent
-(exact-string subs, scoped, never a blanket regex across a whole file):**
+**Then fix by CLASS, not by line — the ~150 findings collapse to about 12 systemic patterns. SILENT flips
+(the wrong reading still parses as valid, plausible mathematics — a reader gets no visual cue anything broke,
+same failure shape as the §2.41 `∋`/`∃` bug that started this whole review) go first, since those are what
+let a formalization derive something false. Self-announcing garble (doesn't compile to readable text, blocks
+grepping but doesn't create false confidence) goes second — annoying and worth fixing, but lower-stakes by
+construction. One `fix_ocr_<sec>.py` substitution table per class per section, on the `fix_ocr_1.3.py`
+`INFLATION_C` precedent (exact-string subs, scoped, never a blanket regex across a whole file):**
+
+### Silent semantic flips — fix first
 
 | # | Class | Where found | Fix approach |
 |---|-------|-------------|--------------|
-| 1 | `∃`(exists)/`∋`(membership) confusion, and `∀`/`A` in §1.3's Q-tree material | §1.3, §1.9, §2.4 (both directions — see §2.4's caution below) | Exact-string subs. **Never blanket `\exists`→`\ni`** — §2.4 line 334 and §1.9 line 191 have genuine correct `\exists`/`\exists!`; the tell is a bound variable (`\exists_A`) vs bare backward-E. |
-| 2 | Calligraphic/script-word letter confusion (the broadest class: single-letter `C`/`G`/`O`/`E`/`I` swaps, and multi-letter cursive words `Sub`/`Rel`/`Dom`/`Map`/`Split`/`Cor`/`Sh`/`Ab`/`Val`/`Ker`/`Cok`/`Sid` each mis-OCR'd differently almost every occurrence) | Nearly every section — §1.2 (class-of-objects), §1.3 (𝒪(Y), Γ_*), §1.5 (Sh/Ab/C-as-E), §1.6 (S/I, LH/M), §1.9 (Sub variants), §2.1/§2.2/§2.3 (Dom/Map/Split/Cor — **zero prior fix_ocr coverage, highest raw count**), §2.5 (Dom, S/I) | Per-section substitution table, one entry per garbled spelling → canonical word. **Never a project-wide regex** — the same raw glyph/string means different things in different sections (documented case: `\mathcal{O}(Y)` is genuinely the open-set lattice in §1.373+ but a mis-OCR of inflation-class 𝒞 in §1.36 — CLAUDE.md already flags this). Scope every sub to the section + context it was verified in. |
-| 3 | Γ (capital Gamma, functor names) misread as `T`/`I`/`r`/`{\cal T}` | §1.3 (sheafification Γ_*), §1.5 (Henkin-Lubkin `T_B`'s own Γ factor), §1.7 (scone functor, §1.72(10)–1.734) | Same shape as class 2 but flagged separately since it recurred independently in 3 different sections — likely worth a shared checklist/heuristic ("any bare `T`/`{\cal T}` near a functor-representation sentence — check the scan") rather than assuming it's fully caught once. |
-| 4 | Box operator □ family misread as `∏`, `⊐`(target confused with source), `⋆`/`\bigstar`, or residual `\boxed{}` | §1.3 (⊏/⊐ position swap), §2.1 (`∏x=x□`), §2.2 (`\bigstar R=\bigstar S`) | Exact-string subs; cross-check the source/target (prefix/postfix) position isn't flipped, not just the glyph family. |
-| 5 | Dropped negation slash: `⊂`→`⊄`, `∈`→`∉`(or vice versa) | §1.5 (⊄→∉), §1.6 (⊂→⊄, flips a biconditional — **still needs a confirming zoom, see §1.6 finding 1**), §1.9 (∉ dropped) | Case-by-case — a negation slash is a single stroke, easy to lose in OCR, and flips meaning to near-opposite every time. Highest scrutiny per instance of any class here. |
-| 6 | `f^\#`/`f^{\#\#}` (sharp) misread as `f^*`/`f^{**}` (asterisk) | §1.7 (CONFIRMED wrong — zoomed) | **Not a blanket fix.** §1.6 lines 41/45/145 legitimately mix `#` and `*` as two distinct notations in one sentence (checked at zoom, matches book p.63's genuine dual usage) — every instance needs its own scan check, this pair is genuinely ambiguous at normal render resolution. |
-| 7 | τ (Greek tau, the τ-category apparatus) misread as digit "7" or letter "T" | §1.4 (§1.49–1.4(12), ~14 pages, CONFIRMED via zoom) | Section-scoped regex is safe here (unlike class 2) since τ-category is §1.4-only vocabulary — sweep `\b7-` and `\bT-(table|categor|functor|structure)` in that one file. |
-| 8 | Accent scatter: one symbol rendered with `\bar`/`\breve`/`\vec`/`\hat` inconsistently | §1.7 (R̄, CONFIRMED — 4 different accents for one symbol in one proof), §2.5 (prime read as comma, related failure) | Pick the majority/first-established accent in each thread, substitute the outliers. |
+| 1 | `∃`(exists)/`∋`(membership) confusion, and `∀`/`A` in §1.3's Q-tree material | §1.3, §1.9, §2.4 (both directions) | Exact-string subs. **Never blanket `\exists`→`\ni`** — §2.4 line 334 and §1.9 line 191 have genuine correct `\exists`/`\exists!`; the tell is a bound variable (`\exists_A`) vs bare backward-E. |
+| 2 | Dropped negation slash: `⊂`→`⊄`, `∈`→`∉` (or vice versa) | §1.5 (⊄→∉), §1.6 (⊂→⊄, flips a biconditional — **still needs a confirming zoom, see §1.6 finding 1**), §1.9 (∉ dropped) | Case-by-case — a negation slash is a single stroke, easy to lose in OCR, and flips meaning to near-opposite every time. Highest scrutiny per instance of any class here. |
+| 3 | Single-LETTER calligraphic swaps (`C`/`G`/`O`/`E`/`I`/`M`/`T` for each other) — as opposed to the multi-letter wordmarks in class 8 below, a single-letter swap renders as a completely plausible-looking symbol with zero visual tell | §1.2 (class-of-objects), §1.3 (𝒪(Y), Γ_*), §1.5 (Sh as ℳ/ℐ, C-as-E), §1.6 (S/I, LH/M), §2.1 (index letters), §2.5 (S/I) | Exact-string subs, heavily scoped per occurrence. **Never a project-wide regex** — the same raw glyph/string means different things in different sections (documented: `\mathcal{O}(Y)` is genuinely the open-set lattice in §1.373+ but a mis-OCR of inflation-class 𝒞 in §1.36 — CLAUDE.md already flags this). |
+| 4 | Γ (capital Gamma, functor names) misread as `T`/`I`/`r`/`{\cal T}` | §1.3 (sheafification Γ_*), §1.5 (Henkin-Lubkin `T_B`'s own Γ factor), §1.7 (scone functor, §1.72(10)–1.734) | Recurred independently in 3 different sections — worth a shared checklist ("any bare `T`/`{\cal T}` near a functor-representation sentence — check the scan") rather than assuming any one section's fix generalizes. |
+| 5 | Book-specific directed-equality symbol ("venturi-tube", this pipeline's chosen rendering is `\asymp`) collapsed to plain `=` | §1.1 (4 sites the existing partial fix missed — see regression #4 above; foundational, §1.11–1.12 exist specifically to define this symbol) | Exact-string subs completing `fix_ocr_1.1.py`'s existing (partial) pattern; check §1.1(10)/scone-adjacent sections for the same symbol before assuming it's §1.1-only. |
+| 6 | Prose-mode diacritic drop: `Â` (the scone) flattened to plain `A` outside math-mode | §1.10 (**the section's own opening/headline theorem, §1.(10)1, is stated as a near-tautology** — highest single-line value of any finding in this review given it's the one theorem the rest of the section exists to prove) | Math-mode `\hat{\mathbf{A}}` already renders correctly throughout — only prose-mode instances need the fix; grep for bare "category A"/"category Â" pairs in scone-adjacent prose. |
+| 7 | Box operator □ family misread as `∏`, `⊐`(source/target position confused), `⋆`/`\bigstar`, or residual `\boxed{}` | §1.3 (⊏/⊐ position swap), §2.1 (`∏x=x□`), §2.2 (`\bigstar R=\bigstar S`) | Exact-string subs; cross-check the source/target (prefix/postfix) position isn't flipped, not just the glyph family. |
+| 8 | Accent scatter / dropped prime: one symbol rendered with `\bar`/`\breve`/`\vec`/`\hat` inconsistently, or a prime misread as a comma | §1.7 (R̄, 4 different accents for one symbol in one proof), §2.5 (prime→comma turns a proof-by-contradiction into a literal tautology — the single most dangerous individual finding of this whole review, since it inverts a proof's logical structure, not just a symbol's identity) | Pick the majority/first-established accent in each thread, substitute the outliers; the §2.5 case needs a straight prime restoration, not a choice. |
 | 9 | Dropped/wrong delimiters: `[X]` vs `{X}`, missing `⟨⟩`, missing `\|X\|` bars | §1.3 (`[T]`/`{T}`), §1.9 (`[B]`/`{B}`), §1.5 (missing `\|A\|`, `⟨⟩`) | Exact-string subs; usually has a same-sentence corroborating tell. |
-| 10 | Dropped arrows (`X  Y` double-space, no `\to`) and citation en-dashes (`[a-b]`→`[ab]`) | Nearly every section | Lowest severity (self-evident once you look, `fix_ocr`'s existing `_DROPPED_ARROW`-style regexes catch most) — EXCEPT where the dropped connective isn't `\to` (see regression #3 above) or where it's `\leftrightarrow`/`\rightleftharpoons`. |
+
+### Self-announcing garble — fix second (visibly broken, doesn't create false confidence, but blocks grepping)
+
+| # | Class | Where found | Fix approach |
+|---|-------|-------------|--------------|
+| 10 | Multi-letter cursive WORDMARKS (`Sub`/`Rel`/`Dom`/`Map`/`Split`/`Cor`/`Sh`/`Ab`/`Val`/`Ker`/`Cok`/`Sid`) each garbled into non-English strings, differently almost every occurrence | Nearly every section, worst in §2.1/§2.2/§2.3 (**zero prior fix_ocr coverage, highest raw count** — building this table also creates the missing `fix_ocr_2.x.py` files the rest of Ch.2 will need) | Per-section substitution table, one entry per garbled spelling → canonical word. Doesn't mislead (none of the garbled forms compile to readable English) but makes the `.typ` ungreppable exactly where the Lean formalization's "always grep the book text" convention needs it most. |
+| 11 | `f^\#`/`f^{\#\#}` (sharp) misread as `f^*`/`f^{**}` (asterisk) | §1.7 (CONFIRMED wrong — zoomed) | **Not a blanket fix, and not clearly "silent" either — genuinely ambiguous at normal render resolution.** §1.6 lines 41/45/145 legitimately mix `#` and `*` as two distinct notations in one sentence (checked at zoom, matches book p.63's genuine dual usage) — every instance needs its own scan check. |
+| 12 | τ (Greek tau, the τ-category apparatus) misread as digit "7" or letter "T" | §1.4 (§1.49–1.4(12), ~14 pages, CONFIRMED via zoom) | Section-scoped regex is safe here (unlike class 3) since τ-category is §1.4-only vocabulary — sweep `\b7-` and `\bT-(table|categor|functor|structure)` in that one file. The digit-7 instances are self-announcing (a reader stops at "7-table"); the letter-T instances are closer to silent (T is a plausible name) — worth a second look before assuming this whole class is low-stakes. |
+| 13 | Dropped arrows (`X  Y` double-space, no `\to`) and citation en-dashes (`[a-b]`→`[ab]`) | Nearly every section | Lowest severity (self-evident once you look, `fix_ocr`'s existing `_DROPPED_ARROW`-style regexes catch most) — EXCEPT where the dropped connective isn't `\to` (see regression #3 above) or where it's `\leftrightarrow`/`\rightleftharpoons`, which silently promotes this class into class-1-adjacent territory. |
 
 **Regeneration order once any `fix_ocr_<sec>.py` is edited** (per existing CLAUDE.md convention): run that
 section's `fix_ocr` → `mineru_to_typst` → `typst compile` (or `regen_all.py` for everything), THEN
@@ -53,10 +78,13 @@ section's `fix_ocr` → `mineru_to_typst` → `typst compile` (or `regen_all.py`
 needs to be created per section (there is no existing file to extend), following `fix_ocr_1.3.py`'s
 `INFLATION_C` block as the template for scoped, auditable, exact-string subs.
 
-**Suggested order of work**: (1) the 3 regressions above — small, isolated, high-confidence; (2) §2.1/§2.2/§2.3
-class-2 wordmark tables — zero prior coverage, high raw bug count, and creates the missing `fix_ocr_2.x.py`
-files the rest of Ch.2 will need anyway; (3) the `∃`/`∋` sweep in §1.3/§1.9/§2.4-remainder, given it's the
-class that started this whole review and both directions of confusion are now documented; (4) everything else,
+**Suggested order of work**: (1) the 4 regressions/incomplete-fixes above — small, isolated, high-confidence;
+(2) the silent-flip classes (1–9), especially the `∃`/`∋` sweep in §1.3/§1.9/§2.4-remainder (the class that
+started this whole review, both directions now documented), §2.5's prime-as-comma (inverts a proof), and
+§1.10's headline-theorem hat-drop (highest single-line value) — these are the findings that let a
+formalization silently derive something false, so they dominate on formalization-safety even though they're
+less numerous than class 10; (3) §2.1/§2.2/§2.3's wordmark tables (class 10) — annoying and voluminous but
+lower-stakes, and a good vehicle for standing up the first `fix_ocr_2.x.py` files; (4) everything else,
 lowest-regret first (self-evident/GARBLE tier) before the lower-confidence PLAUSIBLE entries.
 
 ## §2.4 — `chapters/2.4/section-2.4.typ`  (scan: book p.235–236 = PDF p.254–255)
@@ -217,19 +245,6 @@ arrow label ψ misread as `*` at line 327 (§1.744 BECAUSE); `\mathcal{I}` for `
 
 GARBLE (lower stakes): `\mathcal{I}`-for-`\mathcal{S}`/dropped-arrow noise generally throughout;
 none individually itemized further per the lighter-touch policy for this tier.
-
-## Verification-tier note (applies to all entries below)
-
-Recalibrated mid-review (advisor input): re-deriving every finding from a fresh PDF zoom doesn't scale and
-mostly re-proves what the `.typ` already proves about itself. From here, **CONFIRMED** = independently
-re-checked against the scan (zoom when the glyph pair is genuinely close, e.g. `f^#`/`f^*`, `R°°`/`R^∞`).
-**CONFIRMED (self-evident)** = the `.typ` contradicts itself — the same symbol/formula appears correctly
-elsewhere in the same line/sentence/paragraph, checked directly by grep/read, no PDF needed (this is at least
-as strong as a scan check: it's the SAME failure mode that caught the original `∋`/`∃` bug, just spotted via
-text instead of image). **PLAUSIBLE** = agent-reported with a stated scan check I did not personally re-derive
-(lower stakes, or corroborating evidence was strong enough not to warrant re-spending a PDF read). Coverage
-caveat: this whole pass is good at rejecting false positives, not at finding every bug — treat the absence of
-an entry as "not yet audited," never as "confirmed clean," except where a section explicitly says otherwise.
 
 ## §1.3 — `chapters/1.3/section-1.3.typ`  (scan: PDF p.36–55, book p.17–36)
 
@@ -498,6 +513,99 @@ Verified correct: line 46/157/237 (∋ established correct, the section's own ba
 correctly distinguished from the ∋ family); §1.982–1.984 NNO recursion equations (heavily formalized,
 symbol-by-symbol checked, clean); §1.915; no residual `\boxed{}`/stray `\square` anywhere (box operator isn't
 a Ch.1 concept, as expected).
+
+## §1.1 — `chapters/1.1/section-1.1.typ`  (scan: PDF p.22–25, book p.3–6) — redispatch eventually returned;
+also checked directly myself in parallel, findings merged (one correction to my own first pass noted below)
+
+1. **SEMANTIC (CONFIRMED — verified against `fix_ocr_1.1.py`'s own comment, self-evident, new bug class) —
+   the book's directed-equality symbol (venturi-tube "≻" in print, this pipeline's established rendering is
+   `\asymp`/≍ per `fix_ocr_1.1.py:98`'s explicit comment) left as plain `=` at 4 sites the existing fix missed:
+   lines 54, 112, 121, 130.** Line 54, §1.12 — the paragraph that NAMES this notation ("We shall use a
+   venturi-tube **=** for directed equality...") shows plain `=` in the very slot introducing the symbol, and
+   again in the axiom restated right after ("the axiom... is equivalent... with `\square(xy)=\square x`" should
+   be `\asymp`). Line 112, §1.181: `F(x^{-1})=(Fx)^{-1}` should be `\asymp` — `x⁻¹` is defined iff x is an
+   isomorphism; a functor preserves invertibility but need not reflect it, so this is asymmetric, not a true
+   equality (note the odd `{=}` brace-wrapping is itself an OCR-struggle tell, distinct from a bare `=`). Line
+   121, §1.182: `F(xy)=(Fy)(Fx)` (contravariant composition law) should be `\asymp`, same definedness argument
+   — contrast with this same line's other two equations, `F(\square x)=(Fx)\square` and `F(x\square)=\square(Fx)`,
+   which are correctly left as plain `=` since their definedness genuinely is two-sided. Line 130, §1.1(10): the
+   `\mathop{=}` wrapper in `F(xy)\mathop{=}F(x)F(y)` is the same missing-glyph tell — rescued somewhat by the
+   surrounding prose explicitly calling it "the directed equality," but should still be `\asymp` for consistency
+   and greppability. **Self-correction: my own first-pass read flagged this backwards — I initially thought
+   lines 66–67 (`ex\asymp x`, `xe\asymp x`) were the bug; they are not, `fix_ocr_1.1.py`'s `eqv` block already
+   fixes those correctly. The bug is the 4 sites above that the existing fix's pattern-match didn't reach.**
+
+2. **SEMANTIC (CONFIRMED, self-evident, mathematically forced independent of the scan) — dropped □ operator,
+   line 89 (§1.17).** `.typ`: "...yx is an identity morphism (necessarily x)... xz is an identity morphism
+   (necessarily x)" → should be "(necessarily `x\square`)" for the left-invertible clause and "(necessarily
+   `\square x`)" for the right-invertible clause. Provable from the book's own axioms without the scan: under
+   "xy defined iff x□=□y", if yx is an identity then yx=x□ (not "x" — a bare morphism is generally not itself
+   an identity); dual for xz=□x. `fix_ocr_1.1.py` doesn't touch this sentence.
+
+3. **GARBLE (self-evident) — the opposite-category source operator (a box-and-circle combination glyph,
+   defined in this very sentence as "denoted here as [glyph]"), line 123, rendered as a literal stray `\]`.**
+   Confirmed via `content_list.json`'s separate raw-OCR attempt at the same spot, which independently garbled
+   it as `\boxed{\circ}` — two different failed reads of the same non-ASCII combination glyph corroborate that
+   something real and box-related was there, not simple noise. Lower priority (not reused later in the file)
+   but it's a named-notation definition, worth fixing directly from the scan rather than guessing a LaTeX
+   equivalent.
+
+4. **GARBLE (cosmetic) — "implies" letter-spaced into individual characters, line 102** — meaning unaffected,
+   low priority.
+
+Verified correct: the full §1.1 axiom block (book p.3, all plain `=`, matches); the two cropped-image equation
+blocks (lines 95, 106 — pixel-faithful); §1.13's `eqv` block lines 1–4 AND the already-fixed `\asymp` on lines
+5–6; monoid "further equations" block; §1.17's `y=y(xz)=(yx)z=z`; §1.182's first two (correctly non-directed)
+contravariant equations; §1.19; opposite-category's `x∘y=yx`; §1.1(10)'s closing sentence.
+
+## §1.10 — `chapters/1.10/section-1.10.typ`  (scan: PDF p.209–211, book p.190–192) — redispatch eventually
+returned; also checked directly myself in parallel, findings merged
+
+1. **SEMANTIC (CONFIRMED, self-evident) — 𝒜𝒷 (Ab, category of abelian groups) rendered as bare `\mathcal{A}`,
+   lines 31, 91 — same bug class as §1.5 finding 9, now confirmed in a 3rd section.** "(A,−):A→𝒜 is exact iff A
+   is projective" (line 31) and "(A,−):A→𝒜 preserves all colimits" (line 91) should both target `\mathcal{A b}`
+   — the classical representable-functor-into-Ab facts from homological algebra; bare `\mathcal{A}` doesn't
+   name a fixed category. **Strong corroboration: line 95's immediately-following theorem uses the identical
+   `(A,-):(category)\to(target)` construction and correctly renders its target as `\mathcal{S}` (Sets)** — the
+   pipeline gets this pattern right when context is clean; it's specifically the Ab-spelling losing its "b".
+
+2. **SEMANTIC (CONFIRMED — independently re-derived from the same page-209 image I'd already read, and I had
+   missed it on first pass; high value — it's the section's own opening/headline theorem) — Â (the scone)
+   flattened to plain A, line 37 (§1.(10)1).** `.typ`: "Every category A with a terminator is a slice of an
+   exacting category A. If A is regular/.../..., then so is A." As transcribed this is trivial-or-vacuous (a
+   category being "a slice of" and sharing all properties with *itself*). Should be: "...is a slice of an
+   exacting category **Â**. If A is regular/.../..., then so is **Â**" — confirmed directly against the scan
+   image (book p.190 clearly shows the hat both times) and internally: §1.(10)11 ("The slice Â/M is equivalent
+   to A" — i.e. A is a slice of Â, not of itself) and §1.(10)12 ("The scone is exacting", referring to Â) both
+   depend on THIS theorem asserting something about Â, not a tautology about A. Root cause: the hat survives
+   correctly in math-mode (`\hat{\mathbf{A}}`, correct throughout §1.(10)3/13/31) but drops in prose-mode —
+   this theorem statement is prose, not mitex, and `fix_ocr_1.10.py` doesn't address it. **This is the single
+   highest-value fix in this section**: it's the theorem the entire rest of §1.10 exists to prove.
+
+3. **SEMANTIC (same root cause as #2, immediately adjacent) — "its SCONE A is defined by", line 39** — should
+   be "its SCONE **Â** is defined by" — same prose-mode hat-drop, reinforcing #2 is systematic, not a one-off.
+
+4. **GARBLE — citation range collapsed, line 39.** `[1.21.22]` should be `[1.2-1.22]` (a range 1.2 through
+   1.22; hyphen dropped, reads as a nonexistent subsection "1.21.22").
+
+5. **GARBLE — dropped leading subject "𝒮", line 33.** ".typ" paragraph opens "is the only exacting boolean
+   Grothendieck topos" with no subject; raw `content_list.json` text confirms a leading script-S was present
+   in the original OCR pass and got lost before reaching the `.typ`.
+
+6. **GARBLE (minor) — lowercase `s` should be capital `S`, line 57** — inconsistent with every other occurrence
+   of the same `⟨S,A⟩` pair-variable nearby (3 times in the same equation, dozens more in the section).
+
+7. **GARBLE (minor, lower confidence, flagged by agent as needing a second look) — possibly dropped subscript,
+   line 97**: `\Sigma_I A` likely should be `\Sigma_I A_i` (the very next clause uses the subscripted family
+   `A_i`/`A_j`; an un-subscripted "A" under `Σ_I` doesn't parse as written).
+
+Verified correct: Γ (scone's exact functor) at every occurrence (lines 29, 39, 49, 81 — contrasts with the
+Γ-misread pattern in §1.3/§1.5/§1.7, this section's OCR handled it cleanly); Sh→𝒮 fix throughout; `M=⟨∅,1⟩` fix;
+left-adjoint `⟨∅,A⟩` fix; `\mathcal{Sub}_Â` fix; the §1.(10)3/13/31 math-mode `Â` chains (correctly hatted,
+contrasting with findings 2–3's prose-mode drops); §1.(10)41's `(A,-):E\to\mathcal{S}` (correctly *not*
+truncated, contrasting with finding 1); all three diagram crops (source-target square, Γ-triangle, sheaf-pullback
+square) pixel-intact. The §1.(10)14 formula block's `\#\#` (double-sharp) rendering was not chased at zoom
+(same `f^\#`-vs-`f^*` ambiguity as §1.6/§1.7 — self-consistent either way, doesn't affect derivable content).
 
 ## §1.5 — `chapters/1.5/section-1.5.typ`  (scan: PDF p.87–116, book p.68–97)
 
