@@ -247,7 +247,18 @@ Spl(Eq 𝒜) are the R with e≫R = R = R≫f, book's IR = R = RJ form, axiom-FR
 repo's §2.164 sandwich normal form; instantiation `AsmRel K` = Rel(Assembly K), `AsmEffReflection K` = Spl(Eq) of it;
 `asmQuot` A/I objects + `asmEffReflection_obj_form`; `asmEmbed` A↦A/1_A full/faithful (re-export of §2.16(13) `embEq`);
 `asmEmbedMap` graph-functor on assembly morphisms, faithful; effectiveness headline `asmEffReflection_eqSplits`; all
-instantiated facts [propext,choice,Quot.sound]; S2_16d. Universal property of the reflection NOT formalized).
+instantiated facts [propext,choice,Quot.sound]; S2_16d. Universal property of the reflection NOT formalized) ·
+§2.154 CATEGORIES-EQUIVALENCE HEADLINE (`smallRegCat_equiv_smallTabAlleg : StrongEquivalence RelF MapF` — the
+category of small regular categories (`SmallRegCat`, morphisms `RegRep` = regular functor + terminator preservation)
+is equivalent to the category of small unitary tabular allegories (`SmallTabAlleg`, morphisms `UnitaryRep`);
+Freyd says "isomorphic" — downgraded to strong equivalence only because the roundtrips change the carrier TYPE by
+the `RelObj` wrapper, every natural-iso component is identity-on-objects up to that wrapper. Middle paragraph
+`mapRep_regular`/`mapRep_pres_term` [propext,choice]: a unitary representation restricts to a regular functor
+Map 𝒜 → Map ℬ; `pres_isUnit_of_isUnit` §2.15 unit transfer [propext]; equational characterizations of
+monic/cover/pullback/image in Map 𝒜; `counit_isIso` Rel(Map 𝒜)≅𝒜 + `unit_isIso` C≅Map(Rel C) + naturality;
+headline [propext,choice,Quot.sound]; S2_154_CategoriesIso. INFRA: `MapPreLogos` regular structure of Map 𝒜
+weakened to the book's TabularUnitaryAllegory hypothesis — distributivity was over-assumed, enters first at
+`HasSubobjectUnions` (S2_147); `CarrierBridge` likewise (S2_111)).
 PARTIAL: §2.224 GLOBAL COMPLETION Aᴴ — now a FAITHFUL LCDA REPRESENTATION (`globalCat`/`globalAllegory`/
 `globalDistributiveAllegory`/`globalLCDA`/`globalCompletion_faithful`, all constructive; infinite matrices over the LCDA Sup,
 identity via propositional i=j + HEq, modular per-entry, assoc/Sup = Fubini interchange). The final GloballyComplete instance is
@@ -255,7 +266,7 @@ UNIVERSE-BLOCKED (disjoint union of u-indexed families escapes to u+1; the compl
 — needs a class redesign, not just a universe-poly GlobalObj) · §2.226 SYSTEMIC COMPLETION (assumes splitting witness; full
 unit-existence blocked by §2.224 GloballyComplete).
 MISSING: §2.153 non-effectiveness (recursive K) · §2.157 remainder (degenerate Desargues cases, converse,
-Veblen–Wedderburn model) · §2.158 no-finite-axiom · §2.154 categories-iso headline · §2.16(13) recursive instances ·
+Veblen–Wedderburn model) · §2.158 no-finite-axiom · §2.16(13) recursive instances ·
 §2.16(14) universal property of the reflection · §2.21(10).
 
 ## §2.2  Distributive allegories

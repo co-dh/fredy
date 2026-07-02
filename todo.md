@@ -76,6 +76,12 @@ merged class `TabularUnitaryUnguardedPowerAllegory`): Map(A) has FULL power obje
   the book's IR = R = RJ form; axiom-free) + instantiation `AsmEffReflection K` = Spl(Eq (Rel(Assembly K))),
   A/I objects, `asmEmbed` A↦A/1_A full/faithful, graph functor on assembly morphisms, effectiveness
   `asmEffReflection_eqSplits`. REMAINING: universal property of the reflection.
+- ~~**§2.154 headline**~~ — **DONE** (`S2_154_CategoriesIso`, merged): `smallRegCat_equiv_smallTabAlleg` —
+  small regular categories (regular functors preserving terminators) ≃ small unitary tabular allegories
+  (unitary representations), as a StrongEquivalence [propext,choice,Quot.sound]. Freyd's "isomorphic" downgraded
+  to equivalence only because the `RelObj` wrapper changes the carrier type; components identity-on-objects up
+  to the wrapper. INFRA: Map 𝒜 regular structure + CarrierBridge weakened to the book's tabular+unitary
+  hypothesis (distributivity was over-assumed; S2_147/S2_111).
 - **§2.158**, **§2.417** (generator counterexample) — graph-allegory no-finite-axiomatization;
   §1.96(10)-modification model.
 

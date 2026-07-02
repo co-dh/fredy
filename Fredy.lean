@@ -149,6 +149,7 @@ import Fredy.S2_216_MatrixAllegory
 import Fredy.S1_723_Locale
 import Fredy.S2_168_ValuedSetsTabular
 import Fredy.S2_111_RelCat
+import Fredy.S2_154_CategoriesIso
 import Fredy.S2_41
 import Fredy.S2_41b
 import Fredy.S2_21
