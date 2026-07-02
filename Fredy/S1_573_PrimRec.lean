@@ -936,4 +936,41 @@ noncomputable instance phatCartesian : CartesianCategory PhatObj := {}
 noncomputable example {α : PObj} (x y : omegaP ⟶ α) :
     HasEqualizer (embPFunctor.map x) (embPFunctor.map y) := phatEqOf _ _
 
+/-! ## Part 6: §1.574 — the functor P̂ → 𝒮 represented by ω is faithful
+
+  We formalize the faithfulness of the representable functor `P̂(ω̂, −)`.  (The book
+  further calls it a "set-valued representation of regular categories"; P̂'s regular
+  structure is not developed here.  The companion §1.574 claims — a one-to-one onto
+  `x : ω → ω` in P with `x⁻¹ ∉ P`, whence R is a category of fractions of P — need an
+  Ackermann-style growth argument and are not formalized; see the header.) -/
+
+/-- ω̂: the image of ω in P̂. -/
+def omegaPhat : PhatObj := embP omegaP
+
+/-- The set-valued functor `P̂(ω̂, −)` represented by ω̂. -/
+def phatPoints (E : PhatObj) : Type := omegaPhat ⟶ E
+
+instance phatPointsFunctor : Functor phatPoints where
+  map φ := fun h => h ≫ φ
+  map_id _ := funext fun h => Cat.comp_id h
+  map_comp φ ψ := funext fun h => (Cat.assoc h φ ψ).symm
+
+/-- The constant point of `E` through the idempotent: `k ↦ e(a)`. -/
+def pointAt {E : PhatObj} (a : El E.carrier) : phatPoints E :=
+  ⟨⟨fun _ => E.e.1 a, PrimRec1.const (toNat (E.e.1 a))⟩,
+    PMor.ext fun _ => rfl,
+    PMor.ext fun _ => PMor.congr E.idem a⟩
+
+/-- **§1.574**: the representable functor `P̂(ω̂,−) : P̂ → 𝒮` is faithful — it
+    separates maps (the repo's cross-universe faithfulness for 𝒮-valued functors). -/
+theorem phatPoints_separates : SeparatesMaps phatPoints := by
+  intro E F φ ψ h
+  refine PhatHom.ext (PMor.ext fun a => ?_)
+  have hpt : pointAt a ≫ φ = pointAt a ≫ ψ := congrFun h (pointAt a)
+  have h0 : φ.1.1 (E.e.1 a) = ψ.1.1 (E.e.1 a) :=
+    PMor.congr (congrArg Subtype.val hpt) (0 : Nat)
+  calc φ.1.1 a = φ.1.1 (E.e.1 a) := (PMor.congr φ.2.1 a).symm
+    _ = ψ.1.1 (E.e.1 a) := h0
+    _ = ψ.1.1 a := PMor.congr ψ.2.1 a
+
 end Freyd.Pcat
