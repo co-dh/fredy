@@ -542,4 +542,46 @@ theorem neighbors_of_catSplits {a : 𝒜} (A : a ⟶ a) (hA : A ≫ A = A)
     exact hmono
   exact neighbors_of_containments A hA (le_inter ha hb) h2
 
+/-! ### §2.16(11)  HEADLINE: the two containments make `A` split in `Spl 𝒜`
+
+  "These last two containments are the necessary and sufficient conditions for the
+  existence of an extension of `A` in which `A` splits: the converse containments are
+  automatic, hence `A` and `A∩A°` are neighbors; if `𝒮ℐ𝒹` is the class of all
+  symmetric idempotents then `A∩A°` splits in `Spl(𝒮ℐ𝒹)`, hence `A` splits in
+  `Spl(𝒮ℐ𝒹`).  That is, when we have split all the symmetric idempotents we have
+  automatically split all idempotents that can ever be split in an allegory."
+
+  Our `SplObj 𝒜` is exactly `Spl(𝒮ℐ𝒹)`: it splits every symmetric idempotent of `𝒜`
+  (§2.164, `embHom_idem_splits`).  Sufficiency is assembled below; necessity (a
+  faithful representation into an allegory where `TA` splits forces the containments)
+  is the §2.154-representation direction, not formalised here. -/
+
+/-- **§2.16(11) (headline)**: an idempotent `A` of `𝒜` satisfying the two containments
+    `(A∩A°)A(A∩A°) ⊑ A∩A°` and `A ⊑ A(A∩A°)A` SPLITS in `Spl 𝒜`.  Route: `A ∩ A°` is a
+    symmetric idempotent, so its image splits in `Spl 𝒜` through the object
+    `(a, A∩A°)` (§2.164); the containments make `A` and `A ∩ A°` neighbors, the
+    embedding transports neighborliness, and a split transfers across neighbors. -/
+theorem idempotent_splits_in_spl {a : 𝒜} (A : a ⟶ a) (hA : A ≫ A = A)
+    (h1 : (A ∩ A°) ≫ A ≫ (A ∩ A°) ⊑ A ∩ A°)
+    (h2 : A ⊑ A ≫ (A ∩ A°) ≫ A) :
+    CatSplits (𝒞 := SplObj 𝒜) (a := embObj a) (embHom A) := by
+  -- `embHom (A∩A°)` splits through the new object `(a, A∩A°)` (§2.164).
+  have hsplitN : CatSplits (𝒞 := SplObj 𝒜) (a := embObj a) (embHom (A ∩ A°)) :=
+    ⟨⟨a, interRecipSymIdem A hA⟩, splDown (interRecipSymIdem A hA),
+     splUp (interRecipSymIdem A hA),
+     splDown_up (interRecipSymIdem A hA), splUp_down (interRecipSymIdem A hA)⟩
+  -- The embedding transports `Neighbors A (A∩A°)` (composition is inherited).
+  have hnb : Neighbors A (A ∩ A°) := neighbors_of_containments A hA h1 h2
+  have hnbSpl : Neighbors (𝒞 := SplObj 𝒜) (embHom (A ∩ A°)) (embHom A) := by
+    constructor
+    · apply SplHom.ext
+      show (A ∩ A°) ≫ A ≫ (A ∩ A°) = A ∩ A°
+      exact hnb.2
+    · apply SplHom.ext
+      show A ≫ (A ∩ A°) ≫ A = A
+      exact hnb.1
+  have hAidem : splComp (embHom A) (embHom A) = embHom A := by
+    rw [← embHom_comp, hA]
+  exact neighbors_split_transfer hAidem hnbSpl hsplitN
+
 end Freyd.Alg
