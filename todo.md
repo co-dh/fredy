@@ -67,7 +67,10 @@ merged class `TabularUnitaryUnguardedPowerAllegory`): Map(A) has FULL power obje
   (`S1_572_Recursive`, merged): hand-rolled Kleene codes + big-step Eval, category R on ExtNat,
   cartesian (products all six arms, equalizers via increasing enumeration), AC-regular via §1.571
   (`rFactorization`/`cover_split`/`all_projective`/`all_choice`, [propext,choice,Quot.sound]).
-  Remaining: non-effectiveness (Gödel numbering + universal machine + halting K). §1.573/§1.574 also
+  Non-effectiveness also DONE (`S1_572b_NotEffective`, merged): arithmetized witness-checker acceptN
+  (sound+complete+itself recursive), halting Kc r.e. + `K_not_recursive`, ERel from Kc as image of a
+  recursive enumeration, headline `r_not_effective`. Remaining: §2.16(13) corollary (transport ERel
+  into Rel(ExtNat) → effective reflection of R not AC). §1.573/§1.574 also
   DONE (`S1_573_PrimRec`, merged): mu-free `IsPrim` fragment (pairing/div/mod redone mu-free), category P,
   §1.573 equalizer idempotent, P̂=Spl(P) with full+faithful `embP`, all idempotents split, headline
   `phatCartesian`; §1.574 faithful set-valued representation `phatPoints_separates`. Skipped

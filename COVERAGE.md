@@ -134,7 +134,14 @@ e(a)=min{i≤a | x(i)=x(a)} recursive idempotent, §1.571 `ac_factorization_via_
 `rFactorization`/`HasImages`/`cover_split` (covers split)/`all_projective`/`all_choice` + `RegularCategory`+
 `ACRegularCategory ExtNat`, all [propext,choice,Quot.sound]; S1_572_Recursive. INFRA: S1_57's
 `ac_factorization_via_idempotent` freed of an unused circular [HasImages] section variable, now [propext].
-Non-effectiveness of R (halting diagonalization) remains) · §1.573/§1.574 PRIMITIVE-RECURSIVE P + Spl(P)
+NON-EFFECTIVENESS also DONE (S1_572b_NotEffective: Gödel numbering `encCode` + arithmetized derivation-witness
+checker `acceptN` (sound+complete for Eval, and ITSELF recursive `Recursive2.acceptN` — needed so the enumeration
+morphism exists in R); halting set `Kc` r.e.; `K_not_recursive` by μ-diagonalization; `ERel` = the equivalence
+relation pairing 2e,2e+1 exactly when e∈Kc, presented as the IMAGE of a recursive enumeration (the book's "r.e.
+sets live in R as enumerations"); `ERel_equivalence` §1.567 + headline `r_not_effective` — a split level would
+give a recursive representative-chooser deciding Kc, via `cover_split`; all [propext,choice,Quot.sound].
+Remaining: the §2.16(13) corollary Spl(Eq Rel(R)) not AC — needs the Ch2 transport of ERel into Rel(ExtNat)) ·
+§1.573/§1.574 PRIMITIVE-RECURSIVE P + Spl(P)
 (`IsPrim` mu-freeness predicate over the §1.572 codes + `IsPrim.total` (choice-free); Cantor pairing/div/mod
 REDONE mu-free; category P on `PObj`, terminator+products reusing §1.572 ProdData; §1.573 equalizer idempotent
 `eqIdem` (e²=e, e≫x=e≫y, universality z≫e=z — book's "ze=e" is a typo, noted); P̂=Spl(P) `PhatObj` with `embP`
@@ -147,7 +154,7 @@ PARTIAL: §1.541–§1.542 abstract capitalization framework (realized concretel
 (cover-preserving) Henkin** (witness separates maps, cover-pres conditional) · §1.551/§1.563/§1.564 regular/relational
 Horn-metatheorem corollaries (hypothesis-laden) · §1.592 small-abelian↪Ab exact rep (interface hypothetical) · §1.598
 normal+kernels/cokernels⟹abelian converse.
-MISSING: §1.513 covering-FAMILY predicate · §1.568 Quot(A)→equiv-rels functor · §1.572 non-effectiveness (halting) ·
+MISSING: §1.513 covering-FAMILY predicate · §1.568 Quot(A)→equiv-rels functor ·
 §1.573 "P not cartesian" + §1.574 x⁻¹∉P / fractions (Ackermann-scale growth arguments) · §1.584–§1.587
 cocartesian-slice/Lazard/diophantine · §1.596 A(𝒮^𝒜) · §1.59(10) modular-lattice Galois.
 
