@@ -24,6 +24,7 @@
 
 import Fredy.S2_2
 import Fredy.S2_16
+import Fredy.S2_22  -- self_le_comp_recip_comp, symmetric_transitive_idempotent (§2.12)
 
 universe v u
 
@@ -351,5 +352,68 @@ theorem spl_equivalence_splits_map {E : SplObj 𝒜} (Φ : SplHom E E)
     apply SplHom.ext; show Φ.R ≫ Φ.R° = Φ.R; rw [hsym, hidem]
   · -- f° ≫ f = id G.
     apply SplHom.ext; show Φ.R° ≫ Φ.R = Φ.R; rw [hsym, hidem]
+
+/-! ## §2.16(11)  Neighboring idempotents
+
+  "We say that a pair of idempotents in a category are neighbors if `ee'e = e`,
+  `e'ee' = e'`."  If either of a neighboring pair of idempotents splits, then so does
+  the other.  For an idempotent `A` in an allegory, `A ∩ A°` is symmetric and
+  transitive, hence a symmetric idempotent; the containments
+  `(A∩A°)A(A∩A°) ⊑ A∩A°` and `A ⊑ A(A∩A°)A` are the necessary and sufficient
+  conditions for the existence of an extension of `A`'s allegory in which `A` splits —
+  the converse containments are automatic, so they make `A` and `A ∩ A°` neighbors.
+  `A ∩ A°` splits in `Spl 𝒜` (which splits all symmetric idempotents, §2.164), hence
+  so does `A`: "when we have split all the symmetric idempotents we have automatically
+  split all idempotents that can ever be split in an allegory." -/
+
+section NeighborsInCategory
+
+variable {𝒞 : Type u} [Cat.{v} 𝒞]
+
+/-- Two idempotents `e, e'` in a category are NEIGHBORS (§2.16(11)):
+    `e ≫ e' ≫ e = e` and `e' ≫ e ≫ e' = e'`.  (The book assumes both endomorphisms
+    idempotent wherever the notion is used; the definition itself does not need it.) -/
+def Neighbors {a : 𝒞} (e e' : a ⟶ a) : Prop :=
+  e ≫ e' ≫ e = e ∧ e' ≫ e ≫ e' = e'
+
+/-- Neighborliness is symmetric. -/
+theorem Neighbors.symm {a : 𝒞} {e e' : a ⟶ a} (h : Neighbors e e') : Neighbors e' e :=
+  ⟨h.2, h.1⟩
+
+/-- `⟨x, y⟩` SPLITS the endomorphism `e` in a category (§1.281, §2.164): `x ≫ y = e`
+    and `y ≫ x = 1`.  Any such `e` is automatically idempotent:
+    `e ≫ e = x ≫ (y ≫ x) ≫ y = x ≫ y = e`. -/
+def CatSplits {a : 𝒞} (e : a ⟶ a) : Prop :=
+  ∃ (c : 𝒞) (x : a ⟶ c) (y : c ⟶ a), x ≫ y = e ∧ y ≫ x = Cat.id c
+
+/-- **§2.16(11)**: "if either of a neighboring pair of idempotents splits, then so
+    does the other."  If `⟨x, y⟩` splits `e` then `⟨e' ≫ x, y ≫ e'⟩` splits its
+    neighbor `e'`.  Book computation: `(e'x)(ye') = e'ee' = e'` and
+    `(ye')(e'x) = ye'x = y(xy)e'(xy)x = yee'ex = yex = y(xy)x = (yx)(yx) = 1`.
+    (Only `e'`'s idempotency is needed; `e`'s follows from the splitting.) -/
+theorem neighbors_split_transfer {a : 𝒞} {e e' : a ⟶ a}
+    (he' : e' ≫ e' = e') (hn : Neighbors e e') (hs : CatSplits e) : CatSplits e' := by
+  obtain ⟨c, x, y, hxy, hyx⟩ := hs
+  -- The key collapse: `y ≫ e' ≫ x = 1`, by inserting `1 = y ≫ x` on both ends.
+  have key : y ≫ e' ≫ x = Cat.id c := by
+    calc y ≫ e' ≫ x
+        = (y ≫ x) ≫ (y ≫ e' ≫ x) ≫ y ≫ x := by rw [hyx, Cat.id_comp, Cat.comp_id]
+      _ = y ≫ (x ≫ y) ≫ e' ≫ (x ≫ y) ≫ x := by simp [Cat.assoc]
+      _ = y ≫ e ≫ e' ≫ e ≫ x := by rw [hxy]
+      _ = y ≫ (e ≫ e' ≫ e) ≫ x := by simp [Cat.assoc]
+      _ = y ≫ e ≫ x := by rw [hn.1]
+      _ = (y ≫ x) ≫ y ≫ x := by rw [← hxy]; simp [Cat.assoc]
+      _ = Cat.id c := by rw [hyx, Cat.id_comp]
+  refine ⟨c, e' ≫ x, y ≫ e', ?_, ?_⟩
+  · -- `(e'x)(ye') = e'ee' = e'`.
+    calc (e' ≫ x) ≫ y ≫ e' = e' ≫ (x ≫ y) ≫ e' := by simp [Cat.assoc]
+      _ = e' ≫ e ≫ e' := by rw [hxy]
+      _ = e' := hn.2
+  · -- `(ye')(e'x) = ye'x = 1` (`e'` idempotent, then `key`).
+    calc (y ≫ e') ≫ e' ≫ x = y ≫ (e' ≫ e') ≫ x := by simp [Cat.assoc]
+      _ = y ≫ e' ≫ x := by rw [he']
+      _ = Cat.id c := key
+
+end NeighborsInCategory
 
 end Freyd.Alg
