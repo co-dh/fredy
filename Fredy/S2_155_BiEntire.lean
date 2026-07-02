@@ -652,4 +652,116 @@ theorem b_tabular {a b : BObj.{u}} (Φ : a ⟶ b) :
    BHom.ext fun x y => tab_recip_comp_pt Φ.val x y,
    BHom.ext fun p q => tab_inter_pt Φ.val p q⟩
 
+/-! ## §2.155 (ix)  Map(B) is not a regular category
+
+  "Map(B) is not a regular category: it has equalizers and a terminator but
+  it does not have products."
+
+  A map of B with nonempty source is a SURJECTIVE function (entire + simple
+  + bi-entire), so Map(B) is the category of sets and surjections (plus the
+  empty maps out of `∅`).  We prove the terminator and the failure of
+  products.
+
+  On EQUALIZERS (book claim, recorded here without proof): cones are scarce —
+  an equalizing map `t` with nonempty source is surjective, so `t ≫ f = t ≫ g`
+  forces `f = g`.  Hence the equalizer of `f ≠ g` is `∅` (with the empty map,
+  which every empty-source cone factors through uniquely), and the equalizer
+  of `f = f` is the identity.  Formalizing this requires the case split
+  `f = g ∨ f ≠ g` and is routine but lengthy; it is not needed for the
+  headline (independence of the modular identity), so we stop at the
+  terminator + no-products, which give "not regular" already. -/
+
+/-- The total relation into the one-point set: bi-entire when the carrier is
+    nonempty, empty (vacuously, out of an empty carrier) otherwise — in B
+    either way. -/
+def toTermHom (a : BObj.{u}) : a ⟶ BObj.of PUnit.{u + 1} :=
+  ⟨fun _ _ => True,
+   (Classical.em (Nonempty a)).elim
+     (fun hne => Or.inr ⟨fun _ => ⟨PUnit.unit, trivial⟩,
+       fun _ => hne.elim fun x => ⟨x, trivial⟩⟩)
+     (fun hne => Or.inl fun x _ _ => hne ⟨x⟩)⟩
+
+/-- The total relation to `PUnit` is a map of B. -/
+theorem toTerm_bmap (a : BObj.{u}) : BMap (toTermHom a) :=
+  ⟨(bEntire_iff _).mpr fun _ => ⟨PUnit.unit, trivial⟩,
+   (bSimple_iff _).mpr fun _ _ _ _ _ => rfl⟩
+
+/-- Any map of B into `PUnit` is the total relation (entirety fills every
+    point; `PUnit` has only one). -/
+theorem toTerm_unique {a : BObj.{u}} (f : a ⟶ BObj.of PUnit.{u + 1})
+    (hf : BMap f) : f = toTermHom a :=
+  BHom.ext fun x _ =>
+    ⟨fun _ => trivial,
+     fun _ => ((bEntire_iff f).mp hf.1 x).elim fun _ hy => hy⟩
+
+/-- §2.155: Map(B) has a TERMINATOR — `PUnit` with the total relation. -/
+theorem map_b_terminator (a : BObj.{u}) :
+    BMap (toTermHom a) ∧ ∀ f : a ⟶ BObj.of PUnit.{u + 1}, BMap f → f = toTermHom a :=
+  ⟨toTerm_bmap a, fun f hf => toTerm_unique f hf⟩
+
+/-- The swap relation on `Two` — a map of B. -/
+@[reducible] def wSwap : Two → Two → Prop := fun x y =>
+  (x = .e0 ∧ y = .e1) ∨ (x = .e1 ∧ y = .e0)
+
+theorem wSwap_biEntire : BiEntire wSwap :=
+  ⟨fun x => match x with
+    | .e0 => ⟨.e1, Or.inl ⟨rfl, rfl⟩⟩
+    | .e1 => ⟨.e0, Or.inr ⟨rfl, rfl⟩⟩,
+   fun y => match y with
+    | .e0 => ⟨.e1, Or.inr ⟨rfl, rfl⟩⟩
+    | .e1 => ⟨.e0, Or.inl ⟨rfl, rfl⟩⟩⟩
+
+/-- `wSwap` as a morphism of B. -/
+def swapHom : BObj.of Two ⟶ BObj.of Two := ⟨wSwap, Or.inr wSwap_biEntire⟩
+
+theorem swap_bmap : BMap swapHom :=
+  ⟨(bEntire_iff _).mpr wSwap_biEntire.1,
+   (bSimple_iff _).mpr fun x y y' h h' => by
+     rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
+     · rcases h' with ⟨-, rfl⟩ | ⟨h0, -⟩
+       · rfl
+       · exact nomatch h0
+     · rcases h' with ⟨h0, -⟩ | ⟨-, rfl⟩
+       · exact nomatch h0
+       · rfl⟩
+
+/-- §2.155: Map(B) does NOT have products.  Even MERE PAIRINGS (no uniqueness
+    required) fail for the cones `(1, 1)` and `(1, swap)` over `Two, Two`:
+    the pairing `h₂` of `(1, swap)` yields a vertex point `w₀` with
+    `p w₀ = e0` and `q w₀ = e1`; the pairing `h₁` of `(1, 1)` is a map of B,
+    hence SURJECTIVE onto the vertex (bi-entirety is forced), so `w₀ = h₁ x`
+    for some `x` — giving `x = e0` (via `p`) and `x = e1` (via `q`).
+    Contradiction.  This is where B bites: in Set the pairing need not be
+    surjective, but in B every nonzero map is. -/
+theorem map_b_no_products :
+    ¬ ∃ (w : BObj.{0}) (p : w ⟶ BObj.of Two) (q : w ⟶ BObj.of Two),
+      BMap p ∧ BMap q ∧
+        ∀ (t : BObj.{0}) (f : t ⟶ BObj.of Two) (g : t ⟶ BObj.of Two),
+          BMap f → BMap g →
+            ∃ h : t ⟶ w, BMap h ∧ h ≫ p = f ∧ h ≫ q = g := by
+  rintro ⟨w, p, q, -, -, huniv⟩
+  obtain ⟨h₁, hm₁, hp₁, hq₁⟩ :=
+    huniv (BObj.of Two) (Cat.id _) (Cat.id _) bmap_id bmap_id
+  obtain ⟨h₂, hm₂, hp₂, hq₂⟩ :=
+    huniv (BObj.of Two) (Cat.id _) swapHom bmap_id swap_bmap
+  -- from h₂: a vertex point w₀ with `p w₀ e0` and `q w₀ e1`
+  have hex : ∃ v, h₂.val Two.e0 v ∧ p.val v Two.e0 :=
+    (BHom.congr hp₂ Two.e0 Two.e0).mpr rfl
+  obtain ⟨w₀, hw₀, hpw₀⟩ := hex
+  have hex' : ∃ v, h₂.val Two.e0 v ∧ q.val v Two.e1 :=
+    (BHom.congr hq₂ Two.e0 Two.e1).mpr (Or.inl ⟨rfl, rfl⟩)
+  obtain ⟨w₁, hw₁, hqw₁⟩ := hex'
+  have hw01 : w₀ = w₁ := (bSimple_iff h₂).mp hm₂.2 Two.e0 w₀ w₁ hw₀ hw₁
+  subst hw01
+  -- h₁ is entire hence nonzero, hence bi-entire: it hits w₀ from some x
+  obtain ⟨y0, hy0⟩ := (bEntire_iff h₁).mp hm₁.1 Two.e0
+  have hbe : BiEntire h₁.val := h₁.property.elim
+    (fun he => absurd hy0 (he Two.e0 y0)) id
+  obtain ⟨x, hxw⟩ := hbe.2 w₀
+  -- transfer along the two commutativities: x = e0 and x = e1
+  have hx0 : x = Two.e0 := (BHom.congr hp₁ x Two.e0).mp ⟨w₀, hxw, hpw₀⟩
+  have hx1 : x = Two.e1 := (BHom.congr hq₁ x Two.e1).mp ⟨w₀, hxw, hqw₁⟩
+  subst hx0
+  exact nomatch hx1
+
 end Freyd.Alg
