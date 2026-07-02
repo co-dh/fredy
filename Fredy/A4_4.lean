@@ -49,15 +49,7 @@ theorem antisymm_of_le_iff {a b : 𝒜} {A B : a ⟶ b} (h : ∀ X, X ⊑ A ↔ 
 -- (`modular_le_right`, `modular_sym`, `entire_id_le`, `map_shunt_right`, `map_shunt_left`
 --  come from A4_1/A4_2 — the private wave-time copies were deduped at collection.)
 
-/-- **private**: the mirror of `S2_1`'s `simple_dist_inter` for RIGHT composition:
-    `(A∩B)≫g° = (A≫g°)∩(B≫g°)` when `g` is simple.  Derived by reciprocating
-    `simple_dist_inter (Simple g) A° B°`. -/
-private theorem simple_dist_inter_recip {a b c : 𝒜} {g : c ⟶ b} (hg : Simple g) (A B : a ⟶ b) :
-    (A ∩ B) ≫ g° = (A ≫ g°) ∩ (B ≫ g°) := by
-  have h := simple_dist_inter hg (A°) (B°)
-  have hr := congrArg Allegory.recip h
-  simp only [Allegory.recip_comp, Allegory.recip_inter, Allegory.recip_recip] at hr
-  exact hr
+-- (`simple_dist_inter_recip` was hoisted to A4_2 at ch.5 collection.)
 
 /-! ### Galois connections (B&dM Ex 4.36–4.39, hom-set level)
 

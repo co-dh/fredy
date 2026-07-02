@@ -204,6 +204,14 @@ theorem simple_modular_eq {a b c : 𝒜} {S : b ⟶ c} (hS : Simple S) (R : a �
     exact le_trans h1 (le_inter (inter_lb_left _ _) (le_trans (inter_lb_right _ _) h2))
   · exact modular_le R S T
 
+/-- Mirror of S2_1's `simple_dist_inter` for postcomposition with the converse of a simple
+    arrow: `(X ∩ Y) ≫ g° = (X ≫ g°) ∩ (Y ≫ g°)` (B&dM 4.17 mirrored via reciprocation). -/
+theorem simple_dist_inter_recip {a b c : 𝒜} {g : c ⟶ b} (hg : Simple g) (X Y : a ⟶ b) :
+    (X ∩ Y) ≫ g° = (X ≫ g°) ∩ (Y ≫ g°) := by
+  have hr := congrArg Allegory.recip (simple_dist_inter hg (X°) (Y°))
+  simp only [Allegory.recip_comp, Allegory.recip_inter, Allegory.recip_recip] at hr
+  exact hr
+
 /-! ## §4.2  Map shunting rules (B&dM 4.19, 4.20)
 
   The workhorses of relational program calculation: composing with a total function on
