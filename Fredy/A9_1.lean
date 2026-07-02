@@ -309,4 +309,54 @@ theorem dynamic_programming_of_thin (hFr : F.PreservesRecip) (I : InitialAlgebra
     exact step
   exact le_trans hstep (dynamic_programming_thin hFr I hh hmono htrans hQ)
 
+/-! ## Proposition 9.2 (B&dM p.222) — checking monotonicity via cost functions -/
+
+/-- **Proposition 9.2 (B&dM p.222)**: an algebra `h` is monotonic on the order `R := cost·leq·cost°`
+    (induced on `a` by pulling the order `leq` on `c` back along a "cost" function) whenever `h`
+    followed by `cost` factors as `F.map cost` followed by an algebra `k` that is itself
+    monotonic on `leq` — i.e. checking monotonicity of `h` on `R` reduces to checking
+    monotonicity of the simpler algebra `k` on `leq`. -/
+theorem monotonicAlg_of_cost {c : 𝒜} {h : F.obj a ⟶ a} {R : a ⟶ a} {cost : a ⟶ c}
+    {leq : c ⟶ c} {k : F.obj c ⟶ c} (hcost : Map cost) (hR : R = cost ≫ leq ≫ cost°)
+    (hch : h ≫ cost = F.map cost ≫ k) (hk : F.map leq ≫ k ⊑ k ≫ leq) :
+    MonotonicAlg h R := by
+  show F.map R ≫ h ⊑ h ≫ R
+  rw [hR]
+  have hassoc : h ≫ cost ≫ leq ≫ cost° = (h ≫ cost ≫ leq) ≫ cost° := by simp only [Cat.assoc]
+  rw [hassoc]
+  apply (map_shunt_right hcost _ _).mp
+  -- goal: (F.map (cost ≫ leq ≫ cost°) ≫ h) ≫ cost ⊑ h ≫ cost ≫ leq
+  have eLHS1 : (F.map (cost ≫ leq ≫ cost°) ≫ h) ≫ cost
+      = F.map (cost ≫ leq ≫ cost°) ≫ (h ≫ cost) := by rw [Cat.assoc]
+  have eLHS2 : F.map (cost ≫ leq ≫ cost°) ≫ (h ≫ cost)
+      = F.map (cost ≫ leq ≫ cost°) ≫ (F.map cost ≫ k) := by rw [hch]
+  have eLHS3 : F.map (cost ≫ leq ≫ cost°) ≫ (F.map cost ≫ k)
+      = (F.map (cost ≫ leq ≫ cost°) ≫ F.map cost) ≫ k := by rw [Cat.assoc]
+  have eFold : F.map (cost ≫ leq ≫ cost°) ≫ F.map cost = F.map ((cost ≫ leq ≫ cost°) ≫ cost) := by
+    rw [← F.map_comp]
+  have eBound : (cost ≫ leq ≫ cost°) ≫ cost ⊑ cost ≫ leq := by
+    have e1 : (cost ≫ leq ≫ cost°) ≫ cost = cost ≫ leq ≫ (cost° ≫ cost) := by
+      simp only [Cat.assoc]
+    rw [e1]
+    have e2 : cost ≫ leq ≫ (cost° ≫ cost) ⊑ cost ≫ leq ≫ Cat.id c :=
+      comp_mono_left _ (comp_mono_left _ hcost.2)
+    rwa [Cat.comp_id] at e2
+  have eStep : F.map ((cost ≫ leq ≫ cost°) ≫ cost) ⊑ F.map (cost ≫ leq) := F.map_mono eBound
+  have step1 : (F.map (cost ≫ leq ≫ cost°) ≫ F.map cost) ≫ k ⊑ F.map (cost ≫ leq) ≫ k := by
+    rw [eFold]; exact comp_mono_right eStep k
+  have step2 : F.map (cost ≫ leq) ≫ k = F.map cost ≫ (F.map leq ≫ k) := by
+    rw [F.map_comp, Cat.assoc]
+  have step3 : F.map cost ≫ (F.map leq ≫ k) ⊑ F.map cost ≫ (k ≫ leq) := comp_mono_left _ hk
+  have step4 : F.map cost ≫ (k ≫ leq) = (F.map cost ≫ k) ≫ leq := by rw [Cat.assoc]
+  have step5 : (F.map cost ≫ k) ≫ leq = (h ≫ cost) ≫ leq := by rw [← hch]
+  have step6 : (h ≫ cost) ≫ leq = h ≫ cost ≫ leq := by rw [Cat.assoc]
+  have eLHS : (F.map (cost ≫ leq ≫ cost°) ≫ h) ≫ cost
+      = (F.map (cost ≫ leq ≫ cost°) ≫ F.map cost) ≫ k := eLHS1.trans (eLHS2.trans eLHS3)
+  rw [eLHS]
+  have step1' : (F.map (cost ≫ leq ≫ cost°) ≫ F.map cost) ≫ k
+      ⊑ F.map cost ≫ (F.map leq ≫ k) := by rw [← step2]; exact step1
+  have step3' : F.map cost ≫ (F.map leq ≫ k) ⊑ h ≫ cost ≫ leq := by
+    rw [← step6, ← step5, ← step4]; exact step3
+  exact le_trans step1' step3'
+
 end Freyd.Alg
