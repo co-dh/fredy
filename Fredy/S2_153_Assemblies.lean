@@ -982,4 +982,107 @@ instance asmPreLogos : PreLogos (Assembly.{u} K) where
   invImage_preserves_union f S T := ⟨invImage_union_le f S T, le_invImage_union f S T⟩
   invImage_preserves_bottom f := invImage_bot_iso f
 
+/-! ## M7: binary coproducts — positivity
+
+  The book leaves "the construction of disjoint unions to the reader".  ON PAPER: the
+  carrier must be the disjoint sum |A| ⊕ |B|; the question is the caucuses.  Untagged
+  same-index caucuses `(A⊕B)|ₙ = A|ₙ ⊕ B|ₙ` give the injections identity moduli, but the
+  case map `[f,g]` would need a single K-index containing both `φ(n)`-caucus values of C
+  (from left elements) and `ψ(n)`-caucus values (right) — false in general.  So the
+  caucuses must be TAGGED, `(A⊕B)|_{code p (inL k)} = inl(A|ₖ)` and
+  `(A⊕B)|_{code p (inR k)} = inr(B|ₖ)`, whence the injections are tracked by
+  `k ↦ code k (inL k)` (needs `pair_mem` + tag membership) and `[f,g]` by
+  definition-by-cases on the tag (needs `cases_mem`) — conditions (i)(ii)(iii) alone
+  provably do NOT provide either (the K₀ counterexample in the module docstring kills
+  even the weaker image property), which is why `ModulusSystem` carries the tag closure
+  explicitly; all partial functions satisfy it (`ModulusSystem.allPartial`).
+
+  These caucuses are BY CONSTRUCTION those of `unionSub (inlSub) (inrSub)`, so the §1.621
+  disjointness conditions (inl ∩ inr ≤ 0, inl ∪ inr = A+B) fall out definitionally: the
+  pullback of the two injections has empty carrier, and the identity is a modulus for
+  `A+B ≤ inl ∪ inr`. -/
+
+/-- The coproduct assembly: disjoint sum with tag-shaped caucuses. -/
+def coprodAsm (A B : Assembly.{u} K) : Assembly.{u} K where
+  X := A.X ⊕ B.X
+  caucus n z :=
+    (∃ p k, n = K.code p (K.inL k) ∧ ∃ a, A.caucus k a ∧ Sum.inl a = z) ∨
+    (∃ p k, n = K.code p (K.inR k) ∧ ∃ b, B.caucus k b ∧ Sum.inr b = z)
+  carrier_mem z := by
+    rcases z with a | b
+    · obtain ⟨k, hk⟩ := A.carrier_mem a
+      exact ⟨K.code k (K.inL k), Or.inl ⟨k, k, rfl, a, hk, rfl⟩⟩
+    · obtain ⟨k, hk⟩ := B.carrier_mem b
+      exact ⟨K.code k (K.inR k), Or.inr ⟨k, k, rfl, b, hk, rfl⟩⟩
+
+/-- §2.153 coproducts: injections tracked by `k ↦ code k (in• k)`, case map by
+    definition-by-cases on the tag. -/
+instance asmHasBinaryCoproducts : HasBinaryCoproducts (Assembly.{u} K) where
+  coprod := coprodAsm
+  inl := ⟨Sum.inl, K.pairF ModFun.ident (ModFun.ofFun K.inL),
+    K.pair_mem K.id_mem K.inL_mem, fun k a hk =>
+      ⟨K.code k (K.inL k),
+        ModFun.pairC_graph (ModFun.ident_graph k) (ModFun.ofFun_graph _ k),
+        Or.inl ⟨k, k, rfl, a, hk, rfl⟩⟩⟩
+  inr := ⟨Sum.inr, K.pairF ModFun.ident (ModFun.ofFun K.inR),
+    K.pair_mem K.id_mem K.inR_mem, fun k b hk =>
+      ⟨K.code k (K.inR k),
+        ModFun.pairC_graph (ModFun.ident_graph k) (ModFun.ofFun_graph _ k),
+        Or.inr ⟨k, k, rfl, b, hk, rfl⟩⟩⟩
+  case f g :=
+    ⟨Sum.elim f.toFun g.toFun, by
+      obtain ⟨φ, hφ, hf⟩ := f.tracked
+      obtain ⟨ψ, hψ, hg⟩ := g.tracked
+      refine ⟨K.casesF (K.projF₂.comp φ) (K.projF₂.comp ψ),
+        K.cases_mem (K.comp_mem K.proj₂_mem hφ) (K.comp_mem K.proj₂_mem hψ),
+        fun n z hz => ?_⟩
+      rcases hz with ⟨p, k, hn, a, hka, hza⟩ | ⟨p, k, hn, b, hkb, hzb⟩
+      · obtain ⟨m, hm, hXa⟩ := hf k a hka
+        refine ⟨m, Or.inl ⟨k, by rw [hn, K.code_proj₂],
+          ⟨K.proj₂ (K.code (K.proj₁ n) k), rfl, by rw [K.code_proj₂]; exact hm⟩⟩, ?_⟩
+        rw [← hza]; exact hXa
+      · obtain ⟨m, hm, hXb⟩ := hg k b hkb
+        refine ⟨m, Or.inr ⟨k, by rw [hn, K.code_proj₂],
+          ⟨K.proj₂ (K.code (K.proj₁ n) k), rfl, by rw [K.code_proj₂]; exact hm⟩⟩, ?_⟩
+        rw [← hzb]; exact hXb⟩
+  case_inl _ _ := AsmHom.ext rfl
+  case_inr _ _ := AsmHom.ext rfl
+  case_uniq f g h h₁ h₂ := AsmHom.ext (funext fun z => by
+    rcases z with a | b
+    · exact congrArg (fun j => AsmHom.toFun j a) h₁
+    · exact congrArg (fun j => AsmHom.toFun j b) h₂)
+
+/-- **§2.153 HEADLINE: the category of assemblies is a POSITIVE PRE-LOGOS.** -/
+instance asmPositivePreLogos : PositivePreLogos (Assembly.{u} K) where
+  toPreLogos := inferInstance
+  toHasBinaryCoproducts := inferInstance
+
+/-- §1.621/§1.623: the coproduct is a disjoint complemented union — the injections are
+    monic, their intersection is bottom (the fibre product of `inl`, `inr` is empty), and
+    their union is everything (identity modulus, since the coproduct caucuses ARE the
+    union's caucuses). -/
+instance asmDisjointBinaryCoproduct : DisjointBinaryCoproduct (Assembly.{u} K) where
+  toPositivePreLogos := inferInstance
+  inl_monic {A B} := asmMonic_of_injective (HasBinaryCoproducts.inl (A := A) (B := B))
+    fun _ _ h => Sum.inl.inj h
+  inr_monic {A B} := asmMonic_of_injective (HasBinaryCoproducts.inr (A := A) (B := B))
+    fun _ _ h => Sum.inr.inj h
+  inl_inter_inr {A B} := by
+    have habs : ∀ w : (Subobject.inter
+        (inlSub (𝒞 := Assembly.{u} K) (A := A) (B := B)
+          (asmMonic_of_injective _ fun _ _ h => Sum.inl.inj h))
+        (inrSub (asmMonic_of_injective _ fun _ _ h => Sum.inr.inj h))).dom.X, False :=
+      fun w => nomatch (show Sum.inl w.val.1 = Sum.inr w.val.2 from w.property)
+    exact ⟨⟨fun w => (habs w).elim, ModFun.ident, K.id_mem, fun _ w _ => (habs w).elim⟩,
+      AsmHom.ext (funext fun w => (habs w).elim)⟩
+  inl_union_inr {A B} := by
+    refine ⟨⟨fun z => ⟨z, ?_⟩, ModFun.ident, K.id_mem, fun n z hz => ⟨n, rfl, ?_⟩⟩,
+      AsmHom.ext rfl⟩
+    · rcases z with a | b
+      · exact Or.inl ⟨a, rfl⟩
+      · exact Or.inr ⟨b, rfl⟩
+    · rcases hz with ⟨p, k, hn, a, hka, hza⟩ | ⟨p, k, hn, b, hkb, hzb⟩
+      · exact Or.inl ⟨p, k, hn, a, hka, hza⟩
+      · exact Or.inr ⟨p, k, hn, b, hkb, hzb⟩
+
 end Freyd
