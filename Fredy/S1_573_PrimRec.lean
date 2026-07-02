@@ -421,4 +421,149 @@ theorem divP_eq (m c : Nat) : Pcat.divP m c = c / (m + 1) := by
 theorem PrimRec1.divConst (m : Nat) : PrimRec1 fun c => c / (m + 1) :=
   (PrimRec1.divP m).congr (divP_eq m)
 
+/-! ## Part 3: the category P (§1.573)
+
+  Same objects as R (the extended naturals), morphisms the primitive recursive
+  functions.  `PObj` is a separate (semireducible) alias of `ExtNat` so that P's
+  `Cat` instance cannot collide with R's. -/
+
+/-- Objects of P: the extended naturals 0, 1, 2, …, ω. -/
+def PObj : Type := ExtNat
+
+/-- Morphism condition of P: from ω the induced ℕ→ℕ function must be primitive
+    recursive; from a finite ordinal everything is a morphism (book convention). -/
+def IsPMor : (α β : ExtNat) → (El α → El β) → Prop := fun α _ f =>
+  match α, f with
+  | some _, _ => True
+  | none, f => PrimRec1 fun k => toNat (f k)
+
+/-- Every P-morphism is an R-morphism. -/
+theorem IsPMor.isMor : ∀ {α β : ExtNat} {f : El α → El β}, IsPMor α β f → IsMor α β f := by
+  intro α
+  match α with
+  | some n => intro β f _; exact trivial
+  | none => intro β f h; exact PrimRecV.recursiveV h
+
+/-- Morphisms of P: primitive recursive functions between the carriers. -/
+def PMor (α β : ExtNat) : Type := {f : El α → El β // IsPMor α β f}
+
+theorem PMor.ext {α β : ExtNat} {f g : PMor α β} (h : ∀ a, f.1 a = g.1 a) : f = g :=
+  Subtype.ext (funext h)
+
+theorem isPMor_finite {n : Nat} {β : ExtNat} (f : El (some n) → El β) :
+    IsPMor (some n) β f := trivial
+
+/-- Composing through a finite object stays primitive recursive (finite tables). -/
+theorem primrec1_finComp {m : Nat} {f : Nat → Fin m} (hf : PrimRec1 fun k => (f k).val)
+    (t : Fin m → Nat) : PrimRec1 fun k => t (f k) := by
+  have htab := PrimRec1.finTable m t
+  have hcomp := PrimRec1.comp (f := fun k => (f k).val)
+    (g := fun j => if h : j < m then t ⟨j, h⟩ else 0) hf htab
+  refine hcomp.congr fun k => ?_
+  show (if h : (f k).val < m then t ⟨(f k).val, h⟩ else 0) = t (f k)
+  rw [dif_pos (f k).isLt]
+
+/-- Composites of P-morphisms are P-morphisms. -/
+theorem isPMor_comp {α β γ : ExtNat} (f : PMor α β) (g : PMor β γ) :
+    IsPMor α γ fun a => g.1 (f.1 a) := by
+  match α with
+  | some n => exact trivial
+  | none =>
+    match β with
+    | none =>
+      exact PrimRec1.comp (f := fun k => toNat (f.1 k)) (g := fun k => toNat (g.1 k)) f.2 g.2
+    | some m =>
+      exact primrec1_finComp (f := fun k => f.1 k) f.2 fun j => toNat (g.1 j)
+
+instance : Cat PObj where
+  Hom := PMor
+  id α := ⟨fun a => a, by
+    match α with
+    | some n => exact trivial
+    | none => exact PrimRec1.id⟩
+  comp f g := ⟨fun a => g.1 (f.1 a), isPMor_comp f g⟩
+  id_comp f := PMor.ext fun _ => rfl
+  comp_id f := PMor.ext fun _ => rfl
+  assoc f g h := PMor.ext fun _ => rfl
+
+/-- Pointwise evaluation of a composite in P. -/
+theorem pcomp_fn {α β γ : PObj} (f : α ⟶ β) (g : β ⟶ γ) (a : El α) :
+    (f ≫ g).1 a = g.1 (f.1 a) := rfl
+
+theorem pid_fn {α : PObj} (a : El α) : (Cat.id α).1 a = a := rfl
+
+/-- Pointwise consequence of a P-morphism equation. -/
+theorem PMor.congr {α β : ExtNat} {f g : PMor α β} (h : f = g) (a : El α) :
+    f.1 a = g.1 a := by rw [h]
+
+/-! ### P has a terminator and binary products (§1.573: products are NOT the problem;
+    only equalizers fail).  R's `ProdData` bijections transfer: their decodings and
+    numeric pairings are primitive recursive in every case. -/
+
+instance : HasTerminal PObj where
+  one := (some 1 : ExtNat)
+  trm X := ⟨fun _ => ⟨0, Nat.one_pos⟩, by
+    match X with
+    | some n => exact trivial
+    | none => exact PrimRec1.const 0⟩
+  uniq f g := PMor.ext fun a => by
+    apply toNat_inj
+    have h1 : toNat (f.1 a) < 1 := toNat_lt _
+    have h2 : toNat (g.1 a) < 1 := toNat_lt _
+    omega
+
+/-- §1.572's `ProdData` bijection together with primitive recursiveness of its
+    projections and its numeric pairing: product data for P. -/
+structure PProdData (α β : ExtNat) where
+  pd : ProdData α β
+  dec₁_pmor : IsPMor pd.obj α pd.dec₁
+  dec₂_pmor : IsPMor pd.obj β pd.dec₂
+  encN_prim : PrimRec2 pd.encN
+
+/-- All six §1.572 product bijections are primitive recursive. -/
+noncomputable def pprodData : (α β : ExtNat) → PProdData α β
+  | some n, some m =>
+    ⟨prodFinFin n m, trivial, trivial,
+      (PrimRec2.comp2 PrimRec2.add
+        (PrimRec2.comp2 PrimRec2.mul PrimRec2.fstArg (PrimRec2.ofFst (PrimRec1.const m)))
+        PrimRec2.sndArg : PrimRec2 fun a b => a * m + b)⟩
+  | some 0, none => ⟨prodZeroOmega 0 rfl, trivial, trivial, PrimRecV.const 2 0⟩
+  | some (n + 1), none =>
+    ⟨prodFinOmega n, PrimRec1.modConst n, PrimRec1.divConst n,
+      (PrimRec2.comp2 PrimRec2.add
+        (PrimRec2.comp2 PrimRec2.mul PrimRec2.sndArg (PrimRec2.ofFst (PrimRec1.const (n + 1))))
+        PrimRec2.fstArg : PrimRec2 fun a b => b * (n + 1) + a)⟩
+  | none, some 0 => ⟨prodOmegaZero 0 rfl, trivial, trivial, PrimRecV.const 2 0⟩
+  | none, some (m + 1) =>
+    ⟨prodOmegaFin m, PrimRec1.divConst m, PrimRec1.modConst m,
+      (PrimRec2.comp2 PrimRec2.add
+        (PrimRec2.comp2 PrimRec2.mul PrimRec2.fstArg (PrimRec2.ofFst (PrimRec1.const (m + 1))))
+        PrimRec2.sndArg : PrimRec2 fun a b => a * (m + 1) + b)⟩
+  | none, none => ⟨prodOmegaOmega, PrimRec1.cfst, PrimRec1.csnd, PrimRec2.cp⟩
+
+/-- The universal pairing map is a P-morphism (via the primitive recursive `encN`). -/
+theorem pair_isPMor {X α β : ExtNat} (ppd : PProdData α β) (f : PMor X α) (g : PMor X β) :
+    IsPMor X ppd.pd.obj fun w => ppd.pd.enc (f.1 w) (g.1 w) := by
+  match X with
+  | some n => exact trivial
+  | none =>
+    have h : PrimRec1 fun k => ppd.pd.encN (toNat (f.1 k)) (toNat (g.1 k)) :=
+      PrimRec1.comp2 ppd.encN_prim f.2 g.2
+    exact h.congr fun k => (ppd.pd.encN_spec _ _).symm
+
+noncomputable instance : HasBinaryProducts PObj where
+  prod α β := (pprodData α β).pd.obj
+  fst {α β} := ⟨(pprodData α β).pd.dec₁, (pprodData α β).dec₁_pmor⟩
+  snd {α β} := ⟨(pprodData α β).pd.dec₂, (pprodData α β).dec₂_pmor⟩
+  pair {X α β} f g := ⟨fun w => (pprodData α β).pd.enc (f.1 w) (g.1 w), pair_isPMor _ f g⟩
+  fst_pair {X α β} f g := PMor.ext fun w => (pprodData α β).pd.dec₁_enc _ _
+  snd_pair {X α β} f g := PMor.ext fun w => (pprodData α β).pd.dec₂_enc _ _
+  pair_uniq {X α β} f g h h₁ h₂ := PMor.ext fun w => by
+    have e1 : (pprodData α β).pd.dec₁ (h.1 w) = f.1 w := PMor.congr h₁ w
+    have e2 : (pprodData α β).pd.dec₂ (h.1 w) = g.1 w := PMor.congr h₂ w
+    calc h.1 w
+        = (pprodData α β).pd.enc ((pprodData α β).pd.dec₁ (h.1 w))
+            ((pprodData α β).pd.dec₂ (h.1 w)) := ((pprodData α β).pd.enc_dec _).symm
+      _ = (pprodData α β).pd.enc (f.1 w) (g.1 w) := by rw [e1, e2]
+
 end Freyd.Pcat
