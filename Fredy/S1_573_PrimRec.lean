@@ -648,8 +648,292 @@ def eqNowhere (hne : ∀ i : Nat, x.1 i ≠ y.1 i) : HasEqualizer x y where
   cone := ⟨(some 0 : ExtNat), ⟨fun w => w.elim0, trivial⟩, PMor.ext fun w => w.elim0⟩
   lift c := ⟨fun w => absurd (PMor.congr c.eq w) (hne (c.map.1 w)), isPMor_ofEmpty _⟩
   fac c := PMor.ext fun w => absurd (PMor.congr c.eq w) (hne (c.map.1 w))
-  uniq c m hm := PMor.ext fun w => (m.1 w).elim0
+  uniq _ m _ := PMor.ext fun w => (m.1 w).elim0
 
 end EqIdem
+
+/-! ## Part 5: P̂ = Spl(P), the idempotent-splitting completion (§1.573)
+
+  Objects: pairs `(α, e)` with `e` a primitive recursive idempotent on `α`;
+  morphisms `(α, e) → (β, f)`: P-morphisms `φ` absorbing the idempotents,
+  `e ≫ φ = φ = φ ≫ f`; the identity of `(α, e)` is `e` itself.  P embeds fully
+  and faithfully via `α ↦ (α, 1)`, and every idempotent of P̂ splits. -/
+
+/-- Objects of P̂: a P-object with a primitive recursive idempotent on it. -/
+structure PhatObj where
+  carrier : PObj
+  e : carrier ⟶ carrier
+  idem : e ≫ e = e
+
+/-- Morphisms `(α,e) → (β,f)` of P̂: P-morphisms `φ` with `e ≫ φ = φ = φ ≫ f`. -/
+def PhatHom (E F : PhatObj) : Type :=
+  {φ : E.carrier ⟶ F.carrier // E.e ≫ φ = φ ∧ φ ≫ F.e = φ}
+
+theorem PhatHom.ext {E F : PhatObj} {φ ψ : PhatHom E F} (h : φ.1 = ψ.1) : φ = ψ :=
+  Subtype.ext h
+
+instance : Cat PhatObj where
+  Hom := PhatHom
+  id E := ⟨E.e, E.idem, E.idem⟩
+  comp {E F G} φ ψ := ⟨φ.1 ≫ ψ.1,
+    by rw [← Cat.assoc, φ.2.1], by rw [Cat.assoc, ψ.2.2]⟩
+  id_comp φ := PhatHom.ext φ.2.1
+  comp_id φ := PhatHom.ext φ.2.2
+  assoc φ ψ χ := PhatHom.ext (Cat.assoc _ _ _)
+
+/-- The embedding P → P̂ on objects: identity idempotents. -/
+def embP (α : PObj) : PhatObj := ⟨α, Cat.id α, Cat.id_comp _⟩
+
+instance embPFunctor : Functor embP where
+  map f := ⟨f, Cat.id_comp f, Cat.comp_id f⟩
+  map_id _ := PhatHom.ext rfl
+  map_comp _ _ := PhatHom.ext rfl
+
+theorem embP_full : Full embP := fun h => ⟨h.1, PhatHom.ext rfl⟩
+
+theorem embP_embedding : Embedding embP := fun _ _ h => congrArg Subtype.val h
+
+/-- P ↪ P̂ is a full and faithful embedding. -/
+theorem embP_faithful : Faithful embP :=
+  full_embedding_faithful _ embP_embedding embP_full
+
+/-- All idempotents of P̂ split (§1.281 data) — the defining property of Spl(P). -/
+theorem phat_idem_split {E : PhatObj} (Φ : E ⟶ E) (h : Idempotent Φ) :
+    SplitIdempotent Φ := by
+  have h1 : Φ.1 ≫ Φ.1 = Φ.1 := congrArg Subtype.val h
+  exact ⟨h, ⟨E.carrier, Φ.1, h1⟩, ⟨Φ.1, Φ.2.1, h1⟩, ⟨Φ.1, h1, Φ.2.2⟩,
+    PhatHom.ext h1, PhatHom.ext h1⟩
+
+/-! ### P̂ has a terminator and binary products (they lift from P) -/
+
+instance : HasTerminal PhatObj where
+  one := embP one
+  trm E := ⟨HasTerminal.trm E.carrier, HasTerminal.uniq _ _, Cat.comp_id _⟩
+  uniq f g := PhatHom.ext (HasTerminal.uniq f.1 g.1)
+
+/-- Post-composition into a pair (products are natural in the source). -/
+private theorem comp_pair {𝒞 : Type u} [Cat.{v} 𝒞] [HasBinaryProducts 𝒞] {X Y A B : 𝒞}
+    (h : X ⟶ Y) (f : Y ⟶ A) (g : Y ⟶ B) : h ≫ pair f g = pair (h ≫ f) (h ≫ g) :=
+  Freyd.pair_uniq _ _ _ (by rw [Cat.assoc, Freyd.fst_pair]) (by rw [Cat.assoc, Freyd.snd_pair])
+
+/-- The product idempotent `e×f` on the carrier product. -/
+noncomputable def eProd (E F : PhatObj) :
+    prod E.carrier F.carrier ⟶ prod E.carrier F.carrier :=
+  pair (Freyd.fst ≫ E.e) (Freyd.snd ≫ F.e)
+
+theorem eProd_fst (E F : PhatObj) : eProd E F ≫ Freyd.fst = Freyd.fst ≫ E.e :=
+  Freyd.fst_pair _ _
+
+theorem eProd_snd (E F : PhatObj) : eProd E F ≫ Freyd.snd = Freyd.snd ≫ F.e :=
+  Freyd.snd_pair _ _
+
+theorem eProd_absorb_fst (E F : PhatObj) :
+    eProd E F ≫ (Freyd.fst ≫ E.e) = Freyd.fst ≫ E.e := by
+  rw [← Cat.assoc, eProd_fst, Cat.assoc, E.idem]
+
+theorem eProd_absorb_snd (E F : PhatObj) :
+    eProd E F ≫ (Freyd.snd ≫ F.e) = Freyd.snd ≫ F.e := by
+  rw [← Cat.assoc, eProd_snd, Cat.assoc, F.idem]
+
+theorem eProd_idem (E F : PhatObj) : eProd E F ≫ eProd E F = eProd E F := by
+  show eProd E F ≫ pair (Freyd.fst ≫ E.e) (Freyd.snd ≫ F.e) = eProd E F
+  rw [comp_pair, eProd_absorb_fst, eProd_absorb_snd]
+  rfl
+
+/-- The product of P̂: carrier product with the product idempotent. -/
+noncomputable def phatProd (E F : PhatObj) : PhatObj :=
+  ⟨prod E.carrier F.carrier, eProd E F, eProd_idem E F⟩
+
+noncomputable instance : HasBinaryProducts PhatObj where
+  prod := phatProd
+  fst {E F} := ⟨Freyd.fst ≫ E.e, eProd_absorb_fst E F, by rw [Cat.assoc, E.idem]⟩
+  snd {E F} := ⟨Freyd.snd ≫ F.e, eProd_absorb_snd E F, by rw [Cat.assoc, F.idem]⟩
+  pair {X E F} φ ψ := ⟨pair φ.1 ψ.1,
+    by rw [comp_pair, φ.2.1, ψ.2.1],
+    by
+      have h1 : pair φ.1 ψ.1 ≫ (Freyd.fst ≫ E.e) = φ.1 := by
+        rw [← Cat.assoc, Freyd.fst_pair, φ.2.2]
+      have h2 : pair φ.1 ψ.1 ≫ (Freyd.snd ≫ F.e) = ψ.1 := by
+        rw [← Cat.assoc, Freyd.snd_pair, ψ.2.2]
+      show pair φ.1 ψ.1 ≫ pair (Freyd.fst ≫ E.e) (Freyd.snd ≫ F.e) = pair φ.1 ψ.1
+      rw [comp_pair, h1, h2]⟩
+  fst_pair {X E F} φ ψ := PhatHom.ext (by
+    show pair φ.1 ψ.1 ≫ (Freyd.fst ≫ E.e) = φ.1
+    rw [← Cat.assoc, Freyd.fst_pair, φ.2.2])
+  snd_pair {X E F} φ ψ := PhatHom.ext (by
+    show pair φ.1 ψ.1 ≫ (Freyd.snd ≫ F.e) = ψ.1
+    rw [← Cat.assoc, Freyd.snd_pair, ψ.2.2])
+  pair_uniq {X E F} φ ψ h h₁ h₂ := PhatHom.ext (by
+    have habs : h.1 ≫ eProd E F = h.1 := h.2.2
+    have hfst : h.1 ≫ Freyd.fst = φ.1 :=
+      calc h.1 ≫ Freyd.fst = (h.1 ≫ eProd E F) ≫ Freyd.fst := by rw [habs]
+        _ = h.1 ≫ (eProd E F ≫ Freyd.fst) := Cat.assoc _ _ _
+        _ = h.1 ≫ (Freyd.fst ≫ E.e) := by rw [eProd_fst]
+        _ = φ.1 := congrArg Subtype.val h₁
+    have hsnd : h.1 ≫ Freyd.snd = ψ.1 :=
+      calc h.1 ≫ Freyd.snd = (h.1 ≫ eProd E F) ≫ Freyd.snd := by rw [habs]
+        _ = h.1 ≫ (eProd E F ≫ Freyd.snd) := Cat.assoc _ _ _
+        _ = h.1 ≫ (Freyd.snd ≫ F.e) := by rw [eProd_snd]
+        _ = ψ.1 := congrArg Subtype.val h₂
+    show h.1 = pair φ.1 ψ.1
+    exact Freyd.pair_uniq φ.1 ψ.1 h.1 hfst hsnd)
+
+/-! ### P̂ has equalizers — §1.573's idempotent, generalized to any split object
+
+  For `x, y : (γ,d) ⇉ (β,f)` the agreement set is the set of `d`-FIXED points on
+  which `x, y` agree (all values of P̂-morphisms into `(γ,d)` are `d`-fixed).  With a
+  witness `a₀` in it, the book's idempotent
+      `e′(a) = a` if `d(a) = a` and `x(a) = y(a)`, else `a₀`
+  is primitive recursive, and `(γ, e′)` equalizes `x, y`; with no witness, the empty
+  object `(0, 1)` does. -/
+
+section SpltFn
+
+variable {γ β : ExtNat} (d : PMor γ γ) (u v : PMor γ β)
+
+/-- The §1.573 idempotent, generalized: fix the `d`-fixed points where `u, v` agree,
+    send everything else to the witness `a₀`. -/
+def spltFn (a₀ : El γ) : El γ → El γ := fun a =>
+  if toNat (d.1 a) = toNat a ∧ toNat (u.1 a) = toNat (v.1 a) then a else a₀
+
+theorem spltFn_of_mem (a₀ : El γ) {a : El γ} (h1 : d.1 a = a) (h2 : u.1 a = v.1 a) :
+    spltFn d u v a₀ a = a := if_pos ⟨congrArg toNat h1, congrArg toNat h2⟩
+
+theorem spltFn_of_not (a₀ : El γ) {a : El γ} (h : ¬(d.1 a = a ∧ u.1 a = v.1 a)) :
+    spltFn d u v a₀ a = a₀ :=
+  if_neg fun hc => h ⟨toNat_inj hc.1, toNat_inj hc.2⟩
+
+/-- Values of `spltFn` lie in the agreement set (given that the witness does). -/
+theorem spltFn_mem (a₀ : El γ) (h₀d : d.1 a₀ = a₀) (h₀uv : u.1 a₀ = v.1 a₀) (a : El γ) :
+    d.1 (spltFn d u v a₀ a) = spltFn d u v a₀ a ∧
+      u.1 (spltFn d u v a₀ a) = v.1 (spltFn d u v a₀ a) := by
+  by_cases h : toNat (d.1 a) = toNat a ∧ toNat (u.1 a) = toNat (v.1 a)
+  · rw [spltFn_of_mem d u v a₀ (toNat_inj h.1) (toNat_inj h.2)]
+    exact ⟨toNat_inj h.1, toNat_inj h.2⟩
+  · rw [spltFn_of_not d u v a₀ fun hc => h ⟨congrArg toNat hc.1, congrArg toNat hc.2⟩]
+    exact ⟨h₀d, h₀uv⟩
+
+theorem spltFn_idem (a₀ : El γ) (h₀d : d.1 a₀ = a₀) (h₀uv : u.1 a₀ = v.1 a₀) (a : El γ) :
+    spltFn d u v a₀ (spltFn d u v a₀ a) = spltFn d u v a₀ a :=
+  spltFn_of_mem d u v a₀ (spltFn_mem d u v a₀ h₀d h₀uv a).1
+    (spltFn_mem d u v a₀ h₀d h₀uv a).2
+
+/-- `spltFn` is a P-morphism (arithmetization of the definition-by-cases). -/
+theorem spltFn_pmor (a₀ : El γ) : IsPMor γ γ (spltFn d u v a₀) := by
+  match γ, d, u, v, a₀ with
+  | some n, _, _, _, _ => exact trivial
+  | none, d, u, v, a₀ =>
+    have hind1 : PrimRec1 fun k => eqInd (toNat (d.1 k)) k :=
+      PrimRec1.comp2 PrimRec2.eqInd d.2 PrimRec1.id
+    have hind2 : PrimRec1 fun k => eqInd (toNat (u.1 k)) (toNat (v.1 k)) :=
+      PrimRec1.comp2 PrimRec2.eqInd u.2 v.2
+    have ht : PrimRec1 fun k =>
+        eqInd (toNat (d.1 k)) k * eqInd (toNat (u.1 k)) (toNat (v.1 k)) :=
+      PrimRec1.mul hind1 hind2
+    have harith : PrimRec1 fun k =>
+        k * (eqInd (toNat (d.1 k)) k * eqInd (toNat (u.1 k)) (toNat (v.1 k))) +
+          a₀ * (1 - eqInd (toNat (d.1 k)) k * eqInd (toNat (u.1 k)) (toNat (v.1 k))) :=
+      PrimRec1.add (PrimRec1.mul PrimRec1.id ht)
+        (PrimRec1.mul (PrimRec1.const a₀) (PrimRec1.sub (PrimRec1.const 1) ht))
+    have hpt : ∀ k : Nat,
+        k * (eqInd (toNat (d.1 k)) k * eqInd (toNat (u.1 k)) (toNat (v.1 k))) +
+          a₀ * (1 - eqInd (toNat (d.1 k)) k * eqInd (toNat (u.1 k)) (toNat (v.1 k)))
+          = spltFn d u v a₀ k := by
+      intro k
+      by_cases h1 : toNat (d.1 k) = k
+      · by_cases h2 : toNat (u.1 k) = toNat (v.1 k)
+        · have : spltFn d u v a₀ k = k := if_pos ⟨h1, h2⟩
+          rw [eqInd_eq h1, eqInd_eq h2, this]
+          simp
+        · have : spltFn d u v a₀ k = a₀ := if_neg fun hc => h2 hc.2
+          rw [eqInd_eq h1, eqInd_ne h2, this]
+          simp
+      · have : spltFn d u v a₀ k = a₀ := if_neg fun hc => h1 hc.1
+        rw [eqInd_ne h1, this]
+        simp
+    exact harith.congr hpt
+
+end SpltFn
+
+section PhatEqualizer
+
+variable {E F : PhatObj} (x y : E ⟶ F)
+
+/-- Values of cone maps into `(γ,d)` are `d`-fixed and `x,y`-agreeing. -/
+theorem cone_mem (c : EqualizerCone x y) (w : El c.dom.carrier) :
+    E.e.1 (c.map.1.1 w) = c.map.1.1 w ∧
+      x.1.1 (c.map.1.1 w) = y.1.1 (c.map.1.1 w) :=
+  ⟨PMor.congr c.map.2.2 w, PMor.congr (congrArg Subtype.val c.eq) w⟩
+
+variable (a₀ : El E.carrier)
+
+/-- The generalized §1.573 idempotent as a P-morphism on the carrier. -/
+def phatEqIdemP : E.carrier ⟶ E.carrier :=
+  ⟨spltFn E.e x.1 y.1 a₀, spltFn_pmor E.e x.1 y.1 a₀⟩
+
+variable (h₀d : E.e.1 a₀ = a₀) (h₀uv : x.1.1 a₀ = y.1.1 a₀)
+
+/-- The equalizer object of P̂: the carrier of `E` with the §1.573 idempotent. -/
+def phatEqObj : PhatObj :=
+  ⟨E.carrier, phatEqIdemP x y a₀,
+    PMor.ext (spltFn_idem E.e x.1 y.1 a₀ h₀d h₀uv)⟩
+
+/-- The equalizing map `(carrier, e′) → E` of P̂ (underlying function `e′`). -/
+def phatEqMap : phatEqObj x y a₀ h₀d h₀uv ⟶ E := by
+  refine ⟨phatEqIdemP (E := E) (F := F) x y a₀, PMor.ext ?_, PMor.ext ?_⟩
+  · exact spltFn_idem E.e x.1 y.1 a₀ h₀d h₀uv
+  · exact fun a => (spltFn_mem E.e x.1 y.1 a₀ h₀d h₀uv a).1
+
+/-- §1.573 executed in P̂: with an agreement witness `a₀`, `(carrier, e′)`
+    equalizes `x, y`. -/
+def phatEqWitness : HasEqualizer x y where
+  cone :=
+    ⟨phatEqObj x y a₀ h₀d h₀uv, phatEqMap x y a₀ h₀d h₀uv,
+      PhatHom.ext (PMor.ext fun a => (spltFn_mem E.e x.1 y.1 a₀ h₀d h₀uv a).2)⟩
+  lift c :=
+    ⟨c.map.1, c.map.2.1,
+      PMor.ext fun w => spltFn_of_mem E.e x.1 y.1 a₀ (cone_mem x y c w).1 (cone_mem x y c w).2⟩
+  fac c := PhatHom.ext (PMor.ext fun w =>
+    spltFn_of_mem E.e x.1 y.1 a₀ (cone_mem x y c w).1 (cone_mem x y c w).2)
+  uniq c m hm := PhatHom.ext (PMor.ext fun w =>
+    calc m.1.1 w = spltFn E.e x.1 y.1 a₀ (m.1.1 w) := (PMor.congr m.2.2 w).symm
+      _ = c.map.1.1 w := PMor.congr (congrArg Subtype.val hm) w)
+
+/-- No agreement anywhere: the empty object `(0, 1)` equalizes `x, y` in P̂. -/
+def phatEqEmpty (hno : ∀ a : El E.carrier, ¬(E.e.1 a = a ∧ x.1.1 a = y.1.1 a)) :
+    HasEqualizer x y where
+  cone :=
+    ⟨embP (some 0 : ExtNat),
+      ⟨⟨fun w => w.elim0, isPMor_finite _⟩,
+        PMor.ext fun w => w.elim0, PMor.ext fun w => w.elim0⟩,
+      PhatHom.ext (PMor.ext fun w => w.elim0)⟩
+  lift c :=
+    ⟨⟨fun w => absurd (cone_mem x y c w) (hno _), isPMor_ofEmpty _⟩,
+      PMor.ext fun w => absurd (cone_mem x y c w) (hno _),
+      PMor.ext fun w => absurd (cone_mem x y c w) (hno _)⟩
+  fac c := PhatHom.ext (PMor.ext fun w => absurd (cone_mem x y c w) (hno _))
+  uniq _ m _ := PhatHom.ext (PMor.ext fun w => (m.1.1 w).elim0)
+
+open Classical in
+/-- Equalizers in P̂ — §1.573: splitting all idempotents repairs the equalizers.
+    (The case split on inhabitation of the agreement set is classical, exactly as
+    for R's equalizers in §1.572.) -/
+noncomputable def phatEqOf : HasEqualizer x y :=
+  if h : ∃ a : El E.carrier, E.e.1 a = a ∧ x.1.1 a = y.1.1 a then
+    phatEqWitness x y h.choose h.choose_spec.1 h.choose_spec.2
+  else
+    phatEqEmpty x y fun a ha => h ⟨a, ha⟩
+
+end PhatEqualizer
+
+noncomputable instance : HasEqualizers PhatObj := ⟨fun _ _ x y => phatEqOf x y⟩
+
+/-- **§1.573 headline**: P̂ = Spl(P) is a cartesian category. -/
+noncomputable instance phatCartesian : CartesianCategory PhatObj := {}
+
+/-- §1.573 as stated in the book: a parallel pair from ω in P acquires an equalizer
+    once the idempotents are split. -/
+noncomputable example {α : PObj} (x y : omegaP ⟶ α) :
+    HasEqualizer (embPFunctor.map x) (embPFunctor.map y) := phatEqOf _ _
 
 end Freyd.Pcat
