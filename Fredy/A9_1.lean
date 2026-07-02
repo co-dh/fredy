@@ -276,4 +276,37 @@ theorem dynamic_programming_thin (hFr : F.PreservesRecip) (I : InitialAlgebra F)
       ⊑ A ((relCata I T)° ≫ relCata I h) ≫ minRel R :=
   mu_le_of_prefixed (dp_thin_prefixed hFr hh hmono htrans (hylo_fixed hFr I h T) hQ)
 
+/-! ## Ex 9.1 — Theorem 9.1 as an instance of Theorem 9.2 -/
+
+/-- **Ex 9.1**: Theorem 9.1 (`dynamic_programming`) is the `Q := id` instance of Theorem 9.2
+    (`dynamic_programming_thin`) — thinning by the identity preorder never discards a
+    candidate (`id ⊑ thin id`, `id_le_thinRel_id`), so the plain recursion refines the
+    thinning recursion pointwise; discharging Theorem 9.2's `hQ` hypothesis at `Q := id` needs
+    exactly `hrefl : id ⊑ R`, which the direct proof of Theorem 9.1 does not require. -/
+theorem dynamic_programming_of_thin (hFr : F.PreservesRecip) (I : InitialAlgebra F)
+    {h : F.obj a ⟶ a} {T : F.obj b ⟶ b} {R : a ⟶ a}
+    (hh : Map h) (hmono : MonotonicAlg h R) (htrans : R ≫ R ⊑ R) (hrefl : Cat.id a ⊑ R) :
+    mu (fun X : b ⟶ a => A (T°) ≫ powerRel (F.map X ≫ h) ≫ minRel R)
+      ⊑ A ((relCata I T)° ≫ relCata I h) ≫ minRel R := by
+  have hpt : ∀ X : b ⟶ a, A (T°) ≫ powerRel (F.map X ≫ h) ≫ minRel R
+      ⊑ A (T°) ≫ thinRel (Cat.id (F.obj b)) ≫ powerRel (F.map X ≫ h) ≫ minRel R := by
+    intro X
+    have step := comp_mono_right id_le_thinRel_id (powerRel (F.map X ≫ h) ≫ minRel R)
+    rw [Cat.id_comp] at step
+    exact comp_mono_left _ step
+  have hstep : mu (fun X : b ⟶ a => A (T°) ≫ powerRel (F.map X ≫ h) ≫ minRel R)
+      ⊑ mu (fun X : b ⟶ a =>
+          A (T°) ≫ thinRel (Cat.id (F.obj b)) ≫ powerRel (F.map X ≫ h) ≫ minRel R) :=
+    mu_le_mu hpt
+  have hQ : (Cat.id (F.obj b))° ≫ F.map ((relCata I T)° ≫ relCata I h) ≫ h
+      ⊑ F.map ((relCata I T)° ≫ relCata I h) ≫ h ≫ R° := by
+    rw [recip_id, Cat.id_comp]
+    have hid : Cat.id a ⊑ R° := by
+      have h1 := recip_mono hrefl
+      rwa [recip_id] at h1
+    have step := comp_mono_left (F.map ((relCata I T)° ≫ relCata I h) ≫ h) hid
+    rw [Cat.comp_id, Cat.assoc] at step
+    exact step
+  exact le_trans hstep (dynamic_programming_thin hFr I hh hmono htrans hQ)
+
 end Freyd.Alg
