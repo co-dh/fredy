@@ -618,4 +618,100 @@ theorem Recursive1.modConst (m : Nat) : Recursive1 fun c => c % (m + 1) := by
   have h3 : (m + 1) * (c / (m + 1)) = (c / (m + 1)) * (m + 1) := Nat.mul_comm _ _
   omega
 
+/-! ## Part 3: the category R
+
+  Objects: extended naturals `some n` (the finite ordinal `n`, carrier `Fin n`)
+  and `none` (ω, carrier ℕ).  A morphism is a function between the carriers that
+  is recursive; per the book, ANY function from a finite natural number counts
+  as recursive, so the condition only bites on domain ω. -/
+
+/-- The extended natural numbers 0, 1, 2, …, ω — the objects of R. -/
+def ExtNat : Type := Option Nat
+
+/-- The finite ordinal ω-object.  Book notation: ω. -/
+def omega : ExtNat := none
+
+/-- The finite ordinal object `n = {0, …, n-1}` (von Neumann). -/
+def fin (n : Nat) : ExtNat := some n
+
+/-- Carrier of an extended natural: `El (some n) = Fin n`, `El ω = ℕ`. -/
+def El : ExtNat → Type := fun α =>
+  match α with
+  | some n => Fin n
+  | none => Nat
+
+/-- Uniform embedding of every carrier into ℕ. -/
+def toNat : {α : ExtNat} → El α → Nat := fun {α} =>
+  match α with
+  | some _ => Fin.val
+  | none => id
+
+theorem toNat_inj : ∀ {α : ExtNat} {a b : El α}, toNat a = toNat b → a = b := by
+  intro α
+  match α with
+  | some n => intro a b h; exact Fin.ext h
+  | none => intro a b h; exact h
+
+theorem toNat_lt {n : Nat} (a : El (some n)) : toNat a < n := a.isLt
+
+/-- The morphism condition: from ω the induced ℕ→ℕ function must be recursive;
+    from a finite natural everything is a morphism (book convention). -/
+def IsMor : (α β : ExtNat) → (El α → El β) → Prop := fun α _ f =>
+  match α, f with
+  | some _, _ => True
+  | none, f => Recursive1 fun k => toNat (f k)
+
+/-- Morphisms of R: recursive functions between the carriers. -/
+def Mor (α β : ExtNat) : Type := {f : El α → El β // IsMor α β f}
+
+theorem Mor.ext {α β : ExtNat} {f g : Mor α β} (h : ∀ a, f.1 a = g.1 a) : f = g :=
+  Subtype.ext (funext h)
+
+theorem isMor_finite {n : Nat} {β : ExtNat} (f : El (some n) → El β) : IsMor (some n) β f :=
+  trivial
+
+/-- Any function ω → Fin m whose values are recursive composed with any table is a
+    morphism-composite: the workhorse for composing through a finite object. -/
+theorem recursive1_finComp {m : Nat} {f : Nat → Fin m} (hf : Recursive1 fun k => (f k).val)
+    (t : Fin m → Nat) : Recursive1 fun k => t (f k) := by
+  have htab := Recursive1.finTable m t
+  have hcomp := Recursive1.comp (f := fun k => (f k).val)
+    (g := fun j => if h : j < m then t ⟨j, h⟩ else 0) hf htab
+  refine hcomp.congr fun k => ?_
+  show (if h : (f k).val < m then t ⟨(f k).val, h⟩ else 0) = t (f k)
+  rw [dif_pos (f k).isLt]
+
+/-- Composites of morphisms are morphisms. -/
+theorem isMor_comp {α β γ : ExtNat} (f : Mor α β) (g : Mor β γ) :
+    IsMor α γ fun a => g.1 (f.1 a) := by
+  match α with
+  | some n => exact trivial
+  | none =>
+    match β with
+    | none =>
+      exact Recursive1.comp (f := fun k => toNat (f.1 k)) (g := fun k => toNat (g.1 k)) f.2 g.2
+    | some m =>
+      exact recursive1_finComp (f := fun k => f.1 k) f.2 fun j => toNat (g.1 j)
+
+instance : Cat ExtNat where
+  Hom := Mor
+  id α := ⟨fun a => a, by
+    match α with
+    | some n => exact trivial
+    | none => exact Recursive1.id⟩
+  comp f g := ⟨fun a => g.1 (f.1 a), isMor_comp f g⟩
+  id_comp f := Mor.ext fun _ => rfl
+  comp_id f := Mor.ext fun _ => rfl
+  assoc f g h := Mor.ext fun _ => rfl
+
+/-- Pointwise evaluation of a composite. -/
+theorem comp_fn {α β γ : ExtNat} (f : α ⟶ β) (g : β ⟶ γ) (a : El α) :
+    (f ≫ g).1 a = g.1 (f.1 a) := rfl
+
+theorem id_fn {α : ExtNat} (a : El α) : (Cat.id α).1 a = a := rfl
+
+/-- Pointwise consequence of a morphism equation. -/
+theorem Mor.congr {α β : ExtNat} {f g : α ⟶ β} (h : f = g) (a : El α) : f.1 a = g.1 a := by
+  rw [h]
+
 end Freyd.Rcat
