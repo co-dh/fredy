@@ -929,4 +929,369 @@ noncomputable instance : HasBinaryProducts ExtNat where
           ((prodData α β).enc_dec _).symm
       _ = (prodData α β).enc (f.1 w) (g.1 w) := by rw [e1, e2]
 
+/-! ## Part 5: R has equalizers
+
+  The equalizer of `x, y : α → β` is the decidable subset `{i | x i = y i}` of the
+  carrier of `α`, re-presented as an extended natural: its increasing enumeration
+  is a recursive mono into `α`.  If the subset is bounded the equalizer object is
+  its (finite) size; otherwise it is ω and the enumeration is computed by genuine
+  unbounded μ-search.  The universal lift is the rank function (count of members
+  below), recursive by primitive recursion. -/
+
+/-- Support test: is `u` the code of an element of the carrier of `α`? -/
+def suppChi : ExtNat → Nat → Bool
+  | some n, u => decide (u < n)
+  | none, _ => true
+
+@[simp] theorem suppChi_some (n u : Nat) : suppChi (some n) u = decide (u < n) := rfl
+
+@[simp] theorem suppChi_none (u : Nat) : suppChi none u = true := rfl
+
+/-- The element of `El α` coded by `u` (given the support test). -/
+def elOf : {α : ExtNat} → (u : Nat) → suppChi α u = true → El α := fun {α} =>
+  match α with
+  | some _ => fun u h => ⟨u, of_decide_eq_true h⟩
+  | none => fun u _ => u
+
+theorem toNat_elOf : ∀ {α : ExtNat} (u : Nat) (h : suppChi α u = true), toNat (elOf u h) = u := by
+  intro α
+  match α with
+  | some n => intro u h; rfl
+  | none => intro u h; rfl
+
+theorem suppChi_toNat : ∀ {α : ExtNat} (a : El α), suppChi α (toNat a) = true := by
+  intro α
+  match α with
+  | some n => intro a; exact decide_eq_true a.isLt
+  | none => intro a; rfl
+
+/-- A morphism as a ℕ→ℕ function (0 outside the support). -/
+def morN : {α β : ExtNat} → Mor α β → Nat → Nat := fun {α _} =>
+  match α with
+  | some n => fun x u => if h : u < n then toNat (x.1 ⟨u, h⟩) else 0
+  | none => fun x u => toNat (x.1 u)
+
+theorem morN_rec {α β : ExtNat} (x : Mor α β) : Recursive1 (morN x) := by
+  match α with
+  | some n => exact Recursive1.finTable n fun i => toNat (x.1 i)
+  | none => exact x.2
+
+theorem morN_spec : ∀ {α β : ExtNat} (x : Mor α β) (a : El α), morN x (toNat a) = toNat (x.1 a) := by
+  intro α
+  match α with
+  | some n =>
+    intro β x a
+    show (if h : a.val < n then toNat (x.1 ⟨a.val, h⟩) else 0) = toNat (x.1 a)
+    rw [dif_pos a.isLt]
+  | none => intro β x a; rfl
+
+/-- The agreement set of `x, y : α → β` as a Boolean predicate on codes. -/
+def agreeChi {α β : ExtNat} (x y : Mor α β) : Nat → Bool := fun u =>
+  suppChi α u && (morN x u == morN y u)
+
+theorem agreeChi_supp {α β : ExtNat} {x y : Mor α β} {u : Nat}
+    (h : agreeChi x y u = true) : suppChi α u = true :=
+  (Bool.and_eq_true_iff.mp h).1
+
+theorem agreeChi_toNat {α β : ExtNat} (x y : Mor α β) (a : El α) :
+    agreeChi x y (toNat a) = true ↔ x.1 a = y.1 a := by
+  unfold agreeChi
+  rw [suppChi_toNat a, Bool.true_and, morN_spec x a, morN_spec y a]
+  constructor
+  · intro h
+    exact toNat_inj (beq_iff_eq.mp h)
+  · intro h
+    rw [h]
+    exact beq_self_eq_true _
+
+theorem agreeChi_elOf {α β : ExtNat} (x y : Mor α β) {u : Nat}
+    (h : agreeChi x y u = true) :
+    x.1 (elOf u (agreeChi_supp h)) = y.1 (elOf u (agreeChi_supp h)) := by
+  have := (agreeChi_toNat x y (elOf u (agreeChi_supp h)))
+  rw [toNat_elOf] at this
+  exact this.mp h
+
+/-- The numeric characteristic function of the agreement set is recursive. -/
+theorem agreeChi_rec {α β : ExtNat} (x y : Mor α β) :
+    Recursive1 fun u => if agreeChi x y u then 1 else 0 := by
+  have hsupp : Recursive1 fun u => if suppChi α u then 1 else 0 := by
+    match α with
+    | some n =>
+      have htab := Recursive1.finTable n fun _ => 1
+      refine htab.congr fun u => ?_
+      rw [suppChi_some]
+      by_cases h : u < n
+      · rw [dif_pos h, if_pos (decide_eq_true h)]
+      · rw [dif_neg h, if_neg (by simpa using h)]
+    | none => exact (Recursive1.const 1).congr fun u => rfl
+  have heq : Recursive1 fun u => eqInd (morN x u) (morN y u) :=
+    Recursive1.comp2 Recursive2.eqInd (morN_rec x) (morN_rec y)
+  have h := Recursive1.mul hsupp heq
+  refine h.congr fun u => ?_
+  unfold agreeChi
+  by_cases hs : suppChi α u = true
+  · rw [hs, Bool.true_and, if_pos rfl, Nat.one_mul]
+    by_cases hm : morN x u = morN y u
+    · rw [eqInd_eq hm, if_pos (by rw [hm]; exact beq_self_eq_true _)]
+    · rw [eqInd_ne hm, if_neg (by
+        intro hc
+        exact hm (beq_iff_eq.mp hc))]
+  · have hs' : suppChi α u = false := by
+      cases h' : suppChi α u
+      · rfl
+      · exact absurd h' hs
+    rw [hs', if_neg (by simp), Bool.false_and, if_neg (by simp), Nat.zero_mul]
+
+/-! ### Rank and enumeration of a Boolean subset of ℕ -/
+
+/-- `rankOf χ v` = number of members of `{i | χ i}` below `v`. -/
+def rankOf (χ : Nat → Bool) : Nat → Nat := natIter 0 fun v r => r + (if χ v then 1 else 0)
+
+@[simp] theorem rankOf_zero (χ : Nat → Bool) : rankOf χ 0 = 0 := rfl
+
+theorem rankOf_succ (χ : Nat → Bool) (v : Nat) :
+    rankOf χ (v + 1) = rankOf χ v + (if χ v then 1 else 0) := rfl
+
+theorem rankOf_rec {χ : Nat → Bool} (h : Recursive1 fun v => if χ v then 1 else 0) :
+    Recursive1 (rankOf χ) :=
+  Recursive1.natIter 0 (Recursive2.comp2 Recursive2.add Recursive2.sndArg (Recursive2.ofFst h))
+
+theorem rankOf_mono (χ : Nat → Bool) {v w : Nat} (h : v ≤ w) : rankOf χ v ≤ rankOf χ w := by
+  induction w with
+  | zero =>
+    have : v = 0 := by omega
+    subst this; exact Nat.le_refl _
+  | succ w ih =>
+    rcases Nat.lt_or_ge v (w + 1) with h' | h'
+    · have := ih (by omega)
+      rw [rankOf_succ]
+      omega
+    · have : v = w + 1 := by omega
+      subst this; exact Nat.le_refl _
+
+theorem rankOf_lt_of_mem (χ : Nat → Bool) {v w : Nat} (hv : χ v = true) (hvw : v < w) :
+    rankOf χ v < rankOf χ w := by
+  have h1 : rankOf χ (v + 1) = rankOf χ v + 1 := by
+    rw [rankOf_succ, if_pos hv]
+  have h2 : rankOf χ (v + 1) ≤ rankOf χ w := rankOf_mono χ (by omega)
+  omega
+
+theorem rankOf_inj_mem (χ : Nat → Bool) {v w : Nat} (hv : χ v = true) (hw : χ w = true)
+    (h : rankOf χ v = rankOf χ w) : v = w := by
+  rcases Nat.lt_trichotomy v w with h' | h' | h'
+  · exact absurd h (by have := rankOf_lt_of_mem χ hv h'; omega)
+  · exact h'
+  · exact absurd h (by have := rankOf_lt_of_mem χ hw h'; omega)
+
+theorem rankOf_surj (χ : Nat → Bool) {k b : Nat} (hk : k < rankOf χ b) :
+    ∃ v, v < b ∧ χ v = true ∧ rankOf χ v = k := by
+  induction b with
+  | zero => rw [rankOf_zero] at hk; omega
+  | succ b ih =>
+    rw [rankOf_succ] at hk
+    by_cases hb : χ b = true
+    · rw [if_pos hb] at hk
+      rcases Nat.lt_or_ge k (rankOf χ b) with h' | h'
+      · obtain ⟨v, h1, h2, h3⟩ := ih h'
+        exact ⟨v, by omega, h2, h3⟩
+      · have : k = rankOf χ b := by omega
+        exact ⟨b, by omega, hb, this.symm⟩
+    · rw [if_neg hb] at hk
+      obtain ⟨v, h1, h2, h3⟩ := ih (by omega)
+      exact ⟨v, by omega, h2, h3⟩
+
+theorem rankOf_unbounded (χ : Nat → Bool) (hunb : ∀ b, ∃ v, b ≤ v ∧ χ v = true) :
+    ∀ k, ∃ v, χ v = true ∧ rankOf χ v = k := by
+  have grow : ∀ k, ∃ b, k < rankOf χ b := by
+    intro k
+    induction k with
+    | zero =>
+      obtain ⟨v, _, hv⟩ := hunb 0
+      exact ⟨v + 1, by rw [rankOf_succ, if_pos hv]; omega⟩
+    | succ k ih =>
+      obtain ⟨b, hb⟩ := ih
+      obtain ⟨v, hbv, hv⟩ := hunb b
+      refine ⟨v + 1, ?_⟩
+      have h1 : rankOf χ b ≤ rankOf χ v := rankOf_mono χ hbv
+      rw [rankOf_succ, if_pos hv]
+      omega
+  intro k
+  obtain ⟨b, hb⟩ := grow k
+  obtain ⟨v, _, h2, h3⟩ := rankOf_surj χ hb
+  exact ⟨v, h2, h3⟩
+
+/-- The `k`-th member (in increasing order) of the subset `{i | χ i}`. -/
+noncomputable def enumOf (χ : Nat → Bool) (k : Nat)
+    (h : ∃ v, χ v = true ∧ rankOf χ v = k) : Nat :=
+  theLeast _ h
+
+theorem enumOf_chi (χ : Nat → Bool) (k : Nat) (h : ∃ v, χ v = true ∧ rankOf χ v = k) :
+    χ (enumOf χ k h) = true := (theLeast_mem _ h).1
+
+theorem enumOf_rank (χ : Nat → Bool) (k : Nat) (h : ∃ v, χ v = true ∧ rankOf χ v = k) :
+    rankOf χ (enumOf χ k h) = k := (theLeast_mem _ h).2
+
+theorem enumOf_min (χ : Nat → Bool) (k : Nat) (h : ∃ v, χ v = true ∧ rankOf χ v = k) :
+    ∀ i, i < enumOf χ k h → ¬(χ i = true ∧ rankOf χ i = k) := theLeast_min _ h
+
+/-- The enumeration inverts the rank on members. -/
+theorem enumOf_of_mem (χ : Nat → Bool) {u : Nat} (hu : χ u = true)
+    (h : ∃ v, χ v = true ∧ rankOf χ v = rankOf χ u) : enumOf χ (rankOf χ u) h = u :=
+  rankOf_inj_mem χ (enumOf_chi χ _ h) hu (enumOf_rank χ _ h)
+
+/-- The enumeration of an (everywhere-inhabited-rank) recursive subset is recursive —
+    genuine unbounded μ-search. -/
+theorem enumOf_recursive {χ : Nat → Bool} (ht : Recursive1 fun v => if χ v then 1 else 0)
+    (hex : ∀ k, ∃ v, χ v = true ∧ rankOf χ v = k) :
+    Recursive1 fun k => enumOf χ k (hex k) := by
+  refine Recursive1.mu
+    (t := fun v k => (1 - (if χ v then 1 else 0)) + ((rankOf χ v - k) + (k - rankOf χ v)))
+    ?_ ?_ ?_
+  · exact Recursive2.comp2 Recursive2.add
+      (Recursive2.comp2 Recursive2.sub (Recursive2.ofFst (Recursive1.const 1))
+        (Recursive2.ofFst ht))
+      (Recursive2.comp2 Recursive2.add
+        (Recursive2.comp2 Recursive2.sub (Recursive2.ofFst (rankOf_rec ht)) Recursive2.sndArg)
+        (Recursive2.comp2 Recursive2.sub Recursive2.sndArg (Recursive2.ofFst (rankOf_rec ht))))
+  · intro k
+    show (1 - (if χ (enumOf χ k (hex k)) then 1 else 0)) +
+      ((rankOf χ (enumOf χ k (hex k)) - k) + (k - rankOf χ (enumOf χ k (hex k)))) = 0
+    rw [enumOf_chi χ k (hex k), enumOf_rank χ k (hex k)]
+    simp
+  · intro k i hi
+    show (1 - (if χ i then 1 else 0)) + ((rankOf χ i - k) + (k - rankOf χ i)) ≠ 0
+    have hmin := enumOf_min χ k (hex k) i hi
+    by_cases hχ : χ i = true
+    · have hrk : rankOf χ i ≠ k := fun hr => hmin ⟨hχ, hr⟩
+      rw [hχ, if_pos rfl]
+      omega
+    · have hχ' : χ i = false := by
+        cases h' : χ i
+        · rfl
+        · exact absurd h' hχ
+      rw [hχ', if_neg (by simp)]
+      omega
+
+/-! ### The equalizer of `x, y : α → β` -/
+
+section Equalizer
+
+variable {α β : ExtNat} (x y : α ⟶ β)
+
+/-- The `k`-th member of the agreement set, as an element of `El α`. -/
+noncomputable def eqEnum (k : Nat)
+    (h : ∃ v, agreeChi x y v = true ∧ rankOf (agreeChi x y) v = k) : El α :=
+  elOf (enumOf (agreeChi x y) k h) (agreeChi_supp (enumOf_chi (agreeChi x y) k h))
+
+theorem eqEnum_toNat (k : Nat) (h : ∃ v, agreeChi x y v = true ∧ rankOf (agreeChi x y) v = k) :
+    toNat (eqEnum x y k h) = enumOf (agreeChi x y) k h := toNat_elOf _ _
+
+theorem eqEnum_agree (k : Nat) (h : ∃ v, agreeChi x y v = true ∧ rankOf (agreeChi x y) v = k) :
+    x.1 (eqEnum x y k h) = y.1 (eqEnum x y k h) :=
+  agreeChi_elOf x y (enumOf_chi (agreeChi x y) k h)
+
+theorem eqEnum_inj {k k' : Nat}
+    (h : ∃ v, agreeChi x y v = true ∧ rankOf (agreeChi x y) v = k)
+    (h' : ∃ v, agreeChi x y v = true ∧ rankOf (agreeChi x y) v = k')
+    (heq : eqEnum x y k h = eqEnum x y k' h') : k = k' := by
+  have h1 : enumOf (agreeChi x y) k h = enumOf (agreeChi x y) k' h' := by
+    rw [← eqEnum_toNat x y k h, ← eqEnum_toNat x y k' h', heq]
+  rw [← enumOf_rank (agreeChi x y) k h, ← enumOf_rank (agreeChi x y) k' h', h1]
+
+/-- Enumerating the rank of an agreeing element recovers it. -/
+theorem eqEnum_rank {a : El α} (ha : agreeChi x y (toNat a) = true)
+    (h : ∃ v, agreeChi x y v = true ∧
+      rankOf (agreeChi x y) v = rankOf (agreeChi x y) (toNat a)) :
+    eqEnum x y (rankOf (agreeChi x y) (toNat a)) h = a := by
+  apply toNat_inj
+  rw [eqEnum_toNat]
+  exact enumOf_of_mem _ ha _
+
+/-- The lift function (the rank of the code) is a morphism from any cone domain. -/
+theorem eqLift_isMor {X γ : ExtNat} (q : X ⟶ α) (g : El X → El γ)
+    (hg : ∀ w, toNat (g w) = rankOf (agreeChi x y) (toNat (q.1 w))) :
+    IsMor X γ g := by
+  match X, q, g, hg with
+  | some d, q, g, hg => exact trivial
+  | none, q, g, hg =>
+    have h : Recursive1 fun w => rankOf (agreeChi x y) (toNat (q.1 w)) :=
+      Recursive1.comp (f := fun w => toNat (q.1 w)) q.2 (rankOf_rec (agreeChi_rec x y))
+    exact h.congr fun w => (hg w).symm
+
+/-- Cone codes agree. -/
+theorem cone_agree (c : EqualizerCone x y) (w : El c.dom) :
+    agreeChi x y (toNat (c.map.1 w)) = true :=
+  (agreeChi_toNat x y (c.map.1 w)).mpr (Mor.congr c.eq w)
+
+/-- Bounded (finite) case: the agreement set lies below `b`; the equalizer object
+    is the finite ordinal `rankOf χ b`, with the increasing enumeration as the
+    (automatically recursive: finite domain) equalizer map. -/
+noncomputable def eqFinite (b : Nat) (hb : ∀ v, agreeChi x y v = true → v < b) :
+    HasEqualizer x y :=
+  have hexF : ∀ k : Fin (rankOf (agreeChi x y) b),
+      ∃ v, agreeChi x y v = true ∧ rankOf (agreeChi x y) v = k.val := fun k =>
+    let ⟨v, _, h2, h3⟩ := rankOf_surj (agreeChi x y) k.isLt
+    ⟨v, h2, h3⟩
+  have liftLt : ∀ (c : EqualizerCone x y) (w : El c.dom),
+      rankOf (agreeChi x y) (toNat (c.map.1 w)) < rankOf (agreeChi x y) b := fun c w =>
+    rankOf_lt_of_mem _ (cone_agree x y c w) (hb _ (cone_agree x y c w))
+  { cone := ⟨some (rankOf (agreeChi x y) b),
+      ⟨fun k => eqEnum x y k.val (hexF k), trivial⟩,
+      Mor.ext fun k => eqEnum_agree x y k.val (hexF k)⟩
+    lift := fun c =>
+      ⟨fun w => ⟨rankOf (agreeChi x y) (toNat (c.map.1 w)), liftLt c w⟩,
+        eqLift_isMor x y c.map _ fun _ => rfl⟩
+    fac := fun c => Mor.ext fun w =>
+      eqEnum_rank x y (cone_agree x y c w) _
+    uniq := fun c m hm => Mor.ext fun w => by
+      have h1 : eqEnum x y (m.1 w).val (hexF (m.1 w)) = c.map.1 w := Mor.congr hm w
+      have h2 : eqEnum x y (rankOf (agreeChi x y) (toNat (c.map.1 w)))
+          (hexF ⟨_, liftLt c w⟩) = c.map.1 w :=
+        eqEnum_rank x y (cone_agree x y c w) _
+      exact Fin.ext (eqEnum_inj x y _ _ (h1.trans h2.symm)) }
+
+/-- Unbounded (infinite) case: the equalizer object is ω; the increasing
+    enumeration is recursive by unbounded μ-search. -/
+noncomputable def eqInfinite (hunb : ∀ b, ∃ v, b ≤ v ∧ agreeChi x y v = true) :
+    HasEqualizer x y :=
+  have hex : ∀ k, ∃ v, agreeChi x y v = true ∧ rankOf (agreeChi x y) v = k :=
+    rankOf_unbounded _ hunb
+  have mapFn_mor : IsMor none α fun k => eqEnum x y k (hex k) :=
+    (enumOf_recursive (agreeChi_rec x y) hex).congr fun k => (eqEnum_toNat x y k (hex k)).symm
+  { cone := ⟨none, ⟨fun k => eqEnum x y k (hex k), mapFn_mor⟩,
+      Mor.ext fun k => eqEnum_agree x y k (hex k)⟩
+    lift := fun c =>
+      ⟨fun w => rankOf (agreeChi x y) (toNat (c.map.1 w)),
+        eqLift_isMor x y c.map _ fun _ => rfl⟩
+    fac := fun c => Mor.ext fun w =>
+      eqEnum_rank x y (cone_agree x y c w) _
+    uniq := fun c m hm => Mor.ext fun w => by
+      have h1 : eqEnum x y (m.1 w) (hex (m.1 w)) = c.map.1 w := Mor.congr hm w
+      have h2 : eqEnum x y (rankOf (agreeChi x y) (toNat (c.map.1 w)))
+          (hex _) = c.map.1 w :=
+        eqEnum_rank x y (cone_agree x y c w) _
+      exact eqEnum_inj x y _ _ (h1.trans h2.symm) }
+
+open Classical in
+/-- The equalizer of `x, y`: finite or ω according to whether the agreement set
+    is bounded (a classically-decided case split; `Classical.choice` is in budget). -/
+noncomputable def eqOf : HasEqualizer x y :=
+  if h : ∃ b, ∀ v, agreeChi x y v = true → v < b then
+    eqFinite x y h.choose h.choose_spec
+  else
+    eqInfinite x y fun b => by
+      apply Classical.byContradiction
+      intro hno
+      exact h ⟨b, fun v hv => by
+        apply Classical.byContradiction
+        intro hvb
+        exact hno ⟨v, by omega, hv⟩⟩
+
+end Equalizer
+
+noncomputable instance : HasEqualizers ExtNat := ⟨fun _ _ x y => eqOf x y⟩
+
+/-- **R is cartesian** (first half of §1.572's claim). -/
+noncomputable instance : CartesianCategory ExtNat := {}
+
 end Freyd.Rcat
