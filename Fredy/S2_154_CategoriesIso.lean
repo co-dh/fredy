@@ -943,4 +943,102 @@ noncomputable instance mapFFunctor : Functor MapF.{u} where
 
 end Bundles
 
+/-! ## 6.  The roundtrip isomorphism `Rel(Map 𝒜) ≅ 𝒜` in `SmallTabAlleg` (§2.148/§2.218) -/
+
+section CounitIso
+
+variable (𝒜 : SmallTabAlleg.{u})
+
+/-- `relOf` lifted to mutual-containment classes. -/
+noncomputable def relOfQ {a b : MapObj 𝒜.carrier}
+    (x : @BinRelQuot (MapObj 𝒜.carrier) (mapCat (𝒜 := 𝒜.carrier))
+      Freyd.Alg.mapHasBinaryProducts Freyd.Alg.mapHasPullbacks a b) :
+    @Cat.Hom 𝒜.carrier Allegory.toCat a b :=
+  Quotient.liftOn x Freyd.Alg.relOf (fun _ _ h =>
+    le_antisymm (Freyd.Alg.relOf_le_of_relLe h.1) (Freyd.Alg.relOf_le_of_relLe h.2))
+
+theorem relOfQ_relId (a : MapObj 𝒜.carrier) :
+    relOfQ 𝒜 (@relId (MapObj 𝒜.carrier) (mapCat (𝒜 := 𝒜.carrier)) mapRegularCategory a)
+      = Cat.id a := by
+  show Freyd.Alg.relOf (@Freyd.graph (MapObj 𝒜.carrier) (mapCat (𝒜 := 𝒜.carrier)) a a
+    (@Cat.id (MapObj 𝒜.carrier) (mapCat (𝒜 := 𝒜.carrier)) a)) = Cat.id a
+  rw [Freyd.Alg.relOf_graph]
+  rfl
+
+theorem relOfQ_comp {a b c : MapObj 𝒜.carrier}
+    (x : @BinRelQuot (MapObj 𝒜.carrier) (mapCat (𝒜 := 𝒜.carrier))
+      Freyd.Alg.mapHasBinaryProducts Freyd.Alg.mapHasPullbacks a b)
+    (y : @BinRelQuot (MapObj 𝒜.carrier) (mapCat (𝒜 := 𝒜.carrier))
+      Freyd.Alg.mapHasBinaryProducts Freyd.Alg.mapHasPullbacks b c) :
+    relOfQ 𝒜 (@qComp (MapObj 𝒜.carrier) (mapCat (𝒜 := 𝒜.carrier)) mapRegularCategory
+        a b c x y)
+      = relOfQ 𝒜 x ≫ relOfQ 𝒜 y := by
+  refine Quotient.inductionOn₂ x y (fun R S => ?_)
+  exact Freyd.Alg.relOf_compose R S
+
+theorem relOfQ_recip {a b : MapObj 𝒜.carrier}
+    (x : @BinRelQuot (MapObj 𝒜.carrier) (mapCat (𝒜 := 𝒜.carrier))
+      Freyd.Alg.mapHasBinaryProducts Freyd.Alg.mapHasPullbacks a b) :
+    relOfQ 𝒜 (@qRecip (MapObj 𝒜.carrier) (mapCat (𝒜 := 𝒜.carrier)) mapRegularCategory a b x)
+      = (relOfQ 𝒜 x)° := by
+  refine Quotient.inductionOn x (fun R => ?_)
+  exact Freyd.Alg.relOf_reciprocal R
+
+theorem relOfQ_inter {a b : MapObj 𝒜.carrier}
+    (x y : @BinRelQuot (MapObj 𝒜.carrier) (mapCat (𝒜 := 𝒜.carrier))
+      Freyd.Alg.mapHasBinaryProducts Freyd.Alg.mapHasPullbacks a b) :
+    relOfQ 𝒜 (@qInter (MapObj 𝒜.carrier) (mapCat (𝒜 := 𝒜.carrier)) mapRegularCategory a b x y)
+      = relOfQ 𝒜 x ∩ relOfQ 𝒜 y := by
+  refine Quotient.inductionOn₂ x y (fun R S => ?_)
+  exact Freyd.Alg.relOf_inter R S
+
+/-- The §2.148/§2.218 comparison `Rel(Map 𝒜) → 𝒜` as an allegory functor. -/
+noncomputable def counitFun :
+    AllegoryFunctor (RelF (MapF 𝒜)).carrier 𝒜.carrier :=
+  ⟨fun A => A.carrier, fun {_a _b} x => relOfQ 𝒜 x,
+   fun a => relOfQ_relId 𝒜 a.carrier,
+   fun {_a _b _c} x y => relOfQ_comp 𝒜 x y,
+   fun {_a _b} x => relOfQ_recip 𝒜 x,
+   fun {_a _b} x y => relOfQ_inter 𝒜 x y⟩
+
+/-- **§2.148/§2.218 counit** `Rel(Map 𝒜) → 𝒜` as a morphism of `SmallTabAlleg`. -/
+noncomputable def counit : UnitaryRep (RelF (MapF 𝒜)) 𝒜 where
+  toFun := counitFun 𝒜
+  unit := UnitaryAllegory.unit_prop (𝒜 := 𝒜.carrier)
+
+/-- **§2.218 bridge** `𝒜 → Rel(Map 𝒜)` as a morphism of `SmallTabAlleg` (the inverse). -/
+noncomputable def counitInv : UnitaryRep 𝒜 (RelF (MapF 𝒜)) where
+  toFun := Freyd.bridgeFunctor 𝒜.carrier
+  unit := UnitaryAllegory.unit_prop (𝒜 := (RelF (MapF 𝒜)).carrier)
+
+theorem counitInv_comp_counit :
+    @Cat.comp SmallTabAlleg.{u} _ 𝒜 (RelF (MapF 𝒜)) 𝒜 (counitInv 𝒜) (counit 𝒜)
+      = @Cat.id SmallTabAlleg.{u} _ 𝒜 := by
+  apply UnitaryRep.ext
+  apply allegFunctor_ext
+  · rfl
+  · intro a b R
+    exact heq_of_eq (Freyd.relOf_tabSpan 𝒜.carrier R)
+
+theorem counit_comp_counitInv :
+    @Cat.comp SmallTabAlleg.{u} _ (RelF (MapF 𝒜)) 𝒜 (RelF (MapF 𝒜))
+        (counit 𝒜) (counitInv 𝒜)
+      = @Cat.id SmallTabAlleg.{u} _ (RelF (MapF 𝒜)) := by
+  apply UnitaryRep.ext
+  apply allegFunctor_ext
+  · rfl
+  · intro a b m
+    refine heq_of_eq ?_
+    refine Quotient.inductionOn m (fun P => ?_)
+    apply Quotient.sound
+    constructor
+    · exact Freyd.Alg.relLe_of_relOf_le (by rw [Freyd.relOf_tabSpan]; exact le_refl _)
+    · exact Freyd.Alg.relLe_of_relOf_le (by rw [Freyd.relOf_tabSpan]; exact le_refl _)
+
+/-- **§2.154**: `Rel(Map 𝒜) ≅ 𝒜` in the category of small tabular unitary allegories. -/
+theorem counit_isIso : @IsIso SmallTabAlleg.{u} _ (RelF (MapF 𝒜)) 𝒜 (counit 𝒜) :=
+  ⟨counitInv 𝒜, counit_comp_counitInv 𝒜, counitInv_comp_counit 𝒜⟩
+
+end CounitIso
+
 end Freyd.S2_154
