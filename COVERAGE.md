@@ -224,14 +224,17 @@ extension of the §2.111 Z-valued relations; S2_168_ValuedSetsTabular) · §2.15
 (`ModularLattice.toModularLOCMonoid` — modular lattice as §2.113 one-object allegory; `rep_equivRel`/`rep_commute` —
 any allegory-representation sends lattice elements to pairwise-commuting equivalence relations; headline
 `partition_representation` — T(R⊔S)=T(R)≫T(S) is the equivalence-relation join; `equivRel_modular` converse modular
-law; ALL axiom-free; S2_156_PartitionRep).
+law; ALL axiom-free; S2_156_PartitionRep) · §2.155 MODULAR-IDENTITY INDEPENDENCE (`BObj` = ∅-or-bientire relations:
+category, semi-lattice homs via guarded `interB`, all Allegory fields EXCEPT modular proven, `modular_fails` concrete
+witness, `b_not_closed_inter`, `b_tabular` — so modularity ⊄ tabularity; `map_b_terminator`+`map_b_no_products` —
+Map(B) not regular; S2_155_BiEntire).
 PARTIAL: §2.224 GLOBAL COMPLETION Aᴴ — now a FAITHFUL LCDA REPRESENTATION (`globalCat`/`globalAllegory`/
 `globalDistributiveAllegory`/`globalLCDA`/`globalCompletion_faithful`, all constructive; infinite matrices over the LCDA Sup,
 identity via propositional i=j + HEq, modular per-entry, assoc/Sup = Fubini interchange). The final GloballyComplete instance is
 UNIVERSE-BLOCKED (disjoint union of u-indexed families escapes to u+1; the completion is complete only at the next universe level
 — needs a class redesign, not just a universe-poly GlobalObj) · §2.226 SYSTEMIC COMPLETION (assumes splitting witness; full
 unit-existence blocked by §2.224 GloballyComplete).
-MISSING: §2.153 assemblies · §2.155–§2.158 examples/projective-planes/free-rep/no-finite-axiom ·
+MISSING: §2.153 assemblies · §2.157–§2.158 projective-planes/no-finite-axiom ·
 §2.154 categories-iso headline · §2.16(13)/(14) recursive/assemblies · §2.21(10).
 
 ## §2.2  Distributive allegories

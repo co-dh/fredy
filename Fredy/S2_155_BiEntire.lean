@@ -548,14 +548,14 @@ theorem bmap_id {a : BObj.{u}} : BMap (Cat.id a) :=
   entire and `g` is co-entire because `Φ°` is. -/
 
 /-- The tabulation apex: the graph of `Φ`. -/
-def tabApex {A B : Type u} (Φ : A → B → Prop) : Type u := { p : A × B // Φ p.1 p.2 }
+def bTabApex {A B : Type u} (Φ : A → B → Prop) : Type u := { p : A × B // Φ p.1 p.2 }
 
 /-- First leg of the tabulation (the projection to `A`, as a relation). -/
-@[reducible] def tabF {A B : Type u} (Φ : A → B → Prop) : tabApex Φ → A → Prop :=
+@[reducible] def tabF {A B : Type u} (Φ : A → B → Prop) : bTabApex Φ → A → Prop :=
   fun p a => p.val.1 = a
 
 /-- Second leg of the tabulation (the projection to `B`, as a relation). -/
-@[reducible] def tabG {A B : Type u} (Φ : A → B → Prop) : tabApex Φ → B → Prop :=
+@[reducible] def tabG {A B : Type u} (Φ : A → B → Prop) : bTabApex Φ → B → Prop :=
   fun p b => p.val.2 = b
 
 /-- The first leg is in B (empty when `Φ = ∅` — its domain is empty —
@@ -599,7 +599,7 @@ theorem tab_guard {A B : Type u} (Φ : A → B → Prop) :
 
 /-- `f≫f° ∩ g≫g° = 1` at the relation level: sharing both coordinates is
     equality on the graph. -/
-theorem tab_inter_pt {A B : Type u} (Φ : A → B → Prop) (p q : tabApex Φ) :
+theorem tab_inter_pt {A B : Type u} (Φ : A → B → Prop) (p q : bTabApex Φ) :
     interB (bComp (tabF Φ) (bRecip (tabF Φ))) (bComp (tabG Φ) (bRecip (tabG Φ))) p q
       ↔ p = q := by
   constructor
@@ -613,11 +613,11 @@ theorem tab_inter_pt {A B : Type u} (Φ : A → B → Prop) (p q : tabApex Φ) :
     exact ⟨⟨p.val.1, rfl, rfl⟩, ⟨p.val.2, rfl, rfl⟩, tab_guard Φ⟩
 
 /-- The first tabulation leg as a morphism of B. -/
-def tabFHom {a b : BObj.{u}} (Φ : a ⟶ b) : BObj.of (tabApex Φ.val) ⟶ a :=
+def tabFHom {a b : BObj.{u}} (Φ : a ⟶ b) : BObj.of (bTabApex Φ.val) ⟶ a :=
   ⟨tabF Φ.val, isB_tabF Φ.property⟩
 
 /-- The second tabulation leg as a morphism of B. -/
-def tabGHom {a b : BObj.{u}} (Φ : a ⟶ b) : BObj.of (tabApex Φ.val) ⟶ b :=
+def tabGHom {a b : BObj.{u}} (Φ : a ⟶ b) : BObj.of (bTabApex Φ.val) ⟶ b :=
   ⟨tabG Φ.val, isB_tabG Φ.property⟩
 
 /-- The first leg is a map of B (it is a function; simplicity is automatic). -/
@@ -647,7 +647,7 @@ theorem b_tabular {a b : BObj.{u}} (Φ : a ⟶ b) :
     BMap (tabFHom Φ) ∧ BMap (tabGHom Φ) ∧
       BHom.recip (tabFHom Φ) ≫ tabGHom Φ = Φ ∧
       BHom.inter (tabFHom Φ ≫ BHom.recip (tabFHom Φ))
-        (tabGHom Φ ≫ BHom.recip (tabGHom Φ)) = Cat.id (BObj.of (tabApex Φ.val)) :=
+        (tabGHom Φ ≫ BHom.recip (tabGHom Φ)) = Cat.id (BObj.of (bTabApex Φ.val)) :=
   ⟨tabF_bmap Φ, tabG_bmap Φ,
    BHom.ext fun x y => tab_recip_comp_pt Φ.val x y,
    BHom.ext fun p q => tab_inter_pt Φ.val p q⟩

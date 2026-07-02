@@ -153,6 +153,7 @@ import Fredy.S2_41b
 import Fredy.S2_21
 import Fredy.S2_21b
 import Fredy.S1_526_StalkConservative
+import Fredy.S2_155_BiEntire
 import Fredy.S2_156_PartitionRep
 import Fredy.S2_33
 import Fredy.S1_631_CapitalProjective
