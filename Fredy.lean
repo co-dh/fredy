@@ -188,3 +188,5 @@ import Fredy.A6_7
 -- Bird & de Moor ch. 7: optimisation problems (min/max, monotonic algebras, greedy theorem)
 import Fredy.A7_1
 import Fredy.A7_2
+-- Bird & de Moor ch. 8: thinning algorithms (thin, thinning theorem)
+import Fredy.A8_1
