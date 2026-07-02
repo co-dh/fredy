@@ -31,8 +31,11 @@
     the lattice-level statement), and `desarguesND_implies_horn_points` — the
     substantive direction: Desargues forces the Horn conclusion at the generic
     six-point instantiations, exactly the configurations the book means by
-    "writing a₁, a₂, b₁, … as A₁, A₂, B₁, …".  A gap analysis of the remaining
-    (degenerate-instantiation) families closes the file.
+    "writing a₁, a₂, b₁, … as A₁, A₂, B₁, …".
+  · `desarguesND_iff_hornAtPoints` — the HEADLINE equivalence: the theorem of
+    Desargues holds iff the Horn sentence holds at every six-point
+    instantiation in general position (`HornAtPoints`).  A gap analysis of the
+    remaining (degenerate-instantiation) families closes the file.
 -/
 import Fredy.S2_157_ProjectivePlane
 
@@ -153,97 +156,7 @@ theorem not_desargues_of_interesting {P : ProjectivePlane.{u}}
 
 end ProjectivePlane
 
-/-! ## §2.157, Horn ⟹ Desargues, in full
-
-  `desarguesHorn_implies_desargues_nondeg` (previous file) needs thirteen
-  nondegeneracy hypotheses.  Four of them are NOT part of the honest theorem
-  and are discharged here by case analysis:
-
-  · `u = v`: the conclusion `⟨u,v,w⟩ colinear` is trivial (axiom 1).
-  · `a₁ = a₂`: the side pairs `a₁c₁/a₂c₂` and `a₁b₁/a₂b₂` become two DISTINCT
-    lines through the collapsed vertex, pinning `u = a₁ = w` (axiom 3).
-  · `b₁ = b₂`: symmetrically `v = b₁ = w`.
-  · `c₁ = c₂`: symmetrically `u = c₁ = v`.
-  · `a₁a₂ = b₁b₂` (coincident perspective lines): then that common line
-    carries `a₁, b₁, a₂, b₂`, so `a₁b₁ = a₂b₂` — contradicting distinctness
-    of corresponding sides.  Hence the perspective lines are automatically
-    distinct and the nondegenerate lemma applies. -/
-
-/-- **§2.157, substantive direction, in full**: the Desargues Horn sentence in
-    the associated allegory of 𝓛(P) implies the (honest ten-point) theorem of
-    Desargues.  No hypotheses beyond `DesarguesND`'s own nine side conditions. -/
-theorem desarguesHorn_implies_desargues {P : ProjectivePlane.{u}}
-    (hHorn : DesarguesHorn (LMonObj (PElem P))) : P.DesarguesND := by
-  intro p a₁ a₂ b₁ b₂ c₁ c₂ u v w h1 h2 h3 h4 h5 h6 h7 h8 h9
-    hab₁ hac₁ hcb₁ hab₂ hac₂ hcb₂ hSab hSac hScb
-  -- trivial conclusion when the two side-meets u, v coincide
-  by_cases huv : u = v
-  · exact ProjectivePlane.colinear_of_eq₁₂ huv
-  -- collapsed perspective pair a₁ = a₂ pins u = a₁ = w
-  by_cases hpa : a₁ = a₂
-  · subst hpa
-    obtain ⟨L4, ha4, hc4, hu4⟩ := h4
-    obtain ⟨L5, ha5, hc5, hu5⟩ := h5
-    have hu : u = a₁ := ProjectivePlane.eq_of_incid_two_lines hSac
-      (P.incid_lineThrough_of_mem hac₁ ha4 hc4 hu4)
-      (P.incid_lineThrough_of_mem hac₂ ha5 hc5 hu5)
-      (P.lineThrough_incid_left a₁ c₁) (P.lineThrough_incid_left a₁ c₂)
-    obtain ⟨L8, ha8, hb8, hw8⟩ := h8
-    obtain ⟨L9, ha9, hb9, hw9⟩ := h9
-    have hw : w = a₁ := ProjectivePlane.eq_of_incid_two_lines hSab
-      (P.incid_lineThrough_of_mem hab₁ ha8 hb8 hw8)
-      (P.incid_lineThrough_of_mem hab₂ ha9 hb9 hw9)
-      (P.lineThrough_incid_left a₁ b₁) (P.lineThrough_incid_left a₁ b₂)
-    exact ProjectivePlane.colinear_of_eq₁₃ (hu.trans hw.symm)
-  -- collapsed perspective pair b₁ = b₂ pins v = b₁ = w
-  by_cases hpb : b₁ = b₂
-  · subst hpb
-    obtain ⟨L6, hb6, hc6, hv6⟩ := h6
-    obtain ⟨L7, hb7, hc7, hv7⟩ := h7
-    have hv : v = b₁ := ProjectivePlane.eq_of_incid_two_lines hScb
-      (P.incid_lineThrough_of_mem hcb₁ hc6 hb6 hv6)
-      (P.incid_lineThrough_of_mem hcb₂ hc7 hb7 hv7)
-      (P.lineThrough_incid_right c₁ b₁) (P.lineThrough_incid_right c₂ b₁)
-    obtain ⟨L8, ha8, hb8, hw8⟩ := h8
-    obtain ⟨L9, ha9, hb9, hw9⟩ := h9
-    have hw : w = b₁ := ProjectivePlane.eq_of_incid_two_lines hSab
-      (P.incid_lineThrough_of_mem hab₁ ha8 hb8 hw8)
-      (P.incid_lineThrough_of_mem hab₂ ha9 hb9 hw9)
-      (P.lineThrough_incid_right a₁ b₁) (P.lineThrough_incid_right a₂ b₁)
-    exact ProjectivePlane.colinear_of_eq₂₃ (hv.trans hw.symm)
-  -- collapsed perspective pair c₁ = c₂ pins u = c₁ = v
-  by_cases hpc : c₁ = c₂
-  · subst hpc
-    obtain ⟨L4, ha4, hc4, hu4⟩ := h4
-    obtain ⟨L5, ha5, hc5, hu5⟩ := h5
-    have hu : u = c₁ := ProjectivePlane.eq_of_incid_two_lines hSac
-      (P.incid_lineThrough_of_mem hac₁ ha4 hc4 hu4)
-      (P.incid_lineThrough_of_mem hac₂ ha5 hc5 hu5)
-      (P.lineThrough_incid_right a₁ c₁) (P.lineThrough_incid_right a₂ c₁)
-    obtain ⟨L6, hb6, hc6, hv6⟩ := h6
-    obtain ⟨L7, hb7, hc7, hv7⟩ := h7
-    have hv : v = c₁ := ProjectivePlane.eq_of_incid_two_lines hScb
-      (P.incid_lineThrough_of_mem hcb₁ hc6 hb6 hv6)
-      (P.incid_lineThrough_of_mem hcb₂ hc7 hb7 hv7)
-      (P.lineThrough_incid_left c₁ b₁) (P.lineThrough_incid_left c₁ b₂)
-    exact ProjectivePlane.colinear_of_eq₁₂ (hu.trans hv.symm)
-  -- perspective lines are distinct, else corresponding sides a₁b₁ = a₂b₂
-  have hLab : P.lineThrough a₁ a₂ ≠ P.lineThrough b₁ b₂ := by
-    intro hM
-    have hb₁ : P.incid b₁ (P.lineThrough a₁ a₂) := by
-      rw [hM]; exact P.lineThrough_incid_left b₁ b₂
-    have hb₂ : P.incid b₂ (P.lineThrough a₁ a₂) := by
-      rw [hM]; exact P.lineThrough_incid_right b₁ b₂
-    have e1 : P.lineThrough a₁ a₂ = P.lineThrough a₁ b₁ :=
-      ProjectivePlane.lineThrough_eq hab₁ (P.lineThrough_incid_left a₁ a₂) hb₁
-    have e2 : P.lineThrough a₁ a₂ = P.lineThrough a₂ b₂ :=
-      ProjectivePlane.lineThrough_eq hab₂ (P.lineThrough_incid_right a₁ a₂) hb₂
-    exact hSab (e1.symm.trans e2)
-  exact desarguesHorn_implies_desargues_nondeg hHorn p a₁ a₂ b₁ b₂ c₁ c₂ u v w
-    h1 h2 h3 h4 h5 h6 h7 h8 h9 hpa hpb hpc hab₁ hab₂ hac₁ hac₂ hcb₁ hcb₂
-    hLab hSac hScb huv
-
-/-! ## The converse: the Horn sentence read in 𝓛(P)
+/-! ## The Horn sentence read in 𝓛(P)
 
   In the one-object allegory on 𝓛(P) composition is `⊔`, intersection is `⊓`,
   reciprocation is the identity and `⊑` is the lattice order (§2.156/§2.113),
@@ -251,7 +164,8 @@ theorem desarguesHorn_implies_desargues {P : ProjectivePlane.{u}}
   of lattice elements.  We name its hypothesis and conclusion, record the two
   symmetries of the sentence (swapping the A- and B-columns; swapping the
   1- and 2-rows), and prove the pruning lemmas that dispose of degenerate
-  instantiations before the geometry starts. -/
+  instantiations before the geometry starts.  (Both directions of the §2.157
+  equivalence are assembled at the end of the file.) -/
 
 namespace PElem
 
@@ -488,5 +402,209 @@ theorem desarguesND_implies_horn_points {P : ProjectivePlane.{u}}
     join_pt_pt_ne huv]
   obtain ⟨N, huN, hvN, hwN⟩ := hconc
   exact P.incid_lineThrough_of_mem huv huN hvN hwN
+
+/-! ## Assembly: the §2.157 equivalence at the plane's own configurations -/
+
+/-- The §2.157 Horn sentence RESTRICTED to the plane's own configurations:
+    all instances at six points in general position ("writing a₁, a₂, b₁, …
+    as A₁, A₂, B₁, …").  General position = the fifteen side conditions of
+    `desarguesND_implies_horn_points`: distinct perspective pairs, genuine
+    triangles with distinct corresponding sides, distinct perspective lines,
+    non-flat triangles. -/
+def ProjectivePlane.HornAtPoints (P : ProjectivePlane.{u}) : Prop :=
+  ∀ a₁ a₂ b₁ b₂ c₁ c₂ : P.Point,
+    a₁ ≠ a₂ → b₁ ≠ b₂ → c₁ ≠ c₂ →
+    a₁ ≠ b₁ → a₁ ≠ c₁ → c₁ ≠ b₁ →
+    a₂ ≠ b₂ → a₂ ≠ c₂ → c₂ ≠ b₂ →
+    P.lineThrough a₁ a₂ ≠ P.lineThrough b₁ b₂ →
+    P.lineThrough a₁ b₁ ≠ P.lineThrough a₂ b₂ →
+    P.lineThrough a₁ c₁ ≠ P.lineThrough a₂ c₂ →
+    P.lineThrough c₁ b₁ ≠ P.lineThrough c₂ b₂ →
+    P.lineThrough a₁ c₁ ≠ P.lineThrough c₁ b₁ →
+    P.lineThrough a₂ c₂ ≠ P.lineThrough c₂ b₂ →
+    PElem.HornHyp (PElem.pt a₁) (PElem.pt a₂) (PElem.pt b₁)
+      (PElem.pt b₂) (PElem.pt c₁) (PElem.pt c₂) →
+    PElem.HornConc (PElem.pt a₁) (PElem.pt a₂) (PElem.pt b₁)
+      (PElem.pt b₂) (PElem.pt c₁) (PElem.pt c₂)
+
+/-- **Horn instances at points ⟹ Desargues.**  The general-position instance
+    is `desargues_nondeg_of_hornPoints`; each degenerate case is discharged
+    synthetically:
+
+    · `u = v`: the conclusion `⟨u,v,w⟩ colinear` is trivial (axiom 1);
+    · `a₁ = a₂`: the side pairs `a₁c₁/a₂c₂` and `a₁b₁/a₂b₂` are two DISTINCT
+      lines through the collapsed vertex, pinning `u = a₁ = w` (axiom 3);
+    · `b₁ = b₂` / `c₁ = c₂`: symmetrically `v = b₁ = w`, resp. `u = c₁ = v`;
+    · coincident perspective lines `a₁a₂ = b₁b₂`: that common line carries
+      `a₁, b₁, a₂, b₂`, so `a₁b₁ = a₂b₂` — contradicting distinctness of
+      corresponding sides;
+    · a FLAT triangle (`a₁c₁ = c₁b₁`, i.e. `a₁, b₁, c₁` colinear): then `u`,
+      `v`, `w` all land on that very line, and symmetrically for `a₂c₂ = c₂b₂`. -/
+theorem hornAtPoints_implies_desarguesND {P : ProjectivePlane.{u}}
+    (hAt : P.HornAtPoints) : P.DesarguesND := by
+  intro p a₁ a₂ b₁ b₂ c₁ c₂ u v w h1 h2 h3 h4 h5 h6 h7 h8 h9
+    hab₁ hac₁ hcb₁ hab₂ hac₂ hcb₂ hSab hSac hScb
+  -- trivial conclusion when the two side-meets u, v coincide
+  by_cases huv : u = v
+  · exact ProjectivePlane.colinear_of_eq₁₂ huv
+  -- collapsed perspective pair a₁ = a₂ pins u = a₁ = w
+  by_cases hpa : a₁ = a₂
+  · subst hpa
+    obtain ⟨L4, ha4, hc4, hu4⟩ := h4
+    obtain ⟨L5, ha5, hc5, hu5⟩ := h5
+    have hu : u = a₁ := ProjectivePlane.eq_of_incid_two_lines hSac
+      (P.incid_lineThrough_of_mem hac₁ ha4 hc4 hu4)
+      (P.incid_lineThrough_of_mem hac₂ ha5 hc5 hu5)
+      (P.lineThrough_incid_left a₁ c₁) (P.lineThrough_incid_left a₁ c₂)
+    obtain ⟨L8, ha8, hb8, hw8⟩ := h8
+    obtain ⟨L9, ha9, hb9, hw9⟩ := h9
+    have hw : w = a₁ := ProjectivePlane.eq_of_incid_two_lines hSab
+      (P.incid_lineThrough_of_mem hab₁ ha8 hb8 hw8)
+      (P.incid_lineThrough_of_mem hab₂ ha9 hb9 hw9)
+      (P.lineThrough_incid_left a₁ b₁) (P.lineThrough_incid_left a₁ b₂)
+    exact ProjectivePlane.colinear_of_eq₁₃ (hu.trans hw.symm)
+  -- collapsed perspective pair b₁ = b₂ pins v = b₁ = w
+  by_cases hpb : b₁ = b₂
+  · subst hpb
+    obtain ⟨L6, hb6, hc6, hv6⟩ := h6
+    obtain ⟨L7, hb7, hc7, hv7⟩ := h7
+    have hv : v = b₁ := ProjectivePlane.eq_of_incid_two_lines hScb
+      (P.incid_lineThrough_of_mem hcb₁ hc6 hb6 hv6)
+      (P.incid_lineThrough_of_mem hcb₂ hc7 hb7 hv7)
+      (P.lineThrough_incid_right c₁ b₁) (P.lineThrough_incid_right c₂ b₁)
+    obtain ⟨L8, ha8, hb8, hw8⟩ := h8
+    obtain ⟨L9, ha9, hb9, hw9⟩ := h9
+    have hw : w = b₁ := ProjectivePlane.eq_of_incid_two_lines hSab
+      (P.incid_lineThrough_of_mem hab₁ ha8 hb8 hw8)
+      (P.incid_lineThrough_of_mem hab₂ ha9 hb9 hw9)
+      (P.lineThrough_incid_right a₁ b₁) (P.lineThrough_incid_right a₂ b₁)
+    exact ProjectivePlane.colinear_of_eq₂₃ (hv.trans hw.symm)
+  -- collapsed perspective pair c₁ = c₂ pins u = c₁ = v
+  by_cases hpc : c₁ = c₂
+  · subst hpc
+    obtain ⟨L4, ha4, hc4, hu4⟩ := h4
+    obtain ⟨L5, ha5, hc5, hu5⟩ := h5
+    have hu : u = c₁ := ProjectivePlane.eq_of_incid_two_lines hSac
+      (P.incid_lineThrough_of_mem hac₁ ha4 hc4 hu4)
+      (P.incid_lineThrough_of_mem hac₂ ha5 hc5 hu5)
+      (P.lineThrough_incid_right a₁ c₁) (P.lineThrough_incid_right a₂ c₁)
+    obtain ⟨L6, hb6, hc6, hv6⟩ := h6
+    obtain ⟨L7, hb7, hc7, hv7⟩ := h7
+    have hv : v = c₁ := ProjectivePlane.eq_of_incid_two_lines hScb
+      (P.incid_lineThrough_of_mem hcb₁ hc6 hb6 hv6)
+      (P.incid_lineThrough_of_mem hcb₂ hc7 hb7 hv7)
+      (P.lineThrough_incid_left c₁ b₁) (P.lineThrough_incid_left c₁ b₂)
+    exact ProjectivePlane.colinear_of_eq₁₂ (hu.trans hv.symm)
+  -- flat FIRST triangle: a₁, b₁, c₁ colinear — u, v, w land on that line
+  by_cases hT₁ : P.lineThrough a₁ c₁ = P.lineThrough c₁ b₁
+  · obtain ⟨L4, ha4, hc4, hu4⟩ := h4
+    obtain ⟨L6, hb6, hc6, hv6⟩ := h6
+    obtain ⟨L8, ha8, hb8, hw8⟩ := h8
+    have hb₁M : P.incid b₁ (P.lineThrough a₁ c₁) := by
+      rw [hT₁]; exact P.lineThrough_incid_right c₁ b₁
+    refine ⟨P.lineThrough a₁ c₁,
+      P.incid_lineThrough_of_mem hac₁ ha4 hc4 hu4,
+      by rw [hT₁]; exact P.incid_lineThrough_of_mem hcb₁ hc6 hb6 hv6,
+      ?_⟩
+    rw [ProjectivePlane.lineThrough_eq hab₁ (P.lineThrough_incid_left a₁ c₁) hb₁M]
+    exact P.incid_lineThrough_of_mem hab₁ ha8 hb8 hw8
+  -- flat SECOND triangle: a₂, b₂, c₂ colinear — symmetrically
+  by_cases hT₂ : P.lineThrough a₂ c₂ = P.lineThrough c₂ b₂
+  · obtain ⟨L5, ha5, hc5, hu5⟩ := h5
+    obtain ⟨L7, hb7, hc7, hv7⟩ := h7
+    obtain ⟨L9, ha9, hb9, hw9⟩ := h9
+    have hb₂M : P.incid b₂ (P.lineThrough a₂ c₂) := by
+      rw [hT₂]; exact P.lineThrough_incid_right c₂ b₂
+    refine ⟨P.lineThrough a₂ c₂,
+      P.incid_lineThrough_of_mem hac₂ ha5 hc5 hu5,
+      by rw [hT₂]; exact P.incid_lineThrough_of_mem hcb₂ hc7 hb7 hv7,
+      ?_⟩
+    rw [ProjectivePlane.lineThrough_eq hab₂ (P.lineThrough_incid_left a₂ c₂) hb₂M]
+    exact P.incid_lineThrough_of_mem hab₂ ha9 hb9 hw9
+  -- perspective lines are distinct, else corresponding sides a₁b₁ = a₂b₂
+  have hLab : P.lineThrough a₁ a₂ ≠ P.lineThrough b₁ b₂ := by
+    intro hM
+    have hb₁ : P.incid b₁ (P.lineThrough a₁ a₂) := by
+      rw [hM]; exact P.lineThrough_incid_left b₁ b₂
+    have hb₂ : P.incid b₂ (P.lineThrough a₁ a₂) := by
+      rw [hM]; exact P.lineThrough_incid_right b₁ b₂
+    have e1 : P.lineThrough a₁ a₂ = P.lineThrough a₁ b₁ :=
+      ProjectivePlane.lineThrough_eq hab₁ (P.lineThrough_incid_left a₁ a₂) hb₁
+    have e2 : P.lineThrough a₁ a₂ = P.lineThrough a₂ b₂ :=
+      ProjectivePlane.lineThrough_eq hab₂ (P.lineThrough_incid_right a₁ a₂) hb₂
+    exact hSab (e1.symm.trans e2)
+  -- general position: the single Horn instance at the six points suffices
+  exact desargues_nondeg_of_hornPoints p a₁ a₂ b₁ b₂ c₁ c₂ u v w
+    (fun hy => hAt a₁ a₂ b₁ b₂ c₁ c₂ hpa hpb hpc hab₁ hac₁ hcb₁ hab₂ hac₂ hcb₂
+      hLab hSab hSac hScb hT₁ hT₂ hy)
+    h1 h2 h3 h4 h5 h6 h7 h8 h9 hpa hpb hpc hab₁ hab₂ hac₁ hac₂ hcb₁ hcb₂
+    hLab hSac hScb huv
+
+/-- Repackaging of `desarguesND_implies_horn_points`. -/
+theorem desarguesND_implies_hornAtPoints {P : ProjectivePlane.{u}}
+    (hDes : P.DesarguesND) : P.HornAtPoints :=
+  fun a₁ a₂ b₁ b₂ c₁ c₂ hpa hpb hpc hab₁ hac₁ hcb₁ hab₂ hac₂ hcb₂
+      hLab hSab hSac hScb hT₁ hT₂ hy =>
+    desarguesND_implies_horn_points hDes a₁ a₂ b₁ b₂ c₁ c₂ hpa hpb hpc
+      hab₁ hac₁ hcb₁ hab₂ hac₂ hcb₂ hLab hSab hSac hScb hT₁ hT₂ hy
+
+/-- **§2.157, the equivalence at the plane's own configurations**: the theorem
+    of Desargues holds iff the Horn sentence holds at every six-point
+    instantiation in general position — exactly the book's "writing a₁, a₂,
+    b₁, … as A₁, A₂, B₁, …, one will see that this Horn sentence is equivalent
+    with the theorem of Desargues". -/
+theorem desarguesND_iff_hornAtPoints {P : ProjectivePlane.{u}} :
+    P.DesarguesND ↔ P.HornAtPoints :=
+  ⟨desarguesND_implies_hornAtPoints, hornAtPoints_implies_desarguesND⟩
+
+/-- The full allegory Horn sentence restricts to the point instances. -/
+theorem hornAtPoints_of_desarguesHorn {P : ProjectivePlane.{u}}
+    (hHorn : DesarguesHorn (LMonObj (PElem P))) : P.HornAtPoints :=
+  fun a₁ a₂ b₁ b₂ c₁ c₂ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hy =>
+    desarguesHorn_toLattice hHorn (PElem.pt a₁) (PElem.pt a₂) (PElem.pt b₁)
+      (PElem.pt b₂) (PElem.pt c₁) (PElem.pt c₂) hy
+
+/-- **§2.157, substantive direction, in full**: the Desargues Horn sentence in
+    the associated allegory of 𝓛(P) implies the (honest ten-point) theorem of
+    Desargues — no hypotheses beyond `DesarguesND`'s own nine side conditions. -/
+theorem desarguesHorn_implies_desargues {P : ProjectivePlane.{u}}
+    (hHorn : DesarguesHorn (LMonObj (PElem P))) : P.DesarguesND :=
+  hornAtPoints_implies_desarguesND (hornAtPoints_of_desarguesHorn hHorn)
+
+/-! ### Gap analysis: what remains of the literal §2.157 equivalence
+
+  Proven here:
+  · `DesarguesHorn (LMonObj (PElem P)) ↔ latticeHorn` — the allegory sentence
+    IS the lattice-level statement (`desarguesHorn_iff_latticeHorn`);
+  · `DesarguesHorn → DesarguesND` (`desarguesHorn_implies_desargues`) — in
+    full, all degenerate ten-point configurations discharged;
+  · `DesarguesND ↔ HornAtPoints` (`desarguesND_iff_hornAtPoints`) — Desargues
+    is equivalent to the Horn instances at six-point configurations in general
+    position;
+  · pruning for the lattice-level converse: any instantiation containing `⊤`
+    (`hornConc_top_c₁/c₂`, `horn_top_a₁/a₂/b₁/b₂` — the latter use the
+    hypothesis and MODULARITY), the sufficiency criteria
+    (`hornConc_of_left/right`), and the symmetry group of the sentence
+    (`HornHyp.swap_ab/swap_idx`, `HornConc.of_swap_ab/of_swap_idx`).
+
+  Remaining for the literal converse `DesarguesND → DesarguesHorn`: the
+  lattice Horn must be verified at ALL 6-tuples of 𝓛(P) = {⊥} ∪ points ∪
+  lines ∪ {⊤}.  The ⊤-cases are closed (above); the still-open families are
+  the instantiations over {⊥, pt, ln} outside general position:
+  · six-point tuples with coincidences/collinearities not covered by
+    `HornAtPoints` (e.g. `a₁ = b₁`, or `p`-side degeneracies where the
+    hypothesis meet is a line) — each family reduces by `eq_of_incid_two_lines`
+    -style pinning, but the case tree is large (the book's "one will see");
+  · tuples containing `⊥` (the Horn with some letter set to the identity `1`
+    of the allegory) — five-variable statements needing their own incidence
+    chases;
+  · tuples containing a LINE `ln A` — the self-dual instantiations; by
+    lattice duality of 𝓛(P) these mirror the point cases.
+  All of these families are DEGENERATE in the sense that they involve at most
+  five free points, hence (classically) hold in EVERY projective plane; none
+  of them needs `DesarguesND` — only plane axioms and modularity.  The honest
+  mathematical content of §2.157's "equivalent" is therefore exactly
+  `desarguesND_iff_hornAtPoints` + `desarguesHorn_implies_desargues`, both
+  machine-checked above. -/
 
 end Freyd.Alg
