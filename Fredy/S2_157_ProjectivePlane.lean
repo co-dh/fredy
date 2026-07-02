@@ -904,10 +904,9 @@ theorem desarguesHorn_toLattice {P : ProjectivePlane.{u}}
       a₁ a₂ b₁ b₂ c₁ c₂ (PElem.le_iff_meet_eq.mp hyp))
 
 open PElem in
-/-- **§2.157, stretch (one direction, nondegenerate configurations)**: the
-    Desargues Horn sentence in the associated allegory forces the theorem of
-    Desargues, for configurations where the perspective pairs, the triangle
-    vertices, and the relevant sides are genuinely distinct.
+/-- The computational core of `desarguesHorn_implies_desargues_nondeg`: a
+    SINGLE lattice Horn instance — at the six `pt`-elements of the given
+    configuration — already forces `⟨u,v,w⟩` colinear.
 
     Chase (all joins/meets in 𝓛(P)): `pt aᵢ ⊔ pt bᵢ` etc. are the SIDES;
     the Horn hypothesis `(A₁A₂ ∩ B₁B₂) ⊑ C₁C₂` becomes "the meet of the
@@ -915,9 +914,13 @@ open PElem in
     true since `⟨p,c₁,c₂⟩` is colinear; the Horn conclusion evaluates to
     `side a₁b₁ ⊓ side a₂b₂ ⩽ (pt u) ⊔ (pt v) = line uv`, and `pt w` is below
     the left side, so `w` is on the line through `u` and `v`. -/
-theorem desarguesHorn_implies_desargues_nondeg {P : ProjectivePlane.{u}}
-    (hHorn : DesarguesHorn (LMonObj (PElem P)))
+theorem desargues_nondeg_of_hornPoints {P : ProjectivePlane.{u}}
     (p a₁ a₂ b₁ b₂ c₁ c₂ u v w : P.Point)
+    (horn : (((pt a₁).join (pt a₂)).meet ((pt b₁).join (pt b₂))).le
+        ((pt c₁).join (pt c₂)) →
+      (((pt a₁).join (pt b₁)).meet ((pt a₂).join (pt b₂))).le
+        ((((pt a₁).join (pt c₁)).meet ((pt a₂).join (pt c₂))).join
+          (((pt c₁).join (pt b₁)).meet ((pt c₂).join (pt b₂)))))
     (h1 : P.Colinear p a₁ a₂) (h2 : P.Colinear p b₁ b₂) (h3 : P.Colinear p c₁ c₂)
     (h4 : P.Colinear a₁ c₁ u) (h5 : P.Colinear a₂ c₂ u)
     (h6 : P.Colinear b₁ c₁ v) (h7 : P.Colinear b₂ c₂ v)
@@ -933,7 +936,6 @@ theorem desarguesHorn_implies_desargues_nondeg {P : ProjectivePlane.{u}}
     (hLcb : P.lineThrough c₁ b₁ ≠ P.lineThrough c₂ b₂)
     (huv : u ≠ v) :
     P.Colinear u v w := by
-  have horn := desarguesHorn_toLattice hHorn
   -- `p` is on both perspective lines, hence IS their meet point (axiom 3).
   obtain ⟨La, hpLa, ha1La, ha2La⟩ := h1
   obtain ⟨Lb, hpLb, hb1Lb, hb2Lb⟩ := h2
@@ -949,7 +951,7 @@ theorem desarguesHorn_implies_desargues_nondeg {P : ProjectivePlane.{u}}
     rw [join_pt_pt_ne hpa, join_pt_pt_ne hpb, join_pt_pt_ne hpc,
       meet_ln_ln_ne hLab, ← hmeetp]
     exact hp3
-  have hconc := horn (pt a₁) (pt a₂) (pt b₁) (pt b₂) (pt c₁) (pt c₂) hyp
+  have hconc := horn hyp
   -- `pt w` is below both sides `a₁b₁`, `a₂b₂`, hence below the Horn conclusion.
   obtain ⟨Lw1, ha1w, hb1w, hww1⟩ := h8
   obtain ⟨Lw2, ha2w, hb2w, hww2⟩ := h9
@@ -981,6 +983,35 @@ theorem desarguesHorn_implies_desargues_nondeg {P : ProjectivePlane.{u}}
   -- `pt w ⩽ ln (lineThrough u v)` IS incidence; package the witness line.
   exact ⟨P.lineThrough u v, P.lineThrough_incid_left u v,
     P.lineThrough_incid_right u v, hwle2⟩
+
+open PElem in
+/-- **§2.157, stretch (one direction, nondegenerate configurations)**: the
+    Desargues Horn sentence in the associated allegory forces the theorem of
+    Desargues, for configurations where the perspective pairs, the triangle
+    vertices, and the relevant sides are genuinely distinct.  (The single
+    required instance is extracted by `desarguesHorn_toLattice`; the chase is
+    `desargues_nondeg_of_hornPoints`.  `S2_157b_Desargues` removes the four
+    hypotheses that are not part of the honest theorem of Desargues.) -/
+theorem desarguesHorn_implies_desargues_nondeg {P : ProjectivePlane.{u}}
+    (hHorn : DesarguesHorn (LMonObj (PElem P)))
+    (p a₁ a₂ b₁ b₂ c₁ c₂ u v w : P.Point)
+    (h1 : P.Colinear p a₁ a₂) (h2 : P.Colinear p b₁ b₂) (h3 : P.Colinear p c₁ c₂)
+    (h4 : P.Colinear a₁ c₁ u) (h5 : P.Colinear a₂ c₂ u)
+    (h6 : P.Colinear b₁ c₁ v) (h7 : P.Colinear b₂ c₂ v)
+    (h8 : P.Colinear a₁ b₁ w) (h9 : P.Colinear a₂ b₂ w)
+    (hpa : a₁ ≠ a₂) (hpb : b₁ ≠ b₂) (hpc : c₁ ≠ c₂)
+    (hab₁ : a₁ ≠ b₁) (hab₂ : a₂ ≠ b₂)
+    (hac₁ : a₁ ≠ c₁) (hac₂ : a₂ ≠ c₂)
+    (hcb₁ : c₁ ≠ b₁) (hcb₂ : c₂ ≠ b₂)
+    (hLab : P.lineThrough a₁ a₂ ≠ P.lineThrough b₁ b₂)
+    (hLac : P.lineThrough a₁ c₁ ≠ P.lineThrough a₂ c₂)
+    (hLcb : P.lineThrough c₁ b₁ ≠ P.lineThrough c₂ b₂)
+    (huv : u ≠ v) :
+    P.Colinear u v w :=
+  desargues_nondeg_of_hornPoints p a₁ a₂ b₁ b₂ c₁ c₂ u v w
+    (desarguesHorn_toLattice hHorn (pt a₁) (pt a₂) (pt b₁) (pt b₂) (pt c₁) (pt c₂))
+    h1 h2 h3 h4 h5 h6 h7 h8 h9 hpa hpb hpc hab₁ hab₂ hac₁ hac₂ hcb₁ hcb₂
+    hLab hLac hLcb huv
 
 /-! ### Gap analysis: the full §2.157 equivalence
 
