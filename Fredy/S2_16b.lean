@@ -416,4 +416,130 @@ theorem neighbors_split_transfer {a : 𝒞} {e e' : a ⟶ a}
 
 end NeighborsInCategory
 
+/-! ### §2.16(11)  `A ∩ A°` is a symmetric idempotent; the neighbor containments -/
+
+/-- **§2.16(11)**: for an idempotent `A` in an allegory, "`A ∩ A°` is symmetric and
+    transitive, hence an idempotent" — a SYMMETRIC idempotent.  Symmetry needs no
+    hypothesis; transitivity and idempotency use `A ≫ A = A`
+    (via `symmetric_transitive_idempotent`, §2.12). -/
+theorem inter_recip_symm_trans_idem {a : 𝒜} (A : a ⟶ a) (hA : A ≫ A = A) :
+    (A ∩ A°)° = A ∩ A° ∧ (A ∩ A°) ≫ (A ∩ A°) ⊑ A ∩ A° ∧
+      (A ∩ A°) ≫ (A ∩ A°) = A ∩ A° := by
+  have hsym : (A ∩ A°)° = A ∩ A° := by
+    rw [Allegory.recip_inter, Allegory.recip_recip, Allegory.inter_comm]
+  have htrans : (A ∩ A°) ≫ (A ∩ A°) ⊑ A ∩ A° := by
+    refine le_inter ?_ ?_
+    · -- `(A∩A°)(A∩A°) ⊑ A ≫ A = A`.
+      have h := le_trans (comp_mono_right (inter_lb_left A A°) (A ∩ A°))
+                         (comp_mono_left A (inter_lb_left A A°))
+      rwa [hA] at h
+    · -- `(A∩A°)(A∩A°) ⊑ A° ≫ A° = (A ≫ A)° = A°`.
+      have h := le_trans (comp_mono_right (inter_lb_right A A°) (A ∩ A°))
+                         (comp_mono_left A° (inter_lb_right A A°))
+      have hAr : A° ≫ A° = A° := by rw [← Allegory.recip_comp, hA]
+      rwa [hAr] at h
+  exact ⟨hsym, htrans, symmetric_transitive_idempotent ((symmetric_iff _).mpr hsym) htrans⟩
+
+/-- The symmetric idempotent `A ∩ A°` of an idempotent `A` (§2.16(11)), packaged as a
+    `SymIdem` — the shape `Spl 𝒜` splits (§2.164). -/
+def interRecipSymIdem {a : 𝒜} (A : a ⟶ a) (hA : A ≫ A = A) : SymIdem a :=
+  ⟨A ∩ A°, (inter_recip_symm_trans_idem A hA).1, (inter_recip_symm_trans_idem A hA).2.2⟩
+
+/-- **§2.16(11)**: the containments `(A∩A°)A(A∩A°) ⊑ A∩A°` and `A ⊑ A(A∩A°)A` make the
+    idempotent `A` and the symmetric idempotent `A ∩ A°` NEIGHBORS — "the converse
+    containments are automatic":
+    `A∩A° ⊑ (A∩A°)³ ⊑ (A∩A°)A(A∩A°)` (by `X ⊑ XX°X` and `A∩A° ⊑ A`), and
+    `A(A∩A°)A ⊑ A³ ⊑ A`. -/
+theorem neighbors_of_containments {a : 𝒜} (A : a ⟶ a) (hA : A ≫ A = A)
+    (h1 : (A ∩ A°) ≫ A ≫ (A ∩ A°) ⊑ A ∩ A°)
+    (h2 : A ⊑ A ≫ (A ∩ A°) ≫ A) : Neighbors A (A ∩ A°) := by
+  obtain ⟨hsym, -, -⟩ := inter_recip_symm_trans_idem A hA
+  constructor
+  · -- `A ≫ (A∩A°) ≫ A = A`: `⊑` via `A∩A° ⊑ A` and `A³ = A`; `⊒` is `h2`.
+    refine le_antisymm ?_ h2
+    have hstep : A ≫ (A ∩ A°) ≫ A ⊑ A ≫ A ≫ A :=
+      comp_mono_left A (comp_mono_right (inter_lb_left A A°) A)
+    have hAAA : A ≫ A ≫ A = A := by rw [hA, hA]
+    rwa [hAAA] at hstep
+  · -- `(A∩A°) ≫ A ≫ (A∩A°) = A∩A°`: `⊑` is `h1`; `⊒` via `A∩A° ⊑ (A∩A°)³ ⊑ (A∩A°)A(A∩A°)`.
+    refine le_antisymm h1 ?_
+    have h3 := self_le_comp_recip_comp (A ∩ A°)
+    rw [hsym, Cat.assoc] at h3
+    -- h3 : `A∩A° ⊑ (A∩A°) ≫ (A∩A°) ≫ (A∩A°)`
+    refine le_trans h3 ?_
+    exact comp_mono_left (A ∩ A°) (comp_mono_right (inter_lb_left A A°) (A ∩ A°))
+
+/-! ### §2.16(11)  A splitting of `A` forces the neighbor containments
+
+  "If `⟨R,S⟩` splits `A` then `A` and `A ∩ A°` are neighbors."  The book's chain,
+  with `A = RS`, `SR = 1`:
+
+    `(A∩A°)A(A∩A°) ⊑ (RS ∩ S°R°)RS(RS ∩ S°R°) ⊑ S°(SRS ∩ R°)RS(RSR ∩ S°)R°`
+                  `⊑ S°(SRS)RS(RSR)R° ⊑ S°R° ⊑ A°`,
+    `(A∩A°)A(A∩A°) ⊑ A³ ⊑ A`,
+    `A ⊑ R(SRSR ∩ 1)S ⊑ RS(RS ∩ S°R°)RS ⊑ A(A∩A°)A`.
+
+  With the splitting available, `SRS = S(RS)` collapses through `SR = 1`, so the
+  modular-law bounds simplify to `A∩A° ⊑ S°S` and `A∩A° ⊑ RR°` before composing. -/
+
+/-- **§2.16(11)**: if `⟨R, S⟩` splits the idempotent `A`, then `A` and `A ∩ A°` are
+    neighbors. -/
+theorem neighbors_of_catSplits {a : 𝒜} (A : a ⟶ a) (hA : A ≫ A = A)
+    (h : CatSplits A) : Neighbors A (A ∩ A°) := by
+  obtain ⟨c, R, S, hRS, hSR⟩ := h
+  have hNeq : A ∩ A° = (S° ≫ R°) ∩ (R ≫ S) := by
+    rw [← hRS, Allegory.recip_comp, Allegory.inter_comm]
+  -- `A∩A° = S°R° ∩ RS ⊑ S°(R° ∩ SRS) = S°(R° ∩ S) ⊑ S°S`  (left modular + `SR = 1`).
+  have hN1 : A ∩ A° ⊑ S° ≫ S := by
+    have h := modular_le_left' S° R° (R ≫ S)
+    rw [Allegory.recip_recip, ← Cat.assoc, hSR, Cat.id_comp] at h
+    rw [hNeq]
+    exact le_trans h (comp_mono_left S° (inter_lb_right R° S))
+  -- `A∩A° = S°R° ∩ RS ⊑ (S° ∩ RSR)R° = (S° ∩ R)R° ⊑ RR°`  (right modular + `SR = 1`).
+  have hN2 : A ∩ A° ⊑ R ≫ R° := by
+    have h := modular_le S° R° (R ≫ S)
+    rw [Allegory.recip_recip, Cat.assoc, hSR, Cat.comp_id] at h
+    rw [hNeq]
+    exact le_trans h (comp_mono_right (inter_lb_right S° R) R°)
+  -- First containment, `A°` half: `(A∩A°)A(A∩A°) ⊑ (S°S)(RS)(RR°) = S°(SR)(SR)R° = A°`.
+  have hb : (A ∩ A°) ≫ A ≫ (A ∩ A°) ⊑ A° := by
+    have hmono : (A ∩ A°) ≫ A ≫ (A ∩ A°) ⊑ (S° ≫ S) ≫ A ≫ (R ≫ R°) :=
+      le_trans (comp_mono_right hN1 (A ≫ (A ∩ A°)))
+               (comp_mono_left (S° ≫ S) (comp_mono_left A hN2))
+    have hcollapse : (S° ≫ S) ≫ A ≫ (R ≫ R°) = A° := by
+      rw [← hRS, Allegory.recip_comp]
+      calc (S° ≫ S) ≫ (R ≫ S) ≫ R ≫ R°
+          = S° ≫ (S ≫ R) ≫ (S ≫ R) ≫ R° := by simp [Cat.assoc]
+        _ = S° ≫ R° := by rw [hSR, Cat.id_comp, Cat.id_comp]
+    exact hcollapse ▸ hmono
+  -- First containment, `A` half: `(A∩A°)A(A∩A°) ⊑ A³ = A`.
+  have ha : (A ∩ A°) ≫ A ≫ (A ∩ A°) ⊑ A := by
+    have hstep : (A ∩ A°) ≫ A ≫ (A ∩ A°) ⊑ A ≫ A ≫ A :=
+      le_trans (comp_mono_right (inter_lb_left A A°) (A ≫ (A ∩ A°)))
+               (comp_mono_left A (comp_mono_left A (inter_lb_left A A°)))
+    have hAAA : A ≫ A ≫ A = A := by rw [hA, hA]
+    rwa [hAAA] at hstep
+  -- Second containment: `A = R(SRSR ∩ 1)S ⊑ RS(RS ∩ S°R°)RS = A(A∩A°)A`.
+  have h2 : A ⊑ A ≫ (A ∩ A°) ≫ A := by
+    have hm1 := modular_le_left' S (R ≫ S ≫ R) (Cat.id c)
+    rw [Cat.comp_id] at hm1
+    -- hm1 : `(SRSR) ∩ 1 ⊑ S(RSR ∩ S°)`  (left modular)
+    have hm2 := modular_le (R ≫ S) R S°
+    rw [Cat.assoc] at hm2
+    -- hm2 : `RSR ∩ S° ⊑ (RS ∩ S°R°)R`  (right modular)
+    have hSRSR : S ≫ R ≫ S ≫ R = Cat.id c := by rw [hSR, Cat.comp_id, hSR]
+    have hid : Cat.id c ⊑ (S ≫ R ≫ S ≫ R) ∩ Cat.id c := by
+      rw [hSRSR, Allegory.inter_idem]; exact le_refl _
+    have hchain : Cat.id c ⊑ S ≫ ((R ≫ S) ∩ S° ≫ R°) ≫ R :=
+      le_trans hid (le_trans hm1 (comp_mono_left S hm2))
+    have hmono := comp_mono_left R (comp_mono_right hchain S)
+    -- hmono : `R ≫ 1 ≫ S ⊑ R(S(RS ∩ S°R°)R)S`
+    have hL : R ≫ Cat.id c ≫ S = A := by rw [Cat.id_comp, hRS]
+    have hR2 : R ≫ (S ≫ ((R ≫ S) ∩ S° ≫ R°) ≫ R) ≫ S = A ≫ (A ∩ A°) ≫ A := by
+      rw [← hRS, Allegory.recip_comp]
+      simp [Cat.assoc]
+    rw [hL, hR2] at hmono
+    exact hmono
+  exact neighbors_of_containments A hA (le_inter ha hb) h2
+
 end Freyd.Alg
