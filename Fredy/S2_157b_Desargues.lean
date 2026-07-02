@@ -281,6 +281,57 @@ theorem horn_top_b₂ {a₁ a₂ b₁ c₁ c₂ : PElem P}
     (h : HornHyp a₁ a₂ b₁ top c₁ c₂) : HornConc a₁ a₂ b₁ top c₁ c₂ :=
   HornConc.of_swap_ab (horn_top_a₂ h.swap_ab)
 
+/-- PRUNING `b₂ = ⊥, c₁ = ⊥` — the shape of the book's parenthetical
+    substitution `A₁ = R°, A₂ = T, B₁ = S, B₂ = 1, C₁ = 1, C₂ = S` ("Note that
+    Desargues implies modularity").  Conversely, the whole family follows from
+    MODULARITY alone: with `m := (a₁⊔b₁) ⊓ a₂`,
+    `m ⩽ (a₁⊔a₂) ⊓ (b₁⊔a₁) = ((a₁⊔a₂) ⊓ b₁) ⊔ a₁ ⩽ (b₁⊓c₂) ⊔ a₁` by the
+    hypothesis, and `(a₂⊔c₂) ⊓ (a₁ ⊔ (b₁⊓c₂)) = ((a₂⊔c₂) ⊓ a₁) ⊔ (b₁⊓c₂)`
+    is the conclusion — the modular law once in each direction. -/
+theorem horn_bot_b₂c₁ {a₁ a₂ b₁ c₂ : PElem P}
+    (h : HornHyp a₁ a₂ b₁ bot bot c₂) : HornConc a₁ a₂ b₁ bot bot c₂ := by
+  have h' : ((a₁.join a₂).meet b₁).le c₂ := by
+    have h0 : ((a₁.join a₂).meet (b₁.join bot)).le (PElem.bot.join c₂) := h
+    rwa [join_bot_right b₁, bot_join c₂] at h0
+  show ((a₁.join b₁).meet (a₂.join bot)).le
+    (((a₁.join bot).meet (a₂.join c₂)).join ((PElem.bot.join b₁).meet (c₂.join bot)))
+  rw [join_bot_right a₂, join_bot_right a₁, bot_join b₁, join_bot_right c₂]
+  -- ⊢ ((a₁⊔b₁) ⊓ a₂) ⩽ (a₁ ⊓ (a₂⊔c₂)) ⊔ (b₁ ⊓ c₂)
+  -- step 1: m ⩽ ((a₁⊔a₂) ⊓ b₁) ⊔ a₁   (modular law)
+  have hm : ((a₁.join b₁).meet a₂).le (((a₁.join a₂).meet b₁).join a₁) := by
+    have hle : ((a₁.join b₁).meet a₂).le ((a₁.join a₂).meet (b₁.join a₁)) := by
+      apply le_meet
+      · exact le_trans (meet_le_right _ _) (le_join_right a₁ a₂)
+      · rw [join_comm b₁ a₁]; exact meet_le_left _ _
+    rwa [modular_eq (le_join_left a₁ a₂)] at hle
+  -- step 2: m ⩽ a₁ ⊔ (b₁ ⊓ c₂)   (hypothesis)
+  have hm2 : ((a₁.join b₁).meet a₂).le (a₁.join (b₁.meet c₂)) := by
+    rw [join_comm a₁ (b₁.meet c₂)]
+    exact le_trans hm (join_le
+      (le_trans (le_meet (meet_le_right _ _) h') (le_join_left _ _))
+      (le_join_right _ _))
+  -- step 3: m ⩽ (a₂⊔c₂) ⊓ (a₁ ⊔ (b₁⊓c₂)) = ((a₂⊔c₂) ⊓ a₁) ⊔ (b₁⊓c₂)
+  have hm3 : ((a₁.join b₁).meet a₂).le
+      ((a₂.join c₂).meet (a₁.join (b₁.meet c₂))) :=
+    le_meet (le_trans (meet_le_right _ _) (le_join_left a₂ c₂)) hm2
+  rw [modular_eq (le_trans (meet_le_right b₁ c₂) (le_join_right a₂ c₂))] at hm3
+  rwa [meet_comm (a₂.join c₂) a₁] at hm3
+
+/-- PRUNING `b₁ = ⊥, c₂ = ⊥`, by the row symmetry. -/
+theorem horn_bot_b₁c₂ {a₁ a₂ b₂ c₁ : PElem P}
+    (h : HornHyp a₁ a₂ bot b₂ c₁ bot) : HornConc a₁ a₂ bot b₂ c₁ bot :=
+  HornConc.of_swap_idx (horn_bot_b₂c₁ h.swap_idx)
+
+/-- PRUNING `a₂ = ⊥, c₁ = ⊥`, by the column symmetry. -/
+theorem horn_bot_a₂c₁ {a₁ b₁ b₂ c₂ : PElem P}
+    (h : HornHyp a₁ bot b₁ b₂ bot c₂) : HornConc a₁ bot b₁ b₂ bot c₂ :=
+  HornConc.of_swap_ab (horn_bot_b₂c₁ h.swap_ab)
+
+/-- PRUNING `a₁ = ⊥, c₂ = ⊥`, by both symmetries. -/
+theorem horn_bot_a₁c₂ {a₂ b₁ b₂ c₁ : PElem P}
+    (h : HornHyp bot a₂ b₁ b₂ c₁ bot) : HornConc bot a₂ b₁ b₂ c₁ bot :=
+  HornConc.of_swap_ab (horn_bot_b₁c₂ h.swap_ab)
+
 end PElem
 
 /-! ## The bridge: the allegory Horn sentence IS the lattice statement -/
@@ -583,14 +634,18 @@ theorem desarguesHorn_implies_desargues {P : ProjectivePlane.{u}}
     position;
   · pruning for the lattice-level converse: any instantiation containing `⊤`
     (`hornConc_top_c₁/c₂`, `horn_top_a₁/a₂/b₁/b₂` — the latter use the
-    hypothesis and MODULARITY), the sufficiency criteria
-    (`hornConc_of_left/right`), and the symmetry group of the sentence
-    (`HornHyp.swap_ab/swap_idx`, `HornConc.of_swap_ab/of_swap_idx`).
+    hypothesis and MODULARITY), the book's own parenthetical family — one
+    `B` and the opposite `C` set to the unit `1 = ⊥` (`horn_bot_b₂c₁` and its
+    three symmetry images; pure modularity, the exact converse of "Desargues
+    implies modularity"), the sufficiency criteria (`hornConc_of_left/right`),
+    and the symmetry group of the sentence (`HornHyp.swap_ab/swap_idx`,
+    `HornConc.of_swap_ab/of_swap_idx`).
 
   Remaining for the literal converse `DesarguesND → DesarguesHorn`: the
   lattice Horn must be verified at ALL 6-tuples of 𝓛(P) = {⊥} ∪ points ∪
-  lines ∪ {⊤}.  The ⊤-cases are closed (above); the still-open families are
-  the instantiations over {⊥, pt, ln} outside general position:
+  lines ∪ {⊤}.  The ⊤-cases and the `⊥⊥`-diagonal family are closed (above);
+  the still-open families are the instantiations over {⊥, pt, ln} outside
+  general position:
   · six-point tuples with coincidences/collinearities not covered by
     `HornAtPoints` (e.g. `a₁ = b₁`, or `p`-side degeneracies where the
     hypothesis meet is a line) — each family reduces by `eq_of_incid_two_lines`
