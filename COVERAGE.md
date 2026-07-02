@@ -242,7 +242,12 @@ with disjoint stable coproducts; `asmRegular` [choice,Quot.sound]; `nablaFunctor
 (axiom-free); `ModulusSystem.allPartial` non-vacuity witness. DISCREPANCY: the book's bare (i)(ii)(iii) is PROVABLY
 insufficient (K₀ = restrictions of id breaks image minimality) — the bracketed pairing remark + a parameterized
 tag-cases closure are made explicit `ModulusSystem` fields; S2_153_Assemblies. Non-effectiveness remark left with
-the recursive instances).
+the recursive instances) · §2.16(14) EFFECTIVE REFLECTION OF Rel(Assembly) (generic `splEq_hom_iff` — homs of
+Spl(Eq 𝒜) are the R with e≫R = R = R≫f, book's IR = R = RJ form, axiom-FREE, + `splHom_fixed_iff_book` bridging the
+repo's §2.164 sandwich normal form; instantiation `AsmRel K` = Rel(Assembly K), `AsmEffReflection K` = Spl(Eq) of it;
+`asmQuot` A/I objects + `asmEffReflection_obj_form`; `asmEmbed` A↦A/1_A full/faithful (re-export of §2.16(13) `embEq`);
+`asmEmbedMap` graph-functor on assembly morphisms, faithful; effectiveness headline `asmEffReflection_eqSplits`; all
+instantiated facts [propext,choice,Quot.sound]; S2_16d. Universal property of the reflection NOT formalized).
 PARTIAL: §2.224 GLOBAL COMPLETION Aᴴ — now a FAITHFUL LCDA REPRESENTATION (`globalCat`/`globalAllegory`/
 `globalDistributiveAllegory`/`globalLCDA`/`globalCompletion_faithful`, all constructive; infinite matrices over the LCDA Sup,
 identity via propositional i=j + HEq, modular per-entry, assoc/Sup = Fubini interchange). The final GloballyComplete instance is
@@ -251,7 +256,7 @@ UNIVERSE-BLOCKED (disjoint union of u-indexed families escapes to u+1; the compl
 unit-existence blocked by §2.224 GloballyComplete).
 MISSING: §2.153 non-effectiveness (recursive K) · §2.157 remainder (degenerate Desargues cases, converse,
 Veblen–Wedderburn model) · §2.158 no-finite-axiom · §2.154 categories-iso headline · §2.16(13) recursive instances ·
-§2.16(14) assemblies-effective-reflection · §2.21(10).
+§2.16(14) universal property of the reflection · §2.21(10).
 
 ## §2.2  Distributive allegories
 

@@ -71,8 +71,11 @@ merged class `TabularUnitaryUnguardedPowerAllegory`): Map(A) has FULL power obje
 - ~~**§2.153**~~ — **DONE** (`S2_153_Assemblies`, merged 9e4a679): Assembly K is a POSITIVE PRE-LOGOS with
   disjoint stable coproducts (`asmPositivePreLogos`/`asmDisjointBinaryCoproduct`); ∇ functor; `allPartial`
   witness. BOOK DISCREPANCY: bare (i)(ii)(iii) provably insufficient — pairing + parameterized tag-cases
-  closures made explicit `ModulusSystem` fields. REMAINING: non-effectiveness (needs recursive K), §2.16(14)
-  effective reflection of Rel(A).
+  closures made explicit `ModulusSystem` fields. REMAINING: non-effectiveness (needs recursive K).
+- ~~**§2.16(14)**~~ — **DONE** (`S2_16d`, merged): generic `splEq_hom_iff` (Spl(Eq) homs = R with e≫R = R = R≫f,
+  the book's IR = R = RJ form; axiom-free) + instantiation `AsmEffReflection K` = Spl(Eq (Rel(Assembly K))),
+  A/I objects, `asmEmbed` A↦A/1_A full/faithful, graph functor on assembly morphisms, effectiveness
+  `asmEffReflection_eqSplits`. REMAINING: universal property of the reflection.
 - **§2.158**, **§2.417** (generator counterexample) — graph-allegory no-finite-axiomatization;
   §1.96(10)-modification model.
 

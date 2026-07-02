@@ -155,6 +155,7 @@ import Fredy.S2_21
 import Fredy.S2_21b
 import Fredy.S1_526_StalkConservative
 import Fredy.S2_153_Assemblies
+import Fredy.S2_16d
 import Fredy.S2_155_BiEntire
 import Fredy.S2_156_PartitionRep
 import Fredy.S2_157_ProjectivePlane
