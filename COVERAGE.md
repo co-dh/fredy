@@ -134,14 +134,22 @@ e(a)=min{i≤a | x(i)=x(a)} recursive idempotent, §1.571 `ac_factorization_via_
 `rFactorization`/`HasImages`/`cover_split` (covers split)/`all_projective`/`all_choice` + `RegularCategory`+
 `ACRegularCategory ExtNat`, all [propext,choice,Quot.sound]; S1_572_Recursive. INFRA: S1_57's
 `ac_factorization_via_idempotent` freed of an unused circular [HasImages] section variable, now [propext].
-Non-effectiveness of R (halting diagonalization) + §1.573/§1.574 P remain).
+Non-effectiveness of R (halting diagonalization) remains) · §1.573/§1.574 PRIMITIVE-RECURSIVE P + Spl(P)
+(`IsPrim` mu-freeness predicate over the §1.572 codes + `IsPrim.total` (choice-free); Cantor pairing/div/mod
+REDONE mu-free; category P on `PObj`, terminator+products reusing §1.572 ProdData; §1.573 equalizer idempotent
+`eqIdem` (e²=e, e≫x=e≫y, universality z≫e=z — book's "ze=e" is a typo, noted); P̂=Spl(P) `PhatObj` with `embP`
+full+faithful, `phat_idem_split`, terminator/products lift, EQUALIZERS between arbitrary split objects (stronger
+than the book's ω-pair case) → headline `phatCartesian : CartesianCategory PhatObj` [propext,choice,Quot.sound];
+§1.574 `phatPoints = P̂(ω̂,−)` faithful set-valued representation (`phatPoints_separates`, choice-free); all
+pointwise theorems [propext,Quot.sound]; S1_573_PrimRec. SKIPPED (Ackermann-scale): "P not cartesian"
+counterexample, one-to-one onto x with x⁻¹∉P / R as category of fractions).
 PARTIAL: §1.541–§1.542 abstract capitalization framework (realized concretely, not abstracted) · **§1.55 exact
 (cover-preserving) Henkin** (witness separates maps, cover-pres conditional) · §1.551/§1.563/§1.564 regular/relational
 Horn-metatheorem corollaries (hypothesis-laden) · §1.592 small-abelian↪Ab exact rep (interface hypothetical) · §1.598
 normal+kernels/cokernels⟹abelian converse.
 MISSING: §1.513 covering-FAMILY predicate · §1.568 Quot(A)→equiv-rels functor · §1.572 non-effectiveness (halting) ·
-§1.573–§1.574 P primitive-recursive · §1.584–§1.587 cocartesian-slice/Lazard/diophantine · §1.596 A(𝒮^𝒜) ·
-§1.59(10) modular-lattice Galois.
+§1.573 "P not cartesian" + §1.574 x⁻¹∉P / fractions (Ackermann-scale growth arguments) · §1.584–§1.587
+cocartesian-slice/Lazard/diophantine · §1.596 A(𝒮^𝒜) · §1.59(10) modular-lattice Galois.
 
 ## §1.6  Pre-logoi
 

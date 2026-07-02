@@ -45,6 +45,7 @@ import Fredy.S1_70
 import Fredy.S1_56
 import Fredy.S1_57
 import Fredy.S1_572_Recursive
+import Fredy.S1_573_PrimRec
 import Fredy.S1_62
 import Fredy.S1_64
 import Fredy.S1_65
