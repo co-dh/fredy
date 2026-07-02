@@ -818,11 +818,13 @@ private theorem tab_UP_H_entire {a b c p : 𝒜} {f : c ⟶ a} {g : c ⟶ b} {R 
     rw [Allegory.recip_comp, Allegory.recip_recip]; simp [Cat.assoc]
   exact step4 ▸ le_trans step1 (step2.symm ▸ step3)
 
-/-- §2.143 simple: `H = x≫f° ∩ y≫g°` is simple when `ff° ∩ gg° = id_c`.
-    `H°H ⊑ (f x° x f°) ∩ (g y° y g°) ⊑ ff° ∩ gg° = 1`. -/
-private theorem tab_UP_H_simple {a b c p : 𝒜} {f : c ⟶ a} {g : c ⟶ b} {R : a ⟶ b}
+/-- §2.143 simple: `H = x≫f° ∩ y≫g°` is simple when `ff° ∩ gg° = id_c` — needs only `x, y`
+    SIMPLE (not full maps): the entire/totality of `x, y` is only used to show `H` is entire
+    (`tab_UP_H_entire`), never here.  Public: also the canonical "pairing of simples is
+    simple" fact reused for `RelProd.pair` (`Fredy.A5_2`, e.g. Prop 9.3's context rule). -/
+theorem tabulation_simple_of_simple {a b c p : 𝒜} {f : c ⟶ a} {g : c ⟶ b} {R : a ⟶ b}
     (ht : Tabulates f g R) {x : p ⟶ a} {y : p ⟶ b}
-    (hx : Map x) (hy : Map y) :
+    (hx : Simple x) (hy : Simple y) :
     Simple (x ≫ f° ∩ y ≫ g°) := by
   obtain ⟨_, _, _, htab⟩ := ht
   rw [Simple, show (x ≫ f° ∩ y ≫ g°)° = f ≫ x° ∩ g ≫ y° from by
@@ -837,11 +839,11 @@ private theorem tab_UP_H_simple {a b c p : 𝒜} {f : c ⟶ a} {g : c ⟶ b} {R 
   have h_fst : (f ≫ x°) ≫ (x ≫ f°) ⊑ f ≫ f° := by
     have eq1 : (f ≫ x°) ≫ (x ≫ f°) = f ≫ (x° ≫ x) ≫ f° := by simp [Cat.assoc]
     rw [eq1]
-    exact le_trans (comp_mono_left _ (comp_mono_right hx.2 _)) (by rw [Cat.id_comp]; exact le_refl _)
+    exact le_trans (comp_mono_left _ (comp_mono_right hx _)) (by rw [Cat.id_comp]; exact le_refl _)
   have h_snd : (g ≫ y°) ≫ (y ≫ g°) ⊑ g ≫ g° := by
     have eq2 : (g ≫ y°) ≫ (y ≫ g°) = g ≫ (y° ≫ y) ≫ g° := by simp [Cat.assoc]
     rw [eq2]
-    exact le_trans (comp_mono_left _ (comp_mono_right hy.2 _)) (by rw [Cat.id_comp]; exact le_refl _)
+    exact le_trans (comp_mono_left _ (comp_mono_right hy _)) (by rw [Cat.id_comp]; exact le_refl _)
   refine le_trans step1 ?_
   rw [← htab]
   exact le_inter (le_trans (inter_lb_left _ _) h_fst) (le_trans (inter_lb_right _ _) h_snd)
@@ -855,7 +857,7 @@ theorem tabulation_UP_forward {a b c p : 𝒜} {f : c ⟶ a} {g : c ⟶ b} {R : 
   have hf_map : Map f := ht.1
   have hg_map : Map g := ht.2.1
   have hH : Map (x ≫ f° ∩ y ≫ g°) :=
-    ⟨tab_UP_H_entire ht hx hy hxy, tab_UP_H_simple ht hx hy⟩
+    ⟨tab_UP_H_entire ht hx hy hxy, tabulation_simple_of_simple ht hx.2 hy.2⟩
   refine ⟨x ≫ f° ∩ y ≫ g°, hH, ?_, ?_⟩
   · apply map_order_discrete (map_comp hH hf_map) hx
     have h1 : (x ≫ f° ∩ y ≫ g°) ≫ f ⊑ x ≫ Cat.id a := by
@@ -876,7 +878,7 @@ theorem tabulation_UP_forward_witness {a b c p : 𝒜} {f : c ⟶ a} {g : c ⟶ 
   have hf_map : Map f := ht.1
   have hg_map : Map g := ht.2.1
   have hH : Map (x ≫ f° ∩ y ≫ g°) :=
-    ⟨tab_UP_H_entire ht hx hy hxy, tab_UP_H_simple ht hx hy⟩
+    ⟨tab_UP_H_entire ht hx hy hxy, tabulation_simple_of_simple ht hx.2 hy.2⟩
   refine ⟨hH, ?_, ?_⟩
   · apply map_order_discrete (map_comp hH hf_map) hx
     have h1 : (x ≫ f° ∩ y ≫ g°) ≫ f ⊑ x ≫ Cat.id a := by
