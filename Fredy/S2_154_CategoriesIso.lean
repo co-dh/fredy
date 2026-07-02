@@ -1458,4 +1458,164 @@ theorem unit_isIso (C : SmallRegCat.{u}) :
 
 end UnitIso
 
+/-! ## 8.  Naturality and the §2.154 headline -/
+
+/-! ### Naturality of the unit -/
+
+/-- `Rel(F)` sends graphs to graphs: `Rel(F)[graph f] = [graph (F f)]` (§2.154). -/
+theorem relMap_graph {C D : SmallRegCat.{u}} (F : RegRep C D) {a b : C.carrier} (f : a ⟶ b) :
+    @RelFunctor.RegularFunctor.relMap C.carrier D.carrier C.cat D.cat F.obj F.functor
+        C.reg D.reg F.regular a b (relClass (Freyd.graph f))
+      = relClass (Freyd.graph (F.map f)) := by
+  let I := @RelFunctor.relImageObj C.carrier D.carrier C.cat D.cat F.obj
+    F.functor C.reg D.reg F.regular a b (Freyd.graph f)
+  obtain ⟨e, hcov, heA, heB⟩ := @RelFunctor.relImageObj_cover C.carrier D.carrier C.cat D.cat
+    F.obj F.functor C.reg D.reg F.regular a b (Freyd.graph f)
+  have heA0 : e ≫ I.colA = F.map (Cat.id a) := heA
+  have heB0 : e ≫ I.colB = F.map f := heB
+  show relClass I = relClass (Freyd.graph (F.map f))
+  have heA' : e ≫ I.colA = Cat.id (F.obj a) := by
+    rw [heA0]; exact F.map_id a
+  have hmono : Monic e := by
+    intro W p q hpq
+    have h2 : (p ≫ e) ≫ I.colA = (q ≫ e) ≫ I.colA := by rw [hpq]
+    rw [Cat.assoc, Cat.assoc, heA'] at h2
+    calc p = p ≫ Cat.id _ := (Cat.comp_id p).symm
+      _ = q ≫ Cat.id _ := h2
+      _ = q := Cat.comp_id q
+  obtain ⟨e', _he1, he2⟩ := monic_cover_iso e hcov hmono
+  have hIA : I.colA = e' := by
+    calc I.colA = Cat.id _ ≫ I.colA := (Cat.id_comp _).symm
+      _ = (e' ≫ e) ≫ I.colA := by rw [he2]
+      _ = e' ≫ (e ≫ I.colA) := Cat.assoc _ _ _
+      _ = e' ≫ Cat.id (F.obj a) := by rw [heA']
+      _ = e' := Cat.comp_id e'
+  have hIAFf : I.colA ≫ F.map f = I.colB := by
+    calc I.colA ≫ F.map f = e' ≫ F.map f := by rw [hIA]
+      _ = e' ≫ (e ≫ I.colB) := by rw [heB0]
+      _ = (e' ≫ e) ≫ I.colB := (Cat.assoc _ _ _).symm
+      _ = Cat.id _ ≫ I.colB := by rw [he2]
+      _ = I.colB := Cat.id_comp _
+  apply quotLe_antisymm
+  · -- image span ⊂ graph (F f), witness the first leg.
+    exact relClass_mono ⟨⟨I.colA, Cat.comp_id _, hIAFf⟩⟩
+  · -- graph (F f) ⊂ image span, witness the cover `e`.
+    exact relClass_mono ⟨⟨e, heA', heB0⟩⟩
+
+/-- Naturality core: the graph embedding intertwines `F` with `Map(Rel F)`. -/
+theorem embedRel_natural {C D : SmallRegCat.{u}} (F : RegRep C D) {a b : C.carrier}
+    (g : a ⟶ b) :
+    (MapF.onMap (RelF.onMap F)).map (Freyd.embedRel g) = Freyd.embedRel (F.map g) :=
+  Subtype.ext (relMap_graph F g)
+
+/-- **§2.154 unit naturality**: `unitRep` is natural in `C`. -/
+theorem unitRep_natural {C D : SmallRegCat.{u}} (F : RegRep C D) :
+    @Cat.comp SmallRegCat.{u} _ C (MapF (RelF C)) (MapF (RelF D))
+        (unitRep C) (MapF.onMap (RelF.onMap F))
+      = @Cat.comp SmallRegCat.{u} _ C D (MapF (RelF D)) F (unitRep D) := by
+  apply RegRep.ext
+  · rfl
+  · intro a b g
+    exact heq_of_eq (embedRel_natural F g)
+
+/-- **§2.154 unit-inverse naturality** (the square the `NatIso` to the identity needs). -/
+theorem unitInvRep_natural {C D : SmallRegCat.{u}} (F : RegRep C D) :
+    @Cat.comp SmallRegCat.{u} _ (MapF (RelF C)) (MapF (RelF D)) D
+        (MapF.onMap (RelF.onMap F)) (unitInvRep D)
+      = @Cat.comp SmallRegCat.{u} _ (MapF (RelF C)) C D (unitInvRep C) F := by
+  apply RegRep.ext
+  · rfl
+  · intro X Y m
+    refine heq_of_eq ?_
+    apply Freyd.embedRel_faithful
+    show Freyd.embedRel (eInv ((MapF.onMap (RelF.onMap F)).map m))
+        = Freyd.embedRel (F.map (eInv m))
+    rw [embedRel_eInv, ← embedRel_natural F (eInv m), embedRel_eInv]
+
+/-! ### Naturality of the counit -/
+
+/-- `relOf` of the `Map T`-image of a span is `T` of its `relOf` (§2.154 counit core):
+    the image cover `e` is a cover-map, so `e° ≫ e = 1` and the image span's morphism
+    collapses to `T(colA)° ≫ T(colB) = T(colA° ≫ colB)`. -/
+theorem relOf_relImage {𝒜 ℬ : SmallTabAlleg.{u}} (T : UnitaryRep 𝒜 ℬ)
+    {a b : MapObj 𝒜.carrier}
+    (P : @BinRel (MapObj 𝒜.carrier) (mapCat (𝒜 := 𝒜.carrier)) a b) :
+    Freyd.Alg.relOf (@RelFunctor.relImageObj (MapObj 𝒜.carrier) (MapObj ℬ.carrier)
+        (mapCat (𝒜 := 𝒜.carrier)) (mapCat (𝒜 := ℬ.carrier)) T.toFun.obj
+        (mapRepFunctor T.toFun) Freyd.Alg.mapRegularCategory Freyd.Alg.mapRegularCategory
+        (mapRep_regular T.toFun T.unit) a b P)
+      = T.toFun.map (Freyd.Alg.relOf P) := by
+  let I := @RelFunctor.relImageObj (MapObj 𝒜.carrier) (MapObj ℬ.carrier)
+    (mapCat (𝒜 := 𝒜.carrier)) (mapCat (𝒜 := ℬ.carrier)) T.toFun.obj
+    (mapRepFunctor T.toFun) Freyd.Alg.mapRegularCategory Freyd.Alg.mapRegularCategory
+    (mapRep_regular T.toFun T.unit) a b P
+  obtain ⟨e, hcov, heA, heB⟩ := @RelFunctor.relImageObj_cover (MapObj 𝒜.carrier)
+    (MapObj ℬ.carrier) (mapCat (𝒜 := 𝒜.carrier)) (mapCat (𝒜 := ℬ.carrier)) T.toFun.obj
+    (mapRepFunctor T.toFun) Freyd.Alg.mapRegularCategory Freyd.Alg.mapRegularCategory
+    (mapRep_regular T.toFun T.unit) a b P
+  let iA := @BinRel.colA (MapObj ℬ.carrier) (mapCat (𝒜 := ℬ.carrier)) _ _ I
+  let iB := @BinRel.colB (MapObj ℬ.carrier) (mapCat (𝒜 := ℬ.carrier)) _ _ I
+  let pA := @BinRel.colA (MapObj 𝒜.carrier) (mapCat (𝒜 := 𝒜.carrier)) _ _ P
+  let pB := @BinRel.colB (MapObj 𝒜.carrier) (mapCat (𝒜 := 𝒜.carrier)) _ _ P
+  have he : e.val° ≫ e.val = Cat.id _ := (mapCover_iff (A := ℬ.carrier) e).mp hcov
+  have heAv : e.val ≫ iA.val = T.toFun.map pA.val := congrArg Subtype.val heA
+  have heBv : e.val ≫ iB.val = T.toFun.map pB.val := congrArg Subtype.val heB
+  show iA.val° ≫ iB.val = T.toFun.map (pA.val° ≫ pB.val)
+  calc iA.val° ≫ iB.val
+      = iA.val° ≫ (Cat.id _ ≫ iB.val) := by rw [Cat.id_comp]
+    _ = iA.val° ≫ ((e.val° ≫ e.val) ≫ iB.val) := by rw [he]
+    _ = (e.val ≫ iA.val)° ≫ (e.val ≫ iB.val) := by
+        rw [Allegory.recip_comp]; simp [Cat.assoc]
+    _ = (T.toFun.map pA.val)° ≫ T.toFun.map pB.val := by rw [heAv, heBv]
+    _ = T.toFun.map (pA.val° ≫ pB.val) := by
+        rw [T.toFun.map_comp, T.toFun.map_recip]
+
+/-- **§2.154 counit naturality**: `counit` is natural in `𝒜`. -/
+theorem counit_natural {𝒜 ℬ : SmallTabAlleg.{u}} (T : UnitaryRep 𝒜 ℬ) :
+    @Cat.comp SmallTabAlleg.{u} _ (RelF (MapF 𝒜)) (RelF (MapF ℬ)) ℬ
+        (RelF.onMap (MapF.onMap T)) (counit ℬ)
+      = @Cat.comp SmallTabAlleg.{u} _ (RelF (MapF 𝒜)) 𝒜 ℬ (counit 𝒜) T := by
+  apply UnitaryRep.ext
+  apply allegFunctor_ext
+  · rfl
+  · intro a b x
+    refine heq_of_eq ?_
+    refine Quotient.inductionOn x (fun P => ?_)
+    exact relOf_relImage T P
+
+/-! ### The headline -/
+
+/-- **§2.154, unit half**: `Map ∘ Rel` is naturally isomorphic to the identity of the
+    category of small regular categories. -/
+noncomputable def unitNatIso :
+    NatIso (MapF.{u} ∘ RelF.{u}) (fun C : SmallRegCat.{u} => C) where
+  nat :=
+    { app := fun C => unitInvRep C
+      naturality := fun {_C _D} F => unitInvRep_natural F }
+  isIso := fun C => ⟨unitRep C, inv_comp_unit C, unit_comp_inv C⟩
+
+/-- **§2.154, counit half**: `Rel ∘ Map` is naturally isomorphic to the identity of the
+    category of small unitary tabular allegories. -/
+noncomputable def counitNatIso :
+    NatIso (RelF.{u} ∘ MapF.{u}) (fun 𝒜 : SmallTabAlleg.{u} => 𝒜) where
+  nat :=
+    { app := fun 𝒜 => counit 𝒜
+      naturality := fun {_𝒜 _ℬ} T => counit_natural T }
+  isIso := fun 𝒜 => counit_isIso 𝒜
+
+/-- **§2.154 HEADLINE**: *"The category of small regular categories is isomorphic to the
+    category of small unitary tabular allegories."*
+
+    Formalized as a STRONG EQUIVALENCE (§1.32) between the bundled categories:
+    `Rel : SmallRegCat ⇄ SmallTabAlleg : Map`, with natural isomorphisms
+    `Map ∘ Rel ≅ Id` (`unitNatIso`, the §2.148-dual graph embedding `C ≅ Map(Rel C)`) and
+    `Rel ∘ Map ≅ Id` (`counitNatIso`, the §2.148/§2.218 tabulation bridge
+    `Rel(Map 𝒜) ≅ 𝒜`).  Every component of both natural isomorphisms is an isomorphism
+    whose object part is the identity up to the `RelObj` wrapper — Freyd's "isomorphic"
+    modulo the change of carrier TYPE that Lean cannot quotient away. -/
+noncomputable def smallRegCat_equiv_smallTabAlleg :
+    StrongEquivalence RelF.{u} MapF.{u} where
+  unit := ⟨unitNatIso⟩
+  counit := ⟨counitNatIso⟩
+
 end Freyd.S2_154
