@@ -163,11 +163,8 @@ end Inductive
 
 /-! ## §6.5.2  Well-foundedness -/
 
-/-- A `BooleanAllegory` that is ALSO given as a `DivisionAllegory` also carries a
-    `DivisionLCDA` instance (mirrors `UnguardedPowerLCDA.toDivisionLCDA`, `A6_2`), so
-    `Inductive`/`neg_div` (division-in-LCDA facts) are available alongside Boolean negation. -/
-instance (priority := 100) DivisionBooleanAllegory.toDivisionLCDA {𝒜 : Type u}
-    [inst : DivisionBooleanAllegory 𝒜] : DivisionLCDA 𝒜 := { inst with }
+-- (`DivisionBooleanAllegory.toDivisionLCDA` — the bridge making `Inductive`/`neg_div`
+-- available alongside Boolean negation — now lives with the classes in `Fredy.A4_5`.)
 
 section WellFounded
 

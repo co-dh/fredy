@@ -178,3 +178,8 @@ import Fredy.A5_4
 import Fredy.A5_5
 import Fredy.A5_6
 import Fredy.A5_7
+-- Bird & de Moor ch. 6: recursive programs (fixed points, hylomorphisms, closure)
+import Fredy.A6_2
+import Fredy.A6_3
+import Fredy.A6_5
+import Fredy.A6_7

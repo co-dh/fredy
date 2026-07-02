@@ -241,6 +241,11 @@ theorem union_sub_distrib {a b : 𝒜} (R S T : a ⟶ b) : sub (R ∪ S) T = sub
   rw [Allegory.inter_comm (R ∪ S) (∼T), DistributiveAllegory.inter_union_distrib,
     Allegory.inter_comm (∼T) R, Allegory.inter_comm (∼T) S]
 
+/-- `sub` is monotonic in its numerator. -/
+theorem sub_mono_left {a b : 𝒜} {R R' : a ⟶ b} (h : R ⊑ R') (S : a ⟶ b) :
+    sub R S ⊑ sub R' S :=
+  inter_mono h (le_refl (∼S))
+
 end Boolean
 
 /-! ## §3  Division via negation (B&dM 4.21/4.22)
@@ -257,6 +262,11 @@ class DivisionLCDA (𝒜 : Type u) extends LocallyCompleteDistributiveAllegory �
 
 /-- A `BooleanAllegory` that is ALSO given as a `DivisionAllegory` (diamond-safe merge). -/
 class DivisionBooleanAllegory (𝒜 : Type u) extends BooleanAllegory 𝒜, DivisionAllegory 𝒜
+
+/-- The Boolean merge is in particular a `DivisionLCDA` (all fields come from the ONE
+    `DivisionBooleanAllegory` instance, so the bridge is diamond-safe). -/
+instance (priority := 100) DivisionBooleanAllegory.toDivisionLCDA {𝒜 : Type u}
+    [inst : DivisionBooleanAllegory 𝒜] : DivisionLCDA 𝒜 := { inst with }
 
 section DivNeg
 
