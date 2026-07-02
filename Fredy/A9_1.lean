@@ -359,4 +359,48 @@ theorem monotonicAlg_of_cost {c : 𝒜} {h : F.obj a ⟶ a} {R : a ⟶ a} {cost 
     rw [← step6, ← step5, ← step4]; exact step3
   exact le_trans step1' step3'
 
+/-! ## Ex 9.4 (B&dM p.222) — a universal but useless thinning relation -/
+
+/-- **Ex 9.4**: `Q := F(M·R·M°)` (mirrored `F.map (M ≫ R ≫ M°)`) ALWAYS discharges Theorem
+    9.2's `hQ` hypothesis, given only `M ⊑ H` and `H°·M ⊑ R` — i.e. it is a universal choice of
+    thinning relation.  Instantiating `M := ΛH·min R` (the optimum being computed) shows the
+    hypothesis is always satisfiable in principle, but the resulting `Q` mentions the very
+    optimum `dynamic_programming_thin` is trying to compute — useless for actually EXECUTING
+    the recursion (only for justifying that some valid `Q` exists). -/
+theorem thin_condition_of_optimum (hFr : F.PreservesRecip) {h : F.obj a ⟶ a} {T : F.obj b ⟶ b}
+    {R : a ⟶ a} {H M : b ⟶ a} (hh : Map h) (hmono : MonotonicAlg h R) (htrans : R ≫ R ⊑ R)
+    (hMH : M ⊑ H) (hHMR : H° ≫ M ⊑ R) :
+    (F.map (M ≫ R ≫ M°))° ≫ F.map H ≫ h ⊑ F.map H ≫ h ≫ R° := by
+  have erecip : (M ≫ R ≫ M°)° = M ≫ R° ≫ M° := by
+    rw [Allegory.recip_comp, Allegory.recip_comp, Allegory.recip_recip, Cat.assoc]
+  have hrecipmap : (F.map (M ≫ R ≫ M°))° = F.map (M ≫ R° ≫ M°) := by
+    rw [← hFr (M ≫ R ≫ M°), erecip]
+  have hM'H : M° ≫ H ⊑ R° := by
+    have h1 := recip_mono hHMR
+    have e1 : (H° ≫ M)° = M° ≫ H := by rw [Allegory.recip_comp, Allegory.recip_recip]
+    rwa [e1] at h1
+  have hRR : R° ≫ R° ⊑ R° := by
+    have h1 := recip_mono htrans
+    rwa [Allegory.recip_comp] at h1
+  have hassocL : (M ≫ R° ≫ M°) ≫ H = M ≫ R° ≫ (M° ≫ H) := by simp only [Cat.assoc]
+  have hbound1 : M ≫ R° ≫ (M° ≫ H) ⊑ M ≫ R° ≫ R° :=
+    comp_mono_left _ (comp_mono_left _ hM'H)
+  have hbound2 : M ≫ R° ≫ R° ⊑ M ≫ R° := comp_mono_left _ hRR
+  have hbound3 : M ≫ R° ⊑ H ≫ R° := comp_mono_right hMH R°
+  have hMRM'H : (M ≫ R° ≫ M°) ≫ H ⊑ H ≫ R° := by
+    rw [hassocL]; exact le_trans hbound1 (le_trans hbound2 hbound3)
+  have hfold : F.map (M ≫ R° ≫ M°) ≫ F.map H = F.map ((M ≫ R° ≫ M°) ≫ H) := by
+    rw [← F.map_comp]
+  have hsplit : F.map (H ≫ R°) ≫ h = F.map H ≫ (F.map R° ≫ h) := by
+    rw [F.map_comp, Cat.assoc]
+  have hmonoR' : F.map R° ≫ h ⊑ h ≫ R° := (monotonicAlg_recip_iff hh hFr).mp hmono
+  rw [hrecipmap]
+  have ereassoc : F.map (M ≫ R° ≫ M°) ≫ (F.map H ≫ h) = (F.map (M ≫ R° ≫ M°) ≫ F.map H) ≫ h := by
+    rw [Cat.assoc]
+  rw [ereassoc, hfold]
+  have step1 : F.map ((M ≫ R° ≫ M°) ≫ H) ≫ h ⊑ F.map (H ≫ R°) ≫ h :=
+    comp_mono_right (F.map_mono hMRM'H) h
+  rw [hsplit] at step1
+  exact le_trans step1 (comp_mono_left _ hmonoR')
+
 end Freyd.Alg
