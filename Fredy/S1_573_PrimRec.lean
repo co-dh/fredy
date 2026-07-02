@@ -566,4 +566,90 @@ noncomputable instance : HasBinaryProducts PObj where
             ((pprodData α β).pd.dec₂ (h.1 w)) := ((pprodData α β).pd.enc_dec _).symm
       _ = (pprodData α β).pd.enc (f.1 w) (g.1 w) := by rw [e1, e2]
 
+/-! ## Part 4: the §1.573 equalizer idempotent
+
+  Given `x, y : ω → α` in P and `n` with `x(n) = y(n)`, the book's
+      `e(i) = i` if `x(i) = y(i)`, `n` otherwise
+  satisfies `e² = e`, `ex = ey`, and `ze = z` for every `z : β → ω` with `zx = zy`
+  (the book's line reads "ze = e" — a typo for `ze = z`).  If there is no such `n`,
+  then 0 is the equalizer of `x, y` (already in P). -/
+
+/-- ω as an object of P. -/
+def omegaP : PObj := (none : ExtNat)
+
+section EqIdem
+
+variable {α : PObj} (x y : omegaP ⟶ α)
+
+/-- §1.573's idempotent: `e(i) = i` if `x(i) = y(i)`, else the agreement witness `n`. -/
+def eqIdemFn (n : Nat) : Nat → Nat := fun i =>
+  if toNat (x.1 i) = toNat (y.1 i) then i else n
+
+theorem eqIdemFn_of_agree (n : Nat) {i : Nat} (h : x.1 i = y.1 i) :
+    eqIdemFn x y n i = i := if_pos (congrArg toNat h)
+
+theorem eqIdemFn_of_ne (n : Nat) {i : Nat} (h : x.1 i ≠ y.1 i) :
+    eqIdemFn x y n i = n := if_neg fun hc => h (toNat_inj hc)
+
+/-- `e` is primitive recursive: arithmetization of the definition-by-cases. -/
+theorem eqIdemFn_prim (n : Nat) : PrimRec1 (eqIdemFn x y n) := by
+  have hind : PrimRec1 fun i => eqInd (toNat (x.1 i)) (toNat (y.1 i)) :=
+    PrimRec1.comp2 PrimRec2.eqInd x.2 y.2
+  have harith : PrimRec1 fun i =>
+      i * eqInd (toNat (x.1 i)) (toNat (y.1 i)) +
+        n * (1 - eqInd (toNat (x.1 i)) (toNat (y.1 i))) :=
+    PrimRec1.add (PrimRec1.mul PrimRec1.id hind)
+      (PrimRec1.mul (PrimRec1.const n) (PrimRec1.sub (PrimRec1.const 1) hind))
+  refine harith.congr fun i => ?_
+  show _ = if toNat (x.1 i) = toNat (y.1 i) then i else n
+  by_cases h : toNat (x.1 i) = toNat (y.1 i)
+  · rw [if_pos h, eqInd_eq h]; simp
+  · rw [if_neg h, eqInd_ne h]; simp
+
+/-- The §1.573 idempotent as a morphism of P. -/
+def eqIdem (n : Nat) : omegaP ⟶ omegaP := ⟨eqIdemFn x y n, eqIdemFn_prim x y n⟩
+
+/-- `e² = e` (§1.573). -/
+theorem eqIdem_idem {n : Nat} (hn : x.1 n = y.1 n) :
+    eqIdem x y n ≫ eqIdem x y n = eqIdem x y n :=
+  PMor.ext fun i => by
+    show eqIdemFn x y n (eqIdemFn x y n i) = eqIdemFn x y n i
+    by_cases h : toNat (x.1 i) = toNat (y.1 i)
+    · simp only [eqIdemFn_of_agree x y n (toNat_inj h)]
+    · simp only [eqIdemFn_of_ne x y n fun hc => h (congrArg toNat hc),
+        eqIdemFn_of_agree x y n hn]
+
+/-- `ex = ey` (§1.573; diagram order: `e ≫ x = e ≫ y`). -/
+theorem eqIdem_equalizes {n : Nat} (hn : x.1 n = y.1 n) :
+    eqIdem x y n ≫ x = eqIdem x y n ≫ y :=
+  PMor.ext fun i => by
+    show x.1 (eqIdemFn x y n i) = y.1 (eqIdemFn x y n i)
+    by_cases h : toNat (x.1 i) = toNat (y.1 i)
+    · rw [eqIdemFn_of_agree x y n (toNat_inj h)]; exact toNat_inj h
+    · rw [eqIdemFn_of_ne x y n fun hc => h (congrArg toNat hc)]; exact hn
+
+/-- §1.573's universal property: any `z : β → ω` with `zx = zy` satisfies `ze = z`. -/
+theorem eqIdem_univ {β : PObj} (z : β ⟶ omegaP) (hz : z ≫ x = z ≫ y) (n : Nat) :
+    z ≫ eqIdem x y n = z :=
+  PMor.ext fun w => by
+    show eqIdemFn x y n (z.1 w) = z.1 w
+    exact eqIdemFn_of_agree x y n (PMor.congr hz w)
+
+/-- Any function into the empty carrier is (vacuously) a P-morphism: its very
+    existence from ω is contradictory. -/
+theorem isPMor_ofEmpty {γ : ExtNat} (f : El γ → El (some 0)) : IsPMor γ (some 0) f := by
+  match γ with
+  | some d => exact trivial
+  | none => exact (f 0).elim0
+
+/-- §1.573, degenerate case: if `x, y` NEVER agree, then 0 is their equalizer —
+    already in P, no splitting needed. -/
+def eqNowhere (hne : ∀ i : Nat, x.1 i ≠ y.1 i) : HasEqualizer x y where
+  cone := ⟨(some 0 : ExtNat), ⟨fun w => w.elim0, trivial⟩, PMor.ext fun w => w.elim0⟩
+  lift c := ⟨fun w => absurd (PMor.congr c.eq w) (hne (c.map.1 w)), isPMor_ofEmpty _⟩
+  fac c := PMor.ext fun w => absurd (PMor.congr c.eq w) (hne (c.map.1 w))
+  uniq c m hm := PMor.ext fun w => (m.1 w).elim0
+
+end EqIdem
+
 end Freyd.Pcat
