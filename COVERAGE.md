@@ -236,16 +236,22 @@ primitive-recursive INSTANCES of §2.16(13) remain with §1.572/§1.573) · §2.
 interestingness needed) hence an allegory via §2.156; `DesarguesHorn` + `desarguesHorn_binRel` (Rel(S) verification,
 axiom-free) + `desarguesHorn_implies_modular`/`BotLattice.toModularLattice` (book's substitution, axiom-free) +
 `desarguesHorn_implies_desargues_nondeg` (Horn ⟹ Desargues under 13 nondegeneracy hypotheses; degenerate cases +
-converse = remaining gap, analysis in file); S2_157_ProjectivePlane. Veblen–Wedderburn 91-point model NOT built).
+converse = remaining gap, analysis in file); S2_157_ProjectivePlane. Veblen–Wedderburn 91-point model NOT built) ·
+§2.153 ASSEMBLIES (headline `asmPositivePreLogos` + `asmDisjointBinaryCoproduct` — Assembly K is a positive pre-logos
+with disjoint stable coproducts; `asmRegular` [choice,Quot.sound]; `nablaFunctor` ∇:Set→A preserves coterm/eq/products
+(axiom-free); `ModulusSystem.allPartial` non-vacuity witness. DISCREPANCY: the book's bare (i)(ii)(iii) is PROVABLY
+insufficient (K₀ = restrictions of id breaks image minimality) — the bracketed pairing remark + a parameterized
+tag-cases closure are made explicit `ModulusSystem` fields; S2_153_Assemblies. Non-effectiveness remark left with
+the recursive instances).
 PARTIAL: §2.224 GLOBAL COMPLETION Aᴴ — now a FAITHFUL LCDA REPRESENTATION (`globalCat`/`globalAllegory`/
 `globalDistributiveAllegory`/`globalLCDA`/`globalCompletion_faithful`, all constructive; infinite matrices over the LCDA Sup,
 identity via propositional i=j + HEq, modular per-entry, assoc/Sup = Fubini interchange). The final GloballyComplete instance is
 UNIVERSE-BLOCKED (disjoint union of u-indexed families escapes to u+1; the completion is complete only at the next universe level
 — needs a class redesign, not just a universe-poly GlobalObj) · §2.226 SYSTEMIC COMPLETION (assumes splitting witness; full
 unit-existence blocked by §2.224 GloballyComplete).
-MISSING: §2.153 assemblies · §2.157 remainder (degenerate Desargues cases, converse, Veblen–Wedderburn model) ·
-§2.158 no-finite-axiom · §2.154 categories-iso headline · §2.16(13) recursive instances · §2.16(14) assemblies ·
-§2.21(10).
+MISSING: §2.153 non-effectiveness (recursive K) · §2.157 remainder (degenerate Desargues cases, converse,
+Veblen–Wedderburn model) · §2.158 no-finite-axiom · §2.154 categories-iso headline · §2.16(13) recursive instances ·
+§2.16(14) assemblies-effective-reflection · §2.21(10).
 
 ## §2.2  Distributive allegories
 

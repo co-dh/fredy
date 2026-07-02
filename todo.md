@@ -68,6 +68,11 @@ merged class `TabularUnitaryUnguardedPowerAllegory`): Map(A) has FULL power obje
   MODULAR (no interestingness) ⟹ associated allegory via §2.156; `DesarguesHorn` verified for Rel(S) and
   Horn ⟹ modularity (both axiom-free); Horn ⟹ Desargues under nondegeneracy. REMAINING: degenerate
   Desargues cases, the converse direction, Veblen–Wedderburn 91-point non-Desarguesian model.
+- ~~**§2.153**~~ — **DONE** (`S2_153_Assemblies`, merged 9e4a679): Assembly K is a POSITIVE PRE-LOGOS with
+  disjoint stable coproducts (`asmPositivePreLogos`/`asmDisjointBinaryCoproduct`); ∇ functor; `allPartial`
+  witness. BOOK DISCREPANCY: bare (i)(ii)(iii) provably insufficient — pairing + parameterized tag-cases
+  closures made explicit `ModulusSystem` fields. REMAINING: non-effectiveness (needs recursive K), §2.16(14)
+  effective reflection of Rel(A).
 - **§2.158**, **§2.417** (generator counterexample) — graph-allegory no-finite-axiomatization;
   §1.96(10)-modification model.
 
