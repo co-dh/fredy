@@ -634,8 +634,9 @@ def omega : ExtNat := none
 /-- The finite ordinal object `n = {0, …, n-1}` (von Neumann). -/
 def fin (n : Nat) : ExtNat := some n
 
-/-- Carrier of an extended natural: `El (some n) = Fin n`, `El ω = ℕ`. -/
-def El : ExtNat → Type := fun α =>
+/-- Carrier of an extended natural: `El (some n) = Fin n`, `El ω = ℕ`.
+    (`@[reducible]` so that arithmetic on `El none` elaborates as on `Nat`.) -/
+@[reducible] def El : ExtNat → Type := fun α =>
   match α with
   | some n => Fin n
   | none => Nat
@@ -713,5 +714,219 @@ theorem id_fn {α : ExtNat} (a : El α) : (Cat.id α).1 a = a := rfl
 /-- Pointwise consequence of a morphism equation. -/
 theorem Mor.congr {α β : ExtNat} {f g : α ⟶ β} (h : f = g) (a : El α) : f.1 a = g.1 a := by
   rw [h]
+
+/-! ## Part 4: R is cartesian — terminator and binary products
+
+  The terminator is the ordinal 1.  The product of two extended naturals must
+  again be an extended natural: `n×m = n*m`, `ω×ω ≅ ω` by Cantor pairing,
+  `(n+1)×ω ≅ ω ≅ ω×(m+1)` by division with remainder, and `0×α = 0 = α×0`. -/
+
+instance : HasTerminal ExtNat where
+  one := some 1
+  trm X := ⟨fun _ => ⟨0, Nat.one_pos⟩, by
+    match X with
+    | some n => exact trivial
+    | none => exact Recursive1.const 0⟩
+  uniq f g := Mor.ext fun a => by
+    apply toNat_inj
+    have h1 : toNat (f.1 a) < 1 := toNat_lt _
+    have h2 : toNat (g.1 a) < 1 := toNat_lt _
+    omega
+
+/-- Product data for a pair of extended naturals: a product object together with a
+    recursive pairing bijection.  `encN` is the pairing seen through `toNat`; its
+    recursiveness makes the universal `pair` map a morphism. -/
+structure ProdData (α β : ExtNat) where
+  obj : ExtNat
+  enc : El α → El β → El obj
+  dec₁ : El obj → El α
+  dec₂ : El obj → El β
+  dec₁_enc : ∀ a b, dec₁ (enc a b) = a
+  dec₂_enc : ∀ a b, dec₂ (enc a b) = b
+  enc_dec : ∀ c, enc (dec₁ c) (dec₂ c) = c
+  dec₁_mor : IsMor obj α dec₁
+  dec₂_mor : IsMor obj β dec₂
+  encN : Nat → Nat → Nat
+  encN_rec : Recursive2 encN
+  encN_spec : ∀ a b, toNat (enc a b) = encN (toNat a) (toNat b)
+
+/-- `n × m = n*m` (finite × finite): `(i,j) ↦ i*m + j`. -/
+def prodFinFin (n m : Nat) : ProdData (some n) (some m) where
+  obj := some (n * m)
+  enc i j := ⟨i.val * m + j.val, by
+    have h1 : i.val * m + j.val < (i.val + 1) * m := by
+      rw [Nat.succ_mul]
+      have := j.isLt
+      omega
+    have h2 : (i.val + 1) * m ≤ n * m := Nat.mul_le_mul_right m i.isLt
+    omega⟩
+  dec₁ c := ⟨c.val / m, by
+    have hm : 0 < m := by
+      rcases Nat.eq_zero_or_pos m with h | h
+      · subst h
+        have := c.isLt
+        omega
+      · exact h
+    exact (Nat.div_lt_iff_lt_mul hm).mpr c.isLt⟩
+  dec₂ c := ⟨c.val % m, by
+    have hm : 0 < m := by
+      rcases Nat.eq_zero_or_pos m with h | h
+      · subst h
+        have := c.isLt
+        omega
+      · exact h
+    exact Nat.mod_lt _ hm⟩
+  dec₁_enc i j := by
+    apply Fin.ext
+    show (i.val * m + j.val) / m = i.val
+    rw [Nat.mul_comm i.val m, Nat.mul_add_div (by have := j.isLt; omega)]
+    rw [Nat.div_eq_of_lt j.isLt]
+    omega
+  dec₂_enc i j := by
+    apply Fin.ext
+    show (i.val * m + j.val) % m = j.val
+    rw [Nat.mul_comm i.val m, Nat.mul_add_mod]
+    exact Nat.mod_eq_of_lt j.isLt
+  enc_dec c := by
+    apply Fin.ext
+    show (c.val / m) * m + c.val % m = c.val
+    have h1 := Nat.div_add_mod c.val m
+    have h2 : m * (c.val / m) = (c.val / m) * m := Nat.mul_comm _ _
+    omega
+  dec₁_mor := trivial
+  dec₂_mor := trivial
+  encN a b := a * m + b
+  encN_rec := Recursive2.comp2 Recursive2.add
+    (Recursive2.comp2 Recursive2.mul Recursive2.fstArg (Recursive2.ofFst (Recursive1.const m)))
+    Recursive2.sndArg
+  encN_spec _ _ := rfl
+
+/-- `0 × ω = 0`. -/
+def prodZeroOmega (n : Nat) (h : n = 0) : ProdData (some n) none where
+  obj := some 0
+  enc a _ := h ▸ a
+  dec₁ c := c.elim0
+  dec₂ c := c.elim0
+  dec₁_enc a _ := (h ▸ a).elim0
+  dec₂_enc a _ := (h ▸ a).elim0
+  enc_dec c := c.elim0
+  dec₁_mor := trivial
+  dec₂_mor := trivial
+  encN _ _ := 0
+  encN_rec := RecursiveV.const 2 0
+  encN_spec a _ := (h ▸ a).elim0
+
+/-- Helper (plain-Nat, so `omega` applies): quotient of `k*(d+1) + v` by `d+1`. -/
+theorem mulAdd_div (d k v : Nat) (hv : v < d + 1) : (k * (d + 1) + v) / (d + 1) = k := by
+  rw [Nat.mul_comm k (d + 1), Nat.mul_add_div (Nat.succ_pos d), Nat.div_eq_of_lt hv]
+  omega
+
+/-- Helper (plain-Nat): remainder of `k*(d+1) + v` by `d+1`. -/
+theorem mulAdd_mod (d k v : Nat) (hv : v < d + 1) : (k * (d + 1) + v) % (d + 1) = v := by
+  rw [Nat.mul_comm k (d + 1), Nat.mul_add_mod]
+  exact Nat.mod_eq_of_lt hv
+
+/-- Helper (plain-Nat): division with remainder reassembles. -/
+theorem div_mul_add_mod (d c : Nat) : (c / (d + 1)) * (d + 1) + c % (d + 1) = c := by
+  have h1 := Nat.div_add_mod c (d + 1)
+  have h2 : (d + 1) * (c / (d + 1)) = (c / (d + 1)) * (d + 1) := Nat.mul_comm _ _
+  omega
+
+/-- `(n+1) × ω = ω`: `(i,k) ↦ k*(n+1) + i` (division with remainder by `n+1`). -/
+noncomputable def prodFinOmega (n : Nat) : ProdData (some (n + 1)) none where
+  obj := none
+  enc i k := k * (n + 1) + i.val
+  dec₁ c := ⟨c % (n + 1), Nat.mod_lt _ (Nat.succ_pos n)⟩
+  dec₂ c := c / (n + 1)
+  dec₁_enc i k := Fin.ext (mulAdd_mod n k i.val i.isLt)
+  dec₂_enc i k := mulAdd_div n k i.val i.isLt
+  enc_dec c := div_mul_add_mod n c
+  dec₁_mor := Recursive1.modConst n
+  dec₂_mor := Recursive1.divConst n
+  encN a b := b * (n + 1) + a
+  encN_rec := Recursive2.comp2 Recursive2.add
+    (Recursive2.comp2 Recursive2.mul Recursive2.sndArg (Recursive2.ofFst (Recursive1.const (n + 1))))
+    Recursive2.fstArg
+  encN_spec _ _ := rfl
+
+/-- `ω × 0 = 0`. -/
+def prodOmegaZero (m : Nat) (h : m = 0) : ProdData none (some m) where
+  obj := some 0
+  enc _ b := h ▸ b
+  dec₁ c := c.elim0
+  dec₂ c := c.elim0
+  dec₁_enc _ b := (h ▸ b).elim0
+  dec₂_enc _ b := (h ▸ b).elim0
+  enc_dec c := c.elim0
+  dec₁_mor := trivial
+  dec₂_mor := trivial
+  encN _ _ := 0
+  encN_rec := RecursiveV.const 2 0
+  encN_spec _ b := (h ▸ b).elim0
+
+/-- `ω × (m+1) = ω`: `(k,j) ↦ k*(m+1) + j`. -/
+noncomputable def prodOmegaFin (m : Nat) : ProdData none (some (m + 1)) where
+  obj := none
+  enc k j := k * (m + 1) + j.val
+  dec₁ c := c / (m + 1)
+  dec₂ c := ⟨c % (m + 1), Nat.mod_lt _ (Nat.succ_pos m)⟩
+  dec₁_enc k j := mulAdd_div m k j.val j.isLt
+  dec₂_enc k j := Fin.ext (mulAdd_mod m k j.val j.isLt)
+  enc_dec c := div_mul_add_mod m c
+  dec₁_mor := Recursive1.divConst m
+  dec₂_mor := Recursive1.modConst m
+  encN a b := a * (m + 1) + b
+  encN_rec := Recursive2.comp2 Recursive2.add
+    (Recursive2.comp2 Recursive2.mul Recursive2.fstArg (Recursive2.ofFst (Recursive1.const (m + 1))))
+    Recursive2.sndArg
+  encN_spec _ _ := rfl
+
+/-- `ω × ω = ω` by the Cantor pairing (recursive in both directions). -/
+noncomputable def prodOmegaOmega : ProdData none none where
+  obj := none
+  enc := cp
+  dec₁ := cfst
+  dec₂ := csnd
+  dec₁_enc := cfst_cp
+  dec₂_enc := csnd_cp
+  enc_dec c := cp_surj c
+  dec₁_mor := Recursive1.cfst
+  dec₂_mor := Recursive1.csnd
+  encN := cp
+  encN_rec := Recursive2.cp
+  encN_spec _ _ := rfl
+
+/-- The product of any two extended naturals. -/
+noncomputable def prodData : (α β : ExtNat) → ProdData α β
+  | some n, some m => prodFinFin n m
+  | some 0, none => prodZeroOmega 0 rfl
+  | some (n + 1), none => prodFinOmega n
+  | none, some 0 => prodOmegaZero 0 rfl
+  | none, some (m + 1) => prodOmegaFin m
+  | none, none => prodOmegaOmega
+
+/-- The universal pairing map is a morphism (via `encN`). -/
+theorem pair_isMor {X α β : ExtNat} (pd : ProdData α β) (f : X ⟶ α) (g : X ⟶ β) :
+    IsMor X pd.obj fun w => pd.enc (f.1 w) (g.1 w) := by
+  match X with
+  | some n => exact trivial
+  | none =>
+    have h : Recursive1 fun k => pd.encN (toNat (f.1 k)) (toNat (g.1 k)) :=
+      Recursive1.comp2 pd.encN_rec f.2 g.2
+    exact h.congr fun k => (pd.encN_spec _ _).symm
+
+noncomputable instance : HasBinaryProducts ExtNat where
+  prod α β := (prodData α β).obj
+  fst {α β} := ⟨(prodData α β).dec₁, (prodData α β).dec₁_mor⟩
+  snd {α β} := ⟨(prodData α β).dec₂, (prodData α β).dec₂_mor⟩
+  pair {X α β} f g := ⟨fun w => (prodData α β).enc (f.1 w) (g.1 w), pair_isMor _ f g⟩
+  fst_pair {X α β} f g := Mor.ext fun w => (prodData α β).dec₁_enc _ _
+  snd_pair {X α β} f g := Mor.ext fun w => (prodData α β).dec₂_enc _ _
+  pair_uniq {X α β} f g h h₁ h₂ := Mor.ext fun w => by
+    have e1 : (prodData α β).dec₁ (h.1 w) = f.1 w := Mor.congr h₁ w
+    have e2 : (prodData α β).dec₂ (h.1 w) = g.1 w := Mor.congr h₂ w
+    calc h.1 w = (prodData α β).enc ((prodData α β).dec₁ (h.1 w)) ((prodData α β).dec₂ (h.1 w)) :=
+          ((prodData α β).enc_dec _).symm
+      _ = (prodData α β).enc (f.1 w) (g.1 w) := by rw [e1, e2]
 
 end Freyd.Rcat
