@@ -94,6 +94,15 @@ theorem hylo_eq_mu (hFr : F.PreservesRecip) (I : InitialAlgebra F) {a b : 𝒜}
       ← Cat.assoc I.α° I.α (relCata I R), I.recip_alpha_alpha, Cat.id_comp]
   exact le_antisymm (hylo_le_of_prefixed hFr I (mu_prefixed hφ_mono)) (mu_le_of_fixed hstepA)
 
+/-- The hylomorphism FIXED-POINT EQUATION `[[R,S]] = R·F[[R,S]]·S°` (mirrored), extracted from
+    Theorem 6.2 via `mu_fixed` — the form in which ch. 9's dynamic-programming theorems consume
+    the hylomorphism theorem (B&dM p.220, "definition of `H` and hylomorphism theorem"). -/
+theorem hylo_fixed (hFr : F.PreservesRecip) (I : InitialAlgebra F) {a b : 𝒜}
+    (R : F.obj a ⟶ a) (S : F.obj b ⟶ b) :
+    S° ≫ F.map ((relCata I S)° ≫ relCata I R) ≫ R = (relCata I S)° ≫ relCata I R := by
+  rw [hylo_eq_mu hFr I R S]
+  exact mu_fixed (hyloBody_monotonic R S)
+
 end Hylo
 
 /-! ## Ex 6.10  Hylomorphisms preserve simplicity
