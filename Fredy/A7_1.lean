@@ -56,8 +56,10 @@ theorem le_minRel_iff {R : a ⟶ a} {X : PowerAllegory.powerObj a ⟶ a} :
   The workhorse: composing `min R` with the power transpose of `S` computes minima over
   the `S`-image.  Key step: `A S` transports lower bounds, `A S ≫ (R/∋) = R/S°` mirrored. -/
 
-/-- `ΛS·(R/∋) = R/S°` mirrored: `A S ≫ leftDiv (∋ a)° R = leftDiv S° R` (B&dM (7.2)). -/
-theorem A_comp_lb (S : b ⟶ a) (R : a ⟶ a) :
+/-- `ΛS·(R/∋) = R/S°` mirrored: `A S ≫ leftDiv (∋ a)° R = leftDiv S° R` (B&dM (7.2)).
+    Stated for a numerator of ARBITRARY target type `c` — §7.1 uses it at `c := a`
+    (`R` an order on `a`), §8.1's thinning at `c := powerObj a`. -/
+theorem A_comp_lb {c : 𝒜} (S : b ⟶ a) (R : a ⟶ c) :
     A S ≫ leftDiv ((∋ a)°) R = leftDiv S° R := by
   have hS' : (∋ a)° ≫ (A S)° = S° := by rw [← Allegory.recip_comp, A_eps_eq']
   apply le_antisymm
@@ -262,10 +264,10 @@ theorem minRel_simple_of_antisymmetric {R : a ⟶ a} (h : AntiSymmetric R) : Sim
 
 /-! ## Ex 7.1/7.2: the subset relation (book p.169) -/
 
-/-- **B&dM p.169**: `subset = ∈\∈`, mirrored `subsetRel a := (∋ a) / (∋ a)`
-    (a subset relates two elements-of-the-power exactly when every member of the first is
-    a member of the second — the ordinary subset order on `PowerAllegory.powerObj a`). -/
-def subsetRel (a : 𝒜) : PowerAllegory.powerObj a ⟶ PowerAllegory.powerObj a := (∋ a) / (∋ a)
+/-- **B&dM p.169**: `subset = ∈\∈`, mirrored `(∋ a) / (∋ a)` — which is LITERALLY Freyd's
+    `powerOrder` (§2.442, `Fredy.S2_4`); `subsetRel` is the B&dM-facing alias for it, kept
+    definitional so every lemma transfers both ways for free. -/
+def subsetRel (a : 𝒜) : PowerAllegory.powerObj a ⟶ PowerAllegory.powerObj a := powerOrder
 
 theorem id_le_subsetRel : Cat.id (PowerAllegory.powerObj a) ⊑ subsetRel a := by
   show Cat.id (PowerAllegory.powerObj a) ⊑ (∋ a) / (∋ a)
