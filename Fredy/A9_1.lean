@@ -24,6 +24,7 @@
 -/
 import Fredy.A7_2
 import Fredy.A8_1
+import Fredy.A5_2
 
 universe u
 
@@ -402,5 +403,76 @@ theorem thin_condition_of_optimum (hFr : F.PreservesRecip) {h : F.obj a ⟶ a} {
     comp_mono_right (F.map_mono hMRM'H) h
   rw [hsplit] at step1
   exact le_trans step1 (comp_mono_left _ hmonoR')
+
+/-! ## Proposition 9.3 (B&dM p.223) — monotonicity in context
+
+  A different ambient setting from the rest of the file: `TabularUnitaryDivisionAllegory`
+  (`Fredy.A5_2`), which supplies relational products `RelProd` and pairing.  `S : a ⟶ b`
+  plays B&dM's extra "context" relation (his `H°`) — SIMPLE, not necessarily a map — and
+  `P : RelProd c b` is the chosen product used to bundle `cost` with `S`. -/
+
+section Prop9_3
+
+variable {𝒜 : Type u} [TabularUnitaryDivisionAllegory 𝒜] {F : Relator 𝒜 𝒜} {a b : 𝒜}
+
+/-- **Proposition 9.3 (B&dM p.223)**, monotonicity in context: given a cost function `cost`
+    bundled with a simple context relation `S` via a chosen product `P`, and an algebra `k`
+    (on the bundle) monotonic on `leq × id` in the sense of `hk`, the algebra `h` is monotonic
+    on `R := cost·leq·cost°` RESTRICTED to `S`'s domain of definition (`R ∩ S·S°`) — a
+    context-refined version of `monotonicAlg_of_cost` where the extra hypothesis `hk` need
+    only see the product bundle, not the bare `cost`. -/
+theorem monotonicAlg_in_context {c : 𝒜} {h : F.obj a ⟶ a} {R : a ⟶ a} {cost : a ⟶ c}
+    {S : a ⟶ b} {P : RelProd c b} {leq : c ⟶ c} {k : F.obj P.p ⟶ c}
+    (hcost : Map cost) (hS : Simple S) (hR : R = cost ≫ leq ≫ cost°)
+    (hch : h ≫ cost = F.map (P.pair cost S) ≫ k)
+    (hk : F.map (prodMap P P leq (Cat.id b)) ≫ k ⊑ k ≫ leq) :
+    F.map (R ∩ (S ≫ S°)) ≫ h ⊑ h ≫ R := by
+  have hRexp : h ≫ R = (h ≫ cost ≫ leq) ≫ cost° := by rw [hR]; simp only [Cat.assoc]
+  rw [hRexp]
+  apply (map_shunt_right hcost _ _).mp
+  -- goal: (F.map (R ∩ (S ≫ S°)) ≫ h) ≫ cost ⊑ h ≫ cost ≫ leq
+  have eLHS1 : (F.map (R ∩ (S ≫ S°)) ≫ h) ≫ cost = F.map (R ∩ (S ≫ S°)) ≫ (h ≫ cost) := by
+    rw [Cat.assoc]
+  rw [eLHS1, hch]
+  -- goal: F.map (R ∩ (S ≫ S°)) ≫ (F.map (P.pair cost S) ≫ k) ⊑ h ≫ cost ≫ leq
+  have eFold1 : F.map (R ∩ (S ≫ S°)) ≫ (F.map (P.pair cost S) ≫ k)
+      = (F.map (R ∩ (S ≫ S°)) ≫ F.map (P.pair cost S)) ≫ k := by rw [Cat.assoc]
+  rw [eFold1]
+  have eFold2 : F.map (R ∩ (S ≫ S°)) ≫ F.map (P.pair cost S)
+      = F.map ((R ∩ (S ≫ S°)) ≫ P.pair cost S) := by rw [← F.map_comp]
+  rw [eFold2]
+  -- goal: F.map ((R ∩ (S ≫ S°)) ≫ P.pair cost S) ≫ k ⊑ h ≫ cost ≫ leq
+  have hdecomp0 := P.pair_recip_pair (cost ≫ leq) S cost S
+  have hReq : (cost ≫ leq) ≫ cost° = R := by rw [hR]; simp only [Cat.assoc]
+  rw [hReq] at hdecomp0
+  -- hdecomp0 : P.pair (cost ≫ leq) S ≫ (P.pair cost S)° = R ∩ (S ≫ S°)
+  have hSimplePair : Simple (P.pair cost S) := P.pair_simple hcost.2 hS
+  have hcancel : (R ∩ (S ≫ S°)) ≫ P.pair cost S ⊑ P.pair (cost ≫ leq) S := by
+    rw [← hdecomp0, Cat.assoc]
+    have e2 := comp_mono_left (P.pair (cost ≫ leq) S) hSimplePair
+    rwa [Cat.comp_id] at e2
+  have step2 : F.map ((R ∩ (S ≫ S°)) ≫ P.pair cost S) ≫ k ⊑ F.map (P.pair (cost ≫ leq) S) ≫ k :=
+    comp_mono_right (F.map_mono hcancel) k
+  have habsorb : P.pair cost S ≫ prodMap P P leq (Cat.id b) = P.pair (cost ≫ leq) S :=
+    P.pair_prodMap_fst cost S leq
+  have step3 : F.map (P.pair (cost ≫ leq) S) ≫ k
+      = (F.map (P.pair cost S) ≫ F.map (prodMap P P leq (Cat.id b))) ≫ k := by
+    rw [← habsorb, F.map_comp]
+  have step4 : (F.map (P.pair cost S) ≫ F.map (prodMap P P leq (Cat.id b))) ≫ k
+      = F.map (P.pair cost S) ≫ (F.map (prodMap P P leq (Cat.id b)) ≫ k) := by rw [Cat.assoc]
+  have eq1 : F.map (P.pair (cost ≫ leq) S) ≫ k
+      = F.map (P.pair cost S) ≫ (F.map (prodMap P P leq (Cat.id b)) ≫ k) := step3.trans step4
+  rw [eq1] at step2
+  have step5 : F.map (P.pair cost S) ≫ (F.map (prodMap P P leq (Cat.id b)) ≫ k)
+      ⊑ F.map (P.pair cost S) ≫ (k ≫ leq) := comp_mono_left _ hk
+  have step6 : F.map (P.pair cost S) ≫ (k ≫ leq) = (F.map (P.pair cost S) ≫ k) ≫ leq := by
+    rw [Cat.assoc]
+  have step7 : (F.map (P.pair cost S) ≫ k) ≫ leq = (h ≫ cost) ≫ leq := by rw [← hch]
+  have step8 : (h ≫ cost) ≫ leq = h ≫ cost ≫ leq := by rw [Cat.assoc]
+  have eq2 : F.map (P.pair cost S) ≫ (k ≫ leq) = h ≫ cost ≫ leq := step6.trans (step7.trans step8)
+  rw [eq2] at step5
+  exact le_trans step2 step5
+
+end Prop9_3
 
 end Freyd.Alg
