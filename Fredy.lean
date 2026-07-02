@@ -162,6 +162,7 @@ import Fredy.S2_16d
 import Fredy.S2_155_BiEntire
 import Fredy.S2_156_PartitionRep
 import Fredy.S2_157_ProjectivePlane
+import Fredy.S2_157b_Desargues
 import Fredy.S2_33
 import Fredy.S1_631_CapitalProjective
 -- Bird & de Moor, Algebra of Programming, ch. 4 (only material not already in Freyd S2_*)

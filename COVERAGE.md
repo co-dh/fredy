@@ -247,8 +247,18 @@ primitive-recursive INSTANCES of §2.16(13) remain with §1.572/§1.573) · §2.
 3 axioms + `Interesting`; headline `instModularLatticePElem` — the height-4 plane lattice `PElem` is MODULAR (NO
 interestingness needed) hence an allegory via §2.156; `DesarguesHorn` + `desarguesHorn_binRel` (Rel(S) verification,
 axiom-free) + `desarguesHorn_implies_modular`/`BotLattice.toModularLattice` (book's substitution, axiom-free) +
-`desarguesHorn_implies_desargues_nondeg` (Horn ⟹ Desargues under 13 nondegeneracy hypotheses; degenerate cases +
-converse = remaining gap, analysis in file); S2_157_ProjectivePlane. Veblen–Wedderburn 91-point model NOT built) ·
+`desarguesHorn_implies_desargues_nondeg` (Horn ⟹ Desargues under 13 nondegeneracy hypotheses); S2_157_ProjectivePlane.
+REMAINDER (S2_157b_Desargues): `DesarguesND` honest ten-point Desargues (9 side conditions, each forced —
+`not_desargues_of_interesting` shows the unconditional form is FALSE in every interesting plane);
+`desarguesHorn_implies_desargues` — Horn ⟹ DesarguesND with NO extra hypotheses (all degenerate cases closed:
+u=v, coincident vertices, coincident perspective lines, flat triangles; Interesting never needed);
+`desarguesHorn_iff_latticeHorn` (allegory Horn = lattice ∀-statement); CONVERSE headline
+`desarguesND_iff_hornAtPoints` — Desargues ⟺ the Horn conclusion at the plane's six-point configurations
+(the book's "one will see … equivalent", machine-checked); pruning family `PElem.horn_bot_*` (book's
+B₂=1,C₁=1 substitution shape by pure modularity) + top/⊥⊥-diagonal Horn tuples closed; all
+[propext,choice,Quot.sound]. REMAINING: literal DesarguesND⟹DesarguesHorn at non-general-position/ln-containing
+6-tuples (≤5 free points, plane-axiom cases, large tree — gap analysis in file). Veblen–Wedderburn 91-point
+model NOT built) ·
 §2.153 ASSEMBLIES (headline `asmPositivePreLogos` + `asmDisjointBinaryCoproduct` — Assembly K is a positive pre-logos
 with disjoint stable coproducts; `asmRegular` [choice,Quot.sound]; `nablaFunctor` ∇:Set→A preserves coterm/eq/products
 (axiom-free); `ModulusSystem.allPartial` non-vacuity witness. DISCREPANCY: the book's bare (i)(ii)(iii) is PROVABLY

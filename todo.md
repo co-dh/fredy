@@ -70,8 +70,13 @@ merged class `TabularUnitaryUnguardedPowerAllegory`): Map(A) has FULL power obje
   Remaining: non-effectiveness (Gödel numbering + universal machine + halting K), §1.573 P.
 - ~~**§2.157** core~~ — **DONE** (`S2_157_ProjectivePlane`, merged b4dd2af): plane axioms, height-4 lattice
   MODULAR (no interestingness) ⟹ associated allegory via §2.156; `DesarguesHorn` verified for Rel(S) and
-  Horn ⟹ modularity (both axiom-free); Horn ⟹ Desargues under nondegeneracy. REMAINING: degenerate
-  Desargues cases, the converse direction, Veblen–Wedderburn 91-point non-Desarguesian model.
+  Horn ⟹ modularity (both axiom-free); Horn ⟹ Desargues under nondegeneracy. REMAINDER mostly DONE
+  (`S2_157b_Desargues`, merged): degenerate cases ALL closed (`desarguesHorn_implies_desargues` needs only
+  `DesarguesND`'s own 9 forced side conditions; `not_desargues_of_interesting` shows they're necessary);
+  converse headline `desarguesND_iff_hornAtPoints` (Desargues ⟺ Horn at six-point configurations) +
+  `desarguesHorn_iff_latticeHorn` + ⊤/⊥⊥/modularity-substitution Horn tuples. STILL OPEN: literal
+  DesarguesND ⟹ DesarguesHorn at non-general-position and ln-containing 6-tuples (plane-axiom case tree),
+  Veblen–Wedderburn 91-point non-Desarguesian model.
 - ~~**§2.153**~~ — **DONE** (`S2_153_Assemblies`, merged 9e4a679): Assembly K is a POSITIVE PRE-LOGOS with
   disjoint stable coproducts (`asmPositivePreLogos`/`asmDisjointBinaryCoproduct`); ∇ functor; `allPartial`
   witness. BOOK DISCREPANCY: bare (i)(ii)(iii) provably insufficient — pairing + parameterized tag-cases
