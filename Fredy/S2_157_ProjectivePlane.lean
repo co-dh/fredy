@@ -663,4 +663,198 @@ noncomputable instance instModularLatticePElem (P : ProjectivePlane.{u}) :
 noncomputable example (P : ProjectivePlane.{u}) :
     Allegory (LMonObj (PElem P)) := inferInstance
 
+/-! ## The Desargues Horn sentence (§2.157)
+
+  "Consider, now, the following Horn sentence for allegories:
+       (A₁A₂ ∩ B₁B₂) ⊂ C₁C₂   implies
+       (A₁°B₁ ∩ A₂B₂°) ⊂ (A₁°C₁ ∩ A₂C₂°)(C₁°B₁ ∩ C₂B₂°)." -/
+
+/-- The DESARGUES HORN SENTENCE for an allegory (§2.157).  Typing (composition
+    in diagram order): `A₁ : p ⟶ a`, `A₂ : a ⟶ q`, `B₁ : p ⟶ b`, `B₂ : b ⟶ q`,
+    `C₁ : p ⟶ c`, `C₂ : c ⟶ q`; the hypothesis lives in `p ⟶ q`, the conclusion
+    in `a ⟶ b`, composed through `c`. -/
+def DesarguesHorn (𝒜 : Type u) [Allegory.{v} 𝒜] : Prop :=
+  ∀ (p q a b c : 𝒜) (A₁ : p ⟶ a) (A₂ : a ⟶ q) (B₁ : p ⟶ b) (B₂ : b ⟶ q)
+    (C₁ : p ⟶ c) (C₂ : c ⟶ q),
+    (A₁ ≫ A₂) ∩ (B₁ ≫ B₂) ⊑ C₁ ≫ C₂ →
+    (A₁° ≫ B₁) ∩ (A₂ ≫ B₂°) ⊑
+      ((A₁° ≫ C₁) ∩ (A₂ ≫ C₂°)) ≫ ((C₁° ≫ B₁) ∩ (C₂ ≫ B₂°))
+
+/-- §2.157: "It is easily verified for Rel(S)" — the Horn sentence for CONCRETE
+    binary relations, stated at the matrix level: composition
+    `(R ≫ S) x z := ∃ y, R x y ∧ S y z` (diagram order), reciprocation =
+    transpose, intersection pointwise, `⊑` pointwise implication.
+
+    The element chase: given `x`, `y` with `x (A₁°B₁ ∩ A₂B₂°) y`, pick `u : p`
+    with `u A₁ x`, `u B₁ y` and `v : q` with `x A₂ v`, `y B₂ v`.  Then
+    `u (A₁A₂ ∩ B₁B₂) v` (through `x`, resp. through `y`), so the hypothesis
+    yields `z : c` with `u C₁ z` and `z C₂ v`.  This single `z` witnesses all
+    four factors of the conclusion: `x (A₁°C₁) z` through `u`; `x (A₂C₂°) z`
+    through `v`; `z (C₁°B₁) y` through `u`; `z (C₂B₂°) y` through `v`. -/
+theorem desarguesHorn_binRel {p q a b c : Type u}
+    (A₁ : p → a → Prop) (A₂ : a → q → Prop) (B₁ : p → b → Prop)
+    (B₂ : b → q → Prop) (C₁ : p → c → Prop) (C₂ : c → q → Prop)
+    (hyp : ∀ (u : p) (v : q),
+      (∃ x, A₁ u x ∧ A₂ x v) ∧ (∃ y, B₁ u y ∧ B₂ y v) → ∃ z, C₁ u z ∧ C₂ z v) :
+    ∀ (x : a) (y : b),
+      (∃ u, A₁ u x ∧ B₁ u y) ∧ (∃ v, A₂ x v ∧ B₂ y v) →
+      ∃ z, ((∃ u, A₁ u x ∧ C₁ u z) ∧ (∃ v, A₂ x v ∧ C₂ z v)) ∧
+           ((∃ u, C₁ u z ∧ B₁ u y) ∧ (∃ v, C₂ z v ∧ B₂ y v)) := by
+  rintro x y ⟨⟨u, hA1, hB1⟩, ⟨v, hA2, hB2⟩⟩
+  obtain ⟨z, hC1, hC2⟩ := hyp u v ⟨⟨x, hA1, hA2⟩, ⟨y, hB1, hB2⟩⟩
+  exact ⟨z, ⟨⟨u, hA1, hC1⟩, ⟨v, hA2, hC2⟩⟩, ⟨⟨u, hC1, hB1⟩, ⟨v, hC2, hB2⟩⟩⟩
+
+/-! ## "Desargues implies modularity" (§2.157, parenthetical)
+
+  The Horn sentence, read in a one-object lattice allegory (composition `= ⊔`,
+  reciprocation `= id`, unit `= ⊥`, cf. §2.113/§2.156), implies the modular
+  law.  This must be stated over a lattice WITHOUT modularity — `ModularLattice`
+  (§2.156) bundles the conclusion — so we introduce the bare structure
+  `BotLattice` (same fields minus `modular`); its order helpers below are the
+  §2.156 proofs verbatim (none of them uses the modular field). -/
+
+/-- A LATTICE WITH BOTTOM, *without* the modular law: the raw structure on
+    which "Desargues implies modularity" is stated (`ModularLattice` minus
+    `modular`). -/
+class BotLattice (L : Type u) where
+  /-- Lattice meet. -/
+  meet : L → L → L
+  /-- Lattice join. -/
+  join : L → L → L
+  /-- Bottom element `0`. -/
+  bot  : L
+  meet_idem  : ∀ a, meet a a = a
+  meet_comm  : ∀ a b, meet a b = meet b a
+  meet_assoc : ∀ a b c, meet a (meet b c) = meet (meet a b) c
+  join_idem  : ∀ a, join a a = a
+  join_comm  : ∀ a b, join a b = join b a
+  join_assoc : ∀ a b c, join a (join b c) = join (join a b) c
+  meet_absorb : ∀ a b, meet a (join a b) = a
+  join_absorb : ∀ a b, join a (meet a b) = a
+  /-- `0` is the unit for `⊔`. -/
+  bot_join : ∀ a, join bot a = a
+
+namespace BotLattice
+
+variable {L : Type u} [BotLattice L]
+
+/-- The lattice order `a ⩽ b :⇔ a ⊓ b = a` (the §2.113/§2.156 convention). -/
+def le (a b : L) : Prop := meet a b = a
+
+theorem le_refl (a : L) : le a a := meet_idem a
+
+theorem le_trans {a b c : L} (hab : le a b) (hbc : le b c) : le a c := by
+  have hab' : meet a b = a := hab
+  have hbc' : meet b c = b := hbc
+  show meet a c = a
+  calc meet a c = meet (meet a b) c := by rw [hab']
+    _ = meet a (meet b c) := (meet_assoc a b c).symm
+    _ = meet a b := by rw [hbc']
+    _ = a := hab'
+
+theorem le_antisymm {a b : L} (hab : le a b) (hba : le b a) : a = b := by
+  have hab' : meet a b = a := hab
+  have hba' : meet b a = b := hba
+  calc a = meet a b := hab'.symm
+    _ = meet b a := meet_comm a b
+    _ = b := hba'
+
+/-- `a ⊓ b ⩽ a`. -/
+theorem meet_lb_left (a b : L) : le (meet a b) a := by
+  show meet (meet a b) a = meet a b
+  rw [meet_comm (meet a b) a, meet_assoc, meet_idem]
+
+/-- `a ⊓ b ⩽ b`. -/
+theorem meet_lb_right (a b : L) : le (meet a b) b := by
+  show meet (meet a b) b = meet a b
+  rw [← meet_assoc, meet_idem]
+
+/-- `x ⩽ a → x ⩽ b → x ⩽ a ⊓ b`. -/
+theorem le_meet {x a b : L} (h1 : le x a) (h2 : le x b) : le x (meet a b) := by
+  show meet x (meet a b) = x
+  rw [meet_assoc, (h1 : meet x a = x), (h2 : meet x b = x)]
+
+/-- `a ⩽ a ⊔ b`. -/
+theorem le_join_left (a b : L) : le a (join a b) := meet_absorb a b
+
+/-- `b ⩽ a ⊔ b`. -/
+theorem le_join_right (a b : L) : le b (join a b) := by
+  show meet b (join a b) = b
+  rw [join_comm]; exact meet_absorb b a
+
+/-- `a ⩽ b → a ⊔ b = b`. -/
+theorem join_eq_of_le {a b : L} (h : le a b) : join a b = b := by
+  have h2 : join (meet a b) b = b := by
+    rw [meet_comm, join_comm]; exact join_absorb b a
+  rw [(h : meet a b = a)] at h2
+  exact h2
+
+/-- `a ⩽ c → b ⩽ c → a ⊔ b ⩽ c`. -/
+theorem join_le {a b c : L} (ha : le a c) (hb : le b c) : le (join a b) c := by
+  show meet (join a b) c = join a b
+  have h : join (join a b) c = c := by
+    rw [← join_assoc, join_eq_of_le hb]; exact join_eq_of_le ha
+  rw [← h]; exact meet_absorb (join a b) c
+
+end BotLattice
+
+/-- The §2.157 Horn sentence READ IN LATTICE NOTATION, as it comes out in a
+    one-object lattice allegory: composition is `⊔`, reciprocation is the
+    identity, so `A₁A₂` is `a₁ ⊔ a₂`, `A₁°B₁` is `a₁ ⊔ b₁`, and so on. -/
+def LatticeDesarguesHorn (L : Type u) [BotLattice L] : Prop :=
+  ∀ a₁ a₂ b₁ b₂ c₁ c₂ : L,
+    BotLattice.le (BotLattice.meet (BotLattice.join a₁ a₂) (BotLattice.join b₁ b₂))
+      (BotLattice.join c₁ c₂) →
+    BotLattice.le (BotLattice.meet (BotLattice.join a₁ b₁) (BotLattice.join a₂ b₂))
+      (BotLattice.join
+        (BotLattice.meet (BotLattice.join a₁ c₁) (BotLattice.join a₂ c₂))
+        (BotLattice.meet (BotLattice.join c₁ b₁) (BotLattice.join c₂ b₂)))
+
+open BotLattice in
+/-- **§2.157 (parenthetical): "Desargues implies modularity: given R, S, and T
+    let A₁ = R°, A₂ = T, B₁ = S, B₂ = 1, C₁ = 1, C₂ = S."**  Reciprocation is
+    the identity and the unit `1` is `⊥`, so the substitution is
+    `(a₁,a₂,b₁,b₂,c₁,c₂) := (R, T, S, ⊥, ⊥, S)`; with `(R,S,T) := (b, c, a)`
+    it produces the hard modular inequality, and the converse inequality holds
+    in any lattice. -/
+theorem desarguesHorn_implies_modular {L : Type u} [BotLattice L]
+    (horn : LatticeDesarguesHorn L) {a b c : L} (hca : BotLattice.le c a) :
+    meet a (join b c) = join (meet a b) c := by
+  -- The Horn instance at (a₁,a₂,b₁,b₂,c₁,c₂) := (b, a, c, ⊥, ⊥, c).
+  -- Hypothesis: (b ⊔ a) ⊓ (c ⊔ ⊥) ⩽ ⊥ ⊔ c, i.e. (b ⊔ a) ⊓ c ⩽ c.
+  have hyp : BotLattice.le (meet (join b a) (join c bot)) (join bot c) := by
+    rw [join_comm c bot, bot_join]
+    exact meet_lb_right _ _
+  have h := horn b a c bot bot c hyp
+  -- h : (b ⊔ c) ⊓ (a ⊔ ⊥) ⩽ ((b ⊔ ⊥) ⊓ (a ⊔ c)) ⊔ ((⊥ ⊔ c) ⊓ (c ⊔ ⊥))
+  rw [join_comm a bot, bot_join, join_comm b bot, bot_join, bot_join,
+    join_comm c bot, bot_join, meet_idem] at h
+  -- h : (b ⊔ c) ⊓ a ⩽ (b ⊓ (a ⊔ c)) ⊔ c;  now a ⊔ c = a since c ⩽ a
+  rw [join_comm a c, join_eq_of_le hca, meet_comm b a,
+    meet_comm (join b c) a] at h
+  -- h : a ⊓ (b ⊔ c) ⩽ (a ⊓ b) ⊔ c — the hard half; the converse is generic.
+  exact BotLattice.le_antisymm h
+    (BotLattice.le_meet (BotLattice.join_le (meet_lb_left a b) hca)
+      (BotLattice.join_le
+        (BotLattice.le_trans (meet_lb_right a b) (le_join_left b c))
+        (le_join_right b c)))
+
+/-- Packaging: a `BotLattice` satisfying the Desargues Horn sentence IS a
+    modular lattice (§2.156), hence a one-object allegory (§2.113). -/
+def BotLattice.toModularLattice {L : Type u} [BotLattice L]
+    (horn : LatticeDesarguesHorn L) : ModularLattice L where
+  meet := BotLattice.meet
+  join := BotLattice.join
+  bot := BotLattice.bot
+  meet_idem := BotLattice.meet_idem
+  meet_comm := BotLattice.meet_comm
+  meet_assoc := BotLattice.meet_assoc
+  join_idem := BotLattice.join_idem
+  join_comm := BotLattice.join_comm
+  join_assoc := BotLattice.join_assoc
+  meet_absorb := BotLattice.meet_absorb
+  join_absorb := BotLattice.join_absorb
+  bot_join := BotLattice.bot_join
+  modular := fun _ _ _ h => desarguesHorn_implies_modular horn h
+
 end Freyd.Alg
