@@ -63,7 +63,11 @@ merged class `TabularUnitaryUnguardedPowerAllegory`): Map(A) has FULL power obje
 - ~~**§2.16(13)** general theorem~~ — **DONE** (`S2_16c`, merged 80d6ee1, all [propext]): AC vs effective
   reflection — `projective_iff_isoEmbedded` (projectives of Spl(Eq 𝒜) = isomorphs of embedded objects),
   `not_coversSplit_of_not_effective` ("C not effective ⟹ Ĉ not AC"). The recursive/primitive-recursive
-  instances remain (need §1.572/§1.573 as pre-logoi).
+  instances remain (need §1.572/§1.573 as pre-logoi). PROGRESS: §1.572 positive part DONE
+  (`S1_572_Recursive`, merged): hand-rolled Kleene codes + big-step Eval, category R on ExtNat,
+  cartesian (products all six arms, equalizers via increasing enumeration), AC-regular via §1.571
+  (`rFactorization`/`cover_split`/`all_projective`/`all_choice`, [propext,choice,Quot.sound]).
+  Remaining: non-effectiveness (Gödel numbering + universal machine + halting K), §1.573 P.
 - ~~**§2.157** core~~ — **DONE** (`S2_157_ProjectivePlane`, merged b4dd2af): plane axioms, height-4 lattice
   MODULAR (no interestingness) ⟹ associated allegory via §2.156; `DesarguesHorn` verified for Rel(S) and
   Horn ⟹ modularity (both axiom-free); Horn ⟹ Desargues under nondegeneracy. REMAINING: degenerate

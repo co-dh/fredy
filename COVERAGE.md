@@ -124,12 +124,24 @@ transfinite well-ordered-union · §1.547 choice-free rational-category · §1.5
 SIMPLE/MAP, PUSHOUT, cover⟺coequalizer, EFFECTIVE, comp-assoc⟺regular, projective⟺entire-contains-map) · §1.57/§1.571
 CHOICE/AC-REGULAR · §1.58–§1.583 BICARTESIAN/image-via-coeq/effectiveness · §1.59 abelian cluster (zero/kernel/
 cokernel/abelian⟺normal/A(𝒜)-abelian/EXACT/FIVE+SNAKE LEMMA).
+DONE (newly): §1.572 CATEGORY R OF RECURSIVE FUNCTIONS (hand-rolled Kleene computability, mathlib-free: n-ary
+`RecCode` codes + big-step `Eval` inductive with determinism `Eval.det` [propext,Quot.sound]; closure lemmas incl.
+Cantor pairing both directions recursive, `finTable` = "any function from a finite natural is recursive"; objects
+`ExtNat = Option Nat` (finite ordinals + ω), morphisms = recursive functions; CARTESIAN: terminator, all six
+product arms (n×m, ω×ω Cantor, mixed by div/mod), EQUALIZERS via increasing enumeration of the decidable agreement
+set — bounded case finite object, unbounded case genuine μ-search; AC-REGULAR by the book route: `leastAgree`
+e(a)=min{i≤a | x(i)=x(a)} recursive idempotent, §1.571 `ac_factorization_via_idempotent` instantiated →
+`rFactorization`/`HasImages`/`cover_split` (covers split)/`all_projective`/`all_choice` + `RegularCategory`+
+`ACRegularCategory ExtNat`, all [propext,choice,Quot.sound]; S1_572_Recursive. INFRA: S1_57's
+`ac_factorization_via_idempotent` freed of an unused circular [HasImages] section variable, now [propext].
+Non-effectiveness of R (halting diagonalization) + §1.573/§1.574 P remain).
 PARTIAL: §1.541–§1.542 abstract capitalization framework (realized concretely, not abstracted) · **§1.55 exact
 (cover-preserving) Henkin** (witness separates maps, cover-pres conditional) · §1.551/§1.563/§1.564 regular/relational
 Horn-metatheorem corollaries (hypothesis-laden) · §1.592 small-abelian↪Ab exact rep (interface hypothetical) · §1.598
 normal+kernels/cokernels⟹abelian converse.
-MISSING: §1.513 covering-FAMILY predicate · §1.568 Quot(A)→equiv-rels functor · §1.572–§1.574 R/P recursive
-categories · §1.584–§1.587 cocartesian-slice/Lazard/diophantine · §1.596 A(𝒮^𝒜) · §1.59(10) modular-lattice Galois.
+MISSING: §1.513 covering-FAMILY predicate · §1.568 Quot(A)→equiv-rels functor · §1.572 non-effectiveness (halting) ·
+§1.573–§1.574 P primitive-recursive · §1.584–§1.587 cocartesian-slice/Lazard/diophantine · §1.596 A(𝒮^𝒜) ·
+§1.59(10) modular-lattice Galois.
 
 ## §1.6  Pre-logoi
 
