@@ -435,4 +435,143 @@ instance instTabularExtObj (F : Frame.{u}) : TabularAllegory (ExtObj F) :=
         ⟨OSetHom.tabRight_dom R, OSetHom.tabRight_simple R⟩,
         (OSetHom.tab_factor R).symm, OSetHom.tab_inter_id R⟩ }
 
+/-! ## §2.168  Entire / simple / map characterizations
+
+  "R is entire iff ∃ᵢ = ⋁ⱼ iRj for all i, and simple iff iRj ∧ iRj' = 0 for all
+  i,j,j', j ≠ j'."  We prove the raw pointwise forms once at the `OSetHom` level and
+  read them off in both OSet(F) and its diagonal sub-allegory `ExtObj F`. -/
+
+namespace OSetHom
+
+variable {F : Frame.{u}} {A B : OValuedSet F}
+
+/-- Raw pointwise form of ENTIRE (`1 ∩ RR° = 1`): each row of `R` joins to the full
+    extent, `E i i = ⋁ⱼ iRj`.  (The join is always `≤ E i i` by the domain bound, so
+    only the `≤` direction is substantive.) -/
+theorem entire_raw_iff (R : OSetHom A B) :
+    inter (id A) (comp R (recip R)) = id A
+      ↔ ∀ i, A.E i i = F.sSup (fun x => ∃ j, x = R.rel i j) := by
+  constructor
+  · intro h i
+    apply F.le_antisymm
+    · have hp : F.meet (A.E i i) ((comp R (recip R)).rel i i) = A.E i i :=
+        congrArg (fun T => T.rel i i) h
+      have h1 : F.le (A.E i i) ((comp R (recip R)).rel i i) := by
+        rw [← hp]; exact F.meet_le_right _ _
+      refine F.le_trans h1 ?_
+      show F.le (F.sSup (fun v => ∃ j, v = F.meet (R.rel i j) (R.rel i j))) _
+      apply F.sSup_le
+      intro v ⟨j, hv⟩
+      subst hv
+      exact F.le_trans (F.meet_le_left _ _) (F.le_sSup _ _ ⟨j, rfl⟩)
+    · exact F.sSup_le _ _ (fun x ⟨j, hx⟩ => hx ▸ R.dom_bound i j)
+  · intro h
+    ext i i'
+    show F.meet (A.E i i') ((comp R (recip R)).rel i i') = A.E i i'
+    refine F.le_antisymm (F.meet_le_left _ _) (F.le_meet (F.le_refl _) ?_)
+    show F.le (A.E i i') (F.sSup (fun v => ∃ j, v = F.meet (R.rel i j) (R.rel i' j)))
+    refine F.le_trans (F.le_meet (F.le_refl _)
+      (F.le_trans (A.E_le_extent_left i i') (le_of_eq (h i)))) ?_
+    rw [F.meet_sSup_distrib]
+    apply F.sSup_le
+    intro v ⟨s, ⟨j, hs⟩, hv⟩
+    subst hs; subst hv
+    refine F.le_trans ?_ (F.le_sSup _ _ ⟨j, rfl⟩)
+    refine F.le_meet (F.meet_le_right _ _) (F.le_trans ?_ (R.natural i i' j j))
+    exact F.le_meet (F.le_meet (F.meet_le_left _ _) (mlr (R.cod_bound i j)))
+      (F.meet_le_right _ _)
+
+/-- Raw pointwise form of SIMPLE (`R°R ⊑ 1`): any two entries in a row meet inside
+    the codomain equality, `iRj ∧ iRj' ≤ E j j'`. -/
+theorem simple_raw_iff (R : OSetHom A B) :
+    inter (comp (recip R) R) (id B) = comp (recip R) R
+      ↔ ∀ i j j', F.le (F.meet (R.rel i j) (R.rel i j')) (B.E j j') := by
+  rw [inter_eq_left_iff]
+  constructor
+  · intro h i j j'
+    exact F.le_trans (F.le_sSup _ _ ⟨i, rfl⟩) (h j j')
+  · intro h j j'
+    exact F.sSup_le _ _ (fun v ⟨i, hv⟩ => hv ▸ h i j j')
+
+end OSetHom
+
+/-- §2.168 in OSet(F): `R` is ENTIRE iff "∃ᵢ = ⋁ⱼ iRj for all i". -/
+theorem oset_entire_iff {F : Frame.{u}} {A B : OValuedSet F} (R : A ⟶ B) :
+    Alg.Entire R ↔ ∀ i, A.E i i = F.sSup (fun x => ∃ j, x = R.rel i j) :=
+  OSetHom.entire_raw_iff R
+
+/-- §2.168 in OSet(F): `R` is SIMPLE iff row entries meet inside the codomain
+    equality (for diagonal codomains this becomes disjointness, `extObj_simple_iff`). -/
+theorem oset_simple_iff {F : Frame.{u}} {A B : OValuedSet F} (R : A ⟶ B) :
+    Alg.Simple R ↔ ∀ i j j', F.le (F.meet (R.rel i j) (R.rel i j')) (B.E j j') :=
+  OSetHom.simple_raw_iff R
+
+/-- **§2.168**: on the ⟨I,∃⟩ objects, `R` is ENTIRE iff "∃ᵢ = ⋁ⱼ iRj for all i". -/
+theorem extObj_entire_iff {F : Frame.{u}} {A B : ExtObj F} (R : A ⟶ B) :
+    Alg.Entire R ↔ ∀ i, A.val.E i i = F.sSup (fun x => ∃ j, x = R.rel i j) :=
+  OSetHom.entire_raw_iff R
+
+/-- **§2.168**: on the ⟨I,∃⟩ objects, `R` is SIMPLE iff "iRj ∧ iRj' = 0 for all
+    i,j,j', j ≠ j'" — distinct row entries are disjoint. -/
+theorem extObj_simple_iff {F : Frame.{u}} {A B : ExtObj F} (R : A ⟶ B) :
+    Alg.Simple R ↔ ∀ i j j', j ≠ j' → F.meet (R.rel i j) (R.rel i j') = F.bot := by
+  constructor
+  · intro h i j j' hne
+    refine F.le_antisymm ?_ (F.bot_le _)
+    have hb := (OSetHom.simple_raw_iff R).mp h i j j'
+    rw [B.2 j j' hne] at hb
+    exact hb
+  · intro h
+    refine (OSetHom.simple_raw_iff R).mpr (fun i j j' => ?_)
+    rcases Classical.em (j = j') with heq | hne
+    · subst heq
+      exact F.le_trans (F.meet_le_left _ _) (R.cod_bound i j)
+    · rw [h i j j' hne]
+      exact F.bot_le _
+
+/-- **§2.168**: "R is a map, therefore, iff for each i the i-th row of R partitions
+    ∃ᵢ" — the row joins to the whole extent (`entire`) and distinct entries are
+    disjoint (`simple`). -/
+theorem extObj_map_iff {F : Frame.{u}} {A B : ExtObj F} (R : A ⟶ B) :
+    Alg.Map R ↔ ((∀ i, A.val.E i i = F.sSup (fun x => ∃ j, x = R.rel i j)) ∧
+             ∀ i j j', j ≠ j' → F.meet (R.rel i j) (R.rel i j') = F.bot) :=
+  ⟨fun ⟨he, hs⟩ => ⟨(extObj_entire_iff R).mp he, (extObj_simple_iff R).mp hs⟩,
+   fun ⟨he, hs⟩ => ⟨(extObj_entire_iff R).mpr he, (extObj_simple_iff R).mpr hs⟩⟩
+
+/-! ## The Z-valued relations inside the tabular extension (§2.111 / §2.161)
+
+  The original Z-valued-relation allegory [2.111] sits inside `ExtObj F` as the objects
+  `⟨I, ∃ = ⊤⟩`: between them, morphisms are ARBITRARY `I × J` matrices of F-values.
+  Thus `ExtObj F` is literally the promised tabular EXTENSION of the allegory of
+  Z-valued relations. -/
+
+/-- The SHARP object on a set `I`: the ⟨I,∃⟩ object with `∃ᵢ = ⊤` — a set of the
+    original Z-valued-relation allegory [2.111]. -/
+def sharp (F : Frame.{u}) (I : Type u) : ExtObj F := extObjMk I (fun _ => F.top)
+
+/-- Between sharp objects ANY matrix `M : I → J → 𝒱` is a morphism — the source-target
+    predicate `iMj ≤ ∃ᵢ ∧ ∃ⱼ = ⊤` and naturality are vacuous.  These are exactly the
+    Z-VALUED RELATIONS of §2.111. -/
+def sharpHom {F : Frame.{u}} {I J : Type u} (M : I → J → F.carrier) :
+    sharp F I ⟶ sharp F J where
+  rel := M
+  dom_bound i _ :=
+    F.le_trans (F.le_top _) (le_of_eq (extObjMk_E_self I (fun _ => F.top) i).symm)
+  cod_bound _ j :=
+    F.le_trans (F.le_top _) (le_of_eq (extObjMk_E_self J (fun _ => F.top) j).symm)
+  natural i i' j j' := by
+    refine F.le_trans (le_of_eq (F.meet_assoc _ _ _)) (sSup_meet_le (fun s hs => ?_))
+    obtain ⟨hii, -⟩ := hs
+    subst hii
+    refine F.le_trans (F.meet_le_right _ _) (sSup_meet_le (fun s' hs' => ?_))
+    obtain ⟨hjj, -⟩ := hs'
+    subst hjj
+    exact F.meet_le_right _ _
+
+/-- Every morphism between sharp objects IS its matrix; with `sharpHom` this identifies
+    `sharp F I ⟶ sharp F J` with the `I × J` matrices over `𝒱` (§2.111). -/
+theorem eq_sharpHom {F : Frame.{u}} {I J : Type u} (R : sharp F I ⟶ sharp F J) :
+    R = sharpHom R.rel :=
+  OSetHom.ext rfl
+
 end Freyd
