@@ -165,3 +165,6 @@ import Fredy.A4_3
 import Fredy.A4_4
 import Fredy.A4_5
 import Fredy.A4_6
+-- Bird & de Moor ch. 5: relators and datatypes in allegories
+import Fredy.A5_1
+import Fredy.A5_5
