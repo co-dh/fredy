@@ -89,7 +89,7 @@
 
 import Fredy.S1_62
 
-universe u
+universe u u₁ v₁
 
 namespace Freyd
 
@@ -450,5 +450,210 @@ instance asmCartesian : CartesianCategory (Assembly.{u} K) where
 /-- §2.153 pullbacks, via §1.432 (products + equalizers ⇒ pullbacks). -/
 instance asmHasPullbacks : HasPullbacks (Assembly.{u} K) where
   has f g := products_equalizers_implies_pullbacks f g
+
+/-! ## M5: monics, images, covers — the regular structure
+
+  Book: "Given a morphism f : A → B, we wish to obtain the minimal subobject B′ of B such
+  that f factors through B′.  Let |B′| be the ordinary image of the map f and let
+  B′|ₙ = f(A|ₙ).  B′ is a subobject of B named by inclusion using the same modulus as f.
+  (Note that we will have therefore shown that any subobject may be named by a monic given
+  by inclusion with some modulus.)  The required factor A → B′ is obtained as f with the
+  identity as its modulus.  The minimality and the stability under pullbacks is left to
+  the reader."
+
+  The "left to the reader" minimality rests on monic ⟺ injective, which is where the
+  pairing surjectivity earns its keep: a one-point probe assembly caucused exactly at
+  `code a b` maps to either of two f-identified points via ℓ and ϰ. -/
+
+/-- A morphism whose underlying function is injective is monic (the underlying-set functor
+    is faithful). -/
+theorem asmMonic_of_injective {A B : Assembly.{u} K} (m : A ⟶ B)
+    (hinj : Function.Injective m.toFun) : Monic m := fun _ _ huv =>
+  AsmHom.ext (funext fun x => hinj (congrArg (fun k => AsmHom.toFun k x) huv))
+
+/-- A monic of assemblies is injective on the underlying sets.  Probe: for `m s₁ = m s₂`
+    with `s₁ ∈ A|ₐ`, `s₂ ∈ A|ᵦ`, the one-point assembly caucused exactly at `code a b`
+    maps to `s₁` with modulus ℓ and to `s₂` with modulus ϰ; monicness forces the two maps
+    (hence `s₁`, `s₂`) to coincide.  This is FALSE for a modulus system with bare
+    (i)(ii)(iii) — see the module docstring — and is exactly what the book's coding of
+    pairs provides. -/
+theorem asmInjective_of_monic {A B : Assembly.{u} K} (m : A ⟶ B) (hm : Monic m) :
+    Function.Injective m.toFun := by
+  intro s₁ s₂ hs
+  obtain ⟨a, ha⟩ := A.carrier_mem s₁
+  obtain ⟨b, hb⟩ := A.carrier_mem s₂
+  let W : Assembly.{u} K := ⟨PUnit, fun n _ => n = K.code a b, fun _ => ⟨K.code a b, rfl⟩⟩
+  let u : W ⟶ A := ⟨fun _ => s₁, K.projF₁, K.proj₁_mem,
+    fun n _ hn => ⟨K.proj₁ n, rfl, by rw [hn, K.code_proj₁]; exact ha⟩⟩
+  let v : W ⟶ A := ⟨fun _ => s₂, K.projF₂, K.proj₂_mem,
+    fun n _ hn => ⟨K.proj₂ n, rfl, by rw [hn, K.code_proj₂]; exact hb⟩⟩
+  have huv : u = v := hm u v (AsmHom.ext (funext fun _ => hs))
+  exact congrArg (fun k => AsmHom.toFun k PUnit.unit) huv
+
+/-- The image assembly: `|B′|` = the ordinary image of `f`, `B′|ₙ = f(A|ₙ)`. -/
+def imgAsm {A B : Assembly.{u} K} (f : A ⟶ B) : Assembly.{u} K where
+  X := {y : B.X // ∃ x, f.toFun x = y}
+  caucus n y := ∃ x, A.caucus n x ∧ f.toFun x = y.val
+  carrier_mem y := by
+    obtain ⟨x, hx⟩ := y.property
+    obtain ⟨n, hn⟩ := A.carrier_mem x
+    exact ⟨n, x, hn, hx⟩
+
+/-- The image as a subobject: "named by inclusion using the same modulus as f". -/
+def imgSub {A B : Assembly.{u} K} (f : A ⟶ B) : Subobject (Assembly.{u} K) B where
+  dom := imgAsm f
+  arr := ⟨Subtype.val, by
+    obtain ⟨φ, hφ, hf⟩ := f.tracked
+    refine ⟨φ, hφ, fun n y hy => ?_⟩
+    obtain ⟨x, hx, hfx⟩ := hy
+    obtain ⟨m, hm, hBx⟩ := hf n x hx
+    exact ⟨m, hm, hfx ▸ hBx⟩⟩
+  monic := asmMonic_of_injective _ fun _ _ h => Subtype.ext h
+
+/-- §2.153: the book's image formula is the image.  Allows: "the required factor A → B′ is
+    f with the identity as its modulus".  Minimality: for a subobject S allowing f via g,
+    send `y = f(x)` to `g(x)` — well-defined since `S.arr` is monic hence injective; a
+    modulus of g is a modulus of the factorization because the image caucus at n consists
+    exactly of `f`-values of points of `A|ₙ`. -/
+theorem asm_isImage {A B : Assembly.{u} K} (f : A ⟶ B) : IsImage f (imgSub f) := by
+  constructor
+  · exact ⟨⟨fun x => ⟨f.toFun x, x, rfl⟩, ModFun.ident, K.id_mem,
+      fun n x hx => ⟨n, rfl, x, hx, rfl⟩⟩, AsmHom.ext rfl⟩
+  · intro S hS
+    obtain ⟨g, hg⟩ := hS
+    have hg' : ∀ x, S.arr.toFun (g.toFun x) = f.toFun x :=
+      fun x => congrArg (fun k => AsmHom.toFun k x) hg
+    have hSinj : Function.Injective S.arr.toFun := asmInjective_of_monic S.arr S.monic
+    -- the factorization y ↦ g(x) for any x with f(x) = y (all such g(x) agree)
+    have hval : ∀ (y : (imgAsm f).X) (x : A.X), f.toFun x = y.val →
+        g.toFun (y.property.choose) = g.toFun x := fun y x hx =>
+      hSinj (by rw [hg', hg', y.property.choose_spec, hx])
+    refine ⟨⟨fun y => g.toFun (y.property.choose), ?_⟩, ?_⟩
+    · obtain ⟨σ, hσ, hgtr⟩ := g.tracked
+      refine ⟨σ, hσ, fun n y hy => ?_⟩
+      obtain ⟨x, hx, hfx⟩ := hy
+      obtain ⟨m, hm, hSx⟩ := hgtr n x hx
+      refine ⟨m, hm, ?_⟩
+      show S.dom.caucus m (g.toFun (y.property.choose))
+      rw [hval y x hfx]; exact hSx
+    · exact AsmHom.ext (funext fun y => (hg' _).trans y.property.choose_spec)
+
+/-- §1.51: assemblies have images. -/
+instance asmHasImages : HasImages (Assembly.{u} K) where
+  image := imgSub
+  isImage := asm_isImage
+
+/-! ### Covers
+
+  A morphism is a cover iff its image is the whole codomain ASSEMBLY: surjective on
+  carriers and, uniformly in n, `B|ₙ ⊆ f(A|ψ(n))` for a single ψ ∈ K.  (Surjectivity
+  follows from the caucus condition since every point lies in some caucus.) -/
+
+/-- The concrete cover condition: some ψ ∈ K maps each caucus of B into the f-image of a
+    caucus of A. -/
+def AsmCover {A B : Assembly.{u} K} (f : A ⟶ B) : Prop :=
+  ∃ ψ, K.mem ψ ∧ ∀ n y, B.caucus n y →
+    ∃ m, ψ.graph n m ∧ ∃ x, A.caucus m x ∧ f.toFun x = y
+
+theorem AsmCover.surjective {A B : Assembly.{u} K} {f : A ⟶ B} (hc : AsmCover f) :
+    Function.Surjective f.toFun := by
+  intro y
+  obtain ⟨n, hn⟩ := B.carrier_mem y
+  obtain ⟨ψ, _, hdom⟩ := hc
+  obtain ⟨m, _, x, _, hfx⟩ := hdom n y hn
+  exact ⟨x, hfx⟩
+
+/-- `Cover = AsmCover` in assemblies. -/
+theorem asmCover_iff {A B : Assembly.{u} K} (f : A ⟶ B) : Cover f ↔ AsmCover f := by
+  constructor
+  · -- f factors through its image inclusion; a cover makes the inclusion iso, and the
+    -- iso-inverse's modulus is the required ψ.
+    intro hc
+    obtain ⟨e, he⟩ := (asm_isImage f).1
+    obtain ⟨j, _, hji⟩ := hc (imgSub f).arr e (imgSub f).monic he
+    obtain ⟨ψ, hψ, hj⟩ := j.tracked
+    refine ⟨ψ, hψ, fun n y hy => ?_⟩
+    obtain ⟨m, hm, himg⟩ := hj n y hy
+    obtain ⟨x, hx, hfx⟩ := himg
+    refine ⟨m, hm, x, hx, hfx.trans ?_⟩
+    exact congrArg (fun k => AsmHom.toFun k y) hji
+  · -- Conversely: any monic the map factors through is bijective with tracked inverse.
+    intro hc M m e hm hem
+    have hminj : Function.Injective m.toFun := asmInjective_of_monic m hm
+    have hme : ∀ x, m.toFun (e.toFun x) = f.toFun x :=
+      fun x => congrArg (fun k => AsmHom.toFun k x) hem
+    obtain ⟨ψ, hψ, hdom⟩ := hc
+    obtain ⟨η, hη, hetr⟩ := e.tracked
+    -- the inverse: y ↦ e(x) for the point x with f(x) = y supplied by the cover condition
+    have hsur : ∀ y : B.X, ∃ w, m.toFun w = y := by
+      intro y
+      obtain ⟨n, hn⟩ := B.carrier_mem y
+      obtain ⟨_, _, x, _, hfx⟩ := hdom n y hn
+      exact ⟨e.toFun x, (hme x).trans hfx⟩
+    refine ⟨⟨fun y => (hsur y).choose, ?_⟩, ?_, ?_⟩
+    · -- modulus: ψ then a modulus of e
+      refine ⟨ψ.comp η, K.comp_mem hψ hη, fun n y hy => ?_⟩
+      obtain ⟨m₁, hm₁, x, hx, hfx⟩ := hdom n y hy
+      obtain ⟨p, hp, hMx⟩ := hetr m₁ x hx
+      refine ⟨p, ⟨m₁, hm₁, hp⟩, ?_⟩
+      have hce : (hsur y).choose = e.toFun x :=
+        hminj ((hsur y).choose_spec.trans (hfx.symm.trans (hme x).symm))
+      show M.caucus p ((hsur y).choose)
+      rw [hce]; exact hMx
+    · exact AsmHom.ext (funext fun w => hminj (hsur (m.toFun w)).choose_spec)
+    · exact AsmHom.ext (funext fun y => (hsur y).choose_spec)
+
+/-- The canonical pullback of a cover is a cover: for `c₀ ∈ C|ₙ`, track `g(c₀)` into a
+    caucus of B (modulus γ), pull back along the cover condition of f (modulus ψ), and
+    pair the resulting A-index with n — modulus `(γψ, id)`. -/
+theorem asmCover_pullback_canonical {A B C : Assembly.{u} K} (f : A ⟶ B) (g : C ⟶ B)
+    (hf : AsmCover f) : AsmCover (asmHasPullbacks.has f g).cone.π₂ := by
+  obtain ⟨ψ, hψ, hdom⟩ := hf
+  obtain ⟨γ, hγ, hgtr⟩ := g.tracked
+  refine ⟨K.pairF (γ.comp ψ) ModFun.ident, K.pair_mem (K.comp_mem hγ hψ) K.id_mem,
+    fun n c₀ hc₀ => ?_⟩
+  obtain ⟨k, hk, hBgc⟩ := hgtr n c₀ hc₀
+  obtain ⟨m₁, hm₁, x, hx, hfx⟩ := hdom k (g.toFun c₀) hBgc
+  refine ⟨K.code m₁ n, ⟨m₁, n, ⟨k, hk, hm₁⟩, rfl, rfl⟩,
+    ⟨⟨(x, c₀), hfx⟩, ⟨?_, ?_⟩, rfl⟩⟩
+  · rw [K.code_proj₁]; exact hx
+  · rw [K.code_proj₂]; exact hc₀
+
+/-- Covers transfer between any two pullbacks of the same cospan: if the chosen pullback's
+    second projection is a cover then so is that of any pullback cone (the comparison map
+    is an iso; `cover_precomp_iso` transports).  Generic in the category — a candidate for
+    S1_45, kept local to avoid touching shared files. -/
+theorem cover_pi2_of_isPullback {𝒟 : Type u₁} [Cat.{v₁} 𝒟] {A B C : 𝒟} {f : A ⟶ B}
+    {g : C ⟶ B} (pb : HasPullback f g) (c : Cone f g) (hpb : c.IsPullback)
+    (hcov : Cover pb.cone.π₂) : Cover c.π₂ := by
+  obtain ⟨v, ⟨hv₁, hv₂⟩, _⟩ := hpb pb.cone
+  obtain ⟨u₀, _, hu₀⟩ := hpb c
+  have hiv : pb.lift c ≫ v = Cat.id c.pt := by
+    rw [hu₀ (pb.lift c ≫ v) (by rw [Cat.assoc, hv₁, pb.lift_fst])
+          (by rw [Cat.assoc, hv₂, pb.lift_snd]),
+        hu₀ (Cat.id c.pt) (Cat.id_comp _) (Cat.id_comp _)]
+  have hvi : v ≫ pb.lift c = Cat.id pb.cone.pt := by
+    rw [pb.lift_uniq pb.cone (v ≫ pb.lift c)
+          (by rw [Cat.assoc, pb.lift_fst, hv₁]) (by rw [Cat.assoc, pb.lift_snd, hv₂]),
+        pb.lift_uniq pb.cone (Cat.id pb.cone.pt) (Cat.id_comp _) (Cat.id_comp _)]
+  rw [← pb.lift_snd c]
+  -- introduce `Cover`'s binders explicitly (Cover-as-def metavar gotcha)
+  intro C' m g' hm hgm
+  exact cover_precomp_iso (i := pb.lift c) ⟨v, hiv, hvi⟩ hcov m g' hm hgm
+
+/-- §1.52: pullbacks transfer covers.  An arbitrary pullback cone is compared (iso) with
+    the canonical one, where the transfer is `asmCover_pullback_canonical`. -/
+instance asmPullbacksTransferCovers : PullbacksTransferCovers (Assembly.{u} K) where
+  pullbacks_transfer_covers {_A _B _C f g} c hpb hf :=
+    cover_pi2_of_isPullback (asmHasPullbacks.has f g) c hpb
+      ((asmCover_iff _).2 (asmCover_pullback_canonical f g ((asmCover_iff f).1 hf)))
+
+/-- **§2.153, regular part**: the category of assemblies is a regular category. -/
+instance asmRegular : RegularCategory (Assembly.{u} K) where
+  toHasTerminal := inferInstance
+  toHasBinaryProducts := inferInstance
+  toHasPullbacks := inferInstance
+  toHasImages := inferInstance
+  toPullbacksTransferCovers := inferInstance
 
 end Freyd
