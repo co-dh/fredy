@@ -152,6 +152,9 @@ theorem ident_graph (n : Nat) : ident.graph n n := rfl
 
 theorem ofFun_graph (f : Nat → Nat) (n : Nat) : (ofFun f).graph n (f n) := rfl
 
+@[simp] theorem ofFun_graph_iff {f : Nat → Nat} {n m : Nat} :
+    (ofFun f).graph n m ↔ m = f n := Iff.rfl
+
 theorem comp_graph {φ ψ : ModFun} {n j m : Nat} (h₁ : φ.graph n j) (h₂ : ψ.graph j m) :
     (φ.comp ψ).graph n m := ⟨j, h₁, h₂⟩
 
@@ -795,5 +798,188 @@ theorem botSub_min {A : Assembly.{u} K} (S : Subobject (Assembly.{u} K) A) :
     (botSub A).le S :=
   ⟨⟨fun (x : PEmpty) => x.elim, ModFun.ident, K.id_mem, fun _ x => x.elim⟩,
     AsmHom.ext (funext fun (x : PEmpty) => x.elim)⟩
+
+/-! ### Inverse image preserves unions and bottom
+
+  The chosen pullback of `f : A → B` against the inclusion of a subobject V has carrier
+  `{(a, v) : f a = v}` with caucuses ℓ/ϰ-coded from A's and V.dom's.  For V = S∪T the
+  ϰ-side index is a TAGGED index `code p (inL k)`; the parameter-cases closure is exactly
+  what re-tags it into an index of `f#S ∪ f#T` (and back) — see the module docstring. -/
+
+section InvImageUnion
+
+variable {A B : Assembly.{u} K}
+
+/-- `f#(S∪T) ≤ f#S ∪ f#T`.  Underlying function: `(a, u) ↦ a`.  Modulus: reassociate
+    `n ↦ code (code n (ℓn)) (ϰϰn)`, then dispatch on the tag of `ϰϰn` with the pair
+    `(n, ℓn)` as parameter, producing `code n (inL (code (ℓn) k))`. -/
+theorem invImage_union_le (f : A ⟶ B) (S T : Subobject (Assembly.{u} K) B) :
+    (InverseImage f (unionSub S T)).le
+      (unionSub (InverseImage f S) (InverseImage f T)) := by
+  have hmem : ∀ w : (InverseImage f (unionSub S T)).dom.X,
+      (∃ q, (InverseImage f S).arr.toFun q = w.val.1) ∨
+      (∃ q, (InverseImage f T).arr.toFun q = w.val.1) := by
+    intro w
+    have hw : f.toFun w.val.1 = (w.val.2 : (unionAsm S T).X).val := w.property
+    rcases (w.val.2 : (unionAsm S T).X).property with ⟨s, hs⟩ | ⟨t, ht⟩
+    · exact Or.inl ⟨⟨(w.val.1, s), hw.trans hs.symm⟩, rfl⟩
+    · exact Or.inr ⟨⟨(w.val.1, t), hw.trans ht.symm⟩, rfl⟩
+  refine ⟨⟨fun w => ⟨w.val.1, hmem w⟩, ?_⟩, AsmHom.ext rfl⟩
+  refine ⟨(K.pairF (K.pairF ModFun.ident K.projF₁) (K.projF₂.comp K.projF₂)).comp
+      (K.casesF
+        (K.pairF (K.projF₁.comp K.projF₁)
+          ((K.pairF (K.projF₁.comp K.projF₂) K.projF₂).comp (ModFun.ofFun K.inL)))
+        (K.pairF (K.projF₁.comp K.projF₁)
+          ((K.pairF (K.projF₁.comp K.projF₂) K.projF₂).comp (ModFun.ofFun K.inR)))),
+    K.comp_mem
+      (K.pair_mem (K.pair_mem K.id_mem K.proj₁_mem) (K.comp_mem K.proj₂_mem K.proj₂_mem))
+      (K.cases_mem
+        (K.pair_mem (K.comp_mem K.proj₁_mem K.proj₁_mem)
+          (K.comp_mem (K.pair_mem (K.comp_mem K.proj₁_mem K.proj₂_mem) K.proj₂_mem)
+            K.inL_mem))
+        (K.pair_mem (K.comp_mem K.proj₁_mem K.proj₁_mem)
+          (K.comp_mem (K.pair_mem (K.comp_mem K.proj₁_mem K.proj₂_mem) K.proj₂_mem)
+            K.inR_mem))),
+    fun n w hw => ?_⟩
+  have hw' : f.toFun w.val.1 = (w.val.2 : (unionAsm S T).X).val := w.property
+  obtain ⟨hA, hu⟩ := hw
+  rcases hu with ⟨p, k, hn2, s, hks, hsy⟩ | ⟨p, k, hn2, t, hkt, hty⟩
+  · refine ⟨K.code n (K.inL (K.code (K.proj₁ n) k)),
+      ModFun.comp_graph
+        (ModFun.pairC_graph
+          (ModFun.pairC_graph (ModFun.ident_graph n) (ModFun.ofFun_graph _ n))
+          (ModFun.comp_graph (ModFun.ofFun_graph _ n) (ModFun.ofFun_graph _ _)))
+        (Or.inl ⟨k, ?_, ?_⟩), ?_⟩
+    · rw [K.code_proj₂, hn2, K.code_proj₂]
+    · rw [K.code_proj₁]
+      exact ModFun.pairC_graph
+        (ModFun.comp_graph (ModFun.ofFun_graph _ _) (by simp only [ModFun.ofFun_graph_iff,
+          K.code_proj₁]))
+        (ModFun.comp_graph
+          (ModFun.pairC_graph
+            (ModFun.comp_graph (ModFun.ofFun_graph _ _) (by simp only [ModFun.ofFun_graph_iff,
+              K.code_proj₁, K.code_proj₂]))
+            (by simp only [ModFun.ofFun_graph_iff, K.code_proj₂]))
+          (ModFun.ofFun_graph _ _))
+    · refine Or.inl ⟨n, K.code (K.proj₁ n) k, rfl, ⟨(w.val.1, s), hw'.trans hsy.symm⟩,
+        ⟨?_, ?_⟩, rfl⟩
+      · show A.caucus (K.proj₁ (K.code (K.proj₁ n) k)) w.val.1
+        rw [K.code_proj₁]; exact hA
+      · show S.dom.caucus (K.proj₂ (K.code (K.proj₁ n) k)) s
+        rw [K.code_proj₂]; exact hks
+  · refine ⟨K.code n (K.inR (K.code (K.proj₁ n) k)),
+      ModFun.comp_graph
+        (ModFun.pairC_graph
+          (ModFun.pairC_graph (ModFun.ident_graph n) (ModFun.ofFun_graph _ n))
+          (ModFun.comp_graph (ModFun.ofFun_graph _ n) (ModFun.ofFun_graph _ _)))
+        (Or.inr ⟨k, ?_, ?_⟩), ?_⟩
+    · rw [K.code_proj₂, hn2, K.code_proj₂]
+    · rw [K.code_proj₁]
+      exact ModFun.pairC_graph
+        (ModFun.comp_graph (ModFun.ofFun_graph _ _) (by simp only [ModFun.ofFun_graph_iff,
+          K.code_proj₁]))
+        (ModFun.comp_graph
+          (ModFun.pairC_graph
+            (ModFun.comp_graph (ModFun.ofFun_graph _ _) (by simp only [ModFun.ofFun_graph_iff,
+              K.code_proj₁, K.code_proj₂]))
+            (by simp only [ModFun.ofFun_graph_iff, K.code_proj₂]))
+          (ModFun.ofFun_graph _ _))
+    · refine Or.inr ⟨n, K.code (K.proj₁ n) k, rfl, ⟨(w.val.1, t), hw'.trans hty.symm⟩,
+        ⟨?_, ?_⟩, rfl⟩
+      · show A.caucus (K.proj₁ (K.code (K.proj₁ n) k)) w.val.1
+        rw [K.code_proj₁]; exact hA
+      · show T.dom.caucus (K.proj₂ (K.code (K.proj₁ n) k)) t
+        rw [K.code_proj₂]; exact hkt
+
+/-- `f#S ∪ f#T ≤ f#(S∪T)`.  Underlying function: `a ↦ (a, f a)`.  Modulus: on a tagged
+    index `code p (inL k)` produce `code (ℓk) (code k (inL (ϰk)))` — the pullback pairing
+    of the A-part of k with the retagged S-part. -/
+theorem le_invImage_union (f : A ⟶ B) (S T : Subobject (Assembly.{u} K) B) :
+    (unionSub (InverseImage f S) (InverseImage f T)).le
+      (InverseImage f (unionSub S T)) := by
+  have hmem : ∀ y : (unionAsm (InverseImage f S) (InverseImage f T)).X,
+      (∃ s, S.arr.toFun s = f.toFun y.val) ∨ (∃ t, T.arr.toFun t = f.toFun y.val) := by
+    intro y
+    rcases y.property with ⟨q, hq⟩ | ⟨q, hq⟩
+    · have hq' : f.toFun (q.val.1) = S.arr.toFun (q.val.2) := q.property
+      exact Or.inl ⟨q.val.2, hq'.symm.trans (congrArg f.toFun hq)⟩
+    · have hq' : f.toFun (q.val.1) = T.arr.toFun (q.val.2) := q.property
+      exact Or.inr ⟨q.val.2, hq'.symm.trans (congrArg f.toFun hq)⟩
+  refine ⟨⟨fun y => ⟨(y.val, ⟨f.toFun y.val, hmem y⟩), rfl⟩, ?_⟩, AsmHom.ext rfl⟩
+  refine ⟨K.casesF
+      (K.pairF (K.projF₂.comp K.projF₁)
+        (K.pairF K.projF₂ ((K.projF₂.comp K.projF₂).comp (ModFun.ofFun K.inL))))
+      (K.pairF (K.projF₂.comp K.projF₁)
+        (K.pairF K.projF₂ ((K.projF₂.comp K.projF₂).comp (ModFun.ofFun K.inR)))),
+    K.cases_mem
+      (K.pair_mem (K.comp_mem K.proj₂_mem K.proj₁_mem)
+        (K.pair_mem K.proj₂_mem (K.comp_mem (K.comp_mem K.proj₂_mem K.proj₂_mem) K.inL_mem)))
+      (K.pair_mem (K.comp_mem K.proj₂_mem K.proj₁_mem)
+        (K.pair_mem K.proj₂_mem (K.comp_mem (K.comp_mem K.proj₂_mem K.proj₂_mem) K.inR_mem))),
+    fun n y hy => ?_⟩
+  rcases hy with ⟨p, k, hn, q, hkq, hqa⟩ | ⟨p, k, hn, q, hkq, hqa⟩
+  · obtain ⟨hkA, hkS⟩ := hkq
+    refine ⟨K.code (K.proj₁ k) (K.code k (K.inL (K.proj₂ k))),
+      Or.inl ⟨k, by rw [hn, K.code_proj₂], ?_⟩, ⟨?_, ?_⟩⟩
+    · exact ModFun.pairC_graph
+        (ModFun.comp_graph (ModFun.ofFun_graph _ _) (by simp only [ModFun.ofFun_graph_iff,
+          K.code_proj₂]))
+        (ModFun.pairC_graph
+          (by simp only [ModFun.ofFun_graph_iff, K.code_proj₂])
+          (ModFun.comp_graph
+            (ModFun.comp_graph (ModFun.ofFun_graph _ _) (ModFun.ofFun_graph _ _))
+            (by simp only [ModFun.ofFun_graph_iff, K.code_proj₂])))
+    · show A.caucus (K.proj₁ (K.code (K.proj₁ k) (K.code k (K.inL (K.proj₂ k))))) y.val
+      rw [K.code_proj₁, ← hqa]
+      exact hkA
+    · show (unionAsm S T).caucus
+        (K.proj₂ (K.code (K.proj₁ k) (K.code k (K.inL (K.proj₂ k)))))
+        ⟨f.toFun y.val, hmem y⟩
+      rw [K.code_proj₂]
+      have hq' : f.toFun (q.val.1) = S.arr.toFun (q.val.2) := q.property
+      exact Or.inl ⟨k, K.proj₂ k, rfl, q.val.2, hkS,
+        hq'.symm.trans (congrArg f.toFun hqa)⟩
+  · obtain ⟨hkA, hkT⟩ := hkq
+    refine ⟨K.code (K.proj₁ k) (K.code k (K.inR (K.proj₂ k))),
+      Or.inr ⟨k, by rw [hn, K.code_proj₂], ?_⟩, ⟨?_, ?_⟩⟩
+    · exact ModFun.pairC_graph
+        (ModFun.comp_graph (ModFun.ofFun_graph _ _) (by simp only [ModFun.ofFun_graph_iff,
+          K.code_proj₂]))
+        (ModFun.pairC_graph
+          (by simp only [ModFun.ofFun_graph_iff, K.code_proj₂])
+          (ModFun.comp_graph
+            (ModFun.comp_graph (ModFun.ofFun_graph _ _) (ModFun.ofFun_graph _ _))
+            (by simp only [ModFun.ofFun_graph_iff, K.code_proj₂])))
+    · show A.caucus (K.proj₁ (K.code (K.proj₁ k) (K.code k (K.inR (K.proj₂ k))))) y.val
+      rw [K.code_proj₁, ← hqa]
+      exact hkA
+    · show (unionAsm S T).caucus
+        (K.proj₂ (K.code (K.proj₁ k) (K.code k (K.inR (K.proj₂ k)))))
+        ⟨f.toFun y.val, hmem y⟩
+      rw [K.code_proj₂]
+      have hq' : f.toFun (q.val.1) = T.arr.toFun (q.val.2) := q.property
+      exact Or.inr ⟨k, K.proj₂ k, rfl, q.val.2, hkT,
+        hq'.symm.trans (congrArg f.toFun hqa)⟩
+
+/-- `f#(⊥) ≅ ⊥`: the pullback against the empty subobject is empty. -/
+theorem invImage_bot_iso (f : A ⟶ B) :
+    Isomorphic (InverseImage f (botSub B)).dom (botSub A).dom := by
+  refine ⟨⟨fun w => (w.val.2 : PEmpty).elim, ModFun.ident, K.id_mem,
+      fun _ _ hw => (hw.2 : False).elim⟩,
+    ⟨fun (e : PEmpty) => e.elim, ModFun.ident, K.id_mem, fun _ _ h => (h : False).elim⟩,
+    AsmHom.ext (funext fun w => (w.val.2 : PEmpty).elim),
+    AsmHom.ext (funext fun (e : PEmpty) => e.elim)⟩
+
+end InvImageUnion
+
+/-- **§2.153, pre-logos part**: the category of assemblies is a pre-logos. -/
+instance asmPreLogos : PreLogos (Assembly.{u} K) where
+  toRegularCategory := inferInstance
+  toHasSubobjectUnions := inferInstance
+  bottom := botSub
+  bottom_min := botSub_min
+  bottom_dom_iso _ _ := ⟨Cat.id zeroAsm, Cat.id zeroAsm, Cat.id_comp _, Cat.id_comp _⟩
+  invImage_preserves_union f S T := ⟨invImage_union_le f S T, le_invImage_union f S T⟩
+  invImage_preserves_bottom f := invImage_bot_iso f
 
 end Freyd
