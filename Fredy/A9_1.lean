@@ -720,4 +720,27 @@ theorem dynamic_programming_thin_context (hFr : F.PreservesRecip) (I : InitialAl
       ⊑ A ((relCata I T)° ≫ relCata I h) ≫ minRel R :=
   mu_le_of_prefixed (dp_thin_prefixed_context hFr hh hctx1 htrans (hylo_fixed hFr I h T) hctx2)
 
+/-! ## Dropped (B&dM Proposition 9.1, Ex 9.5) — disjoint ranges / coproduct split (pp.219-220)
+
+  Proposition 9.1 (the "disjoint ranges" optimisation: split the search over a coproduct
+  `s = a₁ + a₂` via a guard/conditional, thin each branch separately, then `junc` the
+  results back together) and Ex 9.5 (its corollary) are DROPPED — not for lack of a proof
+  idea, but a genuine SETTING MISMATCH between the two chapters this file straddles:
+
+  * The coproduct/guard/conditional machinery (`junc`, `sumMap`, `guard`, `cond`, `corNeg`)
+    lives in `Fredy.A5_3`, under `[DistributiveAllegory 𝒜]` (needs Boolean negation `∼` on
+    coreflexives, `Fredy.A4_5`).
+  * All of chapters 6-8 (`minRel`, `powerRel`, `thinRel`, hylomorphisms, and hence this whole
+    file) live under `[UnguardedPowerLCDA 𝒜]` (`Fredy.A6_2`), the power/division bundle.
+  * No section of the repo currently instantiates BOTH classes on the same `𝒜` (no combined
+    "distributive + unguarded power" class, and none of the `UnguardedPowerLCDA` model
+    instances built elsewhere are known to also satisfy `DistributiveAllegory`). Proposition
+    9.1 is not just "reuse an existing lemma under a stronger hypothesis" — its content is
+    genuinely *thinning a coproduct-split search*: it needs `thin`/`powerRel`/`minRel` to
+    interact correctly with `junc`/`guard`/`cond`, which is new mathematical work (roughly:
+    an Ex-8.x-style fusion law for `thin` against `junc`, analogous to the already-dropped
+    §8's (8.4)/Ex 8.7 `powerRel`-vs-`union` fusion, `Fredy.A8_1`'s stretch-items note) on top
+    of the missing combined typeclass. Building the combined class and the fusion law is a
+    multi-file undertaking outside this task's scope; recorded here rather than forced. -/
+
 end Freyd.Alg
