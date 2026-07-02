@@ -1991,4 +1991,621 @@ theorem Recursive2.acceptN : Recursive2 acceptN := by
       (Recursive2.comp2 Recursive2.mul hball' a2) a3
   exact h2
 
+/-! ## Stage 3b: the enumerated equivalence relation E on ω
+
+  The set `E := Δ ∪ {(2e, 2e+1), (2e+1, 2e) | e ∈ Kc}` glues the two points
+  `2e, 2e+1` exactly when `e` halts on itself.  `E` is only recursively
+  ENUMERABLE, never recursive — so it enters R not as a recursive set of pairs
+  but as the IMAGE of the total recursive enumeration `n ↦ (l0 n, r0 n)`:
+  index `4m` yields the diagonal pair `(m, m)`; indices `4w+1` / `4w+2` yield
+  `(2e, 2e+1)` / `(2e+1, 2e)` when `w = cp e wit` is an accepted halting witness
+  for `e`, and the (already covered) pair `(0,0)` otherwise. -/
+
+/-- 0/1 test: is `w = cp e wit` an accepted halting witness for `e`? -/
+noncomputable def accOne (w : Nat) : Nat := eqInd (acceptN (cfst w) (csnd w)) 1
+
+theorem accOne_cases (w : Nat) : accOne w = 1 ∨ accOne w = 0 := by
+  by_cases h : acceptN (cfst w) (csnd w) = 1
+  · exact Or.inl (eqInd_eq h)
+  · exact Or.inr (eqInd_ne h)
+
+/-- Left column of the enumeration of E. -/
+noncomputable def l0 (n : Nat) : Nat :=
+  eqInd (n % 4) 0 * (n / 4)
+  + eqInd (n % 4) 1 * (accOne (n / 4) * (2 * cfst (n / 4)))
+  + eqInd (n % 4) 2 * (accOne (n / 4) * (2 * cfst (n / 4) + 1))
+
+/-- Right column of the enumeration of E. -/
+noncomputable def r0 (n : Nat) : Nat :=
+  eqInd (n % 4) 0 * (n / 4)
+  + eqInd (n % 4) 1 * (accOne (n / 4) * (2 * cfst (n / 4) + 1))
+  + eqInd (n % 4) 2 * (accOne (n / 4) * (2 * cfst (n / 4)))
+
+theorem l0_val0 {n : Nat} (h : n % 4 = 0) : l0 n = n / 4 := by
+  unfold l0
+  rw [h, eqInd_eq rfl, eqInd_ne (by omega : (0:Nat) ≠ 1), eqInd_ne (by omega : (0:Nat) ≠ 2)]
+  omega
+
+theorem r0_val0 {n : Nat} (h : n % 4 = 0) : r0 n = n / 4 := by
+  unfold r0
+  rw [h, eqInd_eq rfl, eqInd_ne (by omega : (0:Nat) ≠ 1), eqInd_ne (by omega : (0:Nat) ≠ 2)]
+  omega
+
+theorem l0_val1 {n : Nat} (h : n % 4 = 1) : l0 n = accOne (n / 4) * (2 * cfst (n / 4)) := by
+  unfold l0
+  rw [h, eqInd_eq rfl, eqInd_ne (by omega : (1:Nat) ≠ 0), eqInd_ne (by omega : (1:Nat) ≠ 2)]
+  omega
+
+theorem r0_val1 {n : Nat} (h : n % 4 = 1) :
+    r0 n = accOne (n / 4) * (2 * cfst (n / 4) + 1) := by
+  unfold r0
+  rw [h, eqInd_eq rfl, eqInd_ne (by omega : (1:Nat) ≠ 0), eqInd_ne (by omega : (1:Nat) ≠ 2)]
+  omega
+
+theorem l0_val2 {n : Nat} (h : n % 4 = 2) :
+    l0 n = accOne (n / 4) * (2 * cfst (n / 4) + 1) := by
+  unfold l0
+  rw [h, eqInd_eq rfl, eqInd_ne (by omega : (2:Nat) ≠ 0), eqInd_ne (by omega : (2:Nat) ≠ 1)]
+  omega
+
+theorem r0_val2 {n : Nat} (h : n % 4 = 2) : r0 n = accOne (n / 4) * (2 * cfst (n / 4)) := by
+  unfold r0
+  rw [h, eqInd_eq rfl, eqInd_ne (by omega : (2:Nat) ≠ 0), eqInd_ne (by omega : (2:Nat) ≠ 1)]
+  omega
+
+theorem l0_val3 {n : Nat} (h : n % 4 = 3) : l0 n = 0 := by
+  unfold l0
+  rw [h, eqInd_ne (by omega : (3:Nat) ≠ 0), eqInd_ne (by omega : (3:Nat) ≠ 1),
+    eqInd_ne (by omega : (3:Nat) ≠ 2)]
+  omega
+
+theorem r0_val3 {n : Nat} (h : n % 4 = 3) : r0 n = 0 := by
+  unfold r0
+  rw [h, eqInd_ne (by omega : (3:Nat) ≠ 0), eqInd_ne (by omega : (3:Nat) ≠ 1),
+    eqInd_ne (by omega : (3:Nat) ≠ 2)]
+  omega
+
+/-- The set enumerated by `(l0, r0)`. -/
+def ESet (a b : Nat) : Prop := ∃ n, l0 n = a ∧ r0 n = b
+
+/-- E is: the diagonal, plus the glued pair `{2e, 2e+1}` for each halting `e`. -/
+theorem ESet_iff {a b : Nat} :
+    ESet a b ↔ a = b ∨ (a / 2 = b / 2 ∧ a ≠ b ∧ Kc (a / 2)) := by
+  constructor
+  · rintro ⟨n, ha, hb⟩
+    have h4 : n % 4 = 0 ∨ n % 4 = 1 ∨ n % 4 = 2 ∨ n % 4 = 3 := by omega
+    rcases h4 with h | h | h | h
+    · left; rw [← ha, ← hb, l0_val0 h, r0_val0 h]
+    · rw [l0_val1 h] at ha
+      rw [r0_val1 h] at hb
+      rcases accOne_cases (n / 4) with hacc | hacc
+      · rw [hacc, Nat.one_mul] at ha hb
+        right
+        have hK : Kc (cfst (n / 4)) := ⟨csnd (n / 4), eqInd_one_iff.mp hacc⟩
+        have he : a / 2 = cfst (n / 4) := by omega
+        exact ⟨by omega, by omega, he ▸ hK⟩
+      · rw [hacc, Nat.zero_mul] at ha hb
+        left; omega
+    · rw [l0_val2 h] at ha
+      rw [r0_val2 h] at hb
+      rcases accOne_cases (n / 4) with hacc | hacc
+      · rw [hacc, Nat.one_mul] at ha hb
+        right
+        have hK : Kc (cfst (n / 4)) := ⟨csnd (n / 4), eqInd_one_iff.mp hacc⟩
+        have he : a / 2 = cfst (n / 4) := by omega
+        exact ⟨by omega, by omega, he ▸ hK⟩
+      · rw [hacc, Nat.zero_mul] at ha hb
+        left; omega
+    · left; rw [← ha, ← hb, l0_val3 h, r0_val3 h]
+  · rintro (rfl | ⟨hdiv, hne, hK⟩)
+    · refine ⟨4 * a, ?_, ?_⟩
+      · rw [l0_val0 (by omega)]; omega
+      · rw [r0_val0 (by omega)]; omega
+    · obtain ⟨wit, hwit⟩ := hK
+      have haccw : accOne (cp (a / 2) wit) = 1 := by
+        unfold accOne
+        rw [cfst_cp, csnd_cp]
+        exact eqInd_eq hwit
+      have hcase : (a = 2 * (a / 2) ∧ b = 2 * (a / 2) + 1)
+          ∨ (a = 2 * (a / 2) + 1 ∧ b = 2 * (a / 2)) := by omega
+      rcases hcase with ⟨ha, hb⟩ | ⟨ha, hb⟩
+      · refine ⟨4 * cp (a / 2) wit + 1, ?_, ?_⟩
+        · rw [l0_val1 (by omega), show (4 * cp (a / 2) wit + 1) / 4 = cp (a / 2) wit
+            from by omega, haccw, cfst_cp, Nat.one_mul]
+          omega
+        · rw [r0_val1 (by omega), show (4 * cp (a / 2) wit + 1) / 4 = cp (a / 2) wit
+            from by omega, haccw, cfst_cp, Nat.one_mul]
+          omega
+      · refine ⟨4 * cp (a / 2) wit + 2, ?_, ?_⟩
+        · rw [l0_val2 (by omega), show (4 * cp (a / 2) wit + 2) / 4 = cp (a / 2) wit
+            from by omega, haccw, cfst_cp, Nat.one_mul]
+          omega
+        · rw [r0_val2 (by omega), show (4 * cp (a / 2) wit + 2) / 4 = cp (a / 2) wit
+            from by omega, haccw, cfst_cp, Nat.one_mul]
+          omega
+
+theorem ESet_refl (a : Nat) : ESet a a := ESet_iff.mpr (Or.inl rfl)
+
+theorem ESet_symm {a b : Nat} (h : ESet a b) : ESet b a := by
+  rcases ESet_iff.mp h with rfl | ⟨h1, h2, h3⟩
+  · exact ESet_refl a
+  · exact ESet_iff.mpr (Or.inr ⟨by omega, by omega, by rw [← h1]; exact h3⟩)
+
+theorem ESet_trans {a b c : Nat} (hab : ESet a b) (hbc : ESet b c) : ESet a c := by
+  rcases ESet_iff.mp hab with rfl | ⟨h1, h2, h3⟩
+  · exact hbc
+  · rcases ESet_iff.mp hbc with rfl | ⟨h1', h2', h3'⟩
+    · exact hab
+    · by_cases hac : a = c
+      · exact hac ▸ ESet_refl a
+      · exact ESet_iff.mpr (Or.inr ⟨by omega, hac, h3⟩)
+
+/-! Recursiveness of the two columns. -/
+
+theorem accOne_rec : Recursive1 accOne := by
+  have h1 : Recursive1 fun w => Rcat.acceptN (Rcat.cfst w) (Rcat.csnd w) :=
+    Recursive1.comp2 Recursive2.acceptN Recursive1.cfst Recursive1.csnd
+  have h2 : Recursive1 fun w => Rcat.eqInd (Rcat.acceptN (Rcat.cfst w) (Rcat.csnd w)) 1 :=
+    Recursive1.comp2 Recursive2.eqInd h1 (Recursive1.const 1)
+  exact h2
+
+theorem l0_rec : Recursive1 l0 := by
+  have hmod : Recursive1 fun n => n % 4 := Recursive1.modConst 3
+  have hdiv : Recursive1 fun n => n / 4 := Recursive1.divConst 3
+  have hcf : Recursive1 fun n => Rcat.cfst (n / 4) := Recursive1.comp hdiv Recursive1.cfst
+  have h2cf : Recursive1 fun n => 2 * Rcat.cfst (n / 4) :=
+    Recursive1.mul (Recursive1.const 2) hcf
+  have hacc4 : Recursive1 fun n => accOne (n / 4) := Recursive1.comp hdiv accOne_rec
+  have t0 : Recursive1 fun n => Rcat.eqInd (n % 4) 0 * (n / 4) :=
+    Recursive1.mul (Recursive1.comp2 Recursive2.eqInd hmod (Recursive1.const 0)) hdiv
+  have t1 : Recursive1 fun n =>
+      Rcat.eqInd (n % 4) 1 * (accOne (n / 4) * (2 * Rcat.cfst (n / 4))) :=
+    Recursive1.mul (Recursive1.comp2 Recursive2.eqInd hmod (Recursive1.const 1))
+      (Recursive1.mul hacc4 h2cf)
+  have t2 : Recursive1 fun n =>
+      Rcat.eqInd (n % 4) 2 * (accOne (n / 4) * (2 * Rcat.cfst (n / 4) + 1)) :=
+    Recursive1.mul (Recursive1.comp2 Recursive2.eqInd hmod (Recursive1.const 2))
+      (Recursive1.mul hacc4 (Recursive1.add h2cf (Recursive1.const 1)))
+  have h2 : Recursive1 fun n =>
+      Rcat.eqInd (n % 4) 0 * (n / 4)
+      + Rcat.eqInd (n % 4) 1 * (accOne (n / 4) * (2 * Rcat.cfst (n / 4)))
+      + Rcat.eqInd (n % 4) 2 * (accOne (n / 4) * (2 * Rcat.cfst (n / 4) + 1)) :=
+    Recursive1.add (Recursive1.add t0 t1) t2
+  exact h2
+
+theorem r0_rec : Recursive1 r0 := by
+  have hmod : Recursive1 fun n => n % 4 := Recursive1.modConst 3
+  have hdiv : Recursive1 fun n => n / 4 := Recursive1.divConst 3
+  have hcf : Recursive1 fun n => Rcat.cfst (n / 4) := Recursive1.comp hdiv Recursive1.cfst
+  have h2cf : Recursive1 fun n => 2 * Rcat.cfst (n / 4) :=
+    Recursive1.mul (Recursive1.const 2) hcf
+  have hacc4 : Recursive1 fun n => accOne (n / 4) := Recursive1.comp hdiv accOne_rec
+  have t0 : Recursive1 fun n => Rcat.eqInd (n % 4) 0 * (n / 4) :=
+    Recursive1.mul (Recursive1.comp2 Recursive2.eqInd hmod (Recursive1.const 0)) hdiv
+  have t1 : Recursive1 fun n =>
+      Rcat.eqInd (n % 4) 1 * (accOne (n / 4) * (2 * Rcat.cfst (n / 4) + 1)) :=
+    Recursive1.mul (Recursive1.comp2 Recursive2.eqInd hmod (Recursive1.const 1))
+      (Recursive1.mul hacc4 (Recursive1.add h2cf (Recursive1.const 1)))
+  have t2 : Recursive1 fun n =>
+      Rcat.eqInd (n % 4) 2 * (accOne (n / 4) * (2 * Rcat.cfst (n / 4))) :=
+    Recursive1.mul (Recursive1.comp2 Recursive2.eqInd hmod (Recursive1.const 2))
+      (Recursive1.mul hacc4 h2cf)
+  have h2 : Recursive1 fun n =>
+      Rcat.eqInd (n % 4) 0 * (n / 4)
+      + Rcat.eqInd (n % 4) 1 * (accOne (n / 4) * (2 * Rcat.cfst (n / 4) + 1))
+      + Rcat.eqInd (n % 4) 2 * (accOne (n / 4) * (2 * Rcat.cfst (n / 4))) :=
+    Recursive1.add (Recursive1.add t0 t1) t2
+  exact h2
+
+/-! The enumeration as morphisms of R, and E as a binary relation. -/
+
+/-- The left column as a morphism ω ⟶ ω of R. -/
+noncomputable def lMor : (omega : ExtNat) ⟶ omega := ⟨l0, l0_rec⟩
+
+/-- The right column as a morphism ω ⟶ ω of R. -/
+noncomputable def rMor : (omega : ExtNat) ⟶ omega := ⟨r0, r0_rec⟩
+
+/-- The joint enumeration ω ⟶ ω×ω. -/
+noncomputable def FE : (omega : ExtNat) ⟶ prod omega omega := pair lMor rMor
+
+/-- E as a binary relation on ω in R: the IMAGE of the enumeration `FE`,
+    with its two projections as columns.  (The image absorbs the repetitions of
+    the sloppy enumeration; joint monicity is monicity of the image.) -/
+noncomputable def ERel : BinRel ExtNat omega omega where
+  src := (image FE).dom
+  colA := (image FE).arr ≫ fst
+  colB := (image FE).arr ≫ snd
+  isMonicPair := by
+    intro X f g hA hB
+    have h_fst : (f ≫ (image FE).arr) ≫ fst = (g ≫ (image FE).arr) ≫ fst := by
+      simpa [Cat.assoc] using hA
+    have h_snd : (f ≫ (image FE).arr) ≫ snd = (g ≫ (image FE).arr) ≫ snd := by
+      simpa [Cat.assoc] using hB
+    have hfg : f ≫ (image FE).arr = g ≫ (image FE).arr := by
+      rw [pair_eta (f ≫ (image FE).arr), pair_eta (g ≫ (image FE).arr), h_fst, h_snd]
+    exact (image FE).monic f g hfg
+
+/-! Pointwise membership: the elements of `ERel.src` present exactly the pairs of
+    `ESet`.  Both directions go through the split cover `image.lift FE`. -/
+
+/-- Covers of R are pointwise surjective (they split). -/
+theorem cover_surj {α β : ExtNat} {f : α ⟶ β} (hc : Cover f) (b : El β) :
+    ∃ a : El α, f.1 a = b := by
+  obtain ⟨s, hs⟩ := cover_split f hc
+  exact ⟨s.1 b, Mor.congr hs b⟩
+
+theorem ERel_mem (p : El ERel.src) : ESet (ERel.colA.1 p) (ERel.colB.1 p) := by
+  obtain ⟨n, hn⟩ := cover_surj (image_lift_cover FE) p
+  have harr : (image FE).arr.1 p = FE.1 n := by
+    rw [← hn]
+    exact Mor.congr (image.lift_fac FE) n
+  refine ⟨n, ?_, ?_⟩
+  · have hcA : ERel.colA.1 p = (FE ≫ fst).1 n := by
+      show ((image FE).arr ≫ fst).1 p = (FE ≫ fst).1 n
+      rw [comp_fn, comp_fn, harr]
+    rw [hcA]
+    exact (Mor.congr (fst_pair lMor rMor) n).symm
+  · have hcB : ERel.colB.1 p = (FE ≫ snd).1 n := by
+      show ((image FE).arr ≫ snd).1 p = (FE ≫ snd).1 n
+      rw [comp_fn, comp_fn, harr]
+    rw [hcB]
+    exact (Mor.congr (snd_pair lMor rMor) n).symm
+
+theorem ERel_lift (n : Nat) :
+    ERel.colA.1 ((image.lift FE).1 n) = l0 n ∧ ERel.colB.1 ((image.lift FE).1 n) = r0 n := by
+  refine ⟨?_, ?_⟩
+  · have hcA : ERel.colA.1 ((image.lift FE).1 n) = (FE ≫ fst).1 n := by
+      show ((image FE).arr ≫ fst).1 ((image.lift FE).1 n) = (FE ≫ fst).1 n
+      rw [comp_fn, comp_fn, ← comp_fn (image.lift FE) (image FE).arr n,
+        Mor.congr (image.lift_fac FE) n]
+    rw [hcA]
+    exact Mor.congr (fst_pair lMor rMor) n
+  · have hcB : ERel.colB.1 ((image.lift FE).1 n) = (FE ≫ snd).1 n := by
+      show ((image FE).arr ≫ snd).1 ((image.lift FE).1 n) = (FE ≫ snd).1 n
+      rw [comp_fn, comp_fn, ← comp_fn (image.lift FE) (image FE).arr n,
+        Mor.congr (image.lift_fac FE) n]
+    rw [hcB]
+    exact Mor.congr (snd_pair lMor rMor) n
+
+/-! ## μ-search morphisms
+
+  A total recursive search (least zero of a recursive test, preprocessed by a
+  morphism into ω) is again a morphism of R — this is where the book's
+  "a left-inverse chooses representatives" gets its computational content. -/
+
+theorem eqInd_le_one (a b : Nat) : eqInd a b ≤ 1 := by
+  by_cases h : a = b
+  · rw [eqInd_eq h]
+    exact Nat.le_refl 1
+  · rw [eqInd_ne h]
+    omega
+
+/-- Search test: does index `m` enumerate exactly the pair coded by `w`? -/
+noncomputable def pairTest (m w : Nat) : Nat :=
+  1 - eqInd (l0 m) (cfst w) * eqInd (r0 m) (csnd w)
+
+theorem pairTest_rec : Recursive2 pairTest := by
+  have h1 : Recursive2 fun m w => Rcat.eqInd (l0 m) (Rcat.cfst w) :=
+    Recursive2.comp2 Recursive2.eqInd (Recursive2.ofFst l0_rec)
+      (Recursive2.ofSnd Recursive1.cfst)
+  have h2 : Recursive2 fun m w => Rcat.eqInd (r0 m) (Rcat.csnd w) :=
+    Recursive2.comp2 Recursive2.eqInd (Recursive2.ofFst r0_rec)
+      (Recursive2.ofSnd Recursive1.csnd)
+  have h3 : Recursive2 fun m w =>
+      1 - Rcat.eqInd (l0 m) (Rcat.cfst w) * Rcat.eqInd (r0 m) (Rcat.csnd w) :=
+    Recursive2.comp2 Recursive2.sub (Recursive2.const 1)
+      (Recursive2.comp2 Recursive2.mul h1 h2)
+  exact h3
+
+theorem pairTest_zero_iff {m a b : Nat} :
+    pairTest m (cp a b) = 0 ↔ (l0 m = a ∧ r0 m = b) := by
+  unfold pairTest
+  rw [cfst_cp, csnd_cp]
+  constructor
+  · intro h
+    by_cases hx : l0 m = a
+    · by_cases hy : r0 m = b
+      · exact ⟨hx, hy⟩
+      · rw [eqInd_ne hy, Nat.mul_zero] at h; omega
+    · rw [eqInd_ne hx, Nat.zero_mul] at h; omega
+  · rintro ⟨hx, hy⟩
+    rw [eqInd_eq hx, eqInd_eq hy]
+
+/-- Pair two ω-valued morphisms through the Cantor pairing. -/
+noncomputable def cpMor {α : ExtNat} (x y : α ⟶ (omega : ExtNat)) :
+    α ⟶ (omega : ExtNat) :=
+  ⟨fun a => cp (x.1 a) (y.1 a), by
+    match α with
+    | some n => exact trivial
+    | none =>
+      show Recursive1 fun k => Rcat.cp (x.1 k) (y.1 k)
+      have hx : Recursive1 fun k => x.1 k := x.2
+      have hy : Recursive1 fun k => y.1 k := y.2
+      exact Recursive1.comp2 Recursive2.cp hx hy⟩
+
+/-- Total μ-search along a morphism: the least-zero point of a recursive test,
+    preprocessed by `g`, is a morphism `α ⟶ ω`. -/
+theorem searchMor {α : ExtNat} (t : Nat → Nat → Nat) (ht : Recursive2 t)
+    (g : α ⟶ (omega : ExtNat)) (htot : ∀ a : El α, ∃ m, t m (g.1 a) = 0) :
+    ∃ h : α ⟶ (omega : ExtNat), ∀ a : El α,
+      t (h.1 a) (g.1 a) = 0 ∧ ∀ i, i < toNat (h.1 a) → t i (g.1 a) ≠ 0 := by
+  refine ⟨⟨fun a => theLeast (fun m => t m (g.1 a) = 0) (htot a), ?_⟩,
+    fun a => ⟨theLeast_mem _ (htot a), fun i hi => theLeast_min _ (htot a) i hi⟩⟩
+  match α, g, htot with
+  | some n, g, htot => exact trivial
+  | none, g, htot =>
+    show Recursive1 fun k => theLeast (fun m => t m (g.1 k) = 0) (htot k)
+    have hg : Recursive1 fun k => g.1 k := g.2
+    have ht₂ : Recursive2 fun i k => t i (g.1 k) :=
+      Recursive2.comp2 ht Recursive2.fstArg (Recursive2.ofSnd hg)
+    exact Recursive1.mu ht₂
+      (fun k => theLeast_mem (fun m => t m (g.1 k) = 0) (htot k))
+      (fun k i hik => theLeast_min (fun m => t m (g.1 k) = 0) (htot k) i hik)
+
+/-- KEY CONSTRUCTION: any pair of morphisms into ω that pointwise lands in `ESet`
+    factors through E's table — search the enumeration index, then lift. -/
+theorem searchIntoE {α : ExtNat} (x y : α ⟶ (omega : ExtNat))
+    (htot : ∀ a : El α, ESet (x.1 a) (y.1 a)) :
+    ∃ h : α ⟶ ERel.src, h ≫ ERel.colA = x ∧ h ≫ ERel.colB = y := by
+  have htot' : ∀ a : El α, ∃ m, pairTest m ((cpMor x y).1 a) = 0 := by
+    intro a
+    obtain ⟨m, hm1, hm2⟩ := htot a
+    exact ⟨m, pairTest_zero_iff.mpr ⟨hm1, hm2⟩⟩
+  obtain ⟨hs, hspec⟩ := searchMor pairTest pairTest_rec (cpMor x y) htot'
+  have hkey : ∀ a : El α, l0 (hs.1 a) = x.1 a ∧ r0 (hs.1 a) = y.1 a := by
+    intro a
+    have h0 := (hspec a).1
+    exact pairTest_zero_iff.mp h0
+  refine ⟨hs ≫ image.lift FE, Mor.ext fun a => ?_, Mor.ext fun a => ?_⟩
+  · show ERel.colA.1 ((image.lift FE).1 (hs.1 a)) = x.1 a
+    rw [(ERel_lift (hs.1 a)).1]
+    exact (hkey a).1
+  · show ERel.colB.1 ((image.lift FE).1 (hs.1 a)) = y.1 a
+    rw [(ERel_lift (hs.1 a)).2]
+    exact (hkey a).2
+
+/-! ## E is an equivalence relation of R (§1.567 sense) -/
+
+/-- Composite membership: the elements of `(E ⊚ E).src` present pairs of the
+    transitive closure — which is `ESet` itself. -/
+theorem EE_mem (q : El (ERel ⊚ ERel).src) :
+    ESet ((ERel ⊚ ERel).colA.1 q) ((ERel ⊚ ERel).colB.1 q) := by
+  -- unfold the composite: pullback of the B-leg over the A-leg, then image
+  obtain ⟨u, hu⟩ := cover_surj (image_lift_cover
+    (pair ((HasPullbacks.has ERel.colB ERel.colA).cone.π₁ ≫ ERel.colA)
+          ((HasPullbacks.has ERel.colB ERel.colA).cone.π₂ ≫ ERel.colB))) q
+  have harr : (image (pair ((HasPullbacks.has ERel.colB ERel.colA).cone.π₁ ≫ ERel.colA)
+      ((HasPullbacks.has ERel.colB ERel.colA).cone.π₂ ≫ ERel.colB))).arr.1 q
+      = (pair ((HasPullbacks.has ERel.colB ERel.colA).cone.π₁ ≫ ERel.colA)
+        ((HasPullbacks.has ERel.colB ERel.colA).cone.π₂ ≫ ERel.colB)).1 u := by
+    rw [← hu]
+    exact Mor.congr (image.lift_fac _) u
+  have hA : (ERel ⊚ ERel).colA.1 q
+      = ERel.colA.1 ((HasPullbacks.has ERel.colB ERel.colA).cone.π₁.1 u) := by
+    show ((image (pair ((HasPullbacks.has ERel.colB ERel.colA).cone.π₁ ≫ ERel.colA)
+        ((HasPullbacks.has ERel.colB ERel.colA).cone.π₂ ≫ ERel.colB))).arr ≫ fst).1 q = _
+    rw [comp_fn, harr,
+      ← comp_fn _ fst u, fst_pair, comp_fn]
+  have hB : (ERel ⊚ ERel).colB.1 q
+      = ERel.colB.1 ((HasPullbacks.has ERel.colB ERel.colA).cone.π₂.1 u) := by
+    show ((image (pair ((HasPullbacks.has ERel.colB ERel.colA).cone.π₁ ≫ ERel.colA)
+        ((HasPullbacks.has ERel.colB ERel.colA).cone.π₂ ≫ ERel.colB))).arr ≫ snd).1 q = _
+    rw [comp_fn, harr,
+      ← comp_fn _ snd u, snd_pair, comp_fn]
+  have hmid : ERel.colB.1 ((HasPullbacks.has ERel.colB ERel.colA).cone.π₁.1 u)
+      = ERel.colA.1 ((HasPullbacks.has ERel.colB ERel.colA).cone.π₂.1 u) := by
+    have := Mor.congr (HasPullbacks.has ERel.colB ERel.colA).cone.w u
+    rwa [comp_fn, comp_fn] at this
+  rw [hA, hB]
+  exact ESet_trans
+    (ESet_trans (ERel_mem _) (hmid ▸ ESet_refl _))
+    (ERel_mem _)
+
+/-- **E is an equivalence relation in R** — reflexive (a diagonal-index morphism),
+    symmetric (μ-search for the swapped pair's index), transitive (μ-search for
+    the composed pair's index; `ESet` is transitive as a set). -/
+theorem ERel_equivalence : EquivalenceRelation ERel := by
+  refine ⟨?_, ?_, ?_⟩
+  · -- reflexive
+    obtain ⟨h, hA, hB⟩ := searchIntoE (Cat.id (omega : ExtNat)) (Cat.id omega)
+      (fun n => ESet_refl n)
+    exact ⟨h, hA, hB⟩
+  · -- symmetric
+    obtain ⟨h, hA, hB⟩ := searchIntoE ERel.colB ERel.colA
+      (fun p => ESet_symm (ERel_mem p))
+    exact ⟨⟨h, hB, hA⟩⟩
+  · -- transitive
+    obtain ⟨h, hA, hB⟩ := searchIntoE (ERel ⊚ ERel).colA (ERel ⊚ ERel).colB EE_mem
+    exact ⟨⟨h, hA, hB⟩⟩
+
+/-! ## Stage 3c: E is NOT effective — R is not an effective regular category
+
+  Suppose E were the level (kernel pair) of a cover `x : ω → Q`.  In R covers
+  split (`cover_split`), so `x` has a section `s`; then `x ≫ s` is a RECURSIVE
+  choice of representatives for E, and comparing the representatives of `2e` and
+  `2e+1` DECIDES the halting set — contradiction with `K_not_recursive`.  This is
+  the book's "a left-inverse α → ω chooses a set of representatives for E,
+  forcing E to be not just recursively enumerable, but recursive". -/
+
+/-- The canonical element of the terminator of R. -/
+noncomputable def pt1 : El (one : ExtNat) := ⟨0, Nat.one_pos⟩
+
+/-- The point of R at an element. -/
+noncomputable def elPt {γ : ExtNat} (c : El γ) : (one : ExtNat) ⟶ γ :=
+  ⟨fun _ => c, isMor_finite _⟩
+
+/-- `x`-equal elements are presented by the level relation `x ⊚ x°`: the witness
+    is a point of the pullback of `x` over itself, pushed into the image. -/
+theorem levelSet_of_eq {Q : ExtNat} (x : (omega : ExtNat) ⟶ Q) {a b : Nat}
+    (hab : x.1 a = x.1 b) :
+    ∃ w : El (graph x ⊚ (graph x)°).src,
+      (graph x ⊚ (graph x)°).colA.1 w = a ∧ (graph x ⊚ (graph x)°).colB.1 w = b := by
+  have hw : elPt a ≫ (graph x).colB = elPt b ≫ ((graph x)°).colA :=
+    Mor.ext fun _ => hab
+  refine ⟨((HasPullbacks.has (graph x).colB ((graph x)°).colA).lift
+    ⟨one, elPt a, elPt b, hw⟩ ≫ image.lift
+      (pair ((HasPullbacks.has (graph x).colB ((graph x)°).colA).cone.π₁ ≫ (graph x).colA)
+        ((HasPullbacks.has (graph x).colB ((graph x)°).colA).cone.π₂
+          ≫ ((graph x)°).colB))).1 pt1, ?_, ?_⟩
+  · have harr : (image (pair
+        ((HasPullbacks.has (graph x).colB ((graph x)°).colA).cone.π₁ ≫ (graph x).colA)
+        ((HasPullbacks.has (graph x).colB ((graph x)°).colA).cone.π₂
+          ≫ ((graph x)°).colB))).arr.1
+        ((image.lift (pair
+          ((HasPullbacks.has (graph x).colB ((graph x)°).colA).cone.π₁ ≫ (graph x).colA)
+          ((HasPullbacks.has (graph x).colB ((graph x)°).colA).cone.π₂
+            ≫ ((graph x)°).colB))).1
+          (((HasPullbacks.has (graph x).colB ((graph x)°).colA).lift
+            ⟨one, elPt a, elPt b, hw⟩).1 pt1))
+        = (pair
+          ((HasPullbacks.has (graph x).colB ((graph x)°).colA).cone.π₁ ≫ (graph x).colA)
+          ((HasPullbacks.has (graph x).colB ((graph x)°).colA).cone.π₂
+            ≫ ((graph x)°).colB)).1
+          (((HasPullbacks.has (graph x).colB ((graph x)°).colA).lift
+            ⟨one, elPt a, elPt b, hw⟩).1 pt1) :=
+      Mor.congr (image.lift_fac _) _
+    show ((image (pair
+        ((HasPullbacks.has (graph x).colB ((graph x)°).colA).cone.π₁ ≫ (graph x).colA)
+        ((HasPullbacks.has (graph x).colB ((graph x)°).colA).cone.π₂
+          ≫ ((graph x)°).colB))).arr ≫ fst).1
+        ((image.lift (pair
+          ((HasPullbacks.has (graph x).colB ((graph x)°).colA).cone.π₁ ≫ (graph x).colA)
+          ((HasPullbacks.has (graph x).colB ((graph x)°).colA).cone.π₂
+            ≫ ((graph x)°).colB))).1
+          (((HasPullbacks.has (graph x).colB ((graph x)°).colA).lift
+            ⟨one, elPt a, elPt b, hw⟩).1 pt1)) = a
+    rw [comp_fn, harr, ← comp_fn _ fst, fst_pair, comp_fn]
+    exact Mor.congr ((HasPullbacks.has (graph x).colB ((graph x)°).colA).lift_fst
+      ⟨one, elPt a, elPt b, hw⟩) pt1
+  · have harr : (image (pair
+        ((HasPullbacks.has (graph x).colB ((graph x)°).colA).cone.π₁ ≫ (graph x).colA)
+        ((HasPullbacks.has (graph x).colB ((graph x)°).colA).cone.π₂
+          ≫ ((graph x)°).colB))).arr.1
+        ((image.lift (pair
+          ((HasPullbacks.has (graph x).colB ((graph x)°).colA).cone.π₁ ≫ (graph x).colA)
+          ((HasPullbacks.has (graph x).colB ((graph x)°).colA).cone.π₂
+            ≫ ((graph x)°).colB))).1
+          (((HasPullbacks.has (graph x).colB ((graph x)°).colA).lift
+            ⟨one, elPt a, elPt b, hw⟩).1 pt1))
+        = (pair
+          ((HasPullbacks.has (graph x).colB ((graph x)°).colA).cone.π₁ ≫ (graph x).colA)
+          ((HasPullbacks.has (graph x).colB ((graph x)°).colA).cone.π₂
+            ≫ ((graph x)°).colB)).1
+          (((HasPullbacks.has (graph x).colB ((graph x)°).colA).lift
+            ⟨one, elPt a, elPt b, hw⟩).1 pt1) :=
+      Mor.congr (image.lift_fac _) _
+    show ((image (pair
+        ((HasPullbacks.has (graph x).colB ((graph x)°).colA).cone.π₁ ≫ (graph x).colA)
+        ((HasPullbacks.has (graph x).colB ((graph x)°).colA).cone.π₂
+          ≫ ((graph x)°).colB))).arr ≫ snd).1
+        ((image.lift (pair
+          ((HasPullbacks.has (graph x).colB ((graph x)°).colA).cone.π₁ ≫ (graph x).colA)
+          ((HasPullbacks.has (graph x).colB ((graph x)°).colA).cone.π₂
+            ≫ ((graph x)°).colB))).1
+          (((HasPullbacks.has (graph x).colB ((graph x)°).colA).lift
+            ⟨one, elPt a, elPt b, hw⟩).1 pt1)) = b
+    rw [comp_fn, harr, ← comp_fn _ snd, snd_pair, comp_fn]
+    exact Mor.congr ((HasPullbacks.has (graph x).colB ((graph x)°).colA).lift_snd
+      ⟨one, elPt a, elPt b, hw⟩) pt1
+
+/-- **E is not effective**: it is not the level of any cover of R. -/
+theorem ERel_not_effective : ¬ IsEffective ERel := by
+  rintro ⟨_, Q, x, hcov, hEle, hlevE⟩
+  obtain ⟨⟨h₁, h₁A, h₁B⟩⟩ := hEle
+  obtain ⟨⟨h₂, h₂A, h₂B⟩⟩ := hlevE
+  -- (1) E-related points are identified by x (E is below the level of x)
+  have hxeq : ERel.colA ≫ x = ERel.colB ≫ x := by
+    have hll := level_legs_comp x
+    calc ERel.colA ≫ x = (h₁ ≫ (graph x ⊚ (graph x)°).colA) ≫ x := by rw [h₁A]
+      _ = h₁ ≫ ((graph x ⊚ (graph x)°).colA ≫ x) := Cat.assoc _ _ _
+      _ = h₁ ≫ ((graph x ⊚ (graph x)°).colB ≫ x) := by rw [hll]
+      _ = (h₁ ≫ (graph x ⊚ (graph x)°).colB) ≫ x := (Cat.assoc _ _ _).symm
+      _ = ERel.colB ≫ x := by rw [h₁B]
+  have hxESet : ∀ a b : Nat, ESet a b → x.1 a = x.1 b := by
+    intro a b hab
+    obtain ⟨n, hna, hnb⟩ := hab
+    have hthis := Mor.congr hxeq ((image.lift FE).1 n)
+    rw [comp_fn, comp_fn, (ERel_lift n).1, (ERel_lift n).2, hna, hnb] at hthis
+    exact hthis
+  -- (2) x-identified points are E-related (the level of x is below E)
+  have hExSet : ∀ a b : Nat, x.1 a = x.1 b → ESet a b := by
+    intro a b hab
+    obtain ⟨w, hwa, hwb⟩ := levelSet_of_eq x hab
+    have hm := ERel_mem (h₂.1 w)
+    have e1 : ERel.colA.1 (h₂.1 w) = a := by
+      have hc := Mor.congr h₂A w
+      rw [comp_fn] at hc
+      rw [hc, hwa]
+    have e2 : ERel.colB.1 (h₂.1 w) = b := by
+      have hc := Mor.congr h₂B w
+      rw [comp_fn] at hc
+      rw [hc, hwb]
+    rw [e1, e2] at hm
+    exact hm
+  -- (3) covers split, so the representative chooser x ≫ s is recursive and
+  -- decides the halting set
+  obtain ⟨s, hs⟩ := cover_split x hcov
+  have hrepx : ∀ a b : Nat, morN (x ≫ s) a = morN (x ≫ s) b ↔ x.1 a = x.1 b := by
+    intro a b
+    constructor
+    · intro h
+      have ha := morN_spec (x ≫ s) (a : El (omega : ExtNat))
+      have hb := morN_spec (x ≫ s) (b : El (omega : ExtNat))
+      have hsx : s.1 (x.1 a) = s.1 (x.1 b) := by
+        have : toNat ((x ≫ s).1 a) = toNat ((x ≫ s).1 b) := by
+          rw [← ha, ← hb]; exact h
+        exact toNat_inj this
+      calc x.1 a = (s ≫ x).1 (x.1 a) := (Mor.congr hs (x.1 a)).symm
+        _ = x.1 (s.1 (x.1 a)) := rfl
+        _ = x.1 (s.1 (x.1 b)) := by rw [hsx]
+        _ = (s ≫ x).1 (x.1 b) := rfl
+        _ = x.1 b := Mor.congr hs (x.1 b)
+    · intro h
+      have ha' : morN (x ≫ s) a = toNat ((x ≫ s).1 a) :=
+        morN_spec (x ≫ s) (a : El (omega : ExtNat))
+      have hb' : morN (x ≫ s) b = toNat ((x ≫ s).1 b) :=
+        morN_spec (x ≫ s) (b : El (omega : ExtNat))
+      rw [ha', hb']
+      show toNat (s.1 (x.1 a)) = toNat (s.1 (x.1 b))
+      rw [h]
+  -- the decision procedure for Kc
+  apply K_not_recursive
+  refine ⟨fun e => eqInd (morN (x ≫ s) (2 * e)) (morN (x ≫ s) (2 * e + 1)), ?_, ?_⟩
+  · -- it is recursive
+    have hdb : Recursive1 fun e => 2 * e :=
+      Recursive1.mul (Recursive1.const 2) Recursive1.id
+    have h1 : Recursive1 fun e => morN (x ≫ s) (2 * e) :=
+      Recursive1.comp hdb (morN_rec (x ≫ s))
+    have h2 : Recursive1 fun e => morN (x ≫ s) (2 * e + 1) :=
+      Recursive1.comp (Recursive1.add hdb (Recursive1.const 1)) (morN_rec (x ≫ s))
+    exact Recursive1.comp2 Recursive2.eqInd h1 h2
+  · -- it decides Kc
+    intro e
+    constructor
+    · intro hK
+      have hE : ESet (2 * e) (2 * e + 1) :=
+        ESet_iff.mpr (Or.inr ⟨by omega, by omega, by
+          rw [show (2 * e) / 2 = e from by omega]; exact hK⟩)
+      exact eqInd_eq ((hrepx _ _).mpr (hxESet _ _ hE))
+    · intro hχ
+      have hE : ESet (2 * e) (2 * e + 1) :=
+        hExSet _ _ ((hrepx _ _).mp (eqInd_one_iff.mp hχ))
+      rcases ESet_iff.mp hE with h | ⟨_, _, hK⟩
+      · omega
+      · rw [show (2 * e) / 2 = e from by omega] at hK
+        exact hK
+
+/-- **§1.572 HEADLINE (negative part): R is NOT an effective regular category.**
+    The equivalence relation `E` — gluing `2e ~ 2e+1` exactly when `e` halts on
+    itself — is an equivalence relation of R but the level of no cover. -/
+theorem r_not_effective :
+    ¬ ∀ (E : BinRel ExtNat omega omega), EquivalenceRelation E → IsEffective E :=
+  fun h => ERel_not_effective (h ERel ⟨ERel_equivalence.1, ERel_equivalence.2.1,
+    ERel_equivalence.2.2⟩)
+
+/-- The witness form of the headline. -/
+theorem r_not_effective_witness :
+    ∃ E : BinRel ExtNat omega omega, EquivalenceRelation E ∧ ¬ IsEffective E :=
+  ⟨ERel, ERel_equivalence, ERel_not_effective⟩
+
 end Freyd.Rcat
