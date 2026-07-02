@@ -227,7 +227,11 @@ any allegory-representation sends lattice elements to pairwise-commuting equival
 law; ALL axiom-free; S2_156_PartitionRep) · §2.155 MODULAR-IDENTITY INDEPENDENCE (`BObj` = ∅-or-bientire relations:
 category, semi-lattice homs via guarded `interB`, all Allegory fields EXCEPT modular proven, `modular_fails` concrete
 witness, `b_not_closed_inter`, `b_tabular` — so modularity ⊄ tabularity; `map_b_terminator`+`map_b_no_products` —
-Map(B) not regular; S2_155_BiEntire).
+Map(B) not regular; S2_155_BiEntire) · §2.16(13) AC vs EFFECTIVE REFLECTION (general theorem, all [propext]:
+`embEq` full/faithful 𝒜↪Spl(Eq 𝒜); `covHom_cover` every object covered by an embedded one; `embEq_projective`(+`_lifts`)
+embedded objects projective under AC; headline `projective_iff_isoEmbedded` — projectives of Spl(Eq 𝒜) = isomorphs of
+embedded objects; `not_coversSplit_of_not_effective` = book's "C not effective ⟹ Ĉ not AC"; S2_16c. The recursive/
+primitive-recursive INSTANCES of §2.16(13) remain with §1.572/§1.573).
 PARTIAL: §2.224 GLOBAL COMPLETION Aᴴ — now a FAITHFUL LCDA REPRESENTATION (`globalCat`/`globalAllegory`/
 `globalDistributiveAllegory`/`globalLCDA`/`globalCompletion_faithful`, all constructive; infinite matrices over the LCDA Sup,
 identity via propositional i=j + HEq, modular per-entry, assoc/Sup = Fubini interchange). The final GloballyComplete instance is
@@ -235,7 +239,7 @@ UNIVERSE-BLOCKED (disjoint union of u-indexed families escapes to u+1; the compl
 — needs a class redesign, not just a universe-poly GlobalObj) · §2.226 SYSTEMIC COMPLETION (assumes splitting witness; full
 unit-existence blocked by §2.224 GloballyComplete).
 MISSING: §2.153 assemblies · §2.157–§2.158 projective-planes/no-finite-axiom ·
-§2.154 categories-iso headline · §2.16(13)/(14) recursive/assemblies · §2.21(10).
+§2.154 categories-iso headline · §2.16(13) recursive instances · §2.16(14) assemblies · §2.21(10).
 
 ## §2.2  Distributive allegories
 

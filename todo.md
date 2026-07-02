@@ -60,6 +60,10 @@ merged class `TabularUnitaryUnguardedPowerAllegory`): Map(A) has FULL power obje
 - ~~**§2.156**~~ — **DONE** (`S2_156_PartitionRep`, merged 7f4ab7d, ALL axiom-free): modular lattice ⟹ §2.113
   one-object allegory; representations send elements to pairwise-commuting equivalence relations;
   `partition_representation` (join ↦ composition = equivalence-relation join); `equivRel_modular` converse.
+- ~~**§2.16(13)** general theorem~~ — **DONE** (`S2_16c`, merged 80d6ee1, all [propext]): AC vs effective
+  reflection — `projective_iff_isoEmbedded` (projectives of Spl(Eq 𝒜) = isomorphs of embedded objects),
+  `not_coversSplit_of_not_effective` ("C not effective ⟹ Ĉ not AC"). The recursive/primitive-recursive
+  instances remain (need §1.572/§1.573 as pre-logoi).
 - **§2.157–§2.158**, **§2.417** (generator counterexample) — specific model/example constructions
   (projective planes / Desargues Horn sentence; graph-allegory no-finite-axiomatization).
 
