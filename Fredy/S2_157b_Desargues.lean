@@ -243,4 +243,250 @@ theorem desarguesHorn_implies_desargues {P : ProjectivePlane.{u}}
     h1 h2 h3 h4 h5 h6 h7 h8 h9 hpa hpb hpc hab₁ hab₂ hac₁ hac₂ hcb₁ hcb₂
     hLab hSac hScb huv
 
+/-! ## The converse: the Horn sentence read in 𝓛(P)
+
+  In the one-object allegory on 𝓛(P) composition is `⊔`, intersection is `⊓`,
+  reciprocation is the identity and `⊑` is the lattice order (§2.156/§2.113),
+  so the Horn sentence IS a lattice-level statement, one instance per 6-tuple
+  of lattice elements.  We name its hypothesis and conclusion, record the two
+  symmetries of the sentence (swapping the A- and B-columns; swapping the
+  1- and 2-rows), and prove the pruning lemmas that dispose of degenerate
+  instantiations before the geometry starts. -/
+
+namespace PElem
+
+variable {P : ProjectivePlane.{u}}
+
+/-- The HYPOTHESIS `(A₁A₂ ∩ B₁B₂) ⊂ C₁C₂` of the §2.157 Horn sentence, read in
+    the lattice 𝓛(P): composition is `⊔`, intersection `⊓`, order `⩽`. -/
+def HornHyp (a₁ a₂ b₁ b₂ c₁ c₂ : PElem P) : Prop :=
+  ((a₁.join a₂).meet (b₁.join b₂)).le (c₁.join c₂)
+
+/-- The CONCLUSION `(A₁°B₁ ∩ A₂B₂°) ⊂ (A₁°C₁ ∩ A₂C₂°)(C₁°B₁ ∩ C₂B₂°)` of the
+    §2.157 Horn sentence, read in the lattice 𝓛(P) (reciprocation is the
+    identity there). -/
+def HornConc (a₁ a₂ b₁ b₂ c₁ c₂ : PElem P) : Prop :=
+  ((a₁.join b₁).meet (a₂.join b₂)).le
+    (((a₁.join c₁).meet (a₂.join c₂)).join ((c₁.join b₁).meet (c₂.join b₂)))
+
+/-! ### The two symmetries of the Horn sentence -/
+
+theorem HornHyp.swap_ab {a₁ a₂ b₁ b₂ c₁ c₂ : PElem P}
+    (h : HornHyp a₁ a₂ b₁ b₂ c₁ c₂) : HornHyp b₁ b₂ a₁ a₂ c₁ c₂ := by
+  show ((b₁.join b₂).meet (a₁.join a₂)).le (c₁.join c₂)
+  rw [meet_comm]; exact h
+
+theorem HornHyp.swap_idx {a₁ a₂ b₁ b₂ c₁ c₂ : PElem P}
+    (h : HornHyp a₁ a₂ b₁ b₂ c₁ c₂) : HornHyp a₂ a₁ b₂ b₁ c₂ c₁ := by
+  show ((a₂.join a₁).meet (b₂.join b₁)).le (c₂.join c₁)
+  rw [join_comm a₂ a₁, join_comm b₂ b₁, join_comm c₂ c₁]; exact h
+
+theorem HornConc.of_swap_ab {a₁ a₂ b₁ b₂ c₁ c₂ : PElem P}
+    (h : HornConc b₁ b₂ a₁ a₂ c₁ c₂) : HornConc a₁ a₂ b₁ b₂ c₁ c₂ := by
+  have h' : ((b₁.join a₁).meet (b₂.join a₂)).le
+      (((b₁.join c₁).meet (b₂.join c₂)).join ((c₁.join a₁).meet (c₂.join a₂))) := h
+  rwa [join_comm b₁ a₁, join_comm b₂ a₂, join_comm b₁ c₁, join_comm b₂ c₂,
+    join_comm c₁ a₁, join_comm c₂ a₂,
+    join_comm ((c₁.join b₁).meet (c₂.join b₂))] at h'
+
+theorem HornConc.of_swap_idx {a₁ a₂ b₁ b₂ c₁ c₂ : PElem P}
+    (h : HornConc a₂ a₁ b₂ b₁ c₂ c₁) : HornConc a₁ a₂ b₁ b₂ c₁ c₂ := by
+  have h' : ((a₂.join b₂).meet (a₁.join b₁)).le
+      (((a₂.join c₂).meet (a₁.join c₁)).join ((c₂.join b₂).meet (c₁.join b₁))) := h
+  rwa [meet_comm (a₂.join b₂), meet_comm (a₂.join c₂), meet_comm (c₂.join b₂)] at h'
+
+/-! ### Pruning lemmas: degenerate instantiations that need no geometry -/
+
+/-- SUFFICIENCY (left): if `a₁ ⩽ a₂ ⊔ c₂` and `b₁ ⩽ c₂ ⊔ b₂` then the Horn
+    conclusion holds outright — the left column already sits under the two
+    conclusion meets. -/
+theorem hornConc_of_left {a₁ a₂ b₁ b₂ c₁ c₂ : PElem P}
+    (h₁ : a₁.le (a₂.join c₂)) (h₂ : b₁.le (c₂.join b₂)) :
+    HornConc a₁ a₂ b₁ b₂ c₁ c₂ :=
+  le_trans (meet_le_left _ _)
+    (join_le (le_trans (le_meet (le_join_left a₁ c₁) h₁) (le_join_left _ _))
+      (le_trans (le_meet (le_join_right c₁ b₁) h₂) (le_join_right _ _)))
+
+/-- SUFFICIENCY (right), the `swap_idx` mirror of `hornConc_of_left`. -/
+theorem hornConc_of_right {a₁ a₂ b₁ b₂ c₁ c₂ : PElem P}
+    (h₁ : a₂.le (a₁.join c₁)) (h₂ : b₂.le (c₁.join b₁)) :
+    HornConc a₁ a₂ b₁ b₂ c₁ c₂ :=
+  HornConc.of_swap_idx (hornConc_of_left h₁ h₂)
+
+/-- PRUNING `c₁ = ⊤`: the Horn conclusion holds outright (no hypothesis):
+    both conclusion meets collapse to their second factor and their join
+    dominates `a₂ ⊔ b₂ ⊒` LHS. -/
+theorem hornConc_top_c₁ (a₁ a₂ b₁ b₂ c₂ : PElem P) :
+    HornConc a₁ a₂ b₁ b₂ top c₂ := by
+  show ((a₁.join b₁).meet (a₂.join b₂)).le
+    (((a₁.join top).meet (a₂.join c₂)).join ((top.join b₁).meet (c₂.join b₂)))
+  rw [join_top_right a₁, join_top_left b₁, meet_top_left, meet_top_left]
+  exact le_trans (meet_le_right _ _)
+    (join_le (le_trans (le_join_left a₂ c₂) (le_join_left _ _))
+      (le_trans (le_join_right c₂ b₂) (le_join_right _ _)))
+
+/-- PRUNING `c₂ = ⊤`, by the row symmetry. -/
+theorem hornConc_top_c₂ (a₁ a₂ b₁ b₂ c₁ : PElem P) :
+    HornConc a₁ a₂ b₁ b₂ c₁ top :=
+  HornConc.of_swap_idx (hornConc_top_c₁ a₂ a₁ b₂ b₁ c₁)
+
+/-- PRUNING `a₁ = ⊤` (uses the hypothesis and MODULARITY): the hypothesis
+    collapses to `b₁ ⊔ b₂ ⩽ c₁ ⊔ c₂`, and `b₂ ⩽ (c₂⊔b₂) ⊓ (c₁⊔c₂) =
+    ((c₂⊔b₂) ⊓ c₁) ⊔ c₂` splits under the two conclusion meets. -/
+theorem horn_top_a₁ {a₂ b₁ b₂ c₁ c₂ : PElem P}
+    (h : HornHyp top a₂ b₁ b₂ c₁ c₂) : HornConc top a₂ b₁ b₂ c₁ c₂ := by
+  have hyp : (b₁.join b₂).le (c₁.join c₂) := by
+    have h' : ((PElem.top.join a₂).meet (b₁.join b₂)).le (c₁.join c₂) := h
+    rwa [join_top_left a₂, meet_top_left] at h'
+  show ((PElem.top.join b₁).meet (a₂.join b₂)).le
+    (((PElem.top.join c₁).meet (a₂.join c₂)).join ((c₁.join b₁).meet (c₂.join b₂)))
+  rw [join_top_left b₁, meet_top_left, join_top_left c₁, meet_top_left]
+  apply join_le
+  · exact le_trans (le_join_left a₂ c₂) (le_join_left _ _)
+  · have h1 : b₂.le ((c₂.join b₂).meet (c₁.join c₂)) :=
+      le_meet (le_join_right c₂ b₂) (le_trans (le_join_right b₁ b₂) hyp)
+    rw [modular_eq (le_join_left c₂ b₂)] at h1
+    exact le_trans h1 (join_le
+      (le_trans (le_meet (le_trans (meet_le_right (c₂.join b₂) c₁) (le_join_left c₁ b₁))
+          (meet_le_left (c₂.join b₂) c₁))
+        (le_join_right _ _))
+      (le_trans (le_join_right a₂ c₂) (le_join_left _ _)))
+
+/-- PRUNING `a₂ = ⊤`, by the row symmetry. -/
+theorem horn_top_a₂ {a₁ b₁ b₂ c₁ c₂ : PElem P}
+    (h : HornHyp a₁ top b₁ b₂ c₁ c₂) : HornConc a₁ top b₁ b₂ c₁ c₂ :=
+  HornConc.of_swap_idx (horn_top_a₁ h.swap_idx)
+
+/-- PRUNING `b₁ = ⊤`, by the column symmetry. -/
+theorem horn_top_b₁ {a₁ a₂ b₂ c₁ c₂ : PElem P}
+    (h : HornHyp a₁ a₂ top b₂ c₁ c₂) : HornConc a₁ a₂ top b₂ c₁ c₂ :=
+  HornConc.of_swap_ab (horn_top_a₁ h.swap_ab)
+
+/-- PRUNING `b₂ = ⊤`, by both symmetries. -/
+theorem horn_top_b₂ {a₁ a₂ b₁ c₁ c₂ : PElem P}
+    (h : HornHyp a₁ a₂ b₁ top c₁ c₂) : HornConc a₁ a₂ b₁ top c₁ c₂ :=
+  HornConc.of_swap_ab (horn_top_a₂ h.swap_ab)
+
+end PElem
+
+/-! ## The bridge: the allegory Horn sentence IS the lattice statement -/
+
+/-- The lattice-level Horn statement transfers to the allegory-level
+    `DesarguesHorn` on `LMonObj (PElem P)`: all five objects are `star`, homs
+    are lattice elements, composition/intersection/order are `⊔`/`⊓`/`⩽` and
+    reciprocation is the identity (converse of `desarguesHorn_toLattice`). -/
+theorem desarguesHorn_of_latticeHorn {P : ProjectivePlane.{u}}
+    (h : ∀ a₁ a₂ b₁ b₂ c₁ c₂ : PElem P,
+      PElem.HornHyp a₁ a₂ b₁ b₂ c₁ c₂ → PElem.HornConc a₁ a₂ b₁ b₂ c₁ c₂) :
+    DesarguesHorn (LMonObj (PElem P)) := by
+  intro p q a b c A₁ A₂ B₁ B₂ C₁ C₂ hyp
+  cases p; cases q; cases a; cases b; cases c
+  exact PElem.le_iff_meet_eq.mp
+    (h A₁ A₂ B₁ B₂ C₁ C₂ (PElem.le_iff_meet_eq.mpr hyp))
+
+/-- **§2.157**: on the associated allegory of 𝓛(P) the Desargues Horn sentence
+    is EXACTLY the lattice-level statement `HornHyp → HornConc`, one instance
+    per 6-tuple of lattice elements. -/
+theorem desarguesHorn_iff_latticeHorn {P : ProjectivePlane.{u}} :
+    DesarguesHorn (LMonObj (PElem P)) ↔
+      ∀ a₁ a₂ b₁ b₂ c₁ c₂ : PElem P,
+        PElem.HornHyp a₁ a₂ b₁ b₂ c₁ c₂ → PElem.HornConc a₁ a₂ b₁ b₂ c₁ c₂ :=
+  ⟨fun h a₁ a₂ b₁ b₂ c₁ c₂ hy => desarguesHorn_toLattice h a₁ a₂ b₁ b₂ c₁ c₂ hy,
+   desarguesHorn_of_latticeHorn⟩
+
+/-! ## The converse, geometric core: Desargues forces the Horn conclusion at
+  the generic six-point instantiations
+
+  "Writing a₁, a₂, b₁, … as A₁, A₂, B₁, …": instantiate the six Horn variables
+  at the six atoms `pt a₁, …, pt c₂`.  For a configuration in general position
+  (the fifteen side conditions below) the lattice computation runs exactly
+  backwards through `desarguesHorn_implies_desargues_nondeg`:
+
+  · the Horn HYPOTHESIS evaluates to "`p := a₁a₂ ∧ b₁b₂` lies on the line
+    `c₁c₂`", i.e. the three perspective triples are colinear through `p`;
+  · the Horn CONCLUSION evaluates to `pt w ⩽ (pt u) ⊔ (pt v)` where `u, v, w`
+    are the meets of the three pairs of corresponding sides;
+  · `u ≠ v` (else, the two triangles being genuine, `u = c₁` and `u = c₂`),
+    so the conclusion is exactly `w ∈ uv` — the theorem of Desargues. -/
+
+open PElem in
+/-- **§2.157, converse direction, generic instantiations**: if the plane
+    satisfies the (honest ten-point) theorem of Desargues then the Horn
+    sentence holds in 𝓛(P) at every six-point instantiation in general
+    position. -/
+theorem desarguesND_implies_horn_points {P : ProjectivePlane.{u}}
+    (hDes : P.DesarguesND) (a₁ a₂ b₁ b₂ c₁ c₂ : P.Point)
+    -- the perspective pairs are distinct (their joins are the perspective lines)
+    (hpa : a₁ ≠ a₂) (hpb : b₁ ≠ b₂) (hpc : c₁ ≠ c₂)
+    -- each triangle has genuine sides
+    (hab₁ : a₁ ≠ b₁) (hac₁ : a₁ ≠ c₁) (hcb₁ : c₁ ≠ b₁)
+    (hab₂ : a₂ ≠ b₂) (hac₂ : a₂ ≠ c₂) (hcb₂ : c₂ ≠ b₂)
+    -- the perspective lines are distinct (their meet is the centre p)
+    (hLab : P.lineThrough a₁ a₂ ≠ P.lineThrough b₁ b₂)
+    -- corresponding sides are distinct (their meets are u, v, w)
+    (hSab : P.lineThrough a₁ b₁ ≠ P.lineThrough a₂ b₂)
+    (hSac : P.lineThrough a₁ c₁ ≠ P.lineThrough a₂ c₂)
+    (hScb : P.lineThrough c₁ b₁ ≠ P.lineThrough c₂ b₂)
+    -- the triangles are genuine (their c-corner sides differ)
+    (hT₁ : P.lineThrough a₁ c₁ ≠ P.lineThrough c₁ b₁)
+    (hT₂ : P.lineThrough a₂ c₂ ≠ P.lineThrough c₂ b₂)
+    (hyp : HornHyp (pt a₁) (pt a₂) (pt b₁) (pt b₂) (pt c₁) (pt c₂)) :
+    HornConc (pt a₁) (pt a₂) (pt b₁) (pt b₂) (pt c₁) (pt c₂) := by
+  -- the Horn hypothesis: the perspective centre p lies on the line c₁c₂
+  have hyp' : (((pt a₁).join (pt a₂)).meet ((pt b₁).join (pt b₂))).le
+      ((pt c₁).join (pt c₂)) := hyp
+  rw [join_pt_pt_ne hpa, join_pt_pt_ne hpb, join_pt_pt_ne hpc,
+    meet_ln_ln_ne hLab] at hyp'
+  -- the three side-meets (u, v, w in the book's picture)
+  have hconc : P.Colinear
+      (P.meetPoint (P.lineThrough a₁ c₁) (P.lineThrough a₂ c₂))
+      (P.meetPoint (P.lineThrough c₁ b₁) (P.lineThrough c₂ b₂))
+      (P.meetPoint (P.lineThrough a₁ b₁) (P.lineThrough a₂ b₂)) :=
+    hDes (P.meetPoint (P.lineThrough a₁ a₂) (P.lineThrough b₁ b₂))
+      a₁ a₂ b₁ b₂ c₁ c₂ _ _ _
+      ⟨P.lineThrough a₁ a₂, P.meetPoint_incid_left _ _,
+        P.lineThrough_incid_left a₁ a₂, P.lineThrough_incid_right a₁ a₂⟩
+      ⟨P.lineThrough b₁ b₂, P.meetPoint_incid_right _ _,
+        P.lineThrough_incid_left b₁ b₂, P.lineThrough_incid_right b₁ b₂⟩
+      ⟨P.lineThrough c₁ c₂, hyp',
+        P.lineThrough_incid_left c₁ c₂, P.lineThrough_incid_right c₁ c₂⟩
+      ⟨P.lineThrough a₁ c₁, P.lineThrough_incid_left a₁ c₁,
+        P.lineThrough_incid_right a₁ c₁, P.meetPoint_incid_left _ _⟩
+      ⟨P.lineThrough a₂ c₂, P.lineThrough_incid_left a₂ c₂,
+        P.lineThrough_incid_right a₂ c₂, P.meetPoint_incid_right _ _⟩
+      ⟨P.lineThrough c₁ b₁, P.lineThrough_incid_right c₁ b₁,
+        P.lineThrough_incid_left c₁ b₁, P.meetPoint_incid_left _ _⟩
+      ⟨P.lineThrough c₂ b₂, P.lineThrough_incid_right c₂ b₂,
+        P.lineThrough_incid_left c₂ b₂, P.meetPoint_incid_right _ _⟩
+      ⟨P.lineThrough a₁ b₁, P.lineThrough_incid_left a₁ b₁,
+        P.lineThrough_incid_right a₁ b₁, P.meetPoint_incid_left _ _⟩
+      ⟨P.lineThrough a₂ b₂, P.lineThrough_incid_left a₂ b₂,
+        P.lineThrough_incid_right a₂ b₂, P.meetPoint_incid_right _ _⟩
+      hab₁ hac₁ hcb₁ hab₂ hac₂ hcb₂ hSab hSac hScb
+  -- u ≠ v: otherwise u is pinned to both c₁ and c₂ (the triangles are genuine)
+  have huv : P.meetPoint (P.lineThrough a₁ c₁) (P.lineThrough a₂ c₂) ≠
+      P.meetPoint (P.lineThrough c₁ b₁) (P.lineThrough c₂ b₂) := by
+    intro huv_eq
+    have h1 : P.meetPoint (P.lineThrough a₁ c₁) (P.lineThrough a₂ c₂) = c₁ :=
+      ProjectivePlane.eq_of_incid_two_lines hT₁
+        (P.meetPoint_incid_left _ _)
+        (by rw [huv_eq]; exact P.meetPoint_incid_left _ _)
+        (P.lineThrough_incid_right a₁ c₁) (P.lineThrough_incid_left c₁ b₁)
+    have h2 : P.meetPoint (P.lineThrough a₁ c₁) (P.lineThrough a₂ c₂) = c₂ :=
+      ProjectivePlane.eq_of_incid_two_lines hT₂
+        (P.meetPoint_incid_right _ _)
+        (by rw [huv_eq]; exact P.meetPoint_incid_right _ _)
+        (P.lineThrough_incid_right a₂ c₂) (P.lineThrough_incid_left c₂ b₂)
+    exact hpc (h1.symm.trans h2)
+  -- the Horn conclusion: pt w ⩽ pt u ⊔ pt v = ln (uv)
+  show (((pt a₁).join (pt b₁)).meet ((pt a₂).join (pt b₂))).le
+    ((((pt a₁).join (pt c₁)).meet ((pt a₂).join (pt c₂))).join
+      (((pt c₁).join (pt b₁)).meet ((pt c₂).join (pt b₂))))
+  rw [join_pt_pt_ne hab₁, join_pt_pt_ne hab₂, meet_ln_ln_ne hSab,
+    join_pt_pt_ne hac₁, join_pt_pt_ne hac₂, meet_ln_ln_ne hSac,
+    join_pt_pt_ne hcb₁, join_pt_pt_ne hcb₂, meet_ln_ln_ne hScb,
+    join_pt_pt_ne huv]
+  obtain ⟨N, huN, hvN, hwN⟩ := hconc
+  exact P.incid_lineThrough_of_mem huv huN hvN hwN
+
 end Freyd.Alg
