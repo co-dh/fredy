@@ -214,7 +214,10 @@ coref-split⟺tabular · §2.164 Spl(𝓔) + embHom-faithful · §2.165/§2.166/
 tabular-reflection=Spl(Cor) · §2.169 EFFECTIVE · §2.16(10) SEMI-SIMPLE · §2.16(12) 𝒱-valued sets.
 DONE (newly): §2.113 l-monoid one-object allegory (`LMonObj`; the modular law — the one axiom a general l-monoid lacks —
 isolated as `ModularLOCMonoid`, Bool witness) · §2.222 ideal-allegory LCDA (`idealAllegory_locallyComplete`/`_faithful`;
-the Downdeal allegory IS the ideal allegory) · §2.225 union-of-SS⟹SS (`semiSimple_of_iSup_semiSimple`).
+the Downdeal allegory IS the ideal allegory) · §2.225 union-of-SS⟹SS (`semiSimple_of_iSup_semiSimple`) ·
+§2.16(11) NEIGHBORS (`Neighbors`/`neighbors_split_transfer`/`neighbors_of_catSplits`; headline `idempotent_splits_in_spl` —
+the two containments ⟹ split in Spl(𝒮ℐ𝒹); `partialOrder_no_split`/`strictDense_no_split`, book's strict-dense containment
+misprint noted; S2_16b).
 PARTIAL: §2.224 GLOBAL COMPLETION Aᴴ — now a FAITHFUL LCDA REPRESENTATION (`globalCat`/`globalAllegory`/
 `globalDistributiveAllegory`/`globalLCDA`/`globalCompletion_faithful`, all constructive; infinite matrices over the LCDA Sup,
 identity via propositional i=j + HEq, modular per-entry, assoc/Sup = Fubini interchange). The final GloballyComplete instance is
@@ -222,7 +225,7 @@ UNIVERSE-BLOCKED (disjoint union of u-indexed families escapes to u+1; the compl
 — needs a class redesign, not just a universe-poly GlobalObj) · §2.226 SYSTEMIC COMPLETION (assumes splitting witness; full
 unit-existence blocked by §2.224 GloballyComplete).
 MISSING: §2.153 assemblies · §2.155–§2.158 examples/projective-planes/free-rep/no-finite-axiom ·
-§2.154 categories-iso headline · §2.168 ⟨I,∃⟩ presentation · §2.16(11)/(13)/(14) neighbors/recursive/assemblies · §2.21(10).
+§2.154 categories-iso headline · §2.168 ⟨I,∃⟩ presentation · §2.16(13)/(14) recursive/assemblies · §2.21(10).
 
 ## §2.2  Distributive allegories
 
