@@ -475,4 +475,89 @@ theorem monotonicAlg_in_context {c : 𝒜} {h : F.obj a ⟶ a} {R : a ⟶ a} {co
 
 end Prop9_3
 
+/-! ## Proposition 9.4 (B&dM pp.223-224) — bifunctor conditions
+
+  Back in the file's ambient `UnguardedPowerLCDA` setting.  B&dM's monotonicity/thinning
+  conditions for Theorems 9.1/9.2 are often checked through a BIFUNCTOR `G` (e.g. `G(X,Y) :=
+  X × Y` or a coproduct) with the algebra `h` living over `G` applied to a distinguished
+  extra argument `e` — Prop 9.4 packages sufficient conditions on `G` alone.  No existing
+  `Birelator`/allegory-bifunctor infra elsewhere in the repo (`S1_85`'s bifunctor is for plain
+  categories, chapter 1), so the minimal structure is defined here. -/
+
+/-- A **BIRELATOR** (B&dM p.223's implicit bifunctor setting): a relator in each argument
+    jointly, bundled as one two-argument action — the minimal bifunctor structure needed to
+    state Proposition 9.4. -/
+structure Birelator (𝒜 : Type u) [Allegory 𝒜] where
+  obj : 𝒜 → 𝒜 → 𝒜
+  map : ∀ {a b c d : 𝒜}, (a ⟶ b) → (c ⟶ d) → (obj a c ⟶ obj b d)
+  map_id : ∀ (a c : 𝒜), map (Cat.id a) (Cat.id c) = Cat.id (obj a c)
+  map_comp : ∀ {a b c d e f : 𝒜} (R : a ⟶ b) (R' : b ⟶ c) (S : d ⟶ e) (S' : e ⟶ f),
+    map (R ≫ R') (S ≫ S') = map R S ≫ map R' S'
+  map_mono : ∀ {a b c d : 𝒜} {R R' : a ⟶ b} {S S' : c ⟶ d}, R ⊑ R' → S ⊑ S' → map R S ⊑ map R' S'
+
+/-- A birelator PRESERVES CONVERSE when `G(R°, S°) = (G(R,S))°`. -/
+def Birelator.PreservesRecip (G : Birelator 𝒜) : Prop :=
+  ∀ {a b c d : 𝒜} (R : a ⟶ b) (S : c ⟶ d), G.map R° S° = (G.map R S)°
+
+/-- "Fix the left argument at `e`": `G.fixLeft e` is the RELATOR `A ↦ G(e, A)`, `R ↦ G(id_e,
+    R)` — functoriality follows from `G`'s bifunctoriality with the left slot frozen at the
+    identity.  Prop 9.4's point: `MonotonicAlg h R` and Theorem 9.2's `hQ` for `F := G.fixLeft
+    e` are EXACTLY (by unfolding `map`) the conclusions of `birelator_fixLeft_mono` /
+    `birelator_thin_condition` below, at `Q := G.map U V` — so a monotonicity witness `hU` for
+    `G` (plus a reciprocal bound `hV` for the thinning case) suffices to run
+    `dynamic_programming`/`dynamic_programming_thin` on `G.fixLeft e`. -/
+def Birelator.fixLeft (G : Birelator 𝒜) (e : 𝒜) : Relator 𝒜 𝒜 where
+  obj := G.obj e
+  map := G.map (Cat.id e)
+  map_id a := G.map_id e a
+  map_comp R S := by
+    have h := G.map_comp (Cat.id e) (Cat.id e) R S
+    rwa [Cat.id_comp] at h
+  map_mono h := G.map_mono (le_refl (Cat.id e)) h
+
+/-- **Proposition 9.4(i) (B&dM p.223)**, monotonicity: if `h` is monotonic for `G` at some `U`
+    refined from below by `id_e` (`hUrefl`), then `h` is monotonic (in the ordinary
+    `MonotonicAlg` sense) for the fixed-left relator `G.fixLeft e`. -/
+theorem birelator_fixLeft_mono {G : Birelator 𝒜} {e : 𝒜} {h : G.obj e a ⟶ a} {R : a ⟶ a}
+    {U : e ⟶ e} (hUrefl : Cat.id e ⊑ U) (hU : G.map U R ≫ h ⊑ h ≫ R) :
+    G.map (Cat.id e) R ≫ h ⊑ h ≫ R :=
+  le_trans (comp_mono_right (G.map_mono hUrefl (le_refl R)) h) hU
+
+/-- **Proposition 9.4(ii) (B&dM pp.223-224)**, the thinning condition: given the same
+    monotonicity witness `hU` and a reciprocal bound `hV : V°·H ⊑ H·R°`, the thinning
+    relation `Q := G(U,V)` discharges `dynamic_programming_thin`'s hypothesis `hQ` for the
+    fixed-left relator `G.fixLeft e`. -/
+theorem birelator_thin_condition {G : Birelator 𝒜} (hGr : G.PreservesRecip) {e w : 𝒜}
+    {h : G.obj e a ⟶ a} {H : w ⟶ a} {R : a ⟶ a} {U : e ⟶ e} {V : w ⟶ w}
+    (hh : Map h) (hU : G.map U R ≫ h ⊑ h ≫ R) (hV : V° ≫ H ⊑ H ≫ R°) :
+    (G.map U V)° ≫ G.map (Cat.id e) H ≫ h ⊑ G.map (Cat.id e) H ≫ h ≫ R° := by
+  have eBC : G.map U° V° ≫ G.map (Cat.id e) H = G.map U° (V° ≫ H) := by
+    rw [← G.map_comp, Cat.comp_id]
+  have eE0 := G.map_comp (Cat.id e) U° H R°
+  rw [Cat.id_comp] at eE0
+  have step1 : (G.map U V)° ≫ G.map (Cat.id e) H ⊑ G.map (Cat.id e) H ≫ G.map U° R° := by
+    rw [← hGr U V, eBC, ← eE0]
+    exact G.map_mono (le_refl U°) hV
+  have hUrecip : h° ≫ G.map U° R° ⊑ R° ≫ h° := by
+    have hrm := recip_mono hU
+    have eL : (G.map U R ≫ h)° = h° ≫ G.map U° R° := by
+      rw [Allegory.recip_comp, ← hGr U R]
+    have eRr : (h ≫ R)° = R° ≫ h° := Allegory.recip_comp h R
+    rwa [eL, eRr] at hrm
+  have hpost : (h° ≫ G.map U° R°) ≫ h ⊑ (R° ≫ h°) ≫ h := comp_mono_right hUrecip h
+  have eLassoc : (h° ≫ G.map U° R°) ≫ h = h° ≫ (G.map U° R° ≫ h) := by rw [Cat.assoc]
+  have eRassoc : (R° ≫ h°) ≫ h = R° ≫ (h° ≫ h) := by rw [Cat.assoc]
+  rw [eLassoc, eRassoc] at hpost
+  have hRRcollapse : R° ≫ (h° ≫ h) ⊑ R° ≫ Cat.id a := comp_mono_left R° hh.2
+  rw [Cat.comp_id] at hRRcollapse
+  have step2 : G.map U° R° ≫ h ⊑ h ≫ R° :=
+    (map_shunt_left hh _ _).mp (le_trans hpost hRRcollapse)
+  have step3 := comp_mono_right step1 h
+  have e1 : ((G.map U V)° ≫ G.map (Cat.id e) H) ≫ h
+      = (G.map U V)° ≫ (G.map (Cat.id e) H ≫ h) := by rw [Cat.assoc]
+  have e2 : (G.map (Cat.id e) H ≫ G.map U° R°) ≫ h
+      = G.map (Cat.id e) H ≫ (G.map U° R° ≫ h) := by rw [Cat.assoc]
+  rw [e1, e2] at step3
+  exact le_trans step3 (comp_mono_left _ step2)
+
 end Freyd.Alg
