@@ -24,7 +24,7 @@
 
 import Fredy.S2_2
 import Fredy.S2_16
-import Fredy.S2_22  -- self_le_comp_recip_comp, symmetric_transitive_idempotent (§2.12)
+import Fredy.S2_22  -- le_comp_recip_comp (A4_1, via S2_22), symmetric_transitive_idempotent (§2.12)
 
 universe v u
 
@@ -463,7 +463,7 @@ theorem neighbors_of_containments {a : 𝒜} (A : a ⟶ a) (hA : A ≫ A = A)
     rwa [hAAA] at hstep
   · -- `(A∩A°) ≫ A ≫ (A∩A°) = A∩A°`: `⊑` is `h1`; `⊒` via `A∩A° ⊑ (A∩A°)³ ⊑ (A∩A°)A(A∩A°)`.
     refine le_antisymm h1 ?_
-    have h3 := self_le_comp_recip_comp (A ∩ A°)
+    have h3 := le_comp_recip_comp (A ∩ A°)
     rw [hsym, Cat.assoc] at h3
     -- h3 : `A∩A° ⊑ (A∩A°) ≫ (A∩A°) ≫ (A∩A°)`
     refine le_trans h3 ?_

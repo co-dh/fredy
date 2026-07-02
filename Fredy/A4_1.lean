@@ -37,11 +37,9 @@ theorem inter_comp_le {a b c : 𝒜} (S T : a ⟶ b) (R : b ⟶ c) :
 
   Freyd's `modular_le` puts the mediator on the left: `(R≫S)∩T ⊑ (R∩T≫S°)≫S`.
   B&dM 4.8's proof also needs the mirror image with the mediator on the right.
-  This exact fact is already proved twice elsewhere in the repo (`S2_3.modular_le'`,
-  private `S2_165_Spl.dual_modular_le`) by reciprocating `Allegory.modular`; neither
-  file is on the allowed import list here, so it is re-derived locally under a fresh
-  name (`modular_le_right`) to avoid a name clash with `S2_3.modular_le'` — a future
-  dedup pass can collapse all three. -/
+  This is the CANONICAL home of that fact: S2_3's over-scoped copy `modular_le'` was
+  deduped into it at wave collection (only `S2_165_Spl`'s file-private `dual_modular_le`
+  remains, kept to preserve that file's import footprint). -/
 
 /-- Dual form of the modular law (B&dM p.83 proof step): `(R≫S) ∩ T ⊑ R ≫ (S ∩ R°≫T)`. -/
 theorem modular_le_right {a b c : 𝒜} (R : a ⟶ b) (S : b ⟶ c) (T : a ⟶ c) :
@@ -81,9 +79,8 @@ theorem recip_comp_inter_id_le {a b : 𝒜} (R S : a ⟶ b) :
   rw [← Allegory.recip_inter, Allegory.inter_comm S R] at h
   exact h
 
-/-- **B&dM 4.10**: `R ⊑ R≫R°≫R`, for any `R`.  (Also proved, independently, as
-    `S2_22.self_le_comp_recip_comp` via the same `modular_le` instantiation; S2_22
-    is out of scope for this file's import list so it is re-derived here.) -/
+/-- **B&dM 4.10**: `R ⊑ R≫R°≫R`, for any `R`.  Canonical home — S2_22's identical
+    `self_le_comp_recip_comp` was deduped into this lemma at wave collection. -/
 theorem le_comp_recip_comp {a b : 𝒜} (R : a ⟶ b) : R ⊑ (R ≫ R°) ≫ R := by
   have h := modular_le (Cat.id a) R R
   have h1 : R ⊑ (Cat.id a ∩ R ≫ R°) ≫ R := by

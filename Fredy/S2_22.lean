@@ -716,21 +716,15 @@ theorem interUnionU_distrib_of_srcTabulation [UnionAllegory 𝒜] {a p c : 𝒜}
   Then `F := f° ≫ F₀ : c → a`, `G := f° ≫ G₀ : c → p` are MAPS with `U = F° G` and
   `F F° ∩ G G° = 1_c` — a SOURCE-apex jointly-monic span of `U`. -/
 
-/-- The general Dedekind/modular identity `R ⊑ R R° R` (used to derive that a
-    symmetric transitive morphism is idempotent). -/
-theorem self_le_comp_recip_comp [Allegory 𝒜] {a b : 𝒜} (R : a ⟶ b) :
-    R ⊑ (R ≫ R°) ≫ R := by
-  have h_mod := modular_le (Cat.id a) R R
-  have h1 : R ⊑ (Cat.id a ∩ R ≫ R°) ≫ R := by
-    simpa [Cat.id_comp, Allegory.inter_idem] using h_mod
-  exact le_trans h1 (comp_mono_right (inter_lb_right (Cat.id a) (R ≫ R°)) R)
+-- (The Dedekind identity `R ⊑ (R≫R°)≫R` is `le_comp_recip_comp` from A4_1 — B&dM 4.10,
+--  in scope via S2_3; the local copy `self_le_comp_recip_comp` was deduped.)
 
 /-- **§2.12**: a symmetric transitive morphism is idempotent (`E ≫ E = E`). -/
 theorem symmetric_transitive_idempotent [Allegory 𝒜] {a : 𝒜} {E : a ⟶ a}
     (hsym : Symmetric E) (htrans : Transitive E) : E ≫ E = E := by
   apply le_antisymm htrans
   have heq : E° = E := symmetric_eq hsym
-  have h1 : E ⊑ (E ≫ E) ≫ E := by simpa [heq] using self_le_comp_recip_comp E
+  have h1 : E ⊑ (E ≫ E) ≫ E := by simpa [heq] using le_comp_recip_comp E
   have h2 : (E ≫ E) ≫ E ⊑ E ≫ E := by rw [Cat.assoc]; exact comp_mono_left E htrans
   exact le_trans h1 h2
 

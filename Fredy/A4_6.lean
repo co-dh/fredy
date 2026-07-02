@@ -12,68 +12,20 @@
     unfolds to exactly this meet, §2.331/§2.41).
   - Ex 4.48 `(ΛR)°·ΛS = (R\S) ∩ (S\R)°` is `symm_div_eq_A_comp` in `S2_4.lean`.
 
-  CROSS-AGENT NOTE: `map_comp_div` (`Map f → f ≫ (R / S) = (f ≫ R) / S`) and its shunting
-  helper `shunt_left` are needed here but their canonical homes are `A4_4`/`A4_2` (built by a
-  different agent in a different worktree, not importable from here).  They are reproduced
-  below as `private` with a comment; dedupe at collection time.
+  `map_comp_div` (A4_4) and `map_shunt_left` (A4_2) are imported; the private wave-time
+  copies were deduped at collection.
 -/
 
 import Fredy.S2_4
+import Fredy.A4_4  -- map_comp_div (and, via A4_2, the shunting rules)
 
 universe u
 
 namespace Freyd.Alg
 
-/-! ## Private helpers (canonical copies land in A4_2 / A4_4)
-
-    Only `DivisionAllegory` is needed for these — no power objects involved. -/
-
 section DivisionHelpers
 
 variable {𝒜 : Type u} [DivisionAllegory 𝒜]
-
-/-- private: canonical copy lands in A4_2 (shunting rule for maps under `°`).
-    For a map `f : p ⟶ a`: `f° ≫ X ⊑ Y ↔ X ⊑ f ≫ Y`. -/
-private theorem shunt_left {p a s : 𝒜} {f : p ⟶ a} (hf : Map f) (X : p ⟶ s) (Y : a ⟶ s) :
-    f° ≫ X ⊑ Y ↔ X ⊑ f ≫ Y := by
-  have hent : Cat.id p ⊑ f ≫ f° := by
-    have h := hf.1; dsimp [Entire, dom] at h; rw [← h]; exact inter_lb_right _ _
-  -- NB: `⊑` has no registered `Trans` instance in this repo, so a `calc` chain may contain
-  -- at most ONE `⊑` step (any number of `=` steps mix freely via the generic `Eq` instances).
-  -- Multi-step inequalities are glued explicitly with `le_trans` instead.
-  constructor
-  · intro h
-    have step1 : X ⊑ (f ≫ f°) ≫ X := by
-      have h0 := comp_mono_right hent X; rwa [Cat.id_comp] at h0
-    have step2 : (f ≫ f°) ≫ X ⊑ f ≫ Y := by
-      rw [Cat.assoc]; exact comp_mono_left f h
-    exact le_trans step1 step2
-  · intro h
-    have step1 : f° ≫ X ⊑ f° ≫ (f ≫ Y) := comp_mono_left f° h
-    have step2 : f° ≫ (f ≫ Y) ⊑ Y := by
-      rw [← Cat.assoc]
-      have h0 := comp_mono_right hf.2 Y; rwa [Cat.id_comp] at h0
-    exact le_trans step1 step2
-
-/-- private: canonical copy lands in A4_4.  A map distributes over right division on the left:
-    `Map f → f ≫ (R / S) = (f ≫ R) / S`.  (⊑ is plain monotonicity; ⊒ needs `f` a map, via
-    `shunt_left`.) -/
-private theorem map_comp_div {p a b c : 𝒜} {f : p ⟶ a} (hf : Map f) (R : a ⟶ c) (S : b ⟶ c) :
-    f ≫ (R / S) = (f ≫ R) / S := by
-  apply le_antisymm
-  · apply (le_div_iff _ _ _).mpr
-    calc (f ≫ (R / S)) ≫ S = f ≫ ((R / S) ≫ S) := Cat.assoc _ _ _
-      _ ⊑ f ≫ R := comp_mono_left _ (DivisionAllegory.div_comp_le R S)
-  · apply (shunt_left hf ((f ≫ R) / S) (R / S)).mp
-    apply (le_div_iff _ _ _).mpr
-    have step1 : (f° ≫ ((f ≫ R) / S)) ≫ S = f° ≫ (((f ≫ R) / S) ≫ S) := Cat.assoc _ _ _
-    have step2 : f° ≫ (((f ≫ R) / S) ≫ S) ⊑ f° ≫ (f ≫ R) :=
-      comp_mono_left _ (DivisionAllegory.div_comp_le (f ≫ R) S)
-    have step3 : f° ≫ (f ≫ R) ⊑ R := by
-      rw [← Cat.assoc]
-      have h0 := comp_mono_right hf.2 R; rwa [Cat.id_comp] at h0
-    rw [step1]
-    exact le_trans step2 step3
 
 /-! ### Ex 4.49(i) (B&dM p.107): `R` is reflexive and transitive iff `R = R/R`. -/
 

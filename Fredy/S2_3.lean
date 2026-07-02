@@ -9,6 +9,7 @@
 import Fredy.S1_1
 import Fredy.S2_1
 import Fredy.S2_2
+import Fredy.A4_1  -- modular_le_right (dual modular law)
 
 
 universe v u
@@ -1029,15 +1030,8 @@ noncomputable def phiCor {a : 𝒜} (R : a ⟶ a) : (topTab a).1 ⟶ (topTab a).
 noncomputable def psiCor {a : 𝒜} (c : (topTab a).1 ⟶ (topTab a).1) : a ⟶ a :=
   (topTab a).2.1° ≫ c ≫ (topTab a).2.2
 
-/-- Dual modular law: `(R≫S) ∩ T ⊑ R ≫ (S ∩ R°≫T)`.  (Reciprocal form of `modular_le`.) -/
-theorem modular_le' {a b c : 𝒜} (R : a ⟶ b) (S : b ⟶ c) (T : a ⟶ c) :
-    (R ≫ S) ∩ T ⊑ R ≫ (S ∩ R° ≫ T) := by
-  have h := modular_le S° R° T° (𝒜 := 𝒜)
-  -- h : (S°≫R°) ∩ T° ⊑ (S° ∩ T°≫R)≫R°
-  have hr := recip_mono h
-  rw [Allegory.recip_inter, ← Allegory.recip_comp, Allegory.recip_recip, Allegory.recip_recip] at hr
-  -- hr : ((R≫S) ∩ T) ⊑ ((S° ∩ T°≫R°°)≫R°)°
-  simpa [Allegory.recip_comp, Allegory.recip_recip, Allegory.recip_inter] using hr
+-- (The dual modular law `(R≫S) ∩ T ⊑ R ≫ (S ∩ R°≫T)` is `modular_le_right` from A4_1,
+--  which needs only `[Allegory 𝒜]`; the over-scoped local copy `modular_le'` was deduped.)
 
 /-- **Tabulation recovery**: if `(f, g)` are maps from `γ` with `f° ≫ g` maximal
     (so `R ⊑ f° ≫ g` for all `R : a → a`), then `R = f° ≫ (1_γ ∩ f ≫ R ≫ g°) ≫ g`.
@@ -1061,7 +1055,7 @@ theorem tab_recover {a γ : 𝒜} {R : a ⟶ a} {f g : γ ⟶ a} (hfm : Map f) (
       rw [Allegory.inter_comm]; exact (le_antisymm (inter_lb_left _ _) (le_inter (le_refl _) htop)).symm
     have step2 : (f° ≫ g) ∩ R ⊑ (f° ∩ R ≫ g°) ≫ g := modular_le f° g R
     have step3 : (f° ∩ R ≫ g°) ⊑ f° ≫ (Cat.id γ ∩ f ≫ R ≫ g°) := by
-      have h := modular_le' f° (Cat.id γ) (R ≫ g°)
+      have h := modular_le_right f° (Cat.id γ) (R ≫ g°)
       rw [Cat.comp_id, Allegory.recip_recip] at h
       exact h
     have step4 : (f° ∩ R ≫ g°) ≫ g ⊑ (f° ≫ (Cat.id γ ∩ f ≫ R ≫ g°)) ≫ g :=
@@ -1126,7 +1120,7 @@ theorem tab_corecover {a γ : 𝒜} {c : γ ⟶ γ} {f g : γ ⟶ a} (hfm : Map 
     -- D ⊑ 1 and D ⊑ c≫g≫g° ⟹ D ⊑ 1 ∩ c≫g≫g° ⊑ c≫(g≫g° ∩ c) = c≫c = c.
     have hfin : (Cat.id γ ∩ f ≫ (f° ≫ c ≫ g) ≫ g°) ⊑ c := by
       have hD1 : (Cat.id γ ∩ f ≫ (f° ≫ c ≫ g) ≫ g°) ⊑ Cat.id γ := inter_lb_left _ _
-      have hmeet := modular_le' c (g ≫ g°) (Cat.id γ)
+      have hmeet := modular_le_right c (g ≫ g°) (Cat.id γ)
       -- (c≫gg°) ∩ 1 ⊑ c≫(gg° ∩ c°≫1) = c≫(gg° ∩ c)
       have hcc : g ≫ g° ∩ c° ≫ Cat.id γ = c := by
         have hcsym : c° = c := symmetric_eq (coreflexive_symmetric_idempotent hc).1

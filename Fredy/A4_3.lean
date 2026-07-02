@@ -14,6 +14,7 @@
 -/
 
 import Fredy.S2_1
+import Fredy.A4_2  -- entire_id_le
 
 universe v u
 
@@ -22,13 +23,6 @@ namespace Freyd.Alg
 variable {𝒜 : Type u} [Allegory 𝒜]
 
 /-! ## The unit is terminal among maps (B&dM p.94) -/
-
-/-- `Entire R` unfolds to `id ⊑ R≫R°`.  This exact unfold (`dsimp [Entire, dom]; dsimp [le];
-    rw [h]`) already recurs inline many times in `S2_1.lean` (e.g. `h_id_le_ff`, `hfe`, `hge`,
-    `h_pα_ent`, `hxx`, `hyy`); extracted here as a private helper, flagged for the dedupe
-    collector to hoist into `S2_1.lean` proper. -/
-private theorem entire_id_le {a b : 𝒜} {R : a ⟶ b} (h : Entire R) : Cat.id a ⊑ R ≫ R° := by
-  dsimp [Entire, dom] at h; dsimp [le]; rw [h]
 
 /-- **B&dM p.94** (generalized to any partial unit, not just the chosen one of a
     `UnitaryAllegory`): two maps into a partial unit `t` are equal — `t` is terminal in

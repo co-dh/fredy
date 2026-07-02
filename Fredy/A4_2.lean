@@ -209,15 +209,18 @@ theorem simple_modular_eq {a b c : 𝒜} {S : b ⟶ c} (hS : Simple S) (R : a �
   The workhorses of relational program calculation: composing with a total function on
   one side of an inequality is equivalent to composing with its converse on the other. -/
 
+/-- An entire arrow satisfies `1 ⊑ R≫R°` (the other half of `dom R = 1 ∩ R≫R°` collapsing).
+    Canonical public home of a fact several files re-derived inline (A4_3, A4_4, S2_1 proofs). -/
+theorem entire_id_le {a b : 𝒜} {R : a ⟶ b} (h : Entire R) : Cat.id a ⊑ R ≫ R° := by
+  dsimp [Entire, dom] at h
+  rw [← h]; exact inter_lb_right _ _
+
 /-- **B&dM 4.19**: for a map `f`, `R≫f ⊑ S ↔ R ⊑ S≫f°`. -/
 theorem map_shunt_right {a b c : 𝒜} {f : b ⟶ c} (hf : Map f) (R : a ⟶ b) (S : a ⟶ c) :
     R ≫ f ⊑ S ↔ R ⊑ S ≫ f° := by
   constructor
   · intro h
-    have hent : Cat.id b ⊑ f ≫ f° := by
-      have hfE := hf.1
-      dsimp [Entire, dom] at hfE
-      rw [← hfE]; exact inter_lb_right _ _
+    have hent : Cat.id b ⊑ f ≫ f° := entire_id_le hf.1
     have h1 : R ⊑ R ≫ (f ≫ f°) := by
       have h1a := comp_mono_left R hent; rwa [Cat.comp_id] at h1a
     have h2 : R ≫ (f ≫ f°) ⊑ S ≫ f° := by
@@ -235,10 +238,7 @@ theorem map_shunt_left {a b c : 𝒜} {f : b ⟶ a} (hf : Map f) (R : b ⟶ c) (
     f° ≫ R ⊑ S ↔ R ⊑ f ≫ S := by
   constructor
   · intro h
-    have hent : Cat.id b ⊑ f ≫ f° := by
-      have hfE := hf.1
-      dsimp [Entire, dom] at hfE
-      rw [← hfE]; exact inter_lb_right _ _
+    have hent : Cat.id b ⊑ f ≫ f° := entire_id_le hf.1
     have h1 : R ⊑ (f ≫ f°) ≫ R := by
       have h1a := comp_mono_right hent R; rwa [Cat.id_comp] at h1a
     have h2 : (f ≫ f°) ≫ R ⊑ f ≫ S := by
