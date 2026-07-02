@@ -3112,7 +3112,9 @@ section CarrierBridge
 
 open Freyd.Alg
 
-variable (𝒜 : Type u) [Freyd.Alg.TabularUnitaryDistributiveAllegory 𝒜]
+-- §2.154: the carrier bridge needs only TABULAR + UNITARY (the `Map` regular structure was
+-- weakened accordingly in `S2_147_MapCat`); distributivity is irrelevant here.
+variable (𝒜 : Type u) [Freyd.Alg.TabularUnitaryAllegory 𝒜]
 
 /-- The §2.218 carrier `Rel(Map 𝒜)`, with all instances pinned to `mapCat` (avoiding the
     `MapObj 𝒜 = 𝒜` `Cat`-diamond: the canonical `Cat` on objects of `Map 𝒜` is `mapCat`, not the
