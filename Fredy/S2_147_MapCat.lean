@@ -756,7 +756,11 @@ end DomUnion
 
 section MapPreLogos
 
-variable {A : Type u} [TabularUnitaryDistributiveAllegory A]
+-- §2.154/§2.16: the whole REGULAR-category structure of `Map(𝒜)` (terminal, pullbacks,
+-- products, equalizers, images, PullbacksTransferCovers, `mapRegularCategory`) needs only
+-- TABULAR + UNITARY, exactly as in the book.  Distributivity enters first at
+-- `HasSubobjectUnions` (the pre-logos upgrade), which lives in the next section.
+variable {A : Type u} [TabularUnitaryAllegory A]
 
 -- mapCat is at priority 0 by default; do NOT raise it higher than Allegory.toCat (~1000)
 -- since that would break the allegory operations (°, ⊑, etc.) which use Allegory.toCat.
@@ -807,7 +811,7 @@ private theorem map_entire_le {A : Type u} [Allegory A] {p b : A} {e : p ⟶ b}
 /-- A map `u` with a map retraction (`w ≫ u = id`, `w` a map) is RELATIONALLY a split mono:
     `u° ≫ u = id`.  Proof: `w ⊑ u°` (since `u` entire: `w ⊑ w(uu°) = (wu)u° = u°`), so
     `id = wu ⊑ u°u`; combined with `u°u ⊑ id` (`u` simple). -/
-private theorem map_retr_leg {A : Type u} [Allegory A] {p q : A} {u : p ⟶ q} {w : q ⟶ p}
+theorem map_retr_leg {A : Type u} [Allegory A] {p q : A} {u : p ⟶ q} {w : q ⟶ p}
     (hu : Map u) (hw : Map w) (hwu : w ≫ u = Cat.id q) : u° ≫ u = Cat.id q := by
   apply le_antisymm hu.2
   -- w ⊑ u°  ⟹  id = w≫u ⊑ u°≫u.
@@ -1174,7 +1178,7 @@ private theorem map_monic_retract {q : A} {a : MapObj A}
     span `(s, t)`; by `tab_pullback_cone'` it is the kernel pair of `m` (`s ≫ m = t ≫ m`),
     so mapCat-monicity of `m` forces `s = t`, whence `m ≫ m° = s° ≫ t = s° ≫ s ⊑ 1_C`
     (`s` simple).  No retraction or `Map (m≫m°)` assumption is needed (breaks the old circle). -/
-private theorem mapMonic_inj {C : A} {a : MapObj A}
+theorem mapMonic_inj {C : A} {a : MapObj A}
     {m : C ⟶ a} (hm : Map m)
     (hm_monic : @Monic (MapObj A) (mapCat (𝒜 := A)) C a ⟨m, hm⟩) :
     m ≫ m° ⊑ Cat.id C := by
@@ -1194,7 +1198,7 @@ private theorem mapMonic_inj {C : A} {a : MapObj A}
     _ = s° ≫ s := by rw [hst]
     _ ⊑ Cat.id C := hs.2
 
-private theorem map_retract_monic {a : MapObj A} {p : A}
+theorem map_retract_monic {a : MapObj A} {p : A}
     {e : p ⟶ a} (he_map : Map e) (hee_r : e ≫ e° = Cat.id p) :
     @Monic (MapObj A) (mapCat (𝒜 := A)) p a ⟨e, he_map⟩ := by
   intro W u v huv
@@ -1222,7 +1226,7 @@ private noncomputable def mapImage {a b : MapObj A}
     (map_retract_monic d.2.2.1 d.2.2.2.2)
 
 -- Helper for mapIsImage minimality: given S allows f, produce (mapImage f) ≤ S in allegory-land.
-private theorem mapIsImage_min_aux {a b : MapObj A} {p : A} {e : p ⟶ b}
+theorem mapIsImage_min_aux {a b : MapObj A} {p : A} {e : p ⟶ b}
     (he_map : Map e) (hee_r : e ≫ e° = Cat.id p)
     (f : @Cat.Hom _ (mapCat (𝒜 := A)) a b)
     (hee_le_f : e° ≫ e ⊑ f.val° ≫ f.val)  -- e°e ⊑ f°f (image below f)
@@ -1404,7 +1408,7 @@ noncomputable instance mapHasImages :
   map u. We show u is iso (using the UMP in both directions), then use cover_precomp_iso. -/
 
 -- Extract id_c ⊑ f°≫f from Cover f in Map(𝒜)
-private theorem mapCover_entire {a c : MapObj A}
+theorem mapCover_entire {a c : MapObj A}
     (f : @Cat.Hom _ (mapCat (𝒜 := A)) a c)
     (hcov : @Cover (MapObj A) (mapCat (𝒜 := A)) a c f) :
     Cat.id c ⊑ f.val° ≫ f.val := by
@@ -2030,6 +2034,14 @@ theorem mapIsEffective_of_split {a : A}
   · exact relLe_of_relOf_le (hlevel ▸ le_refl _)
   · exact relLe_of_relOf_le (hlevel ▸ le_refl _)
 
+end MapPreLogos
+
+section MapPreLogosUnions
+
+-- The pre-logos upgrade (subobject unions, effectiveness assembly, `mapPreLogos`) genuinely
+-- uses `∪`/`𝟘`, hence the distributive class from here on.
+variable {A : Type u} [TabularUnitaryDistributiveAllegory A]
+
 /-! ### §2.212  HasSubobjectUnions (MapObj A)
 
   A subobject `S` of `B` in Map(𝒜) is a monic map `s := S.arr : S.dom → B`; its associated
@@ -2361,7 +2373,7 @@ theorem mapInvImage_preserves_bottom {B C : MapObj A}
   rw [corOf_invImage f (mapBottom C), corOf_mapBottom, corOf_mapBottom]
   rw [DistributiveAllegory.zero_comp, DistributiveAllegory.comp_zero, dom_zero]
 
-end MapPreLogos
+end MapPreLogosUnions
 
 /-! ### §2.212  PreLogos (MapObj A) — the assembled pre-logos -/
 
