@@ -267,7 +267,7 @@ UNIVERSE-BLOCKED (disjoint union of u-indexed families escapes to u+1; the compl
 unit-existence blocked by §2.224 GloballyComplete).
 MISSING: §2.153 non-effectiveness (recursive K) · §2.157 remainder (degenerate Desargues cases, converse,
 Veblen–Wedderburn model) · §2.158 no-finite-axiom · §2.16(13) recursive instances ·
-§2.16(14) universal property of the reflection · §2.21(10).
+§2.16(14) universal property of the reflection.
 
 ## §2.2  Distributive allegories
 
@@ -280,13 +280,19 @@ def · §2.228 finite-unions-distribute-comp + counterexample.
 DONE (newly): §2.222 ideal-allegory LCDA · §2.225 union-of-SS⟹SS · §2.223 disjoint-unions=coproducts BOTH DIRECTIONS
 (FORWARD `IndexedDisjointUnion.isCoproduct`: a disjoint-union datum's injections are an indexed coproduct, mediator ⋃Uᵢ°Rᵢ;
 CONVERSE `indexedCoproduct_to_disjointUnion`/`IsIndexedCoproduct.toDisjointUnion`: a family enjoying the indexed coproduct
-universal property satisfies the three §2.223 equations UᵢUᵢ°=1 / UᵢUⱼ°=0 / ⋃Uᵢ°Uᵢ=1, mirroring binary `coproduct_of_universal_eqs`).
+universal property satisfies the three §2.223 equations UᵢUᵢ°=1 / UᵢUⱼ°=0 / ⋃Uᵢ°Uᵢ=1, mirroring binary `coproduct_of_universal_eqs`) ·
+§2.21(10) EQUATIONAL REDUCTION (`DTerm`/`UTerm` one-sorted distributive/union-free expressions; `DTerm.eval_toUnion` union
+normal form [propext,Quot.sound]; `UTerm.eval_pi` cartesian-product representation preserves union-free operations +
+`piAssign_not_union` explicit ∪-failure; headline `union_incl_iff` — ⋃Eᵢ ⊆ ⋃Eⱼ' valid in Rel(Set) iff ∀i∃j Eᵢ⊆Eⱼ' valid,
+book's product-of-counterexamples with `finChoice` [propext] over Fin m; corollaries `dIncl_iff_unionFree`/`dEq_iff_unionFree`
+— distributive equations valid iff finite sets of union-free inclusions valid [propext,choice,Quot.sound]; S2_21c,
+self-contained. The §2.158-dependent no-finite-axiomatization remark stays with §2.158).
 PARTIAL: §2.224 GLOBAL COMPLETION — faithful LCDA representation built (`globalLCDA`); final GloballyComplete instance
 universe-blocked · §2.226 SYSTEMIC COMPLETION — partial-unit-embedding DONE (`partialUnits_embed_in_partialUnit`: in a globally
 complete allegory where equivalence relations split, every set of partial units embeds in one partial unit, via coproduct +
 `topEndo` split; `target_max_partialUnit`/`topEndo`/`IndexedDisjointUnion.inject_map`); the "maintains global completeness" /
 unit-existence-iff-set-of-iso-types remainder is §2.224-universe-blocked.
-MISSING: §2.21(10) eqn-theory union-free · **§2.227 maps-of-O(Y)-valued-sets≃H(Y)** (needs sheaf infra).
+MISSING: **§2.227 maps-of-O(Y)-valued-sets≃H(Y)** (needs sheaf infra).
 
 ## §2.3  Division / power allegories
 

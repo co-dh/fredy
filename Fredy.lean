@@ -154,6 +154,7 @@ import Fredy.S2_41
 import Fredy.S2_41b
 import Fredy.S2_21
 import Fredy.S2_21b
+import Fredy.S2_21c
 import Fredy.S1_526_StalkConservative
 import Fredy.S2_153_Assemblies
 import Fredy.S2_16d

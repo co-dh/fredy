@@ -102,5 +102,8 @@ merged class `TabularUnitaryUnguardedPowerAllegory`): Map(A) has FULL power obje
   independence and independence-of-AC (set-theoretic model constructions).
 - **§2.542** — topos ⟹ boolean topos + bicartesian rep (twin of §1.979).
 - **§2.561 / §2.562 / §2.564–§2.56(12)** — need presheaf infrastructure.
-- **§2.21(10)** — equational theory of representable distributive allegories (meta-theory of
-  representability: union-free normal form + counterexample product).
+- ~~**§2.21(10)**~~ — **DONE** (`S2_21c`, merged, self-contained): union normal form `DTerm.eval_toUnion`;
+  product representation preserves union-free operations (`UTerm.eval_pi`, with explicit ∪-failure);
+  headline `union_incl_iff` (⋃Eᵢ ⊆ ⋃Eⱼ' in Rel(Set) iff ∀i∃j Eᵢ⊆Eⱼ') via the book's
+  product-of-counterexamples; `dIncl/dEq_iff_unionFree`. The §2.158-dependent no-finite-axiom remark
+  stays with §2.158.
