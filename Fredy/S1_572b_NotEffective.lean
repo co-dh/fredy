@@ -1410,4 +1410,585 @@ theorem K_not_recursive : ¬ ∃ χ : Nat → Nat, Recursive1 χ ∧ ∀ e, (Kc 
     exact key1 _ y (eqInd_eq ((hχ _).mp hK)) hy
   · exact hK (Kc_complete (key2 _ (eqInd_ne fun h => hK ((hχ _).mpr h))))
 
+/-! ## Stage 3a: the checker is a RECURSIVE function
+
+  `acceptN` was built from `cp`-arithmetic, guarded reads and bounded products
+  precisely so that it falls under the closure lemmas of `S1_572_Recursive`.
+  Two new closure principles are needed: primitive recursion WITH parameters
+  (the raw `prec` constructor, of which `natIter` was the parameterless case)
+  and the bounded product `bAllN`. -/
+
+/-- Primitive recursion with parameters (the semantics of the `prec` code). -/
+def precNat {k : Nat} (g : Vec k → Nat) (h : Vec (k + 2) → Nat) : Nat → Vec k → Nat
+  | 0, w => g w
+  | n + 1, w => h (vcons n (vcons (precNat g h n w) w))
+
+/-- Closure under primitive recursion with parameters. -/
+theorem RecursiveV.precNat {k : Nat} {g : Vec k → Nat} {h : Vec (k + 2) → Nat}
+    (hg : RecursiveV g) (hh : RecursiveV h) :
+    RecursiveV fun v : Vec (k + 1) => precNat g h (v 0) (vtail v) := by
+  obtain ⟨cg, hcg⟩ := hg
+  obtain ⟨ch, hch⟩ := hh
+  refine ⟨.prec cg ch, fun v => ?_⟩
+  have key : ∀ (n : Nat) (w : Vec k),
+      Eval (.prec cg ch) (vcons n w) (Rcat.precNat g h n w) := by
+    intro n w
+    induction n with
+    | zero => exact .prec_zero rfl (hcg w)
+    | succ n ih =>
+      exact .prec_succ rfl ih (hch (vcons n (vcons (Rcat.precNat g h n w) w)))
+  have := key (v 0) (vtail v)
+  rwa [vcons_head_tail v] at this
+
+theorem Recursive2.const (c : Nat) : Recursive2 fun _ _ => c := RecursiveV.const 2 c
+
+theorem Recursive1.tailN : Recursive1 tailN := by
+  show Recursive1 fun l => Rcat.csnd (l - 1)
+  have h1 : Recursive1 fun l => l - 1 := Recursive1.sub Recursive1.id (Recursive1.const 1)
+  exact Recursive1.comp h1 Recursive1.csnd
+
+theorem Recursive1.headN : Recursive1 headN := by
+  show Recursive1 fun l => Rcat.cfst (l - 1)
+  have h1 : Recursive1 fun l => l - 1 := Recursive1.sub Recursive1.id (Recursive1.const 1)
+  exact Recursive1.comp h1 Recursive1.cfst
+
+theorem Recursive2.dropN : Recursive2 dropN := by
+  have base := RecursiveV.precNat (k := 1) (g := fun w => w 0)
+    (h := fun u : Vec 3 => tailN (u 1))
+    (RecursiveV.proj 0) (RecursiveV.comp1 Recursive1.tailN (RecursiveV.proj 1))
+  refine base.congr fun v => ?_
+  have aux : ∀ (n : Nat) (w : Vec 1),
+      Rcat.precNat (fun w => w 0) (fun u : Vec 3 => tailN (u 1)) n w
+        = Rcat.dropN n (w 0) := by
+    intro n w
+    induction n with
+    | zero => rfl
+    | succ n ih => exact congrArg tailN ih
+  exact aux (v 0) (vtail v)
+
+theorem Recursive2.nthN : Recursive2 nthN :=
+  RecursiveV.comp1 Recursive1.headN Recursive2.dropN
+
+theorem Recursive2.ltInd : Recursive2 ltInd := by
+  show Recursive2 fun a b => Rcat.eqInd (a + 1 - b) 0
+  have h1 : Recursive2 fun a b => a + 1 :=
+    Recursive2.comp2 Recursive2.add Recursive2.fstArg (Recursive2.const 1)
+  have h2 : Recursive2 fun a b => a + 1 - b :=
+    Recursive2.comp2 Recursive2.sub h1 Recursive2.sndArg
+  exact Recursive2.comp2 Recursive2.eqInd h2 (Recursive2.const 0)
+
+theorem Recursive2.neInd : Recursive2 neInd := by
+  show Recursive2 fun a b => 1 - Rcat.eqInd a b
+  exact Recursive2.comp2 Recursive2.sub (Recursive2.const 1) Recursive2.eqInd
+
+theorem Recursive2.consN : Recursive2 consN := by
+  show Recursive2 fun a l => Rcat.cp a l + 1
+  exact Recursive2.comp2 Recursive2.add Recursive2.cp (Recursive2.const 1)
+
+theorem Recursive1.codeOf : Recursive1 codeOf := Recursive1.cfst
+
+theorem Recursive1.insOf : Recursive1 insOf := by
+  show Recursive1 fun nd => Rcat.cfst (Rcat.csnd nd)
+  exact Recursive1.comp Recursive1.csnd Recursive1.cfst
+
+theorem Recursive1.outOf : Recursive1 outOf := by
+  show Recursive1 fun nd => Rcat.cfst (Rcat.csnd (Rcat.csnd nd))
+  have h1 : Recursive1 fun nd => Rcat.csnd (Rcat.csnd nd) :=
+    Recursive1.comp Recursive1.csnd Recursive1.csnd
+  exact Recursive1.comp h1 Recursive1.cfst
+
+theorem Recursive1.kidsOf : Recursive1 kidsOf := by
+  show Recursive1 fun nd => Rcat.csnd (Rcat.csnd (Rcat.csnd nd))
+  have h1 : Recursive1 fun nd => Rcat.csnd (Rcat.csnd nd) :=
+    Recursive1.comp Recursive1.csnd Recursive1.csnd
+  exact Recursive1.comp h1 Recursive1.csnd
+
+/-- Closure under bounded products: if `F` is recursive so is
+    `v ↦ Π_{j < v 0} F (j :: tail v)`. -/
+theorem RecursiveV.bAll {k : Nat} {F : Vec (k + 1) → Nat} (hF : RecursiveV F) :
+    RecursiveV fun v : Vec (k + 1) => bAllN (fun j => F (vcons j (vtail v))) (v 0) := by
+  have hh : RecursiveV fun u : Vec (k + 2) => u 1 * F (vcons (u 0) (vtail (vtail u))) := by
+    refine RecursiveV.comp2 Recursive2.mul (RecursiveV.proj 1) ?_
+    refine RecursiveV.comp (f := F)
+      (gs := fun i u => (vcons (u 0) (vtail (vtail u))) i) hF ?_
+    intro i
+    refine Fin.cases ?_ (fun j => ?_) i
+    · exact RecursiveV.proj 0
+    · exact RecursiveV.proj j.succ.succ
+  have base := RecursiveV.precNat (RecursiveV.const k 1) hh
+  refine base.congr fun v => ?_
+  have aux : ∀ (n : Nat) (w : Vec k),
+      Rcat.precNat (fun _ => 1)
+        (fun u : Vec (k + 2) => u 1 * F (vcons (u 0) (vtail (vtail u))))
+        n w = bAllN (fun j => F (vcons j w)) n := by
+    intro n w
+    induction n with
+    | zero => rfl
+    | succ n ih => exact congrArg (fun x => x * F (vcons n w)) ih
+  exact aux (v 0) (vtail v)
+
+/-- Bounded product with a recursive bound, at the same arity. -/
+theorem RecursiveV.bAllComp {k : Nat} {F : Vec (k + 1) → Nat} {b : Vec k → Nat}
+    (hF : RecursiveV F) (hb : RecursiveV b) :
+    RecursiveV fun v : Vec k => bAllN (fun j => F (vcons j v)) (b v) := by
+  refine RecursiveV.comp
+    (f := fun u : Vec (k + 1) => bAllN (fun j => F (vcons j (vtail u))) (u 0))
+    (gs := fun idx (v : Vec k) => (vcons (b v) v) idx) (RecursiveV.bAll hF) ?_
+  intro idx
+  refine Fin.cases ?_ (fun j => ?_) idx
+  · exact hb
+  · exact RecursiveV.proj j
+
+/-! Ternary recursiveness and lifting combinators, for the per-child checks. -/
+
+/-- Ternary recursive functions. -/
+def Recursive3 (f : Nat → Nat → Nat → Nat) : Prop :=
+  RecursiveV fun v : Vec 3 => f (v 0) (v 1) (v 2)
+
+theorem Recursive3.p1 : Recursive3 fun a _ _ => a := RecursiveV.proj 0
+theorem Recursive3.p2 : Recursive3 fun _ b _ => b := RecursiveV.proj 1
+theorem Recursive3.p3 : Recursive3 fun _ _ c => c := RecursiveV.proj 2
+
+theorem Recursive3.comp1 {F : Nat → Nat} (hF : Recursive1 F) {f : Nat → Nat → Nat → Nat}
+    (hf : Recursive3 f) : Recursive3 fun a b c => F (f a b c) :=
+  RecursiveV.comp1 hF hf
+
+theorem Recursive3.comp2 {H : Nat → Nat → Nat} (hH : Recursive2 H)
+    {f g : Nat → Nat → Nat → Nat} (hf : Recursive3 f) (hg : Recursive3 g) :
+    Recursive3 fun a b c => H (f a b c) (g a b c) :=
+  RecursiveV.comp2 hH hf hg
+
+theorem Recursive3.const (c : Nat) : Recursive3 fun _ _ _ => c := RecursiveV.const 3 c
+
+/-- Lift a binary recursive function to the last two of three arguments. -/
+theorem Recursive3.lift23 {f : Nat → Nat → Nat} (hf : Recursive2 f) :
+    Recursive3 fun _ b c => f b c :=
+  RecursiveV.comp (f := fun w : Vec 2 => f (w 0) (w 1))
+    (gs := fun i (v : Vec 3) => v i.succ) hf (fun i => RecursiveV.proj i.succ)
+
+/-! ### Recursiveness of the checker, bottom-up along its definition
+
+  Elaboration note: `comp1` always gets its unary `F` explicitly (higher-order
+  unification against the folded checker constants picks wrong splits), and every
+  intermediate gets an explicit `Recursive2 fun i W => …` type so the final
+  `exact` is a pure definitional check. -/
+
+theorem Recursive2.tagAt : Recursive2 tagAt := by
+  have h1 : Recursive1 fun x => Rcat.cfst (Rcat.cfst x) :=
+    Recursive1.comp Recursive1.cfst Recursive1.cfst
+  have h2 : Recursive2 fun i W => Rcat.cfst (Rcat.cfst (Rcat.nthN i W)) :=
+    RecursiveV.comp1 (F := fun x => Rcat.cfst (Rcat.cfst x)) h1 Recursive2.nthN
+  exact h2
+
+theorem Recursive2.plAt : Recursive2 plAt := by
+  have h1 : Recursive1 fun x => Rcat.csnd (Rcat.cfst x) :=
+    Recursive1.comp Recursive1.cfst Recursive1.csnd
+  have h2 : Recursive2 fun i W => Rcat.csnd (Rcat.cfst (Rcat.nthN i W)) :=
+    RecursiveV.comp1 (F := fun x => Rcat.csnd (Rcat.cfst x)) h1 Recursive2.nthN
+  exact h2
+
+theorem Recursive2.insAt : Recursive2 insAt := by
+  have h2 : Recursive2 fun i W => Rcat.insOf (Rcat.nthN i W) :=
+    RecursiveV.comp1 (F := Rcat.insOf) Recursive1.insOf Recursive2.nthN
+  exact h2
+
+theorem Recursive2.outAt : Recursive2 outAt := by
+  have h2 : Recursive2 fun i W => Rcat.outOf (Rcat.nthN i W) :=
+    RecursiveV.comp1 (F := Rcat.outOf) Recursive1.outOf Recursive2.nthN
+  exact h2
+
+theorem Recursive2.kidsAt : Recursive2 kidsAt := by
+  have h2 : Recursive2 fun i W => Rcat.kidsOf (Rcat.nthN i W) :=
+    RecursiveV.comp1 (F := Rcat.kidsOf) Recursive1.kidsOf Recursive2.nthN
+  exact h2
+
+theorem Recursive2.cmpM : Recursive2 cmpM := by
+  have h2 : Recursive2 fun i W => Rcat.cfst (Rcat.plAt i W) :=
+    RecursiveV.comp1 (F := Rcat.cfst) Recursive1.cfst Recursive2.plAt
+  exact h2
+
+theorem Recursive2.cmpF : Recursive2 cmpF := by
+  have h2 : Recursive2 fun i W => Rcat.insOf (Rcat.plAt i W) :=
+    RecursiveV.comp1 (F := Rcat.insOf) Recursive1.insOf Recursive2.plAt
+  exact h2
+
+theorem Recursive2.cmpGs : Recursive2 cmpGs := by
+  have h1 : Recursive1 fun x => Rcat.csnd (Rcat.csnd x) :=
+    Recursive1.comp Recursive1.csnd Recursive1.csnd
+  have h2 : Recursive2 fun i W => Rcat.csnd (Rcat.csnd (Rcat.plAt i W)) :=
+    RecursiveV.comp1 (F := fun x => Rcat.csnd (Rcat.csnd x)) h1 Recursive2.plAt
+  exact h2
+
+theorem Recursive2.cmpFIdx : Recursive2 cmpFIdx := by
+  have h2 : Recursive2 fun i W => Rcat.cfst (Rcat.kidsAt i W) :=
+    RecursiveV.comp1 (F := Rcat.cfst) Recursive1.cfst Recursive2.kidsAt
+  exact h2
+
+theorem Recursive2.cmpGIdx : Recursive2 cmpGIdx := by
+  have h2 : Recursive2 fun i W => Rcat.csnd (Rcat.kidsAt i W) :=
+    RecursiveV.comp1 (F := Rcat.csnd) Recursive1.csnd Recursive2.kidsAt
+  exact h2
+
+theorem Recursive2.cmpFnd : Recursive2 cmpFnd := by
+  have ha : Recursive2 fun i W => Rcat.ltInd (Rcat.cmpFIdx i W) i :=
+    Recursive2.comp2 Recursive2.ltInd Recursive2.cmpFIdx Recursive2.fstArg
+  have hb : Recursive2 fun i W => Rcat.nthN (Rcat.cmpFIdx i W) W :=
+    Recursive2.comp2 Recursive2.nthN Recursive2.cmpFIdx Recursive2.sndArg
+  have h2 : Recursive2 fun i W =>
+      Rcat.ltInd (Rcat.cmpFIdx i W) i * Rcat.nthN (Rcat.cmpFIdx i W) W :=
+    Recursive2.comp2 Recursive2.mul ha hb
+  exact h2
+
+theorem Recursive2.cmpFIns : Recursive2 cmpFIns := by
+  have h2 : Recursive2 fun i W => Rcat.insOf (Rcat.cmpFnd i W) :=
+    RecursiveV.comp1 (F := Rcat.insOf) Recursive1.insOf Recursive2.cmpFnd
+  exact h2
+
+theorem Recursive3.gOK : Recursive3 gOK := by
+  have hgidx : Recursive3 fun _ i W => Rcat.cmpGIdx i W :=
+    Recursive3.lift23 Recursive2.cmpGIdx
+  have hidx : Recursive3 fun j i W => Rcat.nthN j (Rcat.cmpGIdx i W) :=
+    Recursive3.comp2 Recursive2.nthN Recursive3.p1 hgidx
+  have hnd : Recursive3 fun j i W =>
+      Rcat.ltInd (Rcat.nthN j (Rcat.cmpGIdx i W)) i
+        * Rcat.nthN (Rcat.nthN j (Rcat.cmpGIdx i W)) W :=
+    Recursive3.comp2 Recursive2.mul
+      (Recursive3.comp2 Recursive2.ltInd hidx Recursive3.p2)
+      (Recursive3.comp2 Recursive2.nthN hidx Recursive3.p3)
+  have hfins : Recursive3 fun _ i W => Rcat.cmpFIns i W :=
+    Recursive3.lift23 Recursive2.cmpFIns
+  have f1 : Recursive3 fun j i W => Rcat.ltInd (Rcat.nthN j (Rcat.cmpGIdx i W)) i :=
+    Recursive3.comp2 Recursive2.ltInd hidx Recursive3.p2
+  have f2 : Recursive3 fun j i W =>
+      Rcat.eqInd (Rcat.codeOf (Rcat.ltInd (Rcat.nthN j (Rcat.cmpGIdx i W)) i
+        * Rcat.nthN (Rcat.nthN j (Rcat.cmpGIdx i W)) W)) (Rcat.nthN j (Rcat.cmpGs i W)) :=
+    Recursive3.comp2 Recursive2.eqInd
+      (Recursive3.comp1 (F := Rcat.codeOf) Recursive1.codeOf hnd)
+      (Recursive3.comp2 Recursive2.nthN Recursive3.p1 (Recursive3.lift23 Recursive2.cmpGs))
+  have f3 : Recursive3 fun j i W =>
+      Rcat.eqInd (Rcat.insOf (Rcat.ltInd (Rcat.nthN j (Rcat.cmpGIdx i W)) i
+        * Rcat.nthN (Rcat.nthN j (Rcat.cmpGIdx i W)) W)) (Rcat.insAt i W) :=
+    Recursive3.comp2 Recursive2.eqInd
+      (Recursive3.comp1 (F := Rcat.insOf) Recursive1.insOf hnd)
+      (Recursive3.lift23 Recursive2.insAt)
+  have f4 : Recursive3 fun j i W =>
+      Rcat.eqInd (Rcat.outOf (Rcat.ltInd (Rcat.nthN j (Rcat.cmpGIdx i W)) i
+        * Rcat.nthN (Rcat.nthN j (Rcat.cmpGIdx i W)) W)) (Rcat.nthN j (Rcat.cmpFIns i W)) :=
+    Recursive3.comp2 Recursive2.eqInd
+      (Recursive3.comp1 (F := Rcat.outOf) Recursive1.outOf hnd)
+      (Recursive3.comp2 Recursive2.nthN Recursive3.p1 hfins)
+  have f5 : Recursive3 fun j i W => Rcat.neInd (Rcat.dropN j (Rcat.cmpFIns i W)) 0 :=
+    Recursive3.comp2 Recursive2.neInd
+      (Recursive3.comp2 Recursive2.dropN Recursive3.p1 hfins) (Recursive3.const 0)
+  have h2 : Recursive3 fun j i W =>
+      Rcat.ltInd (Rcat.nthN j (Rcat.cmpGIdx i W)) i
+      * Rcat.eqInd (Rcat.codeOf (Rcat.ltInd (Rcat.nthN j (Rcat.cmpGIdx i W)) i
+          * Rcat.nthN (Rcat.nthN j (Rcat.cmpGIdx i W)) W)) (Rcat.nthN j (Rcat.cmpGs i W))
+      * Rcat.eqInd (Rcat.insOf (Rcat.ltInd (Rcat.nthN j (Rcat.cmpGIdx i W)) i
+          * Rcat.nthN (Rcat.nthN j (Rcat.cmpGIdx i W)) W)) (Rcat.insAt i W)
+      * Rcat.eqInd (Rcat.outOf (Rcat.ltInd (Rcat.nthN j (Rcat.cmpGIdx i W)) i
+          * Rcat.nthN (Rcat.nthN j (Rcat.cmpGIdx i W)) W)) (Rcat.nthN j (Rcat.cmpFIns i W))
+      * Rcat.neInd (Rcat.dropN j (Rcat.cmpFIns i W)) 0 :=
+    Recursive3.comp2 Recursive2.mul (Recursive3.comp2 Recursive2.mul
+      (Recursive3.comp2 Recursive2.mul (Recursive3.comp2 Recursive2.mul f1 f2) f3) f4) f5
+  exact h2
+
+theorem Recursive2.compOK : Recursive2 compOK := by
+  have b1 : Recursive2 fun i W => Rcat.ltInd (Rcat.cmpFIdx i W) i :=
+    Recursive2.comp2 Recursive2.ltInd Recursive2.cmpFIdx Recursive2.fstArg
+  have b2 : Recursive2 fun i W =>
+      Rcat.eqInd (Rcat.codeOf (Rcat.cmpFnd i W)) (Rcat.cmpF i W) :=
+    Recursive2.comp2 Recursive2.eqInd
+      (RecursiveV.comp1 (F := Rcat.codeOf) Recursive1.codeOf Recursive2.cmpFnd)
+      Recursive2.cmpF
+  have b3 : Recursive2 fun i W =>
+      Rcat.eqInd (Rcat.outOf (Rcat.cmpFnd i W)) (Rcat.outAt i W) :=
+    Recursive2.comp2 Recursive2.eqInd
+      (RecursiveV.comp1 (F := Rcat.outOf) Recursive1.outOf Recursive2.cmpFnd)
+      Recursive2.outAt
+  have b4 : Recursive2 fun i W =>
+      Rcat.eqInd (Rcat.dropN (Rcat.cmpM i W) (Rcat.cmpFIns i W)) 0 :=
+    Recursive2.comp2 Recursive2.eqInd
+      (Recursive2.comp2 Recursive2.dropN Recursive2.cmpM Recursive2.cmpFIns)
+      (Recursive2.const 0)
+  have b5 : RecursiveV fun v : Vec 2 =>
+      bAllN (fun j => Rcat.gOK j (v 0) (v 1)) (Rcat.cmpM (v 0) (v 1)) :=
+    RecursiveV.bAllComp Recursive3.gOK Recursive2.cmpM
+  have b5' : Recursive2 fun i W => bAllN (fun j => Rcat.gOK j i W) (Rcat.cmpM i W) := b5
+  have h2 : Recursive2 fun i W =>
+      Rcat.ltInd (Rcat.cmpFIdx i W) i
+      * Rcat.eqInd (Rcat.codeOf (Rcat.cmpFnd i W)) (Rcat.cmpF i W)
+      * Rcat.eqInd (Rcat.outOf (Rcat.cmpFnd i W)) (Rcat.outAt i W)
+      * Rcat.eqInd (Rcat.dropN (Rcat.cmpM i W) (Rcat.cmpFIns i W)) 0
+      * bAllN (fun j => Rcat.gOK j i W) (Rcat.cmpM i W) :=
+    Recursive2.comp2 Recursive2.mul (Recursive2.comp2 Recursive2.mul
+      (Recursive2.comp2 Recursive2.mul (Recursive2.comp2 Recursive2.mul b1 b2) b3) b4) b5'
+  exact h2
+
+theorem Recursive2.precOK : Recursive2 precOK := by
+  have hHd : Recursive2 fun i W => Rcat.headN (Rcat.insAt i W) :=
+    RecursiveV.comp1 (F := Rcat.headN) Recursive1.headN Recursive2.insAt
+  have hTl : Recursive2 fun i W => Rcat.tailN (Rcat.insAt i W) :=
+    RecursiveV.comp1 (F := Rcat.tailN) Recursive1.tailN Recursive2.insAt
+  have hndB : Recursive2 fun i W =>
+      Rcat.ltInd (Rcat.cmpGIdx i W) i * Rcat.nthN (Rcat.cmpGIdx i W) W :=
+    Recursive2.comp2 Recursive2.mul
+      (Recursive2.comp2 Recursive2.ltInd Recursive2.cmpGIdx Recursive2.fstArg)
+      (Recursive2.comp2 Recursive2.nthN Recursive2.cmpGIdx Recursive2.sndArg)
+  have hn1 : Recursive2 fun i W => Rcat.headN (Rcat.insAt i W) - 1 :=
+    Recursive2.comp2 Recursive2.sub hHd (Recursive2.const 1)
+  have c1 : Recursive2 fun i W => Rcat.eqInd (Rcat.headN (Rcat.insAt i W)) 0 :=
+    Recursive2.comp2 Recursive2.eqInd hHd (Recursive2.const 0)
+  have c2 : Recursive2 fun i W => Rcat.ltInd (Rcat.cmpFIdx i W) i :=
+    Recursive2.comp2 Recursive2.ltInd Recursive2.cmpFIdx Recursive2.fstArg
+  have c3 : Recursive2 fun i W =>
+      Rcat.eqInd (Rcat.codeOf (Rcat.cmpFnd i W)) (Rcat.cmpM i W) :=
+    Recursive2.comp2 Recursive2.eqInd
+      (RecursiveV.comp1 (F := Rcat.codeOf) Recursive1.codeOf Recursive2.cmpFnd)
+      Recursive2.cmpM
+  have c4 : Recursive2 fun i W =>
+      Rcat.eqInd (Rcat.cmpFIns i W) (Rcat.tailN (Rcat.insAt i W)) :=
+    Recursive2.comp2 Recursive2.eqInd Recursive2.cmpFIns hTl
+  have c5 : Recursive2 fun i W =>
+      Rcat.eqInd (Rcat.outOf (Rcat.cmpFnd i W)) (Rcat.outAt i W) :=
+    Recursive2.comp2 Recursive2.eqInd
+      (RecursiveV.comp1 (F := Rcat.outOf) Recursive1.outOf Recursive2.cmpFnd)
+      Recursive2.outAt
+  have base : Recursive2 fun i W => Rcat.eqInd (Rcat.headN (Rcat.insAt i W)) 0 *
+      (Rcat.ltInd (Rcat.cmpFIdx i W) i
+        * Rcat.eqInd (Rcat.codeOf (Rcat.cmpFnd i W)) (Rcat.cmpM i W)
+        * Rcat.eqInd (Rcat.cmpFIns i W) (Rcat.tailN (Rcat.insAt i W))
+        * Rcat.eqInd (Rcat.outOf (Rcat.cmpFnd i W)) (Rcat.outAt i W)) :=
+    Recursive2.comp2 Recursive2.mul c1 (Recursive2.comp2 Recursive2.mul
+      (Recursive2.comp2 Recursive2.mul (Recursive2.comp2 Recursive2.mul c2 c3) c4) c5)
+  have d1 : Recursive2 fun i W => Rcat.neInd (Rcat.headN (Rcat.insAt i W)) 0 :=
+    Recursive2.comp2 Recursive2.neInd hHd (Recursive2.const 0)
+  have d3 : Recursive2 fun i W => Rcat.ltInd (Rcat.cmpGIdx i W) i :=
+    Recursive2.comp2 Recursive2.ltInd Recursive2.cmpGIdx Recursive2.fstArg
+  have d4 : Recursive2 fun i W =>
+      Rcat.eqInd (Rcat.codeOf (Rcat.cmpFnd i W)) (Rcat.codeOf (Rcat.nthN i W)) :=
+    Recursive2.comp2 Recursive2.eqInd
+      (RecursiveV.comp1 (F := Rcat.codeOf) Recursive1.codeOf Recursive2.cmpFnd)
+      (RecursiveV.comp1 (F := Rcat.codeOf) Recursive1.codeOf Recursive2.nthN)
+  have d5 : Recursive2 fun i W => Rcat.eqInd (Rcat.cmpFIns i W)
+      (Rcat.consN (Rcat.headN (Rcat.insAt i W) - 1) (Rcat.tailN (Rcat.insAt i W))) :=
+    Recursive2.comp2 Recursive2.eqInd Recursive2.cmpFIns
+      (Recursive2.comp2 Recursive2.consN hn1 hTl)
+  have d6 : Recursive2 fun i W => Rcat.eqInd
+      (Rcat.codeOf (Rcat.ltInd (Rcat.cmpGIdx i W) i * Rcat.nthN (Rcat.cmpGIdx i W) W))
+      (Rcat.csnd (Rcat.plAt i W)) :=
+    Recursive2.comp2 Recursive2.eqInd
+      (RecursiveV.comp1 (F := Rcat.codeOf) Recursive1.codeOf hndB)
+      (RecursiveV.comp1 (F := Rcat.csnd) Recursive1.csnd Recursive2.plAt)
+  have d7 : Recursive2 fun i W => Rcat.eqInd
+      (Rcat.insOf (Rcat.ltInd (Rcat.cmpGIdx i W) i * Rcat.nthN (Rcat.cmpGIdx i W) W))
+      (Rcat.consN (Rcat.headN (Rcat.insAt i W) - 1)
+        (Rcat.consN (Rcat.outOf (Rcat.cmpFnd i W)) (Rcat.tailN (Rcat.insAt i W)))) :=
+    Recursive2.comp2 Recursive2.eqInd
+      (RecursiveV.comp1 (F := Rcat.insOf) Recursive1.insOf hndB)
+      (Recursive2.comp2 Recursive2.consN hn1 (Recursive2.comp2 Recursive2.consN
+        (RecursiveV.comp1 (F := Rcat.outOf) Recursive1.outOf Recursive2.cmpFnd) hTl))
+  have d8 : Recursive2 fun i W => Rcat.eqInd
+      (Rcat.outOf (Rcat.ltInd (Rcat.cmpGIdx i W) i * Rcat.nthN (Rcat.cmpGIdx i W) W))
+      (Rcat.outAt i W) :=
+    Recursive2.comp2 Recursive2.eqInd
+      (RecursiveV.comp1 (F := Rcat.outOf) Recursive1.outOf hndB) Recursive2.outAt
+  have step : Recursive2 fun i W => Rcat.neInd (Rcat.headN (Rcat.insAt i W)) 0 *
+      (Rcat.ltInd (Rcat.cmpFIdx i W) i
+        * Rcat.ltInd (Rcat.cmpGIdx i W) i
+        * Rcat.eqInd (Rcat.codeOf (Rcat.cmpFnd i W)) (Rcat.codeOf (Rcat.nthN i W))
+        * Rcat.eqInd (Rcat.cmpFIns i W)
+            (Rcat.consN (Rcat.headN (Rcat.insAt i W) - 1) (Rcat.tailN (Rcat.insAt i W)))
+        * Rcat.eqInd
+            (Rcat.codeOf (Rcat.ltInd (Rcat.cmpGIdx i W) i * Rcat.nthN (Rcat.cmpGIdx i W) W))
+            (Rcat.csnd (Rcat.plAt i W))
+        * Rcat.eqInd
+            (Rcat.insOf (Rcat.ltInd (Rcat.cmpGIdx i W) i * Rcat.nthN (Rcat.cmpGIdx i W) W))
+            (Rcat.consN (Rcat.headN (Rcat.insAt i W) - 1)
+              (Rcat.consN (Rcat.outOf (Rcat.cmpFnd i W)) (Rcat.tailN (Rcat.insAt i W))))
+        * Rcat.eqInd
+            (Rcat.outOf (Rcat.ltInd (Rcat.cmpGIdx i W) i * Rcat.nthN (Rcat.cmpGIdx i W) W))
+            (Rcat.outAt i W)) :=
+    Recursive2.comp2 Recursive2.mul d1
+      (Recursive2.comp2 Recursive2.mul (Recursive2.comp2 Recursive2.mul
+        (Recursive2.comp2 Recursive2.mul (Recursive2.comp2 Recursive2.mul
+          (Recursive2.comp2 Recursive2.mul (Recursive2.comp2 Recursive2.mul c2 d3) d4)
+            d5) d6) d7) d8)
+  have h2 := Recursive2.comp2 Recursive2.add base step
+  exact h2
+
+theorem Recursive3.muStepOK : Recursive3 muStepOK := by
+  have hidx : Recursive3 fun t i W => Rcat.nthN t (Rcat.kidsAt i W) :=
+    Recursive3.comp2 Recursive2.nthN Recursive3.p1 (Recursive3.lift23 Recursive2.kidsAt)
+  have hnd : Recursive3 fun t i W =>
+      Rcat.ltInd (Rcat.nthN t (Rcat.kidsAt i W)) i
+        * Rcat.nthN (Rcat.nthN t (Rcat.kidsAt i W)) W :=
+    Recursive3.comp2 Recursive2.mul
+      (Recursive3.comp2 Recursive2.ltInd hidx Recursive3.p2)
+      (Recursive3.comp2 Recursive2.nthN hidx Recursive3.p3)
+  have m1 : Recursive3 fun t i W => Rcat.ltInd (Rcat.nthN t (Rcat.kidsAt i W)) i :=
+    Recursive3.comp2 Recursive2.ltInd hidx Recursive3.p2
+  have m2 : Recursive3 fun t i W =>
+      Rcat.eqInd (Rcat.codeOf (Rcat.ltInd (Rcat.nthN t (Rcat.kidsAt i W)) i
+        * Rcat.nthN (Rcat.nthN t (Rcat.kidsAt i W)) W)) (Rcat.plAt i W) :=
+    Recursive3.comp2 Recursive2.eqInd
+      (Recursive3.comp1 (F := Rcat.codeOf) Recursive1.codeOf hnd)
+      (Recursive3.lift23 Recursive2.plAt)
+  have m3 : Recursive3 fun t i W =>
+      Rcat.eqInd (Rcat.insOf (Rcat.ltInd (Rcat.nthN t (Rcat.kidsAt i W)) i
+        * Rcat.nthN (Rcat.nthN t (Rcat.kidsAt i W)) W))
+        (Rcat.consN t (Rcat.insAt i W)) :=
+    Recursive3.comp2 Recursive2.eqInd
+      (Recursive3.comp1 (F := Rcat.insOf) Recursive1.insOf hnd)
+      (Recursive3.comp2 Recursive2.consN Recursive3.p1 (Recursive3.lift23 Recursive2.insAt))
+  have m4 : Recursive3 fun t i W =>
+      Rcat.neInd (Rcat.outOf (Rcat.ltInd (Rcat.nthN t (Rcat.kidsAt i W)) i
+        * Rcat.nthN (Rcat.nthN t (Rcat.kidsAt i W)) W)) 0 :=
+    Recursive3.comp2 Recursive2.neInd
+      (Recursive3.comp1 (F := Rcat.outOf) Recursive1.outOf hnd) (Recursive3.const 0)
+  have h2 : Recursive3 fun t i W =>
+      Rcat.ltInd (Rcat.nthN t (Rcat.kidsAt i W)) i
+      * Rcat.eqInd (Rcat.codeOf (Rcat.ltInd (Rcat.nthN t (Rcat.kidsAt i W)) i
+          * Rcat.nthN (Rcat.nthN t (Rcat.kidsAt i W)) W)) (Rcat.plAt i W)
+      * Rcat.eqInd (Rcat.insOf (Rcat.ltInd (Rcat.nthN t (Rcat.kidsAt i W)) i
+          * Rcat.nthN (Rcat.nthN t (Rcat.kidsAt i W)) W))
+          (Rcat.consN t (Rcat.insAt i W))
+      * Rcat.neInd (Rcat.outOf (Rcat.ltInd (Rcat.nthN t (Rcat.kidsAt i W)) i
+          * Rcat.nthN (Rcat.nthN t (Rcat.kidsAt i W)) W)) 0 :=
+    Recursive3.comp2 Recursive2.mul (Recursive3.comp2 Recursive2.mul
+      (Recursive3.comp2 Recursive2.mul m1 m2) m3) m4
+  exact h2
+
+theorem Recursive2.muOK : Recursive2 muOK := by
+  have hball : RecursiveV fun v : Vec 2 =>
+      bAllN (fun t => Rcat.muStepOK t (v 0) (v 1)) (Rcat.outAt (v 0) (v 1)) :=
+    RecursiveV.bAllComp Recursive3.muStepOK Recursive2.outAt
+  have hball' : Recursive2 fun i W =>
+      bAllN (fun t => Rcat.muStepOK t i W) (Rcat.outAt i W) := hball
+  have hyidx : Recursive2 fun i W => Rcat.nthN (Rcat.outAt i W) (Rcat.kidsAt i W) :=
+    Recursive2.comp2 Recursive2.nthN Recursive2.outAt Recursive2.kidsAt
+  have hynd : Recursive2 fun i W =>
+      Rcat.ltInd (Rcat.nthN (Rcat.outAt i W) (Rcat.kidsAt i W)) i
+        * Rcat.nthN (Rcat.nthN (Rcat.outAt i W) (Rcat.kidsAt i W)) W :=
+    Recursive2.comp2 Recursive2.mul
+      (Recursive2.comp2 Recursive2.ltInd hyidx Recursive2.fstArg)
+      (Recursive2.comp2 Recursive2.nthN hyidx Recursive2.sndArg)
+  have e1 : Recursive2 fun i W =>
+      Rcat.ltInd (Rcat.nthN (Rcat.outAt i W) (Rcat.kidsAt i W)) i :=
+    Recursive2.comp2 Recursive2.ltInd hyidx Recursive2.fstArg
+  have e2 : Recursive2 fun i W =>
+      Rcat.eqInd (Rcat.codeOf (Rcat.ltInd (Rcat.nthN (Rcat.outAt i W) (Rcat.kidsAt i W)) i
+        * Rcat.nthN (Rcat.nthN (Rcat.outAt i W) (Rcat.kidsAt i W)) W)) (Rcat.plAt i W) :=
+    Recursive2.comp2 Recursive2.eqInd
+      (RecursiveV.comp1 (F := Rcat.codeOf) Recursive1.codeOf hynd) Recursive2.plAt
+  have e3 : Recursive2 fun i W =>
+      Rcat.eqInd (Rcat.insOf (Rcat.ltInd (Rcat.nthN (Rcat.outAt i W) (Rcat.kidsAt i W)) i
+        * Rcat.nthN (Rcat.nthN (Rcat.outAt i W) (Rcat.kidsAt i W)) W))
+        (Rcat.consN (Rcat.outAt i W) (Rcat.insAt i W)) :=
+    Recursive2.comp2 Recursive2.eqInd
+      (RecursiveV.comp1 (F := Rcat.insOf) Recursive1.insOf hynd)
+      (Recursive2.comp2 Recursive2.consN Recursive2.outAt Recursive2.insAt)
+  have e4 : Recursive2 fun i W =>
+      Rcat.eqInd (Rcat.outOf (Rcat.ltInd (Rcat.nthN (Rcat.outAt i W) (Rcat.kidsAt i W)) i
+        * Rcat.nthN (Rcat.nthN (Rcat.outAt i W) (Rcat.kidsAt i W)) W)) 0 :=
+    Recursive2.comp2 Recursive2.eqInd
+      (RecursiveV.comp1 (F := Rcat.outOf) Recursive1.outOf hynd) (Recursive2.const 0)
+  have h2 : Recursive2 fun i W =>
+      bAllN (fun t => Rcat.muStepOK t i W) (Rcat.outAt i W)
+      * (Rcat.ltInd (Rcat.nthN (Rcat.outAt i W) (Rcat.kidsAt i W)) i
+        * Rcat.eqInd (Rcat.codeOf (Rcat.ltInd (Rcat.nthN (Rcat.outAt i W) (Rcat.kidsAt i W)) i
+            * Rcat.nthN (Rcat.nthN (Rcat.outAt i W) (Rcat.kidsAt i W)) W)) (Rcat.plAt i W)
+        * Rcat.eqInd (Rcat.insOf (Rcat.ltInd (Rcat.nthN (Rcat.outAt i W) (Rcat.kidsAt i W)) i
+            * Rcat.nthN (Rcat.nthN (Rcat.outAt i W) (Rcat.kidsAt i W)) W))
+            (Rcat.consN (Rcat.outAt i W) (Rcat.insAt i W))
+        * Rcat.eqInd (Rcat.outOf (Rcat.ltInd (Rcat.nthN (Rcat.outAt i W) (Rcat.kidsAt i W)) i
+            * Rcat.nthN (Rcat.nthN (Rcat.outAt i W) (Rcat.kidsAt i W)) W)) 0) :=
+    Recursive2.comp2 Recursive2.mul hball' (Recursive2.comp2 Recursive2.mul
+      (Recursive2.comp2 Recursive2.mul (Recursive2.comp2 Recursive2.mul e1 e2) e3) e4)
+  exact h2
+
+theorem Recursive2.nodeOK : Recursive2 nodeOK := by
+  have hHd : Recursive2 fun i W => Rcat.headN (Rcat.insAt i W) :=
+    RecursiveV.comp1 (F := Rcat.headN) Recursive1.headN Recursive2.insAt
+  have t0 : Recursive2 fun i W =>
+      Rcat.eqInd (Rcat.tagAt i W) 0 * Rcat.eqInd (Rcat.outAt i W) 0 :=
+    Recursive2.comp2 Recursive2.mul
+      (Recursive2.comp2 Recursive2.eqInd Recursive2.tagAt (Recursive2.const 0))
+      (Recursive2.comp2 Recursive2.eqInd Recursive2.outAt (Recursive2.const 0))
+  have t1 : Recursive2 fun i W =>
+      Rcat.eqInd (Rcat.tagAt i W) 1
+        * Rcat.eqInd (Rcat.outAt i W) (Rcat.headN (Rcat.insAt i W) + 1) :=
+    Recursive2.comp2 Recursive2.mul
+      (Recursive2.comp2 Recursive2.eqInd Recursive2.tagAt (Recursive2.const 1))
+      (Recursive2.comp2 Recursive2.eqInd Recursive2.outAt
+        (Recursive2.comp2 Recursive2.add hHd (Recursive2.const 1)))
+  have t2 : Recursive2 fun i W =>
+      Rcat.eqInd (Rcat.tagAt i W) 2
+        * Rcat.eqInd (Rcat.outAt i W) (Rcat.nthN (Rcat.plAt i W) (Rcat.insAt i W)) :=
+    Recursive2.comp2 Recursive2.mul
+      (Recursive2.comp2 Recursive2.eqInd Recursive2.tagAt (Recursive2.const 2))
+      (Recursive2.comp2 Recursive2.eqInd Recursive2.outAt
+        (Recursive2.comp2 Recursive2.nthN Recursive2.plAt Recursive2.insAt))
+  have t3 : Recursive2 fun i W => Rcat.eqInd (Rcat.tagAt i W) 3 * Rcat.compOK i W :=
+    Recursive2.comp2 Recursive2.mul
+      (Recursive2.comp2 Recursive2.eqInd Recursive2.tagAt (Recursive2.const 3))
+      Recursive2.compOK
+  have t4 : Recursive2 fun i W => Rcat.eqInd (Rcat.tagAt i W) 4 * Rcat.precOK i W :=
+    Recursive2.comp2 Recursive2.mul
+      (Recursive2.comp2 Recursive2.eqInd Recursive2.tagAt (Recursive2.const 4))
+      Recursive2.precOK
+  have t5 : Recursive2 fun i W => Rcat.eqInd (Rcat.tagAt i W) 5 * Rcat.muOK i W :=
+    Recursive2.comp2 Recursive2.mul
+      (Recursive2.comp2 Recursive2.eqInd Recursive2.tagAt (Recursive2.const 5))
+      Recursive2.muOK
+  have h2 : Recursive2 fun i W =>
+      Rcat.eqInd (Rcat.tagAt i W) 0 * Rcat.eqInd (Rcat.outAt i W) 0
+      + Rcat.eqInd (Rcat.tagAt i W) 1
+          * Rcat.eqInd (Rcat.outAt i W) (Rcat.headN (Rcat.insAt i W) + 1)
+      + Rcat.eqInd (Rcat.tagAt i W) 2
+          * Rcat.eqInd (Rcat.outAt i W) (Rcat.nthN (Rcat.plAt i W) (Rcat.insAt i W))
+      + Rcat.eqInd (Rcat.tagAt i W) 3 * Rcat.compOK i W
+      + Rcat.eqInd (Rcat.tagAt i W) 4 * Rcat.precOK i W
+      + Rcat.eqInd (Rcat.tagAt i W) 5 * Rcat.muOK i W :=
+    Recursive2.comp2 Recursive2.add (Recursive2.comp2 Recursive2.add
+      (Recursive2.comp2 Recursive2.add (Recursive2.comp2 Recursive2.add
+        (Recursive2.comp2 Recursive2.add t0 t1) t2) t3) t4) t5
+  exact h2
+
+/-- STAGE 3a HEADLINE: the accept predicate of the derivation checker is a
+    recursive function — the machine that semi-decides the halting set is itself
+    a machine of R. -/
+theorem Recursive2.acceptN : Recursive2 acceptN := by
+  have hF : Recursive3 fun j _ wit => Rcat.nodeOK j (Rcat.cfst wit) :=
+    Recursive3.comp2 Recursive2.nodeOK Recursive3.p1
+      (Recursive3.comp1 (F := Rcat.cfst) Recursive1.cfst Recursive3.p3)
+  have hb : Recursive2 fun _ wit => Rcat.csnd wit + 1 :=
+    Recursive2.comp2 Recursive2.add (Recursive2.ofSnd Recursive1.csnd) (Recursive2.const 1)
+  have hball : RecursiveV fun v : Vec 2 =>
+      bAllN (fun j => Rcat.nodeOK j (Rcat.cfst (v 1))) (Rcat.csnd (v 1) + 1) :=
+    RecursiveV.bAllComp hF hb
+  have hball' : Recursive2 fun _ wit =>
+      bAllN (fun j => Rcat.nodeOK j (Rcat.cfst wit)) (Rcat.csnd wit + 1) := hball
+  have hroot : Recursive2 fun _ wit => Rcat.nthN (Rcat.csnd wit) (Rcat.cfst wit) :=
+    Recursive2.comp2 Recursive2.nthN (Recursive2.ofSnd Recursive1.csnd)
+      (Recursive2.ofSnd Recursive1.cfst)
+  have a2 : Recursive2 fun e wit =>
+      Rcat.eqInd (Rcat.codeOf (Rcat.nthN (Rcat.csnd wit) (Rcat.cfst wit))) e :=
+    Recursive2.comp2 Recursive2.eqInd
+      (RecursiveV.comp1 (F := Rcat.codeOf) Recursive1.codeOf hroot) Recursive2.fstArg
+  have a3 : Recursive2 fun e wit =>
+      Rcat.eqInd (Rcat.insOf (Rcat.nthN (Rcat.csnd wit) (Rcat.cfst wit)))
+        (Rcat.consN e 0) :=
+    Recursive2.comp2 Recursive2.eqInd
+      (RecursiveV.comp1 (F := Rcat.insOf) Recursive1.insOf hroot)
+      (Recursive2.comp2 Recursive2.consN Recursive2.fstArg (Recursive2.const 0))
+  have h2 : Recursive2 fun e wit =>
+      bAllN (fun j => Rcat.nodeOK j (Rcat.cfst wit)) (Rcat.csnd wit + 1)
+      * Rcat.eqInd (Rcat.codeOf (Rcat.nthN (Rcat.csnd wit) (Rcat.cfst wit))) e
+      * Rcat.eqInd (Rcat.insOf (Rcat.nthN (Rcat.csnd wit) (Rcat.cfst wit)))
+          (Rcat.consN e 0) :=
+    Recursive2.comp2 Recursive2.mul
+      (Recursive2.comp2 Recursive2.mul hball' a2) a3
+  exact h2
+
 end Freyd.Rcat
