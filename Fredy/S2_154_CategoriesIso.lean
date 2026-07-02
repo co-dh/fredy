@@ -388,6 +388,208 @@ theorem mapIsImage_of_corOf {a b : MapObj A}
     -- `Subobject.mk _ ⟨m.val, m.property⟩ _ = I` by eta on subtypes and structures.
     exact this
 
+/-- The tabulation of a span through a partial unit is a PRODUCT cone in `Map 𝒜`
+    (existence + uniqueness of the mediating map, at the allegory level). -/
+theorem tabulates_span_partialUnit_product {u' : A} (hu' : PartialUnit u')
+    {a b P : A} {pa : a ⟶ u'} {pb : b ⟶ u'} (hpa : Alg.Map pa) (hpb : Alg.Map pb)
+    {r : P ⟶ a} {s : P ⟶ b} (ht : Tabulates r s (pa ≫ pb°))
+    {w : A} {x : w ⟶ a} {y : w ⟶ b} (hx : Alg.Map x) (hy : Alg.Map y) :
+    ∃ h : w ⟶ P, Alg.Map h ∧ h ≫ r = x ∧ h ≫ s = y ∧
+      ∀ h', Alg.Map h' → h' ≫ r = x → h' ≫ s = y → h' = h := by
+  obtain ⟨h, hh, hr, hs⟩ := tabulation_UP_forward ht hx hy
+    (le_span_of_partialUnit hu' hpa hpb (x° ≫ y))
+  exact ⟨h, hh, hr, hs, fun h' hh' hr' hs' =>
+    tabulation_UP_unique ht hh' hh (hr'.trans hr.symm) (hs'.trans hs.symm)⟩
+
 end MapChar
+
+/-! ## 3.  §2.154 middle paragraph: `Map T : Map 𝒜 → Map ℬ` is a regular functor
+
+  "Given a representation of allegories T : A → B we obtain a representation of categories
+   T' : Map(A) → Map(B).  If A and B are tabular, then T' preserves pullbacks, equalizers,
+   and covers.  If, further, A and B are unitary and T is unitary, then T' preserves
+   terminators, and consequently T' is a representation of regular categories." -/
+
+section MapRep
+
+/-- An allegory functor preserves `dom` (it is equational: `dom R = 1 ∩ R≫R°`). -/
+theorem map_dom {𝒜 : Type u₁} {ℬ : Type u₂} [Allegory.{v₁} 𝒜] [Allegory.{v₂} ℬ]
+    (T : AllegoryFunctor 𝒜 ℬ) {a b : 𝒜} (R : a ⟶ b) :
+    T.map (Alg.dom R) = Alg.dom (T.map R) := by
+  show T.map (Cat.id a ∩ R ≫ R°) = Cat.id _ ∩ T.map R ≫ (T.map R)°
+  rw [T.map_inter, T.map_id, T.map_comp, T.map_recip]
+
+/-- `X` is a terminator (predicate form; the shape of the §2.154 "preserves terminators"
+    clause carried by `RegRep` below). -/
+def IsTerm {D : Type u₁} [Cat.{v} D] (X : D) : Prop :=
+  ∀ Y : D, ∃ f : Y ⟶ X, ∀ g : Y ⟶ X, g = f
+
+-- carrier universes may differ, but the HOM universe `v` must match on both sides
+-- (`RegularFunctor` lives at a single hom universe).
+variable {A : Type u₁} {B : Type u₂}
+  [TabularUnitaryAllegory.{u₁, v} A] [TabularUnitaryAllegory.{u₂, v} B]
+  (T : AllegoryFunctor A B)
+
+/-- **§2.154**: the restriction `T' : Map 𝒜 → Map ℬ` of a representation of allegories
+    (maps go to maps, §2.51).  Built by explicit `@Functor.mk` — the `where` syntax would
+    re-synthesize `Cat (MapObj _)` as the allegory `toCat` (the standard `MapObj` diamond). -/
+def mapRepFunctor :
+    @Functor (MapObj A) (mapCat (𝒜 := A)) (MapObj B) (mapCat (𝒜 := B)) T.obj :=
+  @Functor.mk (MapObj A) (mapCat (𝒜 := A)) (MapObj B) (mapCat (𝒜 := B)) T.obj
+    (fun {_X _Y} f => ⟨T.map f.val, T.preserves_map f.property⟩)
+    (fun X => Subtype.ext (T.map_id X))
+    (fun {_X _Y _Z} f g => Subtype.ext (T.map_comp f.val g.val))
+
+/-- **§2.154**: `T'` preserves MONICS (`m≫m° = 1` is equational). -/
+theorem mapRep_pres_mono :
+    @PreservesMono (MapObj A) (mapCat (𝒜 := A)) (MapObj B) (mapCat (𝒜 := B))
+      T.obj (mapRepFunctor T) := by
+  intro X Y f hf
+  have h := (mapMonic_iff (A := A) f.val f.property).mp hf
+  show @Monic (MapObj B) (mapCat (𝒜 := B)) _ _ ⟨T.map f.val, T.preserves_map f.property⟩
+  exact (mapMonic_iff (A := B) (T.map f.val) (T.preserves_map f.property)).mpr
+    (by rw [← T.map_recip, ← T.map_comp, h, T.map_id])
+
+/-- **§2.154**: `T'` preserves COVERS (`f°≫f = 1` is equational). -/
+theorem mapRep_pres_covers :
+    @PreservesCovers (MapObj A) (MapObj B) (mapCat (𝒜 := A)) (mapCat (𝒜 := B))
+      T.obj (mapRepFunctor T) := by
+  intro X Y f hf
+  have h := (mapCover_iff (A := A) f).mp hf
+  show @Cover (MapObj B) (mapCat (𝒜 := B)) _ _ ⟨T.map f.val, T.preserves_map f.property⟩
+  exact (mapCover_iff (A := B) ⟨T.map f.val, T.preserves_map f.property⟩).mpr
+    (by show (T.map f.val)° ≫ T.map f.val = _
+        rw [← T.map_recip, ← T.map_comp, h, T.map_id])
+
+/-- **§2.154**: `T'` preserves PULLBACKS: pullback cones are exactly the tabulations of
+    `f ≫ g°` (`mapIsPullback_tabulates`/`mapTabulates_isPullback`) and representations of
+    allegories preserve tabulations (§2.51). -/
+theorem mapRep_pres_pullback :
+    @PreservesPullbacks (MapObj A) (MapObj B) (mapCat (𝒜 := A)) (mapCat (𝒜 := B))
+      T.obj (mapRepFunctor T) := by
+  intro a b c f g cone hpb
+  apply mapTabulates_isPullback
+  have ht := T.preserves_tabulates (mapIsPullback_tabulates cone hpb)
+  rw [T.map_comp, T.map_recip] at ht
+  exact ht
+
+/-- **§2.154**: `T'` preserves IMAGES (the image is the splitting of the coreflexive
+    `dom f°`, an equational description). -/
+theorem mapRep_pres_image :
+    @PreservesImages (MapObj A) (MapObj B) (mapCat (𝒜 := A)) (mapCat (𝒜 := B))
+      T.obj (mapRepFunctor T) (mapRep_pres_mono T) := by
+  intro a b f I hI
+  apply mapIsImage_of_corOf
+  show (T.map (@Subobject.arr (MapObj A) (mapCat (𝒜 := A)) b I).val)°
+      ≫ T.map (@Subobject.arr (MapObj A) (mapCat (𝒜 := A)) b I).val
+      = Alg.dom ((T.map f.val)°)
+  rw [← T.map_recip, ← T.map_comp, mapIsImage_corOf f I hI, map_dom, T.map_recip]
+
+/-- **§2.154**: a UNITARY `T'` preserves TERMINATORS: the terminator of `Map 𝒜` is the
+    unit, `T` sends it to a unit, and units are terminators in `Map ℬ` (§2.15). -/
+theorem mapRep_pres_term (hu : IsUnit (T.obj (UnitaryAllegory.unit_obj (𝒜 := A)))) :
+    @IsTerm (MapObj B) (mapCat (𝒜 := B)) (T.obj (UnitaryAllegory.unit_obj (𝒜 := A))) := by
+  intro Y
+  obtain ⟨E, hE⟩ := hu.2 Y
+  refine ⟨⟨E, map_of_entire_to_partialUnit hu.1 hE⟩, fun g => ?_⟩
+  exact Subtype.ext (maps_to_partialUnit_unique hu.1 g.property
+    (map_of_entire_to_partialUnit hu.1 hE))
+
+/-- The tabulation equation for the CHOSEN product of `Map 𝒜`: it is (defined as) the
+    pullback over the unit, so its legs tabulate `trm a ≫ (trm b)°`. -/
+theorem mapProd_tabulates {A : Type u₁} [TabularUnitaryAllegory.{u₁, v} A] (a b : MapObj A) :
+    Tabulates
+      (@Freyd.fst (MapObj A) (mapCat (𝒜 := A)) mapHasBinaryProducts a b).val
+      (@Freyd.snd (MapObj A) (mapCat (𝒜 := A)) mapHasBinaryProducts a b).val
+      ((@HasTerminal.trm (MapObj A) (mapCat (𝒜 := A)) mapHasTerminal a).val
+        ≫ (@HasTerminal.trm (MapObj A) (mapCat (𝒜 := A)) mapHasTerminal b).val°) :=
+  mapIsPullback_tabulates
+    (@HasPullback.cone (MapObj A) (mapCat (𝒜 := A)) a b _ _ _
+      (mapHasPullback (@HasTerminal.trm (MapObj A) (mapCat (𝒜 := A)) mapHasTerminal a)
+        (@HasTerminal.trm (MapObj A) (mapCat (𝒜 := A)) mapHasTerminal b)))
+    (@HasPullback.cone_isPullback (MapObj A) (mapCat (𝒜 := A)) a b _ _ _
+      (mapHasPullback (@HasTerminal.trm (MapObj A) (mapCat (𝒜 := A)) mapHasTerminal a)
+        (@HasTerminal.trm (MapObj A) (mapCat (𝒜 := A)) mapHasTerminal b)))
+
+/-- **§2.154**: a UNITARY `T'` preserves BINARY PRODUCTS.  The product of `Map 𝒜`
+    tabulates the span through the unit; `T` carries it to a tabulation of a span through
+    the unit `T(1)`, which is maximal (§2.15), hence again a product cone; the canonical
+    comparison to the chosen product of `Map ℬ` is then an isomorphism. -/
+theorem mapRep_pres_prod (hu : IsUnit (T.obj (UnitaryAllegory.unit_obj (𝒜 := A)))) :
+    @PreservesBinaryProducts (MapObj A) (MapObj B) (mapCat (𝒜 := A)) (mapCat (𝒜 := B))
+      T.obj (mapRepFunctor T) mapHasBinaryProducts mapHasBinaryProducts := by
+  intro a b
+  -- upstairs product legs and the unit maps.
+  let ta := @HasTerminal.trm (MapObj A) (mapCat (𝒜 := A)) mapHasTerminal a
+  let tb := @HasTerminal.trm (MapObj A) (mapCat (𝒜 := A)) mapHasTerminal b
+  let fA := @Freyd.fst (MapObj A) (mapCat (𝒜 := A)) mapHasBinaryProducts a b
+  let sA := @Freyd.snd (MapObj A) (mapCat (𝒜 := A)) mapHasBinaryProducts a b
+  -- the T-image of the upstairs product cone tabulates the span (T ta, T tb) through T(1).
+  have htab : Tabulates (T.map fA.val) (T.map sA.val)
+      (T.map ta.val ≫ (T.map tb.val)°) := by
+    have h := T.preserves_tabulates (mapProd_tabulates (A := A) a b)
+    rw [T.map_comp, T.map_recip] at h
+    exact h
+  -- downstairs product legs.
+  let fB := @Freyd.fst (MapObj B) (mapCat (𝒜 := B)) mapHasBinaryProducts (T.obj a) (T.obj b)
+  let sB := @Freyd.snd (MapObj B) (mapCat (𝒜 := B)) mapHasBinaryProducts (T.obj a) (T.obj b)
+  -- mediating map from the downstairs product into the T-image cone.
+  obtain ⟨k, hk, hkr, hks, _⟩ := tabulates_span_partialUnit_product (A := B) hu.1
+    (T.preserves_map ta.property) (T.preserves_map tb.property) htab
+    fB.property sB.property
+  -- the comparison pair κ = ⟨T' fst, T' snd⟩ and the pair laws.
+  let κ := @Freyd.pair (MapObj B) (mapCat (𝒜 := B)) mapHasBinaryProducts _ _ _
+    (⟨T.map fA.val, T.preserves_map fA.property⟩ :
+      @Cat.Hom (MapObj B) (mapCat (𝒜 := B)) (T.obj _) (T.obj a))
+    (⟨T.map sA.val, T.preserves_map sA.property⟩ :
+      @Cat.Hom (MapObj B) (mapCat (𝒜 := B)) (T.obj _) (T.obj b))
+  have hκf : @Cat.comp (MapObj B) (mapCat (𝒜 := B)) _ _ _ κ fB
+      = ⟨T.map fA.val, T.preserves_map fA.property⟩ :=
+    @Freyd.fst_pair (MapObj B) (mapCat (𝒜 := B)) mapHasBinaryProducts _ _ _ _ _
+  have hκs : @Cat.comp (MapObj B) (mapCat (𝒜 := B)) _ _ _ κ sB
+      = ⟨T.map sA.val, T.preserves_map sA.property⟩ :=
+    @Freyd.snd_pair (MapObj B) (mapCat (𝒜 := B)) mapHasBinaryProducts _ _ _ _ _
+  refine ⟨⟨k, hk⟩, ?_, ?_⟩
+  · -- κ ≫ ⟨k⟩ = id, by uniqueness of mediation into the T-image tabulation cone.
+    apply Subtype.ext
+    show κ.val ≫ k = Cat.id _
+    have h1 : (κ.val ≫ k) ≫ T.map fA.val = T.map fA.val := by
+      rw [Cat.assoc, hkr]
+      exact congrArg Subtype.val hκf
+    have h2 : (κ.val ≫ k) ≫ T.map sA.val = T.map sA.val := by
+      rw [Cat.assoc, hks]
+      exact congrArg Subtype.val hκs
+    exact tabulation_UP_unique htab (map_comp κ.property hk) (id_is_map_local _)
+      (h1.trans (Cat.id_comp _).symm) (h2.trans (Cat.id_comp _).symm)
+  · -- ⟨k⟩ ≫ κ = id, by uniqueness of pairing into the downstairs product.
+    have hp1 : @Cat.comp (MapObj B) (mapCat (𝒜 := B)) _ _ _
+        (@Cat.comp (MapObj B) (mapCat (𝒜 := B)) _ _ _ ⟨k, hk⟩ κ) fB = fB := by
+      apply Subtype.ext
+      show (k ≫ κ.val) ≫ fB.val = fB.val
+      rw [Cat.assoc, show κ.val ≫ fB.val = T.map fA.val from congrArg Subtype.val hκf, hkr]
+    have hp2 : @Cat.comp (MapObj B) (mapCat (𝒜 := B)) _ _ _
+        (@Cat.comp (MapObj B) (mapCat (𝒜 := B)) _ _ _ ⟨k, hk⟩ κ) sB = sB := by
+      apply Subtype.ext
+      show (k ≫ κ.val) ≫ sB.val = sB.val
+      rw [Cat.assoc, show κ.val ≫ sB.val = T.map sA.val from congrArg Subtype.val hκs, hks]
+    have e1 := @Freyd.pair_uniq (MapObj B) (mapCat (𝒜 := B)) mapHasBinaryProducts _ _ _
+      fB sB (@Cat.comp (MapObj B) (mapCat (𝒜 := B)) _ _ _ ⟨k, hk⟩ κ) hp1 hp2
+    have e2 := @Freyd.pair_uniq (MapObj B) (mapCat (𝒜 := B)) mapHasBinaryProducts _ _ _
+      fB sB (@Cat.id (MapObj B) (mapCat (𝒜 := B)) _)
+      (@Cat.id_comp (MapObj B) (mapCat (𝒜 := B)) _ _ fB)
+      (@Cat.id_comp (MapObj B) (mapCat (𝒜 := B)) _ _ sB)
+    exact e1.trans e2.symm
+
+/-- **§2.154 (middle paragraph, packaged)**: a unitary representation of tabular unitary
+    allegories restricts to a REGULAR functor `Map 𝒜 → Map ℬ`. -/
+theorem mapRep_regular (hu : IsUnit (T.obj (UnitaryAllegory.unit_obj (𝒜 := A)))) :
+    @RelFunctor.RegularFunctor (MapObj A) (MapObj B) (mapCat (𝒜 := A)) (mapCat (𝒜 := B))
+      T.obj (mapRepFunctor T) mapRegularCategory mapRegularCategory :=
+  @RelFunctor.RegularFunctor.mk (MapObj A) (MapObj B) (mapCat (𝒜 := A)) (mapCat (𝒜 := B))
+    T.obj (mapRepFunctor T) mapRegularCategory mapRegularCategory
+    (mapRep_pres_prod T hu) (mapRep_pres_pullback T) (mapRep_pres_covers T)
+    (mapRep_pres_mono T) (mapRep_pres_image T)
+
+end MapRep
 
 end Freyd.S2_154
