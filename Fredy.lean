@@ -184,3 +184,6 @@ import Fredy.A6_2
 import Fredy.A6_3
 import Fredy.A6_5
 import Fredy.A6_7
+-- Bird & de Moor ch. 7: optimisation problems (min/max, monotonic algebras, greedy theorem)
+import Fredy.A7_1
+import Fredy.A7_2

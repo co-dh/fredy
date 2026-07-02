@@ -318,6 +318,30 @@ theorem leftDiv_mono_right {a b c : 𝒜} (S : a ⟶ b) {R R' : a ⟶ c} (h : R 
     leftDiv S R ⊑ leftDiv S R' :=
   (le_leftDiv_iff _ _ _).mpr (le_trans (leftDiv_comp_le S R) h)
 
+/-- Division by the identity is trivial: `1\R = R`. -/
+theorem leftDiv_id {a b : 𝒜} (R : a ⟶ b) : leftDiv (Cat.id a) R = R := by
+  apply le_antisymm
+  · have h := leftDiv_comp_le (Cat.id a) R; rwa [Cat.id_comp] at h
+  · apply (le_leftDiv_iff _ _ _).mpr; rw [Cat.id_comp]; exact le_refl R
+
+/-- Left division composes: `(ST)\R = T\(S\R)`, by the double universal property. -/
+theorem leftDiv_comp {a b c d : 𝒜} (S : a ⟶ b) (T : b ⟶ c) (R : a ⟶ d) :
+    leftDiv (S ≫ T) R = leftDiv T (leftDiv S R) := by
+  apply le_antisymm
+  · apply (le_leftDiv_iff _ T _).mpr
+    apply (le_leftDiv_iff _ S _).mpr
+    rw [← Cat.assoc]
+    exact leftDiv_comp_le (S ≫ T) R
+  · apply (le_leftDiv_iff _ (S ≫ T) _).mpr
+    rw [Cat.assoc]
+    exact le_trans (comp_mono_left S (leftDiv_comp_le T (leftDiv S R))) (leftDiv_comp_le S R)
+
+/-- Numerator meets distribute over left division: `S\(R∩R') = (S\R)∩(S\R')`. -/
+theorem leftDiv_inter {a b c : 𝒜} (S : a ⟶ b) (R R' : a ⟶ c) :
+    leftDiv S (R ∩ R') = leftDiv S R ∩ leftDiv S R' := by
+  show ((R ∩ R')° / S°)° = (R° / S°)° ∩ (R'° / S°)°
+  rw [Allegory.recip_inter, div_inter_eq, Allegory.recip_inter]
+
 /-! ## §2.314  The equation S\(R/T) = (S\R)/T -/
 
 /-- S\(R/T) = (S\R)/T (§2.314).
