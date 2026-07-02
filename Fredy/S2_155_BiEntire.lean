@@ -178,14 +178,6 @@ theorem BHom.congr {A B : Type u} {R S : BHom A B} (h : R = S) (a : A) (b : B) :
 @[reducible] def BHom.comp {A B C : Type u} (R : BHom A B) (S : BHom B C) : BHom A C :=
   ⟨bComp R.val S.val, isB_comp R.property S.property⟩
 
-/-- Reciprocation of B. -/
-@[reducible] def BHom.recip {A B : Type u} (R : BHom A B) : BHom B A :=
-  ⟨bRecip R.val, isB_recip R.property⟩
-
-/-- The semi-lattice meet of the hom-sets of B. -/
-@[reducible] def BHom.inter {A B : Type u} (R S : BHom A B) : BHom A B :=
-  ⟨interB R.val S.val, isB_interB R.val S.val⟩
-
 /-- `1 ≫ R = R` at the relation level. -/
 theorem bComp_eq_left {A B : Type u} (R : A → B → Prop) (a : A) (b : B) :
     bComp Eq R a b ↔ R a b :=
@@ -212,6 +204,14 @@ instance instCatB : Cat.{u, u + 1} BObj.{u} where
   id_comp R := BHom.ext fun a b => bComp_eq_left R.val a b
   comp_id R := BHom.ext fun a b => bComp_eq_right R.val a b
   assoc R S T := BHom.ext fun a d => bComp_assoc R.val S.val T.val a d
+
+/-- Reciprocation of B (typed at the `BObj` level so it composes with `≫`). -/
+@[reducible] def BHom.recip {a b : BObj.{u}} (R : a ⟶ b) : b ⟶ a :=
+  ⟨bRecip R.val, isB_recip R.property⟩
+
+/-- The semi-lattice meet of the hom-sets of B. -/
+@[reducible] def BHom.inter {a b : BObj.{u}} (R S : a ⟶ b) : a ⟶ b :=
+  ⟨interB R.val S.val, isB_interB R.val S.val⟩
 
 /-! ## §2.155 (iii)  B is NOT closed under the intersection of Rel(S)
 
@@ -335,5 +335,157 @@ theorem b_inter_assoc {a b : BObj.{u}} (R S T : a ⟶ b) :
 theorem binter_eq_left {a b : BObj.{u}} {X Y : a ⟶ b}
     (hsub : ∀ p q, X.val p q → Y.val p q) : BHom.inter X Y = X :=
   BHom.ext fun p q => interB_eq_left X.property hsub p q
+
+/-! ## §2.155 (v)  All allegory axioms hold in B except the modular identity
+
+  The theorems below mirror, one for one, the fields of the `Allegory` class
+  of §2.11 (`Fredy.S2_1`) with `interB` as the intersection — except
+  `Allegory.modular`, which FAILS (next section).  No `Allegory` instance can
+  therefore be declared for B. -/
+
+/-- `(R°)° = R` in B (mirrors `Allegory.recip_recip`). -/
+theorem b_recip_recip {a b : BObj.{u}} (R : a ⟶ b) :
+    BHom.recip (BHom.recip R) = R :=
+  BHom.ext fun _ _ => Iff.rfl
+
+/-- `(R ≫ S)° = S° ≫ R°` in B (mirrors `Allegory.recip_comp`). -/
+theorem b_recip_comp {a b c : BObj.{u}} (R : a ⟶ b) (S : b ⟶ c) :
+    BHom.recip (R ≫ S) = BHom.recip S ≫ BHom.recip R :=
+  BHom.ext fun _ _ =>
+    ⟨fun ⟨y, h1, h2⟩ => ⟨y, h2, h1⟩, fun ⟨y, h2, h1⟩ => ⟨y, h1, h2⟩⟩
+
+/-- `(R ∩ S)° = R° ∩ S°` in B (mirrors `Allegory.recip_inter`): the guards
+    transport because `pInter R° S°` IS `(pInter R S)°` definitionally. -/
+theorem b_recip_inter {a b : BObj.{u}} (R S : a ⟶ b) :
+    BHom.recip (BHom.inter R S) = BHom.inter (BHom.recip R) (BHom.recip S) :=
+  BHom.ext fun _ _ =>
+    ⟨fun h => ⟨h.1, h.2.1, biEntire_recip h.2.2⟩,
+     fun h => ⟨h.1, h.2.1, biEntire_recip h.2.2⟩⟩
+
+/-- SEMI-DISTRIBUTIVITY holds in B, relation level, in the exact equational
+    shape of `Allegory.semidistrib` (§2.11):
+    `R(S ∩ T) = RS ∩ R(S ∩ T) ∩ RT`.  Two-case analysis on the guard of
+    `S ∩ T`; when it fails both sides collapse to `∅`, when it holds the
+    composite `R ≫ (S ∩ T)` is itself bi-entire (or `R = ∅` kills both
+    sides), so every outer guard is forced by upward closure. -/
+theorem interB_semidistrib_pt {A B C : Type u} {r : A → B → Prop} {s t : B → C → Prop}
+    (hr : IsB r) : ∀ (x : A) (z : C),
+    bComp r (interB s t) x z ↔
+      interB (interB (bComp r s) (bComp r (interB s t))) (bComp r t) x z := by
+  by_cases hG : BiEntire (pInter s t)
+  · -- guard of S ∩ T holds: interB s t is pointwise s ∩ t
+    have hMval : ∀ y w, interB s t y w ↔ (s y w ∧ t y w) :=
+      fun y w => ⟨fun h => ⟨h.1, h.2.1⟩, fun h => ⟨h.1, h.2, hG⟩⟩
+    rcases hr with hRe | hRbe
+    · -- r = ∅: both sides are pointwise empty
+      intro x z
+      constructor
+      · rintro ⟨y, hry, -⟩; exact absurd hry (hRe x y)
+      · rintro ⟨⟨⟨y, hry, -⟩, -, -⟩, -, -⟩; exact absurd hry (hRe x y)
+    · -- r bi-entire: L := r ≫ (s ∩ t) is bi-entire and forces all guards
+      have hLBE : BiEntire (bComp r (interB s t)) := by
+        refine biEntire_mono ?_ (biEntire_comp hRbe hG)
+        rintro x z ⟨y, hry, hst⟩
+        exact ⟨y, hry, (hMval y z).mpr hst⟩
+      have hsubS : ∀ x z, bComp r (interB s t) x z → bComp r s x z := by
+        rintro x z ⟨y, hry, hm⟩; exact ⟨y, hry, hm.1⟩
+      have hsubT : ∀ x z, bComp r (interB s t) x z → bComp r t x z := by
+        rintro x z ⟨y, hry, hm⟩; exact ⟨y, hry, hm.2.1⟩
+      have g1 : BiEntire (pInter (bComp r s) (bComp r (interB s t))) :=
+        biEntire_mono (fun x z h => ⟨hsubS x z h, h⟩) hLBE
+      have hInner : ∀ x z,
+          interB (bComp r s) (bComp r (interB s t)) x z ↔ bComp r (interB s t) x z :=
+        fun x z => ⟨fun h => h.2.1, fun h => ⟨hsubS x z h, h, g1⟩⟩
+      have g2 : BiEntire (pInter (interB (bComp r s) (bComp r (interB s t)))
+          (bComp r t)) :=
+        biEntire_mono (fun x z h => ⟨(hInner x z).mpr h, hsubT x z h⟩) hLBE
+      intro x z
+      exact ⟨fun h => ⟨(hInner x z).mpr h, hsubT x z h, g2⟩,
+             fun h => (hInner x z).mp h.1⟩
+  · -- guard of S ∩ T fails: interB s t = ∅ and both sides are pointwise empty
+    intro x z
+    constructor
+    · rintro ⟨y, -, -, -, hg⟩; exact absurd hg hG
+    · rintro ⟨⟨-, ⟨y, -, -, -, hg⟩, -⟩, -, -⟩; exact absurd hg hG
+
+/-- §2.155/§2.11: SEMI-DISTRIBUTIVITY holds in B —
+    `R ≫ (S ∩ T) = (R≫S ∩ R≫(S∩T)) ∩ R≫T`, mirroring `Allegory.semidistrib`
+    exactly. -/
+theorem b_semidistrib {a b c : BObj.{u}} (R : a ⟶ b) (S T : b ⟶ c) :
+    R ≫ BHom.inter S T =
+      BHom.inter (BHom.inter (R ≫ S) (R ≫ BHom.inter S T)) (R ≫ T) :=
+  BHom.ext fun x z => interB_semidistrib_pt R.property x z
+
+/-! ## §2.155 (vi)  The MODULAR IDENTITY fails in B
+
+  Witness (carriers `Two, Three, Two`): `R := wR`, `S := wS`, `T := 1`.
+  `R ≫ S = {(e0,e0),(e1,e0),(e1,e1)} ⊇ 1` is bi-entire, so the left side
+  `RS ∩ 1 = 1 ≠ ∅`.  But `1 ≫ S° = S°` and the pointwise `wR ∩ wS°` is the
+  non-closure witness above — entire yet not co-entire — so its guard fails,
+  `R ∩ (1 ≫ S°) = ∅` in B, and the right side collapses to `∅`. -/
+
+/-- `wR` as a morphism of B. -/
+def homR : BObj.of Two ⟶ BObj.of Three := ⟨wR, Or.inr wR_biEntire⟩
+
+/-- `wS` as a morphism of B. -/
+def homS : BObj.of Three ⟶ BObj.of Two := ⟨wS, Or.inr wS_biEntire⟩
+
+/-- The guard of `(wR ≫ wS) ∩ 1` holds: the composite relates `e0↦e0` (via
+    `e0`) and `e1↦e1` (via `e1`), so the pointwise intersection with the
+    diagonal IS the diagonal — bi-entire. -/
+theorem lhs_guard : BiEntire (pInter (bComp wR wS) (Eq : Two → Two → Prop)) :=
+  ⟨fun a => match a with
+    | .e0 => ⟨.e0, ⟨.e0, Or.inl ⟨rfl, rfl⟩, Or.inl ⟨rfl, rfl⟩⟩, rfl⟩
+    | .e1 => ⟨.e1, ⟨.e1, Or.inr (Or.inl ⟨rfl, rfl⟩), Or.inr (Or.inl ⟨rfl, rfl⟩)⟩, rfl⟩,
+   fun b => match b with
+    | .e0 => ⟨.e0, ⟨.e0, Or.inl ⟨rfl, rfl⟩, Or.inl ⟨rfl, rfl⟩⟩, rfl⟩
+    | .e1 => ⟨.e1, ⟨.e1, Or.inr (Or.inl ⟨rfl, rfl⟩), Or.inr (Or.inl ⟨rfl, rfl⟩)⟩, rfl⟩⟩
+
+/-- The LEFT side of the modular law holds at `(e0, e0)`. -/
+theorem lhs_holds : interB (bComp wR wS) Eq Two.e0 Two.e0 :=
+  ⟨⟨Three.e0, Or.inl ⟨rfl, rfl⟩, Or.inl ⟨rfl, rfl⟩⟩, rfl, lhs_guard⟩
+
+/-- `pInter wR (1 ≫ wS°) ⊆ pInter wR wS°` (the composite with the identity
+    changes nothing). -/
+theorem eqComp_sub : ∀ a b, pInter wR (bComp Eq (bRecip wS)) a b →
+    pInter wR (bRecip wS) a b :=
+  fun _ _ h => ⟨h.1, by obtain ⟨x, rfl, hw⟩ := h.2; exact hw⟩
+
+/-- The RIGHT side of the modular law is empty at `(e0, e0)`: any point of
+    `(R ∩ 1≫S°) ≫ S` carries the guard of `pInter wR (1 ≫ wS°)`, which fails
+    because `wR ∩ wS°` is not bi-entire. -/
+theorem rhs_empty_at :
+    ¬ interB (interB (bComp wR wS) Eq)
+        (bComp (interB wR (bComp Eq (bRecip wS))) wS) Two.e0 Two.e0 := by
+  rintro ⟨-, ⟨y, ⟨-, -, g⟩, -⟩, -⟩
+  exact wRSo_not_biEntire (biEntire_mono eqComp_sub g)
+
+/-- §2.155, concrete form: the modular law `RS ∩ T = (RS ∩ T) ∩ (R ∩ TS°)S`
+    (the exact equational shape of `Allegory.modular`, §2.11) FAILS in B for
+    `R := wR`, `S := wS`, `T := 1`. -/
+theorem modular_fails_concrete :
+    BHom.inter (homR ≫ homS) (Cat.id (BObj.of Two)) ≠
+      BHom.inter (BHom.inter (homR ≫ homS) (Cat.id (BObj.of Two)))
+        (BHom.inter homR (Cat.id (BObj.of Two) ≫ BHom.recip homS) ≫ homS) := by
+  intro heq
+  have hpt := congrFun (congrFun (congrArg Subtype.val heq) Two.e0) Two.e0
+  have hL : (BHom.inter (homR ≫ homS) (Cat.id (BObj.of Two))).val Two.e0 Two.e0 :=
+    lhs_holds
+  have hR' : (BHom.inter (BHom.inter (homR ≫ homS) (Cat.id (BObj.of Two)))
+      (BHom.inter homR (Cat.id (BObj.of Two) ≫ BHom.recip homS) ≫ homS)).val
+      Two.e0 Two.e0 := hpt ▸ hL
+  exact rhs_empty_at hR'
+
+/-- §2.155: "All axioms for allegories hold except for the modular identity"
+    — and the modular identity indeed FAILS: B satisfies every other
+    `Allegory` field (theorems above), but there are B-morphisms violating
+    `Allegory.modular`.  Hence the modular identity is INDEPENDENT of the
+    remaining allegory axioms. -/
+theorem modular_fails :
+    ∃ (a b c : BObj.{0}) (R : a ⟶ b) (S : b ⟶ c) (T : a ⟶ c),
+      BHom.inter (R ≫ S) T ≠
+        BHom.inter (BHom.inter (R ≫ S) T) (BHom.inter R (T ≫ BHom.recip S) ≫ S) :=
+  ⟨BObj.of Two, BObj.of Three, BObj.of Two, homR, homS, Cat.id (BObj.of Two),
+   modular_fails_concrete⟩
 
 end Freyd.Alg
