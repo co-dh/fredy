@@ -584,4 +584,47 @@ theorem idempotent_splits_in_spl {a : 𝒜} (A : a ⟶ a) (hA : A ≫ A = A)
     rw [← embHom_comp, hA]
   exact neighbors_split_transfer hAidem hnbSpl hsplitN
 
+/-! ### §2.16(11)  Orderings cannot split
+
+  The two containments now yield the book's closing observations: for a PARTIAL
+  ORDERING (`T² ⊑ T`, `T ∩ T° = 1`) the first containment forces `T = 1`; for a
+  STRICT DENSE partial ordering (`T² = T`, `T ∩ T° = 0`) the second forces `T = 0`. -/
+
+/-- **§2.16(11)**: "If `T` is a partial ordering, that is, if `T² ⊑ T` and
+    `T ∩ T° = 1`, then the first of the above containments `(T∩T°)T(T∩T°) ⊑ T∩T°`
+    forces `T` to be the identity.  Non-trivial partial orderings cannot split in an
+    allegory."  (Transitivity is part of the book's definition of a partial ordering;
+    the containment `h1` alone does the forcing.) -/
+theorem partialOrder_no_split {a : 𝒜} (T : a ⟶ a) (_htrans : T ≫ T ⊑ T)
+    (hanti : T ∩ T° = Cat.id a)
+    (h1 : (T ∩ T°) ≫ T ≫ (T ∩ T°) ⊑ T ∩ T°) : T = Cat.id a := by
+  rw [hanti, Cat.id_comp, Cat.comp_id] at h1
+  -- h1 : `T ⊑ 1`; and `1 = T ∩ T° ⊑ T`.
+  have h2 : Cat.id a ⊑ T := by rw [← hanti]; exact inter_lb_left T T°
+  exact le_antisymm h1 h2
+
+section StrictDense
+
+variable {ℬ : Type u} [DistributiveAllegory ℬ]
+
+/-- **§2.16(11)**: "If `T` is a strict dense partial ordering, that is, if `T² = T`
+    and `T ∩ T° = 0` (for example, the strict order on the rational numbers) then the
+    second of the above containments forces `T` to be empty.  Non-trivial strict dense
+    partial orderings cannot split in an allegory."
+
+    NOTE: the book misprints the second containment here as `T ⊆ (T∩T°)T(T∩T°)`; "the
+    second of the above containments" is `A ⊆ A(A∩A°)A`, i.e. `T ⊑ T(T∩T°)T`, which is
+    what forces `T ⊑ T ≫ 0 ≫ T = 0` — the form used below.  (Idempotency is part of
+    the book's definition of strict dense; the containment `h2` alone does the
+    forcing.)  Stated over a distributive allegory, which supplies the zero morphism
+    `𝟘` with its absorption laws (§2.21). -/
+theorem strictDense_no_split {a : ℬ} (T : a ⟶ a) (_hidem : T ≫ T = T)
+    (hdisj : T ∩ T° = (𝟘 : a ⟶ a))
+    (h2 : T ⊑ T ≫ (T ∩ T°) ≫ T) : T = (𝟘 : a ⟶ a) := by
+  rw [hdisj, DistributiveAllegory.zero_comp, DistributiveAllegory.comp_zero] at h2
+  -- h2 : `T ⊑ 𝟘`; and `𝟘` is the minimum (§2.211).
+  exact le_antisymm h2 (zero_le T)
+
+end StrictDense
+
 end Freyd.Alg
