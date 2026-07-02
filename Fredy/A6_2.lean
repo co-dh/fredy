@@ -217,4 +217,260 @@ theorem le_relCata_of_postfixed (I : InitialAlgebra F) {c : 𝒜} {R : F.obj c �
 
 end CataFix
 
+/-! ## §6.2  Fusion inclusion laws (6.4)/(6.5), and Ex 6.7 (book p.141)
+
+  These strengthen (6.2)/(6.3) to compose with an arbitrary `S` on the right, using
+  `α°≫α = id` (Lambek) to cancel the catamorphism recursion. -/
+
+section Fusion
+
+variable [UnguardedPowerLCDA 𝒜] {F : Relator 𝒜 𝒜}
+
+/-- **(6.4)**: fusion law for the least-fixed-point (prefixed) inclusion. -/
+theorem relCata_le_comp (I : InitialAlgebra F) {c d : 𝒜} {R : F.obj c ⟶ c} {T : F.obj d ⟶ d}
+    {S : c ⟶ d} (h : F.map S ≫ T ⊑ R ≫ S) : relCata I T ⊑ relCata I R ≫ S := by
+  apply relCata_le_of_prefixed
+  have e1 : I.α° ≫ F.map (relCata I R ≫ S) ≫ T
+      = I.α° ≫ F.map (relCata I R) ≫ F.map S ≫ T := by rw [F.map_comp, Cat.assoc]
+  have e2 : I.α° ≫ F.map (relCata I R) ≫ R ≫ S = relCata I R ≫ S := by
+    rw [← Cat.assoc (F.map (relCata I R)) R S, ← relCata_cancel I R,
+      Cat.assoc I.α (relCata I R) S, ← Cat.assoc I.α° I.α (relCata I R ≫ S),
+      I.recip_alpha_alpha, Cat.id_comp]
+  rw [e1]
+  calc I.α° ≫ F.map (relCata I R) ≫ F.map S ≫ T
+      ⊑ I.α° ≫ F.map (relCata I R) ≫ R ≫ S := comp_mono_left _ (comp_mono_left _ h)
+    _ = relCata I R ≫ S := e2
+
+/-- **(6.5)**: fusion law for the greatest-fixed-point (postfixed) inclusion. -/
+theorem comp_le_relCata (I : InitialAlgebra F) {c d : 𝒜} {R : F.obj c ⟶ c} {T : F.obj d ⟶ d}
+    {S : c ⟶ d} (h : R ≫ S ⊑ F.map S ≫ T) : relCata I R ≫ S ⊑ relCata I T := by
+  apply le_relCata_of_postfixed
+  have e1 : relCata I R ≫ S = I.α° ≫ F.map (relCata I R) ≫ R ≫ S := by
+    rw [← Cat.assoc (F.map (relCata I R)) R S, ← relCata_cancel I R,
+      Cat.assoc I.α (relCata I R) S, ← Cat.assoc I.α° I.α (relCata I R ≫ S),
+      I.recip_alpha_alpha, Cat.id_comp]
+  have e2 : I.α° ≫ F.map (relCata I R) ≫ F.map S ≫ T
+      = I.α° ≫ F.map (relCata I R ≫ S) ≫ T := by rw [F.map_comp, Cat.assoc]
+  calc relCata I R ≫ S
+      = I.α° ≫ F.map (relCata I R) ≫ R ≫ S := e1
+    _ ⊑ I.α° ≫ F.map (relCata I R) ≫ F.map S ≫ T := comp_mono_left _ (comp_mono_left _ h)
+    _ = I.α° ≫ F.map (relCata I R ≫ S) ≫ T := e2
+
+/-- **Ex 6.7**: `⦇R⦈ ⊑ ⦇S⦈` when the recursion bodies agree at `⦇S⦈` in the ⊑ direction. -/
+theorem relCata_le_relCata (I : InitialAlgebra F) {c : 𝒜} {R S : F.obj c ⟶ c}
+    (h : F.map (relCata I S) ≫ R ⊑ F.map (relCata I S) ≫ S) : relCata I R ⊑ relCata I S := by
+  apply relCata_le_of_prefixed
+  calc I.α° ≫ F.map (relCata I S) ≫ R
+      ⊑ I.α° ≫ F.map (relCata I S) ≫ S := comp_mono_left _ h
+    _ = relCata I S := by
+        rw [← relCata_cancel I S, ← Cat.assoc I.α° I.α (relCata I S), I.recip_alpha_alpha,
+          Cat.id_comp]
+
+/-- **Corollary of Ex 6.7**: `⦇·⦈` is monotonic in the algebra. -/
+theorem relCata_mono (I : InitialAlgebra F) {c : 𝒜} {R S : F.obj c ⟶ c} (h : R ⊑ S) :
+    relCata I R ⊑ relCata I S :=
+  relCata_le_relCata I (comp_mono_left _ h)
+
+end Fusion
+
+/-! ## §6.2  Kleene's theorem and fixed-point induction (Ex 6.3/6.4, book p.141-142)
+
+  `μφ` also equals the join of the ascending "Kleene chain" `𝟘, φ𝟘, φ(φ𝟘), …`, provided
+  `φ` is continuous (preserves joins of ascending ω-chains).  This gives an induction
+  principle for `μφ` that only needs finite unfoldings of `φ`. -/
+
+section Kleene
+
+variable [LocallyCompleteDistributiveAllegory 𝒜] {a b : 𝒜}
+
+/-- The Kleene chain `iterZ φ n = φⁿ 𝟘` (B&dM Ex 6.3). -/
+def iterZ (φ : (a ⟶ b) → (a ⟶ b)) : Nat → (a ⟶ b)
+  | 0 => 𝟘
+  | n + 1 => φ (iterZ φ n)
+
+/-- `φ` preserves joins of ascending ω-chains (continuity). -/
+def Continuous (φ : (a ⟶ b) → (a ⟶ b)) : Prop :=
+  ∀ (C : Nat → (a ⟶ b)), (∀ n, C n ⊑ C (n + 1)) →
+    φ (Sup (fun T => ∃ n, T = C n)) = Sup (fun T => ∃ n, T = φ (C n))
+
+/-- The Kleene chain is ascending, for `φ` monotonic. -/
+theorem iterZ_ascending {φ : (a ⟶ b) → (a ⟶ b)} (hφ : Monotonic φ) :
+    ∀ n, iterZ φ n ⊑ iterZ φ (n + 1) := by
+  intro n
+  induction n with
+  | zero => exact zero_le _
+  | succ m ih => exact hφ ih
+
+/-- **Kleene's theorem** (B&dM Ex 6.3): for continuous `φ`, `μφ` is the join of the Kleene
+    chain, so `μφ` can be computed/reasoned about by finite unfoldings of `φ`. -/
+theorem kleene {φ : (a ⟶ b) → (a ⟶ b)} (hφ : Monotonic φ) (hc : Continuous φ) :
+    mu φ = Sup (fun T => ∃ n, T = iterZ φ n) := by
+  have hchain : ∀ n, iterZ φ n ⊑ iterZ φ (n + 1) := iterZ_ascending hφ
+  have hcont := hc (iterZ φ) hchain
+  have heq2 : Sup (fun T => ∃ n, T = φ (iterZ φ n)) = Sup (fun T => ∃ n, T = iterZ φ n) := by
+    apply le_antisymm
+    · apply Sup_le
+      intro T hT
+      obtain ⟨n, hn⟩ := hT
+      rw [hn]
+      exact le_Sup ⟨n + 1, rfl⟩
+    · apply Sup_le
+      intro T hT
+      obtain ⟨n, hn⟩ := hT
+      rw [hn]
+      exact le_trans (hchain n) (le_Sup ⟨n, rfl⟩)
+  have hfix : φ (Sup (fun T => ∃ n, T = iterZ φ n)) = Sup (fun T => ∃ n, T = iterZ φ n) := by
+    rw [hcont, heq2]
+  have hiter_le : ∀ n, iterZ φ n ⊑ mu φ := by
+    intro n
+    induction n with
+    | zero => exact zero_le _
+    | succ m ih =>
+        have step : φ (iterZ φ m) ⊑ φ (mu φ) := hφ ih
+        rw [mu_fixed hφ] at step
+        exact step
+  apply le_antisymm
+  · exact mu_le_of_fixed hfix
+  · apply Sup_le
+    intro T hT
+    obtain ⟨n, hn⟩ := hT
+    rw [hn]
+    exact hiter_le n
+
+/-- **Fixed-point induction, Kleene form** (B&dM Ex 6.4): to show `μφ ⊑ T` it suffices that
+    `T` absorbs one step of `φ` from below any `X ⊑ T` — i.e. `T` is "closed" under `φ`. -/
+theorem mu_le_of_closed {φ : (a ⟶ b) → (a ⟶ b)} (hφ : Monotonic φ) (hc : Continuous φ)
+    {T : a ⟶ b} (h : ∀ X, X ⊑ T → φ X ⊑ T) : mu φ ⊑ T := by
+  rw [kleene hφ hc]
+  apply Sup_le
+  intro S hS
+  obtain ⟨n, hn⟩ := hS
+  rw [hn]
+  clear hn S
+  induction n with
+  | zero => exact zero_le _
+  | succ m ih => exact h _ ih
+
+end Kleene
+
+/-! ## §6.2  μ-calculus laws: rolling and diagonal (B&dM Ex 6.35, book p.142)
+
+  These move `μ` across a "wrapper" map and merge two nested `μ`'s into one, using only
+  Knaster-Tarski (`mu_le_of_prefixed`/`mu_prefixed`) and monotonicity — no continuity
+  needed. -/
+
+section MuCalculus
+
+variable [LocallyCompleteDistributiveAllegory 𝒜] {a b : 𝒜}
+
+/-- Monotonicity for a map between (possibly different) hom-sets.  `Monotonic φ` is
+    definitionally `MonotonicHom φ` when the hom-sets coincide. -/
+def MonotonicHom {c d : 𝒜} (φ : (a ⟶ b) → (c ⟶ d)) : Prop :=
+  ∀ {X Y : a ⟶ b}, X ⊑ Y → φ X ⊑ φ Y
+
+/-- **Rolling rule** (B&dM Ex 6.35): `μ(φ∘ψ) = φ(μ(ψ∘φ))`. -/
+theorem mu_rolling {c d : 𝒜} {φ : (a ⟶ b) → (c ⟶ d)} {ψ : (c ⟶ d) → (a ⟶ b)}
+    (hφ : MonotonicHom φ) (hψ : MonotonicHom ψ) :
+    mu (fun X => φ (ψ X)) = φ (mu (fun Y => ψ (φ Y))) := by
+  have hφψ : Monotonic (fun X => φ (ψ X)) := fun h => hφ (hψ h)
+  have hψφ : Monotonic (fun Y => ψ (φ Y)) := fun h => hψ (hφ h)
+  have h1 : mu (fun X => φ (ψ X)) ⊑ φ (mu (fun Y => ψ (φ Y))) :=
+    mu_le_of_prefixed (hφ (mu_prefixed hψφ))
+  have h2 : mu (fun Y => ψ (φ Y)) ⊑ ψ (mu (fun X => φ (ψ X))) :=
+    mu_le_of_prefixed (hψ (mu_prefixed hφψ))
+  have h3 : φ (mu (fun Y => ψ (φ Y))) ⊑ mu (fun X => φ (ψ X)) :=
+    le_trans (hφ h2) (mu_prefixed hφψ)
+  exact le_antisymm h1 h3
+
+/-- **Diagonal rule** (B&dM Ex 6.35): `μX.μY.φXY = μX.φXX`. -/
+theorem mu_diagonal {φ : (a ⟶ b) → (a ⟶ b) → (a ⟶ b)} (h1 : ∀ Y, Monotonic (fun X => φ X Y))
+    (h2 : ∀ X, Monotonic (fun Y => φ X Y)) :
+    mu (fun X => mu (fun Y => φ X Y)) = mu (fun X => φ X X) := by
+  have hg : Monotonic (fun X => mu (fun Y => φ X Y)) := fun hX => mu_le_mu (fun Y => h1 Y hX)
+  have hd : Monotonic (fun X => φ X X) := fun hX => le_trans (h1 _ hX) (h2 _ hX)
+  have hA : mu (fun X => φ X X) ⊑ mu (fun X => mu (fun Y => φ X Y)) := by
+    apply mu_le_of_prefixed
+    have hTfix : mu (fun Y => φ (mu (fun X => mu (fun Y => φ X Y))) Y)
+        = mu (fun X => mu (fun Y => φ X Y)) := mu_fixed hg
+    have hstep := mu_prefixed (h2 (mu (fun X => mu (fun Y => φ X Y))))
+    rw [hTfix] at hstep
+    exact hstep
+  have hB : mu (fun X => mu (fun Y => φ X Y)) ⊑ mu (fun X => φ X X) := by
+    apply mu_le_of_prefixed
+    have hSfix : φ (mu (fun X => φ X X)) (mu (fun X => φ X X)) = mu (fun X => φ X X) :=
+      mu_fixed hd
+    apply mu_le_of_prefixed
+    rw [hSfix]
+    exact le_refl _
+  exact le_antisymm hB hA
+
+/- **Substitution rule** (B&dM's third Ex 6.35 rule): DROPPED.  The book's own text for the
+   proof of this rule is illegible OCR ("a simple combination of the preceding two rules"),
+   and — unlike rolling/diagonal, whose statements are pinned down unambiguously by the
+   book's `μx.fx = f(μx.fx)`-style equations quoted elsewhere — no single substitution
+   instance of rolling+diagonal reads as *the* canonical "substitution rule" without
+   guessing extra structure the book does not state.  Rolling (`mu_rolling`) and diagonal
+   (`mu_diagonal`) are proved above and are the two rules the book actually uses elsewhere
+   (e.g. in the hylomorphism uniqueness arguments of §6.5); the substitution rule is not
+   used downstream in this repo, so it is left as a documented gap rather than an invented
+   theorem. -/
+
+end MuCalculus
+
+/-! ## §6.2  Difunctional closure (B&dM Ex 6.8, book p.142)
+
+  `R` is difunctional when `R·R°·R = R`; the least difunctional relation containing `R` is
+  the least fixed point of `X ↦ R ∪ X·X°·X`, using `R ⊑ R·R°·R` (B&dM 4.10, `Fredy.A4_1`)
+  for the "already difunctional" direction. -/
+
+section Difunctional
+
+variable [LocallyCompleteDistributiveAllegory 𝒜] {a b : 𝒜}
+
+/-- **(B&dM Ex 6.8)**: `R` is difunctional when `R·R°·R = R`, mirrored `R≫R°≫R = R`. -/
+def Difunctional (R : a ⟶ b) : Prop := R ≫ R° ≫ R = R
+
+/-- The difunctional closure of `R`, as the least fixed point of `X ↦ R ∪ X·X°·X`. -/
+def difunClosure (R : a ⟶ b) : a ⟶ b := mu (fun X => R ∪ X ≫ X° ≫ X)
+
+/-- The recursion body `X ↦ R ∪ X·X°·X` is monotonic. -/
+theorem difunClosure_body_monotonic (R : a ⟶ b) :
+    Monotonic (fun X : a ⟶ b => R ∪ X ≫ X° ≫ X) := by
+  intro X Y h
+  have hXXX : X ≫ X° ≫ X ⊑ Y ≫ Y° ≫ Y :=
+    le_trans (comp_mono_right h _)
+      (le_trans (comp_mono_left Y (comp_mono_right (recip_mono h) _))
+        (comp_mono_left Y (comp_mono_left Y° h)))
+  exact union_mono (le_refl R) hXXX
+
+theorem le_difunClosure (R : a ⟶ b) : R ⊑ difunClosure R := by
+  have hfix : R ∪ difunClosure R ≫ (difunClosure R)° ≫ difunClosure R = difunClosure R :=
+    mu_fixed (difunClosure_body_monotonic R)
+  rw [← hfix]
+  exact le_union_left _ _
+
+/-- The closure is difunctional: `⊑` from the fixed-point equation, `⊒` from (4.10). -/
+theorem difunClosure_difunctional (R : a ⟶ b) : Difunctional (difunClosure R) := by
+  unfold Difunctional
+  have hfix : R ∪ difunClosure R ≫ (difunClosure R)° ≫ difunClosure R = difunClosure R :=
+    mu_fixed (difunClosure_body_monotonic R)
+  apply le_antisymm
+  · calc difunClosure R ≫ (difunClosure R)° ≫ difunClosure R
+        ⊑ R ∪ difunClosure R ≫ (difunClosure R)° ≫ difunClosure R := le_union_right _ _
+      _ = difunClosure R := hfix
+  · have h := le_comp_recip_comp (difunClosure R)
+    rw [Cat.assoc] at h
+    exact h
+
+/-- The closure is least among difunctional relations containing `R` (`D` is a prefixed
+    point of the recursion body). -/
+theorem difunClosure_le {R D : a ⟶ b} (hD : Difunctional D) (h : R ⊑ D) : difunClosure R ⊑ D := by
+  unfold difunClosure
+  apply mu_le_of_prefixed
+  have hD' : D ≫ D° ≫ D = D := hD
+  rw [hD']
+  exact union_lub h (le_refl D)
+
+end Difunctional
+
 end Freyd.Alg
