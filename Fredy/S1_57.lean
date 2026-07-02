@@ -156,6 +156,7 @@ section S1_571
 
 variable [CartesianCategory 𝒞]
 
+omit [HasPullbacks 𝒞] [HasImages 𝒞] in
 /-- Equalizer maps are monic. -/
 theorem eqMap_mono {A B : 𝒞} (f g : A ⟶ B) : Monic (eqMap f g) := by
   intro W u v h
@@ -166,6 +167,7 @@ theorem eqMap_mono {A B : 𝒞} (f g : A ⟶ B) : Monic (eqMap f g) := by
   have hv : v = eqLift f g k hk := eqLift_uniq f g k hk v (by dsimp [k]; rw [← h])
   rw [hu, hv]
 
+omit [HasImages 𝒞] in  -- §1.572 instantiates this to CONSTRUCT images; no images assumed
 /-- **§1.571**: In a Cartesian category, if every morphism admits an idempotent
     with the same level (kernel pair) that stabilizes it, then every morphism
     factors as left-invertible followed by monic — so the category is AC regular.

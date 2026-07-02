@@ -1294,4 +1294,218 @@ noncomputable instance : HasEqualizers ExtNat := ⟨fun _ _ x y => eqOf x y⟩
 /-- **R is cartesian** (first half of §1.572's claim). -/
 noncomputable instance : CartesianCategory ExtNat := {}
 
+/-! ## Part 6: R is AC regular (§1.572)
+
+  Given `x : α → β` define `e : α → α` by `e(n) = min{ i ≤ n | x(i) = x(n) }`.
+  Then `e² = e`, `ex = x`, and `e` and `x` have the same level, so §1.571
+  (`ac_factorization_via_idempotent`) applies: every morphism factors as a
+  left-invertible followed by a monic.  From the factorization we CONSTRUCT
+  images (Freyd: "the image of x has been constructed, somehow, as a subobject
+  of A"), pullback-transfer of covers, and choice/projectivity of all objects. -/
+
+/-- The least index with the same `F`-value as `k` (exists: `k` itself qualifies).
+    Since the witness `k` bounds it, this is the book's `min{ i ≤ n | x(i) = x(n) }`. -/
+noncomputable def leastAgree (F : Nat → Nat) (k : Nat) : Nat :=
+  theLeast (fun i => F i = F k) ⟨k, rfl⟩
+
+theorem leastAgree_agree (F : Nat → Nat) (k : Nat) : F (leastAgree F k) = F k :=
+  theLeast_mem (fun i => F i = F k) ⟨k, rfl⟩
+
+theorem leastAgree_min (F : Nat → Nat) (k : Nat) :
+    ∀ i, i < leastAgree F k → F i ≠ F k := theLeast_min _ _
+
+theorem leastAgree_le (F : Nat → Nat) (k : Nat) : leastAgree F k ≤ k :=
+  theLeast_le _ _ rfl
+
+theorem leastAgree_congr (F : Nat → Nat) {j k : Nat} (h : F j = F k) :
+    leastAgree F j = leastAgree F k := by
+  refine theLeast_unique _ _ ?_ ?_
+  · show F (leastAgree F k) = F j
+    rw [leastAgree_agree F k, h]
+  · intro i hi
+    show ¬F i = F j
+    rw [h]
+    exact leastAgree_min F k i hi
+
+theorem leastAgree_idem (F : Nat → Nat) (k : Nat) :
+    leastAgree F (leastAgree F k) = leastAgree F k :=
+  leastAgree_congr F (leastAgree_agree F k)
+
+/-- Support is downward closed. -/
+theorem suppChi_of_le : ∀ {α : ExtNat} {u v : Nat}, u ≤ v → suppChi α v = true →
+    suppChi α u = true := by
+  intro α
+  match α with
+  | some n =>
+    intro u v huv hv
+    exact decide_eq_true (by have := of_decide_eq_true hv; omega)
+  | none => intro u v _ _; rfl
+
+/-- §1.572's idempotent: `e(a) = min{ i ≤ a | x(i) = x(a) }` (through the code of `a`). -/
+noncomputable def idemFn {α β : ExtNat} (x : Mor α β) : El α → El α := fun a =>
+  elOf (leastAgree (morN x) (toNat a))
+    (suppChi_of_le (leastAgree_le _ _) (suppChi_toNat a))
+
+theorem toNat_idemFn {α β : ExtNat} (x : Mor α β) (a : El α) :
+    toNat (idemFn x a) = leastAgree (morN x) (toNat a) := toNat_elOf _ _
+
+/-- `ex = x` pointwise. -/
+theorem idemFn_absorb {α β : ExtNat} (x : Mor α β) (a : El α) :
+    x.1 (idemFn x a) = x.1 a := by
+  apply toNat_inj
+  rw [← morN_spec x (idemFn x a), ← morN_spec x a, toNat_idemFn]
+  exact leastAgree_agree (morN x) (toNat a)
+
+/-- `e² = e` pointwise. -/
+theorem idemFn_idem {α β : ExtNat} (x : Mor α β) (a : El α) :
+    idemFn x (idemFn x a) = idemFn x a := by
+  apply toNat_inj
+  rw [toNat_idemFn, toNat_idemFn]
+  exact leastAgree_idem _ _
+
+/-- `e` merges exactly as much as `x` does. -/
+theorem idemFn_congr {α β : ExtNat} (x : Mor α β) {a b : El α} (h : x.1 a = x.1 b) :
+    idemFn x a = idemFn x b := by
+  apply toNat_inj
+  rw [toNat_idemFn, toNat_idemFn]
+  exact leastAgree_congr _ (by rw [morN_spec x a, morN_spec x b, h])
+
+/-- `e` is recursive: unbounded μ-search for the least agreeing index
+    (it terminates because the input itself agrees). -/
+theorem idemFn_isMor {α β : ExtNat} (x : Mor α β) : IsMor α α (idemFn x) := by
+  match α, x with
+  | some n, x => exact trivial
+  | none, x =>
+    have h : Recursive1 fun k => leastAgree (morN x) k := by
+      refine Recursive1.mu
+        (t := fun i k => (morN x i - morN x k) + (morN x k - morN x i)) ?_ ?_ ?_
+      · exact Recursive2.comp2 Recursive2.add
+          (Recursive2.comp2 Recursive2.sub (Recursive2.ofFst (morN_rec x))
+            (Recursive2.ofSnd (morN_rec x)))
+          (Recursive2.comp2 Recursive2.sub (Recursive2.ofSnd (morN_rec x))
+            (Recursive2.ofFst (morN_rec x)))
+      · intro k
+        show (morN x (leastAgree (morN x) k) - morN x k) +
+          (morN x k - morN x (leastAgree (morN x) k)) = 0
+        rw [leastAgree_agree (morN x) k]
+        omega
+      · intro k i hi
+        show (morN x i - morN x k) + (morN x k - morN x i) ≠ 0
+        have := leastAgree_min (morN x) k i hi
+        omega
+    exact h.congr fun k => (toNat_idemFn x k).symm
+
+/-- §1.572's idempotent as a morphism of R. -/
+noncomputable def eMor {α β : ExtNat} (x : α ⟶ β) : α ⟶ α := ⟨idemFn x, idemFn_isMor x⟩
+
+theorem eMor_idem {α β : ExtNat} (x : α ⟶ β) : eMor x ≫ eMor x = eMor x :=
+  Mor.ext fun a => idemFn_idem x a
+
+theorem eMor_absorb {α β : ExtNat} (x : α ⟶ β) : eMor x ≫ x = x :=
+  Mor.ext fun a => idemFn_absorb x a
+
+/-- Generic (any category with pullbacks): if `kp₁(u) ≫ w = kp₂(u) ≫ w` then
+    `level(u) ⊂ level(w)` — the kernel-pair comparison is a pullback lift. -/
+theorem kernelPairRel_le_of_comm {𝒟 : Type u} [Cat.{v} 𝒟] [HasTerminal 𝒟]
+    [HasBinaryProducts 𝒟] [HasPullbacks 𝒟] {A B C : 𝒟} (u : A ⟶ B) (w : A ⟶ C)
+    (h : kp₁ (f := u) ≫ w = kp₂ (f := u) ≫ w) :
+    (kernelPairRel u) ⊂ (kernelPairRel w) :=
+  ⟨⟨(HasPullbacks.has w w).lift ⟨_, kp₁ (f := u), kp₂ (f := u), h⟩,
+    kp_lift_p₁ _ _ h, kp_lift_p₂ _ _ h⟩⟩
+
+noncomputable instance : HasPullbacks ExtNat :=
+  ⟨fun f g => products_equalizers_implies_pullbacks f g⟩
+
+/-- `e` and `x` have the same level (§1.572; the two `⊂` of §1.571's hypothesis). -/
+theorem eMor_same_level {α β : ExtNat} (x : α ⟶ β) :
+    (kernelPairRel (eMor x)) ⊂ (kernelPairRel x) ∧
+    (kernelPairRel x) ⊂ (kernelPairRel (eMor x)) := by
+  constructor
+  · refine kernelPairRel_le_of_comm (eMor x) x ?_
+    refine Mor.ext fun w => ?_
+    show x.1 ((kp₁ (f := eMor x)).1 w) = x.1 ((kp₂ (f := eMor x)).1 w)
+    have hsq : idemFn x ((kp₁ (f := eMor x)).1 w) = idemFn x ((kp₂ (f := eMor x)).1 w) :=
+      Mor.congr (kp_sq (f := eMor x)) w
+    calc x.1 ((kp₁ (f := eMor x)).1 w)
+        = x.1 (idemFn x ((kp₁ (f := eMor x)).1 w)) := (idemFn_absorb x _).symm
+      _ = x.1 (idemFn x ((kp₂ (f := eMor x)).1 w)) := by rw [hsq]
+      _ = x.1 ((kp₂ (f := eMor x)).1 w) := idemFn_absorb x _
+  · refine kernelPairRel_le_of_comm x (eMor x) ?_
+    refine Mor.ext fun w => ?_
+    show idemFn x ((kp₁ (f := x)).1 w) = idemFn x ((kp₂ (f := x)).1 w)
+    exact idemFn_congr x (Mor.congr (kp_sq (f := x)) w)
+
+/-- **§1.572, the factorization**: every morphism of R factors as a left-invertible
+    followed by a monic — §1.571 instantiated with `e(n) = min{ i ≤ n | x(i) = x(n) }`. -/
+theorem rFactorization {α β : ExtNat} (x : α ⟶ β) :
+    ∃ (C : ExtNat) (p : α ⟶ C) (n : C ⟶ β),
+      (∃ s : C ⟶ α, s ≫ p = Cat.id C) ∧ Monic n ∧ p ≫ n = x :=
+  ac_factorization_via_idempotent
+    (fun x => ⟨eMor x, eMor_idem x, eMor_absorb x,
+      (eMor_same_level x).1, (eMor_same_level x).2⟩) x
+
+/-- The factorization data, extracted by choice. -/
+noncomputable def facData {α β : ExtNat} (x : α ⟶ β) :
+    Σ' (C : ExtNat) (p : α ⟶ C) (n : C ⟶ β) (s : C ⟶ α),
+      s ≫ p = Cat.id C ∧ Monic n ∧ p ≫ n = x :=
+  Classical.choice <| by
+    obtain ⟨C, p, n, ⟨s, hs⟩, hn, hfac⟩ := rFactorization x
+    exact ⟨⟨C, p, n, s, hs, hn, hfac⟩⟩
+
+/-- Images, CONSTRUCTED from the factorization: the image of `x` is the monic
+    leg `n`; minimality holds because the split `s` retracts any competitor. -/
+noncomputable instance : HasImages ExtNat where
+  image {α β} x := ⟨(facData x).1, (facData x).2.2.1, (facData x).2.2.2.2.2.1⟩
+  isImage {α β} x := by
+    obtain ⟨C, p, n, s, hs, hn, hfac⟩ := facData x
+    constructor
+    · exact ⟨p, hfac⟩
+    · rintro S ⟨g, hg⟩
+      refine ⟨s ≫ g, ?_⟩
+      show (s ≫ g) ≫ S.arr = n
+      calc (s ≫ g) ≫ S.arr = s ≫ (g ≫ S.arr) := Cat.assoc _ _ _
+        _ = s ≫ x := by rw [hg]
+        _ = s ≫ (p ≫ n) := by rw [hfac]
+        _ = (s ≫ p) ≫ n := (Cat.assoc _ _ _).symm
+        _ = Cat.id C ≫ n := by rw [hs]
+        _ = n := Cat.id_comp n
+
+/-- **AC**: every cover of R splits (covers are exactly the split epis). -/
+theorem cover_split {α β : ExtNat} (f : α ⟶ β) (hc : Cover f) :
+    ∃ s : β ⟶ α, s ≫ f = Cat.id β := by
+  obtain ⟨C, p, n, s, hs, hn, hfac⟩ := facData f
+  have hiso : IsIso n := hc n p hn hfac
+  obtain ⟨ninv, hn1, hn2⟩ := hiso
+  refine ⟨ninv ≫ s, ?_⟩
+  calc (ninv ≫ s) ≫ f = ninv ≫ (s ≫ f) := Cat.assoc _ _ _
+    _ = ninv ≫ (s ≫ (p ≫ n)) := by rw [hfac]
+    _ = ninv ≫ ((s ≫ p) ≫ n) := by rw [Cat.assoc]
+    _ = ninv ≫ (Cat.id C ≫ n) := by rw [hs]
+    _ = ninv ≫ n := by rw [Cat.id_comp]
+    _ = Cat.id β := hn2
+
+/-- Pullbacks transfer covers: covers split, and split epis transfer along any
+    pullback square (Freyd §1.57: "left-invertibles are always covers and are
+    always transferred by pullbacks"). -/
+instance : PullbacksTransferCovers ExtNat where
+  pullbacks_transfer_covers {A B C} {f g} c hpb hf := by
+    obtain ⟨s, hs⟩ := cover_split f hf
+    have hw : (g ≫ s) ≫ f = Cat.id C ≫ g := by
+      rw [Cat.assoc, hs, Cat.comp_id, Cat.id_comp]
+    obtain ⟨u, ⟨_, hu2⟩, _⟩ := hpb ⟨C, g ≫ s, Cat.id C, hw⟩
+    intro D m g' hm hgm
+    exact cover_of_section c.π₂ u hu2 m g' hm hgm
+
+/-- **§1.572 headline (positive part)**: R is a regular category. -/
+noncomputable instance : RegularCategory ExtNat := {}
+
+theorem all_projective : ∀ C : ExtNat, Projective C :=
+  fun _ _ f hcov => cover_split f hcov
+
+theorem all_choice : ∀ C : ExtNat, Choice C :=
+  choice_iff_projective.mpr all_projective
+
+/-- **§1.572 headline**: R is an AC regular category. -/
+noncomputable instance : ACRegularCategory ExtNat := { all_choice := all_choice }
+
 end Freyd.Rcat
