@@ -64,8 +64,12 @@ merged class `TabularUnitaryUnguardedPowerAllegory`): Map(A) has FULL power obje
   reflection — `projective_iff_isoEmbedded` (projectives of Spl(Eq 𝒜) = isomorphs of embedded objects),
   `not_coversSplit_of_not_effective` ("C not effective ⟹ Ĉ not AC"). The recursive/primitive-recursive
   instances remain (need §1.572/§1.573 as pre-logoi).
-- **§2.157–§2.158**, **§2.417** (generator counterexample) — specific model/example constructions
-  (projective planes / Desargues Horn sentence; graph-allegory no-finite-axiomatization).
+- ~~**§2.157** core~~ — **DONE** (`S2_157_ProjectivePlane`, merged b4dd2af): plane axioms, height-4 lattice
+  MODULAR (no interestingness) ⟹ associated allegory via §2.156; `DesarguesHorn` verified for Rel(S) and
+  Horn ⟹ modularity (both axiom-free); Horn ⟹ Desargues under nondegeneracy. REMAINING: degenerate
+  Desargues cases, the converse direction, Veblen–Wedderburn 91-point non-Desarguesian model.
+- **§2.158**, **§2.417** (generator counterexample) — graph-allegory no-finite-axiomatization;
+  §1.96(10)-modification model.
 
 ## Universe wall (needs a class redesign, not a leaf file)
 
