@@ -441,4 +441,14 @@ instance asmCartesian : CartesianCategory (Assembly.{u} K) where
   toHasBinaryProducts := inferInstance
   toHasEqualizers := inferInstance
 
+/-! ## M4: pullbacks
+
+  Derived from products and equalizers by the repo's §1.432 construction (DRY): the
+  pullback of `f : A → C ← B : g` is the sub-assembly of `A × B` where the two composites
+  agree, with the product's ℓ/ϰ-coded caucuses restricted. -/
+
+/-- §2.153 pullbacks, via §1.432 (products + equalizers ⇒ pullbacks). -/
+instance asmHasPullbacks : HasPullbacks (Assembly.{u} K) where
+  has f g := products_equalizers_implies_pullbacks f g
+
 end Freyd
