@@ -1365,4 +1365,49 @@ theorem Kc_complete {c : RecCode 1} {y : Nat} (h : Eval c (fun _ => encCode c) y
     hval j (by omega)
   rw [bAllN_eq_one hval', hcode, hins, encVec_one, eqInd_eq rfl, eqInd_eq rfl]
 
+/-! ## Stage 2: the halting set is NOT recursive
+
+  The classical diagonalization.  Given a total recursive characteristic function
+  `χ` of `Kc`, the code `d := μt. χ(e)` (the inner code ignores the search
+  variable) halts on `e` exactly when `χ e ≠ 1`; running `d` on its own code
+  number `e₀ = encCode d` gives `Kc e₀ ↔ ¬ Kc e₀`.  Uses only `Eval.det`, the
+  `mu` constructor, and Stage 1's `Kc_sound`/`Kc_complete`. -/
+
+theorem K_not_recursive : ¬ ∃ χ : Nat → Nat, Recursive1 χ ∧ ∀ e, (Kc e ↔ χ e = 1) := by
+  rintro ⟨χ, hχrec, hχ⟩
+  -- normalize the characteristic function to be 0/1-valued
+  have hχ₂rec : Recursive1 fun e => eqInd (χ e) 1 :=
+    Recursive1.comp2 Recursive2.eqInd hχrec (Recursive1.const 1)
+  obtain ⟨cχ, hcχ⟩ := hχ₂rec
+  -- the inner binary code (t, e) ↦ eqInd (χ e) 1, ignoring the search variable t
+  have hinner : ∀ v : Vec 2, Eval (.comp cχ fun _ : Fin 1 => .proj 1) v
+      (eqInd (χ (v 1)) 1) := by
+    intro v
+    exact .comp (fun _ => v 1) (fun _ => .proj 1) (hcχ fun _ => v 1)
+  -- behaviour of the diagonal code d := μ(inner) on an abstract input E:
+  -- it DIVERGES when χ E = 1 and halts (with 0) when χ E ≠ 1
+  have key1 : ∀ E y : Nat, eqInd (χ E) 1 = 1 →
+      ¬ Eval (.mu (.comp cχ fun _ : Fin 1 => .proj 1 : RecCode 2)) (fun _ => E) y := by
+    intro E y h1 hy
+    cases hy with
+    | mu r hy0 _ =>
+      have hval := hinner (vcons y fun _ : Fin 1 => E)
+      have h1' : eqInd (χ ((vcons y fun _ : Fin 1 => E) 1)) 1 = 1 := by
+        rw [vcons_one]; exact h1
+      rw [h1'] at hval
+      exact absurd (Eval.det hy0 hval) (by omega)
+  have key2 : ∀ E : Nat, eqInd (χ E) 1 = 0 →
+      Eval (.mu (.comp cχ fun _ : Fin 1 => .proj 1 : RecCode 2)) (fun _ => E) 0 := by
+    intro E h0
+    refine .mu (fun _ => 0) ?_ (fun i hi => absurd hi (Nat.not_lt_zero i))
+    have hval := hinner (vcons 0 fun _ : Fin 1 => E)
+    have hz : eqInd (χ ((vcons 0 fun _ : Fin 1 => E) 1)) 1 = 0 := by
+      rw [vcons_one]; exact h0
+    rwa [hz] at hval
+  -- run d on its own code number
+  by_cases hK : Kc (encCode (RecCode.mu (.comp cχ fun _ : Fin 1 => .proj 1 : RecCode 2)))
+  · obtain ⟨y, hy⟩ := Kc_sound hK (.mu (.comp cχ fun _ : Fin 1 => .proj 1 : RecCode 2)) rfl
+    exact key1 _ y (eqInd_eq ((hχ _).mp hK)) hy
+  · exact hK (Kc_complete (key2 _ (eqInd_ne fun h => hK ((hχ _).mpr h))))
+
 end Freyd.Rcat
