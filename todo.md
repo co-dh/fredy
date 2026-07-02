@@ -54,7 +54,14 @@ merged class `TabularUnitaryUnguardedPowerAllegory`): Map(A) has FULL power obje
   embedding of the §2.111 Z-valued relations. Also ~~**§2.16(11)**~~ — **DONE** (S2_16b, f28699e): neighbors,
   `idempotent_splits_in_spl` (the two containments suffice to split in Spl(𝒮ℐ𝒹)), partial-order/strict-dense
   no-split corollaries (book's strict-dense containment misprint noted in doc comment).
-- **§2.155–§2.158**, **§2.417** (generator counterexample) — specific model/example constructions.
+- ~~**§2.155**~~ — **DONE** (`S2_155_BiEntire`, merged e53ff23): ∅-or-bientire relations B — all allegory axioms
+  except the modular identity (concrete `modular_fails` witness), semi-lattice homs, not closed under ∩,
+  `b_tabular` (modularity independent of tabularity), Map(B) has terminator but `map_b_no_products`.
+- ~~**§2.156**~~ — **DONE** (`S2_156_PartitionRep`, merged 7f4ab7d, ALL axiom-free): modular lattice ⟹ §2.113
+  one-object allegory; representations send elements to pairwise-commuting equivalence relations;
+  `partition_representation` (join ↦ composition = equivalence-relation join); `equivRel_modular` converse.
+- **§2.157–§2.158**, **§2.417** (generator counterexample) — specific model/example constructions
+  (projective planes / Desargues Horn sentence; graph-allegory no-finite-axiomatization).
 
 ## Universe wall (needs a class redesign, not a leaf file)
 
