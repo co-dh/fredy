@@ -362,8 +362,8 @@ def oneAsm : Assembly.{u} K := ⟨PUnit, fun _ _ => True, fun _ => ⟨0, trivial
 /-- §2.153: `1|ₙ = 1` is a terminator; the unique map has the identity modulus. -/
 instance asmHasTerminal : HasTerminal (Assembly.{u} K) where
   one := oneAsm
-  trm A := ⟨fun _ => PUnit.unit, ModFun.ident, K.id_mem, fun n _ _ => ⟨n, rfl, trivial⟩⟩
-  uniq f g := AsmHom.ext (funext fun _ => rfl)
+  trm _ := ⟨fun _ => PUnit.unit, ModFun.ident, K.id_mem, fun n _ _ => ⟨n, rfl, trivial⟩⟩
+  uniq _ _ := AsmHom.ext (funext fun _ => rfl)
 
 /-- The empty assembly (no elements, all caucuses empty). -/
 def zeroAsm : Assembly.{u} K := ⟨PEmpty, fun _ _ => False, fun x => x.elim⟩
@@ -373,5 +373,72 @@ instance asmHasCoterminator : HasCoterminator (Assembly.{u} K) where
   zero := zeroAsm
   init _ := ⟨fun x => x.elim, ModFun.ident, K.id_mem, fun _ _ h => h.elim⟩
   init_uniq _ _ := AsmHom.ext (funext fun x => x.elim)
+
+/-! ## M3: binary products and equalizers
+
+  Book: "For binary products, let (A×B)|ₙ = A|ₙℓ × B|ₙϰ."  The projections are tracked by
+  ℓ and ϰ; the pairing ⟨f,g⟩ is tracked by the book's θ = (φ,ψ) — this construction is
+  exactly what condition (iii) exists for.
+
+  "Given a pair of morphisms f, g : A → B, their equalizer is obtained as
+  |E| = {x : f(x) = g(x)} (the ordinary equalizer in the category of sets), and E|ₙ is the
+  ordinary intersection of |E| and A|ₙ." -/
+
+/-- Binary product of assemblies: `(A×B)|ₙ = A|ₙℓ × B|ₙϰ`. -/
+def prodAsm (A B : Assembly.{u} K) : Assembly.{u} K where
+  X := A.X × B.X
+  caucus n p := A.caucus (K.proj₁ n) p.1 ∧ B.caucus (K.proj₂ n) p.2
+  carrier_mem p := by
+    obtain ⟨j, hj⟩ := A.carrier_mem p.1
+    obtain ⟨k, hk⟩ := B.carrier_mem p.2
+    exact ⟨K.code j k, by rw [K.code_proj₁]; exact hj, by rw [K.code_proj₂]; exact hk⟩
+
+/-- §2.153 binary products: `fst`/`snd` tracked by ℓ/ϰ, `pair` tracked by θ = (φ,ψ). -/
+instance asmHasBinaryProducts : HasBinaryProducts (Assembly.{u} K) where
+  prod := prodAsm
+  fst := ⟨Prod.fst, K.projF₁, K.proj₁_mem, fun n _ hp => ⟨K.proj₁ n, rfl, hp.1⟩⟩
+  snd := ⟨Prod.snd, K.projF₂, K.proj₂_mem, fun n _ hp => ⟨K.proj₂ n, rfl, hp.2⟩⟩
+  pair f g :=
+    ⟨fun x => (f.toFun x, g.toFun x), by
+      obtain ⟨φ, hφ, hf⟩ := f.tracked
+      obtain ⟨ψ, hψ, hg⟩ := g.tracked
+      refine ⟨K.pairF φ ψ, K.pair_mem hφ hψ, fun n x hx => ?_⟩
+      obtain ⟨a, ha, hAx⟩ := hf n x hx
+      obtain ⟨b, hb, hBx⟩ := hg n x hx
+      exact ⟨K.code a b, ⟨a, b, ha, hb, rfl⟩,
+        by rw [K.code_proj₁]; exact hAx, by rw [K.code_proj₂]; exact hBx⟩⟩
+  fst_pair _ _ := AsmHom.ext rfl
+  snd_pair _ _ := AsmHom.ext rfl
+  pair_uniq _ _ h h₁ h₂ := AsmHom.ext (funext fun x =>
+    Prod.ext (congrArg (fun k => AsmHom.toFun k x) h₁) (congrArg (fun k => AsmHom.toFun k x) h₂))
+
+/-- Equalizer assembly: the Set equalizer with the induced caucuses `E|ₙ = |E| ∩ A|ₙ`. -/
+def eqAsm {A B : Assembly.{u} K} (f g : A ⟶ B) : Assembly.{u} K where
+  X := {x : A.X // f.toFun x = g.toFun x}
+  caucus n x := A.caucus n x.val
+  carrier_mem x := A.carrier_mem x.val
+
+/-- §2.153 equalizers: the inclusion and the induced factorization both have the identity
+    modulus (a map into the equalizer is tracked by any modulus of its composite with the
+    inclusion, since the caucuses are induced). -/
+instance asmHasEqualizers : HasEqualizers (Assembly.{u} K) where
+  eq _ _ f g :=
+    { cone :=
+        { dom := eqAsm f g
+          map := ⟨Subtype.val, ModFun.ident, K.id_mem, fun n x hx => ⟨n, rfl, hx⟩⟩
+          eq := AsmHom.ext (funext fun x => x.property) }
+      lift c :=
+        ⟨fun y => ⟨c.map.toFun y, congrArg (fun k => AsmHom.toFun k y) c.eq⟩, by
+          obtain ⟨φ, hφ, hc⟩ := c.map.tracked
+          exact ⟨φ, hφ, fun n y hy => hc n y hy⟩⟩
+      fac _ := AsmHom.ext rfl
+      uniq c m hm := AsmHom.ext (funext fun y =>
+        Subtype.ext (congrArg (fun k => AsmHom.toFun k y) hm)) }
+
+/-- The category of assemblies is Cartesian (terminator + products + equalizers). -/
+instance asmCartesian : CartesianCategory (Assembly.{u} K) where
+  toHasTerminal := inferInstance
+  toHasBinaryProducts := inferInstance
+  toHasEqualizers := inferInstance
 
 end Freyd
