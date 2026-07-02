@@ -156,4 +156,6 @@ import Fredy.S1_526_StalkConservative
 import Fredy.S2_33
 import Fredy.S1_631_CapitalProjective
 -- Bird & de Moor, Algebra of Programming, ch. 4 (only material not already in Freyd S2_*)
+import Fredy.A4_1
+import Fredy.A4_2
 import Fredy.A4_3
