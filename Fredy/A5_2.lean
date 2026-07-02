@@ -186,13 +186,11 @@ theorem RelProd.le_pair_proj {P : RelProd a b} (Z : c ⟶ P.p) :
 
 /-! ## `pair` of two maps is a map, and Ex 5.9
 
-  The absorption law (5.3)/(5.4)/(5.5)/(5.8) genuinely need B&dM p.115's own chain
-  ("meet-composed-with-meet" — semi-distributivity and the modular law only ever bound
-  such a composite from ABOVE, never below, unless one full side is `Simple`); the book's
-  own route hits the same wall from several angles (tracked in the final report, DROPPED
-  here per the task's drop-and-report rule).  What DOES go through cleanly — because only
-  one factor, not two, is a meet — is: pairing two MAPS is a map (via the tabulation UP),
-  and pairing commutes with LEFT composition by a map (Ex 5.9, via `simple_dist_inter`). -/
+  Pairing two MAPS is a map (via the tabulation UP), and pairing commutes with LEFT
+  composition by a map (Ex 5.9, via `simple_dist_inter`).  The absorption laws
+  (5.3)/(5.4)/(5.5) and the cancellation law (5.8) follow B&dM p.115's staged proof at
+  the end of this file: two `outl`/`outr` claims, then the modular-law special cases
+  (5.4)/(5.5), then the composite chain. -/
 
 /-- `pair f g` of two MAPS `f, g` is again a MAP: it is literally the mediating witness
     of the tabulation universal property (`tabulation_UP_forward_witness`) applied to
@@ -229,5 +227,199 @@ theorem prodMap_recip {P : RelProd a b} {Q : RelProd a' b'} (R : a ⟶ a') (S : 
   rw [Allegory.recip_inter, Allegory.recip_comp, Allegory.recip_comp,
     Allegory.recip_comp, Allegory.recip_comp, Allegory.recip_recip, Allegory.recip_recip,
     Cat.assoc, Cat.assoc]
+
+/-! ## (5.3)/(5.4)/(5.5)  The absorption laws (book pp.114-115)
+
+  B&dM prove the absorption property `(R×S)·⟨X,Y⟩ = ⟨R·X,S·Y⟩` (5.3) in stages: first two
+  "claims" (`outl·(R×id) = R·outl` and `outr·(R×S) ⊑ S·outr`), then the special cases
+  (5.4)/(5.5) with one identity factor via the modular law, then the composite chain
+  through an intermediate relational product.  Everything below is mirrored to diagram
+  order: `pair X Y ≫ prodMap P Q R S = pair (X≫R) (Y≫S)`. -/
+
+/-- Book p.115 claim: `outr·(R×S) ⊑ S·outr`, mirrored: `(R×S) ≫ Q.outr ⊑ P.outr ≫ S`.
+    From (5.7) and `dom ⊑ id`. -/
+theorem prodMap_outr_le (P : RelProd a b) (Q : RelProd a' b') (R : a ⟶ a') (S : b ⟶ b') :
+    prodMap P Q R S ≫ Q.outr ⊑ P.outr ≫ S := by
+  show Q.pair (P.outl ≫ R) (P.outr ≫ S) ≫ Q.outr ⊑ P.outr ≫ S
+  rw [RelProd.pair_outr]
+  have h := comp_mono_right (dom_coreflexive (P.outl ≫ R)) (P.outr ≫ S)
+  rwa [Cat.id_comp] at h
+
+/-- Mirror of the previous claim on the left leg: `(R×S) ≫ Q.outl ⊑ P.outl ≫ R`. -/
+theorem prodMap_outl_le (P : RelProd a b) (Q : RelProd a' b') (R : a ⟶ a') (S : b ⟶ b') :
+    prodMap P Q R S ≫ Q.outl ⊑ P.outl ≫ R := by
+  show Q.pair (P.outl ≫ R) (P.outr ≫ S) ≫ Q.outl ⊑ P.outl ≫ R
+  rw [RelProd.pair_outl]
+  have h := comp_mono_right (dom_coreflexive (P.outr ≫ S)) (P.outl ≫ R)
+  rwa [Cat.id_comp] at h
+
+/-- Book p.115 claim: `outl·(R×id) = R·outl` — with the identity in the second slot the
+    `dom` factor of (5.6) is the identity (`outr` is entire), so the bound sharpens to an
+    equality.  Mirrored: `(R×id) ≫ Q.outl = P.outl ≫ R`. -/
+theorem prodMap_id_outl (P : RelProd a b) (Q : RelProd a' b) (R : a ⟶ a') :
+    prodMap P Q R (Cat.id b) ≫ Q.outl = P.outl ≫ R := by
+  have hdom : dom (P.outr ≫ Cat.id b) = Cat.id P.p := by rw [Cat.comp_id]; exact P.outr_map.1
+  show Q.pair (P.outl ≫ R) (P.outr ≫ Cat.id b) ≫ Q.outl = P.outl ≫ R
+  rw [RelProd.pair_outl, hdom, Cat.id_comp]
+
+/-- Mirror on the right leg: `(id×S) ≫ Q.outr = P.outr ≫ S`. -/
+theorem prodMap_id_outr (P : RelProd a b) (Q : RelProd a b') (S : b ⟶ b') :
+    prodMap P Q (Cat.id a) S ≫ Q.outr = P.outr ≫ S := by
+  have hdom : dom (P.outl ≫ Cat.id a) = Cat.id P.p := by rw [Cat.comp_id]; exact P.outl_map.1
+  show Q.pair (P.outl ≫ Cat.id a) (P.outr ≫ S) ≫ Q.outr = P.outr ≫ S
+  rw [RelProd.pair_outr, hdom, Cat.id_comp]
+
+/-- Claim 1 reciprocated: `R ≫ Q.outl° = P.outl° ≫ (R×id)` — the rewrite that pushes a
+    relation across the products' left legs in (5.4)'s proof. -/
+theorem outl_recip_prodMap (P : RelProd a b) (Q : RelProd a' b) (R : a ⟶ a') :
+    R ≫ Q.outl° = P.outl° ≫ prodMap P Q R (Cat.id b) := by
+  have h := congrArg Allegory.recip (prodMap_id_outl Q P R°)
+  rw [Allegory.recip_comp, Allegory.recip_comp, prodMap_recip, recip_id,
+    Allegory.recip_recip] at h
+  exact h.symm
+
+/-- Mirror: `S ≫ Q.outr° = P.outr° ≫ (id×S)`. -/
+theorem outr_recip_prodMap (P : RelProd a b) (Q : RelProd a b') (S : b ⟶ b') :
+    S ≫ Q.outr° = P.outr° ≫ prodMap P Q (Cat.id a) S := by
+  have h := congrArg Allegory.recip (prodMap_id_outr Q P S°)
+  rw [Allegory.recip_comp, Allegory.recip_comp, prodMap_recip, recip_id,
+    Allegory.recip_recip] at h
+  exact h.symm
+
+/-- Claim 2 reciprocated: `P.outr° ≫ (R×S) ⊑ S ≫ Q.outr°`. -/
+theorem recip_outr_prodMap_le (P : RelProd a b) (Q : RelProd a' b') (R : a ⟶ a') (S : b ⟶ b') :
+    P.outr° ≫ prodMap P Q R S ⊑ S ≫ Q.outr° := by
+  have h := recip_mono (prodMap_outr_le Q P R° S°)
+  rw [Allegory.recip_comp, Allegory.recip_comp, prodMap_recip, Allegory.recip_recip,
+    Allegory.recip_recip] at h
+  exact h
+
+/-- Mirror: `P.outl° ≫ (R×S) ⊑ R ≫ Q.outl°`. -/
+theorem recip_outl_prodMap_le (P : RelProd a b) (Q : RelProd a' b') (R : a ⟶ a') (S : b ⟶ b') :
+    P.outl° ≫ prodMap P Q R S ⊑ R ≫ Q.outl° := by
+  have h := recip_mono (prodMap_outl_le Q P R° S°)
+  rw [Allegory.recip_comp, Allegory.recip_comp, prodMap_recip, Allegory.recip_recip,
+    Allegory.recip_recip] at h
+  exact h
+
+/-- **(5.4)**, sharpened to an equality: `⟨R·X, Y⟩ = (R×id)·⟨X,Y⟩`, mirrored:
+    `P.pair X Y ≫ (R×id) = Q.pair (X≫R) Y`.  B&dM prove `⊒` by the modular law (the
+    tricky half, book p.115); `⊑` is the routine `le_pair_iff` computation. -/
+theorem RelProd.pair_prodMap_fst {P : RelProd a b} {Q : RelProd a' b}
+    (X : c ⟶ a) (Y : c ⟶ b) (R : a ⟶ a') :
+    P.pair X Y ≫ prodMap P Q R (Cat.id b) = Q.pair (X ≫ R) Y := by
+  apply le_antisymm
+  · apply RelProd.le_pair_iff.mpr
+    constructor
+    · rw [Cat.assoc, prodMap_id_outl, ← Cat.assoc, RelProd.pair_outl]
+      have h := comp_mono_right (comp_mono_right (dom_coreflexive Y) X) R
+      rwa [Cat.id_comp] at h
+    · have h1 : prodMap P Q R (Cat.id b) ≫ Q.outr ⊑ P.outr := by
+        have h := prodMap_outr_le P Q R (Cat.id b); rwa [Cat.comp_id] at h
+      have h2 := comp_mono_left (P.pair X Y) h1
+      rw [RelProd.pair_outr] at h2
+      have h3 := comp_mono_right (dom_coreflexive X) Y
+      rw [Cat.id_comp] at h3
+      rw [Cat.assoc]
+      exact le_trans h2 h3
+  · have hexp : Q.pair (X ≫ R) Y =
+        ((X ≫ P.outl°) ≫ prodMap P Q R (Cat.id b)) ∩ (Y ≫ Q.outr°) := by
+      show ((X ≫ R) ≫ Q.outl°) ∩ (Y ≫ Q.outr°) = _
+      rw [Cat.assoc, outl_recip_prodMap P Q R, ← Cat.assoc]
+    have hMr : (Y ≫ Q.outr°) ≫ (prodMap P Q R (Cat.id b))° ⊑ Y ≫ P.outr° := by
+      rw [prodMap_recip, recip_id, Cat.assoc]
+      apply comp_mono_left Y
+      have h := recip_outr_prodMap_le Q P R° (Cat.id b)
+      rwa [Cat.id_comp] at h
+    have hsub : (X ≫ P.outl°) ∩ ((Y ≫ Q.outr°) ≫ (prodMap P Q R (Cat.id b))°) ⊑ P.pair X Y :=
+      le_inter (inter_lb_left _ _) (le_trans (inter_lb_right _ _) hMr)
+    rw [hexp]
+    exact le_trans (modular_le (X ≫ P.outl°) (prodMap P Q R (Cat.id b)) (Y ≫ Q.outr°))
+      (comp_mono_right hsub _)
+
+/-- **(5.5)**, sharpened to an equality: `⟨X, S·Y⟩ = (id×S)·⟨X,Y⟩`, mirrored:
+    `P.pair X Y ≫ (id×S) = Q.pair X (Y≫S)`.  Symmetric to (5.4). -/
+theorem RelProd.pair_prodMap_snd {P : RelProd a b} {Q : RelProd a b'}
+    (X : c ⟶ a) (Y : c ⟶ b) (S : b ⟶ b') :
+    P.pair X Y ≫ prodMap P Q (Cat.id a) S = Q.pair X (Y ≫ S) := by
+  apply le_antisymm
+  · apply RelProd.le_pair_iff.mpr
+    constructor
+    · have h1 : prodMap P Q (Cat.id a) S ≫ Q.outl ⊑ P.outl := by
+        have h := prodMap_outl_le P Q (Cat.id a) S; rwa [Cat.comp_id] at h
+      have h2 := comp_mono_left (P.pair X Y) h1
+      rw [RelProd.pair_outl] at h2
+      have h3 := comp_mono_right (dom_coreflexive Y) X
+      rw [Cat.id_comp] at h3
+      rw [Cat.assoc]
+      exact le_trans h2 h3
+    · rw [Cat.assoc, prodMap_id_outr, ← Cat.assoc, RelProd.pair_outr]
+      have h := comp_mono_right (comp_mono_right (dom_coreflexive X) Y) S
+      rwa [Cat.id_comp] at h
+  · have hexp : Q.pair X (Y ≫ S) =
+        (X ≫ Q.outl°) ∩ ((Y ≫ P.outr°) ≫ prodMap P Q (Cat.id a) S) := by
+      show (X ≫ Q.outl°) ∩ ((Y ≫ S) ≫ Q.outr°) = _
+      rw [Cat.assoc, outr_recip_prodMap P Q S, ← Cat.assoc]
+    have hMl : (X ≫ Q.outl°) ≫ (prodMap P Q (Cat.id a) S)° ⊑ X ≫ P.outl° := by
+      rw [prodMap_recip, recip_id, Cat.assoc]
+      apply comp_mono_left X
+      have h := recip_outl_prodMap_le Q P (Cat.id a) S°
+      rwa [Cat.id_comp] at h
+    have hsub : (Y ≫ P.outr°) ∩ ((X ≫ Q.outl°) ≫ (prodMap P Q (Cat.id a) S)°) ⊑ P.pair X Y :=
+      le_inter (le_trans (inter_lb_right _ _) hMl) (inter_lb_left _ _)
+    rw [hexp, Allegory.inter_comm]
+    exact le_trans (modular_le (Y ≫ P.outr°) (prodMap P Q (Cat.id a) S) (X ≫ Q.outl°))
+      (comp_mono_right hsub _)
+
+/-- B&dM p.115 "exercise" step, as an equality: `(R×id) ≫ (id×S) = R×S` — immediate from
+    (5.5) applied to the pair that DEFINES `R×id`. -/
+theorem prodMap_factor (P : RelProd a b) (M : RelProd a' b) (Q : RelProd a' b')
+    (R : a ⟶ a') (S : b ⟶ b') :
+    prodMap P M R (Cat.id b) ≫ prodMap M Q (Cat.id a') S = prodMap P Q R S := by
+  show M.pair (P.outl ≫ R) (P.outr ≫ Cat.id b) ≫ prodMap M Q (Cat.id a') S = _
+  rw [Cat.comp_id, RelProd.pair_prodMap_snd]; rfl
+
+/-- **(5.3)** ABSORPTION (B&dM p.114): `(R×S)·⟨X,Y⟩ = ⟨R·X, S·Y⟩`, mirrored:
+    `P.pair X Y ≫ (R×S) = Q.pair (X≫R) (Y≫S)`.  Book chain: factor `R×S` through an
+    intermediate relational product of `a'` with `b`, then (5.4) and (5.5). -/
+theorem RelProd.pair_prodMap {P : RelProd a b} {Q : RelProd a' b'}
+    (X : c ⟶ a) (Y : c ⟶ b) (R : a ⟶ a') (S : b ⟶ b') :
+    P.pair X Y ≫ prodMap P Q R S = Q.pair (X ≫ R) (Y ≫ S) := by
+  rw [← prodMap_factor P (relProd a' b) Q R S, ← Cat.assoc, RelProd.pair_prodMap_fst,
+    RelProd.pair_prodMap_snd]
+
+/-- `×` preserves composition (B&dM p.114: the product relator "also preserves
+    composition"): `(R×S) ≫ (R'×S') = (R≫R')×(S≫S')`.  From absorption. -/
+theorem prodMap_comp {a'' b'' : 𝒜} (P : RelProd a b) (M : RelProd a' b') (Q : RelProd a'' b'')
+    (R : a ⟶ a') (S : b ⟶ b') (R' : a' ⟶ a'') (S' : b' ⟶ b'') :
+    prodMap P M R S ≫ prodMap M Q R' S' = prodMap P Q (R ≫ R') (S ≫ S') := by
+  show M.pair (P.outl ≫ R) (P.outr ≫ S) ≫ prodMap M Q R' S' = _
+  rw [RelProd.pair_prodMap, Cat.assoc, Cat.assoc]; rfl
+
+/-- **(5.8)** CANCELLATION (B&dM p.116): `⟨R,S⟩°·⟨X,Y⟩ = (R°·X) ∩ (S°·Y)`, mirrored:
+    `P.pair X Y ≫ (P.pair R S)° = (X≫R°) ∩ (Y≫S°)`.  Book route: write `⟨R,S⟩` as
+    `⟨id,id⟩ ≫ (R×S)` (absorption backwards), reciprocate, absorb with (5.3), and
+    distribute the SIMPLE map `⟨id,id⟩` over the meet. -/
+theorem RelProd.pair_recip_pair {P : RelProd a b} {d : 𝒜}
+    (X : c ⟶ a) (Y : c ⟶ b) (R : d ⟶ a) (S : d ⟶ b) :
+    P.pair X Y ≫ (P.pair R S)° = (X ≫ R°) ∩ (Y ≫ S°) := by
+  have D : RelProd d d := relProd d d
+  have hdel : Map (D.pair (Cat.id d) (Cat.id d)) :=
+    D.pair_map (id_is_map_local d) (id_is_map_local d)
+  have hdom : dom (Cat.id d) = Cat.id d := (id_is_map_local d).1
+  have houtl : D.pair (Cat.id d) (Cat.id d) ≫ D.outl = Cat.id d := by
+    rw [RelProd.pair_outl, hdom, Cat.id_comp]
+  have houtr : D.pair (Cat.id d) (Cat.id d) ≫ D.outr = Cat.id d := by
+    rw [RelProd.pair_outr, hdom, Cat.id_comp]
+  have hRS : P.pair R S = D.pair (Cat.id d) (Cat.id d) ≫ prodMap D P R S := by
+    rw [RelProd.pair_prodMap, Cat.id_comp, Cat.id_comp]
+  have hleg1 : ((X ≫ R°) ≫ D.outl°) ≫ (D.pair (Cat.id d) (Cat.id d))° = X ≫ R° := by
+    rw [Cat.assoc, ← Allegory.recip_comp, houtl, recip_id, Cat.comp_id]
+  have hleg2 : ((Y ≫ S°) ≫ D.outr°) ≫ (D.pair (Cat.id d) (Cat.id d))° = Y ≫ S° := by
+    rw [Cat.assoc, ← Allegory.recip_comp, houtr, recip_id, Cat.comp_id]
+  rw [hRS, Allegory.recip_comp, prodMap_recip, ← Cat.assoc, RelProd.pair_prodMap]
+  show ((X ≫ R°) ≫ D.outl° ∩ (Y ≫ S°) ≫ D.outr°) ≫ (D.pair (Cat.id d) (Cat.id d))° =
+    (X ≫ R°) ∩ (Y ≫ S°)
+  rw [simple_dist_inter_recip hdel.2, hleg1, hleg2]
 
 end Freyd.Alg
