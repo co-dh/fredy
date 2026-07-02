@@ -488,4 +488,168 @@ theorem modular_fails :
   ⟨BObj.of Two, BObj.of Three, BObj.of Two, homR, homS, Cat.id (BObj.of Two),
    modular_fails_concrete⟩
 
+/-! ## §2.155 (vii)  Maps of B
+
+  ENTIRE, SIMPLE and MAP mirrored from §2.13 with `interB` as the
+  intersection (`Entire R := dom R = 1` with `dom R = 1 ∩ RR°`;
+  `Simple R := R°R ⊑ 1`, the B-order `X ⊑ Y := X ∩ Y = X` unfolded). -/
+
+/-- ENTIRE in B (§2.13 shape): `1 ∩ f f° = 1`. -/
+@[reducible] def BEntire {a b : BObj.{u}} (f : a ⟶ b) : Prop :=
+  BHom.inter (Cat.id a) (f ≫ BHom.recip f) = Cat.id a
+
+/-- SIMPLE in B (§2.13 shape): `f° f ⊑ 1` in the B-order, unfolded. -/
+@[reducible] def BSimple {a b : BObj.{u}} (f : a ⟶ b) : Prop :=
+  BHom.inter (BHom.recip f ≫ f) (Cat.id b) = BHom.recip f ≫ f
+
+/-- MAP of B (§2.13): entire and simple. -/
+@[reducible] def BMap {a b : BObj.{u}} (f : a ⟶ b) : Prop := BEntire f ∧ BSimple f
+
+/-- `BEntire` is the usual totality: every point has an image.  (The B-order
+    guard costs nothing: the diagonal is bi-entire.) -/
+theorem bEntire_iff {a b : BObj.{u}} (f : a ⟶ b) :
+    BEntire f ↔ ∀ x, ∃ y, f.val x y := by
+  constructor
+  · intro h x
+    have hx : ∃ y, f.val x y ∧ f.val x y := ((BHom.congr h x x).mpr rfl).2.1
+    exact hx.elim fun y hy => ⟨y, hy.1⟩
+  · intro h
+    exact binter_eq_left fun p q hpq => by
+      have hpq' : p = q := hpq
+      cases hpq'
+      exact (h p).elim fun y hy => ⟨y, hy, hy⟩
+
+/-- `BSimple` is the usual single-valuedness. -/
+theorem bSimple_iff {a b : BObj.{u}} (f : a ⟶ b) :
+    BSimple f ↔ ∀ x y y', f.val x y → f.val x y' → y = y' := by
+  constructor
+  · intro h x y y' hy hy'
+    have hyy : (BHom.recip f ≫ f).val y y' := ⟨x, hy, hy'⟩
+    exact ((BHom.congr h y y').mpr hyy).2.1
+  · intro h
+    exact binter_eq_left fun y y' hyy => by
+      have hyy' : ∃ x, f.val x y ∧ f.val x y' := hyy
+      exact hyy'.elim fun x hx => h x y y' hx.1 hx.2
+
+/-- The identity is a map of B. -/
+theorem bmap_id {a : BObj.{u}} : BMap (Cat.id a) :=
+  ⟨(bEntire_iff _).mpr fun x => ⟨x, rfl⟩,
+   (bSimple_iff _).mpr fun x y y' h h' => by
+     have h1 : x = y := h
+     have h2 : x = y' := h'
+     exact h1 ▸ h2⟩
+
+/-! ## §2.155 (viii)  B is TABULAR
+
+  "B is tabular (a tabulation that works in Rel(S) works in B)."  The graph
+  tabulation of `Φ` — apex `{p : A × B // Φ p.1 p.2}` with the two projection
+  legs — lies in B: if `Φ = ∅` the apex is empty and both legs are the empty
+  relation (in B); if `Φ` is bi-entire, `f` is co-entire because `Φ` is
+  entire and `g` is co-entire because `Φ°` is. -/
+
+/-- The tabulation apex: the graph of `Φ`. -/
+def tabApex {A B : Type u} (Φ : A → B → Prop) : Type u := { p : A × B // Φ p.1 p.2 }
+
+/-- First leg of the tabulation (the projection to `A`, as a relation). -/
+@[reducible] def tabF {A B : Type u} (Φ : A → B → Prop) : tabApex Φ → A → Prop :=
+  fun p a => p.val.1 = a
+
+/-- Second leg of the tabulation (the projection to `B`, as a relation). -/
+@[reducible] def tabG {A B : Type u} (Φ : A → B → Prop) : tabApex Φ → B → Prop :=
+  fun p b => p.val.2 = b
+
+/-- The first leg is in B (empty when `Φ = ∅` — its domain is empty —
+    bi-entire when `Φ` is). -/
+theorem isB_tabF {A B : Type u} {Φ : A → B → Prop} (h : IsB Φ) : IsB (tabF Φ) :=
+  h.elim (fun he => Or.inl fun p _ _ => he p.val.1 p.val.2 p.property)
+    (fun hbe => Or.inr ⟨fun p => ⟨p.val.1, rfl⟩,
+      fun x => (hbe.1 x).elim fun y hy => ⟨⟨(x, y), hy⟩, rfl⟩⟩)
+
+/-- The second leg is in B. -/
+theorem isB_tabG {A B : Type u} {Φ : A → B → Prop} (h : IsB Φ) : IsB (tabG Φ) :=
+  h.elim (fun he => Or.inl fun p _ _ => he p.val.1 p.val.2 p.property)
+    (fun hbe => Or.inr ⟨fun p => ⟨p.val.2, rfl⟩,
+      fun y => (hbe.2 y).elim fun x hx => ⟨⟨(x, y), hx⟩, rfl⟩⟩)
+
+/-- `f° ≫ g = Φ` at the relation level. -/
+theorem tab_recip_comp_pt {A B : Type u} (Φ : A → B → Prop) (a : A) (b : B) :
+    bComp (bRecip (tabF Φ)) (tabG Φ) a b ↔ Φ a b := by
+  constructor
+  · rintro ⟨p, hpa, hpb⟩
+    rw [← hpa, ← hpb]
+    exact p.property
+  · intro h
+    exact ⟨⟨(a, b), h⟩, rfl, rfl⟩
+
+private theorem prodExt {α β : Type u} {x y : α × β} (h1 : x.1 = y.1)
+    (h2 : x.2 = y.2) : x = y := by
+  obtain ⟨xa, xb⟩ := x
+  obtain ⟨ya, yb⟩ := y
+  have h1' : xa = ya := h1
+  have h2' : xb = yb := h2
+  cases h1'; cases h2'; rfl
+
+/-- The guard of `f≫f° ∩ g≫g°` holds: the pointwise intersection contains the
+    diagonal of the apex. -/
+theorem tab_guard {A B : Type u} (Φ : A → B → Prop) :
+    BiEntire (pInter (bComp (tabF Φ) (bRecip (tabF Φ)))
+      (bComp (tabG Φ) (bRecip (tabG Φ)))) :=
+  ⟨fun p => ⟨p, ⟨p.val.1, rfl, rfl⟩, ⟨p.val.2, rfl, rfl⟩⟩,
+   fun q => ⟨q, ⟨q.val.1, rfl, rfl⟩, ⟨q.val.2, rfl, rfl⟩⟩⟩
+
+/-- `f≫f° ∩ g≫g° = 1` at the relation level: sharing both coordinates is
+    equality on the graph. -/
+theorem tab_inter_pt {A B : Type u} (Φ : A → B → Prop) (p q : tabApex Φ) :
+    interB (bComp (tabF Φ) (bRecip (tabF Φ))) (bComp (tabG Φ) (bRecip (tabG Φ))) p q
+      ↔ p = q := by
+  constructor
+  · rintro ⟨⟨x, h1, h2⟩, ⟨y, h3, h4⟩, -⟩
+    have h1' : p.val.1 = x := h1
+    have h2' : q.val.1 = x := h2
+    have h3' : p.val.2 = y := h3
+    have h4' : q.val.2 = y := h4
+    exact Subtype.ext (prodExt (h1'.trans h2'.symm) (h3'.trans h4'.symm))
+  · rintro rfl
+    exact ⟨⟨p.val.1, rfl, rfl⟩, ⟨p.val.2, rfl, rfl⟩, tab_guard Φ⟩
+
+/-- The first tabulation leg as a morphism of B. -/
+def tabFHom {a b : BObj.{u}} (Φ : a ⟶ b) : BObj.of (tabApex Φ.val) ⟶ a :=
+  ⟨tabF Φ.val, isB_tabF Φ.property⟩
+
+/-- The second tabulation leg as a morphism of B. -/
+def tabGHom {a b : BObj.{u}} (Φ : a ⟶ b) : BObj.of (tabApex Φ.val) ⟶ b :=
+  ⟨tabG Φ.val, isB_tabG Φ.property⟩
+
+/-- The first leg is a map of B (it is a function; simplicity is automatic). -/
+theorem tabF_bmap {a b : BObj.{u}} (Φ : a ⟶ b) : BMap (tabFHom Φ) :=
+  ⟨(bEntire_iff _).mpr fun p => ⟨p.val.1, rfl⟩,
+   (bSimple_iff _).mpr fun p x x' h h' => by
+     have h1 : p.val.1 = x := h
+     have h2 : p.val.1 = x' := h'
+     exact h1 ▸ h2⟩
+
+/-- The second leg is a map of B. -/
+theorem tabG_bmap {a b : BObj.{u}} (Φ : a ⟶ b) : BMap (tabGHom Φ) :=
+  ⟨(bEntire_iff _).mpr fun p => ⟨p.val.2, rfl⟩,
+   (bSimple_iff _).mpr fun p y y' h h' => by
+     have h1 : p.val.2 = y := h
+     have h2 : p.val.2 = y' := h'
+     exact h1 ▸ h2⟩
+
+/-- §2.155: "B is tabular (a tabulation that works in Rel(S) works in B)."
+    The graph tabulation of any B-morphism `Φ` lies in B and tabulates it, in
+    the exact shape of `Tabulates` (§2.14): both legs are maps of B,
+    `f° ≫ g = Φ`, and `f≫f° ∩ g≫g° = 1`.
+
+    Combined with `modular_fails` above: THE MODULAR IDENTITY IS NOT A
+    CONSEQUENCE OF TABULARITY. -/
+theorem b_tabular {a b : BObj.{u}} (Φ : a ⟶ b) :
+    BMap (tabFHom Φ) ∧ BMap (tabGHom Φ) ∧
+      BHom.recip (tabFHom Φ) ≫ tabGHom Φ = Φ ∧
+      BHom.inter (tabFHom Φ ≫ BHom.recip (tabFHom Φ))
+        (tabGHom Φ ≫ BHom.recip (tabGHom Φ)) = Cat.id (BObj.of (tabApex Φ.val)) :=
+  ⟨tabF_bmap Φ, tabG_bmap Φ,
+   BHom.ext fun x y => tab_recip_comp_pt Φ.val x y,
+   BHom.ext fun p q => tab_inter_pt Φ.val p q⟩
+
 end Freyd.Alg
