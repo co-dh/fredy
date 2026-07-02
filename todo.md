@@ -48,8 +48,13 @@ merged class `TabularUnitaryUnguardedPowerAllegory`): Map(A) has FULL power obje
   transpose). REMAINING for §2.414: the **converse** (a unitary tabular power allegory `A` ⟹ `Map(A)` is a
   topos) — needs the topos structure rebuilt on `Map(A)`. **§2.424** connected-power-topos corollary follows
   from the forward direction + §2.219.
-- **§2.155–§2.158**, **§2.168** (⟨I,∃⟩ locale-valued), **§2.417** (generator counterexample) — specific
-  model/example constructions.
+- ~~**§2.168** (⟨I,∃⟩ locale-valued)~~ — **DONE** (`S2_168_ValuedSetsTabular`, merged fa02135): `instTabularOSet`
+  (OSet(F) tabular, [Quot.sound] only — the §2.161 promise "Z-valued relations extend to a tabular allegory"),
+  diagonal `ExtObj` ⟨I,∃⟩ full sub-allegory also tabular, entire/simple/map row characterizations, sharp
+  embedding of the §2.111 Z-valued relations. Also ~~**§2.16(11)**~~ — **DONE** (S2_16b, f28699e): neighbors,
+  `idempotent_splits_in_spl` (the two containments suffice to split in Spl(𝒮ℐ𝒹)), partial-order/strict-dense
+  no-split corollaries (book's strict-dense containment misprint noted in doc comment).
+- **§2.155–§2.158**, **§2.417** (generator counterexample) — specific model/example constructions.
 
 ## Universe wall (needs a class redesign, not a leaf file)
 
