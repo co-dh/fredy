@@ -144,6 +144,21 @@ def casesC (proj₁ proj₂ : Nat → Nat) (code : Nat → Nat → Nat) (inL inR
     · exact absurd (hy₂.symm.trans hy₁) (hLR y₂ y₁)
     · cases hR (hy₁.symm.trans hy₂); exact ψ.functional h₁ h₂
 
+/-! Graph-introduction helpers: every modulus built later is a `comp`/`pairC`/`casesC`
+    combinator term over `ident`/`ofFun`, and its graph values are computed by chaining
+    these four intro rules, then normalizing indices with `code_proj₁/₂`. -/
+
+theorem ident_graph (n : Nat) : ident.graph n n := rfl
+
+theorem ofFun_graph (f : Nat → Nat) (n : Nat) : (ofFun f).graph n (f n) := rfl
+
+theorem comp_graph {φ ψ : ModFun} {n j m : Nat} (h₁ : φ.graph n j) (h₂ : ψ.graph j m) :
+    (φ.comp ψ).graph n m := ⟨j, h₁, h₂⟩
+
+theorem pairC_graph {code : Nat → Nat → Nat} {φ ψ : ModFun} {n a b : Nat}
+    (h₁ : φ.graph n a) (h₂ : ψ.graph n b) : (pairC code φ ψ).graph n (code a b) :=
+  ⟨a, b, h₁, h₂, rfl⟩
+
 end ModFun
 
 /-! ## Modulus systems -/
@@ -655,5 +670,130 @@ instance asmRegular : RegularCategory (Assembly.{u} K) where
   toHasPullbacks := inferInstance
   toHasImages := inferInstance
   toPullbacksTransferCovers := inferInstance
+
+/-! ## M6: subobject unions, bottom, inverse images — the pre-logos structure
+
+  The union of two subobjects S, T ⊆ B: carrier = the union of their image sets; the
+  caucus at a LEFT-tagged index `code p (inL k)` (any parameter p) is the S-image of
+  `S.dom|ₖ`, at a RIGHT-tagged index `code p (inR k)` the T-image of `T.dom|ₖ`.  The
+  inclusion is tracked by definition-by-cases over the two subobjects' moduli
+  (`cases_mem`); `S ≤ S∪T` is tracked by `k ↦ code k (inL k)`; minimality dispatches the
+  two factorizations' moduli by cases.  The parameter slot is what lets these tagged
+  indices survive inside the ℓ/ϰ-coded caucuses of a pullback (inverse image) — see
+  `invImage_union_le`. -/
+
+section Unions
+
+variable {B : Assembly.{u} K}
+
+/-- The union assembly of two subobjects of B (carrier and tagged caucuses). -/
+def unionAsm (S T : Subobject (Assembly.{u} K) B) : Assembly.{u} K where
+  X := {y : B.X // (∃ s, S.arr.toFun s = y) ∨ (∃ t, T.arr.toFun t = y)}
+  caucus n y :=
+    (∃ p k, n = K.code p (K.inL k) ∧ ∃ s, S.dom.caucus k s ∧ S.arr.toFun s = y.val) ∨
+    (∃ p k, n = K.code p (K.inR k) ∧ ∃ t, T.dom.caucus k t ∧ T.arr.toFun t = y.val)
+  carrier_mem y := by
+    rcases y.property with ⟨s, hs⟩ | ⟨t, ht⟩
+    · obtain ⟨k, hk⟩ := S.dom.carrier_mem s
+      exact ⟨K.code k (K.inL k), Or.inl ⟨k, k, rfl, s, hk, hs⟩⟩
+    · obtain ⟨k, hk⟩ := T.dom.carrier_mem t
+      exact ⟨K.code k (K.inR k), Or.inr ⟨k, k, rfl, t, hk, ht⟩⟩
+
+/-- The union subobject: the inclusion of `unionAsm`, tracked by cases on the tag. -/
+def unionSub (S T : Subobject (Assembly.{u} K) B) : Subobject (Assembly.{u} K) B where
+  dom := unionAsm S T
+  arr := ⟨Subtype.val, by
+    obtain ⟨ρS, hρS, htrS⟩ := S.arr.tracked
+    obtain ⟨ρT, hρT, htrT⟩ := T.arr.tracked
+    refine ⟨K.casesF (K.projF₂.comp ρS) (K.projF₂.comp ρT),
+      K.cases_mem (K.comp_mem K.proj₂_mem hρS) (K.comp_mem K.proj₂_mem hρT),
+      fun n y hy => ?_⟩
+    rcases hy with ⟨p, k, hn, s, hks, hsy⟩ | ⟨p, k, hn, t, hkt, hty⟩
+    · obtain ⟨m, hm, hBm⟩ := htrS k s hks
+      refine ⟨m, Or.inl ⟨k, by rw [hn, K.code_proj₂],
+        ⟨K.proj₂ (K.code (K.proj₁ n) k), rfl, by rw [K.code_proj₂]; exact hm⟩⟩, ?_⟩
+      rw [← hsy]; exact hBm
+    · obtain ⟨m, hm, hBm⟩ := htrT k t hkt
+      refine ⟨m, Or.inr ⟨k, by rw [hn, K.code_proj₂],
+        ⟨K.proj₂ (K.code (K.proj₁ n) k), rfl, by rw [K.code_proj₂]; exact hm⟩⟩, ?_⟩
+      rw [← hty]; exact hBm⟩
+  monic := asmMonic_of_injective _ fun _ _ h => Subtype.ext h
+
+/-- `S ≤ S ∪ T`, tracked by `k ↦ code k (inL k)`. -/
+theorem unionSub_left (S T : Subobject (Assembly.{u} K) B) : S.le (unionSub S T) := by
+  refine ⟨⟨fun s => ⟨S.arr.toFun s, Or.inl ⟨s, rfl⟩⟩,
+    K.pairF ModFun.ident (ModFun.ofFun K.inL), K.pair_mem K.id_mem K.inL_mem,
+    fun k s hks => ?_⟩, AsmHom.ext rfl⟩
+  exact ⟨K.code k (K.inL k),
+    ModFun.pairC_graph (ModFun.ident_graph k) (ModFun.ofFun_graph _ k),
+    Or.inl ⟨k, k, rfl, s, hks, rfl⟩⟩
+
+/-- `T ≤ S ∪ T`, tracked by `k ↦ code k (inR k)`. -/
+theorem unionSub_right (S T : Subobject (Assembly.{u} K) B) : T.le (unionSub S T) := by
+  refine ⟨⟨fun t => ⟨T.arr.toFun t, Or.inr ⟨t, rfl⟩⟩,
+    K.pairF ModFun.ident (ModFun.ofFun K.inR), K.pair_mem K.id_mem K.inR_mem,
+    fun k t hkt => ?_⟩, AsmHom.ext rfl⟩
+  exact ⟨K.code k (K.inR k),
+    ModFun.pairC_graph (ModFun.ident_graph k) (ModFun.ofFun_graph _ k),
+    Or.inr ⟨k, k, rfl, t, hkt, rfl⟩⟩
+
+/-- Minimality of the union: factorizations of S and T through U are dispatched by cases
+    on the tag (well-defined because `U.arr` is monic hence injective). -/
+theorem unionSub_min (S T U : Subobject (Assembly.{u} K) B)
+    (hS : S.le U) (hT : T.le U) : (unionSub S T).le U := by
+  obtain ⟨hs, hhs⟩ := hS
+  obtain ⟨ht, hht⟩ := hT
+  have hhs' : ∀ x, U.arr.toFun (hs.toFun x) = S.arr.toFun x :=
+    fun x => congrArg (fun j => AsmHom.toFun j x) hhs
+  have hht' : ∀ x, U.arr.toFun (ht.toFun x) = T.arr.toFun x :=
+    fun x => congrArg (fun j => AsmHom.toFun j x) hht
+  have hUinj := asmInjective_of_monic U.arr U.monic
+  have hex : ∀ y : (unionAsm S T).X, ∃ w, U.arr.toFun w = y.val := by
+    intro y
+    rcases y.property with ⟨s, hsy⟩ | ⟨t, hty⟩
+    · exact ⟨hs.toFun s, (hhs' s).trans hsy⟩
+    · exact ⟨ht.toFun t, (hht' t).trans hty⟩
+  refine ⟨⟨fun y => (hex y).choose, ?_⟩,
+    AsmHom.ext (funext fun y => (hex y).choose_spec)⟩
+  obtain ⟨σS, hσS, htrS⟩ := hs.tracked
+  obtain ⟨σT, hσT, htrT⟩ := ht.tracked
+  refine ⟨K.casesF (K.projF₂.comp σS) (K.projF₂.comp σT),
+    K.cases_mem (K.comp_mem K.proj₂_mem hσS) (K.comp_mem K.proj₂_mem hσT),
+    fun n y hy => ?_⟩
+  rcases hy with ⟨p, k, hn, s, hks, hsy⟩ | ⟨p, k, hn, t, hkt, hty⟩
+  · obtain ⟨m, hm, hUm⟩ := htrS k s hks
+    refine ⟨m, Or.inl ⟨k, by rw [hn, K.code_proj₂],
+      ⟨K.proj₂ (K.code (K.proj₁ n) k), rfl, by rw [K.code_proj₂]; exact hm⟩⟩, ?_⟩
+    have hcs : (hex y).choose = hs.toFun s :=
+      hUinj ((hex y).choose_spec.trans (hsy.symm.trans (hhs' s).symm))
+    show U.dom.caucus m ((hex y).choose)
+    rw [hcs]; exact hUm
+  · obtain ⟨m, hm, hUm⟩ := htrT k t hkt
+    refine ⟨m, Or.inr ⟨k, by rw [hn, K.code_proj₂],
+      ⟨K.proj₂ (K.code (K.proj₁ n) k), rfl, by rw [K.code_proj₂]; exact hm⟩⟩, ?_⟩
+    have hct : (hex y).choose = ht.toFun t :=
+      hUinj ((hex y).choose_spec.trans (hty.symm.trans (hht' t).symm))
+    show U.dom.caucus m ((hex y).choose)
+    rw [hct]; exact hUm
+
+end Unions
+
+/-- §1.6: assemblies have subobject unions. -/
+instance asmHasSubobjectUnions : HasSubobjectUnions (Assembly.{u} K) where
+  union := unionSub
+  union_left := unionSub_left
+  union_right := unionSub_right
+  union_min := unionSub_min
+
+/-- The bottom subobject: the empty assembly, included vacuously. -/
+def botSub (A : Assembly.{u} K) : Subobject (Assembly.{u} K) A where
+  dom := zeroAsm
+  arr := ⟨fun x => x.elim, ModFun.ident, K.id_mem, fun _ x => x.elim⟩
+  monic := fun g _ _ => AsmHom.ext (funext fun w => (g.toFun w).elim)
+
+theorem botSub_min {A : Assembly.{u} K} (S : Subobject (Assembly.{u} K) A) :
+    (botSub A).le S :=
+  ⟨⟨fun (x : PEmpty) => x.elim, ModFun.ident, K.id_mem, fun _ x => x.elim⟩,
+    AsmHom.ext (funext fun (x : PEmpty) => x.elim)⟩
 
 end Freyd
