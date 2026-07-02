@@ -351,4 +351,27 @@ def ModulusSystem.allPartial : ModulusSystem where
   inLR_ne a b := by omega
   cases_mem _ _ := trivial
 
+/-! ## M2: terminator and coterminator
+
+  Book: "A terminator is given by a one-element set 1 so that 1|ₙ = 1." and
+  "The empty set is a coterminator." -/
+
+/-- The one-element assembly `1` with `1|ₙ = 1` for all n. -/
+def oneAsm : Assembly.{u} K := ⟨PUnit, fun _ _ => True, fun _ => ⟨0, trivial⟩⟩
+
+/-- §2.153: `1|ₙ = 1` is a terminator; the unique map has the identity modulus. -/
+instance asmHasTerminal : HasTerminal (Assembly.{u} K) where
+  one := oneAsm
+  trm A := ⟨fun _ => PUnit.unit, ModFun.ident, K.id_mem, fun n _ _ => ⟨n, rfl, trivial⟩⟩
+  uniq f g := AsmHom.ext (funext fun _ => rfl)
+
+/-- The empty assembly (no elements, all caucuses empty). -/
+def zeroAsm : Assembly.{u} K := ⟨PEmpty, fun _ _ => False, fun x => x.elim⟩
+
+/-- §2.153: "The empty set is a coterminator."  All modulus obligations are vacuous. -/
+instance asmHasCoterminator : HasCoterminator (Assembly.{u} K) where
+  zero := zeroAsm
+  init _ := ⟨fun x => x.elim, ModFun.ident, K.id_mem, fun _ _ h => h.elim⟩
+  init_uniq _ _ := AsmHom.ext (funext fun x => x.elim)
+
 end Freyd
