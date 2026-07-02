@@ -220,7 +220,11 @@ the two containments ⟹ split in Spl(𝒮ℐ𝒹); `partialOrder_no_split`/`str
 misprint noted; S2_16b) · §2.168/§2.161 ⟨I,∃⟩ TABULAR (`instTabularOSet` — OSet(F) is tabular, [Quot.sound] only;
 `ExtObj`/`extObjMk` diagonal ⟨I,∃⟩ full sub-allegory + `instTabularExtObj`; `extObj_entire/simple/map_iff` row
 characterizations; `sharp`/`eq_sharpHom` — sharp homs = arbitrary matrices, so ExtObj F is the promised tabular
-extension of the §2.111 Z-valued relations; S2_168_ValuedSetsTabular).
+extension of the §2.111 Z-valued relations; S2_168_ValuedSetsTabular) · §2.156 PARTITION REPRESENTATION
+(`ModularLattice.toModularLOCMonoid` — modular lattice as §2.113 one-object allegory; `rep_equivRel`/`rep_commute` —
+any allegory-representation sends lattice elements to pairwise-commuting equivalence relations; headline
+`partition_representation` — T(R⊔S)=T(R)≫T(S) is the equivalence-relation join; `equivRel_modular` converse modular
+law; ALL axiom-free; S2_156_PartitionRep).
 PARTIAL: §2.224 GLOBAL COMPLETION Aᴴ — now a FAITHFUL LCDA REPRESENTATION (`globalCat`/`globalAllegory`/
 `globalDistributiveAllegory`/`globalLCDA`/`globalCompletion_faithful`, all constructive; infinite matrices over the LCDA Sup,
 identity via propositional i=j + HEq, modular per-entry, assoc/Sup = Fubini interchange). The final GloballyComplete instance is
