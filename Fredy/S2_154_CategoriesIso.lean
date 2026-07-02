@@ -22,15 +22,21 @@
   object parts are the identity up to the `RelObj` wrapper — the content of Freyd's "iso".
 
   Layout:
-    1.  §2.15 unit facts (partial-unit maps, units unique up to map-iso, transfer).
-    2.  §2.147/§2.16 characterizations in `Alg.Map 𝒜` (monic/cover/pullback/image, equationally).
+    1.  §2.15 unit facts (partial-unit maps, units unique up to map-iso, transfer,
+        `pres_isUnit_of_isUnit` — the composability of "unitary").
+    2.  §2.147/§2.16 characterizations in `Map 𝒜` (monic/cover/pullback/image, equationally).
     3.  §2.154 middle paragraph: a unitary representation `T` restricts to a REGULAR functor
-        `Alg.Map T : Alg.Map 𝒜 → Alg.Map ℬ` (the hard new content).
+        `Map T : Map 𝒜 → Map ℬ` (`mapRep_regular`, the hard new content).
     4.  §2.154 third paragraph: a regular functor `F` induces a unitary representation
-        `Rel F : Rel C → Rel D` (units part; `Rel F` itself is §2.218's `relAllegoryHom`).
-    5.  The bundled categories `SmallRegCat`/`SmallTabAlleg` and the functors `MapF`/`RelF`.
-    6.  The §2.148/§2.218 roundtrip isomorphisms, upgraded to isos in the bundled categories.
-    7.  Headline: `StrongEquivalence RelF MapF`.
+        `Rel F` (units clause `relIsUnit_of_terminal`; `Rel F` is §2.218's `relAllegoryHom`),
+        functorially (`relMap_of_id`/`relMap_of_comp`).
+    5.  The bundled categories `SmallRegCat`/`SmallTabAlleg` and the functors `RelF`/`MapF`.
+    6.  The counit isomorphism `Rel(Map 𝒜) ≅ 𝒜` in `SmallTabAlleg` (`counit_isIso`).
+    7.  The unit isomorphism `C ≅ Map(Rel C)` in `SmallRegCat` (`unit_isIso`).
+    8.  Naturality of both and the headline `smallRegCat_equiv_smallTabAlleg :
+        StrongEquivalence RelF MapF`.
+
+  Axioms (headline): `[propext, Classical.choice, Quot.sound]`.
 -/
 import Fredy.S2_111_RelCat
 import Fredy.S2_218_ObjInclRegular
