@@ -148,4 +148,344 @@ theorem meetPoint_eq {A B : P.Line} (hAB : A ≠ B) {x : P.Point}
 
 end ProjectivePlane
 
+/-! ## The associated lattice 𝓛(P) (§2.157)
+
+  "let 𝓛 be the disjoint union of the points and lines together with two new
+   elements called 0 and 1.  We partially order 𝓛 by taking 0 as the minimum,
+   1 as the maximum and using the incidence relation in between." -/
+
+/-- 𝓛: disjoint union of points and lines plus `0` (`bot`) and `1` (`top`). -/
+inductive PElem (P : ProjectivePlane.{u}) : Type u where
+  | bot : PElem P
+  | pt (x : P.Point) : PElem P
+  | ln (A : P.Line) : PElem P
+  | top : PElem P
+
+namespace PElem
+
+variable {P : ProjectivePlane.{u}}
+
+/-- The partial order on 𝓛: `0` minimum, `1` maximum, incidence in between
+    (points and lines are otherwise incomparable; each rank is discrete). -/
+def le : PElem P → PElem P → Prop
+  | bot, _ => True
+  | pt _, bot => False
+  | pt x, pt y => x = y
+  | pt x, ln A => P.incid x A
+  | pt _, top => True
+  | ln _, bot => False
+  | ln _, pt _ => False
+  | ln A, ln B => A = B
+  | ln _, top => True
+  | top, bot => False
+  | top, pt _ => False
+  | top, ln _ => False
+  | top, top => True
+
+theorem le_refl : ∀ a : PElem P, a.le a
+  | bot => trivial
+  | pt _ => rfl
+  | ln _ => rfl
+  | top => trivial
+
+theorem le_trans {a b c : PElem P} (hab : a.le b) (hbc : b.le c) : a.le c := by
+  cases a <;> cases b <;> cases c <;> simp_all [le]
+
+theorem le_antisymm {a b : PElem P} (hab : a.le b) (hba : b.le a) : a = b := by
+  cases a <;> cases b <;> simp_all [le]
+
+theorem bot_le (a : PElem P) : (bot : PElem P).le a := trivial
+
+theorem le_top : ∀ a : PElem P, a.le top
+  | bot => trivial
+  | pt _ => trivial
+  | ln _ => trivial
+  | top => trivial
+
+theorem eq_top_of_top_le {a : PElem P} (h : (top : PElem P).le a) : a = top := by
+  cases a <;> simp_all [le]
+
+/-! ### Meet and join
+
+  Total functions by case analysis; the witnesses for the geometric cases are
+  chosen via `lineThrough`/`meetPoint` (axioms 1 and 2 through `Classical.choice`)
+  and the distinctness splits use classical decidability. -/
+
+open Classical in
+/-- Lattice JOIN on 𝓛.  Cases: `⊥` is a unit and `⊤` absorbs; two points join to
+    the line through them (or the point itself, if equal); a point and a line join
+    to the line when incident, else to `⊤`; two distinct lines join to `⊤`. -/
+noncomputable def join : PElem P → PElem P → PElem P
+  | bot, b => b
+  | pt x, bot => pt x
+  | pt x, pt y => if x = y then pt x else ln (P.lineThrough x y)
+  | pt x, ln A => if P.incid x A then ln A else top
+  | pt _, top => top
+  | ln A, bot => ln A
+  | ln A, pt y => if P.incid y A then ln A else top
+  | ln A, ln B => if A = B then ln A else top
+  | ln _, top => top
+  | top, _ => top
+
+open Classical in
+/-- Lattice MEET on 𝓛, dual to `join`: two distinct points meet in `⊥`; a point
+    and a line meet in the point when incident, else `⊥`; two distinct lines meet
+    in their common point (axiom 2). -/
+noncomputable def meet : PElem P → PElem P → PElem P
+  | bot, _ => bot
+  | pt _, bot => bot
+  | pt x, pt y => if x = y then pt x else bot
+  | pt x, ln A => if P.incid x A then pt x else bot
+  | pt x, top => pt x
+  | ln _, bot => bot
+  | ln A, pt y => if P.incid y A then pt y else bot
+  | ln A, ln B => if A = B then ln A else pt (P.meetPoint A B)
+  | ln A, top => ln A
+  | top, b => b
+
+/-! ### Evaluation lemmas (one per `if`-case; the constructor cases are `rfl`) -/
+
+theorem join_bot_right : ∀ a : PElem P, a.join bot = a
+  | bot => rfl
+  | pt _ => rfl
+  | ln _ => rfl
+  | top => rfl
+
+theorem join_top_left (b : PElem P) : (top : PElem P).join b = top := rfl
+
+theorem join_top_right : ∀ a : PElem P, a.join top = top
+  | bot => rfl
+  | pt _ => rfl
+  | ln _ => rfl
+  | top => rfl
+
+theorem join_pt_pt_self (x : P.Point) : (pt x).join (pt x) = pt x := by
+  simp [join]
+
+theorem join_pt_pt_ne {x y : P.Point} (h : x ≠ y) :
+    (pt x).join (pt y) = ln (P.lineThrough x y) := by
+  simp [join, h]
+
+theorem join_pt_ln_incid {x : P.Point} {A : P.Line} (h : P.incid x A) :
+    (pt x).join (ln A) = ln A := by
+  simp [join, h]
+
+theorem join_pt_ln_not {x : P.Point} {A : P.Line} (h : ¬P.incid x A) :
+    (pt x).join (ln A) = top := by
+  simp [join, h]
+
+theorem join_ln_pt_incid {A : P.Line} {y : P.Point} (h : P.incid y A) :
+    (ln A).join (pt y) = ln A := by
+  simp [join, h]
+
+theorem join_ln_pt_not {A : P.Line} {y : P.Point} (h : ¬P.incid y A) :
+    (ln A).join (pt y) = top := by
+  simp [join, h]
+
+theorem join_ln_ln_self (A : P.Line) : (ln A).join (ln A) = ln A := by
+  simp [join]
+
+theorem join_ln_ln_ne {A B : P.Line} (h : A ≠ B) : (ln A).join (ln B) = top := by
+  simp [join, h]
+
+theorem meet_top_left (b : PElem P) : (top : PElem P).meet b = b := rfl
+
+theorem meet_top_right : ∀ a : PElem P, a.meet top = a
+  | bot => rfl
+  | pt _ => rfl
+  | ln _ => rfl
+  | top => rfl
+
+theorem meet_pt_pt_self (x : P.Point) : (pt x).meet (pt x) = pt x := by
+  simp [meet]
+
+theorem meet_pt_pt_ne {x y : P.Point} (h : x ≠ y) :
+    (pt x).meet (pt y) = bot := by
+  simp [meet, h]
+
+theorem meet_pt_ln_incid {x : P.Point} {A : P.Line} (h : P.incid x A) :
+    (pt x).meet (ln A) = pt x := by
+  simp [meet, h]
+
+theorem meet_pt_ln_not {x : P.Point} {A : P.Line} (h : ¬P.incid x A) :
+    (pt x).meet (ln A) = bot := by
+  simp [meet, h]
+
+theorem meet_ln_pt_incid {A : P.Line} {y : P.Point} (h : P.incid y A) :
+    (ln A).meet (pt y) = pt y := by
+  simp [meet, h]
+
+theorem meet_ln_pt_not {A : P.Line} {y : P.Point} (h : ¬P.incid y A) :
+    (ln A).meet (pt y) = bot := by
+  simp [meet, h]
+
+theorem meet_ln_ln_self (A : P.Line) : (ln A).meet (ln A) = ln A := by
+  simp [meet]
+
+theorem meet_ln_ln_ne {A B : P.Line} (h : A ≠ B) :
+    (ln A).meet (ln B) = pt (P.meetPoint A B) := by
+  simp [meet, h]
+
+/-! ### Order characterisations: `join` is the lub, `meet` is the glb
+
+  Everything equational below follows from these two case analyses ONCE,
+  generically.  Axiom 3 (via `lineThrough_eq`/`meetPoint_eq`) is what makes
+  the geometric cases work. -/
+
+/-- `a ⊔ b ⩽ c ↔ a ⩽ c ∧ b ⩽ c`: `join` is the least upper bound. -/
+theorem join_le_iff {a b c : PElem P} : (a.join b).le c ↔ a.le c ∧ b.le c := by
+  cases a with
+  | bot => simp [le, join]
+  | top =>
+    -- `⊤ ⊔ b = ⊤`; forward direction forces `c = ⊤`, whence `b ⩽ c` trivially.
+    exact ⟨fun h => ⟨h, by rw [eq_top_of_top_le h]; exact le_top b⟩, fun ⟨h1, _⟩ => h1⟩
+  | pt x =>
+    cases b with
+    | bot => simp [le, join]
+    | top => cases c <;> simp [le, join]
+    | pt y =>
+      by_cases hxy : x = y
+      · subst hxy; rw [join_pt_pt_self]; simp
+      · rw [join_pt_pt_ne hxy]
+        cases c with
+        | bot => simp [le]
+        | top => simp [le]
+        | pt z =>
+          simp only [le]
+          exact ⟨False.elim, fun ⟨h1, h2⟩ => hxy (h1.trans h2.symm)⟩
+        | ln C =>
+          simp only [le]
+          exact ⟨fun h => h ▸ ⟨P.lineThrough_incid_left x y, P.lineThrough_incid_right x y⟩,
+                 fun ⟨h1, h2⟩ => (ProjectivePlane.lineThrough_eq hxy h1 h2).symm⟩
+    | ln A =>
+      by_cases hxA : P.incid x A
+      · rw [join_pt_ln_incid hxA]
+        cases c with
+        | bot => simp [le]
+        | top => simp [le]
+        | pt z => simp [le]
+        | ln C =>
+          simp only [le]
+          exact ⟨fun h => ⟨h ▸ hxA, h⟩, And.right⟩
+      · rw [join_pt_ln_not hxA]
+        cases c with
+        | bot => simp [le]
+        | top => simp [le]
+        | pt z => simp [le]
+        | ln C =>
+          simp only [le]
+          exact ⟨False.elim, fun ⟨h1, h2⟩ => hxA (h2.symm ▸ h1)⟩
+  | ln A =>
+    cases b with
+    | bot => simp [le, join]
+    | top => cases c <;> simp [le, join]
+    | pt y =>
+      by_cases hyA : P.incid y A
+      · rw [join_ln_pt_incid hyA]
+        cases c with
+        | bot => simp [le]
+        | top => simp [le]
+        | pt z => simp [le]
+        | ln C =>
+          simp only [le]
+          exact ⟨fun h => ⟨h, h ▸ hyA⟩, And.left⟩
+      · rw [join_ln_pt_not hyA]
+        cases c with
+        | bot => simp [le]
+        | top => simp [le]
+        | pt z => simp [le]
+        | ln C =>
+          simp only [le]
+          exact ⟨False.elim, fun ⟨h1, h2⟩ => hyA (h1.symm ▸ h2)⟩
+    | ln B =>
+      by_cases hAB : A = B
+      · subst hAB; rw [join_ln_ln_self]; simp
+      · rw [join_ln_ln_ne hAB]
+        cases c with
+        | bot => simp [le]
+        | top => simp [le]
+        | pt z => simp [le]
+        | ln C =>
+          simp only [le]
+          exact ⟨False.elim, fun ⟨h1, h2⟩ => hAB (h1.trans h2.symm)⟩
+
+/-- `c ⩽ a ⊓ b ↔ c ⩽ a ∧ c ⩽ b`: `meet` is the greatest lower bound. -/
+theorem le_meet_iff {a b c : PElem P} : c.le (a.meet b) ↔ c.le a ∧ c.le b := by
+  cases a with
+  | bot => cases c <;> simp [le, meet]
+  | top => cases c <;> simp [le, meet]
+  | pt x =>
+    cases b with
+    | bot => cases c <;> simp [le, meet]
+    | top => cases c <;> simp [le, meet]
+    | pt y =>
+      by_cases hxy : x = y
+      · subst hxy; rw [meet_pt_pt_self]; simp
+      · rw [meet_pt_pt_ne hxy]
+        cases c with
+        | bot => simp [le]
+        | top => simp [le]
+        | ln C => simp [le]
+        | pt z =>
+          simp only [le]
+          exact ⟨False.elim, fun ⟨h1, h2⟩ => hxy (h1.symm.trans h2)⟩
+    | ln B =>
+      by_cases hxB : P.incid x B
+      · rw [meet_pt_ln_incid hxB]
+        cases c with
+        | bot => simp [le]
+        | top => simp [le]
+        | ln C => simp [le]
+        | pt z =>
+          simp only [le]
+          exact ⟨fun h => ⟨h, h.symm ▸ hxB⟩, And.left⟩
+      · rw [meet_pt_ln_not hxB]
+        cases c with
+        | bot => simp [le]
+        | top => simp [le]
+        | ln C => simp [le]
+        | pt z =>
+          simp only [le]
+          exact ⟨False.elim, fun ⟨h1, h2⟩ => hxB (h1 ▸ h2)⟩
+  | ln A =>
+    cases b with
+    | bot => cases c <;> simp [le, meet]
+    | top => cases c <;> simp [le, meet]
+    | pt y =>
+      by_cases hyA : P.incid y A
+      · rw [meet_ln_pt_incid hyA]
+        cases c with
+        | bot => simp [le]
+        | top => simp [le]
+        | ln C => simp [le]
+        | pt z =>
+          simp only [le]
+          exact ⟨fun h => ⟨h.symm ▸ hyA, h⟩, And.right⟩
+      · rw [meet_ln_pt_not hyA]
+        cases c with
+        | bot => simp [le]
+        | top => simp [le]
+        | ln C => simp [le]
+        | pt z =>
+          simp only [le]
+          exact ⟨False.elim, fun ⟨h1, h2⟩ => hyA (h2 ▸ h1)⟩
+    | ln B =>
+      by_cases hAB : A = B
+      · subst hAB; rw [meet_ln_ln_self]
+        exact ⟨fun h => ⟨h, h⟩, And.left⟩
+      · rw [meet_ln_ln_ne hAB]
+        cases c with
+        | bot => simp [le]
+        | top => simp [le]
+        | ln C =>
+          simp only [le]
+          exact ⟨False.elim, fun ⟨h1, h2⟩ => hAB (h1.symm.trans h2)⟩
+        | pt z =>
+          simp only [le]
+          exact ⟨fun h => ⟨h.symm ▸ P.meetPoint_incid_left A B,
+                           h.symm ▸ P.meetPoint_incid_right A B⟩,
+                 fun ⟨h1, h2⟩ => ProjectivePlane.meetPoint_eq hAB h1 h2⟩
+
+end PElem
+
 end Freyd.Alg
