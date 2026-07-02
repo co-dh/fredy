@@ -107,6 +107,11 @@ theorem one_le_div_self {a b : 𝒜} (R : a ⟶ b) : Cat.id a ⊑ R / R := by
 theorem div_self_comp_le {a b : 𝒜} (R : a ⟶ b) : (R / R) ≫ R ⊑ R :=
   DivisionAllegory.div_comp_le R R
 
+/-- Division is monotone in the numerator: R ⊑ R' → R/S ⊑ R'/S. -/
+theorem div_mono_left {a b c : 𝒜} {R R' : a ⟶ c} (h : R ⊑ R') (S : b ⟶ c) :
+    R / S ⊑ R' / S :=
+  (le_div_iff _ _ _).mpr (le_trans (DivisionAllegory.div_comp_le R S) h)
+
 /-- (R/S)(S/T) ⊑ R/T (§2.314). -/
 theorem div_comp {a b c d : 𝒜} (R : a ⟶ d) (S : b ⟶ d) (T : c ⟶ d) :
     (R / S) ≫ (S / T) ⊑ R / T := by
@@ -307,6 +312,11 @@ theorem le_leftDiv_iff {a b c : 𝒜} (T : b ⟶ c) (S : a ⟶ b) (R : a ⟶ c) 
 /-- The semi-commutative triangle for left division: S(S\R) ⊑ R (§2.312). -/
 theorem leftDiv_comp_le {a b c : 𝒜} (S : a ⟶ b) (R : a ⟶ c) : S ≫ leftDiv S R ⊑ R :=
   (le_leftDiv_iff _ S R).mp (le_refl _)
+
+/-- Left division is monotone in the numerator: R ⊑ R' → S\R ⊑ S\R'. -/
+theorem leftDiv_mono_right {a b c : 𝒜} (S : a ⟶ b) {R R' : a ⟶ c} (h : R ⊑ R') :
+    leftDiv S R ⊑ leftDiv S R' :=
+  (le_leftDiv_iff _ _ _).mpr (le_trans (leftDiv_comp_le S R) h)
 
 /-! ## §2.314  The equation S\(R/T) = (S\R)/T -/
 

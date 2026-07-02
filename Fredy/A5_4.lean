@@ -23,25 +23,7 @@ universe u
 
 namespace Freyd.Alg
 
-/-! ## Division/left-division monotonicity in the numerator
-
-  Not yet in `S2_3`; both are one-line consequences of the defining universal properties. -/
-
-section DivisionMono
-
-variable {𝒜 : Type u} [DivisionAllegory 𝒜]
-
-/-- `R ⊑ R' → R/S ⊑ R'/S` (monotonicity of right division in the numerator). -/
-private theorem div_mono_left {a b c : 𝒜} {R R' : a ⟶ c} (h : R ⊑ R') (S : b ⟶ c) :
-    R / S ⊑ R' / S :=
-  (le_div_iff _ _ _).mpr (le_trans (DivisionAllegory.div_comp_le R S) h)
-
-/-- `R ⊑ R' → S\R ⊑ S\R'` (monotonicity of left division in the numerator). -/
-private theorem leftDiv_mono_right {a b c : 𝒜} (S : a ⟶ b) {R R' : a ⟶ c} (h : R ⊑ R') :
-    leftDiv S R ⊑ leftDiv S R' :=
-  (le_leftDiv_iff _ _ _).mpr (le_trans (leftDiv_comp_le S R) h)
-
-end DivisionMono
+-- (`div_mono_left`/`leftDiv_mono_right` were hoisted into S2_3 at collection.)
 
 /-! ## §5.4  Definition and elementary calculus of the power relator -/
 

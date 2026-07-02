@@ -28,18 +28,7 @@ namespace Freyd.Alg
 
 variable {𝒜 : Type u} [UnguardedPowerAllegory 𝒜] (F : Relator 𝒜 𝒜)
 
--- private: canonical copy lands in A5_1 (Lemma 5.1, "relators preserve maps").
--- `R := F.map f`, `S := F.map f°`: `map_mono` turns `f`'s entire/simple inequalities
--- (via `entire_id_le`) into the hypotheses of `recip_of_comp_id`.
-private theorem relator_preserves_map {a b : 𝒜} {f : a ⟶ b} (hf : Map f) :
-    F.map f° = (F.map f)° ∧ Map (F.map f) := by
-  have h1 : Cat.id (F.obj a) ⊑ F.map f ≫ F.map f° := by
-    have h := F.map_mono (entire_id_le hf.1)
-    rwa [F.map_id, F.map_comp] at h
-  have h2 : F.map f° ≫ F.map f ⊑ Cat.id (F.obj b) := by
-    have h := F.map_mono hf.2
-    rwa [F.map_comp, F.map_id] at h
-  exact recip_of_comp_id h1 h2
+-- (Lemma 5.1 "relators preserve maps" now comes from A5_1: `Relator.map_is_map`.)
 
 /-- **B&dM p.121**: `F` has an initial algebra `α : F t ⟶ t` IN THE SUBCATEGORY OF MAPS —
     `α` is a map, and for every MAP algebra `f : F c ⟶ c` there is a unique map
@@ -83,7 +72,7 @@ theorem relCata_UP (I : InitialAlgebra F) {c : 𝒜} (R : F.obj c ⟶ c) (X : I.
       have hcomp : F.map (A X ≫ ∋ c) = F.map (A X) ≫ F.map (∋ c) := F.map_comp _ _
       rwa [hX_eps] at hcomp
     have hRHS : A (F.map X ≫ R) = F.map (A X) ≫ A (F.map (∋ c) ≫ R) := by
-      rw [hFX, Cat.assoc, A_fusion (relator_preserves_map F (A_is_map' X)).2]
+      rw [hFX, Cat.assoc, A_fusion (F.map_is_map (A_is_map' X))]
     have hLHS : A (I.α ≫ X) = I.α ≫ A X := A_fusion I.α_map X
     have heq : I.α ≫ A X = F.map (A X) ≫ A (F.map (∋ c) ≫ R) := by
       rw [← hLHS, h, hRHS]

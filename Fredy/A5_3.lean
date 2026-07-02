@@ -28,14 +28,7 @@ universe v u
 
 namespace Freyd.Alg
 
-/-! ## A basic missing helper: union is monotone
-
-  `S2_2` has `union_lub`/`le_union_left`/`le_union_right` but no direct `A⊑A' → B⊑B' →
-  A∪B⊑A'∪B'` — needed repeatedly below (`junc_mono`, `sumMap_mono`, `cond_spec`). -/
-
-theorem union_mono {𝒜 : Type u} [DistributiveAllegory 𝒜] {a b : 𝒜} {A B A' B' : a ⟶ b}
-    (hA : A ⊑ A') (hB : B ⊑ B') : A ∪ B ⊑ A' ∪ B' :=
-  union_lub (le_trans hA (le_union_left A' B')) (le_trans hB (le_union_right A' B'))
+-- (`union_mono` was hoisted into S2_2 at collection.)
 
 /-! ## §1  `junc` (B&dM 5.9) -/
 

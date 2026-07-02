@@ -111,6 +111,11 @@ theorem le_union_left {a b : 𝒜} (R S : a ⟶ b) : R ⊑ R ∪ S := by
 theorem le_union_right {a b : 𝒜} (R S : a ⟶ b) : S ⊑ R ∪ S := by
   rw [DistributiveAllegory.union_comm]; exact le_union_left S R
 
+/-- Union is monotone in both arguments. -/
+theorem union_mono {a b : 𝒜} {A B A' B' : a ⟶ b} (hA : A ⊑ A') (hB : B ⊑ B') :
+    A ∪ B ⊑ A' ∪ B' :=
+  union_lub (le_trans hA (le_union_left A' B')) (le_trans hB (le_union_right A' B'))
+
 /-! ### Derived properties -/
 
 /-- (R ∪ S)° = S° ∪ R° (§2.211). -/
