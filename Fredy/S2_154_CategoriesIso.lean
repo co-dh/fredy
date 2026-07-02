@@ -33,6 +33,7 @@
     7.  Headline: `StrongEquivalence RelF MapF`.
 -/
 import Fredy.S2_111_RelCat
+import Fredy.S2_218_ObjInclRegular
 import Fredy.S2_51
 import Fredy.S1_31
 
@@ -591,5 +592,355 @@ theorem mapRep_regular (hu : IsUnit (T.obj (UnitaryAllegory.unit_obj (𝒜 := A)
     (mapRep_pres_mono T) (mapRep_pres_image T)
 
 end MapRep
+
+/-! ## 4.  §2.154 third paragraph: `Rel F` is a unitary representation
+
+  "Clearly, if T' : C₁ → C₂ is a representation of regular categories it induces a
+   representation of unitary allegories Rel(C₁) → Rel(C₂)."  The allegory functor is
+   §2.218's `RegularFunctor.relAllegoryHom`; here we add the UNITS clause and the
+   FUNCTORIALITY of `F ↦ Rel F` (identity and composition). -/
+
+section RelSide
+
+/-- **§2.152/§2.154**: a TERMINATOR of `D` is a UNIT of `Rel D`.  (Generalizes
+    `relUnitaryAllegory`'s designated unit `⟨1⟩` to any terminal object — the form needed
+    for `Rel F`, whose value on the unit is the `F`-image of the terminator.) -/
+theorem relIsUnit_of_terminal {D : Type u} [Cat.{u} D] [RegularCategory D]
+    {T : D} (hT : @IsTerm D _ T) : IsUnit (⟨T⟩ : RelObj D) := by
+  constructor
+  · -- partial unit: both legs of any table over `T` are THE map to the terminator.
+    intro x
+    refine Quotient.inductionOn x (fun R => ?_)
+    rw [← quotLe_iff_algLe]
+    refine ⟨⟨R.colA, ?_, ?_⟩⟩
+    · show R.colA ≫ Cat.id T = R.colA; rw [Cat.comp_id]
+    · show R.colA ≫ Cat.id T = R.colB
+      obtain ⟨f, hf⟩ := hT R.src
+      rw [Cat.comp_id, hf R.colA, hf R.colB]
+  · -- entireness: the graph of the terminal map.
+    intro a
+    obtain ⟨f, _⟩ := hT a.carrier
+    exact ⟨relClass (Freyd.graph f), (relClass_graph_map f).1⟩
+
+/-- `Rel(1_C) = 1_{Rel C}` on relation classes: the image of a span under the identity
+    functor is the span itself (its pair is already monic). -/
+theorem relMap_of_id {C : Type u} [Cat.{u} C] [RegularCategory C]
+    [hI : @Functor C _ C _ (fun X => X)] (hm : ∀ {X Y : C} (f : X ⟶ Y), hI.map f = f)
+    (hid : @RelFunctor.RegularFunctor C C _ _ (fun X => X) hI _ _)
+    {a b : C} (x : BinRelQuot (𝒞 := C) a b) : hid.relMap x = x := by
+  refine Quotient.inductionOn x (fun R => ?_)
+  show relClass (RelFunctor.relImageObj hid R) = relClass R
+  have hpair : pair (hI.map R.colA) (hI.map R.colB) = pair R.colA R.colB := by
+    rw [hm, hm]
+  obtain ⟨e, _hcov, heA, heB⟩ := RelFunctor.relImageObj_cover hid R
+  rw [hm] at heA; rw [hm] at heB
+  apply quotLe_antisymm
+  · -- image span ⊂ R : image minimality against the (monic) span of `R` itself.
+    have hmono : Monic (pair R.colA R.colB) :=
+      monic_pair_of_monicPair R.colA R.colB R.isMonicPair
+    have hallow : Allows (Subobject.mk R.src (pair R.colA R.colB) hmono)
+        (pair (hI.map R.colA) (hI.map R.colB)) := by
+      rw [hpair]; exact ⟨Cat.id R.src, Cat.id_comp _⟩
+    obtain ⟨k, hk⟩ := image_min _ _ hallow
+    refine relClass_mono ⟨⟨k, ?_, ?_⟩⟩
+    · show k ≫ R.colA = (image (pair (hI.map R.colA) (hI.map R.colB))).arr ≫ fst
+      calc k ≫ R.colA = k ≫ (pair R.colA R.colB ≫ fst) := by rw [fst_pair]
+        _ = (k ≫ pair R.colA R.colB) ≫ fst := (Cat.assoc _ _ _).symm
+        _ = (image (pair (hI.map R.colA) (hI.map R.colB))).arr ≫ fst :=
+              congrArg (· ≫ fst) hk
+    · show k ≫ R.colB = (image (pair (hI.map R.colA) (hI.map R.colB))).arr ≫ snd
+      calc k ≫ R.colB = k ≫ (pair R.colA R.colB ≫ snd) := by rw [snd_pair]
+        _ = (k ≫ pair R.colA R.colB) ≫ snd := (Cat.assoc _ _ _).symm
+        _ = (image (pair (hI.map R.colA) (hI.map R.colB))).arr ≫ snd :=
+              congrArg (· ≫ snd) hk
+  · -- R ⊂ image span : the image-lift cover carries the legs.
+    exact relClass_mono ⟨⟨e, heA, heB⟩⟩
+
+/-- `Rel(F ≫ G) = Rel(F) ≫ Rel(G)` on relation classes: the `G∘F`-image span equals the
+    `G`-image span of the `F`-image span, because the `F`-image cover `e` is carried by
+    `G` to a cover and precomposition with a cover does not change images. -/
+theorem relMap_of_comp {C D E : Type u} [Cat.{u} C] [Cat.{u} D] [Cat.{u} E]
+    [RegularCategory C] [RegularCategory D] [RegularCategory E]
+    {F : C → D} {G : D → E} [hF : Functor F] [hG : Functor G]
+    [hGF : @Functor C _ E _ (fun X => G (F X))]
+    (hm : ∀ {X Y : C} (f : X ⟶ Y), hGF.map f = hG.map (hF.map f))
+    (hrF : RelFunctor.RegularFunctor F) (hrG : RelFunctor.RegularFunctor G)
+    (hrGF : @RelFunctor.RegularFunctor C E _ _ (fun X => G (F X)) hGF _ _)
+    {a b : C} (x : BinRelQuot (𝒞 := C) a b) :
+    hrGF.relMap x = hrG.relMap (hrF.relMap x) := by
+  refine Quotient.inductionOn x (fun R => ?_)
+  show relClass (RelFunctor.relImageObj hrGF R)
+      = relClass (RelFunctor.relImageObj hrG (RelFunctor.relImageObj hrF R))
+  -- the F-image cover e and the factorization of the G∘F-span through it.
+  obtain ⟨e, hcov, heA, heB⟩ := RelFunctor.relImageObj_cover hrF R
+  have hfac : pair (hGF.map R.colA) (hGF.map R.colB)
+      = hG.map e ≫ pair (hG.map (RelFunctor.relImageObj hrF R).colA)
+          (hG.map (RelFunctor.relImageObj hrF R).colB) := by
+    rw [hm, hm]
+    refine (pair_uniq _ _ _ ?_ ?_).symm
+    · rw [Cat.assoc, fst_pair, ← hG.map_comp, heA]
+    · rw [Cat.assoc, snd_pair, ← hG.map_comp, heB]
+  have hGe : Cover (hG.map e) := hrG.pres_covers e hcov
+  have himg := image_cover_comp (hG.map e)
+    (pair (hG.map (RelFunctor.relImageObj hrF R).colA)
+      (hG.map (RelFunctor.relImageObj hrF R).colB)) hGe
+  have h1 : (image (pair (hGF.map R.colA) (hGF.map R.colB))).le
+      (image (pair (hG.map (RelFunctor.relImageObj hrF R).colA)
+        (hG.map (RelFunctor.relImageObj hrF R).colB))) := by
+    rw [hfac]; exact himg.1
+  have h2 : (image (pair (hG.map (RelFunctor.relImageObj hrF R).colA)
+        (hG.map (RelFunctor.relImageObj hrF R).colB))).le
+      (image (pair (hGF.map R.colA) (hGF.map R.colB))) := by
+    rw [hfac]; exact himg.2
+  apply quotLe_antisymm
+  · obtain ⟨k, hk⟩ := h1
+    refine relClass_mono ⟨⟨k, ?_, ?_⟩⟩
+    · show k ≫ (_ ≫ fst) = _ ≫ fst
+      rw [← Cat.assoc, hk]
+    · show k ≫ (_ ≫ snd) = _ ≫ snd
+      rw [← Cat.assoc, hk]
+  · obtain ⟨k, hk⟩ := h2
+    refine relClass_mono ⟨⟨k, ?_, ?_⟩⟩
+    · show k ≫ (_ ≫ fst) = _ ≫ fst
+      rw [← Cat.assoc, hk]
+    · show k ≫ (_ ≫ snd) = _ ≫ snd
+      rw [← Cat.assoc, hk]
+
+end RelSide
+
+/-! ## 5.  The two bundled categories and the functors `RelF ⊣⊢ MapF` -/
+
+section Bundles
+
+/-- Extensionality for `AllegoryFunctor`: equal object parts and (heterogeneously) equal
+    hom parts. -/
+theorem allegFunctor_ext {𝒜 : Type u₁} {ℬ : Type u₂} [Allegory.{v₁} 𝒜] [Allegory.{v₂} ℬ]
+    {F G : AllegoryFunctor 𝒜 ℬ} (hobj : F.obj = G.obj)
+    (hmap : ∀ (a b : 𝒜) (R : a ⟶ b), HEq (F.map R) (G.map R)) : F = G := by
+  obtain ⟨Fo, Fm, _, _, _, _⟩ := F
+  obtain ⟨Go, Gm, _, _, _, _⟩ := G
+  dsimp at hobj hmap
+  subst hobj
+  have hm : @Fm = @Gm := by
+    funext a b R
+    exact eq_of_heq (hmap a b R)
+  subst hm
+  rfl
+
+/-- Terminality is preserved along an isomorphism. -/
+theorem isTerm_transfer {D : Type u₁} [Cat.{v} D] {X Y : D} (hX : @IsTerm D _ X)
+    (e : X ⟶ Y) (he : IsIso e) : @IsTerm D _ Y := by
+  intro W
+  obtain ⟨f, hf⟩ := hX W
+  obtain ⟨e', _he1, he2⟩ := he
+  refine ⟨f ≫ e, fun g => ?_⟩
+  calc g = g ≫ Cat.id Y := (Cat.comp_id g).symm
+    _ = g ≫ (e' ≫ e) := by rw [he2]
+    _ = (g ≫ e') ≫ e := (Cat.assoc _ _ _).symm
+    _ = f ≫ e := by rw [hf (g ≫ e')]
+
+/-- Any two terminators are isomorphic. -/
+theorem isTerm_iso {D : Type u₁} [Cat.{v} D] {X Y : D} (hX : @IsTerm D _ X)
+    (hY : @IsTerm D _ Y) : ∃ e : X ⟶ Y, IsIso e := by
+  obtain ⟨u, _⟩ := hY X
+  obtain ⟨v, _⟩ := hX Y
+  refine ⟨u, v, ?_, ?_⟩
+  · obtain ⟨w, hw⟩ := hX X
+    rw [hw (u ≫ v), hw (Cat.id X)]
+  · obtain ⟨w, hw⟩ := hY Y
+    rw [hw (v ≫ u), hw (Cat.id Y)]
+
+/-- Functors carry isomorphisms to isomorphisms. -/
+theorem functor_isIso {C : Type u₁} {D : Type u₂} [Cat.{v} C] [Cat.{v} D]
+    {F : C → D} [hF : Functor F] {X Y : C} {e : X ⟶ Y} (he : IsIso e) :
+    IsIso (hF.map e) := by
+  obtain ⟨e', h1, h2⟩ := he
+  exact ⟨hF.map e', by rw [← hF.map_comp, h1, hF.map_id],
+    by rw [← hF.map_comp, h2, hF.map_id]⟩
+
+/-- The chosen terminator satisfies `IsTerm`. -/
+theorem isTerm_one {D : Type u₁} [Cat.{v} D] [HasTerminal D] :
+    @IsTerm D _ (Freyd.one (𝒞 := D)) :=
+  fun Y => ⟨Freyd.term Y, fun g => Freyd.term_uniq g (Freyd.term Y)⟩
+
+/-- **§2.154**: a SMALL REGULAR CATEGORY (bundled). -/
+structure SmallRegCat : Type (u + 1) where
+  carrier : Type u
+  [cat : Cat.{u} carrier]
+  [reg : RegularCategory carrier]
+
+attribute [instance] SmallRegCat.cat SmallRegCat.reg
+
+/-- **§2.154**: a SMALL UNITARY TABULAR ALLEGORY (bundled). -/
+structure SmallTabAlleg : Type (u + 1) where
+  carrier : Type u
+  [alleg : TabularUnitaryAllegory.{u, u} carrier]
+
+attribute [instance] SmallTabAlleg.alleg
+
+/-- **§2.154**: a REPRESENTATION OF REGULAR CATEGORIES — a functor preserving finite
+    limits (products, pullbacks, terminator) and images/covers; bundled as the repo's
+    `RegularFunctor` + terminator preservation. -/
+structure RegRep (C D : SmallRegCat.{u}) : Type u where
+  obj : C.carrier → D.carrier
+  map : {X Y : C.carrier} → (X ⟶ Y) → (obj X ⟶ obj Y)
+  map_id : ∀ X : C.carrier, map (Cat.id X) = Cat.id (obj X)
+  map_comp : ∀ {X Y Z : C.carrier} (f : X ⟶ Y) (g : Y ⟶ Z),
+    map (f ≫ g) = map f ≫ map g
+  regular : @RelFunctor.RegularFunctor C.carrier D.carrier C.cat D.cat obj
+    (@Functor.mk C.carrier C.cat D.carrier D.cat obj @map map_id @map_comp) C.reg D.reg
+  term : @IsTerm D.carrier D.cat (obj (Freyd.one (𝒞 := C.carrier)))
+
+/-- The bundled functor of a `RegRep`. -/
+def RegRep.functor {C D : SmallRegCat.{u}} (F : RegRep C D) :
+    @Functor C.carrier C.cat D.carrier D.cat F.obj :=
+  @Functor.mk C.carrier C.cat D.carrier D.cat F.obj (@RegRep.map _ _ F)
+    F.map_id (@RegRep.map_comp _ _ F)
+
+/-- Extensionality for `RegRep` (the two `Prop` fields are proof-irrelevant). -/
+theorem RegRep.ext {C D : SmallRegCat.{u}} {F G : RegRep C D} (hobj : F.obj = G.obj)
+    (hmap : ∀ (X Y : C.carrier) (f : X ⟶ Y), HEq (F.map f) (G.map f)) : F = G := by
+  obtain ⟨Fo, Fm, _, _, _, _⟩ := F
+  obtain ⟨Go, Gm, _, _, _, _⟩ := G
+  dsimp at hobj hmap
+  subst hobj
+  have hm : @Fm = @Gm := by
+    funext X Y f
+    exact eq_of_heq (hmap X Y f)
+  subst hm
+  rfl
+
+/-- **§2.154**: a (UNITARY) REPRESENTATION OF ALLEGORIES between bundled tabular unitary
+    allegories: an `AllegoryFunctor` sending the unit to a unit.  (By
+    `pres_isUnit_of_isUnit` it then sends EVERY unit to a unit, which is what makes these
+    compose.) -/
+structure UnitaryRep (𝒜 ℬ : SmallTabAlleg.{u}) : Type u where
+  toFun : AllegoryFunctor 𝒜.carrier ℬ.carrier
+  unit : IsUnit (toFun.obj (UnitaryAllegory.unit_obj (𝒜 := 𝒜.carrier)))
+
+theorem UnitaryRep.ext {𝒜 ℬ : SmallTabAlleg.{u}} {F G : UnitaryRep 𝒜 ℬ}
+    (h : F.toFun = G.toFun) : F = G := by
+  cases F; cases G; cases h; rfl
+
+/-- The identity representation of allegories. -/
+def allegIdFun (𝒜 : Type u₁) [Allegory.{v₁} 𝒜] : AllegoryFunctor 𝒜 𝒜 where
+  obj a := a
+  map R := R
+  map_id _ := rfl
+  map_comp _ _ := rfl
+  map_recip _ := rfl
+  map_inter _ _ := rfl
+
+/-- **§2.154**: the category of small regular categories (objects `SmallRegCat`,
+    morphisms `RegRep`). -/
+instance : Cat.{u} SmallRegCat.{u} where
+  Hom := RegRep
+  id C :=
+    { obj := fun X => X
+      map := fun f => f
+      map_id := fun _ => rfl
+      map_comp := fun _ _ => rfl
+      regular := regularFunctor_id
+      term := isTerm_one }
+  comp {C D E} F G :=
+    { obj := fun X => G.obj (F.obj X)
+      map := fun f => G.map (F.map f)
+      map_id := fun X => by rw [F.map_id, G.map_id]
+      map_comp := fun f g => by rw [F.map_comp, G.map_comp]
+      regular := @regularFunctor_comp C.carrier D.carrier E.carrier C.cat D.cat E.cat
+        C.reg D.reg E.reg F.obj G.obj F.functor G.functor F.regular G.regular
+      term := by
+        obtain ⟨e, he⟩ := isTerm_iso (isTerm_one (D := D.carrier)) F.term
+        exact isTerm_transfer G.term
+          (@Functor.map _ D.cat _ E.cat G.obj G.functor _ _ e)
+          (@functor_isIso _ _ D.cat E.cat G.obj G.functor _ _ e he) }
+  id_comp _ := rfl
+  comp_id _ := rfl
+  assoc _ _ _ := rfl
+
+/-- **§2.154**: the category of small unitary tabular allegories (objects
+    `SmallTabAlleg`, morphisms `UnitaryRep`). -/
+instance : Cat.{u} SmallTabAlleg.{u} where
+  Hom := UnitaryRep
+  id 𝒜 := ⟨allegIdFun 𝒜.carrier, UnitaryAllegory.unit_prop⟩
+  comp {𝒜 ℬ 𝒞} F G :=
+    ⟨F.toFun.comp G.toFun,
+     pres_isUnit_of_isUnit G.toFun UnitaryAllegory.unit_prop G.unit F.unit⟩
+  id_comp _ := rfl
+  comp_id _ := rfl
+  assoc _ _ _ := rfl
+
+/-- `Rel C` of a small regular category is a small tabular unitary allegory (§2.14/§2.15
+    merged into the single diamond-free class). -/
+instance relTUA (𝒞 : Type u) [Cat.{u} 𝒞] [RegularCategory 𝒞] :
+    TabularUnitaryAllegory.{u, u} (RelObj 𝒞) :=
+  { relTabularAllegory, relUnitaryAllegory with }
+
+/-- **§2.154**: the functor `Rel : SmallRegCat → SmallTabAlleg` on objects. -/
+noncomputable def RelF (C : SmallRegCat.{u}) : SmallTabAlleg.{u} :=
+  ⟨RelObj C.carrier⟩
+
+/-- **§2.154**: `Rel` on morphisms — a representation of regular categories induces a
+    unitary representation of allegories (§2.218's `relAllegoryHom` + the units clause
+    `relIsUnit_of_terminal`). -/
+noncomputable def RelF.onMap {C D : SmallRegCat.{u}} (F : RegRep C D) :
+    UnitaryRep (RelF C) (RelF D) where
+  toFun := @RelFunctor.RegularFunctor.relAllegoryHom C.carrier D.carrier C.cat D.cat
+    F.obj F.functor C.reg D.reg F.regular
+  unit := relIsUnit_of_terminal F.term
+
+/-- **§2.154**: the functor `Map : SmallTabAlleg → SmallRegCat` on objects (`Map 𝒜` is a
+    regular category, §2.15x — `mapRegularCategory`). -/
+noncomputable def MapF (𝒜 : SmallTabAlleg.{u}) : SmallRegCat.{u} :=
+  @SmallRegCat.mk (MapObj 𝒜.carrier) (mapCat (𝒜 := 𝒜.carrier)) mapRegularCategory
+
+/-- **§2.154**: `Map` on morphisms — a unitary representation of allegories restricts to
+    a representation of regular categories (`mapRep_regular`, the middle paragraph). -/
+noncomputable def MapF.onMap {𝒜 ℬ : SmallTabAlleg.{u}} (T : UnitaryRep 𝒜 ℬ) :
+    RegRep (MapF 𝒜) (MapF ℬ) where
+  obj := T.toFun.obj
+  map := fun f => ⟨T.toFun.map f.val, T.toFun.preserves_map f.property⟩
+  map_id := fun X => Subtype.ext (T.toFun.map_id X)
+  map_comp := fun f g => Subtype.ext (T.toFun.map_comp f.val g.val)
+  regular := mapRep_regular T.toFun T.unit
+  term := mapRep_pres_term T.toFun T.unit
+
+/-- `RelF` is functorial: identities. -/
+theorem RelF.onMap_id (C : SmallRegCat.{u}) :
+    RelF.onMap (@Cat.id SmallRegCat.{u} _ C) = @Cat.id SmallTabAlleg.{u} _ (RelF C) := by
+  apply UnitaryRep.ext
+  apply allegFunctor_ext
+  · rfl
+  · intro a b x
+    exact heq_of_eq (relMap_of_id (fun _ => rfl) _ x)
+
+/-- `RelF` is functorial: composition. -/
+theorem RelF.onMap_comp {C D E : SmallRegCat.{u}} (F : RegRep C D) (G : RegRep D E) :
+    RelF.onMap (@Cat.comp SmallRegCat.{u} _ C D E F G)
+      = @Cat.comp SmallTabAlleg.{u} _ (RelF C) (RelF D) (RelF E)
+          (RelF.onMap F) (RelF.onMap G) := by
+  apply UnitaryRep.ext
+  apply allegFunctor_ext
+  · rfl
+  · intro a b x
+    exact heq_of_eq (@relMap_of_comp C.carrier D.carrier E.carrier C.cat D.cat E.cat
+      C.reg D.reg E.reg F.obj G.obj F.functor G.functor
+      (RegRep.functor (@Cat.comp SmallRegCat.{u} _ C D E F G)) (fun _ => rfl)
+      F.regular G.regular
+      (RegRep.regular (@Cat.comp SmallRegCat.{u} _ C D E F G)) a.carrier b.carrier x)
+
+/-- **§2.154**: `Rel` as a functor `SmallRegCat → SmallTabAlleg`. -/
+noncomputable instance relFFunctor : Functor RelF.{u} where
+  map := RelF.onMap
+  map_id := RelF.onMap_id
+  map_comp := RelF.onMap_comp
+
+/-- `MapF` is functorial — definitionally (subtype eta on the hom parts). -/
+noncomputable instance mapFFunctor : Functor MapF.{u} where
+  map := MapF.onMap
+  map_id _ := rfl
+  map_comp _ _ := rfl
+
+end Bundles
 
 end Freyd.S2_154
