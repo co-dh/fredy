@@ -1,0 +1,354 @@
+/-
+  Freyd & Scedrov, *Categories, Allegories* §2.153  Assemblies.
+
+  "2.153. Let K be a collection of partial endofunctions on the set of natural numbers N.
+   We make the following assumptions on K:
+     (i)   K contains the identity,
+     (ii)  K is closed under composition,
+     (iii) K contains two total functions ℓ and ϰ such that for any φ, ψ in K there exists θ
+           in K defined on the common domain of φ and ψ, such that φ contains θℓ and ψ
+           contains θϰ.
+   [If (−,−) : N×N → N is a coding of pairs and (n,k)ℓ = n, (n,k)ϰ = k for all numbers n, k,
+    then in the condition (iii) one may let θ = (φ,ψ).  For example, K may be the collection
+    of all partial recursive functions.]
+
+   We consider the category A of ASSEMBLIES A = (X, {Yₙ}), where X is a set and {Yₙ} a
+   sequence of subsets Yₙ ⊆ X called CAUCUSES and written A|ₙ.  Caucuses are not necessarily
+   pairwise disjoint.  The CARRIER of an assembly A is the set |A| = ⋃ₙ A|ₙ.  A morphism
+   f : A → B is an ordinary function f : |A| → |B| for which there exists φ in K (a MODULUS
+   of f) so that for every n ∈ N, x ∈ |A|: if x ∈ A|ₙ, then φ(n) is defined and f(x) ∈ B|φ(n).
+
+   THE CATEGORY OF ASSEMBLIES IS A POSITIVE PRE-LOGOS.
+
+   BECAUSE: the empty set is a coterminator.  The equalizer of f, g : A → B is the ordinary
+   Set equalizer |E| = {x : f(x) = g(x)} with E|ₙ = |E| ∩ A|ₙ.  A terminator is a one-element
+   set 1 with 1|ₙ = 1.  For binary products, (A×B)|ₙ = A|ₙℓ × B|ₙϰ.  Given f : A → B the
+   image B′ has |B′| = the ordinary image of f and B′|ₙ = f(A|ₙ); B′ is a subobject of B
+   named by inclusion using the same modulus as f (hence any subobject may be named by an
+   inclusion-monic with some modulus); the factor A → B′ is f with identity modulus.
+   Minimality and stability under pullbacks are left to the reader, as is the construction
+   of disjoint unions.  [...]  Note the functor ∇ : S → A given by |∇X| = (∇X)|ₙ = X; ∇
+   preserves coterminator, equalizers, and finite products, but not unions."
+
+  ## Design decisions
+
+  * CARRIER.  The book's morphisms are functions on |A| = ⋃ₙ A|ₙ, not on X.  We therefore
+    require every element of `X` to lie in some caucus (`carrier_mem`), i.e. we take X to BE
+    the carrier.  No generality is lost (replace X by |A|), and it spares us a subtype
+    carrier in every construction.
+
+  * PARTIAL FUNCTIONS.  `ModFun` encodes a partial endofunction of N relationally: a graph
+    `Nat → Nat → Prop` plus functionality.  Composition (`ModFun.comp`) is in DIAGRAM ORDER,
+    matching the book's `θℓ` = "first θ, then ℓ".  "φ contains θ" is graph inclusion.
+
+  * THE PAIRING IS EXPLICIT DATA.  Conditions (i)(ii)(iii) alone are provably NOT enough for
+    the BECAUSE-paragraph.  Counterexample: K₀ := all restrictions of the identity satisfies
+    (i)(ii)(iii) with ℓ = ϰ = id — but over K₀ the book's image formula fails minimality:
+    take S = ({s₁,s₂}, S|₁={s₁}, S|₂={s₂}), B = ({y}, B|₁=B|₂={y}) and m : S → B constant.
+    m is monic (any two parallel maps into S agree: a K₀-modulus forces u(w) ∈ S|ₙ for every
+    caucus of w, and each S|ₙ is a singleton), yet m is not injective, and the book's image
+    of m (= all of B) is NOT ≤ the subobject (S,m): a factoring B → S would need a modulus φ
+    with h(y) ∈ S|₁ ∩ S|₂ = ∅.  Freyd's bracketed remark shows the INTENDED ℓ, ϰ arise from
+    a coding of pairs — which makes (n,k) ↦ code n k jointly surjective onto pairs and
+    restores monic ⟺ injective (see `monic_iff_injective`), unblocking image minimality.
+    We therefore take the coding `code` with projections `proj₁` (= ℓ), `proj₂` (= ϰ) as
+    explicit fields, with θ := the coded pair (φ,ψ); book (iii) is then a theorem
+    (`ModulusSystem.book_iii`).
+
+  * TAGS FOR UNIONS/COPRODUCTS.  The book leaves "the construction of disjoint unions to the
+    reader".  Any construction of subobject unions and coproducts needs K to dispatch on a
+    tag (which side of the union an index comes from); (i)(ii)(iii) provide no such closure
+    (they are product-shaped, not coproduct-shaped — K₀ again witnesses the failure).  We
+    add explicit total injections `inL`, `inR` with disjoint ranges and a closure axiom
+    `cases_mem` for definition-by-cases WITH PARAMETER: from φ, ψ ∈ K the function
+    `code x (inL y) ↦ φ(code x y)`, `code x (inR y) ↦ ψ(code x y)` is in K.  The parameter
+    slot `x` is what lets tagged caucus indices flow through pullbacks (inverse images).
+    All caucus families built by tagging use the shape `code parameter (inL k)` so that this
+    single closure axiom suffices.  The collection of ALL partial functions — and all
+    partial recursive functions — satisfies every field (`ModulusSystem.allPartial`).
+
+  ## Fields to provide (repo classes, all in namespace `Freyd`)
+
+  * `Cat (Assembly K)` (S1_1): Hom, id, comp, id_comp, comp_id, assoc.                  [M1]
+  * `HasTerminal` (S1_42): one, trm, uniq.  `HasCoterminator` (S1_58): zero, init,
+    init_uniq.                                                                          [M2]
+  * `HasBinaryProducts` (S1_42): prod, fst, snd, pair, fst_pair, snd_pair, pair_uniq.
+    `HasEqualizers` (S1_43): cone/lift/fac/uniq per pair.  (⇒ `CartesianCategory`.)     [M3]
+  * `HasPullbacks` (S1_45): via `products_equalizers_implies_pullbacks` (S1_43).        [M4]
+  * `HasImages` (S1_51): image + isImage (Allows + minimality).
+    `PullbacksTransferCovers` (S1_52): arbitrary pullback cone, cover opposite ⇒ cover.
+    (⇒ `RegularCategory`.)                                                              [M5]
+  * `HasSubobjectUnions` (S1_60): union, union_left, union_right, union_min.
+    `PreLogos` (S1_60): bottom, bottom_min, bottom_dom_iso, invImage_preserves_union,
+    invImage_preserves_bottom.                                                          [M6]
+  * `HasBinaryCoproducts` (S1_58): coprod, inl, inr, case, case_inl, case_inr, case_uniq.
+    (⇒ `PositivePreLogos`.)  `DisjointBinaryCoproduct` (S1_62): inl_monic, inr_monic,
+    inl_inter_inr, inl_union_inr.                                                       [M7]
+  * `∇ : Type u → Assembly K` functor + preservation lemmas.                            [M8]
+-/
+
+import Fredy.S1_62
+
+universe u
+
+namespace Freyd
+
+/-! ## Partial endofunctions of N -/
+
+/-- A PARTIAL ENDOFUNCTION of N, encoded relationally: a functional graph.
+    `graph n m` means "defined at `n` with value `m`".  The relational encoding keeps
+    composition and definition-by-cases proof-term-free (no `Classical.choice` to build
+    values from domain proofs). -/
+structure ModFun where
+  graph : Nat → Nat → Prop
+  functional : ∀ {n m₁ m₂}, graph n m₁ → graph n m₂ → m₁ = m₂
+
+namespace ModFun
+
+/-- The identity endofunction (book (i)). -/
+def ident : ModFun := ⟨fun n m => m = n, fun h₁ h₂ => h₁.trans h₂.symm⟩
+
+/-- A total function as a `ModFun` (e.g. the book's total ℓ and ϰ). -/
+def ofFun (f : Nat → Nat) : ModFun := ⟨fun n m => m = f n, fun h₁ h₂ => h₁.trans h₂.symm⟩
+
+/-- Composition in DIAGRAM ORDER: `(φ.comp ψ)(n) = ψ(φ(n))` — first φ, then ψ.
+    Matches the book's juxtaposition `θℓ` = "θ then ℓ". -/
+def comp (φ ψ : ModFun) : ModFun where
+  graph n m := ∃ j, φ.graph n j ∧ ψ.graph j m
+  functional := fun ⟨j₁, hφ₁, hψ₁⟩ ⟨j₂, hφ₂, hψ₂⟩ => by
+    cases φ.functional hφ₁ hφ₂; exact ψ.functional hψ₁ hψ₂
+
+/-- The coded pair `θ = (φ,ψ)` from the book's bracketed remark: `n ↦ code (φ n) (ψ n)`,
+    defined exactly on the common domain of φ and ψ. -/
+def pairC (code : Nat → Nat → Nat) (φ ψ : ModFun) : ModFun where
+  graph n m := ∃ a b, φ.graph n a ∧ ψ.graph n b ∧ m = code a b
+  functional := fun ⟨a₁, b₁, ha₁, hb₁, he₁⟩ ⟨a₂, b₂, ha₂, hb₂, he₂⟩ => by
+    cases φ.functional ha₁ ha₂; cases ψ.functional hb₁ hb₂; exact he₁.trans he₂.symm
+
+/-- Definition by cases WITH PARAMETER on a tagged code:
+    `code x (inL y) ↦ φ(code x y)` and `code x (inR y) ↦ ψ(code x y)`.
+    Stated via the projections so that functionality needs only injectivity/disjointness of
+    the tags (not of `code`).  This is the K-closure that the book's "disjoint unions left
+    to the reader" implicitly requires; the parameter slot `x` is what lets tagged indices
+    survive inside pair-coded pullback indices. -/
+def casesC (proj₁ proj₂ : Nat → Nat) (code : Nat → Nat → Nat) (inL inR : Nat → Nat)
+    (hL : ∀ {a b : Nat}, inL a = inL b → a = b) (hR : ∀ {a b : Nat}, inR a = inR b → a = b)
+    (hLR : ∀ a b, inL a ≠ inR b) (φ ψ : ModFun) : ModFun where
+  graph n m :=
+    (∃ y, proj₂ n = inL y ∧ φ.graph (code (proj₁ n) y) m) ∨
+    (∃ y, proj₂ n = inR y ∧ ψ.graph (code (proj₁ n) y) m)
+  functional := by
+    rintro n m₁ m₂ (⟨y₁, hy₁, h₁⟩ | ⟨y₁, hy₁, h₁⟩) (⟨y₂, hy₂, h₂⟩ | ⟨y₂, hy₂, h₂⟩)
+    · cases hL (hy₁.symm.trans hy₂); exact φ.functional h₁ h₂
+    · exact absurd (hy₁.symm.trans hy₂) (hLR y₁ y₂)
+    · exact absurd (hy₂.symm.trans hy₁) (hLR y₂ y₁)
+    · cases hR (hy₁.symm.trans hy₂); exact ψ.functional h₁ h₂
+
+end ModFun
+
+/-! ## Modulus systems -/
+
+/-- A MODULUS SYSTEM: the book's collection K of partial endofunctions on N with
+    (i) the identity, (ii) composition closure, and the pairing structure of (iii) —
+    following the bracketed remark, the coding of pairs `code` with total projections
+    `proj₁` (ℓ) and `proj₂` (ϰ) is explicit data and θ := the coded pair (φ,ψ)
+    (book (iii) becomes the theorem `book_iii` below).  The tag fields `inL`, `inR`,
+    `cases_mem` are the closure that the book's "construction of disjoint unions"
+    (left to the reader) needs; see the module docstring for why (i)(ii)(iii) alone
+    provably do not suffice. -/
+structure ModulusSystem where
+  /-- Membership: which partial endofunctions belong to K. -/
+  mem : ModFun → Prop
+  /-- (i) K contains the identity. -/
+  id_mem : mem ModFun.ident
+  /-- (ii) K is closed under composition (diagram order). -/
+  comp_mem : ∀ {φ ψ}, mem φ → mem ψ → mem (φ.comp ψ)
+  /-- The coding of pairs (−,−) : N×N → N from the book's bracketed remark. -/
+  code : Nat → Nat → Nat
+  /-- ℓ: the first projection, total, in K. -/
+  proj₁ : Nat → Nat
+  /-- ϰ: the second projection, total, in K. -/
+  proj₂ : Nat → Nat
+  proj₁_mem : mem (ModFun.ofFun proj₁)
+  proj₂_mem : mem (ModFun.ofFun proj₂)
+  /-- (n,k)ℓ = n. -/
+  code_proj₁ : ∀ a b, proj₁ (code a b) = a
+  /-- (n,k)ϰ = k. -/
+  code_proj₂ : ∀ a b, proj₂ (code a b) = b
+  /-- θ = (φ,ψ) ∈ K — the book's construction discharging (iii). -/
+  pair_mem : ∀ {φ ψ}, mem φ → mem ψ → mem (ModFun.pairC code φ ψ)
+  /-- Left tag: a total injection in K (e.g. `2·`). -/
+  inL : Nat → Nat
+  /-- Right tag: a total injection in K, range disjoint from `inL` (e.g. `2·+1`). -/
+  inR : Nat → Nat
+  inL_mem : mem (ModFun.ofFun inL)
+  inR_mem : mem (ModFun.ofFun inR)
+  inL_inj : ∀ {a b : Nat}, inL a = inL b → a = b
+  inR_inj : ∀ {a b : Nat}, inR a = inR b → a = b
+  inLR_ne : ∀ a b, inL a ≠ inR b
+  /-- Definition-by-cases with parameter on the tag, in K (see `ModFun.casesC`). -/
+  cases_mem : ∀ {φ ψ}, mem φ → mem ψ →
+    mem (ModFun.casesC proj₁ proj₂ code inL inR inL_inj inR_inj inLR_ne φ ψ)
+
+namespace ModulusSystem
+
+variable (K : ModulusSystem)
+
+/-- The coded pair θ = (φ,ψ) over K's coding. -/
+abbrev pairF (φ ψ : ModFun) : ModFun := ModFun.pairC K.code φ ψ
+
+/-- Definition-by-cases with parameter over K's tags. -/
+abbrev casesF (φ ψ : ModFun) : ModFun :=
+  ModFun.casesC K.proj₁ K.proj₂ K.code K.inL K.inR K.inL_inj K.inR_inj K.inLR_ne φ ψ
+
+/-- ℓ as a `ModFun`. -/
+abbrev projF₁ : ModFun := ModFun.ofFun K.proj₁
+/-- ϰ as a `ModFun`. -/
+abbrev projF₂ : ModFun := ModFun.ofFun K.proj₂
+
+/-- The coding is jointly surjective onto pairs — Freyd's "(n,k)ℓ = n, (n,k)ϰ = k for ALL
+    n, k".  This is the pairing strength that bare (iii) lacks (module docstring). -/
+theorem proj_surj_pair (a b : Nat) : ∃ n, K.proj₁ n = a ∧ K.proj₂ n = b :=
+  ⟨K.code a b, K.code_proj₁ a b, K.code_proj₂ a b⟩
+
+/-- Intro rule for `casesF` on a left-tagged code. -/
+theorem casesF_graph_inl {φ ψ : ModFun} {x y m : Nat} (h : φ.graph (K.code x y) m) :
+    (K.casesF φ ψ).graph (K.code x (K.inL y)) m :=
+  Or.inl ⟨y, K.code_proj₂ x (K.inL y), by rw [K.code_proj₁]; exact h⟩
+
+/-- Intro rule for `casesF` on a right-tagged code. -/
+theorem casesF_graph_inr {φ ψ : ModFun} {x y m : Nat} (h : ψ.graph (K.code x y) m) :
+    (K.casesF φ ψ).graph (K.code x (K.inR y)) m :=
+  Or.inr ⟨y, K.code_proj₂ x (K.inR y), by rw [K.code_proj₁]; exact h⟩
+
+/-- **Book (iii)** is a theorem of a modulus system: for φ, ψ ∈ K there is θ ∈ K defined
+    exactly on the common domain of φ and ψ with φ ⊇ θℓ and ψ ⊇ θϰ (graph containment;
+    composition in diagram order). -/
+theorem book_iii {φ ψ : ModFun} (hφ : K.mem φ) (hψ : K.mem ψ) :
+    ∃ θ, K.mem θ ∧
+      (∀ n, (∃ m, θ.graph n m) ↔ (∃ m, φ.graph n m) ∧ (∃ m, ψ.graph n m)) ∧
+      (∀ n m, (θ.comp K.projF₁).graph n m → φ.graph n m) ∧
+      (∀ n m, (θ.comp K.projF₂).graph n m → ψ.graph n m) := by
+  refine ⟨K.pairF φ ψ, K.pair_mem hφ hψ, fun n => ?_, fun n m h => ?_, fun n m h => ?_⟩
+  · constructor
+    · rintro ⟨m, a, b, ha, hb, rfl⟩; exact ⟨⟨a, ha⟩, ⟨b, hb⟩⟩
+    · rintro ⟨⟨a, ha⟩, ⟨b, hb⟩⟩; exact ⟨K.code a b, a, b, ha, hb, rfl⟩
+  · obtain ⟨j, ⟨a, b, ha, hb, rfl⟩, hm⟩ := h
+    rw [show m = a from hm.trans (K.code_proj₁ a b)]; exact ha
+  · obtain ⟨j, ⟨a, b, ha, hb, rfl⟩, hm⟩ := h
+    rw [show m = b from hm.trans (K.code_proj₂ a b)]; exact hb
+
+end ModulusSystem
+
+/-! ## Assemblies and their category -/
+
+/-- An ASSEMBLY over the modulus system K: a set `X` with a sequence of CAUCUSES
+    `caucus n ⊆ X`.  Following the book, morphisms are functions on the carrier
+    ⋃ₙ caucus n; we require `X` to BE the carrier (`carrier_mem`) — no generality is
+    lost and every construction is spared a subtype carrier (module docstring). -/
+structure Assembly (K : ModulusSystem) : Type (u + 1) where
+  X : Type u
+  caucus : Nat → X → Prop
+  carrier_mem : ∀ x, ∃ n, caucus n x
+
+variable {K : ModulusSystem}
+
+/-- `φ` is a MODULUS (tracker) for the function `f` between the underlying sets of two
+    assemblies: if `x ∈ A|ₙ` then `φ(n)` is defined and `f(x) ∈ B|φ(n)`. -/
+def Tracks (φ : ModFun) (A B : Assembly.{u} K) (f : A.X → B.X) : Prop :=
+  ∀ n x, A.caucus n x → ∃ m, φ.graph n m ∧ B.caucus m (f x)
+
+/-- A morphism of assemblies: an ordinary function admitting a modulus in K.
+    The modulus is PROPERTY, not structure — two morphisms are equal iff their
+    underlying functions are (`AsmHom.ext`). -/
+structure AsmHom (A B : Assembly.{u} K) : Type u where
+  toFun : A.X → B.X
+  tracked : ∃ φ, K.mem φ ∧ Tracks φ A B toFun
+
+@[ext] theorem AsmHom.ext {A B : Assembly.{u} K} {f g : AsmHom A B}
+    (h : f.toFun = g.toFun) : f = g := by
+  cases f; cases g; cases h; rfl
+
+/-- The category **A** of assemblies (§2.153): identity has the identity modulus (i),
+    composition composes moduli (ii). -/
+instance asmCat : Cat.{u, u + 1} (Assembly.{u} K) where
+  Hom := AsmHom
+  id A := ⟨fun x => x, ModFun.ident, K.id_mem, fun n _ hx => ⟨n, rfl, hx⟩⟩
+  comp {A B C} f g :=
+    ⟨fun x => g.toFun (f.toFun x), by
+      obtain ⟨φ, hφ, hf⟩ := f.tracked
+      obtain ⟨ψ, hψ, hg⟩ := g.tracked
+      refine ⟨φ.comp ψ, K.comp_mem hφ hψ, fun n x hx => ?_⟩
+      obtain ⟨m, hm, hBx⟩ := hf n x hx
+      obtain ⟨p, hp, hCx⟩ := hg m _ hBx
+      exact ⟨p, ⟨m, hm, hp⟩, hCx⟩⟩
+  id_comp _ := AsmHom.ext rfl
+  comp_id _ := AsmHom.ext rfl
+  assoc _ _ _ := AsmHom.ext rfl
+
+@[simp] theorem asmComp_toFun {A B C : Assembly.{u} K} (f : A ⟶ B) (g : B ⟶ C) (x : A.X) :
+    (f ≫ g).toFun x = g.toFun (f.toFun x) := rfl
+
+@[simp] theorem asmId_toFun (A : Assembly.{u} K) (x : A.X) :
+    (Cat.id A).toFun x = x := rfl
+
+/-! ## Non-vacuity: the collection of ALL partial endofunctions is a modulus system
+
+  Concrete coding: `code a b = 2^a·(2b+1)` with 2-adic valuation `val2` as ℓ and
+  odd-part decoding as ϰ; tags `inL = 2·`, `inR = 2·+1`. -/
+
+/-- 2-adic valuation: the exponent of 2 in `n` (0 at 0). -/
+def val2 (n : Nat) : Nat :=
+  if h : n % 2 = 0 ∧ n ≠ 0 then val2 (n / 2) + 1 else 0
+  termination_by n
+  decreasing_by exact Nat.div_lt_self (Nat.pos_of_ne_zero h.2) (by omega)
+
+theorem val2_odd {n : Nat} (h : n % 2 = 1) : val2 n = 0 := by
+  rw [val2]; simp [show ¬(n % 2 = 0 ∧ n ≠ 0) by omega]
+
+theorem val2_two_mul {n : Nat} (h : n ≠ 0) : val2 (2 * n) = val2 n + 1 := by
+  rw [val2]
+  simp [show 2 * n % 2 = 0 by omega, show ¬(2 * n = 0) by omega, show 2 * n / 2 = n by omega]
+
+theorem two_pow_pos (a : Nat) : 0 < 2 ^ a := by
+  induction a with
+  | zero => simp
+  | succ a ih => rw [Nat.pow_succ]; omega
+
+theorem val2_code (a b : Nat) : val2 (2 ^ a * (2 * b + 1)) = a := by
+  induction a with
+  | zero => rw [Nat.pow_zero, Nat.one_mul]; exact val2_odd (by omega)
+  | succ a ih =>
+      have h2 : 2 ^ (a + 1) * (2 * b + 1) = 2 * (2 ^ a * (2 * b + 1)) := by
+        rw [Nat.pow_succ]; rw [Nat.mul_comm (2 ^ a) 2, Nat.mul_assoc]
+      have hpos : 0 < 2 ^ a * (2 * b + 1) := Nat.mul_pos (two_pow_pos a) (by omega)
+      rw [h2, val2_two_mul (Nat.pos_iff_ne_zero.mp hpos), ih]
+
+theorem div_pow_code (a b : Nat) : 2 ^ a * (2 * b + 1) / 2 ^ a = 2 * b + 1 :=
+  Nat.mul_div_cancel_left _ (two_pow_pos a)
+
+/-- The collection of ALL partial endofunctions of N is a modulus system — the
+    non-vacuity witness required by the book's "for example, K may be the collection of
+    all partial recursive functions" (any closure conditions hold a fortiori). -/
+def ModulusSystem.allPartial : ModulusSystem where
+  mem _ := True
+  id_mem := trivial
+  comp_mem _ _ := trivial
+  code a b := 2 ^ a * (2 * b + 1)
+  proj₁ := val2
+  proj₂ n := (n / 2 ^ val2 n - 1) / 2
+  proj₁_mem := trivial
+  proj₂_mem := trivial
+  code_proj₁ := val2_code
+  code_proj₂ a b := by rw [val2_code, div_pow_code]; omega
+  pair_mem _ _ := trivial
+  inL k := 2 * k
+  inR k := 2 * k + 1
+  inL_mem := trivial
+  inR_mem := trivial
+  inL_inj h := by omega
+  inR_inj h := by omega
+  inLR_ne a b := by omega
+  cases_mem _ _ := trivial
+
+end Freyd
