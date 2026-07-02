@@ -486,6 +486,181 @@ theorem le_meet_iff {a b c : PElem P} : c.le (a.meet b) ↔ c.le a ∧ c.le b :=
                            h.symm ▸ P.meetPoint_incid_right A B⟩,
                  fun ⟨h1, h2⟩ => ProjectivePlane.meetPoint_eq hAB h1 h2⟩
 
+/-! ### Derived lub/glb API (from the two characterisations, generically) -/
+
+theorem le_join_left (a b : PElem P) : a.le (a.join b) :=
+  (join_le_iff.mp (le_refl _)).1
+
+theorem le_join_right (a b : PElem P) : b.le (a.join b) :=
+  (join_le_iff.mp (le_refl _)).2
+
+theorem join_le {a b c : PElem P} (h1 : a.le c) (h2 : b.le c) : (a.join b).le c :=
+  join_le_iff.mpr ⟨h1, h2⟩
+
+theorem meet_le_left (a b : PElem P) : (a.meet b).le a :=
+  (le_meet_iff.mp (le_refl _)).1
+
+theorem meet_le_right (a b : PElem P) : (a.meet b).le b :=
+  (le_meet_iff.mp (le_refl _)).2
+
+theorem le_meet {a b c : PElem P} (h1 : c.le a) (h2 : c.le b) : c.le (a.meet b) :=
+  le_meet_iff.mpr ⟨h1, h2⟩
+
+/-- The `ModularLattice` order (`a ⊓ b = a`) coincides with `le`. -/
+theorem le_iff_meet_eq {a b : PElem P} : a.le b ↔ a.meet b = a :=
+  ⟨fun h => le_antisymm (meet_le_left a b) (le_meet (le_refl a) h),
+   fun h => h ▸ meet_le_right a b⟩
+
+/-! ### The equational lattice laws (each once, from lub/glb + antisymmetry) -/
+
+theorem meet_idem (a : PElem P) : a.meet a = a :=
+  le_antisymm (meet_le_left a a) (le_meet (le_refl a) (le_refl a))
+
+theorem meet_comm (a b : PElem P) : a.meet b = b.meet a :=
+  le_antisymm (le_meet (meet_le_right a b) (meet_le_left a b))
+    (le_meet (meet_le_right b a) (meet_le_left b a))
+
+theorem meet_assoc (a b c : PElem P) : a.meet (b.meet c) = (a.meet b).meet c :=
+  le_antisymm
+    (le_meet
+      (le_meet (meet_le_left a _) (le_trans (meet_le_right a _) (meet_le_left b c)))
+      (le_trans (meet_le_right a _) (meet_le_right b c)))
+    (le_meet (le_trans (meet_le_left _ c) (meet_le_left a b))
+      (le_meet (le_trans (meet_le_left _ c) (meet_le_right a b)) (meet_le_right _ c)))
+
+theorem join_idem (a : PElem P) : a.join a = a :=
+  le_antisymm (join_le (le_refl a) (le_refl a)) (le_join_left a a)
+
+theorem join_comm (a b : PElem P) : a.join b = b.join a :=
+  le_antisymm (join_le (le_join_right b a) (le_join_left b a))
+    (join_le (le_join_right a b) (le_join_left a b))
+
+theorem join_assoc (a b c : PElem P) : a.join (b.join c) = (a.join b).join c :=
+  le_antisymm
+    (join_le (le_trans (le_join_left a b) (le_join_left _ c))
+      (join_le (le_trans (le_join_right a b) (le_join_left _ c)) (le_join_right _ c)))
+    (join_le
+      (join_le (le_join_left a _) (le_trans (le_join_left b c) (le_join_right a _)))
+      (le_trans (le_join_right b c) (le_join_right a _)))
+
+theorem meet_absorb (a b : PElem P) : a.meet (a.join b) = a :=
+  le_antisymm (meet_le_left _ _) (le_meet (le_refl a) (le_join_left a b))
+
+theorem join_absorb (a b : PElem P) : a.join (a.meet b) = a :=
+  le_antisymm (join_le (le_refl a) (meet_le_left a b)) (le_join_left _ _)
+
+theorem bot_join (a : PElem P) : (bot : PElem P).join a = a := rfl
+
+/-! ### MODULARITY (§2.157 headline)
+
+  `c ⩽ a → a ⊓ (b ⊔ c) = (a ⊓ b) ⊔ c`.  The `⊒` half holds in any lattice; the
+  `⊑` half is the case analysis below.  Since 𝓛 has height 4, once the trivial
+  ranks (`⊥`, `⊤`, `c = a`) are dispatched generically, the only case with
+  content is `c = pt y ⩽ a = ln A`, and THE GEOMETRY ENTERS in exactly two
+  spots, both instances of axiom 3:
+  · `b = pt x` with `x ≠ y`, `A ≠ (line through x, y)`: the two lines meet in
+    the unique point `y` (`meetPoint_eq`), so the meet is already below `c`;
+  · `b = ln B` with `y ∉ B`: `z := meetPoint A B` and `y` are two distinct
+    points of `A`, so `A` IS the line through them (`lineThrough_eq`), i.e.
+    `(a ⊓ b) ⊔ c = a`.
+  Interestingness is NOT needed: EVERY projective plane's lattice is modular. -/
+
+/-- The trivial `c = a` instance of the modular inequality. -/
+theorem modular_self (a b : PElem P) : (a.meet (b.join a)).le ((a.meet b).join a) :=
+  le_trans (meet_le_left _ _) (le_join_right _ _)
+
+/-- The hard modular inequality `c ⩽ a → a ⊓ (b ⊔ c) ⩽ (a ⊓ b) ⊔ c`. -/
+theorem modular_hard {a b c : PElem P} (hca : c.le a) :
+    (a.meet (b.join c)).le ((a.meet b).join c) := by
+  cases c with
+  | bot => rw [join_bot_right]; exact le_join_left _ _
+  | top =>
+    cases a with
+    | top => exact le_trans (le_top _) (le_join_right _ _)
+    | bot => simp [le] at hca
+    | pt x => simp [le] at hca
+    | ln A => simp [le] at hca
+  | pt y =>
+    cases a with
+    | bot => simp [le] at hca
+    | top => rw [meet_top_left, meet_top_left]; exact le_refl _
+    | pt x =>
+      have h : y = x := hca
+      subst h
+      exact modular_self _ _
+    | ln A =>
+      have hyA : P.incid y A := hca
+      cases b with
+      | bot => exact le_trans (meet_le_right _ _) (le_join_right _ _)
+      | top => rw [join_top_left, meet_top_right]; exact le_join_left _ _
+      | pt x =>
+        by_cases hxy : x = y
+        · subst hxy; rw [join_pt_pt_self]; exact le_join_left _ _
+        · rw [join_pt_pt_ne hxy]
+          by_cases hAL : A = P.lineThrough x y
+          · -- `A` IS the line through `x, y`; both sides collapse to `ln A`.
+            have hxA : P.incid x A := by rw [hAL]; exact P.lineThrough_incid_left x y
+            rw [meet_ln_pt_incid hxA, join_pt_pt_ne hxy, ← hAL, meet_ln_ln_self]
+            exact le_refl _
+          · -- GEOMETRY: `A` and the line through `x, y` meet in the unique
+            -- common point, which is `y` (axiom 3) — so the meet is `c` itself.
+            have hy : y = P.meetPoint A (P.lineThrough x y) :=
+              ProjectivePlane.meetPoint_eq hAL hyA (P.lineThrough_incid_right x y)
+            rw [meet_ln_ln_ne hAL, ← hy]
+            exact le_join_right _ _
+      | ln B =>
+        by_cases hyB : P.incid y B
+        · rw [join_ln_pt_incid hyB]; exact le_join_left _ _
+        · -- GEOMETRY: `z := meetPoint A B` and `y` are distinct points of `A`
+          -- (`y ∉ B` but `z ∈ B`), so `A` is the line through `z, y` (axiom 3).
+          have hAB : A ≠ B := fun h => hyB (h ▸ hyA)
+          have hz : P.incid (P.meetPoint A B) A := P.meetPoint_incid_left A B
+          have hzy : P.meetPoint A B ≠ y :=
+            fun h => hyB (h ▸ P.meetPoint_incid_right A B)
+          rw [join_ln_pt_not hyB, meet_top_right, meet_ln_ln_ne hAB,
+            join_pt_pt_ne hzy]
+          exact (ProjectivePlane.lineThrough_eq hzy hz hyA :
+            A = P.lineThrough (P.meetPoint A B) y)
+  | ln A' =>
+    cases a with
+    | bot => simp [le] at hca
+    | pt x => simp [le] at hca
+    | top => rw [meet_top_left, meet_top_left]; exact le_refl _
+    | ln A =>
+      have h : A' = A := hca
+      subst h
+      exact modular_self _ _
+
+/-- **𝓛(P) is modular** (§2.157): `c ⩽ a → a ⊓ (b ⊔ c) = (a ⊓ b) ⊔ c`. -/
+theorem modular_eq {a b c : PElem P} (hca : c.le a) :
+    a.meet (b.join c) = (a.meet b).join c :=
+  le_antisymm (modular_hard hca)
+    (le_meet (join_le (meet_le_left a b) hca)
+      (join_le (le_trans (meet_le_right a b) (le_join_left b c)) (le_join_right b c)))
+
 end PElem
+
+/-- **§2.157, "for every projective plane there is an associated modular
+    lattice"** — the `ModularLattice` (§2.156) instance on 𝓛(P). -/
+noncomputable instance instModularLatticePElem (P : ProjectivePlane.{u}) :
+    ModularLattice (PElem P) where
+  meet := PElem.meet
+  join := PElem.join
+  bot := PElem.bot
+  meet_idem := PElem.meet_idem
+  meet_comm := PElem.meet_comm
+  meet_assoc := PElem.meet_assoc
+  join_idem := PElem.join_idem
+  join_comm := PElem.join_comm
+  join_assoc := PElem.join_assoc
+  meet_absorb := PElem.meet_absorb
+  join_absorb := PElem.join_absorb
+  bot_join := PElem.bot_join
+  modular := fun _ _ _ h =>
+    PElem.modular_eq (PElem.le_iff_meet_eq.mpr h)
+
+/-- "(hence an associated allegory)": the §2.156/§2.113 bridge fires on 𝓛(P). -/
+noncomputable example (P : ProjectivePlane.{u}) :
+    Allegory (LMonObj (PElem P)) := inferInstance
 
 end Freyd.Alg
