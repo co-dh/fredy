@@ -328,4 +328,111 @@ instance instTabularOSet (F : Frame.{u}) : TabularAllegory (OValuedSet F) :=
         ⟨OSetHom.tabRight_dom R, OSetHom.tabRight_simple R⟩,
         (OSetHom.tab_factor R).symm, OSetHom.tab_inter_id R⟩ }
 
+/-! ## §2.168  The ⟨I,∃⟩ presentation: diagonal F-valued sets
+
+  "A coreflexive Z-valued relation is a diagonal matrix.  The objects in the tabular
+  reflection may be redescribed as pairs ⟨I,∃⟩ where ∃ is a function from I to 𝒱."
+  A DIAGONAL F-valued set is one whose equality matrix is diagonal; it carries exactly
+  the data ⟨I,∃⟩ with `∃ᵢ = E i i` the "extent to which i exists". -/
+
+/-- An F-valued set is DIAGONAL (§2.168) when its equality is a diagonal matrix:
+    all off-diagonal entries are `⊥`. -/
+def Diagonal {F : Frame.{u}} (A : OValuedSet F) : Prop :=
+  ∀ i j, i ≠ j → A.E i j = F.bot
+
+/-- The §2.168 objects ⟨I,∃⟩: the full sub-allegory of OSet(F) on the DIAGONAL
+    F-valued sets. -/
+def ExtObj (F : Frame.{u}) : Type (u + 1) := { A : OValuedSet F // Diagonal A }
+
+namespace ExtObj
+
+variable {F : Frame.{u}}
+
+/-- Category structure on `ExtObj F`: full subcategory of OSet(F) — homs, identity and
+    composition are those of the underlying F-valued sets. -/
+instance instCatExtObj : Cat.{u} (ExtObj F) where
+  Hom A B := OSetHom A.val B.val
+  id A    := OSetHom.id A.val
+  comp    := OSetHom.comp
+  id_comp R     := oset_id_comp R
+  comp_id R     := oset_comp_id R
+  assoc R S T   := oset_comp_assoc R S T
+
+/-- Allegory structure on `ExtObj F`: reciprocation and intersection inherited from
+    OSet(F); every law is the corresponding OSet(F) law on the underlying homs. -/
+instance instAllegoryExtObj : Allegory (ExtObj F) where
+  recip             := OSetHom.recip
+  inter             := OSetHom.inter
+  recip_recip R     := OSetHom.recip_recip R
+  recip_comp R S    := OSetHom.recip_comp R S
+  recip_inter R S   := OSetHom.recip_inter R S
+  inter_idem R      := OSetHom.inter_idem R
+  inter_comm R S    := OSetHom.inter_comm R S
+  inter_assoc R S T := OSetHom.inter_assoc R S T
+  semidistrib R S T := OSetHom.osetAlleg_semidistrib R S T
+  modular R S T     := OSetHom.osetAlleg_modular R S T
+
+end ExtObj
+
+/-- Build a §2.168 object from the book's data ⟨I,∃⟩: carrier `I`, extent function
+    `ex : I → 𝒱`, equality `E i j = ⨆ {ex i | i = j}` — the constructive encoding of
+    "if i = j then ∃ᵢ else ⊥" (no decidable equality on `I` needed). -/
+def extObjMk {F : Frame.{u}} (I : Type u) (ex : I → F.carrier) : ExtObj F :=
+  ⟨{ carrier := I
+     E := fun i j => F.sSup (fun x => i = j ∧ x = ex i)
+     symm := fun i j => F.le_antisymm
+       (F.sSup_le _ _ (fun x ⟨hij, hx⟩ => F.le_sSup _ _ ⟨hij.symm, hij ▸ hx⟩))
+       (F.sSup_le _ _ (fun x ⟨hji, hx⟩ => F.le_sSup _ _ ⟨hji.symm, hji ▸ hx⟩))
+     trans := fun i j k => by
+       refine sSup_meet_le (fun s hs => ?_)
+       obtain ⟨hij, -⟩ := hs
+       subst hij
+       exact F.meet_le_right _ _ },
+   fun i j hne => F.le_antisymm
+     (F.sSup_le _ _ (fun x ⟨hij, _⟩ => absurd hij hne))
+     (F.bot_le _)⟩
+
+/-- The diagonal entry of `extObjMk I ex` is the extent: `E i i = ∃ᵢ`. -/
+theorem extObjMk_E_self {F : Frame.{u}} (I : Type u) (ex : I → F.carrier) (i : I) :
+    (extObjMk I ex).val.E i i = ex i :=
+  F.le_antisymm
+    (F.sSup_le _ _ (fun _ ⟨_, hx⟩ => le_of_eq hx))
+    (F.le_sSup _ _ ⟨rfl, rfl⟩)
+
+namespace OSetHom
+
+variable {F : Frame.{u}} {A B : OValuedSet F}
+
+/-- The tabulation apex of a relation between DIAGONAL F-valued sets is again
+    diagonal: if `(i,j) ≠ (i',j')` then one coordinate pair differs, so the
+    corresponding E-component of `W` is `⊥`.  (The coordinate split `¬(x ∧ y) ⟹
+    ¬x ∨ ¬y` is the one classical step in the file.) -/
+theorem tabApex_diagonal (hA : Diagonal A) (hB : Diagonal B) (R : OSetHom A B) :
+    Diagonal (tabApex R) := by
+  intro p q hne
+  refine F.le_antisymm ?_ (F.bot_le _)
+  rcases Classical.em (p.1 = q.1) with h1 | h1
+  · have h2 : p.2 ≠ q.2 := by
+      intro h2
+      apply hne
+      cases p; cases q; cases h1; cases h2; rfl
+    exact mll (F.le_trans (F.meet_le_right _ _) (le_of_eq (hB _ _ h2)))
+  · exact mll (F.le_trans (F.meet_le_left _ _) (le_of_eq (hA _ _ h1)))
+
+end OSetHom
+
+/-- **§2.168**: the ⟨I,∃⟩ allegory — the full sub-allegory of OSet(F) on diagonal
+    objects — is TABULAR, tabulating with the SAME apex and legs as `instTabularOSet`
+    (the apex stays diagonal by `tabApex_diagonal`).  This makes `ExtObj F` the tabular
+    reflection promised by §2.161: it extends the allegory of Z-valued relations [2.111]
+    (the objects `⟨I, ∃ = ⊤⟩`, see `sharpHom`) to a tabular allegory. -/
+instance instTabularExtObj (F : Frame.{u}) : TabularAllegory (ExtObj F) :=
+  { ExtObj.instAllegoryExtObj with
+    tabular := fun {A B} R =>
+      ⟨⟨OSetHom.tabApex R, OSetHom.tabApex_diagonal A.2 B.2 R⟩,
+        OSetHom.tabLeft R, OSetHom.tabRight R,
+        ⟨OSetHom.tabLeft_dom R, OSetHom.tabLeft_simple R⟩,
+        ⟨OSetHom.tabRight_dom R, OSetHom.tabRight_simple R⟩,
+        (OSetHom.tab_factor R).symm, OSetHom.tab_inter_id R⟩ }
+
 end Freyd
