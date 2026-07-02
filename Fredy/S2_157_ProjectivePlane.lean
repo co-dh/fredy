@@ -857,4 +857,155 @@ def BotLattice.toModularLattice {L : Type u} [BotLattice L]
   bot_join := BotLattice.bot_join
   modular := fun _ _ _ h => desarguesHorn_implies_modular horn h
 
+/-! ## The theorem of Desargues (§2.157, stretch)
+
+  "The theorem of Desargues says that if two triangles are 'in perspective'
+   then their corresponding sides meet on a line." -/
+
+/-- Three points are COLINEAR: some line is incident to all three. -/
+def ProjectivePlane.Colinear (P : ProjectivePlane.{u}) (x y z : P.Point) : Prop :=
+  ∃ L : P.Line, P.incid x L ∧ P.incid y L ∧ P.incid z L
+
+/-- THE THEOREM OF DESARGUES, the book's ten-point formulation: given p, a₁,
+    a₂, b₁, b₂, c₁, c₂, u, v, w such that the triples ⟨p,a₁,a₂⟩, ⟨p,b₁,b₂⟩,
+    ⟨p,c₁,c₂⟩, ⟨a₁,c₁,u⟩, ⟨a₂,c₂,u⟩, ⟨b₁,c₁,v⟩, ⟨b₂,c₂,v⟩, ⟨a₁,b₁,w⟩,
+    ⟨a₂,b₂,w⟩ are colinear, then ⟨u,v,w⟩ is colinear. -/
+def ProjectivePlane.Desargues (P : ProjectivePlane.{u}) : Prop :=
+  ∀ p a₁ a₂ b₁ b₂ c₁ c₂ u v w : P.Point,
+    P.Colinear p a₁ a₂ → P.Colinear p b₁ b₂ → P.Colinear p c₁ c₂ →
+    P.Colinear a₁ c₁ u → P.Colinear a₂ c₂ u →
+    P.Colinear b₁ c₁ v → P.Colinear b₂ c₂ v →
+    P.Colinear a₁ b₁ w → P.Colinear a₂ b₂ w →
+    P.Colinear u v w
+
+/-- Anything on a common line of two DISTINCT points is on THE line through
+    them (axiom 3 transport). -/
+theorem ProjectivePlane.incid_lineThrough_of_mem {P : ProjectivePlane.{u}}
+    {x y z : P.Point} {L : P.Line} (hxy : x ≠ y)
+    (hx : P.incid x L) (hy : P.incid y L) (hz : P.incid z L) :
+    P.incid z (P.lineThrough x y) := by
+  rw [← ProjectivePlane.lineThrough_eq hxy hx hy]
+  exact hz
+
+/-- §2.157, "writing a₁, a₂, b₁, … as A₁, A₂, B₁, …": the Horn sentence on the
+    associated allegory of 𝓛(P), unfolded to lattice form (composition IS `⊔`,
+    reciprocation is the identity, `∩` is `⊓`, `⊑` is the lattice order — all
+    definitional through §2.156/§2.113). -/
+theorem desarguesHorn_toLattice {P : ProjectivePlane.{u}}
+    (h : DesarguesHorn (LMonObj (PElem P))) :
+    ∀ a₁ a₂ b₁ b₂ c₁ c₂ : PElem P,
+      ((a₁.join a₂).meet (b₁.join b₂)).le (c₁.join c₂) →
+      ((a₁.join b₁).meet (a₂.join b₂)).le
+        (((a₁.join c₁).meet (a₂.join c₂)).join
+          ((c₁.join b₁).meet (c₂.join b₂))) := by
+  intro a₁ a₂ b₁ b₂ c₁ c₂ hyp
+  exact PElem.le_iff_meet_eq.mpr
+    (h LMonObj.star LMonObj.star LMonObj.star LMonObj.star LMonObj.star
+      a₁ a₂ b₁ b₂ c₁ c₂ (PElem.le_iff_meet_eq.mp hyp))
+
+open PElem in
+/-- **§2.157, stretch (one direction, nondegenerate configurations)**: the
+    Desargues Horn sentence in the associated allegory forces the theorem of
+    Desargues, for configurations where the perspective pairs, the triangle
+    vertices, and the relevant sides are genuinely distinct.
+
+    Chase (all joins/meets in 𝓛(P)): `pt aᵢ ⊔ pt bᵢ` etc. are the SIDES;
+    the Horn hypothesis `(A₁A₂ ∩ B₁B₂) ⊑ C₁C₂` becomes "the meet of the
+    perspective lines `a₁a₂`, `b₁b₂` — which is `pt p` — lies on `c₁c₂`",
+    true since `⟨p,c₁,c₂⟩` is colinear; the Horn conclusion evaluates to
+    `side a₁b₁ ⊓ side a₂b₂ ⩽ (pt u) ⊔ (pt v) = line uv`, and `pt w` is below
+    the left side, so `w` is on the line through `u` and `v`. -/
+theorem desarguesHorn_implies_desargues_nondeg {P : ProjectivePlane.{u}}
+    (hHorn : DesarguesHorn (LMonObj (PElem P)))
+    (p a₁ a₂ b₁ b₂ c₁ c₂ u v w : P.Point)
+    (h1 : P.Colinear p a₁ a₂) (h2 : P.Colinear p b₁ b₂) (h3 : P.Colinear p c₁ c₂)
+    (h4 : P.Colinear a₁ c₁ u) (h5 : P.Colinear a₂ c₂ u)
+    (h6 : P.Colinear b₁ c₁ v) (h7 : P.Colinear b₂ c₂ v)
+    (h8 : P.Colinear a₁ b₁ w) (h9 : P.Colinear a₂ b₂ w)
+    -- nondegeneracy: distinct perspective pairs and triangle vertices …
+    (hpa : a₁ ≠ a₂) (hpb : b₁ ≠ b₂) (hpc : c₁ ≠ c₂)
+    (hab₁ : a₁ ≠ b₁) (hab₂ : a₂ ≠ b₂)
+    (hac₁ : a₁ ≠ c₁) (hac₂ : a₂ ≠ c₂)
+    (hcb₁ : c₁ ≠ b₁) (hcb₂ : c₂ ≠ b₂)
+    -- … distinct perspective lines and sides, and distinct meets
+    (hLab : P.lineThrough a₁ a₂ ≠ P.lineThrough b₁ b₂)
+    (hLac : P.lineThrough a₁ c₁ ≠ P.lineThrough a₂ c₂)
+    (hLcb : P.lineThrough c₁ b₁ ≠ P.lineThrough c₂ b₂)
+    (huv : u ≠ v) :
+    P.Colinear u v w := by
+  have horn := desarguesHorn_toLattice hHorn
+  -- `p` is on both perspective lines, hence IS their meet point (axiom 3).
+  obtain ⟨La, hpLa, ha1La, ha2La⟩ := h1
+  obtain ⟨Lb, hpLb, hb1Lb, hb2Lb⟩ := h2
+  obtain ⟨Lc, hpLc, hc1Lc, hc2Lc⟩ := h3
+  have hp1 := P.incid_lineThrough_of_mem hpa ha1La ha2La hpLa
+  have hp2 := P.incid_lineThrough_of_mem hpb hb1Lb hb2Lb hpLb
+  have hp3 := P.incid_lineThrough_of_mem hpc hc1Lc hc2Lc hpLc
+  have hmeetp : p = P.meetPoint (P.lineThrough a₁ a₂) (P.lineThrough b₁ b₂) :=
+    ProjectivePlane.meetPoint_eq hLab hp1 hp2
+  -- Horn hypothesis: (a₁⊔a₂) ⊓ (b₁⊔b₂) = pt p ⩽ c₁⊔c₂.
+  have hyp : (((pt a₁).join (pt a₂)).meet ((pt b₁).join (pt b₂))).le
+      ((pt c₁).join (pt c₂)) := by
+    rw [join_pt_pt_ne hpa, join_pt_pt_ne hpb, join_pt_pt_ne hpc,
+      meet_ln_ln_ne hLab, ← hmeetp]
+    exact hp3
+  have hconc := horn (pt a₁) (pt a₂) (pt b₁) (pt b₂) (pt c₁) (pt c₂) hyp
+  -- `pt w` is below both sides `a₁b₁`, `a₂b₂`, hence below the Horn conclusion.
+  obtain ⟨Lw1, ha1w, hb1w, hww1⟩ := h8
+  obtain ⟨Lw2, ha2w, hb2w, hww2⟩ := h9
+  have hwle : (pt w : PElem P).le
+      (((pt a₁).join (pt b₁)).meet ((pt a₂).join (pt b₂))) := by
+    apply le_meet
+    · rw [join_pt_pt_ne hab₁]
+      exact P.incid_lineThrough_of_mem hab₁ ha1w hb1w hww1
+    · rw [join_pt_pt_ne hab₂]
+      exact P.incid_lineThrough_of_mem hab₂ ha2w hb2w hww2
+  have hwle2 := PElem.le_trans hwle hconc
+  -- `u` and `v` ARE the meets of the corresponding sides (axiom 3) …
+  obtain ⟨Lu1, ha1u, hc1u, huu1⟩ := h4
+  obtain ⟨Lu2, ha2u, hc2u, huu2⟩ := h5
+  obtain ⟨Lv1, hb1v, hc1v, hvv1⟩ := h6
+  obtain ⟨Lv2, hb2v, hc2v, hvv2⟩ := h7
+  have hu : u = P.meetPoint (P.lineThrough a₁ c₁) (P.lineThrough a₂ c₂) :=
+    ProjectivePlane.meetPoint_eq hLac
+      (P.incid_lineThrough_of_mem hac₁ ha1u hc1u huu1)
+      (P.incid_lineThrough_of_mem hac₂ ha2u hc2u huu2)
+  have hv : v = P.meetPoint (P.lineThrough c₁ b₁) (P.lineThrough c₂ b₂) :=
+    ProjectivePlane.meetPoint_eq hLcb
+      (P.incid_lineThrough_of_mem hcb₁ hc1v hb1v hvv1)
+      (P.incid_lineThrough_of_mem hcb₂ hc2v hb2v hvv2)
+  -- … so the Horn conclusion is `pt u ⊔ pt v = ln (line through u, v)`.
+  rw [join_pt_pt_ne hac₁, join_pt_pt_ne hac₂, join_pt_pt_ne hcb₁,
+    join_pt_pt_ne hcb₂, meet_ln_ln_ne hLac, meet_ln_ln_ne hLcb, ← hu, ← hv,
+    join_pt_pt_ne huv] at hwle2
+  -- `pt w ⩽ ln (lineThrough u v)` IS incidence; package the witness line.
+  exact ⟨P.lineThrough u v, P.lineThrough_incid_left u v,
+    P.lineThrough_incid_right u v, hwle2⟩
+
+/-! ### Gap analysis: the full §2.157 equivalence
+
+  The book claims the Horn sentence in the associated allegory "is equivalent
+  with the theorem of Desargues".  `desarguesHorn_implies_desargues_nondeg`
+  is the substantive direction restricted to nondegenerate configurations.
+  What remains for the literal equivalence:
+
+  1. `DesarguesHorn (LMonObj (PElem P)) → Desargues P` in FULL: the ten-point
+     statement `Desargues P` quantifies over arbitrary (possibly degenerate)
+     configurations.  When one of the thirteen nondegeneracy hypotheses fails
+     (coincident perspective pairs `a₁ = a₂`, collapsed sides `a₁ = b₁`,
+     coincident perspective lines `a₁a₂ = b₁b₂`, coincident sides
+     `a₁c₁ = a₂c₂`, or `u = v`), the Horn instance at `pt`-elements either has
+     a false hypothesis or an uninformative conclusion (a full line instead of
+     a point), so each degenerate family needs its own SYNTHETIC argument that
+     `⟨u,v,w⟩` is colinear — the classical (true but tedious) fact that
+     degenerate Desargues configurations hold in every projective plane; some
+     of those arguments re-triangulate and hence consume `Interesting`.
+
+  2. The converse `Desargues P → DesarguesHorn (LMonObj (PElem P))`: the Horn
+     quantifies over arbitrary LATTICE elements, so one must case over the
+     4⁶ constructor shapes of `(A₁, …, C₂)`; the all-`pt` nondegenerate case
+     is (the dual reading of) Desargues, and the remaining cases are rank
+     degeneracies to be discharged by the lattice laws.  This is exactly the
+     bookkeeping hidden in the book's "one will see".  -/
+
 end Freyd.Alg
