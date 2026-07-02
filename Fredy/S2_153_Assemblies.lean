@@ -1085,4 +1085,72 @@ instance asmDisjointBinaryCoproduct : DisjointBinaryCoproduct (Assembly.{u} K) w
       · exact Or.inl ⟨p, k, hn, a, hka, hza⟩
       · exact Or.inr ⟨p, k, hn, b, hkb, hzb⟩
 
+/-! ## M8: the functor ∇ : S → A
+
+  Book: "Note the functor ∇ : S → A given by |∇X| = (∇X)|ₙ = X, for all n; for
+  f : X → Y let ∇f be f with the identity as modulus.  ∇ preserves coterminator,
+  equalizers, and finite products, but not unions."
+
+  Preservations are stated as isomorphisms with the chosen constructions.  That ∇ does
+  NOT preserve unions is a remark about a suitable K (e.g. partial recursives): a union
+  of subobjects of ∇X carries tagged caucuses remembering WHICH side an element came
+  from, while ∇ of the set-union forgets it; no K-modulus can recompute the side from
+  the full caucuses of ∇(S∪T) when membership in S is not "decidable" relative to K.
+  Over `allPartial` every function has a modulus and the failure disappears, so there is
+  no uniform counterexample to formalize here; left as this remark (as in the book). -/
+
+/-- The assembly ∇X: all caucuses equal to the whole of X. -/
+def nablaAsm (X : Type u) : Assembly.{u} K := ⟨X, fun _ _ => True, fun _ => ⟨0, trivial⟩⟩
+
+/-- ∇ on morphisms: `f` with the identity modulus. -/
+def nablaMap {X Y : Type u} (f : X → Y) : nablaAsm (K := K) X ⟶ nablaAsm Y :=
+  ⟨f, ModFun.ident, K.id_mem, fun n _ _ => ⟨n, rfl, trivial⟩⟩
+
+/-- ∇ is a functor from S = `Type u` (with `setCat`) to the category of assemblies. -/
+instance nablaFunctor : Functor (nablaAsm (K := K)) where
+  map := nablaMap
+  map_id _ := AsmHom.ext rfl
+  map_comp _ _ := AsmHom.ext rfl
+
+/-- ∇ preserves the coterminator: `∇∅ ≅ 0`. -/
+theorem nabla_coterminator : Isomorphic (nablaAsm (K := K) PEmpty) zeroAsm :=
+  ⟨⟨fun (x : PEmpty) => x.elim, ModFun.ident, K.id_mem, fun _ x _ => x.elim⟩,
+    ⟨fun (x : PEmpty) => x.elim, ModFun.ident, K.id_mem, fun _ x _ => x.elim⟩,
+    AsmHom.ext (funext fun (x : PEmpty) => x.elim),
+    AsmHom.ext (funext fun (x : PEmpty) => x.elim)⟩
+
+/-- ∇ preserves the terminator: `∇1 ≅ 1`. -/
+theorem nabla_terminator : Isomorphic (nablaAsm (K := K) PUnit) oneAsm :=
+  ⟨⟨fun _ => PUnit.unit, ModFun.ident, K.id_mem, fun n _ _ => ⟨n, rfl, trivial⟩⟩,
+    ⟨fun _ => PUnit.unit, ModFun.ident, K.id_mem, fun n _ _ => ⟨n, rfl, trivial⟩⟩,
+    AsmHom.ext (funext fun _ => rfl), AsmHom.ext (funext fun _ => rfl)⟩
+
+/-- ∇ preserves equalizers: the assembly equalizer of ∇f, ∇g is ∇ of the set equalizer. -/
+theorem nabla_equalizer {X Y : Type u} (f g : X → Y) :
+    Isomorphic (eqObj (nablaMap (K := K) f) (nablaMap g))
+      (nablaAsm {x : X // f x = g x}) :=
+  ⟨⟨fun e => ⟨e.val, e.property⟩, ModFun.ident, K.id_mem, fun n _ _ => ⟨n, rfl, trivial⟩⟩,
+    ⟨fun e => ⟨e.val, e.property⟩, ModFun.ident, K.id_mem, fun n _ hx => ⟨n, rfl, hx⟩⟩,
+    AsmHom.ext (funext fun _ => rfl), AsmHom.ext (funext fun _ => rfl)⟩
+
+/-- ∇ preserves binary products: `∇X × ∇Y ≅ ∇(X × Y)`. -/
+theorem nabla_product (X Y : Type u) :
+    Isomorphic (prodAsm (nablaAsm (K := K) X) (nablaAsm Y)) (nablaAsm (X × Y)) :=
+  ⟨⟨fun p => p, ModFun.ident, K.id_mem, fun n _ _ => ⟨n, rfl, trivial⟩⟩,
+    ⟨fun p => p, ModFun.ident, K.id_mem, fun n _ _ =>
+      ⟨n, rfl, trivial, trivial⟩⟩,
+    AsmHom.ext (funext fun _ => rfl), AsmHom.ext (funext fun _ => rfl)⟩
+
+/-! ## Remaining work (book claims not formalized here)
+
+  * "The category of assemblies is NOT effective."  This is a claim about
+    recursion-theoretically nontrivial K (e.g. all partial recursive functions): an
+    equivalence relation whose quotient would need a non-K-computable section fails to
+    split.  Over `ModulusSystem.allPartial` every function has a modulus, so
+    effectiveness plausibly HOLDS there and no counterexample can be uniform in K.  A
+    formalization needs a modulus system with genuine non-membership (e.g. a computable-
+    functions system with a diagonal argument) — out of scope for this file.
+
+  * "∇ does not preserve unions" — same situation; see the M8 section comment. -/
+
 end Freyd
