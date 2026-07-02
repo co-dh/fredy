@@ -387,4 +387,235 @@ theorem Recursive1.mu {t : Nat → Nat → Nat} (ht : Recursive2 t) {f : Nat →
     rw [this]
     simpa using h
 
+/-! ## Part 2: least elements, primitive recursion helper, Cantor pairing, div/mod -/
+
+/-- Every inhabited predicate on ℕ has a least witness (classical, no decidability). -/
+theorem exists_least {P : Nat → Prop} (h : ∃ n, P n) :
+    ∃ n, P n ∧ ∀ i, i < n → ¬P i := by
+  obtain ⟨n, hn⟩ := h
+  have aux : ∀ b, (∃ i, i ≤ b ∧ P i) → ∃ m, P m ∧ ∀ i, i < m → ¬P i := by
+    intro b
+    induction b with
+    | zero =>
+      rintro ⟨i, hi, hPi⟩
+      have : i = 0 := by omega
+      subst this
+      exact ⟨0, hPi, by omega⟩
+    | succ b ih =>
+      rintro ⟨i, hi, hPi⟩
+      rcases Classical.em (∃ j, j ≤ b ∧ P j) with hj | hj
+      · exact ih hj
+      · have hib : i = b + 1 := by
+          rcases Nat.lt_or_ge i (b + 1) with h' | h'
+          · exact absurd ⟨i, by omega, hPi⟩ hj
+          · omega
+        subst hib
+        exact ⟨b + 1, hPi, fun j hjlt hPj => hj ⟨j, by omega, hPj⟩⟩
+  exact aux n ⟨n, Nat.le_refl n, hn⟩
+
+/-- The least witness of an inhabited predicate. -/
+noncomputable def theLeast (P : Nat → Prop) (h : ∃ n, P n) : Nat :=
+  Classical.choose (exists_least h)
+
+theorem theLeast_mem (P : Nat → Prop) (h : ∃ n, P n) : P (theLeast P h) :=
+  (Classical.choose_spec (exists_least h)).1
+
+theorem theLeast_min (P : Nat → Prop) (h : ∃ n, P n) :
+    ∀ i, i < theLeast P h → ¬P i :=
+  (Classical.choose_spec (exists_least h)).2
+
+theorem theLeast_le (P : Nat → Prop) (h : ∃ n, P n) {n : Nat} (hn : P n) :
+    theLeast P h ≤ n := by
+  rcases Nat.lt_or_ge n (theLeast P h) with h' | h'
+  · exact absurd hn (theLeast_min P h n h')
+  · exact h'
+
+/-- The least witness is unique: anything satisfying the least-characterization is it. -/
+theorem theLeast_unique (P : Nat → Prop) (h : ∃ n, P n) {n : Nat}
+    (hn : P n) (hmin : ∀ i, i < n → ¬P i) : theLeast P h = n := by
+  have h₁ := theLeast_le P h hn
+  rcases Nat.lt_or_ge (theLeast P h) n with h' | h'
+  · exact absurd (theLeast_mem P h) (hmin _ h')
+  · omega
+
+/-! ### Unary primitive recursion -/
+
+/-- Unary primitive recursion: `natIter g0 H 0 = g0`, `natIter g0 H (n+1) = H n (natIter g0 H n)`. -/
+def natIter (g0 : Nat) (H : Nat → Nat → Nat) : Nat → Nat
+  | 0 => g0
+  | n + 1 => H n (natIter g0 H n)
+
+theorem Recursive1.natIter (g0 : Nat) {H : Nat → Nat → Nat} (hH : Recursive2 H) :
+    Recursive1 (Rcat.natIter g0 H) := by
+  obtain ⟨cH, hcH⟩ := hH
+  refine ⟨.prec (constCode 0 g0) cH, fun v => ?_⟩
+  have key : ∀ (n : Nat) (w : Vec 0),
+      Eval (.prec (constCode 0 g0) cH) (vcons n w) (Rcat.natIter g0 H n) := by
+    intro n w
+    induction n with
+    | zero => exact .prec_zero rfl (evalConst 0 g0 w)
+    | succ n ih =>
+      refine .prec_succ rfl ih ?_
+      exact hcH (vcons n (vcons (Rcat.natIter g0 H n) w))
+  have := key (v 0) (vtail v)
+  rwa [vcons_head_tail v] at this
+
+/-! ### Cantor pairing -/
+
+/-- Triangular numbers: `tri s = 0 + 1 + ⋯ + s`. -/
+def tri : Nat → Nat := natIter 0 fun s r => r + (s + 1)
+
+@[simp] theorem tri_zero : tri 0 = 0 := rfl
+
+@[simp] theorem tri_succ (s : Nat) : tri (s + 1) = tri s + (s + 1) := rfl
+
+theorem Recursive1.tri : Recursive1 Rcat.tri :=
+  Recursive1.natIter 0 (Recursive2.comp2 Recursive2.add Recursive2.sndArg
+    (Recursive2.comp2 Recursive2.add Recursive2.fstArg
+      (Recursive2.ofFst (Recursive1.const 1))))
+
+theorem le_tri (s : Nat) : s ≤ tri s := by
+  cases s with
+  | zero => exact Nat.le_refl 0
+  | succ s => rw [tri_succ]; omega
+
+theorem tri_mono {s t : Nat} (h : s ≤ t) : tri s ≤ tri t := by
+  induction t with
+  | zero =>
+    have : s = 0 := by omega
+    subst this; exact Nat.le_refl _
+  | succ t ih =>
+    rcases Nat.lt_or_ge s (t + 1) with h' | h'
+    · have := ih (by omega)
+      rw [tri_succ]; omega
+    · have : s = t + 1 := by omega
+      subst this; exact Nat.le_refl _
+
+/-- Cantor pairing: `cp a b = tri (a+b) + b`, a bijection ℕ×ℕ → ℕ. -/
+def cp (a b : Nat) : Nat := tri (a + b) + b
+
+theorem Recursive2.cp : Recursive2 Rcat.cp := by
+  have h : Recursive2 fun a b => Rcat.tri (a + b) + b :=
+    Recursive2.comp2 Recursive2.add
+      (Recursive2.comp2 (Recursive2.ofSnd Recursive1.tri) Recursive2.fstArg Recursive2.add)
+      Recursive2.sndArg
+  exact h.congr fun _ _ => rfl
+
+/-- The "weight" of a code: the least `s` with `c < tri (s+1)`; equals `a+b` for `c = cp a b`. -/
+noncomputable def cw (c : Nat) : Nat :=
+  theLeast (fun s => c < tri (s + 1)) ⟨c, by have := le_tri (c + 1); omega⟩
+
+theorem cw_lt (c : Nat) : c < tri (cw c + 1) :=
+  theLeast_mem (fun s => c < tri (s + 1)) _
+
+theorem tri_cw_le (c : Nat) : tri (cw c) ≤ c := by
+  cases hcw : cw c with
+  | zero => rw [tri_zero]; omega
+  | succ s =>
+    have hmin : ¬c < tri (s + 1) :=
+      theLeast_min (fun s => c < tri (s + 1)) ⟨c, by have := le_tri (c + 1); omega⟩ s
+        (show s < cw c by omega)
+    omega
+
+theorem cw_cp (a b : Nat) : cw (cp a b) = a + b := by
+  refine theLeast_unique _ _ ?_ ?_
+  · show cp a b < tri (a + b + 1)
+    rw [tri_succ]
+    unfold cp
+    omega
+  · intro s hs
+    show ¬cp a b < tri (s + 1)
+    have : tri (s + 1) ≤ tri (a + b) := tri_mono (by omega)
+    unfold cp
+    omega
+
+/-- Second Cantor projection. -/
+noncomputable def csnd (c : Nat) : Nat := c - tri (cw c)
+
+/-- First Cantor projection. -/
+noncomputable def cfst (c : Nat) : Nat := cw c - csnd c
+
+theorem csnd_cp (a b : Nat) : csnd (cp a b) = b := by
+  unfold csnd
+  rw [cw_cp]
+  unfold cp
+  omega
+
+theorem cfst_cp (a b : Nat) : cfst (cp a b) = a := by
+  unfold cfst
+  rw [csnd_cp, cw_cp]
+  omega
+
+theorem csnd_le_cw (c : Nat) : csnd c ≤ cw c := by
+  have h1 := cw_lt c
+  have h2 := tri_cw_le c
+  rw [tri_succ] at h1
+  unfold csnd
+  omega
+
+theorem cp_surj (c : Nat) : cp (cfst c) (csnd c) = c := by
+  have h1 := tri_cw_le c
+  have h2 := csnd_le_cw c
+  unfold cp cfst
+  have : cw c - csnd c + csnd c = cw c := by omega
+  rw [this]
+  unfold csnd
+  omega
+
+theorem Recursive1.cw : Recursive1 Rcat.cw := by
+  refine Recursive1.mu (t := fun s c => (c + 1) - Rcat.tri (s + 1)) ?_ ?_ ?_
+  · exact Recursive2.comp2 Recursive2.sub
+      (Recursive2.comp2 Recursive2.add Recursive2.sndArg (Recursive2.ofFst (Recursive1.const 1)))
+      (Recursive2.ofFst (Recursive1.comp (f := fun s => s + 1)
+        (Recursive1.add Recursive1.id (Recursive1.const 1)) Recursive1.tri))
+  · intro c
+    show (c + 1) - Rcat.tri (Rcat.cw c + 1) = 0
+    have := cw_lt c
+    omega
+  · intro c s hs
+    show (c + 1) - Rcat.tri (s + 1) ≠ 0
+    have hmin : ¬c < Rcat.tri (s + 1) :=
+      theLeast_min (fun s => c < Rcat.tri (s + 1)) ⟨c, by have := le_tri (c + 1); omega⟩ s hs
+    omega
+
+theorem Recursive1.csnd : Recursive1 Rcat.csnd :=
+  (Recursive1.sub Recursive1.id (Recursive1.comp Recursive1.cw Recursive1.tri)).congr
+    fun _ => rfl
+
+theorem Recursive1.cfst : Recursive1 Rcat.cfst :=
+  (Recursive1.sub Recursive1.cw Recursive1.csnd).congr fun _ => rfl
+
+/-! ### Division and remainder by a positive constant -/
+
+theorem Recursive1.divConst (m : Nat) : Recursive1 fun c => c / (m + 1) := by
+  refine Recursive1.mu (t := fun q c => (c + 1) - (m + 1) * (q + 1)) ?_ ?_ ?_
+  · exact Recursive2.comp2 Recursive2.sub
+      (Recursive2.comp2 Recursive2.add Recursive2.sndArg (Recursive2.ofFst (Recursive1.const 1)))
+      (Recursive2.comp2 Recursive2.mul (Recursive2.ofFst (Recursive1.const (m + 1)))
+        (Recursive2.comp2 Recursive2.add Recursive2.fstArg
+          (Recursive2.ofFst (Recursive1.const 1))))
+  · intro c
+    show (c + 1) - (m + 1) * (c / (m + 1) + 1) = 0
+    have h1 := Nat.div_add_mod c (m + 1)
+    have h2 := Nat.mod_lt c (y := m + 1) (by omega)
+    have h3 : (m + 1) * (c / (m + 1) + 1) = (m + 1) * (c / (m + 1)) + (m + 1) :=
+      Nat.mul_succ _ _
+    omega
+  · intro c q hq
+    show (c + 1) - (m + 1) * (q + 1) ≠ 0
+    have h1 : (q + 1) * (m + 1) ≤ (c / (m + 1)) * (m + 1) :=
+      Nat.mul_le_mul_right _ (by omega)
+    have h2 : (c / (m + 1)) * (m + 1) ≤ c := Nat.div_mul_le_self c (m + 1)
+    have h3 : (m + 1) * (q + 1) = (q + 1) * (m + 1) := Nat.mul_comm _ _
+    omega
+
+theorem Recursive1.modConst (m : Nat) : Recursive1 fun c => c % (m + 1) := by
+  have h : Recursive1 fun c => c - (c / (m + 1)) * (m + 1) :=
+    Recursive1.sub Recursive1.id
+      (Recursive1.mul (Recursive1.divConst m) (Recursive1.const (m + 1)))
+  refine h.congr fun c => ?_
+  have h1 := Nat.div_add_mod c (m + 1)
+  have h3 : (m + 1) * (c / (m + 1)) = (c / (m + 1)) * (m + 1) := Nat.mul_comm _ _
+  omega
+
 end Freyd.Rcat
