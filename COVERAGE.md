@@ -326,8 +326,15 @@ DONE (2026-07-03): §2.16(13) recursive instance (`S2_16_Recursive`, effective r
 §2.157 LITERAL DESARGUES CONVERSE (`S2_157c`–`g`, `desarguesND_iff_desarguesHorn`) · §2.158 core
 (`S2_158_GraphAllegory`, decision procedure + Ĝ one-object allegory) · §2.16(14) BOTH presentations
 (`S2_16e_TwoPresentations`, symmetric-idempotent / coreflexive splittings of the set-like subcategory).
-MISSING: §2.153 non-effectiveness (recursive K) · §2.157 Veblen–Wedderburn 91-point non-Desarguesian model ·
-§2.158 no-finite-axiomatization METATHEOREM (Target 3: derivations + graph-map factorization/compactness).
+§2.153 non-effectiveness: reduction DONE (`S2_153_NonEffective`, `asmReflection_not_ac_of_nonsplitting`)
++ the PARTIAL-RECURSIVE modulus system now BUILT (`S2_153b_RecursiveModulus`: `PartRec` + all closures
+incl. `partRec_casesC` via a from-scratch `universal_genuine` machine ⟹ `Krec : ModulusSystem`,
+[propext,choice,Quot.sound]). REMAINING for the concrete headline: `ERel` transport FAILS (singleton-caucus
+assemblies are effective/Krec-trackable) — needs a non-splitting relation on a RICHER (non-singleton,
+r.e.-caucus) `Krec`-assembly whose quotient is not Krec-trackable (a separate construction).
+MISSING: §2.157 Veblen–Wedderburn 91-point non-Desarguesian model ·
+§2.158 no-finite-axiomatization METATHEOREM (Target 3: `RhombusHard` — blocked on constructive finiteness
+infra + the OCR-corrupted entangled n-rhombus figure; scaffolding + `ladder_holds` + `not_complete_nil` done).
 
 ## §2.2  Distributive allegories
 
