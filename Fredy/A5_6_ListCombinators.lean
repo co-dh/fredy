@@ -144,4 +144,32 @@ def ordered : dList A ⟶ dList A := fun x y => x = y ∧ orderedP R x
 theorem ordered_coreflexive : (ordered R : dList A ⟶ dList A) ⊑ Cat.id (dList A) :=
   le_iff.mpr fun x y h => h.1
 
+/-! ## Partition `partition : list (list⁺ A) ← list A` (B&dM p.128, `partition = concat°`) -/
+
+/-- List append. -/
+def cappend : ConsList Unit A → ConsList Unit A → ConsList Unit A
+  | ConsList.wrap _, ys => ys
+  | ConsList.cons a x, ys => ConsList.cons a (cappend x ys)
+
+/-- Flatten a list of lists (`concat = ⦇[nil, cat]⦈`). -/
+def cconcat : ConsList Unit (ConsList Unit A) → ConsList Unit A
+  | ConsList.wrap _ => ConsList.wrap ()
+  | ConsList.cons seg rest => cappend seg (cconcat rest)
+
+/-- A segment is non-empty (not `nil`). -/
+def isNonempty : ConsList Unit A → Prop
+  | ConsList.wrap _ => False
+  | ConsList.cons _ _ => True
+
+/-- Every segment of a list-of-lists is non-empty. -/
+def allNonempty : ConsList Unit (ConsList Unit A) → Prop
+  | ConsList.wrap _ => True
+  | ConsList.cons seg rest => isNonempty seg ∧ allNonempty rest
+
+/-- **`partition : list A ⟶ list (list⁺ A)`** (B&dM p.128, `partition = concat°`): a decomposition
+    of `x` into a list of non-empty contiguous segments — `ps` is a partition of `x` iff flattening
+    `ps` gives `x` and every segment is non-empty. -/
+def partition : dList A ⟶ (⟨ConsList Unit (ConsList Unit A)⟩ : RelSet.{0}) :=
+  fun x ps => cconcat ps = x ∧ allNonempty ps
+
 end Freyd.Alg.RelSet.ListRel
