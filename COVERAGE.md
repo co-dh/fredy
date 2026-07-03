@@ -161,7 +161,12 @@ quotient-objects, mirrors `Subobject`); §1.566 functor `ker := kernelPairRel` w
 (faithful order-embedding Quot(A)↪EquivRel(A)ᵒᵖ) [Classical.choice].
 MISSING: §1.513 covering-FAMILY predicate ·
 §1.573 "P not cartesian" + §1.574 x⁻¹∉P / fractions (Ackermann-scale growth arguments) · §1.584–§1.587
-cocartesian-slice/Lazard/diophantine · §1.596 A(𝒮^𝒜) · §1.59(10) modular-lattice Galois.
+cocartesian-slice/Lazard/diophantine · §1.59(10) modular-lattice Galois.
+§1.596 DONE (`S1_596_AbFunctorCategory`): iso of categories `Ab(𝒮^𝒜) ≅ (Ab 𝒮)^𝒜` — internal
+abelian-group object in the functor category = functor into abelian-group objects (structure is
+LEVELWISE). `fwdFun`/`bwdFun` object bijection + `fwdHom`/`bwdHom` per-hom bijection + `fwdHom_id`/
+`fwdHom_comp` functoriality; every round-trip `rfl`. Choice-free [propext, Quot.sound]. Imports only
+§1.422 (functor cat) + §1.595 (Ab objects).
 
 ## §1.6  Pre-logoi
 

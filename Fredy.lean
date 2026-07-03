@@ -39,6 +39,7 @@ import Fredy.S1_59
 import Fredy.S1_595_AbCategory
 import Fredy.S1_594_AbAbelian
 import Fredy.S1_595_AbRegular
+import Fredy.S1_596_AbFunctorCategory
 import Fredy.S1_59_ExactRepresentation
 import Fredy.S1_60
 import Fredy.S1_70
