@@ -212,3 +212,5 @@ import Fredy.A6_SnocList
 -- Bird & de Moor §6.4: fast exponentiation/modulus — `exp`/`mod` as hylomorphisms over the binary
 -- datatype `Bin = SnocList Unit Bit`, giving the O(log) divide-and-conquer least fixed point.
 import Fredy.A6_4_FastExp
+-- Generic cons-list `ConsList L E = L + E×(·)` (head/tail) as an initial algebra; `list A = ConsList Unit A`.
+import Fredy.A6_ConsList
