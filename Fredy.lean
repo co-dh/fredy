@@ -200,3 +200,6 @@ import Fredy.A8_1
 import Fredy.A9_1
 -- Bird & de Moor ch. 10: greedy algorithms (Theorem 10.1 — greedy as extreme dynamic programming)
 import Fredy.A10_1
+-- Concrete model Rel(Set) for the AoP case studies (objects = types, morphisms = relations):
+-- the full allegory stack (power/LCDA/tabular/unitary) in which the §6.1+ programs actually run.
+import Fredy.A6_1_RelSet
