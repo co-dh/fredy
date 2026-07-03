@@ -605,6 +605,68 @@ theorem meet_ln_ln_pt {A B : P.Line} {x : P.Point} (hAB : A ≠ B)
     (hxA : P.incid x A) (hxB : P.incid x B) : (ln A).meet (ln B) = pt x := by
   rw [meet_ln_ln_ne hAB, ← ProjectivePlane.meetPoint_eq hAB hxA hxB]
 
+/-! ## The centre case with `z` under one c-column entry (easy half of `H = pt`)
+
+  When the perspective centre `z := (a₁⊔a₂) ⊓ (b₁⊔b₂)` already lies under one of
+  `c₁`, `c₂` the whole family reduces to `horn_center` by c-monotonicity: prove
+  the conclusion at the tight column `(⊥, pt z)` (resp. `(pt z, ⊥)`) and inflate
+  the free entry up to the actual `cᵢ`. -/
+
+/-- Mirror of `horn_center`: the Horn conclusion at `(pt z, ⊥)`. -/
+theorem horn_center_c₁ {a₁ a₂ b₁ b₂ : PElem P} {z : P.Point}
+    (h : (a₁.join a₂).meet (b₁.join b₂) = pt z) :
+    HornConc a₁ a₂ b₁ b₂ (pt z) bot :=
+  HornConc.of_swap_idx (horn_center (by rw [join_comm a₂ a₁, join_comm b₂ b₁]; exact h))
+
+/-- **`H = pt z`, easy half**: if the centre `z` lies under `c₁` or under `c₂`,
+    the family reduces to `horn_center` by c-monotonicity. -/
+theorem horn_center_under {a₁ a₂ b₁ b₂ c₁ c₂ : PElem P} {z : P.Point}
+    (hH : (a₁.join a₂).meet (b₁.join b₂) = pt z)
+    (hz : (pt z : PElem P).le c₁ ∨ (pt z : PElem P).le c₂) :
+    HornConc a₁ a₂ b₁ b₂ c₁ c₂ := by
+  rcases hz with h | h
+  · exact (horn_center_c₁ hH).mono_c h (bot_le c₂)
+  · exact (horn_center hH).mono_c (bot_le c₁) h
+
+/-! ## Reduction of the literal converse to three shape families
+
+  Everything above (the ⊤-tuples of `S2_157b_Desargues`, the disjoint core, the
+  centre case with `z` under a c-column entry) reduces the lattice Horn sentence
+  at an ARBITRARY 6-tuple, by a four-way split on the SHAPE of the hypothesis
+  meet `H := (a₁ ⊔ a₂) ⊓ (b₁ ⊔ b₂)`, to exactly three residual families:
+
+  · `H = ⊥` — `horn_core_disjoint` (pure modularity; CLOSED, any `c`);
+  · `H = pt z` — the PERSPECTIVE-CENTRE family (`famB`); the easy half is
+    `horn_center_under`, the residue (`z` under NEITHER `c₁` nor `c₂`, so
+    `c₁ ⊔ c₂` is a line/⊤ meeting the centre off both entries) is where the
+    Desargues AXIS enters (`desarguesND_implies_horn_points`);
+  · `H = ln A` (`famC`) and `H = ⊤` (`famA`) — the line/top degeneracies.
+
+  `latticeHorn_of_families` records the split, machine-checking that these
+  three families EXHAUST the remaining cases; `famA/famB/famC` are the residual
+  obligations for a fully literal §2.157 converse. -/
+
+/-- **The remaining-gap reduction (exhaustive).**  Given the three residual
+    shape families, the lattice Horn sentence holds at every 6-tuple: split on
+    the shape of the hypothesis meet and dispatch. -/
+theorem latticeHorn_of_families
+    (famB : ∀ (a₁ a₂ b₁ b₂ c₁ c₂ : PElem P) (z : P.Point),
+        (a₁.join a₂).meet (b₁.join b₂) = pt z →
+        HornHyp a₁ a₂ b₁ b₂ c₁ c₂ → HornConc a₁ a₂ b₁ b₂ c₁ c₂)
+    (famC : ∀ (a₁ a₂ b₁ b₂ c₁ c₂ : PElem P) (A : P.Line),
+        (a₁.join a₂).meet (b₁.join b₂) = ln A →
+        HornHyp a₁ a₂ b₁ b₂ c₁ c₂ → HornConc a₁ a₂ b₁ b₂ c₁ c₂)
+    (famA : ∀ (a₁ a₂ b₁ b₂ c₁ c₂ : PElem P),
+        (a₁.join a₂).meet (b₁.join b₂) = top →
+        HornHyp a₁ a₂ b₁ b₂ c₁ c₂ → HornConc a₁ a₂ b₁ b₂ c₁ c₂)
+    (a₁ a₂ b₁ b₂ c₁ c₂ : PElem P) (h : HornHyp a₁ a₂ b₁ b₂ c₁ c₂) :
+    HornConc a₁ a₂ b₁ b₂ c₁ c₂ := by
+  rcases hH : (a₁.join a₂).meet (b₁.join b₂) with _ | z | A | _
+  · exact horn_core_disjoint c₁ c₂ hH
+  · exact famB a₁ a₂ b₁ b₂ c₁ c₂ z hH h
+  · exact famC a₁ a₂ b₁ b₂ c₁ c₂ A hH h
+  · exact famA a₁ a₂ b₁ b₂ c₁ c₂ hH h
+
 end PElem
 
 end Freyd.Alg
