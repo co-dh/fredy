@@ -224,7 +224,7 @@ function wireEvents(){
   $('#relayout').addEventListener('click', runLayout);
   document.querySelectorAll('#legend span').forEach(el=> el.addEventListener('click', ()=>{
     const k=el.dataset.kind; if(hiddenKinds.has(k)){hiddenKinds.delete(k);el.classList.remove('off');}
-    else {hiddenKinds.add(k);el.classList.add('off');} sigma.refresh();
+    else {hiddenKinds.add(k);el.classList.add('off');} sigma.setCustomBBox(null); sigma.refresh();
   }));
   buildSections();
   addEventListener('keydown', e=>{ if(e.key==='Escape'){ selected=null; closeDetail(); sigma.refresh(); } });
@@ -249,13 +249,13 @@ function buildSections(){
   }).join('');
   $('#sections').querySelectorAll('.secbox').forEach(cb=> cb.addEventListener('change', ()=>{
     cb.checked ? hiddenSections.delete(cb.value) : hiddenSections.add(cb.value);
-    syncMasters(); sigma.refresh();
+    syncMasters(); sigma.setCustomBBox(null); sigma.refresh();
   }));
   $('#sections').querySelectorAll('.master input').forEach(cb=> cb.addEventListener('change', ()=>{
     cb.closest('.secrow').querySelectorAll('.secbox').forEach(x=>{
       x.checked=cb.checked; x.checked ? hiddenSections.delete(x.value) : hiddenSections.add(x.value);
     });
-    cb.indeterminate=false; sigma.refresh();
+    cb.indeterminate=false; sigma.setCustomBBox(null); sigma.refresh();
   }));
 }
 function syncMasters(){
@@ -345,8 +345,19 @@ search.addEventListener('keydown', e=>{
    When nothing is hidden it lays out the full graph in place (no subgraph copy). */
 let layoutRunning=false;
 function isVisible(n){ const d=decl.get(n); return !(hiddenKinds.has(d?.kind)||hiddenSections.has(d?.sec)); }
+// After a partial relayout, frame the camera to just the visible nodes: hidden nodes keep their
+// old far-off coordinates, which would otherwise dominate Sigma's auto extent and leave the
+// re-laid-out cluster tiny in the middle. Clearing the bbox (arg null) reverts to full extent.
+function frameVisible(vis){
+  let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+  for(const n of vis){ const a=graph.getNodeAttributes(n);
+    if(a.x<x0)x0=a.x; if(a.x>x1)x1=a.x; if(a.y<y0)y0=a.y; if(a.y>y1)y1=a.y; }
+  if(x0<=x1) sigma.setCustomBBox({ x:[x0,x1], y:[y0,y1] });
+  sigma.refresh(); sigma.getCamera().animatedReset();
+}
 function runLayout(){
   if(layoutRunning) return; layoutRunning=true;
+  sigma.setCustomBBox(null);                                   // drop any prior framing before re-laying out
   const vis=[]; graph.forEachNode(n=>{ if(isVisible(n)) vis.push(n); });
   let target, sub=null;
   if(vis.length===graph.order){ target=graph; }
@@ -357,11 +368,20 @@ function runLayout(){
     graph.forEachEdge((e,ea,s,t)=>{ if(set.has(s)&&set.has(t)) sub.addEdge(s,t); });
     target=sub;
   }
-  const settings = Object.assign(forceAtlas2.inferSettings(target), { barnesHutOptimize:true, gravity:1.2, slowDown:2 });
+  // A subgraph has less mutual repulsion, so the full-graph gravity collapses it into a central
+  // blob. Stronger repulsion (scalingRatio) + lighter gravity spreads it to fill the frame; the
+  // full graph keeps its original tuned look.
+  const settings = Object.assign(forceAtlas2.inferSettings(target),
+    sub ? { barnesHutOptimize:true, gravity:0.8, scalingRatio:8, slowDown:3 }
+        : { barnesHutOptimize:true, gravity:1.2, slowDown:2 });
   const TOTAL=300; let done=0;
   overlay.classList.remove('hidden');
   (function stepLoop(){
-    if(done>=TOTAL){ overlay.classList.add('hidden'); layoutRunning=false; return; }
+    if(done>=TOTAL){
+      sigma.refresh();
+      sub ? frameVisible(vis) : sigma.getCamera().animatedReset();
+      overlay.classList.add('hidden'); layoutRunning=false; return;
+    }
     const chunk=Math.min(12, TOTAL-done);
     forceAtlas2.assign(target, { iterations:chunk, settings }); done+=chunk;
     if(sub) sub.forEachNode((n,a)=>{ graph.setNodeAttribute(n,'x',a.x); graph.setNodeAttribute(n,'y',a.y); });
