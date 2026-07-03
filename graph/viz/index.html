@@ -93,7 +93,7 @@
       <option value="none">none</option>
     </select>
   </label>
-  <button id="relayout">re-run layout</button>
+  <button id="relayout" title="re-run force layout on the currently-visible nodes (use after changing filters)">re-run layout</button>
   <span class="stat" id="stat">loading…</span>
 </div>
 
@@ -339,18 +339,33 @@ search.addEventListener('keydown', e=>{
   } else if(e.key==='Enter' && curList.length){ focusNode(curList[Math.max(0,curSel)][1]); }
 });
 
-/* ---------- layout (chunked ForceAtlas2, non-freezing) ---------- */
+/* ---------- layout (chunked ForceAtlas2, non-freezing) ----------
+   Lays out only the currently-visible nodes: after hiding sections/kinds, re-running
+   reflows the survivors into the freed space instead of being repelled by hidden nodes.
+   When nothing is hidden it lays out the full graph in place (no subgraph copy). */
 let layoutRunning=false;
+function isVisible(n){ const d=decl.get(n); return !(hiddenKinds.has(d?.kind)||hiddenSections.has(d?.sec)); }
 function runLayout(){
   if(layoutRunning) return; layoutRunning=true;
-  const settings = Object.assign(forceAtlas2.inferSettings(graph), { barnesHutOptimize:true, gravity:1.2, slowDown:2 });
+  const vis=[]; graph.forEachNode(n=>{ if(isVisible(n)) vis.push(n); });
+  let target, sub=null;
+  if(vis.length===graph.order){ target=graph; }
+  else {
+    sub=new Graph({ type:'directed', multi:false, allowSelfLoops:false });
+    const set=new Set(vis);
+    for(const n of vis){ const a=graph.getNodeAttributes(n); sub.addNode(n,{ x:a.x, y:a.y, size:a.size }); }
+    graph.forEachEdge((e,ea,s,t)=>{ if(set.has(s)&&set.has(t)) sub.addEdge(s,t); });
+    target=sub;
+  }
+  const settings = Object.assign(forceAtlas2.inferSettings(target), { barnesHutOptimize:true, gravity:1.2, slowDown:2 });
   const TOTAL=300; let done=0;
   overlay.classList.remove('hidden');
   (function stepLoop(){
     if(done>=TOTAL){ overlay.classList.add('hidden'); layoutRunning=false; return; }
     const chunk=Math.min(12, TOTAL-done);
-    forceAtlas2.assign(graph, { iterations:chunk, settings }); done+=chunk;
-    ovbox.textContent = `laying out…  ${done}/${TOTAL}`;
+    forceAtlas2.assign(target, { iterations:chunk, settings }); done+=chunk;
+    if(sub) sub.forEachNode((n,a)=>{ graph.setNodeAttribute(n,'x',a.x); graph.setNodeAttribute(n,'y',a.y); });
+    ovbox.textContent = `laying out ${vis.length} nodes…  ${done}/${TOTAL}`;
     sigma.refresh();
     requestAnimationFrame(stepLoop);
   })();
