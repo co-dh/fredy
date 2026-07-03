@@ -104,31 +104,12 @@ theorem directImage_mono [HasImages 𝒞] {A B : 𝒞} (f : A ⟶ B)
     _ = (k ≫ S'.arr) ≫ f := (Cat.assoc _ _ _).symm
     _ = S.arr ≫ f := by rw [hk]
 
-/-! ## Meet laws, PreLogos-free
+/-! ## Meet laws — reused from S1_62 (now PreLogos-free)
 
-  `Subobject.inter` (S1_62) needs only `[HasPullbacks]`, but its meet lemmas
-  `Subobject.inter_le_left`/`inter_le_right`/`le_inter` were compiled with a
-  spurious ambient `[PreLogos 𝒞]` section hypothesis.  An abelian category is
-  regular but generally NOT a pre-logos (its subobject lattices are modular, not
-  distributive), so §1.59(10) must avoid `PreLogos`.  We reprove the three laws
-  with `[HasPullbacks]` alone (same pullback-cone proofs as S1_62). -/
-
-theorem inter_le_left [HasPullbacks 𝒞] {B : 𝒞} (S T : Subobject 𝒞 B) :
-    (Subobject.inter S T).le S :=
-  ⟨(HasPullbacks.has S.arr T.arr).cone.π₁, rfl⟩
-
-theorem inter_le_right [HasPullbacks 𝒞] {B : 𝒞} (S T : Subobject 𝒞 B) :
-    (Subobject.inter S T).le T :=
-  ⟨(HasPullbacks.has S.arr T.arr).cone.π₂, ((HasPullbacks.has S.arr T.arr).cone.w).symm⟩
-
-theorem le_inter [HasPullbacks 𝒞] {B : 𝒞} {X S T : Subobject 𝒞 B}
-    (hS : X.le S) (hT : X.le T) : X.le (Subobject.inter S T) := by
-  obtain ⟨p, hp⟩ := hS; obtain ⟨q, hq⟩ := hT
-  let pb := HasPullbacks.has S.arr T.arr
-  let c : Cone S.arr T.arr := { pt := X.dom, π₁ := p, π₂ := q, w := by rw [hp, hq] }
-  refine ⟨pb.lift c, ?_⟩
-  show pb.lift c ≫ (pb.cone.π₁ ≫ S.arr) = X.arr
-  rw [← Cat.assoc, pb.lift_fst c]; exact hp
+  `Subobject.inter` and its meet-laws `Subobject.inter_le_left`/`inter_le_right`/`le_inter`
+  (S1_62) need only `[HasPullbacks]`; the file-level `[PreLogos 𝒞]` there is now `omit`ted from
+  them, so this file reuses them directly — abelian categories are regular but generally NOT
+  pre-logoi (their subobject lattices are modular, not distributive). -/
 
 /-! ## Cover-descent lemma and equation (I) -/
 
@@ -171,10 +152,10 @@ theorem frobenius_le [HasImages 𝒞] [HasPullbacks 𝒞] {A B : 𝒞} (f : A �
     (S : Subobject 𝒞 A) (T : Subobject 𝒞 B) :
     (DirectImage f (Subobject.inter S (InverseImage f T))).le
       (Subobject.inter (DirectImage f S) T) :=
-  le_inter
-    (directImage_mono f (inter_le_left S (InverseImage f T)))
+  Subobject.le_inter
+    (directImage_mono f (Subobject.inter_le_left S (InverseImage f T)))
     ((directImage_adj f (Subobject.inter S (InverseImage f T)) T).mpr
-      (inter_le_right S (InverseImage f T)))
+      (Subobject.inter_le_right S (InverseImage f T)))
 
 /-- Equation (I), hard half:  `(f A') ∩ B' ≤ f (A' ∩ f* B')`.  This is where
     regularity is used: pull the image-cover `e : A' ↠ f A'` back along the meet

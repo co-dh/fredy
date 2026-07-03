@@ -73,6 +73,10 @@ theorem iso_comp_cover {X Y Z : 𝒞} (f : X ⟶ Y) (g : Y ⟶ Z) (hf : IsIso f)
       _ = (f_inv ≫ f) ≫ g := (Cat.assoc _ _ _).symm
       _ = g := by rw [hf_inv_f, Cat.id_comp])
 
+-- `Subobject.inter` and its meet-laws below are pure pullback facts: they need only
+-- `[HasPullbacks]`, NOT the file-level `[PreLogos 𝒞]`.  `omit` frees them so regular/abelian
+-- (non-pre-logos) code can reuse them (e.g. §1.59(10) `S1_59_10_Frobenius`) without re-proving.
+omit [PreLogos 𝒞] in
 /-- Intersection of subobjects: pullback of S.arr and T.arr, composed with S.arr. -/
 def Subobject.inter [HasPullbacks 𝒞] {B : 𝒞} (S T : Subobject 𝒞 B) : Subobject 𝒞 B :=
   let pb := HasPullbacks.has S.arr T.arr
@@ -115,16 +119,19 @@ def Subobject.inter [HasPullbacks 𝒞] {B : 𝒞} (S T : Subobject 𝒞 B) : Su
             _ = c.π₂ := rfl
       rw [hv_eq_u] }
 
+omit [PreLogos 𝒞] in
 /-- `S ∩ T ≤ S` (the intersection is below its left factor). -/
 theorem Subobject.inter_le_left [HasPullbacks 𝒞] {B : 𝒞} (S T : Subobject 𝒞 B) :
     (Subobject.inter S T).le S :=
   ⟨(HasPullbacks.has S.arr T.arr).cone.π₁, rfl⟩
 
+omit [PreLogos 𝒞] in
 /-- `S ∩ T ≤ T`. -/
 theorem Subobject.inter_le_right [HasPullbacks 𝒞] {B : 𝒞} (S T : Subobject 𝒞 B) :
     (Subobject.inter S T).le T :=
   ⟨(HasPullbacks.has S.arr T.arr).cone.π₂, ((HasPullbacks.has S.arr T.arr).cone.w).symm⟩
 
+omit [PreLogos 𝒞] in
 /-- The meet property: any `X` below both `S` and `T` is below `S ∩ T` (the pullback's
     universal property: `X`'s two factorizations form a cone, lifted into the pullback). -/
 theorem Subobject.le_inter [HasPullbacks 𝒞] {B : 𝒞} {X S T : Subobject 𝒞 B}
@@ -136,6 +143,7 @@ theorem Subobject.le_inter [HasPullbacks 𝒞] {B : 𝒞} {X S T : Subobject �
   show pb.lift c ≫ (pb.cone.π₁ ≫ S.arr) = X.arr
   rw [← Cat.assoc, pb.lift_fst c]; exact hf
 
+omit [PreLogos 𝒞] in
 /-- If `I` is an image of `g` and `e ≫ I.arr = g`, then `e` is a cover.  The
     abstract-image generalization of `image_lift_cover`. -/
 theorem cover_of_image_factor {A B : 𝒞} {g : A ⟶ B} {I : Subobject 𝒞 B}
