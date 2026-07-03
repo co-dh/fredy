@@ -368,7 +368,7 @@ theorem monotonicAlg_of_cost {c : 𝒜} {h : F.obj a ⟶ a} {R : a ⟶ a} {cost 
     hypothesis is always satisfiable in principle, but the resulting `Q` mentions the very
     optimum `dynamic_programming_thin` is trying to compute — useless for actually EXECUTING
     the recursion (only for justifying that some valid `Q` exists). -/
-theorem thin_condition_of_optimum (hFr : F.PreservesRecip) {h : F.obj a ⟶ a} {T : F.obj b ⟶ b}
+theorem thin_condition_of_optimum (hFr : F.PreservesRecip) {h : F.obj a ⟶ a}
     {R : a ⟶ a} {H M : b ⟶ a} (hh : Map h) (hmono : MonotonicAlg h R) (htrans : R ≫ R ⊑ R)
     (hMH : M ⊑ H) (hHMR : H° ≫ M ⊑ R) :
     (F.map (M ≫ R ≫ M°))° ≫ F.map H ≫ h ⊑ F.map H ≫ h ≫ R° := by

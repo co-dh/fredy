@@ -192,3 +192,5 @@ import Fredy.A7_1
 import Fredy.A7_2
 -- Bird & de Moor ch. 8: thinning algorithms (thin, thinning theorem)
 import Fredy.A8_1
+-- Bird & de Moor ch. 9: dynamic programming (principle of optimality, DP + thinning theorems)
+import Fredy.A9_1
