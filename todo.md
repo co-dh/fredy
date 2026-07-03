@@ -1,7 +1,22 @@
 # TODO — remaining Chapter-2 items (Freyd, *Categories, Allegories*)
 
-Status as of 2026-06-30. Everything below is **not yet formalized**; the rest of Chapter 2 is done
+Status as of 2026-07-03. Everything below is **not yet formalized**; the rest of Chapter 2 is done
 (see `COVERAGE.md`). Grouped by how reachable each is.
+
+## 2026-07-03 session — CLOSED (sorry-free, axioms ⊆ {propext, Classical.choice, Quot.sound})
+- **§2.157 literal Desargues converse COMPLETE** — `desarguesND_iff_desarguesHorn` (four-family case
+  tree `S2_157c`–`S2_157g`; coupled-shear key `cruxDesLeaf`).  Only the Veblen–Wedderburn 91-point
+  non-Desarguesian model remains in §2.157.
+- **§2.16(13)** recursive instance (`S2_16_Recursive`): effective reflection of R is not AC.
+- **§2.158** core (`S2_158_GraphAllegory`): free representable one-object allegory = graph poset +
+  decision procedure; Ĝ a one-object allegory.  OPEN: the no-finite-axiomatization metatheorem (Target 3).
+- **§2.417** core (`S2_417_Generator`): category C + generator witness `G_generates`.  OPEN: "not a power
+  allegory" (needs a Progenitor class) + Giraud conditions.
+- **§2.16(14)** second presentation (`S2_16e_TwoPresentations`): E / Rel(A) as symmetric-idempotent /
+  coreflexive splittings of the set-like subcategory, object/iso level.  OPEN: full categorical equivs.
+- Chapter-1 also closed this session (see `COVERAGE.md`): §1.568 Quot(A), §1.596 Ab-functor-category iso,
+  §1.513/514 covering families, §1.59(10) core (Frobenius eq I + adjunction).  Infra cleanup: S1_62's
+  `Subobject.inter` meet-laws freed from a spurious `[PreLogos]` (commit 7717b47).
 
 ## ★ THE BOX-MATCHED THICKNESS — FAITHFUL to §2.431 (resolved 2026-06-30 from the original scan)
 
