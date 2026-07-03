@@ -142,6 +142,7 @@ import Fredy.S2_417b_NotPower
 import Fredy.S2_417c_ProperLabels
 import Fredy.S2_438_Godel
 import Fredy.S2_437_REAllegory
+import Fredy.S2_437b_NotDivision
 import Fredy.S2_441_StraightJoin
 import Fredy.S2_5
 import Fredy.S2_51
