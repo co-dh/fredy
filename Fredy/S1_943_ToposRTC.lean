@@ -41,21 +41,7 @@ variable [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
 
     This is exactly the converter the family-glb RTC construction needs to turn the
     `bigInter : Subobject (prod A A)` back into a `BinRel A A`. -/
-noncomputable def subToRel {A B : 𝒞} (S : Subobject 𝒞 (prod A B)) : BinRel 𝒞 A B where
-  src  := S.dom
-  colA := S.arr ≫ fst
-  colB := S.arr ≫ snd
-  isMonicPair := by
-    -- jointly monic: if `f, g` agree on both legs they agree on `S.arr` (product η),
-    -- and `S.arr` is monic.  (`pair (S.arr≫fst) (S.arr≫snd) = S.arr`.)
-    intro W f g hfA hgA
-    apply S.monic
-    -- `f ≫ S.arr = g ≫ S.arr` from agreement on `fst`/`snd` legs of `S.arr`.
-    have hf : f ≫ S.arr = pair (f ≫ (S.arr ≫ fst)) (f ≫ (S.arr ≫ snd)) :=
-      pair_uniq _ _ _ (by rw [Cat.assoc]) (by rw [Cat.assoc])
-    have hg : g ≫ S.arr = pair (f ≫ (S.arr ≫ fst)) (f ≫ (S.arr ≫ snd)) :=
-      pair_uniq _ _ _ (by rw [Cat.assoc, hfA]) (by rw [Cat.assoc, hgA])
-    rw [hf, hg]
+noncomputable def subToRel {A B : 𝒞} (S : Subobject 𝒞 (prod A B)) : BinRel 𝒞 A B := subRel S
 
 /-- `(subToRel S).arr`-pairing is `S.arr`: `pair (S.arr≫fst) (S.arr≫snd) = S.arr`. -/
 theorem relSub_subToRel_arr {A B : 𝒞} (S : Subobject 𝒞 (prod A B)) :
@@ -73,7 +59,7 @@ theorem subToRel_relSub {A B : 𝒞} (R : BinRel 𝒞 A B) : subToRel (relSub R)
   -- `subToRel (relSub R)` is `BinRel.mk R.src (pair R.colA R.colB ≫ fst) (… ≫ snd) …`;
   -- the two cols recover `R.colA`, `R.colB` by the fst/snd β-laws; `src` is `R.src`
   -- definitionally and `isMonicPair` is a `Prop` (proof-irrelevant).  Field-wise congruence.
-  simp only [subToRel, relSub, fst_pair, snd_pair]
+  simp only [subToRel, subRel, relSub, fst_pair, snd_pair]
 
 /-- **Order correspondence through `subToRel`.**  `RelLe (subToRel S) (subToRel T)`
     is exactly `S.le T` for subobjects `S, T` of `A×B`.  (Via `relLe_iff_subLe` and the

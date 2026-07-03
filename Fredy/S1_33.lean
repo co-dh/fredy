@@ -308,6 +308,22 @@ theorem proset_full_faithful_inj {α β : Type u}
   obtain ⟨g, _⟩ := hFull (⟨h_ba⟩ : @Cat.Hom β (prosetToCat Q) (F b) (F a))
   exact antisymP f.down g.down
 
+/-- §1.333: an injective-on-objects functor between posets is faithful (§1.333 backward).
+    Proof: embedding is free (thin cat); reflects-iso uses antisymQ + injectivity to show
+    A = B and then any f : A → A is its own inverse. -/
+theorem proset_inj_faithful {α β : Type u}
+    (P : ProsetCat α) (Q : ProsetCat β)
+    (antisymQ : ∀ {a b : β}, Q.le a b → Q.le b a → a = b)
+    (F : α → β) [hF : @Functor α (prosetToCat P) β (prosetToCat Q) F]
+    (hInj : ∀ a b : α, F a = F b → a = b) :
+    @Faithful α (prosetToCat P) β (prosetToCat Q) F hF :=
+  ⟨proset_functor_embedding P Q F, fun {A B} f hiso => by
+    obtain ⟨g, _, _⟩ := hiso
+    have hFAFB : F A = F B := antisymQ (hF.map f).down g.down
+    have hAB : A = B := hInj A B hFAFB
+    subst hAB
+    exact ⟨f, proset_hom_subsingleton P _ _, proset_hom_subsingleton P _ _⟩⟩
+
 /-- §1.333: for a FULL functor between posets, faithful iff injective on objects.
 
     The book (§1.333) states "faithful iff one-to-one on objects".  With our
@@ -338,34 +354,8 @@ theorem proset_faithful_iff_injective {α β : Type u}
   · intro hFaith
     exact proset_full_faithful_inj P Q antisymP F hFull hFaith
   · intro hInj
-    refine ⟨proset_functor_embedding P Q F, ?_⟩
-    intro A B f hiso
-    -- hiso : IsIso (hF.map f) in Q-cat, i.e. ∃ g : PLift(Q.le (FB)(FA)), ...
-    obtain ⟨g, _, _⟩ := hiso
-    -- g : PLift (Q.le (F B) (F A))
-    -- Combined with hF.map f : PLift (Q.le (F A) (F B)), Q-antisymmetry gives F A = F B.
-    have hFAFB : F A = F B := antisymQ (hF.map f).down g.down
-    -- Injectivity gives A = B.
-    have hAB : A = B := hInj A B hFAFB
-    subst hAB
-    -- Now f : @Cat.Hom α (prosetToCat P) A A = PLift (P.le A A); IsIso f is trivial.
-    exact ⟨f, proset_hom_subsingleton P _ _, proset_hom_subsingleton P _ _⟩
+    exact proset_inj_faithful P Q antisymQ F hInj
 
-/-- §1.333: an injective-on-objects functor between posets is faithful (§1.333 backward).
-    Proof: embedding is free (thin cat); reflects-iso uses antisymQ + injectivity to show
-    A = B and then any f : A → A is its own inverse. -/
-theorem proset_inj_faithful {α β : Type u}
-    (P : ProsetCat α) (Q : ProsetCat β)
-    (antisymQ : ∀ {a b : β}, Q.le a b → Q.le b a → a = b)
-    (F : α → β) [hF : @Functor α (prosetToCat P) β (prosetToCat Q) F]
-    (hInj : ∀ a b : α, F a = F b → a = b) :
-    @Faithful α (prosetToCat P) β (prosetToCat Q) F hF :=
-  ⟨proset_functor_embedding P Q F, fun {A B} f hiso => by
-    obtain ⟨g, _, _⟩ := hiso
-    have hFAFB : F A = F B := antisymQ (hF.map f).down g.down
-    have hAB : A = B := hInj A B hFAFB
-    subst hAB
-    exact ⟨f, proset_hom_subsingleton P _ _, proset_hom_subsingleton P _ _⟩⟩
 
 /-- §1.333: equivalence functor between posets iff order-isomorphism.
 

@@ -330,34 +330,19 @@ def finiteProducts_implies_binary (hfp : HasFiniteProducts 𝒞) : HasBinaryProd
     (hfp.fin_prod (fin2 A B)).uniq ⟨X, Fin.cases f (Fin.cases g (fun i => i.elim0))⟩ h
       (fun i => Fin.cases h₁ (fun j => Fin.cases h₂ (fun k => k.elim0) j) i)
 
-/-- **§1.425** helper: build `HasFinProd` by induction on `n`. -/
-def finProd_of_term_binary [ht : HasTerminal 𝒞] [hp : HasBinaryProducts 𝒞] :
-    ∀ (n : Nat) (A : Fin n → 𝒞), HasFinProd A
-  | 0,     _ => { cone := ⟨one, fun i => i.elim0⟩
-                  lift := fun c => term c.apex
-                  fac  := fun c i => i.elim0
-                  uniq := fun c m _ => term_uniq m (term c.apex) }
-  | n + 1, A =>
-    let tail := finProd_of_term_binary n (A ∘ Fin.succ)
-    { cone := ⟨prod (A 0) tail.cone.apex,
-                fun i => Fin.cases fst (fun j => snd ≫ tail.cone.π j) i⟩
-      lift := fun c => pair (c.π 0) (tail.lift ⟨c.apex, fun j => c.π j.succ⟩)
-      fac  := fun c i => by
-        refine Fin.cases ?_ (fun j => ?_) i
-        · simp [fst_pair]
-        · show pair (c.π 0) (tail.lift ⟨c.apex, fun j => c.π j.succ⟩) ≫
-                (snd ≫ tail.cone.π _) = c.π _
-          rw [← Cat.assoc, snd_pair, tail.fac]
-      uniq := fun c m hm => by
-        apply pair_uniq
-        · -- m ≫ fst = c.π 0
-          have h0 := hm 0; simp at h0; exact h0
-        · -- m ≫ snd = tail.lift {...}
-          apply tail.uniq ⟨c.apex, fun j => c.π j.succ⟩
-          intro j
-          have hj := hm j.succ
-          simp only [Fin.cases_succ, ← Cat.assoc] at hj
-          exact hj }
+/-- Adapt a `HasIndexedProduct` (over `Fin n`) to the `HasFinProd` cone packaging. -/
+def HasIndexedProduct.toHasFinProd {n : Nat} {A : Fin n → 𝒞} (h : HasIndexedProduct A) :
+    HasFinProd A where
+  cone := ⟨h.prod, h.proj⟩
+  lift := fun c => h.lift c.π
+  fac  := fun c i => h.lift_π c.π i
+  uniq := fun c m hm => h.lift_uniq c.π m hm
+
+/-- **§1.425** helper: build `HasFinProd` by induction on `n` — the §1.42 `HasIndexedProduct`
+    construction `finiteProduct_from_term_binary` repackaged into a `HasFinProd`. -/
+def finProd_of_term_binary [HasTerminal 𝒞] [HasBinaryProducts 𝒞] (n : Nat) (A : Fin n → 𝒞) :
+    HasFinProd A :=
+  (finiteProduct_from_term_binary A).toHasFinProd
 
 /-- **§1.425** (←): Terminal + binary products give all finite products. -/
 def terminal_binary_implies_finiteProducts [HasTerminal 𝒞] [HasBinaryProducts 𝒞] :

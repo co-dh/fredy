@@ -404,61 +404,6 @@ theorem capitalization_of_capData_positive {A : Type u} [Cat.{u} A] [PreRegularC
   exact ⟨cd.C.objIncl cd.i₀ ∘ cd.base, inferInstance,
     faithful_comp cd.baseFaithful (stageInclFaithful cd.C cd.hC cd.hfaith cd.hcons cd.i₀)⟩
 
-/-- **§1.54 + §2.218 R3 — the POSITIVE Capitalization Lemma.**  Every small POSITIVE pre-logos `A`
-    (a `DisjointBinaryCoproduct`) admits a faithful representation into a CAPITAL, POSITIVE pre-logos
-    `Ā` (again a `DisjointBinaryCoproduct`).  Same cofinal ω-tower as `capitalization_lemma_regular`,
-    but the colimit is built by the strict `colimitPositive`: every stage is a disjoint binary
-    coproduct (`stageDisjoint`), the coproducts are carried forward (`towerHcoppres`/`Case` from the
-    iterated `uniformStep_preservesBinaryCoproducts`), and the strict initial is preserved
-    (`towerF_preservesStrictCot`).  `RegularCategory Ā` comes free from the `DisjointBinaryCoproduct`. -/
-theorem capitalization_lemma_regular_positive (A : Type u) [Cat.{u} A] [DisjointBinaryCoproduct A] :
-    ∃ (Ā : Type u) (hC : Cat.{u} Ā) (hD : @DisjointBinaryCoproduct Ā hC),
-      @Capital.{u, u} Ā hC (hD.toPositivePreLogos.toPreLogos.toRegularCategory.toHasTerminal) ∧
-      ∃ (F : A → Ā) (hF : Functor F), @Faithful.{u, u} A _ Ā hC F hF := by
-  have hFD : ∀ (S : PreRegBundle.{u}),
-      letI := S.cat; letI := S.pre; letI := (wsCover S).dec
-      Freyd.UniformWellPoints.FibreDensity (wsCover S) :=
-    fun S => Freyd.CofinalProj.wsCover_fibreDensity S
-  let ccs : CofinalCapStep.{u} :=
-    { step := uniformStepFun
-      wellPoints := fun S =>
-        letI := S.cat; letI := S.pre; letI := (wsCover S).dec
-        Freyd.UniformWellPoints.stepWellPoints_of_fibreDensity (wsCover S) (hFD S) }
-  let b : PreRegBundle.{u} := ⟨A, inferInstance, inferInstance⟩
-  letI cd : CapData.{u} A := capData_of_tower A ccs.step b rfl
-    (towerHasTerminal b ccs.step) (fun {i j} hij => towerHtpres b ccs.step hij) (towerHp b ccs.step)
-    (fun {i j} hij a c z uu vv h1 h2 => towerHppres b ccs.step hij a c z uu vv h1 h2)
-    (fun {i j} hij a c z p q => towerHppresPair b ccs.step hij a c z p q) (towerHe b ccs.step)
-    (fun {i j} hij _ _ f g z uu vv h => towerHepres b ccs.step hij f g z uu vv h)
-    (fun {i j} hij _ _ f g z k hk => towerHepresLift b ccs.step hij f g z k hk)
-    (towerHcanon b ccs.step)
-    (tower_capital_of_cofinal A ccs b
-      (towerHasTerminal b ccs.step) (fun {i j} hij => towerHtpres b ccs.step hij) (towerHp b ccs.step)
-      (fun {i j} hij a c z uu vv h1 h2 => towerHppres b ccs.step hij a c z uu vv h1 h2)
-      (fun {i j} hij a c z p q => towerHppresPair b ccs.step hij a c z p q) (towerHe b ccs.step)
-      (fun {i j} hij _ _ f g z uu vv h => towerHepres b ccs.step hij f g z uu vv h)
-      (fun {i j} hij _ _ f g z k hk => towerHepresLift b ccs.step hij f g z k hk)
-      (towerHcanon b ccs.step)
-      (hstage_of_cofinal b ccs
-        (towerHasTerminal b ccs.step) (fun {i j} hij => towerHtpres b ccs.step hij) (towerHp b ccs.step)
-        (fun {i j} hij a c z uu vv h1 h2 => towerHppres b ccs.step hij a c z uu vv h1 h2)
-        (fun {i j} hij a c z p q => towerHppresPair b ccs.step hij a c z p q) (towerHe b ccs.step)
-        (fun {i j} hij _ _ f g z uu vv h => towerHepres b ccs.step hij f g z uu vv h)
-        (fun {i j} hij _ _ f g z k hk => towerHepresLift b ccs.step hij f g z k hk)
-        (towerHcanon b ccs.step)))
-  -- the per-stage disjoint coproducts and pre-logoi (`b.pre = dbcPreReg inferInstance` by `rfl`).
-  letI hbot : ∀ i, PreLogos (cd.C.A i) :=
-    fun i => (stageDisjoint b inferInstance rfl i.down).toPositivePreLogos.toPreLogos
-  exact capitalization_of_capData_positive cd
-    (fun i => stageHasImages b RegularCategory.toHasImages i.down)
-    (fun {i j} hij {x y} {φ} hφ => towerHmono b ccs.step hij φ hφ)
-    (fun {i j} hij {x y} φ hφ => towerHcovpres b ccs.step hij φ hφ)
-    (fun i => stageDisjoint b inferInstance rfl i.down)
-    hbot
-    (fun {i j} hij => towerF_preservesStrictCot b hij (Colim.stageZero cd.C hbot i)
-      (fun {X} f => any_map_to_zero_is_iso (hbot i) f))
-    (fun {i j} hij a c z u v hl hr => towerHcoppres b inferInstance rfl hij a c z u v hl hr)
-    (fun {i j} hij a c z p q => towerHcoppresCase b inferInstance rfl hij a c z p q)
 
 /-- **§1.54 + §2.218 R3 — the STRENGTHENED POSITIVE Capitalization Lemma.**  Same conclusion as
     `capitalization_lemma_regular_positive` (a faithful embedding into a capital positive pre-logos
@@ -592,6 +537,17 @@ theorem capitalization_lemma_regular_positive_strong (A : Type u) [Cat.{u} A]
         pres_image := objIncl_preservesImages_generic cd.C cd.hC cd.hfaith hcovpresElem hmonoElem cd.i₀ }
   · -- `objIncl ⟨0⟩` reflects all isos (full conservativity `cd.hcons`).
     exact fun {X Y} f hiso => objIncl_reflectsIso cd.C cd.hC cd.hcons cd.i₀ f hiso
+
+/-- **§1.54 + §2.218 R3 — the POSITIVE Capitalization Lemma.**  Every small POSITIVE pre-logos `A`
+    (a `DisjointBinaryCoproduct`) faithfully embeds into a CAPITAL, POSITIVE pre-logos `Ā`.  This is
+    `capitalization_lemma_regular_positive_strong` with the extra `RegularFunctor` and iso-reflection
+    conjuncts forgotten. -/
+theorem capitalization_lemma_regular_positive (A : Type u) [Cat.{u} A] [DisjointBinaryCoproduct A] :
+    ∃ (Ā : Type u) (hC : Cat.{u} Ā) (hD : @DisjointBinaryCoproduct Ā hC),
+      @Capital.{u, u} Ā hC (hD.toPositivePreLogos.toPreLogos.toRegularCategory.toHasTerminal) ∧
+      ∃ (F : A → Ā) (hF : Functor F), @Faithful.{u, u} A _ Ā hC F hF := by
+  obtain ⟨Ā, hC, hD, hcap, F, hF, hfaith, _, _⟩ := capitalization_lemma_regular_positive_strong A
+  exact ⟨Ā, hC, hD, hcap, F, hF, hfaith⟩
 
 end Freyd
 
