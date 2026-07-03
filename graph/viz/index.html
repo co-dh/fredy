@@ -121,7 +121,7 @@ const sectionOf = f => {
   let m;
   if (m = f.match(/\/S(\d+)_(\d)/)) return m[1] + '.' + m[2];
   if (m = f.match(/\/A(\d+)_/))     return 'A' + m[1];
-  return 'other';
+  return (f.split('/').pop()||'other').replace(/\.lean$/,'');   // infra/tool files: bucket by basename
 };
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -232,17 +232,19 @@ function wireEvents(){
 
 /* ---------- per-section chapter filters (a checkbox per group like 1.6, built from the data) ---------- */
 function buildSections(){
-  const groups = { '1':new Set(), '2':new Set(), 'aop':new Set() };
+  const groups = { '1':new Set(), '2':new Set(), 'aop':new Set(), 'other':new Set() };
   for (const d of decl.values()){
     if (/^\d\.\d$/.test(d.sec)) groups[d.sec[0]].add(d.sec);
     else if (/^A\d+$/.test(d.sec)) groups.aop.add(d.sec);
+    else groups.other.add(d.sec);                                // infra/tool files, one checkbox each
   }
-  const sub = s => s[0]==='A' ? s.slice(1) : s.slice(2);          // short label ("1.6"→"6", "A10"→"10")
-  $('#sections').innerHTML = [['1','Ch1'],['2','Ch2'],['aop','AOP']].map(([key,label])=>{
-    const secs=[...groups[key]].sort((a,b)=>(+sub(a))-(+sub(b)));
+  // short label ("1.6"→"6", "A10"→"10"); infra files keep their full basename
+  const sub = (s,key) => key==='other' ? s : (s[0]==='A' ? s.slice(1) : s.slice(2));
+  $('#sections').innerHTML = [['1','Ch1'],['2','Ch2'],['aop','AOP'],['other','Other']].map(([key,label])=>{
+    const secs=[...groups[key]].sort((a,b)=> key==='other' ? a.localeCompare(b) : (+sub(a,key))-(+sub(b,key)));
     if(!secs.length) return '';
     return `<div class="secrow"><label class="master" title="toggle all ${label}"><input type="checkbox" checked>${label}</label>`
-      + secs.map(s=>`<label title="${s}"><input type="checkbox" class="secbox" value="${s}" checked>${sub(s)}</label>`).join('')
+      + secs.map(s=>`<label title="${s}"><input type="checkbox" class="secbox" value="${s}" checked>${sub(s,key)}</label>`).join('')
       + `</div>`;
   }).join('');
   $('#sections').querySelectorAll('.secbox').forEach(cb=> cb.addEventListener('change', ()=>{
