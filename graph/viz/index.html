@@ -426,7 +426,7 @@ function runLayout(){
   const settings = Object.assign(forceAtlas2.inferSettings(target),
     sub ? { barnesHutOptimize:true, gravity:0.8, scalingRatio:8, slowDown:3 }
         : { barnesHutOptimize:true, gravity:1.2, slowDown:2 });
-  const TOTAL=10; let done=0;   // ForceAtlas2 iterations; barnesHut spreads fast, so few passes look ~the same
+  const TOTAL=30; let done=0;   // ForceAtlas2 iterations (10 was too tangled, 300 no better)
   overlay.classList.remove('hidden');
   (function stepLoop(){
     if(done>=TOTAL){
