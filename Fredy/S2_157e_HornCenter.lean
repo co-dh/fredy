@@ -167,15 +167,6 @@ theorem hornConc_center_desargues (hDes : P.DesarguesND)
   closes by incidence + modularity; the workhorse is a single geometric shear.
 -/
 
-/-- A non-incident join with a line is `⊤`: if `x ⋠ ln A` then `x ⊔ ln A = ⊤`
-    (the only three shapes `x ∈ {pt off A, line ≠ A, ⊤}` all overflow). -/
-theorem join_ln_top_of_not_le {x : PElem P} {A : P.Line} (h : ¬ x.le (ln A)) :
-    x.join (ln A) = top := by
-  cases x with
-  | bot => exact absurd (bot_le _) h
-  | pt p => exact join_pt_ln_not h
-  | ln B => exact join_ln_ln_ne h
-  | top => rfl
 
 /-- Mirror of `join_ln_top_of_not_le` with the line on the left. -/
 theorem join_ln_left_top_of_not_le {x : PElem P} {A : P.Line}

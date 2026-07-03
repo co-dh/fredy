@@ -667,6 +667,17 @@ theorem latticeHorn_of_families
   · exact famC a₁ a₂ b₁ b₂ c₁ c₂ A hH h
   · exact famA a₁ a₂ b₁ b₂ c₁ c₂ hH h
 
+/-- COATOM: anything not below a line joins that line to `⊤` (the three shapes
+    `x ∈ {pt off A, line ≠ A, ⊤}` all overflow).  Hoisted to this shared ancestor of
+    `S2_157e`/`S2_157f` so the two identical copies collapse to one. -/
+theorem join_ln_top_of_not_le {x : PElem P} {A : P.Line} (h : ¬ x.le (ln A)) :
+    x.join (ln A) = top := by
+  cases x with
+  | bot => exact absurd (bot_le (ln A)) h
+  | pt v => exact join_pt_ln_not h
+  | ln B => exact join_ln_ln_ne h
+  | top => exact join_top_left (ln A)
+
 end PElem
 
 end Freyd.Alg

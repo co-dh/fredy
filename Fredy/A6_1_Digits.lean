@@ -40,22 +40,6 @@ abbrev dDigitPos : RelSet.{0} := ⟨DigitPos⟩
 /-- Object of `Rel(Set)` carrying `Decimal`. -/
 abbrev dDec : RelSet.{0} := ⟨Decimal⟩
 
-/-! ## Two elementary `Rel(Set)` facts about maps -/
-
-/-- An entire relation relates every point to something. -/
-theorem entire_total {a b : RelSet.{u}} {R : a ⟶ b} (h : Entire R) (x : a.carrier) :
-    ∃ y, R x y := by
-  have hd : (dom R) x x := by
-    have e : (dom R) x x = (Cat.id a) x x := congrFun (congrFun h x) x
-    rw [e]; rfl
-  obtain ⟨_, y, hy, _⟩ := hd
-  exact ⟨y, hy⟩
-
-/-- A simple relation is single-valued. -/
-theorem simple_uniq {a b : RelSet.{u}} {R : a ⟶ b} (h : Simple R) {x : a.carrier}
-    {y y' : b.carrier} (hy : R x y) (hy' : R x y') : y = y' :=
-  le_iff.mp h y y' ⟨x, hy, hy'⟩
-
 /-! ## The functor `F A = Digit⁺ + (A × Digit)` -/
 
 /-- Carrier of `F A`. -/
@@ -263,11 +247,6 @@ def algSnoc {c : RelSet.{0}} (φ : Fobj c ⟶ c) : (⟨c.carrier × Digit⟩ : R
 def wrapR : dDigitPos ⟶ dDec := graph Decimal.wrap
 /-- The constructor `snoc` as a relation. -/
 def snocR : (⟨Decimal × Digit⟩ : RelSet.{0}) ⟶ dDec := graph (fun p => Decimal.snoc p.1 p.2)
-
-/-- The product action `R × S` in `Rel(Set)`: `(x,y) ~ (x',y')` iff `R x x'` and `S y y'`. -/
-def rprodMap {a a' b b' : RelSet.{0}} (R : a ⟶ a') (S : b ⟶ b') :
-    (⟨a.carrier × b.carrier⟩ : RelSet.{0}) ⟶ ⟨a'.carrier × b'.carrier⟩ :=
-  fun p q => R p.1 q.1 ∧ S p.2 q.2
 
 /-- **§6.1 (B&dM p.138)**: the converse of a catamorphism satisfies the recursive equation
     `val° = (wrap·embed°) ∪ (snoc·(val°×id)·op°)` (mirrored), for any algebra `φ = [embed, op]`.

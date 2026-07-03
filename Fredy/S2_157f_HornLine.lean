@@ -667,14 +667,6 @@ theorem mac_join_c₁' {a₁ a₂ c₁ c₂ : PElem P}
   exact mac_join_c₂' (c₁ := c₂) (c₂ := c₁) (by rw [join_comm]; exact ha₂)
     (by rw [join_comm]; exact ha₁)
 
-/-- COATOM: anything not below a line joins that line to `⊤`. -/
-theorem join_ln_top_of_not_le {x : PElem P} {A : P.Line} (h : ¬ x.le (ln A)) :
-    x.join (ln A) = top := by
-  cases x with
-  | bot => exact absurd (bot_le (ln A)) h
-  | pt v => exact join_pt_ln_not h
-  | ln B => exact join_ln_ln_ne h
-  | top => exact join_top_left (ln A)
 
 /-- If `c₂ ⩽ ln B` but `a₂ ⋠ ln B` (and `a₁, a₂ ⩽ c₁ ⊔ c₂`), then
     `M_ac ⊔ ln B = ⊤` (the `M_ac`-`c₂` absorption lifts `a₂ ⊔ c₂` to `⊤`). -/

@@ -29,20 +29,6 @@ abbrev dL (L : Type) : RelSet.{0} := ⟨L⟩
 /-- The object carrying the element type `E`. -/
 abbrev dE (E : Type) : RelSet.{0} := ⟨E⟩
 
-/-! ## Two elementary `Rel(Set)` facts about maps -/
-
-theorem entire_total {a b : RelSet.{u}} {R : a ⟶ b} (h : Entire R) (x : a.carrier) :
-    ∃ y, R x y := by
-  have hd : (dom R) x x := by
-    have e : (dom R) x x = (Cat.id a) x x := congrFun (congrFun h x) x
-    rw [e]; rfl
-  obtain ⟨_, y, hy, _⟩ := hd
-  exact ⟨y, hy⟩
-
-theorem simple_uniq {a b : RelSet.{u}} {R : a ⟶ b} (h : Simple R) {x : a.carrier}
-    {y y' : b.carrier} (hy : R x y) (hy' : R x y') : y = y' :=
-  le_iff.mp h y y' ⟨x, hy, hy'⟩
-
 /-! ## The functor `F X = L + (E × X)` -/
 
 /-- Carrier of `F X`. -/
@@ -286,11 +272,6 @@ def algCons {c : RelSet.{0}} (φ : Fobj L E c ⟶ c) : (⟨E × c.carrier⟩ : R
 def wrapR : dL L ⟶ dCL L E := graph ConsList.wrap
 /-- The constructor `cons` as a relation. -/
 def consR : (⟨E × ConsList L E⟩ : RelSet.{0}) ⟶ dCL L E := graph (fun p => ConsList.cons p.1 p.2)
-
-/-- The product action `R × S` in `Rel(Set)`. -/
-def rprodMap {a a' b b' : RelSet.{0}} (R : a ⟶ a') (S : b ⟶ b') :
-    (⟨a.carrier × b.carrier⟩ : RelSet.{0}) ⟶ ⟨a'.carrier × b'.carrier⟩ :=
-  fun p q => R p.1 q.1 ∧ S p.2 q.2
 
 /-- The recursive equation for the converse of a cons-list catamorphism:
     `val° = (wrap·g°) ∪ (cons·(id×val°)·h°)` (mirrored), for any algebra `φ = [g, h]`. -/

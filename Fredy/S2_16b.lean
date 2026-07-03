@@ -114,20 +114,6 @@ theorem SplHom.split_symmetric_idempotent {E : SplObj 𝒜} (Φ : SplHom E E)
 
 -- §2.13: composition of maps is a map — now `Freyd.Alg.map_comp` in `S2_1.lean`.
 
-/-- The **left modular law** in containment form: `(R ≫ S) ∩ T ⊑ R ≫ (S ∩ R° ≫ T)`.
-    Proved by reciprocating the right modular law — only uses `modular_le` and
-    `recip_mono`, hence holds in any `Allegory` (no union structure required).
-    Compare `S2_22.modular_le_left` which has a vestigial `[UnionAllegory]` annotation. -/
-theorem modular_le_left' {a b c : 𝒜} (R : a ⟶ b) (S : b ⟶ c) (T : a ⟶ c) :
-    (R ≫ S) ∩ T ⊑ R ≫ (S ∩ R° ≫ T) := by
-  have h := modular_le S° R° T°
-  rw [Allegory.recip_recip] at h
-  have hgoal : ((R ≫ S) ∩ T)° ⊑ (R ≫ (S ∩ R° ≫ T))° := by
-    rw [Allegory.recip_inter, Allegory.recip_comp, Allegory.recip_comp, Allegory.recip_inter,
-        Allegory.recip_comp, Allegory.recip_recip]
-    exact h
-  have := recip_mono hgoal
-  rwa [Allegory.recip_recip, Allegory.recip_recip] at this
 
 /-! ## §2.166  Tabulation by splitting the apex coreflexive
 
@@ -491,7 +477,7 @@ theorem neighbors_of_catSplits {a : 𝒜} (A : a ⟶ a) (hA : A ≫ A = A)
     rw [← hRS, Allegory.recip_comp, Allegory.inter_comm]
   -- `A∩A° = S°R° ∩ RS ⊑ S°(R° ∩ SRS) = S°(R° ∩ S) ⊑ S°S`  (left modular + `SR = 1`).
   have hN1 : A ∩ A° ⊑ S° ≫ S := by
-    have h := modular_le_left' S° R° (R ≫ S)
+    have h := modular_le_left S° R° (R ≫ S)
     rw [Allegory.recip_recip, ← Cat.assoc, hSR, Cat.id_comp] at h
     rw [hNeq]
     exact le_trans h (comp_mono_left S° (inter_lb_right R° S))
@@ -521,7 +507,7 @@ theorem neighbors_of_catSplits {a : 𝒜} (A : a ⟶ a) (hA : A ≫ A = A)
     rwa [hAAA] at hstep
   -- Second containment: `A = R(SRSR ∩ 1)S ⊑ RS(RS ∩ S°R°)RS = A(A∩A°)A`.
   have h2 : A ⊑ A ≫ (A ∩ A°) ≫ A := by
-    have hm1 := modular_le_left' S (R ≫ S ≫ R) (Cat.id c)
+    have hm1 := modular_le_left S (R ≫ S ≫ R) (Cat.id c)
     rw [Cat.comp_id] at hm1
     -- hm1 : `(SRSR) ∩ 1 ⊑ S(RSR ∩ S°)`  (left modular)
     have hm2 := modular_le (R ≫ S) R S°

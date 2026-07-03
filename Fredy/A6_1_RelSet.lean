@@ -226,5 +226,29 @@ instance : Freyd.Alg.TabularUnitaryDivisionAllegory RelSet.{u} :=
     (inferInstance : UnitaryAllegory RelSet),
     (inferInstance : DivisionAllegory RelSet) with }
 
+/-! ### Two elementary `Rel(Set)` map facts + the product action, shared by every datatype engine
+
+  `entire_total`/`simple_uniq`/`rprodMap` were re-proved verbatim in `A6_ConsList`, `A6_SnocList` and
+  `A6_1_Digits`; hoisted here (the base each engine imports) so a single copy serves all three. -/
+
+/-- An entire relation relates every point to something. -/
+theorem entire_total {a b : RelSet.{u}} {R : a ⟶ b} (h : Entire R) (x : a.carrier) :
+    ∃ y, R x y := by
+  have hd : (dom R) x x := by
+    have e : (dom R) x x = (Cat.id a) x x := congrFun (congrFun h x) x
+    rw [e]; rfl
+  obtain ⟨_, y, hy, _⟩ := hd
+  exact ⟨y, hy⟩
+
+/-- A simple relation is single-valued. -/
+theorem simple_uniq {a b : RelSet.{u}} {R : a ⟶ b} (h : Simple R) {x : a.carrier}
+    {y y' : b.carrier} (hy : R x y) (hy' : R x y') : y = y' :=
+  le_iff.mp h y y' ⟨x, hy, hy'⟩
+
+/-- The product action `R × S` in `Rel(Set)`: `(x,y) ~ (x',y')` iff `R x x'` and `S y y'`. -/
+def rprodMap {a a' b b' : RelSet.{0}} (R : a ⟶ a') (S : b ⟶ b') :
+    (⟨a.carrier × b.carrier⟩ : RelSet.{0}) ⟶ ⟨a'.carrier × b'.carrier⟩ :=
+  fun p q => R p.1 q.1 ∧ S p.2 q.2
+
 end RelSet
 end Freyd.Alg

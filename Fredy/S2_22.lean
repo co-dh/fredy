@@ -378,7 +378,7 @@ theorem simple_comp_inter [UnionAllegory 𝒜] {a b c : 𝒜} {F : a ⟶ b}
 
 /-- The **left modular law** in order form: `(R ≫ S) ∩ T ⊑ R ≫ (S ∩ R° ≫ T)`.
     The reciprocal companion of `modular_le`; both are pure modular-law facts. -/
-theorem modular_le_left [UnionAllegory 𝒜] {a b c : 𝒜} (R : a ⟶ b) (S : b ⟶ c) (T : a ⟶ c) :
+theorem modular_le_left [Allegory 𝒜] {a b c : 𝒜} (R : a ⟶ b) (S : b ⟶ c) (T : a ⟶ c) :
     (R ≫ S) ∩ T ⊑ R ≫ (S ∩ R° ≫ T) := by
   have h := modular_le S° R° T°
   rw [Allegory.recip_recip] at h
