@@ -23,7 +23,11 @@ Foundation (DONE):
       properties (perm symm, ordered coreflexive, the select fusion-proviso `hfus`) — B&dM construct
       select (base/step, p.153) to satisfy hfus; the concrete perm/ordered/select build is the
       deferred ch.5 §5.6 list-combinator work, still open (see below).
-- [ ] §7.3  Planning a company party
+- [~] §7.3  Planning a company party — `A7_3_Party.lean`: `choose_monotonic` (first claim, concrete
+      product fact) + `company_party_greedy` (party planning = greedy theorem `greedy_max`).  PARTIAL:
+      the rose-tree datatype `tree A = node(A, list(tree A))` (NESTED inductive) + concrete `party`
+      catamorphism + `⟨include,exclude⟩` monotonicity DEFERRED — needs a rose-tree engine (mutual
+      tree/list structural fold; harder than cons/snoc-lists).  Tree engine = the gate for §7.3 fully.
 - [ ] §7.4  Shortest paths on a cylinder
 - [ ] §7.5  The security van problem
 - [ ] §8.2  Paths in a layered network

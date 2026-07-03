@@ -218,3 +218,6 @@ import Fredy.A6_ConsList
 -- Bird & de Moor §6.6: sorting by selection — `sort = ⦇[nil, select°]⦈°` (converse of a catamorphism)
 -- with its recursion; correctness `sort ⊆ ordered·perm` by fusion (given the select proviso).
 import Fredy.A6_6_Sort
+-- Bird & de Moor §7.3: planning a company party — `choose` monotonicity + party planning solved by
+-- the greedy theorem (`greedy_max`); the rose-tree datatype `tree A = node(A, list(tree A))` deferred.
+import Fredy.A7_3_Party
