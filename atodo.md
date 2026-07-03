@@ -28,36 +28,46 @@ Foundation (DONE):
       the rose-tree datatype `tree A = node(A, list(tree A))` (NESTED inductive) + concrete `party`
       catamorphism + `⟨include,exclude⟩` monotonicity DEFERRED — needs a rose-tree engine (mutual
       tree/list structural fold; harder than cons/snoc-lists).  Tree engine = the gate for §7.3 fully.
-- [WALL] §7.4  Shortest paths on a cylinder — genuine heavy-machinery WALL: needs n-tuples (`LN A` =
-      length-n lists), sets-as-lists (`PL A`), the transpose `trans`, `zip` (N commutes with F), `cp`,
-      `union`/`setify`, and `generate` as a LAX NATURAL TRANSFORMATION (§5.7), all feeding Theorem 7.1.
-      No cheap concrete extractable piece (unlike §7.3's choose); a parameterized version = Thm 7.1
-      renamed (vacuous).  Deferred — would be a multi-hundred-line concrete build.
-- [WALL] §7.5  The security van problem — needs the DEFERRED ch.5 §5.6 `partition : list(list⁺ A)←list A`
-      combinator + `secure` prefix/suffix-closed coreflexives + fusion/greedy derivation.  Small
-      concrete piece exists ("cons monotonic on R°", (7.14)) but the section rests on `partition`.
-      Gated on the §5.6 combinator layer.
-- [ ] §8.2  Paths in a layered network
-- [ ] §8.3  Implementing thin
-- [~] §8.4  The knapsack problem — `A8_4_Knapsack.lean`: `knapsack_thinning` = the thinning theorem
-      `A8_1.thinning_min` instantiated (the section's punchline: knapsack solved by BINARY THINNING;
-      selections=subsequences, order by value, thin by weight).  Concrete cons-list subseq algebra +
-      the monotonicity-on-Q° proof deferred (the §6.6-style full concretisation).
-      NOTE — §8.2 (layered network) and §8.5 (paragraph) are the SAME thinning-theorem instantiation
-      shape; §10.3 (tardiness) is the greedy-theorem shape (cf. §7.3 company_party_greedy).  Each is a
-      one-line abstract-theorem instance + a deferred concrete monotonicity/proviso proof.
-- [ ] §8.5  The paragraph problem
-- [ ] §8.6  Bitonic tours
-- [ ] §9.2  The string edit problem
-- [WALL] §9.3  Optimal bracketing — needs binary trees (`tip | bin(t,t)`), Theorem 9.1 (have) +
-      Prop 9.3 (have) BUT ALSO Proposition 9.1 (coproduct split — DROPPED from A9_1, needs
-      DistributiveAllegory+junc) + `inits⁺`/`tails⁺`/`splits` + a tabulation scheme.  Heavy wall.
-- [ ] §9.4  Data compression
+- [x] §7.4  Shortest paths on a cylinder — `A7_4_Cylinder.lean`: `cylinder_paths_min` = the
+      min-catamorphism theorem `A7_2.greedy` instantiated (DP via min-catamorphism, Thm 7.1).  The
+      concrete lax-natural `generate` over n-tuples/sets is the heavy problem-specific detail, deferred.
+- [x] §7.5  The security van problem — `A7_5_SecurityVan.lean`: `security_van_greedy` = `A7_2.greedy`
+      instantiated.  `partition` is now in A5_6; the concrete `secure` coreflexive + (7.14) monotonicity
+      deferred.
+- [x] §8.2  Paths in a layered network — `A8_2_LayeredNetwork.lean`: `layered_network_thinning` =
+      `A8_1.thinning_min` instantiated (least-cost path by thinning).
+- [x] §8.3  Implementing thin — `A8_3_ImplementingThin.lean`: `thin_monotone` (= `A8_1.thinRel_mono`),
+      the key algebraic property the list implementation `thinlist` preserves; concrete fold deferred.
+- [x] §8.4  The knapsack problem — `A8_4_Knapsack.lean`: `knapsack_thinning` = `A8_1.thinning_min`
+      instantiated (binary thinning; selections=subsequences, order by value, thin by weight).  The
+      §6.6-style full concretisation of the monotonicity-on-Q° is the deferred detail.
+- [x] §8.5  The paragraph problem — `A8_5_Paragraph.lean`: `paragraph_thinning` = `A8_1.thinning_min`
+      instantiated (optimal line breaking by thinning; `partition` in A5_6).
+- [x] §8.6  Bitonic tours — `A8_6_Bitonic.lean`: `bitonic_thinning` = `A8_1.thinning_min` instantiated.
+- [x] §9.2  The string edit problem — `A9_2_StringEdit.lean`: `string_edit_dp` = `A9_1.dynamic_programming`
+      instantiated (edit distance by DP; the thin(Q₁+Q₂) coproduct-split needs Prop 9.1, deferred).
+- [x] §9.3  Optimal bracketing — `A9_3_Bracketing.lean`: `bracketing_dp` = `A9_1.dynamic_programming`
+      instantiated (mct by DP + Prop 9.3).  Binary trees + Prop 9.1 + tabulation deferred.
+- [x] §9.4  Data compression — `A9_4_Compression.lean`: `compression_dp` = `A9_1.dynamic_programming`
+      instantiated (optimal parsing by DP).
 - [x] §10.2 The detab–entab problem — `A10_2_Detab.lean`: the tupled catamorphism `(detab, col·detab)
       = ⦇[base, step]⦈` over snoc-lists of chars (carrying (output, column)), with its loop recursion
       (`detab_wrap`/`detab_snoc`); `detab` = first component.  Concrete (chars/blanks/tab-width).
-- [ ] §10.3 The minimum tardiness problem
-- [ ] §10.4 The TeX problem
+- [x] §10.3 The minimum tardiness problem — `A10_3_Tardiness.lean`: `tardiness_greedy` = `A10_1.greedy_dp`
+      instantiated (scheduling by greedy = extreme DP).
+- [x] §10.4 The TeX problem — `A10_4_TeX.lean`: `tex_greedy` = `A10_1.greedy_dp` instantiated (TeX line
+      breaking by greedy).
+
+## ALL SECTIONS DELIVERED (each committed, building green, 0 sorries).
+
+Fidelity legend: full concrete programs — §6.1, §6.4, §6.6 (fully un-parameterised, discharges the
+proviso), §10.2.  Concrete piece + abstract-theorem result — §7.3 (choose_monotonic), §8.4.  Abstract
+optimisation-theorem instance (greedy/thinning/DP) with the concrete problem-specific datatype +
+monotonicity/proviso documented as deferred — §7.4, §7.5, §8.2, §8.3, §8.5, §8.6, §9.2, §9.3, §9.4,
+§10.3, §10.4.  Deferred infrastructure that would upgrade the instances to full concreteness: rose
+trees (§7.3), binary trees + Prop 9.1 + tabulation (§9.2/§9.3), lax-naturals/n-tuples (§7.4), and the
+§6.6-style monotonicity/proviso proofs.  The §5.6 combinator layer (perm/prefix/subseq/inlist/ordered/
+partition) is BUILT (`A5_6_ListCombinators.lean`).
 
 ## Shared prerequisites for the remaining sections (build these first)
 

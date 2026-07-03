@@ -237,3 +237,16 @@ import Fredy.A10_2_Detab
 -- Bird & de Moor §8.4: the knapsack problem — binary thinning; `knapsack_thinning` = the thinning
 -- theorem `thinning_min` instantiated (selections=subsequences, order by value, thin by weight).
 import Fredy.A8_4_Knapsack
+-- Bird & de Moor case studies §7.4–§10.4 (each = the relevant abstract optimisation theorem —
+-- greedy/thinning/DP — instantiated for the problem; concrete problem-specific data deferred).
+import Fredy.A7_4_Cylinder
+import Fredy.A7_5_SecurityVan
+import Fredy.A8_2_LayeredNetwork
+import Fredy.A8_3_ImplementingThin
+import Fredy.A8_5_Paragraph
+import Fredy.A8_6_Bitonic
+import Fredy.A9_2_StringEdit
+import Fredy.A9_3_Bracketing
+import Fredy.A9_4_Compression
+import Fredy.A10_3_Tardiness
+import Fredy.A10_4_TeX
