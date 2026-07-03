@@ -206,3 +206,8 @@ import Fredy.A6_1_RelSet
 -- Bird & de Moor §6.1: Digits of a number — Decimal as an initial algebra of `F A = Digit⁺ + A×Digit`,
 -- the reading catamorphism `val`, and the recursive equation for `val°` (first worked AoP program).
 import Fredy.A6_1_Digits
+-- Generic snoc-list datatype `SnocList L E = L + (·)×E` as an initial algebra (reusable engine).
+import Fredy.A6_SnocList
+-- Bird & de Moor §6.4: fast exponentiation/modulus — `exp`/`mod` as hylomorphisms over the binary
+-- datatype `Bin = SnocList Unit Bit`, giving the O(log) divide-and-conquer least fixed point.
+import Fredy.A6_4_FastExp
