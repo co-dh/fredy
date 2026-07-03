@@ -141,7 +141,15 @@ merged class `TabularUnitaryUnguardedPowerAllegory`): Map(A) has FULL power obje
   separate development, correctly not faked): the no-finite-axiomatization METATHEOREM — the n-rhombus
   separated family is valid in Rel(S) but not a consequence of any fixed finite set, needing an
   inductive representation of equational-theory DERIVATIONS + the graph-map factorization analysis.
-- **§2.417** (generator counterexample) — CORE DONE (`S2_417_Generator`, merged): category `C` of
+- **§2.417** (generator counterexample) — power-object infra DONE (`S2_417b_NotPower`): `IsPowerObj`/
+  `HasPowerObj`/`RelCIsPowerAllegory` (§2.414 phrasing), `singleton_of_power` (§2.415), positive half
+  `coterminator_hasPowerObject`.  VERDICT on Target 3 (¬power-allegory): NOT faithfully reachable in the
+  fixed-`L` (set-of-labels) encoding — Freyd's §1.96(10) collapse needs the map condition over ALL labels
+  "in the universe" (a proper class); over a SET the obstruction vanishes (for |L|≤1, C = presheaf topos
+  `[Bℕ,Set]` which HAS all power-objects, so ¬power-allegory is outright FALSE).  Faithful refutation needs
+  a proper-class label re-encoding of C — a separate formalization.  Agent correctly did NOT assert the
+  false negation.
+- **§2.417** (original core, `S2_417_Generator`, merged): category `C` of
   quadruples `⟨S, s:S→S, A, f:L→S→S⟩` (`catC`, exponent `xᵃ = if a∈A then f a x else s x`, maps commute
   with every exponent — the map condition taken over ALL labels `a∈L` per §1.96(10), since the strict
   `A∪A'`-only reading breaks composition), and the HEADLINE `G_generates : Generates (G L)` +

@@ -138,6 +138,7 @@ import Fredy.S2_11
 import Fredy.S2_4
 import Fredy.S2_44
 import Fredy.S2_417_Generator
+import Fredy.S2_417b_NotPower
 import Fredy.S2_441_StraightJoin
 import Fredy.S2_5
 import Fredy.S2_51
