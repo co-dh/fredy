@@ -260,8 +260,11 @@ function buildSections(){
   $('#sections').innerHTML = [['1','Ch1'],['2','Ch2'],['aop','AOP'],['other','Other']].map(([key,label])=>{
     const secs=[...groups[key]].sort((a,b)=> key==='other' ? a.localeCompare(b) : (+sub(a,key))-(+sub(b,key)));
     if(!secs.length) return '';
-    return `<div class="secrow"><label class="master" title="toggle all ${label}"><input type="checkbox" checked>${label}</label>`
-      + secs.map(s=>`<label title="${s}"><input type="checkbox" class="secbox" value="${s}" checked>${sub(s,key)}</label>`).join('')
+    const on = key==='1';                               // start with only Ch1 shown; the rest begin hidden
+    if(!on) secs.forEach(s=> hiddenSections.add(s));
+    const ck = on ? ' checked' : '';
+    return `<div class="secrow"><label class="master" title="toggle all ${label}"><input type="checkbox"${ck}>${label}</label>`
+      + secs.map(s=>`<label title="${s}"><input type="checkbox" class="secbox" value="${s}"${ck}>${sub(s,key)}</label>`).join('')
       + `</div>`;
   }).join('');
   $('#sections').querySelectorAll('.secbox').forEach(cb=> cb.addEventListener('change', ()=>{
