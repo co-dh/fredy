@@ -2142,6 +2142,39 @@ theorem complementedSub_symm [HasBinaryCoproducts 𝒞] {A : 𝒞} {U U₂ : Sub
     IsComplementedSub U₂ :=
   ⟨U, Subobject.le_trans (inter_comm_le U₂ U) hdisj, Subobject.le_trans hentire (union_comm_le U U₂)⟩
 
+/-- **The complement is `≤` the other half of any cover** (boolean meet–join lemma, §1.631).
+    Canonical upstream copy — proved directly from `inter_union_le` (local to this file), so it
+    is reachable without importing `S1_97`.  If `D₁ ∩ Dc ≤ ⊥` and `⊤ ≤ D₁ ∪ D₂` then `Dc ≤ D₂`.
+    PROOF: `Dc ≤ Dc ∩ (D₁∪D₂) ≤ (Dc∩D₁)∪(Dc∩D₂) ≤ ⊥∪D₂ ≤ D₂`, the middle step by
+    `inter_union_le` and `Dc∩D₁ ≤ D₁∩Dc ≤ ⊥` by `inter_comm_le`/`hdisj`. -/
+theorem complement_le_other [HasBinaryCoproducts 𝒞] {A : 𝒞} (D₁ D₂ Dc : Subobject 𝒞 A)
+    (hdisj : (Subobject.inter D₁ Dc).le (PreLogos.bottom A))
+    (hcov  : (Subobject.entire A).le (HasSubobjectUnions.union D₁ D₂)) :
+    Dc.le D₂ := by
+  have hA : Dc.le (Subobject.inter Dc (HasSubobjectUnions.union D₁ D₂)) :=
+    Subobject.le_inter (Subobject.le_refl Dc)
+      (Subobject.le_trans (Y := Subobject.entire A) (sub_le_entire Dc) hcov)
+  have hdist : (Subobject.inter Dc (HasSubobjectUnions.union D₁ D₂)).le
+      (HasSubobjectUnions.union (Subobject.inter Dc D₁) (Subobject.inter Dc D₂)) :=
+    inter_union_le Dc D₁ D₂
+  have hbot : (Subobject.inter Dc D₁).le (PreLogos.bottom A) :=
+    Subobject.le_trans (inter_comm_le Dc D₁) hdisj
+  have hfin : (HasSubobjectUnions.union (Subobject.inter Dc D₁) (Subobject.inter Dc D₂)).le D₂ :=
+    HasSubobjectUnions.union_min _ _ _
+      (Subobject.le_trans hbot (PreLogos.bottom_min D₂)) (Subobject.inter_le_right _ _)
+  exact Subobject.le_trans hA (Subobject.le_trans hdist hfin)
+
+/-- **§1.631**: the complement of a complemented subobject is unique.  Freyd: "the
+    distributivity of Sub(A) implies that A₂, if it exists, is unique."  Two subobjects that
+    each disjointly cover A alongside A₁ are mutually ≤ (hence isomorphic, `Subobject.le_antisymm_iso`). -/
+theorem complement_unique [HasBinaryCoproducts 𝒞] {A : 𝒞} (A₁ A₂ A₂' : Subobject 𝒞 A)
+    (hdisj  : (Subobject.inter A₁ A₂).le (PreLogos.bottom A))
+    (hcov   : (Subobject.entire A).le (HasSubobjectUnions.union A₁ A₂))
+    (hdisj' : (Subobject.inter A₁ A₂').le (PreLogos.bottom A))
+    (hcov'  : (Subobject.entire A).le (HasSubobjectUnions.union A₁ A₂')) :
+    A₂.le A₂' ∧ A₂'.le A₂ :=
+  ⟨complement_le_other A₁ A₂' A₂ hdisj hcov', complement_le_other A₁ A₂ A₂' hdisj' hcov⟩
+
 /-! ## §1.633 Characterization of capital positive pre-logoi
 
   A positive pre-logos is capital iff its complemented subterminators

@@ -2859,34 +2859,10 @@ theorem complemented_legs_iso [HasBinaryProducts 𝒞] {A : 𝒞} (U U₂ : Subo
       _ = po.cocone.ι₂ ≫ Un.arr := by rw [hχ₂]
       _ = U₂.arr := hy
 
-/-- The complement `Dc` of `D₁` is `≤` any `D₂` that completes a cover `entire A ≤ D₁ ∪ D₂`:
-    `Dc = Dc ∩ ⊤ ≤ Dc ∩ (D₁ ∪ D₂) ≤ (Dc ∩ D₁) ∪ (Dc ∩ D₂) ≤ ⊥ ∪ D₂ = D₂` (distributivity
-    of meet over join, `Dc ∩ D₁ ≤ ⊥` from disjointness, `Dc ∩ D₂ ≤ D₂`). -/
-private theorem complement_le_other {A : 𝒞} (D₁ D₂ Dc : Subobject 𝒞 A)
-    (hdisj : Subobject.le (Subobject.inter D₁ Dc) (PreLogos.bottom A))
-    (hcov  : Subobject.le (Subobject.entire A) (HasSubobjectUnions.union D₁ D₂)) :
-    Dc.le D₂ := by
-  have hA : Dc.le (Subobject.inter Dc (HasSubobjectUnions.union D₁ D₂)) :=
-    Subobject.le_inter ⟨Cat.id _, Cat.id_comp _⟩
-      (Subobject.le_trans (Y := Subobject.entire A) ⟨Dc.arr, Cat.comp_id _⟩ hcov)
-  have hdist : (Subobject.inter Dc (HasSubobjectUnions.union D₁ D₂)).le
-      (HasSubobjectUnions.union (Subobject.inter Dc D₁) (Subobject.inter Dc D₂)) := by
-    have e1 : Subobject.inter Dc (HasSubobjectUnions.union D₁ D₂)
-        = pushMono Dc.arr Dc.monic (InverseImage Dc.arr (HasSubobjectUnions.union D₁ D₂)) := rfl
-    have e2 : Subobject.inter Dc D₁ = pushMono Dc.arr Dc.monic (InverseImage Dc.arr D₁) := rfl
-    have e3 : Subobject.inter Dc D₂ = pushMono Dc.arr Dc.monic (InverseImage Dc.arr D₂) := rfl
-    rw [e1, e2, e3]
-    have hpre : (InverseImage Dc.arr (HasSubobjectUnions.union D₁ D₂)).le
-        (HasSubobjectUnions.union (InverseImage Dc.arr D₁) (InverseImage Dc.arr D₂)) :=
-      (PreLogos.invImage_preserves_union Dc.arr D₁ D₂).1
-    exact Subobject.le_trans (pushMono_mono Dc.arr Dc.monic hpre)
-      (pushMono_union_le Dc.arr Dc.monic _ _)
-  have hbot : (Subobject.inter Dc D₁).le (PreLogos.bottom A) :=
-    Subobject.le_trans (inter_comm_le Dc D₁) hdisj
-  have hfin : (HasSubobjectUnions.union (Subobject.inter Dc D₁) (Subobject.inter Dc D₂)).le D₂ :=
-    HasSubobjectUnions.union_min _ _ _
-      (Subobject.le_trans hbot (PreLogos.bottom_min D₂)) (Subobject.inter_le_right _ _)
-  exact Subobject.le_trans hA (Subobject.le_trans hdist hfin)
+-- `complement_le_other` (used below) is now the canonical upstream copy from `S1_62` (§1.631);
+-- both live in `namespace Freyd`, so the plain name resolves without a local redeclaration. The
+-- ambient `PreToposDisjoint 𝒞 extends DisjointBinaryCoproduct 𝒞 extends PositivePreLogos 𝒞`
+-- supplies the `[HasBinaryCoproducts 𝒞]` it needs.
 
 /-- Restriction of an entire relation `R : A → B` to the part landing in a monic summand
     `inj : B' ↣ B`.  Set `D := ∃_{R.colA}(R.colB # ⟨inj⟩) ⊆ A` (the image in `A` of the
