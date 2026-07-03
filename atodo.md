@@ -17,12 +17,12 @@ Foundation (DONE):
       over Bin, fast recursion = μ (divide-and-conquer least fixed point) via hylo_eq_mu
 - [x] `A6_ConsList.lean` — GENERIC cons-list `ConsList L E = L + E×(·)` initial algebra (head/tail) +
       cata_converse_eq + `cataR_eq_relCata` bridge (cataFold IS the relational catamorphism)
-- [x] §6.6  Sorting by selection — `A6_6_Sort.lean`: `sort = ⦇[nil,select°]⦈°` (converse of a
-      catamorphism) + its recursion (cata_converse_eq); correctness `sort ⊑ perm≫ordered` via fusion
-      (6.4 relCata_le_comp) + coref_recip.  NOTE: perm/ordered/select PARAMETERISED with their key
-      properties (perm symm, ordered coreflexive, the select fusion-proviso `hfus`) — B&dM construct
-      select (base/step, p.153) to satisfy hfus; the concrete perm/ordered/select build is the
-      deferred ch.5 §5.6 list-combinator work, still open (see below).
+- [x] §6.6  Sorting by selection — `A6_6_Sort.lean` (parameterised) + `A6_6b_SortConcrete.lean`
+      (FULLY CONCRETE): `sort = ⦇[nil,select°]⦈°` + its recursion (cata_converse_eq); correctness
+      `sort ⊑ perm≫ordered` via fusion (6.4).  A6_6b DISCHARGES ALL hypotheses — concrete
+      `selectC x (a,y) := Perm(a::y) x ∧ (a below all y)`, concrete ordered algebra, and the fusion
+      proviso (`hfus_concrete` via `perm_mem`) — so `selection_sort_correct_concrete` holds for ANY
+      `R : A → A → Prop` with NO hypotheses.  ✅ FIRST fully un-parameterised optimisation case study.
 - [~] §7.3  Planning a company party — `A7_3_Party.lean`: `choose_monotonic` (first claim, concrete
       product fact) + `company_party_greedy` (party planning = greedy theorem `greedy_max`).  PARTIAL:
       the rose-tree datatype `tree A = node(A, list(tree A))` (NESTED inductive) + concrete `party`

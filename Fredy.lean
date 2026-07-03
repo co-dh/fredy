@@ -224,3 +224,6 @@ import Fredy.A7_3_Party
 -- Bird & de Moor §5.6: combinatorial list relations — perm/prefix/subseq/inlist over `list A = ConsList
 -- Unit A`, with reflexivity/symmetry/transitivity (the coalgebra/spec layer for the case studies).
 import Fredy.A5_6_ListCombinators
+-- Bird & de Moor §6.6 FULLY CONCRETE: selection sort correctness with NO hypotheses — concrete
+-- `select`/ordered algebra + the fusion proviso discharged via the §5.6 `perm`/`inlist`.
+import Fredy.A6_6b_SortConcrete
