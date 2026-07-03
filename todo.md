@@ -69,8 +69,13 @@ merged class `TabularUnitaryUnguardedPowerAllegory`): Map(A) has FULL power obje
   (`rFactorization`/`cover_split`/`all_projective`/`all_choice`, [propext,choice,Quot.sound]).
   Non-effectiveness also DONE (`S1_572b_NotEffective`, merged): arithmetized witness-checker acceptN
   (sound+complete+itself recursive), halting Kc r.e. + `K_not_recursive`, ERel from Kc as image of a
-  recursive enumeration, headline `r_not_effective`. Remaining: §2.16(13) corollary (transport ERel
-  into Rel(ExtNat) → effective reflection of R not AC). §1.573/§1.574 also
+  recursive enumeration, headline `r_not_effective`. RECURSIVE INSTANCE NOW DONE
+  (`S2_16_Recursive`, merged): `Freyd.RecEff.reflection_not_ac` — `Spl(Eq Rel(R))`, the effective
+  reflection of the recursive category R, is NOT AC (`¬ CoversSplit (SplEqObj (RelObj ExtNat))`).
+  Route: `eE = relClass ERel` reflexive/symmetric/idempotent in Rel(R) from `ERel_equivalence`;
+  `no_splitsAsMap` via graph-embedding fullness (`embedRel_full`, §2.148) + `cover_iff_one_le_...`
+  (§1.569) decodes any `SplitsAsMap` to `IsEffective ERel`, contradicting `ERel_not_effective`; then
+  one-line `not_coversSplit_of_not_effective`. Axioms [propext,choice,Quot.sound]. §1.573/§1.574 also
   DONE (`S1_573_PrimRec`, merged): mu-free `IsPrim` fragment (pairing/div/mod redone mu-free), category P,
   §1.573 equalizer idempotent, P̂=Spl(P) with full+faithful `embP`, all idempotents split, headline
   `phatCartesian`; §1.574 faithful set-valued representation `phatPoints_separates`. Skipped
