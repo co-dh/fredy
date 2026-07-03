@@ -2,6 +2,9 @@
    Run from repo root:  lake env lean --run scripts/ExtractGraph.lean
    Output: graph/decls.tsv  (name  kind  file  line  type  doc-first-line)
            graph/deps.tsv   (src  dst)
+   The doc column is the decl's own `/-- -/` first line; when it has none (≈26% of decls, mostly
+   lemmas grouped under a shared header), we fall back to the nearest `/-! ### … -/` section-header
+   title scraped from source — group context, not a per-decl doc, but far better than blank.
    Names have the ubiquitous `Freyd.` prefix stripped (8794/8802 decls carry it); the
    only root-level names left as-is are the `Cat` typeclass fields and the tool `main`.
    Edges are true proof-level dependencies (constants of the elaborated type + proof term,
@@ -52,6 +55,33 @@ def oneLine (s : String) : String := Id.run do
       out := out.push c
       sp := false
   return out
+
+-- Char-level string helpers (dodge the String/Slice deprecation churn in this Lean version).
+private def isWs (c : Char) : Bool := c == ' ' || c == '\t'
+private def trimC (cs : List Char) : List Char :=
+  (cs.dropWhile isWs).reverse.dropWhile isWs |>.reverse
+
+/-- The title of a `/-! … -/` module-doc block on `line` (with `next` its following source line),
+    or `none` if `line` is not such a block. Strips the `/-!` / trailing `-/` / leading `### `. -/
+def cleanHeader (line next : String) : Option String :=
+  let cs := trimC line.toList
+  if cs.take 3 == ['/','-','!'] then
+    let body := trimC (cs.drop 3)
+    let body := if body.isEmpty then trimC next.toList else body     -- bare `/-!` → use next line
+    let body := if body.reverse.take 2 == ['/','-'] then trimC (body.dropLast.dropLast) else body
+    let body := body.dropWhile (fun c => c == '#' || isWs c)          -- markdown `### `
+    if body.isEmpty then none else some (String.ofList body)
+  else none
+
+/-- Nearest `/-! ### … -/` section-header title at or above 1-indexed `line` in `lines`.
+    Fredy documents groups of lemmas with these blocks rather than a per-lemma `/-- -/`, so this
+    recovers the section context for the ~26% of decls that carry no docstring of their own. -/
+partial def sectionHeader (lines : Array String) (line : Nat) : Option String :=
+  let rec go (i : Nat) : Option String :=
+    match cleanHeader (lines[i]?.getD "") (lines[i+1]?.getD "") with
+    | some h => some h
+    | none   => if i == 0 then none else go (i - 1)
+  if lines.isEmpty || line < 2 then none else go (min (line - 2) (lines.size - 1))
 
 /-- Pretty-printed type and first docstring line for each row (needs a MetaM run).
     Strip the ubiquitous `Freyd.` prefix from the printed type and doc text (same reason
@@ -152,10 +182,29 @@ def main : IO Unit := do
   let sorted := (rows.map fun ((n, k, m, l), ty, doc) =>
       ((modToPath m "lean").toString, l, shortName n, k, ty, doc))
     |>.qsort fun a b => a.1 < b.1 || (a.1 == b.1 && a.2.1 < b.2.1)
+  -- Fill empty docs with the nearest `/-! ### … -/` section header scraped from source (94% of
+  -- undocumented decls sit under one). Group-level context, not a per-decl doc, but far better than
+  -- blank; only decls with no header above (and auto parent-projections) stay empty. Each source
+  -- file is read at most once via `srcCache`.
+  let mut srcCache : Std.HashMap String (Array String) := {}
+  let mut filled := 0
+  let mut withHdr := #[]
+  for (f, l, n, k, ty, doc) in sorted do
+    if !doc.isEmpty then withHdr := withHdr.push (f, l, n, k, ty, doc); continue
+    let ls ← match srcCache.get? f with
+      | some ls => pure ls
+      | none =>
+        let ls ← try pure (← IO.FS.lines f) catch _ => pure #[]
+        srcCache := srcCache.insert f ls
+        pure ls
+    let doc' := (sectionHeader ls l).getD ""
+    if !doc'.isEmpty then filled := filled + 1
+    withHdr := withHdr.push (f, l, n, k, ty, doc')
+  let sorted := withHdr
   IO.FS.withFile "graph/decls.tsv" .write fun h => do
     for (f, l, n, k, ty, doc) in sorted do
       h.putStrLn s!"{n}\t{k}\t{f}\t{l}\t{ty}\t{doc}"
   let es := (edges.map fun (s, t) => s!"{shortName s}\t{shortName t}") |>.qsort (· < ·) |>.toList.eraseReps.toArray
   IO.FS.withFile "graph/deps.tsv" .write fun h => do
     for e in es do h.putStrLn e
-  IO.println s!"{sorted.size} declarations, {es.size} edges ({done.size} modules, {orphans} orphan roots)"
+  IO.println s!"{sorted.size} declarations, {es.size} edges ({done.size} modules, {orphans} orphan roots); {filled} docs recovered from section headers"

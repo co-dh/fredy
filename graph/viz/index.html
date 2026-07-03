@@ -273,7 +273,9 @@ function setActive(node, tip){
     t.style.display='block';
     t.style.left=Math.min(p.x+14, innerWidth-350)+'px'; t.style.top=(p.y+14)+'px';
     t.innerHTML=`<div class="nm">${kindTag(d.kind)} ${esc(node)}</div>`
-      + (d.doc?`<div class="doc">${esc(d.doc)}</div>`:`<div class="doc" style="opacity:.5">no doc</div>`);
+      + (d.doc?`<div class="doc">${esc(d.doc)}</div>`
+        : d.type?`<div class="doc" style="opacity:.6">${esc(d.type.slice(0,140))}</div>`
+        : `<div class="doc" style="opacity:.5">no doc</div>`);
   } else t.style.display='none';
 }
 
