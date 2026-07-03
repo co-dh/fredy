@@ -154,7 +154,12 @@ PARTIAL: §1.541–§1.542 abstract capitalization framework (realized concretel
 (cover-preserving) Henkin** (witness separates maps, cover-pres conditional) · §1.551/§1.563/§1.564 regular/relational
 Horn-metatheorem corollaries (hypothesis-laden) · §1.592 small-abelian↪Ab exact rep (interface hypothetical) · §1.598
 normal+kernels/cokernels⟹abelian converse.
-MISSING: §1.513 covering-FAMILY predicate · §1.568 Quot(A)→equiv-rels functor ·
+§1.568 Quot(A) DONE (`S1_568_Quot`): `QuotObj` = covers with source A, `QuotObj.le` (f⩽g iff f
+factors through g on codomains, `id_A` top), preorder + `le_antisymm_iso` (mutual ⩽ ⟹ iso of
+quotient-objects, mirrors `Subobject`); §1.566 functor `ker := kernelPairRel` with `ker_antitone`
+(order-reversing, pullbacks only) + `le_of_ker_le` [RegularCategory] + headline `le_iff_ker_le`
+(faithful order-embedding Quot(A)↪EquivRel(A)ᵒᵖ) [Classical.choice].
+MISSING: §1.513 covering-FAMILY predicate ·
 §1.573 "P not cartesian" + §1.574 x⁻¹∉P / fractions (Ackermann-scale growth arguments) · §1.584–§1.587
 cocartesian-slice/Lazard/diophantine · §1.596 A(𝒮^𝒜) · §1.59(10) modular-lattice Galois.
 
