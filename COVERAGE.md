@@ -322,9 +322,12 @@ identity via propositional i=j + HEq, modular per-entry, assoc/Sup = Fubini inte
 UNIVERSE-BLOCKED (disjoint union of u-indexed families escapes to u+1; the completion is complete only at the next universe level
 — needs a class redesign, not just a universe-poly GlobalObj) · §2.226 SYSTEMIC COMPLETION (assumes splitting witness; full
 unit-existence blocked by §2.224 GloballyComplete).
-MISSING: §2.153 non-effectiveness (recursive K) · §2.157 remainder (degenerate Desargues cases, converse,
-Veblen–Wedderburn model) · §2.158 no-finite-axiom · §2.16(13) recursive instances ·
-§2.16(14) universal property of the reflection.
+DONE (2026-07-03): §2.16(13) recursive instance (`S2_16_Recursive`, effective reflection of R not AC) ·
+§2.157 LITERAL DESARGUES CONVERSE (`S2_157c`–`g`, `desarguesND_iff_desarguesHorn`) · §2.158 core
+(`S2_158_GraphAllegory`, decision procedure + Ĝ one-object allegory) · §2.16(14) BOTH presentations
+(`S2_16e_TwoPresentations`, symmetric-idempotent / coreflexive splittings of the set-like subcategory).
+MISSING: §2.153 non-effectiveness (recursive K) · §2.157 Veblen–Wedderburn 91-point non-Desarguesian model ·
+§2.158 no-finite-axiomatization METATHEOREM (Target 3: derivations + graph-map factorization/compactness).
 
 ## §2.2  Distributive allegories
 
@@ -406,7 +409,9 @@ already DONE as `symm_div_eq_A_comp`; the content is covered.
 PARTIAL: §2.414 CONVERSE (`S2_41b`, Map(A) topos up to the box-guard: merged class `TabularUnitaryPowerAllegory`,
 membership `mapMem`, box-guarded universal property `mapTranspose_existsUnique`; full Topos blocked by the BOX-GATING WALL —
 unguarded membership / `A(𝟘)` a map, the same root as §2.441/2.433/2.537, needs a `PowerAllegory`-interface strengthening).
-MISSING: §2.417 generator counterexample (model) · §2.418 REALIZABILITY
+§2.417 CORE DONE (`S2_417_Generator`, 2026-07-03): category C + generator witness `G_generates`
+(Rel(C) has a generator); OPEN = "not a power allegory" (Target 3, §1.96(10) collapse) + Giraud conditions.
+MISSING: §2.418 REALIZABILITY
 TOPOS (construction) · §2.424 connected-power topos corollary · §2.437/§2.438 r.e.-relations / Gödel (RECURSION THEORY) ·
 §2.444–§2.446 metonymy-independence (model) · §2.451–§2.455 boolean/CH/WELL-POINTED/cocartesian (set-theoretic models).
 
