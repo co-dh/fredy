@@ -481,7 +481,7 @@ theorem mapClassify_unique {C a : 𝒜}
 noncomputable instance mapHasSubobjectClassifier :
     @HasSubobjectClassifier (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) :=
   @HasSubobjectClassifier.mk (MapObj 𝒜) (mapCat (𝒜 := 𝒜)) mapHasTerminal mapHasPullbacks
-    mapOmega mapTrue mapTrue_monic
+    mapOmega mapTrue
     (fun {A A'} m hm => mapClassifyChi (C := A') (a := A) m hm)
     (fun {A A'} m hm => mapClassify_sq (C := A') (a := A) m hm)
     (fun {A A'} m hm => mapClassify_pullback (C := A') (a := A) m hm)

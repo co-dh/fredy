@@ -241,11 +241,6 @@ noncomputable instance overHasSubobjectClassifier (B : 𝒞) :
   toHasPullbacks := overHasPullbacks B
   omega := sliceOmega B
   true := sliceTrue B
-  true_monic := by
-    -- Σ reflects monos: it suffices that (sliceTrue B).f is mono in 𝒞.
-    -- (sliceTrue B).f = pair (term B ≫ true) (id B) is split by snd (snd_pair).
-    apply sigma_reflects_mono (sliceTrue B)
-    exact mono_of_retraction (sliceTrue B).f snd (snd_pair _ _)
   classify m hm := sliceClassify m hm
   classify_sq m hm := sliceClassify_sq m hm
   classify_pullback m hm := sliceClassify_pullback m hm

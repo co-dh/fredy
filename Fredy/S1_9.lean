@@ -96,7 +96,6 @@ noncomputable def powerClassify [HasPullbacks 𝒞] {C : 𝒞} [HasPowerObject C
 class HasSubobjectClassifier (𝒞 : Type u) [Cat.{v} 𝒞] extends HasTerminal 𝒞, HasPullbacks 𝒞 where
   omega      : 𝒞
   true       : one ⟶ omega
-  true_monic : Monic true
   /-- The characteristic map of a monic m : A' → A. -/
   classify {A A' : 𝒞} (m : A' ⟶ A) : Monic m → (A ⟶ omega)
   /-- The classifying square commutes: `m ≫ χ_m = (A'→1) ≫ t`. -/
@@ -108,6 +107,13 @@ class HasSubobjectClassifier (𝒞 : Type u) [Cat.{v} 𝒞] extends HasTerminal 
   classify_unique : ∀ {A A' : 𝒞} (m : A' ⟶ A) (hm : Monic m) (χ : A ⟶ omega)
     (hsq : m ≫ χ = term A' ≫ true),
     Cone.IsPullback (⟨A', m, term A', hsq⟩ : Cone χ true) → χ = classify m hm
+
+/-- §1.912: `true : 1 → Ω` is monic — it is a SPLIT mono, retracted by the terminal map
+    `Ω → 1` (terminal uniqueness gives `true ≫ (Ω→1) = 1₁`).  Derived here rather than
+    postulated as a class field, so instances need not supply it. -/
+theorem HasSubobjectClassifier.true_monic [HasSubobjectClassifier 𝒞] :
+    Monic (HasSubobjectClassifier.true (𝒞 := 𝒞)) :=
+  mono_of_retraction _ (term HasSubobjectClassifier.omega) (term_uniq _ _)
 
 /-- A TOPOS (§1.9, book p.9091): Cartesian category in which each object has a
     power-object.  Freyd's primary definition is the power-object one; the
