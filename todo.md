@@ -118,8 +118,15 @@ merged class `TabularUnitaryUnguardedPowerAllegory`): Map(A) has FULL power obje
   separate development, correctly not faked): the no-finite-axiomatization METATHEOREM — the n-rhombus
   separated family is valid in Rel(S) but not a consequence of any fixed finite set, needing an
   inductive representation of equational-theory DERIVATIONS + the graph-map factorization analysis.
-- **§2.417** (generator counterexample) — §1.96(10)-modification model (complete effective distributive
-  allegory with a generator but not a power allegory).
+- **§2.417** (generator counterexample) — CORE DONE (`S2_417_Generator`, merged): category `C` of
+  quadruples `⟨S, s:S→S, A, f:L→S→S⟩` (`catC`, exponent `xᵃ = if a∈A then f a x else s x`, maps commute
+  with every exponent — the map condition taken over ALL labels `a∈L` per §1.96(10), since the strict
+  `A∪A'`-only reading breaks composition), and the HEADLINE `G_generates : Generates (G L)` +
+  `generator_separates` — the book's `G=⟨{u,v},s,∅,∅⟩` with `sepRel x₀ = (w=v ∨ z=x₀)` giving
+  `u(T⊚R)y` but `¬u(T⊚R')y`. `Rel(C)` modeled concretely as equivariant `CRel`. All
+  [propext,Classical.choice,Quot.sound]. OPEN: "only the coterminator has a power-object in C ⟹ Rel(C)
+  not a power allegory" (needs a Progenitor class + full Rel(C) allegory instance) and the Giraud-conditions
+  verification.
 
 ## Universe wall (needs a class redesign, not a leaf file)
 
