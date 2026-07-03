@@ -126,4 +126,22 @@ theorem subseqP.of_cons {a : A} :
 theorem subseq_reflexive : Cat.id (dList A) ⊑ subseq :=
   le_iff.mpr fun x y hxy => hxy ▸ subseqP.refl x
 
+/-! ## Sortedness `ordered : list A ← list A` (B&dM p.152, `ordered = ⦇[nil, cons·ok]⦈`) -/
+
+variable (R : A → A → Prop)
+
+/-- `x` is sorted under `R`: each element is `R`-below every later element (matches B&dM's `ok`
+    coreflexive, `ok(a,x)` iff `∀ b ∈ x, aRb`, threaded through the list). -/
+def orderedP : ConsList Unit A → Prop
+  | ConsList.wrap _ => True
+  | ConsList.cons a x => (∀ b, inlistP x b → R a b) ∧ orderedP x
+
+/-- The sortedness coreflexive `ordered : list A ⟶ list A`. -/
+def ordered : dList A ⟶ dList A := fun x y => x = y ∧ orderedP R x
+
+/-- **`ordered` is coreflexive** (`ordered ⊑ id`) — discharges the `hord` hypothesis of §6.6's
+    `selection_sort_correct` for the concrete sortedness relation. -/
+theorem ordered_coreflexive : (ordered R : dList A ⟶ dList A) ⊑ Cat.id (dList A) :=
+  le_iff.mpr fun x y h => h.1
+
 end Freyd.Alg.RelSet.ListRel
