@@ -86,9 +86,14 @@ merged class `TabularUnitaryUnguardedPowerAllegory`): Map(A) has FULL power obje
   (`S2_157b_Desargues`, merged): degenerate cases ALL closed (`desarguesHorn_implies_desargues` needs only
   `DesarguesND`'s own 9 forced side conditions; `not_desargues_of_interesting` shows they're necessary);
   converse headline `desarguesND_iff_hornAtPoints` (Desargues ⟺ Horn at six-point configurations) +
-  `desarguesHorn_iff_latticeHorn` + ⊤/⊥⊥/modularity-substitution Horn tuples. STILL OPEN: literal
-  DesarguesND ⟹ DesarguesHorn at non-general-position and ln-containing 6-tuples (plane-axiom case tree),
-  Veblen–Wedderburn 91-point non-Desarguesian model.
+  `desarguesHorn_iff_latticeHorn` + ⊤/⊥⊥/modularity-substitution Horn tuples. LITERAL CONVERSE NOW DONE
+  (`S2_157c`/`S2_157d`/`S2_157e`/`S2_157f`/`S2_157g`, merged): `desarguesND_implies_desarguesHorn` and full
+  `desarguesND_iff_desarguesHorn` — DesarguesND ⟹ HornConc at EVERY lattice 6-tuple, via the
+  `latticeHorn_of_families` case tree on `H := (a₁⊔a₂)⊓(b₁⊔b₂)`: `H=⊥` disjoint core, `H=pt z`
+  `hornCenter_famB` (the ONLY Desargues-consuming family — coupled-shear key `cruxDesLeaf` + 4 degeneracy
+  chases feeding `hornConc_center_desargues`), `H=ln A` `hornLine_famC` (`M_κ` core + ⊤-mixed incidence
+  bash), `H=⊤` `hornTop_famA` (12-leaf c-column bash). All [propext,Classical.choice,Quot.sound].
+  STILL OPEN: Veblen–Wedderburn 91-point non-Desarguesian model (concrete counter-plane).
 - ~~**§2.153**~~ — **DONE** (`S2_153_Assemblies`, merged 9e4a679): Assembly K is a POSITIVE PRE-LOGOS with
   disjoint stable coproducts (`asmPositivePreLogos`/`asmDisjointBinaryCoproduct`); ∇ functor; `allPartial`
   witness. BOOK DISCREPANCY: bare (i)(ii)(iii) provably insufficient — pairing + parameterized tag-cases
