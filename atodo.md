@@ -31,11 +31,31 @@ Foundation (DONE):
 - [ ] §10.3 The minimum tardiness problem
 - [ ] §10.4 The TeX problem
 
+## Shared prerequisites for the remaining sections (build these first)
+
+The rest are NOT independent one-offs — they share two prerequisite layers that must be built:
+
+1. **Cons-list engine** `ConsList L E = L + E × X` (mirror of `A6_SnocList`, element on the LEFT of
+   the product; needed for `head`/`tail`).  Most of §6.6–§10.4 use `list A` = cons-lists.
+2. **Chapter-5 list combinators (DEFERRED, unbuilt)** — §5.6 concrete list combinatorics (`perm`,
+   `subseq`, `inits`/`tails`, `partition`, `inlist`=membership) were never formalized (see
+   [[algprog-a4-formalization]] Ch.5 drops).  §6.6 sorting needs `perm` + `ordered` + `inlist`;
+   the optimisation case studies (§7.3+) need `subseq`/`partition`/`inits` as the coalgebra `T`.
+
+Per-section dependency (⇒ = also needs the concrete optimisation layer already built abstractly):
+- §6.6 sorting = cons-lists + `perm` + `ordered` catamorphism + fusion (⦇[nil,select°]⦈°).
+- §7.3–7.5 = cons-lists + `subseq`/`partition` + `minRel`/greedy (A7) on concrete cost.
+- §8.2–8.6 = cons-lists/trees + `thinRel` (A8) on concrete data.
+- §9.2–9.4 = cons-lists + DP (A9) on concrete data; §9.1 case studies were the deferred ones.
+- §10.2–10.4 = cons-lists + greedy (A10) on concrete data.
+
+RECOMMENDED ORDER: (a) build `A6_ConsList.lean` (quick mirror of `A6_SnocList`); (b) build a
+`perm`/`ordered`/`inlist` module (ch.5 §5.6 list combinators) — the real gate; (c) then §6.6; then
+the optimisation case studies reuse (a)+(b)+ the abstract A7–A10 theorems.
+
 Notes:
 - §6.5 "Unique fixed points" is theory (hylo uniqueness, already parameterised as `HyloUnique`
-  in `A6_3`) — not a concrete program; skip unless it turns out to add content.
-- Reusable infra lives in `A6_1_RelSet` + `A6_1_Digits` (graph=Map, cataFold-from-relation,
-  rprodMap, entire_total/simple_uniq, Fmap equation-lemma pattern).  Lift shared datatype
-  combinators (Nat/cons-list initial algebras, sumRel/prodRel relators) to a shared file when a
-  second section needs them.
-- If a section hits a genuine wall (e.g. needs machinery not yet built), record it here and move on.
+  in `A6_3`) — not a concrete program; skip.
+- Reusable infra: `A6_1_RelSet` (Set model) + `A6_SnocList` (generic snoc-list initial algebra,
+  cata_converse_eq) + `A6_1_Digits`/`A6_4_FastExp` (worked instances).  See [[relset-concrete-programming]].
+- If a section hits a genuine wall, record it here and move on.
