@@ -326,12 +326,18 @@ DONE (2026-07-03): §2.16(13) recursive instance (`S2_16_Recursive`, effective r
 §2.157 LITERAL DESARGUES CONVERSE (`S2_157c`–`g`, `desarguesND_iff_desarguesHorn`) · §2.158 core
 (`S2_158_GraphAllegory`, decision procedure + Ĝ one-object allegory) · §2.16(14) BOTH presentations
 (`S2_16e_TwoPresentations`, symmetric-idempotent / coreflexive splittings of the set-like subcategory).
-§2.153 non-effectiveness: reduction DONE (`S2_153_NonEffective`, `asmReflection_not_ac_of_nonsplitting`)
-+ the PARTIAL-RECURSIVE modulus system now BUILT (`S2_153b_RecursiveModulus`: `PartRec` + all closures
-incl. `partRec_casesC` via a from-scratch `universal_genuine` machine ⟹ `Krec : ModulusSystem`,
-[propext,choice,Quot.sound]). REMAINING for the concrete headline: `ERel` transport FAILS (singleton-caucus
-assemblies are effective/Krec-trackable) — needs a non-splitting relation on a RICHER (non-singleton,
-r.e.-caucus) `Krec`-assembly whose quotient is not Krec-trackable (a separate construction).
+§2.153 non-effectiveness: a COMPLETE sorry-free infrastructure stack (6 layers), headline reduced to one
+construction that is PROVEN to need realizability non-exactness. `S2_153_NonEffective`
+(`asmReflection_not_ac_of_nonsplitting`) → `S2_153b_RecursiveModulus` (`Krec : ModulusSystem` = the
+partial-recursive modulus system, `PartRec` + all closures incl. `partRec_casesC` via a from-scratch
+`universal_genuine` machine) → `S2_153c` (`asmReflection_not_ac_of_binRel_not_effective`: headline ⟸ ∃
+non-effective equivalence `BinRel`) → `S2_153d` (`level_forward`/`effective_xIdentifies`) → `S2_153e`
+(`level_caucus_iff`: the level's caucus is the codomain-independent cheap `code r_a r_a'`; `level_fill_
+realizer`). PROVEN WALL (`S2_153e` docstring): an equivalence relation whose only content is a halting
+encoding is EITHER not a valid assembly OR effective (`Tracks` constrains only INHABITED caucus indices;
+R escaped via cover-splitting = AC, which Krec-assemblies lack). So the concrete headline
+`¬CoversSplit(AsmEffReflection Krec)` needs the CLASSICAL REALIZABILITY NON-EXACTNESS construction (∇ /
+¬¬-separated quotients) — §2.418 realizability-topos territory, a separate multi-file subproject.
 MISSING: §2.157 Veblen–Wedderburn 91-point non-Desarguesian model ·
 §2.158 no-finite-axiomatization METATHEOREM (Target 3: `RhombusHard` — blocked on constructive finiteness
 infra + the OCR-corrupted entangled n-rhombus figure; scaffolding + `ladder_holds` + `not_complete_nil` done).
