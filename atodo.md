@@ -28,8 +28,15 @@ Foundation (DONE):
       the rose-tree datatype `tree A = node(A, list(tree A))` (NESTED inductive) + concrete `party`
       catamorphism + `⟨include,exclude⟩` monotonicity DEFERRED — needs a rose-tree engine (mutual
       tree/list structural fold; harder than cons/snoc-lists).  Tree engine = the gate for §7.3 fully.
-- [ ] §7.4  Shortest paths on a cylinder
-- [ ] §7.5  The security van problem
+- [WALL] §7.4  Shortest paths on a cylinder — genuine heavy-machinery WALL: needs n-tuples (`LN A` =
+      length-n lists), sets-as-lists (`PL A`), the transpose `trans`, `zip` (N commutes with F), `cp`,
+      `union`/`setify`, and `generate` as a LAX NATURAL TRANSFORMATION (§5.7), all feeding Theorem 7.1.
+      No cheap concrete extractable piece (unlike §7.3's choose); a parameterized version = Thm 7.1
+      renamed (vacuous).  Deferred — would be a multi-hundred-line concrete build.
+- [WALL] §7.5  The security van problem — needs the DEFERRED ch.5 §5.6 `partition : list(list⁺ A)←list A`
+      combinator + `secure` prefix/suffix-closed coreflexives + fusion/greedy derivation.  Small
+      concrete piece exists ("cons monotonic on R°", (7.14)) but the section rests on `partition`.
+      Gated on the §5.6 combinator layer.
 - [ ] §8.2  Paths in a layered network
 - [ ] §8.3  Implementing thin
 - [ ] §8.4  The knapsack problem
