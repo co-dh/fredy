@@ -328,9 +328,20 @@ function linkList(arr){
 }
 function focusNode(name){
   if(!graph.hasNode(name)) return;
+  const d = decl.get(name);
+  // make sure the target is actually visible before jumping the camera to it: leave any focus
+  // isolation and un-hide its chapter (else we'd centre on a hidden node = "somewhere unrelated").
+  if(focusSet){ focusSet=null; statCount(); }
+  if(d && hiddenSections.has(d.sec)){
+    hiddenSections.delete(d.sec);
+    const cb=document.querySelector(`#sections .secbox[value="${d.sec}"]`);
+    if(cb) cb.checked=true;
+    syncMasters();
+  }
+  sigma.setCustomBBox(null);        // full extent so the node's framed coords are well-defined
+  openDetail(name);                 // sets selected + refresh → fresh display data
   const p = sigma.getNodeDisplayData(name);
-  sigma.getCamera().animate({ x:p.x, y:p.y, ratio:0.15 }, { duration:400 });
-  openDetail(name);
+  if(p) sigma.getCamera().setState({ x:p.x, y:p.y, ratio:0.15, angle:0 });   // animate() is a no-op here; setState works
 }
 
 /* ---------- search ---------- */
@@ -365,6 +376,10 @@ search.addEventListener('keydown', e=>{
    When nothing is hidden it lays out the full graph in place (no subgraph copy). */
 let layoutRunning=false;
 function isVisible(n){ const d=decl.get(n); return !(hiddenKinds.has(d?.kind)||hiddenSections.has(d?.sec)) && (!focusSet||focusSet.has(n)); }
+// This Sigma build's animated camera methods (animate / animatedReset) are no-ops here — only
+// setState actually moves the camera — so all camera moves go through setState.
+function resetCam(){ sigma.getCamera().setState({ x:0.5, y:0.5, ratio:1, angle:0 }); }   // show the whole (custom or auto) extent
+function statCount(){ $('#stat').textContent = `${graph.order.toLocaleString()} nodes · ${graph.size.toLocaleString()} edges`; }
 // After a partial relayout, frame the camera to just the visible nodes: hidden nodes keep their
 // old far-off coordinates, which would otherwise dominate Sigma's auto extent and leave the
 // re-laid-out cluster tiny in the middle. Clearing the bbox (arg null) reverts to full extent.
@@ -374,7 +389,7 @@ function frameVisible(nodes){
     if(a.x<x0)x0=a.x; if(a.x>x1)x1=a.x; if(a.y<y0)y0=a.y; if(a.y>y1)y1=a.y; }
   if(x0<=x1){ const px=((x1-x0)||2)*0.06, py=((y1-y0)||2)*0.06;   // pad; guard a degenerate 1-node box
     sigma.setCustomBBox({ x:[x0-px,x1+px], y:[y0-py,y1+py] }); }
-  sigma.refresh(); sigma.getCamera().animatedReset();
+  sigma.refresh(); resetCam();
 }
 /* ---------- focus: isolate a node + its transitive dependency cone ---------- */
 function closure(start, dir){   // dir 'out' = things it uses (dependencies); 'in' = things that use it
@@ -390,8 +405,7 @@ function setFocus(node, dir){
   frameVisible(focusSet);      // hides the rest (reducers) and frames the cone to fill the viewport
 }
 function clearFocus(){
-  focusSet=null; sigma.setCustomBBox(null); sigma.refresh(); sigma.getCamera().animatedReset();
-  $('#stat').textContent = `${graph.order.toLocaleString()} nodes · ${graph.size.toLocaleString()} edges`;
+  focusSet=null; sigma.setCustomBBox(null); sigma.refresh(); resetCam(); statCount();
 }
 function runLayout(){
   if(layoutRunning) return; layoutRunning=true;
@@ -412,12 +426,12 @@ function runLayout(){
   const settings = Object.assign(forceAtlas2.inferSettings(target),
     sub ? { barnesHutOptimize:true, gravity:0.8, scalingRatio:8, slowDown:3 }
         : { barnesHutOptimize:true, gravity:1.2, slowDown:2 });
-  const TOTAL=300; let done=0;
+  const TOTAL=100; let done=0;   // ForceAtlas2 iterations; ~converged by here, 3x faster than 300
   overlay.classList.remove('hidden');
   (function stepLoop(){
     if(done>=TOTAL){
       sigma.refresh();
-      sub ? frameVisible(vis) : sigma.getCamera().animatedReset();
+      sub ? frameVisible(vis) : resetCam();
       overlay.classList.add('hidden'); layoutRunning=false; return;
     }
     const chunk=Math.min(12, TOTAL-done);
