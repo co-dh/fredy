@@ -159,7 +159,11 @@ factors through g on codomains, `id_A` top), preorder + `le_antisymm_iso` (mutua
 quotient-objects, mirrors `Subobject`); §1.566 functor `ker := kernelPairRel` with `ker_antitone`
 (order-reversing, pullbacks only) + `le_of_ker_le` [RegularCategory] + headline `le_iff_ker_le`
 (faithful order-embedding Quot(A)↪EquivRel(A)ᵒᵖ) [Classical.choice].
-MISSING: §1.513 covering-FAMILY predicate ·
+§1.513/§1.514 DONE (`S1_513_CoveringFamily`, axiom-free): `CoveringFamily f := ∀ S, (∀ i, Allows S (f i))
+→ S.IsEntire` (no proper subobject allows all), `cover_iff_coveringFamily_singleton` (single Cover =
+singleton family), `EpicFamily` + `covering_family_epic [HasEqualizers]` (cover ⟹ epic via the equalizer
+subobject).
+MISSING:
 §1.573 "P not cartesian" + §1.574 x⁻¹∉P / fractions (Ackermann-scale growth arguments) · §1.584–§1.587
 cocartesian-slice/Lazard/diophantine · §1.59(10) modular-lattice Galois.
 §1.596 DONE (`S1_596_AbFunctorCategory`): iso of categories `Ab(𝒮^𝒜) ≅ (Ab 𝒮)^𝒜` — internal

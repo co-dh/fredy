@@ -23,6 +23,7 @@ import Fredy.S1_47
 import Fredy.S1_444_Horn
 import Fredy.S1_421_Initial
 import Fredy.S1_51
+import Fredy.S1_513_CoveringFamily
 import Fredy.S1_52
 import Fredy.S1_53
 import Fredy.S1_53_SliceRegular
