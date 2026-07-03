@@ -39,11 +39,19 @@ Foundation (DONE):
       Gated on the §5.6 combinator layer.
 - [ ] §8.2  Paths in a layered network
 - [ ] §8.3  Implementing thin
-- [ ] §8.4  The knapsack problem
+- [~] §8.4  The knapsack problem — `A8_4_Knapsack.lean`: `knapsack_thinning` = the thinning theorem
+      `A8_1.thinning_min` instantiated (the section's punchline: knapsack solved by BINARY THINNING;
+      selections=subsequences, order by value, thin by weight).  Concrete cons-list subseq algebra +
+      the monotonicity-on-Q° proof deferred (the §6.6-style full concretisation).
+      NOTE — §8.2 (layered network) and §8.5 (paragraph) are the SAME thinning-theorem instantiation
+      shape; §10.3 (tardiness) is the greedy-theorem shape (cf. §7.3 company_party_greedy).  Each is a
+      one-line abstract-theorem instance + a deferred concrete monotonicity/proviso proof.
 - [ ] §8.5  The paragraph problem
 - [ ] §8.6  Bitonic tours
 - [ ] §9.2  The string edit problem
-- [ ] §9.3  Optimal bracketing
+- [WALL] §9.3  Optimal bracketing — needs binary trees (`tip | bin(t,t)`), Theorem 9.1 (have) +
+      Prop 9.3 (have) BUT ALSO Proposition 9.1 (coproduct split — DROPPED from A9_1, needs
+      DistributiveAllegory+junc) + `inits⁺`/`tails⁺`/`splits` + a tabulation scheme.  Heavy wall.
 - [ ] §9.4  Data compression
 - [x] §10.2 The detab–entab problem — `A10_2_Detab.lean`: the tupled catamorphism `(detab, col·detab)
       = ⦇[base, step]⦈` over snoc-lists of chars (carrying (output, column)), with its loop recursion

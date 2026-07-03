@@ -232,3 +232,6 @@ import Fredy.A6_6b_SortConcrete
 -- Bird & de Moor §10.2: detab-entab — the tupled catamorphism `(detab, col·detab) = ⦇[base,step]⦈`
 -- over snoc-lists of chars, with its loop recursion (base/step case).
 import Fredy.A10_2_Detab
+-- Bird & de Moor §8.4: the knapsack problem — binary thinning; `knapsack_thinning` = the thinning
+-- theorem `thinning_min` instantiated (selections=subsequences, order by value, thin by weight).
+import Fredy.A8_4_Knapsack
