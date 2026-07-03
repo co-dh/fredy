@@ -45,7 +45,9 @@ Foundation (DONE):
 - [ ] §9.2  The string edit problem
 - [ ] §9.3  Optimal bracketing
 - [ ] §9.4  Data compression
-- [ ] §10.2 The detab–entab problem
+- [x] §10.2 The detab–entab problem — `A10_2_Detab.lean`: the tupled catamorphism `(detab, col·detab)
+      = ⦇[base, step]⦈` over snoc-lists of chars (carrying (output, column)), with its loop recursion
+      (`detab_wrap`/`detab_snoc`); `detab` = first component.  Concrete (chars/blanks/tab-width).
 - [ ] §10.3 The minimum tardiness problem
 - [ ] §10.4 The TeX problem
 

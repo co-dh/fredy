@@ -170,6 +170,8 @@ import Fredy.S2_157b_Desargues
 import Fredy.S2_157c_Converse
 import Fredy.S2_157d_HornTop
 import Fredy.S2_157e_HornCenter
+import Fredy.S2_157f_HornLine
+import Fredy.S2_157g_ConverseHeadline
 import Fredy.S2_158_GraphAllegory
 import Fredy.S2_33
 import Fredy.S1_631_CapitalProjective
@@ -227,3 +229,6 @@ import Fredy.A5_6_ListCombinators
 -- Bird & de Moor §6.6 FULLY CONCRETE: selection sort correctness with NO hypotheses — concrete
 -- `select`/ordered algebra + the fusion proviso discharged via the §5.6 `perm`/`inlist`.
 import Fredy.A6_6b_SortConcrete
+-- Bird & de Moor §10.2: detab-entab — the tupled catamorphism `(detab, col·detab) = ⦇[base,step]⦈`
+-- over snoc-lists of chars, with its loop recursion (base/step case).
+import Fredy.A10_2_Detab
