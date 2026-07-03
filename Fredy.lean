@@ -203,3 +203,6 @@ import Fredy.A10_1
 -- Concrete model Rel(Set) for the AoP case studies (objects = types, morphisms = relations):
 -- the full allegory stack (power/LCDA/tabular/unitary) in which the §6.1+ programs actually run.
 import Fredy.A6_1_RelSet
+-- Bird & de Moor §6.1: Digits of a number — Decimal as an initial algebra of `F A = Digit⁺ + A×Digit`,
+-- the reading catamorphism `val`, and the recursive equation for `val°` (first worked AoP program).
+import Fredy.A6_1_Digits
