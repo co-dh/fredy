@@ -221,3 +221,6 @@ import Fredy.A6_6_Sort
 -- Bird & de Moor §7.3: planning a company party — `choose` monotonicity + party planning solved by
 -- the greedy theorem (`greedy_max`); the rose-tree datatype `tree A = node(A, list(tree A))` deferred.
 import Fredy.A7_3_Party
+-- Bird & de Moor §5.6: combinatorial list relations — perm/prefix/subseq/inlist over `list A = ConsList
+-- Unit A`, with reflexivity/symmetry/transitivity (the coalgebra/spec layer for the case studies).
+import Fredy.A5_6_ListCombinators

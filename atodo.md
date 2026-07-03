@@ -71,6 +71,12 @@ RECOMMENDED ORDER: (a) build `A6_ConsList.lean` (quick mirror of `A6_SnocList`);
 `perm`/`ordered`/`inlist` module (ch.5 §5.6 list combinators) — the real gate; (c) then §6.6; then
 the optimisation case studies reuse (a)+(b)+ the abstract A7–A10 theorems.
 
+§5.6 LAYER — CORE DONE: `A5_6_ListCombinators.lean` (`list A = ConsList Unit A`): `perm` (Perm
+inductive; reflexive/symmetric/transitive — DISCHARGES the `hperm` hyp of §6.6/§7.5), `inlist`
+(membership), `prefixR` (preorder), `subseq` (reflexive + weaken/of_cons).  STILL TODO for full
+un-parameterisation: `ordered = ⦇[nil, cons·ok]⦈` (needs `inlist`+order R), `partition = concat°`
+(needs list-of-nonempty-lists), and the concrete `select` fusion-proviso (§6.6) / secure (§7.5).
+
 Notes:
 - §6.5 "Unique fixed points" is theory (hylo uniqueness, already parameterised as `HyloUnique`
   in `A6_3`) — not a concrete program; skip.
