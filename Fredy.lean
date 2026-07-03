@@ -251,3 +251,7 @@ import Fredy.A9_3_Bracketing
 import Fredy.A9_4_Compression
 import Fredy.A10_3_Tardiness
 import Fredy.A10_4_TeX
+-- LeetCode 121 (Best Time to Buy and Sell Stock) — programmed in the allegory Rel(Set): the O(n)
+-- scan as a snoc-list catamorphism, proven equal to max(≤)·Λspec.  Uses the copied `exacts` tactic.
+import Fredy.Exacts
+import Fredy.L121
