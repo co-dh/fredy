@@ -236,25 +236,12 @@ theorem existsAlong_extJoin_le {A B : 𝒞} (g : A ⟶ B) (S : Subobject 𝒞 A 
     (extJoin_upper hpow LocallySmallTopos.wellPowered _ (existsAlong g s) ⟨s, hs, rfl⟩)
 
 /-- A subobject of `A × B` viewed as a relation `A ⇸ B` (legs = `arr ≫ fst`, `arr ≫ snd`). -/
-noncomputable def binRelSub {A B : 𝒞} (W : Subobject 𝒞 (prod A B)) : BinRel 𝒞 A B where
-  src  := W.dom
-  colA := W.arr ≫ fst
-  colB := W.arr ≫ snd
-  isMonicPair := by
-    intro Z u v hA hB
-    refine W.monic u v ?_
-    have hfst : (u ≫ W.arr) ≫ fst = (v ≫ W.arr) ≫ fst := by simpa [Cat.assoc] using hA
-    have hsnd : (u ≫ W.arr) ≫ snd = (v ≫ W.arr) ≫ snd := by simpa [Cat.assoc] using hB
-    calc u ≫ W.arr
-        = pair ((u ≫ W.arr) ≫ fst) ((u ≫ W.arr) ≫ snd) := pair_uniq _ _ _ rfl rfl
-      _ = pair ((v ≫ W.arr) ≫ fst) ((v ≫ W.arr) ≫ snd) := by rw [hfst, hsnd]
-      _ = v ≫ W.arr := (pair_uniq _ _ _ rfl rfl).symm
+noncomputable def binRelSub {A B : 𝒞} (W : Subobject 𝒞 (prod A B)) : BinRel 𝒞 A B := subRel W
 
 /-- `relSub (binRelSub W) = W` as subobjects (the pair of `W.arr`'s projections is `W.arr`). -/
 theorem relSub_binRelSub_arr {A B : 𝒞} (W : Subobject 𝒞 (prod A B)) :
-    (relSub (binRelSub W)).arr = W.arr := by
-  show pair (W.arr ≫ fst) (W.arr ≫ snd) = W.arr
-  exact (pair_uniq _ _ W.arr rfl rfl).symm
+    (relSub (binRelSub W)).arr = W.arr :=
+  relSub_subRel_arr W
 
 theorem relSub_binRelSub_le {A B : 𝒞} (W : Subobject 𝒞 (prod A B)) :
     (relSub (binRelSub W)).le W :=

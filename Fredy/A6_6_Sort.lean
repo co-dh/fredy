@@ -23,11 +23,8 @@ variable {A : Type}
 abbrev dList (A : Type) : RelSet.{0} := dCL Unit A
 
 /-- Coreflexives in `Rel(Set)` are symmetric: `R ⊑ id ⟹ R° = R`. -/
-theorem coref_recip {a : RelSet.{0}} {R : a ⟶ a} (h : R ⊑ Cat.id a) : R° = R := by
-  apply hom_ext; intro x y
-  constructor
-  · intro hR; have hyx : y = x := le_iff.mp h y x hR; subst hyx; exact hR
-  · intro hR; have hxy : x = y := le_iff.mp h x y hR; subst hxy; exact hR
+theorem coref_recip {a : RelSet.{0}} {R : a ⟶ a} (h : R ⊑ Cat.id a) : R° = R :=
+  symmetric_eq (coreflexive_symmetric_idempotent h).1
 
 variable (select : dList A ⟶ (⟨A × ConsList Unit A⟩ : RelSet.{0}))
 

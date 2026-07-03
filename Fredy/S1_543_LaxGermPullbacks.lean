@@ -43,40 +43,6 @@ universe w
 variable {ι : Type w} {D : Directed ι}
 variable (L : LaxCatSystem.{w, w} ι D) (hL : Coherent L)
 
-/-- **`stageInclFunctorL i` preserves binary products, as `PreservesBinaryProducts`.**  Direct
-    repackage of the germ `objInclL_preserves_products` (the `IsIso (pair …)` fact) under the
-    `stageInclFunctorL` `Functor` instance.  Lax port of `objIncl_preservesBinaryProducts`. -/
-theorem objInclL_preservesBinaryProducts (pData : LaxProductData L) (i : ι) :
-    letI : Cat (Obj L) := laxColimCat L hL
-    letI : HasBinaryProducts (L.A i) := pData.hp i
-    letI : HasBinaryProducts (Obj L) := laxColimHasBinaryProducts L hL pData
-    @PreservesBinaryProducts (L.A i) (Obj L) (L.catA i) (laxColimCat L hL)
-      (fun x => (⟨i, x⟩ : Obj L)) (stageInclFunctorL L hL i) (pData.hp i)
-      (laxColimHasBinaryProducts L hL pData) :=
-  fun {A B} => objInclL_preserves_products L hL pData i A B
-
-/-- **`stageInclFunctorL i` preserves equalizers, as `PreservesEqualizers`.**  Convert the germ
-    `objInclL_preserves_equalizers` (the `EqualizerCone.IsEqualizer` form) to the comparison-map
-    iso form `PreservesEqualizers` wants, via `isIso_of_two_equalizers` against the chosen colimit
-    equalizer of `(stageInclL f, stageInclL g)`.  Lax port of `objIncl_preservesEqualizers`. -/
-theorem objInclL_preservesEqualizers (eqData : LaxEqualizerData L) (i : ι) :
-    letI : Cat (Obj L) := laxColimCat L hL
-    letI : HasEqualizers (L.A i) := eqData.he i
-    letI : HasEqualizers (Obj L) := laxColimHasEqualizers L hL eqData
-    @PreservesEqualizers (L.A i) (Obj L) (L.catA i) (laxColimCat L hL)
-      (fun x => (⟨i, x⟩ : Obj L)) (stageInclFunctorL L hL i) (eqData.he i)
-      (laxColimHasEqualizers L hL eqData) := by
-  letI : Cat (Obj L) := laxColimCat L hL
-  letI : HasEqualizers (L.A i) := eqData.he i
-  letI : HasEqualizers (Obj L) := laxColimHasEqualizers L hL eqData
-  intro a b f g
-  -- the germ: the `F`-image cone `(⟨i, eqObj f g⟩, stageInclL (eqMap f g))` is an equalizer.
-  have himg := objInclL_preserves_equalizers L hL eqData i f g
-  -- compare it to the chosen colimit equalizer `eqD`; the comparison `eqD.lift` is iso.
-  let eqD := HasEqualizers.eq ((⟨i, a⟩ : Obj L)) ((⟨i, b⟩ : Obj L))
-    ((stageInclFunctorL L hL i).map f) ((stageInclFunctorL L hL i).map g)
-  exact isIso_of_two_equalizers himg (chosenEqualizer_isEqualizer _ _) _ (eqD.fac _)
-
 /-! ## `objIncl i` sends the §1.432 chosen pullback to a pullback cone
 
   Assembles the two germ-based `Preserves*` wrappers through `image_chosenPullback_isPullback'`. -/
@@ -102,17 +68,7 @@ theorem objInclL_preserves_pullbacks [Nonempty ι]
       (stageInclL L hL (products_equalizers_implies_pullbacks f g).cone.π₂)
       ((stageInclL_comp L hL _ f).symm.trans
         ((congrArg (stageInclL L hL ·) (products_equalizers_implies_pullbacks f g).cone.w).trans
-          (stageInclL_comp L hL _ g)))).IsPullback := by
-  letI : HasTerminal (L.A i) := tData.ht i
-  letI : HasBinaryProducts (L.A i) := pData.hp i
-  letI : HasEqualizers (L.A i) := eqData.he i
-  letI : Cat (Obj L) := laxColimCat L hL
-  letI : HasTerminal (Obj L) := laxColimHasTerminal L hL tData
-  letI : HasBinaryProducts (Obj L) := laxColimHasBinaryProducts L hL pData
-  letI : HasEqualizers (Obj L) := laxColimHasEqualizers L hL eqData
-  exact image_chosenPullback_isPullback' (𝒞 := L.A i) (𝒟 := Obj L)
-    (fun x => (⟨i, x⟩ : Obj L)) (hF := stageInclFunctorL L hL i)
-    (objInclL_preservesBinaryProducts L hL pData i)
-    (objInclL_preservesEqualizers L hL eqData i) f g
+          (stageInclL_comp L hL _ g)))).IsPullback :=
+  stageInclFunctorL_preservesPullbacks L hL tData pData eqData i f g
 
 end Freyd.LaxColim

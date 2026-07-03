@@ -2809,55 +2809,8 @@ theorem complemented_legs_iso [HasBinaryProducts 𝒞] {A : 𝒞} (U U₂ : Subo
     ∃ (ψ : HasBinaryCoproducts.coprod U.dom U₂.dom ⟶ A)
       (ψinv : A ⟶ HasBinaryCoproducts.coprod U.dom U₂.dom),
       ψ ≫ ψinv = Cat.id _ ∧ ψinv ≫ ψ = Cat.id _ ∧
-      HasBinaryCoproducts.inl ≫ ψ = U.arr ∧ HasBinaryCoproducts.inr ≫ ψ = U₂.arr := by
-  classical
-  have hCinit : ∀ {X : 𝒞} (u v : (HasPullbacks.has U.arr U₂.arr).cone.pt ⟶ X), u = v :=
-    dom_initial_of_le_bottom (S := Subobject.inter U U₂) hdisj
-  let po := pasting_lemma U U₂
-  let Un := HasSubobjectUnions.union U U₂
-  have hx : po.cocone.ι₁ ≫ Un.arr = U.arr := (HasSubobjectUnions.union_left U U₂).choose_spec
-  have hy : po.cocone.ι₂ ≫ Un.arr = U₂.arr := (HasSubobjectUnions.union_right U U₂).choose_spec
-  let coCoc : PushoutCocone (HasPullbacks.has U.arr U₂.arr).cone.π₁
-      (HasPullbacks.has U.arr U₂.arr).cone.π₂ :=
-    ⟨HasBinaryCoproducts.coprod U.dom U₂.dom, HasBinaryCoproducts.inl, HasBinaryCoproducts.inr,
-     hCinit _ _⟩
-  let φ : po.cocone.pt ⟶ HasBinaryCoproducts.coprod U.dom U₂.dom := po.desc coCoc
-  have hφ₁ : po.cocone.ι₁ ≫ φ = HasBinaryCoproducts.inl := po.fac₁ coCoc
-  have hφ₂ : po.cocone.ι₂ ≫ φ = HasBinaryCoproducts.inr := po.fac₂ coCoc
-  let χ : HasBinaryCoproducts.coprod U.dom U₂.dom ⟶ po.cocone.pt :=
-    HasBinaryCoproducts.case po.cocone.ι₁ po.cocone.ι₂
-  have hχ₁ : HasBinaryCoproducts.inl ≫ χ = po.cocone.ι₁ := HasBinaryCoproducts.case_inl _ _
-  have hχ₂ : HasBinaryCoproducts.inr ≫ χ = po.cocone.ι₂ := HasBinaryCoproducts.case_inr _ _
-  have hφχ : φ ≫ χ = Cat.id _ := by
-    have h1 : po.cocone.ι₁ ≫ (φ ≫ χ) = po.cocone.ι₁ := by rw [← Cat.assoc, hφ₁, hχ₁]
-    have h2 : po.cocone.ι₂ ≫ (φ ≫ χ) = po.cocone.ι₂ := by rw [← Cat.assoc, hφ₂, hχ₂]
-    rw [po.uniq po.cocone (φ ≫ χ) h1 h2,
-        po.uniq po.cocone (Cat.id _) (Cat.comp_id _) (Cat.comp_id _)]
-  have hχφ : χ ≫ φ = Cat.id _ := by
-    have h1 : HasBinaryCoproducts.inl ≫ (χ ≫ φ) = HasBinaryCoproducts.inl := by
-      rw [← Cat.assoc, hχ₁, hφ₁]
-    have h2 : HasBinaryCoproducts.inr ≫ (χ ≫ φ) = HasBinaryCoproducts.inr := by
-      rw [← Cat.assoc, hχ₂, hφ₂]
-    rw [HasBinaryCoproducts.case_uniq _ _ (χ ≫ φ) h1 h2,
-        HasBinaryCoproducts.case_uniq _ _ (Cat.id _) (Cat.comp_id _) (Cat.comp_id _)]
-  obtain ⟨arrinv, h1, h2⟩ := entire_of_entire_le hentire
-  refine ⟨χ ≫ Un.arr, arrinv ≫ φ, ?_, ?_, ?_, ?_⟩
-  · -- (χ≫Un.arr)≫(arrinv≫φ) = χ≫(Un.arr≫arrinv)≫φ = χ≫φ = id
-    have e1 : (χ ≫ Un.arr) ≫ (arrinv ≫ φ) = χ ≫ ((Un.arr ≫ arrinv) ≫ φ) := by
-      simp only [Cat.assoc]
-    rw [e1, h1, show (Cat.id Un.dom ≫ φ) = φ from Cat.id_comp φ]; exact hχφ
-  · have e2 : (arrinv ≫ φ) ≫ (χ ≫ Un.arr) = arrinv ≫ ((φ ≫ χ) ≫ Un.arr) := by
-      simp only [Cat.assoc]
-    rw [e2, hφχ, show (Cat.id po.cocone.pt ≫ Un.arr) = Un.arr from Cat.id_comp Un.arr]
-    exact h2
-  · calc HasBinaryCoproducts.inl ≫ (χ ≫ Un.arr)
-        = (HasBinaryCoproducts.inl ≫ χ) ≫ Un.arr := (Cat.assoc _ _ _).symm
-      _ = po.cocone.ι₁ ≫ Un.arr := by rw [hχ₁]
-      _ = U.arr := hx
-  · calc HasBinaryCoproducts.inr ≫ (χ ≫ Un.arr)
-        = (HasBinaryCoproducts.inr ≫ χ) ≫ Un.arr := (Cat.assoc _ _ _).symm
-      _ = po.cocone.ι₂ ≫ Un.arr := by rw [hχ₂]
-      _ = U₂.arr := hy
+      HasBinaryCoproducts.inl ≫ ψ = U.arr ∧ HasBinaryCoproducts.inr ≫ ψ = U₂.arr :=
+  complementedSub_legs_iso U U₂ hdisj hentire
 
 -- `complement_le_other` (used below) is now the canonical upstream copy from `S1_62` (§1.631);
 -- both live in `namespace Freyd`, so the plain name resolves without a local redeclaration. The

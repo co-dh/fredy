@@ -94,12 +94,8 @@ theorem cover_imp_slice_iso {P A : 𝒞} {D : Over P}
     Dual of `monic_pair_of_monic` (which needs the `snd`-leg mono); the `fst`-leg version is
     what the `P = 1` slice point needs (`t = term D` is not mono in general). -/
 theorem mono_pair_of_mono_fst {T A B : 𝒞} (m : T ⟶ A) (t : T ⟶ B) (hm : Monic m) :
-    Monic (pair m t) := by
-  intro W g h heq
-  apply hm
-  calc g ≫ m = (g ≫ pair m t) ≫ fst := by rw [Cat.assoc, fst_pair]
-    _ = (h ≫ pair m t) ≫ fst := by rw [heq]
-    _ = h ≫ m := by rw [Cat.assoc, fst_pair]
+    Monic (pair m t) :=
+  (monicPair_iff_monic_pair m t).mp (fun f g hx _ => hm f g hx)
 
 /-- **The §1.547 factor-`WellPointed` obligation forces `A` well-pointed (Sorry-free).**
     If the embedded factor `sliceEmbedObj 1 A` is `WellPointed` in `Over 1`, then `A` is

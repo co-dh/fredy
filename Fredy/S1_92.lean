@@ -314,10 +314,8 @@ theorem singletonMapCat_monic (B : 𝒞) :
 
 /-- `RelHom` is transitive: `R ≤ S ≤ T ⟹ R ≤ T` (compose the witness maps). -/
 theorem RelHom_trans {A B : 𝒞} {R S T : BinRel 𝒞 A B}
-    (hRS : RelHom R S) (hST : RelHom S T) : RelHom R T := by
-  obtain ⟨h, hA, hB⟩ := hRS
-  obtain ⟨k, kA, kB⟩ := hST
-  exact ⟨h ≫ k, by rw [Cat.assoc, kA, hA], by rw [Cat.assoc, kB, hB]⟩
+    (hRS : RelHom R S) (hST : RelHom S T) : RelHom R T :=
+  relHom_trans hRS hST
 
 section PowerObjectDirectImage
 variable [HasImages 𝒞]
@@ -489,7 +487,7 @@ variable {C : 𝒞} [HasPullbacks 𝒞]
     relation `V : BinRel Q C` (the `classify_exists` witness). -/
 noncomputable def univClassify {Q : 𝒞} {V : BinRel 𝒞 Q C} (hV : IsUniversalRel V)
     {A : 𝒞} (R : BinRel 𝒞 A C) : A ⟶ Q :=
-  (hV.classify_exists A R).choose
+  univClassify923 hV R
 
 /-- `R ≅ relPullback (Λ_V R) V` (forward+backward), the defining property of `Λ_V`. -/
 theorem univClassify_spec {Q : 𝒞} {V : BinRel 𝒞 Q C} (hV : IsUniversalRel V)

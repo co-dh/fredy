@@ -32,12 +32,8 @@ namespace Freyd
 
 /-- Mutual ≤ between subobjects gives isomorphic domains. -/
 theorem subobject_le_antisymm_iso {B : 𝒞} {S T : Subobject 𝒞 B}
-    (hST : S.le T) (hTS : T.le S) : Isomorphic S.dom T.dom := by
-  obtain ⟨h₁, h₁fac⟩ := hST
-  obtain ⟨h₂, h₂fac⟩ := hTS
-  refine ⟨h₁, h₂, ?_, ?_⟩
-  · exact S.monic (h₁ ≫ h₂) (Cat.id S.dom) (by rw [Cat.assoc, h₂fac, h₁fac, Cat.id_comp])
-  · exact T.monic (h₂ ≫ h₁) (Cat.id T.dom) (by rw [Cat.assoc, h₁fac, h₂fac, Cat.id_comp])
+    (hST : S.le T) (hTS : T.le S) : Isomorphic S.dom T.dom :=
+  let ⟨e, he, _⟩ := Subobject.le_antisymm_iso hST hTS; ⟨e, he⟩
 
 
 /-! ## §1.71 Boolean pre-logos: f## = complement of direct image

@@ -480,13 +480,7 @@ def IsExactStructure (𝒞 : Type u) [Cat.{v} 𝒞]
   the ambient zero/eq/coeq instances). -/
 
 /-- Equalizer maps are monic, from the bare equalizer API (no Cartesian context). -/
-theorem eqMap_mono' [HasEqualizers 𝒞] {A B : 𝒞} (f g : A ⟶ B) : Monic (eqMap f g) := by
-  intro W u v h
-  let k := u ≫ eqMap f g
-  have hk : k ≫ f = k ≫ g := by dsimp [k]; rw [Cat.assoc, Cat.assoc, eqMap_eq]
-  have hu : u = eqLift f g k hk := eqLift_uniq f g k hk u rfl
-  have hv : v = eqLift f g k hk := eqLift_uniq f g k hk v (by dsimp [k]; rw [← h])
-  rw [hu, hv]
+theorem eqMap_mono' [HasEqualizers 𝒞] {A B : 𝒞} (f g : A ⟶ B) : Monic (eqMap f g) := eqMap_monic f g
 
 /-- Universal property of the cokernel: a map `h : B ⟶ X` with `f ≫ h = 0` descends uniquely
     through `cokernelMap f`.  (The cokernel is the coequalizer of `(f, 0)`; `f ≫ h = 0` is the
@@ -1724,13 +1718,8 @@ theorem exact_balanced [ExactCategory 𝒞] {A B : 𝒞} (f : A ⟶ B) (hm : Mon
 /-- The half-additive `zeroHom` (unique `A → 0 → B`) coincides with the
     `HasZeroObject` `zeroMorphism`: both are the unique map factoring through `0`. -/
 theorem zeroHom_eq_zeroMorphism [ExactCategory 𝒞] [AdditiveCategory 𝒞] (X Y : 𝒞) :
-    (HalfAdditiveCategory.zeroHom X Y : X ⟶ Y) = zeroMorphism X Y := by
-  have h1 : (HalfAdditiveCategory.zeroHom X Y : X ⟶ Y)
-      = term X ≫ HalfAdditiveCategory.zeroHom HasTerminal.one Y :=
-    (HalfAdditiveCategory.zeroHom_comp_left (term X)).symm
-  have huniqOut : ∀ (p q : (HasTerminal.one : 𝒞) ⟶ Y), p = q := by
-    rw [HasZeroObject.zero_eq_one (𝒞 := 𝒞)]; exact fun p q => HasCoterminator.init_uniq p q
-  dsimp [zeroMorphism]; rw [h1]; congr 1; exact huniqOut _ _
+    (HalfAdditiveCategory.zeroHom X Y : X ⟶ Y) = zeroMorphism X Y :=
+  zeroHom_eq_zeroMorphism' X Y
 
 /-- **Coimage factorization for an epimorphism.**  If `d` is epic and `m` is killed by
     `kernelMap d` (the coimage relation), then `m` factors through `d`.  Proof: `d` epic

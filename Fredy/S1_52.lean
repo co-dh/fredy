@@ -14,6 +14,7 @@ import Fredy.S1_42
 import Fredy.S1_43
 import Fredy.S1_45
 import Fredy.S1_51
+import Fredy.S1_513_CoveringFamily
 
 
 universe v u
@@ -64,72 +65,18 @@ theorem cover_pullback [hpull : HasPullbacks 𝒞] [PullbacksTransferCovers 𝒞
 
 /-! ## §1.512 Covers are right-cancellable (epic) -/
 
-/-- A cover `f` is **epic** (right-cancellable).  `f` factors through the
-    equalizer of `a, b` — realized as the pullback `P` of the graphs
-    `g₁ = ⟨id,a⟩`, `g₂ = ⟨id,b⟩ : Y → Y×Z` — whose projection `e : P → Y` is
-    monic; a cover through a monic forces it iso (`Cover`), so `e` is iso and
-    `a = b`.  Needs only finite products and pullbacks. -/
+/-- A cover `f` is **epic** (right-cancellable).  This is the single-morphism
+    instance of §1.514's `covering_family_epic`: by `cover_iff_coveringFamily_singleton`,
+    `Cover f` is the one-element (`Unit`-indexed) covering family, and a covering
+    family is epic through its equalizer subobject.  The equalizers are supplied from
+    finite products + pullbacks by `products_pullbacks_implies_equalizers` — given
+    locally (it is a `def`, not a global instance, to avoid a `HasEqualizers` diamond
+    against `CartesianCategory`). -/
 theorem cover_epi [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
     {X Y : 𝒞} {f : X ⟶ Y} (hf : Cover f) {Z : 𝒞} {a b : Y ⟶ Z}
-    (hab : f ≫ a = f ≫ b) : a = b := by
-  let g₁ : Y ⟶ prod Y Z := pair (Cat.id Y) a
-  let g₂ : Y ⟶ prod Y Z := pair (Cat.id Y) b
-  have hg₁fst : g₁ ≫ fst = Cat.id Y := fst_pair _ _
-  have hg₂fst : g₂ ≫ fst = Cat.id Y := fst_pair _ _
-  have hg₂mono : Monic g₂ := mono_of_retraction g₂ fst hg₂fst
-  have pb : HasPullback g₁ g₂ := HasPullbacks.has g₁ g₂
-  have hw : pb.cone.π₁ ≫ g₁ = pb.cone.π₂ ≫ g₂ := pb.cone.w
-  -- the two projections coincide (both legs are graphs, so `≫ fst = id`)
-  have hee₂ : pb.cone.π₁ = pb.cone.π₂ := by
-    calc pb.cone.π₁ = pb.cone.π₁ ≫ (g₁ ≫ fst) := by rw [hg₁fst, Cat.comp_id]
-      _ = (pb.cone.π₁ ≫ g₁) ≫ fst := (Cat.assoc _ _ _).symm
-      _ = (pb.cone.π₂ ≫ g₂) ≫ fst := by rw [hw]
-      _ = pb.cone.π₂ ≫ (g₂ ≫ fst) := Cat.assoc _ _ _
-      _ = pb.cone.π₂ := by rw [hg₂fst, Cat.comp_id]
-  -- `e := π₁` equalizes `a` and `b`
-  have heq : pb.cone.π₁ ≫ a = pb.cone.π₁ ≫ b := by
-    calc pb.cone.π₁ ≫ a = pb.cone.π₁ ≫ (g₁ ≫ snd) := by rw [show g₁ ≫ snd = a from snd_pair _ _]
-      _ = (pb.cone.π₁ ≫ g₁) ≫ snd := (Cat.assoc _ _ _).symm
-      _ = (pb.cone.π₂ ≫ g₂) ≫ snd := by rw [hw]
-      _ = pb.cone.π₂ ≫ (g₂ ≫ snd) := Cat.assoc _ _ _
-      _ = pb.cone.π₂ ≫ b := by rw [show g₂ ≫ snd = b from snd_pair _ _]
-      _ = pb.cone.π₁ ≫ b := by rw [hee₂]
-  -- `e := π₁` is monic (pullback of the monic `g₂`)
-  have he_mono : Monic pb.cone.π₁ := by
-    intro W p q hpq
-    have hpq2 : p ≫ pb.cone.π₂ = q ≫ pb.cone.π₂ := by
-      apply hg₂mono
-      calc (p ≫ pb.cone.π₂) ≫ g₂ = p ≫ (pb.cone.π₂ ≫ g₂) := Cat.assoc _ _ _
-        _ = p ≫ (pb.cone.π₁ ≫ g₁) := by rw [hw]
-        _ = (p ≫ pb.cone.π₁) ≫ g₁ := (Cat.assoc _ _ _).symm
-        _ = (q ≫ pb.cone.π₁) ≫ g₁ := by rw [hpq]
-        _ = q ≫ (pb.cone.π₁ ≫ g₁) := Cat.assoc _ _ _
-        _ = q ≫ (pb.cone.π₂ ≫ g₂) := by rw [hw]
-        _ = (q ≫ pb.cone.π₂) ≫ g₂ := (Cat.assoc _ _ _).symm
-    have hcone : (p ≫ pb.cone.π₁) ≫ g₁ = (p ≫ pb.cone.π₂) ≫ g₂ := by
-      rw [Cat.assoc, Cat.assoc, hw]
-    have hp : p = pb.lift ⟨W, p ≫ pb.cone.π₁, p ≫ pb.cone.π₂, hcone⟩ :=
-      pb.lift_uniq ⟨W, p ≫ pb.cone.π₁, p ≫ pb.cone.π₂, hcone⟩ p rfl rfl
-    have hq : q = pb.lift ⟨W, p ≫ pb.cone.π₁, p ≫ pb.cone.π₂, hcone⟩ :=
-      pb.lift_uniq ⟨W, p ≫ pb.cone.π₁, p ≫ pb.cone.π₂, hcone⟩ q hpq.symm hpq2.symm
-    rw [hp, hq]
-  -- `f` factors through `e`
-  have hfd : f ≫ g₁ = f ≫ g₂ := by
-    have e1 : (f ≫ g₁) ≫ fst = (f ≫ g₂) ≫ fst := by
-      rw [Cat.assoc, Cat.assoc, hg₁fst, hg₂fst]
-    have e2 : (f ≫ g₁) ≫ snd = (f ≫ g₂) ≫ snd := by
-      rw [Cat.assoc, Cat.assoc, show g₁ ≫ snd = a from snd_pair _ _,
-          show g₂ ≫ snd = b from snd_pair _ _, hab]
-    rw [pair_uniq ((f ≫ g₁) ≫ fst) ((f ≫ g₁) ≫ snd) (f ≫ g₁) rfl rfl,
-        pair_uniq ((f ≫ g₁) ≫ fst) ((f ≫ g₁) ≫ snd) (f ≫ g₂) e1.symm e2.symm]
-  have hue : pb.lift ⟨X, f, f, hfd⟩ ≫ pb.cone.π₁ = f := pb.lift_fst ⟨X, f, f, hfd⟩
-  -- a cover through the monic `e` makes `e` iso
-  obtain ⟨einv, _, hinv⟩ := hf pb.cone.π₁ (pb.lift ⟨X, f, f, hfd⟩) he_mono hue
-  calc a = (einv ≫ pb.cone.π₁) ≫ a := by rw [hinv, Cat.id_comp]
-    _ = einv ≫ (pb.cone.π₁ ≫ a) := Cat.assoc _ _ _
-    _ = einv ≫ (pb.cone.π₁ ≫ b) := by rw [heq]
-    _ = (einv ≫ pb.cone.π₁) ≫ b := (Cat.assoc _ _ _).symm
-    _ = b := by rw [hinv, Cat.id_comp]
+    (hab : f ≫ a = f ≫ b) : a = b :=
+  letI : HasEqualizers 𝒞 := products_pullbacks_implies_equalizers
+  covering_family_epic ((cover_iff_coveringFamily_singleton f).mp hf) a b (fun _ => hab)
 
 variable [HasTerminal 𝒞]
 

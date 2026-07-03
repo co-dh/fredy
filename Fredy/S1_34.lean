@@ -34,23 +34,8 @@ theorem isomorphic_symm {A B : 𝒞} (h : Isomorphic A B) : Isomorphic B A := by
 
 /-- Isomorphic is transitive. -/
 theorem isomorphic_trans {A B C : 𝒞} (hAB : Isomorphic A B) (hBC : Isomorphic B C) : Isomorphic A C := by
-  rcases hAB with ⟨f, hf_iso⟩
-  rcases hBC with ⟨g, hg_iso⟩
-  rcases hf_iso with ⟨gf, hf1, hf2⟩
-  rcases hg_iso with ⟨gg, hg1, hg2⟩
-  refine ⟨f ≫ g, gg ≫ gf, ?_, ?_⟩
-  · calc
-      (f ≫ g) ≫ (gg ≫ gf) = f ≫ g ≫ (gg ≫ gf) := by rw [Cat.assoc]
-      _ = f ≫ (g ≫ gg) ≫ gf := by simp [Cat.assoc]
-      _ = f ≫ (Cat.id B) ≫ gf := by rw [hg1]
-      _ = f ≫ gf := by rw [Cat.id_comp]
-      _ = Cat.id A := hf1
-  · calc
-      (gg ≫ gf) ≫ (f ≫ g) = gg ≫ gf ≫ (f ≫ g) := by rw [Cat.assoc]
-      _ = gg ≫ (gf ≫ f) ≫ g := by simp [Cat.assoc]
-      _ = gg ≫ (Cat.id B) ≫ g := by rw [hf2]
-      _ = gg ≫ g := by rw [Cat.id_comp]
-      _ = Cat.id C := hg2
+  obtain ⟨f, hf⟩ := hAB; obtain ⟨g, hg⟩ := hBC
+  exact ⟨f ≫ g, isIso_comp hf hg⟩
 
 /-- Functors preserve isomorphic objects. -/
 theorem functor_preserves_iso_obj (F : 𝒞 → 𝒟) [hF : Functor F] {A B : 𝒞}

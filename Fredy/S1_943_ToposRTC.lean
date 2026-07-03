@@ -60,7 +60,7 @@ noncomputable def subToRel {A B : 𝒞} (S : Subobject 𝒞 (prod A B)) : BinRel
 /-- `(subToRel S).arr`-pairing is `S.arr`: `pair (S.arr≫fst) (S.arr≫snd) = S.arr`. -/
 theorem relSub_subToRel_arr {A B : 𝒞} (S : Subobject 𝒞 (prod A B)) :
     pair (subToRel S).colA (subToRel S).colB = S.arr :=
-  (pair_uniq (S.arr ≫ fst) (S.arr ≫ snd) S.arr rfl rfl).symm
+  relSub_subRel_arr S
 
 end
 

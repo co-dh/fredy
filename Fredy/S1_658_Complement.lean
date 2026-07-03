@@ -76,9 +76,7 @@ theorem le_bottom_of_dom_iso {B : 𝒞} (Z : Subobject 𝒞 B)
 /-- `Subobject.inter` is monotone in both arguments. -/
 theorem Subobject.inter_mono {B : 𝒞} {S S' T T' : Subobject 𝒞 B}
     (hS : S.le S') (hT : T.le T') : (Subobject.inter S T).le (Subobject.inter S' T') :=
-  Subobject.le_inter
-    (Subobject.le_trans (Subobject.inter_le_left S T) hS)
-    (Subobject.le_trans (Subobject.inter_le_right S T) hT)
+  Freyd.inter_mono hS hT
 
 /-! ## §1.452 Inverse image preserves intersection
 
@@ -217,11 +215,8 @@ theorem union_mono {B : 𝒞} {S S' T T' : Subobject 𝒞 B}
     are the same subobject and `T` is complemented, then so is `S` (with the same complement).
     `S ∩ T₂ ≤ T ∩ T₂ ≤ ⊥` and `⊤ ≤ T ∪ T₂ ≤ S ∪ T₂`. -/
 theorem IsComplementedSub_congr {A : 𝒞} {S T : Subobject 𝒞 A}
-    (hST : S.le T) (hTS : T.le S) (hT : IsComplementedSub T) : IsComplementedSub S := by
-  obtain ⟨T₂, hdisj, hcover⟩ := hT
-  refine ⟨T₂, ?_, ?_⟩
-  · exact Subobject.le_trans (Subobject.inter_mono hST (by exact ⟨Cat.id _, Cat.id_comp _⟩)) hdisj
-  · exact Subobject.le_trans hcover (union_mono hTS (by exact ⟨Cat.id _, Cat.id_comp _⟩))
+    (hST : S.le T) (hTS : T.le S) (hT : IsComplementedSub T) : IsComplementedSub S :=
+  complementedSub_congr hST hTS hT
 
 /-- **§1.658 diagonal-classifies**: if `A` is decidable and `c : B → A×A` is a classifying
     map, then the inverse image `c# (Δ A) ⊆ B` is complemented.  This transfers decidability

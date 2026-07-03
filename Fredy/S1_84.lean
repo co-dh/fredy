@@ -159,22 +159,8 @@ theorem GrothendieckTopos.has_gen_set (E : Type u) [Cat.{v} E] [GrothendieckTopo
     subobjects.  The factoring map of `S ≤ T` is the iso (its two-sided inverse
     is the factoring map of `T ≤ S`, by monicity of the representing arrows). -/
 theorem subobjectIso_of_le_le {B : E} {S T : Subobject E B}
-    (hST : Subobject.le S T) (hTS : Subobject.le T S) : SubobjectIso S T := by
-  obtain ⟨h, hh⟩ := hST            -- h : S.dom ⟶ T.dom, h ≫ T.arr = S.arr
-  obtain ⟨k, hk⟩ := hTS            -- k : T.dom ⟶ S.dom, k ≫ S.arr = T.arr
-  refine ⟨h, ⟨k, ?_, ?_⟩, hh⟩
-  · -- h ≫ k = id_{S.dom}, via S monic: (h ≫ k) ≫ S.arr = S.arr
-    apply S.monic
-    calc (h ≫ k) ≫ S.arr = h ≫ (k ≫ S.arr) := Cat.assoc _ _ _
-      _ = h ≫ T.arr := by rw [hk]
-      _ = S.arr := hh
-      _ = Cat.id S.dom ≫ S.arr := by rw [Cat.id_comp]
-  · -- k ≫ h = id_{T.dom}, via T monic
-    apply T.monic
-    calc (k ≫ h) ≫ T.arr = k ≫ (h ≫ T.arr) := Cat.assoc _ _ _
-      _ = k ≫ S.arr := by rw [hh]
-      _ = T.arr := hk
-      _ = Cat.id T.dom ≫ T.arr := by rw [Cat.id_comp]
+    (hST : Subobject.le S T) (hTS : Subobject.le T S) : SubobjectIso S T :=
+  Subobject.le_antisymm_iso hST hTS
 
 /-- The TRACE of a subobject `S ↣ B`: the family, indexed by generators `gen i`
     and generalized elements `x : gen i ⟶ B`, recording whether `x` factors
