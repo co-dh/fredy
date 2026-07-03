@@ -238,6 +238,44 @@ def initial (L E : Type) : InitialAlgebra (F L E) where
 /-- The catamorphism (fold) of `φ` as a genuine morphism `dCL L E ⟶ c`. -/
 def cataR {c : RelSet.{0}} (φ : Fobj L E c ⟶ c) : dCL L E ⟶ c := cataFold φ
 
+/-- The catamorphism computation rule holds for ANY algebra-relation `φ` (not just maps):
+    `α ≫ cataFold φ = F(cataFold φ) ≫ φ`.  (The structural proof never uses `Map φ`.) -/
+theorem cataFold_comm {c : RelSet.{0}} (φ : Fobj L E c ⟶ c) :
+    graph con ≫ cataFold φ = (F L E).map (cataFold φ) ≫ φ := by
+  apply hom_ext; intro u r
+  cases u with
+  | inl d =>
+    constructor
+    · intro h; obtain ⟨dec, hdec, hfold⟩ := h
+      have hd : dec = ConsList.wrap d := hdec; subst hd
+      exact ⟨Sum.inl d, rfl, hfold⟩
+    · intro h; obtain ⟨v, hv, hfv⟩ := h
+      cases v with
+      | inl d' => have hdd : d = d' := hv; subst hdd; exact ⟨ConsList.wrap d, rfl, hfv⟩
+      | inr q => exact hv.elim
+  | inr p =>
+    obtain ⟨dig, tail⟩ := p
+    constructor
+    · intro h; obtain ⟨dec, hdec, hfold⟩ := h
+      have hd : dec = ConsList.cons dig tail := hdec; subst hd
+      obtain ⟨r', hr', hfr'⟩ := hfold
+      exact ⟨Sum.inr (dig, r'), ⟨rfl, hr'⟩, hfr'⟩
+    · intro h; obtain ⟨v, hv, hfv⟩ := h
+      cases v with
+      | inl d' => exact hv.elim
+      | inr q =>
+        obtain ⟨qa, qtl⟩ := q
+        obtain ⟨hqa, hcata⟩ := hv
+        refine ⟨ConsList.cons dig tail, rfl, qtl, hcata, ?_⟩
+        have hd2 : dig = qa := hqa; rw [hd2]; exact hfv
+
+/-- The structural fold IS the relational catamorphism `relCata I φ` (Eilenberg–Wright, via
+    `cataFold_comm` and the universal property `relCata_UP`).  Lets the abstract catamorphism laws
+    (fusion, …) apply to `cataR`. -/
+theorem cataR_eq_relCata {c : RelSet.{0}} (φ : Fobj L E c ⟶ c) :
+    cataR φ = relCata (initial L E) φ :=
+  (relCata_UP (initial L E) φ (cataR φ)).mp (cataFold_comm φ)
+
 /-- The `wrap`-component of an algebra `φ = [g, h]`. -/
 def algWrap {c : RelSet.{0}} (φ : Fobj L E c ⟶ c) : dL L ⟶ c := fun d r => φ (Sum.inl d) r
 /-- The `cons`-component of an algebra `φ = [g, h]`. -/

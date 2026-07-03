@@ -214,3 +214,6 @@ import Fredy.A6_SnocList
 import Fredy.A6_4_FastExp
 -- Generic cons-list `ConsList L E = L + E×(·)` (head/tail) as an initial algebra; `list A = ConsList Unit A`.
 import Fredy.A6_ConsList
+-- Bird & de Moor §6.6: sorting by selection — `sort = ⦇[nil, select°]⦈°` (converse of a catamorphism)
+-- with its recursion; correctness `sort ⊆ ordered·perm` by fusion (given the select proviso).
+import Fredy.A6_6_Sort

@@ -15,7 +15,14 @@ Foundation (DONE):
 
 - [x] §6.4  Fast exponentiation and modulus computation — `A6_4_FastExp.lean`: exp/mod as hylomorphisms
       over Bin, fast recursion = μ (divide-and-conquer least fixed point) via hylo_eq_mu
-- [ ] §6.6  Sorting by selection
+- [x] `A6_ConsList.lean` — GENERIC cons-list `ConsList L E = L + E×(·)` initial algebra (head/tail) +
+      cata_converse_eq + `cataR_eq_relCata` bridge (cataFold IS the relational catamorphism)
+- [x] §6.6  Sorting by selection — `A6_6_Sort.lean`: `sort = ⦇[nil,select°]⦈°` (converse of a
+      catamorphism) + its recursion (cata_converse_eq); correctness `sort ⊑ perm≫ordered` via fusion
+      (6.4 relCata_le_comp) + coref_recip.  NOTE: perm/ordered/select PARAMETERISED with their key
+      properties (perm symm, ordered coreflexive, the select fusion-proviso `hfus`) — B&dM construct
+      select (base/step, p.153) to satisfy hfus; the concrete perm/ordered/select build is the
+      deferred ch.5 §5.6 list-combinator work, still open (see below).
 - [ ] §7.3  Planning a company party
 - [ ] §7.4  Shortest paths on a cylinder
 - [ ] §7.5  The security van problem
