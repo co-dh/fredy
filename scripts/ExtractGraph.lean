@@ -2,6 +2,8 @@
    Run from repo root:  lake env lean --run scripts/ExtractGraph.lean
    Output: graph/decls.tsv  (name  kind  file  line  type  doc-first-line)
            graph/deps.tsv   (src  dst)
+   Names have the ubiquitous `Freyd.` prefix stripped (8794/8802 decls carry it); the
+   only root-level names left as-is are the `Cat` typeclass fields and the tool `main`.
    Edges are true proof-level dependencies (constants of the elaborated type + proof term,
    the same data `#print axioms` walks), not import-level or syntactic references.
    Orphan modules (not imported by the root `Fredy`) are loaded each in its own
@@ -30,6 +32,13 @@ partial def collectMods (dir : System.FilePath) (pre : Name) : IO (Array Name) :
     else if e.path.extension == some "lean" then
       out := out.push (pre.str (e.path.fileStem.getD ""))
   return out
+
+/-- Drop the ubiquitous `Freyd.` namespace prefix so graph node names read short.
+    Both endpoints of every edge and every decl name go through this, keeping the two
+    files join-consistent. `Cat.*` and `main` don't start with `Freyd.`, so they're untouched. -/
+def shortName (n : Name) : String :=
+  let s := n.toString
+  if s.take 6 == "Freyd." then (s.drop 6).toString else s
 
 abbrev Row := Name × String × Name × Nat            -- name, kind, module, line
 
@@ -137,12 +146,12 @@ def main : IO Unit := do
     done := mods.foldl (·.insert ·) done
   IO.FS.createDirAll "graph"
   let sorted := (rows.map fun ((n, k, m, l), ty, doc) =>
-      ((modToPath m "lean").toString, l, n.toString, k, ty, doc))
+      ((modToPath m "lean").toString, l, shortName n, k, ty, doc))
     |>.qsort fun a b => a.1 < b.1 || (a.1 == b.1 && a.2.1 < b.2.1)
   IO.FS.withFile "graph/decls.tsv" .write fun h => do
     for (f, l, n, k, ty, doc) in sorted do
       h.putStrLn s!"{n}\t{k}\t{f}\t{l}\t{ty}\t{doc}"
-  let es := (edges.map fun (s, t) => s!"{s}\t{t}") |>.qsort (· < ·) |>.toList.eraseReps.toArray
+  let es := (edges.map fun (s, t) => s!"{shortName s}\t{shortName t}") |>.qsort (· < ·) |>.toList.eraseReps.toArray
   IO.FS.withFile "graph/deps.tsv" .write fun h => do
     for e in es do h.putStrLn e
   IO.println s!"{sorted.size} declarations, {es.size} edges ({done.size} modules, {orphans} orphan roots)"
