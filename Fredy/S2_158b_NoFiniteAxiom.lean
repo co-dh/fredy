@@ -63,6 +63,32 @@ theorem HoldsInRel.trans {E₁ E₂ E₃ : Term L}
     (h₁ : HoldsInRel E₁ E₂) (h₂ : HoldsInRel E₂ E₃) : HoldsInRel E₁ E₃ :=
   fun ι x y h => h₂ ι x y (h₁ ι x y h)
 
+/-! ### Monotone congruences of the operations
+
+  `°`, `∩`, `;` are order-preserving in `Rel(S)`, so a valid containment stays
+  valid under each of them.  These are the semantic content of the `recip`,
+  `meet`, `comp` rules of `Derives`, isolated as reusable lemmas (they let a
+  containment be transported inside a bigger term). -/
+
+/-- Reciprocation is monotone: `E₁ ⊆ E₂ ⟹ E₁° ⊆ E₂°`. -/
+theorem HoldsInRel.recip {E₁ E₂ : Term L} (h : HoldsInRel E₁ E₂) :
+    HoldsInRel (.recip E₁) (.recip E₂) :=
+  fun _ x y h1 => h _ y x h1
+
+/-- Intersection is monotone in both arguments. -/
+theorem HoldsInRel.meet {A A' B B' : Term L}
+    (hA : HoldsInRel A A') (hB : HoldsInRel B B') :
+    HoldsInRel (.meet A B) (.meet A' B') :=
+  fun ι x y h => ⟨hA ι x y h.1, hB ι x y h.2⟩
+
+/-- Composition is monotone in both arguments (diagram order). -/
+theorem HoldsInRel.comp {A A' B B' : Term L}
+    (hA : HoldsInRel A A') (hB : HoldsInRel B B') :
+    HoldsInRel (.comp A B) (.comp A' B') := by
+  intro V ι x y h
+  obtain ⟨z, ha, hb⟩ := h
+  exact ⟨z, hA ι x z ha, hB ι z y hb⟩
+
 /-! ### Bridge to the core graph model
 
   A graph `H` is the model `(H.V, fun A a b => H.edge a b A)`, and under this
@@ -175,6 +201,48 @@ theorem Derives_sound {Ax : List (Term L × Term L)}
   | comp _ _ ih1 ih2 =>
       intro V ι x y h1; obtain ⟨z, ha, hb⟩ := h1; exact ⟨z, ih1 ι x z ha, ih2 ι z y hb⟩
 
+/-! ### The derivation ⇒ graph-map bridge (Layer 4, ingredient (a) — endpoint form)
+
+  Freyd's counting argument needs to turn a *derivation* into a *graph map*
+  `[E₂] → [E₁]`.  The endpoint form is immediate from soundness composed with
+  the decision bridge `holdsInRel_iff_hom`: any containment derivable from a
+  valid axiom set is realised by an honest graph map on the term-graphs.  (The
+  hard, still-open refinement is the *structural* version: unfolding the
+  derivation into a CHAIN of graph maps `[E₂] → H₁ → ⋯ → [E₁]` with every
+  intermediate `Hᵢ` in the series-parallel suballegory `Ḡ` and each single step
+  the graphical interpretation of one axiom-instance — see the OPEN note.) -/
+
+/-- **Derivation ⇒ collapse map.**  If `Ax` is valid and `E₁ ⊆ E₂` is derivable
+    from `Ax`, then there is a graph map `[E₂] → [E₁]` — the collapse witnessing
+    the containment.  (Soundness `Derives_sound` into the decision bridge.) -/
+theorem Derives_hom {Ax : List (Term L × Term L)}
+    (hAx : ∀ p ∈ Ax, HoldsInRel p.1 p.2) {E₁ E₂ : Term L}
+    (h : Derives Ax E₁ E₂) : Nonempty (Hom (toGraph E₂) (toGraph E₁)) :=
+  (holdsInRel_iff_hom E₁ E₂).mp (Derives_sound hAx h)
+
+/-! ### The `B = 0` case of the counting obstruction (Layer 4, seed of (c))
+
+  With NO axioms the derivation system is *pure* (reflexivity, transitivity, and
+  the three congruences).  Such a derivation can identify **no** vertex-pair: its
+  two sides are forced to be the SAME term.  This is exactly Freyd's "each step
+  identifies at most `B(Ax)` pairs" at the extreme `B = 0`, and it already
+  refutes completeness of the empty axiom set — the base instance of the
+  no-finite-axiomatization phenomenon.  The general finite-`Ax` bound (ingredient
+  (b), `B(Ax) > 0`) plus the "no proper partial collapse" heart (ingredient (c))
+  are what remain open. -/
+
+/-- **Purity of the axiom-free theory.**  `Derives []` proves a containment only
+    between *syntactically equal* terms: it can collapse nothing.  (Induction on
+    the derivation; the `ax` rule is unreachable since `_ ∈ []` is false.) -/
+theorem Derives_nil_eq {E₁ E₂ : Term L} (h : Derives [] E₁ E₂) : E₁ = E₂ := by
+  induction h with
+  | ax σ hmem => nomatch hmem
+  | refl E => rfl
+  | trans _ _ ih1 ih2 => exact ih1.trans ih2
+  | recip _ ih => exact congrArg Term.recip ih
+  | meet _ _ ih1 ih2 => exact congr (congrArg Term.meet ih1) ih2
+  | comp _ _ ih1 ih2 => exact congr (congrArg Term.comp ih1) ih2
+
 /-! ## Layer 1 — the rhombus family and its validity
 
   Freyd's §2.158 first explicit example is the "single rhombus" containment
@@ -215,6 +283,63 @@ theorem rhombus1_holds (r1 r2 r3 r4 s1 s2 s3 s4 : L) :
   subst hxy
   exact ⟨z, ⟨⟨w, hr1, hr2⟩, ⟨u, hs1, hs2⟩⟩, ⟨w, hr3, hr4⟩, ⟨u, hs3, hs4⟩⟩
 
+/-! ### An infinite family of valid separated containments (Layer 1, general `n`)
+
+  We package `rhombus1_holds` into an explicit *infinite* family of valid
+  separated containments over the concrete label set `ℕ`, obtained by putting
+  `n+1` rhombi in series (`;`) with a fresh block of eight labels per rhombus
+  (`8·b … 8·b+7`).  Each member is separated (every label occurs once on each
+  side) and valid in `Rel(S)` for every `S`; validity for all `n` is proved by
+  induction from the base rhombus and the composition congruence
+  `HoldsInRel.comp`.  This realises Freyd's "there is no finite bound: the family
+  of rhombus containments is infinite" at the level of *validity* (Layer 1).
+
+  The genuine **hard** family of §2.158 — the single `n`-fold rhombus whose
+  collapse map identifies `Θ(n)` vertex-pairs *simultaneously* and admits no
+  proper partial collapse inside `Ḡ` — is a *connected, entangled* graph, not a
+  series bouquet; only for it is `RhombusHard` true (the series family below is
+  derivable rhombus-by-rhombus once one rhombus is, so it does NOT witness
+  `RhombusHard`).  Reconstructing that entangled graph as an explicit `Term`
+  requires the §2.158 figures (unavailable here); see the OPEN note at the end. -/
+
+/-- The `i`-th of the eight labels in the `b`-th fresh block.  (Labels live in
+    `Nat`; each rhombus gets a disjoint block, so the family is *separated*.) -/
+def lbl (b i : Nat) : Nat := 8 * b + i
+
+/-- The base rhombus LHS on the `b`-th fresh block of eight `Nat`-labels. -/
+def rhL1 (b : Nat) : Term Nat :=
+  rhombusLHS (lbl b 0) (lbl b 1) (lbl b 2) (lbl b 3)
+             (lbl b 4) (lbl b 5) (lbl b 6) (lbl b 7)
+
+/-- The base rhombus RHS on the `b`-th fresh block of eight `Nat`-labels. -/
+def rhR1 (b : Nat) : Term Nat :=
+  rhombusRHS (lbl b 0) (lbl b 1) (lbl b 2) (lbl b 3)
+             (lbl b 4) (lbl b 5) (lbl b 6) (lbl b 7)
+
+/-- Each single blocked rhombus is valid in `Rel(S)`. -/
+theorem rhL1_holds (b : Nat) : HoldsInRel (rhL1 b) (rhR1 b) :=
+  rhombus1_holds _ _ _ _ _ _ _ _
+
+/-- LHS of the `n`-fold series rhombus: `n+1` collapsed rhombi composed in `;`. -/
+def ladderL : Nat → Term Nat
+  | 0 => rhL1 0
+  | n+1 => .comp (ladderL n) (rhL1 (n+1))
+
+/-- RHS of the `n`-fold series rhombus: `n+1` expanded rhombi composed in `;`. -/
+def ladderR : Nat → Term Nat
+  | 0 => rhR1 0
+  | n+1 => .comp (ladderR n) (rhR1 (n+1))
+
+/-- **Layer 1, all `n`.**  Every member of the infinite series-rhombus family is
+    a valid separated containment in `Rel(S)`.  (Base = `rhombus1_holds`; step =
+    `HoldsInRel.comp`.)  This supplies the `hvalid` hypothesis of
+    `no_finite_axiomatization` for the family `ladderL, ladderR`. -/
+theorem ladder_holds : ∀ n : Nat, HoldsInRel (ladderL n) (ladderR n) := by
+  intro n
+  induction n with
+  | zero => exact rhL1_holds 0
+  | succ m ih => exact HoldsInRel.comp ih (rhL1_holds (m+1))
+
 /-! ## Layer 4 — the no-finite-axiomatization metatheorem (reduction)
 
   Freyd's argument: recast the allegory axioms as *separated* containments; then
@@ -229,6 +354,19 @@ theorem rhombus1_holds (r1 r2 r3 r4 s1 s2 s3 s4 : L) :
     derivable from it. -/
 def Complete (Ax : List (Term L × Term L)) : Prop :=
   ∀ E₁ E₂ : Term L, HoldsInRel E₁ E₂ → Derives Ax E₁ E₂
+
+/-- **The empty axiom set is not complete** — the fully-provable base instance of
+    the metatheorem.  `E ∩ E ⊆ E` is valid in `Rel(S)` yet its two sides are
+    distinct terms, so by `Derives_nil_eq` it is not derivable from no axioms.
+    (This is `no_finite_axiomatization` for the finite valid set `∅`, proved
+    unconditionally — the general finite set is the open `RhombusHard`.) -/
+theorem not_complete_nil : ¬ Complete ([] : List (Term L × Term L)) := by
+  intro hC
+  have hvalid : HoldsInRel (Term.meet Term.one Term.one) (Term.one : Term L) := by
+    intro V ι x y h; exact h.1
+  have heq : (Term.meet Term.one Term.one : Term L) = Term.one :=
+    Derives_nil_eq (hC _ _ hvalid)
+  nomatch heq
 
 /-- **Freyd's counting obstruction.**  For any finite axiom set of *valid*
     containments, some member of the rhombus family is NOT derivable from it.
@@ -254,5 +392,45 @@ theorem no_finite_axiomatization {rhL rhR : ℕ → Term L}
   rintro ⟨Ax, hAxValid, hComplete⟩
   obtain ⟨n, hn⟩ := hhard Ax hAxValid
   exact hn (hComplete (rhL n) (rhR n) (hvalid n))
+
+/-! ## OPEN — the remaining content of `RhombusHard` (Freyd's counting heart)
+
+  What is CLOSED here (all sorry-free):
+
+  * **Layer 1 validity, all `n`** — `ladder_holds : ∀ n, HoldsInRel (ladderL n)
+    (ladderR n)`, an explicit infinite family of valid separated containments.
+  * **Ingredient (a), endpoint form** — `Derives_hom`: a derivation from a valid
+    `Ax` yields a graph map `[E₂] → [E₁]`.
+  * **Ingredient (c) at `B = 0`** — `Derives_nil_eq` + `not_complete_nil`: with
+    no axioms nothing collapses, so `∅` is already incomplete.
+  * The **reduction** `no_finite_axiomatization` (conditional on `RhombusHard`).
+
+  What remains OPEN in `RhombusHard rhL rhR := ∀ Ax valid, ∃ n, ¬ Derives Ax
+  (rhL n) (rhR n)`, for Freyd's genuine *entangled* family (NOT the series family
+  `ladderL/ladderR` above, whose members are derivable rhombus-by-rhombus, so it
+  does not witness `RhombusHard`):
+
+  (a) **Structural chain refinement.**  Unfold `Derives Ax E₁ E₂` (through
+      `trans`/congruences) into a CHAIN of graph maps `[E₂] → H₁ → ⋯ → [E₁]`
+      with each `Hᵢ ∈ Ḡ` (series-parallel) and each single link the graphical
+      interpretation of ONE axiom-instance.  (The endpoint map is `Derives_hom`;
+      the per-step decomposition needs `Ḡ`/series-parallel structure that the
+      core `S2_158_GraphAllegory` does not yet expose as a subtype.)
+
+  (b) **Collapse invariant / bounded step.**  A `ℕ`-valued rank on graphs (Freyd:
+      the number of vertices) that each single axiom-instance link changes by at
+      most `B(Ax)`, a bound read off the finite `Ax`.  Constructively this is a
+      cardinality on the `Quot`-built vertex types of `toGraph`, which the
+      mathlib-free core lacks the finiteness infrastructure to count.
+
+  (c) **The hard heart (no proper partial collapse).**  The `n`-rhombus needs
+      `Θ(n)` identifications, but the series-parallel structure of `Ḡ` forbids
+      any PROPER partial collapse: identifying a proper nonempty subset of its
+      required vertex-pairs already leaves `Ḡ`.  Hence no chain of `⌊·/B(Ax)⌋`
+      bounded links can reach it once `n > B(Ax)` — contradiction.  This is the
+      genuinely combinatorial core of §2.158; it requires the explicit entangled
+      `n`-rhombus graph of Freyd's figures (unavailable to this formalization) and
+      a proof that its collapse lattice has no intermediate series-parallel
+      element. -/
 
 end Freyd.S2_158
