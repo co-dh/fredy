@@ -1,2 +1,10 @@
 /.lake
 cate*.pdf
+# generated declaration-graph data (regenerate: lake env lean --run scripts/ExtractGraph.lean)
+/graph/*.tsv
+/graph/*.dot
+/graph/*.svg
+# npm cruft from the claude-code install, not part of the library
+/node_modules
+/package.json
+/package-lock.json

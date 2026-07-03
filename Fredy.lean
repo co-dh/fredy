@@ -169,6 +169,7 @@ import Fredy.S2_157_ProjectivePlane
 import Fredy.S2_157b_Desargues
 import Fredy.S2_157c_Converse
 import Fredy.S2_157d_HornTop
+import Fredy.S2_157e_HornCenter
 import Fredy.S2_158_GraphAllegory
 import Fredy.S2_33
 import Fredy.S1_631_CapitalProjective
