@@ -266,3 +266,186 @@ genuine gluing is infinite.
   nothing to glue them onto: exactly the failure of "paste". In #smallcaps[Set] (or any pre-logos) this
   cannot happen — §1.616 guarantees the gluing exists and is the union.
 ]
+
+= §1.623 — positive pre-logos: sums are tagged unions
+
+A *positive pre-logos* is a pre-logos in which every pair of objects $A, B$ embeds *disjointly* into
+some common object. The book's whole definition is one square:
+
+#align(center)[
+  #diagram(spacing: (24mm, 13mm), node-stroke: none, node-inset: 4pt,
+    node((0,0), $0$),
+    node((1,0), $B$),
+    node((0,1), $A$),
+    node((1,1), $C$),
+    edge((0,0), (1,0), "->", stroke: 0.8pt),
+    edge((0,0), (0,1), "->", stroke: 0.8pt),
+    edge((0,1), (1,1), ">->", stroke: 0.8pt),
+    edge((1,0), (1,1), ">->", stroke: 0.8pt),
+    node((0.22,0.3), text(9pt, fill: prec)[⌐]),
+  )
+]
+
+*Reading the square.* The corner mark at $0$ makes it a *pullback*, and the pullback of two monos
+$A arrow.r.hook C arrow.l.hook B$ is by definition their intersection in $"Sub"(C)$. So the diagram
+says: $A inter B = 0$ inside $C$ — the two embedded copies are disjoint.
+
+#block(width: 100%, fill: subc.lighten(94%), inset: 10pt, radius: 5pt, stroke: (left: 3pt + subc))[
+  *The quantifier is $exists$, not $forall$.* It does *not* say every pair of subobjects of every $C$
+  meets in $0$ — that is false in any interesting category (take $A = B = C$: the pullback is $A$
+  itself). It says: for every pair of *objects* there *exists some* host $C$ into which they embed
+  disjointly. Choosing the least such host, $A union B = C$, gives the coproduct — hence a positive
+  pre-logos has coproducts.
+]
+
+*This is Haskell's* `Either a b = Left a | Right b`. In #smallcaps[Set] the host is the tagged union
+$C = ({0} times A) union ({1} times B)$: the tag is what forces the pullback to be empty even when
+$A = B$, since $(0, a)$ never equals $(1, a)$. And it is exactly why "has coproducts" is *weaker* than
+"positive": a lattice has no tags, so its join collapses the overlap $A and B$ instead of separating it
+— §1.626 below works this out on a concrete lattice.
+
+*§1.624 is pattern matching.* Given $f : X -> B_1 + B_2$, set $X_i = f^(\#)(B_i)$ — "the inputs that
+hit `Left`" and "the inputs that hit `Right`":
+
+#align(center)[
+  #diagram(spacing: (20mm, 14mm), node-stroke: none, node-inset: 3pt,
+    node((0,0), $X_1$),
+    node((1,0), $X$),
+    node((2,0), $X_2$),
+    node((0,1), $B_1$),
+    node((1,1), $B_1 + B_2$),
+    node((2,1), $B_2$),
+    edge((0,0), (1,0), ">->", stroke: 0.8pt),
+    edge((2,0), (1,0), ">->", stroke: 0.8pt),
+    edge((0,0), (0,1), $f_1$, "->", label-side: left, stroke: 0.8pt),
+    edge((1,0), (1,1), $f$, "->", stroke: 0.8pt),
+    edge((2,0), (2,1), $f_2$, "->", label-side: right, stroke: 0.8pt),
+    edge((0,1), (1,1), ">->", stroke: 0.8pt),
+    edge((2,1), (1,1), ">->", stroke: 0.8pt),
+  )
+]
+
+Then $X = X_1 + X_2$ and $f = f_1 + f_2$: every map into a sum factors through a case analysis of its
+source. The case split is *exhaustive* because $f^(\#)$ preserves unions (the pre-logos axiom):
+$X_1 union X_2 = f^(\#)(B_1 union B_2) = f^(\#)(B_1 + B_2) = X$. It is *exclusive* — no input matches
+both branches — by the §1.61 toolkit: $f^(\#)$ preserves $inter$ for free (pullbacks commute), and
+$f^(\#)(0) = 0$ is the nullary-union axiom, so
+$X_1 inter X_2 = f^(\#)(B_1 inter B_2) = f^(\#)(0) = 0$. Finally, disjoint ($inter = 0$) $+$ covering
+($union = X$) subobjects form a coproduct — that is the corollary of the pasting lemma quoted in
+§1.622 above.
+
+#punch[
+  Positivity is disjunction *with tags*: landing in $A + B$ tells you which summand you are in. A
+  pre-logos interprets the positive fragment of first-order logic ($top, and, bot, or, exists$ — no
+  $not$, $=>$, $forall$) on its subobject lattices; a *positive* pre-logos realizes that fragment's
+  $or$ at the object level, as `Either` — disjoint, stable, pattern-matchable sums, the way #smallcaps[Set]
+  has them and a lattice of truth values does not.
+]
+
+= §1.625 — a regular representation is a pre-logos one iff it preserves disjoint unions
+
+#quote(block: true)[
+  Suppose A and B are positive pre-logoi and that $T : bold(A) -> bold(B)$ is a representation of
+  regular categories. Then T is a representation of pre-logoi iff it preserves disjoint unions.
+]
+
+A *representation of regular categories* preserves finite limits and images (covers). A *representation
+of pre-logoi* must preserve one more thing: the pre-logos structure — the finite *unions* of subobjects
+$A_1 union A_2$ (and the empty union $0$). #h(3pt) (One trap: "$union$ is stable under inverse image" is
+an *axiom of the category* $bold(A)$; it is *not* a condition on $T$. What $T$ has to preserve is the
+*operation* $union$ itself.) So the entire gap between the two notions is one question: *does $T$
+preserve $union$?*
+
+*Freyd's one-line "because": a union is the image of a coproduct.*
+$ A_1 union A_2 = "Im"([i_1, i_2] : A_1 + A_2 -> A) . $
+The copairing $[i_1, i_2]$ lands both summands in $A$; its image — the least subobject containing both —
+is their union. It factors as cover-then-mono:
+
+#align(center)[
+  #diagram(spacing: (26mm, 12mm), node-stroke: none, node-inset: 3pt,
+    node((0,0), $A_1 + A_2$, name: <sum>),
+    node((2,0), $A$, name: <A>),
+    node((1,1), $A_1 union A_2$, name: <un>),
+    edge(<sum>, <A>, text(8pt)[$[i_1, i_2]$], "->", stroke: 0.8pt),
+    edge(<sum>, <un>, text(7pt)[cover], "->>", label-side: left, stroke: 0.8pt),
+    edge(<un>, <A>, ">->", stroke: 0.8pt),
+  )
+]
+
+In #smallcaps[Set], with $A_1 = {1,2,3}$ and $A_2 = {3,4,5}$ inside $A = {1,2,3,4,5}$: the coproduct
+$A_1 + A_2$ is the *6-element tagged* union, the copairing *fuses* the two copies of $3$, and the *image*
+of that fusing is exactly $A_1 union A_2 = {1,2,3,4,5}$ (5 elements). Coproduct, then image, gives union.
+
+#block(width: 100%, fill: subc.lighten(94%), inset: 10pt, radius: 5pt, stroke: (left: 3pt + subc))[
+  *The union is embedding-dependent; the coproduct is not.* #h(3pt) The ambient $A$ is only a
+  *container* — it need not be disjoint, nor even equal $A_1 union A_2$ ($A$ may be far bigger; the image
+  still carves the union out). What varies is the *overlap* $A_1 inter A_2$ inside $A$: the copairing is
+  *monic $<==>$ $A_1 inter A_2 = 0$* (in #smallcaps[Set] the only collisions are shared elements). So a
+  union is *the coproduct with that overlap fused in* — a disjoint embedding fuses nothing, and there
+  $union = +$ (§1.621). The *same* two sets get *different* unions under different embeddings, while the
+  coproduct never moves:
+  #v(5pt)
+  #align(center)[
+    #table(columns: 3, align: (left, center, left), inset: 6pt, stroke: 0.4pt + subc.lighten(45%),
+      table.header([$A_1 = {1,2,3}$, and $B$ in $A$], [$A_1 union B$], [vs. coproduct]),
+      [$B = {a, b}$ #h(4pt) (disjoint)], [${1,2,3,a,b}$ (5)], [$=$ coproduct],
+      [$B = {3, 4}$ #h(4pt) (share $3$)], [${1,2,3,4}$ (4)], [$<$ coproduct],
+      [$B = {2, 3}$ #h(4pt) ($B subset.eq A_1$)], [${1,2,3}$ (3)], [$<$ coproduct],
+    )
+  ]
+  #v(3pt)
+  The coproduct is always the 5-element ${1,2,3} + B$; the union slides between $max(|A_1|, |B|)$ and
+  $|A_1| + |B|$ as the overlap shrinks. $"Im"(A_1 + A_2 -> A)$ is the coproduct pushed through the chosen
+  embedding.
+]
+
+*Why this settles the "iff".* $T$ already preserves images, so
+$ T(A_1 union A_2) = T("Im"(A_1 + A_2 -> A)) = "Im"(T(A_1 + A_2) -> T A) . $
+- If $T$ preserves the *coproduct*, i.e. $T(A_1 + A_2) = T A_1 + T A_2$, the right side is
+  $"Im"(T A_1 + T A_2 -> T A) = T A_1 union T A_2$: *preserves disjoint unions $=>$ preserves unions*.
+- Conversely $T$ preserves pullbacks and $0$, so $A_1 inter A_2 = 0$ forces $T A_1 inter T A_2 = 0$; with
+  union-preservation, $T(A_1 + A_2) = T A_1 union T A_2$ is then a *disjoint* union $= T A_1 + T A_2$:
+  *preserves unions $=>$ preserves disjoint unions*.
+
+*Concrete example.* The evaluation functor $"ev"_a : cal(S)^bold(A) -> cal(S)$ ($cal(S) = $
+#smallcaps[Set], so $cal(S)^bold(A)$ is the functor category $bold(A) -> #smallcaps[Set]$), $F |-> F(a)$,
+is a representation of regular categories — limits, covers and images in $cal(S)^bold(A)$ are all
+computed pointwise. It preserves disjoint unions, $"ev"_a (F + G) = (F + G)(a) = F(a) + G(a)$, so by
+§1.625 it is a representation of pre-logoi; and indeed $(F union G)(a) = F(a) union G(a)$ — the
+coproduct-then-image at $a$ is exactly the coproduct-then-image in $cal(S)$.
+
+#punch[
+  You never check union-preservation directly. A regular representation already carries images, and
+  *every union is the image of a coproduct*, so union-preservation collapses to the one cheaper condition
+  "$T$ preserves disjoint unions". The condition has teeth: §1.626 (below) notes that the canonical
+  embedding of a pre-logos into a positive one [2.217] is a regular representation that is *not* a
+  pre-logos one — precisely because it fails to preserve coproducts.
+]
+
+= §1.626 — coproducts without positivity
+
+#quote(block: true)[
+  Coproducts can exist without positivity. Any distributive lattice, viewed as a category is a
+  pre-logos with coproducts. It is positive iff it is degenerate.
+]
+
+The point is that "coproduct" is a *universal property* — a map $A + B -> Q$ is exactly a pair
+$A -> Q$, $B -> Q$ — which *never mentions disjointness*. So $A + B$ can exist while the two injections
+are *not* disjoint. Positivity is that missing extra: $A inter B = 0$ (injections monic and jointly
+covering). A category can have every coproduct and still fail it.
+
+*Witness.* Any distributive lattice, viewed as a thin category (one arrow $a -> b$ iff $a subset.eq b$),
+has products $= inter$ and coproducts $= or$: the least upper bound $a or b$ genuinely satisfies the
+coproduct universal property. So coproducts exist — but never disjointly:
+$ {1,2} + {1,2} = {1,2} or {1,2} = {1,2}, quad "hence" quad {1,2} inter {1,2} = {1,2} eq.not 0 . $
+Both copies collapse onto one; contrast #smallcaps[Set], where $1 + 1 = 2$ keeps them tagged apart.
+
+*Positive iff degenerate.* Taking $b = a$, positivity would force $a inter a = a = 0$ for *every* object
+$a$ — collapsing the whole lattice to a single point $0 = 1$.
+
+#punch[
+  This is exactly why the Lean class `DisjointBinaryCoproduct` (`Fredy/S1_62.lean`, §1.62) carries axioms
+  *beyond* `HasBinaryCoproducts`: the lattice satisfies `HasBinaryCoproducts` — its join is a coproduct —
+  yet violates `inl ∩ inr ⊆ ⊥` (`inl_inter_inr`). Positivity is the "not-a-mere-lattice" content:
+  disjoint, tagged sums, the way #smallcaps[Set] has them and a lattice of truth values does not.
+]
