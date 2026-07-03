@@ -549,6 +549,62 @@ theorem horn_c_pt_pt_eq {a₁ a₂ b₁ b₂ : PElem P} {z : P.Point}
   · exact horn_core_disjoint _ _ hbot
   · exact (horn_center hpt).mono_c (bot_le _) (le_refl _)
 
+/-! ## Line-hypothesis infrastructure -/
+
+/-- Above a line: the line itself or `⊤`. -/
+theorem ge_ln_cases {K : PElem P} {C : P.Line} (h : (ln C).le K) :
+    K = ln C ∨ K = top := by
+  cases K with
+  | bot => exact absurd h (by simp [le])
+  | pt w => exact absurd h (by simp [le])
+  | ln B => exact Or.inl (by rw [show C = B from h])
+  | top => exact Or.inr rfl
+
+/-- INVERSION: an incomparable pair joins to `⊤` only in the three genuinely
+    big shapes (non-incident point/line, either order, or distinct lines). -/
+theorem join_top_cases {x y : PElem P} (h : x.join y = top) :
+    (x.le y ∨ y.le x) ∨
+    (∃ v B, x = pt v ∧ y = ln B ∧ ¬ P.incid v B) ∨
+    (∃ A w, x = ln A ∧ y = pt w ∧ ¬ P.incid w A) ∨
+    (∃ A B, x = ln A ∧ y = ln B ∧ A ≠ B) := by
+  cases x with
+  | bot => exact Or.inl (Or.inl (bot_le y))
+  | top => exact Or.inl (Or.inr (le_top y))
+  | pt v =>
+    cases y with
+    | bot => exact Or.inl (Or.inr (bot_le _))
+    | top => exact Or.inl (Or.inl (le_top _))
+    | pt w =>
+      by_cases hvw : v = w
+      · exact Or.inl (Or.inl (hvw : (pt v).le (pt w)))
+      · rw [join_pt_pt_ne hvw] at h; exact nomatch h
+    | ln B =>
+      by_cases hvB : P.incid v B
+      · exact Or.inl (Or.inl (hvB : (pt v).le (ln B)))
+      · exact Or.inr (Or.inl ⟨v, B, rfl, rfl, hvB⟩)
+  | ln A =>
+    cases y with
+    | bot => exact Or.inl (Or.inr (bot_le _))
+    | top => exact Or.inl (Or.inl (le_top _))
+    | pt w =>
+      by_cases hwA : P.incid w A
+      · exact Or.inl (Or.inr (hwA : (pt w).le (ln A)))
+      · exact Or.inr (Or.inr (Or.inl ⟨A, w, rfl, rfl, hwA⟩))
+    | ln B =>
+      by_cases hAB : A = B
+      · exact Or.inl (Or.inl (hAB : (ln A).le (ln B)))
+      · exact Or.inr (Or.inr (Or.inr ⟨A, B, rfl, rfl, hAB⟩))
+
+/-- Two distinct points of a line `C` join to `ln C` (axiom 3). -/
+theorem join_pt_pt_line {x y : P.Point} {C : P.Line} (hxy : x ≠ y)
+    (hx : P.incid x C) (hy : P.incid y C) : (pt x).join (pt y) = ln C := by
+  rw [join_pt_pt_ne hxy, ← ProjectivePlane.lineThrough_eq hxy hx hy]
+
+/-- Two distinct lines through a common point meet in it (axiom 3). -/
+theorem meet_ln_ln_pt {A B : P.Line} {x : P.Point} (hAB : A ≠ B)
+    (hxA : P.incid x A) (hxB : P.incid x B) : (ln A).meet (ln B) = pt x := by
+  rw [meet_ln_ln_ne hAB, ← ProjectivePlane.meetPoint_eq hAB hxA hxB]
+
 end PElem
 
 end Freyd.Alg
