@@ -101,7 +101,15 @@ merged class `TabularUnitaryUnguardedPowerAllegory`): Map(A) has FULL power obje
 - ~~**§2.16(14)**~~ — **DONE** (`S2_16d`, merged): generic `splEq_hom_iff` (Spl(Eq) homs = R with e≫R = R = R≫f,
   the book's IR = R = RJ form; axiom-free) + instantiation `AsmEffReflection K` = Spl(Eq (Rel(Assembly K))),
   A/I objects, `asmEmbed` A↦A/1_A full/faithful, graph functor on assembly morphisms, effectiveness
-  `asmEffReflection_eqSplits`. REMAINING: universal property of the reflection.
+  `asmEffReflection_eqSplits`. SECOND PRESENTATION NOW DONE (`S2_16e_TwoPresentations`, merged): the
+  book's closing remark, at the object/iso level. Set-like assemblies `IsSetLike K A` (all caucuses
+  equal = the ∇-image = "simply sets"), `setGraph K A := ι` with DRY core `setGraph_comp_recip`
+  (`ι≫ι°=1_⟨A⟩`), `e_A := ι°≫ι` coreflexive symmetric-idempotent. Generic `splObj_conj_iso` [propext]
+  (any allegory, `ι≫ι°=1_a ⟹ (a,I)≅(s,ι°Iι)` in Spl). Presentation B
+  `asm_iso_coreflexiveSplit_setLike` (Rel(A) = coreflexive splitting of the set-like subcategory);
+  Presentation A `effReflObj_iso_symIdemSplit_setLike` (E = symmetric-idempotent splitting of same).
+  [propext,Classical.choice,Quot.sound]. REMAINING: full categorical equivalences (standalone
+  full-sub-allegory type + comparison functors + natural isos — infra absent); universal property.
 - ~~**§2.154 headline**~~ — **DONE** (`S2_154_CategoriesIso`, merged): `smallRegCat_equiv_smallTabAlleg` —
   small regular categories (regular functors preserving terminators) ≃ small unitary tabular allegories
   (unitary representations), as a StrongEquivalence [propext,choice,Quot.sound]. Freyd's "isomorphic" downgraded

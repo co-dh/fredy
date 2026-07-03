@@ -163,6 +163,7 @@ import Fredy.S2_21c
 import Fredy.S1_526_StalkConservative
 import Fredy.S2_153_Assemblies
 import Fredy.S2_16d
+import Fredy.S2_16e_TwoPresentations
 import Fredy.S2_16_Recursive
 import Fredy.S2_155_BiEntire
 import Fredy.S2_156_PartitionRep
