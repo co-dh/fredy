@@ -93,6 +93,13 @@
       <option value="none">none</option>
     </select>
   </label>
+  <label title="click a node to isolate it and everything it (transitively) depends on / is depended on by">focus
+    <select id="focus">
+      <option value="off" selected>off</option>
+      <option value="deps">dependencies</option>
+      <option value="dependents">dependents</option>
+    </select>
+  </label>
   <button id="relayout" title="re-run force layout on the currently-visible nodes (use after changing filters)">re-run layout</button>
   <span class="stat" id="stat">loading…</span>
 </div>
@@ -189,10 +196,13 @@ async function main(){
 
 /* ---------- reducers (hover/select highlight + kind filter) ---------- */
 let active=null, neigh=new Set(), selected=null, hiddenKinds=new Set(), hiddenSections=new Set();
+// focus mode: when non-null, only nodes in this set (a node + its transitive dependency cone) are shown
+let focusSet=null;
 function nodeReducer(node, data){
   const res = Object.assign({}, data);
   const dd = decl.get(node);
   if (hiddenKinds.has(dd?.kind) || hiddenSections.has(dd?.sec)){ res.hidden=true; return res; }
+  if (focusSet && !focusSet.has(node)){ res.hidden=true; return res; }
   // no global dimming: only emphasize the hovered node + its neighbors, leave everything else untouched
   if (node===active){ res.zIndex=3; res.forceLabel=true; res.size=data.size*1.6; }     // pop by size
   else if (active && neigh.has(node)){ res.zIndex=2; res.forceLabel=true; }            // neighbors: label them
@@ -204,6 +214,7 @@ function edgeReducer(edge, data){
   const ex = graph.extremities(edge), s=ex[0], t=ex[1];
   const ds=decl.get(s), dt=decl.get(t);
   if (hiddenKinds.has(ds?.kind)||hiddenKinds.has(dt?.kind)||hiddenSections.has(ds?.sec)||hiddenSections.has(dt?.sec)){ res.hidden=true; return res; }
+  if (focusSet && (!focusSet.has(s)||!focusSet.has(t))){ res.hidden=true; return res; }
   const mode = $('#edgemode').value;
   const inc = active && (s===active || t===active);
   if (mode==='none'){ res.hidden = !inc; }
@@ -218,16 +229,22 @@ function edgeReducer(edge, data){
 function wireEvents(){
   sigma.on('enterNode', ({node})=> setActive(node, true));
   sigma.on('leaveNode', ()=> setActive(null));
-  sigma.on('clickNode', ({node})=> openDetail(node));
-  sigma.on('clickStage', ()=>{ selected=null; closeDetail(); sigma.refresh(); });
+  sigma.on('clickNode', ({node})=>{
+    const v=$('#focus').value;
+    if(v!=='off') setFocus(node, v==='deps'?'out':'in');
+    openDetail(node);
+  });
+  sigma.on('clickStage', ()=>{ selected=null; closeDetail(); focusSet ? clearFocus() : sigma.refresh(); });
   $('#edgemode').addEventListener('change', ()=> sigma.refresh());
+  $('#focus').addEventListener('change', ()=>{ const v=$('#focus').value;
+    if(v==='off'){ if(focusSet) clearFocus(); } else if(selected) setFocus(selected, v==='deps'?'out':'in'); });
   $('#relayout').addEventListener('click', runLayout);
   document.querySelectorAll('#legend span').forEach(el=> el.addEventListener('click', ()=>{
     const k=el.dataset.kind; if(hiddenKinds.has(k)){hiddenKinds.delete(k);el.classList.remove('off');}
     else {hiddenKinds.add(k);el.classList.add('off');} sigma.setCustomBBox(null); sigma.refresh();
   }));
   buildSections();
-  addEventListener('keydown', e=>{ if(e.key==='Escape'){ selected=null; closeDetail(); sigma.refresh(); } });
+  addEventListener('keydown', e=>{ if(e.key==='Escape'){ selected=null; closeDetail(); focusSet ? clearFocus() : sigma.refresh(); } });
 }
 
 /* ---------- per-section chapter filters (a checkbox per group like 1.6, built from the data) ---------- */
@@ -344,16 +361,34 @@ search.addEventListener('keydown', e=>{
    reflows the survivors into the freed space instead of being repelled by hidden nodes.
    When nothing is hidden it lays out the full graph in place (no subgraph copy). */
 let layoutRunning=false;
-function isVisible(n){ const d=decl.get(n); return !(hiddenKinds.has(d?.kind)||hiddenSections.has(d?.sec)); }
+function isVisible(n){ const d=decl.get(n); return !(hiddenKinds.has(d?.kind)||hiddenSections.has(d?.sec)) && (!focusSet||focusSet.has(n)); }
 // After a partial relayout, frame the camera to just the visible nodes: hidden nodes keep their
 // old far-off coordinates, which would otherwise dominate Sigma's auto extent and leave the
 // re-laid-out cluster tiny in the middle. Clearing the bbox (arg null) reverts to full extent.
-function frameVisible(vis){
+function frameVisible(nodes){
   let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
-  for(const n of vis){ const a=graph.getNodeAttributes(n);
+  for(const n of nodes){ const a=graph.getNodeAttributes(n);
     if(a.x<x0)x0=a.x; if(a.x>x1)x1=a.x; if(a.y<y0)y0=a.y; if(a.y>y1)y1=a.y; }
-  if(x0<=x1) sigma.setCustomBBox({ x:[x0,x1], y:[y0,y1] });
+  if(x0<=x1){ const px=((x1-x0)||2)*0.06, py=((y1-y0)||2)*0.06;   // pad; guard a degenerate 1-node box
+    sigma.setCustomBBox({ x:[x0-px,x1+px], y:[y0-py,y1+py] }); }
   sigma.refresh(); sigma.getCamera().animatedReset();
+}
+/* ---------- focus: isolate a node + its transitive dependency cone ---------- */
+function closure(start, dir){   // dir 'out' = things it uses (dependencies); 'in' = things that use it
+  const seen=new Set([start]), stack=[start];
+  while(stack.length){ const n=stack.pop();
+    for(const m of (dir==='out'?graph.outNeighbors(n):graph.inNeighbors(n))){
+      if(!seen.has(m)){ seen.add(m); stack.push(m); } } }
+  return seen;
+}
+function setFocus(node, dir){
+  focusSet = closure(node, dir); selected = node;
+  $('#stat').textContent = `focus: ${focusSet.size} ${dir==='out'?'deps':'dependents'} of ${node}`;
+  frameVisible(focusSet);      // hides the rest (reducers) and frames the cone to fill the viewport
+}
+function clearFocus(){
+  focusSet=null; sigma.setCustomBBox(null); sigma.refresh(); sigma.getCamera().animatedReset();
+  $('#stat').textContent = `${graph.order.toLocaleString()} nodes · ${graph.size.toLocaleString()} edges`;
 }
 function runLayout(){
   if(layoutRunning) return; layoutRunning=true;
