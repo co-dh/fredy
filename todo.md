@@ -103,8 +103,18 @@ merged class `TabularUnitaryUnguardedPowerAllegory`): Map(A) has FULL power obje
   to equivalence only because the `RelObj` wrapper changes the carrier type; components identity-on-objects up
   to the wrapper. INFRA: Map 𝒜 regular structure + CarrierBridge weakened to the book's tabular+unitary
   hypothesis (distributivity was over-assumed; S2_147/S2_111).
-- **§2.158**, **§2.417** (generator counterexample) — graph-allegory no-finite-axiomatization;
-  §1.96(10)-modification model.
+- ~~**§2.158** core~~ — **DONE** (`S2_158_GraphAllegory`, merged, choice-free [propext,Quot.sound]):
+  `LGraph` (finite directed edge-labelled graphs with marks s,t), graph maps `Hom`, the tautological
+  model `Trel`/`toRel`, `graph_yoneda` (the Yoneda engine), headline `decision` — a containment
+  `E₁⊆E₂` holds in `Rel(S)` for ALL S iff there is a graph map `[E₂]→[E₁]` (the §2.158 DECISION
+  PROCEDURE); `toRel_eq_Trel` (T is the graph model, preserves =/°/∩/∘); `ghatAllegory : Allegory
+  (GStar L)` (Ĝ is a genuine one-object allegory over the repo's §2.11 class); recast SEPARATED axioms
+  valid (`sep_semidistrib`/`sep_modular`/`sep_inter_idem`, `Gle_iff_hom`). OPEN (Target 3, large
+  separate development, correctly not faked): the no-finite-axiomatization METATHEOREM — the n-rhombus
+  separated family is valid in Rel(S) but not a consequence of any fixed finite set, needing an
+  inductive representation of equational-theory DERIVATIONS + the graph-map factorization analysis.
+- **§2.417** (generator counterexample) — §1.96(10)-modification model (complete effective distributive
+  allegory with a generator but not a power allegory).
 
 ## Universe wall (needs a class redesign, not a leaf file)
 
