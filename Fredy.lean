@@ -161,6 +161,7 @@ import Fredy.S2_111_RelCat
 import Fredy.S2_154_CategoriesIso
 import Fredy.S2_41
 import Fredy.S2_41b
+import Fredy.S2_424_ConnectedPowerTopos
 import Fredy.S2_21
 import Fredy.S2_21b
 import Fredy.S2_21c

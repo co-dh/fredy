@@ -411,8 +411,13 @@ membership `mapMem`, box-guarded universal property `mapTranspose_existsUnique`;
 unguarded membership / `A(𝟘)` a map, the same root as §2.441/2.433/2.537, needs a `PowerAllegory`-interface strengthening).
 §2.417 CORE DONE (`S2_417_Generator`, 2026-07-03): category C + generator witness `G_generates`
 (Rel(C) has a generator); OPEN = "not a power allegory" (Target 3, §1.96(10) collapse) + Giraud conditions.
+§2.424 DONE (`S2_424_ConnectedPowerTopos`, 2026-07-03): `sid_cor_map_topos : Topos (Map(Sid(Cor A)))` +
+`Sid(Cor A)` tabular-unitary-unguarded-power + effective, over `SemiSimpleUnitaryUnguardedPowerAllegory`.
+KEY: removed two documented walls — `splEqChain2_general` drops §2.433's reflexivity hyp (covers
+coreflexives); over an UNGUARDED base the §2.416 progenitor obstruction dissolves (`ThickAll`/
+`unguardedPowerOfSplitThickAll` give box-free thick targets). "positive/transitive" tail not re-derived.
 MISSING: §2.418 REALIZABILITY
-TOPOS (construction) · §2.424 connected-power topos corollary · §2.437/§2.438 r.e.-relations / Gödel (RECURSION THEORY) ·
+TOPOS (construction) · §2.437/§2.438 r.e.-relations / Gödel (RECURSION THEORY) ·
 §2.444–§2.446 metonymy-independence (model) · §2.451–§2.455 boolean/CH/WELL-POINTED/cocartesian (set-theoretic models).
 
 ## §2.5  Quotient allegories
