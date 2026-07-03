@@ -33,9 +33,13 @@
   #tr select,#tr button { background:#232733; color:var(--fg); border:1px solid var(--line); border-radius:5px;
     padding:3px 7px; font:inherit; cursor:pointer; }
   #tr label { display:inline-flex; align-items:center; gap:3px; cursor:pointer; }
-  #chapters { display:inline-flex; align-items:center; gap:8px; padding-right:4px; border-right:1px solid var(--line); }
-  #chapters > label { gap:4px; }
   #tr .stat { font-size:12px; }
+  /* top-left: per-section chapter filters */
+  #sections { margin:8px 0 2px; display:flex; flex-direction:column; gap:5px; }
+  .secrow { display:flex; flex-wrap:wrap; gap:3px 6px; align-items:center; }
+  .secrow label { display:inline-flex; align-items:center; gap:2px; font-size:11px; color:var(--dim); cursor:pointer; }
+  .secrow label.master { color:var(--fg); font-weight:600; width:34px; }
+  .secrow input { margin:0; cursor:pointer; }
   /* bottom-left: legend (click to toggle) */
   #legend { left:12px; bottom:12px; padding:7px 10px; z-index:6; display:flex; gap:10px; flex-wrap:wrap; font-size:11px; }
   #legend span { display:inline-flex; align-items:center; gap:5px; cursor:pointer; user-select:none; opacity:1; }
@@ -77,15 +81,11 @@
 <div id="tl" class="float">
   <h1>◆ Fredy dependency graph</h1>
   <input id="search" placeholder="search name / type / doc…  (↑↓ enter)">
+  <div id="sections"></div>
   <div id="results"></div>
 </div>
 
 <div id="tr" class="float">
-  <span id="chapters">chapters
-    <label><input type="checkbox" class="chbox" value="1" checked>Ch1</label>
-    <label><input type="checkbox" class="chbox" value="2" checked>Ch2</label>
-    <label><input type="checkbox" class="chbox" value="aop" checked>AOP</label>
-  </span>
   <label>edges
     <select id="edgemode">
       <option value="all" selected>all</option>
@@ -115,9 +115,14 @@ import Sigma from "https://cdn.jsdelivr.net/npm/sigma@3/+esm";
 import forceAtlas2 from "https://cdn.jsdelivr.net/npm/graphology-layout-forceatlas2@0.10/+esm";
 
 const KIND = { thm:'#4a9eff', def:'#46c46a', instance:'#b47cff', ind:'#ff9d3a', axiom:'#ff5c66', opaque:'#7a8494' };
-// bucket a decl by its source file: '1' = Chapter 1 (S1_*), '2' = Chapter 2 (S2_*),
-// 'aop' = Algebra of Programming appendix (A4_…A10_), 'other' = tool files (always shown).
-const chapterOf = f => /\/S1_/.test(f) ? '1' : /\/S2_/.test(f) ? '2' : /\/A[0-9]/.test(f) ? 'aop' : 'other';
+// bucket a decl by its source file into a section group: "1.6" = chapter.firstDigit (S1_6*),
+// "2.1" (S2_1*), or "A6"/"A10" for the Algebra-of-Programming appendix; "other" = tool files (always shown).
+const sectionOf = f => {
+  let m;
+  if (m = f.match(/\/S(\d+)_(\d)/)) return m[1] + '.' + m[2];
+  if (m = f.match(/\/A(\d+)_/))     return 'A' + m[1];
+  return 'other';
+};
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const kindTag = k => `<span class="kindtag" style="background:${KIND[k]||'#7a8494'}">${k||'?'}</span>`;
@@ -142,7 +147,7 @@ async function main(){
       + `<code>lake env lean --run scripts/ExtractGraph.lean</code><br><br><small>${esc(err.message)}</small>`);
   }
   for (const ln of dTxt.split('\n')){ if(!ln) continue; const p=ln.split('\t');
-    decl.set(p[0], { kind:p[1], file:p[2], line:+p[3], type:p[4]||'', doc:p[5]||'', ch:chapterOf(p[2]) }); }
+    decl.set(p[0], { kind:p[1], file:p[2], line:+p[3], type:p[4]||'', doc:p[5]||'', sec:sectionOf(p[2]) }); }
 
   // ---- build graphology graph ----
   ovbox.textContent = 'building graph…'; await frame();
@@ -183,11 +188,11 @@ async function main(){
 }
 
 /* ---------- reducers (hover/select highlight + kind filter) ---------- */
-let active=null, neigh=new Set(), selected=null, hiddenKinds=new Set(), hiddenChapters=new Set();
+let active=null, neigh=new Set(), selected=null, hiddenKinds=new Set(), hiddenSections=new Set();
 function nodeReducer(node, data){
   const res = Object.assign({}, data);
   const dd = decl.get(node);
-  if (hiddenKinds.has(dd?.kind) || hiddenChapters.has(dd?.ch)){ res.hidden=true; return res; }
+  if (hiddenKinds.has(dd?.kind) || hiddenSections.has(dd?.sec)){ res.hidden=true; return res; }
   // no global dimming: only emphasize the hovered node + its neighbors, leave everything else untouched
   if (node===active){ res.zIndex=3; res.forceLabel=true; res.size=data.size*1.6; }     // pop by size
   else if (active && neigh.has(node)){ res.zIndex=2; res.forceLabel=true; }            // neighbors: label them
@@ -198,7 +203,7 @@ function edgeReducer(edge, data){
   const res = Object.assign({}, data);
   const ex = graph.extremities(edge), s=ex[0], t=ex[1];
   const ds=decl.get(s), dt=decl.get(t);
-  if (hiddenKinds.has(ds?.kind)||hiddenKinds.has(dt?.kind)||hiddenChapters.has(ds?.ch)||hiddenChapters.has(dt?.ch)){ res.hidden=true; return res; }
+  if (hiddenKinds.has(ds?.kind)||hiddenKinds.has(dt?.kind)||hiddenSections.has(ds?.sec)||hiddenSections.has(dt?.sec)){ res.hidden=true; return res; }
   const mode = $('#edgemode').value;
   const inc = active && (s===active || t===active);
   if (mode==='none'){ res.hidden = !inc; }
@@ -221,11 +226,42 @@ function wireEvents(){
     const k=el.dataset.kind; if(hiddenKinds.has(k)){hiddenKinds.delete(k);el.classList.remove('off');}
     else {hiddenKinds.add(k);el.classList.add('off');} sigma.refresh();
   }));
-  document.querySelectorAll('.chbox').forEach(cb=> cb.addEventListener('change', ()=>{
-    if(cb.checked) hiddenChapters.delete(cb.value); else hiddenChapters.add(cb.value);
-    sigma.refresh();
-  }));
+  buildSections();
   addEventListener('keydown', e=>{ if(e.key==='Escape'){ selected=null; closeDetail(); sigma.refresh(); } });
+}
+
+/* ---------- per-section chapter filters (a checkbox per group like 1.6, built from the data) ---------- */
+function buildSections(){
+  const groups = { '1':new Set(), '2':new Set(), 'aop':new Set() };
+  for (const d of decl.values()){
+    if (/^\d\.\d$/.test(d.sec)) groups[d.sec[0]].add(d.sec);
+    else if (/^A\d+$/.test(d.sec)) groups.aop.add(d.sec);
+  }
+  const sub = s => s[0]==='A' ? s.slice(1) : s.slice(2);          // short label ("1.6"→"6", "A10"→"10")
+  $('#sections').innerHTML = [['1','Ch1'],['2','Ch2'],['aop','AOP']].map(([key,label])=>{
+    const secs=[...groups[key]].sort((a,b)=>(+sub(a))-(+sub(b)));
+    if(!secs.length) return '';
+    return `<div class="secrow"><label class="master" title="toggle all ${label}"><input type="checkbox" checked>${label}</label>`
+      + secs.map(s=>`<label title="${s}"><input type="checkbox" class="secbox" value="${s}" checked>${sub(s)}</label>`).join('')
+      + `</div>`;
+  }).join('');
+  $('#sections').querySelectorAll('.secbox').forEach(cb=> cb.addEventListener('change', ()=>{
+    cb.checked ? hiddenSections.delete(cb.value) : hiddenSections.add(cb.value);
+    syncMasters(); sigma.refresh();
+  }));
+  $('#sections').querySelectorAll('.master input').forEach(cb=> cb.addEventListener('change', ()=>{
+    cb.closest('.secrow').querySelectorAll('.secbox').forEach(x=>{
+      x.checked=cb.checked; x.checked ? hiddenSections.delete(x.value) : hiddenSections.add(x.value);
+    });
+    cb.indeterminate=false; sigma.refresh();
+  }));
+}
+function syncMasters(){
+  document.querySelectorAll('#sections .secrow').forEach(row=>{
+    const boxes=[...row.querySelectorAll('.secbox')], on=boxes.filter(b=>b.checked).length;
+    const m=row.querySelector('.master input');
+    m.checked = on>0; m.indeterminate = on>0 && on<boxes.length;
+  });
 }
 function setActive(node, tip){
   active = node;

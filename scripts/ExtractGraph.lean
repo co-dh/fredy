@@ -53,15 +53,19 @@ def oneLine (s : String) : String := Id.run do
       sp := false
   return out
 
-/-- Pretty-printed type and first docstring line for each row (needs a MetaM run). -/
+/-- Pretty-printed type and first docstring line for each row (needs a MetaM run).
+    Strip the ubiquitous `Freyd.` prefix from the printed type and doc text (same reason
+    `shortName` strips it from the decl/edge names) so the whole tsv reads prefix-free. These
+    columns are display-only, so a blunt substring strip is fine and also catches names the
+    pretty-printer leaves fully qualified (inaccessible `✝` auxiliaries) and literal docstrings. -/
 def annotate (env : Environment) (rows : Array Row) : IO (Array (Row × String × String)) := do
   let ctx : Core.Context := { fileName := "<extract>", fileMap := default }
   let go : CoreM _ := rows.mapM fun row@(n, _, _, _) => do
     let ci := (env.find? n).get!
     let ty ← try
-        pure (oneLine (toString (← Meta.MetaM.run' (Meta.ppExpr ci.type))))
+        pure ((oneLine (toString (← Meta.MetaM.run' (Meta.ppExpr ci.type)))).replace "Freyd." "")
       catch _ => pure ""
-    let doc := ((← findDocString? env n).getD "").splitOn "\n" |>.headD ""
+    let doc := (((← findDocString? env n).getD "").splitOn "\n" |>.headD "").replace "Freyd." ""
     return (row, ty, oneLine doc)
   Prod.fst <$> go.toIO ctx { env }
 
