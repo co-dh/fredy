@@ -137,10 +137,13 @@ merged class `TabularUnitaryUnguardedPowerAllegory`): Map(A) has FULL power obje
   `E₁⊆E₂` holds in `Rel(S)` for ALL S iff there is a graph map `[E₂]→[E₁]` (the §2.158 DECISION
   PROCEDURE); `toRel_eq_Trel` (T is the graph model, preserves =/°/∩/∘); `ghatAllegory : Allegory
   (GStar L)` (Ĝ is a genuine one-object allegory over the repo's §2.11 class); recast SEPARATED axioms
-  valid (`sep_semidistrib`/`sep_modular`/`sep_inter_idem`, `Gle_iff_hom`). OPEN (Target 3, large
-  separate development, correctly not faked): the no-finite-axiomatization METATHEOREM — the n-rhombus
-  separated family is valid in Rel(S) but not a consequence of any fixed finite set, needing an
-  inductive representation of equational-theory DERIVATIONS + the graph-map factorization analysis.
+  valid (`sep_semidistrib`/`sep_modular`/`sep_inter_idem`, `Gle_iff_hom`). Target 3 SCAFFOLDING DONE
+  (`S2_158b_NoFiniteAxiom`): derivation system `Derives` + soundness `Derives_sound` + decision bridge
+  `holdsInRel_iff_hom` + single rhombus `rhombus1_holds` (n=1, axiom-free) + CONDITIONAL metatheorem
+  `no_finite_axiomatization` (axiom-free: valid n-rhombus family + `RhombusHard` ⟹ no finite valid axiom
+  set is complete). OPEN combinatorial heart: (1) general-n rhombus validity; (2) `RhombusHard` =
+  Freyd's counting/factorization (derivation⇒graph-map-chain bridge + bounded collapse invariant per axiom
+  step + series-parallel `Ḡ` characterization: the n-rhombus admits no proper partial collapse staying in Ḡ).
 - **§2.417** (generator counterexample) — power-object infra DONE (`S2_417b_NotPower`): `IsPowerObj`/
   `HasPowerObj`/`RelCIsPowerAllegory` (§2.414 phrasing), `singleton_of_power` (§2.415), positive half
   `coterminator_hasPowerObject`.  VERDICT on Target 3 (¬power-allegory): NOT faithfully reachable in the
