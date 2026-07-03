@@ -196,3 +196,5 @@ import Fredy.A7_2
 import Fredy.A8_1
 -- Bird & de Moor ch. 9: dynamic programming (principle of optimality, DP + thinning theorems)
 import Fredy.A9_1
+-- Bird & de Moor ch. 10: greedy algorithms (Theorem 10.1 — greedy as extreme dynamic programming)
+import Fredy.A10_1

@@ -51,6 +51,13 @@ theorem le_minRel_iff {R : a ⟶ a} {X : PowerAllegory.powerObj a ⟶ a} :
   · rintro ⟨h1, h2⟩
     exact le_inter h1 ((le_leftDiv_iff _ _ _).mpr h2)
 
+/-- The `min` lower-bound law as a composition: `(∋ a)°·min R ⊑ R` (`min R·∋ ⊆ R` mirrored) —
+    the minimum of a set is `R`-below every member.  Just the second half of `min`'s universal
+    property applied to `min R` itself; companion to `Fredy.A8_1`'s `recip_eps_comp_thinRel_le`
+    for `thin`. -/
+theorem recip_eps_comp_minRel_le (R : a ⟶ a) : (∋ a)° ≫ minRel R ⊑ R :=
+  (le_minRel_iff.mp (le_refl (minRel R))).2
+
 /-! ## (7.5) and its universal property
 
   The workhorse: composing `min R` with the power transpose of `S` computes minima over
