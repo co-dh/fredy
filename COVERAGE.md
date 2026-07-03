@@ -165,7 +165,13 @@ singleton family), `EpicFamily` + `covering_family_epic [HasEqualizers]` (cover 
 subobject).
 MISSING:
 §1.573 "P not cartesian" + §1.574 x⁻¹∉P / fractions (Ackermann-scale growth arguments) · §1.584–§1.587
-cocartesian-slice/Lazard/diophantine · §1.59(10) modular-lattice Galois.
+cocartesian-slice/Lazard/diophantine · §1.59(10) join equation (II) + modular-lattice corollary
+(abelian-specific, needs kernel absorption `f*(fA')=A'∪f*0`; fails in Set — regular route can't reach it).
+§1.59(10) CORE DONE (`S1_59_10_Frobenius`, regular-cat, [Classical.choice]): image–preimage adjunction
+`directImage_adj : (f_* S).le T ↔ S.le (f^* T)` (axiom-free), Frobenius/projection equation (I)
+`frobenius_eq : f_*(A'∩f^* B') = f_* A' ∩ B'` both directions + `frobenius_iso`, and (II) easy half
+`join_le_inverseImage`. NOTE: reproved `Subobject.inter` meet-laws PreLogos-free in-file (S1_62's carry a
+spurious `[PreLogos]` ambient hyp — abelian cats are regular but NOT pre-logoi; candidate S1_62 cleanup).
 §1.596 DONE (`S1_596_AbFunctorCategory`): iso of categories `Ab(𝒮^𝒜) ≅ (Ab 𝒮)^𝒜` — internal
 abelian-group object in the functor category = functor into abelian-group objects (structure is
 LEVELWISE). `fwdFun`/`bwdFun` object bijection + `fwdHom`/`bwdHom` per-hom bijection + `fwdHom_id`/

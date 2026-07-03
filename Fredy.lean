@@ -44,6 +44,7 @@ import Fredy.S1_596_AbFunctorCategory
 import Fredy.S1_59_ExactRepresentation
 import Fredy.S1_60
 import Fredy.S1_70
+import Fredy.S1_59_10_Frobenius
 import Fredy.S1_56
 import Fredy.S1_568_Quot
 import Fredy.S1_57
