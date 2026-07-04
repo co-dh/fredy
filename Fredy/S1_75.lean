@@ -34,6 +34,7 @@ import Fredy.S1_60
 import Fredy.S1_61
 import Fredy.S1_62
 import Fredy.S1_64
+import Fredy.S1_70
 
 open Freyd
 
@@ -108,6 +109,19 @@ class HasIndexedSubobjectJoins (𝒞 : Type u) [Cat.{v} 𝒞] [PreLogos 𝒞] wh
   invImage_preserves_sup : ∀ {A B : 𝒞} (f : A ⟶ B) (S : (Subobject 𝒞 B) → Prop),
     Subobject.le (InverseImage f (sup S))
       (sup (fun A' => ∃ B', S B' ∧ A' = InverseImage f B'))
+
+/-- **Bridge to the canonical arbitrary-join class**: `HasIndexedSubobjectJoins` = the §1.712
+    `LocallyComplete` (S1_70) complete-lattice structure *plus* the §1.84 frame law
+    `invImage_preserves_sup`.  Its `sup`/`sup_upper`/`sup_least` fields are exactly
+    `LocallyComplete`'s, so any category with indexed joins is locally complete.  This keeps
+    `LocallyComplete` the single canonical arbitrary-join primitive (the frame-law class derives
+    it); the ambient `HasImages` from `[PreLogos 𝒞]` is reused, so no new image structure is
+    introduced. -/
+instance (priority := 100) [PreLogos 𝒞] [HasIndexedSubobjectJoins 𝒞] : LocallyComplete 𝒞 where
+  toHasImages := inferInstance
+  sup := HasIndexedSubobjectJoins.sup
+  sup_upper := HasIndexedSubobjectJoins.sup_upper
+  sup_least := HasIndexedSubobjectJoins.sup_least
 
 open HasIndexedSubobjectJoins
 
