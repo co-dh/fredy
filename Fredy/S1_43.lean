@@ -264,34 +264,27 @@ end S1_439
   Note: use `Nat` not `ℕ` since `ℕ` is a single-char auto-implicit under
   `relaxedAutoImplicit = false`. -/
 
-structure FinProdCone {n : Nat} (A : Fin n → 𝒞) where
-  apex : 𝒞
-  π    : (i : Fin n) → apex ⟶ A i
-
-structure HasFinProd {n : Nat} (A : Fin n → 𝒞) where
-  cone : FinProdCone A
-  lift : ∀ (c : FinProdCone A), c.apex ⟶ cone.apex
-  fac  : ∀ (c : FinProdCone A) (i : Fin n), lift c ≫ cone.π i = c.π i
-  uniq : ∀ (c : FinProdCone A) (m : c.apex ⟶ cone.apex),
-    (∀ i, m ≫ cone.π i = c.π i) → m = lift c
-
+/-- ℬ has all FINITE products (§1.425): every `Fin n`-indexed family has a product.
+    The single per-family witness is the §1.42 `HasIndexedProduct`; the former cone-packaged
+    copies `FinProdCone`/`HasFinProd` were a redundant repackaging (DRY) and were deleted in
+    favour of `HasIndexedProduct` (`Fin n : Type`, so no universe change is needed). -/
 class HasFiniteProducts (𝒞 : Type u) [Cat.{v} 𝒞] where
-  fin_prod : ∀ {n : Nat} (A : Fin n → 𝒞), HasFinProd A
+  fin_prod : ∀ {n : Nat} (A : Fin n → 𝒞), HasIndexedProduct A
 
 section FinProdAPI
 variable [hfp : HasFiniteProducts 𝒞]
 
-def finProdObj {n : Nat} (A : Fin n → 𝒞) : 𝒞 := (hfp.fin_prod A).cone.apex
+def finProdObj {n : Nat} (A : Fin n → 𝒞) : 𝒞 := (hfp.fin_prod A).prod
 def finProdπ   {n : Nat} (A : Fin n → 𝒞) (i : Fin n) : finProdObj A ⟶ A i :=
-  (hfp.fin_prod A).cone.π i
+  (hfp.fin_prod A).proj i
 
 def finProdLift {n : Nat} (A : Fin n → 𝒞) {X : 𝒞} (f : (i : Fin n) → X ⟶ A i) :
     X ⟶ finProdObj A :=
-  (hfp.fin_prod A).lift ⟨X, f⟩
+  (hfp.fin_prod A).lift f
 
 theorem finProdLift_uniq {n : Nat} (A : Fin n → 𝒞) {X : 𝒞} (f : (i : Fin n) → X ⟶ A i)
     (m : X ⟶ finProdObj A) (hm : ∀ i, m ≫ finProdπ A i = f i) : m = finProdLift A f :=
-  (hfp.fin_prod A).uniq ⟨X, f⟩ m hm
+  (hfp.fin_prod A).lift_uniq f m hm
 
 end FinProdAPI
 
@@ -302,48 +295,36 @@ private def fin2 (A B : 𝒞) : Fin 2 → 𝒞 := Fin.cases A (Fin.cases B (fun 
 
 /-- **§1.425** (→): `HasFiniteProducts` gives a terminator (empty product). -/
 def finiteProducts_implies_terminal (hfp : HasFiniteProducts 𝒞) : HasTerminal 𝒞 where
-  one  := (hfp.fin_prod (n := 0) Fin.elim0).cone.apex
-  trm  := fun X => (hfp.fin_prod (n := 0) Fin.elim0).lift ⟨X, fun i => i.elim0⟩
+  one  := (hfp.fin_prod (n := 0) Fin.elim0).prod
+  trm  := fun X => (hfp.fin_prod (n := 0) Fin.elim0).lift (fun i => i.elim0)
   uniq := fun {X} f g => by
-    have hf := (hfp.fin_prod (n := 0) Fin.elim0).uniq ⟨X, fun i => i.elim0⟩ f
+    have hf := (hfp.fin_prod (n := 0) Fin.elim0).lift_uniq (fun i => i.elim0) f
                 (fun i => i.elim0)
-    have hg := (hfp.fin_prod (n := 0) Fin.elim0).uniq ⟨X, fun i => i.elim0⟩ g
+    have hg := (hfp.fin_prod (n := 0) Fin.elim0).lift_uniq (fun i => i.elim0) g
                 (fun i => i.elim0)
     rw [hf, hg]
 
 /-- **§1.425** (→): `HasFiniteProducts` gives binary products. -/
 def finiteProducts_implies_binary (hfp : HasFiniteProducts 𝒞) : HasBinaryProducts 𝒞 where
-  prod  := fun A B => (hfp.fin_prod (n := 2) (fin2 A B)).cone.apex
-  fst   := fun {A B} => (hfp.fin_prod (fin2 A B)).cone.π 0
-  snd   := fun {A B} => (hfp.fin_prod (fin2 A B)).cone.π 1
+  prod  := fun A B => (hfp.fin_prod (n := 2) (fin2 A B)).prod
+  fst   := fun {A B} => (hfp.fin_prod (fin2 A B)).proj 0
+  snd   := fun {A B} => (hfp.fin_prod (fin2 A B)).proj 1
   pair  := fun {X A B} f g =>
-    (hfp.fin_prod (fin2 A B)).lift ⟨X, Fin.cases f (Fin.cases g (fun i => i.elim0))⟩
+    (hfp.fin_prod (fin2 A B)).lift (Fin.cases f (Fin.cases g (fun i => i.elim0)))
   fst_pair := fun {X A B} f g =>
-    (hfp.fin_prod (fin2 A B)).fac ⟨X, Fin.cases f (Fin.cases g (fun i => i.elim0))⟩ 0
+    (hfp.fin_prod (fin2 A B)).lift_π (Fin.cases f (Fin.cases g (fun i => i.elim0))) 0
   snd_pair := fun {X A B} f g =>
-    (hfp.fin_prod (fin2 A B)).fac ⟨X, Fin.cases f (Fin.cases g (fun i => i.elim0))⟩ 1
+    (hfp.fin_prod (fin2 A B)).lift_π (Fin.cases f (Fin.cases g (fun i => i.elim0))) 1
   pair_uniq := fun {X A B} f g h h₁ h₂ =>
-    (hfp.fin_prod (fin2 A B)).uniq ⟨X, Fin.cases f (Fin.cases g (fun i => i.elim0))⟩ h
+    (hfp.fin_prod (fin2 A B)).lift_uniq (Fin.cases f (Fin.cases g (fun i => i.elim0))) h
       (fun i => Fin.cases h₁ (fun j => Fin.cases h₂ (fun k => k.elim0) j) i)
 
-/-- Adapt a `HasIndexedProduct` (over `Fin n`) to the `HasFinProd` cone packaging. -/
-def HasIndexedProduct.toHasFinProd {n : Nat} {A : Fin n → 𝒞} (h : HasIndexedProduct A) :
-    HasFinProd A where
-  cone := ⟨h.prod, h.proj⟩
-  lift := fun c => h.lift c.π
-  fac  := fun c i => h.lift_π c.π i
-  uniq := fun c m hm => h.lift_uniq c.π m hm
-
-/-- **§1.425** helper: build `HasFinProd` by induction on `n` — the §1.42 `HasIndexedProduct`
-    construction `finiteProduct_from_term_binary` repackaged into a `HasFinProd`. -/
-def finProd_of_term_binary [HasTerminal 𝒞] [HasBinaryProducts 𝒞] (n : Nat) (A : Fin n → 𝒞) :
-    HasFinProd A :=
-  (finiteProduct_from_term_binary A).toHasFinProd
-
-/-- **§1.425** (←): Terminal + binary products give all finite products. -/
+/-- **§1.425** (←): Terminal + binary products give all finite products.  Each `Fin n`-family's
+    product is the §1.42 `HasIndexedProduct` built directly by `finiteProduct_from_term_binary`
+    (no cone-repackaging step — `HasFinProd`/`toHasFinProd` were removed as DRY duplicates). -/
 def terminal_binary_implies_finiteProducts [HasTerminal 𝒞] [HasBinaryProducts 𝒞] :
     HasFiniteProducts 𝒞 where
-  fin_prod A := finProd_of_term_binary _ A
+  fin_prod A := finiteProduct_from_term_binary A
 
 /-- **§1.425**: finite products ↔ terminator + binary products. -/
 theorem finiteProducts_iff :
