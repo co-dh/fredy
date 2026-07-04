@@ -1310,9 +1310,6 @@ theorem embed1_id {a : 𝒜} : embed1 (Cat.id a) = matId (unitObj a) := by
     type, but `⟶`-headed so the allegory operations `⊑`/`°`/`≫`/`dom` elaborate). -/
 def embed1' {a b : 𝒜} (R : a ⟶ b) : (unitObj a) ⟶ (unitObj b) := embed1 R
 
-theorem embed1'_injective {a b : 𝒜} {R S : a ⟶ b} (h : embed1' R = embed1' S) : R = S :=
-  embed1_injective h
-
 /-- `embed1` reflects/preserves the allegory order (1×1 entrywise). -/
 theorem embed1_le_iff {a b : 𝒜} {R S : a ⟶ b} :
     (embed1' R ⊑ embed1' S) ↔ (R ⊑ S) := by
@@ -1320,7 +1317,7 @@ theorem embed1_le_iff {a b : 𝒜} {R S : a ⟶ b} :
   -- equations `embed1 (R∩S) = embed1 R` and `R∩S = R` are interchangeable.
   show (Allegory.inter (embed1' R) (embed1' S) = embed1' R) ↔ (R ∩ S = R)
   rw [show Allegory.inter (embed1' R) (embed1' S) = embed1' (R ∩ S) from (embed1_inter R S).symm]
-  exact ⟨fun h => embed1'_injective h, fun h => congrArg embed1' h⟩
+  exact ⟨fun h => embed1_injective h, fun h => congrArg embed1' h⟩
 
 /-- `embed1` commutes with `dom` (`dom = id ∩ R ≫ R°`; all preserved by `embed1`). -/
 theorem embed1_dom {a b : 𝒜} (R : a ⟶ b) : dom (embed1' R) = embed1' (dom R) := by
@@ -1372,10 +1369,10 @@ noncomputable def embed217 {a b : 𝒞} (f : a ⟶ b) :
   ⟨embed1' (embedRel f).val, embed1_map (embedRel f).property⟩
 
 /-- **§2.217(1)**: the embedding `C ↪ Map(Mat(Rel C))` is FAITHFUL.  Peel the 1×1 matrix
-    (`embed1'_injective`) to recover `embedRel f = embedRel g`, then `embedRel_faithful`. -/
+    (`embed1_injective`) to recover `embedRel f = embedRel g`, then `embedRel_faithful`. -/
 theorem embed217_faithful {a b : 𝒞} {f g : a ⟶ b} (h : embed217 f = embed217 g) : f = g := by
   have hval : embed1' (embedRel f).val = embed1' (embedRel g).val := congrArg Subtype.val h
-  exact embedRel_faithful (Subtype.ext (embed1'_injective hval))
+  exact embedRel_faithful (Subtype.ext (embed1_injective hval))
 
 end GraphMatEmbedding
 
@@ -1686,7 +1683,7 @@ theorem embed1_reflects_map {𝒜 : Type u} [Freyd.Alg.DistributiveAllegory 𝒜
     have hid : Cat.id (unitObj a) = embed1' (Cat.id a) := by
       show matId (unitObj a) = embed1 (Cat.id a); rw [embed1_id]
     rw [hdom, hid] at hent'
-    exact embed1'_injective hent'
+    exact embed1_injective hent'
   · -- Simple: `(embed1 r)° ≫ embed1 r ⊑ id` descends via `embed1_le_iff`.
     show r° ≫ r ⊑ Cat.id b
     have hsim' : (embed1' r)° ≫ embed1' r ⊑ Cat.id (unitObj b) := hSim

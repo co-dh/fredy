@@ -1089,14 +1089,9 @@ noncomputable def eInv {X Y : MapObj (RelObj C.carrier)}
     X.carrier ⟶ Y.carrier :=
   Classical.choose (eFull m)
 
-theorem embedRel_eInv {X Y : MapObj (RelObj C.carrier)}
-    (m : @Cat.Hom (MapObj (RelObj C.carrier)) (mapCat (𝒜 := RelObj C.carrier)) X Y) :
-    Freyd.embedRel (eInv m) = m :=
-  (Classical.choose_spec (eFull m)).symm
-
 theorem eInv_embedRel {a b : C.carrier} (f : a ⟶ b) :
     eInv (X := ⟨a⟩) (Y := ⟨b⟩) (Freyd.embedRel f) = f :=
-  Freyd.embedRel_faithful (embedRel_eInv (Freyd.embedRel f))
+  Freyd.embedRel_faithful (Classical.choose_spec (eFull (Freyd.embedRel f))).symm
 
 /-- The graph embedding `C → Map(Rel C)` as a (pinned) functor. -/
 noncomputable def eFunctor (C : SmallRegCat.{u}) :
@@ -1258,17 +1253,18 @@ noncomputable def eInvFunctor (C : SmallRegCat.{u}) :
   @Functor.mk (MapObj (RelObj C.carrier)) (mapCat (𝒜 := RelObj C.carrier)) C.carrier C.cat
     (fun X => X.carrier)
     (fun {_X _Y} m => eInv m)
+    -- the `have h` restates choose_spec with the `mapCat` instance pinned, so `rw` unifies
+    -- against the goal's instance instead of freshly synthesizing the wrong one
     (fun X => Freyd.embedRel_faithful
-      (by rw [embedRel_eInv]; exact (Freyd.embedRel_id X.carrier).symm))
+      (by have h : ∀ {X Y : MapObj (RelObj C.carrier)}
+              (m : @Cat.Hom (MapObj (RelObj C.carrier)) (mapCat (𝒜 := RelObj C.carrier)) X Y),
+              Freyd.embedRel (eInv m) = m := fun m => (Classical.choose_spec (eFull m)).symm
+          rw [h]; exact (Freyd.embedRel_id X.carrier).symm))
     (fun {_X _Y _Z} f g => Freyd.embedRel_faithful
-      (by rw [embedRel_eInv, Freyd.embedRel_comp, embedRel_eInv, embedRel_eInv]))
-
-/-- `embedRel` undoes `eInvFunctor`'s hom map (stated against `Functor.map` so `rw` matches). -/
-theorem embedRel_functorMap {X Y : MapObj (RelObj C.carrier)}
-    (m : @Cat.Hom (MapObj (RelObj C.carrier)) (mapCat (𝒜 := RelObj C.carrier)) X Y) :
-    Freyd.embedRel (@Functor.map _ (mapCat (𝒜 := RelObj C.carrier)) _ C.cat
-      (fun X => X.carrier) (eInvFunctor C) X Y m) = m :=
-  embedRel_eInv m
+      (by have h : ∀ {X Y : MapObj (RelObj C.carrier)}
+              (m : @Cat.Hom (MapObj (RelObj C.carrier)) (mapCat (𝒜 := RelObj C.carrier)) X Y),
+              Freyd.embedRel (eInv m) = m := fun m => (Classical.choose_spec (eFull m)).symm
+          rw [h, Freyd.embedRel_comp, h, h]))
 
 /-- `eInv` preserves monos. -/
 theorem eInv_pres_mono (C : SmallRegCat.{u}) :
@@ -1278,7 +1274,10 @@ theorem eInv_pres_mono (C : SmallRegCat.{u}) :
   have h1 : @Cat.comp _ (mapCat (𝒜 := RelObj C.carrier)) _ _ _ (Freyd.embedRel u) m
       = @Cat.comp _ (mapCat (𝒜 := RelObj C.carrier)) _ _ _ (Freyd.embedRel v) m := by
     have h := congrArg Freyd.embedRel huv
-    rw [Freyd.embedRel_comp, Freyd.embedRel_comp, embedRel_functorMap] at h
+    rw [Freyd.embedRel_comp, Freyd.embedRel_comp,
+      show Freyd.embedRel (@Functor.map _ (mapCat (𝒜 := RelObj C.carrier)) _ C.cat
+        (fun X => X.carrier) (eInvFunctor C) _ _ m) = m
+        from (Classical.choose_spec (eFull m)).symm] at h
     exact h
   exact Freyd.embedRel_faithful (hm _ _ h1)
 
@@ -1290,15 +1289,19 @@ theorem eInv_pres_covers (C : SmallRegCat.{u}) :
   have hfac : @Cat.comp _ (mapCat (𝒜 := RelObj C.carrier)) _ _ _
       (Freyd.embedRel g) (Freyd.embedRel n) = m := by
     rw [← Freyd.embedRel_comp, hgn]
-    exact embedRel_functorMap m
+    exact (Classical.choose_spec (eFull m)).symm
   obtain ⟨i, hi1, hi2⟩ := hcov (Freyd.embedRel n) (Freyd.embedRel g)
     (e_pres_mono C hn) hfac
   refine ⟨eInv i, ?_, ?_⟩
   · apply Freyd.embedRel_faithful
-    rw [Freyd.embedRel_comp, embedRel_eInv, Freyd.embedRel_id]
+    rw [Freyd.embedRel_comp,
+      show Freyd.embedRel (eInv i) = i from (Classical.choose_spec (eFull i)).symm,
+      Freyd.embedRel_id]
     exact hi1
   · apply Freyd.embedRel_faithful
-    rw [Freyd.embedRel_comp, embedRel_eInv, Freyd.embedRel_id]
+    rw [Freyd.embedRel_comp,
+      show Freyd.embedRel (eInv i) = i from (Classical.choose_spec (eFull i)).symm,
+      Freyd.embedRel_id]
     exact hi2
 
 /-- `eInv` preserves pullbacks. -/
@@ -1312,19 +1315,28 @@ theorem eInv_pres_pullback (C : SmallRegCat.{u}) :
         (Freyd.embedRel d.π₁) f
       = @Cat.comp _ (mapCat (𝒜 := RelObj C.carrier)) _ _ _ (Freyd.embedRel d.π₂) g := by
     have h := congrArg Freyd.embedRel d.w
-    rw [Freyd.embedRel_comp, Freyd.embedRel_comp, embedRel_functorMap,
-      embedRel_functorMap] at h
+    rw [Freyd.embedRel_comp, Freyd.embedRel_comp,
+      show Freyd.embedRel (@Functor.map _ (mapCat (𝒜 := RelObj C.carrier)) _ C.cat
+        (fun X => X.carrier) (eInvFunctor C) _ _ f) = f
+        from (Classical.choose_spec (eFull f)).symm,
+      show Freyd.embedRel (@Functor.map _ (mapCat (𝒜 := RelObj C.carrier)) _ C.cat
+        (fun X => X.carrier) (eInvFunctor C) _ _ g) = g
+        from (Classical.choose_spec (eFull g)).symm] at h
     exact h
   obtain ⟨w, ⟨hw1, hw2⟩, wuniq⟩ := hpb
     (@Cone.mk _ (mapCat (𝒜 := RelObj C.carrier)) _ _ _ f g ⟨d.pt⟩
       (Freyd.embedRel d.π₁) (Freyd.embedRel d.π₂) hwE)
   refine ⟨eInv w, ⟨?_, ?_⟩, ?_⟩
   · have h1 : Freyd.embedRel (eInv w ≫ eInv cπ₁) = Freyd.embedRel d.π₁ := by
-      rw [Freyd.embedRel_comp, embedRel_eInv, embedRel_eInv]
+      rw [Freyd.embedRel_comp,
+        show Freyd.embedRel (eInv w) = w from (Classical.choose_spec (eFull w)).symm,
+        show Freyd.embedRel (eInv cπ₁) = cπ₁ from (Classical.choose_spec (eFull cπ₁)).symm]
       exact hw1
     exact Freyd.embedRel_faithful h1
   · have h2 : Freyd.embedRel (eInv w ≫ eInv cπ₂) = Freyd.embedRel d.π₂ := by
-      rw [Freyd.embedRel_comp, embedRel_eInv, embedRel_eInv]
+      rw [Freyd.embedRel_comp,
+        show Freyd.embedRel (eInv w) = w from (Classical.choose_spec (eFull w)).symm,
+        show Freyd.embedRel (eInv cπ₂) = cπ₂ from (Classical.choose_spec (eFull cπ₂)).symm]
       exact hw2
     exact Freyd.embedRel_faithful h2
   · intro v hv1 hv2
@@ -1332,16 +1344,18 @@ theorem eInv_pres_pullback (C : SmallRegCat.{u}) :
         = Freyd.embedRel d.π₁ := by
       have h1 : Freyd.embedRel (v ≫ eInv cπ₁) = Freyd.embedRel d.π₁ :=
         congrArg Freyd.embedRel hv1
-      rw [Freyd.embedRel_comp, embedRel_eInv] at h1
+      rw [Freyd.embedRel_comp,
+        show Freyd.embedRel (eInv cπ₁) = cπ₁ from (Classical.choose_spec (eFull cπ₁)).symm] at h1
       exact h1
     have e2 : @Cat.comp _ (mapCat (𝒜 := RelObj C.carrier)) _ _ _ (Freyd.embedRel v) cπ₂
         = Freyd.embedRel d.π₂ := by
       have h2 : Freyd.embedRel (v ≫ eInv cπ₂) = Freyd.embedRel d.π₂ :=
         congrArg Freyd.embedRel hv2
-      rw [Freyd.embedRel_comp, embedRel_eInv] at h2
+      rw [Freyd.embedRel_comp,
+        show Freyd.embedRel (eInv cπ₂) = cπ₂ from (Classical.choose_spec (eFull cπ₂)).symm] at h2
       exact h2
     apply Freyd.embedRel_faithful
-    rw [embedRel_eInv]
+    rw [show Freyd.embedRel (eInv w) = w from (Classical.choose_spec (eFull w)).symm]
     exact wuniq (Freyd.embedRel v) e1 e2
 
 /-- `eInv` preserves images. -/
@@ -1354,7 +1368,10 @@ theorem eInv_pres_image (C : SmallRegCat.{u}) :
   constructor
   · obtain ⟨k, hk⟩ := hI.1
     have h1 : Freyd.embedRel (eInv k ≫ eInv iarr) = Freyd.embedRel (eInv f) := by
-      rw [Freyd.embedRel_comp, embedRel_eInv, embedRel_eInv, embedRel_eInv]
+      rw [Freyd.embedRel_comp,
+        show Freyd.embedRel (eInv k) = k from (Classical.choose_spec (eFull k)).symm,
+        show Freyd.embedRel (eInv iarr) = iarr from (Classical.choose_spec (eFull iarr)).symm,
+        show Freyd.embedRel (eInv f) = f from (Classical.choose_spec (eFull f)).symm]
       exact hk
     exact ⟨eInv k, Freyd.embedRel_faithful h1⟩
   · intro S hS
@@ -1365,11 +1382,14 @@ theorem eInv_pres_image (C : SmallRegCat.{u}) :
       ⟨Freyd.embedRel k, by
         have h2 : Freyd.embedRel (k ≫ S.arr) = Freyd.embedRel (eInv f) :=
           congrArg Freyd.embedRel hk
-        rw [Freyd.embedRel_comp, embedRel_eInv] at h2
+        rw [Freyd.embedRel_comp,
+          show Freyd.embedRel (eInv f) = f from (Classical.choose_spec (eFull f)).symm] at h2
         exact h2⟩
     obtain ⟨h, hh⟩ := hI.2 _ hallow
     have h3 : Freyd.embedRel (eInv h ≫ S.arr) = Freyd.embedRel (eInv iarr) := by
-      rw [Freyd.embedRel_comp, embedRel_eInv, embedRel_eInv]
+      rw [Freyd.embedRel_comp,
+        show Freyd.embedRel (eInv h) = h from (Classical.choose_spec (eFull h)).symm,
+        show Freyd.embedRel (eInv iarr) = iarr from (Classical.choose_spec (eFull iarr)).symm]
       exact hh
     exact ⟨eInv h, Freyd.embedRel_faithful h3⟩
 
@@ -1382,13 +1402,29 @@ theorem eInv_pres_prod (C : SmallRegCat.{u}) :
   intro A B
   refine isIso_pair_of_prodUP ?_
   intro W x y
+  have hEP : Freyd.embedRel (eInv (@Freyd.pair _ (mapCat (𝒜 := RelObj C.carrier))
+      Freyd.Alg.mapHasBinaryProducts _ _ _ (Freyd.embedRel x) (Freyd.embedRel y)))
+      = @Freyd.pair _ (mapCat (𝒜 := RelObj C.carrier))
+          Freyd.Alg.mapHasBinaryProducts _ _ _ (Freyd.embedRel x) (Freyd.embedRel y) :=
+    (Classical.choose_spec (eFull (@Freyd.pair _ (mapCat (𝒜 := RelObj C.carrier))
+      Freyd.Alg.mapHasBinaryProducts _ _ _ (Freyd.embedRel x) (Freyd.embedRel y)))).symm
+  have hEFst : Freyd.embedRel (eInv (@Freyd.fst _ (mapCat (𝒜 := RelObj C.carrier))
+      Freyd.Alg.mapHasBinaryProducts A B))
+      = @Freyd.fst _ (mapCat (𝒜 := RelObj C.carrier)) Freyd.Alg.mapHasBinaryProducts A B :=
+    (Classical.choose_spec (eFull (@Freyd.fst _ (mapCat (𝒜 := RelObj C.carrier))
+      Freyd.Alg.mapHasBinaryProducts A B))).symm
+  have hESnd : Freyd.embedRel (eInv (@Freyd.snd _ (mapCat (𝒜 := RelObj C.carrier))
+      Freyd.Alg.mapHasBinaryProducts A B))
+      = @Freyd.snd _ (mapCat (𝒜 := RelObj C.carrier)) Freyd.Alg.mapHasBinaryProducts A B :=
+    (Classical.choose_spec (eFull (@Freyd.snd _ (mapCat (𝒜 := RelObj C.carrier))
+      Freyd.Alg.mapHasBinaryProducts A B))).symm
   refine ⟨eInv (@Freyd.pair _ (mapCat (𝒜 := RelObj C.carrier))
     Freyd.Alg.mapHasBinaryProducts _ _ _ (Freyd.embedRel x) (Freyd.embedRel y)), ?_, ?_, ?_⟩
   · have h1 : Freyd.embedRel (eInv (@Freyd.pair _ (mapCat (𝒜 := RelObj C.carrier))
         Freyd.Alg.mapHasBinaryProducts _ _ _ (Freyd.embedRel x) (Freyd.embedRel y))
           ≫ eInv (@Freyd.fst _ (mapCat (𝒜 := RelObj C.carrier))
             Freyd.Alg.mapHasBinaryProducts A B)) = Freyd.embedRel x := by
-      rw [Freyd.embedRel_comp, embedRel_eInv, embedRel_eInv]
+      rw [Freyd.embedRel_comp, hEP, hEFst]
       exact @Freyd.fst_pair _ (mapCat (𝒜 := RelObj C.carrier))
         Freyd.Alg.mapHasBinaryProducts _ _ _ (Freyd.embedRel x) (Freyd.embedRel y)
     exact Freyd.embedRel_faithful h1
@@ -1396,7 +1432,7 @@ theorem eInv_pres_prod (C : SmallRegCat.{u}) :
         Freyd.Alg.mapHasBinaryProducts _ _ _ (Freyd.embedRel x) (Freyd.embedRel y))
           ≫ eInv (@Freyd.snd _ (mapCat (𝒜 := RelObj C.carrier))
             Freyd.Alg.mapHasBinaryProducts A B)) = Freyd.embedRel y := by
-      rw [Freyd.embedRel_comp, embedRel_eInv, embedRel_eInv]
+      rw [Freyd.embedRel_comp, hEP, hESnd]
       exact @Freyd.snd_pair _ (mapCat (𝒜 := RelObj C.carrier))
         Freyd.Alg.mapHasBinaryProducts _ _ _ (Freyd.embedRel x) (Freyd.embedRel y)
     exact Freyd.embedRel_faithful h2
@@ -1408,25 +1444,32 @@ theorem eInv_pres_prod (C : SmallRegCat.{u}) :
       · have e1 : Freyd.embedRel (h' ≫ eInv (@Freyd.fst _ (mapCat (𝒜 := RelObj C.carrier))
             Freyd.Alg.mapHasBinaryProducts A B)) = Freyd.embedRel x :=
           congrArg Freyd.embedRel h1
-        rw [Freyd.embedRel_comp, embedRel_eInv] at e1
+        rw [Freyd.embedRel_comp, hEFst] at e1
         exact e1
       · have e2 : Freyd.embedRel (h' ≫ eInv (@Freyd.snd _ (mapCat (𝒜 := RelObj C.carrier))
             Freyd.Alg.mapHasBinaryProducts A B)) = Freyd.embedRel y :=
           congrArg Freyd.embedRel h2
-        rw [Freyd.embedRel_comp, embedRel_eInv] at e2
+        rw [Freyd.embedRel_comp, hESnd] at e2
         exact e2
     apply Freyd.embedRel_faithful
-    rw [embedRel_eInv]
+    rw [hEP]
     exact hEh'
 
 /-- The `Map(Rel C) → C` inverse of the graph embedding as a morphism of `SmallRegCat`. -/
 noncomputable def unitInvRep (C : SmallRegCat.{u}) : RegRep (MapF (RelF C)) C where
   obj := fun X => X.carrier
   map := fun m => eInv m
+  -- same pinned-instance `have h` as in `eInvFunctor` above
   map_id := fun X => Freyd.embedRel_faithful
-    (by rw [embedRel_eInv]; exact (Freyd.embedRel_id X.carrier).symm)
+    (by have h : ∀ {X Y : MapObj (RelObj C.carrier)}
+            (m : @Cat.Hom (MapObj (RelObj C.carrier)) (mapCat (𝒜 := RelObj C.carrier)) X Y),
+            Freyd.embedRel (eInv m) = m := fun m => (Classical.choose_spec (eFull m)).symm
+        rw [h]; exact (Freyd.embedRel_id X.carrier).symm)
   map_comp := fun f g => Freyd.embedRel_faithful
-    (by rw [embedRel_eInv, Freyd.embedRel_comp, embedRel_eInv, embedRel_eInv])
+    (by have h : ∀ {X Y : MapObj (RelObj C.carrier)}
+            (m : @Cat.Hom (MapObj (RelObj C.carrier)) (mapCat (𝒜 := RelObj C.carrier)) X Y),
+            Freyd.embedRel (eInv m) = m := fun m => (Classical.choose_spec (eFull m)).symm
+        rw [h, Freyd.embedRel_comp, h, h])
   regular :=
     @RelFunctor.RegularFunctor.mk (MapObj (RelObj C.carrier)) C.carrier
       (mapCat (𝒜 := RelObj C.carrier)) C.cat (fun X => X.carrier) (eInvFunctor C)
@@ -1452,7 +1495,7 @@ theorem inv_comp_unit (C : SmallRegCat.{u}) :
   apply RegRep.ext
   · rfl
   · intro X Y m
-    exact heq_of_eq (embedRel_eInv m)
+    exact heq_of_eq (Classical.choose_spec (eFull m)).symm
 
 /-- **§2.154**: `C ≅ Map(Rel C)` in the category of small regular categories
     (§2.148 dual / §2.217). -/
@@ -1536,7 +1579,11 @@ theorem unitInvRep_natural {C D : SmallRegCat.{u}} (F : RegRep C D) :
     apply Freyd.embedRel_faithful
     show Freyd.embedRel (eInv ((MapF.onMap (RelF.onMap F)).map m))
         = Freyd.embedRel (F.map (eInv m))
-    rw [embedRel_eInv, ← embedRel_natural F (eInv m), embedRel_eInv]
+    rw [show Freyd.embedRel (eInv ((MapF.onMap (RelF.onMap F)).map m))
+          = (MapF.onMap (RelF.onMap F)).map m
+          from (Classical.choose_spec (eFull ((MapF.onMap (RelF.onMap F)).map m))).symm,
+        ← embedRel_natural F (eInv m),
+        show Freyd.embedRel (eInv m) = m from (Classical.choose_spec (eFull m)).symm]
 
 /-! ### Naturality of the counit -/
 

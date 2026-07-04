@@ -2068,11 +2068,6 @@ private theorem subArr_retract {B : MapObj A} (S : @Subobject (MapObj A) (mapCat
     (mapMonic_inj (subArr_map S) (@Subobject.monic (MapObj A) (mapCat (𝒜 := A)) B S))
     (map_entire_le (subArr_map S))
 
-/-- `corOf S` is coreflexive. -/
-private theorem corOf_coreflexive {B : MapObj A}
-    (S : @Subobject (MapObj A) (mapCat (𝒜 := A)) B) : Coreflexive (corOf S) :=
-  (subArr_map S).2
-
 /-- `(s, s)` tabulates `corOf S = s°≫s` (using the retraction `s≫s° = id`). -/
 private theorem subArr_tabulates {B : MapObj A}
     (S : @Subobject (MapObj A) (mapCat (𝒜 := A)) B) :
@@ -2205,7 +2200,7 @@ private noncomputable def mapSubUnion {B : MapObj A}
     (S T : @Subobject (MapObj A) (mapCat (𝒜 := A)) B) :
     @Subobject (MapObj A) (mapCat (𝒜 := A)) B :=
   splitSub (R := corOf S ∪ corOf T)
-    (union_lub (corOf_coreflexive S) (corOf_coreflexive T))
+    (union_lub (subArr_map S).2 (subArr_map T).2)
 
 private theorem corOf_mapSubUnion {B : MapObj A}
     (S T : @Subobject (MapObj A) (mapCat (𝒜 := A)) B) :
@@ -2259,13 +2254,12 @@ private noncomputable def mapBottom (B : MapObj A) :
     @Subobject (MapObj A) (mapCat (𝒜 := A)) B :=
   splitSub (R := (𝟘 : B ⟶ B)) (zero_le _)
 
-private theorem corOf_mapBottom (B : MapObj A) : corOf (mapBottom B) = (𝟘 : B ⟶ B) :=
-  corOf_splitSub _
-
 /-- `mapBottom B` is the least subobject of `B`. -/
 private theorem mapBottom_min {B : MapObj A} (S : @Subobject (MapObj A) (mapCat (𝒜 := A)) B) :
     @Subobject.le (MapObj A) (mapCat (𝒜 := A)) B (mapBottom B) S :=
-  le_iff_corOf_le.mpr (by rw [corOf_mapBottom]; exact zero_le _)
+  le_iff_corOf_le.mpr (by
+    rw [show corOf (mapBottom B) = (𝟘 : B ⟶ B) from corOf_splitSub _]
+    exact zero_le _)
 
 /-- The apex of `mapBottom B` carries `id = 𝟘` at the ALLEGORY level: its splitting arrow `e`
     satisfies `e = e≫(e°≫e) = e≫𝟘 = 𝟘`, whence `id_u = e≫e° = 𝟘≫𝟘 = 𝟘`. -/
@@ -2359,7 +2353,9 @@ theorem mapInvImage_preserves_bottom {B C : MapObj A}
       (@Subobject.dom (MapObj A) (mapCat (𝒜 := A)) B (mapBottom B)) := by
   apply corOf_eq_dom_iso
   -- corOf(f# ⊥) = dom(f ≫ 𝟘 ≫ f°) = dom 𝟘 = 𝟘 = corOf ⊥.
-  rw [corOf_invImage f (mapBottom C), corOf_mapBottom, corOf_mapBottom]
+  rw [corOf_invImage f (mapBottom C),
+      show corOf (mapBottom C) = (𝟘 : C ⟶ C) from corOf_splitSub _,
+      show corOf (mapBottom B) = (𝟘 : B ⟶ B) from corOf_splitSub _]
   rw [DistributiveAllegory.zero_comp, DistributiveAllegory.comp_zero, dom_zero]
 
 end MapPreLogosUnions
@@ -2466,9 +2462,10 @@ noncomputable instance mapHasRightAdjointImage :
     (fun {a b} f B' A' => by
       -- LHS: InverseImage f B' ≤ A'  ↔  corOf (InverseImage f B') ⊑ corOf A'
       rw [le_iff_corOf_le, le_iff_corOf_le, corOf_splitSub,
-          corOf_invImage f B', dom_map_coref f.val f.property (corOf_coreflexive B')]
+          corOf_invImage f B',
+          dom_map_coref f.val f.property (show Coreflexive (corOf B') from (subArr_map B').2)]
       -- goal: (1 ∩ f (corOf B') f°) ⊑ corOf A'  ↔  corOf B' ⊑ rightAdjCor f (corOf A')
-      exact rightAdjCor_adj f (corOf_coreflexive B'))
+      exact rightAdjCor_adj f (subArr_map B').2)
 
 /-- **§2.32 — `Logos (MapObj A)`** for a tabular unitary division allegory `A`.  Combines the
     pre-logos `mapPreLogos` (regular + subobject lattice) with the right adjoint
@@ -2724,7 +2721,8 @@ private theorem mapInl_inter_inr (a b : MapObj A) :
         (@inrSub (MapObj A) (mapCat (𝒜 := A)) mapHasBinaryCoproducts a b (mapInr_monic a b)))
       (mapBottom (mapCoprodObj a b)) := by
   apply le_iff_corOf_le.mpr
-  rw [corOf_mapBottom, corOf_inter]
+  rw [show corOf (mapBottom (mapCoprodObj a b)) = (𝟘 : (mapCoprodObj a b) ⟶ (mapCoprodObj a b))
+        from corOf_splitSub _, corOf_inter]
   -- inl° ≫ dom(inl ≫ inr°) ≫ inl = u₁° ≫ dom(u₁ ≫ u₂°) ≫ u₁ = u₁° ≫ dom 𝟘 ≫ u₁ = 𝟘.
   -- `(inlSub).arr.val = inl.val = u₁`, `(inrSub).arr.val = inr.val = u₂` (definitional).
   simp only [inlSub, inrSub, mapInl_val, mapInr_val]

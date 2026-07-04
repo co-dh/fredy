@@ -909,10 +909,6 @@ noncomputable def tabP {X Y : MatObj 𝒜} (M : MatHom X Y) (i : Fin X.n) (j : F
 noncomputable def tabQ {X Y : MatObj 𝒜} (M : MatHom X Y) (i : Fin X.n) (j : Fin Y.n) :
     (entryTab M i j).1 ⟶ Y.objs j := (entryTab M i j).2.choose_spec.choose
 
-theorem tab_spec {X Y : MatObj 𝒜} (M : MatHom X Y) (i : Fin X.n) (j : Fin Y.n) :
-    Tabulates (tabP M i j) (tabQ M i j) (M i j) :=
-  (entryTab M i j).2.choose_spec.choose_spec
-
 /-- Left leg `f : tabApex ⟶ X`: block `tabP` on the diagonal row, `0` off-diagonal. -/
 noncomputable def tabF {X Y : MatObj 𝒜} (M : MatHom X Y) : MatHom (tabApex M) X :=
   fun k i' => if h : unpairFst k = i' then (h ▸ tabP M (unpairFst k) (unpairSnd k)) else 𝟘
@@ -949,7 +945,11 @@ theorem tab_recipF_comp_G {X Y : MatObj 𝒜} (M : MatHom X Y) :
     show (tabF M (pairIdx i j) i)° ≫ tabG M (pairIdx i j) j = M i j
     simp only [tabF, tabG, dif_pos hf, dif_pos hs]
     rw [idxCast_recip_comp hf hs,
-      (tab_spec M (unpairFst (pairIdx i j)) (unpairSnd (pairIdx i j))).2.2.1.symm,
+      (show Tabulates (tabP M (unpairFst (pairIdx i j)) (unpairSnd (pairIdx i j)))
+          (tabQ M (unpairFst (pairIdx i j)) (unpairSnd (pairIdx i j)))
+          (M (unpairFst (pairIdx i j)) (unpairSnd (pairIdx i j)))
+        from (entryTab M (unpairFst (pairIdx i j)) (unpairSnd (pairIdx i j))).2.choose_spec.choose_spec
+      ).2.2.1.symm,
       entry_idxCast M hf hs]
   · intro k hk
     by_cases hfi : unpairFst k = i
@@ -1008,7 +1008,7 @@ theorem tab_orthonormal {X Y : MatObj 𝒜} (M : MatHom X Y) :
   by_cases hk : k = k'
   · subst hk
     simp only [matInter, tabFFr_diag, tabGGr_diag, matId, ↓reduceDIte]
-    exact (tab_spec M (unpairFst k) (unpairSnd k)).2.2.2
+    exact (entryTab M (unpairFst k) (unpairSnd k)).2.choose_spec.choose_spec.2.2.2
   · simp only [matInter, matId, dif_neg hk]
     by_cases hf : unpairFst k = unpairFst k'
     · have hs : unpairSnd k ≠ unpairSnd k' := fun e => hk (index_unique hf e)
@@ -1026,7 +1026,7 @@ theorem tabF_entire {X Y : MatObj 𝒜} (M : MatHom X Y) :
   by_cases hk : k = k'
   · subst hk
     simp only [matInter, tabFFr_diag, matId, ↓reduceDIte]
-    exact (tab_spec M (unpairFst k) (unpairSnd k)).1.1
+    exact (entryTab M (unpairFst k) (unpairSnd k)).2.choose_spec.choose_spec.1.1
   · simp only [matInter, matId, dif_neg hk, zero_inter]
 
 theorem tabG_entire {X Y : MatObj 𝒜} (M : MatHom X Y) :
@@ -1035,7 +1035,7 @@ theorem tabG_entire {X Y : MatObj 𝒜} (M : MatHom X Y) :
   by_cases hk : k = k'
   · subst hk
     simp only [matInter, tabGGr_diag, matId, ↓reduceDIte]
-    exact (tab_spec M (unpairFst k) (unpairSnd k)).2.1.1
+    exact (entryTab M (unpairFst k) (unpairSnd k)).2.choose_spec.choose_spec.2.1.1
   · simp only [matInter, matId, dif_neg hk, zero_inter]
 
 /-- `(f° ≫ f) i i' = ⨆_k (tabF k i)° ≫ (tabF k i')`: supported where `uFst k = i = i'`;
@@ -1050,7 +1050,8 @@ theorem tabFrF_entry_le {X Y : MatObj 𝒜} (M : MatHom X Y) (i i' : Fin X.n) :
     by_cases hi : unpairFst k = i
     · simp only [tabF, dif_pos hi]
       rw [idxCast_recip_comp hi hi]
-      have hsim := (tab_spec M (unpairFst k) (unpairSnd k)).1.2
+      have hsim : Simple (tabP M (unpairFst k) (unpairSnd k)) :=
+        (entryTab M (unpairFst k) (unpairSnd k)).2.choose_spec.choose_spec.1.2
       generalize tabP M (unpairFst k) (unpairSnd k) = P at *
       cases hi; simpa using hsim
     · simp only [tabF, dif_neg hi, recip_zero, DistributiveAllegory.zero_comp]; exact zero_le _
@@ -1072,7 +1073,8 @@ theorem tabGrG_entry_le {X Y : MatObj 𝒜} (M : MatHom X Y) (i i' : Fin Y.n) :
     by_cases hi : unpairSnd k = i
     · simp only [tabG, dif_pos hi]
       rw [idxCast_recip_comp hi hi]
-      have hsim := (tab_spec M (unpairFst k) (unpairSnd k)).2.1.2
+      have hsim : Simple (tabQ M (unpairFst k) (unpairSnd k)) :=
+        (entryTab M (unpairFst k) (unpairSnd k)).2.choose_spec.choose_spec.2.1.2
       generalize tabQ M (unpairFst k) (unpairSnd k) = Q at *
       cases hi; simpa using hsim
     · simp only [tabG, dif_neg hi, recip_zero, DistributiveAllegory.zero_comp]; exact zero_le _

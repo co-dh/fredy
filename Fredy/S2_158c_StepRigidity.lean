@@ -485,14 +485,6 @@ def chainPosP : (k : Nat) → { f : (toGraph (chainT k)).V → CPos //
 /-- The chain-tower position classifier. -/
 def chainPos (k : Nat) : (toGraph (chainT k)).V → CPos := (chainPosP k).1
 
-/-- The chain's `s`-mark classifies as corner `0`. -/
-theorem chainPos_s (k : Nat) : chainPos k (toGraph (chainT k)).s = .corner 0 :=
-  (chainPosP k).2.1
-
-/-- The chain's `t`-mark classifies as corner `k+1`. -/
-theorem chainPos_t (k : Nat) : chainPos k (toGraph (chainT k)).t = .corner (k+1) :=
-  (chainPosP k).2.2
-
 /-- Each designated top midpoint classifies as `top i`. -/
 theorem chainPos_pVert : ∀ k i, i ≤ k → chainPos k (pVert k i) = .top i := by
   intro k
@@ -566,7 +558,8 @@ theorem chainT_s_ne_t (k : Nat) :
     (toGraph (chainT k)).s ≠ (toGraph (chainT k)).t := by
   intro h
   have := congrArg (chainPos k) h
-  rw [chainPos_s, chainPos_t] at this
+  rw [show chainPos k (toGraph (chainT k)).s = .corner 0 from (chainPosP k).2.1,
+    show chainPos k (toGraph (chainT k)).t = .corner (k+1) from (chainPosP k).2.2] at this
   injection this with h'
   exact Nat.noConfusion h'
 
@@ -575,28 +568,32 @@ theorem pVert_ne_s {k i : Nat} (hi : i ≤ k) :
     pVert k i ≠ (toGraph (chainT k)).s := by
   intro h
   have := congrArg (chainPos k) h
-  rw [chainPos_pVert k i hi, chainPos_s] at this
+  rw [chainPos_pVert k i hi,
+    show chainPos k (toGraph (chainT k)).s = .corner 0 from (chainPosP k).2.1] at this
   exact CPos.noConfusion this
 
 theorem pVert_ne_t {k i : Nat} (hi : i ≤ k) :
     pVert k i ≠ (toGraph (chainT k)).t := by
   intro h
   have := congrArg (chainPos k) h
-  rw [chainPos_pVert k i hi, chainPos_t] at this
+  rw [chainPos_pVert k i hi,
+    show chainPos k (toGraph (chainT k)).t = .corner (k+1) from (chainPosP k).2.2] at this
   exact CPos.noConfusion this
 
 theorem qVert_ne_s {k i : Nat} (hi : i ≤ k) :
     qVert k i ≠ (toGraph (chainT k)).s := by
   intro h
   have := congrArg (chainPos k) h
-  rw [chainPos_qVert k i hi, chainPos_s] at this
+  rw [chainPos_qVert k i hi,
+    show chainPos k (toGraph (chainT k)).s = .corner 0 from (chainPosP k).2.1] at this
   exact CPos.noConfusion this
 
 theorem qVert_ne_t {k i : Nat} (hi : i ≤ k) :
     qVert k i ≠ (toGraph (chainT k)).t := by
   intro h
   have := congrArg (chainPos k) h
-  rw [chainPos_qVert k i hi, chainPos_t] at this
+  rw [chainPos_qVert k i hi,
+    show chainPos k (toGraph (chainT k)).t = .corner (k+1) from (chainPosP k).2.2] at this
   exact CPos.noConfusion this
 
 /-! ## (b) BOUNDED STEP — I: quotient-equality inversion for the two gluings
