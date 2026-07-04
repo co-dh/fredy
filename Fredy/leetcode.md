@@ -94,7 +94,7 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 ### Interval
 | #    | problem                        | fit | status |
 |------|--------------------------------|-----|--------|
-| 56   | Merge Intervals (sort + fold)  | ★★★ | ·      |
+| 56   | Merge Intervals (sort + fold)  | ★★★ | ✓ `L56.lean`  |
 | 435  | Non-overlapping (greedy 7.2)   | ★★★ | ·      |
 | 57   | Insert Interval                | ★★  | ·      |
 | 252  | Meeting Rooms                  | ★★  | ·      |
@@ -488,3 +488,32 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 - **Gotcha:** `simp only [List.length_cons]` sometimes closes a length goal by itself (defeq `n+0=n`)
   and sometimes leaves an associativity residual; a trailing bare `omega` then errors "no goals" in the
   first case. Use `simp only [List.length_cons] <;> omega` so it's a no-op when already closed.
+
+### S22 — L56 (Merge Intervals) — sort-then-fold with FULL (not partial) correctness
+- **`GapSorted` (all-pairs strict gap), not adjacent-only, is the right disjointness invariant to carry
+  through a run-merging induction.** Phrasing "no two outputs overlap/touch" as `∀ jv ∈ rest, iv.2 <
+  jv.1` at every head (rather than only between consecutive pairs) costs nothing extra — it is exactly
+  what the induction produces, and it composes for free with the "fst-lower-bound" fact already needed
+  for coverage. So full disjointness was NOT a hard residual to defer. General lesson: before declaring
+  a structural output-invariant "too hard, defer it", check whether the ALL-LATER-ELEMENTS form (used
+  already for `Sorted` in `L242`) makes it a byproduct of the same induction.
+- **One 4-way conjunction, one induction, one generalized fold-state variable** (`mergeRun_inv`,
+  generalizing the running interval `cur` over the sorted tail) is the template for any scan that emits
+  a growing OUTPUT LIST, not just a scalar — S3's "one conjunction over mutual theorems" extends past
+  scalar DP folds to list-valued folds.
+- **Reused `L242`'s concrete `linsert`/`isort`/`Sorted` (ported `Int → Int × Int` by `.1`) instead of
+  the abstract `A6_6_Sort`.** That machinery's `sort` is the CONVERSE of a relational cata over
+  `ConsList` and is a `Map` (hence executable/`decide`-able) only when the order is a STRICT total
+  order; a plain `≤` comparator with ties is not, so it cannot feed a concrete merge fold without extra
+  determinism work. Concrete insertion sort is the route whenever the downstream fold must actually RUN.
+- **Trap: `exacts [...]` is a repo-custom tactic (`Fredy/Exacts.lean`), not Lean core** — using it
+  without that import gives a PARSE-level "unknown tactic" with a confusing, misattributed goal dump.
+  Same for `tauto` (still unavailable, reconfirming S16). Watch for the "unknown tactic" error shape.
+- **`rw [h]` with `h : jv = cur` does NOT auto-close a leftover `cur.1 ≤ cur.1`** — unlike an `Eq`
+  goal, `rw`'s trailing `rfl` doesn't discharge reflexivity-of-`≤`; append `omega`/`exact le_refl _`.
+- **Bridge defeq-but-not-syntactic (`mergeRun cur [] ≡ [cur]`) via `have h' : jv ∈ ([cur] : List _) :=
+  hjv`, not `rw`** — `rw [List.mem_singleton] at hjv` fails since `hjv`'s displayed type is `jv ∈
+  mergeRun cur []`; a fresh `have` against the explicit target type coerces through defeq once (S19).
+- **Honest spec + axioms.** `IsMerge ivs out := (∀ x, covers out x ↔ covers ivs x) ∧ Sorted out ∧
+  GapSorted out ∧ Valid out` — coverage-preservation, sortedness, disjointness, validity all delivered.
+  Axioms `[propext, Quot.sound]`, fully constructive.
