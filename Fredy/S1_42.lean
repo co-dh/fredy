@@ -267,7 +267,7 @@ end Unitors
 /-- An indexed product of a family `{Aᵢ}ᵢ∈I` (§1.425):
     an object `P` with projections `pᵢ : P → Aᵢ` such that for any `X` and family
     `{xᵢ : X → Aᵢ}` there exists a unique `z : X → P` with `z ≫ pᵢ = xᵢ` for all i. -/
-structure HasIndexedProduct {I : Type} (family : I → 𝒞) where
+structure HasIndexedProduct.{w} {I : Type w} (family : I → 𝒞) where
   prod    : 𝒞
   proj    : (i : I) → prod ⟶ family i
   lift    : {X : 𝒞} → ((i : I) → X ⟶ family i) → (X ⟶ prod)
