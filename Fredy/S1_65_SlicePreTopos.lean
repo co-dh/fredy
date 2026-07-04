@@ -914,10 +914,10 @@ theorem distPre_iso (B : 𝒞) : IsIso (distPre B) := by
     ?_, ?_⟩
   · refine (case_uniq _ _ _ ?_ ?_).trans
       (case_uniq inl inr (Cat.id _) (Cat.comp_id _) (Cat.comp_id _)).symm
-    · rw [← Cat.assoc, distPre, case_inl, Cat.assoc, case_inl, ← Cat.assoc, prodOneLeftInv_snd,
-        Cat.id_comp]
-    · rw [← Cat.assoc, distPre, case_inr, Cat.assoc, case_inr, ← Cat.assoc, prodOneLeftInv_snd,
-        Cat.id_comp]
+    · rw [← Cat.assoc, distPre, case_inl, Cat.assoc, case_inl, ← Cat.assoc,
+        show prodOneLeftInv B ≫ snd = Cat.id B from snd_pair _ _, Cat.id_comp]
+    · rw [← Cat.assoc, distPre, case_inr, Cat.assoc, case_inr, ← Cat.assoc,
+        show prodOneLeftInv B ≫ snd = Cat.id B from snd_pair _ _, Cat.id_comp]
   · refine (case_uniq _ _ _ ?_ ?_).trans
       (case_uniq inl inr (Cat.id _) (Cat.comp_id _) (Cat.comp_id _)).symm
     · rw [← Cat.assoc, case_inl, Cat.assoc, distPre, case_inl, ← Cat.assoc, snd_prodOneLeftInv,
@@ -934,13 +934,15 @@ theorem distOPO_factor (B : 𝒞) : distOPO B = distPre B ≫ distComp B := by
     · rw [fst_pair, Cat.assoc, prodCoprodInl, fst_pair, ← Cat.assoc]
       show (prodOneLeftInv B ≫ fst) ≫ inl = term B ≫ inl
       congr 1; exact term_uniq _ _
-    · rw [snd_pair, Cat.assoc, prodCoprodInl, snd_pair, prodOneLeftInv_snd]
+    · rw [snd_pair, Cat.assoc, prodCoprodInl, snd_pair,
+        show prodOneLeftInv B ≫ snd = Cat.id B from snd_pair _ _]
   · rw [← Cat.assoc, distPre, case_inr, Cat.assoc, distComp, case_inr]
     apply fst_snd_jointly_monic
     · rw [fst_pair, Cat.assoc, prodCoprodInr, fst_pair, ← Cat.assoc]
       show (prodOneLeftInv B ≫ fst) ≫ inr = term B ≫ inr
       congr 1; exact term_uniq _ _
-    · rw [snd_pair, Cat.assoc, prodCoprodInr, snd_pair, prodOneLeftInv_snd]
+    · rw [snd_pair, Cat.assoc, prodCoprodInr, snd_pair,
+        show prodOneLeftInv B ≫ snd = Cat.id B from snd_pair _ _]
 
 /-- **PIECE B**: the distributivity comparison `(B+B) → (1+1)×B` is an ISO. -/
 theorem distOPO_iso (B : 𝒞) : IsIso (distOPO B) := by
@@ -1121,12 +1123,16 @@ theorem case_inl_inr_id : case (inl : (one : 𝒞) ⟶ _) inr = Cat.id (coprod o
 /-- The diagonal corners `inl ≫ Δ = pair inl inl`, `inr ≫ Δ = pair inr inr`. -/
 theorem inl_diag11 : (inl : (one : 𝒞) ⟶ _) ≫ diag (coprod one one) = pair inl inl := by
   apply fst_snd_jointly_monic
-  · rw [Cat.assoc, diag_fst, Cat.comp_id, fst_pair]
-  · rw [Cat.assoc, diag_snd, Cat.comp_id, snd_pair]
+  · rw [Cat.assoc, show diag (coprod (one : 𝒞) one) ≫ fst = Cat.id (coprod one one)
+        from fst_pair _ _, Cat.comp_id, fst_pair]
+  · rw [Cat.assoc, show diag (coprod (one : 𝒞) one) ≫ snd = Cat.id (coprod one one)
+        from snd_pair _ _, Cat.comp_id, snd_pair]
 theorem inr_diag11 : (inr : (one : 𝒞) ⟶ _) ≫ diag (coprod one one) = pair inr inr := by
   apply fst_snd_jointly_monic
-  · rw [Cat.assoc, diag_fst, Cat.comp_id, fst_pair]
-  · rw [Cat.assoc, diag_snd, Cat.comp_id, snd_pair]
+  · rw [Cat.assoc, show diag (coprod (one : 𝒞) one) ≫ fst = Cat.id (coprod one one)
+        from fst_pair _ _, Cat.comp_id, fst_pair]
+  · rw [Cat.assoc, show diag (coprod (one : 𝒞) one) ≫ snd = Cat.id (coprod one one)
+        from snd_pair _ _, Cat.comp_id, snd_pair]
 /-- The antidiagonal corners `inl ≫ adiag = pair inl inr`, `inr ≫ adiag = pair inr inl`. -/
 theorem inl_adiag : (inl : (one : 𝒞) ⟶ _) ≫ adiag = pair inl inr := by rw [adiag, case_inl]
 theorem inr_adiag : (inr : (one : 𝒞) ⟶ _) ≫ adiag = pair inr inl := by rw [adiag, case_inr]
@@ -1182,7 +1188,9 @@ theorem one_one_decidable : DecidableObject (HasBinaryCoproducts.coprod (one : �
     simp only [adiagSub] at hr
     have hd' : d ≫ diag (coprod (one : 𝒞) one) = S.arr := hd
     have hdiageq : S.arr ≫ fst = S.arr ≫ snd := by
-      rw [← hd', Cat.assoc, Cat.assoc, diag_fst, diag_snd]
+      rw [← hd', Cat.assoc, Cat.assoc,
+        show diag (coprod (one : 𝒞) one) ≫ fst = Cat.id (coprod one one) from fst_pair _ _,
+        show diag (coprod (one : 𝒞) one) ≫ snd = Cat.id (coprod one one) from snd_pair _ _]
     have hrfst : r = S.arr ≫ fst := by
       rw [← hr, Cat.assoc, adiag_fst, case_inl_inr_id, Cat.comp_id]
     have hrswap : r ≫ case inr inl = S.arr ≫ snd := by rw [← hr, Cat.assoc, adiag_snd]

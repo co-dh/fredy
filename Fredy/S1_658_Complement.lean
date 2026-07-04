@@ -243,10 +243,12 @@ def prodSelfMap {X Y : 𝒞} (φ : X ⟶ Y) : prod X X ⟶ prod Y Y := pair (fst
 theorem diag_prodSelfMap {X Y : 𝒞} (φ : X ⟶ Y) :
     diag X ≫ prodSelfMap φ = φ ≫ diag Y := by
   apply fst_snd_jointly_monic
-  · rw [Cat.assoc, show prodSelfMap φ ≫ fst = fst ≫ φ from fst_pair _ _, ← Cat.assoc, diag_fst,
-        Cat.id_comp, Cat.assoc, diag_fst, Cat.comp_id]
-  · rw [Cat.assoc, show prodSelfMap φ ≫ snd = snd ≫ φ from snd_pair _ _, ← Cat.assoc, diag_snd,
-        Cat.id_comp, Cat.assoc, diag_snd, Cat.comp_id]
+  · rw [Cat.assoc, show prodSelfMap φ ≫ fst = fst ≫ φ from fst_pair _ _, ← Cat.assoc,
+        show diag X ≫ fst = Cat.id X from fst_pair _ _,
+        Cat.id_comp, Cat.assoc, show diag Y ≫ fst = Cat.id Y from fst_pair _ _, Cat.comp_id]
+  · rw [Cat.assoc, show prodSelfMap φ ≫ snd = snd ≫ φ from snd_pair _ _, ← Cat.assoc,
+        show diag X ≫ snd = Cat.id X from snd_pair _ _,
+        Cat.id_comp, Cat.assoc, show diag Y ≫ snd = Cat.id Y from snd_pair _ _, Cat.comp_id]
 
 /-- **Decidability transports along isos**: if `X ≅ Y` (witnessed by a MONO `φ`, e.g. an iso)
     and `Y` is decidable, so is `X`.  The diagonal `Δ_X` coincides with `(φ×φ)# Δ_Y`
@@ -264,7 +266,9 @@ theorem decidableSub_of_mono {X Y : 𝒞} (φ : X ⟶ Y) (hφ : Monic φ)
     have hcoord : pbeq.cone.π₁ ≫ fst = pbeq.cone.π₁ ≫ snd := by
       apply hφ
       -- (π₁≫fst)≫φ = (π₁≫c)≫fst = (π₂≫diagY)≫fst = (π₂≫diagY)≫snd = (π₁≫c)≫snd = (π₁≫snd)≫φ
-      have hdd : diag Y ≫ fst = diag Y ≫ snd := by rw [diag_fst, diag_snd]
+      have hdd : diag Y ≫ fst = diag Y ≫ snd := by
+        rw [show diag Y ≫ fst = Cat.id Y from fst_pair _ _,
+          show diag Y ≫ snd = Cat.id Y from snd_pair _ _]
       calc (pbeq.cone.π₁ ≫ fst) ≫ φ
           = (pbeq.cone.π₁ ≫ prodSelfMap φ) ≫ fst := by
             rw [Cat.assoc, Cat.assoc, show prodSelfMap φ ≫ fst = fst ≫ φ from fst_pair _ _]
@@ -279,8 +283,8 @@ theorem decidableSub_of_mono {X Y : 𝒞} (φ : X ⟶ Y) (hφ : Monic φ)
     refine ⟨pbeq.cone.π₁ ≫ fst, ?_⟩
     show (pbeq.cone.π₁ ≫ fst) ≫ diag X = pbeq.cone.π₁
     apply fst_snd_jointly_monic
-    · rw [Cat.assoc, diag_fst, Cat.comp_id]
-    · rw [Cat.assoc, diag_snd, Cat.comp_id, hcoord]
+    · rw [Cat.assoc, show diag X ≫ fst = Cat.id X from fst_pair _ _, Cat.comp_id]
+    · rw [Cat.assoc, show diag X ≫ snd = Cat.id X from snd_pair _ _, Cat.comp_id, hcoord]
 
 /-- `DecidableObjectSub` transports across an isomorphism `X ≅ Y`. -/
 theorem decidableSub_of_iso {X Y : 𝒞} (h : Isomorphic X Y) (hY : DecidableObjectSub Y) :

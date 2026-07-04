@@ -562,7 +562,7 @@ theorem baseIdem_idem (B : 𝒞) (C : Over B) :
     rw [← hnat, hsame]; rfl
   -- conclude via pair calculus.
   show pair (baseRho B C) snd ≫ pair (baseRho B C) snd = pair (baseRho B C) snd
-  rw [pair_eta (pair (baseRho B C) snd ≫ pair (baseRho B C) snd)]
+  rw [pair_uniq _ _ (pair (baseRho B C) snd ≫ pair (baseRho B C) snd) rfl rfl]
   congr 1
   · rw [Cat.assoc, fst_pair]; exact hρ
   · rw [Cat.assoc, snd_pair, snd_pair]
@@ -695,7 +695,7 @@ theorem baseRho_fixes_tight {A C : Over B} (R : BinRel (Over B) A C) :
     rw [← hnat, hsame]
   -- pair g A.hom ≫ ē = pair (pair g A.hom ≫ ρ) (pair g A.hom ≫ snd) = pair g A.hom.
   show pair g A.hom ≫ pair (baseRho B C) snd = pair g A.hom
-  rw [pair_eta (pair g A.hom ≫ pair (baseRho B C) snd)]
+  rw [pair_uniq _ _ (pair g A.hom ≫ pair (baseRho B C) snd) rfl rfl]
   congr 1
   · rw [Cat.assoc, fst_pair]; exact hρ
   · rw [Cat.assoc, snd_pair, snd_pair]

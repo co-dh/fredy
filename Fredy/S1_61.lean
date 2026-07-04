@@ -730,7 +730,7 @@ theorem union_joint_cover_sub {A : 𝒞} (A₁ A₂ : Subobject 𝒞 A)
     refine ⟨Uinv, ?_⟩
     show Uinv ≫ (U.arr ≫ diag A) = pair (Cat.id A) (Cat.id A)
     rw [← Cat.assoc, hUinv2, Cat.id_comp]
-    exact (pair_uniq _ _ _ (diag_fst A) (diag_snd A)).symm
+    exact (pair_uniq _ _ _ (fst_pair _ _) (snd_pair _ _)).symm
   have hsplit : (pushMono (diag A) (diag_mono A) U).le
       (HasSubobjectUnions.union (pushMono (diag A) (diag_mono A) A₁)
         (pushMono (diag A) (diag_mono A) A₂)) := pushMono_union_le (diag A) (diag_mono A) A₁ A₂

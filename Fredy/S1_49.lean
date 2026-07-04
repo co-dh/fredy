@@ -1380,7 +1380,7 @@ def prodTable2 (A B : 𝒞) : Table 𝒞 :=
         have h1 := h ⟨1, by omega⟩
         simp only [show (⟨1, by omega⟩ : Fin 2).val = 0 ↔ False from by decide,
                    dif_neg, not_false_eq_true] at h1; exact h1
-      rw [pair_eta f, pair_eta g, hf, hs] }
+      rw [pair_uniq _ _ f rfl rfl, pair_uniq _ _ g rfl rfl, hf, hs] }
 
 /-- Column 0 of `prodTable2 A B` is heterogeneously equal to `fst`. -/
 theorem prodTable2_col0 (A B : 𝒞) (i : Fin 2) (hi : i.val = 0) :
@@ -1446,11 +1446,11 @@ def prodTable3 (A B C : 𝒞) : Table 𝒞 :=
       have h0 := h ⟨0, by omega⟩; have h1 := h ⟨1, by omega⟩; have h2 := h ⟨2, by omega⟩
       simp only [] at h0 h1 h2
       have hpair : f ≫ fst = g ≫ fst := by
-        rw [pair_eta (f ≫ fst), pair_eta (g ≫ fst)]
+        rw [pair_uniq _ _ (f ≫ fst) rfl rfl, pair_uniq _ _ (g ≫ fst) rfl rfl]
         congr 1
         · rw [Cat.assoc, Cat.assoc]; exact h0
         · rw [Cat.assoc, Cat.assoc]; exact h1
-      rw [pair_eta f, pair_eta g, hpair, h2] }
+      rw [pair_uniq _ _ f rfl rfl, pair_uniq _ _ g rfl rfl, hpair, h2] }
 
 /-- `prodTable3` is exactly the table composition of `prodTable2 (prod A B) C`
     with `prodTable2 A B` at column 0 (definitional equality mod proof-irrelevance). -/
@@ -1484,7 +1484,7 @@ private theorem prodAssoc_fg (A B C : 𝒞) :
     prodAssocHom A B C ≫ prodAssocInv A B C = Cat.id _ := by
   rw [← pair_fst_snd]
   apply pair_uniq
-  · rw [Cat.assoc, prodAssocInv, fst_pair, pair_eta fst]
+  · rw [Cat.assoc, prodAssocInv, fst_pair, pair_uniq _ _ fst rfl rfl]
     apply pair_uniq
     · rw [Cat.assoc, fst_pair, prodAssocHom, fst_pair]
     · rw [Cat.assoc, snd_pair, ← Cat.assoc, prodAssocHom, snd_pair, fst_pair]
@@ -1495,7 +1495,7 @@ private theorem prodAssoc_gf (A B C : 𝒞) :
   rw [← pair_fst_snd]
   apply pair_uniq
   · rw [Cat.assoc, prodAssocHom, fst_pair, ← Cat.assoc, prodAssocInv, fst_pair, fst_pair]
-  · rw [Cat.assoc, prodAssocHom, snd_pair, pair_eta snd]
+  · rw [Cat.assoc, prodAssocHom, snd_pair, pair_uniq _ _ snd rfl rfl]
     apply pair_uniq
     · rw [Cat.assoc, fst_pair, ← Cat.assoc, prodAssocInv, fst_pair, snd_pair]
     · rw [Cat.assoc, snd_pair, prodAssocInv, snd_pair]
@@ -1590,7 +1590,7 @@ theorem canon_prod_unit_left (τ : TCat 𝒞) (B : 𝒞)
     ⟨{ hLen        := by rw [hlenId, hlenPruned]
        f           := prodOneLeftInv B
        g           := snd
-       f_g         := prodOneLeftInv_snd
+       f_g         := snd_pair _ _
        g_f         := snd_prodOneLeftInv
        codom_match := fun i => by
          have hiv : i.val = 0 := by have h := i.isLt; simp only [show (idTable _).len = 1 from rfl] at h; omega
@@ -1600,7 +1600,7 @@ theorem canon_prod_unit_left (τ : TCat 𝒞) (B : 𝒞)
          apply HEq.trans (comp_heq_left (prodOneLeftInv B) _ snd rfl ?_) ?_
          · simp only [Table.prune]
            exact prodTable2_col1 one B _ (by simp [Fin.skip, hiv])
-         · rw [prodOneLeftInv_snd]; rfl }⟩
+         · rw [show prodOneLeftInv B ≫ snd = Cat.id B from snd_pair _ _]; rfl }⟩
   have hEq : idTable B = (prodTable2 one B).prune ⟨0, by simp [prodTable2]⟩ hShort0 :=
     τ.tau1_unique (idTable B) _ _ hId hPruned ⟨TableIso.refl _⟩ hIso
   have hSrc : B = prod one B := congrArg Table.src hEq
@@ -1654,7 +1654,7 @@ theorem canon_prod_unit_right (τ : TCat 𝒞) (A : 𝒞)
          have hiv : i.val = 0 := by have h := i.isLt; simp only [show (idTable _).len = 1 from rfl] at h; omega
          simp only [Table.prune, idTable]
          exact (comp_heq_left (prodOneRightInv A) _ fst (by simp [prodTable2, Fin.skip])
-           (prodTable2_col0 A one _ (by simp [Fin.skip, hiv]))).trans (heq_of_eq prodOneRightInv_fst) }⟩
+           (prodTable2_col0 A one _ (by simp [Fin.skip, hiv]))).trans (heq_of_eq (fst_pair _ _)) }⟩
   have hEq : idTable A = (prodTable2 A one).prune ⟨1, by simp [prodTable2]⟩ hShort1 :=
     τ.tau1_unique (idTable A) _ _ hId hPruned ⟨TableIso.refl _⟩ hIso
   have hSrc : A = prod A one := congrArg Table.src hEq

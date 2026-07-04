@@ -478,8 +478,9 @@ theorem pairOnUToSlice_full [HasPullbacks 𝒞] (U : List 𝒞) :
   Every slice object `⟨A, h : A → ∏U⟩` is `pairOnUSlice` of a padded pair `(A, F)` with `F° = U`:
   take `F` to record, for each coordinate of `∏U`, the component `h ≫ projₖ` of `h`.  Built by
   recursion on `U` (decomposing `∏(T::U) = T × ∏U` via `fst`/`snd`), so `F° = U` definitionally and
-  `factorTuple F = h` by `pair_eta`.  Well-supportedness of the factors needs each `T ∈ U` well
-  supported; the `distinct` field needs `U` to have NO repeated target (`U.Nodup`) — otherwise two
+  `factorTuple F = h` by the product eta law (`pair_uniq _ _ h rfl rfl`).  Well-supportedness of
+  the factors needs each `T ∈ U` well supported; the `distinct` field needs `U` to have NO
+  repeated target (`U.Nodup`) — otherwise two
   coordinates of `∏U` with the same target carry the (possibly different) components `h ≫ projₖ`,
   which `PairObj.distinct` would force equal.  (For a SET `U` of well-supported objects, exactly
   Freyd's hypothesis, both hold.) -/
@@ -507,8 +508,8 @@ theorem eqToHom_listProd_cons {T : 𝒞} {l : List 𝒞} {U : List 𝒞} (e₀ :
   cases e₀; simp only [eqToHom_refl, Cat.comp_id]; exact pair_fst_snd.symm
 
 /-- The padding factor list reconstructs `h`: composing `factorTuple (padFactors U h)` with the
-    `eqToHom` re-typing its codomain `∏((padFactors U h)°)` to `∏U` recovers `h`.  By `pair_eta`:
-    each step is `pair (h≫fst) (h≫snd) = h`. -/
+    `eqToHom` re-typing its codomain `∏((padFactors U h)°)` to `∏U` recovers `h`.  By the product
+    eta law: each step is `pair (h≫fst) (h≫snd) = h`. -/
 theorem padFactors_factorTuple : ∀ (U : List 𝒞) {A : 𝒞} (h : A ⟶ listProd U),
     factorTuple (padFactors U h) ≫ eqToHom (congrArg listProd (padFactors_targets U h)) = h
   | [],     _, h => by
@@ -516,7 +517,7 @@ theorem padFactors_factorTuple : ∀ (U : List 𝒞) {A : 𝒞} (h : A ⟶ listP
       exact (HasTerminal.uniq _ _)
   | T :: U, _, h => by
       -- `factorTuple (padFactors (T::U) h) = pair (h≫fst) (factorTuple (padFactors U (h≫snd)))`.
-      -- The codomain re-typing splits as `prod T (eqToHom …)`; `pair`-functoriality + IH + `pair_eta`.
+      -- The codomain re-typing splits as `prod T (eqToHom …)`; `pair`-functoriality + IH + eta law.
       show (pair (h ≫ fst) (factorTuple (padFactors U (h ≫ snd))))
             ≫ eqToHom (congrArg listProd (padFactors_targets (T :: U) h)) = h
       have hsub := padFactors_factorTuple U (h ≫ (snd : prod T (listProd U) ⟶ listProd U))
@@ -527,7 +528,7 @@ theorem padFactors_factorTuple : ∀ (U : List 𝒞) {A : 𝒞} (h : A ⟶ listP
             = pair (fst : prod T (listProd ((padFactors U (h ≫ snd)).map (·.1))) ⟶ T)
                 (snd ≫ eqToHom (congrArg listProd (padFactors_targets U (h ≫ snd)))) from
           eqToHom_listProd_cons (padFactors_targets U (h ≫ snd))]
-      -- project both sides: fst gives `h≫fst`, snd gives `FT ≫ e = h≫snd` (IH); conclude by `pair_eta`.
+      -- project both sides: fst gives `h≫fst`, snd gives `FT ≫ e = h≫snd` (IH); conclude by the eta law.
       have hfst : (pair (h ≫ fst) (factorTuple (padFactors U (h ≫ snd)))
           ≫ pair (fst : prod T (listProd ((padFactors U (h ≫ snd)).map (·.1))) ⟶ T)
               (snd ≫ eqToHom (congrArg listProd (padFactors_targets U (h ≫ snd))))) ≫ fst
@@ -536,8 +537,8 @@ theorem padFactors_factorTuple : ∀ (U : List 𝒞) {A : 𝒞} (h : A ⟶ listP
           ≫ pair (fst : prod T (listProd ((padFactors U (h ≫ snd)).map (·.1))) ⟶ T)
               (snd ≫ eqToHom (congrArg listProd (padFactors_targets U (h ≫ snd))))) ≫ snd
           = h ≫ snd := by rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair, hsub]
-      rw [pair_eta (pair (h ≫ fst) (factorTuple (padFactors U (h ≫ snd))) ≫ _), hfst, hsnd,
-        ← pair_eta h]
+      rw [pair_uniq _ _ (pair (h ≫ fst) (factorTuple (padFactors U (h ≫ snd))) ≫ _) rfl rfl,
+        hfst, hsnd, ← pair_uniq _ _ h rfl rfl]
 
 /-- A member of `padFactors U h` has its target IN `U` (its factors record `U`'s coordinates). -/
 theorem padFactors_mem_target {U : List 𝒞} {A : 𝒞} (h : A ⟶ listProd U)

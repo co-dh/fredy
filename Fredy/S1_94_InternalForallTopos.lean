@@ -108,15 +108,19 @@ theorem diag_classify_iff {E X : 𝒞} (a b : X ⟶ E) :
       ⟨X, pair a b, term X, h⟩
     have ha : a = u := by
       have := congrArg (· ≫ fst) hu₁
-      simpa [Cat.assoc, diag_fst, Cat.comp_id, fst_pair] using this.symm
+      simpa [Cat.assoc, show diag E ≫ fst = Cat.id E from fst_pair _ _, Cat.comp_id, fst_pair]
+        using this.symm
     have hb : b = u := by
       have := congrArg (· ≫ snd) hu₁
-      simpa [Cat.assoc, diag_snd, Cat.comp_id, snd_pair] using this.symm
+      simpa [Cat.assoc, show diag E ≫ snd = Cat.id E from snd_pair _ _, Cat.comp_id, snd_pair]
+        using this.symm
     rw [ha, hb]
   · intro h
     subst h
     have hpa : a ≫ diag E = pair a a := by
-      apply pair_uniq <;> rw [Cat.assoc] <;> simp [diag_fst, diag_snd, Cat.comp_id]
+      apply pair_uniq <;> rw [Cat.assoc] <;>
+        simp [show diag E ≫ fst = Cat.id E from fst_pair _ _,
+          show diag E ≫ snd = Cat.id E from snd_pair _ _, Cat.comp_id]
     rw [← hpa, Cat.assoc, HasSubobjectClassifier.classify_sq, ← Cat.assoc]
     congr 1
     exact term_uniq _ _

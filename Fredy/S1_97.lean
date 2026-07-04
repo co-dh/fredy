@@ -795,7 +795,8 @@ theorem nno_is_free_one_action {𝒞 : Type u} [Cat.{v} 𝒞]
           _ = (snd ≫ hN.succ) ≫ m := h
           _ = snd ≫ hN.succ ≫ m := Cat.assoc _ _ _
       have key := congrArg (prodOneLeftInv hN.nno ≫ ·) heq
-      simp only [← Cat.assoc, prodOneLeftInv_snd, Cat.id_comp] at key
+      simp only [← Cat.assoc, show prodOneLeftInv hN.nno ≫ snd = Cat.id hN.nno from snd_pair _ _,
+        Cat.id_comp] at key
       -- key: (m ≫ pair...) ≫ α.act = succ ≫ m; need m ≫ (pair... ≫ α.act) = succ ≫ m
       rw [Cat.assoc] at key
       exact key.symm
@@ -3565,7 +3566,7 @@ theorem free_recursor_exists_of_bicartesian {𝒞 : Type u} [Cat.{v} 𝒞] [Topo
               _ = w₂ ≫ (prodMap A G.dom α.obj p ≫ fst) := Cat.assoc _ _ _
               _ = w₂ ≫ fst (A := A) (B := G.dom) := by rw [hpmf]
           have hw₁w₂ : w₁ = w₂ := by
-            rw [pair_eta w₁, pair_eta w₂, hfst_eq, hsnd_eq]
+            rw [pair_uniq _ _ w₁ rfl rfl, pair_uniq _ _ w₂ rfl rfl, hfst_eq, hsnd_eq]
           rw [hw₁eq, hw₂eq, hw₁w₂]
         -- `A₁ ∩ act(A₂) ≤ ⊥`: a point of `act(A₂)` is `act(b)` with `b` an `A₂`-source point;
         -- `hfibSingleT` makes both off-diagonal legs over it equal, contradiction via `kpPointAbsurd`.
@@ -4445,8 +4446,12 @@ theorem foldExists {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B) :
       rw [hfac, Cat.assoc, curry_eval_eq, ← Cat.assoc]
       have hswap : pair b w ≫ prodSwap B (wordObj A) = pair w b := by
         refine pair_uniq w b (pair b w ≫ prodSwap B (wordObj A)) ?_ ?_
-        · rw [Cat.assoc, prodSwap_fst, snd_pair]
-        · rw [Cat.assoc, prodSwap_snd, fst_pair]
+        · rw [Cat.assoc,
+            show prodSwap B (wordObj A) ≫ fst = snd (A := B) (B := wordObj A) from fst_pair _ _,
+            snd_pair]
+        · rw [Cat.assoc,
+            show prodSwap B (wordObj A) ≫ snd = fst (A := B) (B := wordObj A) from snd_pair _ _,
+            fst_pair]
       rw [hswap]
     -- For a `G`-point `g`, its (word,value) lies in `G`, so the membership test is `⊤∘!`.
     have hGmem : ∀ {X : 𝒞} (g : X ⟶ G.dom),
@@ -4643,8 +4648,8 @@ theorem foldExists {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B) :
             · rw [Cat.assoc, prodMap_snd, ← Cat.assoc, hγsnd, Cat.id_comp]
           have hrhs : b₀ ≫ diag B = pair b₀ b₀ := by
             refine pair_uniq b₀ b₀ (b₀ ≫ diag B) ?_ ?_
-            · rw [Cat.assoc, diag_fst, Cat.comp_id]
-            · rw [Cat.assoc, diag_snd, Cat.comp_id]
+            · rw [Cat.assoc, show diag B ≫ fst = Cat.id B from fst_pair _ _, Cat.comp_id]
+            · rw [Cat.assoc, show diag B ≫ snd = Cat.id B from snd_pair _ _, Cat.comp_id]
           rw [hlhs, hrhs]
         rw [← Cat.assoc, hγpm, Cat.assoc, HasSubobjectClassifier.classify_sq, ← Cat.assoc]
         congr 1; exact term_uniq _ _
@@ -4699,10 +4704,12 @@ theorem foldExists {B : 𝒞} (e : one ⟶ B) (c : prod A B ⟶ B) :
             ⟨d.pt, d.π₁ ≫ prodMap B X B b₀, d.π₂, hsqd⟩
         have hfst : d.π₁ ≫ fst = ℓ := by
           have := congrArg (· ≫ fst) hℓ₁
-          simp only [Cat.assoc, diag_fst, Cat.comp_id, prodMap_fst] at this; exact this.symm
+          simp only [Cat.assoc, show diag B ≫ fst = Cat.id B from fst_pair _ _, Cat.comp_id,
+            prodMap_fst] at this; exact this.symm
         have hsnd : d.π₁ ≫ snd ≫ b₀ = ℓ := by
           have := congrArg (· ≫ snd) hℓ₁
-          simp only [Cat.assoc, diag_snd, Cat.comp_id, prodMap_snd] at this; exact this.symm
+          simp only [Cat.assoc, show diag B ≫ snd = Cat.id B from snd_pair _ _, Cat.comp_id,
+            prodMap_snd] at this; exact this.symm
         have hkey : d.π₁ ≫ snd ≫ b₀ = d.π₁ ≫ fst := by rw [hsnd, hfst]
         refine ⟨d.π₁ ≫ snd, ⟨?_, term_uniq _ _⟩, ?_⟩
         · have hA : ((d.π₁ ≫ snd) ≫ γ) ≫ fst = d.π₁ ≫ fst := by

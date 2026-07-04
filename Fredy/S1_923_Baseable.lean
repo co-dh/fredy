@@ -122,7 +122,7 @@ theorem relCurry_uncurry {A X B : 𝒞} (R : BinRel 𝒞 (prod A X) B) :
     (relCurry (relUncurry R)).colA = R.colA ∧ (relCurry (relUncurry R)).colB = R.colB := by
   refine ⟨?_, ?_⟩
   · show pair ((pair (R.colA ≫ fst) R.colB) ≫ fst) (R.colA ≫ snd) = R.colA
-    rw [fst_pair]; exact (pair_eta R.colA).symm
+    rw [fst_pair]; exact (pair_uniq _ _ R.colA rfl rfl).symm
   · show (pair (R.colA ≫ fst) R.colB) ≫ snd = R.colB
     rw [snd_pair]
 
@@ -132,7 +132,7 @@ theorem relUncurry_curry {A X B : 𝒞} (S : BinRel 𝒞 X (prod A B)) :
   · show (pair (S.colB ≫ fst) S.colA) ≫ snd = S.colA
     rw [snd_pair]
   · show pair ((pair (S.colB ≫ fst) S.colA) ≫ fst) (S.colB ≫ snd) = S.colB
-    rw [fst_pair]; exact (pair_eta S.colB).symm
+    rw [fst_pair]; exact (pair_uniq _ _ S.colB rfl rfl).symm
 
 /-! ## Local `RelHom` plumbing (clean under bare power-object hypotheses)
 

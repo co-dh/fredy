@@ -166,19 +166,19 @@ def IsSpecial.toSpecial [hcc : CartesianCategory 𝒞] (h : IsSpecial 𝒞) :
   (i.e. at most one proper subobject up to isomorphism). -/
 
 /-- For a SUBTERMINATOR `V` (`Monic (term V)`), the second projection `snd : V×V → V` is an
-    isomorphism, with inverse the diagonal `diag V`.  `diag V ≫ snd = id_V` is `diag_snd`;
+    isomorphism, with inverse the diagonal `diag V`.  `diag V ≫ snd = id_V` is `snd_pair`;
     `snd ≫ diag V = id_{V×V}` holds because both sides agree after `fst` and after `snd`
-    (the `snd`-components by `diag_snd`/`snd_pair`, the `fst`-components because every pair of
+    (the `snd`-components by `snd_pair`, the `fst`-components because every pair of
     maps into the subterminal `V` is equal: `term V` is monic and all maps to `one` coincide). -/
 theorem snd_self_iso_of_subterminal [CartesianCategory 𝒞] {V : 𝒞} (hV : Monic (term V)) :
     IsIso (snd (A := V) (B := V)) := by
-  refine ⟨diag V, ?_, diag_snd V⟩
+  refine ⟨diag V, ?_, snd_pair _ _⟩
   -- `snd ≫ diag V = id_{V×V}` via the two jointly-monic projections.
   refine fst_snd_jointly_monic _ _ ?_ ?_
   · -- fst-component: `(snd ≫ diag V) ≫ fst = id ≫ fst`.  Both are maps `V×V → V`; since `V` is a
     -- subterminal, all parallel maps into `V` are equal (post-compose monic `term V`).
     exact hV _ _ (term_uniq _ _)
-  · rw [Cat.assoc, diag_snd, Cat.comp_id, Cat.id_comp]
+  · rw [Cat.assoc, show diag V ≫ snd = Cat.id V from snd_pair _ _, Cat.comp_id, Cat.id_comp]
 
 /-- **Key specialness consequence**: in a special Cartesian category, a PROPER subterminator
     `V` (`ProperMono (term V)`) has NO proper subobject — every mono `n : B' → V` is an iso.
@@ -344,11 +344,13 @@ theorem prod_mono_swap_conj [HasBinaryProducts 𝒞] (B : 𝒞) {A' A : 𝒞} (m
   symm; apply pair_uniq
   · -- post-compose fst:  swap ≫ (id_B×m) ≫ swap ≫ fst = fst ≫ m
     rw [prodEndo_map]
-    simp only [Cat.assoc, prodSwap_fst, snd_pair]
-    rw [← Cat.assoc, prodSwap_snd]
+    simp only [Cat.assoc, show prodSwap B A ≫ fst = snd (A := B) (B := A) from fst_pair _ _,
+      snd_pair]
+    rw [← Cat.assoc, show prodSwap A' B ≫ snd = fst (A := A') (B := B) from snd_pair _ _]
   · -- post-compose snd:  swap ≫ (id_B×m) ≫ swap ≫ snd = snd
     rw [prodEndo_map]
-    simp only [Cat.assoc, prodSwap_fst, prodSwap_snd, fst_pair, Cat.comp_id]
+    simp only [Cat.assoc, show prodSwap A' B ≫ fst = snd (A := A') (B := B) from fst_pair _ _,
+      show prodSwap B A ≫ snd = fst (A := B) (B := A) from snd_pair _ _, fst_pair, Cat.comp_id]
 
 /-- The two product directions are simultaneously iso: `IsIso (m × id_B) ↔ IsIso (id_B × m)`.
     Immediate from `prod_mono_swap_conj` since both swaps are isos (§1.42 `prod_comm_iso`). -/
@@ -361,10 +363,13 @@ theorem isIso_prod_mono_iff [HasBinaryProducts 𝒞] (B : 𝒞) {A' A : 𝒞} (m
     rw [prodEndo_map]
     apply fst_snd_jointly_monic
     · -- fst-component:  fst ≫ id_B = swap ≫ pair(fst≫m) snd ≫ swap ≫ fst
-      simp only [fst_pair, Cat.comp_id, Cat.assoc, prodSwap_fst, prodSwap_snd, snd_pair]
+      simp only [fst_pair, Cat.comp_id, Cat.assoc,
+        show prodSwap A B ≫ fst = snd (A := A) (B := B) from fst_pair _ _,
+        show prodSwap B A' ≫ snd = fst (A := B) (B := A') from snd_pair _ _, snd_pair]
     · -- snd-component:  snd ≫ m = swap ≫ pair(fst≫m) snd ≫ swap ≫ snd
-      simp only [snd_pair, Cat.assoc, prodSwap_snd, fst_pair, Cat.comp_id]
-      rw [← Cat.assoc, prodSwap_fst]
+      simp only [snd_pair, Cat.assoc,
+        show prodSwap A B ≫ snd = fst (A := A) (B := B) from snd_pair _ _, fst_pair, Cat.comp_id]
+      rw [← Cat.assoc, show prodSwap B A' ≫ fst = snd (A := B) (B := A') from fst_pair _ _]
   constructor
   · intro h
     rw [hmapm]
@@ -704,10 +709,12 @@ theorem oneValued_special_prodEndo_faithful [CartesianCategory 𝒞] (hSp : IsSp
       obtain ⟨k, hk_l, hk_r⟩ := h_iso
       have hk_fst : k = fst (A := B) (B := B) := by
         have h := congrArg (· ≫ fst (A := B) (B := B)) hk_r
-        simp only [Cat.id_comp, Cat.assoc, diag_fst, Cat.comp_id] at h; exact h
+        simp only [Cat.id_comp, Cat.assoc, show diag B ≫ fst = Cat.id B from fst_pair _ _,
+          Cat.comp_id] at h; exact h
       have hk_snd : k = snd (A := B) (B := B) := by
         have h := congrArg (· ≫ snd (A := B) (B := B)) hk_r
-        simp only [Cat.id_comp, Cat.assoc, diag_snd, Cat.comp_id] at h; exact h
+        simp only [Cat.id_comp, Cat.assoc, show diag B ≫ snd = Cat.id B from snd_pair _ _,
+          Cat.comp_id] at h; exact h
       have hfst_eq_snd : (fst : prod B B ⟶ B) = snd := hk_fst.symm.trans hk_snd
       have h_sub : Subterminator B := by
         intro W u v _huv

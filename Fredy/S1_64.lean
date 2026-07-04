@@ -702,7 +702,8 @@ private theorem image_pair_le_recip_comp [PreToposDisjoint 𝒞] {A M N : 𝒞}
     (xi : A ⟶ M) (yi : A ⟶ N) :
     RelLe (⟨(image (pair xi yi)).dom, (image (pair xi yi)).arr ≫ fst,
             (image (pair xi yi)).arr ≫ snd,
-            monicPair_of_monic_pair _ _ (by rw [← pair_eta]; exact (image (pair xi yi)).monic)⟩
+            monicPair_of_monic_pair _ _
+              (by rw [← pair_uniq _ _ _ rfl rfl]; exact (image (pair xi yi)).monic)⟩
             : BinRel 𝒞 M N)
       ((graph xi)° ⊚ (graph yi)) := by
   let P := (graph xi)° ⊚ (graph yi)
@@ -904,7 +905,7 @@ theorem amalgamation_lemma [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞]
   let sp : A ⟶ prod (HasBinaryCoproducts.coprod B C) (HasBinaryCoproducts.coprod B C) := pair xi yi
   let I := image sp
   have hImp : MonicPair (I.arr ≫ fst) (I.arr ≫ snd) :=
-    monicPair_of_monic_pair _ _ (by rw [← pair_eta I.arr]; exact I.monic)
+    monicPair_of_monic_pair _ _ (by rw [← pair_uniq _ _ I.arr rfl rfl]; exact I.monic)
   let R₀ : BinRel 𝒞 (HasBinaryCoproducts.coprod B C) (HasBinaryCoproducts.coprod B C) :=
     ⟨I.dom, I.arr ≫ fst, I.arr ≫ snd, hImp⟩
   have hR₀A : image.lift sp ≫ R₀.colA = xi := by
@@ -1059,7 +1060,7 @@ theorem amalgamation_is_pullback [PreToposDisjoint 𝒞] [HasReflTransClosure �
   let sp : A ⟶ prod (HasBinaryCoproducts.coprod B C) (HasBinaryCoproducts.coprod B C) := pair xi yi
   let I := image sp
   have hImp : MonicPair (I.arr ≫ fst) (I.arr ≫ snd) :=
-    monicPair_of_monic_pair _ _ (by rw [← pair_eta I.arr]; exact I.monic)
+    monicPair_of_monic_pair _ _ (by rw [← pair_uniq _ _ I.arr rfl rfl]; exact I.monic)
   let R₀ : BinRel 𝒞 (HasBinaryCoproducts.coprod B C) (HasBinaryCoproducts.coprod B C) :=
     ⟨I.dom, I.arr ≫ fst, I.arr ≫ snd, hImp⟩
   have hR₀A : image.lift sp ≫ R₀.colA = xi := by
@@ -1321,7 +1322,7 @@ theorem amalgamation_is_pushout [PreToposDisjoint 𝒞] [HasReflTransClosure �
   let sp : A ⟶ prod (HasBinaryCoproducts.coprod B C) (HasBinaryCoproducts.coprod B C) := pair xi yi
   let I := image sp
   have hImp : MonicPair (I.arr ≫ fst) (I.arr ≫ snd) :=
-    monicPair_of_monic_pair _ _ (by rw [← pair_eta I.arr]; exact I.monic)
+    monicPair_of_monic_pair _ _ (by rw [← pair_uniq _ _ I.arr rfl rfl]; exact I.monic)
   let R₀ : BinRel 𝒞 (HasBinaryCoproducts.coprod B C) (HasBinaryCoproducts.coprod B C) :=
     ⟨I.dom, I.arr ≫ fst, I.arr ≫ snd, hImp⟩
   have hR₀A : image.lift sp ≫ R₀.colA = xi := by
@@ -1455,7 +1456,7 @@ theorem preTopos_minEquiv_to_cocartesian {𝒞 : Type u} [Cat.{v} 𝒞] [PreTopo
   let sp : C ⟶ prod A A := pair f g
   let I := image sp
   have hImp : MonicPair (I.arr ≫ fst) (I.arr ≫ snd) :=
-    monicPair_of_monic_pair _ _ (by rw [← pair_eta I.arr]; exact I.monic)
+    monicPair_of_monic_pair _ _ (by rw [← pair_uniq _ _ I.arr rfl rfl]; exact I.monic)
   let R : BinRel 𝒞 A A := ⟨I.dom, I.arr ≫ fst, I.arr ≫ snd, hImp⟩
   have hRA : image.lift sp ≫ R.colA = f := by
     show image.lift sp ≫ I.arr ≫ fst = f; rw [← Cat.assoc, image.lift_fac, fst_pair]
@@ -1613,7 +1614,7 @@ theorem monic_epic_is_cover [PreToposDisjoint 𝒞] [HasReflTransClosure 𝒞] {
   let sp : A ⟶ prod (HasBinaryCoproducts.coprod B B) (HasBinaryCoproducts.coprod B B) := pair xi yi
   let I := image sp
   have hImp : MonicPair (I.arr ≫ fst) (I.arr ≫ snd) :=
-    monicPair_of_monic_pair _ _ (by rw [← pair_eta I.arr]; exact I.monic)
+    monicPair_of_monic_pair _ _ (by rw [← pair_uniq _ _ I.arr rfl rfl]; exact I.monic)
   let R₀ : BinRel 𝒞 (HasBinaryCoproducts.coprod B B) (HasBinaryCoproducts.coprod B B) :=
     ⟨I.dom, I.arr ≫ fst, I.arr ≫ snd, hImp⟩
   -- Generated minimal equivalence relation E ⊇ R₀ and its effective quotient q : B⊕B ↠ D.
@@ -2253,13 +2254,16 @@ theorem subobject_complemented_of_amalg_decidable [PreToposDisjoint 𝒞] [HasRe
       show S.arr ≫ pair u v = (S.arr ≫ u) ≫ diag D
       -- compare projections: fst both give `S.arr ≫ u`; snd give `S.arr ≫ v` vs `S.arr ≫ u`.
       have e1 : (S.arr ≫ pair u v) ≫ fst = ((S.arr ≫ u) ≫ diag D) ≫ fst := by
-        rw [Cat.assoc, fst_pair, Cat.assoc, diag_fst, Cat.comp_id]
+        rw [Cat.assoc, fst_pair, Cat.assoc, show diag D ≫ fst = Cat.id D from fst_pair _ _,
+          Cat.comp_id]
       have e2 : (S.arr ≫ pair u v) ≫ snd = ((S.arr ≫ u) ≫ diag D) ≫ snd := by
-        rw [Cat.assoc, snd_pair, Cat.assoc, diag_snd, Cat.comp_id, ← hsq]
+        rw [Cat.assoc, snd_pair, Cat.assoc, show diag D ≫ snd = Cat.id D from snd_pair _ _,
+          Cat.comp_id, ← hsq]
       calc S.arr ≫ pair u v
-          = pair ((S.arr ≫ pair u v) ≫ fst) ((S.arr ≫ pair u v) ≫ snd) := pair_eta _
+          = pair ((S.arr ≫ pair u v) ≫ fst) ((S.arr ≫ pair u v) ≫ snd) :=
+            pair_uniq _ _ _ rfl rfl
         _ = pair (((S.arr ≫ u) ≫ diag D) ≫ fst) (((S.arr ≫ u) ≫ diag D) ≫ snd) := by rw [e1, e2]
-        _ = (S.arr ≫ u) ≫ diag D := (pair_eta _).symm
+        _ = (S.arr ≫ u) ≫ diag D := (pair_uniq _ _ _ rfl rfl).symm
     let d : Cone c (diagSub D).arr := ⟨S.dom, S.arr, S.arr ≫ u, hw⟩
     exact ⟨pb.lift d, pb.lift_fst d⟩
   -- `c#(Δ D) ≤ S`: pullback `pt = {b : u b = v b}`; the IsPullback of the amalgamation square
@@ -2271,12 +2275,14 @@ theorem subobject_complemented_of_amalg_decidable [PreToposDisjoint 𝒞] [HasRe
       calc pb.cone.π₁ ≫ u
           = (pb.cone.π₁ ≫ c) ≫ fst := by rw [Cat.assoc, fst_pair]
         _ = (pb.cone.π₂ ≫ diag D) ≫ fst := by rw [hw]
-        _ = pb.cone.π₂ := by rw [Cat.assoc, diag_fst (A := D)]; exact Cat.comp_id _
+        _ = pb.cone.π₂ := by
+              rw [Cat.assoc, show diag D ≫ fst = Cat.id D from fst_pair _ _]; exact Cat.comp_id _
     have hsnd : pb.cone.π₁ ≫ v = pb.cone.π₂ := by
       calc pb.cone.π₁ ≫ v
           = (pb.cone.π₁ ≫ c) ≫ snd := by rw [Cat.assoc, snd_pair]
         _ = (pb.cone.π₂ ≫ diag D) ≫ snd := by rw [hw]
-        _ = pb.cone.π₂ := by rw [Cat.assoc, diag_snd (A := D)]; exact Cat.comp_id _
+        _ = pb.cone.π₂ := by
+              rw [Cat.assoc, show diag D ≫ snd = Cat.id D from snd_pair _ _]; exact Cat.comp_id _
     have heq : pb.cone.π₁ ≫ u = pb.cone.π₁ ≫ v := by rw [hfst, hsnd]
     obtain ⟨g, ⟨hg₁, _hg₂⟩, _⟩ := hpb ⟨pb.cone.pt, pb.cone.π₁, pb.cone.π₁, heq⟩
     exact ⟨g, hg₁⟩
@@ -2502,7 +2508,7 @@ private theorem choice_factor_through_map {A C D : 𝒞}
     have hsnd : (u ≫ I.arr) ≫ snd = (v ≫ I.arr) ≫ snd := by
       rw [Cat.assoc, Cat.assoc]; exact hB
     have : u ≫ I.arr = v ≫ I.arr := by
-      rw [pair_eta (u ≫ I.arr), pair_eta (v ≫ I.arr), hfst, hsnd]
+      rw [pair_uniq _ _ (u ≫ I.arr) rfl rfl, pair_uniq _ _ (v ≫ I.arr) rfl rfl, hfst, hsnd]
     exact I.monic u v this
   let R_g : BinRel 𝒞 A D := BinRel.mk I.dom (I.arr ≫ fst) (I.arr ≫ snd) hp
   -- left leg of R_g is a cover: `image.lift sp ≫ R_g.colA = R.colA` (a cover, R entire).
@@ -2709,7 +2715,7 @@ theorem prod_choice_is_choice [PullbacksTransferCovers 𝒞] {B₁ B₂ : 𝒞}
     have hsnd : (u ≫ R'.colB) ≫ snd = (v ≫ R'.colB) ≫ snd := by
       rw [Cat.assoc, Cat.assoc]; exact hub
     have hcolB : u ≫ R'.colB = v ≫ R'.colB := by
-      rw [pair_eta (u ≫ R'.colB), pair_eta (v ≫ R'.colB), hfst, hsnd]
+      rw [pair_uniq _ _ (u ≫ R'.colB) rfl rfl, pair_uniq _ _ (v ≫ R'.colB) rfl rfl, hfst, hsnd]
     exact R'.isMonicPair u v hua hcolB
   let R'₂ : BinRel 𝒞 A B₂ := BinRel.mk R'.src R'.colA (R'.colB ≫ snd) hp₂
   have hentR'₂ : Entire R'₂ :=
@@ -2719,7 +2725,7 @@ theorem prod_choice_is_choice [PullbacksTransferCovers 𝒞] {B₁ B₂ : 𝒞}
   -- hwA : w ≫ R'.colA = id_A,  hwB : w ≫ (R'.colB ≫ snd) = f₂.
   -- (6) w ≫ R'.colB = pair f₁ f₂  (snd by hwB, fst by pinning + hwA).
   have hwBfull : w ≫ R'.colB = pair f₁ f₂ := by
-    rw [pair_eta (w ≫ R'.colB)]
+    rw [pair_uniq _ _ (w ≫ R'.colB) rfl rfl]
     congr 1
     · -- w ≫ R'.colB ≫ fst = w ≫ R'.colA ≫ f₁ = f₁.
       calc (w ≫ R'.colB) ≫ fst = w ≫ (R'.colB ≫ fst) := Cat.assoc _ _ _
@@ -2767,7 +2773,7 @@ theorem choice_prod_pinned [PullbacksTransferCovers 𝒞] {T C X : 𝒞}
     have hfst : (u ≫ R.colB) ≫ fst = (v ≫ R.colB) ≫ fst := by
       rw [Cat.assoc, Cat.assoc]; exact hub
     have hcolB : u ≫ R.colB = v ≫ R.colB := by
-      rw [pair_eta (u ≫ R.colB), pair_eta (v ≫ R.colB), hfst, hsnd]
+      rw [pair_uniq _ _ (u ≫ R.colB) rfl rfl, pair_uniq _ _ (v ≫ R.colB) rfl rfl, hfst, hsnd]
     exact R.isMonicPair u v hua hcolB
   have hR_cov : Cover R.colA :=
     (tabulated_is_entire_iff_left_cover R.colA R.colB R.isMonicPair).mp hent

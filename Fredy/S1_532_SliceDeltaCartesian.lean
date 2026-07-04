@@ -63,10 +63,10 @@ theorem forget_deltaCone_isPullback (B : 𝒞) {Y₁ Y₂ Y₀ : 𝒞} {f : Y₁
   refine ⟨pair w (d.π₁ ≫ snd), ⟨?_, ?_⟩, ?_⟩
   · show pair w (d.π₁ ≫ snd) ≫ pair (fst ≫ c.π₁) snd = d.π₁
     rw [comp_pair, snd_pair, ← Cat.assoc, fst_pair, hw₁]
-    exact (pair_eta d.π₁).symm
+    exact (pair_uniq _ _ d.π₁ rfl rfl).symm
   · show pair w (d.π₁ ≫ snd) ≫ pair (fst ≫ c.π₂) snd = d.π₂
     rw [comp_pair, snd_pair, hsnd, ← Cat.assoc, fst_pair, hw₂]
-    exact (pair_eta d.π₂).symm
+    exact (pair_uniq _ _ d.π₂ rfl rfl).symm
   · intro v hv₁ hv₂
     have hvsnd : v ≫ snd = d.π₁ ≫ snd := by
       simpa [deltaMap, deltaCone, sliceConeForget, Cat.assoc, snd_pair] using congrArg (· ≫ snd) hv₁
@@ -74,7 +74,7 @@ theorem forget_deltaCone_isPullback (B : 𝒞) {Y₁ Y₂ Y₀ : 𝒞} {f : Y₁
       apply hwuniq
       · simpa [deltaMap, deltaCone, sliceConeForget, Cat.assoc, fst_pair] using congrArg (· ≫ fst) hv₁
       · simpa [deltaMap, deltaCone, sliceConeForget, Cat.assoc, fst_pair] using congrArg (· ≫ fst) hv₂
-    rw [pair_eta v, hvfst, hvsnd]
+    rw [pair_uniq _ _ v rfl rfl, hvfst, hvsnd]
 
 /-- **§1.532 — `Δ` preserves pullbacks.**  The [1.442] cancellation in diagram order: `ΔΣ = (−×B)`
     preserves pullbacks (`forget_deltaCone_isPullback`) and `Σ` reflects them, so `Δ` preserves them.

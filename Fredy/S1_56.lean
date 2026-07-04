@@ -375,8 +375,8 @@ def Map {A B : 𝒞} (R : BinRel 𝒞 A B) : Prop :=
     the pair of itself.  Used throughout the entire/simple proofs. -/
 theorem pair_diag_eq {X B : 𝒞} (x : X ⟶ B) : pair x x = x ≫ diag B :=
   (pair_uniq x x (x ≫ diag B)
-    (by rw [Cat.assoc, diag_fst, Cat.comp_id])
-    (by rw [Cat.assoc, diag_snd, Cat.comp_id])).symm
+    (by rw [Cat.assoc, show diag B ≫ fst = Cat.id B from fst_pair _ _, Cat.comp_id])
+    (by rw [Cat.assoc, show diag B ≫ snd = Cat.id B from snd_pair _ _, Cat.comp_id])).symm
 
 /-- **§1.564**: a relation tabulated by ⟨T; x, y⟩ is ENTIRE iff `x` is a cover.
 
@@ -529,7 +529,8 @@ theorem tabulated_is_entire_iff_left_cover {A B T : 𝒞} (x : T ⟶ A) (y : T �
         _ = k_inv ≫ ((j ≫ i) ≫ fst) := by rw [Cat.assoc]
         _ = k_inv ≫ ((k ≫ diag A) ≫ fst) := by rw [hkj]
         _ = k_inv ≫ (k ≫ (diag A ≫ fst)) := by rw [Cat.assoc]
-        _ = k_inv ≫ (k ≫ Cat.id A) := by rw [diag_fst]
+        _ = k_inv ≫ (k ≫ Cat.id A) := by
+              rw [show diag A ≫ fst = Cat.id A from fst_pair _ _]
         _ = k_inv ≫ k := by rw [Cat.comp_id]
         _ = Cat.id A := hk_inv_k
     have pf₂ : (k_inv ≫ j) ≫ (i ≫ snd) = Cat.id A := by
@@ -537,7 +538,8 @@ theorem tabulated_is_entire_iff_left_cover {A B T : 𝒞} (x : T ⟶ A) (y : T �
         _ = k_inv ≫ ((j ≫ i) ≫ snd) := by rw [Cat.assoc]
         _ = k_inv ≫ ((k ≫ diag A) ≫ snd) := by rw [hkj]
         _ = k_inv ≫ (k ≫ (diag A ≫ snd)) := by rw [Cat.assoc]
-        _ = k_inv ≫ (k ≫ Cat.id A) := by rw [diag_snd]
+        _ = k_inv ≫ (k ≫ Cat.id A) := by
+              rw [show diag A ≫ snd = Cat.id A from snd_pair _ _]
         _ = k_inv ≫ k := by rw [Cat.comp_id]
         _ = Cat.id A := hk_inv_k
     exact ⟨⟨k_inv ≫ j, pf₁, pf₂⟩⟩
@@ -632,11 +634,11 @@ theorem tabulated_is_simple_iff_left_monic {A B T : 𝒞} (a : T ⟶ A) (b : T �
     have h_fst_eq_k : (image sp).arr ≫ fst = k := by
       calc (image sp).arr ≫ fst = (k ≫ diag B) ≫ fst := by rw [hk]
         _ = k ≫ (diag B ≫ fst) := Cat.assoc _ _ _
-        _ = k ≫ Cat.id B := by rw [diag_fst]
+        _ = k ≫ Cat.id B := by rw [show diag B ≫ fst = Cat.id B from fst_pair _ _]
         _ = k := Cat.comp_id _
     have h_k_eq_snd : k = (image sp).arr ≫ snd := by
       calc k = k ≫ Cat.id B := (Cat.comp_id _).symm
-        _ = k ≫ (diag B ≫ snd) := by rw [diag_snd]
+        _ = k ≫ (diag B ≫ snd) := by rw [show diag B ≫ snd = Cat.id B from snd_pair _ _]
         _ = (k ≫ diag B) ≫ snd := (Cat.assoc _ _ _).symm
         _ = (image sp).arr ≫ snd := by rw [hk]
     have h_colA : k ≫ (graph (Cat.id B)).colA = (image sp).arr ≫ fst := by
@@ -1379,12 +1381,12 @@ theorem reciprocal_comp_self_le_one {A B : 𝒞} (x : A ⟶ B) :
   have h_fst : (image s).arr ≫ fst = k := by
     calc (image s).arr ≫ fst = (k ≫ diag B) ≫ fst := by rw [hk]
       _ = k ≫ (diag B ≫ fst) := Cat.assoc _ _ _
-      _ = k ≫ Cat.id B := by rw [diag_fst]
+      _ = k ≫ Cat.id B := by rw [show diag B ≫ fst = Cat.id B from fst_pair _ _]
       _ = k := Cat.comp_id _
   have h_snd : (image s).arr ≫ snd = k := by
     calc (image s).arr ≫ snd = (k ≫ diag B) ≫ snd := by rw [hk]
       _ = k ≫ (diag B ≫ snd) := Cat.assoc _ _ _
-      _ = k ≫ Cat.id B := by rw [diag_snd]
+      _ = k ≫ Cat.id B := by rw [show diag B ≫ snd = Cat.id B from snd_pair _ _]
       _ = k := Cat.comp_id _
   -- Build the RelHom: src = (image s).dom, colA = (image s).arr≫fst, colB = (image s).arr≫snd
   -- graph(id B): src = B, colA = id B, colB = id B
@@ -2293,7 +2295,7 @@ section
 variable [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
 
 -- The product-swap iso `⟨snd,fst⟩ : A×C → C×A`, its projection equations
--- (`prodSwap_fst`/`prodSwap_snd`), and its self-inverse law (`prodSwap_prodSwap`)
+-- (`fst_pair`/`snd_pair` unfolding `prodSwap`), and its self-inverse law (`prodSwap_prodSwap`)
 -- all live canonically in `Fredy.S1_42`; we reuse them here (DRY).
 
 /-- **§1.561**: (R ⊚ S)° ≤ S° ⊚ R°  (reciprocation reverses composition).
@@ -2330,12 +2332,12 @@ theorem reciprocal_comp_le {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞
     have hcfst : (φ ≫ sp') ≫ fst = (sp ≫ prodSwap A C) ≫ fst := by
       rw [Cat.assoc, fst_pair, ← Cat.assoc, hφ₁]
       show pb.cone.π₂ ≫ S.colB = (sp ≫ prodSwap A C) ≫ fst
-      rw [Cat.assoc, prodSwap_fst, snd_pair]
+      rw [Cat.assoc, show prodSwap A C ≫ fst = snd (A := A) (B := C) from fst_pair _ _, snd_pair]
     have hcsnd : (φ ≫ sp') ≫ snd = (sp ≫ prodSwap A C) ≫ snd := by
       rw [Cat.assoc, snd_pair, ← Cat.assoc, hφ₂]
       show pb.cone.π₁ ≫ R.colA = (sp ≫ prodSwap A C) ≫ snd
-      rw [Cat.assoc, prodSwap_snd, fst_pair]
-    rw [pair_eta (φ ≫ sp'), pair_eta (sp ≫ prodSwap A C), hcfst, hcsnd]
+      rw [Cat.assoc, show prodSwap A C ≫ snd = fst (A := A) (B := C) from snd_pair _ _, fst_pair]
+    rw [pair_uniq _ _ (φ ≫ sp') rfl rfl, pair_uniq _ _ (sp ≫ prodSwap A C) rfl rfl, hcfst, hcsnd]
   -- the subobject I'.arr ≫ prodSwap C A : I'.dom → A×C (mono since prodSwap iso)
   have hswapInv_mono : Monic (prodSwap C A) := by
     intro W u v huv
@@ -2369,14 +2371,16 @@ theorem reciprocal_comp_le {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞
       _ = (k ≫ (I'.arr ≫ prodSwap C A)) ≫ (prodSwap A C ≫ fst) :=
           (Cat.assoc _ _ _).symm
       _ = I.arr ≫ (prodSwap A C ≫ fst) := by rw [hk']
-      _ = I.arr ≫ snd := by rw [prodSwap_fst]
+      _ = I.arr ≫ snd := by
+            rw [show prodSwap A C ≫ fst = snd (A := A) (B := C) from fst_pair _ _]
   · show k ≫ (I'.arr ≫ snd) = I.arr ≫ fst
     calc k ≫ (I'.arr ≫ snd) = k ≫ ((I'.arr ≫ prodSwap C A) ≫ prodSwap A C ≫ snd) := by
           rw [Cat.assoc, ← Cat.assoc (prodSwap C A), prodSwap_prodSwap, Cat.id_comp]
       _ = (k ≫ (I'.arr ≫ prodSwap C A)) ≫ (prodSwap A C ≫ snd) :=
           (Cat.assoc _ _ _).symm
       _ = I.arr ≫ (prodSwap A C ≫ snd) := by rw [hk']
-      _ = I.arr ≫ fst := by rw [prodSwap_snd]
+      _ = I.arr ≫ fst := by
+            rw [show prodSwap A C ≫ snd = fst (A := A) (B := C) from snd_pair _ _]
 
 /-- **§1.561**: S° ⊚ R° ≤ (R ⊚ S)°.
     Derived from `reciprocal_comp_le` applied to `S°, R°`, plus involutivity

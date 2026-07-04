@@ -409,12 +409,12 @@ private theorem graph_comp_recip_le_one_monic {𝒞 : Type u} [Cat.{v} 𝒞]
   have h_fst : (image s).arr ≫ fst = k := by
     calc (image s).arr ≫ fst = (k ≫ diag A) ≫ fst := by rw [hk]
       _ = k ≫ (diag A ≫ fst) := Cat.assoc _ _ _
-      _ = k ≫ Cat.id A := by rw [diag_fst]
+      _ = k ≫ Cat.id A := by rw [show diag A ≫ fst = Cat.id A from fst_pair _ _]
       _ = k := Cat.comp_id _
   have h_snd : (image s).arr ≫ snd = k := by
     calc (image s).arr ≫ snd = (k ≫ diag A) ≫ snd := by rw [hk]
       _ = k ≫ (diag A ≫ snd) := Cat.assoc _ _ _
-      _ = k ≫ Cat.id A := by rw [diag_snd]
+      _ = k ≫ Cat.id A := by rw [show diag A ≫ snd = Cat.id A from snd_pair _ _]
       _ = k := Cat.comp_id _
   -- Provide the RelHom.  compose's internal pb and s are definitionally our pb/s.
   -- (graph u ⊚ (graph u)°).colA = (image s).arr ≫ fst, .colB = (image s).arr ≫ snd.
@@ -507,7 +507,7 @@ theorem coproduct_is_coproduct_in_Rel
   -- U = image of m, as a BinRel
   let U_sub := image m
   have hU_mp : MonicPair (U_sub.arr ≫ fst) (U_sub.arr ≫ snd) :=
-    monicPair_of_monic_pair _ _ (pair_eta U_sub.arr ▸ U_sub.monic)
+    monicPair_of_monic_pair _ _ (pair_uniq _ _ U_sub.arr rfl rfl ▸ U_sub.monic)
   let U : BinRel E cp.obj B := ⟨U_sub.dom, U_sub.arr ≫ fst, U_sub.arr ≫ snd, hU_mp⟩
   refine ⟨U, fun i => ⟨?_, ?_⟩⟩
   · -- ≤ direction: graph(uᵢ) ⊚ U ≤ R i, discharged with EXTENSIVITY (`hext`).

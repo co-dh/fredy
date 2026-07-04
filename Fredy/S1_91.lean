@@ -432,8 +432,13 @@ theorem heytingDoubleArrow_classifies_eq {A E : 𝒞} (χ₁ χ₂ : A ⟶ HasSu
     have hR : (e ≫ χ₁) ≫ diag (HasSubobjectClassifier.omega (𝒞 := 𝒞))
         = pair (e ≫ χ₁) (e ≫ χ₂) :=
       pair_uniq (e ≫ χ₁) (e ≫ χ₂) _
-        (by rw [Cat.assoc, diag_fst, Cat.comp_id])
-        (by rw [Cat.assoc, diag_snd, Cat.comp_id, heq])
+        (by rw [Cat.assoc,
+          show diag (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ≫ fst
+            = Cat.id (HasSubobjectClassifier.omega (𝒞 := 𝒞)) from fst_pair _ _, Cat.comp_id])
+        (by rw [Cat.assoc,
+          show diag (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ≫ snd
+            = Cat.id (HasSubobjectClassifier.omega (𝒞 := 𝒞)) from snd_pair _ _,
+          Cat.comp_id, heq])
     rw [hL, hR]
   -- Commuting square: e ≫ (⟨χ₁,χ₂⟩ ≫ heytingDoubleArrow) = term E ≫ true.
   have hsq : e ≫ (pair χ₁ χ₂ ≫ heytingDoubleArrow)
@@ -465,7 +470,12 @@ theorem heytingDoubleArrow_classifies_eq {A E : 𝒞} (χ₁ χ₂ : A ⟶ HasSu
   have hcomp : d.π₁ ≫ χ₁ = d.π₁ ≫ χ₂ := by
     have e1 := congrArg (· ≫ fst) hw₁
     have e2 := congrArg (· ≫ snd) hw₁
-    simp only [Cat.assoc, diag_fst, diag_snd, fst_pair, snd_pair, Cat.comp_id] at e1 e2
+    simp only [Cat.assoc,
+      show diag (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ≫ fst
+        = Cat.id (HasSubobjectClassifier.omega (𝒞 := 𝒞)) from fst_pair _ _,
+      show diag (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ≫ snd
+        = Cat.id (HasSubobjectClassifier.omega (𝒞 := 𝒞)) from snd_pair _ _,
+      fst_pair, snd_pair, Cat.comp_id] at e1 e2
     rw [← e1, ← e2]
   -- equalizer universal property of e factors d.π₁ through E.
   obtain ⟨u, hu, huu⟩ := huniv d.π₁ hcomp
@@ -496,7 +506,12 @@ theorem heyting_true_iff_eq {A W : 𝒞}
     -- hw₁ : w ≫ diag = k ≫ pair χ₁ χ₂.  Read off both components.
     have e1 := congrArg (· ≫ fst) hw₁
     have e2 := congrArg (· ≫ snd) hw₁
-    simp only [Cat.assoc, diag_fst, diag_snd, fst_pair, snd_pair, Cat.comp_id] at e1 e2
+    simp only [Cat.assoc,
+      show diag (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ≫ fst
+        = Cat.id (HasSubobjectClassifier.omega (𝒞 := 𝒞)) from fst_pair _ _,
+      show diag (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ≫ snd
+        = Cat.id (HasSubobjectClassifier.omega (𝒞 := 𝒞)) from snd_pair _ _,
+      fst_pair, snd_pair, Cat.comp_id] at e1 e2
     rw [← e1, ← e2]
   · intro heq
     -- k ≫ ⟨χ₁,χ₂⟩ = (k ≫ χ₁) ≫ diag, so postcomposing ⇒ collapses to term ≫ true.
@@ -507,8 +522,13 @@ theorem heyting_true_iff_eq {A W : 𝒞}
       have hR : (k ≫ χ₁) ≫ diag (HasSubobjectClassifier.omega (𝒞 := 𝒞))
           = pair (k ≫ χ₁) (k ≫ χ₂) :=
         pair_uniq (k ≫ χ₁) (k ≫ χ₂) _
-          (by rw [Cat.assoc, diag_fst, Cat.comp_id])
-          (by rw [Cat.assoc, diag_snd, Cat.comp_id, heq])
+          (by rw [Cat.assoc,
+            show diag (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ≫ fst
+              = Cat.id (HasSubobjectClassifier.omega (𝒞 := 𝒞)) from fst_pair _ _, Cat.comp_id])
+          (by rw [Cat.assoc,
+            show diag (HasSubobjectClassifier.omega (𝒞 := 𝒞)) ≫ snd
+              = Cat.id (HasSubobjectClassifier.omega (𝒞 := 𝒞)) from snd_pair _ _,
+            Cat.comp_id, heq])
       rw [hL, hR]
     calc k ≫ (pair χ₁ χ₂ ≫ heytingDoubleArrow)
         = (k ≫ pair χ₁ χ₂) ≫ heytingDoubleArrow := (Cat.assoc _ _ _).symm

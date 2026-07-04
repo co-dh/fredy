@@ -215,7 +215,7 @@ theorem copInj_factor {I : Type w} (P : CopowerOfOne I 𝒞) (A : 𝒞) (i : I) 
   unfold copInj
   refine (pair_uniq (Cat.id A) (term A ≫ P.inj i) _ ?_ ?_).symm
   · -- (prodOneRightInv ≫ prodMap) ≫ fst = id
-    rw [Cat.assoc, prodMap_fst, prodOneRightInv_fst]
+    rw [Cat.assoc, prodMap_fst, show prodOneRightInv A ≫ fst = Cat.id A from fst_pair _ _]
   · -- (prodOneRightInv ≫ prodMap) ≫ snd = term ≫ inj i
     rw [Cat.assoc, prodMap_snd, ← Cat.assoc]
     unfold prodOneRightInv
@@ -234,7 +234,8 @@ noncomputable def prod_distrib_copow {I : Type w} (P : CopowerOfOne I 𝒞) (A :
   inj_cotup {X} g i := by
     -- copInj i ≫ uncurry(cotup f) = prodOneRightInv ≫ uncurry (inj i ≫ cotup f)
     rw [copInj_factor, Cat.assoc, ← uncurry_precomp, P.inj_cotup,
-        uncurry_curry, ← Cat.assoc, prodOneRightInv_fst, Cat.id_comp]
+        uncurry_curry, ← Cat.assoc, show prodOneRightInv A ≫ fst = Cat.id A from fst_pair _ _,
+        Cat.id_comp]
   cotup_uniq {X} g h hh := by
     -- transpose h to curry h : cI ⟶ X^A; show it equals the copower-of-1 cotuple,
     -- then untranspose by uniqueness of curry.

@@ -358,8 +358,10 @@ private theorem pushSwap_mono {A B : 𝒞} {P Q : Subobject 𝒞 (prod A B)} (hl
 private theorem relSub_reciprocal_arr {A B : 𝒞} (R : BinRel 𝒞 A B) :
     (relSub R°).arr = (pushSwap (relSub R)).arr := by
   show pair R.colB R.colA = pair R.colA R.colB ≫ prodSwap A B
-  exact (pair_uniq _ _ _ (by rw [Cat.assoc, prodSwap_fst, snd_pair])
-    (by rw [Cat.assoc, prodSwap_snd, fst_pair])).symm
+  exact (pair_uniq _ _ _
+    (by rw [Cat.assoc, show prodSwap A B ≫ fst = snd (A := A) (B := B) from fst_pair _ _, snd_pair])
+    (by rw [Cat.assoc, show prodSwap A B ≫ snd = fst (A := A) (B := B) from snd_pair _ _,
+      fst_pair])).symm
 
 private theorem relSub_reciprocal_le {A B : 𝒞} (R : BinRel 𝒞 A B) :
     (relSub R°).le (pushSwap (relSub R)) :=

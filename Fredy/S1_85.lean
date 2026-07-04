@@ -283,7 +283,7 @@ theorem sigmaToOver_overToSigma {B : 𝒞} (X : Over B) {Y : 𝒞}
   apply OverHom.ext
   simp only [sigmaToOver, overToSigma]
   rw [← h.w]
-  exact (pair_eta h.f).symm
+  exact (pair_uniq _ _ h.f rfl rfl).symm
 
 /-- The bijection is a right inverse. -/
 theorem overToSigma_sigmaToOver {B : 𝒞} (X : Over B) {Y : 𝒞} (f : X.dom ⟶ Y) :
@@ -408,7 +408,8 @@ theorem realPi_phi_cond {B C : 𝒞} (f : Over B) (h : OverHom (deltaObj B C) f)
   have hL : curry (prodSwap B C ≫ h.f) ≫ expCovMap B f.hom = curry (fst : prod B C ⟶ B) := by
     unfold expCovMap
     rw [curry_precomp]; congr 1
-    rw [← Cat.assoc, curry_eval_eq, Cat.assoc, show h.f ≫ f.hom = snd from h.w, prodSwap_snd]
+    rw [← Cat.assoc, curry_eval_eq, Cat.assoc, show h.f ≫ f.hom = snd from h.w,
+      show prodSwap B C ≫ snd = fst (A := B) (B := C) from snd_pair _ _]
   have hR : curry (prodSwap B C ≫ h.f) ≫ curry (fst : prod B (f.dom ^^ B) ⟶ B)
       = curry (fst : prod B C ⟶ B) := by rw [curry_precomp, prodMap_fst]
   rw [hL, hR]
@@ -436,7 +437,7 @@ theorem realPsi_w {B C : 𝒞} (f : Over B) (k : C ⟶ realPiObj f) :
     show (k ≫ eqMap (expCovMap B f.hom) (curry (fst : prod B (f.dom ^^ B) ⟶ B)))
         ≫ expCovMap B f.hom = curry (fst : prod B C ⟶ B)
     rw [Cat.assoc, key, ← Cat.assoc, curry_precomp, prodMap_fst]
-  rw [Cat.assoc, Cat.assoc, hcomp, prodSwap_fst]
+  rw [Cat.assoc, Cat.assoc, hcomp, show prodSwap C B ≫ fst = snd (A := C) (B := B) from fst_pair _ _]
 
 /-- Backward transpose `ψ : (C ⟶ Π(f)) → OverHom (Δ_B C) f`. -/
 def realPsi {B C : 𝒞} (f : Over B) (k : C ⟶ realPiObj f) : OverHom (deltaObj B C) f :=
@@ -512,11 +513,15 @@ theorem realPhi_nat_left {B C' C : 𝒞} (f : Over B) (a : C' ⟶ C) (h : OverHo
   show prodMap B C' C a ≫ prodSwap B C ≫ h.f = prodSwap B C' ≫ (pair (fst ≫ a) snd ≫ h.f)
   rw [← Cat.assoc, ← Cat.assoc]
   congr 1
-  rw [pair_eta (prodMap B C' C a ≫ prodSwap B C),
-      pair_eta (prodSwap B C' ≫ pair (fst ≫ a) snd)]
+  rw [pair_uniq _ _ (prodMap B C' C a ≫ prodSwap B C) rfl rfl,
+      pair_uniq _ _ (prodSwap B C' ≫ pair (fst ≫ a) snd) rfl rfl]
   congr 1
-  · rw [Cat.assoc, prodSwap_fst, prodMap_snd, Cat.assoc, fst_pair, ← Cat.assoc, prodSwap_fst]
-  · rw [Cat.assoc, prodSwap_snd, prodMap_fst, Cat.assoc, snd_pair, prodSwap_snd]
+  · rw [Cat.assoc, show prodSwap B C ≫ fst = snd (A := B) (B := C) from fst_pair _ _,
+      prodMap_snd, Cat.assoc, fst_pair, ← Cat.assoc,
+      show prodSwap B C' ≫ fst = snd (A := B) (B := C') from fst_pair _ _]
+  · rw [Cat.assoc, show prodSwap B C ≫ snd = fst (A := B) (B := C) from snd_pair _ _,
+      prodMap_fst, Cat.assoc, snd_pair,
+      show prodSwap B C' ≫ snd = fst (A := B) (B := C') from snd_pair _ _]
 
 theorem realPhi_nat_right {B C : 𝒞} {f g : Over B}
     (h : OverHom (deltaObj B C) f) (b : OverHom f g) :
@@ -685,8 +690,9 @@ theorem coreflective_closed_products_is_exponential
                 (ip A X ≫ prodMap (I A) (I X) (I Y) (Functor.map (F := I) u)) ≫ snd := by
       rw [Cat.assoc, ip_snd, ← Functor.map_comp (F := I), prodMap_snd, Functor.map_comp (F := I),
           Cat.assoc, prodMap_snd, ← Cat.assoc, ip_snd]
-    rw [pair_eta (Functor.map (F := I) (prodMap A X Y u) ≫ ip A Y),
-        pair_eta (ip A X ≫ prodMap (I A) (I X) (I Y) (Functor.map (F := I) u)), hfst, hsnd]
+    rw [pair_uniq _ _ (Functor.map (F := I) (prodMap A X Y u) ≫ ip A Y) rfl rfl,
+        pair_uniq _ _ (ip A X ≫ prodMap (I A) (I X) (I Y) (Functor.map (F := I) u)) rfl rfl,
+        hfst, hsnd]
   -- KEY: ε absorbs the φ-transpose.  I.map(curry' f) ≫ ε E = curry (ip' A X ≫ Functor.map (F := I) f).
   --   I.map(adj0.φ h) ≫ ε E = adj0.ψ (adj0.φ h) = h   (ψ_eq + ψφ).
   have curry'_eps : ∀ {A B X : 𝒜'} (f : prod A X ⟶ B),
@@ -807,7 +813,7 @@ theorem right_adjoint_preserves_prod
       rw [adj.φ_nat_right, adj.φ_nat_right, adj.φψ, adj.φψ, ← ip_snd, ← Cat.assoc, ← Cat.assoc, hh]
     rw [key h₁, key h₂]
     congr 1
-    rw [pair_eta (adj.ψ h₁), pair_eta (adj.ψ h₂), legfst, legsnd]
+    rw [pair_uniq _ _ (adj.ψ h₁) rfl rfl, pair_uniq _ _ (adj.ψ h₂) rfl rfl, legfst, legsnd]
 
 /-- For a full-faithful right adjoint `I` (`adj : L ⊣ I`), precomposition by the
     unit `η_A : A ⟶ I(L A)` is a bijection `(I(L A) ⟶ I Z) ≅ (A ⟶ I Z)` for `Z : 𝒜'`. -/
@@ -853,10 +859,12 @@ theorem unit_left_bij
   have hpml : pml = pair (fst ≫ unit adj A) snd := rfl
   -- pml ≫ prodSwap = pair snd (fst ≫ η_A).
   have pml_swap : pml ≫ prodSwap (I (L A)) W = pair snd (fst ≫ unit adj A) := by
-    rw [hpml, pair_eta (pair (fst ≫ unit adj A) snd ≫ prodSwap (I (L A)) W)]
+    rw [hpml, pair_uniq _ _ (pair (fst ≫ unit adj A) snd ≫ prodSwap (I (L A)) W) rfl rfl]
     congr 1
-    · rw [Cat.assoc, prodSwap_fst, snd_pair]
-    · rw [Cat.assoc, prodSwap_snd, fst_pair]
+    · rw [Cat.assoc,
+        show prodSwap (I (L A)) W ≫ fst = snd (A := I (L A)) (B := W) from fst_pair _ _, snd_pair]
+    · rw [Cat.assoc,
+        show prodSwap (I (L A)) W ≫ snd = fst (A := I (L A)) (B := W) from snd_pair _ _, fst_pair]
   constructor
   · -- SURJECTIVE.
     intro k
@@ -868,7 +876,8 @@ theorem unit_left_bij
     -- pair snd (fst≫η) ≫ prodMap W (ILA)(exp) (f≫j) = pair snd (fst≫η≫(f≫j)).
     have step1 : pair snd (fst ≫ unit adj A) ≫ prodMap W (I (L A)) (exp W (I Z)) (f ≫ j) =
         pair snd (fst ≫ unit adj A ≫ (f ≫ j)) := by
-      rw [pair_eta (pair snd (fst ≫ unit adj A) ≫ prodMap W (I (L A)) (exp W (I Z)) (f ≫ j))]
+      rw [pair_uniq _ _
+        (pair snd (fst ≫ unit adj A) ≫ prodMap W (I (L A)) (exp W (I Z)) (f ≫ j)) rfl rfl]
       congr 1
       · rw [Cat.assoc, prodMap_fst, fst_pair]
       · rw [Cat.assoc, prodMap_snd, ← Cat.assoc, snd_pair, Cat.assoc]
@@ -878,10 +887,12 @@ theorem unit_left_bij
     -- pair snd (fst≫pW) ≫ eval = prodSwap A W ≫ (prodMap W A (exp) pW ≫ eval) = prodSwap ≫ prodSwap ≫ k.
     have step2 : pair snd (fst ≫ pW) =
         prodSwap A W ≫ prodMap W A (exp W (I Z)) pW := by
-      rw [pair_eta (prodSwap A W ≫ prodMap W A (exp W (I Z)) pW)]
+      rw [pair_uniq _ _ (prodSwap A W ≫ prodMap W A (exp W (I Z)) pW) rfl rfl]
       congr 1
-      · rw [Cat.assoc, prodMap_fst, prodSwap_fst]
-      · rw [Cat.assoc, prodMap_snd, ← Cat.assoc, prodSwap_snd]
+      · rw [Cat.assoc, prodMap_fst,
+          show prodSwap A W ≫ fst = snd (A := A) (B := W) from fst_pair _ _]
+      · rw [Cat.assoc, prodMap_snd, ← Cat.assoc,
+          show prodSwap A W ≫ snd = fst (A := A) (B := W) from snd_pair _ _]
     rw [step2, Cat.assoc]
     show prodSwap A W ≫ prodMap W A (exp W (I Z)) pW ≫ eval_exp W (I Z) = k
     rw [curry_eval_eq, ← Cat.assoc, prodSwap_prodSwap, Cat.id_comp]
@@ -905,15 +916,19 @@ theorem unit_left_bij
       congr 1
       have hswap : prodSwap W A ≫ pml =
           prodMap W A (I (L A)) (unit adj A) ≫ prodSwap W (I (L A)) := by
-        rw [pair_eta (prodSwap W A ≫ pml),
-            pair_eta (prodMap W A (I (L A)) (unit adj A) ≫ prodSwap W (I (L A)))]
+        rw [pair_uniq _ _ (prodSwap W A ≫ pml) rfl rfl,
+            pair_uniq _ _ (prodMap W A (I (L A)) (unit adj A) ≫ prodSwap W (I (L A))) rfl rfl]
         congr 1
         · -- LHS ≫ fst = snd ≫ η = RHS ≫ fst
-          rw [hpml, Cat.assoc, fst_pair, ← Cat.assoc, prodSwap_fst,
-              Cat.assoc, prodSwap_fst, prodMap_snd]
+          rw [hpml, Cat.assoc, fst_pair, ← Cat.assoc,
+              show prodSwap W A ≫ fst = snd (A := W) (B := A) from fst_pair _ _,
+              Cat.assoc, show prodSwap W (I (L A)) ≫ fst = snd (A := W) (B := I (L A))
+                from fst_pair _ _, prodMap_snd]
         · -- LHS ≫ snd = fst = RHS ≫ snd
-          rw [hpml, Cat.assoc, snd_pair, prodSwap_snd,
-              Cat.assoc, prodSwap_snd, prodMap_fst]
+          rw [hpml, Cat.assoc, snd_pair,
+              show prodSwap W A ≫ snd = fst (A := W) (B := A) from snd_pair _ _,
+              Cat.assoc, show prodSwap W (I (L A)) ≫ snd = fst (A := W) (B := I (L A))
+                from snd_pair _ _, prodMap_fst]
       rw [← Cat.assoc, hswap, Cat.assoc]
     apply G_inj
     -- η_A ≫ G g₁ = η_A ≫ G g₂ via key + hg ; then strip η via j' and uinj.
@@ -945,10 +960,16 @@ theorem unit_right_bij
   -- prm = prodSwap V A ≫ pml ≫ prodSwap (ILA) V, where pml = pair (fst≫η) snd.
   have hconj : pair fst (snd ≫ unit adj A) =
       prodSwap V A ≫ pair (fst ≫ unit adj A) snd ≫ prodSwap (I (L A)) V := by
-    rw [pair_eta (prodSwap V A ≫ pair (fst ≫ unit adj A) snd ≫ prodSwap (I (L A)) V)]
+    rw [pair_uniq _ _
+      (prodSwap V A ≫ pair (fst ≫ unit adj A) snd ≫ prodSwap (I (L A)) V) rfl rfl]
     congr 1
-    · rw [Cat.assoc, Cat.assoc, prodSwap_fst, snd_pair, prodSwap_snd]
-    · rw [Cat.assoc, Cat.assoc, prodSwap_snd, fst_pair, ← Cat.assoc, prodSwap_fst]
+    · rw [Cat.assoc, Cat.assoc,
+        show prodSwap (I (L A)) V ≫ fst = snd (A := I (L A)) (B := V) from fst_pair _ _,
+        snd_pair, show prodSwap V A ≫ snd = fst (A := V) (B := A) from snd_pair _ _]
+    · rw [Cat.assoc, Cat.assoc,
+        show prodSwap (I (L A)) V ≫ snd = fst (A := I (L A)) (B := V) from snd_pair _ _,
+        fst_pair, ← Cat.assoc,
+        show prodSwap V A ≫ fst = snd (A := V) (B := A) from fst_pair _ _]
   constructor
   · intro k
     obtain ⟨g', hg'⟩ := lsurj (prodSwap A V ≫ k)
@@ -987,7 +1008,7 @@ theorem wbij_kernel
   -- w = pml₁ ≫ prm₂ : pml₁ = pair (fst≫η₁) snd, prm₂ = pair fst (snd≫η₂).
   have hw : pair (fst ≫ unit adj A₁) (snd ≫ unit adj A₂) =
       pair (fst ≫ unit adj A₁) snd ≫ pair fst (snd ≫ unit adj A₂) := by
-    rw [pair_eta (pair (fst ≫ unit adj A₁) snd ≫ pair fst (snd ≫ unit adj A₂))]
+    rw [pair_uniq _ _ (pair (fst ≫ unit adj A₁) snd ≫ pair fst (snd ≫ unit adj A₂)) rfl rfl]
     congr 1
     · rw [Cat.assoc, fst_pair, fst_pair]
     · rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair]
@@ -1060,7 +1081,7 @@ theorem reflective_exponential_ideal_iff_refl_preserve_products
              pair _ _ ≫ snd
         rw [Cat.assoc, Cat.assoc, ip_snd, ← Functor.map_comp (F := I), c_snd,
             ← unit_naturality adjR (snd : prod A₁ A₂ ⟶ A₂), snd_pair]
-      rw [pair_eta (d ≫ ip), pair_eta w, hf, hs]
+      rw [pair_uniq _ _ (d ≫ ip) rfl rfl, pair_uniq _ _ w rfl rfl, hf, hs]
     have phi_c : ∀ {Z : 𝒜'} (h : prod (L A₁) (L A₂) ⟶ Z),
         adjR.φ (c A₁ A₂ ≫ h) = d ≫ Functor.map (F := I) h := by
       intro Z h
@@ -1135,8 +1156,9 @@ theorem reflective_exponential_ideal_iff_refl_preserve_products
                   (c A X ≫ prodMap (L A) (L X) (L Y) (Functor.map (F := L) u)) ≫ snd := by
         rw [Cat.assoc, c_snd, ← Functor.map_comp (F := L), prodMap_snd, Functor.map_comp (F := L),
             Cat.assoc, prodMap_snd, ← Cat.assoc, c_snd]
-      rw [pair_eta (Functor.map (F := L) (prodMap A X Y u) ≫ c A Y),
-          pair_eta (c A X ≫ prodMap (L A) (L X) (L Y) (Functor.map (F := L) u)), hfst, hsnd]
+      rw [pair_uniq _ _ (Functor.map (F := L) (prodMap A X Y u) ≫ c A Y) rfl rfl,
+          pair_uniq _ _ (c A X ≫ prodMap (L A) (L X) (L Y) (Functor.map (F := L) u)) rfl rfl,
+          hfst, hsnd]
     let EX := exp A (I B)
     show IsIso (unit adjR EX)
     obtain ⟨cAE_inv, cAE_l, cAE_r⟩ := hPres A EX

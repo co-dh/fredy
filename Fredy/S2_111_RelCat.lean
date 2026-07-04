@@ -2306,8 +2306,8 @@ theorem pair_swap_eq {A B : C} (R : BinRel C A B) :
       = pair (hF.map R.colA) (hF.map R.colB) ≫ prodSwap (F A) (F B) := by
   refine (pair_uniq (hF.map R.colB) (hF.map R.colA)
     (pair (hF.map R.colA) (hF.map R.colB) ≫ prodSwap (F A) (F B)) ?_ ?_).symm
-  · rw [Cat.assoc, prodSwap_fst, snd_pair]
-  · rw [Cat.assoc, prodSwap_snd, fst_pair]
+  · rw [Cat.assoc, show prodSwap (F A) (F B) ≫ fst = snd (A := F A) (B := F B) from fst_pair _ _, snd_pair]
+  · rw [Cat.assoc, show prodSwap (F A) (F B) ≫ snd = fst (A := F A) (B := F B) from snd_pair _ _, fst_pair]
 
 /-- The swapped image subobject of `pair (F R.colA) (F R.colB)` is an image of the column-swapped
     span `pair (F R.colB) (F R.colA)`.  Technical heart of reciprocation-preservation. -/
@@ -2342,22 +2342,24 @@ theorem RegularFunctor.relMap_recip (hreg : RegularFunctor F) {A B : C}
     · -- target colA of `(relImageObj R)°` is `Ip.arr ≫ snd`; source colA of `relImageObj (R°)` is `Iq.arr ≫ fst`.
       show c ≫ (Ip.arr ≫ snd) = Iq.arr ≫ fst
       have hexp : (c ≫ (Ip.arr ≫ σ)) ≫ fst = c ≫ (Ip.arr ≫ snd) := by
-        rw [Cat.assoc, Cat.assoc, prodSwap_fst]
+        rw [Cat.assoc, Cat.assoc, show prodSwap (F A) (F B) ≫ fst = snd (A := F A) (B := F B) from fst_pair _ _]
       rw [← hexp, hc']
     · show c ≫ (Ip.arr ≫ fst) = Iq.arr ≫ snd
       have hexp : (c ≫ (Ip.arr ≫ σ)) ≫ snd = c ≫ (Ip.arr ≫ fst) := by
-        rw [Cat.assoc, Cat.assoc, prodSwap_snd]
+        rw [Cat.assoc, Cat.assoc, show prodSwap (F A) (F B) ≫ snd = fst (A := F A) (B := F B) from snd_pair _ _]
       rw [← hexp, hc']
   · obtain ⟨c, hc⟩ := hQimg.2 _ hPimg.1
     have hc' : c ≫ Iq.arr = Ip.arr ≫ σ := hc
     refine ⟨c, ?_, ?_⟩
     · show c ≫ (Iq.arr ≫ fst) = Ip.arr ≫ snd
       have hlhs : c ≫ (Iq.arr ≫ fst) = (c ≫ Iq.arr) ≫ fst := (Cat.assoc _ _ _).symm
-      have hrhs : Ip.arr ≫ snd = (Ip.arr ≫ σ) ≫ fst := by rw [Cat.assoc, prodSwap_fst]
+      have hrhs : Ip.arr ≫ snd = (Ip.arr ≫ σ) ≫ fst := by
+        rw [Cat.assoc, show prodSwap (F A) (F B) ≫ fst = snd (A := F A) (B := F B) from fst_pair _ _]
       rw [hlhs, hc', hrhs]
     · show c ≫ (Iq.arr ≫ snd) = Ip.arr ≫ fst
       have hlhs : c ≫ (Iq.arr ≫ snd) = (c ≫ Iq.arr) ≫ snd := (Cat.assoc _ _ _).symm
-      have hrhs : Ip.arr ≫ fst = (Ip.arr ≫ σ) ≫ snd := by rw [Cat.assoc, prodSwap_snd]
+      have hrhs : Ip.arr ≫ fst = (Ip.arr ≫ σ) ≫ snd := by
+        rw [Cat.assoc, show prodSwap (F A) (F B) ≫ snd = fst (A := F A) (B := F B) from snd_pair _ _]
       rw [hlhs, hc', hrhs]
 
 /-! ### §2.218 (2a) — `Rel(F)` preserves composition (Beck–Chevalley)

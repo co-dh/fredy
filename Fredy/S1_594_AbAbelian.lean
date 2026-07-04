@@ -186,7 +186,9 @@ theorem hom_fromZero_unique {A : AbelianGroupObject 𝒞} {x : (one : 𝒞) ⟶ 
   rw [← Cat.assoc, term_uniq (diag (one : 𝒞) ≫ (zeroGObj : AbelianGroupObject 𝒞).add)
         (Cat.id one), Cat.id_comp] at key
   have hsplit : diag (one : 𝒞) ≫ pair (fst ≫ x) (snd ≫ x) ≫ A.add = pair x x ≫ A.add := by
-    rw [← Cat.assoc, ab_pair_precomp, ← Cat.assoc, ← Cat.assoc, diag_fst, diag_snd]
+    rw [← Cat.assoc, ab_pair_precomp, ← Cat.assoc, ← Cat.assoc,
+      show diag (one : 𝒞) ≫ fst = Cat.id one from fst_pair _ _,
+      show diag (one : 𝒞) ≫ snd = Cat.id one from snd_pair _ _]
     simp only [Cat.id_comp]
   rw [hsplit] at key
   -- key : x = ⟨x, x⟩ ≫ A.add.  Idempotent ⟹ x = term 1 ≫ A.zero = id ≫ A.zero = A.zero.

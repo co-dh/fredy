@@ -185,8 +185,8 @@ private theorem graphMono_prodMap {B X' : 𝒞} (h : X' ⟶ B) :
         show graphMono h ≫ snd = Cat.id X' from snd_pair h (Cat.id X'), Cat.id_comp]
   have hrhs : h ≫ diag B = pair h h := by
     apply pair_uniq
-    · rw [Cat.assoc, diag_fst, Cat.comp_id]
-    · rw [Cat.assoc, diag_snd, Cat.comp_id]
+    · rw [Cat.assoc, show diag B ≫ fst = Cat.id B from fst_pair _ _, Cat.comp_id]
+    · rw [Cat.assoc, show diag B ≫ snd = Cat.id B from snd_pair _ _, Cat.comp_id]
   rw [hlhs, hrhs]
 
 /-- **§1.92, key step**: `prodMap B X' B h ≫ χ_Δ` is the characteristic map of the
@@ -217,11 +217,13 @@ private theorem graph_classifies {B X' : 𝒞} (h : X' ⟶ B) :
   -- From hℓ₁, project to fst/snd to recover ℓ and a key identity.
   have hfst : d.π₁ ≫ fst = ℓ := by
     have := congrArg (· ≫ fst) hℓ₁
-    simp only [Cat.assoc, diag_fst, Cat.comp_id, prodMap_fst] at this
+    simp only [Cat.assoc, show diag B ≫ fst = Cat.id B from fst_pair _ _, Cat.comp_id,
+      prodMap_fst] at this
     exact this.symm
   have hsnd : d.π₁ ≫ snd ≫ h = ℓ := by
     have := congrArg (· ≫ snd) hℓ₁
-    simp only [Cat.assoc, diag_snd, Cat.comp_id, prodMap_snd] at this
+    simp only [Cat.assoc, show diag B ≫ snd = Cat.id B from snd_pair _ _, Cat.comp_id,
+      prodMap_snd] at this
     exact this.symm
   have hkey : d.π₁ ≫ snd ≫ h = d.π₁ ≫ fst := by rw [hsnd, hfst]
   -- The lift into X' is u = d.π₁ ≫ snd.
@@ -1204,7 +1206,9 @@ theorem expSubobj (A B : 𝒞) :
                        (fst ≫ snd : prod (prod A B) W ⟶ B) = pair g₁ g₁ :=
       pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair, he₁]) (by rw [Cat.assoc, snd_pair, hp])
     have hR : g₁ ≫ diag B = pair g₁ g₁ :=
-      pair_uniq _ _ _ (by rw [Cat.assoc, diag_fst, Cat.comp_id]) (by rw [Cat.assoc, diag_snd, Cat.comp_id])
+      pair_uniq _ _ _
+        (by rw [Cat.assoc, show diag B ≫ fst = Cat.id B from fst_pair _ _, Cat.comp_id])
+        (by rw [Cat.assoc, show diag B ≫ snd = Cat.id B from snd_pair _ _, Cat.comp_id])
     rw [hL, hR]
   -- So σ ≫ graph₁ ≫ χd = g₁ ≫ diag ≫ χd = g₁ ≫ term ≫ true = term ≫ true.
   have htrue : σ ≫ (pair (pair (fst ≫ fst) (snd ≫ h₂) ≫ eval_exp A B)
@@ -1225,7 +1229,8 @@ theorem expSubobj (A B : 𝒞) :
   have he₂ : σ ≫ (pair (fst ≫ fst) (snd ≫ h₂) ≫ eval_exp A B) = g₁ := by
     have hA := congrArg (· ≫ fst) hℓ
     have hB := congrArg (· ≫ snd) hℓ
-    simp only [Cat.assoc, diag_fst, diag_snd, Cat.comp_id, fst_pair, snd_pair] at hA hB
+    simp only [Cat.assoc, show diag B ≫ fst = Cat.id B from fst_pair _ _,
+      show diag B ≫ snd = Cat.id B from snd_pair _ _, Cat.comp_id, fst_pair, snd_pair] at hA hB
     rw [← hA, hB]; exact hp
   -- σ ≫ e₁ = σ ≫ e₂  (both g₁), and σ≫eᵢ = pair fst (snd≫hᵢ) ≫ eval = prodMap hᵢ ≫ eval.
   have hev : prodMap A W (exp A B) h₁ ≫ eval_exp A B

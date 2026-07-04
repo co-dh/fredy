@@ -879,7 +879,7 @@ theorem richerSliceSection (W : WSCover S) (aT : Tok S)
       t ⊚ mbarN = sliceFactorPoint A (fst : prod A PN ⟶ A) := by
     -- REDUCTION.  `t ⊚ mbarN = sliceFactorPoint A fst` (an `OverHom (overTerm (A×PN)) (sliceEmbedObj
     -- (A×PN) A)` equation) holds iff its underlying `A×PN`-arrow `t.f ≫ mf'N = pair fst id`.  By the
-    -- product universal property (`pair_eta`) and `hmf1N`/`hmf2N`, that splits into:
+    -- product universal property (the eta law) and `hmf1N`/`hmf2N`, that splits into:
     --   • `A`-leg : `t.f ≫ cnDN.π₁ ≫ mC.f ≫ fst = fst`  (the FRESH coordinate — the §1.546 content);
     --   • `PN`-structure leg : `t.f ≫ cnDN.π₂ = id`       (the over-`A×PN` point law, = `t.w`).
     -- So it suffices to build `q : A×PN ⟶ Dbar.dom` (a section of `Dbar.hom` over `A×PN` via `snd`)
@@ -1464,10 +1464,10 @@ theorem richerSliceSection (W : WSCover S) (aT : Tok S)
     refine ⟨⟨u, ?_⟩, ?_⟩
     · show u ≫ cnDN.π₂ = (overTerm (prod A PN)).hom
       show u ≫ cnDN.π₂ = Cat.id (prod A PN); exact hu₂
-    · -- `t ⊚ mbarN = sliceFactorPoint A fst`: check underlying `u ≫ mf'N = pair fst id` by `pair_eta`.
+    · -- `t ⊚ mbarN = sliceFactorPoint A fst`: check underlying `u ≫ mf'N = pair fst id` by the eta law.
       apply OverHom.ext
       show u ≫ mf'N = pair (fst : prod A PN ⟶ A) (Cat.id (prod A PN))
-      rw [pair_eta (u ≫ mf'N)]
+      rw [pair_uniq _ _ (u ≫ mf'N) rfl rfl]
       congr 1
       · -- `A`-leg: `(u ≫ mf'N) ≫ fst = fst`.
         rw [Cat.assoc, hmf1N, ← Cat.assoc, hu₁]; exact hqfresh

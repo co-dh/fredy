@@ -239,7 +239,7 @@ theorem appendArrange_forget : ∀ (t : List 𝒞) (B : 𝒞) {X : 𝒞}
       show pair (g ≫ fst) (appendArrange t' B (g ≫ snd) b)
           ≫ pair (fst : prod a (listProd (t' ++ [B])) ⟶ a)
                  ((snd : prod a (listProd (t' ++ [B])) ⟶ _) ≫ appendForget t' B) = g
-      refine (pair_uniq (g ≫ fst) (g ≫ snd) _ ?_ ?_).trans (pair_eta g).symm
+      refine (pair_uniq (g ≫ fst) (g ≫ snd) _ ?_ ?_).trans (pair_uniq _ _ g rfl rfl).symm
       · rw [Cat.assoc, fst_pair, fst_pair]
       · rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair]
         exact appendArrange_forget t' B (g ≫ snd) b
@@ -467,7 +467,7 @@ theorem catArrange_forget : ∀ (t d : List 𝒞) {X : 𝒞}
       show pair (g ≫ fst) (catArrange t' d (g ≫ snd) b)
           ≫ pair (fst : prod a (listProd (t' ++ d)) ⟶ a)
                  ((snd : prod a (listProd (t' ++ d)) ⟶ _) ≫ catForget t' d) = g
-      refine (pair_uniq (g ≫ fst) (g ≫ snd) _ ?_ ?_).trans (pair_eta g).symm
+      refine (pair_uniq (g ≫ fst) (g ≫ snd) _ ?_ ?_).trans (pair_uniq _ _ g rfl rfl).symm
       · rw [Cat.assoc, fst_pair, fst_pair]
       · rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair]
         exact catArrange_forget t' d (g ≫ snd) b
@@ -599,7 +599,7 @@ instance inflHasBinaryProducts : HasBinaryProducts (Infl 𝒞) where
 /-- The equalizer of `f g : s ⟶ t` in `A′` (i.e. of `f g : ∏s ⟶ ∏t` in `A`): the SINGLETON `[E]`
     of the `A`-equalizer object `E := eqObj f g` (`∏[E] = E × 1`), equalizing map `fst ≫ eqMap`.
     Lift wraps the `A`-lift through the unitor `prodOneRightInv E : E ⟶ E×1`; the factorisation and
-    uniqueness ride `prodOneRightInv_fst`/`fst_prodOneRightInv` (`E ≅ E×1`) plus `eqLift_uniq`. -/
+    uniqueness ride the unitor projection laws (`E ≅ E×1`) plus `eqLift_uniq`. -/
 instance inflHasEqualizers [HasEqualizers 𝒞] : HasEqualizers (Infl 𝒞) where
   eq s t f g :=
     -- `f g : s ⟶ t` in `A′` ARE `A`-arrows `∏s ⟶ ∏t`; force the `A`-reading so `eqObj`/`eqMap`/`eqLift`
@@ -621,7 +621,8 @@ instance inflHasEqualizers [HasEqualizers 𝒞] : HasEqualizers (Infl 𝒞) wher
       fac c := by
         show (eqLift f' g' c.map c.eq ≫ prodOneRightInv E)
             ≫ ((fst : prod E one ⟶ E) ≫ eqMap f' g') = c.map
-        rw [← Cat.assoc, Cat.assoc (eqLift f' g' c.map c.eq), prodOneRightInv_fst, Cat.comp_id,
+        rw [← Cat.assoc, Cat.assoc (eqLift f' g' c.map c.eq),
+          show prodOneRightInv E ≫ fst = Cat.id E from fst_pair _ _, Cat.comp_id,
           eqLift_fac]
       uniq c m hm := by
         -- `m : ∏c.dom ⟶ E×1`; `m ≫ (fst ≫ eqMap) = c.map`.  `m ≫ fst` is the unique `A`-lift.
@@ -671,7 +672,8 @@ theorem inflMono_to_mono {C t : Infl 𝒞} {m : listProd (𝒞 := 𝒞) C ⟶ li
     hm' (V := ([W] : List 𝒞)) ((fst : prod W one ⟶ W) ≫ p) ((fst : prod W one ⟶ W) ≫ q) hlift
   -- cancel the iso `fst : W×1 ⟶ W` on the left (precompose `prodOneRightInv W`).
   have := congrArg (fun u => prodOneRightInv W ≫ u) hC
-  simpa only [← Cat.assoc, prodOneRightInv_fst, Cat.id_comp] using this
+  simpa only [← Cat.assoc, show prodOneRightInv W ≫ fst = Cat.id W from fst_pair _ _,
+    Cat.id_comp] using this
 
 /-- `Cover` carries from `A′` to `A` (same underlying arrow `∏s ⟶ ∏t`).  An `A`-mono `m : C ⟶ ∏t`
     that the underlying `f` factors through is wrapped to the `A′`-mono `fst ≫ m : [C] ⟶ t` (`fst`
@@ -697,15 +699,16 @@ theorem inflCover_to_cover {s t : Infl 𝒞} {f : listProd (𝒞 := 𝒞) s ⟶ 
   let g' : listProd (𝒞 := 𝒞) s ⟶ listProd ([C] : List 𝒞) := g ≫ prodOneRightInv C
   have hfac : g' ≫ M = f := by
     show (g ≫ prodOneRightInv C) ≫ ((fst : prod C one ⟶ C) ≫ m) = f
-    rw [← Cat.assoc, Cat.assoc g, prodOneRightInv_fst, Cat.comp_id, hgm]
+    rw [← Cat.assoc, Cat.assoc g, show prodOneRightInv C ≫ fst = Cat.id C from fst_pair _ _,
+      Cat.comp_id, hgm]
   have hiso : IsIso (𝒞 := Infl 𝒞) (X := ([C] : List 𝒞)) (Y := t) M :=
     hf (C := ([C] : List 𝒞)) M g' hmInfl hfac
   -- `IsIso(A′) (fst ≫ m) = IsIso(A) (fst ≫ m)`; `m = prodOneRightInv C ≫ (fst ≫ m)`, iso∘iso.
   have hiso𝒞 : IsIso (𝒞 := 𝒞) ((fst : prod C one ⟶ C) ≫ m) := hiso
   have hmeq : m = prodOneRightInv C ≫ ((fst : prod C one ⟶ C) ≫ m) := by
-    rw [← Cat.assoc, prodOneRightInv_fst, Cat.id_comp]
+    rw [← Cat.assoc, show prodOneRightInv C ≫ fst = Cat.id C from fst_pair _ _, Cat.id_comp]
   have hinvIso : IsIso (𝒞 := 𝒞) (prodOneRightInv C) :=
-    ⟨(fst : prod C one ⟶ C), prodOneRightInv_fst, fst_prodOneRightInv⟩
+    ⟨(fst : prod C one ⟶ C), fst_pair _ _, fst_prodOneRightInv⟩
   rw [hmeq]; exact isIso_comp (𝒞 := 𝒞) hinvIso hiso𝒞
 
 /-- `Cover` carries from `A` back to `A′` (same underlying arrow).  An `A′`-mono is an `A`-mono
@@ -763,13 +766,13 @@ theorem inflIsPullback_to_isPullback {a b cc : Infl 𝒞}
           = prodOneRightInv W ≫ (u𝒞 ≫ cπ₁) := Cat.assoc _ _ _
       _ = prodOneRightInv W ≫ ((fst : prod W one ⟶ W) ≫ d.π₁) := by rw [huc1]
       _ = (prodOneRightInv W ≫ (fst : prod W one ⟶ W)) ≫ d.π₁ := (Cat.assoc _ _ _).symm
-      _ = d.π₁ := by rw [prodOneRightInv_fst, Cat.id_comp]
+      _ = d.π₁ := by rw [show prodOneRightInv W ≫ fst = Cat.id W from fst_pair _ _, Cat.id_comp]
   · show (prodOneRightInv W ≫ u𝒞) ≫ cπ₂ = d.π₂
     calc (prodOneRightInv W ≫ u𝒞) ≫ cπ₂
           = prodOneRightInv W ≫ (u𝒞 ≫ cπ₂) := Cat.assoc _ _ _
       _ = prodOneRightInv W ≫ ((fst : prod W one ⟶ W) ≫ d.π₂) := by rw [huc2]
       _ = (prodOneRightInv W ≫ (fst : prod W one ⟶ W)) ≫ d.π₂ := (Cat.assoc _ _ _).symm
-      _ = d.π₂ := by rw [prodOneRightInv_fst, Cat.id_comp]
+      _ = d.π₂ := by rw [show prodOneRightInv W ≫ fst = Cat.id W from fst_pair _ _, Cat.id_comp]
   · -- uniqueness: any `A`-lift `v : W ⟶ ∏c.pt` agreeing on both legs equals `prodOneRightInv W ≫ u`.
     intro v hv1 hv2
     have hvc1 : (v : W ⟶ listProd c.pt) ≫ cπ₁ = d.π₁ := hv1
@@ -788,7 +791,8 @@ theorem inflIsPullback_to_isPullback {a b cc : Infl 𝒞}
           _ = (fst : prod W one ⟶ W) ≫ d.π₂ := by rw [hvc2]
     -- cancel the unitor: `v = prodOneRightInv W ≫ (fst ≫ v) = prodOneRightInv W ≫ u`.
     calc v = prodOneRightInv W ≫ ((fst : prod W one ⟶ W) ≫ v) := by
-            rw [← Cat.assoc, prodOneRightInv_fst, Cat.id_comp]
+            rw [← Cat.assoc, show prodOneRightInv W ≫ fst = Cat.id W from fst_pair _ _,
+              Cat.id_comp]
       _ = prodOneRightInv W ≫ vInfl := rfl
       _ = prodOneRightInv W ≫ u𝒞 := by rw [hvInfl]
 
@@ -865,7 +869,7 @@ theorem infl_preserves_isPullback {A B C : 𝒞} {f : A ⟶ C} {g : B ⟶ C}
   let U : listProd (𝒞 := 𝒞) d.pt ⟶ prod c.pt one := u ≫ prodOneRightInv c.pt
   have hUfst : U ≫ (fst : prod c.pt one ⟶ c.pt) = u := by
     show (u ≫ prodOneRightInv c.pt) ≫ (fst : prod c.pt one ⟶ c.pt) = u
-    rw [Cat.assoc, prodOneRightInv_fst, Cat.comp_id]
+    rw [Cat.assoc, show prodOneRightInv c.pt ≫ fst = Cat.id c.pt from fst_pair _ _, Cat.comp_id]
   -- `U ≫ infl c.π_i = d.π_i` by joint monicity on `_×1`: `fst`-leg is `u ≫ c.π_i = p_i`, `snd`→`term`.
   have hUleg : ∀ {Z : 𝒞} (k : c.pt ⟶ Z) (Ik : prod c.pt one ⟶ prod Z one)
       (e : listProd (𝒞 := 𝒞) d.pt ⟶ prod Z one),
@@ -1003,7 +1007,7 @@ noncomputable def inflImage [RegularCategory 𝒞] {s t : Infl 𝒞}
 
 /-- `inflImage f` is the image of `f` in `A′`: cover-then-mono factorization (`coverMono_isImage`).
     Cover leg `image.lift f ≫ prodOneRightInv J : ∏s ⟶ J×1` (cover · iso = cover, `cover_postcomp_iso`),
-    mono leg `fst ≫ (image f).arr`; their composite is `f` (unitor `prodOneRightInv_fst`). -/
+    mono leg `fst ≫ (image f).arr`; their composite is `f` (the unitor projection law). -/
 theorem inflImage_isImage [RegularCategory 𝒞] {s t : Infl 𝒞}
     (f : listProd (𝒞 := 𝒞) s ⟶ listProd t) :
     IsImage (𝒞 := Infl 𝒞) (A := s) (B := t) f (inflImage f) := by
@@ -1018,14 +1022,15 @@ theorem inflImage_isImage [RegularCategory 𝒞] {s t : Infl 𝒞}
   -- hence an `A′`-cover on the same underlying arrow (`coverC_to_inflCover`).
   have hcov𝒞 : Cover (𝒞 := 𝒞) e :=
     cover_comp_iso_right (Colim.image_lift_cover_local f')
-      ⟨_, prodOneRightInv_fst, fst_prodOneRightInv⟩
+      ⟨_, fst_pair _ _, fst_prodOneRightInv⟩
   have hcov : Cover (𝒞 := Infl 𝒞) (X := s) (Y := ([J] : List 𝒞)) e :=
     coverC_to_inflCover (s := s) (t := ([J] : List 𝒞)) (f := e) hcov𝒞
-  -- `e ≫ m = f` (the singleton mono `m = fst ≫ (image f).arr`), via `prodOneRightInv_fst`.
+  -- `e ≫ m = f` (the singleton mono `m = fst ≫ (image f).arr`), via the unitor projection law.
   have hfac : @Eq (listProd (𝒞 := 𝒞) s ⟶ listProd t) (e ≫ (inflImage f).arr) f := by
     show (image.lift (𝒞 := 𝒞) f' ≫ prodOneRightInv J)
         ≫ ((fst : prod J one ⟶ J) ≫ (image (𝒞 := 𝒞) f').arr) = f'
-    rw [← Cat.assoc, Cat.assoc (image.lift (𝒞 := 𝒞) f'), prodOneRightInv_fst, Cat.comp_id,
+    rw [← Cat.assoc, Cat.assoc (image.lift (𝒞 := 𝒞) f'),
+      show prodOneRightInv J ≫ fst = Cat.id J from fst_pair _ _, Cat.comp_id,
       image.lift_fac]
   exact Colim.coverMono_isImage (𝒞 := Infl 𝒞) (inflImage f).monic hcov hfac
 
@@ -1240,10 +1245,10 @@ theorem catArrange_nil_heq : ∀ (t : List 𝒞) {X : 𝒞}
           = pair (g ≫ (fst : prod a (listProd t') ⟶ a))
                  (catArrange t' [] (g ≫ (snd : prod a (listProd t') ⟶ listProd t')) b) := rfl
       rw [hf]
-      -- second component HEq `g ≫ snd` (across `∏(t'++[]) = ∏t'`); kernel-substitute then `pair_eta`.
+      -- second component HEq `g ≫ snd` (across `∏(t'++[]) = ∏t'`); kernel-substitute then the eta law.
       refine HEq.trans (pair_snd_kernel (listProd_append_nil t') (g ≫ fst)
         (catArrange t' [] (g ≫ snd) b) (g ≫ snd) (catArrange_nil_heq t' (g ≫ snd) b)) ?_
-      rw [← pair_eta]
+      rw [← pair_uniq _ _ _ rfl rfl]
 
 /-- `catForget s [] ≫ f` HEq `f` (`catForget s [] ≍ id`, so the composite is `id ≫ f = f`).
     Generalizes the reindexed domain of `catForget s []` and substitutes, as in the cons kernel. -/

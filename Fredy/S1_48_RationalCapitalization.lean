@@ -1239,7 +1239,7 @@ theorem wellSupported_one' : WellSupported (HasTerminal.one : 𝒞) := by
 /-- Product extensionality: two maps into a product agree iff they agree after both projections. -/
 theorem prod_hom_ext {X A B : 𝒞} {u v : X ⟶ prod A B}
     (h₁ : u ≫ fst = v ≫ fst) (h₂ : u ≫ snd = v ≫ snd) : u = v := by
-  rw [pair_eta u, pair_eta v, h₁, h₂]
+  rw [pair_uniq _ _ u rfl rfl, pair_uniq _ _ v rfl rfl, h₁, h₂]
 
 /-- **Joint monicity of the `listProd` projections.**  Two maps into `∏U` agree iff they agree
     after every factor projection `listProdProj U k`.  Iterated `prod_hom_ext`: the head projection

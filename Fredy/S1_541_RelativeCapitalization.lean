@@ -245,7 +245,7 @@ theorem sliceEmbedFaithful (B : 𝒞) [PullbacksTransferCovers 𝒞] (hws : Well
     because `diag B ≫ snd = id_B` (the second projection of the diagonal is the identity). -/
 def sliceGenericPoint (B : 𝒞) :
     OverHom (overTerm B) (sliceEmbedObj B B) :=
-  ⟨diag B, by show diag B ≫ snd = Cat.id B; exact diag_snd B⟩
+  ⟨diag B, by show diag B ≫ snd = Cat.id B; exact snd_pair _ _⟩
 
 /-- **§1.546 — `A/B` acquires a point of `A(B)`.**  `sliceGenericPoint B` is a point
     `1 → sliceEmbedObj B B` in `A/B` (its source is the terminator `overTerm B`, which is the
@@ -254,7 +254,7 @@ def sliceGenericPoint (B : 𝒞) :
 theorem sliceAcquiresPoint (B : 𝒞) :
     (sliceGenericPoint B).f ≫ (sliceEmbedObj B B).hom = (overTerm B).hom := by
   show diag B ≫ snd = Cat.id B
-  exact diag_snd B
+  exact snd_pair _ _
 
 /-! ## §1.547  Product slices acquire a point of every factor
 

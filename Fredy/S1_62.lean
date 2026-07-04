@@ -2795,13 +2795,15 @@ theorem capital_iff_complemented_subterminators :
             _ = (e ≫ pair f g) ≫ fst := (Cat.assoc _ _ _).symm
             _ = (pb.cone.π₂ ≫ diag B) ≫ fst := by rw [hw]
             _ = pb.cone.π₂ ≫ (diag B ≫ fst) := Cat.assoc _ _ _
-            _ = pb.cone.π₂ := by rw [diag_fst, Cat.comp_id]
+            _ = pb.cone.π₂ := by
+                  rw [show diag B ≫ fst = Cat.id B from fst_pair _ _, Cat.comp_id]
         have h2 : e ≫ g = pb.cone.π₂ := by
           calc e ≫ g = e ≫ (pair f g ≫ snd) := by rw [snd_pair]
             _ = (e ≫ pair f g) ≫ snd := (Cat.assoc _ _ _).symm
             _ = (pb.cone.π₂ ≫ diag B) ≫ snd := by rw [hw]
             _ = pb.cone.π₂ ≫ (diag B ≫ snd) := Cat.assoc _ _ _
-            _ = pb.cone.π₂ := by rw [diag_snd, Cat.comp_id]
+            _ = pb.cone.π₂ := by
+                  rw [show diag B ≫ snd = Cat.id B from snd_pair _ _, Cat.comp_id]
         rw [h1, h2]
       -- `e` is NOT iso:  an iso `e` would force `f = g` (cancel the iso, `e≫f = e≫g`).
       have heproper : ¬ IsIso e := by
@@ -2818,8 +2820,9 @@ theorem capital_iff_complemented_subterminators :
         have hL : x ≫ pair f g = pair (x ≫ f) (x ≫ f) :=
           pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair, ← hxeq])
         have hR : (x ≫ f) ≫ diag B = pair (x ≫ f) (x ≫ f) :=
-          pair_uniq _ _ _ (by rw [Cat.assoc, diag_fst, Cat.comp_id])
-            (by rw [Cat.assoc, diag_snd, Cat.comp_id])
+          pair_uniq _ _ _
+            (by rw [Cat.assoc, show diag B ≫ fst = Cat.id B from fst_pair _ _, Cat.comp_id])
+            (by rw [Cat.assoc, show diag B ≫ snd = Cat.id B from snd_pair _ _, Cat.comp_id])
         rw [hL, hR]
       exact ⟨pb.lift ⟨G, x, x ≫ f, hcone⟩, pb.lift_fst ⟨G, x, x ≫ f, hcone⟩⟩
   · -- (⟸)  subterminators projective ∧ basis ⟹ Capital.

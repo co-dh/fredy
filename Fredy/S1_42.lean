@@ -81,17 +81,10 @@ attribute [simp] HasBinaryProducts.fst_pair HasBinaryProducts.snd_pair
 
 def diag (A : 𝒞) : A ⟶ prod A A := pair (Cat.id A) (Cat.id A)
 
-theorem diag_fst (A : 𝒞) : diag A ≫ fst = Cat.id A := fst_pair _ _
-theorem diag_snd (A : 𝒞) : diag A ≫ snd = Cat.id A := snd_pair _ _
-
 theorem diag_mono (A : 𝒞) : Monic (diag A) :=
-  mono_of_retraction (diag A) fst (diag_fst A)
+  mono_of_retraction (diag A) fst (fst_pair _ _)
 
 /-! ### §1.423 Product corollaries -/
-
-/-- Product eta: any h : X → A×B equals ⟨h≫fst, h≫snd⟩. -/
-theorem pair_eta {X A B : 𝒞} (h : X ⟶ prod A B) : h = pair (h ≫ fst) (h ≫ snd) :=
-  pair_uniq _ _ h rfl rfl
 
 /-- The pair of projections on A×B is the identity. -/
 theorem pair_fst_snd {A B : 𝒞} : pair (fst (A := A) (B := B)) snd = Cat.id (prod A B) :=
@@ -100,8 +93,8 @@ theorem pair_fst_snd {A B : 𝒞} : pair (fst (A := A) (B := B)) snd = Cat.id (p
 /-- Projections fst and snd are jointly monic (§1.423): the product is a table on A, B. -/
 theorem fst_snd_jointly_monic {A B : 𝒞} : MonicPair (fst (A := A) (B := B)) snd := by
   intro W f g hf hs
-  have hfe : f = pair (f ≫ fst) (f ≫ snd) := pair_eta f
-  have hge : g = pair (g ≫ fst) (g ≫ snd) := pair_eta g
+  have hfe : f = pair (f ≫ fst) (f ≫ snd) := pair_uniq _ _ f rfl rfl
+  have hge : g = pair (g ≫ fst) (g ≫ snd) := pair_uniq _ _ g rfl rfl
   rw [hfe, hge, hf, hs]
 
 /-- Products (like terminators) are unique up to isomorphism (§1.423).
@@ -116,7 +109,7 @@ theorem product_unique_iso {A B : 𝒞} [hp2 : HasBinaryProducts 𝒞]
   · -- f ≫ g = id : suffices pair (f≫g≫fst) (f≫g≫snd) = pair fst snd = id
     have h1 : (f ≫ g) ≫ fst = fst := by rw [Cat.assoc, hg₁, hf₁]
     have h2 : (f ≫ g) ≫ snd = snd := by rw [Cat.assoc, hg₂, hf₂]
-    calc f ≫ g = pair ((f ≫ g) ≫ fst) ((f ≫ g) ≫ snd) := pair_eta (f ≫ g)
+    calc f ≫ g = pair ((f ≫ g) ≫ fst) ((f ≫ g) ≫ snd) := pair_uniq _ _ (f ≫ g) rfl rfl
       _ = pair fst snd := by rw [h1, h2]
       _ = Cat.id _ := pair_fst_snd
   · -- g ≫ f = id (using hp2)
@@ -199,16 +192,16 @@ theorem monic_id_pair_of_monic {A B : 𝒞} (b : A ⟶ B) (hb : Monic b) :
 /-- The swap map `A×B → B×A`, `⟨snd, fst⟩`. -/
 def prodSwap (A B : 𝒞) : prod A B ⟶ prod B A := pair snd fst
 
-@[simp] theorem prodSwap_fst {A B : 𝒞} : prodSwap A B ≫ fst = snd (A := A) (B := B) := fst_pair _ _
-@[simp] theorem prodSwap_snd {A B : 𝒞} : prodSwap A B ≫ snd = fst (A := A) (B := B) := snd_pair _ _
-
 /-- The swap is its own inverse: `(A×B → B×A → A×B)` is the identity. -/
 theorem prodSwap_prodSwap {A B : 𝒞} : prodSwap A B ≫ prodSwap B A = Cat.id (prod A B) := by
   calc prodSwap A B ≫ prodSwap B A
       = pair ((prodSwap A B ≫ prodSwap B A) ≫ fst) ((prodSwap A B ≫ prodSwap B A) ≫ snd) :=
-        pair_eta _
+        pair_uniq _ _ _ rfl rfl
     _ = pair fst snd := by
-        rw [Cat.assoc, prodSwap_fst, prodSwap_snd, Cat.assoc, prodSwap_snd, prodSwap_fst]
+        rw [Cat.assoc, show prodSwap B A ≫ fst = snd (A := B) (B := A) from fst_pair _ _,
+            show prodSwap A B ≫ snd = fst (A := A) (B := B) from snd_pair _ _,
+            Cat.assoc, show prodSwap B A ≫ snd = fst (A := B) (B := A) from snd_pair _ _,
+            show prodSwap A B ≫ fst = snd (A := A) (B := B) from fst_pair _ _]
     _ = Cat.id (prod A B) := pair_fst_snd
 
 /-- Product commutativity (§1.42): `A×B ≅ B×A`, witnessed by `prodSwap = ⟨snd, fst⟩`,
@@ -227,38 +220,34 @@ variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
 /-- Left unitor map `B → 1×B`, `⟨term B, id B⟩`. -/
 def prodOneLeftInv (B : 𝒞) : B ⟶ prod one B := pair (term B) (Cat.id B)
 
-@[simp] theorem prodOneLeftInv_snd {B : 𝒞} : prodOneLeftInv B ≫ snd = Cat.id B := snd_pair _ _
-
 /-- Round-trip on `1×B`: `(1×B → B → 1×B)` is the identity.
     The `fst` component collapses by `term_uniq` (any two maps into `1` agree). -/
 theorem snd_prodOneLeftInv {B : 𝒞} :
     (snd : prod one B ⟶ B) ≫ prodOneLeftInv B = Cat.id (prod one B) := by
   have h1 : (snd ≫ prodOneLeftInv B) ≫ fst = fst (A := one) (B := B) := term_uniq _ _
   have h2 : (snd ≫ prodOneLeftInv B) ≫ snd = snd (A := one) (B := B) := by
-    rw [Cat.assoc, prodOneLeftInv_snd, Cat.comp_id]
+    rw [Cat.assoc, show prodOneLeftInv B ≫ snd = Cat.id B from snd_pair _ _, Cat.comp_id]
   exact (pair_uniq fst snd _ h1 h2).trans pair_fst_snd
 
 /-- Left unit law (§1.42): `1×B ≅ B`, witnessed by `snd : 1×B → B`. -/
 theorem prod_one_iso_left {B : 𝒞} : IsIso (snd : prod one B ⟶ B) :=
-  ⟨prodOneLeftInv B, snd_prodOneLeftInv, prodOneLeftInv_snd⟩
+  ⟨prodOneLeftInv B, snd_prodOneLeftInv, snd_pair _ _⟩
 
 /-- Right unitor map `B → B×1`, `⟨id B, term B⟩`. -/
 def prodOneRightInv (B : 𝒞) : B ⟶ prod B one := pair (Cat.id B) (term B)
-
-@[simp] theorem prodOneRightInv_fst {B : 𝒞} : prodOneRightInv B ≫ fst = Cat.id B := fst_pair _ _
 
 /-- Round-trip on `B×1`: `(B×1 → B → B×1)` is the identity.
     The `snd` component collapses by `term_uniq`. -/
 theorem fst_prodOneRightInv {B : 𝒞} :
     (fst : prod B one ⟶ B) ≫ prodOneRightInv B = Cat.id (prod B one) := by
   have h1 : (fst ≫ prodOneRightInv B) ≫ fst = fst (A := B) (B := one) := by
-    rw [Cat.assoc, prodOneRightInv_fst, Cat.comp_id]
+    rw [Cat.assoc, show prodOneRightInv B ≫ fst = Cat.id B from fst_pair _ _, Cat.comp_id]
   have h2 : (fst ≫ prodOneRightInv B) ≫ snd = snd (A := B) (B := one) := term_uniq _ _
   exact (pair_uniq fst snd _ h1 h2).trans pair_fst_snd
 
 /-- Right unit law (§1.42): `B×1 ≅ B`, witnessed by `fst : B×1 → B`. -/
 theorem prod_one_iso_right {B : 𝒞} : IsIso (fst : prod B one ⟶ B) :=
-  ⟨prodOneRightInv B, fst_prodOneRightInv, prodOneRightInv_fst⟩
+  ⟨prodOneRightInv B, fst_prodOneRightInv, fst_pair _ _⟩
 
 end Unitors
 

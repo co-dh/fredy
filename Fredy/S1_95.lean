@@ -1034,7 +1034,8 @@ theorem cogenerator_internally_cogenerates [HasExponentials 𝒞] [HasTerminal �
   -- Cancel fstA via its right-inverse prodOneRightInv A, concluding f ≫ h = g ≫ h.
   exact hh (by
     have := congrArg (prodOneRightInv A ≫ ·) heqh
-    simp only [← Cat.assoc, prodOneRightInv_fst, Cat.id_comp] at this
+    simp only [← Cat.assoc, show prodOneRightInv A ≫ fst = Cat.id A from fst_pair _ _,
+      Cat.id_comp] at this
     exact this)
 
 /-- **The inverse-image relation `expMap Ω f` cuts out is `evalRel B ⊚ (graph f)°`.**
@@ -1530,8 +1531,10 @@ private theorem powProj_precomp {I : Type v} (P : CopowerOfOne I 𝒞) {A X : �
   have hR : (pair (Cat.id X) (term X ≫ P.inj i) ≫ prodSwap X P.obj) ≫
       prodMap P.obj X (A ^^ P.obj) k = pair (term X ≫ P.inj i) k := by
     apply pair_uniq
-    · rw [Cat.assoc, prodMap_fst, Cat.assoc, prodSwap_fst, snd_pair]
-    · rw [Cat.assoc, prodMap_snd, Cat.assoc, ← Cat.assoc (prodSwap X P.obj), prodSwap_snd,
+    · rw [Cat.assoc, prodMap_fst, Cat.assoc,
+        show prodSwap X P.obj ≫ fst = snd (A := X) (B := P.obj) from fst_pair _ _, snd_pair]
+    · rw [Cat.assoc, prodMap_snd, Cat.assoc, ← Cat.assoc (prodSwap X P.obj),
+          show prodSwap X P.obj ≫ snd = fst (A := X) (B := P.obj) from snd_pair _ _,
           ← Cat.assoc, fst_pair, Cat.id_comp]
   rw [← Cat.assoc, hL]
   simp only [← Cat.assoc]

@@ -2218,7 +2218,8 @@ noncomputable def ERel : BinRel ExtNat omega omega where
     have h_snd : (f ≫ (image FE).arr) ≫ snd = (g ≫ (image FE).arr) ≫ snd := by
       simpa [Cat.assoc] using hB
     have hfg : f ≫ (image FE).arr = g ≫ (image FE).arr := by
-      rw [pair_eta (f ≫ (image FE).arr), pair_eta (g ≫ (image FE).arr), h_fst, h_snd]
+      rw [pair_uniq _ _ (f ≫ (image FE).arr) rfl rfl, pair_uniq _ _ (g ≫ (image FE).arr) rfl rfl,
+        h_fst, h_snd]
     exact (image FE).monic f g hfg
 
 /-! Pointwise membership: the elements of `ERel.src` present exactly the pairs of

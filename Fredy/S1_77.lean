@@ -378,7 +378,9 @@ theorem relSub_compRecip_eq_invImage [PreLogos 𝒞] [HasRightAdjointImage 𝒞]
   let span : pb.cone.pt ⟶ prod A B := pair (pb.cone.π₁ ≫ T.colA) (pb.cone.π₂ ≫ Cat.id B)
   have harr : (relSub (T ⊚ (graph f)°)).arr = (image span).arr := by
     dsimp [relSub, compose, reciprocal, graph, span]
-    rw [← pair_eta (hp := inferInstance)]
+    have pairEta : ∀ {X A' B' : 𝒞} (h : X ⟶ prod A' B'), h = pair (h ≫ fst) (h ≫ snd) :=
+      fun h => pair_uniq (self := inferInstance) _ _ h rfl rfl
+    rw [← pairEta]
   let pb3 := HasPullbacks.has (prodMap A B C f) (relSub T).arr
   refine ⟨?_, ?_⟩
   · -- relSub(T ⊚ f°) ≤ InverseImage(prodMap)(relSub T)
@@ -447,17 +449,19 @@ noncomputable def quotRecipRel [PreLogos 𝒞] [HasRightAdjointImage 𝒞]
     colB := Q.arr ≫ snd
     isMonicPair := by
       apply monicPair_of_monic_pair
-      rw [← pair_eta (hp := inferInstance) Q.arr]
+      rw [← pair_uniq (self := inferInstance) _ _ Q.arr rfl rfl]
       exact Q.monic }
 
 /-- `relSub (quotRecipRel R f)` is the subobject `Q = (prodMap A B C f)##(relSub R)`:
-    its representing arrow is `pair (Q.arr ≫ fst) (Q.arr ≫ snd) = Q.arr` (`pair_eta`). -/
+    its representing arrow is `pair (Q.arr ≫ fst) (Q.arr ≫ snd) = Q.arr` (the eta law). -/
 theorem relSub_quotRecipRel_arr [PreLogos 𝒞] [HasRightAdjointImage 𝒞]
     {A B C : 𝒞} (R : BinRel 𝒞 A B) (f : B ⟶ C) :
     (relSub (quotRecipRel R f)).arr
       = (HasRightAdjointImage.rightAdj (prodMap A B C f) (relSub R)).arr := by
   dsimp [relSub, quotRecipRel]
-  rw [← pair_eta (hp := inferInstance)]
+  have pairEta : ∀ {X A' B' : 𝒞} (h : X ⟶ prod A' B'), h = pair (h ≫ fst) (h ≫ snd) :=
+    fun h => pair_uniq (self := inferInstance) _ _ h rfl rfl
+  rw [← pairEta]
 
 /-- §1.784: in a logos (here: a pre-logos with the right-adjoint image `f##`), the relational
     quotient `R/(graph f)°` exists, for any relation `R : A → B` and map `f : B → C`.

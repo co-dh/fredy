@@ -231,7 +231,8 @@ variable [Cat.{u} 𝒞] [PreRegularCategory 𝒞] [HasEqualizers 𝒞]
 /-- `snd : C×A ⟶ A` is a cover when `C` is well-supported (`prod_fst_cover` through `prodSwap`). -/
 theorem prod_snd_cover {C A : 𝒞} (hC : WellSupported C) :
     Cover (snd : prod C A ⟶ A) := by
-  have h : (snd : prod C A ⟶ A) = prodSwap C A ≫ (fst : prod A C ⟶ A) := by rw [prodSwap_fst]
+  have h : (snd : prod C A ⟶ A) = prodSwap C A ≫ (fst : prod A C ⟶ A) := by
+    rw [show prodSwap C A ≫ fst = snd (A := C) (B := A) from fst_pair _ _]
   rw [h]
   apply cover_precomp_iso (prod_comm_iso (A := C) (B := A))
   exact prod_fst_cover (C := A) (B := C) hC
