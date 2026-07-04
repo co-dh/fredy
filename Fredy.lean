@@ -159,6 +159,7 @@ import Fredy.S1_422_FunctorCategory
 import Fredy.S2_147_MapCat
 import Fredy.S2_165_Spl
 import Fredy.S2_216_MatrixAllegory
+import Fredy.S2_217_PositiveRepr
 import Fredy.S1_723_Locale
 import Fredy.S2_168_ValuedSetsTabular
 import Fredy.S2_111_RelCat

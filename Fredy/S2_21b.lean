@@ -2,6 +2,7 @@ import Fredy.S2_218_CapDataPositiveTower
 import Fredy.S1_635_StalkRepr
 import Fredy.S2_147_MapCat
 import Fredy.S2_216_MatrixAllegory
+import Fredy.S2_217_PositiveRepr
 
 universe u u₁ u₂ u₃ v
 
@@ -142,24 +143,10 @@ theorem tabular_repr_in_power_of_sets {𝒜 : Type u}
   (`embed1`, the `α ↦ ⟨α⟩` 1×1-matrix wrapper) removes the positivity hypothesis — the bare
   *distributive* §2.218. -/
 
-open Alg Alg.Mat in
-/-- **§2.216 — the FULL+FAITHFUL embedding `𝒜 ↪ Mat 𝒜` as an allegory functor** (`α ↦ ⟨α⟩`,
-    `R ↦ embed1 R`).  Object/hom laws are the `embed1_*` homomorphism lemmas (`embed1_id` =
-    `Freyd.embed1_id`; `Cat.id (unitObj a)` is `matId (unitObj a)` definitionally). -/
-def matEmbed (𝒜 : Type u) [Alg.TabularUnitaryDistributiveAllegory.{u, u} 𝒜] :
-    Alg.AllegoryFunctor 𝒜 (MatObj 𝒜) where
-  obj := unitObj
-  map := embed1
-  map_id _ := embed1_id
-  map_comp R S := embed1_comp R S
-  map_recip R := embed1_recip R
-  map_inter R S := embed1_inter R S
-
-open Alg Alg.Mat in
-/-- `matEmbed` is faithful — `embed1` is injective (`embed1_injective`). -/
-theorem matEmbed_faithful {𝒜 : Type u} [Alg.TabularUnitaryDistributiveAllegory.{u, u} 𝒜] :
-    (matEmbed 𝒜).Faithful :=
-  fun _ _ h => embed1_injective h
+-- `matEmbed` (the FULL+FAITHFUL `𝒜 ↪ Mat 𝒜` allegory functor, `α ↦ ⟨α⟩`) and
+-- `matEmbed_faithful` now live in `Fredy/S2_217_PositiveRepr.lean` over a BARE
+-- `[DistributiveAllegory 𝒜]` (with fullness `matEmbed_full` and order-reflection
+-- `matEmbed_le_iff`); they apply here through the `TabularUnitaryDistributiveAllegory` parent.
 
 open Alg Alg.Mat in
 /-- **§2.218 (FULLY GENERAL).**  Every small TABULAR unitary DISTRIBUTIVE allegory `𝒜` is faithfully
@@ -171,17 +158,8 @@ open Alg Alg.Mat in
 theorem tabular_repr_in_power_of_sets_distributive {𝒜 : Type u}
     [Alg.TabularUnitaryDistributiveAllegory.{u, u} 𝒜] :
     ∃ (I : Type u) (rep : Alg.AllegoryFunctor 𝒜 (RelObj (I → Type u))), rep.Faithful := by
-  -- the §2.342 hypothesis classes (`Tabular/UnitaryDistributiveAllegory 𝒜`) — local, to avoid
-  -- overlapping `RelCat`'s `RelObj`-specialised instances.
-  letI iTD : TabularDistributiveAllegory 𝒜 :=
-    { (inferInstance : TabularAllegory 𝒜), (inferInstance : DistributiveAllegory 𝒜) with }
-  letI iUD : UnitaryDistributiveAllegory 𝒜 :=
-    { (inferInstance : UnitaryAllegory 𝒜), (inferInstance : DistributiveAllegory 𝒜) with }
-  -- `Mat 𝒜` is tabular unitary POSITIVE (bundle the three matrix instances).
-  letI iTUP : Alg.TabularUnitaryPositiveAllegory (MatObj 𝒜) :=
-    { (instTabularAllegoryMat : TabularAllegory (MatObj 𝒜)),
-      (instUnitaryAllegoryMat : UnitaryAllegory (MatObj 𝒜)),
-      (instPositiveAllegoryMat : PositiveAllegory (MatObj 𝒜)) with }
+  -- `Mat 𝒜` is tabular unitary POSITIVE (`matTabularUnitaryPositive`, S2_217_PositiveRepr).
+  letI iTUP : Alg.TabularUnitaryPositiveAllegory (MatObj 𝒜) := matTabularUnitaryPositive 𝒜
   obtain ⟨I, rep, hrep⟩ := tabular_repr_in_power_of_sets (𝒜 := MatObj 𝒜)
   exact ⟨I, (matEmbed 𝒜).comp rep,
     Alg.AllegoryFunctor.Faithful.comp (matEmbed_faithful (𝒜 := 𝒜)) hrep⟩

@@ -372,6 +372,13 @@ theorem finJoin_single {a b : 𝒜} {n : Nat} (f : Fin n → (a ⟶ b)) (k₀ : 
 theorem zero_inter {a b : 𝒜} (R : a ⟶ b) : (𝟘 : a ⟶ b) ∩ R = 𝟘 :=
   le_antisymm (inter_lb_left _ _) (zero_le _)
 
+/-- Pointwise characterization of the matrix order: `M ⊑ N` iff entrywise. -/
+theorem matLe_iff {X Y : MatObj 𝒜} {M N : X ⟶ Y} :
+    (M ⊑ N) ↔ ∀ i j, M i j ⊑ N i j := by
+  simp only [le]; constructor
+  · intro h i j; exact congrFun (congrFun (show M ∩ N = M from h) i) j
+  · intro h; show M ∩ N = M; funext i j; exact h i j
+
 end MatDistributive
 
 /-! ## §G  Division allegory instance (§2.342)
@@ -395,13 +402,6 @@ noncomputable def matDiv {X Y Z : MatObj 𝒜} (R : MatHom X Z) (S : MatHom Y Z)
     match h : Z.n with
     | 0     => Cat.id (X.objs i) / (𝟘 : Y.objs j ⟶ X.objs i)
     | n + 1 => finMeet (fun k => R i (h ▸ k) / S j (h ▸ k))
-
--- Pointwise characterization of the matrix order.
-private theorem matLe_iff {X Y : MatObj 𝒜} {M N : X ⟶ Y} :
-    (M ⊑ N) ↔ ∀ i j, M i j ⊑ N i j := by
-  simp only [le]; constructor
-  · intro h i j; exact congrFun (congrFun (show M ∩ N = M from h) i) j
-  · intro h; show M ∩ N = M; funext i j; exact h i j
 
 theorem matDiv_le_div {X Y Z : MatObj 𝒜} (T : X ⟶ Y) (R : X ⟶ Z) (S : Y ⟶ Z)
     (h : T ≫ S ⊑ R) : T ⊑ matDiv R S := by
