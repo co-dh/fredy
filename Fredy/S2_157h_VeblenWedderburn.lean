@@ -464,21 +464,21 @@ theorem VW_not_desargues : ¬ VW.DesarguesND := by
 theorem VW_not_desarguesHorn : ¬ DesarguesHorn (LMonObj (PElem VW)) :=
   fun h => VW_not_desargues (desarguesND_iff_desarguesHorn.mpr h)
 
-/-! ### Gap analysis: the non-representability corollary
+/-! ### The non-representability corollary (DONE — see `S2_157i_NotRepresentable`)
 
   The intended p. 15 consequence — `LMonObj (PElem VW)` admits NO faithful
-  representation in `Rel(Set)` (nor in any power of it) — needs two transfer
-  facts not yet in the repo, so it is NOT stated here:
+  representation in `Rel(Set)` (nor in any power of it) — is proved in
+  `Fredy/S2_157i_NotRepresentable.lean` from the two transfer facts:
 
-  1. `DesarguesHorn (RelObj (Type u))`: the Horn sentence for the honest
-     `Allegory` instance on `RelObj` (§2.154).  The element chase is DONE
-     (`desarguesHorn_binRel`, §2.157); missing is only the wiring through
-     `RelObj`'s `≫`/`∩`/`°`/`⊑` definitions.
-  2. Horn reflection: for a faithful `F : AllegoryFunctor 𝒜 ℬ` (§2.148),
+  1. `desarguesHorn_relObj` / `desarguesHorn_relObjPower`: the Horn sentence for
+     the honest `Allegory` instance on `RelObj (Type u)` / `RelObj (I → Type u)`
+     (the element chase `desarguesHorn_binRel` wired through the `setRel`/`powRel`
+     computation rules for `≫`/`∩`/`°`/`⊑`).
+  2. `desarguesHorn_reflect`: for a faithful `F : AllegoryFunctor 𝒜 ℬ` (§2.148),
      `DesarguesHorn ℬ → DesarguesHorn 𝒜` — `F` preserves `≫`/`°`/`∩` by its
      fields, and faithful + `map_inter` reflects `⊑` (`R ⊑ S ↔ R ∩ S = R`).
 
-  Both are routine; together with `VW_not_desarguesHorn` they would give
-  `¬ ∃ F : AllegoryFunctor (LMonObj (PElem VW)) (RelObj (Type u)), F.Faithful`. -/
+  Together with `VW_not_desarguesHorn` these give `VW_not_representable` and
+  `VW_not_representable_in_power`. -/
 
 end Freyd.Alg
