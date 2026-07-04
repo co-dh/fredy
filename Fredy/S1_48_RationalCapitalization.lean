@@ -1240,13 +1240,6 @@ theorem wellSupported_one' : WellSupported (HasTerminal.one : 𝒞) := by
   rw [show term (HasTerminal.one : 𝒞) = Cat.id _ from term_uniq _ _]
   exact cover_id _
 
-/-- Composite of covers is a cover (mathlib-free, only `HasPullbacks`).  (=
-    `cover_comp'`, `S1_543_Capitalization.lean` — same statement, kept as a local
-    alias since `S1_541_RelativeCapitalization` already imports that file.) -/
-theorem cover_comp'' {X Y Z : 𝒞} {f : X ⟶ Y} {g : Y ⟶ Z} (hf : Cover f) (hg : Cover g) :
-    Cover (f ≫ g) :=
-  cover_comp' hf hg
-
 /-- Product extensionality: two maps into a product agree iff they agree after both projections. -/
 theorem prod_hom_ext {X A B : 𝒞} {u v : X ⟶ prod A B}
     (h₁ : u ≫ fst = v ≫ fst) (h₂ : u ≫ snd = v ≫ snd) : u = v := by
@@ -1934,7 +1927,7 @@ theorem wellSupported_prod' [PullbacksTransferCovers 𝒞] {B D : 𝒞}
     (hB : WellSupported B) (hD : WellSupported D) : WellSupported (prod B D) := by
   show Cover (term (prod B D))
   rw [show term (prod B D) = (fst : prod B D ⟶ B) ≫ term B from term_uniq _ _]
-  exact cover_comp'' (prod_fst_cover hD) hB
+  exact cover_comp' (prod_fst_cover hD) hB
 
 /-- A right factor of a well-supported binary product is well-supported.  The unique
     `prod B D ⟶ 1` equals `snd ≫ (D ⟶ 1)` by terminal uniqueness, and is a cover (`prod B D`

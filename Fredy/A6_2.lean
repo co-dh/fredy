@@ -53,7 +53,7 @@ def nu (φ : (a ⟶ b) → (a ⟶ b)) : a ⟶ b := Sup (fun X => X ⊑ φ X)
 
 /-- `μφ` is a lower bound on the prefixed points (KT leastness; B&dM Ex 6.4's rule). -/
 theorem mu_le_of_prefixed {φ : (a ⟶ b) → (a ⟶ b)} {T : a ⟶ b} (h : φ T ⊑ T) : mu φ ⊑ T :=
-  Inf_le h
+  Sup_le (fun _S hS => hS T h)
 
 /-- **Theorem 6.1, first half**: `μφ` is itself a prefixed point. -/
 theorem mu_prefixed {φ : (a ⟶ b) → (a ⟶ b)} (hφ : Monotonic φ) : φ (mu φ) ⊑ mu φ :=

@@ -59,10 +59,6 @@ def perm : dList A ⟶ dList A := Perm
 theorem perm_reflexive : Cat.id (dList A) ⊑ perm :=
   le_iff.mpr fun x y hxy => hxy ▸ Perm.refl x
 
-/-- **`perm` is symmetric**: `perm° = perm` (B&dM `perm = perm°`, used throughout §6.6). -/
-theorem perm_symmetric : (perm : dList A ⟶ dList A)° = perm :=
-  hom_ext fun x y => ⟨fun h => Perm.symm h, fun h => Perm.symm h⟩
-
 /-- **`perm` is transitive**: `perm ≫ perm ⊑ perm`. -/
 theorem perm_transitive : (perm : dList A ⟶ dList A) ≫ perm ⊑ perm :=
   le_iff.mpr fun x z h => by obtain ⟨y, hxy, hyz⟩ := h; exact Perm.trans hxy hyz
@@ -87,9 +83,7 @@ theorem prefixP.trans : ∀ {x y z : ConsList Unit A}, prefixP x y → prefixP y
   | ConsList.cons a x, ConsList.cons b y, ConsList.cons c z, ⟨hab, hxy⟩, ⟨hbc, hyz⟩ =>
       ⟨hab.trans hbc, prefixP.trans hxy hyz⟩
 
-/-- **`prefix` is a preorder**: reflexive and transitive. -/
-theorem prefix_reflexive : Cat.id (dList A) ⊑ prefixR :=
-  le_iff.mpr fun x y hxy => hxy ▸ prefixP.refl x
+/-- **`prefix` is transitive**. -/
 theorem prefix_transitive : (prefixR : dList A ⟶ dList A) ≫ prefixR ⊑ prefixR :=
   le_iff.mpr fun x z h => by obtain ⟨y, hxy, hyz⟩ := h; exact prefixP.trans hxy hyz
 

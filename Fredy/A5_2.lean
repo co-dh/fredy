@@ -179,11 +179,6 @@ theorem RelProd.le_pair_iff {P : RelProd a b} {Z : c ⟶ P.p} {U : c ⟶ a} {V :
   · rintro ⟨h1, h2⟩
     exact le_inter ((map_shunt_right P.outl_map Z U).mp h1) ((map_shunt_right P.outr_map Z V).mp h2)
 
-/-- Any `Z : c ⟶ p` refines the pair of its own projections. -/
-theorem RelProd.le_pair_proj {P : RelProd a b} (Z : c ⟶ P.p) :
-    Z ⊑ P.pair (Z ≫ P.outl) (Z ≫ P.outr) :=
-  RelProd.le_pair_iff.mpr ⟨le_refl _, le_refl _⟩
-
 /-! ## `pair` of two maps is a map, and Ex 5.9
 
   Pairing two MAPS is a map (via the tabulation UP), and pairing commutes with LEFT
@@ -198,13 +193,6 @@ theorem RelProd.le_pair_proj {P : RelProd a b} (Z : c ⟶ P.p) :
 theorem RelProd.pair_map {P : RelProd a b} {f : c ⟶ a} {g : c ⟶ b}
     (hf : Map f) (hg : Map g) : Map (P.pair f g) :=
   (tabulation_UP_forward_witness P.tab hf hg (topMor_max (f° ≫ g))).1
-
-/-- Pairing two SIMPLE relations is simple (weaker than `pair_map`, no `Entire` needed):
-    `P.pair` unfolds to exactly the tabulation-mediator shape `x≫outl° ∩ y≫outr°` of
-    `Fredy.S2_1`'s `tabulation_simple_of_simple`. -/
-theorem RelProd.pair_simple {P : RelProd a b} {X : c ⟶ a} {Y : c ⟶ b}
-    (hX : Simple X) (hY : Simple Y) : Simple (P.pair X Y) :=
-  tabulation_simple_of_simple P.tab hX hY
 
 /-- **Ex 5.9**: for a MAP `f : d ⟶ c`, `f ≫ ⟨R,S⟩ = ⟨f≫R, f≫S⟩`, mirrored:
     `f ≫ P.pair R S = P.pair (f≫R) (f≫S)`.  `f` being simple lets composition

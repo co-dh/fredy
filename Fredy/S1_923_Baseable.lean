@@ -56,14 +56,6 @@ theorem powerClassify_pullback_iso {C Z : 𝒞} (R : BinRel 𝒞 Z C) :
     RelHom (relPullback (powerClassify R) HasPowerObject.mem) R :=
   (HasPowerObject.is_universal.classify_exists Z R).choose_spec
 
-/-- **Uniqueness of the classifying map** (universality `classify_unique`). -/
-theorem powerClassify_unique {C Z : 𝒞} (R : BinRel 𝒞 Z C)
-    (f g : Z ⟶ HasPowerObject.powerObj (C := C))
-    (hf : RelHom R (relPullback f HasPowerObject.mem) ∧ RelHom (relPullback f HasPowerObject.mem) R)
-    (hg : RelHom R (relPullback g HasPowerObject.mem) ∧ RelHom (relPullback g HasPowerObject.mem) R) :
-    f = g :=
-  HasPowerObject.is_universal.classify_unique Z R f g hf hg
-
 /-- **Maps into `[C]` are determined by their relation**: if `f g : Z ⟶ [C]` pull
     `∈_C` back to iso relations, they are equal. -/
 theorem powerObj_hom_ext {C Z : 𝒞} (f g : Z ⟶ HasPowerObject.powerObj (C := C))

@@ -155,14 +155,10 @@ noncomputable def zeroGObj : AbelianGroupObject 𝒞 where
   add_assoc := term_uniq _ _
   add_comm := term_uniq _ _
 
-/-- Any carrier map into `1` is a homomorphism (both sides of the hom square land in `1`). -/
-theorem isHom_toZero (A : AbelianGroupObject 𝒞) (x : A.carrier ⟶ one) :
-    IsHomAbelianGroupObject A (zeroGObj) x := term_uniq _ _
-
 /-- `Ab(𝒞)` has a terminal object: the zero group object, with `term` as the unique map. -/
 noncomputable instance instHasTerminalAb : HasTerminal (AbelianGroupObject 𝒞) where
   one := zeroGObj
-  trm A := ⟨term A.carrier, isHom_toZero A _⟩
+  trm A := ⟨term A.carrier, term_uniq _ _⟩
   uniq f g := Subtype.ext (term_uniq f.val g.val)
 
 /-- `A.zero : 1 → A` is a homomorphism `zeroGObj → A` (`O ⊕ O = O`). -/

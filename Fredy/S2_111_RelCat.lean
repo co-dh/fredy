@@ -103,10 +103,6 @@ def quotLe {a b : 𝒞} (x y : BinRelQuot (𝒞 := 𝒞) a b) : Prop :=
 theorem quotLe_refl {a b : 𝒞} (x : BinRelQuot (𝒞 := 𝒞) a b) : quotLe x x :=
   Quotient.inductionOn x (fun R => rel_le_refl R)
 
-theorem quotLe_trans {a b : 𝒞} {x y z : BinRelQuot (𝒞 := 𝒞) a b}
-    (h₁ : quotLe x y) (h₂ : quotLe y z) : quotLe x z :=
-  Quotient.inductionOn₃ x y z (fun _ _ _ h₁ h₂ => rel_le_trans h₁ h₂) h₁ h₂
-
 /-- Antisymmetry: mutual containment IS Lean equality on the quotient. -/
 theorem quotLe_antisymm {a b : 𝒞} {x y : BinRelQuot (𝒞 := 𝒞) a b}
     (h₁ : quotLe x y) (h₂ : quotLe y x) : x = y :=
@@ -532,10 +528,6 @@ theorem relGraph_comp_recip_of_monic {a b : 𝒞} (f : a ⟶ b) (hf : Monic f) :
 
 /-- **§2.214 (graph injections are maps).**  Every graph `[graph f]` is entire + simple
     (a MAP) in `Rel(C)`; in particular the would-be coproduct injections are maps. -/
-theorem relGraph_entire {a b : 𝒞} (f : a ⟶ b) :
-    quotLe (relId a) (qComp (relGraph f) (qRecip (relGraph f))) :=
-  (graph_is_map f).1
-
 theorem relGraph_simple {a b : 𝒞} (f : a ⟶ b) :
     quotLe (qComp (qRecip (relGraph f)) (relGraph f)) (relId b) :=
   (graph_is_map f).2

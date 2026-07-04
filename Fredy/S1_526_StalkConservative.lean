@@ -134,15 +134,11 @@ abbrev Top1 : Subobject 𝒞 one := Subobject.entire one
 @[simp] theorem Top1_dom : (Top1 (𝒞 := 𝒞)).dom = one := rfl
 @[simp] theorem Top1_arr : (Top1 (𝒞 := 𝒞)).arr = Cat.id one := rfl
 
-/-- Every subobject of `1` is `≤ Top1` (it factors through the identity). -/
-theorem le_Top1 (U : Subobject 𝒞 one) : Subobject.le U Top1 :=
-  ⟨U.arr, Cat.comp_id _⟩
-
 /-- A FILTER (up-closed pre-filter) contains the TOP subterminator: any member `U ≤ 1` is pushed up
     to `1`.  This is the membership the `1`-stage bridge needs. -/
 theorem filter_mem_top {ℱ : Subobject 𝒞 one → Prop} (hℱ : IsFilter ℱ) : ℱ (Top1 (𝒞 := 𝒞)) := by
   obtain ⟨U, hU⟩ := hℱ.1.1
-  exact hℱ.2 U Top1 hU (le_Top1 U)
+  exact hℱ.2 U Top1 hU ⟨U.arr, Cat.comp_id _⟩
 
 /-- The `1`-stage map `Hom(1,A) → T_F̂(A)`: send a global point `x : 1 → A` to the class of its name
     `(1, x)` over the top subterminator (using `ht : ℱ 1`). -/

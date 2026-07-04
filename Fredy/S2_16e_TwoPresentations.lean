@@ -84,10 +84,6 @@ theorem isSetLike_setLikeOf (X : Type u) : IsSetLike K (setLikeOf K X) :=
 def idInto (A : Assembly.{u} K) : A ⟶ setLikeOf K A.X :=
   ⟨fun x => x, ModFun.ident, K.id_mem, fun n _ _ => ⟨n, rfl, trivial⟩⟩
 
-/-- `idInto A` is monic — its underlying function is the identity, hence injective. -/
-theorem idInto_monic (A : Assembly.{u} K) : Monic (idInto K A) :=
-  asmMonic_of_injective _ (fun _ _ h => h)
-
 /-- The set-like cover `ι` of `A`: the graph of `idInto A` as a `Rel(A)`-relation
     `⟨A⟩ ⟶ ⟨setLikeOf A.X⟩`. -/
 def setGraph (A : Assembly.{u} K) :
@@ -99,7 +95,7 @@ def setGraph (A : Assembly.{u} K) :
     presentations. -/
 theorem setGraph_comp_recip (A : Assembly.{u} K) :
     setGraph K A ≫ (setGraph K A)° = Cat.id (⟨A⟩ : RelObj (Assembly.{u} K)) :=
-  relGraph_comp_recip_of_monic (idInto K A) (idInto_monic K A)
+  relGraph_comp_recip_of_monic (idInto K A) (asmMonic_of_injective _ (fun _ _ h => h))
 
 /-- **`ι° ≫ ι ⊑ 1`** — `e_A := ι° ≫ ι` is coreflexive (the graph map `ι` is simple). -/
 theorem setGraph_recip_comp_coreflexive (A : Assembly.{u} K) :

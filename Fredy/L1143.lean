@@ -182,9 +182,6 @@ def solveFn (xs ys : List Int) : Nat := (col ys xs).headD 0
 /-- **The allegory program**: LeetCode 1143's DP solution as a morphism `dInput ⟶ dAns`. -/
 def solve : dInput ⟶ dAns := graph (fun p => solveFn p.1 p.2)
 
-/-- `solve` is a `Map` (it is the graph of a function). -/
-theorem solve_map : Map solve := graph_map _
-
 /-- **The specification** as a morphism `dInput ⟶ dAns` in `Rel(Set)`: `(xs, ys)` relates to
     `lcs xs ys`. -/
 def spec : dInput ⟶ dAns := fun p k => k = lcs p.1 p.2

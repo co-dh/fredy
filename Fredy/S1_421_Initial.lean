@@ -60,23 +60,11 @@ theorem IsInitial.hom_uniq {o : 𝒞} (ho : IsInitial o) {Y : 𝒞} (f g : o ⟶
   Dual of `terminator_unique_iso`: the unique map between two initial objects is an
   iso. -/
 
-/-- The unique map between two initial objects is an iso (dual of
-    `terminator_unique_iso`).  Given the canonical maps `f : B₁ → B₂` and
-    `g : B₂ → B₁`, both round-trips are identities by uniqueness. -/
-theorem initial_unique_iso
-    (B₁ B₂ : 𝒞)
-    (f : B₁ ⟶ B₂) (g : B₂ ⟶ B₁)
-    (uniq₁ : ∀ {X : 𝒞} (p q : B₁ ⟶ X), p = q)
-    (uniq₂ : ∀ {X : 𝒞} (p q : B₂ ⟶ X), p = q) :
-    IsIso f :=
-  ⟨g, uniq₁ _ _, uniq₂ _ _⟩
-
 /-- Two initial objects are isomorphic: the canonical map `o₁ → o₂` is an iso
     (dual of: terminators are isomorphic). -/
 theorem IsInitial.iso {o₁ o₂ : 𝒞} (h₁ : IsInitial o₁) (h₂ : IsInitial o₂) :
     IsIso (h₁.out o₂) :=
-  initial_unique_iso o₁ o₂ (h₁.out o₂) (h₂.out o₁)
-    (fun p q => h₁.hom_uniq p q) (fun p q => h₂.hom_uniq p q)
+  ⟨h₂.out o₁, h₁.hom_uniq _ _, h₂.hom_uniq _ _⟩
 
 /-! ### Bridge to the structural class `HasCoterminator`
 
@@ -112,13 +100,6 @@ def IsStrictInitial (o : 𝒞) : Prop := IsInitial o ∧ StrictCoterminator o
 theorem IsStrictInitial.isInitial {o : 𝒞} (h : IsStrictInitial o) : IsInitial o := h.1
 
 theorem IsStrictInitial.strict {o : 𝒞} (h : IsStrictInitial o) : StrictCoterminator o := h.2
-
-/-- **Strictness, hypothesis-free.**  A strict initial object has no proper
-    subobjects: every monic into it is an iso.  (Immediate: *every* map into it is an
-    iso.)  Reuses the §1.58 fact `strictCoterminator_subobject_improper`. -/
-theorem IsStrictInitial.subobject_improper {o : 𝒞} (h : IsStrictInitial o)
-    {S : 𝒞} (m : S ⟶ o) (hm : Monic m) : IsIso m :=
-  strictCoterminator_subobject_improper h.2 m hm
 
 /-- **Strictness, hypothesis-free.**  Every equalizer targeted at a strict initial
     object is entire (its inclusion is an iso).  Reuses

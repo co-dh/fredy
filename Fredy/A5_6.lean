@@ -52,9 +52,6 @@ noncomputable def cup {a : 𝒜} (P : RelProd (PowerAllegory.powerObj a) (PowerA
     P.p ⟶ PowerAllegory.powerObj a :=
   A ((P.outl ≫ ∋ a) ∪ (P.outr ≫ ∋ a))
 
-theorem cup_is_map {a : 𝒜} (P : RelProd (PowerAllegory.powerObj a) (PowerAllegory.powerObj a)) :
-    Map (cup P) := A_is_map' _
-
 /-- **Ex 5.20**: `Λ(R∪S) = cup·⟨ΛR,ΛS⟩`, mirrored: `A (R∪S) = pair(A R)(A S) ≫ cup P`. -/
 theorem A_union {a c : 𝒜} (R S : c ⟶ a)
     (P : RelProd (PowerAllegory.powerObj a) (PowerAllegory.powerObj a)) :
@@ -77,9 +74,6 @@ theorem A_union {a c : 𝒜} (R S : c ⟶ a)
 noncomputable def cap {a : 𝒜} (P : RelProd (PowerAllegory.powerObj a) (PowerAllegory.powerObj a)) :
     P.p ⟶ PowerAllegory.powerObj a :=
   A ((P.outl ≫ ∋ a) ∩ (P.outr ≫ ∋ a))
-
-theorem cap_is_map {a : 𝒜} (P : RelProd (PowerAllegory.powerObj a) (PowerAllegory.powerObj a)) :
-    Map (cap P) := A_is_map' _
 
 /-- **Ex 5.20**: `Λ(R∩S) = cap·⟨ΛR,ΛS⟩`, mirrored: `A (R∩S) = pair(A R)(A S) ≫ cap P`. -/
 theorem A_inter {a c : 𝒜} (R S : c ⟶ a)

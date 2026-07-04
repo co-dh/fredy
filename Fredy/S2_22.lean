@@ -1887,11 +1887,6 @@ instance globalLCDA : LocallyCompleteDistributiveAllegory (GlobalObj 𝒜) where
 
 /-! ## §2.224  The embedding is a faithful structure-preserving representation -/
 
-/-- §2.224 the 1×1 embedding `A → A'` is faithful. -/
-theorem globalCompletion_faithful {a b : 𝒜} {R S : a ⟶ b}
-    (h : globalCompletionEmbed R = globalCompletionEmbed S) : R = S :=
-  globalCompletionEmbed_injective h
-
 /-- The embedding preserves reciprocation. -/
 theorem globalCompletionEmbed_recip {a b : 𝒜} (R : a ⟶ b) :
     GlobalMorphism.recip (globalCompletionEmbed R) = globalCompletionEmbed (R°) := by

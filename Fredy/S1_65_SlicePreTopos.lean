@@ -459,11 +459,6 @@ theorem forgetSlice_endo_legs_equalise (R : BinRel (Over B) A A) :
   show R.colA.f ≫ A.hom = R.colB.f ≫ A.hom
   rw [R.colA.w, R.colB.w]
 
-/-- `kernelPairRel A.hom`'s legs equalise `A.hom` (`kp₁ ≫ A.hom = kp₂ ≫ A.hom`). -/
-theorem kernelPairRel_legs_equalise (A : Over B) :
-    (kernelPairRel A.hom).colA ≫ A.hom = (kernelPairRel A.hom).colB ≫ A.hom :=
-  kp_sq
-
 /-- `rtc R̄`'s legs equalise `A.hom`: `rtc R̄ ⊂ kernelPairRel A.hom` (a reflexive+transitive
     relation containing `R̄`), and the latter equalises by `kp_sq`. -/
 theorem rtc_forgetSlice_legs_equalise (R : BinRel (Over B) A A) :
@@ -485,7 +480,9 @@ theorem rtc_forgetSlice_legs_equalise (R : BinRel (Over B) A A) :
   calc (rtc R.forgetSlice).colA ≫ A.hom
       = (w ≫ (kernelPairRel A.hom).colA) ≫ A.hom := by rw [hwA]
     _ = w ≫ ((kernelPairRel A.hom).colA ≫ A.hom) := Cat.assoc _ _ _
-    _ = w ≫ ((kernelPairRel A.hom).colB ≫ A.hom) := by rw [kernelPairRel_legs_equalise]
+    _ = w ≫ ((kernelPairRel A.hom).colB ≫ A.hom) := by
+        rw [show (kernelPairRel A.hom).colA ≫ A.hom = (kernelPairRel A.hom).colB ≫ A.hom
+          from kp_sq]
     _ = (w ≫ (kernelPairRel A.hom).colB) ≫ A.hom := (Cat.assoc _ _ _).symm
     _ = (rtc R.forgetSlice).colB ≫ A.hom := by rw [hwB]
 
@@ -579,13 +576,6 @@ theorem Subobject.liftSlice_mono {Y : Over B} {S T : Subobject 𝒞 Y.dom}
   refine ⟨⟨g, ?_⟩, OverHom.ext hg⟩
   show g ≫ (T.arr ≫ Y.hom) = S.arr ≫ Y.hom
   rw [← Cat.assoc, hg]
-
-/-- Mutual `≤` of `𝒞`-subobjects gives a `𝒞`-iso of their domains.
-    Forwarded from `Subobject.le_antisymm_iso` in `S1_51` (which carries the factorization
-    condition); here we only need the domain isomorphism. -/
-theorem subobject_le_antisymm_Iso {W : 𝒞} {S T : Subobject 𝒞 W}
-    (h1 : S.le T) (h2 : T.le S) : Isomorphic S.dom T.dom :=
-  let ⟨e, hiso, _⟩ := Subobject.le_antisymm_iso h1 h2; ⟨e, hiso⟩
 
 /-! ### `Σ_B` transports the inverse image (it preserves pullbacks)
 
@@ -728,7 +718,9 @@ instance overPreLogos (B : 𝒞) : PreLogos (Over B) where
     let S : Subobject (Over B) Y := Subobject.liftSlice Y (PreLogos.bottom Y.dom)
     have hAC : Isomorphic (Subobject.forgetSlice X (InverseImage f S)).dom
                           (InverseImage f.f (PreLogos.bottom Y.dom)).dom :=
-      subobject_le_antisymm_Iso (forgetSlice_invImage_le f S) (le_forgetSlice_invImage f S)
+      let ⟨e, hiso, _⟩ :=
+        Subobject.le_antisymm_iso (forgetSlice_invImage_le f S) (le_forgetSlice_invImage f S)
+      ⟨e, hiso⟩
     have hABD : Isomorphic (Subobject.forgetSlice X (InverseImage f S)).dom
                            (PreLogos.bottom X.dom).dom :=
       isomorphic_trans hAC (PreLogos.invImage_preserves_bottom f.f)

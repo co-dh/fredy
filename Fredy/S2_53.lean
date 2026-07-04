@@ -442,11 +442,6 @@ end Effectivity
 section Thickness
 variable {𝒜 : Type u} [EffectivePowerAllegory 𝒜] (amen : AmenableCongruence 𝒜)
 
-/-- `∋_b` is box-guarded thick in `𝒜` (§2.41): `R/ₛ∋ = A(R)` is entire whenever
-    `codBox R = codBox (∋ b)`. -/
-theorem eps_thick_in_A (b : 𝒜) : Thick (∋ b) :=
-  fun _ R hbox => (A_is_map R hbox).1
-
 /-- `quotRep` preserves `codBox`: `codBox [R] = [codBox R]`. -/
 theorem quotRep_codBox {a b : 𝒜} (R : a ⟶ b) :
     codBox ((quotRep amen.cong).map R) = (quotRep amen.cong).map (codBox R) := by
@@ -478,7 +473,8 @@ theorem quotThickEps (b : 𝒜)
   have hboxA : codBox (amen.largest R₀) = codBox (∋ b) := hbox R₀ hrelBox
   -- 𝒜-thickness of ∋_b applied to R₀⁺ gives the witness f₀ = A(R₀⁺).
   obtain ⟨f₀, hEnt, hf₀_le, hf₀o⟩ :=
-    (thick_iff_existential (∋ b)).mp (eps_thick_in_A b) c (amen.largest R₀) hboxA
+    (thick_iff_existential (∋ b)).mp (fun _ R hbox => (A_is_map R hbox).1)
+      c (amen.largest R₀) hboxA
   refine ⟨(quotRep amen.cong).map f₀, quotRep_entire amen hEnt, ?_, ?_⟩
   · -- [f₀][∋] ⊑ [R₀] :  largest(f₀∋) ⊑ largest(R₀⁺) = R₀⁺ = largest R₀  (§2.531).
     refine (quot_le_iff amen (f₀ ≫ ∋ b) R₀).mpr ?_

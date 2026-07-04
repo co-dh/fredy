@@ -27,8 +27,7 @@
      linearisation trick as `L70`'s `fibPair`.
 
   4. **Correctness** — one simultaneous induction, `foldFn_eq`, shows the tupled fold's first two
-     components equal `decode`/`decodePrev` at every step; the answer follows
-     (`solveFn_eq_decode`, `solve_eq_spec`).
+     components equal `decode`/`decodePrev` at every step; the answer follows (`solve_eq_spec`).
 
   Mathlib-free; axioms ⊆ {propext, Quot.sound}.
 -/
@@ -166,14 +165,11 @@ theorem foldFn_eq : ∀ xs, (foldFn xs).1 = decode xs ∧ (foldFn xs).2.1 = deco
     · show (foldFn xs).1 = decodePrev (SnocList.snoc xs d)
       rw [ih1]; rfl
 
-/-- `solveFn` agrees with the naive spec `decode` at every `xs`. -/
-theorem solveFn_eq_decode (xs : SnocList Nat Nat) : solveFn xs = decode xs := (foldFn_eq xs).1
-
 /-- **Correctness of the allegory program**: `solve = spec` as morphisms in `Rel(Set)`. -/
 theorem solve_eq_spec : solve = spec := by
   apply hom_ext; intro xs k
   show k = solveFn xs ↔ k = decode xs
-  rw [solveFn_eq_decode]
+  rw [(foldFn_eq xs).1]
 
 /-! ## Running the program -/
 

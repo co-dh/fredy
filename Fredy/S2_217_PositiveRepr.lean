@@ -290,12 +290,6 @@ theorem matEmbed_full {𝒜 : Type u} [DistributiveAllegory.{u, v} 𝒜] {a b : 
   subst hi; subst hj
   rfl
 
-/-- `matEmbed` REFLECTS (and preserves) the order on homs — the "representation" in Freyd's
-    sense is an order-embedding on each hom-set (restates `embed1_le_iff`). -/
-theorem matEmbed_le_iff {𝒜 : Type u} [DistributiveAllegory.{u, v} 𝒜] {a b : 𝒜} {R S : a ⟶ b} :
-    ((matEmbed 𝒜).map R ⊑ (matEmbed 𝒜).map S) ↔ (R ⊑ S) :=
-  embed1_le_iff
-
 /-- `matEmbed` carries the UNIT of `𝒜` to the unit of `Mat 𝒜` (definitionally:
     `matUnitObj = unitObj λ`). -/
 theorem matEmbed_unitObj {𝒜 : Type u} [UnitaryDistributiveAllegory.{u, v} 𝒜] :

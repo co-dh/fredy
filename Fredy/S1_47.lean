@@ -577,19 +577,9 @@ theorem prodEndo_faithful_all_implies_special [CartesianCategory 𝒞]
 def prodAssocBB [HasBinaryProducts 𝒞] (B X : 𝒞) : prod (prod B B) X ⟶ prod B (prod B X) :=
   pair (fst ≫ fst) (pair (fst ≫ snd) snd)
 
-@[simp] theorem prodAssocBB_fst [HasBinaryProducts 𝒞] (B X : 𝒞) :
-    prodAssocBB B X ≫ fst = fst (A := prod B B) (B := X) ≫ fst := fst_pair _ _
-@[simp] theorem prodAssocBB_snd [HasBinaryProducts 𝒞] (B X : 𝒞) :
-    prodAssocBB B X ≫ snd = pair (fst (A := prod B B) (B := X) ≫ snd) snd := snd_pair _ _
-
 /-- Inverse associator `B×(B×X) → (B×B)×X`, `⟨⟨fst, snd≫fst⟩, snd≫snd⟩`. -/
 def prodAssocBBInv [HasBinaryProducts 𝒞] (B X : 𝒞) : prod B (prod B X) ⟶ prod (prod B B) X :=
   pair (pair fst (snd ≫ fst)) (snd ≫ snd)
-
-@[simp] theorem prodAssocBBInv_fst [HasBinaryProducts 𝒞] (B X : 𝒞) :
-    prodAssocBBInv B X ≫ fst = pair (fst (A := B) (B := prod B X)) (snd ≫ fst) := fst_pair _ _
-@[simp] theorem prodAssocBBInv_snd [HasBinaryProducts 𝒞] (B X : 𝒞) :
-    prodAssocBBInv B X ≫ snd = snd (A := B) (B := prod B X) ≫ snd := snd_pair _ _
 
 theorem prodAssocBB_iso [HasBinaryProducts 𝒞] (B X : 𝒞) : IsIso (prodAssocBB B X) := by
   refine ⟨prodAssocBBInv B X, ?_, ?_⟩

@@ -289,10 +289,6 @@ def finProdLift {n : Nat} (A : Fin n → 𝒞) {X : 𝒞} (f : (i : Fin n) → X
     X ⟶ finProdObj A :=
   (hfp.fin_prod A).lift ⟨X, f⟩
 
-theorem finProdLift_fac {n : Nat} (A : Fin n → 𝒞) {X : 𝒞} (f : (i : Fin n) → X ⟶ A i)
-    (i : Fin n) : finProdLift A f ≫ finProdπ A i = f i :=
-  (hfp.fin_prod A).fac ⟨X, f⟩ i
-
 theorem finProdLift_uniq {n : Nat} (A : Fin n → 𝒞) {X : 𝒞} (f : (i : Fin n) → X ⟶ A i)
     (m : X ⟶ finProdObj A) (hm : ∀ i, m ≫ finProdπ A i = f i) : m = finProdLift A f :=
   (hfp.fin_prod A).uniq ⟨X, f⟩ m hm

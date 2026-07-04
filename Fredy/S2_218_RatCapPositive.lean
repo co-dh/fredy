@@ -335,17 +335,12 @@ section BaseChangeInitial
 
 variable {𝒞 : Type u} [Cat.{u} 𝒞] [HasPullbacks 𝒞]
 
-/-- A strict coterminator (strict initial) of `Over D` has strict-initial underlying object: a base
-    map `h : Y ⟶ Z.dom` is the underlying arrow of the slice map `⟨h, rfl⟩` into `Z`, which is iso. -/
-theorem slice_strictCoterminator_dom {D : 𝒞} {Z : Over D} (hZ : StrictCoterminator Z) :
-    StrictCoterminator Z.dom :=
-  fun {Y} h => overIso_underlying (hZ (X := ⟨Y, h ≫ Z.hom⟩) ⟨h, rfl⟩)
-
 /-- **Base change preserves strict coterminators.**  `g*` of a strict initial of `Over D` is a strict
     initial of `Over C`. -/
 theorem baseChange_strictCoterminator {C D : 𝒞} (g : C ⟶ D) {Z : Over D}
     (hZ : StrictCoterminator Z) : StrictCoterminator (baseChangeObj g Z) := by
-  have hZdom : StrictCoterminator Z.dom := slice_strictCoterminator_dom hZ
+  have hZdom : StrictCoterminator Z.dom :=
+    fun {Y} h => overIso_underlying (hZ (X := ⟨Y, h ≫ Z.hom⟩) ⟨h, rfl⟩)
   have hπ₁ : IsIso (HasPullbacks.has Z.hom g).cone.π₁ := hZdom (HasPullbacks.has Z.hom g).cone.π₁
   -- the pullback apex is strict initial in `𝒞`.
   have hpt : StrictCoterminator (HasPullbacks.has Z.hom g).cone.pt := by

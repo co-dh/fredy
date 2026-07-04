@@ -356,9 +356,6 @@ abbrev dAns : RelSet.{0} := ⟨Option Nat⟩
 /-- **The allegory program**: LeetCode 322's DP solution as a morphism `dInput ⟶ dAns`. -/
 def solve : dInput ⟶ dAns := graph (fun p => solveFn p.1 p.2)
 
-/-- `solve` is a `Map` (it is the graph of a function). -/
-theorem solve_map : Map solve := graph_map _
-
 /-- **The specification** as a morphism `dInput ⟶ dAns` in `Rel(Set)`: the `≤`-extremum of the
     achievable coin-count relation, `min(≤)·Λ Achievable`. -/
 def spec : dInput ⟶ dAns := fun p k => coinSpec p.1 p.2 k

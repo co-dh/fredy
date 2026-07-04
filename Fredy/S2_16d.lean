@@ -151,12 +151,6 @@ def asmEmbedHom {A B : Assembly.{u} K} (R : (⟨A⟩ : AsmRel K) ⟶ ⟨B⟩) :
 @[simp] theorem asmEmbedHom_R {A B : Assembly.{u} K} (R : (⟨A⟩ : AsmRel K) ⟶ ⟨B⟩) :
     (asmEmbedHom K R).R = R := rfl
 
-/-- The embedding `Rel(A) ↪ E` is FULL: every hom `A/1_A ⟶ B/1_B` of `E` is (the
-    image of) its underlying relation. -/
-theorem asmEmbed_full {A B : Assembly.{u} K} (Φ : asmEmbed K A ⟶ asmEmbed K B) :
-    asmEmbedHom K Φ.R = Φ :=
-  embEq_full Φ
-
 /-- The embedding `Rel(A) ↪ E` is FAITHFUL. -/
 theorem asmEmbed_faithful {A B : Assembly.{u} K} {R S : (⟨A⟩ : AsmRel K) ⟶ ⟨B⟩}
     (h : asmEmbedHom K R = asmEmbedHom K S) : R = S :=

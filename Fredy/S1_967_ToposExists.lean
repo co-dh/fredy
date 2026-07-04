@@ -481,11 +481,6 @@ noncomputable def casePMf {A B X : 𝒞} (f : A ⟶ X) : PartialMap 𝒞 (coprod
 noncomputable def casePMg {A B X : 𝒞} (g : B ⟶ X) : PartialMap 𝒞 (coprodObj A B) X :=
   ⟨B, coprodInr A B, coprodInr_monic A B, g⟩
 
-/-- The β-square for the left partial map: `coprodInl ≫ classify Pf = f ≫ η`. -/
-theorem casePMf_sq {A B X : 𝒞} (L : LawfulPMC 𝒞 X) (f : A ⟶ X) :
-    coprodInl A B ≫ L.classify (casePMf (B := B) f) = f ≫ L.eta :=
-  L.classify_sq (casePMf (B := B) f)
-
 theorem casePMg_sq {A B X : 𝒞} (L : LawfulPMC 𝒞 X) (g : B ⟶ X) :
     coprodInr A B ≫ L.classify (casePMg (A := A) g) = g ≫ L.eta :=
   L.classify_sq (casePMg (A := A) g)

@@ -552,10 +552,6 @@ def Downdeal (𝒜 : Type u) : Type u := 𝒜
 def downClosure {a b : 𝒜} (P : (a ⟶ b) → Prop) : (a ⟶ b) → Prop :=
   fun T => ∃ R, P R ∧ T ⊑ R
 
-theorem downClosure_isDowndeal {a b : 𝒜} (P : (a ⟶ b) → Prop) :
-    IsDowndeal (downClosure P) :=
-  fun _T ⟨R, hR, hTR⟩ _S hST => ⟨R, hR, le_trans hST hTR⟩
-
 /-- A predicate embeds into its closure. -/
 theorem self_le_downClosure {a b : 𝒜} {P : (a ⟶ b) → Prop} {R : a ⟶ b} (h : P R) :
     downClosure P R := ⟨R, h, le_refl R⟩
@@ -622,7 +618,7 @@ theorem DowndealHom.union_closed {a b : 𝒜} (D : DowndealHom a b) {R S : a ⟶
 def DowndealHom.close {a b : 𝒜} (P : (a ⟶ b) → Prop)
     (hdir : ∀ x y, P x → P y → ∃ z, P z ∧ x ∪ y ⊑ z)
     (hne : ∃ x, P x) : DowndealHom a b :=
-  ⟨downClosure P, downClosure_isDowndeal P,
+  ⟨downClosure P, fun _T ⟨R, hR, hTR⟩ _S hST => ⟨R, hR, le_trans hST hTR⟩,
     -- 𝟘 ∈ ↓P: take any x ∈ P, 𝟘 ⊑ x.
     (let ⟨x, hx⟩ := hne; ⟨x, hx, zero_le x⟩),
     -- ∪-closed: T₁ ⊑ x, T₂ ⊑ y, x∪y ⊑ z ∈ P, so T₁∪T₂ ⊑ x∪y ⊑ z.

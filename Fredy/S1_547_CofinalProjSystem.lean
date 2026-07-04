@@ -374,10 +374,6 @@ private theorem nodup_filter (p : 𝒞 → Bool) : ∀ {l : List 𝒞}, l.Nodup 
     · simp only [hp, if_neg, Bool.false_eq_true, not_false_iff]
       exact nodup_filter p (List.nodup_cons.1 hh).2
 
-private theorem frontList_nodup {C : 𝒞} {V : List 𝒞} (hV : V.Nodup) :
-    (C :: V.filter (fun x => x ≠ C)).Nodup :=
-  List.nodup_cons.2 ⟨fun hc => (mem_filter_ne.1 hc).2 rfl, nodup_filter _ hV⟩
-
 private theorem frontList_mem_left {C : 𝒞} {V : List 𝒞} :
     ∀ B ∈ V, B ∈ C :: V.filter (fun x => x ≠ C) := by
   intro B hB
@@ -404,7 +400,8 @@ theorem selectProj_cover : ∀ (U V : List 𝒞), V.Nodup → ∀ (h : ∀ B ∈
     have hwsC : WellSupported C := hws C List.mem_cons_self
     by_cases hCV : C ∈ V
     · -- reorder `V` to `C :: V.filter (≠ C)`; over that front list `selectProj` is `id_C × …`.
-      have hFnd : (C :: V.filter (fun x => x ≠ C)).Nodup := frontList_nodup hVnd
+      have hFnd : (C :: V.filter (fun x => x ≠ C)).Nodup :=
+        List.nodup_cons.2 ⟨fun hc => (mem_filter_ne.1 hc).2 rfl, nodup_filter _ hVnd⟩
       have hVF : ∀ B ∈ V, B ∈ C :: V.filter (fun x => x ≠ C) := frontList_mem_left
       have hFV : ∀ B ∈ C :: V.filter (fun x => x ≠ C), B ∈ V := frontList_mem_right hCV
       have hFsub : ∀ B ∈ C :: V.filter (fun x => x ≠ C), B ∈ C :: U' := fun B hB => h B (hFV B hB)

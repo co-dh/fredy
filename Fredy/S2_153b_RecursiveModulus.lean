@@ -311,7 +311,6 @@ theorem universal_genuine : ∃ cU : RecCode 1, ∀ (c : RecCode 1) (r m : Nat),
 noncomputable def branchNum (Nf Ng s : Nat) : Nat := if s = 0 then Nf else Ng
 
 theorem branchNum_zero (Nf Ng : Nat) : branchNum Nf Ng 0 = Nf := if_pos rfl
-theorem branchNum_one (Nf Ng : Nat) : branchNum Nf Ng 1 = Ng := if_neg (by omega)
 
 theorem rec_branchNum (Nf Ng : Nat) : Recursive1 (branchNum Nf Ng) :=
   (Recursive1.ifEqConst 0 Nf (Recursive1.const Ng)).congr fun n => rfl
@@ -337,7 +336,8 @@ theorem preIdx_left {Nf Ng n y : Nat} (h : csnd n = 2 * y) :
 theorem preIdx_right {Nf Ng n y : Nat} (h : csnd n = 2 * y + 1) :
     preIdx Nf Ng n = cp Ng (cp (cfst n) y) := by
   unfold preIdx
-  rw [show csnd n % 2 = 1 from by omega, show csnd n / 2 = y from by omega, branchNum_one]
+  rw [show csnd n % 2 = 1 from by omega, show csnd n / 2 = y from by omega,
+    show branchNum Nf Ng 1 = Ng from if_neg (by omega)]
 
 /-- **The `casesC` closure.**  Definition-by-cases on the tag between two
     partial-recursive graphs is partial recursive (via the universal machine). -/

@@ -119,9 +119,6 @@ instance instDist : DistributiveAllegory REObj where
 /-- A fixed code for the Cantor pairing `cp`. -/
 noncomputable def cpCode : RecCode 2 := Classical.choose Recursive2.cp
 
-theorem hcpCode (v : Vec 2) : Eval cpCode v (cp (v 0) (v 1)) :=
-  Classical.choose_spec Recursive2.cp v
-
 /-- A two-element family of subcodes, for `Eval.comp`. -/
 def gs2 {k : Nat} (A B : RecCode k) : Fin 2 → RecCode k := fun i => if i.val = 0 then A else B
 
@@ -152,7 +149,7 @@ noncomputable def smnCode (ct : RecCode 2) (a : Nat) : RecCode 1 := .mu (smnBody
 theorem smnCP_eval (a : Nat) (v : Vec 2) : Eval (smnCP a) v (cp a (v 1)) := by
   refine eval_comp2 (A := constCode 2 a) (B := .proj 1) (wa := a) (wb := v 1)
     (evalConst 2 a v) (.proj 1) ?_
-  have := hcpCode (vcons a (fun _ => v 1)); simpa using this
+  have := Classical.choose_spec Recursive2.cp (vcons a (fun _ => v 1)); simpa using this
 
 theorem smnBody_eval {t : Nat → Nat → Nat} {ct : RecCode 2}
     (hct : ∀ w, Eval ct w (t (w 0) (w 1))) (a : Nat) (v : Vec 2) :

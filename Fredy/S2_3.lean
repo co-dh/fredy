@@ -561,7 +561,7 @@ theorem straight_cancel {a b c : 𝒜} {S : a ⟶ b} (hS : Straight S)
 omit [DivisionAllegory 𝒜] in
 /-- `dom R ≫ R = R` (the domain restricts nothing): one half is `dom R ⊑ 1`,
     the other is `le_dom_comp`.  Needs only `[Allegory]` (the ambient `[DivisionAllegory]` is
-    dropped so the downstream `[Allegory]`-only `S2_147.dom_comp_eq` can forward here). -/
+    dropped so `[Allegory]`-only call sites can invoke this directly). -/
 theorem dom_comp_self [Allegory 𝒜] {a b : 𝒜} (R : a ⟶ b) : dom R ≫ R = R :=
   le_antisymm (le_trans (comp_mono_right (dom_coreflexive R) R)
     (by rw [Cat.id_comp]; exact le_refl R)) (le_dom_comp R)
@@ -1052,11 +1052,6 @@ theorem topTab_spec (a : 𝒜) :
 
 theorem topTab_l1_map (a : 𝒜) : Map (topTab a).2.1 := (topTab_spec a).1
 theorem topTab_l2_map (a : 𝒜) : Map (topTab a).2.2 := (topTab_spec a).2.1
-theorem topTab_eq (a : 𝒜) : topMor a a = (topTab a).2.1° ≫ (topTab a).2.2 :=
-  (topTab_spec a).2.2.1
-theorem topTab_jointMono (a : 𝒜) :
-    (topTab a).2.1 ≫ (topTab a).2.1° ∩ (topTab a).2.2 ≫ (topTab a).2.2° = Cat.id (topTab a).1 :=
-  (topTab_spec a).2.2.2
 
 /-- `Φ : (a,a) → Cor(γ)` sends `R` to `1_γ ∩ ℓ₁ R ℓ₂°`. -/
 noncomputable def phiCor {a : 𝒜} (R : a ⟶ a) : (topTab a).1 ⟶ (topTab a).1 :=
@@ -1104,7 +1099,7 @@ theorem tab_recover {a γ : 𝒜} {R : a ⟶ a} {f g : γ ⟶ a} (hfm : Map f) (
 /-- **§2.316 crux**: `ψ(φ(R)) = R`. -/
 theorem psi_phi {a : 𝒜} (R : a ⟶ a) : psiCor (phiCor R) = R :=
   tab_recover (R := R) (topTab_l1_map a) (topTab_l2_map a)
-    ((topTab_eq a) ▸ topMor_max R)
+    ((topTab_spec a).2.2.1 ▸ topMor_max R)
 
 /-- **Tabulation co-recovery**: `φ(ψ(c)) = c` for coreflexive `c` on the apex `γ`, when
     `(f, g)` are maps with `f ≫ f° ∩ g ≫ g° = 1_γ` (jointly monic).  I.e.
@@ -1195,7 +1190,7 @@ theorem psiCor_mono {a : 𝒜} {c d : (topTab a).1 ⟶ (topTab a).1} (h : c ⊑ 
     tabulation of `⊤_a`). -/
 theorem phi_psi {a : 𝒜} {c : (topTab a).1 ⟶ (topTab a).1} (hc : Coreflexive c) :
     phiCor (psiCor c) = c :=
-  tab_corecover (topTab_l1_map a) (topTab_l2_map a) (topTab_jointMono a) hc
+  tab_corecover (topTab_l1_map a) (topTab_l2_map a) (topTab_spec a).2.2.2 hc
 
 /-- `φ` reflects order: `φ(X) ⊑ φ(Y) ↔ X ⊑ Y` (an order-iso onto `Cor(γ)`). -/
 theorem phiCor_le_iff {a : 𝒜} (X Y : a ⟶ a) : phiCor X ⊑ phiCor Y ↔ X ⊑ Y := by

@@ -623,45 +623,14 @@ theorem homInclL_factor {ia iz : ι} (xa : L.A ia) (xz : L.A iz) (a : UpperBound
 
 /-! ## Generic finite-limit-preservation ⟹ pullback-cone preservation (ported)
 
-  `image_chosenPullback_isPullback` and its helper lemmas live in the import-banned strict file
-  `CatColimitRegular.lean`; they are GENERIC (depend only on the §1.43 primitives `HasBinaryProducts`/
-  `HasEqualizers`/`pair`/`fst`/`snd`/`eqObj`/`eqMap`/`Cone.IsPullback`, all reachable here via
-  `SliceRegular → S1_52 → S1_43 → S1_45`).  We port them verbatim so the lax `stageInclFunctorL`'s
-  preservation can be fed through them. -/
+  The generic equalizer/pullback transport lemmas (`Colim.pullback_of_equalizer`,
+  `Colim.isEqualizer_comp_iso`, `Colim.isEqualizer_iso_apex`) come straight from
+  `S1_543_CatColimitRegular.lean` (imported).  `image_chosenPullback_isPullback` is re-proved
+  below at this section's single universe `w` so the lax `stageInclFunctorL`'s preservation can
+  be fed through it. -/
 section GenericPullbackPres
 
 variable {𝒟 : Type w} [Cat.{w} 𝒟]
-
-/-- An equalizer of `(fst≫f, snd≫g)` over `A × B` is a pullback of `(f, g)` (= verbatim
-    `Colim.pullback_of_equalizer`, `S1_543_CatColimitRegular.lean`, specialized from its
-    two-universe `{𝒟 : Type u} [Cat.{v} 𝒟]` to this section's single-universe `w`). -/
-theorem pullback_of_equalizer' [HasBinaryProducts 𝒟]
-    {A B C E : 𝒟} {f : A ⟶ C} {g : B ⟶ C} {m : E ⟶ prod A B}
-    (hmeq : m ≫ (fst ≫ f) = m ≫ (snd ≫ g))
-    (heq : (EqualizerCone.mk E m hmeq).IsEqualizer) :
-    (Cone.mk (f := f) (g := g) E (m ≫ fst) (m ≫ snd)
-      (by rw [Cat.assoc, Cat.assoc]; exact hmeq)).IsPullback :=
-  Colim.pullback_of_equalizer hmeq heq
-
-/-- Transport an equalizer along an iso of the parallel pair's domain (= verbatim
-    `Colim.isEqualizer_comp_iso`, `S1_543_CatColimitRegular.lean`, specialized to this
-    section's single-universe `w`). -/
-theorem isEqualizer_comp_iso'
-    {X Y Z E : 𝒟} {p q : Y ⟶ Z} {φ : X ⟶ Y} (hφ : IsIso φ) {e : E ⟶ X}
-    (hew : e ≫ (φ ≫ p) = e ≫ (φ ≫ q))
-    (heq : (EqualizerCone.mk (f := φ ≫ p) (g := φ ≫ q) E e hew).IsEqualizer) :
-    (EqualizerCone.mk (f := p) (g := q) E (e ≫ φ)
-      (show (e ≫ φ) ≫ p = (e ≫ φ) ≫ q by rw [Cat.assoc, Cat.assoc]; exact hew)).IsEqualizer :=
-  Colim.isEqualizer_comp_iso hφ hew heq
-
-/-- Transport an equalizer along an iso of its apex (= verbatim `Colim.isEqualizer_iso_apex`,
-    `S1_543_CatColimitRegular.lean`, specialized to this section's single-universe `w`). -/
-theorem isEqualizer_iso_apex' {A B E E' : 𝒟} {f g : A ⟶ B}
-    {e : E ⟶ A} {hfe : e ≫ f = e ≫ g} (heq : (EqualizerCone.mk E e hfe).IsEqualizer)
-    (i : E' ⟶ E) (j : E ⟶ E') (hij : i ≫ j = Cat.id E') (hji : j ≫ i = Cat.id E) :
-    (EqualizerCone.mk (f := f) (g := g) E' (i ≫ e)
-      (show (i ≫ e) ≫ f = (i ≫ e) ≫ g by rw [Cat.assoc, Cat.assoc, hfe])).IsEqualizer :=
-  Colim.isEqualizer_iso_apex heq i j hij hji
 
 /-- **A product- and equalizer-preserving functor sends the §1.432 chosen pullback to a pullback
     cone** (ported verbatim from `CatColimitRegular.image_chosenPullback_isPullback`). -/
@@ -690,7 +659,7 @@ theorem image_chosenPullback_isPullback' {𝒞 : Type w} [Cat.{w} 𝒞]
   have hk_iso : IsIso k := hpeq (fst ≫ f) (snd ≫ g)
   obtain ⟨k', hkk', hk'k⟩ := hk_iso
   have hFem_isEq : (EqualizerCone.mk (F eo) (hF.map em) hFem_eq).IsEqualizer := by
-    have h0 := isEqualizer_iso_apex'
+    have h0 := Colim.isEqualizer_iso_apex
       (chosenEqualizer_isEqualizer (hF.map (fst ≫ f)) (hF.map (snd ≫ g))) k k' hkk' hk'k
     intro d
     obtain ⟨u, hu, huniq⟩ := h0 d
@@ -713,11 +682,11 @@ theorem image_chosenPullback_isPullback' {𝒞 : Type w} [Cat.{w} 𝒞]
       rw [hpair_f, hpair_g]; exact d.eq
     obtain ⟨u, hu, huniq⟩ := hFem_isEq (EqualizerCone.mk d.dom d.map hd)
     exact ⟨u, hu, huniq⟩
-  have hslid := isEqualizer_comp_iso' hφ_iso
+  have hslid := Colim.isEqualizer_comp_iso hφ_iso
     (by rw [← hpair_f, ← hpair_g]; exact hFem_eq) hFem_isEq'
   have hmeq : (hF.map em ≫ φ) ≫ (fst ≫ hF.map f) = (hF.map em ≫ φ) ≫ (snd ≫ hF.map g) := by
     rw [Cat.assoc, Cat.assoc, ← hpair_f, ← hpair_g]; exact hFem_eq
-  have hpb := pullback_of_equalizer' hmeq hslid
+  have hpb := Colim.pullback_of_equalizer hmeq hslid
   intro d
   obtain ⟨u, ⟨hu₁, hu₂⟩, huniq⟩ := hpb d
   have hbr₁ : hF.map em ≫ φ ≫ fst = hF.map (em ≫ fst) := by rw [hφ_fst, ← hF.map_comp]

@@ -90,9 +90,6 @@ variable {𝒜 : Type u} [LocallyCompleteDistributiveAllegory 𝒜]
 /-- Meets as joins: `Inf P := ⊔ { S | S is a lower bound of every R with P R }`. -/
 def Inf {a b : 𝒜} (P : (a ⟶ b) → Prop) : a ⟶ b := Sup (fun S => ∀ R, P R → S ⊑ R)
 
-theorem Inf_le {a b : 𝒜} {P : (a ⟶ b) → Prop} {R : a ⟶ b} (h : P R) : Inf P ⊑ R :=
-  Sup_le (fun _S hS => hS R h)
-
 theorem le_Inf {a b : 𝒜} {P : (a ⟶ b) → Prop} {T : a ⟶ b} (h : ∀ R, P R → T ⊑ R) : T ⊑ Inf P :=
   le_Sup h
 
@@ -258,7 +255,7 @@ theorem eq_zero_iff_dom_zero {a b : 𝒜} (R : a ⟶ b) : R = (𝟘 : a ⟶ b) �
   constructor
   · intro h; rw [h]; exact dom_zero
   · intro h
-    calc R = dom R ≫ R := (dom_comp_eq R).symm
+    calc R = dom R ≫ R := (dom_comp_self R).symm
       _ = (𝟘 : a ⟶ a) ≫ R := by rw [h]
       _ = 𝟘 := DistributiveAllegory.zero_comp R
 
@@ -400,11 +397,6 @@ theorem div_comp_recip_map {a b c d : 𝒜} {f : d ⟶ b} (hf : Map f) (R : a �
     _ ↔ X ⊑ (R / S) ≫ f° := map_shunt_right hf X (R / S)
 
 /-! ### §G  Galois connections, division part -/
-
-/-- `(_≫S) ⊣ (_/S)` is a Galois connection (Ex 4.36). -/
-theorem gc_comp_div {a b c : 𝒜} (S : b ⟶ c) :
-    GaloisConn (fun X : a ⟶ b => X ≫ S) (fun Y : a ⟶ c => Y / S) :=
-  fun X Y => (le_div_iff X Y S).symm
 
 /-- `(S≫_) ⊣ (S\_)` is a Galois connection (Ex 4.36, left-division form). -/
 theorem gc_comp_leftDiv {a b c : 𝒜} (S : a ⟶ b) :

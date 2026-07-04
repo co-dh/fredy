@@ -158,13 +158,6 @@ theorem bigUnion_assoc {a : 𝒜} :
     rw [bigUnion_eq_existsImage_eps (a := a), ← existsImage_comp, existsImage_eps]
   exact hL.trans hR.symm
 
-/-! ## `powerOrder` (B&dM Ex 4.49(i)): transitivity -/
-
-/-- `powerOrder = ∋/∋` is transitive.  (Antisymmetry needs tabular+unitary, B&dM p.106-107,
-    and is left out here.) -/
-theorem powerOrder_transitive {a : 𝒜} : Transitive (powerOrder (a := a)) :=
-  div_self_idem (∋ a)
-
 /-! ## Ex 4.50 (B&dM p.108): `R` is recovered from its weakest-liberal-precondition data. -/
 
 /-- Ex 4.50: `(∋ b / R) \ ∋ b = R`. -/

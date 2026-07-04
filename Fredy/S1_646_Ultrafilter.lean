@@ -132,10 +132,6 @@ def extend (F : Filter I) (S : Set I) (hSc : ¬ F.sets Sᶜ) : Filter I where
     -- (A ∩ B) ∩ S ⊆ T ∩ U
     refine ⟨A ∩ᵤ B, F.inter_mem hA hB, fun a ha => ⟨hAT ⟨ha.1.1, ha.2⟩, hBU ⟨ha.1.2, ha.2⟩⟩⟩
 
-/-- The extension contains `S`. -/
-theorem self_mem_extend {F : Filter I} {S : Set I} (hSc : ¬ F.sets Sᶜ) :
-    (extend F S hSc).sets S := ⟨univ, F.univ_mem, fun _ ha => ha.2⟩
-
 /-- The extension extends `F`. -/
 theorem le_extend {F : Filter I} {S : Set I} (hSc : ¬ F.sets Sᶜ) : F ≤ᶠ extend F S hSc :=
   fun T hT => ⟨T, hT, fun _ ha => ha.1⟩
@@ -535,7 +531,7 @@ theorem exists_ultrafilter_le {I : Type u} (F₀ : Filter I) :
     have hEprop : F₀ ≤ᶠ E := Filter.le_trans M.property (Filter.le_extend hSc)
     have hME : leP M ⟨E, hEprop⟩ := Filter.le_extend hSc
     have hEM : leP ⟨E, hEprop⟩ M := hMmax ⟨E, hEprop⟩ hME
-    exact hEM (Filter.self_mem_extend hSc)
+    exact hEM ⟨univ, M.val.univ_mem, fun _ ha => ha.2⟩
 
 /-! ## Ultrafilter lemmas for §1.646
 

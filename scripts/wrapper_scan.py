@@ -70,7 +70,9 @@ for fp, ln, kind, name, src in blocks:
 rows = []
 for fp, ln, name, body, ref, isbook in cands:
     seg = name.split('.')[-1]
-    pat = re.compile(r'\b' + re.escape(seg) + r'\b')
+    # NOT \b: primed names (cover_comp'') end in a non-word char, where \b never matches
+    # before whitespace — that bug misreported every primed wrapper as uses=0.
+    pat = re.compile(r"(?<![\w'])" + re.escape(seg) + r"(?![\w'])")
     uses = sum(len(pat.findall(t)) for t in alltext) - len(pat.findall(owntext[seg]))
     rows.append((uses, isbook, fp, ln, name, body, ref))
 rows.sort(key=lambda r: (r[1], r[0]))

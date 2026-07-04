@@ -101,9 +101,6 @@ def solveFn : Nat → Nat → Nat
 /-- **The allegory program**: LeetCode 62's DP solution as a morphism `dGrid ⟶ dNat`. -/
 def solve : dGrid ⟶ dNat := graph (fun mn => solveFn mn.1 mn.2)
 
-/-- `solve` is a `Map` (it is the graph of a function). -/
-theorem solve_map : Map solve := graph_map _
-
 /-! ## The refinement: the folded row IS the row of `paths` values -/
 
 /-- Column `1` of every grid-row is `1` (reachable only by going straight down from row `1`).

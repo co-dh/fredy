@@ -408,10 +408,6 @@ private noncomputable def eLift {X : 𝒞} (k : X ⟶ A.carrier) (h : k ≫ f.va
     eLift f g k h ≫ em f g = k :=
   eqLift_fac f.val g.val k h
 
-private theorem eLift_uniq {X : 𝒞} (k : X ⟶ A.carrier) (h : k ≫ f.val = k ≫ g.val)
-    (u : X ⟶ eqObj f.val g.val) (hu : u ≫ em f g = k) : u = eLift f g k h :=
-  eqLift_uniq f.val g.val k h u hu
-
 /-! Three group operations on `eqObj f.val g.val`, each the unique lift whose composite with
     `eqMap` gives the corresponding operation of `A`.  Coherence holds because `f` and `g` are
     group homs. -/
@@ -536,7 +532,7 @@ noncomputable def hasEqualizerAb : HasEqualizer f g where
   lift c := ⟨eLift f g c.map.val (congrArg Subtype.val c.eq),
     isHom_eLift f g c.map.property (congrArg Subtype.val c.eq)⟩
   fac c := Subtype.ext (eLift_fac f g c.map.val (congrArg Subtype.val c.eq))
-  uniq c u hu := Subtype.ext (eLift_uniq f g c.map.val (congrArg Subtype.val c.eq) u.val
+  uniq c u hu := Subtype.ext (eqLift_uniq f.val g.val c.map.val (congrArg Subtype.val c.eq) u.val
     (congrArg Subtype.val hu))
 
 end AbEqualizer
@@ -888,10 +884,6 @@ noncomputable def imageGObj : AbelianGroupObject 𝒞 where
 @[simp] theorem imageGObj_carrier : (imageGObj f).carrier = imI f := rfl
 @[simp] theorem imageGObj_add : (imageGObj f).add = imAdd f := rfl
 
-/-- `m = (image f.val).arr : imageGObj → B` is a homomorphism (its hom square is `imAdd_imArr`). -/
-theorem isHom_imArr : IsHomAbelianGroupObject (imageGObj f) B (imArr f) :=
-  imAdd_imArr f
-
 /-- `e = image.lift f.val : A → imageGObj` is a homomorphism: post-compose the monic `m`;
     `(A.add ≫ e) ≫ m = pair (fst≫e) (snd≫e) ≫ imAdd ≫ m`, both `= A.add ≫ f.val`. -/
 theorem isHom_imE : IsHomAbelianGroupObject A (imageGObj f) (imE f) := by
@@ -899,7 +891,7 @@ theorem isHom_imE : IsHomAbelianGroupObject A (imageGObj f) (imE f) := by
   rw [imageGObj_add, ← imEE, imEE_imAdd]
 
 /-- The `Ab(𝒞)` morphism carried by `m`. -/
-def imArrHom : imageGObj f ⟶ B := ⟨imArr f, isHom_imArr f⟩
+def imArrHom : imageGObj f ⟶ B := ⟨imArr f, imAdd_imArr f⟩
 /-- The `Ab(𝒞)` morphism carried by `e` (the image cover). -/
 noncomputable def imEHom : A ⟶ imageGObj f := ⟨imE f, isHom_imE f⟩
 
@@ -1570,13 +1562,9 @@ noncomputable def quotGObj : AbelianGroupObject 𝒞 where
   add_comm :=
     quotAddComm q (Qadd E q hqcov hbracket hEqq) (qq_Qadd E q hqcov hbracket hEqq) hqcov
 
-/-- The quotient cover `q` is an `Ab(𝒞)`-homomorphism `A → quotGObj`: its hom square is exactly
-    the descent equation `qq_Qadd` (`A.add ≫ q = ⟨fst≫q,snd≫q⟩ ≫ Qadd`). -/
-theorem isHom_q : IsHomAbelianGroupObject A (quotGObj E q hqcov hbracket hEqq) q :=
-  (qq_Qadd E q hqcov hbracket hEqq).symm
-
 /-- The `Ab(𝒞)`-morphism carried by the quotient cover `q`. -/
-noncomputable def qHom : A ⟶ quotGObj E q hqcov hbracket hEqq := ⟨q, isHom_q E q hqcov hbracket hEqq⟩
+noncomputable def qHom : A ⟶ quotGObj E q hqcov hbracket hEqq :=
+  ⟨q, (qq_Qadd E q hqcov hbracket hEqq).symm⟩
 
 theorem qHom_val : (qHom E q hqcov hbracket hEqq).val = q := rfl
 

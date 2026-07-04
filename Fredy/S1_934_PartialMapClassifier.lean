@@ -538,7 +538,8 @@ theorem partialMapClassifier_exists (B : 𝒞) : Nonempty (LawfulPMC 𝒞 B) := 
     obtain ⟨hfm1, hfm2⟩ := efixed_funcMem_iso_mem (χ ≫ pmcIota B) hχι_efix
     -- Chain: relPullback (χ≫ι) mem ⊂ relPullback (χ≫ι) funcMem ⊂ relPullback χ (graph η)° ≅ coneRel = pmRel.
     have hχι_eq : χ ≫ pmcIota B = powerClassify (pmRel P) := by
-      apply powerClassify_unique (pmRel P) (χ ≫ pmcIota B) (powerClassify (pmRel P))
+      apply HasPowerObject.is_universal.classify_unique A (pmRel P) (χ ≫ pmcIota B)
+        (powerClassify (pmRel P))
       · -- pmRel P ≅ relPullback (χ≫ι) mem.
         refine ⟨relHom_trans923 hr1 (relHom_trans923 hpc1 hfm1),
                 relHom_trans923 hfm2 (relHom_trans923 hpc2 hr2)⟩

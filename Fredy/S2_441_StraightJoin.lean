@@ -35,12 +35,6 @@ variable {𝒜 : Type u}
 section DivHelpers
 variable [DivisionAllegory 𝒜]
 
-/-- Division is monotone in its numerator: `R ⊑ R' → R/S ⊑ R'/S`.  (= `div_mono_left`,
-    `S2_3.lean`, §2.314 — same statement, kept as a local alias under this file's name.) -/
-theorem div_num_mono {a b c : 𝒜} {R R' : a ⟶ c} (h : R ⊑ R') (S : b ⟶ c) :
-    R / S ⊑ R' / S :=
-  div_mono_left h S
-
 /-- Division is antitone in its denominator: `S ⊑ S' → R/S' ⊑ R/S`. -/
 theorem div_den_antimono {a b c : 𝒜} (R : a ⟶ c) {S S' : b ⟶ c} (h : S ⊑ S') :
     R / S' ⊑ R / S :=
@@ -132,9 +126,6 @@ def kappaMap (a : 𝒜) : a ⟶ PowerAllegory.powerObj (PowerAllegory.powerObj a
 theorem ellMap_map (a : 𝒜) : Map (ellMap a) :=
   map_comp (A_is_map' _) (A_is_map' _)
 
-/-- `ϰ_a` is a map (`A(_)` of anything is a map, `A_is_map'`). -/
-theorem kappaMap_map (a : 𝒜) : Map (kappaMap a) := A_is_map' _
-
 /-- `ℓ_a` is split-monic: `ℓℓ° = 1_a`. -/
 theorem ellMap_split (a : 𝒜) : ellMap a ≫ (ellMap a)° = Cat.id a := by
   unfold ellMap
@@ -167,7 +158,7 @@ theorem ellMap_kappaMap_disjoint (a : 𝒜) :
       inter_lb_left _ _
     -- `A(0) ⊑ 1/∋` and `A(1) ⊑ 1/∋`.
     have hAzero_le : A (𝟘 : a ⟶ a) ⊑ Cat.id a / ∋ a :=
-      le_trans (inter_lb_left _ _) (div_num_mono (zero_le _) (∋ a))
+      le_trans (inter_lb_left _ _) (div_mono_left (zero_le _) (∋ a))
     have hAone_le : A (Cat.id a) ⊑ Cat.id a / ∋ a := inter_lb_left _ _
     -- `1_[a] / A(0) ⊑ A(0)°`,  `1_[a] / A(1) ⊑ A(1)°`.
     have h7zero : Cat.id (PowerAllegory.powerObj a) / A (𝟘 : a ⟶ a)
@@ -209,7 +200,7 @@ theorem straightJoin_to_prePositive :
     A S₁ ≫ ellMap (PowerAllegory.powerObj γ),
     A S₂ ≫ kappaMap (PowerAllegory.powerObj γ),
     map_comp (A_is_map' S₁) (ellMap_map _),
-    map_comp (A_is_map' S₂) (kappaMap_map _), ?_, ?_, ?_⟩
+    map_comp (A_is_map' S₂) (A_is_map' _), ?_, ?_, ?_⟩
   · exact split_comp (A_split_monic hS₁) (ellMap_split _)
   · exact split_comp (A_split_monic hS₂) (kappaMap_split _)
   · exact cross_zero (ellMap_kappaMap_disjoint _)

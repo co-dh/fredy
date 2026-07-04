@@ -59,9 +59,6 @@ variable {𝒜 : Type u} [Allegory 𝒜]
 
 /-! ### Helper order lemmas -/
 
-/-- dom R ≫ R = R.  (= the `[Allegory]`-general `S2_3.dom_comp_self`.) -/
-theorem dom_comp_eq {a b : 𝒜} (R : a ⟶ b) : dom R ≫ R = R := dom_comp_self R
-
 /-- dom(f ∩ g) ≫ f = f ∩ g  for any Map f. -/
 theorem dom_inter_comp {a b : 𝒜} {f g : a ⟶ b} (hf : Map f) : dom (f ∩ g) ≫ f = f ∩ g := by
   apply le_antisymm
@@ -103,11 +100,6 @@ instance (priority := 0) mapCat : Cat.{v} (MapObj 𝒜) where
 section TabularLimits
 
 variable [TabularAllegory 𝒜]
-
-/-- id_c ⊑ f ≫ f° for first tabulation leg (the joint-monic equation). -/
-theorem tab_ffo {a b c : 𝒜} {f : c ⟶ a} {g : c ⟶ b} {R : a ⟶ b}
-    (ht : Tabulates f g R) : Cat.id c ⊑ f ≫ f° :=
-  ht.2.2.2 ▸ inter_lb_left _ _
 
 /-- id_c ⊑ g ≫ g° for second tabulation leg (the joint-monic equation). -/
 theorem tab_gog {a b c : 𝒜} {f : c ⟶ a} {g : c ⟶ b} {R : a ⟶ b}

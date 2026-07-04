@@ -235,9 +235,6 @@ variable {M : Type u} [ModularLOCMonoid M]
     `T(R)` is symmetric. -/
 theorem lmon_recip_eq (R : LMonHom M) : R° = R := rfl
 
-/-- Every hom of `LMonObj M` is symmetric. -/
-theorem lmon_symmetric (R : LMonHom M) : Symmetric R := le_refl R
-
 /-- Homs of `LMonObj M` commute — the book's "R and S commute in 𝓛". -/
 theorem lmon_comp_comm (R S : LMonHom M) : R ≫ S = S ≫ R :=
   LOCMonoid.mul_comm R S
@@ -258,16 +255,13 @@ theorem lmon_id_eq_bot : (Cat.id (LMonObj.star : LMonObj L)) = (ModularLattice.b
 theorem lmon_lattice_reflexive (R : LMonHom L) : Reflexive R :=
   ModularLattice.bot_le R
 
-/-- Over the lattice bridge every hom is idempotent: `R² = R ⊔ R = R`. -/
-theorem lmon_lattice_idem (R : LMonHom L) : R ≫ R = R := ModularLattice.join_idem R
-
 /-- Over the lattice bridge every hom is transitive. -/
 theorem lmon_lattice_transitive (R : LMonHom L) : Transitive R :=
-  le_of_eq (lmon_lattice_idem R)
+  le_of_eq (ModularLattice.join_idem R)
 
 /-- Over the lattice bridge every hom of `LMonObj L` is an equivalence relation. -/
 def lmonEquivRel (R : LMonHom L) : EquivRel (LMonObj.star : LMonObj L) :=
-  ⟨R, lmon_lattice_reflexive R, lmon_symmetric R, lmon_lattice_transitive R⟩
+  ⟨R, lmon_lattice_reflexive R, le_refl R, lmon_lattice_transitive R⟩
 
 end LMonHomFacts
 

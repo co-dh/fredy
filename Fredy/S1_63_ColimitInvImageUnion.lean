@@ -67,11 +67,6 @@ theorem Subobject.map_le {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ] (T : �
     show hT.map k ≫ hT.map S'.arr = hT.map S.arr
     rw [← hT.map_comp, hk]⟩
 
-theorem Subobject.map_equiv {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ] (T : 𝒜 → ℬ) [hT : Functor T]
-    (hpm : PreservesMono T) {B : 𝒜} {S S' : Subobject 𝒜 B} (h : S.Equiv S') :
-    (Subobject.map T hpm S).Equiv (Subobject.map T hpm S') :=
-  ⟨Subobject.map_le T hpm h.1, Subobject.map_le T hpm h.2⟩
-
 /-- Binary union is monotone in both arguments. -/
 theorem union_le_union [HasImages 𝒞] [HasSubobjectUnions 𝒞] {B : 𝒞}
     {S₁ S₂ T₁ T₂ : Subobject 𝒞 B} (hS : S₁.le S₂) (hT : T₁.le T₂) :
@@ -91,15 +86,10 @@ theorem inverseImage_equiv [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullb
     (InverseImage f S).Equiv (InverseImage f T) :=
   ⟨inverseImage_mono f h.1, inverseImage_mono f h.2⟩
 
-/-- Two images of one morphism are equivalent (image is unique up to `≈`). -/
-theorem isImage_equiv {A B : 𝒞} {f : A ⟶ B} {I J : Subobject 𝒞 B}
-    (hI : IsImage f I) (hJ : IsImage f J) : I.Equiv J :=
-  ⟨hI.2 J hJ.1, hJ.2 I hI.1⟩
-
 /-- The chosen image of `f` is equivalent to any image of `f`. -/
 theorem image_equiv_isImage [HasImages 𝒞] {A B : 𝒞} {f : A ⟶ B} {I : Subobject 𝒞 B}
     (hI : IsImage f I) : (image f).Equiv I :=
-  isImage_equiv (HasImages.isImage f) hI
+  ⟨(HasImages.isImage f).2 I hI.1, hI.2 (image f) (HasImages.isImage f).1⟩
 
 /-- The image of a monic is equivalent to the monic-as-subobject. -/
 theorem image_monic_equiv [HasImages 𝒞] {M B : 𝒞} (m : M ⟶ B) (hm : Monic m) :

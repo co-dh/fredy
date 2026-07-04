@@ -1354,14 +1354,6 @@ theorem hTerminal_leftInv {F : Frame.{u}} (p : OPred (OSetTerminal F)) :
 theorem hTerminal_rightInv {F : Frame.{u}} (a : F.carrier) :
     hTerminal_toFrame (hTerminal_ofFrame a : OPred (OSetTerminal F)) = a := rfl
 
-/-- The two maps are order-preserving in both directions, confirming
-    `opredFrame (OSetTerminal F) ≅ F` as frames.
-
-    Forward: `p ≤ q ↔ p PUnit.unit ≤ q PUnit.unit`. -/
-theorem hTerminal_mono {F : Frame.{u}} {p q : OPred (OSetTerminal F)}
-    (h : OPred.le p q) : F.le (hTerminal_toFrame p) (hTerminal_toFrame q) :=
-  h PUnit.unit
-
 theorem hTerminal_mono' {F : Frame.{u}} {a b : F.carrier}
     (h : F.le a b) : OPred.le (hTerminal_ofFrame a : OPred (OSetTerminal F))
       (hTerminal_ofFrame b) :=

@@ -342,9 +342,6 @@ theorem val2_code (a b : Nat) : val2 (2 ^ a * (2 * b + 1)) = a := by
       have hpos : 0 < 2 ^ a * (2 * b + 1) := Nat.mul_pos (two_pow_pos a) (by omega)
       rw [h2, val2_two_mul (Nat.pos_iff_ne_zero.mp hpos), ih]
 
-theorem div_pow_code (a b : Nat) : 2 ^ a * (2 * b + 1) / 2 ^ a = 2 * b + 1 :=
-  Nat.mul_div_cancel_left _ (two_pow_pos a)
-
 /-- The collection of ALL partial endofunctions of N is a modulus system — the
     non-vacuity witness required by the book's "for example, K may be the collection of
     all partial recursive functions" (any closure conditions hold a fortiori). -/
@@ -358,7 +355,10 @@ def ModulusSystem.allPartial : ModulusSystem where
   proj₁_mem := trivial
   proj₂_mem := trivial
   code_proj₁ := val2_code
-  code_proj₂ a b := by rw [val2_code, div_pow_code]; omega
+  code_proj₂ a b := by
+    rw [val2_code, show 2 ^ a * (2 * b + 1) / 2 ^ a = 2 * b + 1 from
+      Nat.mul_div_cancel_left _ (two_pow_pos a)]
+    omega
   pair_mem _ _ := trivial
   inL k := 2 * k
   inR k := 2 * k + 1

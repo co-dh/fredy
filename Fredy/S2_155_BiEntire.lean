@@ -91,9 +91,6 @@ theorem biEntire_recip {A B : Type u} {R : A → B → Prop} (h : BiEntire R) :
 /-! ### Closure of B under the categorical structure (§2.155: "it is closed
   with respect to composition and reciprocation") -/
 
-/-- The identity is in B. -/
-theorem isB_eq {A : Type u} : IsB (Eq : A → A → Prop) := Or.inr biEntire_eq
-
 /-- B is closed under composition: bi-entire ∘ bi-entire is bi-entire, and
     anything composed with `∅` is `∅`. -/
 theorem isB_comp {A B C : Type u} {R : A → B → Prop} {S : B → C → Prop}
@@ -138,13 +135,6 @@ theorem interB_le_left {A B : Type u} (R S : A → B → Prop) :
 theorem interB_le_right {A B : Type u} (R S : A → B → Prop) :
     ∀ a b, interB R S a b → S a b := fun _ _ h => h.2.1
 
-/-- `interB` is the GREATEST lower bound among B-relations: any `T ∈ B` below
-    `R` and `S` is below `interB R S` (its nonzero points force the guard). -/
-theorem interB_glb {A B : Type u} {T R S : A → B → Prop} (hT : IsB T)
-    (hTR : ∀ a b, T a b → R a b) (hTS : ∀ a b, T a b → S a b) :
-    ∀ a b, T a b → interB R S a b :=
-  fun a b h => ⟨hTR a b h, hTS a b h, guard_of_lowerBound hT hTR hTS h⟩
-
 /-- The B-order collapses to pointwise inclusion: for `X ∈ B`,
     `interB X Y = X` (i.e. `X ⊑ Y` in B) iff `X ⊆ Y` pointwise. -/
 theorem interB_eq_left {A B : Type u} {X Y : A → B → Prop} (hX : IsB X)
@@ -172,7 +162,7 @@ theorem BHom.congr {A B : Type u} {R S : BHom A B} (h : R = S) (a : A) (b : B) :
     R.val a b ↔ S.val a b := by rw [h]
 
 /-- Identity of B: the identity relation. -/
-@[reducible] def BHom.id (A : Type u) : BHom A A := ⟨Eq, isB_eq⟩
+@[reducible] def BHom.id (A : Type u) : BHom A A := ⟨Eq, Or.inr biEntire_eq⟩
 
 /-- Composition of B (diagram order). -/
 @[reducible] def BHom.comp {A B C : Type u} (R : BHom A B) (S : BHom B C) : BHom A C :=
@@ -441,10 +431,6 @@ theorem lhs_guard : BiEntire (pInter (bComp wR wS) (Eq : Two → Two → Prop)) 
     | .e0 => ⟨.e0, ⟨.e0, Or.inl ⟨rfl, rfl⟩, Or.inl ⟨rfl, rfl⟩⟩, rfl⟩
     | .e1 => ⟨.e1, ⟨.e1, Or.inr (Or.inl ⟨rfl, rfl⟩), Or.inr (Or.inl ⟨rfl, rfl⟩)⟩, rfl⟩⟩
 
-/-- The LEFT side of the modular law holds at `(e0, e0)`. -/
-theorem lhs_holds : interB (bComp wR wS) Eq Two.e0 Two.e0 :=
-  ⟨⟨Three.e0, Or.inl ⟨rfl, rfl⟩, Or.inl ⟨rfl, rfl⟩⟩, rfl, lhs_guard⟩
-
 /-- `pInter wR (1 ≫ wS°) ⊆ pInter wR wS°` (the composite with the identity
     changes nothing). -/
 theorem eqComp_sub : ∀ a b, pInter wR (bComp Eq (bRecip wS)) a b →
@@ -470,7 +456,7 @@ theorem modular_fails_concrete :
   intro heq
   have hpt := congrFun (congrFun (congrArg Subtype.val heq) Two.e0) Two.e0
   have hL : (BHom.inter (homR ≫ homS) (Cat.id (BObj.of Two))).val Two.e0 Two.e0 :=
-    lhs_holds
+    ⟨⟨Three.e0, Or.inl ⟨rfl, rfl⟩, Or.inl ⟨rfl, rfl⟩⟩, rfl, lhs_guard⟩
   have hR' : (BHom.inter (BHom.inter (homR ≫ homS) (Cat.id (BObj.of Two)))
       (BHom.inter homR (Cat.id (BObj.of Two) ≫ BHom.recip homS) ≫ homS)).val
       Two.e0 Two.e0 := hpt ▸ hL

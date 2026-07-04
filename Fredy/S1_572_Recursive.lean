@@ -1131,9 +1131,6 @@ theorem enumOf_chi (χ : Nat → Bool) (k : Nat) (h : ∃ v, χ v = true ∧ ran
 theorem enumOf_rank (χ : Nat → Bool) (k : Nat) (h : ∃ v, χ v = true ∧ rankOf χ v = k) :
     rankOf χ (enumOf χ k h) = k := (theLeast_mem _ h).2
 
-theorem enumOf_min (χ : Nat → Bool) (k : Nat) (h : ∃ v, χ v = true ∧ rankOf χ v = k) :
-    ∀ i, i < enumOf χ k h → ¬(χ i = true ∧ rankOf χ i = k) := theLeast_min _ h
-
 /-- The enumeration inverts the rank on members. -/
 theorem enumOf_of_mem (χ : Nat → Bool) {u : Nat} (hu : χ u = true)
     (h : ∃ v, χ v = true ∧ rankOf χ v = rankOf χ u) : enumOf χ (rankOf χ u) h = u :=
@@ -1160,7 +1157,7 @@ theorem enumOf_recursive {χ : Nat → Bool} (ht : Recursive1 fun v => if χ v t
     simp
   · intro k i hi
     show (1 - (if χ i then 1 else 0)) + ((rankOf χ i - k) + (k - rankOf χ i)) ≠ 0
-    have hmin := enumOf_min χ k (hex k) i hi
+    have hmin := theLeast_min (fun v => χ v = true ∧ rankOf χ v = k) (hex k) i hi
     by_cases hχ : χ i = true
     · have hrk : rankOf χ i ≠ k := fun hr => hmin ⟨hχ, hr⟩
       rw [hχ, if_pos rfl]
@@ -1314,9 +1311,6 @@ theorem leastAgree_agree (F : Nat → Nat) (k : Nat) : F (leastAgree F k) = F k 
 theorem leastAgree_min (F : Nat → Nat) (k : Nat) :
     ∀ i, i < leastAgree F k → F i ≠ F k := theLeast_min _ _
 
-theorem leastAgree_le (F : Nat → Nat) (k : Nat) : leastAgree F k ≤ k :=
-  theLeast_le _ _ rfl
-
 theorem leastAgree_congr (F : Nat → Nat) {j k : Nat} (h : F j = F k) :
     leastAgree F j = leastAgree F k := by
   refine theLeast_unique _ _ ?_ ?_
@@ -1344,7 +1338,7 @@ theorem suppChi_of_le : ∀ {α : ExtNat} {u v : Nat}, u ≤ v → suppChi α v 
 /-- §1.572's idempotent: `e(a) = min{ i ≤ a | x(i) = x(a) }` (through the code of `a`). -/
 noncomputable def idemFn {α β : ExtNat} (x : Mor α β) : El α → El α := fun a =>
   elOf (leastAgree (morN x) (toNat a))
-    (suppChi_of_le (leastAgree_le _ _) (suppChi_toNat a))
+    (suppChi_of_le (theLeast_le _ _ rfl) (suppChi_toNat a))
 
 theorem toNat_idemFn {α β : ExtNat} (x : Mor α β) (a : El α) :
     toNat (idemFn x a) = leastAgree (morN x) (toNat a) := toNat_elOf _ _
@@ -1398,12 +1392,6 @@ theorem idemFn_isMor {α β : ExtNat} (x : Mor α β) : IsMor α α (idemFn x) :
 /-- §1.572's idempotent as a morphism of R. -/
 noncomputable def eMor {α β : ExtNat} (x : α ⟶ β) : α ⟶ α := ⟨idemFn x, idemFn_isMor x⟩
 
-theorem eMor_idem {α β : ExtNat} (x : α ⟶ β) : eMor x ≫ eMor x = eMor x :=
-  Mor.ext fun a => idemFn_idem x a
-
-theorem eMor_absorb {α β : ExtNat} (x : α ⟶ β) : eMor x ≫ x = x :=
-  Mor.ext fun a => idemFn_absorb x a
-
 /-- Generic (any category with pullbacks): if `kp₁(u) ≫ w = kp₂(u) ≫ w` then
     `level(u) ⊂ level(w)` — the kernel-pair comparison is a pullback lift. -/
 theorem kernelPairRel_le_of_comm {𝒟 : Type u} [Cat.{v} 𝒟] [HasTerminal 𝒟]
@@ -1441,7 +1429,7 @@ theorem rFactorization {α β : ExtNat} (x : α ⟶ β) :
     ∃ (C : ExtNat) (p : α ⟶ C) (n : C ⟶ β),
       (∃ s : C ⟶ α, s ≫ p = Cat.id C) ∧ Monic n ∧ p ≫ n = x :=
   ac_factorization_via_idempotent
-    (fun x => ⟨eMor x, eMor_idem x, eMor_absorb x,
+    (fun x => ⟨eMor x, Mor.ext fun a => idemFn_idem x a, Mor.ext fun a => idemFn_absorb x a,
       (eMor_same_level x).1, (eMor_same_level x).2⟩) x
 
 /-- The factorization data, extracted by choice. -/

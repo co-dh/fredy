@@ -304,10 +304,6 @@ def recipRecipHom (G : LGraph L) : Hom G (recip (recip G)) where
   map_s := rfl
   map_t := rfl
 
-theorem recipRecip_bound (G : LGraph L) :
-    ∀ y, ∃ l, FibCover (recipRecipHom G).toEHom.onV y l ∧ l.length ≤ 1 :=
-  fibBound_of_retraction _ (fun y => y) (fun _ => rfl)
-
 /-! ## The isomorphism-shaped instance maps (bound 1)
 
   `∩`-commutativity, `∩`-associativity, `;`-associativity (both directions)
@@ -1314,7 +1310,8 @@ theorem instanceBound_allegoryAxioms_ten : InstanceBound allegoryAxioms 10 := by
   · -- (XY)° ⊆ Y°X°
     exact ⟨recipCompHom _ _, fibBound_mono (by omega) (recipComp_bound _ _)⟩
   · -- X°° ⊆ X
-    exact ⟨recipRecipHom _, fibBound_mono (by omega) (recipRecip_bound _)⟩
+    exact ⟨recipRecipHom _,
+      fibBound_mono (by omega) (fibBound_of_retraction _ (fun y => y) (fun _ => rfl))⟩
   · -- semidistribution
     exact ⟨sdHom _ _ _ _, fibBound_mono (by omega) (sdHom_bound _ _ _ _)⟩
   · -- modular law

@@ -446,7 +446,7 @@ theorem monotonicAlg_in_context {c : 𝒜} {h : F.obj a ⟶ a} {R : a ⟶ a} {co
   have hReq : (cost ≫ leq) ≫ cost° = R := by rw [hR]; simp only [Cat.assoc]
   rw [hReq] at hdecomp0
   -- hdecomp0 : P.pair (cost ≫ leq) S ≫ (P.pair cost S)° = R ∩ (S ≫ S°)
-  have hSimplePair : Simple (P.pair cost S) := P.pair_simple hcost.2 hS
+  have hSimplePair : Simple (P.pair cost S) := tabulation_simple_of_simple P.tab hcost.2 hS
   have hcancel : (R ∩ (S ≫ S°)) ≫ P.pair cost S ⊑ P.pair (cost ≫ leq) S := by
     rw [← hdecomp0, Cat.assoc]
     have e2 := comp_mono_left (P.pair (cost ≫ leq) S) hSimplePair

@@ -664,14 +664,6 @@ variable [PreLogos 𝒞]
 /-- COPRODUCT-FREE relational union — now an alias of the unified `relUnion` (S1_60 §1.616). -/
 abbrev relUnionSub {A B : 𝒞} (R S : BinRel 𝒞 A B) : BinRel 𝒞 A B := relUnion R S
 
-theorem relSub_relUnionSub_le {A B : 𝒞} (R S : BinRel 𝒞 A B) :
-    (relSub (relUnionSub R S)).le (HasSubobjectUnions.union (relSub R) (relSub S)) :=
-  relSub_union_le R S
-
-theorem relSub_relUnionSub_ge {A B : 𝒞} (R S : BinRel 𝒞 A B) :
-    (HasSubobjectUnions.union (relSub R) (relSub S)).le (relSub (relUnionSub R S)) :=
-  relSub_union_ge R S
-
 /-- `R ≤ relUnionSub R S`. -/
 theorem relUnionSub_le_left {A B : 𝒞} (R S : BinRel 𝒞 A B) : RelLe R (relUnionSub R S) :=
   relUnion_le_left R S
@@ -762,7 +754,7 @@ theorem union_joint_cover_sub {A : 𝒞} (A₁ A₂ : Subobject 𝒞 A)
       (Subobject.le_trans (diagSub_le_relSub_xx A₁) (HasSubobjectUnions.union_left _ _))
       (Subobject.le_trans (diagSub_le_relSub_xx A₂) (HasSubobjectUnions.union_right _ _))
   exact Subobject.le_trans hΔ (Subobject.le_trans hsplit
-    (Subobject.le_trans hpieces (relSub_relUnionSub_ge R₁ R₂)))
+    (Subobject.le_trans hpieces (relSub_union_ge R₁ R₂)))
 
 /-- **Joint epi** (coproduct-free): when `A₁ ∪ A₂` is entire, the inclusions `A₁.arr, A₂.arr`
     are jointly epimorphic on `A`.  Mirrors `union_inclusions_cover`, replacing the generic monic

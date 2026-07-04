@@ -376,10 +376,6 @@ instance appendFunctor (B : 𝒞) :
   `baseChangeObj (Cat.id) X` is iso to `X` but NOT EQUAL, so the laws are simply false.  That object
   equality (not mere iso) is the strictness the inner `CatSystem` requires. -/
 
-/-- **Strict cancellation (§1.544).**  `[B] ++ s = [B] ++ t ⟹ s = t` — list-cons injectivity. -/
-theorem strict_cancel (B : 𝒞) {s t : Infl 𝒞} (h : B :: s = B :: t) : s = t :=
-  List.cons.inj h |>.2
-
 /-- Concatenation is STRICTLY associative on `A′` (equality of list objects). -/
 theorem concat_assoc (s d e : Infl 𝒞) : (s ++ d) ++ e = s ++ (d ++ e) :=
   List.append_assoc s d e
@@ -2210,15 +2206,6 @@ theorem catMap_conservative {d : List 𝒞} (hws : WellSupported (listProd (𝒞
     exact cover_epi (prod_fst_cover hws) hfst
   exact monic_cover_iso φ hφcover hφmono
 
-/-- **`sliceCatFunctor d` is FAITHFUL** (separates slice morphisms) when the appended suffix `∏d` is
-    well-supported.  A slice equation is its underlying-arrow equation (`OverHom.ext`); the underlying
-    `catMap d` is faithful by `catMap_faithful` (cancel the cover `catForget`).  The slice-level mate of
-    `catMap_faithful` — the per-transition `hfaith` ingredient the §1.546 colimit cover-transfer needs. -/
-theorem sliceCatObj_faithful (d : List 𝒞) (hws : WellSupported (listProd (𝒞 := 𝒞) d))
-    {V : Infl 𝒞} {X Y : Over (B := V)} (g h : OverHom X Y)
-    (he : sliceCatMap d g = sliceCatMap d h) : g = h :=
-  OverHom.ext (catMap_faithful (d := d) hws g.f h.f (congrArg OverHom.f he))
-
 /-- **`sliceCatFunctor d` is CONSERVATIVE** (reflects slice isos) when `∏d` is well-supported.  From a
     slice iso of `sliceCatMap d φ` take the underlying `IsIso (catMap d φ.f)` (`overIso_underlying`),
     reflect it to `IsIso φ.f` (`catMap_conservative`), then re-wrap to a slice iso
@@ -2391,7 +2378,8 @@ theorem ordChainHfaith {i j : ι} (hij : D.le i j)
       (hwsd : WellSupported (listProd (𝒞 := 𝒞) d)),
       (transportSliceFunctor e (sliceCatFunctor d (O.chain i))).map p
         = (transportSliceFunctor e (sliceCatFunctor d (O.chain i))).map q → p = q := by
-    intro d W e hwsd; cases e; exact fun h => sliceCatObj_faithful d hwsd p q h
+    intro d W e hwsd; cases e
+    exact fun h => OverHom.ext (catMap_faithful (d := d) hwsd p.f q.f (congrArg OverHom.f h))
   exact gen _ _ (prefixSuffix_eq (O.mono hij)) hws
 
 /-- **GENERIC** transition CONSERVATIVITY (`hcons`) — the inner transition reflects slice isos, lifting

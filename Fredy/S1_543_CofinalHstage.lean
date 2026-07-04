@@ -62,17 +62,14 @@ theorem cover_comp_iso_cat {𝒞 : Type u} [Cat.{u} 𝒞] {X Y Z : 𝒞} {f : X 
   have hmeq : m = (m ≫ einv) ≫ e := by rw [Cat.assoc, heinv, Cat.comp_id]
   rw [hmeq]; exact isIso_comp hmiso ⟨einv, hee, heinv⟩
 
-/-- The unique comparison map between any two terminals is an isomorphism. -/
-theorem terminal_iso {𝒞 : Type u} [Cat.{u} 𝒞] (h1 h2 : HasTerminal 𝒞) :
-    @IsIso _ _ h1.one h2.one (h2.trm h1.one) := ⟨h1.trm h2.one, h1.uniq _ _, h2.uniq _ _⟩
-
 /-- `WellSupported` does not depend on which terminal is chosen (terminals are uniquely isomorphic,
     and `term A` to either one differs by that iso, which cover-composition absorbs). -/
 theorem wellSupported_terminal_invariant {𝒞 : Type u} [Cat.{u} 𝒞] (h1 h2 : HasTerminal 𝒞) {A : 𝒞}
     (hws : @WellSupported _ _ h1 A) : @WellSupported _ _ h2 A := by
   have hterm : h2.trm A = h1.trm A ≫ h2.trm h1.one := h2.uniq _ _
   show Cover (h2.trm A); rw [hterm]
-  obtain ⟨einv, hee, heinv⟩ := terminal_iso h1 h2
+  obtain ⟨einv, hee, heinv⟩ :=
+    (⟨h1.trm h2.one, h1.uniq _ _, h2.uniq _ _⟩ : @IsIso _ _ h1.one h2.one (h2.trm h1.one))
   intro C m g hm hgm
   have hmono' : Monic (m ≫ einv) := by
     intro W a c hac; apply hm

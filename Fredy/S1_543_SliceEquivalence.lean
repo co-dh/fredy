@@ -79,13 +79,6 @@ abbrev pairTargetSub {X Y : PairObj 𝒞} (m : PairHom X Y) : ∀ T ∈ Y.target
 theorem bridge_roundtrip_g {X Y : PairObj 𝒞} (m : PairHom X Y) :
     (pairHomOfSlice (pairHom_targets_subset m) (pairHomToSlice m)).g = m.g := rfl
 
-/-- **The bridge round-trip on the `Â` side is the identity.**  Full statement: round-tripping a
-    `PairHom m` through the slice and back yields `m` itself (the two agree on `.g`, hence as
-    `PairHom`s by `PairHom.ext`). -/
-theorem bridge_roundtrip_pairHom {X Y : PairObj 𝒞} (m : PairHom X Y) :
-    pairHomOfSlice (pairHom_targets_subset m) (pairHomToSlice m) = m :=
-  PairHom.ext (bridge_roundtrip_g m)
-
 /-- **The bridge round-trip `slice → Â → slice`** preserves the underlying arrow `.f`.  Given a slice
     map `φ` over `∏Y°` from the reindexed `pairSliceObj X` to `pairSliceObj Y`, `pairHomToSlice` of
     `pairHomOfSlice hsub φ` has the SAME underlying `.f = φ.f`.  (Equality as `OverHom`s then follows
@@ -622,7 +615,6 @@ end FixedU
 
 end Freyd
 
-#print axioms Freyd.bridge_roundtrip_pairHom
 #print axioms Freyd.bridge_roundtrip_f
 #print axioms Freyd.wellPointed_of_productForm
 #print axioms Freyd.sliceEmbed_factor_wellPointed_of_productForm

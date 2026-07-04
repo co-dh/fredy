@@ -321,18 +321,6 @@ private noncomputable def imgTransπ₁inv [RegularCategory 𝒮] {F G : Functor
     (image (α.app X)).dom ⟶ (imgTransPB α f).cone.pt :=
   Classical.choose (imgTransPB_π₁_iso α f)
 
--- π₁ ≫ π₁⁻¹ = id  (first component of IsIso spec)
-private theorem imgTransπ₁_comp_inv [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
-    (α : FunctorHom F G) {X Y : 𝒜} (f : X ⟶ Y) :
-    (imgTransPB α f).cone.π₁ ≫ imgTransπ₁inv α f = Cat.id _ :=
-  (Classical.choose_spec (imgTransPB_π₁_iso α f)).1
-
--- π₁⁻¹ ≫ π₁ = id  (second component of IsIso spec)
-private theorem imgTransπ₁inv_comp [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
-    (α : FunctorHom F G) {X Y : 𝒜} (f : X ⟶ Y) :
-    imgTransπ₁inv α f ≫ (imgTransPB α f).cone.π₁ = Cat.id _ :=
-  (Classical.choose_spec (imgTransPB_π₁_iso α f)).2
-
 /-- The transition map: π₁⁻¹ ≫ π₂ : (image α_X).dom ⟶ (image α_Y).dom.
     π₁⁻¹ : (image α_X).dom → (imgTransPB α f).cone.pt  (inverse of π₁ : P → (image α_X).dom)
     π₂   : (imgTransPB α f).cone.pt → (image α_Y).dom. -/
@@ -350,8 +338,12 @@ theorem imgTrans_comm [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
     (image (α.app X)).arr ≫ G.isFunctor.map f := by
   -- unfold imgTransMap; then use Cat.assoc to group π₁⁻¹ ≫ (π₂ ≫ arr_Y), then cone.w.
   unfold imgTransMap
+  -- the show-coercion refolds `Classical.choose … = imgTransπ₁inv` so rw's syntactic match sees it
   rw [Cat.assoc (imgTransπ₁inv α f), ← (imgTransPB α f).cone.w,
-      ← Cat.assoc (imgTransπ₁inv α f), imgTransπ₁inv_comp, Cat.id_comp]
+      ← Cat.assoc (imgTransπ₁inv α f),
+      show imgTransπ₁inv α f ≫ (imgTransPB α f).cone.π₁ = Cat.id _ from
+        (Classical.choose_spec (imgTransPB_π₁_iso α f)).2,
+      Cat.id_comp]
 
 private theorem imgTransMap_id [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
     (α : FunctorHom F G) (X : 𝒜) :
@@ -437,11 +429,6 @@ theorem imageLiftNT_fac [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
 /-- §1.462: The evaluation functor `ev_A : 𝒮^𝒜 → 𝒮`, sending `T ↦ T.obj A`
     and `α ↦ α.app A`. -/
 def evFunctor (A : 𝒜) : FunctorObj 𝒜 𝒮 → 𝒮 := fun T => T.obj A
-
-/-- The family {ev_A} is jointly faithful: NTs equal iff all components equal. -/
-theorem evFunctor_jointly_faithful {F G : FunctorObj 𝒜 𝒮} {α β : FunctorHom F G}
-    (h : ∀ A : 𝒜, α.app A = β.app A) : α = β :=
-  NaturalTransformation.ext' h
 
 /-- A component of an iso NT is iso: if `α` is iso in `FunctorObj 𝒜 𝒮`, then `α.app A` is iso. -/
 theorem natTrans_iso_component {F G : FunctorObj 𝒜 𝒮} {α : FunctorHom F G}

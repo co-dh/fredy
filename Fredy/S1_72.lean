@@ -601,14 +601,10 @@ theorem hp_iso_iff (P : HeytingPoset) {a b : P.carrier} (f : a ⟶ b) :
     IsIso f ↔ P.le b a :=
   ⟨fun ⟨finv, _, _⟩ => finv.down, fun hba => ⟨⟨hba⟩, hp_thin P _ _, hp_thin P _ _⟩⟩
 
-/-- Every morphism in a Heyting-poset thin category is monic. -/
-theorem hp_monic (P : HeytingPoset) {a b : P.carrier} (f : a ⟶ b) : Monic f :=
-  fun {_W} p q _ => hp_thin P p q
-
 /-- In a Heyting-poset thin category, covers = isos. -/
 theorem hp_cover_iff_iso (P : HeytingPoset) {a b : P.carrier} (f : a ⟶ b) :
     Cover f ↔ IsIso f :=
-  ⟨fun hcov => hcov f (Cat.id a) (hp_monic P f) (Cat.id_comp f),
+  ⟨fun hcov => hcov f (Cat.id a) (fun {_W} p q _ => hp_thin P p q) (Cat.id_comp f),
    fun hiso _C m h _hmono _hgm => by
      rw [hp_iso_iff P]; exact P.le_trans ((hp_iso_iff P f).mp hiso) h.down⟩
 

@@ -21,9 +21,8 @@
      `≤`-maximum, i.e. `max (≤) · Λ spec` in `Rel(Set)`.
 
   4. **Correctness** — `solve` computes exactly that maximum: it returns an achievable profit
-     (`solve_profit`, giving `solve ⊑ spec`) and dominates every achievable profit
-     (`profit_le_solve`).  Together (`solve_correct`) this is `solve = max (≤) · Λ spec`, evaluated
-     pointwise in the Set model.
+     (`solve_profit`, giving `solve ⊑ spec`) and dominates every achievable profit. Together
+     (`solve_correct`) this is `solve = max (≤) · Λ spec`, evaluated pointwise in the Set model.
 
   Mathlib-free.  Correctness now flows from the GREEDY THEOREM (`A7_4_Horner.horner_correct`), so
   the headline axioms are {propext, Classical.choice, Quot.sound} — the `Classical.choice` is the
@@ -306,10 +305,6 @@ theorem solve_correct (xs : SnocList Int Int) :
   horner_correct gen alg prodDom foldFn (graph_map algFn) cataFold_alg
     prodDom_trans alg_mono alg_ref (fun x y h => h.2) spec
     (fun xs w h => (gen_sound xs w h).2) spec_gen xs
-
-/-- `solve` dominates every achievable profit (domination half of `solve_correct`). -/
-theorem profit_le_solve (xs : SnocList Int Int) (v : Int) (h : profit xs v) : v ≤ solveFn xs :=
-  (solve_correct xs).2 v h
 
 /-- `solve`'s output is an achievable profit (achievability half of `solve_correct`). -/
 theorem solve_profit (xs : SnocList Int Int) : profit xs (solveFn xs) := (solve_correct xs).1

@@ -138,11 +138,6 @@ theorem SplHom.split_symmetric_idempotent {E : SplObj 𝒜} (Φ : SplHom E E)
 def tabApex {a b c : 𝒜} (f : c ⟶ a) (g : c ⟶ b) (R : a ⟶ b) : c ⟶ c :=
   Cat.id c ∩ f ≫ R ≫ g°
 
-/-- `tabApex` is coreflexive on the apex `c`. -/
-theorem tabApex_coreflexive {a b c : 𝒜} (f : c ⟶ a) (g : c ⟶ b) (R : a ⟶ b) :
-    Coreflexive (tabApex f g R) :=
-  inter_lb_left _ _
-
 /-- The apex coreflexive sits below each of `f ≫ f°` and `g ≫ g°`.  Trivially, since
     `tabApex ⊑ 1_c` (coreflexive) and `1_c ⊑ f ≫ f°`, `1_c ⊑ g ≫ g°` (f, g entire). -/
 theorem tabApex_le_legs {a b c : 𝒜} {f : c ⟶ a} {g : c ⟶ b} {R : a ⟶ b}
@@ -182,7 +177,7 @@ theorem tabulation_of_split_apex {a b c d : 𝒜}
   have hFmap : Map (h ≫ f) := map_comp hh hf
   have hGmap : Map (h ≫ g) := map_comp hh hg
   obtain ⟨hAf, hAg⟩ := tabApex_le_legs hf hg hRS
-  have hhcoref : h° ≫ h ⊑ Cat.id c := hhA ▸ tabApex_coreflexive f g R
+  have hhcoref : h° ≫ h ⊑ Cat.id c := hhA ▸ inter_lb_left _ _
   have hReq : R = (h ≫ f)° ≫ (h ≫ g) := by
     rw [Allegory.recip_comp]
     calc R = f° ≫ (tabApex f g R) ≫ g := hsat

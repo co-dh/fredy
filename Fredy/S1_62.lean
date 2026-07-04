@@ -4057,17 +4057,6 @@ theorem pushPow_mor_app (ρ : Env 𝒞 nObj) (m : MorVar nObj)
       = (Freyd.Horn.homFunctorFunctor i).map (morAs ρ m hs ht) := by
   rw [morAs_pushPow]; rfl
 
-/-- **TERMINATOR**, preserved: if `ρ.obj o` is terminal in `𝒞`, then `homRep` of it is terminal in
-    the power.  Bridge to fibrewise + per-index `homFunctor_preserves_terminal`. -/
-theorem pushPow_preserves_terminator (ρ : Env 𝒞 nObj) {o : ObjVar nObj}
-    (h : IsTerminalObj (ρ.obj o)) : IsTerminalObj ((pushPow ρ).obj o) :=
-  isTerminalObj_power_iff.mpr (fun i => homFunctor_preserves_terminal i h)
-
-/-- **TERMINATOR**, reflected: terminal in the power ⟹ terminal in `𝒞` (`cayley_faithful`). -/
-theorem pushPow_reflects_terminator (ρ : Env 𝒞 nObj) {o : ObjVar nObj}
-    (h : IsTerminalObj ((pushPow ρ).obj o)) : IsTerminalObj (ρ.obj o) :=
-  reflect_terminal (isTerminalObj_power_iff.mp h)
-
 /-- **PRODUCT**, preserved. -/
 theorem pushPow_preserves_product (ρ : Env 𝒞 nObj) {a b p : ObjVar nObj}
     {pf ps : MorVar nObj} (hpf_src : pf.src = p) (hpf_tgt : pf.tgt = a)
@@ -4264,7 +4253,7 @@ def PreLogosRep.ofPushPow (hproj : Capital 𝒞) (res : PushPowResidual 𝒞) :
   preserves := by
     intro nObj ρ α hα
     cases α with
-    | terminator o => exact pushPow_preserves_terminator ρ hα
+    | terminator o => exact isTerminalObj_power_iff.mpr (fun i => homFunctor_preserves_terminal i hα)
     | product a b p pf ps h1 h2 h3 h4 => exact pushPow_preserves_product ρ h1 h2 h3 h4 hα
     | equalizer e a bb em f g h1 h2 h3 h4 h5 h6 =>
         exact pushPow_preserves_equalizer ρ h1 h2 h3 h4 h5 h6 hα
@@ -4275,7 +4264,7 @@ def PreLogosRep.ofPushPow (hproj : Capital 𝒞) (res : PushPowResidual 𝒞) :
   reflects := by
     intro nObj ρ α hα
     cases α with
-    | terminator o => exact pushPow_reflects_terminator ρ hα
+    | terminator o => exact reflect_terminal (isTerminalObj_power_iff.mp hα)
     | product a b p pf ps h1 h2 h3 h4 => exact pushPow_reflects_product ρ h1 h2 h3 h4 hα
     | equalizer e a bb em f g h1 h2 h3 h4 h5 h6 =>
         exact pushPow_reflects_equalizer ρ h1 h2 h3 h4 h5 h6 hα

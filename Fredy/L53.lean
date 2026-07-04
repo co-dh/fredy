@@ -22,8 +22,8 @@
      `max (≤) · Λ spec`.
 
   4. **Correctness** — `solve` computes exactly that maximum: it returns an achievable subarray sum
-     (`solve_sub`, giving `solve ⊑ spec`) and dominates every achievable subarray sum
-     (`subSum_le_solve`).  Together (`solve_correct`) this is `solve = max (≤) · Λ spec`.
+     (`solve_sub`, giving `solve ⊑ spec`) and dominates every achievable subarray sum. Together
+     (`solve_correct`) this is `solve = max (≤) · Λ spec`.
 
   Mathlib-free.  Correctness now flows from the GREEDY THEOREM (`A7_4_Horner.horner_correct`), so
   the headline axioms are {propext, Classical.choice, Quot.sound} — the `Classical.choice` is the
@@ -287,10 +287,6 @@ theorem solve_correct (xs : SnocList Int Int) :
   horner_correct gen alg prodDom foldFn (graph_map algFn) cataFold_alg
     prodDom_trans alg_mono alg_ref (fun x y h => h.2) spec
     (fun xs w h => (gen_sound xs w h).2) spec_gen xs
-
-/-- `solve` dominates every achievable subarray sum (domination half of `solve_correct`). -/
-theorem subSum_le_solve (xs : SnocList Int Int) (v : Int) (h : subSum xs v) : v ≤ solveFn xs :=
-  (solve_correct xs).2 v h
 
 /-- `solve`'s output is an achievable subarray sum (achievability half of `solve_correct`). -/
 theorem solve_sub (xs : SnocList Int Int) : subSum xs (solveFn xs) := (solve_correct xs).1

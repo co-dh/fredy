@@ -99,9 +99,6 @@ def PrimRec2 (f : Nat → Nat → Nat) : Prop := PrimRecV fun v : Vec 2 => f (v 
 theorem PrimRecV.recursiveV {k : Nat} {f : Vec k → Nat} : PrimRecV f → RecursiveV f
   | ⟨c, _, hc⟩ => ⟨c, hc⟩
 
-theorem PrimRec1.recursive1 {f : Nat → Nat} (h : PrimRec1 f) : Recursive1 f :=
-  h.recursiveV
-
 theorem PrimRecV.congr {k : Nat} {f g : Vec k → Nat} (hf : PrimRecV f)
     (h : ∀ v, f v = g v) : PrimRecV g := by
   obtain ⟨c, hp, hc⟩ := hf
@@ -201,20 +198,15 @@ theorem PrimRec2.add : PrimRec2 fun a b => a + b := by
 
 theorem isPrim_predCode : IsPrim predCode := ⟨trivial, trivial⟩
 
-theorem isPrim_rsubCode : IsPrim rsubCode := ⟨trivial, isPrim_predCode, fun _ => trivial⟩
-
 theorem PrimRec2.sub : PrimRec2 fun a b => a - b := by
   have h : PrimRec2 fun a b => b - a :=
-    ⟨rsubCode, isPrim_rsubCode, fun v => by
+    ⟨rsubCode, ⟨trivial, isPrim_predCode, fun _ => trivial⟩, fun v => by
       have := evalRsub_aux (v 0) (vtail v)
       rwa [vcons_head_tail v] at this⟩
   exact h.swap
 
-theorem isPrim_mulCode : IsPrim mulCode :=
-  ⟨trivial, isPrim_addCode, fun j => by dsimp only; split <;> trivial⟩
-
 theorem PrimRec2.mul : PrimRec2 fun a b => a * b :=
-  ⟨mulCode, isPrim_mulCode, fun v => by
+  ⟨mulCode, ⟨trivial, isPrim_addCode, fun j => by dsimp only; split <;> trivial⟩, fun v => by
     have := evalMul_aux (v 0) (vtail v)
     rwa [vcons_head_tail v] at this⟩
 
@@ -799,10 +791,6 @@ def spltFn (a₀ : El γ) : El γ → El γ := fun a =>
 theorem spltFn_of_mem (a₀ : El γ) {a : El γ} (h1 : d.1 a = a) (h2 : u.1 a = v.1 a) :
     spltFn d u v a₀ a = a := if_pos ⟨congrArg toNat h1, congrArg toNat h2⟩
 
-theorem spltFn_of_not (a₀ : El γ) {a : El γ} (h : ¬(d.1 a = a ∧ u.1 a = v.1 a)) :
-    spltFn d u v a₀ a = a₀ :=
-  if_neg fun hc => h ⟨toNat_inj hc.1, toNat_inj hc.2⟩
-
 /-- Values of `spltFn` lie in the agreement set (given that the witness does). -/
 theorem spltFn_mem (a₀ : El γ) (h₀d : d.1 a₀ = a₀) (h₀uv : u.1 a₀ = v.1 a₀) (a : El γ) :
     d.1 (spltFn d u v a₀ a) = spltFn d u v a₀ a ∧
@@ -810,7 +798,8 @@ theorem spltFn_mem (a₀ : El γ) (h₀d : d.1 a₀ = a₀) (h₀uv : u.1 a₀ =
   by_cases h : toNat (d.1 a) = toNat a ∧ toNat (u.1 a) = toNat (v.1 a)
   · rw [spltFn_of_mem d u v a₀ (toNat_inj h.1) (toNat_inj h.2)]
     exact ⟨toNat_inj h.1, toNat_inj h.2⟩
-  · rw [spltFn_of_not d u v a₀ fun hc => h ⟨congrArg toNat hc.1, congrArg toNat hc.2⟩]
+  · -- `h` is exactly the negated if-condition; the show refolds `spltFn` for rw's syntactic match
+    rw [show spltFn d u v a₀ a = a₀ from if_neg h]
     exact ⟨h₀d, h₀uv⟩
 
 theorem spltFn_idem (a₀ : El γ) (h₀d : d.1 a₀ = a₀) (h₀uv : u.1 a₀ = v.1 a₀) (a : El γ) :

@@ -146,11 +146,6 @@ theorem embEq_inter {a b : 𝒜} (R S : a ⟶ b) :
     embEqHom (R ∩ S) = embEqHom R ∩ embEqHom S :=
   SplHom.ext rfl
 
-/-- The embedding preserves and reflects the order (special case of `splEqLe_iff`). -/
-theorem embEq_le_iff {a b : 𝒜} (R S : a ⟶ b) :
-    embEqHom R ⊑ embEqHom S ↔ R ⊑ S :=
-  splEqLe_iff _ _
-
 /-- The embedding preserves and reflects MAPS: `embEqHom f` is a map of `Spl(Eq 𝒜)`
     iff `f` is a map of `𝒜` (both `dom` and the simplicity order compute underlying). -/
 theorem embEq_map_iff {a b : 𝒜} (f : a ⟶ b) :

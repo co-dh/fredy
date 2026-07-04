@@ -160,10 +160,6 @@ theorem le_listMeet' {a b : 𝒜} (l : List (a ⟶ b)) (hne : l ≠ []) {T : a �
 def finMeet {a b : 𝒜} {n : Nat} (f : Fin (n + 1) → (a ⟶ b)) : a ⟶ b :=
   listMeet' (List.ofFn f) (by rw [List.ofFn_succ]; exact List.cons_ne_nil _ _)
 
-theorem finMeet_le {a b : 𝒜} {n : Nat} (f : Fin (n + 1) → (a ⟶ b)) (i : Fin (n + 1)) :
-    finMeet f ⊑ f i :=
-  listMeet'_le _ _ (List.mem_ofFn.mpr ⟨i, rfl⟩)
-
 theorem le_finMeet {a b : 𝒜} {n : Nat} {f : Fin (n + 1) → (a ⟶ b)} {T : a ⟶ b}
     (h : ∀ i, T ⊑ f i) : T ⊑ finMeet f :=
   le_listMeet' _ _ (fun x hx => by obtain ⟨i, rfl⟩ := List.mem_ofFn.mp hx; exact h i)
@@ -428,7 +424,8 @@ theorem le_matDiv_comp {X Y Z : MatObj 𝒜} (R : X ⟶ Z) (S : Y ⟶ Z) :
   | succ m =>
     simp only
     apply finJoin_le; intro j
-    exact le_trans (comp_mono_right (finMeet_le _ k) _) (DivisionAllegory.div_comp_le _ _)
+    exact le_trans (comp_mono_right (listMeet'_le _ _ (List.mem_ofFn.mpr ⟨k, rfl⟩)) _)
+      (DivisionAllegory.div_comp_le _ _)
 
 /-- §2.342  POSITIVE REFLECTION THEOREM: the positive reflection A⁺ of a division allegory is
     a division allegory (Freyd §2.342).
