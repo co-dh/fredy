@@ -1274,11 +1274,11 @@ theorem coproduct_inj_monic [Topos 𝒞] (hca : HasAllCoproducts 𝒞)
     which the carvings consume, from bare `HasProducts`.) -/
 noncomputable def powersOfProducts (hp : HasProducts 𝒞) :
     @HasArbitraryPowers 𝒞 _ Topos.toHasBinaryProducts where
-  pow I A := hp.prodObj (fun _ : I => A)
-  proj {I A} i := hp.proj (F := fun _ : I => A) i
-  tupling {I A X} f := hp.tupling (F := fun _ : I => A) f
-  tupling_proj {I A X} f i := hp.tupling_fac (F := fun _ : I => A) f i
-  tupling_uniq {I A X} f h hh := hp.tupling_uniq (F := fun _ : I => A) f h hh
+  pow I A := (hp.prod (fun _ : I => A)).prod
+  proj {I A} i := (hp.prod (fun _ : I => A)).proj i
+  tupling {I A X} f := (hp.prod (fun _ : I => A)).lift f
+  tupling_proj {I A X} f i := (hp.prod (fun _ : I => A)).lift_π f i
+  tupling_uniq {I A X} f h hh := (hp.prod (fun _ : I => A)).lift_uniq f h hh
 
 /-! ### Cocomplete → Complete: `HasProducts` from `HasAllCoproducts`.
 
@@ -1350,43 +1350,44 @@ end ProductsFromCoproducts
 noncomputable def hasProducts_of_coproducts
     (hpow : @HasArbitraryPowers 𝒞 _ Topos.toHasBinaryProducts)
     (hca : HasAllCoproducts 𝒞) : HasProducts 𝒞 where
-  prodObj {I} A := pfcProd hpow hca A
-  proj {I A} i := pfcProj hpow hca A i
-  tupling {I A X} g := pfcTup hpow hca A g
-  tupling_fac {I A X} g i := by
-    -- `tup ≫ proj i = tup ≫ (wᵢ ≫ π₂)`.  Show `tup ≫ wᵢ = lt i` (both factor `t` through the
-    -- monic `Pᵢ.π₁`), then `≫ π₂` gives `lt i ≫ π₂ = g i`.
-    show pfcTup hpow hca A g ≫ (pfcW hpow hca A i ≫ (pfcPb hpow hca A i).cone.π₂) = g i
-    have hagree : pfcTup hpow hca A g ≫ pfcW hpow hca A i = pfcLt hpow hca A g i := by
-      refine (pfcSub hpow hca A i).monic _ _ ?_
-      rw [Cat.assoc, pfcW_spec, pfcTup_arr]
-      exact (pfcLt_fst hpow hca A g i).symm
-    calc pfcTup hpow hca A g ≫ (pfcW hpow hca A i ≫ (pfcPb hpow hca A i).cone.π₂)
-        = (pfcTup hpow hca A g ≫ pfcW hpow hca A i) ≫ (pfcPb hpow hca A i).cone.π₂ :=
-          (Cat.assoc _ _ _).symm
-      _ = pfcLt hpow hca A g i ≫ (pfcPb hpow hca A i).cone.π₂ := by rw [hagree]
-      _ = g i := pfcLt_snd hpow hca A g i
-  tupling_uniq {I A X} g h hh := by
-    -- `⋂Pᵢ ↣ Sᴵ` monic: compare `h ≫ familyMeet.arr` and `tup ≫ familyMeet.arr = t`.
-    refine (familyMeet hpow (pfcSub hpow hca A)).monic _ _ ?_
-    rw [pfcTup_arr]
-    -- `h ≫ familyMeet.arr = t`:  coordinatewise `(h ≫ familyMeet.arr) ≫ pⱼ = g j ≫ uⱼ`.
-    refine hpow.tupling_uniq (fun j => g j ≫ pfcInj hca A j) _ (fun i => ?_)
-    -- route `familyMeet.arr` through `Pᵢ`:  `= wᵢ ≫ π₁`, and `π₁ ≫ pᵢ = π₂ ≫ uᵢ`.
-    have hpb_w : (pfcPb hpow hca A i).cone.π₁ ≫ hpow.proj (A := pfcS hca A) i
-        = (pfcPb hpow hca A i).cone.π₂ ≫ pfcInj hca A i := (pfcPb hpow hca A i).cone.w
-    -- `h ≫ proj(product) i = g i`, where `proj(product) i = wᵢ ≫ π₂`.
-    have hhi : h ≫ (pfcW hpow hca A i ≫ (pfcPb hpow hca A i).cone.π₂) = g i := hh i
-    calc (h ≫ (familyMeet hpow (pfcSub hpow hca A)).arr) ≫ hpow.proj i
-        = (h ≫ (pfcW hpow hca A i ≫ (pfcSub hpow hca A i).arr)) ≫ hpow.proj i := by
-            rw [pfcW_spec]
-      _ = (h ≫ (pfcW hpow hca A i ≫ (pfcPb hpow hca A i).cone.π₁)) ≫ hpow.proj (A := pfcS hca A) i := rfl
-      _ = (h ≫ pfcW hpow hca A i) ≫ ((pfcPb hpow hca A i).cone.π₁ ≫ hpow.proj (A := pfcS hca A) i) := by
-            simp only [Cat.assoc]
-      _ = (h ≫ pfcW hpow hca A i) ≫ ((pfcPb hpow hca A i).cone.π₂ ≫ pfcInj hca A i) := by rw [hpb_w]
-      _ = (h ≫ (pfcW hpow hca A i ≫ (pfcPb hpow hca A i).cone.π₂)) ≫ pfcInj hca A i := by
-            rw [Cat.assoc, Cat.assoc, Cat.assoc]
-      _ = g i ≫ pfcInj hca A i := by rw [hhi]
+  prod {I} A :=
+  { prod := pfcProd hpow hca A
+    proj := fun i => pfcProj hpow hca A i
+    lift := fun {X} g => pfcTup hpow hca A g
+    lift_π := fun {X} g i => by
+      -- `tup ≫ proj i = tup ≫ (wᵢ ≫ π₂)`.  Show `tup ≫ wᵢ = lt i` (both factor `t` through the
+      -- monic `Pᵢ.π₁`), then `≫ π₂` gives `lt i ≫ π₂ = g i`.
+      show pfcTup hpow hca A g ≫ (pfcW hpow hca A i ≫ (pfcPb hpow hca A i).cone.π₂) = g i
+      have hagree : pfcTup hpow hca A g ≫ pfcW hpow hca A i = pfcLt hpow hca A g i := by
+        refine (pfcSub hpow hca A i).monic _ _ ?_
+        rw [Cat.assoc, pfcW_spec, pfcTup_arr]
+        exact (pfcLt_fst hpow hca A g i).symm
+      calc pfcTup hpow hca A g ≫ (pfcW hpow hca A i ≫ (pfcPb hpow hca A i).cone.π₂)
+          = (pfcTup hpow hca A g ≫ pfcW hpow hca A i) ≫ (pfcPb hpow hca A i).cone.π₂ :=
+            (Cat.assoc _ _ _).symm
+        _ = pfcLt hpow hca A g i ≫ (pfcPb hpow hca A i).cone.π₂ := by rw [hagree]
+        _ = g i := pfcLt_snd hpow hca A g i
+    lift_uniq := fun {X} g h hh => by
+      -- `⋂Pᵢ ↣ Sᴵ` monic: compare `h ≫ familyMeet.arr` and `tup ≫ familyMeet.arr = t`.
+      refine (familyMeet hpow (pfcSub hpow hca A)).monic _ _ ?_
+      rw [pfcTup_arr]
+      -- `h ≫ familyMeet.arr = t`:  coordinatewise `(h ≫ familyMeet.arr) ≫ pⱼ = g j ≫ uⱼ`.
+      refine hpow.tupling_uniq (fun j => g j ≫ pfcInj hca A j) _ (fun i => ?_)
+      -- route `familyMeet.arr` through `Pᵢ`:  `= wᵢ ≫ π₁`, and `π₁ ≫ pᵢ = π₂ ≫ uᵢ`.
+      have hpb_w : (pfcPb hpow hca A i).cone.π₁ ≫ hpow.proj (A := pfcS hca A) i
+          = (pfcPb hpow hca A i).cone.π₂ ≫ pfcInj hca A i := (pfcPb hpow hca A i).cone.w
+      -- `h ≫ proj(product) i = g i`, where `proj(product) i = wᵢ ≫ π₂`.
+      have hhi : h ≫ (pfcW hpow hca A i ≫ (pfcPb hpow hca A i).cone.π₂) = g i := hh i
+      calc (h ≫ (familyMeet hpow (pfcSub hpow hca A)).arr) ≫ hpow.proj i
+          = (h ≫ (pfcW hpow hca A i ≫ (pfcSub hpow hca A i).arr)) ≫ hpow.proj i := by
+              rw [pfcW_spec]
+        _ = (h ≫ (pfcW hpow hca A i ≫ (pfcPb hpow hca A i).cone.π₁)) ≫ hpow.proj (A := pfcS hca A) i := rfl
+        _ = (h ≫ pfcW hpow hca A i) ≫ ((pfcPb hpow hca A i).cone.π₁ ≫ hpow.proj (A := pfcS hca A) i) := by
+              simp only [Cat.assoc]
+        _ = (h ≫ pfcW hpow hca A i) ≫ ((pfcPb hpow hca A i).cone.π₂ ≫ pfcInj hca A i) := by rw [hpb_w]
+        _ = (h ≫ (pfcW hpow hca A i ≫ (pfcPb hpow hca A i).cone.π₂)) ≫ pfcInj hca A i := by
+              rw [Cat.assoc, Cat.assoc, Cat.assoc]
+        _ = g i ≫ pfcInj hca A i := by rw [hhi] }
 
 /-! ### Complete → Cocomplete: monic, pairwise-disjoint embeddings `Aᵢ ↣ ∏ⱼ(Aⱼ+1)`. -/
 
@@ -1395,7 +1396,7 @@ variable (hp : HasProducts 𝒞)
 
 /-- Ambient `B := ∏ⱼ(Aⱼ+1)`. -/
 noncomputable def cfpAmb {I : Type v} (A : I → 𝒞) : 𝒞 :=
-  hp.prodObj (fun j => coprodObj (A j) (one : 𝒞))
+  (hp.prod (fun j => coprodObj (A j) (one : 𝒞))).prod
 
 /-- `j`-th coordinate of the embedding `uᵢ`: `inl : Aᵢ↣Aᵢ+1` at `j=i`, else `Aᵢ→1→inr Aⱼ+1`. -/
 noncomputable def cfpCoord {I : Type v} (A : I → 𝒞) (i j : I) :
@@ -1405,17 +1406,18 @@ noncomputable def cfpCoord {I : Type v} (A : I → 𝒞) (i j : I) :
 
 /-- The embedding `uᵢ : Aᵢ ⟶ ∏ⱼ(Aⱼ+1)`. -/
 noncomputable def cfpEmbed {I : Type v} (A : I → 𝒞) (i : I) : A i ⟶ cfpAmb hp A :=
-  hp.tupling (fun j => cfpCoord A i j)
+  (hp.prod (fun j => coprodObj (A j) (one : 𝒞))).lift (fun j => cfpCoord A i j)
 
 /-- `uᵢ ≫ projⱼ = cfpCoord A i j`. -/
 theorem cfpEmbed_proj {I : Type v} (A : I → 𝒞) (i j : I) :
-    cfpEmbed hp A i ≫ hp.proj j = cfpCoord A i j :=
-  hp.tupling_fac _ j
+    cfpEmbed hp A i ≫ (hp.prod (fun j => coprodObj (A j) (one : 𝒞))).proj j = cfpCoord A i j :=
+  (hp.prod (fun j => coprodObj (A j) (one : 𝒞))).lift_π _ j
 
 /-- `uᵢ` is MONIC: its `i`-th coordinate is `coprodInl (Aᵢ) 1`, which is monic. -/
 theorem cfpEmbed_monic {I : Type v} (A : I → 𝒞) (i : I) : Monic (cfpEmbed hp A i) := by
   intro W u v huv
-  have hi : (u ≫ cfpEmbed hp A i) ≫ hp.proj i = (v ≫ cfpEmbed hp A i) ≫ hp.proj i := by
+  have hi : (u ≫ cfpEmbed hp A i) ≫ (hp.prod (fun j => coprodObj (A j) (one : 𝒞))).proj i
+      = (v ≫ cfpEmbed hp A i) ≫ (hp.prod (fun j => coprodObj (A j) (one : 𝒞))).proj i := by
     rw [huv]
   rw [Cat.assoc, Cat.assoc, cfpEmbed_proj, cfpCoord, dif_pos rfl] at hi
   -- `u ≫ inl = v ≫ inl` (the `i=i` branch); `inl` monic ⟹ `u = v`.
@@ -1433,8 +1435,8 @@ theorem cfpEmbed_disjoint {I : Type v} (A : I → 𝒞) {i j : I} (hij : i ≠ j
   -- project the pullback square to coordinate i.
   have hcoord : pb.cone.π₁ ≫ coprodInl (A i) (one : 𝒞)
       = pb.cone.π₂ ≫ (term (A j) ≫ coprodInr (A i) (one : 𝒞)) := by
-    have h : pb.cone.π₁ ≫ (cfpEmbed hp A i ≫ hp.proj i)
-        = pb.cone.π₂ ≫ (cfpEmbed hp A j ≫ hp.proj i) := by
+    have h : pb.cone.π₁ ≫ (cfpEmbed hp A i ≫ (hp.prod (fun j => coprodObj (A j) (one : 𝒞))).proj i)
+        = pb.cone.π₂ ≫ (cfpEmbed hp A j ≫ (hp.prod (fun j => coprodObj (A j) (one : 𝒞))).proj i) := by
       rw [← Cat.assoc, ← Cat.assoc, pb.cone.w]
     rw [cfpEmbed_proj, cfpEmbed_proj, cfpCoord, cfpCoord, dif_pos rfl, dif_neg hij] at h
     exact h

@@ -138,15 +138,13 @@ class Cocomplete (ℬ : Type u₁) [Cat.{v} ℬ] where
 
 -- (HasEqualizers is defined canonically in S1_43 §1.428; reused here via import.)
 
-/-- ℬ has all small products: for every I : Type v and F : I → ℬ a product exists (§1.825). -/
+/-- ℬ has all small products: for every I : Type v and F : I → ℬ a product exists (§1.825).
+    The single per-family witness is the §1.42 `HasIndexedProduct` (universe-parameterised to
+    `Type v` here); the former repackaged fields `prodObj`/`proj`/`tupling`/`tupling_fac`/
+    `tupling_uniq` were a DRY duplicate of `HasIndexedProduct.prod`/`proj`/`lift`/`lift_π`/
+    `lift_uniq` and were replaced by this one field. -/
 class HasProducts (ℬ : Type u₁) [Cat.{v} ℬ] where
-  prodObj  : {I : Type v} → (I → ℬ) → ℬ
-  proj     : {I : Type v} → {F : I → ℬ} → (i : I) → prodObj F ⟶ F i
-  tupling  : {I : Type v} → {F : I → ℬ} → {X : ℬ} → ((i : I) → X ⟶ F i) → X ⟶ prodObj F
-  tupling_fac  : ∀ {I : Type v} {F : I → ℬ} {X : ℬ} (legs : (i : I) → X ⟶ F i) (i : I),
-                  tupling legs ≫ proj i = legs i
-  tupling_uniq : ∀ {I : Type v} {F : I → ℬ} {X : ℬ} (legs : (i : I) → X ⟶ F i)
-                   (u : X ⟶ prodObj F), (∀ i, u ≫ proj i = legs i) → u = tupling legs
+  prod : ∀ {I : Type v} (F : I → ℬ), HasIndexedProduct F
 
 -- ---------------------------------------------------------------------------
 -- Helpers for §1.825 proof: discrete category
@@ -188,14 +186,15 @@ private def discreteCone {I : Type v} {ℬ : Type u₁} [Cat.{v} ℬ] (F : I →
 /-- Easy (⇒): a complete category has all products (limits of discrete diagrams). -/
 private def complete_hasProducts {ℬ : Type u₁} [Cat.{v} ℬ] (hc : Complete ℬ) :
     HasProducts ℬ where
-  prodObj F := (@hc.hasLimit _ discCat82 F (discreteFunctor F)).cone.apex
-  proj {I} {F} i := (@hc.hasLimit I discCat82 F (discreteFunctor F)).cone.π i
-  tupling {I} {F} {X} legs :=
-    (@hc.hasLimit I discCat82 F (discreteFunctor F)).lift (discreteCone F X legs)
-  tupling_fac := fun {I} {F} {X} legs i =>
-    (@hc.hasLimit I discCat82 F (discreteFunctor F)).fac (discreteCone F X legs) i
-  tupling_uniq := fun {I} {F} {X} legs u hu =>
-    (@hc.hasLimit I discCat82 F (discreteFunctor F)).uniq (discreteCone F X legs) u hu
+  prod {I} F :=
+    { prod      := (@hc.hasLimit I discCat82 F (discreteFunctor F)).cone.apex
+      proj      := fun i => (@hc.hasLimit I discCat82 F (discreteFunctor F)).cone.π i
+      lift      := fun {X} legs =>
+        (@hc.hasLimit I discCat82 F (discreteFunctor F)).lift (discreteCone F X legs)
+      lift_π    := fun {X} legs i =>
+        (@hc.hasLimit I discCat82 F (discreteFunctor F)).fac (discreteCone F X legs) i
+      lift_uniq := fun {X} legs u hu =>
+        (@hc.hasLimit I discCat82 F (discreteFunctor F)).uniq (discreteCone F X legs) u hu }
 
 /-- Walking-parallel-pair category: two objects with two parallel arrows 0→1. -/
 private inductive WPP : Type where | src | tgt
@@ -305,46 +304,48 @@ private def eq_prod_complete {ℬ : Type u₁} [Cat.{v} ℬ]
     let tgtOf : Arr → 𝒟 := fun a => a.snd.fst
     let srcOf : Arr → 𝒟 := fun a => a.fst
     let arrOf : (a : Arr) → srcOf a ⟶ tgtOf a := fun a => a.snd.snd
-    let P   := hp.prodObj D
-    let Q   := hp.prodObj (fun a => D (tgtOf a))
+    let PD := hp.prod D
+    let QD := hp.prod (fun a => D (tgtOf a))
+    let P   := PD.prod
+    let Q   := QD.prod
     -- mapF's a-component = proj(src a) ≫ D(arr a); mapG's = proj(tgt a)
-    let mapF : P ⟶ Q := hp.tupling (fun a => hp.proj (srcOf a) ≫ hD.map (arrOf a))
-    let mapG : P ⟶ Q := hp.tupling (fun a => hp.proj (tgtOf a))
+    let mapF : P ⟶ Q := QD.lift (fun a => PD.proj (srcOf a) ≫ hD.map (arrOf a))
+    let mapG : P ⟶ Q := QD.lift (fun a => PD.proj (tgtOf a))
     let e    := eqMap mapF mapG (𝒞 := ℬ)
-    let πi : (i : 𝒟) → eqObj mapF mapG ⟶ D i := fun i => e ≫ hp.proj i
+    let πi : (i : 𝒟) → eqObj mapF mapG ⟶ D i := fun i => e ≫ PD.proj i
     -- Naturality: (e ≫ proj i) ≫ D(x) = e ≫ proj j
     have nat_pf : ∀ {i j : 𝒟} (x : i ⟶ j), πi i ≫ hD.map x = πi j := by
       intro i j x
-      show (e ≫ hp.proj i) ≫ hD.map x = e ≫ hp.proj j
+      show (e ≫ PD.proj i) ≫ hD.map x = e ≫ PD.proj j
       rw [Cat.assoc]
       have heq_fg : e ≫ mapF = e ≫ mapG := eqMap_eq mapF mapG (𝒞 := ℬ)
       -- proj i ≫ D(x) = mapF ≫ proj⟨i,j,x⟩
-      have step1 : hp.proj i ≫ hD.map x = mapF ≫ hp.proj ⟨i, j, x⟩ := by
-        rw [hp.tupling_fac]
+      have step1 : PD.proj i ≫ hD.map x = mapF ≫ QD.proj ⟨i, j, x⟩ := by
+        rw [QD.lift_π]
       -- mapG ≫ proj⟨i,j,x⟩ = proj j
-      have step2 : mapG ≫ hp.proj ⟨i, j, x⟩ = hp.proj j := hp.tupling_fac _ _
+      have step2 : mapG ≫ QD.proj ⟨i, j, x⟩ = PD.proj j := QD.lift_π _ _
       rw [step1, ← Cat.assoc, heq_fg, Cat.assoc, step2]
     -- Given cone c, tupling c.π equalizes mapF and mapG
-    have tupling_eq : ∀ (c : DiagCone D), hp.tupling c.π ≫ mapF = hp.tupling c.π ≫ mapG := by
+    have tupling_eq : ∀ (c : DiagCone D), PD.lift c.π ≫ mapF = PD.lift c.π ≫ mapG := by
       intro c
       -- Both sides equal tupling of components; those agree by naturality
-      have hF : hp.tupling c.π ≫ mapF = hp.tupling (fun a => c.π (srcOf a) ≫ hD.map (arrOf a)) := by
-        apply hp.tupling_uniq; intro a
-        rw [Cat.assoc, hp.tupling_fac, ← Cat.assoc, hp.tupling_fac]
-      have hG : hp.tupling c.π ≫ mapG = hp.tupling (fun a => c.π (tgtOf a)) := by
-        apply hp.tupling_uniq; intro a
-        rw [Cat.assoc, hp.tupling_fac]; exact hp.tupling_fac _ _
+      have hF : PD.lift c.π ≫ mapF = QD.lift (fun a => c.π (srcOf a) ≫ hD.map (arrOf a)) := by
+        apply QD.lift_uniq; intro a
+        rw [Cat.assoc, QD.lift_π, ← Cat.assoc, PD.lift_π]
+      have hG : PD.lift c.π ≫ mapG = QD.lift (fun a => c.π (tgtOf a)) := by
+        apply QD.lift_uniq; intro a
+        rw [Cat.assoc, QD.lift_π]; exact PD.lift_π _ _
       rw [hF, hG]; congr 1; funext ⟨i, j, x⟩; exact c.nat x
     { cone  := { apex := eqObj mapF mapG, π := πi, nat := nat_pf }
-      lift  := fun c => eqLift mapF mapG (hp.tupling c.π) (tupling_eq c)
+      lift  := fun c => eqLift mapF mapG (PD.lift c.π) (tupling_eq c)
       fac   := fun c i => by
-        show eqLift mapF mapG (hp.tupling c.π) (tupling_eq c) ≫ πi i = c.π i
+        show eqLift mapF mapG (PD.lift c.π) (tupling_eq c) ≫ πi i = c.π i
         dsimp only [πi]
-        rw [← Cat.assoc, eqLift_fac, hp.tupling_fac]
+        rw [← Cat.assoc, eqLift_fac, PD.lift_π]
       uniq  := fun c u hu => by
         apply eqLift_uniq
-        -- need: u ≫ e = hp.tupling c.π
-        apply hp.tupling_uniq; intro i
+        -- need: u ≫ e = PD.lift c.π
+        apply PD.lift_uniq; intro i
         rw [Cat.assoc]; exact hu i }
 
 /-- §1.825: A category is complete iff it has equalizers and all products. -/
@@ -689,28 +690,29 @@ private def wideEqualizer {ℬ : Type u₁} [Cat.{v} ℬ]
     (heq : HasEqualizers ℬ) (hp : HasProducts ℬ) {P : ℬ} {K : Type v}
     (e : K → (P ⟶ P)) : WideEqualizer e := by
   letI : HasEqualizers ℬ := heq
-  let Q : ℬ := hp.prodObj (fun _ : K => P)
-  let f : P ⟶ Q := hp.tupling e
-  let g : P ⟶ Q := hp.tupling (fun _ : K => Cat.id P)
+  let hpP := hp.prod (fun _ : K => P)
+  let Q : ℬ := hpP.prod
+  let f : P ⟶ Q := hpP.lift e
+  let g : P ⟶ Q := hpP.lift (fun _ : K => Cat.id P)
   -- a map `m : X ⟶ P` equalizes `f,g` iff it equalizes every `eₖ` with the identity.
   have key : ∀ {X : ℬ} (m : X ⟶ P), (m ≫ f = m ≫ g) ↔ (∀ k, m ≫ e k = m) := by
     intro X m
     constructor
     · intro hfg k
-      have := congrArg (· ≫ hp.proj k) hfg
+      have := congrArg (· ≫ hpP.proj k) hfg
       simp only at this
-      rw [Cat.assoc, hp.tupling_fac, Cat.assoc, hp.tupling_fac, Cat.comp_id] at this
+      rw [Cat.assoc, hpP.lift_π, Cat.assoc, hpP.lift_π, Cat.comp_id] at this
       exact this
     · intro hk
       -- projections agree: `(m≫f)≫proj k = m≫eₖ = m = m≫id = (m≫g)≫proj k`; products are
-      -- jointly monic (`tupling_uniq`), so `m≫f = m≫g`.
-      have proj_eq : ∀ k, (m ≫ f) ≫ hp.proj k = (m ≫ g) ≫ hp.proj k := by
+      -- jointly monic (`lift_uniq`), so `m≫f = m≫g`.
+      have proj_eq : ∀ k, (m ≫ f) ≫ hpP.proj k = (m ≫ g) ≫ hpP.proj k := by
         intro k
-        rw [Cat.assoc, hp.tupling_fac, Cat.assoc, hp.tupling_fac, Cat.comp_id, hk k]
-      have e1 : m ≫ f = hp.tupling (fun k => (m ≫ g) ≫ hp.proj k) :=
-        hp.tupling_uniq (fun k => (m ≫ g) ≫ hp.proj k) (m ≫ f) proj_eq
-      have e2 : m ≫ g = hp.tupling (fun k => (m ≫ g) ≫ hp.proj k) :=
-        hp.tupling_uniq (fun k => (m ≫ g) ≫ hp.proj k) (m ≫ g) (fun _ => rfl)
+        rw [Cat.assoc, hpP.lift_π, Cat.assoc, hpP.lift_π, Cat.comp_id, hk k]
+      have e1 : m ≫ f = hpP.lift (fun k => (m ≫ g) ≫ hpP.proj k) :=
+        hpP.lift_uniq (fun k => (m ≫ g) ≫ hpP.proj k) (m ≫ f) proj_eq
+      have e2 : m ≫ g = hpP.lift (fun k => (m ≫ g) ≫ hpP.proj k) :=
+        hpP.lift_uniq (fun k => (m ≫ g) ≫ hpP.proj k) (m ≫ g) (fun _ => rfl)
       exact e1.trans e2.symm
   let r : eqObj f g ⟶ P := eqMap f g
   have hr : ∀ k, r ≫ e k = r := (key r).1 (eqMap_eq f g)
@@ -1031,22 +1033,24 @@ def IsCoGeneratingSet {ℬ : Type u₁} [Cat.{v} ℬ] {I : Type v} (C : I → �
     `(i,h)`-projection), so by collective faithfulness `u = v`.  No choice, no completeness. -/
 theorem cogenerating_embeds_in_product {ℬ : Type u₁} [Cat.{v} ℬ] (hp : HasProducts ℬ)
     {I : Type v} {C : I → ℬ} (hcogen : IsCoGeneratingSet C) (B : ℬ) :
-    Monic (hp.tupling (F := fun j : Σ i : I, (B ⟶ C i) => C j.1)
+    Monic ((hp.prod (fun j : Σ i : I, (B ⟶ C i) => C j.1)).lift
                      (fun j => j.2)) := by
   classical
-  let eB := hp.tupling (F := fun j : Σ i : I, (B ⟶ C i) => C j.1) (fun j => j.2)
+  let eB := (hp.prod (fun j : Σ i : I, (B ⟶ C i) => C j.1)).lift (fun j => j.2)
   intro X u v huv
   -- `(w ≫ eB) ≫ proj (i,h) = w ≫ h`, so equality after `eB` forces `u ≫ h = v ≫ h` for all `(i,h)`
-  have key : ∀ (w : X ⟶ B) (j : Σ i : I, (B ⟶ C i)), (w ≫ eB) ≫ hp.proj j = w ≫ j.2 := by
-    intro w j; dsimp only [eB]; rw [Cat.assoc, hp.tupling_fac]
+  have key : ∀ (w : X ⟶ B) (j : Σ i : I, (B ⟶ C i)),
+      (w ≫ eB) ≫ (hp.prod (fun j : Σ i : I, (B ⟶ C i) => C j.1)).proj j = w ≫ j.2 := by
+    intro w j; dsimp only [eB]
+    rw [Cat.assoc, (hp.prod (fun j : Σ i : I, (B ⟶ C i) => C j.1)).lift_π]
   refine Classical.byContradiction (fun hne => ?_)
   obtain ⟨i, h, hh⟩ := hcogen u v hne
   apply hh
   have hu := key u ⟨i, h⟩
   have hv := key v ⟨i, h⟩
-  have hproj : (u ≫ eB) ≫ hp.proj (⟨i, h⟩ : Σ i : I, (B ⟶ C i))
-             = (v ≫ eB) ≫ hp.proj (⟨i, h⟩ : Σ i : I, (B ⟶ C i)) :=
-    congrArg (· ≫ hp.proj (⟨i, h⟩ : Σ i : I, (B ⟶ C i))) huv
+  have hproj : (u ≫ eB) ≫ (hp.prod (fun j : Σ i : I, (B ⟶ C i) => C j.1)).proj (⟨i, h⟩ : Σ i : I, (B ⟶ C i))
+             = (v ≫ eB) ≫ (hp.prod (fun j : Σ i : I, (B ⟶ C i) => C j.1)).proj (⟨i, h⟩ : Σ i : I, (B ⟶ C i)) :=
+    congrArg (· ≫ (hp.prod (fun j : Σ i : I, (B ⟶ C i) => C j.1)).proj (⟨i, h⟩ : Σ i : I, (B ⟶ C i))) huv
   rw [hu, hv] at hproj
   exact hproj
 
@@ -1244,13 +1248,13 @@ private noncomputable def saft_preadjoint
       wp.choose_spec.choose_spec
     -- ── joint monicity of `{G(hp.proj j')}` on any product `Q := ∏ⱼ' F j'` (continuity) ──
     have qGMonic : ∀ {Idx : Type v} (F : Idx → ℬ) {X : 𝒜}
-        (u v : X ⟶ G (hp.prodObj F)),
-        (∀ j', u ≫ hG.map (hp.proj j') = v ≫ hG.map (hp.proj j')) → u = v := by
+        (u v : X ⟶ G ((hp.prod F).prod)),
+        (∀ j', u ≫ hG.map ((hp.prod F).proj j') = v ≫ hG.map ((hp.prod F).proj j')) → u = v := by
       intro Idx F X u v huv
       letI : Cat.{v} Idx := discCat82
       letI : Functor F := discreteFunctor F
       let qlim := hc.hasLimit F
-      -- hp.proj j' on `complete_hasProducts` IS `qlim.cone.π j'` definitionally
+      -- `(hp.prod F).proj j'` on `complete_hasProducts` IS `qlim.cone.π j'` definitionally
       have hnatU : ∀ {i j : Idx} (x : i ⟶ j),
           (u ≫ hG.map (qlim.cone.π i)) ≫ hG.map ((discreteFunctor F).map x)
             = u ≫ hG.map (qlim.cone.π j) := by
@@ -1270,25 +1274,25 @@ private noncomputable def saft_preadjoint
         cofinal := ?_ }
     intro B f
     -- embed B into the product Q B of cogenerators over all maps B → Cᵢ
-    let eB : B ⟶ hp.prodObj (fun j' : Σ i : I, (B ⟶ C i) => C j'.1) :=
-      hp.tupling (fun j' => j'.2)
+    let hpB := hp.prod (fun j' : Σ i : I, (B ⟶ C i) => C j'.1)
+    let eB : B ⟶ hpB.prod := hpB.lift (fun j' => j'.2)
     have heB : Monic eB := cogenerating_embeds_in_product hp hcogen B
     -- comparison map w : PA ⟶ Q B, w ≫ projQ (i,h) = projPA ⟨i, f ≫ G h⟩
-    let w : PA ⟶ hp.prodObj (fun j' : Σ i : I, (B ⟶ C i) => C j'.1) :=
-      hp.tupling (fun j' => projPA ⟨j'.1, f ≫ hG.map j'.2⟩)
+    let w : PA ⟶ hpB.prod :=
+      hpB.lift (fun j' => projPA ⟨j'.1, f ≫ hG.map j'.2⟩)
     have hwproj : ∀ j' : Σ i : I, (B ⟶ C i),
-        w ≫ hp.proj j' = projPA ⟨j'.1, f ≫ hG.map j'.2⟩ := fun j' => hp.tupling_fac _ _
-    have heBproj : ∀ j' : Σ i : I, (B ⟶ C i), eB ≫ hp.proj j' = j'.2 := fun j' => hp.tupling_fac _ _
+        w ≫ hpB.proj j' = projPA ⟨j'.1, f ≫ hG.map j'.2⟩ := fun j' => hpB.lift_π _ _
+    have heBproj : ∀ j' : Σ i : I, (B ⟶ C i), eB ≫ hpB.proj j' = j'.2 := fun j' => hpB.lift_π _ _
     -- square: η ≫ G w = f ≫ G eB (check componentwise on `{G projQ}`)
     have hsq : η ≫ hG.map w = f ≫ hG.map eB := by
       apply qGMonic (fun j' : Σ i : I, (B ⟶ C i) => C j'.1)
       intro j'
-      calc (η ≫ hG.map w) ≫ hG.map (hp.proj j')
-          = η ≫ hG.map (w ≫ hp.proj j') := by rw [Cat.assoc, ← hG.map_comp]
+      calc (η ≫ hG.map w) ≫ hG.map (hpB.proj j')
+          = η ≫ hG.map (w ≫ hpB.proj j') := by rw [Cat.assoc, ← hG.map_comp]
         _ = η ≫ hG.map (projPA ⟨j'.1, f ≫ hG.map j'.2⟩) := by rw [hwproj]
         _ = (f ≫ hG.map j'.2 : A ⟶ G (C j'.1)) := hηfac ⟨j'.1, f ≫ hG.map j'.2⟩
-        _ = f ≫ hG.map (eB ≫ hp.proj j') := by rw [heBproj]
-        _ = (f ≫ hG.map eB) ≫ hG.map (hp.proj j') := by rw [hG.map_comp, Cat.assoc]
+        _ = f ≫ hG.map (eB ≫ hpB.proj j') := by rw [heBproj]
+        _ = (f ≫ hG.map eB) ≫ hG.map (hpB.proj j') := by rw [hG.map_comp, Cat.assoc]
     -- pull back eB (mono) along w; get S ↪ PA and the factoring element θ
     obtain ⟨S, πP, πB, πPMono, θ, hθP, hθB⟩ := gPullbackFactor hcont w eB heB η f hsq
     -- S as a subobject of PA, located in the well-powered enumeration
@@ -1968,13 +1972,14 @@ private noncomputable def cocomplete_of_complete_precocomplete
   let J : Type v := pc.J
   let N : J → ℬ := fun j => (pc.cocones j).nadir
   -- ── P := product of the nadirs ──
-  let P : ℬ := hp.prodObj N
-  let κ : (i : 𝒟) → D i ⟶ P := fun i => hp.tupling (fun j => (pc.cocones j).ι i)
-  have hκproj : ∀ i j, κ i ≫ hp.proj j = (pc.cocones j).ι i := fun i j => hp.tupling_fac _ _
+  let hpN := hp.prod N
+  let P : ℬ := hpN.prod
+  let κ : (i : 𝒟) → D i ⟶ P := fun i => hpN.lift (fun j => (pc.cocones j).ι i)
+  have hκproj : ∀ i j, κ i ≫ hpN.proj j = (pc.cocones j).ι i := fun i j => hpN.lift_π _ _
   -- `(P, κ)` is a cocone over D
   have κnat : ∀ {i i' : 𝒟} (x : i ⟶ i'), hD.map x ≫ κ i' = κ i := by
     intro i i' x
-    apply hp.tupling_uniq
+    apply hpN.lift_uniq
     intro j
     rw [Cat.assoc, hκproj]
     exact (pc.cocones j).nat x
@@ -1982,7 +1987,7 @@ private noncomputable def cocomplete_of_complete_precocomplete
   have weakInit : ∀ (c : DiagCocone D), ∃ w : P ⟶ c.nadir, ∀ i, κ i ≫ w = c.ι i := by
     intro c
     obtain ⟨j, u, hu⟩ := pc.cofinal c
-    refine ⟨hp.proj j ≫ u, ?_⟩
+    refine ⟨hpN.proj j ≫ u, ?_⟩
     intro i
     rw [← Cat.assoc, hκproj, hu i]
   -- ── wide equalizer of all cocone-endomorphisms of (P, κ) ──
@@ -1998,20 +2003,21 @@ private noncomputable def cocomplete_of_complete_precocomplete
     have hv := we.uniq (u ≫ r) (by rw [huv] at hm ⊢; exact hm) v huv.symm
     rw [hu]; rw [huv] at hm; rw [hv]
   -- each κ i equalizes the family with id (def of K → joint monic of the product), via fmap/gmap
-  let Qprod : ℬ := hp.prodObj (fun _ : K => P)
-  let fmap : P ⟶ Qprod := hp.tupling (fun (k : K) => k.1)
-  let gmap : P ⟶ Qprod := hp.tupling (fun _ : K => Cat.id P)
+  let hpK := hp.prod (fun _ : K => P)
+  let Qprod : ℬ := hpK.prod
+  let fmap : P ⟶ Qprod := hpK.lift (fun (k : K) => k.1)
+  let gmap : P ⟶ Qprod := hpK.lift (fun _ : K => Cat.id P)
   -- r is the equalizer of fmap, gmap (this is how `wideEqualizer` is built); we only need that
   -- κ i factors through r, which holds because κ i ≫ fmap = κ i ≫ gmap.
   have hκfg : ∀ i, κ i ≫ fmap = κ i ≫ gmap := by
     intro i
-    have proj_eq : ∀ k : K, (κ i ≫ fmap) ≫ hp.proj k = (κ i ≫ gmap) ≫ hp.proj k := by
+    have proj_eq : ∀ k : K, (κ i ≫ fmap) ≫ hpK.proj k = (κ i ≫ gmap) ≫ hpK.proj k := by
       intro k
-      rw [Cat.assoc, hp.tupling_fac, Cat.assoc, hp.tupling_fac, Cat.comp_id, k.2 i]
-    have e1 : κ i ≫ fmap = hp.tupling (fun k => (κ i ≫ gmap) ≫ hp.proj k) :=
-      hp.tupling_uniq (fun k => (κ i ≫ gmap) ≫ hp.proj k) (κ i ≫ fmap) proj_eq
-    have e2 : κ i ≫ gmap = hp.tupling (fun k => (κ i ≫ gmap) ≫ hp.proj k) :=
-      hp.tupling_uniq (fun k => (κ i ≫ gmap) ≫ hp.proj k) (κ i ≫ gmap) (fun _ => rfl)
+      rw [Cat.assoc, hpK.lift_π, Cat.assoc, hpK.lift_π, Cat.comp_id, k.2 i]
+    have e1 : κ i ≫ fmap = hpK.lift (fun k => (κ i ≫ gmap) ≫ hpK.proj k) :=
+      hpK.lift_uniq (fun k => (κ i ≫ gmap) ≫ hpK.proj k) (κ i ≫ fmap) proj_eq
+    have e2 : κ i ≫ gmap = hpK.lift (fun k => (κ i ≫ gmap) ≫ hpK.proj k) :=
+      hpK.lift_uniq (fun k => (κ i ≫ gmap) ≫ hpK.proj k) (κ i ≫ gmap) (fun _ => rfl)
     exact e1.trans e2.symm
   -- lift each κ i through R = wide equalizer
   have hκk : ∀ i (k : K), κ i ≫ k.1 = κ i := fun i k => k.2 i
