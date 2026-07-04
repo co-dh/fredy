@@ -190,6 +190,7 @@ import Fredy.S2_157d_HornTop
 import Fredy.S2_157e_HornCenter
 import Fredy.S2_157f_HornLine
 import Fredy.S2_157g_ConverseHeadline
+import Fredy.S2_157h_VeblenWedderburn
 import Fredy.S2_158_GraphAllegory
 import Fredy.S2_158b_NoFiniteAxiom
 import Fredy.S2_158c_StepRigidity
