@@ -71,9 +71,9 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 | #    | problem                | fit | status |
 |------|------------------------|-----|--------|
 | 191  | Number of 1 Bits       | ★★★ | ✓ `L191.lean` |
-| 338  | Counting Bits          | ★★  | ·      |
-| 268  | Missing Number         | ★★  | ·      |
-| 190  | Reverse Bits           | ★★  | ·      |
+| 338  | Counting Bits          | ★★  | ✓ `L338.lean` |
+| 268  | Missing Number         | ★★  | ✓ `L268.lean` |
+| 190  | Reverse Bits           | ★★  | ✓ `L190.lean` |
 | 371  | Sum of Two Integers    | ★   | ·      |
 
 ### Dynamic Programming
@@ -84,10 +84,10 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 | 213  | House Robber II                  | ★★  | ✓ `L213.lean` |
 | 91   | Decode Ways                      | ★★★ | ✓ `L91.lean`  |
 | 62   | Unique Paths                     | ★★★ | ✓ `L62.lean`  |
-| 55   | Jump Game (greedy 7.2)           | ★★★ | ·      |
+| 55   | Jump Game (greedy 7.2)           | ★★★ | ✓ `L55.lean`  |
 | 322  | Coin Change (DP 9.1)             | ★★★ | ✓ `L322.lean` |
 | 300  | Longest Increasing Subseq (thin) | ★★★ | ✓ `L300.lean` |
-| 1143 | Longest Common Subsequence       | ★★★ | ·      |
+| 1143 | Longest Common Subsequence       | ★★★ | ✓ `L1143.lean` |
 | 139  | Word Break                       | ★★  | ·      |
 | 39   | Combination Sum                  | ★★  | ·      |
 
@@ -103,7 +103,7 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 ### Linked List
 | #    | problem                        | fit | status |
 |------|--------------------------------|-----|--------|
-| 206  | Reverse Linked List (cata)     | ★★★ | ·      |
+| 206  | Reverse Linked List (cata)     | ★★★ | ✓ `L206.lean` |
 | 21   | Merge Two Sorted Lists         | ★★★ | ·      |
 | 23   | Merge k Sorted Lists           | ★★  | ·      |
 | 19   | Remove Nth Node From End       | ★★  | ·      |
@@ -113,10 +113,10 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 ### String
 | #    | problem                                     | fit | status |
 |------|---------------------------------------------|-----|--------|
-| 3    | Longest Substring Without Repeating (scan)  | ★★★ | ·      |
+| 3    | Longest Substring Without Repeating (scan)  | ★★★ | ✓ `L3.lean`  |
 | 20   | Valid Parentheses (stack fold)              | ★★★ | ✓ `L20.lean` |
-| 242  | Valid Anagram (fold to multiset)            | ★★★ | ·      |
-| 125  | Valid Palindrome                            | ★★★ | ·      |
+| 242  | Valid Anagram (fold to multiset)            | ★★★ | ✓ `L242.lean` |
+| 125  | Valid Palindrome                            | ★★★ | ✓ `L125.lean` |
 | 49   | Group Anagrams                              | ★★  | ·      |
 | 424  | Longest Repeating Character Replacement     | ★★  | ·      |
 | 76   | Minimum Window Substring                    | ★★  | ·      |
@@ -159,6 +159,16 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 | 48   | Rotate Image                        | ★   | ·      |
 | 79   | Word Search                         | ★   | ·      |
 | 295  | Find Median from Data Stream        | ★   | ·      |
+
+### Beyond Blind 75 (extra solves, same recipe)
+| #    | problem                          | fit | status |
+|------|----------------------------------|-----|--------|
+| 136  | Single Number (xor fold)         | ★★★ | ✓ `L136.lean` |
+| 110  | Balanced Binary Tree (cata)      | ★★★ | ✓ `L110.lean` |
+| 543  | Diameter of Binary Tree (cata)   | ★★★ | ✓ `L543.lean` |
+| 746  | Min Cost Climbing Stairs (DP)    | ★★★ | ✓ `L746.lean` |
+| 763  | Partition Labels (greedy scan)   | ★★★ | ✓ `L763.lean` |
+| 45   | Jump Game II (greedy)            | ★★★ | ✓ `L45.lean`  |
 
 ## Skills (running log — append after each solve)
 
