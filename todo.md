@@ -330,3 +330,120 @@ introduce; see memory `general-framework-dedup-survey`. Three genuine NARROW win
   the chosen pullback to `image_chosenPullback_isPullback` (via `objIncl_preserves_pullbacks`, S1_543_Capitalization:332)
   and adds a genuine chosen→generic upgrade (comparison iso). The survey agent conflated the chosen-pullback and
   generic-`PreservesPullbacks` levels; there is nothing to re-route.
+
+## One-line wrappers to inline+delete (from `scripts/wrapper_scan.py`, 2026-07-04)
+
+A one-line wrapper = a theorem whose whole body is one short term delegating to exactly ONE other repo
+declaration. Barely-used ones add a name the reader must look up for zero benefit (exemplar handled this
+session: `subobject_le_antisymm_iso` in `S1_70` — deleted, conversion inlined at its single call site).
+
+Scan facts (regenerate: `python3 scripts/wrapper_scan.py`):
+- 268 plain-helper wrappers + 83 book-numbered ones (block mentions `§` — the statement IS the deliverable, keep).
+- `uses` = occurrences of the name's last segment in all `Fredy/*.lean` outside the wrapper's own block,
+  comments stripped. Collisions can only OVER-count, so `uses=0` is truly unreferenced and `uses=1` has at
+  most one call site. High counts (e.g. `PrimRec1.id` at 4398) are collision noise on common segments — ignore.
+- **Verify before deleting**: some 0-use names are deliberate deliverables without a `§` mark — e.g. the
+  LeetCode-template `solve_map` (part of the L-file spec template) or headline restatements like
+  `instanceBound_allegoryAxioms`. Action per item: inline at call site + delete, forward-and-keep if it is a
+  spec/template name, or add a doc comment saying why the name exists.
+- uses=2 (44 more, borderline — a 2-site wrapper may or may not pay for itself): rerun the script for the list.
+
+### uses=0 (nothing references the name — delete, or doc-comment why it exists)
+- [ ] `Fredy/A4_4.lean:405` `gc_comp_div` := `fun X Y => (le_div_iff X Y S).symm`
+- [ ] `Fredy/A4_6.lean:165` `powerOrder_transitive` := `div_self_idem (∋ a)`
+- [ ] `Fredy/A5_2.lean:183` `RelProd.le_pair_proj` := `RelProd.le_pair_iff.mpr ⟨le_refl _, le_refl _⟩`
+- [ ] `Fredy/A5_6.lean:55` `cup_is_map` := `A_is_map' _`
+- [ ] `Fredy/A5_6.lean:81` `cap_is_map` := `A_is_map' _`
+- [ ] `Fredy/A5_6_ListCombinators.lean:91` `prefix_reflexive` := `le_iff.mpr fun x y hxy => hxy ▸ prefixP.refl x`
+- [ ] `Fredy/L1143.lean:186` `solve_map` := `graph_map _`  (template name? see caveat)
+- [ ] `Fredy/L121.lean:311` `profit_le_solve` := `(solve_correct xs).2 v h`
+- [ ] `Fredy/L322.lean:360` `solve_map` := `graph_map _`  (template name? see caveat)
+- [ ] `Fredy/L53.lean:292` `subSum_le_solve` := `(solve_correct xs).2 v h`
+- [ ] `Fredy/L62.lean:105` `solve_map` := `graph_map _`  (template name? see caveat)
+- [ ] `Fredy/S1_421_Initial.lean:119` `IsStrictInitial.subobject_improper` := `strictCoterminator_subobject_improper …`
+- [ ] `Fredy/S1_422_FunctorCategory.lean:325` `imgTransπ₁_comp_inv` := `(Classical.choose_spec (imgTransPB_π₁_iso α…`
+- [ ] `Fredy/S1_422_FunctorCategory.lean:442` `evFunctor_jointly_faithful` := `NaturalTransformation.ext' h`
+- [ ] `Fredy/S1_43.lean:292` `finProdLift_fac` := `(hfp.fin_prod A).fac ⟨X, f⟩ i`
+- [ ] `Fredy/S1_47.lean:580` `prodAssocBB_fst` := `fst_pair _ _`
+- [ ] `Fredy/S1_47.lean:582` `prodAssocBB_snd` := `snd_pair _ _`
+- [ ] `Fredy/S1_47.lean:589` `prodAssocBBInv_fst` := `fst_pair _ _`
+- [ ] `Fredy/S1_47.lean:591` `prodAssocBBInv_snd` := `snd_pair _ _`
+- [ ] `Fredy/S1_48_RationalCapitalization.lean:1246` `cover_comp''` := `cover_comp' hf hg`  (forwarded in the
+  dedup sweep above — now 0 uses, so just delete)
+- [ ] `Fredy/S1_543_RatCapHcanon.lean:638` `pullback_of_equalizer'` := `Colim.pullback_of_equalizer hmeq heq` (ditto)
+- [ ] `Fredy/S1_543_RatCapHcanon.lean:649` `isEqualizer_comp_iso'` := `Colim.isEqualizer_comp_iso hφ hew heq` (ditto)
+- [ ] `Fredy/S1_544_Inflation.lean:380` `strict_cancel` := `List.cons.inj h |>.2`
+- [ ] `Fredy/S1_573_PrimRec.lean:102` `PrimRec1.recursive1` := `h.recursiveV`
+- [ ] `Fredy/S1_61.lean:667` `relSub_relUnionSub_le` := `relSub_union_le R S`
+- [ ] `Fredy/S1_63_ColimitInvImageUnion.lean:70` `Subobject.map_equiv` := `⟨Subobject.map_le T hpm h.1, Subobject.m…`
+- [ ] `Fredy/S1_967_ToposExists.lean:485` `casePMf_sq` := `L.classify_sq (casePMf (B := B) f)`
+- [ ] `Fredy/S2_111_RelCat.lean:106` `quotLe_trans` := `Quotient.inductionOn₃ x y z (fun _ _ _ h₁ h₂ => rel_le_tran…`
+- [ ] `Fredy/S2_111_RelCat.lean:535` `relGraph_entire` := `(graph_is_map f).1`
+- [ ] `Fredy/S2_147_MapCat.lean:108` `tab_ffo` := `ht.2.2.2 ▸ inter_lb_left _ _`
+- [ ] `Fredy/S2_155_BiEntire.lean:143` `interB_glb` := `fun a b h => ⟨hTR a b h, hTS a b h, guard_of_lowerBound hT …`
+- [ ] `Fredy/S2_157f_HornLine.lean:697` `le_of_eq'` := `h ▸ le_refl x`
+- [ ] `Fredy/S2_158e_InstanceBound.lean:1328` `instanceBound_allegoryAxioms` := `⟨10, instanceBound_allegoryAxioms_…`
+- [ ] `Fredy/S2_16c.lean:150` `embEq_le_iff` := `splEqLe_iff _ _`
+- [ ] `Fredy/S2_16d.lean:156` `asmEmbed_full` := `embEq_full Φ`
+- [ ] `Fredy/S2_217_PositiveRepr.lean:295` `matEmbed_le_iff` := `embed1_le_iff`
+- [ ] `Fredy/S2_22.lean:1891` `globalCompletion_faithful` := `globalCompletionEmbed_injective h`
+
+### uses=1 (single call site — inline there, delete)
+- [ ] `Fredy/A4_4.lean:93` `Inf_le` := `Sup_le (fun _S hS => hS R h)`
+- [ ] `Fredy/A5_2.lean:205` `RelProd.pair_simple` := `tabulation_simple_of_simple P.tab hX hY`
+- [ ] `Fredy/A5_6_ListCombinators.lean:63` `perm_symmetric` := `hom_ext fun x y => ⟨fun h => Perm.symm h, fun h => …`
+- [ ] `Fredy/L121.lean:315` `solve_profit` := `(solve_correct xs).1`
+- [ ] `Fredy/L91.lean:170` `solveFn_eq_decode` := `(foldFn_eq xs).1`
+- [ ] `Fredy/S1_421_Initial.lean:66` `initial_unique_iso` := `⟨g, uniq₁ _ _, uniq₂ _ _⟩`
+- [ ] `Fredy/S1_422_FunctorCategory.lean:331` `imgTransπ₁inv_comp` := `(Classical.choose_spec (imgTransPB_π₁_iso α …`
+- [ ] `Fredy/S1_44.lean:86` `overPullback_sq` := `OverHom.ext ((_pb m n).cone.w)`
+- [ ] `Fredy/S1_49.lean:1027` `subterminator_iso_unique` := `((subterminator_iso_is_id τ hT f hIso).1).symm`
+- [ ] `Fredy/S1_526_StalkConservative.lean:138` `le_Top1` := `⟨U.arr, Cat.comp_id _⟩`
+- [ ] `Fredy/S1_543_CofinalHstage.lean:66` `terminal_iso` := `⟨h1.trm h2.one, h1.uniq _ _, h2.uniq _ _⟩`
+- [ ] `Fredy/S1_543_SliceEquivalence.lean:85` `bridge_roundtrip_pairHom` := `PairHom.ext (bridge_roundtrip_g m)`
+- [ ] `Fredy/S1_543_WellOrdering.lean:317` `order_irrefl` := `not_mem_seg a`
+- [ ] `Fredy/S1_544_Inflation.lean:2217` `sliceCatObj_faithful` := `OverHom.ext (catMap_faithful (d := d) hws g.f h…`
+- [ ] `Fredy/S1_547_CofinalProjSystem.lean:377` `frontList_nodup` := `List.nodup_cons.2 ⟨fun hc => (mem_filter_ne.1…`
+- [ ] `Fredy/S1_572_Recursive.lean:1134` `enumOf_min` := `theLeast_min _ h`
+- [ ] `Fredy/S1_572_Recursive.lean:1317` `leastAgree_le` := `theLeast_le _ _ rfl`
+- [ ] `Fredy/S1_572_Recursive.lean:1401` `eMor_idem` := `Mor.ext fun a => idemFn_idem x a`
+- [ ] `Fredy/S1_572_Recursive.lean:1404` `eMor_absorb` := `Mor.ext fun a => idemFn_absorb x a`
+- [ ] `Fredy/S1_572_Recursive.lean:1502` `all_projective` := `fun _ _ f hcov => cover_split f hcov`
+- [ ] `Fredy/S1_573_PrimRec.lean:204` `isPrim_rsubCode` := `⟨trivial, isPrim_predCode, fun _ => trivial⟩`
+- [ ] `Fredy/S1_573_PrimRec.lean:213` `isPrim_mulCode` := `⟨trivial, isPrim_addCode, fun j => by dsimp only; split …`
+- [ ] `Fredy/S1_573_PrimRec.lean:802` `spltFn_of_not` := `if_neg fun hc => h ⟨toNat_inj hc.1, toNat_inj hc.2⟩`
+- [ ] `Fredy/S1_594_AbAbelian.lean:159` `isHom_toZero` := `term_uniq _ _`
+- [ ] `Fredy/S1_595_AbRegular.lean:411` `eLift_uniq` := `eqLift_uniq f.val g.val k h u hu`
+- [ ] `Fredy/S1_595_AbRegular.lean:892` `isHom_imArr` := `imAdd_imArr f`
+- [ ] `Fredy/S1_595_AbRegular.lean:1575` `isHom_q` := `(qq_Qadd E q hqcov hbracket hEqq).symm`
+- [ ] `Fredy/S1_61.lean:671` `relSub_relUnionSub_ge` := `relSub_union_ge R S`
+- [ ] `Fredy/S1_62.lean:4062` `pushPow_preserves_terminator` := `isTerminalObj_power_iff.mpr (fun i => homFunctor_p…`
+- [ ] `Fredy/S1_62.lean:4067` `pushPow_reflects_terminator` := `reflect_terminal (isTerminalObj_power_iff.mp h)`
+- [ ] `Fredy/S1_63_ColimitInvImageUnion.lean:95` `isImage_equiv` := `⟨hI.2 J hJ.1, hJ.2 I hI.1⟩`
+- [ ] `Fredy/S1_646_Ultrafilter.lean:136` `self_mem_extend` := `⟨univ, F.univ_mem, fun _ ha => ha.2⟩`
+- [ ] `Fredy/S1_65_SlicePreTopos.lean:463` `kernelPairRel_legs_equalise` := `kp_sq`
+- [ ] `Fredy/S1_65_SlicePreTopos.lean:586` `subobject_le_antisymm_Iso` := `let ⟨e, hiso, _⟩ := Subobject.le_antisym…`
+  (twin of the S1_70 exemplar already deleted)
+- [ ] `Fredy/S1_72.lean:605` `hp_monic` := `fun {_W} p q _ => hp_thin P p q`
+- [ ] `Fredy/S1_723_Locale.lean:1361` `hTerminal_mono` := `h PUnit.unit`
+- [ ] `Fredy/S1_923_Baseable.lean:60` `powerClassify_unique` := `HasPowerObject.is_universal.classify_unique Z R f …`
+- [ ] `Fredy/S2_147_MapCat.lean:63` `dom_comp_eq` := `dom_comp_self R`  (the D-band dedup forward above — 1 use left)
+- [ ] `Fredy/S2_153_Assemblies.lean:345` `div_pow_code` := `Nat.mul_div_cancel_left _ (two_pow_pos a)`
+- [ ] `Fredy/S2_153b_RecursiveModulus.lean:314` `branchNum_one` := `if_neg (by omega)`
+- [ ] `Fredy/S2_155_BiEntire.lean:95` `isB_eq` := `Or.inr biEntire_eq`
+- [ ] `Fredy/S2_155_BiEntire.lean:445` `lhs_holds` := `⟨⟨Three.e0, Or.inl ⟨rfl, rfl⟩, Or.inl ⟨rfl, rfl⟩⟩, rfl, lhs_…`
+- [ ] `Fredy/S2_156_PartitionRep.lean:239` `lmon_symmetric` := `le_refl R`
+- [ ] `Fredy/S2_156_PartitionRep.lean:262` `lmon_lattice_idem` := `ModularLattice.join_idem R`
+- [ ] `Fredy/S2_158_GraphAllegory.lean:584` `Gle_iff_hom` := `(graph_yoneda G₁ G₂).symm`
+- [ ] `Fredy/S2_158e_InstanceBound.lean:307` `recipRecip_bound` := `fibBound_of_retraction _ (fun y => y) (fun _ =>…`
+- [ ] `Fredy/S2_16b.lean:142` `tabApex_coreflexive` := `inter_lb_left _ _`
+- [ ] `Fredy/S2_16e_TwoPresentations.lean:88` `idInto_monic` := `asmMonic_of_injective _ (fun _ _ h => h)`
+- [ ] `Fredy/S2_2.lean:555` `downClosure_isDowndeal` := `fun _T ⟨R, hR, hTR⟩ _S hST => ⟨R, hR, le_trans hST hTR⟩`
+- [ ] `Fredy/S2_216_MatrixAllegory.lean:163` `finMeet_le` := `listMeet'_le _ _ (List.mem_ofFn.mpr ⟨i, rfl⟩)`
+- [ ] `Fredy/S2_218_RatCapPositive.lean:340` `slice_strictCoterminator_dom` := `fun {Y} h => overIso_underlying (hZ…`
+- [ ] `Fredy/S2_3.lean:1055` `topTab_eq` := `(topTab_spec a).2.2.1`
+- [ ] `Fredy/S2_3.lean:1057` `topTab_jointMono` := `(topTab_spec a).2.2.2`
+- [ ] `Fredy/S2_437b_NotDivision.lean:122` `hcpCode` := `Classical.choose_spec Recursive2.cp v`
+- [ ] `Fredy/S2_441_StraightJoin.lean:40` `div_num_mono` := `div_mono_left h S`  (the A-band dedup forward above)
+- [ ] `Fredy/S2_441_StraightJoin.lean:136` `kappaMap_map` := `A_is_map' _`
+- [ ] `Fredy/S2_53.lean:447` `eps_thick_in_A` := `fun _ R hbox => (A_is_map R hbox).1`

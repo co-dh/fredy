@@ -28,14 +28,6 @@ variable {𝒞 : Type u} [Cat.{v} 𝒞]
 
 namespace Freyd
 
-/-! ## Subobject order helpers -/
-
-/-- Mutual ≤ between subobjects gives isomorphic domains. -/
-theorem subobject_le_antisymm_iso {B : 𝒞} {S T : Subobject 𝒞 B}
-    (hST : S.le T) (hTS : T.le S) : Isomorphic S.dom T.dom :=
-  let ⟨e, he, _⟩ := Subobject.le_antisymm_iso hST hTS; ⟨e, he⟩
-
-
 /-! ## §1.71 Boolean pre-logos: f## = complement of direct image
 
   In a BOOLEAN PRE-LOGOS, every subobject lattice has a complement operation
@@ -268,7 +260,7 @@ private theorem logos_invImage_pres_bottom {A B : 𝒞} (f : A ⟶ B) :
     (adj (Logos.bottom B) (Logos.bottom A)).mpr (Logos.bottom_min _)
   -- ⊥_A ≤ f#(⊥_B) : bottom is minimal in Sub(A).
   have hge : (Logos.bottom A).le (InverseImage f (Logos.bottom B)) := Logos.bottom_min _
-  exact subobject_le_antisymm_iso hle hge
+  let ⟨e, he, _⟩ := Subobject.le_antisymm_iso hle hge; exact ⟨e, he⟩
 
 end LogosPreLogosHelper
 
