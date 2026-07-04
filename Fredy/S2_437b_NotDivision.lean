@@ -225,7 +225,7 @@ theorem Recursive1_encConst2 : Recursive1 (fun a => encCode (constCode 2 a)) := 
     exact Recursive1.comp2 Recursive2.cp (Recursive1.const 3)
       (Recursive1.comp2 Recursive2.cp (Recursive1.const 1)
         (Recursive1.comp2 Recursive2.cp (Recursive1.const (cp 1 0))
-          (Recursive1.comp2 Recursive2.consN Recursive1.id (Recursive1.const 0))))
+          (Recursive1.comp2 Recursive2.consN (show Recursive1 fun n => n from RecursiveV.proj 0) (Recursive1.const 0))))
   exact hrec.congr (fun a => (encConst2_eq a).symm)
 
 /-- The fixed recursive context around `encCode (constCode 2 a)` in `smnNum ct a`. -/
@@ -255,7 +255,7 @@ theorem Recursive1_encSmnCtx (ct : RecCode 2) : Recursive1 (encSmnCtx ct) := by
   refine Recursive1.comp2 Recursive2.cp (Recursive1.const 3) ?_
   refine Recursive1.comp2 Recursive2.cp (Recursive1.const 2) ?_
   refine Recursive1.comp2 Recursive2.cp (Recursive1.const (encCode cpCode)) ?_
-  exact Recursive1.comp2 Recursive2.consN Recursive1.id (Recursive1.const (consN (cp 2 1) 0))
+  exact Recursive1.comp2 Recursive2.consN (show Recursive1 fun n => n from RecursiveV.proj 0) (Recursive1.const (consN (cp 2 1) 0))
 
 /-- **The s-m-n map is recursive.**  `f_R = smnNum ct` is total-recursive. -/
 theorem Recursive1_smnNum (ct : RecCode 2) : Recursive1 (smnNum ct) :=

@@ -1444,12 +1444,12 @@ theorem Recursive2.const (c : Nat) : Recursive2 fun _ _ => c := RecursiveV.const
 
 theorem Recursive1.tailN : Recursive1 tailN := by
   show Recursive1 fun l => Rcat.csnd (l - 1)
-  have h1 : Recursive1 fun l => l - 1 := Recursive1.sub Recursive1.id (Recursive1.const 1)
+  have h1 : Recursive1 fun l => l - 1 := Recursive1.sub (show Recursive1 fun n => n from RecursiveV.proj 0) (Recursive1.const 1)
   exact Recursive1.comp h1 Recursive1.csnd
 
 theorem Recursive1.headN : Recursive1 headN := by
   show Recursive1 fun l => Rcat.cfst (l - 1)
-  have h1 : Recursive1 fun l => l - 1 := Recursive1.sub Recursive1.id (Recursive1.const 1)
+  have h1 : Recursive1 fun l => l - 1 := Recursive1.sub (show Recursive1 fun n => n from RecursiveV.proj 0) (Recursive1.const 1)
   exact Recursive1.comp h1 Recursive1.cfst
 
 theorem Recursive2.dropN : Recursive2 dropN := by
@@ -1472,9 +1472,9 @@ theorem Recursive2.nthN : Recursive2 nthN :=
 theorem Recursive2.ltInd : Recursive2 ltInd := by
   show Recursive2 fun a b => Rcat.eqInd (a + 1 - b) 0
   have h1 : Recursive2 fun a b => a + 1 :=
-    Recursive2.comp2 Recursive2.add Recursive2.fstArg (Recursive2.const 1)
+    Recursive2.comp2 Recursive2.add (show Recursive2 fun a _ => a from RecursiveV.proj 0) (Recursive2.const 1)
   have h2 : Recursive2 fun a b => a + 1 - b :=
-    Recursive2.comp2 Recursive2.sub h1 Recursive2.sndArg
+    Recursive2.comp2 Recursive2.sub h1 (show Recursive2 fun _ b => b from RecursiveV.proj 1)
   exact Recursive2.comp2 Recursive2.eqInd h2 (Recursive2.const 0)
 
 theorem Recursive2.neInd : Recursive2 neInd := by
@@ -1544,10 +1544,6 @@ theorem RecursiveV.bAllComp {k : Nat} {F : Vec (k + 1) → Nat} {b : Vec k → N
 /-- Ternary recursive functions. -/
 def Recursive3 (f : Nat → Nat → Nat → Nat) : Prop :=
   RecursiveV fun v : Vec 3 => f (v 0) (v 1) (v 2)
-
-theorem Recursive3.p1 : Recursive3 fun a _ _ => a := RecursiveV.proj 0
-theorem Recursive3.p2 : Recursive3 fun _ b _ => b := RecursiveV.proj 1
-theorem Recursive3.p3 : Recursive3 fun _ _ c => c := RecursiveV.proj 2
 
 theorem Recursive3.comp1 {F : Nat → Nat} (hF : Recursive1 F) {f : Nat → Nat → Nat → Nat}
     (hf : Recursive3 f) : Recursive3 fun a b c => F (f a b c) :=
@@ -1631,9 +1627,9 @@ theorem Recursive2.cmpGIdx : Recursive2 cmpGIdx := by
 
 theorem Recursive2.cmpFnd : Recursive2 cmpFnd := by
   have ha : Recursive2 fun i W => Rcat.ltInd (Rcat.cmpFIdx i W) i :=
-    Recursive2.comp2 Recursive2.ltInd Recursive2.cmpFIdx Recursive2.fstArg
+    Recursive2.comp2 Recursive2.ltInd Recursive2.cmpFIdx (show Recursive2 fun a _ => a from RecursiveV.proj 0)
   have hb : Recursive2 fun i W => Rcat.nthN (Rcat.cmpFIdx i W) W :=
-    Recursive2.comp2 Recursive2.nthN Recursive2.cmpFIdx Recursive2.sndArg
+    Recursive2.comp2 Recursive2.nthN Recursive2.cmpFIdx (show Recursive2 fun _ b => b from RecursiveV.proj 1)
   have h2 : Recursive2 fun i W =>
       Rcat.ltInd (Rcat.cmpFIdx i W) i * Rcat.nthN (Rcat.cmpFIdx i W) W :=
     Recursive2.comp2 Recursive2.mul ha hb
@@ -1648,23 +1644,23 @@ theorem Recursive3.gOK : Recursive3 gOK := by
   have hgidx : Recursive3 fun _ i W => Rcat.cmpGIdx i W :=
     Recursive3.lift23 Recursive2.cmpGIdx
   have hidx : Recursive3 fun j i W => Rcat.nthN j (Rcat.cmpGIdx i W) :=
-    Recursive3.comp2 Recursive2.nthN Recursive3.p1 hgidx
+    Recursive3.comp2 Recursive2.nthN (show Recursive3 fun a _ _ => a from RecursiveV.proj 0) hgidx
   have hnd : Recursive3 fun j i W =>
       Rcat.ltInd (Rcat.nthN j (Rcat.cmpGIdx i W)) i
         * Rcat.nthN (Rcat.nthN j (Rcat.cmpGIdx i W)) W :=
     Recursive3.comp2 Recursive2.mul
-      (Recursive3.comp2 Recursive2.ltInd hidx Recursive3.p2)
-      (Recursive3.comp2 Recursive2.nthN hidx Recursive3.p3)
+      (Recursive3.comp2 Recursive2.ltInd hidx (show Recursive3 fun _ b _ => b from RecursiveV.proj 1))
+      (Recursive3.comp2 Recursive2.nthN hidx (show Recursive3 fun _ _ c => c from RecursiveV.proj 2))
   have hfins : Recursive3 fun _ i W => Rcat.cmpFIns i W :=
     Recursive3.lift23 Recursive2.cmpFIns
   have f1 : Recursive3 fun j i W => Rcat.ltInd (Rcat.nthN j (Rcat.cmpGIdx i W)) i :=
-    Recursive3.comp2 Recursive2.ltInd hidx Recursive3.p2
+    Recursive3.comp2 Recursive2.ltInd hidx (show Recursive3 fun _ b _ => b from RecursiveV.proj 1)
   have f2 : Recursive3 fun j i W =>
       Rcat.eqInd (Rcat.codeOf (Rcat.ltInd (Rcat.nthN j (Rcat.cmpGIdx i W)) i
         * Rcat.nthN (Rcat.nthN j (Rcat.cmpGIdx i W)) W)) (Rcat.nthN j (Rcat.cmpGs i W)) :=
     Recursive3.comp2 Recursive2.eqInd
       (Recursive3.comp1 (F := Rcat.codeOf) Recursive1.codeOf hnd)
-      (Recursive3.comp2 Recursive2.nthN Recursive3.p1 (Recursive3.lift23 Recursive2.cmpGs))
+      (Recursive3.comp2 Recursive2.nthN (show Recursive3 fun a _ _ => a from RecursiveV.proj 0) (Recursive3.lift23 Recursive2.cmpGs))
   have f3 : Recursive3 fun j i W =>
       Rcat.eqInd (Rcat.insOf (Rcat.ltInd (Rcat.nthN j (Rcat.cmpGIdx i W)) i
         * Rcat.nthN (Rcat.nthN j (Rcat.cmpGIdx i W)) W)) (Rcat.insAt i W) :=
@@ -1676,10 +1672,10 @@ theorem Recursive3.gOK : Recursive3 gOK := by
         * Rcat.nthN (Rcat.nthN j (Rcat.cmpGIdx i W)) W)) (Rcat.nthN j (Rcat.cmpFIns i W)) :=
     Recursive3.comp2 Recursive2.eqInd
       (Recursive3.comp1 (F := Rcat.outOf) Recursive1.outOf hnd)
-      (Recursive3.comp2 Recursive2.nthN Recursive3.p1 hfins)
+      (Recursive3.comp2 Recursive2.nthN (show Recursive3 fun a _ _ => a from RecursiveV.proj 0) hfins)
   have f5 : Recursive3 fun j i W => Rcat.neInd (Rcat.dropN j (Rcat.cmpFIns i W)) 0 :=
     Recursive3.comp2 Recursive2.neInd
-      (Recursive3.comp2 Recursive2.dropN Recursive3.p1 hfins) (Recursive3.const 0)
+      (Recursive3.comp2 Recursive2.dropN (show Recursive3 fun a _ _ => a from RecursiveV.proj 0) hfins) (Recursive3.const 0)
   have h2 : Recursive3 fun j i W =>
       Rcat.ltInd (Rcat.nthN j (Rcat.cmpGIdx i W)) i
       * Rcat.eqInd (Rcat.codeOf (Rcat.ltInd (Rcat.nthN j (Rcat.cmpGIdx i W)) i
@@ -1695,7 +1691,7 @@ theorem Recursive3.gOK : Recursive3 gOK := by
 
 theorem Recursive2.compOK : Recursive2 compOK := by
   have b1 : Recursive2 fun i W => Rcat.ltInd (Rcat.cmpFIdx i W) i :=
-    Recursive2.comp2 Recursive2.ltInd Recursive2.cmpFIdx Recursive2.fstArg
+    Recursive2.comp2 Recursive2.ltInd Recursive2.cmpFIdx (show Recursive2 fun a _ => a from RecursiveV.proj 0)
   have b2 : Recursive2 fun i W =>
       Rcat.eqInd (Rcat.codeOf (Rcat.cmpFnd i W)) (Rcat.cmpF i W) :=
     Recursive2.comp2 Recursive2.eqInd
@@ -1733,14 +1729,14 @@ theorem Recursive2.precOK : Recursive2 precOK := by
   have hndB : Recursive2 fun i W =>
       Rcat.ltInd (Rcat.cmpGIdx i W) i * Rcat.nthN (Rcat.cmpGIdx i W) W :=
     Recursive2.comp2 Recursive2.mul
-      (Recursive2.comp2 Recursive2.ltInd Recursive2.cmpGIdx Recursive2.fstArg)
-      (Recursive2.comp2 Recursive2.nthN Recursive2.cmpGIdx Recursive2.sndArg)
+      (Recursive2.comp2 Recursive2.ltInd Recursive2.cmpGIdx (show Recursive2 fun a _ => a from RecursiveV.proj 0))
+      (Recursive2.comp2 Recursive2.nthN Recursive2.cmpGIdx (show Recursive2 fun _ b => b from RecursiveV.proj 1))
   have hn1 : Recursive2 fun i W => Rcat.headN (Rcat.insAt i W) - 1 :=
     Recursive2.comp2 Recursive2.sub hHd (Recursive2.const 1)
   have c1 : Recursive2 fun i W => Rcat.eqInd (Rcat.headN (Rcat.insAt i W)) 0 :=
     Recursive2.comp2 Recursive2.eqInd hHd (Recursive2.const 0)
   have c2 : Recursive2 fun i W => Rcat.ltInd (Rcat.cmpFIdx i W) i :=
-    Recursive2.comp2 Recursive2.ltInd Recursive2.cmpFIdx Recursive2.fstArg
+    Recursive2.comp2 Recursive2.ltInd Recursive2.cmpFIdx (show Recursive2 fun a _ => a from RecursiveV.proj 0)
   have c3 : Recursive2 fun i W =>
       Rcat.eqInd (Rcat.codeOf (Rcat.cmpFnd i W)) (Rcat.cmpM i W) :=
     Recursive2.comp2 Recursive2.eqInd
@@ -1764,7 +1760,7 @@ theorem Recursive2.precOK : Recursive2 precOK := by
   have d1 : Recursive2 fun i W => Rcat.neInd (Rcat.headN (Rcat.insAt i W)) 0 :=
     Recursive2.comp2 Recursive2.neInd hHd (Recursive2.const 0)
   have d3 : Recursive2 fun i W => Rcat.ltInd (Rcat.cmpGIdx i W) i :=
-    Recursive2.comp2 Recursive2.ltInd Recursive2.cmpGIdx Recursive2.fstArg
+    Recursive2.comp2 Recursive2.ltInd Recursive2.cmpGIdx (show Recursive2 fun a _ => a from RecursiveV.proj 0)
   have d4 : Recursive2 fun i W =>
       Rcat.eqInd (Rcat.codeOf (Rcat.cmpFnd i W)) (Rcat.codeOf (Rcat.nthN i W)) :=
     Recursive2.comp2 Recursive2.eqInd
@@ -1819,15 +1815,15 @@ theorem Recursive2.precOK : Recursive2 precOK := by
 
 theorem Recursive3.muStepOK : Recursive3 muStepOK := by
   have hidx : Recursive3 fun t i W => Rcat.nthN t (Rcat.kidsAt i W) :=
-    Recursive3.comp2 Recursive2.nthN Recursive3.p1 (Recursive3.lift23 Recursive2.kidsAt)
+    Recursive3.comp2 Recursive2.nthN (show Recursive3 fun a _ _ => a from RecursiveV.proj 0) (Recursive3.lift23 Recursive2.kidsAt)
   have hnd : Recursive3 fun t i W =>
       Rcat.ltInd (Rcat.nthN t (Rcat.kidsAt i W)) i
         * Rcat.nthN (Rcat.nthN t (Rcat.kidsAt i W)) W :=
     Recursive3.comp2 Recursive2.mul
-      (Recursive3.comp2 Recursive2.ltInd hidx Recursive3.p2)
-      (Recursive3.comp2 Recursive2.nthN hidx Recursive3.p3)
+      (Recursive3.comp2 Recursive2.ltInd hidx (show Recursive3 fun _ b _ => b from RecursiveV.proj 1))
+      (Recursive3.comp2 Recursive2.nthN hidx (show Recursive3 fun _ _ c => c from RecursiveV.proj 2))
   have m1 : Recursive3 fun t i W => Rcat.ltInd (Rcat.nthN t (Rcat.kidsAt i W)) i :=
-    Recursive3.comp2 Recursive2.ltInd hidx Recursive3.p2
+    Recursive3.comp2 Recursive2.ltInd hidx (show Recursive3 fun _ b _ => b from RecursiveV.proj 1)
   have m2 : Recursive3 fun t i W =>
       Rcat.eqInd (Rcat.codeOf (Rcat.ltInd (Rcat.nthN t (Rcat.kidsAt i W)) i
         * Rcat.nthN (Rcat.nthN t (Rcat.kidsAt i W)) W)) (Rcat.plAt i W) :=
@@ -1840,7 +1836,7 @@ theorem Recursive3.muStepOK : Recursive3 muStepOK := by
         (Rcat.consN t (Rcat.insAt i W)) :=
     Recursive3.comp2 Recursive2.eqInd
       (Recursive3.comp1 (F := Rcat.insOf) Recursive1.insOf hnd)
-      (Recursive3.comp2 Recursive2.consN Recursive3.p1 (Recursive3.lift23 Recursive2.insAt))
+      (Recursive3.comp2 Recursive2.consN (show Recursive3 fun a _ _ => a from RecursiveV.proj 0) (Recursive3.lift23 Recursive2.insAt))
   have m4 : Recursive3 fun t i W =>
       Rcat.neInd (Rcat.outOf (Rcat.ltInd (Rcat.nthN t (Rcat.kidsAt i W)) i
         * Rcat.nthN (Rcat.nthN t (Rcat.kidsAt i W)) W)) 0 :=
@@ -1871,11 +1867,11 @@ theorem Recursive2.muOK : Recursive2 muOK := by
       Rcat.ltInd (Rcat.nthN (Rcat.outAt i W) (Rcat.kidsAt i W)) i
         * Rcat.nthN (Rcat.nthN (Rcat.outAt i W) (Rcat.kidsAt i W)) W :=
     Recursive2.comp2 Recursive2.mul
-      (Recursive2.comp2 Recursive2.ltInd hyidx Recursive2.fstArg)
-      (Recursive2.comp2 Recursive2.nthN hyidx Recursive2.sndArg)
+      (Recursive2.comp2 Recursive2.ltInd hyidx (show Recursive2 fun a _ => a from RecursiveV.proj 0))
+      (Recursive2.comp2 Recursive2.nthN hyidx (show Recursive2 fun _ b => b from RecursiveV.proj 1))
   have e1 : Recursive2 fun i W =>
       Rcat.ltInd (Rcat.nthN (Rcat.outAt i W) (Rcat.kidsAt i W)) i :=
-    Recursive2.comp2 Recursive2.ltInd hyidx Recursive2.fstArg
+    Recursive2.comp2 Recursive2.ltInd hyidx (show Recursive2 fun a _ => a from RecursiveV.proj 0)
   have e2 : Recursive2 fun i W =>
       Rcat.eqInd (Rcat.codeOf (Rcat.ltInd (Rcat.nthN (Rcat.outAt i W) (Rcat.kidsAt i W)) i
         * Rcat.nthN (Rcat.nthN (Rcat.outAt i W) (Rcat.kidsAt i W)) W)) (Rcat.plAt i W) :=
@@ -1960,8 +1956,8 @@ theorem Recursive2.nodeOK : Recursive2 nodeOK := by
     a machine of R. -/
 theorem Recursive2.acceptN : Recursive2 acceptN := by
   have hF : Recursive3 fun j _ wit => Rcat.nodeOK j (Rcat.cfst wit) :=
-    Recursive3.comp2 Recursive2.nodeOK Recursive3.p1
-      (Recursive3.comp1 (F := Rcat.cfst) Recursive1.cfst Recursive3.p3)
+    Recursive3.comp2 Recursive2.nodeOK (show Recursive3 fun a _ _ => a from RecursiveV.proj 0)
+      (Recursive3.comp1 (F := Rcat.cfst) Recursive1.cfst (show Recursive3 fun _ _ c => c from RecursiveV.proj 2))
   have hb : Recursive2 fun _ wit => Rcat.csnd wit + 1 :=
     Recursive2.comp2 Recursive2.add (Recursive2.ofSnd Recursive1.csnd) (Recursive2.const 1)
   have hball : RecursiveV fun v : Vec 2 =>
@@ -1975,13 +1971,13 @@ theorem Recursive2.acceptN : Recursive2 acceptN := by
   have a2 : Recursive2 fun e wit =>
       Rcat.eqInd (Rcat.codeOf (Rcat.nthN (Rcat.csnd wit) (Rcat.cfst wit))) e :=
     Recursive2.comp2 Recursive2.eqInd
-      (RecursiveV.comp1 (F := Rcat.codeOf) Recursive1.codeOf hroot) Recursive2.fstArg
+      (RecursiveV.comp1 (F := Rcat.codeOf) Recursive1.codeOf hroot) (show Recursive2 fun a _ => a from RecursiveV.proj 0)
   have a3 : Recursive2 fun e wit =>
       Rcat.eqInd (Rcat.insOf (Rcat.nthN (Rcat.csnd wit) (Rcat.cfst wit)))
         (Rcat.consN e 0) :=
     Recursive2.comp2 Recursive2.eqInd
       (RecursiveV.comp1 (F := Rcat.insOf) Recursive1.insOf hroot)
-      (Recursive2.comp2 Recursive2.consN Recursive2.fstArg (Recursive2.const 0))
+      (Recursive2.comp2 Recursive2.consN (show Recursive2 fun a _ => a from RecursiveV.proj 0) (Recursive2.const 0))
   have h2 : Recursive2 fun e wit =>
       bAllN (fun j => Rcat.nodeOK j (Rcat.cfst wit)) (Rcat.csnd wit + 1)
       * Rcat.eqInd (Rcat.codeOf (Rcat.nthN (Rcat.csnd wit) (Rcat.cfst wit))) e
@@ -2337,7 +2333,7 @@ theorem searchMor {α : ExtNat} (t : Nat → Nat → Nat) (ht : Recursive2 t)
     show Recursive1 fun k => theLeast (fun m => t m (g.1 k) = 0) (htot k)
     have hg : Recursive1 fun k => g.1 k := g.2
     have ht₂ : Recursive2 fun i k => t i (g.1 k) :=
-      Recursive2.comp2 ht Recursive2.fstArg (Recursive2.ofSnd hg)
+      Recursive2.comp2 ht (show Recursive2 fun a _ => a from RecursiveV.proj 0) (Recursive2.ofSnd hg)
     exact Recursive1.mu ht₂
       (fun k => theLeast_mem (fun m => t m (g.1 k) = 0) (htot k))
       (fun k i hik => theLeast_min (fun m => t m (g.1 k) = 0) (htot k) i hik)
@@ -2573,7 +2569,7 @@ theorem ERel_not_effective : ¬ IsEffective ERel := by
   refine ⟨fun e => eqInd (morN (x ≫ s) (2 * e)) (morN (x ≫ s) (2 * e + 1)), ?_, ?_⟩
   · -- it is recursive
     have hdb : Recursive1 fun e => 2 * e :=
-      Recursive1.mul (Recursive1.const 2) Recursive1.id
+      Recursive1.mul (Recursive1.const 2) (show Recursive1 fun n => n from RecursiveV.proj 0)
     have h1 : Recursive1 fun e => morN (x ≫ s) (2 * e) :=
       Recursive1.comp hdb (morN_rec (x ≫ s))
     have h2 : Recursive1 fun e => morN (x ≫ s) (2 * e + 1) :=

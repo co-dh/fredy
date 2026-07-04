@@ -109,7 +109,7 @@ theorem isRE_id : IsRE relId := by
 theorem isRE_conv {R : Nat → Nat → Prop} (hR : IsRE R) : IsRE (relConv R) := by
   obtain ⟨tR, hRc, hRs⟩ := hR
   refine ⟨fun y n => tR y (cp (csnd n) (cfst n)),
-    Recursive2.comp2 hRc Recursive2.fstArg
+    Recursive2.comp2 hRc (show Recursive2 fun a _ => a from RecursiveV.proj 0)
       (Recursive2.ofSnd (Recursive1.comp2 Recursive2.cp Recursive1.csnd Recursive1.cfst)), ?_⟩
   intro a b
   show relConv R a b ↔ ∃ y, tR y (cp (csnd (cp a b)) (cfst (cp a b))) = 0
@@ -123,8 +123,8 @@ theorem isRE_inter {R S : Nat → Nat → Prop} (hR : IsRE R) (hS : IsRE S) :
   obtain ⟨tS, hSc, hSs⟩ := hS
   refine ⟨fun z n => tR (cfst z) n + tS (csnd z) n,
     Recursive2.comp2 Recursive2.add
-      (Recursive2.comp2 hRc (Recursive2.ofFst Recursive1.cfst) Recursive2.sndArg)
-      (Recursive2.comp2 hSc (Recursive2.ofFst Recursive1.csnd) Recursive2.sndArg), ?_⟩
+      (Recursive2.comp2 hRc (Recursive2.ofFst Recursive1.cfst) (show Recursive2 fun _ b => b from RecursiveV.proj 1))
+      (Recursive2.comp2 hSc (Recursive2.ofFst Recursive1.csnd) (show Recursive2 fun _ b => b from RecursiveV.proj 1)), ?_⟩
   intro a b
   show relInter R S a b ↔ ∃ z, tR (cfst z) (cp a b) + tS (csnd z) (cp a b) = 0
   simp only [relInter, add_eq_zero]
@@ -174,8 +174,8 @@ theorem isRE_union {R S : Nat → Nat → Prop} (hR : IsRE R) (hS : IsRE S) :
   obtain ⟨tS, hSc, hSs⟩ := hS
   refine ⟨fun z n => tR (cfst z) n * tS (csnd z) n,
     Recursive2.comp2 Recursive2.mul
-      (Recursive2.comp2 hRc (Recursive2.ofFst Recursive1.cfst) Recursive2.sndArg)
-      (Recursive2.comp2 hSc (Recursive2.ofFst Recursive1.csnd) Recursive2.sndArg), ?_⟩
+      (Recursive2.comp2 hRc (Recursive2.ofFst Recursive1.cfst) (show Recursive2 fun _ b => b from RecursiveV.proj 1))
+      (Recursive2.comp2 hSc (Recursive2.ofFst Recursive1.csnd) (show Recursive2 fun _ b => b from RecursiveV.proj 1)), ?_⟩
   intro a b
   show relUnion R S a b ↔ ∃ z, tR (cfst z) (cp a b) * tS (csnd z) (cp a b) = 0
   simp only [relUnion, Nat.mul_eq_zero]
@@ -278,7 +278,7 @@ theorem isRE_relT : IsRE relT := by
       (Recursive2.comp2 Recursive2.eqInd
         (Recursive2.comp2 Recursive2_acceptOn
           (Recursive2.ofSnd (Recursive1.comp2 Recursive2.cp (Recursive1.const (encCode cU))
-            Recursive1.id)) Recursive2.fstArg)
+            (show Recursive1 fun n => n from RecursiveV.proj 0))) (show Recursive2 fun a _ => a from RecursiveV.proj 0))
         (Recursive2.ofFst (Recursive1.const 1))), ?_⟩
   intro a b
   show relT a b ↔ ∃ y, 1 - eqInd (acceptOn (cp (encCode cU) (cp a b)) y) 1 = 0

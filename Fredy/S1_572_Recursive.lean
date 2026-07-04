@@ -148,12 +148,6 @@ theorem Recursive2.congr {f g : Nat → Nat → Nat} (hf : Recursive2 f)
 theorem RecursiveV.proj {k : Nat} (i : Fin k) : RecursiveV (fun v : Vec k => v i) :=
   ⟨.proj i, fun _ => .proj i⟩
 
-theorem Recursive1.id : Recursive1 fun n => n := RecursiveV.proj 0
-
-theorem Recursive2.fstArg : Recursive2 fun a _ => a := RecursiveV.proj 0
-
-theorem Recursive2.sndArg : Recursive2 fun _ b => b := RecursiveV.proj 1
-
 /-- Code for the constant function `c`. -/
 def constCode (k c : Nat) : RecCode k :=
   match c with
@@ -216,7 +210,7 @@ theorem Recursive2.comp2 {H : Nat → Nat → Nat} {f g : Nat → Nat → Nat}
 
 theorem Recursive2.swap {f : Nat → Nat → Nat} (hf : Recursive2 f) :
     Recursive2 fun a b => f b a :=
-  Recursive2.comp2 hf Recursive2.sndArg Recursive2.fstArg
+  Recursive2.comp2 hf (show Recursive2 fun _ b => b from RecursiveV.proj 1) (show Recursive2 fun a _ => a from RecursiveV.proj 0)
 
 theorem Recursive2.ofFst {f : Nat → Nat} (hf : Recursive1 f) : Recursive2 fun a _ => f a :=
   RecursiveV.comp1 (f := fun v : Vec 2 => v 0) hf (RecursiveV.proj 0)
@@ -332,14 +326,14 @@ theorem eqInd_ne {a b : Nat} (h : a ≠ b) : eqInd a b = 0 := by
 theorem Recursive2.eqInd : Recursive2 Rcat.eqInd :=
   Recursive2.comp2 (H := fun a b => a - b) Recursive2.sub
     (Recursive2.comp2 (H := fun _ _ => (1 : Nat)) (Recursive2.ofFst (Recursive1.const 1))
-      Recursive2.fstArg Recursive2.sndArg)
+      (show Recursive2 fun a _ => a from RecursiveV.proj 0) (show Recursive2 fun _ b => b from RecursiveV.proj 1))
     (Recursive2.comp2 Recursive2.add Recursive2.sub (Recursive2.swap Recursive2.sub))
 
 /-- `if n = c then a else w n` is recursive when `w` is (constant-case update). -/
 theorem Recursive1.ifEqConst (c a : Nat) {w : Nat → Nat} (hw : Recursive1 w) :
     Recursive1 fun n => if n = c then a else w n := by
   have hind : Recursive1 fun n => eqInd n c :=
-    Recursive1.comp2 Recursive2.eqInd Recursive1.id (Recursive1.const c)
+    Recursive1.comp2 Recursive2.eqInd (show Recursive1 fun n => n from RecursiveV.proj 0) (Recursive1.const c)
   have harith : Recursive1 fun n => a * eqInd n c + w n * (1 - eqInd n c) :=
     Recursive1.add (Recursive1.mul (Recursive1.const a) hind)
       (Recursive1.mul hw (Recursive1.sub (Recursive1.const 1) hind))
@@ -417,9 +411,13 @@ theorem exists_least {P : Nat → Prop} (h : ∃ n, P n) :
 noncomputable def theLeast (P : Nat → Prop) (h : ∃ n, P n) : Nat :=
   Classical.choose (exists_least h)
 
+/-- Defining spec of `theLeast` (first half of `Classical.choose_spec`): the least witness
+    satisfies `P`.  Kept — it is the specification of the `theLeast` choice-def, not an alias. -/
 theorem theLeast_mem (P : Nat → Prop) (h : ∃ n, P n) : P (theLeast P h) :=
   (Classical.choose_spec (exists_least h)).1
 
+/-- Defining spec of `theLeast` (second half of `Classical.choose_spec`): nothing below it
+    satisfies `P`.  Kept — specification of the choice-def, not an alias. -/
 theorem theLeast_min (P : Nat → Prop) (h : ∃ n, P n) :
     ∀ i, i < theLeast P h → ¬P i :=
   (Classical.choose_spec (exists_least h)).2
@@ -470,8 +468,8 @@ def tri : Nat → Nat := natIter 0 fun s r => r + (s + 1)
 @[simp] theorem tri_succ (s : Nat) : tri (s + 1) = tri s + (s + 1) := rfl
 
 theorem Recursive1.tri : Recursive1 Rcat.tri :=
-  Recursive1.natIter 0 (Recursive2.comp2 Recursive2.add Recursive2.sndArg
-    (Recursive2.comp2 Recursive2.add Recursive2.fstArg
+  Recursive1.natIter 0 (Recursive2.comp2 Recursive2.add (show Recursive2 fun _ b => b from RecursiveV.proj 1)
+    (Recursive2.comp2 Recursive2.add (show Recursive2 fun a _ => a from RecursiveV.proj 0)
       (Recursive2.ofFst (Recursive1.const 1))))
 
 theorem le_tri (s : Nat) : s ≤ tri s := by
@@ -497,8 +495,8 @@ def cp (a b : Nat) : Nat := tri (a + b) + b
 theorem Recursive2.cp : Recursive2 Rcat.cp := by
   have h : Recursive2 fun a b => Rcat.tri (a + b) + b :=
     Recursive2.comp2 Recursive2.add
-      (Recursive2.comp2 (Recursive2.ofSnd Recursive1.tri) Recursive2.fstArg Recursive2.add)
-      Recursive2.sndArg
+      (Recursive2.comp2 (Recursive2.ofSnd Recursive1.tri) (show Recursive2 fun a _ => a from RecursiveV.proj 0) Recursive2.add)
+      (show Recursive2 fun _ b => b from RecursiveV.proj 1)
   exact h.congr fun _ _ => rfl
 
 /-- The "weight" of a code: the least `s` with `c < tri (s+1)`; equals `a+b` for `c = cp a b`. -/
@@ -565,9 +563,9 @@ theorem cp_surj (c : Nat) : cp (cfst c) (csnd c) = c := by
 theorem Recursive1.cw : Recursive1 Rcat.cw := by
   refine Recursive1.mu (t := fun s c => (c + 1) - Rcat.tri (s + 1)) ?_ ?_ ?_
   · exact Recursive2.comp2 Recursive2.sub
-      (Recursive2.comp2 Recursive2.add Recursive2.sndArg (Recursive2.ofFst (Recursive1.const 1)))
+      (Recursive2.comp2 Recursive2.add (show Recursive2 fun _ b => b from RecursiveV.proj 1) (Recursive2.ofFst (Recursive1.const 1)))
       (Recursive2.ofFst (Recursive1.comp (f := fun s => s + 1)
-        (Recursive1.add Recursive1.id (Recursive1.const 1)) Recursive1.tri))
+        (Recursive1.add (show Recursive1 fun n => n from RecursiveV.proj 0) (Recursive1.const 1)) Recursive1.tri))
   · intro c
     show (c + 1) - Rcat.tri (Rcat.cw c + 1) = 0
     have := cw_lt c
@@ -579,7 +577,7 @@ theorem Recursive1.cw : Recursive1 Rcat.cw := by
     omega
 
 theorem Recursive1.csnd : Recursive1 Rcat.csnd :=
-  (Recursive1.sub Recursive1.id (Recursive1.comp Recursive1.cw Recursive1.tri)).congr
+  (Recursive1.sub (show Recursive1 fun n => n from RecursiveV.proj 0) (Recursive1.comp Recursive1.cw Recursive1.tri)).congr
     fun _ => rfl
 
 theorem Recursive1.cfst : Recursive1 Rcat.cfst :=
@@ -590,9 +588,9 @@ theorem Recursive1.cfst : Recursive1 Rcat.cfst :=
 theorem Recursive1.divConst (m : Nat) : Recursive1 fun c => c / (m + 1) := by
   refine Recursive1.mu (t := fun q c => (c + 1) - (m + 1) * (q + 1)) ?_ ?_ ?_
   · exact Recursive2.comp2 Recursive2.sub
-      (Recursive2.comp2 Recursive2.add Recursive2.sndArg (Recursive2.ofFst (Recursive1.const 1)))
+      (Recursive2.comp2 Recursive2.add (show Recursive2 fun _ b => b from RecursiveV.proj 1) (Recursive2.ofFst (Recursive1.const 1)))
       (Recursive2.comp2 Recursive2.mul (Recursive2.ofFst (Recursive1.const (m + 1)))
-        (Recursive2.comp2 Recursive2.add Recursive2.fstArg
+        (Recursive2.comp2 Recursive2.add (show Recursive2 fun a _ => a from RecursiveV.proj 0)
           (Recursive2.ofFst (Recursive1.const 1))))
   · intro c
     show (c + 1) - (m + 1) * (c / (m + 1) + 1) = 0
@@ -611,7 +609,7 @@ theorem Recursive1.divConst (m : Nat) : Recursive1 fun c => c / (m + 1) := by
 
 theorem Recursive1.modConst (m : Nat) : Recursive1 fun c => c % (m + 1) := by
   have h : Recursive1 fun c => c - (c / (m + 1)) * (m + 1) :=
-    Recursive1.sub Recursive1.id
+    Recursive1.sub (show Recursive1 fun n => n from RecursiveV.proj 0)
       (Recursive1.mul (Recursive1.divConst m) (Recursive1.const (m + 1)))
   refine h.congr fun c => ?_
   have h1 := Nat.div_add_mod c (m + 1)
@@ -699,7 +697,7 @@ instance : Cat ExtNat where
   id α := ⟨fun a => a, by
     match α with
     | some n => exact trivial
-    | none => exact Recursive1.id⟩
+    | none => exact (show Recursive1 fun n => n from RecursiveV.proj 0)⟩
   comp f g := ⟨fun a => g.1 (f.1 a), isMor_comp f g⟩
   id_comp f := Mor.ext fun _ => rfl
   comp_id f := Mor.ext fun _ => rfl
@@ -797,8 +795,8 @@ def prodFinFin (n m : Nat) : ProdData (some n) (some m) where
   dec₂_mor := trivial
   encN a b := a * m + b
   encN_rec := Recursive2.comp2 Recursive2.add
-    (Recursive2.comp2 Recursive2.mul Recursive2.fstArg (Recursive2.ofFst (Recursive1.const m)))
-    Recursive2.sndArg
+    (Recursive2.comp2 Recursive2.mul (show Recursive2 fun a _ => a from RecursiveV.proj 0) (Recursive2.ofFst (Recursive1.const m)))
+    (show Recursive2 fun _ b => b from RecursiveV.proj 1)
   encN_spec _ _ := rfl
 
 /-- `0 × ω = 0`. -/
@@ -845,8 +843,8 @@ noncomputable def prodFinOmega (n : Nat) : ProdData (some (n + 1)) none where
   dec₂_mor := Recursive1.divConst n
   encN a b := b * (n + 1) + a
   encN_rec := Recursive2.comp2 Recursive2.add
-    (Recursive2.comp2 Recursive2.mul Recursive2.sndArg (Recursive2.ofFst (Recursive1.const (n + 1))))
-    Recursive2.fstArg
+    (Recursive2.comp2 Recursive2.mul (show Recursive2 fun _ b => b from RecursiveV.proj 1) (Recursive2.ofFst (Recursive1.const (n + 1))))
+    (show Recursive2 fun a _ => a from RecursiveV.proj 0)
   encN_spec _ _ := rfl
 
 /-- `ω × 0 = 0`. -/
@@ -877,8 +875,8 @@ noncomputable def prodOmegaFin (m : Nat) : ProdData none (some (m + 1)) where
   dec₂_mor := Recursive1.modConst m
   encN a b := a * (m + 1) + b
   encN_rec := Recursive2.comp2 Recursive2.add
-    (Recursive2.comp2 Recursive2.mul Recursive2.fstArg (Recursive2.ofFst (Recursive1.const (m + 1))))
-    Recursive2.sndArg
+    (Recursive2.comp2 Recursive2.mul (show Recursive2 fun a _ => a from RecursiveV.proj 0) (Recursive2.ofFst (Recursive1.const (m + 1))))
+    (show Recursive2 fun _ b => b from RecursiveV.proj 1)
   encN_spec _ _ := rfl
 
 /-- `ω × ω = ω` by the Cantor pairing (recursive in both directions). -/
@@ -1054,7 +1052,7 @@ theorem rankOf_succ (χ : Nat → Bool) (v : Nat) :
 
 theorem rankOf_rec {χ : Nat → Bool} (h : Recursive1 fun v => if χ v then 1 else 0) :
     Recursive1 (rankOf χ) :=
-  Recursive1.natIter 0 (Recursive2.comp2 Recursive2.add Recursive2.sndArg (Recursive2.ofFst h))
+  Recursive1.natIter 0 (Recursive2.comp2 Recursive2.add (show Recursive2 fun _ b => b from RecursiveV.proj 1) (Recursive2.ofFst h))
 
 theorem rankOf_mono (χ : Nat → Bool) {v w : Nat} (h : v ≤ w) : rankOf χ v ≤ rankOf χ w := by
   induction w with
@@ -1142,8 +1140,8 @@ theorem enumOf_recursive {χ : Nat → Bool} (ht : Recursive1 fun v => if χ v t
       (Recursive2.comp2 Recursive2.sub (Recursive2.ofFst (Recursive1.const 1))
         (Recursive2.ofFst ht))
       (Recursive2.comp2 Recursive2.add
-        (Recursive2.comp2 Recursive2.sub (Recursive2.ofFst (rankOf_rec ht)) Recursive2.sndArg)
-        (Recursive2.comp2 Recursive2.sub Recursive2.sndArg (Recursive2.ofFst (rankOf_rec ht))))
+        (Recursive2.comp2 Recursive2.sub (Recursive2.ofFst (rankOf_rec ht)) (show Recursive2 fun _ b => b from RecursiveV.proj 1))
+        (Recursive2.comp2 Recursive2.sub (show Recursive2 fun _ b => b from RecursiveV.proj 1) (Recursive2.ofFst (rankOf_rec ht))))
   · intro k
     show (1 - (if χ (enumOf χ k (hex k)) then 1 else 0)) +
       ((rankOf χ (enumOf χ k (hex k)) - k) + (k - rankOf χ (enumOf χ k (hex k)))) = 0
@@ -1379,7 +1377,8 @@ theorem idemFn_isMor {α β : ExtNat} (x : Mor α β) : IsMor α α (idemFn x) :
         omega
       · intro k i hi
         show (morN x i - morN x k) + (morN x k - morN x i) ≠ 0
-        have := theLeast_min (fun i => morN x i = morN x k) ⟨k, rfl⟩ i hi
+        have := (Classical.choose_spec
+          (exists_least (P := fun i => morN x i = morN x k) ⟨k, rfl⟩)).2 i hi
         omega
     exact h.congr fun k => (toNat_elOf _ _ : toNat (idemFn x k) = _).symm
 

@@ -115,10 +115,6 @@ theorem PrimRecV.proj {k : Nat} (i : Fin k) : PrimRecV (fun v : Vec k => v i) :=
 
 theorem PrimRec1.id : PrimRec1 fun n => n := PrimRecV.proj 0
 
-theorem PrimRec2.fstArg : PrimRec2 fun a _ => a := PrimRecV.proj 0
-
-theorem PrimRec2.sndArg : PrimRec2 fun _ b => b := PrimRecV.proj 1
-
 theorem isPrim_constCode (k c : Nat) : IsPrim (constCode k c) := by
   induction c with
   | zero => trivial
@@ -178,7 +174,7 @@ theorem PrimRec2.comp2 {H : Nat → Nat → Nat} {f g : Nat → Nat → Nat}
 
 theorem PrimRec2.swap {f : Nat → Nat → Nat} (hf : PrimRec2 f) :
     PrimRec2 fun a b => f b a :=
-  PrimRec2.comp2 hf PrimRec2.sndArg PrimRec2.fstArg
+  PrimRec2.comp2 hf (show PrimRec2 fun _ b => b from PrimRecV.proj 1) (show PrimRec2 fun a _ => a from PrimRecV.proj 0)
 
 theorem PrimRec2.ofFst {f : Nat → Nat} (hf : PrimRec1 f) : PrimRec2 fun a _ => f a :=
   PrimRecV.comp1 (f := fun v : Vec 2 => v 0) hf (PrimRecV.proj 0)
@@ -222,7 +218,7 @@ theorem PrimRec1.sub {f g : Nat → Nat} (hf : PrimRec1 f) (hg : PrimRec1 g) :
 theorem PrimRec2.eqInd : PrimRec2 Rcat.eqInd :=
   PrimRec2.comp2 (H := fun a b => a - b) PrimRec2.sub
     (PrimRec2.comp2 (H := fun _ _ => (1 : Nat)) (PrimRec2.ofFst (PrimRec1.const 1))
-      PrimRec2.fstArg PrimRec2.sndArg)
+      (show PrimRec2 fun a _ => a from PrimRecV.proj 0) (show PrimRec2 fun _ b => b from PrimRecV.proj 1))
     (PrimRec2.comp2 PrimRec2.add PrimRec2.sub (PrimRec2.swap PrimRec2.sub))
 
 /-- `if n = c then a else w n` is primitive recursive when `w` is. -/
@@ -277,8 +273,8 @@ theorem PrimRec1.natIter (g0 : Nat) {H : Nat → Nat → Nat} (hH : PrimRec2 H) 
   rwa [vcons_head_tail v] at this
 
 theorem PrimRec1.tri : PrimRec1 Rcat.tri :=
-  PrimRec1.natIter 0 (PrimRec2.comp2 PrimRec2.add PrimRec2.sndArg
-    (PrimRec2.comp2 PrimRec2.add PrimRec2.fstArg (PrimRec2.ofFst (PrimRec1.const 1))))
+  PrimRec1.natIter 0 (PrimRec2.comp2 PrimRec2.add (show PrimRec2 fun _ b => b from PrimRecV.proj 1)
+    (PrimRec2.comp2 PrimRec2.add (show PrimRec2 fun a _ => a from PrimRecV.proj 0) (PrimRec2.ofFst (PrimRec1.const 1))))
 
 /-! ## Part 2: the Cantor projections and div/mod are primitive recursive
 
@@ -295,7 +291,7 @@ theorem cwP_zero : cwP 0 = 0 := rfl
 theorem cwP_succ (c : Nat) : cwP (c + 1) = cwP c + eqInd (c + 1) (tri (cwP c + 1)) := rfl
 
 theorem PrimRec1.cwP : PrimRec1 Pcat.cwP :=
-  PrimRec1.natIter 0 (PrimRec2.comp2 PrimRec2.add PrimRec2.sndArg
+  PrimRec1.natIter 0 (PrimRec2.comp2 PrimRec2.add (show PrimRec2 fun _ b => b from PrimRecV.proj 1)
     (PrimRec2.comp2 PrimRec2.eqInd
       (PrimRec2.ofFst (PrimRec1.add PrimRec1.id (PrimRec1.const 1)))
       (PrimRec2.ofSnd (PrimRec1.comp
@@ -339,8 +335,8 @@ theorem PrimRec1.cfst : PrimRec1 Rcat.cfst :=
 theorem PrimRec2.cp : PrimRec2 Rcat.cp := by
   have h : PrimRec2 fun a b => Rcat.tri (a + b) + b :=
     PrimRec2.comp2 PrimRec2.add
-      (PrimRec2.comp2 (PrimRec2.ofSnd PrimRec1.tri) PrimRec2.fstArg PrimRec2.add)
-      PrimRec2.sndArg
+      (PrimRec2.comp2 (PrimRec2.ofSnd PrimRec1.tri) (show PrimRec2 fun a _ => a from PrimRecV.proj 0) PrimRec2.add)
+      (show PrimRec2 fun _ b => b from PrimRecV.proj 1)
   exact h.congr fun _ _ => rfl
 
 /-! ### Division and remainder by a positive constant, mu-free -/
@@ -354,7 +350,7 @@ theorem modP_succ (m c : Nat) :
 
 theorem PrimRec1.modP (m : Nat) : PrimRec1 (Pcat.modP m) := by
   have hA : PrimRec2 fun (_ r : Nat) => r + 1 :=
-    PrimRec2.comp2 PrimRec2.add PrimRec2.sndArg (PrimRec2.ofFst (PrimRec1.const 1))
+    PrimRec2.comp2 PrimRec2.add (show PrimRec2 fun _ b => b from PrimRecV.proj 1) (PrimRec2.ofFst (PrimRec1.const 1))
   exact PrimRec1.natIter 0 (PrimRec2.comp2 PrimRec2.mul hA
     (PrimRec2.comp2 PrimRec2.sub (PrimRec2.ofFst (PrimRec1.const 1))
       (PrimRec2.comp2 PrimRec2.eqInd hA (PrimRec2.ofFst (PrimRec1.const (m + 1))))))
@@ -388,7 +384,7 @@ def divP (m : Nat) : Nat → Nat := natIter 0 fun c r => r + eqInd (modP m c) m
 theorem divP_succ (m c : Nat) : divP m (c + 1) = divP m c + eqInd (modP m c) m := rfl
 
 theorem PrimRec1.divP (m : Nat) : PrimRec1 (Pcat.divP m) :=
-  PrimRec1.natIter 0 (PrimRec2.comp2 PrimRec2.add PrimRec2.sndArg
+  PrimRec1.natIter 0 (PrimRec2.comp2 PrimRec2.add (show PrimRec2 fun _ b => b from PrimRecV.proj 1)
     (PrimRec2.ofFst (PrimRec1.comp2 PrimRec2.eqInd (PrimRec1.modP m)
       (PrimRec1.const m))))
 
@@ -517,20 +513,20 @@ noncomputable def pprodData : (α β : ExtNat) → PProdData α β
   | some n, some m =>
     ⟨prodFinFin n m, trivial, trivial,
       (PrimRec2.comp2 PrimRec2.add
-        (PrimRec2.comp2 PrimRec2.mul PrimRec2.fstArg (PrimRec2.ofFst (PrimRec1.const m)))
-        PrimRec2.sndArg : PrimRec2 fun a b => a * m + b)⟩
+        (PrimRec2.comp2 PrimRec2.mul (show PrimRec2 fun a _ => a from PrimRecV.proj 0) (PrimRec2.ofFst (PrimRec1.const m)))
+        (show PrimRec2 fun _ b => b from PrimRecV.proj 1) : PrimRec2 fun a b => a * m + b)⟩
   | some 0, none => ⟨prodZeroOmega 0 rfl, trivial, trivial, PrimRecV.const 2 0⟩
   | some (n + 1), none =>
     ⟨prodFinOmega n, PrimRec1.modConst n, PrimRec1.divConst n,
       (PrimRec2.comp2 PrimRec2.add
-        (PrimRec2.comp2 PrimRec2.mul PrimRec2.sndArg (PrimRec2.ofFst (PrimRec1.const (n + 1))))
-        PrimRec2.fstArg : PrimRec2 fun a b => b * (n + 1) + a)⟩
+        (PrimRec2.comp2 PrimRec2.mul (show PrimRec2 fun _ b => b from PrimRecV.proj 1) (PrimRec2.ofFst (PrimRec1.const (n + 1))))
+        (show PrimRec2 fun a _ => a from PrimRecV.proj 0) : PrimRec2 fun a b => b * (n + 1) + a)⟩
   | none, some 0 => ⟨prodOmegaZero 0 rfl, trivial, trivial, PrimRecV.const 2 0⟩
   | none, some (m + 1) =>
     ⟨prodOmegaFin m, PrimRec1.divConst m, PrimRec1.modConst m,
       (PrimRec2.comp2 PrimRec2.add
-        (PrimRec2.comp2 PrimRec2.mul PrimRec2.fstArg (PrimRec2.ofFst (PrimRec1.const (m + 1))))
-        PrimRec2.sndArg : PrimRec2 fun a b => a * (m + 1) + b)⟩
+        (PrimRec2.comp2 PrimRec2.mul (show PrimRec2 fun a _ => a from PrimRecV.proj 0) (PrimRec2.ofFst (PrimRec1.const (m + 1))))
+        (show PrimRec2 fun _ b => b from PrimRecV.proj 1) : PrimRec2 fun a b => a * (m + 1) + b)⟩
   | none, none => ⟨prodOmegaOmega, PrimRec1.cfst, PrimRec1.csnd, PrimRec2.cp⟩
 
 /-- The universal pairing map is a P-morphism (via the primitive recursive `encN`). -/

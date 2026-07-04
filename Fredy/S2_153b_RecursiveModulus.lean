@@ -102,7 +102,7 @@ theorem partRec_csnd : PartRec (ModFun.ofFun csnd) := partRec_ofFun Recursive1.c
 
 /-- The left tag `2·` is total recursive. -/
 theorem rec_inL : Recursive1 fun k => 2 * k :=
-  Recursive1.mul (Recursive1.const 2) Recursive1.id
+  Recursive1.mul (Recursive1.const 2) (show Recursive1 fun n => n from RecursiveV.proj 0)
 /-- The right tag `2·+1` is total recursive. -/
 theorem rec_inR : Recursive1 fun k => 2 * k + 1 :=
   Recursive1.add rec_inL (Recursive1.const 1)
@@ -171,8 +171,8 @@ theorem Recursive1_uOutW : Recursive1 uOutW :=
 theorem Recursive2_acceptOn : Recursive2 acceptOn := by
   unfold acceptOn
   have hF : Recursive3 fun j _ wit => nodeOK j (cfst wit) :=
-    Recursive3.comp2 Recursive2.nodeOK Recursive3.p1
-      (Recursive3.comp1 (F := cfst) Recursive1.cfst Recursive3.p3)
+    Recursive3.comp2 Recursive2.nodeOK (show Recursive3 fun a _ _ => a from RecursiveV.proj 0)
+      (Recursive3.comp1 (F := cfst) Recursive1.cfst (show Recursive3 fun _ _ c => c from RecursiveV.proj 2))
   have hb : Recursive2 fun _ wit => csnd wit + 1 :=
     Recursive2.comp2 Recursive2.add (Recursive2.ofSnd Recursive1.csnd) (Recursive2.const 1)
   have hball' : Recursive2 fun _ wit =>
