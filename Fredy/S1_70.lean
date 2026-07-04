@@ -85,10 +85,11 @@ theorem compl_le_compl_iff [HasImages 𝒞] [HasSubobjectUnions 𝒞]
   · have := HasSubobjectComplements.compl_antitone h
     rwa [HasSubobjectComplements.compl_inv] at this
 
-/-- Direct image f_! : Sub(A) → Sub(B) via the image of the composite. -/
+/-- Direct image f_! : Sub(A) → Sub(B) via the image of the composite.
+    (= the upstream `S1_60.existsAlong`; one canonical `image (arr ≫ f)`.) -/
 noncomputable def DirectImage [HasImages 𝒞] {A B : 𝒞} (f : A ⟶ B)
     (S : Subobject 𝒞 A) : Subobject 𝒞 B :=
-  HasImages.image (S.arr ≫ f)
+  existsAlong f S
 
 -- (§1.71 boolean logos theorem follows after class definitions below)
 

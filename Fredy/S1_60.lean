@@ -608,8 +608,11 @@ theorem rel_inter_union_le {A B : 𝒞} (R S T : BinRel 𝒞 A B) :
 /-- Ternary product `A×B×C`. -/
 abbrev prod₃ (A B C : 𝒞) : 𝒞 := prod A (prod B C)
 
-/-- Direct image (∃) of a subobject `U ↣ X` along `g : X ⟶ Y`: the image of `U.arr ≫ g`. -/
-def existsAlong {X Y : 𝒞} (g : X ⟶ Y) (U : Subobject 𝒞 X) : Subobject 𝒞 Y :=
+omit [PreLogos 𝒞] in
+/-- Direct image (∃) of a subobject `U ↣ X` along `g : X ⟶ Y`: the image of `U.arr ≫ g`.
+    Needs only `[HasImages]` (ambient `[PreLogos]` dropped so the minimal-hypothesis
+    `S1_70.DirectImage` / `S1_967.directImage` can forward to this canonical copy). -/
+def existsAlong [HasImages 𝒞] {X Y : 𝒞} (g : X ⟶ Y) (U : Subobject 𝒞 X) : Subobject 𝒞 Y :=
   image (U.arr ≫ g)
 
 /-- The image/pullback **adjunction** `∃_g ⊣ g#` at the level of subobject containment:

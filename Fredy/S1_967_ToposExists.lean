@@ -226,9 +226,9 @@ theorem orChar_ump {A : 𝒞} (S T : Subobject 𝒞 A)
 /-! ## GOAL 2 — Direct image `∃_f` and the adjunction `∃_f ⊣ f#` -/
 
 /-- **Direct image** `∃_f S ⊆ B` of a subobject `S ⊆ A` along `f : A → B`: the image of the
-    composite `S ↣ A → B`. -/
+    composite `S ↣ A → B`.  (= the upstream `S1_60.existsAlong`; one canonical `image (arr ≫ f)`.) -/
 noncomputable def directImage {A B : 𝒞} (f : A ⟶ B) (S : Subobject 𝒞 A) : Subobject 𝒞 B :=
-  image (S.arr ≫ f)
+  existsAlong f S
 
 /-- `S ≤ f# (∃_f S)`: the unit of the adjunction.  `S.arr ≫ f` factors through its own image. -/
 theorem directImage_unit {A B : 𝒞} (f : A ⟶ B) (S : Subobject 𝒞 A)

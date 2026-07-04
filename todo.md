@@ -306,3 +306,22 @@ Clean precision needs a structure-aware type check or a proof-term hash.
   (`S1_65_SlicePreTopos`, slice of regular, needs `HasImages`) — distinct hierarchy levels.
 - ❌ **FALSE POSITIVE** `monic_pair_of_monicPair` / `monicPair_of_monic_pair` (`S1_56`) ~ `QSeq139.*`
   (`QSeq139.lean`) — `QSeq139.monicPairQSeq` is Typst diagram DATA, not a proof.
+
+### E — general-theorem dedup follow-ups (from the 2026-07-03 general-framework survey)
+
+The survey concluded the big general frameworks already exist (S1_8 `Adjunction`, A4_4 `GaloisConn`,
+S1_82 `HasLimit`, `RegularFunctor` bundles + `image_chosenPullback_isPullback`) or are net-negative to
+introduce; see memory `general-framework-dedup-survey`. Three genuine NARROW wins remain:
+
+- [ ] **E1. Unify the 3 indexed-product structures.** `HasIndexedProduct {I:Type}` (S1_42:280) /
+  `HasFinProd {Fin n}` (S1_43:271) / `HasProducts {Type v}` (S1_82:142) are the same
+  prod/proj/lift/lift_π/lift_uniq skeleton differing only in the index type. Parameterize one over the
+  index universe; make the others instances. ~40-60 lines, low-ish risk (no shape-category apparatus);
+  friction = `HasFinProd`'s `Fin.cases` plumbing (S1_43:324). Highest ROI.
+- [ ] **E2. Collapse the `∃_f ⊣ f#` triple.** `existsAlong` (S1_60) and `DirectImage` (S1_70) are the
+  SAME operation `image (S.arr ≫ f)`, so `existsAlong_le_iff` / `directImage_adj` /
+  `directImage_adjunction` (S1_59_10_Frobenius, S1_967_ToposExists) prove the same adjunction three
+  times. Same-lemma dedup (forward two to one canonical). Modest.
+- [ ] **E3. Re-route `objIncl_preservesPullbacks_generic`** (S2_218_ObjInclRegular, ~40 lines re-deriving
+  inline via `products_equalizers_implies_pullbacks` + `isIso_of_two_pullbacks`) through the existing
+  general `image_chosenPullback_isPullback`. Same re-route done for `objInclL` this session. Small, one site.
