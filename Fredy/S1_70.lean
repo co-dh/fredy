@@ -99,8 +99,14 @@ variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasIma
     f#(B') ⊆ A'.  Satisfies: f#(B') ⊆ A' ⇔ B' ⊆ f##(A'). -/
 class HasRightAdjointImage (𝒞 : Type u) [Cat.{v} 𝒞] extends HasImages 𝒞, HasPullbacks 𝒞 where
   rightAdj : ∀ {A B : 𝒞} (f : A ⟶ B), Subobject 𝒞 A → Subobject 𝒞 B
-  adjunction : ∀ {A B : 𝒞} (f : A ⟶ B) (B' : Subobject 𝒞 B) (A' : Subobject 𝒞 A),
-    Subobject.le (InverseImage f B') A' ↔ Subobject.le B' (rightAdj f A')
+  /-- The adjunction `f# ⊣ f##`, stated as the generic `Freyd.GaloisConnection`
+      (Fredy/S1_51_Order): the inverse image `f#` is left adjoint to `rightAdj f`, between the
+      subobject preorders of `B` and `A`.  Unfolds to
+      `f#(B') ≤ A' ↔ B' ≤ rightAdj f A'`, so pointwise call sites `adjunction f B' A'` are
+      unchanged. -/
+  adjunction : ∀ {A B : 𝒞} (f : A ⟶ B),
+    GaloisConnection (Subobject.le (𝒞 := 𝒞) (B := B)) (Subobject.le (𝒞 := 𝒞) (B := A))
+      (fun B' => InverseImage f B') (rightAdj f)
 
 /-- A LOGOS (§1.7): regular + subobject lattices + right adjoint to f#.
 
@@ -287,9 +293,10 @@ def logos_implies_preLogos [L : Logos 𝒞] : PreLogos 𝒞 where
 /-- Subobjects of A form a complete lattice (all meets and joins exist). -/
 class LocallyComplete (𝒞 : Type u) [Cat.{v} 𝒞] extends HasImages 𝒞 where
   sup : ∀ {A : 𝒞}, ((Subobject 𝒞 A) → Prop) → Subobject 𝒞 A
-  sup_upper : ∀ {A} (S : (Subobject 𝒞 A) → Prop) (s : Subobject 𝒞 A), S s → Subobject.le s (sup S)
-  sup_least : ∀ {A} (S : (Subobject 𝒞 A) → Prop) (U : Subobject 𝒞 A),
-    (∀ (s : Subobject 𝒞 A), S s → Subobject.le s U) → Subobject.le (sup S) U
+  /-- `sup S` is the least upper bound of the family `S` in `Sub(A)` — the generic
+      `Freyd.IsSup` (Fredy/S1_51_Order).  `(sup_isSup S).upper`/`.least` are the old
+      `sup_upper`/`sup_least`. -/
+  sup_isSup : ∀ {A : 𝒞} (S : (Subobject 𝒞 A) → Prop), IsSup Subobject.le S (sup S)
 
 /-- §1.712: InverseImage f is monotone: B₁ ≤ B₂ ⟹ f#(B₁) ≤ f#(B₂).
     Proof: use the pullback mediating map into the cone (π₁, π₂ ≫ k). -/
@@ -328,7 +335,7 @@ def locallyComplete_with_union_preserving_is_logos
   adjunction f B' A' := by
     constructor
     · -- forward: f#(B') ≤ A' → B' ≤ sup { C | f#(C) ≤ A' }
-      exact fun h => LC.sup_upper (fun C => (InverseImage f C).le A') B' h
+      exact fun h => (LC.sup_isSup (fun C => (InverseImage f C).le A')).upper B' h
     · -- backward: B' ≤ sup S → f#(B') ≤ A'
       -- mono: f#(B') ≤ f#(sup S); h_preserves: f#(sup S) ≤ sup { f#(C) | C ∈ S };
       -- sup_least: every f#(C) in that image satisfies f#(C) ≤ A'.
@@ -341,7 +348,7 @@ def locallyComplete_with_union_preserving_is_logos
                      _ _ f _ _ hB'
       have hpres := h_preserves f (fun C => (InverseImage f C).le A')
       have himg_le : (LC.sup (fun A'' => ∃ C, (InverseImage f C).le A' ∧ A'' = InverseImage f C)).le A' :=
-        LC.sup_least _ A' (fun A'' ⟨_, hC, heq⟩ => heq ▸ hC)
+        (LC.sup_isSup _).least A' (fun A'' ⟨_, hC, heq⟩ => heq ▸ hC)
       exact Subobject.le_trans (Subobject.le_trans hmono hpres) himg_le
 
 end LogosFromLC

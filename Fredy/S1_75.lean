@@ -120,8 +120,8 @@ class HasIndexedSubobjectJoins (𝒞 : Type u) [Cat.{v} 𝒞] [PreLogos 𝒞] wh
 instance (priority := 100) [PreLogos 𝒞] [HasIndexedSubobjectJoins 𝒞] : LocallyComplete 𝒞 where
   toHasImages := inferInstance
   sup := HasIndexedSubobjectJoins.sup
-  sup_upper := HasIndexedSubobjectJoins.sup_upper
-  sup_least := HasIndexedSubobjectJoins.sup_least
+  sup_isSup := fun S =>
+    ⟨HasIndexedSubobjectJoins.sup_upper S, HasIndexedSubobjectJoins.sup_least S⟩
 
 open HasIndexedSubobjectJoins
 

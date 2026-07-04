@@ -1288,13 +1288,13 @@ theorem lt_closure_closed_elements_exponential_ideal
     (hb : j.isClosed b) :
     j.isClosed (L.imp a b) := by
   -- isClosed: j.op x = x; need j.op (imp a b) = imp a b.
-  apply L.le_antisymm _ (j.inflationary _)
+  apply L.le_antisymm _ (j.isClosureOp.inflationary _)
   rw [← L.imp_adj]
   have step1 : L.le (L.meet a (j.op (L.imp a b))) (j.op (L.meet a (L.imp a b))) := by
     rw [j.meet_pres]
-    exact L.le_meet (L.le_trans (L.meet_le_left _ _) (j.inflationary a)) (L.meet_le_right _ _)
+    exact L.le_meet (L.le_trans (L.meet_le_left _ _) (j.isClosureOp.inflationary a)) (L.meet_le_right _ _)
   have step2 : L.le (j.op (L.meet a (L.imp a b))) (j.op b) :=
-    j.order_preserving (L.imp_adj.mpr (L.le_refl _))
+    j.isClosureOp.monotone (L.imp_adj.mpr (L.le_refl _))
   have step3 : L.le (j.op b) b := by rw [hb]; exact L.le_refl b
   exact L.le_trans step1 (L.le_trans step2 step3)
 
@@ -1329,19 +1329,19 @@ theorem exponential_ideal_implies_lt_closure
   apply L.le_antisymm
   · -- ≤ direction: j(x∧y) ≤ j(x)∧j(y), from order_preserving.
     apply L.le_meet
-    · exact j.order_preserving (L.meet_le_left x y)
-    · exact j.order_preserving (L.meet_le_right x y)
+    · exact j.isClosureOp.monotone (L.meet_le_left x y)
+    · exact j.isClosureOp.monotone (L.meet_le_right x y)
   · -- ≥ direction: j(x)∧j(y) ≤ j(x∧y).
     -- KEY LEMMA: z ≤ c (c closed) → j(z) ≤ c  (via order_preserving: j(z) ≤ j(c) = c).
     have key : ∀ z c, j.isClosed c → L.le z c → L.le (j.op z) c := fun z c hc hzc =>
-      hc ▸ j.order_preserving hzc
+      hc ▸ j.isClosureOp.monotone hzc
     -- j(x∧y) is closed (idempotent).
     have hxy_cl : j.isClosed (j.op (L.meet x y)) := j.idem_eq (L.meet x y)
     -- imp x (j(x∧y)) is closed.
     have hc1 : j.isClosed (L.imp x (j.op (L.meet x y))) := hIdeal x _ hxy_cl
     -- y ≤ imp x j(x∧y): imp_adj.mp with x∧y ≤ j(x∧y) (inflationary).
     have hy_le : L.le y (L.imp x (j.op (L.meet x y))) :=
-      L.imp_adj.mp (j.inflationary (L.meet x y))
+      L.imp_adj.mp (j.isClosureOp.inflationary (L.meet x y))
     -- j(y) ≤ imp x j(x∧y) by KEY LEMMA (y ≤ it, it closed).
     have hjy_le : L.le (j.op y) (L.imp x (j.op (L.meet x y))) := key y _ hc1 hy_le
     -- x∧j(y) ≤ j(x∧y): imp_adj.mpr with j(y) ≤ imp x j(x∧y).

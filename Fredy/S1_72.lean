@@ -146,11 +146,11 @@ noncomputable def locale_is_heyting [HasImages 𝒞] [Locale 𝒞] :
   toHasSubobjectUnions := {
     union := fun S T => LocallyComplete.sup (fun U => U = S ∨ U = T)
     union_left := fun S T =>
-      LocallyComplete.sup_upper _ S (Or.inl rfl)
+      (LocallyComplete.sup_isSup _).upper S (Or.inl rfl)
     union_right := fun S T =>
-      LocallyComplete.sup_upper _ T (Or.inr rfl)
+      (LocallyComplete.sup_isSup _).upper T (Or.inr rfl)
     union_min := fun S T U hS hT =>
-      LocallyComplete.sup_least _ U
+      (LocallyComplete.sup_isSup _).least U
         (fun s hs => hs.elim (fun h => h ▸ hS) (fun h => h ▸ hT))
   }
   meet := Locale.meet
@@ -169,10 +169,10 @@ noncomputable def locale_is_heyting [HasImages 𝒞] [Locale 𝒞] :
       have h2 := Locale.meet_sup_distrib x (fun w => Subobject.le (Locale.meet x w) y)
       have h3 : Subobject.le
           (LocallyComplete.sup (fun s => ∃ t, Subobject.le (Locale.meet x t) y ∧ s = Locale.meet x t)) y :=
-        LocallyComplete.sup_least _ y (fun s ⟨t, ht, hs⟩ => hs ▸ ht)
+        (LocallyComplete.sup_isSup _).least y (fun s ⟨t, ht, hs⟩ => hs ▸ ht)
       exact Subobject.le_trans (h2 ▸ h1) h3
     · -- x∧z ≤ y → z ≤ sup{w | x∧w ≤ y}  (z witnesses itself)
-      intro hxz; exact LocallyComplete.sup_upper _ z hxz
+      intro hxz; exact (LocallyComplete.sup_isSup _).upper z hxz
 
 /-! ## §1.724 Double-arrow (biimplication)
 

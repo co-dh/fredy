@@ -54,24 +54,12 @@ theorem antisymm_of_le_iff {a b : 𝒜} {A B : a ⟶ b} (h : ∀ X, X ⊑ A ↔ 
 /-! ### Galois connections (B&dM Ex 4.36–4.39, hom-set level)
 
   Galois connections are the engine of program calculation (thinning/greedy theorems later
-  in B&dM); we record the definition and the monotonicity of both legs here (needs only
-  `[Allegory 𝒜]`), and the join-preservation facts in the `LocallyCompleteDistributiveAllegory`
-  section below. -/
-
-/-- A GALOIS CONNECTION between hom-sets `(a,b)` and `(c,d)`: `f X ⊑ Y ↔ X ⊑ g Y`
-    (`f` left adjoint, `g` right adjoint). -/
-def GaloisConn {a b c d : 𝒜} (f : (a ⟶ b) → (c ⟶ d)) (g : (c ⟶ d) → (a ⟶ b)) : Prop :=
-  ∀ X Y, (f X ⊑ Y) ↔ (X ⊑ g Y)
-
-/-- The lower (left-adjoint) leg of a Galois connection is monotone. -/
-theorem GaloisConn.mono_lower {a b c d : 𝒜} {f : (a ⟶ b) → (c ⟶ d)} {g : (c ⟶ d) → (a ⟶ b)}
-    (h : GaloisConn f g) {X X' : a ⟶ b} (hX : X ⊑ X') : f X ⊑ f X' :=
-  (h X (f X')).mpr (le_trans hX ((h X' (f X')).mp (le_refl _)))
-
-/-- The upper (right-adjoint) leg of a Galois connection is monotone. -/
-theorem GaloisConn.mono_upper {a b c d : 𝒜} {f : (a ⟶ b) → (c ⟶ d)} {g : (c ⟶ d) → (a ⟶ b)}
-    (h : GaloisConn f g) {Y Y' : c ⟶ d} (hY : Y ⊑ Y') : g Y ⊑ g Y' :=
-  (h (g Y) Y').mp (le_trans ((h (g Y) Y).mpr (le_refl _)) hY)
+  in B&dM).  Freyd's "adjoint pair of functions between posets" (§1.51) and the monotonicity of
+  both legs are the GENERIC `Freyd.GaloisConnection` / `GaloisConnection.monotone_l` /
+  `monotone_u` (Fredy/S1_51_Order), instantiated here at hom-sets with the allegory order `⊑`
+  (reflexivity `le_refl`, transitivity `le_trans`); the join-preservation facts are in the
+  `LocallyCompleteDistributiveAllegory` section below.  No hom-set-specific `GaloisConn` is
+  re-defined. -/
 
 end AllegoryLevel
 
@@ -338,25 +326,23 @@ theorem thenRel_topHom {a : 𝒜} (R : a ⟶ a) : R ⨾ (topHom a a) = R := by
 -- both preorders plus a further compatibility fact); dropped here rather than guessing at
 -- the missing hypothesis.
 
-/-! ### §G  Galois connections, LCDA part (B&dM Ex 4.36–4.40) -/
+/-! ### §G  Galois connections, LCDA part (B&dM Ex 4.36–4.40)
 
-/-- A left adjoint preserves every existing join (Ex 4.39/4.40 direction). -/
-theorem GaloisConn.lower_Sup {a b c d : 𝒜} {f : (a ⟶ b) → (c ⟶ d)} {g : (c ⟶ d) → (a ⟶ b)}
-    (h : GaloisConn f g) (P : (a ⟶ b) → Prop) :
-    f (Sup P) = Sup (fun Y => ∃ X, P X ∧ Y = f X) := by
-  apply le_antisymm
-  · apply (h (Sup P) _).mpr
-    apply Sup_le
-    intro R hR
-    apply (h R _).mp
-    exact le_Sup ⟨R, hR, rfl⟩
-  · apply Sup_le
-    rintro Y ⟨X, hX, rfl⟩
-    exact h.mono_lower (le_Sup hX)
+  Instances of the generic `Freyd.GaloisConnection` (Fredy/S1_51_Order) at allegory hom-sets,
+  ordered by `⊑`; `Sup` is the hom-set's join, which is the `IsSup` for that family
+  (`⟨le_Sup, Sup_le⟩`). -/
+
+/-- A left adjoint preserves every existing join (Ex 4.39/4.40 direction): the generic
+    `GaloisConnection.map_isSup` transported through `Sup` = `IsSup`. -/
+theorem lower_Sup {a b c d : 𝒜} {f : (a ⟶ b) → (c ⟶ d)} {g : (c ⟶ d) → (a ⟶ b)}
+    (h : GaloisConnection le le f g) (P : (a ⟶ b) → Prop) :
+    f (Sup P) = Sup (fun Y => ∃ X, P X ∧ Y = f X) :=
+  (h.map_isSup le_refl le_trans ⟨fun _ hR => le_Sup hR, fun _ hT => Sup_le hT⟩).unique
+    (fun h₁ h₂ => le_antisymm h₁ h₂) ⟨fun _ hR => le_Sup hR, fun _ hT => Sup_le hT⟩
 
 /-- The right adjoint is the join of everything mapped below the target (Ex 4.40). -/
-theorem GaloisConn.upper_eq {a b c d : 𝒜} {f : (a ⟶ b) → (c ⟶ d)} {g : (c ⟶ d) → (a ⟶ b)}
-    (h : GaloisConn f g) (Y : c ⟶ d) : g Y = Sup (fun X => f X ⊑ Y) := by
+theorem upper_eq {a b c d : 𝒜} {f : (a ⟶ b) → (c ⟶ d)} {g : (c ⟶ d) → (a ⟶ b)}
+    (h : GaloisConnection le le f g) (Y : c ⟶ d) : g Y = Sup (fun X => f X ⊑ Y) := by
   apply le_antisymm
   · exact le_Sup ((h (g Y) Y).mpr (le_refl _))
   · apply Sup_le
@@ -364,7 +350,8 @@ theorem GaloisConn.upper_eq {a b c d : 𝒜} {f : (a ⟶ b) → (c ⟶ d)} {g : 
     exact (h X Y).mp hX
 
 /-- `(_∩R) ⊣ (R⇨_)` is a Galois connection (instance of Ex 4.36–4.40). -/
-theorem gc_inter_impl {a b : 𝒜} (R : a ⟶ b) : GaloisConn (fun X : a ⟶ b => X ∩ R) (fun Y => R ⇨ Y) :=
+theorem gc_inter_impl {a b : 𝒜} (R : a ⟶ b) :
+    GaloisConnection le le (fun X : a ⟶ b => X ∩ R) (fun Y => R ⇨ Y) :=
   fun X Y => (le_impl_iff X R Y).symm
 
 end LCDA
@@ -400,7 +387,7 @@ theorem div_comp_recip_map {a b c d : 𝒜} {f : d ⟶ b} (hf : Map f) (R : a �
 
 /-- `(S≫_) ⊣ (S\_)` is a Galois connection (Ex 4.36, left-division form). -/
 theorem gc_comp_leftDiv {a b c : 𝒜} (S : a ⟶ b) :
-    GaloisConn (fun X : b ⟶ c => S ≫ X) (fun Y => leftDiv S Y) :=
+    GaloisConnection le le (fun X : b ⟶ c => S ≫ X) (fun Y => leftDiv S Y) :=
   fun X Y => (le_leftDiv_iff X S Y).symm
 
 end DivAllegory

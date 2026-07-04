@@ -616,16 +616,18 @@ def existsAlong [HasImages 𝒞] {X Y : 𝒞} (g : X ⟶ Y) (U : Subobject 𝒞 
   image (U.arr ≫ g)
 
 omit [PreLogos 𝒞] in
-/-- The image/pullback **adjunction** `∃_g ⊣ g#` at the level of subobject containment:
+/-- The image/pullback **adjunction** `∃_g ⊣ g#`, stated as the generic
+    `Freyd.GaloisConnection` (Fredy/S1_51_Order) between the subobject preorders of `X` and `Y`:
     `existsAlong g P ≤ V  ↔  P ≤ InverseImage g V`.  Forward: a factorization of `(image).arr`
     through `V` makes `P.arr ≫ g` factor through `V.arr`, so `P.arr` lifts to `pullback(g, V.arr)`.
     Reverse: a lift of `P.arr` to the pullback gives `P.arr ≫ g = (k ≫ π₂) ≫ V.arr`, so `V` allows
     `P.arr ≫ g` and `image_min` finishes.  Pure regular-category fact (no pre-logos needed) —
     hence `omit`s `PreLogos` so this is the canonical `∃_f ⊣ f#` even in a bare regular
     (e.g. abelian) category; S1_59_10 reuses it directly (no local re-proof). -/
-theorem existsAlong_le_iff [HasImages 𝒞] [HasPullbacks 𝒞]
-    {X Y : 𝒞} (g : X ⟶ Y) (P : Subobject 𝒞 X) (V : Subobject 𝒞 Y) :
-    (existsAlong g P).le V ↔ P.le (InverseImage g V) := by
+theorem existsAlong_adj [HasImages 𝒞] [HasPullbacks 𝒞] {X Y : 𝒞} (g : X ⟶ Y) :
+    GaloisConnection (Subobject.le (𝒞 := 𝒞) (B := X)) (Subobject.le (𝒞 := 𝒞) (B := Y))
+      (existsAlong g) (fun V => InverseImage g V) := by
+  intro P V
   constructor
   · rintro ⟨k, hk⟩
     -- hk : k ≫ V.arr = (existsAlong g P).arr = (image (P.arr≫g)).arr.
@@ -659,10 +661,10 @@ theorem existsAlong_union_le {X Y : 𝒞} (g : X ⟶ Y) (P Q : Subobject 𝒞 X)
       (HasSubobjectUnions.union (existsAlong g P) (existsAlong g Q)) := by
   let V := HasSubobjectUnions.union (existsAlong g P) (existsAlong g Q)
   have hP : P.le (InverseImage g V) :=
-    (existsAlong_le_iff g P V).1 (HasSubobjectUnions.union_left _ _)
+    (existsAlong_adj g P V).1 (HasSubobjectUnions.union_left _ _)
   have hQ : Q.le (InverseImage g V) :=
-    (existsAlong_le_iff g Q V).1 (HasSubobjectUnions.union_right _ _)
-  exact (existsAlong_le_iff g (HasSubobjectUnions.union P Q) V).2
+    (existsAlong_adj g Q V).1 (HasSubobjectUnions.union_right _ _)
+  exact (existsAlong_adj g (HasSubobjectUnions.union P Q) V).2
     (HasSubobjectUnions.union_min _ _ _ hP hQ)
 
 /-! ### §1.616  Composition distributes over union (right) — coproduct-free via `∃ ⊣ #`

@@ -219,7 +219,7 @@ theorem copowInj_jointly_cover {C : 𝒞} (m : C ⟶ copowObj hpow I) (hm : Moni
 /-! ### STEP 1 — direct image preserves arbitrary joins
 
   `∃_g (⋁ S) ≤ ⋁ (∃_g '' S)`.  The infinitary analogue of `existsAlong_union_le` (S1_60),
-  proven via the `∃_g ⊣ g#` Galois connection (`existsAlong_le_iff`, S1_60) with
+  proven via the `∃_g ⊣ g#` Galois connection (`existsAlong_adj`, S1_60) with
   `extJoin_upper`/`extJoin_least` (S1_95) in place of the binary union laws. -/
 theorem existsAlong_extJoin_le {A B : 𝒞} (g : A ⟶ B) (S : Subobject 𝒞 A → Prop) :
     (existsAlong g (extJoin hpow LocallySmallTopos.wellPowered S)).le
@@ -227,11 +227,11 @@ theorem existsAlong_extJoin_le {A B : 𝒞} (g : A ⟶ B) (S : Subobject 𝒞 A 
         (fun V => ∃ s, S s ∧ V = existsAlong g s)) := by
   let V := extJoin hpow LocallySmallTopos.wellPowered (fun V => ∃ s, S s ∧ V = existsAlong g s)
   -- By the adjunction: suffices  extJoin S ≤ g# V.
-  refine (existsAlong_le_iff g (extJoin hpow LocallySmallTopos.wellPowered S) V).2 ?_
+  refine (existsAlong_adj g (extJoin hpow LocallySmallTopos.wellPowered S) V).2 ?_
   -- `extJoin_least`: each member `s` of `S` lies below `g# V`.
   refine extJoin_least hpow LocallySmallTopos.wellPowered S _ (fun s hs => ?_)
   -- s ≤ g# V  ↔  ∃_g s ≤ V; and ∃_g s IS a member of the image-predicate, so `extJoin_upper`.
-  exact (existsAlong_le_iff g s V).1
+  exact (existsAlong_adj g s V).1
     (extJoin_upper hpow LocallySmallTopos.wellPowered _ (existsAlong g s) ⟨s, hs, rfl⟩)
 
 /-- A subobject of `A × B` viewed as a relation `A ⇸ B` (legs = `arr ≫ fst`, `arr ≫ snd`). -/
