@@ -169,31 +169,32 @@ theorem himp_mono_left_contra {a a' b : F.carrier} (h : F.le a' a) :
       (F.meet_le_right _ _))
       (F.himp_mp a b))
 
-/-! ### Frame as HeytingPoset
+/-! ### Frame as HeytingLattice
 
-  Every Frame gives a `HeytingPoset` (S1_72 definition), bridging to the
+  Every Frame gives a `HeytingLattice` (S1_85 definition), bridging to the
   existing Heyting algebra development. -/
 
-/-- Every Frame (at universe 0) gives a `HeytingPoset`. -/
-noncomputable def toHeytingPoset (F : Frame.{0}) : HeytingPoset where
+/-- Every Frame (at universe 0) gives a `HeytingLattice`. -/
+noncomputable def toHeytingLattice (F : Frame.{0}) : HeytingLattice where
   carrier       := F.carrier
   le            := F.le
   le_refl       := F.le_refl
   le_trans      := @F.le_trans
-  top           := F.top
-  top_le        := F.le_top
-  bot           := F.bot
-  bot_le        := F.bot_le
+  le_antisymm   := @F.le_antisymm
   meet          := F.meet
   meet_le_left  := F.meet_le_left
   meet_le_right := F.meet_le_right
-  le_meet       := fun {a b c} hca hcb => F.le_meet hca hcb
+  le_meet       := fun {z x y} hzx hzy => F.le_meet hzx hzy
+  imp           := F.himp
+  imp_adj       := fun {x a b} => (F.himp_adjunction a b x).symm
+  top           := F.top
+  le_top        := F.le_top
+  bot           := F.bot
+  bot_le        := F.bot_le
   join          := F.join
   le_join_left  := F.le_join_left
   le_join_right := F.le_join_right
   join_le       := @F.join_le
-  imp           := F.himp
-  imp_adj       := F.himp_adjunction
 
 end Frame
 

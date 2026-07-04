@@ -1226,10 +1226,19 @@ instance MeetLattice.toPosetOrder (L : MeetLattice) : PosetOrder L.carrier where
   le_trans := @L.le_trans
   le_antisymm := @L.le_antisymm
 
-/-- A HEYTING LATTICE: a meet-lattice with an implication arrow (§1.72, §1.852). -/
+/-- A HEYTING LATTICE: a bounded lattice (meet-lattice + top, bottom, join)
+    with a Heyting implication arrow (§1.72, §1.852). -/
 structure HeytingLattice extends MeetLattice where
   imp       : carrier → carrier → carrier
   imp_adj   : ∀ {x a b}, le (meet a x) b ↔ le x (imp a b)
+  top       : carrier
+  le_top    : ∀ a, le a top
+  bot       : carrier
+  bot_le    : ∀ a, le bot a
+  join      : carrier → carrier → carrier
+  le_join_left  : ∀ a b, le a (join a b)
+  le_join_right : ∀ a b, le b (join a b)
+  join_le   : ∀ {a b c}, le a c → le b c → le (join a b) c
 
 /-- A KURATOWSKI INTERIOR OPERATION on a meet-lattice (§1.858):
     deflationary, idempotent, and meet-preserving. -/
