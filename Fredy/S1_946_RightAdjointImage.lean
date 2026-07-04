@@ -22,7 +22,7 @@
 
       (InverseImage f B').le A'  ↔  B'.le (radjImage f A')          (`f* ⊣ f##`)
 
-  closing the `HasRightAdjointImage'` field that `S1_94`/`S1_70` flagged as missing.
+  closing the `HasRightAdjointImage` field (S1_70) that `S1_94` needs.
 -/
 
 import Fredy.S1_94_InternalForallTopos
@@ -244,15 +244,15 @@ theorem radjImage_adjunction_backward {A B : 𝒞} (f : A ⟶ B)
 
         (InverseImage f B').le A'  ↔  B'.le (radjImage f A').
 
-    This is exactly the `adjunction` field of `HasRightAdjointImage'` (S1_94/S1_70), closing
+    This is exactly the `adjunction` field of `HasRightAdjointImage` (S1_70), closing
     the §1.946 right-adjoint construction Sorry-free via the internal-∀ family-glb machinery. -/
 theorem radjImage_adjunction {A B : 𝒞} (f : A ⟶ B)
     (B' : Subobject 𝒞 B) (A' : Subobject 𝒞 A) :
     (InverseImage f B').le A' ↔ B'.le (radjImage f A') :=
   ⟨radjImage_adjunction_forward f B' A', radjImage_adjunction_backward f B' A'⟩
 
--- The `HasRightAdjointImage' 𝒞` instance (bundling `radjImage` + `radjImage_adjunction` into the
--- §1.946/§1.70 interface) is registered in `Fredy.S1_94`, where the class is defined.  Keeping it
--- there avoids an import cycle (S1_94 imports this file for `radjImage`/`radjImage_adjunction`).
+-- The `HasRightAdjointImage 𝒞` instance (bundling `radjImage` + `radjImage_adjunction` into the
+-- §1.946/§1.70 interface) is registered in `Fredy.S1_94`.  Keeping it there avoids an import cycle
+-- (S1_94 imports this file for `radjImage`/`radjImage_adjunction`).
 
 end Freyd

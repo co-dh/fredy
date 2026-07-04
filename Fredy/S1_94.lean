@@ -13,12 +13,12 @@
   §1.949 INTERNALLY DEFINED UNION ∪F.
   §1.94(10) WELL-POINTED PART, SOLVABLE TOPOS.
 
-  NOTE: S1_70 (Logos) has a pre-existing build error in `logos_implies_preLogos`
-  (missing PreLogos fields). We duplicate the `HasRightAdjointImage'` and `Logos'`
-  class definitions here so this file compiles independently.
+  The §1.7 classes `HasRightAdjointImage` and `Logos` are the canonical ones from
+  S1_70 (imported below).
 -/
 
 import Fredy.S1_1
+import Fredy.S1_70
 import Fredy.S1_9
 import Fredy.S1_85
 import Fredy.S1_92
@@ -37,7 +37,7 @@ import Fredy.S1_94_InterIntersection
 -- Sorry-free `toposHasImages` instance, the `SlicePi.toposPullbacksTransferCovers`
 -- instance, and `topos_is_regular_real : Nonempty (RegularCategory 𝒞)`.
 import Fredy.S1_94_InternalForallTopos
--- §1.946 right adjoint f## to inverse image (the `HasRightAdjointImage'` keystone): the
+-- §1.946 right adjoint f## to inverse image (the `HasRightAdjointImage` keystone): the
 -- subobject-level internal-∀ `radjImage`/`radjImage_adjunction`, built Sorry-free via the
 -- internal-∀ family-glb machinery.  Plus §1.95 `bottomSub` for the strict coterminator.
 import Fredy.S1_946_RightAdjointImage
@@ -54,31 +54,19 @@ open HasSubobjectClassifier
 
 variable {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
 
-/-! ## §1.70  Local re-statement of Logos (S1_70 has a build error)
+/-! ## §1.70  Logos (canonical classes from S1_70)
 
   A LOGOS (§1.7) is a regular category where the inverse-image f# has a
-  right adjoint f## for every morphism f : A → B.  We duplicate the class
-  here because S1_70.lean currently fails to build. -/
-
-/-- f## is the right adjoint of f# : 𝒫(B) → 𝒫(A). (Local copy from S1_70.) -/
-class HasRightAdjointImage' (𝒞 : Type u) [Cat.{v} 𝒞]
-    extends HasImages 𝒞, HasPullbacks 𝒞 where
-  rightAdj : ∀ {A B : 𝒞} (f : A ⟶ B), Subobject 𝒞 A → Subobject 𝒞 B
-  adjunction : ∀ {A B : 𝒞} (f : A ⟶ B) (B' : Subobject 𝒞 B) (A' : Subobject 𝒞 A),
-    Subobject.le (InverseImage f B') A' ↔ Subobject.le B' (rightAdj f A')
-
-/-- A LOGOS (§1.7): regular + subobject lattices + right adjoint to f#.
-    (Local copy; canonical definition is in S1_70.) -/
-class Logos' (𝒞 : Type u) [Cat.{v} 𝒞] extends
-    RegularCategory 𝒞, HasSubobjectUnions 𝒞, HasRightAdjointImage' 𝒞
+  right adjoint f## for every morphism f : A → B.  The classes
+  `HasRightAdjointImage` and `Logos` are imported from S1_70. -/
 
 /-- **§1.946 — a topos has the right adjoint `f##` to inverse image.**  Bundles the §1.946
     keystone `radjImage` (the internal-∀ right adjoint `f## = ∀_f : Sub(A) → Sub(B)`) with its
-    adjunction `radjImage_adjunction` (`f* ⊣ f##`) into the `HasRightAdjointImage'` interface.
+    adjunction `radjImage_adjunction` (`f* ⊣ f##`) into the `HasRightAdjointImage` interface (S1_70).
     Both are built Sorry-free in `Fredy.RightAdjointImage` via the internal-∀ family-glb machinery
     (NO §1.54 transfinite capitalization).  This is the load-bearing instance that turns
     `topos_is_logos` from a `Sorry` into an assembly. -/
-noncomputable instance toposHasRightAdjointImage : HasRightAdjointImage' 𝒞 where
+noncomputable instance toposHasRightAdjointImage : HasRightAdjointImage 𝒞 where
   rightAdj f A' := radjImage f A'
   adjunction f B' A' := radjImage_adjunction f B' A'
 
@@ -186,35 +174,30 @@ noncomputable def interUnion [HasImages 𝒞] {A : 𝒞} (F : Subobject 𝒞 (po
 /-- **§1.946**: A topos is a logos — a regular category in which every inverse-image
     functor f# : 𝒫(B) → 𝒫(A) has a right adjoint f## (§1.946).
     Binary unions: A₁ ∪ A₂ = ∩{B' | A₁ ⊆ B' ∧ A₂ ⊆ B'} via §1.943.
-    (Uses local Logos'; canonical Logos is in S1_70 which has a build error.)
 
-    PARTIAL (faithful Sorry — the `RegularCategory` field is now AVAILABLE, two fields
-    remain).  `Logos'` extends `RegularCategory` + `HasSubobjectUnions` + the right
-    adjoint `HasRightAdjointImage'` (f##).  The `RegularCategory` sub-goal is NO LONGER a
-    blocker — it is exactly `topos_is_regular` (now closed via the internal-∀ family-glb,
-    no §1.543 capitalization).  What remains genuinely missing are the OTHER two fields:
-
-    * `HasSubobjectUnions` — binary union `A₁ ∪ A₂ = ⋂{B' | A₁ ⊆ B' ∧ A₂ ⊆ B'}`, a glb
-      over a subobject FAMILY;
-    * `HasRightAdjointImage'` — the right adjoint `f##`, also a family-glb.
-
-    CLOSED (no longer a Sorry).  All three fields are now available topos instances:
+    CLOSED.  `Logos` (S1_70) extends `RegularCategory` + `HasSubobjectUnions` + the right
+    adjoint `HasRightAdjointImage` (f##), and additionally carries the lattice bottom
+    (`bottom`/`bottom_min`/`bottom_dom_iso`).  All are available topos instances:
 
     * `RegularCategory` — `topos_is_regular` (the internal-∀ family-glb image + `Π_f`-cover-transfer);
     * `HasSubobjectUnions` — `toposHasSubobjectUnions` (the §1.952 family-glb of common upper bounds,
       `Fredy.ToposColimits`);
-    * `HasRightAdjointImage'` — `toposHasRightAdjointImage` above, the §1.946 keystone `f##`
-      (`Fredy.RightAdjointImage`, internal-∀ right adjoint + adjunction, Sorry-free).
-
-    `Logos'` assembles from these three (the regular structure is unbundled into its
-    `HasImages`/`PullbacksTransferCovers` fields so the union/right-adjoint instances resolve). -/
-theorem topos_is_logos : Nonempty (Logos' 𝒞) := by
+    * `HasRightAdjointImage` — `toposHasRightAdjointImage` above, the §1.946 keystone `f##`
+      (`Fredy.RightAdjointImage`, internal-∀ right adjoint + adjunction, Sorry-free);
+    * the lattice bottom — the strict zero subobject `bottomSub` (§1.944, `Fredy.ToposStrictZero`):
+      `bottom A := bottomSub A`, minimality is `bottomSub_le`, and all bottom domains are isomorphic
+      (`bottomSub_dom_iso_one`, via the `1`-pivot). -/
+theorem topos_is_logos : Nonempty (Logos 𝒞) := by
   obtain ⟨reg⟩ := topos_is_regular_real (𝒞 := 𝒞)
   letI : HasImages 𝒞 := reg.toHasImages
   letI : PullbacksTransferCovers 𝒞 := reg.toPullbacksTransferCovers
   exact ⟨{ reg with
     toHasSubobjectUnions := toposHasSubobjectUnions
-    toHasRightAdjointImage' := toposHasRightAdjointImage }⟩
+    toHasRightAdjointImage := toposHasRightAdjointImage
+    bottom := fun A => bottomSub A
+    bottom_min := fun S => bottomSub_le S
+    bottom_dom_iso := fun A B =>
+      isomorphic_trans (bottomSub_dom_iso_one A) (isomorphic_symm (bottomSub_dom_iso_one B)) }⟩
 
 /-! ## §1.947  A topos is a transitive logos
 
