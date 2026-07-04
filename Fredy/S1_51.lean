@@ -9,6 +9,7 @@ import Fredy.S1_1
 import Fredy.S1_18
 import Fredy.S1_33
 import Fredy.S1_41
+import Fredy.S1_51_Order  -- §1.51 preorder-level order theory (GaloisConnection, IsSup, IsClosureOp)
 
 
 open Freyd
