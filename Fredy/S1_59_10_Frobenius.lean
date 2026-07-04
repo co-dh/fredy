@@ -14,7 +14,8 @@
 
   This file works in a bare `RegularCategory 𝒞` (weaker than abelian) and delivers:
 
-    * the Galois adjunction  `f ⊣ f*`  :  `(f_* S).le T ↔ S.le (f^* T)`   (`directImage_adj`),
+    * the Galois adjunction  `f ⊣ f*`  :  `(f_* S).le T ↔ S.le (f^* T)`   (canonical
+      `existsAlong_le_iff`, S1_60; reused here — no local re-proof),
     * equation (I) as an equality of subobjects (mutual `Subobject.le`)     (`frobenius_eq`),
     * the easy half of (II)  `A' ∪ f* B' ≤ f* (f A' ∪ B')`                  (`join_le_inverseImage`).
 
@@ -78,17 +79,12 @@ theorem le_inverseImage_iff [HasPullbacks 𝒞] {A B : 𝒞} (f : A ⟶ B)
     refine ⟨(HasPullbacks.has f T.arr).lift ⟨S.dom, S.arr, h, hh.symm⟩, ?_⟩
     exact (HasPullbacks.has f T.arr).lift_fst _
 
-/-- **The Galois adjunction `f ⊣ f*`** (direct image left adjoint to inverse image):
-    `(f_* S).le T ↔ S.le (f^* T)`.  Immediate from the two bridge lemmas. -/
-theorem directImage_adj [HasImages 𝒞] [HasPullbacks 𝒞] {A B : 𝒞} (f : A ⟶ B)
-    (S : Subobject 𝒞 A) (T : Subobject 𝒞 B) :
-    (DirectImage f S).le T ↔ S.le (InverseImage f T) :=
-  (directImage_le_iff f S T).trans (le_inverseImage_iff f S T).symm
-
-/-- The **unit** `S ≤ f* (f_* S)` of the adjunction. -/
+/-- The **unit** `S ≤ f* (f_* S)` of the adjunction.  The Galois adjunction `f ⊣ f*`
+    `(f_* S).le T ↔ S.le (f^* T)` itself is the canonical `existsAlong_le_iff` (S1_60,
+    `DirectImage := existsAlong`), reused directly here and below. -/
 theorem le_inverseImage_directImage [HasImages 𝒞] [HasPullbacks 𝒞] {A B : 𝒞}
     (f : A ⟶ B) (S : Subobject 𝒞 A) : S.le (InverseImage f (DirectImage f S)) :=
-  (directImage_adj f S (DirectImage f S)).mp (Subobject.le_refl _)
+  (existsAlong_le_iff f S (DirectImage f S)).mp (Subobject.le_refl _)
 
 /-- Direct image is monotone: `S ≤ S' ⟹ f_* S ≤ f_* S'`. -/
 theorem directImage_mono [HasImages 𝒞] {A B : 𝒞} (f : A ⟶ B)
@@ -154,7 +150,7 @@ theorem frobenius_le [HasImages 𝒞] [HasPullbacks 𝒞] {A B : 𝒞} (f : A �
       (Subobject.inter (DirectImage f S) T) :=
   Subobject.le_inter
     (directImage_mono f (Subobject.inter_le_left S (InverseImage f T)))
-    ((directImage_adj f (Subobject.inter S (InverseImage f T)) T).mpr
+    ((existsAlong_le_iff f (Subobject.inter S (InverseImage f T)) T).mpr
       (Subobject.inter_le_right S (InverseImage f T)))
 
 /-- Equation (I), hard half:  `(f A') ∩ B' ≤ f (A' ∩ f* B')`.  This is where

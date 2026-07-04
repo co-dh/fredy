@@ -129,14 +129,11 @@ theorem objIncl_preservesImages_generic {ι : Type u} {D : Directed ι}
     rw [← (stageInclFunctor C hC i).map_comp, hℓ]
   exact coverMono_isImage (objIncl_preservesMono C hC hmono i I.monic) hcov hfac
 
-set_option maxHeartbeats 1000000 in
-/-- **(A) The stage inclusion preserves pullbacks** (generic `PreservesPullbacks`).  For an
-    arbitrary pullback cone `cone` over `(f, g)`, compare it to the §1.432 canonical pullback
-    `K = products_equalizers_implies_pullbacks f g`: the comparison `u : cone.pt ⟶ K.cone.pt` is an
-    iso (`isIso_of_two_pullbacks`).  `objIncl i` sends `K.cone` to a pullback
-    (`objIncl_preserves_pullbacks`), and the functor image of an iso is an iso, so transporting the
-    apex along `objIncl i u` (`isPullback_of_iso_apex`) makes `objIncl i cone` a pullback too; the
-    legs agree by `← map_comp` on `u ≫ K.cone.πₖ = cone.πₖ`. -/
+/-- **(A) The stage inclusion preserves pullbacks** (generic `PreservesPullbacks`).  The
+    chosen-pullback preservation `objIncl_preserves_pullbacks` (which routes through the general
+    `image_chosenPullback_isPullback`) is upgraded to ALL pullback cones by the DRY hub
+    `preservesPullbacks_of_chosenPullback` (arbitrary cone → §1.432 chosen via
+    `isIso_of_two_pullbacks`, then `isPullback_of_iso_apex`). -/
 theorem objIncl_preservesPullbacks_generic {ι : Type u} {D : Directed ι}
     (C : CatSystem.{u, u} ι D) (hC : C.Coherent) [hne : Nonempty ι]
     (ht : ∀ i, HasTerminal (C.A i))
@@ -163,63 +160,11 @@ theorem objIncl_preservesPullbacks_generic {ι : Type u} {D : Directed ι}
     @PreservesPullbacks (C.A i) C.Obj (C.catA i) (colimitCat C hC) (C.objIncl i)
       (stageInclFunctor C hC i) := by
   letI : Cat C.Obj := colimitCat C hC
-  letI : HasTerminal (C.A i) := ht i
-  letI : HasBinaryProducts (C.A i) := hp i
-  letI : HasEqualizers (C.A i) := he i
-  intro a b cc f g cone hcone
-  -- the §1.432 canonical pullback `K` of `(f, g)` and the comparison `u` from `cone`.
-  obtain ⟨u, ⟨hu₁, hu₂⟩, _⟩ := (products_equalizers_implies_pullbacks f g).cone_isPullback cone
-  have huiso : IsIso u :=
-    isIso_of_two_pullbacks hcone ((products_equalizers_implies_pullbacks f g).cone_isPullback) u hu₁ hu₂
-  obtain ⟨u', huu', hu'u⟩ := huiso
-  -- `objIncl i K.cone` is a pullback of `(homInclObj f, homInclObj g)`.
-  have hImK := objIncl_preserves_pullbacks C hC ht htpres hp hpres hpres_pair he hepres hepres_lift i f g
-  -- `map u`/`map u'` are mutually inverse (functor of an iso is an iso).
-  have hij : (stageInclFunctor C hC i).map u ≫ (stageInclFunctor C hC i).map u'
-      = Cat.id (C.objIncl i cone.pt) := by
-    rw [← (stageInclFunctor C hC i).map_comp, huu', (stageInclFunctor C hC i).map_id]
-  have hji : (stageInclFunctor C hC i).map u' ≫ (stageInclFunctor C hC i).map u
-      = Cat.id (C.objIncl i (products_equalizers_implies_pullbacks f g).cone.pt) := by
-    rw [← (stageInclFunctor C hC i).map_comp, hu'u, (stageInclFunctor C hC i).map_id]
-  -- the leg equalities `map u ≫ homInclObj K.cone.πₖ = map cone.πₖ`.
-  have e₁ : (stageInclFunctor C hC i).map u
-        ≫ homInclObj C hC (products_equalizers_implies_pullbacks f g).cone.π₁
-      = (stageInclFunctor C hC i).map cone.π₁ := by
-    have h := (stageInclFunctor C hC i).map_comp u (products_equalizers_implies_pullbacks f g).cone.π₁
-    rw [hu₁] at h; exact h.symm
-  have e₂ : (stageInclFunctor C hC i).map u
-        ≫ homInclObj C hC (products_equalizers_implies_pullbacks f g).cone.π₂
-      = (stageInclFunctor C hC i).map cone.π₂ := by
-    have h := (stageInclFunctor C hC i).map_comp u (products_equalizers_implies_pullbacks f g).cone.π₂
-    rw [hu₂] at h; exact h.symm
-  -- the transported cone (apex `objIncl cone.pt`) is a pullback.
-  have w : ((stageInclFunctor C hC i).map u
-        ≫ homInclObj C hC (products_equalizers_implies_pullbacks f g).cone.π₁)
-        ≫ (stageInclFunctor C hC i).map f
-      = ((stageInclFunctor C hC i).map u
-        ≫ homInclObj C hC (products_equalizers_implies_pullbacks f g).cone.π₂)
-        ≫ (stageInclFunctor C hC i).map g := by
-    rw [e₁, e₂, ← (stageInclFunctor C hC i).map_comp, ← (stageInclFunctor C hC i).map_comp, cone.w]
-  have hres := isPullback_of_iso_apex hImK ((stageInclFunctor C hC i).map u)
-    ((stageInclFunctor C hC i).map u') hij hji w
-  -- transport `hres` to the target cone (legs `map cone.πₖ`) via `e₁`, `e₂`.
-  intro d
-  obtain ⟨v, ⟨hv₁, hv₂⟩, huniq⟩ := hres d
-  refine ⟨v, ⟨?_, ?_⟩, ?_⟩
-  · show v ≫ (stageInclFunctor C hC i).map cone.π₁ = d.π₁
-    rw [← e₁]; exact hv₁
-  · show v ≫ (stageInclFunctor C hC i).map cone.π₂ = d.π₂
-    rw [← e₂]; exact hv₂
-  · intro v' hv'₁ hv'₂
-    refine huniq v' ?_ ?_
-    · show v' ≫ ((stageInclFunctor C hC i).map u
-          ≫ homInclObj C hC (products_equalizers_implies_pullbacks f g).cone.π₁) = d.π₁
-      rw [e₁]
-      exact (show v' ≫ (stageInclFunctor C hC i).map cone.π₁ = d.π₁ from hv'₁)
-    · show v' ≫ ((stageInclFunctor C hC i).map u
-          ≫ homInclObj C hC (products_equalizers_implies_pullbacks f g).cone.π₂) = d.π₂
-      rw [e₂]
-      exact (show v' ≫ (stageInclFunctor C hC i).map cone.π₂ = d.π₂ from hv'₂)
+  -- The chosen-pullback preservation `objIncl_preserves_pullbacks` upgraded to all cones by the
+  -- DRY hub `preservesPullbacks_of_chosenPullback` (`stageInclFunctor.map = homInclObj`, defeq).
+  exact @preservesPullbacks_of_chosenPullback (C.A i) C.Obj (C.catA i) (colimitCat C hC)
+    (hp i) (he i) (C.objIncl i) (stageInclFunctor C hC i)
+    (fun f g => objIncl_preserves_pullbacks C hC ht htpres hp hpres hpres_pair he hepres hepres_lift i f g)
 
 set_option maxHeartbeats 1000000 in
 /-- **(C) The stage inclusion is a regular functor.**  Packages (A) `pres_pullback`, (B)

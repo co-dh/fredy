@@ -186,7 +186,13 @@ class ThinCategory (P : Type u) [Cat.{v} P] : Prop where
   thin : ∀ {A B : P} (f g : A ⟶ B), f = g
 
 /-- The HEYTING ARROW a → b in a thin category with binary meets.
-    By §1.72: x ≤ (a → b) iff a ∧ x ≤ b (§1.852). -/
+    By §1.72: x ≤ (a → b) iff a ∧ x ≤ b (§1.852).
+
+    ONE concept (§1.72), THREE carriers — separate because the carrier's equality
+    differs: here the carrier is the objects of a thin category, a preorder via
+    `Nonempty (· ⟶ ·)` with meet = categorical product (no `=`-laws). Cf.
+    `HeytingAlgebra` (S1_72) on the subobject preorder `Sub(A)`, and `HeytingLattice`
+    (below) on an honest `le_antisymm` `Type` (a real poset with `=`-laws). -/
 class HasHeytingArrow (P : Type u) [Cat.{v} P] [HasBinaryProducts P] where
   imp : P → P → P
   /-- Adjunction: a map x → (a→b) exists iff a∧x → b exists. -/
@@ -1227,7 +1233,13 @@ instance MeetLattice.toPosetOrder (L : MeetLattice) : PosetOrder L.carrier where
   le_antisymm := @L.le_antisymm
 
 /-- A HEYTING LATTICE: a bounded lattice (meet-lattice + top, bottom, join)
-    with a Heyting implication arrow (§1.72, §1.852). -/
+    with a Heyting implication arrow (§1.72, §1.852).
+
+    ONE concept (§1.72), THREE carriers — separate because the carrier's equality
+    differs: this one is an honest carrier `Type` WITH `le_antisymm` (via `MeetLattice`),
+    a real poset where the lattice `=`-laws hold. Cf. `HeytingAlgebra` (S1_72) on the
+    subobject preorder `Sub(A)` and `HasHeytingArrow` (above) on thin-category homs —
+    both preorders with NO antisymmetry, so their laws are stated as mutual `.le`. -/
 structure HeytingLattice extends MeetLattice where
   imp       : carrier → carrier → carrier
   imp_adj   : ∀ {x a b}, le (meet a x) b ↔ le x (imp a b)

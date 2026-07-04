@@ -43,7 +43,16 @@ namespace Freyd
   lattice axioms (meet_le_left, meet_le_right, le_meet). -/
 
 /-- A HEYTING ALGEBRA: lattice with implication satisfying the adjunction
-    z ≤ (x→y) ↔ x∧z ≤ y  (book §1.72). -/
+    z ≤ (x→y) ↔ x∧z ≤ y  (book §1.72).
+
+    ONE concept (§1.72), THREE carriers — kept separate because the carrier's
+    equality differs, so no single typeclass covers them:
+    * this `HeytingAlgebra` — carrier `Sub(A)` per category, a preorder of
+      subobject representatives (`Subobject.le`, NO antisymmetry), laws as mutual `.le`;
+    * `HasHeytingArrow` (S1_85) — carrier = objects of a thin category, preorder via
+      `Nonempty (· ⟶ ·)`, meet = categorical product (used for §1.852 exponentials);
+    * `HeytingLattice` (S1_85) — an honest carrier `Type` WITH `le_antisymm` (a real
+      poset, `=`-laws), used for the closure-operator/locale algebra. -/
 class HeytingAlgebra (𝒞 : Type u) [Cat.{v} 𝒞] [HasImages 𝒞]
     extends HasSubobjectUnions 𝒞 where
   /-- Binary meet (∧) of subobjects. -/
