@@ -46,12 +46,6 @@ private def prodAddCar (A B : AbelianGroupObject 𝒞) :
   pair (pair (fst ≫ fst) (snd ≫ fst) ≫ A.add)
        (pair (fst ≫ snd) (snd ≫ snd) ≫ B.add)
 
-@[simp] private theorem prodAddCar_fst (A B : AbelianGroupObject 𝒞) :
-    prodAddCar A B ≫ fst = pair (fst ≫ fst) (snd ≫ fst) ≫ A.add := fst_pair _ _
-
-@[simp] private theorem prodAddCar_snd (A B : AbelianGroupObject 𝒞) :
-    prodAddCar A B ≫ snd = pair (fst ≫ snd) (snd ≫ snd) ≫ B.add := snd_pair _ _
-
 /-- **Component lemma.**  For any two "elements" `u w : S → A.c×B.c`, the product-group sum
     `⟨u,w⟩ ≫ prodAddCar` projects componentwise to the sums of `A` and `B`:
         `(u ⊞ w) ≫ π₁ = ⟨u≫π₁, w≫π₁⟩ ≫ A.add`,  similarly for `π₂`.
@@ -59,14 +53,16 @@ private def prodAddCar (A B : AbelianGroupObject 𝒞) :
 private theorem prodAdd_proj_fst {S : 𝒞} {A B : AbelianGroupObject 𝒞}
     (u w : S ⟶ prod A.carrier B.carrier) :
     (pair u w ≫ prodAddCar A B) ≫ fst = pair (u ≫ fst) (w ≫ fst) ≫ A.add := by
-  rw [Cat.assoc, prodAddCar_fst, ← Cat.assoc, ab_pair_precomp,
-      ← Cat.assoc, ← Cat.assoc, fst_pair, snd_pair]
+  rw [Cat.assoc, show prodAddCar A B ≫ fst = pair (fst ≫ fst) (snd ≫ fst) ≫ A.add from
+        fst_pair _ _,
+      ← Cat.assoc, ab_pair_precomp, ← Cat.assoc, ← Cat.assoc, fst_pair, snd_pair]
 
 private theorem prodAdd_proj_snd {S : 𝒞} {A B : AbelianGroupObject 𝒞}
     (u w : S ⟶ prod A.carrier B.carrier) :
     (pair u w ≫ prodAddCar A B) ≫ snd = pair (u ≫ snd) (w ≫ snd) ≫ B.add := by
-  rw [Cat.assoc, prodAddCar_snd, ← Cat.assoc, ab_pair_precomp,
-      ← Cat.assoc, ← Cat.assoc, fst_pair, snd_pair]
+  rw [Cat.assoc, show prodAddCar A B ≫ snd = pair (fst ≫ snd) (snd ≫ snd) ≫ B.add from
+        snd_pair _ _,
+      ← Cat.assoc, ab_pair_precomp, ← Cat.assoc, ← Cat.assoc, fst_pair, snd_pair]
 
 /-- **Closed form of the product-group sum.**  For any two elements `u w : S → A.c×B.c`,
     `⟨u,w⟩ ≫ prodAddCar = ⟨ ⟨u≫π₁,w≫π₁⟩≫A.add , ⟨u≫π₂,w≫π₂⟩≫B.add ⟩`.  Proved by joint
@@ -113,20 +109,24 @@ noncomputable def prodGObj (A B : AbelianGroupObject 𝒞) : AbelianGroupObject 
     -- triple of inner projections `(fst≫fst≫π), (fst≫snd≫π), (snd≫π)`.
     refine fst_snd_jointly_monic _ _ ?_ ?_
     · -- LHS-fst: distribute `fst ≫ (prodAddCar≫fst)`; RHS-fst: project the inner `y+z`.
-      rw [prodAdd_proj_fst, Cat.assoc, prodAddCar_fst, ← Cat.assoc, ab_pair_precomp,
-          prodAdd_proj_fst, prodAdd_proj_fst]
+      rw [prodAdd_proj_fst, Cat.assoc,
+          show prodAddCar A B ≫ fst = pair (fst ≫ fst) (snd ≫ fst) ≫ A.add from fst_pair _ _,
+          ← Cat.assoc, ab_pair_precomp, prodAdd_proj_fst, prodAdd_proj_fst]
       simp only [Cat.assoc]
       exact GElt.add_assoc A (fst ≫ fst ≫ fst) (fst ≫ snd ≫ fst) (snd ≫ fst)
-    · rw [prodAdd_proj_snd, Cat.assoc, prodAddCar_snd, ← Cat.assoc, ab_pair_precomp,
-          prodAdd_proj_snd, prodAdd_proj_snd]
+    · rw [prodAdd_proj_snd, Cat.assoc,
+          show prodAddCar A B ≫ snd = pair (fst ≫ snd) (snd ≫ snd) ≫ B.add from snd_pair _ _,
+          ← Cat.assoc, ab_pair_precomp, prodAdd_proj_snd, prodAdd_proj_snd]
       simp only [Cat.assoc]
       exact GElt.add_assoc B (fst ≫ fst ≫ snd) (fst ≫ snd ≫ snd) (snd ≫ snd)
   add_comm := by
     -- ⟨snd,fst⟩ ≫ add = add, componentwise via GElt.add_comm.
     refine fst_snd_jointly_monic _ _ ?_ ?_
-    · rw [prodAdd_proj_fst, prodAddCar_fst]
+    · rw [prodAdd_proj_fst,
+          show prodAddCar A B ≫ fst = pair (fst ≫ fst) (snd ≫ fst) ≫ A.add from fst_pair _ _]
       exact GElt.add_comm A (snd ≫ fst) (fst ≫ fst)
-    · rw [prodAdd_proj_snd, prodAddCar_snd]
+    · rw [prodAdd_proj_snd,
+          show prodAddCar A B ≫ snd = pair (fst ≫ snd) (snd ≫ snd) ≫ B.add from snd_pair _ _]
       exact GElt.add_comm B (snd ≫ snd) (fst ≫ snd)
 
 /-- An idempotent generalized element is zero: if `e ⊕ e = e` then `e = O`.
@@ -222,11 +222,11 @@ noncomputable instance instHasZeroObjectAb : HasZeroObject (AbelianGroupObject �
     statement `prodAddCar≫fst = ⟨π₁fst,π₂fst⟩≫A.add`). -/
 theorem isHom_prodFst (A B : AbelianGroupObject 𝒞) :
     IsHomAbelianGroupObject (prodGObj A B) A fst :=
-  prodAddCar_fst A B
+  fst_pair _ _
 
 theorem isHom_prodSnd (A B : AbelianGroupObject 𝒞) :
     IsHomAbelianGroupObject (prodGObj A B) B snd :=
-  prodAddCar_snd A B
+  snd_pair _ _
 
 /-- The pairing `⟨f,g⟩` of two homomorphisms is a homomorphism into `prodGObj A B`. -/
 theorem isHom_prodPair {X A B : AbelianGroupObject 𝒞}

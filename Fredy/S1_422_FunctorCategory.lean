@@ -207,18 +207,6 @@ private def liftApp [HasPullbacks 𝒮] {F G H : FunctorObj 𝒜 𝒮}
   (HasPullbacks.has (α.app A) (β.app A)).lift
     ⟨c.pt.obj A, c.π₁.app A, c.π₂.app A, congrFun (congrArg NaturalTransformation.app c.w) A⟩
 
-private theorem liftApp_fst [HasPullbacks 𝒮] {F G H : FunctorObj 𝒜 𝒮}
-    (α : FunctorHom F H) (β : FunctorHom G H)
-    (c : Cone (𝒞 := FunctorObj 𝒜 𝒮) α β) (A : 𝒜) :
-    liftApp α β c A ≫ (HasPullbacks.has (α.app A) (β.app A)).cone.π₁ = c.π₁.app A :=
-  (HasPullbacks.has (α.app A) (β.app A)).lift_fst _
-
-private theorem liftApp_snd [HasPullbacks 𝒮] {F G H : FunctorObj 𝒜 𝒮}
-    (α : FunctorHom F H) (β : FunctorHom G H)
-    (c : Cone (𝒞 := FunctorObj 𝒜 𝒮) α β) (A : 𝒜) :
-    liftApp α β c A ≫ (HasPullbacks.has (α.app A) (β.app A)).cone.π₂ = c.π₂.app A :=
-  (HasPullbacks.has (α.app A) (β.app A)).lift_snd _
-
 private def pbNTLift [HasPullbacks 𝒮] {F G H : FunctorObj 𝒜 𝒮}
     (α : FunctorHom F H) (β : FunctorHom G H)
     (c : Cone (𝒞 := FunctorObj 𝒜 𝒮) α β) : FunctorHom c.pt (pbFunObj α β) where
@@ -226,10 +214,20 @@ private def pbNTLift [HasPullbacks 𝒮] {F G H : FunctorObj 𝒜 𝒮}
   naturality := fun {A B} f => by
     let pbB := HasPullbacks.has (α.app B) (β.app B)
     apply pb_ext pbB
-    · rw [pbFunObj_map, Cat.assoc, liftApp_fst, Cat.assoc, pbLift_fst,
-          ← Cat.assoc, liftApp_fst, ← c.π₁.naturality]
-    · rw [pbFunObj_map, Cat.assoc, liftApp_snd, Cat.assoc, pbLift_snd,
-          ← Cat.assoc, liftApp_snd, ← c.π₂.naturality]
+    · rw [pbFunObj_map, Cat.assoc,
+          show liftApp α β c B ≫ (HasPullbacks.has (α.app B) (β.app B)).cone.π₁ = c.π₁.app B
+            from (HasPullbacks.has (α.app B) (β.app B)).lift_fst _,
+          Cat.assoc, pbLift_fst, ← Cat.assoc,
+          show liftApp α β c A ≫ (HasPullbacks.has (α.app A) (β.app A)).cone.π₁ = c.π₁.app A
+            from (HasPullbacks.has (α.app A) (β.app A)).lift_fst _,
+          ← c.π₁.naturality]
+    · rw [pbFunObj_map, Cat.assoc,
+          show liftApp α β c B ≫ (HasPullbacks.has (α.app B) (β.app B)).cone.π₂ = c.π₂.app B
+            from (HasPullbacks.has (α.app B) (β.app B)).lift_snd _,
+          Cat.assoc, pbLift_snd, ← Cat.assoc,
+          show liftApp α β c A ≫ (HasPullbacks.has (α.app A) (β.app A)).cone.π₂ = c.π₂.app A
+            from (HasPullbacks.has (α.app A) (β.app A)).lift_snd _,
+          ← c.π₂.naturality]
 
 /-- §1.521: `𝒮^A` has pullbacks, computed pointwise. -/
 instance functorCat_hasPullbacks [HasPullbacks 𝒮] : HasPullbacks (FunctorObj 𝒜 𝒮) where
@@ -247,8 +245,10 @@ instance functorCat_hasPullbacks [HasPullbacks 𝒮] : HasPullbacks (FunctorObj 
       w := NaturalTransformation.ext' fun A => (HasPullbacks.has (α.app A) (β.app A)).cone.w
     }
     lift     := pbNTLift α β
-    lift_fst := fun c => NaturalTransformation.ext' fun A => liftApp_fst α β c A
-    lift_snd := fun c => NaturalTransformation.ext' fun A => liftApp_snd α β c A
+    lift_fst := fun c => NaturalTransformation.ext' fun A =>
+      (HasPullbacks.has (α.app A) (β.app A)).lift_fst _
+    lift_snd := fun c => NaturalTransformation.ext' fun A =>
+      (HasPullbacks.has (α.app A) (β.app A)).lift_snd _
     lift_uniq := fun c u h₁ h₂ => NaturalTransformation.ext' fun A =>
       (HasPullbacks.has (α.app A) (β.app A)).lift_uniq
         ⟨_, c.π₁.app A, c.π₂.app A, congrFun (congrArg NaturalTransformation.app c.w) A⟩

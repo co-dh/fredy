@@ -673,12 +673,6 @@ theorem inflMono_to_mono {C t : Infl 𝒞} {m : listProd (𝒞 := 𝒞) C ⟶ li
   have := congrArg (fun u => prodOneRightInv W ≫ u) hC
   simpa only [← Cat.assoc, prodOneRightInv_fst, Cat.id_comp] using this
 
-/-- An `A`-mono `m : ∏C ⟶ ∏t` is an `A′`-mono (`A′`'s test objects are a subset of `A`'s — every
-    `A′`-test `∏V` is an `A`-object).  The easy direction of the mono correspondence. -/
-theorem mono_to_inflMono {C t : Infl 𝒞} {m : listProd (𝒞 := 𝒞) C ⟶ listProd t}
-    (hm : Monic (𝒞 := 𝒞) m) : Monic (𝒞 := Infl 𝒞) m :=
-  fun {V} p q hpq => hm (W := listProd (𝒞 := 𝒞) V) p q hpq
-
 /-- `Cover` carries from `A′` to `A` (same underlying arrow `∏s ⟶ ∏t`).  An `A`-mono `m : C ⟶ ∏t`
     that the underlying `f` factors through is wrapped to the `A′`-mono `fst ≫ m : [C] ⟶ t` (`fst`
     iso ⟹ `inflMono_to_mono` gives it mono in `A′`); `Cover(A′) f` forces it iso, and `fst` iso then
@@ -698,7 +692,7 @@ theorem inflCover_to_cover {s t : Infl 𝒞} {f : listProd (𝒞 := 𝒞) s ⟶ 
   -- the `A′`-arrow `[C] ⟶ t` (defeq).  Stating the `A′`-mono over `M` avoids the `A′`-vs-`A` `≫` clash.
   let M : listProd (𝒞 := 𝒞) ([C] : List 𝒞) ⟶ listProd t := (fst : prod C one ⟶ C) ≫ m
   have hmInfl : Monic (𝒞 := Infl 𝒞) (X := ([C] : List 𝒞)) (Y := t) M :=
-    mono_to_inflMono (C := ([C] : List 𝒞)) (t := t) (m := M) hm𝒞
+    fun {V} p q hpq => hm𝒞 (W := listProd (𝒞 := 𝒞) V) p q hpq
   -- `g' := g ≫ prodOneRightInv C : s ⟶ [C]` factors `f` through it.
   let g' : listProd (𝒞 := 𝒞) s ⟶ listProd ([C] : List 𝒞) := g ≫ prodOneRightInv C
   have hfac : g' ≫ M = f := by
@@ -1004,8 +998,8 @@ noncomputable def inflImage [RegularCategory 𝒞] {s t : Infl 𝒞}
     ((fst : prod J one ⟶ J) ≫ (image (𝒞 := 𝒞) f').arr :
       listProd (𝒞 := 𝒞) ([J] : List 𝒞) ⟶ listProd t)
     (by
-      apply mono_to_inflMono
-      exact fst_comp_monic (image (𝒞 := 𝒞) f').monic)
+      intro V p q hpq
+      exact fst_comp_monic (image (𝒞 := 𝒞) f').monic (W := listProd (𝒞 := 𝒞) V) p q hpq)
 
 /-- `inflImage f` is the image of `f` in `A′`: cover-then-mono factorization (`coverMono_isImage`).
     Cover leg `image.lift f ≫ prodOneRightInv J : ∏s ⟶ J×1` (cover · iso = cover, `cover_postcomp_iso`),

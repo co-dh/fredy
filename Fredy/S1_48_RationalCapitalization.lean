@@ -432,10 +432,6 @@ theorem MonicDense.toDenseRoof [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasP
     {𝒟 : DenseClass 𝒞} (hD : MonicDense 𝒟) : DenseRoof 𝒟 where
   mem_mono _ h := (hD.mem_iff_mono _).1 h
 
-/-- `denseMonos` is `DenseRoof`. -/
-theorem denseMonos_denseRoof [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] :
-    DenseRoof (denseMonos 𝒞) := denseMonos_monic.toDenseRoof
-
 /-- A dense roof leg `r` (`𝒟.mem (r ≫ d)`) is monic, in a `DenseRoof` class. -/
 theorem DenseRoof.leg_mono [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
     {𝒟 : DenseClass 𝒞} (hD : DenseRoof 𝒟) {A B C : 𝒞} {r : A ⟶ B} {d : B ⟶ C}
@@ -494,7 +490,7 @@ theorem fractionEquiv_trans {𝒟 : DenseClass 𝒞} (hD : DenseRoof 𝒟) {A B 
 def fractionSetoid {A B : 𝒞} : Setoid (Fraction (denseMonos 𝒞) A B) where
   r := FractionEquiv
   iseqv := ⟨fractionEquiv_refl (denseMonos 𝒞), fractionEquiv_symm (denseMonos 𝒞),
-    fractionEquiv_trans denseMonos_denseRoof⟩
+    fractionEquiv_trans denseMonos_monic.toDenseRoof⟩
 
 /-- **§1.48 — the hom-set `A[𝒟⁻¹](A,B)`**: equivalence classes of fraction spans
     (for the all-monics dense class `denseMonos 𝒞`).  Sorry-free `Quotient`. -/
@@ -685,9 +681,9 @@ def ratComp {A B C : 𝒞} (m : RatHom (𝒞 := 𝒞) A B)
     (by
       intro f g f' g' hf hg
       apply Quotient.sound
-      exact fractionEquiv_trans denseMonos_denseRoof
-        (compFraction_congr_left denseMonos_denseRoof g hf)
-        (compFraction_congr_right denseMonos_denseRoof f' hg))
+      exact fractionEquiv_trans denseMonos_monic.toDenseRoof
+        (compFraction_congr_left denseMonos_monic.toDenseRoof g hf)
+        (compFraction_congr_right denseMonos_monic.toDenseRoof f' hg))
     m n
 
 /-! ### §1.48  Identity and associativity laws — the `Cat` instance
@@ -887,8 +883,8 @@ def locFunctor : Functor (fun A : 𝒞 => Rat.mk (𝒞 := 𝒞) A) where
   (`iso_mem`/`comp_mem`/`pb_mem`) plus the §1.48 right-cancellation `DenseRoof.roof_mem`.  Every
   ingredient — `fractionEquiv_refl/symm/trans`, `compFraction`, the congruences, the unit/assoc laws,
   `locMap_comp_equiv` — is already generic; here we just glue the `Quotient` / `Cat` / `Functor`.
-  `denseMonos` recovers the R2 `ratCat`/`locFunctor` (`denseMonos_denseRoof`); `pairDenseClass` (once a
-  `DenseRoof` witness is supplied) gives `A* = Â[pairDense⁻¹]`. -/
+  `denseMonos` recovers the R2 `ratCat`/`locFunctor` (`denseMonos_monic.toDenseRoof`); `pairDenseClass`
+  (once a `DenseRoof` witness is supplied) gives `A* = Â[pairDense⁻¹]`. -/
 
 section GenericRat
 variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]

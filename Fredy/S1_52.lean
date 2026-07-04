@@ -132,17 +132,16 @@ def kpProdIso : kernelPair (term S) ⟶ prod S S :=
 
 def kpProdInv : prod S S ⟶ kernelPair (term S) := (_pb S).lift (_prodCone S)
 
-@[simp] theorem kpProdIso_fst : kpProdIso S ≫ fst = kp₁ (f:=term S) := fst_pair _ _
-@[simp] theorem kpProdIso_snd : kpProdIso S ≫ snd = kp₂ (f:=term S) := snd_pair _ _
 @[simp] theorem kpProdInv_fst : kpProdInv S ≫ kp₁ (f:=term S) = fst := (_pb S).lift_fst (_prodCone S)
 @[simp] theorem kpProdInv_snd : kpProdInv S ≫ kp₂ (f:=term S) = snd := (_pb S).lift_snd (_prodCone S)
 
 theorem kpProdIso_inv : kpProdIso S ≫ kpProdInv S = Cat.id (kernelPair (term S)) := by
   let u := kpProdIso S ≫ kpProdInv S
   have hu_fst : u ≫ kp₁ (f:=term S) = kp₁ (f:=term S) := by
-    dsimp [u]; rw [Cat.assoc, kpProdInv_fst, kpProdIso_fst]
+    dsimp [u]; rw [Cat.assoc, kpProdInv_fst, show kpProdIso S ≫ fst = kp₁ (f:=term S) from fst_pair _ _]
   have hu_snd : u ≫ kp₂ (f:=term S) = kp₂ (f:=term S) := by
-    dsimp [u]; rw [Cat.assoc, kpProdInv_snd, kpProdIso_snd]
+    dsimp [u]
+    rw [Cat.assoc, kpProdInv_snd, show kpProdIso S ≫ snd = kp₂ (f:=term S) from snd_pair _ _]
   have h_id_lift : (_pb S).lift (_kpCone S) = Cat.id (kernelPair (term S)) :=
     ((_pb S).lift_uniq (_kpCone S) (Cat.id _) (Cat.id_comp _) (Cat.id_comp _)).symm
   calc
@@ -152,8 +151,8 @@ theorem kpProdIso_inv : kpProdIso S ≫ kpProdInv S = Cat.id (kernelPair (term S
 
 theorem kpProdInv_iso : kpProdInv S ≫ kpProdIso S = Cat.id (prod S S) := by
   have h := pair_uniq fst snd (kpProdInv S ≫ kpProdIso S)
-    (by rw [Cat.assoc, kpProdIso_fst, kpProdInv_fst])
-    (by rw [Cat.assoc, kpProdIso_snd, kpProdInv_snd])
+    (by rw [Cat.assoc, show kpProdIso S ≫ fst = kp₁ (f:=term S) from fst_pair _ _, kpProdInv_fst])
+    (by rw [Cat.assoc, show kpProdIso S ≫ snd = kp₂ (f:=term S) from snd_pair _ _, kpProdInv_snd])
   have hid : pair fst snd = Cat.id (prod S S) :=
     (pair_uniq fst snd (Cat.id (prod S S)) (by rw [Cat.id_comp]) (by rw [Cat.id_comp])).symm
   rw [h, hid]
@@ -167,9 +166,11 @@ theorem kpProdInv_isIso : IsIso (kpProdInv S) :=
 theorem kp_diag_prod : kp_diag (f:=term S) ≫ kpProdIso S = diag S := by
   let h := kp_diag (f:=term S) ≫ kpProdIso S
   have hfst : h ≫ fst = Cat.id S := by
-    dsimp [h]; rw [Cat.assoc, kpProdIso_fst, kp_diag_p₁]
+    dsimp [h]
+    rw [Cat.assoc, show kpProdIso S ≫ fst = kp₁ (f:=term S) from fst_pair _ _, kp_diag_p₁]
   have hsnd : h ≫ snd = Cat.id S := by
-    dsimp [h]; rw [Cat.assoc, kpProdIso_snd, kp_diag_p₂]
+    dsimp [h]
+    rw [Cat.assoc, show kpProdIso S ≫ snd = kp₂ (f:=term S) from snd_pair _ _, kp_diag_p₂]
   have h_eq := pair_uniq (Cat.id S) (Cat.id S) h hfst hsnd
   simpa [h, diag] using h_eq
 

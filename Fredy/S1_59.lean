@@ -249,19 +249,19 @@ theorem add_comp {A B C : 𝒞} (x y : A ⟶ B) (k : B ⟶ C) :
 def shear {A B : 𝒞} (x : A ⟶ B) : prod A B ⟶ prod A B :=
   pair fst (inst.add (fst ≫ x) snd)
 
-theorem shear_fst {A B : 𝒞} (x : A ⟶ B) : shear x ≫ fst = fst := fst_pair _ _
-
-theorem shear_snd {A B : 𝒞} (x : A ⟶ B) :
-    shear x ≫ snd = inst.add (fst ≫ x) snd := snd_pair _ _
-
 /-- Composing shears adds parameters: `shear x ≫ shear y = shear (x + y)`.
     The shears form a one-parameter additive subgroup of `Aut(A×B)`. -/
 theorem shear_comp {A B : 𝒞} (x y : A ⟶ B) :
     shear x ≫ shear y = shear (inst.add x y) := by
   refine (pair_uniq _ _ _ ?_ ?_).trans (pair_eta (shear (inst.add x y))).symm
-  · rw [Cat.assoc, shear_fst, shear_fst, shear_fst]
-  · rw [Cat.assoc, shear_snd, comp_add, ← Cat.assoc, shear_fst, shear_snd,
-        add_assoc, add_comm (fst ≫ y) (fst ≫ x), ← comp_add, shear_snd]
+  · rw [Cat.assoc, show shear y ≫ fst = fst from fst_pair _ _,
+        show shear x ≫ fst = fst from fst_pair _ _,
+        show shear (inst.add x y) ≫ fst = fst from fst_pair _ _]
+  · rw [Cat.assoc, show shear y ≫ snd = inst.add (fst ≫ y) snd from snd_pair _ _, comp_add,
+        ← Cat.assoc, show shear x ≫ fst = fst from fst_pair _ _,
+        show shear x ≫ snd = inst.add (fst ≫ x) snd from snd_pair _ _,
+        add_assoc, add_comm (fst ≫ y) (fst ≫ x), ← comp_add,
+        show shear (inst.add x y) ≫ snd = inst.add (fst ≫ inst.add x y) snd from snd_pair _ _]
 
 /-- `shear 0 = id`: the trivial shear is the identity. -/
 theorem shear_zero {A B : 𝒞} : shear (inst.zeroHom A B) = Cat.id (prod A B) := by
@@ -313,12 +313,13 @@ theorem shear_inv_extract {A B : 𝒞} (x : A ⟶ B)
       = pair (Cat.id A) (inst.zeroHom A B) := by rw [Cat.assoc, h, Cat.comp_id]
   -- y = 1 : first projection of w
   have hy : (pair (Cat.id A) (inst.zeroHom A B) ≫ inv) ≫ fst = Cat.id A := by
-    rw [← shear_fst x, ← Cat.assoc, key, fst_pair]
+    rw [← show shear x ≫ fst = fst from fst_pair _ _, ← Cat.assoc, key, fst_pair]
   refine ⟨hy, ?_⟩
   -- u + x = 0 : second projection equation, expanded by distributivity
   have hs : ((pair (Cat.id A) (inst.zeroHom A B) ≫ inv) ≫ shear x) ≫ snd
       = inst.zeroHom A B := by rw [key, snd_pair]
-  rw [Cat.assoc, shear_snd, comp_add, ← Cat.assoc, hy, Cat.id_comp] at hs
+  rw [Cat.assoc, show shear x ≫ snd = inst.add (fst ≫ x) snd from snd_pair _ _, comp_add,
+      ← Cat.assoc, hy, Cat.id_comp] at hs
   exact hs
 
 /-- **Backward direction.** If every shear is an isomorphism, every hom has an
@@ -524,8 +525,8 @@ theorem add_cancel_common [HalfAdditiveCategory 𝒞] {A B : 𝒞} (X1 X2 Y : A 
 
 /-- `zeroHom = zeroMorphism` WITHOUT requiring `[ExactCategory]` (only the ambient
     zero object): both are the unique map factoring through `0`.  This is the
-    `[ExactCategory]`-free version of `zeroHom_eq_zeroMorphism`, needed in the forward
-    direction of §1.593 where no exact structure is yet available. -/
+    `[ExactCategory]`-free version of the fact (both are the unique map factoring through
+    `0`), needed in the forward direction of §1.593 where no exact structure is yet available. -/
 theorem zeroHom_eq_zeroMorphism' [HalfAdditiveCategory 𝒞] [HasZeroObject 𝒞] (X Y : 𝒞) :
     (HalfAdditiveCategory.zeroHom X Y : X ⟶ Y) = zeroMorphism X Y := by
   have h1 : (HalfAdditiveCategory.zeroHom X Y : X ⟶ Y)
@@ -1715,12 +1716,6 @@ theorem exact_balanced [ExactCategory 𝒞] {A B : 𝒞} (f : A ⟶ B) (hm : Mon
   No §1.55 Ab-valued representation is used — only `ExactCategory.exact`, the additive
   group structure, and `cover_epi`. -/
 
-/-- The half-additive `zeroHom` (unique `A → 0 → B`) coincides with the
-    `HasZeroObject` `zeroMorphism`: both are the unique map factoring through `0`. -/
-theorem zeroHom_eq_zeroMorphism [ExactCategory 𝒞] [AdditiveCategory 𝒞] (X Y : 𝒞) :
-    (HalfAdditiveCategory.zeroHom X Y : X ⟶ Y) = zeroMorphism X Y :=
-  zeroHom_eq_zeroMorphism' X Y
-
 /-- **Coimage factorization for an epimorphism.**  If `d` is epic and `m` is killed by
     `kernelMap d` (the coimage relation), then `m` factors through `d`.  Proof: `d` epic
     ⟹ `coker d = 0` ⟹ `ker(coker d)` iso, so the exact factorization
@@ -1768,7 +1763,7 @@ theorem kernelCone_isPullback [ExactCategory 𝒞] [AdditiveCategory 𝒞] {A C 
     show pair dd.π₁ dd.π₂ ≫ HalfAdditiveCategory.add (fst ≫ f) (snd ≫ negg) = _
     rw [HalfAdditiveCategory.comp_add, ← Cat.assoc, ← Cat.assoc, fst_pair, snd_pair, dd.w,
         ← HalfAdditiveCategory.comp_add, hnegg, HalfAdditiveCategory.zeroHom_comp_left,
-        zeroHom_eq_zeroMorphism]
+        zeroHom_eq_zeroMorphism']
   have hpaireq : pair dd.π₁ dd.π₂ ≫ d = pair dd.π₁ dd.π₂ ≫ zeroMorphism (prod A C) B := by
     rw [hpair_d, zero_morphism_comp (pair dd.π₁ dd.π₂) (zeroMorphism (prod A C) B)]
   let u : dd.pt ⟶ Kernel d := eqLift d (zeroMorphism (prod A C) B) (pair dd.π₁ dd.π₂) hpaireq
@@ -1826,19 +1821,19 @@ theorem kernel_snd_epi [ExactCategory 𝒞] [AdditiveCategory 𝒞] {A C B : �
       rw [← Cat.assoc, ← Cat.assoc]; exact hab
     rw [hab', ← HalfAdditiveCategory.comp_add, ← HalfAdditiveCategory.comp_add, hnegb,
         HalfAdditiveCategory.zeroHom_comp_left snd,
-        HalfAdditiveCategory.zeroHom_comp_left (kernelMap d), zeroHom_eq_zeroMorphism]
+        HalfAdditiveCategory.zeroHom_comp_left (kernelMap d), zeroHom_eq_zeroMorphism']
   obtain ⟨n, hn⟩ := coimage_factor d hde (snd ≫ e) hsnde0
   have hfn0 : f ≫ n = zeroMorphism A Z := by
     have hjn : jA ≫ (d ≫ n) = jA ≫ (snd ≫ e) := by rw [hn]
     rw [← Cat.assoc, hjA_d] at hjn
-    rw [hjn, ← Cat.assoc, hjA_snd, HalfAdditiveCategory.zeroHom_comp_right e, zeroHom_eq_zeroMorphism]
+    rw [hjn, ← Cat.assoc, hjA_snd, HalfAdditiveCategory.zeroHom_comp_right e, zeroHom_eq_zeroMorphism']
   have hn0 : n = zeroMorphism B Z := by
     apply hfe; rw [hfn0, zero_morphism_comp f (zeroMorphism B Z)]
   have hsnde0' : snd ≫ e = zeroMorphism (prod A C) Z := by
     rw [← hn, hn0, zero_morphism_comp d (zeroMorphism B Z)]
   have he0 : e = zeroMorphism C Z := by
     apply hsnd_epi; rw [hsnde0', zero_morphism_comp snd (zeroMorphism C Z)]
-  rw [← zeroHom_eq_zeroMorphism] at he0
+  rw [← zeroHom_eq_zeroMorphism'] at he0
   exact add_cancel_common a b negb he0 hnegb
 
 /-- **Epic ⟹ cover** in an exact category. -/
@@ -1899,12 +1894,12 @@ theorem pullback_epi_is_epi [ExactCategory 𝒞] [AdditiveCategory 𝒞]
           = HalfAdditiveCategory.add ((kernelMap d ≫ fst) ≫ f) (kernelMap d ≫ snd ≫ negg) := by
         show kernelMap d ≫ HalfAdditiveCategory.add (fst ≫ f) (snd ≫ negg) = _
         rw [HalfAdditiveCategory.comp_add, ← Cat.assoc]
-      rw [← this, hkd0, zeroHom_eq_zeroMorphism]
+      rw [← this, hkd0, zeroHom_eq_zeroMorphism']
     · rw [Cat.assoc (kernelMap d) snd g, ← HalfAdditiveCategory.comp_add,
           ← HalfAdditiveCategory.comp_add, hnegg,
-          HalfAdditiveCategory.zeroHom_comp_left, zeroHom_eq_zeroMorphism,
+          HalfAdditiveCategory.zeroHom_comp_left, zeroHom_eq_zeroMorphism',
           zero_morphism_comp (kernelMap d) (zeroMorphism (prod A C) B),
-          ← zeroHom_eq_zeroMorphism]
+          ← zeroHom_eq_zeroMorphism']
   -- the kernel cone, and its pullback property
   let kc : Cone f g := Cone.mk (Kernel d) (kernelMap d ≫ fst) (kernelMap d ≫ snd) hw
   have hkc_pb : kc.IsPullback := kernelCone_isPullback f g hw
@@ -2603,19 +2598,15 @@ theorem subMap_diag [ExactCategory 𝒞] [HasBinaryProducts 𝒞] (A : 𝒞) :
 noncomputable def sqMap {A B : 𝒞} [HasBinaryProducts 𝒞] (k : A ⟶ B) : prod A A ⟶ prod B B :=
   pair (fst ≫ k) (snd ≫ k)
 
-theorem sqMap_fst {A B : 𝒞} [HasBinaryProducts 𝒞] (k : A ⟶ B) :
-    sqMap k ≫ fst = fst ≫ k := fst_pair _ _
-
-theorem sqMap_snd {A B : 𝒞} [HasBinaryProducts 𝒞] (k : A ⟶ B) :
-    sqMap k ≫ snd = snd ≫ k := snd_pair _ _
-
 /-- `diag` is natural: `diag A ≫ (k×k) = k ≫ diag B`. -/
 theorem diag_sqMap [HasBinaryProducts 𝒞] {A B : 𝒞} (k : A ⟶ B) :
     diag A ≫ sqMap k = k ≫ diag B := by
   have hL : diag A ≫ sqMap k = pair k k :=
     pair_uniq k k (diag A ≫ sqMap k)
-      (by rw [Cat.assoc, sqMap_fst, ← Cat.assoc, diag_fst, Cat.id_comp])
-      (by rw [Cat.assoc, sqMap_snd, ← Cat.assoc, diag_snd, Cat.id_comp])
+      (by rw [Cat.assoc, show sqMap k ≫ fst = fst ≫ k from fst_pair _ _, ← Cat.assoc, diag_fst,
+        Cat.id_comp])
+      (by rw [Cat.assoc, show sqMap k ≫ snd = snd ≫ k from snd_pair _ _, ← Cat.assoc, diag_snd,
+        Cat.id_comp])
   have hR : k ≫ diag B = pair k k :=
     pair_uniq k k (k ≫ diag B)
       (by rw [Cat.assoc, diag_fst, Cat.comp_id]) (by rw [Cat.assoc, diag_snd, Cat.comp_id])
@@ -2626,8 +2617,10 @@ theorem j_sqMap [HasZeroObject 𝒞] [HasBinaryProducts 𝒞] {A B : 𝒞} (k : 
     pair (Cat.id A) (zeroMorphism A A) ≫ sqMap k = k ≫ pair (Cat.id B) (zeroMorphism B B) := by
   have hL : pair (Cat.id A) (zeroMorphism A A) ≫ sqMap k = pair k (zeroMorphism A B) :=
     pair_uniq k (zeroMorphism A B) (pair (Cat.id A) (zeroMorphism A A) ≫ sqMap k)
-      (by rw [Cat.assoc, sqMap_fst, ← Cat.assoc, fst_pair, Cat.id_comp])
-      (by rw [Cat.assoc, sqMap_snd, ← Cat.assoc, snd_pair, zeroMorphism_comp_left])
+      (by rw [Cat.assoc, show sqMap k ≫ fst = fst ≫ k from fst_pair _ _, ← Cat.assoc, fst_pair,
+        Cat.id_comp])
+      (by rw [Cat.assoc, show sqMap k ≫ snd = snd ≫ k from snd_pair _ _, ← Cat.assoc, snd_pair,
+        zeroMorphism_comp_left])
   have hR : k ≫ pair (Cat.id B) (zeroMorphism B B) = pair k (zeroMorphism A B) :=
     pair_uniq k (zeroMorphism A B) (k ≫ pair (Cat.id B) (zeroMorphism B B))
       (by rw [Cat.assoc, fst_pair, Cat.comp_id])
@@ -2730,8 +2723,8 @@ theorem subL_comp [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A B : 𝒞} (
   show (pair x y ≫ subMap A) ≫ k = pair (x ≫ k) (y ≫ k) ≫ subMap B
   rw [Cat.assoc, subMap_natural, ← Cat.assoc,
       pair_uniq (x ≫ k) (y ≫ k) (pair x y ≫ sqMap k)
-        (by rw [Cat.assoc, sqMap_fst, ← Cat.assoc, fst_pair])
-        (by rw [Cat.assoc, sqMap_snd, ← Cat.assoc, snd_pair])]
+        (by rw [Cat.assoc, show sqMap k ≫ fst = fst ≫ k from fst_pair _ _, ← Cat.assoc, fst_pair])
+        (by rw [Cat.assoc, show sqMap k ≫ snd = snd ≫ k from snd_pair _ _, ← Cat.assoc, snd_pair])]
 
 /-- **Translation invariance**: `(a − c) − (b − c) = a − b`.  The single algebraic fact (besides
     `x−0=x`, `x−x=0` and bilinearity) needed to upgrade subtraction to an abelian group.
@@ -2743,12 +2736,16 @@ theorem subL_sub_right [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞
   -- `pair (a−c) (b−c) = ⟨a,b⟩ −_{A×A} ⟨c,c⟩` (difference on `A×A`, coordinatewise via naturality).
   have hpac : pair (pair a b) (pair c c) ≫ sqMap (fst : prod A A ⟶ A) = pair a c := by
     apply pair_uniq a c (pair (pair a b) (pair c c) ≫ sqMap fst)
-    · rw [Cat.assoc, sqMap_fst, ← Cat.assoc, fst_pair, fst_pair]
-    · rw [Cat.assoc, sqMap_snd, ← Cat.assoc, snd_pair, fst_pair]
+    · rw [Cat.assoc, show sqMap fst ≫ fst = fst ≫ fst from fst_pair _ _, ← Cat.assoc, fst_pair,
+        fst_pair]
+    · rw [Cat.assoc, show sqMap fst ≫ snd = snd ≫ fst from snd_pair _ _, ← Cat.assoc, snd_pair,
+        fst_pair]
   have hpbc : pair (pair a b) (pair c c) ≫ sqMap (snd : prod A A ⟶ A) = pair b c := by
     apply pair_uniq b c (pair (pair a b) (pair c c) ≫ sqMap snd)
-    · rw [Cat.assoc, sqMap_fst, ← Cat.assoc, fst_pair, snd_pair]
-    · rw [Cat.assoc, sqMap_snd, ← Cat.assoc, snd_pair, snd_pair]
+    · rw [Cat.assoc, show sqMap snd ≫ fst = fst ≫ snd from fst_pair _ _, ← Cat.assoc, fst_pair,
+        snd_pair]
+    · rw [Cat.assoc, show sqMap snd ≫ snd = snd ≫ snd from snd_pair _ _, ← Cat.assoc, snd_pair,
+        snd_pair]
   have hcoord : pair (subL a c) (subL b c) = subL (pair a b) (pair c c) :=
     (pair_uniq (subL a c) (subL b c) (subL (pair a b) (pair c c))
       (by show (pair (pair a b) (pair c c) ≫ subMap (prod A A)) ≫ fst = subL a c
@@ -2815,12 +2812,16 @@ theorem subL_sub_left [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞}
     subL (subL a p) (subL a q) = subL q p := by
   have hpac : pair (pair a a) (pair p q) ≫ sqMap (fst : prod A A ⟶ A) = pair a p := by
     apply pair_uniq a p (pair (pair a a) (pair p q) ≫ sqMap fst)
-    · rw [Cat.assoc, sqMap_fst, ← Cat.assoc, fst_pair, fst_pair]
-    · rw [Cat.assoc, sqMap_snd, ← Cat.assoc, snd_pair, fst_pair]
+    · rw [Cat.assoc, show sqMap fst ≫ fst = fst ≫ fst from fst_pair _ _, ← Cat.assoc, fst_pair,
+        fst_pair]
+    · rw [Cat.assoc, show sqMap fst ≫ snd = snd ≫ fst from snd_pair _ _, ← Cat.assoc, snd_pair,
+        fst_pair]
   have hpbc : pair (pair a a) (pair p q) ≫ sqMap (snd : prod A A ⟶ A) = pair a q := by
     apply pair_uniq a q (pair (pair a a) (pair p q) ≫ sqMap snd)
-    · rw [Cat.assoc, sqMap_fst, ← Cat.assoc, fst_pair, snd_pair]
-    · rw [Cat.assoc, sqMap_snd, ← Cat.assoc, snd_pair, snd_pair]
+    · rw [Cat.assoc, show sqMap snd ≫ fst = fst ≫ snd from fst_pair _ _, ← Cat.assoc, fst_pair,
+        snd_pair]
+    · rw [Cat.assoc, show sqMap snd ≫ snd = snd ≫ snd from snd_pair _ _, ← Cat.assoc, snd_pair,
+        snd_pair]
   have hcoord : pair (subL a p) (subL a q) = subL (pair a a) (pair p q) :=
     (pair_uniq (subL a p) (subL a q) (subL (pair a a) (pair p q))
       (by show (pair (pair a a) (pair p q) ≫ subMap (prod A A)) ≫ fst = subL a p

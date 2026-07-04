@@ -70,15 +70,11 @@ theorem mu_fixed {φ : (a ⟶ b) → (a ⟶ b)} (hφ : Monotonic φ) : φ (mu φ
 theorem mu_le_of_fixed {φ : (a ⟶ b) → (a ⟶ b)} {T : a ⟶ b} (h : φ T = T) : mu φ ⊑ T :=
   mu_le_of_prefixed (by rw [h]; exact le_refl T)
 
-/-- `νφ` is an upper bound on the postfixed points. -/
-theorem le_nu_of_postfixed {φ : (a ⟶ b) → (a ⟶ b)} {T : a ⟶ b} (h : T ⊑ φ T) : T ⊑ nu φ :=
-  le_Sup h
-
 theorem nu_postfixed {φ : (a ⟶ b) → (a ⟶ b)} (hφ : Monotonic φ) : nu φ ⊑ φ (nu φ) :=
-  Sup_le (fun _T hT => le_trans hT (hφ (le_nu_of_postfixed hT)))
+  Sup_le (fun _T hT => le_trans hT (hφ (le_Sup hT)))
 
 theorem nu_prefixed {φ : (a ⟶ b) → (a ⟶ b)} (hφ : Monotonic φ) : φ (nu φ) ⊑ nu φ :=
-  le_nu_of_postfixed (hφ (nu_postfixed hφ))
+  le_Sup (hφ (nu_postfixed hφ))
 
 /-- **Theorem 6.1, dual half**: `νφ` is a fixed point — the greatest solution of
     `X ⊑ φX` and of `φX = X` coincide. -/
@@ -86,7 +82,7 @@ theorem nu_fixed {φ : (a ⟶ b) → (a ⟶ b)} (hφ : Monotonic φ) : φ (nu φ
   le_antisymm (nu_prefixed hφ) (nu_postfixed hφ)
 
 theorem le_nu_of_fixed {φ : (a ⟶ b) → (a ⟶ b)} {T : a ⟶ b} (h : φ T = T) : T ⊑ nu φ :=
-  le_nu_of_postfixed (by rw [h]; exact le_refl T)
+  le_Sup (by rw [h]; exact le_refl T)
 
 /-- `μ` is monotonic in the mapping: a pointwise-smaller body has a smaller `μ`. -/
 theorem mu_le_mu {φ ψ : (a ⟶ b) → (a ⟶ b)} (h : ∀ X, φ X ⊑ ψ X) : mu φ ⊑ mu ψ :=
@@ -213,7 +209,7 @@ theorem relCata_le_of_prefixed (I : InitialAlgebra F) {c : 𝒜} {R : F.obj c �
 /-- **(6.3)**: `X ⊑ ⦇R⦈ ⟸ X ⊑ R·FX·α°`, mirrored. -/
 theorem le_relCata_of_postfixed (I : InitialAlgebra F) {c : 𝒜} {R : F.obj c ⟶ c}
     {X : I.t ⟶ c} (h : X ⊑ I.α° ≫ F.map X ≫ R) : X ⊑ relCata I R := by
-  rw [relCata_eq_nu]; exact le_nu_of_postfixed h
+  rw [relCata_eq_nu]; exact le_Sup h
 
 end CataFix
 

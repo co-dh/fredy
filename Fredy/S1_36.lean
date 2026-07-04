@@ -334,16 +334,9 @@ theorem rel_rep (X : 𝒞) : Rel K X (rep K (Quotient.mk (setoid K) X)) := by
 noncomputable def kappa (X : 𝒞) : X ⟶ rep K (Quotient.mk (setoid K) X) :=
   Classical.choose (rel_rep K X)
 
-theorem kappa_mem (X : 𝒞) : K.mem (kappa K X) := Classical.choose_spec (rel_rep K X)
-
 /-- The inverse of `κ X`, itself a `K`-map (groupoid), with both round-trips identity. -/
 noncomputable def kappaInv (X : 𝒞) : rep K (Quotient.mk (setoid K) X) ⟶ X :=
-  Classical.choose (K.isGroupoid _ (kappa_mem K X))
-
-theorem kappaInv_spec (X : 𝒞) :
-    K.mem (kappaInv K X) ∧ kappa K X ≫ kappaInv K X = Cat.id X ∧
-      kappaInv K X ≫ kappa K X = Cat.id (rep K (Quotient.mk (setoid K) X)) :=
-  Classical.choose_spec (K.isGroupoid _ (kappa_mem K X))
+  Classical.choose (K.isGroupoid _ (Classical.choose_spec (rel_rep K X)))
 
 /-- The quotient category `𝒞/K`: a hom between two classes is a `𝒞`-hom between
     their representatives.  Identity, composition, and the axioms are inherited
@@ -370,7 +363,8 @@ noncomputable def Qmap {X Y : 𝒞} (f : X ⟶ Y) :
 theorem Qmap_id (X : 𝒞) : Qmap K (Cat.id X) = Cat.id (Q K X) := by
   -- both sides live in 𝒞 as maps `rep⟦X⟧ ⟶ rep⟦X⟧`; `Cat.id (Q K X) = Cat.id (rep⟦X⟧)`.
   show kappaInv K X ≫ Cat.id X ≫ kappa K X = Cat.id (rep K (Quotient.mk (setoid K) X))
-  rw [Cat.id_comp, (kappaInv_spec K X).2.2]
+  rw [Cat.id_comp, show kappaInv K X ≫ kappa K X = Cat.id (rep K (Quotient.mk (setoid K) X))
+    from (Classical.choose_spec (K.isGroupoid _ (Classical.choose_spec (rel_rep K X)))).2.2]
 
 theorem Qmap_comp {X Y Z : 𝒞} (f : X ⟶ Y) (g : Y ⟶ Z) :
     Qmap K (f ≫ g) = Qmap K f ≫ Qmap K g := by
@@ -378,7 +372,9 @@ theorem Qmap_comp {X Y Z : 𝒞} (f : X ⟶ Y) (g : Y ⟶ Z) :
   show kappaInv K X ≫ (f ≫ g) ≫ kappa K Z
     = (kappaInv K X ≫ f ≫ kappa K Y) ≫ (kappaInv K Y ≫ g ≫ kappa K Z)
   simp only [Cat.assoc]
-  rw [← Cat.assoc (kappa K Y) (kappaInv K Y), (kappaInv_spec K Y).2.1, Cat.id_comp]
+  rw [← Cat.assoc (kappa K Y) (kappaInv K Y),
+    show kappa K Y ≫ kappaInv K Y = Cat.id Y
+      from (Classical.choose_spec (K.isGroupoid _ (Classical.choose_spec (rel_rep K Y)))).2.1, Cat.id_comp]
 
 noncomputable instance functorQ : Functor (Q K) where
   map := Qmap K
@@ -402,8 +398,11 @@ theorem Q_embedding : Embedding (Q K) := by
       kappa K X ≫ (kappaInv K X ≫ h ≫ kappa K Y) ≫ kappaInv K Y = h := by
     intro h
     simp only [Cat.assoc]
-    rw [← Cat.assoc (kappa K X) (kappaInv K X), (kappaInv_spec K X).2.1, Cat.id_comp,
-      (kappaInv_spec K Y).2.1, Cat.comp_id]
+    rw [← Cat.assoc (kappa K X) (kappaInv K X),
+      show kappa K X ≫ kappaInv K X = Cat.id X
+        from (Classical.choose_spec (K.isGroupoid _ (Classical.choose_spec (rel_rep K X)))).2.1, Cat.id_comp,
+      show kappa K Y ≫ kappaInv K Y = Cat.id Y
+        from (Classical.choose_spec (K.isGroupoid _ (Classical.choose_spec (rel_rep K Y)))).2.1, Cat.comp_id]
   rw [simp1 f, simp1 g] at e1; exact e1
 
 /-- `Q` is full: every hom `rep⟦X⟧ ⟶ rep⟦Y⟧` is `Qmap` of some `f : X ⟶ Y`. -/
@@ -413,8 +412,11 @@ theorem Q_full : Full (Q K) := by
   refine ⟨kappa K X ≫ h ≫ kappaInv K Y, ?_⟩
   show kappaInv K X ≫ (kappa K X ≫ h ≫ kappaInv K Y) ≫ kappa K Y = h
   simp only [Cat.assoc]
-  rw [← Cat.assoc (kappaInv K X) (kappa K X), (kappaInv_spec K X).2.2, Cat.id_comp,
-    (kappaInv_spec K Y).2.2, Cat.comp_id]
+  rw [← Cat.assoc (kappaInv K X) (kappa K X),
+    show kappaInv K X ≫ kappa K X = Cat.id (rep K (Quotient.mk (setoid K) X))
+      from (Classical.choose_spec (K.isGroupoid _ (Classical.choose_spec (rel_rep K X)))).2.2, Cat.id_comp,
+    show kappaInv K Y ≫ kappa K Y = Cat.id (rep K (Quotient.mk (setoid K) Y))
+      from (Classical.choose_spec (K.isGroupoid _ (Classical.choose_spec (rel_rep K Y)))).2.2, Cat.comp_id]
 
 theorem Q_repImage : HasRepresentativeImage (Q K) := by
   intro d
@@ -426,17 +428,22 @@ theorem Q_repImage : HasRepresentativeImage (Q K) := by
 
 /-- `Q f` is a `K`-map whenever `f` is: it is `(κX)⁻¹ ≫ f ≫ κY`, a composite of `K`-maps. -/
 theorem Qmap_mem_of_mem {X Y : 𝒞} (f : X ⟶ Y) (hf : K.mem f) : K.mem (Qmap K f) :=
-  K.mem_comp _ _ (kappaInv_spec K X).1 (K.mem_comp _ _ hf (kappa_mem K Y))
+  K.mem_comp _ _ (Classical.choose_spec (K.isGroupoid _ (Classical.choose_spec (rel_rep K X)))).1
+    (K.mem_comp _ _ hf (Classical.choose_spec (rel_rep K Y)))
 
 /-- Conversely, `f = κX ≫ (Q f) ≫ (κY)⁻¹`, so `f` is a `K`-map whenever `Q f` is. -/
 theorem mem_of_Qmap_mem {X Y : 𝒞} (f : X ⟶ Y) (hQf : K.mem (Qmap K f)) : K.mem f := by
   have hfac : kappa K X ≫ Qmap K f ≫ kappaInv K Y = f := by
     show kappa K X ≫ (kappaInv K X ≫ f ≫ kappa K Y) ≫ kappaInv K Y = f
     simp only [Cat.assoc]
-    rw [← Cat.assoc (kappa K X) (kappaInv K X), (kappaInv_spec K X).2.1, Cat.id_comp,
-      (kappaInv_spec K Y).2.1, Cat.comp_id]
+    rw [← Cat.assoc (kappa K X) (kappaInv K X),
+      show kappa K X ≫ kappaInv K X = Cat.id X
+        from (Classical.choose_spec (K.isGroupoid _ (Classical.choose_spec (rel_rep K X)))).2.1, Cat.id_comp,
+      show kappa K Y ≫ kappaInv K Y = Cat.id Y
+        from (Classical.choose_spec (K.isGroupoid _ (Classical.choose_spec (rel_rep K Y)))).2.1, Cat.comp_id]
   rw [← hfac]
-  exact K.mem_comp _ _ (kappa_mem K X) (K.mem_comp _ _ hQf (kappaInv_spec K Y).1)
+  exact K.mem_comp _ _ (Classical.choose_spec (rel_rep K X))
+    (K.mem_comp _ _ hQf (Classical.choose_spec (K.isGroupoid _ (Classical.choose_spec (rel_rep K Y)))).1)
 
 /-- If two objects are glued (`Q X = Q Y`) their representatives are equal. -/
 theorem rep_eq_of_Q_eq {X Y : 𝒞} (h : Q K X = Q K Y) :
@@ -524,7 +531,8 @@ theorem quotient_universal_property (K : EquivalenceKernel 𝒞)
     refine ⟨⟨fun h => hF.map h, fun d => hF.map_id _, fun f g => hF.map_comp f g⟩, fun X => ?_⟩
     -- G (Q K X) = F (rep K (Q K X)); need F (rep K (Q K X)) = F X.
     -- hFK on the K-iso κ X : X ⟶ rep K (Q K X) gives F X = F (rep K (Q K X)).
-    obtain ⟨e, _⟩ := hFK (QuotientByKernel.kappa K X) (QuotientByKernel.kappa_mem K X)
+    obtain ⟨e, _⟩ := hFK (QuotientByKernel.kappa K X)
+      (Classical.choose_spec (QuotientByKernel.rel_rep K X))
     exact e.symm
   · -- Uniqueness: any G' with G' (Q K X) = F X equals G.
     intro G' ⟨_, hG'⟩
@@ -581,7 +589,7 @@ theorem equivalenceFunctor_factors_via_kernel
     intro X
     -- G (Q K X) = F (rep K (Q K X)).  The κ-iso κ X : X ⟶ rep(⟦X⟧) is a K-map.
     -- K.mem (kappa K X) means ∃ e : F X = F (rep K (Q K X)), HEq (hF.map (kappa K X)) (Cat.id (F X)).
-    obtain ⟨e, _⟩ := QuotientByKernel.kappa_mem K X
+    obtain ⟨e, _⟩ := Classical.choose_spec (QuotientByKernel.rel_rep K X)
     exact e.symm
   refine ⟨G, hGFun, hGQ, ?_, ?_, ?_⟩
   -- Step 3: G is an embedding.

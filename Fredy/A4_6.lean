@@ -200,23 +200,22 @@ theorem leftDiv_div_eps {a b : 𝒜} (R : a ⟶ b) :
 def wlp {a b : 𝒜} (R : a ⟶ b) : PowerAllegory.powerObj b ⟶ PowerAllegory.powerObj a :=
   A (∋ b / R)
 
-theorem wlp_is_map {a b : 𝒜} (R : a ⟶ b) : Map (wlp R) := A_is_map' _
-
-theorem wlp_eps {a b : 𝒜} (R : a ⟶ b) : wlp R ≫ ∋ a = ∋ b / R := A_eps_eq' _
-
 /-- `wlp` is contravariantly functorial (sequential composition of programs). -/
 theorem wlp_comp {a b c : 𝒜} (R : a ⟶ b) (S : b ⟶ c) :
     wlp (R ≫ S) = wlp S ≫ wlp R := by
-  have hmap : Map (wlp S ≫ wlp R) := map_comp (wlp_is_map S) (wlp_is_map R)
+  have hmap : Map (wlp S ≫ wlp R) := map_comp (A_is_map' _) (A_is_map' _)
   have heps : (wlp S ≫ wlp R) ≫ ∋ a = ∋ c / (R ≫ S) := by
-    rw [Cat.assoc, wlp_eps R, map_comp_div (wlp_is_map S) (∋ b) R, wlp_eps S, div_comp_assoc]
+    rw [Cat.assoc, show wlp R ≫ ∋ a = ∋ b / R from A_eps_eq' _,
+      map_comp_div (show Map (wlp S) from A_is_map' _) (∋ b) R,
+      show wlp S ≫ ∋ b = ∋ c / S from A_eps_eq' _,
+      div_comp_assoc]
   exact (A_unique _ _ hmap heps).symm
 
 /-- B&dM 4.52's refinement order: `R ⊑ S` iff `wlp S ≤ wlp R` in the predicate-transformer
     order `f ≤ g ≡ f ≫ ∋ ⊑ g ≫ ∋`. -/
 theorem wlp_antitone_iff {a b : 𝒜} (R S : a ⟶ b) :
     R ⊑ S ↔ wlp S ≫ ∋ a ⊑ wlp R ≫ ∋ a := by
-  rw [wlp_eps S, wlp_eps R]
+  rw [show wlp S ≫ ∋ a = ∋ b / S from A_eps_eq' _, show wlp R ≫ ∋ a = ∋ b / R from A_eps_eq' _]
   constructor
   · intro h
     apply (le_div_iff _ _ _).mpr
