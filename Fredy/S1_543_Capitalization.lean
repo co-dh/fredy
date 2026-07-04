@@ -2149,33 +2149,48 @@ theorem isPullback_legs_congr {𝒟 : Type u} [Cat.{u} 𝒟] {A B C : 𝒟} {f :
     (Cone.mk p π₁' π₂' (by rw [← h₁, ← h₂]; exact w)).IsPullback := by
   subst h₁; subst h₂; exact hc
 
-/-- **`baseSliceObj` preserves pullbacks** (all cones).  Any pullback cone of a cospan `(f, g)` is
-    iso (apex) to the §1.432 chosen one (`isIso_of_two_pullbacks`); `baseSliceObj_pres_pullback`
-    sends the chosen one to a pullback, and `isPullback_of_iso_apex` transports along the
-    `baseSliceObj`-image of that apex iso. -/
-theorem baseSlice_preservesPullbacks [HasEqualizers 𝒞] :
-    PreservesPullbacks (baseSliceObj (𝒞 := 𝒞)) := by
+/-- **Chosen-pullback preservation upgrades to all-pullback preservation.**  If a functor `F`
+    sends the §1.432 *chosen* pullback (`products_equalizers_implies_pullbacks`) of every cospan to
+    a pullback cone, then `F` preserves ALL pullbacks.  An arbitrary pullback `c` of `(f, g)` is
+    canonically iso (apex) to the chosen `P` (`isIso_of_two_pullbacks`); `isPullback_of_iso_apex`
+    transports the chosen image-pullback along the `F`-image of that apex iso, and
+    `isPullback_legs_congr` rewrites the transported legs `F m ≫ F P.πᵢ` to `F c.πᵢ`.  DRY hub for
+    `baseSlice_preservesPullbacks` and (via `objIncl_preserves_pullbacks`)
+    `objIncl_preservesPullbacks_generic`. -/
+theorem preservesPullbacks_of_chosenPullback {𝒜 ℬ : Type u} [Cat.{u} 𝒜] [Cat.{u} ℬ]
+    [HasBinaryProducts 𝒜] [HasEqualizers 𝒜] (F : 𝒜 → ℬ) [hF : Functor F]
+    (hchosen : ∀ {A B C : 𝒜} (f : A ⟶ C) (g : B ⟶ C),
+      (Cone.mk (f := hF.map f) (g := hF.map g)
+        (F (products_equalizers_implies_pullbacks f g).cone.pt)
+        (hF.map (products_equalizers_implies_pullbacks f g).cone.π₁)
+        (hF.map (products_equalizers_implies_pullbacks f g).cone.π₂)
+        (by rw [← hF.map_comp, ← hF.map_comp,
+                (products_equalizers_implies_pullbacks f g).cone.w])).IsPullback) :
+    PreservesPullbacks F := by
   intro A B C f g c hc
-  -- the chosen §1.432 pullback `P` and the comparison `m : c.pt ⟶ P.pt` (iso, two pullbacks).
   let P := products_equalizers_implies_pullbacks f g
   have hP : P.cone.IsPullback := P.cone_isPullback
   obtain ⟨m, ⟨hm₁, hm₂⟩, _⟩ := hP c
   have hmiso : IsIso m := isIso_of_two_pullbacks hc hP m hm₁ hm₂
-  -- `baseSliceObj`-image of `P.cone` is a pullback; transport along `baseSliceFunctor.map m` (iso).
-  have hPimg := baseSliceObj_pres_pullback (𝒞 := 𝒞) f g
-  have hmimg : IsIso (baseSliceFunctor.map m) := functor_preserves_iso (F := baseSliceObj) m hmiso
+  have hPimg := hchosen f g
+  have hmimg : IsIso (hF.map m) := functor_preserves_iso (F := F) m hmiso
   obtain ⟨n, hn₁, hn₂⟩ := hmimg
-  -- the iso-apex transport gives a pullback with legs `map m ≫ map P.πᵢ`; `hmᵢ` rewrites them to
-  -- `map c.πᵢ` (the goal cone's legs).
-  have hwleg : baseSliceFunctor.map P.cone.π₁ ≫ baseSliceFunctor.map f
-      = baseSliceFunctor.map P.cone.π₂ ≫ baseSliceFunctor.map g := by
-    rw [← baseSliceFunctor.map_comp, ← baseSliceFunctor.map_comp, P.cone.w]
-  have hc' := isPullback_of_iso_apex hPimg (baseSliceFunctor.map m) n hn₁ hn₂
-    (by show (baseSliceFunctor.map m ≫ baseSliceFunctor.map P.cone.π₁) ≫ baseSliceFunctor.map f
-          = (baseSliceFunctor.map m ≫ baseSliceFunctor.map P.cone.π₂) ≫ baseSliceFunctor.map g
+  have hwleg : hF.map P.cone.π₁ ≫ hF.map f = hF.map P.cone.π₂ ≫ hF.map g := by
+    rw [← hF.map_comp, ← hF.map_comp, P.cone.w]
+  have hc' := isPullback_of_iso_apex hPimg (hF.map m) n hn₁ hn₂
+    (by show (hF.map m ≫ hF.map P.cone.π₁) ≫ hF.map f
+          = (hF.map m ≫ hF.map P.cone.π₂) ≫ hF.map g
         rw [Cat.assoc, Cat.assoc, hwleg])
-  exact isPullback_legs_congr (by rw [← baseSliceFunctor.map_comp, hm₁])
-    (by rw [← baseSliceFunctor.map_comp, hm₂]) hc'
+  have hleg₁ : hF.map m ≫ hF.map P.cone.π₁ = hF.map c.π₁ := by rw [← hF.map_comp, hm₁]
+  have hleg₂ : hF.map m ≫ hF.map P.cone.π₂ = hF.map c.π₂ := by rw [← hF.map_comp, hm₂]
+  exact isPullback_legs_congr hleg₁ hleg₂ hc'
+
+/-- **`baseSliceObj` preserves pullbacks** (all cones).  The chosen-pullback preservation
+    `baseSliceObj_pres_pullback` upgraded to all cones by the DRY hub
+    `preservesPullbacks_of_chosenPullback`. -/
+theorem baseSlice_preservesPullbacks [HasEqualizers 𝒞] :
+    PreservesPullbacks (baseSliceObj (𝒞 := 𝒞)) :=
+  preservesPullbacks_of_chosenPullback baseSliceObj (fun f g => baseSliceObj_pres_pullback f g)
 
 /-! ### The enumeration `PrefixChain` and the well-supported-suffix condition `hwsuf`
 
