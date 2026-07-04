@@ -489,9 +489,9 @@ noncomputable instance instHalfAdditiveAb : HalfAdditiveCategory (AbelianGroupOb
     rw [ab_add_eq_diag_case, ab_choose_eq_id]
     rw [Cat.id_comp (HasBinaryCoproducts.case x y)]
   add_eq_addR := fun {A B} x y => by
+    -- rw's closing rfl now fires (field-level pair reduces where the wrapper def didn't)
     rw [ab_add_eq_pair_codiag, ab_choose_eq_id,
         Cat.id_comp (HasBinaryCoproducts.case (Cat.id B) (Cat.id B))]
-    rfl
 
 /-- **§1.595.**  `Ab(𝒞)` is an ADDITIVE category: every hom `f` has an additive inverse.
     The witness is the pointwise negation `HomAb.neg f` (carrier `f.val ≫ B.neg`), and

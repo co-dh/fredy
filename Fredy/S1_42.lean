@@ -72,22 +72,12 @@ section Products
 
 variable [hp : HasBinaryProducts 𝒞]
 
-def prod (A B : 𝒞) : 𝒞 := hp.prod A B
-def fst  {A B : 𝒞} : prod A B ⟶ A := hp.fst
-def snd  {A B : 𝒞} : prod A B ⟶ B := hp.snd
-def pair {X A B : 𝒞} (f : X ⟶ A) (g : X ⟶ B) : X ⟶ prod A B := hp.pair f g
+-- No wrapper defs/theorems: the class fields ARE the API, re-exposed unqualified.
+-- (One-liner re-statements over wrapper defs made `rw [snd_pair]` match a different
+-- spelling than the field's; exporting keeps statements and call sites identical.)
+export HasBinaryProducts (prod fst snd pair fst_pair snd_pair pair_uniq)
 
-@[simp]
-theorem fst_pair {X A B : 𝒞} (f : X ⟶ A) (g : X ⟶ B) : pair f g ≫ fst = f :=
-  hp.fst_pair f g
-
-@[simp]
-theorem snd_pair {X A B : 𝒞} (f : X ⟶ A) (g : X ⟶ B) : pair f g ≫ snd = g :=
-  hp.snd_pair f g
-
-theorem pair_uniq {X A B : 𝒞} (f : X ⟶ A) (g : X ⟶ B) (h : X ⟶ prod A B)
-    (h₁ : h ≫ fst = f) (h₂ : h ≫ snd = g) : h = pair f g :=
-  hp.pair_uniq f g h h₁ h₂
+attribute [simp] HasBinaryProducts.fst_pair HasBinaryProducts.snd_pair
 
 def diag (A : 𝒞) : A ⟶ prod A A := pair (Cat.id A) (Cat.id A)
 
