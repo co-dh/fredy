@@ -1427,8 +1427,7 @@ theorem extJoin_least {A : 𝒞} (S : Subobject 𝒞 A → Prop) (U : Subobject 
 noncomputable def locallyComplete_of_powers_wellPowered : LocallyComplete 𝒞 where
   toHasImages := inferInstance
   sup S := extJoin hpow wp S
-  sup_upper := extJoin_upper hpow wp
-  sup_least := extJoin_least hpow wp
+  sup_isSup := fun S => ⟨extJoin_upper hpow wp S, extJoin_least hpow wp S⟩
 
 /-- **§1.84 FRAME LAW** — inverse image preserves arbitrary joins:
     `f#(⊔ S) ≤ ⊔ { f# B' | B' ∈ S }`.
