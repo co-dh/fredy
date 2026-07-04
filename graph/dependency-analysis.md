@@ -110,8 +110,15 @@ depends on Chapter 1."
 
 - `eig(A)`: meaningless (no cycles → all eigenvalues 0).
 - **SVD: the only spectral tool that pays off** — a compact per-declaration fingerprint in which
-  duplicates are nearest neighbours (dup candidate generator; also a deterministic viz layout).
+  duplicates are nearest neighbours. It is now the **default candidate generator** in
+  `scripts/dep_dup.py` (nearest neighbours in the 32-D SVD embedding of the hub-removed matrix); it
+  found a strict superset of the old rare-dep inverted index, because it also catches duplicates that
+  share only *mid-frequency* deps. (Could also give the viz a deterministic layout.)
 - PageRank: same ranking as in-degree; nothing new.
 - Laplacian: says the codebase isn't cleanly modular — a real diagnosis, but not a dedup tool.
-- The actual duplicate finder is the **local, non-spectral** method: hub-removed row similarity +
-  cross-file + name/type (`scripts/dep_dup.py`).
+- The duplicate *decision* is still local: hub-removed row Jaccard + name/type. **Caveat:** matching
+  types by token-set equality is fooled by argument order — `product_mono_of_mono` (first factor monic)
+  vs `product_mono_of_mono_right` (second factor) score `type=1.0` but are distinct lemmas. Clean
+  precision needs comparing the type up to structure or hashing the proof term (Fable's `Preserves` /
+  `Reflects` warning). Of the top 50 candidates, ~13 are real accidental duplicates, ~13 are
+  intentional per-datatype / per-case-study copies, ~10 are argument-order false positives.
