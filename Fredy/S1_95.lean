@@ -116,9 +116,11 @@ private theorem classify_eq_of_relPullback_iso [Topos 𝒞] [HasPullbacks 𝒞]
     a ≫ powerClassify E = a' ≫ powerClassify E := by
   rw [← powerClassify_natural E a, ← powerClassify_natural E a']
   exact HasPowerObject.is_universal.classify_unique W (relPullback a E) _ _
-    (powerClassify_spec (relPullback a E))
-    ⟨relHom_trans h₁ (powerClassify_spec (relPullback a' E)).1,
-     relHom_trans (powerClassify_spec (relPullback a' E)).2 h₂⟩
+    (HasPowerObject.is_universal.classify_exists W (relPullback a E)).choose_spec
+    ⟨relHom_trans h₁
+        (HasPowerObject.is_universal.classify_exists W (relPullback a' E)).choose_spec.1,
+     relHom_trans (HasPowerObject.is_universal.classify_exists W (relPullback a' E)).choose_spec.2
+        h₂⟩
 
 /-- A point of `E ⊚ E` over `(x, z)` from witnesses `x E y` and `y E z`. -/
 private theorem composePoint [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
@@ -189,9 +191,10 @@ private theorem relPullback_iso_of_classify_eq [Topos 𝒞] [HasPullbacks 𝒞]
   have ea' : powerClassify (relPullback a' E) = a' ≫ powerClassify E := powerClassify_natural E a'
   have h1 : RelHom (relPullback a E)
       (relPullback (powerClassify (relPullback a E)) HasPowerObject.mem) :=
-    (powerClassify_spec (relPullback a E)).1
+    (HasPowerObject.is_universal.classify_exists W (relPullback a E)).choose_spec.1
   have h2 : RelHom (relPullback (powerClassify (relPullback a' E)) HasPowerObject.mem)
-      (relPullback a' E) := (powerClassify_spec (relPullback a' E)).2
+      (relPullback a' E) :=
+    (HasPowerObject.is_universal.classify_exists W (relPullback a' E)).choose_spec.2
   rw [ea] at h1; rw [ea', ← heq] at h2
   exact relHom_trans h1 h2
 
@@ -416,7 +419,7 @@ noncomputable def preTopos_rtc_has_coequalizers [inst : PreTopos 𝒞]
           `⋂{S | S reflexive-transitive, R ⊑ S}` over a subobject family of `[B×B]`, whose
           EXISTENCE rests on §1.54's `capitalization_lemma` glb-construction (the genuine
           §1.543 residual; see `topos_has_rtc` in S1_94 which carries it as a hypothesis).
-          The closure-ASSEMBLY (`rtc`/`rtc_reflexive`/`rtc_transitive`/`rtc_minimal`) is
+          The closure-ASSEMBLY (`rtc`/reflexivity/`rtc_transitive`/`rtc_minimal`) is
           Sorry-free; only the glb *instance* for a bare topos is missing.
 
     With a `HasReflTransClosure 𝒞` instance, this is literally

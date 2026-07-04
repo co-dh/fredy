@@ -100,11 +100,6 @@ def quotLe {a b : 𝒞} (x y : BinRelQuot (𝒞 := 𝒞) a b) : Prop :=
       ⟨fun h => rel_le_trans (rel_le_trans hR.2 h) hS.1,
        fun h => rel_le_trans (rel_le_trans hR.1 h) hS.2⟩)
 
-/-- Antisymmetry: mutual containment IS Lean equality on the quotient. -/
-theorem quotLe_antisymm {a b : 𝒞} {x y : BinRelQuot (𝒞 := 𝒞) a b}
-    (h₁ : quotLe x y) (h₂ : quotLe y x) : x = y :=
-  Quotient.inductionOn₂ x y (fun _ _ h₁ h₂ => Quotient.sound ⟨h₁, h₂⟩) h₁ h₂
-
 /-- `relClass` is monotone: `R ⊂ S → relClass R ≤ relClass S`. -/
 theorem relClass_mono {a b : 𝒞} {R S : BinRel 𝒞 a b} (h : RelLe R S) :
     quotLe (relClass R) (relClass S) := h
@@ -116,7 +111,7 @@ end Quot
   Composition is relation composition `⊚` (diagram order: `relClass R ≫ relClass S`
   is "first R then S"); identity is the graph of `id`.  All three category laws come
   from the Ch1 identity/associativity containments (`graph_id_comp`, `comp_graph_id`,
-  `compose_assoc_of_regular`) collapsed by `quotLe_antisymm`. -/
+  `compose_assoc_of_regular`) collapsed to a Lean equality by `Quotient.sound`. -/
 
 section RelCat
 variable [RegularCategory 𝒞]
@@ -141,14 +136,14 @@ instance (priority := 0) relCat : Cat.{max u v} (RelObj 𝒞) where
   comp x y := qComp x y
   id_comp {A B} x := by
     refine Quotient.inductionOn x (fun R => ?_)
-    exact quotLe_antisymm (graph_id_comp R) (comp_graph_id_left R)
+    exact Quotient.sound ⟨graph_id_comp R, comp_graph_id_left R⟩
   comp_id {A B} x := by
     refine Quotient.inductionOn x (fun R => ?_)
-    exact quotLe_antisymm (comp_graph_id R) (comp_graph_id_right R)
+    exact Quotient.sound ⟨comp_graph_id R, comp_graph_id_right R⟩
   assoc {A B C D} x y z := by
     refine Quotient.inductionOn₃ x y z (fun R S T => ?_)
-    exact quotLe_antisymm (compose_assoc_of_regular R S T).1
-      (compose_assoc_of_regular R S T).2
+    exact Quotient.sound ⟨(compose_assoc_of_regular R S T).1,
+      (compose_assoc_of_regular R S T).2⟩
 
 end RelCat
 
@@ -195,12 +190,12 @@ instance (priority := 0) relAllegory : Allegory.{max u v} (RelObj 𝒞) where
   -- (R ⊚ S)° = S° ⊚ R°
   recip_comp {a b c} x y := by
     refine Quotient.inductionOn₂ x y (fun R S => ?_)
-    exact quotLe_antisymm (reciprocal_comp_le R S) (comp_reciprocal_le R S)
+    exact Quotient.sound ⟨reciprocal_comp_le R S, comp_reciprocal_le R S⟩
   -- (R ⊓ S)° = R° ⊓ S°  (note: book's recip_inter has same-order R°∩S°;
   --  Ch1 gives S°⊓R°, equal by inter_comm — we route via antisymmetry to R°⊓S°).
   recip_inter {a b} x y := by
     refine Quotient.inductionOn₂ x y (fun R S => ?_)
-    refine quotLe_antisymm ?_ ?_
+    refine Quotient.sound ⟨?_, ?_⟩
     · exact le_intersect
         (reciprocal_mono (intersect_le_left R S)) (reciprocal_mono (intersect_le_right R S))
     · -- R°⊓S° ⊆ (R⊓S)°: factor through S°⊓R° (inter_comm) then intersect_reciprocal_le.
@@ -210,15 +205,15 @@ instance (priority := 0) relAllegory : Allegory.{max u v} (RelObj 𝒞) where
       exact rel_le_trans w' w
   inter_idem {a b} x := by
     refine Quotient.inductionOn x (fun R => ?_)
-    exact quotLe_antisymm (intersect_le_left R R) (le_intersect (rel_le_refl R) (rel_le_refl R))
+    exact Quotient.sound ⟨intersect_le_left R R, le_intersect (rel_le_refl R) (rel_le_refl R)⟩
   inter_comm {a b} x y := by
     refine Quotient.inductionOn₂ x y (fun R S => ?_)
-    exact quotLe_antisymm
-      (le_intersect (intersect_le_right R S) (intersect_le_left R S))
-      (le_intersect (intersect_le_right S R) (intersect_le_left S R))
+    exact Quotient.sound
+      ⟨le_intersect (intersect_le_right R S) (intersect_le_left R S),
+       le_intersect (intersect_le_right S R) (intersect_le_left S R)⟩
   inter_assoc {a b} x y z := by
     refine Quotient.inductionOn₃ x y z (fun R S T => ?_)
-    refine quotLe_antisymm ?_ ?_
+    refine Quotient.sound ⟨?_, ?_⟩
     · exact le_intersect
         (le_intersect (intersect_le_left R _) (rel_le_trans (intersect_le_right R _) (intersect_le_left S T)))
         (rel_le_trans (intersect_le_right R _) (intersect_le_right S T))
@@ -229,7 +224,7 @@ instance (priority := 0) relAllegory : Allegory.{max u v} (RelObj 𝒞) where
   semidistrib {a b c} x y z := by
     refine Quotient.inductionOn₃ x y z (fun R S T => ?_)
     -- LHS = R⊚(S⊓T); RHS = ((R⊚S) ⊓ (R⊚(S⊓T))) ⊓ (R⊚T).
-    refine quotLe_antisymm ?_ ?_
+    refine Quotient.sound ⟨?_, ?_⟩
     · -- R⊚(S⊓T) ⊆ RHS: below each conjunct by monotonicity.
       exact le_intersect
         (le_intersect (compose_le (rel_le_refl R) (intersect_le_left S T))
@@ -240,7 +235,7 @@ instance (priority := 0) relAllegory : Allegory.{max u v} (RelObj 𝒞) where
   -- modular law: (R⊚S)⊓T = ((R⊚S)⊓T) ⊓ ((R ⊓ (T⊚S°)) ⊚ S).
   modular {a b c} x y z := by
     refine Quotient.inductionOn₃ x y z (fun R S T => ?_)
-    refine quotLe_antisymm ?_ ?_
+    refine Quotient.sound ⟨?_, ?_⟩
     · -- LHS ⊆ RHS: LHS ⊆ LHS (refl) and LHS ⊆ (R⊓(T⊚S°))⊚S by modular_identity.
       exact le_intersect (rel_le_refl _) (modular_identity R S T)
     · -- RHS ⊆ LHS = (R⊚S)⊓T: the first conjunct.
@@ -256,8 +251,7 @@ theorem quotLe_iff_algLe {a b : 𝒞} (x y : BinRelQuot (𝒞 := 𝒞) a b) :
   rw [qInter_mk]
   constructor
   · intro h
-    exact quotLe_antisymm (intersect_le_left R S)
-      (le_intersect (rel_le_refl R) h)
+    exact Quotient.sound ⟨intersect_le_left R S, le_intersect (rel_le_refl R) h⟩
   · intro h
     -- [R⊓S] = [R] gives R ⊑ R⊓S, hence R ⊑ S via intersect_le_right.
     have hRRS : quotLe (relClass R) (relClass (R ⊓ S)) := by
@@ -321,7 +315,7 @@ private noncomputable def bottomToZero (B : 𝒞) : (PreLogos.bottom B).dom ⟶ 
 
 /-- The empty relation is the global minimum: `emptyRel a b ⊂ R` for every `R`. -/
 theorem emptyRel_le {a b : 𝒞} (R : BinRel 𝒞 a b) : RelLe (emptyRel a b) R := by
-  apply relLe_of_subLe
+  apply (relLe_iff_subLe _ _).2
   -- relSub(emptyRel) ≤ relSub R via subobject_le_of_dom_to_zero (its dom maps to 0).
   have hm : (relSub (emptyRel a b)).dom ⟶ zeroObj (𝒞 := 𝒞) := by
     -- (relSub (subRel (bottom))).dom = (bottom).dom
@@ -349,7 +343,7 @@ private theorem hom_uniq_of_to_zero {X Y : 𝒞} (m : X ⟶ zeroObj (𝒞 := �
     (`emptyRel` minimal gives the reverse, so this is the equation `R ⊚ 0 = 0`.) -/
 theorem comp_emptyRel_le {a b c : 𝒞} (R : BinRel 𝒞 a b) :
     RelLe (R ⊚ emptyRel b c) (emptyRel a c) := by
-  apply relLe_of_subLe
+  apply (relLe_iff_subLe _ _).2
   let pb := HasPullbacks.has R.colB (emptyRel b c).colA
   let s : pb.cone.pt ⟶ prod a c :=
     pair (pb.cone.π₁ ≫ R.colA) (pb.cone.π₂ ≫ (emptyRel b c).colB)
@@ -384,7 +378,7 @@ theorem comp_emptyRel_le {a b c : 𝒞} (R : BinRel 𝒞 a b) :
     now the pullback's `π₁`-leg lands in `emptyRel.src ≅ 0`. -/
 theorem emptyRel_comp_le {a b c : 𝒞} (R : BinRel 𝒞 b c) :
     RelLe (emptyRel a b ⊚ R) (emptyRel a c) := by
-  apply relLe_of_subLe
+  apply (relLe_iff_subLe _ _).2
   let pb := HasPullbacks.has (emptyRel a b).colB R.colA
   let s : pb.cone.pt ⟶ prod a c :=
     pair (pb.cone.π₁ ≫ (emptyRel a b).colA) (pb.cone.π₂ ≫ R.colB)
@@ -432,22 +426,22 @@ instance (priority := 0) relDistributiveAllegory : DistributiveAllegory (RelObj 
     -- 0 ⊚ R = 0  and  R ⊚ 0 = 0  (antisymmetry: emptyRel minimal + absorbing).
     zero_comp := fun {A B C} R => by
       refine Quotient.inductionOn R (fun S => ?_)
-      exact quotLe_antisymm (emptyRel_comp_le S) (emptyRel_le _)
+      exact Quotient.sound ⟨emptyRel_comp_le S, emptyRel_le _⟩
     comp_zero := fun {A B C} R => by
       refine Quotient.inductionOn R (fun S => ?_)
-      exact quotLe_antisymm (comp_emptyRel_le S) (emptyRel_le _)
+      exact Quotient.sound ⟨comp_emptyRel_le S, emptyRel_le _⟩
     -- union semi-lattice laws (UMP of ∪ᵣ).
     union_idem := fun {A B} x => by
       refine Quotient.inductionOn x (fun R => ?_)
-      exact quotLe_antisymm (le_relUnion (rel_le_refl R) (rel_le_refl R)) (relUnion_le_left R R)
+      exact Quotient.sound ⟨le_relUnion (rel_le_refl R) (rel_le_refl R), relUnion_le_left R R⟩
     union_comm := fun {A B} x y => by
       refine Quotient.inductionOn₂ x y (fun R S => ?_)
-      exact quotLe_antisymm
-        (le_relUnion (relUnion_le_right S R) (relUnion_le_left S R))
-        (le_relUnion (relUnion_le_right R S) (relUnion_le_left R S))
+      exact Quotient.sound
+        ⟨le_relUnion (relUnion_le_right S R) (relUnion_le_left S R),
+         le_relUnion (relUnion_le_right R S) (relUnion_le_left R S)⟩
     union_assoc := fun {A B} x y z => by
       refine Quotient.inductionOn₃ x y z (fun R S T => ?_)
-      refine quotLe_antisymm ?_ ?_
+      refine Quotient.sound ⟨?_, ?_⟩
       · -- R∪(S∪T) ⊆ (R∪S)∪T
         refine le_relUnion ?_ ?_
         · exact rel_le_trans (relUnion_le_left R S) (relUnion_le_left _ T)
@@ -463,27 +457,27 @@ instance (priority := 0) relDistributiveAllegory : DistributiveAllegory (RelObj 
     -- absorption laws.
     union_inter_absorb := fun {A B} x y => by
       refine Quotient.inductionOn₂ x y (fun R S => ?_)
-      exact quotLe_antisymm
-        (le_relUnion (rel_le_refl R) (intersect_le_right S R)) (relUnion_le_left R _)
+      exact Quotient.sound
+        ⟨le_relUnion (rel_le_refl R) (intersect_le_right S R), relUnion_le_left R _⟩
     inter_union_absorb := fun {A B} x y => by
       refine Quotient.inductionOn₂ x y (fun R S => ?_)
-      exact quotLe_antisymm (intersect_le_right (R ∪ᵣ S) R)
-        (le_intersect (relUnion_le_left R S) (rel_le_refl R))
+      exact Quotient.sound ⟨intersect_le_right (R ∪ᵣ S) R,
+        le_intersect (relUnion_le_left R S) (rel_le_refl R)⟩
     -- composition distributes over union (§1.616, both directions).
     comp_union_distrib := fun {A B C} x y z => by
       refine Quotient.inductionOn₃ x y z (fun R S T => ?_)
-      exact quotLe_antisymm (compose_union_right R S T)
-        (le_relUnion (compose_le (rel_le_refl R) (relUnion_le_left S T))
-          (compose_le (rel_le_refl R) (relUnion_le_right S T)))
+      exact Quotient.sound ⟨compose_union_right R S T,
+        le_relUnion (compose_le (rel_le_refl R) (relUnion_le_left S T))
+          (compose_le (rel_le_refl R) (relUnion_le_right S T))⟩
     -- intersection distributes over union (§1.616, both directions).
     inter_union_distrib := fun {A B} x y z => by
       refine Quotient.inductionOn₃ x y z (fun R S T => ?_)
-      exact quotLe_antisymm (rel_inter_union_le R S T) (rel_union_inter_le R S T)
+      exact Quotient.sound ⟨rel_inter_union_le R S T, rel_union_inter_le R S T⟩
     -- 0 ∪ R = R.
     zero_union := fun {A B} x => by
       refine Quotient.inductionOn x (fun R => ?_)
-      exact quotLe_antisymm
-        (le_relUnion (emptyRel_le R) (rel_le_refl R)) (relUnion_le_right _ R) }
+      exact Quotient.sound
+        ⟨le_relUnion (emptyRel_le R) (rel_le_refl R), relUnion_le_right _ R⟩ }
 
 end RelDistributive
 
@@ -522,7 +516,7 @@ def relGraph {a b : 𝒞} (f : a ⟶ b) : BinRelQuot (𝒞 := 𝒞) a b := relCl
 theorem relGraph_comp_recip_of_monic {a b : 𝒞} (f : a ⟶ b) (hf : Monic f) :
     qComp (relGraph f) (qRecip (relGraph f)) = relId a := by
   show relClass (graph f ⊚ (graph f)°) = relClass (graph (Cat.id a))
-  exact quotLe_antisymm (graph_comp_recip_le_one_of_mono f hf) (graph_is_map f).1
+  exact Quotient.sound ⟨graph_comp_recip_le_one_of_mono f hf, (graph_is_map f).1⟩
 
 /-- **§2.214 (graph injections are maps).**  Every graph `[graph f]` is entire + simple
     (a MAP) in `Rel(C)`; in particular the would-be coproduct injections are maps. -/
@@ -538,7 +532,7 @@ theorem relGraph_simple {a b : 𝒞} (f : a ⟶ b) :
 theorem comp_le_empty_of_pullback_to_zero {a b c : 𝒞} (R : BinRel 𝒞 a b) (S : BinRel 𝒞 b c)
     (m : (HasPullbacks.has R.colB S.colA).cone.pt ⟶ zeroObj (𝒞 := 𝒞)) :
     RelLe (R ⊚ S) (emptyRel a c) := by
-  apply relLe_of_subLe
+  apply (relLe_iff_subLe _ _).2
   let pb := HasPullbacks.has R.colB S.colA
   let s : pb.cone.pt ⟶ prod a c := pair (pb.cone.π₁ ≫ R.colA) (pb.cone.π₂ ≫ S.colB)
   have hRX_arr : (relSub (R ⊚ S)).arr = (image s).arr := by
@@ -572,10 +566,10 @@ theorem relGraph_inl_comp_recip_inr {A B : 𝒞} :
       = (relClass (emptyRel A B)) := by
   show relClass (graph HasBinaryCoproducts.inl ⊚ (graph HasBinaryCoproducts.inr)°)
       = relClass (emptyRel A B)
-  exact quotLe_antisymm
-    (comp_le_empty_of_pullback_to_zero (graph HasBinaryCoproducts.inl)
-      ((graph HasBinaryCoproducts.inr)°) (inlInrPullbackToZero A B))
-    (emptyRel_le _)
+  exact Quotient.sound
+    ⟨comp_le_empty_of_pullback_to_zero (graph HasBinaryCoproducts.inl)
+      ((graph HasBinaryCoproducts.inr)°) (inlInrPullbackToZero A B),
+    emptyRel_le _⟩
 
 /-- **§2.214 eq (3) — right/left disjointness** (symmetric). -/
 theorem relGraph_inr_comp_recip_inl {A B : 𝒞} :
@@ -584,9 +578,9 @@ theorem relGraph_inr_comp_recip_inl {A B : 𝒞} :
       = (relClass (emptyRel B A)) := by
   show relClass (graph HasBinaryCoproducts.inr ⊚ (graph HasBinaryCoproducts.inl)°)
       = relClass (emptyRel B A)
-  refine quotLe_antisymm
-    (comp_le_empty_of_pullback_to_zero (graph HasBinaryCoproducts.inr)
-      ((graph HasBinaryCoproducts.inl)°) ?_) (emptyRel_le _)
+  refine Quotient.sound
+    ⟨comp_le_empty_of_pullback_to_zero (graph HasBinaryCoproducts.inr)
+      ((graph HasBinaryCoproducts.inl)°) ?_, emptyRel_le _⟩
   -- pullback(inr, inl).pt → pullback(inl, inr).pt (swap legs) → 0.
   let pbRL := HasPullbacks.has (HasBinaryCoproducts.inr (A := A) (B := B)) HasBinaryCoproducts.inl
   let pbLR := HasPullbacks.has (HasBinaryCoproducts.inl (A := A) (B := B)) HasBinaryCoproducts.inr
@@ -612,7 +606,7 @@ theorem relGraph_inr_comp_recip_inl {A B : 𝒞} :
     [graph f] ⊚ [graph g]`.  Both containments are Ch1 (`graph_comp` / `comp_graph`). -/
 theorem relGraph_comp {a b c : 𝒞} (f : a ⟶ b) (g : b ⟶ c) :
     relGraph (f ≫ g) = qComp (relGraph f) (relGraph g) :=
-  quotLe_antisymm (graph_comp f g) (comp_graph f g)
+  Quotient.sound ⟨graph_comp f g, comp_graph f g⟩
 
 /-- **`[graph e]° ≫ [graph e] = 1` for a cover `e`** (in particular an iso): a cover's
     reciprocal-then-graph composite is the unit (`cover_iff_reciprocal_comp_self_eq_one`).
@@ -621,7 +615,7 @@ theorem relGraph_recip_comp_self_of_cover {a b : 𝒞} (e : a ⟶ b) (he : Cover
     (relGraph e)° ≫ (relGraph e) = @Cat.id (RelObj 𝒞) _ ⟨b⟩ := by
   show relClass ((graph e)° ⊚ graph e) = relClass (graph (Cat.id b))
   obtain ⟨hle, hge⟩ := (cover_iff_reciprocal_comp_self_eq_one e).mp he
-  exact quotLe_antisymm hle hge
+  exact Quotient.sound ⟨hle, hge⟩
 
 open Freyd.Alg in
 /-- **§2.214 eq (5)** — the joint-cover equation.  `[inl]° ≫ [inl] ∪ [inr]° ≫ [inr] = 1`
@@ -879,7 +873,7 @@ private theorem entire_relClass {a b : 𝒞} (R : BinRel 𝒞 a b) :
     exact rel_le_trans hqe (intersect_le_right _ _)
   · intro h
     -- graph id ⊂ R⊚R° gives graph id ⊓ R⊚R° ≈ graph id.
-    exact quotLe_antisymm (intersect_le_left _ _) (le_intersect (rel_le_refl _) h)
+    exact Quotient.sound ⟨intersect_le_left _ _, le_intersect (rel_le_refl _) h⟩
 
 /-- **Simple bridge**: `Alg.Simple (relClass R) ↔ Simple R` (BinRel).  Both say
     `R°⊚R ⊂ graph id`. -/
@@ -915,13 +909,13 @@ instance (priority := 0) relTabularAllegory : TabularAllegory (RelObj 𝒞) :=
         relClass_graph_map R.colA, relClass_graph_map R.colB, ?_, ?_⟩
       · -- [R] = [graph R.colA]° ≫ [graph R.colB]
         show relClass R = relClass ((graph R.colA)° ⊚ graph R.colB)
-        exact quotLe_antisymm (le_reconstitute R) (reconstitute_le R)
+        exact Quotient.sound ⟨le_reconstitute R, reconstitute_le R⟩
       · -- f f° ∩ g g° = 1_{R.src}
         show qInter (relClass (graph R.colA ⊚ (graph R.colA)°))
               (relClass (graph R.colB ⊚ (graph R.colB)°)) = relId R.src
         rw [qInter_mk]
         -- relClass (graph colA ⊚ (graph colA)° ⊓ graph colB ⊚ (graph colB)°) = relId R.src
-        refine quotLe_antisymm (jointMonic_le R) ?_
+        refine Quotient.sound ⟨jointMonic_le R, ?_⟩
         -- 1 ⊂ ff° ∩ gg° : both columns are entire (graphs are maps).
         exact le_intersect (graph_is_map R.colA).1 (graph_is_map R.colB).1 }
 
@@ -1155,8 +1149,9 @@ theorem embedRel_faithful {a b : 𝒞} {f g : a ⟶ b} (h : embedRel f = embedRe
     level).  `tabulated_is_map_iff_left_iso` (§1.564) turns that into `IsIso R.colA` — its left
     leg is a cover (entire) and monic (simple), and a regular category is balanced, so cover+mono
     ⟹ iso (`monic_cover_iso`).  With the inverse `i := R.colA⁻¹`, set `f := i ≫ R.colB`;
-    `tabulated_left_iso_eq_graph` (§1.564) gives `R ≈ graph f` (mutual `⊂`), collapsed by
-    `quotLe_antisymm`.  (`R` and `BinRel.mk R.src R.colA R.colB R.isMonicPair` are defeq by η.) -/
+    `tabulated_left_iso_eq_graph` (§1.564) gives `R ≈ graph f` (mutual `⊂`), collapsed to a Lean
+    equality by `Quotient.sound`.  (`R` and `BinRel.mk R.src R.colA R.colB R.isMonicPair` are
+    defeq by η.) -/
 theorem embedRel_full {a b : 𝒞} (R : BinRel 𝒞 a b)
     (M : Freyd.Alg.Map (𝒜 := RelObj 𝒞) (a := ⟨a⟩) (b := ⟨b⟩) (relClass R)) :
     ∃ f : a ⟶ b, relClass R = relClass (graph f) := by
@@ -1168,7 +1163,7 @@ theorem embedRel_full {a b : 𝒞} (R : BinRel 𝒞 a b)
   refine ⟨i ≫ R.colB, ?_⟩
   obtain ⟨hle, hge⟩ :=
     tabulated_left_iso_eq_graph R.colA R.colB R.isMonicPair i hi₁ hi₂
-  exact quotLe_antisymm (relClass_mono hle) (relClass_mono hge)
+  exact Quotient.sound ⟨relClass_mono hle, relClass_mono hge⟩
 
 /-! ### The functor `embedRel : C → Map(Rel C)` and the category iso `C ≅ Map(Rel C)`.
 
@@ -1185,12 +1180,13 @@ theorem embedRel_id (a : 𝒞) :
 
 /-- `embedRel` preserves composition: `embedRel (f ≫ g) = embedRel f ≫ embedRel g`.  On `val`
     this is `relClass (graph (f ≫ g)) = qComp (relClass (graph f)) (relClass (graph g))`, the
-    mutual-`⊂` graph-composition law (`graph_comp` / `comp_graph`) collapsed by `quotLe_antisymm`. -/
+    mutual-`⊂` graph-composition law (`graph_comp` / `comp_graph`) collapsed to a Lean equality
+    by `Quotient.sound`. -/
 theorem embedRel_comp {a b c : 𝒞} (f : a ⟶ b) (g : b ⟶ c) :
     embedRel (f ≫ g)
       = @Cat.comp (MapObj (RelObj 𝒞)) (mapCat (𝒜 := RelObj 𝒞)) ⟨a⟩ ⟨b⟩ ⟨c⟩
           (embedRel f) (embedRel g) :=
-  Subtype.ext (quotLe_antisymm (graph_comp f g) (comp_graph f g))
+  Subtype.ext (Quotient.sound ⟨graph_comp f g, comp_graph f g⟩)
 
 /-- **§2.148 dual / §2.214 core — `C ≅ Map(Rel C)`.**  The graph embedding is an isomorphism of
     categories: identity-on-objects (`⟨·⟩`), functorial (`embedRel_id`/`embedRel_comp`), FAITHFUL
@@ -2298,7 +2294,7 @@ noncomputable def RegularFunctor.relMap (hreg : RegularFunctor F) {A B : C}
     (x : BinRelQuot (𝒞 := C) A B) : BinRelQuot (𝒞 := D) (F A) (F B) :=
   Quotient.liftOn x (relMapRep hreg) (by
     intro R S ⟨hRS, hSR⟩
-    exact quotLe_antisymm (relImageObj_mono hreg hRS) (relImageObj_mono hreg hSR))
+    exact Quotient.sound ⟨relImageObj_mono hreg hRS, relImageObj_mono hreg hSR⟩)
 
 @[simp] theorem RegularFunctor.relMap_mk (hreg : RegularFunctor F) {A B : C}
     (R : BinRel C A B) :
@@ -2338,7 +2334,7 @@ theorem RegularFunctor.relMap_recip (hreg : RegularFunctor F) {A B : C}
   let σ := prodSwap (F A) (F B)
   let Ip := image (pair (hF.map R.colA) (hF.map R.colB))
   let Iq := image (pair (hF.map R.colB) (hF.map R.colA))
-  apply quotLe_antisymm
+  refine Quotient.sound ⟨?_, ?_⟩
   · -- `c : Iq.dom → Ip.dom`, `c ≫ (Ip.arr ≫ σ) = Iq.arr`.
     obtain ⟨c, hc⟩ := hPimg.2 _ hQimg.1
     have hc' : c ≫ (Ip.arr ≫ σ) = Iq.arr := hc
@@ -2558,7 +2554,7 @@ theorem RegularFunctor.relMap_comp (hreg : RegularFunctor F) {A B : C}
   refine Quotient.inductionOn₂ x y (fun R S => ?_)
   show relClass (relImageObj hreg (R ⊚ S)) = qComp (relClass _) (relClass _)
   rw [qComp_mk]
-  exact quotLe_antisymm (relImageObj_compose_le hreg R S) (relImageObj_le_compose hreg R S)
+  exact Quotient.sound ⟨relImageObj_compose_le hreg R S, relImageObj_le_compose hreg R S⟩
 
 /-! ### §2.218 (2a) — `Rel(F)` preserves intersection
 
@@ -2755,7 +2751,7 @@ theorem RegularFunctor.relMap_inter (hreg : RegularFunctor F) {A B : C}
   refine Quotient.inductionOn₂ x y (fun R S => ?_)
   show relClass (relImageObj hreg (R ⊓ S)) = qInter (relClass _) (relClass _)
   rw [qInter_mk]
-  exact quotLe_antisymm (relImageObj_inter_le hreg R S) (relImageObj_le_inter hreg R S)
+  exact Quotient.sound ⟨relImageObj_inter_le hreg R S, relImageObj_le_inter hreg R S⟩
 
 /-- **(2a) — `Rel(F)` preserves the identity**: `Rel(F)(relId A) = relId (F A)`.  `relImageObj` of
     `graph (id)` is the image of the diagonal, RelLe-equivalent to `graph (id (F A))`. -/
@@ -2768,7 +2764,7 @@ theorem RegularFunctor.relMap_id (hreg : RegularFunctor F) (A : C) :
     rw [heA]; exact hF.map_id A
   have heB' : e ≫ (relImageObj hreg (graph (Cat.id A))).colB = Cat.id (F A) := by
     rw [heB]; exact hF.map_id A
-  apply quotLe_antisymm
+  refine Quotient.sound ⟨?_, ?_⟩
   · -- relImageObj ⊂ graph(id): cover e, φ = id
     refine relLe_of_cover_factor (P := F A) e hecov (Cat.id (F A)) ?_ ?_
     · show Cat.id (F A) ≫ Cat.id (F A) = e ≫ (relImageObj hreg (graph (Cat.id A))).colA
@@ -2861,9 +2857,9 @@ theorem RegularFunctor.relMap_faithful (hreg : RegularFunctor F)
   refine Quotient.inductionOn₂ x y (fun R S hRS => ?_) hxy
   have heq : relClass (relImageObj hreg R) = relClass (relImageObj hreg S) := hRS
   obtain ⟨hle, hge⟩ := Quotient.exact heq
-  exact quotLe_antisymm
-    (relImageObj_reflect_le hreg hfull hfaith hsplit hle)
-    (relImageObj_reflect_le hreg hfull hfaith hsplit hge)
+  exact Quotient.sound
+    ⟨relImageObj_reflect_le hreg hfull hfaith hsplit hle,
+     relImageObj_reflect_le hreg hfull hfaith hsplit hge⟩
 
 end SameUniverseFaithful
 
@@ -2989,9 +2985,9 @@ theorem RegularFunctor.relMap_faithful_of_reflects (hreg : RegularFunctor F)
   refine Quotient.inductionOn₂ x y (fun R S hRS => ?_) hxy
   have heq : relClass (relImageObj hreg R) = relClass (relImageObj hreg S) := hRS
   obtain ⟨hle, hge⟩ := Quotient.exact heq
-  exact quotLe_antisymm
-    (relImageObj_reflect_le_of_reflects hreg hreflIso hsplit hle)
-    (relImageObj_reflect_le_of_reflects hreg hreflIso hsplit hge)
+  exact Quotient.sound
+    ⟨relImageObj_reflect_le_of_reflects hreg hreflIso hsplit hle,
+     relImageObj_reflect_le_of_reflects hreg hreflIso hsplit hge⟩
 
 /-- **§2.218 — the packaged faithful allegory morphism `Rel(F)`.**  For a `RegularFunctor F` that
     reflects isos and whose covers split downstairs (NOT necessarily full), the allegory morphism

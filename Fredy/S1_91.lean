@@ -1594,12 +1594,6 @@ variable [∀ C : 𝒞, HasPowerObject C]
 noncomputable def fullClassify (A B : 𝒞) : A ⟶ HasPowerObject.powerObj (C := B) :=
   powerClassify (fullRel A B)
 
-/-- `R ≅ relPullback (Λ R) ∈_C`: the defining property of `powerClassify`. -/
-theorem powerClassify_spec {C A : 𝒞} (R : BinRel 𝒞 A C) :
-    RelHom R (relPullback (powerClassify R) HasPowerObject.mem) ∧
-    RelHom (relPullback (powerClassify R) HasPowerObject.mem) R :=
-  (HasPowerObject.is_universal.classify_exists A R).choose_spec
-
 /-- Transitivity of `RelHom` (local copy; the S1_92 version depends on S1_91). -/
 theorem relHom_trans {A C : 𝒞} {R S T : BinRel 𝒞 A C}
     (h₁ : RelHom R S) (h₂ : RelHom S T) : RelHom R T := by
@@ -1634,7 +1628,7 @@ theorem relHom_pullback {A C X : 𝒞} (g : X ⟶ A) {R S : BinRel 𝒞 A C}
     depends on S1_91.) -/
 theorem powerClassify_natural {C A X : 𝒞} (R : BinRel 𝒞 A C) (g : X ⟶ A) :
     powerClassify (relPullback g R) = g ≫ powerClassify R := by
-  have hR := powerClassify_spec R
+  have hR := (HasPowerObject.is_universal.classify_exists A R).choose_spec
   obtain ⟨hc1, hc2⟩ := relPullback_comp g (powerClassify R) HasPowerObject.mem
   have hf : RelHom (relPullback g R)
               (relPullback (g ≫ powerClassify R) HasPowerObject.mem) ∧
@@ -1643,7 +1637,7 @@ theorem powerClassify_natural {C A X : 𝒞} (R : BinRel 𝒞 A C) (g : X ⟶ A)
     ⟨relHom_trans (relHom_pullback g hR.1) hc1,
      relHom_trans hc2 (relHom_pullback g hR.2)⟩
   exact HasPowerObject.is_universal.classify_unique X (relPullback g R) _ _
-    (powerClassify_spec (relPullback g R)) hf
+    (HasPowerObject.is_universal.classify_exists X (relPullback g R)).choose_spec hf
 
 /-- **§1.91(10), constancy**: `g ≫ Λ(M_{A,B})` does not depend on `g : X → A` —
     it equals `Λ(M_{X,B})`.  By naturality `g ≫ Λ(M_{A,B}) = Λ(g(M_{A,B}))` and
@@ -1652,9 +1646,11 @@ theorem fullClassify_const {A B X : 𝒞} (g : X ⟶ A) :
     g ≫ fullClassify A B = fullClassify X B := by
   rw [fullClassify, ← powerClassify_natural (fullRel A B) g]
   exact HasPowerObject.is_universal.classify_unique X _ _ _
-    (powerClassify_spec _)
-    ⟨relHom_trans (fullRel_pullback g).1 (powerClassify_spec (fullRel X B)).1,
-     relHom_trans (powerClassify_spec (fullRel X B)).2 (fullRel_pullback g).2⟩
+    (HasPowerObject.is_universal.classify_exists X (relPullback g (fullRel A B))).choose_spec
+    ⟨relHom_trans (fullRel_pullback g).1
+        (HasPowerObject.is_universal.classify_exists X (fullRel X B)).choose_spec.1,
+     relHom_trans (HasPowerObject.is_universal.classify_exists X (fullRel X B)).choose_spec.2
+        (fullRel_pullback g).2⟩
 
 variable [HasEqualizers 𝒞]
 

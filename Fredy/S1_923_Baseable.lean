@@ -49,8 +49,9 @@ variable [∀ C : 𝒞, HasPowerObject C] [HasEqualizers 𝒞]
   with NO dependence on `exp`/`Topos`. -/
 
 /-- `powerClassify` classifies `R` up to relation iso.  Stated directly from the
-    universality field `classify_exists` (NOT via the `[Topos 𝒞]`-contaminated
-    `S1_91 :: powerClassify_spec`), so it depends only on power objects. -/
+    universality field `classify_exists`, with NO `[Topos 𝒞]` hypothesis (unlike the
+    S1_91 uses of this same fact, which sit under a file-wide `[Topos 𝒞]`), so it
+    depends only on power objects. -/
 theorem powerClassify_pullback_iso {C Z : 𝒞} (R : BinRel 𝒞 Z C) :
     RelHom R (relPullback (powerClassify R) HasPowerObject.mem) ∧
     RelHom (relPullback (powerClassify R) HasPowerObject.mem) R :=

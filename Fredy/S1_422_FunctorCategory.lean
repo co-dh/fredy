@@ -446,13 +446,13 @@ private theorem kp_diag_app_eq [HasTerminal 𝒮] [HasBinaryProducts 𝒮] [hpul
     kp_diag (f := α.app A) (hpull := hpull) := by
   -- kp_diag(α.app A) = lift of diagCone; kp_diag(α).app A also lifts diagCone.
   -- By lift_uniq they are equal.
-  -- kp_diag_p₁ for α.app A: kp_diag(α.app A) ≫ π₁ = id = diagCone.π₁.
+  -- for α.app A: kp_diag(α.app A) ≫ π₁ = id = diagCone.π₁.
   -- kp_diag(α.app A) = lift (diagCone) by definition.
   -- So it suffices to show kp_diag(α).app A ≫ π₁ = id and ≫ π₂ = id.
   symm
   apply (HasPullbacks.has (α.app A) (α.app A)).lift_uniq (diagCone (f := α.app A))
   · -- kp_diag(α).app A ≫ kp₁(α.app A) = Cat.id (F.obj A)
-    -- kp_diag_p₁ for α in 𝒮^𝒜: kp_diag(α) ≫ kp₁(α) = natTrans_id F
+    -- for α in 𝒮^𝒜: kp_diag(α) ≫ kp₁(α) = natTrans_id F
     -- component at A: (kp_diag(α) ≫ kp₁(α)).app A = (natTrans_id F).app A = Cat.id
     exact congrFun (congrArg NaturalTransformation.app
       (kp_diag_p₁ (f := α) (hpull := functorCat_hasPullbacks))) A

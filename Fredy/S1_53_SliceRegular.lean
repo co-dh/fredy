@@ -98,14 +98,6 @@ def overProdPair {W : Over B} (a : OverHom W X) (b : OverHom W Y) :
     show u ≫ ((_prodPB X Y).cone.π₁ ≫ X.hom) = W.hom
     rw [← Cat.assoc, (_prodPB X Y).lift_fst _]; exact a.w⟩
 
-theorem overProdPair_fst {W : Over B} (a : OverHom W X) (b : OverHom W Y) :
-    overProdPair a b ⊚ overProdFst X Y = a :=
-  OverHom.ext ((_prodPB X Y).lift_fst _)
-
-theorem overProdPair_snd {W : Over B} (a : OverHom W X) (b : OverHom W Y) :
-    overProdPair a b ⊚ overProdSnd X Y = b :=
-  OverHom.ext ((_prodPB X Y).lift_snd _)
-
 theorem overProdPair_uniq {W : Over B} (a : OverHom W X) (b : OverHom W Y)
     (h : OverHom W (overProdPt X Y))
     (h₁ : h ⊚ overProdFst X Y = a) (h₂ : h ⊚ overProdSnd X Y = b) :
@@ -123,8 +115,8 @@ instance overHasBinaryProducts (B : 𝒞) : HasBinaryProducts (Over B) where
   fst {X Y} := overProdFst X Y
   snd {X Y} := overProdSnd X Y
   pair {W X Y} a b := overProdPair a b
-  fst_pair := fun a b => overProdPair_fst a b
-  snd_pair := fun a b => overProdPair_snd a b
+  fst_pair {W X Y} a b := OverHom.ext ((_prodPB X Y).lift_fst _)
+  snd_pair {W X Y} a b := OverHom.ext ((_prodPB X Y).lift_snd _)
   pair_uniq := fun a b h h₁ h₂ => overProdPair_uniq a b h h₁ h₂
 
 /-! ## §1.531 The cover correspondence: `Cover m ↔ Cover m.f`

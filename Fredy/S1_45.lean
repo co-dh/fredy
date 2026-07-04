@@ -78,6 +78,9 @@ def diagCone : Cone f f := ⟨A, Cat.id A, Cat.id A, rfl⟩
 
 def kp_diag : A ⟶ kernelPair f := (hpull.has f f).lift diagCone
 
+/-- Spec of `kp_diag` (kept, not inlined): the stated type `= Cat.id A` pins `diagCone`'s cospan,
+    which a bare `(hpull.has f f).lift_fst diagCone` inline cannot recover in the functor-category
+    instance (`diagCone (f := α)` elaborates to `Cone ?m ?m`). -/
 theorem kp_diag_p₁ : kp_diag (f:=f) ≫ kp₁ (f:=f) = Cat.id A := (hpull.has f f).lift_fst diagCone
 theorem kp_diag_p₂ : kp_diag (f:=f) ≫ kp₂ (f:=f) = Cat.id A := (hpull.has f f).lift_snd diagCone
 
@@ -96,15 +99,17 @@ theorem monic_iff_kp_diag_iso : Monic f ↔ IsIso (kp_diag (f:=f)) := by
   constructor
   · intro hm
     have h_eq : kp₁ (f:=f) = kp₂ (f:=f) := hm _ _ kp_sq
-    refine ⟨kp₁ (f:=f), kp_diag_p₁, ?_⟩
+    refine ⟨kp₁ (f:=f), (hpull.has f f).lift_fst diagCone, ?_⟩
     have h_id : (hpull.has f f).lift ⟨_, kp₁ (f:=f), kp₂ (f:=f), kp_sq⟩ = Cat.id (kernelPair f) :=
       (kp_lift_uniq (kp₁ (f:=f)) (kp₂ (f:=f)) kp_sq (Cat.id (kernelPair f))
         (Cat.id_comp _) (Cat.id_comp _)).symm
     have h_comp : (kp₁ (f:=f)) ≫ kp_diag (f:=f) =
         (hpull.has f f).lift ⟨_, kp₁ (f:=f), kp₂ (f:=f), kp_sq⟩ :=
       (kp_lift_uniq (kp₁ (f:=f)) (kp₂ (f:=f)) kp_sq ((kp₁ (f:=f)) ≫ kp_diag (f:=f))
-        (by rw [Cat.assoc, kp_diag_p₁, Cat.comp_id])
-        (by rw [Cat.assoc, kp_diag_p₂, Cat.comp_id, h_eq]))
+        (by rw [Cat.assoc, show kp_diag (f:=f) ≫ kp₁ (f:=f) = Cat.id A from
+              (hpull.has f f).lift_fst diagCone, Cat.comp_id])
+        (by rw [Cat.assoc, show kp_diag (f:=f) ≫ kp₂ (f:=f) = Cat.id A from
+              (hpull.has f f).lift_snd diagCone, Cat.comp_id, h_eq]))
     rw [h_comp, h_id]
   · intro hiso
     obtain ⟨inv, _diag_inv, inv_diag⟩ := hiso
@@ -117,10 +122,12 @@ theorem monic_iff_kp_diag_iso : Monic f ↔ IsIso (kp_diag (f:=f)) := by
       x₁ = hpair ≫ kp₁ (f:=f) := by rw [kp_lift_p₁ x₁ x₂ h]
       _ = (t ≫ kp_diag (f:=f)) ≫ kp₁ (f:=f) := by rw [ht]
       _ = t ≫ (kp_diag (f:=f) ≫ kp₁ (f:=f)) := by rw [Cat.assoc]
-      _ = t ≫ Cat.id A := by rw [kp_diag_p₁]
+      _ = t ≫ Cat.id A := by
+          rw [show kp_diag (f:=f) ≫ kp₁ (f:=f) = Cat.id A from (hpull.has f f).lift_fst diagCone]
       _ = t := by rw [Cat.comp_id]
       _ = t ≫ Cat.id A := by rw [Cat.comp_id]
-      _ = t ≫ (kp_diag (f:=f) ≫ kp₂ (f:=f)) := by rw [kp_diag_p₂]
+      _ = t ≫ (kp_diag (f:=f) ≫ kp₂ (f:=f)) := by
+          rw [show kp_diag (f:=f) ≫ kp₂ (f:=f) = Cat.id A from (hpull.has f f).lift_snd diagCone]
       _ = (t ≫ kp_diag (f:=f)) ≫ kp₂ (f:=f) := by rw [← Cat.assoc]
       _ = hpair ≫ kp₂ (f:=f) := by rw [ht]
       _ = x₂ := by rw [kp_lift_p₂ x₁ x₂ h]
@@ -574,8 +581,8 @@ noncomputable def canonicalLevel {A B : 𝒞} (f : A ⟶ B) : Level f where
   c := (hpull.has f f).cone
   hpb := (hpull.has f f).cone_isPullback
   δ := kp_diag (f := f)
-  δ₁ := kp_diag_p₁
-  δ₂ := kp_diag_p₂
+  δ₁ := (hpull.has f f).lift_fst diagCone
+  δ₂ := (hpull.has f f).lift_snd diagCone
 
 omit ht hp hpull in
 /-- The diagonal of a level is a split mono (`δ ≫ π₁ = id`), hence monic. -/

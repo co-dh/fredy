@@ -117,13 +117,6 @@ private theorem add_addR {A B : 𝒞} (x y : A ⟶ B) :
     inst.add x y = pair x y ≫ Φinv B B ≫ HasBinaryCoproducts.case (Cat.id B) (Cat.id B) :=
   inst.add_eq_addR x y
 
-open HasBinaryCoproducts in
-/-- Post-composition collapses a `case`: `case x y ≫ v = case (x≫v) (y≫v)`
-    (coproduct functoriality). -/
-private theorem case_comp {X Y A B : 𝒞} (x : A ⟶ X) (y : B ⟶ X) (v : X ⟶ Y) :
-    case x y ≫ v = case (x ≫ v) (y ≫ v) :=
-  case_uniq _ _ _ (by rw [← Cat.assoc, case_inl]) (by rw [← Cat.assoc, case_inr])
-
 /-- Pre-composition collapses a `pair`: `w ≫ pair x y = pair (w≫x) (w≫y)`
     (product functoriality). -/
 private theorem comp_pair {W X A B : 𝒞} (w : W ⟶ X) (x : X ⟶ A) (y : X ⟶ B) :
@@ -200,13 +193,19 @@ theorem middle_two_interchange {A B : 𝒞} (u v x y : A ⟶ B) :
   let M : A ⟶ B :=
     diag A ≫ Φinv A A ≫ pair (HasBinaryCoproducts.case u x) (HasBinaryCoproducts.case v y)
       ≫ Φinv B B ≫ HasBinaryCoproducts.case (Cat.id B) (Cat.id B)
-  -- LHS: outer +_L, inner +_R, then case_comp + case_pair_swap.
+  -- LHS: outer +_L, inner +_R, then post-composition collapses the outer `case` + case_pair_swap.
   have hLHS : inst.add (inst.add u v) (inst.add x y) = M := by
     show inst.add (inst.add u v) (inst.add x y) = _
+    have hcc1 : HasBinaryCoproducts.case (pair u v) (pair x y) ≫
+        (Φinv B B ≫ HasBinaryCoproducts.case (Cat.id B) (Cat.id B)) =
+        HasBinaryCoproducts.case
+          (pair u v ≫ (Φinv B B ≫ HasBinaryCoproducts.case (Cat.id B) (Cat.id B)))
+          (pair x y ≫ (Φinv B B ≫ HasBinaryCoproducts.case (Cat.id B) (Cat.id B))) :=
+      HasBinaryCoproducts.case_uniq _ _ _
+        (by rw [← Cat.assoc, HasBinaryCoproducts.case_inl])
+        (by rw [← Cat.assoc, HasBinaryCoproducts.case_inr])
     rw [add_addL (inst.add u v) (inst.add x y), add_addR u v, add_addR x y,
-        ← case_comp (pair u v) (pair x y)
-          (Φinv B B ≫ HasBinaryCoproducts.case (Cat.id B) (Cat.id B)),
-        case_pair_swap u v x y]
+        ← hcc1, case_pair_swap u v x y]
   -- RHS: outer +_R, inner +_L, then comp_pair.
   have hRHS : inst.add (inst.add u x) (inst.add v y) = M := by
     show inst.add (inst.add u x) (inst.add v y) = _
@@ -235,10 +234,14 @@ theorem comp_add {W A B : 𝒞} (h : W ⟶ A) (x y : A ⟶ B) :
   rw [add_addR, add_addR, ← Cat.assoc, ← Cat.assoc, comp_pair, Cat.assoc]
 
 /-- Right distributivity `(x + y) ≫ k = (x≫k) + (y≫k)` (post-composition is additive).
-    From `add` in coproduct form (eq. 1.1) and `case_comp`. -/
+    From `add` in coproduct form (eq. 1.1) and post-composition collapsing `case`. -/
 theorem add_comp {A B C : 𝒞} (x y : A ⟶ B) (k : B ⟶ C) :
     inst.add x y ≫ k = inst.add (x ≫ k) (y ≫ k) := by
-  rw [add_addL, add_addL, Cat.assoc, Cat.assoc, case_comp]
+  have hcc2 : HasBinaryCoproducts.case x y ≫ k = HasBinaryCoproducts.case (x ≫ k) (y ≫ k) :=
+    HasBinaryCoproducts.case_uniq _ _ _
+      (by rw [← Cat.assoc, HasBinaryCoproducts.case_inl])
+      (by rw [← Cat.assoc, HasBinaryCoproducts.case_inr])
+  rw [add_addL, add_addL, Cat.assoc, Cat.assoc, hcc2]
 
 /-- The SHEAR (elementary) matrix `(1 x; 0 1) : A×B → A×B` (§1.591).
 

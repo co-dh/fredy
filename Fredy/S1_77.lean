@@ -468,7 +468,7 @@ noncomputable def relQuotByMapRecip [PreLogos 𝒞] [HasRightAdjointImage 𝒞]
   quot := quotRecipRel R f
   le := by
     -- relSub(quot ⊚ f°) ≤ InverseImage(prodMap)(relSub quot) ≤ relSub R.
-    apply relLe_of_subLe
+    apply (relLe_iff_subLe _ _).2
     have hbridge := (relSub_compRecip_eq_invImage f (quotRecipRel R f)).1
     -- relSub quot ≤ Q, so by adjunction InverseImage(prodMap)(relSub quot) ≤ relSub R.
     have hquot_le_Q : (relSub (quotRecipRel R f)).le
@@ -481,7 +481,7 @@ noncomputable def relQuotByMapRecip [PreLogos 𝒞] [HasRightAdjointImage 𝒞]
   maximal := by
     intro T hT
     -- InverseImage(prodMap)(relSub T) ≤ relSub(T ⊚ f°) ≤ relSub R, so relSub T ≤ Q.
-    apply relLe_of_subLe
+    apply (relLe_iff_subLe _ _).2
     have hbridge := (relSub_compRecip_eq_invImage f T).2
     have hTfle : (relSub (T ⊚ (graph f)°)).le (relSub R) := subLe_of_relLe hT
     have hinv_le_R : (InverseImage (prodMap A B C f) (relSub T)).le (relSub R) := by
@@ -743,11 +743,6 @@ def rtc [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] [HasReflTr
 theorem le_rtc [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] [HasReflTransClosure 𝒞]
     {A : 𝒞} (R : BinRel 𝒞 A A) : RelLe R (rtc R) :=
   (HasReflTransClosure.transRefClos R).le
-
-/-- `rtc R` is reflexive:  1 ⊑ rtc R. -/
-theorem rtc_reflexive [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] [HasReflTransClosure 𝒞]
-    {A : 𝒞} (R : BinRel 𝒞 A A) : IsReflexive (rtc R) :=
-  (HasReflTransClosure.transRefClos R).refl
 
 /-- `rtc R` is transitive:  rtc R ⊚ rtc R ⊑ rtc R. -/
 theorem rtc_transitive [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] [HasReflTransClosure 𝒞]

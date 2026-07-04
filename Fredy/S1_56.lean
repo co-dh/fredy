@@ -1293,7 +1293,9 @@ theorem kernelPair_transitive [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPu
     swap of the two legs), transitive (`kernelPair_transitive`). -/
 theorem level_is_equivalence_relation [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
     [HasImages 𝒞] {A B : 𝒞} (x : A ⟶ B) : EquivalenceRelation (kernelPairRel x) := by
-  refine ⟨⟨kp_diag (f := x), kp_diag_p₁, kp_diag_p₂⟩, ⟨⟨?_, ?_, ?_⟩⟩, kernelPair_transitive x⟩
+  refine ⟨⟨kp_diag (f := x), (HasPullbacks.has x x).lift_fst (diagCone (f := x)),
+      (HasPullbacks.has x x).lift_snd (diagCone (f := x))⟩, ⟨⟨?_, ?_, ?_⟩⟩,
+      kernelPair_transitive x⟩
   · exact (HasPullbacks.has x x).lift ⟨_, kp₂ (f := x), kp₁ (f := x), kp_sq.symm⟩
   · exact kp_lift_p₂ (kp₂ (f := x)) (kp₁ (f := x)) kp_sq.symm
   · exact kp_lift_p₁ (kp₂ (f := x)) (kp₁ (f := x)) kp_sq.symm

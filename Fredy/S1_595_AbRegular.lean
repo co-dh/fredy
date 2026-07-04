@@ -394,7 +394,9 @@ variable {A B : AbelianGroupObject 𝒞} (f g : A ⟶ B)
 
 private noncomputable def em : eqObj f.val g.val ⟶ A.carrier := eqMap f.val g.val
 
-/-- The equalizer map is monic in 𝒞. -/
+/-- The equalizer map is monic in 𝒞.  Kept (not inlined): the statement keeps `em` FOLDED, which the
+    downstream `rw [eqAdd_proj, eqZero_em, …]` (stated in terms of `em`) needs — a bare
+    `apply (eqMap_mono' … : Monic (em f g))` re-unfolds the goal to `eqMap`, breaking those rewrites. -/
 private theorem em_mono : Monic (em f g) := eqMap_mono' f.val g.val
 
 /-- The equalizer lift. -/

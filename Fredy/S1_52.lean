@@ -167,10 +167,14 @@ theorem kp_diag_prod : kp_diag (f:=term S) ≫ kpProdIso S = diag S := by
   let h := kp_diag (f:=term S) ≫ kpProdIso S
   have hfst : h ≫ fst = Cat.id S := by
     dsimp [h]
-    rw [Cat.assoc, show kpProdIso S ≫ fst = kp₁ (f:=term S) from fst_pair _ _, kp_diag_p₁]
+    rw [Cat.assoc, show kpProdIso S ≫ fst = kp₁ (f:=term S) from fst_pair _ _,
+      show kp_diag (f:=term S) ≫ kp₁ (f:=term S) = Cat.id S from
+        (HasPullbacks.has (term S) (term S)).lift_fst (diagCone (f := term S))]
   have hsnd : h ≫ snd = Cat.id S := by
     dsimp [h]
-    rw [Cat.assoc, show kpProdIso S ≫ snd = kp₂ (f:=term S) from snd_pair _ _, kp_diag_p₂]
+    rw [Cat.assoc, show kpProdIso S ≫ snd = kp₂ (f:=term S) from snd_pair _ _,
+      show kp_diag (f:=term S) ≫ kp₂ (f:=term S) = Cat.id S from
+        (HasPullbacks.has (term S) (term S)).lift_snd (diagCone (f := term S))]
   have h_eq := pair_uniq (Cat.id S) (Cat.id S) h hfst hsnd
   simpa [h, diag] using h_eq
 

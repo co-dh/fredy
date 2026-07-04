@@ -640,7 +640,7 @@ theorem relMap_of_id {C : Type u} [Cat.{u} C] [RegularCategory C]
     rw [hm, hm]
   obtain ⟨e, _hcov, heA, heB⟩ := RelFunctor.relImageObj_cover hid R
   rw [hm] at heA; rw [hm] at heB
-  apply quotLe_antisymm
+  refine Quotient.sound ⟨?_, ?_⟩
   · -- image span ⊂ R : image minimality against the (monic) span of `R` itself.
     have hmono : Monic (pair R.colA R.colB) :=
       monic_pair_of_monicPair R.colA R.colB R.isMonicPair
@@ -698,7 +698,7 @@ theorem relMap_of_comp {C D E : Type u} [Cat.{u} C] [Cat.{u} D] [Cat.{u} E]
         (hG.map (RelFunctor.relImageObj hrF R).colB))).le
       (image (pair (hGF.map R.colA) (hGF.map R.colB))) := by
     rw [hfac]; exact himg.2
-  apply quotLe_antisymm
+  refine Quotient.sound ⟨?_, ?_⟩
   · obtain ⟨k, hk⟩ := h1
     refine relClass_mono ⟨⟨k, ?_, ?_⟩⟩
     · show k ≫ (_ ≫ fst) = _ ≫ fst
@@ -1545,7 +1545,7 @@ theorem relMap_graph {C D : SmallRegCat.{u}} (F : RegRep C D) {a b : C.carrier} 
       _ = (e' ≫ e) ≫ I.colB := (Cat.assoc _ _ _).symm
       _ = Cat.id _ ≫ I.colB := by rw [he2]
       _ = I.colB := Cat.id_comp _
-  apply quotLe_antisymm
+  refine Quotient.sound ⟨?_, ?_⟩
   · -- image span ⊂ graph (F f), witness the first leg.
     exact relClass_mono ⟨⟨I.colA, Cat.comp_id _, hIAFf⟩⟩
   · -- graph (F f) ⊂ image span, witness the cover `e`.

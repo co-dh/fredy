@@ -308,8 +308,8 @@ theorem compose_extJoin_right {A B C : 𝒞} (R : BinRel 𝒞 A B)
 /-- `binRelSub (relSub R)` is relationally equal to `R` (round-trip). -/
 theorem binRelSub_relSub_relLe {A B : 𝒞} (R : BinRel 𝒞 A B) :
     RelLe (binRelSub (relSub R)) R ∧ RelLe R (binRelSub (relSub R)) :=
-  ⟨relLe_of_subLe (relSub_binRelSub_le (relSub R)),
-   relLe_of_subLe (binRelSub_relSub_le (relSub R))⟩
+  ⟨(relLe_iff_subLe (binRelSub (relSub R)) R).2 (relSub_binRelSub_le (relSub R)),
+   (relLe_iff_subLe R (binRelSub (relSub R))).2 (binRelSub_relSub_le (relSub R))⟩
 
 /-! ### STEP 3 — disjointness of distinct injection-images
 
@@ -433,10 +433,6 @@ noncomputable def copowPartial {X : 𝒞} (f : I → ((one : 𝒞) ⟶ X)) (i : 
     BinRel 𝒞 (copowObj hpow I) X :=
   (graph (copowInj hpow I i))° ⊚ graph (f i)
 
-/-- Any map from terminal is monic. -/
-private theorem mono_from_one {A : 𝒞} (g : (one : 𝒞) ⟶ A) : Monic g :=
-  fun u v _ => term_uniq u v
-
 /-- **The canonical point** of the partial graph `P_i = (graph (inj i))° ⊚ graph (f i)`:
     the pullback over `(id_1, id_1)` has the obvious point `id_1`, whose span value is
     `pair (inj i) (f i)`.  Gives `q : 1 → P_i.src` with `q ≫ pair P_i.colA P_i.colB
@@ -481,7 +477,7 @@ theorem copowPartial_pair_le {X : 𝒞} (f : I → ((one : 𝒞) ⟶ X)) (i j : 
   by_cases hij : i = j
   · subst hij
     -- diagonal: P_i° ⊚ P_i ≤ 1  with  P_i = (inj i)° ⊚ (f i).
-    exact diag_le_one (copowInj hpow I i) (f i) (mono_from_one (copowInj hpow I i))
+    exact diag_le_one (copowInj hpow I i) (f i) (fun u v _ => term_uniq u v)
   · -- cross term: needs `hxyg : (inj i ⊚ (inj j)°) ⊚ (f j) ≤ (f i)` from disjointness.
     let pb := HasPullbacks.has (copowInj hpow I i) (copowInj hpow I j)
     have hinter : RelLe (graph (copowInj hpow I i) ⊚ (graph (copowInj hpow I j))°)
@@ -524,7 +520,7 @@ theorem copowUnion_simple {X : 𝒞} (f : I → ((one : 𝒞) ⟶ X)) :
       obtain ⟨W, ⟨i, hWi⟩, hU⟩ := hmem
       rw [hU, hWi]
       exact subLe_of_relLe (hpieces i)
-    exact relLe_of_subLe (Subobject.le_trans hdist hbound)
+    exact (relLe_iff_subLe (T ⊚ G) (graph (Cat.id X))).2 (Subobject.le_trans hdist hbound)
   -- Now Simple G : G° ⊚ G ≤ graph (id X).  Apply `key` with T := G°.
   show RelLe (G° ⊚ G) (graph (Cat.id X))
   refine key (G°) (fun i => ?_)
@@ -881,7 +877,7 @@ theorem gcoUnion_simple {X : 𝒞} (f : ∀ i, A i ⟶ X) :
       obtain ⟨W, ⟨i, hWi⟩, hU⟩ := hmem
       rw [hU, hWi]
       exact subLe_of_relLe (hpieces i)
-    exact relLe_of_subLe (Subobject.le_trans hdist hbound)
+    exact (relLe_iff_subLe (T ⊚ G) (graph (Cat.id X))).2 (Subobject.le_trans hdist hbound)
   show RelLe (G° ⊚ G) (graph (Cat.id X))
   refine key (G°) (fun i => ?_)
   have hrecip : RelLe ((G° ⊚ binRelSub (relSub (gcoPartial hpow cand f i)))°)

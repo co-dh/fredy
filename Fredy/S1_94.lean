@@ -234,7 +234,8 @@ theorem topos_is_logos : Nonempty (Logos 𝒞) := by
     We take that closure ABSTRACTLY via `[HasReflTransClosure 𝒞]` — Freyd's own hypothesis
     "a topos has R*" (§1.77 documents `HasReflTransClosure` as exactly the natural input for
     this theorem).  The closure-ASSEMBLY (R ⊑ R*, refl, trans, minimal) is now genuinely
-    discharged from `rtc`/`le_rtc`/`rtc_reflexive`/`rtc_transitive`/`rtc_minimal`.
+    discharged from `rtc`/`le_rtc`/`(HasReflTransClosure.transRefClos R).refl`/
+    `rtc_transitive`/`rtc_minimal`.
 
     RESIDUAL (pinned by the hypothesis, NOT a Sorry): the *existence* of the glb `M = ⋂F`
     — the §1.943 family-glb over a subobject family of `[B×B]` — still rests on §1.54's
@@ -246,7 +247,7 @@ theorem topos_is_logos : Nonempty (Logos 𝒞) := by
     This theorem isolates precisely the *closure-assembly* (done) from the *glb-instance*.
 
     AXIOM-HYGIENE NOTE: `#print axioms topos_has_rtc` reports `[propext, Classical.choice]` —
-    the four §1.77 components (`le_rtc`/`rtc_reflexive`/`rtc_transitive`/`rtc_minimal`) and
+    the four §1.77 components (`le_rtc`/reflexivity/`rtc_transitive`/`rtc_minimal`) and
     `topos_has_exponentials` (now genuinely proved, axiom `Classical.choice` only) are all
     axiom-honest.  The local `attribute [local instance 10000] Topos.toHasBinaryProducts`
     guard is retained so `BinRel`'s `HasPullbacks` resolution always picks the computable
@@ -263,7 +264,7 @@ theorem topos_has_rtc [HasImages 𝒞] [PullbacksTransferCovers 𝒞] [HasReflTr
       -- R* is the least reflexive-transitive relation containing R
       ∀ (S : BinRel 𝒞 B B),
         RelLe R S → IsReflexive S → IsTransitive S → RelLe Rstar S :=
-  ⟨rtc R, le_rtc R, rtc_reflexive R, rtc_transitive R,
+  ⟨rtc R, le_rtc R, (HasReflTransClosure.transRefClos R).refl, rtc_transitive R,
     fun S hRS hReflS hTransS => rtc_minimal R S hRS hReflS hTransS⟩
 
 -- §1.947: that a topos is a TRANSITIVE LOGOS (R* exists for every endo-relation)
@@ -326,10 +327,6 @@ class SolvableTopos (𝒞 : Type u) [Cat.{v} 𝒞] [Topos 𝒞] [HasImages 𝒞]
 private theorem wellSupported_of_point {A : 𝒞} (p : one ⟶ A) : WellSupported A :=
   cover_of_section (term A) p (term_uniq _ _)
 
-/-- `entire A` (the maximal subobject, `id_A`) is above every subobject. -/
-private theorem le_entire {A : 𝒞} (S : Subobject 𝒞 A) : S.le (Subobject.entire A) :=
-  ⟨S.arr, Cat.comp_id _⟩
-
 /-- The image of a point `p : 1 → A` is a point subobject. -/
 private theorem isPointSubobj_image {A : 𝒞} [HasImages 𝒞] (p : one ⟶ A) :
     IsPointSubobj (image p) :=
@@ -363,7 +360,7 @@ theorem capital_is_solvable [HasImages 𝒞] (hcap : Capital (𝒞 := 𝒞)) :
     have hwpA : WellPointed A := hcap A hws
     refine ⟨Subobject.entire A, ?_, ?_, ?_⟩
     · -- upper: everything ≤ entire A.
-      exact fun P _ => le_entire P
+      exact fun P _ => ⟨P.arr, Cat.comp_id _⟩
     · -- WP: (entire A).dom = A is well-pointed.
       exact hwpA
     · -- least: any WP Q above all point subobjects is entire, so entire A ≤ Q.

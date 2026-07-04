@@ -191,9 +191,6 @@ theorem relLe_iff_subLe {A B : 𝒞} (R S : BinRel 𝒞 A B) :
         congrArg (· ≫ snd) hh
       rwa [Cat.assoc, snd_pair, snd_pair] at h2
 
-theorem relLe_of_subLe {A B : 𝒞} {R S : BinRel 𝒞 A B}
-    (h : (relSub R).le (relSub S)) : RelLe R S := (relLe_iff_subLe R S).2 h
-
 theorem subLe_of_relLe {A B : 𝒞} {R S : BinRel 𝒞 A B}
     (h : RelLe R S) : (relSub R).le (relSub S) := (relLe_iff_subLe R S).1 h
 
@@ -228,18 +225,18 @@ theorem relSub_union_ge {A B : 𝒞} (R S : BinRel 𝒞 A B) :
 
 /-- R ≤ R ∪ S (left inclusion). -/
 theorem relUnion_le_left {A B : 𝒞} (R S : BinRel 𝒞 A B) : RelLe R (R ∪ᵣ S) :=
-  relLe_of_subLe (Subobject.le_trans (HasSubobjectUnions.union_left (relSub R) (relSub S))
-    (relSub_union_ge R S))
+  (relLe_iff_subLe R (R ∪ᵣ S)).2 (Subobject.le_trans
+    (HasSubobjectUnions.union_left (relSub R) (relSub S)) (relSub_union_ge R S))
 
 /-- S ≤ R ∪ S (right inclusion). -/
 theorem relUnion_le_right {A B : 𝒞} (R S : BinRel 𝒞 A B) : RelLe S (R ∪ᵣ S) :=
-  relLe_of_subLe (Subobject.le_trans (HasSubobjectUnions.union_right (relSub R) (relSub S))
-    (relSub_union_ge R S))
+  (relLe_iff_subLe S (R ∪ᵣ S)).2 (Subobject.le_trans
+    (HasSubobjectUnions.union_right (relSub R) (relSub S)) (relSub_union_ge R S))
 
 /-- Universal property of relUnion: R ≤ U → S ≤ U → R ∪ S ≤ U. -/
 theorem le_relUnion {A B : 𝒞} {R S U : BinRel 𝒞 A B}
     (hRU : RelLe R U) (hSU : RelLe S U) : RelLe (R ∪ᵣ S) U :=
-  relLe_of_subLe (Subobject.le_trans (relSub_union_le R S)
+  (relLe_iff_subLe (R ∪ᵣ S) U).2 (Subobject.le_trans (relSub_union_le R S)
     (HasSubobjectUnions.union_min _ _ _ (subLe_of_relLe hRU) (subLe_of_relLe hSU)))
 
 /-- §1.616: (R ∩ S) ∪ (R ∩ T) ≤ R ∩ (S ∪ T) — the reverse always holds. -/
@@ -415,7 +412,7 @@ private theorem pushSwap_union_le {A B : 𝒞} (P Q : Subobject 𝒞 (prod A B))
     `relSub S°` / `relSub R°` (`relSub_reciprocal`), so `union_min` packages the bound. -/
 theorem relUnion_le_reciprocal {A B : 𝒞} (R S : BinRel 𝒞 A B) :
     RelLe (R ∪ᵣ S)° (S° ∪ᵣ R°) := by
-  apply relLe_of_subLe
+  apply (relLe_iff_subLe _ _).2
   -- relSub((R∪ᵣS)°) ≤ pushSwap(relSub(R∪ᵣS)) ≤ pushSwap(union(relSub R)(relSub S))
   --   ≤ union(pushSwap(relSub R))(pushSwap(relSub S)) ≤ union(relSub R°)(relSub S°) = relSub(S°∪ᵣR°).
   refine Subobject.le_trans (relSub_reciprocal_le (R ∪ᵣ S))
@@ -558,7 +555,7 @@ theorem invImage_mono_local {A B : 𝒞} (f : A ⟶ B) {S T : Subobject 𝒞 B} 
     of `pushMono`/`InverseImage` and the union laws. -/
 theorem rel_inter_union_le {A B : 𝒞} (R S T : BinRel 𝒞 A B) :
     RelLe (R ⊓ (S ∪ᵣ T)) ((R ⊓ S) ∪ᵣ (R ⊓ T)) := by
-  apply relLe_of_subLe
+  apply (relLe_iff_subLe _ _).2
   let pR := pair R.colA R.colB
   let hpR : Monic pR := monic_pair_of_monicPair R.colA R.colB R.isMonicPair
   -- LHS = relSub(R ⊓ (S∪T)) ≤ pushMono pR (InverseImage pR (relSub (S∪T)))
@@ -799,7 +796,7 @@ theorem relSub_compose_eq {A B C : 𝒞} (R : BinRel 𝒞 A B) (X : BinRel 𝒞 
     so the join descends with no extensivity. -/
 theorem compose_union_right {A B C : 𝒞} (R : BinRel 𝒞 A B) (S T : BinRel 𝒞 B C) :
     RelLe (R ⊚ (S ∪ᵣ T)) ((R ⊚ S) ∪ᵣ (R ⊚ T)) := by
-  apply relLe_of_subLe
+  apply (relLe_iff_subLe _ _).2
   -- LHS  =  ∃_ω (θ# relSub(S∪T)).
   have hL := (relSub_compose_eq R (S ∪ᵣ T)).1
   -- θ# relSub(S∪T) ≤ θ# (union (relSub S)(relSub T))   (monotone of θ#).

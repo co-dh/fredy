@@ -516,7 +516,7 @@ theorem mono_of_kernelPairRel_le_diag [HasTerminal 𝒞] [HasBinaryProducts 𝒞
 private theorem relLe_of_relSub_le_bottom [PreLogos 𝒞] [HasBinaryCoproducts 𝒞]
     {X Y : 𝒞} {R U : BinRel 𝒞 X Y}
     (h : (relSub R).le (PreLogos.bottom (prod X Y))) : RelLe R U :=
-  relLe_of_subLe (Subobject.le_trans h (PreLogos.bottom_min (relSub U)))
+  (relLe_iff_subLe R U).2 (Subobject.le_trans h (PreLogos.bottom_min (relSub U)))
 
 /-- Left distributivity of composition over union (pre-logos): `(S ∪ T) ⊚ U ⊂ (S⊚U) ∪ (T⊚U)`.
     Derived from the right-distributive `compose_union_right` by reciprocation. -/
@@ -2069,11 +2069,15 @@ private theorem cover_transport_mono [PreToposDisjoint 𝒞] [HasReflTransClosur
       refine rel_le_trans (compose_le (rel_le_refl _) (compose_union_left Δ R₀ ((graph y)°))) ?_
       exact compose_union_right (graph y) (Δ ⊚ (graph y)°) (R₀ ⊚ (graph y)°)
     -- piece 1:  y ⊚ (Δ_C ⊚ y°) ⊂ y ⊚ y° ⊂ 1_A ⊂ E.
+    have hd1 : kp_diag (f := e) ≫ kp₁ (f := e) = Cat.id A :=
+      (HasPullbacks.has e e).lift_fst (diagCone (f := e))
+    have hd2 : kp_diag (f := e) ≫ kp₂ (f := e) = Cat.id A :=
+      (HasPullbacks.has e e).lift_snd (diagCone (f := e))
     have hΔE : RelLe (graph (Cat.id A)) E :=
       rel_le_trans
         (show RelLe (graph (Cat.id A)) (kernelPairRel e) from
-          ⟨⟨kp_diag (f := e), by simpa [kernelPairRel, graph] using kp_diag_p₁ (f := e),
-            by simpa [kernelPairRel, graph] using kp_diag_p₂ (f := e)⟩⟩)
+          ⟨⟨kp_diag (f := e), by simpa [kernelPairRel, graph] using hd1,
+            by simpa [kernelPairRel, graph] using hd2⟩⟩)
         (kernelPairRel_le_graphComp e)
     have p1 : RelLe (graph y ⊚ (Δ ⊚ (graph y)°)) E :=
       rel_le_trans (compose_le (rel_le_refl _) (graph_id_comp ((graph y)°)))

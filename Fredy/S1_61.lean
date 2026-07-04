@@ -721,7 +721,7 @@ theorem union_joint_cover_sub {A : 𝒞} (A₁ A₂ : Subobject 𝒞 A)
   let R₁ := (graph A₁.arr)° ⊚ graph A₁.arr
   let R₂ := (graph A₂.arr)° ⊚ graph A₂.arr
   let U := HasSubobjectUnions.union A₁ A₂
-  apply relLe_of_subLe
+  apply (relLe_iff_subLe _ _).2
   -- Δ_A ≤ pushMono diag U ≤ union(pushMono diag A₁)(pushMono diag A₂)
   --       ≤ union(relSub R₁)(relSub R₂) ≤ relSub (relUnionSub R₁ R₂)
   -- step 0: relSub (graph (id A)) = ⟨A, diag A⟩ = pushMono diag ⟨A, id A⟩  (the entire subobject)

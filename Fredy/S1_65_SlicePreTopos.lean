@@ -233,7 +233,7 @@ theorem forgetSlice_compose_le (R : BinRel (Over B) X Y) (S : BinRel (Over B) Y 
         _ = spans.f ≫ (overProdFst X Z).f := by rw [image.lift_fac]
         _ = (spans ⊚ overProdFst X Z).f := rfl
         _ = (pbs.cone.π₁ ⊚ R.colA).f := by
-            rw [show spans ⊚ overProdFst X Z = _ from overProdPair_fst _ _]
+            rw [show spans ⊚ overProdFst X Z = _ from OverHom.ext ((HasPullbacks.has X.hom Z.hom).lift_fst _)]
         _ = (pbs.cone.π₁).f ≫ R.colA.f := rfl
     rw [hL, hR]
   · -- column B (mirror)
@@ -255,7 +255,7 @@ theorem forgetSlice_compose_le (R : BinRel (Over B) X Y) (S : BinRel (Over B) Y 
         _ = spans.f ≫ (overProdSnd X Z).f := by rw [image.lift_fac]
         _ = (spans ⊚ overProdSnd X Z).f := rfl
         _ = (pbs.cone.π₂ ⊚ S.colB).f := by
-            rw [show spans ⊚ overProdSnd X Z = _ from overProdPair_snd _ _]
+            rw [show spans ⊚ overProdSnd X Z = _ from OverHom.ext ((HasPullbacks.has X.hom Z.hom).lift_snd _)]
         _ = (pbs.cone.π₂).f ≫ S.colB.f := rfl
     rw [hL, hR]
 
@@ -290,7 +290,7 @@ theorem le_forgetSlice_compose (R : BinRel (Over B) X Y) (S : BinRel (Over B) Y 
         _ = cmp ≫ (spans.f ≫ (overProdFst X Z).f) := by rw [image.lift_fac]
         _ = cmp ≫ ((spans ⊚ overProdFst X Z).f) := rfl
         _ = cmp ≫ ((pbs.cone.π₁ ⊚ R.colA).f) := by
-            rw [show spans ⊚ overProdFst X Z = _ from overProdPair_fst _ _]
+            rw [show spans ⊚ overProdFst X Z = _ from OverHom.ext ((HasPullbacks.has X.hom Z.hom).lift_fst _)]
         _ = cmp ≫ ((pbs.cone.π₁).f ≫ R.colA.f) := rfl
         _ = (cmp ≫ (pbs.cone.π₁).f) ≫ R.colA.f := (Cat.assoc _ _ _).symm
         _ = pbc.cone.π₁ ≫ R.colA.f := by rw [hcmp₁]
@@ -310,7 +310,7 @@ theorem le_forgetSlice_compose (R : BinRel (Over B) X Y) (S : BinRel (Over B) Y 
         _ = cmp ≫ (spans.f ≫ (overProdSnd X Z).f) := by rw [image.lift_fac]
         _ = cmp ≫ ((spans ⊚ overProdSnd X Z).f) := rfl
         _ = cmp ≫ ((pbs.cone.π₂ ⊚ S.colB).f) := by
-            rw [show spans ⊚ overProdSnd X Z = _ from overProdPair_snd _ _]
+            rw [show spans ⊚ overProdSnd X Z = _ from OverHom.ext ((HasPullbacks.has X.hom Z.hom).lift_snd _)]
         _ = cmp ≫ ((pbs.cone.π₂).f ≫ S.colB.f) := rfl
         _ = (cmp ≫ (pbs.cone.π₂).f) ≫ S.colB.f := (Cat.assoc _ _ _).symm
         _ = pbc.cone.π₂ ≫ S.colB.f := by rw [hcmp₂]
@@ -501,7 +501,7 @@ def sliceTransRefClos (R : BinRel (Over B) A A) : TransRefClos R where
     rw [BinRel.forgetSlice_liftSlice]
     -- `(graph (Cat.id A)).forgetSlice = graph (Cat.id A.dom)` on the nose.
     show graph (Cat.id A.dom) ⊂ rtc R.forgetSlice
-    exact rtc_reflexive R.forgetSlice
+    exact (HasReflTransClosure.transRefClos R.forgetSlice).refl
   trans := by
     -- `M ⊚ M ⊂ M`: reflect to `(M ⊚ M).forgetSlice ⊂ M̄`; forward-compare then `rtc`-transitivity.
     apply forgetSlice_reflects_relLe
