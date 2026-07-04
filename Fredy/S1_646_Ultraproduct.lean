@@ -88,10 +88,6 @@ def mk (U : Ultrafilter I) (x : ∀ i, X i) : Ultraproduct X U := Quotient.mk (u
 
 @[simp] theorem mk_eq (x : ∀ i, X i) : Quotient.mk (ultraSetoid (X := X) U) x = mk U x := rfl
 
-/-- Two sections have the same class exactly when they agree on a `U`-large set. -/
-theorem mk_eq_mk {x y : ∀ i, X i} : mk U x = mk U y ↔ U.toFilter.sets (agree x y) :=
-  ⟨fun h => Quotient.exact h, fun h => Quotient.sound h⟩
-
 /-- Agreement on a `U`-large set implies equal classes (`Quot.sound`). -/
 theorem sound {x y : ∀ i, X i} (h : U.toFilter.sets (agree x y)) : mk U x = mk U y :=
   Quotient.sound h
@@ -232,7 +228,10 @@ def Equ (f g : ∀ i, X i → Y i) (i : I) : Type w := { a : X i // f i a = g i 
     `{i | f i (x i) = g i (x i)} ∈ U`.  This is the engine of equaliser/pullback preservation. -/
 theorem map_eq_map_iff (f g : ∀ i, X i → Y i) (x : ∀ i, X i) :
     map f U (mk U x) = map g U (mk U x) ↔ U.toFilter.sets (fun i => f i (x i) = g i (x i)) := by
-  rw [map_mk, map_mk, mk_eq_mk]
+  have hmk : (mk U (liftSection f x) = mk U (liftSection g x)) ↔
+      U.toFilter.sets (agree (liftSection f x) (liftSection g x)) :=
+    ⟨fun h => Quotient.exact h, fun h => Quotient.sound h⟩
+  rw [map_mk, map_mk, hmk]
   constructor <;> intro h <;> (refine U.toFilter.up_closed h (fun i hi => ?_)) <;>
     simpa only [agree, liftSection] using hi
 
@@ -316,8 +315,10 @@ theorem map_injective (f : ∀ i, X i → Y i) (U : Ultrafilter I)
   | _ x => induction r using ind with
     | _ y =>
       -- map f (mk x) = map f (mk y) gives {f x = f y} ∈ U.
-      have hfeq : U.toFilter.sets (agree (liftSection f x) (liftSection f y)) :=
-        mk_eq_mk.1 h
+      have hmk : mk U (liftSection f x) = mk U (liftSection f y) ↔
+          U.toFilter.sets (agree (liftSection f x) (liftSection f y)) :=
+        ⟨fun h => Quotient.exact h, fun h => Quotient.sound h⟩
+      have hfeq : U.toFilter.sets (agree (liftSection f x) (liftSection f y)) := hmk.1 h
       -- intersect with the injectivity set, then x = y on the intersection.
       refine sound (U.toFilter.up_closed (U.toFilter.inter_mem hfeq hinj) (fun i hi => ?_))
       obtain ⟨hfi, hinji⟩ := hi
@@ -335,7 +336,9 @@ theorem map_not_surjective (f : ∀ i, X i → Y i) (U : Ultrafilter I) (b : ∀
   induction q using ind with
   | _ x =>
     -- map f (mk x) = mk b gives {f x = b} ∈ U; intersect with the miss-set to get ∅ ∈ U.
-    have hhit : U.toFilter.sets (agree (liftSection f x) b) := mk_eq_mk.1 hq
+    have hmk : mk U (liftSection f x) = mk U b ↔ U.toFilter.sets (agree (liftSection f x) b) :=
+      ⟨fun h => Quotient.exact h, fun h => Quotient.sound h⟩
+    have hhit : U.toFilter.sets (agree (liftSection f x) b) := hmk.1 hq
     have hcap : U.toFilter.sets (agree (liftSection f x) b ∩ᵤ (fun i => ∀ a, f i a ≠ b i)) :=
       U.toFilter.inter_mem hhit hmiss
     -- the intersection is empty: at any i in it, f(x i) = b i AND f(x i) ≠ b i.
@@ -353,7 +356,12 @@ theorem map_surjective (f : ∀ i, X i → Y i) (U : Ultrafilter I) (d : ∀ i, 
   | _ y =>
     -- pick a preimage of y i where f i is surjective, default to d i otherwise.
     refine ⟨mk U (fun i => if h : Function.Surjective (f i) then (h (y i)).choose else d i), ?_⟩
-    rw [map_mk, mk_eq_mk]
+    have hmk : (mk U (liftSection f (fun i => if h : Function.Surjective (f i) then
+            (h (y i)).choose else d i)) = mk U y) ↔
+        U.toFilter.sets (agree (liftSection f (fun i => if h : Function.Surjective (f i) then
+            (h (y i)).choose else d i)) y) :=
+      ⟨fun h => Quotient.exact h, fun h => Quotient.sound h⟩
+    rw [map_mk, hmk]
     refine U.toFilter.up_closed hsurj (fun i hi => ?_)
     simp only [agree, liftSection, dif_pos hi]
     exact (hi (y i)).choose_spec

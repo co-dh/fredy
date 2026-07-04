@@ -51,13 +51,6 @@ theorem Subobject.Equiv.trans {B : 𝒞} {S T U : Subobject 𝒞 B}
     (h₁ : S.Equiv T) (h₂ : T.Equiv U) : S.Equiv U :=
   ⟨Subobject.le_trans h₁.1 h₂.1, Subobject.le_trans h₂.2 h₁.2⟩
 
-/-- `≤` composes with `≈` on either side. -/
-theorem Subobject.le_of_le_equiv {B : 𝒞} {S T U : Subobject 𝒞 B}
-    (h : S.le T) (he : T.Equiv U) : S.le U := Subobject.le_trans h he.1
-
-theorem Subobject.le_of_equiv_le {B : 𝒞} {S T U : Subobject 𝒞 B}
-    (he : S.Equiv T) (h : T.le U) : S.le U := Subobject.le_trans he.1 h
-
 /-- A mono-preserving functor is monotone on subobjects: `S ≤ T ⟹ T_*S ≤ T_*T`. -/
 theorem Subobject.map_le {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ] (T : 𝒜 → ℬ) [hT : Functor T]
     (hpm : PreservesMono T) {B : 𝒜} {S S' : Subobject 𝒜 B} (h : S.le S') :
@@ -74,11 +67,6 @@ theorem union_le_union [HasImages 𝒞] [HasSubobjectUnions 𝒞] {B : 𝒞}
   HasSubobjectUnions.union_min S₁ T₁ _
     (Subobject.le_trans hS (HasSubobjectUnions.union_left S₂ T₂))
     (Subobject.le_trans hT (HasSubobjectUnions.union_right S₂ T₂))
-
-theorem union_equiv [HasImages 𝒞] [HasSubobjectUnions 𝒞] {B : 𝒞}
-    {S₁ S₂ T₁ T₂ : Subobject 𝒞 B} (hS : S₁.Equiv S₂) (hT : T₁.Equiv T₂) :
-    (HasSubobjectUnions.union S₁ T₁).Equiv (HasSubobjectUnions.union S₂ T₂) :=
-  ⟨union_le_union hS.1 hT.1, union_le_union hS.2 hT.2⟩
 
 /-- The chosen image of `f` is equivalent to any image of `f`. -/
 theorem image_equiv_isImage [HasImages 𝒞] {A B : 𝒞} {f : A ⟶ B} {I : Subobject 𝒞 B}
@@ -110,6 +98,9 @@ theorem pullback_subobject_le {A B C : 𝒞} {f : A ⟶ C} {g : B ⟶ C} {c c' :
   obtain ⟨u, ⟨hu1, _⟩, _⟩ := hc' c
   exact ⟨u, hu1⟩
 
+/-- Two pullback cones over one cospan give EQUIVALENT π₁-subobjects.  Kept (not inlined): the two
+    `IsPullback` arguments pin BOTH cones `{c c'}`, which the two-sided `⟨le, le⟩` needs — inlining
+    forces `mk c.pt c.π₁`-inversion that Lean can't solve for an un-pinned source cone. -/
 theorem pullback_subobject_equiv {A B C : 𝒞} {f : A ⟶ C} {g : B ⟶ C} {c c' : Cone f g}
     (hc : c.IsPullback) (hc' : c'.IsPullback) (h1 : Monic c.π₁) (h1' : Monic c'.π₁) :
     (Subobject.mk c.pt c.π₁ h1).Equiv (Subobject.mk c'.pt c'.π₁ h1') :=
@@ -231,21 +222,21 @@ theorem stage_invImage_union_le [hPL : PreLogos 𝒞]
   letI : HasSubobjectUnions 𝒞 := hPL.toHasSubobjectUnions
   -- `pbSub f X ≈ InverseImage f X` (two pullback cones of `(f, X.arr)`, possibly different instances)
   have hpb : ∀ (X : Subobject 𝒞 B), (pbSub ht hp he f X).Equiv (InverseImage f X) := fun X =>
-    pullback_subobject_equiv
-      (HasPullback.cone_isPullback (@products_equalizers_implies_pullbacks 𝒞 _ hp he _ _ _ f X.arr))
-      (HasPullback.cone_isPullback (HasPullbacks.has f X.arr))
-      ((HasPullback.cone_isPullback
-        (@products_equalizers_implies_pullbacks 𝒞 _ hp he _ _ _ f X.arr)).pi1_monic X.monic)
-      (InverseImage f X).monic
+    have hcX := HasPullback.cone_isPullback (@products_equalizers_implies_pullbacks 𝒞 _ hp he _ _ _ f X.arr)
+    have hc'X := HasPullback.cone_isPullback (HasPullbacks.has f X.arr)
+    ⟨pullback_subobject_le hc'X (hcX.pi1_monic X.monic) (InverseImage f X).monic,
+     pullback_subobject_le hcX (InverseImage f X).monic (hcX.pi1_monic X.monic)⟩
   -- `unionImg P Q ≈ union P Q` (any object, any `HasImages` — join-uniqueness bridge)
   have hun : ∀ {Y : 𝒞} (P Q : Subobject 𝒞 Y),
       (unionImg hii hcop P Q).Equiv (HasSubobjectUnions.union P Q) :=
     fun P Q => unionImg_equiv_union hii hcop P Q
-  refine Subobject.le_of_equiv_le
+  refine Subobject.le_trans
     ((hpb (unionImg hii hcop S T)).trans
-      ⟨inverseImage_mono f (hun S T).1, inverseImage_mono f (hun S T).2⟩) ?_
-  refine Subobject.le_of_le_equiv (PreLogos.invImage_preserves_union f S T).1 ?_
-  exact (union_equiv (hpb S).symm (hpb T).symm).trans (hun (pbSub ht hp he f S) (pbSub ht hp he f T)).symm
+      ⟨inverseImage_mono f (hun S T).1, inverseImage_mono f (hun S T).2⟩).1 ?_
+  refine Subobject.le_trans (PreLogos.invImage_preserves_union f S T).1 ?_
+  exact (Subobject.Equiv.trans ⟨union_le_union (hpb S).symm.1 (hpb T).symm.1,
+      union_le_union (hpb S).symm.2 (hpb T).symm.2⟩
+    (hun (pbSub ht hp he f S) (pbSub ht hp he f T)).symm).1
 
 end Freyd
 
@@ -319,7 +310,8 @@ theorem homInclObj_mono_reflects (C : CatSystem ι D) (hC : C.Coherent)
   The colimit inverse image of a germ is the germ of the stage inverse image (a pullback).  Stated
   against the explicit §1.432 stage pullback `products_equalizers_implies_pullbacks`, so it lines up
   with `objIncl_preserves_pullbacks`; the choice of stage pullback is irrelevant up to `≈`
-  (`pullback_subobject_equiv`), so this connects to any per-stage `InverseImage` downstream. -/
+  (two pullback cones of one cospan give equivalent subobjects via `pullback_subobject_le` in both
+  directions), so this connects to any per-stage `InverseImage` downstream. -/
 
 set_option maxHeartbeats 1000000 in
 theorem invImage_germ_equiv (C : CatSystem.{u, u} ι D) (hC : C.Coherent) [hne : Nonempty ι]
@@ -358,9 +350,12 @@ theorem invImage_germ_equiv (C : CatSystem.{u, u} ι D) (hC : C.Coherent) [hne :
   -- the colimit inverse-image cone is the canonical pullback of the same cospan
   have hcanon : (HasPullbacks.has (homInclObj C hC f_N) (germSub C hC hmono X_N).arr).cone.IsPullback :=
     HasPullback.cone_isPullback _
-  exact pullback_subobject_equiv hcanon himgPB
-    ((InverseImage (homInclObj C hC f_N) (germSub C hC hmono X_N)).monic)
-    (himgPB.pi1_monic (germSub C hC hmono X_N).monic)
+  exact ⟨pullback_subobject_le himgPB
+      ((InverseImage (homInclObj C hC f_N) (germSub C hC hmono X_N)).monic)
+      (himgPB.pi1_monic (germSub C hC hmono X_N).monic),
+    pullback_subobject_le hcanon
+      (himgPB.pi1_monic (germSub C hC hmono X_N).monic)
+      ((InverseImage (homInclObj C hC f_N) (germSub C hC hmono X_N)).monic)⟩
 
 /-! ### Transport D — union is a germ
 
@@ -578,7 +573,7 @@ theorem colimit_invImage_union_le (C : CatSystem.{u, u} ι D) (hC : C.Coherent) 
   have hLHS : (InverseImage f (HasSubobjectUnions.union S T)).Equiv
       (germSub C hC hmono (pbSub (ht N) (hp N) (he N) f_N (unionImg (hi N) (hcop N) S_N T_N))) := by
     rw [hfeq]
-    have hUeq := (union_equiv hSeq hTeq).trans
+    have hUeq := Subobject.Equiv.trans ⟨union_le_union hSeq.1 hTeq.1, union_le_union hSeq.2 hTeq.2⟩
       (union_germ_equiv C hC hmono hcop hcoppres hcoppres_case hi hfaith himgpres N S_N T_N)
     refine Subobject.Equiv.trans
       ⟨inverseImage_mono (homInclObj C hC f_N) hUeq.1,
@@ -590,22 +585,22 @@ theorem colimit_invImage_union_le (C : CatSystem.{u, u} ι D) (hC : C.Coherent) 
       (germSub C hC hmono (unionImg (hi N) (hcop N)
         (pbSub (ht N) (hp N) (he N) f_N S_N) (pbSub (ht N) (hp N) (he N) f_N T_N))) := by
     rw [hfeq]
-    refine (union_equiv
-      (Subobject.Equiv.trans
+    have hXS := Subobject.Equiv.trans
         ⟨inverseImage_mono (homInclObj C hC f_N) hSeq.1,
           inverseImage_mono (homInclObj C hC f_N) hSeq.2⟩
-        (invImage_germ_equiv C hC hmono ht htpres hp hpres hpres_pair he hepres hepres_lift N f_N S_N))
-      (Subobject.Equiv.trans
+        (invImage_germ_equiv C hC hmono ht htpres hp hpres hpres_pair he hepres hepres_lift N f_N S_N)
+    have hXT := Subobject.Equiv.trans
         ⟨inverseImage_mono (homInclObj C hC f_N) hTeq.1,
           inverseImage_mono (homInclObj C hC f_N) hTeq.2⟩
         (invImage_germ_equiv C hC hmono ht htpres hp hpres hpres_pair he hepres hepres_lift
-          N f_N T_N))).trans
+          N f_N T_N)
+    exact Subobject.Equiv.trans ⟨union_le_union hXS.1 hXT.1, union_le_union hXS.2 hXT.2⟩
       (union_germ_equiv C hC hmono hcop hcoppres hcoppres_case hi hfaith himgpres N
         (pbSub (ht N) (hp N) (he N) f_N S_N) (pbSub (ht N) (hp N) (he N) f_N T_N))
   -- stage hard direction, transported up
-  refine Subobject.le_of_equiv_le hLHS (Subobject.le_of_le_equiv
+  refine Subobject.le_trans hLHS.1 (Subobject.le_trans
     (germSub_le C hC hmono
       (stage_invImage_union_le (hPL := hbot N) (ht N) (hp N) (he N) (hi N) (hcop N) f_N S_N T_N))
-    hRHS.symm)
+    hRHS.symm.1)
 
 end Freyd.Colim

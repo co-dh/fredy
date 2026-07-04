@@ -1415,7 +1415,7 @@ theorem dom_map_coref {a b : 𝒜} (f : a ⟶ b) (hf : Map f) {c : b ⟶ b} (hc 
   - Division: `(R/S)_{ij} = ⋀_k R_{ik}/S_{jk}` (finite meet over the codomain index).
 
   The key adjointness check — `T ⊑ R/S ↔ T≫S ⊑ R` — reduces to `le_div_iff` entrywise:
-  the join in the composition pairs with the meet in the division via `finJoin_le`/`le_finMeet`.
+  the join in the composition pairs with the meet in the division via `listJoin'_le`/`le_finMeet`.
 
   The 1×1 embedding `embed1 : 𝒜 → MatObj 𝒜` is faithful and preserves ≫, °, ∩, ∪, 𝟘, /.
 

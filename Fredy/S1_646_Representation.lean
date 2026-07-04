@@ -142,8 +142,12 @@ theorem trep_separatesMaps : SeparatesMaps (Trep 𝒞) := by
       = TrepMap g (Ultraproduct.mk (U 𝒞) (idSec A)) :=
     congrFun hfg (Ultraproduct.mk (U 𝒞) (idSec A))
   -- Unfold to a `U`-large agreement of the two postcomposed sections.
-  rw [TrepMap, TrepMap, Ultraproduct.map_mk, Ultraproduct.map_mk,
-    Ultraproduct.mk_eq_mk] at happ
+  have hmk : (Ultraproduct.mk (U 𝒞) (Ultraproduct.liftSection (fun S => TSmap S f) (idSec A))
+        = Ultraproduct.mk (U 𝒞) (Ultraproduct.liftSection (fun S => TSmap S g) (idSec A))) ↔
+      (U 𝒞).toFilter.sets (agree (Ultraproduct.liftSection (fun S => TSmap S f) (idSec A))
+        (Ultraproduct.liftSection (fun S => TSmap S g) (idSec A))) :=
+    ⟨fun h => Quotient.exact h, fun h => Quotient.sound h⟩
+  rw [TrepMap, TrepMap, Ultraproduct.map_mk, Ultraproduct.map_mk, hmk] at happ
   -- Intersect the agreement coideal with the singleton coideal `{S | A ∈ S}`.
   have hcap := (U 𝒞).toFilter.inter_mem happ (mem_coideal_singleton (𝒞 := 𝒞) A)
   obtain ⟨S, hagree, hA⟩ := (U 𝒞).toFilter.mem_nonempty hcap

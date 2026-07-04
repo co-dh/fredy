@@ -19,7 +19,7 @@
   iso of the base).  `subConj` commutes (up to `≈`) with union (`subConj_union_equiv`) and with the
   inverse image on the codomain (`invImage_subConj_equiv`) and the domain (`invImage_iso_precomp_equiv`),
   built from the already-available pullback-transport lemmas `isPullback_of_iso_cospan` /
-  `pullback_subobject_equiv` (`Fredy/S1_43`, `Fredy/ColimitInvImageUnion`).
+  `pullback_subobject_le` (`Fredy/S1_43`, `Fredy/ColimitInvImageUnion`).
 
   The per-stage germ-preservation steps reuse the committed lax keystones verbatim:
     * inverse image is a pullback, `objIncl N` preserves pullbacks (`objInclL_preserves_pullbacks`);
@@ -28,7 +28,7 @@
     * `stageInclL` sends a stage `Subobject.le` to a colimit one (`germSubL_le`).
   The stage hard direction is the generic `stage_invImage_union_le` (per-stage `PreLogos`).
 
-  All generic uniqueness lemmas (`Subobject.Equiv`, `pullback_subobject_equiv`, `union_equiv_image_case`,
+  All generic uniqueness lemmas (`Subobject.Equiv`, `pullback_subobject_le`, `union_equiv_image_case`,
   `image_equiv_isImage`, `isImage_precomp_iso`, `pbSub`, `unionImg`, `stage_invImage_union_le`, …) are
   IMPORTED from `Fredy/ColimitInvImageUnion.lean` — they are pure category theory and apply to the lax
   colimit unchanged.  Mathlib-free.  Single universe `{w, w}` (the equalizer-derived pullback germ).
@@ -163,14 +163,14 @@ theorem subConj_union_equiv [HasImages 𝒞] [HasSubobjectUnions 𝒞] {B B' : �
   · -- subConj e (P∪Q) ≤ (subConj e P) ∪ (subConj e Q):  transport competitors back by `e'`.
     -- It suffices that P ≤ subConj e' U' and Q ≤ subConj e' U' for U' := (subConj e P)∪(subConj e Q).
     have hPU : P.le (subConj e' he' (HasSubobjectUnions.union (subConj e he P) (subConj e he Q))) :=
-      Subobject.le_of_equiv_le (subConj_cancel e' e he' he h1 P).symm
+      Subobject.le_trans (subConj_cancel e' e he' he h1 P).symm.1
         (subConj_le e' he' (HasSubobjectUnions.union_left (subConj e he P) (subConj e he Q)))
     have hQU : Q.le (subConj e' he' (HasSubobjectUnions.union (subConj e he P) (subConj e he Q))) :=
-      Subobject.le_of_equiv_le (subConj_cancel e' e he' he h1 Q).symm
+      Subobject.le_trans (subConj_cancel e' e he' he h1 Q).symm.1
         (subConj_le e' he' (HasSubobjectUnions.union_right (subConj e he P) (subConj e he Q)))
     have hmin := HasSubobjectUnions.union_min P Q _ hPU hQU
-    exact Subobject.le_of_le_equiv (subConj_le e he hmin)
-      (subConj_cancel e e' he he' h2 (HasSubobjectUnions.union (subConj e he P) (subConj e he Q)))
+    exact Subobject.le_trans (subConj_le e he hmin)
+      (subConj_cancel e e' he he' h2 (HasSubobjectUnions.union (subConj e he P) (subConj e he Q))).1
   · exact HasSubobjectUnions.union_min _ _ _
       (subConj_le e he (HasSubobjectUnions.union_left P Q))
       (subConj_le e he (HasSubobjectUnions.union_right P Q))
@@ -231,7 +231,7 @@ theorem germSubL_equiv (hmono : TransMonoL L) {N : ι} {y : L.A N} {X Y : Subobj
 set_option maxHeartbeats 1000000 in
 /-- **Lax `invImage_germ_equiv`.**  The colimit inverse image of a germ is the germ of the stage
     inverse image (a pullback): `(stageInclL f_N)#(germSubL X_N) ≈ germSubL (pbSub f_N X_N)`, via
-    `objInclL_preserves_pullbacks` + `pullback_subobject_equiv`. -/
+    `objInclL_preserves_pullbacks` + `pullback_subobject_le` (in both directions). -/
 theorem invImage_germ_equivL (hmono : TransMonoL L) [Nonempty ι]
     (tData : LaxTerminalData L) (pData : LaxProductData L) (eqData : LaxEqualizerData L)
     [hpull : @HasPullbacks (Obj L) (laxColimCat L hL)]
@@ -249,9 +249,12 @@ theorem invImage_germ_equivL (hmono : TransMonoL L) [Nonempty ι]
   have himgPB := objInclL_preserves_pullbacks L hL tData pData eqData N f_N X_N.arr
   have hcanon : (HasPullbacks.has (stageInclL L hL f_N)
       (germSubL L hL hmono X_N).arr).cone.IsPullback := HasPullback.cone_isPullback _
-  exact pullback_subobject_equiv hcanon himgPB
-    (InverseImage (stageInclL L hL f_N) (germSubL L hL hmono X_N)).monic
-    (himgPB.pi1_monic (germSubL L hL hmono X_N).monic)
+  exact ⟨pullback_subobject_le himgPB
+      (InverseImage (stageInclL L hL f_N) (germSubL L hL hmono X_N)).monic
+      (himgPB.pi1_monic (germSubL L hL hmono X_N).monic),
+    pullback_subobject_le hcanon
+      (himgPB.pi1_monic (germSubL L hL hmono X_N).monic)
+      (InverseImage (stageInclL L hL f_N) (germSubL L hL hmono X_N)).monic⟩
 
 /-! ### Transport D (lax) — union is a germ -/
 
@@ -484,7 +487,7 @@ theorem laxColim_invImage_union_le [Nonempty ι]
       (subConj dAi ⟨dA, hA2, hA1⟩ (germSubL L hL hmono pbU)) := by
     refine (invImage_subConj_equiv f dB ⟨dBi, hB1, hB2⟩ (HasSubobjectUnions.union S T)).trans ?_
     have hUeq := ((subConj_union_equiv dB dBi ⟨dBi, hB1, hB2⟩ hB1 hB2 S T).trans
-        (union_equiv hBS hBT)).trans
+        ⟨union_le_union hBS.1 hBT.1, union_le_union hBS.2 hBT.2⟩).trans
         (union_germ_equivL L hL hmono coprData hi hfaith himgpres N S_N T_N)
     refine Subobject.Equiv.trans
       ⟨invImage_le_of_le (f ≫ dB) hUeq.1, invImage_le_of_le (f ≫ dB) hUeq.2⟩ ?_
@@ -524,7 +527,7 @@ theorem laxColim_invImage_union_le [Nonempty ι]
   have hRHS : (HasSubobjectUnions.union (InverseImage f S) (InverseImage f T)).Equiv
       (subConj dAi ⟨dA, hA2, hA1⟩
         (germSubL L hL hmono (unionImg (hi N) (coprData.hcop N) pbS pbT))) := by
-    refine (union_equiv hfS hfT).trans ?_
+    refine Subobject.Equiv.trans ⟨union_le_union hfS.1 hfT.1, union_le_union hfS.2 hfT.2⟩ ?_
     refine (subConj_union_equiv dAi dA ⟨dA, hA2, hA1⟩ hA2 hA1
       (germSubL L hL hmono pbS) (germSubL L hL hmono pbT)).symm.trans ?_
     exact ⟨subConj_le dAi ⟨dA, hA2, hA1⟩
@@ -535,6 +538,6 @@ theorem laxColim_invImage_union_le [Nonempty ι]
   have hstage := stage_invImage_union_le (𝒞 := L.A N) (hPL := hbot N)
     (tData.ht N) (pData.hp N) (eqData.he N) (hi N) (coprData.hcop N) f_N S_N T_N
   have hstageConj := subConj_le dAi ⟨dA, hA2, hA1⟩ (germSubL_le L hL hmono hstage)
-  exact Subobject.le_of_equiv_le hLHS (Subobject.le_of_le_equiv hstageConj hRHS.symm)
+  exact Subobject.le_trans hLHS.1 (Subobject.le_trans hstageConj hRHS.symm.1)
 
 end Freyd.LaxColim

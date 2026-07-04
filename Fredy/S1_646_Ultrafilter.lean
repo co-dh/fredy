@@ -390,9 +390,6 @@ theorem tower_chain : ∀ {c}, Tower (le := le) (ub := ub) c → Chain le c := b
 /-- The union of all towers. -/
 def bigU : P → Prop := fun x => ∃ t : P → Prop, Tower (le := le) (ub := ub) t ∧ t x
 
-theorem bigU_tower : Tower (le := le) (ub := ub) (bigU (le := le) (ub := ub)) :=
-  Tower.sUnion (le := le) (ub := ub) (Tower (le := le) (ub := ub)) (fun _ h => h)
-
 /-- Any tower is contained in `bigU`. -/
 theorem subset_bigU {t : P → Prop} (ht : Tower (le := le) (ub := ub) t) :
     t ⊆c bigU (le := le) (ub := ub) := fun _ hx => ⟨t, ht, hx⟩
@@ -403,11 +400,12 @@ include hrefl htrans hub in
 theorem ub_bigU_isMax : IsMax le (ub (bigU (le := le) (ub := ub))) := by
   -- g le (ub bigU) ∈ bigU, since csucc bigU is a tower hence ⊆ bigU
   have hsucc : Tower (le := le) (ub := ub) (csucc le ub (bigU (le := le) (ub := ub))) :=
-    Tower.step _ bigU_tower
+    Tower.step _ (Tower.sUnion (le := le) (ub := ub) (Tower (le := le) (ub := ub)) (fun _ h => h))
   have hmem : bigU (le := le) (ub := ub) (g le (ub (bigU (le := le) (ub := ub)))) :=
     subset_bigU hsucc (mem_csucc_self le ub _)
   -- chain ⟹ g le (ub bigU) ≤ ub bigU
-  have hchain : Chain le (bigU (le := le) (ub := ub)) := tower_chain hrefl @htrans hub bigU_tower
+  have hchain : Chain le (bigU (le := le) (ub := ub)) := tower_chain hrefl @htrans hub
+    (Tower.sUnion (le := le) (ub := ub) (Tower (le := le) (ub := ub)) (fun _ h => h))
   have hle : le (g le (ub (bigU (le := le) (ub := ub)))) (ub (bigU (le := le) (ub := ub))) :=
     hub _ hchain hmem
   -- if ub bigU had a strict upper bound, g le (ub bigU) would be one with ¬ le _ (ub bigU)
