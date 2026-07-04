@@ -187,24 +187,59 @@ merged class `TabularUnitaryUnguardedPowerAllegory`): Map(A) has FULL power obje
 
 ## Duplicate lemmas to dedup (from `scripts/dep_dup.py`, 2026-07-03)
 
-Graph-based duplicate detector (cross-file, hub-removed dependency-Jaccard, corroborated by name+type).
-13 high-confidence pairs (name≥0.6 & type≥0.9). **Verify each before removing** (per `dedup-lean` skill:
-forward-or-delete the copy, re-check `#print axioms`). See `graph/dependency-analysis.md` for the method.
+Graph-based detector: nearest neighbours in the SVD embedding of the hub-removed dependency matrix,
+then cross-file + same-kind + row-Jaccard, ranked by name+type. Method/plots: `graph/dependency-analysis.md`,
+`graph/svd.pdf`. **Verify each before removing** (per `dedup-lean` skill: forward-or-delete the copy,
+re-check `#print axioms`). Of the top 50 candidates:
 
-- **★ §1.543 `Colim` vs `LaxColim` — a whole re-derived file** (`CatColimitRegular` re-proved as
-  `RatCapHcanon`/`RatCapPreReg`/`LaxGermPullbacks` under a `LaxColim` namespace with primed names):
-  - `Colim.isIso_of_product_up` (`S1_543_CatColimitRegular:1748`) ~ `LaxColim.isIso_of_product_up'` (`S1_543_RatCapHcanon:780`)
+| band | count | action |
+|--------------------------------------|:-:|--------------------------------|
+| A. real accidental duplicates        | ~15 | remove (verify) |
+| B. intentional parallel copies       | ~13 | keep, or merge via one generic lemma |
+| C. argument-order false positives    | ~10 | not dups — `type=1.0` fooled by token bag |
+| D. verify individually               | ~12 | inspect |
+
+**Caveat driving band C:** type equality here is token-set equality, which ignores argument order —
+`product_mono_of_mono` (first factor) vs `_right` (second factor) score `type=1.0` but are different.
+Clean precision needs a structure-aware type check or a proof-term hash.
+
+### A — real accidental duplicates (remove)
+- **★ §1.543 `Colim` → `LaxColim`, a whole re-derived file** (`CatColimitRegular` re-proved in
+  `RatCapHcanon`/`RatCapPreReg`/`LaxGermPullbacks` under `LaxColim`, primed names):
+  - `Colim.isIso_of_product_up` (`S1_543_CatColimitRegular:1748`) ~ `LaxColim.isIso_of_product_up'` (`…RatCapHcanon:780`)
   - `Colim.pullback_of_equalizer` (`…CatColimitRegular:2539`) ~ `LaxColim.pullback_of_equalizer'` (`…RatCapHcanon:634`)
   - `Colim.isEqualizer_iso_apex` (`…CatColimitRegular:2600`) ~ `LaxColim.isEqualizer_iso_apex'` (`…RatCapHcanon:685`)
   - `Colim.isEqualizer_comp_iso` (`…CatColimitRegular:2567`) ~ `LaxColim.isEqualizer_comp_iso'` (`…RatCapHcanon:658`)
   - `LaxColim.objInclL_preserves_pullbacks` (`…LaxGermPullbacks:84`) ~ `LaxColim.stageInclFunctorL_preservesPullbacks` (`…RatCapHcanon:1233`)
   - `LaxColim.ratCapCat` (`…CapitalizationLaxColimit:1581`) ~ `LaxColim.ratCat` (`…RatCapPreReg:250`)  [def]
-  - `innerSliceCartesianNil` (`S1_541_RelativeCapitalization:748`) ~ `innerSliceCartesianNilLoc` (`S1_543_Capitalization:1967`)  [instance, one side unused]
-- **Other cross-file duplicates:**
+  - `innerSliceCartesianNil` (`S1_541_RelativeCapitalization:748`) ~ `innerSliceCartesianNilLoc` (`S1_543_Capitalization:1967`)  [instance, unused]
+- **Other cross-file:**
   - `Alg.recip_Sup` (`S2_3:897`) ~ `Alg.recip_Sup'` (`S2_22:1271`)
   - `Alg.AllegoryFunctor.mono` (`S2_51:40`) ~ `Alg.AllegoryFunctor.map_mono` (`S2_156_PartitionRep:189`)
   - `exists_ultrafilter_excluding` (`S1_75:384`) ~ `PreLogosHorn.Stalk.exists_ultrafilter_excluding` (`S1_62:4350`)
   - `inter_mono` (`S1_62:1099`) ~ `Subobject.inter_mono` (`S1_658_Complement:76`)
-- **Verify (lower name/type agreement — may be distinct):**
+  - `cover_comp'` (`S1_543_Capitalization`) ~ `cover_comp''` (`S1_48_RationalCapitalization`)
   - `Alg.div_mono_left` (`S2_3:110`) ~ `Alg.div_num_mono` (`S2_441_StraightJoin:38`)
-  - `Alg.dom_comp_eq` (`S2_147_MapCat:62`) ~ `Alg.dom_comp_self` (`S2_3:561`)
+  - `FibreDensityProof.fibrePinEqualizers` (`S1_546:58`) ~ `UniformCap.uniformPinEqualizers` (`S1_547:78`)  [def]
+
+### B — intentional parallel copies (keep, or merge into one generic lemma)
+- AoP case studies, same abstract theorem per problem: `{knapsack,bitonic,paragraph}_thinning`
+  (`A8_4/6/5`), `{tardiness,tex}_greedy` (`A10_3/4`), `{bracketing,compression}_dp` (`A9_3/4`).
+- Per-datatype `RelSet`: `{CL,SL,Digits}.simple_uniq`, `{CL,SL,Digits}.entire_total`
+  (`A6_ConsList`/`A6_SnocList`/`A6_1_Digits`); `ListRel.dList` ~ `Sort.dList`.
+
+### C — argument-order false positives (NOT duplicates)
+- `product_mono_of_mono` (`S1_47`, first factor) ~ `product_mono_of_mono_right` (`S1_64`, second factor)
+- `Alg.modular_le_left'` (`S2_16b`) ~ `Alg.modular_le_right` (`A4_1`)  — the two modular inequalities
+- `Colim.*_castHom` family — distinct properties of the same `castHom`: `heq_`/`mono_`/`cover_`/`castHom_`/`castHom_castHom`
+
+### D — verify individually
+- `le_largest_self` (`S2_53:264`) ~ `self_le_largest` (`S2_55:63`)
+- `image` (`S1_51:149`) ~ `DirectImage` (`S1_70:92`)  [def]; `Alg.topHom` (`A4_4:104`) ~ `Alg.topRel` (`S2_5:563`)  [def]
+- `Alg.dom_comp_eq` (`S2_147_MapCat:62`) ~ `Alg.dom_comp_self` (`S2_3:561`)
+- `Alg.le_comp_recip_comp` (`A4_1`) ~ `Alg.le_dom_comp` (`S2_1`)
+- `cover_comp_iso_cat` (`S1_543_CofinalHstage`) ~ `cover_comp_iso` (`S1_62`)
+- `complementedSub_legs_iso` (`S1_62`) ~ `complemented_legs_iso` (`S1_64`)
+- `overPreRegular` (`S1_53_SliceRegular:262`) ~ `overRegular` (`S1_65_SlicePreTopos:120`)  [instance]
+- `monic_pair_of_monicPair` / `monicPair_of_monic_pair` (`S1_56`) ~ `QSeq139.*` (`QSeq139.lean`)
+- `LaxColim.stageZero` (`S1_61_LaxStrictInitial`) ~ `Colim.stageZero` (`S2_218_ColimitPreLogos`)  [def]

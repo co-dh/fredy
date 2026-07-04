@@ -1,12 +1,21 @@
-#set page(margin: 2.2cm, numbering: "1")
+#let blue = rgb("#2563eb")     // heavy-user / U axis
+#let teal = rgb("#0d9488")     // dependency / V axis
+#let red  = rgb("#dc2626")     // highlight
+#let bg   = rgb("#eef2ff")     // pale header fill
+
+#set page(margin: 2.2cm, numbering: "1", fill: white)
 #set text(font: "New Computer Modern", size: 10.5pt)
 #set par(justify: true)
-#show heading.where(level: 1): it => block(above: 1.2em, below: 0.7em, text(size: 14pt, it))
-#show heading.where(level: 2): it => block(above: 1em, below: 0.5em, text(size: 11.5pt, it))
-#let dep(x) = raw(x)
+#show heading.where(level: 1): it => block(above: 1.2em, below: 0.6em,
+  stack(spacing: 3pt, text(size: 14pt, fill: blue, it), line(length: 100%, stroke: 0.8pt + blue.lighten(40%))))
+#show heading.where(level: 2): it => block(above: 1em, below: 0.5em, text(size: 11.5pt, fill: teal, weight: "bold", it))
+#show raw: set text(fill: rgb("#0f172a"))
+#let dep(x) = box(fill: bg, inset: (x: 2pt, y: 0pt), outset: (y: 2pt), radius: 2pt, raw(x))
 
-#align(center, text(15pt, weight: "bold")[The SVD of the Fredy dependency matrix])
-#align(center, text(9pt)[9135 declarations, 126 847 dependency edges · computed 2026-07-03])
+#align(center, block(fill: blue, inset: 10pt, radius: 4pt, width: 100%)[
+  #text(16pt, weight: "bold", fill: white)[The SVD of the Fredy dependency matrix] \
+  #text(9pt, fill: white.darken(8%))[9135 declarations · 126 847 dependency edges · computed 2026-07-03]
+])
 
 = The matrix
 
@@ -38,10 +47,11 @@ out as *contrasts* (some $+$, some $-$), which is how a block separates two grou
 = The singular values, and why $sigma_1^2$ is 14%
 
 #align(center, table(
-  columns: 13, align: (right,) * 13, inset: 4pt, stroke: 0.4pt,
+  columns: 13, align: (right,) * 13, inset: 4pt, stroke: 0.4pt + gray,
+  fill: (x, y) => if y == 0 or x == 0 { bg },
   [$r$], [1],[2],[3],[4],[5],[6],[7],[8],[9],[10],[11],[12],
   [$sigma_r$], [133.2],[81.8],[57.7],[53.3],[50.9],[48.3],[45.4],[43.2],[39.5],[38.9],[36.3],[35.3],
-  [$sigma_r^2\/#sym.Sigma$ (%)], [13.98],[5.28],[2.63],[2.24],[2.04],[1.84],[1.63],[1.47],[1.23],[1.19],[1.04],[0.98],
+  [$sigma_r^2\/#sym.Sigma$ (%)], [*13.98*],[5.28],[2.63],[2.24],[2.04],[1.84],[1.63],[1.47],[1.23],[1.19],[1.04],[0.98],
 ))
 
 The "% of what" is the point. The squared size of the matrix is
@@ -54,6 +64,34 @@ $ sigma_1^2 = 133.2^2 = 17 742, quad 17 742 \/ 126 847 = 13.98% approx 14%. $
 That is what "14%" means: *14% of all the 1s in the matrix are accounted for by the single biggest
 co-usage block.* No other block is close (next is 5.3%), and it takes all top 12 to reach 35.5% — the
 structure is spread thin, not concentrated in a few blocks.
+
+#figure(image("svd-cumulative.png", width: 92%),
+  caption: [Adding up $sigma_r^2\/#sym.Sigma$: how much of the matrix the top-$r$ blocks reconstruct.
+  Top 12 reach only 35.5%; you need ~100 blocks for 64%, ~200 for 73%. The climb is slow because the
+  matrix is high-rank.])
+
+= Can we rebuild $A$ from the top 12? No.
+
+Keeping the top $r$ blocks gives the *best rank-$r$ approximation* of $A$
+($A_r = sum_(s=1)^r sigma_s u_s v_s^T$) — but that is still a full $9135 times 9135$ matrix: it uses
+*all 9135 entries* of each $u_s$ and $v_s$, not a $12 times 12$ corner. And "best rank-12" only gets
+$35.5%$ of the way (the plot). So no — the top 12 do not reproduce most of $A$; the dependency matrix is
+genuinely high-rank (many small, roughly equal blocks), so you would need hundreds of $u,v$ pairs.
+
+*Does the top-left $12 times 12$ of $A$ make sense to show?* Not as it stands: the declarations are
+ordered by file then line, so the top-left corner is just the 12 alphabetically-first files' lemmas —
+unrelated to the SVD, and not the rank-12 approximation either. What *is* meaningful is the submatrix on
+12 *chosen* important declarations. Below: the 12 heaviest core-users (largest entries of $u_1$) against
+the 12 core dependencies (largest entries of $v_1$), read off $A$ directly (1 = uses it):
+
+#figure(image("svd-block1.png", width: 74%),
+  caption: [The near-solid block that $sigma_1 u_1 v_1^T$ approximates: 84% ones — the heavy users use
+  almost the whole category core. The one empty column is `Allegory.toCat`: these are category (not
+  allegory) theorems, so they skip the allegory bridge — real structure, visible directly in $A$.])
+
+So to *see* the SVD you don't look at a $12 times 12$ of $A$; you look at how the top $u$ and $v$ pick
+out a dense block like this one. Shrinking $A$ to $12 times 12$ is impossible — every $u_r, v_r$ spans
+all 9135 declarations.
 
 = The top three dependency bundles $v_1, v_2, v_3$
 
