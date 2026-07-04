@@ -184,3 +184,27 @@ merged class `TabularUnitaryUnguardedPowerAllegory`): Map(A) has FULL power obje
   headline `union_incl_iff` (⋃Eᵢ ⊆ ⋃Eⱼ' in Rel(Set) iff ∀i∃j Eᵢ⊆Eⱼ') via the book's
   product-of-counterexamples; `dIncl/dEq_iff_unionFree`. The §2.158-dependent no-finite-axiom remark
   stays with §2.158.
+
+## Duplicate lemmas to dedup (from `scripts/dep_dup.py`, 2026-07-03)
+
+Graph-based duplicate detector (cross-file, hub-removed dependency-Jaccard, corroborated by name+type).
+13 high-confidence pairs (name≥0.6 & type≥0.9). **Verify each before removing** (per `dedup-lean` skill:
+forward-or-delete the copy, re-check `#print axioms`). See `graph/dependency-analysis.md` for the method.
+
+- **★ §1.543 `Colim` vs `LaxColim` — a whole re-derived file** (`CatColimitRegular` re-proved as
+  `RatCapHcanon`/`RatCapPreReg`/`LaxGermPullbacks` under a `LaxColim` namespace with primed names):
+  - `Colim.isIso_of_product_up` (`S1_543_CatColimitRegular:1748`) ~ `LaxColim.isIso_of_product_up'` (`S1_543_RatCapHcanon:780`)
+  - `Colim.pullback_of_equalizer` (`…CatColimitRegular:2539`) ~ `LaxColim.pullback_of_equalizer'` (`…RatCapHcanon:634`)
+  - `Colim.isEqualizer_iso_apex` (`…CatColimitRegular:2600`) ~ `LaxColim.isEqualizer_iso_apex'` (`…RatCapHcanon:685`)
+  - `Colim.isEqualizer_comp_iso` (`…CatColimitRegular:2567`) ~ `LaxColim.isEqualizer_comp_iso'` (`…RatCapHcanon:658`)
+  - `LaxColim.objInclL_preserves_pullbacks` (`…LaxGermPullbacks:84`) ~ `LaxColim.stageInclFunctorL_preservesPullbacks` (`…RatCapHcanon:1233`)
+  - `LaxColim.ratCapCat` (`…CapitalizationLaxColimit:1581`) ~ `LaxColim.ratCat` (`…RatCapPreReg:250`)  [def]
+  - `innerSliceCartesianNil` (`S1_541_RelativeCapitalization:748`) ~ `innerSliceCartesianNilLoc` (`S1_543_Capitalization:1967`)  [instance, one side unused]
+- **Other cross-file duplicates:**
+  - `Alg.recip_Sup` (`S2_3:897`) ~ `Alg.recip_Sup'` (`S2_22:1271`)
+  - `Alg.AllegoryFunctor.mono` (`S2_51:40`) ~ `Alg.AllegoryFunctor.map_mono` (`S2_156_PartitionRep:189`)
+  - `exists_ultrafilter_excluding` (`S1_75:384`) ~ `PreLogosHorn.Stalk.exists_ultrafilter_excluding` (`S1_62:4350`)
+  - `inter_mono` (`S1_62:1099`) ~ `Subobject.inter_mono` (`S1_658_Complement:76`)
+- **Verify (lower name/type agreement — may be distinct):**
+  - `Alg.div_mono_left` (`S2_3:110`) ~ `Alg.div_num_mono` (`S2_441_StraightJoin:38`)
+  - `Alg.dom_comp_eq` (`S2_147_MapCat:62`) ~ `Alg.dom_comp_self` (`S2_3:561`)
