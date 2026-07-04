@@ -22,9 +22,10 @@ are always real and $gt.eq 0$.
 
 The SVD writes the whole matrix as a sum of simple blocks, biggest first:
 $ A = sigma_1 thin u_1 v_1^T + sigma_2 thin u_2 v_2^T + sigma_3 thin u_3 v_3^T + dots.c $
-Each $u_r v_r^T$ is an outer product — a rank-1 matrix reading *"every declaration weighted by $u_r$
-uses every dependency weighted by $v_r$."* So one block is *a group of declarations that share a group
-of dependencies*, and $sigma_r$ says how large that block is. The three pieces:
+Each $u_r v_r^T$ is an outer product — a rank-1 matrix whose $(i,j)$ entry is one number,
+$sigma_r dot u_r [i] dot v_r [j]$: the block's guess for *"does declaration $i$ use dependency $j$"*, a
+per-declaration number times a per-dependency number. So one block is *a group of declarations that
+share a group of dependencies*, and $sigma_r$ says how large that block is. The three pieces:
 
 - $v_r$ (a column of $V$): a weighting over the 9135 *dependencies* — a bundle of things used together.
 - $u_r$ (a column of $U$): a weighting over the 9135 *declarations* — who draws on that bundle.
@@ -148,6 +149,35 @@ Every one is `Alg.*` — confirming $v_2$ is the allegory-vs-category axis.
 Theorems that lean on subobjects (negative end of the limits/subobjects contrast).
 ],
 )
+
+= What $u_1$ is, as numbers
+
+$u_1$ is a vector of 9135 real numbers — one per declaration — scaled so they square-sum to 1 (which
+is why each is small). All are $gt.eq 0$ here ($max = 0.0377$); 2143 of the 9135 are essentially zero.
+The actual values, sorted:
+
+#align(center, table(columns: 3, align: (right, right, left), inset: 4pt, stroke: 0.4pt,
+[*rank*], [$u_1$], [*declaration*],
+[0], [+0.0377], dep("amalgamation_is_pullback"),
+[1], [+0.0355], dep("monic_epic_is_cover"),
+[2], [+0.0354], dep("foldExists"),
+[50], [+0.0280], dep("Alg.mapDisjointBinaryCoproduct"),
+[500], [+0.0195], dep("prodEndo_preservesProductMonic"),
+[2000], [+0.0135], dep("PeanoProperty"),
+[5000], [+0.0064], dep("Alg.globalSup_apply"),
+[9134], [$approx 0$], dep("powerSetMap_id"),
+))
+
+One entry means: *add up how core-ish each dependency that declaration $i$ uses is, then divide by
+$sigma_1$* — $u_1 [i] = (sum_(j "used by" i) v_1 [j]) \/ sigma_1$. Worked for the top one:
+`amalgamation_is_pullback` uses 144 things; summing $v_1$ over exactly those
+($0.508 + 0.414 + 0.394 + dots$) gives $5.017$, and $5.017 \/ 133.2 = 0.0377$ — its $u_1$ entry
+exactly. So $u_1 [i]$ is "how much of the category core declaration $i$ pulls in."
+
+And the outer-product number: for $i =$ `amalgamation_is_pullback` ($u_1 = 0.0377$) and $j =$ `Cat.Hom`
+($v_1 = 0.508$), block 1 gives $133.2 times 0.0377 times 0.508 = 2.55$ (actual $A_(i j) = 1$; block 1
+overshoots, later blocks correct it). A light user (rank 5000, $u_1 = 0.0064$) against `Cat.Hom` gives
+only $0.44$ — small $u_1$, so the block predicts "barely uses the core."
 
 = What this buys us
 
