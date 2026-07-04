@@ -32,7 +32,7 @@
     which `hne` forbids.  So no splitting exists, and
     `asmReflection_not_ac_of_nonsplitting` fires.
 
-  ## The concrete witness (Layers 3–4) — the SINGLE remaining obligation
+  ## The concrete witness (Layers 3–4) — CLOSED in `S2_153f` (see the corrected note below)
 
   With the bridge above, the literal §2.153 headline `¬ CoversSplit (AsmEffReflection Krec)`
   reduces to exhibiting ONE concrete instance
@@ -74,15 +74,15 @@
   by the identity modulus with kernel exactly `E`.  So `¬ IsEffective E` is FALSE there and
   the halting relation does not qualify — the caucuses must be `Kc`-driven and non-singleton.
 
-  ### Remaining Lean work
+  ### Remaining Lean work — CLOSED in `S2_153f` (and the prediction above corrected)
 
-  Closing this needs (a) the concrete `A`/`E` construction with joint monicity and
-  `EquivalenceRelation E`, and (b) `¬ IsEffective E`, which requires either the general
-  identity `level x ≅ Ā_E` (unfolding the `Assembly` pullback/image caucus structure of
-  `compose`, §1.56) or a direct decider extraction from an arbitrary cover `x` with
-  `relClass E = relClass (graph x ⊚ (graph x)°)`.  Both are multi-hundred-line
-  developments over the `BinRel`/`compose`/`image` API and are left open here rather than
-  asserted with a hole.
+  The concrete `A`/`E` is supplied by `Fredy/S2_153f_ParityWitness.lean`: `A = ∇ℕ`, `E` the
+  parity relation (classes `2k ~ 2k+1`, caucus at `m` = diagonal ∪ classes ≤ m).  The
+  structural obstruction described above is right that the level's caucuses are `Q`-independent
+  (`level_caucus_iff`, `S2_153e`), but the prediction that the fill must "DECIDE `Kc`" was
+  wrong: over `∇ℕ` the cheap index carries NO information about the pair, so a single tracked
+  index already contradicts the class-bounded caucuses — UNIFORMITY OF NAMING, no recursion
+  theory, valid over `Krec` and over `allPartial` alike.
 
   MATHLIB-FREE.  Composition in DIAGRAM ORDER.
 -/

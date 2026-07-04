@@ -180,6 +180,7 @@ import Fredy.S2_153b_RecursiveModulus
 import Fredy.S2_153c_ConcreteNonEffective
 import Fredy.S2_153d_NonEffWitness
 import Fredy.S2_153e_ComposeCaucus
+import Fredy.S2_153f_ParityWitness
 import Fredy.S2_155_BiEntire
 import Fredy.S2_156_PartitionRep
 import Fredy.S2_157_ProjectivePlane

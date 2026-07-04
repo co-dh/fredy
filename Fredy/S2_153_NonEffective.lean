@@ -25,40 +25,33 @@
 
   This is the book's §2.153 non-effectiveness reduced to its combinatorial core: the
   single non-splitting equivalence relation.  It is the direct assembly mirror of
-  `Freyd.RecEff.reflection_not_ac`, parameterised over the halting-relation witness.
+  `Freyd.RecEff.reflection_not_ac`, parameterised over the witness — supplied by the
+  parity relation of `S2_153f`.
 
-  ## The remaining gap (NOT closed here) — and why
+  ## The witness — DISCHARGED in `Fredy/S2_153f_ParityWitness.lean` (corrected analysis)
 
-  To DISCHARGE the hypothesis of the reduction we would need a concrete non-splitting
-  equivalence relation on a concrete assembly, i.e. the assembly analogue of `ERel`.
-  Freyd's §2.153 obstruction is the halting problem, and it fires ONLY for the
-  RECURSIVE modulus system: the representative-choosing section of the halting relation
-  would be a K-tracked (hence recursive) function deciding the halting set, contradicting
-  §1.572b `K_not_recursive`.
+  The hypothesis of the reduction is discharged by the PARITY WITNESS of `S2_153f`: on
+  `A = ∇ℕ` the equivalence relation `E` gluing `2k ~ 2k+1`, with caucus at `m` = the
+  diagonal together with the pairs of class `≤ m`, has NO map-splitting; hence
+  `asmReflection_not_ac : ¬ CoversSplit (AsmEffReflection Krec)` (the partial-recursive
+  modulus system built in `S2_153b`) and likewise `asmReflection_not_ac_allPartial`.
 
-  The repo's ONLY concrete `ModulusSystem` is `ModulusSystem.allPartial` (§2.153), whose
-  `mem` is `True` — ALL partial endofunctions, not just the recursive ones.  Over
-  `allPartial` the obstruction VANISHES: the halting set's characteristic function is a
-  total partial-endofunction, so it lies in `allPartial`, the representative choice is
-  trackable, and `Rel(Assembly allPartial)` is in fact effective (its reflection is AC).
-  This is the same phenomenon the module docstring of `S2_153_Assemblies` flags for the
-  functor `∇` ("Over `allPartial` … the failure disappears").  Hence the literal target
-  `¬ CoversSplit (AsmEffReflection allPartial)` is EXPECTED FALSE, and the honest headline
-  must quantify over a RECURSIVE modulus system.
-
-  A recursive `ModulusSystem` does not exist in the repo and cannot be built cheaply:
-  `ModulusSystem` demands closure of `mem` under composition, pairing (`pairC`) and
-  definition-by-cases (`casesC`) of PARTIAL functions, i.e. the closure theory of the
-  PARTIAL recursive functions (dovetailing / s-m-n).  `Fredy/S1_572_Recursive.lean`
-  provides only TOTAL recursive closure (`Recursive1.comp`, …) plus the μ-operator and
-  the `acceptN` halting-witness checker (`Fredy/S1_572b_NotEffective.lean`); it has no
-  closed class of partial-recursive graphs.  A total-recursive modulus system does not
-  help either: the halting relation `ERel` is r.e. but not recursive, so its Rel(A)
-  moduli are genuinely partial and it is not even NAMEABLE over a total-only `K`.
-
-  Building the partial-recursive `ModulusSystem` (a multi-hundred-line computability
-  development) is the exact missing piece; with it, `ERel` transports to an assembly
-  relation and `asmReflection_not_ac_of_nonsplitting` closes §2.153 outright.
+  An earlier version of this paragraph predicted the opposite — that the obstruction is
+  the halting problem, fires only for a RECURSIVE modulus system, and that over
+  `ModulusSystem.allPartial` it "VANISHES", making the `allPartial` target "EXPECTED
+  FALSE".  That analysis was WRONG.  Freyd's §2.153 claim carries no recursiveness side
+  condition (it is stated for every K with identity, composition and pairing), and the
+  real obstruction is UNIFORMITY OF NAMING, not representative choice: over `∇ℕ` every
+  index names every point, so the level `q ⊚ q°` of ANY morphism — in particular of any
+  would-be splitting map, extracted via §2.148-dual fullness — has FULL caucuses
+  (`level_caucus_iff`, `S2_153e`), and a tracked containment `level ⊑ E` must send the
+  single index `0` to a single caucus index of `E` containing the ENTIRE kernel.  That
+  is impossible when `E`'s caucuses exhaust the kernel only in the limit (class `≤ m` at
+  index `m`).  This argument is uniform in K — no halting set, valid even for
+  `mem = True`.  What IS true about representative choice: transporting §1.572b's `ERel`
+  on a singleton-caucus assembly yields an EFFECTIVE relation (`S2_153b` tail note), so
+  a witness must place the uniformity burden on the caucuses, as the parity witness
+  does.
 
   Conventions: diagram-order composition `R ≫ S`, reciprocation `R°`, order `R ⊑ S`.
   Mathlib-free.

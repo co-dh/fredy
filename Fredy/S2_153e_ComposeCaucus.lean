@@ -20,12 +20,13 @@
   `n = code r_a r_a'` for `A`-caucus indices `r_a` of `a`, `r_{a'}` of `a'`.
 
   This is the point-level unfolding of `compose`/`imgAsm`/`products_equalizers_implies_pullbacks`
-  (§1.56/§1.432/§2.153).  Two sorry-free corollaries package it as the effectiveness bridge:
+  (§1.56/§1.432/§2.153).  Two Sorry-free corollaries package it as the effectiveness bridge:
   `level_caucus_of_indices` (the level caucus over any point is inhabited by the cheap coded
   index `code r r'`) and `level_fill_realizer` (a modulus `σ` tracking a `RelHom (level x) E`
   produces, from that cheap index, an `E.src`-realizer of the glued point).
 
-  ## Why Layers 2–4 (the concrete witness + `¬ IsEffective E`) are NOT closed here
+  ## Why Layers 2–4 (the concrete witness + `¬ IsEffective E`) are not closed HERE
+     (they are CLOSED in `S2_153f` — see the correction at the end of this note)
 
   With `level_fill_realizer` the effectiveness bridge is exact, and it makes precise why the
   halting-encoding witness CANNOT be completed from Layer 1 alone (the wall the prior agents
@@ -47,9 +48,15 @@
   Thus a single equivalence relation whose only computational content is a halting encoding is
   either not a valid assembly (witness-caucus) or effective (fallback-caucus): the
   "`Tracks` constrains only inhabited caucus indices" barrier (documented in `S2_153c/d`) is
-  intrinsic and Layer 1 does not break it.  A genuine §2.153 witness needs the classical
-  realizability non-exactness construction (a `¬¬`-separated / `∇`-based quotient whose class
-  realizers are non-uniformly recoverable), a separate development on top of these bridges.
+  intrinsic and Layer 1 does not break it.
+
+  CORRECTION (`S2_153f`): the last step of the old analysis — "any always-present caucus
+  index that is a recursive function of the cheap index splits the fill" — silently assumed
+  the cheap index DETERMINES the pair.  Over `A = ∇ℕ` it does not (every index names every
+  point), so an always-present caucus family can still defeat every fill: the parity witness
+  (caucus at `m` = diagonal ∪ classes ≤ m) makes the single tracked index `φ(0)` claim the
+  whole kernel, contradiction.  No halting encoding is needed; `¬ IsEffective` holds over
+  `Krec` AND `allPartial` — Freyd's §2.153 uniformly in K, via THIS file's `level_caucus_iff`.
 
   MATHLIB-FREE.  Composition in DIAGRAM ORDER.
 -/

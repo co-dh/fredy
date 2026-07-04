@@ -9,7 +9,7 @@
         EquivalenceRelation E ∧ ¬ IsEffective E
 
   via `asmReflection_not_ac_of_binRel_not_effective`.  This file supplies the reusable
-  categorical HEART of that construction (the "level bridge"), sorry-free and generic
+  categorical HEART of that construction (the "level bridge"), Sorry-free and generic
   over any cover, plus an honest record of the remaining research-level obligation and a
   correctness caveat that rules out the obvious-but-WRONG witness.
 
@@ -30,7 +30,7 @@
   representatives); assemblies over `Krec` are NOT AC, so the reverse step is genuinely
   different (see the caveat below).
 
-  ## The remaining obligation (Layers 2–4) — OPEN, and a CORRECTNESS CAVEAT
+  ## The remaining obligation (Layers 2–4) — CLOSED in `S2_153f`, and a CORRECTNESS CAVEAT
 
   Building the concrete `A`/`E` is the genuine hard core.  A tempting but PROVABLY WRONG
   route is: take `A` with SINGLETON caucuses (`A|ₙ = {n}`, cheap point realizers) and put
@@ -50,10 +50,11 @@
   must therefore use NON-SINGLETON, `Kc`-driven caucuses on `A` itself, arranged so that the
   level's caucus over a glued pair is inhabited for EVERY `e` (halting or not) — forcing the
   fill modulus to be TOTAL, hence a total `Krec`-decider of `Kc`, contradicting
-  `Freyd.Rcat.K_not_recursive`.  Constructing that `A`, proving `EquivalenceRelation E`
-  (whose transitivity already needs the assembly `compose` caucus computation), and running
-  the total-decider extraction is the open multi-hundred-line development; it is NOT provided
-  here and NO part of the headline is asserted with a hole.
+  `Freyd.Rcat.K_not_recursive`.  The caveat's lesson (put the uniformity burden on the
+  caucuses, keep the glued point present for EVERY class) is exactly what the parity witness
+  of `Fredy/S2_153f_ParityWitness.lean` implements — but no `Kc`-decider is needed at all:
+  over `∇ℕ` a single tracked caucus index must contain the whole kernel (uniformity of
+  naming), which the class-bounded caucuses refute directly, over `Krec` AND `allPartial`.
 
   MATHLIB-FREE.  Composition in DIAGRAM ORDER.
 -/

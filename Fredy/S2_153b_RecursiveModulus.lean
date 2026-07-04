@@ -411,7 +411,7 @@ noncomputable def Krec : ModulusSystem where
   inLR_ne a b := by omega
   cases_mem hφ hψ := partRec_casesC hφ hψ _ _ _
 
-/-! ## Status of Layers 3–4 (the concrete non-splitting relation) — OPEN
+/-! ## Status of Layers 3–4 (the concrete non-splitting relation) — CLOSED in `S2_153f`
 
   Layers 1–2 above are complete and hole-free: `Krec : ModulusSystem` is the genuine
   partial-recursive modulus system, its `casesC` closure powered by the universal machine
@@ -431,8 +431,10 @@ noncomputable def Krec : ModulusSystem where
     `SplitsAsMap (relGraph x) (relClass haltRel)` HOLDS, so the `hno` hypothesis of the
     reduction is FALSE for this witness.
 
-  Hence §2.153 non-effectiveness for assemblies needs a DIFFERENT relation (or object) whose
-  quotient cannot be presented as a `Krec`-assembly — a genuinely separate development, not
-  a transport of `ERel`.  Recorded here rather than asserted with a hole. -/
+  Hence §2.153 non-effectiveness for assemblies needs a DIFFERENT relation, not a transport
+  of `ERel`.  CLOSED in `Fredy/S2_153f_ParityWitness.lean`: the parity relation on `∇ℕ`
+  (classes `2k ~ 2k+1`, caucus at `m` = diagonal ∪ classes ≤ m) has no map-splitting — by
+  UNIFORMITY OF NAMING, with no recursion theory at all, so the headline holds over `Krec`
+  AND over `ModulusSystem.allPartial`. -/
 
 end Freyd

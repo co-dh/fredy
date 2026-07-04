@@ -1143,14 +1143,15 @@ theorem nabla_product (X Y : Type u) :
 
 /-! ## Remaining work (book claims not formalized here)
 
-  * "The category of assemblies is NOT effective."  This is a claim about
-    recursion-theoretically nontrivial K (e.g. all partial recursive functions): an
-    equivalence relation whose quotient would need a non-K-computable section fails to
-    split.  Over `ModulusSystem.allPartial` every function has a modulus, so
-    effectiveness plausibly HOLDS there and no counterexample can be uniform in K.  A
-    formalization needs a modulus system with genuine non-membership (e.g. a computable-
-    functions system with a diagonal argument) — out of scope for this file.
+  * "The category of assemblies is NOT effective."  PROVED in
+    `Fredy/S2_153f_ParityWitness.lean` (via the reduction of `S2_153_NonEffective`).
+    An earlier version of this note guessed the claim needs a recursion-theoretically
+    nontrivial K and that effectiveness "plausibly HOLDS" over `allPartial` — wrong:
+    the obstruction is uniformity of naming (a splitting forces a single caucus index
+    of the relation to contain the whole kernel), so the parity witness on `∇ℕ` works
+    UNIFORMLY, over the partial-recursive `Krec` (`S2_153b`) and over `allPartial`.
 
-  * "∇ does not preserve unions" — same situation; see the M8 section comment. -/
+  * "∇ does not preserve unions" — a claim about a suitable K; see the M8 section
+    comment. -/
 
 end Freyd
