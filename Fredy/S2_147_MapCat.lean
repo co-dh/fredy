@@ -59,11 +59,8 @@ variable {𝒜 : Type u} [Allegory 𝒜]
 
 /-! ### Helper order lemmas -/
 
-/-- dom R ≫ R = R. -/
-theorem dom_comp_eq {a b : 𝒜} (R : a ⟶ b) : dom R ≫ R = R :=
-  le_antisymm
-    (by have := comp_mono_right (dom_coreflexive R) R; rwa [Cat.id_comp] at this)
-    (le_dom_comp R)
+/-- dom R ≫ R = R.  (= the `[Allegory]`-general `S2_3.dom_comp_self`.) -/
+theorem dom_comp_eq {a b : 𝒜} (R : a ⟶ b) : dom R ≫ R = R := dom_comp_self R
 
 /-- dom(f ∩ g) ≫ f = f ∩ g  for any Map f. -/
 theorem dom_inter_comp {a b : 𝒜} {f g : a ⟶ b} (hf : Map f) : dom (f ∩ g) ≫ f = f ∩ g := by

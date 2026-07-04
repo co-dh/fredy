@@ -558,9 +558,11 @@ theorem straight_cancel {a b c : 𝒜} {S : a ⟶ b} (hS : Straight S)
   division-allegory facts the book uses silently:
   `dom F' = dom G'`, `F'°G' = F°G`, `Simple F'`, and `dom R ≫ R = R`. -/
 
+omit [DivisionAllegory 𝒜] in
 /-- `dom R ≫ R = R` (the domain restricts nothing): one half is `dom R ⊑ 1`,
-    the other is `le_dom_comp`. -/
-theorem dom_comp_self {a b : 𝒜} (R : a ⟶ b) : dom R ≫ R = R :=
+    the other is `le_dom_comp`.  Needs only `[Allegory]` (the ambient `[DivisionAllegory]` is
+    dropped so the downstream `[Allegory]`-only `S2_147.dom_comp_eq` can forward here). -/
+theorem dom_comp_self [Allegory 𝒜] {a b : 𝒜} (R : a ⟶ b) : dom R ≫ R = R :=
   le_antisymm (le_trans (comp_mono_right (dom_coreflexive R) R)
     (by rw [Cat.id_comp]; exact le_refl R)) (le_dom_comp R)
 
