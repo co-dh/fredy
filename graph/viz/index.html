@@ -153,6 +153,11 @@ async function main(){
       + `run <code>scripts/lean-graph</code> from the repo root, or regenerate first:<br>`
       + `<code>lake env lean --run scripts/ExtractGraph.lean</code><br><br><small>${esc(err.message)}</small>`);
   }
+  // optional SVD seed layout (scripts/svd_layout.py -> pos.tsv): deterministic start for ForceAtlas2.
+  // Absent is fine — we fall back to random.
+  const pos = new Map();
+  const pTxt = await fetch('../pos.tsv', {cache:'no-store'}).then(r=> r.ok ? r.text() : '').catch(()=> '');
+  for (const ln of pTxt.split('\n')){ if(!ln) continue; const p=ln.split('\t'); pos.set(p[0], {x:+p[1], y:+p[2]}); }
   for (const ln of dTxt.split('\n')){ if(!ln) continue; const p=ln.split('\t');
     decl.set(p[0], { kind:p[1], file:p[2], line:+p[3], type:p[4]||'', doc:p[5]||'', sec:sectionOf(p[2]) }); }
 
@@ -166,8 +171,9 @@ async function main(){
     if (decl.has(t)) indeg.set(t, (indeg.get(t)||0)+1);
   }
   for (const [name,d] of decl){
+    const p = pos.get(name);
     graph.addNode(name, {
-      x: Math.random()*1000, y: Math.random()*1000,
+      x: p ? p.x : Math.random()*1000, y: p ? p.y : Math.random()*1000,
       size: 2 + Math.min(13, Math.sqrt(indeg.get(name)||0)*0.9),
       color: KIND[d.kind] || '#7a8494',
       label: name.split('.').slice(-2).join('.'),
