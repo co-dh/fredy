@@ -36,7 +36,7 @@
       (`laxColimStrictInitial`, `Fredy/LaxStrictInitial.lean`), a STRICT coterminator; hence the
       composite is iso and `pbC.pt` is initial.
 
-  The genuinely generic helpers — `monic_of_comp_monic`, `monic_inl/inr_of_factor`,
+  The genuinely generic helpers — `monic_inl/inr_of_factor`,
   `subobject_le_of_initial_dom`, `isInitial_of_iso`, `prelogos_bottom_strict/_initial`,
   `disjoint_pullback_initial` — are IMPORTED from `Fredy.ColimitPositive` (they mention no colimit).
   Mathlib-free; single universe `{w,w}` (forced by the pullback germ `objInclL_preserves_pullbacks`).

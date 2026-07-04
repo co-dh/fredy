@@ -100,9 +100,6 @@ def quotLe {a b : 𝒞} (x y : BinRelQuot (𝒞 := 𝒞) a b) : Prop :=
       ⟨fun h => rel_le_trans (rel_le_trans hR.2 h) hS.1,
        fun h => rel_le_trans (rel_le_trans hR.1 h) hS.2⟩)
 
-theorem quotLe_refl {a b : 𝒞} (x : BinRelQuot (𝒞 := 𝒞) a b) : quotLe x x :=
-  Quotient.inductionOn x (fun R => rel_le_refl R)
-
 /-- Antisymmetry: mutual containment IS Lean equality on the quotient. -/
 theorem quotLe_antisymm {a b : 𝒞} {x y : BinRelQuot (𝒞 := 𝒞) a b}
     (h₁ : quotLe x y) (h₂ : quotLe y x) : x = y :=
@@ -263,7 +260,8 @@ theorem quotLe_iff_algLe {a b : 𝒞} (x y : BinRelQuot (𝒞 := 𝒞) a b) :
       (le_intersect (rel_le_refl R) h)
   · intro h
     -- [R⊓S] = [R] gives R ⊑ R⊓S, hence R ⊑ S via intersect_le_right.
-    have hRRS : quotLe (relClass R) (relClass (R ⊓ S)) := by rw [h]; exact quotLe_refl _
+    have hRRS : quotLe (relClass R) (relClass (R ⊓ S)) := by
+      rw [h]; exact rel_le_refl R   -- quotLe on relClass values defeq-reduces to rel_le
     exact rel_le_trans hRRS (intersect_le_right R S)
 
 end RelAllegory
@@ -877,7 +875,7 @@ private theorem entire_relClass {a b : 𝒞} (R : BinRel 𝒞 a b) :
   · intro h
     -- relClass (graph id ⊓ R⊚R°) = relClass (graph id) gives graph id ⊂ R⊚R°.
     have hqe : quotLe (relClass (graph (Cat.id a))) (relClass (graph (Cat.id a) ⊓ (R ⊚ R°))) := by
-      rw [h]; exact quotLe_refl _
+      rw [h]; exact rel_le_refl _   -- quotLe on relClass values defeq-reduces to rel_le
     exact rel_le_trans hqe (intersect_le_right _ _)
   · intro h
     -- graph id ⊂ R⊚R° gives graph id ⊓ R⊚R° ≈ graph id.

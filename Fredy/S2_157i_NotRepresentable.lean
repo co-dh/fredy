@@ -8,8 +8,9 @@
   `Rel(Set)` — Horn sentences do not axiomatise the representable allegories.
 
   Formalised here:
-  · `AllegoryFunctor.map_le` / `AllegoryFunctor.le_of_map_le` — an allegory functor
-    preserves the order `⊑`; a FAITHFUL one reflects it (`R ⊑ S ↔ R ∩ S = R` + `map_inter`).
+  · `AllegoryFunctor.map_le` — an allegory functor preserves the order `⊑` (from
+    `map_inter`, since `⊑` is defined equationally by `R ∩ S = R`); a FAITHFUL one reflects
+    it too (used inline in `desarguesHorn_reflect` via `map_inter` + faithfulness).
   · `desarguesHorn_reflect` — the Horn sentence transfers backwards along any faithful
     allegory functor: push the hypothesis inclusion forward, apply the Horn sentence in
     the target, reflect the conclusion inclusion back.
@@ -38,13 +39,6 @@ theorem AllegoryFunctor.map_le {𝒜 : Type u₁} {ℬ : Type u₂} [Allegory.{v
   show F.map R ∩ F.map S = F.map R
   rw [← F.map_inter, h]
 
-/-- A FAITHFUL allegory functor REFLECTS the order: `F R ⊑ F S → R ⊑ S`
-    (`map_inter` turns the target inclusion into `F (R ∩ S) = F R`; faithfulness strips `F`). -/
-theorem AllegoryFunctor.le_of_map_le {𝒜 : Type u₁} {ℬ : Type u₂} [Allegory.{v₁} 𝒜] [Allegory.{v₂} ℬ]
-    (F : AllegoryFunctor 𝒜 ℬ) (hF : F.Faithful) {a b : 𝒜} {R S : a ⟶ b}
-    (h : F.map R ⊑ F.map S) : R ⊑ S :=
-  hF (R ∩ S) R (by rw [F.map_inter]; exact h)
-
 /-! ## The Desargues Horn sentence transfers backwards along faithful representations -/
 
 /-- **Horn reflection**: if `F : 𝒜 → ℬ` is a faithful allegory functor and `ℬ` satisfies
@@ -55,7 +49,8 @@ theorem desarguesHorn_reflect {𝒜 : Type u₁} {ℬ : Type u₂} [Allegory.{v�
     (F : AllegoryFunctor 𝒜 ℬ) (hF : F.Faithful) (horn : DesarguesHorn ℬ) :
     DesarguesHorn 𝒜 := by
   intro p q a b c A₁ A₂ B₁ B₂ C₁ C₂ hyp
-  refine F.le_of_map_le hF ?_
+  refine hF _ _ ?_
+  rw [F.map_inter]
   have hpush : (F.map A₁ ≫ F.map A₂) ∩ (F.map B₁ ≫ F.map B₂) ⊑ F.map C₁ ≫ F.map C₂ := by
     have := F.map_le hyp
     rwa [F.map_inter, F.map_comp, F.map_comp, F.map_comp] at this
@@ -124,7 +119,7 @@ theorem setRel_inter (R S : BinRel (Type u) a b) (x : a) (y : b) :
            relLe_iff_setRel.mp (intersect_le_right R S) x y h⟩
   · rintro ⟨hR, hS⟩
     exact relLe_iff_setRel.mp (le_intersect (pointRel_le hR) (pointRel_le hS))
-      x y (⟨PUnit.unit, rfl, rfl⟩)
+      x y ⟨PUnit.unit, rfl, rfl⟩
 
 /-- `⊚` computes to relational composition.  Forward: image minimality compares the
     §1.51 image with the concrete image subtype, lifting each row of `R ⊚ S` back to

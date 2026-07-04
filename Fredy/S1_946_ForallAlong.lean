@@ -34,10 +34,6 @@ variable {𝒞 : Type u} [Cat.{v} 𝒞] [Topos 𝒞]
 noncomputable def eqChar (B : 𝒞) : prod B B ⟶ omega (𝒞 := 𝒞) :=
   HasSubobjectClassifier.classify (diag B) (diag_mono B)
 
-theorem eqChar_iff {B X : 𝒞} (a b : X ⟶ B) :
-    pair a b ≫ eqChar B = term X ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) ↔ a = b :=
-  diag_classify_iff a b
-
 /-! ## The `∀_f` body, characteristic map, and subobject. -/
 
 /-- The body `(a,b) ↦ (f a = b) ⇒ (a ∈ S)` as a map `A × B → Ω`. -/
@@ -69,7 +65,7 @@ theorem allows_forallAlong_iff {A B W : 𝒞} (f : A ⟶ B) (S : Subobject 𝒞 
 /-! ## The adjunction `f# ⊣ ∀_f`.
 
   `f# T ≤ S ↔ T ≤ ∀_f S`.  Both directions reduce, via `allows_iff_classify`, `forall_beta`,
-  `forall_elim`, `impΩ_forward`, and `eqChar_iff`, to the semantic fact
+  `forall_elim`, `impΩ_forward`, and `diag_classify_iff`, to the semantic fact
   `(∀ a. f a = b → a ∈ S)` along generalized points. -/
 
 /-- The body unfolds at a generalized point `⟨a,b⟩ = pair u v` to
@@ -162,14 +158,14 @@ theorem forallAlong_adjunction {A B : 𝒞} (f : A ⟶ B) (S : Subobject 𝒞 A)
       have hcarEq : S_eq.arr ≫ chiEq = term S_eq.dom ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) := by
         rw [show chiEq = HasSubobjectClassifier.classify S_eq.arr S_eq.monic from hcEq.symm]
         exact HasSubobjectClassifier.classify_sq S_eq.arr S_eq.monic
-      -- chiEq = ⟨(fst≫f),(snd≫T.arr)⟩ ≫ eqChar; ⊤ means (c≫fst≫f) = (c≫snd≫T.arr) (eqChar_iff).
+      -- chiEq = ⟨(fst≫f),(snd≫T.arr)⟩ ≫ eqChar; ⊤ means (c≫fst≫f) = (c≫snd≫T.arr) (diag_classify_iff).
       have hpaireq : S_eq.arr ≫ pair (fst ≫ f) (snd ≫ T.arr)
           = pair (S_eq.arr ≫ fst ≫ f) (S_eq.arr ≫ snd ≫ T.arr) := by
         apply pair_uniq
         · rw [Cat.assoc, fst_pair]
         · rw [Cat.assoc, snd_pair]
       have heq : S_eq.arr ≫ fst ≫ f = S_eq.arr ≫ snd ≫ T.arr := by
-        apply (eqChar_iff (S_eq.arr ≫ fst ≫ f) (S_eq.arr ≫ snd ≫ T.arr)).1
+        apply (diag_classify_iff (S_eq.arr ≫ fst ≫ f) (S_eq.arr ≫ snd ≫ T.arr)).1
         rw [← hpaireq, Cat.assoc]
         show S_eq.arr ≫ chiEq = _
         rw [hcarEq]
@@ -239,7 +235,7 @@ theorem forallAlong_adjunction {A B : 𝒞} (f : A ⟶ B) (S : Subobject 𝒞 A)
     -- Step 4: modus ponens with the reflexive equality (c≫f) = (c≫f).
     have hrefl : pair (c ≫ f) (c ≫ f) ≫ eqChar B
         = term K ≫ HasSubobjectClassifier.true (𝒞 := 𝒞) :=
-      (eqChar_iff (c ≫ f) (c ≫ f)).2 rfl
+      (diag_classify_iff (c ≫ f) (c ≫ f)).2 rfl
     have := impΩ_forward _ _ (Cat.id K)
       (by rw [Cat.id_comp]; exact hbodyτ)
       (by rw [Cat.id_comp]; exact hrefl)

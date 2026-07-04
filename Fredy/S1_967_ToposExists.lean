@@ -130,11 +130,6 @@ noncomputable def trueFst : Subobject 𝒞 (prod (omega (𝒞 := 𝒞)) (omega (
 noncomputable def trueSnd : Subobject 𝒞 (prod (omega (𝒞 := 𝒞)) (omega (𝒞 := 𝒞))) :=
   subOfChar snd
 
-@[simp] theorem subChar_trueFst :
-    subChar (trueFst (𝒞 := 𝒞)) = fst := subChar_subOfChar _
-@[simp] theorem subChar_trueSnd :
-    subChar (trueSnd (𝒞 := 𝒞)) = snd := subChar_subOfChar _
-
 /-- **Internal disjunction** `∨ : Ω×Ω → Ω`: the classifier of the union of the two
     coordinate-true subobjects `{(⊤,·)} ∪ {(·,⊤)}` of `Ω×Ω`. -/
 noncomputable def orChar : prod (omega (𝒞 := 𝒞)) (omega (𝒞 := 𝒞)) ⟶ omega (𝒞 := 𝒞) :=
@@ -162,10 +157,12 @@ theorem orChar_classifies_ge {A : 𝒞} (S T : Subobject 𝒞 A)
   let P := pair (subChar S) (subChar T)
   have hSchar : subChar (invImg P trueFst hpF) = subChar S := by
     have h1 : subChar (invImg P trueFst hpF) = P ≫ subChar trueFst := classify_invImg P trueFst hpF
-    rw [h1, subChar_trueFst]; exact fst_pair (subChar S) (subChar T)
+    rw [h1, show subChar (trueFst (𝒞 := 𝒞)) = fst from subChar_subOfChar _]
+    exact fst_pair (subChar S) (subChar T)
   have hTchar : subChar (invImg P trueSnd hpS) = subChar T := by
     have h1 : subChar (invImg P trueSnd hpS) = P ≫ subChar trueSnd := classify_invImg P trueSnd hpS
-    rw [h1, subChar_trueSnd]; exact snd_pair (subChar S) (subChar T)
+    rw [h1, show subChar (trueSnd (𝒞 := 𝒞)) = snd from subChar_subOfChar _]
+    exact snd_pair (subChar S) (subChar T)
   have hS_le : S.le (invImg P trueFst hpF) := (le_le_of_subChar_eq hSchar.symm).1
   have hT_le : T.le (invImg P trueSnd hpS) := (le_le_of_subChar_eq hTchar.symm).1
   have hF_le := invImg_le P trueFst (HasSubobjectUnions.union trueFst trueSnd) hpF hpU
@@ -191,10 +188,12 @@ theorem orChar_classifies_le {A : 𝒞} (S T : Subobject 𝒞 A)
   -- P#trueFst ≅ S, P#trueSnd ≅ T  (same classifier, as in orChar_classifies_ge).
   have hSchar : subChar (invImg P trueFst hpF) = subChar S := by
     have h1 : subChar (invImg P trueFst hpF) = P ≫ subChar trueFst := classify_invImg P trueFst hpF
-    rw [h1, subChar_trueFst]; exact fst_pair (subChar S) (subChar T)
+    rw [h1, show subChar (trueFst (𝒞 := 𝒞)) = fst from subChar_subOfChar _]
+    exact fst_pair (subChar S) (subChar T)
   have hTchar : subChar (invImg P trueSnd hpS) = subChar T := by
     have h1 : subChar (invImg P trueSnd hpS) = P ≫ subChar trueSnd := classify_invImg P trueSnd hpS
-    rw [h1, subChar_trueSnd]; exact snd_pair (subChar S) (subChar T)
+    rw [h1, show subChar (trueSnd (𝒞 := 𝒞)) = snd from subChar_subOfChar _]
+    exact snd_pair (subChar S) (subChar T)
   have hFS : (invImg P trueFst hpF).le S := (le_le_of_subChar_eq hSchar).1
   have hGT : (invImg P trueSnd hpS).le T := (le_le_of_subChar_eq hTchar).1
   -- P#trueFst ∪ P#trueSnd ≤ S ∪ T  (union_min + union_left/right).

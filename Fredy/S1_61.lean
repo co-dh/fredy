@@ -664,14 +664,6 @@ variable [PreLogos 𝒞]
 /-- COPRODUCT-FREE relational union — now an alias of the unified `relUnion` (S1_60 §1.616). -/
 abbrev relUnionSub {A B : 𝒞} (R S : BinRel 𝒞 A B) : BinRel 𝒞 A B := relUnion R S
 
-/-- `R ≤ relUnionSub R S`. -/
-theorem relUnionSub_le_left {A B : 𝒞} (R S : BinRel 𝒞 A B) : RelLe R (relUnionSub R S) :=
-  relUnion_le_left R S
-
-/-- `S ≤ relUnionSub R S`. -/
-theorem relUnionSub_le_right {A B : 𝒞} (R S : BinRel 𝒞 A B) : RelLe S (relUnionSub R S) :=
-  relUnion_le_right R S
-
 /-- Universal property: `R ≤ U → S ≤ U → relUnionSub R S ≤ U`. -/
 theorem le_relUnionSub {A B : 𝒞} {R S U : BinRel 𝒞 A B}
     (hR : RelLe R U) (hS : RelLe S U) : RelLe (relUnionSub R S) U :=
@@ -902,8 +894,8 @@ theorem disjoint_cover_is_coproduct [PreLogos 𝒞]
         (relUnionSub ((graph x)° ⊚ graph x) ((graph y)° ⊚ graph y)) :=
       union_joint_cover_sub A₁ A₂ hCover
     refine rel_le_trans hjoint (le_relUnionSub ?_ ?_)
-    · exact xx_le_RRrecip x f₁ R (relUnionSub_le_left P Q)
-    · exact xx_le_RRrecip y f₂ R (relUnionSub_le_right P Q)
+    · exact xx_le_RRrecip x f₁ R (relUnion_le_left P Q)
+    · exact xx_le_RRrecip y f₂ R (relUnion_le_right P Q)
   -- extract the descent morphism h
   obtain ⟨h, hRh, _⟩ := map_to_graph R ⟨hEntire, hSimple⟩
   -- factorizations  x ≫ h = f₁  and  y ≫ h = f₂  (the hfac_gen pattern, coproduct-free)
@@ -920,8 +912,8 @@ theorem disjoint_cover_is_coproduct [PreLogos 𝒞]
     have step5 : RelLe (graph z ⊚ graph h) (graph (z ≫ h)) := comp_graph z h
     exact (graph_faithful (rel_le_trans step1 (rel_le_trans step2
       (rel_le_trans step3 (rel_le_trans step4 step5))))).symm
-  have hfac1 : x ≫ h = f₁ := hfac_gen x f₁ (relUnionSub_le_left P Q)
-  have hfac2 : y ≫ h = f₂ := hfac_gen y f₂ (relUnionSub_le_right P Q)
+  have hfac1 : x ≫ h = f₁ := hfac_gen x f₁ (relUnion_le_left P Q)
+  have hfac2 : y ≫ h = f₂ := hfac_gen y f₂ (relUnion_le_right P Q)
   refine ⟨h, hfac1, hfac2, ?_⟩
   -- uniqueness via joint epi (hCover)
   intro h' hh'1 hh'2

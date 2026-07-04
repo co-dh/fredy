@@ -250,18 +250,13 @@ theorem lmon_inter_eq_meet (R S : LMonHom L) : R ∩ S = ModularLattice.meet R S
 /-- Over the lattice bridge the identity IS the bottom `0`. -/
 theorem lmon_id_eq_bot : (Cat.id (LMonObj.star : LMonObj L)) = (ModularLattice.bot : L) := rfl
 
-/-- Over the lattice bridge every hom is reflexive: `0 ⊂ R` — book sentence
-    "reflexive because 0 ⊂ R and T(0) = 1". -/
-theorem lmon_lattice_reflexive (R : LMonHom L) : Reflexive R :=
-  ModularLattice.bot_le R
-
 /-- Over the lattice bridge every hom is transitive. -/
 theorem lmon_lattice_transitive (R : LMonHom L) : Transitive R :=
   le_of_eq (ModularLattice.join_idem R)
 
 /-- Over the lattice bridge every hom of `LMonObj L` is an equivalence relation. -/
 def lmonEquivRel (R : LMonHom L) : EquivRel (LMonObj.star : LMonObj L) :=
-  ⟨R, lmon_lattice_reflexive R, le_refl R, lmon_lattice_transitive R⟩
+  ⟨R, ModularLattice.bot_le R, le_refl R, lmon_lattice_transitive R⟩
 
 end LMonHomFacts
 
@@ -297,7 +292,7 @@ variable {L : Type u} [ModularLattice L] (T : AllegoryFunctor (LMonObj L) ℬ)
 
 /-- §2.156: "it is reflexive because 0 ⊂ R and T(0) = 1". -/
 theorem rep_reflexive (R : LMonHom L) : Reflexive (T.map R) :=
-  T.map_reflexive (lmon_lattice_reflexive R)
+  T.map_reflexive (ModularLattice.bot_le R)
 
 /-- §2.156: "T(R) is, in fact, an equivalence relation". -/
 def rep_equivRel (R : LMonHom L) : EquivRel (T.obj LMonObj.star) :=

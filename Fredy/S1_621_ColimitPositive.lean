@@ -94,27 +94,28 @@ def disjointBinaryCoproduct_of_disjoint {𝒞 : Type u} [Cat.{v} 𝒞]
   colimit proof reduce each of the three disjointness fields (`inl`/`inr` monic, `inl ∩ inr ≤ ⊥`)
   to per-stage data transported by germs. -/
 
-/-- A LEFT FACTOR of a monic is monic: if `f ≫ g` is left-cancellable, so is `f`. -/
-theorem monic_of_comp_monic {𝒞 : Type u} [Cat.{v} 𝒞] {X Y Z : 𝒞} {f : X ⟶ Y} {g : Y ⟶ Z}
-    (h : Monic (f ≫ g)) : Monic f :=
-  fun u v huv => h u v (by rw [← Cat.assoc, ← Cat.assoc, huv])
-
 /-- **`inl` is monic whenever there is ANY monic `j₁ : A ⟶ P` and any `j₂ : B ⟶ P`.**  The
     copairing `case j₁ j₂` satisfies `inl ≫ case j₁ j₂ = j₁` (`case_inl`), so `inl` is a left
     factor of the monic `j₁`. -/
 theorem monic_inl_of_factor {𝒞 : Type u} [Cat.{v} 𝒞] [HasBinaryCoproducts 𝒞] {A B P : 𝒞}
     (j₁ : A ⟶ P) (j₂ : B ⟶ P) (hj₁ : Monic j₁) :
     Monic (HasBinaryCoproducts.inl (A := A) (B := B)) := by
-  refine monic_of_comp_monic (g := HasBinaryCoproducts.case j₁ j₂) ?_
-  rw [HasBinaryCoproducts.case_inl]; exact hj₁
+  have h : Monic (HasBinaryCoproducts.inl (A := A) (B := B) ≫ HasBinaryCoproducts.case j₁ j₂) := by
+    rw [HasBinaryCoproducts.case_inl]; exact hj₁
+  -- intro all four binders (W is implicit but positional for `intro`)
+  intro W u v huv
+  exact h u v (by rw [← Cat.assoc, ← Cat.assoc, huv])
 
 /-- Dual of `monic_inl_of_factor`: `inr` is monic whenever there is any `j₁ : A ⟶ P` and a monic
     `j₂ : B ⟶ P`. -/
 theorem monic_inr_of_factor {𝒞 : Type u} [Cat.{v} 𝒞] [HasBinaryCoproducts 𝒞] {A B P : 𝒞}
     (j₁ : A ⟶ P) (j₂ : B ⟶ P) (hj₂ : Monic j₂) :
     Monic (HasBinaryCoproducts.inr (A := A) (B := B)) := by
-  refine monic_of_comp_monic (g := HasBinaryCoproducts.case j₁ j₂) ?_
-  rw [HasBinaryCoproducts.case_inr]; exact hj₂
+  have h : Monic (HasBinaryCoproducts.inr (A := A) (B := B) ≫ HasBinaryCoproducts.case j₁ j₂) := by
+    rw [HasBinaryCoproducts.case_inr]; exact hj₂
+  -- intro all four binders (W is implicit but positional for `intro`)
+  intro W u v huv
+  exact h u v (by rw [← Cat.assoc, ← Cat.assoc, huv])
 
 /-- A subobject with an INITIAL domain lies below every subobject of the same object. -/
 theorem subobject_le_of_initial_dom {𝒞 : Type u} [Cat.{v} 𝒞] {B : 𝒞} {S T : Subobject 𝒞 B}

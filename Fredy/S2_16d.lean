@@ -154,7 +154,7 @@ def asmEmbedHom {A B : Assembly.{u} K} (R : (⟨A⟩ : AsmRel K) ⟶ ⟨B⟩) :
 /-- The embedding `Rel(A) ↪ E` is FAITHFUL. -/
 theorem asmEmbed_faithful {A B : Assembly.{u} K} {R S : (⟨A⟩ : AsmRel K) ⟶ ⟨B⟩}
     (h : asmEmbedHom K R = asmEmbedHom K S) : R = S :=
-  embEq_faithful h
+  embHom_injective h
 
 /-- The embedding preserves and reflects MAPS (so the maps `A/1_A → B/1_B` of `E` are
     exactly the maps of `Rel(A)`, i.e. — §2.217 — the assembly morphisms). -/
@@ -196,7 +196,7 @@ theorem asmEmbedMap_comp {A B C : Assembly.{u} K} (f : A ⟶ B) (g : B ⟶ C) :
     (graph injectivity `relClass_graph_inj` + faithfulness of the embedding). -/
 theorem asmEmbedMap_faithful {A B : Assembly.{u} K} {f g : A ⟶ B}
     (h : asmEmbedMap K f = asmEmbedMap K g) : f = g :=
-  relClass_graph_inj (embEq_faithful h)
+  relClass_graph_inj (embHom_injective h)
 
 /-! ### Effectiveness -/
 

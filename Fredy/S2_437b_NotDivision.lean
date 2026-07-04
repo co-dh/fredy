@@ -195,7 +195,7 @@ theorem relT_smnNum {t : Nat → Nat → Nat} {ct : RecCode 2}
     relT (smnNum ct a) c ↔ ∃ y, t y (cp a c) = 0 := by
   have hspec : (∃ w, Eval cU (fun _ => cp (smnNum ct a) c) w)
       ↔ ∃ w, Eval (smnCode ct a) (fun _ => c) w :=
-    exists_congr fun w => cU_spec (smnCode ct a) c w
+    exists_congr fun w => Classical.choose_spec universal_genuine (smnCode ct a) c w
   exact hspec.trans (smnCode_conv hct a c)
 
 /-! ### `smnNum ct` is total-recursive in `a`

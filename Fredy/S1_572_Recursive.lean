@@ -1308,9 +1308,6 @@ noncomputable def leastAgree (F : Nat → Nat) (k : Nat) : Nat :=
 theorem leastAgree_agree (F : Nat → Nat) (k : Nat) : F (leastAgree F k) = F k :=
   theLeast_mem (fun i => F i = F k) ⟨k, rfl⟩
 
-theorem leastAgree_min (F : Nat → Nat) (k : Nat) :
-    ∀ i, i < leastAgree F k → F i ≠ F k := theLeast_min _ _
-
 theorem leastAgree_congr (F : Nat → Nat) {j k : Nat} (h : F j = F k) :
     leastAgree F j = leastAgree F k := by
   refine theLeast_unique _ _ ?_ ?_
@@ -1319,7 +1316,7 @@ theorem leastAgree_congr (F : Nat → Nat) {j k : Nat} (h : F j = F k) :
   · intro i hi
     show ¬F i = F j
     rw [h]
-    exact leastAgree_min F k i hi
+    exact theLeast_min (fun i => F i = F k) ⟨k, rfl⟩ i hi
 
 theorem leastAgree_idem (F : Nat → Nat) (k : Nat) :
     leastAgree F (leastAgree F k) = leastAgree F k :=
@@ -1385,7 +1382,7 @@ theorem idemFn_isMor {α β : ExtNat} (x : Mor α β) : IsMor α α (idemFn x) :
         omega
       · intro k i hi
         show (morN x i - morN x k) + (morN x k - morN x i) ≠ 0
-        have := leastAgree_min (morN x) k i hi
+        have := theLeast_min (fun i => morN x i = morN x k) ⟨k, rfl⟩ i hi
         omega
     exact h.congr fun k => (toNat_idemFn x k).symm
 

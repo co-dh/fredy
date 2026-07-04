@@ -57,21 +57,16 @@ theorem A_comp_subsetRel (W : b ⟶ a) : A W ≫ subsetRel a = W / (∋ a) := by
 def thinRel (Q : a ⟶ a) : PowerAllegory.powerObj a ⟶ PowerAllegory.powerObj a :=
   subsetRel a ∩ leftDiv ((∋ a)°) (Q ≫ (∋ a)°)
 
-theorem thinRel_le_subsetRel (Q : a ⟶ a) : thinRel Q ⊑ subsetRel a := inter_lb_left _ _
-
-theorem thinRel_le_lb (Q : a ⟶ a) :
-    thinRel Q ⊑ leftDiv ((∋ a)°) (Q ≫ (∋ a)°) := inter_lb_right _ _
-
 /-- Thinning only shrinks: `thin Q ≫ ∋ ⊑ ∋` (members of the output were members of the
     input). -/
 theorem thinRel_comp_eps_le (Q : a ⟶ a) : thinRel Q ≫ ∋ a ⊑ ∋ a :=
-  le_trans (comp_mono_right (thinRel_le_subsetRel Q) (∋ a)) subsetRel_comp_eps_le
+  le_trans (comp_mono_right (inter_lb_left _ _) (∋ a)) subsetRel_comp_eps_le
 
 /-- Thinning keeps lower bounds: `∋·thin Q ⊑ Q·∋`-mirrored, `(∋ a)° ≫ thinRel Q ⊑
     Q ≫ (∋ a)°` (every input member has a `Q`-lower bound among the output members). -/
 theorem recip_eps_comp_thinRel_le (Q : a ⟶ a) :
     (∋ a)° ≫ thinRel Q ⊑ Q ≫ (∋ a)° :=
-  le_trans (comp_mono_left _ (thinRel_le_lb Q)) (leftDiv_comp_le _ _)
+  le_trans (comp_mono_left _ (inter_lb_right _ _)) (leftDiv_comp_le _ _)
 
 /-- The (7.5)-analogue for thinning: `thin Q·ΛS = (S/∋... )`-mirrored,
     `A S ≫ thinRel Q = (S / ∋ a) ∩ leftDiv S° (Q ≫ (∋ a)°)`. -/
@@ -133,8 +128,8 @@ theorem recip_comp_A_le_recip_eps (T : b ⟶ a) : T° ≫ A T ⊑ (∋ a)° := b
 /-- `thin` is monotone (B&dM p.194): `Q ⊑ R → thin Q ⊑ thin R`. -/
 theorem thinRel_mono {Q R : a ⟶ a} (h : Q ⊑ R) : thinRel Q ⊑ thinRel R := by
   show thinRel Q ⊑ subsetRel a ∩ leftDiv ((∋ a)°) (R ≫ (∋ a)°)
-  exact le_inter (thinRel_le_subsetRel Q)
-    (le_trans (thinRel_le_lb Q) (leftDiv_mono_right _ (comp_mono_right h ((∋ a)°))))
+  exact le_inter (inter_lb_left _ _)
+    (le_trans (inter_lb_right _ _) (leftDiv_mono_right _ (comp_mono_right h ((∋ a)°))))
 
 /-- Reflexive half of **Ex 8.2**: `id ⊑ Q → id ⊑ thin Q`. -/
 theorem id_le_thinRel {Q : a ⟶ a} (hrefl : Cat.id a ⊑ Q) :

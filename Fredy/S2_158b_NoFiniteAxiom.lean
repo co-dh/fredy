@@ -329,10 +329,6 @@ def rhR1 (b : Nat) : Term Nat :=
   rhombusRHS (lbl b 0) (lbl b 1) (lbl b 2) (lbl b 3)
              (lbl b 4) (lbl b 5) (lbl b 6) (lbl b 7)
 
-/-- Each single blocked rhombus is valid in `Rel(S)`. -/
-theorem rhL1_holds (b : Nat) : HoldsInRel (rhL1 b) (rhR1 b) :=
-  rhombus1_holds _ _ _ _ _ _ _ _
-
 /-- LHS of the `n`-fold series rhombus: `n+1` collapsed rhombi composed in `;`. -/
 def ladderL : Nat → Term Nat
   | 0 => rhL1 0
@@ -350,8 +346,8 @@ def ladderR : Nat → Term Nat
 theorem ladder_holds : ∀ n : Nat, HoldsInRel (ladderL n) (ladderR n) := by
   intro n
   induction n with
-  | zero => exact rhL1_holds 0
-  | succ m ih => exact HoldsInRel.comp ih (rhL1_holds (m+1))
+  | zero => exact rhombus1_holds _ _ _ _ _ _ _ _
+  | succ m ih => exact HoldsInRel.comp ih (rhombus1_holds _ _ _ _ _ _ _ _)
 
 /-! ## Layer 1″ — the ENTANGLED rhombus family (Freyd's `G₁ → G₂`, general `n`)
 

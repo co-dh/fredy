@@ -3816,18 +3816,19 @@ theorem consMor_read {X : 𝒞} (n : X ⟶ hN.nno) (p : X ⟶ prod A (wordObj A)
 noncomputable def nnoCoUninv : hN.nno ⟶ coprod one hN.nno :=
   (nno_is_coproduct (𝒞 := 𝒞)).choose
 
-theorem nnoCoUninv_spec : case hN.zero hN.succ ≫ nnoCoUninv (𝒞 := 𝒞) = Cat.id _ :=
-  (nno_is_coproduct (𝒞 := 𝒞)).choose_spec.1
-
 /-- `0 ≫ cInv = inl`. -/
 theorem zero_nnoCoUninv : hN.zero ≫ nnoCoUninv (𝒞 := 𝒞) = inl := by
   have h : (inl : one ⟶ coprod one hN.nno) ≫ case hN.zero hN.succ = hN.zero := case_inl _ _
-  rw [← h, Cat.assoc, nnoCoUninv_spec]; exact Cat.comp_id _
+  rw [← h, Cat.assoc, show case hN.zero hN.succ ≫ nnoCoUninv (𝒞 := 𝒞) = Cat.id _ from
+    (nno_is_coproduct (𝒞 := 𝒞)).choose_spec.1]
+  exact Cat.comp_id _
 
 /-- `s ≫ cInv = inr`. -/
 theorem succ_nnoCoUninv : hN.succ ≫ nnoCoUninv (𝒞 := 𝒞) = inr := by
   have h : (inr : hN.nno ⟶ coprod one hN.nno) ≫ case hN.zero hN.succ = hN.succ := case_inr _ _
-  rw [← h, Cat.assoc, nnoCoUninv_spec]; exact Cat.comp_id _
+  rw [← h, Cat.assoc, show case hN.zero hN.succ ≫ nnoCoUninv (𝒞 := 𝒞) = Cat.id _ from
+    (nno_is_coproduct (𝒞 := 𝒞)).choose_spec.1]
+  exact Cat.comp_id _
 
 /-- The `consBody` definition restated with the named inverse `nnoCoUninv`. -/
 theorem consBody_eq :

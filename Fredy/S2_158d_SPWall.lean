@@ -723,10 +723,6 @@ def entPos (n : Nat) : (toGraph (entL n)).V → CPos :=
 
 theorem entPos_s (n : Nat) : entPos n (toGraph (entL n)).s = .corner 0 := rfl
 
-theorem entPos_Pv (n : Nat) : entPos n (Pv n) = .top 0 := (midsPosP n).2.1
-
-theorem entPos_Qv (n : Nat) : entPos n (Qv n) = .bot 0 := (midsPosP n).2.2
-
 theorem entPos_eCorn (n : Nat) : ∀ i, i ≤ n + 1 →
     entPos n (eCorn n i) = .corner i := by
   intro i hi
@@ -846,20 +842,20 @@ theorem eCorn_inj {n i j : Nat} (hi : i ≤ n + 1) (hj : j ≤ n + 1)
 theorem eCorn_ne_Pv {n i : Nat} (hi : i ≤ n + 2) : eCorn n i ≠ Pv n := by
   intro h
   obtain ⟨i', hi'⟩ := entPos_eCorn_isCorner n hi
-  have := hi'.symm.trans ((congrArg (entPos n) h).trans (entPos_Pv n))
+  have := hi'.symm.trans ((congrArg (entPos n) h).trans ((midsPosP n).2.1))
   exact CPos.noConfusion this
 
 /-- Corners never coincide with the collapsed bottom vertex. -/
 theorem eCorn_ne_Qv {n i : Nat} (hi : i ≤ n + 2) : eCorn n i ≠ Qv n := by
   intro h
   obtain ⟨i', hi'⟩ := entPos_eCorn_isCorner n hi
-  have := hi'.symm.trans ((congrArg (entPos n) h).trans (entPos_Qv n))
+  have := hi'.symm.trans ((congrArg (entPos n) h).trans ((midsPosP n).2.2))
   exact CPos.noConfusion this
 
 /-- The collapsed top and bottom vertices are distinct. -/
 theorem Pv_ne_Qv (n : Nat) : Pv n ≠ Qv n := by
   intro h
-  have := (entPos_Pv n).symm.trans ((congrArg (entPos n) h).trans (entPos_Qv n))
+  have := ((midsPosP n).2.1).symm.trans ((congrArg (entPos n) h).trans ((midsPosP n).2.2))
   exact CPos.noConfusion this
 
 /-- A merge of two collapsed corners is the mark merge: the only coincidence

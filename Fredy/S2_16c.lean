@@ -116,11 +116,6 @@ def embEqHom {a b : 𝒜} (R : a ⟶ b) : (embEq a : SplEqObj 𝒜) ⟶ embEq b 
 
 @[simp] theorem embEqHom_R {a b : 𝒜} (R : a ⟶ b) : (embEqHom R).R = R := rfl
 
-/-- The embedding is FAITHFUL in `Spl(Eq 𝒜)` (inherited from `embHom_injective`). -/
-theorem embEq_faithful {a b : 𝒜} {R S : a ⟶ b}
-    (h : embEqHom (𝒜 := 𝒜) R = embEqHom S) : R = S :=
-  embHom_injective h
-
 /-- The embedding preserves identities in `Spl(Eq 𝒜)`. -/
 theorem embEq_id (a : 𝒜) : embEqHom (Cat.id a) = Cat.id (embEq a : SplEqObj 𝒜) :=
   SplHom.ext rfl
@@ -445,7 +440,7 @@ theorem projective_of_isoEmbedded {𝒜 : Type u} [Allegory 𝒜] (hAC : CoversS
     category), the PROJECTIVE objects of the effective reflection `Spl(Eq 𝒜)` are
     EXACTLY the objects isomorphic to embedded `𝒜`-objects — "C is equivalent to the
     full subcategory of projective objects in Ĉ" (the embedding is full and faithful,
-    `embHom_full`/`embEq_faithful`, and this identifies its closure under isomorphism
+    `embHom_full`/`embHom_injective`, and this identifies its closure under isomorphism
     with the projectives). -/
 theorem projective_iff_isoEmbedded {𝒜 : Type u} [TabularAllegory 𝒜]
     (hAC : CoversSplit 𝒜) (B : SplEqObj 𝒜) :

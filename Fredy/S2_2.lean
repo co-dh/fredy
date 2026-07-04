@@ -552,10 +552,6 @@ def Downdeal (𝒜 : Type u) : Type u := 𝒜
 def downClosure {a b : 𝒜} (P : (a ⟶ b) → Prop) : (a ⟶ b) → Prop :=
   fun T => ∃ R, P R ∧ T ⊑ R
 
-/-- A predicate embeds into its closure. -/
-theorem self_le_downClosure {a b : 𝒜} {P : (a ⟶ b) → Prop} {R : a ⟶ b} (h : P R) :
-    downClosure P R := ⟨R, h, le_refl R⟩
-
 /-- `↓` is monotone in the predicate (pointwise implication). -/
 theorem downClosure_mono {a b : 𝒜} {P Q : (a ⟶ b) → Prop}
     (h : ∀ R, P R → Q R) : ∀ T, downClosure P T → downClosure Q T :=
@@ -568,14 +564,14 @@ theorem downClosure_of_isDowndeal {a b : 𝒜} {D : (a ⟶ b) → Prop} (hD : Is
   apply propext
   constructor
   · intro ⟨R, hR, hTR⟩; exact hD R hR T hTR
-  · intro h; exact self_le_downClosure h
+  · intro h; exact ⟨T, h, le_refl T⟩
 
 /-- The universal property of `↓` against a downdeal `D`: `↓P ⊑ D ↔ P ⊑ D`
     (set-inclusion).  Used to prove laws by reducing to the generating set. -/
 theorem downClosure_le_iff {a b : 𝒜} {P : (a ⟶ b) → Prop} {D : (a ⟶ b) → Prop}
     (hD : IsDowndeal D) : (∀ T, downClosure P T → D T) ↔ (∀ R, P R → D R) := by
   constructor
-  · intro h R hR; exact h R (self_le_downClosure hR)
+  · intro h R hR; exact h R ⟨R, hR, le_refl R⟩
   · intro h T ⟨R, hR, hTR⟩; exact hD R (h R hR) T hTR
 
 /-- A hom of the local completion `Â`: an IDEAL of `A`-homs `a ⟶ b` — a downdeal that

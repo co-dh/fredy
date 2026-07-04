@@ -116,20 +116,19 @@ noncomputable def copowSub : Subobject 𝒞 (copowAmbient hpow I) :=
 
 noncomputable def copowObj : 𝒞 := (copowSub hpow I).dom
 
-/-- `imᵢ ≤ obj` (every member is below the join) — `extJoin_upper`. -/
-theorem copowImg_le (i : I) : (copowImg hpow I i).le (copowSub hpow I) :=
-  extJoin_upper hpow LocallySmallTopos.wellPowered _ _ ⟨i, rfl⟩
-
 /-- The `i`-th injection `1 → obj`.  `cand i` factors through `imᵢ` (image lift), and
-    `imᵢ ≤ obj`, so it factors through `obj`. -/
+    `imᵢ ≤ obj` (`extJoin_upper`), so it factors through `obj`. -/
 noncomputable def copowInj (i : I) : (one : 𝒞) ⟶ copowObj hpow I :=
-  image.lift (copowCand hpow I i) ≫ (copowImg_le hpow I i).choose
+  image.lift (copowCand hpow I i) ≫
+    (show (copowImg hpow I i).le (copowSub hpow I) from
+      extJoin_upper hpow LocallySmallTopos.wellPowered _ _ ⟨i, rfl⟩).choose
 
 /-- `inj i ≫ obj.arr = cand i`. -/
 theorem copowInj_arr (i : I) :
     copowInj hpow I i ≫ (copowSub hpow I).arr = copowCand hpow I i := by
   unfold copowInj
-  rw [Cat.assoc, (copowImg_le hpow I i).choose_spec]
+  rw [Cat.assoc, (show (copowImg hpow I i).le (copowSub hpow I) from
+    extJoin_upper hpow LocallySmallTopos.wellPowered _ _ ⟨i, rfl⟩).choose_spec]
   exact image.lift_fac (copowCand hpow I i)
 
 /-- **`cotup_uniq` (jointly-epic injections).**  Two maps `obj → X` agreeing on every `inj i`
@@ -238,18 +237,13 @@ theorem existsAlong_extJoin_le {A B : 𝒞} (g : A ⟶ B) (S : Subobject 𝒞 A 
 /-- A subobject of `A × B` viewed as a relation `A ⇸ B` (legs = `arr ≫ fst`, `arr ≫ snd`). -/
 noncomputable def binRelSub {A B : 𝒞} (W : Subobject 𝒞 (prod A B)) : BinRel 𝒞 A B := subRel W
 
-/-- `relSub (binRelSub W) = W` as subobjects (the pair of `W.arr`'s projections is `W.arr`). -/
-theorem relSub_binRelSub_arr {A B : 𝒞} (W : Subobject 𝒞 (prod A B)) :
-    (relSub (binRelSub W)).arr = W.arr :=
-  relSub_subRel_arr W
-
 theorem relSub_binRelSub_le {A B : 𝒞} (W : Subobject 𝒞 (prod A B)) :
     (relSub (binRelSub W)).le W :=
-  ⟨Cat.id _, by rw [Cat.id_comp, relSub_binRelSub_arr]⟩
+  ⟨Cat.id _, by rw [Cat.id_comp, show (relSub (binRelSub W)).arr = W.arr from relSub_subRel_arr W]⟩
 
 theorem binRelSub_relSub_le {A B : 𝒞} (W : Subobject 𝒞 (prod A B)) :
     W.le (relSub (binRelSub W)) :=
-  ⟨Cat.id _, by rw [Cat.id_comp, relSub_binRelSub_arr]⟩
+  ⟨Cat.id _, by rw [Cat.id_comp, show (relSub (binRelSub W)).arr = W.arr from relSub_subRel_arr W]⟩
 
 /-- **Monotone in the predicate** for `extJoin`: if every member of `P` lies below some member of
     `Q`, then `extJoin P ≤ extJoin Q`. -/
@@ -678,16 +672,16 @@ noncomputable def gcoSub : Subobject 𝒞 B :=
 
 noncomputable def gcoObj : 𝒞 := (gcoSub hpow cand).dom
 
-theorem gcoImg_le (i : I) : (gcoImg cand i).le (gcoSub hpow cand) :=
-  extJoin_upper hpow LocallySmallTopos.wellPowered _ _ ⟨i, rfl⟩
-
-/-- The `i`-th injection `A i ⟶ obj`. -/
+/-- The `i`-th injection `A i ⟶ obj`: `imᵢ ≤ obj` by `extJoin_upper`. -/
 noncomputable def gcoInj (i : I) : A i ⟶ gcoObj hpow cand :=
-  image.lift (cand i) ≫ (gcoImg_le hpow cand i).choose
+  image.lift (cand i) ≫
+    (show (gcoImg cand i).le (gcoSub hpow cand) from
+      extJoin_upper hpow LocallySmallTopos.wellPowered _ _ ⟨i, rfl⟩).choose
 
 theorem gcoInj_arr (i : I) : gcoInj hpow cand i ≫ (gcoSub hpow cand).arr = cand i := by
   unfold gcoInj
-  rw [Cat.assoc, (gcoImg_le hpow cand i).choose_spec]
+  rw [Cat.assoc, (show (gcoImg cand i).le (gcoSub hpow cand) from
+    extJoin_upper hpow LocallySmallTopos.wellPowered _ _ ⟨i, rfl⟩).choose_spec]
   exact image.lift_fac (cand i)
 
 include hcandMono in

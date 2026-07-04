@@ -107,14 +107,12 @@ variable [HasExponentials 𝒞]
 def transp {A E Y : 𝒞} (c : Y ⟶ E ^^ A) : prod A Y ⟶ E :=
   prodMap A Y (E ^^ A) c ≫ eval_exp A E
 
-@[simp] theorem curry_transp {A E Y : 𝒞} (c : Y ⟶ E ^^ A) : curry (transp c) = c :=
-  (curry_unique_eq rfl).symm
-
 @[simp] theorem transp_curry {A E Y : 𝒞} (k : prod A Y ⟶ E) : transp (curry k) = k :=
   curry_eval_eq k
 
 theorem transp_inj {A E Y : 𝒞} {c₁ c₂ : Y ⟶ E ^^ A} (h : transp c₁ = transp c₂) : c₁ = c₂ := by
-  rw [← curry_transp c₁, ← curry_transp c₂, h]
+  rw [← (show curry (transp c₁) = c₁ from (curry_unique_eq rfl).symm),
+      ← (show curry (transp c₂) = c₂ from (curry_unique_eq rfl).symm), h]
 
 /-- `transp` turns post-composition with `expCovMap p` into post-composition with `p`. -/
 theorem transp_expCovMap {A E E' Y : 𝒞} (c : Y ⟶ E ^^ A) (p : E ⟶ E') :
@@ -244,8 +242,6 @@ def bcToProd (Y : Over B) : (_BC f Y).cone.pt ⟶ (_PB f Y).cone.pt :=
   (_BC f Y).lift_snd _
 @[simp] theorem bcToProd_q₁ (Y : Over B) : bcToProd f Y ≫ (_PB f Y).cone.π₁ = (_BC f Y).cone.π₂ :=
   (_PB f Y).lift_fst _
-@[simp] theorem bcToProd_q₂ (Y : Over B) : bcToProd f Y ≫ (_PB f Y).cone.π₂ = (_BC f Y).cone.π₁ :=
-  (_PB f Y).lift_snd _
 
 /-- Pullback self-map uniqueness for the product pullback: a map agreeing with `id`
     on both legs is `id`. -/
@@ -264,14 +260,17 @@ private theorem _BC_self_id (Y : Over B) (u : (_BC f Y).cone.pt ⟶ (_BC f Y).co
 /-- `bcToProd ≫ prodToBc = id` on the base-change pullback. -/
 theorem bcToProd_prodToBc (Y : Over B) : bcToProd f Y ≫ prodToBc f Y = Cat.id _ := by
   apply _BC_self_id
-  · rw [Cat.assoc, prodToBc_p₁, bcToProd_q₂]
+  · rw [Cat.assoc, prodToBc_p₁,
+      show bcToProd f Y ≫ (_PB f Y).cone.π₂ = (_BC f Y).cone.π₁ from (_PB f Y).lift_snd _]
   · rw [Cat.assoc, prodToBc_p₂, bcToProd_q₁]
 
 /-- `prodToBc ≫ bcToProd = id` on the product pullback. -/
 theorem prodToBc_bcToProd (Y : Over B) : prodToBc f Y ≫ bcToProd f Y = Cat.id _ := by
   apply _PB_self_id
   · rw [Cat.assoc, bcToProd_q₁, prodToBc_p₂]
-  · rw [Cat.assoc, bcToProd_q₂, prodToBc_p₁]
+  · rw [Cat.assoc,
+      show bcToProd f Y ≫ (_PB f Y).cone.π₂ = (_BC f Y).cone.π₁ from (_PB f Y).lift_snd _,
+      prodToBc_p₁]
 
 /-! ### The adjunction hom-bijection
 

@@ -1050,9 +1050,6 @@ theorem topTab_spec (a : 𝒜) :
     Tabulates (topTab a).2.1 (topTab a).2.2 (topMor a a) :=
   (TabularAllegory.tabular (topMor a a)).choose_spec.choose_spec.choose_spec
 
-theorem topTab_l1_map (a : 𝒜) : Map (topTab a).2.1 := (topTab_spec a).1
-theorem topTab_l2_map (a : 𝒜) : Map (topTab a).2.2 := (topTab_spec a).2.1
-
 /-- `Φ : (a,a) → Cor(γ)` sends `R` to `1_γ ∩ ℓ₁ R ℓ₂°`. -/
 noncomputable def phiCor {a : 𝒜} (R : a ⟶ a) : (topTab a).1 ⟶ (topTab a).1 :=
   Cat.id (topTab a).1 ∩ ((topTab a).2.1 ≫ R ≫ (topTab a).2.2°)
@@ -1098,7 +1095,7 @@ theorem tab_recover {a γ : 𝒜} {R : a ⟶ a} {f g : γ ⟶ a} (hfm : Map f) (
 
 /-- **§2.316 crux**: `ψ(φ(R)) = R`. -/
 theorem psi_phi {a : 𝒜} (R : a ⟶ a) : psiCor (phiCor R) = R :=
-  tab_recover (R := R) (topTab_l1_map a) (topTab_l2_map a)
+  tab_recover (R := R) (topTab_spec a).1 (topTab_spec a).2.1
     ((topTab_spec a).2.2.1 ▸ topMor_max R)
 
 /-- **Tabulation co-recovery**: `φ(ψ(c)) = c` for coreflexive `c` on the apex `γ`, when
@@ -1190,7 +1187,7 @@ theorem psiCor_mono {a : 𝒜} {c d : (topTab a).1 ⟶ (topTab a).1} (h : c ⊑ 
     tabulation of `⊤_a`). -/
 theorem phi_psi {a : 𝒜} {c : (topTab a).1 ⟶ (topTab a).1} (hc : Coreflexive c) :
     phiCor (psiCor c) = c :=
-  tab_corecover (topTab_l1_map a) (topTab_l2_map a) (topTab_spec a).2.2.2 hc
+  tab_corecover (topTab_spec a).1 (topTab_spec a).2.1 (topTab_spec a).2.2.2 hc
 
 /-- `φ` reflects order: `φ(X) ⊑ φ(Y) ↔ X ⊑ Y` (an order-iso onto `Cor(γ)`). -/
 theorem phiCor_le_iff {a : 𝒜} (X Y : a ⟶ a) : phiCor X ⊑ phiCor Y ↔ X ⊑ Y := by

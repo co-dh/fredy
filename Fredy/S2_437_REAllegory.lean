@@ -253,10 +253,6 @@ example : Allegory REObj := inferInstance
 /-- The fixed universal machine. -/
 noncomputable def cU : RecCode 1 := Classical.choose universal_genuine
 
-theorem cU_spec (c : RecCode 1) (r m : Nat) :
-    Eval cU (fun _ => cp (encCode c) r) m ↔ Eval c (fun _ => r) m :=
-  Classical.choose_spec universal_genuine c r m
-
 /-- The universal relation: `n T m` iff the universal machine halts on `cp n m`. -/
 noncomputable def relT (n m : Nat) : Prop := ∃ w, Eval cU (fun _ => cp n m) w
 
@@ -317,7 +313,7 @@ theorem re_set_is_row_of_reT {S : Nat → Prop} (hS : IsREset S) :
   refine ⟨encCode c, fun m => ?_⟩
   rw [hc m]
   show (∃ w, Eval c (fun _ => m) w) ↔ ∃ w, Eval cU (fun _ => cp (encCode c) m) w
-  exact exists_congr fun w => (cU_spec c m w).symm
+  exact exists_congr fun w => (Classical.choose_spec universal_genuine c m w).symm
 
 /-! ## Layer 4: an r.e. set that is not recursive (§2.437 corollary)
 

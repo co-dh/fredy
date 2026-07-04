@@ -580,9 +580,6 @@ def eqIdemFn (n : Nat) : Nat → Nat := fun i =>
 theorem eqIdemFn_of_agree (n : Nat) {i : Nat} (h : x.1 i = y.1 i) :
     eqIdemFn x y n i = i := if_pos (congrArg toNat h)
 
-theorem eqIdemFn_of_ne (n : Nat) {i : Nat} (h : x.1 i ≠ y.1 i) :
-    eqIdemFn x y n i = n := if_neg fun hc => h (toNat_inj hc)
-
 /-- `e` is primitive recursive: arithmetization of the definition-by-cases. -/
 theorem eqIdemFn_prim (n : Nat) : PrimRec1 (eqIdemFn x y n) := by
   have hind : PrimRec1 fun i => eqInd (toNat (x.1 i)) (toNat (y.1 i)) :=
@@ -608,7 +605,7 @@ theorem eqIdem_idem {n : Nat} (hn : x.1 n = y.1 n) :
     show eqIdemFn x y n (eqIdemFn x y n i) = eqIdemFn x y n i
     by_cases h : toNat (x.1 i) = toNat (y.1 i)
     · simp only [eqIdemFn_of_agree x y n (toNat_inj h)]
-    · simp only [eqIdemFn_of_ne x y n fun hc => h (congrArg toNat hc),
+    · simp only [show eqIdemFn x y n i = n from if_neg fun hc => h (congrArg toNat (toNat_inj hc)),
         eqIdemFn_of_agree x y n hn]
 
 /-- `ex = ey` (§1.573; diagram order: `e ≫ x = e ≫ y`). -/
@@ -618,7 +615,7 @@ theorem eqIdem_equalizes {n : Nat} (hn : x.1 n = y.1 n) :
     show x.1 (eqIdemFn x y n i) = y.1 (eqIdemFn x y n i)
     by_cases h : toNat (x.1 i) = toNat (y.1 i)
     · rw [eqIdemFn_of_agree x y n (toNat_inj h)]; exact toNat_inj h
-    · rw [eqIdemFn_of_ne x y n fun hc => h (congrArg toNat hc)]; exact hn
+    · rw [show eqIdemFn x y n i = n from if_neg fun hc => h (congrArg toNat (toNat_inj hc))]; exact hn
 
 /-- §1.573's universal property: any `z : β → ω` with `zx = zy` satisfies `ze = z`. -/
 theorem eqIdem_univ {β : PObj} (z : β ⟶ omegaP) (hz : z ≫ x = z ≫ y) (n : Nat) :
@@ -713,19 +710,15 @@ noncomputable def eProd (E F : PhatObj) :
     prod E.carrier F.carrier ⟶ prod E.carrier F.carrier :=
   pair (Freyd.fst ≫ E.e) (Freyd.snd ≫ F.e)
 
-theorem eProd_fst (E F : PhatObj) : eProd E F ≫ Freyd.fst = Freyd.fst ≫ E.e :=
-  Freyd.fst_pair _ _
-
-theorem eProd_snd (E F : PhatObj) : eProd E F ≫ Freyd.snd = Freyd.snd ≫ F.e :=
-  Freyd.snd_pair _ _
-
 theorem eProd_absorb_fst (E F : PhatObj) :
     eProd E F ≫ (Freyd.fst ≫ E.e) = Freyd.fst ≫ E.e := by
-  rw [← Cat.assoc, eProd_fst, Cat.assoc, E.idem]
+  rw [← Cat.assoc, show eProd E F ≫ Freyd.fst = Freyd.fst ≫ E.e from Freyd.fst_pair _ _,
+    Cat.assoc, E.idem]
 
 theorem eProd_absorb_snd (E F : PhatObj) :
     eProd E F ≫ (Freyd.snd ≫ F.e) = Freyd.snd ≫ F.e := by
-  rw [← Cat.assoc, eProd_snd, Cat.assoc, F.idem]
+  rw [← Cat.assoc, show eProd E F ≫ Freyd.snd = Freyd.snd ≫ F.e from Freyd.snd_pair _ _,
+    Cat.assoc, F.idem]
 
 theorem eProd_idem (E F : PhatObj) : eProd E F ≫ eProd E F = eProd E F := by
   show eProd E F ≫ pair (Freyd.fst ≫ E.e) (Freyd.snd ≫ F.e) = eProd E F
@@ -760,12 +753,14 @@ noncomputable instance : HasBinaryProducts PhatObj where
     have hfst : h.1 ≫ Freyd.fst = φ.1 :=
       calc h.1 ≫ Freyd.fst = (h.1 ≫ eProd E F) ≫ Freyd.fst := by rw [habs]
         _ = h.1 ≫ (eProd E F ≫ Freyd.fst) := Cat.assoc _ _ _
-        _ = h.1 ≫ (Freyd.fst ≫ E.e) := by rw [eProd_fst]
+        _ = h.1 ≫ (Freyd.fst ≫ E.e) := by
+          rw [show eProd E F ≫ Freyd.fst = Freyd.fst ≫ E.e from Freyd.fst_pair _ _]
         _ = φ.1 := congrArg Subtype.val h₁
     have hsnd : h.1 ≫ Freyd.snd = ψ.1 :=
       calc h.1 ≫ Freyd.snd = (h.1 ≫ eProd E F) ≫ Freyd.snd := by rw [habs]
         _ = h.1 ≫ (eProd E F ≫ Freyd.snd) := Cat.assoc _ _ _
-        _ = h.1 ≫ (Freyd.snd ≫ F.e) := by rw [eProd_snd]
+        _ = h.1 ≫ (Freyd.snd ≫ F.e) := by
+          rw [show eProd E F ≫ Freyd.snd = Freyd.snd ≫ F.e from Freyd.snd_pair _ _]
         _ = ψ.1 := congrArg Subtype.val h₂
     show h.1 = pair φ.1 ψ.1
     exact Freyd.pair_uniq φ.1 ψ.1 h.1 hfst hsnd)
