@@ -60,7 +60,7 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 | 53   | Maximum Subarray (Kadane)              | ★★★ | ✓ `L53.lean`   |
 | 152  | Maximum Product Subarray               | ★★★ | ✓ `L152.lean`  |
 | 217  | Contains Duplicate                     | ★★★ | ✓ `L217.lean`  |
-| 238  | Product of Array Except Self           | ★★  | ·              |
+| 238  | Product of Array Except Self           | ★★  | ✓ `L238.lean`  |
 | 1    | Two Sum                                | ★★  | ·              |
 | 15   | 3Sum                                   | ★★  | ·              |
 | 11   | Container With Most Water              | ★★  | ·              |
@@ -95,7 +95,7 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 | #    | problem                        | fit | status |
 |------|--------------------------------|-----|--------|
 | 56   | Merge Intervals (sort + fold)  | ★★★ | ✓ `L56.lean`  |
-| 435  | Non-overlapping (greedy 7.2)   | ★★★ | ·      |
+| 435  | Non-overlapping (greedy 7.2)   | ★★★ | ✓ `L435.lean` |
 | 57   | Insert Interval                | ★★  | ·      |
 | 252  | Meeting Rooms                  | ★★  | ·      |
 | 253  | Meeting Rooms II               | ★★  | ·      |
@@ -517,3 +517,49 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 - **Honest spec + axioms.** `IsMerge ivs out := (∀ x, covers out x ↔ covers ivs x) ∧ Sorted out ∧
   GapSorted out ∧ Valid out` — coverage-preservation, sortedness, disjointness, validity all delivered.
   Axioms `[propext, Quot.sound]`, fully constructive.
+
+### S23 — L238 (Product Except Self) — suffix scan on the RETURN side; reuse core's `zipWith` lemma
+- **A suffix scan needs no reversal and no fuel if the accumulator lives in the RETURN value, not an
+  argument.** `sufScan (x::xs) = (tot :: sl, tot*x)` where `(sl,tot) := sufScan xs` is plain
+  single-argument structural recursion — the running total only exists AFTER the recursive call
+  returns, so there is no second independently-decreasing argument (contrast S10/S13's fuel traps).
+  Carrying "suffix total" in a bare second component is the same "real content in a bare accumulator"
+  move as S8's bit-count.
+- **`Init.Data.List.Zip`'s `getElem?_zipWith_eq_some` replaces hand-rolled `zipWith` reasoning** —
+  search core BEFORE writing a local lemma (DRY). Phrasing the value spec via `List.getElem?`
+  (`out[i]? = some v`) rather than dependent `getElem _ h` sidesteps all proof-term bookkeeping and
+  slots directly into that lemma's shape.
+- **Two independent per-index lemmas, not one fused induction.** `preScan_get?` (prefix, acc threaded
+  DOWN) and `sufScan_get?` (suffix, total threaded UP) are proved SEPARATELY, each closing with one
+  `Int.mul_assoc`/`Int.mul_comm`/`Int.one_mul` (Lean core — no `ring`; each step is a single
+  associativity/commutativity rewrite, never a multi-term normal form). Combining them via the core zip
+  lemma at the end beat one lockstep induction over both scans. No division ⇒ zeros handled for free.
+
+### S24 — L435 (Non-overlapping Intervals) — greedy-by-end exchange argument, Lean-core Sublist/Perm/Pairwise
+- **Use Lean CORE `List.Sublist` (`<+`)/`List.Perm` (`~`)/`List.Pairwise`, not hand-rolled `⊆`.** For
+  "subset of a list" problems needing MULTIPLICITY, `⊆` is a faithfulness BUG (it silently allows extra
+  copies — `[(0,1),(0,1)] ⊆ [(0,1)]` is vacuously true). `Sublist`/`Perm`/`Pairwise` are all in `Init`
+  (need `open List` for the scoped `<+`/`~` notation — a bare parse error without it, NOT a
+  missing-import error). `List.exists_perm_sublist : l₁<+l₂ → l₂~l₂' → ∃ l₁', l₁'~l₁ ∧ l₁'<+l₂'` is the
+  KEY bridge: it converts "an arbitrary sub-selection of the UNSORTED input" into "a same-length
+  sub-selection of a SORTED copy" for free — no hand-rolled "sublist survives a stable sort" lemma
+  (real, fiddly work). `Perm.pairwise_iff` transports the pairwise invariant across that permutation.
+- **Sort ONCE, bridge unsorted↔sorted exactly ONCE, at the END** (contrast L56's merge, which stays
+  sorted throughout): prove everything (achievability, the mono/step arithmetic, the exchange-argument
+  domination `keptList_dom`) purely on the SORTED list, then bridge to the original input as the last
+  step via `exists_perm_sublist`. Don't thread the sort correspondence through the whole proof.
+- **The delicate arithmetic: threshold mono + step, proved TOGETHER.** The domination induction needs
+  "raising the greedy's start threshold `t→t'` costs at most one kept element" (step), whose proof needs
+  "raising the threshold never increases the count" (mono), and vice versa — prove them as ONE combined
+  induction returning a conjunction (S3's "one conjunction over mutual theorems", extended to two
+  mutually-recursive arithmetic facts).
+- **Trap (extends S3): `omega` on a NEGATED-CONJUNCTION HYPOTHESIS silently pulls in `Classical.choice`**
+  even for decidable `Int` comparisons. `have h : ¬(P ∧ Q); omega` triggers it. Fix: `by_cases` on `P`
+  and `Q` separately (decidable, axiom-free), `exact absurd ⟨_,_⟩ h` where both hold, `omega` elsewhere.
+  Prefer bare constructive terms for symmetric-relation lemmas over `unfold; omega`.
+- **Check the REAL LeetCode constraint, not the recipe's generic phrasing.** #435's constraint is strict
+  `starti < endi`, not the generic `lo ≤ hi`; with degenerate point intervals the greedy exchange step
+  has a genuine counterexample. `Valid` uses strict `<`, documented — load-bearing, not cosmetic.
+- **Spec + axioms.** `(∃ sub, sub <+ ivs ∧ NonOverlap sub ∧ sub.length = ivs.length - solveFn ivs) ∧
+  (∀ sub, sub <+ ivs → NonOverlap sub → sub.length ≤ ivs.length - solveFn ivs)` — achievability +
+  optimality of "min removals = n − max non-overlapping subset". Axioms `[propext, Quot.sound]`.
