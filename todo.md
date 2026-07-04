@@ -265,24 +265,44 @@ Clean precision needs a structure-aware type check or a proof-term hash.
   Verification: full `lake build` green (263 jobs) after every pair; `#print axioms` on all kept/forwarding
   lemmas ⊆ `{propext, Classical.choice, Quot.sound}` (several have `[]`), no `sorryAx`.
 
-### B — intentional parallel copies (keep, or merge into one generic lemma)
+### B — intentional parallel copies (keep, or merge into one generic lemma) — INVESTIGATED 2026-07-03
 - AoP case studies, same abstract theorem per problem: `{knapsack,bitonic,paragraph}_thinning`
   (`A8_4/6/5`), `{tardiness,tex}_greedy` (`A10_3/4`), `{bracketing,compression}_dp` (`A9_3/4`).
+  → **KEEP.** Each already forwards `:= thinning_min …` / `:= greedy_dp …` / `:= dynamic_programming …`
+  to the single generic abstract theorem; the wrappers are byte-identical to it (no per-problem
+  specialization) and serve as per-section signposts. Already generalized; nothing to merge.
 - Per-datatype `RelSet`: `{CL,SL,Digits}.simple_uniq`, `{CL,SL,Digits}.entire_total`
-  (`A6_ConsList`/`A6_SnocList`/`A6_1_Digits`); `ListRel.dList` ~ `Sort.dList`.
+  (`A6_ConsList`/`A6_SnocList`/`A6_1_Digits`) → **DONE** (hoisted to the `A6_1_RelSet` base,
+  commit 1835254; the three child copies deleted, uses resolve up via ancestor lookup).
+  `ListRel.dList` ~ `Sort.dList` → **KEEP** (real dup but a 1-line `abbrev dList := dCL Unit A`;
+  deduping needs a cross-file import for ~0 line savings — coupling costs more than it saves).
 
 ### C — argument-order false positives (NOT duplicates)
 - `product_mono_of_mono` (`S1_47`, first factor) ~ `product_mono_of_mono_right` (`S1_64`, second factor)
 - `Alg.modular_le_left'` (`S2_16b`) ~ `Alg.modular_le_right` (`A4_1`)  — the two modular inequalities
 - `Colim.*_castHom` family — distinct properties of the same `castHom`: `heq_`/`mono_`/`cover_`/`castHom_`/`castHom_castHom`
 
-### D — verify individually
-- `le_largest_self` (`S2_53:264`) ~ `self_le_largest` (`S2_55:63`)
-- `image` (`S1_51:149`) ~ `DirectImage` (`S1_70:92`)  [def]; `Alg.topHom` (`A4_4:104`) ~ `Alg.topRel` (`S2_5:563`)  [def]
-- `Alg.dom_comp_eq` (`S2_147_MapCat:62`) ~ `Alg.dom_comp_self` (`S2_3:561`)
-- `Alg.le_comp_recip_comp` (`A4_1`) ~ `Alg.le_dom_comp` (`S2_1`)
-- `cover_comp_iso_cat` (`S1_543_CofinalHstage`) ~ `cover_comp_iso` (`S1_62`)
-- `complementedSub_legs_iso` (`S1_62`) ~ `complemented_legs_iso` (`S1_64`)
-- `overPreRegular` (`S1_53_SliceRegular:262`) ~ `overRegular` (`S1_65_SlicePreTopos:120`)  [instance]
-- `monic_pair_of_monicPair` / `monicPair_of_monic_pair` (`S1_56`) ~ `QSeq139.*` (`QSeq139.lean`)
-- `LaxColim.stageZero` (`S1_61_LaxStrictInitial`) ~ `Colim.stageZero` (`S2_218_ColimitPreLogos`)  [def]
+### D — verify individually — ALL VERDICTS IN (investigated 2026-07-03)
+- ✅ **DONE** `Alg.dom_comp_eq` (`S2_147:63`) ~ `Alg.dom_comp_self` (`S2_3:563`) — generalize-to-dedup:
+  relaxed `dom_comp_self` to `[Allegory]` (`omit [DivisionAllegory]`), `dom_comp_eq := dom_comp_self R`
+  (commit 4d5e60b).
+- ✅ **DONE** `complementedSub_legs_iso` (`S1_62`) ~ `complemented_legs_iso` (`S1_64`) — forwarded
+  `complemented_legs_iso := complementedSub_legs_iso …` (commit 6e9c80f, the main DRY sweep).
+- ⏭ **KEEP (real dup, 1-liner)** `le_largest_self` (`S2_53:264`) ~ `self_le_largest` (`S2_55:63`) —
+  identical 1-line lemma; forwarding needs `import S2_53` in S2_55 for ~0 line savings. Harmless dup.
+- ⏭ **KEEP (documented-intentional)** `cover_comp_iso_cat` (`S1_543_CofinalHstage`, general `[Cat]`) ~
+  `cover_comp_iso` (`S1_62`, `[PreLogos]`). The S1_543 copy is UPSTREAM and its docstring documents that
+  S1_62's isn't reachable there; forwarding the S1_62 copy down would force S1_62 to import into the
+  §1.543 cluster — coupling not worth 15 lines.
+- ⏭ **KEEP (generalizable but 1-line def)** `LaxColim.stageZero` (`S1_61`) ~ `Colim.stageZero`
+  (`S2_218`) — same expression against two structure bundles; a generic def over the object-family
+  would unify them, but both are 1-line defs — not worth a new abstraction.
+- ❌ **FALSE POSITIVE** `image` (`S1_51:149`, image of a morphism) ~ `DirectImage` (`S1_70:89`, image of
+  a subobject) — different arity/role. `Alg.topHom` (`A4_4:105`) ~ `Alg.topRel` (`S2_5:566`) — real dup
+  of a trivial `Sup (fun _ => True)` def, but deduping adds an import; KEEP.
+- ❌ **FALSE POSITIVE** `Alg.le_comp_recip_comp` (`A4_1`, B&dM 4.10 `R ⊑ (R≫R°)≫R`) ~ `Alg.le_dom_comp`
+  (`S2_1`, F&S §2.122 `R ⊑ dom R ≫ R`) — different RHS; le_dom_comp is strictly stronger.
+- ❌ **FALSE POSITIVE** `overPreRegular` (`S1_53_SliceRegular`, slice of PRE-regular) ~ `overRegular`
+  (`S1_65_SlicePreTopos`, slice of regular, needs `HasImages`) — distinct hierarchy levels.
+- ❌ **FALSE POSITIVE** `monic_pair_of_monicPair` / `monicPair_of_monic_pair` (`S1_56`) ~ `QSeq139.*`
+  (`QSeq139.lean`) — `QSeq139.monicPairQSeq` is Typst diagram DATA, not a proof.
