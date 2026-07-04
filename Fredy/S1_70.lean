@@ -99,8 +99,14 @@ variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasIma
     f#(B') ⊆ A'.  Satisfies: f#(B') ⊆ A' ⇔ B' ⊆ f##(A'). -/
 class HasRightAdjointImage (𝒞 : Type u) [Cat.{v} 𝒞] extends HasImages 𝒞, HasPullbacks 𝒞 where
   rightAdj : ∀ {A B : 𝒞} (f : A ⟶ B), Subobject 𝒞 A → Subobject 𝒞 B
-  adjunction : ∀ {A B : 𝒞} (f : A ⟶ B) (B' : Subobject 𝒞 B) (A' : Subobject 𝒞 A),
-    Subobject.le (InverseImage f B') A' ↔ Subobject.le B' (rightAdj f A')
+  /-- The adjunction `f# ⊣ f##`, stated as the generic `Freyd.GaloisConnection`
+      (Fredy/S1_51_Order): the inverse image `f#` is left adjoint to `rightAdj f`, between the
+      subobject preorders of `B` and `A`.  Unfolds to
+      `f#(B') ≤ A' ↔ B' ≤ rightAdj f A'`, so pointwise call sites `adjunction f B' A'` are
+      unchanged. -/
+  adjunction : ∀ {A B : 𝒞} (f : A ⟶ B),
+    GaloisConnection (Subobject.le (𝒞 := 𝒞) (B := B)) (Subobject.le (𝒞 := 𝒞) (B := A))
+      (fun B' => InverseImage f B') (rightAdj f)
 
 /-- A LOGOS (§1.7): regular + subobject lattices + right adjoint to f#.
 
