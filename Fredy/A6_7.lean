@@ -63,7 +63,7 @@ theorem le_star {a : 𝒜} (R : a ⟶ a) : R ⊑ star R := by
 /-- **Transitivity of `R*`** (book's division proof, p.157-158). -/
 theorem star_trans {a : 𝒜} (R : a ⟶ a) : star R ≫ star R ⊑ star R := by
   have hsub : star R ⊑ star R / star R := by
-    apply mu_le_of_prefixed
+    refine Sup_le (fun _S hS => hS _ ?_)
     apply (le_div_iff _ _ _).mpr
     rw [union_comp_distrib]
     apply union_lub
@@ -75,7 +75,7 @@ theorem star_trans {a : 𝒜} (R : a ⟶ a) : star R ≫ star R ⊑ star R := by
 /-- `R*` is bounded above by any preorder (`refl` + `trans`) containing `R`. -/
 theorem star_le_of_preorder {a : 𝒜} {R X : a ⟶ a} (hrefl : Cat.id a ⊑ X)
     (htrans : X ≫ X ⊑ X) (hR : R ⊑ X) : star R ⊑ X :=
-  mu_le_of_prefixed (union_lub hrefl (le_trans (comp_mono_right hR X) htrans))
+  Sup_le (fun _S hS => hS _ (union_lub hrefl (le_trans (comp_mono_right hR X) htrans)))
 
 /-- **Universal property of `R*`** (§6.7): `R* ` is the SMALLEST preorder containing `R`. -/
 theorem star_UP {a : 𝒜} {R X : a ⟶ a} (hrefl : Cat.id a ⊑ X) (htrans : X ≫ X ⊑ X) :
@@ -120,7 +120,7 @@ private theorem le_star' {a : 𝒜} (R : a ⟶ a) : R ⊑ star' R := by
 /-- Transitivity for `star'`, by the MIRRORED division proof (left division this time). -/
 private theorem star'_trans {a : 𝒜} (R : a ⟶ a) : star' R ≫ star' R ⊑ star' R := by
   have hsub : star' R ⊑ leftDiv (star' R) (star' R) := by
-    apply mu_le_of_prefixed
+    refine Sup_le (fun _S hS => hS _ ?_)
     apply (le_leftDiv_iff _ _ _).mpr
     rw [DistributiveAllegory.comp_union_distrib]
     apply union_lub
@@ -131,7 +131,7 @@ private theorem star'_trans {a : 𝒜} (R : a ⟶ a) : star' R ≫ star' R ⊑ s
 
 private theorem star'_le_of_preorder {a : 𝒜} {R X : a ⟶ a} (hrefl : Cat.id a ⊑ X)
     (htrans : X ≫ X ⊑ X) (hR : R ⊑ X) : star' R ⊑ X :=
-  mu_le_of_prefixed (union_lub hrefl (le_trans (comp_mono_left X hR) htrans))
+  Sup_le (fun _S hS => hS _ (union_lub hrefl (le_trans (comp_mono_left X hR) htrans)))
 
 /-- **(6.8)**: `R* = (μX : id ∪ R·X)`, mirrored: `star R = mu (fun X => id ∪ X≫R)` (Ex 6.31).
     Proved by mutual leastness: `star R` and `star' R` are each preorders containing `R`, hence
@@ -180,7 +180,7 @@ private theorem closureFrom_comp_le {a b : 𝒜} (S : b ⟶ a) (R : a ⟶ a) :
 
 private theorem closureFrom_le {a b : 𝒜} {S : b ⟶ a} {R : a ⟶ a} {T : b ⟶ a}
     (hS : S ⊑ T) (hT : T ≫ R ⊑ T) : closureFrom S R ⊑ T :=
-  mu_le_of_prefixed (union_lub hS hT)
+  Sup_le (fun _S1 hS1 => hS1 _ (union_lub hS hT))
 
 /-- **B&dM Ex 6.32 / p.160**: `S·R* = (μX : S ∪ R·X)`, mirrored: `S≫R* = μX. S∪(X≫R)`. -/
 theorem comp_star_eq_mu {a b : 𝒜} (S : b ⟶ a) (R : a ⟶ a) :
@@ -193,7 +193,7 @@ theorem comp_star_eq_mu {a b : 𝒜} (S : b ⟶ a) (R : a ⟶ a) :
       exact comp_mono_left S (star_comp_le R)
   have hstep : star R ⊑ leftDiv S (closureFrom S R) := by
     rw [star_eq_mu']
-    apply mu_le_of_prefixed
+    refine Sup_le (fun _S hS => hS _ ?_)
     apply (le_leftDiv_iff _ _ _).mpr
     rw [DistributiveAllegory.comp_union_distrib]
     apply union_lub
@@ -231,7 +231,7 @@ private theorem closureFromR_comp_le {a b : 𝒜} (S : a ⟶ b) (R : a ⟶ a) :
 
 private theorem closureFromR_le {a b : 𝒜} {S : a ⟶ b} {R : a ⟶ a} {T : a ⟶ b}
     (hS : S ⊑ T) (hT : R ≫ T ⊑ T) : closureFromR S R ⊑ T :=
-  mu_le_of_prefixed (union_lub hS hT)
+  Sup_le (fun _S1 hS1 => hS1 _ (union_lub hS hT))
 
 /-- The symmetric form (B&dM p.160, "S*·R = (μX : R ∪ S·X)" with roles renamed):
     `R*·S = (μX : S ∪ R·X)`, mirrored: `star R ≫ S = μX. S∪(R≫X)`. -/
@@ -244,7 +244,7 @@ theorem star_comp_eq_mu {a b : 𝒜} (R : a ⟶ a) (S : a ⟶ b) :
     · rw [← Cat.assoc R (star R) S]
       exact comp_mono_right (comp_star_le R) S
   have hstep : star R ⊑ closureFromR S R / S := by
-    apply mu_le_of_prefixed
+    refine Sup_le (fun _S hS => hS _ ?_)
     apply (le_div_iff _ _ _).mpr
     rw [union_comp_distrib]
     apply union_lub
@@ -327,7 +327,8 @@ theorem theta_zero_left {a b : 𝒜} (R : a ⟶ a) (S : b ⟶ a) : theta R 𝟘 
 theorem theta_zero_right {a b : 𝒜} (R : a ⟶ a) (P : b ⟶ a) : theta R P 𝟘 = P := by
   show P ∪ mu (fun X : b ⟶ a => 𝟘 ∪ sub (X ≫ R) P) = P
   have hmu : mu (fun X : b ⟶ a => 𝟘 ∪ sub (X ≫ R) P) ⊑ 𝟘 := by
-    apply mu_le_of_prefixed
+    refine Sup_le (fun _S hS => hS _ ?_)
+    show 𝟘 ∪ sub (𝟘 ≫ R) P ⊑ 𝟘
     rw [show (𝟘 : b ⟶ a) ≫ R = 𝟘 from DistributiveAllegory.zero_comp R]
     exact union_lub (le_refl 𝟘) (inter_lb_left 𝟘 (∼P))
   exact le_antisymm (union_lub (le_refl P) (le_trans hmu (zero_le P))) (le_union_left P _)

@@ -182,14 +182,16 @@ theorem thinRel_comp_minRel_le {Q R : a ⟶ a} (hQR : Q ⊑ R) (htransR : R ≫ 
     thinRel Q ≫ minRel R ⊑ minRel R := by
   apply le_minRel_iff.mpr
   refine ⟨?_, ?_⟩
-  · exact le_trans (comp_mono_left _ (minRel_le_eps R)) (thinRel_comp_eps_le Q)
+  · exact le_trans (comp_mono_left _ (show minRel R ⊑ ∋ a from inter_lb_left _ _))
+      (thinRel_comp_eps_le Q)
   · rw [← Cat.assoc]
     have s1 : ((∋ a)° ≫ thinRel Q) ≫ minRel R ⊑ (Q ≫ (∋ a)°) ≫ minRel R :=
       comp_mono_right (recip_eps_comp_thinRel_le Q) (minRel R)
     have s2 : (Q ≫ (∋ a)°) ≫ minRel R ⊑ R := by
       rw [Cat.assoc]
       have hbnd : (∋ a)° ≫ minRel R ⊑ R :=
-        le_trans (comp_mono_left _ (minRel_le_lb R)) (leftDiv_comp_le _ R)
+        le_trans (comp_mono_left _ (show minRel R ⊑ leftDiv ((∋ a)°) R from inter_lb_right _ _))
+          (leftDiv_comp_le _ R)
       have t1 : Q ≫ ((∋ a)° ≫ minRel R) ⊑ Q ≫ R := comp_mono_left Q hbnd
       exact le_trans t1 (le_trans (comp_mono_right hQR R) htransR)
     exact le_trans s1 s2
@@ -212,11 +214,12 @@ theorem minRel_comp_singletonMap_le_thinRel (Q : a ⟶ a) :
   · show minRel Q ≫ singletonMap ⊑ (∋ a) / (∋ a)
     apply (le_div_iff _ _ _).mpr
     rw [Cat.assoc, singletonMap_comp_eps, Cat.comp_id]
-    exact minRel_le_eps Q
+    exact inter_lb_left _ _
   · apply (le_leftDiv_iff _ _ _).mpr
     rw [← Cat.assoc]
     have hbnd : (∋ a)° ≫ minRel Q ⊑ Q :=
-      le_trans (comp_mono_left _ (minRel_le_lb Q)) (leftDiv_comp_le _ Q)
+      le_trans (comp_mono_left _ (show minRel Q ⊑ leftDiv ((∋ a)°) Q from inter_lb_right _ _))
+        (leftDiv_comp_le _ Q)
     have s1 : ((∋ a)° ≫ minRel Q) ≫ singletonMap ⊑ Q ≫ singletonMap :=
       comp_mono_right hbnd singletonMap
     exact le_trans s1 (comp_mono_left Q singletonMap_le_recip_eps)
@@ -260,12 +263,14 @@ theorem A_comp_minRel_comp_singletonMap_le_thinRel {S : b ⟶ a} {Q R : a ⟶ a}
   · -- `(ΛS ≫ min R ≫ τ) ≫ ∈ ⊑ S`
     rw [Cat.assoc (A S) (minRel R ≫ singletonMap) (∋ a),
         Cat.assoc (minRel R) singletonMap (∋ a), singletonMap_comp_eps, Cat.comp_id]
-    have h := comp_mono_left (A S) (minRel_le_eps R)
+    have h := comp_mono_left (A S) (show minRel R ⊑ ∋ a from inter_lb_left _ _)
     rwa [A_eps_eq'] at h
   · -- `S° ≫ (ΛS ≫ min R ≫ τ) ⊑ Q ≫ ∋`
     have hSA : S° ≫ A S ⊑ (∋ a)° := recip_comp_A_le_recip_eps S
     have hbndM : (∋ a)° ≫ minRel (R ∩ (S° ≫ S)) ⊑ R ∩ (S° ≫ S) :=
-      le_trans (comp_mono_left _ (minRel_le_lb _)) (leftDiv_comp_le _ _)
+      le_trans (comp_mono_left _
+        (show minRel (R ∩ (S° ≫ S)) ⊑ leftDiv ((∋ a)°) (R ∩ (S° ≫ S)) from inter_lb_right _ _))
+        (leftDiv_comp_le _ _)
     rw [← Cat.assoc (A S) (minRel R) singletonMap, (A_comp_minRel_context S R).symm,
         Cat.assoc (A S) (minRel (R ∩ (S° ≫ S))) singletonMap,
         ← Cat.assoc S° (A S) (minRel (R ∩ (S° ≫ S)) ≫ singletonMap)]

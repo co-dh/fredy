@@ -51,24 +51,21 @@ def mu (φ : (a ⟶ b) → (a ⟶ b)) : a ⟶ b := Inf (fun X => φ X ⊑ X)
 /-- `(νX : φX)`: the GREATEST fixed point of `φ`, as the `Sup` of the postfixed points. -/
 def nu (φ : (a ⟶ b) → (a ⟶ b)) : a ⟶ b := Sup (fun X => X ⊑ φ X)
 
-/-- `μφ` is a lower bound on the prefixed points (KT leastness; B&dM Ex 6.4's rule). -/
-theorem mu_le_of_prefixed {φ : (a ⟶ b) → (a ⟶ b)} {T : a ⟶ b} (h : φ T ⊑ T) : mu φ ⊑ T :=
-  Sup_le (fun _S hS => hS T h)
-
 /-- **Theorem 6.1, first half**: `μφ` is itself a prefixed point. -/
 theorem mu_prefixed {φ : (a ⟶ b) → (a ⟶ b)} (hφ : Monotonic φ) : φ (mu φ) ⊑ mu φ :=
-  le_Inf (fun _T hT => le_trans (hφ (mu_le_of_prefixed hT)) hT)
+  le_Inf (fun _T hT =>
+    le_trans (hφ (show mu φ ⊑ _T from Sup_le (fun _S hS => hS _ hT))) hT)
 
 theorem mu_postfixed {φ : (a ⟶ b) → (a ⟶ b)} (hφ : Monotonic φ) : mu φ ⊑ φ (mu φ) :=
-  mu_le_of_prefixed (hφ (mu_prefixed hφ))
+  Sup_le (fun _S hS => hS _ (hφ (mu_prefixed hφ)))
 
-/-- **Theorem 6.1 (Knaster-Tarski)**: `μφ` is a fixed point — with `mu_le_of_prefixed`
-    (hence `mu_le_of_fixed`), the least solution of `φX ⊑ X` and of `φX = X` coincide. -/
+/-- **Theorem 6.1 (Knaster-Tarski)**: `μφ` is a fixed point — with the `Sup_le`-based lower
+    bound (hence `mu_le_of_fixed`), the least solution of `φX ⊑ X` and of `φX = X` coincide. -/
 theorem mu_fixed {φ : (a ⟶ b) → (a ⟶ b)} (hφ : Monotonic φ) : φ (mu φ) = mu φ :=
   le_antisymm (mu_prefixed hφ) (mu_postfixed hφ)
 
 theorem mu_le_of_fixed {φ : (a ⟶ b) → (a ⟶ b)} {T : a ⟶ b} (h : φ T = T) : mu φ ⊑ T :=
-  mu_le_of_prefixed (by rw [h]; exact le_refl T)
+  Sup_le (fun _S hS => hS T (show φ T ⊑ T by rw [h]; exact le_refl T))
 
 theorem nu_postfixed {φ : (a ⟶ b) → (a ⟶ b)} (hφ : Monotonic φ) : nu φ ⊑ φ (nu φ) :=
   Sup_le (fun _T hT => le_trans hT (hφ (le_Sup hT)))
@@ -86,7 +83,7 @@ theorem le_nu_of_fixed {φ : (a ⟶ b) → (a ⟶ b)} {T : a ⟶ b} (h : φ T = 
 
 /-- `μ` is monotonic in the mapping: a pointwise-smaller body has a smaller `μ`. -/
 theorem mu_le_mu {φ ψ : (a ⟶ b) → (a ⟶ b)} (h : ∀ X, φ X ⊑ ψ X) : mu φ ⊑ mu ψ :=
-  le_Inf (fun T hT => mu_le_of_prefixed (le_trans (h T) hT))
+  le_Inf (fun T hT => show mu φ ⊑ T from Sup_le (fun _S hS => hS _ (le_trans (h T) hT)))
 
 /-- `μ` depends only on the body's graph. -/
 theorem mu_congr {φ ψ : (a ⟶ b) → (a ⟶ b)} (h : ∀ X, φ X = ψ X) : mu φ = mu ψ :=
@@ -204,7 +201,7 @@ theorem relCata_eq_nu (I : InitialAlgebra F) {c : 𝒜} (R : F.obj c ⟶ c) :
 /-- **(6.2)**: `⦇R⦈ ⊑ X ⟸ R·FX·α° ⊑ X`, mirrored. -/
 theorem relCata_le_of_prefixed (I : InitialAlgebra F) {c : 𝒜} {R : F.obj c ⟶ c}
     {X : I.t ⟶ c} (h : I.α° ≫ F.map X ≫ R ⊑ X) : relCata I R ⊑ X := by
-  rw [relCata_eq_mu]; exact mu_le_of_prefixed h
+  rw [relCata_eq_mu]; exact Sup_le (fun _S hS => hS _ h)
 
 /-- **(6.3)**: `X ⊑ ⦇R⦈ ⟸ X ⊑ R·FX·α°`, mirrored. -/
 theorem le_relCata_of_postfixed (I : InitialAlgebra F) {c : 𝒜} {R : F.obj c ⟶ c}
@@ -352,7 +349,7 @@ end Kleene
 /-! ## §6.2  μ-calculus laws: rolling and diagonal (B&dM Ex 6.35, book p.142)
 
   These move `μ` across a "wrapper" map and merge two nested `μ`'s into one, using only
-  Knaster-Tarski (`mu_le_of_prefixed`/`mu_prefixed`) and monotonicity — no continuity
+  Knaster-Tarski (`Sup_le`'s lower-bound half/`mu_prefixed`) and monotonicity — no continuity
   needed. -/
 
 section MuCalculus
@@ -371,9 +368,9 @@ theorem mu_rolling {c d : 𝒜} {φ : (a ⟶ b) → (c ⟶ d)} {ψ : (c ⟶ d) �
   have hφψ : Monotonic (fun X => φ (ψ X)) := fun h => hφ (hψ h)
   have hψφ : Monotonic (fun Y => ψ (φ Y)) := fun h => hψ (hφ h)
   have h1 : mu (fun X => φ (ψ X)) ⊑ φ (mu (fun Y => ψ (φ Y))) :=
-    mu_le_of_prefixed (hφ (mu_prefixed hψφ))
+    Sup_le (fun _S hS => hS _ (hφ (mu_prefixed hψφ)))
   have h2 : mu (fun Y => ψ (φ Y)) ⊑ ψ (mu (fun X => φ (ψ X))) :=
-    mu_le_of_prefixed (hψ (mu_prefixed hφψ))
+    Sup_le (fun _S hS => hS _ (hψ (mu_prefixed hφψ)))
   have h3 : φ (mu (fun Y => ψ (φ Y))) ⊑ mu (fun X => φ (ψ X)) :=
     le_trans (hφ h2) (mu_prefixed hφψ)
   exact le_antisymm h1 h3
@@ -385,17 +382,18 @@ theorem mu_diagonal {φ : (a ⟶ b) → (a ⟶ b) → (a ⟶ b)} (h1 : ∀ Y, Mo
   have hg : Monotonic (fun X => mu (fun Y => φ X Y)) := fun hX => mu_le_mu (fun Y => h1 Y hX)
   have hd : Monotonic (fun X => φ X X) := fun hX => le_trans (h1 _ hX) (h2 _ hX)
   have hA : mu (fun X => φ X X) ⊑ mu (fun X => mu (fun Y => φ X Y)) := by
-    apply mu_le_of_prefixed
+    refine Sup_le (fun _S hS => hS _ ?_)
     have hTfix : mu (fun Y => φ (mu (fun X => mu (fun Y => φ X Y))) Y)
         = mu (fun X => mu (fun Y => φ X Y)) := mu_fixed hg
     have hstep := mu_prefixed (h2 (mu (fun X => mu (fun Y => φ X Y))))
     rw [hTfix] at hstep
     exact hstep
   have hB : mu (fun X => mu (fun Y => φ X Y)) ⊑ mu (fun X => φ X X) := by
-    apply mu_le_of_prefixed
+    refine Sup_le (fun _S hS => hS _ ?_)
     have hSfix : φ (mu (fun X => φ X X)) (mu (fun X => φ X X)) = mu (fun X => φ X X) :=
       mu_fixed hd
-    apply mu_le_of_prefixed
+    refine Sup_le (fun _S hS => hS _ ?_)
+    show φ (mu fun X => φ X X) (mu fun X => φ X X) ⊑ mu fun X => φ X X
     rw [hSfix]
     exact le_refl _
   exact le_antisymm hB hA
@@ -462,7 +460,8 @@ theorem difunClosure_difunctional (R : a ⟶ b) : Difunctional (difunClosure R) 
     point of the recursion body). -/
 theorem difunClosure_le {R D : a ⟶ b} (hD : Difunctional D) (h : R ⊑ D) : difunClosure R ⊑ D := by
   unfold difunClosure
-  apply mu_le_of_prefixed
+  refine Sup_le (fun _S hS => hS _ ?_)
+  show R ∪ D ≫ D° ≫ D ⊑ D
   have hD' : D ≫ D° ≫ D = D := hD
   rw [hD']
   exact union_lub h (le_refl D)

@@ -88,15 +88,14 @@ theorem A_eps_reflection {b : 𝒜} : A (∋ b) = Cat.id (PowerAllegory.powerObj
 def existsImage {a b : 𝒜} (R : a ⟶ b) : PowerAllegory.powerObj a ⟶ PowerAllegory.powerObj b :=
   A (∋ a ≫ R)
 
-theorem existsImage_is_map {a b : 𝒜} (R : a ⟶ b) : Map (existsImage R) := A_is_map' _
-
 /-- `∈` is an (exactly) natural transformation (B&dM p.105): `E R ≫ ∋ b = ∋ a ≫ R`. -/
 theorem existsImage_eps {a b : 𝒜} (R : a ⟶ b) : existsImage R ≫ ∋ b = ∋ a ≫ R := A_eps_eq' _
 
 /-- `A S ≫ E R = A (S ≫ R)` (B&dM p.105), the absorption law driving the rest of §4.6. -/
 theorem A_absorption {a b c : 𝒜} (S : c ⟶ a) (R : a ⟶ b) :
     A S ≫ existsImage R = A (S ≫ R) := by
-  have hmap : Map (A S ≫ existsImage R) := map_comp (A_is_map' S) (existsImage_is_map R)
+  have hEMap : Map (existsImage R) := A_is_map' _
+  have hmap : Map (A S ≫ existsImage R) := map_comp (A_is_map' S) hEMap
   have heq : (A S ≫ existsImage R) ≫ ∋ b = S ≫ R := by
     rw [Cat.assoc, existsImage_eps, ← Cat.assoc, A_eps_eq']
   exact A_unique _ _ hmap heq

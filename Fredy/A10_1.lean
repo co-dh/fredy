@@ -12,7 +12,7 @@
   state it has "exactly the same hypotheses as Theorem 9.2" and leave the (very similar) proof
   as an exercise; it is discharged here by mirroring `dp_thin_prefixed` (`Fredy.A9_1`), only
   simpler — `min Q` is peeled by the two halves of the `min` universal property
-  (`minRel_le_eps` for membership, `recip_eps_comp_minRel_le` for the lower bound) in place of
+  (`inter_lb_left` for membership, `recip_eps_comp_minRel_le` for the lower bound) in place of
   the `powerRel`/`leftDiv` detour.
 
   MIRRORING (diagram order, B&dM `X·Y` = Fredy `Y ≫ X`; conventions as in `Fredy.A9_1`):
@@ -20,8 +20,8 @@
     `A (T°) ≫ minRel Q ≫ F.map X ≫ h`.
   - the hypothesis `Q` satisfies `h·FH·Q° ⊆ R°·h·FH` mirrors to
     `Q° ≫ F.map H ≫ h ⊑ F.map H ≫ h ≫ R°` — identical to Theorem 9.2's `hQ`.
-  - `min Q ⊆ ∈` is `Fredy.A7_1`'s `minRel_le_eps`; the lower bound `min Q·∋ ⊆ Q` is
-    `recip_eps_comp_minRel_le`.
+  - `min Q ⊆ ∈` is `Fredy.A7_1`'s `inter_lb_left` (unfolding `minRel`); the lower bound
+    `min Q·∋ ⊆ Q` is `recip_eps_comp_minRel_le`.
 
   The disjoint-ranges/coproduct optimisation (B&dM Proposition 10.1, "a variation on
   Proposition 9.1") is DROPPED for the same setting reason as Proposition 9.1/Ex 9.5 — see the
@@ -44,7 +44,7 @@ variable {𝒜 : Type u} [UnguardedPowerLCDA 𝒜] {F : Relator 𝒜 𝒜} {a b 
     satisfying the hylomorphism fixed-point equation `H = h·FH·T°` and any `Q` satisfying the
     thinning-compatibility bound `hQ` (identical to `dp_thin_prefixed`'s).  Same two-branch
     `min`-universal-property skeleton as `dp_thin_prefixed`, with `min Q` handled directly by
-    `minRel_le_eps` (member) and `recip_eps_comp_minRel_le` (lower bound). -/
+    `inter_lb_left` (member) and `recip_eps_comp_minRel_le` (lower bound). -/
 theorem greedy_dp_prefixed (hFr : F.PreservesRecip) {h : F.obj a ⟶ a} {T : F.obj b ⟶ b}
     {R : a ⟶ a} {Q : F.obj b ⟶ F.obj b} {H : b ⟶ a} (hh : Map h) (hmono : MonotonicAlg h R)
     (htrans : R ≫ R ⊑ R) (hHfix : T° ≫ F.map H ≫ h = H)
@@ -56,7 +56,7 @@ theorem greedy_dp_prefixed (hFr : F.PreservesRecip) {h : F.obj a ⟶ a} {T : F.o
   · -- component (i): greedy body ⊑ H, via `min Q ⊆ ∈` and the fixed-point equation
     have s1 : A (T°) ≫ minRel Q ≫ F.map (A H ≫ minRel R) ≫ h
         ⊑ A (T°) ≫ ∋ (F.obj b) ≫ F.map (A H ≫ minRel R) ≫ h :=
-      comp_mono_left _ (comp_mono_right (minRel_le_eps Q) _)
+      comp_mono_left _ (comp_mono_right (show minRel Q ⊑ ∋ (F.obj b) from inter_lb_left _ _) _)
     have s2 : A (T°) ≫ ∋ (F.obj b) ≫ F.map (A H ≫ minRel R) ≫ h
         = T° ≫ F.map (A H ≫ minRel R) ≫ h := by
       rw [← Cat.assoc (A (T°)) (∋ (F.obj b)) _, A_eps_eq']
@@ -128,7 +128,7 @@ theorem greedy_dp_prefixed (hFr : F.PreservesRecip) {h : F.obj a ⟶ a} {T : F.o
     committing to a single `Q`-minimum decomposition at each unfold step, then refolding
     through `h`, still refines the optimisation spec, under exactly Theorem 9.2's hypotheses
     (`h` monotonic on transitive `R`, plus the compatibility bound `hQ`).  By Knaster-Tarski
-    (`mu_le_of_prefixed`) via `greedy_dp_prefixed`.  (Distinct from `Fredy.A7_2`'s `greedy`,
+    (`Sup_le`'s lower-bound half) via `greedy_dp_prefixed`.  (Distinct from `Fredy.A7_2`'s `greedy`,
     the Theorem 7.2 greedy theorem `⦇min R·ΛS⦈ ⊆ min R·Λ⦇S⦈`.) -/
 theorem greedy_dp (hFr : F.PreservesRecip) (I : InitialAlgebra F)
     {h : F.obj a ⟶ a} {T : F.obj b ⟶ b} {R : a ⟶ a} {Q : F.obj b ⟶ F.obj b}
@@ -137,7 +137,7 @@ theorem greedy_dp (hFr : F.PreservesRecip) (I : InitialAlgebra F)
         ⊑ F.map ((relCata I T)° ≫ relCata I h) ≫ h ≫ R°) :
     mu (fun X : b ⟶ a => A (T°) ≫ minRel Q ≫ F.map X ≫ h)
       ⊑ A ((relCata I T)° ≫ relCata I h) ≫ minRel R :=
-  mu_le_of_prefixed (greedy_dp_prefixed hFr hh hmono htrans (hylo_fixed hFr I h T) hQ)
+  LocallyCompleteDistributiveAllegory.Sup_le (fun _S hS => hS _ (greedy_dp_prefixed hFr hh hmono htrans (hylo_fixed hFr I h T) hQ))
 
 /-! ## B&dM p.246 — the greedy hypotheses via a bifunctor (recall of Proposition 9.4)
 

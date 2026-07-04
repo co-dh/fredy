@@ -126,13 +126,13 @@ theorem dp_prefixed (hFr : F.PreservesRecip) {h : F.obj a ⟶ a} {T : F.obj b �
     is monotonic on the transitive `R`, then decomposing the input in all possible ways
     (`ΛT°`), solving subproblems recursively (`P(h·FX)`) and keeping an optimum of the partial
     results (`min R`) refines "generate everything, then pick a global optimum".
-    By Knaster–Tarski (`mu_le_of_prefixed`) via `dp_prefixed`. -/
+    By Knaster–Tarski (`Sup_le`'s lower-bound half) via `dp_prefixed`. -/
 theorem dynamic_programming (hFr : F.PreservesRecip) (I : InitialAlgebra F)
     {h : F.obj a ⟶ a} {T : F.obj b ⟶ b} {R : a ⟶ a}
     (hh : Map h) (hmono : MonotonicAlg h R) (htrans : R ≫ R ⊑ R) :
     mu (fun X : b ⟶ a => A (T°) ≫ powerRel (F.map X ≫ h) ≫ minRel R)
       ⊑ A ((relCata I T)° ≫ relCata I h) ≫ minRel R :=
-  mu_le_of_prefixed (dp_prefixed hFr hh hmono htrans (hylo_fixed hFr I h T))
+  LocallyCompleteDistributiveAllegory.Sup_le (fun _S hS => hS _ (dp_prefixed hFr hh hmono htrans (hylo_fixed hFr I h T)))
 
 /-! ## Theorem 9.2 (B&dM p.221) — thinning dynamic programming
 
@@ -275,7 +275,7 @@ theorem dynamic_programming_thin (hFr : F.PreservesRecip) (I : InitialAlgebra F)
         ⊑ F.map ((relCata I T)° ≫ relCata I h) ≫ h ≫ R°) :
     mu (fun X : b ⟶ a => A (T°) ≫ thinRel Q ≫ powerRel (F.map X ≫ h) ≫ minRel R)
       ⊑ A ((relCata I T)° ≫ relCata I h) ≫ minRel R :=
-  mu_le_of_prefixed (dp_thin_prefixed hFr hh hmono htrans (hylo_fixed hFr I h T) hQ)
+  LocallyCompleteDistributiveAllegory.Sup_le (fun _S hS => hS _ (dp_thin_prefixed hFr hh hmono htrans (hylo_fixed hFr I h T) hQ))
 
 /-! ## Ex 9.1 — Theorem 9.1 as an instance of Theorem 9.2 -/
 
@@ -718,7 +718,7 @@ theorem dynamic_programming_thin_context (hFr : F.PreservesRecip) (I : InitialAl
         ⊑ F.map ((relCata I T)° ≫ relCata I h) ≫ h ≫ R°) :
     mu (fun X : b ⟶ a => A (T°) ≫ thinRel Q ≫ powerRel (F.map X ≫ h) ≫ minRel R)
       ⊑ A ((relCata I T)° ≫ relCata I h) ≫ minRel R :=
-  mu_le_of_prefixed (dp_thin_prefixed_context hFr hh hctx1 htrans (hylo_fixed hFr I h T) hctx2)
+  LocallyCompleteDistributiveAllegory.Sup_le (fun _S hS => hS _ (dp_thin_prefixed_context hFr hh hctx1 htrans (hylo_fixed hFr I h T) hctx2))
 
 /-! ## Dropped (B&dM Proposition 9.1, Ex 9.5) — disjoint ranges / coproduct split (pp.219-220)
 

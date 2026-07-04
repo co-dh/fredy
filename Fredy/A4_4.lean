@@ -89,12 +89,10 @@ theorem le_Inf {a b : 𝒜} {P : (a ⟶ b) → Prop} {T : a ⟶ b} (h : ∀ R, P
 /-- The top of the hom-set `(a,b)`. -/
 def topHom (a b : 𝒜) : a ⟶ b := Sup (fun _ => True)
 
-theorem le_topHom {a b : 𝒜} (R : a ⟶ b) : R ⊑ topHom a b := le_Sup trivial
-
 theorem recip_topHom {a b : 𝒜} : (topHom a b)° = topHom b a := by
   apply le_antisymm
-  · exact le_topHom _
-  · exact recip_le_iff.mp (le_topHom _)
+  · exact le_Sup trivial
+  · exact recip_le_iff.mp (le_Sup trivial)
 
 /-! ### §C  Implication (B&dM §4.4 p.97, Ex 4.32/4.33) -/
 
@@ -136,13 +134,13 @@ theorem impl_antitone_left {a b : 𝒜} {R R' S : a ⟶ b} (h : R ⊑ R') : (R' 
 
 /-- Implication into the top is the top: `R ⇨ ⊤ = ⊤`. -/
 theorem impl_topHom {a b : 𝒜} (R : a ⟶ b) : (R ⇨ (topHom a b)) = topHom a b :=
-  le_antisymm (le_topHom _) ((le_impl_iff _ _ _).mpr (le_topHom _))
+  le_antisymm (le_Sup trivial) ((le_impl_iff _ _ _).mpr (le_Sup trivial))
 
 /-- The top implies anything it dominates trivially: `⊤ ⇨ S = S`. -/
 theorem topHom_impl {a b : 𝒜} (R : a ⟶ b) : (topHom a b ⇨ R) = R := by
   apply antisymm_of_le_iff
   intro X
-  rw [le_impl_iff, inter_eq_left (le_topHom X)]
+  rw [le_impl_iff, inter_eq_left (show X ⊑ topHom a b from le_Sup trivial)]
 
 /-- Currying: `R ⇨ (S ⇨ T) = (R∩S) ⇨ T` (Ex 4.32). -/
 theorem impl_curry {a b : 𝒜} (R S T : a ⟶ b) : (R ⇨ (S ⇨ T)) = ((R ∩ S) ⇨ T) := by
@@ -305,11 +303,12 @@ theorem thenRel_transitive {a : 𝒜} {R S : a ⟶ a} (_hR : Reflexive R)
 
 theorem topHom_thenRel {a : 𝒜} (R : a ⟶ a) : (topHom a a) ⨾ R = R := by
   show topHom a a ∩ ((topHom a a)° ⇨ R) = R
-  rw [recip_topHom, topHom_impl, Allegory.inter_comm, inter_eq_left (le_topHom R)]
+  rw [recip_topHom, topHom_impl, Allegory.inter_comm,
+    inter_eq_left (show R ⊑ topHom a a from le_Sup trivial)]
 
 theorem thenRel_topHom {a : 𝒜} (R : a ⟶ a) : R ⨾ (topHom a a) = R := by
   show R ∩ (R° ⇨ topHom a a) = R
-  rw [impl_topHom, inter_eq_left (le_topHom R)]
+  rw [impl_topHom, inter_eq_left (show R ⊑ topHom a a from le_Sup trivial)]
 
 -- BOOK Ex 4.34: `(R⨾S)⨾T = R⨾(S⨾T)` (associativity of lexicographic composition).
 -- STATUS: DROPPED after genuine attempt — semantic check first, as instructed.

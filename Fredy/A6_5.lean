@@ -82,20 +82,20 @@ theorem inductive_inter {a : 𝒜} {R S : a ⟶ a} (hR : Inductive R) : Inductiv
     a solution satisfies `X/R ⊑ X` (from the equation), so inductivity gives `topHom ⊑ X`,
     and `X ⊑ topHom` always, so `X = topHom`.  Backward: for `X` with `X/R ⊑ X`, let
     `M := mu (fun Y => Y/R)`; `M` is a fixed point (Knaster-Tarski) hence a solution, so by
-    hypothesis `M = topHom`; also `M ⊑ X` (`mu_le_of_prefixed`), giving `topHom ⊑ X`. -/
+    hypothesis `M = topHom`; also `M ⊑ X` (`Sup_le`'s lower-bound half), giving `topHom ⊑ X`. -/
 theorem inductive_iff_unique_solution {a : 𝒜} (R : a ⟶ a) :
     Inductive R ↔ ∀ {b : 𝒜} (X : b ⟶ a), X = X / R → X = topHom b a := by
   constructor
   · intro hR b X hXeq
     have h1 : X / R ⊑ X := hXeq ▸ le_refl X
-    exact le_antisymm (le_topHom X) (hR X h1)
+    exact le_antisymm (le_Sup trivial) (hR X h1)
   · intro h b X hX
     have hmono : Monotonic (fun Y : b ⟶ a => Y / R) := fun hle => div_mono_left hle R
     have hfix : (fun Y : b ⟶ a => Y / R) (mu (fun Y : b ⟶ a => Y / R))
         = mu (fun Y : b ⟶ a => Y / R) := mu_fixed hmono
     have hMeq : mu (fun Y : b ⟶ a => Y / R) = (mu (fun Y : b ⟶ a => Y / R)) / R := hfix.symm
     have hMtop : mu (fun Y : b ⟶ a => Y / R) = topHom b a := h _ hMeq
-    have hMX : mu (fun Y : b ⟶ a => Y / R) ⊑ X := mu_le_of_prefixed hX
+    have hMX : mu (fun Y : b ⟶ a => Y / R) ⊑ X := Sup_le (fun _S hS => hS _ hX)
     rw [hMtop] at hMX
     exact hMX
 
@@ -115,8 +115,9 @@ theorem le_transClosure {a : 𝒜} (R : a ⟶ a) : R ⊑ transClosure R := by
   have h1 : R ⊑ R ∪ (R ≫ transClosure R) := le_union_left R _
   rwa [transClosure_fixed] at h1
 
-/-- `R⁺·R⁺ ⊑ R⁺`: the transitive closure is idempotent.  Shows `T ⊑ T/T` (`mu_le_of_prefixed`
-    applied to the body at target `T/T`), then `le_div_iff` turns `T ⊑ T/T` into `T≫T ⊑ T`. -/
+/-- `R⁺·R⁺ ⊑ R⁺`: the transitive closure is idempotent.  Shows `T ⊑ T/T` (`Sup_le`'s
+    lower-bound half applied to the body at target `T/T`), then `le_div_iff` turns
+    `T ⊑ T/T` into `T≫T ⊑ T`. -/
 theorem transClosure_trans {a : 𝒜} (R : a ⟶ a) :
     transClosure R ≫ transClosure R ⊑ transClosure R := by
   have hRT : R ≫ transClosure R ⊑ transClosure R := by
@@ -132,7 +133,7 @@ theorem transClosure_trans {a : 𝒜} (R : a ⟶ a) :
   have hprefixed : R ∪ (R ≫ (transClosure R / transClosure R)) ⊑ transClosure R / transClosure R :=
     union_lub hRTT2 hRTT
   have hTle : transClosure R ⊑ transClosure R / transClosure R :=
-    mu_le_of_prefixed hprefixed
+    Sup_le (fun _S hS => hS _ hprefixed)
   exact (le_div_iff _ _ _).mp hTle
 
 /-- **Ex 6.13**: `S` is inductive iff `S⁺` is.  (⇒) via `transClosure_trans` +
@@ -189,9 +190,9 @@ theorem wellFoundedRel_of_inductive {a : 𝒜} {R : a ⟶ a} (hR : Inductive R) 
     rw [neg_div]
     have h1 : X° ⊑ (R ≫ X)° := recip_mono hX
     rw [Allegory.recip_comp] at h1
-    exact neg_antitone h1
+    exact impl_antitone_left h1
   have htop : topHom b a ⊑ ∼(X°) := hR (∼(X°)) hW
-  have h2 : (∼∼(X°)) ⊑ ∼(topHom b a) := neg_antitone htop
+  have h2 : (∼∼(X°)) ⊑ ∼(topHom b a) := impl_antitone_left htop
   rw [neg_topHom] at h2
   have h3 : X° ⊑ (𝟘 : b ⟶ a) := le_trans (le_neg_neg (X°)) h2
   have h4 : (X°)° ⊑ (𝟘 : b ⟶ a)° := recip_mono h3
@@ -202,7 +203,7 @@ theorem wellFoundedRel_of_inductive {a : 𝒜} {R : a ⟶ a} (hR : Inductive R) 
 theorem inductive_of_wellFoundedRel {a : 𝒜} {R : a ⟶ a} (hR : WellFoundedRel R) :
     Inductive R := by
   intro b X hX
-  have h1 : ∼X ⊑ ∼(X / R) := neg_antitone hX
+  have h1 : ∼X ⊑ ∼(X / R) := impl_antitone_left hX
   rw [div_eq_neg_comp] at h1
   rw [BooleanAllegory.neg_neg] at h1
   have h2 : (∼X)° ⊑ ((∼X) ≫ R°)° := recip_mono h1

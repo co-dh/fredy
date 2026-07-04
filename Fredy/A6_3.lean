@@ -157,7 +157,7 @@ theorem mu_simple (hFr : F.PreservesRecip) {a b : 𝒜} {R : F.obj a ⟶ a} {S :
     refine le_trans hmono4 ?_
     rw [heq5]
     exact hR
-  exact mu_le_of_prefixed hWprefixed
+  exact Sup_le (fun _S hS => hS _ hWprefixed)
 
 /-- Corollary in hylomorphism form: the body `S° ≫ F.map X ≫ R` of `hylo_eq_mu` matches
     `mu_simple`'s body with coalgebra `S°`, giving simplicity of the hylomorphism from

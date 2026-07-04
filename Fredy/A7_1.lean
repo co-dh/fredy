@@ -36,18 +36,15 @@ def minRel (R : a ⟶ a) : PowerAllegory.powerObj a ⟶ a :=
 /-- **B&dM p.166**: `max R = min R°`. -/
 def maxRel (R : a ⟶ a) : PowerAllegory.powerObj a ⟶ a := minRel R°
 
-theorem minRel_le_eps (R : a ⟶ a) : minRel R ⊑ ∋ a := inter_lb_left _ _
-
-theorem minRel_le_lb (R : a ⟶ a) : minRel R ⊑ leftDiv ((∋ a)°) R := inter_lb_right _ _
-
 /-- The universal property of `min` (book p.166): `X ⊑ min R ⟺ X ⊑ ∈ ∧ X·∋ ⊑ R`,
     mirrored (`X·∋` becomes `(∋ a)° ≫ X`). -/
 theorem le_minRel_iff {R : a ⟶ a} {X : PowerAllegory.powerObj a ⟶ a} :
     X ⊑ minRel R ↔ X ⊑ ∋ a ∧ (∋ a)° ≫ X ⊑ R := by
   constructor
   · intro h
-    refine ⟨le_trans h (minRel_le_eps R), ?_⟩
-    exact le_trans (comp_mono_left _ (le_trans h (minRel_le_lb R))) (leftDiv_comp_le _ _)
+    refine ⟨le_trans h (show minRel R ⊑ ∋ a from inter_lb_left _ _), ?_⟩
+    exact le_trans (comp_mono_left _ (le_trans h
+      (show minRel R ⊑ leftDiv ((∋ a)°) R from inter_lb_right _ _))) (leftDiv_comp_le _ _)
   · rintro ⟨h1, h2⟩
     exact le_inter h1 ((le_leftDiv_iff _ _ _).mpr h2)
 
@@ -145,15 +142,16 @@ theorem A_comp_minRel_context (S : b ⟶ a) (R : a ⟶ a) :
 /-! ## Ex 7.7: the pairing principle (`(∋a)°≫∋a = topHom a a`) -/
 
 /-- **Ex 7.7**: `∋°·∋ = ⊤`, mirrored: `(∋ a)° ≫ ∋ a = topHom a a`.  The `⊑` half is
-    `le_topHom`.  For `⊒`: with `f := A ⊤` (so `f ≫ ∋ a = ⊤` and `f` is a map), `⊤ ⊑
+    `le_Sup trivial` (any hom is `⊑` the top).  For `⊒`: with `f := A ⊤` (so `f ≫ ∋ a = ⊤` and
+    `f` is a map), `⊤ ⊑
     ⊤≫⊤ = ⊤°≫⊤ = (f≫∋a)°≫(f≫∋a) = (∋a)°≫(f°≫f)≫∋a ⊑ (∋a)°≫∋a` (`f°≫f ⊑ id` by `Simple f`). -/
 theorem recip_eps_comp_eps (a : 𝒜) : (∋ a)° ≫ ∋ a = topHom a a := by
   apply le_antisymm
-  · exact le_topHom _
+  · exact LocallyCompleteDistributiveAllegory.le_Sup trivial
   · let f := A (topHom a a)
     have hfeq : topHom a a = f ≫ ∋ a := (A_eps_eq' (topHom a a)).symm
     have hsimple : f° ≫ f ⊑ Cat.id (PowerAllegory.powerObj a) := (A_is_map' (topHom a a)).2
-    have h1 : Cat.id a ⊑ topHom a a := le_topHom (Cat.id a)
+    have h1 : Cat.id a ⊑ topHom a a := LocallyCompleteDistributiveAllegory.le_Sup trivial
     have h2 : topHom a a ⊑ topHom a a ≫ topHom a a := by
       have h2a := comp_mono_right h1 (topHom a a)
       rwa [Cat.id_comp] at h2a
@@ -170,24 +168,26 @@ theorem recip_eps_comp_eps (a : 𝒜) : (∋ a)° ≫ ∋ a = topHom a a := by
 /-- **Ex 7.7**: `min R = ∈ ⟺ R = ⊤`, mirrored: `minRel R = ∋ a ↔ R = topHom a a`.
     (→): from `minRel R = ∋ a`, the defining bound `(∋a)°≫minRel R ⊑ R` becomes
     `(∋a)°≫∋a ⊑ R`, i.e. (Ex 7.7 above) `⊤ ⊑ R`, forcing `R = ⊤`.
-    (←): at `R = ⊤`, `leftDiv (∋a)° ⊤ = ⊤` (both bounds are `le_topHom`), so
+    (←): at `R = ⊤`, `leftDiv (∋a)° ⊤ = ⊤` (both bounds are `le_Sup trivial`), so
     `minRel ⊤ = ∋a ∩ ⊤ = ∋a`. -/
 theorem minRel_eq_eps_iff (R : a ⟶ a) : minRel R = ∋ a ↔ R = topHom a a := by
   constructor
   · intro h
     have h2 : (∋ a)° ≫ ∋ a ⊑ R := by
       have hle : (∋ a)° ≫ minRel R ⊑ R :=
-        le_trans (comp_mono_left _ (minRel_le_lb R)) (leftDiv_comp_le _ R)
+        le_trans (comp_mono_left _ (show minRel R ⊑ leftDiv ((∋ a)°) R from inter_lb_right _ _))
+          (leftDiv_comp_le _ R)
       rwa [h] at hle
     rw [recip_eps_comp_eps] at h2
-    exact le_antisymm (le_topHom R) h2
+    exact le_antisymm (LocallyCompleteDistributiveAllegory.le_Sup trivial) h2
   · intro h
     subst h
     show ∋ a ∩ leftDiv ((∋ a)°) (topHom a a) = ∋ a
     have hdiv : leftDiv ((∋ a)°) (topHom a a) = topHom (PowerAllegory.powerObj a) a :=
-      le_antisymm (le_topHom _) ((le_leftDiv_iff _ _ _).mpr (le_topHom _))
+      le_antisymm (LocallyCompleteDistributiveAllegory.le_Sup trivial)
+        ((le_leftDiv_iff _ _ _).mpr (LocallyCompleteDistributiveAllegory.le_Sup trivial))
     rw [hdiv]
-    exact inter_eq_left (le_topHom _)
+    exact inter_eq_left (LocallyCompleteDistributiveAllegory.le_Sup trivial)
 
 /-! ## Preorder lemmas (Ex 7.5, Ex 7.6, Ex 7.10, Ex 7.14, Ex 7.11) -/
 
@@ -322,12 +322,13 @@ theorem existsImage_comp_subsetRel_le (R : a ⟶ b) :
     (`existsImage_eps` + `Simple (existsImage R)`). -/
 theorem existsImage_comp_subsetRel_ge (R : a ⟶ b) :
     (∋ a ≫ R) / (∋ b) ⊑ existsImage R ≫ subsetRel b := by
-  apply (map_shunt_left (existsImage_is_map R) _ _).mp
+  have hEMap : Map (existsImage R) := A_is_map' _
+  apply (map_shunt_left hEMap _ _).mp
   show (existsImage R)° ≫ ((∋ a ≫ R) / (∋ b)) ⊑ (∋ b) / (∋ b)
   apply (le_div_iff _ _ _).mpr
   have hd : ((∋ a ≫ R) / (∋ b)) ≫ ∋ b ⊑ ∋ a ≫ R := DivisionAllegory.div_comp_le _ _
   have hsimp : (existsImage R)° ≫ existsImage R ⊑ Cat.id (PowerAllegory.powerObj b) :=
-    (existsImage_is_map R).2
+    hEMap.2
   have hb1 : ((existsImage R)° ≫ ((∋ a ≫ R) / (∋ b))) ≫ ∋ b
       ⊑ (existsImage R)° ≫ (∋ a ≫ R) := by
     rw [Cat.assoc]
@@ -351,16 +352,17 @@ theorem existsImage_comp_subsetRel (R : a ⟶ b) :
     of `∈`, `powerRel_eps_lax : powerRel R≫∋b ⊑ ∋a≫R`. -/
 
 /-- **(7.10)**: `min R·P S ⊆ (∈·S) ∩ (R/S·∋)`, mirrored: `powerRel S ≫ minRel R ⊑ (∋b≫S) ∩
-    leftDiv (∋b)° (S≫R)`.  (i) `powerRel S≫minRel R ⊑ powerRel S≫∋a ⊑ ∋b≫S` (`minRel_le_eps`,
+    leftDiv (∋b)° (S≫R)`.  (i) `powerRel S≫minRel R ⊑ powerRel S≫∋a ⊑ ∋b≫S` (`inter_lb_left`,
     `powerRel_eps_lax`).  (ii) `(∋b)°≫(powerRel S≫minRel R) = ((∋b)°≫powerRel S)≫minRel R ⊑
     (S≫(∋a)°)≫minRel R = S≫((∋a)°≫minRel R) ⊑ S≫R` (`powerRel_term1_cancel`, then
-    `(∋a)°≫minRel R ⊑ R` from `minRel_le_lb`+`leftDiv_comp_le`). -/
+    `(∋a)°≫minRel R ⊑ R` from `inter_lb_right`+`leftDiv_comp_le`). -/
 theorem powerRel_comp_minRel_le (S : b ⟶ a) (R : a ⟶ a) :
     powerRel S ≫ minRel R ⊑ (∋ b ≫ S) ∩ leftDiv ((∋ b)°) (S ≫ R) := by
   have haR : (∋ a)° ≫ minRel R ⊑ R :=
-    le_trans (comp_mono_left _ (minRel_le_lb R)) (leftDiv_comp_le _ R)
+    le_trans (comp_mono_left _ (show minRel R ⊑ leftDiv ((∋ a)°) R from inter_lb_right _ _))
+      (leftDiv_comp_le _ R)
   apply le_inter
-  · exact le_trans (comp_mono_left _ (minRel_le_eps R)) (powerRel_eps_lax S)
+  · exact le_trans (comp_mono_left _ (show minRel R ⊑ ∋ a from inter_lb_left _ _)) (powerRel_eps_lax S)
   · apply (le_leftDiv_iff _ _ _).mpr
     have hcancel : (∋ b)° ≫ powerRel S ⊑ S ≫ (∋ a)° := powerRel_term1_cancel S
     have e1 : (∋ b)° ≫ (powerRel S ≫ minRel R) = ((∋ b)° ≫ powerRel S) ≫ minRel R := by
@@ -375,7 +377,7 @@ theorem powerRel_comp_minRel_le (S : b ⟶ a) (R : a ⟶ a) :
 /-- **(7.11)** mirrored (for a transitive `R`): `min R·P(min R) ⊆ min R·union`, mirrored
     `powerRel (minRel R) ≫ minRel R ⊑ bigUnion ≫ minRel R`, via `bigUnion = A(∋[a]≫∋a)` and
     `le_A_comp_minRel_iff`.  Component (i): `powerRel(min R)·min R ⊑ ∋[a]·∋a` chains
-    `minRel_le_eps` and `powerRel_eps_lax` at `min R`.  Component (ii):
+    `inter_lb_left` and `powerRel_eps_lax` at `min R`.  Component (ii):
     `(∋[a]·∋a)°·(powerRel(min R)·min R) ⊑ R` chains `powerRel_term1_cancel (minRel R)` with
     the `haR` bound twice and `htrans`. -/
 theorem powerRel_minRel_le_bigUnion {R : a ⟶ a} (htrans : R ≫ R ⊑ R) :
@@ -383,14 +385,15 @@ theorem powerRel_minRel_le_bigUnion {R : a ⟶ a} (htrans : R ≫ R ⊑ R) :
   show powerRel (minRel R) ≫ minRel R
       ⊑ A (∋ (PowerAllegory.powerObj a) ≫ ∋ a) ≫ minRel R
   have hb : (∋ a)° ≫ minRel R ⊑ R :=
-    le_trans (comp_mono_left _ (minRel_le_lb R)) (leftDiv_comp_le _ R)
+    le_trans (comp_mono_left _ (show minRel R ⊑ leftDiv ((∋ a)°) R from inter_lb_right _ _))
+      (leftDiv_comp_le _ R)
   have hi : powerRel (minRel R) ≫ minRel R ⊑ ∋ (PowerAllegory.powerObj a) ≫ ∋ a := by
     have s1 : powerRel (minRel R) ≫ minRel R ⊑ powerRel (minRel R) ≫ ∋ a :=
-      comp_mono_left _ (minRel_le_eps R)
+      comp_mono_left _ (show minRel R ⊑ ∋ a from inter_lb_left _ _)
     have s2 : powerRel (minRel R) ≫ ∋ a ⊑ ∋ (PowerAllegory.powerObj a) ≫ minRel R :=
       powerRel_eps_lax (minRel R)
     have s3 : ∋ (PowerAllegory.powerObj a) ≫ minRel R ⊑ ∋ (PowerAllegory.powerObj a) ≫ ∋ a :=
-      comp_mono_left _ (minRel_le_eps R)
+      comp_mono_left _ (show minRel R ⊑ ∋ a from inter_lb_left _ _)
     exact le_trans s1 (le_trans s2 s3)
   have hii : (∋ (PowerAllegory.powerObj a) ≫ ∋ a)° ≫ (powerRel (minRel R) ≫ minRel R) ⊑ R := by
     have hcancel : (∋ (PowerAllegory.powerObj a))° ≫ powerRel (minRel R) ⊑ minRel R ≫ (∋ a)° :=
@@ -446,13 +449,14 @@ theorem id_le_impl_recip (R : a ⟶ a) : Cat.id a ⊑ R° ⇨ R := by
 /-- **Ex 7.20** (first part): `min R ⊑ mnl R`, mirrored `minRel R ⊑ mnlRel R`.  Via
     `le_minRel_iff.mpr`: membership is inherited from `minRel R`'s own bound, and the
     lower-bound half `(∋a)°≫minRel R ⊑ R° ⇨ R` follows from `(∋a)°≫minRel R ⊑ R`
-    (`minRel_le_lb`+`leftDiv_comp_le`) via `le_impl_iff` and `inter_lb_left`. -/
+    (`inter_lb_right`+`leftDiv_comp_le`) via `le_impl_iff` and `inter_lb_left`. -/
 theorem minRel_le_mnlRel (R : a ⟶ a) : minRel R ⊑ mnlRel R := by
   show minRel R ⊑ minRel (R° ⇨ R)
   apply le_minRel_iff.mpr
-  refine ⟨minRel_le_eps R, ?_⟩
+  refine ⟨show minRel R ⊑ ∋ a from inter_lb_left _ _, ?_⟩
   have hb : (∋ a)° ≫ minRel R ⊑ R :=
-    le_trans (comp_mono_left _ (minRel_le_lb R)) (leftDiv_comp_le _ R)
+    le_trans (comp_mono_left _ (show minRel R ⊑ leftDiv ((∋ a)°) R from inter_lb_right _ _))
+      (leftDiv_comp_le _ R)
   exact (le_impl_iff _ _ _).mpr (le_trans (inter_lb_left _ _) hb)
 
 end Freyd.Alg

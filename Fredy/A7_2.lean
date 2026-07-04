@@ -89,13 +89,14 @@ theorem distributes_of_monotonicAlg (hf : Map f) (hFr : F.PreservesRecip)
     (hmono : MonotonicAlg f R) : Distributes f R := by
   unfold Distributes
   apply le_A_comp_minRel_iff.mpr
-  refine ⟨comp_mono_right (F.map_mono (minRel_le_eps R)) f, ?_⟩
+  refine ⟨comp_mono_right (F.map_mono (show minRel R ⊑ ∋ a from inter_lb_left _ _)) f, ?_⟩
   have step1 : (F.map (∋ a) ≫ f)° = f° ≫ F.map ((∋ a)°) := by
     rw [Allegory.recip_comp, ← hFr (∋ a)]
   have step2 : F.map ((∋ a)°) ≫ F.map (minRel R) = F.map ((∋ a)° ≫ minRel R) :=
     (F.map_comp _ _).symm
   have step3 : (∋ a)° ≫ minRel R ⊑ R :=
-    le_trans (comp_mono_left _ (minRel_le_lb R)) (leftDiv_comp_le _ R)
+    le_trans (comp_mono_left _ (show minRel R ⊑ leftDiv ((∋ a)°) R from inter_lb_right _ _))
+      (leftDiv_comp_le _ R)
   have step4 : F.map ((∋ a)° ≫ minRel R) ⊑ F.map R := F.map_mono step3
   have heq : (F.map (∋ a) ≫ f)° ≫ (F.map (minRel R) ≫ f)
       = f° ≫ F.map ((∋ a)° ≫ minRel R) ≫ f := by
@@ -126,7 +127,8 @@ theorem monotonicAlg_of_distributes (hf : Map f) (hFr : F.PreservesRecip)
   have h1 : F.map R ⊑ F.map ((∋ a)° ≫ minRel R) := F.map_mono hpair
   have hmapcomp : F.map ((∋ a)° ≫ minRel R) = F.map ((∋ a)°) ≫ F.map (minRel R) := F.map_comp _ _
   have hUP : (∋ a)° ≫ minRel R ⊑ R :=
-    le_trans (comp_mono_left _ (minRel_le_lb R)) (leftDiv_comp_le _ R)
+    le_trans (comp_mono_left _ (show minRel R ⊑ leftDiv ((∋ a)°) R from inter_lb_right _ _))
+      (leftDiv_comp_le _ R)
   have hregroup : f° ≫ F.map ((∋ a)° ≫ minRel R) ≫ f
       = (F.map (∋ a) ≫ f)° ≫ (F.map (minRel R) ≫ f) := by
     rw [hmapcomp, hXrecip]; simp only [Cat.assoc]
@@ -161,7 +163,7 @@ theorem greedy (hFr : F.PreservesRecip) (I : InitialAlgebra F) {R : a ⟶ a} {S 
   apply le_A_comp_minRel_iff.mpr
   refine ⟨?_, ?_⟩
   · have hi : A S ≫ minRel R ⊑ S := by
-      have h := comp_mono_left (A S) (minRel_le_eps R)
+      have h := comp_mono_left (A S) (show minRel R ⊑ ∋ a from inter_lb_left _ _)
       rwa [A_eps_eq'] at h
     exact relCata_mono I hi
   · have step1 : S° ≫ F.map R ⊑ R ≫ S° := by

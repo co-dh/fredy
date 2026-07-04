@@ -193,7 +193,7 @@ theorem inter_corNeg {a : 𝒜} (X : a ⟶ a) : X ∩ corNeg X = 𝟘 := by
 theorem union_corNeg {a : 𝒜} {X : a ⟶ a} (hX : Coreflexive X) : X ∪ corNeg X = Cat.id a := by
   have hsplit : Cat.id a ∩ (X ∪ ∼X) = (Cat.id a ∩ X) ∪ (Cat.id a ∩ (∼X)) :=
     DistributiveAllegory.inter_union_distrib (Cat.id a) X (∼X)
-  rw [union_neg_eq_top X, inter_eq_left (le_topHom (Cat.id a)),
+  rw [union_neg_eq_top X, inter_eq_left (show Cat.id a ⊑ topHom a a from LocallyCompleteDistributiveAllegory.le_Sup trivial),
     Allegory.inter_comm (Cat.id a) X, inter_eq_left hX, Allegory.inter_comm (Cat.id a) (∼X)] at hsplit
   exact hsplit.symm
 

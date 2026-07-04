@@ -50,9 +50,6 @@ prefix:max (name := negNotation) "∼" => neg
 theorem le_neg_iff {a b : 𝒜} (X R : a ⟶ b) : X ⊑ ∼R ↔ X ∩ R = 𝟘 := by
   rw [neg, le_impl_iff, le_zero_iff_eq_zero]
 
-theorem neg_antitone {a b : 𝒜} {R S : a ⟶ b} (h : R ⊑ S) : ∼S ⊑ ∼R :=
-  impl_antitone_left h
-
 theorem inter_neg_zero {a b : 𝒜} (R : a ⟶ b) : R ∩ (∼R) = 𝟘 := by
   rw [Allegory.inter_comm]
   exact (le_neg_iff (∼R) R).mp (le_refl _)
@@ -60,7 +57,7 @@ theorem inter_neg_zero {a b : 𝒜} (R : a ⟶ b) : R ∩ (∼R) = 𝟘 := by
 /-- De Morgan: `∼(R∪S) = ∼R ∩ ∼S`. -/
 theorem neg_union {a b : 𝒜} (R S : a ⟶ b) : ∼(R ∪ S) = (∼R) ∩ (∼S) := by
   apply le_antisymm
-  · exact le_inter (neg_antitone (le_union_left R S)) (neg_antitone (le_union_right R S))
+  · exact le_inter (impl_antitone_left (le_union_left R S)) (impl_antitone_left (le_union_right R S))
   · apply (le_neg_iff _ _).mpr
     rw [DistributiveAllegory.inter_union_distrib]
     have hR0 : ((∼R) ∩ (∼S)) ∩ R = 𝟘 := by
@@ -76,21 +73,21 @@ theorem neg_union {a b : 𝒜} (R S : a ⟶ b) : ∼(R ∪ S) = (∼R) ∩ (∼S
 
 /-- **Ex 4.41**: `∼0 = ⊤`. -/
 theorem neg_zero {a b : 𝒜} : (∼(𝟘 : a ⟶ b)) = topHom a b := by
-  apply le_antisymm (le_topHom _)
+  apply le_antisymm (le_Sup trivial)
   apply (le_neg_iff _ _).mpr
   exact le_antisymm (inter_lb_right _ _) (zero_le _)
 
 /-- **Ex 4.41**: `∼⊤ = 0`. -/
 theorem neg_topHom {a b : 𝒜} : (∼(topHom a b)) = (𝟘 : a ⟶ b) := by
   have h := (le_neg_iff (∼(topHom a b)) (topHom a b)).mp (le_refl _)
-  rwa [inter_eq_left (le_topHom _)] at h
+  rwa [inter_eq_left (show (∼(topHom a b) : a ⟶ b) ⊑ topHom a b from le_Sup trivial)] at h
 
 theorem le_neg_neg {a b : 𝒜} (R : a ⟶ b) : R ⊑ ∼∼R :=
   (le_neg_iff R (∼R)).mpr (inter_neg_zero R)
 
 /-- **Ex 4.41**: `∼R = ∼∼∼R`. -/
 theorem neg_neg_neg {a b : 𝒜} (R : a ⟶ b) : (∼R) = ∼∼∼R :=
-  le_antisymm (le_neg_neg (∼R)) (neg_antitone (le_neg_neg R))
+  le_antisymm (le_neg_neg (∼R)) (impl_antitone_left (le_neg_neg R))
 
 /-- **Ex 4.41**: `∼∼(R∪∼R) = ⊤`. -/
 theorem neg_neg_union_neg {a b : 𝒜} (R : a ⟶ b) : ∼∼(R ∪ ∼R) = topHom a b := by
@@ -110,7 +107,8 @@ theorem boolean_iff {𝒜 : Type u} [LocallyCompleteDistributiveAllegory 𝒜] :
   · intro hem a b R
     apply le_antisymm _ (le_neg_neg R)
     have heq : ∼∼R = ((∼∼R) ∩ R) ∪ ((∼∼R) ∩ (∼R)) := by
-      rw [← DistributiveAllegory.inter_union_distrib, hem R, inter_eq_left (le_topHom (∼∼R))]
+      rw [← DistributiveAllegory.inter_union_distrib, hem R,
+        inter_eq_left (show (∼∼R : a ⟶ b) ⊑ topHom a b from le_Sup trivial)]
     have h2 : (∼∼R) ∩ (∼R) = 𝟘 := by
       rw [Allegory.inter_comm]; exact inter_neg_zero (∼R)
     rw [heq, h2, union_zero]
@@ -152,7 +150,7 @@ theorem le_iff_inter_neg_zero {a b : 𝒜} (R S : a ⟶ b) : R ⊑ S ↔ R ∩ (
   · intro h
     have heq : R = (R ∩ S) ∪ (R ∩ (∼S)) := by
       rw [← DistributiveAllegory.inter_union_distrib, union_neg_eq_top S,
-        inter_eq_left (le_topHom R)]
+        inter_eq_left (show R ⊑ topHom a b from LocallyCompleteDistributiveAllegory.le_Sup trivial)]
     rw [heq, h, union_zero]
     exact inter_lb_right R S
 
@@ -205,7 +203,7 @@ theorem sub_le_iff {a b : 𝒜} (R S X : a ⟶ b) : sub R S ⊑ X ↔ R ⊑ S �
   · intro h
     have heq : R = (R ∩ S) ∪ (R ∩ (∼S)) := by
       rw [← DistributiveAllegory.inter_union_distrib, union_neg_eq_top S,
-        inter_eq_left (le_topHom R)]
+        inter_eq_left (show R ⊑ topHom a b from LocallyCompleteDistributiveAllegory.le_Sup trivial)]
     rw [heq]
     exact union_lub (le_trans (inter_lb_right R S) (le_union_left S X)) (le_trans h (le_union_right S X))
   · intro h
@@ -218,7 +216,7 @@ theorem sub_le_iff {a b : 𝒜} (R S X : a ⟶ b) : sub R S ⊑ X ↔ R ⊑ S �
 theorem sub_zero {a b : 𝒜} (R : a ⟶ b) : sub R 𝟘 = R := by
   show R ∩ (∼(𝟘 : a ⟶ b)) = R
   rw [neg_zero]
-  exact inter_eq_left (le_topHom R)
+  exact inter_eq_left (LocallyCompleteDistributiveAllegory.le_Sup trivial)
 
 theorem union_sub_absorb {a b : 𝒜} (R S : a ⟶ b) : R ∪ (sub S R) = R ∪ S := by
   apply le_antisymm
@@ -226,7 +224,8 @@ theorem union_sub_absorb {a b : 𝒜} (R S : a ⟶ b) : R ∪ (sub S R) = R ∪ 
     exact le_trans (inter_lb_left S (∼R)) (le_union_right R S)
   · apply union_lub (le_union_left R (sub S R))
     have heq : S = (S ∩ R) ∪ (S ∩ (∼R)) := by
-      rw [← DistributiveAllegory.inter_union_distrib, union_neg_eq_top R, inter_eq_left (le_topHom S)]
+      rw [← DistributiveAllegory.inter_union_distrib, union_neg_eq_top R,
+        inter_eq_left (show S ⊑ topHom a b from LocallyCompleteDistributiveAllegory.le_Sup trivial)]
     have hu : (S ∩ R) ∪ (S ∩ (∼R)) ⊑ R ∪ (sub S R) :=
       union_lub (le_trans (inter_lb_right S R) (le_union_left R (sub S R)))
         (le_union_right R (sub S R))
