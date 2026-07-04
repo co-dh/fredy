@@ -1268,18 +1268,6 @@ theorem Sup_congr {a b : 𝒜} {P Q : (a ⟶ b) → Prop} (h : ∀ T, P T ↔ Q 
   have hPQ : P = Q := funext fun T => propext (h T)
   rw [hPQ]
 
-/-- Reciprocation commutes with `Sup`: `(Sup P)° = Sup {R° | P R}`.  Reciprocation is
-    an order-isomorphism, so it carries suprema to suprema.  (A copy of the pure-LCDA
-    fact `Freyd.Alg.recip_Sup` proved in `S2_3.lean`; reproduced here to keep this
-    §2.22 file independent of the §2.3 division-allegory layer.) -/
-theorem recip_Sup' {a b : 𝒜} (P : (a ⟶ b) → Prop) :
-    (Sup P)° = Sup (fun T : b ⟶ a => ∃ R, P R ∧ T = R°) := by
-  apply le_antisymm
-  · apply recip_le_iff.mpr
-    apply Sup_le; intro R hR
-    exact recip_le_iff.mp (le_Sup ⟨R, hR, rfl⟩)
-  · apply Sup_le; rintro T ⟨R, hR, rfl⟩
-    exact recip_mono (le_Sup hR)
 
 /-- `R = S` follows from `R° = S°` (reciprocation is injective). -/
 theorem recip_injective {a b : 𝒜} {R S : a ⟶ b} (h : R° = S°) : R = S := by
@@ -1347,7 +1335,7 @@ theorem IndexedDisjointUnion.isCoproduct (du : IndexedDisjointUnion α β) :
   refine ⟨Sup (fun T => ∃ i, T = (du.U i)° ≫ R i), fun j => du.inject_mediator R j, ?_⟩
   intro M' hM'
   apply recip_injective
-  rw [recip_Sup']
+  rw [recip_Sup]
   -- M'° = ⋃ᵢ M'°(Uᵢ°Uᵢ)  (completeness `⋃ᵢ Uᵢ°Uᵢ = 1`, pushed through `M'° ≫ -`)
   have hL : Sup (fun T => ∃ S, (∃ i, S = (du.U i)° ≫ du.U i) ∧ T = M'° ≫ S) = M'° := by
     rw [← comp_Sup_distrib, du.complete, Cat.comp_id]

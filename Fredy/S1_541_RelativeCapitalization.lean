@@ -745,12 +745,10 @@ variable [PullbacksTransferCovers 𝒞]
 section BaseSliceCartesian
 variable [HasEqualizers 𝒞]
 
-/-- `innerSliceObj [] = Over []` is Cartesian (terminal/products/equalizers from the `over*`
-    instances, given `[HasEqualizers 𝒞]`). -/
-instance innerSliceCartesianNil : CartesianCategory (innerSliceObj (𝒞 := 𝒞) ([] : List 𝒞)) where
-  toHasTerminal := overHasTerminal _
-  toHasBinaryProducts := overHasBinaryProducts _
-  toHasEqualizers := overHasEqualizers _
+-- `innerSliceCartesianNil` (a `CartesianCategory (innerSliceObj [])` instance) used to live here;
+-- it is now `innerSliceCartesianNilLoc` upstream in `S1_543_Capitalization` (in scope via the
+-- `Capitalization` import above), so the duplicate local copy was removed (unused by name, an
+-- `instance` found only via typeclass search — the upstream one already resolves it).
 
 /-- `𝒞` is Cartesian (terminal + binary products + equalizers, all in scope this section). -/
 instance baseCartesian𝒞 : CartesianCategory 𝒞 where

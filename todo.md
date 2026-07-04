@@ -203,24 +203,67 @@ re-check `#print axioms`). Of the top 50 candidates:
 `product_mono_of_mono` (first factor) vs `_right` (second factor) score `type=1.0` but are different.
 Clean precision needs a structure-aware type check or a proof-term hash.
 
-### A — real accidental duplicates (remove)
+### A — real accidental duplicates (remove) — HANDLED 2026-07-03 (dedup session)
 - **★ §1.543 `Colim` → `LaxColim`, a whole re-derived file** (`CatColimitRegular` re-proved in
   `RatCapHcanon`/`RatCapPreReg`/`LaxGermPullbacks` under `LaxColim`, primed names):
-  - `Colim.isIso_of_product_up` (`S1_543_CatColimitRegular:1748`) ~ `LaxColim.isIso_of_product_up'` (`…RatCapHcanon:780`)
-  - `Colim.pullback_of_equalizer` (`…CatColimitRegular:2539`) ~ `LaxColim.pullback_of_equalizer'` (`…RatCapHcanon:634`)
-  - `Colim.isEqualizer_iso_apex` (`…CatColimitRegular:2600`) ~ `LaxColim.isEqualizer_iso_apex'` (`…RatCapHcanon:685`)
-  - `Colim.isEqualizer_comp_iso` (`…CatColimitRegular:2567`) ~ `LaxColim.isEqualizer_comp_iso'` (`…RatCapHcanon:658`)
-  - `LaxColim.objInclL_preserves_pullbacks` (`…LaxGermPullbacks:84`) ~ `LaxColim.stageInclFunctorL_preservesPullbacks` (`…RatCapHcanon:1233`)
-  - `LaxColim.ratCapCat` (`…CapitalizationLaxColimit:1581`) ~ `LaxColim.ratCat` (`…RatCapPreReg:250`)  [def]
-  - `innerSliceCartesianNil` (`S1_541_RelativeCapitalization:748`) ~ `innerSliceCartesianNilLoc` (`S1_543_Capitalization:1967`)  [instance, unused]
+  - ✅ `Colim.isIso_of_product_up` ~ `LaxColim.isIso_of_product_up'` — DONE: kept `Colim.isIso_of_product_up`
+    (`S1_543_CatColimitRegular`), `isIso_of_product_up'` now `:= Colim.isIso_of_product_up p₁ p₂ hup`
+    (`S1_543_RatCapHcanon.lean`, needed `import Fredy.S1_543_CatColimitRegular`).
+  - ✅ `Colim.pullback_of_equalizer` ~ `LaxColim.pullback_of_equalizer'` — DONE: same forward. The `Colim`
+    original is stated at two INDEPENDENT universes `{𝒟 : Type u} [Cat.{v} 𝒟]`; the `LaxColim` copy is the
+    single-universe (`w`) specialization — a valid instantiation, not a generalization, so the forward
+    direction is sound.
+  - ✅ `Colim.isEqualizer_iso_apex` ~ `LaxColim.isEqualizer_iso_apex'` — DONE, same forward + same
+    two-universe → single-universe specialization.
+  - ✅ `Colim.isEqualizer_comp_iso` ~ `LaxColim.isEqualizer_comp_iso'` — DONE, same forward + same
+    two-universe → single-universe specialization.
+  - ✅ `LaxColim.objInclL_preserves_pullbacks` ~ `LaxColim.stageInclFunctorL_preservesPullbacks` — ALREADY
+    forwarded (`objInclL_preserves_pullbacks := stageInclFunctorL_preservesPullbacks L hL tData pData
+    eqData i f g` in `S1_543_LaxGermPullbacks.lean`); this scan entry was stale, no action needed.
+  - ✅ `LaxColim.ratCapCat` ~ `LaxColim.ratCat` [def] — DONE: kept `ratCapCat` (`S1_543_CapitalizationLaxColimit`,
+    upstream), `ratCat` (`S1_543_RatCapPreReg.lean`, downstream — that file already imports the former) now
+    `:= ratCapCat P`, still `noncomputable abbrev` so its many downstream users (`RatCapImages`/
+    `RatCapStagePTC`/`UniformCapStep`/`RatCapPositive`) are unaffected.
+  - ✅ `innerSliceCartesianNil` ~ `innerSliceCartesianNilLoc` [instance, unused] — DONE: deleted the stale
+    leftover `innerSliceCartesianNil` from `S1_541_RelativeCapitalization.lean` (an unreferenced `instance`;
+    everything else in its "RELOCATED" block had already been moved upstream to `S1_543_Capitalization`'s
+    `innerSliceCartesianNilLoc`, which that file already imports — typeclass search now finds only the one
+    upstream instance).
 - **Other cross-file:**
-  - `Alg.recip_Sup` (`S2_3:897`) ~ `Alg.recip_Sup'` (`S2_22:1271`)
-  - `Alg.AllegoryFunctor.mono` (`S2_51:40`) ~ `Alg.AllegoryFunctor.map_mono` (`S2_156_PartitionRep:189`)
-  - `exists_ultrafilter_excluding` (`S1_75:384`) ~ `PreLogosHorn.Stalk.exists_ultrafilter_excluding` (`S1_62:4350`)
-  - `inter_mono` (`S1_62:1099`) ~ `Subobject.inter_mono` (`S1_658_Complement:76`)
-  - `cover_comp'` (`S1_543_Capitalization`) ~ `cover_comp''` (`S1_48_RationalCapitalization`)
-  - `Alg.div_mono_left` (`S2_3:110`) ~ `Alg.div_num_mono` (`S2_441_StraightJoin:38`)
-  - `FibreDensityProof.fibrePinEqualizers` (`S1_546:58`) ~ `UniformCap.uniformPinEqualizers` (`S1_547:78`)  [def]
+  - ✅ `Alg.recip_Sup` (`S2_3`) ~ `Alg.recip_Sup'` (`S2_22`) — DONE: deleted `recip_Sup'` (only 1 internal call
+    site in `S2_22.lean`, rerouted to `recip_Sup`, already in scope — both declared in namespace `Freyd.Alg`
+    and `S2_22` imports `S2_3`).
+  - ✅ `Alg.AllegoryFunctor.mono` (`S2_51`) ~ `Alg.AllegoryFunctor.map_mono` (`S2_156_PartitionRep`) — DONE:
+    kept `AllegoryFunctor.mono` (§2.51, the natural book-section home), `map_mono` now
+    `:= AllegoryFunctor.mono F h` (kept as a name since `F.map_mono` dot-notation is used 3× locally in
+    `S2_156_PartitionRep.lean`; added `import Fredy.S2_51`, no cycle).
+  - ⏭ SKIPPED: `exists_ultrafilter_excluding` (`S1_75`) ~ `PreLogosHorn.Stalk.exists_ultrafilter_excluding`
+    (`S1_62`) — genuine universe-generality mismatch, not a safe forward either direction. `S1_75`'s copy is
+    stated at two INDEPENDENT universes (`variable {𝒞 : Type u} [Cat.{v} 𝒞]`, `v` and `u` unconnected —
+    actually exercised downstream by `S1_635_StalkFamily.lean`'s own `Cat.{v} 𝒞`); `S1_62`'s `Stalk`-section
+    copy is proven only at the single-universe specialization `[Cat.{u} 𝒞]`. Forwarding `S1_62 → S1_75`
+    would cycle (S1_75 already imports S1_62; S1_62's own doc comment says as much). Forwarding
+    `S1_75 → S1_62` needs special ⟹ general, which is invalid (would require narrowing `S1_75`'s stated
+    generality, risking breakage of `S1_635_StalkFamily`'s genuine two-universe use — unlike the `Colim`
+    cluster above, no evidence here that the extra universe is dead weight). Left both proofs intact.
+  - ✅ `inter_mono` (`S1_62`) ~ `Subobject.inter_mono` (`S1_658_Complement`) — ALREADY forwarded
+    (`Subobject.inter_mono := Freyd.inter_mono hS hT`); stale scan entry, no action needed.
+  - ✅ `cover_comp'` (`S1_543_Capitalization`) ~ `cover_comp''` (`S1_48_RationalCapitalization`) — DONE:
+    kept `cover_comp'` (upstream; `S1_48` reaches it transitively via `S1_541_RelativeCapitalization`),
+    `cover_comp''` now `:= cover_comp' hf hg`. Needed `omit [PullbacksTransferCovers 𝒞] in` on `cover_comp'`
+    first — Lean's default `variable` inclusion had pulled that ambient instance into its ELABORATED
+    signature even though the proof never uses it (confirmed via `#check @Freyd.cover_comp'`); `omit`
+    drops it, which is a strict generalization (backward-compatible with every existing call site).
+  - ✅ `Alg.div_mono_left` (`S2_3`) ~ `Alg.div_num_mono` (`S2_441_StraightJoin`) — DONE: kept `div_mono_left`
+    (`S2_441_StraightJoin` already reaches `S2_3` transitively via `S2_44`→`S2_4`→`S2_3`), `div_num_mono`
+    now `:= div_mono_left h S`.
+  - ⏭ SKIPPED: `FibreDensityProof.fibrePinEqualizers` (`S1_546`) ~ `UniformCap.uniformPinEqualizers`
+    (`S1_547`) [def] — both are `local instance`s. `local` declarations are scoped to their own file/section
+    and are NOT visible from other files even when imported, so neither can forward to the other; each file
+    genuinely needs its own copy of the diamond-resolution pin. Not a real duplicate to remove.
+
+  Verification: full `lake build` green (263 jobs) after every pair; `#print axioms` on all kept/forwarding
+  lemmas ⊆ `{propext, Classical.choice, Quot.sound}` (several have `[]`), no `sorryAx`.
 
 ### B — intentional parallel copies (keep, or merge into one generic lemma)
 - AoP case studies, same abstract theorem per problem: `{knapsack,bitonic,paragraph}_thinning`

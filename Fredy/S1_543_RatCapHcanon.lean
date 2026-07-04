@@ -31,6 +31,7 @@
   `LaxColimitPreReg` + `SliceRegular`.
 -/
 import Fredy.S1_543_RatCapPreReg
+import Fredy.S1_543_CatColimitRegular
 
 open Freyd
 open Freyd.Colim
@@ -631,76 +632,36 @@ section GenericPullbackPres
 
 variable {𝒟 : Type w} [Cat.{w} 𝒟]
 
-/-- An equalizer of `(fst≫f, snd≫g)` over `A × B` is a pullback of `(f, g)` (ported from
-    `CatColimitRegular.pullback_of_equalizer`). -/
+/-- An equalizer of `(fst≫f, snd≫g)` over `A × B` is a pullback of `(f, g)` (= verbatim
+    `Colim.pullback_of_equalizer`, `S1_543_CatColimitRegular.lean`, specialized from its
+    two-universe `{𝒟 : Type u} [Cat.{v} 𝒟]` to this section's single-universe `w`). -/
 theorem pullback_of_equalizer' [HasBinaryProducts 𝒟]
     {A B C E : 𝒟} {f : A ⟶ C} {g : B ⟶ C} {m : E ⟶ prod A B}
     (hmeq : m ≫ (fst ≫ f) = m ≫ (snd ≫ g))
     (heq : (EqualizerCone.mk E m hmeq).IsEqualizer) :
     (Cone.mk (f := f) (g := g) E (m ≫ fst) (m ≫ snd)
-      (by rw [Cat.assoc, Cat.assoc]; exact hmeq)).IsPullback := by
-  intro d
-  have hpd : pair d.π₁ d.π₂ ≫ (fst ≫ f) = pair d.π₁ d.π₂ ≫ (snd ≫ g) := by
-    rw [← Cat.assoc, ← Cat.assoc, fst_pair, snd_pair]; exact d.w
-  obtain ⟨u, hu, huniq⟩ := heq (EqualizerCone.mk d.pt (pair d.π₁ d.π₂) hpd)
-  refine ⟨u, ⟨?_, ?_⟩, ?_⟩
-  · show u ≫ (m ≫ fst) = d.π₁
-    rw [← Cat.assoc, hu, fst_pair]
-  · show u ≫ (m ≫ snd) = d.π₂
-    rw [← Cat.assoc, hu, snd_pair]
-  · intro v hv₁ hv₂
-    refine huniq v ?_
-    show v ≫ m = pair d.π₁ d.π₂
-    refine pair_uniq _ _ _ ?_ ?_
-    · rw [Cat.assoc]; exact hv₁
-    · rw [Cat.assoc]; exact hv₂
+      (by rw [Cat.assoc, Cat.assoc]; exact hmeq)).IsPullback :=
+  Colim.pullback_of_equalizer hmeq heq
 
-/-- Transport an equalizer along an iso of the parallel pair's domain (ported from
-    `CatColimitRegular.isEqualizer_comp_iso`). -/
+/-- Transport an equalizer along an iso of the parallel pair's domain (= verbatim
+    `Colim.isEqualizer_comp_iso`, `S1_543_CatColimitRegular.lean`, specialized to this
+    section's single-universe `w`). -/
 theorem isEqualizer_comp_iso'
     {X Y Z E : 𝒟} {p q : Y ⟶ Z} {φ : X ⟶ Y} (hφ : IsIso φ) {e : E ⟶ X}
     (hew : e ≫ (φ ≫ p) = e ≫ (φ ≫ q))
     (heq : (EqualizerCone.mk (f := φ ≫ p) (g := φ ≫ q) E e hew).IsEqualizer) :
     (EqualizerCone.mk (f := p) (g := q) E (e ≫ φ)
-      (show (e ≫ φ) ≫ p = (e ≫ φ) ≫ q by rw [Cat.assoc, Cat.assoc]; exact hew)).IsEqualizer := by
-  obtain ⟨φ', hφφ', hφ'φ⟩ := hφ
-  intro d
-  have hd' : (d.map ≫ φ') ≫ (φ ≫ p) = (d.map ≫ φ') ≫ (φ ≫ q) := by
-    rw [← Cat.assoc, Cat.assoc d.map, hφ'φ, Cat.comp_id,
-        ← Cat.assoc (d.map ≫ φ'), Cat.assoc d.map, hφ'φ, Cat.comp_id]
-    exact d.eq
-  obtain ⟨u, hu, huniq⟩ := heq (EqualizerCone.mk d.dom (d.map ≫ φ') hd')
-  refine ⟨u, ?_, ?_⟩
-  · show u ≫ (e ≫ φ) = d.map
-    rw [← Cat.assoc, hu, Cat.assoc, hφ'φ, Cat.comp_id]
-  · intro v hv
-    refine huniq v ?_
-    show v ≫ e = d.map ≫ φ'
-    calc v ≫ e = (v ≫ e) ≫ Cat.id _ := (Cat.comp_id _).symm
-      _ = (v ≫ e) ≫ (φ ≫ φ') := by rw [hφφ']
-      _ = ((v ≫ e) ≫ φ) ≫ φ' := (Cat.assoc _ _ _).symm
-      _ = (v ≫ (e ≫ φ)) ≫ φ' := by rw [Cat.assoc v e φ]
-      _ = d.map ≫ φ' := by rw [hv]
+      (show (e ≫ φ) ≫ p = (e ≫ φ) ≫ q by rw [Cat.assoc, Cat.assoc]; exact hew)).IsEqualizer :=
+  Colim.isEqualizer_comp_iso hφ hew heq
 
-/-- Transport an equalizer along an iso of its apex (ported from
-    `CatColimitRegular.isEqualizer_iso_apex`). -/
+/-- Transport an equalizer along an iso of its apex (= verbatim `Colim.isEqualizer_iso_apex`,
+    `S1_543_CatColimitRegular.lean`, specialized to this section's single-universe `w`). -/
 theorem isEqualizer_iso_apex' {A B E E' : 𝒟} {f g : A ⟶ B}
     {e : E ⟶ A} {hfe : e ≫ f = e ≫ g} (heq : (EqualizerCone.mk E e hfe).IsEqualizer)
     (i : E' ⟶ E) (j : E ⟶ E') (hij : i ≫ j = Cat.id E') (hji : j ≫ i = Cat.id E) :
     (EqualizerCone.mk (f := f) (g := g) E' (i ≫ e)
-      (show (i ≫ e) ≫ f = (i ≫ e) ≫ g by rw [Cat.assoc, Cat.assoc, hfe])).IsEqualizer := by
-  intro d
-  obtain ⟨u, hu, huniq⟩ := heq d
-  refine ⟨u ≫ j, ?_, ?_⟩
-  · show (u ≫ j) ≫ (i ≫ e) = d.map
-    rw [Cat.assoc, ← Cat.assoc j i e, hji, Cat.id_comp, hu]
-  · intro v hv
-    have hvi : (v ≫ i) ≫ e = d.map := by rw [Cat.assoc]; exact hv
-    have : v ≫ i = u := huniq (v ≫ i) hvi
-    calc v = v ≫ Cat.id E' := (Cat.comp_id _).symm
-      _ = v ≫ (i ≫ j) := by rw [hij]
-      _ = (v ≫ i) ≫ j := (Cat.assoc _ _ _).symm
-      _ = u ≫ j := by rw [this]
+      (show (i ≫ e) ≫ f = (i ≫ e) ≫ g by rw [Cat.assoc, Cat.assoc, hfe])).IsEqualizer :=
+  Colim.isEqualizer_iso_apex heq i j hij hji
 
 /-- **A product- and equalizer-preserving functor sends the §1.432 chosen pullback to a pullback
     cone** (ported verbatim from `CatColimitRegular.image_chosenPullback_isPullback`). -/
@@ -777,23 +738,16 @@ theorem image_chosenPullback_isPullback' {𝒞 : Type w} [Cat.{w} 𝒞]
       rw [show (hF.map em ≫ φ) ≫ snd = hF.map (em ≫ snd) from (Cat.assoc _ _ _).trans hbr₂]
       exact hv₂
 
-/-- **A cone with the binary-product universal property has iso comparison map** (ported from
-    `CatColimitRegular.isIso_of_product_up`). -/
+/-- **A cone with the binary-product universal property has iso comparison map** (= verbatim
+    `Colim.isIso_of_product_up`, `S1_543_CatColimitRegular.lean` — same single-universe
+    statement, kept as a local alias since this section's downstream lemmas use `'`-names). -/
 theorem isIso_of_product_up' [HasBinaryProducts 𝒟]
     {A B P : 𝒟} (p₁ : P ⟶ A) (p₂ : P ⟶ B)
     (hup : ∀ {Z : 𝒟} (f : Z ⟶ A) (g : Z ⟶ B),
       ∃ u : Z ⟶ P, (u ≫ p₁ = f ∧ u ≫ p₂ = g) ∧
         ∀ v : Z ⟶ P, v ≫ p₁ = f → v ≫ p₂ = g → v = u) :
-    IsIso (pair p₁ p₂ : P ⟶ prod A B) := by
-  obtain ⟨u, ⟨hu₁, hu₂⟩, _⟩ := hup (fst (A := A) (B := B)) (snd (A := A) (B := B))
-  refine ⟨u, ?_, ?_⟩
-  · obtain ⟨_, _, huniq⟩ := hup p₁ p₂
-    have e1 : (pair p₁ p₂ ≫ u) ≫ p₁ = p₁ := by rw [Cat.assoc, hu₁, fst_pair]
-    have e2 : (pair p₁ p₂ ≫ u) ≫ p₂ = p₂ := by rw [Cat.assoc, hu₂, snd_pair]
-    rw [huniq (pair p₁ p₂ ≫ u) e1 e2, huniq (Cat.id P) (Cat.id_comp _) (Cat.id_comp _)]
-  · have h1 : (u ≫ pair p₁ p₂) ≫ fst = fst (A := A) (B := B) := by rw [Cat.assoc, fst_pair, hu₁]
-    have h2 : (u ≫ pair p₁ p₂) ≫ snd = snd (A := A) (B := B) := by rw [Cat.assoc, snd_pair, hu₂]
-    rw [pair_uniq _ _ (u ≫ pair p₁ p₂) h1 h2, pair_fst_snd]
+    IsIso (pair p₁ p₂ : P ⟶ prod A B) :=
+  Colim.isIso_of_product_up p₁ p₂ hup
 
 end GenericPullbackPres
 

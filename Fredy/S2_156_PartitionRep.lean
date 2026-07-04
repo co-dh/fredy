@@ -39,6 +39,7 @@
 
 import Fredy.S2_11
 import Fredy.S2_147_MapCat
+import Fredy.S2_51
 
 universe v u v₁ v₂ u₁ u₂
 
@@ -187,12 +188,11 @@ variable {𝒜 : Type u₁} {ℬ : Type u₂} [Allegory.{v₁} 𝒜] [Allegory.{
 variable (F : AllegoryFunctor 𝒜 ℬ)
 
 /-- An allegory functor (§2.154 representation) is MONOTONE: `R ⊑ S` means
-    `R ∩ S = R`, which `map_inter` transports. -/
+    `R ∩ S = R`, which `map_inter` transports.  (= `Freyd.Alg.AllegoryFunctor.mono`,
+    §2.51, `S2_51.lean` — same statement, kept as a local alias since `F.map_mono`
+    dot-notation is used throughout this section.) -/
 theorem AllegoryFunctor.map_mono {a b : 𝒜} {R S : a ⟶ b} (h : R ⊑ S) :
-    F.map R ⊑ F.map S := by
-  show F.map R ∩ F.map S = F.map R
-  rw [← F.map_inter]
-  exact congrArg F.map h
+    F.map R ⊑ F.map S := AllegoryFunctor.mono F h
 
 /-- Allegory functors preserve reflexivity (`1 ⊑ R` and `map_id`). -/
 theorem AllegoryFunctor.map_reflexive {a : 𝒜} {R : a ⟶ a} (h : Reflexive R) :

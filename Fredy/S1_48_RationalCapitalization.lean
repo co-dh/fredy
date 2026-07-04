@@ -1240,26 +1240,12 @@ theorem wellSupported_one' : WellSupported (HasTerminal.one : 𝒞) := by
   rw [show term (HasTerminal.one : 𝒞) = Cat.id _ from term_uniq _ _]
   exact cover_id _
 
-/-- Composite of covers is a cover (mathlib-free, only `HasPullbacks`; inlined from
-    `cover_comp'`, Capitalization.lean — that file is not imported here). -/
+/-- Composite of covers is a cover (mathlib-free, only `HasPullbacks`).  (=
+    `cover_comp'`, `S1_543_Capitalization.lean` — same statement, kept as a local
+    alias since `S1_541_RelativeCapitalization` already imports that file.) -/
 theorem cover_comp'' {X Y Z : 𝒞} {f : X ⟶ Y} {g : Y ⟶ Z} (hf : Cover f) (hg : Cover g) :
-    Cover (f ≫ g) := by
-  intro C m h hm hfac
-  let pb := HasPullbacks.has g m
-  have hπmono : Monic pb.cone.π₁ := by
-    intro W p q hpq
-    have hpq2 : p ≫ pb.cone.π₂ = q ≫ pb.cone.π₂ := by
-      apply hm
-      calc (p ≫ pb.cone.π₂) ≫ m = p ≫ (pb.cone.π₁ ≫ g) := by rw [Cat.assoc, ← pb.cone.w]
-        _ = (q ≫ pb.cone.π₁) ≫ g := by rw [← Cat.assoc, hpq]
-        _ = (q ≫ pb.cone.π₂) ≫ m := by rw [Cat.assoc, pb.cone.w, ← Cat.assoc]
-    let cn : Cone g m := ⟨W, p ≫ pb.cone.π₁, p ≫ pb.cone.π₂, by rw [Cat.assoc, Cat.assoc, pb.cone.w]⟩
-    rw [pb.lift_uniq cn p rfl rfl, pb.lift_uniq cn q hpq.symm hpq2.symm]
-  let u := pb.lift ⟨X, f, h, by rw [hfac]⟩
-  have hu₁ : u ≫ pb.cone.π₁ = f := pb.lift_fst _
-  obtain ⟨inv, _, hinvπ⟩ : IsIso pb.cone.π₁ := hf pb.cone.π₁ u hπmono hu₁
-  refine hg m (inv ≫ pb.cone.π₂) hm ?_
-  rw [Cat.assoc, ← pb.cone.w, ← Cat.assoc, hinvπ, Cat.id_comp]
+    Cover (f ≫ g) :=
+  cover_comp' hf hg
 
 /-- Product extensionality: two maps into a product agree iff they agree after both projections. -/
 theorem prod_hom_ext {X A B : 𝒞} {u v : X ⟶ prod A B}

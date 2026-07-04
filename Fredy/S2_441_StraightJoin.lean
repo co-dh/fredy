@@ -35,10 +35,11 @@ variable {𝒜 : Type u}
 section DivHelpers
 variable [DivisionAllegory 𝒜]
 
-/-- Division is monotone in its numerator: `R ⊑ R' → R/S ⊑ R'/S`. -/
+/-- Division is monotone in its numerator: `R ⊑ R' → R/S ⊑ R'/S`.  (= `div_mono_left`,
+    `S2_3.lean`, §2.314 — same statement, kept as a local alias under this file's name.) -/
 theorem div_num_mono {a b c : 𝒜} {R R' : a ⟶ c} (h : R ⊑ R') (S : b ⟶ c) :
     R / S ⊑ R' / S :=
-  (le_div_iff _ _ _).mpr (le_trans (DivisionAllegory.div_comp_le R S) h)
+  div_mono_left h S
 
 /-- Division is antitone in its denominator: `S ⊑ S' → R/S' ⊑ R/S`. -/
 theorem div_den_antimono {a b c : 𝒜} (R : a ⟶ c) {S S' : b ⟶ c} (h : S ⊑ S') :

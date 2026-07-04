@@ -247,10 +247,12 @@ noncomputable def ratLaxEqualizerData : LaxEqualizerData (laxOfProjSystem' P) wh
   needs the stage-inclusion-preserves-pullbacks + cover-lifting infrastructure).  We package the
   concrete three-bundle reduction here; `hcanon` is the precise next blocker. -/
 
-/-- `ratCapCat P` as the lax colimit category (definitionally `laxColimCat (laxOfProjSystem' P)
-    (coherentProj P)`). -/
+/-- `ratCapCat P` as the lax colimit category.  (= `LaxColim.ratCapCat`,
+    `S1_543_CapitalizationLaxColimit.lean` — same definition, kept `abbrev` under this file's
+    name since many downstream files (`RatCapImages`/`RatCapStagePTC`/`UniformCapStep`/
+    `RatCapPositive`) use the unqualified `ratCat`.) -/
 noncomputable abbrev ratCat (P : ProjSystem ι D 𝒞) : Cat (Obj (laxOfProjSystem' P)) :=
-  laxColimCat (laxOfProjSystem' P) (coherentProj P)
+  ratCapCat P
 
 /-- **`PreRegularCategory (ratCapCat P)` from the canonical-pullback cover-transfer `hcanon`.**  The
     three finite-limit bundles are the concrete `ratLax*Data` (base-change preserves slice
