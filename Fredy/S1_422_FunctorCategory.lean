@@ -489,19 +489,14 @@ private noncomputable def allowsCompAt [RegularCategory 𝒮] {F G : FunctorObj 
     (hallow : Allows S α) (A : 𝒜) : F.obj A ⟶ S.dom.obj A :=
   hallow.choose.app A
 
-private theorem allowsCompAt_fac [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
-    (α : FunctorHom F G) (S : Subobject (FunctorObj 𝒜 𝒮) G)
-    (hallow : Allows S α) (A : 𝒜) :
-    allowsCompAt α S hallow A ≫ S.arr.app A = α.app A :=
-  congrFun (congrArg NaturalTransformation.app hallow.choose_spec) A
-
 -- The minimality NT component at A: the unique map (image α_A).dom → S.dom.obj A.
 private noncomputable def imageMinComp [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
     (α : FunctorHom F G) (S : Subobject (FunctorObj 𝒜 𝒮) G)
     (hallow : Allows S α) (A : 𝒜) : (image (α.app A)).dom ⟶ S.dom.obj A :=
   (image_min (α.app A) ⟨S.dom.obj A, S.arr.app A,
     natTrans_monic_components S.arr S.monic A⟩
-    ⟨allowsCompAt α S hallow A, allowsCompAt_fac α S hallow A⟩).choose
+    ⟨allowsCompAt α S hallow A,
+      congrFun (congrArg NaturalTransformation.app hallow.choose_spec) A⟩).choose
 
 private theorem imageMinComp_fac [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
     (α : FunctorHom F G) (S : Subobject (FunctorObj 𝒜 𝒮) G)
@@ -509,7 +504,8 @@ private theorem imageMinComp_fac [RegularCategory 𝒮] {F G : FunctorObj 𝒜 �
     imageMinComp α S hallow A ≫ S.arr.app A = (image (α.app A)).arr :=
   (image_min (α.app A) ⟨S.dom.obj A, S.arr.app A,
     natTrans_monic_components S.arr S.monic A⟩
-    ⟨allowsCompAt α S hallow A, allowsCompAt_fac α S hallow A⟩).choose_spec
+    ⟨allowsCompAt α S hallow A,
+      congrFun (congrArg NaturalTransformation.app hallow.choose_spec) A⟩).choose_spec
 
 /-- The minimality NT: given `S : Subobject (𝒮^𝒜) G` allowing `α`,
     build `h : imageFunObj α ⟶ S.dom` with `h ≫ S.arr = imgArrNT α`.

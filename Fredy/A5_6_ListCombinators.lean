@@ -55,10 +55,6 @@ theorem Perm.symm : ∀ {x y : ConsList Unit A}, Perm x y → Perm y x
 /-- The permutation relation `perm : list A ⟶ list A`. -/
 def perm : dList A ⟶ dList A := Perm
 
-/-- **`perm` is reflexive**: `id ⊑ perm`. -/
-theorem perm_reflexive : Cat.id (dList A) ⊑ perm :=
-  le_iff.mpr fun x y hxy => hxy ▸ Perm.refl x
-
 /-- **`perm` is transitive**: `perm ≫ perm ⊑ perm`. -/
 theorem perm_transitive : (perm : dList A ⟶ dList A) ≫ perm ⊑ perm :=
   le_iff.mpr fun x z h => by obtain ⟨y, hxy, hyz⟩ := h; exact Perm.trans hxy hyz

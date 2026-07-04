@@ -56,8 +56,8 @@ instance overHasPullbacks (B : 𝒞) : HasPullbacks (Over B) where
   has {X Y Z} m n :=
     { cone := overPullbackCone m n
       lift := fun c => overPullbackLift m n c.π₁ c.π₂ c.w
-      lift_fst := fun c => overPullbackLift_fst m n c.π₁ c.π₂ c.w
-      lift_snd := fun c => overPullbackLift_snd m n c.π₁ c.π₂ c.w
+      lift_fst := fun c => OverHom.ext ((hpull.has m.f n.f).lift_fst _)
+      lift_snd := fun c => OverHom.ext ((hpull.has m.f n.f).lift_snd _)
       lift_uniq := fun c u h₁ h₂ => overPullbackLift_uniq m n c.π₁ c.π₂ c.w u h₁ h₂ }
 
 /-! ## §1.441 `HasBinaryProducts (Over B)`

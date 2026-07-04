@@ -190,9 +190,6 @@ theorem isort_sorted (l : List (Int × Int)) : Sorted (isort l) := by
   | nil => trivial
   | cons iv rest ih => exact linsert_sorted iv (isort rest) ih
 
-theorem valid_isort (ivs : List (Int × Int)) (hval : Valid ivs) : Valid (isort ivs) :=
-  fun iv hiv => hval iv ((isort_mem ivs iv).mp hiv)
-
 theorem covers_isort (ivs : List (Int × Int)) (x : Int) : covers (isort ivs) x ↔ covers ivs x := by
   unfold covers
   constructor
@@ -326,7 +323,7 @@ def IsMerge (ivs out : List (Int × Int)) : Prop :=
     adjacent-non-overlap), and itself valid. Fully constructive; see the file docstring for the
     axiom count. -/
 theorem merge_correct (ivs : List (Int × Int)) (hval : Valid ivs) : IsMerge ivs (mergeFn ivs) := by
-  have hvs : Valid (isort ivs) := valid_isort ivs hval
+  have hvs : Valid (isort ivs) := fun iv hiv => hval iv ((isort_mem ivs iv).mp hiv)
   have hss : Sorted (isort ivs) := isort_sorted ivs
   obtain ⟨hvalM, hgapM, hcovM⟩ := mergeSorted_inv (isort ivs) hvs hss
   exact ⟨fun x => (hcovM x).trans (covers_isort ivs x), gapSorted_sorted (mergeFn ivs) hvalM hgapM, hgapM, hvalM⟩

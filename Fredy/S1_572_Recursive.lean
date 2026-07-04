@@ -1487,11 +1487,8 @@ instance : PullbacksTransferCovers ExtNat where
 /-- **§1.572 headline (positive part)**: R is a regular category. -/
 noncomputable instance : RegularCategory ExtNat := {}
 
-theorem all_projective : ∀ C : ExtNat, Projective C :=
-  fun _ _ f hcov => cover_split f hcov
-
 theorem all_choice : ∀ C : ExtNat, Choice C :=
-  choice_iff_projective.mpr all_projective
+  choice_iff_projective.mpr (fun _ _ f hcov => cover_split f hcov)
 
 /-- **§1.572 headline**: R is an AC regular category. -/
 noncomputable instance : ACRegularCategory ExtNat := { all_choice := all_choice }

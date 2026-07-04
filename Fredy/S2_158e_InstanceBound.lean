@@ -1319,13 +1319,7 @@ theorem instanceBound_allegoryAxioms_ten : InstanceBound allegoryAxioms 10 := by
   · -- mirror modular law
     exact ⟨mmodHom _ _ _, mmodHom_bound _ _ _⟩
 
-/-- **The instance bound exists** — the packaged form consumed by the OPEN
-    note of S2_158c: with it, `step_hom_tame` / `step_merge_bound` hold for
-    `allegoryAxioms` outright. -/
-theorem instanceBound_allegoryAxioms : ∃ N, InstanceBound allegoryAxioms N :=
-  ⟨10, instanceBound_allegoryAxioms_ten⟩
-
-/-- **(b) BOUNDED STEP for `allegoryAxioms`, unconditionally**: a single
+/-- **(b) BOUNDED STEP for `allegoryAxioms`, unconditionally`: a single
     rewrite from `allegoryAxioms` carries a canonical graph map all of whose
     fibres are covered by ≤ 21 vertices — no vertex-merge of more than 21
     pairwise-distinct vertices is possible in one step, in ANY context and

@@ -24,12 +24,17 @@ DRY as much as possible.
 - **Bold `𝐀` = the category; plain `A`, `B`, … = its objects.** The OCR loses bold, so a category
   `𝐀` shows up as plain `A`. In `𝐀/B` the `𝐀` is the *category* and `B ∈ 𝐀` is an *object* — read it
   as "the category `𝐀` sliced over the object `B`", never "object A over object B".
-- **`𝐀/B` has two definitions; use the `B × A → B` one.** (a) Plain slice: objects are all arrows
-  `X → B`. (b) The §1.544 redefinition: pass to the inflation `𝐀'` (objects = finite sequences,
-  product = concatenation) giving strict cancellation `B×A = B×A' ⟹ A = A'`, so `𝐀 ⊆ 𝐀/B` and
-  `Δ: 𝐀 → 𝐀/B`, `A ↦ (B × A → B)`, is a literal inclusion — the objects `B × A → B` are exactly the
-  embedded copy of `𝐀` (the image of `Δ`). The two are equivalent categories; Freyd works with the
-  `B × A → B` presentation. Factorisation: `(B×−) = Σ∘Δ`, with `Δ: 𝐀 → 𝐀/B` the diagonal
+- **`𝐀/B`: one definition, two presentations; one `Δ`, two readings.** RULE: (1) `𝐀/B` always means
+  the full slice — objects are ALL arrows `X → B`, never only the `B×A → B`. (2) `Δ` is the one
+  diagonal functor `A ↦ (B×A → B)`, `f ↦ 1×f` (§1.44). §1.544 re-presents the same category over the
+  inflation `𝐀'` (objects = finite sequences, product = concatenation, strict cancellation
+  `B×A = B×A' ⟹ A = A'`) and renames the image of `Δ` to `𝐀`, making `Δ` injective on objects, so
+  `𝐀 ⊆ 𝐀/B` is a subcategory (Freyd's stated purpose) — in force from §1.544 on, needed wherever `𝐀`
+  must sit inside `𝐀/B` (capitalization towers and their unions, §1.545–6). Both presentations are
+  equivalent categories; slice statements (e.g. §1.63's `Sub` iso) quantify over ALL slice objects.
+  (3) On subobjects: `Sub_{𝐀/B}(ΔA) = Sub_𝐀(B×A)`, `Δ` acting by `A' ↦ B×A'` (= `π^#`).
+  (4) `Δ` the diagonal *functor* ≠ `⟨1,1⟩` the diagonal *morphism* (§1.535 flags the name clash).
+  Factorisation: `(B×−) = Σ∘Δ`, with `Δ: 𝐀 → 𝐀/B` the diagonal
   (`A ↦ (B×A → B)`) and `Σ: 𝐀/B → 𝐀` forgetful (`(X→B) ↦ X`, so `Σ(B×A→B) = B×A`). The §1.53 facts
   Freyd actually proves: Σ preserves/reflects covers & pullbacks, Δ a pre-regular representation,
   Δ faithful iff B well-supported — all argued *directly*, NOT via an adjunction. The adjoint chain

@@ -220,9 +220,6 @@ abbrev dAns : RelSet.{0} := ⟨List Int⟩
 /-- **The allegory program**: LeetCode 21's merge as a morphism `dInput ⟶ dAns` in `Rel(Set)`. -/
 def solve : dInput ⟶ dAns := graph (fun p => mergeFn p.1 p.2)
 
-/-- `solve` is a `Map` (it is the graph of a function). -/
-theorem solve_map : Map solve := graph_map _
-
 /-- **The specification** as a morphism `dInput ⟶ dAns` in `Rel(Set)`: given two sorted inputs,
     the output is sorted and its multiset is their union. -/
 def spec : dInput ⟶ dAns := fun p l =>

@@ -313,13 +313,13 @@ theorem sliceRelHom_of_baseRelHom {B : 𝒞} {A C : Over B}
   let k := overPullbackLift f (sliceMem B C).colA R.colA mlift hsq
   refine ⟨k, ?_, ?_⟩
   · -- colA: k ⊚ overPullbackπ₁ = R.colA.
-    exact overPullbackLift_fst f (sliceMem B C).colA R.colA mlift hsq
+    exact OverHom.ext ((HasPullbacks.has f.f ((sliceMem B C).colA).f).lift_fst _)
   · -- colB: k ⊚ (overPullbackπ₂ ⊚ sliceMem.colB) = R.colB.
     apply OverHom.ext
     -- on base: k.f ≫ (overPullbackπ₂.f ≫ sliceMem.colB.f) = R.colB.f.
     show k.f ≫ ((overPullbackπ₂ f (sliceMem B C).colA).f ≫ (sliceMem B C).colB.f) = R.colB.f
     have hk₂ : k ⊚ overPullbackπ₂ f (sliceMem B C).colA = mlift :=
-      overPullbackLift_snd f (sliceMem B C).colA R.colA mlift hsq
+      OverHom.ext ((HasPullbacks.has f.f ((sliceMem B C).colA).f).lift_snd _)
     have hk₂f : k.f ≫ (overPullbackπ₂ f (sliceMem B C).colA).f = jw ≫ pbg.cone.π₂ :=
       congrArg OverHom.f hk₂
     rw [← Cat.assoc, hk₂f]
@@ -402,12 +402,6 @@ noncomputable def baseIdem (B : 𝒞) (C : Over B) :
     prod (slicePowBase B C) B ⟶ prod (slicePowBase B C) B :=
   pair (baseRho B C) snd
 
-@[simp] theorem baseIdem_fst (B : 𝒞) (C : Over B) :
-    baseIdem B C ≫ fst = baseRho B C := fst_pair _ _
-
-@[simp] theorem baseIdem_snd (B : 𝒞) (C : Over B) :
-    baseIdem B C ≫ snd = snd := snd_pair _ _
-
 /-- `baseRestrict ≅ relPullback ρ (baseMem)` (the defining universal property of ρ). -/
 theorem baseRestrict_iso_pullback (B : 𝒞) (C : Over B) :
     RelHom (baseRestrict B C) (relPullback (baseRho B C) (baseMem B C)) ∧
@@ -480,7 +474,7 @@ theorem relPullback_idem_memPB (B : 𝒞) (C : Over B) :
   obtain ⟨hc1, hc2⟩ := relPullback_comp (baseIdem B C)
     (fst : prod (slicePowBase B C) B ⟶ slicePowBase B C) (baseMem B C)
   -- ē ≫ fst = ρ, so relPullback (ē≫fst) baseMem = relPullback ρ baseMem.
-  rw [baseIdem_fst] at hc1 hc2
+  rw [show baseIdem B C ≫ fst = baseRho B C from fst_pair _ _] at hc1 hc2
   obtain ⟨hs1, hs2⟩ := baseRestrict_iso_pullback B C
   exact ⟨RelHom_trans hc1 hs2, RelHom_trans hs1 hc2⟩
 
@@ -521,7 +515,7 @@ theorem baseRestrict_le_idem_fib (B : 𝒞) (C : Over B) :
              = (baseRestrict B C).colB ≫ C.hom := by
     have h1 : (baseRestrict B C).colA ≫ snd = (baseRestrict B C).colB ≫ C.hom := by
       rw [← hkA', Cat.assoc, baseFib_sq, ← Cat.assoc, hkB']
-    rw [Cat.assoc, baseIdem_snd]; exact h1
+    rw [Cat.assoc, show baseIdem B C ≫ snd = snd from snd_pair _ _]; exact h1
   let kfib := baseFibLift ((baseRestrict B C).colA ≫ baseIdem B C) (baseRestrict B C).colB hcfib
   have hkfibA : kfib ≫ (baseFib B C).colA = (baseRestrict B C).colA ≫ baseIdem B C :=
     baseFibLift_A _ _ _
@@ -577,7 +571,7 @@ theorem baseIdem_idem (B : 𝒞) (C : Over B) :
     (`ē` preserves the structure map `snd`). -/
 noncomputable def sliceIdem (B : 𝒞) (C : Over B) :
     slicePowObj B C ⟶ slicePowObj B C :=
-  ⟨baseIdem B C, by show baseIdem B C ≫ snd = snd; exact baseIdem_snd B C⟩
+  ⟨baseIdem B C, by show baseIdem B C ≫ snd = snd; exact snd_pair _ _⟩
 
 theorem sliceIdem_idem (B : 𝒞) (C : Over B) :
     sliceIdem B C ≫ sliceIdem B C = sliceIdem B C :=
@@ -839,7 +833,8 @@ theorem efixed_base_classifies {A C : Over B} (R : BinRel (Over B) A C)
     have heta : h.f = pair (h.f ≫ fst) A.hom := slicePow_overhom_eta h
     -- (pair k A.hom) ≫ ρ = (pair k A.hom) ≫ baseIdem ≫ fst = h.f ≫ baseIdem ≫ fst = h.f ≫ fst = k.
     calc pair (h.f ≫ fst) A.hom ≫ baseRho B C
-        = pair (h.f ≫ fst) A.hom ≫ (baseIdem B C ≫ fst) := by rw [baseIdem_fst]
+        = pair (h.f ≫ fst) A.hom ≫ (baseIdem B C ≫ fst) := by
+          rw [show baseIdem B C ≫ fst = baseRho B C from fst_pair _ _]
       _ = (pair (h.f ≫ fst) A.hom ≫ baseIdem B C) ≫ fst := (Cat.assoc _ _ _).symm
       _ = (h.f ≫ baseIdem B C) ≫ fst := by rw [← heta]
       _ = h.f ≫ fst := by rw [hbase_fix]

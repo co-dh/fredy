@@ -306,8 +306,6 @@ variable (K : EquivalenceKernel 𝒞)
     transitive by `mem_comp`. -/
 def Rel (X Y : 𝒞) : Prop := ∃ f : X ⟶ Y, K.mem f
 
-theorem rel_refl (X : 𝒞) : Rel K X X := ⟨Cat.id X, K.mem_id X⟩
-
 theorem rel_symm {X Y : 𝒞} : Rel K X Y → Rel K Y X := by
   rintro ⟨f, hf⟩; obtain ⟨g, hg, _, _⟩ := K.isGroupoid f hf; exact ⟨g, hg⟩
 
@@ -315,7 +313,7 @@ theorem rel_trans {X Y Z : 𝒞} : Rel K X Y → Rel K Y Z → Rel K X Z := by
   rintro ⟨f, hf⟩ ⟨g, hg⟩; exact ⟨f ≫ g, K.mem_comp f g hf hg⟩
 
 /-- The setoid gluing `K`-connected objects. -/
-def setoid : Setoid 𝒞 := ⟨Rel K, ⟨rel_refl K, rel_symm K, rel_trans K⟩⟩
+def setoid : Setoid 𝒞 := ⟨Rel K, ⟨fun X => ⟨Cat.id X, K.mem_id X⟩, rel_symm K, rel_trans K⟩⟩
 
 /-- Objects of the quotient `𝒞/K`: the `K`-classes. -/
 def Obj : Type u := Quotient (setoid K)

@@ -99,14 +99,6 @@ def overPullbackLift {W : Over B} (a : OverHom W X) (b : OverHom W Y) (h : a ⊚
       _ = a.f ≫ X.hom := by rw [(_pb m n).lift_fst c]
       _ = W.hom      := a.w⟩
 
-theorem overPullbackLift_fst {W : Over B} (a : OverHom W X) (b : OverHom W Y) (h : a ⊚ m = b ⊚ n) :
-    overPullbackLift m n a b h ⊚ overPullbackπ₁ m n = a :=
-  OverHom.ext ((_pb m n).lift_fst _)
-
-theorem overPullbackLift_snd {W : Over B} (a : OverHom W X) (b : OverHom W Y) (h : a ⊚ m = b ⊚ n) :
-    overPullbackLift m n a b h ⊚ overPullbackπ₂ m n = b :=
-  OverHom.ext ((_pb m n).lift_snd _)
-
 theorem overPullbackLift_uniq {W : Over B} (a : OverHom W X) (b : OverHom W Y) (h : a ⊚ m = b ⊚ n)
     (u : OverHom W (overPullbackPt m n))
     (hu₁ : u ⊚ overPullbackπ₁ m n = a) (hu₂ : u ⊚ overPullbackπ₂ m n = b) :

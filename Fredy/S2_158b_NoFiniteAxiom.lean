@@ -140,7 +140,7 @@ theorem holdsInRel_iff_Gle (E₁ E₂ : Term L) :
     term-graphs.  (Reuses the core `decision`.) -/
 theorem holdsInRel_iff_hom (E₁ E₂ : Term L) :
     HoldsInRel E₁ E₂ ↔ Nonempty (Hom (toGraph E₂) (toGraph E₁)) := by
-  rw [holdsInRel_iff_Gle, Gle_iff_hom]
+  rw [holdsInRel_iff_Gle]; exact (graph_yoneda (toGraph E₁) (toGraph E₂)).symm
 
 /-! ### Substitution
 

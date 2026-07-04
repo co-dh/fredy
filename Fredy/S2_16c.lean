@@ -116,12 +116,6 @@ def embEqHom {a b : 𝒜} (R : a ⟶ b) : (embEq a : SplEqObj 𝒜) ⟶ embEq b 
 
 @[simp] theorem embEqHom_R {a b : 𝒜} (R : a ⟶ b) : (embEqHom R).R = R := rfl
 
-/-- The embedding is FULL in `Spl(Eq 𝒜)`: every hom between embedded objects is
-    `embEqHom` of its underlying morphism (inherited from `embHom_full`). -/
-theorem embEq_full {a b : 𝒜} (Φ : (embEq a : SplEqObj 𝒜) ⟶ embEq b) :
-    embEqHom Φ.R = Φ :=
-  embHom_full Φ
-
 /-- The embedding is FAITHFUL in `Spl(Eq 𝒜)` (inherited from `embHom_injective`). -/
 theorem embEq_faithful {a b : 𝒜} {R S : a ⟶ b}
     (h : embEqHom (𝒜 := 𝒜) R = embEqHom S) : R = S :=
@@ -238,7 +232,7 @@ theorem embEq_projective (hAC : CoversSplit 𝒜) (a : 𝒜) :
     covers_compose (covHom_cover B) hcov
   -- By fullness it is `embHom g` for `g := (covHom B ≫ Φ).R`; transfer map + cover to `𝒜`.
   have hg_map : Map (covHom B ≫ Φ).R :=
-    (embEq_map_iff _).mp ((embEq_full (covHom B ≫ Φ)).symm ▸ hcomp_map)
+    (embEq_map_iff _).mp ((embHom_full (covHom B ≫ Φ)).symm ▸ hcomp_map)
   have hg_cov : Cat.id a ⊑ (covHom B ≫ Φ).R° ≫ (covHom B ≫ Φ).R :=
     (splEqLe_iff _ _).mp hcomp_cov
   -- AC in `𝒜` splits the cover `g`.
@@ -451,7 +445,7 @@ theorem projective_of_isoEmbedded {𝒜 : Type u} [Allegory 𝒜] (hAC : CoversS
     category), the PROJECTIVE objects of the effective reflection `Spl(Eq 𝒜)` are
     EXACTLY the objects isomorphic to embedded `𝒜`-objects — "C is equivalent to the
     full subcategory of projective objects in Ĉ" (the embedding is full and faithful,
-    `embEq_full`/`embEq_faithful`, and this identifies its closure under isomorphism
+    `embHom_full`/`embEq_faithful`, and this identifies its closure under isomorphism
     with the projectives). -/
 theorem projective_iff_isoEmbedded {𝒜 : Type u} [TabularAllegory 𝒜]
     (hAC : CoversSplit 𝒜) (B : SplEqObj 𝒜) :

@@ -1023,12 +1023,6 @@ theorem subterminator_iso_is_id (τ : TCat 𝒞) {T T' : 𝒞} (hSub : Subtermin
   subst hTT'
   exact subterminator_maps_eq hSub _ _
 
-/-- §1.496: Isomorphic subterminators are equal. -/
-theorem subterminator_iso_unique (τ : TCat 𝒞) {T T' : 𝒞}
-    (hT : Subterminator T) (_hT' : Subterminator T')
-    (f : T ⟶ T') (hIso : IsIso f) : T = T' :=
-  ((subterminator_iso_is_id τ hT f hIso).1).symm
-
 /-- `one` is a subterminator: `term one` is an identity (by `term_uniq`), hence monic. -/
 theorem subterminator_one : Subterminator (@one 𝒞 _ _) := by
   intro X g h _hAg; exact term_uniq g h
@@ -1040,10 +1034,10 @@ theorem subterminator_one : Subterminator (@one 𝒞 _ _) := by
     NOTE.  This is the book's actual claim.  It is NOT true that *every* subterminator is
     terminal (e.g. the empty set is a subterminator in `Set`, a τ-category, but is not the
     terminator): so the hypothesis `IsIso (term T)` — i.e. `T` is genuinely a terminator —
-    is essential.  The proof is `subterminator_iso_unique` applied to the iso `term T`. -/
+    is essential.  The proof is `subterminator_iso_is_id` applied to the iso `term T`. -/
 theorem terminator_eq_one (τ : TCat 𝒞) {T : 𝒞} (hSub : Subterminator T)
     (hIso : IsIso (term T)) : T = @one 𝒞 _ _ :=
-  subterminator_iso_unique τ hSub subterminator_one (term T) hIso
+  ((subterminator_iso_is_id τ hSub subterminator_one (term T) hIso).1).symm
 
 end TCat
 

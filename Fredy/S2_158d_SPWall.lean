@@ -291,7 +291,7 @@ theorem factors_fold {H : LGraph L} (hconn : ∀ v : H.V, Nonempty (WalkE H H.s 
     a mark-preserving map from a term graph that is SURJECTIVE on vertices
     and covers every labelled edge — `H` is a full quotient of a `Ḡ`-graph.
     In `Ĝ`-order terms the mark-preserving map says `Gle H [T]`, i.e.
-    `H ≤ T` in `Ĝ` (`Gle_iff_hom`); surjectivity is what the kernel analysis
+    `H ≤ T` in `Ĝ` (`graph_yoneda`); surjectivity is what the kernel analysis
     of the SP wall consumes.  Instantiated to a connected marked subgraph of
     a term graph (the image of a chain stage map), this is exactly the
     "connected subgraph containing both marks is in `Ḡ`" receives-half. -/

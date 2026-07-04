@@ -306,14 +306,11 @@ theorem solve_correct (xs : SnocList Int Int) :
     prodDom_trans alg_mono alg_ref (fun x y h => h.2) spec
     (fun xs w h => (gen_sound xs w h).2) spec_gen xs
 
-/-- `solve`'s output is an achievable profit (achievability half of `solve_correct`). -/
-theorem solve_profit (xs : SnocList Int Int) : profit xs (solveFn xs) := (solve_correct xs).1
-
 /-- **The program refines the specification**: every value `solve` returns is an achievable profit. -/
 theorem solve_le_spec : solve ⊑ spec := by
   refine le_iff.mpr (fun xs v h => ?_)
   have hv : v = solveFn xs := h
-  rw [hv]; exact solve_profit xs
+  rw [hv]; exact (solve_correct xs).1
 
 /-! ## Running the program -/
 

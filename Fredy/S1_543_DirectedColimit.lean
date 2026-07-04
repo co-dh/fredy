@@ -41,9 +41,6 @@ variable {ι : Type u} {D : Directed ι}
 def Rel (S : System ι D) : (Σ i, S.X i) → (Σ i, S.X i) → Prop :=
   fun p q => ∃ (k : ι) (hik : D.le p.1 k) (hjk : D.le q.1 k), S.tr hik p.2 = S.tr hjk q.2
 
-theorem rel_refl (S : System ι D) (p : Σ i, S.X i) : Rel S p p :=
-  ⟨p.1, D.refl p.1, D.refl p.1, rfl⟩
-
 theorem rel_symm (S : System ι D) {p q : Σ i, S.X i} (h : Rel S p q) : Rel S q p := by
   obtain ⟨k, hik, hjk, e⟩ := h
   exact ⟨k, hjk, hik, e.symm⟩
@@ -65,7 +62,7 @@ theorem rel_trans (S : System ι D) {p q r : Σ i, S.X i}
 /-- The colimit setoid. -/
 def setoid (S : System ι D) : Setoid (Σ i, S.X i) where
   r := Rel S
-  iseqv := ⟨rel_refl S, rel_symm S, rel_trans S⟩
+  iseqv := ⟨fun p => ⟨p.1, D.refl p.1, D.refl p.1, rfl⟩, rel_symm S, rel_trans S⟩
 
 /-- The directed colimit `colim X` of a system of types. -/
 def Colimit (S : System ι D) : Type _ := Quotient (setoid S)

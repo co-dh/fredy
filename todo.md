@@ -7,11 +7,12 @@ Status as of 2026-07-03. Everything below is **not yet formalized**; the rest of
 
 Root cause: `Subobject` is a preorder of representatives (no antisymmetry), so lattice-flavored concepts
 can't share one typeclass hierarchy and get re-declared per carrier; on top of that, several literal
-copies were made while S1_70 was broken (now stale). Agent dispatched 2026-07-04 (worktree
-`wt-dedup-lattice`, branch `dedup-lattice`) for the mechanical part: delete `LocallyComplete'`
-(S1_84:60), `HasRightAdjointImage'`+`Logos'` (S1_94:64ff) → canonical S1_70 versions; best-effort unify
-Boolean complement (`BooleanPreLogos` S1_64:116 vs `HasSubobjectComplements` S1_70:53) and arbitrary
-joins (`LocallyComplete` S1_70:288 vs `HasIndexedSubobjectJoins` S1_75:100). Remaining items below.
+copies were made while S1_70 was broken (now stale). ✅ DONE 2026-07-04 (merge `5b61783`, full build
+267 jobs): `LocallyComplete'` (S1_84), `HasRightAdjointImage'`+`Logos'` (S1_94) deleted → canonical
+S1_70 classes; §1.946 topos instance retargeted, `topos_is_logos` now yields `Logos` (bottom supplied
+from the strict-zero subobject; axioms `[propext, Classical.choice]`); `HasIndexedSubobjectJoins`
+bridged one-way → `LocallyComplete` (`extends` would create a `HasImages` instance diamond), making
+`LocallyComplete` the canonical arbitrary-join primitive. Remaining items below.
 
 - **Bundled poset structures, 3-way overlap** — `MeetLattice`/`HeytingLattice` (S1_85:1210/1222) vs
   `HeytingPoset` (S1_72:567) vs `Frame` (S1_723:42) are three hand-bundled "carrier + order + meets
@@ -51,7 +52,11 @@ joins (`LocallyComplete` S1_70:288 vs `HasIndexedSubobjectJoins` S1_75:100). Rem
 Recorded verdicts (do NOT revisit): don't quotient `Subobject` (mathlib's route — `ThinSkeleton` +
 choice for representatives — trades away the constructive/book-representative style for `=`-rewriting);
 don't mathlib-ify the limits layer (+250–300 lines, survey 2026-07-03); allegory hom-set lattices
-(`DistributiveAllegory`/LCDA, S2_2) are a genuinely different carrier (hom-equality is real) — leave.
+(`DistributiveAllegory`/LCDA, S2_2) are a genuinely different carrier (hom-equality is real) — leave;
+`BooleanPreLogos` (S1_64:116, ∃-form) vs `HasSubobjectComplements` (S1_70:53, chosen `compl` + laws) is
+NOT a duplicate — different strengths, either merge direction needs real math (choosing complements
+from ∃, or reconciling `compl ⊤` with `PreLogos.bottom`) and reintroduces the instance diamond that
+S1_97.lean:828 documents avoiding (agent verdict 2026-07-04).
 
 ## 2026-07-03 session — CLOSED (sorry-free, axioms ⊆ {propext, Classical.choice, Quot.sound})
 - **§2.157 literal Desargues converse COMPLETE** — `desarguesND_iff_desarguesHorn` (four-family case

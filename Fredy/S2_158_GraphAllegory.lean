@@ -581,9 +581,6 @@ instance ghatAllegory : Allegory (GStar L) where
 def Gle (G₁ G₂ : LGraph L) : Prop :=
   ∀ (H : LGraph L) (x y : H.V), Trel G₁ H x y → Trel G₂ H x y
 
-theorem Gle_iff_hom (G₁ G₂ : LGraph L) : Gle G₁ G₂ ↔ Nonempty (Hom G₂ G₁) :=
-  (graph_yoneda G₁ G₂).symm
-
 /-- Recast specific axiom `A ⊆ A ∩ A` (the one non-separated containment left,
     besides `R ∩ S ⊆ R`): valid in every model. -/
 theorem sep_inter_idem (A : L) : Gle (arrow A) (meet (arrow A) (arrow A)) := by

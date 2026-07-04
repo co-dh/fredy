@@ -109,9 +109,6 @@ def pointRel (x : a) (y : b) : BinRel (Type u) a b where
   isMonicPair := fun f g _ _ => funext fun w =>
     match f w, g w with | PUnit.unit, PUnit.unit => rfl
 
-theorem setRel_pointRel (x : a) (y : b) : setRel (pointRel x y) x y :=
-  ⟨PUnit.unit, rfl, rfl⟩
-
 /-- `pointRel x y ⊂ R` as soon as `R` relates `x` to `y`. -/
 theorem pointRel_le {R : BinRel (Type u) a b} {x : a} {y : b} (h : setRel R x y) :
     RelLe (pointRel x y) R :=
@@ -127,7 +124,7 @@ theorem setRel_inter (R S : BinRel (Type u) a b) (x : a) (y : b) :
            relLe_iff_setRel.mp (intersect_le_right R S) x y h⟩
   · rintro ⟨hR, hS⟩
     exact relLe_iff_setRel.mp (le_intersect (pointRel_le hR) (pointRel_le hS))
-      x y (setRel_pointRel x y)
+      x y (⟨PUnit.unit, rfl, rfl⟩)
 
 /-- `⊚` computes to relational composition.  Forward: image minimality compares the
     §1.51 image with the concrete image subtype, lifting each row of `R ⊚ S` back to

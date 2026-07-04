@@ -119,10 +119,6 @@ end IsoConj
 
 variable (W : WSCover S)
 
-/-- Any two maps into the base stage `∏(chain base) = ∏[] = 1` agree (it is terminal). -/
-private theorem base_triv {Z : S} (u v : Z ⟶ listProd (𝒞 := S) ((W.base).1.map Prod.snd)) : u = v :=
-  base_hom_uniq W u v
-
 /-- The product cone `(A × ∏(chain U), fst, snd)` is a pullback of the cospan
     `((terminalSliceObj A).hom, proj)` — both legs end in the terminal-equal base `∏(chain base)`. -/
 private theorem prod_isPullback_of_terminalBase (A : S) {i : WSList S} (h : (wsDirected S).le W.base i) :
@@ -130,7 +126,7 @@ private theorem prod_isPullback_of_terminalBase (A : S) {i : WSList S} (h : (wsD
       (prod A (listProd (𝒞 := S) (i.1.map Prod.snd)))
       (fst : prod A (listProd (𝒞 := S) (i.1.map Prod.snd)) ⟶ A)
       (snd : prod A (listProd (𝒞 := S) (i.1.map Prod.snd)) ⟶ listProd (𝒞 := S) (i.1.map Prod.snd))
-      (base_triv W (fst ≫ (terminalSliceObj W A).hom)
+      (base_hom_uniq W (fst ≫ (terminalSliceObj W A).hom)
         (snd ≫ (cofinalProjSystem (S := S)).proj h))).IsPullback := by
   intro d
   refine ⟨pair d.π₁ d.π₂, ⟨fst_pair _ _, snd_pair _ _⟩, ?_⟩
@@ -148,7 +144,7 @@ private def prodCone (A : S) {i : WSList S} (h : (wsDirected S).le W.base i) :
     Cone (terminalSliceObj W A).hom ((cofinalProjSystem (S := S)).proj h) :=
   Cone.mk (f := (terminalSliceObj W A).hom) (g := (cofinalProjSystem (S := S)).proj h)
     (prod A (listProd (𝒞 := S) (i.1.map Prod.snd))) fst snd
-    (base_triv W (fst ≫ (terminalSliceObj W A).hom) (snd ≫ (cofinalProjSystem (S := S)).proj h))
+    (base_hom_uniq W (fst ≫ (terminalSliceObj W A).hom) (snd ≫ (cofinalProjSystem (S := S)).proj h))
 
 /-- The underlying `S`-arrow `A × ∏(chain U) ⟶ pushforward.dom`: the comparison `pair fst snd` from
     the product cone into the chosen base-change pullback. -/
