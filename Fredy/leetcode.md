@@ -104,7 +104,7 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 | #    | problem                        | fit | status |
 |------|--------------------------------|-----|--------|
 | 206  | Reverse Linked List (cata)     | ★★★ | ✓ `L206.lean` |
-| 21   | Merge Two Sorted Lists         | ★★★ | ·      |
+| 21   | Merge Two Sorted Lists         | ★★★ | ✓ `L21.lean`  |
 | 23   | Merge k Sorted Lists           | ★★  | ·      |
 | 19   | Remove Nth Node From End       | ★★  | ·      |
 | 141  | Linked List Cycle              | ★   | ·      |
@@ -468,3 +468,23 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
   dead ⇒ `μ(body) 3 = ∅`). Thm 9.1 fits structural recursion over INPUT data (edit distance,
   bracketing, compression); NOT value-recursion searches with dead ends — for those a direct induction
   is the FAITHFUL proof, and a nominal theorem call would be gerrymandering.
+
+### S21 — L21 (Merge Two Sorted Lists) — two-input recursion with EXACT fuel, one-line head-bound helper
+- **Two-input recursion → fuel (S13), but the accounting is EXACT, not slack.** Merge peels the smaller
+  head off ONE of two lists, leaving the other untouched — naive pattern matching compiles to
+  well-founded recursion, so wrap it in a fuel parameter as usual (`mergeFn xs ys := mergeFuel
+  (xs.length+ys.length) xs ys`). But unlike LCS (`L1143`, whose fuel is merely *sufficient*), merge's
+  base cases (either list empty) return the other list verbatim at ZERO fuel cost, and each cons/cons
+  step hands each recursive call EXACTLY its own minimal requirement. So the defining recurrence
+  (`mergeFn_cons_eq`) is recovered by ONE `List.length_cons` + arithmetic rewrite per branch — no
+  general "any-sufficient-fuel-agrees" induction (contrast `L1143`'s nested double induction).
+- **`LeHead b l := (l = [] ∨ b ≤ l.head)` makes sortedness one line per branch.** `Sorted (b::l) ↔
+  LeHead b l ∧ Sorted l` holds BY DEFINITION (no transitivity lemma), and "`mergeFn` preserves a head
+  lower bound" is a one-line case split on `mergeFn_cons_eq`'s if-branch, since `LeHead` only inspects
+  the first element and the merged head is always exactly one of the two input heads.
+- **Honest spec = sorted + exact multiset.** `Sorted (mergeFn xs ys) ∧ ∀ v, count v (mergeFn xs ys) =
+  count v xs + count v ys`, both hypotheses `Sorted xs`/`Sorted ys` required. Axioms `[propext,
+  Quot.sound]` — fully constructive.
+- **Gotcha:** `simp only [List.length_cons]` sometimes closes a length goal by itself (defeq `n+0=n`)
+  and sometimes leaves an associativity residual; a trailing bare `omega` then errors "no goals" in the
+  first case. Use `simp only [List.length_cons] <;> omega` so it's a no-op when already closed.
