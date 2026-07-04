@@ -615,12 +615,16 @@ omit [PreLogos 𝒞] in
 def existsAlong [HasImages 𝒞] {X Y : 𝒞} (g : X ⟶ Y) (U : Subobject 𝒞 X) : Subobject 𝒞 Y :=
   image (U.arr ≫ g)
 
+omit [PreLogos 𝒞] in
 /-- The image/pullback **adjunction** `∃_g ⊣ g#` at the level of subobject containment:
     `existsAlong g P ≤ V  ↔  P ≤ InverseImage g V`.  Forward: a factorization of `(image).arr`
     through `V` makes `P.arr ≫ g` factor through `V.arr`, so `P.arr` lifts to `pullback(g, V.arr)`.
     Reverse: a lift of `P.arr` to the pullback gives `P.arr ≫ g = (k ≫ π₂) ≫ V.arr`, so `V` allows
-    `P.arr ≫ g` and `image_min` finishes.  Pure regular-category fact (no pre-logos needed). -/
-theorem existsAlong_le_iff {X Y : 𝒞} (g : X ⟶ Y) (P : Subobject 𝒞 X) (V : Subobject 𝒞 Y) :
+    `P.arr ≫ g` and `image_min` finishes.  Pure regular-category fact (no pre-logos needed) —
+    hence `omit`s `PreLogos` so this is the canonical `∃_f ⊣ f#` even in a bare regular
+    (e.g. abelian) category; S1_59_10 reuses it directly (no local re-proof). -/
+theorem existsAlong_le_iff [HasImages 𝒞] [HasPullbacks 𝒞]
+    {X Y : 𝒞} (g : X ⟶ Y) (P : Subobject 𝒞 X) (V : Subobject 𝒞 Y) :
     (existsAlong g P).le V ↔ P.le (InverseImage g V) := by
   constructor
   · rintro ⟨k, hk⟩
