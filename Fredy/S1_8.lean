@@ -10,6 +10,7 @@
 
 import Fredy.S1_1
 import Fredy.S1_18
+import Fredy.S1_51_Order  -- §1.51 IsClosureOp (poset closure operations, §1.815)
 
 
 universe v u u₁ u₂
@@ -177,26 +178,23 @@ class PosetOrder (P : Type u) extends LE P where
   le_trans : ∀ {x y z : P}, x ≤ y → y ≤ z → x ≤ z
   le_antisymm : ∀ {x y : P}, x ≤ y → y ≤ x → x = y
 
-/-- A CLOSURE OPERATION on a poset (§1.815, poset case).
-    op is order-preserving, inflationary, and idempotent:
+/-- A CLOSURE OPERATION on a poset (§1.815, poset case): a map `op` that is a closure operation
+    for the poset order, i.e. the generic `Freyd.IsSup`-companion `Freyd.IsClosureOp`
+    (Fredy/S1_51_Order) — order-preserving, inflationary, idempotent:
 
-      (i)  x ≤ y  →  op x ≤ op y
-      (ii) x ≤ op x
-      (iii) op (op x) ≤ op x  (equivalently op (op x) = op x) -/
+      (i)  x ≤ y  →  op x ≤ op y      (`isClosureOp.monotone`)
+      (ii) x ≤ op x                   (`isClosureOp.inflationary`)
+      (iii) op (op x) ≤ op x          (`isClosureOp.idempotent`; equivalently `op (op x) = op x`) -/
 structure ClosureOpPoset (P : Type u) [PosetOrder P] where
   /-- The closure operation -/
   op : P → P
-  /-- (i) order-preserving: x ≤ y → op x ≤ op y -/
-  order_preserving : ∀ {x y : P}, x ≤ y → op x ≤ op y
-  /-- (ii) inflationary: x ≤ op x -/
-  inflationary : ∀ (x : P), x ≤ op x
-  /-- (iii) idempotent (≤ half): op (op x) ≤ op x -/
-  idempotent : ∀ (x : P), op (op x) ≤ op x
+  /-- `op` is a closure operation for the poset order `≤` (§1.815). -/
+  isClosureOp : IsClosureOp (· ≤ ·) op
 
 /-- The closure is idempotent as an equality: op(op x) = op x (§1.815). -/
 theorem ClosureOpPoset.idem_eq {P : Type u} [po : PosetOrder P]
     (cl : ClosureOpPoset P) (x : P) : cl.op (cl.op x) = cl.op x :=
-  po.le_antisymm (cl.idempotent x) (cl.inflationary (cl.op x))
+  cl.isClosureOp.idem_eq (fun h₁ h₂ => po.le_antisymm h₁ h₂) x
 
 /-- A point x is CLOSED if op x = x (§1.815). -/
 def ClosureOpPoset.IsClosed {P : Type u} [PosetOrder P]
@@ -212,10 +210,8 @@ theorem ClosureOpPoset.reflection_universal {P : Type u} [po : PosetOrder P]
     (cl : ClosureOpPoset P) {x y : P} (hy : cl.IsClosed y) :
     x ≤ y ↔ cl.op x ≤ y := by
   constructor
-  · intro h
-    exact hy ▸ cl.order_preserving h
-  · intro h
-    exact po.le_trans (cl.inflationary x) h
+  · intro h; exact hy ▸ cl.isClosureOp.monotone h
+  · intro h; exact po.le_trans (cl.isClosureOp.inflationary x) h
 
 /-! ## §1.817  Representability ⟺ left-adjoint criterion
 

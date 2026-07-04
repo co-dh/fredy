@@ -47,11 +47,6 @@ structure IsClosureOp {α : Type u} (le : α → α → Prop) (c : α → α) : 
 
 /-! ### Sup uniqueness -/
 
-/-- Two sups of the same family are mutually `≤`. -/
-theorem IsSup.le_mutual {α : Type u} {le : α → α → Prop} {S : α → Prop} {x x' : α}
-    (hx : IsSup le S x) (hx' : IsSup le S x') : le x x' ∧ le x' x :=
-  ⟨hx.least x' hx'.upper, hx'.least x hx.upper⟩
-
 /-- The sup is unique when `le` is antisymmetric. -/
 theorem IsSup.unique {α : Type u} {le : α → α → Prop}
     (antisymm : ∀ {a b : α}, le a b → le b a → a = b)
@@ -101,14 +96,6 @@ variable {α : Type u} {le : α → α → Prop} {c : α → α}
 theorem idem_eq (antisymm : ∀ {a b : α}, le a b → le b a → a = b)
     (hc : IsClosureOp le c) (x : α) : c (c x) = c x :=
   antisymm (hc.idempotent x) (hc.inflationary (c x))
-
-/-- Universal property of the reflection: for a CLOSED point `y` (`c y = y`),
-    `x ≤ y ↔ c x ≤ y`.  The closed points form a reflective sub-preorder. -/
-theorem reflection (trans : ∀ {a b d : α}, le a b → le b d → le a d)
-    (hc : IsClosureOp le c) {x y : α} (hy : c y = y) : le x y ↔ le (c x) y := by
-  constructor
-  · intro h; exact hy ▸ hc.monotone h
-  · intro h; exact trans (hc.inflationary x) h
 
 end IsClosureOp
 
