@@ -137,11 +137,6 @@ structure LawfulPMC (𝒞 : Type u) [Cat.{v} 𝒞] (B : 𝒞) where
 section Terminal
 variable [HasSubobjectClassifier 𝒞]
 
-/-- A partial map into the terminal `A ⇀ 1` is determined by its domain
-    subobject; the value leg is the forced map `D → 1`. -/
-theorem partialMap_terminal_val {A : 𝒞} (P : PartialMap 𝒞 A (one (𝒞 := 𝒞))) :
-    P.val = term P.dom := term_uniq _ _
-
 /-- **The subobject classifier IS the lawful PMC for `B = 1`.**
     `1̃ = Ω`, `η_1 = true`, `classify P = χ_{P.incl}`. -/
 noncomputable def pmcAtTerminal : LawfulPMC 𝒞 (one (𝒞 := 𝒞)) where
@@ -151,13 +146,13 @@ noncomputable def pmcAtTerminal : LawfulPMC 𝒞 (one (𝒞 := 𝒞)) where
   classify  := fun {A} P => HasSubobjectClassifier.classify P.incl P.monic
   classify_sq := fun {A} P => by
     -- `m ≫ χ_m = (D→1) ≫ true` is `classify_sq`; and `P.val = D→1` since `B = 1`.
-    rw [partialMap_terminal_val]
+    rw [show P.val = term P.dom from term_uniq _ _]
     exact HasSubobjectClassifier.classify_sq P.incl P.monic
   classify_pb := fun {A} P => by
     -- The PMC-cone for `P` equals the subobject-classifier cone of `P.incl`:
     -- same apex/π₁; π₂ agree by `P.val = term P.dom`; the `w` field is
     -- proof-irrelevant.  So transport `classify_pullback` across that equality.
-    have hval : P.val = term P.dom := partialMap_terminal_val P
+    have hval : P.val = term P.dom := term_uniq _ _
     have hpb := HasSubobjectClassifier.classify_pullback P.incl P.monic
     refine isPullback_congr ?_ hpb
     -- Goal: classifier-cone = pmcCone P true (classify P.incl) _.
@@ -166,7 +161,7 @@ noncomputable def pmcAtTerminal : LawfulPMC 𝒞 (one (𝒞 := 𝒞)) where
       simp only [pmcCone] at *
       cases hval; rfl
   classify_uniq := fun {A} P χ hsq hpb => by
-    have hval : P.val = term P.dom := partialMap_terminal_val P
+    have hval : P.val = term P.dom := term_uniq _ _
     -- Rewrite the square into the `term P.dom` form, then apply `classify_unique`.
     have hsq' : P.incl ≫ χ = term P.dom ≫ HasSubobjectClassifier.true := by
       rw [← hval]; exact hsq

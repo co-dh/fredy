@@ -80,10 +80,6 @@ theorem subConj_le {B B' : 𝒞} (e : B ⟶ B') (he : IsIso e) {S T : Subobject 
     show k ≫ (T.arr ≫ e) = S.arr ≫ e
     rw [← Cat.assoc, hk]⟩
 
-theorem subConj_equiv {B B' : 𝒞} (e : B ⟶ B') (he : IsIso e) {S T : Subobject 𝒞 B}
-    (h : S.Equiv T) : (subConj e he S).Equiv (subConj e he T) :=
-  ⟨subConj_le e he h.1, subConj_le e he h.2⟩
-
 /-- Conjugating by `e` then its inverse `e'` returns the original subobject (up to `≈`). -/
 theorem subConj_cancel {B B' : 𝒞} (e : B ⟶ B') (e' : B' ⟶ B)
     (he : IsIso e) (he' : IsIso e') (h2 : e' ≫ e = Cat.id B')
@@ -153,10 +149,6 @@ theorem invImage_le_of_le [HasPullbacks 𝒞] {A B : 𝒞} (f : A ⟶ B) {S T : 
   have hw : cS.π₁ ≫ f = (cS.π₂ ≫ k) ≫ T.arr := by rw [Cat.assoc, hk]; exact cS.w
   exact ⟨(HasPullbacks.has f T.arr).lift ⟨cS.pt, cS.π₁, cS.π₂ ≫ k, hw⟩,
     (HasPullbacks.has f T.arr).lift_fst ⟨cS.pt, cS.π₁, cS.π₂ ≫ k, hw⟩⟩
-
-theorem invImage_equiv_pb [HasPullbacks 𝒞] {A B : 𝒞} (f : A ⟶ B) {S T : Subobject 𝒞 B}
-    (h : S.Equiv T) : (InverseImage f S).Equiv (InverseImage f T) :=
-  ⟨invImage_le_of_le f h.1, invImage_le_of_le f h.2⟩
 
 /-- **Conjugation commutes with binary union.**  `subConj e (S ∪ T) ≈ (subConj e S) ∪ (subConj e T)`:
     each side is the join of the two conjugated subobjects (joins are preserved by the order-iso
@@ -337,19 +329,13 @@ theorem union_germ_equivL (hmono : TransMonoL L) (coprData : LaxCoproductData L)
 
 /-! ### Realization helpers — every datum is a germ; the stage-advance iso
 
-  `hom_as_germL` destructs a colimit hom into `homInclL` of a germ.  `advIso x hiN` is the canonical
+  Every colimit hom destructs (`Quotient.inductionOn`) into `homInclL` of a germ.  `advIso x hiN` is the canonical
   iso `⟨i, x⟩ ≅ ⟨N, F x⟩` advancing an object's stage (`homInclL_isIso_of_rep`).  `advIso_stageInclL_eq`
   is the decisive germ-algebra identity: a general-bound germ `homInclL x y ⟨N,hiN,hjN⟩ g`,
   post-composed with the codomain stage-advance iso, equals the source stage-advance iso pre-composed
   with the `stageInclL` of the SAME pushed germ `g`.  This is the lax replacement for the strict
   `subst`-and-`HEq` alignment: it lets us bridge an arbitrary subobject of `B` to a `germSubL` over a
   stage object. -/
-
-/-- Every colimit hom `p ⟶ q` is the germ `homInclL` of a representative at some bound. -/
-theorem hom_as_germL (p q : Obj L) (m : @homL _ _ L hL p q) :
-    ∃ (a : UpperBound D p.1 q.1) (g : L.F a.2.1 p.2 ⟶ L.F a.2.2 q.2),
-      m = homInclL L hL p.2 q.2 a g :=
-  Quotient.inductionOn m (fun rep => ⟨rep.1, rep.2, rfl⟩)
 
 /-- The canonical stage-advance iso `⟨i, x⟩ → ⟨N, L.F hiN x⟩` (germ of `(reflApp)⁻¹` at bound `N`). -/
 noncomputable def advIso {i : ι} (x : L.A i) {N : ι} (hiN : D.le i N) :
@@ -418,9 +404,15 @@ theorem laxColim_invImage_union_le [Nonempty ι]
   obtain ⟨iB, xB⟩ := B
   intro f S T
   -- germ representatives of `f`, `S.arr`, `T.arr`.
-  obtain ⟨af, gf, hf⟩ := hom_as_germL L hL ⟨iA, xA⟩ ⟨iB, xB⟩ f
-  obtain ⟨aS, gS, hSa⟩ := hom_as_germL L hL S.dom ⟨iB, xB⟩ S.arr
-  obtain ⟨aT, gT, hTa⟩ := hom_as_germL L hL T.dom ⟨iB, xB⟩ T.arr
+  obtain ⟨af, gf, hf⟩ : ∃ (a : UpperBound D iA iB) (g : L.F a.2.1 xA ⟶ L.F a.2.2 xB),
+      f = homInclL L hL xA xB a g :=
+    Quotient.inductionOn f (fun rep => ⟨rep.1, rep.2, rfl⟩)
+  obtain ⟨aS, gS, hSa⟩ : ∃ (a : UpperBound D S.dom.1 iB) (g : L.F a.2.1 S.dom.2 ⟶ L.F a.2.2 xB),
+      S.arr = homInclL L hL S.dom.2 xB a g :=
+    Quotient.inductionOn S.arr (fun rep => ⟨rep.1, rep.2, rfl⟩)
+  obtain ⟨aT, gT, hTa⟩ : ∃ (a : UpperBound D T.dom.1 iB) (g : L.F a.2.1 T.dom.2 ⟶ L.F a.2.2 xB),
+      T.arr = homInclL L hL T.dom.2 xB a g :=
+    Quotient.inductionOn T.arr (fun rep => ⟨rep.1, rep.2, rfl⟩)
   -- a common stage `N ≥ af.1, aS.1, aT.1`.
   obtain ⟨N1, hN1a, hN1b⟩ := D.bound af.1 aS.1
   obtain ⟨N, hNN1, hNaT⟩ := D.bound N1 aT.1
@@ -491,33 +483,43 @@ theorem laxColim_invImage_union_le [Nonempty ι]
   have hLHS : (InverseImage f (HasSubobjectUnions.union S T)).Equiv
       (subConj dAi ⟨dA, hA2, hA1⟩ (germSubL L hL hmono pbU)) := by
     refine (invImage_subConj_equiv f dB ⟨dBi, hB1, hB2⟩ (HasSubobjectUnions.union S T)).trans ?_
-    refine (invImage_equiv_pb (f ≫ dB)
-      (((subConj_union_equiv dB dBi ⟨dBi, hB1, hB2⟩ hB1 hB2 S T).trans
+    have hUeq := ((subConj_union_equiv dB dBi ⟨dBi, hB1, hB2⟩ hB1 hB2 S T).trans
         (union_equiv hBS hBT)).trans
-        (union_germ_equivL L hL hmono coprData hi hfaith himgpres N S_N T_N))).trans ?_
+        (union_germ_equivL L hL hmono coprData hi hfaith himgpres N S_N T_N)
+    refine Subobject.Equiv.trans
+      ⟨invImage_le_of_le (f ≫ dB) hUeq.1, invImage_le_of_le (f ≫ dB) hUeq.2⟩ ?_
     rw [hBf]
     refine (invImage_iso_precomp_equiv dA dAi hA1 hA2 (stageInclL L hL f_N)
       (germSubL L hL hmono (unionImg (hi N) (coprData.hcop N) S_N T_N))).trans ?_
-    exact subConj_equiv dAi ⟨dA, hA2, hA1⟩
-      (invImage_germ_equivL L hL hmono tData pData eqData N f_N
-        (unionImg (hi N) (coprData.hcop N) S_N T_N))
+    exact ⟨subConj_le dAi ⟨dA, hA2, hA1⟩
+        (invImage_germ_equivL L hL hmono tData pData eqData N f_N
+          (unionImg (hi N) (coprData.hcop N) S_N T_N)).1,
+      subConj_le dAi ⟨dA, hA2, hA1⟩
+        (invImage_germ_equivL L hL hmono tData pData eqData N f_N
+          (unionImg (hi N) (coprData.hcop N) S_N T_N)).2⟩
   -- the two inverse-image legs as `subConj dAi (germSubL pbS|pbT)`.
   have hfS : (InverseImage f S).Equiv (subConj dAi ⟨dA, hA2, hA1⟩ (germSubL L hL hmono pbS)) := by
     refine (invImage_subConj_equiv f dB ⟨dBi, hB1, hB2⟩ S).trans ?_
-    refine (invImage_equiv_pb (f ≫ dB) hBS).trans ?_
+    refine Subobject.Equiv.trans
+      ⟨invImage_le_of_le (f ≫ dB) hBS.1, invImage_le_of_le (f ≫ dB) hBS.2⟩ ?_
     rw [hBf]
     refine (invImage_iso_precomp_equiv dA dAi hA1 hA2 (stageInclL L hL f_N)
       (germSubL L hL hmono S_N)).trans ?_
-    exact subConj_equiv dAi ⟨dA, hA2, hA1⟩
-      (invImage_germ_equivL L hL hmono tData pData eqData N f_N S_N)
+    exact ⟨subConj_le dAi ⟨dA, hA2, hA1⟩
+        (invImage_germ_equivL L hL hmono tData pData eqData N f_N S_N).1,
+      subConj_le dAi ⟨dA, hA2, hA1⟩
+        (invImage_germ_equivL L hL hmono tData pData eqData N f_N S_N).2⟩
   have hfT : (InverseImage f T).Equiv (subConj dAi ⟨dA, hA2, hA1⟩ (germSubL L hL hmono pbT)) := by
     refine (invImage_subConj_equiv f dB ⟨dBi, hB1, hB2⟩ T).trans ?_
-    refine (invImage_equiv_pb (f ≫ dB) hBT).trans ?_
+    refine Subobject.Equiv.trans
+      ⟨invImage_le_of_le (f ≫ dB) hBT.1, invImage_le_of_le (f ≫ dB) hBT.2⟩ ?_
     rw [hBf]
     refine (invImage_iso_precomp_equiv dA dAi hA1 hA2 (stageInclL L hL f_N)
       (germSubL L hL hmono T_N)).trans ?_
-    exact subConj_equiv dAi ⟨dA, hA2, hA1⟩
-      (invImage_germ_equivL L hL hmono tData pData eqData N f_N T_N)
+    exact ⟨subConj_le dAi ⟨dA, hA2, hA1⟩
+        (invImage_germ_equivL L hL hmono tData pData eqData N f_N T_N).1,
+      subConj_le dAi ⟨dA, hA2, hA1⟩
+        (invImage_germ_equivL L hL hmono tData pData eqData N f_N T_N).2⟩
   -- RHS as a `subConj dAi (germSubL (unionImg pbS pbT))`.
   have hRHS : (HasSubobjectUnions.union (InverseImage f S) (InverseImage f T)).Equiv
       (subConj dAi ⟨dA, hA2, hA1⟩
@@ -525,8 +527,10 @@ theorem laxColim_invImage_union_le [Nonempty ι]
     refine (union_equiv hfS hfT).trans ?_
     refine (subConj_union_equiv dAi dA ⟨dA, hA2, hA1⟩ hA2 hA1
       (germSubL L hL hmono pbS) (germSubL L hL hmono pbT)).symm.trans ?_
-    exact subConj_equiv dAi ⟨dA, hA2, hA1⟩
-      (union_germ_equivL L hL hmono coprData hi hfaith himgpres N pbS pbT)
+    exact ⟨subConj_le dAi ⟨dA, hA2, hA1⟩
+        (union_germ_equivL L hL hmono coprData hi hfaith himgpres N pbS pbT).1,
+      subConj_le dAi ⟨dA, hA2, hA1⟩
+        (union_germ_equivL L hL hmono coprData hi hfaith himgpres N pbS pbT).2⟩
   -- stage hard direction, transported up.
   have hstage := stage_invImage_union_le (𝒞 := L.A N) (hPL := hbot N)
     (tData.ht N) (pData.hp N) (eqData.he N) (hi N) (coprData.hcop N) f_N S_N T_N

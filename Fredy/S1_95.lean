@@ -582,11 +582,6 @@ theorem relPullback_relHom [HasPullbacks 𝒞] {P C X : 𝒞} (g : X ⟶ P)
 section OmegaInjective
 variable [Topos 𝒞]
 
-/-- Extract the (Prop-valued) `RelHom` witness from a `RelLe = Nonempty (RelHom …)`.
-    `RelHom` is a `Prop`, so this is just `Nonempty`-of-a-`Prop` collapse, no choice. -/
-theorem RelLe.toHom {A B : 𝒞} {R S : BinRel 𝒞 A B} (h : RelLe R S) : RelHom R S :=
-  h.elim id
-
 /-- **Monic kernel-pair collapse:** `graph x ⊚ (graph x)° ⊆ 1_A` for monic `x`.
     (Local copy of `S1_62.graph_comp_recip_le_one_of_mono`, whose only obstacle is the
     stale file-level `variable [PreLogos 𝒞]`; the proof needs only `Simple` of `(graph x)°`,
@@ -780,26 +775,26 @@ theorem directImageOmega_unit {A B : 𝒞} (f : A ⟶ B) (hf : Monic f) :
                 ((evalRel A ⊚ graph f) ⊚ ((graph f)°)) ∧
               RelHom ((evalRel A ⊚ graph f) ⊚ ((graph f)°))
                 ((relPullback s (evalRel B)) ⊚ ((graph f)°)) :=
-      ⟨(compose_le ⟨h6.1⟩ (rel_le_refl _)).toHom,
-       (compose_le ⟨h6.2⟩ (rel_le_refl _)).toHom⟩
+      ⟨(compose_le ⟨h6.1⟩ (rel_le_refl _)).elim id,
+       (compose_le ⟨h6.2⟩ (rel_le_refl _)).elim id⟩
     -- (8) associativity: (evalRel A ⊚ graph f) ⊚ (graph f)° ≅ evalRel A ⊚ (graph f ⊚ (graph f)°).
     have h8 : RelHom ((evalRel A ⊚ graph f) ⊚ ((graph f)°))
                 (evalRel A ⊚ (graph f ⊚ ((graph f)°))) ∧
               RelHom (evalRel A ⊚ (graph f ⊚ ((graph f)°)))
                 ((evalRel A ⊚ graph f) ⊚ ((graph f)°)) :=
-      ⟨(compose_assoc_of_regular (evalRel A) (graph f) ((graph f)°)).1.toHom,
-       (compose_assoc_of_regular (evalRel A) (graph f) ((graph f)°)).2.toHom⟩
+      ⟨(compose_assoc_of_regular (evalRel A) (graph f) ((graph f)°)).1.elim id,
+       (compose_assoc_of_regular (evalRel A) (graph f) ((graph f)°)).2.elim id⟩
     -- (9) f monic ⟹ graph f ⊚ (graph f)° ≅ graph 1_A (kernel-pair collapse + entirety).
     have h9 : RelHom (graph f ⊚ ((graph f)°)) (graph (Cat.id A)) ∧
               RelHom (graph (Cat.id A)) (graph f ⊚ ((graph f)°)) :=
-      ⟨(graph_recip_collapse_mono f hf).toHom, (graph_is_map f).1.toHom⟩
+      ⟨(graph_recip_collapse_mono f hf).elim id, (graph_is_map f).1.elim id⟩
     have h9' : RelHom (evalRel A ⊚ (graph f ⊚ ((graph f)°))) (evalRel A ⊚ graph (Cat.id A)) ∧
                RelHom (evalRel A ⊚ graph (Cat.id A)) (evalRel A ⊚ (graph f ⊚ ((graph f)°))) :=
-      ⟨(compose_le (rel_le_refl _) ⟨h9.1⟩).toHom, (compose_le (rel_le_refl _) ⟨h9.2⟩).toHom⟩
+      ⟨(compose_le (rel_le_refl _) ⟨h9.1⟩).elim id, (compose_le (rel_le_refl _) ⟨h9.2⟩).elim id⟩
     -- (10) R ⊚ graph 1 ≅ R.
     have h10 : RelHom (evalRel A ⊚ graph (Cat.id A)) (evalRel A) ∧
                RelHom (evalRel A) (evalRel A ⊚ graph (Cat.id A)) :=
-      ⟨(comp_graph_id (evalRel A)).toHom, (comp_graph_id_right (evalRel A)).toHom⟩
+      ⟨(comp_graph_id (evalRel A)).elim id, (comp_graph_id_right (evalRel A)).elim id⟩
     -- `classify_unique` wants `(RelHom R (relPullback _ U) ∧ RelHom (relPullback _ U) R)`,
     -- i.e. first BACKWARD (evalRel A → relPullback), then FORWARD.
     refine ⟨?_, ?_⟩
@@ -1113,12 +1108,12 @@ theorem omega_internally_cogenerates [Topos 𝒞] : InternallyCogenerates (𝒞 
                 (graph (Cat.id B) ⊚ ((graph h)°)) ∧
               RelHom (graph (Cat.id B) ⊚ ((graph h)°))
                 ((relPullback (singletonMapCat B) (evalRel B)) ⊚ ((graph h)°)) :=
-      ⟨(compose_le ⟨hsing.2⟩ (rel_le_refl _)).toHom,
-       (compose_le ⟨hsing.1⟩ (rel_le_refl _)).toHom⟩
+      ⟨(compose_le ⟨hsing.2⟩ (rel_le_refl _)).elim id,
+       (compose_le ⟨hsing.1⟩ (rel_le_refl _)).elim id⟩
     -- (5) `graph(1_B) ⊚ (graph h)° ≅ (graph h)°`.
     have h5 : RelHom (graph (Cat.id B) ⊚ ((graph h)°)) ((graph h)°) ∧
               RelHom ((graph h)°) (graph (Cat.id B) ⊚ ((graph h)°)) :=
-      ⟨(graph_id_comp ((graph h)°)).toHom, (comp_graph_id_left ((graph h)°)).toHom⟩
+      ⟨(graph_id_comp ((graph h)°)).elim id, (comp_graph_id_left ((graph h)°)).elim id⟩
     refine ⟨?_, ?_⟩
     · exact RelHom_trans hc2 (RelHom_trans h23.1 (RelHom_trans hdist.1
         (RelHom_trans h4.1 h5.1)))

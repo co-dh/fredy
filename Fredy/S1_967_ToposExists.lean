@@ -103,10 +103,6 @@ noncomputable def subOfChar {A : 𝒞} (χ : A ⟶ omega (𝒞 := 𝒞)) : Subob
    (classify_surjective χ).choose_spec.choose,
    (classify_surjective χ).choose_spec.choose_spec.choose⟩
 
-@[simp] theorem subChar_subOfChar {A : 𝒞} (χ : A ⟶ omega (𝒞 := 𝒞)) :
-    subChar (subOfChar χ) = χ :=
-  (classify_surjective χ).choose_spec.choose_spec.choose_spec
-
 /-- A subobject equals (as `le` both ways) the subobject named by its own classifier — and
     more usefully: two subobjects with the same classifier are mutually `≤`. -/
 theorem le_le_of_subChar_eq {A : 𝒞} {S T : Subobject 𝒞 A}
@@ -157,11 +153,11 @@ theorem orChar_classifies_ge {A : 𝒞} (S T : Subobject 𝒞 A)
   let P := pair (subChar S) (subChar T)
   have hSchar : subChar (invImg P trueFst hpF) = subChar S := by
     have h1 : subChar (invImg P trueFst hpF) = P ≫ subChar trueFst := classify_invImg P trueFst hpF
-    rw [h1, show subChar (trueFst (𝒞 := 𝒞)) = fst from subChar_subOfChar _]
+    rw [h1, show subChar (trueFst (𝒞 := 𝒞)) = fst from (classify_surjective _).choose_spec.choose_spec.choose_spec]
     exact fst_pair (subChar S) (subChar T)
   have hTchar : subChar (invImg P trueSnd hpS) = subChar T := by
     have h1 : subChar (invImg P trueSnd hpS) = P ≫ subChar trueSnd := classify_invImg P trueSnd hpS
-    rw [h1, show subChar (trueSnd (𝒞 := 𝒞)) = snd from subChar_subOfChar _]
+    rw [h1, show subChar (trueSnd (𝒞 := 𝒞)) = snd from (classify_surjective _).choose_spec.choose_spec.choose_spec]
     exact snd_pair (subChar S) (subChar T)
   have hS_le : S.le (invImg P trueFst hpF) := (le_le_of_subChar_eq hSchar.symm).1
   have hT_le : T.le (invImg P trueSnd hpS) := (le_le_of_subChar_eq hTchar.symm).1
@@ -188,11 +184,11 @@ theorem orChar_classifies_le {A : 𝒞} (S T : Subobject 𝒞 A)
   -- P#trueFst ≅ S, P#trueSnd ≅ T  (same classifier, as in orChar_classifies_ge).
   have hSchar : subChar (invImg P trueFst hpF) = subChar S := by
     have h1 : subChar (invImg P trueFst hpF) = P ≫ subChar trueFst := classify_invImg P trueFst hpF
-    rw [h1, show subChar (trueFst (𝒞 := 𝒞)) = fst from subChar_subOfChar _]
+    rw [h1, show subChar (trueFst (𝒞 := 𝒞)) = fst from (classify_surjective _).choose_spec.choose_spec.choose_spec]
     exact fst_pair (subChar S) (subChar T)
   have hTchar : subChar (invImg P trueSnd hpS) = subChar T := by
     have h1 : subChar (invImg P trueSnd hpS) = P ≫ subChar trueSnd := classify_invImg P trueSnd hpS
-    rw [h1, show subChar (trueSnd (𝒞 := 𝒞)) = snd from subChar_subOfChar _]
+    rw [h1, show subChar (trueSnd (𝒞 := 𝒞)) = snd from (classify_surjective _).choose_spec.choose_spec.choose_spec]
     exact snd_pair (subChar S) (subChar T)
   have hFS : (invImg P trueFst hpF).le S := (le_le_of_subChar_eq hSchar).1
   have hGT : (invImg P trueSnd hpS).le T := (le_le_of_subChar_eq hTchar).1

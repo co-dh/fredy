@@ -171,14 +171,8 @@ noncomputable def singletonMapCat (B : 𝒞) :
 private def graphMono {B X' : 𝒞} (h : X' ⟶ B) : X' ⟶ prod B X' :=
   pair h (Cat.id X')
 
-private theorem graphMono_snd {B X' : 𝒞} (h : X' ⟶ B) :
-    graphMono h ≫ snd = Cat.id X' := snd_pair _ _
-
-private theorem graphMono_fst {B X' : 𝒞} (h : X' ⟶ B) :
-    graphMono h ≫ fst = h := fst_pair _ _
-
 private theorem graphMono_mono {B X' : 𝒞} (h : X' ⟶ B) : Monic (graphMono h) :=
-  mono_of_retraction _ snd (graphMono_snd h)
+  mono_of_retraction _ snd (snd_pair h (Cat.id X'))
 
 /-- The composite `γ_h ≫ (B × h) = h ≫ Δ` lands the graph on the diagonal:
     `⟨h,1⟩ ≫ ⟨fst, snd≫h⟩ = ⟨h,h⟩ = h ≫ ⟨1,1⟩`. -/
@@ -186,8 +180,9 @@ private theorem graphMono_prodMap {B X' : 𝒞} (h : X' ⟶ B) :
     graphMono h ≫ prodMap B X' B h = h ≫ diag B := by
   have hlhs : graphMono h ≫ prodMap B X' B h = pair h h := by
     apply pair_uniq
-    · rw [Cat.assoc, prodMap_fst, graphMono_fst]
-    · rw [Cat.assoc, prodMap_snd, ← Cat.assoc, graphMono_snd, Cat.id_comp]
+    · rw [Cat.assoc, prodMap_fst, show graphMono h ≫ fst = h from fst_pair h (Cat.id X')]
+    · rw [Cat.assoc, prodMap_snd, ← Cat.assoc,
+        show graphMono h ≫ snd = Cat.id X' from snd_pair h (Cat.id X'), Cat.id_comp]
   have hrhs : h ≫ diag B = pair h h := by
     apply pair_uniq
     · rw [Cat.assoc, diag_fst, Cat.comp_id]
@@ -233,16 +228,16 @@ private theorem graph_classifies {B X' : 𝒞} (h : X' ⟶ B) :
   refine ⟨d.π₁ ≫ snd, ⟨?_, term_uniq _ _⟩, ?_⟩
   · -- u ≫ γ_h = d.π₁, checked componentwise on B × X'.
     have hA : ((d.π₁ ≫ snd) ≫ graphMono h) ≫ fst = d.π₁ ≫ fst := by
-      rw [Cat.assoc, graphMono_fst, Cat.assoc, hkey]
+      rw [Cat.assoc, show graphMono h ≫ fst = h from fst_pair h (Cat.id X'), Cat.assoc, hkey]
     have hB : ((d.π₁ ≫ snd) ≫ graphMono h) ≫ snd = d.π₁ ≫ snd := by
-      rw [Cat.assoc, graphMono_snd, Cat.comp_id]
+      rw [Cat.assoc, show graphMono h ≫ snd = Cat.id X' from snd_pair h (Cat.id X'), Cat.comp_id]
     refine (pair_uniq (d.π₁ ≫ fst) (d.π₁ ≫ snd) _ hA hB).trans
       (pair_uniq (d.π₁ ≫ fst) (d.π₁ ≫ snd) d.π₁ rfl rfl).symm
   · -- Uniqueness: if v ≫ γ_h = d.π₁ then v = (v ≫ γ_h) ≫ snd = d.π₁ ≫ snd.
     intro v hv₁ _
     simp only at hv₁
     have hvs : v ≫ graphMono h ≫ snd = v := by
-      rw [graphMono_snd]; exact Cat.comp_id v
+      rw [show graphMono h ≫ snd = Cat.id X' from snd_pair h (Cat.id X')]; exact Cat.comp_id v
     have hproj : (v ≫ graphMono h) ≫ snd = d.π₁ ≫ snd := congrArg (· ≫ snd) hv₁
     exact hvs.symm.trans ((Cat.assoc v (graphMono h) snd).symm.trans hproj)
 
@@ -276,15 +271,15 @@ theorem singletonMapCat_monic (B : 𝒞) :
   -- hu₁ : u ≫ graphMono h = graphMono k
   have hu_id : u = Cat.id X' := by
     have hus : u ≫ graphMono h ≫ snd = u := by
-      rw [graphMono_snd]; exact Cat.comp_id u
+      rw [show graphMono h ≫ snd = Cat.id X' from snd_pair h (Cat.id X')]; exact Cat.comp_id u
     have hproj : (u ≫ graphMono h) ≫ snd = graphMono k ≫ snd := congrArg (· ≫ snd) hu₁
     exact hus.symm.trans
-      ((Cat.assoc u (graphMono h) snd).symm.trans (hproj.trans (graphMono_snd k)))
+      ((Cat.assoc u (graphMono h) snd).symm.trans (hproj.trans (snd_pair k (Cat.id X'))))
   -- Hence γ_h = γ_k; project to B (fst): h = k.
   have heq : graphMono h = graphMono k := by rw [← hu₁, hu_id, Cat.id_comp]
-  calc h = graphMono h ≫ fst := (graphMono_fst h).symm
+  calc h = graphMono h ≫ fst := (fst_pair h (Cat.id X')).symm
     _ = graphMono k ≫ fst := by rw [heq]
-    _ = k := graphMono_fst k
+    _ = k := fst_pair k (Cat.id X')
 
 -- The COVARIANT power-map `[f] : Ω^A → Ω^B` (§1.922) and its naturality `f(Δ₁) = Δf`
 -- are defined and proved LOWER IN THIS FILE, after the `Ω^A ≅ [A]` identification

@@ -232,13 +232,6 @@ def hneg [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos 𝒞]
     {A : 𝒞} (x : Subobject 𝒞 A) : Subobject 𝒞 A :=
   HeytingAlgebra.imp x (PreLogos.bottom A)
 
-/-- Characterization: z ≤ ¬x ↔ x∧z ≤ ⊥  (§1.727). -/
-theorem hneg_adj [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos 𝒞]
-    {A : 𝒞} (x z : Subobject 𝒞 A) :
-    Subobject.le z (hneg x) ↔
-    Subobject.le (HeytingAlgebra.meet x z) (PreLogos.bottom A) :=
-  HeytingAlgebra.adjunction x (PreLogos.bottom A) z
-
 /-- x∧¬x ≤ ⊥  (disjointness of x and its negation). -/
 theorem meet_neg_le_bot [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos 𝒞]
     {A : 𝒞} (x : Subobject 𝒞 A) :
@@ -246,11 +239,13 @@ theorem meet_neg_le_bot [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos 𝒞]
   heyting_mp x (PreLogos.bottom A)
 
 /-- x ≤ ¬¬x  (§1.727).
-    Proof: apply hneg_adj for ¬¬x; need (¬x)∧x ≤ ⊥, which is meet_neg_le_bot + comm. -/
+    Proof: apply the adjunction for ¬¬x; need (¬x)∧x ≤ ⊥, which is meet_neg_le_bot + comm. -/
 theorem le_double_neg [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos 𝒞]
     {A : 𝒞} (x : Subobject 𝒞 A) :
     Subobject.le x (hneg (hneg x)) := by
-  rw [hneg_adj]
+  rw [show Subobject.le x (hneg (hneg x)) ↔
+      Subobject.le (HeytingAlgebra.meet (hneg x) x) (PreLogos.bottom A) from
+    HeytingAlgebra.adjunction (hneg x) (PreLogos.bottom A) x]
   -- Need: (¬x)∧x ≤ ⊥.  We have x∧(¬x) ≤ ⊥; use commutativity of meet.
   exact Subobject.le_trans (meet_comm_le (hneg x) x) (meet_neg_le_bot x)
 
@@ -259,7 +254,9 @@ theorem le_double_neg [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos 𝒞]
 theorem hneg_antitone [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos 𝒞]
     {A : 𝒞} {x y : Subobject 𝒞 A} (h : Subobject.le x y) :
     Subobject.le (hneg y) (hneg x) := by
-  rw [hneg_adj]
+  rw [show Subobject.le (hneg y) (hneg x) ↔
+      Subobject.le (HeytingAlgebra.meet x (hneg y)) (PreLogos.bottom A) from
+    HeytingAlgebra.adjunction x (PreLogos.bottom A) (hneg y)]
   -- x∧(¬y) ≤ y∧(¬y) ≤ ⊥
   exact Subobject.le_trans (meet_mono_left h) (meet_neg_le_bot y)
 
@@ -323,7 +320,7 @@ theorem double_neg_meet_ge [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos 𝒞
         (Subobject.le_trans (HeytingAlgebra.meet_le_right _ _) (HeytingAlgebra.meet_le_right _ _))
     · exact Subobject.le_trans (HeytingAlgebra.meet_le_right _ _) (HeytingAlgebra.meet_le_left _ _)
   -- B: ¬(x∧y)∧x ≤ ¬y; D: x∧(¬(x∧y)∧¬¬y) ≤ ⊥; E: ¬(x∧y)∧¬¬y ≤ ¬x; F: ¬¬x ≤ ¬(¬(x∧y)∧¬¬y)
-  have hB := (hneg_adj y _).mpr hA
+  have hB : Subobject.le _ (hneg y) := (HeytingAlgebra.adjunction y (PreLogos.bottom A) _).mpr hA
   have hD : Subobject.le
       (HeytingAlgebra.meet x (HeytingAlgebra.meet (hneg (HeytingAlgebra.meet x y)) (hneg (hneg y))))
       (PreLogos.bottom A) := by
@@ -334,10 +331,10 @@ theorem double_neg_meet_ge [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos 𝒞
         (HeytingAlgebra.meet_le_left _ _))
       (Subobject.le_trans (HeytingAlgebra.meet_le_right _ _) (HeytingAlgebra.meet_le_right _ _)))
     exact meet_mono_left hB
-  have hE := (hneg_adj x _).mpr hD
+  have hE : Subobject.le _ (hneg x) := (HeytingAlgebra.adjunction x (PreLogos.bottom A) _).mpr hD
   have hF := hneg_antitone hE
   -- Conclude: ¬(x∧y) ∧ (¬¬x ∧ ¬¬y) ≤ ⊥, i.e. ¬¬x∧¬¬y ≤ ¬¬(x∧y)
-  apply (hneg_adj (hneg (HeytingAlgebra.meet x y)) _).mpr
+  apply (HeytingAlgebra.adjunction (hneg (HeytingAlgebra.meet x y)) (PreLogos.bottom A) _).mpr
   apply Subobject.le_trans _ (Subobject.le_trans
     (meet_comm_le
       (hneg (HeytingAlgebra.meet (hneg (HeytingAlgebra.meet x y)) (hneg (hneg y))))
@@ -583,21 +580,16 @@ instance heytingLatticeCat (L : HeytingLattice) : Cat.{0} L.carrier where
 theorem hl_thin (L : HeytingLattice) {a b : L.carrier} (f g : a ⟶ b) : f = g := by
   cases f; cases g; rfl
 
-/-- `f : a → b` is an isomorphism iff `b ≤ a`. -/
-theorem hl_iso_iff (L : HeytingLattice) {a b : L.carrier} (f : a ⟶ b) :
-    IsIso f ↔ L.le b a :=
-  ⟨fun ⟨finv, _, _⟩ => finv.down, fun hba => ⟨⟨hba⟩, hl_thin L _ _, hl_thin L _ _⟩⟩
-
-/-- Every morphism in a Heyting-lattice thin category is monic. -/
-theorem hl_monic (L : HeytingLattice) {a b : L.carrier} (f : a ⟶ b) : Monic f :=
-  fun {_W} p q _ => hl_thin L p q
-
 /-- In a Heyting-lattice thin category, covers = isos. -/
 theorem hl_cover_iff_iso (L : HeytingLattice) {a b : L.carrier} (f : a ⟶ b) :
     Cover f ↔ IsIso f :=
-  ⟨fun hcov => hcov f (Cat.id a) (hl_monic L f) (Cat.id_comp f),
+  ⟨fun hcov => hcov f (Cat.id a) (fun {_W} p q _ => hl_thin L p q) (Cat.id_comp f),
    fun hiso _C m h _hmono _hgm => by
-     rw [hl_iso_iff L]; exact L.le_trans ((hl_iso_iff L f).mp hiso) h.down⟩
+     rw [show IsIso m ↔ L.le b _C from
+       ⟨fun ⟨finv, _, _⟩ => finv.down, fun hba => ⟨⟨hba⟩, hl_thin L _ _, hl_thin L _ _⟩⟩]
+     exact L.le_trans
+       ((⟨fun ⟨finv, _, _⟩ => finv.down, fun hba => ⟨⟨hba⟩, hl_thin L _ _, hl_thin L _ _⟩⟩ :
+         IsIso f ↔ L.le b a).mp hiso) h.down⟩
 
 /-- Pullbacks in the Heyting-lattice thin category are binary meets. -/
 instance hl_hasPullbacks (L : HeytingLattice) : HasPullbacks L.carrier where
@@ -654,11 +646,14 @@ noncomputable def heytingLattice_is_logos (L : HeytingLattice) : Logos L.carrier
           rw [hl_cover_iff_iso L] at hCoverF; rw [hl_cover_iff_iso L]
           -- f : a → b iso (b ≤ a), g : c → b; want π₂ : cone.pt → c iso.
           -- Build a cone from c: use g.down ≫ f-iso to get c → a, and id_c.
-          have hca : L.le c a := L.le_trans g.down ((hl_iso_iff L f).mp hCoverF)
+          have hca : L.le c a := L.le_trans g.down
+            ((⟨fun ⟨finv, _, _⟩ => finv.down, fun hba => ⟨⟨hba⟩, hl_thin L _ _, hl_thin L _ _⟩⟩ :
+              IsIso f ↔ L.le b a).mp hCoverF)
           let cCone : Cone f g := Cone.mk c ⟨hca⟩ (Cat.id c) (hl_thin L _ _)
           -- The universal property gives a map from c into cone.pt = meet a c.
           -- Its π₂-component is a left-inverse of cone.π₂, making π₂ iso.
-          exact (hl_iso_iff L cone.π₂).mpr ((hIsPB cCone).choose.down)
+          exact (⟨fun ⟨finv, _, _⟩ => finv.down, fun hba => ⟨⟨hba⟩, hl_thin L _ _, hl_thin L _ _⟩⟩ :
+            IsIso cone.π₂ ↔ L.le c cone.pt).mpr ((hIsPB cCone).choose.down)
       }
     }
     toHasSubobjectUnions := {

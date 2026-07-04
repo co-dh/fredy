@@ -669,11 +669,6 @@ theorem le_relUnionSub {A B : 𝒞} {R S U : BinRel 𝒞 A B}
     (hR : RelLe R U) (hS : RelLe S U) : RelLe (relUnionSub R S) U :=
   le_relUnion hR hS
 
-/-- COPRODUCT-FREE distributivity §1.616: `R ⊚ (relUnionSub S T) ≤ relUnionSub (R⊚S) (R⊚T)`. -/
-theorem compose_relUnionSub_right {A B C : 𝒞} (R : BinRel 𝒞 A B) (S T : BinRel 𝒞 B C) :
-    RelLe (R ⊚ (relUnionSub S T)) (relUnionSub (R ⊚ S) (R ⊚ T)) :=
-  compose_union_right R S T
-
 /-- Simplicity of the descent relation `R = relUnionSub P Q` from the four atomic bounds
     (coproduct-free port of `S1_62.simple_R`). -/
 theorem simple_relUnionSub {U Q : 𝒞} (P Qr : BinRel 𝒞 U Q)
@@ -684,10 +679,10 @@ theorem simple_relUnionSub {U Q : 𝒞} (P Qr : BinRel 𝒞 U Q)
     RelLe ((relUnionSub P Qr)° ⊚ (relUnionSub P Qr)) (graph (Cat.id Q)) := by
   have step1 : RelLe ((relUnionSub P Qr)° ⊚ (relUnionSub P Qr))
       (relUnionSub ((relUnionSub P Qr)° ⊚ P) ((relUnionSub P Qr)° ⊚ Qr)) :=
-    compose_relUnionSub_right ((relUnionSub P Qr)°) P Qr
+    compose_union_right ((relUnionSub P Qr)°) P Qr
   refine rel_le_trans step1 (le_relUnionSub ?_ ?_)
   · have hP_R : RelLe (P° ⊚ (relUnionSub P Qr)) (graph (Cat.id Q)) :=
-      rel_le_trans (compose_relUnionSub_right (P°) P Qr) (le_relUnionSub hPP hPQ)
+      rel_le_trans (compose_union_right (P°) P Qr) (le_relUnionSub hPP hPQ)
     have hrecip : RelLe ((relUnionSub P Qr)° ⊚ P) ((P° ⊚ (relUnionSub P Qr))°) := by
       have h := (reciprocal_comp (P°) (relUnionSub P Qr)).2
       rw [reciprocal_invol] at h; exact h
@@ -695,7 +690,7 @@ theorem simple_relUnionSub {U Q : 𝒞} (P Qr : BinRel 𝒞 U Q)
     have h := reciprocal_mono hP_R
     rwa [show (graph (Cat.id Q))° = graph (Cat.id Q) from rfl] at h
   · have hQ_R : RelLe (Qr° ⊚ (relUnionSub P Qr)) (graph (Cat.id Q)) :=
-      rel_le_trans (compose_relUnionSub_right (Qr°) P Qr) (le_relUnionSub hQP hQQ)
+      rel_le_trans (compose_union_right (Qr°) P Qr) (le_relUnionSub hQP hQQ)
     have hrecip : RelLe ((relUnionSub P Qr)° ⊚ Qr) ((Qr° ⊚ (relUnionSub P Qr))°) := by
       have h := (reciprocal_comp (Qr°) (relUnionSub P Qr)).2
       rw [reciprocal_invol] at h; exact h

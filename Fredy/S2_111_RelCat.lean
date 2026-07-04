@@ -271,7 +271,7 @@ end RelAllegory
   For `[PreLogos C]` we add `0` = the empty relation (`subRel` of the bottom subobject
   of `A×B`) and `∪` = `relUnionSub` (the coproduct-free relational union of §1.61).
   The lattice + distributivity laws come from the Ch1 union UMP (`le_relUnionSub`,
-  `relUnionSub_le_*`) and the §1.616 distributivity (`compose_relUnionSub_right`, the
+  `relUnionSub_le_*`) and the §1.616 distributivity (`compose_union_right`, the
   pre-logos `invImage`-preservation).  The zero laws use that the empty relation is the
   global minimum (`bottom_min`) and that composing with it stays empty
   (`invImage_preserves_bottom` + `existsAlong`/`invImage` adjunction). -/

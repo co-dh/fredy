@@ -577,9 +577,6 @@ variable {α : PObj} (x y : omegaP ⟶ α)
 def eqIdemFn (n : Nat) : Nat → Nat := fun i =>
   if toNat (x.1 i) = toNat (y.1 i) then i else n
 
-theorem eqIdemFn_of_agree (n : Nat) {i : Nat} (h : x.1 i = y.1 i) :
-    eqIdemFn x y n i = i := if_pos (congrArg toNat h)
-
 /-- `e` is primitive recursive: arithmetization of the definition-by-cases. -/
 theorem eqIdemFn_prim (n : Nat) : PrimRec1 (eqIdemFn x y n) := by
   have hind : PrimRec1 fun i => eqInd (toNat (x.1 i)) (toNat (y.1 i)) :=
@@ -604,9 +601,9 @@ theorem eqIdem_idem {n : Nat} (hn : x.1 n = y.1 n) :
   PMor.ext fun i => by
     show eqIdemFn x y n (eqIdemFn x y n i) = eqIdemFn x y n i
     by_cases h : toNat (x.1 i) = toNat (y.1 i)
-    · simp only [eqIdemFn_of_agree x y n (toNat_inj h)]
+    · simp only [show eqIdemFn x y n i = i from if_pos (congrArg toNat (toNat_inj h))]
     · simp only [show eqIdemFn x y n i = n from if_neg fun hc => h (congrArg toNat (toNat_inj hc)),
-        eqIdemFn_of_agree x y n hn]
+        show eqIdemFn x y n n = n from if_pos (congrArg toNat hn)]
 
 /-- `ex = ey` (§1.573; diagram order: `e ≫ x = e ≫ y`). -/
 theorem eqIdem_equalizes {n : Nat} (hn : x.1 n = y.1 n) :
@@ -614,7 +611,7 @@ theorem eqIdem_equalizes {n : Nat} (hn : x.1 n = y.1 n) :
   PMor.ext fun i => by
     show x.1 (eqIdemFn x y n i) = y.1 (eqIdemFn x y n i)
     by_cases h : toNat (x.1 i) = toNat (y.1 i)
-    · rw [eqIdemFn_of_agree x y n (toNat_inj h)]; exact toNat_inj h
+    · rw [show eqIdemFn x y n i = i from if_pos (congrArg toNat (toNat_inj h))]; exact toNat_inj h
     · rw [show eqIdemFn x y n i = n from if_neg fun hc => h (congrArg toNat (toNat_inj hc))]; exact hn
 
 /-- §1.573's universal property: any `z : β → ω` with `zx = zy` satisfies `ze = z`. -/
@@ -622,7 +619,7 @@ theorem eqIdem_univ {β : PObj} (z : β ⟶ omegaP) (hz : z ≫ x = z ≫ y) (n 
     z ≫ eqIdem x y n = z :=
   PMor.ext fun w => by
     show eqIdemFn x y n (z.1 w) = z.1 w
-    exact eqIdemFn_of_agree x y n (PMor.congr hz w)
+    exact if_pos (congrArg toNat (PMor.congr hz w))
 
 /-- Any function into the empty carrier is (vacuously) a P-morphism: its very
     existence from ω is contradictory. -/
@@ -783,15 +780,13 @@ variable {γ β : ExtNat} (d : PMor γ γ) (u v : PMor γ β)
 def spltFn (a₀ : El γ) : El γ → El γ := fun a =>
   if toNat (d.1 a) = toNat a ∧ toNat (u.1 a) = toNat (v.1 a) then a else a₀
 
-theorem spltFn_of_mem (a₀ : El γ) {a : El γ} (h1 : d.1 a = a) (h2 : u.1 a = v.1 a) :
-    spltFn d u v a₀ a = a := if_pos ⟨congrArg toNat h1, congrArg toNat h2⟩
-
 /-- Values of `spltFn` lie in the agreement set (given that the witness does). -/
 theorem spltFn_mem (a₀ : El γ) (h₀d : d.1 a₀ = a₀) (h₀uv : u.1 a₀ = v.1 a₀) (a : El γ) :
     d.1 (spltFn d u v a₀ a) = spltFn d u v a₀ a ∧
       u.1 (spltFn d u v a₀ a) = v.1 (spltFn d u v a₀ a) := by
   by_cases h : toNat (d.1 a) = toNat a ∧ toNat (u.1 a) = toNat (v.1 a)
-  · rw [spltFn_of_mem d u v a₀ (toNat_inj h.1) (toNat_inj h.2)]
+  · rw [show spltFn d u v a₀ a = a from
+      if_pos ⟨congrArg toNat (toNat_inj h.1), congrArg toNat (toNat_inj h.2)⟩]
     exact ⟨toNat_inj h.1, toNat_inj h.2⟩
   · -- `h` is exactly the negated if-condition; the show refolds `spltFn` for rw's syntactic match
     rw [show spltFn d u v a₀ a = a₀ from if_neg h]
@@ -799,8 +794,8 @@ theorem spltFn_mem (a₀ : El γ) (h₀d : d.1 a₀ = a₀) (h₀uv : u.1 a₀ =
 
 theorem spltFn_idem (a₀ : El γ) (h₀d : d.1 a₀ = a₀) (h₀uv : u.1 a₀ = v.1 a₀) (a : El γ) :
     spltFn d u v a₀ (spltFn d u v a₀ a) = spltFn d u v a₀ a :=
-  spltFn_of_mem d u v a₀ (spltFn_mem d u v a₀ h₀d h₀uv a).1
-    (spltFn_mem d u v a₀ h₀d h₀uv a).2
+  if_pos ⟨congrArg toNat (spltFn_mem d u v a₀ h₀d h₀uv a).1,
+    congrArg toNat (spltFn_mem d u v a₀ h₀d h₀uv a).2⟩
 
 /-- `spltFn` is a P-morphism (arithmetization of the definition-by-cases). -/
 theorem spltFn_pmor (a₀ : El γ) : IsPMor γ γ (spltFn d u v a₀) := by
@@ -876,9 +871,10 @@ def phatEqWitness : HasEqualizer x y where
       PhatHom.ext (PMor.ext fun a => (spltFn_mem E.e x.1 y.1 a₀ h₀d h₀uv a).2)⟩
   lift c :=
     ⟨c.map.1, c.map.2.1,
-      PMor.ext fun w => spltFn_of_mem E.e x.1 y.1 a₀ (cone_mem x y c w).1 (cone_mem x y c w).2⟩
+      PMor.ext fun w => if_pos ⟨congrArg toNat (cone_mem x y c w).1,
+        congrArg toNat (cone_mem x y c w).2⟩⟩
   fac c := PhatHom.ext (PMor.ext fun w =>
-    spltFn_of_mem E.e x.1 y.1 a₀ (cone_mem x y c w).1 (cone_mem x y c w).2)
+    if_pos ⟨congrArg toNat (cone_mem x y c w).1, congrArg toNat (cone_mem x y c w).2⟩)
   uniq c m hm := PhatHom.ext (PMor.ext fun w =>
     calc m.1.1 w = spltFn E.e x.1 y.1 a₀ (m.1.1 w) := (PMor.congr m.2.2 w).symm
       _ = c.map.1.1 w := PMor.congr (congrArg Subtype.val hm) w)

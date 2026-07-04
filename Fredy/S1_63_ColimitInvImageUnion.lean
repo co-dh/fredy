@@ -80,12 +80,6 @@ theorem union_equiv [HasImages 𝒞] [HasSubobjectUnions 𝒞] {B : 𝒞}
     (HasSubobjectUnions.union S₁ T₁).Equiv (HasSubobjectUnions.union S₂ T₂) :=
   ⟨union_le_union hS.1 hT.1, union_le_union hS.2 hT.2⟩
 
-/-- Inverse image is monotone (`inverseImage_mono`) hence respects `≈`. -/
-theorem inverseImage_equiv [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
-    {A B : 𝒞} (f : A ⟶ B) {S T : Subobject 𝒞 B} (h : S.Equiv T) :
-    (InverseImage f S).Equiv (InverseImage f T) :=
-  ⟨inverseImage_mono f h.1, inverseImage_mono f h.2⟩
-
 /-- The chosen image of `f` is equivalent to any image of `f`. -/
 theorem image_equiv_isImage [HasImages 𝒞] {A B : 𝒞} {f : A ⟶ B} {I : Subobject 𝒞 B}
     (hI : IsImage f I) : (image f).Equiv I :=
@@ -230,7 +224,7 @@ theorem stage_invImage_union_le [hPL : PreLogos 𝒞]
     {A B : 𝒞} (f : A ⟶ B) (S T : Subobject 𝒞 B) :
     (pbSub ht hp he f (unionImg hii hcop S T)).le
       (unionImg hii hcop (pbSub ht hp he f S) (pbSub ht hp he f T)) := by
-  -- PIN the `PreLogos` instances, so `InverseImage`/`inverseImage_equiv`/`union` and the hard
+  -- PIN the `PreLogos` instances, so `InverseImage`/inverse-image-monotonicity/`union` and the hard
   -- direction all use ONE instance (else the global `exactPullbacks` / image diamonds appear).
   letI : HasPullbacks 𝒞 := hPL.toRegularCategory.toHasPullbacks
   letI : HasImages 𝒞 := hPL.toRegularCategory.toHasImages
@@ -248,7 +242,8 @@ theorem stage_invImage_union_le [hPL : PreLogos 𝒞]
       (unionImg hii hcop P Q).Equiv (HasSubobjectUnions.union P Q) :=
     fun P Q => unionImg_equiv_union hii hcop P Q
   refine Subobject.le_of_equiv_le
-    ((hpb (unionImg hii hcop S T)).trans (inverseImage_equiv f (hun S T))) ?_
+    ((hpb (unionImg hii hcop S T)).trans
+      ⟨inverseImage_mono f (hun S T).1, inverseImage_mono f (hun S T).2⟩) ?_
   refine Subobject.le_of_le_equiv (PreLogos.invImage_preserves_union f S T).1 ?_
   exact (union_equiv (hpb S).symm (hpb T).symm).trans (hun (pbSub ht hp he f S) (pbSub ht hp he f T)).symm
 
@@ -583,9 +578,11 @@ theorem colimit_invImage_union_le (C : CatSystem.{u, u} ι D) (hC : C.Coherent) 
   have hLHS : (InverseImage f (HasSubobjectUnions.union S T)).Equiv
       (germSub C hC hmono (pbSub (ht N) (hp N) (he N) f_N (unionImg (hi N) (hcop N) S_N T_N))) := by
     rw [hfeq]
-    refine (inverseImage_equiv (homInclObj C hC f_N)
-      ((union_equiv hSeq hTeq).trans
-        (union_germ_equiv C hC hmono hcop hcoppres hcoppres_case hi hfaith himgpres N S_N T_N))).trans
+    have hUeq := (union_equiv hSeq hTeq).trans
+      (union_germ_equiv C hC hmono hcop hcoppres hcoppres_case hi hfaith himgpres N S_N T_N)
+    refine Subobject.Equiv.trans
+      ⟨inverseImage_mono (homInclObj C hC f_N) hUeq.1,
+        inverseImage_mono (homInclObj C hC f_N) hUeq.2⟩
       (invImage_germ_equiv C hC hmono ht htpres hp hpres hpres_pair he hepres hepres_lift
         N f_N (unionImg (hi N) (hcop N) S_N T_N))
   -- RHS as a germ
@@ -594,9 +591,13 @@ theorem colimit_invImage_union_le (C : CatSystem.{u, u} ι D) (hC : C.Coherent) 
         (pbSub (ht N) (hp N) (he N) f_N S_N) (pbSub (ht N) (hp N) (he N) f_N T_N))) := by
     rw [hfeq]
     refine (union_equiv
-      ((inverseImage_equiv (homInclObj C hC f_N) hSeq).trans
+      (Subobject.Equiv.trans
+        ⟨inverseImage_mono (homInclObj C hC f_N) hSeq.1,
+          inverseImage_mono (homInclObj C hC f_N) hSeq.2⟩
         (invImage_germ_equiv C hC hmono ht htpres hp hpres hpres_pair he hepres hepres_lift N f_N S_N))
-      ((inverseImage_equiv (homInclObj C hC f_N) hTeq).trans
+      (Subobject.Equiv.trans
+        ⟨inverseImage_mono (homInclObj C hC f_N) hTeq.1,
+          inverseImage_mono (homInclObj C hC f_N) hTeq.2⟩
         (invImage_germ_equiv C hC hmono ht htpres hp hpres hpres_pair he hepres hepres_lift
           N f_N T_N))).trans
       (union_germ_equiv C hC hmono hcop hcoppres hcoppres_case hi hfaith himgpres N

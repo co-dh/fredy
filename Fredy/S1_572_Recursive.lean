@@ -1125,16 +1125,10 @@ noncomputable def enumOf (χ : Nat → Bool) (k : Nat)
     (h : ∃ v, χ v = true ∧ rankOf χ v = k) : Nat :=
   theLeast _ h
 
-theorem enumOf_chi (χ : Nat → Bool) (k : Nat) (h : ∃ v, χ v = true ∧ rankOf χ v = k) :
-    χ (enumOf χ k h) = true := (theLeast_mem _ h).1
-
-theorem enumOf_rank (χ : Nat → Bool) (k : Nat) (h : ∃ v, χ v = true ∧ rankOf χ v = k) :
-    rankOf χ (enumOf χ k h) = k := (theLeast_mem _ h).2
-
 /-- The enumeration inverts the rank on members. -/
 theorem enumOf_of_mem (χ : Nat → Bool) {u : Nat} (hu : χ u = true)
     (h : ∃ v, χ v = true ∧ rankOf χ v = rankOf χ u) : enumOf χ (rankOf χ u) h = u :=
-  rankOf_inj_mem χ (enumOf_chi χ _ h) hu (enumOf_rank χ _ h)
+  rankOf_inj_mem χ (theLeast_mem _ h).1 hu (theLeast_mem _ h).2
 
 /-- The enumeration of an (everywhere-inhabited-rank) recursive subset is recursive —
     genuine unbounded μ-search. -/
@@ -1153,7 +1147,8 @@ theorem enumOf_recursive {χ : Nat → Bool} (ht : Recursive1 fun v => if χ v t
   · intro k
     show (1 - (if χ (enumOf χ k (hex k)) then 1 else 0)) +
       ((rankOf χ (enumOf χ k (hex k)) - k) + (k - rankOf χ (enumOf χ k (hex k)))) = 0
-    rw [enumOf_chi χ k (hex k), enumOf_rank χ k (hex k)]
+    rw [show χ (enumOf χ k (hex k)) = true from (theLeast_mem _ (hex k)).1,
+      show rankOf χ (enumOf χ k (hex k)) = k from (theLeast_mem _ (hex k)).2]
     simp
   · intro k i hi
     show (1 - (if χ i then 1 else 0)) + ((rankOf χ i - k) + (k - rankOf χ i)) ≠ 0
@@ -1178,22 +1173,21 @@ variable {α β : ExtNat} (x y : α ⟶ β)
 /-- The `k`-th member of the agreement set, as an element of `El α`. -/
 noncomputable def eqEnum (k : Nat)
     (h : ∃ v, agreeChi x y v = true ∧ rankOf (agreeChi x y) v = k) : El α :=
-  elOf (enumOf (agreeChi x y) k h) (agreeChi_supp (enumOf_chi (agreeChi x y) k h))
-
-theorem eqEnum_toNat (k : Nat) (h : ∃ v, agreeChi x y v = true ∧ rankOf (agreeChi x y) v = k) :
-    toNat (eqEnum x y k h) = enumOf (agreeChi x y) k h := toNat_elOf _ _
+  elOf (enumOf (agreeChi x y) k h) (agreeChi_supp (theLeast_mem _ h).1)
 
 theorem eqEnum_agree (k : Nat) (h : ∃ v, agreeChi x y v = true ∧ rankOf (agreeChi x y) v = k) :
     x.1 (eqEnum x y k h) = y.1 (eqEnum x y k h) :=
-  agreeChi_elOf x y (enumOf_chi (agreeChi x y) k h)
+  agreeChi_elOf x y (theLeast_mem _ h).1
 
 theorem eqEnum_inj {k k' : Nat}
     (h : ∃ v, agreeChi x y v = true ∧ rankOf (agreeChi x y) v = k)
     (h' : ∃ v, agreeChi x y v = true ∧ rankOf (agreeChi x y) v = k')
     (heq : eqEnum x y k h = eqEnum x y k' h') : k = k' := by
   have h1 : enumOf (agreeChi x y) k h = enumOf (agreeChi x y) k' h' := by
-    rw [← eqEnum_toNat x y k h, ← eqEnum_toNat x y k' h', heq]
-  rw [← enumOf_rank (agreeChi x y) k h, ← enumOf_rank (agreeChi x y) k' h', h1]
+    rw [← show toNat (eqEnum x y k h) = enumOf (agreeChi x y) k h from toNat_elOf _ _,
+      ← show toNat (eqEnum x y k' h') = enumOf (agreeChi x y) k' h' from toNat_elOf _ _, heq]
+  rw [← show rankOf (agreeChi x y) (enumOf (agreeChi x y) k h) = k from (theLeast_mem _ h).2,
+    ← show rankOf (agreeChi x y) (enumOf (agreeChi x y) k' h') = k' from (theLeast_mem _ h').2, h1]
 
 /-- Enumerating the rank of an agreeing element recovers it. -/
 theorem eqEnum_rank {a : El α} (ha : agreeChi x y (toNat a) = true)
@@ -1201,7 +1195,8 @@ theorem eqEnum_rank {a : El α} (ha : agreeChi x y (toNat a) = true)
       rankOf (agreeChi x y) v = rankOf (agreeChi x y) (toNat a)) :
     eqEnum x y (rankOf (agreeChi x y) (toNat a)) h = a := by
   apply toNat_inj
-  rw [eqEnum_toNat]
+  rw [show toNat (eqEnum x y (rankOf (agreeChi x y) (toNat a)) h) =
+    enumOf (agreeChi x y) (rankOf (agreeChi x y) (toNat a)) h from toNat_elOf _ _]
   exact enumOf_of_mem _ ha _
 
 /-- The lift function (the rank of the code) is a morphism from any cone domain. -/
@@ -1254,7 +1249,8 @@ noncomputable def eqInfinite (hunb : ∀ b, ∃ v, b ≤ v ∧ agreeChi x y v = 
   have hex : ∀ k, ∃ v, agreeChi x y v = true ∧ rankOf (agreeChi x y) v = k :=
     rankOf_unbounded _ hunb
   have mapFn_mor : IsMor none α fun k => eqEnum x y k (hex k) :=
-    (enumOf_recursive (agreeChi_rec x y) hex).congr fun k => (eqEnum_toNat x y k (hex k)).symm
+    (enumOf_recursive (agreeChi_rec x y) hex).congr fun k =>
+      (toNat_elOf _ _ : toNat (eqEnum x y k (hex k)) = _).symm
   { cone := ⟨none, ⟨fun k => eqEnum x y k (hex k), mapFn_mor⟩,
       Mor.ext fun k => eqEnum_agree x y k (hex k)⟩
     lift := fun c =>
@@ -1337,28 +1333,29 @@ noncomputable def idemFn {α β : ExtNat} (x : Mor α β) : El α → El α := f
   elOf (leastAgree (morN x) (toNat a))
     (suppChi_of_le (theLeast_le _ _ rfl) (suppChi_toNat a))
 
-theorem toNat_idemFn {α β : ExtNat} (x : Mor α β) (a : El α) :
-    toNat (idemFn x a) = leastAgree (morN x) (toNat a) := toNat_elOf _ _
-
 /-- `ex = x` pointwise. -/
 theorem idemFn_absorb {α β : ExtNat} (x : Mor α β) (a : El α) :
     x.1 (idemFn x a) = x.1 a := by
   apply toNat_inj
-  rw [← morN_spec x (idemFn x a), ← morN_spec x a, toNat_idemFn]
+  rw [← morN_spec x (idemFn x a), ← morN_spec x a,
+    show toNat (idemFn x a) = leastAgree (morN x) (toNat a) from toNat_elOf _ _]
   exact leastAgree_agree (morN x) (toNat a)
 
 /-- `e² = e` pointwise. -/
 theorem idemFn_idem {α β : ExtNat} (x : Mor α β) (a : El α) :
     idemFn x (idemFn x a) = idemFn x a := by
   apply toNat_inj
-  rw [toNat_idemFn, toNat_idemFn]
+  rw [show toNat (idemFn x (idemFn x a)) = leastAgree (morN x) (toNat (idemFn x a)) from
+      toNat_elOf _ _,
+    show toNat (idemFn x a) = leastAgree (morN x) (toNat a) from toNat_elOf _ _]
   exact leastAgree_idem _ _
 
 /-- `e` merges exactly as much as `x` does. -/
 theorem idemFn_congr {α β : ExtNat} (x : Mor α β) {a b : El α} (h : x.1 a = x.1 b) :
     idemFn x a = idemFn x b := by
   apply toNat_inj
-  rw [toNat_idemFn, toNat_idemFn]
+  rw [show toNat (idemFn x a) = leastAgree (morN x) (toNat a) from toNat_elOf _ _,
+    show toNat (idemFn x b) = leastAgree (morN x) (toNat b) from toNat_elOf _ _]
   exact leastAgree_congr _ (by rw [morN_spec x a, morN_spec x b, h])
 
 /-- `e` is recursive: unbounded μ-search for the least agreeing index
@@ -1384,7 +1381,7 @@ theorem idemFn_isMor {α β : ExtNat} (x : Mor α β) : IsMor α α (idemFn x) :
         show (morN x i - morN x k) + (morN x k - morN x i) ≠ 0
         have := theLeast_min (fun i => morN x i = morN x k) ⟨k, rfl⟩ i hi
         omega
-    exact h.congr fun k => (toNat_idemFn x k).symm
+    exact h.congr fun k => (toNat_elOf _ _ : toNat (idemFn x k) = _).symm
 
 /-- §1.572's idempotent as a morphism of R. -/
 noncomputable def eMor {α β : ExtNat} (x : α ⟶ β) : α ⟶ α := ⟨idemFn x, idemFn_isMor x⟩

@@ -394,8 +394,6 @@ variable {A B : AbelianGroupObject 𝒞} (f g : A ⟶ B)
 
 private noncomputable def em : eqObj f.val g.val ⟶ A.carrier := eqMap f.val g.val
 
-private theorem em_eq : em f g ≫ f.val = em f g ≫ g.val := eqMap_eq f.val g.val
-
 /-- The equalizer map is monic in 𝒞. -/
 private theorem em_mono : Monic (em f g) := eqMap_mono' f.val g.val
 
@@ -403,10 +401,6 @@ private theorem em_mono : Monic (em f g) := eqMap_mono' f.val g.val
 private noncomputable def eLift {X : 𝒞} (k : X ⟶ A.carrier) (h : k ≫ f.val = k ≫ g.val) :
     X ⟶ eqObj f.val g.val :=
   eqLift f.val g.val k h
-
-@[simp] private theorem eLift_fac {X : 𝒞} (k : X ⟶ A.carrier) (h : k ≫ f.val = k ≫ g.val) :
-    eLift f g k h ≫ em f g = k :=
-  eqLift_fac f.val g.val k h
 
 /-! Three group operations on `eqObj f.val g.val`, each the unique lift whose composite with
     `eqMap` gives the corresponding operation of `A`.  Coherence holds because `f` and `g` are
@@ -420,7 +414,8 @@ private noncomputable def eqZero : (one : 𝒞) ⟶ eqObj f.val g.val :=
 /-- Negation of the equalizer group object: lift of `eqMap ≫ A.neg`. -/
 private noncomputable def eqNeg : eqObj f.val g.val ⟶ eqObj f.val g.val :=
   eLift f g (em f g ≫ A.neg) (by
-    rw [hom_preserves_neg f.property (em f g), hom_preserves_neg g.property (em f g), em_eq])
+    rw [hom_preserves_neg f.property (em f g), hom_preserves_neg g.property (em f g),
+      show em f g ≫ f.val = em f g ≫ g.val from eqMap_eq f.val g.val])
 
 /-- Addition of the equalizer group object: lift of componentwise sum. -/
 private noncomputable def eqAdd :
@@ -430,21 +425,21 @@ private noncomputable def eqAdd :
         hom_preserves_add g.property (fst ≫ em f g) (snd ≫ em f g)]
     -- goal: pair (fst ≫ em f g ≫ f.val) (snd ≫ em f g ≫ f.val) ≫ B.add
     --     = pair (fst ≫ em f g ≫ g.val) (snd ≫ em f g ≫ g.val) ≫ B.add
-    -- follows by rewriting em_eq : em f g ≫ f.val = em f g ≫ g.val in both slots.
-    have := em_eq f g
+    -- follows by rewriting em f g ≫ f.val = em f g ≫ g.val in both slots.
+    have : em f g ≫ f.val = em f g ≫ g.val := eqMap_eq f.val g.val
     congr 2 <;> simp [Cat.assoc, this])
 
 /-! Projection lemmas: each operation composes with `eqMap` to give the corresponding `A`-op. -/
 
 @[simp] private theorem eqZero_em : eqZero f g ≫ em f g = term one ≫ A.zero :=
-  eLift_fac f g _ _
+  eqLift_fac f.val g.val _ _
 
 @[simp] private theorem eqNeg_em : eqNeg f g ≫ em f g = em f g ≫ A.neg :=
-  eLift_fac f g _ _
+  eqLift_fac f.val g.val _ _
 
 @[simp] private theorem eqAdd_em :
     eqAdd f g ≫ em f g = pair (fst ≫ em f g) (snd ≫ em f g) ≫ A.add :=
-  eLift_fac f g _ _
+  eqLift_fac f.val g.val _ _
 
 /-- Component lemma for the sum: `⟨u,w⟩ ≫ eqAdd ≫ eqMap = ⟨u≫eqMap, w≫eqMap⟩ ≫ A.add`. -/
 private theorem eqAdd_proj {S : 𝒞} (u w : S ⟶ eqObj f.val g.val) :
@@ -500,7 +495,7 @@ theorem isHom_eLift {D : AbelianGroupObject 𝒞} {k : D.carrier ⟶ A.carrier}
   -- After apply: (D.add ≫ eLift f g k h) ≫ em = (pair(...) ≫ eqGObj.add) ≫ em
   -- LHS = pair (fst ≫ k) (snd ≫ k) ≫ A.add = RHS.
   have lhs : (D.add ≫ eLift f g k h) ≫ em f g = pair (fst ≫ k) (snd ≫ k) ≫ A.add := by
-    rw [Cat.assoc, eLift_fac]; exact hk
+    rw [Cat.assoc, show eLift f g k h ≫ em f g = k from eqLift_fac f.val g.val k h]; exact hk
   have rhs : (pair (fst ≫ eLift f g k h) (snd ≫ eLift f g k h) ≫ (eqGObj f g).add) ≫ em f g
            = pair (fst ≫ k) (snd ≫ k) ≫ A.add := by
     rw [Cat.assoc, eqGObj_add, eqAdd_em, ← Cat.assoc, ab_pair_precomp]
@@ -509,9 +504,11 @@ theorem isHom_eLift {D : AbelianGroupObject 𝒞} {k : D.carrier ⟶ A.carrier}
     -- Use fst_pair: pair a b ≫ fst = a; snd_pair: pair a b ≫ snd = b.
     -- After ← Cat.assoc at the pair applications: (pair ≫ fst) ≫ em = eLift ≫ em = k; similarly snd.
     have h1 : pair (fst ≫ eLift f g k h) (snd ≫ eLift f g k h) ≫ fst ≫ em f g = fst ≫ k := by
-      rw [← Cat.assoc, fst_pair, Cat.assoc, eLift_fac]
+      rw [← Cat.assoc, fst_pair, Cat.assoc,
+        show eLift f g k h ≫ em f g = k from eqLift_fac f.val g.val k h]
     have h2 : pair (fst ≫ eLift f g k h) (snd ≫ eLift f g k h) ≫ snd ≫ em f g = snd ≫ k := by
-      rw [← Cat.assoc, snd_pair, Cat.assoc, eLift_fac]
+      rw [← Cat.assoc, snd_pair, Cat.assoc,
+        show eLift f g k h ≫ em f g = k from eqLift_fac f.val g.val k h]
     rw [h1, h2]
   rw [lhs, rhs]
 
@@ -519,7 +516,7 @@ theorem isHom_eLift {D : AbelianGroupObject 𝒞} {k : D.carrier ⟶ A.carrier}
 theorem eqGObj_w :
     (⟨em f g, isHom_em f g⟩ : eqGObj f g ⟶ A) ≫ f
       = (⟨em f g, isHom_em f g⟩ : eqGObj f g ⟶ A) ≫ g :=
-  Subtype.ext (em_eq f g)
+  Subtype.ext (eqMap_eq f.val g.val)
 
 /-- The equalizer cone of `f, g` in `Ab(𝒞)`. -/
 noncomputable def eqCone : EqualizerCone f g :=
@@ -531,7 +528,7 @@ noncomputable def hasEqualizerAb : HasEqualizer f g where
   cone := eqCone f g
   lift c := ⟨eLift f g c.map.val (congrArg Subtype.val c.eq),
     isHom_eLift f g c.map.property (congrArg Subtype.val c.eq)⟩
-  fac c := Subtype.ext (eLift_fac f g c.map.val (congrArg Subtype.val c.eq))
+  fac c := Subtype.ext (eqLift_fac f.val g.val c.map.val (congrArg Subtype.val c.eq))
   uniq c u hu := Subtype.ext (eqLift_uniq f.val g.val c.map.val (congrArg Subtype.val c.eq) u.val
     (congrArg Subtype.val hu))
 
@@ -743,14 +740,12 @@ def imArr : imI f ⟶ B.carrier := (image f.val).arr
 noncomputable def imE : A.carrier ⟶ imI f := image.lift f.val
 
 theorem imArr_monic : Monic (imArr f) := (image f.val).monic
-theorem imE_cover : Cover (imE f) := image_lift_cover f.val
-theorem imE_imArr : imE f ≫ imArr f = f.val := image.lift_fac f.val
 
 /-- Zero of the image group object: `A.zero ≫ e`. -/
 noncomputable def imZero : (one : 𝒞) ⟶ imI f := A.zero ≫ imE f
 
 @[simp] theorem imZero_imArr : imZero f ≫ imArr f = term one ≫ B.zero := by
-  rw [imZero, Cat.assoc, imE_imArr]
+  rw [imZero, Cat.assoc, show imE f ≫ imArr f = f.val from image.lift_fac f.val]
   have h1 : A.zero = term one ≫ A.zero := by rw [term_uniq (term one) (Cat.id one), Cat.id_comp]
   rw [h1]
   exact hom_preserves_zero f.property (term one)
@@ -765,22 +760,28 @@ theorem neg_descends :
     intro k
     calc (k ≫ (A.neg ≫ imE f)) ≫ imArr f
         = (k ≫ A.neg) ≫ f.val := by
-          rw [Cat.assoc, Cat.assoc, imE_imArr, ← Cat.assoc]
+          rw [Cat.assoc, Cat.assoc, show imE f ≫ imArr f = f.val from image.lift_fac f.val,
+            ← Cat.assoc]
       _ = (k ≫ f.val) ≫ B.neg := hom_preserves_neg f.property k
-      _ = (k ≫ imE f) ≫ (imArr f ≫ B.neg) := by rw [← imE_imArr]; simp only [Cat.assoc]
+      _ = (k ≫ imE f) ≫ (imArr f ≫ B.neg) := by
+          rw [← show imE f ≫ imArr f = f.val from image.lift_fac f.val]; simp only [Cat.assoc]
   rw [key, key, kp_sq]
 
 /-- Negation of the image group object: the descent of `A.neg ≫ e` along the cover `e`. -/
 noncomputable def imNeg : imI f ⟶ imI f :=
-  (cover_is_coequalizer_of_level (imE f) (imE_cover f) (A.neg ≫ imE f) (neg_descends f)).choose
+  (cover_is_coequalizer_of_level (imE f) (image_lift_cover f.val) (A.neg ≫ imE f)
+    (neg_descends f)).choose
 
 theorem imE_imNeg : imE f ≫ imNeg f = A.neg ≫ imE f :=
-  (cover_is_coequalizer_of_level (imE f) (imE_cover f) (A.neg ≫ imE f)
+  (cover_is_coequalizer_of_level (imE f) (image_lift_cover f.val) (A.neg ≫ imE f)
     (neg_descends f)).choose_spec.1
 
 @[simp] theorem imNeg_imArr : imNeg f ≫ imArr f = imArr f ≫ B.neg := by
-  apply cover_epi (imE_cover f)
-  rw [← Cat.assoc, imE_imNeg, Cat.assoc, imE_imArr, ← Cat.assoc, imE_imArr]
+  -- `show` refolds imE so the goal is phrased with `imE f` and `rw [imE_imNeg]` matches
+  apply cover_epi (show Cover (imE f) from image_lift_cover f.val)
+  rw [← Cat.assoc, imE_imNeg, Cat.assoc,
+    show imE f ≫ imArr f = f.val from image.lift_fac f.val, ← Cat.assoc,
+    show imE f ≫ imArr f = f.val from image.lift_fac f.val]
   -- goal: A.neg ≫ f.val = f.val ≫ B.neg
   have := hom_preserves_neg f.property (Cat.id A.carrier)
   rwa [Cat.id_comp, Cat.id_comp] at this
@@ -789,15 +790,15 @@ theorem imE_imNeg : imE f ≫ imNeg f = A.neg ≫ imE f :=
 noncomputable def imEE : prod A.carrier A.carrier ⟶ prod (imI f) (imI f) :=
   pair (fst ≫ imE f) (snd ≫ imE f)
 
-theorem imEE_cover : Cover (imEE f) := coverProdBoth (imE_cover f)
+theorem imEE_cover : Cover (imEE f) := coverProdBoth (image_lift_cover f.val)
 
 @[simp] theorem imEE_fst : imEE f ≫ fst = fst ≫ imE f := by rw [imEE, fst_pair]
 @[simp] theorem imEE_snd : imEE f ≫ snd = snd ≫ imE f := by rw [imEE, snd_pair]
 
 theorem imEE_fst_imArr : imEE f ≫ fst ≫ imArr f = fst ≫ f.val := by
-  rw [← Cat.assoc, imEE_fst, Cat.assoc, imE_imArr]
+  rw [← Cat.assoc, imEE_fst, Cat.assoc, show imE f ≫ imArr f = f.val from image.lift_fac f.val]
 theorem imEE_snd_imArr : imEE f ≫ snd ≫ imArr f = snd ≫ f.val := by
-  rw [← Cat.assoc, imEE_snd, Cat.assoc, imE_imArr]
+  rw [← Cat.assoc, imEE_snd, Cat.assoc, show imE f ≫ imArr f = f.val from image.lift_fac f.val]
 
 /-- The descent equation for addition: `A.add ≫ e` equalizes the kernel pair of `ee`. -/
 theorem add_descends :
@@ -811,7 +812,7 @@ theorem add_descends :
     intro k
     have hlhs : (k ≫ (A.add ≫ imE f)) ≫ imArr f
         = pair (k ≫ fst ≫ f.val) (k ≫ snd ≫ f.val) ≫ B.add := by
-      rw [Cat.assoc, Cat.assoc, imE_imArr,
+      rw [Cat.assoc, Cat.assoc, show imE f ≫ imArr f = f.val from image.lift_fac f.val,
           show A.add ≫ f.val = pair (fst ≫ f.val) (snd ≫ f.val) ≫ B.add from f.property,
           ← Cat.assoc, ab_pair_precomp]
     have hrhs : (k ≫ imEE f) ≫ (pair (fst ≫ imArr f) (snd ≫ imArr f) ≫ B.add)
@@ -836,7 +837,7 @@ theorem imEE_imAdd : imEE f ≫ imAdd f = A.add ≫ imE f :=
 @[simp] theorem imAdd_imArr :
     imAdd f ≫ imArr f = pair (fst ≫ imArr f) (snd ≫ imArr f) ≫ B.add := by
   apply cover_epi (imEE_cover f)
-  rw [← Cat.assoc, imEE_imAdd, Cat.assoc, imE_imArr,
+  rw [← Cat.assoc, imEE_imAdd, Cat.assoc, show imE f ≫ imArr f = f.val from image.lift_fac f.val,
       show A.add ≫ f.val = pair (fst ≫ f.val) (snd ≫ f.val) ≫ B.add from f.property,
       ← Cat.assoc, ab_pair_precomp]
   -- RHS now: pair (imEE f ≫ fst ≫ imArr) (imEE f ≫ snd ≫ imArr) ≫ B.add
@@ -904,7 +905,7 @@ theorem imArrHom_monic : Monic (imArrHom f) :=
 
 /-- `e ≫ m = f` in `Ab(𝒞)`: the image factorization. -/
 theorem image_factorization : imEHom f ≫ imArrHom f = f :=
-  Subtype.ext (imE_imArr f)
+  Subtype.ext (image.lift_fac f.val)
 
 end AbImage
 
@@ -1028,9 +1029,9 @@ theorem ab_cover_carrier_cover {X Y : AbelianGroupObject 𝒞} {φ : X ⟶ Y}
   have hival_iso : IsIso (AbImage.imArr φ) :=
     ⟨i'.val, congrArg Subtype.val hi'1, congrArg Subtype.val hi'2⟩
   -- `φ.val = imE φ ≫ imArr φ`, `imE φ` a 𝒞-cover, `imArr φ` a 𝒞-iso (hence cover).
-  rw [← AbImage.imE_imArr φ]
+  rw [← show AbImage.imE φ ≫ AbImage.imArr φ = φ.val from image.lift_fac φ.val]
   intro D m k hm hkm
-  exact cover_comp (AbImage.imE_cover φ) (iso_cover _ hival_iso) m k hm hkm
+  exact cover_comp (image_lift_cover φ.val) (iso_cover _ hival_iso) m k hm hkm
 
 /-- §1.595: **`Ab(𝒞)` transfers covers across pullbacks.**  The Ab-pullback is computed on
     carriers (`instHasPullbacksAb`), so the comparison to the canonical cone is an Ab-iso; the
@@ -1179,7 +1180,9 @@ theorem carRel_comp_le {A B C : AbelianGroupObject 𝒞} (R : BinRel (AbelianGro
        = image.lift carSpan ≫ (carRelGen R ⊚ carRelGen S).colA
     have hL : AbImage.imE abSpan ≫ (carRelGen (R ⊚ S)).colA = carSpan ≫ fst := by
       show AbImage.imE abSpan ≫ (AbImage.imArr abSpan ≫ fst) = carSpan ≫ fst
-      rw [← Cat.assoc, AbImage.imE_imArr, hspanval]
+      rw [← Cat.assoc,
+        show AbImage.imE abSpan ≫ AbImage.imArr abSpan = abSpan.val from image.lift_fac abSpan.val,
+        hspanval]
     have hR : image.lift carSpan ≫ (carRelGen R ⊚ carRelGen S).colA = carSpan ≫ fst := by
       show image.lift carSpan ≫ ((image carSpan).arr ≫ fst) = carSpan ≫ fst
       rw [← Cat.assoc, image.lift_fac]
@@ -1188,7 +1191,9 @@ theorem carRel_comp_le {A B C : AbelianGroupObject 𝒞} (R : BinRel (AbelianGro
        = image.lift carSpan ≫ (carRelGen R ⊚ carRelGen S).colB
     have hL : AbImage.imE abSpan ≫ (carRelGen (R ⊚ S)).colB = carSpan ≫ snd := by
       show AbImage.imE abSpan ≫ (AbImage.imArr abSpan ≫ snd) = carSpan ≫ snd
-      rw [← Cat.assoc, AbImage.imE_imArr, hspanval]
+      rw [← Cat.assoc,
+        show AbImage.imE abSpan ≫ AbImage.imArr abSpan = abSpan.val from image.lift_fac abSpan.val,
+        hspanval]
     have hR : image.lift carSpan ≫ (carRelGen R ⊚ carRelGen S).colB = carSpan ≫ snd := by
       show image.lift carSpan ≫ ((image carSpan).arr ≫ snd) = carSpan ≫ snd
       rw [← Cat.assoc, image.lift_fac]
@@ -1207,7 +1212,7 @@ theorem carRel_comp_ge {A B C : AbelianGroupObject 𝒞} (R : BinRel (AbelianGro
         ((instHasPullbacksAb.has R.colB S.colA).cone.π₂ ≫ S.colB)
   have hspanval : abSpan.val = carSpan := rfl
   refine relLe_of_cover_factor (X := carRelGen (R ⊚ S)) (Y := carRelGen R ⊚ carRelGen S)
-    (AbImage.imE abSpan) (AbImage.imE_cover abSpan) (image.lift carSpan) ?_ ?_
+    (AbImage.imE abSpan) (image_lift_cover abSpan.val) (image.lift carSpan) ?_ ?_
   · show image.lift carSpan ≫ (carRelGen R ⊚ carRelGen S).colA
        = AbImage.imE abSpan ≫ (carRelGen (R ⊚ S)).colA
     have hL : image.lift carSpan ≫ (carRelGen R ⊚ carRelGen S).colA = carSpan ≫ fst := by
@@ -1215,7 +1220,9 @@ theorem carRel_comp_ge {A B C : AbelianGroupObject 𝒞} (R : BinRel (AbelianGro
       rw [← Cat.assoc, image.lift_fac]
     have hR : AbImage.imE abSpan ≫ (carRelGen (R ⊚ S)).colA = carSpan ≫ fst := by
       show AbImage.imE abSpan ≫ (AbImage.imArr abSpan ≫ fst) = carSpan ≫ fst
-      rw [← Cat.assoc, AbImage.imE_imArr, hspanval]
+      rw [← Cat.assoc,
+        show AbImage.imE abSpan ≫ AbImage.imArr abSpan = abSpan.val from image.lift_fac abSpan.val,
+        hspanval]
     rw [hL, hR]
   · show image.lift carSpan ≫ (carRelGen R ⊚ carRelGen S).colB
        = AbImage.imE abSpan ≫ (carRelGen (R ⊚ S)).colB
@@ -1224,7 +1231,9 @@ theorem carRel_comp_ge {A B C : AbelianGroupObject 𝒞} (R : BinRel (AbelianGro
       rw [← Cat.assoc, image.lift_fac]
     have hR : AbImage.imE abSpan ≫ (carRelGen (R ⊚ S)).colB = carSpan ≫ snd := by
       show AbImage.imE abSpan ≫ (AbImage.imArr abSpan ≫ snd) = carSpan ≫ snd
-      rw [← Cat.assoc, AbImage.imE_imArr, hspanval]
+      rw [← Cat.assoc,
+        show AbImage.imE abSpan ≫ AbImage.imArr abSpan = abSpan.val from image.lift_fac abSpan.val,
+        hspanval]
     rw [hL, hR]
 
 /-- §1.595: an `Ab(𝒞)`-equivalence-relation descends to a carrier equivalence relation.

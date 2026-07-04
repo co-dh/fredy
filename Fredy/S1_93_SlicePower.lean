@@ -719,12 +719,6 @@ theorem efixed_restrict_iso {A : 𝒞} (C : Over B) (k : A ⟶ slicePowBase B C)
 
 /-! ## §1.93 universality of `sliceMem'` -/
 
-/-- The structure map of `Δ[ΣC]` is `snd`, so any slice map into it has
-    `f.f = pair (f.f ≫ fst) A.hom`. -/
-theorem slicePow_overhom_eta {A : Over B} {C : Over B} (f : A ⟶ slicePowObj B C) :
-    f.f = pair (f.f ≫ fst) A.hom :=
-  pair_uniq (f.f ≫ fst) A.hom f.f rfl f.w
-
 /-- e-fixedness of any slice map factoring through `[C]`: `(f' ≫ ι) ≫ e = f' ≫ ι`. -/
 theorem comp_iota_efixed {A : Over B} {C : Over B} (f' : A ⟶ slicePowObj' B C) :
     (f' ≫ sliceIota B C) ≫ sliceIdem B C = f' ≫ sliceIota B C := by
@@ -830,7 +824,7 @@ theorem efixed_base_classifies {A C : Over B} (R : BinRel (Over B) A C)
   have hkfix : pair (h.f ≫ fst) A.hom ≫ baseRho B C = h.f ≫ fst := by
     -- h.f ≫ baseIdem = h.f  (from hfix);  h.f = pair (h.f≫fst) A.hom (eta).
     have hbase_fix : h.f ≫ baseIdem B C = h.f := congrArg OverHom.f hfix
-    have heta : h.f = pair (h.f ≫ fst) A.hom := slicePow_overhom_eta h
+    have heta : h.f = pair (h.f ≫ fst) A.hom := pair_uniq (h.f ≫ fst) A.hom h.f rfl h.w
     -- (pair k A.hom) ≫ ρ = (pair k A.hom) ≫ baseIdem ≫ fst = h.f ≫ baseIdem ≫ fst = h.f ≫ fst = k.
     calc pair (h.f ≫ fst) A.hom ≫ baseRho B C
         = pair (h.f ≫ fst) A.hom ≫ (baseIdem B C ≫ fst) := by
@@ -852,7 +846,7 @@ theorem efixed_base_classifies {A C : Over B} (R : BinRel (Over B) A C)
   · -- reverse: relPullback k baseMem ⊂ relPullback (pair k A.hom) baseRestrict (hrI2)
     --   = relPullback h.f baseRestrict ⊂ relPullback h.f (sigmaRel sliceMem)
     --   = sigmaRel(relPullback h sliceMem) ⊂ sigmaRel R.
-    have hk_eq : pair (h.f ≫ fst) A.hom = h.f := (slicePow_overhom_eta h).symm
+    have hk_eq : pair (h.f ≫ fst) A.hom = h.f := (pair_uniq (h.f ≫ fst) A.hom h.f rfl h.w).symm
     -- baseRestrict ⊂ sigmaRel sliceMem (iso reverse), monotone along h.f.
     obtain ⟨_, hbr⟩ := sigmaRel_sliceMem_iso_baseRestrict C
     have hmono : RelHom (relPullback h.f (baseRestrict B C))
@@ -903,7 +897,13 @@ theorem is_universal_sliceMem' (B : 𝒞) (C : Over B) :
         (hclassify f₁ hf₁) (hclassify f₂ hf₂)
     -- reconstruct fᵢ≫ι via pair-eta (snd-leg = A.hom), so (f₁≫ι).f = (f₂≫ι).f.
     have hfι : (f₁ ≫ sliceIota B C).f = (f₂ ≫ sliceIota B C).f := by
-      rw [slicePow_overhom_eta (f₁ ≫ sliceIota B C), slicePow_overhom_eta (f₂ ≫ sliceIota B C), hbn]
+      rw [show (f₁ ≫ sliceIota B C).f = pair ((f₁ ≫ sliceIota B C).f ≫ fst) A.hom from
+            pair_uniq ((f₁ ≫ sliceIota B C).f ≫ fst) A.hom (f₁ ≫ sliceIota B C).f rfl
+              (f₁ ≫ sliceIota B C).w,
+          show (f₂ ≫ sliceIota B C).f = pair ((f₂ ≫ sliceIota B C).f ≫ fst) A.hom from
+            pair_uniq ((f₂ ≫ sliceIota B C).f ≫ fst) A.hom (f₂ ≫ sliceIota B C).f rfl
+              (f₂ ≫ sliceIota B C).w,
+          hbn]
     have hfιeq : f₁ ≫ sliceIota B C = f₂ ≫ sliceIota B C := OverHom.ext hfι
     -- ι is split mono (ι ≫ r = id), so cancel ι.
     have : (f₁ ≫ sliceIota B C) ≫ sliceRetr B C = (f₂ ≫ sliceIota B C) ≫ sliceRetr B C := by

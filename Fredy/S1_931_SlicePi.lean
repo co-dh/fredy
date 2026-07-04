@@ -107,9 +107,6 @@ variable [HasExponentials 𝒞]
 def transp {A E Y : 𝒞} (c : Y ⟶ E ^^ A) : prod A Y ⟶ E :=
   prodMap A Y (E ^^ A) c ≫ eval_exp A E
 
-@[simp] theorem transp_curry {A E Y : 𝒞} (k : prod A Y ⟶ E) : transp (curry k) = k :=
-  curry_eval_eq k
-
 theorem transp_inj {A E Y : 𝒞} {c₁ c₂ : Y ⟶ E ^^ A} (h : transp c₁ = transp c₂) : c₁ = c₂ := by
   rw [← (show curry (transp c₁) = c₁ from (curry_unique_eq rfl).symm),
       ← (show curry (transp c₂) = c₂ from (curry_unique_eq rfl).symm), h]
@@ -203,7 +200,7 @@ theorem transp_piBeta {X : Over A} {Y : Over B} (c : Y ⟶ expPb f X) :
   have hterm : c ≫ (term (expPb f X) ≫ nameId f) = term Y ≫ nameId f := by
     rw [← Cat.assoc, term_uniq (c ≫ term (expPb f X)) (term Y)]
   rw [hterm, transp_precomp, show transp (nameId f) = (fst : prod (fHat f) (one : Over B) ⟶ fHat f) from
-    transp_curry _, prodMap_fst]
+    curry_eval_eq _, prodMap_fst]
 
 /-- The defining equivalence: `c` equalizes `α,β` iff `transp c ≫ px = fst`. -/
 theorem equalizes_iff {X : Over A} {Y : Over B} (c : Y ⟶ expPb f X) :
@@ -236,13 +233,6 @@ def prodToBc (Y : Over B) : (_PB f Y).cone.pt ⟶ (_BC f Y).cone.pt :=
 def bcToProd (Y : Over B) : (_BC f Y).cone.pt ⟶ (_PB f Y).cone.pt :=
   (_PB f Y).lift ⟨(_BC f Y).cone.pt, (_BC f Y).cone.π₂, (_BC f Y).cone.π₁, ((_BC f Y).cone.w).symm⟩
 
-@[simp] theorem prodToBc_p₁ (Y : Over B) : prodToBc f Y ≫ (_BC f Y).cone.π₁ = (_PB f Y).cone.π₂ :=
-  (_BC f Y).lift_fst _
-@[simp] theorem prodToBc_p₂ (Y : Over B) : prodToBc f Y ≫ (_BC f Y).cone.π₂ = (_PB f Y).cone.π₁ :=
-  (_BC f Y).lift_snd _
-@[simp] theorem bcToProd_q₁ (Y : Over B) : bcToProd f Y ≫ (_PB f Y).cone.π₁ = (_BC f Y).cone.π₂ :=
-  (_PB f Y).lift_fst _
-
 /-- Pullback self-map uniqueness for the product pullback: a map agreeing with `id`
     on both legs is `id`. -/
 private theorem _PB_self_id (Y : Over B) (u : (_PB f Y).cone.pt ⟶ (_PB f Y).cone.pt)
@@ -260,17 +250,22 @@ private theorem _BC_self_id (Y : Over B) (u : (_BC f Y).cone.pt ⟶ (_BC f Y).co
 /-- `bcToProd ≫ prodToBc = id` on the base-change pullback. -/
 theorem bcToProd_prodToBc (Y : Over B) : bcToProd f Y ≫ prodToBc f Y = Cat.id _ := by
   apply _BC_self_id
-  · rw [Cat.assoc, prodToBc_p₁,
+  · rw [Cat.assoc,
+      show prodToBc f Y ≫ (_BC f Y).cone.π₁ = (_PB f Y).cone.π₂ from (_BC f Y).lift_fst _,
       show bcToProd f Y ≫ (_PB f Y).cone.π₂ = (_BC f Y).cone.π₁ from (_PB f Y).lift_snd _]
-  · rw [Cat.assoc, prodToBc_p₂, bcToProd_q₁]
+  · rw [Cat.assoc,
+      show prodToBc f Y ≫ (_BC f Y).cone.π₂ = (_PB f Y).cone.π₁ from (_BC f Y).lift_snd _,
+      show bcToProd f Y ≫ (_PB f Y).cone.π₁ = (_BC f Y).cone.π₂ from (_PB f Y).lift_fst _]
 
 /-- `prodToBc ≫ bcToProd = id` on the product pullback. -/
 theorem prodToBc_bcToProd (Y : Over B) : prodToBc f Y ≫ bcToProd f Y = Cat.id _ := by
   apply _PB_self_id
-  · rw [Cat.assoc, bcToProd_q₁, prodToBc_p₂]
+  · rw [Cat.assoc,
+      show bcToProd f Y ≫ (_PB f Y).cone.π₁ = (_BC f Y).cone.π₂ from (_PB f Y).lift_fst _,
+      show prodToBc f Y ≫ (_BC f Y).cone.π₂ = (_PB f Y).cone.π₁ from (_BC f Y).lift_snd _]
   · rw [Cat.assoc,
       show bcToProd f Y ≫ (_PB f Y).cone.π₂ = (_BC f Y).cone.π₁ from (_PB f Y).lift_snd _,
-      prodToBc_p₁]
+      show prodToBc f Y ≫ (_BC f Y).cone.π₁ = (_PB f Y).cone.π₂ from (_BC f Y).lift_fst _]
 
 /-! ### The adjunction hom-bijection
 
@@ -295,7 +290,7 @@ private theorem _piPhi_hk {X : Over A} {Y : Over B} (g : OverHom (baseChangeObj 
     (prodToBc f Y ≫ g.f) ≫ X.hom = (_PB f Y).cone.π₁ := by
   rw [Cat.assoc]
   have : g.f ≫ X.hom = (_BC f Y).cone.π₂ := g.w
-  rw [this, prodToBc_p₂]
+  rw [this, show prodToBc f Y ≫ (_BC f Y).cone.π₂ = (_PB f Y).cone.π₁ from (_BC f Y).lift_snd _]
 
 /-- The transpose `k : prod f̂ Y ⟶ f*(X)` underlying `piPhi g`. -/
 def piPhiK {X : Over A} {Y : Over B} (g : OverHom (baseChangeObj f Y) X) :
@@ -306,7 +301,9 @@ def piPhiK {X : Over A} {Y : Over B} (g : OverHom (baseChangeObj f Y) X) :
 
 /-- **`φ`**: `OverHom (f* Y) X → OverHom Y (Π_f X)`. -/
 def piPhi {X : Over A} {Y : Over B} (g : OverHom (baseChangeObj f Y) X) : Y ⟶ piForallObj f X :=
-  piLift f (curry (piPhiK f g)) (by rw [transp_curry]; exact OverHom.ext (_piPhi_hk f g))
+  piLift f (curry (piPhiK f g)) (by
+    rw [show transp (curry (piPhiK f g)) = piPhiK f g from curry_eval_eq _]
+    exact OverHom.ext (_piPhi_hk f g))
 
 /-- **`ψ`**: `OverHom Y (Π_f X) → OverHom (f* Y) X`.  Uses `transp (d ≫ eqMap)` and the
     section condition forced by the equalizer. -/
@@ -325,7 +322,7 @@ def piPsi {X : Over A} {Y : Over B} (d : Y ⟶ piForallObj f X) : OverHom (baseC
     rw [Cat.assoc]
     -- (transp c).f ≫ X.hom = (transp c ≫ px).f = fst.f = π₁_PB
     have : (transp c).f ≫ X.hom = (_PB f Y).cone.π₁ := congrArg OverHom.f hsec
-    rw [this, bcToProd_q₁]⟩
+    rw [this, show bcToProd f Y ≫ (_PB f Y).cone.π₁ = (_BC f Y).cone.π₂ from (_PB f Y).lift_fst _]⟩
 
 /-- `transp (d ≫ eqMap)` underlying arrow, for `d : Y ⟶ Π_f X`.  Used to unfold `piPsi`. -/
 private theorem _piPsi_f {X : Over A} {Y : Over B} (d : Y ⟶ piForallObj f X) :
@@ -335,7 +332,7 @@ private theorem _piPsi_f {X : Over A} {Y : Over B} (d : Y ⟶ piForallObj f X) :
 private theorem _piPhi_transp {X : Over A} {Y : Over B} (g : OverHom (baseChangeObj f Y) X) :
     transp (piPhi f g ≫ piEqMap f X) = piPhiK f g := by
   show transp (piLift f (curry (piPhiK f g)) _ ≫ piEqMap f X) = _
-  rw [piLift_eqMap, transp_curry]
+  rw [piLift_eqMap, show transp (curry (piPhiK f g)) = piPhiK f g from curry_eval_eq _]
 
 /-- **`φψ`** round-trip: `piPsi (piPhi g) = g`. -/
 theorem piPsi_piPhi {X : Over A} {Y : Over B} (g : OverHom (baseChangeObj f Y) X) :
@@ -386,10 +383,6 @@ private theorem _piForallMap_sec {X X' : Over A} (m : X ⟶ X') :
 def piForallMap {X X' : Over A} (m : X ⟶ X') : piForallObj f X ⟶ piForallObj f X' :=
   piLift f (piEqMap f X ≫ expCovMap (fHat f) (PbMap f m)) (_piForallMap_sec f m)
 
-@[simp] theorem piForallMap_eqMap {X X' : Over A} (m : X ⟶ X') :
-    piForallMap f m ≫ piEqMap f X' = piEqMap f X ≫ expCovMap (fHat f) (PbMap f m) :=
-  piLift_eqMap f _ _
-
 /-- The equalizer arrow `piEqMap` is monic: maps into `Π_f X` agreeing after `≫ piEqMap` agree. -/
 theorem piEqMap_mono {X : Over A} {Y : Over B} {u v : Y ⟶ piForallObj f X}
     (h : u ≫ piEqMap f X = v ≫ piEqMap f X) : u = v := by
@@ -407,15 +400,22 @@ theorem piEqMap_mono {X : Over A} {Y : Over B} {u v : Y ⟶ piForallObj f X}
 theorem piForallMap_id (X : Over A) :
     piForallMap f (Cat.id X) = Cat.id (piForallObj f X) := by
   apply piEqMap_mono
-  rw [piForallMap_eqMap, PbMap_id, expCovMap_id, Cat.comp_id, Cat.id_comp]
+  rw [show piForallMap f (Cat.id X) ≫ piEqMap f X =
+        piEqMap f X ≫ expCovMap (fHat f) (PbMap f (Cat.id X)) from piLift_eqMap f _ _,
+      PbMap_id, expCovMap_id, Cat.comp_id, Cat.id_comp]
 
 /-- `Π_f` preserves composition. -/
 theorem piForallMap_comp {X X' X'' : Over A} (m : X ⟶ X') (n : X' ⟶ X'') :
     piForallMap f (m ≫ n) = piForallMap f m ≫ piForallMap f n := by
   apply piEqMap_mono
   rw [Cat.assoc]
-  simp only [piForallMap_eqMap]
-  rw [PbMap_comp, expCovMap_comp, ← Cat.assoc, ← Cat.assoc (piForallMap f m), piForallMap_eqMap,
+  rw [show piForallMap f (m ≫ n) ≫ piEqMap f X'' =
+        piEqMap f X ≫ expCovMap (fHat f) (PbMap f (m ≫ n)) from piLift_eqMap f _ _,
+      show piForallMap f n ≫ piEqMap f X'' =
+        piEqMap f X' ≫ expCovMap (fHat f) (PbMap f n) from piLift_eqMap f _ _]
+  rw [PbMap_comp, expCovMap_comp, ← Cat.assoc, ← Cat.assoc (piForallMap f m),
+      show piForallMap f m ≫ piEqMap f X' =
+        piEqMap f X ≫ expCovMap (fHat f) (PbMap f m) from piLift_eqMap f _ _,
       Cat.assoc]
 
 /-- **`Π_f` is a functor `Over A → Over B`.** -/
@@ -439,7 +439,9 @@ theorem piPhi_nat_right {Y : Over B} {X X' : Over A}
   -- LHS: transp(piPhi(g≫b) ≫ eqMap) = piPhiK (g≫b)
   rw [_piPhi_transp]
   -- RHS: (piPhi g ≫ Π_f b) ≫ eqMap = piPhi g ≫ (eqMap ≫ expCovMap (PbMap b))
-  rw [Cat.assoc, piForallMap_eqMap, ← Cat.assoc, transp_expCovMap, _piPhi_transp]
+  rw [Cat.assoc, show piForallMap f b ≫ piEqMap f X' =
+        piEqMap f X ≫ expCovMap (fHat f) (PbMap f b) from piLift_eqMap f _ _,
+      ← Cat.assoc, transp_expCovMap, _piPhi_transp]
   -- piPhiK (g≫b) = piPhiK g ≫ PbMap b  (underlying arrows)
   apply OverHom.ext
   show prodToBc f Y ≫ (g ≫ b).f = (prodToBc f Y ≫ g.f) ≫ b.f
@@ -485,9 +487,17 @@ theorem prodToBc_baseChangeMap {Y' Y : Over B} (a : Y' ⟶ Y) :
     prodToBc f Y' ≫ (baseChangeMap f a).f = (prodMap (fHat f) Y' Y a).f ≫ prodToBc f Y := by
   apply _BC_hom_ext
   · -- ≫ π₁_BC(Y):  both sides = π₂_PB(Y') ≫ a.f
-    rw [Cat.assoc, _bcMap_π₁, ← Cat.assoc, prodToBc_p₁, Cat.assoc, prodToBc_p₁, _prodMap_snd_f]
+    rw [Cat.assoc, _bcMap_π₁, ← Cat.assoc,
+      show prodToBc f Y' ≫ (_BC f Y').cone.π₁ = (_PB f Y').cone.π₂ from (_BC f Y').lift_fst _,
+      Cat.assoc,
+      show prodToBc f Y ≫ (_BC f Y).cone.π₁ = (_PB f Y).cone.π₂ from (_BC f Y).lift_fst _,
+      _prodMap_snd_f]
   · -- ≫ π₂_BC(Y):  both sides = π₁_PB(Y')
-    rw [Cat.assoc, _bcMap_π₂, prodToBc_p₂, Cat.assoc, prodToBc_p₂, _prodMap_fst_f]
+    rw [Cat.assoc, _bcMap_π₂,
+      show prodToBc f Y' ≫ (_BC f Y').cone.π₂ = (_PB f Y').cone.π₁ from (_BC f Y').lift_snd _,
+      Cat.assoc,
+      show prodToBc f Y ≫ (_BC f Y).cone.π₂ = (_PB f Y).cone.π₁ from (_BC f Y).lift_snd _,
+      _prodMap_fst_f]
 
 /-- **`φ_nat_left`**: `piPhi (f* a ≫ g) = a ≫ piPhi g`, for `a : Y' ⟶ Y`. -/
 theorem piPhi_nat_left {Y' Y : Over B} {X : Over A}
