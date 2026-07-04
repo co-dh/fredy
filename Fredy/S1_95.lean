@@ -1288,7 +1288,7 @@ class HasArbitraryPowers (𝒞 : Type u) [Cat.{v} 𝒞] [HasBinaryProducts 𝒞]
     subobjects.  It is hosted HERE (rather than in the downstream `ToposIndexedJoins`, which
     re-exports it) so that `LocallySmallTopos` can carry the `WellPoweredSub` datum as a field
     and the §1.967/§1.968 completeness theorems below can feed it into
-    `locallyComplete'_of_powers_wellPowered`.  All defs/proofs are Sorry-free
+    `locallyComplete_of_powers_wellPowered`.  All defs/proofs are Sorry-free
     (axioms: `propext, Classical.choice, Quot.sound`). -/
 section IndexedJoinsEngine
 variable [Topos 𝒞]
@@ -1422,9 +1422,9 @@ theorem extJoin_least {A : 𝒞} (S : Subobject 𝒞 A → Prop) (U : Subobject 
 
 /-- **§1.967 — a topos with arbitrary powers and well-powered subobjects is LOCALLY COMPLETE.**
     The `sup` is `extJoin`; the two lattice laws are `extJoin_upper` / `extJoin_least`.  This is
-    the genuine `LocallyComplete'` of S1_84 (the conclusion of §1.967 "powers ⟹ locally
+    the genuine `LocallyComplete` of S1_70 (the conclusion of §1.967 "powers ⟹ locally
     complete"), conditional on the well-poweredness witness `wp` that the bare topos lacks. -/
-noncomputable def locallyComplete'_of_powers_wellPowered : LocallyComplete' 𝒞 where
+noncomputable def locallyComplete_of_powers_wellPowered : LocallyComplete 𝒞 where
   toHasImages := inferInstance
   sup S := extJoin hpow wp S
   sup_upper := extJoin_upper hpow wp
@@ -1632,12 +1632,12 @@ theorem topos_copowers_equiv_copowers_of_one [LocallySmallTopos 𝒞]
     give arbitrary unions via the Ω-internal complement structure. -/
 noncomputable def topos_powers_implies_locally_complete [LocallySmallTopos 𝒞]
     (hpow : HasArbitraryPowers (𝒞 := 𝒞)) :
-    LocallyComplete' 𝒞 :=
+    LocallyComplete 𝒞 :=
   -- `LocallySmallTopos` carries the well-poweredness witness (§1.96); feed it together with
   -- the arbitrary powers into the §1.967 join engine (`extJoin` = ⋂ of common upper bounds).
   -- (Binary products / equalizers come from the topos itself, so no explicit instance args —
   -- this avoids a `HasBinaryProducts` diamond between the explicit arg and `Topos`'s own.)
-  locallyComplete'_of_powers_wellPowered hpow (LocallySmallTopos.wellPowered (𝒞 := 𝒞))
+  locallyComplete_of_powers_wellPowered hpow (LocallySmallTopos.wellPowered (𝒞 := 𝒞))
 
 -- **§1.968 complete↔cocomplete** (`topos_complete_iff_cocomplete`) and **§1.969 Lawvere↔Tierney**
 -- (`lawvere_eq_tierney`, with the `LawvereGrothendieckTopos`/`TierneyGrothendieckTopos` classes)

@@ -8,9 +8,7 @@
   §1.845 Coproducts in E remain coproducts in Rel(E).
   §1.846 A coequalizer in E remains a coequalizer in Rel(E).
 
-  NOTE: We do not import S1_70 here because that file has a build error
-  (logos_implies_preLogos is missing PreLogos fields).  The one class
-  we need from §1.712 (LocallyComplete) is redefined locally below.
+  The §1.712 class `LocallyComplete` is the canonical one from S1_70 (imported below).
 -/
 
 import Fredy.S1_1
@@ -25,6 +23,7 @@ import Fredy.S1_59
 import Fredy.S1_60
 import Fredy.S1_62
 import Fredy.S1_64
+import Fredy.S1_70
 import Fredy.S1_77
 import Fredy.S1_82
 
@@ -55,14 +54,8 @@ class HasAllCoproducts (𝒞 : Type u) [Cat.{v} 𝒞] where
 -- below we require its two building blocks directly: `HasAllCoproducts` (above)
 -- and `HasCoequalizers` (from S1_58), avoiding a duplicate `Cocomplete` class.
 
-/-- LOCALLY COMPLETE (§1.712): each subobject lattice is a complete lattice.
-    Redefined here to avoid importing the broken S1_70 build. -/
-class LocallyComplete' (𝒞 : Type u) [Cat.{v} 𝒞] extends HasImages 𝒞 where
-  sup : ∀ {A : 𝒞}, ((Subobject 𝒞 A) → Prop) → Subobject 𝒞 A
-  sup_upper : ∀ {A : 𝒞} (S : (Subobject 𝒞 A) → Prop) (s : Subobject 𝒞 A),
-    S s → Subobject.le s (sup S)
-  sup_least : ∀ {A : 𝒞} (S : (Subobject 𝒞 A) → Prop) (U : Subobject 𝒞 A),
-    (∀ s, S s → Subobject.le s U) → Subobject.le (sup S) U
+-- LOCALLY COMPLETE (§1.712): each subobject lattice is a complete lattice.
+-- The canonical class `LocallyComplete` lives in S1_70 (imported above).
 
 /-! ## §1.84 Giraud Definition of a Grothendieck Topos ---------------------- -/
 
@@ -110,7 +103,7 @@ def PullbacksPreserveArbitraryUnions (𝒞 : Type u) [Cat.{v} 𝒞]
     category with a generating set, disjoint coproducts, and pullbacks
     that preserve arbitrary unions. -/
 class GrothendieckTopos (E : Type u) [Cat.{v} E] extends
-    EffectiveRegular E, HasAllCoproducts E, HasCoequalizers E, LocallyComplete' E where
+    EffectiveRegular E, HasAllCoproducts E, HasCoequalizers E, LocallyComplete E where
   /-- A SMALL generating set (§1.84, §1.632), presented as a `Type v`-indexed
       family `gen_obj : gen_idx → E`.  Smallness (an index in universe `v`) is
       part of the Giraud definition ("a small generating set") and is exactly
@@ -125,7 +118,7 @@ class GrothendieckTopos (E : Type u) [Cat.{v} E] extends
   coprod_disjoint : ∀ {I : Type v} (A : I → E),
     DisjointCoproduct (HasAllCoproducts.coprod A)
   /-- Pullbacks preserve arbitrary unions (§1.84).
-      Note: PullbacksPreserveArbitraryUnions does not depend on LocallyComplete'. -/
+      Note: PullbacksPreserveArbitraryUnions does not depend on LocallyComplete. -/
   pullback_union  : PullbacksPreserveArbitraryUnions E
 
 /-- The underlying predicate of the generating set: `X` is a generator iff it is
@@ -344,7 +337,7 @@ noncomputable instance grothendieck_topos_well_copowered [GrothendieckTopos E] :
 
 /-- §1.844: A Grothendieck topos is locally complete.
     This is already built into the `GrothendieckTopos` typeclass
-    (extends `LocallyComplete'`).
+    (extends `LocallyComplete`).
 
     BOOK PROOF: Given a family {Aᵢ ↣ A} of subobjects, form the coproduct
     ΣAᵢ (which exists since E is cocomplete), and let u : ΣAᵢ → A be the
@@ -352,7 +345,7 @@ noncomputable instance grothendieck_topos_well_copowered [GrothendieckTopos E] :
     preserve arbitrary unions, the inverse-image functor f# also commutes
     with arbitrary suprema, establishing local completeness. -/
 instance grothendieck_topos_locally_complete [GrothendieckTopos E] :
-    LocallyComplete' E := inferInstance
+    LocallyComplete E := inferInstance
 
 /-! ## §1.845 Coproducts in E remain coproducts in Rel(E) ------------------- -/
 

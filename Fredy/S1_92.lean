@@ -1249,8 +1249,8 @@ theorem expSubobj (A B : 𝒞) :
 -- to Sub(A) is the double-sharp f## (§1.7).  Hence every topos satisfies the double-sharp axiom.
 -- BOOK §1.932: The double-sharp axiom holds for topoi.
 --
--- DONE — proved as `S1_94.topos_is_logos : Nonempty (Logos' 𝒞)`, which packages:
---   · `HasRightAdjointImage'` — `toposHasRightAdjointImage` via `radjImage` / `radjImage_adjunction`
+-- DONE — proved as `S1_94.topos_is_logos : Nonempty (Logos 𝒞)`, which packages:
+--   · `HasRightAdjointImage` — `toposHasRightAdjointImage` via `radjImage` / `radjImage_adjunction`
 --     (Fredy.RightAdjointImage; the right adjoint f## = ∀_f built from the internal-∀ machinery);
 --   · `HasSubobjectUnions`   — `toposHasSubobjectUnions` (Fredy.ToposColimits);
 --   · `RegularCategory`      — `topos_is_regular_real` (Fredy.InternalForallTopos).
