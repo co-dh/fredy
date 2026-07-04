@@ -1218,6 +1218,14 @@ structure MeetLattice where
   meet_le_right : ∀ x y, le (meet x y) y
   le_meet   : ∀ {z x y}, le z x → le z y → le z (meet x y)
 
+/-- Every `MeetLattice` satisfies `PosetOrder` — unifies the poset-based closure
+    operators (§1.815) with the lattice-based ones (§1.858). -/
+instance MeetLattice.toPosetOrder (L : MeetLattice) : PosetOrder L.carrier where
+  le := L.le
+  le_refl := L.le_refl
+  le_trans := @L.le_trans
+  le_antisymm := @L.le_antisymm
+
 /-- A HEYTING LATTICE: a meet-lattice with an implication arrow (§1.72, §1.852). -/
 structure HeytingLattice extends MeetLattice where
   imp       : carrier → carrier → carrier
@@ -1235,12 +1243,16 @@ structure KuratowskiInterior (L : MeetLattice) where
 def KuratowskiInterior.isOpen {L : MeetLattice} (ki : KuratowskiInterior L) (x : L.carrier) : Prop :=
   ki.op x = x
 
+/- A `KuratowskiInterior` is a closure on the DUAL order.  We don't provide a direct
+    `ClosureOpPoset` bridge because the dual order needs its own `PosetOrder` instance;
+    users dualizing should create a `PosetOrder` on the `≥` order explicitly. -/
+
 /-- A LAWVERE-TIERNEY CLOSURE OPERATION on a meet-lattice (§1.858):
-    inflationary, idempotent, and meet-preserving. -/
-structure LawvereTierneyClosure (L : MeetLattice) where
-  op      : L.carrier → L.carrier
-  inflat  : ∀ x, L.le x (op x)
-  idem    : ∀ x, op (op x) = op x
+    order-preserving, inflationary, idempotent, and meet-preserving.
+    Extends `ClosureOpPoset` (§1.815) — monotonicity is required as a
+    field (per the book's definition); it is also derivable from
+    `meet_pres` but that is a theorem, not the definition. -/
+structure LawvereTierneyClosure (L : MeetLattice) extends ClosureOpPoset L.carrier where
   meet_pres : ∀ x y, op (L.meet x y) = L.meet (op x) (op y)
 
 /-- CLOSED ELEMENTS of an L-T closure: the fixed points. -/
@@ -1255,91 +1267,68 @@ theorem lt_closure_closed_elements_exponential_ideal
     (hb : j.isClosed b) :
     j.isClosed (L.imp a b) := by
   -- isClosed: j.op x = x; need j.op (imp a b) = imp a b.
-  -- j is monotone via meet_pres: x ≤ y iff meet x y = x.
-  have j_mono : ∀ x y, L.le x y → L.le (j.op x) (j.op y) := fun x y hxy => by
-    -- x ≤ y ⟹ meet x y = x ⟹ j(meet x y) = j(x) = meet(j x)(j y) ≥ j(y)... wait:
-    -- j(x) = j(meet x y) = meet (j x) (j y) ≤ j(y) via meet_le_right
-    have hxy' : L.meet x y = x :=
-      L.le_antisymm (L.meet_le_left x y) (L.le_meet (L.le_refl x) hxy)
-    -- L.le (j.op x) (j.op y)
-    -- j.op x = j.op (L.meet x y) [by ← hxy']
-    --        = L.meet (j.op x) (j.op y) [by meet_pres]
-    -- so j.op x ≤ j.op y via meet_le_right
-    have heq : j.op (L.meet x y) = L.meet (j.op x) (j.op y) := j.meet_pres x y
-    have hj_x : j.op x = L.meet (j.op x) (j.op y) := by
-      have := heq; rw [hxy'] at this; exact this
-    exact hj_x ▸ L.meet_le_right (j.op x) (j.op y)
-  -- Show j(imp a b) ≤ imp a b, i.e., a ∧ j(imp a b) ≤ b.
-  -- a ∧ j(imp a b) ≤ j(a) ∧ j(imp a b) = j(a ∧ (imp a b)) ≤ j(b) = b.
-  apply L.le_antisymm _ (j.inflat _)
+  apply L.le_antisymm _ (j.inflationary _)
   rw [← L.imp_adj]
   have step1 : L.le (L.meet a (j.op (L.imp a b))) (j.op (L.meet a (L.imp a b))) := by
     rw [j.meet_pres]
-    exact L.le_meet (L.le_trans (L.meet_le_left _ _) (j.inflat a)) (L.meet_le_right _ _)
+    exact L.le_meet (L.le_trans (L.meet_le_left _ _) (j.inflationary a)) (L.meet_le_right _ _)
   have step2 : L.le (j.op (L.meet a (L.imp a b))) (j.op b) :=
-    j_mono _ _ (L.imp_adj.mpr (L.le_refl _))
-  -- j.op b = b, so j.op b ≤ b is j.op_b ▸ le_refl
+    j.order_preserving (L.imp_adj.mpr (L.le_refl _))
   have step3 : L.le (j.op b) b := by rw [hb]; exact L.le_refl b
   exact L.le_trans step1 (L.le_trans step2 step3)
 
-/-- A PROTOclosure is an inflationary, idempotent operation (not yet assumed meet-preserving). -/
-structure ProtoClosure (L : MeetLattice) where
-  op      : L.carrier → L.carrier
-  inflat  : ∀ x, L.le x (op x)
-  idem    : ∀ x, op (op x) = op x
+/-- A PROTOclosure is an order-preserving, inflationary, idempotent operation
+    (§1.815, §1.858).  Extends `ClosureOpPoset` directly — the only addition is
+    the equality form of idempotence (which is derivable but kept as a field for
+    convenience). -/
+structure ProtoClosure (L : MeetLattice) extends ClosureOpPoset L.carrier where
+  /-- Idempotence as equality: op(op x) = op x (follows from `idempotent` + `inflationary`). -/
+  idem_eq : ∀ x, op (op x) = op x
 
 /-- Fixed points of a ProtoClosure. -/
 def ProtoClosure.isClosed {L : MeetLattice} (j : ProtoClosure L) (x : L.carrier) : Prop :=
   j.op x = x
 
-/-- Converse of §1.858: If the closed elements of an inflationary idempotent
-    MONOTONE operation on a Heyting lattice are an exponential ideal (a → b closed
-    whenever b is closed), then the operation preserves meets (is L-T).
+/-- Converse of §1.858: If the closed elements of a `ProtoClosure` (already
+    order-preserving by definition) on a Heyting lattice are an exponential ideal
+    (a → b closed whenever b is closed), then the operation preserves meets (is L-T).
 
-    NOTE: The theorem as originally stated (without monotonicity) is FALSE.
+    NOTE: The theorem as originally stated without monotonicity is FALSE.
     Counterexample: 4-element Boolean algebra {0, a, ¬a, 1}; j(0)=a, j(a)=a,
     j(¬a)=¬a, j(1)=1. This is inflationary, idempotent, hIdeal holds (fixed points
     {a,¬a,1} closed under →), but j(a∧¬a)=j(0)=a ≠ 0=a∧¬a=j(a)∧j(¬a).
-    The book's §1.815 "closure operation" requires monotonicity (order-preserving).
-
-    The `≤` direction j(x∧y) ≤ j(x)∧j(y) follows immediately from hMono.
-    The `≥` direction j(x)∧j(y) ≤ j(x∧y) uses hIdeal and requires further work. -/
+    The book's §1.815 "closure operation" requires monotonicity (order-preserving),
+    which is now part of `ProtoClosure` (extending `ClosureOpPoset`). -/
 theorem exponential_ideal_implies_lt_closure
     (L : HeytingLattice)
     (j : ProtoClosure L.toMeetLattice)
-    (hMono : ∀ x y, L.le x y → L.le (j.op x) (j.op y))
     (hIdeal : ∀ (a b : L.carrier), j.isClosed b → j.isClosed (L.imp a b)) :
     ∀ x y, j.op (L.meet x y) = L.meet (j.op x) (j.op y) := by
   intro x y
   apply L.le_antisymm
-  · -- ≤ direction: j(x∧y) ≤ j(x)∧j(y), from monotonicity.
+  · -- ≤ direction: j(x∧y) ≤ j(x)∧j(y), from order_preserving.
     apply L.le_meet
-    · exact hMono _ _ (L.meet_le_left x y)
-    · exact hMono _ _ (L.meet_le_right x y)
+    · exact j.order_preserving (L.meet_le_left x y)
+    · exact j.order_preserving (L.meet_le_right x y)
   · -- ≥ direction: j(x)∧j(y) ≤ j(x∧y).
-    -- KEY LEMMA: z ≤ c (c closed) → j(z) ≤ c  (via hMono: j(z) ≤ j(c) = c).
+    -- KEY LEMMA: z ≤ c (c closed) → j(z) ≤ c  (via order_preserving: j(z) ≤ j(c) = c).
     have key : ∀ z c, j.isClosed c → L.le z c → L.le (j.op z) c := fun z c hc hzc =>
-      hc ▸ hMono z c hzc
+      hc ▸ j.order_preserving hzc
     -- j(x∧y) is closed (idempotent).
-    have hxy_cl : j.isClosed (j.op (L.meet x y)) := j.idem (L.meet x y)
+    have hxy_cl : j.isClosed (j.op (L.meet x y)) := j.idem_eq (L.meet x y)
     -- imp x (j(x∧y)) is closed.
     have hc1 : j.isClosed (L.imp x (j.op (L.meet x y))) := hIdeal x _ hxy_cl
     -- y ≤ imp x j(x∧y): imp_adj.mp with x∧y ≤ j(x∧y) (inflationary).
-    --   imp_adj : le (meet a t) b ↔ le t (imp a b); mp: (meet a t ≤ b) → (t ≤ imp a b).
-    --   Here a=x, t=y, b=j(x∧y). Need: meet x y ≤ j(x∧y), i.e., x∧y ≤ j(x∧y). ✓
     have hy_le : L.le y (L.imp x (j.op (L.meet x y))) :=
-      L.imp_adj.mp (j.inflat (L.meet x y))
+      L.imp_adj.mp (j.inflationary (L.meet x y))
     -- j(y) ≤ imp x j(x∧y) by KEY LEMMA (y ≤ it, it closed).
     have hjy_le : L.le (j.op y) (L.imp x (j.op (L.meet x y))) := key y _ hc1 hy_le
     -- x∧j(y) ≤ j(x∧y): imp_adj.mpr with j(y) ≤ imp x j(x∧y).
-    --   mpr: (t ≤ imp a b) → (meet a t ≤ b); here a=x, t=j(y). ✓
     have step4 : L.le (L.meet x (j.op y)) (j.op (L.meet x y)) :=
       L.imp_adj.mpr hjy_le
     -- imp j(y) j(x∧y) is closed.
     have hc2 : j.isClosed (L.imp (j.op y) (j.op (L.meet x y))) := hIdeal _ _ hxy_cl
     -- x ≤ imp j(y) j(x∧y): imp_adj.mp with meet j(y) x ≤ j(x∧y).
-    --   Need: meet (j.op y) x ≤ j(x∧y). We have step4: meet x (j.op y) ≤ j(x∧y).
-    --   Use le_trans with meet commutativity (le_meet).
     have hx_le : L.le x (L.imp (j.op y) (j.op (L.meet x y))) :=
       L.imp_adj.mp (L.le_trans
         (L.le_meet (L.meet_le_right (j.op y) x) (L.meet_le_left (j.op y) x))
@@ -1347,7 +1336,6 @@ theorem exponential_ideal_implies_lt_closure
     -- j(x) ≤ imp j(y) j(x∧y) by KEY LEMMA.
     have hjx_le : L.le (j.op x) (L.imp (j.op y) (j.op (L.meet x y))) := key x _ hc2 hx_le
     -- j(x)∧j(y) ≤ j(x∧y): imp_adj.mpr gives meet (j.op y) (j.op x) ≤ j(x∧y).
-    -- Then swap via le_meet.
     have hmet : L.le (L.meet (j.op y) (j.op x)) (j.op (L.meet x y)) :=
       L.imp_adj.mpr hjx_le
     exact L.le_trans

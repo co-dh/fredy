@@ -38,27 +38,16 @@ namespace Freyd
   Subobject-based `Locale` of S1_72) so that concrete carriers such
   as `Opens X` can instantiate it directly. -/
 
-/-- A FRAME: complete lattice in which `a ⊓ (⨆ S) = ⨆ {a ⊓ s | s ∈ S}`. -/
-structure Frame where
-  /-- Carrier set. -/
-  carrier  : Type u
-  /-- Partial order. -/
-  le       : carrier → carrier → Prop
-  le_refl  : ∀ a, le a a
-  le_trans : ∀ {a b c}, le a b → le b c → le a c
-  /-- Anti-symmetry (needed to state equalities like `a = b` from `a ≤ b ∧ b ≤ a`). -/
-  le_antisymm : ∀ {a b}, le a b → le b a → a = b
+/-- A FRAME: complete lattice in which `a ⊓ (⨆ S) = ⨆ {a ⊓ s | s ∈ S}`.
+    Extends `MeetLattice` (§1.85) — the carrier, order, and meet fields are
+    inherited rather than duplicated. -/
+structure Frame extends MeetLattice where
   /-- Top element. -/
   top   : carrier
   le_top : ∀ a, le a top
   /-- Bottom element. -/
   bot   : carrier
   bot_le : ∀ a, le bot a
-  /-- Binary meet (∧). -/
-  meet          : carrier → carrier → carrier
-  meet_le_left  : ∀ a b, le (meet a b) a
-  meet_le_right : ∀ a b, le (meet a b) b
-  le_meet       : ∀ {a b c}, le c a → le c b → le c (meet a b)
   /-- Arbitrary join (⨆). -/
   sSup   : (carrier → Prop) → carrier
   le_sSup : ∀ (S : carrier → Prop) a, S a → le a (sSup S)
@@ -198,7 +187,7 @@ noncomputable def toHeytingPoset (F : Frame.{0}) : HeytingPoset where
   meet          := F.meet
   meet_le_left  := F.meet_le_left
   meet_le_right := F.meet_le_right
-  le_meet       := @F.le_meet
+  le_meet       := fun {a b c} hca hcb => F.le_meet hca hcb
   join          := F.join
   le_join_left  := F.le_join_left
   le_join_right := F.le_join_right
@@ -404,11 +393,11 @@ def opensFrame (τ : Topology X) : Frame.{u} where
   meet   := Opens.meet
   meet_le_left  := Opens.meet_le_left
   meet_le_right := Opens.meet_le_right
-  le_meet := @Opens.le_meet X τ
+  le_meet := fun {z x y} hzx hzy => Opens.le_meet hzx hzy
   sSup   := Opens.sSup
-  le_sSup := Opens.le_sSup
-  sSup_le := Opens.sSup_le
-  meet_sSup_distrib := Opens.meet_sSup_distrib
+  le_sSup := fun S a ha => Opens.le_sSup S a ha
+  sSup_le := fun S b h => Opens.sSup_le S b h
+  meet_sSup_distrib := fun a S => Opens.meet_sSup_distrib a S
 
 end Topology
 
@@ -1302,9 +1291,9 @@ end OPred
 def opredFrame {F : Frame.{u}} (A : OValuedSet F) : Frame.{u} where
   carrier := OPred A
   le      := OPred.le
-  le_refl := OPred.le_refl
-  le_trans := @OPred.le_trans F A
-  le_antisymm := @OPred.le_antisymm F A
+  le_refl := fun x => OPred.le_refl x
+  le_trans := fun {x y z} hxy hyz => OPred.le_trans hxy hyz
+  le_antisymm := fun {x y} hxy hyx => OPred.le_antisymm hxy hyx
   top     := OPred.top A
   le_top  := OPred.le_top
   bot     := OPred.bot A
@@ -1312,11 +1301,11 @@ def opredFrame {F : Frame.{u}} (A : OValuedSet F) : Frame.{u} where
   meet    := OPred.meet
   meet_le_left  := OPred.meet_le_left
   meet_le_right := OPred.meet_le_right
-  le_meet := @OPred.le_meet F A
+  le_meet := fun {z x y} hzx hzy => OPred.le_meet hzx hzy
   sSup    := OPred.sSup
-  le_sSup := OPred.le_sSup
-  sSup_le := OPred.sSup_le
-  meet_sSup_distrib := OPred.meet_sSup_distrib
+  le_sSup := fun S a ha => OPred.le_sSup S a ha
+  sSup_le := fun S b h => OPred.sSup_le S b h
+  meet_sSup_distrib := fun a S => OPred.meet_sSup_distrib a S
 
 /-! ### H(Y): OPred on the terminal F-valued set recovers F
 
