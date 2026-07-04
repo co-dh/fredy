@@ -313,15 +313,20 @@ The survey concluded the big general frameworks already exist (S1_8 `Adjunction`
 S1_82 `HasLimit`, `RegularFunctor` bundles + `image_chosenPullback_isPullback`) or are net-negative to
 introduce; see memory `general-framework-dedup-survey`. Three genuine NARROW wins remain:
 
-- [ ] **E1. Unify the 3 indexed-product structures.** `HasIndexedProduct {I:Type}` (S1_42:280) /
-  `HasFinProd {Fin n}` (S1_43:271) / `HasProducts {Type v}` (S1_82:142) are the same
-  prod/proj/lift/lift_π/lift_uniq skeleton differing only in the index type. Parameterize one over the
-  index universe; make the others instances. ~40-60 lines, low-ish risk (no shape-category apparatus);
-  friction = `HasFinProd`'s `Fin.cases` plumbing (S1_43:324). Highest ROI.
-- [ ] **E2. Collapse the `∃_f ⊣ f#` triple.** `existsAlong` (S1_60) and `DirectImage` (S1_70) are the
-  SAME operation `image (S.arr ≫ f)`, so `existsAlong_le_iff` / `directImage_adj` /
-  `directImage_adjunction` (S1_59_10_Frobenius, S1_967_ToposExists) prove the same adjunction three
-  times. Same-lemma dedup (forward two to one canonical). Modest.
-- [ ] **E3. Re-route `objIncl_preservesPullbacks_generic`** (S2_218_ObjInclRegular, ~40 lines re-deriving
-  inline via `products_equalizers_implies_pullbacks` + `isIso_of_two_pullbacks`) through the existing
-  general `image_chosenPullback_isPullback`. Same re-route done for `objInclL` this session. Small, one site.
+- [~] **E1. Unify the 3 indexed-product structures** → **MOSTLY DONE / rest NOT WORTH** (worked 2026-07-03).
+  Survey oversold it. `HasProducts {Type v}` (S1_82:142) is a DIFFERENT shape (a `class` bundling ALL small
+  products, `∀{I}F` quantified inside `prodObj`/`tupling`), not a single-family structure — it does not fold
+  into `HasIndexedProduct`, and is used only in S1_82's §1.825. The genuine overlap `HasIndexedProduct` (S1_42)
+  ↔ `HasFinProd` (S1_43) is ALREADY bridged: `HasIndexedProduct.toHasFinProd` adaptor + `finProd_of_term_binary
+  := finiteProduct_from_term_binary.toHasFinProd` (commit 29b168c, this session). Fully eliminating `HasFinProd`
+  = a moderate refactor of the FOUNDATIONAL finite-products API (`FinProdCone`/`HasFiniteProducts`/`finProdObj/
+  π/lift`) for ~15 lines, losing the cone-grouped ergonomics — not worth the risk. No further action.
+- [x] **E2. Collapse the `∃_f ⊣ f#` triple** → **DONE** (commit 73c9241). `existsAlong` (S1_60), `DirectImage`
+  (S1_70), `directImage` (S1_967) are all `image (arr ≫ f)`; generalized the upstream `existsAlong` to
+  `[HasImages]` (`omit [PreLogos]`) and forwarded the two downstream copies to it — one canonical op. (The
+  adjunction LEMMAS `directImage_adj`/`directImage_adjunction` genuinely differ — `InverseImage f T` instance
+  vs `invImg f T hp` explicit-pullback — and `directImage_adj` is already 1-line via reusable bridges; kept.)
+- [~] **E3. Re-route `objIncl_preservesPullbacks_generic`** → **FALSE LEAD** (no action). It already delegates
+  the chosen pullback to `image_chosenPullback_isPullback` (via `objIncl_preserves_pullbacks`, S1_543_Capitalization:332)
+  and adds a genuine chosen→generic upgrade (comparison iso). The survey agent conflated the chosen-pullback and
+  generic-`PreservesPullbacks` levels; there is nothing to re-route.
