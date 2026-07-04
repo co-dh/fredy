@@ -107,7 +107,8 @@
 <div id="tr" class="float">
   <label>view
     <select id="view">
-      <option value="community" selected>communities</option>
+      <option value="concept" selected>concepts</option>
+      <option value="community">communities</option>
       <option value="section">sections</option>
       <option value="decl">declarations</option>
     </select>
@@ -168,9 +169,11 @@ function fail(msg){ overlay.classList.add('err'); ovbox.innerHTML = msg; }
 const decl = new Map();               // name -> {kind,file,line,type,doc,sec}
 const pos  = new Map();               // name -> {x,y}  (SVD seed positions)
 const commOf = new Map();             // name -> community id (Louvain, graph/communities.tsv)
+const conceptOf = new Map();          // name -> concept subject (scripts/concept.py)
+const isHub = n => n==='Cat' || n.startsWith('Cat.');   // Cat = composition/hom/id, a ubiquitous hub — dropped
 let graph, meta, sigma;               // graph=declaration graph, meta=group overview graph, sigma=mounted renderer
-let view = 'community';               // 'community' | 'section' | 'decl'
-let drillFrom = 'community';          // the overview level a drill started from (where "▲ overview" returns)
+let view = 'concept';                 // 'concept' | 'community' | 'section' | 'decl'
+let drillFrom = 'concept';            // the overview level a drill started from (where "▲ overview" returns)
 let metaMembers = new Map();          // gid -> {names,count,chap,label,topSecs}
 let declLaidOut = false;              // lazily run the (expensive) 9k-node layout only when first shown
 
@@ -190,15 +193,20 @@ async function main(){
   }
   // optional SVD seed layout (scripts/svd_layout.py -> pos.tsv) + Louvain communities
   // (scripts/community.py -> communities.tsv). Both optional; absent => random seed / no community level.
-  const [pTxt, cTxt] = await Promise.all([
+  const [pTxt, cTxt, kTxt] = await Promise.all([
     fetch('../pos.tsv', {cache:'no-store'}).then(r=> r.ok ? r.text() : '').catch(()=> ''),
     fetch('../communities.tsv', {cache:'no-store'}).then(r=> r.ok ? r.text() : '').catch(()=> ''),
+    fetch('../concepts.tsv', {cache:'no-store'}).then(r=> r.ok ? r.text() : '').catch(()=> ''),
   ]);
   for (const ln of pTxt.split('\n')){ if(!ln) continue; const p=ln.split('\t'); pos.set(p[0], {x:+p[1], y:+p[2]}); }
   for (const ln of cTxt.split('\n')){ if(!ln) continue; const p=ln.split('\t'); commOf.set(p[0], p[1]); }
+  for (const ln of kTxt.split('\n')){ if(!ln) continue; const p=ln.split('\t'); conceptOf.set(p[0], p[1]); }
   for (const ln of dTxt.split('\n')){ if(!ln) continue; const p=ln.split('\t');
+    if (isHub(p[0])) continue;                                   // Cat.* removed from the graph at every level
     decl.set(p[0], { kind:p[1], file:p[2], line:+p[3], type:p[4]||'', doc:p[5]||'', sec:sectionOf(p[2]) }); }
-  if (!commOf.size){ $('#view option[value="community"]').disabled = true; view='section'; $('#view').value='section'; }
+  if (!conceptOf.size){ $('#view option[value="concept"]').disabled = true; view='community'; }
+  if (!commOf.size){ $('#view option[value="community"]').disabled = true; if(view==='community') view='section'; }
+  $('#view').value = view; drillFrom = view;
 
   // ---- build the declaration graph (nodes + edges), seeded from SVD positions ----
   ovbox.textContent = 'building graph…'; await frame();
@@ -263,7 +271,9 @@ function switchView(v){
 
 /* ---------- build the group overview graph (one super-node per community or per section) ---------- */
 function buildMeta(level){
-  const groupOf = level==='community' ? (n=> commOf.get(n)) : (n=> decl.get(n).sec);
+  const groupOf = level==='community' ? (n=> commOf.get(n))
+                : level==='concept'   ? (n=> conceptOf.get(n))
+                : (n=> decl.get(n).sec);
   metaMembers = new Map();
   for (const n of decl.keys()){
     const gid = groupOf(n); if(gid==null || gid==='') continue;
@@ -283,6 +293,7 @@ function buildMeta(level){
     const topSecs = [...e.sec].sort((a,b)=> b[1]-a[1]);
     e.topSecs = topSecs.slice(0,4);
     e.label = level==='section' ? secLabel(gid)
+            : level==='concept' ? gid.split('.').slice(-1)[0]        // "Alg.Allegory" -> "Allegory"
             : secLabel(topSecs[0][0]) + (topSecs.length>1 ? ` +${topSecs.length-1}` : '');
     const ang = 2*Math.PI*ci/nG; ci++;
     meta.addNode(gid, {
@@ -299,7 +310,7 @@ function buildMeta(level){
   for (const [key,c] of w){ const j=key.indexOf(''), gs=key.slice(0,j), gt=key.slice(j+1);
     if(meta.hasNode(gs)&&meta.hasNode(gt)&&!meta.hasDirectedEdge(gs,gt))
       meta.addDirectedEdge(gs,gt,{ size:0.4+Math.log2(1+c), weight:c }); }
-  $('#stat').textContent = `${meta.order} ${level==='community'?'communities':'sections'} · ${meta.size.toLocaleString()} links`;
+  $('#stat').textContent = `${meta.order} ${({concept:'concepts',community:'communities',section:'sections'})[level]} · ${meta.size.toLocaleString()} links`;
 }
 function layoutMeta(){
   overlay.classList.remove('hidden'); ovbox.textContent='arranging groups…';
