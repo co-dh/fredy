@@ -227,6 +227,47 @@ def initial (L E : Type) : InitialAlgebra (F L E) where
 /-- The catamorphism (fold) of `φ` as a genuine morphism `dSL L E ⟶ c`. -/
 def cataR {c : RelSet.{0}} (φ : Fobj L E c ⟶ c) : dSL L E ⟶ c := cataFold φ
 
+/-- The catamorphism computation rule holds for ANY algebra-relation `φ` (not just maps):
+    `α ≫ cataFold φ = F(cataFold φ) ≫ φ`.  (The structural proof never uses `Map φ` — it is the
+    `Map`-free form of `initial`'s own `cata_comm` field.) -/
+theorem cataFold_comm {c : RelSet.{0}} (φ : Fobj L E c ⟶ c) :
+    graph con ≫ cataFold φ = (F L E).map (cataFold φ) ≫ φ := by
+  apply hom_ext; intro u r
+  cases u with
+  | inl d =>
+    constructor
+    · intro h; obtain ⟨dec, hdec, hfold⟩ := h
+      have hd : dec = SnocList.wrap d := hdec; subst hd
+      exact ⟨Sum.inl d, rfl, hfold⟩
+    · intro h; obtain ⟨v, hv, hfv⟩ := h
+      cases v with
+      | inl d' => have hdd : d = d' := hv; subst hdd; exact ⟨SnocList.wrap d, rfl, hfv⟩
+      | inr q => exact hv.elim
+  | inr p =>
+    obtain ⟨pa, pd⟩ := p
+    constructor
+    · intro h; obtain ⟨dec, hdec, hfold⟩ := h
+      have hd : dec = SnocList.snoc pa pd := hdec; subst hd
+      obtain ⟨r', hr', hfr'⟩ := hfold
+      exact ⟨Sum.inr (r', pd), ⟨hr', rfl⟩, hfr'⟩
+    · intro h; obtain ⟨v, hv, hfv⟩ := h
+      cases v with
+      | inl d' => exact hv.elim
+      | inr q =>
+        obtain ⟨qa, qd⟩ := q
+        obtain ⟨hq1, hq2⟩ := hv
+        have hpq : pd = qd := hq2
+        refine ⟨SnocList.snoc pa pd, rfl, qa, hq1, ?_⟩
+        rw [hpq]; exact hfv
+
+/-- The structural fold IS the relational catamorphism `relCata I φ` (Eilenberg–Wright, via
+    `cataFold_comm` and the universal property `relCata_UP`).  Lets the abstract catamorphism laws
+    (fusion, greedy, …) apply to `cataR` over snoc-lists.  ConsList has the same bridge
+    (`A6_ConsList.cataR_eq_relCata`); this is the missing SnocList counterpart. -/
+theorem cataR_eq_relCata {c : RelSet.{0}} (φ : Fobj L E c ⟶ c) :
+    cataR φ = relCata (initial L E) φ :=
+  (relCata_UP (initial L E) φ (cataR φ)).mp (cataFold_comm φ)
+
 /-- The `wrap`-component of an algebra `φ = [g, h]`. -/
 def algWrap {c : RelSet.{0}} (φ : Fobj L E c ⟶ c) : dL L ⟶ c :=
   fun d r => φ (Sum.inl d) r

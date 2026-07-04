@@ -81,7 +81,7 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 |------|----------------------------------|-----|--------|
 | 70   | Climbing Stairs (Fibonacci fold) | ★★★ | ✓ `L70.lean`  |
 | 198  | House Robber                     | ★★★ | ✓ `L198.lean` |
-| 213  | House Robber II                  | ★★  | ·      |
+| 213  | House Robber II                  | ★★  | ✓ `L213.lean` |
 | 91   | Decode Ways                      | ★★★ | ✓ `L91.lean`  |
 | 62   | Unique Paths                     | ★★★ | ✓ `L62.lean`  |
 | 55   | Jump Game (greedy 7.2)           | ★★★ | ·      |
@@ -399,3 +399,62 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
   when `l = nil` (`gain nil = 0`), where `downPath nil _` is `False`. Fix: prove `gain_achieves` as
   `l = nil ∨ downPath l (gain l)` and route through the "just the root" witness (`v = a`, since `a+0=a`)
   when the nil case fires.
+
+### S19 — L213 (House Robber II) — circular DP = max over two linear passes
+- **Break the ring at each end, take the best.** A circle forbids taking BOTH the first and last
+  house; any legal selection therefore misses the last house (so it lies inside `dropLast`, an
+  ordinary LINE) or misses the first (lies inside `tail`) — the two cases are exhaustive and each
+  is exactly L198's problem with no wraparound. Answer = `imax (robLine dropLast) (robLine tail)`,
+  where `robLine` is L198's `foldFn`/`solveFn` fold PORTED VERBATIM from `SnocList` to `List Int`
+  (base case `[]` ↦ `0`, since a broken-ring sub-row can be empty). Reusing the linear fold means
+  the whole circular-correctness proof reduces to ONE generic two-list lemma
+  (`imax_disj_correct l1 l2`: `imax` of two rows' `robLine` achieves/dominates the disjunction of
+  their `robSpec`s) — no bespoke "circular gluing" argument needed once the spec is DEFINED as
+  that disjunction (`circSpec = robSpec dropLast ∨ robSpec tail`), rather than as an independent
+  index-based "subset of a circular list" predicate.
+- **A single house breaks the reduction — carve it out first.** For `n=1`, both `dropLast` and
+  `tail` come out empty, silently discarding the option of robbing the only house; the standard
+  fix (and LeetCode's own edge case) is a separate `[x] => imax x 0` clause before the general
+  `dropLast`/`tail` case, both in the program AND in the spec (`v = x ∨ v = 0`).
+- **Porting a fold from `SnocList` to `List` swaps which end recurses, harmlessly.** `SnocList`
+  peels its LAST element (`snoc xs p → xs`); plain `List` pattern-matching naturally peels its
+  FIRST (`x :: xs → xs`). Max-non-adjacent-sum is symmetric under reading the row backwards, so
+  the ported fold is still correct — but the mirrored `robF`/`robT` mutual spec must swap roles too
+  (`robF`/`robT` now split on "is the FIRST house taken", not the last) to stay a literal
+  induction-shape copy of L198's `foldFn_dominates`/`foldFn_is_rob` proofs.
+- **`omega` needs an explicit bridge past `def`-level Props and `match`-branch functions.**
+  `cases h` on `h : robF [] v` (defeq to `v = 0`, but not syntactically `v = 0`) leaves `omega`
+  unable to use it — `have hv : v = 0 := h` first (coercing through defeq once) fixes it. Same
+  trap on the `solveFn`-side of a `match`-defined function (`circAnswer [x]` is defeq to
+  `imax x 0` but opaque to `omega`): `show v ≤ imax x 0` before invoking `omega`/`have h1 := ...`
+  bridges it. General rule (reinforcing S3): every `omega` call needs its hypotheses/goal already
+  in a form `omega` can SEE, not just one `rfl`/defeq step away.
+
+### S20 — genuinely APPLYING the AoP greedy/DP theorems (when it works, when it doesn't)
+- **Two-component "running-best" scans (L53 Kadane, L121 best-trade) DO fit the GREEDY THEOREM** —
+  via the reusable law `Fredy/A7_4_Horner.lean`: `greedy_max_of_refinement` (max-form of
+  `A7_2.greedy_of_refinement`) + `horner_correct` (Rel(Set) packaging over `A6_SnocList`). Route: the
+  deterministic pair algebra `alg` is monotone on a PRODUCT/Pareto order `R` and refines the greedy
+  choice `A S ≫ maxRel R` of a nondeterministic generator `S`, so `greedy_max` lands `cataR alg`
+  inside the Pareto frontier `A(relCata I S) ≫ maxRel R`; the scalar answer is the frontier's SECOND
+  component. BOTH achievability and domination are read off the single greedy conclusion (membership +
+  Pareto-maximality); only "generator = spec" (`gen_spec`/`spec_gen`) stays hand-proved — that is
+  program-equivalence, NOT the optimisation. This is the repo's first concrete greedy instantiation on
+  a real datatype (`L55`/`A7_3_Party`'s "greedy" was only nominal).
+- **Key semantic fact (Rel(Set), verified `Iff.rfl`):** `minRel R P w = w∈P ∧ ∀z∈P, R z w`, so
+  `minRel(≤)` is numeric MAX; feed `R` as the "≥-dominance"/Pareto order (L53: both coords
+  `≤`-dominance; L121: first coord by `≥`, since a smaller running-min is better).
+- **Prerequisite bridge:** `A6_SnocList.cataR_eq_relCata` (+ `cataFold_comm`) — the missing SnocList
+  counterpart of ConsList's — was added so any SnocList greedy/DP instantiation can reach the abstract
+  theorems.
+- **Cost — it does NOT shrink the file, and it is not axiom-free.** Axioms move
+  `{propext,Quot.sound}` → `{propext,Classical.choice,Quot.sound}` (inherited from `relCata`'s
+  universal property via the bridge — the same price `A6_6_Sort` pays). L53 217→314, L121 247→331
+  lines: the Pareto plumbing + generator characterisation exceed the hand induction they replace. Use
+  the AoP theorem when you want the OPTIMISATION proved by the theory, not to save lines.
+- **L322 Coin Change does NOT fit the DP theorem (Thm 9.1) — provable, not missing infra** (full
+  writeup in `Fredy/L322.md`). The DP body's Egli–Milner `powerRel` demands EVERY unfolded branch be
+  productive; coin change needs only ONE good branch (coins `{2,3}`, amount 3 solvable but sub-amount 1
+  dead ⇒ `μ(body) 3 = ∅`). Thm 9.1 fits structural recursion over INPUT data (edit distance,
+  bracketing, compression); NOT value-recursion searches with dead ends — for those a direct induction
+  is the FAITHFUL proof, and a nominal theorem call would be gerrymandering.

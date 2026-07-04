@@ -370,6 +370,45 @@ theorem solve_le_spec : solve ⊑ spec := by
   have hk : k = solveFn p.1 p.2 := h
   rw [hk]; exact solve_correct p.1 p.2
 
+/-! ## Why the correctness above is a direct fuel induction, NOT `A9_1.dynamic_programming`
+
+  The natural hope is to derive `solve_correct` from Bird–de Moor's Theorem 9.1
+  (`Freyd.Alg.dynamic_programming`, `Fredy.A9_1`) by instantiating its abstract data at
+  `Rel(Set)`:
+  * functor `F X = Unit ⊕ (Nat × X)` — `Freyd.Alg.RelSet.CL.F Unit Nat`, whose initial algebra
+    `ConsList Unit Nat` (`CL.initial Unit Nat`) is exactly "coin sequences";
+  * amount coalgebra `T : F Nat ⟶ Nat` — `inl () ↦ 0`, `inr (c, a') ↦ a' + c` for valid `c`
+    (`mem coins c ∧ 1 ≤ c`);
+  * counting algebra `h : F Nat ⟶ Nat` — `inl () ↦ 0`, `inr (c, n) ↦ n + 1`;
+  * cost order `R := (≤)` on `Nat`.
+
+  This instantiation is entirely LEGAL — every hypothesis of `dynamic_programming` discharges:
+  `Map h` (`graph_map`), `R ≫ R ⊑ R` (transitivity of `≤`), `MonotonicAlg h R`
+  (`F.map (≤) ≫ h = h ≫ (≤)`, pointwise: both send `inr (c, m)` to `{k | m + 1 ≤ k}`),
+  `F.PreservesRecip` (`CL.F_preservesRecip`), `InitialAlgebra` (`CL.initial Unit Nat`).  The
+  SPECIFICATION side even identifies cleanly: with `H := (relCata I T)° ≫ relCata I h` one has
+  `H a n ↔ Achievable coins n a`, and `A_comp_minRel` gives
+  `A H ≫ minRel R = H ∩ leftDiv H° R`, so `(A H ≫ minRel R) a n ↔ coinSpec coins a (some n)`.
+
+  What FAILS is the bridge from the executable `dp` to the theorem's `μ`-body.  That body,
+  `A (T°) ≫ powerRel (F.map X ≫ h) ≫ minRel R`, uses the EGLI–MILNER power relator `powerRel`
+  (`Fredy.A5_4`), whose "term₁" is `leftDiv (∋)° (g ≫ (∋)°)`; on `Rel(Set)` this reads
+  `powerRel g P Q → ∀ t ∈ P, ∃ u ∈ Q, g t u`.  Here `A (T°) a` is the FULL set of one-step
+  decompositions of `a` (ALL valid coins `c ≤ a`), so `μ(body) a` is nonempty only when EVERY
+  such coin leaves a solvable sub-amount `a − c`.  Coin change needs only ONE good
+  decomposition: with `coins = {2, 3}`, amount `3` is solvable (a single `3`-coin,
+  `dp = some 1`), yet the `c = 2` branch leaves the unsolvable sub-amount `1`, forcing
+  `μ(body) 3 = ∅` (indeed `μ(body) 1 = ∅` already, since `1` has no valid coin, and that dead
+  branch propagates up).  Hence `dp`-as-a-relation is NOT `⊑ μ(body)`, and Theorem 9.1's
+  refinement `μ(body) ⊑ spec` cannot transport the executable's correctness — no amount of
+  extra infrastructure removes this, it is a genuine semantic gap, not a missing lemma.
+
+  Theorem 9.1 faithfully models DPs whose coalgebra unfolds a FINITE INPUT structure so that
+  every branch is productive (B&dM's own §9.2/§9.4 — edit distance, compression — recurse on
+  input lists, where every unfold reaches the base).  The amount-axis coin search, with dead
+  sub-amounts, is not of that form, so the faithful choice is the direct fuel induction above.
+  See the collector report for the full analysis. -/
+
 /-! ## Running the program -/
 
 /-- Build a coin list from a first denomination and the rest. -/
