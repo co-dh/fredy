@@ -2497,7 +2497,17 @@ theorem step_merge_bound {Ax : List (Term Nat × Term Nat)} {N : Nat}
     injective-except-ports rigidity proved layerwise from `meet_mk_eq` /
     `gcomp_mk_eq`), plus `Classical.choice` to pick target leaves.  With
     `InstanceBound` discharged, `Chain.exists_jump` + (a) SP-wall + (c)
-    rigidity + `step_merge_bound` assemble into `RhombusHard entL entR`. -/
+    rigidity + `step_merge_bound` assemble into `RhombusHard entL entR`.
+
+    UPDATE (S2_158e): `InstanceBound allegoryAxioms 10` IS DISCHARGED —
+    `instanceBound_allegoryAxioms` in `Fredy/S2_158e_InstanceBound.lean`,
+    constructively (`propext`, `Quot.sound` only), by per-axiom instance maps
+    (no joint/leaf tower needed: the 14 axioms are concrete, and per-axiom
+    collision analysis via `meet_mk_eq`/`gcomp_mk_eq` bounds every fibre).
+    `step_hom_tame`/`step_merge_bound` hence hold for `allegoryAxioms`
+    outright (`allegory_step_hom_tame`, `allegory_step_merge_bound`, bound
+    `2·10+1 = 21`).  Still open toward `RhombusHard`: the (a) SP-wall
+    dichotomy, and the assembly of (a) + (b) + (c) along a chain. -/
 
 end Freyd.S2_158
 

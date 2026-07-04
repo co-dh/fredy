@@ -193,6 +193,7 @@ import Fredy.S2_157g_ConverseHeadline
 import Fredy.S2_158_GraphAllegory
 import Fredy.S2_158b_NoFiniteAxiom
 import Fredy.S2_158c_StepRigidity
+import Fredy.S2_158e_InstanceBound
 import Fredy.S2_33
 import Fredy.S1_631_CapitalProjective
 -- Bird & de Moor, Algebra of Programming, ch. 4 (only material not already in Freyd S2_*)
