@@ -193,6 +193,10 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 | 13   | Roman to Integer (lookahead)     | ★★  | ✓ `L13.lean`  |
 | 724  | Find Pivot Index (prefix bal)    | ★★  | ✓ `L724.lean` |
 | 387  | First Unique Character (count)   | ★★  | ✓ `L387.lean` |
+| 392  | Is Subsequence (core Sublist)    | ★★  | ✓ `L392.lean` |
+| 205  | Isomorphic Strings (eq-pattern)  | ★★  | ✓ `L205.lean` |
+| 231  | Power of Two (fuel exponent)     | ★★  | ✓ `L231.lean` |
+| 367  | Valid Perfect Square (fuel srch) | ★★  | ✓ `L367.lean` |
 
 ## Skills (running log — append after each solve)
 
@@ -1029,3 +1033,31 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
   `split` grabs the wrong/outer match) — `by_cases h : P` + `rw [if_pos/if_neg h]`. A `∀ i c, s[i]? = some
   c → …` binder with no anchor leaves `GetElem?` stuck ("type argument is a metavariable") — annotate
   `∀ (i : Nat) (c : Int)`.
+
+### S64–S67 — wave 12 (subsequence / isomorphic / power-of-two / perfect-square)
+- **BIG NEW axiom trap (sharpens S33): `omega` closing a NON-arithmetic OR EXISTENTIAL goal from a
+  contradictory hypothesis pulls `Classical.choice`** — even the fuel-peel `∃ fuel', fuel = fuel'+1` from an
+  impossible `fuel=0`. `omega` proving `False` itself is clean; `omega` proving an arbitrary goal FROM false
+  hyps is not. **Rule: when `omega` only derives a contradiction, route through `False.elim (by omega :
+  False)`, never let it target the surrounding (existential/non-arith) goal.** (Found in L231.)
+- **S64 L392 Is Subsequence.** `subseq_correct : isSubseqFn s t = true ↔ s <+ t` (Lean-core `List.Sublist`,
+  NOT `⊆`/S24 bug), axioms `[propext]`. Two-input greedy `a::s',b::t' ↦ if a=b then rec s' t' else rec
+  (a::s') t'` stays STRUCTURAL (Lean picks the always-shrinking `t`; the rare two-input recursion needing NO
+  fuel). `induction t generalizing s`; branches close by core `cons_sublist_cons`/`sublist_cons_iff`.
+- **S65 L205 Isomorphic Strings.** `iso_correct : isIsoFn s t = true ↔ IsIso s t`, `IsIso s t := s.length =
+  t.length ∧ ∀ i j, s[i]?=s[j]? ↔ t[i]?=t[j]?` (EQUALITY-PATTERN — no ∃ over functions), axioms
+  `[propext,Quot.sound]`. Doubled L1-style `SeenIff` loop invariant for BOTH forward+backward maps (one
+  `SeenIff_step`, `m'=m ∨ m'=(x,y)::m`). Bounded "no clash yet" invariant → unbounded spec via `noClash_ext`
+  once lengths equal (out-of-range = `none` both sides). **Trap: `by rw […]` passed to a lemma with unpinned
+  implicit indices unifies BOTH metavars to the SAME witness** — materialize `hP`/`hQ` as `have`s with the
+  index pinned first.
+- **S66 L231 Power of Two.** `pow2_correct : isPow2Fn n = true ↔ (0 < n ∧ ∃ k:Nat, n = (2:Int)^k)`, axioms
+  `[propext,Quot.sound]`. Fuel recurses on fuel only; `m`-branching via `if`-chain (NOT literal `Nat`
+  patterns on `m` — those make equation-compiler side-conditions). `Nat.lt_two_pow_self` (`k<2^k`) supplies
+  fuel≥k; `Nat.pow_succ` treats `2^k` as an atom for `omega`. Trap: after `rw [Int.natCast_pow]` the defeq
+  `(↑2)^k = (2:Int)^k` needs an explicit trailing `rfl` (reducible-transparency `rw`-rfl won't close it).
+- **S67 L367 Valid Perfect Square.** `perfectSquare_correct : isPerfectSquareFn n = true ↔ ∃ k:Nat, k*k =
+  n`, axioms `[propext,Quot.sound]`. **Start the upward search at `k=0` so `0=0*0` falls out — no `n=0`
+  special-case** (CLAUDE.md "normalize outliers, don't special-case"). Completeness invariant generalizes
+  over the search's CURRENT `j` (`j ≤ k0 ≤ j+fuel → k0*k0=n → sqFuel fuel j n = true`); `Nat.mul_le_mul`
+  monotonicity rules out overshoot; `Nat.le_mul_of_pos_right` bounds fuel sufficiency.
