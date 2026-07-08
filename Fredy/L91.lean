@@ -168,7 +168,7 @@ theorem foldFn_eq : ∀ xs, (foldFn xs).1 = decode xs ∧ (foldFn xs).2.1 = deco
 /-- **Correctness of the allegory program**: `solve = spec` as morphisms in `Rel(Set)`. -/
 theorem solve_eq_spec : solve = spec := by
   apply hom_ext; intro xs k
-  show k = solveFn xs ↔ k = decode xs
+  show k = (foldFn xs).1 ↔ k = decode xs
   rw [(foldFn_eq xs).1]
 
 /-! ## Running the program -/
