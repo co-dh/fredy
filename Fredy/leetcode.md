@@ -189,6 +189,10 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 | 118  | Pascal's Triangle (row fold)     | ★★  | ✓ `L118.lean` |
 | 101  | Symmetric Tree (crosswise)       | ★★  | ✓ `L101.lean` |
 | 404  | Sum of Left Leaves (flag down)   | ★★  | ✓ `L404.lean` |
+| 171  | Excel Column Number (base-26)    | ★★  | ✓ `L171.lean` |
+| 13   | Roman to Integer (lookahead)     | ★★  | ✓ `L13.lean`  |
+| 724  | Find Pivot Index (prefix bal)    | ★★  | ✓ `L724.lean` |
+| 387  | First Unique Character (count)   | ★★  | ✓ `L387.lean` |
 
 ## Skills (running log — append after each solve)
 
@@ -998,3 +1002,30 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
   `a=0`) — use L112's full 5-way concrete-shape enumeration so every equation is a bare `rfl`. Honesty =
   two layers: `leftLeafValues` (list-valued, different-looking) summed + inductive `IsLeftLeaf` characterizing
   its membership exactly. `sum_append_int` hand-rolled (core `sum_append` is `List Nat`-only, S54).
+
+### S60–S63 — wave 11 (base-26 / roman / pivot / first-unique)
+- **S60 L171 Excel Column Number.** `colNumber_correct : colNumberFn xs = value xs` (base-26 Horner =
+  `valueLE xs.reverse`), axioms `[propext,Quot.sound]`. Pure `10→26` reuse of L66/S52's BE↔LE bridge; no
+  `if` branch ⟹ even simpler than L66 (`rw [ih]; simp only [valueLE]; omega`).
+- **S61 L13 Roman to Integer.** `roman_correct : romanFn xs = xs.sum - 2 * subtractedPart xs` (honest
+  closed-form re-characterization: sum all, strip twice each subtractive symbol), axioms `[propext,
+  Quot.sound]`. Two-element lookahead recursion `x::y::rest ↦ (if x<y then -x else x) + romanFn (y::rest)`
+  is structural on the tail (no fuel). **Trap: `have ih := roman_correct (y::rest)` then `simp only
+  [List.sum_cons]` on the GOAL leaves `ih` holding the un-normalized `(y::rest).sum` atom → `omega` sees
+  two disjoint atoms and fails** — `simp only [List.sum_cons] at ih` FIRST. (General: normalize a captured
+  recursive-call hyp to the goal's normal form before omega/linarith.)
+- **S62 L724 Find Pivot Index.** `pivot_correct` = soundness + leftmost + none-completeness, axioms
+  `[propext,Quot.sound]`. Per-index iff via `List.take_left`/`drop_left'` alone (NO telescoping — the
+  scanned prefix IS carried explicitly; `sum_append_int` used only ONCE to grow the prefix). **Leftmost/none
+  invariant generalizes over `pre.length ≤ j`, specialized at `pre=[]`** — the reusable shape for any
+  first-match scan (generalize "no earlier match" over the PROCESSED prefix's length). Trap: `unfold
+  pivotScan; rw [if_pos]` unfolds BOTH occurrences incl. the RHS recursive call — state the unfold as a
+  bare TERM `have hshow : … := if_pos hc` instead.
+- **S63 L387 First Unique Character.** `firstUniq_correct` = soundness (`IsFirstUniq`: `countL s c = 1` at
+  `i`, all earlier `≥ 2`) + none-completeness, axioms `[propext,Quot.sound]`. **Recount against the FIXED
+  full string, not the shrinking suffix** — `scanFrom full l i` closes over `full` while recursing on `l`
+  with offset `i`; the spec's honesty lives in this one naming choice. `some`/`none` unified into ONE
+  `match`-conclusion invariant lemma. **NEW traps: `split_ifs` is NOT in core** (mathlib-only; plain
+  `split` grabs the wrong/outer match) — `by_cases h : P` + `rw [if_pos/if_neg h]`. A `∀ i c, s[i]? = some
+  c → …` binder with no anchor leaves `GetElem?` stuck ("type argument is a metavariable") — annotate
+  `∀ (i : Nat) (c : Int)`.
