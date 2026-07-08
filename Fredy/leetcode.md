@@ -98,14 +98,14 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 | 435  | Non-overlapping (greedy 7.2)   | ★★★ | ✓ `L435.lean` |
 | 57   | Insert Interval                | ★★  | ✓ `L57.lean`  |
 | 252  | Meeting Rooms                  | ★★  | ✓ `L252.lean` |
-| 253  | Meeting Rooms II               | ★★  | ·      |
+| 253  | Meeting Rooms II               | ★★  | ✓ `L253.lean` |
 
 ### Linked List
 | #    | problem                        | fit | status |
 |------|--------------------------------|-----|--------|
 | 206  | Reverse Linked List (cata)     | ★★★ | ✓ `L206.lean` |
 | 21   | Merge Two Sorted Lists         | ★★★ | ✓ `L21.lean`  |
-| 23   | Merge k Sorted Lists           | ★★  | ·      |
+| 23   | Merge k Sorted Lists           | ★★  | ✓ `L23.lean`  |
 | 19   | Remove Nth Node From End       | ★★  | ·      |
 | 141  | Linked List Cycle              | ★   | ·      |
 | 143  | Reorder List                   | ★   | ·      |
@@ -120,7 +120,7 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 | 49   | Group Anagrams                              | ★★  | ·      |
 | 424  | Longest Repeating Character Replacement     | ★★  | ·      |
 | 76   | Minimum Window Substring                    | ★★  | ·      |
-| 5    | Longest Palindromic Substring               | ★★  | ·      |
+| 5    | Longest Palindromic Substring               | ★★  | ✓ `L5.lean`  |
 | 647  | Palindromic Substrings                      | ★★  | ·      |
 | 271  | Encode and Decode Strings                   | ★★  | ·      |
 
@@ -679,3 +679,59 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
   needs `simp only [parseFuel, parseFuel_serialize l …, parseFuel_serialize r …]` in one call — bare `rw`
   won't iota-reduce a matcher application.** Same defeq-not-syntactic gap needs a trailing `rfl` on the
   final `Option.map Prod.fst (some (t,[])) = some t`.
+
+### S31 — L23 (Merge k Sorted Lists) — pure fold-of-fold, the cleanest DRY win
+- **The fold IS the induction — no bridging lemma.** `mergeKFn lists := lists.foldr LC21.mergeFn []`, so
+  `mergeKFn (l::rest) = LC21.mergeFn l (mergeKFn rest)` holds by definitional unfold (`show`+defeq); the
+  correctness `induction lists` needs NO separate "fold commutes with recursion" lemma (contrast the fuel
+  proofs L21/L1143). Headline `merge_k_correct : (∀ l ∈ lists, LC21.Sorted l) → LC21.Sorted (mergeKFn
+  lists) ∧ ∀ v, LC21.count v (mergeKFn lists) = totalCount v lists`, `totalCount v lists :=
+  (lists.map (LC21.count v)).foldr (·+·) 0`. Entire correctness burden = ONE `LC21.merge_correct` call per
+  step. Reuse `import Fredy.L21` verbatim; zero new sortedness/multiplicity machinery. Axioms
+  `[propext, Quot.sound]`.
+- **Trap: `rw`'s trailing `rfl` does NOT close a definitional unfold of `List.map`/`foldr`.** After
+  `rw [hCmerge, hCrest]` the goal `count v l + totalCount v rest = totalCount v (l::rest)` is defeq-true but
+  stayed open — add an explicit trailing `rfl`.
+
+### S32 — L253 (Meeting Rooms II) — max-over-instants reduces to max-over-STARTS, no sort
+- **The event-sweep-killing reduction.** min rooms = max concurrent meetings; and the max overlap over ALL
+  instants is always attained AT SOME meeting start, so `roomsFn ivs := max over each start `iv.1` of
+  `countCover ivs iv.1` (a `filter (iv.1 ≤ t ∧ t < iv.2)` length, `Nat.max`-folded). Headline
+  `rooms_correct : (∃ t, countCover ivs t = roomsFn ivs) ∧ (∀ t, countCover ivs t ≤ roomsFn ivs)` — genuine
+  max over all `Int` instants, NOT a program restatement. **No `Valid`/sortedness hypothesis** — purely
+  combinatorial, holds for arbitrary/degenerate intervals (unlike L56/L252/L435/L57).
+- **Constructive max-by-key, quantified as `hd :: l` not `l ≠ []`.** `exists_max_start hd l : ∃ m ∈ hd::l,
+  ∀ iv ∈ hd::l, iv.1 ≤ m.1` by structural induction — stating over `hd::l` sidesteps the "motive not type
+  correct" trap of inducting under a `l ≠ []` hyp that mentions the scrutinee. Domination: reusable
+  `filter_length_le_of_imp : (∀ x∈l, p x → q x) → (l.filter p).length ≤ (l.filter q).length` (structural,
+  the S28 `filter_cons_of_pos/neg` pattern); every meeting covering `t` also covers the latest start `m.1`
+  (`m.1 ≤ t < iv.2` ⟹ `m.1 < iv.2`). Achievability: `foldMax_mem_or_nil`.
+- **Trap: `cases h : e with …` REGENERALIZES `e` in the goal in EVERY branch** (confirmed for `cases`, not
+  just S25's `rcases h : e`) — a leftover `rw [h]` fails "did not find an occurrence"; `rw [← h]` at branch
+  entry routes back. **Trap (extends S19): `rcases h with rfl | h'` on `x ∈ hd::tl` may `subst` the WRONG
+  side (deletes `hd`, not `x`)** — name the eq + `rw`, don't `rfl`. Axioms `[propext, Quot.sound]` (no
+  `filter_eq_nil_iff`; `of_decide_eq_true` bridges Bool↔Prop).
+
+### S33 — L5 (Longest Palindromic Substring) — expand-center index-free, FULL both halves
+- **Full honesty.** `isPalin xs := xs = xs.reverse` (literal), `IsPalinSubstr s len := ∃ i, i+len ≤
+  s.length ∧ isPalin (sub s i len)`; headline `longest_palin_correct : IsPalinSubstr s (longestPalinFn s) ∧
+  ∀ len, IsPalinSubstr s len → len ≤ longestPalinFn s` (achievability + domination). Axioms
+  `[propext, Quot.sound]`.
+- **Index-free expand-around-center.** `commonPrefixLen : List Int → List Int → Nat` (structural, no fuel)
+  matches a reversed-consumed left prefix against the right remainder; `bestFrom left right` walks `right`
+  checking odd/even radii; `longestPalinFn s := bestFrom [] s`. Achievability routed through
+  `IsPalinSplit s len := ∃ pre mid post, s = pre++mid++post ∧ mid.length = len ∧ isPalin mid` (bridged to
+  `IsPalinSubstr` once at each end) so the recursion never touches `Nat` subtraction. The **peel/wrap
+  engine is ONE lemma** `palinSplit_of_commonPrefix` parameterized by a self-reverse `extra`, instantiated
+  at `[x]` (odd) and `[]` (even) — odd/even share the proof. Core lemmas that are load-bearing:
+  `List.append_inj`, `List.take_left`/`drop_left` (all Lean core, don't hand-roll).
+- **BIG axiom-hygiene rule (generalizes S3/S24): `omega`/`simp` closing a NON-arithmetic goal (e.g. an `∃`)
+  from a contradictory `Nat` hypothesis silently pulls in `Classical.choice`** — even though the SAME fact
+  into a `False` goal is clean. Verified by minimal repro: `(h : 0 = m+1) : False := by omega` is
+  `[propext, Quot.sound]`; `(h : 0 = m+1) : ∃ c tl, ([]:List Int) = c::tl := by omega` is
+  `[…, Classical.choice, …]`. **Fix: always `exfalso` (or `have _ : False := by omega`) BEFORE the
+  arithmetic-closing tactic; never let `omega`/`simp` discharge a non-`False`/non-arithmetic goal from a
+  numeric contradiction.** (Bit three `nil`-branch impossibility proofs here.)
+- **Trap: `conv`/`set` are NOT in this repo's Lean core** (no Mathlib) — for one-sided rewrites build a
+  standalone `have step : <LHS> = <target> := …` via `congrArg`/`.trans`; never `rw` a bare variable that
+  also occurs inside the rewrite's own RHS (`rw` substitutes ALL syntactic occurrences in one pass).
