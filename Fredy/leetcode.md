@@ -88,7 +88,7 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 | 322  | Coin Change (DP 9.1)             | ★★★ | ✓ `L322.lean` |
 | 300  | Longest Increasing Subseq (thin) | ★★★ | ✓ `L300.lean` |
 | 1143 | Longest Common Subsequence       | ★★★ | ✓ `L1143.lean` |
-| 139  | Word Break                       | ★★  | ·      |
+| 139  | Word Break                       | ★★  | ✓ `L139.lean` |
 | 39   | Combination Sum                  | ★★  | ·      |
 
 ### Interval
@@ -96,8 +96,8 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 |------|--------------------------------|-----|--------|
 | 56   | Merge Intervals (sort + fold)  | ★★★ | ✓ `L56.lean`  |
 | 435  | Non-overlapping (greedy 7.2)   | ★★★ | ✓ `L435.lean` |
-| 57   | Insert Interval                | ★★  | ·      |
-| 252  | Meeting Rooms                  | ★★  | ·      |
+| 57   | Insert Interval                | ★★  | ✓ `L57.lean`  |
+| 252  | Meeting Rooms                  | ★★  | ✓ `L252.lean` |
 | 253  | Meeting Rooms II               | ★★  | ·      |
 
 ### Linked List
@@ -563,3 +563,54 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 - **Spec + axioms.** `(∃ sub, sub <+ ivs ∧ NonOverlap sub ∧ sub.length = ivs.length - solveFn ivs) ∧
   (∀ sub, sub <+ ivs → NonOverlap sub → sub.length ≤ ivs.length - solveFn ivs)` — achievability +
   optimality of "min removals = n − max non-overlapping subset". Axioms `[propext, Quot.sound]`.
+
+### S25 — L139 (Word Break) — fuel over a WORD-length step, and `rcases h : e` regeneralizes the goal
+- **Fuel-by-word-count, not fuel-by-element.** Every prior fuel proof decremented by ONE (`L1143`/`L21`
+  peel one cons) or by a value (`L322` by a coin); Word Break consumes a whole dict WORD per level. Fuel
+  `s.length` is still exactly sufficient — the load-bearing fact is only `w ≠ [] → 1 ≤ w.length` (so
+  `suf.length < s.length`), proved once by `cases w` on `hne`. What transfers from S13 is "some positive
+  amount per step", not the literal "1 per step".
+- **Hand `splitPrefix : List α → List α → Option (List α)` (returns the leftover suffix), not core
+  `List.isPrefixOf`** — the DP step must pattern-match the actual suffix to recurse, not just a `Bool`/∃.
+  Bridge `splitPrefix_eq_some : splitPrefix w s = some suf ↔ w ++ suf = s`, structural induction on `w`.
+- **Trap (extends S13, hit TWICE): `rcases h : e with pat` REGENERALIZES `e` in the goal** — a
+  reflexive `rw [h]` copied from the L322 template then fails "did not find an occurrence" (the `match`
+  on `e` was already rewritten by the `rcases`). Delete the stray `rw`. Signature: "did not find an
+  occurrence" immediately after `rcases h : e`.
+- **Order-sensitive `rintro` against a hand `∃`/`∧` chain type-mismatches DOWNSTREAM, not at the
+  pattern.** Swapping two binders (`⟨w,hw,hne,suf,…⟩` vs `⟨w,hw,suf,hne,…⟩`) errored several lines later
+  at the first USE of the misbound var — check a multi-binder pattern's field order against the actual
+  nesting, not just arity. Spec = honest inductive `Seg` (`nil`; `cons : w∈dict → w≠[] → Seg suf →
+  Seg (w++suf)`), reuse allowed; `wordBreak_correct : wordBreakFn dict s = true ↔ Seg dict s`, Bool↔Prop
+  reflection (S5). Axioms `[propext, Quot.sound]`.
+
+### S26 — L57 (Insert Interval) — DRY corollary of L56, `covers_cons` massaging
+- **Insert = merge `new :: ivs`.** Since L56's `mergeFn` sorts-then-merges an ARBITRARY list, insertion
+  needs zero new machinery: `insertFn ivs new := L56.mergeFn (new :: ivs)`. Trades LeetCode's O(n) pass
+  for O(n log n), but the campaign proves correctness, not complexity. `import Fredy.L56`; reuse
+  `covers`/`Sorted`/`GapSorted`/`Valid`/`merge_correct` verbatim (DRY, per project rule).
+- **The only real content is the coverage clause**, via `L56.covers_cons`: `covers (new::ivs) x ↔
+  (new.1 ≤ x ∧ x ≤ new.2) ∨ covers ivs x`, then a manual `∨`-swap (`constructor`/`rintro`, no
+  `or_comm`/`tauto`) to match the spec's disjunct order. Validity of `new::ivs` is immediate from
+  `hnew`+`hival`.
+- **Wrapper judgment: NOT a forbidden one-liner.** `insertFn` is the *program* LeetCode #57 asks for; the
+  theorem `insert_correct : IsInsert ivs new (insertFn ivs new)` is a genuine re-derivation under insert
+  semantics (new hypothesis `hnew`, translated coverage), not a renamed call to `merge_correct`. Axioms
+  `[propext, Quot.sound]` (inherited from L56).
+
+### S27 — L252 (Meeting Rooms) — sort-invariance of Pairwise + sorted⟹adjacent≡all-pairs
+- **`Perm.pairwise_iff` transports the all-pairs disjointness across the sort in one line.** Program =
+  `canAttendFn ivs := noAdj (L56.isort ivs)` (sort by start, then check consecutive pairs); spec =
+  `NonOverlap := List.Pairwise NoOverlap` (Lean-core, all-pairs, `NoOverlap a b := a.2 ≤ b.1 ∨ b.2 ≤ a.1`,
+  touching allowed). Sort-invariance: `Perm.pairwise_iff` needs `NoOverlap` SYMMETRIC (a disjunction
+  swap) + `isort` a `Perm` — **L56 exposes only `isort_mem`, not `Perm`, so prove `isort_perm : l ~
+  isort l` locally** (line-for-line port of L435's `ivs_perm_isortH`, `.1` comparator).
+- **Sorted⟹adjacent≡all-pairs splits into TWO asymmetric lemmas.** Forward (adjacent-passing ⟹
+  all-pairs) needs ONLY `.1`-sortedness — one adjacent bound `lastHi ≤ head.1` transitively lower-bounds
+  every later start. Reverse (all-pairs ⟹ adjacent) genuinely needs **STRICT `Valid` (`lo < hi`)**: given
+  `a.1 ≤ b.1` and `b.1 < b.2`, `NoOverlap a b` can hold ONLY via `a.2 ≤ b.1` (the other disjunct
+  `b.2 ≤ a.1` chains to `b.2 ≤ a.1 ≤ b.1 < b.2`, absurd). Counterexample confirming strictness is
+  load-bearing (S24 recurring): non-strict `≤` lets a zero-length `(1,1)` be `NonOverlap` with `(1,5)`
+  via the second disjunct while the adjacent check `5 ≤ 1` fails. `canAttend_correct : canAttendFn ivs =
+  true ↔ NonOverlap ivs`, axioms `[propext, Quot.sound]` (no Classical.choice — every `omega` on plain
+  conjunctions, `by_cases` on decidable Int `≤`).
