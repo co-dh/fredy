@@ -169,6 +169,10 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 | 746  | Min Cost Climbing Stairs (DP)    | ★★★ | ✓ `L746.lean` |
 | 763  | Partition Labels (greedy scan)   | ★★★ | ✓ `L763.lean` |
 | 45   | Jump Game II (greedy)            | ★★★ | ✓ `L45.lean`  |
+| 112  | Path Sum (tree decision)         | ★★  | ✓ `L112.lean` |
+| 617  | Merge Two Binary Trees (cata)    | ★★  | ✓ `L617.lean` |
+| 111  | Minimum Depth (tree, one-child)  | ★★  | ✓ `L111.lean` |
+| 14   | Longest Common Prefix (fold-meet)| ★★  | ✓ `L14.lean`  |
 
 ## Skills (running log — append after each solve)
 
@@ -840,3 +844,31 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
   `xs[k]'h` back recovers `xs`, proving the deleted element IS the n-th-from-end — dodge dependent-`getElem`
   proof-irrelevance fights by UNIVERSALLY quantifying over the bound proof `h` and using the SAME `h` on
   both sides of `rw [← List.drop_eq_getElem_cons h, List.take_append_drop]`.
+
+### S40–S43 — wave 6 (clean tree/string; beyond Blind-75)
+- **S40 L112 Path Sum.** `path_sum_correct : hasPathSumFn t target = true ↔ PathSum t target`, axioms
+  `[propext]`. **Leaf vs one-child encoded structurally:** 5-way pattern match on `(l,r)` shape (nil/leaf/
+  left-only/right-only/both) → each arm a literal `rfl` equation, and the correctness proof is a recursive
+  theorem mirroring the same 5 arms (the `within_correct`/L98 idiom) — no `DecidableEq (Tree)`, no Bool
+  guard. `PathSum`'s `left`/`right` carry `child ≠ nil` (via `node_ne_nil := fun h => nomatch h`) so a
+  one-child node can't match `leaf`. `cases h` on a `PathSum` hyp auto-prunes shape-impossible constructors.
+- **S41 L617 Merge Two Binary Trees.** `merge_correct : ∀ p, getPath (mergeT t1 t2) p = combine (getPath
+  t1 p) (getPath t2 p)`, **axioms `[]` (fully constructive)**. **No fuel:** `mergeT`'s node/node case shrinks
+  BOTH trees in the SAME direction (`zipWith` shape) → structural recursion on `t1` alone (`t2` along for the
+  ride); contrast L21/L1143 where each call shrinks a DIFFERENT argument (⟹ WF+fuel). Clause order: `nil,t↦t`
+  already catches `nil,nil`, so `t,nil↦t` only fires on `node,nil`. `getPath`/`combine` reference `mergeT`
+  nowhere ⟹ honest overlay spec, not a restatement; bases close by `cases (getPath …) <;> rfl`.
+- **S42 L111 Minimum Depth.** `minDepth_correct (t ≠ nil) : IsRLDepth t (minDepthFn t) ∧ ∀ n, IsRLDepth t n
+  → minDepthFn t ≤ n`, axioms `[propext, Quot.sound]`. **One-child gotcha structural** (5-way `(l,r)` match,
+  no `if l=nil`, no `DecidableEq`); `IsRLDepth.left/right` carry `child ≠ nil`. **Domination MUST be a
+  top-level pattern-match theorem with an explicit recursive self-call (NOT `intro; induction h`)** — the
+  constructor index `d+1` isn't a bare var, so `induction h` cascades spurious `Int.ofNat`/`negSucc` cases;
+  use `cases h` (which also substitutes `n`, so `show … ≤ _` not `≤ n`) inside each concrete `t`-branch.
+  `node_ne_nil` via `intro h; cases h` (not `Tree.noConfusion`, which needs an explicit motive vs `False`).
+- **S43 L14 Longest Common Prefix.** `lcp_correct (strs ≠ []) : (∀ s∈strs, lcpFn strs <+: s) ∧ (∀ p, (∀ s∈
+  strs, p<+:s) → p<+: lcpFn strs)`, axioms `[propext, Quot.sound]`; uses Lean-core `List.IsPrefix` (`<+:`)
+  directly. `commonPrefix2` is a MEET: `commonPrefix2_prefix` + `commonPrefix2_greatest`, joint induction
+  closed by core `cons_prefix_cons`/`nil_prefix`/`prefix_nil`/`prefix_rfl` (no hand-rolled prefix lemmas).
+  **ERRATUM caught: maximality at `strs=[]` is NOT vacuous** — the hyp `∀ s∈[], p<+:s` holds for any `p` but
+  the conclusion `p <+: [] ` forces `p=[]`, so `strs≠[]` is REQUIRED (matches LC's `1 ≤ length`). General
+  rule: "hypothesis vacuous" ≠ "theorem vacuous" — check whether the CONCLUSION still needs proving.
