@@ -181,6 +181,10 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 | 283  | Move Zeroes (stable partition)   | ★★  | ✓ `L283.lean` |
 | 383  | Ransom Note (multiset contain)   | ★★  | ✓ `L383.lean` |
 | 977  | Squares of Sorted Array (sort)   | ★★  | ✓ `L977.lean` |
+| 66   | Plus One (digit carry)           | ★★  | ✓ `L66.lean`  |
+| 169  | Majority Element (Boyer–Moore)   | ★★  | ✓ `L169.lean` |
+| 303  | Range Sum Query (prefix sums)    | ★★  | ✓ `L303.lean` |
+| 35   | Search Insert Position (sorted)  | ★★  | ✓ `L35.lean`  |
 
 ## Skills (running log — append after each solve)
 
@@ -937,3 +941,29 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
   is the ENTIRE honest-multiset proof** (`isort_sorted` alone says nothing about which elements survive);
   `List.map` slots into `countL` for free. Trap: `open X Y (a b)` mixing bare + restricted open on one line
   is a parse error — two separate `open` lines.
+
+### S52–S55 — wave 9 (digit carry / voting / prefix sums / sorted search)
+- **S52 L66 Plus One.** `plusOne_correct : value (plusOneFn xs) = value xs + 1` (big-endian `value :=
+  foldl (acc*10+d)`), axioms `[propext,Quot.sound]`, NO digit-range hyp. **Big-endian↔little-endian value
+  bridge powers-free:** `List.foldl_eq_foldr_reverse` flips the left fold to a right fold over `xs.reverse`,
+  then one induction identifies it with little-endian `valueLE`'s front-consing — sidesteps all `append`/
+  `10^n` algebra. Trap: `plusOneRev (d::ds)`'s `if` doesn't reduce by `show`/`rfl` for symbolic `d` — use
+  `simp only [plusOneRev, if_pos hd, valueLE]`.
+- **S53 L169 Majority Element (Boyer–Moore).** `majority_correct (IsMajority nums v) : majorityFn nums = v`
+  (`IsMajority nums v := 2*countL nums v > nums.length`), axioms `[propext,Quot.sound]`. **Invariant
+  `BMInv xs c k : ∀ w, (w=c → 2*countL xs w ≤ len+k) ∧ (w≠c → 2*countL xs w+k ≤ len)` — phrase BOTH halves
+  with `+k` on the LARGER side (never `len-k`)** to dodge Nat-subtraction; the only real `cnt-1` is taken
+  with `k≠0` in scope so `omega` closes it. `step_inv` (3 cases) → `bmInv_gen` (induction, `List.foldl_cons`,
+  no fuel) → `noncand_le_half` → top-level `by_cases` (+ hand contrapositive, no `by_contra`).
+- **S54 L303 Range Sum Query.** `sumRange_correct (i ≤ j+1) (j < len) : sumRangeFn nums i j = rangeSum nums
+  i j` (`rangeSum := ((drop i).take (j+1-i)).sum`), axioms `[propext,Quot.sound]`. **Core lacks generic
+  `sum_append` (only `sum_append_nat`) and offset `take`-split** — hand-prove `sum_append_int` and
+  `take k = take i ++ (drop i).take (k-i)` (induction, `take_succ_cons`/`drop_succ_cons` + one `omega`).
+  Prefix-sum-at-index = S10/S23 accumulator threading generalized over `a`: `scanlAdd_get? … = some (a +
+  (take k).sum)`. Use `[k]?.getD 0` + `Option.getD_some` (avoids `[k]!`/`Inhabited`).
+- **S55 L35 Search Insert Position.** `insertPos_correct (Sorted xs) : i ≤ len ∧ (∀ k v, k<i → xs[k]?=some
+  v → v<target) ∧ (∀ v, xs[i]?=some v → target≤v)`, axioms `[propext,Quot.sound]`. **The split headline does
+  NOT need `Sorted`** (first-index-≥-target holds for any list; `Sorted`'s head-bound is bound `_hhead`,
+  unused) — it bites only in the closed form `insertPosFn xs t = (xs.filter (·<t)).length`. Trap: `1 + i` is
+  NOT defeq `i + 1` (`Nat.add` recurses on 2nd arg) — `rw [show 1+i = i+1 from by omega, getElem?_cons_succ]`.
+  `injection h` on `some x = some v` gives `x = v` (its order) — state the `have` that way, `omega` finishes.
