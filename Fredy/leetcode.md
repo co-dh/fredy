@@ -173,6 +173,10 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 | 617  | Merge Two Binary Trees (cata)    | ★★  | ✓ `L617.lean` |
 | 111  | Minimum Depth (tree, one-child)  | ★★  | ✓ `L111.lean` |
 | 14   | Longest Common Prefix (fold-meet)| ★★  | ✓ `L14.lean`  |
+| 1137 | N-th Tribonacci (triple tupling) | ★★★ | ✓ `L1137.lean`|
+| 2    | Add Two Numbers (carry fold)     | ★★  | ✓ `L2.lean`   |
+| 9    | Palindrome Number (digit reflect)| ★★  | ✓ `L9.lean`   |
+| 26   | Remove Duplicates Sorted (dedup) | ★★  | ✓ `L26.lean`  |
 
 ## Skills (running log — append after each solve)
 
@@ -872,3 +876,31 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
   **ERRATUM caught: maximality at `strs=[]` is NOT vacuous** — the hyp `∀ s∈[], p<+:s` holds for any `p` but
   the conclusion `p <+: [] ` forces `p=[]`, so `strs≠[]` is REQUIRED (matches LC's `1 ≤ length`). General
   rule: "hypothesis vacuous" ≠ "theorem vacuous" — check whether the CONCLUSION still needs proving.
+
+### S44–S47 — wave 7 (DP tupling / carry arithmetic / dedup)
+- **S44 L1137 Tribonacci.** `solve_correct : solveFn n = trib n` (axioms `[]`; `solve_eq_spec`
+  `[propext,Quot.sound]`). L70's pair-tupling one dimension up: `tribTriple n = (T n, T(n+1), T(n+2))`,
+  `(n+1) ↦ let (a,b,c) := …; (b,c,a+b+c)`. Successor case needs `Nat.add_assoc`/`add_comm` (fold builds
+  `a+b+c`, recurrence unfolds to `T(n+2)+T(n+1)+T n`) + trailing `rfl` (S9 "rw leaves one rfl short").
+- **S45 L2 Add Two Numbers.** `add_correct : value (addFn xs ys) = value xs + value ys` (`value (d::ds) =
+  d + 10*value ds`), axioms `[propext,Quot.sound]`. Carry-ripple two-input fold, fuel `xs.length+ys.length
+  +1` — the `+1` slack is GENUINE (sum can be one digit longer, `99+1=100`), unlike L21's exact fuel. **State
+  the crux lemma CARRY-GENERAL** (`addFuel_value : … → value (addFuel fuel c xs ys) = c + value xs + value
+  ys`, `c` free through the induction) — the `c:=0` specialization is `add_correct`. **Trap: the IH's carry
+  arg must be `s/10` (what `addFuel` passes), not the pre-division `c+y`** — a mismatched-IH `omega` fails
+  citing disconnected atoms. Use `Int.mul_ediv_add_emod` (`Int.ediv_add_emod` is DEPRECATED this toolchain).
+  `graph`/`graph_map` need the lambda param explicitly typed (`fun p : List Int × List Int => …`) or `.1`/
+  `.2` fail "Invalid projection" (S16 reconfirmed).
+- **S46 L9 Palindrome Number.** `palin_correct : isPalinNumFn n = true ↔ (0 ≤ n ∧ toDigits n.toNat =
+  (toDigits n.toNat).reverse)`, axioms `[propext,Quot.sound]`. Scalar input ⟹ no SnocList/Tree engine, just
+  `A6_1_RelSet` + the digit list built INSIDE the program. Fuel digit-peel (`toDigitsFuel (n+1) n`, recurse
+  on fuel not `n` — dividing by 10 is a 2nd shrinking arg, S10 trap); LSB-first is fine (reversal-symmetric).
+  Sign guard: `n<0` branch `absurd h0 (by omega)` (arithmetic goal, no Classical.choice, S33).
+- **S47 L26 Remove Duplicates Sorted.** `dedup_correct (Sorted xs) : (∀ v, v∈dedupFn xs ↔ v∈xs) ∧ Sorted
+  (dedupFn xs) ∧ (dedupFn xs).Nodup`, axioms `[propext,Quot.sound]`; reuses `LC242.Sorted` with NO porting
+  (domain already `List Int`). **`List.Nodup` IS `Pairwise (·≠·)` by `Iff.rfl`** (core `nodup_iff_pairwise_
+  ne`) — prove the Pairwise, slot into the `.Nodup` headline by defeq (a separate `dedup_nodup := …2.2`
+  would be a BANNED one-liner wrapper). Nodup-from-adjacent-dedup needs a `LtHead x l := ∀ v∈l, x<v` strict
+  invariant threaded as a 4th conjunct in ONE recursive-theorem induction (S3 extended to recursive
+  conjunction). **Trap: `nomatch h` is comma-greedy even across a nested bracket** (`⟨fun v hv => nomatch
+  hv, trivial⟩` collapses the outer pair) — write `(nomatch hv)`.
