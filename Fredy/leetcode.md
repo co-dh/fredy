@@ -177,6 +177,10 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 | 2    | Add Two Numbers (carry fold)     | ★★  | ✓ `L2.lean`   |
 | 9    | Palindrome Number (digit reflect)| ★★  | ✓ `L9.lean`   |
 | 26   | Remove Duplicates Sorted (dedup) | ★★  | ✓ `L26.lean`  |
+| 234  | Palindrome Linked List (reverse) | ★★  | ✓ `L234.lean` |
+| 283  | Move Zeroes (stable partition)   | ★★  | ✓ `L283.lean` |
+| 383  | Ransom Note (multiset contain)   | ★★  | ✓ `L383.lean` |
+| 977  | Squares of Sorted Array (sort)   | ★★  | ✓ `L977.lean` |
 
 ## Skills (running log — append after each solve)
 
@@ -904,3 +908,32 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
   invariant threaded as a 4th conjunct in ONE recursive-theorem induction (S3 extended to recursive
   conjunction). **Trap: `nomatch h` is comma-greedy even across a nested bracket** (`⟨fun v hv => nomatch
   hv, trivial⟩` collapses the outer pair) — write `(nomatch hv)`.
+
+### S48–S51 — wave 8 (reflection / partition / multiset). Two NEW mathlib-free traps.
+- **NEW core-tactic trap: `by_contra` is NOT in Lean core** (mathlib-only; core has only `false_or_by_contra`).
+  Build contrapositives by hand: `fun hpos => hc (hmem.mpr hpos) : ¬(0 < …)` then `omega`. (Found in L383.)
+- **NEW axiom trap (extends S28/S30's `filter_eq_nil_iff` note): core `List.filter_eq_nil_iff` is
+  `@[simp]`-TAGGED** — a bare `simp` closing ANY `l.filter p = []` goal auto-reaches for it and silently
+  pulls `Classical.choice`. Fix: `simp only [List.filter_cons, hcond, Bool.not_false/not_true]` (explicit
+  whitelist, no default set). **`#print axioms` EACH helper lemma individually, not just the headline, to
+  bisect a `Classical.choice` leak fast.** (Found in L283.)
+- **S48 L234 Palindrome Linked List.** `palin_correct : isPalinFn xs = true ↔ xs = xs.reverse`, axioms
+  `[propext]`; `isPalinFn xs := decide (xs = LC206.revFn xs)` (reuse L206 reverse; defeq to `xs.reverse`).
+  Extra `palin_reversal_invariant`. **Never `rw`/`congrArg` THROUGH `decide`** (the `Decidable` instance arg
+  is fragile) — lift to the Prop reflection lemma, rewrite there (`List.reverse_reverse`), push back via
+  `bool_eq_of_iff_true`.
+- **S49 L283 Move Zeroes.** `move_correct` = 4 clauses (non-zeros-in-order via `filter nzPred`, length,
+  multiset `countL`, `∃k, = filter nzPred ++ replicate k 0`), axioms `[propext,Quot.sound]`. **One crux:**
+  core `List.eq_replicate_iff` proves `xs.filter zPred = replicate _ 0`, so `moveZeroesFn = filter nzPred ++
+  filter zPred` — textbook stable partition; all clauses reduce to 3 predicate-generic partition laws. For
+  `f (List.filter p (a::t))` goals, `rw [List.filter_cons]` BEFORE `cases hb : p a`.
+- **S50 L383 Ransom Note.** `canBuild_correct : canBuildFn r m = true ↔ ∀ c, countL r c ≤ countL m c`, axioms
+  `[propext,Quot.sound]`. **Check-only-appearing-letters:** ∀-over-Int isn't decidable, so program is
+  `r.all (fun c => decide (countL r c ≤ countL m c))`; absent letters `countL r c = 0 ≤ _` free via
+  `mem_iff_countL_pos` contrapositive. Bridge `List.all_eq_true` + `decide_eq_true_eq`.
+- **S51 L977 Squares of Sorted Array.** `squares_correct : Sorted (sortedSquaresFn xs) ∧ ∀ v, countL
+  (sortedSquaresFn xs) v = countL (xs.map (·*·)) v`, axioms `[propext,Quot.sound]`. `sortedSquaresFn xs :=
+  LC242.isort (xs.map (·*·))` (square-then-sort; NO `Sorted xs` hyp — correct for any input). **`countL_isort`
+  is the ENTIRE honest-multiset proof** (`isort_sorted` alone says nothing about which elements survive);
+  `List.map` slots into `countL` for free. Trap: `open X Y (a b)` mixing bare + restricted open on one line
+  is a parse error — two separate `open` lines.
