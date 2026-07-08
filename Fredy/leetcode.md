@@ -185,6 +185,10 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 | 169  | Majority Element (Boyer–Moore)   | ★★  | ✓ `L169.lean` |
 | 303  | Range Sum Query (prefix sums)    | ★★  | ✓ `L303.lean` |
 | 35   | Search Insert Position (sorted)  | ★★  | ✓ `L35.lean`  |
+| 67   | Add Binary (base-2 carry)        | ★★  | ✓ `L67.lean`  |
+| 118  | Pascal's Triangle (row fold)     | ★★  | ✓ `L118.lean` |
+| 101  | Symmetric Tree (crosswise)       | ★★  | ✓ `L101.lean` |
+| 404  | Sum of Left Leaves (flag down)   | ★★  | ✓ `L404.lean` |
 
 ## Skills (running log — append after each solve)
 
@@ -967,3 +971,30 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
   unused) — it bites only in the closed form `insertPosFn xs t = (xs.filter (·<t)).length`. Trap: `1 + i` is
   NOT defeq `i + 1` (`Nat.add` recurses on 2nd arg) — `rw [show 1+i = i+1 from by omega, getElem?_cons_succ]`.
   `injection h` on `some x = some v` gives `x = v` (its order) — state the `have` that way, `omega` finishes.
+
+### S56–S59 — wave 10 (base-2 carry / Pascal / tree symmetry / left-leaf sum)
+- **S56 L67 Add Binary.** `addBinary_correct : value (addBinaryFn xs ys) = value xs + value ys` (base-2
+  Horner), axioms `[propext,Quot.sound]`. **Pure superposition of S45 (L2 carry-fuel) + S52 (L66 BE↔LE
+  bridge), `10→2` everywhere** — `addBitsRev` = L2's `addFuel` with base 2, wrapped in `.reverse` both ends.
+  No new trap; just `List.length_reverse` for the fuel bound.
+- **S57 L118 Pascal's Triangle.** `pascal_correct : ∀ i<n, ∀ k, (pascalFn n)[i]?.bind (·[k]?) = if k≤i then
+  some (binom i k) else none`, axioms `[propext,Quot.sound]`. **`nextRow r := zipWith (·+·) (0::r) (r++[0])`
+  makes both boundary 1s automatic**; crux `nextRow (rowOf i) = rowOf (i+1)` via `List.ext_getElem?` +
+  core `getElem?_zipWith`/`getElem?_append` REALIZES the binom recurrence. **Trap: a structural-on-first-arg
+  recursion still traps `rfl` at a deceptive WILDCARD clause** — `binom i 0` for ABSTRACT `i` is stuck under
+  `rfl` (recursor routes through arg 1 first); prove `binom_col0 : ∀ n, binom n 0 = 1` (`|0=>rfl |_+1=>rfl`)
+  and rewrite. `rw [hj]` not `subst hj` when the case-split names the free theorem param backwards.
+- **S58 L101 Symmetric Tree.** `symmetric_correct : isSymmetricFn t = true ↔ IsSymmetric t`, axioms
+  `[propext]`. `mirrorFn` = L226's swap read as a BINARY CROSSWISE compare (`l1 vs r2`, `r1 vs l2`); honest
+  inductive `Mirror` (`mnil`/`mnode`), L100/S16 double-induction reflection. **Trap: for a nil/node vacuous
+  cross case, `by decide` FAILS "must not contain free variables"** (`l2 a2 r2` free) even though reduction
+  ignores them — use `simp [mirrorFn] at h` (→ `false=true`, auto-closes). Forward `&&`→`∧` chain needs a
+  trailing `and_assoc` (left-nested); reverse direction doesn't.
+- **S59 L404 Sum of Left Leaves.** `sum_left_leaves_correct : sumLeftLeavesFn t = (leftLeafValues t
+  false).sum`, axioms `[propext]`. Flag "am-I-a-left-child" threaded DOWN, set fresh from the PARENT each
+  descent (`sumLL l true + sumLL r false`, ignoring incoming flag); root starts `false`. **Trap: a 3-clause
+  leaf/non-leaf match generates a SIDE-CONDITIONED equation lemma** (`sumLL.eq_3` carries `(l=nil→r=nil→
+  False)`; the naive unconditional `node l a r ↦ sumLL l true + sumLL r false` is FALSE at `l=r=nil` unless
+  `a=0`) — use L112's full 5-way concrete-shape enumeration so every equation is a bare `rfl`. Honesty =
+  two layers: `leftLeafValues` (list-valued, different-looking) summed + inductive `IsLeftLeaf` characterizing
+  its membership exactly. `sum_append_int` hand-rolled (core `sum_append` is `List Nat`-only, S54).
