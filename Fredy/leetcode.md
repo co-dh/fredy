@@ -135,9 +135,9 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 | 102  | Binary Tree Level Order Traversal              | ★★  | ·      |
 | 572  | Subtree of Another Tree                        | ★★  | ✓ `L572.lean` |
 | 105  | Construct Binary Tree from Preorder + Inorder  | ★★  | ·      |
-| 230  | Kth Smallest Element in a BST                  | ★★  | ·      |
+| 230  | Kth Smallest Element in a BST                  | ★★  | ✓ `L230.lean` |
 | 235  | Lowest Common Ancestor of a BST                | ★★  | ·      |
-| 297  | Serialize and Deserialize Binary Tree          | ★★  | ·      |
+| 297  | Serialize and Deserialize Binary Tree          | ★★  | ✓ `L297.lean` |
 | 208  | Implement Trie                                 | ★   | ·      |
 | 211  | Add and Search Word                            | ★   | ·      |
 | 212  | Word Search II                                 | ★   | ·      |
@@ -145,7 +145,7 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 ### Graph / Matrix / Heap  (mostly `★`, defer — reach via relational spec)
 | #    | problem                             | fit | status |
 |------|-------------------------------------|-----|--------|
-| 128  | Longest Consecutive Sequence        | ★★  | ·      |
+| 128  | Longest Consecutive Sequence        | ★★  | ✓ `L128.lean` |
 | 207  | Course Schedule (topo sort)         | ★★  | ·      |
 | 347  | Top K Frequent Elements             | ★★  | ·      |
 | 200  | Number of Islands                   | ★   | ·      |
@@ -614,3 +614,68 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
   via the second disjunct while the adjacent check `5 ≤ 1` fails. `canAttend_correct : canAttendFn ivs =
   true ↔ NonOverlap ivs`, axioms `[propext, Quot.sound]` (no Classical.choice — every `omega` on plain
   conjunctions, `by_cases` on decidable Int `≤`).
+
+### S28 — L230 (Kth Smallest in a BST) — inorder→sorted, FULL rank spec, core `Pairwise`
+- **Honesty FULL.** `kthSmallestFn t k := (inorder t)[k-1]?` (plain structural `inorder (node l a r) =
+  inorder l ++ a :: inorder r`, no fuel). Headline `kthSmallest_correct (hbst : IsBST t)
+  (hk : kthSmallestFn t k = some v) : memT t v ∧ ((inorder t).filter (·< v)).length = k-1` — proves `v`
+  is a real tree label AND the exact rank (exactly `k-1` labels are `< v`), not an index restatement.
+  Plus `kthSmallest_exists` (totality for `1 ≤ k ≤ length`). Reuses `L98.IsBST`/`BSTwithin`.
+- **Reuse Lean-core `List.Pairwise`, don't hand-roll `Sorted`.** `pairwise_append`'s third clause
+  (`∀ a∈l1, ∀ b∈l2, R a b`) IS the `Sorted (xs++a::ys)` helper for free; only added one `Int.lt_trans`
+  for the cross-subtree `x<a<y` case. The `IsBST ⟹ Sorted inorder` proof generalizes the bounds (S14) and
+  proves sortedness AND per-node bound facts as ONE conjunction-induction (S3/S18); phrase bounds as
+  `∀ l0, lo = some l0 → l0 < x` (not a `match lo with …` predicate) to dodge defeq-matching when the same
+  lemma fires at `lo` and `some a`.
+- **Trap: `rw [List.filter_cons_of_pos/neg hcond]` mis-unifies `p`/`a`** when `hcond`'s type is
+  beta-reduced (`rw` matches `p a` against `decide`'s internal application → bogus `p := @decide (b<v)`).
+  Pass `p`/`a`/`l` EXPLICITLY.
+- **Trap (axiom hygiene, S3-family): core `List.filter_eq_nil_iff` pulls in `Classical.choice`.** It
+  silently infected every downstream theorem; replaced with a constructive `filter_lt_eq_nil_of_forall_lt`
+  (structural recursion + `filter_cons_of_neg`). **`#print axioms` the CORE lemmas you lean on, not only
+  your own proofs.** Axioms `[propext, Quot.sound]`.
+
+### S29 — L128 (Longest Consecutive Sequence) — sort + scan, LOCAL-maximality invariant
+- **Program** `longestConsecFn nums := scanFn (L242.isort nums)` (isort reused verbatim), a
+  `(prev, runLen, best)` scan with dedup-skip / +1-extend / reset branches (`nmax` = L121 `imax` ported to
+  `Nat`). Headline `longestConsec_correct : (∃ s, ∀ i < longestConsecFn nums, s+i ∈ nums) ∧
+  (∀ s L, (∀ i < L, s+i ∈ nums) → L ≤ longestConsecFn nums)` — achievability + domination (S0). Axioms
+  `[propext, Quot.sound]`.
+- **The crux invariant needs LOCAL exactness, not just a global lower bound.** A "`best` dominates every
+  run with top ≤ prev" invariant is NOT inductively self-sufficient; the extend step needs the current run
+  ending at `prev` to be MAXIMAL among runs ending exactly at `prev` (`RunOK`'s 2nd conjunct). Then the
+  domination dichotomy closes: any candidate run with top ≤ new watermark `c` either is dominated by old
+  `best` (top ≤ old prev) or ends exactly at `c` — nothing lands strictly between `prev` and `c`
+  (`dichot_of_cover`, combining the `Cover` invariant with "suffix elements ≥ c" from sortedness). This IS
+  the Lean-native "sorted ⟹ a present value-block sits as a literally adjacent stretch", no separate
+  dedup/adjacency lemma.
+- **The gap-reset case AND the whole-list first element are ONE lemma** `run_singleton (hcl : c∈l)
+  (hgap : c-1∉l) : RunOK l c 1` — base case gets `c-1∉l` from sortedness (c is the min), interior gap case
+  from `Cover`+contradiction.
+- **Trap: a nested `(by omega)` passed as a bare application argument fails "no usable constraints"** when
+  the enclosing lemma's implicits aren't pinned yet — hoist to `have hle : … := by omega` FIRST, then pass
+  the named term (sharper S3: elaboration ORDER, not just hypothesis form). **Trap: `omega` intermittently
+  drops a `have`-bound fact in an antisymmetry goal ("no usable constraints" despite relevant hyps) — fall
+  back to `Nat.le_antisymm h1 h2`.** **Trap (S3-family): `rcases h : e with rfl | …` on `mem_cons.mp`
+  deletes the induction-bound `c`; name the eq + `omega` instead of `subst`.**
+
+### S30 — L297 (Serialize/Deserialize Tree) — the SECTION–RETRACTION case
+- **The cleanest allegory framing of the batch.** `serialize : Tree Int → List Tok` (`Tok := Option Int`,
+  preorder with null markers, a plain cata); `deserializeFn` a fuel parser; headline
+  `round_trip : deserializeFn (serialize t) = some t`, restated categorically as
+  `section_retraction : solveSer ≫ solveDes = graph (some ·)` (a `Rel(Set)` retraction identity — a real
+  two-line `hom_ext`, not a delegating one-liner). Axioms `[propext, Quot.sound]`.
+- **Fuel bound chosen to make the round-trip a structural induction on the TREE, not the fuel.** `parseFuel`
+  peels one unit/node; BOTH of the `node` case's recursive parses reuse the SAME predecessor fuel `fuel'`,
+  because the generalized lemma `parseFuel_serialize : ∀ t rest fuel, (serialize t).length ≤ fuel →
+  parseFuel fuel (serialize t ++ rest) = some (t, rest)` lets `omega` derive each child's sufficiency from
+  one combined `1 + len l + len r ≤ fuel'+1`. `deserializeFn` fuels by `ts.length` (bound is `≤`; at
+  `rest=[]` it's met exactly).
+- **The `node`-case IH chaining: feed the LEFT parse the trailing tokens `serialize r ++ rest`, then the
+  RIGHT parse the original `rest`** — since `serialize (node l a r) ++ rest = some a :: (serialize l ++
+  (serialize r ++ rest))` (one `cons_append`+`append_assoc`), the left parse's returned leftover is exactly
+  the right parse's input. This is "parse inverts print with ANY trailing tokens".
+- **Trap (S9 recurring): after `rw [heq]` regroups the append, closing the nested `match parseFuel …`
+  needs `simp only [parseFuel, parseFuel_serialize l …, parseFuel_serialize r …]` in one call — bare `rw`
+  won't iota-reduce a matcher application.** Same defeq-not-syntactic gap needs a trailing `rfl` on the
+  final `Option.map Prod.fst (some (t,[])) = some t`.
