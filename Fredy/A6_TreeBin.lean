@@ -262,4 +262,48 @@ def initial (A : Type) : InitialAlgebra (F A) where
 /-- The catamorphism (fold) of `φ` as a genuine morphism `dTree A ⟶ c`. -/
 def cataR {c : RelSet.{0}} (φ : TFobj A c ⟶ c) : dTree A ⟶ c := cataTreeFold φ
 
+/-- The catamorphism computation rule holds for ANY algebra-relation `φ` (not just maps):
+    `α ≫ cataTreeFold φ = F(cataTreeFold φ) ≫ φ`.  This is the `Map`-free form of `initial`'s own
+    `cata_comm` field — the structural proof never references `Map φ` — and is the tree analogue of
+    `A6_SnocList.cataFold_comm`. -/
+theorem cataTreeFold_comm {c : RelSet.{0}} (φ : TFobj A c ⟶ c) :
+    graph con ≫ cataTreeFold φ = (F A).map (cataTreeFold φ) ≫ φ := by
+  apply hom_ext; intro u r
+  cases u with
+  | inl x =>
+    constructor
+    · intro h; obtain ⟨t, ht, hfold⟩ := h
+      have hteq : t = Tree.nil := ht
+      rw [hteq] at hfold
+      exact ⟨Sum.inl x, trivial, hfold⟩
+    · intro h; obtain ⟨v, hv, hfv⟩ := h
+      cases v with
+      | inl w => exact ⟨Tree.nil, rfl, hfv⟩
+      | inr q => exact hv.elim
+  | inr p =>
+    obtain ⟨pl, pa, pr⟩ := p
+    constructor
+    · intro h; obtain ⟨t, ht, hfold⟩ := h
+      have hteq : t = Tree.node pl pa pr := ht
+      rw [hteq] at hfold
+      obtain ⟨rl, rr, hl, hr, hfr⟩ := hfold
+      exact ⟨Sum.inr (rl, pa, rr), ⟨hl, rfl, hr⟩, hfr⟩
+    · intro h; obtain ⟨v, hv, hfv⟩ := h
+      cases v with
+      | inl w => exact hv.elim
+      | inr q =>
+        obtain ⟨ql, qa, qr⟩ := q
+        obtain ⟨hq1, hq2, hq3⟩ := hv
+        have hpa : pa = qa := hq2
+        refine ⟨Tree.node pl pa pr, rfl, ql, qr, hq1, hq3, ?_⟩
+        rw [hpa]; exact hfv
+
+/-- The structural tree fold IS the relational catamorphism `relCata I φ` (Eilenberg–Wright, via
+    `cataTreeFold_comm` and the universal property `relCata_UP`).  Lets the abstract catamorphism
+    laws (fusion, greedy, …) apply to `cataR` over binary trees.  Tree analogue of
+    `A6_SnocList.cataR_eq_relCata`. -/
+theorem cataR_eq_relCata {c : RelSet.{0}} (φ : TFobj A c ⟶ c) :
+    cataR φ = relCata (initial A) φ :=
+  (relCata_UP (initial A) φ (cataR φ)).mp (cataTreeFold_comm φ)
+
 end Freyd.Alg.RelSet.TB
