@@ -61,7 +61,7 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 | 152  | Maximum Product Subarray               | ★★★ | ✓ `L152.lean`  |
 | 217  | Contains Duplicate                     | ★★★ | ✓ `L217.lean`  |
 | 238  | Product of Array Except Self           | ★★  | ✓ `L238.lean`  |
-| 1    | Two Sum                                | ★★  | ·              |
+| 1    | Two Sum                                | ★★  | ✓ `L1.lean`    |
 | 15   | 3Sum                                   | ★★  | ·              |
 | 11   | Container With Most Water              | ★★  | ·              |
 | 153  | Find Minimum in Rotated Sorted Array   | ★   | ·              |
@@ -117,7 +117,7 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 | 20   | Valid Parentheses (stack fold)              | ★★★ | ✓ `L20.lean` |
 | 242  | Valid Anagram (fold to multiset)            | ★★★ | ✓ `L242.lean` |
 | 125  | Valid Palindrome                            | ★★★ | ✓ `L125.lean` |
-| 49   | Group Anagrams                              | ★★  | ·      |
+| 49   | Group Anagrams                              | ★★  | ✓ `L49.lean` |
 | 424  | Longest Repeating Character Replacement     | ★★  | ·      |
 | 76   | Minimum Window Substring                    | ★★  | ·      |
 | 5    | Longest Palindromic Substring               | ★★  | ✓ `L5.lean`  |
@@ -132,7 +132,7 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 | 100  | Same Tree                                      | ★★★ | ✓ `L100.lean` |
 | 98   | Validate Binary Search Tree                    | ★★★ | ✓ `L98.lean`  |
 | 124  | Binary Tree Maximum Path Sum (tupling cata)    | ★★★ | ✓ `L124.lean` |
-| 102  | Binary Tree Level Order Traversal              | ★★  | ·      |
+| 102  | Binary Tree Level Order Traversal              | ★★  | ✓ `L102.lean` |
 | 572  | Subtree of Another Tree                        | ★★  | ✓ `L572.lean` |
 | 105  | Construct Binary Tree from Preorder + Inorder  | ★★  | ·      |
 | 230  | Kth Smallest Element in a BST                  | ★★  | ✓ `L230.lean` |
@@ -735,3 +735,58 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 - **Trap: `conv`/`set` are NOT in this repo's Lean core** (no Mathlib) — for one-sided rewrites build a
   standalone `have step : <LHS> = <target> := …` via `congrArg`/`.trans`; never `rw` a bare variable that
   also occurs inside the rewrite's own RHS (`rw` substitutes ALL syntactic occurrences in one pass).
+
+### S34 — L1 (Two Sum) — witness search, soundness + completeness, and why NOT `solve = spec`
+- **Full honesty via witness soundness AND completeness** (no LeetCode "exactly one solution" crutch).
+  `twoSumFn nums target := go [] target nums` scans carrying a `(value,index)` seen-list (next index =
+  `seen.length`); `TwoSum nums target i j := i < j ∧ ∃ vi vj, nums[i]? = some vi ∧ nums[j]? = some vj ∧
+  vi+vj = target` (getElem?-phrased, S23: `i < length` is a CONSEQUENCE of `= some _`, not a separate hyp).
+  Headline `twoSum_correct : (∀ i j, twoSumFn = some (i,j) → TwoSum …) ∧ (twoSumFn = none → ∀ i j, ¬ TwoSum
+  …)`, both halves one generalized `go_gen` induction (S3). Axioms `[propext, Quot.sound]`.
+- **Deliberately NO `solve = spec`.** A Two-Sum input can have several valid pairs and the program returns
+  one, so `spec` (relate input to EVERY valid pair) is entire-but-NOT-simple ⇒ `solve = spec` is FALSE
+  (contrast L217's Bool decision with a unique answer). Package `solve := graph …` + `Map solve` for the
+  `Rel(Set)` framing, but state correctness at the function level only. **A decision/search that returns one
+  of many valid answers cannot use the `solve = spec` shape — use soundness+completeness instead.**
+- **`go_gen` needs THREE threaded invariants:** `seen.length = done.length` (running index),
+  `SeenIff done seen` (seen captures the processed prefix, both directions), AND `∀ i j, ¬ TwoSum done …`
+  ("no pair missed so far") — without the third, the `none`-completeness can't rule out pairs sitting
+  entirely inside an already-scanned prefix. **Traps:** an untyped `∀ v i, done[i]? = some v` leaves
+  `GetElem?` stuck ("?m depends on v") — annotate `∀ (v:Int) (i:Nat)`. `rintro (heq|hmem)` on raw
+  `List.Mem` substitutes head-case vars away — go through `List.mem_cons.mp` first. `injection` gives the
+  eq in the rewritten direction (`x=v` not `v=x`) — take what it gives, `.symm` downstream.
+
+### S35 — L102 (Level Order Traversal) — level-merging cata, one unconditional row equation
+- **`levels (node l a r) = [a] :: mergeLevels (levels l) (levels r)`** (mergeLevels concatenates two
+  level-lists depth-by-depth). Headline `solve_correct : (∀ d, rowAt (levels t) d = atDepth t d) ∧
+  (levels t).length = height t`. **Define `rowAt` with the SAME out-of-range ↦ `[]` convention as
+  `atDepth`, then prove the row equation UNCONDITIONALLY for all `d`** — both sides collapse to `[]` past the
+  height, so one equation delivers "every in-range row right" + "atDepth vanishes past length" with NO
+  `d<length`/`d≥length` split and NO `getElem?`/`Option` juggling (the flagged Classical.choice risk spot).
+  Axioms `[propext, Quot.sound]`.
+- **Crux `mergeLevels_row : rowAt (mergeLevels A B) d = rowAt A d ++ rowAt B d`** proved as a recursive
+  theorem mirroring `mergeLevels`'s three clauses (termination structural on the FIRST list even though the
+  pattern also splits `d`). Length law needs `imax_succ (m n) : imax (m+1) (n+1) = imax m n + 1`
+  (`unfold imax; split <;> split <;> omega` — double-split, two `ite`s). Kept every def plain structural
+  (no fuel / no WF) by never recursing on two shrinking args at once ⇒ all unfolds `rfl`-transparent,
+  `decide` runs.
+
+### S36 — L49 (Group Anagrams) — `isort`-key partition, Pairwise (positional) separation invariant
+- **Anagram key = `LC242.isort` (reused).** `IsAnagram s t := key s = key t` IS `isort_eq_iff_countL_eq`'s
+  LHS = same multiset — no delegating wrapper (documented in a comment). `groupFn := strs.foldr insertInto
+  []`. Headline `group_correct` = full 4-part partition: membership `x∈strs ↔ ∃ g∈groups, x∈g`,
+  non-emptiness, within-group homogeneity, across-group separation. Axioms `[propext, Quot.sound]`
+  (omega-free — pure list/Pairwise/Perm).
+- **The "one key per group" invariant MUST be `List.Pairwise NoCross groups` (POSITIONAL), not
+  membership-based.** A membership `(∃ related)→g1=g2` invariant can't survive `insertInto` because the
+  merged group's VALUE changes (`r::rest → s::r::rest`) and membership can't tell "same value new position"
+  from a duplicate. `Pairwise`'s head/tail structure is inherently positional; crux `noCross_insertInto`
+  carries it, `groupsWF_separation` derives the membership-quantified statement (needs `noCross_symm`).
+  Membership preservation is cleanest via `List.Perm`: `insertInto_flatten_perm : (insertInto s groups
+  ).flatten ~ s :: groups.flatten` + `mem_flatten`/`Perm.mem_iff`.
+- **Traps:** `insertInto`'s `if` does NOT reduce via bare `show`/defeq after `by_cases hk` — expose named
+  equation lemmas (`insertInto_merge`/`_skip` via `rw [if_pos/if_neg hk]`) and `rw` at call sites (S9/L242
+  pattern; not a forbidden wrapper — it exposes the function's own equations). **Dot notation `.symm`/
+  `.trans` FAILS on an `IsAnagram`-typed hyp** (a plain `def`, not `abbrev`, so field-resolution won't
+  unfold it to find `Eq.symm`) — use explicit `isAnagram_symm := Eq.symm h` helpers (they typecheck since
+  argument-elaboration defeq DOES unfold the `def`).
