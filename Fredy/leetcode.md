@@ -63,7 +63,7 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 | 238  | Product of Array Except Self           | ★★  | ✓ `L238.lean`  |
 | 1    | Two Sum                                | ★★  | ✓ `L1.lean`    |
 | 15   | 3Sum                                   | ★★  | ·              |
-| 11   | Container With Most Water              | ★★  | ·              |
+| 11   | Container With Most Water              | ★★  | ✓ `L11.lean`   |
 | 153  | Find Minimum in Rotated Sorted Array   | ★   | ·              |
 | 33   | Search in Rotated Sorted Array         | ★   | ·              |
 
@@ -106,7 +106,7 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 | 206  | Reverse Linked List (cata)     | ★★★ | ✓ `L206.lean` |
 | 21   | Merge Two Sorted Lists         | ★★★ | ✓ `L21.lean`  |
 | 23   | Merge k Sorted Lists           | ★★  | ✓ `L23.lean`  |
-| 19   | Remove Nth Node From End       | ★★  | ·      |
+| 19   | Remove Nth Node From End       | ★★  | ✓ `L19.lean`  |
 | 141  | Linked List Cycle              | ★   | ·      |
 | 143  | Reorder List                   | ★   | ·      |
 
@@ -122,7 +122,7 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
 | 76   | Minimum Window Substring                    | ★★  | ·      |
 | 5    | Longest Palindromic Substring               | ★★  | ✓ `L5.lean`  |
 | 647  | Palindromic Substrings                      | ★★  | ·      |
-| 271  | Encode and Decode Strings                   | ★★  | ·      |
+| 271  | Encode and Decode Strings                   | ★★  | ✓ `L271.lean` |
 
 ### Tree  (build a `TreeCata` engine first → unlocks the block)
 | #    | problem                                        | fit | status |
@@ -790,3 +790,53 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
   `.trans` FAILS on an `IsAnagram`-typed hyp** (a plain `def`, not `abbrev`, so field-resolution won't
   unfold it to find `Eq.symm`) — use explicit `isAnagram_symm := Eq.symm h` helpers (they typecheck since
   argument-elaboration defeq DOES unfold the `def`).
+
+### S37 — L271 (Encode/Decode Strings) — the L297 `rest`-generalization is FALSE for non-self-delimiting codes
+- **KEY LESSON: a round-trip lemma generalized "with any trailing tokens `rest`" (L297/S30) only holds when
+  the encoding is SELF-DELIMITING.** L297's preorder-with-null-markers ends each subtree unambiguously
+  mid-stream, so `parseFuel fuel (serialize t ++ rest) = some (t, rest)`. A FLAT length-prefixed list of
+  strings has NO end marker — a fuelled-and-slack decoder greedily reinterprets trailing garbage as more
+  strings: `decodeFuel 1 (encode [] ++ [0]) = some [[]]`, NOT `some ([], [0])` (verified by `#eval` BEFORE
+  writing any proof). Fix: prove the plain, NON-`rest`-generalized `decode_encode : ∀ strs fuel,
+  (encode strs).length ≤ fuel → decodeFuel fuel (encode strs) = some strs` by induction on `strs` — the
+  inductive step's recursive call is always exactly `encode rest'` with nothing appended, so no trailing
+  thread is needed. **Check the generalization holds by `#eval` before transplanting a template.**
+- `encode1 s := (s.length : Int) :: s`, `encode := List.flatMap encode1`; `decodeFuel` an S13 fuel parser
+  (`List.drop` of a computed length isn't structural). `round_trip : decodeFn (encode strs) = some strs`,
+  `section_retraction : solveEnc ≫ solveDec = graph (some ·)` (Rel(Set)). No escaping/delimiter needed —
+  positional decode is unambiguous (head is ALWAYS a length). Axioms `[propext, Quot.sound]`.
+- **Traps:** `Int.toNat_natCast : (↑n).toNat = n` (length token is a literal `Nat`-cast, no
+  `toNat_of_nonneg` side-goal). `encode (s::rest') = s.length :: (s ++ encode rest')` via `List.flatMap_cons`
+  + `cons_append` (bare `rw` won't unfold `flatMap`'s matcher — S30 class). **`strs=[]` base needs
+  `cases fuel <;> rfl`** (opaque `fuel` blocks iota-reduction of `decodeFuel _ []` despite the wildcard
+  fuel pattern). `fuel=0` contradiction in `cons` via `exfalso; omega` (S33).
+
+### S38 — L11 (Container With Most Water) — two-pointer window-invariant, nonneg is load-bearing
+- **Full both-halves optimization.** `twoPtrFuel : List Int → Nat → Nat → Nat → Int` (fuel `= h.length`,
+  structural on fuel); moves the pointer at the SHORTER line inward. `Area h i j := imin h[i]! h[j]! *
+  ((j:Int)-(i:Int))`. Headline `maxArea_correct (hnn : Nonneg h) (hlen : 2 ≤ h.length) : IsPairArea h
+  (maxAreaFn h) ∧ ∀ a, IsPairArea h a → a ≤ maxAreaFn h` (max over ALL pairs `i<j`). Axioms
+  `[propext, Quot.sound]`.
+- **Crux `twoPtrFuel_correct`: over window `[lo,hi]` the sweep returns the max `Area` over all pairs inside
+  it** (induction on fuel). Step lemmas `discard_lo`/`discard_hi`: if `h[lo] ≤ h[hi]`, every `(lo,j)` with
+  `j<hi` has `Area h lo j ≤ Area h lo hi` (both `imin ≤ h[lo]` AND width `j-lo < hi-lo`), so moving `lo`
+  inward loses nothing better than the recorded `Area h lo hi`. Nonlinear `*` via ONE core
+  `Int.mul_le_mul hac hbd nn_b nn_c : a*b ≤ c*d` (cleaner than L152/S2's two-step chain).
+- **`Nonneg h` (LeetCode's `heights[i] ≥ 0`) is LOAD-BEARING, not decorative** — the empty-window tie-break
+  `imax a 0 = 0` (last candidate discarded to nothing) needs `Area ≥ 0` to force `a = 0`; without
+  nonnegativity the two-pointer is not correct. **Traps:** `subst` on `i = lo` deletes `lo` — `rw [hieq] at
+  hij ⊢` (rewrite the HYP too, the discard lemma needs it). `imax_eq_or`'s `exacts` needs
+  `import Fredy.Exacts` (S22). Vacuous cases `exfalso; omega` prophylactically (S33).
+
+### S39 — L19 (Remove Nth From End) — take/drop splice, `min` is omega-transparent
+- **`removeNthFn xs n := xs.take (xs.length-n) ++ xs.drop (xs.length-n+1)`** — no recursion, no fuel.
+  Headline `removeNth_correct (1 ≤ n) (n ≤ xs.length) : (out).length = xs.length-1 ∧ (∀ i, i<k → out[i]? =
+  xs[i]?) ∧ (∀ i, k ≤ i → out[i]? = xs[i+1]?)` with `k := xs.length-n` (getElem?-phrased, S23). Axioms
+  `[propext, Quot.sound]`.
+- **`min` from `List.length_take` is fully `omega`-transparent** — no manual case split on
+  `min (len-n) len`; `rw [List.length_take]` then `omega`/`if_pos (by omega)`/`if_neg (by omega)` closes
+  every `min`/truncated-`Nat.sub` interaction across `getElem?_append`/`getElem?_take`/`getElem?_drop`
+  (`congr 1; omega` for the final index eq). **Bonus `removeNth_splice` (axiom-free, `[]`)**: splicing
+  `xs[k]'h` back recovers `xs`, proving the deleted element IS the n-th-from-end — dodge dependent-`getElem`
+  proof-irrelevance fights by UNIVERSALLY quantifying over the bound proof `h` and using the SAME `h` on
+  both sides of `rw [← List.drop_eq_getElem_cons h, List.take_append_drop]`.
