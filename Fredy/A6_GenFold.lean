@@ -14,11 +14,16 @@
     walks a SECOND tree in step with the first (`A6_TreeZip`, used by Same-Tree / Symmetric /
     Merge-Trees, the two-input case).
 
+  The same statement for the CONS-list initial algebra `ConsList L E` (base at the `wrap`/nil end,
+  recursion on the tail) is `CL.consFold_unique` below — the reshaping law for problems whose
+  natural fold consumes the input FRONT-to-back (`L1143` LCS's `col`, one row per leading char).
+
   The tupling laws are then the `C = C₁ × C₂` instances of these — kept as separate named laws only
   because the product-projection API (`tupling_fst`, banana-split) is convenient there.  Mathlib-free.
 -/
 import Fredy.A6_8_Tupling
 import Fredy.A6_9_TreeTupling
+import Fredy.A6_ConsList
 
 set_option linter.unusedVariables false
 
@@ -96,3 +101,47 @@ theorem treeFold_unique {A C : Type} (g : C) (step : C → A → C → C)
         exact hstep
 
 end Freyd.Alg.RelSet.TB
+
+namespace Freyd.Alg.RelSet.CL
+
+open Freyd
+
+/-- A scalar cons-list algebra `[g, st] : F C → C` over a bare carrier `C` (`F X = L + E×X`); the
+    graph of the case split.  Cons-list analogue of `SL.scalarAlg`; note the step `st : E → C → C`
+    takes the head element FIRST, then the folded tail (the `ConsList.cons e xs` order). -/
+def consScalarAlg {L E C : Type} (g : L → C) (st : E → C → C) :
+    Fobj L E (⟨C⟩ : RelSet.{0}) ⟶ (⟨C⟩ : RelSet.{0}) :=
+  graph (fun u => match u with
+    | Sum.inl d      => g d
+    | Sum.inr (e, c) => st e c)
+
+/-- The scalar cons-list algebra is a `Map` (it is a graph). -/
+theorem consScalarAlg_map {L E C : Type} (g : L → C) (st : E → C → C) :
+    Map (consScalarAlg g st) := graph_map _
+
+/-- **General cons-list fold-uniqueness.**  A function `h : ConsList L E → C` obeying the
+    recursion `h (wrap d) = g d`, `h (cons e xs) = st e (h xs)` IS the catamorphism of
+    `consScalarAlg g st`, for ANY carrier `C`.  The reshaping law: a front-to-back single-list DP
+    (carrier `C := List D` a growing row, e.g. `L1143`'s `col`) is emitted by this law. -/
+theorem consFold_unique {L E C : Type} (g : L → C) (st : E → C → C)
+    (h : ConsList L E → C)
+    (hwrap : ∀ d, h (ConsList.wrap d) = g d)
+    (hcons : ∀ e xs, h (ConsList.cons e xs) = st e (h xs)) :
+    (graph h : dCL L E ⟶ ⟨C⟩) = cataR (consScalarAlg g st) := by
+  apply hom_ext; intro d w
+  show w = h d ↔ cataFold (consScalarAlg g st) d w
+  induction d generalizing w with
+  | wrap l =>
+      rw [cataFold_wrap, hwrap l]
+      exact Iff.rfl
+  | cons e xs ih =>
+      rw [cataFold_cons, hcons]
+      constructor
+      · intro hw
+        exact ⟨h xs, (ih (h xs)).mp rfl, hw⟩
+      · rintro ⟨r', hr', hstep⟩
+        have hr'eq : r' = h xs := (ih r').mpr hr'
+        rw [hr'eq] at hstep
+        exact hstep
+
+end Freyd.Alg.RelSet.CL
