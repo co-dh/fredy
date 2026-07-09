@@ -19,11 +19,27 @@
   further improvement to the textbook O(N log k) — keep only the `k` current heads in the heap and,
   after each `popMin?`, `insert` that list's NEXT element — needs a heap whose entries carry the
   REST of their list (`Int × List Int` keyed on the value), i.e. a small variant of `A6_Heap`; it is
-  NOT done here to avoid duplicating the leftist-heap machinery.  Note this program is driven by an
-  UNFOLD/drain loop over the heap, not a fold over the input, so the catamorphism framing is
-  secondary — the deliverable is an EFFICIENT program proven correct.
+  NOT done here to avoid duplicating the leftist-heap machinery.
 
-  What is proved (all directly from `A6_Heap`'s exported lemmas):
+  **The drain is certified as a HYLOMORPHISM.**  The heap drain is a divide-and-conquer UNFOLD, the
+  dual of a catamorphism, so it is captured not by a fold law but by the RECURSIVE-COALGEBRA
+  hylomorphism uniqueness law `Hylo.hyloFold_unique` (`Fredy/A6_GenHylo.lean`).  We recast the drain
+  as a `Nat`-measured recursive coalgebra and let the law EMIT it (rather than the ad-hoc `popN` fuel
+  loop):
+
+    * coalgebra `drainCo h` reads `popMin?` — empty ↦ `Sum.inl ()` leaf, non-empty ↦ `Sum.inr (min,rest)`;
+    * measure `drainμ h := (toList h).length`, strictly dropped on every `Sum.inr` step (`drain_dec`,
+      from `A6_Heap.popMin?_perm`);
+    * `drain` is the well-founded recursion on `drainμ`, and `drain_emerges` proves — via
+      `hyloFold_unique` — that `graph drain` IS the relational hylomorphism
+      `hyloR drainCo drainμ drain_dec (fun _ => []) (· :: ·)`.
+
+  `heapMerge lists = drain (ofList lists.flatten)` (`heapMerge_eq_drain`), so the O(N log N) merge IS
+  this hylomorphism.  The efficient PROGRAM is PRODUCED by the law; correctness is reused (below).
+
+  What is proved:
+    * `drain_emerges`     — the drain IS the hylomorphism of the measured coalgebra (`hyloFold_unique`);
+    * `heapMerge_eq_drain`— the merge is that drain on the heap of the flattened input;
     * `heapMerge_sorted`  — the output is `Sorted`, UNCONDITIONALLY (heapsort needs no sorted inputs);
     * `heapMerge_perm`    — the output is a permutation of `lists.flatten` (exact multiset);
     * `heapMerge_eq_mergeK` — on VALID (sorted) inputs it returns the IDENTICAL list to `L23.mergeKFn`
@@ -35,10 +51,11 @@
   Correctness of the ORIGINAL `mergeKFn` (sortedness + exact summed multiplicity) is REUSED verbatim
   from `L23.merge_k_correct`, not re-proved.
 
-  Mathlib-free (`import Fredy.A6_Heap` only); headline axioms ⊆ {propext, Quot.sound}.
+  Mathlib-free (`import Fredy.A6_Heap`, `Fredy.A6_GenHylo`); headline axioms ⊆ {propext, Quot.sound}.
 -/
 import Fredy.L23
 import Fredy.A6_Heap
+import Fredy.A6_GenHylo
 
 set_option linter.unusedVariables false
 
@@ -316,22 +333,145 @@ theorem derivedSolve_refines_spec : derivedSolve ⊑ LC23.spec := by
   intro _
   exact ⟨heapMerge_sorted lists, fun v => heapMerge_count v lists⟩
 
+/-! ## The heap drain, certified as a HYLOMORPHISM (`A6_GenHylo`)
+
+  The heap `popN`-drain is fuel-structural, which hides its true recursion.  Its actual shape — pop the
+  minimum, emit it, recurse on the remaining heap, stop at the empty heap — is exactly the recurrence
+  of a `Nat`-measured RECURSIVE COALGEBRA (`Hylo.hyloFold`).  We recast the drain as a proper heap-hylo:
+
+    * coalgebra `drainCo h` reads `popMin?` — empty heap ↦ `Sum.inl ()` leaf (emit `[]`), non-empty ↦
+      `Sum.inr (min, rest)` node;
+    * measure `drainμ h := (toList h).length`, the number of elements left;
+    * every `Sum.inr` step strictly drops the measure (`drain_dec`), because `popMin?` removes exactly
+      one element (`A6_Heap.popMin?_perm`);
+    * algebra `[g := fun _ => [], st := (· :: ·)]` re-folds the finite call tree into the sorted output.
+
+  `drain` is that recursion written directly (well-founded on `drainμ`), and `drain_emerges` proves — via
+  `Hylo.hyloFold_unique`, the recursive-coalgebra dual of the fold-uniqueness laws — that it IS the
+  relational hylomorphism `hyloR drainCo drainμ drain_dec (fun _ => []) (· :: ·)`.  The efficient PROGRAM
+  is thereby PRODUCED by the law, not hand-written and inductively verified. -/
+
+/-- The drain coalgebra: an empty heap is a `Sum.inl ()` leaf (nothing more to emit); a non-empty heap
+    yields its minimum and the remaining heap as a `Sum.inr` node. -/
+def drainCo (h : LHeap) : Sum Unit (Int × LHeap) :=
+  match popMin? h with
+  | none => Sum.inl ()
+  | some (m, h') => Sum.inr (m, h')
+
+/-- The measure: the number of elements still in the heap. -/
+def drainμ (h : LHeap) : Nat := (toList h).length
+
+/-- Every `Sum.inr` step of `drainCo` strictly drops `drainμ`: `popMin?` removes exactly one element
+    (`popMin?_perm` gives `toList h ~ m :: toList h'`), so `(toList h').length + 1 = (toList h).length`. -/
+theorem drain_dec : ∀ h e h', drainCo h = Sum.inr (e, h') → drainμ h' < drainμ h := by
+  intro h e h' hc
+  cases hp : popMin? h with
+  | none => simp only [drainCo, hp] at hc; nomatch hc
+  | some p =>
+      obtain ⟨m, hh⟩ := p
+      simp only [drainCo, hp, Sum.inr.injEq, Prod.mk.injEq] at hc
+      obtain ⟨_, rfl⟩ := hc
+      have hlen := (popMin?_perm hp).length_eq
+      simp only [drainμ, List.length_cons] at hlen ⊢
+      omega
+
+/-- The drain, written directly as its own well-founded recursion on `drainμ`: pop the minimum, cons it
+    onto the drain of the rest, stopping at the empty heap. -/
+def drain (h : LHeap) : List Int :=
+  match hp : popMin? h with
+  | none => []
+  | some (m, h') => m :: drain h'
+termination_by (toList h).length
+decreasing_by
+  have hlen := (popMin?_perm hp).length_eq
+  simp only [List.length_cons] at hlen
+  omega
+
+/-- `drain` on the empty heap emits nothing (`popMin?` returns `none`). -/
+theorem drain_empty : drain LHeap.empty = [] := by
+  rw [drain]; rfl
+
+/-- `drain` on a node pops the root minimum and recurses on the merge of its children (`popMin?` on a
+    concrete node computes to `some (v, merge l r)`, so the well-founded `drain` reduces one layer). -/
+theorem drain_node (k : Nat) (v : Int) (l r : LHeap) :
+    drain (LHeap.node k v l r) = v :: drain (merge l r) := by
+  rw [drain]; rfl
+
+/-- **The drain IS the hylomorphism.**  `drain` obeys the hylomorphism recurrence for the coalgebra
+    `drainCo`, measure `drainμ`, algebra `[fun _ => [], (· :: ·)]`, so by `hyloFold_unique` its graph
+    equals the relational hylomorphism.  The remaining `?_` is exactly that recurrence, discharged in
+    place by unfolding `drain` / `drainCo` on each heap constructor (a separate recurrence lemma fails
+    the matcher-aux `isDefEq`, per the `A6_GenHylo` note). -/
+theorem drain_emerges :
+    (graph drain : (⟨LHeap⟩ : RelSet.{0}) ⟶ ⟨List Int⟩)
+      = Hylo.hyloR drainCo drainμ drain_dec (fun _ => []) (· :: ·) := by
+  refine Hylo.hyloFold_unique drainCo drainμ drain_dec (fun _ => []) (· :: ·) drain ?_
+  intro h
+  cases h with
+  | empty => rw [drain_empty]; rfl
+  | node k v l r => rw [drain_node]; rfl
+
+/-- **Bridge to `heapMerge`.**  A full `popN`-drain (fuel ≥ the element count) equals the well-founded
+    `drain`: both pop minima until the heap empties.  Proved by induction on the fuel, using `drain`'s
+    equation and `popMin?_perm` to feed the induction hypothesis at the shrunk heap. -/
+theorem popN_eq_drain : ∀ (fuel : Nat) (h : LHeap), (toList h).length ≤ fuel → popN fuel h = drain h := by
+  intro fuel
+  induction fuel with
+  | zero =>
+      intro h hlen
+      have hz : toList h = [] := by
+        cases hE : toList h with
+        | nil => rfl
+        | cons a t => exfalso; rw [hE] at hlen; simp only [List.length_cons] at hlen; omega
+      cases h with
+      | empty => rw [drain_empty]; rfl
+      | node k v l r => simp only [toList] at hz; nomatch hz
+  | succ n ih =>
+      intro h hlen
+      cases h with
+      | empty => rw [drain_empty]; rfl
+      | node k v l r =>
+          have hpop : popMin? (LHeap.node k v l r) = some (v, merge l r) := rfl
+          have hlen' : (toList (merge l r)).length ≤ n := by
+            have hL := (popMin?_perm hpop).length_eq
+            simp only [List.length_cons] at hL
+            omega
+          show v :: popN n (merge l r) = drain (LHeap.node k v l r)
+          rw [drain_node, ih (merge l r) hlen']
+
+/-- The heap merge is the drain hylomorphism applied to the heap of the flattened input. -/
+theorem heapMerge_eq_drain (lists : List (List Int)) :
+    heapMerge lists = drain (ofList lists.flatten) := by
+  have hlen : (toList (ofList lists.flatten)).length ≤ lists.flatten.length :=
+    Nat.le_of_eq (ofList_perm lists.flatten).length_eq
+  exact popN_eq_drain _ _ hlen
+
 /-! ## Correctness headline -/
 
 /-- **Headline** (`LC23D.merge_k_derived_correct`).  The O(N log N) heap merge:
 
-    (1) is `Sorted` UNCONDITIONALLY (heapsort — `heapMerge_sorted`);
-    (2) is a permutation of the flattened input, i.e. the EXACT multiset (`heapMerge_perm`);
-    (3) on VALID (sorted) inputs returns the IDENTICAL list to the original O(k·N) `L23.mergeKFn`, a
+    (1) the heap drain is a PROPER HYLOMORPHISM: `graph drain` equals the relational hylomorphism
+        `hyloR drainCo drainμ drain_dec (fun _ => []) (· :: ·)` of the measured recursive coalgebra —
+        the efficient PROGRAM is PRODUCED by `Hylo.hyloFold_unique`, not a hand-written fuel loop
+        (`drain_emerges`);
+    (2) the O(N log N) merge IS that drain applied to the heap of the flattened input, so the whole
+        program is the hylomorphism (`heapMerge_eq_drain`);
+    (3) it is `Sorted` UNCONDITIONALLY (heapsort — `heapMerge_sorted`);
+    (4) it is a permutation of the flattened input, i.e. the EXACT multiset (`heapMerge_perm`);
+    (5) on VALID (sorted) inputs it returns the IDENTICAL list to the original O(k·N) `L23.mergeKFn`, a
         genuine drop-in replacement (`heapMerge_eq_mergeK`);
-    (4) as a `Rel(Set)` morphism REFINES LeetCode 23's spec — sorted output with summed multiplicity
+    (6) as a `Rel(Set)` morphism it REFINES LeetCode 23's spec — sorted output with summed multiplicity
         (`derivedSolve_refines_spec`); and
-    (5) the original program's correctness — sortedness AND exact summed multiplicity — is REUSED
+    (7) the original program's correctness — sortedness AND exact summed multiplicity — is REUSED
         verbatim from `L23.merge_k_correct`, not re-proved.
 
-    The efficient PROGRAM is the heap drain; the specification correctness is reused. -/
+    The efficient PROGRAM (the heap drain) is EMITTED by the hylomorphism law; the specification
+    correctness is reused. -/
 theorem merge_k_derived_correct :
-    (∀ lists : List (List Int), LC21.Sorted (heapMerge lists))
+    ((graph drain : (⟨LHeap⟩ : RelSet.{0}) ⟶ ⟨List Int⟩)
+        = Hylo.hyloR drainCo drainμ drain_dec (fun _ => []) (· :: ·))
+      ∧ (∀ lists : List (List Int), heapMerge lists = drain (ofList lists.flatten))
+      ∧ (∀ lists : List (List Int), LC21.Sorted (heapMerge lists))
       ∧ (∀ lists : List (List Int), List.Perm (heapMerge lists) lists.flatten)
       ∧ (∀ lists : List (List Int), (∀ l ∈ lists, LC21.Sorted l) →
            heapMerge lists = LC23.mergeKFn lists)
@@ -339,8 +479,8 @@ theorem merge_k_derived_correct :
       ∧ (∀ lists : List (List Int), (∀ l ∈ lists, LC21.Sorted l) →
            LC21.Sorted (LC23.mergeKFn lists) ∧
            ∀ v, LC21.count v (LC23.mergeKFn lists) = LC23.totalCount v lists) :=
-  ⟨heapMerge_sorted, heapMerge_perm, heapMerge_eq_mergeK, derivedSolve_refines_spec,
-   LC23.merge_k_correct⟩
+  ⟨drain_emerges, heapMerge_eq_drain, heapMerge_sorted, heapMerge_perm, heapMerge_eq_mergeK,
+   derivedSolve_refines_spec, LC23.merge_k_correct⟩
 
 /-! ## Running the heap merge
 
