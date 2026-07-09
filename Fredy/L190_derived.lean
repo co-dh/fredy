@@ -1,5 +1,5 @@
 /-
-  LeetCode 190 — Reverse Bits — DERIVED as a cons-list catamorphism.
+  LeetCode 190 — Reverse Bits — DERIVED as a cons-list catamorphism (O(m), accumulator carrier).
 
   `Fredy/L190.lean` packages the solution as `revBits := List.reverse` on the LSB-first bit-list,
   `solve : dBits ⟶ dBits := graph revBits` — a STRUCTURAL-OUTPUT endomorphism (source and target the
@@ -8,25 +8,27 @@
   `List.reverse`, NOT written as a structural fold, so there is genuine content in making it EMERGE
   as a catamorphism.
 
-  Bit-reversal is the textbook fold `reverse = foldr (fun x r => r ++ [x]) []`: reading the standard
-  recurrence `reverse (x :: xs) = reverse xs ++ [x]` (`List.reverse_cons`) off the FRONT of the list,
-  the leading bit `x` is snoc'd onto the reversed tail.  That is exactly a CONS-list catamorphism
-  (`F X = 1 + Bool × X`, base at `wrap`/nil, recursion on the tail) with
+  Bit-reversal as a FRONT-TO-BACK fold: the naive `reverse (x :: xs) = reverse xs ++ [x]` snocs the
+  head, an O(1)·per-step append AT THE END, so folding it over an `m`-bit word costs O(m²).  The
+  efficient program uses the standard accumulator trick (Lean core's own `List.reverseAux`): carry a
+  FUNCTION `C := List Bool → List Bool` (the reversed-so-far list awaiting the accumulator) and
+  PREPEND the head — an O(1) cons — building the answer in O(m) total.  This is a cons-list
+  catamorphism (`F X = 1 + Bool × X`, base at `wrap`/nil, recursion on the tail) with
 
-    * base   `g _        = []`                      (the empty word reverses to itself), and
-    * step   `st x prev  = prev ++ [x]`             (snoc the leading bit onto the folded tail),
+    * carrier `C := List Bool → List Bool`  — the reversal continuation, and
+    * base   `g _      = (id : List Bool → List Bool)`          (empty word: return the accumulator),
+    * step   `st x k   = fun acc => k (x :: acc)`               (PREPEND the head, O(1), NO `++`).
 
-  carrier `C := List Bool` — the SAME object as the input, the structural-output shape.  The input
-  `List Bool` is not the initial-algebra list, so `revBits` as written is not a catamorphism; this
-  file RESHAPES the data onto the repo's canonical cons-list initial algebra `ConsList Unit Bool`
-  and lets the fold EMERGE via the general-carrier law `Freyd.Alg.RelSet.CL.consFold_unique`
-  (`Fredy/A6_GenFold.lean`) — same recipe as `L1143_derived` (`ofList` + `consFold_unique` + a
-  bridge to the raw-`List` program).  The SnocList axis would need a non-structural `ofList`
-  (snoc at the innermost position); the cons axis is the structural, front-to-back one, matching the
-  `reverse (x :: xs)` recurrence.
+  Applied to the empty accumulator the continuation yields the reversed list:
+  `revAcc (ofList bs) [] = bs.reverse = LC190.revBits bs`, via the helper induction
+  `revAcc (ofList bs) acc = bs.reverse ++ acc`.  The input `List Bool` is not the initial-algebra
+  list, so `revBits` as written is not a catamorphism; this file RESHAPES the data onto the repo's
+  canonical cons-list initial algebra `ConsList Unit Bool` and lets the fold EMERGE via the
+  general-carrier law `Freyd.Alg.RelSet.CL.consFold_unique` (`Fredy/A6_GenFold.lean`) — the same
+  law that emits list-DPs, here with a FUNCTION carrier.
 
   Correctness is REUSED, not re-proved: the reshaped-then-converted fold reproduces `revBits`
-  (`LC190.solve_correct` across the bridge `foldCL_ofList`), and reversing bits twice is the identity
+  (`LC190.solve_correct` across the bridge `revBits_ofList`), and reversing bits twice is the identity
   (`LC190.rev_rev`, `L190`'s structural extra law).
 
   Mathlib-free; headline axioms ⊆ {propext, Quot.sound}.
@@ -40,41 +42,44 @@ namespace Freyd.Alg.RelSet.LC190D
 
 open Freyd Freyd.Alg.RelSet.CL
 
-/-! ## The cons-list carrier and its bit-reversal fold
+/-! ## The function carrier and its O(m) bit-reversal fold
 
-  The general-carrier law `CL.consFold_unique` carries an arbitrary type `C`; here `C = List Bool`,
-  the SAME object as the input (the structural-output case).  `foldCL` mirrors bit-reversal on the
-  cons-list initial algebra `ConsList Unit Bool`: `wrap _` is the empty word (`[]`), `cons x xs`
-  reads the leading bit `x` and snoc's it onto the reversed tail. -/
+  The general-carrier law `CL.consFold_unique` carries an arbitrary type `C`; here
+  `C = List Bool → List Bool` — the reversal continuation (the reversed-so-far list awaiting an
+  accumulator).  The step PREPENDS the head onto the accumulator, an O(1) cons, so the whole fold is
+  O(m) (contrast the naive `prev ++ [x]`, O(m²)). -/
 
-/-- Bit-reversal as a fold over the cons-list initial algebra, mirroring `reverse (x :: xs) =
-    reverse xs ++ [x]`: `wrap _ ↦ []`, `cons x xs ↦ foldCL xs ++ [x]`. -/
-def foldCL : ConsList Unit Bool → List Bool
-  | ConsList.wrap _    => []
-  | ConsList.cons x xs => foldCL xs ++ [x]
+/-- The base of the emergent algebra: the empty word returns the accumulator unchanged. -/
+def g : Unit → (List Bool → List Bool) := fun _ => id
 
-/-- The base of the emergent algebra: the empty word reverses to itself, ignoring the `Unit` leaf. -/
-def g : Unit → List Bool := fun _ => []
+/-- The step of the emergent algebra: PREPEND the leading bit `x` onto the accumulator, then hand off
+    to the folded tail's continuation.  A single cons — O(1), NO append. -/
+def st : Bool → (List Bool → List Bool) → (List Bool → List Bool) := fun x k => fun acc => k (x :: acc)
 
-/-- The step of the emergent algebra: snoc the leading bit `x` onto the folded (reversed) tail. -/
-def st : Bool → List Bool → List Bool := fun x prev => prev ++ [x]
+/-- Bit-reversal as an accumulator fold over the cons-list initial algebra `ConsList Unit Bool`:
+    `wrap _ ↦ id`, `cons x xs ↦ st x (revAcc xs)`.  This is exactly Lean core's `List.reverseAux`
+    reshaped onto the initial algebra — O(m) via O(1) prepend. -/
+def revAcc : ConsList Unit Bool → (List Bool → List Bool)
+  | ConsList.wrap _    => id
+  | ConsList.cons x xs => st x (revAcc xs)
 
-/-- The base condition is a COMPUTATION, not a guess: `foldCL (wrap d) = g d`. -/
-theorem foldCL_wrap : ∀ d : Unit, foldCL (ConsList.wrap d) = g d := fun d => rfl
+/-- The base condition is a COMPUTATION, not a guess: `revAcc (wrap d) = g d`. -/
+theorem revAcc_wrap : ∀ d : Unit, revAcc (ConsList.wrap d) = g d := fun _ => rfl
 
-/-- The step condition IS `foldCL`'s cons equation: `foldCL (cons x xs) = st x (foldCL xs)`. -/
-theorem foldCL_cons : ∀ (x : Bool) (xs : ConsList Unit Bool),
-    foldCL (ConsList.cons x xs) = st x (foldCL xs) := fun x xs => rfl
+/-- The step condition IS `revAcc`'s cons equation: `revAcc (cons x xs) = st x (revAcc xs)`. -/
+theorem revAcc_cons : ∀ (x : Bool) (xs : ConsList Unit Bool),
+    revAcc (ConsList.cons x xs) = st x (revAcc xs) := fun _ _ => rfl
 
 /-! ## Bit-reversal EMERGES via the general-carrier cons-fold law -/
 
-/-- **The derivation.**  Bit-reversal, RESHAPED onto the cons-list initial algebra `ConsList Unit
-    Bool`, IS the catamorphism of the emergent scalar algebra `consScalarAlg g st` — it was never
-    written as a fold: `graph foldCL` equals `cataR (consScalarAlg g st)`.  The program (the fold) is
-    PRODUCED by `consFold_unique`; `List.reverse` (LeetCode 190's answer) is recovered below. -/
+/-- **The derivation.**  The O(m) accumulator reversal, RESHAPED onto the cons-list initial algebra
+    `ConsList Unit Bool`, IS the catamorphism of the emergent scalar algebra `consScalarAlg g st` — it
+    was never written as a fold: `graph revAcc` equals `cataR (consScalarAlg g st)`.  The program (the
+    O(1)-prepend fold) is PRODUCED by `consFold_unique`; `List.reverse` (LeetCode 190's answer) is
+    recovered below by applying the continuation to the empty accumulator. -/
 theorem revBits_emerges :
-    (graph foldCL : dCL Unit Bool ⟶ ⟨List Bool⟩) = cataR (consScalarAlg g st) :=
-  consFold_unique g st foldCL foldCL_wrap foldCL_cons
+    (graph revAcc : dCL Unit Bool ⟶ ⟨List Bool → List Bool⟩) = cataR (consScalarAlg g st) :=
+  consFold_unique g st revAcc revAcc_wrap revAcc_cons
 
 /-! ## Bridge to the hand-written `List.reverse` program -/
 
@@ -84,51 +89,60 @@ def ofList : List Bool → ConsList Unit Bool
   | []      => ConsList.wrap ()
   | x :: xs => ConsList.cons x (ofList xs)
 
-/-- The reshaped fold agrees with `LC190.revBits` (Lean core's `List.reverse`) on converted input,
-    by induction on `xs` (`reverse (x :: xs) = reverse xs ++ [x]`). -/
-theorem foldCL_ofList : ∀ bs : List Bool, foldCL (ofList bs) = LC190.revBits bs
-  | []      => rfl
-  | x :: xs => by
-      show foldCL (ofList xs) ++ [x] = LC190.revBits (x :: xs)
-      rw [foldCL_ofList xs]
-      show xs.reverse ++ [x] = (x :: xs).reverse
-      exact List.reverse_cons.symm
+/-- The accumulator invariant: running the continuation on `acc` prepends the reversed word,
+    `revAcc (ofList bs) acc = bs.reverse ++ acc`.  By induction on `bs`, the cons step being the O(1)
+    prepend `revAcc (ofList xs) (x :: acc)` unfolded against `List.reverse_cons`/`List.append_assoc`. -/
+theorem revAcc_ofList_append : ∀ (bs acc : List Bool),
+    revAcc (ofList bs) acc = bs.reverse ++ acc
+  | [],      acc => rfl
+  | x :: xs, acc => by
+      show revAcc (ofList xs) (x :: acc) = (x :: xs).reverse ++ acc
+      rw [revAcc_ofList_append xs (x :: acc), List.reverse_cons]
+      exact (List.append_assoc xs.reverse [x] acc).symm
+
+/-- The reshaped fold, run on the empty accumulator, agrees with `LC190.revBits` (Lean core's
+    `List.reverse`): `revAcc (ofList bs) [] = bs.reverse = LC190.revBits bs`, via the accumulator
+    invariant at `acc = []` (`List.append_nil`) and the reused `LC190.solve_correct`. -/
+theorem revBits_ofList (bs : List Bool) : revAcc (ofList bs) [] = LC190.revBits bs := by
+  rw [revAcc_ofList_append bs [], List.append_nil, LC190.solve_correct]
 
 /-! ## Correctness carries over from `L190.lean` (no re-proof) -/
 
-/-- **Headline.**  The honest bundle: (1) bit-reversal, reshaped onto the cons-list initial algebra,
-    IS the catamorphism of `consScalarAlg g st` (`revBits_emerges`); (2) the reshaped-then-converted
-    fold reproduces `LC190.revBits` — LeetCode 190's `List.reverse` program — the reused
-    `LC190.solve_correct` carried across the bridge `foldCL_ofList`; and (3) reversing bits twice is
-    the identity, the structural-output extra law reused from `LC190.rev_rev`.  The program (the
-    fold) is PRODUCED by the law; correctness is REUSED, not re-proved. -/
+/-- **Headline.**  The honest bundle: (1) the O(m) accumulator bit-reversal, reshaped onto the
+    cons-list initial algebra, IS the catamorphism of `consScalarAlg g st` (`revBits_emerges`) — the
+    step PREPENDS (O(1)), NOT `prev ++ [x]`; (2) the reshaped fold, applied to the empty accumulator,
+    reproduces `LC190.revBits` — LeetCode 190's `List.reverse` program — the reused
+    `LC190.solve_correct` carried across the bridge `revBits_ofList`; and (3) reversing bits twice is
+    the identity, the structural-output extra law reused from `LC190.rev_rev`.  The program (the fold)
+    is PRODUCED by the law; correctness is REUSED, not re-proved. -/
 theorem revBits_derived_correct :
-    ((graph foldCL : dCL Unit Bool ⟶ ⟨List Bool⟩) = cataR (consScalarAlg g st))
-      ∧ (∀ bs : List Bool, foldCL (ofList bs) = LC190.revBits bs)
-      ∧ (∀ bs : List Bool, foldCL (ofList (foldCL (ofList bs))) = bs) := by
-  refine ⟨revBits_emerges, foldCL_ofList, fun bs => ?_⟩
-  rw [foldCL_ofList bs, foldCL_ofList (LC190.revBits bs)]
+    ((graph revAcc : dCL Unit Bool ⟶ ⟨List Bool → List Bool⟩) = cataR (consScalarAlg g st))
+      ∧ (∀ bs : List Bool, revAcc (ofList bs) [] = LC190.revBits bs)
+      ∧ (∀ bs : List Bool, revAcc (ofList (revAcc (ofList bs) [])) [] = bs) := by
+  refine ⟨revBits_emerges, revBits_ofList, fun bs => ?_⟩
+  rw [revBits_ofList bs, revBits_ofList (LC190.revBits bs)]
   exact LC190.rev_rev bs
 
 /-! ## Running / cross-checking the reshaped fold
 
   The relational catamorphism `cataFold (consScalarAlg …)` is not `decide`-computable (its `cons`
   case is an existential over the carrier), so we `decide` the extensionally-equal computable witness
-  `foldCL ∘ ofList` (equal to `revBits` by `foldCL_ofList`, and to the catamorphism by
-  `revBits_emerges`) on the LeetCode 190 examples. -/
+  `revAcc ∘ ofList` applied to the empty accumulator (equal to `revBits` by `revBits_ofList`, and to
+  the catamorphism by `revBits_emerges`) on the LeetCode 190 examples. -/
 
-example : foldCL (ofList [true, false, false, false]) = [false, false, false, true] := by decide
-example : foldCL (ofList ([] : List Bool)) = [] := by decide
-example : foldCL (ofList [true]) = [true] := by decide
+example : revAcc (ofList [true, false, false, false]) [] = [false, false, false, true] := by decide
+example : revAcc (ofList ([] : List Bool)) [] = [] := by decide
+example : revAcc (ofList [true]) [] = [true] := by decide
 -- Reversing bits twice is the identity (the structural-output extra law), on the reshaped fold:
-example : foldCL (ofList (foldCL (ofList [true, false, true]))) = [true, false, true] := by decide
+example : revAcc (ofList (revAcc (ofList [true, false, true]) [])) [] = [true, false, true] := by decide
 
-/-- The reshaped fold genuinely relates the converted input to the catamorphism it emerges as. -/
+/-- The reshaped fold genuinely relates the converted input to the (function-valued) catamorphism it
+    emerges as. -/
 example :
     cataFold (consScalarAlg g st) (ofList [true, false, false, false])
-      (foldCL (ofList [true, false, false, false])) := by
-  have h : (graph foldCL : dCL Unit Bool ⟶ ⟨List Bool⟩)
-      (ofList [true, false, false, false]) (foldCL (ofList [true, false, false, false])) := rfl
+      (revAcc (ofList [true, false, false, false])) := by
+  have h : (graph revAcc : dCL Unit Bool ⟶ ⟨List Bool → List Bool⟩)
+      (ofList [true, false, false, false]) (revAcc (ofList [true, false, false, false])) := rfl
   rw [revBits_emerges] at h
   exact h
 
