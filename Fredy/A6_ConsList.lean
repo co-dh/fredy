@@ -22,6 +22,18 @@ inductive ConsList (L E : Type) where
   | wrap : L → ConsList L E
   | cons : E → ConsList L E → ConsList L E
 
+/-- Reshape a raw Lean `List E` onto the initial algebra as a `ConsList Unit E`
+    (`[] ↦ wrap ()`, `x :: xs ↦ cons x (ofList xs)`).  The book's `list A` is `ConsList Unit A`,
+    so this is the canonical bridge for deriving folds over raw input lists; use it instead of
+    re-declaring a per-file copy. -/
+def ofList : List E → ConsList Unit E
+  | []      => ConsList.wrap ()
+  | x :: xs => ConsList.cons x (ofList xs)
+
+@[simp] theorem ofList_nil : (ofList [] : ConsList Unit E) = ConsList.wrap () := rfl
+@[simp] theorem ofList_cons (x : E) (xs : List E) :
+    ofList (x :: xs) = ConsList.cons x (ofList xs) := rfl
+
 /-- The object carrying `ConsList L E`. -/
 abbrev dCL (L E : Type) : RelSet.{0} := ⟨ConsList L E⟩
 /-- The object carrying the leaf type `L`. -/
