@@ -226,6 +226,9 @@ import Fredy.A7_2
 import Fredy.A8_1
 -- Bird & de Moor ch. 9: dynamic programming (principle of optimality, DP + thinning theorems)
 import Fredy.A9_1
+-- Beyond B&dM: ∞-completed dynamic programming (dead branches via a top-valued fallback;
+-- fixes Theorem 9.1's Egli–Milner gap on value-axis DPs — instantiated in Fredy.L322_dp)
+import Fredy.A9_2
 -- Bird & de Moor ch. 10: greedy algorithms (Theorem 10.1 — greedy as extreme dynamic programming)
 import Fredy.A10_1
 -- Concrete model Rel(Set) for the AoP case studies (objects = types, morphisms = relations):
@@ -276,3 +279,6 @@ import Fredy.A10_4_TeX
 -- scan as a snoc-list catamorphism, proven equal to max(≤)·Λspec.  Uses the copied `exacts` tactic.
 import Fredy.Exacts
 import Fredy.L121
+-- LeetCode 322 (Coin Change) re-derived through the ∞-DP theorem `A9_2.dynamic_programming_inf`:
+-- the value-axis DP whose optimality now comes from the A-layer, not a hand fuel-induction.
+import Fredy.L322_dp
