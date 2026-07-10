@@ -8,7 +8,8 @@ from collections import defaultdict
 DECL = re.compile(r'^(?:@\[[^\]]*\]\s*)?(?:private\s+|protected\s+|noncomputable\s+|scoped\s+)*'
                   r'(theorem|lemma|def|abbrev|instance|structure|class|inductive)\s+([A-Za-z_][\w.\']*)')
 
-files = sorted(glob.glob('Fredy/**/*.lean', recursive=True))
+files = sorted(f for d in ('Fredy', 'AOP', 'leet', 'rel')
+               for f in glob.glob(d + '/**/*.lean', recursive=True))
 blocks = []
 for fp in files:
     lines = open(fp).read().splitlines()

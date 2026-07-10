@@ -1,5 +1,20 @@
 This project explain the book Categories, Allegories of Freyd.
-You should should any 3+ digits sections of the book into Sa_bc.lean. e.g. section 1.123 in S1_12.lean.
+
+## Directory layout (reorg 2026-07-10) — four Lean lib roots, siblings at repo root
+- `Fredy/`  — the Freyd book core: `Sa_bc.lean` book sections + support (`Locale`, `WellOrdering`,
+  `RelCat`, `MapCat`, `Slice*`, `Capitalization*`, `Exacts`, …). Modules `Fredy.*`.
+- `AOP/`    — the Bird & de Moor Algebra-of-Programming layer: chapter files `A<ch>_*.lean`
+  (`A4_*`..`A10_*`) + infra (`A6_GenFold`, `A6_GenHylo`, `A6_ConsList`, `A6_HashMap`, `A6_Heap`,
+  `A6_BinSearch`, `A6_1_RelSet`, …) + `Deriv*`. Modules `AOP.*`.
+- `leet/`   — LeetCode case studies `L<n>.lean` and derivations `L<n>_derived.lean`. Modules `leet.*`.
+- `rel/`    — the relation-algebra interpreter `RelInterp` + case studies (`UnixPipe`, `ShellCommands`)
+  + the auto-derivation drivers (`AutoDerive*`). Modules `rel.*`.
+- `Fredy/note/` — the author's own `.typ`/`.pdf` section notes and diagrams (non-Lean).
+Imports cross libs freely within the one Lake package (e.g. `leet.L20` imports `AOP.A6_GenFold`).
+lakefile: `AOP`/`leet`/`rel` are glob'd (all their files are in the default build); `Fredy` keeps the
+curated `Fredy.lean` aggregator (no glob — do not force-build the deliberately un-imported orphan core).
+
+You should should any 3+ digits sections of the book into `Fredy/Sa_bc.lean`. e.g. section 1.123 in Fredy/S1_12.lean.
 The code should follow the book's terminology, wording, convension.
 Write composition in diagram order, by juxtaposition: `xy` means first x then y (the book's convention).
 Always prefer the book's definition over ad-hoc simplifications — even if the
