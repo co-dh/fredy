@@ -293,3 +293,8 @@ import Fredy.RelInterp
 -- + dominance order), not the ~100 lines of relational boilerplate. Demo: L53_auto re-derives Kadane.
 import Fredy.AutoDerive
 import Fredy.L53_auto
+-- Auto-derive increment 2: DP drivers (`DPInf` ∞-DP + `DPCount` step-counting) that discharge every
+-- `dynamic_programming_inf` hypothesis + the concrete memo packaging from a small bundle. Cuts
+-- `L322_dp` 518→189 lines; reused fresh on `L279` (Perfect Squares).
+import Fredy.AutoDeriveDP
+import Fredy.L279
