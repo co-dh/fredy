@@ -298,3 +298,9 @@ import Fredy.L53_auto
 -- `L322_dp` 518→189 lines; reused fresh on `L279` (Perfect Squares).
 import Fredy.AutoDeriveDP
 import Fredy.L279
+-- Thread B — propose→test→certify glue: enumerate candidate program shapes from a catalog, TEST each
+-- (run the spec `A spec ≫ maxRel D` via FinRel.eval vs the candidate fold via evalP) to auto-select
+-- the correct shape, then CERTIFY the winner via `RunningBest`. Demo picks L121's pair program (proved
+-- `= prog121` by rfl) after rejecting 17 wrong shapes. Soundness caveat: the runnable-spec ↔ Rel(Set)-
+-- spec link is by construction, not yet a Lean proof (the spec-transport gap, next to close).
+import Fredy.AutoDeriveSearch
