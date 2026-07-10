@@ -304,3 +304,7 @@ import Fredy.L279
 -- `= prog121` by rfl) after rejecting 17 wrong shapes. Soundness caveat: the runnable-spec ↔ Rel(Set)-
 -- spec link is by construction, not yet a Lean proof (the spec-transport gap, next to close).
 import Fredy.AutoDeriveSearch
+-- Auto-derive: thinning driver (`ThinBest`) — discharges Theorem-8.1/Cor-8.1 side conditions + a
+-- verified generic Pareto prune (`thinList`, closing §8.3's deferred implementation) + the set-valued
+-- fold-bridge. Demo closes B&dM §8.4's concrete 0/1-knapsack binary-thinning program (was only abstract).
+import Fredy.AutoDeriveThin
