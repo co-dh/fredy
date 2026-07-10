@@ -80,6 +80,40 @@ theorem maxRel_apply {a : RelSet.{0}} (R : a ⟶ a)
     (P : (PowerAllegory.powerObj a).carrier) (w : a.carrier) :
     (maxRel R) P w ↔ P w ∧ ∀ z, P z → R w z := Iff.rfl
 
+/-! ## Honest headline: a deterministic solver IS `Λspec ≫ maxRel D`
+
+  This is the bridge that lets an optimization case study state its headline as the actual
+  morphism equation `solve = A spec ≫ maxRel D` (§7.5's `max D · Λ spec`), instead of only in
+  prose.  It consumes exactly the two halves the case study already proves — achievability
+  (`hsound`) and domination (`hbest`) — plus antisymmetry of the preference order `D`, which
+  pins the maximum uniquely so `solve` (a map) equals it. -/
+
+/-- **Morphism-equation headline for a maximization solver.**  If `solveFn` always produces a
+    `spec`-value (`hsound`) that `D`-dominates every `spec`-value (`hbest`), and the preference
+    order `D` is antisymmetric, then `graph solveFn = A spec ≫ maxRel D` — the program is exactly
+    `max D · Λ spec` as a relation, not merely pointwise.  For a `≤`-maximum take `D w z := z ≤ w`;
+    for a `≤`-minimum take `D w z := w ≤ z` (`maxRel` of the reversed order is `minRel`). -/
+theorem eq_A_comp_maxRel {d : RelSet.{0}} {V : Type} (D : (⟨V⟩ : RelSet.{0}) ⟶ ⟨V⟩)
+    (hanti : ∀ x y : V, D x y → D y x → x = y)
+    (solveFn : d.carrier → V) (spec : d ⟶ (⟨V⟩ : RelSet.{0}))
+    (hsound : ∀ xs, spec xs (solveFn xs))
+    (hbest : ∀ xs v, spec xs v → D (solveFn xs) v) :
+    (graph solveFn : d ⟶ (⟨V⟩ : RelSet.{0})) = A spec ≫ maxRel D := by
+  apply hom_ext; intro xs w
+  rw [comp_apply]
+  constructor
+  · intro hw
+    have hwe : w = solveFn xs := hw
+    subst hwe
+    refine ⟨fun v => spec xs v, ?_, (maxRel_apply D _ _).mpr ⟨hsound xs, hbest xs⟩⟩
+    rw [A_eq_classifier]; rfl
+  · rintro ⟨P, hAP, hmax⟩
+    rw [A_eq_classifier] at hAP
+    have hPeq : P = fun v => spec xs v := hAP
+    subst hPeq
+    obtain ⟨hmem, hdomw⟩ := (maxRel_apply D _ _).mp hmax
+    exact hanti w (solveFn xs) (hdomw (solveFn xs) (hsound xs)) (hbest xs w hmem)
+
 /-! ## The Horner correctness packaging over snoc-lists -/
 
 namespace SL
