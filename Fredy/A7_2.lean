@@ -95,7 +95,7 @@ theorem distributes_of_monotonicAlg (hf : Map f) (hFr : F.PreservesRecip)
   have step2 : F.map ((∋ a)°) ≫ F.map (minRel R) = F.map ((∋ a)° ≫ minRel R) :=
     (F.map_comp _ _).symm
   have step3 : (∋ a)° ≫ minRel R ⊑ R :=
-    le_trans (comp_mono_left _ (show minRel R ⊑ leftDiv ((∋ a)°) R from inter_lb_right _ _))
+    le_trans (comp_mono_left _ (show minRel R ⊑ (((∋ a)°) \ R) from inter_lb_right _ _))
       (leftDiv_comp_le _ R)
   have step4 : F.map ((∋ a)° ≫ minRel R) ⊑ F.map R := F.map_mono step3
   have heq : (F.map (∋ a) ≫ f)° ≫ (F.map (minRel R) ≫ f)
@@ -127,7 +127,7 @@ theorem monotonicAlg_of_distributes (hf : Map f) (hFr : F.PreservesRecip)
   have h1 : F.map R ⊑ F.map ((∋ a)° ≫ minRel R) := F.map_mono hpair
   have hmapcomp : F.map ((∋ a)° ≫ minRel R) = F.map ((∋ a)°) ≫ F.map (minRel R) := F.map_comp _ _
   have hUP : (∋ a)° ≫ minRel R ⊑ R :=
-    le_trans (comp_mono_left _ (show minRel R ⊑ leftDiv ((∋ a)°) R from inter_lb_right _ _))
+    le_trans (comp_mono_left _ (show minRel R ⊑ (((∋ a)°) \ R) from inter_lb_right _ _))
       (leftDiv_comp_le _ R)
   have hregroup : f° ≫ F.map ((∋ a)° ≫ minRel R) ≫ f
       = (F.map (∋ a) ≫ f)° ≫ (F.map (minRel R) ≫ f) := by
@@ -173,15 +173,15 @@ theorem greedy (hFr : F.PreservesRecip) (I : InitialAlgebra F) {R : a ⟶ a} {S 
       have heqR : (S ≫ R°)° = R ≫ S° := by
         rw [Allegory.recip_comp, Allegory.recip_recip]
       rwa [heqL, heqR] at h
-    have step2 : A S ≫ minRel R ⊑ leftDiv S° R := by
+    have step2 : A S ≫ minRel R ⊑ (S° \ R) := by
       rw [A_comp_minRel]; exact inter_lb_right _ _
     have hprefixed : S° ≫ F.map R ≫ (A S ≫ minRel R) ⊑ R := by
       have hB : (S° ≫ F.map R) ≫ (A S ≫ minRel R) ⊑ (R ≫ S°) ≫ (A S ≫ minRel R) :=
         comp_mono_right step1 _
       rw [Cat.assoc S° (F.map R) (A S ≫ minRel R), Cat.assoc R S° (A S ≫ minRel R)] at hB
-      have hC : R ≫ (S° ≫ (A S ≫ minRel R)) ⊑ R ≫ (S° ≫ leftDiv S° R) :=
+      have hC : R ≫ (S° ≫ (A S ≫ minRel R)) ⊑ R ≫ (S° ≫ (S° \ R)) :=
         comp_mono_left _ (comp_mono_left _ step2)
-      have hD : R ≫ (S° ≫ leftDiv S° R) ⊑ R ≫ R := comp_mono_left _ (leftDiv_comp_le _ _)
+      have hD : R ≫ (S° ≫ (S° \ R)) ⊑ R ≫ R := comp_mono_left _ (leftDiv_comp_le _ _)
       exact le_trans hB (le_trans hC (le_trans hD htrans))
     exact hylo_le_of_prefixed hFr I hprefixed
 

@@ -10,7 +10,7 @@
   optimality) — the least fixed point `μX. min R · P(h·FX) · ΛT°`.  **Theorem 9.1**: if `h` is
   monotonic on `R` (and `R` transitive), the recursion refines the specification.
 
-  MIRRORING (diagram order, B&dM `X·Y` = Fredy `Y ≫ X`; B&dM `R/S` = Fredy `leftDiv S R`):
+  MIRRORING (diagram order, B&dM `X·Y` = Fredy `Y ≫ X`; B&dM `R/S` = Fredy `(S \ R)`):
   - B&dM `H = ⦇h⦈·⦇T⦈°` is `(relCata I T)° ≫ relCata I h : b ⟶ a` (`h : F.obj a ⟶ a`,
     `T : F.obj b ⟶ b`); the fixed-point equation `H = h·FH·T°` is `Fredy.A6_3`'s `hylo_fixed`:
     `T° ≫ F.map H ≫ h = H`.
@@ -66,7 +66,7 @@ theorem dp_prefixed (hFr : F.PreservesRecip) {h : F.obj a ⟶ a} {T : F.obj b �
   · -- (9.3): `min R·P(h·FM)·ΛT°·H° ⊆ R`
     -- the lower-bound component of (9.4)
     have hL : powerRel (F.map (A H ≫ minRel R) ≫ h) ≫ minRel R
-        ⊑ leftDiv ((∋ (F.obj b))°) ((F.map (A H ≫ minRel R) ≫ h) ≫ R) :=
+        ⊑ (((∋ (F.obj b))°) \ ((F.map (A H ≫ minRel R) ≫ h) ≫ R)) :=
       le_trans h94 (inter_lb_right _ _)
     -- `ΛT°·T ⊆ ∋` mirrored
     have hTA : T ≫ A (T°) ⊑ (∋ (F.obj b))° := by
@@ -82,10 +82,10 @@ theorem dp_prefixed (hFr : F.PreservesRecip) {h : F.obj a ⟶ a} {T : F.obj b �
     have htail : T ≫ A (T°) ≫ powerRel (F.map (A H ≫ minRel R) ≫ h) ≫ minRel R
         ⊑ (F.map (A H ≫ minRel R) ≫ h) ≫ R := by
       have t1 : T ≫ A (T°) ≫ powerRel (F.map (A H ≫ minRel R) ≫ h) ≫ minRel R
-          ⊑ T ≫ A (T°) ≫ leftDiv ((∋ (F.obj b))°) ((F.map (A H ≫ minRel R) ≫ h) ≫ R) :=
+          ⊑ T ≫ A (T°) ≫ (((∋ (F.obj b))°) \ ((F.map (A H ≫ minRel R) ≫ h) ≫ R)) :=
         comp_mono_left _ (comp_mono_left _ hL)
-      have t2 : T ≫ A (T°) ≫ leftDiv ((∋ (F.obj b))°) ((F.map (A H ≫ minRel R) ≫ h) ≫ R)
-          ⊑ (∋ (F.obj b))° ≫ leftDiv ((∋ (F.obj b))°) ((F.map (A H ≫ minRel R) ≫ h) ≫ R) := by
+      have t2 : T ≫ A (T°) ≫ (((∋ (F.obj b))°) \ ((F.map (A H ≫ minRel R) ≫ h) ≫ R))
+          ⊑ (∋ (F.obj b))° ≫ (((∋ (F.obj b))°) \ ((F.map (A H ≫ minRel R) ≫ h) ≫ R)) := by
         rw [← Cat.assoc T (A (T°)) _]
         exact comp_mono_right hTA _
       exact le_trans t1 (le_trans t2 (leftDiv_comp_le _ _))
@@ -190,23 +190,23 @@ theorem dp_thin_prefixed (hFr : F.PreservesRecip) {h : F.obj a ⟶ a} {T : F.obj
       rw [← h1, hHfix]
     -- the tail bound: peel `T·ΛT°` down to `∋°`, then `thin Q` down to `Q·∋°`
     have t1 : T ≫ A (T°) ≫ thinRel Q ≫ powerRel (F.map (A H ≫ minRel R) ≫ h) ≫ minRel R
-        ⊑ T ≫ A (T°) ≫ (thinRel Q ≫ leftDiv ((∋ (F.obj b))°)
-            ((F.map (A H ≫ minRel R) ≫ h) ≫ R)) :=
+        ⊑ T ≫ A (T°) ≫ (thinRel Q ≫ (((∋ (F.obj b))°) \
+            ((F.map (A H ≫ minRel R) ≫ h) ≫ R))) :=
       comp_mono_left _ (comp_mono_left _ (comp_mono_left _ hL))
-    have t2 : T ≫ A (T°) ≫ (thinRel Q ≫ leftDiv ((∋ (F.obj b))°)
-          ((F.map (A H ≫ minRel R) ≫ h) ≫ R))
-        ⊑ (∋ (F.obj b))° ≫ (thinRel Q ≫ leftDiv ((∋ (F.obj b))°)
-            ((F.map (A H ≫ minRel R) ≫ h) ≫ R)) := by
+    have t2 : T ≫ A (T°) ≫ (thinRel Q ≫ (((∋ (F.obj b))°) \
+          ((F.map (A H ≫ minRel R) ≫ h) ≫ R)))
+        ⊑ (∋ (F.obj b))° ≫ (thinRel Q ≫ (((∋ (F.obj b))°) \
+            ((F.map (A H ≫ minRel R) ≫ h) ≫ R))) := by
       rw [← Cat.assoc T (A (T°)) _]
       exact comp_mono_right hTA _
-    have t3 : (∋ (F.obj b))° ≫ (thinRel Q ≫ leftDiv ((∋ (F.obj b))°)
-          ((F.map (A H ≫ minRel R) ≫ h) ≫ R))
-        ⊑ (Q ≫ (∋ (F.obj b))°) ≫ leftDiv ((∋ (F.obj b))°)
-            ((F.map (A H ≫ minRel R) ≫ h) ≫ R) := by
+    have t3 : (∋ (F.obj b))° ≫ (thinRel Q ≫ (((∋ (F.obj b))°) \
+          ((F.map (A H ≫ minRel R) ≫ h) ≫ R)))
+        ⊑ (Q ≫ (∋ (F.obj b))°) ≫ (((∋ (F.obj b))°) \
+            ((F.map (A H ≫ minRel R) ≫ h) ≫ R)) := by
       rw [← Cat.assoc]
       exact comp_mono_right (recip_eps_comp_thinRel_le Q) _
-    have t4 : (Q ≫ (∋ (F.obj b))°) ≫ leftDiv ((∋ (F.obj b))°)
-          ((F.map (A H ≫ minRel R) ≫ h) ≫ R)
+    have t4 : (Q ≫ (∋ (F.obj b))°) ≫ (((∋ (F.obj b))°) \
+          ((F.map (A H ≫ minRel R) ≫ h) ≫ R))
         ⊑ Q ≫ (F.map (A H ≫ minRel R) ≫ h) ≫ R := by
       rw [Cat.assoc]
       exact comp_mono_left _ (leftDiv_comp_le _ _)
@@ -629,21 +629,21 @@ theorem dp_thin_prefixed_context (hFr : F.PreservesRecip) {h : F.obj a ⟶ a} {T
     have hsharp := thin_unfold_context_le T Q
     -- the sharpened tail bound: `Q` replaced by `Q ∩ (T ≫ T°)` throughout
     have t1 : T ≫ A (T°) ≫ thinRel Q ≫ powerRel (F.map (A H ≫ minRel R) ≫ h) ≫ minRel R
-        ⊑ T ≫ A (T°) ≫ thinRel Q ≫ leftDiv ((∋ (F.obj b))°)
-            ((F.map (A H ≫ minRel R) ≫ h) ≫ R) :=
+        ⊑ T ≫ A (T°) ≫ thinRel Q ≫ (((∋ (F.obj b))°) \
+            ((F.map (A H ≫ minRel R) ≫ h) ≫ R)) :=
       comp_mono_left _ (comp_mono_left _ (comp_mono_left _ hL))
-    have e1 : T ≫ A (T°) ≫ thinRel Q ≫ leftDiv ((∋ (F.obj b))°)
-          ((F.map (A H ≫ minRel R) ≫ h) ≫ R)
-        = (T ≫ A (T°) ≫ thinRel Q) ≫ leftDiv ((∋ (F.obj b))°)
-            ((F.map (A H ≫ minRel R) ≫ h) ≫ R) := by simp only [Cat.assoc]
+    have e1 : T ≫ A (T°) ≫ thinRel Q ≫ (((∋ (F.obj b))°) \
+          ((F.map (A H ≫ minRel R) ≫ h) ≫ R))
+        = (T ≫ A (T°) ≫ thinRel Q) ≫ (((∋ (F.obj b))°) \
+            ((F.map (A H ≫ minRel R) ≫ h) ≫ R)) := by simp only [Cat.assoc]
     rw [e1] at t1
-    have t2 : (T ≫ A (T°) ≫ thinRel Q) ≫ leftDiv ((∋ (F.obj b))°)
-          ((F.map (A H ≫ minRel R) ≫ h) ≫ R)
-        ⊑ ((Q ∩ (T ≫ T°)) ≫ (∋ (F.obj b))°) ≫ leftDiv ((∋ (F.obj b))°)
-            ((F.map (A H ≫ minRel R) ≫ h) ≫ R) :=
+    have t2 : (T ≫ A (T°) ≫ thinRel Q) ≫ (((∋ (F.obj b))°) \
+          ((F.map (A H ≫ minRel R) ≫ h) ≫ R))
+        ⊑ ((Q ∩ (T ≫ T°)) ≫ (∋ (F.obj b))°) ≫ (((∋ (F.obj b))°) \
+            ((F.map (A H ≫ minRel R) ≫ h) ≫ R)) :=
       comp_mono_right hsharp _
-    have t3 : ((Q ∩ (T ≫ T°)) ≫ (∋ (F.obj b))°) ≫ leftDiv ((∋ (F.obj b))°)
-          ((F.map (A H ≫ minRel R) ≫ h) ≫ R)
+    have t3 : ((Q ∩ (T ≫ T°)) ≫ (∋ (F.obj b))°) ≫ (((∋ (F.obj b))°) \
+          ((F.map (A H ≫ minRel R) ≫ h) ≫ R))
         ⊑ (Q ∩ (T ≫ T°)) ≫ (F.map (A H ≫ minRel R) ≫ h) ≫ R := by
       rw [Cat.assoc]
       exact comp_mono_left _ (leftDiv_comp_le _ _)

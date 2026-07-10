@@ -967,11 +967,11 @@ def bigUnion {a : 𝒜} [PowerAllegory 𝒜] :
 
 /-- The big-INTERSECTION map ⊓ : [[a]] → [a] (§2.442/§2.443).
     ⊓ = A(ε' \ ∋) where ε' = (∋_{[a]})° : [a] → [[a]] and ∋ = ∋_a : [a] → a.
-    Left division: ε' \ ∋ = leftDiv ε' ∋ = (∋° / ∋')°.
+    Left division: ε' \ ∋ = (ε' \ ∋) = (∋° / ∋')°.
     Semantically `F (ε'\∋) x ↔ ∀ A∈F, x∈A`, so `A(ε'\∋) : F ↦ ⋂F` (Freyd §2.443). -/
 def bigInter {a : 𝒜} [PowerAllegory 𝒜] :
     PowerAllegory.powerObj (PowerAllegory.powerObj a) ⟶ PowerAllegory.powerObj a :=
-  A (leftDiv ((∋ (PowerAllegory.powerObj a))°) (∋ a))
+  A (((∋ (PowerAllegory.powerObj a))°) \ (∋ a))
 
 /-- LAW OF METONYMY (Freyd §2.443), the formula `⊃ ⊆ ∪° ∩`, stated at the level of the subset order.
 
@@ -1012,7 +1012,7 @@ def MetonymyLaw (𝒜 : Type u) [PowerAllegory 𝒜] : Prop :=
     `(S₁ ∪ S₂) \ R = (S₁ \ R) ∩ (S₂ \ R)`. -/
 theorem leftDiv_union {𝒜 : Type u} [DivisionAllegory 𝒜] {a b c : 𝒜}
     (S₁ S₂ : a ⟶ b) (R : a ⟶ c) :
-    leftDiv (S₁ ∪ S₂) R = leftDiv S₁ R ∩ leftDiv S₂ R := by
+    ((S₁ ∪ S₂) \ R) = (S₁ \ R) ∩ (S₂ \ R) := by
   apply le_antisymm
   · apply le_inter
     · rw [le_leftDiv_iff]
@@ -1028,12 +1028,12 @@ theorem leftDiv_union {𝒜 : Type u} [DivisionAllegory 𝒜] {a b c : 𝒜}
     and `f∋` is the largest such by entireness: `T ⊑ ff°T ⊑ f(f°\∋'s bound)`.) -/
 theorem leftDiv_recip_map_eps {𝒜 : Type u} [PowerAllegory 𝒜] {a c : 𝒜}
     (f : a ⟶ PowerAllegory.powerObj c) (hf : Map f) :
-    leftDiv (f°) (∋ c) = f ≫ ∋ c := by
+    ((f°) \ (∋ c)) = f ≫ ∋ c := by
   apply le_antisymm
   · have hfe : Cat.id a ⊑ f ≫ f° := by
       have := hf.1; dsimp [Entire, dom] at this; rw [← this]; exact inter_lb_right _ _
-    have s1 : leftDiv (f°) (∋ c) ⊑ (f ≫ f°) ≫ leftDiv (f°) (∋ c) := by
-      have h := comp_mono_right hfe (leftDiv (f°) (∋ c)); rwa [Cat.id_comp] at h
+    have s1 : ((f°) \ (∋ c)) ⊑ (f ≫ f°) ≫ ((f°) \ (∋ c)) := by
+      have h := comp_mono_right hfe ((f°) \ (∋ c)); rwa [Cat.id_comp] at h
     refine le_trans s1 ?_
     rw [Cat.assoc]; exact comp_mono_left f (leftDiv_comp_le _ _)
   · rw [le_leftDiv_iff, ← Cat.assoc]
@@ -1043,21 +1043,21 @@ theorem leftDiv_recip_map_eps {𝒜 : Type u} [PowerAllegory 𝒜] {a c : 𝒜}
     `M ≫ (∋' ° \ ∋) = (M∋')° \ ∋`.  (`⊑` uses `M°M ⊑ 1`; `⊒` uses `1 ⊑ MM°`.) -/
 theorem map_comp_leftDiv {𝒜 : Type u} [PowerAllegory 𝒜] {a c : 𝒜}
     (M : c ⟶ PowerAllegory.powerObj (PowerAllegory.powerObj a)) (hM : Map M) :
-    M ≫ leftDiv ((∋ (PowerAllegory.powerObj a))°) (∋ a)
-      = leftDiv ((M ≫ ∋ (PowerAllegory.powerObj a))°) (∋ a) := by
+    M ≫ (((∋ (PowerAllegory.powerObj a))°) \ (∋ a))
+      = (((M ≫ ∋ (PowerAllegory.powerObj a))°) \ (∋ a)) := by
   apply le_antisymm
   · rw [le_leftDiv_iff, Allegory.recip_comp, Cat.assoc, ← Cat.assoc M°]
     refine le_trans (comp_mono_left ((∋ (PowerAllegory.powerObj a))°)
-      (comp_mono_right hM.2 (leftDiv ((∋ (PowerAllegory.powerObj a))°) (∋ a)))) ?_
+      (comp_mono_right hM.2 (((∋ (PowerAllegory.powerObj a))°) \ (∋ a)))) ?_
     rw [Cat.id_comp]; exact leftDiv_comp_le _ _
   · have hMe : Cat.id c ⊑ M ≫ M° := by
       have := hM.1; dsimp [Entire, dom] at this; rw [← this]; exact inter_lb_right _ _
-    have step1 : leftDiv ((M ≫ ∋ (PowerAllegory.powerObj a))°) (∋ a)
-        ⊑ (M ≫ M°) ≫ leftDiv ((M ≫ ∋ (PowerAllegory.powerObj a))°) (∋ a) := by
-      have h := comp_mono_right hMe (leftDiv ((M ≫ ∋ (PowerAllegory.powerObj a))°) (∋ a))
+    have step1 : (((M ≫ ∋ (PowerAllegory.powerObj a))°) \ (∋ a))
+        ⊑ (M ≫ M°) ≫ (((M ≫ ∋ (PowerAllegory.powerObj a))°) \ (∋ a)) := by
+      have h := comp_mono_right hMe (((M ≫ ∋ (PowerAllegory.powerObj a))°) \ (∋ a))
       rwa [Cat.id_comp] at h
-    have step2 : (M ≫ M°) ≫ leftDiv ((M ≫ ∋ (PowerAllegory.powerObj a))°) (∋ a)
-        ⊑ M ≫ leftDiv ((∋ (PowerAllegory.powerObj a))°) (∋ a) := by
+    have step2 : (M ≫ M°) ≫ (((M ≫ ∋ (PowerAllegory.powerObj a))°) \ (∋ a))
+        ⊑ M ≫ (((∋ (PowerAllegory.powerObj a))°) \ (∋ a)) := by
       rw [Cat.assoc]; apply comp_mono_left
       rw [le_leftDiv_iff, ← Cat.assoc, ← Allegory.recip_comp]; exact leftDiv_comp_le _ _
     exact le_trans step1 step2
@@ -1082,7 +1082,7 @@ theorem bigUnion_comp_eq {𝒜 : Type u} [PowerAllegory 𝒜] {a c : 𝒜}
 theorem bigInter_comp_eq {𝒜 : Type u} [PowerAllegory 𝒜] {a c : 𝒜}
     (f g : c ⟶ PowerAllegory.powerObj a) (hf : Map f) (hg : Map g)
     (hbfg : codBox (f ∪ g) = codBox (∋ (PowerAllegory.powerObj a)))
-    (hbI : codBox (leftDiv ((∋ (PowerAllegory.powerObj a))°) (∋ a)) = codBox (∋ a)) :
+    (hbI : codBox (((∋ (PowerAllegory.powerObj a))°) \ (∋ a)) = codBox (∋ a)) :
     A (f ∪ g) ≫ bigInter = A ((f ≫ ∋ a) ∩ (g ≫ ∋ a)) := by
   have hmap : Map (A (f ∪ g) ≫ bigInter) :=
     map_comp (A_is_map _ hbfg) (by rw [bigInter]; exact A_is_map _ hbI)
@@ -1101,7 +1101,7 @@ theorem bigUnion_is_map {𝒜 : Type u} [PowerAllegory 𝒜] {a : 𝒜}
 
 /-- §2.442: `bigInter` is a map (hence simple), when `∋'\∋` is in ∋'s box. -/
 theorem bigInter_is_map {𝒜 : Type u} [PowerAllegory 𝒜] {a : 𝒜}
-    (hbI : codBox (leftDiv ((∋ (PowerAllegory.powerObj a))°) (∋ a)) = codBox (∋ a)) :
+    (hbI : codBox (((∋ (PowerAllegory.powerObj a))°) \ (∋ a)) = codBox (∋ a)) :
     Map (bigInter (a := a)) := by
   rw [bigInter]; exact A_is_map _ hbI
 
@@ -1168,7 +1168,7 @@ theorem le_powerOrder_metonymy_bound {𝒜 : Type u} [PowerAllegory 𝒜] {a c :
     {f g : c ⟶ PowerAllegory.powerObj a} (hf : Map f) (hg : Map g)
     (hbfg : codBox (f ∪ g) = codBox (∋ (PowerAllegory.powerObj a)))
     (hbU : codBox (∋ (PowerAllegory.powerObj a) ≫ ∋ a) = codBox (∋ a))
-    (hbI : codBox (leftDiv ((∋ (PowerAllegory.powerObj a))°) (∋ a)) = codBox (∋ a))
+    (hbI : codBox (((∋ (PowerAllegory.powerObj a))°) \ (∋ a)) = codBox (∋ a))
     (hle : g ≫ ∋ a ⊑ f ≫ ∋ a) : f° ≫ g ⊑ bigUnion° ≫ bigInter := by
   -- f∋ ∪ g∋ = f∋ and f∋ ∩ g∋ = g∋ from hle.
   have hu : (f ≫ ∋ a) ∪ (g ≫ ∋ a) = f ≫ ∋ a := by
@@ -1192,7 +1192,7 @@ theorem semiSimple_of_le_powerOrder {𝒜 : Type u} [PowerAllegory 𝒜] {a c : 
     {f g : c ⟶ PowerAllegory.powerObj a} (hf : Map f) (hg : Map g)
     (hbfg : codBox (f ∪ g) = codBox (∋ (PowerAllegory.powerObj a)))
     (hbU : codBox (∋ (PowerAllegory.powerObj a) ≫ ∋ a) = codBox (∋ a))
-    (hbI : codBox (leftDiv ((∋ (PowerAllegory.powerObj a))°) (∋ a)) = codBox (∋ a))
+    (hbI : codBox (((∋ (PowerAllegory.powerObj a))°) \ (∋ a)) = codBox (∋ a))
     (hle : g ≫ ∋ a ⊑ f ≫ ∋ a) : SemiSimple (f° ≫ g) :=
   semiSimple_of_le ⟨_, bigUnion, bigInter, bigUnion_simple, bigInter_simple,
     le_powerOrder_metonymy_bound hf hg hbfg hbU hbI hle⟩
@@ -1361,7 +1361,7 @@ theorem pre_positive_semi_simple_iff_metonymic {𝒜 : Type u} [PrePositivePower
     -- are the structural box matches the §2.443 `A`-calculus consumes; under the over-strong
     -- (unconditional-thickness) axiom they held automatically, here they are honest hypotheses.
     (hbU : ∀ a : 𝒜, codBox (∋ (PowerAllegory.powerObj a) ≫ ∋ a) = codBox (∋ a))
-    (hbI : ∀ a : 𝒜, codBox (leftDiv ((∋ (PowerAllegory.powerObj a))°) (∋ a)) = codBox (∋ a))
+    (hbI : ∀ a : 𝒜, codBox (((∋ (PowerAllegory.powerObj a))°) \ (∋ a)) = codBox (∋ a))
     (hbox1 : ∀ a : 𝒜, codBox (Cat.id a) = codBox (∋ a))
     (hboxStr : ∀ {a c : 𝒜} (S : a ⟶ c), Straight S → codBox S = codBox (∋ c))
     (hboxUnion : ∀ {a c : 𝒜} (f g : c ⟶ PowerAllegory.powerObj a),

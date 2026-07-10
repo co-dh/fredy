@@ -2430,7 +2430,7 @@ instance mapTUDA_of_TUDiv : TabularUnitaryDistributiveAllegory A :=
     and a coreflexive `A` on `a`. -/
 private noncomputable def rightAdjCor {a b : MapObj A}
     (f : @Cat.Hom _ (mapCat (𝒜 := A)) a b) (A' : a ⟶ a) : b ⟶ b :=
-  Cat.id b ∩ leftDiv f.val (DivisionAllegory.div (oneHeyting A') f.val°)
+  Cat.id b ∩ (f.val \ (DivisionAllegory.div (oneHeyting A') f.val°))
 
 private theorem rightAdjCor_coref {a b : MapObj A}
     (f : @Cat.Hom _ (mapCat (𝒜 := A)) a b) (A' : a ⟶ a) : Coreflexive (rightAdjCor f A') :=
@@ -2445,7 +2445,7 @@ private theorem rightAdjCor_adj {a b : MapObj A}
     (Cat.id a ∩ (f.val ≫ c ≫ f.val°)) ⊑ A' ↔ c ⊑ rightAdjCor f A' := by
   have hf : Map f.val := f.property
   -- c ⊑ 1_b ∩ D  ↔  c ⊑ D   (c ⊑ 1_b)
-  have hcc : c ⊑ rightAdjCor f A' ↔ c ⊑ leftDiv f.val (DivisionAllegory.div (oneHeyting A') f.val°) := by
+  have hcc : c ⊑ rightAdjCor f A' ↔ c ⊑ (f.val \ (DivisionAllegory.div (oneHeyting A') f.val°)) := by
     rw [rightAdjCor]
     exact ⟨fun h => le_trans h (inter_lb_right _ _), fun h => le_inter hc h⟩
   rw [hcc, le_leftDiv_iff, le_div_iff]

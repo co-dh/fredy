@@ -386,7 +386,7 @@ theorem div_comp_recip_map {a b c d : 𝒜} {f : d ⟶ b} (hf : Map f) (R : a �
 
 /-- `(S≫_) ⊣ (S\_)` is a Galois connection (Ex 4.36, left-division form). -/
 theorem gc_comp_leftDiv {a b c : 𝒜} (S : a ⟶ b) :
-    GaloisConnection le le (fun X : b ⟶ c => S ≫ X) (fun Y => leftDiv S Y) :=
+    GaloisConnection le le (fun X : b ⟶ c => S ≫ X) (fun Y => (S \ Y)) :=
   fun X Y => (le_leftDiv_iff X S Y).symm
 
 end DivAllegory

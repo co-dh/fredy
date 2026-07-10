@@ -301,32 +301,36 @@ theorem div_self_comp {a b : 𝒜} (R : a ⟶ b) : (R / R) ≫ R = R := by
 def leftDiv {a b c : 𝒜} (S : a ⟶ b) (R : a ⟶ c) : b ⟶ c :=
   (R° / S°)°
 
+/-- Left division notation `S \ R` (§2.312), mirroring the `R / S` of §2.31.
+    Argument order matches the book and `leftDiv`: the divisor `S` comes first. -/
+infixl:70 " \\ " => leftDiv
+
 /-- The defining equivalence: T ⊑ S\R iff ST ⊑ R (§2.312). -/
 theorem le_leftDiv_iff {a b c : 𝒜} (T : b ⟶ c) (S : a ⟶ b) (R : a ⟶ c) :
-    T ⊑ leftDiv S R ↔ S ≫ T ⊑ R := by
+    T ⊑ (S \ R) ↔ S ≫ T ⊑ R := by
   dsimp [leftDiv]
   -- T ⊑ (R°/S°)° ↔ T° ⊑ R°/S° ↔ T°S° ⊑ R° ↔ (ST)° ⊑ R° ↔ ST ⊑ R
   rw [← recip_le_iff, le_div_iff, ← Allegory.recip_comp, recip_le_iff,
       Allegory.recip_recip]
 
 /-- The semi-commutative triangle for left division: S(S\R) ⊑ R (§2.312). -/
-theorem leftDiv_comp_le {a b c : 𝒜} (S : a ⟶ b) (R : a ⟶ c) : S ≫ leftDiv S R ⊑ R :=
+theorem leftDiv_comp_le {a b c : 𝒜} (S : a ⟶ b) (R : a ⟶ c) : S ≫ (S \ R) ⊑ R :=
   (le_leftDiv_iff _ S R).mp (le_refl _)
 
 /-- Left division is monotone in the numerator: R ⊑ R' → S\R ⊑ S\R'. -/
 theorem leftDiv_mono_right {a b c : 𝒜} (S : a ⟶ b) {R R' : a ⟶ c} (h : R ⊑ R') :
-    leftDiv S R ⊑ leftDiv S R' :=
+    (S \ R) ⊑ (S \ R') :=
   (le_leftDiv_iff _ _ _).mpr (le_trans (leftDiv_comp_le S R) h)
 
 /-- Division by the identity is trivial: `1\R = R`. -/
-theorem leftDiv_id {a b : 𝒜} (R : a ⟶ b) : leftDiv (Cat.id a) R = R := by
+theorem leftDiv_id {a b : 𝒜} (R : a ⟶ b) : ((Cat.id a) \ R) = R := by
   apply le_antisymm
   · have h := leftDiv_comp_le (Cat.id a) R; rwa [Cat.id_comp] at h
   · apply (le_leftDiv_iff _ _ _).mpr; rw [Cat.id_comp]; exact le_refl R
 
 /-- Left division composes: `(ST)\R = T\(S\R)`, by the double universal property. -/
 theorem leftDiv_comp {a b c d : 𝒜} (S : a ⟶ b) (T : b ⟶ c) (R : a ⟶ d) :
-    leftDiv (S ≫ T) R = leftDiv T (leftDiv S R) := by
+    ((S ≫ T) \ R) = (T \ (S \ R)) := by
   apply le_antisymm
   · apply (le_leftDiv_iff _ T _).mpr
     apply (le_leftDiv_iff _ S _).mpr
@@ -334,11 +338,11 @@ theorem leftDiv_comp {a b c d : 𝒜} (S : a ⟶ b) (T : b ⟶ c) (R : a ⟶ d) 
     exact leftDiv_comp_le (S ≫ T) R
   · apply (le_leftDiv_iff _ (S ≫ T) _).mpr
     rw [Cat.assoc]
-    exact le_trans (comp_mono_left S (leftDiv_comp_le T (leftDiv S R))) (leftDiv_comp_le S R)
+    exact le_trans (comp_mono_left S (leftDiv_comp_le T (S \ R))) (leftDiv_comp_le S R)
 
 /-- Numerator meets distribute over left division: `S\(R∩R') = (S\R)∩(S\R')`. -/
 theorem leftDiv_inter {a b c : 𝒜} (S : a ⟶ b) (R R' : a ⟶ c) :
-    leftDiv S (R ∩ R') = leftDiv S R ∩ leftDiv S R' := by
+    (S \ (R ∩ R')) = (S \ R) ∩ (S \ R') := by
   show ((R ∩ R')° / S°)° = (R° / S°)° ∩ (R'° / S°)°
   rw [Allegory.recip_inter, div_inter_eq, Allegory.recip_inter]
 
@@ -346,39 +350,39 @@ theorem leftDiv_inter {a b c : 𝒜} (S : a ⟶ b) (R R' : a ⟶ c) :
 
 /-- S\(R/T) = (S\R)/T (§2.314).
     S : a ⟶ b, R : a ⟶ d, T : c ⟶ d.
-    LHS: leftDiv S (R/T) where R/T : a ⟶ c, so leftDiv S (R/T) : b ⟶ c.
-    RHS: (leftDiv S R) / T where leftDiv S R : b ⟶ d, T : c ⟶ d, so result : b ⟶ c. ✓
+    LHS: (S \ (R/T)) where R/T : a ⟶ c, so (S \ (R/T)) : b ⟶ c.
+    RHS: (S \ R) / T where (S \ R) : b ⟶ d, T : c ⟶ d, so result : b ⟶ c. ✓
     -/
 theorem leftDiv_div {a b c d : 𝒜} (S : a ⟶ b) (R : a ⟶ d) (T : c ⟶ d) :
-    leftDiv S (R / T) = (leftDiv S R) / T := by
+    (S \ (R / T)) = (S \ R) / T := by
   apply le_antisymm
-  · -- S\(R/T) ⊑ (S\R)/T: show S ≫ (leftDiv S (R/T) ≫ T) ⊑ R
+  · -- S\(R/T) ⊑ (S\R)/T: show S ≫ ((S \ (R/T)) ≫ T) ⊑ R
     apply (le_div_iff _ _ _).mpr
     apply (le_leftDiv_iff _ S R).mpr
-    have h1 : (S ≫ leftDiv S (R / T)) ≫ T ⊑ (R / T) ≫ T :=
+    have h1 : (S ≫ (S \ (R / T))) ≫ T ⊑ (R / T) ≫ T :=
       comp_mono_right (leftDiv_comp_le S (R / T)) T
     have h2 : (R / T) ≫ T ⊑ R := DivisionAllegory.div_comp_le R T
     rw [← Cat.assoc]; exact le_trans h1 h2
   · -- (S\R)/T ⊑ S\(R/T): show (S ≫ (S\R)/T) ≫ T ⊑ R
     apply (le_leftDiv_iff _ S _).mpr
     apply (le_div_iff _ _ _).mpr
-    -- goal: (S ≫ (leftDiv S R)/T) ≫ T ⊑ R
-    have step1 : ((leftDiv S R) / T) ≫ T ⊑ leftDiv S R := DivisionAllegory.div_comp_le (leftDiv S R) T
-    have step2 : S ≫ (((leftDiv S R) / T) ≫ T) ⊑ S ≫ leftDiv S R :=
+    -- goal: (S ≫ (S \ R)/T) ≫ T ⊑ R
+    have step1 : ((S \ R) / T) ≫ T ⊑ (S \ R) := DivisionAllegory.div_comp_le (S \ R) T
+    have step2 : S ≫ (((S \ R) / T) ≫ T) ⊑ S ≫ (S \ R) :=
       comp_mono_left S step1
-    have step3 : S ≫ leftDiv S R ⊑ R := leftDiv_comp_le S R
-    have step4 : S ≫ (((leftDiv S R) / T) ≫ T) ⊑ R := le_trans step2 step3
+    have step3 : S ≫ (S \ R) ⊑ R := leftDiv_comp_le S R
+    have step4 : S ≫ (((S \ R) / T) ≫ T) ⊑ R := le_trans step2 step3
     rwa [← Cat.assoc] at step4
 
 /-- **§2.314**: `(R/R)² ⊑ R/R`.  Immediate instance of `div_comp` with `S = T = R`. -/
 theorem div_self_idem {a b : 𝒜} (R : a ⟶ b) : (R / R) ≫ (R / R) ⊑ R / R :=
   div_comp R R R
 
-/-- **§2.314**: `(S\R/T)° = T°\R°/S°`.  With `leftDiv S X = (X°/S°)°`, both sides reduce
+/-- **§2.314**: `(S\R/T)° = T°\R°/S°`.  With `(S \ X) = (X°/S°)°`, both sides reduce
     by `recip_recip` to `(R/T)°/S°` (the LHS unfolds directly; the RHS via `R°° = R`, `T°° = T`).
     This is what makes the two-sided division `S\R/T` self-dual under reciprocation. -/
 theorem leftDiv_div_recip {a b c d : 𝒜} (S : a ⟶ b) (R : a ⟶ d) (T : c ⟶ d) :
-    (leftDiv S (R / T))° = leftDiv T° R° / S° := by
+    (S \ (R / T))° = (T° \ R°) / S° := by
   simp only [leftDiv, Allegory.recip_recip]
 
 /-- **§2.351**: `S` is STRAIGHT iff every symmetric `T` with `TS ⊑ S` is coreflexive.

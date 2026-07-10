@@ -119,13 +119,13 @@ private theorem le_star' {a : 𝒜} (R : a ⟶ a) : R ⊑ star' R := by
 
 /-- Transitivity for `star'`, by the MIRRORED division proof (left division this time). -/
 private theorem star'_trans {a : 𝒜} (R : a ⟶ a) : star' R ≫ star' R ⊑ star' R := by
-  have hsub : star' R ⊑ leftDiv (star' R) (star' R) := by
+  have hsub : star' R ⊑ ((star' R) \ (star' R)) := by
     refine Sup_le (fun _S hS => hS _ ?_)
     apply (le_leftDiv_iff _ _ _).mpr
     rw [DistributiveAllegory.comp_union_distrib]
     apply union_lub
     · rw [Cat.comp_id]; exact le_refl (star' R)
-    · rw [← Cat.assoc (star' R) (leftDiv (star' R) (star' R)) R]
+    · rw [← Cat.assoc (star' R) ((star' R) \ (star' R)) R]
       exact le_trans (comp_mono_right (leftDiv_comp_le (star' R) (star' R)) R) (star'_comp_le R)
   exact (le_leftDiv_iff _ _ _).mp hsub
 
@@ -191,15 +191,15 @@ theorem comp_star_eq_mu {a b : 𝒜} (S : b ⟶ a) (R : a ⟶ a) :
       rwa [Cat.comp_id] at h
     · rw [Cat.assoc S (star R) R]
       exact comp_mono_left S (star_comp_le R)
-  have hstep : star R ⊑ leftDiv S (closureFrom S R) := by
+  have hstep : star R ⊑ (S \ (closureFrom S R)) := by
     rw [star_eq_mu']
     refine Sup_le (fun _S hS => hS _ ?_)
     apply (le_leftDiv_iff _ _ _).mpr
     rw [DistributiveAllegory.comp_union_distrib]
     apply union_lub
     · rw [Cat.comp_id]; exact le_closureFrom S R
-    · rw [← Cat.assoc S (leftDiv S (closureFrom S R)) R]
-      have h1 : S ≫ leftDiv S (closureFrom S R) ⊑ closureFrom S R :=
+    · rw [← Cat.assoc S (S \ (closureFrom S R)) R]
+      have h1 : S ≫ (S \ (closureFrom S R)) ⊑ closureFrom S R :=
         leftDiv_comp_le S (closureFrom S R)
       exact le_trans (comp_mono_right h1 R) (closureFrom_comp_le S R)
   have hleM : S ≫ star R ⊑ closureFrom S R :=

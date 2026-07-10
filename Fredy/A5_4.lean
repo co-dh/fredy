@@ -39,11 +39,11 @@ variable {𝒜 : Type u} [UnguardedPowerAllegory 𝒜]
     the output set is `R`-reachable from the input set").
 
     Universal properties used to verify the definition (`le_leftDiv_iff`/`le_div_iff`):
-    `X ⊑ leftDiv (∋a)° (R≫(∋b)°) ↔ (∋a)°≫X ⊑ R≫(∋b)°` (term₁) and
+    `X ⊑ ((∋a)° \ (R≫(∋b)°)) ↔ (∋a)°≫X ⊑ R≫(∋b)°` (term₁) and
     `X ⊑ (∋a≫R)/∋b ↔ X≫∋b ⊑ ∋a≫R` (term₂). -/
 def powerRel {a b : 𝒜} (R : a ⟶ b) :
     PowerAllegory.powerObj a ⟶ PowerAllegory.powerObj b :=
-  leftDiv (∋ a)° (R ≫ (∋ b)°) ∩ ((∋ a ≫ R) / ∋ b)
+  ((∋ a)° \ (R ≫ (∋ b)°)) ∩ ((∋ a ≫ R) / ∋ b)
 
 /-- Term₂ cancellation (the "output-reachable" half): `powerRel R ≫ ∋ b ⊑ ∋ a ≫ R`.
     This is B&dM p.133's example that `∈` is LAX NATURAL along the power relator
@@ -67,18 +67,18 @@ theorem powerRel_mono {a b : 𝒜} {R S : a ⟶ b} (h : R ⊑ S) : powerRel R �
 /-- **B&dM §5.4** (`powerRel` preserves identities): `powerRel 1_a = 1_{[a]}`.  B&dM's
     "`Pid = id` is the antisymmetry of subset" — here it is definitional via `symmDiv` plus
     Freyd's `A_eps_reflection` (§2.412 reflection law `A(∋) = id`).  With `R = id_a` the
-    definition collapses to `leftDiv (∋a)° (∋a)° ∩ (∋a/∋a)`; the first term equals
-    `powerOrder°` on the nose (`leftDiv S R` unfolds to `(R° / S°)°`, and `(∋a)°° = ∋a`), so the
+    definition collapses to `((∋a)° \ (∋a)°) ∩ (∋a/∋a)`; the first term equals
+    `powerOrder°` on the nose (`(S \ R)` unfolds to `(R° / S°)°`, and `(∋a)°° = ∋a`), so the
     whole meet is `powerOrder° ∩ powerOrder = powerOrder ∩ powerOrder°`, which is exactly
     the unfolding of `A (∋ a) = ∋a /ₛ ∋a`. -/
 theorem powerRel_id {a : 𝒜} : powerRel (Cat.id a) = Cat.id (PowerAllegory.powerObj a) := by
-  have hterm1 : leftDiv (∋ a)° (Cat.id a ≫ (∋ a)°) = (powerOrder (a := a))° := by
+  have hterm1 : ((∋ a)° \ (Cat.id a ≫ (∋ a)°)) = (powerOrder (a := a))° := by
     have e : Cat.id a ≫ (∋ a)° = (∋ a)° := Cat.id_comp _
     rw [e]
     show ((((∋ a)°)°) / (((∋ a)°)°))° = (powerOrder (a := a))°
     rw [Allegory.recip_recip]
     rfl
-  show leftDiv (∋ a)° (Cat.id a ≫ (∋ a)°) ∩ ((∋ a ≫ Cat.id a) / ∋ a)
+  show ((∋ a)° \ (Cat.id a ≫ (∋ a)°)) ∩ ((∋ a ≫ Cat.id a) / ∋ a)
       = Cat.id (PowerAllegory.powerObj a)
   rw [hterm1, Cat.comp_id]
   show (powerOrder (a := a))° ∩ powerOrder (a := a) = Cat.id (PowerAllegory.powerObj a)
@@ -91,20 +91,20 @@ theorem powerRel_id {a : 𝒜} : powerRel (Cat.id a) = Cat.id (PowerAllegory.pow
     identified with the reciprocal of the OTHER division component of `existsImage f`'s
     `symmDiv` unfolding via an indirect (Yoneda-style) argument using `map_shunt_left`. -/
 theorem powerRel_map {a b : 𝒜} {f : a ⟶ b} (hf : Map f) : powerRel f = existsImage f := by
-  have hterm1 : leftDiv (∋ a)° (f ≫ (∋ b)°) = (∋ b / (∋ a ≫ f))° := by
-    have dir1 : leftDiv (∋ a)° (f ≫ (∋ b)°) ⊑ (∋ b / (∋ a ≫ f))° := by
-      have step1 : (∋ a)° ≫ leftDiv (∋ a)° (f ≫ (∋ b)°) ⊑ f ≫ (∋ b)° := leftDiv_comp_le _ _
-      have step2 : f° ≫ ((∋ a)° ≫ leftDiv (∋ a)° (f ≫ (∋ b)°)) ⊑ (∋ b)° :=
+  have hterm1 : ((∋ a)° \ (f ≫ (∋ b)°)) = (∋ b / (∋ a ≫ f))° := by
+    have dir1 : ((∋ a)° \ (f ≫ (∋ b)°)) ⊑ (∋ b / (∋ a ≫ f))° := by
+      have step1 : (∋ a)° ≫ ((∋ a)° \ (f ≫ (∋ b)°)) ⊑ f ≫ (∋ b)° := leftDiv_comp_le _ _
+      have step2 : f° ≫ ((∋ a)° ≫ ((∋ a)° \ (f ≫ (∋ b)°))) ⊑ (∋ b)° :=
         (map_shunt_left hf _ _).mpr step1
-      have step3 : (∋ a ≫ f)° ≫ leftDiv (∋ a)° (f ≫ (∋ b)°) ⊑ (∋ b)° := by
+      have step3 : (∋ a ≫ f)° ≫ ((∋ a)° \ (f ≫ (∋ b)°)) ⊑ (∋ b)° := by
         have e : (∋ a ≫ f)° = f° ≫ (∋ a)° := Allegory.recip_comp _ _
         rw [e, Cat.assoc]; exact step2
       have step4 := recip_mono step3
       simp only [Allegory.recip_comp, Allegory.recip_recip] at step4
-      have step5 : (leftDiv (∋ a)° (f ≫ (∋ b)°))° ⊑ ∋ b / (∋ a ≫ f) := (le_div_iff _ _ _).mpr step4
+      have step5 : ((∋ a)° \ (f ≫ (∋ b)°))° ⊑ ∋ b / (∋ a ≫ f) := (le_div_iff _ _ _).mpr step4
       have step6 := recip_mono step5
       rwa [Allegory.recip_recip] at step6
-    have dir2 : (∋ b / (∋ a ≫ f))° ⊑ leftDiv (∋ a)° (f ≫ (∋ b)°) := by
+    have dir2 : (∋ b / (∋ a ≫ f))° ⊑ ((∋ a)° \ (f ≫ (∋ b)°)) := by
       have step1 : (∋ b / (∋ a ≫ f)) ≫ (∋ a ≫ f) ⊑ ∋ b := DivisionAllegory.div_comp_le _ _
       have step2 := recip_mono step1
       simp only [Allegory.recip_comp] at step2
@@ -114,7 +114,7 @@ theorem powerRel_map {a b : 𝒜} {f : a ⟶ b} (hf : Map f) : powerRel f = exis
         (map_shunt_left hf _ _).mp step3
       exact (le_leftDiv_iff _ _ _).mpr step4
     exact le_antisymm dir1 dir2
-  show leftDiv (∋ a)° (f ≫ (∋ b)°) ∩ ((∋ a ≫ f) / ∋ b)
+  show ((∋ a)° \ (f ≫ (∋ b)°)) ∩ ((∋ a ≫ f) / ∋ b)
       = ((∋ a ≫ f) / ∋ b) ∩ ((∋ b / (∋ a ≫ f))°)
   rw [hterm1]
   exact Allegory.inter_comm _ _
@@ -240,7 +240,7 @@ theorem powerRel_comp {a b c : 𝒜} (R : a ⟶ b) (S : b ⟶ c) :
   have hheps : h ≫ ∋ b = W := A_eps_eq' W
   -- Term₁/term₂ membership of the ORIGINAL tabulated relation `powerRel (R ≫ S) = x° ≫ z`.
   have factI : (∋ a)° ≫ x° ≫ z ⊑ (R ≫ S) ≫ (∋ c)° := by
-    have hmem : x° ≫ z ⊑ leftDiv (∋ a)° ((R ≫ S) ≫ (∋ c)°) := by
+    have hmem : x° ≫ z ⊑ ((∋ a)° \ ((R ≫ S) ≫ (∋ c)°)) := by
       rw [← hxz]; exact inter_lb_left _ _
     exact (le_leftDiv_iff _ _ _).mp hmem
   have factII : (x° ≫ z) ≫ ∋ c ⊑ ∋ a ≫ (R ≫ S) := by

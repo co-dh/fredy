@@ -14,40 +14,45 @@ from the strict-zero subobject; axioms `[propext, Classical.choice]`); `HasIndex
 bridged one-way → `LocallyComplete` (`extends` would create a `HasImages` instance diamond), making
 `LocallyComplete` the canonical arbitrary-join primitive. Remaining items below.
 
-- **Bundled poset structures, 3-way overlap** — `MeetLattice`/`HeytingLattice` (S1_85:1210/1222) vs
-  `HeytingPoset` (S1_72:567) vs `Frame` (S1_723:42) are three hand-bundled "carrier + order + meets
-  (+ arrow / + sups)" structures; bridges already exist (`Frame.toHeytingPoset` S1_723:189). Proposal:
-  one hierarchy `MeetLattice → HeytingLattice → Frame` (Frame = HeytingLattice + arbitrary sups +
-  distributivity, arrow derivable per §1.723); delete `HeytingPoset`, reroute S1_72's uses. Medium size,
-  low risk; friction = S1_723's OValuedSet/OPred quantify over `Frame` fields directly.
-- **Closure operators, 3 carriers** — `ClosureOperation` (S1_8:161, on categories), `ClosureOpPoset`
-  (S1_8:186, on `PosetOrder`), `KuratowskiInterior`/`LawvereTierneyClosure`/`ProtoClosure`
-  (S1_85:1228–1286, on `MeetLattice`). A `MeetLattice` carrier is a `PosetOrder`; give that instance
-  once and restate the S1_85 trio as `ClosureOpPoset` + extra laws (inflationary/idempotent are shared
-  fields today). Small; do together with the previous item.
-- **Heyting arrow, 4 statements of one concept** — `HasHeytingArrow` (S1_85:190, thin cat with
-  products), `HeytingAlgebra` (S1_72:47, on Sub(A) per category), `HeytingLattice` (S1_85:1222),
-  `HeytingPoset` (S1_72:567). After the poset-structure merge this drops to 3; the thin-cat and
-  Sub-level versions stay separate carriers (preorder, no `=`-laws) — just cross-link docstrings and
-  make sure laws match the book's §1.72 statement verbatim.
-- **∃_f ⊣ f# proven 3×** (survey 2026-07-03 narrow win, still open) — `existsAlong_le_iff` (S1_60),
-  `directImage_adj`, `directImage_adjunction` (S1_70) state the same adjunction for the same op
-  (`DirectImage := existsAlong`). Keep ONE lemma name, delete/reroute the others (no wrapper shims).
-- **Indexed products ×3** (survey's highest-ROI item, still open) — unify `HasIndexedProduct {I : Type}`
-  / `HasFinProd (Fin n)` / `HasProducts (Type v)` into one universe-parameterized `HasIndexedProduct`
-  (~40–60 lines); friction = `HasFinProd`'s `Fin.cases` plumbing (S1_43:324).
-- **`objIncl_preservesPullbacks_generic` re-route** (survey item 3, still open) — S2_218_ObjInclRegular
-  re-derives ~40 lines that `image_chosenPullback_isPullback` (S1_543_CatColimitRegular) already gives.
+- ~~**Bundled poset structures, 3-way overlap**~~ — ✅ DONE 2026-07-04 by parallel session (`54fdeca` +
+  `987c7b0`/`6c45f2f`): `Frame extends MeetLattice`, `HeytingPoset` deleted → `HeytingLattice`.
+- ~~**Closure operators, 3 carriers**~~ — ✅ DONE 2026-07-04 (`54fdeca`): `ProtoClosure`/
+  `LawvereTierneyClosure` extend `ClosureOpPoset` (`c`→`op`); `ClosureOperation` (categories) stays a
+  separate carrier.
+- ~~**Heyting arrow, 3 carriers**~~ — ✅ DONE 2026-07-04 (wave-2 agent, doc-only): laws verified against
+  book §1.72 double-Horn (all match); cross-reference docstrings added to `HeytingAlgebra`/
+  `HasHeytingArrow`/`HeytingLattice` stating the carrier difference that keeps them separate.
+- ~~**∃_f ⊣ f# proven 3×**~~ — ✅ DONE 2026-07-04 (wave-2): canonical = `existsAlong_le_iff` (S1_60,
+  freed from spurious `[PreLogos]` via `omit`); `directImage_adj` (S1_59_10_Frobenius) deleted, call
+  sites rerouted. `directImage_adjunction` (S1_967_ToposExists) LEFT — its inverse image is the
+  explicit-pullback `invImg f T hp` (S1_45), a different op, not a literal duplicate.
+- ~~**`objIncl_preservesPullbacks_generic` re-route**~~ — ✅ DONE 2026-07-04 (wave-2): the survey premise
+  was half-stale (chosen-pullback part already routed); real dup was the chosen⟹all-cones iso-transport,
+  inlined twice. Extracted hub `preservesPullbacks_of_chosenPullback` (S1_543_Capitalization, axioms []);
+  `baseSlice_preservesPullbacks` ~22→1 line, `objIncl_preservesPullbacks_generic` ~83→4 lines (its
+  sorryAx is inherited from the pre-existing §2.218 `objIncl_preserves_pullbacks`, not new).
+- ~~**Indexed products ×3**~~ — ✅ ALL THREE UNIFIED 2026-07-04 (merge `ef06780`, build 268 jobs).
+  `HasFinProd` deleted (wave-2); then `HasIndexedProduct` universe-parameterized (`{I : Type w}`,
+  Type-0 uses infer `w := 0`, no ULift needed) and `HasProducts` collapsed to the single field
+  `prod : ∀ {I : Type v} (F : I → ℬ), HasIndexedProduct F` (class kept — call sites pass it as a value;
+  mirrors the `HasFiniteProducts` precedent). ~40 field accesses rewritten (S1_82 + S1_967_ToposCopowers;
+  the "~50 sites in S1_543/S1_544" estimate was wrong — those are `HasBinaryProducts`, different class).
+  Mapping: `prodObj F → (prod F).prod`, `tupling → .lift`, `tupling_fac → .lift_π`, `tupling_uniq →
+  .lift_uniq`. NOT unified (out of scope, no counterpart primitive): dual `HasCoproducts` (S1_82) —
+  would need a `HasIndexedCoproduct` per-family structure first; only do it if a consumer appears.
 
-- **Preorder-level order theory, the book-faithful unification (§1.51's own move)** — adjunction, sup,
-  and closure need only `≤` (no antisymmetry), yet each carrier re-states them. Build ONE small module
-  (`Preorder` predicate bundle + `IsSup le S x` + `GaloisConnection le₁ le₂ f g` + `IsClosureOp`,
-  ~50 lines, mathlib-free) and have `Subobject.le`, `RelLe` (S1_56), allegory `⊑` (A4_4 `GaloisConn`),
-  and `Frame.le` instantiate it; class law-fields then *reference* the shared predicates
-  (`GaloisConnection le le (existsAlong f) (InverseImage f)`) instead of spelling out per-class iffs.
-  This is a law-statement dedup, not a class dedup — the category-indexed `Has*` classes keep their
-  data fields. Mirrors Freyd's architecture: §1.51 defines "adjoint pair of functions between posets"
-  once and reuses it at §1.7 (f#⊣f##), §1.72 (∧⊣→), §1.723 (frames).
+- ~~**Preorder-level order theory, the book-faithful unification (§1.51's own move)**~~ — ✅ DONE
+  2026-07-04 (merge `1469202`, build 269 jobs). New zero-import leaf `Fredy/S1_51_Order.lean` over a
+  bare `le : α → α → Prop` (refl/trans as explicit hyps, no per-carrier order class):
+  `GaloisConnection le₁ le₂ f g`, `IsSup` (+`unique`), `IsClosureOp` (+`idem_eq`), `GaloisConnection`
+  `.monotone_l/_u`/`.map_isSup`. Retrofitted 4½ of 5 carriers: (a) A4_4 `GaloisConn` DELETED → generic
+  (`gc_inter_impl`/`gc_comp_leftDiv`/`lower_Sup` rerouted; `gc_comp_div` never existed); (b)
+  `HasRightAdjointImage.adjunction` field → `GaloisConnection` (unfolds definitionally, zero call-site
+  edits); (c) `existsAlong_le_iff` → `existsAlong_adj : GaloisConnection …` (7 sites rerouted, axioms
+  `[Classical.choice]`); (d) `LocallyComplete.sup_upper/sup_least` → single `sup_isSup : ∀ S, IsSup …`.
+  DEFERRED: (e) Frame sups (`S1_723_Locale` `le_sSup`/`sSup_le`) — already state UB+least exactly, so
+  nothing to dedup, only bundling, and it shares names across 88 heterogeneous `Opens`/`OPred` sites →
+  zero gain for high churn. Leave.
 
 Recorded verdicts (do NOT revisit): don't quotient `Subobject` (mathlib's route — `ThinSkeleton` +
 choice for representatives — trades away the constructive/book-representative style for `=`-rewriting);

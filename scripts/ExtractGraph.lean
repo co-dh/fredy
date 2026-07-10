@@ -90,14 +90,21 @@ partial def sectionHeader (lines : Array String) (line : Nat) : Option String :=
     pretty-printer leaves fully qualified (inaccessible `✝` auxiliaries) and literal docstrings. -/
 def annotate (env : Environment) (rows : Array Row) : IO (Array (Row × String × String)) := do
   let ctx : Core.Context := { fileName := "<extract>", fileMap := default }
-  let go : CoreM _ := rows.mapM fun row@(n, _, _, _) => do
-    let ci := (env.find? n).get!
-    let ty ← try
-        pure ((oneLine (toString (← Meta.MetaM.run' (Meta.ppExpr ci.type)))).replace "Freyd." "")
-      catch _ => pure ""
-    let doc := (((← findDocString? env n).getD "").splitOn "\n" |>.headD "").replace "Freyd." ""
-    return (row, ty, oneLine doc)
-  Prod.fst <$> go.toIO ctx { env }
+  -- ONE `CoreM.toIO` PER decl. Batching many decls into a single CoreM run (a `mapM` inside one
+  -- `toIO`) accumulates per-decl residue in `Core.State` (delaborator/pp caches) that is freed only
+  -- when the run ends — that pile-up was the whole OOM: ~800 decls in one run peaked at 24 GB. A
+  -- fresh run per decl releases the residue immediately (Lean is refcounted), holding the pass flat
+  -- at ~3.2 GB. Verified by bisection: import+extract+edge-DFS+all-9317-ppExpr, one toIO each, 3.2 GB.
+  rows.mapM fun row@(n, _, _, _) => do
+    let one : CoreM (String × String) := do
+      let ci := (env.find? n).get!
+      let ty ← try
+          pure ((oneLine (toString (← Meta.MetaM.run' (Meta.ppExpr ci.type)))).replace "Freyd." "")
+        catch _ => pure ""
+      let doc := (((← findDocString? env n).getD "").splitOn "\n" |>.headD "").replace "Freyd." ""
+      return (ty, oneLine doc)
+    let (ty, doc) ← Prod.fst <$> one.toIO ctx { env }
+    return (row, ty, doc)
 
 /-- Rows and edges for the declarations of `env` living in modules satisfying `wanted`. -/
 def extract (env : Environment) (wanted : Name → Bool) :
@@ -106,25 +113,29 @@ def extract (env : Environment) (wanted : Name → Bool) :
     let idx ← env.getModuleIdxFor? n
     let m := env.header.moduleNames[idx.toNat]!
     if `Fredy |>.isPrefixOf m then some m else none
-  -- pass 1: user-written declarations in Fredy modules (targets for edges)
-  let mut kept : Std.HashMap Name (String × Name × Nat) := {}
-  for (n, ci) in env.constants.toList do
-    if n.isInternalDetail then continue
-    let some kind := kindOf ci | continue
-    -- `instance` declarations are `.defnInfo` too (kindOf → "def"); relabel via the
-    -- instance-attribute environment extension so they're distinguishable in the graph.
-    let kind := if kind == "def" && Meta.isInstanceCore env n then "instance" else kind
-    let some m := fredyMod? n | continue
-    -- compiler-generated helpers (injEq, noConfusion, …) carry no declaration range
-    let some r := declRangeExt.find? env n | continue
-    kept := kept.insert n (kind, m, r.range.pos.line)
-  -- pass 2: rows for wanted modules; edges routed through generated/internal constants
+  -- pass 1: user-written declarations in Fredy modules (targets for edges). Fold directly over the
+  -- constant `SMap` instead of `env.constants.toList` — that list (~100k entries, core Lean
+  -- included) was a needless transient allocation built once per imported environment.
+  let kept : Std.HashMap Name (String × Name × Nat) :=
+    env.constants.fold (fun kept n ci => Id.run do
+      if n.isInternalDetail then return kept
+      let some kind := kindOf ci | return kept
+      let some m := fredyMod? n | return kept
+      -- compiler-generated helpers (injEq, noConfusion, …) carry no declaration range
+      let some r := declRangeExt.find? env n | return kept
+      -- `instance` declarations are `.defnInfo` too (kindOf → "def"); relabel via the
+      -- instance-attribute environment extension so they're distinguishable in the graph.
+      let kind := if kind == "def" && Meta.isInstanceCore env n then "instance" else kind
+      return kept.insert n (kind, m, r.range.pos.line)) {}
+  -- pass 2: rows for wanted modules; edges routed through generated/internal constants. Iterate the
+  -- ~9k `kept` decls directly (was: a second full scan of all ~100k constants), `env.find?`ing each
+  -- `ConstantInfo` on demand.
   let mut rows := #[]
   let mut edges := #[]
-  for (src, ci) in env.constants.toList do
-    let some (kind, m, line) := kept.get? src | continue
+  for (src, kind, m, line) in kept do
     unless wanted m do continue
     rows := rows.push (src, kind, m, line)
+    let some ci := env.find? src | continue
     let raw := ci.type.getUsedConstants ++ (ci.value?.map (·.getUsedConstants)).getD #[]
     let mut stack := raw.toList
     let mut visited : Std.HashSet Name := {}
@@ -147,6 +158,58 @@ def extract (env : Environment) (wanted : Name → Bool) :
                 ++ (ci'.value?.map (·.getUsedConstants)).getD #[]).toList ++ stack
   return (rows, edges)
 
+-- loadExts := true on the imports below: without it, environment-extension state (incl. the
+-- instance registry `Meta.instanceExtension` used by `isInstanceCore` in `extract`) is left unloaded.
+
+/-- Import the root `Fredy` closure, extract its rows/edges, annotate. Wrapped in its own function
+    so `envRoot` (the whole-library environment — the single biggest object here) is freed when this
+    returns, BEFORE the orphan loop imports anything. Previously `envRoot` stayed live as a `main`
+    local across the whole orphan loop, so root + orphan environments coexisted — roughly doubling
+    peak memory, a direct OOM contributor. -/
+def processRoot : IO (Array (Row × String × String) × Array (Name × Name) × Std.HashSet Name) := do
+  let envRoot ← importModules #[{ module := `Fredy }] {} (trustLevel := 1024) (loadExts := true)
+  let done : Std.HashSet Name :=
+    .ofArray (envRoot.header.moduleNames.filter (`Fredy |>.isPrefixOf ·))
+  let (rows, edges) := extract envRoot done.contains
+  return (← annotate envRoot rows, edges, done)
+
+/-- Same, for one orphan module (each in its own environment, since two orphans may define the same
+    constant name). The function boundary frees each orphan environment before the next import. -/
+def processOrphan (m : Name) (done : Std.HashSet Name) :
+    IO (Array (Row × String × String) × Array (Name × Name) × Array Name) := do
+  let env ← importModules #[{ module := m }] {} (trustLevel := 1024) (loadExts := true)
+  let mods := env.header.moduleNames.filter fun x =>
+    (`Fredy |>.isPrefixOf x) && !done.contains x
+  let (r, e) := extract env (Std.HashSet.ofArray mods).contains
+  return (← annotate env r, e, mods)
+
+/-- Parse `import Fredy.X failed, environment already contains …` → the module `Fredy.X` to isolate. -/
+def parseOffender (msg : String) : Option Name :=
+  match (msg.splitOn " ").dropWhile (· != "import") with
+  | _ :: modStr :: _ => some modStr.toName
+  | _ => none
+
+/-- Import all `mods` in ONE `importModules` call, returning that environment plus the modules that
+    had to be peeled out. `importModules` retains ~350 MB per call that is never freed, so calling it
+    once per orphan (46×) leaked ~16 GB and OOM-killed the process; one combined call keeps it flat.
+    The rare module that redefines a constant already in another's closure (e.g. `S1_49`'s
+    `comp_heq`) makes the combined import throw — peel that module out and retry the rest. -/
+partial def importOrphans (mods : Array Name) : IO (Environment × Array Name) := do
+  let mut batch := mods
+  let mut isolated : Array Name := #[]
+  while true do
+    try
+      let env ← importModules (batch.map fun m => { module := m }) {}
+        (trustLevel := 1024) (loadExts := true)
+      return (env, isolated)
+    catch e =>
+      match parseOffender (toString e) with
+      | some bad => if batch.contains bad then
+                      isolated := isolated.push bad; batch := batch.filter (· != bad)
+                    else throw e
+      | none => throw e
+  throw (IO.userError "importOrphans: unreachable")
+
 def main : IO Unit := do
   initSearchPath (← findSysroot)
   let all ← collectMods "Fredy" `Fredy
@@ -157,27 +220,34 @@ def main : IO Unit := do
     then built := built.push m else skipped := skipped.push m
   unless skipped.isEmpty do
     IO.eprintln s!"warning: {skipped.size} modules have no .olean (run lake build): {skipped.toList}"
-  -- root closure first, then every orphan in its own environment
-  -- loadExts := true: without it, environment-extension state (incl. the instance
-  -- registry `Meta.instanceExtension` used by `isInstanceCore` in `extract`) is left unloaded.
-  let envRoot ← importModules #[{ module := `Fredy }] {} (trustLevel := 1024) (loadExts := true)
-  let mut done : Std.HashSet Name :=
-    .ofArray (envRoot.header.moduleNames.filter (`Fredy |>.isPrefixOf ·))
-  let (rows₀, edges₀) := extract envRoot done.contains
-  let mut rows ← annotate envRoot rows₀
+  -- root closure first, then ALL orphans (modules with an olean not reached by the root import) in a
+  -- single combined import. `importModules` retains ~350 MB per call permanently, so the old
+  -- one-env-per-orphan loop leaked ~16 GB over 46 orphans → OOM. `importOrphans` does it in one call
+  -- (peeling out the few name-colliders to import singly), holding the whole run to ~5 GB.
+  let (rows₀, edges₀, done₀) ← processRoot
+  let mut rows := rows₀
   let mut edges := edges₀
+  let mut done := done₀
+  let orphanMods := built.filter (!done.contains ·)
   let mut orphans := 0
-  for m in built do
-    if done.contains m then continue
-    orphans := orphans + 1
-    let env ← importModules #[{ module := m }] {} (trustLevel := 1024) (loadExts := true)
-    let mods := env.header.moduleNames.filter fun x =>
-      (`Fredy |>.isPrefixOf x) && !done.contains x
-    let fresh : Std.HashSet Name := .ofArray mods
-    let (r, e) := extract env fresh.contains
-    rows := rows ++ (← annotate env r)
+  unless orphanMods.isEmpty do
+    let (batchEnv, isolated) ← importOrphans orphanMods
+    orphans := 1
+    let fresh : Std.HashSet Name := .ofArray
+      (batchEnv.header.moduleNames.filter fun x => (`Fredy |>.isPrefixOf x) && !done.contains x)
+    let (r, e) := extract batchEnv fresh.contains
+    rows := rows ++ (← annotate batchEnv r)
     edges := edges ++ e
-    done := mods.foldl (·.insert ·) done
+    done := batchEnv.header.moduleNames.foldl
+      (fun d x => if `Fredy |>.isPrefixOf x then d.insert x else d) done
+    -- the few isolated (name-colliding) orphans, each in its own environment
+    for m in isolated do
+      if done.contains m then continue
+      orphans := orphans + 1
+      let (r, e, mods) ← processOrphan m done
+      rows := rows ++ r
+      edges := edges ++ e
+      done := mods.foldl (·.insert ·) done
   IO.FS.createDirAll "graph"
   let sorted := (rows.map fun ((n, k, m, l), ty, doc) =>
       ((modToPath m "lean").toString, l, shortName n, k, ty, doc))

@@ -67,11 +67,11 @@ theorem hylo_le_of_prefixed (hFr : F.PreservesRecip) (I : InitialAlgebra F) {a b
       rw [relCata_cancel I S]
     rw [Allegory.recip_comp, Allegory.recip_comp, ← hFr (relCata I S)] at hcancel_recip
     exact hcancel_recip
-  have hcomp : (relCata I S)° ≫ I.α° ≫ F.map (leftDiv ((relCata I S)°) X) ≫ R
-      = S° ≫ F.map ((relCata I S)° ≫ leftDiv ((relCata I S)°) X) ≫ R := by
+  have hcomp : (relCata I S)° ≫ I.α° ≫ F.map (((relCata I S)°) \ X) ≫ R
+      = S° ≫ F.map ((relCata I S)° ≫ (((relCata I S)°) \ X)) ≫ R := by
     rw [F.map_comp, ← Cat.assoc, ← Cat.assoc, hkey, Cat.assoc, Cat.assoc, Cat.assoc]
   rw [hcomp]
-  have hWX : (relCata I S)° ≫ leftDiv ((relCata I S)°) X ⊑ X := leftDiv_comp_le _ X
+  have hWX : (relCata I S)° ≫ (((relCata I S)°) \ X) ⊑ X := leftDiv_comp_le _ X
   exact le_trans (comp_mono_left S° (comp_mono_right (F.map_mono hWX) R)) h
 
 /-- **Theorem 6.2 (hylomorphism theorem, B&dM p.142)**: the hylomorphism `[[R,S]]` (mirrored:
@@ -130,7 +130,7 @@ theorem mu_simple (hFr : F.PreservesRecip) {a b : 𝒜} {R : F.obj a ⟶ a} {S :
       _ = R° ≫ F.map T° ≫ S° := by rw [← hFr T]
   show T° ≫ T ⊑ Cat.id a
   apply (le_leftDiv_iff T T° (Cat.id a)).mp
-  have hWprefixed : S ≫ F.map (leftDiv T° (Cat.id a)) ≫ R ⊑ leftDiv T° (Cat.id a) := by
+  have hWprefixed : S ≫ F.map (T° \ (Cat.id a)) ≫ R ⊑ (T° \ (Cat.id a)) := by
     apply (le_leftDiv_iff _ T° (Cat.id a)).mpr
     have step1 : T° ≫ S ⊑ R° ≫ F.map T° := by
       have e : T° ≫ S = R° ≫ F.map T° ≫ S° ≫ S := by
@@ -141,14 +141,14 @@ theorem mu_simple (hFr : F.PreservesRecip) {a b : 𝒜} {R : F.obj a ⟶ a} {S :
         comp_mono_left _ (comp_mono_left _ hS)
       rw [Cat.comp_id] at hmono
       rw [e]; exact hmono
-    have hmono2 : (T° ≫ S) ≫ F.map (leftDiv T° (Cat.id a)) ≫ R
-        ⊑ (R° ≫ F.map T°) ≫ F.map (leftDiv T° (Cat.id a)) ≫ R :=
+    have hmono2 : (T° ≫ S) ≫ F.map (T° \ (Cat.id a)) ≫ R
+        ⊑ (R° ≫ F.map T°) ≫ F.map (T° \ (Cat.id a)) ≫ R :=
       comp_mono_right step1 _
-    have heq2 : (R° ≫ F.map T°) ≫ F.map (leftDiv T° (Cat.id a)) ≫ R
-        = R° ≫ F.map (T° ≫ leftDiv T° (Cat.id a)) ≫ R := by
+    have heq2 : (R° ≫ F.map T°) ≫ F.map (T° \ (Cat.id a)) ≫ R
+        = R° ≫ F.map (T° ≫ (T° \ (Cat.id a))) ≫ R := by
       rw [Cat.assoc, F.map_comp, Cat.assoc]
-    have hWX : T° ≫ leftDiv T° (Cat.id a) ⊑ Cat.id a := leftDiv_comp_le T° (Cat.id a)
-    have hmono4 : R° ≫ F.map (T° ≫ leftDiv T° (Cat.id a)) ≫ R ⊑ R° ≫ F.map (Cat.id a) ≫ R :=
+    have hWX : T° ≫ (T° \ (Cat.id a)) ⊑ Cat.id a := leftDiv_comp_le T° (Cat.id a)
+    have hmono4 : R° ≫ F.map (T° ≫ (T° \ (Cat.id a))) ≫ R ⊑ R° ≫ F.map (Cat.id a) ≫ R :=
       comp_mono_left _ (comp_mono_right (F.map_mono hWX) R)
     have heq5 : R° ≫ F.map (Cat.id a) ≫ R = R° ≫ R := by rw [F.map_id, Cat.id_comp]
     rw [← Cat.assoc]

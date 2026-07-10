@@ -161,7 +161,7 @@ theorem bigUnion_assoc {a : 𝒜} :
 
 /-- Ex 4.50: `(∋ b / R) \ ∋ b = R`. -/
 theorem leftDiv_div_eps {a b : 𝒜} (R : a ⟶ b) :
-    leftDiv (∋ b / R) (∋ b) = R := by
+    ((∋ b / R) \ (∋ b)) = R := by
   apply le_antisymm
   · have hi : (A R)° ⊑ ∋ b / R := by
       apply (le_div_iff _ _ _).mpr
@@ -174,20 +174,20 @@ theorem leftDiv_div_eps {a b : 𝒜} (R : a ⟶ b) :
       dsimp [Entire, dom] at h
       rw [← h]; exact inter_lb_right _ _
     -- Combine the three `⊑` steps by hand (no `Trans le le le` instance in this repo).
-    have key : A R ≫ ((A R)° ≫ leftDiv (∋ b / R) (∋ b)) ⊑ A R ≫ ∋ b := by
-      have s1 : A R ≫ ((A R)° ≫ leftDiv (∋ b / R) (∋ b))
-          ⊑ A R ≫ ((∋ b / R) ≫ leftDiv (∋ b / R) (∋ b)) :=
+    have key : A R ≫ ((A R)° ≫ ((∋ b / R) \ (∋ b))) ⊑ A R ≫ ∋ b := by
+      have s1 : A R ≫ ((A R)° ≫ ((∋ b / R) \ (∋ b)))
+          ⊑ A R ≫ ((∋ b / R) ≫ ((∋ b / R) \ (∋ b))) :=
         comp_mono_left _ (comp_mono_right hi _)
-      have s2 : A R ≫ ((∋ b / R) ≫ leftDiv (∋ b / R) (∋ b)) ⊑ A R ≫ ∋ b :=
+      have s2 : A R ≫ ((∋ b / R) ≫ ((∋ b / R) \ (∋ b))) ⊑ A R ≫ ∋ b :=
         comp_mono_left _ (leftDiv_comp_le _ _)
       exact le_trans s1 s2
-    have step : Cat.id a ≫ leftDiv (∋ b / R) (∋ b) ⊑ A R ≫ ∋ b := by
-      have s0 : Cat.id a ≫ leftDiv (∋ b / R) (∋ b) ⊑ (A R ≫ (A R)°) ≫ leftDiv (∋ b / R) (∋ b) :=
+    have step : Cat.id a ≫ ((∋ b / R) \ (∋ b)) ⊑ A R ≫ ∋ b := by
+      have s0 : Cat.id a ≫ ((∋ b / R) \ (∋ b)) ⊑ (A R ≫ (A R)°) ≫ ((∋ b / R) \ (∋ b)) :=
         comp_mono_right hent _
       rw [Cat.assoc] at s0
       exact le_trans s0 key
     rw [Cat.id_comp] at step
-    calc leftDiv (∋ b / R) (∋ b) ⊑ A R ≫ ∋ b := step
+    calc ((∋ b / R) \ (∋ b)) ⊑ A R ≫ ∋ b := step
       _ = R := A_eps_eq' R
   · apply (le_leftDiv_iff R (∋ b / R) (∋ b)).mpr
     exact DivisionAllegory.div_comp_le (∋ b) R
@@ -222,7 +222,7 @@ theorem wlp_antitone_iff {a b : 𝒜} (R S : a ⟶ b) :
     have s2 : (∋ b / S) ≫ S ⊑ ∋ b := DivisionAllegory.div_comp_le _ _
     exact le_trans s1 s2
   · intro h
-    have hle : R ⊑ leftDiv (∋ b / S) (∋ b) := by
+    have hle : R ⊑ ((∋ b / S) \ (∋ b)) := by
       apply (le_leftDiv_iff _ _ _).mpr
       -- `h : ∋ b / S ⊑ ∋ b / R` bounds the LEFT factor, so `comp_mono_right` (not `_left`).
       have s1 : (∋ b / S) ≫ R ⊑ (∋ b / R) ≫ R := comp_mono_right h _
