@@ -12,7 +12,8 @@
 
   * TEST — the differential tester runs the SPEC as the relation-algebra term
     `A spec ≫ max D` through the `FinRel` interpreter (`Demo121.answers`: exponential in the
-    value range, exact) and compares its decoded answer with each candidate's `evalP` output
+    value range, exact — and PROVED equal to the certified maximum, `specAnswer_eq` below)
+    and compares its decoded answer with each candidate's `evalP` output
     on an EXHAUSTIVELY ENUMERATED set of small instances (every price list of length ≤ 3 over
     `{1,2,3}`).  Candidates that disagree anywhere are REJECTED; survivors are ranked by
     state cost (catalog order).  Fully automatic, `#eval`-able, and kernel-checkable
@@ -35,9 +36,12 @@
   proof is the residual creative obligation; nothing in this file synthesises it.  Also:
   the tester validates FUNCTIONAL agreement only — the correct-but-expensive memo-list
   candidate passes too, and is rejected only by the catalog's state-cost RANKING, not by
-  testing.  And the runnable spec (`Demo121.specFn`, offset-encoded over `Fin (2M+1)`) is a
-  bounded encoding of the abstract spec `LC121.profit`; their agreement is by construction,
-  not by a Lean proof.
+  testing.  The runnable spec (`Demo121.specFn`, offset-encoded over `Fin (2M+1)`) IS
+  proved faithful to the abstract spec `LC121.profit` (`specFn_transport`, `profit_bounded`,
+  `specAnswer_eq` below): the tester's oracle is a theorem, not a transcription.  What
+  remains by construction is only the reading of the informal LeetCode prose as
+  `LC121.profit`, and the fact that SELECTION checks survivors on finitely many instances
+  (the oracle is exact everywhere; the winner's pass is even a theorem, `winner_passes`).
 
   Mathlib-free.  Certified parts Sorry-free; axioms ⊆ {propext, Classical.choice, Quot.sound}
   (inherited from `horner_correct` via `RunningBest`).
@@ -101,8 +105,9 @@ structure Inst where
 
 def Inst.prices (i : Inst) : List Int := i.first :: i.rest
 def Inst.n (i : Inst) : Nat := i.rest.length + 1
-/-- Profit bound: `maxPrice − minPrice`; all achievable profits lie in `[-M, M]`, so the
-    offset encoding over `Fin (2M+1)` is faithful.  Computed FROM the instance. -/
+/-- Profit bound: `maxPrice − minPrice`; all achievable profits lie in `[-M, M]` (PROVED:
+    `profit_bounded`), so the offset encoding over `Fin (2M+1)` is faithful (PROVED:
+    `specFn_transport`).  Computed FROM the instance. -/
 def Inst.bound (i : Inst) : Nat :=
   (i.rest.foldl imax i.first - i.rest.foldl imin i.first).toNat
 def Inst.priceFn (i : Inst) : Fin i.n → Int := fun k => i.prices.getD k.val 0
@@ -297,11 +302,396 @@ theorem selected_correct (s : ProgEval.SL Int) :
     ∀ v, LC121.profit (toSnoc s) v → v ≤ ProgEval.evalP winnerProg s := by
   rw [tested_eq_certified]; exact solve_correct (toSnoc s)
 
+/-! ## SOUND ORACLE — the tester's spec leg is a THEOREM, not a transcription
+
+  Everything above ran the hand-transcribed bounded atom `Demo121.specFn` and trusted it.
+  This section CLOSES that spec-transport gap:
+
+  * `specFn_transport` — the offset encoding is FAITHFUL: `specFn` accepts code `v` iff the
+    abstract certified spec `LC121.profit` holds of the decoded profit `v − M`, with the
+    day decoding (`Inst.priceFn` = positional lookup in `first :: rest`) proved against the
+    snoc-list the derivation folds (`toList_ofList`).
+  * `profit_bounded` — the bound `M = i.bound` HONESTLY contains every achievable profit,
+    so the encoding loses nothing.
+  * `specAnswer_eq` — chaining both through the interpreter semantics
+    (`RelInterp.A_comp_maxRel_apply`/`eval_solveE_iff`) and `L121.solve_correct`:
+    the spec leg's decoded answer IS `[certified maximum profit]`, on EVERY instance.
+  * `agree_iff` / `winner_passes` — the differential test therefore tests candidates against
+    the certified optimum (a theorem), and the winner provably passes every instance.
+
+  A transcription bug in `specFn`, the bound, or the decode would now be an unprovable
+  lemma — not a silently wrong oracle. -/
+
+/-- Day-ordered price list of a snoc-list — the decode the offset encoding is checked against. -/
+def toList : SnocList Int Int → List Int
+  | .wrap x => [x]
+  | .snoc xs p => toList xs ++ [p]
+
+theorem toList_foldl : ∀ (rest : List Int) (acc : SnocList Int Int),
+    toList (rest.foldl SnocList.snoc acc) = toList acc ++ rest
+  | [], _ => (List.append_nil _).symm
+  | p :: rest, acc => by
+    show toList (rest.foldl SnocList.snoc (SnocList.snoc acc p)) = toList acc ++ (p :: rest)
+    rw [toList_foldl rest (SnocList.snoc acc p)]
+    show (toList acc ++ [p]) ++ rest = toList acc ++ (p :: rest)
+    rw [List.append_assoc]; rfl
+
+/-- The day decoding, closed: the snoc-list built from `(first, rest)` reads back as the
+    day-ordered price list `first :: rest`. -/
+theorem toList_ofList (first : Int) (rest : List Int) :
+    toList (LC121.ofList first rest) = first :: rest :=
+  toList_foldl rest (SnocList.wrap first)
+
+/-! ### `getD` facts for the positional decode (mathlib-free) -/
+
+theorem getD_append_lt : ∀ (L : List Int) (p : Int) (k : Nat), k < L.length →
+    (L ++ [p]).getD k 0 = L.getD k 0
+  | _ :: _, _, 0, _ => rfl
+  | _ :: L, p, k + 1, h => getD_append_lt L p k (Nat.lt_of_succ_lt_succ h)
+  | [], _, k, h => absurd h (Nat.not_lt_zero k)
+
+theorem getD_append_len : ∀ (L : List Int) (p : Int), (L ++ [p]).getD L.length 0 = p
+  | [], _ => rfl
+  | _ :: L, p => getD_append_len L p
+
+theorem getD_mem : ∀ (l : List Int) (k : Nat), k < l.length → l.getD k 0 ∈ l
+  | a :: l, 0, _ => List.mem_cons.mpr (Or.inl rfl)
+  | _ :: l, k + 1, h => List.mem_cons.mpr (Or.inr (getD_mem l k (Nat.lt_of_succ_lt_succ h)))
+  | [], k, h => absurd h (Nat.not_lt_zero k)
+
+/-! ### `mem`/`Before`/`profit` in day-index form — the shape `specFn` quantifies over -/
+
+/-- `LC121.mem`, positionally: `b` occurs in `xs` iff it is some day's price. -/
+theorem mem_iff : ∀ (xs : SnocList Int Int) (b : Int),
+    LC121.mem xs b ↔ ∃ k, k < (toList xs).length ∧ (toList xs).getD k 0 = b := by
+  intro xs
+  induction xs with
+  | wrap x =>
+    intro b
+    constructor
+    · intro h
+      exact ⟨0, Nat.zero_lt_one, (show b = x from h).symm⟩
+    · rintro ⟨k, hk, hget⟩
+      have hlen : (toList (SnocList.wrap x)).length = 1 := rfl
+      have hk0 : k = 0 := by omega
+      subst hk0
+      exact hget.symm
+  | snoc xs p ih =>
+    intro b
+    have hlen : (toList (SnocList.snoc xs p)).length = (toList xs).length + 1 := by
+      show (toList xs ++ [p]).length = _
+      simp [List.length_append]
+    constructor
+    · intro h
+      rcases (h : LC121.mem xs b ∨ b = p) with h | h
+      · obtain ⟨k, hk, hget⟩ := (ih b).mp h
+        refine ⟨k, by omega, ?_⟩
+        show (toList xs ++ [p]).getD k 0 = b
+        rw [getD_append_lt _ _ _ hk]; exact hget
+      · refine ⟨(toList xs).length, by omega, ?_⟩
+        show (toList xs ++ [p]).getD (toList xs).length 0 = b
+        rw [getD_append_len]; exact h.symm
+    · rintro ⟨k, hk, hget⟩
+      rcases Nat.lt_or_ge k (toList xs).length with hlt | hge
+      · refine Or.inl ((ih b).mpr ⟨k, hlt, ?_⟩)
+        rw [← getD_append_lt (toList xs) p k hlt]; exact hget
+      · have hkeq : k = (toList xs).length := by omega
+        subst hkeq
+        have hget' : (toList xs ++ [p]).getD (toList xs).length 0 = b := hget
+        exact Or.inr ((getD_append_len (toList xs) p).symm.trans hget').symm
+
+/-- `LC121.Before`, positionally: buy day strictly before sell day. -/
+theorem before_iff : ∀ (xs : SnocList Int Int) (b s : Int),
+    LC121.Before xs b s ↔ ∃ k l : Nat, k < l ∧ l < (toList xs).length ∧
+      (toList xs).getD k 0 = b ∧ (toList xs).getD l 0 = s := by
+  intro xs
+  induction xs with
+  | wrap x =>
+    intro b s
+    constructor
+    · intro h; exact h.elim
+    · rintro ⟨k, l, hkl, hl, -, -⟩
+      have hlen : (toList (SnocList.wrap x)).length = 1 := rfl
+      omega
+  | snoc xs p ih =>
+    intro b s
+    have hlen : (toList (SnocList.snoc xs p)).length = (toList xs).length + 1 := by
+      show (toList xs ++ [p]).length = _
+      simp [List.length_append]
+    constructor
+    · intro h
+      rcases (h : LC121.Before xs b s ∨ (LC121.mem xs b ∧ s = p)) with h | ⟨hm, hs⟩
+      · obtain ⟨k, l, hkl, hl, hb, hsx⟩ := (ih b s).mp h
+        refine ⟨k, l, hkl, by omega, ?_, ?_⟩
+        · show (toList xs ++ [p]).getD k 0 = b
+          rw [getD_append_lt _ _ _ (by omega)]; exact hb
+        · show (toList xs ++ [p]).getD l 0 = s
+          rw [getD_append_lt _ _ _ hl]; exact hsx
+      · obtain ⟨k, hk, hb⟩ := (mem_iff xs b).mp hm
+        refine ⟨k, (toList xs).length, hk, by omega, ?_, ?_⟩
+        · show (toList xs ++ [p]).getD k 0 = b
+          rw [getD_append_lt _ _ _ hk]; exact hb
+        · show (toList xs ++ [p]).getD (toList xs).length 0 = s
+          rw [getD_append_len]; exact hs.symm
+    · rintro ⟨k, l, hkl, hl, hb, hs⟩
+      rcases Nat.lt_or_ge l (toList xs).length with hlt | hge
+      · refine Or.inl ((ih b s).mpr ⟨k, l, hkl, hlt, ?_, ?_⟩)
+        · rw [← getD_append_lt (toList xs) p k (by omega)]; exact hb
+        · rw [← getD_append_lt (toList xs) p l hlt]; exact hs
+      · have hleq : l = (toList xs).length := by omega
+        subst hleq
+        have hs' : (toList xs ++ [p]).getD (toList xs).length 0 = s := hs
+        refine Or.inr ⟨(mem_iff xs b).mpr ⟨k, by omega, ?_⟩,
+          ((getD_append_len (toList xs) p).symm.trans hs').symm⟩
+        rw [← getD_append_lt (toList xs) p k (by omega)]; exact hb
+
+/-- `LC121.profit`, positionally: `0`, or a price difference over an ordered day pair —
+    exactly the quantifier shape of the transcribed atom `Demo121.specFn`. -/
+theorem profit_iff (xs : SnocList Int Int) (w : Int) :
+    LC121.profit xs w ↔
+      w = 0 ∨ ∃ k l : Nat, k < l ∧ l < (toList xs).length ∧
+        w = (toList xs).getD l 0 - (toList xs).getD k 0 := by
+  constructor
+  · intro h
+    rcases (h : w = 0 ∨ ∃ b s, LC121.Before xs b s ∧ w = s - b) with h0 | ⟨b, s, hbef, hw⟩
+    · exact Or.inl h0
+    · obtain ⟨k, l, hkl, hl, hb, hs⟩ := (before_iff xs b s).mp hbef
+      exact Or.inr ⟨k, l, hkl, hl, by rw [hb, hs]; exact hw⟩
+  · rintro (h0 | ⟨k, l, hkl, hl, hw⟩)
+    · exact Or.inl h0
+    · exact Or.inr ⟨_, _, (before_iff xs _ _).mpr ⟨k, l, hkl, hl, rfl, rfl⟩, hw⟩
+
+/-! ### The bound is honest: every achievable profit fits in `[-M, M]` for `M = i.bound` -/
+
+theorem foldl_imin_le : ∀ (l : List Int) (a : Int), l.foldl imin a ≤ a
+  | [], a => Int.le_refl a
+  | p :: l, a => Int.le_trans (foldl_imin_le l (imin a p)) (imin_le_left a p)
+
+theorem le_foldl_imax : ∀ (l : List Int) (a : Int), a ≤ l.foldl imax a
+  | [], a => Int.le_refl a
+  | p :: l, a => Int.le_trans (imax_ge_left a p) (le_foldl_imax l (imax a p))
+
+theorem foldl_imin_le_mem : ∀ (l : List Int) (a b : Int), b ∈ l → l.foldl imin a ≤ b := by
+  intro l
+  induction l with
+  | nil => intro a b h; exact nomatch h
+  | cons p l ih =>
+    intro a b h
+    rcases List.mem_cons.mp h with h | h
+    · subst h; exact Int.le_trans (foldl_imin_le l (imin a b)) (imin_le_right a b)
+    · exact ih (imin a p) b h
+
+theorem mem_le_foldl_imax : ∀ (l : List Int) (a b : Int), b ∈ l → b ≤ l.foldl imax a := by
+  intro l
+  induction l with
+  | nil => intro a b h; exact nomatch h
+  | cons p l ih =>
+    intro a b h
+    rcases List.mem_cons.mp h with h | h
+    · subst h; exact Int.le_trans (imax_ge_right a b) (le_foldl_imax l (imax a b))
+    · exact ih (imax a p) b h
+
+/-- **The bound `M = i.bound` actually contains every achievable profit** — the scoping
+    half of the transport: nothing the abstract spec can achieve falls outside the code
+    range `Fin (2M+1)`. -/
+theorem profit_bounded (i : Inst) (w : Int)
+    (h : LC121.profit (LC121.ofList i.first i.rest) w) :
+    -(i.bound : Int) ≤ w ∧ w ≤ (i.bound : Int) := by
+  have hmin : i.rest.foldl imin i.first ≤ i.first := foldl_imin_le i.rest i.first
+  have hmax : i.first ≤ i.rest.foldl imax i.first := le_foldl_imax i.rest i.first
+  have hbound : (i.bound : Int)
+      = i.rest.foldl imax i.first - i.rest.foldl imin i.first := by
+    show ((i.rest.foldl imax i.first - i.rest.foldl imin i.first).toNat : Int) = _
+    omega
+  have hub : ∀ b, b ∈ i.first :: i.rest → b ≤ i.rest.foldl imax i.first := by
+    intro b hb
+    rcases List.mem_cons.mp hb with hb | hb
+    · subst hb; exact hmax
+    · exact mem_le_foldl_imax i.rest i.first b hb
+  have hlb : ∀ b, b ∈ i.first :: i.rest → i.rest.foldl imin i.first ≤ b := by
+    intro b hb
+    rcases List.mem_cons.mp hb with hb | hb
+    · subst hb; exact hmin
+    · exact foldl_imin_le_mem i.rest i.first b hb
+  rcases (profit_iff _ w).mp h with h0 | ⟨k, l, hkl, hl, hw⟩
+  · omega
+  · rw [toList_ofList] at hl hw
+    have h1 := hub _ (getD_mem (i.first :: i.rest) k (by omega))
+    have h2 := hub _ (getD_mem (i.first :: i.rest) l hl)
+    have h3 := hlb _ (getD_mem (i.first :: i.rest) k (by omega))
+    have h4 := hlb _ (getD_mem (i.first :: i.rest) l hl)
+    omega
+
+/-! ### The transport theorem and the certified oracle -/
+
+/-- **THE SPEC-TRANSPORT THEOREM**: the hand-transcribed bounded atom `Demo121.specFn` is a
+    FAITHFUL offset encoding of the abstract certified spec — code `v` is accepted iff
+    `LC121.profit` holds of the decoded profit `v − M` on the decoded instance.  With this,
+    running `specFn` through the interpreter IS running the certified spec object; a
+    transcription bug would make this lemma unprovable. -/
+theorem specFn_transport (i : Inst) (x : Fin 1) (v : Fin (2 * i.bound + 1)) :
+    Demo121.specFn i.n i.bound i.priceFn x v = true ↔
+      LC121.profit (LC121.ofList i.first i.rest) ((v.val : Int) - i.bound) := by
+  rw [Demo121.specFn_iff, profit_iff, toList_ofList]
+  have hn : i.n = (i.first :: i.rest).length := rfl
+  constructor
+  · rintro (h | ⟨a, c, hac, heq⟩)
+    · exact Or.inl (by omega)
+    · have h1 : i.priceFn a = (i.first :: i.rest).getD a.val 0 := rfl
+      have h2 : i.priceFn c = (i.first :: i.rest).getD c.val 0 := rfl
+      have hc := c.isLt
+      exact Or.inr ⟨a.val, c.val, hac, by omega, by omega⟩
+  · rintro (h | ⟨k, l, hkl, hl, hw⟩)
+    · exact Or.inl (by omega)
+    · have hkn : k < i.n := by omega
+      have hln : l < i.n := by omega
+      have h1 : i.priceFn ⟨k, hkn⟩ = (i.first :: i.rest).getD k 0 := rfl
+      have h2 : i.priceFn ⟨l, hln⟩ = (i.first :: i.rest).getD l 0 := rfl
+      exact Or.inr ⟨⟨k, hkn⟩, ⟨l, hln⟩, hkl, by omega⟩
+
+/-- The interpreted spec term, decoded END-TO-END: `solveE` accepts exactly the code of the
+    CERTIFIED maximum profit.  Chain: `eval_solveE_iff` (interpreter semantics) →
+    `specFn_transport` (encoding faithfulness) → `profit_bounded` (bound coverage) →
+    `L121.solve_correct` (the certified extremum). -/
+theorem eval_solveE_eq (i : Inst) (v : Fin (2 * i.bound + 1)) :
+    eval (Demo121.solveE i.n i.bound i.priceFn) 0 v = true ↔
+      (v.val : Int) = LC121.solveFn (LC121.ofList i.first i.rest) + i.bound := by
+  have hcor := LC121.solve_correct (LC121.ofList i.first i.rest)
+  have hbnd := profit_bounded i _ hcor.1
+  constructor
+  · intro h
+    obtain ⟨h1, h2⟩ := Demo121.eval_solveE_iff.mp h
+    have hle : (v.val : Int) - i.bound ≤ LC121.solveFn (LC121.ofList i.first i.rest) :=
+      hcor.2 _ ((specFn_transport i 0 v).mp h1)
+    have hv0 : (LC121.solveFn (LC121.ofList i.first i.rest) + i.bound).toNat
+        < 2 * i.bound + 1 := by omega
+    have henc : ((((LC121.solveFn (LC121.ofList i.first i.rest) + i.bound).toNat : Nat) : Int)
+        - i.bound) = LC121.solveFn (LC121.ofList i.first i.rest) := by omega
+    have hz : (LC121.solveFn (LC121.ofList i.first i.rest) + i.bound).toNat ≤ v.val :=
+      h2 ⟨_, hv0⟩ ((specFn_transport i 0 ⟨_, hv0⟩).mpr (by rw [henc]; exact hcor.1))
+    omega
+  · intro hv
+    refine Demo121.eval_solveE_iff.mpr ⟨(specFn_transport i 0 v).mpr ?_, fun z hz => ?_⟩
+    · have hveq : (v.val : Int) - i.bound = LC121.solveFn (LC121.ofList i.first i.rest) := by
+        omega
+      rw [hveq]; exact hcor.1
+    · have := hcor.2 _ ((specFn_transport i 0 z).mp hz)
+      omega
+
+/-! ### From the pointwise theorem to the answer column -/
+
+theorem filterMap_ofFn_none {α : Type} : ∀ {n : Nat} (f : Fin n → Option α),
+    (∀ v, f v = none) → (List.ofFn f).filterMap id = []
+  | 0, _, _ => by rw [List.ofFn_zero]; rfl
+  | n + 1, f, h => by
+    rw [List.ofFn_succ, List.filterMap_cons_none (by exact h 0)]
+    exact filterMap_ofFn_none (fun i => f i.succ) (fun i => h i.succ)
+
+theorem filterMap_ofFn_singleton {α : Type} : ∀ {n : Nat} (f : Fin n → Option α)
+    (k : Nat) (c : α), k < n →
+    (∀ v : Fin n, v.val = k → f v = some c) → (∀ v : Fin n, v.val ≠ k → f v = none) →
+    (List.ofFn f).filterMap id = [c] := by
+  intro n
+  induction n with
+  | zero => intro f k c hk _ _; exact absurd hk (Nat.not_lt_zero k)
+  | succ n ih =>
+    intro f k c hk hsome hnone
+    cases k with
+    | zero =>
+      rw [List.ofFn_succ, List.filterMap_cons_some (by exact hsome 0 rfl)]
+      show c :: (List.ofFn fun i => f i.succ).filterMap id = [c]
+      rw [filterMap_ofFn_none (fun i => f i.succ)
+        (fun i => hnone i.succ (Nat.succ_ne_zero i.val))]
+    | succ k' =>
+      rw [List.ofFn_succ,
+        List.filterMap_cons_none (by exact hnone 0 (fun h => Nat.succ_ne_zero k' h.symm))]
+      exact ih (fun i => f i.succ) k' c (Nat.lt_of_succ_lt_succ hk)
+        (fun v hv => hsome v.succ (by show v.val + 1 = k' + 1; omega))
+        (fun v hv => hnone v.succ (by show v.val + 1 ≠ k' + 1; omega))
+
+/-- **THE ORACLE IS CERTIFIED**: on EVERY instance, the tester's spec leg — the exponential
+    interpreted term `A spec ≫ max D`, decoded — answers exactly the singleton of the
+    certified maximum profit of `L121.solve_correct`.  What used to be a per-instance numeric
+    coincidence is now `transport ∘ solve_correct`. -/
+theorem specAnswer_eq (i : Inst) :
+    specAnswer i = [LC121.solveFn (LC121.ofList i.first i.rest)] := by
+  have hcor := LC121.solve_correct (LC121.ofList i.first i.rest)
+  have hbnd := profit_bounded i _ hcor.1
+  show (List.ofFn fun v : Fin (2 * i.bound + 1) =>
+    if eval (Demo121.solveE i.n i.bound i.priceFn) 0 v then some ((v.val : Int) - i.bound)
+    else none).filterMap id = _
+  refine filterMap_ofFn_singleton _
+    ((LC121.solveFn (LC121.ofList i.first i.rest) + i.bound).toNat) _
+    (by omega) (fun v hv => ?_) (fun v hv => ?_)
+  · rw [if_pos ((eval_solveE_eq i v).mpr (by omega))]
+    have hveq : (v.val : Int) - i.bound = LC121.solveFn (LC121.ofList i.first i.rest) := by
+      omega
+    rw [hveq]
+  · have hne : ¬ (eval (Demo121.solveE i.n i.bound i.priceFn) 0 v = true) := by
+      intro h
+      have := (eval_solveE_eq i v).mp h
+      omega
+    rw [if_neg hne]
+
+/-- The differential test is sound and complete AGAINST THE CERTIFIED OPTIMUM: a candidate
+    agrees with the interpreted spec on `i` iff its answer is the certified maximum profit.
+    The loop's test leg now rests on this theorem, not on the transcription of `specFn`. -/
+theorem agree_iff (p : ProgEval.Prog (ProgEval.SL Int) Int) (i : Inst) :
+    agree p i = true ↔ progAnswer p i = LC121.solveFn (LC121.ofList i.first i.rest) := by
+  show (specAnswer i == [progAnswer p i]) = true ↔ _
+  rw [specAnswer_eq]
+  constructor
+  · intro h
+    have h2 := beq_iff_eq.mp h
+    injection h2 with h3 _
+    exact h3.symm
+  · intro h
+    rw [h]
+    exact beq_iff_eq.mpr rfl
+
+/-! ### The certified program provably passes — closing the loop's test leg -/
+
+theorem toSnoc_foldl : ∀ (rest : List Int) (acc : ProgEval.SL Int),
+    toSnoc (rest.foldl ProgEval.SL.snoc acc) = rest.foldl SnocList.snoc (toSnoc acc)
+  | [], _ => rfl
+  | p :: rest, acc => toSnoc_foldl rest (ProgEval.SL.snoc acc p)
+
+theorem toSnoc_slOf (first : Int) (rest : List Int) :
+    toSnoc (ProgEval.slOf first rest) = LC121.ofList first rest :=
+  toSnoc_foldl rest (ProgEval.SL.wrap first)
+
+/-- The derived program's answer IS the certified maximum, in the tester's own vocabulary. -/
+theorem prog_answer_certified (i : Inst) :
+    progAnswer ProgEval.prog121 i = LC121.solveFn (LC121.ofList i.first i.rest) := by
+  show ProgEval.evalP ProgEval.prog121 (ProgEval.slOf i.first i.rest) = _
+  rw [← winner_eq_prog121, tested_eq_certified, toSnoc_slOf, foldFn_eq_L121]
+  rfl
+
+/-- The winner provably passes the differential test on EVERY instance — the loop's
+    acceptance of the certified shape is a theorem, not 36 numeric coincidences. -/
+theorem winner_agree (i : Inst) : agree winnerProg i = true :=
+  (agree_iff winnerProg i).mpr (by rw [winner_eq_prog121]; exact prog_answer_certified i)
+
+theorem winner_passes (insts : List Inst) : passes winnerProg insts = true :=
+  List.all_eq_true.mpr fun i _ => winner_agree i
+
+/-- **Both evaluators agree — now a THEOREM on every instance** (upgrading `RelInterp`'s
+    single kernel-checked example): the exponential interpreted spec `A spec ≫ max D` and the
+    polynomial derived-program fold return the same answer, because both provably equal the
+    certified maximum. -/
+theorem evaluators_agree (i : Inst) : specAnswer i = [progAnswer ProgEval.prog121 i] := by
+  rw [specAnswer_eq, prog_answer_certified]
+
 -- The certified selected program, run on LeetCode 121's own example:
 #eval ProgEval.evalP winnerProg (ProgEval.slOf 7 [1, 5, 3, 6, 4])   -- 5
 
 #print axioms selected_correct
 #print axioms solve_eq_maxRel
 #print axioms loop_verdicts
+#print axioms specFn_transport
+#print axioms specAnswer_eq
+#print axioms agree_iff
+#print axioms winner_passes
+#print axioms evaluators_agree
 
 end Freyd.Alg.Search

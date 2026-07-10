@@ -434,6 +434,73 @@ theorem eval_AE {a b : FinObj} (R : RE a b) : eval (AE R) = A (eval R) := rfl
 theorem eval_minRelE {a : FinObj} (R : RE a a) :
     eval (minRelE R) = (∋ a ∩ leftDiv ((∋ a)°) (eval R)) := rfl
 
+/-! ### Pointwise semantics of the spec vocabulary — the general TRANSPORT layer
+
+  What `Λ`, `max`, and the whole extremum shape `A R ≫ max D` mean POINTWISE in `FinRel`.
+  These lemmas eliminate the `2^card` powerset-code quantifier (the witness subset is exactly
+  the `encNat`-encoded image), so a run of a spec term is not just a number but a predicate:
+  `A R ≫ max D` accepts `v` iff `v` is `R`-achievable and `D`-dominates every `R`-achievable
+  value.  A bounded encoding `R` of an abstract spec then transports along a per-problem
+  `R x v ↔ abstract-spec (decode v)` lemma to a THEOREM about the evaluated term — see
+  `Fredy.AutoDeriveSearch`, where LC 121's instance is chained to `L121.solve_correct`. -/
+
+/-- `Λ` pointwise: `A R` relates `x` to exactly the bit-code of its `R`-image. -/
+theorem A_apply {a b : FinObj} (R : a ⟶ b) (x : Fin a.card) (P : Fin (pow b).card) :
+    A R x P = true ↔ ∀ v, epsB b P v = R x v := by
+  show (allFin b.card (fun v => !(epsB b P v) || R x v)
+     && allFin b.card (fun v => !(R x v) || epsB b P v)) = true ↔ _
+  constructor
+  · intro h
+    obtain ⟨h1, h2⟩ := Bool.and_eq_true_iff.mp h
+    exact fun v => bool_eq_of_iff
+      ⟨fun hP => impB_iff.mp (allFin_iff.mp h1 v) hP,
+       fun hR => impB_iff.mp (allFin_iff.mp h2 v) hR⟩
+  · intro h
+    refine Bool.and_eq_true_iff.mpr
+      ⟨allFin_iff.mpr fun v => impB_iff.mpr fun hP => ?_,
+       allFin_iff.mpr fun v => impB_iff.mpr fun hR => ?_⟩
+    · rw [← h v]; exact hP
+    · rw [h v]; exact hR
+
+/-- `max` pointwise: `eval (maxRelE d)` relates a bit-code `P` to `w` iff `w ∈ P` and `w`
+    `d`-dominates every member of `P` (B&dM §7.1 `max D = min D°`, executably). -/
+theorem maxRelE_apply {a : FinObj} (d : RE a a) (P : Fin (pow a).card) (w : Fin a.card) :
+    eval (maxRelE d) P w = true ↔
+      (epsB a P w = true ∧ ∀ z, epsB a P z = true → eval d w z = true) := by
+  show (epsB a P w && allFin a.card (fun z => !(epsB a P z) || eval d w z)) = true ↔ _
+  constructor
+  · intro h
+    obtain ⟨h1, h2⟩ := Bool.and_eq_true_iff.mp h
+    exact ⟨h1, fun z hz => impB_iff.mp (allFin_iff.mp h2 z) hz⟩
+  · rintro ⟨h1, h2⟩
+    exact Bool.and_eq_true_iff.mpr ⟨h1, allFin_iff.mpr fun z => impB_iff.mpr (h2 z)⟩
+
+/-- **The general spec-transport lemma**: the extremum shape `A e ≫ max d` pointwise accepts
+    `(x, v)` iff `v` is `e`-achievable from `x` and `d`-dominates every `e`-achievable value.
+    The existential over `2^card` subset codes is discharged by the encoded image itself
+    (`encNat`), so no powerset reasoning survives into the statement. -/
+theorem A_comp_maxRel_apply {a b : FinObj} (e : RE a b) (d : RE b b)
+    (x : Fin a.card) (v : Fin b.card) :
+    eval (.comp (AE e) (maxRelE d)) x v = true ↔
+      (eval e x v = true ∧ ∀ z, eval e x z = true → eval d v z = true) := by
+  show anyFin (pow b).card (fun P => eval (AE e) x P && eval (maxRelE d) P v) = true ↔ _
+  constructor
+  · intro h
+    obtain ⟨P, hP⟩ := anyFin_iff.mp h
+    obtain ⟨h1, h2⟩ := Bool.and_eq_true_iff.mp hP
+    have hA := (A_apply (eval e) x P).mp h1
+    obtain ⟨hmem, hdom⟩ := (maxRelE_apply d P v).mp h2
+    exact ⟨by rw [← hA v]; exact hmem, fun z hz => hdom z (by rw [hA z]; exact hz)⟩
+  · rintro ⟨h1, h2⟩
+    refine anyFin_iff.mpr ⟨⟨encNat b.card (fun u => eval e x u), encNat_lt _ _⟩,
+      Bool.and_eq_true_iff.mpr ⟨?_, ?_⟩⟩
+    · exact (A_apply (eval e) x _).mpr fun u => encNat_testBit b.card (fun u => eval e x u) u
+    · refine (maxRelE_apply d _ v).mpr ⟨?_, fun z hz => h2 z ?_⟩
+      · show (encNat b.card (fun u => eval e x u)).testBit v.val = true
+        rw [encNat_testBit b.card (fun u => eval e x u) v]; exact h1
+      · have hz' : (encNat b.card (fun u => eval e x u)).testBit z.val = true := hz
+        rw [encNat_testBit b.card (fun u => eval e x u) z] at hz'; exact hz'
+
 /-! ## Demo 1 — relational DIVISION on ground data (the classic query)
 
   `solved : Student ⟶ Problem`; `solved/solved : Student ⟶ Student` relates `s` to `t` iff
@@ -506,14 +573,18 @@ end Demo207
   member.  Correct, and exponential in `|Val|` — the honest cost of running the spec.
 
   Bounding the infinite carrier `Int`: profits of an instance with prices in a known range
-  live in `-M..M`; offset-encode as `Fin (2M+1)` (`v` codes profit `v - M`). -/
+  live in `-M..M`; offset-encode as `Fin (2M+1)` (`v` codes profit `v - M`).  This bounded
+  encoding is PROVED faithful: `specFn_iff`/`eval_solveE_iff` below decode the run pointwise,
+  and `Fredy.AutoDeriveSearch.specFn_transport`/`specAnswer_eq` chain them to the abstract
+  `L121.profit` and the certified `L121.solve_correct`. -/
 
 namespace Demo121
 
 abbrev One : FinObj := ⟨1⟩
 
 /-- Achievable-profit spec of a fixed instance, offset-encoded: profit `0`, or
-    `price j − price i` for day `i` before day `j`.  This is `Fredy.L121.profit`, bounded. -/
+    `price j − price i` for day `i` before day `j`.  This is `Fredy.L121.profit`, bounded —
+    PROVABLY so (`Fredy.AutoDeriveSearch.specFn_transport`), not just by transcription. -/
 def specFn (n M : Nat) (price : Fin n → Int) : Fin 1 → Fin (2 * M + 1) → Bool := fun _ v =>
   (v.val == M) || anyFin n fun i => anyFin n fun j =>
     decide (i.val < j.val) && decide (price j - price i + M = (v.val : Int))
@@ -530,6 +601,46 @@ def solveE (n M : Nat) (price : Fin n → Int) : RE One ⟨2 * M + 1⟩ :=
 def answers (n M : Nat) (price : Fin n → Int) : List (Option Int) :=
   List.ofFn fun v : Fin (2 * M + 1) =>
     if eval (solveE n M price) 0 v then some ((v.val : Int) - M) else none
+
+/-- `specFn` decoded to arithmetic: code `v` is accepted iff the profit it codes (`v − M`)
+    is `0` (code `M`) or a price difference over an ordered day pair.  First leg of the
+    spec-transport proof (`Fredy.AutoDeriveSearch.specFn_transport` matches this against the
+    abstract `L121.profit`). -/
+theorem specFn_iff {n M : Nat} {price : Fin n → Int} {x : Fin 1} {v : Fin (2 * M + 1)} :
+    specFn n M price x v = true ↔
+      (v.val = M ∨ ∃ i j : Fin n, i.val < j.val ∧ price j - price i + M = (v.val : Int)) := by
+  show ((v.val == M) || anyFin n fun i => anyFin n fun j =>
+    decide (i.val < j.val) && decide (price j - price i + M = (v.val : Int))) = true ↔ _
+  constructor
+  · intro h
+    rcases Bool.or_eq_true_iff.mp h with h | h
+    · exact Or.inl (beq_iff_eq.mp h)
+    · obtain ⟨i, hi⟩ := anyFin_iff.mp h
+      obtain ⟨j, hj⟩ := anyFin_iff.mp hi
+      obtain ⟨hij, heq⟩ := Bool.and_eq_true_iff.mp hj
+      exact Or.inr ⟨i, j, decide_eq_true_iff.mp hij, decide_eq_true_iff.mp heq⟩
+  · intro h
+    refine Bool.or_eq_true_iff.mpr (h.imp (fun h => beq_iff_eq.mpr h) ?_)
+    rintro ⟨i, j, hij, heq⟩
+    exact anyFin_iff.mpr ⟨i, anyFin_iff.mpr ⟨j, Bool.and_eq_true_iff.mpr
+      ⟨decide_eq_true_iff.mpr hij, decide_eq_true_iff.mpr heq⟩⟩⟩
+
+/-- The interpreted LC 121 spec term, decoded pointwise: `solveE` accepts code `v` iff the
+    coded profit is achievable (`specFn`) and `≥` every achievable coded profit — the
+    `A_comp_maxRel_apply` transport specialised to this problem's atoms.
+    `Fredy.AutoDeriveSearch` chains this to the certified `L121.solve_correct`. -/
+theorem eval_solveE_iff {n M : Nat} {price : Fin n → Int} {x : Fin 1} {v : Fin (2 * M + 1)} :
+    eval (solveE n M price) x v = true ↔
+      (specFn n M price x v = true ∧
+       ∀ z : Fin (2 * M + 1), specFn n M price x z = true → z.val ≤ v.val) := by
+  constructor
+  · intro h
+    obtain ⟨h1, h2⟩ :=
+      (A_comp_maxRel_apply (.atom (specFn n M price)) (.atom (geFn M)) x v).mp h
+    exact ⟨h1, fun z hz => decide_eq_true_iff.mp (h2 z hz)⟩
+  · rintro ⟨h1, h2⟩
+    exact (A_comp_maxRel_apply (.atom (specFn n M price)) (.atom (geFn M)) x v).mpr
+      ⟨h1, fun z hz => decide_eq_true_iff.mpr (h2 z hz)⟩
 
 /-- Tiny instance `[1,2]` (buy 1 sell 2, profit 1), kernel-checked end to end:
     the term's answer column is `{profit 1}` — brute force over `2^3 = 8` subsets. -/
@@ -621,7 +732,9 @@ example : evalP prog121 (slOf 2 [4, 1]) = 2 := by decide
 /-- **Both evaluators agree on the instance `[1,2]`** (prices 1 then 2, profit 1): the POLYNOMIAL
     program-fold (`evalP prog121`) and the EXPONENTIAL spec-powerset (`Demo121.answers`, `A spec ≫
     max D` over all 8 subset codes) both return profit 1.  This is the AoP derivation
-    `solve = A spec ≫ max D` (proven in `Fredy.L121`), now MECHANICALLY runnable on both sides. -/
+    `solve = A spec ≫ max D` (proven in `Fredy.L121`), now MECHANICALLY runnable on both sides.
+    The agreement is also a THEOREM on EVERY instance, not just this kernel-checked one:
+    `Fredy.AutoDeriveSearch.evaluators_agree`, via the spec-transport lemmas above. -/
 example :
     evalP prog121 (slOf 1 [2]) = 1
     ∧ Demo121.answers 2 1 (fun i => match i.val with | 0 => 1 | _ => 2) = [none, none, some 1] := by
