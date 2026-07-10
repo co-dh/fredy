@@ -290,9 +290,9 @@ import Fredy.RelInterp
 -- Auto-derive: a generic driver theorem `RunningBest` that discharges every `horner_correct` side
 -- condition (monotonicity, greedy refinement, order transitivity) from 8 one-line arithmetic facts,
 -- so a new running-best-pair greedy problem supplies only its creative inputs (pair state + generator
--- + dominance order), not the ~100 lines of relational boilerplate. Demo: L53_auto re-derives Kadane.
+-- + dominance order), not the ~100 lines of relational boilerplate. Kadane (L53) is derived through it.
 import Fredy.AutoDerive
-import Fredy.L53_auto
+import Fredy.L53
 -- Auto-derive increment 2: DP drivers (`DPInf` ∞-DP + `DPCount` step-counting) that discharge every
 -- `dynamic_programming_inf` hypothesis + the concrete memo packaging from a small bundle. Cuts
 -- `L322_dp` 518→189 lines; reused fresh on `L279` (Perfect Squares).

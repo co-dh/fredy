@@ -1,5 +1,6 @@
 /-
-  LeetCode 121 — Best Time to Buy and Sell Stock — as an ALLEGORY PROGRAM.
+  LeetCode 121 — Best Time to Buy and Sell Stock — as an ALLEGORY PROGRAM,
+  derived through the generic running-best driver `Fredy.AutoDerive`.
 
   Problem: given prices `x₀,…,x_{n-1}` (one per day), pick a buy day `i` and a later sell day `j > i`
   maximising the profit `x_j − x_i`; if no trade is profitable, the answer is `0`.
@@ -20,37 +21,25 @@
      for a buy price `b` occurring strictly before a sell price `s`.  LeetCode asks for its
      `≤`-maximum, i.e. `max (≤) · Λ spec` in `Rel(Set)`.
 
-  4. **Correctness** — `solve` computes exactly that maximum: it returns an achievable profit
-     (`solve_profit`, giving `solve ⊑ spec`) and dominates every achievable profit. Together
-     (`solve_correct`) this is `solve = max (≤) · Λ spec`, evaluated pointwise in the Set model.
+  4. **Correctness** — `solve` computes exactly that maximum (`solve_correct`, `solve_eq_maxRel`).
+     Every relational side condition of the greedy derivation (order transitivity, `MonotonicAlg`,
+     the greedy-step refinement, fold = catamorphism, generator totality — formerly ~100 hand-written
+     lines here) is discharged by the `RunningBest` driver from the bundle `trade` below; this file
+     supplies only the CREATIVE content: the bundle's fields (state pair + generator candidates +
+     dominance order + eight one-line arithmetic facts) and the generator-vs-spec characterisation
+     (`gen_sound`/`spec_gen`), the genuinely problem-specific inductions.
 
-  Mathlib-free.  Correctness now flows from the GREEDY THEOREM (`A7_4_Horner.horner_correct`), so
-  the headline axioms are {propext, Classical.choice, Quot.sound} — the `Classical.choice` is the
-  honest cost of the relational-catamorphism universal property, inherited via `cataR_eq_relCata`.
+  Mathlib-free.  Axioms of the headline: {propext, Classical.choice, Quot.sound} — the
+  `Classical.choice` is the honest cost of the relational-catamorphism universal property,
+  inherited via `cataR_eq_relCata`.
 -/
-import Fredy.A6_SnocList
-import Fredy.A7_4_Horner
-import Fredy.Exacts
+import Fredy.AutoDerive
 
 set_option linter.unusedVariables false
 
 namespace Freyd.Alg.RelSet.LC121
 
 open Freyd Freyd.Alg.RelSet.SL
-
-/-! ## Integer `min`/`max` (mathlib-free, so we control the rewrite lemmas) -/
-
-def imin (a b : Int) : Int := if a ≤ b then a else b
-def imax (a b : Int) : Int := if a ≤ b then b else a
-
-theorem imin_le_left  (a b : Int) : imin a b ≤ a := by unfold imin; split <;> omega
-theorem imin_le_right (a b : Int) : imin a b ≤ b := by unfold imin; split <;> omega
-theorem imin_eq_or (a b : Int) : imin a b = a ∨ imin a b = b := by
-  unfold imin; split; exacts [Or.inl rfl, Or.inr rfl]
-theorem imax_ge_left  (a b : Int) : a ≤ imax a b := by unfold imax; split <;> omega
-theorem imax_ge_right (a b : Int) : b ≤ imax a b := by unfold imax; split <;> omega
-theorem imax_eq_or (a b : Int) : imax a b = a ∨ imax a b = b := by
-  unfold imax; split; exacts [Or.inr rfl, Or.inl rfl]
 
 /-! ## Data: prices as a non-empty snoc-list of integers -/
 
@@ -59,6 +48,34 @@ theorem imax_eq_or (a b : Int) : imax a b = a ∨ imax a b = b := by
 abbrev Prices : RelSet.{0} := dSL Int Int
 /-- The object of integers (profits) in `Rel(Set)`. -/
 abbrev dZ : RelSet.{0} := ⟨Int⟩
+
+/-! ## The creative bundle — the whole algorithmic content of the sweep -/
+
+/-- Best-single-trade's derivation bundle.  State `(minSoFar, bestProfit)`: the new running min is
+    kept or reset to the new price (candidates), deterministically their min; the new best is kept
+    or reset to `p − minSoFar` (sell today, buy at the running min), deterministically the max;
+    first-coordinate dominance is `≤` (a SMALLER running min is better). -/
+def trade : RunningBest Int Int Int where
+  base x := (x, 0)
+  step1 e p := imin e p
+  step2 e b p := imax b (p - e)
+  cand1 e p w1 := w1 = e ∨ w1 = p
+  cand2 e b p _ w2 := w2 = b ∨ w2 = p - e
+  ord e e' := e ≤ e'
+  ord_refl e := Int.le_refl e
+  ord_trans h1 h2 := Int.le_trans h1 h2
+  step1_mono p h := imin_mono h (Int.le_refl p)
+  step2_mono p h1 h2 := imax_mono h2 (by omega)
+  step1_cand e p := imin_eq_or e p
+  step2_cand e b p := imax_eq_or b (p - e)
+  cand1_le h := by
+    rcases h with h | h <;> rw [h]
+    · exact imin_le_left _ _
+    · exact imin_le_right _ _
+  cand2_le h1 h2 := by
+    rcases h2 with h | h <;> rw [h]
+    · exact imax_ge_left _ _
+    · exact imax_ge_right _ _
 
 /-! ## The program: the left-scan catamorphism `[base, step]`, state `(minSoFar, bestProfit)` -/
 
@@ -84,28 +101,39 @@ def solve : Prices ⟶ dZ := graph solveFn
 /-- `solve` is a `Map` (it is the graph of a function). -/
 theorem solve_map : Map solve := graph_map solveFn
 
+/-! ## The program IS the bundle's — three definitional bridges -/
+
+/-- The file's algebra is the bundle's. -/
+theorem algFn_eq : algFn = trade.algFn := by
+  funext u
+  cases u with
+  | inl x => rfl
+  | inr q => obtain ⟨st, p⟩ := q; rfl
+
+/-- The file's fold is the bundle's. -/
+theorem foldFn_eq : ∀ xs, foldFn xs = trade.foldFn xs := by
+  intro xs; induction xs with
+  | wrap x => rfl
+  | snoc xs p ih =>
+    show (imin (foldFn xs).1 p, imax (foldFn xs).2 (p - (foldFn xs).1))
+        = (imin (trade.foldFn xs).1 p, imax (trade.foldFn xs).2 (p - (trade.foldFn xs).1))
+    rw [ih]
+
 /-- The relational catamorphism of the (function) algebra `alg` is the graph of the concrete fold —
-    the abstract fold in `Rel(Set)` and the structural fold agree. -/
+    the abstract fold in `Rel(Set)` and the structural fold agree (driver's `cataFold_alg`). -/
 theorem cataFold_alg : ∀ (xs : SnocList Int Int) (r : Int × Int),
     cataFold alg xs r ↔ r = foldFn xs := by
-  intro xs; induction xs with
-  | wrap x => intro r; exact Iff.rfl
-  | snoc xs p ih =>
-    intro r
-    simp only [cataFold_snoc]
-    constructor
-    · rintro ⟨r', hr', hfr⟩
-      rw [ih r'] at hr'; subst hr'; exact hfr
-    · intro h; exact ⟨foldFn xs, (ih (foldFn xs)).mpr rfl, h⟩
+  intro xs r
+  rw [show alg = trade.alg from congrArg graph algFn_eq, foldFn_eq]
+  exact trade.cataFold_alg xs r
 
 /-- **The program is a catamorphism**: `solve = ⦇[base, step]⦈ · snd`, a fold followed by the
-    projection onto `bestProfit`. -/
+    projection onto `bestProfit` (driver's `solve_eq_cata`). -/
 theorem solve_eq_cata : solve = cataR alg ≫ graph (Prod.snd : Int × Int → Int) := by
-  apply hom_ext; intro xs v
-  simp only [solve, graph, comp_apply, cataR]
-  constructor
-  · intro hv; exact ⟨foldFn xs, (cataFold_alg xs (foldFn xs)).mpr rfl, hv⟩
-  · rintro ⟨st, hst, hv⟩; rw [(cataFold_alg xs st).mp hst] at hv; exact hv
+  rw [show alg = trade.alg from congrArg graph algFn_eq,
+      show solve = graph (fun xs => (trade.foldFn xs).2) from
+        congrArg graph (funext fun xs => congrArg Prod.snd (foldFn_eq xs))]
+  exact trade.solve_eq_cata
 
 /-! ## Specification: the maximum achievable profit -/
 
@@ -128,25 +156,15 @@ def profit (xs : SnocList Int Int) (v : Int) : Prop :=
     profits.  LeetCode 121 asks for its `≤`-maximum, `max (≤) · Λ spec`. -/
 def spec : Prices ⟶ dZ := fun xs v => profit xs v
 
-/-! ## The greedy route: the profit sweep as the projection of a Pareto optimum
+/-! ## The generator, and "generator = spec" (the problem-specific inductions)
 
-  Like Kadane (`Fredy.L53`), best-single-trade is a two-component running-best scan: `bestProfit`
-  needs `minSoFar`, so the scalar answer is not a catamorphism.  The genuine route (built once in
-  `Fredy.A7_4_Horner`): the PAIR algebra is monotone on the PRODUCT (Pareto) order — here the first
-  coordinate (running minimum) is ordered by `≥` (a smaller running min is BETTER) and the second by
-  `≤` — so `A7_2.greedy_max` (through `greedy_max_of_refinement`) puts the fold inside the Pareto
-  frontier of a non-deterministic GENERATOR `gen`, whose second component is read off as the answer. -/
+  The non-deterministic generator `gen` whose Pareto frontier the deterministic fold computes: at a
+  leaf, the sole pair `(x,0)`; at a `snoc`, the running min `m` becomes `m` or `p`, and the best
+  profit `b` is kept or reset to `p - m`.  `alg` is one deterministic choice inside it — all of
+  which the driver now derives from the bundle (`gen_eq`); only the characterisation
+  `gen_sound`/`spec_gen` below is problem-specific. -/
 
-/-- `imin`/`imax` are monotone in both arguments. -/
-theorem imin_mono {a a' b b' : Int} (ha : a ≤ a') (hb : b ≤ b') : imin a b ≤ imin a' b' := by
-  unfold imin; split <;> split <;> omega
-theorem imax_mono {a a' b b' : Int} (ha : a ≤ a') (hb : b ≤ b') : imax a b ≤ imax a' b' := by
-  unfold imax; split <;> split <;> omega
-
-/-- The non-deterministic GENERATOR `S` whose Pareto frontier the deterministic fold computes: at a
-    leaf, the sole pair `(x,0)`; at a `snoc`, the running min `m` becomes `m` or `p`, and the best
-    profit `b` is kept or reset to `p - m` (sell at `p`, buy at the running min).  `alg` is one
-    deterministic choice inside it. -/
+/-- The generator, pointwise. -/
 def genFn : (Fobj Int Int (⟨Int × Int⟩ : RelSet.{0})).carrier → (Int × Int) → Prop
   | Sum.inl x, w => w = (x, 0)
   | Sum.inr (st, p), w => (w.1 = st.1 ∨ w.1 = p) ∧ (w.2 = st.2 ∨ w.2 = p - st.1)
@@ -154,72 +172,12 @@ def genFn : (Fobj Int Int (⟨Int × Int⟩ : RelSet.{0})).carrier → (Int × I
 /-- The generator as a (non-deterministic) morphism `F(ℤ×ℤ) ⟶ ℤ×ℤ`. -/
 def gen : Fobj Int Int (⟨Int × Int⟩ : RelSet.{0}) ⟶ (⟨Int × Int⟩ : RelSet.{0}) := genFn
 
-/-- The PRODUCT (Pareto) order used by the greedy theorem: `w` dominates `w'` iff its running min
-    is `≤` (SMALLER is better) and its profit is `≥`.  `maxRel prodDom` then picks the pair with the
-    smallest running min and the largest profit — the deterministic step. -/
-def prodDom : (⟨Int × Int⟩ : RelSet.{0}) ⟶ ⟨Int × Int⟩ :=
-  fun w w' => w.1 ≤ w'.1 ∧ w'.2 ≤ w.2
-
-/-- `prodDom` is transitive (`R·R ⊑ R`). -/
-theorem prodDom_trans : prodDom ≫ prodDom ⊑ prodDom := by
-  rw [le_iff]; rintro w w' ⟨w'', ⟨h1a, h1b⟩, ⟨h2a, h2b⟩⟩; exact ⟨by omega, by omega⟩
-
-/-- The deterministic step `alg` is MONOTONIC on the product order `prodDom`. -/
-theorem alg_mono : MonotonicAlg (F := F Int Int) alg prodDom := by
-  show (F Int Int).map prodDom ≫ alg ⊑ alg ≫ prodDom
-  rw [le_iff]; rintro u w ⟨u', hFR, rfl⟩
-  refine ⟨algFn u, rfl, ?_⟩
+/-- The bundle's generator IS the file's generator. -/
+theorem gen_eq : trade.gen = gen := by
+  funext u w
   cases u with
-  | inl x => cases u' with
-    | inl x' => have hx : x = x' := hFR; subst hx; exact ⟨Int.le_refl _, Int.le_refl _⟩
-    | inr q => exact hFR.elim
-  | inr pr => cases u' with
-    | inl x' => exact hFR.elim
-    | inr q' =>
-      obtain ⟨st, p⟩ := pr; obtain ⟨st', p'⟩ := q'
-      obtain ⟨hd, hpp⟩ := hFR
-      have hd1 : st.1 ≤ st'.1 := hd.1
-      have hd2 : st'.2 ≤ st.2 := hd.2
-      have hpp' : p = p' := hpp
-      refine ⟨?_, ?_⟩
-      · show imin st.1 p ≤ imin st'.1 p'
-        exact imin_mono (by omega) (by omega)
-      · show imax st'.2 (p' - st'.1) ≤ imax st.2 (p - st.1)
-        exact imax_mono hd2 (by omega)
-
-/-- Greedy-step refinement, part 1: the deterministic choice is one of the generated candidates. -/
-theorem alg_le_gen : alg ⊑ gen := by
-  rw [le_iff]; intro u w hw
-  have hwe : w = algFn u := hw; subst hwe
-  cases u with
-  | inl x => exact rfl
-  | inr pr =>
-    obtain ⟨st, p⟩ := pr
-    exact ⟨imin_eq_or st.1 p, imax_eq_or st.2 (p - st.1)⟩
-
-/-- Greedy-step refinement, part 2: the deterministic choice `prodDom`-dominates every candidate. -/
-theorem gen_recip_alg_le : gen° ≫ alg ⊑ prodDom° := by
-  rw [le_iff]; rintro w1 w2 ⟨u, hgu, rfl⟩
-  cases u with
-  | inl x => have hw1 : w1 = (x, 0) := hgu; subst hw1; exact ⟨Int.le_refl _, Int.le_refl _⟩
-  | inr pr =>
-    obtain ⟨st, p⟩ := pr
-    obtain ⟨he, hb⟩ := hgu
-    refine ⟨?_, ?_⟩
-    · show imin st.1 p ≤ w1.1
-      rcases he with h | h <;> rw [h]
-      · exact imin_le_left _ _
-      · exact imin_le_right _ _
-    · show w1.2 ≤ imax st.2 (p - st.1)
-      rcases hb with h | h <;> rw [h]
-      · exact imax_ge_left _ _
-      · exact imax_ge_right _ _
-
-/-- The greedy-step refinement `alg ⊑ ΛS·max prodDom` (the hypothesis `greedy_max` consumes). -/
-theorem alg_ref : alg ⊑ A gen ≫ maxRel prodDom :=
-  le_A_comp_maxRel_iff.mpr ⟨alg_le_gen, gen_recip_alg_le⟩
-
-/-! ### The generator computes exactly the spec (soundness + completeness), independent of greedy -/
+  | inl x => rfl
+  | inr q => obtain ⟨st, p⟩ := q; rfl
 
 /-- Lift a profit of `xs` to a profit of `snoc xs p` (the buy-before-sell window only grows). -/
 theorem profit_snoc (xs : SnocList Int Int) (p v : Int) (h : profit xs v) :
@@ -249,13 +207,10 @@ theorem gen_sound : ∀ (xs : SnocList Int Int) (w : Int × Int),
     · refine Or.inr ⟨w'.1, p, Or.inr ⟨ihmem, rfl⟩, ?_⟩
       rw [h2]
 
-/-- Totality of the generator (it is entire): every list has some generatable pair. -/
+/-- Totality of the generator (it is entire): every list has some generatable pair — the driver's
+    `gen_total`, transported along `gen_eq`. -/
 theorem gen_total : ∀ (xs : SnocList Int Int), ∃ w, cataFold gen xs w := by
-  intro xs; induction xs with
-  | wrap x => exact ⟨(x, 0), rfl⟩
-  | snoc xs p ih =>
-    obtain ⟨w', hw'⟩ := ih
-    exact ⟨w', w', hw', Or.inl rfl, Or.inl rfl⟩
+  intro xs; rw [← gen_eq]; exact trade.gen_total xs
 
 /-- **Completeness (first component)**: a price `b` occurring in `xs` is generatable as the first
     component of some pair.  Closes the buy-at-`b` case of `spec_gen`. -/
@@ -294,17 +249,21 @@ theorem spec_gen : ∀ (xs : SnocList Int Int) (v : Int),
       · obtain ⟨b2, hb2⟩ := mem_gen xs b hmem
         exact ⟨b, (b, b2), hb2, Or.inl rfl, Or.inr (show v = p - b by omega)⟩
 
-/-! ## Correctness: `solve` computes the maximum achievable profit — VIA the greedy theorem -/
+/-! ## Correctness: `solve` computes the maximum achievable profit — VIA the driver -/
 
 /-- **Correctness of the allegory program** (`solve = max (≤) · Λ spec`, pointwise in `Rel(Set)`):
-    `solve xs` is an achievable profit and is `≤`-greatest among all achievable profits.  Both
-    halves flow from `A7_4_Horner.horner_correct` — i.e. from `A7_2.greedy_max` applied to the pair
-    carrier — with the generator characterisation supplying only "program = spec". -/
+    `solve xs` is an achievable profit and is `≤`-greatest among all achievable profits.  Emitted by
+    `RunningBest.correct` from the bundle, with the generator characterisation supplying only
+    "program = spec". -/
 theorem solve_correct (xs : SnocList Int Int) :
-    profit xs (solveFn xs) ∧ ∀ v, profit xs v → v ≤ solveFn xs :=
-  horner_correct gen alg prodDom foldFn (graph_map algFn) cataFold_alg
-    prodDom_trans alg_mono alg_ref (fun x y h => h.2) spec
-    (fun xs w h => (gen_sound xs w h).2) spec_gen xs
+    profit xs (solveFn xs) ∧ ∀ v, profit xs v → v ≤ solveFn xs := by
+  have hgs : ∀ xs w, cataFold trade.gen xs w → spec xs w.2 := by
+    intro xs w hw; rw [gen_eq] at hw; exact (gen_sound xs w hw).2
+  have hsg : ∀ xs v, spec xs v → ∃ e, cataFold trade.gen xs (e, v) := by
+    intro xs v hv; rw [gen_eq]; exact spec_gen xs v hv
+  have h := trade.correct spec hgs hsg xs
+  rw [show solveFn xs = (trade.foldFn xs).2 from congrArg Prod.snd (foldFn_eq xs)]
+  exact h
 
 /-- **Honest headline (§7.5 `max (≤)·Λ spec`)**: `solve` is exactly the morphism `A spec ≫ maxRel D`
     for the `≤`-preference order `D w z := z ≤ w` — not merely pointwise. Bridged from `solve_correct`. -/

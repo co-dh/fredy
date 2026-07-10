@@ -1,11 +1,12 @@
 /-
-  LeetCode 53 — Maximum Subarray (Kadane's algorithm) — as an ALLEGORY PROGRAM.
+  LeetCode 53 — Maximum Subarray (Kadane's algorithm) — as an ALLEGORY PROGRAM,
+  derived through the generic running-best driver `Fredy.AutoDerive`.
 
   Problem: given a non-empty array of integers `x₀,…,x_{n-1}` (possibly negative), find the maximum
   sum over all NON-EMPTY contiguous subarrays.  (The empty subarray is not allowed, so an
   all-negative array's answer is its largest single element.)
 
-  Same recipe as `Fredy/L121.lean` (see `Fredy/leetcode.md`, skill S0):
+  Same recipe as `Fredy/L121.lean`:
 
   1. **Data** — the array is the initial algebra `SnocList ℤ ℤ` of `F X = ℤ + X × ℤ`
      (`Fredy.A6_SnocList`); `wrap x` is a single-element array, `snoc xs p` appends `p`.
@@ -21,37 +22,25 @@
      suffix.  `spec = subSum` is the transpose `Λ⁻¹ spec`, and LeetCode 53 asks for its `≤`-maximum,
      `max (≤) · Λ spec`.
 
-  4. **Correctness** — `solve` computes exactly that maximum: it returns an achievable subarray sum
-     (`solve_sub`, giving `solve ⊑ spec`) and dominates every achievable subarray sum. Together
-     (`solve_correct`) this is `solve = max (≤) · Λ spec`.
+  4. **Correctness** — `solve` computes exactly that maximum (`solve_correct`, `solve_eq_maxRel`).
+     Every relational side condition of the greedy derivation (`prodDom_trans`, `alg_mono`,
+     `alg_le_gen`, `gen_recip_alg_le`, `alg_ref`, `cataFold_alg`, `gen_total` — formerly ~104
+     hand-written lines here) is discharged by the `RunningBest` driver from the bundle `kadane`
+     below; this file supplies only the CREATIVE content: the bundle's fields and the
+     generator-vs-spec characterisation (`gen_sound`/`diag_gen`/`spec_gen`), the genuinely
+     problem-specific inductions saying the search space is exactly the set of subarray sums.
 
-  Mathlib-free.  Correctness now flows from the GREEDY THEOREM (`A7_4_Horner.horner_correct`), so
-  the headline axioms are {propext, Classical.choice, Quot.sound} — the `Classical.choice` is the
-  honest cost of the relational-catamorphism universal property, inherited via `cataR_eq_relCata`.
+  Mathlib-free.  Axioms of the headline: {propext, Classical.choice, Quot.sound} — the
+  `Classical.choice` is the honest cost of the relational-catamorphism universal property,
+  inherited via `cataR_eq_relCata`.
 -/
-import Fredy.A6_SnocList
-import Fredy.A7_4_Horner
-import Fredy.Exacts
+import Fredy.AutoDerive
 
 set_option linter.unusedVariables false
 
 namespace Freyd.Alg.RelSet.LC53
 
 open Freyd Freyd.Alg.RelSet.SL
-
-/-! ## Integer `min`/`max` (mathlib-free, so we control the rewrite lemmas) -/
-
-def imin (a b : Int) : Int := if a ≤ b then a else b
-def imax (a b : Int) : Int := if a ≤ b then b else a
-
-theorem imin_le_left  (a b : Int) : imin a b ≤ a := by unfold imin; split <;> omega
-theorem imin_le_right (a b : Int) : imin a b ≤ b := by unfold imin; split <;> omega
-theorem imin_eq_or (a b : Int) : imin a b = a ∨ imin a b = b := by
-  unfold imin; split; exacts [Or.inl rfl, Or.inr rfl]
-theorem imax_ge_left  (a b : Int) : a ≤ imax a b := by unfold imax; split <;> omega
-theorem imax_ge_right (a b : Int) : b ≤ imax a b := by unfold imax; split <;> omega
-theorem imax_eq_or (a b : Int) : imax a b = a ∨ imax a b = b := by
-  unfold imax; split; exacts [Or.inr rfl, Or.inl rfl]
 
 /-! ## Data: arrays as a non-empty snoc-list of integers -/
 
@@ -60,6 +49,35 @@ theorem imax_eq_or (a b : Int) : imax a b = a ∨ imax a b = b := by
 abbrev Arr : RelSet.{0} := dSL Int Int
 /-- The object of integers (subarray sums) in `Rel(Set)`. -/
 abbrev dZ : RelSet.{0} := ⟨Int⟩
+
+/-! ## The creative bundle — the whole algorithmic content of Kadane -/
+
+/-- Kadane's derivation bundle.  State `(bestEndingHere, bestSoFar)`: the new suffix is `p` or
+    `e + p` (candidates), deterministically their max; the new best is kept or reset to the
+    chosen new suffix, deterministically the max; Pareto dominance is `≥` in both coordinates. -/
+def kadane : RunningBest Int Int Int where
+  base x := (x, x)
+  step1 e p := imax p (e + p)
+  step2 e b p := imax b (imax p (e + p))
+  cand1 e p w1 := w1 = p ∨ w1 = e + p
+  cand2 _ b _ w1 w2 := w2 = b ∨ w2 = w1
+  ord e e' := e' ≤ e
+  ord_refl e := Int.le_refl e
+  ord_trans h1 h2 := Int.le_trans h2 h1
+  step1_mono p h := imax_mono (Int.le_refl p) (by omega)
+  step2_mono p h1 h2 := imax_mono h2 (imax_mono (Int.le_refl p) (by omega))
+  step1_cand e p := imax_eq_or p (e + p)
+  step2_cand e b p := imax_eq_or b (imax p (e + p))
+  cand1_le h := by
+    rcases h with h | h <;> rw [h]
+    · exact imax_ge_left _ _
+    · exact imax_ge_right _ _
+  cand2_le h1 h2 := by
+    rcases h2 with h | h <;> rw [h]
+    · exact imax_ge_left _ _
+    · rcases h1 with h1 | h1 <;> rw [h1]
+      · exact Int.le_trans (imax_ge_left _ _) (imax_ge_right _ _)
+      · exact Int.le_trans (imax_ge_right _ _) (imax_ge_right _ _)
 
 /-! ## The program: Kadane's fold, state `(bestEndingHere, bestSoFar)` -/
 
@@ -85,28 +103,40 @@ def solve : Arr ⟶ dZ := graph solveFn
 /-- `solve` is a `Map` (it is the graph of a function). -/
 theorem solve_map : Map solve := graph_map solveFn
 
+/-! ## The program IS the bundle's — three definitional bridges -/
+
+/-- The file's algebra is the bundle's. -/
+theorem algFn_eq : algFn = kadane.algFn := by
+  funext u
+  cases u with
+  | inl x => rfl
+  | inr q => obtain ⟨st, p⟩ := q; rfl
+
+/-- The file's fold is the bundle's. -/
+theorem foldFn_eq : ∀ xs, foldFn xs = kadane.foldFn xs := by
+  intro xs; induction xs with
+  | wrap x => rfl
+  | snoc xs p ih =>
+    show (imax p ((foldFn xs).1 + p), imax (foldFn xs).2 (imax p ((foldFn xs).1 + p)))
+        = (imax p ((kadane.foldFn xs).1 + p),
+           imax (kadane.foldFn xs).2 (imax p ((kadane.foldFn xs).1 + p)))
+    rw [ih]
+
 /-- The relational catamorphism of the (function) algebra `alg` is the graph of the concrete fold —
-    the abstract fold in `Rel(Set)` and the structural fold agree. -/
+    the abstract fold in `Rel(Set)` and the structural fold agree (driver's `cataFold_alg`). -/
 theorem cataFold_alg : ∀ (xs : SnocList Int Int) (r : Int × Int),
     cataFold alg xs r ↔ r = foldFn xs := by
-  intro xs; induction xs with
-  | wrap x => intro r; exact Iff.rfl
-  | snoc xs p ih =>
-    intro r
-    simp only [cataFold_snoc]
-    constructor
-    · rintro ⟨r', hr', hfr⟩
-      rw [ih r'] at hr'; subst hr'; exact hfr
-    · intro h; exact ⟨foldFn xs, (ih (foldFn xs)).mpr rfl, h⟩
+  intro xs r
+  rw [show alg = kadane.alg from congrArg graph algFn_eq, foldFn_eq]
+  exact kadane.cataFold_alg xs r
 
 /-- **The program is a catamorphism**: `solve = ⦇[base, step]⦈ · snd`, a fold followed by the
-    projection onto `bestSoFar`. -/
+    projection onto `bestSoFar` (driver's `solve_eq_cata`). -/
 theorem solve_eq_cata : solve = cataR alg ≫ graph (Prod.snd : Int × Int → Int) := by
-  apply hom_ext; intro xs v
-  simp only [solve, graph, comp_apply, cataR]
-  constructor
-  · intro hv; exact ⟨foldFn xs, (cataFold_alg xs (foldFn xs)).mpr rfl, hv⟩
-  · rintro ⟨st, hst, hv⟩; rw [(cataFold_alg xs st).mp hst] at hv; exact hv
+  rw [show alg = kadane.alg from congrArg graph algFn_eq,
+      show solve = graph (fun xs => (kadane.foldFn xs).2) from
+        congrArg graph (funext fun xs => congrArg Prod.snd (foldFn_eq xs))]
+  exact kadane.solve_eq_cata
 
 /-! ## Specification: the maximum achievable subarray sum -/
 
@@ -126,24 +156,11 @@ def subSum : SnocList Int Int → Int → Prop
     sums.  LeetCode 53 asks for its `≤`-maximum, `max (≤) · Λ spec`. -/
 def spec : Arr ⟶ dZ := fun xs v => subSum xs v
 
-/-! ## The greedy route: Kadane's fold as the projection of a Pareto optimum
+/-! ## The generator, and "generator = spec" (the problem-specific inductions) -/
 
-  Kadane's answer is NOT a scalar catamorphism (`bestSoFar` needs `bestEndingHere`), and its
-  scalar step is not `≤`-monotone — so the plain greedy theorem does not apply to the headline
-  scalar directly.  The genuine route (built once in `Fredy.A7_4_Horner`): the PAIR algebra is
-  monotone on the PRODUCT (Pareto) order, so the greedy theorem `A7_2.greedy_max` (through
-  `greedy_max_of_refinement`) puts the fold inside the Pareto frontier of a non-deterministic
-  GENERATOR `gen`, and the scalar answer is the frontier's second component.  Below: the generator,
-  the three greedy hypotheses (product monotonicity, transitivity, greedy-step refinement), and the
-  "generator = spec" characterisation; `horner_correct` assembles them. -/
-
-/-- `imax` is monotone in both arguments. -/
-theorem imax_mono {a a' b b' : Int} (ha : a ≤ a') (hb : b ≤ b') : imax a b ≤ imax a' b' := by
-  unfold imax; split <;> split <;> omega
-
-/-- The non-deterministic GENERATOR `S` whose Pareto frontier the deterministic fold computes: at a
+/-- The non-deterministic generator whose Pareto frontier the deterministic fold computes: at a
     leaf, the sole pair `(x,x)`; at a `snoc`, the running suffix `e` becomes `p` or `e+p`, and the
-    best `b` is kept or reset to the new suffix `e`.  `alg` is one deterministic choice inside it. -/
+    best `b` is kept or reset to the new suffix.  `alg` is one deterministic choice inside it. -/
 def genFn : (Fobj Int Int (⟨Int × Int⟩ : RelSet.{0})).carrier → (Int × Int) → Prop
   | Sum.inl x, w => w = (x, x)
   | Sum.inr (st, p), w => (w.1 = p ∨ w.1 = st.1 + p) ∧ (w.2 = st.2 ∨ w.2 = w.1)
@@ -151,73 +168,12 @@ def genFn : (Fobj Int Int (⟨Int × Int⟩ : RelSet.{0})).carrier → (Int × I
 /-- The generator as a (non-deterministic) morphism `F(ℤ×ℤ) ⟶ ℤ×ℤ`. -/
 def gen : Fobj Int Int (⟨Int × Int⟩ : RelSet.{0}) ⟶ (⟨Int × Int⟩ : RelSet.{0}) := genFn
 
-/-- The PRODUCT (Pareto) order used by the greedy theorem: `w` dominates `w'` iff it is `≥` in both
-    coordinates.  `maxRel prodDom` then picks the coordinatewise-greatest pair — Kadane's step. -/
-def prodDom : (⟨Int × Int⟩ : RelSet.{0}) ⟶ ⟨Int × Int⟩ :=
-  fun w w' => w'.1 ≤ w.1 ∧ w'.2 ≤ w.2
-
-/-- `prodDom` is transitive (`R·R ⊑ R`). -/
-theorem prodDom_trans : prodDom ≫ prodDom ⊑ prodDom := by
-  rw [le_iff]; rintro w w' ⟨w'', ⟨h1a, h1b⟩, ⟨h2a, h2b⟩⟩; exact ⟨by omega, by omega⟩
-
-/-- The deterministic Kadane step `alg` is MONOTONIC on the product order `prodDom`. -/
-theorem alg_mono : MonotonicAlg (F := F Int Int) alg prodDom := by
-  show (F Int Int).map prodDom ≫ alg ⊑ alg ≫ prodDom
-  rw [le_iff]; rintro u w ⟨u', hFR, rfl⟩
-  refine ⟨algFn u, rfl, ?_⟩
+/-- The bundle's generator IS the file's generator. -/
+theorem gen_eq : kadane.gen = gen := by
+  funext u w
   cases u with
-  | inl x => cases u' with
-    | inl x' => have hx : x = x' := hFR; subst hx; exact ⟨Int.le_refl _, Int.le_refl _⟩
-    | inr q => exact hFR.elim
-  | inr pr => cases u' with
-    | inl x' => exact hFR.elim
-    | inr q' =>
-      obtain ⟨st, p⟩ := pr; obtain ⟨st', p'⟩ := q'
-      obtain ⟨hd, hpp⟩ := hFR
-      have hd1 : st'.1 ≤ st.1 := hd.1
-      have hd2 : st'.2 ≤ st.2 := hd.2
-      have hpp' : p = p' := hpp
-      refine ⟨?_, ?_⟩
-      · show imax p' (st'.1 + p') ≤ imax p (st.1 + p)
-        exact imax_mono (by omega) (by omega)
-      · show imax st'.2 (imax p' (st'.1 + p')) ≤ imax st.2 (imax p (st.1 + p))
-        exact imax_mono hd2 (imax_mono (by omega) (by omega))
-
-/-- Greedy-step refinement, part 1: the deterministic choice is one of the generated candidates. -/
-theorem alg_le_gen : alg ⊑ gen := by
-  rw [le_iff]; intro u w hw
-  have hwe : w = algFn u := hw; subst hwe
-  cases u with
-  | inl x => exact rfl
-  | inr pr =>
-    obtain ⟨st, p⟩ := pr
-    exact ⟨imax_eq_or p (st.1 + p), imax_eq_or st.2 (imax p (st.1 + p))⟩
-
-/-- Greedy-step refinement, part 2: the deterministic choice `prodDom`-dominates every candidate. -/
-theorem gen_recip_alg_le : gen° ≫ alg ⊑ prodDom° := by
-  rw [le_iff]; rintro w1 w2 ⟨u, hgu, rfl⟩
-  cases u with
-  | inl x => have hw1 : w1 = (x, x) := hgu; subst hw1; exact ⟨Int.le_refl _, Int.le_refl _⟩
-  | inr pr =>
-    obtain ⟨st, p⟩ := pr
-    obtain ⟨he, hb⟩ := hgu
-    refine ⟨?_, ?_⟩
-    · show w1.1 ≤ imax p (st.1 + p)
-      rcases he with h | h <;> rw [h]
-      · exact imax_ge_left _ _
-      · exact imax_ge_right _ _
-    · show w1.2 ≤ imax st.2 (imax p (st.1 + p))
-      rcases hb with h | h <;> rw [h]
-      · exact imax_ge_left _ _
-      · rcases he with h2 | h2 <;> rw [h2]
-        · exact Int.le_trans (imax_ge_left _ _) (imax_ge_right _ _)
-        · exact Int.le_trans (imax_ge_right _ _) (imax_ge_right _ _)
-
-/-- The greedy-step refinement `alg ⊑ ΛS·max prodDom` (the hypothesis `greedy_max` consumes). -/
-theorem alg_ref : alg ⊑ A gen ≫ maxRel prodDom :=
-  le_A_comp_maxRel_iff.mpr ⟨alg_le_gen, gen_recip_alg_le⟩
-
-/-! ### The generator computes exactly the spec (soundness + completeness), independent of greedy -/
+  | inl x => rfl
+  | inr q => obtain ⟨st, p⟩ := q; rfl
 
 /-- **Soundness**: every generatable pair has a suffix-sum first component and a subarray-sum
     second component.  (The suffix invariant is needed to close the `b := e` reset case.) -/
@@ -240,13 +196,10 @@ theorem gen_sound : ∀ (xs : SnocList Int Int) (w : Int × Int),
     · exact Or.inl (by rw [h2]; exact ihsub)
     · exact Or.inr (by rw [h2]; exact hsuf1)
 
-/-- Totality of the generator (it is entire): every list has some generatable pair. -/
+/-- Totality of the generator (it is entire): every list has some generatable pair — the driver's
+    `gen_total`, transported along `gen_eq`. -/
 theorem gen_total : ∀ (xs : SnocList Int Int), ∃ w, cataFold gen xs w := by
-  intro xs; induction xs with
-  | wrap x => exact ⟨(x, x), rfl⟩
-  | snoc xs p ih =>
-    obtain ⟨w', hw'⟩ := ih
-    exact ⟨(p, w'.2), w', hw', Or.inl rfl, Or.inl rfl⟩
+  intro xs; rw [← gen_eq]; exact kadane.gen_total xs
 
 /-- **Completeness (diagonal)**: a suffix sum `v` is generatable as the "both components equal `v`"
     pair `(v, v)`.  This closes the suffix cases of `spec_gen` below. -/
@@ -276,17 +229,21 @@ theorem spec_gen : ∀ (xs : SnocList Int Int) (v : Int),
       exact ⟨p, (e', v), he', Or.inl rfl, Or.inl rfl⟩
     · exact ⟨v, diag_gen (SnocList.snoc xs p) v h2⟩
 
-/-! ## Correctness: `solve` computes the maximum achievable subarray sum — VIA the greedy theorem -/
+/-! ## Correctness: `solve` computes the maximum achievable subarray sum — VIA the driver -/
 
 /-- **Correctness of the allegory program** (`solve = max (≤) · Λ spec`, pointwise in `Rel(Set)`):
     `solve xs` is an achievable subarray sum and is `≤`-greatest among all achievable subarray
-    sums.  Both halves flow from `A7_4_Horner.horner_correct` — i.e. from `A7_2.greedy_max` applied
-    to the pair carrier — with the generator characterisation supplying only "program = spec". -/
+    sums.  Emitted by `RunningBest.correct` from the bundle, with the generator characterisation
+    supplying only "program = spec". -/
 theorem solve_correct (xs : SnocList Int Int) :
-    subSum xs (solveFn xs) ∧ ∀ v, subSum xs v → v ≤ solveFn xs :=
-  horner_correct gen alg prodDom foldFn (graph_map algFn) cataFold_alg
-    prodDom_trans alg_mono alg_ref (fun x y h => h.2) spec
-    (fun xs w h => (gen_sound xs w h).2) spec_gen xs
+    subSum xs (solveFn xs) ∧ ∀ v, subSum xs v → v ≤ solveFn xs := by
+  have hgs : ∀ xs w, cataFold kadane.gen xs w → spec xs w.2 := by
+    intro xs w hw; rw [gen_eq] at hw; exact (gen_sound xs w hw).2
+  have hsg : ∀ xs v, spec xs v → ∃ e, cataFold kadane.gen xs (e, v) := by
+    intro xs v hv; rw [gen_eq]; exact spec_gen xs v hv
+  have h := kadane.correct spec hgs hsg xs
+  rw [show solveFn xs = (kadane.foldFn xs).2 from congrArg Prod.snd (foldFn_eq xs)]
+  exact h
 
 /-- **Honest headline (§7.5 `max (≤)·Λ spec`)**: `solve` is exactly the morphism `A spec ≫ maxRel D`
     for the `≤`-preference order `D w z := z ≤ w` — not merely pointwise. Bridged from `solve_correct`. -/
@@ -294,15 +251,12 @@ theorem solve_eq_maxRel : solve = A spec ≫ maxRel (fun w z : Int => z ≤ w) :
   eq_A_comp_maxRel _ (fun x y h1 h2 => Int.le_antisymm h2 h1) solveFn spec
     (fun xs => (solve_correct xs).1) (fun xs v hv => (solve_correct xs).2 v hv)
 
-/-- `solve`'s output is an achievable subarray sum (achievability half of `solve_correct`). -/
-theorem solve_sub (xs : SnocList Int Int) : subSum xs (solveFn xs) := (solve_correct xs).1
-
 /-- **The program refines the specification**: every value `solve` returns is an achievable
     subarray sum. -/
 theorem solve_le_spec : solve ⊑ spec := by
   refine le_iff.mpr (fun xs v h => ?_)
   have hv : v = solveFn xs := h
-  rw [hv]; exact solve_sub xs
+  rw [hv]; exact (solve_correct xs).1
 
 /-! ## Running the program -/
 
