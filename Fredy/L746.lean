@@ -35,6 +35,7 @@
   Mathlib-free; axioms ⊆ {propext, Quot.sound}.
 -/
 import Fredy.A6_SnocList
+import Fredy.A7_4_Horner
 import Fredy.Exacts
 
 set_option linter.unusedVariables false
@@ -204,6 +205,13 @@ theorem solve_correct (xs : SnocList Int Int) :
     cases hv with
     | inl hv => have := (foldFn_dominates xs).1 v hv; omega
     | inr hv => have := (foldFn_dominates xs).2 v hv; omega
+
+/-- **Honest headline (§7.5 `min (≤)·Λ spec`)**: `solve` is exactly the morphism `A spec ≫ maxRel D`
+    for `D w z := w ≤ z` — `maxRel` of the reversed "smaller-is-better" order is the `≤`-MINIMUM
+    (`minRel (≤)`) — not merely pointwise. Bridged from `solve_correct`. -/
+theorem solve_eq_maxRel : solve = A spec ≫ maxRel (fun w z : Int => w ≤ z) :=
+  eq_A_comp_maxRel _ (fun x y h1 h2 => Int.le_antisymm h1 h2) solveFn spec
+    (fun xs => (solve_correct xs).1) (fun xs v hv => (solve_correct xs).2 v hv)
 
 /-- **The program refines the specification**: every value `solve` returns is an achievable
     near-end landing cost. -/

@@ -306,6 +306,12 @@ theorem solve_correct (xs : SnocList Int Int) :
     prodDom_trans alg_mono alg_ref (fun x y h => h.2) spec
     (fun xs w h => (gen_sound xs w h).2) spec_gen xs
 
+/-- **Honest headline (§7.5 `max (≤)·Λ spec`)**: `solve` is exactly the morphism `A spec ≫ maxRel D`
+    for the `≤`-preference order `D w z := z ≤ w` — not merely pointwise. Bridged from `solve_correct`. -/
+theorem solve_eq_maxRel : solve = A spec ≫ maxRel (fun w z : Int => z ≤ w) :=
+  eq_A_comp_maxRel _ (fun x y h1 h2 => Int.le_antisymm h2 h1) solveFn spec
+    (fun xs => (solve_correct xs).1) (fun xs v hv => (solve_correct xs).2 v hv)
+
 /-- **The program refines the specification**: every value `solve` returns is an achievable profit. -/
 theorem solve_le_spec : solve ⊑ spec := by
   refine le_iff.mpr (fun xs v h => ?_)

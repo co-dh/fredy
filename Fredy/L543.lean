@@ -34,6 +34,7 @@
   Mathlib-free; axioms ⊆ {propext, Quot.sound}.
 -/
 import Fredy.A6_TreeBin
+import Fredy.A7_4_Horner
 import Fredy.Exacts
 
 set_option linter.unusedVariables false
@@ -179,6 +180,15 @@ theorem solve_dominates : ∀ (t : Tree Int) (k : Nat), pathEdges t k → k ≤ 
 theorem solve_correct (t : Tree Int) :
     pathEdges t (solveFn t) ∧ ∀ k, pathEdges t k → k ≤ solveFn t :=
   ⟨solve_achieves t, fun k h => solve_dominates t k h⟩
+
+/-- The specification morphism `dTree Int ⟶ dNat`, for the honest-headline bridge below. -/
+def spec : dTree Int ⟶ dNat := fun t k => pathEdges t k
+
+/-- **Honest headline (§7.5 `max (≤)·Λ spec`)**: `solve` is exactly the morphism `A spec ≫ maxRel D`
+    for the `≤`-preference order `D w z := z ≤ w` — not merely pointwise. Bridged from `solve_correct`. -/
+theorem solve_eq_maxRel : solve = A spec ≫ maxRel (fun w z : Nat => z ≤ w) :=
+  eq_A_comp_maxRel _ (fun x y h1 h2 => Nat.le_antisymm h2 h1) solveFn spec
+    (fun t => (solve_correct t).1) (fun t v hv => (solve_correct t).2 v hv)
 
 /-! ## Running the program -/
 
