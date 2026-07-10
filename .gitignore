@@ -1,5 +1,22 @@
 /.lake
 cate*.pdf
+# Third-party copyrighted reference material — kept locally only, NEVER commit (copyright).
+# The books: Freyd "Categories, Allegories" (book-all/book-color) and Bird & de Moor
+# "Algebra of Programming" (algprog); plus downloaded papers. Own typst work (AllegoryStringDiagrams.*,
+# Fredy/S*.pdf) is NOT listed here and stays tracked.
+algprog.pdf
+book-all.pdf
+book-all.typ
+book-color.pdf
+jacobs.pdf
+koch-frobenius-algebras.pdf
+2210.09950v1.pdf
+functorialSemanticsForRelationalTheories.pdf
+DiagramChasingNotes.pdf
+FirstOrderTheoryOfDiagramChasing.pdf
+GraphicRewritingLean4.pdf
+MachineCheckedCategoricalDiagrammaticReasoning.pdf
+Frobenius.pdf
 # generated declaration-graph data (regenerate: lake env lean --run scripts/ExtractGraph.lean)
 /graph/*.tsv
 /graph/*.dot
