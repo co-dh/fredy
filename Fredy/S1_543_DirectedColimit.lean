@@ -7,7 +7,7 @@
   directed colimit of *types*, developed here from scratch (no `Ordinal`, no
   mathlib `CategoryTheory`).
 
-  Milestone 1 of the capitalization project (see CAPITALIZATION_ROADMAP.md):
+  Milestone 1 of the §1.543 capitalization construction:
   the directed colimit of types, its canonical inclusions, their compatibility,
   and the universal property (`desc`).  All Sorry-free.
 -/
