@@ -5,6 +5,7 @@
   (all instances at once) through the allegory instances — which no external `.ralg` file can state.
 -/
 import rel.RelNotation
+import rel.RelInterpDemo   -- the demo fixtures (DemoDivision / Demo121 / Demo207) used below
 
 namespace Freyd.Alg.FinRel.Demo
 open Freyd.Alg.FinRel
@@ -59,5 +60,25 @@ example :
     (List.ofFn fun i : Fin 4 => List.ofFn fun j : Fin 4 => eval rel⟦ txtE ≫ bigE ⟧ i j)
       = (List.ofFn fun i : Fin 4 => List.ofFn fun j : Fin 4 => eval rel⟦ txtE ∩ bigE ⟧ i j) := by
   decide
+
+/-! ## Notation instance examples that use the moved fixtures (relocated from `RelNotation`). -/
+
+-- the division query, in surface syntax, by `decide` (the classic `solved / solved`).
+open DemoDivision in
+example : (List.ofFn fun s : Fin 4 => eval rel⟦ solvedE / solvedE ⟧ s 0)
+    = [true, true, false, true] := by decide
+
+-- the LC121 spec shape in surface syntax = the certified `solveE` term, definitionally.
+open Demo121 in
+example {n M : Nat} (price : Fin n → Int) :
+    eval rel⟦ Λ(!(RE.atom (specFn n M price))) ≫ max(!(RE.atom (geFn M))) ⟧
+      = eval (solveE n M price) := rfl
+
+-- id/eps in surface syntax (objects are named Lean constants).  `Demo207.edgeFn` is qualified
+-- because this file's namespace already defines a local `edgeFn`.
+example : eval rel⟦ eps(Demo207.Course) ⟧ = epsB Demo207.Course := rfl
+example :
+    eval rel⟦ !(Demo207.reachE (.atom (Demo207.edgeFn [(0,1)])) 3) ∩ id(Demo207.Course) ⟧
+      = eval (.meet (Demo207.reachE (.atom (Demo207.edgeFn [(0,1)])) 3) (.id Demo207.Course)) := rfl
 
 end Freyd.Alg.FinRel.Demo

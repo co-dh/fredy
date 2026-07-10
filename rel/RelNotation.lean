@@ -63,10 +63,8 @@ macro_rules
 
 /-! ## Proofs `.ralg` files can never state -/
 
--- (1) Kernel-checked instance run: the division query, in surface syntax, by `decide`.
-open DemoDivision in
-example : (List.ofFn fun s : Fin 4 => eval rel⟦ solvedE / solvedE ⟧ s 0)
-    = [true, true, false, true] := by decide
+-- (Instance-data examples that USE the demo fixtures live in `rel/RelNotationDemo.lean`;
+--  the examples below are generic — they hold for ALL atoms, which is the notation's real payoff.)
 
 -- (2) Two programs EQUAL, generic over atoms — an allegory-law proof, no instance data.
 example {a b c : FinObj} (e : RE a b) (f : RE b c) :
@@ -78,24 +76,11 @@ example {a b c : FinObj} (t : RE a b) (r : RE a c) (s : RE b c) :
     eval rel⟦ !(t) ⟧ ⊑ eval rel⟦ !(r) / !(s) ⟧ ↔ eval rel⟦ !(t) ≫ !(s) ⟧ ⊑ eval rel⟦ !(r) ⟧ :=
   le_div_iff (eval t) (eval r) (eval s)
 
--- (4) The LC121 spec shape in surface syntax = the existing certified term, definitionally.
-open Demo121 in
-example {n M : Nat} (price : Fin n → Int) :
-    eval rel⟦ Λ(!(RE.atom (specFn n M price))) ≫ max(!(RE.atom (geFn M))) ⟧
-      = eval (solveE n M price) := rfl
-
--- (5) Equal-precedence left fold parses like the book: `a ≫ b ∩ c` = `(a ≫ b) ∩ c`.
+-- (4) Equal-precedence left fold parses like the book: `a ≫ b ∩ c` = `(a ≫ b) ∩ c`.
 example {a : FinObj} (e f g : RE a a) :
     eval rel⟦ !(e) ≫ !(f) ∩ !(g) ⟧ = eval rel⟦ (!(e) ≫ !(f)) ∩ !(g) ⟧ := rfl
 
--- (5b) id/eps in surface syntax; the object is a named Lean constant.
-open DemoDivision in
-example : eval rel⟦ eps(Student) ⟧ = epsB Student := rfl
-open Demo207 in
-example : eval rel⟦ !(reachE (.atom (edgeFn [(0,1)])) 3) ∩ id(Course) ⟧
-    = eval (.meet (reachE (.atom (edgeFn [(0,1)])) 3) (.id Course)) := rfl
-
--- (6) A verified TERM-LEVEL optimizer step: double-converse elimination preserves `eval`
+-- (5) A verified TERM-LEVEL optimizer step: double-converse elimination preserves `eval`
 --     — a theorem ABOUT programs, by cases on the AST. Unstatable for an external .ralg file.
 def unconv2 : {a b : FinObj} → RE a b → RE a b
   | _, _, .conv (.conv e) => e

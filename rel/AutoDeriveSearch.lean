@@ -46,7 +46,7 @@
   Mathlib-free.  Certified parts Sorry-free; axioms ⊆ {propext, Classical.choice, Quot.sound}
   (inherited from `horner_correct` via `RunningBest`).
 -/
-import rel.RelInterp
+import rel.RelInterpDemo   -- was rel.RelInterp; needs the moved Demo121/prog121 fixtures
 import rel.AutoDerive
 import leet.L121
 
