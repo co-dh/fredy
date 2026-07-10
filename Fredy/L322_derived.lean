@@ -30,6 +30,7 @@
 -/
 import Fredy.A6_GenFold
 import Fredy.L322
+import Fredy.L322_dp   -- reuse the A9_2-derived Coin-Change optimality (solve_correct_inf)
 
 set_option linter.unusedVariables false
 
@@ -173,86 +174,43 @@ theorem entry_succ_eq (coins : SnocList Nat Nat) (a : Nat) :
   rw [entry_succ]
   exact coinFold_congr (fun j hj => stab coins a j (by omega)) coins
 
-/-! ## Correctness re-proof
+/-! ## Correctness via the ∞-DP theorem (no re-proof)
 
-  `coinFold_spec` is the fuel proof's successor step (`L322.dpFuel_spec`), abstracted over an
-  arbitrary table-reading `step` that is already correct at the smaller amounts it reads.  A
-  bounded strong induction then discharges every table entry against `coinSpec`. -/
+  The tabulating fold computes exactly `L322.dp`: both obey `f 0 = some 0` and
+  `f (a+1) = coinFold f (a+1) coins`.  So its correctness is `L322.solve_correct_inf` — the
+  Coin-Change optimality DERIVED from the abstract `A9_2.dynamic_programming_inf` — not re-proved
+  here.  `entry_eq_dpFuel` is a plain computational induction on the fuel bound (no `Achievable`
+  reasoning); the extremum content lives once, in the A-layer. -/
 
-/-- **Generic DP step.**  If `step` already computes the extremum spec at every sub-amount `a+1-c`
-    a valid coin reaches, then the `omin`-fold over the coins computes the extremum spec at `a+1`.
-    This is `L322.dpFuel_spec`'s successor case with the recursive `dpFuel` replaced by `step`. -/
-theorem coinFold_spec (coins : SnocList Nat Nat) (step : Nat → Option Nat) (a : Nat)
-    (hstep : ∀ c, 1 ≤ c → c ≤ a + 1 → LC322.coinSpec coins (a + 1 - c) (step (a + 1 - c))) :
-    LC322.coinSpec coins (a + 1) (LC322.coinFold step (a + 1) coins) := by
-  rcases hres : LC322.coinFold step (a + 1) coins with _ | m
-  · -- impossibility
-    intro n hn
-    match n, hn with
-    | 0, hn => exact absurd (LC322.achievable_zero_iff.mp hn) (by omega)
-    | n' + 1, hn =>
-      obtain ⟨c, hmem, hpos, hle, hach⟩ := LC322.achievable_succ_iff.mp hn
-      have hspec := hstep c hpos hle
-      rcases hstepv : step (a + 1 - c) with _ | mv
-      · rw [hstepv] at hspec
-        exact hspec n' hach
-      · obtain ⟨m₀, hm₀, _⟩ := LC322.coinFold_dominates (step := step) (t := a + 1)
-          coins hmem hpos hle hstepv
-        rw [hres] at hm₀
-        exact absurd hm₀ (by simp)
-  · -- achievability + minimality
-    obtain ⟨c, mv, hmem, hpos, hle, hstepv, hm⟩ := LC322.coinFold_achieves coins hres
-    have hspecStep := hstep c hpos hle
-    rw [hstepv] at hspecStep
-    obtain ⟨hachStep, _⟩ := hspecStep
-    have hsub : a + 1 - c + c = a + 1 := by omega
-    have hachm : LC322.Achievable coins m (a + 1) := by
-      rw [hm, ← hsub]
-      exact LC322.Achievable.succ hachStep hmem hpos
-    refine ⟨hachm, ?_⟩
-    intro n' hn'
-    match n', hn' with
-    | 0, hn' => exact absurd (LC322.achievable_zero_iff.mp hn') (by omega)
-    | n'' + 1, hn' =>
-      obtain ⟨c', hmem', hpos', hle', hach'⟩ := LC322.achievable_succ_iff.mp hn'
-      have hspec' := hstep c' hpos' hle'
-      rcases hstepv' : step (a + 1 - c') with _ | mv'
-      · rw [hstepv'] at hspec'
-        exact absurd hach' (hspec' n'')
-      · obtain ⟨hach'', hmin'⟩ := by rw [hstepv'] at hspec'; exact hspec'
-        have hmv' : mv' ≤ n'' := hmin' n'' hach'
-        obtain ⟨m₀, hm₀, hm₀le⟩ := LC322.coinFold_dominates (step := step) (t := a + 1)
-          coins hmem' hpos' hle' hstepv'
-        rw [hres] at hm₀
-        have hmm : m = m₀ := by rw [Option.some.injEq] at hm₀; exact hm₀
-        omega
-
-/-- Every canonical table entry satisfies the extremum spec (bounded strong induction on `N`). -/
-theorem entry_spec_bounded (coins : SnocList Nat Nat) :
-    ∀ N a, a ≤ N → LC322.coinSpec coins a (entry coins a) := by
+/-- The tabulating fold's `a`-th entry equals `L322`'s fuel DP at any sufficient fuel bound `N ≥ a`.
+    Both obey `f 0 = some 0`, `f (a+1) = coinFold f (a+1) coins`, so they agree by induction on `N`
+    (via `coinFold_congr`, which needs only agreement at the sub-amounts `< a+1`). -/
+theorem entry_eq_dpFuel (coins : SnocList Nat Nat) :
+    ∀ N a, a ≤ N → entry coins a = LC322.dpFuel coins N a := by
   intro N
   induction N with
-  | zero =>
-    intro a ha
-    have ha0 : a = 0 := by omega
-    subst ha0
-    show LC322.coinSpec coins 0 (some 0)
-    exact ⟨LC322.Achievable.zero, fun n' _ => Nat.zero_le n'⟩
+  | zero => intro a ha; obtain rfl := Nat.le_zero.mp ha; rfl
   | succ N ih =>
     intro a ha
-    rcases Nat.lt_or_ge a (N + 1) with h | h
-    · exact ih a (by omega)
-    · have ha' : a = N + 1 := by omega
-      subst ha'
+    match a, ha with
+    | 0, _ => rfl
+    | a' + 1, ha =>
       rw [entry_succ_eq]
-      exact coinFold_spec coins (entry coins) N
-        (fun c hpos hle => ih (N + 1 - c) (by omega))
+      show LC322.coinFold (entry coins) (a' + 1) coins
+          = LC322.coinFold (LC322.dpFuel coins N) (a' + 1) coins
+      exact coinFold_congr (fun j hj => ih j (by omega)) coins
+
+/-- The tabulating fold's `a`-th entry equals `L322.dp coins a` (= `solveFn`). -/
+theorem entry_eq_dp (coins : SnocList Nat Nat) (a : Nat) : entry coins a = LC322.dp coins a :=
+  entry_eq_dpFuel coins a a (Nat.le_refl a)
 
 /-- Each table entry `entry coins a` is the `≤`-minimum achievable coin-count for amount `a`
-    (`none` if unreachable) — `coinSpec coins a`. -/
+    (`none` if unreachable) — `coinSpec coins a`.  REUSED from `L322.solve_correct_inf` (the
+    `A9_2.dynamic_programming_inf`-derived optimality) through `entry_eq_dp`; no bounded strong
+    induction, no `Achievable` re-analysis. -/
 theorem entry_spec (coins : SnocList Nat Nat) (a : Nat) :
-    LC322.coinSpec coins a (entry coins a) :=
-  entry_spec_bounded coins a a (Nat.le_refl a)
+    LC322.coinSpec coins a (entry coins a) := by
+  rw [entry_eq_dp coins a]; exact LC322.solve_correct_inf coins a
 
 /-- **Headline.**  The tabulating DP's answer for `amount` — the last cell of the amount-`amount`
     table, `nth (tab coins (snocs amount)) amount` — satisfies the Coin-Change extremum spec
