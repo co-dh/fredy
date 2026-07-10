@@ -287,3 +287,9 @@ import Fredy.L322_dp
 -- powerset specs) and `evalP`, a structural fold running the derived catamorphism programs in
 -- polynomial time — bridged by the proven `solve = A spec ≫ maxRel D` (differential testing).
 import Fredy.RelInterp
+-- Auto-derive: a generic driver theorem `RunningBest` that discharges every `horner_correct` side
+-- condition (monotonicity, greedy refinement, order transitivity) from 8 one-line arithmetic facts,
+-- so a new running-best-pair greedy problem supplies only its creative inputs (pair state + generator
+-- + dominance order), not the ~100 lines of relational boilerplate. Demo: L53_auto re-derives Kadane.
+import Fredy.AutoDerive
+import Fredy.L53_auto
