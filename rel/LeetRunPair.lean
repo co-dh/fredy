@@ -6,16 +6,15 @@
   can never use its input twice" (`rel.LeetRunTree`'s header), so two-input problems either ran
   CURRIED with the second input applied OUTSIDE the term (L67 in `rel.LeetRun3`, L100/L617 in
   `rel.LeetRunTree`) or were skipped outright (L2 in `Run1`, L21 in `Run2`, L205 in `Run5`).
-  AoP's point-free vocabulary has exactly the missing pieces — the product `⟨p,q⟩` and `p × q` —
-  so this file extends the term language by the ONE former `Prog` lacks:
+  AoP's point-free vocabulary has exactly the missing pieces — the product `⟨p,q⟩` and `p × q`.
+  These now live in the ONE unified `ProgEval` (`rel/RelInterp`): the former `Prog.pair` that
+  `Prog` gained, and the derived helpers below.  This file just applies them:
 
-  * `Prog2` — `Prog`'s applicative vocabulary (ground `fn`, diagram-order `comp`, the `SL`
-    catamorphism `cata` evaluated by the same `foldSL`) plus the pairing former
-    `pair p q = ⟨p,q⟩` (run both sub-programs on the same input, tuple the results);
-    `p × q = ⟨π₁≫p, π₂≫q⟩` is derived (`prodP`).  Evaluator `evalP2`; the product β-laws hold
-    by `rfl` (`evalP2_pair`).
+  * `Prog.pair p q = ⟨p,q⟩` (run both sub-programs on the same input, tuple the results), with
+    `p × q = ⟨π₁≫p, π₂≫q⟩` derived (`ProgEval.prodP`).  Run by the single `evalP`; the product
+    β-laws hold by `rfl` (`ProgEval.evalP_pair`).
   * `zipCata base step close` — the ZIP-FOLD (curried-two-input) scheme as ONE term of type
-    `Prog2 (SL A × SL B) C`: fold the FIRST input into a FUNCTION carrier that awaits the
+    `Prog (SL A × SL B) C`: fold the FIRST input into a FUNCTION carrier that awaits the
     second, transport the second to the `List` read outermost-first (`revListOf` — the order
     the fold consumes), and close with the problem's application map:
     `(⦇base, step⦈ × revListOf) ≫ close`.  A snoc fold consumes its LAST element outermost, so
@@ -56,56 +55,12 @@ open Freyd.Alg.FinRel.ProgEval
 open Freyd.Alg.FinRel.Run2 (consOf)
 open Freyd.Alg.RelSet
 
-/-! ## The pairing machinery: `Prog` + the product former, over the same `SL`/`foldSL` -/
+/-! ## The pairing machinery lives in `ProgEval` now
 
-/-- Program terms WITH PAIRING: `ProgEval.Prog`'s applicative vocabulary (ground maps,
-    diagram-order composition, the `SL` catamorphism) extended by the point-free product
-    mediator `pair p q = ⟨p,q⟩` — the one former `Prog` lacks, which is exactly what a term
-    needs to consume a PAIR of inputs (or read one input twice). -/
-inductive Prog2 : Type → Type → Type 1 where
-  | fn   {I O : Type} (f : I → O) : Prog2 I O
-  | comp {I M O : Type} : Prog2 I M → Prog2 M O → Prog2 I O
-  | cata {A C : Type} (base : A → C) (step : C → A → C) : Prog2 (SL A) C
-  | pair {I O₁ O₂ : Type} : Prog2 I O₁ → Prog2 I O₂ → Prog2 I (O₁ × O₂)
-
-/-- The evaluator: `Prog`'s clauses (`cata` by the same structural `foldSL`) plus
-    `⟨p,q⟩ x = (p x, q x)`. -/
-def evalP2 : {I O : Type} → Prog2 I O → I → O
-  | _, _, .fn f => f
-  | _, _, .comp p q => fun x => evalP2 q (evalP2 p x)
-  | _, _, .cata base step => foldSL base step
-  | _, _, .pair p q => fun x => (evalP2 p x, evalP2 q x)
-
-/-- The product β-law: `⟨p,q⟩` runs both sub-programs on the same input and tuples — so
-    `⟨p,q⟩ ≫ π₁ = p` and `⟨p,q⟩ ≫ π₂ = q` pointwise, definitionally. -/
-theorem evalP2_pair {I O₁ O₂ : Type} (p : Prog2 I O₁) (q : Prog2 I O₂) (x : I) :
-    evalP2 (Prog2.pair p q) x = (evalP2 p x, evalP2 q x) := rfl
-
-/-- The product of programs `p × q = ⟨π₁ ≫ p, π₂ ≫ q⟩`, derived from the pairing former. -/
-def prodP {I₁ I₂ O₁ O₂ : Type} (p : Prog2 I₁ O₁) (q : Prog2 I₂ O₂) :
-    Prog2 (I₁ × I₂) (O₁ × O₂) :=
-  .pair (.comp (.fn Prod.fst) p) (.comp (.fn Prod.snd) q)
-
-/-- Read an `SL` outermost-first (last snoc first) — the order a function-carrier zip fold
-    consumes elements, used to transport the SECOND input to the `List` the carrier awaits.
-    Composed with head-outermost loading (`Run2.consOf`) it reads the original list in order. -/
-def revListOf {A : Type} : SL A → List A
-  | .wrap a    => [a]
-  | .snoc xs a => a :: revListOf xs
-
-/-- **The zip-fold scheme** — the curried-two-input trick as ONE term: fold the FIRST input
-    into a FUNCTION carrier `K` that awaits the second, transport the second input to the
-    outermost-first `List`, and close with the problem's application map:
-    `(⦇base, step⦈ × revListOf) ≫ close`. -/
-def zipCata {A B K C : Type} (base : A → K) (step : K → A → K) (close : K → List B → C) :
-    Prog2 (SL A × SL B) C :=
-  .comp (prodP (.cata base step) (.fn revListOf)) (.fn fun p => close p.1 p.2)
-
-/-- What the scheme means: the first input is genuinely FOLDED (`foldSL`), the second closed
-    over — definitionally. -/
-theorem evalP2_zipCata {A B K C : Type} (base : A → K) (step : K → A → K)
-    (close : K → List B → C) (xs : SL A) (ys : SL B) :
-    evalP2 (zipCata base step close) (xs, ys) = close (foldSL base step xs) (revListOf ys) := rfl
+  The two-input former `Prog.pair`, its evaluator case, and the derived helpers `prodP` /
+  `revListOf` / `zipCata` (with the product β-law `evalP_pair` and `evalP_zipCata`) are all in
+  the ONE unified `ProgEval` (`rel/RelInterp`); this file just applies them.  Every `prog…` below
+  is a `Prog (SL Int × SL Int) …` run by the single `evalP`. -/
 
 /-! ## L2 / L67 — lockstep carry ripple over two digit lists
 
@@ -127,17 +82,17 @@ def rippleStep (b : Int) (f : Int → List Int → List Int) (x : Int) :
     step, and the output is little-endian as is.  When the first number runs out, the leftover
     carry ripples through the second's remaining digits by the L-file's own `LC2.addFuel`
     (`[]` first list, `ys.length + 1` fuel sufficing). -/
-def prog2 : Prog2 (SL Int × SL Int) (List Int) :=
+def prog2 : Prog (SL Int × SL Int) (List Int) :=
   zipCata (rippleStep 10 fun c ys => LC2.addFuel (ys.length + 1) c [] ys) (rippleStep 10)
     (fun f ys => f 0 ys)
 
 -- LeetCode 2's own examples: 342 + 465 = 807; 99 + 1 = 100 (a genuine carry-out digit).
-example : evalP2 prog2 (consOf (2 : Int) [4, 3], consOf (5 : Int) [6, 4]) = [7, 0, 8] := by decide
-example : evalP2 prog2 (consOf (9 : Int) [9], consOf (1 : Int) []) = [0, 0, 1]
-    ∧ evalP2 prog2 (consOf (2 : Int) [4, 3], consOf (5 : Int) [6, 4])
+example : evalP prog2 (consOf (2 : Int) [4, 3], consOf (5 : Int) [6, 4]) = [7, 0, 8] := by decide
+example : evalP prog2 (consOf (9 : Int) [9], consOf (1 : Int) []) = [0, 0, 1]
+    ∧ evalP prog2 (consOf (2 : Int) [4, 3], consOf (5 : Int) [6, 4])
         = LC2.addFn [2, 4, 3] [5, 6, 4] := by decide
 -- second number longer than the first: the leftover tail rides through `LC2.addFuel`
-example : evalP2 prog2 (consOf (5 : Int) [], consOf (7 : Int) [9, 9]) = [2, 0, 0, 1]
+example : evalP prog2 (consOf (5 : Int) [], consOf (7 : Int) [9, 9]) = [2, 0, 0, 1]
     ∧ LC2.addFn [5] [7, 9, 9] = [2, 0, 0, 1] := by decide
 
 /-- LC 67 as ONE two-input term: the same zip-fold at base 2, leftover tail by the L-file's
@@ -145,14 +100,14 @@ example : evalP2 prog2 (consOf (5 : Int) [], consOf (7 : Int) [9, 9]) = [2, 0, 0
     (`slOf` — last bit outermost = least significant first, the L-file's own reversed
     orientation), and the little-endian sum is reversed back at the close.  (Previously ran
     CURRIED in `rel.LeetRun3`; here the second number is part of the term's input.) -/
-def prog67 : Prog2 (SL Int × SL Int) (List Int) :=
+def prog67 : Prog (SL Int × SL Int) (List Int) :=
   zipCata (rippleStep 2 fun c ys => LC67.addBitsRev (ys.length + 1) c [] ys) (rippleStep 2)
     (fun f ys => (f 0 ys).reverse)
 
 -- LeetCode 67's own examples: `1011 + 101 = 10000` (11 + 5 = 16), `11 + 1 = 100`.
-example : evalP2 prog67 (slOf 1 [0, 1, 1], slOf 1 [0, 1]) = [1, 0, 0, 0, 0] := by decide
-example : evalP2 prog67 (slOf 1 [1], slOf 1 []) = [1, 0, 0]
-    ∧ evalP2 prog67 (slOf 1 [0, 1, 1], slOf 1 [0, 1])
+example : evalP prog67 (slOf 1 [0, 1, 1], slOf 1 [0, 1]) = [1, 0, 0, 0, 0] := by decide
+example : evalP prog67 (slOf 1 [1], slOf 1 []) = [1, 0, 0]
+    ∧ evalP prog67 (slOf 1 [0, 1, 1], slOf 1 [0, 1])
         = LC67.addBinaryFn [1, 0, 1, 1] [1, 0, 1] := by decide
 
 /-! ## L21 — merge two sorted lists: the classic two-input recursion as a zip fold
@@ -174,15 +129,15 @@ def mergeStep (f : List Int → List Int) (x : Int) : List Int → List Int
     fold consumes it front-first) into the merge continuation, close over the second.  The
     base is the step with the identity continuation: after the first list's last element is
     placed, the second's remainder passes through verbatim — `mergeFuel`'s nil clauses. -/
-def prog21 : Prog2 (SL Int × SL Int) (List Int) :=
+def prog21 : Prog (SL Int × SL Int) (List Int) :=
   zipCata (mergeStep fun ys => ys) mergeStep (fun f ys => f ys)
 
 -- LeetCode 21's own examples (the `[]` cases are not `SL`-representable, see the header).
-example : evalP2 prog21 (consOf (1 : Int) [2, 4], consOf (1 : Int) [3, 4])
+example : evalP prog21 (consOf (1 : Int) [2, 4], consOf (1 : Int) [3, 4])
     = [1, 1, 2, 3, 4, 4] := by decide
-example : evalP2 prog21 (consOf (2 : Int) [5, 8], consOf (1 : Int) [3, 3, 9])
+example : evalP prog21 (consOf (2 : Int) [5, 8], consOf (1 : Int) [3, 3, 9])
     = [1, 2, 3, 3, 5, 8, 9]
-    ∧ evalP2 prog21 (consOf (1 : Int) [2, 4], consOf (1 : Int) [3, 4])
+    ∧ evalP prog21 (consOf (1 : Int) [2, 4], consOf (1 : Int) [3, 4])
         = LC21.mergeFn [1, 2, 4] [1, 3, 4] := by decide
 
 /-! ## L205 — isomorphic strings: the lockstep two-map scan as a zip fold -/
@@ -204,20 +159,20 @@ def isoStep (f : List (Int × Int) → List (Int × Int) → List Int → Bool) 
 /-- LC 205 as ONE two-input term: zip-fold `s` (loaded head-outermost, scanning front-to-back
     exactly like the L-file) into the two-map consistency scan, close over `t` with both maps
     empty; leftover `t` (`t` longer) rejects at the base's continuation (`ys.isEmpty`). -/
-def prog205 : Prog2 (SL Int × SL Int) Bool :=
+def prog205 : Prog (SL Int × SL Int) Bool :=
   zipCata (isoStep fun _ _ ys => ys.isEmpty) isoStep (fun f ys => f [] [] ys)
 
 -- "egg" / "add" → true (pattern a,b,b both times); "foo" / "bar" → false (foo repeats).
-example : evalP2 prog205 (consOf (101 : Int) [103, 103], consOf (97 : Int) [100, 100])
+example : evalP prog205 (consOf (101 : Int) [103, 103], consOf (97 : Int) [100, 100])
     = true := by decide
-example : evalP2 prog205 (consOf (102 : Int) [111, 111], consOf (98 : Int) [97, 114])
+example : evalP prog205 (consOf (102 : Int) [111, 111], consOf (98 : Int) [97, 114])
     = false := by decide
 -- "paper" / "title" → true, agreeing with the L-file's own scan.
-example : evalP2 prog205
+example : evalP prog205
       (consOf (112 : Int) [97, 112, 101, 114], consOf (116 : Int) [105, 116, 108, 101]) = true
     ∧ LC205.isIsoFn [112, 97, 112, 101, 114] [116, 105, 116, 108, 101] = true := by decide
 -- length mismatch rejects in both directions (`s` longer / `t` longer).
-example : evalP2 prog205 (consOf (1 : Int) [2], consOf (7 : Int) []) = false
-    ∧ evalP2 prog205 (consOf (1 : Int) [], consOf (7 : Int) [8]) = false := by decide
+example : evalP prog205 (consOf (1 : Int) [2], consOf (7 : Int) []) = false
+    ∧ evalP prog205 (consOf (1 : Int) [], consOf (7 : Int) [8]) = false := by decide
 
 end Freyd.Alg.FinRel.Pair

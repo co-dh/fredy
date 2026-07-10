@@ -62,11 +62,8 @@ open Freyd.Alg.RelSet Freyd.Alg.RelSet.TB
     (generalizes `ProgEval.slOf` beyond `Int` — needed for `Int × Int` in L435). -/
 def snocs {A : Type} (first : A) (rest : List A) : SL A := rest.foldl SL.snoc (SL.wrap first)
 
-/-- Unary bridge for Nat-iteration problems (L338): `n` = `n` snocs over a wrapped unit, so a
-    fold over `natSL n` IS `n`-fold iteration from the base. -/
-def natSL : Nat → SL Unit
-  | 0 => .wrap ()
-  | n + 1 => .snoc (natSL n) ()
+-- The unary bridge for Nat-iteration problems (`natSL n` = `n` snocs over a wrapped unit, so a
+-- `cata` over it IS `n`-fold iteration) is the ONE canonical `ProgEval.natSL`, used via `open`.
 
 /-! ## L338 — counting bits: the DP-table fold over the unary Nat
 

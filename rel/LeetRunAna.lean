@@ -72,89 +72,13 @@ open Freyd.Alg.RelSet Freyd.Alg.RelSet.TB
 
 /-! ## The unfold evaluators
 
-  Each is total by structural recursion on the fuel; `none` = fuel exhausted (or, for the
-  parser unfolds, a rejected seed).  Fuel is spent one unit per coalgebra step, mirroring
-  `ProgEval.hyloF`'s discipline exactly so the factorization theorem below is literal. -/
-
-/-- The SL-functor UNFOLD (anamorphism): drive the coalgebra `g` from the seed, materialising
-    the nonempty snoc-list it generates — `.inl a` ends with the leaf `wrap a`, `.inr (s', a)`
-    emits `a` (at the snoc end) and continues from `s'`.  The unfold half of `hyloF`. -/
-def anaSL {S A : Type} (g : S → A ⊕ (S × A)) : Nat → S → Option (SL A)
-  | 0, _ => none
-  | fuel + 1, s => match g s with
-    | .inl a => some (.wrap a)
-    | .inr (s', a) => match anaSL g fuel s' with
-      | some xs => some (.snoc xs a)
-      | none => none
-
-/-- **A hylo is the unfold then `foldSL`**: the interpreter's fused `hyloF` (`rel/RelInterp`)
-    factors through the SL materialised by `anaSL` — same coalgebra, same fuel, on the nose.
-    (Deforestation, read right to left.) -/
-theorem hyloF_eq_ana_fold {S A C : Type} (g : S → A ⊕ (S × A)) (base : A → C)
-    (step : C → A → C) : ∀ (fuel : Nat) (s : S),
-    hyloF g base step fuel s = (anaSL g fuel s).map (foldSL base step)
-  | 0, _ => rfl
-  | fuel + 1, s => by
-    show (match g s with
-      | .inl a => some (base a)
-      | .inr (s', a) => match hyloF g base step fuel s' with
-        | some c => some (step c a)
-        | none => none)
-      = (match g s with
-        | .inl a => some (SL.wrap a)
-        | .inr (s', a) => match anaSL g fuel s' with
-          | some xs => some (SL.snoc xs a)
-          | none => none).map (foldSL base step)
-    cases g s with
-    | inl a => rfl
-    | inr p =>
-      obtain ⟨s', a⟩ := p
-      show (match hyloF g base step fuel s' with
-        | some c => some (step c a)
-        | none => none)
-        = (match anaSL g fuel s' with
-          | some xs => some (SL.snoc xs a)
-          | none => none).map (foldSL base step)
-      rw [hyloF_eq_ana_fold g base step fuel s']
-      cases anaSL g fuel s' with
-      | none => rfl
-      | some xs => rfl
-
-/-- The list-functor UNFOLD (anamorphism): coalgebra `S → 1 ⊕ (E × S)` (as `Option (E × S)`) —
-    seed → nil, or emit one element + new seed — producing a possibly-empty `List E`. -/
-def anaL {S E : Type} (g : S → Option (E × S)) : Nat → S → Option (List E)
-  | 0, _ => none
-  | fuel + 1, s => match g s with
-    | none => some []
-    | some (e, s') => (anaL g fuel s').map (e :: ·)
-
-/-- `anaL` in the Kleisli category of `Option` — a PARSER's list unfold: the coalgebra may
-    additionally REJECT the seed (`none` = malformed input), distinct from stopping
-    (`some none`) and emitting (`some (some (e, s'))`). -/
-def anaP {S E : Type} (g : S → Option (Option (E × S))) : Nat → S → Option (List E)
-  | 0, _ => none
-  | fuel + 1, s => match g s with
-    | none => none
-    | some none => some []
-    | some (some (e, s')) => (anaP g fuel s').map (e :: ·)
-
-/-- The tree-functor PARSER unfold, seed threaded as state: the coalgebra answers "nil, leftover
-    `s'`" (`some (none, s')`), "node labelled `a`, descend left from `s'`" (`some (some a, s')`),
-    or rejects (`none`); the RIGHT child's seed is the LEFT child's leftover — the state
-    threading a plain coalgebra `S → 1 ⊕ (S × A × S)` cannot express, since a token stream
-    yields the right seed only after the left parse.  Returns the tree with its leftover. -/
-def anaT {S A : Type} (g : S → Option (Option A × S)) : Nat → S → Option (TB A × S)
-  | 0, _ => none
-  | fuel + 1, s => match g s with
-    | none => none
-    | some (none, s') => some (.nil, s')
-    | some (some a, s') =>
-      match anaT g fuel s' with
-      | none => none
-      | some (l, s1) =>
-        match anaT g fuel s1 with
-        | none => none
-        | some (r, s2) => some (.node l a r, s2)
+  The fuel-bounded unfolds `anaSL` / `anaL` / `anaP` / `anaT` and the factorization law
+  `hyloF_eq_ana_fold` (a hylo is the unfold then `foldSL`) now all live in the ONE unified
+  `ProgEval` (`rel/RelInterp`), co-located with `hyloF`; this file uses them via `open ProgEval`
+  and reads the coalgebras off the L-files' own generators.  Each is total by structural
+  recursion on the fuel (`none` = fuel exhausted or a rejected parser seed); like `hyloF` they
+  stay STANDALONE functions rather than `Prog` formers, since fuel puts `Option` in the OUTPUT
+  type, which would infect every downstream `Prog.comp`. -/
 
 /-- Read an interpreter snoc-list back as a `List`, left to right — the demo-side decoder for
     the unfold traces below. -/

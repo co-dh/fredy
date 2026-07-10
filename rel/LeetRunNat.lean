@@ -8,9 +8,9 @@
 
   * the Nat axis is bridged onto the term language: `natSL n` is `n` written in unary as an
     `SL Unit` (`n` snocs over a wrapped unit; `wrap () = zero`, each snoc = one successor), so
-    a `Prog.cata` over `natSL n` IS the Nat catamorphism — the ONE clean version of the ad-hoc
-    `Run7.natSL`, now with its defining law `foldSL_natSL : foldSL … (natSL n) = cataNat b s n`
-    against the genuine `Nat.rec` fold `cataNat`;
+    a `Prog.cata` over `natSL n` IS the Nat catamorphism.  `natSL`, its defining law
+    `ProgEval.foldSL_natSL : foldSL … (natSL n) = cataNat b s n`, and the genuine `Nat.rec` fold
+    `cataNat` now live in the ONE unified `ProgEval` (`rel/RelInterp`), used here via `open`;
   * the fold CARRIER is a data structure: L1 carries the mathlib-free `Freyd.HashMap.AHashMap`
     (`AOP/A6_HashMap.lean`) — the `leet/L1_derived.lean` "Two Sum carried AHashMap" pattern,
     reshaped from its cons-list CPS carrier onto the interpreter's snoc list.  A snoc fold
@@ -53,29 +53,8 @@ open Freyd.Alg.FinRel.ProgEval
 open Freyd.Alg.RelSet
 open Freyd.HashMap
 
-/-! ## The Nat axis: `cataNat` and the unary bridge `natSL` -/
-
-/-- The genuine fold over `Nat` — the initial algebra of `G X = 1 ⊕ X` — i.e. `Nat.rec` with a
-    constant-in-the-index step (iteration): `base` at `zero`, `step` at every `succ`. -/
-def cataNat {C : Type} (base : C) (step : C → C) : Nat → C
-  | 0 => base
-  | n + 1 => step (cataNat base step n)
-
-/-- The unary bridge: `n` as an `SL Unit` — `wrap () = zero`, each snoc = one successor — so the
-    term language's `cata` can run Nat-folds. -/
-def natSL : Nat → SL Unit
-  | 0 => .wrap ()
-  | n + 1 => .snoc (natSL n) ()
-
-/-- **The bridge law**: folding the unary bridge IS the Nat catamorphism — `Prog.cata` over
-    `natSL n` computes `cataNat base step n`. -/
-theorem foldSL_natSL {C : Type} (base : C) (step : C → C) :
-    ∀ n, foldSL (fun _ : Unit => base) (fun c _ => step c) (natSL n) = cataNat base step n
-  | 0 => rfl
-  | n + 1 => by
-    show step (foldSL (fun _ : Unit => base) (fun c _ => step c) (natSL n))
-      = step (cataNat base step n)
-    rw [foldSL_natSL base step n]
+/-! ## The Nat axis: `cataNat`, the unary bridge `natSL`, and its bridge law `foldSL_natSL`
+    all live in the ONE unified `ProgEval` (`rel/RelInterp`) — used here via `open ProgEval`. -/
 
 /-! ## L62 — unique paths: the DP row folded down the grid's `m` axis
 
