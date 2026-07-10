@@ -1,7 +1,7 @@
 name = "fredy"
 version = "0.1.0"
 keywords = ["math"]
-defaultTargets = ["Fredy"]
+defaultTargets = ["Fredy", "AOP", "leet", "rel"]
 
 [leanOptions]
 pp.unicode.fun = true # pretty-prints `fun a ↦ b`
@@ -11,4 +11,17 @@ weak.linter.mathlibStandardSet = true
 maxSynthPendingDepth = 3
 
 [[lean_lib]]
-name = "Fredy"
+name = "Fredy"           # book core: curated aggregator Fredy.lean stays the single root (no glob,
+                         # to avoid force-building the deliberately un-imported orphan scaffolding)
+
+[[lean_lib]]
+name = "AOP"             # Algebra-of-Programming layer; glob so every AOP/*.lean is in the default build
+globs = ["AOP.+"]
+
+[[lean_lib]]
+name = "leet"            # LeetCode case studies
+globs = ["leet.+"]
+
+[[lean_lib]]
+name = "rel"             # the relation-algebra interpreter + case studies + auto-derivation drivers
+globs = ["rel.+"]

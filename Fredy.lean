@@ -200,111 +200,111 @@ import Fredy.S2_158e_InstanceBound
 import Fredy.S2_33
 import Fredy.S1_631_CapitalProjective
 -- Bird & de Moor, Algebra of Programming, ch. 4 (only material not already in Freyd S2_*)
-import Fredy.A4_1
-import Fredy.A4_2
-import Fredy.A4_3
-import Fredy.A4_4
-import Fredy.A4_5
-import Fredy.A4_6
+import AOP.A4_1
+import AOP.A4_2
+import AOP.A4_3
+import AOP.A4_4
+import AOP.A4_5
+import AOP.A4_6
 -- Bird & de Moor ch. 5: relators and datatypes in allegories
-import Fredy.A5_1
-import Fredy.A5_2
-import Fredy.A5_3
-import Fredy.A5_4
-import Fredy.A5_5
-import Fredy.A5_6
-import Fredy.A5_7
+import AOP.A5_1
+import AOP.A5_2
+import AOP.A5_3
+import AOP.A5_4
+import AOP.A5_5
+import AOP.A5_6
+import AOP.A5_7
 -- Bird & de Moor ch. 6: recursive programs (fixed points, hylomorphisms, closure)
-import Fredy.A6_2
-import Fredy.A6_3
-import Fredy.A6_5
-import Fredy.A6_7
+import AOP.A6_2
+import AOP.A6_3
+import AOP.A6_5
+import AOP.A6_7
 -- Bird & de Moor ch. 7: optimisation problems (min/max, monotonic algebras, greedy theorem)
-import Fredy.A7_1
-import Fredy.A7_2
+import AOP.A7_1
+import AOP.A7_2
 -- Bird & de Moor ch. 8: thinning algorithms (thin, thinning theorem)
-import Fredy.A8_1
+import AOP.A8_1
 -- Bird & de Moor ch. 9: dynamic programming (principle of optimality, DP + thinning theorems)
-import Fredy.A9_1
+import AOP.A9_1
 -- Beyond B&dM: ∞-completed dynamic programming (dead branches via a top-valued fallback;
--- fixes Theorem 9.1's Egli–Milner gap on value-axis DPs — instantiated in Fredy.L322_dp)
-import Fredy.A9_2
+-- fixes Theorem 9.1's Egli–Milner gap on value-axis DPs — instantiated in leet.L322_dp)
+import AOP.A9_2
 -- Bird & de Moor ch. 10: greedy algorithms (Theorem 10.1 — greedy as extreme dynamic programming)
-import Fredy.A10_1
+import AOP.A10_1
 -- Concrete model Rel(Set) for the AoP case studies (objects = types, morphisms = relations):
 -- the full allegory stack (power/LCDA/tabular/unitary) in which the §6.1+ programs actually run.
-import Fredy.A6_1_RelSet
+import AOP.A6_1_RelSet
 -- Bird & de Moor §6.1: Digits of a number — Decimal as an initial algebra of `F A = Digit⁺ + A×Digit`,
 -- the reading catamorphism `val`, and the recursive equation for `val°` (first worked AoP program).
-import Fredy.A6_1_Digits
+import AOP.A6_1_Digits
 -- Generic snoc-list datatype `SnocList L E = L + (·)×E` as an initial algebra (reusable engine).
-import Fredy.A6_SnocList
+import AOP.A6_SnocList
 -- Bird & de Moor §6.4: fast exponentiation/modulus — `exp`/`mod` as hylomorphisms over the binary
 -- datatype `Bin = SnocList Unit Bit`, giving the O(log) divide-and-conquer least fixed point.
-import Fredy.A6_4_FastExp
+import AOP.A6_4_FastExp
 -- Generic cons-list `ConsList L E = L + E×(·)` (head/tail) as an initial algebra; `list A = ConsList Unit A`.
-import Fredy.A6_ConsList
+import AOP.A6_ConsList
 -- Bird & de Moor §6.6: sorting by selection — `sort = ⦇[nil, select°]⦈°` (converse of a catamorphism)
 -- with its recursion; correctness `sort ⊆ ordered·perm` by fusion (given the select proviso).
-import Fredy.A6_6_Sort
+import AOP.A6_6_Sort
 -- Bird & de Moor §7.3: planning a company party — `choose` monotonicity + party planning solved by
 -- the greedy theorem (`greedy_max`); the rose-tree datatype `tree A = node(A, list(tree A))` deferred.
-import Fredy.A7_3_Party
+import AOP.A7_3_Party
 -- Bird & de Moor §5.6: combinatorial list relations — perm/prefix/subseq/inlist over `list A = ConsList
 -- Unit A`, with reflexivity/symmetry/transitivity (the coalgebra/spec layer for the case studies).
-import Fredy.A5_6_ListCombinators
+import AOP.A5_6_ListCombinators
 -- Bird & de Moor §6.6 FULLY CONCRETE: selection sort correctness with NO hypotheses — concrete
 -- `select`/ordered algebra + the fusion proviso discharged via the §5.6 `perm`/`inlist`.
-import Fredy.A6_6b_SortConcrete
+import AOP.A6_6b_SortConcrete
 -- Bird & de Moor §10.2: detab-entab — the tupled catamorphism `(detab, col·detab) = ⦇[base,step]⦈`
 -- over snoc-lists of chars, with its loop recursion (base/step case).
-import Fredy.A10_2_Detab
+import AOP.A10_2_Detab
 -- Bird & de Moor §8.4: the knapsack problem — binary thinning; `knapsack_thinning` = the thinning
 -- theorem `thinning_min` instantiated (selections=subsequences, order by value, thin by weight).
-import Fredy.A8_4_Knapsack
+import AOP.A8_4_Knapsack
 -- Bird & de Moor case studies §7.4–§10.4 (each = the relevant abstract optimisation theorem —
 -- greedy/thinning/DP — instantiated for the problem; concrete problem-specific data deferred).
-import Fredy.A7_4_Cylinder
-import Fredy.A7_5_SecurityVan
-import Fredy.A8_2_LayeredNetwork
-import Fredy.A8_3_ImplementingThin
-import Fredy.A8_5_Paragraph
-import Fredy.A8_6_Bitonic
-import Fredy.A9_2_StringEdit
-import Fredy.A9_3_Bracketing
-import Fredy.A9_4_Compression
-import Fredy.A10_3_Tardiness
-import Fredy.A10_4_TeX
+import AOP.A7_4_Cylinder
+import AOP.A7_5_SecurityVan
+import AOP.A8_2_LayeredNetwork
+import AOP.A8_3_ImplementingThin
+import AOP.A8_5_Paragraph
+import AOP.A8_6_Bitonic
+import AOP.A9_2_StringEdit
+import AOP.A9_3_Bracketing
+import AOP.A9_4_Compression
+import AOP.A10_3_Tardiness
+import AOP.A10_4_TeX
 -- LeetCode 121 (Best Time to Buy and Sell Stock) — programmed in the allegory Rel(Set): the O(n)
 -- scan as a snoc-list catamorphism, proven equal to max(≤)·Λspec.  Uses the copied `exacts` tactic.
 import Fredy.Exacts
-import Fredy.L121
+import leet.L121
 -- LeetCode 322 (Coin Change) re-derived through the ∞-DP theorem `A9_2.dynamic_programming_inf`:
 -- the value-axis DP whose optimality now comes from the A-layer, not a hand fuel-induction.
-import Fredy.L322_dp
+import leet.L322_dp
 -- A relation-algebra INTERPRETER: a term AST + two sound evaluators — `eval` into finite Bool
 -- matrices (`FinRel`, a proven allegory ⇒ soundness free; runs ground terms + the exponential
 -- powerset specs) and `evalP`, a structural fold running the derived catamorphism programs in
 -- polynomial time — bridged by the proven `solve = A spec ≫ maxRel D` (differential testing).
-import Fredy.RelInterp
+import rel.RelInterp
 -- Auto-derive: a generic driver theorem `RunningBest` that discharges every `horner_correct` side
 -- condition (monotonicity, greedy refinement, order transitivity) from 8 one-line arithmetic facts,
 -- so a new running-best-pair greedy problem supplies only its creative inputs (pair state + generator
 -- + dominance order), not the ~100 lines of relational boilerplate. Kadane (L53) is derived through it.
-import Fredy.AutoDerive
-import Fredy.L53
+import rel.AutoDerive
+import leet.L53
 -- Auto-derive increment 2: DP drivers (`DPInf` ∞-DP + `DPCount` step-counting) that discharge every
 -- `dynamic_programming_inf` hypothesis + the concrete memo packaging from a small bundle. Cuts
 -- `L322_dp` 518→189 lines; reused fresh on `L279` (Perfect Squares).
-import Fredy.AutoDeriveDP
-import Fredy.L279
+import rel.AutoDeriveDP
+import leet.L279
 -- Thread B — propose→test→certify glue: enumerate candidate program shapes from a catalog, TEST each
 -- (run the spec `A spec ≫ maxRel D` via FinRel.eval vs the candidate fold via evalP) to auto-select
 -- the correct shape, then CERTIFY the winner via `RunningBest`. Demo picks L121's pair program (proved
 -- `= prog121` by rfl) after rejecting 17 wrong shapes. Soundness caveat: the runnable-spec ↔ Rel(Set)-
 -- spec link is by construction, not yet a Lean proof (the spec-transport gap, next to close).
-import Fredy.AutoDeriveSearch
+import rel.AutoDeriveSearch
 -- Auto-derive: thinning driver (`ThinBest`) — discharges Theorem-8.1/Cor-8.1 side conditions + a
 -- verified generic Pareto prune (`thinList`, closing §8.3's deferred implementation) + the set-valued
 -- fold-bridge. Demo closes B&dM §8.4's concrete 0/1-knapsack binary-thinning program (was only abstract).
-import Fredy.AutoDeriveThin
+import rel.AutoDeriveThin

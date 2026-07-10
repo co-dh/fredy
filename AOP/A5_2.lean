@@ -1,0 +1,420 @@
+/-
+  Bird & de Moor, *Algebra of Programming* §5.2  Relational products (book pp. 113-116).
+
+  The relational product `a Π b` of two objects is a chosen tabulation of the maximal
+  arrow `⊤ : a → b` (book p.114: "(outl, outr) tabulates Π").  Pairing `⟨R,S⟩`, the
+  binary map-former `R×S`, and their laws (5.1)-(5.9) are built from this single choice.
+
+  Diagram order throughout: `xy` means "first x then y" (`≫`), matching the book's own
+  right-to-left composition after mirroring (`X·Y` there = `Y ≫ X` here).  Every
+  statement below is already in the mirrored form; do not re-translate.
+
+  Setting: a TABULAR UNITARY DIVISION ALLEGORY (`Fredy.S2_3`), which supplies `topMor`
+  (the maximal arrow `⊤ : a → b`, via the unit projections) and full tabulation
+  (`TabularAllegory.tabular`).
+
+  Investigated `Fredy.S2_147_MapCat`'s `mapHasBinaryProducts` (binary products of
+  `Map(𝒜)`, built as a pullback over the terminal/unit object): conceptually this is
+  the SAME universal apex as tabulating `topMor a b` (pulling back the two unit maps
+  `p_a, p_b` IS tabulating `p_a ≫ p_b° = topMor a b`), confirming `RelProd` needs no new
+  axioms.  Not reused literally: that construction is expressed through the heavy
+  `HasPullback`/`Cone`/`MapObj`/`@`-explicit categorical machinery (built for the
+  `Map(𝒜)` CATEGORY, with objects packaged as `{f // Map f}` subtypes), whereas `RelProd`
+  needs the raw `𝒜`-level legs directly.  Unwinding `Cone.π₁.val` etc. would be strictly
+  more code than mirroring `S2_3.topTab`'s direct `TabularAllegory.tabular (topMor a b)`
+  pattern, which is what `relProd` below does.
+-/
+import Fredy.S2_3
+import AOP.A4_2
+import AOP.A5_1
+
+universe u
+
+namespace Freyd.Alg
+
+variable {𝒜 : Type u} [TabularUnitaryDivisionAllegory 𝒜]
+
+/-! ## `topMor` is self-converse under swap (needed for (5.6)/(5.7)) -/
+
+/-- `(⊤ : a → b)° = ⊤ : b → a`.  Immediate from `topMor`'s definition as `p_a ≫ p_b°`. -/
+theorem recip_topMor (a b : 𝒜) : (topMor a b)° = topMor b a := by
+  unfold topMor
+  rw [Allegory.recip_comp, Allegory.recip_recip]
+
+/-! ## §5.2  The relational product `RelProd a b` (book p.114)
+
+  A RelProd is a CHOSEN tabulation of `⊤ : a → b`: an apex `p` with legs
+  `outl : p ⟶ a`, `outr : p ⟶ b` that are MAPS, tabulating the maximal arrow. -/
+
+/-- A **RELATIONAL PRODUCT** of `a`, `b` (B&dM §5.2, book p.114): a chosen tabulation
+    of the maximal arrow `⊤ : a → b` by maps `outl : p → a`, `outr : p → b`. -/
+structure RelProd (a b : 𝒜) where
+  /-- The apex (the product object, `a Π b`). -/
+  p : 𝒜
+  /-- Left projection. -/
+  outl : p ⟶ a
+  /-- Right projection. -/
+  outr : p ⟶ b
+  /-- `(outl, outr)` tabulates the maximal arrow `⊤ : a → b`. -/
+  tab : Tabulates outl outr (topMor a b)
+
+variable {a b a' b' c : 𝒜}
+
+theorem RelProd.outl_map (P : RelProd a b) : Map P.outl := P.tab.1
+
+theorem RelProd.outr_map (P : RelProd a b) : Map P.outr := P.tab.2.1
+
+/-- `outl° ≫ outr = ⊤` (the tabulation equation). -/
+theorem RelProd.eq_topMor (P : RelProd a b) : P.outl° ≫ P.outr = topMor a b := P.tab.2.2.1.symm
+
+/-- The joint-monic identity `outl≫outl° ∩ outr≫outr° = id_p`. -/
+theorem RelProd.joint_id (P : RelProd a b) :
+    P.outl ≫ P.outl° ∩ P.outr ≫ P.outr° = Cat.id P.p := P.tab.2.2.2
+
+/-- `outr° ≫ outl = ⊤ : b → a` — the "other" cross term, obtained from `eq_topMor` by
+    reciprocation plus `recip_topMor`. -/
+theorem RelProd.outr_recip_outl (P : RelProd a b) : P.outr° ≫ P.outl = topMor b a := by
+  have h := congrArg Allegory.recip P.eq_topMor
+  rwa [Allegory.recip_comp, Allegory.recip_recip, recip_topMor] at h
+
+/-- The canonical relational product, obtained by tabulating `⊤ : a → b` (mirrors
+    `S2_3.topTab`'s choice pattern). -/
+noncomputable def relProd (a b : 𝒜) : RelProd a b :=
+  let t := TabularAllegory.tabular (topMor a b)
+  { p := t.choose
+    outl := t.choose_spec.choose
+    outr := t.choose_spec.choose_spec.choose
+    tab := t.choose_spec.choose_spec.choose_spec }
+
+/-! ## Two generic `topMor`-cancellation facts, used repeatedly below -/
+
+/-- `id_c ∩ (S ≫ ⊤) ⊑ dom S`, for `S : c ⟶ b`.
+    (B&dM Ex 4.27-style fact, mirrored; the generic half of (5.6)/(5.7)'s proof.) -/
+theorem id_inter_comp_topMor_le_dom {b c : 𝒜} (S : c ⟶ b) :
+    Cat.id c ∩ (S ≫ topMor b c) ⊑ dom S := by
+  show Cat.id c ∩ (S ≫ topMor b c) ⊑ Cat.id c ∩ (S ≫ S°)
+  apply le_inter (inter_lb_left _ _)
+  have hSle : S° ⊑ topMor b c := topMor_max S°
+  have hcomm : topMor b c ∩ S° = S° := by rw [Allegory.inter_comm]; exact hSle
+  have hmod : (S ≫ topMor b c) ∩ Cat.id c ⊑ S ≫ (topMor b c ∩ S° ≫ Cat.id c) :=
+    modular_le_right S (topMor b c) (Cat.id c)
+  rw [Cat.comp_id, hcomm] at hmod
+  calc Cat.id c ∩ (S ≫ topMor b c) = (S ≫ topMor b c) ∩ Cat.id c := Allegory.inter_comm _ _
+    _ ⊑ S ≫ S° := hmod
+
+/-- **Key fact**: `R ∩ (S ≫ ⊤) = dom S ≫ R`, for `R : c ⟶ a`, `S : c ⟶ b`.  The generic
+    engine behind (5.6)/(5.7): B&dM Exercise 4.27 mirrored. -/
+theorem inter_comp_topMor_eq_dom_comp {a b c : 𝒜} (R : c ⟶ a) (S : c ⟶ b) :
+    R ∩ (S ≫ topMor b a) = dom S ≫ R := by
+  apply le_antisymm
+  · have h1 : (Cat.id c ≫ R) ∩ (S ≫ topMor b a) ⊑
+        (Cat.id c ∩ (S ≫ topMor b a) ≫ R°) ≫ R := modular_le (Cat.id c) R (S ≫ topMor b a)
+    rw [Cat.id_comp] at h1
+    have h2 : (S ≫ topMor b a) ≫ R° ⊑ S ≫ topMor b c :=
+      by rw [Cat.assoc]; exact comp_mono_left S (topMor_max (topMor b a ≫ R°))
+    have h3 : Cat.id c ∩ ((S ≫ topMor b a) ≫ R°) ⊑ Cat.id c ∩ (S ≫ topMor b c) :=
+      le_inter (inter_lb_left _ _) (le_trans (inter_lb_right _ _) h2)
+    exact le_trans h1 (comp_mono_right (le_trans h3 (id_inter_comp_topMor_le_dom S)) R)
+  · apply le_inter
+    · have h := comp_mono_right (dom_coreflexive S) R; rwa [Cat.id_comp] at h
+    · have h1 : dom S ≫ R ⊑ (S ≫ S°) ≫ R :=
+        comp_mono_right (inter_lb_right (Cat.id c) (S ≫ S°)) R
+      have h2 : (S ≫ S°) ≫ R = S ≫ (S° ≫ R) := Cat.assoc S S° R
+      have h3 : S ≫ (S° ≫ R) ⊑ S ≫ topMor b a := comp_mono_left S (topMor_max (S° ≫ R))
+      rw [h2] at h1; exact le_trans h1 h3
+
+/-! ## (5.1)  Pairing -/
+
+/-- **(5.1)**: `⟨R,S⟩ = (outl°R) ∩ (outr°S)`, mirrored: `pair R S = (R≫outl°) ∩ (S≫outr°)`. -/
+def RelProd.pair (P : RelProd a b) (R : c ⟶ a) (S : c ⟶ b) : c ⟶ P.p :=
+  (R ≫ P.outl°) ∩ (S ≫ P.outr°)
+
+/-! ## (5.2)  The binary map-former `R×S` -/
+
+/-- **(5.2)**: `R×S = ⟨R·outl, S·outr⟩`, mirrored: `prodMap P Q R S = Q.pair (P.outl≫R) (P.outr≫S)`. -/
+def prodMap (P : RelProd a b) (Q : RelProd a' b') (R : a ⟶ a') (S : b ⟶ b') : P.p ⟶ Q.p :=
+  Q.pair (P.outl ≫ R) (P.outr ≫ S)
+
+/-! ## Monotonicity -/
+
+theorem RelProd.pair_mono {P : RelProd a b} {R R' : c ⟶ a} {S S' : c ⟶ b}
+    (hR : R ⊑ R') (hS : S ⊑ S') : P.pair R S ⊑ P.pair R' S' :=
+  le_inter (le_trans (inter_lb_left _ _) (comp_mono_right hR _))
+    (le_trans (inter_lb_right _ _) (comp_mono_right hS _))
+
+theorem prodMap_mono {P : RelProd a b} {Q : RelProd a' b'} {R R' : a ⟶ a'} {S S' : b ⟶ b'}
+    (hR : R ⊑ R') (hS : S ⊑ S') : prodMap P Q R S ⊑ prodMap P Q R' S' :=
+  Q.pair_mono (comp_mono_left P.outl hR) (comp_mono_left P.outr hS)
+
+/-! ## (5.6)/(5.7)  Cancellation of pairing against `outl`/`outr` -/
+
+/-- **(5.6)**: `⟨R,S⟩·outl = dom S · R`, mirrored: `pair R S ≫ outl = dom S ≫ R`. -/
+theorem RelProd.pair_outl {P : RelProd a b} (R : c ⟶ a) (S : c ⟶ b) :
+    P.pair R S ≫ P.outl = dom S ≫ R := by
+  have step1 : P.pair R S = S ≫ P.outr° ∩ R ≫ P.outl° := by
+    show (R ≫ P.outl° ∩ S ≫ P.outr°) = _; rw [Allegory.inter_comm]
+  rw [step1, simple_modular_eq P.outl_map.2 (S ≫ P.outr°) R, Cat.assoc, P.outr_recip_outl,
+    Allegory.inter_comm]
+  exact inter_comp_topMor_eq_dom_comp R S
+
+/-- **(5.7)**: `⟨R,S⟩·outr = dom R · S`, mirrored: `pair R S ≫ outr = dom R ≫ S`. -/
+theorem RelProd.pair_outr {P : RelProd a b} (R : c ⟶ a) (S : c ⟶ b) :
+    P.pair R S ≫ P.outr = dom R ≫ S := by
+  show (R ≫ P.outl° ∩ S ≫ P.outr°) ≫ P.outr = dom R ≫ S
+  rw [simple_modular_eq P.outr_map.2 (R ≫ P.outl°) S, Cat.assoc, P.eq_topMor, Allegory.inter_comm]
+  exact inter_comp_topMor_eq_dom_comp S R
+
+/-! ## The pairing Galois connection
+
+  `Z ⊑ pair U V ↔ Z≫outl ⊑ U ∧ Z≫outr ⊑ V`: `pair U V` is the GREATEST morphism whose
+  two projections are bounded by `U`, `V`.  The clean characterization behind most of
+  the calculations below. -/
+
+theorem RelProd.le_pair_iff {P : RelProd a b} {Z : c ⟶ P.p} {U : c ⟶ a} {V : c ⟶ b} :
+    Z ⊑ P.pair U V ↔ Z ≫ P.outl ⊑ U ∧ Z ≫ P.outr ⊑ V := by
+  constructor
+  · intro h
+    exact ⟨(map_shunt_right P.outl_map Z U).mpr (le_trans h (inter_lb_left _ _)),
+      (map_shunt_right P.outr_map Z V).mpr (le_trans h (inter_lb_right _ _))⟩
+  · rintro ⟨h1, h2⟩
+    exact le_inter ((map_shunt_right P.outl_map Z U).mp h1) ((map_shunt_right P.outr_map Z V).mp h2)
+
+/-! ## `pair` of two maps is a map, and Ex 5.9
+
+  Pairing two MAPS is a map (via the tabulation UP), and pairing commutes with LEFT
+  composition by a map (Ex 5.9, via `simple_dist_inter`).  The absorption laws
+  (5.3)/(5.4)/(5.5) and the cancellation law (5.8) follow B&dM p.115's staged proof at
+  the end of this file: two `outl`/`outr` claims, then the modular-law special cases
+  (5.4)/(5.5), then the composite chain. -/
+
+/-- `pair f g` of two MAPS `f, g` is again a MAP: it is literally the mediating witness
+    of the tabulation universal property (`tabulation_UP_forward_witness`) applied to
+    `f°≫g ⊑ ⊤` (always true, `topMor_max`). -/
+theorem RelProd.pair_map {P : RelProd a b} {f : c ⟶ a} {g : c ⟶ b}
+    (hf : Map f) (hg : Map g) : Map (P.pair f g) :=
+  (tabulation_UP_forward_witness P.tab hf hg (topMor_max (f° ≫ g))).1
+
+/-- **Ex 5.9**: for a MAP `f : d ⟶ c`, `f ≫ ⟨R,S⟩ = ⟨f≫R, f≫S⟩`, mirrored:
+    `f ≫ P.pair R S = P.pair (f≫R) (f≫S)`.  `f` being simple lets composition
+    distribute exactly over the defining meet (`simple_dist_inter`). -/
+theorem RelProd.map_comp_pair {P : RelProd a b} {d : 𝒜} {f : d ⟶ c} (hf : Map f)
+    (R : c ⟶ a) (S : c ⟶ b) : f ≫ P.pair R S = P.pair (f ≫ R) (f ≫ S) := by
+  show f ≫ (R ≫ P.outl° ∩ S ≫ P.outr°) = (f ≫ R) ≫ P.outl° ∩ (f ≫ S) ≫ P.outr°
+  rw [simple_dist_inter hf.2, Cat.assoc, Cat.assoc]
+
+/-! ## Ex 5.6:  functoriality shape of `prodMap` — identity and converse -/
+
+/-- `prodMap` of the two identities is the identity, via the joint-monic identity. -/
+theorem prodMap_id (P : RelProd a b) :
+    prodMap P P (Cat.id a) (Cat.id b) = Cat.id P.p := by
+  show P.pair (P.outl ≫ Cat.id a) (P.outr ≫ Cat.id b) = Cat.id P.p
+  rw [Cat.comp_id, Cat.comp_id]
+  show P.outl ≫ P.outl° ∩ P.outr ≫ P.outr° = Cat.id P.p
+  exact P.joint_id
+
+/-- `(R×S)° = S°×R°` reading the OTHER way round, mirrored: `(prodMap P Q R S)° =
+    prodMap Q P R° S°` — a direct computation from the definitions via `recip_inter`/
+    `recip_comp`, no absorption needed. -/
+theorem prodMap_recip {P : RelProd a b} {Q : RelProd a' b'} (R : a ⟶ a') (S : b ⟶ b') :
+    (prodMap P Q R S)° = prodMap Q P R° S° := by
+  show ((P.outl ≫ R) ≫ Q.outl° ∩ (P.outr ≫ S) ≫ Q.outr°)° =
+      (Q.outl ≫ R°) ≫ P.outl° ∩ (Q.outr ≫ S°) ≫ P.outr°
+  rw [Allegory.recip_inter, Allegory.recip_comp, Allegory.recip_comp,
+    Allegory.recip_comp, Allegory.recip_comp, Allegory.recip_recip, Allegory.recip_recip,
+    Cat.assoc, Cat.assoc]
+
+/-! ## (5.3)/(5.4)/(5.5)  The absorption laws (book pp.114-115)
+
+  B&dM prove the absorption property `(R×S)·⟨X,Y⟩ = ⟨R·X,S·Y⟩` (5.3) in stages: first two
+  "claims" (`outl·(R×id) = R·outl` and `outr·(R×S) ⊑ S·outr`), then the special cases
+  (5.4)/(5.5) with one identity factor via the modular law, then the composite chain
+  through an intermediate relational product.  Everything below is mirrored to diagram
+  order: `pair X Y ≫ prodMap P Q R S = pair (X≫R) (Y≫S)`. -/
+
+/-- Book p.115 claim: `outr·(R×S) ⊑ S·outr`, mirrored: `(R×S) ≫ Q.outr ⊑ P.outr ≫ S`.
+    From (5.7) and `dom ⊑ id`. -/
+theorem prodMap_outr_le (P : RelProd a b) (Q : RelProd a' b') (R : a ⟶ a') (S : b ⟶ b') :
+    prodMap P Q R S ≫ Q.outr ⊑ P.outr ≫ S := by
+  show Q.pair (P.outl ≫ R) (P.outr ≫ S) ≫ Q.outr ⊑ P.outr ≫ S
+  rw [RelProd.pair_outr]
+  have h := comp_mono_right (dom_coreflexive (P.outl ≫ R)) (P.outr ≫ S)
+  rwa [Cat.id_comp] at h
+
+/-- Mirror of the previous claim on the left leg: `(R×S) ≫ Q.outl ⊑ P.outl ≫ R`. -/
+theorem prodMap_outl_le (P : RelProd a b) (Q : RelProd a' b') (R : a ⟶ a') (S : b ⟶ b') :
+    prodMap P Q R S ≫ Q.outl ⊑ P.outl ≫ R := by
+  show Q.pair (P.outl ≫ R) (P.outr ≫ S) ≫ Q.outl ⊑ P.outl ≫ R
+  rw [RelProd.pair_outl]
+  have h := comp_mono_right (dom_coreflexive (P.outr ≫ S)) (P.outl ≫ R)
+  rwa [Cat.id_comp] at h
+
+/-- Book p.115 claim: `outl·(R×id) = R·outl` — with the identity in the second slot the
+    `dom` factor of (5.6) is the identity (`outr` is entire), so the bound sharpens to an
+    equality.  Mirrored: `(R×id) ≫ Q.outl = P.outl ≫ R`. -/
+theorem prodMap_id_outl (P : RelProd a b) (Q : RelProd a' b) (R : a ⟶ a') :
+    prodMap P Q R (Cat.id b) ≫ Q.outl = P.outl ≫ R := by
+  have hdom : dom (P.outr ≫ Cat.id b) = Cat.id P.p := by rw [Cat.comp_id]; exact P.outr_map.1
+  show Q.pair (P.outl ≫ R) (P.outr ≫ Cat.id b) ≫ Q.outl = P.outl ≫ R
+  rw [RelProd.pair_outl, hdom, Cat.id_comp]
+
+/-- Mirror on the right leg: `(id×S) ≫ Q.outr = P.outr ≫ S`. -/
+theorem prodMap_id_outr (P : RelProd a b) (Q : RelProd a b') (S : b ⟶ b') :
+    prodMap P Q (Cat.id a) S ≫ Q.outr = P.outr ≫ S := by
+  have hdom : dom (P.outl ≫ Cat.id a) = Cat.id P.p := by rw [Cat.comp_id]; exact P.outl_map.1
+  show Q.pair (P.outl ≫ Cat.id a) (P.outr ≫ S) ≫ Q.outr = P.outr ≫ S
+  rw [RelProd.pair_outr, hdom, Cat.id_comp]
+
+/-- Claim 1 reciprocated: `R ≫ Q.outl° = P.outl° ≫ (R×id)` — the rewrite that pushes a
+    relation across the products' left legs in (5.4)'s proof. -/
+theorem outl_recip_prodMap (P : RelProd a b) (Q : RelProd a' b) (R : a ⟶ a') :
+    R ≫ Q.outl° = P.outl° ≫ prodMap P Q R (Cat.id b) := by
+  have h := congrArg Allegory.recip (prodMap_id_outl Q P R°)
+  rw [Allegory.recip_comp, Allegory.recip_comp, prodMap_recip, recip_id,
+    Allegory.recip_recip] at h
+  exact h.symm
+
+/-- Mirror: `S ≫ Q.outr° = P.outr° ≫ (id×S)`. -/
+theorem outr_recip_prodMap (P : RelProd a b) (Q : RelProd a b') (S : b ⟶ b') :
+    S ≫ Q.outr° = P.outr° ≫ prodMap P Q (Cat.id a) S := by
+  have h := congrArg Allegory.recip (prodMap_id_outr Q P S°)
+  rw [Allegory.recip_comp, Allegory.recip_comp, prodMap_recip, recip_id,
+    Allegory.recip_recip] at h
+  exact h.symm
+
+/-- Claim 2 reciprocated: `P.outr° ≫ (R×S) ⊑ S ≫ Q.outr°`. -/
+theorem recip_outr_prodMap_le (P : RelProd a b) (Q : RelProd a' b') (R : a ⟶ a') (S : b ⟶ b') :
+    P.outr° ≫ prodMap P Q R S ⊑ S ≫ Q.outr° := by
+  have h := recip_mono (prodMap_outr_le Q P R° S°)
+  rw [Allegory.recip_comp, Allegory.recip_comp, prodMap_recip, Allegory.recip_recip,
+    Allegory.recip_recip] at h
+  exact h
+
+/-- Mirror: `P.outl° ≫ (R×S) ⊑ R ≫ Q.outl°`. -/
+theorem recip_outl_prodMap_le (P : RelProd a b) (Q : RelProd a' b') (R : a ⟶ a') (S : b ⟶ b') :
+    P.outl° ≫ prodMap P Q R S ⊑ R ≫ Q.outl° := by
+  have h := recip_mono (prodMap_outl_le Q P R° S°)
+  rw [Allegory.recip_comp, Allegory.recip_comp, prodMap_recip, Allegory.recip_recip,
+    Allegory.recip_recip] at h
+  exact h
+
+/-- **(5.4)**, sharpened to an equality: `⟨R·X, Y⟩ = (R×id)·⟨X,Y⟩`, mirrored:
+    `P.pair X Y ≫ (R×id) = Q.pair (X≫R) Y`.  B&dM prove `⊒` by the modular law (the
+    tricky half, book p.115); `⊑` is the routine `le_pair_iff` computation. -/
+theorem RelProd.pair_prodMap_fst {P : RelProd a b} {Q : RelProd a' b}
+    (X : c ⟶ a) (Y : c ⟶ b) (R : a ⟶ a') :
+    P.pair X Y ≫ prodMap P Q R (Cat.id b) = Q.pair (X ≫ R) Y := by
+  apply le_antisymm
+  · apply RelProd.le_pair_iff.mpr
+    constructor
+    · rw [Cat.assoc, prodMap_id_outl, ← Cat.assoc, RelProd.pair_outl]
+      have h := comp_mono_right (comp_mono_right (dom_coreflexive Y) X) R
+      rwa [Cat.id_comp] at h
+    · have h1 : prodMap P Q R (Cat.id b) ≫ Q.outr ⊑ P.outr := by
+        have h := prodMap_outr_le P Q R (Cat.id b); rwa [Cat.comp_id] at h
+      have h2 := comp_mono_left (P.pair X Y) h1
+      rw [RelProd.pair_outr] at h2
+      have h3 := comp_mono_right (dom_coreflexive X) Y
+      rw [Cat.id_comp] at h3
+      rw [Cat.assoc]
+      exact le_trans h2 h3
+  · have hexp : Q.pair (X ≫ R) Y =
+        ((X ≫ P.outl°) ≫ prodMap P Q R (Cat.id b)) ∩ (Y ≫ Q.outr°) := by
+      show ((X ≫ R) ≫ Q.outl°) ∩ (Y ≫ Q.outr°) = _
+      rw [Cat.assoc, outl_recip_prodMap P Q R, ← Cat.assoc]
+    have hMr : (Y ≫ Q.outr°) ≫ (prodMap P Q R (Cat.id b))° ⊑ Y ≫ P.outr° := by
+      rw [prodMap_recip, recip_id, Cat.assoc]
+      apply comp_mono_left Y
+      have h := recip_outr_prodMap_le Q P R° (Cat.id b)
+      rwa [Cat.id_comp] at h
+    have hsub : (X ≫ P.outl°) ∩ ((Y ≫ Q.outr°) ≫ (prodMap P Q R (Cat.id b))°) ⊑ P.pair X Y :=
+      le_inter (inter_lb_left _ _) (le_trans (inter_lb_right _ _) hMr)
+    rw [hexp]
+    exact le_trans (modular_le (X ≫ P.outl°) (prodMap P Q R (Cat.id b)) (Y ≫ Q.outr°))
+      (comp_mono_right hsub _)
+
+/-- **(5.5)**, sharpened to an equality: `⟨X, S·Y⟩ = (id×S)·⟨X,Y⟩`, mirrored:
+    `P.pair X Y ≫ (id×S) = Q.pair X (Y≫S)`.  Symmetric to (5.4). -/
+theorem RelProd.pair_prodMap_snd {P : RelProd a b} {Q : RelProd a b'}
+    (X : c ⟶ a) (Y : c ⟶ b) (S : b ⟶ b') :
+    P.pair X Y ≫ prodMap P Q (Cat.id a) S = Q.pair X (Y ≫ S) := by
+  apply le_antisymm
+  · apply RelProd.le_pair_iff.mpr
+    constructor
+    · have h1 : prodMap P Q (Cat.id a) S ≫ Q.outl ⊑ P.outl := by
+        have h := prodMap_outl_le P Q (Cat.id a) S; rwa [Cat.comp_id] at h
+      have h2 := comp_mono_left (P.pair X Y) h1
+      rw [RelProd.pair_outl] at h2
+      have h3 := comp_mono_right (dom_coreflexive Y) X
+      rw [Cat.id_comp] at h3
+      rw [Cat.assoc]
+      exact le_trans h2 h3
+    · rw [Cat.assoc, prodMap_id_outr, ← Cat.assoc, RelProd.pair_outr]
+      have h := comp_mono_right (comp_mono_right (dom_coreflexive X) Y) S
+      rwa [Cat.id_comp] at h
+  · have hexp : Q.pair X (Y ≫ S) =
+        (X ≫ Q.outl°) ∩ ((Y ≫ P.outr°) ≫ prodMap P Q (Cat.id a) S) := by
+      show (X ≫ Q.outl°) ∩ ((Y ≫ S) ≫ Q.outr°) = _
+      rw [Cat.assoc, outr_recip_prodMap P Q S, ← Cat.assoc]
+    have hMl : (X ≫ Q.outl°) ≫ (prodMap P Q (Cat.id a) S)° ⊑ X ≫ P.outl° := by
+      rw [prodMap_recip, recip_id, Cat.assoc]
+      apply comp_mono_left X
+      have h := recip_outl_prodMap_le Q P (Cat.id a) S°
+      rwa [Cat.id_comp] at h
+    have hsub : (Y ≫ P.outr°) ∩ ((X ≫ Q.outl°) ≫ (prodMap P Q (Cat.id a) S)°) ⊑ P.pair X Y :=
+      le_inter (le_trans (inter_lb_right _ _) hMl) (inter_lb_left _ _)
+    rw [hexp, Allegory.inter_comm]
+    exact le_trans (modular_le (Y ≫ P.outr°) (prodMap P Q (Cat.id a) S) (X ≫ Q.outl°))
+      (comp_mono_right hsub _)
+
+/-- B&dM p.115 "exercise" step, as an equality: `(R×id) ≫ (id×S) = R×S` — immediate from
+    (5.5) applied to the pair that DEFINES `R×id`. -/
+theorem prodMap_factor (P : RelProd a b) (M : RelProd a' b) (Q : RelProd a' b')
+    (R : a ⟶ a') (S : b ⟶ b') :
+    prodMap P M R (Cat.id b) ≫ prodMap M Q (Cat.id a') S = prodMap P Q R S := by
+  show M.pair (P.outl ≫ R) (P.outr ≫ Cat.id b) ≫ prodMap M Q (Cat.id a') S = _
+  rw [Cat.comp_id, RelProd.pair_prodMap_snd]; rfl
+
+/-- **(5.3)** ABSORPTION (B&dM p.114): `(R×S)·⟨X,Y⟩ = ⟨R·X, S·Y⟩`, mirrored:
+    `P.pair X Y ≫ (R×S) = Q.pair (X≫R) (Y≫S)`.  Book chain: factor `R×S` through an
+    intermediate relational product of `a'` with `b`, then (5.4) and (5.5). -/
+theorem RelProd.pair_prodMap {P : RelProd a b} {Q : RelProd a' b'}
+    (X : c ⟶ a) (Y : c ⟶ b) (R : a ⟶ a') (S : b ⟶ b') :
+    P.pair X Y ≫ prodMap P Q R S = Q.pair (X ≫ R) (Y ≫ S) := by
+  rw [← prodMap_factor P (relProd a' b) Q R S, ← Cat.assoc, RelProd.pair_prodMap_fst,
+    RelProd.pair_prodMap_snd]
+
+/-- `×` preserves composition (B&dM p.114: the product relator "also preserves
+    composition"): `(R×S) ≫ (R'×S') = (R≫R')×(S≫S')`.  From absorption. -/
+theorem prodMap_comp {a'' b'' : 𝒜} (P : RelProd a b) (M : RelProd a' b') (Q : RelProd a'' b'')
+    (R : a ⟶ a') (S : b ⟶ b') (R' : a' ⟶ a'') (S' : b' ⟶ b'') :
+    prodMap P M R S ≫ prodMap M Q R' S' = prodMap P Q (R ≫ R') (S ≫ S') := by
+  show M.pair (P.outl ≫ R) (P.outr ≫ S) ≫ prodMap M Q R' S' = _
+  rw [RelProd.pair_prodMap, Cat.assoc, Cat.assoc]; rfl
+
+/-- **(5.8)** CANCELLATION (B&dM p.116): `⟨R,S⟩°·⟨X,Y⟩ = (R°·X) ∩ (S°·Y)`, mirrored:
+    `P.pair X Y ≫ (P.pair R S)° = (X≫R°) ∩ (Y≫S°)`.  Book route: write `⟨R,S⟩` as
+    `⟨id,id⟩ ≫ (R×S)` (absorption backwards), reciprocate, absorb with (5.3), and
+    distribute the SIMPLE map `⟨id,id⟩` over the meet. -/
+theorem RelProd.pair_recip_pair {P : RelProd a b} {d : 𝒜}
+    (X : c ⟶ a) (Y : c ⟶ b) (R : d ⟶ a) (S : d ⟶ b) :
+    P.pair X Y ≫ (P.pair R S)° = (X ≫ R°) ∩ (Y ≫ S°) := by
+  have D : RelProd d d := relProd d d
+  have hdel : Map (D.pair (Cat.id d) (Cat.id d)) :=
+    D.pair_map (id_is_map_local d) (id_is_map_local d)
+  have hdom : dom (Cat.id d) = Cat.id d := (id_is_map_local d).1
+  have houtl : D.pair (Cat.id d) (Cat.id d) ≫ D.outl = Cat.id d := by
+    rw [RelProd.pair_outl, hdom, Cat.id_comp]
+  have houtr : D.pair (Cat.id d) (Cat.id d) ≫ D.outr = Cat.id d := by
+    rw [RelProd.pair_outr, hdom, Cat.id_comp]
+  have hRS : P.pair R S = D.pair (Cat.id d) (Cat.id d) ≫ prodMap D P R S := by
+    rw [RelProd.pair_prodMap, Cat.id_comp, Cat.id_comp]
+  have hleg1 : ((X ≫ R°) ≫ D.outl°) ≫ (D.pair (Cat.id d) (Cat.id d))° = X ≫ R° := by
+    rw [Cat.assoc, ← Allegory.recip_comp, houtl, recip_id, Cat.comp_id]
+  have hleg2 : ((Y ≫ S°) ≫ D.outr°) ≫ (D.pair (Cat.id d) (Cat.id d))° = Y ≫ S° := by
+    rw [Cat.assoc, ← Allegory.recip_comp, houtr, recip_id, Cat.comp_id]
+  rw [hRS, Allegory.recip_comp, prodMap_recip, ← Cat.assoc, RelProd.pair_prodMap]
+  show ((X ≫ R°) ≫ D.outl° ∩ (Y ≫ S°) ≫ D.outr°) ≫ (D.pair (Cat.id d) (Cat.id d))° =
+    (X ≫ R°) ∩ (Y ≫ S°)
+  rw [simple_dist_inter_recip hdel.2, hleg1, hleg2]
+
+end Freyd.Alg

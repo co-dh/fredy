@@ -1,9 +1,9 @@
 # AoP concrete case studies — "use allegory to program" track
 
 Formalize Bird & de Moor's concrete programs (not the abstract theory, which is done in
-`Fredy/A4_*`–`A10_*`) in the Set model `Rel(Set)` (`Fredy/A6_1_RelSet.lean`).  Each section =
+`AOP/A4_*`–`A10_*`) in the Set model `Rel(Set)` (`AOP/A6_1_RelSet.lean`).  Each section =
 new datatype(s) as initial algebra + the program derived point-free, following the pattern of
-`Fredy/A6_1_Digits.lean`.  One section per file `Fredy/A<ch>_<sec>_<Name>.lean`, one commit each.
+`AOP/A6_1_Digits.lean`.  One section per file `Fredy/A<ch>_<sec>_<Name>.lean`, one commit each.
 
 Foundation (DONE):
 - [x] `A6_1_RelSet.lean` — Set model Rel(Set), full allegory stack (b744a7a)

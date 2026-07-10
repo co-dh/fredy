@@ -9,7 +9,7 @@
 import Fredy.S1_1
 import Fredy.S2_1
 import Fredy.S2_2
-import Fredy.A4_1  -- modular_le_right (dual modular law)
+import AOP.A4_1  -- modular_le_right (dual modular law)
 
 
 universe v u

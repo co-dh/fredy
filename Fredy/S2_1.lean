@@ -821,7 +821,7 @@ private theorem tab_UP_H_entire {a b c p : 𝒜} {f : c ⟶ a} {g : c ⟶ b} {R 
 /-- §2.143 simple: `H = x≫f° ∩ y≫g°` is simple when `ff° ∩ gg° = id_c` — needs only `x, y`
     SIMPLE (not full maps): the entire/totality of `x, y` is only used to show `H` is entire
     (`tab_UP_H_entire`), never here.  Public: also the canonical "pairing of simples is
-    simple" fact reused for `RelProd.pair` (`Fredy.A5_2`, e.g. Prop 9.3's context rule). -/
+    simple" fact reused for `RelProd.pair` (`AOP.A5_2`, e.g. Prop 9.3's context rule). -/
 theorem tabulation_simple_of_simple {a b c p : 𝒜} {f : c ⟶ a} {g : c ⟶ b} {R : a ⟶ b}
     (ht : Tabulates f g R) {x : p ⟶ a} {y : p ⟶ b}
     (hx : Simple x) (hy : Simple y) :
