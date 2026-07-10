@@ -684,24 +684,43 @@ def foldSL {A C : Type} (base : A → C) (step : C → A → C) : SL A → C
   | .wrap a    => base a
   | .snoc xs a => step (foldSL base step xs) a
 
+/-- Binary tree — the initial algebra of `F A X = 1 ⊕ X × A × X`, the tree functor of
+    `AOP.A6_TreeBin` whose folds the tree LeetCode files (`leet.L104`, `leet.L543`, …) are.
+    The interpreter-side carrier mirroring `SL`. -/
+inductive TB (A : Type) : Type where
+  | nil  : TB A
+  | node : TB A → A → TB A → TB A
+
+/-- The structural fold (catamorphism `⦇base, node⦈`) over `TB`: `base` at every `nil`, `node`
+    at every node, folded children in place — the tree counterpart of `foldSL`. -/
+def foldTB {A C : Type} (base : C) (node : C → A → C → C) : TB A → C
+  | .nil        => base
+  | .node l a r => node (foldTB base node l) a (foldTB base node r)
+
 /-- A value-level PROGRAM term: ground maps (`fn` = a `Map` atom), diagram-order composition
-    (`comp` = `≫`), and the `cata` recursion scheme.  This is the "efficient program" fragment,
-    disjoint from the finite-matrix `RE` (a `cata` has no finite matrix; it has a fold). -/
+    (`comp` = `≫`), and the `cata`/`cataT` recursion schemes.  This is the "efficient program"
+    fragment, disjoint from the finite-matrix `RE` (a `cata` has no finite matrix; it has a fold). -/
 inductive Prog : Type → Type → Type 1 where
   | fn    {I O : Type} (f : I → O) : Prog I O
   | comp  {I M O : Type} : Prog I M → Prog M O → Prog I O
   | cata  {A C : Type} (base : A → C) (step : C → A → C) : Prog (SL A) C
+  | cataT {A C : Type} (base : C) (node : C → A → C → C) : Prog (TB A) C
 
 /-- **The applicative evaluator**: run a program term AT an input by recursing on the term, and
     for `cata` on the INPUT STRUCTURE.  Total, structural, no enumeration. -/
 def evalP : {I O : Type} → Prog I O → I → O
   | _, _, .fn f           => f
   | _, _, .comp p q       => fun x => evalP q (evalP p x)
-  | _, _, .cata base step => foldSL base step
+  | _, _, .cata base step  => foldSL base step
+  | _, _, .cataT base node => foldTB base node
 
 /-- The interpreter runs the catamorphism structurally: `evalP (cata …) = fold`. -/
 theorem evalP_cata {A C : Type} (base : A → C) (step : C → A → C) :
     evalP (Prog.cata base step) = foldSL base step := rfl
+
+/-- Tree counterpart: `evalP (cataT …) = foldTB`. -/
+theorem evalP_cataT {A C : Type} (base : C) (node : C → A → C → C) :
+    evalP (Prog.cataT base node) = foldTB base node := rfl
 
 /-! ### LC 121's derived program as a runnable term (its exact `algFn`, `leet.L121`) -/
 
