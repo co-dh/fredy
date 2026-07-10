@@ -282,3 +282,8 @@ import Fredy.L121
 -- LeetCode 322 (Coin Change) re-derived through the ∞-DP theorem `A9_2.dynamic_programming_inf`:
 -- the value-axis DP whose optimality now comes from the A-layer, not a hand fuel-induction.
 import Fredy.L322_dp
+-- A relation-algebra INTERPRETER: a term AST + two sound evaluators — `eval` into finite Bool
+-- matrices (`FinRel`, a proven allegory ⇒ soundness free; runs ground terms + the exponential
+-- powerset specs) and `evalP`, a structural fold running the derived catamorphism programs in
+-- polynomial time — bridged by the proven `solve = A spec ≫ maxRel D` (differential testing).
+import Fredy.RelInterp
