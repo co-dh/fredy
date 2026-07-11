@@ -21,20 +21,20 @@ def lt217 : RE Pos217 Pos217 := .atom fun i j => decide (i.val < j.val)
 example : eval rel⟦ (elem217 ≫ elem217°) ∩ lt217 ⟧ 0 3 = true  := by decide   -- nums[0]=nums[3]=1
 example : eval rel⟦ (elem217 ≫ elem217°) ∩ lt217 ⟧ 1 2 = false := by decide
 
-/-! ### 2. Shared-class query — a genuine EQUIJOIN: `enrolled ≫ enrolled°`.
-    (Replaces a fake Two Sum: that problem's content is arithmetic `nums[i]+nums[j]=t`, which the
-    relation-algebra fragment cannot express — any encoding must pre-compute the answer.  A real
-    equijoin instead joins genuine data over a shared object; nothing is planted.) -/
-abbrev Student2 : FinObj := ⟨4⟩   -- Alice, Bob, Carol, Dave
-abbrev Class2   : FinObj := ⟨3⟩
--- who takes what (real data): Alice {0,1}, Bob {1,2}, Carol {0}, Dave {2}.
-def enrolled2 : RE Student2 Class2 := .atom fun s c =>
-  (s.val==0 && (c.val==0 || c.val==1)) || (s.val==1 && (c.val==1 || c.val==2)) ||
-  (s.val==2 && c.val==0) || (s.val==3 && c.val==2)
--- `enrolled ≫ enrolled°` relates two students iff `∃ class, both are enrolled in it` — the join
--- over `Class` is computed by the algebra.
-example : eval rel⟦ enrolled2 ≫ enrolled2° ⟧ 0 1 = true  := by decide  -- Alice & Bob share class 1
-example : eval rel⟦ enrolled2 ≫ enrolled2° ⟧ 0 3 = false := by decide  -- Alice & Dave share nothing
+/-! ### 2. L1 Two Sum — the REAL array; the sum computed honestly.
+    Relation algebra has no arithmetic, so the addition `nums i + nums j = target` lives in the ATOM
+    (a Lean function over the actual `nums1` — nothing pre-computed, unlike a baked answer table:
+    change `nums1` and `sumsTo1` recomputes).  The algebra then contributes `∩ lt1`, keeping the two
+    indices distinct and ordered.  This is the honest boundary — the arithmetic is the atom's job,
+    the relational packaging is the algebra's. -/
+abbrev Pos1 : FinObj := ⟨4⟩
+def nums1   : Fin 4 → Int := fun i => match i.val with | 0 => 2 | 1 => 7 | 2 => 11 | _ => 15
+def target1 : Int := 9
+def sumsTo1 : RE Pos1 Pos1 := .atom fun i j => decide (nums1 i + nums1 j = target1)
+def lt1     : RE Pos1 Pos1 := .atom fun i j => decide (i.val < j.val)
+-- the answer pairs of Two Sum on nums=[2,7,11,15], target 9:
+example : eval rel⟦ sumsTo1 ∩ lt1 ⟧ 0 1 = true  := by decide  -- nums1[0]+nums1[1] = 2+7 = 9
+example : eval rel⟦ sumsTo1 ∩ lt1 ⟧ 0 2 = false := by decide  -- 2+11 = 13 ≠ 9
 
 /-! ### 3. L268 Missing Number — COMPLEMENT via division: `bot / present°` marks the absent value. -/
 abbrev One268 : FinObj := ⟨1⟩
