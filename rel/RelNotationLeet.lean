@@ -32,9 +32,13 @@ def nums1   : Fin 4 → Int := fun i => match i.val with | 0 => 2 | 1 => 7 | 2 =
 def target1 : Int := 9
 def sumsTo1 : RE Pos1 Pos1 := .atom fun i j => decide (nums1 i + nums1 j = target1)
 def lt1     : RE Pos1 Pos1 := .atom fun i j => decide (i.val < j.val)
--- the answer pairs of Two Sum on nums=[2,7,11,15], target 9:
-example : eval rel⟦ sumsTo1 ∩ lt1 ⟧ 0 1 = true  := by decide  -- nums1[0]+nums1[1] = 2+7 = 9
-example : eval rel⟦ sumsTo1 ∩ lt1 ⟧ 0 2 = false := by decide  -- 2+11 = 13 ≠ 9
+-- COMPUTE the answer from `nums1` (nothing supplied): scan the whole relation, collect the hits.
+-- This is the search; it produces the pair — prints `[(0, 1)]`.
+#eval (List.finRange 4).flatMap fun i => (List.finRange 4).filterMap fun j =>
+        if eval rel⟦ sumsTo1 ∩ lt1 ⟧ i j then some (i.val, j.val) else none
+-- A theorem, by contrast, only VERIFIES a supplied pair — it states the answer, so it cannot find it.
+example : eval rel⟦ sumsTo1 ∩ lt1 ⟧ 0 1 = true  := by decide  -- (0,1) is a solution: 2+7 = 9
+example : eval rel⟦ sumsTo1 ∩ lt1 ⟧ 0 2 = false := by decide  -- (0,2) is not: 2+11 = 13 ≠ 9
 
 /-! ### 3. L268 Missing Number — COMPLEMENT via division: `bot / present°` marks the absent value. -/
 abbrev One268 : FinObj := ⟨1⟩
