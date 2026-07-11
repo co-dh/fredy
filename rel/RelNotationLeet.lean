@@ -21,24 +21,11 @@ def lt217 : RE Pos217 Pos217 := .atom fun i j => decide (i.val < j.val)
 example : eval rel⟦ (elem217 ≫ elem217°) ∩ lt217 ⟧ 0 3 = true  := by decide   -- nums[0]=nums[3]=1
 example : eval rel⟦ (elem217 ≫ elem217°) ∩ lt217 ⟧ 1 2 = false := by decide
 
-/-! ### 2. L1 Two Sum — the REAL array; the sum computed honestly.
-    Relation algebra has no arithmetic, so the addition `nums i + nums j = target` lives in the ATOM
-    (a Lean function over the actual `nums1` — nothing pre-computed, unlike a baked answer table:
-    change `nums1` and `sumsTo1` recomputes).  The algebra then contributes `∩ lt1`, keeping the two
-    indices distinct and ordered.  This is the honest boundary — the arithmetic is the atom's job,
-    the relational packaging is the algebra's. -/
-abbrev Pos1 : FinObj := ⟨4⟩
-def nums1   : Fin 4 → Int := fun i => match i.val with | 0 => 2 | 1 => 7 | 2 => 11 | _ => 15
-def target1 : Int := 9
-def sumsTo1 : RE Pos1 Pos1 := .atom fun i j => decide (nums1 i + nums1 j = target1)
-def lt1     : RE Pos1 Pos1 := .atom fun i j => decide (i.val < j.val)
--- COMPUTE the answer from `nums1` (nothing supplied): scan the whole relation, collect the hits.
--- This is the search; it produces the pair — prints `[(0, 1)]`.
-#eval (List.finRange 4).flatMap fun i => (List.finRange 4).filterMap fun j =>
-        if eval rel⟦ sumsTo1 ∩ lt1 ⟧ i j then some (i.val, j.val) else none
--- A theorem, by contrast, only VERIFIES a supplied pair — it states the answer, so it cannot find it.
-example : eval rel⟦ sumsTo1 ∩ lt1 ⟧ 0 1 = true  := by decide  -- (0,1) is a solution: 2+7 = 9
-example : eval rel⟦ sumsTo1 ∩ lt1 ⟧ 0 2 = false := by decide  -- (0,2) is not: 2+11 = 13 ≠ 9
+-- (Two Sum was removed here.  Encoding it in this fragment is just a brute-force n² scan of a
+--  sum-check atom — no calculation.  The genuine "derive a function from a relational spec" for
+--  Two Sum already exists as `leet/L1_derived.lean`: the program is CALCULATED from the spec by a
+--  fold-uniqueness law, with correctness a proven theorem.  That is the real thing; this DSL only
+--  runs/proves relation-algebra LAWS on tiny finite instances.)
 
 /-! ### 3. L268 Missing Number — COMPLEMENT via division: `bot / present°` marks the absent value. -/
 abbrev One268 : FinObj := ⟨1⟩
