@@ -21,14 +21,20 @@ def lt217 : RE Pos217 Pos217 := .atom fun i j => decide (i.val < j.val)
 example : eval rel⟦ (elem217 ≫ elem217°) ∩ lt217 ⟧ 0 3 = true  := by decide   -- nums[0]=nums[3]=1
 example : eval rel⟦ (elem217 ≫ elem217°) ∩ lt217 ⟧ 1 2 = false := by decide
 
-/-! ### 2. L1 Two Sum — EQUIJOIN through the complement table: `elem ≫ compl ≫ elem° ∩ lt`. -/
-abbrev Pos1 : FinObj := ⟨4⟩
-abbrev Val1 : FinObj := ⟨4⟩
--- nums = [2,7,11,15] (value index = position); `compl` pairs v with target−v (2+7 = 9).
-def elem1  : RE Pos1 Val1 := .atom fun i j => i.val == j.val
-def compl1 : RE Val1 Val1 := .atom fun i j => (i.val == 0 && j.val == 1) || (i.val == 1 && j.val == 0)
-def lt1    : RE Pos1 Pos1 := .atom fun i j => decide (i.val < j.val)
-example : eval rel⟦ elem1 ≫ compl1 ≫ elem1° ∩ lt1 ⟧ 0 1 = true := by decide  -- nums[0]+nums[1]=9
+/-! ### 2. Shared-class query — a genuine EQUIJOIN: `enrolled ≫ enrolled°`.
+    (Replaces a fake Two Sum: that problem's content is arithmetic `nums[i]+nums[j]=t`, which the
+    relation-algebra fragment cannot express — any encoding must pre-compute the answer.  A real
+    equijoin instead joins genuine data over a shared object; nothing is planted.) -/
+abbrev Student2 : FinObj := ⟨4⟩   -- Alice, Bob, Carol, Dave
+abbrev Class2   : FinObj := ⟨3⟩
+-- who takes what (real data): Alice {0,1}, Bob {1,2}, Carol {0}, Dave {2}.
+def enrolled2 : RE Student2 Class2 := .atom fun s c =>
+  (s.val==0 && (c.val==0 || c.val==1)) || (s.val==1 && (c.val==1 || c.val==2)) ||
+  (s.val==2 && c.val==0) || (s.val==3 && c.val==2)
+-- `enrolled ≫ enrolled°` relates two students iff `∃ class, both are enrolled in it` — the join
+-- over `Class` is computed by the algebra.
+example : eval rel⟦ enrolled2 ≫ enrolled2° ⟧ 0 1 = true  := by decide  -- Alice & Bob share class 1
+example : eval rel⟦ enrolled2 ≫ enrolled2° ⟧ 0 3 = false := by decide  -- Alice & Dave share nothing
 
 /-! ### 3. L268 Missing Number — COMPLEMENT via division: `bot / present°` marks the absent value. -/
 abbrev One268 : FinObj := ⟨1⟩
