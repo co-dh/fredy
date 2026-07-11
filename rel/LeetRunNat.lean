@@ -12,7 +12,7 @@
     `ProgEval.foldSL_natSL : foldSL … (natSL n) = cataNat b s n`, and the genuine `Nat.rec` fold
     `cataNat` now live in the ONE unified `ProgEval` (`rel/RelInterp`), used here via `open`;
   * the fold CARRIER is a data structure: L1 carries the mathlib-free `Freyd.HashMap.AHashMap`
-    (`AOP/A6_HashMap.lean`) — the `leet/L1_derived.lean` "Two Sum carried AHashMap" pattern,
+    (`AOP/A6_HashMap.lean`) — the `leet/L1.lean` "Two Sum carried AHashMap" pattern,
     reshaped from its cons-list CPS carrier onto the interpreter's snoc list.  A snoc fold
     accumulates left-to-right DIRECTLY (`foldSL` reaches the `wrap` — the leftmost element —
     first), so the carrier is the plain state `(map, next index, early-exit result)`; the CPS
@@ -30,22 +30,22 @@
     each live step is ONE `find?` of the complement (+ ONE `insert` on a miss, both `O(1)`
     expected); a hit freezes the state — a total cata still consumes the rest of the input
     structurally, but every frozen step is an `O(1)` copy, the same early-exit economics as
-    `L1_derived`'s never-invoked continuation.  The run equals the L-file's program:
+    `leet/L1.lean`'s hash scan after a hit.  The run equals the L-file's program:
     `evalP (prog1 target nb) (slOf x rest) = LC1.twoSumFn (x :: rest) target` (`prog1_twoSum`)
-    — the map `find?`-models the assoc list (`LC1D.hashModels_insert`, reused) — so the honest
-    soundness + completeness `LC1.twoSum_correct` transfers to the interpreter run.
+    — the map `find?`-models the assoc list (`LC1.hashModels_insert`, reused) — so the honest
+    soundness + completeness `LC1.twoSum_sound/complete` transfers to the interpreter run.
 
   `SL` is nonempty by design, and `natSL 0 = wrap ()` is the Nat leaf itself — the Nat axis has
   no out-of-range edge case; for L1 the empty `nums` is out of the bridge's range as in the
   other `LeetRun*` files (all demos are the L-files' own nonempty examples).
 
   Mathlib-free; axioms ⊆ {propext, Quot.sound} — the hash-map lemmas reused from
-  `A6_HashMap`/`L1_derived` are the constructive (`beq_iff_eq`) versions, no `Classical.choice`.
+  `A6_HashMap`/`leet/L1.lean` are the constructive (`beq_iff_eq`) versions, no `Classical.choice`.
 -/
 import rel.RelInterp
 import leet.L62
 import leet.L70
-import leet.L1_derived
+import leet.L1
 
 namespace Freyd.Alg.FinRel.NatH
 
@@ -132,7 +132,7 @@ example : evalP prog70 (natSL 5) = 8 := by decide
 
 /-! ## L1 — two sum: the fold carrying an `AHashMap` (value ↦ index), early exit as frozen state
 
-  The `L1_derived` pattern on the interpreter's snoc list: the carrier is the scan state
+  The `leet/L1.lean` hash-scan pattern on the interpreter's snoc list: the carrier is the scan state
   `(map, next index, result)`.  A live step `find?`s the complement of the current element in
   ONE bucket — a hit `some j` records `some (j, i)` and freezes the state; a miss `insert`s
   `value ↦ index` and moves on.  Once frozen, every remaining step is an `O(1)` copy. -/
@@ -141,7 +141,7 @@ example : evalP prog70 (natSL 5) = 8 := by decide
     assigned, and the sticky early-exit result. -/
 abbrev St : Type := AHashMap Nat × Nat × Option (Nat × Nat)
 
-/-- One scan step at element `x` (`L1_derived`'s `st`, direct-state instead of CPS): done ↦
+/-- One scan step at element `x` (`leet/L1.lean`'s `hashGo` step): done ↦
     stay done; else a one-bucket `find?` of `target - x` — hit `j` ↦ answer `(j, i)`, miss ↦
     `insert x ↦ i` and advance. -/
 def step1 (target : Int) (st : St) (x : Int) : St :=
@@ -178,9 +178,9 @@ theorem foldSL_foldl {A C : Type} (base : A → C) (step : C → A → C) :
   | [], _ => rfl
   | x :: rest, sl => foldSL_foldl base step rest (SL.snoc sl x)
 
-/-- The live scan tracks `LC1.go` under the `L1_derived` invariant — the map `find?`-models the
+/-- The live scan tracks `LC1.go` under the `L1` hash-simulation invariant — the map `find?`-models the
     assoc list `seen` and the running index is `seen.length`; the miss branch re-establishes
-    the invariant via the reused `LC1D.hashModels_insert`. -/
+    the invariant via the reused `LC1.hashModels_insert`. -/
 theorem foldl_step1_go (target : Int) :
     ∀ (xs : List Int) (m : AHashMap Nat) (seen : List (Int × Nat)),
       (∀ want, find? m want = LC1.findComplement want seen) →
@@ -202,10 +202,10 @@ theorem foldl_step1_go (target : Int) :
     | some j => rw [foldl_step1_frozen]
     | none =>
       exact foldl_step1_go target xs (Freyd.HashMap.insert m x seen.length)
-        ((x, seen.length) :: seen) (LC1D.hashModels_insert m seen x seen.length hmodel)
+        ((x, seen.length) :: seen) (LC1.hashModels_insert m seen x seen.length hmodel)
 
 /-- **The wiring is exact**: the interpreter run computes `LC1.twoSumFn` — whence the honest
-    soundness + completeness `LC1.twoSum_correct` holds of the interpreter's answers. -/
+    soundness + completeness `LC1.twoSum_sound/complete` holds of the interpreter's answers. -/
 theorem prog1_twoSum (target : Int) (nb : Nat) (x : Int) (rest : List Int) :
     evalP (prog1 target nb) (slOf x rest) = LC1.twoSumFn (x :: rest) target := by
   show (foldSL (fun x => step1 target (mkHashMap Nat nb, 0, none) x) (step1 target)
@@ -218,9 +218,9 @@ theorem prog1_twoSum (target : Int) (nb : Nat) (x : Int) (rest : List Int) :
         | none => (Freyd.HashMap.insert (mkHashMap Nat nb) x 0, 1, none))).2.2 = _
   rw [find?_mkHashMap]
   exact foldl_step1_go target rest (Freyd.HashMap.insert (mkHashMap Nat nb) x 0) [(x, 0)]
-    (LC1D.hashModels_insert (mkHashMap Nat nb) [] x 0 fun want => by rw [find?_mkHashMap]; rfl)
+    (LC1.hashModels_insert (mkHashMap Nat nb) [] x 0 fun want => by rw [find?_mkHashMap]; rfl)
 
--- The L-file's own examples.  As in `L1_derived`, `decide` goes through the plain scan after
+-- The L-file's own examples.  As in `leet/L1.lean`, `decide` goes through the plain scan after
 -- rewriting by the bridge (no kernel reduction through `Array` buckets); `#eval` below runs
 -- the actual hash program.
 example : evalP (prog1 9 4) (slOf 2 [7, 11, 15]) = some (0, 1) := by
