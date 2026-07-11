@@ -133,47 +133,16 @@ def ansLeB : Option (Nat × Nat) → Option (Nat × Nat) → Bool
   | some (i, j), some (i', j') => decide (j' < j ∨ (j' = j ∧ i ≤ i'))
 
 theorem ansLe_trans : ∀ {a b c : Option (Nat × Nat)}, ansLe a b → ansLe b c → ansLe a c := by
-  intro a b c hab hbc
-  match a, b, c with
-  | none, _, _ => trivial
-  | some _, none, _ => exact hab.elim
-  | some _, some _, none => exact hbc.elim
-  | some (i, j), some (i', j'), some (i'', j'') =>
-    have h1 : j' < j ∨ (j' = j ∧ i ≤ i') := hab
-    have h2 : j'' < j' ∨ (j'' = j' ∧ i' ≤ i'') := hbc
-    show j'' < j ∨ (j'' = j ∧ i ≤ i'')
-    omega
+  rintro (_ | ⟨i, j⟩) (_ | ⟨i', j'⟩) (_ | ⟨i'', j''⟩) hab hbc <;> simp_all [ansLe] <;> omega
 
 theorem ansLe_antisym : ∀ {a b : Option (Nat × Nat)}, ansLe a b → ansLe b a → a = b := by
-  intro a b hab hba
-  match a, b with
-  | none, none => rfl
-  | none, some _ => exact hba.elim
-  | some _, none => exact hab.elim
-  | some (i, j), some (i', j') =>
-    have h1 : j' < j ∨ (j' = j ∧ i ≤ i') := hab
-    have h2 : j < j' ∨ (j = j' ∧ i' ≤ i) := hba
-    have : i = i' ∧ j = j' := by omega
-    rw [this.1, this.2]
+  rintro (_ | ⟨i, j⟩) (_ | ⟨i', j'⟩) hab hba <;> simp_all [ansLe] <;> omega
 
 theorem ansLeB_true : ∀ {a b : Option (Nat × Nat)}, ansLeB a b = true → ansLe a b := by
-  intro a b h
-  match a, b with
-  | none, _ => trivial
-  | some _, none => exact absurd h (by simp [ansLeB])
-  | some (i, j), some (i', j') =>
-    have h' : j' < j ∨ (j' = j ∧ i ≤ i') := of_decide_eq_true h
-    exact h'
+  rintro (_ | ⟨i, j⟩) (_ | ⟨i', j'⟩) h <;> simp_all [ansLeB, ansLe]
 
 theorem ansLeB_false : ∀ {a b : Option (Nat × Nat)}, ansLeB b a = false → ansLe a b := by
-  intro a b h
-  match a, b with
-  | none, _ => trivial
-  | some _, none => exact absurd h (by simp [ansLeB])
-  | some (i, j), some (i', j') =>
-    have hn : ¬ (j < j' ∨ (j = j' ∧ i' ≤ i)) := of_decide_eq_false h
-    show j' < j ∨ (j' = j ∧ i ≤ i')
-    omega
+  rintro (_ | ⟨i, j⟩) (_ | ⟨i', j'⟩) h <;> simp_all [ansLeB, ansLe] <;> omega
 
 /-- The thinning preorder at scan position `n` (`Qc n z w` = "`w` dominates `z`"): same-value
     partials with a larger index dominate; a finished pair with `j < n` dominates every
@@ -198,87 +167,29 @@ def qcB (n : Nat) : TSChoice → TSChoice → Bool
 
 theorem qcB_sound {n : Nat} : ∀ {c c'}, qcB n c c' = true → Qc n c c' := by
   intro c c' h
-  match c, c' with
-  | .start, .start => trivial
-  | .part k v, .part k' v' =>
-    have h' : (decide (v' = v) && decide (k ≤ k')) = true := h
-    simp only [Bool.and_eq_true, decide_eq_true_eq] at h'
-    exact h'
-  | .start, .found i j =>
-    have h' : j < n := of_decide_eq_true h
-    exact h'
-  | .part k v, .found i j =>
-    have h' : j < n := of_decide_eq_true h
-    exact h'
-  | .found i j, .found i' j' =>
-    have h' : j' < j ∨ (j' = j ∧ i ≤ i') := of_decide_eq_true h
-    exact h'
-  | .start, .part _ _ => exact absurd h (by simp [qcB])
-  | .part _ _, .start => exact absurd h (by simp [qcB])
-  | .found _ _, .start => exact absurd h (by simp [qcB])
-  | .found _ _, .part _ _ => exact absurd h (by simp [qcB])
+  cases c <;> cases c' <;> simp_all [qcB, Qc]
 
 theorem Qc_refl {n : Nat} : ∀ c, Qc n c c := by
-  intro c
-  match c with
-  | .start => trivial
-  | .part k v => exact ⟨rfl, Nat.le_refl _⟩
-  | .found i j => exact Or.inr ⟨rfl, Nat.le_refl _⟩
+  intro c; cases c <;> simp [Qc]
 
 theorem Qc_trans {n : Nat} : ∀ {a b c}, Qc n a b → Qc n b c → Qc n a c := by
   intro a b c hab hbc
-  match a, b, c with
-  | .start, .start, .start => trivial
-  | .start, .start, .found i j => exact hbc
-  | .start, .found i1 j1, .found i j =>
-    -- `.start ⊑ found(i₁,j₁) ⊑ found(i,j)`: `j ≤ j₁ < n`
-    have h1 : j1 < n := hab
-    have h2 : j < j1 ∨ (j = j1 ∧ i1 ≤ i) := hbc
-    show j < n
-    omega
-  | .part k v, .part k' v', .part k'' v'' =>
-    obtain ⟨hv1, hk1⟩ := hab
-    obtain ⟨hv2, hk2⟩ := hbc
-    exact ⟨hv2.trans hv1, Nat.le_trans hk1 hk2⟩
-  | .part k v, .part k' v', .found i j => exact hbc
-  | .part k v, .found i1 j1, .found i j =>
-    have h1 : j1 < n := hab
-    have h2 : j < j1 ∨ (j = j1 ∧ i1 ≤ i) := hbc
-    show j < n
-    omega
-  | .found i1 j1, .found i2 j2, .found i j =>
-    have h1 : j2 < j1 ∨ (j2 = j1 ∧ i1 ≤ i2) := hab
-    have h2 : j < j2 ∨ (j = j2 ∧ i2 ≤ i) := hbc
-    show j < j1 ∨ (j = j1 ∧ i1 ≤ i)
-    omega
-  -- everything else has a `False` hypothesis
-  | .start, .part _ _, _ => exact hab.elim
-  | .part _ _, .start, _ => exact hab.elim
-  | .found _ _, .start, _ => exact hab.elim
-  | .found _ _, .part _ _, _ => exact hab.elim
-  | .start, .found _ _, .start => exact hbc.elim
-  | .start, .found _ _, .part _ _ => exact hbc.elim
-  | .part _ _, .found _ _, .start => exact hbc.elim
-  | .part _ _, .found _ _, .part _ _ => exact hbc.elim
-  | .start, .start, .part _ _ => exact hbc.elim
-  | .part _ _, .part _ _, .start => exact hbc.elim
-  | .found _ _, .found _ _, .start => exact hbc.elim
-  | .found _ _, .found _ _, .part _ _ => exact hbc.elim
+  cases a <;> cases b <;> cases c <;> simp_all [Qc] <;> omega
 
 theorem Qc_le_ansLe {n : Nat} : ∀ {c c'}, Qc n c c' → ansLe (outc c) (outc c') := by
   intro c c' h
-  match c, c' with
-  | .start, .start => trivial
-  | .part _ _, .part _ _ => trivial
-  | .start, .found _ _ => trivial
-  | .part _ _, .found _ _ => trivial
-  | .found i j, .found i' j' => exact h
-  | .start, .part _ _ => exact h.elim
-  | .part _ _, .start => exact h.elim
-  | .found _ _, .start => exact h.elim
-  | .found _ _, .part _ _ => exact h.elim
+  cases c <;> cases c' <;> simp_all [Qc, outc, ansLe]
 
 /-! ## The thinning bundle: the CREATIVE inputs of the derivation (B&dM ch. 8) -/
+
+/-- A partial's stay-extension is in its step list whichever way the completion test goes. -/
+theorem mem_stay {n k : Nat} {v x target : Int} :
+    (n + 1, TSChoice.part k v) ∈ (if v + x = target
+      then [(n + 1, TSChoice.part k v), (n + 1, TSChoice.found k n)]
+      else [(n + 1, TSChoice.part k v)]) := by
+  by_cases ht : v + x = target
+  · rw [if_pos ht]; exact List.mem_cons_self ..
+  · rw [if_neg ht]; exact List.mem_cons_self ..
 
 /-- The Two Sum thinning bundle at a fixed `target`.  Leaf = the uncommitted scan; a step at
     element `x` (arriving at index `n`, the state's counter) lets `start` stay or commit the
@@ -335,11 +246,7 @@ def tsB (target : Int) : ThinBest Unit Int (Nat × TSChoice) where
       · rw [if_pos ht] at hy'
         rcases List.mem_cons.mp hy' with rfl | hy2
         · -- the stay: matched by the dominator's stay
-          refine ⟨(n + 1, .part k v), ?_, rfl, rfl, hk⟩
-          show (n + 1, TSChoice.part k v) ∈ (if v + x = target
-            then [(n + 1, TSChoice.part k v), (n + 1, TSChoice.found k n)]
-            else [(n + 1, TSChoice.part k v)])
-          rw [if_pos ht]; exact List.mem_cons.mpr (Or.inl rfl)
+          exact ⟨(n + 1, .part k v), mem_stay, rfl, rfl, hk⟩
         · -- the completion: the SAME complement finishes the dominator's (larger-index) leg
           have hyf : y = (n + 1, TSChoice.found k' n) := List.mem_singleton.mp hy2
           subst hyf
@@ -347,15 +254,11 @@ def tsB (target : Int) : ThinBest Unit Int (Nat × TSChoice) where
           show (n + 1, TSChoice.found k n) ∈ (if v + x = target
             then [(n + 1, TSChoice.part k v), (n + 1, TSChoice.found k n)]
             else [(n + 1, TSChoice.part k v)])
-          rw [if_pos ht]; exact List.mem_cons.mpr (Or.inr (List.mem_cons.mpr (Or.inl rfl)))
+          rw [if_pos ht]; exact List.mem_cons.mpr (Or.inr (List.mem_cons_self ..))
       · rw [if_neg ht] at hy'
         have hys : y = (n + 1, TSChoice.part k' v) := List.mem_singleton.mp hy'
         subst hys
-        refine ⟨(n + 1, .part k v), ?_, rfl, rfl, hk⟩
-        show (n + 1, TSChoice.part k v) ∈ (if v + x = target
-          then [(n + 1, TSChoice.part k v), (n + 1, TSChoice.found k n)]
-          else [(n + 1, TSChoice.part k v)])
-        rw [if_neg ht]; exact List.mem_cons.mpr (Or.inl rfl)
+        exact ⟨(n + 1, .part k v), mem_stay, rfl, rfl, hk⟩
     | .start, .found i j =>
       -- a past pair dominates whatever the uncommitted state spawns
       have hj : j < n := hqc
@@ -531,14 +434,7 @@ theorem gen_char (target : Int) : ∀ (xs : SnocList Unit Int) (s : Nat × TSCho
         rcases getElem?_append_singleton (hr : (toList xs ++ [x])[k]? = some v) with
           ⟨hk, hkv⟩ | ⟨hk, hv⟩
         · -- an older leg: it was already reachable, and it stays
-          refine ⟨((toList xs).length, .part k v), (ih _).mpr ⟨rfl, hkv⟩, ?_⟩
-          show ((toList xs).length + 1, TSChoice.part k v) ∈ (if v + x = target
-            then [((toList xs).length + 1, TSChoice.part k v),
-                  ((toList xs).length + 1, TSChoice.found k (toList xs).length)]
-            else [((toList xs).length + 1, TSChoice.part k v)])
-          by_cases ht : v + x = target
-          · rw [if_pos ht]; exact List.mem_cons.mpr (Or.inl rfl)
-          · rw [if_neg ht]; exact List.mem_cons.mpr (Or.inl rfl)
+          exact ⟨((toList xs).length, .part k v), (ih _).mpr ⟨rfl, hkv⟩, mem_stay⟩
         · -- the leg committed at THIS step, spawned by `start`
           -- (`hv.symm : x = v` so `subst` eliminates `v`, keeping the snoc element name `x`)
           have hv' : x = v := hv.symm
@@ -623,11 +519,7 @@ theorem thinTwoSum_correct (nums : List Int) (target : Int) :
     · rintro ⟨n, c⟩ x
       match c with
       | .start => exact List.cons_ne_nil _ _
-      | .part k v =>
-        show (if v + x = target then _ else _) ≠ []
-        by_cases ht : v + x = target
-        · rw [if_pos ht]; exact List.cons_ne_nil _ _
-        · rw [if_neg ht]; exact List.cons_ne_nil _ _
+      | .part k v => exact List.ne_nil_of_mem mem_stay
       | .found i j => exact List.cons_ne_nil _ _
   cases hb : (tsB target).solveFn (ofNums nums) with
   | none => rw [hb] at hsome; exact absurd hsome (by simp)
@@ -777,86 +669,12 @@ theorem noPair_push {done : List Int} {seen : List (Int × Nat)} {x target : Int
     injection hdj with hxvj
     exact hnew vi i hdi (by omega)
 
-/-! ## Scan correctness: ONE generalized induction gives both soundness and completeness -/
+/-! ## Scan correctness AND optimality: ONE generalized induction
 
-theorem go_gen : ∀ (xs done : List Int) (seen : List (Int × Nat)) (target : Int),
-    seen.length = done.length → SeenIff done seen → (∀ i j, ¬ TwoSum done target i j) →
-    (∀ i j, go seen target xs = some (i, j) → TwoSum (done ++ xs) target i j) ∧
-    (go seen target xs = none → ∀ i j, ¬ TwoSum (done ++ xs) target i j) := by
-  intro xs
-  induction xs with
-  | nil =>
-    intro done seen target _ _ hnp
-    refine ⟨fun i j h => by simp [go] at h, fun _ => by rw [List.append_nil]; exact hnp⟩
-  | cons x xs ih =>
-    intro done seen target hlen hseen hnp
-    show
-      (∀ i j, go seen target (x :: xs) = some (i, j) → TwoSum (done ++ x :: xs) target i j) ∧
-      (go seen target (x :: xs) = none → ∀ i j, ¬ TwoSum (done ++ x :: xs) target i j)
-    rcases hfc : findComplement (target - x) seen with i0 | i0
-    · -- `findComplement` missed: recurse with the new element pushed onto `seen`.
-      have hgo : go seen target (x :: xs) = go ((x, seen.length) :: seen) target xs := by
-        show
-          (match findComplement (target - x) seen with
-            | some i => some (i, seen.length)
-            | none => go ((x, seen.length) :: seen) target xs) =
-          go ((x, seen.length) :: seen) target xs
-        rw [hfc]
-      have hlen' : ((x, seen.length) :: seen).length = (done ++ [x]).length := by
-        simp [hlen]
-      have := ih (done ++ [x]) ((x, seen.length) :: seen) target hlen'
-        (seenIff_push hlen hseen) (noPair_push hseen hnp hfc)
-      rw [List.append_assoc, List.singleton_append] at this
-      exact ⟨fun i j h => this.1 i j (by rw [hgo] at h; exact h),
-             fun h => this.2 (by rw [hgo] at h; exact h)⟩
-    · -- `findComplement` hit `i0`: the answer is `(i0, seen.length)`.
-      have hgo : go seen target (x :: xs) = some (i0, seen.length) := by
-        show
-          (match findComplement (target - x) seen with
-            | some i => some (i, seen.length)
-            | none => go ((x, seen.length) :: seen) target xs) =
-          some (i0, seen.length)
-        rw [hfc]
-      have hmem : (target - x, i0) ∈ seen := findComplement_some hfc
-      have hdi0 : done[i0]? = some (target - x) := (hseen (target - x) i0).mp hmem
-      have hib : i0 < done.length := (List.getElem?_eq_some_iff.mp hdi0).1
-      refine ⟨fun i j h => ?_, fun h => absurd (hgo.symm.trans h) (by simp)⟩
-      rw [hgo] at h
-      injection h with hpair
-      injection hpair with hi hj
-      rw [← hi, ← hj]
-      have hlt : i0 < seen.length := by rw [hlen]; exact hib
-      have hdi : (done ++ x :: xs)[i0]? = some (target - x) := by
-        rw [List.getElem?_append_left hib]; exact hdi0
-      have hdj : (done ++ x :: xs)[seen.length]? = some x := by
-        rw [hlen]; exact getElem?_append_right_zero
-      exact ⟨hlt, target - x, x, hdi, hdj, by omega⟩
-
-/-- **Soundness**: a returned pair is a genuine hit. -/
-theorem twoSum_sound (nums : List Int) (target : Int) (i j : Nat)
-    (h : twoSumFn nums target = some (i, j)) : TwoSum nums target i j := by
-  have hbase : SeenIff ([] : List Int) ([] : List (Int × Nat)) := by
-    intro v i; simp
-  have hnp0 : ∀ i j, ¬ TwoSum ([] : List Int) target i j := by
-    rintro i j ⟨_, vi, vj, hdi, _⟩; simp at hdi
-  have := (go_gen nums [] [] target rfl hbase hnp0).1 i j h
-  rwa [List.nil_append] at this
-
-/-- **Completeness**: a `none` result means no valid pair exists anywhere in `nums`. -/
-theorem twoSum_complete (nums : List Int) (target : Int) (h : twoSumFn nums target = none) :
-    ∀ i j, ¬ TwoSum nums target i j := by
-  have hbase : SeenIff ([] : List Int) ([] : List (Int × Nat)) := by
-    intro v i; simp
-  have hnp0 : ∀ i j, ¬ TwoSum ([] : List Int) target i j := by
-    rintro i j ⟨_, vi, vj, hdi, _⟩; simp at hdi
-  have := (go_gen nums [] [] target rfl hbase hnp0).2 h
-  rwa [List.nil_append] at this
-
-/-! ## Scan optimality: WHICH pair the scan returns
-
-  The scan returns the pair with the SMALLEST second index (the first hit), and among those the
+  Soundness (a returned pair is a hit), completeness (`none` means no pair), and optimality —
+  the scan returns the pair with the SMALLEST second index (the first hit), and among those the
   LARGEST first index (`findComplement` searches `seen` prepend-newest, so the first hit is the
-  most recent occurrence of the complement value).  This pins the scan's answer as the
+  most recent occurrence of the complement value).  Optimality pins the scan's answer as the
   `ansLe`-maximum — the fact that identifies it with the thinning-derived program. -/
 
 /-- `findComplement` returns a maximal index: no member of `seen` holding the same value has a
@@ -884,19 +702,22 @@ theorem fcmax_push {seen : List (Int × Nat)} {x : Int} {n : Nat}
       exact absurd hvx.symm hxv
     · exact hm v i m hmem' hfc
 
-theorem go_opt : ∀ (xs done : List Int) (seen : List (Int × Nat)) (target : Int),
+theorem go_correct : ∀ (xs done : List Int) (seen : List (Int × Nat)) (target : Int),
     seen.length = done.length → SeenIff done seen → FCmax seen →
     (∀ i j, ¬ TwoSum done target i j) →
-    ∀ i₀ j₀, go seen target xs = some (i₀, j₀) →
-    ∀ i j, TwoSum (done ++ xs) target i j → j₀ < j ∨ (j₀ = j ∧ i ≤ i₀) := by
+    (∀ i j, go seen target xs = some (i, j) → TwoSum (done ++ xs) target i j ∧
+      ∀ i' j', TwoSum (done ++ xs) target i' j' → j < j' ∨ (j = j' ∧ i' ≤ i)) ∧
+    (go seen target xs = none → ∀ i j, ¬ TwoSum (done ++ xs) target i j) := by
   intro xs
   induction xs with
-  | nil => intro done seen target _ _ _ _ i₀ j₀ h; simp [go] at h
+  | nil =>
+    intro done seen target _ _ _ hnp
+    refine ⟨fun i j h => by simp [go] at h, fun _ => by rw [List.append_nil]; exact hnp⟩
   | cons x xs ih =>
-    intro done seen target hlen hseen hfcm hnp i₀ j₀ hgo i j hts
+    intro done seen target hlen hseen hfcm hnp
     rcases hfc : findComplement (target - x) seen with _ | c
-    · -- miss: the scan recurses; recurse with the pushed invariants
-      have hgo' : go seen target (x :: xs) = go ((x, seen.length) :: seen) target xs := by
+    · -- `findComplement` missed: recurse with the pushed invariants.
+      have hgo : go seen target (x :: xs) = go ((x, seen.length) :: seen) target xs := by
         show
           (match findComplement (target - x) seen with
             | some i => some (i, seen.length)
@@ -905,84 +726,93 @@ theorem go_opt : ∀ (xs done : List Int) (seen : List (Int × Nat)) (target : I
         rw [hfc]
       have hb : ∀ v i, (v, i) ∈ seen → i < seen.length := by
         intro v i hm
-        have hdi := (hseen v i).mp hm
-        have := (List.getElem?_eq_some_iff.mp hdi).1
+        have := (List.getElem?_eq_some_iff.mp ((hseen v i).mp hm)).1
         omega
-      have := ih (done ++ [x]) ((x, seen.length) :: seen) target
-        (by simp [hlen]) (seenIff_push hlen hseen) (fcmax_push hb hfcm)
-        (noPair_push hseen hnp hfc) i₀ j₀ (by rw [← hgo', hgo]) i j
-        (by rwa [List.append_assoc, List.singleton_append])
-      exact this
-    · -- hit: the answer is `(c, seen.length)`; compare the given pair against it
-      have hgo' : go seen target (x :: xs) = some (c, seen.length) := by
+      have := ih (done ++ [x]) ((x, seen.length) :: seen) target (by simp [hlen])
+        (seenIff_push hlen hseen) (fcmax_push hb hfcm) (noPair_push hseen hnp hfc)
+      rw [List.append_assoc, List.singleton_append] at this
+      exact ⟨fun i j h => this.1 i j (by rw [hgo] at h; exact h),
+             fun h => this.2 (by rw [hgo] at h; exact h)⟩
+    · -- `findComplement` hit `c`: the answer is `(c, seen.length)`.
+      have hgo : go seen target (x :: xs) = some (c, seen.length) := by
         show
           (match findComplement (target - x) seen with
             | some i => some (i, seen.length)
             | none => go ((x, seen.length) :: seen) target xs) =
           some (c, seen.length)
         rw [hfc]
-      rw [hgo'] at hgo
-      injection hgo with hp
-      injection hp with hi hj
-      obtain ⟨hij, vi, vj, hdi, hdj, hsum⟩ := hts
-      rcases Nat.lt_trichotomy j done.length with hlt | heq | hgt
-      · -- the pair would sit inside the processed prefix: excluded by the invariant
-        have hib : i < done.length := Nat.lt_trans hij hlt
-        rw [List.getElem?_append_left hib] at hdi
-        rw [List.getElem?_append_left hlt] at hdj
-        exact absurd ⟨hij, vi, vj, hdi, hdj, hsum⟩ (hnp i j)
-      · -- `j` is the hit position: `i` is bounded by `findComplement`'s maximal index
-        have hib : i < done.length := heq ▸ hij
-        rw [List.getElem?_append_left hib] at hdi
-        rw [heq, getElem?_append_right_zero] at hdj
-        injection hdj with hxvj
-        have hvi : vi = target - x := by omega
-        have hmem : (target - x, i) ∈ seen := (hseen (target - x) i).mpr (hvi ▸ hdi)
-        have hic : i ≤ c := hfcm (target - x) i c hmem hfc
-        right
-        exact ⟨by omega, by omega⟩
-      · left; omega
+      have hmem : (target - x, c) ∈ seen := findComplement_some hfc
+      have hdi0 : done[c]? = some (target - x) := (hseen (target - x) c).mp hmem
+      have hib : c < done.length := (List.getElem?_eq_some_iff.mp hdi0).1
+      refine ⟨fun i j h => ?_, fun h => absurd (hgo.symm.trans h) (by simp)⟩
+      rw [hgo] at h
+      injection h with hpair
+      injection hpair with hi hj
+      subst hi; subst hj
+      constructor
+      · -- sound: the returned pair is a genuine hit
+        have hdi : (done ++ x :: xs)[c]? = some (target - x) := by
+          rw [List.getElem?_append_left hib]; exact hdi0
+        have hdj : (done ++ x :: xs)[seen.length]? = some x := by
+          rw [hlen]; exact getElem?_append_right_zero
+        exact ⟨by omega, target - x, x, hdi, hdj, by omega⟩
+      · -- optimal: every valid pair loses to it under `ansLe`
+        rintro i' j' ⟨hij', vi, vj, hdi', hdj', hsum⟩
+        rcases Nat.lt_trichotomy j' done.length with hlt | heq | hgt
+        · -- inside the processed prefix: excluded by the invariant
+          have hib' : i' < done.length := Nat.lt_trans hij' hlt
+          rw [List.getElem?_append_left hib'] at hdi'
+          rw [List.getElem?_append_left hlt] at hdj'
+          exact absurd ⟨hij', vi, vj, hdi', hdj', hsum⟩ (hnp i' j')
+        · -- at the hit position: `i'` is bounded by `findComplement`'s maximal index
+          have hib' : i' < done.length := heq ▸ hij'
+          rw [List.getElem?_append_left hib'] at hdi'
+          rw [heq, getElem?_append_right_zero] at hdj'
+          injection hdj' with hxvj
+          have hvi : vi = target - x := by omega
+          have hic : i' ≤ c :=
+            hfcm (target - x) i' c ((hseen (target - x) i').mpr (hvi ▸ hdi')) hfc
+          right; exact ⟨by omega, hic⟩
+        · left; omega
 
-/-- **Optimality of the returned pair**: the scan's answer is the valid pair with the smallest
-    second index, and among those the largest first index — the maximum under
-    "smaller `j` wins, then larger `i`". -/
-theorem twoSum_opt (nums : List Int) (target : Int) (i₀ j₀ : Nat)
-    (h : twoSumFn nums target = some (i₀, j₀)) :
-    ∀ i j, TwoSum nums target i j → j₀ < j ∨ (j₀ = j ∧ i ≤ i₀) := by
-  intro i j hts
-  have hbase : SeenIff ([] : List Int) ([] : List (Int × Nat)) := by
-    intro v i; simp
+/-- **Scan correctness, bundled**: a returned pair is a genuine hit AND the `ansLe`-maximum
+    valid pair; a `none` result rules every valid pair out. -/
+theorem twoSum_correct (nums : List Int) (target : Int) :
+    (∀ i j, twoSumFn nums target = some (i, j) → TwoSum nums target i j ∧
+      ∀ i' j', TwoSum nums target i' j' → j < j' ∨ (j = j' ∧ i' ≤ i)) ∧
+    (twoSumFn nums target = none → ∀ i j, ¬ TwoSum nums target i j) := by
+  have hbase : SeenIff ([] : List Int) ([] : List (Int × Nat)) := fun v i => by simp
   have hnp0 : ∀ i j, ¬ TwoSum ([] : List Int) target i j := by
     rintro i j ⟨_, vi, vj, hdi, _⟩; simp at hdi
-  have hfcm0 : FCmax [] := fun v i m hm _ => absurd hm List.not_mem_nil
-  exact go_opt nums [] [] target rfl hbase hfcm0 hnp0 i₀ j₀ h i j
-    (by rwa [List.nil_append])
+  have := go_correct nums [] [] target rfl hbase
+    (fun v i m hm _ => absurd hm List.not_mem_nil) hnp0
+  rwa [List.nil_append] at this
 
 /-! ## The derived program IS the scan -/
 
 /-- Both programs return THE `ansLe`-maximum valid pair (Cor 8.1 on the derived side,
-    `twoSum_opt` on the scan side), and a maximum is unique — so they are equal. -/
+    `twoSum_correct` on the scan side), and a maximum is unique — so they are equal. -/
 theorem thin_eq_scan (nums : List Int) (target : Int) :
     thinTwoSum nums target = twoSumFn nums target := by
-  obtain ⟨hsome_c, hnone_c⟩ := thinTwoSum_correct nums target
+  obtain ⟨tsome, tnone⟩ := thinTwoSum_correct nums target
+  obtain ⟨ssome, snone⟩ := twoSum_correct nums target
   cases hscan : twoSumFn nums target with
   | none =>
-    have hnp := twoSum_complete nums target hscan
     cases hthin : thinTwoSum nums target with
     | none => rfl
     | some p =>
       obtain ⟨i, j⟩ := p
-      exact absurd (hsome_c i j hthin).1 (hnp i j)
+      exact absurd (tsome i j hthin).1 (snone hscan i j)
   | some p =>
     obtain ⟨i₀, j₀⟩ := p
-    have hts0 := twoSum_sound nums target i₀ j₀ hscan
+    obtain ⟨hts0, hopt0⟩ := ssome i₀ j₀ hscan
     cases hthin : thinTwoSum nums target with
-    | none => exact absurd hts0 (hnone_c hthin i₀ j₀)
+    | none => exact absurd hts0 (tnone hthin i₀ j₀)
     | some q =>
       obtain ⟨i, j⟩ := q
-      obtain ⟨hts, hdom⟩ := hsome_c i j hthin
+      obtain ⟨hts, hdom⟩ := tsome i j hthin
       have h1 := hdom i₀ j₀ hts0
-      have h2 := twoSum_opt nums target i₀ j₀ hscan i j hts
+      have h2 := hopt0 i j hts
       have heq : i = i₀ ∧ j = j₀ := by omega
       rw [heq.1, heq.2]
 
