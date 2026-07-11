@@ -21,11 +21,31 @@ def lt217 : RE Pos217 Pos217 := .atom fun i j => decide (i.val < j.val)
 example : eval rel⟦ (elem217 ≫ elem217°) ∩ lt217 ⟧ 0 3 = true  := by decide   -- nums[0]=nums[3]=1
 example : eval rel⟦ (elem217 ≫ elem217°) ∩ lt217 ⟧ 1 2 = false := by decide
 
--- (Two Sum was removed here.  Encoding it in this fragment is just a brute-force n² scan of a
---  sum-check atom — no calculation.  The genuine "derive a function from a relational spec" for
---  Two Sum already exists as `leet/L1_derived.lean`: the program is CALCULATED from the spec by a
---  fold-uniqueness law, with correctness a proven theorem.  That is the real thing; this DSL only
---  runs/proves relation-algebra LAWS on tiny finite instances.)
+/-! ### 2. L1 Two Sum by CALCULATION — derive a FUNCTION from a relational SPEC.
+    `specL1 : One → Ans` is the SPEC as a RELATION: input ↝ every valid answer-pair (the condition
+    `nums i + nums j = target` is computed in the atom, from the real data).  The AoP construction
+    `Λ(spec) ≫ max(le)` DERIVES a deterministic function from it — `Λ` transposes the spec to its
+    answer-SET, `max(le)` selects one member.  The interpreter EVALUATES the derived term: it computes
+    the answer FROM the spec, nothing supplied; and the derivation is PROVED correct (the function
+    refines the spec, and is single-valued).  (Exponential spec side, `2^|Ans|` codes; the O(n) fold
+    that computes the same answer is `leet/L1_derived.lean`.) -/
+abbrev One1 : FinObj := ⟨1⟩
+abbrev Ans1 : FinObj := ⟨6⟩   -- the 6 ordered index-pairs of positions [0..3]
+def pairOf1 : Fin 6 → Nat × Nat
+  | 0 => (0,1) | 1 => (0,2) | 2 => (0,3) | 3 => (1,2) | 4 => (1,3) | _ => (2,3)
+def nums1   : Nat → Int | 0 => 2 | 1 => 7 | 2 => 11 | _ => 15
+def target1 : Int := 9
+-- THE SPEC (a relation, computed from the data), not an answer:
+def specL1 : RE One1 Ans1 := .atom fun _ c => let p := pairOf1 c; decide (nums1 p.1 + nums1 p.2 = target1)
+def leAns1 : RE Ans1 Ans1 := .atom fun i j => decide (i.val ≤ j.val)
+-- DERIVE the function from the spec (the calculation): `solve = Λ(spec) ≫ max(le)`.
+def solveL1 : RE One1 Ans1 := rel⟦ Λ(specL1) ≫ max(leAns1) ⟧
+-- the interpreter COMPUTES the derived function's answer from the spec — prints [0] = pairOf 0 = (0,1):
+#eval (List.finRange 6).filter fun c => eval solveL1 0 c
+-- CALCULATION CORRECT: the derived function refines the spec — every answer it gives is valid …
+example : ∀ c, eval solveL1 0 c = true → eval specL1 0 c = true := by decide
+-- … and it is a FUNCTION: it selects at most one answer.
+example : ∀ c c', eval solveL1 0 c = true → eval solveL1 0 c' = true → c = c' := by decide
 
 /-! ### 3. L268 Missing Number — COMPLEMENT via division: `bot / present°` marks the absent value. -/
 abbrev One268 : FinObj := ⟨1⟩
