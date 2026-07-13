@@ -92,6 +92,33 @@ theorem palin_correct (n : Int) :
   · rw [if_neg hn, decide_eq_true_eq]
     exact ⟨fun h => ⟨by omega, h⟩, fun ⟨_, h⟩ => h⟩
 
+/-! ## Specification and the morphism-equation headline -/
+
+/-- **The specification** as a morphism `dInt ⟶ dBool`: `b` is THE correct answer to "is `n` a
+    palindrome?" — non-negative and its digit sequence is its own reverse — stated independently of
+    the program `isPalinNumFn`. -/
+def spec : dInt ⟶ dBool :=
+  fun n b => (b = true ↔ (0 ≤ n ∧ toDigits n.toNat = (toDigits n.toNat).reverse))
+
+/-- Two booleans that agree on being `true` are equal (`Bool` extensionality; the L100 helper). -/
+theorem bool_eq_of_iff_true {b c : Bool} (h : (b = true) ↔ (c = true)) : b = c := by
+  cases b with
+  | true => cases c with
+    | true => rfl
+    | false => exact (h.mp rfl).symm
+  | false => cases c with
+    | true => exact h.mpr rfl
+    | false => rfl
+
+/-- **The allegory-program headline**: `solve = spec` as morphisms in `Rel(Set)` — the program is
+    exactly the palindrome-number decision, not merely pointwise correct. -/
+theorem solve_eq_spec : solve = spec := by
+  apply hom_ext; intro n b
+  show (b = isPalinNumFn n) ↔ (b = true ↔ (0 ≤ n ∧ toDigits n.toNat = (toDigits n.toNat).reverse))
+  constructor
+  · intro h; rw [h]; exact palin_correct n
+  · intro h; exact bool_eq_of_iff_true (h.trans (palin_correct n).symm)
+
 /-! ## Running the program -/
 
 example : isPalinNumFn 121 = true := by decide

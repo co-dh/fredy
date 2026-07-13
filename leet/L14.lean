@@ -164,6 +164,41 @@ def solve : dInput ⟶ dAns := graph lcpFn
 /-- `solve` is a `Map` — a genuine function, via the `graph`/`Map` route. -/
 theorem solve_map : Map solve := graph_map lcpFn
 
+/-! ## The morphism-equation headline (LCP = the unique `<+:`-greatest common prefix) -/
+
+/-- **Antisymmetry of the prefix order** (mathlib-free): mutual prefixes are equal — the surplus
+    tail has length `0`.  This is what makes the greatest common prefix UNIQUE, so the spec pins it. -/
+theorem prefix_antisymm {p q : List Int} (h1 : p <+: q) (h2 : q <+: p) : p = q := by
+  obtain ⟨s, hs⟩ := h1
+  have hlen := congrArg List.length hs
+  rw [List.length_append] at hlen
+  have hle : q.length ≤ p.length := h2.length_le
+  have hs0 : s.length = 0 := by omega
+  rw [List.length_eq_zero_iff.mp hs0, List.append_nil] at hs
+  exact hs
+
+/-- The precondition coreflexive: the sub-identity passing only NONEMPTY string lists (LeetCode
+    14's constraint `1 ≤ strs.length`). -/
+def pre : dInput ⟶ dInput := fun strs strs' => strs = strs' ∧ strs ≠ []
+
+/-- **The specification** as a morphism `dInput ⟶ dAns`: `out` is a common prefix of every string
+    and the `<+:`-GREATEST such — i.e. THE longest common prefix — stated independently of `lcpFn`. -/
+def spec : dInput ⟶ dAns :=
+  fun strs out => strs ≠ [] ∧ (∀ s ∈ strs, out <+: s) ∧ (∀ p, (∀ s ∈ strs, p <+: s) → p <+: out)
+
+/-- **The allegory-program headline**: `pre ≫ solve = spec` — on nonempty inputs the fold `solve`
+    is exactly the longest-common-prefix spec, pinned by prefix antisymmetry. -/
+theorem pre_solve_eq_spec : pre ≫ solve = spec := by
+  apply hom_ext; intro strs out
+  constructor
+  · rintro ⟨ys, ⟨rfl, hne⟩, hv⟩
+    have hv' : out = lcpFn strs := hv
+    exact ⟨hne, by rw [hv']; exact lcp_sound strs, by rw [hv']; exact lcp_max strs hne⟩
+  · rintro ⟨hne, hsound, hmax⟩
+    refine ⟨strs, ⟨rfl, hne⟩, ?_⟩
+    show out = lcpFn strs
+    exact prefix_antisymm (lcp_max strs hne out hsound) (hmax (lcpFn strs) (lcp_sound strs))
+
 /-! ## Running the program (ASCII code-lists) -/
 
 /-- `["flower","flow","flight"] → "fl"`. -/

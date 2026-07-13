@@ -144,6 +144,33 @@ theorem insertPosFn_eq_filter_length : ∀ (xs : List Int) (target : Int), Sorte
       have ihe := ih target hs'
       omega
 
+/-! ## The morphism-equation headline (preconditioned on `Sorted`) -/
+
+/-- The precondition coreflexive: the sub-identity on `Input` that passes only the `Sorted` inputs
+    (LeetCode 35's stated precondition). -/
+def pre : Input ⟶ Input := fun p q => p = q ∧ Sorted p.1
+
+/-- **The specification** as a morphism `Input ⟶ Ans`: on a `Sorted` list, the answer is THE count
+    of elements strictly below `target` (the "insert index = number of smaller elements" reading) —
+    a program-independent closed form. -/
+def spec : Input ⟶ Ans :=
+  fun p v => Sorted p.1 ∧ v = (p.1.filter (fun a => decide (a < p.2))).length
+
+/-- **The allegory-program headline**: `pre ≫ solve = spec` — restricted to sorted inputs, the
+    scan `solve` is exactly the closed-form insert index. (Off the `Sorted` domain the composite is
+    empty, matching that `insertPosFn`'s "first `≥ target`" scan is only the answer when sorted.) -/
+theorem pre_solve_eq_spec : pre ≫ solve = spec := by
+  apply hom_ext; intro p v
+  constructor
+  · rintro ⟨q, ⟨rfl, hsort⟩, hv⟩
+    refine ⟨hsort, ?_⟩
+    have hv' : v = insertPosFn p.1 p.2 := hv
+    rw [hv', insertPosFn_eq_filter_length p.1 p.2 hsort]
+  · rintro ⟨hsort, hv⟩
+    refine ⟨p, ⟨rfl, hsort⟩, ?_⟩
+    show v = insertPosFn p.1 p.2
+    rw [hv, insertPosFn_eq_filter_length p.1 p.2 hsort]
+
 /-! ## Running the program -/
 
 example : insertPosFn [1, 3, 5, 6] 5 = 2 := by decide

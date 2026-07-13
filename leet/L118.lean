@@ -207,6 +207,28 @@ theorem pascal_correct (n : Nat) : ∀ i < n, ∀ k,
   intro i hi k
   rw [pascalFn_getElem? n i hi, Option.bind_some, rowOf_getElem?]
 
+/-! ## The morphism-equation headline (row spec pins the output) -/
+
+/-- **The specification** as a morphism `ℕ ⟶ List (List ℕ)`: `out` has exactly `n` rows and its
+    `i`-th row (for `i < n`) is `rowOf i` (the `binom`-row), stated independently of the fold
+    `pascalFn`.  Row indices and lengths together pin `out` uniquely (`List.ext_getElem?`). -/
+def spec : dNat ⟶ dRows :=
+  fun n out => out.length = n ∧ (∀ i, i < n → out[i]? = some (rowOf i))
+
+/-- **The allegory-program headline**: `solve = spec` as morphisms in `Rel(Set)` — the row-building
+    fold is exactly the `binom`-triangle spec, pinned index-by-index, not merely pointwise. -/
+theorem solve_eq_spec : solve = spec := by
+  apply hom_ext; intro n out
+  show (out = pascalFn n) ↔ (out.length = n ∧ ∀ i, i < n → out[i]? = some (rowOf i))
+  constructor
+  · intro h; rw [h]; exact ⟨pascalFn_length n, fun i hi => pascalFn_getElem? n i hi⟩
+  · rintro ⟨hlen, hget⟩
+    apply List.ext_getElem?
+    intro k
+    by_cases hk : k < n
+    · rw [hget k hk, pascalFn_getElem? n k hk]
+    · rw [List.getElem?_eq_none (by rw [hlen]; omega), List.getElem?_eq_none (by rw [pascalFn_length]; omega)]
+
 /-! ## Running the program -/
 
 example : pascalFn 5 = [[1], [1, 1], [1, 2, 1], [1, 3, 3, 1], [1, 4, 6, 4, 1]] := by decide

@@ -131,6 +131,79 @@ theorem dedup_correct {xs : List Int} (hs : LC242.Sorted xs) :
   obtain ⟨h1, h2, h3, _⟩ := dedup_inv xs hs
   exact ⟨h1, h2, h3⟩
 
+/-! ## The morphism-equation headline (sorted + nodup + membership pins the output) -/
+
+/-- **Sorted-nodup extensionality**: two `Sorted`, duplicate-free lists with the same membership
+    are equal.  Heads coincide (both are the minimum, by mutual `≤`); `Nodup` strips the head from
+    each tail's membership so the induction goes through.  This is the uniqueness that lets the
+    membership/sorted/nodup spec pin the dedup output. -/
+theorem sorted_nodup_ext : ∀ (o1 o2 : List Int),
+    LC242.Sorted o1 → o1.Nodup → LC242.Sorted o2 → o2.Nodup →
+    (∀ v, v ∈ o1 ↔ v ∈ o2) → o1 = o2 := by
+  intro o1
+  induction o1 with
+  | nil =>
+    intro o2 _ _ _ _ hmem
+    cases o2 with
+    | nil => rfl
+    | cons y ys => exact absurd ((hmem y).mpr mem_cons_self) not_mem_nil
+  | cons x xs ih =>
+    intro o2 hs1 hn1 hs2 hn2 hmem
+    cases o2 with
+    | nil => exact absurd ((hmem x).mp mem_cons_self) not_mem_nil
+    | cons y ys =>
+      obtain ⟨hx_le, hs1'⟩ := hs1
+      obtain ⟨hy_le, hs2'⟩ := hs2
+      have hxy : x = y := by
+        have hxley : x ≤ y := by
+          rcases mem_cons.mp ((hmem y).mpr mem_cons_self) with h | h
+          · omega
+          · exact hx_le y h
+        have hylex : y ≤ x := by
+          rcases mem_cons.mp ((hmem x).mp mem_cons_self) with h | h
+          · omega
+          · exact hy_le x h
+        exact Int.le_antisymm hxley hylex
+      subst hxy
+      obtain ⟨hxni1, hn1'⟩ := List.nodup_cons.mp hn1
+      obtain ⟨hxni2, hn2'⟩ := List.nodup_cons.mp hn2
+      have hmem' : ∀ v, v ∈ xs ↔ v ∈ ys := by
+        intro v; constructor
+        · intro hv
+          rcases mem_cons.mp ((hmem v).mp (mem_cons_of_mem x hv)) with h | h
+          · exact absurd (h ▸ hv) hxni1
+          · exact h
+        · intro hv
+          rcases mem_cons.mp ((hmem v).mpr (mem_cons_of_mem x hv)) with h | h
+          · exact absurd (h ▸ hv) hxni2
+          · exact h
+      rw [ih ys hs1' hn1' hs2' hn2' hmem']
+
+/-- The precondition coreflexive: the sub-identity passing only `Sorted` inputs (LeetCode 26's
+    "sorted array" precondition — adjacent dedup is only correct when equal values are adjacent). -/
+def pre : Nums ⟶ Nums := fun xs ys => xs = ys ∧ LC242.Sorted xs
+
+/-- **The specification** as a morphism `Nums ⟶ Nums`: on a `Sorted` input, `out` has exactly the
+    same elements, is itself `Sorted`, and has no duplicates — the honest "distinct values in order"
+    reading, stated independently of `dedupFn`. -/
+def spec : Nums ⟶ Nums :=
+  fun xs out => LC242.Sorted xs ∧ (∀ v, v ∈ out ↔ v ∈ xs) ∧ LC242.Sorted out ∧ out.Nodup
+
+/-- **The allegory-program headline**: `pre ≫ solve = spec` — restricted to sorted inputs, the
+    adjacent-dedup fold is exactly the "sorted distinct values" spec, pinned by `sorted_nodup_ext`. -/
+theorem pre_solve_eq_spec : pre ≫ solve = spec := by
+  apply hom_ext; intro xs out
+  constructor
+  · rintro ⟨ys, ⟨rfl, hsort⟩, hv⟩
+    have hv' : out = dedupFn xs := hv
+    obtain ⟨hm, hso, hnd⟩ := dedup_correct hsort
+    rw [hv']; exact ⟨hsort, hm, hso, hnd⟩
+  · rintro ⟨hsort, hmem, hsout, hndout⟩
+    refine ⟨xs, ⟨rfl, hsort⟩, ?_⟩
+    show out = dedupFn xs
+    obtain ⟨hm, hso, hnd⟩ := dedup_correct hsort
+    exact sorted_nodup_ext out (dedupFn xs) hsout hndout hso hnd (fun v => (hmem v).trans (hm v).symm)
+
 /-! ## Running the program -/
 
 example : dedupFn [1, 1, 2] = [1, 2] := by decide

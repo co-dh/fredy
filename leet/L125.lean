@@ -77,6 +77,31 @@ theorem solve_correct (xs : SnocList Int Int) : palinFn xs = true ↔ IsPalin xs
   show decide (toList xs = (toList xs).reverse) = true ↔ (toList xs = (toList xs).reverse)
   rw [decide_eq_true_eq]
 
+/-! ## The morphism-equation headline -/
+
+/-- **The specification** as a morphism `Arr ⟶ dBool`: `b` is THE correct answer to "is `xs` a
+    palindrome?" — its unpacked list equals its reverse — stated independently of `palinFn`. -/
+def spec : Arr ⟶ dBool := fun xs b => (b = true ↔ IsPalin xs)
+
+/-- Two booleans that agree on being `true` are equal (`Bool` extensionality; the L100 helper). -/
+theorem bool_eq_of_iff_true {b c : Bool} (h : (b = true) ↔ (c = true)) : b = c := by
+  cases b with
+  | true => cases c with
+    | true => rfl
+    | false => exact (h.mp rfl).symm
+  | false => cases c with
+    | true => exact h.mpr rfl
+    | false => rfl
+
+/-- **The allegory-program headline**: `solve = spec` as morphisms in `Rel(Set)` — the program is
+    exactly the palindrome decision, not merely pointwise correct. -/
+theorem solve_eq_spec : solve = spec := by
+  apply hom_ext; intro xs b
+  show (b = palinFn xs) ↔ (b = true ↔ IsPalin xs)
+  constructor
+  · intro h; rw [h]; exact solve_correct xs
+  · intro h; exact bool_eq_of_iff_true (h.trans (solve_correct xs).symm)
+
 /-! ## Running the program -/
 
 /-- Build a sequence from a first element and the rest, in index order. -/

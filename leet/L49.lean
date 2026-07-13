@@ -311,6 +311,28 @@ theorem group_correct (strs : List (List Int)) :
   rw [← mem_groupFn strs x]
   exact List.mem_flatten
 
+/-! ## The specification relation + honest headline (refinement — order not canonically pinned)
+
+  The honest content is a partition into anagram CLASSES, which is order-INDEPENDENT.  `groupFn`'s
+  group order (first appearance, right-to-left) and within-group order (prepend) are insertion
+  artifacts, not a program-independent canonical order (unlike sortedness), so a `solve = spec`
+  would have to restate the fold.  What holds honestly: `solve` refines the partition spec. -/
+
+/-- **The specification** as a relation `Strs ⟶ Groups`: `out` partitions `strs` into anagram
+    classes — same elements, nonempty homogeneous groups, distinct groups sharing no anagram pair —
+    stated independently of `groupFn` (and of any group/element ORDER). -/
+def spec : Strs ⟶ Groups := fun strs out =>
+  (∀ x, x ∈ strs ↔ ∃ g ∈ out, x ∈ g) ∧ (∀ g ∈ out, g ≠ []) ∧
+  (∀ g ∈ out, ∀ s ∈ g, ∀ t ∈ g, IsAnagram s t) ∧
+  (∀ g1 ∈ out, ∀ g2 ∈ out, ∀ s ∈ g1, ∀ t ∈ g2, IsAnagram s t → g1 = g2)
+
+/-- **Refinement headline**: `solve ⊑ spec` — every grouping `solve` produces IS a valid anagram
+    partition.  (Equality fails: the spec is order-independent while `solve` fixes one ordering.) -/
+theorem solve_le_spec : solve ⊑ spec := by
+  refine le_iff.mpr (fun strs out h => ?_)
+  have hout : out = groupFn strs := h
+  rw [hout]; exact group_correct strs
+
 /-! ## Running the program -/
 
 -- letters as distinct Ints: e=1 a=2 t=3 n=4 b=5

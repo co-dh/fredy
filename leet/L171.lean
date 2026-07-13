@@ -90,6 +90,19 @@ def solve : dTitle ⟶ dNum := graph colNumberFn
 /-- `solve` is a `Map` (it is the graph of a function). -/
 theorem solve_map : Map solve := graph_map colNumberFn
 
+/-! ## The morphism-equation headline -/
+
+/-- **The specification** as a morphism `dTitle ⟶ dNum`: `v` is THE base-26 place value of the
+    big-endian digit list — stated via `value`/`valueLE`, independently of the fold `colNumberFn`. -/
+def spec : dTitle ⟶ dNum := fun xs v => v = value xs
+
+/-- **The allegory-program headline**: `solve = spec` as morphisms in `Rel(Set)` — the program
+    computes exactly the base-26 place value, not merely pointwise. -/
+theorem solve_eq_spec : solve = spec := by
+  apply hom_ext; intro xs v
+  show (v = colNumberFn xs) ↔ (v = value xs)
+  rw [colNumber_correct]
+
 /-! ## Running the program -/
 
 example : colNumberFn ([1] : List Int) = 1 := by decide      -- "A"  = 1

@@ -162,6 +162,47 @@ theorem solve_correct (t : Tree Int) :
     (∀ d, rowAt (levels t) d = atDepth t d) ∧ (levels t).length = height t :=
   ⟨levels_row_eq_atDepth t, levels_length_eq_height t⟩
 
+/-! ## The morphism-equation headline (row spec pins the output) -/
+
+/-- **Row extensionality**: two level-lists that agree row-by-row (`rowAt`) and have the same
+    number of rows are equal — the uniqueness that lets the row spec pin the whole output list. -/
+theorem rowAt_ext : ∀ (L1 L2 : List (List Int)),
+    (∀ d, rowAt L1 d = rowAt L2 d) → L1.length = L2.length → L1 = L2 := by
+  intro L1
+  induction L1 with
+  | nil =>
+    intro L2 _ hlen
+    cases L2 with
+    | nil => rfl
+    | cons y ys => exfalso; simp only [List.length_nil, List.length_cons] at hlen; omega
+  | cons x xs ih =>
+    intro L2 hrow hlen
+    cases L2 with
+    | nil => exfalso; simp only [List.length_nil, List.length_cons] at hlen; omega
+    | cons y ys =>
+      have h0 : x = y := hrow 0
+      have htl : ∀ d, rowAt xs d = rowAt ys d := fun d => hrow (d + 1)
+      have hlen' : xs.length = ys.length := by simp only [List.length_cons] at hlen; omega
+      rw [h0, ih ys htl hlen']
+
+/-- **The specification** as a morphism `dTree ℤ ⟶ dAns`: `out`'s `d`-th row is exactly `atDepth t
+    d` (the depth-`d` values, left to right) for EVERY `d`, and `out` has exactly `height t` rows —
+    the level-by-level grouping, stated independently of the fold `levels`. -/
+def spec : dTree Int ⟶ dAns :=
+  fun t out => (∀ d, rowAt out d = atDepth t d) ∧ out.length = height t
+
+/-- **The allegory-program headline**: `solve = spec` as morphisms in `Rel(Set)` — the level fold
+    is exactly the depth-grouping spec (pinned via `rowAt_ext`), not merely pointwise. -/
+theorem solve_eq_spec : solve = spec := by
+  apply hom_ext; intro t out
+  show (out = levels t) ↔ ((∀ d, rowAt out d = atDepth t d) ∧ out.length = height t)
+  constructor
+  · intro h; rw [h]; exact solve_correct t
+  · rintro ⟨hrow, hlen⟩
+    apply rowAt_ext out (levels t)
+    · intro d; rw [hrow d, levels_row_eq_atDepth t d]
+    · rw [hlen, levels_length_eq_height t]
+
 /-! ## Running the program -/
 
 /-- A single-node tree labelled `a`. -/

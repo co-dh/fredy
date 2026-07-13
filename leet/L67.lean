@@ -187,6 +187,40 @@ def solve : dInput ⟶ dAns := graph (fun p : List Int × List Int => addBinaryF
 /-- `solve` is a `Map` (it is the graph of a function). -/
 theorem solve_map : Map solve := graph_map (fun p : List Int × List Int => addBinaryFn p.1 p.2)
 
+/-! ## The morphism-equation headline (value level)
+
+  The output is a canonical big-endian binary list, but the VALUE equation alone does not pin it
+  (`[1,0,0]` and `[0,1,0,0]` both denote `4`).  Full pinning needs a `Canon` uniqueness lemma plus
+  a two-input carry `addBitsRev_canon` (the analogue of `leet/L66.lean`'s `plusOneRev_canon`,
+  longer here because of the two-list carry ripple) — deferred.  What IS a clean morphism equation:
+  decoding `solve`'s output gives exactly the sum of the two input values. -/
+
+/-- The object of decoded integer values. -/
+abbrev dZ : RelSet.{0} := ⟨Int⟩
+
+/-- **The value-level specification** as a relation `dInput ⟶ dAns`: `out` denotes the sum of the
+    two input binary numbers.  (Program-independent; does NOT pin the digit list — canonicity would.) -/
+def spec : dInput ⟶ dAns := fun p out => value out = value p.1 + value p.2
+
+/-- **The value-level headline**: `solve ≫ value = (the sum of the two input values)` as morphisms
+    into `⟨Int⟩` — decode the program's output and you get the sum, exactly (not merely pointwise).
+    (The weaker-than-`solve = spec` shape is the honest one: `value` under-determines the digits.) -/
+theorem solve_value_eq :
+    solve ≫ (graph value : dAns ⟶ dZ)
+      = (graph (fun p : List Int × List Int => value p.1 + value p.2) : dInput ⟶ dZ) := by
+  apply hom_ext; intro p v
+  constructor
+  · rintro ⟨w, hw, hv⟩; show v = value p.1 + value p.2; rw [hv, hw]; exact addBinary_correct p.1 p.2
+  · intro hv; exact ⟨addBinaryFn p.1 p.2, rfl,
+      by show v = value (addBinaryFn p.1 p.2); rw [hv]; exact (addBinary_correct p.1 p.2).symm⟩
+
+/-- **Refinement**: every digit list `solve` returns denotes the sum — the program refines `spec`. -/
+theorem solve_le_spec : solve ⊑ spec := by
+  refine le_iff.mpr (fun p out h => ?_)
+  have hout : out = addBinaryFn p.1 p.2 := h
+  show value out = value p.1 + value p.2
+  rw [hout]; exact addBinary_correct p.1 p.2
+
 /-! ## Running the program -/
 
 example : addBinaryFn ([1, 0, 1, 1] : List Int) [1, 0, 1] = [1, 0, 0, 0, 0] := by decide

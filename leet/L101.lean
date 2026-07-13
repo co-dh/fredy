@@ -127,6 +127,31 @@ theorem symmetric_correct : ∀ t : Tree Int, isSymmetricFn t = true ↔ IsSymme
     show mirrorFn l r = true ↔ Mirror l r
     exact mirror_correct l r
 
+/-! ## The morphism-equation headline -/
+
+/-- **The specification** as a morphism `dTree Int ⟶ ⟨Bool⟩`: `b` is THE correct answer to "is `t`
+    symmetric?" — its left subtree mirrors its right — stated independently of `isSymmetricFn`. -/
+def spec : dTree Int ⟶ (⟨Bool⟩ : RelSet.{0}) := fun t b => (b = true ↔ IsSymmetric t)
+
+/-- Two booleans that agree on being `true` are equal (`Bool` extensionality; the L100 helper). -/
+theorem bool_eq_of_iff_true {b c : Bool} (h : (b = true) ↔ (c = true)) : b = c := by
+  cases b with
+  | true => cases c with
+    | true => rfl
+    | false => exact (h.mp rfl).symm
+  | false => cases c with
+    | true => exact h.mpr rfl
+    | false => rfl
+
+/-- **The allegory-program headline**: `solve = spec` as morphisms in `Rel(Set)` — the program is
+    exactly the symmetry decision, not merely pointwise correct. -/
+theorem solve_eq_spec : solve = spec := by
+  apply hom_ext; intro t b
+  show (b = isSymmetricFn t) ↔ (b = true ↔ IsSymmetric t)
+  constructor
+  · intro h; rw [h]; exact symmetric_correct t
+  · intro h; exact bool_eq_of_iff_true (h.trans (symmetric_correct t).symm)
+
 /-! ## Running the program -/
 
 /-- A single-node tree labelled `a`. -/

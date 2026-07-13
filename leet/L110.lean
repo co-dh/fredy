@@ -127,6 +127,31 @@ theorem solve_correct : ∀ t : Tree Int, solveFn t = true ↔ IsBalanced t := b
     rw [foldFn_height l, foldFn_height r, Bool.and_eq_true, Bool.and_eq_true,
       decide_eq_true_eq, ihl, ihr, and_assoc]
 
+/-! ## The morphism-equation headline -/
+
+/-- **The specification** as a morphism `dTree Int ⟶ dBool`: `b` is THE correct answer to "is `t`
+    height-balanced?" — stated independently of the program `solveFn`. -/
+def spec : dTree Int ⟶ dBool := fun t b => (b = true ↔ IsBalanced t)
+
+/-- Two booleans that agree on being `true` are equal (`Bool` extensionality; the L100 helper). -/
+theorem bool_eq_of_iff_true {b c : Bool} (h : (b = true) ↔ (c = true)) : b = c := by
+  cases b with
+  | true => cases c with
+    | true => rfl
+    | false => exact (h.mp rfl).symm
+  | false => cases c with
+    | true => exact h.mpr rfl
+    | false => rfl
+
+/-- **The allegory-program headline**: `solve = spec` as morphisms in `Rel(Set)` — the program is
+    exactly the balance decision, not merely pointwise correct. -/
+theorem solve_eq_spec : solve = spec := by
+  apply hom_ext; intro t b
+  show (b = solveFn t) ↔ (b = true ↔ IsBalanced t)
+  constructor
+  · intro h; rw [h]; exact solve_correct t
+  · intro h; exact bool_eq_of_iff_true (h.trans (solve_correct t).symm)
+
 /-! ## Running the program -/
 
 /-- A single-node tree labelled `a`. -/

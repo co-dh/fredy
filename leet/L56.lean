@@ -343,6 +343,29 @@ theorem solve_correct (ivs out : List (Int × Int)) (hval : Valid ivs) (h : solv
   have hout : out = mergeFn ivs := h
   rw [hout]; exact merge_correct ivs hval
 
+/-! ## The specification relation + honest headline (refinement — coverage does NOT pin)
+
+  Coverage over `Int` does not pin the output: touching integer intervals like `[(1,2),(3,4)]` and
+  the merged `[(1,4)]` have the SAME integer coverage and are both `Sorted`/`GapSorted`/`Valid`, yet
+  differ — so `solve = spec` is FALSE.  `mergeFn` keeps them separate (it merges only OVERLAPping
+  intervals, `iv.1 ≤ cur.2`).  The honest morphism statement is refinement: on valid input `solve`
+  produces a faithful merge. -/
+
+/-- **The specification** as a relation `Ivs ⟶ Ivs`: `out` is a faithful merge of `ivs`. -/
+def spec : Ivs ⟶ Ivs := fun ivs out => IsMerge ivs out
+
+/-- The precondition coreflexive passing only `Valid` interval lists. -/
+def pre : Ivs ⟶ Ivs := fun ivs jvs => ivs = jvs ∧ Valid ivs
+
+/-- **Refinement headline**: `pre ≫ solve ⊑ spec` — on valid input, whatever `solve` produces is a
+    faithful merge.  (Equality fails: coverage under-determines the interval list — see above.) -/
+theorem pre_solve_le_spec : pre ≫ solve ⊑ spec := by
+  refine le_iff.mpr (fun ivs out h => ?_)
+  obtain ⟨jvs, ⟨rfl, hval⟩, hout⟩ := h
+  have hout' : out = mergeFn ivs := hout
+  show IsMerge ivs out
+  rw [hout']; exact merge_correct ivs hval
+
 /-! ## Running the program -/
 
 -- LeetCode 56's own example: `[[1,3],[2,6],[8,10],[15,18]] → [[1,6],[8,10],[15,18]]`.

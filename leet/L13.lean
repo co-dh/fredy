@@ -79,6 +79,20 @@ def solve : dInput ⟶ dAns := graph romanFn
 /-- `solve` is a `Map` — a genuine function, via the `graph`/`Map` route. -/
 theorem solve_map : Map solve := graph_map romanFn
 
+/-! ## The morphism-equation headline -/
+
+/-- **The specification** as a morphism `dInput ⟶ dAns`: `v` is THE value of the roman numeral —
+    the plain symbol sum minus twice the subtracted part (the closed-form meaning of subtractive
+    pairs) — stated independently of the recurrence `romanFn`. -/
+def spec : dInput ⟶ dAns := fun xs v => v = xs.sum - 2 * subtractedPart xs
+
+/-- **The allegory-program headline**: `solve = spec` as morphisms in `Rel(Set)` — the program
+    computes exactly the closed-form roman value, not merely pointwise. -/
+theorem solve_eq_spec : solve = spec := by
+  apply hom_ext; intro xs v
+  show (v = romanFn xs) ↔ (v = xs.sum - 2 * subtractedPart xs)
+  rw [roman_correct]
+
 /-! ## Running the program -/
 
 /-- `III = [1,1,1] → 3`. -/

@@ -34,6 +34,7 @@
   Mathlib-free; axioms ⊆ {propext, Quot.sound}.
 -/
 import AOP.A6_TreeBin
+import AOP.A7_4_Horner
 import Fredy.Exacts
 
 set_option linter.unusedVariables false
@@ -335,6 +336,68 @@ theorem solve_correct (l r : Tree Int) (a : Int) :
   rcases hbf : solveFn (Tree.node l a r) with _ | m
   · exact absurd hbf (solveFn_ne_none_of_node l r a)
   · exact ⟨m, rfl, best_achieves _ m hbf, fun v hv => best_dominates _ m v hbf hv⟩
+
+/-! ## The morphism-equation headline: `solve = max D · Λspec` (§7.5 over `Option Int`)
+
+  The maximization has answer type `Option Int` (`none` only for the empty tree, which has no
+  path).  The preference order `dom` makes `none` the bottom, so `maxRel dom` returns `none`
+  exactly when the achievable set is `{none}` (the empty tree) and the greatest achievable path sum
+  otherwise.  The bridge `eq_A_comp_maxRel` (§8.1 thinning) then upgrades the pointwise
+  achievability + domination facts to the actual morphism equation. -/
+
+/-- The preference order on `Option Int`: `w` `dom`-dominates `z` (`w ≥ z`) with `none` as bottom.
+    `some m ≥ some v ⟺ v ≤ m`; every answer dominates `none`; `none` dominates nothing but `none`. -/
+def dom : dAns ⟶ dAns := fun w z =>
+  match w, z with
+  | _, none => True
+  | none, some _ => False
+  | some m, some v => v ≤ m
+
+/-- `dom` is antisymmetric — the requirement that pins the maximum uniquely. -/
+theorem dom_antisymm : ∀ w z : Option Int, dom w z → dom z w → w = z := by
+  intro w z hwz hzw
+  rcases w with _ | m <;> rcases z with _ | v
+  · rfl
+  · exact hwz.elim
+  · exact hzw.elim
+  · exact congrArg some (Int.le_antisymm hzw hwz)
+
+/-- **The specification** as a morphism `dTree ℤ ⟶ dAns`: `some v` is achievable iff `v` is an
+    actual `pathSum`; `none` is achievable iff the tree has NO path (the empty tree).  Stated
+    independently of `solveFn`. -/
+def spec : dTree Int ⟶ dAns := fun t o =>
+  match o with
+  | some v => pathSum t v
+  | none => ∀ v, ¬ pathSum t v
+
+/-- Soundness: `solveFn t` is always a `spec`-achievable answer. -/
+theorem spec_sound : ∀ t : Tree Int, spec t (solveFn t) := by
+  intro t
+  cases t with
+  | nil => intro v h; exact h
+  | node l a r =>
+    obtain ⟨m, hm, hach, _⟩ := solve_correct l r a
+    show spec (Tree.node l a r) (solveFn (Tree.node l a r))
+    rw [hm]; exact hach
+
+/-- Domination: `solveFn t` `dom`-dominates every `spec`-achievable answer. -/
+theorem spec_dom : ∀ (t : Tree Int) (o : Option Int), spec t o → dom (solveFn t) o := by
+  intro t o ho
+  cases o with
+  | none => trivial
+  | some v =>
+    cases t with
+    | nil => exact ho.elim
+    | node l a r =>
+      obtain ⟨m, hm, _, hdom⟩ := solve_correct l r a
+      show dom (solveFn (Tree.node l a r)) (some v)
+      rw [hm]; exact hdom v ho
+
+/-- **The allegory-program headline (§7.5 `max D · Λspec`)**: `solve` is exactly the morphism
+    `A spec ≫ maxRel dom` — the greatest achievable path sum (or `none` for the empty tree) — not
+    merely pointwise.  Bridged from soundness + domination + antisymmetry via `eq_A_comp_maxRel`. -/
+theorem solve_eq_maxRel : solve = A spec ≫ maxRel dom :=
+  eq_A_comp_maxRel dom dom_antisymm solveFn spec spec_sound spec_dom
 
 /-! ## Running the program -/
 

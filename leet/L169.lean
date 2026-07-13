@@ -185,6 +185,31 @@ theorem majority_correct (nums : List Int) (v : Int) (hv : IsMajority nums v) :
     unfold IsMajority at hv
     omega
 
+/-! ## The morphism-equation headline (preconditioned on the majority promise) -/
+
+/-- The precondition coreflexive: the sub-identity passing only inputs that actually have a strict
+    majority element (LeetCode 169's promise). -/
+def pre : Nums ⟶ Nums := fun xs ys => xs = ys ∧ ∃ v, IsMajority xs v
+
+/-- **The specification** as a morphism `Nums ⟶ ℤ`: `v` is THE majority element — it occurs
+    strictly more than half the time — stated as `IsMajority`, independently of the voting fold. -/
+def spec : Nums ⟶ dZ := fun nums v => IsMajority nums v
+
+/-- **The allegory-program headline**: `pre ≫ solve = spec` — on inputs meeting the majority
+    promise, the Boyer–Moore fold is exactly the majority-element specification.  (`majority_correct`
+    gives that `majorityFn` equals any majority `v`, which forces the majority to be unique.) -/
+theorem pre_solve_eq_spec : pre ≫ solve = spec := by
+  apply hom_ext; intro nums v
+  constructor
+  · rintro ⟨ys, ⟨rfl, w, hw⟩, hv⟩
+    have hv' : v = majorityFn nums := hv
+    rw [hv']
+    have := majority_correct nums w hw
+    -- majorityFn nums = w, and IsMajority nums w; rewrite the goal's value to w
+    rw [this]; exact hw
+  · intro hv
+    exact ⟨nums, ⟨rfl, v, hv⟩, by show v = majorityFn nums; rw [majority_correct nums v hv]⟩
+
 /-! ## Running the program -/
 
 example : majorityFn [3, 2, 3] = 3 := by decide

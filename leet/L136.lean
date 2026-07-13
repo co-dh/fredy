@@ -131,6 +131,28 @@ theorem solve_correct {xs : SnocList Nat Nat} {m : Nat} (h : PairedExceptOne xs 
     show xorFn (SnocList.snoc (SnocList.snoc _ _) _) = _
     rw [xorFn_pair_cancel]; exact ih
 
+/-! ## The morphism-equation headline (preconditioned on the problem's promise) -/
+
+/-- The precondition coreflexive: the sub-identity passing only inputs that actually have a unique
+    unpaired value (LeetCode 136's promise). -/
+def pre : Nums ⟶ Nums := fun xs ys => xs = ys ∧ ∃ m, PairedExceptOne xs m
+
+/-- **The specification** as a morphism `Nums ⟶ ℕ`: `v` is THE unpaired value — every other value
+    occurs an even number of times — stated as `PairedExceptOne`, independently of the XOR fold. -/
+def spec : Nums ⟶ dNat := fun xs v => PairedExceptOne xs v
+
+/-- **The allegory-program headline**: `pre ≫ solve = spec` — on inputs meeting the promise, the
+    XOR fold is exactly the unpaired-value specification.  (`solve_correct` gives that `solveFn`
+    equals the promised `m`, which forces the unpaired value to be unique.) -/
+theorem pre_solve_eq_spec : pre ≫ solve = spec := by
+  apply hom_ext; intro xs v
+  constructor
+  · rintro ⟨ys, ⟨rfl, m, hm⟩, hv⟩
+    have hv' : v = solveFn xs := hv
+    rw [hv', solve_correct hm]; exact hm
+  · intro hv
+    exact ⟨xs, ⟨rfl, v, hv⟩, by show v = solveFn xs; rw [solve_correct hv]⟩
+
 /-! ## Running the program -/
 
 /-- Build a `Nat`-list from a first value and the rest, in order. -/

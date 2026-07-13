@@ -97,6 +97,34 @@ def solve : IvsNew ⟶ Ivs := graph (fun p : List (Int × Int) × (Int × Int) =
 /-- `solve` is a `Map` (it is the graph of a function). -/
 theorem solve_map : Map solve := graph_map (fun p : List (Int × Int) × (Int × Int) => insertFn p.1 p.2)
 
+/-! ## The specification relation + honest headline (refinement + emergence report)
+
+  As in `leet/L56.lean`, coverage over `Int` under-determines the output (touching integer intervals
+  share integer coverage), so `solve = spec` is FALSE.  The honest morphism statement is refinement:
+  on a valid list and a valid new interval, `solve` produces a faithful insert-and-merge.
+
+  EMERGENCE (task's exception case): `insertFn ivs new = mergeFn (new :: ivs)` delegates to
+  `L56.mergeFn = mergeSorted ∘ isort` — sort-then-merge.  It is NOT a single catamorphism of its
+  input list (the sort reorders, so no fold over the raw input reconstructs it); the fold content
+  lives INSIDE `L56` (`mergeRun` is the run-merging catamorphism, `isort` a `foldr` of `linsert`).
+  So no `consFold_unique`/`hyloFold_unique` law is applied here — honestly reported, not forced. -/
+
+/-- **The specification** as a relation `IvsNew ⟶ Ivs`: `out` is a faithful insertion of `new` into
+    `ivs` (`IsInsert`), stated independently of `insertFn`. -/
+def spec : IvsNew ⟶ Ivs := fun p out => IsInsert p.1 p.2 out
+
+/-- The precondition coreflexive passing only `Valid` lists with a valid new interval. -/
+def pre : IvsNew ⟶ IvsNew := fun p q => p = q ∧ Valid p.1 ∧ p.2.1 ≤ p.2.2
+
+/-- **Refinement headline**: `pre ≫ solve ⊑ spec` — on valid input, whatever `solve` produces is a
+    faithful insert-and-merge.  (Equality fails: coverage under-determines the interval list.) -/
+theorem pre_solve_le_spec : pre ≫ solve ⊑ spec := by
+  refine le_iff.mpr (fun p out h => ?_)
+  obtain ⟨q, ⟨rfl, hval, hnew⟩, hout⟩ := h
+  have hout' : out = insertFn p.1 p.2 := hout
+  show IsInsert p.1 p.2 out
+  rw [hout']; exact insert_correct p.1 p.2 hval hnew
+
 /-! ## Running the program -/
 
 -- Merges into an existing interval: `(2,5)` overlaps `(1,3)` (`2 ≤ 3`) but not `(6,9)`
