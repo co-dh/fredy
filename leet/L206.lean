@@ -63,6 +63,45 @@ theorem rev_length (xs : List Int) : (revFn xs).length = xs.length := by
   show xs.reverse.length = xs.length
   exact List.length_reverse
 
+/-! ## Specification and the structural-output headline -/
+
+/-- `IsRev xs out` — `out` is the reversal of `xs`, characterized STRUCTURALLY and independently of
+    the program `revFn`/`List.reverse`: the empty list reverses to empty; `a :: xs` reverses to
+    "(reversal of `xs`) with `a` appended at the END".  A relation a priori, pinned to a function
+    by `rev_unique` below. -/
+def IsRev : List Int → List Int → Prop
+  | [], out => out = []
+  | a :: xs, out => ∃ r, IsRev xs r ∧ out = r ++ [a]
+
+/-- **Existence**: `List.reverse` satisfies `IsRev` (uses `reverse_cons`: `(a::xs).reverse =
+    xs.reverse ++ [a]`, exactly the recursive clause). -/
+theorem reverse_isRev : ∀ xs : List Int, IsRev xs xs.reverse
+  | [] => rfl
+  | a :: xs => ⟨xs.reverse, reverse_isRev xs, List.reverse_cons⟩
+
+/-- **Uniqueness**: the reversal of a list is unique.  Induction on `xs`; the append clause pins
+    the last element and the IH pins the rest. -/
+theorem rev_unique : ∀ (xs o₁ o₂ : List Int), IsRev xs o₁ → IsRev xs o₂ → o₁ = o₂
+  | [], o₁, o₂, h₁, h₂ => by rw [h₁, h₂]
+  | a :: xs, o₁, o₂, h₁, h₂ => by
+      obtain ⟨r, hr, ho₁⟩ := h₁
+      obtain ⟨r', hr', ho₂⟩ := h₂
+      rw [ho₁, ho₂, rev_unique xs r r' hr hr']
+
+/-- The **specification** as a morphism `dList ⟶ dList` in `Rel(Set)`: `out` is the reversal of
+    `xs`, stated via `IsRev` (program-independent), NOT via `revFn`. -/
+def spec : dList ⟶ dList := fun xs out => IsRev xs out
+
+/-- **`solve` equals `spec` as relations** — the STRUCTURAL-OUTPUT headline: existence
+    (`reverse_isRev`) plus uniqueness (`rev_unique`) make the program exactly the reversal
+    relation. -/
+theorem solve_eq_spec : solve = spec := by
+  apply hom_ext; intro xs out
+  show (out = revFn xs) ↔ IsRev xs out
+  constructor
+  · intro h; rw [h]; exact reverse_isRev xs
+  · intro h; exact rev_unique xs out (revFn xs) h (reverse_isRev xs)
+
 /-! ## Running the program -/
 
 example : revFn ([1, 2, 3] : List Int) = [3, 2, 1] := by decide

@@ -192,6 +192,25 @@ theorem solve_correct (xs : SnocList Bool Bool) : validFn xs = true ↔ balanced
     have heq := foldFn_fst_of_ok xs hok
     exact ⟨hok, by omega⟩
 
+/-- Two booleans that agree on being `true` are equal (Bool extensionality). -/
+theorem bool_eq_of_iff_true {b c : Bool} (h : (b = true) ↔ (c = true)) : b = c := by
+  cases b with
+  | true => cases c with
+    | true => rfl
+    | false => exact (h.mp rfl).symm
+  | false => cases c with
+    | true => exact h.mpr rfl
+    | false => rfl
+
+/-- **`solve` equals `spec` as relations** — the DECISION-problem headline: `solve` (deciding
+    `validFn`) is exactly the specification "`r = true` iff `xs` is a balanced bracket sequence". -/
+theorem solve_eq_spec : solve = spec := by
+  apply hom_ext; intro xs r
+  show (r = validFn xs) ↔ (r = true ↔ balancedP xs)
+  constructor
+  · intro h; rw [h]; exact solve_correct xs
+  · intro h; exact bool_eq_of_iff_true (h.trans (solve_correct xs).symm)
+
 /-! ## Running the program -/
 
 /-- Build a bracket sequence from a first bracket and the rest, in order (`true` = open). -/

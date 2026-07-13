@@ -149,6 +149,31 @@ theorem solve_correct (nums : List Int) (i j : Nat) (hij : i ≤ j + 1) (hj : j 
   have hv : v = sumRangeFn nums i j := h
   rw [hv]; exact sumRange_correct nums i j hij hj
 
+/-! ## Headline: on a well-formed range, `solve` IS `spec` (a genuine morphism equation) -/
+
+/-- The **specification** as a morphism `Query ⟶ ℤ` in `Rel(Set)`: the answer is the honest slice
+    sum `rangeSum` (a `drop`/`take` over the list), stated independently of the prefix-sum program. -/
+def spec : Query ⟶ dZ := fun q v => v = rangeSum q.1 q.2.1 q.2.2
+
+/-- The precondition coreflexive: the sub-identity on WELL-FORMED queries (`i ≤ j+1`, `j` in range). -/
+def pre : Query ⟶ Query := fun q q' => q = q' ∧ q.2.1 ≤ q.2.2 + 1 ∧ q.2.2 < q.1.length
+
+/-- **Preconditioned headline**: restricted to well-formed queries (`pre`), the program equals the
+    specification — `pre ≫ solve = pre ≫ spec`.  The exact-value answer is pinned uniquely by the
+    equation `v = rangeSum …`; `sumRange_correct` bridges the prefix-sum program to that honest sum. -/
+theorem pre_solve_eq_spec : pre ≫ solve = pre ≫ spec := by
+  apply hom_ext; intro q v
+  rw [comp_apply, comp_apply]
+  constructor
+  · rintro ⟨q', ⟨rfl, hij, hj⟩, hsolve⟩
+    refine ⟨q, ⟨rfl, hij, hj⟩, ?_⟩
+    show v = rangeSum q.1 q.2.1 q.2.2
+    rw [(hsolve : v = sumRangeFn q.1 q.2.1 q.2.2)]; exact sumRange_correct q.1 q.2.1 q.2.2 hij hj
+  · rintro ⟨q', ⟨rfl, hij, hj⟩, hspec⟩
+    refine ⟨q, ⟨rfl, hij, hj⟩, ?_⟩
+    show v = sumRangeFn q.1 q.2.1 q.2.2
+    rw [(hspec : v = rangeSum q.1 q.2.1 q.2.2)]; exact (sumRange_correct q.1 q.2.1 q.2.2 hij hj).symm
+
 /-! ## Running the program -/
 
 -- LeetCode 303's own example: `nums = [-2, 0, 3, -5, 2, -1]`, `sumRange(0,2) = 1`,

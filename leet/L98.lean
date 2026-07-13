@@ -125,6 +125,25 @@ theorem within_correct : ∀ (lo hi : Option Int) (t : Tree Int),
 /-- **Correctness of the allegory program**: `t` is decided a valid BST iff it actually is one. -/
 theorem solve_correct (t : Tree Int) : bstFn t = true ↔ IsBST t := within_correct none none t
 
+/-- Two booleans that agree on being `true` are equal (Bool extensionality). -/
+theorem bool_eq_of_iff_true {b c : Bool} (h : (b = true) ↔ (c = true)) : b = c := by
+  cases b with
+  | true => cases c with
+    | true => rfl
+    | false => exact (h.mp rfl).symm
+  | false => cases c with
+    | true => exact h.mpr rfl
+    | false => rfl
+
+/-- **`solve` equals `spec` as relations** — the DECISION-problem headline: the program `solve`
+    (deciding `bstFn`) is exactly the specification relation "`r = true` iff `t` is a BST". -/
+theorem solve_eq_spec : solve = spec := by
+  apply hom_ext; intro t r
+  show (r = bstFn t) ↔ (r = true ↔ IsBST t)
+  constructor
+  · intro h; rw [h]; exact solve_correct t
+  · intro h; exact bool_eq_of_iff_true (h.trans (solve_correct t).symm)
+
 /-! ## Running the program -/
 
 /-- A single-node tree labelled `a`. -/

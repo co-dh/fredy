@@ -66,6 +66,43 @@ theorem rev_length (bs : List Bool) : (revBits bs).length = bs.length := by
   show bs.reverse.length = bs.length
   exact List.length_reverse
 
+/-! ## Specification and the structural-output headline -/
+
+/-- `IsRev bs out` — `out` is the bit-reversal of `bs`, characterized STRUCTURALLY and independently
+    of the program `revBits`/`List.reverse`: `[]` reverses to `[]`; `b :: bs` reverses to
+    "(reversal of `bs`) with `b` appended at the END".  A relation a priori, pinned to a function by
+    `rev_unique`. -/
+def IsRev : List Bool → List Bool → Prop
+  | [], out => out = []
+  | b :: bs, out => ∃ r, IsRev bs r ∧ out = r ++ [b]
+
+/-- **Existence**: `List.reverse` satisfies `IsRev` (via `reverse_cons`). -/
+theorem reverse_isRev : ∀ bs : List Bool, IsRev bs bs.reverse
+  | [] => rfl
+  | b :: bs => ⟨bs.reverse, reverse_isRev bs, List.reverse_cons⟩
+
+/-- **Uniqueness**: the bit-reversal is unique.  Induction on `bs`. -/
+theorem rev_unique : ∀ (bs o₁ o₂ : List Bool), IsRev bs o₁ → IsRev bs o₂ → o₁ = o₂
+  | [], o₁, o₂, h₁, h₂ => by rw [h₁, h₂]
+  | b :: bs, o₁, o₂, h₁, h₂ => by
+      obtain ⟨r, hr, ho₁⟩ := h₁
+      obtain ⟨r', hr', ho₂⟩ := h₂
+      rw [ho₁, ho₂, rev_unique bs r r' hr hr']
+
+/-- The **specification** as a morphism `dBits ⟶ dBits` in `Rel(Set)`: `out` is the bit-reversal of
+    `bs`, stated via `IsRev` (program-independent), NOT via `revBits`. -/
+def spec : dBits ⟶ dBits := fun bs out => IsRev bs out
+
+/-- **`solve` equals `spec` as relations** — the STRUCTURAL-OUTPUT headline: existence
+    (`reverse_isRev`) plus uniqueness (`rev_unique`) make the program exactly the bit-reversal
+    relation. -/
+theorem solve_eq_spec : solve = spec := by
+  apply hom_ext; intro bs out
+  show (out = revBits bs) ↔ IsRev bs out
+  constructor
+  · intro h; rw [h]; exact reverse_isRev bs
+  · intro h; exact rev_unique bs out (revBits bs) h (reverse_isRev bs)
+
 /-! ## Value view: an LSB-first `List Bool ↔ Nat` correspondence -/
 
 /-- A bit's numeric weight contribution: `1` for `true`, `0` for `false`. -/

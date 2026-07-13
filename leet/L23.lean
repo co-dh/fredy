@@ -91,6 +91,30 @@ theorem solve_le_spec : solve ⊑ spec := by
   rw [hl]
   exact merge_k_correct lists hall
 
+/-! ## Headline: on inputs whose members are all sorted, `solve` IS `spec` -/
+
+/-- The precondition coreflexive: the sub-identity on WELL-FORMED inputs (every member sorted). -/
+def pre : dInput ⟶ dInput := fun x y => x = y ∧ ∀ l' ∈ x, LC21.Sorted l'
+
+/-- **Preconditioned headline**: restricted to inputs whose members are all sorted (`pre`), the
+    program equals the specification — `pre ≫ solve = pre ≫ spec`.  Existence is `merge_k_correct`;
+    uniqueness is `LC21.sorted_count_ext` (a sorted list is pinned by its multiset).  The
+    precondition is required because the multiset-sum spec pins a UNIQUE list only under sortedness. -/
+theorem pre_solve_eq_spec : pre ≫ solve = pre ≫ spec := by
+  apply hom_ext; intro lists l
+  rw [comp_apply, comp_apply]
+  constructor
+  · rintro ⟨y, ⟨rfl, hall⟩, hsolve⟩
+    refine ⟨lists, ⟨rfl, hall⟩, ?_⟩
+    intro _
+    rw [(hsolve : l = mergeKFn lists)]; exact merge_k_correct lists hall
+  · rintro ⟨y, ⟨rfl, hall⟩, hspec⟩
+    refine ⟨lists, ⟨rfl, hall⟩, ?_⟩
+    obtain ⟨hSl, hCl⟩ := hspec hall
+    obtain ⟨hSm, hCm⟩ := merge_k_correct lists hall
+    show l = mergeKFn lists
+    exact LC21.sorted_count_ext l (mergeKFn lists) hSl hSm (fun v => by rw [hCl v, hCm v])
+
 /-! ## Running the program -/
 
 example : mergeKFn [[1, 4, 5], [1, 3, 4], [2, 6]] = [1, 1, 2, 3, 4, 4, 5, 6] := by decide

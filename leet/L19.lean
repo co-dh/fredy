@@ -117,6 +117,43 @@ theorem solve_le_spec : solve ⊑ spec := by
   rw [hout]
   exact removeNth_correct p.1 p.2 hn1 hn2
 
+/-! ## Headline: on valid `n`, `solve` IS `spec` (a genuine morphism equation) -/
+
+/-- **Uniqueness of a spec output**: the two index clauses (before/at-or-after the removed position)
+    partition ALL indices and pin `out[i]?` for each, so any two outputs meeting the characterization
+    agree everywhere, hence are equal by list extensionality.  No precondition is needed here — the
+    characterization alone is already functional. -/
+theorem spec_out_unique (xs : List Int) (n : Nat) (o₁ o₂ : List Int)
+    (h1 : (∀ i, i < xs.length - n → o₁[i]? = xs[i]?) ∧ (∀ i, xs.length - n ≤ i → o₁[i]? = xs[i + 1]?))
+    (h2 : (∀ i, i < xs.length - n → o₂[i]? = xs[i]?) ∧ (∀ i, xs.length - n ≤ i → o₂[i]? = xs[i + 1]?)) :
+    o₁ = o₂ := by
+  apply List.ext_getElem?
+  intro i
+  rcases Nat.lt_or_ge i (xs.length - n) with hi | hi
+  · rw [h1.1 i hi, h2.1 i hi]
+  · rw [h1.2 i hi, h2.2 i hi]
+
+/-- The precondition coreflexive: the sub-identity on VALID inputs (`1 ≤ n ≤ length`). -/
+def pre : dInput ⟶ dInput := fun p q => p = q ∧ 1 ≤ p.2 ∧ p.2 ≤ p.1.length
+
+/-- **Preconditioned headline**: restricted to valid removal positions (`pre`), the program equals
+    the specification — `pre ≫ solve = pre ≫ spec`.  Existence is `removeNth_correct`; uniqueness is
+    `spec_out_unique` (the index characterization is functional). -/
+theorem pre_solve_eq_spec : pre ≫ solve = pre ≫ spec := by
+  apply hom_ext; intro p out
+  rw [comp_apply, comp_apply]
+  constructor
+  · rintro ⟨q, ⟨rfl, hn1, hn2⟩, hsolve⟩
+    refine ⟨p, ⟨rfl, hn1, hn2⟩, ?_⟩
+    intro _ _
+    rw [(hsolve : out = removeNthFn p.1 p.2)]; exact removeNth_correct p.1 p.2 hn1 hn2
+  · rintro ⟨q, ⟨rfl, hn1, hn2⟩, hspec⟩
+    refine ⟨p, ⟨rfl, hn1, hn2⟩, ?_⟩
+    show out = removeNthFn p.1 p.2
+    obtain ⟨_, ho1, ho2⟩ := hspec hn1 hn2
+    obtain ⟨_, hr1, hr2⟩ := removeNth_correct p.1 p.2 hn1 hn2
+    exact spec_out_unique p.1 p.2 out (removeNthFn p.1 p.2) ⟨ho1, ho2⟩ ⟨hr1, hr2⟩
+
 /-! ## Running the program -/
 
 example : removeNthFn ([1, 2, 3, 4, 5] : List Int) 2 = [1, 2, 3, 5] := by decide

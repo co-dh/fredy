@@ -36,6 +36,7 @@
   Mathlib-free; axioms ⊆ {propext, Quot.sound}.
 -/
 import AOP.A6_SnocList
+import AOP.A7_4_Horner   -- `eq_A_comp_maxRel`: the `max (≤)·Λ spec` morphism-equation bridge
 import Fredy.Exacts
 
 set_option linter.unusedVariables false
@@ -226,6 +227,13 @@ theorem circAnswer_correct (l : List Int) :
 theorem solve_correct (xs : SnocList Int Int) :
     circSpec xs (solveFn xs) ∧ ∀ v, circSpec xs v → v ≤ solveFn xs :=
   circAnswer_correct (toList xs)
+
+/-- **Honest headline (§7.5 `max (≤)·Λ spec`)**: `solve` is exactly the morphism `A spec ≫ maxRel D`
+    for the `≤`-preference order `D w z := z ≤ w` — the greatest achievable circular robbery, not
+    merely pointwise. Bridged from `solve_correct` (soundness + domination). -/
+theorem solve_eq_maxRel : solve = A spec ≫ maxRel (fun w z : Int => z ≤ w) :=
+  eq_A_comp_maxRel _ (fun x y h1 h2 => Int.le_antisymm h2 h1) solveFn spec
+    (fun xs => (solve_correct xs).1) (fun xs v hv => (solve_correct xs).2 v hv)
 
 /-- **The program refines the specification**: every value `solve` returns is an achievable
     circular robbery. -/

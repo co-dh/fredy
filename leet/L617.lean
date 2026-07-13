@@ -124,6 +124,48 @@ def solve : TreePair ⟶ (dTree Int : RelSet.{0}) := graph (fun p : Tree Int × 
 /-- `solve` is a `Map` (it is the graph of a function). -/
 theorem solve_map : Map solve := graph_map (fun p : Tree Int × Tree Int => mergeT p.1 p.2)
 
+/-! ## Specification and the structural-output headline -/
+
+/-- **Tree extensionality via paths**: a tree is determined by its `getPath` at every position — two
+    trees agreeing on every path are equal.  Induction on the first tree; the empty path pins the
+    root label (and rules out a `nil`/`node` mismatch), the `false`/`true` extensions pin the two
+    subtrees. -/
+theorem getPath_ext : ∀ (o1 o2 : Tree Int), (∀ p, getPath o1 p = getPath o2 p) → o1 = o2 := by
+  intro o1
+  induction o1 with
+  | nil =>
+    intro o2 h
+    cases o2 with
+    | nil => rfl
+    | node l2 a2 r2 => have h0 := h []; simp [getPath] at h0
+  | node l1 a1 r1 ihl ihr =>
+    intro o2 h
+    cases o2 with
+    | nil => have h0 := h []; simp [getPath] at h0
+    | node l2 a2 r2 =>
+      have ha : a1 = a2 := by have h0 := h []; simp only [getPath] at h0; exact Option.some.inj h0
+      have hl : l1 = l2 := ihl l2 (fun p' => h (false :: p'))
+      have hr : r1 = r2 := ihr r2 (fun p' => h (true :: p'))
+      rw [ha, hl, hr]
+
+/-- The **specification** as a morphism `TreePair ⟶ dTree Int` in `Rel(Set)`: at every position, the
+    output's value is the `combine` (overlay) of the two inputs' values.  Stated via
+    `getPath`/`combine` (program-independent), NOT via `mergeT`. -/
+def spec : TreePair ⟶ (dTree Int : RelSet.{0}) := fun p out =>
+  ∀ path, getPath out path = combine (getPath p.1 path) (getPath p.2 path)
+
+/-- **`solve` equals `spec` as relations** — the STRUCTURAL-OUTPUT headline: existence
+    (`merge_correct`) plus uniqueness (`getPath_ext`) make the program exactly the overlay
+    relation. -/
+theorem solve_eq_spec : solve = spec := by
+  apply hom_ext; intro p out
+  show (out = mergeT p.1 p.2) ↔
+      (∀ path, getPath out path = combine (getPath p.1 path) (getPath p.2 path))
+  constructor
+  · intro h; subst h; exact merge_correct p.1 p.2
+  · intro h
+    exact getPath_ext out (mergeT p.1 p.2) (fun path => (h path).trans (merge_correct p.1 p.2 path).symm)
+
 /-! ## Running the program -/
 
 /-- A single-node tree labelled `a`. -/

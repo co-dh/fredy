@@ -210,6 +210,93 @@ theorem kthSmallest_exists (t : Tree Int) {k : Nat} (hk1 : 1 ≤ k) (hk2 : k ≤
   have hlt : k - 1 < (inorder t).length := by omega
   exact ⟨(inorder t)[k - 1]'hlt, List.getElem?_eq_some_iff.mpr ⟨hlt, rfl⟩⟩
 
+/-! ## Specification and the (preconditioned) exact-value headline
+
+  The rank characterization is FUNCTIONAL: in a strictly-sorted list, "`v` is present and exactly `i`
+  elements are `< v`" pins `v` to index `i` (`rank_determines`, the converse of `sorted_rank` via
+  membership).  This makes the k-th smallest unique, so the program equals the spec on valid inputs. -/
+
+/-- **Rank determines the element**: in a strictly `<`-sorted list, an element `v` with exactly `i`
+    smaller elements sits at index `i`.  From `v ∈ xs` get its index `j`; `sorted_rank` gives its
+    rank `j`, so `i = j`. -/
+theorem rank_determines (xs : List Int) (v : Int) (i : Nat)
+    (hsorted : List.Pairwise (· < ·) xs) (hmem : v ∈ xs)
+    (hrank : (xs.filter (fun y => decide (y < v))).length = i) : xs[i]? = some v := by
+  obtain ⟨j, hj⟩ := List.mem_iff_getElem?.mp hmem
+  have hjr := sorted_rank xs j v hsorted hj
+  have hij : i = j := by rw [← hrank]; exact hjr
+  rw [hij]; exact hj
+
+/-- The **specification** as a morphism `dPair ⟶ Option ℤ` in `Rel(Set)`: a `some v` answer is THE
+    k-th smallest label (`v` occurs in `t`, and exactly `k-1` labels are strictly smaller); a `none`
+    answer means `k` exceeds the number of labels.  Stated via `memT`/label counting, NOT via
+    `kthSmallestFn`. -/
+def spec : dPair ⟶ dAns := fun (p : Tree Int × Nat) (r : Option Int) =>
+  match r with
+  | some v => memT p.1 v ∧ ((inorder p.1).filter (fun y => decide (y < v))).length = p.2 - 1
+  | none => (inorder p.1).length < p.2
+
+/-- **`spec` is functional on a valid BST**: the rank pins the `some` answer (`rank_determines`), and
+    `none` is incompatible with any `some` (a k-th smallest witnesses at least `k` labels). -/
+theorem spec_functional {p : Tree Int × Nat} (hbst : IsBST p.1) :
+    ∀ r₁ r₂ : Option Int, spec p r₁ → spec p r₂ → r₁ = r₂ := by
+  have hsorted := (inorder_sorted_bounded none none p.1 hbst).1
+  intro r₁ r₂ h₁ h₂
+  cases r₁ with
+  | some v =>
+    obtain ⟨hmem, hrank⟩ := h₁
+    have hv := rank_determines (inorder p.1) v (p.2 - 1) hsorted ((mem_inorder_iff_memT p.1 v).mpr hmem) hrank
+    cases r₂ with
+    | some v' =>
+      obtain ⟨hmem', hrank'⟩ := h₂
+      have hv' := rank_determines (inorder p.1) v' (p.2 - 1) hsorted
+        ((mem_inorder_iff_memT p.1 v').mpr hmem') hrank'
+      rw [hv] at hv'; exact hv'
+    | none =>
+      exfalso
+      obtain ⟨hlt, _⟩ := List.getElem?_eq_some_iff.mp hv
+      have h2' : (inorder p.1).length < p.2 := h₂
+      omega
+  | none =>
+    cases r₂ with
+    | some v' =>
+      obtain ⟨hmem', hrank'⟩ := h₂
+      have hv' := rank_determines (inorder p.1) v' (p.2 - 1) hsorted
+        ((mem_inorder_iff_memT p.1 v').mpr hmem') hrank'
+      exfalso
+      obtain ⟨hlt, _⟩ := List.getElem?_eq_some_iff.mp hv'
+      have h1' : (inorder p.1).length < p.2 := h₁
+      omega
+    | none => rfl
+
+/-- **`kthSmallestFn` meets its spec** on a valid BST with `1 ≤ k`. -/
+theorem kthSmallestFn_spec {p : Tree Int × Nat} (hbst : IsBST p.1) (hk1 : 1 ≤ p.2) :
+    spec p (kthSmallestFn p.1 p.2) := by
+  cases hf : kthSmallestFn p.1 p.2 with
+  | some v => exact kthSmallest_correct hbst hf
+  | none =>
+    show (inorder p.1).length < p.2
+    have hle := List.getElem?_eq_none_iff.mp (hf : (inorder p.1)[p.2 - 1]? = none)
+    omega
+
+/-- The precondition coreflexive: the sub-identity on VALID inputs (`t` a BST, `1 ≤ k`). -/
+def pre : dPair ⟶ dPair := fun p q => p = q ∧ IsBST p.1 ∧ 1 ≤ p.2
+
+/-- **Preconditioned headline**: restricted to a valid BST and `1 ≤ k` (`pre`), the program equals
+    the specification — `pre ≫ solve = pre ≫ spec`.  Existence is `kthSmallestFn_spec`; uniqueness is
+    `spec_functional` (the rank pins the k-th smallest). -/
+theorem pre_solve_eq_spec : pre ≫ solve = pre ≫ spec := by
+  apply hom_ext; intro p b
+  rw [comp_apply, comp_apply]
+  constructor
+  · rintro ⟨q, ⟨rfl, hbst, hk1⟩, hsolve⟩
+    refine ⟨p, ⟨rfl, hbst, hk1⟩, ?_⟩
+    rw [(hsolve : b = kthSmallestFn p.1 p.2)]; exact kthSmallestFn_spec hbst hk1
+  · rintro ⟨q, ⟨rfl, hbst, hk1⟩, hspec⟩
+    refine ⟨p, ⟨rfl, hbst, hk1⟩, ?_⟩
+    show b = kthSmallestFn p.1 p.2
+    exact spec_functional hbst b (kthSmallestFn p.1 p.2) hspec (kthSmallestFn_spec hbst hk1)
+
 /-! ## Running the program -/
 
 /-- A single-node tree labelled `a`. -/
@@ -236,3 +323,4 @@ example : kthSmallestFn sampleBST 6 = some 9 := by decide
 example : kthSmallestFn sampleBST 7 = none := by decide
 
 end Freyd.Alg.RelSet.LC230
+

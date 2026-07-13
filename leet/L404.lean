@@ -236,6 +236,23 @@ theorem sum_left_leaves_correct (t : Tree Int) :
     sumLeftLeavesFn t = (leftLeafValues t false).sum :=
   sumLL_eq_sum t false
 
+/-! ## Headline: `solve` IS the spec (a genuine morphism equation) -/
+
+/-- The **specification** as a morphism `dTree Int ⟶ ℤ` in `Rel(Set)`: the answer is the sum of the
+    left-leaf values, listed by `leftLeafValues t false`.  This list is characterized
+    program-independently by `mem_leftLeafValues_iff` (its members are exactly the values sitting at
+    genuine left-leaf positions, `IsLeftLeaf`), so `spec` is not a restatement of the running-total
+    fold `sumLL`; `sum_left_leaves_correct` bridges the two. -/
+def spec : dTree Int ⟶ dInt := fun t v => v = (leftLeafValues t false).sum
+
+/-- **`solve` equals `spec` as relations** — the EXACT-VALUE headline: the running-total fold equals
+    the sum of the explicitly enumerated left-leaf values.  The answer is pinned uniquely by the
+    equation, so existence + uniqueness collapse to `sum_left_leaves_correct`. -/
+theorem solve_eq_spec : solve = spec := by
+  apply hom_ext; intro t v
+  show (v = sumLeftLeavesFn t) ↔ (v = (leftLeafValues t false).sum)
+  rw [sum_left_leaves_correct]
+
 /-! ## Running the program -/
 
 /-- A single-node tree labelled `a`. -/

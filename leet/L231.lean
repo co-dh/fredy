@@ -162,6 +162,31 @@ theorem pow2_correct (n : Int) :
       rw [hnk]
       exact pow2Fuel_pow k (2 ^ k) (Nat.le_of_lt Nat.lt_two_pow_self)
 
+/-! ## Specification and the decision headline -/
+
+/-- The **specification** as a morphism `dInt ⟶ Bool` in `Rel(Set)`: `r = true` iff `n` is a power
+    of two (positive and equal to `2 ^ k`) — LeetCode 231's definition verbatim, a genuine `Iff`. -/
+def spec : dInt ⟶ dBool := fun n r => (r = true ↔ (0 < n ∧ ∃ k : Nat, n = (2 : Int) ^ k))
+
+/-- Two booleans that agree on being `true` are equal (Bool extensionality). -/
+theorem bool_eq_of_iff_true {b c : Bool} (h : (b = true) ↔ (c = true)) : b = c := by
+  cases b with
+  | true => cases c with
+    | true => rfl
+    | false => exact (h.mp rfl).symm
+  | false => cases c with
+    | true => exact h.mpr rfl
+    | false => rfl
+
+/-- **`solve` equals `spec` as relations** — the DECISION-problem headline: `solve` (deciding
+    `isPow2Fn`) is exactly the specification "`r = true` iff `n` is a power of two". -/
+theorem solve_eq_spec : solve = spec := by
+  apply hom_ext; intro n r
+  show (r = isPow2Fn n) ↔ (r = true ↔ (0 < n ∧ ∃ k : Nat, n = (2 : Int) ^ k))
+  constructor
+  · intro h; rw [h]; exact pow2_correct n
+  · intro h; exact bool_eq_of_iff_true (h.trans (pow2_correct n).symm)
+
 /-! ## Running the program -/
 
 example : isPow2Fn 1 = true := by decide

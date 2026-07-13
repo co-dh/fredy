@@ -171,6 +171,38 @@ theorem move_correct (xs : List Int) :
   ⟨moveZeroesFn_filter_nz xs, moveZeroesFn_length xs, moveZeroesFn_countL xs,
     (xs.filter zPred).length, rfl, filter_nz_no_zero xs⟩
 
+/-! ## Specification and the structural-output headline -/
+
+/-- The **specification** as a morphism `Nums ⟶ Nums` in `Rel(Set)`: the output is the input's
+    non-zeros (in order) followed by some run of zeros, with the same length.  This pins the STABLE
+    move-zeroes uniquely — order-preservation of non-zeros (`xs.filter nzPred` verbatim), all zeros
+    trailing (`List.replicate k 0`), and length fixing `k`.  Stated independently of `moveZeroesFn`. -/
+def spec : Nums ⟶ Nums := fun xs out =>
+  (∃ k, out = xs.filter nzPred ++ List.replicate k 0) ∧ out.length = xs.length
+
+/-- **Uniqueness**: the length forces the number of trailing zeros, so any two spec outputs agree. -/
+theorem spec_unique (xs o1 o2 : List Int) (h1 : spec xs o1) (h2 : spec xs o2) : o1 = o2 := by
+  obtain ⟨⟨k1, hk1⟩, hl1⟩ := h1
+  obtain ⟨⟨k2, hk2⟩, hl2⟩ := h2
+  have e1 : (xs.filter nzPred).length + k1 = xs.length := by
+    rw [hk1, List.length_append, List.length_replicate] at hl1; exact hl1
+  have e2 : (xs.filter nzPred).length + k2 = xs.length := by
+    rw [hk2, List.length_append, List.length_replicate] at hl2; exact hl2
+  have hk : k1 = k2 := by omega
+  rw [hk1, hk2, hk]
+
+/-- **`solve` equals `spec` as relations** — the STRUCTURAL-OUTPUT headline: existence (the program's
+    own shape plus `moveZeroesFn_length`) and uniqueness (`spec_unique`) make the program exactly the
+    stable move-zeroes relation. -/
+theorem solve_eq_spec : solve = spec := by
+  apply hom_ext; intro xs out
+  show (out = moveZeroesFn xs) ↔
+      ((∃ k, out = xs.filter nzPred ++ List.replicate k 0) ∧ out.length = xs.length)
+  constructor
+  · intro h; subst h; exact ⟨⟨(xs.filter zPred).length, rfl⟩, moveZeroesFn_length xs⟩
+  · intro h
+    exact spec_unique xs out (moveZeroesFn xs) h ⟨⟨(xs.filter zPred).length, rfl⟩, moveZeroesFn_length xs⟩
+
 /-! ## Running the program -/
 
 example : moveZeroesFn [0, 1, 0, 3, 12] = [1, 3, 12, 0, 0] := by decide

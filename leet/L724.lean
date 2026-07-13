@@ -165,9 +165,65 @@ def solve : Data ⟶ Answer := graph pivotFn
 /-- `solve` is a `Map` (it is the graph of a function). -/
 theorem solve_map : Map solve := graph_map pivotFn
 
+/-! ## Specification and the exact-value (Option) headline -/
+
+/-- The **specification** as a morphism `Data ⟶ Option ℕ` in `Rel(Set)`: a `some i` answer is the
+    LEFTMOST pivot index (`IsPivot` and no earlier pivot); a `none` answer means no pivot exists.
+    Stated via `IsPivot` (program-independent), NOT via `pivotFn`. -/
+def spec : Data ⟶ Answer := fun nums r =>
+  match r with
+  | some i => IsPivot nums i ∧ ∀ j, j < i → ¬ IsPivot nums j
+  | none => ∀ j, ¬ IsPivot nums j
+
+/-- **Uniqueness of the leftmost pivot**: two leftmost pivots are equal — the smaller would refute
+    the other's "no earlier pivot" clause. -/
+theorem pivot_index_unique (nums : List Int) (i i' : Nat)
+    (h : IsPivot nums i ∧ ∀ j, j < i → ¬ IsPivot nums j)
+    (h' : IsPivot nums i' ∧ ∀ j, j < i' → ¬ IsPivot nums j) : i = i' := by
+  rcases Nat.lt_trichotomy i i' with hlt | heq | hgt
+  · exact absurd h.1 (h'.2 i hlt)
+  · exact heq
+  · exact absurd h'.1 (h.2 i' hgt)
+
+/-- **`spec` is functional**: at most one answer satisfies it — the leftmost-pivot clauses pin
+    `some`, and `none` excludes any `some` by the pivot at that index. -/
+theorem spec_functional (nums : List Int) : ∀ r₁ r₂ : Option Nat,
+    spec nums r₁ → spec nums r₂ → r₁ = r₂ := by
+  intro r₁ r₂ h₁ h₂
+  cases r₁ with
+  | some i =>
+    cases r₂ with
+    | some i' => rw [pivot_index_unique nums i i' h₁ h₂]
+    | none => exact absurd h₁.1 (h₂ i)
+  | none =>
+    cases r₂ with
+    | some i' => exact absurd h₂.1 (h₁ i')
+    | none => rfl
+
+/-- **`pivotFn` meets its spec** (both the `some` and `none` cases of `pivot_correct`). -/
+theorem pivotFn_spec (nums : List Int) : spec nums (pivotFn nums) := by
+  obtain ⟨hs, hlm, hn⟩ := pivot_correct nums
+  show match pivotFn nums with
+    | some i => IsPivot nums i ∧ ∀ j, j < i → ¬ IsPivot nums j
+    | none => ∀ j, ¬ IsPivot nums j
+  cases hf : pivotFn nums with
+  | some i => exact ⟨hs i hf, hlm i hf⟩
+  | none => exact hn hf
+
+/-- **`solve` equals `spec` as relations** — the EXACT-VALUE (Option) headline: existence
+    (`pivotFn_spec`) plus uniqueness (`spec_functional`) make the program exactly the leftmost-pivot
+    relation. -/
+theorem solve_eq_spec : solve = spec := by
+  apply hom_ext; intro nums r
+  show (r = pivotFn nums) ↔ spec nums r
+  constructor
+  · intro h; subst h; exact pivotFn_spec nums
+  · intro h; exact spec_functional nums r (pivotFn nums) h (pivotFn_spec nums)
+
 /-! ## Running the program -/
 
 example : pivotFn [1, 7, 3, 6, 5, 6] = some 3 := by decide
 example : pivotFn [1, 2, 3] = none := by decide
 
 end Freyd.Alg.RelSet.LC724
+

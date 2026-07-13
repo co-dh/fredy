@@ -24,6 +24,7 @@
   Mathlib-free; axioms ⊆ {propext, Quot.sound}.
 -/
 import AOP.A6_TreeBin
+import AOP.A7_4_Horner   -- `eq_A_comp_maxRel`: the `min (≤)·Λ spec` morphism-equation bridge
 import Fredy.Exacts
 
 set_option linter.unusedVariables false
@@ -186,6 +187,28 @@ theorem minDepthFn_le_of_isRL : ∀ (t : Tree Int) (n : Nat), IsRLDepth t n → 
 theorem minDepth_correct (t : Tree Int) (ht : t ≠ Tree.nil) :
     IsRLDepth t (minDepthFn t) ∧ ∀ n, IsRLDepth t n → minDepthFn t ≤ n :=
   ⟨minDepthFn_isRL t ht, fun n h => minDepthFn_le_of_isRL t n h⟩
+
+/-- The **totalized specification**: `spec` plus LeetCode's edge convention `minDepth ∅ = 0`.  The
+    achievability relation `IsRLDepth` is empty on `Tree.nil` (an empty tree has no root-to-leaf
+    path), so the plain `spec` has no minimum there; the extra clause `t = nil ∧ d = 0` pins the
+    empty case, making the minimum total.  On a non-empty `t` the clause is vacuous, so `specT`
+    agrees with `spec`. -/
+def specT : dTree Int ⟶ dNat := fun t d => IsRLDepth t d ∨ (t = Tree.nil ∧ d = 0)
+
+/-- **Honest headline (§7.5 `min (≤)·Λ spec`)**: `solve` is exactly the morphism `A specT ≫ maxRel D`
+    for the REVERSED preference order `D w z := w ≤ z` (so `maxRel D` is the `≤`-minimum) — the
+    shortest achievable root-to-leaf path length, with `∅ ↦ 0`.  Bridged from `minDepthFn_isRL` and
+    `minDepthFn_le_of_isRL`. -/
+theorem solve_eq_minRel : solve = A specT ≫ maxRel (fun w z : Nat => w ≤ z) :=
+  eq_A_comp_maxRel _ (fun x y h1 h2 => Nat.le_antisymm h1 h2) minDepthFn specT
+    (fun t => by
+      cases t with
+      | nil => exact Or.inr ⟨rfl, rfl⟩
+      | node l a r => exact Or.inl (minDepthFn_isRL _ (node_ne_nil l a r)))
+    (fun t d hd => by
+      rcases hd with h | ⟨ht, hd0⟩
+      · exact minDepthFn_le_of_isRL t d h
+      · subst ht; subst hd0; exact Nat.le_refl 0)
 
 /-! ## Running the program -/
 

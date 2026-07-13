@@ -234,6 +234,120 @@ theorem solve_le_spec : solve ⊑ spec := by
   rw [hl]
   exact merge_correct p.1 p.2 h1 h2
 
+/-! ## Uniqueness: a sorted list is determined by its multiset (canonical home for the fact that
+    `L23`/`L977`'s sorted outputs are unique). -/
+
+/-- A value has positive count in a list starting with it. -/
+theorem count_self_pos (a : Int) (l : List Int) : 0 < count a (a :: l) := by
+  show 0 < (if a = a then (1 : Nat) else 0) + count a l
+  rw [if_pos rfl]; omega
+
+/-- A value with positive count is a member. -/
+theorem mem_of_count_pos {v : Int} : ∀ l : List Int, 0 < count v l → v ∈ l := by
+  intro l
+  induction l with
+  | nil => intro h; exact absurd h (Nat.lt_irrefl 0)
+  | cons x xs ih =>
+      intro h
+      by_cases hxv : x = v
+      · subst hxv; exact List.mem_cons_self
+      · have e : count v (x :: xs) = count v xs := by
+          show (if x = v then (1 : Nat) else 0) + count v xs = count v xs
+          rw [if_neg hxv]; omega
+        rw [e] at h
+        exact List.mem_cons_of_mem x (ih h)
+
+/-- In a sorted list, the head is `≤` every other element. -/
+theorem sorted_head_le : ∀ (a : Int) (l : List Int), Sorted (a :: l) → ∀ z ∈ l, a ≤ z := by
+  intro a l
+  induction l generalizing a with
+  | nil => intro _ z hz; exact absurd hz List.not_mem_nil
+  | cons c l ih =>
+      intro hs z hz
+      obtain ⟨hac, hScl⟩ := hs
+      rcases List.mem_cons.mp hz with rfl | hz'
+      · exact hac
+      · exact Int.le_trans hac (ih c hScl z hz')
+
+/-- **Sorted lists with the same multiset are equal.**  Matching heads must be equal (each is the
+    minimum, so `≤` the other), then strip and recurse.  This is what pins the merge output uniquely,
+    turning `solve_le_spec` into a genuine morphism equation. -/
+theorem sorted_count_ext : ∀ xs ys : List Int,
+    Sorted xs → Sorted ys → (∀ v, count v xs = count v ys) → xs = ys := by
+  intro xs
+  induction xs with
+  | nil =>
+      intro ys _ _ hc
+      cases ys with
+      | nil => rfl
+      | cons b ys' =>
+          exfalso
+          have hpos := count_self_pos b ys'
+          have heq := hc b
+          have hnil : count b ([] : List Int) = 0 := rfl
+          omega
+  | cons a xs' ih =>
+      intro ys hSx hSy hc
+      cases ys with
+      | nil =>
+          exfalso
+          have hpos := count_self_pos a xs'
+          have heq := hc a
+          have hnil : count a ([] : List Int) = 0 := rfl
+          omega
+      | cons b ys' =>
+          have hax : ∀ z ∈ xs', a ≤ z := sorted_head_le a xs' hSx
+          have hby : ∀ z ∈ ys', b ≤ z := sorted_head_le b ys' hSy
+          have ha_in : a ∈ b :: ys' := by
+            apply mem_of_count_pos
+            have hpos := count_self_pos a xs'; rw [hc a] at hpos; exact hpos
+          have hb_in : b ∈ a :: xs' := by
+            apply mem_of_count_pos
+            have hpos := count_self_pos b ys'; rw [← hc b] at hpos; exact hpos
+          have hba : b ≤ a := by
+            rcases List.mem_cons.mp ha_in with rfl | ha'
+            · exact Int.le_refl _
+            · exact hby a ha'
+          have hab : a ≤ b := by
+            rcases List.mem_cons.mp hb_in with rfl | hb'
+            · exact Int.le_refl _
+            · exact hax b hb'
+          have hab_eq : a = b := Int.le_antisymm hab hba
+          subst hab_eq
+          have hSx' : Sorted xs' := ((sorted_cons a xs').mp hSx).2
+          have hSy' : Sorted ys' := ((sorted_cons a ys').mp hSy).2
+          have hc' : ∀ v, count v xs' = count v ys' := by
+            intro v
+            have h := hc v
+            have e1 : count v (a :: xs') = (if a = v then (1 : Nat) else 0) + count v xs' := rfl
+            have e2 : count v (a :: ys') = (if a = v then (1 : Nat) else 0) + count v ys' := rfl
+            rw [e1, e2] at h; omega
+          rw [ih ys' hSx' hSy' hc']
+
+/-! ## Headline: on SORTED inputs, `solve` IS `spec` (a genuine morphism equation) -/
+
+/-- The precondition coreflexive: the sub-identity on WELL-FORMED inputs (both lists sorted). -/
+def pre : dInput ⟶ dInput := fun x y => x = y ∧ Sorted x.1 ∧ Sorted x.2
+
+/-- **Preconditioned headline**: restricted to sorted inputs (`pre`), the program equals the
+    specification — `pre ≫ solve = pre ≫ spec`.  Existence is `merge_correct`; uniqueness is
+    `sorted_count_ext` (a sorted list is pinned by its multiset).  The precondition is required
+    because the multiset-union spec only determines a UNIQUE list once sortedness is assumed. -/
+theorem pre_solve_eq_spec : pre ≫ solve = pre ≫ spec := by
+  apply hom_ext; intro p l
+  rw [comp_apply, comp_apply]
+  constructor
+  · rintro ⟨y, ⟨rfl, h1, h2⟩, hsolve⟩
+    refine ⟨p, ⟨rfl, h1, h2⟩, ?_⟩
+    intro ha hb
+    rw [(hsolve : l = mergeFn p.1 p.2)]; exact merge_correct p.1 p.2 ha hb
+  · rintro ⟨y, ⟨rfl, h1, h2⟩, hspec⟩
+    refine ⟨p, ⟨rfl, h1, h2⟩, ?_⟩
+    obtain ⟨hSl, hCl⟩ := hspec h1 h2
+    obtain ⟨hSm, hCm⟩ := merge_correct p.1 p.2 h1 h2
+    show l = mergeFn p.1 p.2
+    exact sorted_count_ext l (mergeFn p.1 p.2) hSl hSm (fun v => by rw [hCl v, hCm v])
+
 /-! ## Running the program -/
 
 example : mergeFn ([1, 2, 4] : List Int) [1, 3, 4] = [1, 1, 2, 3, 4, 4] := by decide

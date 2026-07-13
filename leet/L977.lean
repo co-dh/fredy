@@ -70,6 +70,29 @@ theorem solve_correct (xs out : List Int) (h : solve xs out) :
   have hout : out = sortedSquaresFn xs := h
   rw [hout]; exact squares_correct xs
 
+/-! ## Specification and the structural-output headline -/
+
+/-- The **specification** as a morphism `Lst ⟶ Lst` in `Rel(Set)`: the output is sorted and its
+    multiset is exactly the squared inputs.  Stated via `Sorted`/`countL` (program-independent), NOT
+    via `sortedSquaresFn`.  No precondition: the square-then-sort route is correct for ANY input, so
+    the LeetCode input-sortedness assumption is not needed. -/
+def spec : Lst ⟶ Lst := fun xs out =>
+  Sorted out ∧ ∀ v, countL out v = countL (xs.map (fun a => a * a)) v
+
+/-- **`solve` equals `spec` as relations** — the STRUCTURAL-OUTPUT headline: existence
+    (`squares_correct`) plus uniqueness (`LC242.sorted_eq_of_countL_eq`: a sorted list is pinned by
+    its multiset) make the program exactly the sorted-squares relation. -/
+theorem solve_eq_spec : solve = spec := by
+  apply hom_ext; intro xs out
+  show (out = sortedSquaresFn xs) ↔
+      (Sorted out ∧ ∀ v, countL out v = countL (xs.map (fun a => a * a)) v)
+  constructor
+  · intro h; subst h; exact squares_correct xs
+  · intro h
+    obtain ⟨hS, hC⟩ := h
+    obtain ⟨hSm, hCm⟩ := squares_correct xs
+    exact LC242.sorted_eq_of_countL_eq out (sortedSquaresFn xs) hS hSm (fun x => by rw [hC x, hCm x])
+
 /-! ## Running the program -/
 
 example : sortedSquaresFn [-4, -1, 0, 3, 10] = [0, 1, 9, 16, 100] := by decide

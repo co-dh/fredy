@@ -215,6 +215,47 @@ theorem solve_correct (ivs : List (Int × Int)) (hval : Valid ivs) (b : Bool) (h
   have hb : b = canAttendFn ivs := h
   rw [hb]; exact canAttend_correct ivs hval
 
+/-! ## Specification and the (preconditioned) decision headline -/
+
+/-- The **specification** as a morphism `Ivs ⟶ Bool` in `Rel(Set)`: `r = true` iff the meetings are
+    pairwise non-overlapping — the all-pairs `NonOverlap`, a genuine `Iff`, stated independently of
+    the sorting algorithm `canAttendFn`. -/
+def spec : Ivs ⟶ dBool := fun ivs r => (r = true ↔ NonOverlap ivs)
+
+/-- The precondition coreflexive: the sub-identity carving out the WELL-FORMED inputs (every
+    interval has `start < end`, LeetCode's guarantee), needed because `canAttend_correct` only
+    decides `NonOverlap` on `Valid` inputs. -/
+def pre : Ivs ⟶ Ivs := fun x y => x = y ∧ Valid x
+
+/-- Two booleans that agree on being `true` are equal (Bool extensionality). -/
+theorem bool_eq_of_iff_true {b c : Bool} (h : (b = true) ↔ (c = true)) : b = c := by
+  cases b with
+  | true => cases c with
+    | true => rfl
+    | false => exact (h.mp rfl).symm
+  | false => cases c with
+    | true => exact h.mpr rfl
+    | false => rfl
+
+/-- **Preconditioned decision headline**: restricted to `Valid` inputs (`pre`), the program `solve`
+    is exactly the specification — `pre ≫ solve = pre ≫ spec`.  The precondition appears on both
+    sides because `canAttendFn` decides `NonOverlap` only for well-formed intervals; off the `Valid`
+    domain both composites are empty. -/
+theorem pre_solve_eq_spec : pre ≫ solve = pre ≫ spec := by
+  apply hom_ext; intro ivs b
+  rw [comp_apply, comp_apply]
+  constructor
+  · rintro ⟨ivs', ⟨heq, hval⟩, hsolve⟩
+    subst heq
+    refine ⟨ivs, ⟨rfl, hval⟩, ?_⟩
+    show b = true ↔ NonOverlap ivs
+    rw [(hsolve : b = canAttendFn ivs)]; exact canAttend_correct ivs hval
+  · rintro ⟨ivs', ⟨heq, hval⟩, hspec⟩
+    subst heq
+    refine ⟨ivs, ⟨rfl, hval⟩, ?_⟩
+    show b = canAttendFn ivs
+    exact bool_eq_of_iff_true ((hspec : b = true ↔ NonOverlap ivs).trans (canAttend_correct ivs hval).symm)
+
 /-! ## Running the program -/
 
 -- LeetCode 252's own example: `[[0,30],[5,10],[15,20]] → false` (`[0,30]` conflicts with both).

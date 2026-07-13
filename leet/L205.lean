@@ -492,6 +492,32 @@ theorem iso_correct (s t : List Int) : isIsoFn s t = true ↔ IsIso s t := by
   have := isoGo_iff s t [] [] [] [] rfl hst0 hst0 hnc0
   simpa only [List.nil_append] using this
 
+/-! ## Specification and the decision headline -/
+
+/-- The **specification** as a morphism `Input ⟶ Bool` in `Rel(Set)`: `r = true` iff the two
+    strings are isomorphic (same length, same equality pattern) — a genuine `Iff`, since this is a
+    DECISION problem, not an optimum to extremize. -/
+def spec : Input ⟶ dBool := fun p r => (r = true ↔ IsIso p.1 p.2)
+
+/-- Two booleans that agree on being `true` are equal (Bool extensionality). -/
+theorem bool_eq_of_iff_true {b c : Bool} (h : (b = true) ↔ (c = true)) : b = c := by
+  cases b with
+  | true => cases c with
+    | true => rfl
+    | false => exact (h.mp rfl).symm
+  | false => cases c with
+    | true => exact h.mpr rfl
+    | false => rfl
+
+/-- **`solve` equals `spec` as relations** — the DECISION-problem headline: the program `solve`
+    (deciding `isIsoFn`) is exactly the specification "`r = true` iff the strings are isomorphic". -/
+theorem solve_eq_spec : solve = spec := by
+  apply hom_ext; intro p r
+  show (r = isIsoFn p.1 p.2) ↔ (r = true ↔ IsIso p.1 p.2)
+  constructor
+  · intro h; rw [h]; exact iso_correct p.1 p.2
+  · intro h; exact bool_eq_of_iff_true (h.trans (iso_correct p.1 p.2).symm)
+
 /-! ## Running the program -/
 
 -- "egg" / "add" → true (pattern a,b,b both times)

@@ -200,6 +200,33 @@ theorem solve_correct (nums out : List Int) (h : solve nums out) : IsProductExce
   have hout : out = solveFn nums := h
   rw [hout]; exact solveFn_correct nums
 
+/-! ## Specification and the structural-output headline -/
+
+/-- The **specification** as a morphism `Nums ⟶ Nums` in `Rel(Set)`: `out` is the honest product-
+    except-self list of `nums` (`IsProductExceptSelf`, stated via `prodExcept`, program-independent). -/
+def spec : Nums ⟶ Nums := fun nums out => IsProductExceptSelf nums out
+
+/-- **Uniqueness**: an `IsProductExceptSelf` output is unique — two candidates of the right length
+    with the right value at every in-range index agree at every index (both `none` out of range),
+    hence are equal by list extensionality. -/
+theorem product_unique (nums o₁ o₂ : List Int)
+    (h₁ : IsProductExceptSelf nums o₁) (h₂ : IsProductExceptSelf nums o₂) : o₁ = o₂ := by
+  apply List.ext_getElem?
+  intro i
+  rcases Nat.lt_or_ge i nums.length with hi | hi
+  · rw [h₁.2 i hi, h₂.2 i hi]
+  · rw [List.getElem?_eq_none (by rw [h₁.1]; exact hi), List.getElem?_eq_none (by rw [h₂.1]; exact hi)]
+
+/-- **`solve` equals `spec` as relations** — the STRUCTURAL-OUTPUT headline: existence
+    (`solveFn_correct`) plus uniqueness (`product_unique`) make the program exactly the product-
+    except-self relation. -/
+theorem solve_eq_spec : solve = spec := by
+  apply hom_ext; intro nums out
+  show (out = solveFn nums) ↔ IsProductExceptSelf nums out
+  constructor
+  · intro h; rw [h]; exact solveFn_correct nums
+  · intro h; exact product_unique nums out (solveFn nums) h (solveFn_correct nums)
+
 /-! ## Running the program -/
 
 -- LeetCode 238's own example: `[1,2,3,4] → [24,12,8,6]`.

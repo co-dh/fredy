@@ -174,6 +174,39 @@ theorem solve_correct (xs : SnocList Bool Bool) :
       (solveFn xs = 0 ↔ allFalse xs) :=
   ⟨count_le_size xs, count_eq_size_iff_all_true xs, count_eq_zero_iff_all_false xs⟩
 
+/-! ## Honest exact-value headline: ground the answer in Lean's standard `List.count`
+
+  The `spec` above (`k = countFn xs`) merely restates the program (`solveFn := countFn`).  The honest
+  characterization of "number of `1`-bits" grounds it in Lean core's own `List.count`: convert the
+  bit-word to a plain `List Bool` and count the `true`s.  `countFn_eq_count` is the genuine bridge
+  (the running fold equals the standard count), so `solve = specCount` is a real derivation. -/
+
+/-- The bit-word as a plain `List Bool` (LSB-first, matching `countFn`'s fold order). -/
+def toBits : SnocList Bool Bool → List Bool
+  | SnocList.wrap b => [b]
+  | SnocList.snoc xs b => toBits xs ++ [b]
+
+/-- **The running count IS Lean's standard count of `true`** over the converted bit-list. -/
+theorem countFn_eq_count : ∀ xs, countFn xs = (toBits xs).count true
+  | SnocList.wrap b => by cases b <;> rfl
+  | SnocList.snoc xs b => by
+      show countFn xs + b2n b = (toBits xs ++ [b]).count true
+      rw [List.count_append, countFn_eq_count xs]
+      have hb : ([b] : List Bool).count true = b2n b := by cases b <;> rfl
+      rw [hb]
+
+/-- The **honest specification** as a morphism `Bits ⟶ ℕ` in `Rel(Set)`: the answer is the standard
+    `List.count` of `true` bits — grounded in Lean core, not in the file's own fold. -/
+def specCount : Bits ⟶ dNat := fun xs k => k = (toBits xs).count true
+
+/-- **`solve` equals `specCount` as relations** — the EXACT-VALUE headline: the fold-based program
+    equals the standard count of `true` bits.  The answer is pinned by the equation, so existence +
+    uniqueness collapse to `countFn_eq_count`. -/
+theorem solve_eq_specCount : solve = specCount := by
+  apply hom_ext; intro xs k
+  show (k = solveFn xs) ↔ (k = (toBits xs).count true)
+  rw [show solveFn xs = (toBits xs).count true from countFn_eq_count xs]
+
 /-! ## Running the program -/
 
 /-- Build a bit-list from a first bit and the rest, in order. -/

@@ -138,6 +138,64 @@ theorem firstUniq_correct (s : List Int) :
     obtain ⟨hib, -⟩ := List.getElem?_eq_some_iff.mp hic
     exact h i hib c hic
 
+/-! ## Specification and the exact-value (Option) headline -/
+
+/-- The **specification** as a morphism `Str ⟶ Option ℕ` in `Rel(Set)`: a `some i` answer is THE
+    first unique-character index (`IsFirstUniq`); a `none` answer means every character occurs at
+    least twice.  Stated via `IsFirstUniq`/`countL` (program-independent), NOT via `firstUniqFn`. -/
+def spec : Str ⟶ Ans := fun (s : List Int) (r : Option Nat) =>
+  match r with
+  | some i => IsFirstUniq s i
+  | none => ∀ (i : Nat) (c : Int), s[i]? = some c → countL s c ≥ 2
+
+/-- **Uniqueness of the first unique index**: two first-unique indices are equal — the smaller one's
+    character is unique (`countL = 1`), contradicting the other's "everything earlier repeats"
+    (`countL ≥ 2`) clause. -/
+theorem firstUniq_index_unique (s : List Int) (i i' : Nat)
+    (h : IsFirstUniq s i) (h' : IsFirstUniq s i') : i = i' := by
+  obtain ⟨⟨c, hci, hc1⟩, hbefore⟩ := h
+  obtain ⟨⟨c', hci', hc1'⟩, hbefore'⟩ := h'
+  rcases Nat.lt_trichotomy i i' with hlt | heq | hgt
+  · have h2 := hbefore' i hlt c hci; omega
+  · exact heq
+  · have h2 := hbefore i' hgt c' hci'; omega
+
+/-- **`spec` is functional**: at most one answer satisfies it. -/
+theorem spec_functional (s : List Int) : ∀ r₁ r₂ : Option Nat,
+    spec s r₁ → spec s r₂ → r₁ = r₂ := by
+  intro r₁ r₂ h₁ h₂
+  cases r₁ with
+  | some i =>
+    cases r₂ with
+    | some i' => rw [firstUniq_index_unique s i i' h₁ h₂]
+    | none =>
+      exfalso; obtain ⟨⟨c, hci, hc1⟩, _⟩ := h₁; have h2 := h₂ i c hci; omega
+  | none =>
+    cases r₂ with
+    | some i' =>
+      exfalso; obtain ⟨⟨c', hci', hc1'⟩, _⟩ := h₂; have h2 := h₁ i' c' hci'; omega
+    | none => rfl
+
+/-- **`firstUniqFn` meets its spec** (both the `some` and `none` cases of `firstUniq_correct`). -/
+theorem firstUniqFn_spec (s : List Int) : spec s (firstUniqFn s) := by
+  obtain ⟨hsome, hnone⟩ := firstUniq_correct s
+  show match firstUniqFn s with
+    | some i => IsFirstUniq s i
+    | none => ∀ i c, s[i]? = some c → countL s c ≥ 2
+  cases hf : firstUniqFn s with
+  | some i => exact hsome i hf
+  | none => exact fun i c => hnone hf i c
+
+/-- **`solve` equals `spec` as relations** — the EXACT-VALUE (Option) headline: existence
+    (`firstUniqFn_spec`) plus uniqueness (`spec_functional`) make the program exactly the
+    first-unique-index relation. -/
+theorem solve_eq_spec : solve = spec := by
+  apply hom_ext; intro s r
+  show (r = firstUniqFn s) ↔ spec s r
+  constructor
+  · intro h; subst h; exact firstUniqFn_spec s
+  · intro h; exact spec_functional s r (firstUniqFn s) h (firstUniqFn_spec s)
+
 /-! ## Running the program -/
 
 -- letters encoded as distinct `Int`s: l=1 e=2 t=3 c=4 o=5 d=6

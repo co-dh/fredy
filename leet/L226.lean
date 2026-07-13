@@ -110,6 +110,48 @@ theorem invert_invert : ∀ t : Tree A, invertFn (invertFn t) = t
     show Tree.node (invertFn (invertFn l)) a (invertFn (invertFn r)) = Tree.node l a r
     rw [invert_invert l, invert_invert r]
 
+/-! ## Specification and the structural-output headline -/
+
+/-- The **specification** as a morphism `dTree A ⟶ dTree A` in `Rel(Set)`: `out` is the structural
+    mirror of `t`.  Stated via `IsMirror` (a program-independent relation), NOT via `invertFn`. -/
+def spec : dTree A ⟶ (dTree A : RelSet.{0}) := fun t out => IsMirror t out
+
+/-- **Uniqueness**: the mirror of a tree is unique — two mirrors of the same `t` are equal.  A
+    STRUCTURAL-OUTPUT program needs this (alongside existence, `solve_correct`) to pin `spec` to a
+    single answer, so the relation `spec` is actually the graph of the program.  Induction on `t`,
+    the crosswise children matched by the two IHs. -/
+theorem mirror_unique : ∀ (t o₁ o₂ : Tree A), IsMirror t o₁ → IsMirror t o₂ → o₁ = o₂ := by
+  intro t
+  induction t with
+  | nil =>
+    intro o₁ o₂ h₁ h₂
+    cases o₁ with
+    | nil => cases o₂ with
+      | nil => rfl
+      | node _ _ _ => exact h₂.elim
+    | node _ _ _ => exact h₁.elim
+  | node l a r ihl ihr =>
+    intro o₁ o₂ h₁ h₂
+    cases o₁ with
+    | nil => exact h₁.elim
+    | node p b q =>
+      cases o₂ with
+      | nil => exact h₂.elim
+      | node p' b' q' =>
+        obtain ⟨hab, hlq, hrp⟩ := h₁
+        obtain ⟨hab', hlq', hrp'⟩ := h₂
+        rw [← hab, ← hab', ihl q q' hlq hlq', ihr p p' hrp hrp']
+
+/-- **`solve` equals `spec` as relations** — the STRUCTURAL-OUTPUT headline: existence
+    (`solve_correct`) plus uniqueness (`mirror_unique`) make the program exactly the mirror
+    relation. -/
+theorem solve_eq_spec : (solve : dTree A ⟶ dTree A) = spec := by
+  apply hom_ext; intro t v
+  show (v = invertFn t) ↔ IsMirror t v
+  constructor
+  · intro h; rw [h]; exact solve_correct t
+  · intro h; exact mirror_unique t v (invertFn t) h (solve_correct t)
+
 /-! ## Running the program -/
 
 /-- A single-node tree labelled `a`. -/
